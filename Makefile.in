@@ -1,24 +1,25 @@
+srcdir=@srcdir@
 CC	=	@CC@
 CCFLAGS	=	@CFLAGS@ -g -O2 -Wall -D__UNIX__ -DBUILD_DLL -DDW_RESOURCES
 LFLAGS	=	@LIBS@
 INSTALL =	@INSTALL@
-INCPATH	=	-I.. -I.
+INCPATH	=	-I.. -I. -I$(srcdir)
 DESTDIR	=	./lib/
 MLFLAGS	=	-L$(DESTDIR) 
 TARGET	=	dw
-SRCS	=	gtk/dw.c
-OBJECTS	=	gtk/dw.o
-SRCS2	=	compat.c
+SRCS	=	$(srcdir)/gtk/dw.c
+OBJECTS	=	dw.o
+SRCS2	=	$(srcdir)compat.c
 OBJECTS2=	compat.o
 TARGET2 =	dwcompat
 VER_MAJ	=	1
 VER_MIN	=	0
 PREFIX	=	@prefix@
 
-.SUFFIXES:	.c .h
+#.SUFFIXES:	.c .h
 
-.c.o:
-	$(CC) -c $(CCFLAGS) $(INCPATH) -o $@ $<
+#.c.o:
+#	$(CC) -c $(CCFLAGS) $(INCPATH) -o $@ $<
     
 
 # Link flags shared objects
@@ -70,11 +71,11 @@ SYSCONF_LINK_LIB = $(SYSCONF_LINK_LIB_SHARED)
 SYSCONF_LINK_TARGET2 = $(SYSCONF_LINK_TARGET_SHARED2)
 SYSCONF_LINK_LIB2 = $(SYSCONF_LINK_LIB_SHARED2)
 
-all: $(SYSCONF_LINK_TARGET) $(SYSCONF_LINK_TARGET2)
+all: $(SYSCONF_LINK_TARGET) $(SYSCONF_LINK_TARGET2) dwtest
 
 install:
-		$(INSTALL) dw.h $(PREFIX)/include; \
-		$(INSTALL) compat.h $(PREFIX)/include; \
+		$(INSTALL) $(srcdir)/dw.h $(PREFIX)/include; \
+		$(INSTALL) $(srcdir)/compat.h $(PREFIX)/include; \
 		$(INSTALL) dw-config $(PREFIX)/bin; \
 		cd $(DESTDIR); \
 		$(INSTALL) $(SYSCONF_LINK_TARGET)  $(PREFIX)/lib; \
@@ -93,12 +94,36 @@ clean:
 	rm -f *~
 	rm -f *.a
 	rm -f gtk/*.o
+
+$(DESTDIR):
+	mkdir $(DESTDIR)
         
-$(SYSCONF_LINK_TARGET2): $(OBJECTS2) 
+$(SYSCONF_LINK_TARGET2): $(OBJECTS2) $(DESTDIR)
 	$(SYSCONF_LINK_LIB2)
         
-$(SYSCONF_LINK_TARGET): $(OBJECTS) 
+$(SYSCONF_LINK_TARGET): $(OBJECTS) $(DESTDIR)
 	$(SYSCONF_LINK_LIB)
 
+dw.o: $(srcdir)/gtk/dw.c
+	$(CC) -c $(CCFLAGS) $(INCPATH) -o $@ $(srcdir)/gtk/dw.c
+
+compat.o: $(srcdir)/compat.c
+	$(CC) -c $(CCFLAGS) $(INCPATH) -o $@ $(srcdir)/compat.c
+
+ci.o: $(srcdir)/ci.c
+	$(CC) -c $(CCFLAGS) $(INCPATH) -o $@ $(srcdir)/ci.c
+
+dwtest.o: $(srcdir)/dwtest.c
+	$(CC) -c $(CCFLAGS) $(INCPATH) -o $@ $(srcdir)/dwtest.c
+                
+ci: ci.o
+	$(CC) -o ci ci.o -L$(PREFIX)/lib -ldw -ldwcompat $(LFLAGS)
+                
 dwtest: dwtest.o
-	$(CC) -o dwtest dwtest.o -Llib -ldw -ldwcompat $(LFLAGS)
+	$(CC) -o dwtest dwtest.o -L$(PREFIX)/lib -ldw -ldwcompat $(LFLAGS)
+
+zip:
+	zip dw.zip $(srcdir)/makefile.* $(srcdir)/readme $(srcdir)/*.c $(srcdir)/*.h \
+		$(srcdir)/*.def $(srcdir)/install.sh $(srcdir)/*.in $(srcdir)/configure \
+		$(srcdir)/ac*.m4 $(srcdir)/gtk/*.c $(srcdir)/win/*.c $(srcdir)/os2/*.c \
+		$(srcdir)/platform/*.h
