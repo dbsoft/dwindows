@@ -17,6 +17,7 @@ EXPORTS
   drivefree          @23
   isdrive            @24
   drivesize          @25
+  getfsname          @26
 
   opendir            @30
   openxdir           @31

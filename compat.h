@@ -189,9 +189,11 @@ int makedir(char *path);
 void nonblock(int fd);
 void setfileinfo(char *filename, char *url);
 #if defined(__IBMC__) || defined(__WIN32__)
+unsigned long drivesize(int drive);
 unsigned long drivefree(int drive);
 #else
 unsigned long long drivefree(int drive);
+unsigned long long drivesize(int drive);
 #endif
 int isdrive(int drive);
 FILE *fsopen(char *path, char *modes);

@@ -5,6 +5,17 @@
 #include <share.h>
 #endif
 
+#ifdef __UNIX__
+#ifdef __FreeBSD__
+#include <sys/param.h>
+#include <sys/ucred.h>
+#include <sys/mount.h>
+#else
+#include <mntent.h>
+#include <sys/vfs.h>
+#endif
+#endif
+
 int	sockread (int a, void *b, int c, int d)
 {
 #if defined(__IBMC__) || (defined(__WIN32__) && !defined(__CYGWIN32__))
@@ -188,13 +199,54 @@ unsigned long long drivefree(int drive)
 #elif defined(__WIN32__) || defined(WINNT)
 	char buffer[10] = "C:\\";
 	DWORD spc, bps, fc, tc;
+	ULONG kbytes;
 
 	buffer[0] = drive + 'A' - 1;
 
 	if(GetDiskFreeSpace(buffer, &spc, &bps, &fc, &tc) == 0)
 		return 0;
-	return (unsigned long)(spc*bps*(fc/1024));
+
+	kbytes = fc/1024;
+
+	return (unsigned long)(spc*bps*kbytes);
+#elif defined(__FreeBSD__)
+	struct statfs *fsp;
+	int entries, index = 1;
+
+	entries = getmntinfo (&fsp, MNT_NOWAIT);
+
+	for (; entries-- > 0; fsp++)
+	{
+		if(index == drive)
+			return (fsp->f_bsize * fsp->f_bavail) / 1024;
+	}
+	return 0;
 #else
+	FILE *fp = setmntent(MOUNTED, "r");
+	struct mntent *mnt;
+	struct statfs sfs;
+	int index = 1;
+
+	if(fp)
+	{
+		while((mnt = getmntent(fp)))
+		{
+			if(index == drive)
+			{
+				long long size = 0;
+
+				if(mnt->mnt_dir)
+				{
+					statfs(mnt->mnt_dir, &sfs);
+					size = sfs.f_bsize * (sfs.f_bavail / 1024);
+				}
+				endmntent(fp);
+				return size;
+			}
+			index++;          
+		}
+		endmntent(fp);
+	}
 	return 0;
 #endif
 }
@@ -228,13 +280,54 @@ unsigned long long drivesize(int drive)
 #elif defined(__WIN32__) || defined(WINNT)
 	char buffer[10] = "C:\\";
 	DWORD spc, bps, fc, tc;
+	ULONG kbytes;
 
 	buffer[0] = drive + 'A' - 1;
 
 	if(GetDiskFreeSpace(buffer, &spc, &bps, &fc, &tc) == 0)
 		return 0;
-	return (unsigned long)(spc*bps*(tc/1024));
+
+	kbytes = tc/1024;
+
+	return (unsigned long)(spc*bps*kbytes);
+#elif defined(__FreeBSD__)
+	struct statfs *fsp;
+	int entries, index = 1;
+
+	entries = getmntinfo (&fsp, MNT_NOWAIT);
+
+	for (; entries-- > 0; fsp++)
+	{
+		if(index == drive)
+			return (fsp->f_bsize * fsp->f_blocks) / 1024;
+	}
+	return 0;
 #else
+	FILE *fp = setmntent(MOUNTED, "r");
+	struct mntent *mnt;
+	struct statfs sfs;
+	int index = 1;
+
+	if(fp)
+	{
+		while((mnt = getmntent(fp)))
+		{
+			if(index == drive)
+			{
+				long long size = 0;
+
+				if(mnt->mnt_dir)
+				{
+					statfs(mnt->mnt_dir, &sfs);
+					size = sfs.f_bsize * (sfs.f_blocks / 1024);
+				}
+				endmntent(fp);
+				return size;
+			}
+			index++;          
+		}
+		endmntent(fp);
+	}
 	return 0;
 #endif
 }
@@ -263,8 +356,87 @@ int isdrive(int drive)
 
 	if(GetVolumeInformation(buffer, volname, 100, &spc, &bps, &fc, NULL, 0) != 0)
 		return 1;
+#elif defined(__FreeBSD__)
+	struct statfs *fsp;
+	int entries, index = 1;
+
+	entries = getmntinfo (&fsp, MNT_NOWAIT);
+
+	for (; entries-- > 0; fsp++)
+	{
+		if(index == drive && fsp->f_blocks)
+			return 1;
+	}
+	return 0;
+#else
+	FILE *fp = setmntent(MOUNTED, "r");
+	struct mntent *mnt;
+	struct statfs sfs;
+	int index = 1;
+
+	if(fp)
+	{
+		while((mnt = getmntent(fp)))
+		{
+			if(index == drive)
+			{
+				endmntent(fp);
+				if(mnt->mnt_dir)
+				{
+					statfs(mnt->mnt_dir, &sfs);
+					if(sfs.f_blocks)
+						return 1;
+				}
+				return 0;
+			}
+			index++;          
+		}
+		endmntent(fp);
+	}
 #endif
 	return 0;
+}
+
+void getfsname(int drive, char *buf, int len)
+{
+#ifdef __UNIX__
+#ifdef __FreeBSD__
+	struct statfs *fsp;
+	int entries, index = 1;
+
+	strncpy(buf, "Unknown", len);
+
+	entries = getmntinfo (&fsp, MNT_NOWAIT);
+
+	for (; entries-- > 0; fsp++)
+	{
+		if(index == drive)
+			strncpy(buf, fsp->f_mntonname, len);
+	}
+#else
+	FILE *fp = setmntent(MOUNTED, "r");
+	struct mntent *mnt;
+	int index = 1;
+
+	strncpy(buf, "Unknown", len);
+
+	if(fp)
+	{
+		while((mnt = getmntent(fp)))
+		{
+			if(index == drive && mnt->mnt_dir)
+				strncpy(buf, mnt->mnt_dir, len);
+			index++;          
+		}
+		endmntent(fp);
+	}
+#endif
+#elif defined(__OS2__)
+	/* No snprintf() on OS/2 ??? */
+	sprintf(buf, "Drive %c",  (char)drive + 'A' - 1);
+#else
+	snprintf(buf, len, "Drive %c",  (char)drive + 'A' - 1);
+#endif
 }
 
 void setfileinfo(char *filename, char *url)
