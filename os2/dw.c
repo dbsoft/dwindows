@@ -42,7 +42,7 @@ char *DefaultFont = "9.WarpSans";
 HAB dwhab = 0;
 HMQ dwhmq = 0;
 DWTID _dwtid = 0;
-LONG _foreground = 0xAAAAAA, _background = 0;
+LONG _foreground = 0xAAAAAA, _background = DW_CLR_DEFAULT;
 
 HWND hwndBubble = NULLHANDLE, hwndBubbleLast = NULLHANDLE, hwndEmph = NULLHANDLE;
 PRECORDCORE pCore = NULL, pCoreEmph = NULL;

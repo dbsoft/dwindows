@@ -698,6 +698,7 @@ typedef struct _dwdialog {
 #define DW_PIXMAP_HEIGHT(x) (x ? x->height : 0)
 
 #define DW_RGB_COLOR (0xF0000000)
+#define DW_RGB_TRANSPARENT (0x0F000000)
 #define DW_RGB_MASK (0x00FFFFFF)
 #define DW_RED_MASK (0x000000FF)
 #define DW_GREEN_MASK (0x0000FF00)

@@ -4,6 +4,7 @@
  *          A GTK like implementation of the Win32 GUI
  *
  * (C) 2000-2003 Brian Smith <dbsoft@technologist.com>
+ * (C) 2003 Mark Hessling <m.hessling@qut.edu.au>
  *
  */
 #define _WIN32_IE 0x0500
@@ -416,6 +417,8 @@ BOOL CALLBACK _free_window_memory(HWND handle, LPARAM lParam)
 /* Convert to our internal color scheme */
 ULONG _internal_color(ULONG color)
 {
+	if(color == DW_CLR_DEFAULT)
+		return DW_RGB_TRANSPARENT;
 	if(color < 18)
 		return DW_RGB(_red[color], _green[color], _blue[color]);
 	return color;
@@ -3054,7 +3057,7 @@ int API dw_init(int newthread, int argc, char *argv[])
 	for(z=0;z<THREAD_LIMIT;z++)
 	{
 		_foreground[z] = RGB(128,128,128);
-		_background[z] = 0;
+		_background[z] = DW_RGB_TRANSPARENT;
 		_hPen[z] = CreatePen(PS_SOLID, 1, _foreground[z]);
 		_hBrush[z] = CreateSolidBrush(_foreground[z]);
 	}
@@ -6858,7 +6861,13 @@ void API dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
 	}
 	oldFont = SelectObject(hdc, hFont);
 	SetTextColor(hdc, _foreground[threadid]);
-	SetBkMode(hdc, TRANSPARENT);
+	if(_background[threadid] == DW_RGB_TRANSPARENT)
+		SetBkMode(hdc, TRANSPARENT);
+	else
+	{
+		SetBkMode(hdc, OPAQUE);
+		SetBkColor(hdc, _background[threadid]);
+	}
 	TextOut(hdc, x, y, text, strlen(text));
 	SelectObject(hdc, oldFont);
 	if(mustdelete)

@@ -4,6 +4,7 @@
  *          GTK forwarder module for portabilty.
  *
  * (C) 2000-2003 Brian Smith <dbsoft@technologist.com>
+ * (C) 2003 Mark Hessling <m.hessling@qut.edu.au>
  *
  */
 #include "dw.h"
