@@ -21,6 +21,7 @@ EXPORTS
   setfileinfo        @22
   drivefree          @23
   isdrive            @24
+  drivesize          @25
 
   opendir            @30
   openxdir           @31
