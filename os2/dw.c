@@ -835,7 +835,7 @@ void _check_resize_notebook(HWND hwnd)
 
 				_do_resize(pagebox, rc.xRight - rc.xLeft, rc.yTop - rc.yBottom);
 			}
-			page = (ULONG)WinSendMsg(hwnd, BKM_QUERYPAGEID, page, MPFROM2SHORT(BKA_NEXT, BKA_MAJOR));
+			page = (ULONG)WinSendMsg(hwnd, BKM_QUERYPAGEID, (MPARAM)page, MPFROM2SHORT(BKA_NEXT, BKA_MAJOR));
 		}
 
 	}
@@ -1446,7 +1446,7 @@ MRESULT EXPENTRY _comboentryproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 	case WM_CHAR:
 		/* A Similar problem to the MLE, if ESC just return */
 		if(SHORT1FROMMP(mp2) == 283)
-			return TRUE;
+			return (MRESULT)TRUE;
 		break;
 	}
 
@@ -1509,7 +1509,7 @@ MRESULT EXPENTRY _entryproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 		 * window hangs for reasons unknown. (in an MLE)
 		 */
 		else if(SHORT1FROMMP(mp2) == 283)
-			return TRUE;
+			return (MRESULT)TRUE;
 
 		break;
 	case WM_SIZE:
@@ -2287,7 +2287,7 @@ void _handle_splitbar_resize(HWND hwnd, float percent, int type, int x, int y)
 {
 	if(type == BOXHORZ)
 	{
-		int newx = x - SPLITBAR_WIDTH, newy = y;
+		int newx = x - SPLITBAR_WIDTH;
 		float ratio = (float)percent/(float)100.0;
 		HWND handle = (HWND)dw_window_get_data(hwnd, "_dw_topleft");
 		Box *tmp = WinQueryWindowPtr(handle, QWP_USER);
@@ -2309,7 +2309,7 @@ void _handle_splitbar_resize(HWND hwnd, float percent, int type, int x, int y)
 	}
 	else
 	{
-		int newx = x, newy = y - SPLITBAR_WIDTH;
+		int newy = y - SPLITBAR_WIDTH;
 		float ratio = (float)percent/(float)100.0;
 		HWND handle = (HWND)dw_window_get_data(hwnd, "_dw_topleft");
 		Box *tmp = WinQueryWindowPtr(handle, QWP_USER);
@@ -2729,7 +2729,6 @@ MRESULT EXPENTRY _TreeProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 
 	switch(msg)
 	{
-#if 0 /* Why doesn't this work? */
 	case WM_PAINT:
 		{
 			HPS hps;
@@ -2737,7 +2736,7 @@ MRESULT EXPENTRY _TreeProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 			POINTL ptl[2];
 
 			if(oldproc)
-				return oldproc(hwnd, msg, mp1, mp2);
+				oldproc(hwnd, msg, mp1, mp2);
 
 			hps = WinBeginPaint(hwnd, 0, 0);
 			WinQueryWindowRect(hwnd, &rcl);
@@ -2752,7 +2751,6 @@ MRESULT EXPENTRY _TreeProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 			WinEndPaint(hps);
 		}
 		return MRFROMSHORT(FALSE);
-#endif
 	case WM_SETFOCUS:
 		_run_event(hwnd, msg, mp1, mp2);
 		break;
@@ -6622,10 +6620,9 @@ HWND dw_splitbar_new(int type, HWND topleft, HWND bottomright, unsigned long id)
  */
 void dw_splitbar_set(HWND handle, float percent)
 {
-	/* We probably need to force a redraw here */
 	float *mypercent = (float *)dw_window_get_data(handle, "_dw_percent");
 	int type = (int)dw_window_get_data(handle, "_dw_type");
-    int width, height;
+    unsigned long width, height;
 
 	if(mypercent)
 		*mypercent = percent;
