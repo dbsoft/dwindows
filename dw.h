@@ -308,12 +308,9 @@ typedef struct _hpixmap {
 	void *bits;
 } *HPIXMAP;
 
-typedef struct _hmenui {
-	HMENU menu;
-	HWND hwnd;
-} HMENUI;
+typedef HWND HMENUI;
 
-static HMENUI DW_NOMENU = { 0, 0 };
+#define DW_NOMENU NULL
 #endif
 
 typedef struct _item {

@@ -3688,11 +3688,7 @@ HWND API dw_notebook_new(ULONG id, int top)
  */
 HMENUI API dw_menu_new(ULONG id)
 {
-	HMENUI tmp;
-
-	tmp.menu = CreatePopupMenu();
-	tmp.hwnd = NULL;
-	return tmp;
+	return (HMENUI)CreatePopupMenu();
 }
 
 /*
@@ -3704,11 +3700,12 @@ HMENUI API dw_menubar_new(HWND location)
 {
 	HMENUI tmp;
 
-	tmp.menu = CreateMenu();
-	tmp.hwnd = location;
+	tmp = (HMENUI)CreateMenu();
 
-	SetMenu(location, tmp.menu);
-	return tmp;
+	dw_window_set_data(location, "_dw_menu", (void *)tmp);
+
+	SetMenu(location, (HMENU)tmp);
+	return location;
 }
 
 /*
@@ -3719,7 +3716,14 @@ HMENUI API dw_menubar_new(HWND location)
 void API dw_menu_destroy(HMENUI *menu)
 {
 	if(menu)
-		DestroyMenu(menu->menu);
+	{
+		HMENU mymenu = (HMENU)*menu;
+
+		if(IsWindow((HWND)mymenu) && !IsMenu(mymenu))
+			mymenu = (HMENU)dw_window_get_data((HWND)mymenu, "_dw_menu");
+        if(IsMenu(mymenu))
+			DestroyMenu(mymenu);
+	}
 }
 
 /*
@@ -3736,6 +3740,10 @@ void API dw_menu_destroy(HMENUI *menu)
 HWND API dw_menu_append_item(HMENUI menux, char *title, ULONG id, ULONG flags, int end, int check, HMENUI submenu)
 {
 	MENUITEMINFO mii;
+	HMENU mymenu = (HMENU)menux;
+
+	if(IsWindow(menux) && !IsMenu(mymenu))
+		mymenu = (HMENU)dw_window_get_data(menux, "_dw_menu");
 
 	mii.cbSize = sizeof(MENUITEMINFO);
 	mii.fMask = MIIM_ID | MIIM_SUBMENU | MIIM_TYPE;
@@ -3759,13 +3767,16 @@ HWND API dw_menu_append_item(HMENUI menux, char *title, ULONG id, ULONG flags, i
 		mii.fType = MFT_SEPARATOR;
 
 	mii.wID = id;
-	mii.hSubMenu = submenu.menu;
+    if(IsMenu((HMENU)submenu))
+		mii.hSubMenu = (HMENU)submenu;
+	else
+		mii.hSubMenu = 0;
 	mii.dwTypeData = title;
 	mii.cch = strlen(title);
 
-	InsertMenuItem(menux.menu, 65535, TRUE, &mii);
-	if(menux.hwnd)
-		DrawMenuBar(menux.hwnd);
+	InsertMenuItem(mymenu, 65535, TRUE, &mii);
+	if(IsWindow(menux) && !IsMenu((HMENU)menux))
+		DrawMenuBar(menux);
 	return (HWND)id;
 }
 
@@ -3779,6 +3790,10 @@ HWND API dw_menu_append_item(HMENUI menux, char *title, ULONG id, ULONG flags, i
 void API dw_menu_item_set_check(HMENUI menux, unsigned long id, int check)
 {
 	MENUITEMINFO mii;
+	HMENU mymenu = (HMENU)menux;
+
+	if(IsWindow(menux) && !IsMenu(mymenu))
+		mymenu = (HMENU)dw_window_get_data(menux, "_dw_menu");
 
 	mii.cbSize = sizeof(MENUITEMINFO);
 	mii.fMask = MIIM_STATE;
@@ -3786,7 +3801,7 @@ void API dw_menu_item_set_check(HMENUI menux, unsigned long id, int check)
 		mii.fState = MFS_CHECKED;
 	else
 		mii.fState = MFS_UNCHECKED;
-	SetMenuItemInfo(menux.menu, id, FALSE, &mii);
+	SetMenuItemInfo(mymenu, id, FALSE, &mii);
 }
 
 /*
@@ -3801,9 +3816,14 @@ void API dw_menu_popup(HMENUI *menu, HWND parent, int x, int y)
 {
 	if(menu)
 	{
+		HMENU mymenu = (HMENU)*menu;
+
+		if(IsWindow(*menu) && !IsMenu(mymenu))
+			mymenu = (HMENU)dw_window_get_data(*menu, "_dw_menu");
+
 		popup = parent;
-		TrackPopupMenu(menu->menu, 0, x, y, 0, parent, NULL);
-		DestroyMenu(menu->menu);
+		TrackPopupMenu(mymenu, 0, x, y, 0, parent, NULL);
+		DestroyMenu(mymenu);
 	}
 }
 
