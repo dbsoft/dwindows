@@ -100,6 +100,9 @@ typedef struct
 	GdkBitmap *mask;
 	int used;
 	unsigned long width, height;
+#if GTK_MAJOR_VERSION > 1
+	GdkPixbuf *pixbuf;
+#endif
 } DWPrivatePixmap;
 
 static DWPrivatePixmap *_PixmapArray = NULL;
@@ -700,10 +703,20 @@ static GdkPixmap *_find_pixmap(GdkBitmap **bitmap, long id, HWND handle, unsigne
 }
 
 #if GTK_MAJOR_VERSION > 1
+static GdkPixbuf *_find_private_pixbuf(long id)
+{
+	if(id < _PixmapCount && _PixmapArray[id].used)
+		return _PixmapArray[id].pixbuf;
+	return NULL;
+}
+
 static GdkPixbuf *_find_pixbuf(long id)
 {
 	char *data = NULL;
 	int z;
+
+	if(id & (1 << 31))
+		return _find_private_pixbuf((id & 0xFFFFFF));
 
 	for(z=0;z<_resources.resource_max;z++)
 	{
@@ -4350,11 +4363,11 @@ unsigned long API dw_icon_load_from_file(char *filename)
 
 	if(pixbuf)
 	{
+		_PixmapArray[found].pixbuf = pixbuf;
 		_PixmapArray[found].width = gdk_pixbuf_get_width(pixbuf);
 		_PixmapArray[found].height = gdk_pixbuf_get_height(pixbuf);
 
 		gdk_pixbuf_render_pixmap_and_mask(pixbuf, &_PixmapArray[found].pixmap, &_PixmapArray[found].mask, 1);
-		g_object_unref(pixbuf);
 	}
 #elif defined(USE_IMLIB)
 	image = gdk_imlib_load_image(file);
@@ -4400,6 +4413,13 @@ void dw_icon_free(unsigned long handle)
 
 		if(id < _PixmapCount && _PixmapArray[id].used)
 		{
+#if GTK_MAJOR_VERSION > 1
+			if(_PixmapArray[id].pixbuf)
+			{
+				g_object_unref(_PixmapArray[id].pixbuf);
+				_PixmapArray[id].pixbuf = NULL;
+			}
+#endif
 			if(_PixmapArray[id].mask)
 			{
 				gdk_bitmap_unref(_PixmapArray[id].mask);
