@@ -3682,21 +3682,16 @@ HWND API dw_notebook_new(ULONG id, int top)
  */
 HMENUI API dw_menu_new(ULONG id)
 {
-	HMENUI tmp = malloc(sizeof(struct _hmenui));
-
-	if(!tmp)
-		return NULL;
-
-	tmp->menu = WinCreateWindow(HWND_OBJECT,
-								WC_MENU,
-								NULL,
-								WS_VISIBLE,
-								0,0,2000,1000,
-								NULLHANDLE,
-								HWND_TOP,
-								id,
-								NULL,
-								NULL);
+	HMENUI tmp = WinCreateWindow(HWND_OBJECT,
+								 WC_MENU,
+								 NULL,
+								 WS_VISIBLE,
+								 0,0,2000,1000,
+								 NULLHANDLE,
+								 HWND_TOP,
+								 id,
+								 NULL,
+								 NULL);
 	return tmp;
 }
 
@@ -3707,21 +3702,16 @@ HMENUI API dw_menu_new(ULONG id)
  */
 HMENUI API dw_menubar_new(HWND location)
 {
-	HMENUI tmp = malloc(sizeof(struct _hmenui));
-
-	if(!tmp)
-		return NULL;
-
-	tmp->menu = WinCreateWindow(location,
-								WC_MENU,
-								NULL,
-								WS_VISIBLE | MS_ACTIONBAR,
-								0,0,2000,1000,
-								location,
-								HWND_TOP,
-								FID_MENU,
-								NULL,
-								NULL);
+	HMENUI tmp = WinCreateWindow(location,
+								 WC_MENU,
+								 NULL,
+								 WS_VISIBLE | MS_ACTIONBAR,
+								 0,0,2000,1000,
+								 location,
+								 HWND_TOP,
+								 FID_MENU,
+								 NULL,
+								 NULL);
 	return tmp;
 }
 
@@ -3732,12 +3722,8 @@ HMENUI API dw_menubar_new(HWND location)
  */
 void API dw_menu_destroy(HMENUI *menu)
 {
-	if(menu && *menu)
-	{
-		WinDestroyWindow((*menu)->menu);
-		free(*menu);
-		*menu = NULL;
-	}
+	if(menu)
+		WinDestroyWindow(*menu);
 }
 
 /*
@@ -3754,12 +3740,9 @@ void API dw_menu_destroy(HMENUI *menu)
 HWND API dw_menu_append_item(HMENUI menux, char *title, ULONG id, ULONG flags, int end, int check, HMENUI submenu)
 {
 	MENUITEM miSubMenu;
-	HWND menu;
 
 	if(!menux)
 		return NULLHANDLE;
-
-	menu = menux->menu;
 
 	if(end)
 		miSubMenu.iPosition=MIT_END;
@@ -3772,15 +3755,13 @@ HWND API dw_menu_append_item(HMENUI menux, char *title, ULONG id, ULONG flags, i
 		miSubMenu.afStyle=MIS_TEXT | flags;
 	miSubMenu.afAttribute=0;
 	miSubMenu.id=id;
-	miSubMenu.hwndSubMenu = submenu ? submenu->menu : 0;
+	miSubMenu.hwndSubMenu = submenu;
 	miSubMenu.hItem=NULLHANDLE;
 
-	WinSendMsg(menu,
+	WinSendMsg(menux,
 			   MM_INSERTITEM,
 			   MPFROMP(&miSubMenu),
 			   MPFROMP(title));
-	if(submenu)
-		free(submenu);
 	return (HWND)id;
 }
 
@@ -3793,18 +3774,11 @@ HWND API dw_menu_append_item(HMENUI menux, char *title, ULONG id, ULONG flags, i
  */
 void API dw_menu_item_set_check(HMENUI menux, unsigned long id, int check)
 {
-	HWND menu;
-
-	if(!menux)
-		return;
-
-	menu = menux->menu;
-
 	if(check)
-		WinSendMsg(menu, MM_SETITEMATTR, MPFROM2SHORT(id, TRUE),
+		WinSendMsg(menux, MM_SETITEMATTR, MPFROM2SHORT(id, TRUE),
 				   MPFROM2SHORT(MIA_CHECKED, MIA_CHECKED));
 	else
-		WinSendMsg(menu, MM_SETITEMATTR, MPFROM2SHORT(id, TRUE),
+		WinSendMsg(menux, MM_SETITEMATTR, MPFROM2SHORT(id, TRUE),
 				   MPFROM2SHORT(MIA_CHECKED, 0));
 }
 
@@ -3818,12 +3792,10 @@ void API dw_menu_item_set_check(HMENUI menux, unsigned long id, int check)
  */
 void API dw_menu_popup(HMENUI *menu, HWND parent, int x, int y)
 {
-	if(menu && *menu)
+	if(menu)
 	{
 		popup = parent;
-		WinPopupMenu(HWND_DESKTOP, parent, (*menu)->menu, x, dw_screen_height() - y, 0, PU_KEYBOARD | PU_MOUSEBUTTON1 | PU_VCONSTRAIN | PU_HCONSTRAIN);
-		free(*menu);
-		*menu = NULL;
+		WinPopupMenu(HWND_DESKTOP, parent, *menu, x, dw_screen_height() - y, 0, PU_KEYBOARD | PU_MOUSEBUTTON1 | PU_VCONSTRAIN | PU_HCONSTRAIN);
 	}
 }
 
