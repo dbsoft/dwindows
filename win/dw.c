@@ -1398,13 +1398,18 @@ HMENU _menu_owner(HMENU handle)
 /* The main window procedure for Dynamic Windows, all the resizing code is done here. */
 BOOL CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 {
-	int result = -1;
+	int result = -1, taskbar = FALSE;
 	static int command_active = 0;
 	SignalHandler *tmp = Root;
 	void (*windowfunc)(PVOID);
 	ULONG origmsg = msg;
 
 	/* Deal with translating some messages */
+	if(msg == WM_USER+2)
+	{
+		taskbar = TRUE;
+		origmsg = msg = (UINT)mp2; /* no else here */
+	}
 	if(msg == WM_RBUTTONDOWN || msg == WM_MBUTTONDOWN)
 		msg = WM_LBUTTONDOWN;
 	else if(msg == WM_RBUTTONUP || msg == WM_MBUTTONUP)
@@ -1413,8 +1418,6 @@ BOOL CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 		msg = WM_VSCROLL;
 	else if(msg == WM_KEYDOWN) /* && mp1 >= VK_F1 && mp1 <= VK_F24) allow ALL special keys */
 		msg = WM_CHAR;
-	else if(msg == WM_USER+2)
-		msg = (UINT)mp2;
 
 	if(result == -1)
 	{
@@ -1464,7 +1467,6 @@ BOOL CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 					break;
 				case WM_LBUTTONDOWN:
 					{
-						POINTS pts = MAKEPOINTS(mp2);
 						int (*buttonfunc)(HWND, int, int, int, void *) = (int (*)(HWND, int, int, int, void *))tmp->signalfunction;
 
 						if(hWnd == tmp->window)
@@ -1483,14 +1485,23 @@ BOOL CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 								button = 3;
 								break;
 							}
-							result = buttonfunc(tmp->window, pts.x, pts.y, button, tmp->data);
+							if(taskbar)
+							{
+								POINT ptl;
+								GetCursorPos(&ptl);
+								result = buttonfunc(tmp->window, ptl.x, ptl.y, button, tmp->data);
+							}
+							else
+							{
+								POINTS pts = MAKEPOINTS(mp2);
+								result = buttonfunc(tmp->window, pts.x, pts.y, button, tmp->data);
+							}
 							tmp = NULL;
 						}
 					}
 					break;
 				case WM_LBUTTONUP:
 					{
-						POINTS pts = MAKEPOINTS(mp2);
 						int (*buttonfunc)(HWND, int, int, int, void *) = (int (*)(HWND, int, int, int, void *))tmp->signalfunction;
 
 						if(hWnd == tmp->window)
@@ -1509,7 +1520,17 @@ BOOL CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 								button = 3;
 								break;
 							}
-							result = buttonfunc(tmp->window, pts.x, pts.y, button, tmp->data);
+							if(taskbar)
+							{
+								POINT ptl;
+								GetCursorPos(&ptl);
+								result = buttonfunc(tmp->window, ptl.x, ptl.y, button, tmp->data);
+							}
+							else
+							{
+								POINTS pts = MAKEPOINTS(mp2);
+								result = buttonfunc(tmp->window, pts.x, pts.y, button, tmp->data);
+							}
 							tmp = NULL;
 						}
 					}
