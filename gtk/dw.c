@@ -7758,6 +7758,29 @@ void API dw_timer_disconnect(int id)
 	DW_MUTEX_UNLOCK;
 }
 
+/* Get the actual signal window handle not the user window handle
+ * Should mimic the code in dw_signal_connect() below.
+ */
+static HWND _find_signal_window(HWND window, char *signame)
+{
+	HWND thiswindow = window;
+
+	if(GTK_IS_SCROLLED_WINDOW(thiswindow))
+		thiswindow = (HWND)gtk_object_get_user_data(GTK_OBJECT(window));
+	else if(GTK_IS_COMBO(thiswindow) && signame && strcmp(signame, DW_SIGNAL_LIST_SELECT) == 0)
+		thiswindow = GTK_COMBO(thiswindow)->list;
+	else if(GTK_IS_COMBO(thiswindow) && signame && strcmp(signame, DW_SIGNAL_SET_FOCUS) == 0)
+		thiswindow = GTK_COMBO(thiswindow)->entry;
+	else if(GTK_IS_VSCALE(thiswindow) || GTK_IS_HSCALE(thiswindow) ||
+			GTK_IS_VSCROLLBAR(thiswindow) || GTK_IS_HSCROLLBAR(thiswindow))
+		thiswindow = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(thiswindow), "_dw_adjustment");
+#if GTK_MAJOR_VERSION > 1
+	else if(GTK_IS_TREE_VIEW(thiswindow) && strcmp(signame, DW_SIGNAL_ITEM_SELECT) == 0)
+		thiswindow = (GtkWidget *)gtk_tree_view_get_selection(GTK_TREE_VIEW(thiswindow));
+#endif
+	return thiswindow;
+}
+
 /*
  * Add a callback to a window event.
  * Parameters:
@@ -7909,16 +7932,24 @@ void dw_signal_connect(HWND window, char *signame, void *sigfunc, void *data)
  */
 void dw_signal_disconnect_by_name(HWND window, char *signame)
 {
-	int z, count = (int)gtk_object_get_data(GTK_OBJECT(window), "_dw_sigcounter");
-	void *thisfunc  = _findsigfunc(signame);
+	HWND thiswindow;
+	int z, count;
+	void *thisfunc;
+	int _locked_by_me = FALSE;
+
+	DW_MUTEX_LOCK;
+	thiswindow = _find_signal_window(window, signame);
+	count = (int)gtk_object_get_data(GTK_OBJECT(thiswindow), "_dw_sigcounter");
+	thisfunc  = _findsigfunc(signame);
 
 	for(z=0;z<count;z++)
 	{
-		SignalHandler sh = _get_signal_handler(window, (gpointer)z);
+		SignalHandler sh = _get_signal_handler(thiswindow, (gpointer)z);
 
 		if(sh.intfunc == thisfunc)
-			_remove_signal_handler(window, z);
+			_remove_signal_handler(thiswindow, z);
 	}
+	DW_MUTEX_UNLOCK;
 }
 
 /*
@@ -7928,11 +7959,18 @@ void dw_signal_disconnect_by_name(HWND window, char *signame)
  */
 void dw_signal_disconnect_by_window(HWND window)
 {
-	int z, count = (int)gtk_object_get_data(GTK_OBJECT(window), "_dw_sigcounter");
+	HWND thiswindow;
+	int z, count;
+	int _locked_by_me = FALSE;
+
+	DW_MUTEX_LOCK;
+	thiswindow = _find_signal_window(window, NULL);
+	count = (int)gtk_object_get_data(GTK_OBJECT(thiswindow), "_dw_sigcounter");
 
 	for(z=0;z<count;z++)
-		_remove_signal_handler(window, z);
-	gtk_object_set_data(GTK_OBJECT(window), "_dw_sigcounter", NULL);
+		_remove_signal_handler(thiswindow, z);
+	gtk_object_set_data(GTK_OBJECT(thiswindow), "_dw_sigcounter", NULL);
+	DW_MUTEX_UNLOCK;
 }
 
 /*
@@ -7943,14 +7981,21 @@ void dw_signal_disconnect_by_window(HWND window)
  */
 void dw_signal_disconnect_by_data(HWND window, void *data)
 {
-	int z, count = (int)gtk_object_get_data(GTK_OBJECT(window), "_dw_sigcounter");
+	HWND thiswindow;
+	int z, count;
+	int _locked_by_me = FALSE;
+
+	DW_MUTEX_LOCK;
+	thiswindow = _find_signal_window(window, NULL);
+	count = (int)gtk_object_get_data(GTK_OBJECT(thiswindow), "_dw_sigcounter");
 
 	for(z=0;z<count;z++)
 	{
-		SignalHandler sh = _get_signal_handler(window, (gpointer)z);
+		SignalHandler sh = _get_signal_handler(thiswindow, (gpointer)z);
 
 		if(sh.data == data)
-			_remove_signal_handler(window, z);
+			_remove_signal_handler(thiswindow, z);
 	}
+	DW_MUTEX_UNLOCK;
 }
 
