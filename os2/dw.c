@@ -1717,9 +1717,17 @@ MRESULT EXPENTRY _comboproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 		else if(SHORT1FROMMP(mp2) == '\r' && blah && blah->clickdefault)
 			_click_default(blah->clickdefault);
 		break;
+	case WM_BUTTON1DBLCLK:
+	case WM_BUTTON2DBLCLK:
+	case WM_BUTTON3DBLCLK:
+		if(dw_window_get_data(hWnd, "_dw_disabled"))
+			return (MRESULT)TRUE;
+		break;
 	case WM_BUTTON1DOWN:
 	case WM_BUTTON2DOWN:
 	case WM_BUTTON3DOWN:
+		if(_run_event(hWnd, msg, mp1, mp2) == TRUE)
+			return (MRESULT)TRUE;
 		_run_event(hWnd, WM_SETFOCUS, (MPARAM)FALSE, (MPARAM)TRUE);
 		break;
 	case WM_SETFOCUS:
@@ -4352,6 +4360,8 @@ void dw_window_disable(HWND handle)
 			hwnd = _find_entryfield(handle);
 			_dw_window_set_color(hwnd ? hwnd : handle, DW_CLR_BLACK, DW_CLR_PALEGRAY);
 			dw_signal_connect(hwnd ? hwnd : handle, "key_press_event", DW_SIGNAL_FUNC(_null_key), (void *)100);
+            if(val == 2)
+				dw_signal_connect(handle, "button_press_event", DW_SIGNAL_FUNC(_null_key), (void *)100);
 			dw_window_set_data(handle, "_dw_disabled", (void *)1);
 			if(hwnd)
 				dw_window_set_data(hwnd, "_dw_disabled", (void *)1);
