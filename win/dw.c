@@ -548,8 +548,8 @@ int _focus_check_box(Box *box, HWND handle, int start, HWND defaultitem)
 
 				if(strncmp(tmpbuf, SplitbarClassName, strlen(SplitbarClassName)+1)==0)
 				{
-					/* Try the top or left box */
-					HWND mybox = (HWND)dw_window_get_data(box->items[z].hwnd, "_dw_topleft");
+					/* Then try the bottom or right box */
+					HWND mybox = (HWND)dw_window_get_data(box->items[z].hwnd, "_dw_bottomright");
 
 					if(mybox)
 					{
@@ -559,8 +559,8 @@ int _focus_check_box(Box *box, HWND handle, int start, HWND defaultitem)
 							return 1;
 					}
 
-					/* Then try the bottom or right box */
-					mybox = (HWND)dw_window_get_data(box->items[z].hwnd, "_dw_bottomright");
+					/* Try the top or left box */
+					mybox = (HWND)dw_window_get_data(box->items[z].hwnd, "_dw_topleft");
 
 					if(mybox)
 					{
@@ -675,8 +675,8 @@ int _focus_check_box_back(Box *box, HWND handle, int start, HWND defaultitem)
 
 				if(strncmp(tmpbuf, SplitbarClassName, strlen(SplitbarClassName)+1)==0)
 				{
-					/* Then try the bottom or right box */
-					HWND mybox = (HWND)dw_window_get_data(box->items[z].hwnd, "_dw_bottomright");
+					/* Try the top or left box */
+					HWND mybox = (HWND)dw_window_get_data(box->items[z].hwnd, "_dw_topleft");
 
 					if(mybox)
 					{
@@ -686,8 +686,8 @@ int _focus_check_box_back(Box *box, HWND handle, int start, HWND defaultitem)
 							return 1;
 					}
 
-					/* Try the top or left box */
-					mybox = (HWND)dw_window_get_data(box->items[z].hwnd, "_dw_topleft");
+					/* Then try the bottom or right box */
+					mybox = (HWND)dw_window_get_data(box->items[z].hwnd, "_dw_bottomright");
 
 					if(mybox)
 					{
