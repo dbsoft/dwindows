@@ -4689,6 +4689,11 @@ void API dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize
 
 		GetClassName(item, tmpbuf, 99);
 
+		if(vsize && !height)
+			height = 1;
+		if(hsize && !width)
+			width = 1;
+
 		if(strnicmp(tmpbuf, FRAMECLASSNAME, 2)==0)
 			tmpitem[thisbox->count].type = TYPEBOX;
 		else
@@ -7385,6 +7390,11 @@ void API dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, 
 		}
 
 		GetClassName(item, tmpbuf, 99);
+
+		if(vsize && !height)
+			height = 1;
+		if(hsize && !width)
+			width = 1;
 
 		if(strnicmp(tmpbuf, FRAMECLASSNAME, 2)==0)
 			tmpitem[0].type = TYPEBOX;
