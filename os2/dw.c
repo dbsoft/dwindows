@@ -1738,20 +1738,31 @@ MRESULT EXPENTRY _comboproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 		break;
 	case WM_PAINT:
 		{
-			HWND parent = WinQueryWindow(hWnd, QW_PARENT);
-			ULONG bcol, av[32];
+			HWND entry, parent = WinQueryWindow(hWnd, QW_PARENT);
 			HPS hpsPaint;
 			POINTL ptl;                  /* Add 6 because it has a thick border like the entryfield */
-			unsigned long width, height, thumbheight = WinQuerySysValue(HWND_DESKTOP, SV_CYVSCROLLARROW) + 6;
+			unsigned long width, height, thumbheight = 0;
+			ULONG color;
 
-			WinQueryPresParam(parent, PP_BACKGROUNDCOLORINDEX, 0, &bcol, sizeof(ULONG), &av, QPF_ID1COLORINDEX | QPF_NOINHERIT);
-            dw_window_get_pos_size(hWnd, 0, 0, &width, &height);
+			if((entry = (HWND)dw_window_get_data(hWnd, "_dw_comboentry")) != NULLHANDLE)
+				dw_window_get_pos_size(entry, 0, 0, 0, &thumbheight);
+
+			if(!thumbheight)
+				thumbheight = WinQuerySysValue(HWND_DESKTOP, SV_CYVSCROLLARROW);
+
+			thumbheight += 6;
+
+			color = (ULONG)dw_window_get_data(parent, "_dw_fore");
+			dw_window_get_pos_size(hWnd, 0, 0, &width, &height);
 
 			hpsPaint = WinGetPS(hWnd);
-			GpiSetColor(hpsPaint, CLR_PALEGRAY);
+			if(color)
+				GpiSetColor(hpsPaint, _internal_color(color-1));
+			else
+				GpiSetColor(hpsPaint, CLR_PALEGRAY);
 
 			ptl.x = 0;
-			ptl.y = 0;
+			ptl.y = 96;
 			GpiMove(hpsPaint, &ptl);
 
 			ptl.x = width;
@@ -4197,7 +4208,7 @@ HWND API dw_combobox_new(char *text, ULONG id)
 							   NULL,
 							   NULL);
 	HENUM henum = WinBeginEnumWindows(tmp);
-	HWND child;
+	HWND child, last = NULLHANDLE;
 	
 	while((child = WinGetNextWindow(henum)) != NULLHANDLE)
 	{
@@ -4205,12 +4216,14 @@ HWND API dw_combobox_new(char *text, ULONG id)
 		moreblah->oldproc = WinSubclassWindow(child, _comboentryproc);
 		WinSetWindowPtr(child, QWP_USER, moreblah);
 		dw_window_set_color(child, DW_CLR_BLACK, DW_CLR_WHITE);
+		last = child;
 	}
 	WinEndEnumWindows(henum);
 	blah->oldproc = WinSubclassWindow(tmp, _comboproc);
 	WinSetWindowPtr(tmp, QWP_USER, blah);
 	dw_window_set_font(tmp, DefaultFont);
 	dw_window_set_color(tmp, DW_CLR_BLACK, DW_CLR_WHITE);
+	dw_window_set_data(tmp, "_dw_comboentry", (void *)last);
 	return tmp;
 }
 
