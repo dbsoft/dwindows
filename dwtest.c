@@ -32,7 +32,7 @@ HPIXMAP text1pm,text2pm;
 int font_width = 8;
 int font_height=12;
 int font_gap = 2;
-int rows=100,width1=6,width2=80;
+int rows=100,width1=6,cols=80;
 char *current_file = NULL;
 int timerid;
 int num_lines=0;
@@ -43,20 +43,13 @@ FILE *fp=NULL;
 char **lp;
 
 /* This gets called when a part of the graph needs to be repainted. */
-int DWSIGNAL text_expose1(HWND hwnd, DWExpose *exp, void *data)
+int DWSIGNAL text_expose(HWND hwnd, DWExpose *exp, void *data)
 {
 	HPIXMAP hpm = (HPIXMAP)data;
+	int width = DW_PIXMAP_WIDTH(hpm);
+	int height = DW_PIXMAP_HEIGHT(hpm);
 
-	dw_pixmap_bitblt(hwnd, NULL, 0, 0, font_width*width1, font_height*rows, NULL, hpm, 0, 0 );
-	dw_flush();
-	return TRUE;
-}
-
-int DWSIGNAL text_expose2(HWND hwnd, DWExpose *exp, void *data)
-{
-	HPIXMAP hpm = (HPIXMAP)data;
-
-	dw_pixmap_bitblt(hwnd, NULL, 0, 0, font_width*width2, font_height*rows, NULL, hpm, 0, 0 );
+	dw_pixmap_bitblt(hwnd, NULL, 0, 0, width, height, NULL, hpm, 0, 0 );
 	dw_flush();
 	return TRUE;
 }
@@ -68,7 +61,7 @@ void read_file( void )
 	int i,y,len;
 	fp = fopen( current_file, "r" );
 	lp = (char **)calloc( 1000,sizeof(char *));
-/* should test for out of memory */
+	/* should test for out of memory */
 	max_linewidth=0;
 	for ( i = 0; i < 1000; i++ )
 	{
@@ -83,7 +76,7 @@ void read_file( void )
 	}
 	num_lines = i;
 	fclose( fp );
-	dw_scrollbar_set_range(hscrollbar, max_linewidth, width2);
+	dw_scrollbar_set_range(hscrollbar, max_linewidth, cols);
 	dw_scrollbar_set_pos(hscrollbar, 0);
 	dw_scrollbar_set_range(vscrollbar, num_lines, rows);
 	dw_scrollbar_set_pos(vscrollbar, 0);
@@ -98,8 +91,8 @@ fprintf(stderr,"in draw_file: %d %d\n",row,col);
 	if ( current_file )
 	{
 		dw_color_foreground_set(DW_CLR_WHITE);
-		dw_draw_rect(0, text1pm, TRUE, 0, 0, font_width*width1, font_height*rows);
-		dw_draw_rect(0, text2pm, TRUE, 0, 0, font_width*width2, font_height*rows);
+		dw_draw_rect(0, text1pm, TRUE, 0, 0, DW_PIXMAP_WIDTH(text1pm), DW_PIXMAP_HEIGHT(text1pm));
+		dw_draw_rect(0, text2pm, TRUE, 0, 0, DW_PIXMAP_WIDTH(text2pm), DW_PIXMAP_HEIGHT(text2pm));
 		for ( i = 0;(i < rows) & (i+row < rows); i++)
 		{
 			y = i*(font_height+font_gap);
@@ -109,14 +102,15 @@ fprintf(stderr,"in draw_file: %d %d\n",row,col);
 			pLine = lp[i+row];
 			dw_draw_text( NULL, text2pm, 0, y, pLine+col );
 		}
-		text_expose1( textbox1, NULL, text1pm);
-		text_expose1( textbox2, NULL, text2pm);
+		text_expose( textbox1, NULL, text1pm);
+		text_expose( textbox2, NULL, text2pm);
 	}
 }
 
 int DWSIGNAL beep_callback(HWND window, void *data)
 {
 	dw_timer_disconnect( timerid );
+	return TRUE;
 }
 
 int DWSIGNAL exit_callback(HWND window, void *data)
@@ -173,6 +167,30 @@ fprintf(stderr,"scrollbar_valuechanged: value %d data %d, %s\n",value,data,(hwnd
 		dw_window_set_text(stext, tmpbuf);
 		draw_file( current_row, current_col);
 	}
+}
+
+/* Handle size change of the main render window */
+int DWSIGNAL configure_event(HWND hwnd, int width, int height, void *data)
+{
+	HPIXMAP old1 = text1pm, old2 = text2pm;
+	rows = height / font_height;
+	cols = width / font_width;
+
+	/* Create new pixmaps with the current sizes */
+	text1pm = dw_pixmap_new( textbox2, font_width*width1, height, dw_color_depth());
+	text2pm = dw_pixmap_new( textbox2, width, height, dw_color_depth());
+
+	/* Destroy the old pixmaps */
+	dw_pixmap_destroy(old1);
+	dw_pixmap_destroy(old2);
+
+	/* Update scrollbar ranges with new values */
+	dw_scrollbar_set_range(hscrollbar, max_linewidth, cols);
+	dw_scrollbar_set_range(vscrollbar, num_lines, rows);
+
+	/* Redraw the window */
+	draw_file( current_row, current_col);
+	return TRUE;
 }
 
 void archive_add(void)
@@ -247,8 +265,9 @@ void text_add(void)
 
 	/* create render box for number pixmap */
 	textbox1 = dw_render_new( 100 );
-	dw_box_pack_start( pagebox, textbox1, font_width*width1, font_height*rows, FALSE, TRUE, 0);
 	dw_window_set_font(textbox1, "9.WarpSans");
+	dw_font_text_extents( NULL, text1pm, "O", &font_width, &font_height );
+	dw_box_pack_start(pagebox, textbox1, font_width*width1, font_height*rows, FALSE, TRUE, 0);
 
 	/* create box for filecontents and horz scrollbar */
 	textboxA = dw_box_new( BOXVERT,0 );
@@ -256,7 +275,7 @@ void text_add(void)
 
 	/* create render box for filecontents pixmap */
 	textbox2 = dw_render_new( 101 );
-	dw_box_pack_start( textboxA, textbox2, font_width*width2, font_height*rows, TRUE, TRUE, 0);
+	dw_box_pack_start( textboxA, textbox2, 10, 10, TRUE, TRUE, 0);
 	dw_window_set_font(textbox2, "9.WarpSans");
 	/* create horizonal scrollbar */
 	hscrollbar = dw_scrollbar_new(FALSE, 100, 50);
@@ -267,14 +286,14 @@ void text_add(void)
 	dw_box_pack_start(pagebox, vscrollbar, 20, 100, FALSE, TRUE, 0);
 
 	text1pm = dw_pixmap_new( textbox1, font_width*width1, font_height*rows, depth );
-	text2pm = dw_pixmap_new( textbox2, font_width*width2, font_height*rows, depth );
+	text2pm = dw_pixmap_new( textbox2, font_width*cols, font_height*rows, depth );
 
-	dw_font_text_extents( NULL, text1pm, "O", &font_width, &font_height );
 	dw_messagebox("DWTest", "Width: %d Height: %d\n", font_width, font_height);
 	dw_draw_rect(0, text1pm, TRUE, 0, 0, font_width*width1, font_height*rows);
-	dw_draw_rect(0, text2pm, TRUE, 0, 0, font_width*width2, font_height*rows);
-	dw_signal_connect(textbox1, "expose_event", DW_SIGNAL_FUNC(text_expose1), text1pm);
-	dw_signal_connect(textbox2, "expose_event", DW_SIGNAL_FUNC(text_expose2), text2pm);
+	dw_draw_rect(0, text2pm, TRUE, 0, 0, font_width*cols, font_height*rows);
+	dw_signal_connect(textbox1, "expose_event", DW_SIGNAL_FUNC(text_expose), text1pm);
+	dw_signal_connect(textbox2, "expose_event", DW_SIGNAL_FUNC(text_expose), text2pm);
+	dw_signal_connect(textbox2, "configure_event", DW_SIGNAL_FUNC(configure_event), text2pm);
 	dw_signal_connect(hscrollbar, "value_changed", DW_SIGNAL_FUNC(scrollbar_valuechanged), (void *)status);
 	dw_signal_connect(vscrollbar, "value_changed", DW_SIGNAL_FUNC(scrollbar_valuechanged), (void *)status);
 }
