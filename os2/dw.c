@@ -1860,6 +1860,51 @@ int _get_frame_height(HWND handle)
 	return dw_screen_height();
 }
 
+int _HandleScroller(HWND handle, int pos, int which)
+{
+	MPARAM res;
+	int min, max, page;
+
+	if(which == SB_SLIDERTRACK)
+		return pos;
+
+	pos = dw_scrollbar_query_pos(handle);
+	res = WinSendMsg(handle, SBM_QUERYRANGE, 0, 0);
+
+	min = SHORT1FROMMP(res);
+	max = SHORT2FROMMP(res);
+	page = (int)dw_window_get_data(handle, "_dw_scrollbar_visible");
+
+	switch(which)
+	{
+	case SB_LINEUP:
+		pos = pos - 1;
+		if(pos < min)
+			pos = min;
+		dw_scrollbar_set_pos(handle, pos);
+		return pos;
+	case SB_LINEDOWN:
+		pos = pos + 1;
+		if(pos > max)
+			pos = max;
+		dw_scrollbar_set_pos(handle, pos);
+		return pos;
+	case SB_PAGEUP:
+		pos = pos - page;
+		if(pos < min)
+			pos = min;
+		dw_scrollbar_set_pos(handle, pos);
+		return pos;
+	case SB_PAGEDOWN:
+		pos = pos + page;
+		if(pos > max)
+			pos = max;
+		dw_scrollbar_set_pos(handle, pos);
+		return pos;
+	}
+	return -1;
+}
+
 MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 {
 	int result = -1;
@@ -2270,10 +2315,14 @@ MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 								/* Handle scrollbar control */
 								if(tmp->window > 65535 && tmp->window == WinWindowFromID(hWnd, (ULONG)mp1))
 								{
-									int pos = (int) SHORT1FROMMP(mp2);
+									int pos = _HandleScroller(tmp->window, (int)SHORT1FROMMP(mp2), (int)SHORT2FROMMP(mp2));;
 
-									dw_window_set_data(tmp->window, "_dw_scrollbar_value", (void *)pos);
-									result = valuechangedfunc(tmp->window, pos, tmp->data);
+									if(pos > -1)
+									{
+										dw_window_set_data(tmp->window, "_dw_scrollbar_value", (void *)pos);
+										result = valuechangedfunc(tmp->window, pos, tmp->data);
+									}
+									result = 0;
 									tmp = NULL;
 								}
 							}
@@ -2302,6 +2351,12 @@ MRESULT EXPENTRY _controlproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 	{
 	case WM_VSCROLL:
 	case WM_HSCROLL:
+		if(_run_event(hWnd, msg, mp1, mp2))
+		{
+			HWND window = WinWindowFromID(hWnd, (ULONG)mp1);
+			_HandleScroller(window, (int)SHORT1FROMMP(mp2), (int)SHORT2FROMMP(mp2));
+		}
+		break;
 	case WM_CONTROL:
 		_run_event(hWnd, msg, mp1, mp2);
 		break;
@@ -5328,6 +5383,7 @@ void API dw_scrollbar_set_range(HWND handle, unsigned int range, unsigned int vi
 	unsigned int pos = (unsigned int)dw_window_get_data(handle, "_dw_scrollbar_value");
 	WinSendMsg(handle, SBM_SETSCROLLBAR, (MPARAM)pos, MPFROM2SHORT(0, (unsigned short)range - visible));
 	WinSendMsg(handle, SBM_SETTHUMBSIZE, MPFROM2SHORT((unsigned short)visible, range), 0);
+	dw_window_set_data(handle, "_dw_scrollbar_visible", (void *)visible);
 }
 
 /*
@@ -7394,7 +7450,7 @@ char * API dw_file_browse(char *title, char *defpath, char *ext, int flags)
 	fild.y = 0;
 	fild.pszIType       = (PSZ)NULL;
 	fild.papszITypeList = (PAPSZ)NULL;
-	fild.pszIDrive      = (PSZ)NULL;
+	fild.pszIDrive      = (PSZ)NULL;                                                      
 	fild.papszIDriveList= (PAPSZ)NULL;
 	fild.sEAType        = (SHORT)0;
 	fild.papszFQFilename= (PAPSZ)NULL;
