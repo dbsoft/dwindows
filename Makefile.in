@@ -99,3 +99,6 @@ $(SYSCONF_LINK_TARGET2): $(OBJECTS2)
         
 $(SYSCONF_LINK_TARGET): $(OBJECTS) 
 	$(SYSCONF_LINK_LIB)
+
+dwtest: dwtest.o
+	$(CC) -o dwtest dwtest.o -Llib -ldw -ldwcompat $(LFLAGS)
