@@ -29,6 +29,7 @@ unsigned long flStyle = DW_FCF_SYSMENU | DW_FCF_TITLEBAR |
 
 HWND mainwindow,
      entryfield,
+     cursortogglebutton,
      okbutton,
      cancelbutton,
      lbbox,
@@ -65,6 +66,7 @@ int timerid;
 int num_lines=0;
 int max_linewidth=0;
 int current_row=0,current_col=0;
+int cursor_arrow = 1;
 
 FILE *fp=NULL;
 char **lp;
@@ -249,6 +251,24 @@ void draw_file( int row, int col )
 		text_expose( textbox1, NULL, NULL);
 		text_expose( textbox2, NULL, NULL);
 	}
+}
+
+int DWSIGNAL cursortoggle_callback(HWND window, void *data)
+{
+	if(cursor_arrow)
+	{
+		dw_window_set_text((HWND)cursortogglebutton,"Set Cursor pointer - ARROW");
+		dw_window_pointer((HWND)data,DW_POINTER_CLOCK);
+		cursor_arrow = 0;
+	}
+	else
+	{
+		dw_window_set_text((HWND)cursortogglebutton,"Set Cursor pointer - CLOCK");
+		dw_window_pointer((HWND)data,DW_POINTER_ARROW);
+		cursor_arrow = 1;
+	}
+	dw_window_show(mainwindow);
+	return FALSE;
 }
 
 int DWSIGNAL beep_callback(HWND window, void *data)
@@ -456,6 +476,10 @@ void archive_add(void)
 
 	dw_box_pack_start(lbbox, buttonbox, 0, 0, TRUE, TRUE, 0);
 
+	cursortogglebutton = dw_button_new("Set Cursor pointer - CLOCK", 1003L);
+
+	dw_box_pack_start(buttonbox, cursortogglebutton, 130, 30, TRUE, TRUE, 2);
+
 	okbutton = dw_button_new("Turn Off Annoying Beep!", 1001L);
 
 	dw_box_pack_start(buttonbox, okbutton, 130, 30, TRUE, TRUE, 2);
@@ -472,6 +496,7 @@ void archive_add(void)
 	dw_signal_connect(browsebutton, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(browse_callback), (void *)notebookbox1);
 	dw_signal_connect(okbutton, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(beep_callback), (void *)notebookbox1);
 	dw_signal_connect(cancelbutton, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(exit_callback), (void *)mainwindow);
+	dw_signal_connect(cursortogglebutton, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(cursortoggle_callback), (void *)mainwindow);
 }
 
 
