@@ -546,8 +546,8 @@ void container_add(void)
 	char *titles[3];
 	char buffer[100];
 	unsigned long flags[3] = {  DW_CFA_ULONG | DW_CFA_RIGHT | DW_CFA_HORZSEPARATOR | DW_CFA_SEPARATOR,
-	DW_CFA_TIME | DW_CFA_LEFT | DW_CFA_HORZSEPARATOR | DW_CFA_SEPARATOR,
-	DW_CFA_DATE | DW_CFA_RIGHT | DW_CFA_HORZSEPARATOR | DW_CFA_SEPARATOR };
+	DW_CFA_TIME | DW_CFA_CENTER | DW_CFA_HORZSEPARATOR | DW_CFA_SEPARATOR,
+	DW_CFA_DATE | DW_CFA_LEFT | DW_CFA_HORZSEPARATOR | DW_CFA_SEPARATOR };
 	void *containerinfo;
 	int z;
 	CTIME time;
@@ -575,7 +575,7 @@ void container_add(void)
 
 	for(z=0;z<3;z++)
 	{
-		size = z+100;
+		size = z*100;
 		sprintf(buffer, "Filename %d",z+1);
 		if (z == 0 ) thisicon = foldericon;
 		else thisicon = fileicon;
