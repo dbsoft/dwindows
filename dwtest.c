@@ -521,16 +521,16 @@ void tree_add(void)
 	foldericon = dw_icon_load_from_file( FOLDER_ICON_NAME );
 	fileicon = dw_icon_load_from_file( FILE_ICON_NAME  );
 
+	/* set up our signal trappers... */
+	dw_signal_connect(tree, DW_SIGNAL_ITEM_CONTEXT, DW_SIGNAL_FUNC(item_context_cb), (void *)tree_status);
+	dw_signal_connect(tree, DW_SIGNAL_ITEM_SELECT, DW_SIGNAL_FUNC(item_select_cb), (void *)tree_status);
+
 	t1 = dw_tree_insert(tree, "tree folder 1", foldericon, NULL, (void *)1 );
 	t2 = dw_tree_insert(tree, "tree folder 2", foldericon, NULL, (void *)2 );
 	t3 = dw_tree_insert(tree, "tree file 1", fileicon, t1, (void *)3 );
 	t4 = dw_tree_insert(tree, "tree file 2", fileicon, t1, (void *)4 );
 	t5 = dw_tree_insert(tree, "tree file 3", fileicon, t2, (void *)5 );
 	t6 = dw_tree_insert(tree, "tree file 4", fileicon, t2, (void *)6 );
-
-	/* set up our signal trappers... */
-	dw_signal_connect(tree, DW_SIGNAL_ITEM_CONTEXT, DW_SIGNAL_FUNC(item_context_cb), (void *)tree_status);
-	dw_signal_connect(tree, DW_SIGNAL_ITEM_SELECT, DW_SIGNAL_FUNC(item_select_cb), (void *)tree_status);
 }
 
 void container_add(void)
