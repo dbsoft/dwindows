@@ -49,8 +49,14 @@ AC_CHECK_LIB(sun, getpwnam, LIBS="$LIBS -lsun",)
 AC_CHECK_LIB(dgc, inet_addr, LIBS="$LIBS -ldgc",)
 AC_CHECK_LIB(resolv, gethostbyname, LIBS="$LIBS -lresolv",)
 
-AM_PATH_GLIB(1.2.0,,AC_MSG_ERROR(AC_MSG_ERROR(Cannot find GLIB: Is glib-config in path?)))
-AM_PATH_GTK(1.2.0,,AC_MSG_ERROR(AC_MSG_ERROR(Cannot find GTK: Is gtk-config in path?)), gthread)
+AC_CHECK_PROG(PKG_CFG, pkg-config, pkg-config)
+if test x"$PKG_CFG" = x; then
+  AM_PATH_GLIB(1.2.0,,AC_MSG_ERROR(AC_MSG_ERROR(Cannot find GLIB: Is glib-config in path?)))
+  AM_PATH_GTK(1.2.0,,AC_MSG_ERROR(AC_MSG_ERROR(Cannot find GTK: Is gtk-config in path?)), gthread)
+else
+  GTK_CFLAGS=`$PKG_CFG --cflags gtk+-2.0 gthread-2.0`
+  GTK_LIBS=`$PKG_CFG --libs gtk+-2.0 gthread-2.0`
+fi
 
 AC_CHECK_HEADER(pthread.h,,AC_MSG_ERROR([pthread header not found. Dynamic Windows cannot build without it.]))
 AC_CHECK_LIB(pthread, pthread_attr_init, PTHREAD_LIBS="-lpthread",

@@ -19,10 +19,9 @@
 #include <gdk/gdkkeysyms.h>
 #ifdef USE_IMLIB
 #include <gdk_imlib.h>
-#elif defined(USE_PIXBUF)
+#endif
+#if GTK_MAJOR_VERSION > 1
 #include <gdk-pixbuf/gdk-pixbuf.h>
-#include <gdk-pixbuf/gdk-pixbuf-xlibrgb.h>
-#include <gdk-pixbuf/gdk-pixbuf-xlib.h>
 #endif
 
 /* These are used for resource management */
@@ -556,10 +555,10 @@ GdkPixmap *_find_pixmap(GdkBitmap **bitmap, long id, HWND handle)
 	if(data)
 	{
 		GdkPixmap *icon_pixmap = NULL;
-#ifdef USE_IMLIB
-		gdk_imlib_data_to_pixmap((char **)data, &icon_pixmap, bitmap);
-#elif defined(USE_PIXBUF)
+#if GTK_MAJOR_VERSION > 1
 		icon_pixmap = (GdkPixmap *)gdk_pixbuf_new_from_xpm_data((const char **)data);
+#elif defined(USE_IMLIB)
+		gdk_imlib_data_to_pixmap((char **)data, &icon_pixmap, bitmap);
 #else
 		icon_pixmap = gdk_pixmap_create_from_xpm_d(handle->window, bitmap, &_colors[DW_CLR_PALEGRAY], &data);
 #endif
@@ -1106,9 +1105,10 @@ void dw_window_reparent(HWND handle, HWND newparent)
 
 int _set_font(HWND handle, char *fontname)
 {
+	int retval = FALSE;
+#if GTK_MAJOR_VERSION < 2
 	GtkStyle *style;
 	GdkFont *font = NULL;
-	int retval = FALSE;
 
 	font = gdk_font_load(fontname);
 
@@ -1119,6 +1119,13 @@ int _set_font(HWND handle, char *fontname)
 		gtk_widget_set_style(handle, style);
 		retval = TRUE;
 	}
+#else
+	PangoFontDescription *font = pango_font_description_from_string(fontname);
+
+	if(font)
+		gtk_widget_modify_font(handle, font);
+	pango_font_description_free(font);
+#endif
 	return retval;
 }
 
@@ -1212,7 +1219,7 @@ int _set_color(HWND handle, unsigned long fore, unsigned long back)
 		style->text[0] = style->text[1] = style->fg[0] = style->fg[1] = forecolor;
 		style->base[0] = style->base[1] = style->bg[0] = style->bg[1] = backcolor;
 		gtk_widget_set_style(handle, style);
-
+    
 		_save_gdk_colors(handle, forecolor, backcolor);
 
 		if(GTK_IS_CLIST(handle))
@@ -1463,8 +1470,8 @@ HWND dw_mdi_new(unsigned long id)
  */
 HWND dw_bitmap_new(unsigned long id)
 {
-	GdkPixmap *pixmap= NULL;
-	GdkBitmap *bitmap;
+	GdkPixmap *pixmap = NULL;
+	GdkBitmap *bitmap = NULL;
 	GtkWidget *tmp;
 	static char * test_xpm[] = {
 		"1 1 2 1",
@@ -1474,17 +1481,20 @@ HWND dw_bitmap_new(unsigned long id)
 	int _locked_by_me = FALSE;
 
 	DW_MUTEX_LOCK;
-#ifdef USE_IMLIB
-	gdk_imlib_data_to_pixmap(test_xpm, &pixmap, &bitmap);
-#elif defined(USE_PIXBUF)
+#if GTK_MAJOR_VERSION > 1
 	pixmap = (GdkPixmap *)gdk_pixbuf_new_from_xpm_data((const char **)test_xpm);
+	tmp = gtk_image_new_from_pixbuf((GdkPixbuf *)pixmap);
+#elif defined(USE_IMLIB)
+	gdk_imlib_data_to_pixmap(test_xpm, &pixmap, &bitmap);
 #else
 	gtk_widget_realize(last_window);
 
 	if(last_window)
 		pixmap = gdk_pixmap_create_from_xpm_d(last_window->window, &bitmap, &_colors[DW_CLR_PALEGRAY], test_xpm);
 #endif
+#if GTK_MAJOR_VERSION < 2
 	tmp = gtk_pixmap_new(pixmap, bitmap);
+#endif
 	gtk_widget_show(tmp);
 	gtk_object_set_data(GTK_OBJECT(tmp), "id", (gpointer)id);
 	DW_MUTEX_UNLOCK;
@@ -1657,7 +1667,7 @@ HWND dw_menu_append_item(HMENUI menu, char *title, unsigned long id, unsigned lo
 			{
 				tmphandle=gtk_check_menu_item_new_with_label("");
 				tmp_key = gtk_label_parse_uline(GTK_LABEL(GTK_BIN(tmphandle)->child), tempbuf);
-				gtk_widget_add_accelerator(tmphandle, "activate_item", accel_group, tmp_key, GDK_MOD1_MASK, 0);
+				gtk_widget_add_accelerator(tmphandle, "activate", accel_group, tmp_key, GDK_MOD1_MASK, 0);
 			}
 			else
 				tmphandle=gtk_check_menu_item_new_with_label(tempbuf);
@@ -1671,7 +1681,7 @@ HWND dw_menu_append_item(HMENUI menu, char *title, unsigned long id, unsigned lo
 			{
 				tmphandle=gtk_menu_item_new_with_label("");
 				tmp_key = gtk_label_parse_uline(GTK_LABEL(GTK_BIN(tmphandle)->child), tempbuf);
-				gtk_widget_add_accelerator(tmphandle, "activate_item", accel_group, tmp_key, GDK_MOD1_MASK, 0);
+				gtk_widget_add_accelerator(tmphandle, "activate", accel_group, tmp_key, GDK_MOD1_MASK, 0);
 			}
 			else
 				tmphandle=gtk_menu_item_new_with_label(tempbuf);
@@ -1938,18 +1948,27 @@ HWND dw_mle_new(unsigned long id)
 	int _locked_by_me = FALSE;
 
 	DW_MUTEX_LOCK;
+#if GTK_MAJOR_VERSION > 1
+	tmpbox = gtk_scrolled_window_new (NULL, NULL);
+	gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (tmpbox),
+					GTK_POLICY_AUTOMATIC, GTK_POLICY_ALWAYS);
+	tmp = gtk_text_view_new();
+	gtk_scrolled_window_add_with_viewport(GTK_SCROLLED_WINDOW(tmpbox), tmp);
+	gtk_text_view_set_wrap_mode(GTK_TEXT_VIEW(tmp), GTK_WRAP_NONE);
+#else
 	tmpbox = gtk_hbox_new(FALSE, 0);
 	tmp = gtk_text_new(NULL, NULL);
 	gtk_text_set_word_wrap(GTK_TEXT(tmp), FALSE);
 	gtk_text_set_line_wrap(GTK_TEXT(tmp), FALSE);
 	scroller = gtk_vscrollbar_new(GTK_TEXT(tmp)->vadj);
 	GTK_WIDGET_UNSET_FLAGS(scroller, GTK_CAN_FOCUS);
-	gtk_object_set_data(GTK_OBJECT(tmp), "id", (gpointer)id);
-	gtk_object_set_data(GTK_OBJECT(tmpbox), "mle", (gpointer)tmp);
 	gtk_box_pack_start(GTK_BOX(tmpbox), tmp, TRUE, TRUE, 0);
 	gtk_box_pack_start(GTK_BOX(tmpbox), scroller, FALSE, TRUE, 0);
-	gtk_widget_show(tmp);
 	gtk_widget_show(scroller);
+#endif
+	gtk_object_set_data(GTK_OBJECT(tmp), "id", (gpointer)id);
+	gtk_object_set_data(GTK_OBJECT(tmpbox), "mle", (gpointer)tmp);
+	gtk_widget_show(tmp);
 	gtk_widget_show(tmpbox);
 	DW_MUTEX_UNLOCK;
 	return tmpbox;
@@ -2240,7 +2259,11 @@ void dw_window_set_icon(HWND handle, unsigned long id)
 	icon_pixmap = _find_pixmap(&bitmap, id, handle);
 
 	if(handle->window && icon_pixmap)
+#if GTK_MAJOR_VERSION > 1
+		gtk_window_set_icon(GTK_WINDOW(handle), (GdkPixbuf *)icon_pixmap);
+#else
 		gdk_window_set_icon(handle->window, NULL, icon_pixmap, bitmap);
+#endif
 
 	DW_MUTEX_UNLOCK;
 }
@@ -2260,7 +2283,11 @@ void dw_window_set_bitmap(HWND handle, unsigned long id)
 	DW_MUTEX_LOCK;
 	tmp = _find_pixmap(&bitmap, id, handle);
 	if(tmp)
+#if GTK_MAJOR_VERSION > 1
+		gtk_image_set_from_pixbuf(GTK_IMAGE(handle), (GdkPixbuf *)tmp);
+#else
 		gtk_pixmap_set(GTK_PIXMAP(handle), tmp, bitmap);
+#endif
 	DW_MUTEX_UNLOCK;
 }
 
@@ -2299,7 +2326,11 @@ void dw_window_set_text(HWND handle, char *text)
  */
 char *dw_window_get_text(HWND handle)
 {
+#if GTK_MAJOR_VERSION > 1
+	const char *possible = "";
+#else
 	char *possible = "";
+#endif
 	int _locked_by_me = FALSE;
 
 	DW_MUTEX_LOCK;
@@ -2368,11 +2399,31 @@ unsigned int dw_mle_import(HWND handle, char *buffer, int startpoint)
 	int _locked_by_me = FALSE;
 
 	DW_MUTEX_LOCK;
+#if GTK_MAJOR_VERSION > 1
+	if(GTK_IS_SCROLLED_WINDOW(handle))
+#else
 	if(GTK_IS_BOX(handle))
+#endif
 	{
 		GtkWidget *tmp = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(handle), "mle");
 		GdkFont *font = (GdkFont *)gtk_object_get_data(GTK_OBJECT(handle), "gdkfont");
 
+#if GTK_MAJOR_VERSION > 1
+		if(tmp && GTK_IS_TEXT_VIEW(tmp))
+		{
+			char *impbuf = malloc(strlen(buffer)+1);
+			GtkTextBuffer *tbuffer;
+			GtkTextIter iter;
+      
+			_strip_cr(impbuf, buffer);
+
+			tbuffer = gtk_text_view_get_buffer (GTK_TEXT_VIEW (tmp));
+			gtk_text_buffer_get_iter_at_offset(tbuffer, &iter, startpoint);
+			gtk_text_buffer_place_cursor(tbuffer, &iter);
+			gtk_text_buffer_insert_at_cursor(tbuffer, impbuf, -1);
+			free(impbuf);
+		}
+#else
 		if(tmp && GTK_IS_TEXT(tmp))
 		{
 			GdkColor *fore = (GdkColor *)gtk_object_get_data(GTK_OBJECT(handle), "foregdk");
@@ -2386,6 +2437,7 @@ unsigned int dw_mle_import(HWND handle, char *buffer, int startpoint)
 			tmppoint = gtk_text_get_point(GTK_TEXT(tmp));
 			free(impbuf);
 		}
+#endif
 	}
 	DW_MUTEX_UNLOCK;
 	return tmppoint;
@@ -2401,6 +2453,8 @@ unsigned int dw_mle_import(HWND handle, char *buffer, int startpoint)
  */
 void dw_mle_export(HWND handle, char *buffer, int startpoint, int length)
 {
+#if GTK_MAJOR_VERSION > 1
+#else
 	int _locked_by_me = FALSE;
 	gchar *text;
 
@@ -2420,6 +2474,7 @@ void dw_mle_export(HWND handle, char *buffer, int startpoint, int length)
 		}
 	}
 	DW_MUTEX_UNLOCK;
+#endif
 }
 
 /*
@@ -2439,6 +2494,22 @@ void dw_mle_query(HWND handle, unsigned long *bytes, unsigned long *lines)
 		*lines = 0;
 
 	DW_MUTEX_LOCK;
+#if GTK_MAJOR_VERSION > 1
+	if(GTK_IS_SCROLLED_WINDOW(handle))
+	{
+		GtkWidget *tmp = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(handle), "mle");
+
+		if(tmp && GTK_IS_TEXT_VIEW(tmp))
+		{
+			GtkTextBuffer *buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(tmp));
+      
+			if(bytes)
+				*bytes = gtk_text_buffer_get_char_count(buffer) + 1;
+			if(lines)
+				*lines = gtk_text_buffer_get_line_count(buffer) + 1;
+		}
+	}
+#else
 	if(GTK_IS_BOX(handle))
 	{
 		GtkWidget *tmp = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(handle), "mle");
@@ -2468,6 +2539,7 @@ void dw_mle_query(HWND handle, unsigned long *bytes, unsigned long *lines)
 			}
 		}
 	}
+#endif
 	DW_MUTEX_UNLOCK;
 }
 
@@ -2483,6 +2555,8 @@ void dw_mle_delete(HWND handle, int startpoint, int length)
 	int _locked_by_me = FALSE;
 
 	DW_MUTEX_LOCK;
+#if GTK_MAJOR_VERSION > 1
+#else
 	if(GTK_IS_BOX(handle))
 	{
 		GtkWidget *tmp = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(handle), "mle");
@@ -2493,6 +2567,7 @@ void dw_mle_delete(HWND handle, int startpoint, int length)
 			gtk_text_forward_delete(GTK_TEXT(tmp), length);
 		}
 	}
+#endif
 	DW_MUTEX_UNLOCK;
 }
 
@@ -2506,6 +2581,8 @@ void dw_mle_clear(HWND handle)
 	int length, _locked_by_me = FALSE;
 
 	DW_MUTEX_LOCK;
+#if GTK_MAJOR_VERSION > 1
+#else
 	if(GTK_IS_BOX(handle))
 	{
 		GtkWidget *tmp = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(handle), "mle");
@@ -2517,6 +2594,7 @@ void dw_mle_clear(HWND handle)
 			gtk_text_forward_delete(GTK_TEXT(tmp), length);
 		}
 	}
+#endif
 	DW_MUTEX_UNLOCK;
 }
 
@@ -2531,6 +2609,8 @@ void dw_mle_set_visible(HWND handle, int line)
 	int _locked_by_me = FALSE;
 
 	DW_MUTEX_LOCK;
+#if GTK_MAJOR_VERSION > 1
+#else
 	if(GTK_IS_BOX(handle))
 	{
 		GtkWidget *tmp = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(handle), "mle");
@@ -2552,6 +2632,7 @@ void dw_mle_set_visible(HWND handle, int line)
 			}
 		}
 	}
+#endif
 	DW_MUTEX_UNLOCK;
 }
 
@@ -2566,15 +2647,23 @@ void dw_mle_set_editable(HWND handle, int state)
 	int _locked_by_me = FALSE;
 
 	DW_MUTEX_LOCK;
+#if GTK_MAJOR_VERSION > 1
+	if(GTK_IS_SCROLLED_WINDOW(handle))
+	{
+		GtkWidget *tmp = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(handle), "mle");
+
+		if(tmp && GTK_IS_TEXT_VIEW(tmp))
+			gtk_text_view_set_editable(GTK_TEXT_VIEW(tmp), state);
+	}
+#else
 	if(GTK_IS_BOX(handle))
 	{
 		GtkWidget *tmp = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(handle), "mle");
 
 		if(tmp && GTK_IS_TEXT(tmp))
-		{
 			gtk_text_set_editable(GTK_TEXT(tmp), state);
-		}
 	}
+#endif
 	DW_MUTEX_UNLOCK;
 }
 
@@ -2589,6 +2678,15 @@ void dw_mle_set_word_wrap(HWND handle, int state)
 	int _locked_by_me = FALSE;
 
 	DW_MUTEX_LOCK;
+#if GTK_MAJOR_VERSION > 1
+	if(GTK_IS_SCROLLED_WINDOW(handle))
+	{
+		GtkWidget *tmp = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(handle), "mle");
+
+		if(tmp && GTK_IS_TEXT_VIEW(tmp))
+			gtk_text_view_set_wrap_mode(GTK_TEXT_VIEW(tmp), GTK_WRAP_WORD);
+	}
+#else
 	if(GTK_IS_BOX(handle))
 	{
 		GtkWidget *tmp = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(handle), "mle");
@@ -2599,6 +2697,7 @@ void dw_mle_set_word_wrap(HWND handle, int state)
 			gtk_text_set_line_wrap(GTK_TEXT(tmp), state);
 		}
 	}
+#endif
 	DW_MUTEX_UNLOCK;
 }
 
@@ -2613,6 +2712,8 @@ void dw_mle_set(HWND handle, int point)
 	int _locked_by_me = FALSE;
 
 	DW_MUTEX_LOCK;
+#if GTK_MAJOR_VERSION > 1
+#else
 	if(GTK_IS_BOX(handle))
 	{
 		GtkWidget *tmp = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(handle), "mle");
@@ -2635,6 +2736,7 @@ void dw_mle_set(HWND handle, int point)
 			gtk_text_set_point(GTK_TEXT(tmp), point);
 		}
 	}
+#endif
 	DW_MUTEX_UNLOCK;
 }
 
@@ -2651,6 +2753,8 @@ int dw_mle_search(HWND handle, char *text, int point, unsigned long flags)
 	int _locked_by_me = FALSE, retval = 0;
 
 	DW_MUTEX_LOCK;
+#if GTK_MAJOR_VERSION > 1
+#else
 	if(GTK_IS_BOX(handle))
 	{
 		GtkWidget *tmp = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(handle), "mle");
@@ -2694,7 +2798,7 @@ int dw_mle_search(HWND handle, char *text, int point, unsigned long flags)
 			}
 		}
 	}
-
+#endif
 	DW_MUTEX_UNLOCK;
 	return retval;
 }
@@ -2709,6 +2813,8 @@ void dw_mle_freeze(HWND handle)
 	int _locked_by_me = FALSE;
 
 	DW_MUTEX_LOCK;
+#if GTK_MAJOR_VERSION > 1
+#else
 	if(GTK_IS_BOX(handle))
 	{
 		GtkWidget *tmp = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(handle), "mle");
@@ -2718,6 +2824,7 @@ void dw_mle_freeze(HWND handle)
 			gtk_text_freeze(GTK_TEXT(tmp));
 		}
 	}
+#endif
 	DW_MUTEX_UNLOCK;
 }
 
@@ -2731,6 +2838,8 @@ void dw_mle_thaw(HWND handle)
 	int _locked_by_me = FALSE;
 
 	DW_MUTEX_LOCK;
+#if GTK_MAJOR_VERSION > 1
+#else
 	if(GTK_IS_BOX(handle))
 	{
 		GtkWidget *tmp = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(handle), "mle");
@@ -2740,6 +2849,7 @@ void dw_mle_thaw(HWND handle)
 			gtk_text_thaw(GTK_TEXT(tmp));
 		}
 	}
+#endif
 	DW_MUTEX_UNLOCK;
 }
 
@@ -2961,7 +3071,11 @@ HWND dw_tree_insert_after(HWND handle, HWND item, char *title, unsigned long ico
 	hbox = gtk_hbox_new(FALSE, 2);
 	gtk_object_set_data(GTK_OBJECT(newitem), "hbox", (gpointer)hbox);
 	gdkpix = _find_pixmap(&gdkbmp, icon, hbox);
+#if GTK_MAJOR_VERSION > 1
+	pixmap = gtk_image_new_from_pixbuf((GdkPixbuf *)gdkbmp);
+#else
 	pixmap = gtk_pixmap_new(gdkpix, gdkbmp);
+#endif
 	gtk_container_add(GTK_CONTAINER(newitem), hbox);
 	gtk_box_pack_start(GTK_BOX(hbox), pixmap, FALSE, TRUE, 0);
 	gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, TRUE, 0);
@@ -3046,7 +3160,11 @@ HWND dw_tree_insert(HWND handle, char *title, unsigned long icon, HWND parent, v
 	hbox = gtk_hbox_new(FALSE, 2);
 	gtk_object_set_data(GTK_OBJECT(item), "hbox", (gpointer)hbox);
 	gdkpix = _find_pixmap(&gdkbmp, icon, hbox);
+#if GTK_MAJOR_VERSION > 1
+	pixmap = gtk_image_new_from_pixbuf((GdkPixbuf *)gdkbmp);
+#else
 	pixmap = gtk_pixmap_new(gdkpix, gdkbmp);
+#endif
 	gtk_container_add(GTK_CONTAINER(item), hbox);
 	gtk_box_pack_start(GTK_BOX(hbox), pixmap, FALSE, TRUE, 0);
 	gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, TRUE, 0);
@@ -3127,7 +3245,11 @@ void dw_tree_set(HWND handle, HWND item, char *title, unsigned long icon)
 	hbox = gtk_hbox_new(FALSE, 2);
 	gtk_object_set_data(GTK_OBJECT(item), "hbox", (gpointer)hbox);
 	gdkpix = _find_pixmap(&gdkbmp, icon, hbox);
+#if GTK_MAJOR_VERSION > 1
+	pixmap = gtk_image_new_from_pixbuf((GdkPixbuf *)gdkbmp);
+#else
 	pixmap = gtk_pixmap_new(gdkpix, gdkbmp);
+#endif
 	gtk_container_add(GTK_CONTAINER(item), hbox);
 	gtk_box_pack_start(GTK_BOX(hbox), pixmap, FALSE, TRUE, 0);
 	gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, TRUE, 0);
@@ -3485,8 +3607,10 @@ void dw_container_set_item(HWND handle, void *pointer, int column, int row, void
 		GdkBitmap *bitmap = NULL;
 		GdkPixmap *pixmap = _find_pixmap(&bitmap, hicon, clist);
 
+#if GTK_MAJOR_VERSION < 2
 		if(pixmap)
 			gtk_clist_set_pixmap(GTK_CLIST(clist), row, column, pixmap, bitmap);
+#endif
 	}
 	else if(flag & DW_CFA_STRING)
 	{
@@ -4163,7 +4287,7 @@ HPIXMAP dw_pixmap_new(HWND handle, unsigned long width, unsigned long height, in
 
 	DW_MUTEX_LOCK;
 	pixmap->handle = handle;
-#ifdef USE_PIXBUF
+#if GTK_MAJOR_VERSION > 1
 	pixmap->pixmap = (GdkPixmap *)gdk_pixbuf_new(GDK_COLORSPACE_RGB, FALSE, depth, width, height);
 #else
 	pixmap->pixmap = gdk_pixmap_new(handle->window, width, height, depth);
@@ -4194,8 +4318,13 @@ HPIXMAP dw_pixmap_grab(HWND handle, ULONG id)
 	pixmap->pixmap = _find_pixmap(&bitmap, id, handle);
 	if(pixmap->pixmap)
 	{
+#if GTK_MAJOR_VERSION < 2
 		GdkPixmapPrivate *pvt = (GdkPixmapPrivate *)pixmap->pixmap;
 		pixmap->width = pvt->width; pixmap->height = pvt->height;
+#else
+		pixmap->width = gdk_pixbuf_get_width((GdkPixbuf *)pixmap->pixmap);
+		pixmap->height = gdk_pixbuf_get_height((GdkPixbuf *)pixmap->pixmap);
+#endif
 	}
 	DW_MUTEX_UNLOCK;
 	return pixmap;
@@ -4224,7 +4353,7 @@ void dw_pixmap_destroy(HPIXMAP pixmap)
 	int _locked_by_me = FALSE;
 
 	DW_MUTEX_LOCK;
-#ifdef USE_PIXBUF
+#if GTK_MAJOR_VERSION > 1
 	gdk_pixbuf_unref((GdkPixbuf *)pixmap->pixmap);
 #else
 	gdk_pixmap_unref(pixmap->pixmap);
@@ -4265,7 +4394,7 @@ void dw_pixmap_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest, int width,
 		gc = _set_colors(dest->window);
 	else if(src)
 		gc = _set_colors(src->window);
-#ifndef USE_PIXBUF
+#if GTK_MAJOR_VERSION < 1
 	else if(destp)
 		gc = gdk_gc_new(destp->pixmap);
 	else if(srcp)
@@ -4273,18 +4402,18 @@ void dw_pixmap_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest, int width,
 #endif
 
 	if(gc
-#ifdef USE_PIXBUF
+#if GTK_MAJOR_VERSION > 2
        || (!dest && !src)
 #endif
 	  )
 	{
-#ifndef USE_PIXBUF
+#if GTK_MAJOR_VERSION < 1
 		gdk_draw_pixmap(dest ? dest->window : destp->pixmap, gc, src ? src->window : srcp->pixmap, xsrc, ysrc, xdest, ydest, width, height);
 #else
-        if(dest && srcp)
-			gdk_pixbuf_xlib_render_to_drawable(dest->window, gc, (GdkPixbuf *)srcp->pixmap, xsrc, ysrc, xdest, ydest, width, height, XLIB_RGB_DITHER_NONE, 0, 0);
+		if(dest && srcp)
+			gdk_pixbuf_render_to_drawable((GdkPixbuf *)srcp->pixmap, dest->window, gc, xsrc, ysrc, xdest, ydest, width, height, GDK_RGB_DITHER_NONE, 0, 0);
 
-        if(gc)
+		if(gc)
 #endif
 			gdk_gc_unref(gc);
 	}
@@ -5527,54 +5656,46 @@ void dw_listbox_delete(HWND handle, int index)
 /* Reposition the bar according to the percentage */
 gint _splitbar_size_allocate(GtkWidget *widget, GtkAllocation *event, gpointer data)
 {
-	int percent = (int)gtk_object_get_data(GTK_OBJECT(widget), "_dw_percent");
+	float *percent = (float *)gtk_object_get_data(GTK_OBJECT(widget), "_dw_percent");
 	int lastwidth = (int)gtk_object_get_data(GTK_OBJECT(widget), "_dw_lastwidth");
 	int lastheight = (int)gtk_object_get_data(GTK_OBJECT(widget), "_dw_lastheight");
-	float ratio = ((float)percent/100.0);
 
 	/* Prevent infinite recursion ;) */  
-	if(lastwidth == event->width && lastheight == event->height)
+	if(!percent || (lastwidth == event->width && lastheight == event->height))
 		return TRUE;
 
 	lastwidth = event->width; lastheight = event->height;
   
-	gtk_object_set_data(GTK_OBJECT(widget), "_dw_splitbar_sizing", (gpointer)1);
 	gtk_object_set_data(GTK_OBJECT(widget), "_dw_lastwidth", (gpointer)lastwidth);
 	gtk_object_set_data(GTK_OBJECT(widget), "_dw_lastheight", (gpointer)lastheight);
 
 	if(GTK_IS_HPANED(widget))
-		gtk_paned_set_position(GTK_PANED(widget), (int)(event->width * ratio));
+		gtk_paned_set_position(GTK_PANED(widget), (int)(event->width * (*percent / 100.0)));
 	if(GTK_IS_VPANED(widget))
-		gtk_paned_set_position(GTK_PANED(widget), (int)(event->height * ratio));
+		gtk_paned_set_position(GTK_PANED(widget), (int)(event->height * (*percent / 100.0)));
 	return TRUE;
 }
 
+#if GTK_MAJOR_VERSION == 2
 /* Figure out the new percentage */
-gint _splitbar_child_size_allocate(GtkWidget *widget, GtkAllocation *event, gpointer data)
+gint _splitbar_accept_position(GtkWidget *widget, gpointer data)
 {
-	GtkWidget *splitbar = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(widget), "_dw_splitbar");
-	int percent;
+	float *percent = (float *)gtk_object_get_data(GTK_OBJECT(widget), "_dw_percent");
+	int size = 0, position = gtk_paned_get_position(GTK_PANED(widget));
   
-	if(!splitbar)
-		return TRUE;  
-
-	if(gtk_object_get_data(GTK_OBJECT(splitbar), "_dw_splitbar_sizing"))
-	{
-		gtk_object_set_data(GTK_OBJECT(splitbar), "_dw_splitbar_sizing", (gpointer)0);
-		return TRUE;
-	}
-  
-	if(GTK_IS_VPANED(splitbar))
-		percent = (int)((event->height * 100) / (splitbar->allocation.height - 3));
-	else if(GTK_IS_HPANED(splitbar))
-		percent = (int)((event->width * 100) / (splitbar->allocation.width - 3));
-	else
+	if(!percent)
 		return TRUE;
 
-	gtk_object_set_data(GTK_OBJECT(splitbar), "_dw_percent", (gpointer)percent);
-  
+	if(GTK_IS_VPANED(widget))
+		size = widget->allocation.height;
+	else if(GTK_IS_HPANED(widget))
+		size = widget->allocation.width;
+
+	if(size > 0)
+		*percent = ((float)(position * 100) / (float)size);
 	return TRUE;
 }
+#endif
 
 /*
  * Creates a splitbar window (widget) with given parameters.
@@ -5589,7 +5710,8 @@ HWND dw_splitbar_new(int type, HWND topleft, HWND bottomright, unsigned long id)
 {
 	GtkWidget *tmp = NULL;
 	int _locked_by_me = FALSE;
-
+	float *percent = malloc(sizeof(float));
+  
 	DW_MUTEX_LOCK;
 	if(type == BOXHORZ)
 		tmp = gtk_hpaned_new();
@@ -5598,13 +5720,15 @@ HWND dw_splitbar_new(int type, HWND topleft, HWND bottomright, unsigned long id)
 	gtk_paned_add1(GTK_PANED(tmp), topleft);
 	gtk_paned_add2(GTK_PANED(tmp), bottomright);
 	gtk_object_set_data(GTK_OBJECT(tmp), "id", (gpointer)id);
-	gtk_object_set_data(GTK_OBJECT(tmp), "_dw_percent", (gpointer)50);
-	gtk_signal_connect(GTK_OBJECT(tmp), "size-allocate", GTK_SIGNAL_FUNC(_splitbar_size_allocate), NULL);
+	*percent = 50.0;
+	gtk_object_set_data(GTK_OBJECT(tmp), "_dw_percent", (gpointer)percent);
 	gtk_object_set_data(GTK_OBJECT(topleft), "_dw_splitbar", (gpointer)tmp);
-#if 0
-	gtk_signal_connect(GTK_OBJECT(topleft), "size-allocate", GTK_SIGNAL_FUNC(_splitbar_child_size_allocate), NULL);
-#endif
+	gtk_signal_connect(GTK_OBJECT(tmp), "size-allocate", GTK_SIGNAL_FUNC(_splitbar_size_allocate), NULL);
+#if GTK_MAJOR_VERSION > 1
+	gtk_signal_connect(GTK_OBJECT(tmp), "accept-position", GTK_SIGNAL_FUNC(_splitbar_accept_position), NULL);
+#else
 	gtk_paned_set_handle_size(GTK_PANED(tmp), 3);
+#endif
 	gtk_widget_show(tmp);
 	DW_MUTEX_UNLOCK;
 	return tmp;
@@ -5615,10 +5739,13 @@ HWND dw_splitbar_new(int type, HWND topleft, HWND bottomright, unsigned long id)
  * Parameters:
  *       handle: The handle to the splitbar returned by dw_splitbar_new().
  */
-void dw_splitbar_set(HWND handle, int percent)
+void dw_splitbar_set(HWND handle, float percent)
 {
 	/* We probably need to force a redraw here */
-	dw_window_set_data(handle, "_dw_percent", (void *)percent);
+	float *mypercent = (float *)dw_window_get_data(handle, "_dw_percent");
+
+	if(mypercent)
+		*mypercent = percent;
 }
 
 /*
@@ -5626,9 +5753,13 @@ void dw_splitbar_set(HWND handle, int percent)
  * Parameters:
  *       handle: The handle to the splitbar returned by dw_splitbar_new().
  */
-int dw_splitbar_get(HWND handle)
+float dw_splitbar_get(HWND handle)
 {
-	return (int)dw_window_get_data(handle, "_dw_percent");
+	float *percent = (float *)dw_window_get_data(handle, "_dw_percent");
+
+	if(percent)
+		return *percent;
+	return 0.0;
 }
 
 /*
@@ -5819,7 +5950,11 @@ void dw_environment_query(DWEnv *env)
 /* Internal function to handle the file OK press */
 void _gtk_file_ok(GtkWidget *widget, DWDialog *dwwait)
 {
+#if GTK_MAJOR_VERSION > 1
+	const char *tmp;
+#else
 	char *tmp;
+#endif
 
 	if(!dwwait)
 		return;
