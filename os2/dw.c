@@ -2938,7 +2938,7 @@ MRESULT EXPENTRY _BtProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 
 			WinSetPresParam(hwndBubble,
 							PP_FONTNAMESIZE,
-							sizeof(DefaultFont),
+							strlen(DefaultFont)+1,
 							DefaultFont);
 
 
