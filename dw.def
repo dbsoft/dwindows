@@ -250,3 +250,13 @@ EXPORTS
   dw_taskbar_insert                      @440
   dw_taskbar_delete                      @441
   
+  dw_named_memory_new                    @450
+  dw_named_memory_get                    @451
+  dw_named_memory_free                   @452
+
+  dw_named_event_new                     @460
+  dw_named_event_get                     @461
+  dw_named_event_reset                   @462
+  dw_named_event_post                    @463
+  dw_named_event_wait                    @464
+  dw_named_event_close                   @465

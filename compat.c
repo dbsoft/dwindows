@@ -713,6 +713,85 @@ int API fsseek(FILE *stream, long offset, int whence)
 	return fseek(stream, offset, whence);
 }
 
+void API nice_strformat(char *dest, long double val, int dec)
+{
+	char formatbuf[10];
+	char format = 0;
+	double printval;
+
+	/* 1024 ^ 3 = Gigabytes */
+	if(val >= 1073741824L)
+	{
+		printval = val/(1073741824L);
+		format = 'G';
+	}
+	/* 1024 ^ 2 = Megabytes */
+	else if(val >= 1048576)
+	{
+		printval = val/(1048576);
+		format = 'M';
+	}
+	/* 1024 = Kilobytes */
+	else if(val > 1024)
+	{
+		printval = val/1024;
+		format = 'K';
+	}
+	else
+		printval = val;
+
+	/* Generate the format string */
+	sprintf(formatbuf, "%%.%df%c", dec, format);
+	/* Create the pretty value */
+	sprintf(dest, formatbuf, printval);
+}
+
+/* Update the current working directory based on the
+ * path of the executable being executed.
+ */
+void API initdir(int argc, char *argv[])
+{
+	if(argc > 0)
+	{
+		char *tmpdir = strdup(argv[0]);
+		int z, len = strlen(argv[0]);
+
+		for(z=len;z > -1;z--)
+		{
+			if(tmpdir[z] == '/')
+			{
+				tmpdir[z+1] = 0;
+				setpath(tmpdir);
+				free(tmpdir);
+				return;
+			}
+		}
+		free(tmpdir);
+	}
+}
+
+/*
+ * Sets	the current directory (and drive) information.
+ * Parameters:
+ *	 path: A buffer	containing the new path.
+ * Returns:
+ *	 -1 on error.
+ */
+int API setpath(char *path)
+{
+#if defined(__OS2__) || defined(__WIN32__)
+	if(strlen(path)	> 2)
+	{
+		if(path[1] == ':')
+		{
+			char drive = toupper(path[0]);
+			_chdrive((drive - 'A')+1);
+		}
+	}
+#endif
+	return chdir(path);
+}
+
 static int locale_number = -1, locale_count = 0;
 static char **locale_text = NULL;
 
