@@ -74,19 +74,10 @@ BYTE _blue[] = { 	0x00, 0x00, 0x00, 0x00, 0xcc, 0xbb, 0xbb, 0xaa, 0x77,
 
 HBRUSH _colors[18];
 
-static LONG lColor[SPLITBAR_WIDTH] =
-{
-    DW_CLR_BLACK,
-    DW_CLR_PALEGRAY,
-    DW_CLR_WHITE
-};
 
 void _resize_notebook_page(HWND handle, int pageid);
 int _lookup_icon(HWND handle, HICON hicon, int type);
 
-#ifdef NO_SIGNALS
-#define USE_FILTER
-#else
 typedef struct _sighandler
 {
 	struct _sighandler	*next;
@@ -295,10 +286,8 @@ void _new_signal(ULONG message, HWND window, void *signalfunction, void *data)
 {
 	SignalHandler *new = malloc(sizeof(SignalHandler));
 
-#ifndef NO_SIGNALS
 	if(message == WM_COMMAND)
 		dw_signal_disconnect_by_window(window);
-#endif
 
 	new->message = message;
 	new->window = window;
@@ -343,7 +332,6 @@ ULONG _findsigmessage(char *signame)
 	}
 	return 0L;
 }
-#endif
 
 /* This function removes and handlers on windows and frees
  * the user memory allocated to it.
@@ -352,9 +340,7 @@ BOOL CALLBACK _free_window_memory(HWND handle, LPARAM lParam)
 {
 	ColorInfo *thiscinfo = (ColorInfo *)GetWindowLong(handle, GWL_USERDATA);
 
-#ifndef NO_SIGNALS
 	dw_signal_disconnect_by_window(handle);
-#endif
 
 	if(thiscinfo)
 	{
@@ -717,69 +703,6 @@ void _ResetWindow(HWND hwndFrame)
 				 rcl.bottom - rcl.top - 1, SWP_NOMOVE | SWP_NOZORDER);
 	SetWindowPos(hwndFrame, HWND_TOP, 0, 0, rcl.right - rcl.left,
 				 rcl.bottom - rcl.top, SWP_NOMOVE | SWP_NOZORDER);
-}
-
-/* Function: TrackRectangle
- * Abstract: Tracks given rectangle.
- *
- * If rclBounds is NULL, then track rectangle on entire desktop.
- * rclTrack is in window coorditates and will be mapped to
- * desktop.
- */
-
-BOOL _TrackRectangle(HWND hwndBase, RECTL* rclTrack, RECTL* rclBounds)
-{
-	ULONG rc = 0;
-#if 0
-	TRACKINFO track;
-
-	track.cxBorder = 1;
-	track.cyBorder = 1;
-	track.cxGrid   = 1;
-	track.cyGrid   = 1;
-	track.cxKeyboard = 8;
-	track.cyKeyboard = 8;
-
-	if(!rclTrack)
-		return FALSE;
-
-	if(rclBounds)
-	{
-		track.rclBoundary = *rclBounds;
-	}
-	else
-	{
-		track.rclBoundary.yTop    =
-			track.rclBoundary.xRight  = 3000;
-		track.rclBoundary.yBottom =
-			track.rclBoundary.xLeft   = -3000;
-	}
-
-	track.rclTrack = *rclTrack;
-
-	MapWindowPoints(hwndBase,
-					HWND_DESKTOP,
-					(PPOINT)&track.rclTrack,
-					2);
-
-	track.ptlMinTrackSize.x = track.rclTrack.xRight
-		- track.rclTrack.xLeft;
-	track.ptlMinTrackSize.y = track.rclTrack.yTop
-		- track.rclTrack.yBottom;
-	track.ptlMaxTrackSize.x = track.rclTrack.xRight
-		- track.rclTrack.xLeft;
-	track.ptlMaxTrackSize.y = track.rclTrack.yTop
-		- track.rclTrack.yBottom;
-
-	track.fs = TF_MOVE | TF_ALLINBOUNDARY;
-
-	rc = WinTrackRect(HWND_DESKTOP, 0, &track);
-
-	if(rc)
-		*rclTrack = track.rclTrack;
-
-#endif
-	return rc;
 }
 
 /* This function calculates how much space the widgets and boxes require
@@ -1251,9 +1174,7 @@ BOOL CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 {
 	int result = -1;
 	static int command_active = 0;
-#ifndef NO_SIGNALS
 	SignalHandler *tmp = Root;
-#endif
 	void (* windowfunc)(PVOID);
 	ULONG origmsg = msg;
 
@@ -1267,7 +1188,6 @@ BOOL CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 	if(filterfunc)
 		result = filterfunc(hWnd, msg, mp1, mp2);
 
-#ifndef NO_SIGNALS
 	if(result == -1)
 	{
 		/* Avoid infinite recursion */
@@ -1545,7 +1465,6 @@ BOOL CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 		}
 		command_active = 0;
 	}
-#endif
 
 	/* Now that any handlers are done... do normal processing */
 	switch( msg )
@@ -2130,7 +2049,6 @@ BOOL CALLBACK _containerwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 	case WM_NOTIFY:
 		_wndproc(hWnd, msg, mp1, mp2);
 		break;
-#ifndef NO_SIGNALS
 	case WM_LBUTTONDBLCLK:
 	case WM_CHAR:
 		{
@@ -2229,18 +2147,6 @@ BOOL CALLBACK _containerwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 			}
 		}
 		break;
-#else
-	case WM_CHAR:
-		if(LOWORD(mp1) == '\t')
-		{
-			if(GetAsyncKeyState(VK_SHIFT) & 0x8000)
-				_shift_focus_back(hWnd);
-			else
-				_shift_focus(hWnd);
-			return FALSE;
-		}
-		break;
-#endif
 	}
 
 	if(!cinfo || !cinfo->pOldProc)
@@ -2300,11 +2206,60 @@ void _changebox(Box *thisbox, int percent, int type)
 	}
 }
 
+void _handle_splitbar_resize(HWND hwnd, float percent, int type, int x, int y)
+{
+	if(type == BOXHORZ)
+	{
+		int newx = x - SPLITBAR_WIDTH, newy = y;
+		float ratio = (float)percent/(float)100.0;
+		HWND handle = (HWND)dw_window_get_data(hwnd, "_dw_topleft");
+		Box *tmp = (Box *)GetWindowLong(handle, GWL_USERDATA);
+
+		newx = (int)((float)newx * ratio);
+
+		SetWindowPos(handle, (HWND)NULL, 0, 0, newx, y, SWP_NOZORDER | SWP_SHOWWINDOW | SWP_NOACTIVATE);
+		_do_resize(tmp, newx, y);
+
+		handle = (HWND)dw_window_get_data(hwnd, "_dw_bottomright");
+		tmp = (Box *)GetWindowLong(handle, GWL_USERDATA);
+
+		newx = x - newx - SPLITBAR_WIDTH;
+
+		SetWindowPos(handle, (HWND)NULL, x - newx, 0, newx, y, SWP_NOZORDER | SWP_SHOWWINDOW | SWP_NOACTIVATE);
+		_do_resize(tmp, newx, y);
+
+		dw_window_set_data(hwnd, "_dw_start", (void *)newx);
+	}
+	else
+	{
+		int newx = x, newy = y - SPLITBAR_WIDTH;
+		float ratio = (float)(100.0-percent)/(float)100.0;
+		HWND handle = (HWND)dw_window_get_data(hwnd, "_dw_bottomright");
+		Box *tmp = (Box *)GetWindowLong(handle, GWL_USERDATA);
+
+		newy = (int)((float)newy * ratio);
+
+		SetWindowPos(handle, (HWND)NULL, 0, y - newy, x, newy, SWP_NOZORDER | SWP_SHOWWINDOW | SWP_NOACTIVATE);
+		_do_resize(tmp, x, newy);
+
+		handle = (HWND)dw_window_get_data(hwnd, "_dw_topleft");
+		tmp = (Box *)GetWindowLong(handle, GWL_USERDATA);
+
+		newy = y - newy - SPLITBAR_WIDTH;
+
+		SetWindowPos(handle, (HWND)NULL, 0, 0, x, newy, SWP_NOZORDER | SWP_SHOWWINDOW | SWP_NOACTIVATE);
+		_do_resize(tmp, x, newy);
+
+		dw_window_set_data(hwnd, "_dw_start", (void *)newy);
+	}
+}
+
 /* This handles any activity on the splitbars (sizers) */
 BOOL CALLBACK _splitwndproc(HWND hwnd, UINT msg, WPARAM mp1, LPARAM mp2)
 {
 	float *percent = (float *)dw_window_get_data(hwnd, "_dw_percent");
 	int type = (int)dw_window_get_data(hwnd, "_dw_type");
+	int start = (int)dw_window_get_data(hwnd, "_dw_start");
 
 	switch (msg)
 	{
@@ -2317,205 +2272,55 @@ BOOL CALLBACK _splitwndproc(HWND hwnd, UINT msg, WPARAM mp1, LPARAM mp2)
 			int x = LOWORD(mp2), y = HIWORD(mp2);
 
 			if(x > 0 && y > 0 && percent)
-			{
-				if(type == BOXHORZ)
-				{
-					int newx = x - SPLITBAR_WIDTH, newy = y;
-					float ratio = (float)*percent/(float)100.0;
-					HWND handle = (HWND)dw_window_get_data(hwnd, "_dw_topleft");
-					Box *tmp = (Box *)GetWindowLong(handle, GWL_USERDATA);
-
-					newx = (int)((float)newx * ratio);
-
-					SetWindowPos(handle, (HWND)NULL, 0, 0, newx, y, SWP_NOZORDER | SWP_SHOWWINDOW | SWP_NOACTIVATE);
-					_do_resize(tmp, newx, y);
-
-					handle = (HWND)dw_window_get_data(hwnd, "_dw_bottomright");
-					tmp = (Box *)GetWindowLong(handle, GWL_USERDATA);
-
-					newx = x - newx - SPLITBAR_WIDTH;
-
-					SetWindowPos(handle, (HWND)NULL, x - newx, 0, newx, y, SWP_NOZORDER | SWP_SHOWWINDOW | SWP_NOACTIVATE);
-					_do_resize(tmp, newx, y);
-
-					dw_window_set_data(hwnd, "_dw_start", (void *)newx);
-				}
-                else
-				{
-					int newx = x, newy = y - SPLITBAR_WIDTH;
-					float ratio = (float)(100.0-*percent)/(float)100.0;
-					HWND handle = (HWND)dw_window_get_data(hwnd, "_dw_bottomright");
-					Box *tmp = (Box *)GetWindowLong(handle, GWL_USERDATA);
-
-					newy = (int)((float)newy * ratio);
-
-					SetWindowPos(handle, (HWND)NULL, 0, y - newy, x, newy, SWP_NOZORDER | SWP_SHOWWINDOW | SWP_NOACTIVATE);
-					_do_resize(tmp, x, newy);
-
-					handle = (HWND)dw_window_get_data(hwnd, "_dw_topleft");
-					tmp = (Box *)GetWindowLong(handle, GWL_USERDATA);
-
-					newy = y - newy - SPLITBAR_WIDTH;
-
-					SetWindowPos(handle, (HWND)NULL, 0, 0, x, newy, SWP_NOZORDER | SWP_SHOWWINDOW | SWP_NOACTIVATE);
-					_do_resize(tmp, x, newy);
-
-					dw_window_set_data(hwnd, "_dw_start", (void *)newy);
-				}
-			}
+				_handle_splitbar_resize(hwnd, *percent, type, x, y);
+    	}
+		break;
+	case WM_LBUTTONDOWN:
+		{
+			SetCapture(hwnd);
+			break;
+		}
+	case WM_LBUTTONUP:
+		{
+            if(GetCapture() == hwnd)
+				ReleaseCapture();
 		}
 		break;
-	case WM_PAINT:
-		{
-			HDC hdcPaint;
-			PAINTSTRUCT ps;
-			POINT ptlStart[SPLITBAR_WIDTH];
-			POINT ptlEnd[SPLITBAR_WIDTH];
-			RECT rcPaint;
-			USHORT i;
-			int start = (int)dw_window_get_data(hwnd, "_dw_start");
-
-			hdcPaint = BeginPaint(hwnd, &ps);
-			GetWindowRect(hwnd, &rcPaint);
-
-			if(type == BOXHORZ)
-			{
-				for(i = 0; i < SPLITBAR_WIDTH; i++)
-				{
-					ptlStart[i].x = i + start - 1;
-					ptlStart[i].y = 0;
-
-					ptlEnd[i].x = i + start - 1;
-					ptlEnd[i].y = rcPaint.bottom - rcPaint.top;
-				}
-			}
-			else
-			{
-				for(i = 0; i < SPLITBAR_WIDTH; i++)
-				{
-					ptlStart[i].x = 0;
-					ptlStart[i].y = i + start;
-
-					ptlEnd[i].x = rcPaint.right - rcPaint.left;
-					ptlEnd[i].y = i + start;
-				}
-			}
-
-			for(i = 0; i < SPLITBAR_WIDTH; i++)
-			{
-				HPEN hPen;
-				HPEN hOldPen;
-	 
-				hPen = CreatePen(PS_SOLID, 1, RGB (_red[lColor[i]], _green[lColor[i]], _blue[lColor[i]]));
-				hOldPen = (HPEN)SelectObject(hdcPaint, hPen);
-				MoveToEx(hdcPaint, ptlStart[i].x, ptlStart[i].y, NULL);
-				LineTo(hdcPaint, ptlEnd[i].x, ptlEnd[i].y);
-				SelectObject(hdcPaint, hOldPen);
-				DeleteObject(hPen);
-			}
-			EndPaint(hwnd, &ps);
-		}
-		return FALSE;
 	case WM_MOUSEMOVE:
 		{
 			if(type == BOXHORZ)
 				SetCursor(LoadCursor(NULL, IDC_SIZEWE));
 			else
 				SetCursor(LoadCursor(NULL, IDC_SIZENS));
-		}
-		return FALSE;
-#if 0
-	case WM_BUTTON1DOWN:
-		{
-			ULONG rc;
-			RECTL  rclFrame;
-			RECTL  rclBounds;
-			RECTL  rclStart;
-			USHORT startSize, orig, actual;
 
-			GetWindowRect(hwnd, &rclFrame);
-			GetWindowRect(hwnd, &rclStart);
-
-			GetWindowRect(hwndFrame, &rclBounds);
-
-			WinMapWindowPoints(hwndFrame, HWND_DESKTOP,
-							   (PPOINTL)&rclBounds, 2);
-			WinMapWindowPoints(hwnd, HWND_DESKTOP,
-							   (PPOINTL)&rclStart, 2);
-
-			if(thisbox->type == BOXHORZ)
+			if(GetCapture() == hwnd)
 			{
-				orig =  thisbox->items[0].origwidth;
-				actual = thisbox->items[0].width;
+				POINT point;
+				RECT rect;
 
-				startSize = (rclStart.xLeft - rclBounds.xLeft)
-					* (((float)orig)/((float)actual));
-			}
-			else
-			{
-				orig = thisbox->items[0].origheight;
-				actual = thisbox->items[0].height;
+				GetCursorPos(&point);
+				GetWindowRect(hwnd, &rect);
 
-				startSize  = (rclStart.yBottom - rclBounds.yBottom)
-					* (((float)actual)/((float)orig));
-			}
-
-			rc = _TrackRectangle(hwnd, &rclFrame, &rclBounds);
-
-			if(rc == TRUE)
-			{
-				USHORT usNewRB;
-				USHORT usSize;
-				USHORT percent;
-				int z;
-
-				if(thisbox->type == BOXHORZ)
+				if(PtInRect(&rect, point))
 				{
-					usNewRB = rclFrame.xLeft
-						- rclBounds.xLeft;
-					usSize  = rclBounds.xRight
-						- rclBounds.xLeft;
-				}
-				else
-				{
-					usNewRB = rclFrame.yBottom
-						- rclBounds.yBottom;
-					usSize  = rclBounds.yTop
-						- rclBounds.yBottom;
-				}
+					int width = (rect.right - rect.left);
+					int height = (rect.bottom - rect.top);
 
-				percent = (usNewRB*100)/startSize;
-
-				for(z=0;z<thisbox->count;z++)
-				{
-					if(thisbox->items[z].type == TYPEBOX)
+					if(type == BOXHORZ)
 					{
-						Box *tmp = (Box *)GetWindowLong(thisbox->items[z].hwnd, GWL_USERDATA);
-						_changebox(tmp, percent, thisbox->type);
+						start = point.x - rect.left;
+						*percent = ((float)start / (float)(rect.right - rect.left - SPLITBAR_WIDTH)) * 100.0;
 					}
 					else
 					{
-						if(thisbox->items[z].hwnd == hwnd)
-							percent = (startSize*100)/usNewRB;
-
-						if(thisbox->type == BOXHORZ)
-						{
-							if(thisbox->items[z].hsize == SIZEEXPAND)
-								thisbox->items[z].width = (int)(((float)thisbox->items[z].origwidth) * (((float)percent)/((float)100.0)));
-						}
-						else
-						{
-							if(thisbox->items[z].vsize == SIZEEXPAND)
-								thisbox->items[z].height = (int)(((float)thisbox->items[z].origheight) * (((float)percent)/((float)100.0)));
-						}
+						start = point.y - rect.top;
+						*percent = ((float)start / (float)(rect.bottom - rect.top - SPLITBAR_WIDTH)) * 100.0;
 					}
+					_handle_splitbar_resize(hwnd, *percent, type, width, height);
 				}
-
-				_ResetWindow(GetWindow(hwnd, GW_OWNER));
 			}
+			break;
 		}
-		return MRFROMSHORT(FALSE);
-#endif
 	}
 	return DefWindowProc(hwnd, msg, mp1, mp2);
 }
@@ -2629,7 +2434,6 @@ BOOL CALLBACK _BtProc(HWND hwnd, ULONG msg, WPARAM mp1, LPARAM mp2)
 
 	switch(msg)
 	{
-#ifndef NO_SIGNALS
 	case WM_SETFOCUS:
 		_wndproc(hwnd, msg, mp1, mp2);
 		break;
@@ -2662,10 +2466,8 @@ BOOL CALLBACK _BtProc(HWND hwnd, ULONG msg, WPARAM mp1, LPARAM mp2)
 			}
 		}
 		break;
-#endif
 	case WM_CHAR:
 		{
-#ifndef NO_SIGNALS
 			/* A button press should also occur for an ENTER or SPACE press
 			 * while the button has the active input focus.
 			 */
@@ -2691,7 +2493,6 @@ BOOL CALLBACK _BtProc(HWND hwnd, ULONG msg, WPARAM mp1, LPARAM mp2)
 						tmp= tmp->next;
 				}
 			}
-#endif
 			if(LOWORD(mp1) == '\t')
 			{
 				if(GetAsyncKeyState(VK_SHIFT) & 0x8000)
@@ -2904,7 +2705,7 @@ int dw_init(int newthread, int argc, char *argv[])
 	wc.lpfnWndProc = (WNDPROC)_splitwndproc;
 	wc.cbClsExtra = 0;
 	wc.cbWndExtra = 0;
-	wc.hbrBackground = NULL;
+	wc.hbrBackground = (HBRUSH)GetSysColorBrush(COLOR_3DFACE);
 	wc.lpszMenuName = NULL;
 	wc.lpszClassName = SplitbarClassName;
 
@@ -7263,7 +7064,6 @@ void *dw_window_get_data(HWND window, char *dataname)
 	return NULL;
 }
 
-#ifndef NO_SIGNALS
 /*
  * Add a callback to a window event.
  * Parameters:
@@ -7392,7 +7192,6 @@ void dw_signal_disconnect_by_data(HWND window, void *data)
 		}
 	}
 }
-#endif
 
 #ifdef TEST
 HWND mainwindow,
