@@ -230,10 +230,7 @@ void archive_add(void)
 	dw_box_pack_start(browsebox, browsebutton, 30, 15, TRUE, TRUE, 0);
 
 	dw_window_set_color(browsebox, DW_CLR_PALEGRAY, DW_CLR_PALEGRAY);
-	dw_window_set_font(browsebutton, "9.WarpSans");
-	dw_window_set_font(stext, "9.WarpSans");
 	dw_window_set_color(stext, DW_CLR_BLACK, DW_CLR_PALEGRAY);
-	dw_window_set_font(entryfield, "9.WarpSans");
 
 	/* Buttons */
 	buttonbox = dw_box_new(BOXHORZ, 10);
@@ -252,8 +249,6 @@ void archive_add(void)
 	dw_window_set_color(lbbox, DW_CLR_DARKCYAN, DW_CLR_PALEGRAY);
 	dw_window_set_color(buttonbox, DW_CLR_DARKCYAN, DW_CLR_PALEGRAY);
 	dw_window_set_color(okbutton, DW_CLR_PALEGRAY, DW_CLR_DARKCYAN);
-	dw_window_set_font(okbutton, "9.WarpSans");
-	dw_window_set_font(cancelbutton, "9.WarpSans");
 
 	dw_signal_connect(browsebutton, "clicked", DW_SIGNAL_FUNC(browse_callback), (void *)notebookbox1);
 	dw_signal_connect(okbutton, "clicked", DW_SIGNAL_FUNC(beep_callback), (void *)notebookbox1);
