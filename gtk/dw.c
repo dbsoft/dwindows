@@ -6182,6 +6182,7 @@ void dw_container_set_row_title(void *pointer, int row, char *title)
 
 	DW_MUTEX_LOCK;
 	clist = (GtkWidget *)gtk_object_get_user_data(GTK_OBJECT(pointer));
+	row += (int)gtk_object_get_data(GTK_OBJECT(clist), "_dw_insertpos");
 
 	if(clist)
 		gtk_clist_set_row_data(GTK_CLIST(clist), row, (gpointer)title);
