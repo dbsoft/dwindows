@@ -633,7 +633,7 @@ static gint _tree_select_event(GtkTree *tree, GtkWidget *child, gpointer data)
 
 static gint _tree_expand_event(GtkTreeItem *treeitem, gpointer data)
 {
-	SignalHandler work = _get_signal_handler(widget, data);
+	SignalHandler work = _get_signal_handler((GtkWidget *)treeitem, data);
 	int retval = FALSE;
 
 	if(work.window)
@@ -4280,7 +4280,7 @@ char * API dw_tree_get_title(HWND handle, HTREEITEM item)
 	char *text = NULL;
 
 	if(!handle || !item)
-		return;
+		return text;
 
 	DW_MUTEX_LOCK;
 #if GTK_MAJOR_VERSION > 1
@@ -4307,7 +4307,7 @@ HTREEITEM API dw_tree_get_parent(HWND handle, HTREEITEM item)
 	HTREEITEM parent = (HTREEITEM)0;
 
 	if(!handle || !item)
-		return;
+		return parent;
 
 	DW_MUTEX_LOCK;
 #if GTK_MAJOR_VERSION > 1
