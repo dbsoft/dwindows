@@ -579,23 +579,26 @@ int _round_value(gfloat val)
 
 gint _value_changed_event(GtkAdjustment *adjustment, gpointer data)
 {
-	GtkWidget *slider = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(adjustment), "slider");
 	SignalHandler *work = (SignalHandler *)data;
 
-	if(slider && work)
+	if(work)
 	{
 		int (*valuechangedfunc)(HWND, int, void *) = work->func;
 		int max = _round_value(adjustment->upper);
 		int val = _round_value(adjustment->value);
-		static int lastval = -1;
-		static GtkWidget *lastwidget = 0;
+		GtkWidget *slider = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(adjustment), "slider");
+		GtkWidget *scrollbar = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(adjustment), "scrollbar");
 
-		if(lastval != val || lastwidget != slider)
+		if(slider)
 		{
 			if(GTK_IS_VSCALE(slider))
 				valuechangedfunc(work->window, (max - val) - 1,  work->data);
 			else
 				valuechangedfunc(work->window, val,  work->data);
+		}
+		else if(scrollbar)
+		{
+			valuechangedfunc(work->window, val,  work->data);
 		}
 	}
 	return FALSE;
