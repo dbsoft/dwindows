@@ -837,6 +837,7 @@ void mdi_add(void)
 	dw_box_pack_start(mdi2box, bb, 60, 30, FALSE, FALSE, 0);
 	dw_window_set_size(mdi2w, 200, 100);
 	dw_window_show(mdi2w);
+	dw_window_set_pos(mdi2w, 200, 200);
 }
 
 /*
