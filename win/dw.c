@@ -1511,7 +1511,7 @@ BOOL CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 									if(tmp->window == tem->hdr.hwndFrom)
 									{
 										int (*containercontextfunc)(HWND, char *, int, int, void *, void *) = tmp->signalfunction;
-										HTREEITEM hti;
+										HTREEITEM hti, last;
 										TVITEM tvi;
 										TVHITTESTINFO thi;
 										void **ptrs = NULL;
@@ -1524,6 +1524,7 @@ BOOL CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 
 										MapWindowPoints(HWND_DESKTOP, tmp->window, &thi.pt, 1);
 
+										last = TreeView_GetSelection(tmp->window);
 										hti = TreeView_HitTest(tmp->window, &thi);
 
 										if(hti)
@@ -1532,10 +1533,9 @@ BOOL CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 											tvi.hItem = hti;
 
 											TreeView_GetItem(tmp->window, &tvi);
-											dw_tree_item_select(tmp->window, hti);
+											TreeView_SelectItem(tmp->window, hti);
 
 											ptrs = (void **)tvi.lParam;
-
 										}
 										containercontextfunc(tmp->window, ptrs ? (char *)ptrs[0] : NULL, x, y, tmp->data, ptrs ? ptrs[1] : NULL);
 										tmp = NULL;
@@ -2710,6 +2710,15 @@ BOOL CALLBACK _BtProc(HWND hwnd, ULONG msg, WPARAM mp1, LPARAM mp2)
 
 	switch(msg)
 	{
+	case WM_CTLCOLORSTATIC:
+	case WM_CTLCOLORLISTBOX:
+	case WM_CTLCOLORBTN:
+	case WM_CTLCOLOREDIT:
+	case WM_CTLCOLORMSGBOX:
+	case WM_CTLCOLORSCROLLBAR:
+	case WM_CTLCOLORDLG:
+		_wndproc(hwnd, msg, mp1, mp2);
+		break;
 	case WM_SETFOCUS:
 		_wndproc(hwnd, msg, mp1, mp2);
 		break;
