@@ -682,6 +682,9 @@ int dw_int_init(DWResources *res, int newthread, int *argc, char **argv[])
 	}
 	gtk_set_locale();
 	g_thread_init(NULL);
+#if GTK_MAJOR_VERSION > 1
+	gdk_threads_init();
+#endif
 
 	gtk_init(argc, argv);
 #ifdef USE_IMLIB
