@@ -7830,7 +7830,7 @@ int API dw_browse(char *url)
 	 */
 	if(len > 0)
 	{
-		if(stricmp(&browser[len], "explore.exe") == 0)
+		if(stricmp(&browser[len], "explore.exe") == 0 && stricmp(url, "file://") == 0)
 		{
 			int newlen, z;
 			newurl = malloc(strlen(url) + 2);
