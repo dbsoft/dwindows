@@ -1899,6 +1899,11 @@ BOOL CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 		return DefWindowProc(hWnd, msg, mp1, mp2);
 }
 
+VOID CALLBACK _TimerProc(HWND hwnd, UINT msg, UINT_PTR idEvent, DWORD dwTime)
+{
+	_wndproc(hwnd, msg, (WPARAM)idEvent, 0);
+}
+
 BOOL CALLBACK _framewndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 {
 	switch( msg )
@@ -3130,8 +3135,6 @@ void API dw_main(void)
 
 	while(GetMessage(&msg, NULL, 0, 0))
 	{
-		if(msg.hwnd == NULL && msg.message == WM_TIMER)
-			_wndproc(msg.hwnd, msg.message, msg.wParam, msg.lParam);
 		TranslateMessage(&msg);
 		DispatchMessage(&msg);
 	}
@@ -3152,8 +3155,6 @@ void API dw_main_sleep(int milliseconds)
 		if(PeekMessage(&msg, NULL, 0, 0, PM_NOREMOVE))
 		{
 			GetMessage(&msg, NULL, 0, 0);
-			if(msg.hwnd == NULL && msg.message == WM_TIMER)
-				_wndproc(msg.hwnd, msg.message, msg.wParam, msg.lParam);
 			TranslateMessage(&msg);
 			DispatchMessage(&msg);
 		}
@@ -3173,8 +3174,6 @@ void API dw_main_iteration(void)
 
 	if(GetMessage(&msg, NULL, 0, 0))
 	{
-		if(msg.hwnd == NULL && msg.message == WM_TIMER)
-			_wndproc(msg.hwnd, msg.message, msg.wParam, msg.lParam);
 		TranslateMessage(&msg);
 		DispatchMessage(&msg);
 	}
@@ -8068,7 +8067,7 @@ int API dw_timer_connect(int interval, void *sigfunc, void *data)
 {
 	if(sigfunc)
 	{
-		int timerid = SetTimer(NULL, 0, interval, NULL);
+		int timerid = SetTimer(NULL, 0, interval, _TimerProc);
 
 		if(timerid)
 		{
