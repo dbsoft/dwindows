@@ -112,6 +112,11 @@
 #define DW_POINTER_ARROW         SPTR_ARROW
 #define DW_POINTER_CLOCK         SPTR_WAIT
 
+typedef struct _window_data {
+	PFNWP oldproc;
+	HWND clickdefault;
+} WindowData;
+
 typedef struct _hpixmap {
 	unsigned long width, height;
 	HDC hdc;
@@ -257,6 +262,7 @@ typedef struct _color {
 	int back;
 	HWND combo, buddy;
 	int user;
+	HWND clickdefault;
 	HBRUSH hbrush;
 	char fontname[128];
 	WNDPROC pOldProc;
@@ -314,6 +320,8 @@ typedef struct _box {
 	ColorInfo cinfo;
 #elif defined(__OS2__) || defined(__EMX__)
 	PFNWP oldproc;
+	HWND hwndtitle;
+	int titlebar;
 #endif
     /* Number of items in the box */
 	int count;
@@ -583,6 +591,8 @@ void dw_free(void *ptr);
 int dw_window_show(HWND handle);
 int dw_window_hide(HWND handle);
 int dw_window_minimize(HWND handle);
+int dw_window_raise(HWND handle);
+int dw_window_lower(HWND handle);
 int dw_window_destroy(HWND handle);
 int dw_window_set_font(HWND handle, char *fontname);
 int dw_window_set_color(HWND handle, unsigned long fore, unsigned long back);
@@ -635,6 +645,7 @@ void dw_window_release(void);
 void dw_window_reparent(HWND handle, HWND newparent);
 void dw_window_pointer(HWND handle, int pointertype);
 void dw_window_default(HWND window, HWND defaultitem);
+void dw_window_click_default(HWND window, HWND next);
 unsigned int dw_mle_import(HWND handle, char *buffer, int startpoint);
 void dw_mle_export(HWND handle, char *buffer, int startpoint, int length);
 void dw_mle_query(HWND handle, unsigned long *bytes, unsigned long *lines);

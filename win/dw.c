@@ -1505,6 +1505,42 @@ BOOL CALLBACK _spinnerwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 	return CallWindowProc(cinfo->pOldProc, hWnd, msg, mp1, mp2);
 }
 
+void _click_default(HWND handle)
+{
+	char tmpbuf[100];
+
+	GetClassName(handle, tmpbuf, 99);
+
+	/* These are the window classes which can
+	 * obtain input focus.
+	 */
+	if(strnicmp(tmpbuf, BUTTONCLASSNAME, strlen(BUTTONCLASSNAME))==0)
+	{
+		/* Generate click on default item */
+		SignalHandler *tmp = Root;
+
+		/* Find any callbacks for this function */
+		while(tmp)
+		{
+			if(tmp->message == WM_COMMAND)
+			{
+				int (*clickfunc)(HWND, void *) = tmp->signalfunction;
+
+				/* Make sure it's the right window, and the right ID */
+				if(tmp->window == handle)
+				{
+					clickfunc(tmp->window, tmp->data);
+					tmp = NULL;
+				}
+			}
+			if(tmp)
+				tmp= tmp->next;
+		}
+	}
+	else
+		SetFocus(handle);
+}
+
 BOOL CALLBACK _colorwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 {
 	ColorInfo *cinfo;
@@ -1534,6 +1570,13 @@ BOOL CALLBACK _colorwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 					_shift_focus(hWnd);
 				return FALSE;
 			}
+			else if(LOWORD(mp1) == '\r')
+			{
+				if(cinfo->clickdefault)
+					_click_default(cinfo->clickdefault);
+
+			}
+
 			/* Tell the spinner control that a keypress has
 			 * occured and to update it's internal value.
 			 */
@@ -2535,6 +2578,26 @@ int dw_yesno(char *title, char *text)
 int dw_window_minimize(HWND handle)
 {
 	return ShowWindow(handle, SW_MINIMIZE);
+}
+
+/*
+ * Makes the window topmost.
+ * Parameters:
+ *           handle: The window handle to make topmost.
+ */
+int dw_window_raise(HWND handle)
+{
+	return SetWindowPos(handle, HWND_TOP, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
+}
+
+/*
+ * Makes the window bottommost.
+ * Parameters:
+ *           handle: The window handle to make bottommost.
+ */
+int dw_window_lower(HWND handle)
+{
+	return SetWindowPos(handle, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
 }
 
 /*
@@ -3773,7 +3836,7 @@ unsigned long dw_color_depth(void)
  */
 void dw_window_set_pos(HWND handle, ULONG x, ULONG y)
 {
-	SetWindowPos(handle, (HWND)NULL, x, y, 0, 0, SWP_NOSIZE | SWP_NOZORDER);
+	SetWindowPos(handle, (HWND)NULL, x, y, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
 }
 
 /*
@@ -3787,7 +3850,7 @@ void dw_window_set_pos(HWND handle, ULONG x, ULONG y)
  */
 void dw_window_set_pos_size(HWND handle, ULONG x, ULONG y, ULONG width, ULONG height)
 {
-	SetWindowPos(handle, (HWND)NULL, x, y, width, height, SWP_NOZORDER | SWP_SHOWWINDOW);
+	SetWindowPos(handle, (HWND)NULL, x, y, width, height, SWP_NOZORDER | SWP_SHOWWINDOW | SWP_NOACTIVATE);
 }
 
 /*
@@ -5741,6 +5804,20 @@ void dw_window_default(HWND window, HWND defaultitem)
 
 	if(thisbox)
 		thisbox->defaultitem = defaultitem;
+}
+
+/*
+ * Sets window to click the default dialog item when an ENTER is pressed.
+ * Parameters:
+ *         window: Window (widget) to look for the ENTER press.
+ *         next: Window (widget) to move to next (or click)
+ */
+void dw_window_click_default(HWND window, HWND next)
+{
+	ColorInfo *cinfo = (ColorInfo *)GetWindowLong(window, GWL_USERDATA);
+
+	if(cinfo)
+		cinfo->clickdefault = next;
 }
 
 /*

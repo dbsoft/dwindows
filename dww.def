@@ -54,6 +54,9 @@ EXPORTS
   dw_window_minimize                     @73
   dw_window_pointer                      @74
   dw_window_default                      @75
+  dw_window_raise                        @76
+  dw_window_lower                        @77
+  dw_window_click_default                @78
 
   dw_bitmap_new                          @80
 
