@@ -94,7 +94,7 @@ typedef struct
 static int in_checkbox_handler = 0;
 
 /* List of signals and their equivilent Win32 message */
-#define SIGNALMAX 15
+#define SIGNALMAX 16
 
 SignalList SignalTranslate[SIGNALMAX] = {
 	{ WM_SIZE,        DW_SIGNAL_CONFIGURE },
@@ -111,7 +111,8 @@ SignalList SignalTranslate[SIGNALMAX] = {
 	{ TVN_SELCHANGED, DW_SIGNAL_ITEM_SELECT },
 	{ WM_SETFOCUS,    DW_SIGNAL_SET_FOCUS },
 	{ WM_VSCROLL,     DW_SIGNAL_VALUE_CHANGED },
-	{ TCN_SELCHANGE,  DW_SIGNAL_SWITCH_PAGE }
+	{ TCN_SELCHANGE,  DW_SIGNAL_SWITCH_PAGE },
+	{ LVN_COLUMNCLICK,DW_SIGNAL_COLUMN_CLICK }
 };
 
 #ifdef BUILD_DLL
@@ -1692,6 +1693,16 @@ BOOL CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 								int (*switchpagefunc)(HWND, unsigned long, void *) = tmp->signalfunction;
 								unsigned long num=dw_notebook_page_query(tem->hwndFrom);
 								result = switchpagefunc(tem->hwndFrom, num, tmp->data);
+								tmp = NULL;
+							}
+						}
+						else if(tmp->message == LVN_COLUMNCLICK)
+						{
+							NMLISTVIEW FAR *tem=(NMLISTVIEW FAR *)mp2;
+							if(tmp->window == tem->hdr.hwndFrom && tem->hdr.code == tmp->message)
+							{
+								int (*columnclickfunc)(HWND, int, void *) = tmp->signalfunction;
+								result = columnclickfunc(tem->hdr.hwndFrom, tem->iSubItem, tmp->data);
 								tmp = NULL;
 							}
 						}
@@ -5034,15 +5045,28 @@ void API dw_window_get_pos_size(HWND handle, ULONG *x, ULONG *y, ULONG *width, U
 	wp.length = sizeof(WINDOWPLACEMENT);
 
 	GetWindowPlacement(handle, &wp);
-	if(x)
-		*x = wp.rcNormalPosition.left;
-	if(y)
-		*y = wp.rcNormalPosition.top;
-	if(width)
-		*width = wp.rcNormalPosition.right - wp.rcNormalPosition.left;
-	if(height)
-		*height = wp.rcNormalPosition.bottom - wp.rcNormalPosition.top;
-
+	if( wp.showCmd == SW_SHOWMAXIMIZED)
+	{
+		if(x)
+			*x=0;
+		if(y)
+			*y=0;
+		if(width)
+			*width=dw_screen_width();
+		if(height)
+			*height=dw_screen_height();
+	}
+else
+	{
+		if(x)
+			*x = wp.rcNormalPosition.left;
+		if(y)
+			*y = wp.rcNormalPosition.top;
+		if(width)
+			*width = wp.rcNormalPosition.right - wp.rcNormalPosition.left;
+		if(height)
+			*height = wp.rcNormalPosition.bottom - wp.rcNormalPosition.top;
+	}
 }
 
 /*
