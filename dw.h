@@ -632,6 +632,7 @@ int API dw_init(int newthread, int argc, char *argv[]);
 #endif
 void API dw_main(void);
 void API dw_main_sleep(int seconds);
+void API dw_main_iteration(void);
 void API dw_free(void *ptr);
 int API dw_window_show(HWND handle);
 int API dw_window_hide(HWND handle);
@@ -680,7 +681,7 @@ unsigned int API dw_slider_query_pos(HWND handle);
 void API dw_slider_set_pos(HWND handle, unsigned int position);
 unsigned int API dw_scrollbar_query_pos(HWND handle);
 void API dw_scrollbar_set_pos(HWND handle, unsigned int position);
-void API dw_scrollbar_set_range(HWND handle, unsigned int range);
+void API dw_scrollbar_set_range(HWND handle, unsigned int range, unsigned int visible);
 void API dw_window_set_pos(HWND handle, unsigned long x, unsigned long y);
 void API dw_window_set_usize(HWND handle, unsigned long width, unsigned long height);
 void API dw_window_set_pos_size(HWND handle, unsigned long x, unsigned long y, unsigned long width, unsigned long height);
