@@ -503,7 +503,7 @@ typedef struct _box {
 #elif defined(__OS2__) || defined(__EMX__)
 	PFNWP oldproc;
 	UserData *root;
-	HWND hwndtitle;
+	HWND hwndtitle, hwnd;
 	int titlebar;
 #endif
 	/* Number of items in the box */

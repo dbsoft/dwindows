@@ -208,6 +208,29 @@ HWND _toplevel_window(HWND handle)
 }
 
 
+/* Returns height of specified window. */
+int _get_height(HWND handle)
+{
+	unsigned long height;
+	dw_window_get_pos_size(handle, NULL, NULL, NULL, &height);
+	return (int)height;
+}
+
+/* Find the height of the frame a desktop style window is sitting on */
+int _get_frame_height(HWND handle)
+{
+	while(handle)
+	{
+		HWND client;
+		if((client = WinWindowFromID(handle, FID_CLIENT)) != NULLHANDLE)
+		{
+            return _get_height(WinQueryWindow(handle, QW_PARENT));
+		}
+        handle = WinQueryWindow(handle, QW_PARENT);
+	}
+	return dw_screen_height();
+}
+
 /* A "safe" WinSendMsg() that tries multiple times in case the
  * queue is blocked for one reason or another.
  */
@@ -916,6 +939,13 @@ unsigned long _internal_color(unsigned long color)
 	return color;
 }
 
+BOOL _MySetWindowPos(HWND hwnd, HWND parent, HWND behind, LONG x, LONG y, LONG cx, LONG cy, ULONG fl)
+{
+	int height = _get_height(parent);
+
+	return WinSetWindowPos(hwnd, behind, x, height - y - cy, cx, cy, fl);
+}
+
 /* This function calculates how much space the widgets and boxes require
  * and does expansion as necessary.
  */
@@ -1265,18 +1295,18 @@ int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *usedy,
 					/* Make the combobox big enough to drop down. :) */
 					WinSetWindowPos(handle, HWND_TOP, 0, -100,
 									width + vectorx, (height + vectory) + 100, SWP_MOVE | SWP_SIZE | SWP_ZORDER);
-					WinSetWindowPos(frame, HWND_TOP, currentx + pad, currenty + pad,
+					_MySetWindowPos(frame, thisbox->hwnd, HWND_TOP, currentx + pad, currenty + pad,
 									width + vectorx, height + vectory, SWP_MOVE | SWP_SIZE | SWP_ZORDER);
 				}
 				else if(strncmp(tmpbuf, "#6", 3)==0)
 				{
 					/* Entryfields on OS/2 have a thick border that isn't on Windows and GTK */
-					WinSetWindowPos(handle, HWND_TOP, (currentx + pad) + 3, (currenty + pad) + 3,
+					_MySetWindowPos(handle, thisbox->hwnd, HWND_TOP, (currentx + pad) + 3, (currenty + pad) + 3,
 									(width + vectorx) - 6, (height + vectory) - 6, SWP_MOVE | SWP_SIZE | SWP_ZORDER);
 				}
 				else if(strncmp(tmpbuf, "#40", 5)==0)
 				{
-					WinSetWindowPos(handle, HWND_TOP, currentx + pad, currenty + pad,
+					_MySetWindowPos(handle, thisbox->hwnd, HWND_TOP, currentx + pad, currenty + pad,
 									width + vectorx, height + vectory, SWP_MOVE | SWP_SIZE | SWP_ZORDER);
 					_check_resize_notebook(handle);
 				}
@@ -1288,7 +1318,7 @@ int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *usedy,
 					int cx = width + vectorx;
 					int cy = height + vectory;
 
-					WinSetWindowPos(handle, HWND_TOP, currentx + pad, currenty + pad,
+					_MySetWindowPos(handle, thisbox->hwnd, HWND_TOP, currentx + pad, currenty + pad,
 									cx, cy, SWP_MOVE | SWP_SIZE | SWP_ZORDER);
 
 					if(cx > 0 && cy > 0 && percent)
@@ -1296,7 +1326,7 @@ int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *usedy,
 				}
 				else
 				{
-					WinSetWindowPos(handle, HWND_TOP, currentx + pad, currenty + pad,
+					_MySetWindowPos(handle, thisbox->hwnd, HWND_TOP, currentx + pad, currenty + pad,
 									width + vectorx, height + vectory, SWP_MOVE | SWP_SIZE | SWP_ZORDER);
 					if(thisbox->items[z].type == TYPEBOX)
 					{
@@ -1945,29 +1975,6 @@ void _GetPPFont(HWND hwnd, char *buff)
     {
         memcpy(buff, AttrValue, cbRetLen);
     }
-}
-
-/* Returns height of specified window. */
-int _get_height(HWND handle)
-{
-	unsigned long height;
-	dw_window_get_pos_size(handle, NULL, NULL, NULL, &height);
-	return (int)height;
-}
-
-/* Find the height of the frame a desktop style window is sitting on */
-int _get_frame_height(HWND handle)
-{
-	while(handle)
-	{
-		HWND client;
-		if((client = WinWindowFromID(handle, FID_CLIENT)) != NULLHANDLE)
-		{
-            return _get_height(WinQueryWindow(handle, QW_PARENT));
-		}
-        handle = WinQueryWindow(handle, QW_PARENT);
-	}
-	return dw_screen_height();
 }
 
 int _HandleScroller(HWND handle, int pos, int which)
@@ -3913,7 +3920,7 @@ void API dw_window_set_pointer(HWND handle, int pointertype)
  */
 HWND API dw_window_new(HWND hwndOwner, char *title, ULONG flStyle)
 {
-	HWND hwndclient = 0, hwndframe;
+	HWND hwndframe;
 	Box *newbox = calloc(1, sizeof(Box));
 	WindowData *blah = calloc(1, sizeof(WindowData));
 	ULONG winStyle = 0L;
@@ -3943,13 +3950,13 @@ HWND API dw_window_new(HWND hwndOwner, char *title, ULONG flStyle)
 		flStyle &= ~WS_MINIMIZED;
 	}
 
-	hwndframe = WinCreateStdWindow(hwndOwner, winStyle, &flStyle, ClassName, title, 0L, NULLHANDLE, 0L, &hwndclient);
+	hwndframe = WinCreateStdWindow(hwndOwner, winStyle, &flStyle, ClassName, title, 0L, NULLHANDLE, 0L, &newbox->hwnd);
 	newbox->hwndtitle = WinWindowFromID(hwndframe, FID_TITLEBAR);
 	if(!newbox->titlebar && newbox->hwndtitle)
 		WinSetParent(newbox->hwndtitle, HWND_OBJECT, FALSE);
 	blah->oldproc = WinSubclassWindow(hwndframe, _sizeproc);
 	WinSetWindowPtr(hwndframe, QWP_USER, blah);
-	WinSetWindowPtr(hwndclient, QWP_USER, newbox);
+	WinSetWindowPtr(newbox->hwnd, QWP_USER, newbox);
 
 	return hwndframe;
 }
@@ -3963,29 +3970,28 @@ HWND API dw_window_new(HWND hwndOwner, char *title, ULONG flStyle)
 HWND API dw_box_new(int type, int pad)
 {
 	Box *newbox = calloc(1, sizeof(Box));
-	HWND hwndframe;
 
 	newbox->pad = pad;
 	newbox->type = type;
 	newbox->count = 0;
     newbox->grouphwnd = NULLHANDLE;
 
-	hwndframe = WinCreateWindow(HWND_OBJECT,
-								WC_FRAME,
-								NULL,
-								WS_VISIBLE | WS_CLIPCHILDREN |
-								FS_NOBYTEALIGN,
-								0,0,2000,1000,
-								NULLHANDLE,
-								HWND_TOP,
-								0L,
-								NULL,
-								NULL);
+	newbox->hwnd = WinCreateWindow(HWND_OBJECT,
+								   WC_FRAME,
+								   NULL,
+								   WS_VISIBLE | WS_CLIPCHILDREN |
+								   FS_NOBYTEALIGN,
+								   0,0,2000,1000,
+								   NULLHANDLE,
+								   HWND_TOP,
+								   0L,
+								   NULL,
+								   NULL);
 
-	newbox->oldproc = WinSubclassWindow(hwndframe, _controlproc);
-	WinSetWindowPtr(hwndframe, QWP_USER, newbox);
-	dw_window_set_color(hwndframe, DW_CLR_PALEGRAY, DW_CLR_PALEGRAY);
-	return hwndframe;
+	newbox->oldproc = WinSubclassWindow(newbox->hwnd, _controlproc);
+	WinSetWindowPtr(newbox->hwnd, QWP_USER, newbox);
+	dw_window_set_color(newbox->hwnd, DW_CLR_PALEGRAY, DW_CLR_PALEGRAY);
+	return newbox->hwnd;
 }
 
 /*
@@ -3998,25 +4004,23 @@ HWND API dw_box_new(int type, int pad)
 HWND API dw_groupbox_new(int type, int pad, char *title)
 {
 	Box *newbox = calloc(1, sizeof(Box));
-	HWND hwndframe;
-
 	newbox->pad = pad;
 	newbox->type = type;
 	newbox->count = 0;
 
-	hwndframe = WinCreateWindow(HWND_OBJECT,
-								WC_FRAME,
-								NULL,
-								WS_VISIBLE |
-								FS_NOBYTEALIGN,
-								0,0,2000,1000,
-								NULLHANDLE,
-								HWND_TOP,
-								0L,
-								NULL,
-								NULL);
+	newbox->hwnd = WinCreateWindow(HWND_OBJECT,
+								   WC_FRAME,
+								   NULL,
+								   WS_VISIBLE |
+								   FS_NOBYTEALIGN,
+								   0,0,2000,1000,
+								   NULLHANDLE,
+								   HWND_TOP,
+								   0L,
+								   NULL,
+								   NULL);
 
-	newbox->grouphwnd = WinCreateWindow(hwndframe,
+	newbox->grouphwnd = WinCreateWindow(newbox->hwnd,
 										WC_STATIC,
 										title,
 										WS_VISIBLE | SS_GROUPBOX |
@@ -4028,11 +4032,11 @@ HWND API dw_groupbox_new(int type, int pad, char *title)
 										NULL,
 										NULL);
 
-	WinSetWindowPtr(hwndframe, QWP_USER, newbox);
-	dw_window_set_color(hwndframe, DW_CLR_PALEGRAY, DW_CLR_PALEGRAY);
+	WinSetWindowPtr(newbox->hwnd, QWP_USER, newbox);
+	dw_window_set_color(newbox->hwnd, DW_CLR_PALEGRAY, DW_CLR_PALEGRAY);
 	dw_window_set_color(newbox->grouphwnd, DW_CLR_BLACK, DW_CLR_PALEGRAY);
 	dw_window_set_font(newbox->grouphwnd, DefaultFont);
-	return hwndframe;
+	return newbox->hwnd;
 }
 
 /*
@@ -5236,7 +5240,6 @@ HWND API dw_window_from_id(HWND handle, int id)
  */
 void API dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, int vsize, int pad)
 {
-	Box *thisbox;
 	char *funcname = "dw_box_pack_end()";
 
 		/*
@@ -5252,19 +5255,10 @@ void API dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, 
 	if(WinWindowFromID(box, FID_CLIENT))
 	{
 		box = WinWindowFromID(box, FID_CLIENT);
-		thisbox = WinQueryWindowPtr(box, QWP_USER);
 		hsize = TRUE;
 		vsize = TRUE;
 	}
-	else
-		thisbox = WinQueryWindowPtr(box, QWP_USER);
-	if(thisbox)
-	{
-		if(thisbox->type == DW_HORZ)
-			_dw_box_pack_start(box, item, width, height, hsize, vsize, pad, funcname);
-		else
-			_dw_box_pack_end(box, item, width, height, hsize, vsize, pad, funcname);
-	}
+	_dw_box_pack_end(box, item, width, height, hsize, vsize, pad, funcname);
 }
 
 void _dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, int vsize, int pad, char *functionname)
@@ -5282,7 +5276,7 @@ void _dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, int
 
 		for(z=0;z<thisbox->count;z++)
 		{
-			tmpitem[z] = thisitem[z];
+			tmpitem[z+1] = thisitem[z];
 		}
 
 		WinQueryClassName(item, 99, tmpbuf);
@@ -5293,7 +5287,7 @@ void _dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, int
 			width = 1;
 
 		if(strncmp(tmpbuf, "#1", 3)==0)
-			tmpitem[thisbox->count].type = TYPEBOX;
+			tmpitem[0].type = TYPEBOX;
 		else
 		{
 			if ( width == 0 && hsize == FALSE )
@@ -5301,22 +5295,22 @@ void _dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, int
 			if ( height == 0 && vsize == FALSE )
 				dw_messagebox(functionname, DW_MB_OK|DW_MB_ERROR, "Height and expand Vertical both unset for box: %x item: %x",box,item);
 
-			tmpitem[thisbox->count].type = TYPEITEM;
+			tmpitem[0].type = TYPEITEM;
 		}
 
-		tmpitem[thisbox->count].hwnd = item;
-		tmpitem[thisbox->count].origwidth = tmpitem[thisbox->count].width = width;
-		tmpitem[thisbox->count].origheight = tmpitem[thisbox->count].height = height;
-		tmpitem[thisbox->count].pad = pad;
+		tmpitem[0].hwnd = item;
+		tmpitem[0].origwidth = tmpitem[0].width = width;
+		tmpitem[0].origheight = tmpitem[0].height = height;
+		tmpitem[0].pad = pad;
 		if(hsize)
-			tmpitem[thisbox->count].hsize = SIZEEXPAND;
+			tmpitem[0].hsize = SIZEEXPAND;
 		else
-			tmpitem[thisbox->count].hsize = SIZESTATIC;
+			tmpitem[0].hsize = SIZESTATIC;
 
 		if(vsize)
-			tmpitem[thisbox->count].vsize = SIZEEXPAND;
+			tmpitem[0].vsize = SIZEEXPAND;
 		else
-			tmpitem[thisbox->count].vsize = SIZESTATIC;
+			tmpitem[0].vsize = SIZESTATIC;
 
 		thisbox->items = tmpitem;
 
@@ -5325,8 +5319,8 @@ void _dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, int
 
 		thisbox->count++;
 
-        /* Don't set the ownership if it's an entryfield  or spinbutton */
 		WinQueryClassName(item, 99, tmpbuf);
+		/* Don't set the ownership if it's an entryfield or spinbutton */
 		if(strncmp(tmpbuf, "#6", 3)!=0 && strncmp(tmpbuf, "#32", 4)!=0 && strncmp(tmpbuf, "#2", 3)!=0)
 			WinSetOwner(item, box);
 		WinSetParent(frame ? frame : item, box, FALSE);
@@ -8033,13 +8027,12 @@ float API dw_splitbar_get(HWND handle)
  */
 void API dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize, int vsize, int pad)
 {
-	Box *thisbox;
 	char *funcname = "dw_box_pack_start()";
 
-		/*
-		 * If you try and pack an item into itself VERY bad things can happen; like at least an
-		 * infinite loop on GTK! Lets be safe!
-		 */
+	/*
+	 * If you try and pack an item into itself VERY bad things can happen; like at least an
+	 * infinite loop on GTK! Lets be safe!
+	 */
 	if(box == item)
 	{
 		dw_messagebox(funcname, DW_MB_OK|DW_MB_ERROR, "Danger! Danger! Will Robinson; box and item are the same!");
@@ -8049,19 +8042,10 @@ void API dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize
 	if(WinWindowFromID(box, FID_CLIENT))
 	{
 		box = WinWindowFromID(box, FID_CLIENT);
-		thisbox = WinQueryWindowPtr(box, QWP_USER);
 		hsize = TRUE;
 		vsize = TRUE;
 	}
-	else
-		thisbox = WinQueryWindowPtr(box, QWP_USER);
-	if(thisbox)
-	{
-		if(thisbox->type == DW_HORZ)
-			_dw_box_pack_end(box, item, width, height, hsize, vsize, pad, funcname);
-		else
-			_dw_box_pack_start(box, item, width, height, hsize, vsize, pad, funcname);
-	}
+	_dw_box_pack_start(box, item, width, height, hsize, vsize, pad, funcname);
 }
 
 void _dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize, int vsize, int pad, char *functionname)
@@ -8079,7 +8063,7 @@ void _dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize, i
 
 		for(z=0;z<thisbox->count;z++)
 		{
-			tmpitem[z+1] = thisitem[z];
+			tmpitem[z] = thisitem[z];
 		}
 
 		WinQueryClassName(item, 99, tmpbuf);
@@ -8090,7 +8074,7 @@ void _dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize, i
 			width = 1;
 
 		if(strncmp(tmpbuf, "#1", 3)==0)
-			tmpitem[0].type = TYPEBOX;
+			tmpitem[thisbox->count].type = TYPEBOX;
 		else
 		{
 			if ( width == 0 && hsize == FALSE )
@@ -8098,22 +8082,22 @@ void _dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize, i
 			if ( height == 0 && vsize == FALSE )
 				dw_messagebox(functionname, DW_MB_OK|DW_MB_ERROR, "Height and expand Vertical both unset for box: %x item: %x",box,item);
 
-			tmpitem[0].type = TYPEITEM;
+			tmpitem[thisbox->count].type = TYPEITEM;
 		}
 
-		tmpitem[0].hwnd = item;
-		tmpitem[0].origwidth = tmpitem[0].width = width;
-		tmpitem[0].origheight = tmpitem[0].height = height;
-		tmpitem[0].pad = pad;
+		tmpitem[thisbox->count].hwnd = item;
+		tmpitem[thisbox->count].origwidth = tmpitem[thisbox->count].width = width;
+		tmpitem[thisbox->count].origheight = tmpitem[thisbox->count].height = height;
+		tmpitem[thisbox->count].pad = pad;
 		if(hsize)
-			tmpitem[0].hsize = SIZEEXPAND;
+			tmpitem[thisbox->count].hsize = SIZEEXPAND;
 		else
-			tmpitem[0].hsize = SIZESTATIC;
+			tmpitem[thisbox->count].hsize = SIZESTATIC;
 
 		if(vsize)
-			tmpitem[0].vsize = SIZEEXPAND;
+			tmpitem[thisbox->count].vsize = SIZEEXPAND;
 		else
-			tmpitem[0].vsize = SIZESTATIC;
+			tmpitem[thisbox->count].vsize = SIZESTATIC;
 
 		thisbox->items = tmpitem;
 
@@ -8122,8 +8106,8 @@ void _dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize, i
 
 		thisbox->count++;
 
+        /* Don't set the ownership if it's an entryfield  or spinbutton */
 		WinQueryClassName(item, 99, tmpbuf);
-		/* Don't set the ownership if it's an entryfield or spinbutton */
 		if(strncmp(tmpbuf, "#6", 3)!=0 && strncmp(tmpbuf, "#32", 4)!=0 && strncmp(tmpbuf, "#2", 3)!=0)
 			WinSetOwner(item, box);
 		WinSetParent(frame ? frame : item, box, FALSE);
