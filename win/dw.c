@@ -7388,7 +7388,6 @@ void * API dw_window_get_data(HWND window, char *dataname)
 /*
  * Add a callback to a timer event.
  * Parameters:
- *       window: Window handle which owns this timer.
  *       interval: Milliseconds to delay between calls.
  *       sigfunc: The pointer to the function to be used as the callback.
  *       data: User data to be passed to the handler function.
