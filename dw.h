@@ -485,8 +485,8 @@ void dw_box_pack_end_stub(HWND box, HWND item, int width, int height, int hsize,
 
 #define DW_MLE_CASESENSITIVE     1
 
-#define DW_POINTER_ARROW         GDK_ARROW
-#define DW_POINTER_CLOCK         GDK_CLOCK
+#define DW_POINTER_ARROW         GDK_TOP_LEFT_ARROW
+#define DW_POINTER_CLOCK         GDK_WATCH
 
 #define HWND_DESKTOP             ((HWND)0)
 
