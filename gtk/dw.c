@@ -7452,7 +7452,7 @@ void dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, int 
 		 */
 	if(box == item)
 	{
-		dw_messagebox("dw_box_pack_end()", DW_MB_OK|DW_MB_ERROR, "Danger! Danger! Will Robinson; box and item are the same!",box,item);
+		dw_messagebox("dw_box_pack_end()", DW_MB_OK|DW_MB_ERROR, "Danger! Danger! Will Robinson; box and item are the same!");
 		return;
 	}
 
@@ -8685,7 +8685,7 @@ void dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize, in
 		 */
 	if(box == item)
 	{
-		dw_messagebox("dw_box_pack_start()", DW_MB_OK|DW_MB_ERROR, "Danger! Danger! Will Robinson; box and item are the same!",box,item);
+		dw_messagebox("dw_box_pack_start()", DW_MB_OK|DW_MB_ERROR, "Danger! Danger! Will Robinson; box and item are the same!");
 		return;
 	}
 

@@ -5174,7 +5174,7 @@ void API dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, 
 		 */
 	if(box == item)
 	{
-		dw_messagebox(funcname, DW_MB_OK|DW_MB_ERROR, "Danger! Danger! Will Robinson; box and item are the same!",box,item);
+		dw_messagebox(funcname, DW_MB_OK|DW_MB_ERROR, "Danger! Danger! Will Robinson; box and item are the same!");
 		return;
 	}
 
@@ -7951,7 +7951,7 @@ void API dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize
 		 */
 	if(box == item)
 	{
-		dw_messagebox(funcname, DW_MB_OK|DW_MB_ERROR, "Danger! Danger! Will Robinson; box and item are the same!",box,item);
+		dw_messagebox(funcname, DW_MB_OK|DW_MB_ERROR, "Danger! Danger! Will Robinson; box and item are the same!");
 		return;
 	}
 
