@@ -2806,7 +2806,7 @@ void _resize_notebook_page(HWND handle, int pageid)
  *           newthread: True if this is the only thread.
  *                      False if there is already a message loop running.
  */
-int dw_init(int newthread, int argc, char *argv[])
+int API dw_init(int newthread, int argc, char *argv[])
 {
 	WNDCLASS wc;
 	int z;
@@ -2910,7 +2910,7 @@ int dw_init(int newthread, int argc, char *argv[])
 /*
  * Runs a message loop for Dynamic Windows.
  */
-void dw_main(void)
+void API dw_main(void)
 {
 	MSG msg;
 
@@ -2928,7 +2928,7 @@ void dw_main(void)
  * Parameters:
  *           milliseconds: Number of milliseconds to run the loop for.
  */
-void dw_main_sleep(int milliseconds)
+void API dw_main_sleep(int milliseconds)
 {
 	MSG msg;
 	double start = (double)clock();
@@ -2952,7 +2952,7 @@ void dw_main_sleep(int milliseconds)
  *           ptr: Pointer to dynamic windows allocated
  *                memory to be free()'d.
  */
-void dw_free(void *ptr)
+void API dw_free(void *ptr)
 {
 	free(ptr);
 }
@@ -2962,7 +2962,7 @@ void dw_free(void *ptr)
  * Parameters:
  *           data: User defined data to be passed to functions.
  */
-DWDialog *dw_dialog_new(void *data)
+DWDialog * API dw_dialog_new(void *data)
 {
 	DWDialog *tmp = malloc(sizeof(DWDialog));
 
@@ -2982,7 +2982,7 @@ DWDialog *dw_dialog_new(void *data)
  *           dialog: Pointer to a dialog struct aquired by dw_dialog_new).
  *           result: Data to be returned by dw_dialog_wait().
  */
-int dw_dialog_dismiss(DWDialog *dialog, void *result)
+int API dw_dialog_dismiss(DWDialog *dialog, void *result)
 {
 	dialog->result = result;
 	dw_event_post(dialog->eve);
@@ -2996,7 +2996,7 @@ int dw_dialog_dismiss(DWDialog *dialog, void *result)
  * Parameters:
  *           dialog: Pointer to a dialog struct aquired by dw_dialog_new).
  */
-void *dw_dialog_wait(DWDialog *dialog)
+void * API dw_dialog_wait(DWDialog *dialog)
 {
 	MSG msg;
 	void *tmp;
@@ -3021,7 +3021,7 @@ void *dw_dialog_wait(DWDialog *dialog)
  *           format: printf style format string.
  *           ...: Additional variables for use in the format.
  */
-int dw_messagebox(char *title, char *format, ...)
+int API dw_messagebox(char *title, char *format, ...)
 {
 	va_list args;
 	char outbuf[256];
@@ -3043,7 +3043,7 @@ int dw_messagebox(char *title, char *format, ...)
  * Returns:
  *           True if YES False of NO.
  */
-int dw_yesno(char *title, char *text)
+int API dw_yesno(char *title, char *text)
 {
 	if(MessageBox(HWND_DESKTOP, text, title, MB_YESNO) == IDYES)
 		return TRUE;
@@ -3055,7 +3055,7 @@ int dw_yesno(char *title, char *text)
  * Parameters:
  *           handle: The window handle to minimize.
  */
-int dw_window_minimize(HWND handle)
+int API dw_window_minimize(HWND handle)
 {
 	return ShowWindow(handle, SW_MINIMIZE);
 }
@@ -3065,7 +3065,7 @@ int dw_window_minimize(HWND handle)
  * Parameters:
  *           handle: The window handle to make topmost.
  */
-int dw_window_raise(HWND handle)
+int API dw_window_raise(HWND handle)
 {
 	return SetWindowPos(handle, HWND_TOP, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
 }
@@ -3075,7 +3075,7 @@ int dw_window_raise(HWND handle)
  * Parameters:
  *           handle: The window handle to make bottommost.
  */
-int dw_window_lower(HWND handle)
+int API dw_window_lower(HWND handle)
 {
 	return SetWindowPos(handle, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
 }
@@ -3085,7 +3085,7 @@ int dw_window_lower(HWND handle)
  * Parameters:
  *           handle: The window handle to make visible.
  */
-int dw_window_show(HWND handle)
+int API dw_window_show(HWND handle)
 {
 	int rc = ShowWindow(handle, SW_SHOW);
 	SetFocus(handle);
@@ -3098,7 +3098,7 @@ int dw_window_show(HWND handle)
  * Parameters:
  *           handle: The window handle to make visible.
  */
-int dw_window_hide(HWND handle)
+int API dw_window_hide(HWND handle)
 {
 	return ShowWindow(handle, SW_HIDE);
 }
@@ -3108,7 +3108,7 @@ int dw_window_hide(HWND handle)
  * Parameters:
  *           handle: The window handle to destroy.
  */
-int dw_window_destroy(HWND handle)
+int API dw_window_destroy(HWND handle)
 {
 	HWND parent = GetParent(handle);
 	Box *thisbox = (Box *)GetWindowLong(parent, GWL_USERDATA);
@@ -3152,7 +3152,7 @@ int dw_window_destroy(HWND handle)
  * Parameters:
  *           handle: Toplevel window handle to be redrawn.
  */
-void dw_window_redraw(HWND handle)
+void API dw_window_redraw(HWND handle)
 {
 	Box *mybox = (Box *)GetWindowLong(handle, GWL_USERDATA);
 
@@ -3175,7 +3175,7 @@ void dw_window_redraw(HWND handle)
  *           handle: The window handle to destroy.
  *           newparent: The window's new parent window.
  */
-void dw_window_reparent(HWND handle, HWND newparent)
+void API dw_window_reparent(HWND handle, HWND newparent)
 {
 	SetParent(handle, newparent);
 }
@@ -3232,7 +3232,7 @@ HFONT _acquire_font(HWND handle, char *fontname)
  *          handle: The window (widget) handle.
  *          fontname: Name and size of the font in the form "size.fontname"
  */
-int dw_window_set_font(HWND handle, char *fontname)
+int API dw_window_set_font(HWND handle, char *fontname)
 {
 	HFONT oldfont = (HFONT)SendMessage(handle, WM_GETFONT, 0, 0);
 	HFONT hfont = _acquire_font(handle, fontname);
@@ -3271,7 +3271,7 @@ int dw_window_set_font(HWND handle, char *fontname)
  *          fore: Foreground color in RGB format.
  *          back: Background color in RGB format.
  */
-int dw_window_set_color(HWND handle, ULONG fore, ULONG back)
+int API dw_window_set_color(HWND handle, ULONG fore, ULONG back)
 {
 	ColorInfo *cinfo;
 	char tmpbuf[100];
@@ -3321,7 +3321,7 @@ int dw_window_set_color(HWND handle, ULONG fore, ULONG back)
  *          handle: The window (widget) handle.
  *          border: Size of the window border in pixels.
  */
-int dw_window_set_border(HWND handle, int border)
+int API dw_window_set_border(HWND handle, int border)
 {
 	return 0;
 }
@@ -3331,7 +3331,7 @@ int dw_window_set_border(HWND handle, int border)
  * Parameters:
  *       handle: Handle to receive mouse input.
  */
-void dw_window_capture(HWND handle)
+void API dw_window_capture(HWND handle)
 {
 	SetCapture(handle);
 }
@@ -3339,7 +3339,7 @@ void dw_window_capture(HWND handle)
 /*
  * Releases previous mouse capture.
  */
-void dw_window_release(void)
+void API dw_window_release(void)
 {
 	ReleaseCapture();
 }
@@ -3350,7 +3350,7 @@ void dw_window_release(void)
  *       handle: Handle to widget for which to change.
  *       cursortype: ID of the pointer you want.
  */
-void dw_window_pointer(HWND handle, int pointertype)
+void API dw_window_pointer(HWND handle, int pointertype)
 {
 	SetCursor(LoadCursor(NULL, MAKEINTRESOURCE(pointertype)));
 }
@@ -3362,7 +3362,7 @@ void dw_window_pointer(HWND handle, int pointertype)
  *       title: The Window title.
  *       flStyle: Style flags, see the DW reference.
  */
-HWND dw_window_new(HWND hwndOwner, char *title, ULONG flStyle)
+HWND API dw_window_new(HWND hwndOwner, char *title, ULONG flStyle)
 {
 	HWND hwndframe;
 	Box *newbox = calloc(sizeof(Box), 1);
@@ -3409,7 +3409,7 @@ HWND dw_window_new(HWND hwndOwner, char *title, ULONG flStyle)
  *       type: Either BOXVERT (vertical) or BOXHORZ (horizontal).
  *       pad: Number of pixels to pad around the box.
  */
-HWND dw_box_new(int type, int pad)
+HWND API dw_box_new(int type, int pad)
 {
 	Box *newbox = calloc(sizeof(Box), 1);
 	HWND hwndframe;
@@ -3443,7 +3443,7 @@ HWND dw_box_new(int type, int pad)
  *       pad: Number of pixels to pad around the box.
  *       title: Text to be displayined in the group outline.
  */
-HWND dw_groupbox_new(int type, int pad, char *title)
+HWND API dw_groupbox_new(int type, int pad, char *title)
 {
 	Box *newbox = calloc(sizeof(Box), 1);
 	HWND hwndframe;
@@ -3482,7 +3482,7 @@ HWND dw_groupbox_new(int type, int pad, char *title)
  * Parameters:
  *       id: An ID to be used with dw_window_from_id or 0L.
  */
-HWND dw_mdi_new(unsigned long id)
+HWND API dw_mdi_new(unsigned long id)
 {
 	CLIENTCREATESTRUCT ccs;
 	HWND hwndframe;
@@ -3506,7 +3506,7 @@ HWND dw_mdi_new(unsigned long id)
  * Parameters:
  *       id: An ID to be used with dw_window_from_id or 0L.
  */
-HWND dw_bitmap_new(ULONG id)
+HWND API dw_bitmap_new(ULONG id)
 {
 	return CreateWindow(STATICCLASSNAME,
 						"",
@@ -3525,7 +3525,7 @@ HWND dw_bitmap_new(ULONG id)
  *       id: An ID to be used for getting the resource from the
  *           resource file.
  */
-HWND dw_notebook_new(ULONG id, int top)
+HWND API dw_notebook_new(ULONG id, int top)
 {
 	ULONG flags = 0;
 	HWND tmp;
@@ -3553,7 +3553,7 @@ HWND dw_notebook_new(ULONG id, int top)
  *       id: An ID to be used for getting the resource from the
  *           resource file.
  */
-HMENUI dw_menu_new(ULONG id)
+HMENUI API dw_menu_new(ULONG id)
 {
 	HMENUI tmp = malloc(sizeof(struct _hmenui));
 
@@ -3570,7 +3570,7 @@ HMENUI dw_menu_new(ULONG id)
  * Parameters:
  *       location: Handle of a window frame to be attached to.
  */
-HMENUI dw_menubar_new(HWND location)
+HMENUI API dw_menubar_new(HWND location)
 {
 	HMENUI tmp = malloc(sizeof(struct _hmenui));
 
@@ -3589,7 +3589,7 @@ HMENUI dw_menubar_new(HWND location)
  * Parameters:
  *       menu: Handle of a menu.
  */
-void dw_menu_destroy(HMENUI *menu)
+void API dw_menu_destroy(HMENUI *menu)
 {
 	if(menu && *menu)
 	{
@@ -3610,7 +3610,7 @@ void dw_menu_destroy(HMENUI *menu)
  *       flags: Extended attributes to set on the menu.
  *       submenu: Handle to an existing menu to be a submenu or NULL.
  */
-HWND dw_menu_append_item(HMENUI menux, char *title, ULONG id, ULONG flags, int end, int check, HMENUI submenu)
+HWND API dw_menu_append_item(HMENUI menux, char *title, ULONG id, ULONG flags, int end, int check, HMENUI submenu)
 {
 	MENUITEMINFO mii;
 	HMENU menu;
@@ -3659,7 +3659,7 @@ HWND dw_menu_append_item(HMENUI menux, char *title, ULONG id, ULONG flags, int e
  *       id: Menuitem id.
  *       check: TRUE for checked FALSE for not checked.
  */
-void dw_menu_item_set_check(HMENUI menux, unsigned long id, int check)
+void API dw_menu_item_set_check(HMENUI menux, unsigned long id, int check)
 {
 	MENUITEMINFO mii;
 	HMENU menu;
@@ -3686,7 +3686,7 @@ void dw_menu_item_set_check(HMENUI menux, unsigned long id, int check)
  *       x: X coordinate.
  *       y: Y coordinate.
  */
-void dw_menu_popup(HMENUI *menu, HWND parent, int x, int y)
+void API dw_menu_popup(HMENUI *menu, HWND parent, int x, int y)
 {
 	if(menu && *menu)
 	{
@@ -3704,7 +3704,7 @@ void dw_menu_popup(HMENUI *menu, HWND parent, int x, int y)
  *       id: An ID to be used for getting the resource from the
  *           resource file.
  */
-HWND dw_container_new(ULONG id)
+HWND API dw_container_new(ULONG id)
 {
 	HWND tmp = CreateWindow(WC_LISTVIEW,
 							"",
@@ -3739,7 +3739,7 @@ HWND dw_container_new(ULONG id)
  *       id: An ID to be used for getting the resource from the
  *           resource file.
  */
-HWND dw_tree_new(ULONG id)
+HWND API dw_tree_new(ULONG id)
 {
 	HWND tmp = CreateWindow(WC_TREEVIEW,
 							"",
@@ -3775,7 +3775,7 @@ HWND dw_tree_new(ULONG id)
  *       x: Pointer to variable to store X coordinate.
  *       y: Pointer to variable to store Y coordinate.
  */
-void dw_pointer_query_pos(long *x, long *y)
+void API dw_pointer_query_pos(long *x, long *y)
 {
 	POINT ptl;
 
@@ -3793,7 +3793,7 @@ void dw_pointer_query_pos(long *x, long *y)
  *       x: X coordinate.
  *       y: Y coordinate.
  */
-void dw_pointer_set_pos(long x, long y)
+void API dw_pointer_set_pos(long x, long y)
 {
 	SetCursorPos(x, y);
 }
@@ -3804,7 +3804,7 @@ void dw_pointer_set_pos(long x, long y)
  *       text: The text to be display by the static text widget.
  *       id: An ID to be used with WinWindowFromID() or 0L.
  */
-HWND dw_text_new(char *text, ULONG id)
+HWND API dw_text_new(char *text, ULONG id)
 {
 	HWND tmp = CreateWindow(STATICCLASSNAME,
 							text,
@@ -3825,7 +3825,7 @@ HWND dw_text_new(char *text, ULONG id)
  *       text: The text to be display by the static text widget.
  *       id: An ID to be used with WinWindowFromID() or 0L.
  */
-HWND dw_status_text_new(char *text, ULONG id)
+HWND API dw_status_text_new(char *text, ULONG id)
 {
 	HWND tmp = CreateWindow(STATICCLASSNAME,
 							text,
@@ -3846,7 +3846,7 @@ HWND dw_status_text_new(char *text, ULONG id)
  * Parameters:
  *       id: An ID to be used with WinWindowFromID() or 0L.
  */
-HWND dw_mle_new(ULONG id)
+HWND API dw_mle_new(ULONG id)
 {
     
 	HWND tmp = CreateWindowEx(WS_EX_CLIENTEDGE,
@@ -3883,7 +3883,7 @@ HWND dw_mle_new(ULONG id)
  *       text: The default text to be in the entryfield widget.
  *       id: An ID to be used with WinWindowFromID() or 0L.
  */
-HWND dw_entryfield_new(char *text, ULONG id)
+HWND API dw_entryfield_new(char *text, ULONG id)
 {
 	HWND tmp = CreateWindowEx(WS_EX_CLIENTEDGE,
 							  EDITCLASSNAME,
@@ -3913,7 +3913,7 @@ HWND dw_entryfield_new(char *text, ULONG id)
  *       text: The default text to be in the entryfield widget.
  *       id: An ID to be used with WinWindowFromID() or 0L.
  */
-HWND dw_entryfield_password_new(char *text, ULONG id)
+HWND API dw_entryfield_password_new(char *text, ULONG id)
 {
 	HWND tmp = CreateWindowEx(WS_EX_CLIENTEDGE,
 							  EDITCLASSNAME,
@@ -3956,7 +3956,7 @@ BOOL CALLBACK _subclass_child(HWND handle, LPARAM lp)
  *       text: The default text to be in the combpbox widget.
  *       id: An ID to be used with WinWindowFromID() or 0L.
  */
-HWND dw_combobox_new(char *text, ULONG id)
+HWND API dw_combobox_new(char *text, ULONG id)
 {
 	HWND tmp = CreateWindow(COMBOBOXCLASSNAME,
 							text,
@@ -3996,7 +3996,7 @@ HWND dw_combobox_new(char *text, ULONG id)
  *       text: The text to be display by the static text widget.
  *       id: An ID to be used with WinWindowFromID() or 0L.
  */
-HWND dw_button_new(char *text, ULONG id)
+HWND API dw_button_new(char *text, ULONG id)
 {
 	BubbleButton *bubble = calloc(1, sizeof(BubbleButton));
 
@@ -4025,7 +4025,7 @@ HWND dw_button_new(char *text, ULONG id)
  *       text: Bubble help text to be displayed.
  *       id: An ID of a bitmap in the resource file.
  */
-HWND dw_bitmapbutton_new(char *text, ULONG id)
+HWND API dw_bitmapbutton_new(char *text, ULONG id)
 {
 	HWND tmp;
 	BubbleButton *bubble = calloc(1, sizeof(BubbleButton));
@@ -4061,7 +4061,7 @@ HWND dw_bitmapbutton_new(char *text, ULONG id)
  *       text: The text to be display by the static text widget.
  *       id: An ID to be used with WinWindowFromID() or 0L.
  */
-HWND dw_spinbutton_new(char *text, ULONG id)
+HWND API dw_spinbutton_new(char *text, ULONG id)
 {
 	ULONG *data = malloc(sizeof(ULONG));
 	HWND buddy = CreateWindowEx(WS_EX_CLIENTEDGE,
@@ -4109,7 +4109,7 @@ HWND dw_spinbutton_new(char *text, ULONG id)
  *       text: The text to be display by the static text widget.
  *       id: An ID to be used with WinWindowFromID() or 0L.
  */
-HWND dw_radiobutton_new(char *text, ULONG id)
+HWND API dw_radiobutton_new(char *text, ULONG id)
 {
 	HWND tmp = CreateWindow(BUTTONCLASSNAME,
 							text,
@@ -4138,7 +4138,7 @@ HWND dw_radiobutton_new(char *text, ULONG id)
  *       increments: Number of increments available.
  *       id: An ID to be used with WinWindowFromID() or 0L.
  */
-HWND dw_slider_new(int vertical, int increments, ULONG id)
+HWND API dw_slider_new(int vertical, int increments, ULONG id)
 {
 	HWND tmp = CreateWindow(TRACKBAR_CLASS,
 							"",
@@ -4166,7 +4166,7 @@ HWND dw_slider_new(int vertical, int increments, ULONG id)
  * Parameters:
  *       id: An ID to be used with WinWindowFromID() or 0L.
  */
-HWND dw_percent_new(ULONG id)
+HWND API dw_percent_new(ULONG id)
 {
 	return CreateWindow(PROGRESS_CLASS,
 						"",
@@ -4184,7 +4184,7 @@ HWND dw_percent_new(ULONG id)
  *       text: The text to be display by the static text widget.
  *       id: An ID to be used with WinWindowFromID() or 0L.
  */
-HWND dw_checkbox_new(char *text, ULONG id)
+HWND API dw_checkbox_new(char *text, ULONG id)
 {
 	BubbleButton *bubble = calloc(1, sizeof(BubbleButton));
 	HWND tmp = CreateWindow(BUTTONCLASSNAME,
@@ -4212,7 +4212,7 @@ HWND dw_checkbox_new(char *text, ULONG id)
  *       id: An ID to be used with WinWindowFromID() or 0L.
  *       multi: Multiple select TRUE or FALSE.
  */
-HWND dw_listbox_new(ULONG id, int multi)
+HWND API dw_listbox_new(ULONG id, int multi)
 {
 	HWND tmp = CreateWindowEx(WS_EX_CLIENTEDGE,
 							  LISTBOXCLASSNAME,
@@ -4249,7 +4249,7 @@ HWND dw_listbox_new(ULONG id, int multi)
  *       handle: Handle to the window.
  *       id: An ID to be used to specify the icon.
  */
-void dw_window_set_icon(HWND handle, ULONG id)
+void API dw_window_set_icon(HWND handle, ULONG id)
 {
 	HICON hicon = LoadIcon(DWInstance, MAKEINTRESOURCE(id));
 
@@ -4264,7 +4264,7 @@ void dw_window_set_icon(HWND handle, ULONG id)
  *       handle: Handle to the window.
  *       id: An ID to be used to specify the icon.
  */
-void dw_window_set_bitmap(HWND handle, ULONG id)
+void API dw_window_set_bitmap(HWND handle, ULONG id)
 {
 	HBITMAP hbitmap = LoadBitmap(DWInstance, MAKEINTRESOURCE(id));
 	HBITMAP oldbitmap = (HBITMAP)SendMessage(handle, STM_GETIMAGE, IMAGE_BITMAP, 0);
@@ -4283,7 +4283,7 @@ void dw_window_set_bitmap(HWND handle, ULONG id)
  *       handle: Handle to the window.
  *       text: The text associsated with a given window.
  */
-void dw_window_set_text(HWND handle, char *text)
+void API dw_window_set_text(HWND handle, char *text)
 {
 	char tmpbuf[100];
 
@@ -4303,7 +4303,7 @@ void dw_window_set_text(HWND handle, char *text)
  * Returns:
  *       text: The text associsated with a given window.
  */
-char *dw_window_get_text(HWND handle)
+char * API dw_window_get_text(HWND handle)
 {
 	int len = GetWindowTextLength(handle);
 	char *tempbuf = calloc(1, len + 2);
@@ -4318,7 +4318,7 @@ char *dw_window_get_text(HWND handle)
  * Parameters:
  *       handle: Handle to the window.
  */
-void dw_window_disable(HWND handle)
+void API dw_window_disable(HWND handle)
 {
 	EnableWindow(handle, FALSE);
 }
@@ -4328,7 +4328,7 @@ void dw_window_disable(HWND handle)
  * Parameters:
  *       handle: Handle to the window.
  */
-void dw_window_enable(HWND handle)
+void API dw_window_enable(HWND handle)
 {
 	EnableWindow(handle, TRUE);
 }
@@ -4339,7 +4339,7 @@ void dw_window_enable(HWND handle)
  *       handle: Handle to the parent window.
  *       id: Integer ID of the child.
  */
-HWND dw_window_from_id(HWND handle, int id)
+HWND API dw_window_from_id(HWND handle, int id)
 {
     return 0L;
 }
@@ -4354,7 +4354,7 @@ HWND dw_window_from_id(HWND handle, int id)
  *       vsize: TRUE if the window (widget) should expand vertically to fill space given.
  *       pad: Number of pixels of padding around the item.
  */
-void dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize, int vsize, int pad)
+void API dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize, int vsize, int pad)
 {
 	Box *thisbox;
 
@@ -4422,7 +4422,7 @@ void dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize, in
  *          width: New width in pixels.
  *          height: New height in pixels.
  */
-void dw_window_set_usize(HWND handle, ULONG width, ULONG height)
+void API dw_window_set_usize(HWND handle, ULONG width, ULONG height)
 {
 	SetWindowPos(handle, (HWND)NULL, 0, 0, width, height, SWP_SHOWWINDOW | SWP_NOZORDER | SWP_NOMOVE);
 }
@@ -4430,7 +4430,7 @@ void dw_window_set_usize(HWND handle, ULONG width, ULONG height)
 /*
  * Returns the width of the screen.
  */
-int dw_screen_width(void)
+int API dw_screen_width(void)
 {
 	return GetSystemMetrics(SM_CXSCREEN);
 }
@@ -4438,13 +4438,13 @@ int dw_screen_width(void)
 /*
  * Returns the height of the screen.
  */
-int dw_screen_height(void)
+int API dw_screen_height(void)
 {
 	return GetSystemMetrics(SM_CYSCREEN);
 }
 
 /* This should return the current color depth */
-unsigned long dw_color_depth(void)
+unsigned long API dw_color_depth(void)
 {
 	int bpp;
 	HDC hdc = GetDC(HWND_DESKTOP);
@@ -4464,7 +4464,7 @@ unsigned long dw_color_depth(void)
  *          x: X location from the bottom left.
  *          y: Y location from the bottom left.
  */
-void dw_window_set_pos(HWND handle, ULONG x, ULONG y)
+void API dw_window_set_pos(HWND handle, ULONG x, ULONG y)
 {
 	SetWindowPos(handle, (HWND)NULL, x, y, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
 }
@@ -4478,7 +4478,7 @@ void dw_window_set_pos(HWND handle, ULONG x, ULONG y)
  *          width: Width of the widget.
  *          height: Height of the widget.
  */
-void dw_window_set_pos_size(HWND handle, ULONG x, ULONG y, ULONG width, ULONG height)
+void API dw_window_set_pos_size(HWND handle, ULONG x, ULONG y, ULONG width, ULONG height)
 {
 	SetWindowPos(handle, (HWND)NULL, x, y, width, height, SWP_NOZORDER | SWP_SHOWWINDOW | SWP_NOACTIVATE);
 }
@@ -4492,7 +4492,7 @@ void dw_window_set_pos_size(HWND handle, ULONG x, ULONG y, ULONG width, ULONG he
  *          width: Width of the widget.
  *          height: Height of the widget.
  */
-void dw_window_get_pos_size(HWND handle, ULONG *x, ULONG *y, ULONG *width, ULONG *height)
+void API dw_window_get_pos_size(HWND handle, ULONG *x, ULONG *y, ULONG *width, ULONG *height)
 {
 	WINDOWPLACEMENT wp;
 
@@ -4517,7 +4517,7 @@ void dw_window_get_pos_size(HWND handle, ULONG *x, ULONG *y, ULONG *width, ULONG
  *          width: New width in pixels.
  *          height: New height in pixels.
  */
-void dw_window_set_style(HWND handle, ULONG style, ULONG mask)
+void API dw_window_set_style(HWND handle, ULONG style, ULONG mask)
 {
 	ULONG tmp, currentstyle = GetWindowLong(handle, GWL_STYLE);
 	ColorInfo *cinfo = (ColorInfo *)GetWindowLong(handle, GWL_USERDATA);
@@ -4569,7 +4569,7 @@ int _findnotebookid(NotebookPage **array, int pageid)
  *          flags: Any additional page creation flags.
  *          front: If TRUE page is added at the beginning.
  */
-ULONG dw_notebook_page_new(HWND handle, ULONG flags, int front)
+unsigned long API dw_notebook_page_new(HWND handle, ULONG flags, int front)
 {
 	NotebookPage **array = (NotebookPage **)GetWindowLong(handle, GWL_USERDATA);
 
@@ -4620,7 +4620,7 @@ ULONG dw_notebook_page_new(HWND handle, ULONG flags, int front)
  *          pageid: Page ID of the tab to set.
  *          text: Pointer to the text to set.
  */
-void dw_notebook_page_set_text(HWND handle, ULONG pageidx, char *text)
+void API dw_notebook_page_set_text(HWND handle, ULONG pageidx, char *text)
 {
 
 	NotebookPage **array = (NotebookPage **)GetWindowLong(handle, GWL_USERDATA);
@@ -4647,7 +4647,7 @@ void dw_notebook_page_set_text(HWND handle, ULONG pageidx, char *text)
  *          pageid: Page ID of the tab to set.
  *          text: Pointer to the text to set.
  */
-void dw_notebook_page_set_status_text(HWND handle, ULONG pageid, char *text)
+void API dw_notebook_page_set_status_text(HWND handle, ULONG pageid, char *text)
 {
 }
 
@@ -4658,7 +4658,7 @@ void dw_notebook_page_set_status_text(HWND handle, ULONG pageid, char *text)
  *          pageid: Page ID in the notebook which is being packed.
  *          page: Box handle to be packed.
  */
-void dw_notebook_pack(HWND handle, ULONG pageidx, HWND page)
+void API dw_notebook_pack(HWND handle, ULONG pageidx, HWND page)
 {
 	NotebookPage **array = (NotebookPage **)GetWindowLong(handle, GWL_USERDATA);
 	int pageid;
@@ -4691,7 +4691,7 @@ void dw_notebook_pack(HWND handle, ULONG pageidx, HWND page)
  *          handle: Handle to the notebook widget.
  *          pageid: ID of the page to be destroyed.
  */
-void dw_notebook_page_destroy(HWND handle, unsigned int pageidx)
+void API dw_notebook_page_destroy(HWND handle, unsigned int pageidx)
 {
 	NotebookPage **array = (NotebookPage **)GetWindowLong(handle, GWL_USERDATA);
 	int newid = -1, z, pageid;
@@ -4739,7 +4739,7 @@ void dw_notebook_page_destroy(HWND handle, unsigned int pageidx)
  * Parameters:
  *          handle: Handle to the notebook widget.
  */
-unsigned int dw_notebook_page_query(HWND handle)
+unsigned int API dw_notebook_page_query(HWND handle)
 {
 	NotebookPage **array = (NotebookPage **)GetWindowLong(handle, GWL_USERDATA);
 	int physid = TabCtrl_GetCurSel(handle);
@@ -4755,7 +4755,7 @@ unsigned int dw_notebook_page_query(HWND handle)
  *          handle: Handle to the notebook widget.
  *          pageid: ID of the page to be made visible.
  */
-void dw_notebook_page_set(HWND handle, unsigned int pageidx)
+void API dw_notebook_page_set(HWND handle, unsigned int pageidx)
 {
 	NotebookPage **array = (NotebookPage **)GetWindowLong(handle, GWL_USERDATA);
 	int pageid;
@@ -4785,7 +4785,7 @@ void dw_notebook_page_set(HWND handle, unsigned int pageidx)
  *          handle: Handle to the listbox to be appended to.
  *          text: Text to append into listbox.
  */
-void dw_listbox_append(HWND handle, char *text)
+void API dw_listbox_append(HWND handle, char *text)
 {
 	char tmpbuf[100];
 
@@ -4806,7 +4806,7 @@ void dw_listbox_append(HWND handle, char *text)
  * Parameters:
  *          handle: Handle to the listbox to be cleared.
  */
-void dw_listbox_clear(HWND handle)
+void API dw_listbox_clear(HWND handle)
 {
 	char tmpbuf[100];
 
@@ -4837,7 +4837,7 @@ void dw_listbox_clear(HWND handle)
  *          index: Index into the list to be queried.
  *          buffer: Buffer where text will be copied.
  */
-void dw_listbox_set_text(HWND handle, unsigned int index, char *buffer)
+void API dw_listbox_set_text(HWND handle, unsigned int index, char *buffer)
 {
 	unsigned int sel = (unsigned int)SendMessage(handle, LB_GETCURSEL, 0, 0);
 	SendMessage(handle,	LB_DELETESTRING, (WPARAM)index, 0);
@@ -4854,7 +4854,7 @@ void dw_listbox_set_text(HWND handle, unsigned int index, char *buffer)
  *          buffer: Buffer where text will be copied.
  *          length: Length of the buffer (including NULL).
  */
-void dw_listbox_query_text(HWND handle, unsigned int index, char *buffer, unsigned int length)
+void API dw_listbox_query_text(HWND handle, unsigned int index, char *buffer, unsigned int length)
 {
 	SendMessage(handle,
 				LB_GETTEXT, (WPARAM)index, (LPARAM)buffer);
@@ -4865,7 +4865,7 @@ void dw_listbox_query_text(HWND handle, unsigned int index, char *buffer, unsign
  * Parameters:
  *          handle: Handle to the listbox to be queried.
  */
-unsigned int dw_listbox_selected(HWND handle)
+unsigned int API dw_listbox_selected(HWND handle)
 {
 	char tmpbuf[100];
 
@@ -4887,7 +4887,7 @@ unsigned int dw_listbox_selected(HWND handle)
  *          handle: Handle to the listbox to be queried.
  *          where: Either the previous return or -1 to restart.
  */
-int dw_listbox_selected_multi(HWND handle, int where)
+int API dw_listbox_selected_multi(HWND handle, int where)
 {
 	int *array, count, z;
 
@@ -4924,7 +4924,7 @@ int dw_listbox_selected_multi(HWND handle, int where)
  *          index: Item index.
  *          state: TRUE if selected FALSE if unselected.
  */
-void dw_listbox_select(HWND handle, int index, int state)
+void API dw_listbox_select(HWND handle, int index, int state)
 {
 	char tmpbuf[100];
 
@@ -4946,7 +4946,7 @@ void dw_listbox_select(HWND handle, int index, int state)
  *          handle: Handle to the listbox to be set.
  *          index: Item index.
  */
-void dw_listbox_delete(HWND handle, int index)
+void API dw_listbox_delete(HWND handle, int index)
 {
 	SendMessage(handle, LB_DELETESTRING, (WPARAM)index, 0);
 }
@@ -4956,7 +4956,7 @@ void dw_listbox_delete(HWND handle, int index)
  * Parameters:
  *          handle: Handle to the listbox to be cleared.
  */
-int dw_listbox_count(HWND handle)
+int API dw_listbox_count(HWND handle)
 {
 	char tmpbuf[100];
 
@@ -4976,7 +4976,7 @@ int dw_listbox_count(HWND handle)
  *          handle: Handle to the listbox to be cleared.
  *          top: Index to the top item.
  */
-void dw_listbox_set_top(HWND handle, int top)
+void API dw_listbox_set_top(HWND handle, int top)
 {
 	SendMessage(handle, LB_SETTOPINDEX, (WPARAM)top, 0);
 }
@@ -4988,7 +4988,7 @@ void dw_listbox_set_top(HWND handle, int top)
  *          buffer: Text buffer to be imported.
  *          startpoint: Point to start entering text.
  */
-unsigned int dw_mle_import(HWND handle, char *buffer, int startpoint)
+unsigned int API dw_mle_import(HWND handle, char *buffer, int startpoint)
 {
 	int textlen, len = GetWindowTextLength(handle);
 	char *tmpbuf;
@@ -5031,7 +5031,7 @@ unsigned int dw_mle_import(HWND handle, char *buffer, int startpoint)
  *          startpoint: Point to start grabbing text.
  *          length: Amount of text to be grabbed.
  */
-void dw_mle_export(HWND handle, char *buffer, int startpoint, int length)
+void API dw_mle_export(HWND handle, char *buffer, int startpoint, int length)
 {
 	int max, len = GetWindowTextLength(handle);
 	char *tmpbuf = calloc(1, len+2);
@@ -5058,7 +5058,7 @@ void dw_mle_export(HWND handle, char *buffer, int startpoint, int length)
  *          bytes: A pointer to a variable to return the total bytes.
  *          lines: A pointer to a variable to return the number of lines.
  */
-void dw_mle_query(HWND handle, unsigned long *bytes, unsigned long *lines)
+void API dw_mle_query(HWND handle, unsigned long *bytes, unsigned long *lines)
 {
 	if(bytes)
 		*bytes = GetWindowTextLength(handle);
@@ -5073,7 +5073,7 @@ void dw_mle_query(HWND handle, unsigned long *bytes, unsigned long *lines)
  *          startpoint: Point to start deleting text.
  *          length: Amount of text to be deleted.
  */
-void dw_mle_delete(HWND handle, int startpoint, int length)
+void API dw_mle_delete(HWND handle, int startpoint, int length)
 {
 	int len = GetWindowTextLength(handle);
 	char *tmpbuf = calloc(1, len+2);
@@ -5095,7 +5095,7 @@ void dw_mle_delete(HWND handle, int startpoint, int length)
  * Parameters:
  *          handle: Handle to the MLE to be cleared.
  */
-void dw_mle_clear(HWND handle)
+void API dw_mle_clear(HWND handle)
 {
 	SetWindowText(handle, "");
 }
@@ -5106,7 +5106,7 @@ void dw_mle_clear(HWND handle)
  *          handle: Handle to the MLE.
  *          line: Line to be visible.
  */
-void dw_mle_set_visible(HWND handle, int line)
+void API dw_mle_set_visible(HWND handle, int line)
 {
 	int point = (int)SendMessage(handle, EM_LINEINDEX, (WPARAM)line, 0);
 	dw_mle_set(handle, point);
@@ -5118,7 +5118,7 @@ void dw_mle_set_visible(HWND handle, int line)
  *          handle: Handle to the MLE.
  *          state: TRUE if it can be edited, FALSE for readonly.
  */
-void dw_mle_set_editable(HWND handle, int state)
+void API dw_mle_set_editable(HWND handle, int state)
 {
 	SendMessage(handle, EM_SETREADONLY, (WPARAM)(state ? FALSE : TRUE), 0);
 }
@@ -5129,7 +5129,7 @@ void dw_mle_set_editable(HWND handle, int state)
  *          handle: Handle to the MLE.
  *          state: TRUE if it wraps, FALSE if it doesn't.
  */
-void dw_mle_set_word_wrap(HWND handle, int state)
+void API dw_mle_set_word_wrap(HWND handle, int state)
 {
 	/* If ES_AUTOHSCROLL is not set and there is not
 	 * horizontal scrollbar it word wraps.
@@ -5146,7 +5146,7 @@ void dw_mle_set_word_wrap(HWND handle, int state)
  *          handle: Handle to the MLE to be positioned.
  *          point: Point to position cursor.
  */
-void dw_mle_set(HWND handle, int point)
+void API dw_mle_set(HWND handle, int point)
 {
 	SendMessage(handle, EM_SETSEL, (WPARAM)point, (LPARAM)point);
 	SendMessage(handle, EM_SCROLLCARET, 0, 0);
@@ -5160,7 +5160,7 @@ void dw_mle_set(HWND handle, int point)
  *          point: Start point of search.
  *          flags: Search specific flags.
  */
-int dw_mle_search(HWND handle, char *text, int point, unsigned long flags)
+int API dw_mle_search(HWND handle, char *text, int point, unsigned long flags)
 {
 	int len = GetWindowTextLength(handle);
 	char *tmpbuf = calloc(1, len+2);
@@ -5203,7 +5203,7 @@ int dw_mle_search(HWND handle, char *text, int point, unsigned long flags)
  * Parameters:
  *          handle: Handle to the MLE to freeze.
  */
-void dw_mle_freeze(HWND handle)
+void API dw_mle_freeze(HWND handle)
 {
 }
 
@@ -5212,7 +5212,7 @@ void dw_mle_freeze(HWND handle)
  * Parameters:
  *          handle: Handle to the MLE to thaw.
  */
-void dw_mle_thaw(HWND handle)
+void API dw_mle_thaw(HWND handle)
 {
 }
 
@@ -5221,7 +5221,7 @@ void dw_mle_thaw(HWND handle)
  * Parameters:
  *          handle: Handle to the percent bar to be queried.
  */
-unsigned int dw_percent_query_range(HWND handle)
+unsigned int API dw_percent_query_range(HWND handle)
 {
 	return (unsigned int)SendMessage(handle, PBM_GETRANGE, (WPARAM)FALSE, 0);
 }
@@ -5232,7 +5232,7 @@ unsigned int dw_percent_query_range(HWND handle)
  *          handle: Handle to the percent bar to be set.
  *          position: Position of the percent bar withing the range.
  */
-void dw_percent_set_pos(HWND handle, unsigned int position)
+void API dw_percent_set_pos(HWND handle, unsigned int position)
 {
 	SendMessage(handle, PBM_SETPOS, (WPARAM)position, 0);
 }
@@ -5242,7 +5242,7 @@ void dw_percent_set_pos(HWND handle, unsigned int position)
  * Parameters:
  *          handle: Handle to the slider to be queried.
  */
-unsigned int dw_slider_query_pos(HWND handle)
+unsigned int API dw_slider_query_pos(HWND handle)
 {
 	int max = (int)SendMessage(handle, TBM_GETRANGEMAX, 0, 0);
 	ULONG currentstyle = GetWindowLong(handle, GWL_STYLE);
@@ -5258,7 +5258,7 @@ unsigned int dw_slider_query_pos(HWND handle)
  *          handle: Handle to the slider to be set.
  *          position: Position of the slider withing the range.
  */
-void dw_slider_set_pos(HWND handle, unsigned int position)
+void API dw_slider_set_pos(HWND handle, unsigned int position)
 {
 	int max = (int)SendMessage(handle, TBM_GETRANGEMAX, 0, 0);
 	ULONG currentstyle = GetWindowLong(handle, GWL_STYLE);
@@ -5275,7 +5275,7 @@ void dw_slider_set_pos(HWND handle, unsigned int position)
  *          handle: Handle to the spinbutton to be set.
  *          position: Current value of the spinbutton.
  */
-void dw_spinbutton_set_pos(HWND handle, long position)
+void API dw_spinbutton_set_pos(HWND handle, long position)
 {
 	char tmpbuf[100];
 	ColorInfo *cinfo = (ColorInfo *)GetWindowLong(handle, GWL_USERDATA);
@@ -5298,7 +5298,7 @@ void dw_spinbutton_set_pos(HWND handle, long position)
  *          position: Current value of the spinbutton.
  *          position: Current value of the spinbutton.
  */
-void dw_spinbutton_set_limits(HWND handle, long upper, long lower)
+void API dw_spinbutton_set_limits(HWND handle, long upper, long lower)
 {
 	if(IS_IE5PLUS)
 		SendMessage(handle, UDM_SETRANGE32, (WPARAM)lower,(LPARAM)upper);
@@ -5313,7 +5313,7 @@ void dw_spinbutton_set_limits(HWND handle, long upper, long lower)
  *          handle: Handle to the spinbutton to be set.
  *          limit: Number of characters the entryfield will take.
  */
-void dw_entryfield_set_limit(HWND handle, ULONG limit)
+void API dw_entryfield_set_limit(HWND handle, ULONG limit)
 {
 	SendMessage(handle, EM_SETLIMITTEXT, (WPARAM)limit, 0);
 }
@@ -5323,7 +5323,7 @@ void dw_entryfield_set_limit(HWND handle, ULONG limit)
  * Parameters:
  *          handle: Handle to the spinbutton to be queried.
  */
-long dw_spinbutton_query(HWND handle)
+long API dw_spinbutton_query(HWND handle)
 {
 	if(IS_IE5PLUS)
 		return (long)SendMessage(handle, UDM_GETPOS32, 0, 0);
@@ -5336,7 +5336,7 @@ long dw_spinbutton_query(HWND handle)
  * Parameters:
  *          handle: Handle to the checkbox to be queried.
  */
-int dw_checkbox_query(HWND handle)
+int API dw_checkbox_query(HWND handle)
 {
 	if(SendMessage(handle, BM_GETCHECK, 0, 0) == BST_CHECKED)
 		return (in_checkbox_handler ? FALSE : TRUE);
@@ -5365,7 +5365,7 @@ BOOL CALLBACK _uncheck_radios(HWND handle, LPARAM lParam)
  *          handle: Handle to the checkbox to be queried.
  *          value: TRUE for checked, FALSE for unchecked.
  */
-void dw_checkbox_set(HWND handle, int value)
+void API dw_checkbox_set(HWND handle, int value)
 {
 	BubbleButton *bubble= (BubbleButton *)GetWindowLong(handle, GWL_USERDATA);
 
@@ -5389,7 +5389,7 @@ void dw_checkbox_set(HWND handle, int value)
  *          parent: Parent handle or 0 if root.
  *          itemdata: Item specific data.
  */
-HWND dw_tree_insert_after(HWND handle, HWND item, char *title, unsigned long icon, HWND parent, void *itemdata)
+HWND API dw_tree_insert_after(HWND handle, HWND item, char *title, unsigned long icon, HWND parent, void *itemdata)
 {
 	TVITEM tvi;
 	TVINSERTSTRUCT tvins;
@@ -5423,7 +5423,7 @@ HWND dw_tree_insert_after(HWND handle, HWND item, char *title, unsigned long ico
  *          parent: Parent handle or 0 if root.
  *          itemdata: Item specific data.
  */
-HWND dw_tree_insert(HWND handle, char *title, unsigned long icon, HWND parent, void *itemdata)
+HWND API dw_tree_insert(HWND handle, char *title, unsigned long icon, HWND parent, void *itemdata)
 {
 	TVITEM tvi;
 	TVINSERTSTRUCT tvins;
@@ -5456,7 +5456,7 @@ HWND dw_tree_insert(HWND handle, char *title, unsigned long icon, HWND parent, v
  *          title: The text title of the entry.
  *          icon: Handle to coresponding icon.
  */
-void dw_tree_set(HWND handle, HWND item, char *title, unsigned long icon)
+void API dw_tree_set(HWND handle, HWND item, char *title, unsigned long icon)
 {
 	TVITEM tvi;
 	void **ptrs;
@@ -5487,7 +5487,7 @@ void dw_tree_set(HWND handle, HWND item, char *title, unsigned long icon)
  *          item: Handle of the item to be modified.
  *          itemdata: User defined data to be associated with item.
  */
-void dw_tree_set_data(HWND handle, HWND item, void *itemdata)
+void API dw_tree_set_data(HWND handle, HWND item, void *itemdata)
 {
 	TVITEM tvi;
 	void **ptrs;
@@ -5508,7 +5508,7 @@ void dw_tree_set_data(HWND handle, HWND item, void *itemdata)
  *       handle: Handle to the tree window (widget) to be selected.
  *       item: Handle to the item to be selected.
  */
-void dw_tree_item_select(HWND handle, HWND item)
+void API dw_tree_item_select(HWND handle, HWND item)
 {
 	TreeView_SelectItem(handle, (HTREEITEM)item);
 }
@@ -5518,7 +5518,7 @@ void dw_tree_item_select(HWND handle, HWND item)
  * Parameters:
  *       handle: Handle to the window (widget) to be cleared.
  */
-void dw_tree_clear(HWND handle)
+void API dw_tree_clear(HWND handle)
 {
 	TreeView_DeleteAllItems(handle);
 }
@@ -5529,7 +5529,7 @@ void dw_tree_clear(HWND handle)
  *       handle: Handle to the tree window (widget).
  *       item: Handle to node to be expanded.
  */
-void dw_tree_expand(HWND handle, HWND item)
+void API dw_tree_expand(HWND handle, HWND item)
 {
 	TreeView_Expand(handle, (HTREEITEM)item, TVE_EXPAND);
 }
@@ -5540,7 +5540,7 @@ void dw_tree_expand(HWND handle, HWND item)
  *       handle: Handle to the tree window (widget).
  *       item: Handle to node to be collapsed.
  */
-void dw_tree_collapse(HWND handle, HWND item)
+void API dw_tree_collapse(HWND handle, HWND item)
 {
 	TreeView_Expand(handle, (HTREEITEM)item, TVE_COLLAPSE);
 }
@@ -5551,7 +5551,7 @@ void dw_tree_collapse(HWND handle, HWND item)
  *       handle: Handle to the window (widget) to be cleared.
  *       item: Handle to node to be deleted.
  */
-void dw_tree_delete(HWND handle, HWND item)
+void API dw_tree_delete(HWND handle, HWND item)
 {
 	if((HTREEITEM)item == TVI_ROOT || !item)
 		return;
@@ -5569,7 +5569,7 @@ void dw_tree_delete(HWND handle, HWND item)
  *          separator: The column number that contains the main separator.
  *                     (only used on OS/2 but must be >= 0 on all)
  */
-int dw_container_setup(HWND handle, unsigned long *flags, char **titles, int count, int separator)
+int API dw_container_setup(HWND handle, unsigned long *flags, char **titles, int count, int separator)
 {
 	ContainerInfo *cinfo = (ContainerInfo *)GetWindowLong(handle, GWL_USERDATA);
 	int z, l = 0;
@@ -5613,7 +5613,7 @@ int dw_container_setup(HWND handle, unsigned long *flags, char **titles, int cou
  *          titles: An array of strings with column text titles.
  *          count: The number of columns (this should match the arrays).
  */
-int dw_filesystem_setup(HWND handle, unsigned long *flags, char **titles, int count)
+int API dw_filesystem_setup(HWND handle, unsigned long *flags, char **titles, int count)
 {
 	LV_COLUMN lvc;
 
@@ -5639,7 +5639,7 @@ int dw_filesystem_setup(HWND handle, unsigned long *flags, char **titles, int co
  *              Windows, on GTK this is converted to a pointer
  *              to an embedded XPM.
  */
-unsigned long dw_icon_load(unsigned long module, unsigned long id)
+unsigned long API dw_icon_load(unsigned long module, unsigned long id)
 {
 	return (unsigned long)LoadIcon(DWInstance, MAKEINTRESOURCE(id));
 }
@@ -5649,7 +5649,7 @@ unsigned long dw_icon_load(unsigned long module, unsigned long id)
  * Parameters:
  *          handle: Handle to icon returned by dw_icon_load().
  */
-void dw_icon_free(unsigned long handle)
+void API dw_icon_free(unsigned long handle)
 {
 	DestroyIcon((HICON)handle);
 }
@@ -5660,7 +5660,7 @@ void dw_icon_free(unsigned long handle)
  *          handle: Handle to the container window (widget).
  *          rowcount: The number of items to be populated.
  */
-void *dw_container_alloc(HWND handle, int rowcount)
+void * API dw_container_alloc(HWND handle, int rowcount)
 {
 	LV_ITEM lvi;
 	int z;
@@ -5742,7 +5742,7 @@ int _lookup_icon(HWND handle, HICON hicon, int type)
  *          row: Zero based row of data being set.
  *          data: Pointer to the data to be added.
  */
-void dw_filesystem_set_file(HWND handle, void *pointer, int row, char *filename, unsigned long icon)
+void API dw_filesystem_set_file(HWND handle, void *pointer, int row, char *filename, unsigned long icon)
 {
 	LV_ITEM lvi;
 
@@ -5765,7 +5765,7 @@ void dw_filesystem_set_file(HWND handle, void *pointer, int row, char *filename,
  *          row: Zero based row of data being set.
  *          data: Pointer to the data to be added.
  */
-void dw_filesystem_set_item(HWND handle, void *pointer, int column, int row, void *data)
+void API dw_filesystem_set_item(HWND handle, void *pointer, int column, int row, void *data)
 {
 	dw_container_set_item(handle, pointer, column + 1, row, data);
 }
@@ -5779,7 +5779,7 @@ void dw_filesystem_set_item(HWND handle, void *pointer, int column, int row, voi
  *          row: Zero based row of data being set.
  *          data: Pointer to the data to be added.
  */
-void dw_container_set_item(HWND handle, void *pointer, int column, int row, void *data)
+void API dw_container_set_item(HWND handle, void *pointer, int column, int row, void *data)
 {
 	ContainerInfo *cinfo = (ContainerInfo *)GetWindowLong(handle, GWL_USERDATA);
 	ULONG *flags;
@@ -5865,7 +5865,7 @@ void dw_container_set_item(HWND handle, void *pointer, int column, int row, void
  *          row: Zero based row of data being set.
  *          data: Pointer to the data to be added.
  */
-void dw_container_change_item(HWND handle, int column, int row, void *data)
+void API dw_container_change_item(HWND handle, int column, int row, void *data)
 {
 	dw_container_set_item(handle, NULL, column, row, data);
 }
@@ -5877,7 +5877,7 @@ void dw_container_change_item(HWND handle, int column, int row, void *data)
  *          column: Zero based column of width being set.
  *          width: Width of column in pixels.
  */
-void dw_container_set_column_width(HWND handle, int column, int width)
+void API dw_container_set_column_width(HWND handle, int column, int width)
 {
 	ListView_SetColumnWidth(handle, column, width);
 }
@@ -5889,7 +5889,7 @@ void dw_container_set_column_width(HWND handle, int column, int width)
  *          row: Zero based row of data being set.
  *          title: String title of the item.
  */
-void dw_container_set_row_title(void *pointer, int row, char *title)
+void API dw_container_set_row_title(void *pointer, int row, char *title)
 {
 	LV_ITEM lvi;
 	HWND container = (HWND)pointer;
@@ -5911,7 +5911,7 @@ void dw_container_set_row_title(void *pointer, int row, char *title)
  *          pointer: Pointer to the allocated memory in dw_container_alloc().
  *          rowcount: The number of rows to be inserted.
  */
-void dw_container_insert(HWND handle, void *pointer, int rowcount)
+void API dw_container_insert(HWND handle, void *pointer, int rowcount)
 {
 	ShowWindow(handle, SW_SHOW);
 }
@@ -5922,7 +5922,7 @@ void dw_container_insert(HWND handle, void *pointer, int rowcount)
  *       handle: Handle to the window (widget) to be cleared.
  *       redraw: TRUE to cause the container to redraw immediately.
  */
-void dw_container_clear(HWND handle, int redraw)
+void API dw_container_clear(HWND handle, int redraw)
 {
 	ListView_DeleteAllItems(handle);
 }
@@ -5933,7 +5933,7 @@ void dw_container_clear(HWND handle, int redraw)
  *       handle: Handle to the window (widget) to be deleted from.
  *       rowcount: The number of rows to be deleted.
  */
-void dw_container_delete(HWND handle, int rowcount)
+void API dw_container_delete(HWND handle, int rowcount)
 {
 	int z;
 
@@ -5951,7 +5951,7 @@ void dw_container_delete(HWND handle, int rowcount)
  *                  DW_SCROLL_BOTTOM. (rows is ignored for last two)
  *       rows: The number of rows to be scrolled.
  */
-void dw_container_scroll(HWND handle, int direction, long rows)
+void API dw_container_scroll(HWND handle, int direction, long rows)
 {
 	switch(direction)
 	{
@@ -5969,7 +5969,7 @@ void dw_container_scroll(HWND handle, int direction, long rows)
  * Parameters:
  *       handle: Handle to the window (widget) to be cleared.
  */
-void dw_container_set_view(HWND handle, unsigned long flags, int iconwidth, int iconheight)
+void API dw_container_set_view(HWND handle, unsigned long flags, int iconwidth, int iconheight)
 {
 }
 
@@ -5981,7 +5981,7 @@ void dw_container_set_view(HWND handle, unsigned long flags, int iconwidth, int 
  *              return items that are currently selected.  Otherwise
  *              it will return all records in the container.
  */
-char *dw_container_query_start(HWND handle, unsigned long flags)
+char * API dw_container_query_start(HWND handle, unsigned long flags)
 {
 	LV_ITEM lvi;
 
@@ -6008,7 +6008,7 @@ char *dw_container_query_start(HWND handle, unsigned long flags)
  *              return items that are currently selected.  Otherwise
  *              it will return all records in the container.
  */
-char *dw_container_query_next(HWND handle, unsigned long flags)
+char * API dw_container_query_next(HWND handle, unsigned long flags)
 {
 	LV_ITEM lvi;
 
@@ -6033,7 +6033,7 @@ char *dw_container_query_next(HWND handle, unsigned long flags)
  *       handle: Handle to the window (widget) to be queried.
  *       text:  Text usually returned by dw_container_query().
  */
-void dw_container_cursor(HWND handle, char *text)
+void API dw_container_cursor(HWND handle, char *text)
 {
 	int index = ListView_GetNextItem(handle, -1, LVNI_ALL);
 
@@ -6067,7 +6067,7 @@ void dw_container_cursor(HWND handle, char *text)
  *       handle: Handle to the window (widget).
  *       text:  Text usually returned by dw_container_query().
  */
-void dw_container_delete_row(HWND handle, char *text)
+void API dw_container_delete_row(HWND handle, char *text)
 {
 	int index = ListView_GetNextItem(handle, -1, LVNI_ALL);
 
@@ -6097,7 +6097,7 @@ void dw_container_delete_row(HWND handle, char *text)
  * Parameters:
  *       handle: Handle to the window (widget) to be optimized.
  */
-void dw_container_optimize(HWND handle)
+void API dw_container_optimize(HWND handle)
 {
 	ContainerInfo *cinfo = (ContainerInfo *)GetWindowLong(handle, GWL_USERDATA);
 	ULONG *flags;
@@ -6183,7 +6183,7 @@ void dw_container_optimize(HWND handle)
  * Returns:
  *       A handle to the widget or NULL on failure.
  */
-HWND dw_render_new(unsigned long id)
+HWND API dw_render_new(unsigned long id)
 {
 	Box *newbox = calloc(sizeof(Box), 1);
 	HWND tmp = CreateWindow(ObjectClassName,
@@ -6211,7 +6211,7 @@ HWND dw_render_new(unsigned long id)
  *       green: green value.
  *       blue: blue value.
  */
-void dw_color_foreground_set(unsigned long value)
+void API dw_color_foreground_set(unsigned long value)
 {
 	int threadid = dw_thread_id();
 
@@ -6231,7 +6231,7 @@ void dw_color_foreground_set(unsigned long value)
  *       green: green value.
  *       blue: blue value.
  */
-void dw_color_background_set(unsigned long value)
+void API dw_color_background_set(unsigned long value)
 {
 	int threadid = dw_thread_id();
 
@@ -6248,7 +6248,7 @@ void dw_color_background_set(unsigned long value)
  *       x: X coordinate.
  *       y: Y coordinate.
  */
-void dw_draw_point(HWND handle, HPIXMAP pixmap, int x, int y)
+void API dw_draw_point(HWND handle, HPIXMAP pixmap, int x, int y)
 {
 	HDC hdcPaint;
 	int threadid = dw_thread_id();
@@ -6277,7 +6277,7 @@ void dw_draw_point(HWND handle, HPIXMAP pixmap, int x, int y)
  *       x2: Second X coordinate.
  *       y2: Second Y coordinate.
  */
-void dw_draw_line(HWND handle, HPIXMAP pixmap, int x1, int y1, int x2, int y2)
+void API dw_draw_line(HWND handle, HPIXMAP pixmap, int x1, int y1, int x2, int y2)
 {
 	HDC hdcPaint;
 	HPEN oldPen;
@@ -6314,7 +6314,7 @@ void dw_draw_line(HWND handle, HPIXMAP pixmap, int x1, int y1, int x2, int y2)
  *       width: Width of rectangle.
  *       height: Height of rectangle.
  */
-void dw_draw_rect(HWND handle, HPIXMAP pixmap, int fill, int x, int y, int width, int height)
+void API dw_draw_rect(HWND handle, HPIXMAP pixmap, int fill, int x, int y, int width, int height)
 {
 	HDC hdcPaint;
 	HPEN oldPen;
@@ -6348,7 +6348,7 @@ void dw_draw_rect(HWND handle, HPIXMAP pixmap, int fill, int x, int y, int width
  *       y: Y coordinate.
  *       text: Text to be displayed.
  */
-void dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
+void API dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
 {
 	HDC hdc;
 	int size = 9, z, mustdelete = 0;
@@ -6398,7 +6398,7 @@ void dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
  *       width: Pointer to a variable to be filled in with the width.
  *       height Pointer to a variable to be filled in with the height.
  */
-void dw_font_text_extents(HWND handle, HPIXMAP pixmap, char *text, int *width, int *height)
+void API dw_font_text_extents(HWND handle, HPIXMAP pixmap, char *text, int *width, int *height)
 {
 	HDC hdc;
 	int mustdelete = 0;
@@ -6446,7 +6446,7 @@ void dw_font_text_extents(HWND handle, HPIXMAP pixmap, char *text, int *width, i
 /* Call this after drawing to the screen to make sure
  * anything you have drawn is visible.
  */
-void dw_flush(void)
+void API dw_flush(void)
 {
 }
 
@@ -6460,7 +6460,7 @@ void dw_flush(void)
  * Returns:
  *       A handle to a pixmap or NULL on failure.
  */
-HPIXMAP dw_pixmap_new(HWND handle, unsigned long width, unsigned long height, int depth)
+HPIXMAP API dw_pixmap_new(HWND handle, unsigned long width, unsigned long height, int depth)
 {
 	HPIXMAP pixmap;
 	BITMAP bm;
@@ -6492,7 +6492,7 @@ HPIXMAP dw_pixmap_new(HWND handle, unsigned long width, unsigned long height, in
  * Returns:
  *       A handle to a pixmap or NULL on failure.
  */
-HPIXMAP dw_pixmap_grab(HWND handle, ULONG id)
+HPIXMAP API dw_pixmap_grab(HWND handle, ULONG id)
 {
 	HPIXMAP pixmap;
 	BITMAP bm;
@@ -6524,7 +6524,7 @@ HPIXMAP dw_pixmap_grab(HWND handle, ULONG id)
  *       pixmap: Handle to a pixmap returned by
  *               dw_pixmap_new..
  */
-void dw_pixmap_destroy(HPIXMAP pixmap)
+void API dw_pixmap_destroy(HPIXMAP pixmap)
 {
 	if(pixmap)
 	{
@@ -6548,7 +6548,7 @@ void dw_pixmap_destroy(HPIXMAP pixmap)
  *       xsrc: X coordinate of source.
  *       ysrc: Y coordinate of source.
  */
-void dw_pixmap_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest, int width, int height, HWND src, HPIXMAP srcp, int xsrc, int ysrc)
+void API dw_pixmap_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest, int width, int height, HWND src, HPIXMAP srcp, int xsrc, int ysrc)
 {
 	HDC hdcdest;
 	HDC hdcsrc;
@@ -6581,7 +6581,7 @@ void dw_pixmap_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest, int width,
  *       freq: Frequency.
  *       dur: Duration.
  */
-void dw_beep(int freq, int dur)
+void API dw_beep(int freq, int dur)
 {
 	Beep(freq, dur);
 }
@@ -6592,7 +6592,7 @@ void dw_beep(int freq, int dur)
  *         handle: Pointer to a module handle,
  *                 will be filled in with the handle.
  */
-int dw_module_load(char *name, HMOD *handle)
+int API dw_module_load(char *name, HMOD *handle)
 {
 	if(!handle)
 		return	-1;
@@ -6608,7 +6608,7 @@ int dw_module_load(char *name, HMOD *handle)
  *         func: A pointer to a function pointer, to obtain
  *               the address.
  */
-int dw_module_symbol(HMOD handle, char *name, void**func)
+int API dw_module_symbol(HMOD handle, char *name, void**func)
 {
 	if(!func || !name)
 		return	-1;
@@ -6624,7 +6624,7 @@ int dw_module_symbol(HMOD handle, char *name, void**func)
  * Parameters:
  *         handle: Module handle returned by dw_module_load()
  */
-int dw_module_close(HMOD handle)
+int API dw_module_close(HMOD handle)
 {
 	return FreeLibrary(handle);
 }
@@ -6632,7 +6632,7 @@ int dw_module_close(HMOD handle)
 /*
  * Returns the handle to an unnamed mutex semaphore.
  */
-HMTX dw_mutex_new(void)
+HMTX API dw_mutex_new(void)
 {
 	return (HMTX)CreateMutex(NULL, FALSE, NULL);
 }
@@ -6642,7 +6642,7 @@ HMTX dw_mutex_new(void)
  * Parameters:
  *       mutex: The handle to the mutex returned by dw_mutex_new().
  */
-void dw_mutex_close(HMTX mutex)
+void API dw_mutex_close(HMTX mutex)
 {
 	CloseHandle((HANDLE)mutex);
 }
@@ -6652,7 +6652,7 @@ void dw_mutex_close(HMTX mutex)
  * Parameters:
  *       mutex: The handle to the mutex returned by dw_mutex_new().
  */
-void dw_mutex_lock(HMTX mutex)
+void API dw_mutex_lock(HMTX mutex)
 {
 	if(_dwtid == dw_thread_id())
 	{
@@ -6673,7 +6673,7 @@ void dw_mutex_lock(HMTX mutex)
  * Parameters:
  *       mutex: The handle to the mutex returned by dw_mutex_new().
  */
-void dw_mutex_unlock(HMTX mutex)
+void API dw_mutex_unlock(HMTX mutex)
 {
 	ReleaseMutex((HANDLE)mutex);
 }
@@ -6681,7 +6681,7 @@ void dw_mutex_unlock(HMTX mutex)
 /*
  * Returns the handle to an unnamed event semaphore.
  */
-HEV dw_event_new(void)
+HEV API dw_event_new(void)
 {
     return CreateEvent(NULL, TRUE, FALSE, NULL);
 }
@@ -6691,7 +6691,7 @@ HEV dw_event_new(void)
  * Parameters:
  *       eve: The handle to the event returned by dw_event_new().
  */
-int dw_event_reset(HEV eve)
+int API dw_event_reset(HEV eve)
 {
 	return ResetEvent(eve);
 }
@@ -6702,7 +6702,7 @@ int dw_event_reset(HEV eve)
  * Parameters:
  *       eve: The handle to the event returned by dw_event_new().
  */
-int dw_event_post(HEV eve)
+int API dw_event_post(HEV eve)
 {
 	return SetEvent(eve);
 }
@@ -6713,7 +6713,7 @@ int dw_event_post(HEV eve)
  * Parameters:
  *       eve: The handle to the event returned by dw_event_new().
  */
-int dw_event_wait(HEV eve, unsigned long timeout)
+int API dw_event_wait(HEV eve, unsigned long timeout)
 {
 	int rc;
 
@@ -6730,7 +6730,7 @@ int dw_event_wait(HEV eve, unsigned long timeout)
  * Parameters:
  *       eve: The handle to the event returned by dw_event_new().
  */
-int dw_event_close(HEV *eve)
+int API dw_event_close(HEV *eve)
 {
 	if(eve)
 		return CloseHandle(*eve);
@@ -6744,7 +6744,7 @@ int dw_event_close(HEV *eve)
  *       data: Parameter(s) passed to the function.
  *       stack: Stack size of new thread (OS/2 and Windows only).
  */
-DWTID dw_thread_new(void *func, void *data, int stack)
+DWTID API dw_thread_new(void *func, void *data, int stack)
 {
 #if defined(__CYGWIN__)
 	return 0;
@@ -6756,7 +6756,7 @@ DWTID dw_thread_new(void *func, void *data, int stack)
 /*
  * Ends execution of current thread immediately.
  */
-void dw_thread_end(void)
+void API dw_thread_end(void)
 {
 #if !defined(__CYGWIN__)
 	_endthread();
@@ -6766,7 +6766,7 @@ void dw_thread_end(void)
 /*
  * Returns the current thread's ID.
  */
-DWTID dw_thread_id(void)
+DWTID API dw_thread_id(void)
 {
 #if defined(__CYGWIN__)
 	return 0;
@@ -6780,7 +6780,7 @@ DWTID dw_thread_id(void)
  * Parameters:
  *       exitcode: Exit code reported to the operating system.
  */
-void dw_exit(int exitcode)
+void API dw_exit(int exitcode)
 {
 	exit(exitcode);
 }
@@ -6794,7 +6794,7 @@ void dw_exit(int exitcode)
  * Returns:
  *       A handle to a splitbar window or NULL on failure.
  */
-HWND dw_splitbar_new(int type, HWND topleft, HWND bottomright, unsigned long id)
+HWND API dw_splitbar_new(int type, HWND topleft, HWND bottomright, unsigned long id)
 {
 	HWND tmp = CreateWindow(SplitbarClassName,
 							"",
@@ -6830,7 +6830,7 @@ HWND dw_splitbar_new(int type, HWND topleft, HWND bottomright, unsigned long id)
  * Parameters:
  *       handle: The handle to the splitbar returned by dw_splitbar_new().
  */
-void dw_splitbar_set(HWND handle, float percent)
+void API dw_splitbar_set(HWND handle, float percent)
 {
 	float *mypercent = (float *)dw_window_get_data(handle, "_dw_percent");
 	int type = (int)dw_window_get_data(handle, "_dw_type");
@@ -6849,7 +6849,7 @@ void dw_splitbar_set(HWND handle, float percent)
  * Parameters:
  *       handle: The handle to the splitbar returned by dw_splitbar_new().
  */
-float dw_splitbar_get(HWND handle)
+float API dw_splitbar_get(HWND handle)
 {
 	float *percent = (float *)dw_window_get_data(handle, "_dw_percent");
 
@@ -6869,7 +6869,7 @@ float dw_splitbar_get(HWND handle)
  *       vsize: TRUE if the window (widget) should expand vertically to fill space given.
  *       pad: Number of pixels of padding around the item.
  */
-void dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, int vsize, int pad)
+void API dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, int vsize, int pad)
 {
 	Box *thisbox;
 
@@ -6936,7 +6936,7 @@ void dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, int 
  *         window: Toplevel window or dialog.
  *         defaultitem: Handle to the dialog item to be default.
  */
-void dw_window_default(HWND window, HWND defaultitem)
+void API dw_window_default(HWND window, HWND defaultitem)
 {
 	Box *thisbox = (Box *)GetWindowLong(window, GWL_USERDATA);
 
@@ -6950,7 +6950,7 @@ void dw_window_default(HWND window, HWND defaultitem)
  *         window: Window (widget) to look for the ENTER press.
  *         next: Window (widget) to move to next (or click)
  */
-void dw_window_click_default(HWND window, HWND next)
+void API dw_window_click_default(HWND window, HWND next)
 {
 	ColorInfo *cinfo = (ColorInfo *)GetWindowLong(window, GWL_USERDATA);
 
@@ -6963,7 +6963,7 @@ void dw_window_click_default(HWND window, HWND next)
  * Parameters:
  *       env: Pointer to a DWEnv struct.
  */
-void dw_environment_query(DWEnv *env)
+void API dw_environment_query(DWEnv *env)
 {
 	if(!env)
 		return;
@@ -7013,7 +7013,7 @@ void dw_environment_query(DWEnv *env)
  *       the file path on success.
  *       
  */
-char *dw_file_browse(char *title, char *defpath, char *ext, int flags)
+char * API dw_file_browse(char *title, char *defpath, char *ext, int flags)
 {
 	OPENFILENAME of;
 	char filenamebuf[1001] = "";
@@ -7057,7 +7057,7 @@ char *dw_file_browse(char *title, char *defpath, char *ext, int flags)
  * Returns:
  *       -1 on error.
  */
-int dw_exec(char *program, int type, char **params)
+int API dw_exec(char *program, int type, char **params)
 {
 	char **newparams;
 	int retcode, count = 0, z;
@@ -7094,7 +7094,7 @@ int dw_exec(char *program, int type, char **params)
  * Parameters:
  *       url: Uniform resource locator.
  */
-int dw_browse(char *url)
+int API dw_browse(char *url)
 {
 	char *browseurl = url;
 	int retcode;
@@ -7126,7 +7126,7 @@ int dw_browse(char *url)
  * current user directory.  Or the root directory (C:\ on
  * OS/2 and Windows).
  */
-char *dw_user_dir(void)
+char * API dw_user_dir(void)
 {
 	static char _user_dir[1024] = "";
 
@@ -7150,7 +7150,7 @@ char *dw_user_dir(void)
  *       function: Function pointer to be called.
  *       data: Pointer to the data to be passed to the function.
  */
-void dw_window_function(HWND handle, void *function, void *data)
+void API dw_window_function(HWND handle, void *function, void *data)
 {
 	SendMessage(handle, WM_USER, (WPARAM)function, (LPARAM)data);
 }
@@ -7248,7 +7248,7 @@ int remove_userdata(UserData **root, char *varname, int all)
  *       dataname: A string pointer identifying which signal to be hooked.
  *       data: User data to be passed to the handler function.
  */
-void dw_window_set_data(HWND window, char *dataname, void *data)
+void API dw_window_set_data(HWND window, char *dataname, void *data)
 {
 	ColorInfo *cinfo = (ColorInfo *)GetWindowLong(window, GWL_USERDATA);
 
@@ -7279,7 +7279,7 @@ void dw_window_set_data(HWND window, char *dataname, void *data)
  *       dataname: A string pointer identifying which signal to be hooked.
  *       data: User data to be passed to the handler function.
  */
-void *dw_window_get_data(HWND window, char *dataname)
+void * API dw_window_get_data(HWND window, char *dataname)
 {
 	ColorInfo *cinfo = (ColorInfo *)GetWindowLong(window, GWL_USERDATA);
 
@@ -7300,7 +7300,7 @@ void *dw_window_get_data(HWND window, char *dataname)
  *       sigfunc: The pointer to the function to be used as the callback.
  *       data: User data to be passed to the handler function.
  */
-void dw_signal_connect(HWND window, char *signame, void *sigfunc, void *data)
+void API dw_signal_connect(HWND window, char *signame, void *sigfunc, void *data)
 {
 	ULONG message = 0L;
 
@@ -7319,7 +7319,7 @@ void dw_signal_connect(HWND window, char *signame, void *sigfunc, void *data)
  * Parameters:
  *       window: Window handle of callback to be removed.
  */
-void dw_signal_disconnect_by_name(HWND window, char *signame)
+void API dw_signal_disconnect_by_name(HWND window, char *signame)
 {
 	SignalHandler *prev = NULL, *tmp = Root;
 	ULONG message;
@@ -7357,7 +7357,7 @@ void dw_signal_disconnect_by_name(HWND window, char *signame)
  * Parameters:
  *       window: Window handle of callback to be removed.
  */
-void dw_signal_disconnect_by_window(HWND window)
+void API dw_signal_disconnect_by_window(HWND window)
 {
 	SignalHandler *prev = NULL, *tmp = Root;
 
@@ -7392,7 +7392,7 @@ void dw_signal_disconnect_by_window(HWND window)
  *       window: Window handle of callback to be removed.
  *       data: Pointer to the data to be compared against.
  */
-void dw_signal_disconnect_by_data(HWND window, void *data)
+void API dw_signal_disconnect_by_data(HWND window, void *data)
 {
 	SignalHandler *prev = NULL, *tmp = Root;
 

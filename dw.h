@@ -178,7 +178,7 @@ extern HMQ dwhmq;
 #endif
 
 #if defined(MSVC) && !defined(API)
-#define API _stdcall
+#define API _cdecl
 #endif
 
 /* Lets make some platform independent defines :) */
