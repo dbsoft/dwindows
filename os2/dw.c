@@ -1741,7 +1741,7 @@ MRESULT EXPENTRY _comboproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 		break;
 	case WM_PAINT:
 		{
-			HWND entry, parent = WinQueryWindow(hWnd, QW_PARENT);
+			HWND entry, frame = (HWND)dw_window_get_data(hWnd, "_dw_combo_box"), parent = WinQueryWindow(frame, QW_PARENT);
 			HPS hpsPaint;
 			POINTL ptl;
 			unsigned long width, height, thumbheight = 0;
