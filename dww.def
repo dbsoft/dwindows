@@ -197,6 +197,9 @@ EXPORTS
   dw_signal_disconnect_by_window         @361
   dw_signal_disconnect_by_data           @362
   dw_signal_disconnect_by_name           @363
+  
+  dw_timer_connect                       @365
+  dw_timer_disconnect                    @366
 
   dw_tree_new                            @370
   dw_tree_insert                         @371
@@ -225,4 +228,9 @@ EXPORTS
   dw_module_load                         @420
   dw_module_symbol                       @421
   dw_module_close                        @422
+
+  dw_scrollbar_new                       @430
+  dw_scrollbar_query_pos                 @431
+  dw_scrollbar_set_pos                   @432
+  dw_scrollbar_set_range                 @433
 
