@@ -541,6 +541,7 @@ static gint _container_select_event(GtkWidget *widget, GdkEventButton *event, gp
 
 			text = (char *)gtk_clist_get_row_data(GTK_CLIST(widget), row);
 			retval = contextfunc(work->window, text, work->data);
+			gtk_object_set_data(GTK_OBJECT(widget), "_dw_double_click", (gpointer)1);
 		}
 	}
 	return retval;
@@ -572,6 +573,11 @@ static gint _container_select_row(GtkWidget *widget, gint row, gint column, GdkE
 	char *rowdata = gtk_clist_get_row_data(GTK_CLIST(widget), row);
 	int (*contextfunc)(HWND, HWND, char *, void *, void *) = work->func;
 
+	if(gtk_object_get_data(GTK_OBJECT(widget), "_dw_double_click"))
+	{
+		gtk_object_set_data(GTK_OBJECT(widget), "_dw_double_click", (gpointer)0);
+		return TRUE;
+	}
 	return contextfunc(work->window, 0, rowdata, work->data, 0);;
 }
 
