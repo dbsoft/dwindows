@@ -4007,7 +4007,7 @@ HPIXMAP dw_pixmap_new(HWND handle, unsigned long width, unsigned long height, in
 		return NULL;
 
 	if (!depth)
-		depth = 24;
+		depth = -1;
 
 	pixmap->width = width; pixmap->height = height;
 
