@@ -45,6 +45,7 @@
 #define DW_SIGNAL_LIST_SELECT    "item-select"
 #define DW_SIGNAL_SET_FOCUS      "set-focus"
 #define DW_SIGNAL_VALUE_CHANGED  "value_changed"
+#define DW_SIGNAL_SWITCH_PAGE    "switch-page"
 
 #if defined(__OS2__) || defined(__WIN32__) || defined(WINNT) || defined(__EMX__)
 /* OS/2 or Windows */
