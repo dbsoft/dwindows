@@ -216,8 +216,6 @@ typedef HWND HMENUI;
 typedef HMODULE HMOD;
 typedef unsigned short UWORD;
 
-#define DW_NOMENU NULLHANDLE
-
 extern HAB dwhab;
 extern HMQ dwhmq;
 #endif
@@ -308,19 +306,23 @@ typedef struct _window_data {
 
 #define DW_MLE_CASESENSITIVE     MLFSEARCH_CASESENSITIVE
 
-#define DW_POINTER_ARROW         SPTR_ARROW
-#define DW_POINTER_CLOCK         SPTR_WAIT
+#define DW_POINTER_ARROW         0
+#define DW_POINTER_CLOCK         watchCursor
+
+#define HWND_DESKTOP		 ((HWND)0)
 
 /* flag values for dw_messagebox() */
-#define DW_MB_OK                 MB_OK
-#define DW_MB_OKCANCEL           MB_OKCANCEL
-#define DW_MB_YESNO              MB_YESNO
-#define DW_MB_YESNOCANCEL        MB_YESNOCANCEL
+#define DW_MB_OK                 (1 << 1)
+#define DW_MB_OKCANCEL           (1 << 2)
+#define DW_MB_YESNO              (1 << 3)
+#define DW_MB_YESNOCANCEL        (1 << 4)
 
-#define DW_MB_WARNING            MB_WARNING
-#define DW_MB_ERROR              MB_ERROR
-#define DW_MB_INFORMATION        MB_INFORMATION
-#define DW_MB_QUESTION           MB_QUERY
+#define DW_MB_WARNING            (1 << 10)
+#define DW_MB_ERROR              (1 << 11)
+#define DW_MB_INFORMATION        (1 << 12)
+#define DW_MB_QUESTION           (1 << 13)
+
+
 #endif
 
 /* Windows specific section */
@@ -461,8 +463,6 @@ typedef struct _hpixmap {
 } *HPIXMAP;
 
 typedef HWND HMENUI;
-
-#define DW_NOMENU NULL
 #endif
 
 typedef struct _item {
@@ -726,8 +726,6 @@ typedef struct _hpixmap {
 typedef GtkWidget *HMENUI;
 typedef void *HTREEITEM;
 
-#define DW_NOMENU NULL
-
 typedef struct _resource_struct {
 	long resource_max, *resource_id;
 	char **resource_data;
@@ -833,6 +831,7 @@ typedef struct _dwdialog {
 #define DW_RGB(a, b, c) (0xF0000000 | a | b << 8 | c << 16)
 
 #define DW_MENU_SEPARATOR ""
+#define DW_NOMENU 0
 
 #if defined(__OS2__) || defined(__EMX__)
 #define DW_OS2_RGB(a) ((DW_RED_VALUE(a) << 16) | (DW_GREEN_VALUE(a) << 8) | DW_BLUE_VALUE(a))

@@ -688,16 +688,14 @@ int API dw_dialog_dismiss(DWDialog *dialog, void *result)
  */
 void * API dw_dialog_wait(DWDialog *dialog)
 {
-	void *tmp;
-
-#if 0
-	while (WinGetMsg(dwhab, &qmsg, 0, 0, 0))
-	{
-		WinDispatchMsg(dwhab, &qmsg);
-		if(dialog->done)
-			break;
-	}
-#endif
+        void *tmp;
+        EventRecord eventStructure;
+    
+        while(!dialog->done)
+        {
+            if(WaitNextEvent(everyEvent, &eventStructure, 180, 0))
+                _doEvents(&eventStructure);
+        }
 	dw_event_close(&dialog->eve);
 	tmp = dialog->result;
 	free(dialog);
@@ -716,16 +714,58 @@ int API dw_messagebox(char *title, int flags, char *format, ...)
 {
 	va_list args;
 	char outbuf[1024];
+        AlertStdCFStringAlertParamRec param;
+        DialogRef dialog;
+        CFStringRef cftext, cftitle;
+        DialogItemIndex item;
+        int ret = DW_MB_RETURN_OK;
+        AlertType alert = kAlertPlainAlert;
 
 	va_start(args, format);
 	vsprintf(outbuf, format, args);
 	va_end(args);
-
-#if 0
-	WinMessageBox(HWND_DESKTOP, HWND_DESKTOP, outbuf, title, 0, MB_OK | MB_INFORMATION | MB_MOVEABLE);
-#endif
-
-	return strlen(outbuf);
+        
+        GetStandardAlertDefaultParams(&param, kStdCFStringAlertVersionOne);
+        param.movable = TRUE;
+        param.helpButton = FALSE;
+        if(flags & DW_MB_INFORMATION)
+            alert = kAlertNoteAlert;
+        else if(flags & DW_MB_ERROR)
+            alert = kAlertStopAlert;
+        else if(flags & DW_MB_WARNING)
+            alert = kAlertCautionAlert;
+            
+        if(flags & DW_MB_OK || flags & DW_MB_OKCANCEL)
+        {
+            param.defaultText = CFSTR("Ok");
+            param.cancelText = flags & DW_MB_OK ? 0 : CFSTR("Cancel");
+        }
+        else
+        {
+            param.defaultText = CFSTR("Yes");
+            param.cancelText = CFSTR("No");
+            param.otherText = CFSTR("Cancel");
+        }
+        cftext = CFStringCreateWithCString(NULL, outbuf, kCFStringEncodingDOSLatinUS);
+        cftitle = CFStringCreateWithCString(NULL, title, kCFStringEncodingDOSLatinUS);
+        if(CreateStandardAlert(alert, cftext, cftitle, &param, &dialog) == noErr)
+        {
+            if(RunStandardAlert(dialog, NULL, &item) == noErr)
+            {
+                if(item == kAlertStdAlertOtherButton)
+                    ret = DW_MB_RETURN_CANCEL;
+                else if(item == kAlertStdAlertCancelButton)
+                {
+                    if(flags & DW_MB_OK || flags & DW_MB_OKCANCEL)
+                        ret = DW_MB_RETURN_CANCEL;
+                    else
+                        ret = DW_MB_RETURN_NO;
+                }
+            }
+        }
+        CFRelease(cftext);
+        CFRelease(cftitle);
+        return ret;
 }
 
 /*
@@ -873,6 +913,7 @@ void API dw_window_track(HWND handle)
  */
 void API dw_window_pointer(HWND handle, int pointertype)
 {
+    SetCursor(*GetCursor(pointertype));
 }
 
 /*
