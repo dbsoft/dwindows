@@ -1199,6 +1199,47 @@ void _do_resize(Box *thisbox, int x, int y)
 	}
 }
 
+int _HandleScroller(HWND handle, int pos, int which)
+{
+	SCROLLINFO si;
+
+	si.cbSize = sizeof(SCROLLINFO);
+	si.fMask = SIF_ALL;
+
+	SendMessage(handle, SBM_GETSCROLLINFO, 0, (LPARAM)&si);
+
+	switch(which)
+	{
+	case SB_THUMBTRACK:
+		return pos;
+	/*case SB_PAGEDOWN:*/
+	case SB_PAGELEFT:
+		pos = si.nPos - si.nPage;
+		if(pos < si.nMin)
+			pos = si.nMin;
+		return pos;
+	/*case SB_PAGEUP:*/
+	case SB_PAGERIGHT:
+		pos = si.nPos + si.nPage;
+		if(pos > (si.nMax - si.nPage) + 1)
+			pos = (si.nMax - si.nPage) + 1;
+		return pos;
+	/*case SB_LINEDOWN:*/
+	case SB_LINELEFT:
+		pos = si.nPos - 1;
+		if(pos < si.nMin)
+			pos = si.nMin;
+		return pos;
+	/*case SB_LINEUP:*/
+	case SB_LINERIGHT:
+		pos = si.nPos + 1;
+		if(pos > (si.nMax - si.nPage) + 1)
+			pos = (si.nMax - si.nPage) + 1;
+		return pos;
+	}
+	return -1;
+}
+
 /* The main window procedure for Dynamic Windows, all the resizing code is done here. */
 BOOL CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 {
@@ -1529,13 +1570,17 @@ BOOL CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 						}
 						else if(strnicmp(tmpbuf, SCROLLBARCLASSNAME, strlen(SCROLLBARCLASSNAME)+1)==0)
 						{
-							if(handle == tmp->window && LOWORD(mp1) == SB_THUMBTRACK)
+							if(handle == tmp->window)
 							{
-								int value = (int)HIWORD(mp1);
+								int value = _HandleScroller(handle, (int)HIWORD(mp1), (int)LOWORD(mp1));
 
-								dw_scrollbar_set_pos(tmp->window, value);
-								result = valuechangefunc(tmp->window, value, tmp->data);
+								if(value > -1)
+								{
+									dw_scrollbar_set_pos(tmp->window, value);
+									result = valuechangefunc(tmp->window, value, tmp->data);
+								}
 								tmp = NULL;
+								msg = 0;
 							}
 						}
 					}
@@ -1628,10 +1673,12 @@ BOOL CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 		{
 			HWND handle = (HWND)mp2;
 
-			if(dw_window_get_data(handle, "_dw_scrollbar") && LOWORD(mp1) == SB_THUMBTRACK)
+			if(dw_window_get_data(handle, "_dw_scrollbar"))
 			{
-				int value = (int)HIWORD(mp1);
-				dw_scrollbar_set_pos(handle, value);
+				int value = _HandleScroller(handle, (int)HIWORD(mp1), (int)LOWORD(mp1));
+
+				if(value > -1)
+					dw_scrollbar_set_pos(handle, value);
 			}
 		}
 		break;
