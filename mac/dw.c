@@ -7,7 +7,7 @@
  */
 #include "dw.h"
 
-void _do_resize(Box *thisbox, int x, int y);
+static void _do_resize(Box *thisbox, int x, int y);
 
 typedef struct _sighandler
 {
@@ -93,7 +93,7 @@ void _new_signal(ULONG message, HWND window, int id, void *signalfunction, void 
 }
 
 /* Finds the message number for a given signal name */
-ULONG _findsigmessage(char *signame)
+static ULONG _findsigmessage(char *signame)
 {
 	int z;
 
@@ -105,17 +105,27 @@ ULONG _findsigmessage(char *signame)
 	return 0L;
 }
 
-void *_get_window_pointer(HWND handle)
+static void *_get_window_pointer(HWND handle)
 {
-    return NULL;
+	void *ret = NULL;
+
+	if(IsValidWindowRef((WindowRef)handle))
+		GetWindowProperty((WindowRef)handle, 0, 'user', sizeof(void *), NULL, &ret);
+	else
+		GetControlProperty(handle, 0, 'user', sizeof(void *), NULL, &ret);
+	return ret;
 }
 
-void _set_window_pointer(HWND handle, void *pointer)
+static void _set_window_pointer(HWND handle, void *pointer)
 {
+	if(IsValidWindowRef((WindowRef)handle))
+		SetWindowProperty((WindowRef)handle, 0, 'user', sizeof(void *), &pointer);
+	else
+		SetControlProperty(handle, 0, 'user', sizeof(void *), &pointer);
 }
 
 /* This function will recursively search a box and add up the total height of it */
-void _count_size(HWND box, int type, int *xsize, int *xorigsize)
+static void _count_size(HWND box, int type, int *xsize, int *xorigsize)
 {
 	int size = 0, origsize = 0, z;
 	Box *tmp = _get_window_pointer(box);
@@ -177,7 +187,7 @@ void _count_size(HWND box, int type, int *xsize, int *xorigsize)
 /* This function calculates how much space the widgets and boxes require
  * and does expansion as necessary.
  */
-int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *usedy,
+static int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *usedy,
 				int pass, int *usedpadx, int *usedpady)
 {
 	int z, currentx = 0, currenty = 0;
@@ -471,10 +481,8 @@ int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *usedy,
 				if(thisbox->items[z].hsize != SIZEEXPAND)
 					vectorx = 0;
 
-#if 0
-				WinSetWindowPos(handle, HWND_TOP, currentx + pad, currenty + pad,
-								width + vectorx, height + vectory, SWP_MOVE | SWP_SIZE | SWP_ZORDER);
-#endif
+				MoveControl(handle, currentx + pad, currenty + pad);
+				SizeControl(handle, width + vectorx, height + vectory);
 
 				if(thisbox->type == DW_HORZ)
 					currentx += width + vectorx + (pad * 2);
@@ -486,7 +494,7 @@ int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *usedy,
 	return 0;
 }
 
-void _do_resize(Box *thisbox, int x, int y)
+static void _do_resize(Box *thisbox, int x, int y)
 {
 	if(x != 0 && y != 0)
 	{
@@ -509,7 +517,7 @@ void _do_resize(Box *thisbox, int x, int y)
 	}
 }
 
-int _dw_int_pos(HWND hwnd)
+static int _dw_int_pos(HWND hwnd)
 {
 	int pos = (int)dw_window_get_data(hwnd, "_dw_percent_value");
 	int range = dw_percent_query_range(hwnd);
@@ -519,7 +527,7 @@ int _dw_int_pos(HWND hwnd)
 	return (int)fnew;
 }
 
-void _dw_int_set(HWND hwnd, int pos)
+static void _dw_int_set(HWND hwnd, int pos)
 {
 	int inew, range = dw_percent_query_range(hwnd);
 	if(range)
@@ -532,7 +540,7 @@ void _dw_int_set(HWND hwnd, int pos)
 	}
 }
 
-void _changebox(Box *thisbox, int percent, int type)
+static void _changebox(Box *thisbox, int percent, int type)
 {
 	int z;
 
@@ -560,27 +568,27 @@ void _changebox(Box *thisbox, int percent, int type)
 }
 
 /* Main MacOS Message loop, all events are handled here. */
-void _doEvents(EventRecord *eventStrucPtr)
+static void _doEvents(EventRecord *eventStrucPtr)
 {
-    SignalHandler *tmp = Root;
-    
-    while(tmp)
-    {
-        if(tmp->message == eventStrucPtr->what)
-        {
+	SignalHandler *tmp = Root;
+
+	while(tmp)
+	{
+		if(tmp->message == eventStrucPtr->what)
+		{
             switch(eventStrucPtr->what)
-            {
-            case mouseDown:
-                break;
-            case mouseUp:
-                break;
-            case keyDown:
-                break;
-            }
-        }
-        if(tmp)
-            tmp = tmp->next;
-    }
+			{
+			case mouseDown:
+				break;
+			case mouseUp:
+				break;
+			case keyDown:
+				break;
+			}
+		}
+		if(tmp)
+			tmp = tmp->next;
+	}
 }
 
 /*
@@ -592,9 +600,9 @@ void _doEvents(EventRecord *eventStrucPtr)
 int API dw_init(int newthread, int argc, char *argv[])
 {
 	CreateNewWindow (kDocumentWindowClass, 0,
-                        &CreationRect, &CreationWindow);
-        CreateRootControl(CreationWindow, &RootControl);
-        HideWindow(CreationWindow);
+					 &CreationRect, &CreationWindow);
+	CreateRootControl(CreationWindow, &RootControl);
+	HideWindow(CreationWindow);
 	return 0;
 }
 
@@ -603,14 +611,14 @@ int API dw_init(int newthread, int argc, char *argv[])
  */
 void API dw_main(void)
 {
-    EventRecord eventStructure;
-    int gDone = false;
-    
-    while(!gDone)
-    {
-        if(WaitNextEvent(everyEvent, &eventStructure, 180, 0))
-            _doEvents(&eventStructure);
-    }
+	EventRecord eventStructure;
+	int gDone = false;
+
+	while(!gDone)
+	{
+		if(WaitNextEvent(everyEvent, &eventStructure, 180, 0))
+			_doEvents(&eventStructure);
+	}
 }
 
 /*
@@ -620,14 +628,14 @@ void API dw_main(void)
  */
 void API dw_main_sleep(int milliseconds)
 {
-    double start = (double)clock();
+	double start = (double)clock();
 
-    while(((clock() - start) / (CLOCKS_PER_SEC/1000)) <= milliseconds)
-    {
-        EventRecord eventStructure;
-        if(WaitNextEvent(everyEvent, &eventStructure, 1, 0))
-            _doEvents(&eventStructure);
-    }
+	while(((((clock() - start) / CLOCKS_PER_SEC)/1000)) <= milliseconds)
+	{
+		EventRecord eventStructure;
+		if(WaitNextEvent(everyEvent, &eventStructure, 1, 0))
+			_doEvents(&eventStructure);
+	}
 }
 
 /*
@@ -635,10 +643,10 @@ void API dw_main_sleep(int milliseconds)
  */
 void API dw_main_iteration(void)
 {
-    EventRecord eventStructure;
-    
-    if(WaitNextEvent(everyEvent, &eventStructure, 0, 0))
-            _doEvents(&eventStructure);
+	EventRecord eventStructure;
+
+	if(WaitNextEvent(everyEvent, &eventStructure, 0, 0))
+		_doEvents(&eventStructure);
 }
 
 /*
@@ -667,7 +675,7 @@ DWDialog * API dw_dialog_new(void *data)
 	tmp->done = FALSE;
 	tmp->result = NULL;
 
-    return tmp;
+	return tmp;
 }
 
 /*
@@ -693,14 +701,14 @@ int API dw_dialog_dismiss(DWDialog *dialog, void *result)
  */
 void * API dw_dialog_wait(DWDialog *dialog)
 {
-        void *tmp;
-        EventRecord eventStructure;
-    
-        while(!dialog->done)
-        {
-            if(WaitNextEvent(everyEvent, &eventStructure, 180, 0))
-                _doEvents(&eventStructure);
-        }
+	void *tmp;
+	EventRecord eventStructure;
+
+	while(!dialog->done)
+	{
+		if(WaitNextEvent(everyEvent, &eventStructure, 180, 0))
+			_doEvents(&eventStructure);
+	}
 	dw_event_close(&dialog->eve);
 	tmp = dialog->result;
 	free(dialog);
@@ -719,58 +727,63 @@ int API dw_messagebox(char *title, int flags, char *format, ...)
 {
 	va_list args;
 	char outbuf[1024];
-        AlertStdCFStringAlertParamRec param;
-        DialogRef dialog;
-        CFStringRef cftext, cftitle;
-        DialogItemIndex item;
-        int ret = DW_MB_RETURN_OK;
-        AlertType alert = kAlertPlainAlert;
+	AlertStdCFStringAlertParamRec param;
+	DialogRef dialog;
+	CFStringRef cftext, cftitle;
+	DialogItemIndex item;
+	int ret = DW_MB_RETURN_OK;
+	AlertType alert = kAlertPlainAlert;
 
 	va_start(args, format);
 	vsprintf(outbuf, format, args);
 	va_end(args);
         
-        GetStandardAlertDefaultParams(&param, kStdCFStringAlertVersionOne);
-        param.movable = TRUE;
-        param.helpButton = FALSE;
-        if(flags & DW_MB_INFORMATION)
-            alert = kAlertNoteAlert;
-        else if(flags & DW_MB_ERROR)
-            alert = kAlertStopAlert;
-        else if(flags & DW_MB_WARNING)
-            alert = kAlertCautionAlert;
-            
-        if(flags & DW_MB_OK || flags & DW_MB_OKCANCEL)
-        {
-            param.defaultText = CFSTR("Ok");
-            param.cancelText = flags & DW_MB_OK ? 0 : CFSTR("Cancel");
+	GetStandardAlertDefaultParams(&param, kStdCFStringAlertVersionOne);
+	param.movable = TRUE;
+	param.helpButton = FALSE;
+	if(flags & DW_MB_INFORMATION)
+		alert = kAlertNoteAlert;
+	else if(flags & DW_MB_ERROR)
+		alert = kAlertStopAlert;
+	else if(flags & DW_MB_WARNING)
+		alert = kAlertCautionAlert;
+
+	if(flags & DW_MB_OK || flags & DW_MB_OKCANCEL)
+	{
+		param.defaultText = CFSTR("Ok");
+		param.cancelText = flags & DW_MB_OK ? 0 : CFSTR("Cancel");
+	}
+	else
+	{
+		param.defaultText = CFSTR("Yes");
+		param.cancelText = CFSTR("No");
+		param.otherText = CFSTR("Cancel");
+	}
+	cftext = CFStringCreateWithCString(NULL, outbuf, kCFStringEncodingDOSLatinUS);
+	cftitle = CFStringCreateWithCString(NULL, title, kCFStringEncodingDOSLatinUS);
+	if(CreateStandardAlert(alert, cftext, cftitle, &param, &dialog) == noErr)
+	{
+		if(RunStandardAlert(dialog, NULL, &item) == noErr)
+		{
+			if(item == kAlertStdAlertOtherButton)
+				ret = DW_MB_RETURN_CANCEL;
+			else if(item == kAlertStdAlertCancelButton)
+			{
+				if(flags & DW_MB_OK || flags & DW_MB_OKCANCEL)
+					ret = DW_MB_RETURN_CANCEL;
+				else
+					ret = DW_MB_RETURN_NO;
+			}
+			else if(item == kAlertStdAlertOKButton)
+			{
+				if(flags & DW_MB_YESNO || flags & DW_MB_YESNOCANCEL)
+					ret = DW_MB_RETURN_YES;
+			}
+		}
         }
-        else
-        {
-            param.defaultText = CFSTR("Yes");
-            param.cancelText = CFSTR("No");
-            param.otherText = CFSTR("Cancel");
-        }
-        cftext = CFStringCreateWithCString(NULL, outbuf, kCFStringEncodingDOSLatinUS);
-        cftitle = CFStringCreateWithCString(NULL, title, kCFStringEncodingDOSLatinUS);
-        if(CreateStandardAlert(alert, cftext, cftitle, &param, &dialog) == noErr)
-        {
-            if(RunStandardAlert(dialog, NULL, &item) == noErr)
-            {
-                if(item == kAlertStdAlertOtherButton)
-                    ret = DW_MB_RETURN_CANCEL;
-                else if(item == kAlertStdAlertCancelButton)
-                {
-                    if(flags & DW_MB_OK || flags & DW_MB_OKCANCEL)
-                        ret = DW_MB_RETURN_CANCEL;
-                    else
-                        ret = DW_MB_RETURN_NO;
-                }
-            }
-        }
-        CFRelease(cftext);
-        CFRelease(cftitle);
-        return ret;
+	CFRelease(cftext);
+	CFRelease(cftitle);
+	return ret;
 }
 
 /*
@@ -780,7 +793,7 @@ int API dw_messagebox(char *title, int flags, char *format, ...)
  */
 int API dw_window_raise(HWND handle)
 {
-        BringToFront((WindowRef)handle);
+	BringToFront((WindowRef)handle);
 	return 0;
 }
 
@@ -801,7 +814,7 @@ int API dw_window_lower(HWND handle)
  */
 int API dw_window_show(HWND handle)
 {
-        ShowWindow((WindowRef)handle);
+	ShowWindow((WindowRef)handle);
 	return 0;
 }
 
@@ -822,7 +835,7 @@ int API dw_window_minimize(HWND handle)
  */
 int API dw_window_hide(HWND handle)
 {
-        HideWindow((WindowRef)handle);
+	HideWindow((WindowRef)handle);
 	return 0;
 }
 
@@ -833,7 +846,7 @@ int API dw_window_hide(HWND handle)
  */
 int API dw_window_destroy(HWND handle)
 {
-        DisposeWindow((WindowRef)handle);
+	DisposeWindow((WindowRef)handle);
 	return 0;
 }
 
@@ -922,7 +935,7 @@ void API dw_window_track(HWND handle)
  */
 void API dw_window_pointer(HWND handle, int pointertype)
 {
-    SetCursor(*GetCursor(pointertype));
+	SetCursor(*GetCursor(pointertype));
 }
 
 /*
@@ -935,13 +948,13 @@ void API dw_window_pointer(HWND handle, int pointertype)
 HWND API dw_window_new(HWND hwndOwner, char *title, ULONG flStyle)
 {
 	WindowRef hwnd = 0;
-        ControlRef rootcontrol = 0;
+	ControlRef rootcontrol = 0;
         
 	CreateNewWindow (kDocumentWindowClass, flStyle,
 					 &CreationRect, &hwnd);
-        CreateRootControl(hwnd, &rootcontrol);
+	CreateRootControl(hwnd, &rootcontrol);
 	dw_window_set_text((HWND)hwnd, title);
-        return (HWND)hwnd;
+	return (HWND)hwnd;
 }
 
 /*
@@ -964,9 +977,9 @@ HWND API dw_box_new(int type, int pad)
  */
 HWND API dw_groupbox_new(int type, int pad, char *title)
 {
-    HWND hwnd = 0;
-    CreateRadioGroupControl(CreationWindow, &CreationRect, &hwnd);	
-    return hwnd;
+	HWND hwnd = 0;
+	CreateRadioGroupControl(CreationWindow, &CreationRect, &hwnd);
+	return hwnd;
 }
 
 /*
@@ -986,9 +999,9 @@ HWND API dw_mdi_new(unsigned long id)
  */
 HWND API dw_bitmap_new(ULONG id)
 {
-    HWND hwnd = 0;
-    CreateImageWellControl(CreationWindow, &CreationRect, NULL, &hwnd);	
-    return hwnd;
+	HWND hwnd = 0;
+	CreateImageWellControl(CreationWindow, &CreationRect, NULL, &hwnd);
+	return hwnd;
 }
 
 /*
@@ -999,9 +1012,9 @@ HWND API dw_bitmap_new(ULONG id)
  */
 HWND API dw_notebook_new(ULONG id, int top)
 {
-    HWND hwnd = 0;
-    CreateTabsControl(CreationWindow, &CreationRect, kControlTabSizeSmall, kControlTabDirectionNorth, 1, NULL, &hwnd);
-    return hwnd;
+	HWND hwnd = 0;
+	CreateTabsControl(CreationWindow, &CreationRect, kControlTabSizeSmall, kControlTabDirectionNorth, 1, NULL, &hwnd);
+	return hwnd;
 }
 
 /*
@@ -1102,15 +1115,15 @@ void API dw_pointer_set_pos(long x, long y)
  */
 HWND API dw_container_new(ULONG id, int multi)
 {
-    ListHandle hwnd = 0;
-    Point CellSize;
-    ListDefSpec def;
-    
-    SetPt(&CellSize, 52, 52);
-    /*def.u.userProc = listDefinitionFunctionUPP;*/
-    
-    CreateCustomList(&CreationRect, &CreationRect, CellSize, &def, CreationWindow, TRUE, TRUE, TRUE, TRUE, &hwnd);
-    return (HWND)hwnd;
+	ListHandle hwnd = 0;
+	Point CellSize;
+	ListDefSpec def;
+
+	SetPt(&CellSize, 52, 52);
+	/*def.u.userProc = listDefinitionFunctionUPP;*/
+
+	CreateCustomList(&CreationRect, &CreationRect, CellSize, &def, CreationWindow, TRUE, TRUE, TRUE, TRUE, &hwnd);
+	return (HWND)hwnd;
 }
 
 /*
@@ -1132,11 +1145,11 @@ HWND API dw_tree_new(ULONG id)
  */
 HWND API dw_text_new(char *text, ULONG id)
 {
-    HWND hwnd = 0;
-    CFStringRef cftext = CFStringCreateWithCString(NULL, text, kCFStringEncodingDOSLatinUS);
-    CreateStaticTextControl (CreationWindow, &CreationRect, cftext, NULL, &hwnd);
+	HWND hwnd = 0;
+	CFStringRef cftext = CFStringCreateWithCString(NULL, text, kCFStringEncodingDOSLatinUS);
+	CreateStaticTextControl (CreationWindow, &CreationRect, cftext, NULL, &hwnd);
     CFRelease(cftext);
-    return hwnd;
+	return hwnd;
 }
 
 /*
@@ -1147,11 +1160,11 @@ HWND API dw_text_new(char *text, ULONG id)
  */
 HWND API dw_status_text_new(char *text, ULONG id)
 {
-    HWND hwnd = 0;
-    CFStringRef cftext = CFStringCreateWithCString(NULL, text, kCFStringEncodingDOSLatinUS);
-    CreateStaticTextControl (CreationWindow, &CreationRect, cftext, NULL, &hwnd);
-    CFRelease(cftext);
-    return hwnd;
+	HWND hwnd = 0;
+	CFStringRef cftext = CFStringCreateWithCString(NULL, text, kCFStringEncodingDOSLatinUS);
+	CreateStaticTextControl (CreationWindow, &CreationRect, cftext, NULL, &hwnd);
+	CFRelease(cftext);
+	return hwnd;
 }
 
 /*
@@ -1161,9 +1174,9 @@ HWND API dw_status_text_new(char *text, ULONG id)
  */
 HWND API dw_mle_new(ULONG id)
 {
-    HWND hwnd = 0;
-    CreateScrollingTextBoxControl(CreationWindow, &CreationRect, id, FALSE, 0, 0, 0, &hwnd);
-    return hwnd;
+	HWND hwnd = 0;
+	CreateScrollingTextBoxControl(CreationWindow, &CreationRect, id, FALSE, 0, 0, 0, &hwnd);
+	return hwnd;
 }
 
 /*
@@ -1174,11 +1187,11 @@ HWND API dw_mle_new(ULONG id)
  */
 HWND API dw_entryfield_new(char *text, ULONG id)
 {
-    HWND hwnd = 0;
-    CFStringRef cftext = CFStringCreateWithCString(NULL, text, kCFStringEncodingDOSLatinUS);
-    CreateEditTextControl(CreationWindow, &CreationRect, cftext, FALSE, FALSE, NULL, &hwnd);
-    CFRelease(cftext);
-    return hwnd;
+	HWND hwnd = 0;
+	CFStringRef cftext = CFStringCreateWithCString(NULL, text, kCFStringEncodingDOSLatinUS);
+	CreateEditTextControl(CreationWindow, &CreationRect, cftext, FALSE, FALSE, NULL, &hwnd);
+	CFRelease(cftext);
+	return hwnd;
 }
 
 /*
@@ -1189,11 +1202,11 @@ HWND API dw_entryfield_new(char *text, ULONG id)
  */
 HWND API dw_entryfield_password_new(char *text, ULONG id)
 {
-    HWND hwnd = 0;
-    CFStringRef cftext = CFStringCreateWithCString(NULL, text, kCFStringEncodingDOSLatinUS);
-    CreateEditTextControl(CreationWindow, &CreationRect, cftext, TRUE, FALSE, NULL, &hwnd);
-    CFRelease(cftext);
-    return hwnd;
+	HWND hwnd = 0;
+	CFStringRef cftext = CFStringCreateWithCString(NULL, text, kCFStringEncodingDOSLatinUS);
+	CreateEditTextControl(CreationWindow, &CreationRect, cftext, TRUE, FALSE, NULL, &hwnd);
+	CFRelease(cftext);
+	return hwnd;
 }
 
 /*
@@ -1215,11 +1228,11 @@ HWND API dw_combobox_new(char *text, ULONG id)
  */
 HWND API dw_button_new(char *text, ULONG id)
 {
-    HWND hwnd = 0;
-    CFStringRef cftext = CFStringCreateWithCString(NULL, text, kCFStringEncodingDOSLatinUS);
-    CreatePushButtonControl(CreationWindow, &CreationRect, cftext, &hwnd);
-    CFRelease(cftext);
-    return hwnd;
+	HWND hwnd = 0;
+	CFStringRef cftext = CFStringCreateWithCString(NULL, text, kCFStringEncodingDOSLatinUS);
+	CreatePushButtonControl(CreationWindow, &CreationRect, cftext, &hwnd);
+	CFRelease(cftext);
+	return hwnd;
 }
 
 /*
@@ -1230,9 +1243,9 @@ HWND API dw_button_new(char *text, ULONG id)
  */
 HWND API dw_bitmapbutton_new(char *text, ULONG id)
 {
-    HWND hwnd = 0;
-    CreatePushButtonWithIconControl(CreationWindow, &CreationRect, 0, NULL, kControlPushButtonIconOnLeft, &hwnd);
-    return hwnd;
+	HWND hwnd = 0;
+	CreatePushButtonWithIconControl(CreationWindow, &CreationRect, 0, NULL, kControlPushButtonIconOnLeft, &hwnd);
+	return hwnd;
 }
 
 /*
@@ -1268,11 +1281,11 @@ HWND API dw_spinbutton_new(char *text, ULONG id)
  */
 HWND API dw_radiobutton_new(char *text, ULONG id)
 {
-    HWND hwnd = 0;
-    CFStringRef cftext = CFStringCreateWithCString(NULL, text, kCFStringEncodingDOSLatinUS);
-    CreateRadioButtonControl(CreationWindow, &CreationRect, cftext, 0, FALSE, &hwnd);
-    CFRelease(cftext);
-    return hwnd;
+	HWND hwnd = 0;
+	CFStringRef cftext = CFStringCreateWithCString(NULL, text, kCFStringEncodingDOSLatinUS);
+	CreateRadioButtonControl(CreationWindow, &CreationRect, cftext, 0, FALSE, &hwnd);
+	CFRelease(cftext);
+	return hwnd;
 }
 
 
@@ -1285,9 +1298,9 @@ HWND API dw_radiobutton_new(char *text, ULONG id)
  */
 HWND API dw_slider_new(int vertical, int increments, ULONG id)
 {
-    HWND hwnd = 0;
-    CreateSliderControl(CreationWindow, &CreationRect, 0, 0, increments, kControlSliderDoesNotPoint, 0, FALSE, 0, &hwnd); 
-    return hwnd;
+	HWND hwnd = 0;
+	CreateSliderControl(CreationWindow, &CreationRect, 0, 0, increments, kControlSliderDoesNotPoint, 0, FALSE, 0, &hwnd);
+	return hwnd;
 }
 
 /*
@@ -1299,9 +1312,9 @@ HWND API dw_slider_new(int vertical, int increments, ULONG id)
  */
 HWND API dw_scrollbar_new(int vertical, int increments, ULONG id)
 {
-    HWND hwnd;
-    CreateScrollBarControl(CreationWindow, &CreationRect, 0, 0, increments, increments, FALSE, 0, &hwnd);
-    return hwnd;
+	HWND hwnd;
+	CreateScrollBarControl(CreationWindow, &CreationRect, 0, 0, increments, increments, FALSE, 0, &hwnd);
+	return hwnd;
 }
 
 /*
@@ -1311,9 +1324,9 @@ HWND API dw_scrollbar_new(int vertical, int increments, ULONG id)
  */
 HWND API dw_percent_new(ULONG id)
 {
-    HWND hwnd = 0;
-    CreateProgressBarControl(CreationWindow, &CreationRect, 0, 0, 100, FALSE, &hwnd);
-    return hwnd;
+	HWND hwnd = 0;
+	CreateProgressBarControl(CreationWindow, &CreationRect, 0, 0, 100, FALSE, &hwnd);
+	return hwnd;
 }
 
 /*
@@ -1324,11 +1337,11 @@ HWND API dw_percent_new(ULONG id)
  */
 HWND API dw_checkbox_new(char *text, ULONG id)
 {
-    HWND hwnd = 0;
-    CFStringRef cftext = CFStringCreateWithCString(NULL, text, kCFStringEncodingDOSLatinUS);
-    CreateCheckBoxControl(CreationWindow, &CreationRect, cftext, 0, TRUE, &hwnd);
-    CFRelease(cftext);
-    return hwnd;
+	HWND hwnd = 0;
+	CFStringRef cftext = CFStringCreateWithCString(NULL, text, kCFStringEncodingDOSLatinUS);
+	CreateCheckBoxControl(CreationWindow, &CreationRect, cftext, 0, TRUE, &hwnd);
+	CFRelease(cftext);
+	return hwnd;
 }
 
 /*
@@ -1339,9 +1352,9 @@ HWND API dw_checkbox_new(char *text, ULONG id)
  */
 HWND API dw_listbox_new(ULONG id, int multi)
 {
-    HWND hwnd = 0;
-    CreateListBoxControl(CreationWindow, &CreationRect, TRUE, 0, 1, FALSE, TRUE, 50, 50, TRUE, NULL, &hwnd);
-    return hwnd;
+	HWND hwnd = 0;
+	CreateListBoxControl(CreationWindow, &CreationRect, TRUE, 0, 1, FALSE, TRUE, 50, 50, TRUE, NULL, &hwnd);
+	return hwnd;
 }
 
 /*
@@ -1376,12 +1389,12 @@ void API dw_window_set_bitmap(HWND handle, unsigned long id, char *filename)
  */
 void API dw_window_set_text(HWND handle, char *text)
 {
-    CFStringRef cftext = CFStringCreateWithCString(NULL, text, kCFStringEncodingDOSLatinUS);
-    if(IsValidWindowRef((WindowRef)handle))
-        SetWindowTitleWithCFString((WindowRef)handle, cftext);
-    else
-        SetControlTitleWithCFString(handle, cftext);
-    CFRelease(cftext);
+	CFStringRef cftext = CFStringCreateWithCString(NULL, text, kCFStringEncodingDOSLatinUS);
+	if(IsValidWindowRef((WindowRef)handle))
+		SetWindowTitleWithCFString((WindowRef)handle, cftext);
+	else
+		SetControlTitleWithCFString(handle, cftext);
+	CFRelease(cftext);
 }
 
 /*
@@ -1393,26 +1406,26 @@ void API dw_window_set_text(HWND handle, char *text)
  */
 char * API dw_window_get_text(HWND handle)
 {
-    CFStringRef cftext;
-    char *ret = NULL;
-    
-    if(IsValidWindowRef((WindowRef)handle))
-        CopyWindowTitleAsCFString((WindowRef)handle, &cftext);
-    else
-    {
-        Str255 str;
+	CFStringRef cftext;
+	char *ret = NULL;
+
+	if(IsValidWindowRef((WindowRef)handle))
+		CopyWindowTitleAsCFString((WindowRef)handle, &cftext);
+	else
+	{
+		Str255 str;
         
-        GetControlTitle(handle, str);
-        cftext = CFStringCreateWithPascalString(NULL, str, CFStringGetSystemEncoding());
-    }
-    
-    if(cftext)
-    {
-        int length = CFStringGetLength(cftext) + 1;
-        char *ret = malloc(length);
-        CFStringGetCString(cftext, ret, length, kCFStringEncodingDOSLatinUS);
-        CFRelease(cftext);
-    }
+		GetControlTitle(handle, str);
+		cftext = CFStringCreateWithPascalString(NULL, str, CFStringGetSystemEncoding());
+	}
+
+	if(cftext)
+	{
+		int length = CFStringGetLength(cftext) + 1;
+		char *ret = malloc(length);
+		CFStringGetCString(cftext, ret, length, kCFStringEncodingDOSLatinUS);
+		CFRelease(cftext);
+	}
     return ret;
 }
 
@@ -1512,7 +1525,7 @@ unsigned long API dw_color_depth(void)
  */
 void API dw_window_set_pos(HWND handle, ULONG x, ULONG y)
 {
-        MoveWindow((WindowRef)handle, (short)x, (short)y, FALSE);
+	MoveWindow((WindowRef)handle, (short)x, (short)y, FALSE);
 }
 
 /*
@@ -1526,8 +1539,8 @@ void API dw_window_set_pos(HWND handle, ULONG x, ULONG y)
  */
 void API dw_window_set_pos_size(HWND handle, ULONG x, ULONG y, ULONG width, ULONG height)
 {
-        dw_window_set_pos(handle, x, y);
-        dw_window_set_usize(handle, width, height);
+	dw_window_set_pos(handle, x, y);
+	dw_window_set_usize(handle, width, height);
 }
 
 /*
@@ -2678,7 +2691,7 @@ int API dw_event_close(HEV *eve)
  */
 DWTID API dw_thread_new(void *func, void *data, int stack)
 {
-    return (DWTID)-1;
+	return (DWTID)-1;
 }
 
 /*
@@ -2782,20 +2795,20 @@ void API dw_window_click_default(HWND window, HWND next)
 void API dw_environment_query(DWEnv *env)
 {
 	ULONG Build;
-        char verbuf[10];
+	char verbuf[10];
 
 	if(!env)
 		return;
 
-        Gestalt(gestaltSystemVersion, &Build);
-        
-        sprintf(verbuf, "%04x", Build);
-        
+	Gestalt(gestaltSystemVersion, &Build);
+
+	sprintf(verbuf, "%04x", (int)Build);
+
 	strcpy(env->osName,"MacOS");
 	env->MajorBuild = atoi(&verbuf[3]);
-        verbuf[3] = 0;
+	verbuf[3] = 0;
 	env->MinorVersion = atoi(&verbuf[2]);
-        verbuf[2] = 0;
+	verbuf[2] = 0;
 	env->MajorVersion = atoi(verbuf);
 
 	env->MinorBuild = 0;
@@ -2884,7 +2897,7 @@ void API dw_window_function(HWND handle, void *function, void *data)
  * a given window handle.  Used in dw_window_set_data() and
  * dw_window_get_data().
  */
-UserData *_find_userdata(UserData **root, char *varname)
+static UserData *_find_userdata(UserData **root, char *varname)
 {
 	UserData *tmp = *root;
 
@@ -2897,7 +2910,7 @@ UserData *_find_userdata(UserData **root, char *varname)
 	return NULL;
 }
 
-int _new_userdata(UserData **root, char *varname, void *data)
+static int _new_userdata(UserData **root, char *varname, void *data)
 {
 	UserData *new = _find_userdata(root, varname);
 
@@ -2937,7 +2950,7 @@ int _new_userdata(UserData **root, char *varname, void *data)
 	return FALSE;
 }
 
-int _remove_userdata(UserData **root, char *varname, int all)
+static int _remove_userdata(UserData **root, char *varname, int all)
 {
 	UserData *prev = NULL, *tmp = *root;
 
