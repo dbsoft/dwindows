@@ -1959,6 +1959,52 @@ BOOL CALLBACK _colorwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 		case WM_HSCROLL:
 			_wndproc(hWnd, msg, mp1, mp2);
 			break;
+		case WM_KEYDOWN:
+		case WM_KEYUP:
+			{
+				if(mp1 == VK_UP || mp1 == VK_DOWN)
+				{
+					BOOL ret;
+
+					if(!cinfo || !cinfo->pOldProc)
+						ret = DefWindowProc(hWnd, msg, mp1, mp2);
+					ret = CallWindowProc(cinfo->pOldProc, hWnd, msg, mp1, mp2);
+
+					/* Tell the spinner control that a keypress has
+					 * occured and to update it's internal value.
+					 */
+					if(cinfo && cinfo->buddy && !cinfo->combo)
+						PostMessage(hWnd, WM_USER+10, 0, 0);
+
+                    if(msg == WM_KEYDOWN)
+						SetTimer(hWnd, 101, 100, (TIMERPROC)NULL);
+                    else
+						KillTimer(hWnd, 101);
+
+					return ret;
+				}
+			}
+			break;
+		case WM_TIMER:
+			{
+				if(mp1 == 101)
+				{
+					BOOL ret;
+
+					if(!cinfo || !cinfo->pOldProc)
+						ret = DefWindowProc(hWnd, msg, mp1, mp2);
+					ret = CallWindowProc(cinfo->pOldProc, hWnd, msg, mp1, mp2);
+
+					/* Tell the spinner control that a keypress has
+					 * occured and to update it's internal value.
+					 */
+					if(cinfo && cinfo->buddy && !cinfo->combo)
+						PostMessage(hWnd, WM_USER+10, 0, 0);
+
+					return ret;
+				}
+			}
+			break;
 		case WM_CHAR:
 			if(LOWORD(mp1) == '\t')
 			{
@@ -1988,17 +2034,6 @@ BOOL CALLBACK _colorwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 					_click_default(cinfo->clickdefault);
 
 			}
-
-			/* Tell the spinner control that a keypress has
-			 * occured and to update it's internal value.
-			 */
-			if(cinfo->buddy && !cinfo->combo)
-			{
-				if(IsWinNT())
-					PostMessage(cinfo->buddy, WM_USER+10, 0, 0);
-				else
-					SendMessage(cinfo->buddy, WM_USER+10, 0, 0);
-			}
 			break;
 		case WM_USER+10:
 			{
@@ -2013,15 +2048,6 @@ BOOL CALLBACK _colorwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 
 					sprintf(tmpbuf, "%d", val);
 					SetWindowText(hWnd, tmpbuf);
-				}
-			}
-			break;
-		case WM_KEYUP:
-			{
-				if(mp1 == VK_UP || mp1 == VK_DOWN)
-				{
-					if(cinfo->buddy)
-						PostMessage(hWnd, WM_USER+10, 0, 0);
 				}
 			}
 			break;
