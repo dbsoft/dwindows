@@ -5872,7 +5872,6 @@ void _dw_tree_delete_recursive(HWND handle, HTREEITEM node)
 	{
 		HTREEITEM lastitem = hti;
 
-		_dw_tree_delete_recursive(handle, hti);
 		hti = TreeView_GetNextSibling(handle, hti);
 		dw_tree_delete(handle, (HWND)lastitem);
 	}
@@ -5939,6 +5938,7 @@ void API dw_tree_delete(HWND handle, HWND item)
 	if(TreeView_GetItem(handle, &tvi))
 		ptrs = (void **)tvi.lParam;
 
+	_dw_tree_delete_recursive(handle, item);
 	TreeView_DeleteItem(handle, (HTREEITEM)item);
 	if(ptrs)
 		free(ptrs);
