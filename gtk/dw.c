@@ -3478,6 +3478,9 @@ void dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
 	GdkFont *font;
 	char *fontname = "fixed";
 
+	if(!text)
+		return;
+
 	DW_MUTEX_LOCK;
 	if(handle)
 	{
@@ -3501,6 +3504,41 @@ void dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
 			gdk_gc_unref(gc);
 			gdk_font_unref(font);
 		}
+	}
+	DW_MUTEX_UNLOCK;
+}
+
+/* Query the width and height of a text string.
+ * Parameters:
+ *       handle: Handle to the window.
+ *       pixmap: Handle to the pixmap. (choose only one of these)
+ *       text: Text to be queried.
+ *       width: Pointer to a variable to be filled in with the width.
+ *       height Pointer to a variable to be filled in with the height.
+ */
+void dw_font_text_extents(HWND handle, HPIXMAP pixmap, char *text, int *width, int *height)
+{
+	int _locked_by_me = FALSE;
+	GdkFont *font;
+	char *fontname = NULL;
+
+	if(!text)
+		return;
+
+	DW_MUTEX_LOCK;
+	if(handle)
+		fontname = (char *)gtk_object_get_data(GTK_OBJECT(handle), "fontname");
+	else if(pixmap)
+		fontname = (char *)gtk_object_get_data(GTK_OBJECT(pixmap->handle), "fontname");
+
+	font = gdk_font_load(fontname ? fontname : "fixed");
+	if(font)
+	{
+		if(width)
+			*width = gdk_string_width(font, text);
+		if(height)
+			*height = gdk_string_height(font, text);
+		gdk_font_unref(font);
 	}
 	DW_MUTEX_UNLOCK;
 }
