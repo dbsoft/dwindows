@@ -1578,7 +1578,7 @@ BOOL CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 						else if(tmp->message == TCN_SELCHANGE)
 						{
 							NMHDR FAR *tem=(NMHDR FAR *)mp2;
-							if(tmp->window == tem->hwndFrom)
+							if(tmp->window == tem->hwndFrom && tem->code == tmp->message)
 							{
 								int (*switchpagefunc)(HWND, int, void *) = tmp->signalfunction;
 								int num=TabCtrl_GetCurSel(tem->hwndFrom);
