@@ -5422,10 +5422,16 @@ void dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
 			font = gdk_font_load("fixed");
 		if(font)
 		{
-			gint ascent, descent, width;
+			gint ascent, descent, width, junk_ascent, junk_descent, junk_width;
 			int index = _find_thread_index(dw_thread_id());
 
-			gdk_text_extents(font, text, strlen(text), NULL, NULL, &width, &ascent, &descent);
+			/* gdk_text_extents() calculates ascent and descent based on the string, so
+			 * a string without a character with a descent or without an ascent will have
+			 * incorrect ascent/descent values
+			 */
+			gdk_text_extents(font, text, strlen(text), NULL, NULL, &width, &junk_ascent, &junk_descent);
+			/* force ascent/descent to be maximum values */
+			gdk_text_extents(font, "Xg", 2, NULL, NULL, &junk_width, &ascent, &descent);
 			if(!_transparent[index])
 			{
 				GdkGC *gc2 = NULL;
