@@ -7961,7 +7961,7 @@ int API dw_timer_connect(int interval, void *sigfunc, void *data)
 {
 	if(sigfunc)
 	{
-		int timerid = WinStartTimer(dwhab, NULLHANDLE, timerid, interval);
+		int timerid = WinStartTimer(dwhab, NULLHANDLE, 0, interval);
 
 		if(timerid)
 		{

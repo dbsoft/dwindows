@@ -67,7 +67,7 @@ getFSType(const char *path)
 	Word unit, infolen;
 	char r;
 
-	if (isalpha(path[0]) && path[1] == ':') {
+	if (isalpha((int)path[0]) && path[1] == ':') {
 		unit = toupper(path[0]) - '@';
 		path += 2;
 	} else {
@@ -101,7 +101,7 @@ char *
 _abs_path(const char *name, char *buffer, int len)
 {
 	char buf[4];
-	if (isalpha(name[0]) && name[1] == ':' && name[2] == '\0') {
+	if (isalpha((int)name[0]) && name[1] == ':' && name[2] == '\0') {
 		buf[0] = name[0];
 		buf[1] = name[1];
 		buf[2] = '.';
