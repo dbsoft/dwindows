@@ -3521,7 +3521,7 @@ void API dw_window_release(void)
  */
 void API dw_window_pointer(HWND handle, int pointertype)
 {
-	SetCursor(pointer < 65536 ? LoadCursor(NULL, MAKEINTRESOURCE(pointertype)) (HCURSOR)pointertype);
+	SetCursor(pointertype < 65536 ? LoadCursor(NULL, MAKEINTRESOURCE(pointertype)) : (HCURSOR)pointertype);
 }
 
 /*
