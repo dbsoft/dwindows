@@ -386,6 +386,14 @@ int DWSIGNAL item_select_cb( HWND window, HTREEITEM item, char *text, void *data
 	return 0;
 }
 
+int DWSIGNAL switch_page_cb( HWND window, int page_num, void *itemdata )
+{
+FILE *fp=fopen("log","a");
+	fprintf(fp,"DW_SIGNAL_SWITCH_PAGE: Window: %x PageNum: %d Itemdata: %x\n", (unsigned int)window, (unsigned int)page_num, (unsigned int)itemdata );
+fclose(fp);
+	return 0;
+}
+
 void archive_add(void)
 {
 	HWND browsebutton, browsebox;
@@ -624,6 +632,7 @@ int main(int argc, char *argv[])
 
 	notebook = dw_notebook_new( 1, TRUE );
 	dw_box_pack_start( notebookbox, notebook, 100, 100, TRUE, TRUE, 0);
+	dw_signal_connect(notebook, DW_SIGNAL_SWITCH_PAGE, DW_SIGNAL_FUNC(switch_page_cb), NULL);
 
 	notebookbox1 = dw_box_new( BOXVERT, 5 );
 	notebookpage1 = dw_notebook_page_new( notebook, 0, TRUE );
