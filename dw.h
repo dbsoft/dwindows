@@ -149,11 +149,10 @@ typedef struct _hpixmap {
 	HWND handle;
 } *HPIXMAP;
 
-typedef struct _hmenui {
-	HWND menu;
-} *HMENUI;
-
+typedef HWND HMENUI;
 typedef HMODULE HMOD;
+
+#define DW_NOMENU NULLHANDLE
 
 extern HAB dwhab;
 extern HMQ dwhmq;
@@ -328,8 +327,9 @@ typedef struct _hpixmap {
 typedef struct _hmenui {
 	HMENU menu;
 	HWND hwnd;
-} *HMENUI;
+} HMENUI;
 
+static HMENUI DW_NOMENU = { 0, 0 };
 #endif
 
 typedef struct _item {
@@ -515,9 +515,9 @@ typedef struct _hpixmap {
     HWND handle;
 } *HPIXMAP;
 
-typedef struct _hmenui {
-	GtkWidget *menu;
-} *HMENUI;
+typedef GtkWidget *HMENUI;
+
+#define DW_NOMENU NULL
 
 typedef struct _resource_struct {
 	long resource_max, *resource_id;
