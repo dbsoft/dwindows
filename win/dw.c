@@ -6765,6 +6765,10 @@ void API dw_container_delete(HWND handle, int rowcount)
 	{
 		ListView_DeleteItem(handle, 0);
 	}
+	if(rowcount > _index)
+		_index = 0;
+	else
+		_index -= rowcount;
 }
 
 /*
@@ -6899,6 +6903,9 @@ void API dw_container_delete_row(HWND handle, char *text)
 
 		if((char *)lvi.lParam == text)
 		{
+			if(index < _index)
+				_index--;
+
 			ListView_DeleteItem(handle, index);
 			return;
 		}
