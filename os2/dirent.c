@@ -5,7 +5,7 @@
 
 #define INCL_DOSFILEMGR
 #define INCL_DOSERRORS
-#include "compat"
+#include "compat.h"
 #include <errno.h>
 
 # define FFBUF	FILEFINDBUF3
