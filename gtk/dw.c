@@ -119,6 +119,11 @@ SignalList SignalTranslate[SIGNALMAX] = {
 	{ _set_focus_event, "set-focus" }
 };
 
+/* Alignment flags */
+#define DW_CENTER 0.5f
+#define DW_LEFT 0.0f
+#define DW_RIGHT 1.0f
+
 /* Finds the translation function for a given signal name */
 void *_findsigfunc(char *signame)
 {
@@ -823,6 +828,7 @@ int dw_window_set_font(HWND handle, char *fontname)
 	char *font;
 	int _locked_by_me = FALSE;
 	gpointer data;
+	GdkFont *gdkfont;
 
 	DW_MUTEX_LOCK;
 	if(GTK_IS_SCROLLED_WINDOW(handle))
@@ -833,12 +839,21 @@ int dw_window_set_font(HWND handle, char *fontname)
 	}
 	font = strdup(fontname);
 
+	/* Free old font if it exists */
+	gdkfont = (GdkFont *)gtk_object_get_data(GTK_OBJECT(handle2), "gdkfont");
+	if(gdkfont)
+		gdk_font_unref(gdkfont);
+	gdkfont = gdk_font_load(fontname);
+	gtk_object_set_data(GTK_OBJECT(handle2), "gdkfont", (gpointer)gdkfont);
+
+	/* Free old font name if one is allocated */
 	data = gtk_object_get_data(GTK_OBJECT(handle2), "fontname");
 	if(data)
 		free(data);
 
 	if(font)
 		gtk_object_set_data(GTK_OBJECT(handle2), "fontname", (gpointer)font);
+
 
     DW_MUTEX_UNLOCK;
 	return TRUE;
@@ -1024,7 +1039,7 @@ HWND dw_window_new(HWND hwndOwner, char *title, unsigned long flStyle)
 {
 	GtkWidget *tmp;
 	int _locked_by_me = FALSE;
-	int flags = 0, cx = 0, cy = 0;
+	int flags = 0;
 
 	DW_MUTEX_LOCK;
 	tmp = gtk_window_new(GTK_WINDOW_TOPLEVEL);
@@ -1036,27 +1051,18 @@ HWND dw_window_new(HWND hwndOwner, char *title, unsigned long flStyle)
 	gtk_widget_realize(tmp);
 
 	if(flStyle & DW_FCF_TITLEBAR)
-	{
-		cy += DEFAULT_TITLEBAR_HEIGHT;
 		flags |= GDK_DECOR_TITLE;
-	}
 
 	if(flStyle & DW_FCF_MINMAX)
 		flags |= GDK_DECOR_MINIMIZE | GDK_DECOR_MAXIMIZE;
 
 	if(flStyle & DW_FCF_SIZEBORDER)
-	{
-		cy += DEFAULT_SIZE_HEIGHT;
-		cx += DEFAULT_SIZE_WIDTH;
 		flags |= GDK_DECOR_RESIZEH;
-	}
 
 	if(flStyle & DW_FCF_BORDER)
 		flags |= GDK_DECOR_BORDER;
 
 	gdk_window_set_decorations(tmp->window, flags);
-	gtk_object_set_data(GTK_OBJECT(tmp), "cx", (gpointer)cx);
-	gtk_object_set_data(GTK_OBJECT(tmp), "cy", (gpointer)cy);
 
 	if(hwndOwner)
 		gdk_window_reparent(GTK_WIDGET(tmp)->window, GTK_WIDGET(hwndOwner)->window, 0, 0);
@@ -1077,10 +1083,9 @@ HWND dw_box_new(int type, int pad)
 	int _locked_by_me = FALSE;
 
 	DW_MUTEX_LOCK;
-	if(type == BOXVERT)
-		tmp = gtk_vbox_new(FALSE, pad);
-	else
-		tmp = gtk_hbox_new(FALSE, pad);
+	tmp = gtk_table_new(1, 1, FALSE);
+	gtk_object_set_data(GTK_OBJECT(tmp), "boxtype", (gpointer)type);
+	gtk_object_set_data(GTK_OBJECT(tmp), "boxpad", (gpointer)pad);
 	gtk_widget_show(tmp);
 	DW_MUTEX_UNLOCK;
 	return tmp;
@@ -1525,7 +1530,9 @@ HWND dw_text_new(char *text, unsigned long id)
 
 	DW_MUTEX_LOCK;
 	tmp = gtk_label_new(text);
-	gtk_label_set_justify(GTK_LABEL(tmp), GTK_JUSTIFY_LEFT);
+
+	/* Left and centered */
+	gtk_misc_set_alignment(GTK_MISC(tmp), 0.0f, 0.5f);
 	gtk_widget_show(tmp);
 	gtk_object_set_data(GTK_OBJECT(tmp), "id", (gpointer)id);
 	DW_MUTEX_UNLOCK;
@@ -1550,7 +1557,9 @@ HWND dw_status_text_new(char *text, ULONG id)
 	gtk_container_add(GTK_CONTAINER(frame), tmp);
 	gtk_widget_show(tmp);
 	gtk_widget_show(frame);
-	gtk_label_set_justify(GTK_LABEL(tmp), GTK_JUSTIFY_LEFT);
+
+	/* Left and centered */
+	gtk_misc_set_alignment(GTK_MISC(tmp), 0.0f, 0.5f);
 	gtk_object_set_data(GTK_OBJECT(frame), "id", (gpointer)id);
 	gtk_object_set_data(GTK_OBJECT(frame), "label", (gpointer)tmp);
 	DW_MUTEX_UNLOCK;
@@ -1935,6 +1944,21 @@ void dw_window_enable(HWND handle)
 	DW_MUTEX_UNLOCK;
 }
 
+void _strip_cr(char *dest, char *src)
+{
+	int z, x = 0;
+
+	for(z=0;z<strlen(src);z++)
+	{
+		if(src[z] != '\r')
+		{
+			dest[x] = src[z];
+			x++;
+		}
+	}
+	dest[x] = 0;
+}
+
 /*
  * Adds text to an MLE box and returns the current point.
  * Parameters:
@@ -1951,12 +1975,20 @@ unsigned int dw_mle_import(HWND handle, char *buffer, int startpoint)
 	if(GTK_IS_BOX(handle))
 	{
 		GtkWidget *tmp = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(handle), "mle");
+		GdkFont *font = (GdkFont *)gtk_object_get_data(GTK_OBJECT(handle), "gdkfont");
 
 		if(tmp && GTK_IS_TEXT(tmp))
 		{
+			GdkColor *fore = (GdkColor *)gtk_object_get_data(GTK_OBJECT(handle), "foregdk");
+			GdkColor *back = (GdkColor *)gtk_object_get_data(GTK_OBJECT(handle), "backgdk");
+			char *impbuf = malloc(strlen(buffer)+1);
+
+			_strip_cr(impbuf, buffer);
+
 			gtk_text_set_point(GTK_TEXT(tmp), startpoint < 0 ? 0 : startpoint);
-			gtk_text_insert(GTK_TEXT(tmp), NULL, NULL, NULL, buffer, -1);
+			gtk_text_insert(GTK_TEXT(tmp), font, fore, back, impbuf, -1);
 			tmppoint = gtk_text_get_point(GTK_TEXT(tmp));
+			free(impbuf);
 		}
 	}
 	DW_MUTEX_UNLOCK;
@@ -2168,6 +2200,7 @@ void dw_mle_set_word_wrap(HWND handle, int state)
 		if(tmp && GTK_IS_TEXT(tmp))
 		{
 			gtk_text_set_word_wrap(GTK_TEXT(tmp), state);
+			gtk_text_set_line_wrap(GTK_TEXT(tmp), state);
 		}
 	}
 	DW_MUTEX_UNLOCK;
@@ -2545,6 +2578,7 @@ int _dw_container_setup(HWND handle, unsigned long *flags, char **titles, int co
 	gtk_signal_connect(GTK_OBJECT(clist), "unselect_row", GTK_SIGNAL_FUNC(_unselect_row),  NULL);
 
 	gtk_clist_set_column_auto_resize(GTK_CLIST(clist), 0, TRUE);
+	gtk_clist_set_selection_mode(GTK_CLIST(clist), GTK_SELECTION_SINGLE);
 	gtk_container_add(GTK_CONTAINER(handle), clist);
 	gtk_object_set_user_data(GTK_OBJECT(handle), (gpointer)clist);
 	gtk_widget_show(clist);
@@ -3225,7 +3259,7 @@ void dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
 			gint ascent;
 
 			gdk_text_extents(font, text, strlen(text), NULL, NULL, NULL, &ascent, NULL);
-			gdk_draw_text(handle ? handle->window : pixmap->pixmap, font, gc, x, y + ascent, text, strlen(text));
+			gdk_draw_text(handle ? handle->window : pixmap->pixmap, font, gc, x, y + ascent + 2, text, strlen(text));
 			gdk_gc_unref(gc);
 			gdk_font_unref(font);
 		}
@@ -3562,6 +3596,8 @@ void dw_exit(int exitcode)
 	exit(exitcode);
 }
 
+#define DW_EXPAND (GTK_EXPAND | GTK_SHRINK | GTK_FILL)
+
 /*
  * Pack windows (widgets) into a box from the end (or bottom).
  * Parameters:
@@ -3575,7 +3611,6 @@ void dw_exit(int exitcode)
  */
 void dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, int vsize, int pad)
 {
-	int expand = (hsize == FALSE && vsize == FALSE) ? FALSE : TRUE;
 	int _locked_by_me = FALSE;
 
 	if(!box)
@@ -3589,9 +3624,26 @@ void dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, int 
 		gtk_widget_show(item);
 	}
 
-	if(GTK_IS_BOX(box))
+	if(GTK_IS_TABLE(box))
 	{
-		gtk_box_pack_end(GTK_BOX(box), item, expand, TRUE, pad);
+		int boxcount = (int)gtk_object_get_data(GTK_OBJECT(box), "boxcount");
+		int boxtype = (int)gtk_object_get_data(GTK_OBJECT(box), "boxtype");
+
+		/* If the item being packed is a box, then we use it's padding
+		 * instead of the padding specified on the pack line, this is
+		 * due to a bug in the OS/2 and Win32 renderer and a limitation
+		 * of the GtkTable class.
+		 */
+		if(GTK_IS_TABLE(item))
+			pad = (int)gtk_object_get_data(GTK_OBJECT(item), "boxpad");
+
+		if(boxtype == BOXVERT)
+			gtk_table_resize(GTK_TABLE(box), boxcount + 1, 1);
+		else
+			gtk_table_resize(GTK_TABLE(box), 1, boxcount + 1);
+
+		gtk_table_attach(GTK_TABLE(box), item, 0, 1, 0, 1, hsize ? DW_EXPAND : 0, vsize ? DW_EXPAND : 0, pad, pad);
+		gtk_object_set_data(GTK_OBJECT(box), "boxcount", (gpointer)boxcount + 1);
 		gtk_widget_set_usize(item, width, height);
 		if(GTK_IS_RADIO_BUTTON(item))
 		{
@@ -3612,7 +3664,7 @@ void dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, int 
 		GtkWidget *vbox = gtk_vbox_new(FALSE, 0);
 
 		gtk_container_add(GTK_CONTAINER(box), vbox);
-		gtk_box_pack_end(GTK_BOX(vbox), item, expand, TRUE, 0);
+		gtk_box_pack_end(GTK_BOX(vbox), item, TRUE, TRUE, 0);
 		gtk_widget_show(vbox);
 
 		gtk_widget_set_usize(item, width, height);
@@ -3716,13 +3768,10 @@ void dw_window_set_pos_size(HWND handle, unsigned long x, unsigned long y, unsig
 	DW_MUTEX_LOCK;
 	if(handle && GTK_IS_WINDOW(handle))
 	{
-		int cx = (int)gtk_object_get_data(GTK_OBJECT(handle), "cx");
-		int cy = (int)gtk_object_get_data(GTK_OBJECT(handle), "cy");
-
 		_size_allocate(GTK_WINDOW(handle));
 
 		gtk_widget_set_uposition(handle, x, y);
-		gtk_window_set_default_size(GTK_WINDOW(handle), width - cx, height - cy);
+		gtk_window_set_default_size(GTK_WINDOW(handle), width, height);
 	}
 	else if(handle && handle->window)
 	{
@@ -3748,12 +3797,7 @@ void dw_window_get_pos_size(HWND handle, ULONG *x, ULONG *y, ULONG *width, ULONG
 
 	if(handle && handle->window)
 	{
-		int cx, cy;
-
 		DW_MUTEX_LOCK;
-
-		cx = (int)gtk_object_get_data(GTK_OBJECT(handle), "cx");
-		cy = (int)gtk_object_get_data(GTK_OBJECT(handle), "cy");
 
 		gdk_window_get_geometry(handle->window, &gx, &gy, &gwidth, &gheight, &gdepth);
 		gdk_window_get_root_origin(handle->window, &gx, &gy);
@@ -3762,9 +3806,9 @@ void dw_window_get_pos_size(HWND handle, ULONG *x, ULONG *y, ULONG *width, ULONG
 		if(y)
 			*y = gy;
 		if(width)
-			*width = gwidth - cx;
+			*width = gwidth;
 		if(height)
-			*height = gheight - cy;
+			*height = gheight;
 		DW_MUTEX_UNLOCK;
 	}
 }
@@ -3794,6 +3838,20 @@ void dw_window_set_style(HWND handle, unsigned long style, unsigned long mask)
 			gtk_clist_set_selection_mode(GTK_CLIST(handle2), GTK_SELECTION_MULTIPLE);
 		if(style & DW_CCS_SINGLESEL)
 			gtk_clist_set_selection_mode(GTK_CLIST(handle2), GTK_SELECTION_SINGLE);
+	}
+	if(GTK_IS_LABEL(handle2))
+	{
+		gfloat x, y;
+
+		x = y = DW_LEFT;
+
+		if(style & DW_DT_CENTER)
+			x = DW_CENTER;
+
+		if(style & DW_DT_VCENTER)
+			y = DW_CENTER;
+
+		gtk_misc_set_alignment(GTK_MISC(handle2), x, y);
 	}
 	DW_MUTEX_UNLOCK;
 }
@@ -4370,7 +4428,6 @@ void dw_box_pack_splitbar_end(HWND box)
  */
 void dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize, int vsize, int pad)
 {
-	int expand = (hsize == FALSE && vsize == FALSE) ? FALSE : TRUE;
 	int _locked_by_me = FALSE;
 
 	if(!box)
@@ -4384,9 +4441,35 @@ void dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize, in
 		gtk_widget_show(item);
 	}
 
-	if(GTK_IS_BOX(box))
+	if(GTK_IS_TABLE(box))
 	{
-		gtk_box_pack_start(GTK_BOX(box), item, expand, TRUE, pad);
+		int boxcount = (int)gtk_object_get_data(GTK_OBJECT(box), "boxcount");
+		int boxtype = (int)gtk_object_get_data(GTK_OBJECT(box), "boxtype");
+		int x, y;
+
+		/* If the item being packed is a box, then we use it's padding
+		 * instead of the padding specified on the pack line, this is
+		 * due to a bug in the OS/2 and Win32 renderer and a limitation
+		 * of the GtkTable class.
+		 */
+		if(GTK_IS_TABLE(item))
+			pad = (int)gtk_object_get_data(GTK_OBJECT(item), "boxpad");
+
+		if(boxtype == BOXVERT)
+		{
+			x = 0;
+			y = boxcount;
+			gtk_table_resize(GTK_TABLE(box), boxcount + 1, 1);
+		}
+		else
+		{
+			x = boxcount;
+			y = 0;
+			gtk_table_resize(GTK_TABLE(box), 1, boxcount + 1);
+		}
+
+		gtk_table_attach(GTK_TABLE(box), item, x, x + 1, y, y + 1, hsize ? DW_EXPAND : 0, vsize ? DW_EXPAND : 0, pad, pad);
+		gtk_object_set_data(GTK_OBJECT(box), "boxcount", (gpointer)boxcount + 1);
 		gtk_widget_set_usize(item, width, height);
 		if(GTK_IS_RADIO_BUTTON(item))
 		{
@@ -4407,7 +4490,7 @@ void dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize, in
 		GtkWidget *vbox = gtk_vbox_new(FALSE, 0);
 
 		gtk_container_add(GTK_CONTAINER(box), vbox);
-		gtk_box_pack_end(GTK_BOX(vbox), item, expand, TRUE, 0);
+		gtk_box_pack_end(GTK_BOX(vbox), item, TRUE, TRUE, 0);
 		gtk_widget_show(vbox);
 
 		gtk_widget_set_usize(item, width, height);
