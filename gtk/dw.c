@@ -1488,6 +1488,8 @@ HWND dw_notebook_new(unsigned long id, int top)
 		gtk_notebook_set_tab_pos(GTK_NOTEBOOK(tmp), GTK_POS_TOP);
 	else
 		gtk_notebook_set_tab_pos(GTK_NOTEBOOK(tmp), GTK_POS_BOTTOM);
+	gtk_notebook_set_scrollable(GTK_NOTEBOOK(tmp), TRUE);
+	gtk_notebook_popup_enable(GTK_NOTEBOOK(tmp));
 	gtk_widget_show(tmp);
 	gtk_object_set_data(GTK_OBJECT(tmp), "id", (gpointer)id);
 	DW_MUTEX_UNLOCK;
