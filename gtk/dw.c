@@ -846,10 +846,8 @@ static void _dw_thread_add(DWTID tid)
 		{
 			_dw_thread_list[z] = tid;
 			_foreground[z].pixel = _foreground[z].red =_foreground[z].green = _foreground[z].blue = 0;
-			_background[z].pixel = 0;
-			_background[z].red = 0xaaaa;
-			_background[z].green = 0xaaaa;
-			_background[z].blue = 0xaaaa;
+			_background[z].pixel = 1;
+			_background[z].red = _background[z].green = _background[z].blue = 0;
 			return;
 		}
 	}
@@ -5208,12 +5206,17 @@ HWND dw_render_new(unsigned long id)
 /* Returns a GdkColor from a DW color */
 static GdkColor _internal_color(unsigned long value)
 {
+	if(value == DW_CLR_DEFAULT)
+	{
+		GdkColor color = { 1, 0, 0, 0 };
+		return color;
+	}
 	if(DW_RGB_COLOR & value)
 	{
 		GdkColor color = { 0, DW_RED_VALUE(value) << 8, DW_GREEN_VALUE(value) << 8, DW_BLUE_VALUE(value) << 8 };
 		return color;
 	}
-	else if (value < 16)
+	if (value < 16)
 		return _colors[value];
 	return _colors[0];
 }
@@ -5230,7 +5233,8 @@ void dw_color_foreground_set(unsigned long value)
 	GdkColor color = _internal_color(value);
 
 	DW_MUTEX_LOCK;
-	gdk_color_alloc(_dw_cmap, &color);
+	if(!color.pixel)
+		gdk_color_alloc(_dw_cmap, &color);
 	_foreground[index] = color;
 	DW_MUTEX_UNLOCK;
 }
@@ -5247,7 +5251,8 @@ void dw_color_background_set(unsigned long value)
 	GdkColor color = _internal_color(value);
 
 	DW_MUTEX_LOCK;
-	gdk_color_alloc(_dw_cmap, &color);
+	if(!color.pixel)
+		gdk_color_alloc(_dw_cmap, &color);
 	_background[index] = color;
 	DW_MUTEX_UNLOCK;
 }
@@ -5262,8 +5267,10 @@ GdkGC *_set_colors(GdkWindow *window)
 	gc = gdk_gc_new(window);
 	if(gc)
 	{
-		gdk_gc_set_foreground(gc, &_foreground[index]);
-		gdk_gc_set_background(gc, &_background[index]);
+		if(!_foreground[index].pixel)
+			gdk_gc_set_foreground(gc, &_foreground[index]);
+		if(!_background[index].pixel)
+			gdk_gc_set_background(gc, &_background[index]);
 	}
 	return gc;
 }
@@ -5394,10 +5401,15 @@ void dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
 
 				if(layout)
 				{
+					int index = _find_thread_index(dw_thread_id());
+
 					pango_layout_set_font_description(layout, font);
 					pango_layout_set_text(layout, text, strlen(text));
 
-					gdk_draw_layout(handle ? handle->window : pixmap->pixmap, gc, x, y + 2, layout);
+                    if(_background[index].pixel)
+						gdk_draw_layout(handle ? handle->window : pixmap->pixmap, gc, x, y + 2, layout);
+					else
+						gdk_draw_layout_with_colors(handle ? handle->window : pixmap->pixmap, gc, x, y + 2, layout, &_foreground[index], &_background[index]);
 
 					g_object_unref(layout);
 				}
