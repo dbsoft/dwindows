@@ -85,11 +85,11 @@ install:
 		$(INSTALL) $(SYSCONF_LINK_TARGET2) $(PREFIX)/lib; \
 		cd $(PREFIX)/lib; \
 		rm -f lib$(TARGET).so lib$(TARGET).so.$(VER_MAJ); \
-		ln -s $(SYSCONF_LINK_TARGET_SHARED)  lib$(TARGET).so; \
-		ln -s $(SYSCONF_LINK_TARGET_SHARED)  lib$(TARGET).so.$(VER_MAJ); \
-		rm -f lib$(TARGET2).so lib$(TARGET2).so.$(VER_MAJ); \
-		ln -s $(SYSCONF_LINK_TARGET_SHARED2) lib$(TARGET2).so; \
-		ln -s $(SYSCONF_LINK_TARGET_SHARED2) lib$(TARGET2).so.$(VER_MAJ)
+		ln -s $(SYSCONF_LINK_TARGET_SHARED) lib$(TARGET).$(SOSUFFIX); \
+		ln -s $(SYSCONF_LINK_TARGET_SHARED) lib$(TARGET).$(SOSUFFIX).$(VER_MAJ); \
+		rm -f lib$(TARGET2).$(SOSUFFIX) lib$(TARGET2).$(SOSUFFIX).$(VER_MAJ); \
+		ln -s $(SYSCONF_LINK_TARGET_SHARED2) lib$(TARGET2).$(SOSUFFIX); \
+		ln -s $(SYSCONF_LINK_TARGET_SHARED2) lib$(TARGET2).$(SOSUFFIX).$(VER_MAJ)
                 
 clean:
 	rm -f *.so

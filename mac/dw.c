@@ -558,6 +558,30 @@ void _changebox(Box *thisbox, int percent, int type)
 	}
 }
 
+/* Main MacOS Message loop, all events are handled here. */
+void _doEvents(EventRecord *eventStrucPtr)
+{
+    SignalHandler *tmp = Root;
+    
+    while(tmp)
+    {
+        if(tmp->message == eventStrucPtr->what)
+        {
+            switch(eventStrucPtr->what)
+            {
+            case mouseDown:
+                break;
+            case mouseUp:
+                break;
+            case keyDown:
+                break;
+            }
+        }
+        if(tmp)
+            tmp = tmp->next;
+    }
+}
+
 /*
  * Initializes the Dynamic Windows engine.
  * Parameters:
@@ -574,6 +598,14 @@ int API dw_init(int newthread, int argc, char *argv[])
  */
 void API dw_main(void)
 {
+    EventRecord eventStructure;
+    int gDone = false;
+    
+    while(!gDone)
+    {
+        if(WaitNextEvent(everyEvent, &eventStructure, 180, 0))
+            _doEvents(&eventStructure);
+    }
 }
 
 /*
@@ -583,6 +615,14 @@ void API dw_main(void)
  */
 void API dw_main_sleep(int milliseconds)
 {
+    double start = (double)clock();
+
+    while(((clock() - start) / (CLOCKS_PER_SEC/1000)) <= milliseconds)
+    {
+        EventRecord eventStructure;
+        if(WaitNextEvent(everyEvent, &eventStructure, 1, 0))
+            _doEvents(&eventStructure);
+    }
 }
 
 /*
@@ -590,6 +630,10 @@ void API dw_main_sleep(int milliseconds)
  */
 void API dw_main_iteration(void)
 {
+    EventRecord eventStructure;
+    
+    if(WaitNextEvent(everyEvent, &eventStructure, 0, 0))
+            _doEvents(&eventStructure);
 }
 
 /*
@@ -1035,7 +1079,9 @@ HWND API dw_tree_new(ULONG id)
 HWND API dw_text_new(char *text, ULONG id)
 {
     HWND hwnd = 0;
-    CreateStaticTextControl (CreationWindow, &CreationRect, text, NULL, &hwnd);
+    CFStringRef cftext = CFStringCreateWithCString(NULL, text, kCFStringEncodingDOSLatinUS);
+    CreateStaticTextControl (CreationWindow, &CreationRect, cftext, NULL, &hwnd);
+    CFRelease(cftext);
     return hwnd;
 }
 
@@ -1048,7 +1094,9 @@ HWND API dw_text_new(char *text, ULONG id)
 HWND API dw_status_text_new(char *text, ULONG id)
 {
     HWND hwnd = 0;
-    CreateStaticTextControl (CreationWindow, &CreationRect, text, NULL, &hwnd);
+    CFStringRef cftext = CFStringCreateWithCString(NULL, text, kCFStringEncodingDOSLatinUS);
+    CreateStaticTextControl (CreationWindow, &CreationRect, cftext, NULL, &hwnd);
+    CFRelease(cftext);
     return hwnd;
 }
 
@@ -1073,7 +1121,9 @@ HWND API dw_mle_new(ULONG id)
 HWND API dw_entryfield_new(char *text, ULONG id)
 {
     HWND hwnd = 0;
-    CreateEditTextControl(CreationWindow, &CreationRect, text, FALSE, FALSE, NULL, &hwnd);
+    CFStringRef cftext = CFStringCreateWithCString(NULL, text, kCFStringEncodingDOSLatinUS);
+    CreateEditTextControl(CreationWindow, &CreationRect, cftext, FALSE, FALSE, NULL, &hwnd);
+    CFRelease(cftext);
     return hwnd;
 }
 
@@ -1086,7 +1136,9 @@ HWND API dw_entryfield_new(char *text, ULONG id)
 HWND API dw_entryfield_password_new(char *text, ULONG id)
 {
     HWND hwnd = 0;
-    CreateEditTextControl(CreationWindow, &CreationRect, text, TRUE, FALSE, NULL, &hwnd);
+    CFStringRef cftext = CFStringCreateWithCString(NULL, text, kCFStringEncodingDOSLatinUS);
+    CreateEditTextControl(CreationWindow, &CreationRect, cftext, TRUE, FALSE, NULL, &hwnd);
+    CFRelease(cftext);
     return hwnd;
 }
 
@@ -1110,7 +1162,9 @@ HWND API dw_combobox_new(char *text, ULONG id)
 HWND API dw_button_new(char *text, ULONG id)
 {
     HWND hwnd = 0;
-    CreatePushButtonControl(CreationWindow, &CreationRect, text, &hwnd);
+    CFStringRef cftext = CFStringCreateWithCString(NULL, text, kCFStringEncodingDOSLatinUS);
+    CreatePushButtonControl(CreationWindow, &CreationRect, cftext, &hwnd);
+    CFRelease(cftext);
     return hwnd;
 }
 
@@ -1161,7 +1215,9 @@ HWND API dw_spinbutton_new(char *text, ULONG id)
 HWND API dw_radiobutton_new(char *text, ULONG id)
 {
     HWND hwnd = 0;
-    CreateRadioButtonControl(CreationWindow, &CreationRect, text, 0, FALSE, &hwnd);
+    CFStringRef cftext = CFStringCreateWithCString(NULL, text, kCFStringEncodingDOSLatinUS);
+    CreateRadioButtonControl(CreationWindow, &CreationRect, cftext, 0, FALSE, &hwnd);
+    CFRelease(cftext);
     return hwnd;
 }
 
@@ -1215,7 +1271,9 @@ HWND API dw_percent_new(ULONG id)
 HWND API dw_checkbox_new(char *text, ULONG id)
 {
     HWND hwnd = 0;
-    CreateCheckBoxControl(CreationWindow, &CreationRect, text, 0, TRUE, &hwnd);
+    CFStringRef cftext = CFStringCreateWithCString(NULL, text, kCFStringEncodingDOSLatinUS);
+    CreateCheckBoxControl(CreationWindow, &CreationRect, cftext, 0, TRUE, &hwnd);
+    CFRelease(cftext);
     return hwnd;
 }
 
@@ -1264,7 +1322,9 @@ void API dw_window_set_bitmap(HWND handle, unsigned long id, char *filename)
  */
 void API dw_window_set_text(HWND handle, char *text)
 {
-	SetControlTitleWithCFString(handle, text);
+    CFStringRef cftext = CFStringCreateWithCString(NULL, text, kCFStringEncodingDOSLatinUS);
+    SetControlTitleWithCFString(handle, cftext);
+    CFRelease(cftext);
 }
 
 /*
@@ -2641,16 +2701,23 @@ void API dw_window_click_default(HWND window, HWND next)
 void API dw_environment_query(DWEnv *env)
 {
 	ULONG Build;
+        char verbuf[10];
 
 	if(!env)
 		return;
 
+        Gestalt(gestaltSystemVersion, &Build);
+        
+        sprintf(verbuf, "%04x", Build);
+        
 	strcpy(env->osName,"MacOS");
-	env->MajorVersion = 10;
-	env->MinorVersion = 0;
+	env->MajorBuild = atoi(&verbuf[3]);
+        verbuf[3] = 0;
+	env->MinorVersion = atoi(&verbuf[2]);
+        verbuf[2] = 0;
+	env->MajorVersion = atoi(verbuf);
 
 	env->MinorBuild = 0;
-	env->MajorBuild = 0;
 
 	strcpy(env->buildDate, __DATE__);
 	strcpy(env->buildTime, __TIME__);
