@@ -5174,8 +5174,32 @@ void API dw_listbox_set_text(HWND handle, unsigned int index, char *buffer)
  */
 void API dw_listbox_query_text(HWND handle, unsigned int index, char *buffer, unsigned int length)
 {
-	SendMessage(handle,
-				LB_GETTEXT, (WPARAM)index, (LPARAM)buffer);
+	char tmpbuf[100];
+	int len;
+
+	if(!buffer || !length)
+		return;
+
+	buffer[0] = 0;
+
+	GetClassName(handle, tmpbuf, 99);
+
+	if(strnicmp(tmpbuf, COMBOBOXCLASSNAME, strlen(COMBOBOXCLASSNAME))==0)
+	{
+		len = (int)SendMessage(handle, CB_GETLBTEXTLEN, (WPARAM)index, 0);
+
+		if(len < length && len != CB_ERR)
+			SendMessage(handle,
+						CB_GETLBTEXT, (WPARAM)index, (LPARAM)buffer);
+	}
+	else
+	{
+		len = (int)SendMessage(handle, LB_GETTEXTLEN, (WPARAM)index, 0);
+
+		if(len < length && len != LB_ERR)
+			SendMessage(handle,
+						LB_GETTEXT, (WPARAM)index, (LPARAM)buffer);
+	}
 }
 
 /*
