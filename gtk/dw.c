@@ -549,6 +549,25 @@ static gint _container_select_event(GtkWidget *widget, GdkEventButton *event, gp
 	return retval;
 }
 
+/* Return the logical page id from the physical page id */
+int _get_logical_page(HWND handle, unsigned long pageid)
+{
+	int z;
+	GtkWidget **pagearray = gtk_object_get_data(GTK_OBJECT(handle), "pagearray");
+	GtkWidget *thispage = gtk_notebook_get_nth_page(GTK_NOTEBOOK(handle), pageid);
+  
+	if(pagearray && thispage)
+	{
+		for(z=0;z<256;z++)
+		{
+			if(thispage == pagearray[z])
+				return z;
+		}
+	}
+	return 256;
+}
+
+
 static gint _switch_page_event(GtkNotebook *notebook, GtkNotebookPage *page, guint page_num, gpointer data)
 {
 	SignalHandler *work = (SignalHandler *)data;
@@ -557,7 +576,7 @@ static gint _switch_page_event(GtkNotebook *notebook, GtkNotebookPage *page, gui
 	if(work)
 	{
 		int (*switchpagefunc)(HWND, int, void *) = work->func;
-		retval = switchpagefunc(work->window, page_num, work->data);
+		retval = switchpagefunc(work->window, _get_logical_page(GTK_WIDGET(notebook), page_num), work->data);
 	}
 	return retval;
 }
@@ -6307,24 +6326,6 @@ int _get_physical_page(HWND handle, unsigned long pageid)
 		}
 	}
 	return 256;                                        
-}
-
-/* Return the logical page id from the physical page id */
-int _get_logical_page(HWND handle, unsigned long pageid)
-{
-	int z;
-	GtkWidget **pagearray = gtk_object_get_data(GTK_OBJECT(handle), "pagearray");
-	GtkWidget *thispage = gtk_notebook_get_nth_page(GTK_NOTEBOOK(handle), pageid);
-  
-	if(pagearray && thispage)
-	{
-		for(z=0;z<256;z++)
-		{
-			if(thispage == pagearray[z])
-				return z;
-		}
-	}
-	return 256;
 }
 
 /*
