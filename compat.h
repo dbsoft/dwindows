@@ -121,6 +121,11 @@ void msleep(long period);
 
 /* Windows */
 #if defined(__WIN32__) || defined(WINNT)
+
+#if defined(MSVC) && !defined(API)
+#define API _cdecl
+#endif
+
 #include <windows.h>
 #include <winsock.h>
 #include <time.h>
@@ -133,10 +138,6 @@ void msleep(long period);
 #include <dirent.h>
 #endif
 #include <stdarg.h>
-
-#if defined(MSVC) && !defined(API)
-#define API _cdecl
-#endif
 
 #if defined(__CYGWIN32__) || defined(__MINGW32__)
 #include <sys/un.h>

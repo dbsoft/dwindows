@@ -7615,6 +7615,18 @@ void API dw_pixmap_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest, int wi
 		WinReleasePS(hpssrc);
 }
 
+/* Run DosBeep() in a separate thread so it doesn't block */
+void _beepthread(void *data)
+{
+	int *info = (int *)data;
+
+	if(data)
+	{
+		DosBeep(info[0], info[1]);
+		free(data);
+	}
+}
+
 /*
  * Emits a beep.
  * Parameters:
@@ -7623,7 +7635,15 @@ void API dw_pixmap_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest, int wi
  */
 void API dw_beep(int freq, int dur)
 {
-	DosBeep(freq, dur);
+	int *info = malloc(sizeof(int) * 2);
+
+	if(info)
+	{
+		info[0] = freq;
+		info[1] = dur;
+
+		_beginthread(_beepthread, NULL, 100, (void *)info);
+	}
 }
 
 /* Open a shared library and return a handle.

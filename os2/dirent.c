@@ -5,8 +5,7 @@
 
 #define INCL_DOSFILEMGR
 #define INCL_DOSERRORS
-#include "dw.h"
-#include "platform/dirent.h"
+#include "compat"
 #include <errno.h>
 
 # define FFBUF	FILEFINDBUF3
