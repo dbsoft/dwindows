@@ -58,6 +58,7 @@ typedef struct _sighandler
 	struct _sighandler	*next;
 	ULONG message;
 	HWND window;
+	int id;
 	void *signalfunction;
 	void *data;
 
@@ -95,7 +96,7 @@ SignalList SignalTranslate[SIGNALMAX] = {
 
 /* This function adds a signal handler callback into the linked list.
  */
-void _new_signal(ULONG message, HWND window, void *signalfunction, void *data)
+void _new_signal(ULONG message, HWND window, int id, void *signalfunction, void *data)
 {
 	SignalHandler *new = malloc(sizeof(SignalHandler));
 
@@ -104,6 +105,7 @@ void _new_signal(ULONG message, HWND window, void *signalfunction, void *data)
 
 	new->message = message;
 	new->window = window;
+	new->id = id;
 	new->signalfunction = signalfunction;
 	new->data = data;
 	new->next = NULL;
@@ -1888,6 +1890,18 @@ MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 							tmp = NULL;
 						}
 					}
+				}
+				break;
+			case WM_TIMER:
+				{
+					int (* API timerfunc)(void *) = (int (* API)(void *))tmp->signalfunction;
+					if(tmp->id == (int)mp1)
+					{
+						if(!timerfunc(tmp->data))
+							dw_timer_disconnect(tmp->id);
+						tmp = NULL;
+					}
+					result = 0;
 				}
 				break;
 			case WM_SIZE:
@@ -4262,6 +4276,31 @@ HWND API dw_slider_new(int vertical, int increments, ULONG id)
 }
 
 /*
+ * Create a new scrollbar window (widget) to be packed.
+ * Parameters:
+ *       vertical: TRUE or FALSE if scrollbar is vertical.
+ *       increments: Number of increments available.
+ *       id: An ID to be used with WinWindowFromID() or 0L.
+ */
+HWND API dw_scrollbar_new(int vertical, int increments, ULONG id)
+{
+	HWND tmp;
+
+	tmp = WinCreateWindow(HWND_OBJECT,
+						  WC_SCROLLBAR,
+						  "",
+						  WS_VISIBLE | SBS_AUTOTRACK |
+						  (vertical ? SBS_VERT : SBS_HORZ),
+						  0,0,2000,1000,
+						  NULLHANDLE,
+						  HWND_TOP,
+						  id,
+						  NULL,
+						  NULL);
+	return tmp;
+}
+
+/*
  * Create a new percent bar window (widget) to be packed.
  * Parameters:
  *       id: An ID to be used with WinWindowFromID() or 0L.
@@ -5206,6 +5245,40 @@ void API dw_slider_set_pos(HWND handle, unsigned int position)
 {
 	dw_window_set_data(handle, "_dw_slider_value", (void *)position);
 	WinSendMsg(handle, SLM_SETSLIDERINFO, MPFROM2SHORT(SMA_SLIDERARMPOSITION, SMA_INCREMENTVALUE), (MPARAM)position);
+}
+
+/*
+ * Returns the position of the scrollbar.
+ * Parameters:
+ *          handle: Handle to the scrollbar to be queried.
+ */
+unsigned int API dw_scrollbar_query_pos(HWND handle)
+{
+	return (unsigned int)WinSendMsg(handle, SBM_QUERYPOS, 0, 0);
+}
+
+/*
+ * Sets the scrollbar position.
+ * Parameters:
+ *          handle: Handle to the scrollbar to be set.
+ *          position: Position of the scrollbar withing the range.
+ */
+void API dw_scrollbar_set_pos(HWND handle, unsigned int position)
+{
+	dw_window_set_data(handle, "_dw_scrollbar_value", (void *)position);
+	WinSendMsg(handle, SBM_SETPOS, (MPARAM)position, 0);
+}
+
+/*
+ * Sets the scrollbar range.
+ * Parameters:
+ *          handle: Handle to the scrollbar to be set.
+ *          range: Maximum range value.
+ */
+void API dw_scrollbar_set_range(HWND handle, unsigned int range)
+{
+	unsigned int pos = (unsigned int)dw_window_get_data(handle, "_dw_scrollbar_value");
+	WinSendMsg(handle, SBM_SETSCROLLBAR, (MPARAM)pos, MPFROM2SHORT(0, (unsigned short)range));
 }
 
 /*
@@ -7563,6 +7636,72 @@ void *dw_window_get_data(HWND window, char *dataname)
 }
 
 /*
+ * Add a callback to a timer event.
+ * Parameters:
+ *       window: Window handle which owns this timer.
+ *       interval: Milliseconds to delay between calls.
+ *       sigfunc: The pointer to the function to be used as the callback.
+ *       data: User data to be passed to the handler function.
+ * Returns:
+ *       Timer ID for use with dw_timer_disconnect(), 0 on error.
+ */
+int API dw_timer_connect(HWND window, int interval, void *sigfunc, void *data)
+{
+	static int timerid = 0;
+
+	if(window && sigfunc)
+	{
+		timerid++;
+
+		if(timerid >= TID_USERMAX)
+			timerid = 1;
+
+		_new_signal(WM_TIMER, window, timerid, sigfunc, data);
+		return WinStartTimer(dwhab, window, timerid, interval);
+	}
+	return 0;
+}
+
+/*
+ * Removes timer callback.
+ * Parameters:
+ *       id: Timer ID returned by dw_timer_connect().
+ */
+void API dw_timer_disconnect(int id)
+{
+	SignalHandler *prev = NULL, *tmp = Root;
+
+	/* 0 is an invalid timer ID */
+	if(!id)
+		return;
+
+	while(tmp)
+	{
+		if(tmp->id == id)
+		{
+			WinStopTimer(dwhab, tmp->window, id);
+			if(prev)
+			{
+				prev->next = tmp->next;
+				free(tmp);
+				tmp = prev->next;
+			}
+			else
+			{
+				Root = tmp->next;
+				free(tmp);
+				tmp = Root;
+			}
+		}
+		else
+		{
+			prev = tmp;
+			tmp = tmp->next;
+		}
+	}
+}
+
+/*
  * Add a callback to a window event.
  * Parameters:
  *       window: Window handle of signal to be called back.
@@ -7592,7 +7731,7 @@ void API dw_signal_connect(HWND window, char *signame, void *sigfunc, void *data
 	if(window && signame && sigfunc)
 	{
 		if((message = _findsigmessage(signame)) != 0)
-			_new_signal(message, window, sigfunc, data);
+			_new_signal(message, window, 0, sigfunc, data);
 	}
 }
 
@@ -7702,4 +7841,5 @@ void API dw_signal_disconnect_by_data(HWND window, void *data)
 		}
 	}
 }
+
 
