@@ -210,7 +210,7 @@ int sockpipe(int *pipes)
 
 /* Return in K to avoid big problems exceeding an
    unsigned long when no 64bit integers are available */
-#if (defined(__IBMC__) && __IBMC__ < 360)
+#if (defined(__IBMC__) && __IBMC__ < 360) || (defined(__WIN32__) && !defined(__CYGWIN32__))
 unsigned long drivefree(int drive)
 #else
 unsigned long long drivefree(int drive)
@@ -319,7 +319,7 @@ unsigned long long drivefree(int drive)
 
 /* Return in K to avoid big problems exceeding an
    unsigned long when no 64bit integers are available */
-#if (defined(__IBMC__) && __IBMC__  < 360)
+#if (defined(__IBMC__) && __IBMC__  < 360) || (defined(__WIN32__) && !defined(__CYGWIN32__))
 unsigned long drivesize(int drive)
 #else
 unsigned long long drivesize(int drive)
