@@ -151,6 +151,7 @@ EXPORTS
   dw_color_depth_get                     @260
   dw_color_foreground_set                @261
   dw_color_background_set                @262
+  dw_color_choose                        @263
 
   dw_notebook_new                        @270
   dw_notebook_page_new                   @271
@@ -206,7 +207,7 @@ EXPORTS
   dw_signal_disconnect_by_window         @361
   dw_signal_disconnect_by_data           @362
   dw_signal_disconnect_by_name           @363
-  
+
   dw_timer_connect                       @365
   dw_timer_disconnect                    @366
 
@@ -248,7 +249,7 @@ EXPORTS
 
   dw_taskbar_insert                      @440
   dw_taskbar_delete                      @441
-  
+
   dw_named_memory_new                    @450
   dw_named_memory_get                    @451
   dw_named_memory_free                   @452

@@ -2472,6 +2472,18 @@ void API dw_color_background_set(unsigned long value)
 {
 }
 
+/* Allows the user to choose a color using the system's color chooser dialog.
+ * Parameters:
+ *       value: current color
+ * Returns:
+ *       The selected color or the current color if cancelled.
+ */
+unsigned long API dw_color_choose(unsigned long value)
+{
+	dw_messagebox("Not implemented", DW_MB_OK|DW_MB_INFORMATION, "This feature not yet supported.");
+	return value;
+}
+
 /* Draw a point on a window (preferably a render window).
  * Parameters:
  *       handle: Handle to the window.

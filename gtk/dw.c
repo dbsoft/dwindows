@@ -80,7 +80,7 @@ int _transparent[DW_THREAD_LIMIT];
 
 GtkWidget *last_window = NULL, *popup = NULL;
 
-static int _dw_file_active = 0, _dw_ignore_click = 0, _dw_ignore_expand = 0;
+static int _dw_file_active = 0, _dw_ignore_click = 0, _dw_ignore_expand = 0, _dw_color_active = 0;
 static pthread_t _dw_thread = (pthread_t)-1;
 static int _dw_mutex_locked[DW_THREAD_LIMIT];
 /* Use default border size for the default enlightenment theme */
@@ -183,7 +183,7 @@ static SignalList SignalTranslate[SIGNALMAX] = {
 #define DW_RIGHT 1.0f
 
 /* MDI Support Code */
-#if GTK_MAJOR_VERSION > 1 
+#if GTK_MAJOR_VERSION > 1
 #define GTK_MDI(obj)          GTK_CHECK_CAST (obj, gtk_mdi_get_type (), GtkMdi)
 #define GTK_MDI_CLASS(klass)  GTK_CHECK_CLASS_CAST (klass, gtk_mdi_get_type (), GtkMdiClass)
 #define GTK_IS_MDI(obj)       GTK_CHECK_TYPE (obj, gtk_mdi_get_type ())
@@ -1427,7 +1427,7 @@ static gint _tree_context_event(GtkWidget *widget, GdkEventButton *event, gpoint
 			{
 				GtkTreeSelection *sel = gtk_tree_view_get_selection(GTK_TREE_VIEW(widget));
 				GtkTreeIter iter;
-        
+
 				if(sel && gtk_tree_selection_get_selected(sel, NULL, &iter))
 				{
 					GtkTreeModel *store = (GtkTreeModel *)gtk_object_get_data(GTK_OBJECT(widget), "_dw_tree_store");
@@ -1588,7 +1588,7 @@ int _get_logical_page(HWND handle, unsigned long pageid)
 	int z;
 	GtkWidget **pagearray = gtk_object_get_data(GTK_OBJECT(handle), "_dw_pagearray");
 	GtkWidget *thispage = gtk_notebook_get_nth_page(GTK_NOTEBOOK(handle), pageid);
-  
+
 	if(pagearray && thispage)
 	{
 		for(z=0;z<256;z++)
@@ -1747,7 +1747,7 @@ static GdkPixmap *_find_pixmap(GdkBitmap **bitmap, long id, HWND handle, unsigne
 			*userwidth = gdk_pixbuf_get_width(icon_pixbuf);
 		if(userheight)
 			*userheight = gdk_pixbuf_get_height(icon_pixbuf);
-      
+
 		gdk_pixbuf_render_pixmap_and_mask(icon_pixbuf, &icon_pixmap, bitmap, 1);
 		g_object_unref(icon_pixbuf);
 #elif defined(USE_IMLIB)
@@ -1801,9 +1801,9 @@ static void _size_allocate(GtkWindow *window)
   sizehints.height_inc = 1;
   sizehints.min_width = 8;
   sizehints.min_height = 8;
-  
+
   sizehints.flags = (PBaseSize|PMinSize|PResizeInc);
-  
+
   XSetWMNormalHints (GDK_DISPLAY(),
 		     GDK_WINDOW_XWINDOW (GTK_WIDGET (window)->window),
 		     &sizehints);
@@ -2485,7 +2485,7 @@ static int _set_font(HWND handle, char *fontname)
 	}
 #else
 	PangoFontDescription *font = pango_font_description_from_string(fontname);
-  
+
 	if(font)
 	{
 		gtk_widget_modify_font(handle, font);
@@ -3355,7 +3355,7 @@ HWND dw_tree_new(ULONG id)
 	gtk_tree_view_append_column(GTK_TREE_VIEW (tree), col);
 	gtk_tree_view_set_expander_column(GTK_TREE_VIEW(tree), col);
 	gtk_tree_view_set_headers_visible(GTK_TREE_VIEW(tree), FALSE);
-  
+
 	sel = gtk_tree_view_get_selection(GTK_TREE_VIEW(tree));
 	gtk_tree_selection_set_mode(sel, GTK_SELECTION_SINGLE);
 #else
@@ -3452,7 +3452,7 @@ HWND dw_mle_new(unsigned long id)
 	gtk_container_add (GTK_CONTAINER(tmpbox), tmp);
 	gtk_text_view_set_wrap_mode(GTK_TEXT_VIEW(tmp), GTK_WRAP_NONE);
 
-	scroller = NULL;  
+	scroller = NULL;
 #else
 	tmpbox = gtk_hbox_new(FALSE, 0);
 	tmp = gtk_text_new(NULL, NULL);
@@ -4079,7 +4079,7 @@ unsigned int dw_mle_import(HWND handle, char *buffer, int startpoint)
 			char *impbuf = malloc(strlen(buffer)+1);
 			GtkTextBuffer *tbuffer;
 			GtkTextIter iter;
-      
+
 			_strip_cr(impbuf, buffer);
 
 			tbuffer = gtk_text_view_get_buffer (GTK_TEXT_VIEW (tmp));
@@ -4091,7 +4091,7 @@ unsigned int dw_mle_import(HWND handle, char *buffer, int startpoint)
 		}
 #else
 		GdkFont *font = (GdkFont *)gtk_object_get_data(GTK_OBJECT(handle), "_dw_gdkfont");
-    
+
 		if(tmp && GTK_IS_TEXT(tmp))
 		{
 			GdkColor *fore = (GdkColor *)gtk_object_get_data(GTK_OBJECT(handle), "_dw_foregdk");
@@ -4193,7 +4193,7 @@ void dw_mle_get_size(HWND handle, unsigned long *bytes, unsigned long *lines)
 		if(tmp && GTK_IS_TEXT_VIEW(tmp))
 		{
 			GtkTextBuffer *buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(tmp));
-      
+
 			if(bytes)
 				*bytes = gtk_text_buffer_get_char_count(buffer) + 1;
 			if(lines)
@@ -4294,7 +4294,7 @@ void dw_mle_clear(HWND handle)
 		if(tmp && GTK_IS_TEXT_VIEW(tmp))
 		{
 			GtkTextBuffer *buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(tmp));
-      
+
 			length = -1;
 			gtk_text_buffer_set_text(buffer, "", length);
 		}
@@ -4534,7 +4534,7 @@ int dw_mle_search(HWND handle, char *text, int point, unsigned long flags)
 			tbuffer = gtk_text_view_get_buffer (GTK_TEXT_VIEW (tmp));
 			gtk_text_buffer_get_iter_at_offset(tbuffer, &iter, point);
 			gtk_text_iter_forward_search(&iter, text, GTK_TEXT_SEARCH_TEXT_ONLY, &found, NULL, NULL);
-			retval = gtk_text_iter_get_offset(&found);  
+			retval = gtk_text_iter_get_offset(&found);
 		}
 #else
 		if(tmp && GTK_IS_TEXT(tmp))
@@ -4896,7 +4896,7 @@ HTREEITEM dw_tree_insert_after(HWND handle, HTREEITEM item, char *title, unsigne
 		(store = (GtkTreeStore *)gtk_object_get_data(GTK_OBJECT(tree), "_dw_tree_store")))
 	{
 		iter = (GtkTreeIter *)malloc(sizeof(GtkTreeIter));
-        
+
 		pixbuf = _find_pixbuf(icon);
 
 		gtk_tree_store_insert_after(store, iter, (GtkTreeIter *)parent, (GtkTreeIter *)item);
@@ -4906,7 +4906,7 @@ HTREEITEM dw_tree_insert_after(HWND handle, HTREEITEM item, char *title, unsigne
 		retval = (HTREEITEM)iter;
 	}
 	DW_MUTEX_UNLOCK;
-  
+
 	return retval;
 #else
 	GtkWidget *newitem, *tree, *subtree, *label, *hbox, *pixmap;
@@ -5049,7 +5049,7 @@ HTREEITEM dw_tree_insert(HWND handle, char *title, unsigned long icon, HTREEITEM
 		(store = (GtkTreeStore *)gtk_object_get_data(GTK_OBJECT(tree), "_dw_tree_store")))
 	{
 		iter = (GtkTreeIter *)malloc(sizeof(GtkTreeIter));
-    
+
 		pixbuf = _find_pixbuf(icon);
 
 		gtk_tree_store_append (store, iter, (GtkTreeIter *)parent);
@@ -5395,10 +5395,10 @@ void dw_tree_item_select(HWND handle, HTREEITEM item)
 	if((tree = (GtkWidget *)gtk_object_get_user_data(GTK_OBJECT(handle)))
 		&& GTK_IS_TREE_VIEW(tree) &&
 		(store = (GtkTreeStore *)gtk_object_get_data(GTK_OBJECT(tree), "_dw_tree_store")))
-	{    
+	{
 		GtkTreePath *path = gtk_tree_model_get_path(GTK_TREE_MODEL(store), (GtkTreeIter *)item);
 		GtkTreeSelection *sel = gtk_tree_view_get_selection(GTK_TREE_VIEW(tree));
-    
+
 		gtk_tree_view_set_cursor(GTK_TREE_VIEW(tree), path, NULL, FALSE);
 		gtk_tree_selection_select_iter(sel, (GtkTreeIter *)item);
 		gtk_tree_path_free(path);
@@ -5427,7 +5427,7 @@ static void _dw_recursive_free(GtkTreeModel *store, GtkTreeIter parent)
 {
 	void *data;
 	GtkTreeIter iter;
-  
+
 	gtk_tree_model_get(store, &parent, 3, &data, -1);
 	if(data)
 		free(data);
@@ -5450,7 +5450,7 @@ static void _dw_recursive_free(GtkTreeModel *store, GtkTreeIter parent)
 void dw_tree_clear(HWND handle)
 {
 #if GTK_MAJOR_VERSION > 1
-	GtkWidget *tree;               
+	GtkWidget *tree;
 	GtkTreeStore *store;
 	int _locked_by_me = FALSE;
 
@@ -6623,6 +6623,90 @@ void dw_color_background_set(unsigned long value)
 
 	_background[index] = color;
 	DW_MUTEX_UNLOCK;
+}
+
+/* Internal function to handle the color OK press */
+static gint _gtk_color_ok(GtkWidget *widget, DWDialog *dwwait)
+{
+	GdkColor color;
+	unsigned long dw_color;
+	GtkColorSelection *colorsel;
+
+	if(!dwwait)
+		return FALSE;
+
+	colorsel = GTK_COLOR_SELECTION(GTK_COLOR_SELECTION_DIALOG(dwwait->data)->colorsel);
+	gtk_color_selection_get_current_color(colorsel,&color);
+	gtk_widget_destroy(GTK_WIDGET(dwwait->data));
+	_dw_color_active = 0;
+	dw_color = DW_RGB( (color.red & 0xFF), (color.green & 0xFF), (color.blue & 0xFF));
+	dw_dialog_dismiss(dwwait, (void *)dw_color);
+	return FALSE;
+}
+
+/* Internal function to handle the color Cancel press */
+static gint _gtk_color_cancel(GtkWidget *widget, DWDialog *dwwait)
+{
+	if(!dwwait)
+		return FALSE;
+
+	gtk_widget_destroy(GTK_WIDGET(dwwait->data));
+	_dw_color_active = 0;
+	dw_dialog_dismiss(dwwait, (void *)-1);
+	return FALSE;
+}
+
+/* Allows the user to choose a color using the system's color chooser dialog.
+ * Parameters:
+ *       value: current color
+ * Returns:
+ *       The selected color or the current color if cancelled.
+ */
+unsigned long API dw_color_choose(unsigned long value)
+{
+	GtkWidget *colorw;
+	int _locked_by_me = FALSE;
+	DWDialog *dwwait;
+	GtkColorSelection *colorsel;
+	GdkColor color = _internal_color(value);
+	unsigned long dw_color;
+
+	DW_MUTEX_LOCK;
+
+	/* The DW mutex should be sufficient for
+	 * insuring no thread changes this unknowingly.
+	 */
+	if(_dw_color_active)
+	{
+		DW_MUTEX_UNLOCK;
+		return value;
+	}
+
+	_dw_color_active = 1;
+
+	colorw = gtk_color_selection_dialog_new("Select Color");
+
+	dwwait = dw_dialog_new((void *)colorw);
+
+	gtk_signal_connect(GTK_OBJECT(GTK_COLOR_SELECTION_DIALOG(colorw)->ok_button), "clicked", (GtkSignalFunc) _gtk_color_ok, dwwait);
+	gtk_signal_connect(GTK_OBJECT(GTK_COLOR_SELECTION_DIALOG(colorw)->cancel_button), "clicked", (GtkSignalFunc) _gtk_color_cancel, dwwait);
+
+	colorsel = GTK_COLOR_SELECTION(GTK_COLOR_SELECTION_DIALOG(colorw)->colorsel);
+	gtk_color_selection_set_previous_color(colorsel,&color);
+	gtk_color_selection_set_current_color(colorsel,&color);
+	gtk_color_selection_set_has_palette(colorsel,TRUE);
+
+	gtk_widget_show(colorw);
+
+	dw_color = (unsigned long)dw_dialog_wait(dwwait);
+	if ((unsigned long)dw_color == -1)
+		dw_color = value;
+	DW_MUTEX_UNLOCK;
+	return (unsigned long)dw_color;
+/*
+	dw_messagebox("Not implemented", DW_MB_OK|DW_MB_INFORMATION, "This feature not yet supported.");
+	return value;
+*/
 }
 
 GdkGC *_set_colors(GdkWindow *window)
@@ -8272,7 +8356,7 @@ unsigned long dw_notebook_page_new(HWND handle, unsigned long flags, int front)
 	pagearray = (GtkWidget **)gtk_object_get_data(GTK_OBJECT(handle), "_dw_pagearray");
 
 	if(pagearray)
-	{    
+	{
 		for(z=0;z<256;z++)
 		{
 			if(!pagearray[z])
@@ -8292,7 +8376,7 @@ unsigned long dw_notebook_page_new(HWND handle, unsigned long flags, int front)
 		}
 	}
 	DW_MUTEX_UNLOCK;
-  
+
 	/* Hopefully this won't happen. */
 	return 256;
 }
@@ -8314,7 +8398,7 @@ int _get_physical_page(HWND handle, unsigned long pageid)
 			}
 		}
 	}
-	return 256;                                        
+	return 256;
 }
 
 /*
@@ -8331,7 +8415,7 @@ void dw_notebook_page_destroy(HWND handle, unsigned int pageid)
 	DW_MUTEX_LOCK;
 	realpage = _get_physical_page(handle, pageid);
 	if(realpage > -1 && realpage < 256)
-	{  
+	{
 		gtk_notebook_remove_page(GTK_NOTEBOOK(handle), realpage);
 		if((pagearray = gtk_object_get_data(GTK_OBJECT(handle), "_dw_pagearray")))
 			pagearray[pageid] = NULL;
@@ -8392,14 +8476,14 @@ void dw_notebook_page_set_text(HWND handle, unsigned long pageid, char *text)
 	{
 		char ptext[100];
 		int num;
-    
+
 		sprintf(ptext, "_dw_page%d", (int)pageid);
 		num = (int)gtk_object_get_data(GTK_OBJECT(handle), ptext);
 		realpage = 0xFF & num;
 	}
-  
+
 	if(realpage > -1 && realpage < 256)
-	{  
+	{
 		child = gtk_notebook_get_nth_page(GTK_NOTEBOOK(handle), realpage);
 		if(child)
 			gtk_notebook_set_tab_label_text(GTK_NOTEBOOK(handle), child, text);
@@ -8462,7 +8546,7 @@ void dw_notebook_pack(HWND handle, unsigned long pageid, HWND page)
 			}
 		}
 	}
-  
+
 	pagearray[pageid] = page;
 
 	label = gtk_label_new(text ? text : "");
@@ -8994,12 +9078,12 @@ static gint _splitbar_size_allocate(GtkWidget *widget, GtkAllocation *event, gpo
 	int lastwidth = (int)gtk_object_get_data(GTK_OBJECT(widget), "_dw_lastwidth");
 	int lastheight = (int)gtk_object_get_data(GTK_OBJECT(widget), "_dw_lastheight");
 
-	/* Prevent infinite recursion ;) */  
+	/* Prevent infinite recursion ;) */
 	if(!percent || (lastwidth == event->width && lastheight == event->height))
 		return FALSE;
 
 	lastwidth = event->width; lastheight = event->height;
-  
+
 	gtk_object_set_data(GTK_OBJECT(widget), "_dw_lastwidth", (gpointer)lastwidth);
 	gtk_object_set_data(GTK_OBJECT(widget), "_dw_lastheight", (gpointer)lastheight);
 
@@ -9046,7 +9130,7 @@ HWND dw_splitbar_new(int type, HWND topleft, HWND bottomright, unsigned long id)
 	GtkWidget *tmp = NULL;
 	int _locked_by_me = FALSE;
 	float *percent = malloc(sizeof(float));
-  
+
 	DW_MUTEX_LOCK;
 	if(type == DW_HORZ)
 		tmp = gtk_hpaned_new();
@@ -9088,7 +9172,7 @@ void dw_splitbar_set(HWND handle, float percent)
 		*mypercent = percent;
 
 	if(size > 10)
-	{        
+	{
 		position = (int)((float)size * (percent / 100.0));
 
 		gtk_paned_set_position(GTK_PANED(handle), position);
@@ -9510,7 +9594,7 @@ static int DWSIGNAL _tree_expand(HWND window, HTREEITEM item, void *data)
  * Returns:
  *       NULL on error. A malloced buffer containing
  *       the file path on success.
- *       
+ *
  */
 char *dw_file_browse(char *title, char *defpath, char *ext, int flags)
 {
@@ -10054,4 +10138,3 @@ void dw_signal_disconnect_by_data(HWND window, void *data)
 	}
 	DW_MUTEX_UNLOCK;
 }
-
