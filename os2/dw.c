@@ -318,7 +318,16 @@ void _free_window_memory(HWND handle)
 				free(data);
 		}
 		else if(strncmp(tmpbuf, "#37", 4)==0)
+		{
 			dw_container_clear(handle, FALSE);
+			if(wd && dw_window_get_data(handle, "_dw_container"))
+			{
+				void *oldflags = wd->data;
+
+				wd->data = NULL;
+				free(oldflags);
+			}
+		}
 
 		if(wd->oldproc)
 			WinSubclassWindow(handle, wd->oldproc);
