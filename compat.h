@@ -131,7 +131,7 @@ void msleep(long period);
 #include <stdarg.h>
 
 #if defined(MSVC) && !defined(API)
-#define API _stdcall
+#define API _cdecl
 #endif
 
 #if defined(__CYGWIN32__) || defined(__MINGW32__)
