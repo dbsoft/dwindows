@@ -189,6 +189,7 @@ EXPORTS
   dw_pixmap_new                          @341
   dw_pixmap_grab                         @342
   dw_pixmap_destroy                      @343
+  dw_pixmap_new_from_file                @344
                                          
   dw_dialog_new                          @350
   dw_dialog_dismiss                      @351

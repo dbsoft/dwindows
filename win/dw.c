@@ -6684,6 +6684,55 @@ HPIXMAP API dw_pixmap_new(HWND handle, unsigned long width, unsigned long height
 }
 
 /*
+ * Creates a pixmap from a file.
+ * Parameters:
+ *       handle: Window handle the pixmap is associated with.
+ *       filename: Name of the file, omit extention to have
+ *                 DW pick the appropriate file extension.
+ *                 (BMP on OS/2 or Windows, XPM on Unix)
+ * Returns:
+ *       A handle to a pixmap or NULL on failure.
+ */
+HPIXMAP API dw_pixmap_new_from_file(HWND handle, char *filename)
+{
+	HPIXMAP pixmap;
+	BITMAP bm;
+	HDC hdc;
+	char *file = alloca(strlen(filename) + 5);
+
+	if (!file || !(pixmap = calloc(1,sizeof(struct _hpixmap))))
+		return NULL;
+
+	strcpy(file, filename);
+
+	/* check if we can read from this file (it exists and read permission) */
+	if(access(file, 04) != 0)
+	{
+		/* Try with .bmp extention */
+		strcat(file, ".bmp");
+		if(access(file, 04) != 0)
+		{
+			free(pixmap);
+			return NULL;
+		}
+	}
+
+	dc = GetDC(handle);
+
+	pixmap->width = width; pixmap->height = height;
+
+	pixmap->handle = handle;
+	pixmap->hbm = (HBITMAP)LoadImage(NULL, file, IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
+	pixmap->hdc = CreateCompatibleDC(hdc);
+
+	SelectObject(pixmap->hdc, pixmap->hbm);
+
+	ReleaseDC(handle, hdc);
+
+	return pixmap;
+}
+
+/*
  * Creates a pixmap from internal resource graphic specified by id.
  * Parameters:
  *       handle: Window handle the pixmap is associated with.
