@@ -6399,18 +6399,16 @@ void API dw_color_background_set(unsigned long value)
 
 HPS _set_hps(HPS hps)
 {
-	LONG alTable[18];
+	LONG alTable[2];
 
-	GpiQueryLogColorTable(hps, 0L, 0L, 18L, alTable);
-
-	alTable[16] = DW_RED_VALUE(_foreground) << 16 | DW_GREEN_VALUE(_foreground) << 8 | DW_BLUE_VALUE(_foreground);
-	alTable[17] = DW_RED_VALUE(_background) << 16 | DW_GREEN_VALUE(_background) << 8 | DW_BLUE_VALUE(_background);
+	alTable[0] = DW_RED_VALUE(_foreground) << 16 | DW_GREEN_VALUE(_foreground) << 8 | DW_BLUE_VALUE(_foreground);
+	alTable[1] = DW_RED_VALUE(_background) << 16 | DW_GREEN_VALUE(_background) << 8 | DW_BLUE_VALUE(_background);
 
 	GpiCreateLogColorTable(hps,
-						   0L,
+						   LCOL_RESET,
 						   LCOLF_CONSECRGB,
-						   0L,
-						   18,
+						   16,
+						   2,
 						   alTable);
 	if(_foreground & DW_RGB_COLOR)
 		GpiSetColor(hps, 16);
