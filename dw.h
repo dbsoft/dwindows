@@ -312,8 +312,10 @@ typedef struct _box {
 	/* Ratio in this box */
 	float xratio, yratio, parentxratio, parentyratio;
 	/* Used for calculating individual item ratios */
-    int width, height;
-    /* Array of item structures */
+	int width, height;
+	/* Any combinations of flags describing the box */
+	unsigned long flags;
+	/* Array of item structures */
 	struct _item *items;
 } Box;
 
@@ -504,6 +506,8 @@ typedef struct _dwdialog {
 
 #define DW_SIGNAL_FUNC(a) ((void *)a)
 
+#define DW_MINIMIZED 1
+
 #define DW_BUTTON1_MASK 1
 #define DW_BUTTON2_MASK (1 << 1)
 #define DW_BUTTON3_MASK (1 << 2)
@@ -557,6 +561,7 @@ HWND dw_bitmap_new(unsigned long id);
 HWND dw_bitmapbutton_new(char *text, unsigned long id);
 HWND dw_container_new(unsigned long id);
 HWND dw_text_new(char *text, unsigned long id);
+HWND dw_status_text_new(char *text, unsigned long id);
 HWND dw_mle_new(unsigned long id);
 HWND dw_entryfield_new(char *text, unsigned long id);
 HWND dw_entryfield_password_new(char *text, ULONG id);
@@ -603,6 +608,8 @@ void dw_mle_freeze(HWND handle);
 void dw_mle_thaw(HWND handle);
 void dw_mle_set(HWND handle, int point);
 void dw_mle_set_visible(HWND handle, int line);
+void dw_mle_set_editable(HWND handle, int state);
+void dw_mle_set_word_wrap(HWND handle, int state);
 int dw_mle_search(HWND handle, char *text, int point, unsigned long flags);
 void dw_spinbutton_set_pos(HWND handle, long position);
 void dw_spinbutton_set_limits(HWND handle, long upper, long lower);
