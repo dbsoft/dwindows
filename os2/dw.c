@@ -1161,8 +1161,13 @@ int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *usedy,
 				if(strncmp(tmpbuf, "#2", 3)==0)
 				{
 					/* Make the combobox big enough to drop down. :) */
-					WinSetWindowPos(handle, HWND_TOP, currentx + pad, (currenty + pad) - 100,
-									width + vectorx, (height + vectory) + 100, SWP_MOVE | SWP_SIZE | SWP_ZORDER);
+                    if(dw_window_get_data(handle, "_dw_dropped"))
+						WinSetWindowPos(handle, HWND_TOP, currentx + pad, (currenty + pad) - 100,
+										width + vectorx, (height + vectory) + 100, SWP_MOVE | SWP_SIZE | SWP_ZORDER);
+					else
+						WinSetWindowPos(handle, HWND_TOP, currentx + pad, currenty + pad,
+										width + vectorx, height + vectory, SWP_MOVE | SWP_SIZE | SWP_ZORDER);
+
 				}
 				else if(strncmp(tmpbuf, "#6", 3)==0)
 				{
@@ -1736,11 +1741,39 @@ MRESULT EXPENTRY _comboproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 	case WM_SETFOCUS:
 		_run_event(hWnd, msg, mp1, mp2);
 		break;
+	case CBM_SHOWLIST:
+		{
+			int dropped = dw_window_get_data(hWnd, "_dw_dropped");
+
+			if(mp1)
+			{
+				if(!dropped)
+				{
+					SWP swp;
+
+					WinQueryWindowPos(hWnd, &swp);
+					WinSetWindowPos(hWnd, NULLHANDLE, swp.x, swp.y - 100, swp.cx, swp.cy + 100, SWP_MOVE | SWP_SIZE);
+					dw_window_set_data(hWnd, "_dw_dropped", (void *)1);
+				}
+			}
+			else
+			{
+				if(dropped)
+				{
+					SWP swp;
+
+					WinQueryWindowPos(hWnd, &swp);
+					WinSetWindowPos(hWnd, NULLHANDLE, swp.x, swp.y + 100, swp.cx, swp.cy - 100, SWP_MOVE | SWP_SIZE);
+					dw_window_set_data(hWnd, "_dw_dropped", (void *)0);
+				}
+			}
+		}
+		break;
 	case WM_PAINT:
 		{
 			HWND entry, parent = WinQueryWindow(hWnd, QW_PARENT);
 			HPS hpsPaint;
-			POINTL ptl;                  /* Add 6 because it has a thick border like the entryfield */
+			POINTL ptl;
 			unsigned long width, height, thumbheight = 0;
 			ULONG color;
 
@@ -1750,26 +1783,29 @@ MRESULT EXPENTRY _comboproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 			if(!thumbheight)
 				thumbheight = WinQuerySysValue(HWND_DESKTOP, SV_CYVSCROLLARROW);
 
+			/* Add 6 because it has a thick border like the entryfield */
 			thumbheight += 6;
 
 			color = (ULONG)dw_window_get_data(parent, "_dw_fore");
 			dw_window_get_pos_size(hWnd, 0, 0, &width, &height);
 
-			hpsPaint = WinGetPS(hWnd);
-			if(color)
-				GpiSetColor(hpsPaint, _internal_color(color-1));
-			else
-				GpiSetColor(hpsPaint, CLR_PALEGRAY);
+			if(height > thumbheight)
+			{
+				hpsPaint = WinGetPS(hWnd);
+				if(color)
+					GpiSetColor(hpsPaint, _internal_color(color-1));
+				else
+					GpiSetColor(hpsPaint, CLR_PALEGRAY);
 
-			ptl.x = 0;
-			ptl.y = 96;
-			GpiMove(hpsPaint, &ptl);
+				ptl.x = ptl.y = 0;
+				GpiMove(hpsPaint, &ptl);
 
-			ptl.x = width;
-			ptl.y = height - thumbheight;
-			GpiBox(hpsPaint, DRO_FILL, &ptl, 0, 0);
+				ptl.x = width;
+				ptl.y = height - thumbheight;
+				GpiBox(hpsPaint, DRO_FILL, &ptl, 0, 0);
 
-			WinReleasePS(hpsPaint);
+				WinReleasePS(hpsPaint);
+			}
 		}
 		break;
 	}
@@ -2501,6 +2537,14 @@ MRESULT EXPENTRY _wndproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 		{
 			dw_window_destroy(WinQueryWindow(hWnd, QW_PARENT));
 			return (MRESULT)TRUE;
+		}
+		break;
+	case WM_MOUSEMOVE:
+		{
+			HPOINTER ptr = (HPOINTER)dw_window_get_data(hWnd, "_dw_pointer");
+
+			if(ptr)
+				WinSetPointer(HWND_DESKTOP, ptr);
 		}
 		break;
 	case WM_USER:
@@ -3619,11 +3663,10 @@ void API dw_window_track(HWND handle)
  */
 void API dw_window_pointer(HWND handle, int pointertype)
 {
-	WinSetPointer(handle,
-				  pointertype < 65535 ?
-				  WinQuerySysPointer(HWND_DESKTOP,
-									 pointertype,
-									 FALSE) : (HPOINTER)pointertype);
+	dw_window_set_data(handle, "_dw_pointer",
+					   pointertype < 65535 ?
+					   (void *)WinQuerySysPointer(HWND_DESKTOP,pointertype, FALSE)
+					   : (void *)pointertype);
 }
 
 /*
