@@ -155,6 +155,7 @@ typedef struct _hpixmap {
 
 typedef HWND HMENUI;
 typedef HMODULE HMOD;
+typedef unsigned short UWORD;
 
 #define DW_NOMENU NULLHANDLE
 
@@ -459,10 +460,15 @@ typedef GtkWidget *HWND;
 #ifndef _ENVRNMNT_H
 typedef unsigned long ULONG;
 #endif
-typedef unsigned char UCHAR;
 typedef long LONG;
 typedef unsigned short USHORT;
 typedef short SHORT;
+typedef unsigned short UWORD;
+typedef short WORD ;
+typedef unsigned char UCHAR;
+typedef char CHAR;
+typedef unsigned UINT;
+typedef int INT;
 typedef pthread_mutex_t HMTX;
 typedef struct _dw_unix_event {
 	pthread_mutex_t mutex;

@@ -7472,7 +7472,7 @@ char * API dw_file_browse(char *title, char *defpath, char *ext, int flags)
 	fild.y = 0;
 	fild.pszIType       = (PSZ)NULL;
 	fild.papszITypeList = (PAPSZ)NULL;
-	fild.pszIDrive      = (PSZ)NULL;                                                      
+	fild.pszIDrive      = (PSZ)NULL;
 	fild.papszIDriveList= (PAPSZ)NULL;
 	fild.sEAType        = (SHORT)0;
 	fild.papszFQFilename= (PAPSZ)NULL;
