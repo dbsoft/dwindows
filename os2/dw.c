@@ -3276,36 +3276,30 @@ void * API dw_dialog_wait(DWDialog *dialog)
  * Displays a Message Box with given text and title..
  * Parameters:
  *           title: The title of the message box.
+ *           flags: flags to indicate buttons and icon
  *           format: printf style format string.
  *           ...: Additional variables for use in the format.
  */
-int API dw_messagebox(char *title, char *format, ...)
+int API dw_messagebox(char *title, int flags, char *format, ...)
 {
 	va_list args;
 	char outbuf[1024];
+	int rc;
 
 	va_start(args, format);
 	vsprintf(outbuf, format, args);
 	va_end(args);
 
-	WinMessageBox(HWND_DESKTOP, HWND_DESKTOP, outbuf, title, 0, MB_OK | MB_INFORMATION | MB_MOVEABLE);
-
-	return strlen(outbuf);
-}
-
-/*
- * Displays a Message Box with given text and title..
- * Parameters:
- *           title: The title of the message box.
- *           text: The text to display in the box.
- * Returns:
- *           True if YES False of NO.
- */
-int API dw_yesno(char *title, char *text)
-{
-	if(WinMessageBox(HWND_DESKTOP, HWND_DESKTOP, text, title, 0, MB_YESNO | MB_INFORMATION | MB_MOVEABLE | MB_SYSTEMMODAL)==MBID_YES)
-		return TRUE;
-	return FALSE;
+	rc = WinMessageBox(HWND_DESKTOP, HWND_DESKTOP, outbuf, title, 0, flags | MB_MOVEABLE | MB_SYSTEMMODAL);
+	if(rc == MBID_OK)
+		return DW_MB_RETURN_OK;
+	else if(rc == MBID_YES)
+		return DW_MB_RETURN_YES;
+	else if(rc == MBID_NO)
+		return DW_MB_RETURN_NO;
+	else if(rc == MBID_CANCEL)
+		return DW_MB_RETURN_CANCEL;
+	else return 0;
 }
 
 /*
