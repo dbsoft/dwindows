@@ -57,11 +57,11 @@ GdkColor _background[DW_THREAD_LIMIT];
 
 GtkWidget *last_window = NULL, *popup = NULL;
 
-int _dw_file_active = 0, _dw_ignore_click = 0, _dw_unselecting = 0;
-pthread_t _dw_thread = (pthread_t)-1;
-int _dw_mutex_locked[DW_THREAD_LIMIT];
+static int _dw_file_active = 0, _dw_ignore_click = 0, _dw_unselecting = 0;
+static pthread_t _dw_thread = (pthread_t)-1;
+static int _dw_mutex_locked[DW_THREAD_LIMIT];
 /* Use default border size for the default enlightenment theme */
-int _dw_border_width = 12, _dw_border_height = 28;
+static int _dw_border_width = 12, _dw_border_height = 28;
 
 #define  DW_MUTEX_LOCK { int index = _find_thread_index(dw_thread_id()); if(pthread_self() != _dw_thread && _dw_mutex_locked[index] == FALSE) { gdk_threads_enter(); _dw_mutex_locked[index] = TRUE; _locked_by_me = TRUE;  } }
 #define  DW_MUTEX_UNLOCK { if(pthread_self() != _dw_thread && _locked_by_me == TRUE) { gdk_threads_leave(); _dw_mutex_locked[_find_thread_index(dw_thread_id())] = FALSE; _locked_by_me = FALSE; } }
@@ -70,30 +70,40 @@ int _dw_border_width = 12, _dw_border_height = 28;
 #define DEFAULT_SIZE_HEIGHT 6
 #define DEFAULT_TITLEBAR_HEIGHT 22
 
-GdkColormap *_dw_cmap = NULL;
+static GdkColormap *_dw_cmap = NULL;
 
 /* Signal forwarder prototypes */
-gint _button_press_event(GtkWidget *widget, GdkEventButton *event, gpointer data);
-gint _button_release_event(GtkWidget *widget, GdkEventButton *event, gpointer data);
-gint _motion_notify_event(GtkWidget *widget, GdkEventMotion *event, gpointer data);
-gint _delete_event(GtkWidget *widget, GdkEvent *event, gpointer data);
-gint _key_press_event(GtkWidget *widget, GdkEventKey *event, gpointer data);
-gint _generic_event(GtkWidget *widget, gpointer data);
-gint _configure_event(GtkWidget *widget, GdkEventConfigure *event, gpointer data);
-gint _activate_event(GtkWidget *widget, gpointer data);
-gint _container_select_event(GtkWidget *widget, GdkEventButton *event, gpointer data);
-gint _container_context_event(GtkWidget *widget, GdkEventButton *event, gpointer data);
-gint _item_select_event(GtkWidget *widget, GtkWidget *child, gpointer data);
-gint _expose_event(GtkWidget *widget, GdkEventExpose *event, gpointer data);
-gint _set_focus_event(GtkWindow *window, GtkWidget *widget, gpointer data);
-gint _tree_context_event(GtkWidget *widget, GdkEventButton *event, gpointer data);
-gint _value_changed_event(GtkAdjustment *adjustment, gpointer user_data);
+static gint _button_press_event(GtkWidget *widget, GdkEventButton *event, gpointer data);
+static gint _button_release_event(GtkWidget *widget, GdkEventButton *event, gpointer data);
+static gint _motion_notify_event(GtkWidget *widget, GdkEventMotion *event, gpointer data);
+static gint _delete_event(GtkWidget *widget, GdkEvent *event, gpointer data);
+static gint _key_press_event(GtkWidget *widget, GdkEventKey *event, gpointer data);
+static gint _generic_event(GtkWidget *widget, gpointer data);
+static gint _configure_event(GtkWidget *widget, GdkEventConfigure *event, gpointer data);
+static gint _activate_event(GtkWidget *widget, gpointer data);
+static gint _container_select_event(GtkWidget *widget, GdkEventButton *event, gpointer data);
+static gint _container_context_event(GtkWidget *widget, GdkEventButton *event, gpointer data);
+static gint _item_select_event(GtkWidget *widget, GtkWidget *child, gpointer data);
+static gint _expose_event(GtkWidget *widget, GdkEventExpose *event, gpointer data);
+static gint _set_focus_event(GtkWindow *window, GtkWidget *widget, gpointer data);
+static gint _tree_context_event(GtkWidget *widget, GdkEventButton *event, gpointer data);
+static gint _value_changed_event(GtkAdjustment *adjustment, gpointer user_data);
 #if GTK_MAJOR_VERSION > 1
-gint _tree_select_event(GtkTreeSelection *sel, gpointer data);
+static gint _tree_select_event(GtkTreeSelection *sel, gpointer data);
 #else
-gint _tree_select_event(GtkTree *tree, GtkWidget *child, gpointer data);
+static gint _tree_select_event(GtkTree *tree, GtkWidget *child, gpointer data);
 #endif
 
+typedef struct
+{
+	GdkPixmap *pixmap;
+	GdkBitmap *mask;
+	int used;
+	unsigned long width, height;
+} DWPrivatePixmap;
+
+static DWPrivatePixmap *_PixmapArray = NULL;
+static int _PixmapCount = 0;
 
 typedef struct
 {
@@ -113,7 +123,7 @@ typedef struct
 #define SIGNALMAX 16
 
 /* A list of signal forwarders, to account for paramater differences. */
-SignalList SignalTranslate[SIGNALMAX] = {
+static SignalList SignalTranslate[SIGNALMAX] = {
 	{ _configure_event, "configure_event" },
 	{ _key_press_event, "key_press_event" },
 	{ _button_press_event, "button_press_event" },
@@ -137,7 +147,7 @@ SignalList SignalTranslate[SIGNALMAX] = {
 #define DW_LEFT 0.0f
 #define DW_RIGHT 1.0f
 
-void _dw_msleep(long period)
+static void _dw_msleep(long period)
 {
 #ifdef __sun__
 	/* usleep() isn't threadsafe on Solaris */
@@ -153,7 +163,7 @@ void _dw_msleep(long period)
 }
 
 /* Finds the translation function for a given signal name */
-void *_findsigfunc(char *signame)
+static void *_findsigfunc(char *signame)
 {
 	int z;
 
@@ -165,7 +175,7 @@ void *_findsigfunc(char *signame)
 	return NULL;
 }
 
-gint _set_focus_event(GtkWindow *window, GtkWidget *widget, gpointer data)
+static gint _set_focus_event(GtkWindow *window, GtkWidget *widget, gpointer data)
 {
 	SignalHandler *work = (SignalHandler *)data;
 	int retval = FALSE;
@@ -179,7 +189,7 @@ gint _set_focus_event(GtkWindow *window, GtkWidget *widget, gpointer data)
 	return retval;
 }
 
-gint _button_press_event(GtkWidget *widget, GdkEventButton *event, gpointer data)
+static gint _button_press_event(GtkWidget *widget, GdkEventButton *event, gpointer data)
 {
 	SignalHandler *work = (SignalHandler *)data;
 	int retval = FALSE;
@@ -199,7 +209,7 @@ gint _button_press_event(GtkWidget *widget, GdkEventButton *event, gpointer data
 	return retval;
 }
 
-gint _button_release_event(GtkWidget *widget, GdkEventButton *event, gpointer data)
+static gint _button_release_event(GtkWidget *widget, GdkEventButton *event, gpointer data)
 {
 	SignalHandler *work = (SignalHandler *)data;
 	int retval = FALSE;
@@ -219,7 +229,7 @@ gint _button_release_event(GtkWidget *widget, GdkEventButton *event, gpointer da
 	return retval;
 }
 
-gint _motion_notify_event(GtkWidget *widget, GdkEventMotion *event, gpointer data)
+static gint _motion_notify_event(GtkWidget *widget, GdkEventMotion *event, gpointer data)
 {
 	SignalHandler *work = (SignalHandler *)data;
 	int retval = FALSE;
@@ -251,7 +261,7 @@ gint _motion_notify_event(GtkWidget *widget, GdkEventMotion *event, gpointer dat
 	return retval;
 }
 
-gint _delete_event(GtkWidget *widget, GdkEvent *event, gpointer data)
+static gint _delete_event(GtkWidget *widget, GdkEvent *event, gpointer data)
 {
 	SignalHandler *work = (SignalHandler *)data;
 	int retval = FALSE;
@@ -265,7 +275,7 @@ gint _delete_event(GtkWidget *widget, GdkEvent *event, gpointer data)
 	return retval;
 }
 
-gint _key_press_event(GtkWidget *widget, GdkEventKey *event, gpointer data)
+static gint _key_press_event(GtkWidget *widget, GdkEventKey *event, gpointer data)
 {
 	SignalHandler *work = (SignalHandler *)data;
 	int retval = FALSE;
@@ -279,7 +289,7 @@ gint _key_press_event(GtkWidget *widget, GdkEventKey *event, gpointer data)
 	return retval;
 }
 
-gint _generic_event(GtkWidget *widget, gpointer data)
+static gint _generic_event(GtkWidget *widget, gpointer data)
 {
 	SignalHandler *work = (SignalHandler *)data;
 	int retval = FALSE;
@@ -293,7 +303,7 @@ gint _generic_event(GtkWidget *widget, gpointer data)
 	return retval;
 }
 
-gint _activate_event(GtkWidget *widget, gpointer data)
+static gint _activate_event(GtkWidget *widget, gpointer data)
 {
 	SignalHandler *work = (SignalHandler *)data;
 	int retval = FALSE;
@@ -307,7 +317,7 @@ gint _activate_event(GtkWidget *widget, gpointer data)
 	return retval;
 }
 
-gint _configure_event(GtkWidget *widget, GdkEventConfigure *event, gpointer data)
+static gint _configure_event(GtkWidget *widget, GdkEventConfigure *event, gpointer data)
 {
 	SignalHandler *work = (SignalHandler *)data;
 	int retval = FALSE;
@@ -321,7 +331,7 @@ gint _configure_event(GtkWidget *widget, GdkEventConfigure *event, gpointer data
 	return retval;
 }
 
-gint _expose_event(GtkWidget *widget, GdkEventExpose *event, gpointer data)
+static gint _expose_event(GtkWidget *widget, GdkEventExpose *event, gpointer data)
 {
 	SignalHandler *work = (SignalHandler *)data;
 	int retval = FALSE;
@@ -340,7 +350,7 @@ gint _expose_event(GtkWidget *widget, GdkEventExpose *event, gpointer data)
 	return retval;
 }
 
-gint _item_select_event(GtkWidget *widget, GtkWidget *child, gpointer data)
+static gint _item_select_event(GtkWidget *widget, GtkWidget *child, gpointer data)
 {
 	SignalHandler *work = (SignalHandler *)data;
 	static int _dw_recursing = 0;
@@ -384,7 +394,7 @@ gint _item_select_event(GtkWidget *widget, GtkWidget *child, gpointer data)
 	return retval;
 }
 
-gint _container_context_event(GtkWidget *widget, GdkEventButton *event, gpointer data)
+static gint _container_context_event(GtkWidget *widget, GdkEventButton *event, gpointer data)
 {
 	SignalHandler *work = (SignalHandler *)data;
 	int retval = FALSE;
@@ -406,7 +416,7 @@ gint _container_context_event(GtkWidget *widget, GdkEventButton *event, gpointer
 	return retval;
 }
 
-gint _tree_context_event(GtkWidget *widget, GdkEventButton *event, gpointer data)
+static gint _tree_context_event(GtkWidget *widget, GdkEventButton *event, gpointer data)
 {
 	SignalHandler *work = (SignalHandler *)data;
 	int retval = FALSE;
@@ -462,7 +472,7 @@ gint _tree_context_event(GtkWidget *widget, GdkEventButton *event, gpointer data
 }
 
 #if GTK_MAJOR_VERSION > 1
-gint _tree_select_event(GtkTreeSelection *sel, gpointer data)
+static gint _tree_select_event(GtkTreeSelection *sel, gpointer data)
 {
 	SignalHandler *work = (SignalHandler *)data;
 	int retval = FALSE;
@@ -485,7 +495,7 @@ gint _tree_select_event(GtkTreeSelection *sel, gpointer data)
 	return retval;
 }
 #else
-gint _tree_select_event(GtkTree *tree, GtkWidget *child, gpointer data)
+static gint _tree_select_event(GtkTree *tree, GtkWidget *child, gpointer data)
 {
 	SignalHandler *work = (SignalHandler *)data;
 	GtkWidget *treeroot = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(child), "tree");
@@ -510,7 +520,7 @@ gint _tree_select_event(GtkTree *tree, GtkWidget *child, gpointer data)
 }
 #endif
 
-gint _container_select_event(GtkWidget *widget, GdkEventButton *event, gpointer data)
+static gint _container_select_event(GtkWidget *widget, GdkEventButton *event, gpointer data)
 {
 	SignalHandler *work = (SignalHandler *)data;
 	int retval = FALSE;
@@ -532,7 +542,7 @@ gint _container_select_event(GtkWidget *widget, GdkEventButton *event, gpointer 
 	return retval;
 }
 
-gint _select_row(GtkWidget *widget, gint row, gint column, GdkEventButton *event, gpointer data)
+static gint _select_row(GtkWidget *widget, gint row, gint column, GdkEventButton *event, gpointer data)
 {
 	GList *tmp = (GList *)gtk_object_get_data(GTK_OBJECT(widget), "selectlist");
 	char *rowdata = gtk_clist_get_row_data(GTK_CLIST(widget), row);
@@ -552,7 +562,7 @@ gint _select_row(GtkWidget *widget, gint row, gint column, GdkEventButton *event
 	return FALSE;
 }
 
-gint _container_select_row(GtkWidget *widget, gint row, gint column, GdkEventButton *event, gpointer data)
+static gint _container_select_row(GtkWidget *widget, gint row, gint column, GdkEventButton *event, gpointer data)
 {
 	SignalHandler *work = (SignalHandler *)data;
 	char *rowdata = gtk_clist_get_row_data(GTK_CLIST(widget), row);
@@ -561,7 +571,7 @@ gint _container_select_row(GtkWidget *widget, gint row, gint column, GdkEventBut
 	return contextfunc(work->window, rowdata, work->data);;
 }
 
-gint _unselect_row(GtkWidget *widget, gint row, gint column, GdkEventButton *event, gpointer data)
+static gint _unselect_row(GtkWidget *widget, gint row, gint column, GdkEventButton *event, gpointer data)
 {
 	GList *tmp;
 	char *rowdata;
@@ -580,7 +590,7 @@ gint _unselect_row(GtkWidget *widget, gint row, gint column, GdkEventButton *eve
 	return FALSE;
 }
 
-int _round_value(gfloat val)
+static int _round_value(gfloat val)
 {
 	int newval = (int)val;
 
@@ -590,7 +600,7 @@ int _round_value(gfloat val)
 	return newval;
 }
 
-gint _value_changed_event(GtkAdjustment *adjustment, gpointer data)
+static gint _value_changed_event(GtkAdjustment *adjustment, gpointer data)
 {
 	SignalHandler *work = (SignalHandler *)data;
 
@@ -617,7 +627,7 @@ gint _value_changed_event(GtkAdjustment *adjustment, gpointer data)
 	return FALSE;
 }
 
-gint _default_key_press_event(GtkWidget *widget, GdkEventKey *event, gpointer data)
+static gint _default_key_press_event(GtkWidget *widget, GdkEventKey *event, gpointer data)
 {
 	GtkWidget *next = (GtkWidget *)data;
 
@@ -634,10 +644,27 @@ gint _default_key_press_event(GtkWidget *widget, GdkEventKey *event, gpointer da
 	return FALSE;
 }
 
-GdkPixmap *_find_pixmap(GdkBitmap **bitmap, long id, HWND handle, unsigned long *userwidth, unsigned long *userheight)
+static GdkPixmap *_find_private_pixmap(GdkBitmap **bitmap, long id, unsigned long *userwidth, unsigned long *userheight)
+{
+	if(id < _PixmapCount && _PixmapArray[id].used)
+	{
+		*bitmap = _PixmapArray[id].mask;
+		if(userwidth)
+			*userwidth = _PixmapArray[id].width;
+		if(userheight)
+			*userheight = _PixmapArray[id].height;
+		return _PixmapArray[id].pixmap;
+	}
+	return NULL;
+}
+
+static GdkPixmap *_find_pixmap(GdkBitmap **bitmap, long id, HWND handle, unsigned long *userwidth, unsigned long *userheight)
 {
 	char *data = NULL;
 	int z;
+
+	if(id & (1 << 31))
+		return _find_private_pixmap(bitmap, (id & 0xFFFFFF), userwidth, userheight);
 
 	for(z=0;z<_resources.resource_max;z++)
 	{
@@ -672,7 +699,7 @@ GdkPixmap *_find_pixmap(GdkBitmap **bitmap, long id, HWND handle, unsigned long 
 }
 
 #if GTK_MAJOR_VERSION > 1
-GdkPixbuf *_find_pixbuf(long id)
+static GdkPixbuf *_find_pixbuf(long id)
 {
 	char *data = NULL;
 	int z;
@@ -692,7 +719,7 @@ GdkPixbuf *_find_pixbuf(long id)
 }
 #endif
 
-void _size_allocate(GtkWindow *window)
+static void _size_allocate(GtkWindow *window)
 {
   XSizeHints sizehints;
 
@@ -712,7 +739,7 @@ void _size_allocate(GtkWindow *window)
 }
 
 /* Find the index of a given thread */
-int _find_thread_index(DWTID tid)
+static int _find_thread_index(DWTID tid)
 {
 	int z;
 
@@ -725,7 +752,7 @@ int _find_thread_index(DWTID tid)
 }
 
 /* Add a thread id to the thread list */
-void _dw_thread_add(DWTID tid)
+static void _dw_thread_add(DWTID tid)
 {
 	int z;
 
@@ -745,7 +772,7 @@ void _dw_thread_add(DWTID tid)
 }
 
 /* Remove a thread id to the thread list */
-void _dw_thread_remove(DWTID tid)
+static void _dw_thread_remove(DWTID tid)
 {
 	int z;
 
@@ -940,20 +967,7 @@ void *dw_dialog_wait(DWDialog *dialog)
 	return tmp;
 }
 
-int _delete(GtkWidget *widget, GtkWidget *event, gpointer param)
-{
-	gtk_widget_destroy(GTK_WIDGET(param));
-	return FALSE;
-}
-
-int _delete2(GtkWidget *widget, gpointer param)
-{
-	gtk_widget_destroy(GTK_WIDGET(param));
-	return FALSE;
-}
-
-
-int _dw_ok_func(HWND window, void *data)
+static int _dw_ok_func(HWND window, void *data)
 {
 	DWDialog *dwwait = (DWDialog *)data;
 
@@ -1244,7 +1258,7 @@ void dw_window_reparent(HWND handle, HWND newparent)
 	DW_MUTEX_UNLOCK;
 }
 
-int _set_font(HWND handle, char *fontname)
+static int _set_font(HWND handle, char *fontname)
 {
 	int retval = FALSE;
 #if GTK_MAJOR_VERSION < 2
@@ -1343,7 +1357,7 @@ void _free_gdk_colors(HWND handle)
 }
 
 /* Free old color pointers and allocate new ones */
-void _save_gdk_colors(HWND handle, GdkColor fore, GdkColor back)
+static void _save_gdk_colors(HWND handle, GdkColor fore, GdkColor back)
 {
 	GdkColor *foregdk = malloc(sizeof(GdkColor));
 	GdkColor *backgdk = malloc(sizeof(GdkColor));
@@ -1357,7 +1371,7 @@ void _save_gdk_colors(HWND handle, GdkColor fore, GdkColor back)
 	gtk_object_set_data(GTK_OBJECT(handle), "backgdk", (gpointer)backgdk);
 }
 
-int _set_color(HWND handle, unsigned long fore, unsigned long back)
+static int _set_color(HWND handle, unsigned long fore, unsigned long back)
 {
 	/* Remember that each color component in X11 use 16 bit no matter
 	 * what the destination display supports. (and thus GDK)
@@ -3824,7 +3838,7 @@ void dw_tree_item_select(HWND handle, HWND item)
 }
 
 #if GTK_MAJOR_VERSION > 1
-void _dw_recursive_free(GtkTreeModel *store, GtkTreeIter parent)
+static void _dw_recursive_free(GtkTreeModel *store, GtkTreeIter parent)
 {
 	void *data;
 	GtkTreeIter iter;
@@ -4028,7 +4042,7 @@ void dw_tree_delete(HWND handle, HWND item)
 #endif
 }
 
-int _dw_container_setup(HWND handle, unsigned long *flags, char **titles, int count, int separator, int extra)
+static int _dw_container_setup(HWND handle, unsigned long *flags, char **titles, int count, int separator, int extra)
 {
 	GtkWidget *clist;
 	char numbuf[10];
@@ -4135,9 +4149,15 @@ unsigned long dw_icon_load(unsigned long module, unsigned long id)
  */
 unsigned long API dw_icon_load_from_file(char *filename)
 {
+	int z, found = -1, _locked_by_me = FALSE;
+#if GTK_MAJOR_VERSION > 1
+	GdkPixbuf *pixbuf;
+#elif defined(USE_IMLIB)
+	GdkImlibImage *image;
+#endif
 	char *file = alloca(strlen(filename) + 5);
 
-	if(!file)
+	if (!file)
 		return 0;
 
 	strcpy(file, filename);
@@ -4145,13 +4165,65 @@ unsigned long API dw_icon_load_from_file(char *filename)
 	/* check if we can read from this file (it exists and read permission) */
 	if(access(file, 04) != 0)
 	{
-		/* Try with .bmp extention */
+		/* Try with .xpm extention */
 		strcat(file, ".xpm");
 		if(access(file, 04) != 0)
 			return 0;
 	}
-	/* Need to add code to add to the internal pixmap lists */
-	return 0;
+
+	DW_MUTEX_LOCK;
+	/* Find a free entry in the array */
+	for(z=0;z<_PixmapCount;z++)
+	{
+		if(!_PixmapArray[z].used)
+		{
+			found = z;
+			break;
+		}
+	}
+
+	/* If there are no free entries, expand the
+	 * array.
+	 */
+	if(found == -1)
+	{
+		DWPrivatePixmap *old = _PixmapArray;
+
+		found = _PixmapCount;
+		_PixmapCount++;
+
+		_PixmapArray = malloc(sizeof(DWPrivatePixmap) * _PixmapCount);
+
+		if(found)
+			memcpy(_PixmapArray, old, sizeof(DWPrivatePixmap) * found);
+		if(old)
+			free(old);
+		_PixmapArray[found].used = 1;
+		_PixmapArray[found].pixmap = _PixmapArray[found].mask = NULL;
+	}
+
+#if GTK_MAJOR_VERSION > 1
+	pixbuf = gdk_pixbuf_new_from_file(file, NULL);
+
+	_PixmapArray[found].width = gdk_pixbuf_get_width(pixbuf);
+	_PixmapArray[found].height = gdk_pixbuf_get_height(pixbuf);
+
+	gdk_pixbuf_render_pixmap_and_mask(pixbuf, &_PixmapArray[found].pixmap, &_PixmapArray[found].mask, 1);
+	g_object_unref(pixbuf);
+#elif defined(USE_IMLIB)
+	image = gdk_imlib_load_image(file);
+
+	_PixmapArray[found].width = image->rgb_width;
+	_PixmapArray[found].height = image->rgb_height;
+
+	gdk_imlib_render(image, image->rgb_width, image->rgb_height);
+	_PixmapArray[found].pixmap = gdk_imlib_copy_image(image);
+	gdk_imlib_destroy_image(image);
+#else
+	_PixmapArray[found].pixmap = gdk_pixmap_create_from_xpm(handle->window, &_PixmapArray[found].mask, &_colors[DW_CLR_PALEGRAY], file);
+#endif
+	DW_MUTEX_UNLOCK;
+	return found | (1 << 31);
 }
 
 /*
@@ -4161,6 +4233,29 @@ unsigned long API dw_icon_load_from_file(char *filename)
  */
 void dw_icon_free(unsigned long handle)
 {
+	/* If it is a private icon, find the item
+	 * free the associated structures and set
+	 * the entry to unused.
+	 */
+	if(handle & (1 << 31))
+	{
+		unsigned long id = handle & 0xFFFFFF;
+
+		if(id < _PixmapCount && _PixmapArray[id].used)
+		{
+			if(_PixmapArray[id].mask)
+			{
+				gdk_bitmap_unref(_PixmapArray[id].mask);
+				_PixmapArray[id].mask = NULL;
+			}
+			if(_PixmapArray[id].pixmap)
+			{
+				gdk_pixmap_unref(_PixmapArray[id].pixmap);
+				_PixmapArray[id].pixmap = NULL;
+			}
+			_PixmapArray[id].used = 0;
+		}
+	}
 }
 
 /* Clears a CList selection and associated selection list */
@@ -4766,7 +4861,7 @@ HWND dw_render_new(unsigned long id)
 }
 
 /* Returns a GdkColor from a DW color */
-GdkColor _internal_color(unsigned long value)
+static GdkColor _internal_color(unsigned long value)
 {
 	if(DW_RGB_COLOR & value)
 	{
@@ -6449,7 +6544,7 @@ void dw_listbox_set_text(HWND handle, unsigned int index, char *buffer)
 
 #if GTK_MAJOR_VERSION < 2
 /* Check if a GList item is in another GList */
-int _dw_in_list(GList *item, GList *list)
+static int _dw_in_list(GList *item, GList *list)
 {
 	while(list)
 	{
@@ -6637,7 +6732,7 @@ void dw_listbox_delete(HWND handle, int index)
 }
 
 /* Reposition the bar according to the percentage */
-gint _splitbar_size_allocate(GtkWidget *widget, GtkAllocation *event, gpointer data)
+static gint _splitbar_size_allocate(GtkWidget *widget, GtkAllocation *event, gpointer data)
 {
 	float *percent = (float *)gtk_object_get_data(GTK_OBJECT(widget), "_dw_percent");
 	int lastwidth = (int)gtk_object_get_data(GTK_OBJECT(widget), "_dw_lastwidth");
@@ -6662,7 +6757,7 @@ gint _splitbar_size_allocate(GtkWidget *widget, GtkAllocation *event, gpointer d
 
 #if GTK_MAJOR_VERSION > 1
 /* Figure out the new percentage */
-void _splitbar_accept_position(GObject *object, GParamSpec *pspec, gpointer data)
+static void _splitbar_accept_position(GObject *object, GParamSpec *pspec, gpointer data)
 {
 	GtkWidget *widget = (GtkWidget *)data;
 	float *percent = (float *)gtk_object_get_data(GTK_OBJECT(widget), "_dw_percent");
@@ -6944,7 +7039,7 @@ void dw_environment_query(DWEnv *env)
 }
 
 /* Internal function to handle the file OK press */
-gint _gtk_file_ok(GtkWidget *widget, DWDialog *dwwait)
+static gint _gtk_file_ok(GtkWidget *widget, DWDialog *dwwait)
 {
 #if GTK_MAJOR_VERSION > 1
 	const char *tmp;
@@ -6965,7 +7060,7 @@ gint _gtk_file_ok(GtkWidget *widget, DWDialog *dwwait)
 }
 
 /* Internal function to handle the file Cancel press */
-gint _gtk_file_cancel(GtkWidget *widget, DWDialog *dwwait)
+static gint _gtk_file_cancel(GtkWidget *widget, DWDialog *dwwait)
 {
 	if(!dwwait)
 		return FALSE;
