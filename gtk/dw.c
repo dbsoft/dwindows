@@ -5042,7 +5042,9 @@ int dw_module_symbol(HMOD handle, char *name, void**func)
  */
 int dw_module_close(HMOD handle)
 {
-	return dlclose(handle);
+	if(handle)
+		return dlclose(handle);
+	return 0;
 }
 
 /*
