@@ -675,7 +675,7 @@ void dw_container_set_item(HWND handle, void *pointer, int column, int row, void
 void dw_container_set_column_width(HWND handle, int column, int width);
 void dw_container_set_row_title(void *pointer, int row, char *title);
 void dw_container_insert(HWND handle, void *pointer, int rowcount);
-void dw_container_clear(HWND handle);
+void dw_container_clear(HWND handle, int redraw);
 void dw_container_delete(HWND handle, int rowcount);
 void dw_container_set_view(HWND handle, unsigned long flags, int iconwidth, int iconheight);
 char *dw_container_query_start(HWND handle, unsigned long flags);

@@ -5080,8 +5080,9 @@ void dw_container_insert(HWND handle, void *pointer, int rowcount)
  * Removes all rows from a container.
  * Parameters:
  *       handle: Handle to the window (widget) to be cleared.
+ *       redraw: TRUE to cause the container to redraw immediately.
  */
-void dw_container_clear(HWND handle)
+void dw_container_clear(HWND handle, int redraw)
 {
 	ListView_DeleteAllItems(handle);
 }

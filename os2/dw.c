@@ -5043,12 +5043,13 @@ void dw_container_insert(HWND handle, void *pointer, int rowcount)
  * Removes all rows from a container.
  * Parameters:
  *       handle: Handle to the window (widget) to be cleared.
+ *       redraw: TRUE to cause the container to redraw immediately.
  */
-void dw_container_clear(HWND handle)
+void dw_container_clear(HWND handle, int redraw)
 {
 	int z = 0;
 
-	while((int)WinSendMsg(handle, CM_REMOVERECORD, (MPARAM)0L, MPFROM2SHORT(0, CMA_INVALIDATE | CMA_FREE)) == -1)
+	while((int)WinSendMsg(handle, CM_REMOVERECORD, (MPARAM)0L, MPFROM2SHORT(0, (redraw ? CMA_INVALIDATE : 0) | CMA_FREE)) == -1)
 	{
 		z++;
 		if(z > 5000000)

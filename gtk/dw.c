@@ -3149,8 +3149,9 @@ void dw_container_delete(HWND handle, int rowcount)
  * Removes all rows from a container.
  * Parameters:
  *       handle: Handle to the window (widget) to be cleared.
+ *       redraw: TRUE to cause the container to redraw immediately.
  */
-void dw_container_clear(HWND handle)
+void dw_container_clear(HWND handle, int redraw)
 {
 	GtkWidget *clist;
 	GList *list;
