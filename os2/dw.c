@@ -246,6 +246,28 @@ void _fix_button_owner(HWND handle, HWND dw)
 	return;
 }
 
+/* Free bitmap data associated with a window */
+void _free_bitmap(HWND handle)
+{
+	HBITMAP hbm = (HBITMAP)dw_window_get_data(handle, "_dw_bitmap");
+	HPS hps = (HPS)dw_window_get_data(handle, "_dw_hps");
+	HDC hdc = (HDC)dw_window_get_data(handle, "_dw_hdc");
+
+	if(hps)
+	{
+		GpiSetBitmap(hps, NULLHANDLE);
+		GpiAssociate(hps, NULLHANDLE);
+		GpiDestroyPS(hps);
+	}
+
+	if(hdc)
+		DevCloseDC(hdc);
+
+	if(hbm)
+		GpiDeleteBitmap(hbm);
+
+}
+
 /* This function removes and handlers on windows and frees
  * the user memory allocated to it.
  */
@@ -275,11 +297,9 @@ void _free_window_memory(HWND handle)
 	{
 		WindowData *wd = (WindowData *)ptr;
 		char tmpbuf[100];
-		HBITMAP hbm = (HBITMAP)dw_window_get_data(handle, "_dw_bitmap");
 
 		/* If this window has an associate bitmap destroy it. */
-		if(hbm)
-			GpiDeleteBitmap(hbm);
+		_free_bitmap(handle);
 
 		WinQueryClassName(handle, 99, tmpbuf);
 
@@ -3790,7 +3810,7 @@ HWND API dw_mdi_new(unsigned long id)
 /*
  * Create a bitmap object to be packed.
  * Parameters:
- *       id: An ID to be used with WinWindowFromID() or 0L.
+ *       id: An ID to be used with dw_window_from_id() or 0L.
  */
 HWND API dw_bitmap_new(ULONG id)
 {
@@ -4068,7 +4088,7 @@ HWND API dw_tree_new(ULONG id)
  * Create a new static text window (widget) to be packed.
  * Parameters:
  *       text: The text to be display by the static text widget.
- *       id: An ID to be used with WinWindowFromID() or 0L.
+ *       id: An ID to be used with dw_window_from_id() or 0L.
  */
 HWND API dw_text_new(char *text, ULONG id)
 {
@@ -4091,7 +4111,7 @@ HWND API dw_text_new(char *text, ULONG id)
  * Create a new status text window (widget) to be packed.
  * Parameters:
  *       text: The text to be display by the static text widget.
- *       id: An ID to be used with WinWindowFromID() or 0L.
+ *       id: An ID to be used with dw_window_from_id() or 0L.
  */
 HWND API dw_status_text_new(char *text, ULONG id)
 {
@@ -4120,7 +4140,7 @@ HWND API dw_status_text_new(char *text, ULONG id)
 /*
  * Create a new Multiline Editbox window (widget) to be packed.
  * Parameters:
- *       id: An ID to be used with WinWindowFromID() or 0L.
+ *       id: An ID to be used with dw_window_from_id() or 0L.
  */
 HWND API dw_mle_new(ULONG id)
 {
@@ -4148,7 +4168,7 @@ HWND API dw_mle_new(ULONG id)
  * Create a new Entryfield window (widget) to be packed.
  * Parameters:
  *       text: The default text to be in the entryfield widget.
- *       id: An ID to be used with WinWindowFromID() or 0L.
+ *       id: An ID to be used with dw_window_from_id() or 0L.
  */
 HWND API dw_entryfield_new(char *text, ULONG id)
 {
@@ -4176,7 +4196,7 @@ HWND API dw_entryfield_new(char *text, ULONG id)
  * Create a new Entryfield (password) window (widget) to be packed.
  * Parameters:
  *       text: The default text to be in the entryfield widget.
- *       id: An ID to be used with WinWindowFromID() or 0L.
+ *       id: An ID to be used with dw_window_from_id() or 0L.
  */
 HWND API dw_entryfield_password_new(char *text, ULONG id)
 {
@@ -4203,7 +4223,7 @@ HWND API dw_entryfield_password_new(char *text, ULONG id)
  * Create a new Combobox window (widget) to be packed.
  * Parameters:
  *       text: The default text to be in the combpbox widget.
- *       id: An ID to be used with WinWindowFromID() or 0L.
+ *       id: An ID to be used with dw_window_from_id() or 0L.
  */
 HWND API dw_combobox_new(char *text, ULONG id)
 {
@@ -4240,7 +4260,7 @@ HWND API dw_combobox_new(char *text, ULONG id)
  * Create a new button window (widget) to be packed.
  * Parameters:
  *       text: The text to be display by the static text widget.
- *       id: An ID to be used with WinWindowFromID() or 0L.
+ *       id: An ID to be used with dw_window_from_id() or 0L.
  */
 HWND API dw_button_new(char *text, ULONG id)
 {
@@ -4337,10 +4357,45 @@ HWND API dw_bitmapbutton_new(char *text, ULONG id)
 }
 
 /*
+ * Create a new bitmap button window (widget) to be packed from a file.
+ * Parameters:
+ *       text: Bubble help text to be displayed.
+ *       id: An ID to be used with dw_window_from_id() or 0L.
+ *       filename: Name of the file, omit extention to have
+ *                 DW pick the appropriate file extension.
+ *                 (BMP on OS/2 or Windows, XPM on Unix)
+ */
+HWND dw_bitmapbutton_new_from_file(char *text, unsigned long id, char filename)
+{
+	/* TODO: Actually get it to draw the bitmap */
+	BubbleButton *bubble = calloc(sizeof(BubbleButton), 1);
+	HWND tmp = WinCreateWindow(HWND_OBJECT,
+							   WC_BUTTON,
+							   "",
+							   WS_VISIBLE | BS_PUSHBUTTON |
+							   BS_BITMAP | BS_AUTOSIZE |
+							   BS_NOPOINTERFOCUS,
+							   0,0,2000,1000,
+							   NULLHANDLE,
+							   HWND_TOP,
+							   id,
+							   NULL,
+							   NULL);
+
+	bubble->id = id;
+	strncpy(bubble->bubbletext, text, BUBBLE_HELP_MAX - 1);
+	bubble->bubbletext[BUBBLE_HELP_MAX - 1] = '\0';
+	bubble->pOldProc = WinSubclassWindow(tmp, _BtProc);
+
+	WinSetWindowPtr(tmp, QWP_USER, bubble);
+	return tmp;
+}
+
+/*
  * Create a new spinbutton window (widget) to be packed.
  * Parameters:
  *       text: The text to be display by the static text widget.
- *       id: An ID to be used with WinWindowFromID() or 0L.
+ *       id: An ID to be used with dw_window_from_id() or 0L.
  */
 HWND API dw_spinbutton_new(char *text, ULONG id)
 {
@@ -4370,7 +4425,7 @@ HWND API dw_spinbutton_new(char *text, ULONG id)
  * Create a new radiobutton window (widget) to be packed.
  * Parameters:
  *       text: The text to be display by the static text widget.
- *       id: An ID to be used with WinWindowFromID() or 0L.
+ *       id: An ID to be used with dw_window_from_id() or 0L.
  */
 HWND API dw_radiobutton_new(char *text, ULONG id)
 {
@@ -4399,7 +4454,7 @@ HWND API dw_radiobutton_new(char *text, ULONG id)
  * Parameters:
  *       vertical: TRUE or FALSE if slider is vertical.
  *       increments: Number of increments available.
- *       id: An ID to be used with WinWindowFromID() or 0L.
+ *       id: An ID to be used with dw_window_from_id() or 0L.
  */
 HWND API dw_slider_new(int vertical, int increments, ULONG id)
 {
@@ -4432,7 +4487,7 @@ HWND API dw_slider_new(int vertical, int increments, ULONG id)
  * Parameters:
  *       vertical: TRUE or FALSE if scrollbar is vertical.
  *       increments: Number of increments available.
- *       id: An ID to be used with WinWindowFromID() or 0L.
+ *       id: An ID to be used with dw_window_from_id() or 0L.
  */
 HWND API dw_scrollbar_new(int vertical, int increments, ULONG id)
 {
@@ -4452,7 +4507,7 @@ HWND API dw_scrollbar_new(int vertical, int increments, ULONG id)
 /*
  * Create a new percent bar window (widget) to be packed.
  * Parameters:
- *       id: An ID to be used with WinWindowFromID() or 0L.
+ *       id: An ID to be used with dw_window_from_id() or 0L.
  */
 HWND API dw_percent_new(ULONG id)
 {
@@ -4478,7 +4533,7 @@ HWND API dw_percent_new(ULONG id)
  * Create a new checkbox window (widget) to be packed.
  * Parameters:
  *       text: The text to be display by the static text widget.
- *       id: An ID to be used with WinWindowFromID() or 0L.
+ *       id: An ID to be used with dw_window_from_id() or 0L.
  */
 HWND API dw_checkbox_new(char *text, ULONG id)
 {
@@ -4505,7 +4560,7 @@ HWND API dw_checkbox_new(char *text, ULONG id)
 /*
  * Create a new listbox window (widget) to be packed.
  * Parameters:
- *       id: An ID to be used with WinWindowFromID() or 0L.
+ *       id: An ID to be used with dw_window_from_id() or 0L.
  *       multi: Multiple select TRUE or FALSE.
  */
 HWND API dw_listbox_new(ULONG id, int multi)
@@ -4543,21 +4598,167 @@ void API dw_window_set_icon(HWND handle, ULONG id)
 	WinSendMsg(handle, WM_SETICON, (MPARAM)icon, 0);
 }
 
+/* Internal function to load a bitmap from a file and return handles
+ * to the bitmap, presentation space etc.
+ */
+int _load_bitmap_file(char *file, HWND handle, HBITMAP *hbm, HDC *hdc, HPS *hps, unsigned long *width, unsigned long *height)
+{
+	HFILE BitmapFileHandle = NULLHANDLE; /* handle for the file */
+	ULONG OpenAction = 0;
+	PBYTE BitmapFileBegin; /* pointer to the first byte of bitmap data  */
+	FILESTATUS BitmapStatus;
+	ULONG cbRead;
+	PBITMAPFILEHEADER2 pBitmapFileHeader;
+	PBITMAPINFOHEADER2 pBitmapInfoHeader;
+	ULONG ScanLines, ulFlags;
+	HPS hps1;
+	HDC hdc1;
+	SIZEL sizl = { 0, 0 };
+
+	/* open bitmap file */
+	DosOpen(file, &BitmapFileHandle, &OpenAction, 0L,
+			FILE_ARCHIVED | FILE_NORMAL | FILE_READONLY,
+			OPEN_ACTION_FAIL_IF_NEW | OPEN_ACTION_OPEN_IF_EXISTS,
+			OPEN_SHARE_DENYNONE | OPEN_ACCESS_READONLY |
+			OPEN_FLAGS_NOINHERIT, 0L);
+
+	if(!BitmapFileHandle)
+		return 0;
+
+	/* find out how big the file is  */
+	DosQueryFileInfo(BitmapFileHandle, 1, &BitmapStatus,
+					 sizeof(BitmapStatus));
+
+	/* allocate memory to load the bitmap */
+	DosAllocMem((PPVOID)&BitmapFileBegin, (ULONG)BitmapStatus.cbFile,
+				PAG_READ | PAG_WRITE | PAG_COMMIT);
+
+	/* read bitmap file into memory buffer */
+	DosRead(BitmapFileHandle, (PVOID)BitmapFileBegin,
+			BitmapStatus.cbFile, &cbRead);
+
+	/* access first bytes as bitmap header */
+	pBitmapFileHeader = (PBITMAPFILEHEADER2)BitmapFileBegin;
+
+	/* check if it's a valid bitmap data file */
+	if((pBitmapFileHeader->usType != BFT_BITMAPARRAY) &&
+	   (pBitmapFileHeader->usType != BFT_BMAP))
+	{
+		/* free memory of bitmap file buffer */
+		DosFreeMem(BitmapFileBegin);
+		/* close the bitmap file */
+		DosClose(BitmapFileHandle);
+		return 0;
+	}
+
+	/* check if it's a file with multiple bitmaps */
+	if(pBitmapFileHeader->usType == BFT_BITMAPARRAY)
+	{
+		/* we'll just use the first bitmap and ignore the others */
+		pBitmapFileHeader = &(((PBITMAPARRAYFILEHEADER2)BitmapFileBegin)->bfh2);
+	}
+
+	/* set pointer to bitmap information block */
+	pBitmapInfoHeader = &pBitmapFileHeader->bmp2;
+
+	/* find out if it's the new 2.0 format or the old format */
+	/* and query number of lines */
+	if(pBitmapInfoHeader->cbFix == sizeof(BITMAPINFOHEADER))
+		ScanLines = (ULONG)((PBITMAPINFOHEADER)pBitmapInfoHeader)->cy;
+	else
+		ScanLines = pBitmapInfoHeader->cy;
+
+	/* now we need a presentation space, get it from static control */
+	hps1 = WinGetPS(handle);
+
+	hdc1    = GpiQueryDevice(hps1);
+	ulFlags = GpiQueryPS(hps1, &sizl);
+
+	*hdc = DevOpenDC(dwhab, OD_MEMORY, "*", 0L, NULL, hdc1);
+	*hps = GpiCreatePS (dwhab, *hdc, &sizl, ulFlags | GPIA_ASSOC);
+
+	*width = pBitmapInfoHeader->cx; *height = pBitmapInfoHeader->cy;
+
+	/* create bitmap now using the parameters from the info block */
+	*hbm = GpiCreateBitmap(*hps, pBitmapInfoHeader, 0L, NULL, NULL);
+
+	/* select the new bitmap into presentation space */
+	GpiSetBitmap(*hps, *hbm);
+
+	/* now copy the bitmap data into the bitmap */
+	GpiSetBitmapBits(*hps, 0L, ScanLines,
+					 BitmapFileBegin + pBitmapFileHeader->offBits,
+					 (PBITMAPINFO2)pBitmapInfoHeader);
+
+	WinReleasePS(hps1);
+
+	/* free memory of bitmap file buffer */
+	DosFreeMem(BitmapFileBegin);
+	/* close the bitmap file */
+	DosClose(BitmapFileHandle);
+	return 1;
+}
+
 /*
  * Sets the bitmap used for a given static window.
  * Parameters:
  *       handle: Handle to the window.
- *       id: An ID to be used to specify the icon.
+ *       id: An ID to be used to specify the icon,
+ *           (pass 0 if you use the filename param)
+ *       filename: a path to a file (Bitmap on OS/2 or
+ *                 Windows and a pixmap on Unix, pass
+ *                 NULL if you use the id param)
  */
-void API dw_window_set_bitmap(HWND handle, ULONG id)
+void API dw_window_set_bitmap(HWND handle, unsigned long id, char *filename)
 {
 	HBITMAP hbm;
-	HPS     hps = WinGetPS(handle);
+	HPS     hps;
 
-	hbm = GpiLoadBitmap(hps, NULLHANDLE, id, 0, 0);
+	/* Destroy any old bitmap data */
+	_free_bitmap(handle);
+
+	/* If id is non-zero use the resource */
+	if(id)
+	{
+		hps = WinGetPS(handle);
+
+		hbm = GpiLoadBitmap(hps, NULLHANDLE, id, 0, 0);
+	}
+	else if(filename)
+	{
+		HDC hdc;
+		unsigned long width, height;
+		char *file = alloca(strlen(filename) + 5);
+
+		if(!file)
+			return;
+
+		strcpy(file, filename);
+
+		/* check if we can read from this file (it exists and read permission) */
+		if(access(file, 04) != 0)
+		{
+			/* Try with .bmp extention */
+			strcat(file, ".bmp");
+			if(access(file, 04) != 0)
+				return;
+		}
+
+		if(!_load_bitmap_file(file, handle, &hbm, &hdc, &hps, &width, &height))
+			return;
+
+		dw_window_set_data(handle, "_dw_hps", (void *)hps);
+		dw_window_set_data(handle, "_dw_hdc", (void *)hdc);
+		dw_window_set_data(handle, "_dw_width", (void *)width);
+		dw_window_set_data(handle, "_dw_height", (void *)height);
+	}
+	else
+		return;
+
 	WinSetWindowBits(handle,QWL_STYLE,SS_BITMAP,SS_BITMAP | 0x7f);
 	WinSendMsg( handle, SM_SETHANDLE, MPFROMP(hbm), NULL );
-	WinReleasePS(hps);
+	if(id)
+		WinReleasePS(hps);
 	dw_window_set_data(handle, "_dw_bitmap", (void *)hbm);
 }
 
@@ -6797,17 +6998,6 @@ HPIXMAP API dw_pixmap_new(HWND handle, unsigned long width, unsigned long height
  */
 HPIXMAP API dw_pixmap_new_from_file(HWND handle, char *filename)
 {
-	HFILE BitmapFileHandle = NULLHANDLE; /* handle for the file */
-	ULONG OpenAction = 0;
-	PBYTE BitmapFileBegin; /* pointer to the first byte of bitmap data  */
-	FILESTATUS BitmapStatus;
-	ULONG cbRead;
-	PBITMAPFILEHEADER2 pBitmapFileHeader;
-	PBITMAPINFOHEADER2 pBitmapInfoHeader;
-	ULONG ScanLines, ulFlags;
-	HPS hps;
-	HDC hdc;
-	SIZEL sizl = { 0, 0 };
 	HPIXMAP pixmap;
 	char *file = alloca(strlen(filename) + 5);
 
@@ -6828,88 +7018,15 @@ HPIXMAP API dw_pixmap_new_from_file(HWND handle, char *filename)
 		}
 	}
 
-	/* open bitmap file */
-	DosOpen(filename, &BitmapFileHandle, &OpenAction, 0L,
-			FILE_ARCHIVED | FILE_NORMAL | FILE_READONLY,
-			OPEN_ACTION_FAIL_IF_NEW | OPEN_ACTION_OPEN_IF_EXISTS,
-			OPEN_SHARE_DENYNONE | OPEN_ACCESS_READONLY |
-			OPEN_FLAGS_NOINHERIT, 0L);
-	if(!BitmapFileHandle)
+	/* Try to load the bitmap from file */
+	if(!_load_bitmap_file(file, handle, &pixmap->hbm, &pixmap->hdc, &pixmap->hps, &pixmap->width, &pixmap->height))
 	{
 		free(pixmap);
 		return NULL;
 	}
 
-	/* find out how big the file is  */
-	DosQueryFileInfo(BitmapFileHandle, 1, &BitmapStatus,
-					 sizeof(BitmapStatus));
-
-	/* allocate memory to load the bitmap */
-	DosAllocMem((PPVOID)&BitmapFileBegin, (ULONG)BitmapStatus.cbFile,
-				PAG_READ | PAG_WRITE | PAG_COMMIT);
-
-	/* read bitmap file into memory buffer */
-	DosRead(BitmapFileHandle, (PVOID)BitmapFileBegin,
-			BitmapStatus.cbFile, &cbRead);
-
-	/* access first bytes as bitmap header */
-	pBitmapFileHeader = (PBITMAPFILEHEADER2)BitmapFileBegin;
-
-	/* check if it's a valid bitmap data file */
-	if((pBitmapFileHeader->usType != BFT_BITMAPARRAY) &&
-	   (pBitmapFileHeader->usType != BFT_BMAP))
-	{
-		/* free memory of bitmap file buffer */
-		DosFreeMem(BitmapFileBegin);
-		/* close the bitmap file */
-		DosClose(BitmapFileHandle);
-		return NULL;
-	}
-
-	/* check if it's a file with multiple bitmaps */
-	if(pBitmapFileHeader->usType == BFT_BITMAPARRAY)
-	{
-		/* we'll just use the first bitmap and ignore the others */
-		pBitmapFileHeader = &(((PBITMAPARRAYFILEHEADER2)BitmapFileBegin)->bfh2);
-	}
-
-	/* set pointer to bitmap information block */
-	pBitmapInfoHeader = &pBitmapFileHeader->bmp2;
-
-	/* find out if it's the new 2.0 format or the old format */
-	/* and query number of lines */
-	if(pBitmapInfoHeader->cbFix == sizeof(BITMAPINFOHEADER))
-		ScanLines = (ULONG)((PBITMAPINFOHEADER)pBitmapInfoHeader)->cy;
-	else
-		ScanLines = pBitmapInfoHeader->cy;
-
-	/* now we need a presentation space, get it from static control */
-	hps = WinGetPS(handle);
-
-	hdc     = GpiQueryDevice(hps);
-	ulFlags = GpiQueryPS(hps, &sizl);
-
+	/* Success fill in other values */
 	pixmap->handle = handle;
-	pixmap->hdc = DevOpenDC(dwhab, OD_MEMORY, "*", 0L, NULL, hdc);
-	pixmap->hps = GpiCreatePS (dwhab, pixmap->hdc, &sizl, ulFlags | GPIA_ASSOC);
-
-	pixmap->width = pBitmapInfoHeader->cx; pixmap->height = pBitmapInfoHeader->cy;
-
-	/* create bitmap now using the parameters from the info block */
-	pixmap->hbm = GpiCreateBitmap(pixmap->hps, pBitmapInfoHeader, 0L, NULL, NULL);
-
-	/* select the new bitmap into presentation space */
-	GpiSetBitmap(pixmap->hps, pixmap->hbm);
-
-	/* now copy the bitmap data into the bitmap */
-	GpiSetBitmapBits(pixmap->hps, 0L, ScanLines,
-					 BitmapFileBegin + pBitmapFileHeader->offBits,
-					 (PBITMAPINFO2)pBitmapInfoHeader);
-
-	/* free memory of bitmap file buffer */
-	DosFreeMem(BitmapFileBegin);
-	/* close the bitmap file */
-	DosClose(BitmapFileHandle);
 
 	return pixmap;
 }

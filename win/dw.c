@@ -3943,7 +3943,7 @@ void API dw_pointer_set_pos(long x, long y)
  * Create a new static text window (widget) to be packed.
  * Parameters:
  *       text: The text to be display by the static text widget.
- *       id: An ID to be used with WinWindowFromID() or 0L.
+ *       id: An ID to be used with dw_window_from_id() or 0L.
  */
 HWND API dw_text_new(char *text, ULONG id)
 {
@@ -3964,7 +3964,7 @@ HWND API dw_text_new(char *text, ULONG id)
  * Create a new status text window (widget) to be packed.
  * Parameters:
  *       text: The text to be display by the static text widget.
- *       id: An ID to be used with WinWindowFromID() or 0L.
+ *       id: An ID to be used with dw_window_from_id() or 0L.
  */
 HWND API dw_status_text_new(char *text, ULONG id)
 {
@@ -3985,7 +3985,7 @@ HWND API dw_status_text_new(char *text, ULONG id)
 /*
  * Create a new Multiline Editbox window (widget) to be packed.
  * Parameters:
- *       id: An ID to be used with WinWindowFromID() or 0L.
+ *       id: An ID to be used with dw_window_from_id() or 0L.
  */
 HWND API dw_mle_new(ULONG id)
 {
@@ -4022,7 +4022,7 @@ HWND API dw_mle_new(ULONG id)
  * Create a new Entryfield window (widget) to be packed.
  * Parameters:
  *       text: The default text to be in the entryfield widget.
- *       id: An ID to be used with WinWindowFromID() or 0L.
+ *       id: An ID to be used with dw_window_from_id() or 0L.
  */
 HWND API dw_entryfield_new(char *text, ULONG id)
 {
@@ -4051,7 +4051,7 @@ HWND API dw_entryfield_new(char *text, ULONG id)
  * Create a new Entryfield passwird window (widget) to be packed.
  * Parameters:
  *       text: The default text to be in the entryfield widget.
- *       id: An ID to be used with WinWindowFromID() or 0L.
+ *       id: An ID to be used with dw_window_from_id() or 0L.
  */
 HWND API dw_entryfield_password_new(char *text, ULONG id)
 {
@@ -4093,7 +4093,7 @@ BOOL CALLBACK _subclass_child(HWND handle, LPARAM lp)
  * Create a new Combobox window (widget) to be packed.
  * Parameters:
  *       text: The default text to be in the combpbox widget.
- *       id: An ID to be used with WinWindowFromID() or 0L.
+ *       id: An ID to be used with dw_window_from_id() or 0L.
  */
 HWND API dw_combobox_new(char *text, ULONG id)
 {
@@ -4133,7 +4133,7 @@ HWND API dw_combobox_new(char *text, ULONG id)
  * Create a new button window (widget) to be packed.
  * Parameters:
  *       text: The text to be display by the static text widget.
- *       id: An ID to be used with WinWindowFromID() or 0L.
+ *       id: An ID to be used with dw_window_from_id() or 0L.
  */
 HWND API dw_button_new(char *text, ULONG id)
 {
@@ -4198,7 +4198,7 @@ HWND API dw_bitmapbutton_new(char *text, ULONG id)
  * Create a new spinbutton window (widget) to be packed.
  * Parameters:
  *       text: The text to be display by the static text widget.
- *       id: An ID to be used with WinWindowFromID() or 0L.
+ *       id: An ID to be used with dw_window_from_id() or 0L.
  */
 HWND API dw_spinbutton_new(char *text, ULONG id)
 {
@@ -4246,7 +4246,7 @@ HWND API dw_spinbutton_new(char *text, ULONG id)
  * Create a new radiobutton window (widget) to be packed.
  * Parameters:
  *       text: The text to be display by the static text widget.
- *       id: An ID to be used with WinWindowFromID() or 0L.
+ *       id: An ID to be used with dw_window_from_id() or 0L.
  */
 HWND API dw_radiobutton_new(char *text, ULONG id)
 {
@@ -4275,7 +4275,7 @@ HWND API dw_radiobutton_new(char *text, ULONG id)
  * Parameters:
  *       vertical: TRUE or FALSE if slider is vertical.
  *       increments: Number of increments available.
- *       id: An ID to be used with WinWindowFromID() or 0L.
+ *       id: An ID to be used with dw_window_from_id() or 0L.
  */
 HWND API dw_slider_new(int vertical, int increments, ULONG id)
 {
@@ -4303,7 +4303,7 @@ HWND API dw_slider_new(int vertical, int increments, ULONG id)
  * Parameters:
  *       vertical: TRUE or FALSE if scrollbar is vertical.
  *       increments: Number of increments available.
- *       id: An ID to be used with WinWindowFromID() or 0L.
+ *       id: An ID to be used with dw_window_from_id() or 0L.
  */
 HWND API dw_scrollbar_new(int vertical, int increments, ULONG id)
 {
@@ -4329,7 +4329,7 @@ HWND API dw_scrollbar_new(int vertical, int increments, ULONG id)
 /*
  * Create a new percent bar window (widget) to be packed.
  * Parameters:
- *       id: An ID to be used with WinWindowFromID() or 0L.
+ *       id: An ID to be used with dw_window_from_id() or 0L.
  */
 HWND API dw_percent_new(ULONG id)
 {
@@ -4347,7 +4347,7 @@ HWND API dw_percent_new(ULONG id)
  * Create a new checkbox window (widget) to be packed.
  * Parameters:
  *       text: The text to be display by the static text widget.
- *       id: An ID to be used with WinWindowFromID() or 0L.
+ *       id: An ID to be used with dw_window_from_id() or 0L.
  */
 HWND API dw_checkbox_new(char *text, ULONG id)
 {
@@ -4374,7 +4374,7 @@ HWND API dw_checkbox_new(char *text, ULONG id)
 /*
  * Create a new listbox window (widget) to be packed.
  * Parameters:
- *       id: An ID to be used with WinWindowFromID() or 0L.
+ *       id: An ID to be used with dw_window_from_id() or 0L.
  *       multi: Multiple select TRUE or FALSE.
  */
 HWND API dw_listbox_new(ULONG id, int multi)
@@ -4427,12 +4427,45 @@ void API dw_window_set_icon(HWND handle, ULONG id)
  * Sets the bitmap used for a given static window.
  * Parameters:
  *       handle: Handle to the window.
- *       id: An ID to be used to specify the icon.
+ *       id: An ID to be used to specify the icon,
+ *           (pass 0 if you use the filename param)
+ *       filename: a path to a file (Bitmap on OS/2 or
+ *                 Windows and a pixmap on Unix, pass
+ *                 NULL if you use the id param)
  */
-void API dw_window_set_bitmap(HWND handle, ULONG id)
+void API dw_window_set_bitmap(HWND handle, unsigned long id, char *filename)
 {
-	HBITMAP hbitmap = LoadBitmap(DWInstance, MAKEINTRESOURCE(id));
+	HBITMAP hbitmap;
 	HBITMAP oldbitmap = (HBITMAP)SendMessage(handle, STM_GETIMAGE, IMAGE_BITMAP, 0);
+
+	if(id)
+		hbitmap = LoadBitmap(DWInstance, MAKEINTRESOURCE(id));
+	else if(filename)
+	{
+		char *file = malloc(strlen(filename) + 5);
+
+		if (!file)
+			return;
+
+		strcpy(file, filename);
+
+		/* check if we can read from this file (it exists and read permission) */
+		if(access(file, 04) != 0)
+		{
+			/* Try with .bmp extention */
+			strcat(file, ".bmp");
+			if(access(file, 04) != 0)
+			{
+				free(file);
+				return;
+			}
+		}
+
+		hbitmap = (HBITMAP)LoadImage(NULL, file, IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
+		free(file);
+	}
+	else
+		return;
 
 	SendMessage(handle, STM_SETIMAGE,
 				(WPARAM) IMAGE_BITMAP,
