@@ -3656,10 +3656,13 @@ void API dw_window_track(HWND handle)
  */
 void API dw_window_pointer(HWND handle, int pointertype)
 {
-	dw_window_set_data(handle, "_dw_pointer",
-					   pointertype < 65535 ?
-					   (void *)WinQuerySysPointer(HWND_DESKTOP,pointertype, FALSE)
-					   : (void *)pointertype);
+	if(handle == HWND_DESKTOP)
+		WinSetPointer(handle, WinQuerySysPointer(HWND_DESKTOP,pointertype, FALSE));
+	else
+		dw_window_set_data(handle, "_dw_pointer",
+						   pointertype < 65535 ?
+						   (void *)WinQuerySysPointer(HWND_DESKTOP,pointertype, FALSE)
+						   : (void *)pointertype);
 }
 
 /*
