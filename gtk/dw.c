@@ -3747,6 +3747,7 @@ void dw_spinbutton_set_limits(HWND handle, long upper, long lower)
 	curval = dw_spinbutton_query(handle);
 	DW_MUTEX_LOCK;
 	adj = (GtkAdjustment *)gtk_adjustment_new((gfloat)curval, (gfloat)lower, (gfloat)upper, 1.0, 5.0, 0.0);
+	gtk_spin_button_set_adjustment(GTK_SPIN_BUTTON(handle), adj);
 	DW_MUTEX_UNLOCK;
 }
 
@@ -6169,6 +6170,16 @@ void dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, int 
 	if(!box)
 		return;
 
+		/*
+		 * If you try and pack an item into itself VERY bad things can happen; like at least an
+		 * infinite loop on GTK! Lets be safe!
+		 */
+	if(box == item)
+	{
+		dw_messagebox("dw_box_pack_end()", DW_MB_OK|DW_MB_ERROR, "Danger! Danger! Will Robinson; box and item are the same!",box,item);
+		return;
+	}
+
 	DW_MUTEX_LOCK;
 
 	if((tmp  = gtk_object_get_data(GTK_OBJECT(box), "_dw_boxhandle")))
@@ -7347,6 +7358,16 @@ void dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize, in
 
 	if(!box)
 		return;
+
+		/*
+		 * If you try and pack an item into itself VERY bad things can happen; like at least an
+		 * infinite loop on GTK! Lets be safe!
+		 */
+	if(box == item)
+	{
+		dw_messagebox("dw_box_pack_start()", DW_MB_OK|DW_MB_ERROR, "Danger! Danger! Will Robinson; box and item are the same!",box,item);
+		return;
+	}
 
 	DW_MUTEX_LOCK;
 
