@@ -5,8 +5,8 @@
 #include <share.h>
 #endif
 
-#ifdef __UNIX__
-#ifdef __FreeBSD__
+#if defined(__UNIX__) || defined(__MAC__)
+#if defined(__FreeBSD__) || defined(__MAC__)
 #include <sys/param.h>
 #include <sys/ucred.h>
 #include <sys/mount.h>
@@ -235,7 +235,7 @@ long double API drivefree(int drive)
 		return 0;
 
 	return (long double)((double)spc*(double)bps*(double)fc);
-#elif defined(__FreeBSD__)
+#elif defined(__FreeBSD__) || defined(__MAC__)
 	struct statfs *fsp;
 	int entries, index = 1;
 
@@ -332,7 +332,7 @@ long double API drivesize(int drive)
 		return 0;
 
 	return (long double)((double)spc*(double)bps*(double)tc);
-#elif defined(__FreeBSD__)
+#elif defined(__FreeBSD__) || defined(__MAC__)
 	struct statfs *fsp;
 	int entries, index = 1;
 
@@ -426,7 +426,7 @@ int API isdrive(int drive)
 
 	if(GetVolumeInformation(buffer, volname, 100, &spc, &bps, &fc, NULL, 0) != 0)
 		return 1;
-#elif defined(__FreeBSD__)
+#elif defined(__FreeBSD__) || defined(__MAC__)
 	struct statfs *fsp;
 	int entries, index = 1;
 
@@ -495,8 +495,8 @@ int API isdrive(int drive)
 
 void API getfsname(int drive, char *buf, int len)
 {
-#ifdef __UNIX__
-#ifdef __FreeBSD__
+#if defined(__UNIX__) || defined(__MAC__) 
+#if defined(__FreeBSD__) || defined(__MAC__)
 	struct statfs *fsp;
 	int entries, index = 1;
 
