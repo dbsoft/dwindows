@@ -88,7 +88,7 @@ typedef struct
 static int in_checkbox_handler = 0;
 
 /* List of signals and their equivilent Win32 message */
-#define SIGNALMAX 14
+#define SIGNALMAX 15
 
 SignalList SignalTranslate[SIGNALMAX] = {
 	{ WM_SIZE,        DW_SIGNAL_CONFIGURE },
@@ -104,7 +104,8 @@ SignalList SignalTranslate[SIGNALMAX] = {
 	{ LBN_SELCHANGE,  DW_SIGNAL_LIST_SELECT },
 	{ TVN_SELCHANGED, DW_SIGNAL_ITEM_SELECT },
 	{ WM_SETFOCUS,    DW_SIGNAL_SET_FOCUS },
-	{ WM_VSCROLL,     DW_SIGNAL_VALUE_CHANGED }
+	{ WM_VSCROLL,     DW_SIGNAL_VALUE_CHANGED },
+	{ TCN_SELCHANGE,  DW_SIGNAL_SWITCH_PAGE }
 };
 
 #ifdef BUILD_DLL
@@ -1572,6 +1573,16 @@ BOOL CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 										}
 									}
 								}
+							}
+						}
+						else if(tmp->message == TCN_SELCHANGE)
+						{
+							NMHDR FAR *tem=(NMHDR FAR *)mp2;
+							if(tmp->window == tem->hwndFrom)
+							{
+								int (*switchpagefunc)(HWND, int, void *) = tmp->signalfunction;
+								int num=TabCtrl_GetCurSel(tem->hwndFrom);
+								result = switchpagefunc(tem->hwndFrom, num, tmp->data);
 							}
 						}
 					}
