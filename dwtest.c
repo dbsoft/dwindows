@@ -167,7 +167,7 @@ void text_add(void)
 
 	scrollbar = dw_scrollbar_new(FALSE, 100, 0);
 	dw_box_pack_start( pagebox, scrollbar, 100, 20, TRUE, FALSE, 0);
-	dw_scrollbar_set_range(scrollbar, 0, 0);
+	dw_scrollbar_set_range(scrollbar, 0);
 
 	text1pm = dw_pixmap_new( textbox1, font_width*width1, font_height*rows, depth );
 	text2pm = dw_pixmap_new( textbox2, font_width*width2, font_height*rows, depth );
