@@ -343,16 +343,19 @@ ULONG _findsigmessage(char *signame)
  */
 BOOL CALLBACK _free_window_memory(HWND handle, LPARAM lParam)
 {
-	void *ptr = (void *)GetWindowLong(handle, GWL_USERDATA);
+	ColorInfo *thiscinfo = (ColorInfo *)GetWindowLong(handle, GWL_USERDATA);
 
 #ifndef NO_SIGNALS
 	dw_signal_disconnect_by_window(handle);
 #endif
 
-	if(ptr)
+	if(thiscinfo)
 	{
+		if(thiscinfo->hbrush)
+			DeleteObject(thiscinfo->hbrush);
+
 		SetWindowLong(handle, GWL_USERDATA, 0);
-		free(ptr);
+		free(thiscinfo);
 	}
 	return TRUE;
 }
@@ -1540,7 +1543,7 @@ BOOL CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 	case WM_CHAR:
 		if(LOWORD(mp1) == '\t')
 		{
-			if(GetAsyncKeyState(VK_SHIFT))
+			if(GetAsyncKeyState(VK_SHIFT) & 0x8000)
 				_shift_focus_back(hWnd);
 			else
 				_shift_focus(hWnd);
@@ -1611,7 +1614,8 @@ BOOL CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 					SetBkColor((HDC)mp1, RGB(_red[thiscinfo->back],
 											 _green[thiscinfo->back],
 											 _blue[thiscinfo->back]));
-					DeleteObject(thiscinfo->hbrush);
+					if(thiscinfo->hbrush)
+						DeleteObject(thiscinfo->hbrush);
 					thiscinfo->hbrush = CreateSolidBrush(RGB(_red[thiscinfo->back],
 															 _green[thiscinfo->back],
 															 _blue[thiscinfo->back]));
@@ -1626,7 +1630,8 @@ BOOL CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 					SetBkColor((HDC)mp1, RGB(DW_RED_VALUE(thiscinfo->back),
 												 DW_GREEN_VALUE(thiscinfo->back),
 												 DW_BLUE_VALUE(thiscinfo->back)));
-					DeleteObject(thiscinfo->hbrush);
+					if(thiscinfo->hbrush)
+						DeleteObject(thiscinfo->hbrush);
 					thiscinfo->hbrush = CreateSolidBrush(RGB(DW_RED_VALUE(thiscinfo->back),
 															 DW_GREEN_VALUE(thiscinfo->back),
 															 DW_BLUE_VALUE(thiscinfo->back)));
@@ -1868,7 +1873,7 @@ BOOL CALLBACK _colorwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 		case WM_CHAR:
 			if(LOWORD(mp1) == '\t')
 			{
-				if(GetAsyncKeyState(VK_SHIFT))
+				if(GetAsyncKeyState(VK_SHIFT) & 0x8000)
 				{
 					if(cinfo->combo)
 						_shift_focus_back(cinfo->combo);
@@ -1951,7 +1956,8 @@ BOOL CALLBACK _colorwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 						SetBkColor((HDC)mp1, RGB(_red[thiscinfo->back],
 												 _green[thiscinfo->back],
 												 _blue[thiscinfo->back]));
-						DeleteObject(thiscinfo->hbrush);
+						if(thiscinfo->hbrush)
+							DeleteObject(thiscinfo->hbrush);
 						thiscinfo->hbrush = CreateSolidBrush(RGB(_red[thiscinfo->back],
 																 _green[thiscinfo->back],
 																 _blue[thiscinfo->back]));
@@ -1966,7 +1972,8 @@ BOOL CALLBACK _colorwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 						SetBkColor((HDC)mp1, RGB(DW_RED_VALUE(thiscinfo->back),
 												 DW_GREEN_VALUE(thiscinfo->back),
 												 DW_BLUE_VALUE(thiscinfo->back)));
-						DeleteObject(thiscinfo->hbrush);
+						if(thiscinfo->hbrush)
+							DeleteObject(thiscinfo->hbrush);
 						thiscinfo->hbrush = CreateSolidBrush(RGB(DW_RED_VALUE(thiscinfo->back),
 																 DW_GREEN_VALUE(thiscinfo->back),
 																 DW_BLUE_VALUE(thiscinfo->back)));
@@ -2006,7 +2013,7 @@ BOOL CALLBACK _containerwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 
 			if(LOWORD(mp1) == '\t')
 			{
-				if(GetAsyncKeyState(VK_SHIFT))
+				if(GetAsyncKeyState(VK_SHIFT) & 0x8000)
 					_shift_focus_back(hWnd);
 				else
 					_shift_focus(hWnd);
@@ -2100,7 +2107,7 @@ BOOL CALLBACK _containerwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 	case WM_CHAR:
 		if(LOWORD(mp1) == '\t')
 		{
-			if(GetAsyncKeyState(VK_SHIFT))
+			if(GetAsyncKeyState(VK_SHIFT) & 0x8000)
 				_shift_focus_back(hWnd);
 			else
 				_shift_focus(hWnd);
@@ -2126,7 +2133,7 @@ BOOL CALLBACK _treewndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 	case WM_CHAR:
 		if(LOWORD(mp1) == '\t')
 		{
-			if(GetAsyncKeyState(VK_SHIFT))
+			if(GetAsyncKeyState(VK_SHIFT) & 0x8000)
 				_shift_focus_back(hWnd);
 			else
 				_shift_focus(hWnd);
@@ -2511,7 +2518,7 @@ BOOL CALLBACK _BtProc(HWND hwnd, ULONG msg, WPARAM mp1, LPARAM mp2)
 #endif
 			if(LOWORD(mp1) == '\t')
 			{
-				if(GetAsyncKeyState(VK_SHIFT))
+				if(GetAsyncKeyState(VK_SHIFT) & 0x8000)
 					_shift_focus_back(hwnd);
 				else
 					_shift_focus(hwnd);
@@ -2528,6 +2535,7 @@ BOOL CALLBACK _BtProc(HWND hwnd, ULONG msg, WPARAM mp1, LPARAM mp2)
 	case WM_TIMER:
 		if (hwndBubble)
 		{
+			_free_window_memory(hwndBubble, 0);
 			DestroyWindow(hwndBubble);
 			hwndBubble = 0;
 			KillTimer(hwnd, 1);
@@ -2552,6 +2560,7 @@ BOOL CALLBACK _BtProc(HWND hwnd, ULONG msg, WPARAM mp1, LPARAM mp2)
 
 				if(hwndBubble)
 				{
+					_free_window_memory(hwndBubble, 0);
 					DestroyWindow(hwndBubble);
 					hwndBubble = 0;
 					KillTimer(hwndBubbleLast, 1);
@@ -2562,6 +2571,7 @@ BOOL CALLBACK _BtProc(HWND hwnd, ULONG msg, WPARAM mp1, LPARAM mp2)
 					POINTL ptlWork = {0,0};
 					ULONG ulColor = DW_CLR_YELLOW;
 					SIZE size;
+					HFONT hFont, oldFont = (HFONT)0;
 					HDC hdc;
 					RECT rect;
 					void *oldproc;
@@ -2589,9 +2599,17 @@ BOOL CALLBACK _BtProc(HWND hwnd, ULONG msg, WPARAM mp1, LPARAM mp2)
 
 					SetTimer(hwnd, 1, 3000, NULL);
 
+					hFont = (HFONT)SendMessage(hwndBubble, WM_GETFONT, 0, 0);
+
 					hdc = GetDC(hwndBubble);
 
-					GetTextExtentPoint(hdc, bubble->bubbletext, strlen(bubble->bubbletext), &size);
+					if(hFont)
+						oldFont = (HFONT)SelectObject(hdc, hFont);
+
+					GetTextExtentPoint32(hdc, bubble->bubbletext, strlen(bubble->bubbletext), &size);
+
+					if(hFont)
+						SelectObject(hdc, oldFont);
 
 					MapWindowPoints(hwnd, HWND_DESKTOP, (LPPOINT)&ptlWork, 1);
 
@@ -2601,7 +2619,7 @@ BOOL CALLBACK _BtProc(HWND hwnd, ULONG msg, WPARAM mp1, LPARAM mp2)
 								 HWND_TOP,
 								 ptlWork.x,
 								 ptlWork.y + (rect.bottom-rect.top) + 1,
-								 size.cx + 2,
+								 size.cx + 8,
 								 size.cy + 2,
 								 SWP_NOACTIVATE | SWP_SHOWWINDOW);
 
@@ -2618,6 +2636,7 @@ BOOL CALLBACK _BtProc(HWND hwnd, ULONG msg, WPARAM mp1, LPARAM mp2)
 			if(bMouseOver)
 			{
 				bMouseOver = 0;
+				_free_window_memory(hwndBubble, 0);
 				DestroyWindow(hwndBubble);
 				hwndBubble = 0;
 				KillTimer(hwndBubbleLast, 1);
@@ -2632,6 +2651,7 @@ BOOL CALLBACK _BtProc(HWND hwnd, ULONG msg, WPARAM mp1, LPARAM mp2)
 		if(bMouseOver)
 		{
 			bMouseOver = 0;
+			_free_window_memory(hwndBubble, 0);
 			DestroyWindow(hwndBubble);
 			hwndBubble = 0;
 			KillTimer(hwndBubbleLast, 1);
