@@ -748,14 +748,34 @@ int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *usedy,
 		if(pass > 1 && *depth > 0)
 		{
 			if(thisbox->type == BOXVERT)
-				thisbox->items[z].xratio = ((float)((thisbox->width * thisbox->parentxratio)-((thisbox->items[z].pad*2)+(thisbox->parentpad*2))))/((float)(thisbox->minwidth-((thisbox->items[z].pad*2)+(thisbox->parentpad*2))));
+			{
+				if((thisbox->minwidth-((thisbox->items[z].pad*2)+(thisbox->parentpad*2))) == 0)
+					thisbox->items[z].xratio = 1.0;
+				else
+					thisbox->items[z].xratio = ((float)((thisbox->width * thisbox->parentxratio)-((thisbox->items[z].pad*2)+(thisbox->parentpad*2))))/((float)(thisbox->minwidth-((thisbox->items[z].pad*2)+(thisbox->parentpad*2))));
+			}
 			else
-				thisbox->items[z].xratio = ((float)((thisbox->width * thisbox->parentxratio)-thisbox->upx))/((float)(thisbox->minwidth-thisbox->upx));
+			{
+				if(thisbox->minwidth-thisbox->upx == 0)
+					thisbox->items[z].xratio = 1.0;
+				else
+					thisbox->items[z].xratio = ((float)((thisbox->width * thisbox->parentxratio)-thisbox->upx))/((float)(thisbox->minwidth-thisbox->upx));
+			}
 
 			if(thisbox->type == BOXHORZ)
-				thisbox->items[z].yratio = ((float)((thisbox->height * thisbox->parentyratio)-((thisbox->items[z].pad*2)+(thisbox->parentpad*2))))/((float)(thisbox->minheight-((thisbox->items[z].pad*2)+(thisbox->parentpad*2))));
+			{
+				if((thisbox->minheight-((thisbox->items[z].pad*2)+(thisbox->parentpad*2))) == 0)
+					thisbox->items[z].yratio = 1.0;
+				else
+					thisbox->items[z].yratio = ((float)((thisbox->height * thisbox->parentyratio)-((thisbox->items[z].pad*2)+(thisbox->parentpad*2))))/((float)(thisbox->minheight-((thisbox->items[z].pad*2)+(thisbox->parentpad*2))));
+			}
 			else
-				thisbox->items[z].yratio = ((float)((thisbox->height * thisbox->parentyratio)-thisbox->upy))/((float)(thisbox->minheight-thisbox->upy));
+			{
+				if(thisbox->minheight-thisbox->upy == 0)
+					thisbox->items[z].yratio = 1.0;
+				else
+					thisbox->items[z].yratio = ((float)((thisbox->height * thisbox->parentyratio)-thisbox->upy))/((float)(thisbox->minheight-thisbox->upy));
+			}
 
 			if(thisbox->items[z].type == TYPEBOX)
 			{
@@ -2756,8 +2776,38 @@ int dw_window_show(HWND handle)
 		swcntrl.uchVisibility = SWL_VISIBLE;
 		WinChangeSwitchEntry(hswitch, &swcntrl);
 	}
-	return rc;
+	if(WinWindowFromID(handle, FID_CLIENT))
+	{
+		WindowData *blah = WinQueryWindowPtr(handle, QWP_USER);
 
+		if(blah && !(blah->flags & DW_OS2_NEW_WINDOW))
+		{
+			ULONG cx = dw_screen_width(), cy = dw_screen_height();
+			int newx, newy, changed = 0;
+			SWP swp;
+
+			blah->flags |= DW_OS2_NEW_WINDOW;
+
+			WinQueryWindowPos(handle, &swp);
+
+			newx = swp.x;
+			newy = swp.y;
+
+			if((swp.x+swp.cx) > cx)
+			{
+				newx = (cx - swp.cx)/2;
+				changed = 1;
+			}
+			if((swp.y+swp.cy) > cy)
+			{
+				newy = (cy - swp.cy)/2;
+				changed = 1;
+			}
+			if(changed)
+				WinSetWindowPos(handle, NULLHANDLE, newx, newy, 0, 0, SWP_MOVE);
+		}
+	}
+	return rc;
 }
 
 /*
@@ -3011,7 +3061,7 @@ HWND dw_window_new(HWND hwndOwner, char *title, ULONG flStyle)
 {
 	HWND hwndclient = 0, hwndframe;
 	Box *newbox = calloc(1, sizeof(Box));
-	PFNWP *blah = malloc(sizeof(PFNWP));
+	WindowData *blah = calloc(1, sizeof(WindowData));
 
 	newbox->pad = 0;
 	newbox->type = BOXVERT;
@@ -3024,11 +3074,14 @@ HWND dw_window_new(HWND hwndOwner, char *title, ULONG flStyle)
 	else
 		flStyle |= FCF_TITLEBAR;
 
+	if(!(flStyle & FCF_SHELLPOSITION))
+		blah->flags |= DW_OS2_NEW_WINDOW;
+
 	hwndframe = WinCreateStdWindow(hwndOwner, 0L, &flStyle, ClassName, title, 0L, NULLHANDLE, 0L, &hwndclient);
 	newbox->hwndtitle = WinWindowFromID(hwndframe, FID_TITLEBAR);
 	if(!newbox->titlebar && newbox->hwndtitle)
 		WinSetParent(newbox->hwndtitle, HWND_OBJECT, FALSE);
-	*blah = WinSubclassWindow(hwndframe, _sizeproc);
+	blah->oldproc = WinSubclassWindow(hwndframe, _sizeproc);
 	WinSetWindowPtr(hwndframe, QWP_USER, blah);
 	WinSetWindowPtr(hwndclient, QWP_USER, newbox);
 
@@ -3490,6 +3543,7 @@ HWND dw_status_text_new(char *text, ULONG id)
  */
 HWND dw_mle_new(ULONG id)
 {
+	WindowData *blah = calloc(1, sizeof(WindowData));
 	HWND tmp = WinCreateWindow(HWND_OBJECT,
 							   WC_MLE,
 							   "",
@@ -3504,6 +3558,8 @@ HWND dw_mle_new(ULONG id)
 							   NULL);
 	dw_window_set_font(tmp, DefaultFont);
 	dw_window_set_font(tmp, DefaultFont);
+	blah->oldproc = WinSubclassWindow(tmp, _comboentryproc);
+	WinSetWindowPtr(tmp, QWP_USER, blah);
 	return tmp;
 }
 
@@ -3782,7 +3838,7 @@ HWND dw_percent_new(ULONG id)
  */
 HWND dw_checkbox_new(char *text, ULONG id)
 {
-	PFNWP *blah = malloc(sizeof(PFNWP));
+	BubbleButton *bubble = malloc(sizeof(BubbleButton));
 	HWND tmp = WinCreateWindow(HWND_OBJECT,
 							   WC_BUTTON,
 							   text,
@@ -3795,8 +3851,10 @@ HWND dw_checkbox_new(char *text, ULONG id)
 							   NULL);
 	dw_window_set_font(tmp, DefaultFont);
 	dw_window_set_color(tmp, DW_CLR_BLACK, DW_CLR_PALEGRAY);
-	*blah = WinSubclassWindow(tmp, _entryproc);
-	WinSetWindowPtr(tmp, QWP_USER, blah);
+	bubble->id = id;
+	bubble->bubbletext[0] = '\0';
+	bubble->pOldProc = WinSubclassWindow(tmp, _BtProc);
+	WinSetWindowPtr(tmp, QWP_USER, bubble);
 	return tmp;
 }
 
@@ -4721,19 +4779,23 @@ void dw_checkbox_set(HWND handle, int value)
 }
 
 /*
- * Inserts an item into a tree window (widget).
+ * Inserts an item into a tree window (widget) after another item.
  * Parameters:
  *          handle: Handle to the tree to be inserted.
+ *          item: Handle to the item to be positioned after.
  *          title: The text title of the entry.
  *          icon: Handle to coresponding icon.
  *          parent: Parent handle or 0 if root.
  *          itemdata: Item specific data.
  */
-HWND dw_tree_insert(HWND handle, char *title, unsigned long icon, HWND parent, void *itemdata)
+HWND dw_tree_insert_after(HWND handle, HWND item, char *title, unsigned long icon, HWND parent, void *itemdata)
 {
 	ULONG        cbExtra;
 	PCNRITEM     pci;
 	RECORDINSERT ri;
+
+	if(!item)
+		item = CMA_FIRST;
 
 	/* Calculate extra bytes needed for each record besides that needed for the
 	 * MINIRECORDCORE structure
@@ -4757,7 +4819,7 @@ HWND dw_tree_insert(HWND handle, char *title, unsigned long icon, HWND parent, v
 	memset(&ri, 0, sizeof(RECORDINSERT));
 
 	ri.cb                 = sizeof(RECORDINSERT);
-	ri.pRecordOrder       = (PRECORDCORE)CMA_END;
+	ri.pRecordOrder       = (PRECORDCORE)item;
 	ri.pRecordParent      = (PRECORDCORE)NULL;
 	ri.zOrder             = (USHORT)CMA_TOP;
 	ri.cRecordsInsert     = 1;
@@ -4772,6 +4834,20 @@ HWND dw_tree_insert(HWND handle, char *title, unsigned long icon, HWND parent, v
 	WinSendMsg(handle, CM_INSERTRECORD, MPFROMP(pci), MPFROMP(&ri));
 
 	return (HWND)pci;
+}
+
+/*
+ * Inserts an item into a tree window (widget).
+ * Parameters:
+ *          handle: Handle to the tree to be inserted.
+ *          title: The text title of the entry.
+ *          icon: Handle to coresponding icon.
+ *          parent: Parent handle or 0 if root.
+ *          itemdata: Item specific data.
+ */
+HWND dw_tree_insert(HWND handle, char *title, unsigned long icon, HWND parent, void *itemdata)
+{
+	return dw_tree_insert_after(handle, (HWND)CMA_END, title, icon, parent, itemdata);
 }
 
 /*
@@ -4884,7 +4960,10 @@ void dw_tree_delete(HWND handle, HWND item)
 		return;
 
 	if(pci->rc.pszIcon)
+	{
 		free(pci->rc.pszIcon);
+		pci->rc.pszIcon = 0;
+	}
 
 	WinSendMsg(handle, CM_REMOVERECORD, (MPARAM)&pci, MPFROM2SHORT(1, CMA_INVALIDATE | CMA_FREE));
 }
