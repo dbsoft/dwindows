@@ -3636,7 +3636,7 @@ HFONT _acquire_font(HWND handle, char *fontname)
 		lf.lfClipPrecision = 0;
 		lf.lfQuality = DEFAULT_QUALITY;
 		lf.lfPitchAndFamily = DEFAULT_PITCH | FW_DONTCARE;
-		/* 
+		/*
 		 * remove any font modifiers
 		 */
 		myFontName = strdup(&fontname[z+1]);
@@ -3821,7 +3821,7 @@ HWND API dw_window_new(HWND hwndOwner, char *title, ULONG flStyle)
 	 * at the bottom seems to work, so I'll leave
 	 * it like this for now.
 	 */
-#if 0 
+#if 0
 	if(hwndOwner)
 		flStyleEx |= WS_EX_MDICHILD;
 #endif
@@ -4325,7 +4325,7 @@ HWND API dw_status_text_new(char *text, ULONG id)
  */
 HWND API dw_mle_new(ULONG id)
 {
-    
+
 	HWND tmp = CreateWindowEx(WS_EX_CLIENTEDGE,
 							  EDITCLASSNAME,
 							  "",
@@ -5132,7 +5132,7 @@ unsigned long API dw_color_depth_get(void)
 {
 	int bpp;
 	HDC hdc = GetDC(HWND_DESKTOP);
-    
+
 	bpp = GetDeviceCaps(hdc, BITSPIXEL);
 
 	ReleaseDC(HWND_DESKTOP, hdc);
@@ -7174,7 +7174,7 @@ void API dw_container_optimize(HWND handle)
 void API dw_taskbar_insert(HWND handle, unsigned long icon, char *bubbletext)
 {
 	NOTIFYICONDATA tnid;
- 
+
 	tnid.cbSize = sizeof(NOTIFYICONDATA);
 	tnid.hWnd = handle;
 	tnid.uID = icon;
@@ -7276,6 +7276,34 @@ void API dw_color_background_set(unsigned long value)
 		_background[threadid] = DW_RGB_TRANSPARENT;
 	else
 		_background[threadid] = RGB(DW_RED_VALUE(value), DW_GREEN_VALUE(value), DW_BLUE_VALUE(value));
+}
+
+/* Allows the user to choose a color using the system's color chooser dialog.
+ * Parameters:
+ *       value: current color
+ * Returns:
+ *       The selected color or the current color if cancelled.
+ */
+unsigned long API dw_color_choose(unsigned long value)
+{
+	CHOOSECOLOR cc;
+	unsigned long newcolor;
+	COLORREF acrCustClr[16] = {0};
+
+	value = _internal_color(value);
+	if(value == DW_RGB_TRANSPARENT)
+		newcolor = DW_RGB_TRANSPARENT;
+	else
+		newcolor = RGB(DW_RED_VALUE(value), DW_GREEN_VALUE(value), DW_BLUE_VALUE(value));
+	ZeroMemory(&cc, sizeof(CHOOSECOLOR));
+	cc.lStructSize = sizeof(CHOOSECOLOR);
+	cc.rgbResult = newcolor;
+	cc.hwndOwner = HWND_DESKTOP;
+	cc.lpCustColors = (LPDWORD)acrCustClr;
+	cc.Flags = CC_FULLOPEN | CC_RGBINIT;
+	if (ChooseColor(&cc) == TRUE)
+		newcolor = DW_RGB(DW_RED_VALUE(cc.rgbResult), DW_GREEN_VALUE(cc.rgbResult), DW_BLUE_VALUE(cc.rgbResult));
+	return newcolor;
 }
 
 /* Draw a point on a window (preferably a render window).
@@ -8345,7 +8373,7 @@ void API dw_environment_query(DWEnv *env)
  * Returns:
  *       NULL on error. A malloced buffer containing
  *       the file path on success.
- *       
+ *
  */
 char * API dw_file_browse(char *title, char *defpath, char *ext, int flags)
 {

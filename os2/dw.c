@@ -7241,6 +7241,18 @@ void API dw_color_background_set(unsigned long value)
 	_background = value;
 }
 
+/* Allows the user to choose a color using the system's color chooser dialog.
+ * Parameters:
+ *       value: current color
+ * Returns:
+ *       The selected color or the current color if cancelled.
+ */
+unsigned long API dw_color_choose(unsigned long value)
+{
+	dw_messagebox("Not implemented", DW_MB_OK|DW_MB_INFORMATION, "This feature not yet supported.");
+	return value;
+}
+
 HPS _set_hps(HPS hps)
 {
 	LONG alTable[2];
@@ -8693,7 +8705,7 @@ int DWSIGNAL _tree_expand(HWND window, HTREEITEM item, void *data)
  * Returns:
  *       NULL on error. A malloced buffer containing
  *       the file path on success.
- *       
+ *
  */
 char * API dw_file_browse(char *title, char *defpath, char *ext, int flags)
 {

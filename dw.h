@@ -1074,6 +1074,7 @@ void API dw_exit(int exitcode);
 HWND API dw_render_new(unsigned long id);
 void API dw_color_foreground_set(unsigned long value);
 void API dw_color_background_set(unsigned long value);
+unsigned long API dw_color_choose(unsigned long value);
 void API dw_draw_point(HWND handle, HPIXMAP pixmap, int x, int y);
 void API dw_draw_line(HWND handle, HPIXMAP pixmap, int x1, int y1, int x2, int y2);
 void API dw_draw_rect(HWND handle, HPIXMAP pixmap, int fill, int x, int y, int width, int height);

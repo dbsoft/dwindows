@@ -27,6 +27,8 @@
 unsigned long flStyle = DW_FCF_SYSMENU | DW_FCF_TITLEBAR |
 	DW_FCF_SHELLPOSITION | DW_FCF_TASKLIST | DW_FCF_DLGBORDER;
 
+unsigned long current_color = DW_CLR_GREEN;
+
 	void create_button( int);
 
 #ifdef __MAC__
@@ -52,6 +54,7 @@ int main(int argc, char *argv[])
 HWND mainwindow,
      entryfield,
      cursortogglebutton,
+     colorchoosebutton,
      okbutton,
      cancelbutton,
      lbbox,
@@ -281,8 +284,16 @@ void draw_file( int row, int col )
 	}
 }
 
+
+int DWSIGNAL colorchoose_callback(HWND window, void *data)
+{
+	current_color = dw_color_choose(current_color);
+	return FALSE;
+}
+
 int DWSIGNAL cursortoggle_callback(HWND window, void *data)
 {
+
 	if(cursor_arrow)
 	{
 		dw_window_set_text((HWND)cursortogglebutton,"Set Cursor pointer - ARROW");
@@ -556,15 +567,15 @@ void archive_add(void)
 	dw_box_pack_start(lbbox, buttonbox, 0, 0, TRUE, TRUE, 0);
 
 	cursortogglebutton = dw_button_new("Set Cursor pointer - CLOCK", 1003L);
-
 	dw_box_pack_start(buttonbox, cursortogglebutton, 130, 30, TRUE, TRUE, 2);
 
-	okbutton = dw_button_new("Turn Off Annoying Beep!", 1001L);
+	colorchoosebutton = dw_button_new("Color Chooser Dialog", 1004L);
+	dw_box_pack_start(buttonbox, colorchoosebutton, 130, 30, TRUE, TRUE, 2);
 
+	okbutton = dw_button_new("Turn Off Annoying Beep!", 1001L);
 	dw_box_pack_start(buttonbox, okbutton, 130, 30, TRUE, TRUE, 2);
 
 	cancelbutton = dw_button_new("Exit", 1002L);
-
 	dw_box_pack_start(buttonbox, cancelbutton, 130, 30, TRUE, TRUE, 2);
 
 	/* Set some nice fonts and colors */
@@ -576,6 +587,7 @@ void archive_add(void)
 	dw_signal_connect(okbutton, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(beep_callback), (void *)notebookbox1);
 	dw_signal_connect(cancelbutton, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(exit_callback), (void *)mainwindow);
 	dw_signal_connect(cursortogglebutton, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(cursortoggle_callback), (void *)mainwindow);
+	dw_signal_connect(colorchoosebutton, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(colorchoose_callback), (void *)mainwindow);
 }
 
 
@@ -771,11 +783,11 @@ void buttons_add(void)
 	buttonboxperm = dw_box_new( BOXVERT, 0 );
 	dw_box_pack_start( buttonsbox, buttonboxperm, 25, 0, FALSE, TRUE, 2 );
 	dw_window_set_color(buttonboxperm, DW_CLR_WHITE, DW_CLR_WHITE);
-	abutton1 = dw_bitmapbutton_new_from_file( "Top", 0, "junk" );
+	abutton1 = dw_bitmapbutton_new_from_file( "Top", 0, FILE_ICON_NAME );
 	dw_box_pack_start( buttonboxperm, abutton1, 25, 25, FALSE, FALSE, 0 );
 	dw_signal_connect( abutton1, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(button_callback), NULL );
 	dw_box_pack_start( buttonboxperm, 0, 25, 5, FALSE, FALSE, 0 );
-	abutton2 = dw_bitmapbutton_new_from_file( "Bottom", 0, "junk" );
+	abutton2 = dw_bitmapbutton_new_from_file( "Bottom", 0, FOLDER_ICON_NAME );
 	dw_box_pack_start( buttonsbox, abutton2, 25, 25, FALSE, FALSE, 0 );
 	dw_signal_connect( abutton2, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(button_callback), NULL );
 
