@@ -384,9 +384,9 @@ static gint _item_select_event(GtkWidget *widget, GtkWidget *child, gpointer dat
 		{
 			if(list->data == (gpointer)child)
 			{
-				if(!gtk_object_get_data(GTK_OBJECT(work->window), "appending"))
+				if(!gtk_object_get_data(GTK_OBJECT(work->window), "_dw_appending"))
 				{
-					gtk_object_set_data(GTK_OBJECT(work->window), "item", (gpointer)item);
+					gtk_object_set_data(GTK_OBJECT(work->window), "_dw_item", (gpointer)item);
 					if(selectfunc)
 						retval = selectfunc(work->window, item, work->data);
 				}
@@ -451,8 +451,8 @@ static gint _tree_context_event(GtkWidget *widget, GdkEventButton *event, gpoint
 			retval = contextfunc(work->window, text, event->x, event->y, work->data, itemdata);
 #else
 			int (*contextfunc)(HWND, char *, int, int, void *, void *) = work->func;
-			char *text = (char *)gtk_object_get_data(GTK_OBJECT(widget), "text");
-			void *itemdata = (void *)gtk_object_get_data(GTK_OBJECT(widget), "itemdata");
+			char *text = (char *)gtk_object_get_data(GTK_OBJECT(widget), "_dw_text");
+			void *itemdata = (void *)gtk_object_get_data(GTK_OBJECT(widget), "_dw_itemdata");
 
 			if(widget != work->window)
 			{
@@ -460,12 +460,12 @@ static gint _tree_context_event(GtkWidget *widget, GdkEventButton *event, gpoint
 
 				if(tree && GTK_IS_TREE(tree))
 				{
-					GtkWidget *lastselect = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(tree), "lastselect");
+					GtkWidget *lastselect = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(tree), "_dw_lastselect");
 
 					if(lastselect && GTK_IS_TREE_ITEM(lastselect))
 					{
-						text = (char *)gtk_object_get_data(GTK_OBJECT(lastselect), "text");
-						itemdata = (void *)gtk_object_get_data(GTK_OBJECT(lastselect), "itemdata");
+						text = (char *)gtk_object_get_data(GTK_OBJECT(lastselect), "_dw_text");
+						itemdata = (void *)gtk_object_get_data(GTK_OBJECT(lastselect), "_dw_itemdata");
 					}
 				}
 			}
@@ -504,22 +504,22 @@ static gint _tree_select_event(GtkTreeSelection *sel, gpointer data)
 static gint _tree_select_event(GtkTree *tree, GtkWidget *child, gpointer data)
 {
 	SignalHandler *work = (SignalHandler *)data;
-	GtkWidget *treeroot = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(child), "tree");
+	GtkWidget *treeroot = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(child), "_dw_tree");
 	int retval = FALSE;
 
 	if(treeroot && GTK_IS_TREE(treeroot))
 	{
-		GtkWidget *lastselect = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(treeroot), "lastselect");
+		GtkWidget *lastselect = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(treeroot), "_dw_lastselect");
 		if(lastselect && GTK_IS_TREE_ITEM(lastselect))
 			gtk_tree_item_deselect(GTK_TREE_ITEM(lastselect));
-		gtk_object_set_data(GTK_OBJECT(treeroot), "lastselect", (gpointer)child);
+		gtk_object_set_data(GTK_OBJECT(treeroot), "_dw_lastselect", (gpointer)child);
 	}
 
 	if(work)
 	{
 		int (*treeselectfunc)(HWND, HTREEITEM, char *, void *, void *) = work->func;
-		char *text = (char *)gtk_object_get_data(GTK_OBJECT(child), "text");
-		void *itemdata = (void *)gtk_object_get_data(GTK_OBJECT(child), "itemdata");
+		char *text = (char *)gtk_object_get_data(GTK_OBJECT(child), "_dw_text");
+		void *itemdata = (void *)gtk_object_get_data(GTK_OBJECT(child), "_dw_itemdata");
 		retval = treeselectfunc(work->window, (HTREEITEM)child, text, work->data, itemdata);
 	}
 	return retval;
@@ -553,7 +553,7 @@ static gint _container_select_event(GtkWidget *widget, GdkEventButton *event, gp
 int _get_logical_page(HWND handle, unsigned long pageid)
 {
 	int z;
-	GtkWidget **pagearray = gtk_object_get_data(GTK_OBJECT(handle), "pagearray");
+	GtkWidget **pagearray = gtk_object_get_data(GTK_OBJECT(handle), "_dw_pagearray");
 	GtkWidget *thispage = gtk_notebook_get_nth_page(GTK_NOTEBOOK(handle), pageid);
   
 	if(pagearray && thispage)
@@ -614,8 +614,8 @@ static gint _value_changed_event(GtkAdjustment *adjustment, gpointer data)
 		int (*valuechangedfunc)(HWND, int, void *) = work->func;
 		int max = _round_value(adjustment->upper);
 		int val = _round_value(adjustment->value);
-		GtkWidget *slider = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(adjustment), "slider");
-		GtkWidget *scrollbar = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(adjustment), "scrollbar");
+		GtkWidget *slider = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(adjustment), "_dw_slider");
+		GtkWidget *scrollbar = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(adjustment), "_dw_scrollbar");
 
 		if(slider)
 		{
@@ -1272,7 +1272,7 @@ int dw_window_destroy(HWND handle)
 	DW_MUTEX_LOCK;
 	if(GTK_IS_WIDGET(handle))
 	{
-		GtkWidget *eventbox = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(handle), "eventbox");
+		GtkWidget *eventbox = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(handle), "_dw_eventbox");
 
 		if(eventbox && GTK_IS_WIDGET(eventbox))
 			gtk_widget_destroy(eventbox);
@@ -1363,21 +1363,21 @@ int dw_window_set_font(HWND handle, char *fontname)
 
 #if GTK_MAJOR_VERSION < 2
 	/* Free old font if it exists */
-	gdkfont = (GdkFont *)gtk_object_get_data(GTK_OBJECT(handle2), "gdkfont");
+	gdkfont = (GdkFont *)gtk_object_get_data(GTK_OBJECT(handle2), "_dw_gdkfont");
 	if(gdkfont)
 		gdk_font_unref(gdkfont);
 	gdkfont = gdk_font_load(fontname);
 	if(!gdkfont)
 		gdkfont = gdk_font_load("fixed");
-	gtk_object_set_data(GTK_OBJECT(handle2), "gdkfont", (gpointer)gdkfont);
+	gtk_object_set_data(GTK_OBJECT(handle2), "_dw_gdkfont", (gpointer)gdkfont);
 #endif
 
 	/* Free old font name if one is allocated */
-	data = gtk_object_get_data(GTK_OBJECT(handle2), "fontname");
+	data = gtk_object_get_data(GTK_OBJECT(handle2), "_dw_fontname");
 	if(data)
 		free(data);
 
-	gtk_object_set_data(GTK_OBJECT(handle2), "fontname", (gpointer)font);
+	gtk_object_set_data(GTK_OBJECT(handle2), "_dw_fontname", (gpointer)font);
 #if GTK_MAJOR_VERSION > 1
 	pfont = pango_font_description_from_string(fontname);
 
@@ -1393,12 +1393,12 @@ int dw_window_set_font(HWND handle, char *fontname)
 
 void _free_gdk_colors(HWND handle)
 {
-	GdkColor *old = (GdkColor *)gtk_object_get_data(GTK_OBJECT(handle), "foregdk");
+	GdkColor *old = (GdkColor *)gtk_object_get_data(GTK_OBJECT(handle), "_dw_foregdk");
 
 	if(old)
 		free(old);
 
-	old = (GdkColor *)gtk_object_get_data(GTK_OBJECT(handle), "backgdk");
+	old = (GdkColor *)gtk_object_get_data(GTK_OBJECT(handle), "_dw_backgdk");
 
 	if(old)
 		free(old);
@@ -1415,8 +1415,8 @@ static void _save_gdk_colors(HWND handle, GdkColor fore, GdkColor back)
 	*foregdk = fore;
 	*backgdk = back;
 
-	gtk_object_set_data(GTK_OBJECT(handle), "foregdk", (gpointer)foregdk);
-	gtk_object_set_data(GTK_OBJECT(handle), "backgdk", (gpointer)backgdk);
+	gtk_object_set_data(GTK_OBJECT(handle), "_dw_foregdk", (gpointer)foregdk);
+	gtk_object_set_data(GTK_OBJECT(handle), "_dw_backgdk", (gpointer)backgdk);
 }
 
 static int _set_color(HWND handle, unsigned long fore, unsigned long back)
@@ -1500,7 +1500,7 @@ static int _set_color(HWND handle, unsigned long fore, unsigned long back)
 
 	if(GTK_IS_CLIST(handle))
 	{
-		int z, rowcount = (int)gtk_object_get_data(GTK_OBJECT(handle), "rowcount");
+		int z, rowcount = (int)gtk_object_get_data(GTK_OBJECT(handle), "_dw_rowcount");
 
 		for(z=0;z<rowcount;z++)
 		{
@@ -1540,7 +1540,7 @@ int dw_window_set_color(HWND handle, unsigned long fore, unsigned long back)
 	}
 	else if(GTK_IS_TABLE(handle))
 	{
-		GtkWidget *tmp = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(handle), "eventbox");
+		GtkWidget *tmp = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(handle), "_dw_eventbox");
 		if(tmp)
 			handle2 = tmp;
 	}
@@ -1677,9 +1677,9 @@ HWND dw_box_new(int type, int pad)
 	eventbox = gtk_event_box_new();
 
 	gtk_widget_show(eventbox);
-	gtk_object_set_data(GTK_OBJECT(tmp), "eventbox", (gpointer)eventbox);
-	gtk_object_set_data(GTK_OBJECT(tmp), "boxtype", (gpointer)type);
-	gtk_object_set_data(GTK_OBJECT(tmp), "boxpad", (gpointer)pad);
+	gtk_object_set_data(GTK_OBJECT(tmp), "_dw_eventbox", (gpointer)eventbox);
+	gtk_object_set_data(GTK_OBJECT(tmp), "_dw_boxtype", (gpointer)type);
+	gtk_object_set_data(GTK_OBJECT(tmp), "_dw_boxpad", (gpointer)pad);
 	gtk_widget_show(tmp);
 	DW_MUTEX_UNLOCK;
 	return tmp;
@@ -1703,9 +1703,9 @@ HWND dw_groupbox_new(int type, int pad, char *title)
 	gtk_frame_set_label(GTK_FRAME(frame), title && *title ? title : NULL);
 	tmp = gtk_table_new(1, 1, FALSE);
 	gtk_container_border_width(GTK_CONTAINER(tmp), pad);
-	gtk_object_set_data(GTK_OBJECT(tmp), "boxtype", (gpointer)type);
-	gtk_object_set_data(GTK_OBJECT(tmp), "boxpad", (gpointer)pad);
-	gtk_object_set_data(GTK_OBJECT(frame), "boxhandle", (gpointer)tmp);
+	gtk_object_set_data(GTK_OBJECT(tmp), "_dw_boxtype", (gpointer)type);
+	gtk_object_set_data(GTK_OBJECT(tmp), "_dw_boxpad", (gpointer)pad);
+	gtk_object_set_data(GTK_OBJECT(frame), "_dw_boxhandle", (gpointer)tmp);
 	gtk_container_add(GTK_CONTAINER(frame), tmp);
 	gtk_widget_show(tmp);
 	gtk_widget_show(frame);
@@ -1763,7 +1763,7 @@ HWND dw_bitmap_new(unsigned long id)
 	tmp = gtk_pixmap_new(pixmap, bitmap);
 #endif
 	gtk_widget_show(tmp);
-	gtk_object_set_data(GTK_OBJECT(tmp), "id", (gpointer)id);
+	gtk_object_set_data(GTK_OBJECT(tmp), "_dw_id", (gpointer)id);
 	DW_MUTEX_UNLOCK;
 	return tmp;
 }
@@ -1790,8 +1790,8 @@ HWND dw_notebook_new(unsigned long id, int top)
 	gtk_notebook_popup_enable(GTK_NOTEBOOK(tmp));
 #endif
 	gtk_widget_show(tmp);
-	gtk_object_set_data(GTK_OBJECT(tmp), "id", (gpointer)id);
-	gtk_object_set_data(GTK_OBJECT(tmp), "pagearray", (gpointer)pagearray);
+	gtk_object_set_data(GTK_OBJECT(tmp), "_dw_id", (gpointer)id);
+	gtk_object_set_data(GTK_OBJECT(tmp), "_dw_pagearray", (gpointer)pagearray);
 	DW_MUTEX_UNLOCK;
 	return tmp;
 }
@@ -1812,8 +1812,8 @@ HMENUI dw_menu_new(unsigned long id)
 	tmp = gtk_menu_new();
 	gtk_widget_show(tmp);
 	accel_group = gtk_accel_group_new();
-	gtk_object_set_data(GTK_OBJECT(tmp), "id", (gpointer)id);
-	gtk_object_set_data(GTK_OBJECT(tmp), "accel", (gpointer)accel_group);
+	gtk_object_set_data(GTK_OBJECT(tmp), "_dw_id", (gpointer)id);
+	gtk_object_set_data(GTK_OBJECT(tmp), "_dw_accel", (gpointer)accel_group);
 	DW_MUTEX_UNLOCK;
 	return tmp;
 }
@@ -1835,7 +1835,7 @@ HMENUI dw_menubar_new(HWND location)
 	box = (GtkWidget *)gtk_object_get_user_data(GTK_OBJECT(location));
 	gtk_widget_show(tmp);
 	accel_group = gtk_accel_group_new();
-	gtk_object_set_data(GTK_OBJECT(tmp), "accel", (gpointer)accel_group);
+	gtk_object_set_data(GTK_OBJECT(tmp), "_dw_accel", (gpointer)accel_group);
 
 	if(box)
 		gtk_box_pack_end(GTK_BOX(box), tmp, FALSE, FALSE, 0);
@@ -1913,8 +1913,8 @@ HWND dw_menu_append_item(HMENUI menu, char *title, unsigned long id, unsigned lo
 	DW_MUTEX_LOCK;
 	accel = _removetilde(tempbuf, title);
 
-	accel_group = (GtkAccelGroup *)gtk_object_get_data(GTK_OBJECT(menu), "accel");
-	submenucount = (int)gtk_object_get_data(GTK_OBJECT(menu), "submenucount");
+	accel_group = (GtkAccelGroup *)gtk_object_get_data(GTK_OBJECT(menu), "_dw_accel");
+	submenucount = (int)gtk_object_get_data(GTK_OBJECT(menu), "_dw_submenucount");
 
 	if(strlen(tempbuf) == 0)
 		tmphandle=gtk_menu_item_new();
@@ -1958,11 +1958,11 @@ HWND dw_menu_append_item(HMENUI menu, char *title, unsigned long id, unsigned lo
 	{
 		char tempbuf[100];
 
-		sprintf(tempbuf, "submenu%d", submenucount);
+		sprintf(tempbuf, "_dw_submenu%d", submenucount);
 		submenucount++;
 		gtk_menu_item_set_submenu(GTK_MENU_ITEM(tmphandle), submenu);
 		gtk_object_set_data(GTK_OBJECT(menu), tempbuf, (gpointer)submenu);
-		gtk_object_set_data(GTK_OBJECT(menu), "submenucount", (gpointer)submenucount);
+		gtk_object_set_data(GTK_OBJECT(menu), "_dw_submenucount", (gpointer)submenucount);
 	}
 
 	if(GTK_IS_MENU_BAR(menu))
@@ -1970,7 +1970,7 @@ HWND dw_menu_append_item(HMENUI menu, char *title, unsigned long id, unsigned lo
 	else
 		gtk_menu_append(GTK_MENU(menu), tmphandle);
 
-	gtk_object_set_data(GTK_OBJECT(tmphandle), "id", (gpointer)id);
+	gtk_object_set_data(GTK_OBJECT(tmphandle), "_dw_id", (gpointer)id);
 	free(tempbuf);
 	DW_MUTEX_UNLOCK;
 	return tmphandle;
@@ -1979,7 +1979,7 @@ HWND dw_menu_append_item(HMENUI menu, char *title, unsigned long id, unsigned lo
 GtkWidget *_find_submenu_id(GtkWidget *start, char *name)
 {
 	GtkWidget *tmp;
-	int z, submenucount = (int)gtk_object_get_data(GTK_OBJECT(start), "submenucount");
+	int z, submenucount = (int)gtk_object_get_data(GTK_OBJECT(start), "_dw_submenucount");
 
 	if((tmp = gtk_object_get_data(GTK_OBJECT(start), name)))
 		return tmp;
@@ -1989,7 +1989,7 @@ GtkWidget *_find_submenu_id(GtkWidget *start, char *name)
 		char tempbuf[100];
 		GtkWidget *submenu, *menuitem;
 
-		sprintf(tempbuf, "submenu%d", z);
+		sprintf(tempbuf, "_dw_submenu%d", z);
 
 		if((submenu = gtk_object_get_data(GTK_OBJECT(start), tempbuf)))
 		{
@@ -2104,8 +2104,8 @@ HWND dw_container_new(unsigned long id, int multi)
 	gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (tmp),
 					GTK_POLICY_AUTOMATIC, GTK_POLICY_ALWAYS);
 
-	gtk_object_set_data(GTK_OBJECT(tmp), "multi", (gpointer)multi);
-	gtk_object_set_data(GTK_OBJECT(tmp), "id", (gpointer)id);
+	gtk_object_set_data(GTK_OBJECT(tmp), "_dw_multi", (gpointer)multi);
+	gtk_object_set_data(GTK_OBJECT(tmp), "_dw_id", (gpointer)id);
 	gtk_widget_show(tmp);
 
 	DW_MUTEX_UNLOCK;
@@ -2134,7 +2134,7 @@ HWND dw_tree_new(ULONG id)
 	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW (tmp),
 					GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
 
-	gtk_object_set_data(GTK_OBJECT(tmp), "id", (gpointer)id);
+	gtk_object_set_data(GTK_OBJECT(tmp), "_dw_id", (gpointer)id);
 	gtk_widget_show(tmp);
 #if GTK_MAJOR_VERSION > 1
 	store = gtk_tree_store_new(4, G_TYPE_STRING, GDK_TYPE_PIXBUF, G_TYPE_POINTER, G_TYPE_POINTER);
@@ -2196,7 +2196,7 @@ HWND dw_text_new(char *text, unsigned long id)
 	/* Left and centered */
 	gtk_misc_set_alignment(GTK_MISC(tmp), 0.0f, 0.5f);
 	gtk_widget_show(tmp);
-	gtk_object_set_data(GTK_OBJECT(tmp), "id", (gpointer)id);
+	gtk_object_set_data(GTK_OBJECT(tmp), "_dw_id", (gpointer)id);
 	gtk_misc_set_alignment(GTK_MISC(tmp), DW_LEFT, DW_LEFT);
 	DW_MUTEX_UNLOCK;
 	return tmp;
@@ -2223,8 +2223,8 @@ HWND dw_status_text_new(char *text, ULONG id)
 
 	/* Left and centered */
 	gtk_misc_set_alignment(GTK_MISC(tmp), 0.0f, 0.5f);
-	gtk_object_set_data(GTK_OBJECT(frame), "id", (gpointer)id);
-	gtk_object_set_data(GTK_OBJECT(frame), "label", (gpointer)tmp);
+	gtk_object_set_data(GTK_OBJECT(frame), "_dw_id", (gpointer)id);
+	gtk_object_set_data(GTK_OBJECT(frame), "_dw_label", (gpointer)tmp);
 	DW_MUTEX_UNLOCK;
 	return frame;
 }
@@ -2261,7 +2261,7 @@ HWND dw_mle_new(unsigned long id)
 	gtk_box_pack_start(GTK_BOX(tmpbox), scroller, FALSE, TRUE, 0);
 	gtk_widget_show(scroller);
 #endif
-	gtk_object_set_data(GTK_OBJECT(tmp), "id", (gpointer)id);
+	gtk_object_set_data(GTK_OBJECT(tmp), "_dw_id", (gpointer)id);
 	gtk_object_set_user_data(GTK_OBJECT(tmpbox), (gpointer)tmp);
 	gtk_widget_show(tmp);
 	gtk_widget_show(tmpbox);
@@ -2286,7 +2286,7 @@ HWND dw_entryfield_new(char *text, unsigned long id)
 	gtk_entry_set_text(GTK_ENTRY(tmp), text);
 
 	gtk_widget_show(tmp);
-	gtk_object_set_data(GTK_OBJECT(tmp), "id", (gpointer)id);
+	gtk_object_set_data(GTK_OBJECT(tmp), "_dw_id", (gpointer)id);
 
 	DW_MUTEX_UNLOCK;
 	return tmp;
@@ -2310,7 +2310,7 @@ HWND dw_entryfield_password_new(char *text, ULONG id)
 	gtk_entry_set_text(GTK_ENTRY(tmp), text);
 
 	gtk_widget_show(tmp);
-	gtk_object_set_data(GTK_OBJECT(tmp), "id", (gpointer)id);
+	gtk_object_set_data(GTK_OBJECT(tmp), "_dw_id", (gpointer)id);
 
 	DW_MUTEX_UNLOCK;
 	return tmp;
@@ -2334,7 +2334,7 @@ HWND dw_combobox_new(char *text, unsigned long id)
 	gtk_combo_set_use_arrows(GTK_COMBO(tmp), TRUE);
 	gtk_object_set_user_data(GTK_OBJECT(tmp), NULL);
 	gtk_widget_show(tmp);
-	gtk_object_set_data(GTK_OBJECT(tmp), "id", (gpointer)id);
+	gtk_object_set_data(GTK_OBJECT(tmp), "_dw_id", (gpointer)id);
 
 	work->window = tmp;
 	work->func = NULL;
@@ -2359,7 +2359,7 @@ HWND dw_button_new(char *text, unsigned long id)
 	DW_MUTEX_LOCK;
 	tmp = gtk_button_new_with_label(text);
 	gtk_widget_show(tmp);
-	gtk_object_set_data(GTK_OBJECT(tmp), "id", (gpointer)id);
+	gtk_object_set_data(GTK_OBJECT(tmp), "_dw_id", (gpointer)id);
 	DW_MUTEX_UNLOCK;
 	return tmp;
 }
@@ -2393,7 +2393,7 @@ HWND dw_bitmapbutton_new(char *text, unsigned long id)
 		gtk_tooltips_set_tip(tooltips, tmp, text, NULL);
 		gtk_object_set_data(GTK_OBJECT(tmp), "tooltip", (gpointer)tooltips);
 	}
-	gtk_object_set_data(GTK_OBJECT(tmp), "id", (gpointer)id);
+	gtk_object_set_data(GTK_OBJECT(tmp), "_dw_id", (gpointer)id);
 	DW_MUTEX_UNLOCK;
 	return tmp;
 }
@@ -2430,7 +2430,7 @@ HWND dw_bitmapbutton_new_from_file(char *text, unsigned long id, char *filename)
 		gtk_tooltips_set_tip(tooltips, tmp, text, NULL);
 		gtk_object_set_data(GTK_OBJECT(tmp), "tooltip", (gpointer)tooltips);
 	}
-	gtk_object_set_data(GTK_OBJECT(tmp), "id", (gpointer)id);
+	gtk_object_set_data(GTK_OBJECT(tmp), "_dw_id", (gpointer)id);
 	DW_MUTEX_UNLOCK;
 	return tmp;
 }
@@ -2453,7 +2453,7 @@ HWND dw_spinbutton_new(char *text, unsigned long id)
 	gtk_spin_button_set_numeric(GTK_SPIN_BUTTON(tmp), TRUE);
 	gtk_spin_button_set_wrap(GTK_SPIN_BUTTON(tmp), TRUE);
 	gtk_widget_show(tmp);
-	gtk_object_set_data(GTK_OBJECT(tmp), "id", (gpointer)id);
+	gtk_object_set_data(GTK_OBJECT(tmp), "_dw_id", (gpointer)id);
 	DW_MUTEX_UNLOCK;
 	return tmp;
 }
@@ -2472,7 +2472,7 @@ HWND dw_radiobutton_new(char *text, ULONG id)
 
 	DW_MUTEX_LOCK;
 	tmp = gtk_radio_button_new_with_label(NULL, text);
-	gtk_object_set_data(GTK_OBJECT(tmp), "id", (gpointer)id);
+	gtk_object_set_data(GTK_OBJECT(tmp), "_dw_id", (gpointer)id);
 	gtk_widget_show(tmp);
 
 	DW_MUTEX_UNLOCK;
@@ -2501,9 +2501,9 @@ HWND dw_slider_new(int vertical, int increments, ULONG id)
 	gtk_widget_show(tmp);
 	gtk_scale_set_draw_value(GTK_SCALE(tmp), 0);
 	gtk_scale_set_digits(GTK_SCALE(tmp), 0);
-	gtk_object_set_data(GTK_OBJECT(tmp), "adjustment", (gpointer)adjustment);
-	gtk_object_set_data(GTK_OBJECT(adjustment), "slider", (gpointer)tmp);
-	gtk_object_set_data(GTK_OBJECT(tmp), "id", (gpointer)id);
+	gtk_object_set_data(GTK_OBJECT(tmp), "_dw_adjustment", (gpointer)adjustment);
+	gtk_object_set_data(GTK_OBJECT(adjustment), "_dw_slider", (gpointer)tmp);
+	gtk_object_set_data(GTK_OBJECT(tmp), "_dw_id", (gpointer)id);
 	DW_MUTEX_UNLOCK;
 	return tmp;
 }
@@ -2529,9 +2529,9 @@ HWND dw_scrollbar_new(int vertical, int increments, ULONG id)
 		tmp = gtk_hscrollbar_new(adjustment);
 	GTK_WIDGET_UNSET_FLAGS(tmp, GTK_CAN_FOCUS);
 	gtk_widget_show(tmp);
-	gtk_object_set_data(GTK_OBJECT(tmp), "adjustment", (gpointer)adjustment);
-	gtk_object_set_data(GTK_OBJECT(adjustment), "scrollbar", (gpointer)tmp);
-	gtk_object_set_data(GTK_OBJECT(tmp), "id", (gpointer)id);
+	gtk_object_set_data(GTK_OBJECT(tmp), "_dw_adjustment", (gpointer)adjustment);
+	gtk_object_set_data(GTK_OBJECT(adjustment), "_dw_scrollbar", (gpointer)tmp);
+	gtk_object_set_data(GTK_OBJECT(tmp), "_dw_id", (gpointer)id);
 	DW_MUTEX_UNLOCK;
 	return tmp;
 }
@@ -2549,7 +2549,7 @@ HWND dw_percent_new(unsigned long id)
 	DW_MUTEX_LOCK;
 	tmp = gtk_progress_bar_new();
 	gtk_widget_show(tmp);
-	gtk_object_set_data(GTK_OBJECT(tmp), "id", (gpointer)id);
+	gtk_object_set_data(GTK_OBJECT(tmp), "_dw_id", (gpointer)id);
 	DW_MUTEX_UNLOCK;
 	return tmp;
 }
@@ -2568,7 +2568,7 @@ HWND dw_checkbox_new(char *text, unsigned long id)
 	DW_MUTEX_LOCK;
 	tmp = gtk_check_button_new_with_label(text);
 	gtk_widget_show(tmp);
-	gtk_object_set_data(GTK_OBJECT(tmp), "id", (gpointer)id);
+	gtk_object_set_data(GTK_OBJECT(tmp), "_dw_id", (gpointer)id);
 	DW_MUTEX_UNLOCK;
 	return tmp;
 }
@@ -2597,7 +2597,7 @@ HWND dw_listbox_new(unsigned long id, int multi)
 	gtk_object_set_user_data(GTK_OBJECT(tmp), list);
 	gtk_widget_show(list);
 	gtk_widget_show(tmp);
-	gtk_object_set_data(GTK_OBJECT(tmp), "id", (gpointer)id);
+	gtk_object_set_data(GTK_OBJECT(tmp), "_dw_id", (gpointer)id);
 
 	DW_MUTEX_UNLOCK;
 	return tmp;
@@ -2719,7 +2719,7 @@ void dw_window_set_text(HWND handle, char *text)
 		gtk_label_set_text(GTK_LABEL(handle), text);
 	else if(GTK_IS_FRAME(handle))
 	{
-		GtkWidget *tmp = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(handle), "label");
+		GtkWidget *tmp = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(handle), "_dw_label");
 		if(tmp && GTK_IS_LABEL(tmp))
 			gtk_label_set_text(GTK_LABEL(tmp), text);
 	}
@@ -2804,7 +2804,7 @@ HWND API dw_window_from_id(HWND handle, int id)
 	{
 		if(GTK_IS_WIDGET(list->data))
 		{
-			if(id == (int)gtk_object_get_data(GTK_OBJECT(list->data), "id"))
+			if(id == (int)gtk_object_get_data(GTK_OBJECT(list->data), "_dw_id"))
 			{
 				HWND ret = (HWND)list->data;
 				g_list_free(orig);
@@ -2873,12 +2873,12 @@ unsigned int dw_mle_import(HWND handle, char *buffer, int startpoint)
 			free(impbuf);
 		}
 #else
-		GdkFont *font = (GdkFont *)gtk_object_get_data(GTK_OBJECT(handle), "gdkfont");
+		GdkFont *font = (GdkFont *)gtk_object_get_data(GTK_OBJECT(handle), "_dw_gdkfont");
     
 		if(tmp && GTK_IS_TEXT(tmp))
 		{
-			GdkColor *fore = (GdkColor *)gtk_object_get_data(GTK_OBJECT(handle), "foregdk");
-			GdkColor *back = (GdkColor *)gtk_object_get_data(GTK_OBJECT(handle), "backgdk");
+			GdkColor *fore = (GdkColor *)gtk_object_get_data(GTK_OBJECT(handle), "_dw_foregdk");
+			GdkColor *back = (GdkColor *)gtk_object_get_data(GTK_OBJECT(handle), "_dw_backgdk");
 			char *impbuf = malloc(strlen(buffer)+1);
 
 			_strip_cr(impbuf, buffer);
@@ -3444,7 +3444,7 @@ unsigned int dw_slider_query_pos(HWND handle)
 		return 0;
 
 	DW_MUTEX_LOCK;
-	adjustment = (GtkAdjustment *)gtk_object_get_data(GTK_OBJECT(handle), "adjustment");
+	adjustment = (GtkAdjustment *)gtk_object_get_data(GTK_OBJECT(handle), "_dw_adjustment");
 	if(adjustment)
 	{
 		int max = _round_value(adjustment->upper) - 1;
@@ -3474,7 +3474,7 @@ void dw_slider_set_pos(HWND handle, unsigned int position)
 		return;
 
 	DW_MUTEX_LOCK;
-	adjustment = (GtkAdjustment *)gtk_object_get_data(GTK_OBJECT(handle), "adjustment");
+	adjustment = (GtkAdjustment *)gtk_object_get_data(GTK_OBJECT(handle), "_dw_adjustment");
 	if(adjustment)
 	{
 		int max = _round_value(adjustment->upper) - 1;
@@ -3501,7 +3501,7 @@ unsigned int dw_scrollbar_query_pos(HWND handle)
 		return 0;
 
 	DW_MUTEX_LOCK;
-	adjustment = (GtkAdjustment *)gtk_object_get_data(GTK_OBJECT(handle), "adjustment");
+	adjustment = (GtkAdjustment *)gtk_object_get_data(GTK_OBJECT(handle), "_dw_adjustment");
 	if(adjustment)
 	{
 		int max = _round_value(adjustment->upper) - 1;
@@ -3531,7 +3531,7 @@ void dw_scrollbar_set_pos(HWND handle, unsigned int position)
 		return;
 
 	DW_MUTEX_LOCK;
-	adjustment = (GtkAdjustment *)gtk_object_get_data(GTK_OBJECT(handle), "adjustment");
+	adjustment = (GtkAdjustment *)gtk_object_get_data(GTK_OBJECT(handle), "_dw_adjustment");
 	if(adjustment)
 		gtk_adjustment_set_value(adjustment, (gfloat)position);
 	DW_MUTEX_UNLOCK;
@@ -3553,7 +3553,7 @@ void API dw_scrollbar_set_range(HWND handle, unsigned int range, unsigned int vi
 		return;
 
 	DW_MUTEX_LOCK;
-	adjustment = (GtkAdjustment *)gtk_object_get_data(GTK_OBJECT(handle), "adjustment");
+	adjustment = (GtkAdjustment *)gtk_object_get_data(GTK_OBJECT(handle), "_dw_adjustment");
 	if(adjustment)
 	{
 		adjustment->upper = (gdouble)range;
@@ -3726,11 +3726,11 @@ HTREEITEM dw_tree_insert_after(HWND handle, HTREEITEM item, char *title, unsigne
 
 	newitem = gtk_tree_item_new();
 	label = gtk_label_new(title);
-	gtk_object_set_data(GTK_OBJECT(newitem), "text", (gpointer)strdup(title));
-	gtk_object_set_data(GTK_OBJECT(newitem), "itemdata", (gpointer)itemdata);
-	gtk_object_set_data(GTK_OBJECT(newitem), "tree", (gpointer)tree);
+	gtk_object_set_data(GTK_OBJECT(newitem), "_dw_text", (gpointer)strdup(title));
+	gtk_object_set_data(GTK_OBJECT(newitem), "_dw_itemdata", (gpointer)itemdata);
+	gtk_object_set_data(GTK_OBJECT(newitem), "_dw_tree", (gpointer)tree);
 	hbox = gtk_hbox_new(FALSE, 2);
-	gtk_object_set_data(GTK_OBJECT(newitem), "hbox", (gpointer)hbox);
+	gtk_object_set_data(GTK_OBJECT(newitem), "_dw_hbox", (gpointer)hbox);
 	gdkpix = _find_pixmap(&gdkbmp, icon, hbox, NULL, NULL);
 	gtk_container_add(GTK_CONTAINER(newitem), hbox);
 	if(gdkpix)
@@ -3748,16 +3748,16 @@ HTREEITEM dw_tree_insert_after(HWND handle, HTREEITEM item, char *title, unsigne
 		subtree = (GtkWidget *)gtk_object_get_user_data(GTK_OBJECT(parent));
 		if(!subtree)
 		{
-			void *thisfunc = (void *)gtk_object_get_data(GTK_OBJECT(tree), "select-child-func");
-			void *work = (void *)gtk_object_get_data(GTK_OBJECT(tree), "select-child-data");
+			void *thisfunc = (void *)gtk_object_get_data(GTK_OBJECT(tree), "_dw_select_child_func");
+			void *work = (void *)gtk_object_get_data(GTK_OBJECT(tree), "_dw_select_child_data");
 
 			subtree = gtk_tree_new();
 
 			if(thisfunc && work)
 				gtk_signal_connect(GTK_OBJECT(subtree), "select-child", GTK_SIGNAL_FUNC(thisfunc), work);
 
-			thisfunc = (void *)gtk_object_get_data(GTK_OBJECT(tree), "container-context-func");
-			work = (void *)gtk_object_get_data(GTK_OBJECT(tree), "container-context-data");
+			thisfunc = (void *)gtk_object_get_data(GTK_OBJECT(tree), "_dw_container_context_func");
+			work = (void *)gtk_object_get_data(GTK_OBJECT(tree), "_dw_container_context_data");
 
 			if(thisfunc && work)
 				gtk_signal_connect(GTK_OBJECT(subtree), "button_press_event", GTK_SIGNAL_FUNC(thisfunc), work);
@@ -3771,12 +3771,12 @@ HTREEITEM dw_tree_insert_after(HWND handle, HTREEITEM item, char *title, unsigne
 			gtk_tree_item_expand(GTK_TREE_ITEM(parent));
 			gtk_tree_item_collapse(GTK_TREE_ITEM(parent));
 		}
-		gtk_object_set_data(GTK_OBJECT(newitem), "parenttree", (gpointer)subtree);
+		gtk_object_set_data(GTK_OBJECT(newitem), "_dw_parenttree", (gpointer)subtree);
 		gtk_tree_insert(GTK_TREE(subtree), newitem, position);
 	}
 	else
 	{
-		gtk_object_set_data(GTK_OBJECT(newitem), "parenttree", (gpointer)tree);
+		gtk_object_set_data(GTK_OBJECT(newitem), "_dw_parenttree", (gpointer)tree);
 		gtk_tree_insert(GTK_TREE(tree), newitem, position);
 	}
 	gtk_tree_item_expand(GTK_TREE_ITEM(newitem));
@@ -3845,11 +3845,11 @@ HTREEITEM dw_tree_insert(HWND handle, char *title, unsigned long icon, HTREEITEM
 	}
 	item = gtk_tree_item_new();
 	label = gtk_label_new(title);
-	gtk_object_set_data(GTK_OBJECT(item), "text", (gpointer)strdup(title));
-	gtk_object_set_data(GTK_OBJECT(item), "itemdata", (gpointer)itemdata);
-	gtk_object_set_data(GTK_OBJECT(item), "tree", (gpointer)tree);
+	gtk_object_set_data(GTK_OBJECT(item), "_dw_text", (gpointer)strdup(title));
+	gtk_object_set_data(GTK_OBJECT(item), "_dw_itemdata", (gpointer)itemdata);
+	gtk_object_set_data(GTK_OBJECT(item), "_dw_tree", (gpointer)tree);
 	hbox = gtk_hbox_new(FALSE, 2);
-	gtk_object_set_data(GTK_OBJECT(item), "hbox", (gpointer)hbox);
+	gtk_object_set_data(GTK_OBJECT(item), "_dw_hbox", (gpointer)hbox);
 	gdkpix = _find_pixmap(&gdkbmp, icon, hbox, NULL, NULL);
 	gtk_container_add(GTK_CONTAINER(item), hbox);
 	if(gdkpix)
@@ -3867,16 +3867,16 @@ HTREEITEM dw_tree_insert(HWND handle, char *title, unsigned long icon, HTREEITEM
 		subtree = (GtkWidget *)gtk_object_get_user_data(GTK_OBJECT(parent));
 		if(!subtree)
 		{
-			void *thisfunc = (void *)gtk_object_get_data(GTK_OBJECT(tree), "select-child-func");
-			void *work = (void *)gtk_object_get_data(GTK_OBJECT(tree), "select-child-data");
+			void *thisfunc = (void *)gtk_object_get_data(GTK_OBJECT(tree), "_dw_select_child_func");
+			void *work = (void *)gtk_object_get_data(GTK_OBJECT(tree), "_dw_select_child_data");
 
 			subtree = gtk_tree_new();
 
 			if(thisfunc && work)
 				gtk_signal_connect(GTK_OBJECT(subtree), "select-child", GTK_SIGNAL_FUNC(thisfunc), work);
 
-			thisfunc = (void *)gtk_object_get_data(GTK_OBJECT(tree), "container-context-func");
-			work = (void *)gtk_object_get_data(GTK_OBJECT(tree), "container-context-data");
+			thisfunc = (void *)gtk_object_get_data(GTK_OBJECT(tree), "_dw_container_context_func");
+			work = (void *)gtk_object_get_data(GTK_OBJECT(tree), "_dw_container_context_data");
 
 			if(thisfunc && work)
 				gtk_signal_connect(GTK_OBJECT(subtree), "button_press_event", GTK_SIGNAL_FUNC(thisfunc), work);
@@ -3890,12 +3890,12 @@ HTREEITEM dw_tree_insert(HWND handle, char *title, unsigned long icon, HTREEITEM
 			gtk_tree_item_expand(GTK_TREE_ITEM(parent));
 			gtk_tree_item_collapse(GTK_TREE_ITEM(parent));
 		}
-		gtk_object_set_data(GTK_OBJECT(item), "parenttree", (gpointer)subtree);
+		gtk_object_set_data(GTK_OBJECT(item), "_dw_parenttree", (gpointer)subtree);
 		gtk_tree_append(GTK_TREE(subtree), item);
 	}
 	else
 	{
-		gtk_object_set_data(GTK_OBJECT(item), "parenttree", (gpointer)tree);
+		gtk_object_set_data(GTK_OBJECT(item), "_dw_parenttree", (gpointer)tree);
 		gtk_tree_append(GTK_TREE(tree), item);
 	}
 	gtk_tree_item_expand(GTK_TREE_ITEM(item));
@@ -3948,15 +3948,15 @@ void dw_tree_set(HWND handle, HTREEITEM item, char *title, unsigned long icon)
 		return;
 
 	DW_MUTEX_LOCK;
-	oldtext = (char *)gtk_object_get_data(GTK_OBJECT(item), "text");
+	oldtext = (char *)gtk_object_get_data(GTK_OBJECT(item), "_dw_text");
 	if(oldtext)
 		free(oldtext);
 	label = gtk_label_new(title);
-	gtk_object_set_data(GTK_OBJECT(item), "text", (gpointer)strdup(title));
-	hbox = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(item), "hbox");
+	gtk_object_set_data(GTK_OBJECT(item), "_dw_text", (gpointer)strdup(title));
+	hbox = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(item), "_dw_hbox");
 	gtk_widget_destroy(hbox);
 	hbox = gtk_hbox_new(FALSE, 2);
-	gtk_object_set_data(GTK_OBJECT(item), "hbox", (gpointer)hbox);
+	gtk_object_set_data(GTK_OBJECT(item), "_dw_hbox", (gpointer)hbox);
 	gdkpix = _find_pixmap(&gdkbmp, icon, hbox, NULL, NULL);
 	gtk_container_add(GTK_CONTAINER(item), hbox);
 	if(gdkpix)
@@ -4002,7 +4002,7 @@ void dw_tree_set_data(HWND handle, HTREEITEM item, void *itemdata)
 		return;
 
 	DW_MUTEX_LOCK;
-	gtk_object_set_data(GTK_OBJECT(item), "itemdata", (gpointer)itemdata);
+	gtk_object_set_data(GTK_OBJECT(item), "_dw_itemdata", (gpointer)itemdata);
 	DW_MUTEX_UNLOCK;
 #endif
 }
@@ -4037,7 +4037,7 @@ void *dw_tree_get_data(HWND handle, HTREEITEM item)
 		return NULL;
 
 	DW_MUTEX_LOCK;
-	ret = (void *)gtk_object_get_data(GTK_OBJECT(item), "itemdata");
+	ret = (void *)gtk_object_get_data(GTK_OBJECT(item), "_dw_itemdata");
 	DW_MUTEX_UNLOCK;
 #endif
 	return ret;
@@ -4081,11 +4081,11 @@ void dw_tree_item_select(HWND handle, HTREEITEM item)
 
 	DW_MUTEX_LOCK;
 	tree = (GtkWidget *)gtk_object_get_user_data(GTK_OBJECT(handle));
-	lastselect = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(tree), "lastselect");
+	lastselect = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(tree), "_dw_lastselect");
 	if(lastselect && GTK_IS_TREE_ITEM(lastselect))
 		gtk_tree_item_deselect(GTK_TREE_ITEM(lastselect));
 	gtk_tree_item_select(GTK_TREE_ITEM(item));
-	gtk_object_set_data(GTK_OBJECT(tree), "lastselect", (gpointer)item);
+	gtk_object_set_data(GTK_OBJECT(tree), "_dw_lastselect", (gpointer)item);
 	DW_MUTEX_UNLOCK;
 #endif
 }
@@ -4155,7 +4155,7 @@ void dw_tree_clear(HWND handle)
 		DW_MUTEX_UNLOCK;
 		return;
 	}
-	gtk_object_set_data(GTK_OBJECT(tree), "lastselect", NULL);
+	gtk_object_set_data(GTK_OBJECT(tree), "_dw_lastselect", NULL);
 	gtk_tree_clear_items(GTK_TREE(tree), 0, 1000000);
 	DW_MUTEX_UNLOCK;
 #endif
@@ -4279,14 +4279,14 @@ void dw_tree_delete(HWND handle, HTREEITEM item)
 		return;
 	}
 
-	lastselect = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(tree), "lastselect");
+	lastselect = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(tree), "_dw_lastselect");
 
-	parenttree = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(item), "parenttree");
+	parenttree = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(item), "_dw_parenttree");
 
 	if(lastselect == item)
 	{
 		gtk_tree_item_deselect(GTK_TREE_ITEM(lastselect));
-		gtk_object_set_data(GTK_OBJECT(tree), "lastselect", NULL);
+		gtk_object_set_data(GTK_OBJECT(tree), "_dw_lastselect", NULL);
 	}
 
 	if(parenttree && GTK_IS_WIDGET(parenttree))
@@ -4310,8 +4310,8 @@ static int _dw_container_setup(HWND handle, unsigned long *flags, char **titles,
 		DW_MUTEX_UNLOCK;
 		return FALSE;
 	}
-	multi = (int)gtk_object_get_data(GTK_OBJECT(handle), "multi");
-	gtk_object_set_data(GTK_OBJECT(handle), "multi", (gpointer)multi);
+	multi = (int)gtk_object_get_data(GTK_OBJECT(handle), "_dw_multi");
+	gtk_object_set_data(GTK_OBJECT(handle), "_dw_multi", (gpointer)multi);
 
 	gtk_clist_set_column_auto_resize(GTK_CLIST(clist), 0, TRUE);
 	if(multi)
@@ -4321,7 +4321,7 @@ static int _dw_container_setup(HWND handle, unsigned long *flags, char **titles,
 	gtk_container_add(GTK_CONTAINER(handle), clist);
 	gtk_object_set_user_data(GTK_OBJECT(handle), (gpointer)clist);
 	gtk_widget_show(clist);
-	gtk_object_set_data(GTK_OBJECT(clist), "colcount", (gpointer)count);
+	gtk_object_set_data(GTK_OBJECT(clist), "_dw_colcount", (gpointer)count);
 
     if(extra)
 		gtk_clist_set_column_width(GTK_CLIST(clist), 1, 120);
@@ -4545,16 +4545,7 @@ void dw_icon_free(unsigned long handle)
 /* Clears a CList selection and associated selection list */
 void _dw_unselect(GtkWidget *clist)
 {
-	GList *list = (GList *)gtk_object_get_data(GTK_OBJECT(clist), "selectlist");
-
-	if(list)
-		g_list_free(list);
-
-	gtk_object_set_data(GTK_OBJECT(clist), "selectlist", NULL);
-
-	_dw_unselecting = 1;
 	gtk_clist_unselect_all(GTK_CLIST(clist));
-	_dw_unselecting = 0;
 }
 
 /*
@@ -4579,7 +4570,7 @@ void *dw_container_alloc(HWND handle, int rowcount)
 		return NULL;
 	}
 
-	count = (int)gtk_object_get_data(GTK_OBJECT(clist), "colcount");
+	count = (int)gtk_object_get_data(GTK_OBJECT(clist), "_dw_colcount");
 
 	if(!count)
 	{
@@ -4590,8 +4581,8 @@ void *dw_container_alloc(HWND handle, int rowcount)
 	blah = malloc(sizeof(char *) * count);
 	memset(blah, 0, sizeof(char *) * count);
 
-	fore = (GdkColor *)gtk_object_get_data(GTK_OBJECT(clist), "foregdk");
-	back = (GdkColor *)gtk_object_get_data(GTK_OBJECT(clist), "backgdk");
+	fore = (GdkColor *)gtk_object_get_data(GTK_OBJECT(clist), "_dw_foregdk");
+	back = (GdkColor *)gtk_object_get_data(GTK_OBJECT(clist), "_dw_backgdk");
 	gtk_clist_freeze(GTK_CLIST(clist));
 	for(z=0;z<rowcount;z++)
 	{
@@ -4601,7 +4592,7 @@ void *dw_container_alloc(HWND handle, int rowcount)
 		if(back)
 			gtk_clist_set_background(GTK_CLIST(clist), z, back);
 	}
-	gtk_object_set_data(GTK_OBJECT(clist), "rowcount", (gpointer)rowcount);
+	gtk_object_set_data(GTK_OBJECT(clist), "_dw_rowcount", (gpointer)rowcount);
 	free(blah);
 	DW_MUTEX_UNLOCK;
 	return (void *)handle;
@@ -4804,7 +4795,7 @@ void dw_container_delete(HWND handle, int rowcount)
 	{
 		int rows, z;
 
-		rows = (int)gtk_object_get_data(GTK_OBJECT(clist), "rowcount");
+		rows = (int)gtk_object_get_data(GTK_OBJECT(clist), "_dw_rowcount");
 
 		_dw_unselect(clist);
 
@@ -4816,7 +4807,7 @@ void dw_container_delete(HWND handle, int rowcount)
 		else
 			rows -= rowcount;
 
-		gtk_object_set_data(GTK_OBJECT(clist), "rowcount", (gpointer)rows);
+		gtk_object_set_data(GTK_OBJECT(clist), "_dw_rowcount", (gpointer)rows);
 	}
 	DW_MUTEX_UNLOCK;
 }
@@ -4838,7 +4829,7 @@ void dw_container_clear(HWND handle, int redraw)
 	{
 		_dw_unselect(clist);
 		gtk_clist_clear(GTK_CLIST(clist));
-		gtk_object_set_data(GTK_OBJECT(clist), "rowcount", (gpointer)0);
+		gtk_object_set_data(GTK_OBJECT(clist), "_dw_rowcount", (gpointer)0);
 	}
 	DW_MUTEX_UNLOCK;
 }
@@ -4910,14 +4901,14 @@ char *dw_container_query_start(HWND handle, unsigned long flags)
 
 		if(list)
 		{
-			gtk_object_set_data(GTK_OBJECT(clist), "querypos", (gpointer)1);
+			gtk_object_set_data(GTK_OBJECT(clist), "_dw_querypos", (gpointer)1);
 			retval = (char *)gtk_clist_get_row_data(GTK_CLIST(clist), GPOINTER_TO_UINT(list->data));
 		}
 	}
 	else
 	{
 		retval = (char *)gtk_clist_get_row_data(GTK_CLIST(clist), 0);
-		gtk_object_set_data(GTK_OBJECT(clist), "querypos", (gpointer)1);
+		gtk_object_set_data(GTK_OBJECT(clist), "_dw_querypos", (gpointer)1);
 	}
 	DW_MUTEX_UNLOCK;
 	return retval;
@@ -4954,8 +4945,8 @@ char *dw_container_query_next(HWND handle, unsigned long flags)
 
 		if(list)
 		{
-			int counter = 0, pos = (int)gtk_object_get_data(GTK_OBJECT(clist), "querypos");
-			gtk_object_set_data(GTK_OBJECT(clist), "querypos", (gpointer)pos+1);
+			int counter = 0, pos = (int)gtk_object_get_data(GTK_OBJECT(clist), "_dw_querypos");
+			gtk_object_set_data(GTK_OBJECT(clist), "_dw_querypos", (gpointer)pos+1);
 
 			while(list && counter < pos)
 			{
@@ -4969,10 +4960,10 @@ char *dw_container_query_next(HWND handle, unsigned long flags)
 	}
 	else
 	{
-		int pos = (int)gtk_object_get_data(GTK_OBJECT(clist), "querypos");
+		int pos = (int)gtk_object_get_data(GTK_OBJECT(clist), "_dw_querypos");
 
 		retval = (char *)gtk_clist_get_row_data(GTK_CLIST(clist), pos);
-		gtk_object_set_data(GTK_OBJECT(clist), "querypos", (gpointer)pos+1);
+		gtk_object_set_data(GTK_OBJECT(clist), "_dw_querypos", (gpointer)pos+1);
 	}
 	DW_MUTEX_UNLOCK;
 	return retval;
@@ -4999,7 +4990,7 @@ void dw_container_cursor(HWND handle, char *text)
 		DW_MUTEX_UNLOCK;
 		return;
 	}
-	rowcount = (int)gtk_object_get_data(GTK_OBJECT(clist), "rowcount");
+	rowcount = (int)gtk_object_get_data(GTK_OBJECT(clist), "_dw_rowcount");
 
 	for(z=0;z<rowcount;z++)
 	{
@@ -5044,7 +5035,7 @@ void dw_container_delete_row(HWND handle, char *text)
 		DW_MUTEX_UNLOCK;
 		return;
 	}
-	rowcount = (int)gtk_object_get_data(GTK_OBJECT(clist), "rowcount");
+	rowcount = (int)gtk_object_get_data(GTK_OBJECT(clist), "_dw_rowcount");
 
 	for(z=0;z<rowcount;z++)
 	{
@@ -5057,7 +5048,7 @@ void dw_container_delete_row(HWND handle, char *text)
 
 			rowcount--;
 
-			gtk_object_set_data(GTK_OBJECT(clist), "rowcount", (gpointer)rowcount);
+			gtk_object_set_data(GTK_OBJECT(clist), "_dw_rowcount", (gpointer)rowcount);
 			DW_MUTEX_UNLOCK;
 			return;
 		}
@@ -5085,7 +5076,7 @@ void dw_container_optimize(HWND handle)
 		DW_MUTEX_UNLOCK;
 		return;
 	}
-	colcount = (int)gtk_object_get_data(GTK_OBJECT(clist), "colcount");
+	colcount = (int)gtk_object_get_data(GTK_OBJECT(clist), "_dw_colcount");
 	for(z=0;z<colcount;z++)
 	{
 		int width = gtk_clist_optimal_column_width(GTK_CLIST(clist), z);
@@ -5114,7 +5105,7 @@ HWND dw_render_new(unsigned long id)
 						  | GDK_KEY_PRESS_MASK
 						  | GDK_POINTER_MOTION_MASK
 						  | GDK_POINTER_MOTION_HINT_MASK);
-	gtk_object_set_data(GTK_OBJECT(tmp), "id", (gpointer)id);
+	gtk_object_set_data(GTK_OBJECT(tmp), "_dw_id", (gpointer)id);
 	GTK_WIDGET_SET_FLAGS(tmp, GTK_CAN_FOCUS);
 	gtk_widget_show(tmp);
 	DW_MUTEX_UNLOCK;
@@ -5288,12 +5279,12 @@ void dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
 	DW_MUTEX_LOCK;
 	if(handle)
 	{
-		fontname = (char *)gtk_object_get_data(GTK_OBJECT(handle), "fontname");
+		fontname = (char *)gtk_object_get_data(GTK_OBJECT(handle), "_dw_fontname");
 		gc = _set_colors(handle->window);
 	}
 	else if(pixmap)
 	{
-		fontname = (char *)gtk_object_get_data(GTK_OBJECT(pixmap->handle), "fontname");
+		fontname = (char *)gtk_object_get_data(GTK_OBJECT(pixmap->handle), "_dw_fontname");
 		gc = _set_colors(pixmap->pixmap);
 	}
 	if(gc)
@@ -5362,9 +5353,9 @@ void dw_font_text_extents(HWND handle, HPIXMAP pixmap, char *text, int *width, i
 
 	DW_MUTEX_LOCK;
 	if(handle)
-		fontname = (char *)gtk_object_get_data(GTK_OBJECT(handle), "fontname");
+		fontname = (char *)gtk_object_get_data(GTK_OBJECT(handle), "_dw_fontname");
 	else if(pixmap)
-		fontname = (char *)gtk_object_get_data(GTK_OBJECT(pixmap->handle), "fontname");
+		fontname = (char *)gtk_object_get_data(GTK_OBJECT(pixmap->handle), "_dw_fontname");
 
 #if GTK_MAJOR_VERSION > 1
 	font = pango_font_description_from_string(fontname ? fontname : "monospace 10");
@@ -5964,7 +5955,7 @@ void dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, int 
 
 	DW_MUTEX_LOCK;
 
-	if((tmp  = gtk_object_get_data(GTK_OBJECT(box), "boxhandle")))
+	if((tmp  = gtk_object_get_data(GTK_OBJECT(box), "_dw_boxhandle")))
 		box = tmp;
 
 	if(!item)
@@ -5975,8 +5966,8 @@ void dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, int 
 
 	if(GTK_IS_TABLE(box))
 	{
-		int boxcount = (int)gtk_object_get_data(GTK_OBJECT(box), "boxcount");
-		int boxtype = (int)gtk_object_get_data(GTK_OBJECT(box), "boxtype");
+		int boxcount = (int)gtk_object_get_data(GTK_OBJECT(box), "_dw_boxcount");
+		int boxtype = (int)gtk_object_get_data(GTK_OBJECT(box), "_dw_boxtype");
 
 		/* If the item being packed is a box, then we use it's padding
 		 * instead of the padding specified on the pack line, this is
@@ -5985,12 +5976,12 @@ void dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, int 
 		 */
 		if(GTK_IS_TABLE(item))
 		{
-			GtkWidget *eventbox = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(item), "eventbox");
+			GtkWidget *eventbox = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(item), "_dw_eventbox");
 
 			if(eventbox)
 			{
 				gtk_container_add(GTK_CONTAINER(eventbox), item);
-				pad = (int)gtk_object_get_data(GTK_OBJECT(item), "boxpad");
+				pad = (int)gtk_object_get_data(GTK_OBJECT(item), "_dw_boxpad");
 				item = eventbox;
 			}
 		}
@@ -6001,12 +5992,12 @@ void dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, int 
 			gtk_table_resize(GTK_TABLE(box), 1, boxcount + 1);
 
 		gtk_table_attach(GTK_TABLE(box), item, 0, 1, 0, 1, hsize ? DW_EXPAND : 0, vsize ? DW_EXPAND : 0, pad, pad);
-		gtk_object_set_data(GTK_OBJECT(box), "boxcount", (gpointer)boxcount + 1);
+		gtk_object_set_data(GTK_OBJECT(box), "_dw_boxcount", (gpointer)boxcount + 1);
 		gtk_widget_set_usize(item, width, height);
 		if(GTK_IS_RADIO_BUTTON(item))
 		{
 			GSList *group;
-			GtkWidget *groupstart = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(box), "group");
+			GtkWidget *groupstart = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(box), "_dw_group");
 
 			if(groupstart)
 			{
@@ -6014,7 +6005,7 @@ void dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, int 
 				gtk_radio_button_set_group(GTK_RADIO_BUTTON(item), group);
 			}
 			else
-				gtk_object_set_data(GTK_OBJECT(box), "group", (gpointer)item);
+				gtk_object_set_data(GTK_OBJECT(box), "_dw_group", (gpointer)item);
 		}
 	}
 	else
@@ -6023,12 +6014,12 @@ void dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, int 
 
 		if(GTK_IS_TABLE(item))
 		{
-			GtkWidget *eventbox = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(item), "eventbox");
+			GtkWidget *eventbox = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(item), "_dw_eventbox");
 
 			if(eventbox)
 			{
 				gtk_container_add(GTK_CONTAINER(eventbox), item);
-				pad = (int)gtk_object_get_data(GTK_OBJECT(item), "boxpad");
+				pad = (int)gtk_object_get_data(GTK_OBJECT(item), "_dw_boxpad");
 				item = eventbox;
 			}
 		}
@@ -6264,7 +6255,7 @@ unsigned long dw_notebook_page_new(HWND handle, unsigned long flags, int front)
 	GtkWidget **pagearray;
 
 	DW_MUTEX_LOCK;
-	pagearray = (GtkWidget **)gtk_object_get_data(GTK_OBJECT(handle), "pagearray");
+	pagearray = (GtkWidget **)gtk_object_get_data(GTK_OBJECT(handle), "_dw_pagearray");
 
 	if(pagearray)
 	{    
@@ -6278,7 +6269,7 @@ unsigned long dw_notebook_page_new(HWND handle, unsigned long flags, int front)
 				if(front)
 					num |= 1 << 16;
 
-				sprintf(text, "page%d", z);
+				sprintf(text, "_dw_page%d", z);
 				/* Save the real id and the creation flags */
 				gtk_object_set_data(GTK_OBJECT(handle), text, (gpointer)num);
 				DW_MUTEX_UNLOCK;
@@ -6296,7 +6287,7 @@ unsigned long dw_notebook_page_new(HWND handle, unsigned long flags, int front)
 int _get_physical_page(HWND handle, unsigned long pageid)
 {
 	int z;
-	GtkWidget *thispage, **pagearray = gtk_object_get_data(GTK_OBJECT(handle), "pagearray");
+	GtkWidget *thispage, **pagearray = gtk_object_get_data(GTK_OBJECT(handle), "_dw_pagearray");
 
 	if(pagearray)
 	{
@@ -6328,7 +6319,7 @@ void dw_notebook_page_destroy(HWND handle, unsigned int pageid)
 	if(realpage > -1 && realpage < 256)
 	{  
 		gtk_notebook_remove_page(GTK_NOTEBOOK(handle), realpage);
-		if((pagearray = gtk_object_get_data(GTK_OBJECT(handle), "pagearray")))
+		if((pagearray = gtk_object_get_data(GTK_OBJECT(handle), "_dw_pagearray")))
 			pagearray[pageid] = NULL;
 	}
 	DW_MUTEX_UNLOCK;
@@ -6388,7 +6379,7 @@ void dw_notebook_page_set_text(HWND handle, unsigned long pageid, char *text)
 		char ptext[100];
 		int num;
     
-		sprintf(ptext, "page%d", (int)pageid);
+		sprintf(ptext, "_dw_page%d", (int)pageid);
 		num = (int)gtk_object_get_data(GTK_OBJECT(handle), ptext);
 		realpage = 0xFF & num;
 	}
@@ -6429,10 +6420,10 @@ void dw_notebook_pack(HWND handle, unsigned long pageid, HWND page)
 	char ptext[100];
 
 	DW_MUTEX_LOCK;
-	sprintf(ptext, "page%d", (int)pageid);
+	sprintf(ptext, "_dw_page%d", (int)pageid);
 	num = (int)gtk_object_get_data(GTK_OBJECT(handle), ptext);
 	gtk_object_set_data(GTK_OBJECT(handle), ptext, NULL);
-	pagearray = (GtkWidget **)gtk_object_get_data(GTK_OBJECT(handle), "pagearray");
+	pagearray = (GtkWidget **)gtk_object_get_data(GTK_OBJECT(handle), "_dw_pagearray");
 
 	if(!pagearray)
 	{
@@ -6464,7 +6455,7 @@ void dw_notebook_pack(HWND handle, unsigned long pageid, HWND page)
 
 	if(GTK_IS_TABLE(page))
 	{
-		pad = (int)gtk_object_get_data(GTK_OBJECT(page), "boxpad");
+		pad = (int)gtk_object_get_data(GTK_OBJECT(page), "_dw_boxpad");
 		gtk_container_border_width(GTK_CONTAINER(page), pad);
 	}
 
@@ -6495,14 +6486,14 @@ void dw_listbox_append(HWND handle, char *text)
 		if(tmp)
 			handle2 = tmp;
 	}
-	gtk_object_set_data(GTK_OBJECT(handle), "appending", (gpointer)1);
+	gtk_object_set_data(GTK_OBJECT(handle), "_dw_appending", (gpointer)1);
 	if(GTK_IS_LIST(handle2))
 	{
 		GtkWidget *list_item;
 		GList *tmp;
-		char *font = (char *)gtk_object_get_data(GTK_OBJECT(handle), "font");
-		GdkColor *fore = (GdkColor *)gtk_object_get_data(GTK_OBJECT(handle2), "foregdk");
-		GdkColor *back = (GdkColor *)gtk_object_get_data(GTK_OBJECT(handle2), "backgdk");
+		char *font = (char *)gtk_object_get_data(GTK_OBJECT(handle), "_dw_font");
+		GdkColor *fore = (GdkColor *)gtk_object_get_data(GTK_OBJECT(handle2), "_dw_foregdk");
+		GdkColor *back = (GdkColor *)gtk_object_get_data(GTK_OBJECT(handle2), "_dw_backgdk");
 
 		list_item=gtk_list_item_new_with_label(text);
 
@@ -6529,7 +6520,7 @@ void dw_listbox_append(HWND handle, char *text)
 			gtk_combo_set_popdown_strings(GTK_COMBO(handle2), tmp);
 		}
 	}
-	gtk_object_set_data(GTK_OBJECT(handle), "appending", NULL);
+	gtk_object_set_data(GTK_OBJECT(handle), "_dw_appending", NULL);
 	DW_MUTEX_UNLOCK;
 }
 
@@ -6874,7 +6865,7 @@ unsigned int dw_listbox_selected(HWND handle)
 	}
 	else if(GTK_IS_COMBO(handle))
 	{
-		retval = (unsigned int)gtk_object_get_data(GTK_OBJECT(handle), "item");
+		retval = (unsigned int)gtk_object_get_data(GTK_OBJECT(handle), "_dw_item");
 		DW_MUTEX_UNLOCK;
 		return retval;
 	}
@@ -7033,7 +7024,7 @@ HWND dw_splitbar_new(int type, HWND topleft, HWND bottomright, unsigned long id)
 		tmp = gtk_vpaned_new();
 	gtk_paned_add1(GTK_PANED(tmp), topleft);
 	gtk_paned_add2(GTK_PANED(tmp), bottomright);
-	gtk_object_set_data(GTK_OBJECT(tmp), "id", (gpointer)id);
+	gtk_object_set_data(GTK_OBJECT(tmp), "_dw_id", (gpointer)id);
 	*percent = 50.0;
 	gtk_object_set_data(GTK_OBJECT(tmp), "_dw_percent", (gpointer)percent);
 	gtk_object_set_data(GTK_OBJECT(tmp), "_dw_waiting", (gpointer)1);
@@ -7109,7 +7100,7 @@ void dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize, in
 
 	DW_MUTEX_LOCK;
 
-	if((tmp  = gtk_object_get_data(GTK_OBJECT(box), "boxhandle")))
+	if((tmp  = gtk_object_get_data(GTK_OBJECT(box), "_dw_boxhandle")))
 		box = tmp;
 
 	if(!item)
@@ -7120,8 +7111,8 @@ void dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize, in
 
 	if(GTK_IS_TABLE(box))
 	{
-		int boxcount = (int)gtk_object_get_data(GTK_OBJECT(box), "boxcount");
-		int boxtype = (int)gtk_object_get_data(GTK_OBJECT(box), "boxtype");
+		int boxcount = (int)gtk_object_get_data(GTK_OBJECT(box), "_dw_boxcount");
+		int boxtype = (int)gtk_object_get_data(GTK_OBJECT(box), "_dw_boxtype");
 		int x, y;
 
 		/* If the item being packed is a box, then we use it's padding
@@ -7131,12 +7122,12 @@ void dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize, in
 		 */
 		if(GTK_IS_TABLE(item))
 		{
-			GtkWidget *eventbox = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(item), "eventbox");
+			GtkWidget *eventbox = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(item), "_dw_eventbox");
 
 			if(eventbox)
 			{
 				gtk_container_add(GTK_CONTAINER(eventbox), item);
-				pad = (int)gtk_object_get_data(GTK_OBJECT(item), "boxpad");
+				pad = (int)gtk_object_get_data(GTK_OBJECT(item), "_dw_boxpad");
 				item = eventbox;
 			}
 		}
@@ -7155,12 +7146,12 @@ void dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize, in
 		}
 
 		gtk_table_attach(GTK_TABLE(box), item, x, x + 1, y, y + 1, hsize ? DW_EXPAND : 0, vsize ? DW_EXPAND : 0, pad, pad);
-		gtk_object_set_data(GTK_OBJECT(box), "boxcount", (gpointer)boxcount + 1);
+		gtk_object_set_data(GTK_OBJECT(box), "_dw_boxcount", (gpointer)boxcount + 1);
 		gtk_widget_set_usize(item, width, height);
 		if(GTK_IS_RADIO_BUTTON(item))
 		{
 			GSList *group;
-			GtkWidget *groupstart = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(box), "group");
+			GtkWidget *groupstart = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(box), "_dw_group");
 
 			if(groupstart)
 			{
@@ -7168,7 +7159,7 @@ void dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize, in
 				gtk_radio_button_set_group(GTK_RADIO_BUTTON(item), group);
 			}
 			else
-				gtk_object_set_data(GTK_OBJECT(box), "group", (gpointer)item);
+				gtk_object_set_data(GTK_OBJECT(box), "_dw_group", (gpointer)item);
 		}
 	}
 	else
@@ -7177,12 +7168,12 @@ void dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize, in
 
 		if(GTK_IS_TABLE(item))
 		{
-			GtkWidget *eventbox = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(item), "eventbox");
+			GtkWidget *eventbox = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(item), "_dw_eventbox");
 
 			if(eventbox)
 			{
 				gtk_container_add(GTK_CONTAINER(eventbox), item);
-				pad = (int)gtk_object_get_data(GTK_OBJECT(item), "boxpad");
+				pad = (int)gtk_object_get_data(GTK_OBJECT(item), "_dw_boxpad");
 				item = eventbox;
 			}
 		}
@@ -7625,8 +7616,8 @@ void dw_signal_connect(HWND window, char *signame, void *sigfunc, void *data)
 		work->data = data;
 		work->func = sigfunc;
 
-		gtk_object_set_data(GTK_OBJECT(thiswindow), "container-context-func", (gpointer)thisfunc);
-		gtk_object_set_data(GTK_OBJECT(thiswindow), "container-context-data", (gpointer)work);
+		gtk_object_set_data(GTK_OBJECT(thiswindow), "_dw_container_context_func", (gpointer)thisfunc);
+		gtk_object_set_data(GTK_OBJECT(thiswindow), "_dw_container_context_data", (gpointer)work);
 		gtk_signal_connect(GTK_OBJECT(thiswindow), "button_press_event", GTK_SIGNAL_FUNC(thisfunc), work);
 		gtk_signal_connect(GTK_OBJECT(window), "button_press_event", GTK_SIGNAL_FUNC(thisfunc), work);
 		DW_MUTEX_UNLOCK;
@@ -7636,8 +7627,8 @@ void dw_signal_connect(HWND window, char *signame, void *sigfunc, void *data)
 	{
 		if(thisfunc)
 		{
-			gtk_object_set_data(GTK_OBJECT(thiswindow), "select-child-func", (gpointer)thisfunc);
-			gtk_object_set_data(GTK_OBJECT(thiswindow), "select-child-data", (gpointer)work);
+			gtk_object_set_data(GTK_OBJECT(thiswindow), "_dw_select_child_func", (gpointer)thisfunc);
+			gtk_object_set_data(GTK_OBJECT(thiswindow), "_dw_select_child_data", (gpointer)work);
 		}
 		thisname = "select-child";
 	}
@@ -7678,7 +7669,7 @@ void dw_signal_connect(HWND window, char *signame, void *sigfunc, void *data)
 	else if(GTK_IS_VSCALE(thiswindow) || GTK_IS_HSCALE(thiswindow) ||
 			GTK_IS_VSCROLLBAR(thiswindow) || GTK_IS_HSCROLLBAR(thiswindow))
 	{
-		thiswindow = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(thiswindow), "adjustment");
+		thiswindow = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(thiswindow), "_dw_adjustment");
 	}
 	else if(GTK_IS_NOTEBOOK(thiswindow) && strcmp(signame, DW_SIGNAL_SWITCH_PAGE) == 0)
 	{
