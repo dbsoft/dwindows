@@ -1200,6 +1200,8 @@ DW_MAJOR_VERSION=1
 DW_MINOR_VERSION=0
 DW_SUB_VERSION=0
 
+DW_SRC=gtk
+DW_DEFINE=__UNIX__
 
 
 
@@ -3580,7 +3582,13 @@ if test $ac_cv_lib_resolv_gethostbyname = yes; then
 fi
 
 
-# Extract the first word of "pkg-config", so it can be a program name with args.
+OPSYSTEM=`uname -s`
+
+if test $OPSYSTEM = "Darwin"; then
+	DW_SRC=mac
+        DW_DEFINE=__MAC__
+else
+	# Extract the first word of "pkg-config", so it can be a program name with args.
 set dummy pkg-config; ac_word=$2
 echo "$as_me:$LINENO: checking for $ac_word" >&5
 echo $ECHO_N "checking for $ac_word... $ECHO_C" >&6
@@ -3615,11 +3623,11 @@ else
 echo "${ECHO_T}no" >&6
 fi
 
-if test x"$PKG_CFG" != x; then
-  GTK_LIBS=`$PKG_CFG --silence-errors --libs gtk+-2.0 gthread-2.0`
-fi
+	if test x"$PKG_CFG" != x; then
+	  GTK_LIBS=`$PKG_CFG --silence-errors --libs gtk+-2.0 gthread-2.0`
+	fi
 
-if test x"$GTK_LIBS" = x; then
+	if test x"$GTK_LIBS" = x; then
 
 # Check whether --with-glib-prefix or --without-glib-prefix was given.
 if test "${with_glib_prefix+set}" = set; then
@@ -4482,9 +4490,10 @@ echo "$as_me: error: IMLIB not found or too old. Dynamic Windows cannot build wi
 
   rm -f conf.gdkimlibtest
 
-else
-  GTK_CFLAGS=`$PKG_CFG --cflags gtk+-2.0 gthread-2.0`
-  GTK_LIBS=`$PKG_CFG --libs gtk+-2.0 gthread-2.0`
+	else
+	  GTK_CFLAGS=`$PKG_CFG --cflags gtk+-2.0 gthread-2.0`
+	  GTK_LIBS=`$PKG_CFG --libs gtk+-2.0 gthread-2.0`
+	fi
 fi
 
 if test "${ac_cv_header_pthread_h+set}" = set; then
@@ -4794,6 +4803,9 @@ LN="ln -s"
 CP="cp"
 MV="mv"
 MKDIR="mkdir"
+
+
+
 
 
 
@@ -5391,6 +5403,8 @@ s,@LN@,$LN,;t t
 s,@CP@,$CP,;t t
 s,@MV@,$MV,;t t
 s,@MKDIR@,$MKDIR,;t t
+s,@DW_SRC@,$DW_SRC,;t t
+s,@DW_DEFINE@,$DW_DEFINE,;t t
 CEOF
 
 _ACEOF
