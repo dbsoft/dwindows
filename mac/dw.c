@@ -32,6 +32,7 @@ typedef struct
 const Rect CreationRect = { 0, 0, 2000, 1000 };
 WindowRef CreationWindow = 0;
 ControlRef RootControl = 0;
+int _dw_screen_width = 0, _dw_screen_height = 0, _dw_color_depth = 16;
 
 /* List of signals and their equivilent MacOS event */
 #define SIGNALMAX 15
@@ -104,6 +105,18 @@ static ULONG _findsigmessage(char *signame)
 	}
 	return 0L;
 }
+
+/* Creates a Pascal string from a C string */
+char *_CToPascal(unsigned char *ptr, char *cstring)
+{
+	unsigned char len = (char)strlen(cstring);
+
+	ptr[0] = len;
+	memcpy(&ptr[1], cstring, len+1);
+	return (char *)ptr;
+}
+
+#define CToPascal(a) _CToPascal(alloca(strlen(a)+2), a)
 
 static void *_get_window_pointer(HWND handle)
 {
@@ -517,29 +530,6 @@ static void _do_resize(Box *thisbox, int x, int y)
 	}
 }
 
-static int _dw_int_pos(HWND hwnd)
-{
-	int pos = (int)dw_window_get_data(hwnd, "_dw_percent_value");
-	int range = dw_percent_get_range(hwnd);
-	float fpos = (float)pos;
-	float frange = (float)range;
-	float fnew = (fpos/1000.0)*frange;
-	return (int)fnew;
-}
-
-static void _dw_int_set(HWND hwnd, int pos)
-{
-	int inew, range = dw_percent_get_range(hwnd);
-	if(range)
-	{
-		float fpos = (float)pos;
-		float frange = (float)range;
-		float fnew = (fpos/frange)*1000.0;
-		inew = (int)fnew;
-		dw_window_set_data(hwnd, "_dw_percent_value", (void *)inew);
-	}
-}
-
 static void _changebox(Box *thisbox, int percent, int type)
 {
 	int z;
@@ -568,15 +558,16 @@ static void _changebox(Box *thisbox, int percent, int type)
 }
 
 /* Main MacOS Message loop, all events are handled here. */
-static void _doEvents(EventRecord *eventStrucPtr)
+static void _doEvents(EventRecord *event)
 {
 	SignalHandler *tmp = Root;
 
+    /* Find signal handlers */
 	while(tmp)
 	{
-		if(tmp->message == eventStrucPtr->what)
+		if(tmp->message == event->what)
 		{
-            switch(eventStrucPtr->what)
+			switch(event->what)
 			{
 			case mouseDown:
 				break;
@@ -584,11 +575,33 @@ static void _doEvents(EventRecord *eventStrucPtr)
 				break;
 			case keyDown:
 				break;
+			case activateEvt:
+				break;
+			case updateEvt:
+				/*DrawWindow((WindowPtr) event->message);*/
+				break;
 			}
 		}
 		if(tmp)
 			tmp = tmp->next;
 	}
+
+	/* Handle system events */
+	switch(event->what)
+	{
+	case keyDown:
+		HiliteMenu(0);
+	case kHighLevelEvent:
+		break;
+	case diskEvt:
+		break;
+	}
+	AEProcessAppleEvent(event);
+}
+
+static pascal OSErr QuitAppleEventHandler(const AppleEvent *appleEvt, AppleEvent* reply, UInt32 refcon)
+{
+	ExitToShell();
 }
 
 /*
@@ -599,10 +612,22 @@ static void _doEvents(EventRecord *eventStrucPtr)
  */
 int API dw_init(int newthread, int argc, char *argv[])
 {
-	CreateNewWindow (kDocumentWindowClass, 0,
+	GDHandle gd = GetMainDevice();
+
+	FlushEvents(everyEvent, 0);
+	InitCursor();
+	CreateNewWindow (kDocumentWindowClass, kWindowOpaqueForEventsAttribute,
 					 &CreationRect, &CreationWindow);
 	CreateRootControl(CreationWindow, &RootControl);
 	HideWindow(CreationWindow);
+	if(AEInstallEventHandler(kCoreEventClass, kAEQuitApplication, NewAEEventHandlerUPP(QuitAppleEventHandler), 0, false) != noErr)
+		ExitToShell();
+	DrawMenuBar();
+
+	/* Save the height, width and color depth */
+	_dw_screen_height = (*gd)->gdRect.bottom - (*gd)->gdRect.top;
+	_dw_screen_width = (*gd)->gdRect.right - (*gd)->gdRect.left;
+	_dw_color_depth = (*(*gd)->gdPMap)->cmpSize * (*(*gd)->gdPMap)->cmpCount;
 	return 0;
 }
 
@@ -616,7 +641,7 @@ void API dw_main(void)
 
 	while(!gDone)
 	{
-		if(WaitNextEvent(everyEvent, &eventStructure, 180, 0))
+		if(WaitNextEvent(everyEvent, &eventStructure, 0xffffffff, 0))
 			_doEvents(&eventStructure);
 	}
 }
@@ -950,7 +975,7 @@ HWND API dw_window_new(HWND hwndOwner, char *title, ULONG flStyle)
 	WindowRef hwnd = 0;
 	ControlRef rootcontrol = 0;
         
-	CreateNewWindow (kDocumentWindowClass, flStyle,
+	CreateNewWindow (kDocumentWindowClass, flStyle | kWindowStandardHandlerAttribute,
 					 &CreationRect, &hwnd);
 	CreateRootControl(hwnd, &rootcontrol);
 	dw_window_set_text((HWND)hwnd, title);
@@ -965,7 +990,7 @@ HWND API dw_window_new(HWND hwndOwner, char *title, ULONG flStyle)
  */
 HWND API dw_box_new(int type, int pad)
 {
-        ControlRef hwnd = NewControl(CreationWindow, NULL, "\p",
+        ControlRef hwnd = NewControl(CreationWindow, NULL, "",
                     true, kControlSupportsEmbedding | kControlHasSpecialBackground, 
                     0, 1, kControlUserPaneProc, (SInt32) 0);
         return (HWND)hwnd;
@@ -1038,7 +1063,7 @@ HMENUI API dw_menu_new(ULONG id)
  */
 HMENUI API dw_menubar_new(HWND location)
 {
-	return 0;
+	return (HMENUI)-1;
 }
 
 /*
@@ -1048,6 +1073,7 @@ HMENUI API dw_menubar_new(HWND location)
  */
 void API dw_menu_destroy(HMENUI *menu)
 {
+	DisposeMenu(*menu);
 }
 
 /*
@@ -1063,7 +1089,20 @@ void API dw_menu_destroy(HMENUI *menu)
  */
 HWND API dw_menu_append_item(HMENUI menux, char *title, ULONG id, ULONG flags, int end, int check, HMENUI submenu)
 {
-	return 0;
+	char *buf = CToPascal(title);
+
+	if(menux == (HMENUI)-1)
+		NewMenu(id, buf);
+	else
+	{
+		/* Add a separator if requested */
+		if(!title || !*title)
+			AppendMenu(menux, "\002(-");
+		else
+			AppendMenuItemText(menux, buf);
+	}
+	DrawMenuBar();
+	return (HWND)id;
 }
 
 /*
@@ -1075,6 +1114,7 @@ HWND API dw_menu_append_item(HMENUI menux, char *title, ULONG id, ULONG flags, i
  */
 void API dw_menu_item_set_check(HMENUI menux, unsigned long id, int check)
 {
+	CheckMenuItem(menux, id, check);
 }
 
 /*
@@ -1501,7 +1541,7 @@ void API dw_window_set_size(HWND handle, ULONG width, ULONG height)
  */
 int API dw_screen_width(void)
 {
-	return 0;
+	return _dw_screen_width;
 }
 
 /*
@@ -1509,13 +1549,13 @@ int API dw_screen_width(void)
  */
 int API dw_screen_height(void)
 {
-	return 0;
+	return _dw_screen_height;
 }
 
 /* This should return the current color depth */
 unsigned long API dw_color_depth_get(void)
 {
-	return 0;
+	return _dw_color_depth;
 }
 
 
@@ -1873,16 +1913,6 @@ void API dw_mle_freeze(HWND handle)
  */
 void API dw_mle_thaw(HWND handle)
 {
-}
-
-/*
- * Returns the range of the percent bar.
- * Parameters:
- *          handle: Handle to the percent bar to be queried.
- */
-unsigned int API dw_percent_get_range(HWND handle)
-{
-	return 0;
 }
 
 /*
@@ -2606,6 +2636,7 @@ void API dw_pixmap_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest, int wi
  */
 void API dw_beep(int freq, int dur)
 {
+	SysBeep(dur);
 }
 
 /* Open a shared library and return a handle.
@@ -2715,7 +2746,7 @@ int API dw_event_post(HEV eve)
  */
 int API dw_event_wait(HEV eve, unsigned long timeout)
 {
-	return 0;
+	return TRUE;
 }
 
 /*
@@ -2726,6 +2757,113 @@ int API dw_event_wait(HEV eve, unsigned long timeout)
 int API dw_event_close(HEV *eve)
 {
 	return TRUE;
+}
+
+/* Create a named event semaphore which can be
+ * opened from other processes.
+ * Parameters:
+ *         eve: Pointer to an event handle to receive handle.
+ *         name: Name given to semaphore which can be opened
+ *               by other processes.
+ */
+HEV API dw_named_event_new(char *name)
+{
+	return 0;
+}
+
+/* Open an already existing named event semaphore.
+ * Parameters:
+ *         eve: Pointer to an event handle to receive handle.
+ *         name: Name given to semaphore which can be opened
+ *               by other processes.
+ */
+HEV API dw_named_event_get(char *name)
+{
+	return 0;
+}
+
+/* Resets the event semaphore so threads who call wait
+ * on this semaphore will block.
+ * Parameters:
+ *         eve: Handle to the semaphore obtained by
+ *              an open or create call.
+ */
+int API dw_named_event_reset(HEV eve)
+{
+	return 0;
+}
+
+/* Sets the posted state of an event semaphore, any threads
+ * waiting on the semaphore will no longer block.
+ * Parameters:
+ *         eve: Handle to the semaphore obtained by
+ *              an open or create call.
+ */
+int API dw_named_event_post(HEV eve)
+{
+	return 0;
+}
+
+
+/* Waits on the specified semaphore until it becomes
+ * posted, or returns immediately if it already is posted.
+ * Parameters:
+ *         eve: Handle to the semaphore obtained by
+ *              an open or create call.
+ *         timeout: Number of milliseconds before timing out
+ *                  or -1 if indefinite.
+ */
+int API dw_named_event_wait(HEV eve, unsigned long timeout)
+{
+	return 0;
+}
+
+/* Release this semaphore, if there are no more open
+ * handles on this semaphore the semaphore will be destroyed.
+ * Parameters:
+ *         eve: Handle to the semaphore obtained by
+ *              an open or create call.
+ */
+int API dw_named_event_close(HEV eve)
+{
+	return 0;
+}
+
+/*
+ * Allocates a shared memory region with a name.
+ * Parameters:
+ *         handle: A pointer to receive a SHM identifier.
+ *         dest: A pointer to a pointer to receive the memory address.
+ *         size: Size in bytes of the shared memory region to allocate.
+ *         name: A string pointer to a unique memory name.
+ */
+HSHM API dw_named_memory_new(void **dest, int size, char *name)
+{
+	return 0;
+}
+
+/*
+ * Aquires shared memory region with a name.
+ * Parameters:
+ *         dest: A pointer to a pointer to receive the memory address.
+ *         size: Size in bytes of the shared memory region to requested.
+ *         name: A string pointer to a unique memory name.
+ */
+HSHM API dw_named_memory_get(void **dest, int size, char *name)
+{
+	return 0;
+}
+
+/*
+ * Frees a shared memory region previously allocated.
+ * Parameters:
+ *         handle: Handle obtained from DB_named_memory_allocate.
+ *         ptr: The memory address aquired with DB_named_memory_allocate.
+ */
+int API dw_named_memory_free(HSHM handle, void *ptr)
+{
+
+	return 0;
 }
 
 /*

@@ -247,10 +247,11 @@ typedef unsigned UINT;
 typedef int INT;
 typedef void *HMTX;
 typedef void *HEV;
+typedef void *HSHM;
 typedef void *HMOD;
 typedef void *HPIXMAP;
 typedef void *HTREEITEM;
-typedef void *HMENUI;
+typedef MenuRef HMENUI;
 
 typedef struct _window_data {
 	UserData *root;
@@ -276,12 +277,12 @@ typedef struct _window_data {
 #define DW_DT_ERASERECT          0
 
 #define DW_FCF_TITLEBAR          0
-#define DW_FCF_SYSMENU           0
+#define DW_FCF_SYSMENU           kWindowCloseBoxAttribute
 #define DW_FCF_MENU              0
-#define DW_FCF_SIZEBORDER        0
-#define DW_FCF_MINBUTTON         0
-#define DW_FCF_MAXBUTTON         0
-#define DW_FCF_MINMAX            0
+#define DW_FCF_SIZEBORDER        (kWindowResizableAttribute|kWindowLiveResizeAttribute)
+#define DW_FCF_MINBUTTON         kWindowCollapseBoxAttribute
+#define DW_FCF_MAXBUTTON         kWindowFullZoomAttribute
+#define DW_FCF_MINMAX            (kWindowCollapseBoxAttribute|kWindowFullZoomAttribute)
 #define DW_FCF_VERTSCROLL        0
 #define DW_FCF_HORZSCROLL        0
 #define DW_FCF_DLGBORDER         0
@@ -291,7 +292,7 @@ typedef struct _window_data {
 #define DW_FCF_NOBYTEALIGN       0
 #define DW_FCF_NOMOVEWITHOWNER   0
 #define DW_FCF_SYSMODAL          0
-#define DW_FCF_HIDEBUTTON        0
+#define DW_FCF_HIDEBUTTON        kWindowCollapseAttribute
 #define DW_FCF_HIDEMAX           0
 #define DW_FCF_AUTOICON          0
 #define DW_FCF_MAXIMIZE          0
