@@ -94,7 +94,7 @@ typedef struct
 } SignalList;
 
 /* List of signals and their equivilent OS/2 message */
-#define SIGNALMAX 14
+#define SIGNALMAX 15
 
 SignalList SignalTranslate[SIGNALMAX] = {
 	{ WM_SIZE,         DW_SIGNAL_CONFIGURE },
@@ -110,7 +110,8 @@ SignalList SignalTranslate[SIGNALMAX] = {
 	{ LN_SELECT,       DW_SIGNAL_LIST_SELECT },
 	{ CN_EMPHASIS,     DW_SIGNAL_ITEM_SELECT },
 	{ WM_SETFOCUS,     DW_SIGNAL_SET_FOCUS },
-	{ SLN_SLIDERTRACK, DW_SIGNAL_VALUE_CHANGED }
+	{ SLN_SLIDERTRACK, DW_SIGNAL_VALUE_CHANGED },
+	{ BKN_PAGESELECTED,DW_SIGNAL_SWITCH_PAGE }
 };
 
 /* This function adds a signal handler callback into the linked list.
@@ -2295,7 +2296,19 @@ MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 								}
 							}
 						}
+						break;
+					case BKN_PAGESELECTED:
+						{
+							PAGESELECTNOTIFY *psn = (PAGESELECTNOTIFY *)mp2;
 
+							if(psn && tmp->window == psn->hwndBook)
+							{
+								int (* API switchpagefunc)(HWND, unsigned long, void *) = (int (* API)(HWND, unsigned long, void *))tmp->signalfunction;
+
+								result = switchpagefunc(tmp->window, psn->ulPageIdNew, tmp->data);
+								tmp = NULL;
+							}
+						}
 						break;
 					}
 				}
@@ -5036,9 +5049,9 @@ void API dw_notebook_page_destroy(HWND handle, unsigned int pageid)
  * Parameters:
  *          handle: Handle to the notebook widget.
  */
-unsigned int API dw_notebook_page_query(HWND handle)
+unsigned long API dw_notebook_page_query(HWND handle)
 {
-	return (int)WinSendMsg(handle, BKM_QUERYPAGEID,0L, MPFROM2SHORT(BKA_TOP, BKA_MAJOR));
+	return (unsigned long)WinSendMsg(handle, BKM_QUERYPAGEID,0L, MPFROM2SHORT(BKA_TOP, BKA_MAJOR));
 }
 
 /*

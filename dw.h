@@ -875,7 +875,7 @@ void API dw_notebook_page_destroy(HWND handle, unsigned int pageid);
 void API dw_notebook_page_set_text(HWND handle, unsigned long pageid, char *text);
 void API dw_notebook_page_set_status_text(HWND handle, unsigned long pageid, char *text);
 void API dw_notebook_page_set(HWND handle, unsigned int pageid);
-unsigned int API dw_notebook_page_query(HWND handle);
+unsigned long API dw_notebook_page_query(HWND handle);
 void API dw_notebook_pack(HWND handle, unsigned long pageid, HWND page);
 HWND API dw_splitbar_new(int type, HWND topleft, HWND bottomright, unsigned long id);
 void API dw_splitbar_set(HWND handle, float percent);
