@@ -2776,7 +2776,7 @@ MRESULT EXPENTRY _BubbleProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 	return res;
 }
 
-MRESULT EXPENTRY _button_draw(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2, PFNWP oldproc)
+MRESULT EXPENTRY _button_draw(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2, PFNWP oldproc, int indent)
 {
 	HPIXMAP pixmap = (HPIXMAP)dw_window_get_data(hwnd, "_dw_hpixmap");
 	MRESULT res;
@@ -2795,7 +2795,7 @@ MRESULT EXPENTRY _button_draw(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2, PFNW
 		x = (width - pixmap->width)/2;
 		y = (height - pixmap->height)/2;
 
-		dw_pixmap_bitblt(hwnd, 0, x, y, pixmap->width, pixmap->height, 0, pixmap, 0, 0);
+		dw_pixmap_bitblt(hwnd, 0, x + indent, y + indent, pixmap->width, pixmap->height, 0, pixmap, 0, 0);
 	}
 	return res;
 }
@@ -2821,7 +2821,7 @@ MRESULT EXPENTRY _BtProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 	case WM_PAINT:
 	case WM_BUTTON2UP:
 	case WM_BUTTON3UP:
-		return _button_draw(hwnd, msg, mp1, mp2, oldproc);
+		return _button_draw(hwnd, msg, mp1, mp2, oldproc, 0);
 	case WM_SETFOCUS:
 		if(mp2)
 			_run_event(hwnd, msg, mp1, mp2);
@@ -2836,7 +2836,7 @@ MRESULT EXPENTRY _BtProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 	case WM_BUTTON3DBLCLK:
 		if(dw_window_get_data(hwnd, "_dw_disabled"))
 			return (MRESULT)FALSE;
-		return _button_draw(hwnd, msg, mp1, mp2, oldproc);
+		return _button_draw(hwnd, msg, mp1, mp2, oldproc, 1);
 	case WM_BUTTON1UP:
 		{
 			SignalHandler *tmp = Root;
@@ -2866,7 +2866,7 @@ MRESULT EXPENTRY _BtProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 				}
 			}
 		}
-		return _button_draw(hwnd, msg, mp1, mp2, oldproc);
+		return _button_draw(hwnd, msg, mp1, mp2, oldproc, 0);
 	case WM_USER:
 		{
             SignalHandler *tmp = (SignalHandler *)mp1;
