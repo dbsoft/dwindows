@@ -65,6 +65,8 @@ int DWSIGNAL text_expose(HWND hwnd, DWExpose *exp, void *data)
 		hpm = text1pm;
 	else if ( hwnd == textbox2 )
 		hpm = text2pm;
+	else
+		return TRUE;
 
 	width = DW_PIXMAP_WIDTH(hpm);
 	height = DW_PIXMAP_HEIGHT(hpm);
@@ -131,9 +133,9 @@ int DWSIGNAL beep_callback(HWND window, void *data)
 	return TRUE;
 }
 
-int DWSIGNAL keypress_callback(HWND window, void *data)
+int DWSIGNAL keypress_callback(HWND window, char *text, void *data)
 {
-fprintf(stderr,"got keypress\n");
+	fprintf(stderr,"got keypress\n");
 	return 0;
 }
 
@@ -332,7 +334,6 @@ void text_add(void)
 void tree_add(void)
 {
 	HWND t1,t2,t3;
-	int depth = dw_color_depth();
 
 	/* create a box to pack into the notebook page */
 	treebox = dw_box_new(BOXHORZ, 2);
@@ -342,9 +343,9 @@ void tree_add(void)
 	tree = dw_tree_new(0);
 	dw_box_pack_start( notebookbox3, tree, 500, 200, TRUE, FALSE, 1);
 
-t1 = dw_tree_insert(tree, "tree item 1", NULL, NULL, NULL );
-t2 = dw_tree_insert(tree, "tree item 2", NULL, NULL, NULL );
-t3 = dw_tree_insert(tree, "tree item 3", NULL, t2, NULL );
+	t1 = dw_tree_insert(tree, "tree item 1", 0, NULL, NULL );
+	t2 = dw_tree_insert(tree, "tree item 2", 0, NULL, NULL );
+	t3 = dw_tree_insert(tree, "tree item 3", 0, t2, NULL );
 
 /*
 	dw_signal_connect(textbox1, "expose_event", DW_SIGNAL_FUNC(text_expose), NULL);
