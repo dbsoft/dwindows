@@ -53,6 +53,7 @@ AC_CHECK_PROG(PKG_CFG, pkg-config, pkg-config)
 if test x"$PKG_CFG" = x; then
   AM_PATH_GLIB(1.2.0,,AC_MSG_ERROR(AC_MSG_ERROR(Cannot find GLIB: Is glib-config in path?)))
   AM_PATH_GTK(1.2.0,,AC_MSG_ERROR(AC_MSG_ERROR(Cannot find GTK: Is gtk-config in path?)), gthread)
+  AM_PATH_GDK_IMLIB(1.9.4, AC_DEFINE(USE_IMLIB), AC_MSG_ERROR(IMLIB not found or too old. Dynamic Windows cannot build without it.))
 else
   GTK_CFLAGS=`$PKG_CFG --cflags gtk+-2.0 gthread-2.0`
   GTK_LIBS=`$PKG_CFG --libs gtk+-2.0 gthread-2.0`
@@ -67,8 +68,6 @@ AC_CHECK_LIB(pthreads, pthread_attr_init, PTHREAD_LIBS="-lpthreads",
     )
   )
 )
-
-AM_PATH_GDK_IMLIB(1.9.4, AC_DEFINE(USE_IMLIB), AC_MSG_ERROR(IMLIB not found or too old. Dynamic Windows cannot build without it.))
 
 CFLAGS="$CFLAGS $GTK_CFLAGS $GDK_IMLIB_FLAGS"
 LIBS="$LIBS $GTK_LIBS $PTHREAD_LIBS $GDK_IMLIB_LIBS"
