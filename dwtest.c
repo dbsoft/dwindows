@@ -55,7 +55,7 @@ char **lp;
 /* This gets called when a part of the graph needs to be repainted. */
 int DWSIGNAL text_expose(HWND hwnd, DWExpose *exp, void *data)
 {
-	HPIXMAP hpm = (HPIXMAP)data;
+	HPIXMAP hpm = (hwnd == textbox1 ? text1pm : text2pm);
 	int width = DW_PIXMAP_WIDTH(hpm);
 	int height = DW_PIXMAP_HEIGHT(hpm);
 
@@ -274,7 +274,7 @@ void text_add(void)
 	/* create render box for number pixmap */
 	textbox1 = dw_render_new( 100 );
 	dw_window_set_font(textbox1, FIXEDFONT);
-	dw_font_text_extents(textbox1, NULL, "O", &font_width, &font_height );
+	dw_font_text_extents(textbox1, NULL, "O", &font_width, &font_height);
 	dw_box_pack_start(pagebox, textbox1, (font_width*width1)+2, font_height*rows, FALSE, TRUE, 0);
 
 	/* create box for filecontents and horz scrollbar */
@@ -299,8 +299,8 @@ void text_add(void)
 	dw_messagebox("DWTest", "Width: %d Height: %d\n", font_width, font_height);
 	dw_draw_rect(0, text1pm, TRUE, 0, 0, font_width*width1, font_height*rows);
 	dw_draw_rect(0, text2pm, TRUE, 0, 0, font_width*cols, font_height*rows);
-	dw_signal_connect(textbox1, "expose_event", DW_SIGNAL_FUNC(text_expose), text1pm);
-	dw_signal_connect(textbox2, "expose_event", DW_SIGNAL_FUNC(text_expose), text2pm);
+	dw_signal_connect(textbox1, "expose_event", DW_SIGNAL_FUNC(text_expose), NULL);
+	dw_signal_connect(textbox2, "expose_event", DW_SIGNAL_FUNC(text_expose), NULL);
 	dw_signal_connect(textbox2, "configure_event", DW_SIGNAL_FUNC(configure_event), text2pm);
 	dw_signal_connect(hscrollbar, "value_changed", DW_SIGNAL_FUNC(scrollbar_valuechanged), (void *)status);
 	dw_signal_connect(vscrollbar, "value_changed", DW_SIGNAL_FUNC(scrollbar_valuechanged), (void *)status);
