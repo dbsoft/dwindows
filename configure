@@ -308,7 +308,7 @@ ac_includes_default="\
 # include <unistd.h>
 #endif"
 
-ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS DW_MAJOR_VERSION DW_MINOR_VERSION DW_SUB_VERSION CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT MAKE INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA CPP EGREP PKG_CFG GLIB_CONFIG GLIB_CFLAGS GLIB_LIBS GTK_CONFIG GTK_CFLAGS GTK_LIBS IMLIB_CONFIG GDK_IMLIB_CFLAGS GDK_IMLIB_LIBS INCLUDES RM LN CP MV MKDIR SHAREDFLAG DW_SRC DW_DEFINE LIBOBJS LTLIBOBJS'
+ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS DW_MAJOR_VERSION DW_MINOR_VERSION DW_SUB_VERSION CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT MAKE INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA CPP EGREP PKG_CFG GLIB_CONFIG GLIB_CFLAGS GLIB_LIBS GTK_CONFIG GTK_CFLAGS GTK_LIBS IMLIB_CONFIG GDK_IMLIB_CFLAGS GDK_IMLIB_LIBS INCLUDES RM LN CP MV MKDIR SHAREDFLAG SOSUFFIX DW_SRC DW_DEFINE LIBOBJS LTLIBOBJS'
 ac_subst_files=''
 
 # Initialize some variables set by options.
@@ -1278,6 +1278,7 @@ DW_SUB_VERSION=0
 DW_SRC=gtk
 DW_DEFINE=__UNIX__
 SHAREDFLAG=-shared
+SOSUFFIX=so
 
 
 
@@ -3909,7 +3910,8 @@ OPSYSTEM=`uname -s`
 if test $OPSYSTEM = "Darwin"; then
 	DW_SRC=mac
         DW_DEFINE=__MAC__
-	SHAREDFLAG=-dynamic
+	SHAREDFLAG=-dynamiclib
+	SOSUFFIX=dylib
 	LIBS="$LIBS -framework Carbon"
 else
 	# Extract the first word of "pkg-config", so it can be a program name with args.
@@ -5177,6 +5179,7 @@ MKDIR="mkdir"
 
 
 
+
                     ac_config_files="$ac_config_files Makefile dw-config"
 
 cat >confcache <<\_ACEOF
@@ -5823,6 +5826,7 @@ s,@CP@,$CP,;t t
 s,@MV@,$MV,;t t
 s,@MKDIR@,$MKDIR,;t t
 s,@SHAREDFLAG@,$SHAREDFLAG,;t t
+s,@SOSUFFIX@,$SOSUFFIX,;t t
 s,@DW_SRC@,$DW_SRC,;t t
 s,@DW_DEFINE@,$DW_DEFINE,;t t
 s,@LIBOBJS@,$LIBOBJS,;t t
