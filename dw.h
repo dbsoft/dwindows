@@ -722,6 +722,8 @@ typedef struct _dwdialog {
 #define DW_BLUE_VALUE(a) ((a & DW_BLUE_MASK) >> 16)
 #define DW_RGB(a, b, c) (0xF0000000 | a | b << 8 | c << 16)
 
+#define DW_MENU_SEPARATOR ""
+
 #if defined(__OS2__) || defined(__EMX__)
 #define DW_OS2_RGB(a) ((DW_RED_VALUE(a) << 16) | (DW_GREEN_VALUE(a) << 8) | DW_BLUE_VALUE(a))
 #endif
