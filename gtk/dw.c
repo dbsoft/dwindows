@@ -6390,7 +6390,7 @@ void dw_exit(int exitcode)
 void dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, int vsize, int pad)
 {
 	int warn = FALSE, _locked_by_me = FALSE;
-	GtkWidget *tmp;
+	GtkWidget *tmp, *tmpitem;
 
 	if(!box)
 		return;
@@ -6416,6 +6416,8 @@ void dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, int 
 		gtk_widget_show(item);
 	}
 
+	tmpitem = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(item), "_dw_boxhandle");
+
 	if(GTK_IS_TABLE(box))
 	{
 		int boxcount = (int)gtk_object_get_data(GTK_OBJECT(box), "_dw_boxcount");
@@ -6426,7 +6428,7 @@ void dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, int 
 		 * due to a bug in the OS/2 and Win32 renderer and a limitation
 		 * of the GtkTable class.
 		 */
-		if(GTK_IS_TABLE(item))
+		if(GTK_IS_TABLE(item) || (tmpitem && GTK_IS_TABLE(tmpitem)))
 		{
 			GtkWidget *eventbox = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(item), "_dw_eventbox");
 
@@ -6469,7 +6471,7 @@ void dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, int 
 	{
 		GtkWidget *vbox = gtk_vbox_new(FALSE, 0);
 
-		if(GTK_IS_TABLE(item))
+		if(GTK_IS_TABLE(item) || (tmpitem && GTK_IS_TABLE(tmpitem)))
 		{
 			GtkWidget *eventbox = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(item), "_dw_eventbox");
 
@@ -7581,7 +7583,7 @@ float dw_splitbar_get(HWND handle)
 void dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize, int vsize, int pad)
 {
 	int warn = FALSE, _locked_by_me = FALSE;
-	GtkWidget *tmp;
+	GtkWidget *tmp, *tmpitem;
 
 	if(!box)
 		return;
@@ -7607,6 +7609,8 @@ void dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize, in
 		gtk_widget_show(item);
 	}
 
+	tmpitem = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(item), "_dw_boxhandle");
+
 	if(GTK_IS_TABLE(box))
 	{
 		int boxcount = (int)gtk_object_get_data(GTK_OBJECT(box), "_dw_boxcount");
@@ -7618,7 +7622,7 @@ void dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize, in
 		 * due to a bug in the OS/2 and Win32 renderer and a limitation
 		 * of the GtkTable class.
 		 */
-		if(GTK_IS_TABLE(item))
+		if(GTK_IS_TABLE(item) || (tmpitem && GTK_IS_TABLE(tmpitem)))
 		{
 			GtkWidget *eventbox = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(item), "_dw_eventbox");
 
@@ -7669,7 +7673,7 @@ void dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize, in
 	{
 		GtkWidget *vbox = gtk_vbox_new(FALSE, 0);
 
-		if(GTK_IS_TABLE(item))
+		if(GTK_IS_TABLE(item) || (tmpitem && GTK_IS_TABLE(tmpitem)))
 		{
 			GtkWidget *eventbox = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(item), "_dw_eventbox");
 
@@ -7889,7 +7893,7 @@ static char *_tree_folder(HWND tree, HTREEITEM item)
 		{
 			temp = malloc(strlen(text) + strlen(folder) + 3);
 			strcpy(temp, text);
-            if(strcmp(text, "/"))
+			if(strcmp(text, "/"))
 				strcat(temp, "/");
 			strcat(temp, folder);
 			free(folder);
