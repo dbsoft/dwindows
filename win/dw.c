@@ -3,8 +3,8 @@
  * Dynamic Windows:
  *          A GTK like implementation of the Win32 GUI
  *
- * (C) 2000-2003 Brian Smith <dbsoft@technologist.com>
- * (C) 2003 Mark Hessling <m.hessling@qut.edu.au>
+ * (C) 2000-2004 Brian Smith <dbsoft@technologist.com>
+ * (C) 2003-2004 Mark Hessling <m.hessling@qut.edu.au>
  *
  */
 #define _WIN32_IE 0x0500
