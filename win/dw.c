@@ -8,11 +8,7 @@
  *
  */
 #define _WIN32_IE 0x0500
-#ifdef WINNT_COMPAT
-#define WINVER 0x400
-#else
 #define WINVER 0x500
-#endif
 #include <windows.h>
 #include <windowsx.h>
 #include <commctrl.h>
@@ -35,10 +31,14 @@ DWTID _dwtid = -1;
 #define PACKVERSION(major,minor) MAKELONG(minor,major)
 
 #define IS_IE5PLUS (dwComctlVer >= PACKVERSION(5,80))
+#define IS_WINNTOR95 (((LOBYTE(LOWORD(dwVersion))) < 5) && (HIBYTE(LOWORD(dwVersion)) < 10))
 
 #ifndef MIN
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))
 #endif
+
+static BOOL (WINAPI* MyGetMenuInfo)(HMENU, LPCMENUINFO) = 0;
+static BOOL (WINAPI* MySetMenuInfo)(HMENU, LPCMENUINFO) = 0;
 
 int main(int argc, char *argv[]);
 
@@ -420,21 +420,22 @@ BOOL CALLBACK _free_window_memory(HWND handle, LPARAM lParam)
 
 void _free_menu_data(HMENU menu)
 {
-#ifndef WINNT_COMPAT
-	int i, count = GetMenuItemCount(menu);
-
-	for(i=0;i<count;i++)
+	if(!IS_WINNTOR95)
 	{
-		MENUITEMINFO mii;
+		int i, count = GetMenuItemCount(menu);
 
-		mii.cbSize = sizeof(MENUITEMINFO);
-		mii.fMask = MIIM_SUBMENU;
+		for(i=0;i<count;i++)
+		{
+			MENUITEMINFO mii;
 
-		if(GetMenuItemInfo(menu, i, TRUE, &mii)
-		   && mii.hSubMenu)
-			_free_menu_data(mii.hSubMenu);
+			mii.cbSize = sizeof(MENUITEMINFO);
+			mii.fMask = MIIM_SUBMENU;
+
+			if(GetMenuItemInfo(menu, i, TRUE, &mii)
+			   && mii.hSubMenu)
+				_free_menu_data(mii.hSubMenu);
+		}
 	}
-#endif
 	dw_signal_disconnect_by_name((HWND)menu, DW_SIGNAL_CLICKED);
 }
 
@@ -1365,7 +1366,6 @@ int _HandleScroller(HWND handle, int pos, int which)
 	return -1;
 }
 
-#ifndef WINNT_COMPAT
 HMENU _get_owner(HMENU menu)
 {
 	MENUINFO mi;
@@ -1373,7 +1373,7 @@ HMENU _get_owner(HMENU menu)
 	mi.cbSize = sizeof(MENUINFO);
 	mi.fMask = MIM_MENUDATA;
 
-	if(GetMenuInfo(menu, &mi))
+	if(MyGetMenuInfo(menu, &mi))
 		return (HMENU)mi.dwMenuData;
 	return (HMENU)0;
 }
@@ -1392,7 +1392,6 @@ HMENU _menu_owner(HMENU handle)
 	}
 	return (HMENU)0;
 }
-#endif
 
 /* The main window procedure for Dynamic Windows, all the resizing code is done here. */
 BOOL CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
@@ -1763,8 +1762,7 @@ BOOL CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 								tmp = NULL;
 							}
 						}
-#ifndef WINNT_COMPAT
-						else if(tmp->id && passthru == tmp->id)
+						else if(!IS_WINNTOR95 && tmp->id && passthru == tmp->id)
 						{
 							HMENU hwndmenu = GetMenu(hWnd), menuowner = _menu_owner((HMENU)tmp->window);
 
@@ -1774,7 +1772,6 @@ BOOL CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 								tmp = NULL;
 							}
 						} /* Make sure it's the right window, and the right ID */
-#endif
 						else if(tmp->window < (HWND)65536 && command == tmp->window)
 						{
 							result = clickfunc(popup ? popup : tmp->window, tmp->data);
@@ -3242,6 +3239,16 @@ int API dw_init(int newthread, int argc, char *argv[])
 		_hBrush[z] = CreateSolidBrush(_foreground[z]);
 	}
 
+	if(!IS_WINNTOR95)
+	{
+		/* Get function pointers for the Win2k/98 menu functions */
+		HANDLE huser = LoadLibrary("user32");
+
+		MyGetMenuInfo = (void*)GetProcAddress(huser, "GetMenuInfo");
+		MySetMenuInfo = (void*)GetProcAddress(huser, "SetMenuInfo");
+		FreeLibrary(huser);
+	}
+
 	return 0;
 }
 
@@ -3461,12 +3468,14 @@ int API dw_window_destroy(HWND handle)
 {
 	HWND parent = GetParent(handle);
 	Box *thisbox = (Box *)GetWindowLongPtr(parent, GWLP_USERDATA);
-#ifndef WINNT_COMPAT
-	HMENU menu = GetMenu(handle);
 
-	if(menu)
-		_free_menu_data(menu);
-#endif
+	if(!IS_WINNTOR95)
+	{
+		HMENU menu = GetMenu(handle);
+
+		if(menu)
+			_free_menu_data(menu);
+	}
 
 	if(parent != HWND_DESKTOP && thisbox && thisbox->count)
 	{
@@ -3962,7 +3971,7 @@ HMENUI API dw_menubar_new(HWND location)
 
 	tmp = (HMENUI)CreateMenu();
 
-#ifndef WINNT_COMPAT
+	if(!IS_WINNTOR95)
 	{
 		MENUINFO mi;
 
@@ -3970,9 +3979,8 @@ HMENUI API dw_menubar_new(HWND location)
 		mi.fMask = MIM_MENUDATA;
 		mi.dwMenuData = (ULONG_PTR)1;
 
-		SetMenuInfo((HMENU)tmp, &mi);
+		MySetMenuInfo((HMENU)tmp, &mi);
 	}
-#endif
 
 	dw_window_set_data(location, "_dw_menu", (void *)tmp);
 
@@ -4013,9 +4021,7 @@ HWND API dw_menu_append_item(HMENUI menux, char *title, ULONG id, ULONG flags, i
 {
 	MENUITEMINFO mii;
 	HMENU mymenu = (HMENU)menux;
-#ifndef WINNT_COMPAT
 	char buffer[15];
-#endif
 
 	if(IsWindow(menux) && !IsMenu(mymenu))
 		mymenu = (HMENU)dw_window_get_data(menux, "_dw_menu");
@@ -4051,22 +4057,23 @@ HWND API dw_menu_append_item(HMENUI menux, char *title, ULONG id, ULONG flags, i
 
 	InsertMenuItem(mymenu, 65535, TRUE, &mii);
 
-#ifndef WINNT_COMPAT
-	sprintf(buffer, "_dw_id%d", id);
-	dw_window_set_data(DW_HWND_OBJECT, buffer, (void *)mymenu);
-
-	/* According to the docs this will only work on Win2k/98 and above */
-	if(submenu)
+	if(!IS_WINNTOR95)
 	{
-		MENUINFO mi;
+		sprintf(buffer, "_dw_id%d", id);
+		dw_window_set_data(DW_HWND_OBJECT, buffer, (void *)mymenu);
 
-		mi.cbSize = sizeof(MENUINFO);
-		mi.fMask = MIM_MENUDATA;
-		mi.dwMenuData = (ULONG_PTR)mymenu;
+		/* According to the docs this will only work on Win2k/98 and above */
+		if(submenu)
+		{
+			MENUINFO mi;
 
-		SetMenuInfo((HMENU)submenu, &mi);
+			mi.cbSize = sizeof(MENUINFO);
+			mi.fMask = MIM_MENUDATA;
+			mi.dwMenuData = (ULONG_PTR)mymenu;
+
+			MySetMenuInfo((HMENU)submenu, &mi);
+		}
 	}
-#endif
 
 	if(IsWindow(menux) && !IsMenu((HMENU)menux))
 		DrawMenuBar(menux);
