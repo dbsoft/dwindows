@@ -388,6 +388,7 @@ void dw_box_pack_end_stub(HWND box, HWND item, int width, int height, int hsize,
 #include <gdk/gdkx.h>
 #include <gdk/gdkprivate.h>
 #include <pthread.h>
+#include <dlfcn.h>
 
 /* Lets make some platform independent defines :) */
 #define DW_DT_LEFT               1
