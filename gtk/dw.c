@@ -5499,9 +5499,9 @@ void dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
 					pango_layout_set_text(layout, text, strlen(text));
 
 					if(_transparent[index])
-						gdk_draw_layout(handle ? handle->window : pixmap->pixmap, gc, x, y + 2, layout);
+						gdk_draw_layout(handle ? handle->window : pixmap->pixmap, gc, x, y, layout);
 					else
-						gdk_draw_layout_with_colors(handle ? handle->window : pixmap->pixmap, gc, x, y + 2, layout, &_foreground[index], &_background[index]);
+						gdk_draw_layout_with_colors(handle ? handle->window : pixmap->pixmap, gc, x, y, layout, &_foreground[index], &_background[index]);
 
 					g_object_unref(layout);
 				}
