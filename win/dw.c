@@ -4659,7 +4659,7 @@ HWND API dw_slider_new(int vertical, int increments, ULONG id)
  *       increments: Number of increments available.
  *       id: An ID to be used with dw_window_from_id() or 0L.
  */
-HWND API dw_scrollbar_new(int vertical, int increments, ULONG id)
+HWND API dw_scrollbar_new(int vertical, ULONG id)
 {
 	HWND tmp = CreateWindow(SCROLLBARCLASSNAME,
 							"",

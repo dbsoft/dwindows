@@ -2750,14 +2750,14 @@ HWND dw_slider_new(int vertical, int increments, ULONG id)
  *       increments: Number of increments available.
  *       id: An ID to be used with dw_window_from_id() or 0L.
  */
-HWND dw_scrollbar_new(int vertical, int increments, ULONG id)
+HWND dw_scrollbar_new(int vertical, ULONG id)
 {
 	GtkWidget *tmp;
 	GtkAdjustment *adjustment;
 	int _locked_by_me = FALSE;
 
 	DW_MUTEX_LOCK;
-	adjustment = (GtkAdjustment *)gtk_adjustment_new(0, 0, (gfloat)increments, 1, 1, 1);
+	adjustment = (GtkAdjustment *)gtk_adjustment_new(0, 0, 0, 1, 1, 1);
 	if(vertical)
 		tmp = gtk_vscrollbar_new(adjustment);
 	else

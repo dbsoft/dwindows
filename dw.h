@@ -918,7 +918,7 @@ HWND API dw_spinbutton_new(char *text, unsigned long id);
 HWND API dw_radiobutton_new(char *text, ULONG id);
 HWND API dw_percent_new(unsigned long id);
 HWND API dw_slider_new(int vertical, int increments, ULONG id);
-HWND API dw_scrollbar_new(int vertical, int increments, ULONG id);
+HWND API dw_scrollbar_new(int vertical, ULONG id);
 HWND API dw_checkbox_new(char *text, unsigned long id);
 HWND API dw_listbox_new(unsigned long id, int multi);
 void API dw_listbox_append(HWND handle, char *text);
