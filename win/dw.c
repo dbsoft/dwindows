@@ -1487,7 +1487,7 @@ BOOL CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 							{
 								if(tem->hdr.code == TVN_SELCHANGED && tmp->message == TVN_SELCHANGED)
 								{
-									if(tmp->window == tem->hdr.hwndFrom)
+									if(tmp->window == tem->hdr.hwndFrom && !dw_window_get_data(tmp->window, "_dw_select_item"))
 									{
 										int (*treeselectfunc)(HWND, HWND, char *, void *, void *) = tmp->signalfunction;
 										TVITEM tvi;
@@ -5868,7 +5868,9 @@ void * API dw_tree_get_data(HWND handle, HWND item)
  */
 void API dw_tree_item_select(HWND handle, HWND item)
 {
+	dw_window_set_data(handle, "_dw_select_item", (void *)1);
 	TreeView_SelectItem(handle, (HTREEITEM)item);
+	dw_window_set_data(handle, "_dw_select_item", (void *)0);
 }
 
 /* Delete all tree subitems */
