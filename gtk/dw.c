@@ -128,6 +128,8 @@ typedef struct
 	HWND window;
 	void *func;
 	gpointer data;
+	gint cid;
+	void *intfunc;
 
 } SignalHandler;
 
@@ -197,13 +199,36 @@ static SignalHandler _get_signal_handler(GtkWidget *widget, gpointer data)
 	sh.window = (HWND)gtk_object_get_data(GTK_OBJECT(widget), text);
 	sprintf(text, "_dw_sigfunc%d", counter);
 	sh.func = (void *)gtk_object_get_data(GTK_OBJECT(widget), text);
+	sprintf(text, "_dw_intfunc%d", counter);
+	sh.intfunc = (void *)gtk_object_get_data(GTK_OBJECT(widget), text);
 	sprintf(text, "_dw_sigdata%d", counter);
 	sh.data = gtk_object_get_data(GTK_OBJECT(widget), text);
+	sprintf(text, "_dw_sigcid%d", counter);
+	sh.cid = (gint)gtk_object_get_data(GTK_OBJECT(widget), text);
 
 	return sh;
 }
 
-static int _set_signal_handler(GtkWidget *widget, HWND window, void *func, gpointer data)
+static void _remove_signal_handler(GtkWidget *widget, int counter)
+{
+	char text[100];
+	gint cid;
+
+	sprintf(text, "_dw_sigcid%d", counter);
+	cid = (gint)gtk_object_get_data(GTK_OBJECT(widget), text);
+	gtk_signal_disconnect(GTK_OBJECT(widget), cid);
+	gtk_object_set_data(GTK_OBJECT(widget), text, NULL);
+	sprintf(text, "_dw_sigwindow%d", counter);
+	gtk_object_set_data(GTK_OBJECT(widget), text, NULL);
+	sprintf(text, "_dw_sigfunc%d", counter);
+	gtk_object_set_data(GTK_OBJECT(widget), text, NULL);
+	sprintf(text, "_dw_intfunc%d", counter);
+	gtk_object_set_data(GTK_OBJECT(widget), text, NULL);
+	sprintf(text, "_dw_sigdata%d", counter);
+	gtk_object_set_data(GTK_OBJECT(widget), text, NULL);
+}
+
+static int _set_signal_handler(GtkWidget *widget, HWND window, void *func, gpointer data, void *intfunc)
 {
 	int counter = (int)gtk_object_get_data(GTK_OBJECT(widget), "_dw_sigcounter");
 	char text[100];
@@ -212,6 +237,8 @@ static int _set_signal_handler(GtkWidget *widget, HWND window, void *func, gpoin
 	gtk_object_set_data(GTK_OBJECT(widget), text, (gpointer)window);
 	sprintf(text, "_dw_sigfunc%d", counter);
 	gtk_object_set_data(GTK_OBJECT(widget), text, (gpointer)func);
+	sprintf(text, "_dw_intfunc%d", counter);
+	gtk_object_set_data(GTK_OBJECT(widget), text, (gpointer)intfunc);
 	sprintf(text, "_dw_sigdata%d", counter);
 	gtk_object_set_data(GTK_OBJECT(widget), text, (gpointer)data);
 
@@ -219,6 +246,14 @@ static int _set_signal_handler(GtkWidget *widget, HWND window, void *func, gpoin
 	gtk_object_set_data(GTK_OBJECT(widget), "_dw_sigcounter", (gpointer)counter);
 
 	return counter - 1;
+}
+
+static void _set_signal_handler_id(GtkWidget *widget, int counter, gint cid)
+{
+	char text[100];
+
+	sprintf(text, "_dw_sigcid%d", counter);
+	gtk_object_set_data(GTK_OBJECT(widget), text, (gpointer)cid);
 }
 
 static gint _set_focus_event(GtkWindow *window, GtkWidget *widget, gpointer data)
@@ -3873,8 +3908,9 @@ HTREEITEM dw_tree_insert_after(HWND handle, HTREEITEM item, char *title, unsigne
 
 			if(thisfunc && work.window)
 			{
-				gtk_signal_connect(GTK_OBJECT(subtree), "select-child", GTK_SIGNAL_FUNC(thisfunc),
-								   (gpointer)_set_signal_handler(subtree, work.window, work.func, work.data));
+				int sigid = _set_signal_handler(subtree, work.window, work.func, work.data, thisfunc);
+				gint cid =gtk_signal_connect(GTK_OBJECT(subtree), "select-child", GTK_SIGNAL_FUNC(thisfunc),(gpointer)sigid);
+				_set_signal_handler_id(subtree, sigid, cid);
 			}
 
 			thisfunc = (void *)gtk_object_get_data(GTK_OBJECT(tree), "_dw_container_context_func");
@@ -3883,8 +3919,9 @@ HTREEITEM dw_tree_insert_after(HWND handle, HTREEITEM item, char *title, unsigne
 
 			if(thisfunc && work.window)
 			{
-				gtk_signal_connect(GTK_OBJECT(subtree), "button_press_event", GTK_SIGNAL_FUNC(thisfunc),
-								   (gpointer)_set_signal_handler(subtree, work.window, work.func, work.data));
+				int sigid = _set_signal_handler(subtree, work.window, work.func, work.data, thisfunc);
+				gint cid =gtk_signal_connect(GTK_OBJECT(subtree), "button_press_event", GTK_SIGNAL_FUNC(thisfunc),(gpointer)sigid);
+				_set_signal_handler_id(subtree, sigid, cid);
 			}
 
 			gtk_object_set_user_data(GTK_OBJECT(parent), subtree);
@@ -4000,8 +4037,9 @@ HTREEITEM dw_tree_insert(HWND handle, char *title, unsigned long icon, HTREEITEM
 
 			if(thisfunc && work.window)
 			{
-				gtk_signal_connect(GTK_OBJECT(subtree), "select-child", GTK_SIGNAL_FUNC(thisfunc),
-								   (gpointer)_set_signal_handler(subtree, work.window, work.func, work.data));
+				int sigid = _set_signal_handler(subtree, work.window, work.func, work.data, thisfunc);
+				gint cid =gtk_signal_connect(GTK_OBJECT(subtree), "select-child", GTK_SIGNAL_FUNC(thisfunc),(gpointer)sigid);
+				_set_signal_handler_id(subtree, sigid, cid);
 			}
 
 			thisfunc = (void *)gtk_object_get_data(GTK_OBJECT(tree), "_dw_container_context_func");
@@ -4010,8 +4048,9 @@ HTREEITEM dw_tree_insert(HWND handle, char *title, unsigned long icon, HTREEITEM
 
 			if(thisfunc && work.window)
 			{
-				gtk_signal_connect(GTK_OBJECT(subtree), "button_press_event", GTK_SIGNAL_FUNC(thisfunc),
-								   (gpointer)_set_signal_handler(subtree, work.window, work.func, work.data));
+				int sigid = _set_signal_handler(subtree, work.window, work.func, work.data, thisfunc);
+				gint cid =gtk_signal_connect(GTK_OBJECT(subtree), "button_press_event", GTK_SIGNAL_FUNC(thisfunc),(gpointer)sigid);
+				_set_signal_handler_id(subtree, sigid, cid);
 			}
 
 			gtk_object_set_user_data(GTK_OBJECT(parent), subtree);
@@ -7732,7 +7771,8 @@ void dw_signal_connect(HWND window, char *signame, void *sigfunc, void *data)
 	void *thisfunc  = _findsigfunc(signame);
 	char *thisname = signame;
 	HWND thiswindow = window;
-	int _locked_by_me = FALSE;
+	int sigid, _locked_by_me = FALSE;
+	gint cid;
 
 	DW_MUTEX_LOCK;
 	if(GTK_IS_SCROLLED_WINDOW(thiswindow))
@@ -7754,11 +7794,12 @@ void dw_signal_connect(HWND window, char *signame, void *sigfunc, void *data)
 	else if(GTK_IS_TREE_VIEW(thiswindow)  && strcmp(signame, DW_SIGNAL_ITEM_CONTEXT) == 0)
 	{
 		thisfunc = _findsigfunc("tree-context");
-
-		gtk_signal_connect(GTK_OBJECT(thiswindow), "button_press_event", GTK_SIGNAL_FUNC(thisfunc),
-						   (gpointer)_set_signal_handler(thiswindow, window, sigfunc, data));
-		gtk_signal_connect(GTK_OBJECT(window), "button_press_event", GTK_SIGNAL_FUNC(thisfunc),
-						   (gpointer)_set_signal_handler(window, window, sigfunc, data));
+		sigid = _set_signal_handler(thiswindow, window, sigfunc, data, thisfunc);
+		cid = gtk_signal_connect(GTK_OBJECT(thiswindow), "button_press_event", GTK_SIGNAL_FUNC(thisfunc), (gpointer)sigid);
+		_set_signal_handler_id(thiswindow, sigid, cid);
+		sigid = _set_signal_handler(window, window, sigfunc, data, thisfunc);
+		cid = gtk_signal_connect(GTK_OBJECT(window), "button_press_event", GTK_SIGNAL_FUNC(thisfunc), (gpointer)sigid);
+		_set_signal_handler_id(window, sigid, cid);
 		DW_MUTEX_UNLOCK;
 		return;
 	}
@@ -7768,24 +7809,26 @@ void dw_signal_connect(HWND window, char *signame, void *sigfunc, void *data)
 
 		thiswindow = (GtkWidget *)gtk_tree_view_get_selection(GTK_TREE_VIEW(thiswindow));
 		thisname = "changed";
-    
-		g_signal_connect(G_OBJECT(thiswindow), thisname, (GCallback)thisfunc,
-						   (gpointer)_set_signal_handler(treeview, window, sigfunc, data));
+
+		sigid = _set_signal_handler(treeview, window, sigfunc, data, thisfunc);
+		cid = g_signal_connect(G_OBJECT(thiswindow), thisname, (GCallback)thisfunc, (gpointer)sigid);
+		_set_signal_handler_id(thiswindow, sigid, cid);
 		DW_MUTEX_UNLOCK;
 		return;
 	}
 #else
 	else if(GTK_IS_TREE(thiswindow)  && strcmp(signame, DW_SIGNAL_ITEM_CONTEXT) == 0)
 	{
-		int counter = (int)_set_signal_handler(thiswindow, window, sigfunc, data);
-
 		thisfunc = _findsigfunc("tree-context");
+		sigid = _set_signal_handler(thiswindow, window, sigfunc, data, thisfunc);
 
 		gtk_object_set_data(GTK_OBJECT(thiswindow), "_dw_container_context_func", (gpointer)thisfunc);
-		gtk_object_set_data(GTK_OBJECT(thiswindow), "_dw_container_context_data", (gpointer)counter);
-		gtk_signal_connect(GTK_OBJECT(thiswindow), "button_press_event", GTK_SIGNAL_FUNC(thisfunc), (gpointer)counter);
-		gtk_signal_connect(GTK_OBJECT(window), "button_press_event", GTK_SIGNAL_FUNC(thisfunc),
-						   (gpointer)_set_signal_handler(window, window, sigfunc, data));
+		gtk_object_set_data(GTK_OBJECT(thiswindow), "_dw_container_context_data", (gpointer)sigid);
+		cid = gtk_signal_connect(GTK_OBJECT(thiswindow), "button_press_event", GTK_SIGNAL_FUNC(thisfunc), (gpointer)sigid);
+		_set_signal_handler_id(thiswindow, sigid, cid);
+		sigid = _set_signal_handler(window, window, sigfunc, data, thisfunc);
+		cid = gtk_signal_connect(GTK_OBJECT(window), "button_press_event", GTK_SIGNAL_FUNC(thisfunc), (gpointer)sigid);
+		_set_signal_handler_id(window, sigid, cid);
 		DW_MUTEX_UNLOCK;
 		return;
 	}
@@ -7793,17 +7836,18 @@ void dw_signal_connect(HWND window, char *signame, void *sigfunc, void *data)
 	{
 		if(thisfunc)
 		{
+			sigid = _set_signal_handler(thiswindow, window, sigfunc, data, thisfunc);
 			gtk_object_set_data(GTK_OBJECT(thiswindow), "_dw_select_child_func", (gpointer)thisfunc);
-			gtk_object_set_data(GTK_OBJECT(thiswindow), "_dw_select_child_data",
-								(gpointer)_set_signal_handler(thiswindow, window, sigfunc, data));
+			gtk_object_set_data(GTK_OBJECT(thiswindow), "_dw_select_child_data", (gpointer)sigid);
 		}
 		thisname = "select-child";
 	}
 #endif
 	else if(GTK_IS_CLIST(thiswindow) && strcmp(signame, DW_SIGNAL_ITEM_ENTER) == 0)
 	{
-		gtk_signal_connect(GTK_OBJECT(thiswindow), "key_press_event", GTK_SIGNAL_FUNC(_container_enter_event),
-						   (gpointer)_set_signal_handler(thiswindow, window, sigfunc, data));
+		sigid = _set_signal_handler(thiswindow, window, sigfunc, data, _container_enter_event);
+		cid = gtk_signal_connect(GTK_OBJECT(thiswindow), "key_press_event", GTK_SIGNAL_FUNC(_container_enter_event), (gpointer)sigid);
+		_set_signal_handler_id(thiswindow, sigid, cid);
 
 		thisname = "button_press_event";
 		thisfunc = _findsigfunc(DW_SIGNAL_ITEM_ENTER);
@@ -7852,8 +7896,9 @@ void dw_signal_connect(HWND window, char *signame, void *sigfunc, void *data)
 		return;
 	}
 
-	gtk_signal_connect(GTK_OBJECT(thiswindow), thisname, GTK_SIGNAL_FUNC(thisfunc),
-					   (gpointer)_set_signal_handler(thiswindow, window, sigfunc, data));
+	sigid = _set_signal_handler(thiswindow, window, sigfunc, data, thisfunc);
+	cid = gtk_signal_connect(GTK_OBJECT(thiswindow), thisname, GTK_SIGNAL_FUNC(thisfunc),(gpointer)sigid);
+	_set_signal_handler_id(thiswindow, sigid, cid);
 	DW_MUTEX_UNLOCK;
 }
 
@@ -7864,9 +7909,16 @@ void dw_signal_connect(HWND window, char *signame, void *sigfunc, void *data)
  */
 void dw_signal_disconnect_by_name(HWND window, char *signame)
 {
-#if 0
-	gtk_signal_disconnect_by_name(window, signame);
-#endif
+	int z, count = (int)gtk_object_get_data(GTK_OBJECT(window), "_dw_sigcounter");
+	void *thisfunc  = _findsigfunc(signame);
+
+	for(z=0;z<count;z++)
+	{
+		SignalHandler sh = _get_signal_handler(window, (gpointer)z);
+
+		if(sh.intfunc == thisfunc)
+			_remove_signal_handler(window, z);
+	}
 }
 
 /*
@@ -7876,9 +7928,11 @@ void dw_signal_disconnect_by_name(HWND window, char *signame)
  */
 void dw_signal_disconnect_by_window(HWND window)
 {
-#if 0
-	gtk_signal_disconnect_by_window(window);
-#endif
+	int z, count = (int)gtk_object_get_data(GTK_OBJECT(window), "_dw_sigcounter");
+
+	for(z=0;z<count;z++)
+		_remove_signal_handler(window, z);
+	gtk_object_set_data(GTK_OBJECT(window), "_dw_sigcounter", NULL);
 }
 
 /*
@@ -7889,6 +7943,14 @@ void dw_signal_disconnect_by_window(HWND window)
  */
 void dw_signal_disconnect_by_data(HWND window, void *data)
 {
-	dw_signal_disconnect_by_data(window, data);
+	int z, count = (int)gtk_object_get_data(GTK_OBJECT(window), "_dw_sigcounter");
+
+	for(z=0;z<count;z++)
+	{
+		SignalHandler sh = _get_signal_handler(window, (gpointer)z);
+
+		if(sh.data == data)
+			_remove_signal_handler(window, z);
+	}
 }
 
