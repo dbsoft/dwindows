@@ -266,7 +266,7 @@ gint _generic_event(GtkWidget *widget, gpointer data)
 	{
 		int (*genericfunc)(HWND, void *) = work->func;
 
-		genericfunc(popup ? popup : widget, work->data);
+		genericfunc(widget, work->data);
 	}
 	return TRUE;
 }
@@ -279,7 +279,7 @@ void _activate_event(GtkWidget *widget, gpointer data)
 	{
 		void (*activatefunc)(HWND, void *) = work->func;
 
-		activatefunc(work->window, work->data);
+		activatefunc(popup ? popup : work->window, work->data);
 	}
 	return;
 }
