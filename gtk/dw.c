@@ -3426,7 +3426,11 @@ void dw_spinbutton_set_limits(HWND handle, long upper, long lower)
  */
 void dw_entryfield_set_limit(HWND handle, ULONG limit)
 {
-	/* TODO: can this be done after the fact? */
+	int _locked_by_me = FALSE;
+
+	DW_MUTEX_LOCK;
+	gtk_entry_set_max_length(handle, limit);
+	DW_MUTEX_UNLOCK;
 }
 
 /*
