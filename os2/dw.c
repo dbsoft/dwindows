@@ -274,6 +274,11 @@ void _free_window_memory(HWND handle)
 	{
 		WindowData *wd = (WindowData *)ptr;
 		char tmpbuf[100];
+		HBITMAP hbm = (HBITMAP)dw_window_get_data(handle, "_dw_bitmap");
+
+		/* If this window has an associate bitmap destroy it. */
+		if(hbm)
+			GpiDeleteBitmap(hbm);
 
 		WinQueryClassName(handle, 99, tmpbuf);
 
@@ -4527,8 +4532,8 @@ void API dw_window_set_bitmap(HWND handle, ULONG id)
 	hbm = GpiLoadBitmap(hps, NULLHANDLE, id, 0, 0);
 	WinSetWindowBits(handle,QWL_STYLE,SS_BITMAP,SS_BITMAP | 0x7f);
 	WinSendMsg( handle, SM_SETHANDLE, MPFROMP(hbm), NULL );
-	/*WinSetWindowULong( hwndDlg, QWL_USER, (ULONG) hbm );*/
 	WinReleasePS(hps);
+	dw_window_set_data(handle, "_dw_bitmap", (void *)hbm);
 }
 
 /*
