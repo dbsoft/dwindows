@@ -55,7 +55,7 @@ FILE *f;
 void reopen(void)
 {
 	fclose(f);
-	f = fopen("dw.log", "at");
+	f = fopen("dw.log", "a+");
 }
 #endif
 
@@ -618,6 +618,7 @@ int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *usedy,
 						reopen();
 					}
 #endif
+
 					if(thisbox->type == BOXVERT)
 					{
 						if((thisbox->items[z].width-((thisbox->items[z].pad*2)+(tmp->pad*2)))!=0)
@@ -686,6 +687,18 @@ int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *usedy,
 				thisbox->items[z].yratio = ((float)((thisbox->height * thisbox->parentyratio)-((thisbox->items[z].pad*2)+(thisbox->parentpad*2))))/((float)(thisbox->minheight-((thisbox->items[z].pad*2)+(thisbox->parentpad*2))));
 			else
 				thisbox->items[z].yratio = ((float)((thisbox->height * thisbox->parentyratio)-thisbox->upy))/((float)(thisbox->minheight-thisbox->upy));
+
+			if(thisbox->items[z].type == TYPEBOX)
+			{
+				Box *tmp = WinQueryWindowPtr(thisbox->items[z].hwnd, QWP_USER);
+
+				if(tmp)
+				{
+					tmp->parentxratio = thisbox->items[z].xratio;
+					tmp->parentyratio = thisbox->items[z].yratio;
+				}
+			}
+
 #ifdef DWDEBUG
 			fprintf(f, "RATIO- xratio = %f, yratio = %f, width = %d, height = %d, pad = %d, box xratio = %f, box yratio = %f, parent xratio = %f, parent yratio = %f, minwidth = %d, minheight = %d, width = %d, height = %d, upx = %d, upy = %d\r\n\r\n",
 					thisbox->items[z].xratio, thisbox->items[z].yratio, thisbox->items[z].width, thisbox->items[z].height, thisbox->items[z].pad, thisbox->xratio, thisbox->yratio, thisbox->parentxratio, thisbox->parentyratio, thisbox->minwidth, thisbox->minheight, thisbox->width, thisbox->height, thisbox->upx, thisbox->upy);
@@ -1283,6 +1296,8 @@ MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 					if(hWnd == tmp->window || hWnd == WinWindowFromID(tmp->window, FID_CLIENT))
 					{
 						result = closefunc(tmp->window, tmp->data);
+						if(result)
+							result = FALSE;
 						tmp = NULL;
 					}
 				}
@@ -1597,8 +1612,12 @@ MRESULT EXPENTRY _wndproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 		}
 		break;
 	case WM_CLOSE:
-		dw_window_destroy(WinQueryWindow(hWnd, QW_PARENT));
-		return (MRESULT)TRUE;
+		if(result == -1)
+		{
+			dw_window_destroy(WinQueryWindow(hWnd, QW_PARENT));
+			return (MRESULT)TRUE;
+		}
+		break;
 	case WM_USER:
 		windowfunc = (void (*)(void *))mp1;
 
@@ -1617,7 +1636,7 @@ MRESULT EXPENTRY _wndproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 		_free_window_memory(hWnd);
 		break;
 	}
-	if(filterfunc && result != -1)
+	if(result != -1)
 		return (MRESULT)result;
 	else
 		return WinDefWindowProc(hWnd, msg, mp1, mp2);
@@ -1850,7 +1869,9 @@ MRESULT EXPENTRY _splitwndproc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 					if(thisbox->items[z].type == TYPEBOX)
 					{
 						Box *tmp = WinQueryWindowPtr(thisbox->items[z].hwnd, QWP_USER);
-						_changebox(tmp, percent, thisbox->type);
+
+						if(tmp)
+							_changebox(tmp, percent, thisbox->type);
 					}
 					else
 					{
@@ -2164,7 +2185,7 @@ int dw_init(int newthread, int argc, char *argv[])
 	DosQuerySysInfo(QSV_VERSION_MAJOR, QSV_MS_COUNT,(void *)aulBuffer, 4*sizeof(ULONG));
 
 #ifdef DWDEBUG
-	f = fopen("dw.log", "wt");
+	f = fopen("dw.log", "w");
 #endif
 	return rc;
 }
@@ -2488,6 +2509,20 @@ void dw_window_release(void)
 void dw_window_track(HWND handle)
 {
 	WinSendMsg(handle, WM_TRACKFRAME, MPFROMSHORT(TF_MOVE), 0);
+}
+
+/*
+ * Changes the appearance of the mouse pointer.
+ * Parameters:
+ *       handle: Handle to widget for which to change.
+ *       cursortype: ID of the pointer you want.
+ */
+void dw_window_pointer(HWND handle, int pointertype)
+{
+	WinSetPointer(handle,
+				  WinQuerySysPointer(HWND_DESKTOP,
+									 pointertype,
+									 FALSE));
 }
 
 /*
@@ -2875,6 +2910,36 @@ HWND dw_container_new(ULONG id)
 							   id,
 							   NULL,
 							   NULL);
+	dw_window_set_font(tmp, DefaultFont);
+	return tmp;
+}
+
+/*
+ * Create a tree object to be packed.
+ * Parameters:
+ *       id: An ID to be used for getting the resource from the
+ *           resource file.
+ */
+HWND dw_tree_new(ULONG id)
+{
+	CNRINFO cnrinfo;
+	HWND tmp = WinCreateWindow(HWND_OBJECT,
+							   WC_CONTAINER,
+							   NULL,
+							   WS_VISIBLE | CCS_READONLY |
+							   CCS_SINGLESEL | CCS_AUTOPOSITION,
+							   0,0,2000,1000,
+							   NULLHANDLE,
+							   HWND_TOP,
+							   id,
+							   NULL,
+							   NULL);
+
+	cnrinfo.flWindowAttr = CV_TREE | CA_TREELINE;
+	cnrinfo.slBitmapOrIcon.cx = 16;
+	cnrinfo.slBitmapOrIcon.cy = 16;
+
+	WinSendMsg(tmp, CM_SETCNRINFO, &cnrinfo, MPFROMLONG(CMA_FLWINDOWATTR | CMA_SLBITMAPORICON));
 	dw_window_set_font(tmp, DefaultFont);
 	return tmp;
 }
@@ -4125,6 +4190,72 @@ void dw_checkbox_set(HWND handle, int value)
 	WinSendMsg(handle,BM_SETCHECK,MPFROMSHORT(value),0);
 }
 
+typedef struct _CNRITEM
+{
+	MINIRECORDCORE rc;
+	HPOINTER       hptrIcon;
+
+} CNRITEM, *PCNRITEM;
+
+/*
+ * Inserts an item into a tree window (widget).
+ * Parameters:
+ *          handle: Handle to the tree to be inserted.
+ *          title: The text title of the entry.
+ *          icon: Handle to coresponding icon.
+ *          parent: Parent handle or 0 if root.
+ */
+HWND dw_tree_insert(HWND handle, char *title, unsigned long icon, HWND parent)
+{
+	ULONG        cbExtra;
+	PCNRITEM     pci;
+	RECORDINSERT ri;
+
+	/* Calculate extra bytes needed for each record besides that needed for the
+	 * MINIRECORDCORE structure
+	 */
+
+	cbExtra = sizeof(CNRITEM) - sizeof(MINIRECORDCORE);
+
+	/* Allocate memory for the parent record */
+
+	pci = WinSendMsg(handle, CM_ALLOCRECORD, MPFROMLONG(cbExtra), MPFROMSHORT(1));
+
+	/* Fill in the parent record data */
+
+	pci->rc.cb          = sizeof(MINIRECORDCORE);
+	pci->rc.pszIcon     = title;
+	pci->rc.hptrIcon    = icon;
+
+	pci->hptrIcon       = icon;
+
+	memset(&ri, 0, sizeof(RECORDINSERT));
+
+	ri.cb                 = sizeof(RECORDINSERT);
+	ri.pRecordOrder       = (PRECORDCORE)CMA_END;
+	ri.pRecordParent      = (PRECORDCORE)NULL;
+	ri.zOrder             = (USHORT)CMA_TOP;
+	ri.cRecordsInsert     = 1;
+	ri.fInvalidateRecord  = TRUE;
+
+	/* We are about to insert the child records. Set the parent record to be
+	 * the one we just inserted.
+	 */
+	ri.pRecordParent = (PRECORDCORE)parent;
+
+	/* Insert the record */
+	WinSendMsg(handle, CM_INSERTRECORD, MPFROMP(pci), MPFROMP(&ri));
+
+	return (HWND)pci;
+}
+
+/* Some OS/2 specific container structs */
+typedef struct _containerinfo {
+	int count;
+	void *data;
+	HWND handle;
+} ContainerInfo;
+
 /*
  * Sets up the container columns.
  * Parameters:
@@ -4281,6 +4412,7 @@ void *dw_container_alloc(HWND handle, int rowcount)
 	ULONG *flags = (ULONG *)WinQueryWindowPtr(handle, 0);
 	int z, size = 0, totalsize, count = 0;
 	PRECORDCORE temp;
+	ContainerInfo *ci;
 	void *blah;
 
 	if(!flags)
@@ -4319,7 +4451,13 @@ void *dw_container_alloc(HWND handle, int rowcount)
 		temp = temp->preccNextRecord;
 	}
 
-	return blah;
+	ci = malloc(sizeof(struct _containerinfo));
+
+	ci->count = rowcount;
+	ci->data = blah;
+	ci->handle = handle;
+
+	return (void *)ci;
 }
 
 /*
@@ -4334,12 +4472,22 @@ void *dw_container_alloc(HWND handle, int rowcount)
 void dw_container_set_item(HWND handle, void *pointer, int column, int row, void *data)
 {
 	ULONG totalsize, size = 0, *flags = (ULONG *)WinQueryWindowPtr(handle, 0);
-	int z;
-	PRECORDCORE temp = (PRECORDCORE)pointer;
+	int z, currentcount;
+	ContainerInfo *ci = (ContainerInfo *)pointer;
+	PRECORDCORE temp;
+	CNRINFO cnr;
     void *dest;
+
+	if(!ci)
+		return;
 
 	if(!flags)
 		return;
+
+	temp = (PRECORDCORE)ci->data;
+
+	WinSendMsg(handle, CM_QUERYCNRINFO, (MPARAM)&cnr, MPFROMSHORT(sizeof(CNRINFO)));
+	currentcount = cnr.cRecords;
 
 	/* Figure out the offsets to the items in the struct */
 	for(z=0;z<column;z++)
@@ -4358,7 +4506,7 @@ void dw_container_set_item(HWND handle, void *pointer, int column, int row, void
 
 	totalsize = size + sizeof(RECORDCORE);
 
-	for(z=0;z<row;z++)
+	for(z=0;z<(row-currentcount);z++)
 		temp = temp->preccNextRecord;
 
 	dest = (void *)(((ULONG)temp)+((ULONG)totalsize));
@@ -4405,6 +4553,17 @@ void dw_filesystem_set_item(HWND handle, void *pointer, int column, int row, voi
 }
 
 /*
+ * Sets the width of a column in the container.
+ * Parameters:
+ *          handle: Handle to window (widget) of container.
+ *          column: Zero based column of width being set.
+ *          width: Width of column in pixels.
+ */
+void dw_container_set_column_width(HWND handle, int column, int width)
+{
+}
+
+/*
  * Sets the title of a row in the container.
  * Parameters:
  *          pointer: Pointer to the allocated memory in dw_container_alloc().
@@ -4413,10 +4572,15 @@ void dw_filesystem_set_item(HWND handle, void *pointer, int column, int row, voi
  */
 void dw_container_set_row_title(void *pointer, int row, char *title)
 {
-	PRECORDCORE temp = (PRECORDCORE)pointer;
-	int z;
+	ContainerInfo *ci = (ContainerInfo *)pointer;
+	PRECORDCORE temp = (PRECORDCORE)ci->data;
+	int z, currentcount;
+	CNRINFO cnr;
 
-	for(z=0;z<row;z++)
+	WinSendMsg(ci->handle, CM_QUERYCNRINFO, (MPARAM)&cnr, MPFROMSHORT(sizeof(CNRINFO)));
+	currentcount = cnr.cRecords;
+
+	for(z=0;z<(row-currentcount);z++)
 		temp = temp->preccNextRecord;
 
 	temp->pszIcon = title;
@@ -4434,6 +4598,7 @@ void dw_container_set_row_title(void *pointer, int row, char *title)
 void dw_container_insert(HWND handle, void *pointer, int rowcount)
 {
 	RECORDINSERT recin;
+	ContainerInfo *ci = (ContainerInfo *)pointer;
 
 	recin.cb = sizeof(RECORDINSERT);
 	recin.pRecordOrder = (PRECORDCORE)CMA_END;
@@ -4442,7 +4607,7 @@ void dw_container_insert(HWND handle, void *pointer, int rowcount)
 	recin.fInvalidateRecord = TRUE;
 	recin.cRecordsInsert = rowcount;
 
-	WinSendMsg(handle, CM_INSERTRECORD, MPFROMP(pointer), MPFROMP(&recin));
+	WinSendMsg(handle, CM_INSERTRECORD, MPFROMP(ci->data), MPFROMP(&recin));
 }
 
 /*
@@ -4453,6 +4618,49 @@ void dw_container_insert(HWND handle, void *pointer, int rowcount)
 void dw_container_clear(HWND handle)
 {
 	WinSendMsg(handle, CM_REMOVERECORD, (MPARAM)0L, MPFROM2SHORT(0, CMA_INVALIDATE | CMA_FREE));
+}
+
+/*
+ * Removes the first x rows from a container.
+ * Parameters:
+ *       handle: Handle to the window (widget) to be deleted from.
+ *       rowcount: The number of rows to be deleted.
+ */
+void dw_container_delete(HWND handle, int rowcount)
+{
+	RECORDCORE *last, **prc = malloc(sizeof(RECORDCORE *) * rowcount);
+	int current = 1;
+
+	prc[0] = last = (RECORDCORE *)WinSendMsg(handle, CM_QUERYRECORD, (MPARAM)0L, MPFROM2SHORT(CMA_FIRST, CMA_ITEMORDER));
+
+	while(last && current < rowcount)
+	{
+		prc[current] = last = (RECORDCORE *)WinSendMsg(handle, CM_QUERYRECORD, (MPARAM)last, MPFROM2SHORT(CMA_NEXT, CMA_ITEMORDER));
+		current++;
+	}
+	WinSendMsg(handle, CM_REMOVERECORD, (MPARAM)prc, MPFROM2SHORT(current, CMA_INVALIDATE | CMA_FREE));
+	free(prc);
+}
+
+/*
+ * Scrolls container up or down.
+ * Parameters:
+ *       handle: Handle to the window (widget) to be scrolled.
+ *       direction: DW_SCROLL_UP, DW_SCROLL_DOWN, DW_SCROLL_TOP or
+ *                  DW_SCROLL_BOTTOM. (rows is ignored for last two)
+ *       rows: The number of rows to be scrolled.
+ */
+void dw_container_scroll(HWND handle, int direction, long rows)
+{
+	switch(direction)
+	{
+	case DW_SCROLL_TOP:
+		WinSendMsg(handle, CM_SCROLLWINDOW, MPFROMSHORT(CMA_VERTICAL), MPFROMLONG(-10000000));
+        break;
+	case DW_SCROLL_BOTTOM:
+		WinSendMsg(handle, CM_SCROLLWINDOW, MPFROMSHORT(CMA_VERTICAL), MPFROMLONG(10000000));
+		break;
+	}
 }
 
 /*

@@ -377,3 +377,7 @@ char *fsgets(char *str, int size, FILE *stream)
 	return fgets(str, size, stream);
 }
 
+int fsseek(FILE *stream, long offset, int whence)
+{
+	return fseek(stream, offset, whence);
+}

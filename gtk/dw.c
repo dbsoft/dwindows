@@ -50,8 +50,7 @@ GdkColor _colors[] =
 GdkColor _foreground = { 0, 0x0000, 0x0000, 0x0000 };
 GdkColor _background = { 0, 0xaaaa, 0xaaaa, 0xaaaa };
 
-char *_dw_browse_file = NULL;
-int _dw_file_active = 0, _dw_file_ready = 0, _dw_ignore_click = 0;
+int _dw_file_active = 0, _dw_ignore_click = 0;
 pthread_t _dw_thread = (pthread_t)-1;
 int _dw_mutex_locked = FALSE;
 
@@ -609,6 +608,28 @@ int dw_messagebox(char *title, char *format, ...)
 	return strlen(outbuf);
 }
 
+void _dw_yes_func(HWND window, void *data)
+{
+	DWDialog *dwwait = (DWDialog *)data;
+
+	if(!dwwait)
+		return;
+
+	dw_window_destroy((HWND)dwwait->data);
+	dw_dialog_dismiss((DWDialog *)data, (void *)1);
+}
+
+void _dw_no_func(HWND window, void *data)
+{
+	DWDialog *dwwait = (DWDialog *)data;
+
+	if(!dwwait)
+		return;
+
+	dw_window_destroy((HWND)dwwait->data);
+	dw_dialog_dismiss((DWDialog *)data, (void *)0);
+}
+
 /*
  * Displays a Message Box with given text and title..
  * Parameters:
@@ -619,7 +640,44 @@ int dw_messagebox(char *title, char *format, ...)
  */
 int dw_yesno(char *title, char *text)
 {
-	return FALSE;
+	HWND entrywindow, mainbox, nobutton, yesbutton, buttonbox, stext;
+	ULONG flStyle = DW_FCF_TITLEBAR | DW_FCF_SHELLPOSITION | DW_FCF_DLGBORDER;
+	DWDialog *dwwait;
+
+	entrywindow = dw_window_new(HWND_DESKTOP, title, flStyle);
+
+	mainbox = dw_box_new(BOXVERT, 10);
+
+	dw_box_pack_start(entrywindow, mainbox, 0, 0, TRUE, TRUE, 0);
+
+	/* Archive Name */
+	stext = dw_text_new(text, 0);
+
+	dw_box_pack_start(mainbox, stext, 130, 20, TRUE, TRUE, 2);
+
+	/* Buttons */
+	buttonbox = dw_box_new(BOXHORZ, 10);
+
+	dw_box_pack_start(mainbox, buttonbox, 0, 0, TRUE, TRUE, 0);
+
+	yesbutton = dw_button_new("Yes", 1001L);
+
+	dw_box_pack_start(buttonbox, yesbutton, 130, 30, TRUE, TRUE, 2);
+
+	nobutton = dw_button_new("No", 1002L);
+
+	dw_box_pack_start(buttonbox, nobutton, 130, 30, TRUE, TRUE, 2);
+
+	dwwait = dw_dialog_new((void *)entrywindow);
+
+	dw_signal_connect(yesbutton, "clicked", DW_SIGNAL_FUNC(_dw_yes_func), (void *)dwwait);
+	dw_signal_connect(nobutton, "clicked", DW_SIGNAL_FUNC(_dw_no_func), (void *)dwwait);
+
+	dw_window_set_usize(entrywindow, 340, 150);
+
+	dw_window_show(entrywindow);
+
+	return (int)dw_dialog_wait(dwwait);;
 }
 
 /*
@@ -908,6 +966,19 @@ void dw_window_capture(HWND handle)
 	DW_MUTEX_LOCK;
 	gdk_pointer_grab(handle->window, TRUE, GDK_BUTTON_RELEASE_MASK | GDK_BUTTON_PRESS_MASK | GDK_POINTER_MOTION_MASK, NULL, NULL, GDK_CURRENT_TIME);
 	DW_MUTEX_UNLOCK;
+}
+
+/*
+ * Changes the appearance of the mouse pointer.
+ * Parameters:
+ *       handle: Handle to widget for which to change.
+ *       cursortype: ID of the pointer you want.
+ */
+void dw_window_pointer(HWND handle, int pointertype)
+{
+	GdkCursor *cursor = gdk_cursor_new(pointertype);
+	gdk_window_set_cursor(handle->window, cursor);
+	gdk_cursor_destroy(cursor);
 }
 
 /*
@@ -1383,6 +1454,43 @@ HWND dw_container_new(unsigned long id)
 	DW_MUTEX_UNLOCK;
 	return tmp;
 }
+
+/*
+ * Create a tree object to be packed.
+ * Parameters:
+ *       id: An ID to be used for getting the resource from the
+ *           resource file.
+ */
+HWND dw_tree_new(ULONG id)
+{
+	GtkWidget *tmp, *tree;
+	int _locked_by_me = FALSE;
+
+	DW_MUTEX_LOCK;
+	tmp = gtk_scrolled_window_new(NULL, NULL);
+	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW (tmp),
+					GTK_POLICY_AUTOMATIC, GTK_POLICY_ALWAYS);
+
+	gtk_object_set_data(GTK_OBJECT(tmp), "id", (gpointer)id);
+	gtk_widget_show(tmp);
+	tree = gtk_tree_new();
+	if(!tree)
+	{
+		gtk_widget_destroy(tmp);
+		DW_MUTEX_UNLOCK;
+		return FALSE;
+	}
+	gtk_scrolled_window_add_with_viewport(GTK_SCROLLED_WINDOW(tmp), tree);
+	/* Set the selection mode */
+	gtk_tree_set_selection_mode (GTK_TREE(tree), GTK_SELECTION_SINGLE);
+
+	gtk_object_set_user_data(GTK_OBJECT(tmp), (gpointer)tree);
+	gtk_widget_show(tree);
+
+	DW_MUTEX_UNLOCK;
+	return tmp;
+}
+
 
 /*
  * Create a new static text window (widget) to be packed.
@@ -2292,6 +2400,61 @@ void dw_checkbox_set(HWND handle, int value)
 	DW_MUTEX_UNLOCK;
 }
 
+/*
+ * Inserts an item into a tree window (widget).
+ * Parameters:
+ *          handle: Handle to the tree to be inserted.
+ *          title: The text title of the entry.
+ *          icon: Handle to coresponding icon.
+ *          parent: Parent handle or 0 if root.
+ */
+HWND dw_tree_insert(HWND handle, char *title, unsigned long icon, HWND parent)
+{
+	GtkWidget *item, *tree, *subtree, *label, *hbox, *pixmap;
+	GdkPixmap *gdkpix;
+	GdkBitmap *gdkbmp;
+	int _locked_by_me = FALSE;
+
+	DW_MUTEX_LOCK;
+	tree = (GtkWidget *)gtk_object_get_user_data(GTK_OBJECT(handle));
+	if(!tree || !GTK_IS_TREE(tree))
+	{
+		DW_MUTEX_UNLOCK;
+		return NULL;
+	}
+	item = gtk_tree_item_new();
+	label = gtk_label_new(title);
+	hbox = gtk_hbox_new(FALSE, 2);
+	gdkpix = _find_pixmap(&gdkbmp, icon, hbox);
+	pixmap = gtk_pixmap_new(gdkpix, gdkbmp);
+	gtk_container_add(GTK_CONTAINER(item), hbox);
+	gtk_box_pack_start(GTK_BOX(hbox), pixmap, FALSE, TRUE, 0);
+	gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, TRUE, 0);
+	gtk_widget_show(label);
+	gtk_widget_show(pixmap);
+	gtk_widget_show(hbox);
+
+	if(parent)
+	{
+		subtree = (GtkWidget *)gtk_object_get_user_data(GTK_OBJECT(parent));
+		if(!subtree)
+		{
+			subtree = gtk_tree_new();
+			gtk_object_set_user_data(GTK_OBJECT(parent), subtree);
+			gtk_tree_set_selection_mode(GTK_TREE(subtree), GTK_SELECTION_SINGLE);
+			gtk_tree_set_view_mode(GTK_TREE(subtree), GTK_TREE_VIEW_ITEM);
+			gtk_tree_item_set_subtree(GTK_TREE_ITEM(parent), subtree);
+			gtk_widget_show(subtree);
+		}
+		gtk_tree_append(GTK_TREE(subtree), item);
+	}
+	else
+		gtk_tree_append(GTK_TREE(tree), item);
+	gtk_widget_show(item);
+	DW_MUTEX_UNLOCK;
+	return item;
+}
+
 int _dw_container_setup(HWND handle, unsigned long *flags, char **titles, int count, int separator, int extra)
 {
 	GtkWidget *clist;
@@ -2546,6 +2709,26 @@ void dw_filesystem_set_item(HWND handle, void *pointer, int column, int row, voi
 }
 
 /*
+ * Sets the width of a column in the container.
+ * Parameters:
+ *          handle: Handle to window (widget) of container.
+ *          column: Zero based column of width being set.
+ *          width: Width of column in pixels.
+ */
+void dw_container_set_column_width(HWND handle, int column, int width)
+{
+	GtkWidget *clist;
+	int _locked_by_me = FALSE;
+
+	DW_MUTEX_LOCK;
+	clist = gtk_object_get_user_data(GTK_OBJECT(handle));
+
+	if(clist && GTK_IS_CLIST(clist))
+		gtk_clist_set_column_width(GTK_CLIST(clist), column, width);
+	DW_MUTEX_UNLOCK;
+}
+
+/*
  * Sets the title of a row in the container.
  * Parameters:
  *          pointer: Pointer to the allocated memory in dw_container_alloc().
@@ -2586,6 +2769,42 @@ void dw_container_insert(HWND handle, void *pointer, int rowcount)
 }
 
 /*
+ * Removes the first x rows from a container.
+ * Parameters:
+ *       handle: Handle to the window (widget) to be deleted from.
+ *       rowcount: The number of rows to be deleted.
+ */
+void dw_container_delete(HWND handle, int rowcount)
+{
+	GtkWidget *clist;
+	GList *list;
+	int _locked_by_me = FALSE;
+
+	DW_MUTEX_LOCK;
+	clist = (GtkWidget*)gtk_object_get_user_data(GTK_OBJECT(handle));
+	if(clist && GTK_IS_CLIST(clist))
+	{
+		int rows, z;
+
+		list = (GList *)gtk_object_get_data(GTK_OBJECT(clist), "selectlist");
+		rows = (int)gtk_object_get_data(GTK_OBJECT(clist), "rowcount");
+		g_list_free(list);
+
+		for(z=0;z<rowcount;z++)
+			gtk_clist_remove(GTK_CLIST(clist), 0);
+
+		if(rows - rowcount < 0)
+			rows = 0;
+		else
+			rows -= rowcount;
+
+		gtk_object_set_data(GTK_OBJECT(clist), "selectlist", NULL);
+		gtk_object_set_data(GTK_OBJECT(clist), "rowcount", (gpointer)rows);
+	}
+	DW_MUTEX_UNLOCK;
+}
+
+/*
  * Removes all rows from a container.
  * Parameters:
  *       handle: Handle to the window (widget) to be cleared.
@@ -2616,6 +2835,42 @@ void dw_container_clear(HWND handle)
  */
 void dw_container_set_view(HWND handle, unsigned long flags, int iconwidth, int iconheight)
 {
+}
+
+/*
+ * Scrolls container up or down.
+ * Parameters:
+ *       handle: Handle to the window (widget) to be scrolled.
+ *       direction: DW_SCROLL_UP, DW_SCROLL_DOWN, DW_SCROLL_TOP or
+ *                  DW_SCROLL_BOTTOM. (rows is ignored for last two)
+ *       rows: The number of rows to be scrolled.
+ */
+void dw_container_scroll(HWND handle, int direction, long rows)
+{
+	GtkAdjustment *adj;
+	GtkWidget *clist;
+	int _locked_by_me = FALSE;
+
+	DW_MUTEX_LOCK;
+	clist = (GtkWidget*)gtk_object_get_user_data(GTK_OBJECT(handle));
+	if(clist && GTK_IS_CLIST(clist))
+	{
+		adj = gtk_clist_get_vadjustment(GTK_CLIST(clist));
+		if(adj)
+		{
+			switch(direction)
+			{
+			case DW_SCROLL_TOP:
+				adj->value = adj->lower;
+				break;
+			case DW_SCROLL_BOTTOM:
+				adj->value = adj->upper;
+				break;
+			}
+			gtk_clist_set_vadjustment(GTK_CLIST(clist), adj);
+		}
+	}
+	DW_MUTEX_UNLOCK;
 }
 
 /*
@@ -4130,27 +4385,28 @@ void dw_environment_query(DWEnv *env)
 }
 
 /* Internal function to handle the file OK press */
-void _gtk_file_ok(GtkWidget *widget, GtkWidget *window)
+void _gtk_file_ok(GtkWidget *widget, DWDialog *dwwait)
 {
 	char *tmp;
 
-	tmp = gtk_file_selection_get_filename(GTK_FILE_SELECTION(window));
-	if(tmp)
-		_dw_browse_file = strdup(tmp);
-	gtk_widget_destroy(GTK_WIDGET(window));
-	if(pthread_self() == _dw_thread)
-		gtk_main_quit();
-	_dw_file_ready = 1;
+	if(!dwwait)
+		return;
+
+	tmp = gtk_file_selection_get_filename(GTK_FILE_SELECTION(dwwait->data));
+	gtk_widget_destroy(GTK_WIDGET(dwwait->data));
+	_dw_file_active = 0;
+	dw_dialog_dismiss(dwwait, (void *)(tmp ? strdup(tmp) : NULL));
 }
 
 /* Internal function to handle the file Cancel press */
-void _gtk_file_cancel(GtkWidget *widget, GtkWidget *window)
+void _gtk_file_cancel(GtkWidget *widget, DWDialog *dwwait)
 {
-	gtk_widget_destroy(GTK_WIDGET(window));
-	if(pthread_self() == _dw_thread)
-		gtk_main_quit();
-	_dw_file_ready = 1;
+	if(!dwwait)
+		return;
 
+	gtk_widget_destroy(GTK_WIDGET(dwwait->data));
+	_dw_file_active = 0;
+	dw_dialog_dismiss(dwwait, NULL);
 }
 
 /*
@@ -4168,8 +4424,8 @@ void _gtk_file_cancel(GtkWidget *widget, GtkWidget *window)
 char *dw_file_browse(char *title, char *defpath, char *ext, int flags)
 {
 	GtkWidget *filew;
-	char *tmpvar;
 	int _locked_by_me = FALSE;
+	DWDialog *dwwait;
 
 	DW_MUTEX_LOCK;
 
@@ -4183,12 +4439,13 @@ char *dw_file_browse(char *title, char *defpath, char *ext, int flags)
 	}
 
 	_dw_file_active = 1;
-	_dw_file_ready = 0;
 
 	filew = gtk_file_selection_new(title);
 
-	gtk_signal_connect(GTK_OBJECT(GTK_FILE_SELECTION(filew)->ok_button), "clicked", (GtkSignalFunc) _gtk_file_ok, filew);
-	gtk_signal_connect(GTK_OBJECT(GTK_FILE_SELECTION(filew)->cancel_button), "clicked", (GtkSignalFunc) _gtk_file_cancel, filew);
+	dwwait = dw_dialog_new((void *)filew);
+
+	gtk_signal_connect(GTK_OBJECT(GTK_FILE_SELECTION(filew)->ok_button), "clicked", (GtkSignalFunc) _gtk_file_ok, dwwait);
+	gtk_signal_connect(GTK_OBJECT(GTK_FILE_SELECTION(filew)->cancel_button), "clicked", (GtkSignalFunc) _gtk_file_cancel, dwwait);
 
 	if(defpath)
 		gtk_file_selection_set_filename(GTK_FILE_SELECTION(filew), defpath);
@@ -4197,20 +4454,7 @@ char *dw_file_browse(char *title, char *defpath, char *ext, int flags)
 
 	DW_MUTEX_UNLOCK;
 
-	if(pthread_self() == _dw_thread)
-		gtk_main();
-	else
-	{
-		/* This should be an event semaphore */
-		while(!_dw_file_ready)
-			usleep(100);
-	}
-
-	tmpvar = _dw_browse_file;
-	_dw_browse_file = NULL;
-	_dw_file_ready = _dw_file_active = 0;
-
-	return tmpvar;
+	return (char *)dw_dialog_wait(dwwait);
 }
 
 

@@ -37,7 +37,7 @@ int main(int argc, char *argv[]);
 
 #define ICON_INDEX_LIMIT 200
 HICON lookup[200];
-HIMAGELIST hSmall, hLarge;
+HIMAGELIST hSmall  = 0, hLarge = 0;
 
 #define THREAD_LIMIT 128
 COLORREF _foreground[THREAD_LIMIT];
@@ -72,6 +72,7 @@ static LONG lColor[SPLITBAR_WIDTH] =
 };
 
 void _resize_notebook_page(HWND handle, int pageid);
+int _lookup_icon(HWND handle, HICON hicon, int type);
 
 #ifdef NO_SIGNALS
 #define USE_FILTER
@@ -672,6 +673,18 @@ int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *usedy,
 				thisbox->items[z].yratio = ((float)((thisbox->height * thisbox->parentyratio)-((thisbox->items[z].pad*2)+(thisbox->parentpad*2))))/((float)(thisbox->minheight-((thisbox->items[z].pad*2)+(thisbox->parentpad*2))));
 			else
 				thisbox->items[z].yratio = ((float)((thisbox->height * thisbox->parentyratio)-thisbox->upy))/((float)(thisbox->minheight-thisbox->upy));
+
+			if(thisbox->items[z].type == TYPEBOX)
+			{
+				Box *tmp = (Box *)GetWindowLong(thisbox->items[z].hwnd, GWL_USERDATA);
+
+				if(tmp)
+				{
+					tmp->parentxratio = thisbox->items[z].xratio;
+					tmp->parentyratio = thisbox->items[z].yratio;
+				}
+			}
+
 #ifdef DWDEBUG
 			fprintf(f, "RATIO- xratio = %f, yratio = %f, width = %d, height = %d, pad = %d, box xratio = %f, box yratio = %f, parent xratio = %f, parent yratio = %f, minwidth = %d, minheight = %d, width = %d, height = %d, upx = %d, upy = %d\r\n\r\n",
 					thisbox->items[z].xratio, thisbox->items[z].yratio, thisbox->items[z].width, thisbox->items[z].height, thisbox->items[z].pad, thisbox->xratio, thisbox->yratio, thisbox->parentxratio, thisbox->parentyratio, thisbox->minwidth, thisbox->minheight, thisbox->width, thisbox->height, thisbox->upx, thisbox->upy);
@@ -1235,8 +1248,54 @@ BOOL CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 		EnumChildWindows(hWnd, _free_window_memory, 0);
 #endif
 		break;
+		case WM_CTLCOLORSTATIC:
+		case WM_CTLCOLORLISTBOX:
+		case WM_CTLCOLORBTN:
+		case WM_CTLCOLOREDIT:
+		case WM_CTLCOLORMSGBOX:
+		case WM_CTLCOLORSCROLLBAR:
+		case WM_CTLCOLORDLG:
+			{
+				ColorInfo *thiscinfo = (ColorInfo *)GetWindowLong((HWND)mp2, GWL_USERDATA);
+				if(thiscinfo && thiscinfo->fore != -1 && thiscinfo->back != -1)
+				{
+					if(thiscinfo->fore > -1 && thiscinfo->back > -1 &&
+					   thiscinfo->fore < 18 && thiscinfo->back < 18)
+					{
+						SetTextColor((HDC)mp1, RGB(_red[thiscinfo->fore],
+												   _green[thiscinfo->fore],
+											   _blue[thiscinfo->fore]));
+						SetBkColor((HDC)mp1, RGB(_red[thiscinfo->back],
+												 _green[thiscinfo->back],
+												 _blue[thiscinfo->back]));
+						DeleteObject(thiscinfo->hbrush);
+						thiscinfo->hbrush = CreateSolidBrush(RGB(_red[thiscinfo->back],
+																 _green[thiscinfo->back],
+																 _blue[thiscinfo->back]));
+						SelectObject((HDC)mp1, thiscinfo->hbrush);
+						return (LONG)thiscinfo->hbrush;
+					}
+					if((thiscinfo->fore & DW_RGB_COLOR) == DW_RGB_COLOR && (thiscinfo->back & DW_RGB_COLOR) == DW_RGB_COLOR)
+					{
+						SetTextColor((HDC)mp1, RGB(DW_RED_VALUE(thiscinfo->fore),
+												   DW_GREEN_VALUE(thiscinfo->fore),
+												   DW_BLUE_VALUE(thiscinfo->fore)));
+						SetBkColor((HDC)mp1, RGB(DW_RED_VALUE(thiscinfo->back),
+												 DW_GREEN_VALUE(thiscinfo->back),
+												 DW_BLUE_VALUE(thiscinfo->back)));
+						DeleteObject(thiscinfo->hbrush);
+						thiscinfo->hbrush = CreateSolidBrush(RGB(DW_RED_VALUE(thiscinfo->back),
+																 DW_GREEN_VALUE(thiscinfo->back),
+																 DW_BLUE_VALUE(thiscinfo->back)));
+						SelectObject((HDC)mp1, thiscinfo->hbrush);
+						return (LONG)thiscinfo->hbrush;
+					}
+				}
+
+			}
+			break;
 	}
-	if(filterfunc && result != -1)
+	if(result != -1)
 		return result;
 	else
 		return DefWindowProc(hWnd, msg, mp1, mp2);
@@ -1407,6 +1466,7 @@ BOOL CALLBACK _colorwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 		case WM_CTLCOLOREDIT:
 		case WM_CTLCOLORMSGBOX:
 		case WM_CTLCOLORSCROLLBAR:
+		case WM_CTLCOLORDLG:
 			{
 				ColorInfo *thiscinfo = (ColorInfo *)GetWindowLong((HWND)mp2, GWL_USERDATA);
 				if(thiscinfo && thiscinfo->fore != -1 && thiscinfo->back != -1)
@@ -1420,8 +1480,12 @@ BOOL CALLBACK _colorwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 						SetBkColor((HDC)mp1, RGB(_red[thiscinfo->back],
 												 _green[thiscinfo->back],
 												 _blue[thiscinfo->back]));
-						SelectObject((HDC)mp1, _colors[thiscinfo->back]);
-						return (LONG)_colors[thiscinfo->back];
+						DeleteObject(thiscinfo->hbrush);
+						thiscinfo->hbrush = CreateSolidBrush(RGB(_red[thiscinfo->back],
+																 _green[thiscinfo->back],
+																 _blue[thiscinfo->back]));
+						SelectObject((HDC)mp1, thiscinfo->hbrush);
+						return (LONG)thiscinfo->hbrush;
 					}
 					if((thiscinfo->fore & DW_RGB_COLOR) == DW_RGB_COLOR && (thiscinfo->back & DW_RGB_COLOR) == DW_RGB_COLOR)
 					{
@@ -1805,7 +1869,8 @@ BOOL CALLBACK _statuswndproc(HWND hwnd, UINT msg, WPARAM mp1, LPARAM mp2)
 
 			dw_window_get_pos_size(hwnd, NULL, NULL, &cx, &cy);
 
-			_hBrush[threadid] = GetStockObject(LTGRAY_BRUSH);
+ 
+			_hBrush[threadid] = CreateSolidBrush(GetSysColor(COLOR_3DFACE));
 
 			dw_draw_rect(hwnd, 0, TRUE, 0, 0, cx, cy);
 
@@ -1839,6 +1904,7 @@ BOOL CALLBACK _statuswndproc(HWND hwnd, UINT msg, WPARAM mp1, LPARAM mp2)
 
 			SelectObject(hdcPaint, hFont);
 
+			DeleteObject(_hBrush[threadid]);
 			_hBrush[threadid] = oldBrush;
 			_hPen[threadid] = oldPen;
 			ReleaseDC(hwnd, hdcPaint);
@@ -2179,6 +2245,17 @@ int dw_init(int newthread, int argc, char *argv[])
 		_hBrush[z] = CreateSolidBrush(_foreground[z]);
 	}
 
+#if 0
+	{
+		DWORD dwResult = GetSysColor(COLOR_3DFACE);
+ 
+		dw_messagebox("DW",
+					  "Window color: {%x, %x, %x}",
+					  GetRValue(dwResult),
+					  GetGValue(dwResult),
+					  GetBValue(dwResult));
+	}
+#endif
 	return 0;
 }
 
@@ -2305,7 +2382,7 @@ int dw_messagebox(char *title, char *format, ...)
  */
 int dw_yesno(char *title, char *text)
 {
-	if(MessageBox(HWND_DESKTOP, text, title, MB_YESNO)==IDYES)
+	if(MessageBox(HWND_DESKTOP, text, title, MB_YESNO) == IDYES)
 		return TRUE;
 	return FALSE;
 }
@@ -2517,6 +2594,17 @@ void dw_window_capture(HWND handle)
 void dw_window_release(void)
 {
 	ReleaseCapture();
+}
+
+/*
+ * Changes the appearance of the mouse pointer.
+ * Parameters:
+ *       handle: Handle to widget for which to change.
+ *       cursortype: ID of the pointer you want.
+ */
+void dw_window_pointer(HWND handle, int pointertype)
+{
+	SetCursor(LoadCursor(NULL, MAKEINTRESOURCE(pointertype)));
 }
 
 /*
@@ -2891,6 +2979,29 @@ HWND dw_container_new(ULONG id)
 }
 
 /*
+ * Create a tree object to be packed.
+ * Parameters:
+ *       id: An ID to be used for getting the resource from the
+ *           resource file.
+ */
+HWND dw_tree_new(ULONG id)
+{
+	HWND tmp = CreateWindow(WC_TREEVIEW,
+							"",
+							WS_CHILD | TVS_HASLINES |
+							TVS_HASBUTTONS | TVS_LINESATROOT |
+							WS_BORDER | WS_CLIPCHILDREN,
+							0,0,2000,1000,
+							DW_HWND_OBJECT,
+							(HMENU)id,
+							NULL,
+							NULL);
+	TreeView_SetItemHeight(tmp, 16);
+	dw_window_set_font(tmp, DefaultFont);
+	return tmp;
+}
+
+/*
  * Returns the current X and Y coordinates of the mouse pointer.
  * Parameters:
  *       x: Pointer to variable to store X coordinate.
@@ -2970,7 +3081,7 @@ HWND dw_mle_new(ULONG id)
     
 	HWND tmp = CreateWindow(EDITCLASSNAME,
 							"",
-							WS_BORDER | ES_AUTOHSCROLL |
+							WS_BORDER |
 							WS_VSCROLL | ES_MULTILINE |
 							ES_WANTRETURN | WS_CHILD |
 							WS_CLIPCHILDREN,
@@ -4144,6 +4255,13 @@ void dw_mle_set_editable(HWND handle, int state)
  */
 void dw_mle_set_word_wrap(HWND handle, int state)
 {
+	/* If ES_AUTOHSCROLL is not set and there is not
+	 * horizontal scrollbar it word wraps.
+	 */
+	if(state)
+		dw_window_set_style(handle, 0, ES_AUTOHSCROLL);
+	else
+		dw_window_set_style(handle, ES_AUTOHSCROLL, ES_AUTOHSCROLL);
 }
 
 /*
@@ -4334,6 +4452,34 @@ void dw_checkbox_set(HWND handle, int value)
 }
 
 /*
+ * Inserts an item into a tree window (widget).
+ * Parameters:
+ *          handle: Handle to the tree to be inserted.
+ *          title: The text title of the entry.
+ *          icon: Handle to coresponding icon.
+ *          parent: Parent handle or 0 if root.
+ */
+HWND dw_tree_insert(HWND handle, char *title, unsigned long icon, HWND parent)
+{
+	TVITEM tvi;
+	TVINSERTSTRUCT tvins;
+	HTREEITEM hti;
+
+	tvi.mask = TVIF_TEXT | TVIF_IMAGE | TVIF_SELECTEDIMAGE ;
+	tvi.pszText = title;
+	tvi.cchTextMax = strlen(title);
+	tvi.iSelectedImage = tvi.iImage = _lookup_icon(handle, (HICON)icon, 1);
+
+	tvins.item = tvi;
+	tvins.hParent = (HTREEITEM)parent;
+	tvins.hInsertAfter = TVI_LAST;
+
+	hti = TreeView_InsertItem(handle, &tvins);
+
+	return (HWND)hti;
+}
+
+/*
  * Sets up the container columns.
  * Parameters:
  *          handle: Handle to the container to be configured.
@@ -4434,6 +4580,8 @@ void *dw_container_alloc(HWND handle, int rowcount)
 
 	lvi.mask = LVIF_DI_SETITEM | LVIF_TEXT;
 	lvi.iSubItem = 0;
+	/* Insert at the end */
+	lvi.iItem = 1000000;
 	lvi.pszText = "";
 	lvi.cchTextMax = 1;
 
@@ -4445,12 +4593,12 @@ void *dw_container_alloc(HWND handle, int rowcount)
 /* Finds a icon in the table, otherwise it adds it to the table
  * and returns the index in the table.
  */
-int _lookup_icon(HWND handle, HICON hicon)
+int _lookup_icon(HWND handle, HICON hicon, int type)
 {
 	int z;
 	static HWND lasthwnd = NULL;
 
-	if(!lookup[0])
+	if(!hSmall || !hLarge)
 	{
 		hSmall = ImageList_Create(16, 16, FALSE, ICON_INDEX_LIMIT, 0);
 		hLarge = ImageList_Create(32, 32, FALSE, ICON_INDEX_LIMIT, 0);
@@ -4462,8 +4610,15 @@ int _lookup_icon(HWND handle, HICON hicon)
 			lookup[z] = hicon;
 			ImageList_AddIcon(hSmall, hicon);
 			ImageList_AddIcon(hLarge, hicon);
-			ListView_SetImageList(handle, hSmall, LVSIL_SMALL);
-			ListView_SetImageList(handle, hLarge, LVSIL_NORMAL);
+			if(type)
+			{
+				TreeView_SetImageList(handle, hSmall, TVSIL_NORMAL);
+			}
+			else
+			{
+				ListView_SetImageList(handle, hSmall, LVSIL_SMALL);
+				ListView_SetImageList(handle, hLarge, LVSIL_NORMAL);
+			}
 			lasthwnd = handle;
 			return z;
 		}
@@ -4472,8 +4627,15 @@ int _lookup_icon(HWND handle, HICON hicon)
 		{
 			if(lasthwnd != handle)
 			{
-				ListView_SetImageList(handle, hSmall, LVSIL_SMALL);
-				ListView_SetImageList(handle, hLarge, LVSIL_NORMAL);
+				if(type)
+				{
+					TreeView_SetImageList(handle, hSmall, TVSIL_NORMAL);
+				}
+				else
+				{
+					ListView_SetImageList(handle, hSmall, LVSIL_SMALL);
+					ListView_SetImageList(handle, hLarge, LVSIL_NORMAL);
+				}
                 lasthwnd = handle;
 			}
 			return z;
@@ -4500,7 +4662,7 @@ void dw_filesystem_set_file(HWND handle, void *pointer, int row, char *filename,
 	lvi.mask = LVIF_DI_SETITEM | LVIF_IMAGE | LVIF_TEXT;
 	lvi.pszText = filename;
 	lvi.cchTextMax = strlen(filename);
-	lvi.iImage = _lookup_icon(handle, (HICON)icon);
+	lvi.iImage = _lookup_icon(handle, (HICON)icon, 0);
 
 	ListView_SetItem(handle, &lvi);
 }
@@ -4551,11 +4713,15 @@ void dw_container_set_item(HWND handle, void *pointer, int column, int row, void
 		lvi.mask = LVIF_DI_SETITEM | LVIF_IMAGE;
 		lvi.pszText = NULL;
 		lvi.cchTextMax = 0;
-		lvi.iImage = _lookup_icon(handle, hicon);
+
+		lvi.iImage = _lookup_icon(handle, hicon, 0);
 	}
 	else if(flags[column] & DW_CFA_STRING)
 	{
 		char *tmp = *((char **)data);
+
+		if(!tmp)
+			tmp = "";
 
 		lvi.pszText = tmp;
 		lvi.cchTextMax = strlen(tmp);
@@ -4590,7 +4756,19 @@ void dw_container_set_item(HWND handle, void *pointer, int column, int row, void
 		lvi.cchTextMax = strlen(textbuffer);
 	}
 
-	ListView_SetItemText(handle, row, column, destptr);
+	ListView_SetItem(handle, &lvi);
+}
+
+/*
+ * Sets the width of a column in the container.
+ * Parameters:
+ *          handle: Handle to window (widget) of container.
+ *          column: Zero based column of width being set.
+ *          width: Width of column in pixels.
+ */
+void dw_container_set_column_width(HWND handle, int column, int width)
+{
+	ListView_SetColumnWidth(handle, column, width);
 }
 
 /*
@@ -4634,11 +4812,44 @@ void dw_container_insert(HWND handle, void *pointer, int rowcount)
  */
 void dw_container_clear(HWND handle)
 {
-	/* May need to delete manually so I can
-	 * remove the memory allocated for the
-	 * lParam field.
-	 */
 	ListView_DeleteAllItems(handle);
+}
+
+/*
+ * Removes the first x rows from a container.
+ * Parameters:
+ *       handle: Handle to the window (widget) to be deleted from.
+ *       rowcount: The number of rows to be deleted.
+ */
+void dw_container_delete(HWND handle, int rowcount)
+{
+	int z;
+
+	for(z=0;z<rowcount;z++)
+	{
+		ListView_DeleteItem(handle, 0);
+	}
+}
+
+/*
+ * Scrolls container up or down.
+ * Parameters:
+ *       handle: Handle to the window (widget) to be scrolled.
+ *       direction: DW_SCROLL_UP, DW_SCROLL_DOWN, DW_SCROLL_TOP or
+ *                  DW_SCROLL_BOTTOM. (rows is ignored for last two)
+ *       rows: The number of rows to be scrolled.
+ */
+void dw_container_scroll(HWND handle, int direction, long rows)
+{
+	switch(direction)
+	{
+	case DW_SCROLL_TOP:
+		ListView_Scroll(handle, 0, -10000000);
+        break;
+	case DW_SCROLL_BOTTOM:
+		ListView_Scroll(handle, 0, 10000000);
+		break;
+	}
 }
 
 /*
