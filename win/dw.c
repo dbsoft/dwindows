@@ -752,6 +752,20 @@ void _initial_focus(HWND handle)
 	}
 }
 
+HWND _toplevel_window(HWND handle)
+{
+	HWND box, lastbox = GetParent(handle);
+
+	/* Find the toplevel window */
+	while((box = GetParent(lastbox)))
+	{
+		lastbox = box;
+	}
+	if(lastbox)
+		return lastbox;
+	return handle;
+}
+
 /* This function finds the current widget in the
  * layout and moves the current focus to the next item.
  */
@@ -1412,7 +1426,7 @@ BOOL CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 					{
 						int (*keypressfunc)(HWND, char, int, int, void *) = tmp->signalfunction;
 
-						if(hWnd == tmp->window)
+						if(hWnd == tmp->window || _toplevel_window(hWnd) == tmp->window)
 						{
 							int special = 0;
 							char ch = 0;
