@@ -2200,7 +2200,6 @@ MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 			tmp = tmp->next;
 
 	}
-
 	return (MRESULT)result;
 }
 
@@ -4211,7 +4210,7 @@ HWND dw_radiobutton_new(char *text, ULONG id)
 HWND dw_slider_new(int vertical, int increments, ULONG id)
 {
 	WindowData *blah = calloc(1, sizeof(WindowData));
-	SLDCDATA sldcData = { sizeof(SLDCDATA), increments, 0, 0, 0 };
+	SLDCDATA sldcData = { 0, 0, 0, 0, 0 };
 	HWND tmp = WinCreateWindow(HWND_OBJECT,
 							   WC_SLIDER,
 							   "",
@@ -4224,6 +4223,8 @@ HWND dw_slider_new(int vertical, int increments, ULONG id)
 							   &sldcData,
 							   NULL);
 
+	sldcData.cbSize = sizeof(SLDCDATA);
+    sldcData.usScale1Increments = increments;
 
 	blah->oldproc = WinSubclassWindow(tmp, _entryproc);
 	WinSetWindowPtr(tmp, QWP_USER, blah);
@@ -4362,12 +4363,12 @@ void dw_window_set_text(HWND handle, char *text)
  */
 char *dw_window_get_text(HWND handle)
 {
-	char tempbuf[4096] = "";
+	int len = WinQueryWindowTextLength(handle);
+	char *tempbuf = calloc(1, len + 2);
 
-	WinQueryWindowText(handle, 4095, tempbuf);
-	tempbuf[4095] = 0;
+	WinQueryWindowText(handle, len + 1, tempbuf);
 
-	return strdup(tempbuf);
+	return tempbuf;
 }
 
 /*
@@ -7072,9 +7073,12 @@ ULONG _GetSystemBuildLevel(void) {
 	ULONG ulBuild = 0;
 	if (DosQuerySysInfo (QSV_BOOT_DRIVE, QSV_BOOT_DRIVE, &ulBootDrive, sizeof (ulBootDrive)) == NO_ERROR)
 	{
-		char achFileName[11] = { (char)('A'+ulBootDrive-1),':','\\','O','S','2','K','R','N','L','\0' };
+		char achFileName[11] = "C:\\OS2KRNL";
 		HFILE hfile;
 		ULONG ulResult;
+
+        achFileName[0] = (char)('A'+ulBootDrive-1);
+
 		if (DosOpen (achFileName, &hfile, &ulResult, 0, 0, OPEN_ACTION_FAIL_IF_NEW | OPEN_ACTION_OPEN_IF_EXISTS, OPEN_FLAGS_FAIL_ON_ERROR | OPEN_FLAGS_NO_CACHE | OPEN_FLAGS_SEQUENTIAL | OPEN_SHARE_DENYNONE | OPEN_ACCESS_READONLY, NULL) == NO_ERROR)
 		{
 			ULONG ulFileSize = 0;
@@ -7255,6 +7259,7 @@ char *dw_file_browse(char *title, char *defpath, char *ext, int flags)
 /* Internal function to set drive and directory */
 int _SetPath(char *path)
 {
+#ifndef __WATCOMC__
 	if(strlen(path)	> 2)
 	{
 		if(path[1] == ':')
@@ -7263,6 +7268,7 @@ int _SetPath(char *path)
 			_chdrive((drive - 'A')+1);
 		}
 	}
+#endif
 	return chdir(path);
 }
 
@@ -7316,7 +7322,7 @@ int dw_browse(char *url)
 		if(stricmp(&browser[len], "explore.exe") == 0)
 		{
 			int newlen, z;
-			newurl = alloca(strlen(url) + 2);
+			newurl = malloc(strlen(url) + 2);
 			sprintf(newurl, "file:///%s", &url[7]);
 			newlen = strlen(newurl);
 			for(z=8;z<(newlen-8);z++)
@@ -7337,6 +7343,8 @@ int dw_browse(char *url)
 		_SetPath(olddir);
 		free(olddir);
 	}
+	if(newurl)
+		free(newurl);
 	return ret;
 }
 

@@ -70,7 +70,7 @@ int	sockclose(int a)
 
 int makedir(char *path)
 {
-#if defined(__IBMC__) || (defined(__WIN32__) && !defined(__CYGWIN32__))
+#if defined(__IBMC__) || defined(__WATCOMC__) || (defined(__WIN32__) && !defined(__CYGWIN32__))
 	return mkdir(path);
 #else
 	return mkdir(path,S_IRWXU);
@@ -79,7 +79,7 @@ int makedir(char *path)
 
 void nonblock(int fd)
 {
-#ifdef __IBMC__
+#if defined(__OS2__) && !defined(__EMX__)
 	static int _nonblock = 1;
 
 	ioctl(fd, FIONBIO, (char *)&_nonblock, sizeof(_nonblock));
@@ -94,7 +94,7 @@ void nonblock(int fd)
 
 void block(int fd)
 {
-#ifdef __IBMC__
+#if defined(__OS2__) && !defined(__EMX__)
 	static int _nonblock = 0;
 
 	ioctl(fd, FIONBIO, (char *)&_nonblock, sizeof(_nonblock));
@@ -631,7 +631,7 @@ FSInfo *FSIRoot = NULL;
 /* Sharable fopen() and fclose() calls. */
 FILE *fsopen(char *path, char *modes)
 {
-#if defined(__OS2__) || defined(__WIN32__)
+#if (defined(__OS2__) && !defined(__WATCOMC__)) || defined(__WIN32__)
 	int z;
 
 	if(!FSIRoot)
