@@ -472,10 +472,10 @@ int DWSIGNAL container_select_cb( HWND window, HTREEITEM item, char *text, void 
 	/* Make the last inserted point the cursor location */
 	dw_mle_set(container_mle, mle_point);
 /* set the details of item 0 to new data */
-fprintf(stderr,"In cb: container: %x containerinfo: %x icon: %x\n", container, containerinfo, fileicon);
+fprintf(stderr,"In cb: container: %x containerinfo: %x icon: %x\n", (int)container, (int)containerinfo, (int)fileicon);
 	dw_filesystem_change_file(container, 0, "new data", fileicon);
 	size = 999;
-fprintf(stderr,"In cb: container: %x containerinfo: %x icon: %x\n", container, containerinfo, fileicon);
+fprintf(stderr,"In cb: container: %x containerinfo: %x icon: %x\n", (int)container, (int)containerinfo, (int)fileicon);
 	dw_filesystem_change_item(container, 0, 0, &size);
 	return 0;
 }
@@ -490,10 +490,29 @@ int DWSIGNAL switch_page_cb( HWND window, unsigned long page_num, void *itemdata
 
 int DWSIGNAL column_click_cb( HWND window, int column_num, void *data )
 {
-	char buf[200];
+	char buf[200], buf1[100];
 	HWND statline = (HWND)data;
+	int column_type;
 
-	sprintf(buf,"DW_SIGNAL_COLUMN_CLICK: Window: %x Column: %d Itemdata: %x", (unsigned int)window, column_num, (unsigned int)data );
+	if(column_num == 0)
+		strcpy(buf1,"Filename");
+	else
+	{
+	column_type = dw_filesystem_get_column_type( window, column_num-1 );
+	if( column_type == DW_CFA_STRING)
+		strcpy(buf1,"String");
+	else if( column_type == DW_CFA_ULONG)
+		strcpy(buf1,"ULong");
+	else if( column_type == DW_CFA_DATE)
+		strcpy(buf1,"Date");
+	else if( column_type == DW_CFA_TIME)
+		strcpy(buf1,"Time");
+	else if( column_type == DW_CFA_BITMAPORICON)
+		strcpy(buf1,"BitmapOrIcon");
+	else
+		strcpy(buf1,"Unknown");
+	}
+	sprintf(buf,"DW_SIGNAL_COLUMN_CLICK: Window: %x Column: %d Type: %s Itemdata: %x", (unsigned int)window, column_num, buf1, (unsigned int)data );
 	dw_window_set_text( statline, buf);
 	return 0;
 }
@@ -697,7 +716,7 @@ void container_add(void)
 		sprintf(buffer, "Filename %d",z+1);
 		if (z == 0 ) thisicon = foldericon;
 		else thisicon = fileicon;
-fprintf(stderr,"Initial: container: %x containerinfo: %x icon: %x\n", container, containerinfo, thisicon);
+fprintf(stderr,"Initial: container: %x containerinfo: %x icon: %x\n", (int)container, (int)containerinfo, (int)thisicon);
 		dw_filesystem_set_file(container, containerinfo, z, buffer, thisicon);
 		dw_filesystem_set_item(container, containerinfo, 0, z, &size);
 
