@@ -3306,7 +3306,7 @@ void API dw_scrollbar_set_range(HWND handle, unsigned int range, unsigned int vi
 	if(adjustment)
 	{
 		adjustment->upper = (gdouble)range;
-		adjustment->page_incremenr = adjustment->page_size = (gdouble)visible;
+		adjustment->page_increment = adjustment->page_size = (gdouble)visible;
 	}
 	DW_MUTEX_UNLOCK;
 }
