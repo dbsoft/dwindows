@@ -5261,6 +5261,7 @@ int dw_container_setup(HWND handle, unsigned long *flags, char **titles, int cou
 	tempflags[count] = 0;
 
 	blah->data = tempflags;
+	blah->flags = separator;
 
 	if(oldflags)
 		free(oldflags);
@@ -5808,6 +5809,44 @@ void dw_container_cursor(HWND handle, char *text)
  */
 void dw_container_optimize(HWND handle)
 {
+	WindowData *blah = (WindowData *)WinQueryWindowPtr(handle, QWP_USER);
+	RECTL item;
+	PRECORDCORE pCore = NULL;
+	int max = 0;
+
+	if(blah && !blah->flags)
+		return;
+
+	pCore = WinSendMsg(handle, CM_QUERYRECORD, (MPARAM)0L, MPFROM2SHORT(CMA_FIRST, CMA_ITEMORDER));
+	while(pCore)
+	{
+		QUERYRECORDRECT qrr;
+		int vector;
+
+		qrr.cb = sizeof(QUERYRECORDRECT);
+		qrr.pRecord = pCore;
+		qrr.fRightSplitWindow = 0;
+		qrr.fsExtent = CMA_TEXT;
+
+		WinSendMsg(handle, CM_QUERYRECORDRECT, (MPARAM)&item, (MPARAM)&qrr);
+
+		vector = item.xRight - item.xLeft;
+
+		if(vector > max)
+			max = vector;
+
+		pCore = WinSendMsg(handle, CM_QUERYRECORD, (MPARAM)pCore, MPFROM2SHORT(CMA_NEXT, CMA_ITEMORDER));
+	}
+
+	if(max)
+	{
+		CNRINFO cnri;
+
+		cnri.cb = sizeof(CNRINFO);
+		cnri.xVertSplitbar  = max;
+
+		WinSendMsg(handle, CM_SETCNRINFO, MPFROMP(&cnri),  MPFROMLONG(CMA_XVERTSPLITBAR));
+	}
 }
 
 /*
