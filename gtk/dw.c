@@ -5807,7 +5807,19 @@ void dw_window_set_data(HWND window, char *dataname, void *data)
 		return;
 
 	DW_MUTEX_LOCK;
-	gtk_object_set_data(GTK_OBJECT(window),  dataname, (gpointer)data);
+	if(GTK_IS_OBJECT(window))
+	{
+		if(GTK_IS_SCROLLED_WINDOW(window))
+		{
+			HWND thiswindow = (HWND)gtk_object_get_user_data(GTK_OBJECT(window));
+
+			if(thiswindow && GTK_IS_OBJECT(thiswindow))
+				gtk_object_set_data(GTK_OBJECT(thiswindow), dataname, (gpointer)data);
+		}
+		if(GTK_IS_COMBO(window))
+			gtk_object_set_data(GTK_OBJECT(GTK_COMBO(window)->entry), dataname, (gpointer)data);
+		gtk_object_set_data(GTK_OBJECT(window), dataname, (gpointer)data);
+	}
 	DW_MUTEX_UNLOCK;
 }
 
@@ -5821,13 +5833,14 @@ void dw_window_set_data(HWND window, char *dataname, void *data)
 void *dw_window_get_data(HWND window, char *dataname)
 {
 	int _locked_by_me = FALSE;
-	void *ret;
+	void *ret = NULL;
 
 	if(!window)
 		return NULL;
 
 	DW_MUTEX_LOCK;
-	ret = (void *)gtk_object_get_data(GTK_OBJECT(window), dataname);
+    if(GTK_IS_OBJECT(window))
+		ret = (void *)gtk_object_get_data(GTK_OBJECT(window), dataname);
 	DW_MUTEX_UNLOCK;
 	return ret;
 }
