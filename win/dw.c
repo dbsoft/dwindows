@@ -6698,10 +6698,15 @@ HPIXMAP API dw_pixmap_new_from_file(HWND handle, char *filename)
 	HPIXMAP pixmap;
 	BITMAP bm;
 	HDC hdc;
-	char *file = alloca(strlen(filename) + 5);
+	SIZE sz;
+	char *file = malloc(strlen(filename) + 5);
 
 	if (!file || !(pixmap = calloc(1,sizeof(struct _hpixmap))))
+	{
+		if(file)
+			free(file);
 		return NULL;
+	}
 
 	strcpy(file, filename);
 
@@ -6713,21 +6718,35 @@ HPIXMAP API dw_pixmap_new_from_file(HWND handle, char *filename)
 		if(access(file, 04) != 0)
 		{
 			free(pixmap);
+			free(file);
 			return NULL;
 		}
 	}
 
-	dc = GetDC(handle);
-
-	pixmap->width = width; pixmap->height = height;
+	hdc = GetDC(handle);
 
 	pixmap->handle = handle;
 	pixmap->hbm = (HBITMAP)LoadImage(NULL, file, IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
+
+	if(!pixmap->hbm)
+	{
+		free(file);
+		free(pixmap);
+		ReleaseDC(handle, hdc);
+		return NULL;
+	}
+
 	pixmap->hdc = CreateCompatibleDC(hdc);
+
+	GetBitmapDimensionEx(pixmap->hbm, &sz);
+
+	pixmap->width = sz.cx; pixmap->height = sz.cy;
 
 	SelectObject(pixmap->hdc, pixmap->hbm);
 
 	ReleaseDC(handle, hdc);
+
+	free(file);
 
 	return pixmap;
 }
