@@ -1870,6 +1870,8 @@ MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 		msg = WM_BUTTON1DOWN;
 	if(msg == WM_BUTTON2UP || msg == WM_BUTTON3UP)
 		msg = WM_BUTTON1UP;
+	if(msg == WM_VSCROLL || msg == WM_HSCROLL)
+		msg = SLN_SLIDERTRACK;
 
 	/* Find any callbacks for this function */
 	while(tmp)
@@ -2240,19 +2242,35 @@ MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 						{
 							int (* API valuechangedfunc)(HWND, int, void *) = (int (* API)(HWND, int, void *))tmp->signalfunction;
 
-							if(tmp->window == hWnd || WinQueryWindow(tmp->window, QW_PARENT) == hWnd)
+							if(origmsg == SLN_SLIDERTRACK)
 							{
-								static int lastvalue = -1;
-								static HWND lasthwnd = NULLHANDLE;
-								int ulValue = (int)WinSendMsg(tmp->window, SLM_QUERYSLIDERINFO, MPFROM2SHORT(SMA_SLIDERARMPOSITION, SMA_INCREMENTVALUE), 0);
-								if(lastvalue != ulValue || lasthwnd != tmp->window)
+								/* Handle Slider control */
+								if(tmp->window == hWnd || WinQueryWindow(tmp->window, QW_PARENT) == hWnd)
 								{
-									dw_window_set_data(tmp->window, "_dw_slider_value", (void *)ulValue);
-									result = valuechangedfunc(tmp->window, ulValue, tmp->data);
-									lastvalue = ulValue;
-									lasthwnd = tmp->window;
+									static int lastvalue = -1;
+									static HWND lasthwnd = NULLHANDLE;
+									int ulValue = (int)WinSendMsg(tmp->window, SLM_QUERYSLIDERINFO, MPFROM2SHORT(SMA_SLIDERARMPOSITION, SMA_INCREMENTVALUE), 0);
+									if(lastvalue != ulValue || lasthwnd != tmp->window)
+									{
+										dw_window_set_data(tmp->window, "_dw_slider_value", (void *)ulValue);
+										result = valuechangedfunc(tmp->window, ulValue, tmp->data);
+										lastvalue = ulValue;
+										lasthwnd = tmp->window;
+									}
+									tmp = NULL;
 								}
-								tmp = NULL;
+							}
+							else
+							{
+								/* Handle scrollbar control */
+								if(tmp->window = hWnd)
+								{
+									int pos = (int) SHORT1FROMMP(mp2);
+
+									dw_window_set_data(hWnd, "_dw_scrollbar_value", (void *)pos);
+									result = valuechangedfunc(tmp->window, pos, tmp->data);
+									tmp = NULL;
+								}
 							}
 						}
 
@@ -3069,6 +3087,23 @@ void API dw_main_sleep(int milliseconds)
 		}
 		else
 			DosSleep(1);
+	}
+}
+
+/*
+ * Processes a single message iteration and returns.
+ */
+void API dw_main_iteration(void)
+{
+	QMSG qmsg;
+
+	_dwtid = dw_thread_id();
+
+	if(WinGetMsg(dwhab, &qmsg, 0, 0, 0))
+	{
+		if(qmsg.msg == WM_TIMER && qmsg.hwnd == NULLHANDLE)
+			_run_event(qmsg.hwnd, qmsg.msg, qmsg.mp1, qmsg.mp2);
+		WinDispatchMsg(dwhab, &qmsg);
 	}
 }
 
@@ -5282,11 +5317,13 @@ void API dw_scrollbar_set_pos(HWND handle, unsigned int position)
  * Parameters:
  *          handle: Handle to the scrollbar to be set.
  *          range: Maximum range value.
+ *          visible: Visible area relative to the range.
  */
-void API dw_scrollbar_set_range(HWND handle, unsigned int range)
+void API dw_scrollbar_set_range(HWND handle, unsigned int range, unsigned int visible)
 {
 	unsigned int pos = (unsigned int)dw_window_get_data(handle, "_dw_scrollbar_value");
-	WinSendMsg(handle, SBM_SETSCROLLBAR, (MPARAM)pos, MPFROM2SHORT(0, (unsigned short)range));
+	WinSendMsg(handle, SBM_SETSCROLLBAR, (MPARAM)pos, MPFROM2SHORT(0, (unsigned short)range - visible));
+	WinSendMsg(handle, SBM_SETTHUMBSIZE, MPFROM2SHORT((unsigned short)visible, range), 0);
 }
 
 /*

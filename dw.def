@@ -22,6 +22,7 @@ EXPORTS
   dw_flush                               @21
   dw_free                                @22
   dw_main_sleep                          @23
+  dw_main_iteration                      @24
 
   dw_box_new                             @40
   dw_groupbox_new                        @41
