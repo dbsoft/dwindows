@@ -317,6 +317,8 @@ void _free_window_memory(HWND handle)
 			if(data)
 				free(data);
 		}
+		else if(strncmp(tmpbuf, "#37", 4)==0)
+			dw_container_clear(handle, FALSE);
 
 		if(wd->oldproc)
 			WinSubclassWindow(handle, wd->oldproc);
@@ -5734,7 +5736,7 @@ void API dw_tree_item_select(HWND handle, HWND item)
  */
 void API dw_tree_clear(HWND handle)
 {
-	WinSendMsg(handle, CM_REMOVERECORD, (MPARAM)0L, MPFROM2SHORT(0, CMA_INVALIDATE | CMA_FREE));
+	dw_container_clear(handle, TRUE);
 }
 
 /*
@@ -6256,6 +6258,21 @@ void API dw_container_clear(HWND handle, int redraw)
 {
 	int z = 0;
 
+	if(!dw_window_get_data(handle, "_dw_container"))
+	{
+		PCNRITEM pCore = WinSendMsg(handle, CM_QUERYRECORD, (MPARAM)0L, MPFROM2SHORT(CMA_FIRST, CMA_ITEMORDER));
+
+		while(pCore)
+		{
+			/* Free icon text */
+			if(pCore->rc.pszIcon)
+			{
+				free(pCore->rc.pszIcon);
+				pCore->rc.pszIcon = 0;
+			}
+			pCore = WinSendMsg(handle, CM_QUERYRECORD, (MPARAM)pCore, MPFROM2SHORT(CMA_NEXT, CMA_ITEMORDER));
+		}
+	}
 	while((int)WinSendMsg(handle, CM_REMOVERECORD, (MPARAM)0L, MPFROM2SHORT(0, (redraw ? CMA_INVALIDATE : 0) | CMA_FREE)) == -1)
 	{
 		z++;
