@@ -727,6 +727,7 @@ void dw_draw_point(HWND handle, HPIXMAP pixmap, int x, int y);
 void dw_draw_line(HWND handle, HPIXMAP pixmap, int x1, int y1, int x2, int y2);
 void dw_draw_rect(HWND handle, HPIXMAP pixmap, int fill, int x, int y, int width, int height);
 void dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text);
+void dw_font_text_extents(HWND handle, HPIXMAP pixmap, char *text, int *width, int *height);
 void dw_flush(void);
 void dw_pixmap_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest, int width, int height, HWND src, HPIXMAP srcp, int xsrc, int ysrc);
 HPIXMAP dw_pixmap_new(HWND handle, unsigned long width, unsigned long height, int depth);

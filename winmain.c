@@ -8,7 +8,9 @@
 #include <stdio.h>
 #include <process.h>
 
+#ifndef NODW
 void Win32_Set_Instance(HINSTANCE hInstance);
+#endif
 
 char **_convertargs(int *count, char *start, HINSTANCE DWInstance)
 {
@@ -100,7 +102,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	char **argv;
 	int argc;
 
+#ifndef NODW
 	Win32_Set_Instance(hInstance);
+#endif
 
 	argv = _convertargs(&argc, lpCmdLine, hInstance);
 

@@ -203,3 +203,5 @@ EXPORTS
   dw_tree_clear                          @372
   dw_tree_delete                         @373
 
+  dw_font_text_extents                   @380
+

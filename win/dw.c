@@ -5400,6 +5400,59 @@ void dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
 		ReleaseDC(handle, hdc);
 }
 
+/* Query the width and height of a text string.
+ * Parameters:
+ *       handle: Handle to the window.
+ *       pixmap: Handle to the pixmap. (choose only one of these)
+ *       text: Text to be queried.
+ *       width: Pointer to a variable to be filled in with the width.
+ *       height Pointer to a variable to be filled in with the height.
+ */
+void dw_font_text_extents(HWND handle, HPIXMAP pixmap, char *text, int *width, int *height)
+{
+	HDC hdc;
+	int mustdelete = 0;
+	HFONT hFont, oldFont;
+	SIZE sz;
+
+	if(handle)
+		hdc = GetDC(handle);
+	else if(pixmap)
+		hdc = pixmap->hdc;
+	else
+		return;
+
+	{
+		ColorInfo *cinfo;
+
+		if(handle)
+			cinfo = (ColorInfo *)GetWindowLong(handle, GWL_USERDATA);
+		else
+			cinfo = (ColorInfo *)GetWindowLong(pixmap->handle, GWL_USERDATA);
+
+		if(cinfo)
+		{
+			hFont = _aquire_font(cinfo->fontname);
+			mustdelete = 1;
+		}
+	}
+	oldFont = SelectObject(hdc, hFont);
+
+	GetTextExtentPoint32(hdc, text, strlen(text), &sz);
+
+	if(width)
+		*width = sz.cx;
+
+	if(height)
+		*height = sz.cy;
+
+	SelectObject(hdc, oldFont);
+	if(mustdelete)
+		DeleteObject(hFont);
+	if(!pixmap)
+		ReleaseDC(handle, hdc);
+}
+
 /* Call this after drawing to the screen to make sure
  * anything you have drawn is visible.
  */

@@ -5406,8 +5406,45 @@ void dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
 		WinReleasePS(hps);
 }
 
+/* Query the width and height of a text string.
+ * Parameters:
+ *       handle: Handle to the window.
+ *       pixmap: Handle to the pixmap. (choose only one of these)
+ *       text: Text to be queried.
+ *       width: Pointer to a variable to be filled in with the width.
+ *       height Pointer to a variable to be filled in with the height.
+ */
+void dw_font_text_extents(HWND handle, HPIXMAP pixmap, char *text, int *width, int *height)
+{
+	HPS hps;
+	POINTL aptl[TXTBOX_COUNT];
 
+	if(handle)
+	{
+		hps = _set_colors(handle);
+	}
+	else if(pixmap)
+	{
+		HPS pixmaphps = WinGetPS(pixmap->handle);
 
+		hps = _set_hps(pixmap->hps);
+		_CopyFontSettings(pixmaphps, hps);
+		WinReleasePS(pixmaphps);
+	}
+	else
+		return;
+
+	GpiQueryTextBox(hps, strlen(text), text, TXTBOX_COUNT, aptl);
+
+	if(width)
+		*width = aptl[TXTBOX_TOPRIGHT].x - aptl[TXTBOX_TOPLEFT].x;
+
+	if(height)
+		*height = aptl[TXTBOX_TOPLEFT].y - aptl[TXTBOX_BOTTOMLEFT].y;
+
+	if(!pixmap)
+		WinReleasePS(hps);
+}
 
 /* Draw a rectangle on a window (preferably a render window).
  * Parameters:
