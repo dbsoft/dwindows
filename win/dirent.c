@@ -56,24 +56,32 @@ getFSType(const char *path)
 	return cache [unit] = r;
 }
 
-char *
-abs_path(const char *name, char *buffer, int len)
+char *abs_path(const char *name, char *buffer, int len)
 {
-	char buf[4];
-	if (isalpha(name[0]) && name[1] == ':' && name[2] == '\0') {
-		buf[0] = name[0];
-		buf[1] = name[1];
-		buf[2] = '.';
-		buf[3] = '\0';
-		name = buf;
-	}
-	if (GetLongPathName(name, buffer, len))
+	char *buf;
+	LPTSTR file;
+
+	if(isalpha(name[0]) && name[1] == ':' && name[2] == '\0')
+	{
+		int drive = _getdrive();
+		char newdrive = toupper(name[0]);
+
+		_chdrive((newdrive - 'A')+1);
+
+		if(getcwd(buffer, len))
+		{
+			_chdrive(drive);
+			return buffer;
+		}
+		_chdrive(drive);
 		return NULL;
-	return buffer;
+	}
+	if(GetFullPathName(name, len, buffer, &file))
+		return buffer;
+	return NULL;
 }
 
-DIR *
-openxdir(const char *path, unsigned att_mask)
+DIR *openxdir(const char *path, unsigned att_mask)
 {
 	DIR *dir;
 	char name[MAXPATHLEN+3];
