@@ -1255,6 +1255,14 @@ MRESULT EXPENTRY _comboproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 			return FALSE;
 		}
 		break;
+	case WM_BUTTON1DOWN:
+	case WM_BUTTON2DOWN:
+	case WM_BUTTON3DOWN:
+		_run_event(hWnd, WM_SETFOCUS, (MPARAM)FALSE, (MPARAM)TRUE);
+		break;
+	case WM_SETFOCUS:
+		_run_event(hWnd, msg, mp1, mp2);
+		break;
 	case WM_PAINT:
 		{
 			HWND parent = WinQueryWindow(hWnd, QW_PARENT);
@@ -1568,8 +1576,9 @@ MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 							int (*listboxselectfunc)(HWND, int, void *) = (int (*)(HWND, int, void *))tmp->signalfunction;
 							int id = SHORT1FROMMP(mp1);
 							HWND conthwnd = dw_window_from_id(hWnd, id);
+							static int _recursing = 0;
 
-							if(tmp->window == conthwnd || (!id && tmp->window == (HWND)mp2))
+							if(_recursing == 0 && (tmp->window == conthwnd || (!id && tmp->window == (HWND)mp2)))
 							{
 								char buf1[500], classbuf[100];
 								unsigned int index = dw_listbox_selected(tmp->window);
@@ -1577,6 +1586,8 @@ MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 								dw_listbox_query_text(tmp->window, index, buf1, 500);
 
 								WinQueryClassName(tmp->window, 99, classbuf);
+
+								_recursing = 1;
 
 								if(id && strncmp(classbuf, "#2", 3)==0)
 								{
@@ -1596,6 +1607,7 @@ MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 								else
 									result = listboxselectfunc(tmp->window, index, tmp->data);
 
+								_recursing = 0;
 								tmp = NULL;
 							}
 						}
@@ -1734,7 +1746,11 @@ MRESULT EXPENTRY _wndproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 				mybox->flags = DW_MINIMIZED;
 
 			if(mybox && (swp->fl & SWP_RESTORE))
+			{
+				if(!mybox->titlebar && mybox->hwndtitle)
+					WinSetParent(mybox->hwndtitle, HWND_OBJECT, FALSE);
 				mybox->flags = 0;
+			}
 
 			if(mybox && (swp->fl & SWP_MAXIMIZE))
 			{
@@ -2184,7 +2200,10 @@ MRESULT EXPENTRY _BtProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 	{
 #ifndef NO_SIGNALS
 	case WM_SETFOCUS:
-		_wndproc(hwnd, msg, mp1, mp2);
+		if(mp2)
+			_run_event(hwnd, msg, mp1, mp2);
+		else
+			WinSendMsg(hwnd, BM_SETDEFAULT, 0, 0);
 		break;
 	case WM_BUTTON1UP:
 		{
@@ -2260,6 +2279,7 @@ MRESULT EXPENTRY _BtProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 			if(SHORT1FROMMP(mp2) == '\t')
 			{
 				_shift_focus(hwnd);
+				WinSendMsg(hwnd, BM_SETDEFAULT, 0, 0);
 				return FALSE;
 			}
 		}
@@ -2615,6 +2635,19 @@ int dw_window_show(HWND handle)
  */
 int dw_window_minimize(HWND handle)
 {
+	HWND hwndclient = WinWindowFromID(handle, FID_CLIENT);
+
+	if(hwndclient)
+	{
+		Box *box = (Box *)WinQueryWindowPtr(hwndclient, QWP_USER);
+
+		if(box)
+		{
+			if(!box->titlebar && box->hwndtitle)
+				WinSetParent(box->hwndtitle, handle, FALSE);
+		}
+	}
+
 	return WinSetWindowPos(handle, NULLHANDLE, 0, 0, 0, 0, SWP_MINIMIZE);
 }
 
@@ -2796,7 +2829,15 @@ HWND dw_window_new(HWND hwndOwner, char *title, ULONG flStyle)
 
 	flStyle |= FCF_NOBYTEALIGN;
 
+	if(flStyle & DW_FCF_TITLEBAR)
+		newbox->titlebar = 1;
+	else
+		flStyle |= FCF_TITLEBAR;
+
 	hwndframe = WinCreateStdWindow(hwndOwner, 0L, &flStyle, ClassName, title, 0L, NULLHANDLE, 0L, &hwndclient);
+	newbox->hwndtitle = WinWindowFromID(hwndframe, FID_TITLEBAR);
+	if(!newbox->titlebar && newbox->hwndtitle)
+		WinSetParent(newbox->hwndtitle, HWND_OBJECT, FALSE);
 	*blah = WinSubclassWindow(hwndframe, _sizeproc);
 	WinSetWindowPtr(hwndframe, QWP_USER, blah);
 	WinSetWindowPtr(hwndclient, QWP_USER, newbox);

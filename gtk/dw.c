@@ -307,12 +307,18 @@ void _expose_event(GtkWidget *widget, GdkEventExpose *event, gpointer data)
 void _item_select_event(GtkWidget *widget, GtkWidget *child, gpointer data)
 {
 	SignalHandler *work = (SignalHandler *)data;
+	static int _dw_recursing = 0;
+
+	if(_dw_recursing)
+		return;
 
 	if(work)
 	{
 		int (*selectfunc)(HWND, int, void *) = work->func;
 		GList *list;
 		int item = 0;
+
+		_dw_recursing = 1;
 
 		if(GTK_IS_COMBO(work->window))
 			list = GTK_LIST(GTK_COMBO(work->window)->list)->children;
@@ -332,6 +338,7 @@ void _item_select_event(GtkWidget *widget, GtkWidget *child, gpointer data)
 			item++;
 			list = list->next;
 		}
+		_dw_recursing = 0;
 	}
 }
 
@@ -4873,6 +4880,8 @@ void dw_signal_connect(HWND window, char *signame, void *sigfunc, void *data)
 	else if(strcmp(signame, "set-focus") == 0)
 	{
 		thisname = "focus-in-event";
+		if(GTK_IS_COMBO(thiswindow))
+			thiswindow = GTK_COMBO(thiswindow)->entry;
 	}
 	else if(GTK_IS_TREE(thiswindow) && strcmp(signame, "tree-select") == 0)
 	{
