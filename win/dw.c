@@ -1507,12 +1507,12 @@ BOOL CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 					{
 						char tmpbuf[100];
                         HWND handle = (HWND)mp2;
+						int (*valuechangefunc)(HWND, int, void *) = tmp->signalfunction;
 
 						GetClassName(handle, tmpbuf, 99);
 
 						if(strnicmp(tmpbuf, TRACKBAR_CLASS, strlen(TRACKBAR_CLASS)+1)==0)
 						{
-							int (*valuechangefunc)(HWND, int, void *) = tmp->signalfunction;
 
 							if(handle == tmp->window)
 							{
@@ -1524,6 +1524,17 @@ BOOL CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 									result = valuechangefunc(tmp->window, max - value, tmp->data);
 								else
 									result = valuechangefunc(tmp->window, value, tmp->data);
+								tmp = NULL;
+							}
+						}
+						else if(strnicmp(tmpbuf, SCROLLBARCLASSNAME, strlen(SCROLLBARCLASSNAME)+1)==0)
+						{
+							if(handle == tmp->window && LOWORD(mp1) == SB_THUMBTRACK)
+							{
+								int value = (int)HIWORD(mp1);
+
+								dw_scrollbar_set_pos(tmp->window, value);
+								result = valuechangefunc(tmp->window, value, tmp->data);
 								tmp = NULL;
 							}
 						}
@@ -1609,6 +1620,18 @@ BOOL CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 					SetParent(array[num]->hwnd, tem->hwndFrom);
 
 				_resize_notebook_page(tem->hwndFrom, num);
+			}
+		}
+		break;
+	case WM_HSCROLL:
+	case WM_VSCROLL:
+		{
+			HWND handle = (HWND)mp2;
+
+			if(dw_window_get_data(handle, "_dw_scrollbar") && LOWORD(mp1) == SB_THUMBTRACK)
+			{
+				int value = (int)HIWORD(mp1);
+				dw_scrollbar_set_pos(handle, value);
 			}
 		}
 		break;
@@ -2954,7 +2977,7 @@ void API dw_main(void)
 
 	_dwtid = dw_thread_id();
 
-	while (GetMessage(&msg, NULL, 0, 0))
+	while(GetMessage(&msg, NULL, 0, 0))
 	{
 		if(msg.hwnd == NULL && msg.message == WM_TIMER)
 			_wndproc(msg.hwnd, msg.message, msg.wParam, msg.lParam);
@@ -2985,6 +3008,24 @@ void API dw_main_sleep(int milliseconds)
 		}
 		else
 			Sleep(1);
+	}
+}
+
+/*
+ * Processes a single message iteration and returns.
+ */
+void API dw_main_iteration(void)
+{
+	MSG msg;
+
+	_dwtid = dw_thread_id();
+
+	if(GetMessage(&msg, NULL, 0, 0))
+	{
+		if(msg.hwnd == NULL && msg.message == WM_TIMER)
+			_wndproc(msg.hwnd, msg.message, msg.wParam, msg.lParam);
+		TranslateMessage(&msg);
+		DispatchMessage(&msg);
 	}
 }
 
@@ -3294,7 +3335,6 @@ int API dw_window_set_font(HWND handle, char *fontname)
 		{
 			cinfo = calloc(1, sizeof(ColorInfo));
 			cinfo->fore = cinfo->back = -1;
-			cinfo->buddy = 0;
 
 			strcpy(cinfo->fontname, fontname);
 
@@ -3353,7 +3393,6 @@ int API dw_window_set_color(HWND handle, ULONG fore, ULONG back)
 
 		cinfo->fore = fore;
 		cinfo->back = back;
-		cinfo->buddy = 0;
 
 		cinfo->pOldProc = SubclassWindow(handle, _colorwndproc);
 		SetWindowLong(handle, GWL_USERDATA, (ULONG)cinfo);
@@ -3923,7 +3962,6 @@ HWND API dw_entryfield_new(char *text, ULONG id)
 	ColorInfo *cinfo = calloc(1, sizeof(ColorInfo));
 
 	cinfo->back = cinfo->fore = -1;
-	cinfo->buddy = 0;
 
 	cinfo->pOldProc = SubclassWindow(tmp, _colorwndproc);
 	SetWindowLong(tmp, GWL_USERDATA, (ULONG)cinfo);
@@ -3953,7 +3991,6 @@ HWND API dw_entryfield_password_new(char *text, ULONG id)
 	ColorInfo *cinfo = calloc(1, sizeof(ColorInfo));
 
 	cinfo->back = cinfo->fore = -1;
-	cinfo->buddy = 0;
 
 	cinfo->pOldProc = SubclassWindow(tmp, _colorwndproc);
 	SetWindowLong(tmp, GWL_USERDATA, (ULONG)cinfo);
@@ -4176,8 +4213,6 @@ HWND API dw_slider_new(int vertical, int increments, ULONG id)
 	ColorInfo *cinfo = calloc(1, sizeof(ColorInfo));
 
 	cinfo->back = cinfo->fore = -1;
-	cinfo->buddy = 0;
-	cinfo->user = 0;
 
 	cinfo->pOldProc = SubclassWindow(tmp, _colorwndproc);
 	SetWindowLong(tmp, GWL_USERDATA, (ULONG)cinfo);
@@ -4194,7 +4229,7 @@ HWND API dw_slider_new(int vertical, int increments, ULONG id)
  */
 HWND API dw_scrollbar_new(int vertical, int increments, ULONG id)
 {
-	HWND tmp = CreateWindow("SCROLLBAR",
+	HWND tmp = CreateWindow(SCROLLBARCLASSNAME,
 							"",
 							WS_CHILD | WS_CLIPCHILDREN | WS_VISIBLE |
 							(vertical ? SBS_VERT : SBS_HORZ),
@@ -4203,6 +4238,13 @@ HWND API dw_scrollbar_new(int vertical, int increments, ULONG id)
 							(HMENU)id,
 							DWInstance,
 							NULL);
+	ColorInfo *cinfo = calloc(1, sizeof(ColorInfo));
+
+	cinfo->back = cinfo->fore = -1;
+
+	cinfo->pOldProc = SubclassWindow(tmp, _colorwndproc);
+	SetWindowLong(tmp, GWL_USERDATA, (ULONG)cinfo);
+	dw_window_set_data(tmp, "_dw_scrollbar", (void *)1);
 	return tmp;
 }
 
@@ -5341,10 +5383,18 @@ void API dw_scrollbar_set_pos(HWND handle, unsigned int position)
  * Parameters:
  *          handle: Handle to the scrollbar to be set.
  *          range: Maximum range value.
+ *          visible: Visible area relative to the range.
  */
-void API dw_scrollbar_set_range(HWND handle, unsigned int range)
+void API dw_scrollbar_set_range(HWND handle, unsigned int range, unsigned int visible)
 {
-	SendMessage(handle, SBM_SETRANGE, 0, (LPARAM)range);
+	SCROLLINFO si;
+
+	si.cbSize = sizeof(SCROLLINFO);
+	si.fMask = SIF_RANGE | SIF_PAGE;
+	si.nMin = 0;
+	si.nMax = range;
+	si.nPage = visible;
+	SendMessage(handle, SBM_SETSCROLLINFO, (WPARAM)TRUE, (LPARAM)&si);
 }
 
 /*
@@ -7348,6 +7398,7 @@ void API dw_window_set_data(HWND window, char *dataname, void *data)
 			return;
 
 		cinfo = calloc(1, sizeof(ColorInfo));
+		cinfo->fore = cinfo->back = -1;
 		SetWindowLong(window, GWL_USERDATA, (LONG)cinfo);
 	}
 
