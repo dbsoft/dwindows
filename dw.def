@@ -60,6 +60,7 @@ EXPORTS
   dw_window_raise                        @76
   dw_window_lower                        @77
   dw_window_click_default                @78
+  dw_window_redraw                       @79
 
   dw_bitmap_new                          @80
 
@@ -202,6 +203,11 @@ EXPORTS
   dw_tree_insert                         @371
   dw_tree_clear                          @372
   dw_tree_delete                         @373
+  dw_tree_set                            @374
+  dw_tree_expand                         @375
+  dw_tree_collapse                       @376
+  dw_tree_item_select                    @377
+  dw_tree_set_data                       @378
 
   dw_font_text_extents                   @380
 

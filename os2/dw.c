@@ -106,7 +106,7 @@ SignalList SignalTranslate[SIGNALMAX] = {
 	{ CN_ENTER, "container-select" },
 	{ CN_CONTEXTMENU, "container-context" },
 	{ LN_SELECT, "item-select" },
-	{ WM_USER+1, "tree-select" },
+	{ CN_EMPHASIS, "tree-select" },
 	{ WM_SETFOCUS, "set-focus" }
 };
 
@@ -153,6 +153,15 @@ ULONG _findsigmessage(char *signame)
 }
 #endif
 
+typedef struct _CNRITEM
+{
+	MINIRECORDCORE rc;
+	HPOINTER       hptrIcon;
+	PVOID          user;
+
+} CNRITEM, *PCNRITEM;
+
+
 /* This function changes the owner of buttons in to the
  * dynamicwindows handle to fix a problem in notebooks.
  */
@@ -186,24 +195,22 @@ void _free_window_memory(HWND handle)
 {
 	HENUM henum;
 	HWND child;
+	void *ptr = (void *)WinQueryWindowPtr(handle, QWP_USER);
 
 #ifndef NO_SIGNALS
 	dw_signal_disconnect_by_window(handle);
 #endif
 
+	if(ptr)
+	{
+		WinSetWindowPtr(handle, QWP_USER, 0);
+		free(ptr);
+	}
+
 	henum = WinBeginEnumWindows(handle);
 	while((child = WinGetNextWindow(henum)) != NULLHANDLE)
-	{
-		void *ptr = (void *)WinQueryWindowPtr(handle, QWP_USER);
-
-		if(ptr)
-		{
-			WinSetWindowPtr(handle, QWP_USER, 0);
-			free(ptr);
-		}
-
 		_free_window_memory(child);
-	}
+
 	WinEndEnumWindows(henum);
 	return;
 }
@@ -1579,27 +1586,68 @@ MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 						break;
 					case CN_CONTEXTMENU:
 						{
-							int (*containercontextfunc)(HWND, char *, int, int, void *) = (int (*)(HWND, char *, int, int, void *))tmp->signalfunction;
+							int (*containercontextfunc)(HWND, char *, int, int, void *, void *) = (int (*)(HWND, char *, int, int, void *, void *))tmp->signalfunction;
 							int id = SHORT1FROMMP(mp1);
 							HWND conthwnd = dw_window_from_id(hWnd, id);
 							char *text = NULL;
+							void *user = NULL;
 							LONG x,y;
 
 							if(mp2)
 							{
-								PRECORDCORE pre;
+								PCNRITEM pci;
 
-								pre = (PRECORDCORE)mp2;
-								text = pre->pszIcon;
+								pci = (PCNRITEM)mp2;
+
+								text = pci->rc.pszIcon;
+								user = pci->user;
 							}
-
 
 							dw_pointer_query_pos(&x, &y);
 
 							if(tmp->window == conthwnd)
 							{
-								result = containercontextfunc(tmp->window, text, x, y, tmp->data);
+								if(mp2)
+								{
+									NOTIFYRECORDEMPHASIS pre;
+
+									dw_tree_item_select(tmp->window, (HWND)mp2);
+									pre.pRecord = mp2;
+									pre.fEmphasisMask = CRA_CURSORED;
+									pre.hwndCnr = tmp->window;
+									_run_event(hWnd, WM_CONTROL, MPFROM2SHORT(0, CN_EMPHASIS), (MPARAM)&pre);
+								}
+								result = containercontextfunc(tmp->window, text, x, y, tmp->data, user);
 								tmp = NULL;
+							}
+						}
+						break;
+					case CN_EMPHASIS:
+						{
+							PNOTIFYRECORDEMPHASIS pre = (PNOTIFYRECORDEMPHASIS)mp2;
+							static int emph_recurse = 0;
+
+							if(!emph_recurse)
+							{
+								emph_recurse = 1;
+
+								if(mp2)
+								{
+									if(tmp->window == pre->hwndCnr)
+									{
+										PCNRITEM pci = (PCNRITEM)pre->pRecord;
+
+										if(pci && pre->fEmphasisMask & CRA_CURSORED)
+										{
+											int (*treeselectfunc)(HWND, HWND, char *, void *, void *) = (int (*)(HWND, HWND, char *, void *, void *))tmp->signalfunction;
+
+											result = treeselectfunc(tmp->window, (HWND)pci, pci->rc.pszIcon, pci->user, tmp->data);
+
+											tmp = NULL;
+										}
+									}
+								}
+								emph_recurse = 0;
 							}
 						}
 						break;
@@ -1647,37 +1695,6 @@ MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 					}
 				}
 				break;
-			}
-		}
-
-		if(tmp && origmsg == WM_BUTTON1DOWN)
-		{
-			if(tmp->message == WM_USER+1)
-			{
-				if(tmp->window == hWnd)
-				{
-					QUERYRECFROMRECT rc;
-					POINTS pts = (*((POINTS*)&mp1));
-					RECORDCORE *prc;
-
-					rc.cb = sizeof(QUERYRECFROMRECT);
-					rc.rect.xLeft = pts.x;
-					rc.rect.xRight = pts.x + 1;
-					rc.rect.yTop = pts.y;
-					rc.rect.yBottom = pts.y - 1;
-					rc.fsSearch = CMA_PARTIAL | CMA_ITEMORDER;
-
-					prc = (RECORDCORE *)WinSendMsg(hWnd, CM_QUERYRECORDFROMRECT, (MPARAM)CMA_FIRST, MPFROMP(&rc));
-
-					if(prc)
-					{
-						int (*treeselectfunc)(HWND, HWND, char *, void *) = (int (*)(HWND, HWND, char *, void *))tmp->signalfunction;
-
-						result = treeselectfunc(tmp->window, (HWND)prc, prc->pszIcon, tmp->data);
-
-						tmp = NULL;
-					}
-				}
 			}
 		}
 
@@ -2222,11 +2239,14 @@ MRESULT EXPENTRY _BubbleProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 MRESULT EXPENTRY _BtProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 {
 	BubbleButton *bubble;
+	PFNWP oldproc;
 
 	bubble = (BubbleButton *)WinQueryWindowPtr(hwnd, QWL_USER);
 
 	if(!bubble)
 		return WinDefWindowProc(hwnd, msg, mp1, mp2);
+
+	oldproc = bubble->pOldProc;
 
 	switch(msg)
 	{
@@ -2408,9 +2428,9 @@ MRESULT EXPENTRY _BtProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 		break;
 	}
 
-	if(!bubble->pOldProc)
+	if(!oldproc)
 		return WinDefWindowProc(hwnd, msg, mp1, mp2);
-	return bubble->pOldProc(hwnd, msg, mp1, mp2);
+	return oldproc(hwnd, msg, mp1, mp2);
 }
 
 MRESULT EXPENTRY _RendProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
@@ -2731,7 +2751,65 @@ int dw_window_hide(HWND handle)
  */
 int dw_window_destroy(HWND handle)
 {
+	HWND parent = WinQueryWindow(handle, QW_PARENT);
+	Box *thisbox = WinQueryWindowPtr(parent, QWP_USER);
+
+	if(!handle)
+		return -1;
+
+	if(parent != HWND_DESKTOP && thisbox && thisbox->count)
+	{
+		int z, index = -1;
+		Item *tmpitem, *thisitem = thisbox->items;
+
+		for(z=0;z<thisbox->count;z++)
+		{
+			if(thisitem[z].hwnd == handle)
+				index = z;
+		}
+
+		if(index == -1)
+			return 0;
+
+		tmpitem = malloc(sizeof(Item)*(thisbox->count-1));
+
+		/* Copy all but the current entry to the new list */
+		for(z=0;z<index;z++)
+		{
+			tmpitem[z] = thisitem[z];
+		}
+		for(z=index+1;z<thisbox->count;z++)
+		{
+			tmpitem[z-1] = thisitem[z];
+		}
+
+		thisbox->items = tmpitem;
+		free(thisitem);
+		thisbox->count--;
+	}
+	_free_window_memory(handle);
 	return WinDestroyWindow(handle);
+}
+
+/* Causes entire window to be invalidated and redrawn.
+ * Parameters:
+ *           handle: Toplevel window handle to be redrawn.
+ */
+void dw_window_redraw(HWND handle)
+{
+	HWND window = WinWindowFromID(handle, FID_CLIENT);
+	Box *mybox = (Box *)WinQueryWindowPtr(window, QWP_USER);
+
+	if(window && mybox)
+	{
+		unsigned long width, height;
+
+		dw_window_get_pos_size(window, NULL, NULL, &width, &height);
+
+		WinShowWindow(mybox->items[0].hwnd, FALSE);
+		_do_resize(mybox, width, height);
+		WinShowWindow(mybox->items[0].hwnd, TRUE);
+	}
 }
 
 /*
@@ -4572,13 +4650,6 @@ void dw_checkbox_set(HWND handle, int value)
 	WinSendMsg(handle,BM_SETCHECK,MPFROMSHORT(value),0);
 }
 
-typedef struct _CNRITEM
-{
-	MINIRECORDCORE rc;
-	HPOINTER       hptrIcon;
-
-} CNRITEM, *PCNRITEM;
-
 /*
  * Inserts an item into a tree window (widget).
  * Parameters:
@@ -4586,8 +4657,9 @@ typedef struct _CNRITEM
  *          title: The text title of the entry.
  *          icon: Handle to coresponding icon.
  *          parent: Parent handle or 0 if root.
+ *          itemdata: Item specific data.
  */
-HWND dw_tree_insert(HWND handle, char *title, unsigned long icon, HWND parent)
+HWND dw_tree_insert(HWND handle, char *title, unsigned long icon, HWND parent, void *itemdata)
 {
 	ULONG        cbExtra;
 	PCNRITEM     pci;
@@ -4610,6 +4682,7 @@ HWND dw_tree_insert(HWND handle, char *title, unsigned long icon, HWND parent)
 	pci->rc.hptrIcon    = icon;
 
 	pci->hptrIcon       = icon;
+	pci->user           = itemdata;
 
 	memset(&ri, 0, sizeof(RECORDINSERT));
 
@@ -4632,6 +4705,65 @@ HWND dw_tree_insert(HWND handle, char *title, unsigned long icon, HWND parent)
 }
 
 /*
+ * Sets the text and icon of an item in a tree window (widget).
+ * Parameters:
+ *          handle: Handle to the tree containing the item.
+ *          item: Handle of the item to be modified.
+ *          title: The text title of the entry.
+ *          icon: Handle to coresponding icon.
+ */
+void dw_tree_set(HWND handle, HWND item, char *title, unsigned long icon)
+{
+	PCNRITEM pci = (PCNRITEM)item;
+
+	if(!pci)
+		return;
+
+	pci->rc.pszIcon     = title;
+	pci->rc.hptrIcon    = icon;
+
+	pci->hptrIcon       = icon;
+
+	WinSendMsg(handle, CM_INVALIDATERECORD, (MPARAM)&pci, MPFROM2SHORT(1, CMA_TEXTCHANGED));
+}
+
+/*
+ * Sets the item data of a tree item.
+ * Parameters:
+ *          handle: Handle to the tree containing the item.
+ *          item: Handle of the item to be modified.
+ *          itemdata: User defined data to be associated with item.
+ */
+void dw_tree_set_data(HWND handle, HWND item, void *itemdata)
+{
+	PCNRITEM pci = (PCNRITEM)item;
+
+	if(!pci)
+		return;
+
+	pci->user = itemdata;
+}
+
+/*
+ * Sets this item as the active selection.
+ * Parameters:
+ *       handle: Handle to the tree window (widget) to be selected.
+ *       item: Handle to the item to be selected.
+ */
+void dw_tree_item_select(HWND handle, HWND item)
+{
+	PRECORDCORE pCore = WinSendMsg(handle, CM_QUERYRECORD, (MPARAM)0L, MPFROM2SHORT(CMA_FIRST, CMA_ITEMORDER));
+
+	while(pCore)
+	{
+		if(pCore->flRecordAttr & CRA_SELECTED)
+			WinSendMsg(handle, CM_SETRECORDEMPHASIS, (MPARAM)pCore, MPFROM2SHORT(FALSE, CRA_SELECTED | CRA_CURSORED));
+		pCore = WinSendMsg(handle, CM_QUERYRECORD, (MPARAM)pCore, MPFROM2SHORT(CMA_NEXT, CMA_ITEMORDER));
+	}
+	WinSendMsg(handle, CM_SETRECORDEMPHASIS, (MPARAM)item, MPFROM2SHORT(TRUE, CRA_SELECTED | CRA_CURSORED));
+}
+
+/*
  * Removes all nodes from a tree.
  * Parameters:
  *       handle: Handle to the window (widget) to be cleared.
@@ -4639,6 +4771,28 @@ HWND dw_tree_insert(HWND handle, char *title, unsigned long icon, HWND parent)
 void dw_tree_clear(HWND handle)
 {
 	WinSendMsg(handle, CM_REMOVERECORD, (MPARAM)0L, MPFROM2SHORT(0, CMA_INVALIDATE | CMA_FREE));
+}
+
+/*
+ * Expands a node on a tree.
+ * Parameters:
+ *       handle: Handle to the tree window (widget).
+ *       item: Handle to node to be expanded.
+ */
+void dw_tree_expand(HWND handle, HWND item)
+{
+	WinSendMsg(handle, CM_EXPANDTREE, MPFROMP(item), 0);
+}
+
+/*
+ * Collapses a node on a tree.
+ * Parameters:
+ *       handle: Handle to the tree window (widget).
+ *       item: Handle to node to be collapsed.
+ */
+void dw_tree_collapse(HWND handle, HWND item)
+{
+	WinSendMsg(handle, CM_COLLAPSETREE, MPFROMP(item), 0);
 }
 
 /*
