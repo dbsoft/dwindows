@@ -4494,7 +4494,7 @@ HWND API dw_bitmapbutton_new(char *text, ULONG id)
  *                 DW pick the appropriate file extension.
  *                 (BMP on OS/2 or Windows, XPM on Unix)
  */
-HWND dw_bitmapbutton_new_from_file(char *text, unsigned long id, char *filename)
+HWND API dw_bitmapbutton_new_from_file(char *text, unsigned long id, char *filename)
 {
 	HWND tmp;
 	BubbleButton *bubble;
@@ -7043,7 +7043,7 @@ void API dw_container_optimize(HWND handle)
  *       icon: Icon handle to display in the taskbar.
  *       bubbletext: Text to show when the mouse is above the icon.
  */
-void dw_taskbar_insert(HWND handle, unsigned long icon, char *bubbletext)
+void API dw_taskbar_insert(HWND handle, unsigned long icon, char *bubbletext)
 {
 	NOTIFYICONDATA tnid;
  
@@ -7067,7 +7067,7 @@ void dw_taskbar_insert(HWND handle, unsigned long icon, char *bubbletext)
  *       handle: Window handle that was used with dw_taskbar_insert().
  *       icon: Icon handle that was used with dw_taskbar_insert().
  */
-void dw_taskbar_delete(HWND handle, unsigned long icon)
+void API dw_taskbar_delete(HWND handle, unsigned long icon)
 {
 	NOTIFYICONDATA tnid;
 
