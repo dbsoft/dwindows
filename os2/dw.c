@@ -457,7 +457,7 @@ int _validate_focus(HWND handle)
 
 int _focus_check_box(Box *box, HWND handle, int start, HWND defaultitem)
 {
-	int z, n;
+	int z;
 	static HWND lasthwnd, firsthwnd;
     static int finish_searching;
 
@@ -483,14 +483,8 @@ int _focus_check_box(Box *box, HWND handle, int start, HWND defaultitem)
 		firsthwnd = 0;
 	}
 
-	for(n=0;n<box->count;n++)
+	for(z=box->count-1;z>-1;z--)
 	{
-		/* Vertical boxes are inverted on OS/2 */
-		if(box->type == DW_VERT)
-			z = n;
-		else
-			z = box->count - n - 1;
-
 		if(box->items[z].type == TYPEBOX)
 		{
 			Box *thisbox = WinQueryWindowPtr(box->items[z].hwnd, QWP_USER);
@@ -585,7 +579,7 @@ int _focus_check_box(Box *box, HWND handle, int start, HWND defaultitem)
 
 int _focus_check_box_back(Box *box, HWND handle, int start, HWND defaultitem)
 {
-	int z, n;
+	int z;
 	static HWND lasthwnd, firsthwnd;
     static int finish_searching;
 
@@ -611,14 +605,8 @@ int _focus_check_box_back(Box *box, HWND handle, int start, HWND defaultitem)
 		firsthwnd = 0;
 	}
 
-	for(n=0;n<box->count;n++)
+	for(z=0;z<box->count;z++)
 	{
-		/* Vertical boxes are inverted on OS/2 */
-		if(box->type == DW_VERT)
-			z = box->count - n - 1;
-		else
-			z = n;
-
 		if(box->items[z].type == TYPEBOX)
 		{
 			Box *thisbox = WinQueryWindowPtr(box->items[z].hwnd, QWP_USER);
