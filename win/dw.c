@@ -46,6 +46,9 @@ int main(int argc, char *argv[]);
 HICON lookup[200];
 HIMAGELIST hSmall  = 0, hLarge = 0;
 
+/* Special flag used for internal tracking */
+#define DW_CFA_RESERVED (1 << 30)
+
 #define THREAD_LIMIT 128
 COLORREF _foreground[THREAD_LIMIT];
 COLORREF _background[THREAD_LIMIT];
@@ -5498,11 +5501,14 @@ int dw_container_setup(HWND handle, unsigned long *flags, char **titles, int cou
 {
 	ContainerInfo *cinfo = (ContainerInfo *)GetWindowLong(handle, GWL_USERDATA);
 	int z, l = 0;
-	unsigned long *tempflags = malloc(sizeof(unsigned long) * (count + 2));
+	unsigned long *tempflags = calloc(sizeof(unsigned long), count + 2);
 	LV_COLUMN lvc;
 
 	if(separator == -1)
+	{
+		tempflags[0] = DW_CFA_RESERVED;
 		l = 1;
+	}
 
 	memcpy(&tempflags[l], flags, sizeof(unsigned long) * count);
 	tempflags[count + l] = 0;
@@ -6000,6 +6006,9 @@ void dw_container_optimize(HWND handle)
 
 				if(ListView_GetColumn(handle, z, &lvc))
 					columns[z] = ListView_GetStringWidth(handle, lvc.pszText);
+
+				if(flags[z] & DW_CFA_RESERVED)
+					columns[z] += 20;
 			}
 		}
 
