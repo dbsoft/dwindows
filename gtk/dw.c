@@ -5524,25 +5524,111 @@ void dw_listbox_delete(HWND handle, int index)
 	DW_MUTEX_UNLOCK;
 }
 
-
-/*
- * Pack a splitbar (sizer) into the specified box from the start.
- * Parameters:
- *       box: Window handle of the box to be packed into.
- */
-void dw_box_pack_splitbar_start(HWND box)
+/* Reposition the bar according to the percentage */
+gint _splitbar_size_allocate(GtkWidget *widget, GtkAllocation *event, gpointer data)
 {
-    /* TODO */
+	int percent = (int)gtk_object_get_data(GTK_OBJECT(widget), "_dw_percent");
+	int lastwidth = (int)gtk_object_get_data(GTK_OBJECT(widget), "_dw_lastwidth");
+	int lastheight = (int)gtk_object_get_data(GTK_OBJECT(widget), "_dw_lastheight");
+	float ratio = ((float)percent/100.0);
+
+	/* Prevent infinite recursion ;) */  
+	if(lastwidth == event->width && lastheight == event->height)
+		return TRUE;
+
+	lastwidth = event->width; lastheight = event->height;
+  
+	gtk_object_set_data(GTK_OBJECT(widget), "_dw_splitbar_sizing", (gpointer)1);
+	gtk_object_set_data(GTK_OBJECT(widget), "_dw_lastwidth", (gpointer)lastwidth);
+	gtk_object_set_data(GTK_OBJECT(widget), "_dw_lastheight", (gpointer)lastheight);
+
+	if(GTK_IS_HPANED(widget))
+		gtk_paned_set_position(GTK_PANED(widget), (int)(event->width * ratio));
+	if(GTK_IS_VPANED(widget))
+		gtk_paned_set_position(GTK_PANED(widget), (int)(event->height * ratio));
+	return TRUE;
+}
+
+/* Figure out the new percentage */
+gint _splitbar_child_size_allocate(GtkWidget *widget, GtkAllocation *event, gpointer data)
+{
+	GtkWidget *splitbar = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(widget), "_dw_splitbar");
+	int percent;
+  
+	if(!splitbar)
+		return TRUE;  
+
+	if(gtk_object_get_data(GTK_OBJECT(splitbar), "_dw_splitbar_sizing"))
+	{
+		gtk_object_set_data(GTK_OBJECT(splitbar), "_dw_splitbar_sizing", (gpointer)0);
+		return TRUE;
+	}
+  
+	if(GTK_IS_VPANED(splitbar))
+		percent = (int)((event->height * 100) / (splitbar->allocation.height - 3));
+	else if(GTK_IS_HPANED(splitbar))
+		percent = (int)((event->width * 100) / (splitbar->allocation.width - 3));
+	else
+		return TRUE;
+
+	gtk_object_set_data(GTK_OBJECT(splitbar), "_dw_percent", (gpointer)percent);
+  
+	return TRUE;
 }
 
 /*
- * Pack a splitbar (sizer) into the specified box from the end.
+ * Creates a splitbar window (widget) with given parameters.
  * Parameters:
- *       box: Window handle of the box to be packed into.
+ *       type: Value can be BOXVERT or BOXHORZ.
+ *       topleft: Handle to the window to be top or left.
+ *       bottomright:  Handle to the window to be bottom or right.
+ * Returns:
+ *       A handle to a splitbar window or NULL on failure.
  */
-void dw_box_pack_splitbar_end(HWND box)
+HWND dw_splitbar_new(int type, HWND topleft, HWND bottomright, unsigned long id)
 {
-	/* TODO */
+	GtkWidget *tmp = NULL;
+	int _locked_by_me = FALSE;
+
+	DW_MUTEX_LOCK;
+	if(type == BOXHORZ)
+		tmp = gtk_hpaned_new();
+	else
+		tmp = gtk_vpaned_new();
+	gtk_paned_add1(GTK_PANED(tmp), topleft);
+	gtk_paned_add2(GTK_PANED(tmp), bottomright);
+	gtk_object_set_data(GTK_OBJECT(tmp), "id", (gpointer)id);
+	gtk_object_set_data(GTK_OBJECT(tmp), "_dw_percent", (gpointer)50);
+	gtk_signal_connect(GTK_OBJECT(tmp), "size-allocate", GTK_SIGNAL_FUNC(_splitbar_size_allocate), NULL);
+	gtk_object_set_data(GTK_OBJECT(topleft), "_dw_splitbar", (gpointer)tmp);
+#if 0
+	gtk_signal_connect(GTK_OBJECT(topleft), "size-allocate", GTK_SIGNAL_FUNC(_splitbar_child_size_allocate), NULL);
+#endif
+	gtk_paned_set_handle_size(GTK_PANED(tmp), 3);
+	gtk_widget_show(tmp);
+	DW_MUTEX_UNLOCK;
+	return tmp;
+}
+
+/*
+ * Sets the position of a splitbar (pecentage).
+ * Parameters:
+ *       handle: The handle to the splitbar returned by dw_splitbar_new().
+ */
+void dw_splitbar_set(HWND handle, int percent)
+{
+	/* We probably need to force a redraw here */
+	dw_window_set_data(handle, "_dw_percent", (void *)percent);
+}
+
+/*
+ * Gets the position of a splitbar (pecentage).
+ * Parameters:
+ *       handle: The handle to the splitbar returned by dw_splitbar_new().
+ */
+int dw_splitbar_get(HWND handle)
+{
+	return (int)dw_window_get_data(handle, "_dw_percent");
 }
 
 /*
