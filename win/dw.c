@@ -33,6 +33,10 @@ DWTID _dwtid = -1;
 
 #define IS_IE5PLUS (dwComctlVer >= PACKVERSION(5,80))
 
+#ifndef MIN
+#define MIN(a, b) (((a) < (b)) ? (a) : (b))
+#endif
+
 char monthlist[][4] = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug",
                         "Sep", "Oct", "Nov", "Dec" };
 
@@ -4902,7 +4906,6 @@ void dw_listbox_set_top(HWND handle, int top)
 	SendMessage(handle, LB_SETTOPINDEX, (WPARAM)top, 0);
 }
 
-#define MLE_MAX 1000000
 /*
  * Adds text to an MLE box and returns the current point.
  * Parameters:
@@ -4912,34 +4915,37 @@ void dw_listbox_set_top(HWND handle, int top)
  */
 unsigned int dw_mle_import(HWND handle, char *buffer, int startpoint)
 {
-	char *tmpbuf = calloc(1, MLE_MAX+1);
-	int len;
+	int textlen, len = GetWindowTextLength(handle);
+	char *tmpbuf;
 
-	if(strlen(buffer) < 1)
+	if((textlen = strlen(buffer)) < 1)
 		return startpoint;
 
 	startpoint++;
+	tmpbuf = calloc(1, len + textlen + startpoint + 2);
 
 	if(startpoint < 0)
 		startpoint = 0;
 
-	GetWindowText(handle, tmpbuf, MLE_MAX);
-
-	len = strlen(tmpbuf);
 	if(len)
 	{
-		char *dest = &tmpbuf[startpoint+strlen(buffer)-1], *start = &tmpbuf[startpoint];
+		char *dest, *start;
 		int copylen = len - startpoint;
+
+		GetWindowText(handle, tmpbuf, len+1);
+
+		dest = &tmpbuf[startpoint+textlen-1];
+		start = &tmpbuf[startpoint];
 
 		if(copylen > 0)
 			memcpy(dest, start, copylen);
 	}
-	memcpy(&tmpbuf[startpoint], buffer, strlen(buffer));
+	memcpy(&tmpbuf[startpoint], buffer, textlen);
 
 	SetWindowText(handle, tmpbuf);
 
 	free(tmpbuf);
-	return startpoint+strlen(buffer) - 1;
+	return (startpoint + textlen - 1);
 }
 
 /*
@@ -4952,12 +4958,20 @@ unsigned int dw_mle_import(HWND handle, char *buffer, int startpoint)
  */
 void dw_mle_export(HWND handle, char *buffer, int startpoint, int length)
 {
-	char *tmpbuf = malloc(MLE_MAX+1);
+	int max, len = GetWindowTextLength(handle);
+	char *tmpbuf = calloc(1, len+2);
 
-	GetWindowText(handle, tmpbuf, MLE_MAX);
-	tmpbuf[MLE_MAX] = 0;
+	if(len)
+		GetWindowText(handle, tmpbuf, len+1);
 
-	memcpy(buffer, &tmpbuf[startpoint], length);
+	buffer[0] = 0;
+
+	if(startpoint < len)
+	{
+		max = MIN(length, len - startpoint);
+
+		memcpy(buffer, &tmpbuf[startpoint], max);
+	}
 
 	free(tmpbuf);
 }
@@ -4971,17 +4985,10 @@ void dw_mle_export(HWND handle, char *buffer, int startpoint, int length)
  */
 void dw_mle_query(HWND handle, unsigned long *bytes, unsigned long *lines)
 {
-	char *tmpbuf = malloc(MLE_MAX+1);
-
-	GetWindowText(handle, tmpbuf, MLE_MAX);
-	tmpbuf[MLE_MAX] = 0;
-
 	if(bytes)
-		*bytes = strlen(tmpbuf);
+		*bytes = GetWindowTextLength(handle);
 	if(lines)
 		*lines = (unsigned long)SendMessage(handle, EM_GETLINECOUNT, 0, 0);
-
-	free(tmpbuf);
 }
 
 /*
@@ -4993,17 +5000,17 @@ void dw_mle_query(HWND handle, unsigned long *bytes, unsigned long *lines)
  */
 void dw_mle_delete(HWND handle, int startpoint, int length)
 {
-	char *tmpbuf = malloc(MLE_MAX+1);
-	int len;
+	int len = GetWindowTextLength(handle);
+	char *tmpbuf = calloc(1, len+2);
 
-	GetWindowText(handle, tmpbuf, MLE_MAX);
-	tmpbuf[MLE_MAX] = 0;
+	GetWindowText(handle, tmpbuf, len+1);
 
-	len = strlen(tmpbuf);
+	if(startpoint + length < len)
+	{
+		strcpy(&tmpbuf[startpoint], &tmpbuf[startpoint+length]);
 
-	strcpy(&tmpbuf[startpoint], &tmpbuf[startpoint+length]);
-
-	SetWindowText(handle, tmpbuf);
+		SetWindowText(handle, tmpbuf);
+	}
 
 	free(tmpbuf);
 }
@@ -5080,13 +5087,12 @@ void dw_mle_set(HWND handle, int point)
  */
 int dw_mle_search(HWND handle, char *text, int point, unsigned long flags)
 {
-	char *tmpbuf = malloc(MLE_MAX+1);
-	int z, len, textlen, retval = 0;
+	int len = GetWindowTextLength(handle);
+	char *tmpbuf = calloc(1, len+2);
+	int z, textlen, retval = 0;
 
-	GetWindowText(handle, tmpbuf, MLE_MAX);
-	tmpbuf[MLE_MAX] = 0;
+	GetWindowText(handle, tmpbuf, len+1);
 
-	len = strlen(tmpbuf);
 	textlen = strlen(text);
 
 	if(flags & DW_MLE_CASESENSITIVE)
