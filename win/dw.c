@@ -3763,8 +3763,13 @@ void API dw_window_set_pointer(HWND handle, int pointertype)
 {
 	HCURSOR cursor = pointertype < 65536 ? LoadCursor(NULL, MAKEINTRESOURCE(pointertype)) : (HCURSOR)pointertype;
 
-	dw_window_set_data(handle, "_dw_cursor", (void *)cursor);
-	SetCursor(cursor);
+	if(!pointertype)
+		dw_window_set_data(handle, "_dw_cursor", 0);
+    else
+	{
+		dw_window_set_data(handle, "_dw_cursor", (void *)cursor);
+		SetCursor(cursor);
+	}
 }
 
 /*

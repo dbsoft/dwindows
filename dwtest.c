@@ -292,7 +292,7 @@ int DWSIGNAL cursortoggle_callback(HWND window, void *data)
 	else
 	{
 		dw_window_set_text((HWND)cursortogglebutton,"Set Cursor pointer - CLOCK");
-		dw_window_set_pointer((HWND)data,DW_POINTER_ARROW);
+		dw_window_set_pointer((HWND)data,DW_POINTER_DEFAULT);
 		cursor_arrow = 1;
 	}
 	return FALSE;
