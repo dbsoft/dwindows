@@ -7368,6 +7368,339 @@ int dw_event_close(HEV *eve)
 	return TRUE;
 }
 
+struct _seminfo {
+	int fd;
+	int waiting;
+};
+
+static void _handle_sem(int *tmpsock)
+{
+	fd_set rd;
+	struct _seminfo *array = (struct _seminfo *)malloc(sizeof(struct _seminfo));
+	int listenfd = tmpsock[0];
+	int bytesread, connectcount = 1, maxfd, z, posted = 0;
+	char command;
+	sigset_t mask;
+
+	sigfillset(&mask); /* Mask all allowed signals */
+	pthread_sigmask(SIG_BLOCK, &mask, NULL);
+
+	/* problems */
+	if(tmpsock[1] == -1)
+	{
+		free(array);
+		return;
+	}
+
+	array[0].fd = tmpsock[1];
+	array[0].waiting = 0;
+
+	/* Free the memory allocated in dw_named_event_new. */
+	free(tmpsock);
+
+	while(1)
+	{
+		FD_ZERO(&rd);
+		FD_SET(listenfd, &rd);
+
+		maxfd = listenfd;
+
+		/* Added any connections to the named event semaphore */
+		for(z=0;z<connectcount;z++)
+		{
+			if(array[z].fd > maxfd)
+				maxfd = array[z].fd;
+
+			FD_SET(array[z].fd, &rd);
+		}
+
+		if(select(maxfd+1, &rd, NULL, NULL, NULL) == -1)
+			return;
+
+		if(FD_ISSET(listenfd, &rd))
+		{
+			struct _seminfo *newarray;
+            int newfd = accept(listenfd, 0, 0);
+
+			if(newfd > -1)
+			{
+				/* Add new connections to the set */
+				newarray = (struct _seminfo *)malloc(sizeof(struct _seminfo)*(connectcount+1));
+				memcpy(newarray, array, sizeof(struct _seminfo)*(connectcount));
+
+				newarray[connectcount].fd = newfd;
+				newarray[connectcount].waiting = 0;
+
+				connectcount++;
+
+				/* Replace old array with new one */
+				free(array);
+				array = newarray;
+			}
+		}
+
+		/* Handle any events posted to the semaphore */
+		for(z=0;z<connectcount;z++)
+		{
+			if(FD_ISSET(array[z].fd, &rd))
+			{
+				if((bytesread = read(array[z].fd, &command, 1)) < 1)
+				{
+					struct _seminfo *newarray;
+
+					/* Remove this connection from the set */
+					newarray = (struct _seminfo *)malloc(sizeof(struct _seminfo)*(connectcount-1));
+					if(!z)
+						memcpy(newarray, &array[1], sizeof(struct _seminfo)*(connectcount-1));
+					else
+					{
+						memcpy(newarray, array, sizeof(struct _seminfo)*z);
+						if(z!=(connectcount-1))
+							memcpy(&newarray[z], &array[z+1], sizeof(struct _seminfo)*(z-connectcount-1));
+					}
+					connectcount--;
+
+					/* Replace old array with new one */
+					free(array);
+					array = newarray;
+				}
+				else if(bytesread == 1)
+				{
+					switch(command)
+					{
+					case 0:
+						{
+						/* Reset */
+						posted = 0;
+						}
+						break;
+					case 1:
+						/* Post */
+						{
+							int s;
+							char tmp = (char)0;
+
+							posted = 1;
+
+							for(s=0;s<connectcount;s++)
+							{
+								/* The semaphore has been posted so
+								 * we tell all the waiting threads to
+								 * continue.
+								 */
+								if(array[s].waiting)
+									write(array[s].fd, &tmp, 1);
+							}
+						}
+						break;
+					case 2:
+						/* Wait */
+						{
+							char tmp = (char)0;
+
+							array[z].waiting = 1;
+
+							/* If we are posted exit immeditately */
+							if(posted)
+								write(array[z].fd, &tmp, 1);
+						}
+						break;
+					case 3:
+						{
+							/* Done Waiting */
+							array[z].waiting = 0;
+						}
+						break;
+					}
+				}
+			}
+		}
+
+	}
+
+}
+
+/* Using domain sockets on unix for IPC */
+/* Create a named event semaphore which can be
+ * opened from other processes.
+ * Parameters:
+ *         eve: Pointer to an event handle to receive handle.
+ *         name: Name given to semaphore which can be opened
+ *               by other processes.
+ */
+HEV dw_named_event_new(char *name)
+{
+	struct sockaddr_un un;
+	int ev, *tmpsock = (int *)malloc(sizeof(int)*2);
+	DWTID dwthread;
+
+	if(!tmpsock)
+		return DB_EVENT_NO_MEM;
+
+	tmpsock[0] = socket(AF_UNIX, SOCK_STREAM, 0);
+	ev = socket(AF_UNIX, SOCK_STREAM, 0);
+	memset(&un, 0, sizeof(un));
+	un.sun_family=AF_UNIX;
+	mkdir("/tmp/.dw", S_IWGRP|S_IWOTH);
+	strcpy(un.sun_path, "/tmp/.dw/");
+	strcat(un.sun_path, name);
+
+	/* just to be safe, this should be changed
+	 * to support multiple instances.
+	 */
+	remove(un.sun_path);
+
+	bind(tmpsock[0], (struct sockaddr *)&un, sizeof(un));
+	listen(tmpsock[0], 0);
+	connect(ev, (struct sockaddr *)&un, sizeof(un));
+	tmpsock[1] = accept(tmpsock[0], 0, 0);
+
+	if(tmpsock[0] < 0 || tmpsock[1] < 0 || ev < 0)
+	{
+		if(tmpsock[0] > -1)
+			close(tmpsock[0]);
+		if(tmpsock[1] > -1)
+			close(tmpsock[1]);
+		if(ev > -1)
+			close(ev);
+		free(tmpsock);
+		return 0;
+	}
+
+	/* Create a thread to handle this event semaphore */
+	pthread_create(&dwthread, NULL, (void *)_handle_sem, (void *)tmpsock);
+	return ev;
+}
+
+/* Open an already existing named event semaphore.
+ * Parameters:
+ *         eve: Pointer to an event handle to receive handle.
+ *         name: Name given to semaphore which can be opened
+ *               by other processes.
+ */
+HEV dw_named_event_get(char *name)
+{
+	struct sockaddr_un un;
+	int ev = socket(AF_UNIX, SOCK_STREAM, 0);
+	if(ev < 0)
+		return 0;
+
+	un.sun_family=AF_UNIX;
+	mkdir("/tmp/.dw", S_IWGRP|S_IWOTH);
+	strcpy(un.sun_path, "/tmp/.dw/");
+	strcat(un.sun_path, name);
+	connect(ev, (struct sockaddr *)&un, sizeof(un));
+	return ev;
+}
+
+/* Resets the event semaphore so threads who call wait
+ * on this semaphore will block.
+ * Parameters:
+ *         eve: Handle to the semaphore obtained by
+ *              an open or create call.
+ */
+int dw_named_event_reset(HEV eve)
+{
+	/* signal reset */
+	char tmp = (char)0;
+
+	if(eve < 0)
+		return 0;
+
+	if(write(eve, &tmp, 1) == 1)
+		return 0;
+	return 1;
+}
+
+/* Sets the posted state of an event semaphore, any threads
+ * waiting on the semaphore will no longer block.
+ * Parameters:
+ *         eve: Handle to the semaphore obtained by
+ *              an open or create call.
+ */
+int dw_named_event_post(HEV eve)
+{
+
+	/* signal post */
+	char tmp = (char)1;
+
+	if(eve < 0)
+		return 0;
+
+	if(write(eve, &tmp, 1) == 1)
+		return 0;
+	return 1;
+}
+
+/* Waits on the specified semaphore until it becomes
+ * posted, or returns immediately if it already is posted.
+ * Parameters:
+ *         eve: Handle to the semaphore obtained by
+ *              an open or create call.
+ *         timeout: Number of milliseconds before timing out
+ *                  or -1 if indefinite.
+ */
+int dw_named_event_wait(HEV eve, unsigned long timeout)
+{
+	fd_set rd;
+	struct timeval tv, *useme;
+	int retval = 0;
+	char tmp;
+
+	if(eve < 0)
+		return DB_EVENT_NON_INIT;
+
+	/* Set the timout or infinite */
+	if(timeout == -1)
+		useme = NULL;
+	else
+	{
+		tv.tv_sec = timeout / 1000;
+		tv.tv_usec = timeout % 1000;
+
+		useme = &tv;
+	}
+
+	FD_ZERO(&rd);
+	FD_SET(eve, &rd);
+
+	/* Signal wait */
+	tmp = (char)2;
+	write(eve, &tmp, 1);
+
+	retval = select(eve+1, &rd, NULL, NULL, useme);
+
+	/* Signal done waiting. */
+	tmp = (char)3;
+	write(eve, &tmp, 1);
+
+	if(retval == 0)
+		return DW_EVENT_TIMEOUT;
+	else if(retval == -1)
+		return DW_EVENT_INTERRUPT;
+
+	/* Clear the entry from the pipe so
+	 * we don't loop endlessly. :)
+	 */
+	read(eve, &tmp, 1);
+	return 0;
+}
+
+/* Release this semaphore, if there are no more open
+ * handles on this semaphore the semaphore will be destroyed.
+ * Parameters:
+ *         eve: Handle to the semaphore obtained by
+ *              an open or create call.
+ */
+int dw_named_event_close(HEV eve)
+{
+	/* Finally close the domain socket,
+	 * cleanup will continue in _handle_sem.
+	 */
+	close(eve);
+	return 0;
+}
+
 /*
  * Setup thread independent color sets.
  */
@@ -7382,6 +7715,102 @@ void _dwthreadstart(void *data)
 	threadfunc(tmp[1]);
 	_dw_thread_remove(dw_thread_id());
 	free(tmp);
+}
+
+/*
+ * Allocates a shared memory region with a name.
+ * Parameters:
+ *         handle: A pointer to receive a SHM identifier.
+ *         dest: A pointer to a pointer to receive the memory address.
+ *         size: Size in bytes of the shared memory region to allocate.
+ *         name: A string pointer to a unique memory name.
+ */
+HSHM dw_named_memory_new(void **dest, int size, char *name)
+{
+	char namebuf[1024];
+	HSHM handle;
+
+	mkdir("/tmp/.dw", S_IWGRP|S_IWOTH);
+	sprintf(namebuf, "/tmp/.dw/%s", name);
+
+	if((handle->fd = open(namebuf, O_CREAT | O_RDWR, S_IRUSR | S_IWUSR)) < 0)
+		return 0;
+
+	ftruncate(handle->fd, size);
+
+	/* attach the shared memory segment to our process's address space. */
+	*dest = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED, handle->fd, 0);
+
+	if(*dest == MAP_FAILED)
+	{
+		close(handle->fd);
+		*dest = NULL;
+		return 0;
+	}
+
+	handle->size = size;
+	handle->sid = getsid(0);
+	handle->path = strdup(namebuf);
+
+	return handle;
+}
+
+/*
+ * Aquires shared memory region with a name.
+ * Parameters:
+ *         dest: A pointer to a pointer to receive the memory address.
+ *         size: Size in bytes of the shared memory region to requested.
+ *         name: A string pointer to a unique memory name.
+ */
+HSHM dw_named_memory_get(void **dest, int size, char *name)
+{
+	char namebuf[1024];
+	HSHM handle;
+
+	mkdir("/tmp/.dw", S_IWGRP|S_IWOTH);
+	sprintf(namebuf, "/tmp/.dw/%s", name);
+
+	if((handle->fd = open(namebuf, O_RDWR)) < 0)
+		return -1;
+
+	/* attach the shared memory segment to our process's address space. */
+	*dest = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED, handle->fd, 0);
+
+	if(*dest == MAP_FAILED)
+	{
+		close(handle->fd);
+		*dest = NULL;
+		return 0;
+	}
+
+	handle->size = size;
+	handle->sid = -1;
+	handle->path = NULL;
+
+	return handle;
+}
+
+/*
+ * Frees a shared memory region previously allocated.
+ * Parameters:
+ *         handle: Handle obtained from DB_named_memory_allocate.
+ *         ptr: The memory address aquired with DB_named_memory_allocate.
+ */
+int dw_named_memory_free(HSHM handle, void *ptr)
+{
+	int rc = munmap(ptr, handle.size);
+
+	close(handle.fd);
+	if(handle.path)
+	{
+		/* Only remove the actual file if we are the
+		 * creator of the file.
+		 */
+		if(handle.sid != -1 && handle.sid == getsid(0))
+			remove(handle.path);
+		free(handle.path);
+	}
+	return rc;
 }
 /*
  * Creates a new thread with a starting point of func.

@@ -223,6 +223,7 @@ typedef void *HTREEITEM;
 typedef HWND HMENUI;
 typedef HMODULE HMOD;
 typedef unsigned short UWORD;
+typedef unsigned long HSHM;
 
 extern HAB dwhab;
 extern HMQ dwhmq;
@@ -463,6 +464,7 @@ typedef struct _notebookpage {
 typedef HANDLE HMTX;
 typedef HANDLE HEV;
 typedef HANDLE HMOD;
+typedef HANDLE HSHM;
 
 typedef struct _container {
 	ColorInfo cinfo;
@@ -737,6 +739,12 @@ typedef struct _dw_unix_event {
 } *HEV;
 typedef pthread_t DWTID;
 typedef void * HMOD;
+typedef struct _dw_unix_shm {
+	int fd;
+	char *path;
+	int sid;
+	int size;
+} HSHM;
 
 typedef struct _hpixmap {
 	unsigned long width, height;
@@ -855,6 +863,14 @@ typedef struct _dwdialog {
 
 #define DW_MENU_SEPARATOR ""
 #define DW_NOMENU 0
+
+/* Return value error codes */
+#define DW_ERROR_NONE      0
+#define DW_ERROR_GENERAL   1
+#define DW_ERROR_TIMEOUT   2
+#define DW_ERROR_NON_INIT  3
+#define DW_ERROR_NO_MEM    4
+#define DW_ERROR_INTERRUPT 5
 
 #if defined(__OS2__) || defined(__EMX__)
 #define DW_OS2_RGB(a) ((DW_RED_VALUE(a) << 16) | (DW_GREEN_VALUE(a) << 8) | DW_BLUE_VALUE(a))
@@ -1089,5 +1105,14 @@ void API dw_signal_connect(HWND window, char *signame, void *sigfunc, void *data
 void API dw_signal_disconnect_by_window(HWND window);
 void API dw_signal_disconnect_by_data(HWND window, void *data);
 void API dw_signal_disconnect_by_name(HWND window, char *signame);
+HEV API dw_named_event_new(char *name);
+HEV API dw_named_event_get(char *name);
+int API dw_named_event_reset(HEV eve);
+int API dw_named_event_post(HEV eve);
+int API dw_named_event_wait(HEV eve, unsigned long timeout);
+int API dw_named_event_close(HEV eve);
+HSHM API dw_named_memory_new(void **dest, int size, char *name);
+HSHM API dw_named_memory_get(void **dest, int size, char *name);
+int API dw_named_memory_free(HSHM handle, void *ptr);
 
 #endif

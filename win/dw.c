@@ -27,6 +27,7 @@ HINSTANCE DWInstance = NULL;
 
 DWORD dwVersion = 0, dwComctlVer = 0;
 DWTID _dwtid = -1;
+SECURITY_DESCRIPTOR _dwsd;
 
 #define PACKVERSION(major,minor) MAKELONG(minor,major)
 
@@ -3265,6 +3266,10 @@ int API dw_init(int newthread, int argc, char *argv[])
 		MySetMenuInfo = (void*)GetProcAddress(huser, "SetMenuInfo");
 		FreeLibrary(huser);
 	}
+
+	/* Initialize Security for named events and memory */
+	InitializeSecurityDescriptor(&_dwsd, SECURITY_DESCRIPTOR_REVISION);
+	SetSecurityDescriptorDacl(&_dwsd, TRUE, (PACL) NULL, FALSE);
 
 	return 0;
 }
@@ -7870,7 +7875,188 @@ int API dw_event_close(HEV *eve)
 {
 	if(eve)
 		return CloseHandle(*eve);
-	return FALSE;
+	return 0;
+}
+
+/* Create a named event semaphore which can be
+ * opened from other processes.
+ * Parameters:
+ *         eve: Pointer to an event handle to receive handle.
+ *         name: Name given to semaphore which can be opened
+ *               by other processes.
+ */
+HEV API dw_named_event_new(char *name)
+{
+	SECURITY_ATTRIBUTES sa;
+
+	sa.nLength = sizeof( SECURITY_ATTRIBUTES);
+	sa.lpSecurityDescriptor = &_dwsd;
+	sa.bInheritHandle = FALSE;
+
+	return CreateEvent(&sa, TRUE, FALSE, name);
+}
+
+/* Destroy this semaphore.
+ * Parameters:
+ *         eve: Handle to the semaphore obtained by
+ *              a create call.
+ */
+HEV API dw_named_event_get(char *name)
+{
+	return OpenEvent(EVENT_ALL_ACCESS, FALSE, name);
+}
+
+/* Resets the event semaphore so threads who call wait
+ * on this semaphore will block.
+ * Parameters:
+ *         eve: Handle to the semaphore obtained by
+ *              an open or create call.
+ */
+int API dw_named_event_reset(HEV eve)
+{
+	int rc;
+
+	rc = ResetEvent(eve);
+	if(!rc)
+		return 1;
+
+	return 0;
+}
+
+/* Sets the posted state of an event semaphore, any threads
+ * waiting on the semaphore will no longer block.
+ * Parameters:
+ *         eve: Handle to the semaphore obtained by
+ *              an open or create call.
+ */
+int API dw_named_event_post(HEV eve)
+{
+	int rc;
+
+	rc = SetEvent(eve);
+	if(!rc)
+	   return 1;
+
+	return 0;
+}
+
+/* Waits on the specified semaphore until it becomes
+ * posted, or returns immediately if it already is posted.
+ * Parameters:
+ *         eve: Handle to the semaphore obtained by
+ *              an open or create call.
+ *         timeout: Number of milliseconds before timing out
+ *                  or -1 if indefinite.
+ */
+int API dw_named_event_wait(HEV eve, unsigned long timeout)
+{
+	int rc;
+
+	rc = WaitForSingleObject(eve, timeout);
+	switch (rc)
+	{
+	case WAIT_FAILED:
+		rc = DW_ERROR_TIMEOUT;
+		break;
+
+	case WAIT_ABANDONED:
+		rc = DW_ERROR_INTERRUPT;
+		break;
+
+	case WAIT_OBJECT_0:
+		rc = 0;
+		break;
+	}
+
+	return rc;
+}
+
+/* Release this semaphore, if there are no more open
+ * handles on this semaphore the semaphore will be destroyed.
+ * Parameters:
+ *         eve: Handle to the semaphore obtained by
+ *              an open or create call.
+ */
+int API dw_named_event_close(HEV eve)
+{
+	int rc;
+
+	rc = CloseHandle(eve);
+	if(!rc)
+		return 1;
+
+	return 0;
+}
+
+/*
+ * Allocates a shared memory region with a name.
+ * Parameters:
+ *         handle: A pointer to receive a SHM identifier.
+ *         dest: A pointer to a pointer to receive the memory address.
+ *         size: Size in bytes of the shared memory region to allocate.
+ *         name: A string pointer to a unique memory name.
+ */
+HSHM API dw_named_memory_new(void **dest, int size, char *name)
+{
+	SECURITY_ATTRIBUTES sa;
+	HSHM handle;
+
+	sa.nLength = sizeof(SECURITY_ATTRIBUTES);
+	sa.lpSecurityDescriptor = &_dwsd;
+	sa.bInheritHandle = FALSE;
+
+	handle = CreateFileMapping((HANDLE)0xFFFFFFFF, &sa, PAGE_READWRITE, 0, size, name);
+
+	if(!handle)
+		return 0;
+
+	*dest = MapViewOfFile(handle, FILE_MAP_ALL_ACCESS, 0, 0, 0);
+
+	if(!*dest)
+	{
+		CloseHandle(handle);
+		return 0;
+	}
+
+	return handle;
+}
+
+/*
+ * Aquires shared memory region with a name.
+ * Parameters:
+ *         dest: A pointer to a pointer to receive the memory address.
+ *         size: Size in bytes of the shared memory region to requested.
+ *         name: A string pointer to a unique memory name.
+ */
+HSHM API dw_named_memory_get(void **dest, int size, char *name)
+{
+	HSHM handle = OpenFileMapping(FILE_MAP_ALL_ACCESS, FALSE, name);
+
+	if(!handle)
+		return 0;
+
+	*dest = MapViewOfFile(handle, FILE_MAP_ALL_ACCESS, 0, 0, 0);
+
+	if(!*dest)
+	{
+		CloseHandle(handle);
+		return 0;
+	}
+
+	return handle;
+}
+
+/*
+ * Frees a shared memory region previously allocated.
+ * Parameters:
+ *         handle: Handle obtained from DB_named_memory_allocate.
+ *         ptr: The memory address aquired with DB_named_memory_allocate.
+ */
+int API dw_named_memory_free(HSHM handle, void *ptr)
+{
+	UnmapViewOfFile(ptr);
+	CloseHandle(handle);
+	return 0;
 }
 
 /*

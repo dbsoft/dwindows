@@ -7932,6 +7932,188 @@ int API dw_event_close(HEV *eve)
 	return TRUE;
 }
 
+/* Create a named event semaphore which can be
+ * opened from other processes.
+ * Parameters:
+ *         eve: Pointer to an event handle to receive handle.
+ *         name: Name given to semaphore which can be opened
+ *               by other processes.
+ */
+HEV API dw_named_event_new(char *name)
+{
+	int rc;
+	char *semname = malloc(strlen(name)+8);
+	HEV ev = 0;
+
+	if(!semname)
+		return 0;
+
+	strcpy(semname, "\\sem32\\");
+	strcat(semname, name);
+
+	DosCreateEventSem(semname, &ev, 0L, FALSE);
+
+	free(semname);
+	return ev;
+}
+
+/* Open an already existing named event semaphore.
+ * Parameters:
+ *         eve: Pointer to an event handle to receive handle.
+ *         name: Name given to semaphore which can be opened
+ *               by other processes.
+ */
+HEV API dw_named_event_get(char *name)
+{
+	char *semname = malloc(strlen(name)+8);
+	HEV ev;
+
+	if(!semname)
+		return 0;
+
+	strcpy(semname, "\\sem32\\");
+	strcat(semname, name);
+
+	DosOpenEventSem(semname, &ev);
+
+	free(semname);
+	return ev;
+}
+
+/* Resets the event semaphore so threads who call wait
+ * on this semaphore will block.
+ * Parameters:
+ *         eve: Handle to the semaphore obtained by
+ *              an open or create call.
+ */
+int API dw_named_event_reset(HEV eve)
+{
+	ULONG count;
+
+	return DosResetEventSem(eve, &count);
+}
+
+/* Sets the posted state of an event semaphore, any threads
+ * waiting on the semaphore will no longer block.
+ * Parameters:
+ *         eve: Handle to the semaphore obtained by
+ *              an open or create call.
+ */
+int API dw_named_event_post(HEV eve)
+{
+	return DosPostEventSem(eve);
+}
+
+
+/* Waits on the specified semaphore until it becomes
+ * posted, or returns immediately if it already is posted.
+ * Parameters:
+ *         eve: Handle to the semaphore obtained by
+ *              an open or create call.
+ *         timeout: Number of milliseconds before timing out
+ *                  or -1 if indefinite.
+ */
+int API dw_named_event_wait(HEV eve, unsigned long timeout)
+{
+	int rc;
+
+	rc = DosWaitEventSem(eve, timeout);
+	switch (rc)
+	{
+	case ERROR_INVALID_HANDLE:
+		rc = DW_ERROR_NON_INIT;
+		break;
+	case ERROR_NOT_ENOUGH_MEMORY:
+		rc = DW_ERROR_NO_MEM;
+		break;
+	case ERROR_INTERRUPT:
+		rc = DW_ERROR_INTERRUPT;
+		break;
+	case ERROR_TIMEOUT:
+		rc = DW_ERROR_TIMEOUT;
+		break;
+	}
+
+	return rc;
+}
+
+/* Release this semaphore, if there are no more open
+ * handles on this semaphore the semaphore will be destroyed.
+ * Parameters:
+ *         eve: Handle to the semaphore obtained by
+ *              an open or create call.
+ */
+int API dw_named_event_close(HEV eve)
+{
+	int rc;
+
+	rc = DosCloseEventSem(eve);
+	switch (rc)
+	{
+	case ERROR_INVALID_HANDLE:
+		rc = DW_ERROR_NON_INIT;
+		break;
+
+	case ERROR_SEM_BUSY:
+		rc = DW_ERROR_BUSY;
+		break;
+	}
+
+	return rc;
+}
+
+/*
+ * Allocates a shared memory region with a name.
+ * Parameters:
+ *         handle: A pointer to receive a SHM identifier.
+ *         dest: A pointer to a pointer to receive the memory address.
+ *         size: Size in bytes of the shared memory region to allocate.
+ *         name: A string pointer to a unique memory name.
+ */
+int API dw_named_memory_alloc(HSHM *handle, void **dest, int size, char *name)
+{
+	char namebuf[1024];
+
+	sprintf(namebuf, "\\sharemem\\%s", name);
+
+	if(DosAllocSharedMem((void *)dest, namebuf, size, PAG_COMMIT | PAG_WRITE | PAG_READ) != NO_ERROR)
+		return -1;
+
+	return 0;
+}
+
+/*
+ * Aquires shared memory region with a name.
+ * Parameters:
+ *         dest: A pointer to a pointer to receive the memory address.
+ *         size: Size in bytes of the shared memory region to requested.
+ *         name: A string pointer to a unique memory name.
+ */
+int API dw_named_memory_get(HSHM *handle, void **dest, int size, char *name)
+{
+	char namebuf[1024];
+
+	sprintf(namebuf, "\\sharemem\\%s", name);
+
+	if(DosGetNamedSharedMem((void *)dest, namebuf, PAG_READ | PAG_WRITE) != NO_ERROR)
+		return -1;
+
+	return 0;
+}
+
+/*
+ * Frees a shared memory region previously allocated.
+ * Parameters:
+ *         handle: Handle obtained from DB_named_memory_allocate.
+ *         ptr: The memory address aquired with DB_named_memory_allocate.
+ */
+int API dw_named_memory_free(HSHM handle, void *ptr)
+{
+	if(DosFreeMem(ptr) != NO_ERROR)
+		return -1;
+	return 0;
+}
+
 /*
  * Encapsulate the message queues on OS/2.
  */

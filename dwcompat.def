@@ -39,3 +39,6 @@ EXPORTS
 
   locale_init        @50
   locale_string      @51
+  
+  nice_strformat     @60
+  initdir            @61

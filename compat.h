@@ -232,4 +232,7 @@ char * API fsgets(char *str, int size, FILE *stream);
 int API fsseek(FILE *stream, long offset, int whence);
 int API locale_init(char *filename, int my_locale);
 char * API locale_string(char *default_text, int message);
+void API nice_strformat(char *dest, long double val, int dec);
+void API initdir(int argc, char *argv[]);
+int API setpath(char *path);
 #endif
