@@ -619,6 +619,8 @@ typedef struct _dwdialog {
 #define API
 #endif
 
+#define DWSIGNAL API
+
 /* Public function prototypes */
 void API dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize, int vsize, int pad);
 void API dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, int vsize, int pad);
