@@ -5112,7 +5112,7 @@ void API dw_listbox_append(HWND handle, char *text)
 
 	GetClassName(handle, tmpbuf, 99);
 
-	if(strnicmp(tmpbuf, COMBOBOXCLASSNAME, strlen(COMBOBOXCLASSNAME))==0)
+	if(strnicmp(tmpbuf, COMBOBOXCLASSNAME, strlen(COMBOBOXCLASSNAME)+1)==0)
 		SendMessage(handle,
 					CB_ADDSTRING,
 					0, (LPARAM)text);
@@ -5133,7 +5133,7 @@ void API dw_listbox_clear(HWND handle)
 
 	GetClassName(handle, tmpbuf, 99);
 
-	if(strnicmp(tmpbuf, COMBOBOXCLASSNAME, strlen(COMBOBOXCLASSNAME))==0)
+	if(strnicmp(tmpbuf, COMBOBOXCLASSNAME, strlen(COMBOBOXCLASSNAME)+1)==0)
 	{
 		char *buf = dw_window_get_text(handle);
 
@@ -5160,11 +5160,23 @@ void API dw_listbox_clear(HWND handle)
  */
 void API dw_listbox_set_text(HWND handle, unsigned int index, char *buffer)
 {
-	unsigned int sel = (unsigned int)SendMessage(handle, LB_GETCURSEL, 0, 0);
-	SendMessage(handle,	LB_DELETESTRING, (WPARAM)index, 0);
-	SendMessage(handle, LB_INSERTSTRING, (WPARAM)index, (LPARAM)buffer);
-	SendMessage(handle, LB_SETCURSEL, (WPARAM)sel, 0);
-	SendMessage(handle, LB_SETSEL, (WPARAM)TRUE, (LPARAM)sel);
+	char tmpbuf[100];
+
+	GetClassName(handle, tmpbuf, 99);
+
+	if(strnicmp(tmpbuf, COMBOBOXCLASSNAME, strlen(COMBOBOXCLASSNAME)+1)==0)
+	{
+		SendMessage(handle,	CB_DELETESTRING, (WPARAM)index, 0);
+		SendMessage(handle, CB_INSERTSTRING, (WPARAM)index, (LPARAM)buffer);
+	}
+	else
+	{
+		unsigned int sel = (unsigned int)SendMessage(handle, LB_GETCURSEL, 0, 0);
+		SendMessage(handle,	LB_DELETESTRING, (WPARAM)index, 0);
+		SendMessage(handle, LB_INSERTSTRING, (WPARAM)index, (LPARAM)buffer);
+		SendMessage(handle, LB_SETCURSEL, (WPARAM)sel, 0);
+		SendMessage(handle, LB_SETSEL, (WPARAM)TRUE, (LPARAM)sel);
+	}
 }
 
 /*
@@ -5187,7 +5199,7 @@ void API dw_listbox_query_text(HWND handle, unsigned int index, char *buffer, un
 
 	GetClassName(handle, tmpbuf, 99);
 
-	if(strnicmp(tmpbuf, COMBOBOXCLASSNAME, strlen(COMBOBOXCLASSNAME))==0)
+	if(strnicmp(tmpbuf, COMBOBOXCLASSNAME, strlen(COMBOBOXCLASSNAME)+1)==0)
 	{
 		len = (int)SendMessage(handle, CB_GETLBTEXTLEN, (WPARAM)index, 0);
 
@@ -5216,7 +5228,7 @@ unsigned int API dw_listbox_selected(HWND handle)
 
 	GetClassName(handle, tmpbuf, 99);
 
-	if(strnicmp(tmpbuf, COMBOBOXCLASSNAME, strlen(COMBOBOXCLASSNAME))==0)
+	if(strnicmp(tmpbuf, COMBOBOXCLASSNAME, strlen(COMBOBOXCLASSNAME)+1)==0)
 		return (unsigned int)SendMessage(handle,
 										 CB_GETCURSEL,
 										 0, 0);
@@ -5235,6 +5247,13 @@ unsigned int API dw_listbox_selected(HWND handle)
 int API dw_listbox_selected_multi(HWND handle, int where)
 {
 	int *array, count, z;
+	char tmpbuf[100];
+
+	GetClassName(handle, tmpbuf, 99);
+
+	/* This doesn't work on comboboxes */
+	if(strnicmp(tmpbuf, COMBOBOXCLASSNAME, strlen(COMBOBOXCLASSNAME)+1)==0)
+		return -1;
 
 	count = (int)SendMessage(handle, LB_GETSELCOUNT, 0, 0);
 	if(count > 0)
@@ -5275,7 +5294,7 @@ void API dw_listbox_select(HWND handle, int index, int state)
 
 	GetClassName(handle, tmpbuf, 99);
 
-	if(strnicmp(tmpbuf, COMBOBOXCLASSNAME, strlen(COMBOBOXCLASSNAME))==0)
+	if(strnicmp(tmpbuf, COMBOBOXCLASSNAME, strlen(COMBOBOXCLASSNAME)+1)==0)
 		SendMessage(handle, CB_SETCURSEL, (WPARAM)index, 0);
 	else
 	{
@@ -5293,7 +5312,14 @@ void API dw_listbox_select(HWND handle, int index, int state)
  */
 void API dw_listbox_delete(HWND handle, int index)
 {
-	SendMessage(handle, LB_DELETESTRING, (WPARAM)index, 0);
+	char tmpbuf[100];
+
+	GetClassName(handle, tmpbuf, 99);
+
+	if(strnicmp(tmpbuf, COMBOBOXCLASSNAME, strlen(COMBOBOXCLASSNAME)+1)==0)
+		SendMessage(handle, CB_DELETESTRING, (WPARAM)index, 0);
+	else
+		SendMessage(handle, LB_DELETESTRING, (WPARAM)index, 0);
 }
 
 /*
@@ -5307,7 +5333,7 @@ int API dw_listbox_count(HWND handle)
 
 	GetClassName(handle, tmpbuf, 99);
 
-	if(strnicmp(tmpbuf, COMBOBOXCLASSNAME, strlen(COMBOBOXCLASSNAME))==0)
+	if(strnicmp(tmpbuf, COMBOBOXCLASSNAME, strlen(COMBOBOXCLASSNAME)+1)==0)
 		return (int)SendMessage(handle,
 								CB_GETCOUNT,0L, 0L);
 
@@ -5323,6 +5349,14 @@ int API dw_listbox_count(HWND handle)
  */
 void API dw_listbox_set_top(HWND handle, int top)
 {
+	char tmpbuf[100];
+
+	GetClassName(handle, tmpbuf, 99);
+
+	/* This doesn't work on comboboxes */
+	if(strnicmp(tmpbuf, COMBOBOXCLASSNAME, strlen(COMBOBOXCLASSNAME)+1)==0)
+		return;
+
 	SendMessage(handle, LB_SETTOPINDEX, (WPARAM)top, 0);
 }
 
