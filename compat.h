@@ -4,7 +4,7 @@
 #define _COMPAT_H
 
 /* This header includes and defines everything needed for a given OS/compiler */
-#ifdef __UNIX__
+#if defined(__UNIX__) || defined(__MAC__)
 #include "config.h"
 
 #include <sys/stat.h>

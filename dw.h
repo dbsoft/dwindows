@@ -224,15 +224,33 @@ extern HMQ dwhmq;
 
 #if defined(__MAC__)
 /* MacOS specific section */
-#include <carbon.h>
+#include <Carbon/Carbon.h>
 
 typedef ControlRef HWND;
+typedef ThreadID DWTID;
+typedef unsigned long ULONG;
+typedef long LONG;
+typedef unsigned short USHORT;
+typedef short SHORT;
+typedef unsigned short UWORD;
+typedef short WORD ;
+typedef unsigned char UCHAR;
+typedef char CHAR;
+typedef unsigned UINT;
+typedef int INT;
 typedef void *HMTX;
 typedef void *HEV;
 typedef void *HMOD;
 typedef void *HPIXMAP;
 typedef void *HTREEITEM;
 typedef void *HMENUI;
+
+typedef struct _window_data {
+	UserData *root;
+	HWND clickdefault;
+	ULONG flags;
+	void *data;
+} WindowData;
 
 #define DW_DT_LEFT               0
 #define DW_DT_QUERYEXTENT        0
@@ -253,38 +271,38 @@ typedef void *HMENUI;
 #define DW_FCF_TITLEBAR          0
 #define DW_FCF_SYSMENU           0
 #define DW_FCF_MENU              0
-#define DW_FCF_SIZEBORDER        FCF_SIZEBORDER
-#define DW_FCF_MINBUTTON         FCF_MINBUTTON
-#define DW_FCF_MAXBUTTON         FCF_MAXBUTTON
-#define DW_FCF_MINMAX            FCF_MINMAX
-#define DW_FCF_VERTSCROLL        FCF_VERTSCROLL
-#define DW_FCF_HORZSCROLL        FCF_HORZSCROLL
-#define DW_FCF_DLGBORDER         FCF_DLGBORDER
-#define DW_FCF_BORDER            FCF_BORDER
-#define DW_FCF_SHELLPOSITION     FCF_SHELLPOSITION
-#define DW_FCF_TASKLIST          FCF_TASKLIST
-#define DW_FCF_NOBYTEALIGN       FCF_NOBYTEALIGN
-#define DW_FCF_NOMOVEWITHOWNER   FCF_NOMOVEWITHOWNER
-#define DW_FCF_SYSMODAL          FCF_SYSMODAL
-#define DW_FCF_HIDEBUTTON        FCF_HIDEBUTTON
-#define DW_FCF_HIDEMAX           FCF_HIDEMAX
-#define DW_FCF_AUTOICON          FCF_AUTOICON
+#define DW_FCF_SIZEBORDER        0
+#define DW_FCF_MINBUTTON         0
+#define DW_FCF_MAXBUTTON         0
+#define DW_FCF_MINMAX            0
+#define DW_FCF_VERTSCROLL        0
+#define DW_FCF_HORZSCROLL        0
+#define DW_FCF_DLGBORDER         0
+#define DW_FCF_BORDER            0
+#define DW_FCF_SHELLPOSITION     0
+#define DW_FCF_TASKLIST          0
+#define DW_FCF_NOBYTEALIGN       0
+#define DW_FCF_NOMOVEWITHOWNER   0
+#define DW_FCF_SYSMODAL          0
+#define DW_FCF_HIDEBUTTON        0
+#define DW_FCF_HIDEMAX           0
+#define DW_FCF_AUTOICON          0
 
-#define DW_CFA_BITMAPORICON      CFA_BITMAPORICON
-#define DW_CFA_STRING            CFA_STRING
-#define DW_CFA_ULONG             CFA_ULONG
-#define DW_CFA_TIME              CFA_TIME
-#define DW_CFA_DATE              CFA_DATE
-#define DW_CFA_CENTER            CFA_CENTER
-#define DW_CFA_LEFT              CFA_LEFT
-#define DW_CFA_RIGHT             CFA_RIGHT
-#define DW_CFA_HORZSEPARATOR     CFA_HORZSEPARATOR
-#define DW_CFA_SEPARATOR         CFA_SEPARATOR
+#define DW_CFA_BITMAPORICON      1
+#define DW_CFA_STRING            (1 << 1)
+#define DW_CFA_ULONG             (1 << 2)
+#define DW_CFA_TIME              (1 << 3)
+#define DW_CFA_DATE              (1 << 4)
+#define DW_CFA_CENTER            (1 << 5)
+#define DW_CFA_LEFT              (1 << 6)
+#define DW_CFA_RIGHT             (1 << 7)
+#define DW_CFA_HORZSEPARATOR     0
+#define DW_CFA_SEPARATOR         0
 
-#define DW_CRA_SELECTED          CRA_SELECTED
-#define DW_CRA_CURSORED          CRA_CURSORED
+#define DW_CRA_SELECTED          1
+#define DW_CRA_CURSORED          (1 << 1)
 
-#define DW_LS_MULTIPLESEL        LS_MULTIPLESEL
+#define DW_LS_MULTIPLESEL        1
 
 #define DW_LIT_NONE              -1
 
@@ -831,7 +849,7 @@ typedef struct _dwdialog {
 /* Public function prototypes */
 void API dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize, int vsize, int pad);
 void API dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, int vsize, int pad);
-#if !defined(__OS2__) && !defined(__WIN32__) && !defined(__EMX__)
+#if !defined(__OS2__) && !defined(__WIN32__) && !defined(__EMX__) && !defined(__MAC__)
 int API dw_int_init(DWResources *res, int newthread, int *argc, char **argv[]);
 #define dw_init(a, b, c) dw_int_init(&_resources, a, &b, &c)
 #else
