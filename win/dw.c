@@ -4501,6 +4501,7 @@ HWND API dw_bitmapbutton_new(char *text, ULONG id)
 	HWND tmp;
 	BubbleButton *bubble = calloc(1, sizeof(BubbleButton));
 	HBITMAP hbitmap = LoadBitmap(DWInstance, MAKEINTRESOURCE(id));
+	HICON icon = LoadIcon(DWInstance, MAKEINTRESOURCE(id));
 
 	tmp = CreateWindow(BUTTONCLASSNAME,
 					   "",
@@ -4520,9 +4521,18 @@ HWND API dw_bitmapbutton_new(char *text, ULONG id)
 
 	SetWindowLongPtr(tmp, GWLP_USERDATA, (LONG_PTR)bubble);
 
-	SendMessage(tmp, BM_SETIMAGE,
-				(WPARAM) IMAGE_BITMAP,
-				(LPARAM) hbitmap);
+	if(icon)
+	{
+		SendMessage(tmp, BM_SETIMAGE,
+					(WPARAM) IMAGE_ICON,
+					(LPARAM) icon);
+	}
+	else if(hbitmap)
+	{
+		SendMessage(tmp, BM_SETIMAGE,
+					(WPARAM) IMAGE_BITMAP,
+					(LPARAM) hbitmap);
+	}
 	return tmp;
 }
 
