@@ -7903,6 +7903,10 @@ static int DWSIGNAL _tree_expand(HWND window, HTREEITEM item, void *data)
 		char *folder = _tree_folder(tree, item);
 
 		dw_tree_set_data(tree, item, 0);
+
+		if(*folder)
+			_populate_directory(tree, item, folder);
+
 #if GTK_MAJOR_VERSION > 1
 		/* FIXME: GTK 1.x tree control goes crazy when
 		 * I delete the temporary item.  The subtree
@@ -7911,10 +7915,6 @@ static int DWSIGNAL _tree_expand(HWND window, HTREEITEM item, void *data)
 		 */
 		dw_tree_delete(tree, tempitem);
 #endif
-
-		if(*folder)
-			_populate_directory(tree, item, folder);
-
 		free(folder);
 	}
 
