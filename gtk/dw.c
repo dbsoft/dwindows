@@ -5925,6 +5925,7 @@ void *dw_container_alloc(HWND handle, int rowcount)
 		if(back)
 			gtk_clist_set_background(GTK_CLIST(clist), z + prevrowcount, back);
 	}
+	gtk_object_set_data(GTK_OBJECT(clist), "_dw_insertpos", (gpointer)prevrowcount);
 	gtk_object_set_data(GTK_OBJECT(clist), "_dw_rowcount", (gpointer)(rowcount + prevrowcount));
 	free(blah);
 	DW_MUTEX_UNLOCK;
@@ -5952,6 +5953,7 @@ void _dw_container_set_item(HWND handle, void *pointer, int column, int row, voi
 
 	sprintf(numbuf, "%d", column);
 	flag = (int)gtk_object_get_data(GTK_OBJECT(clist), numbuf);
+	row += (int)gtk_object_get_data(GTK_OBJECT(clist), "_dw_insertpos");
 
 	if(flag & DW_CFA_BITMAPORICON)
 	{
