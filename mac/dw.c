@@ -403,14 +403,24 @@ int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *usedy,
 				{
 					if(*depth > 0)
 					{
+						float calcval;
+
 						if(thisbox->type == DW_VERT)
 						{
-							tmp->xratio = ((float)((thisbox->items[z].width * thisbox->xratio)-((thisbox->items[z].pad*2)+(thisbox->pad*2))))/((float)(tmp->minwidth-((thisbox->items[z].pad*2)+(thisbox->pad*2))));
+							calcval = (float)(tmp->minwidth-((thisbox->items[z].pad*2)+(thisbox->pad*2)));
+							if(calcval == 0.0)
+								tmp->xratio = thisbox->xratio;
+							else
+								tmp->xratio = ((float)((thisbox->items[z].width * thisbox->xratio)-((thisbox->items[z].pad*2)+(thisbox->pad*2))))/calcval;
 							tmp->width = thisbox->items[z].width;
 						}
 						if(thisbox->type == DW_HORZ)
 						{
-							tmp->yratio = ((float)((thisbox->items[z].height * thisbox->yratio)-((thisbox->items[z].pad*2)+(thisbox->pad*2))))/((float)(tmp->minheight-((thisbox->items[z].pad*2)+(thisbox->pad*2))));
+							calcval = (float)(tmp->minheight-((thisbox->items[z].pad*2)+(thisbox->pad*2)));
+							if(calcval == 0.0)
+								tmp->yratio = thisbox->yratio;
+							else
+								tmp->yratio = ((float)((thisbox->items[z].height * thisbox->yratio)-((thisbox->items[z].pad*2)+(thisbox->pad*2))))/calcval;
 							tmp->height = thisbox->items[z].height;
 						}
 					}
