@@ -1,7 +1,7 @@
 /* $Id$ */
 
 /* This header includes and defines everything needed for a given OS/compiler */
-#if !defined(__EMX__) && !defined(__IBMC__) && !defined(__WIN32__) && !defined(WINNT)
+#ifdef __UNIX__
 #include "config.h"
 
 #include <sys/stat.h>
@@ -35,7 +35,7 @@ void msleep(long period);
 #undef DIRSEP
 #endif
 
-#if defined(__EMX__) || defined(__IBMC__) || defined(__WIN32__) || defined(WINNT)
+#if defined(__EMX__) || defined(__OS2__) || defined(__WIN32__) || defined(WINNT)
 #include <io.h>
 #include <process.h>
 
@@ -49,7 +49,7 @@ void msleep(long period);
 #endif
 
 /* OS/2 */
-#if defined(__EMX__) || defined(__IBMC__)
+#if defined(__EMX__) || defined(__OS2__)
 #define INCL_WIN
 #define INCL_GPI
 #define INCL_VIO
@@ -68,9 +68,12 @@ void msleep(long period);
 #undef FD_SETSIZE
 #endif
 #define FD_SETSIZE 1024
+#endif /* __EMX__ */
+
+#if defined(__EMX__) || defined(__WATCOMC__)
 #define strcasecmp stricmp
 #define strncasecmp strnicmp
-#endif /* __EMX__ */
+#endif
 
 #ifndef OS2
 #define OS2
@@ -89,7 +92,7 @@ void msleep(long period);
 #define TPIPENAME "/tmp/" __TARGET__ "%d"
 #endif /* __EMX__ || __IBMC__ */
 
-#ifdef __IBMC__
+#if defined(__OS2__) && (defined(__IBMC__) || defined(__WATCOMC__))
 #define BSD_SELECT
 
 #include <types.h>
@@ -100,7 +103,9 @@ void msleep(long period);
 #include <direct.h>
 #include <stdarg.h>
 /* For VAC we are using the Mozilla dirent.c */
+#ifndef __WATCOMC__
 #include "platform/dirent.h"
+#endif
 #endif
 
 /* Windows */
@@ -156,6 +161,9 @@ void msleep(long period);
 #include <netinet/in.h>
 #include <netdb.h>
 #include <arpa/nameser.h>
+#if defined(__OS2__) && defined(RES_DEFAULT)
+#undef RES_DEFAULT
+#endif
 #include <resolv.h>
 #if defined(STDC_HEADERS) || defined(__EMX__)
 #include <stdarg.h>

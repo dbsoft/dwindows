@@ -1,0 +1,24 @@
+#===================================================================
+#
+#   Auto-dependency information
+#
+#===================================================================
+OS22_H = $(%WATCOM)\h\os2
+CFLAGS  = -i=os2 -i=$(OS22_H) -bt=OS2 -zq -d2 -bd
+
+.SUFFIXES:
+.SUFFIXES: .obj .c
+.c.obj: .AUTODEPEND
+	wcc386 $(CFLAGS) $*.c
+
+all:	dw.dll dwcompat.dll
+
+dwcompat.dll: compat.obj
+	wlink name dwcompat.dll system os2v2_pm library so32dll,tcp32dll d a option symf f $[@
+
+dw.dll: dw.obj
+	wlink name dw.dll system os2v2_pm d a option symf f $[@
+
+dw.obj: os2\dw.c
+	wcc386 $(CFLAGS) os2\dw.c
+
