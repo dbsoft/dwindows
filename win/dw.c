@@ -2,7 +2,7 @@
  * Dynamic Windows:
  *          A GTK like implementation of the Win32 GUI
  *
- * (C) 2000,2001 Brian Smith <dbsoft@technologist.com>
+ * (C) 2000-2002 Brian Smith <dbsoft@technologist.com>
  *
  */
 #define _WIN32_IE 0x0500
@@ -26,6 +26,7 @@ HWND hwndBubble = (HWND)NULL, hwndBubbleLast, DW_HWND_OBJECT = (HWND)NULL;
 HINSTANCE DWInstance = NULL;
 
 DWORD dwVersion = 0;
+DWTID _dwtid = -1;
 
 /* I should probably check the actual file version, but this will do for now */
 #define IS_WIN98PLUS (LOBYTE(LOWORD(dwVersion)) > 4 || \
@@ -101,7 +102,7 @@ typedef struct
 static int in_checkbox_handler = 0;
 
 /* List of signals and their equivilent Win32 message */
-#define SIGNALMAX 14
+#define SIGNALMAX 15
 
 SignalList SignalTranslate[SIGNALMAX] = {
 	{ WM_SIZE, "configure_event" },
@@ -117,7 +118,8 @@ SignalList SignalTranslate[SIGNALMAX] = {
 	{ LBN_SELCHANGE, "item-select" },
 	{ TVN_SELCHANGED, "tree-select" },
 	{ WM_SETFOCUS, "set-focus" },
-	{ WM_USER+1, "lose-focus" }
+	{ WM_USER+1, "lose-focus" },
+	{ WM_VSCROLL, "value_changed" }
 };
 
 #ifdef BUILD_DLL
@@ -324,12 +326,13 @@ int _validate_focus(HWND handle)
 	/* These are the window classes which can
 	 * obtain input focus.
 	 */
-	if(strnicmp(tmpbuf, EDITCLASSNAME, strlen(EDITCLASSNAME))==0 ||  /* Entryfield */
-	   strnicmp(tmpbuf, BUTTONCLASSNAME, strlen(BUTTONCLASSNAME))==0 ||  /* Button */
-	   strnicmp(tmpbuf, COMBOBOXCLASSNAME, strlen(COMBOBOXCLASSNAME))==0 ||  /* Combobox */
-	   strnicmp(tmpbuf, LISTBOXCLASSNAME, strlen(LISTBOXCLASSNAME))==0 ||  /* List box */
-	   strnicmp(tmpbuf, UPDOWN_CLASS, strlen(UPDOWN_CLASS))==0 || /* Spinbutton */
-	   strnicmp(tmpbuf, WC_LISTVIEW, strlen(WC_LISTVIEW))== 0)  /* Container */
+	if(strnicmp(tmpbuf, EDITCLASSNAME, strlen(EDITCLASSNAME)+1)==0 ||          /* Entryfield */
+	   strnicmp(tmpbuf, BUTTONCLASSNAME, strlen(BUTTONCLASSNAME)+1)==0 ||      /* Button */
+	   strnicmp(tmpbuf, COMBOBOXCLASSNAME, strlen(COMBOBOXCLASSNAME)+1)==0 ||  /* Combobox */
+	   strnicmp(tmpbuf, LISTBOXCLASSNAME, strlen(LISTBOXCLASSNAME)+1)==0 ||    /* List box */
+	   strnicmp(tmpbuf, UPDOWN_CLASS, strlen(UPDOWN_CLASS)+1)==0 ||            /* Spinbutton */
+	   strnicmp(tmpbuf, TRACKBAR_CLASS, strlen(TRACKBAR_CLASS)+1)==0 ||        /* Slider */
+	   strnicmp(tmpbuf, WC_LISTVIEW, strlen(WC_LISTVIEW)+1)== 0)               /* Container */
 		return 1;
 	return 0;
 }
@@ -1164,6 +1167,8 @@ BOOL CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 		msg = WM_LBUTTONDOWN;
 	if(msg == WM_RBUTTONUP || msg == WM_MBUTTONUP)
 		msg = WM_LBUTTONUP;
+	if(msg == WM_HSCROLL)
+		msg = WM_VSCROLL;
 
 	if(filterfunc)
 		result = filterfunc(hWnd, msg, mp1, mp2);
@@ -1409,6 +1414,33 @@ BOOL CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 						{
 							result = clickfunc(tmp->window, tmp->data);
 							tmp = NULL;
+						}
+					}
+					break;
+				case WM_HSCROLL:
+				case WM_VSCROLL:
+					{
+						char tmpbuf[100];
+                        HWND handle = (HWND)mp2;
+
+						GetClassName(handle, tmpbuf, 99);
+
+						if(strnicmp(tmpbuf, TRACKBAR_CLASS, strlen(TRACKBAR_CLASS)+1)==0)
+						{
+							int (*valuechangefunc)(HWND, int, void *) = tmp->signalfunction;
+
+							if(handle == tmp->window)
+							{
+								int value = (int)SendMessage(handle, TBM_GETPOS, 0, 0);
+								int max = (int)SendMessage(handle, TBM_GETRANGEMAX, 0, 0);
+								ULONG currentstyle = GetWindowLong(handle, GWL_STYLE);
+
+								if(currentstyle & TBS_VERT)
+									result = valuechangefunc(tmp->window, max - value, tmp->data);
+								else
+									result = valuechangefunc(tmp->window, value, tmp->data);
+								tmp = NULL;
+							}
 						}
 					}
 					break;
@@ -1778,6 +1810,10 @@ BOOL CALLBACK _colorwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 				_wndproc(cinfo->combo, msg, mp1, mp2);
 			else
 				_wndproc(hWnd, msg, mp1, mp2);
+			break;
+		case WM_VSCROLL:
+		case WM_HSCROLL:
+			_wndproc(hWnd, msg, mp1, mp2);
 			break;
 		case WM_CHAR:
 			if(LOWORD(mp1) == '\t')
@@ -2702,6 +2738,8 @@ void dw_main(HAB currenthab, void *func)
 	/* Setup the filter function */
 	filterfunc = func;
 
+	_dwtid = dw_thread_id();
+
 	while (GetMessage(&msg, NULL, 0, 0))
 	{
 		TranslateMessage(&msg);
@@ -2714,16 +2752,16 @@ void dw_main(HAB currenthab, void *func)
 }
 
 /*
- * Runs a message loop for Dynamic Windows, for a period of seconds.
+ * Runs a message loop for Dynamic Windows, for a period of milliseconds.
  * Parameters:
- *           seconds: Number of seconds to run the loop for.
+ *           milliseconds: Number of milliseconds to run the loop for.
  */
-void dw_main_sleep(int seconds)
+void dw_main_sleep(int milliseconds)
 {
 	MSG msg;
-	time_t start = time(NULL);
+	double start = (double)clock();
 
-	while(time(NULL) - start <= seconds)
+	while(((clock() - start) / (CLOCKS_PER_SEC/1000)) <= milliseconds)
 	{
 		if(PeekMessage(&msg, NULL, 0, 0, PM_NOREMOVE))
 		{
@@ -3602,17 +3640,18 @@ HWND dw_status_text_new(char *text, ULONG id)
 HWND dw_mle_new(ULONG id)
 {
     
-	HWND tmp = CreateWindow(EDITCLASSNAME,
-							"",
-							WS_BORDER |
-							WS_VSCROLL | ES_MULTILINE |
-							ES_WANTRETURN | WS_CHILD |
-							WS_CLIPCHILDREN,
-							0,0,2000,1000,
-							DW_HWND_OBJECT,
-							(HMENU)id,
-							NULL,
-							NULL);
+	HWND tmp = CreateWindowEx(WS_EX_CLIENTEDGE,
+							  EDITCLASSNAME,
+							  "",
+							  WS_BORDER |
+							  WS_VSCROLL | ES_MULTILINE |
+							  ES_WANTRETURN | WS_CHILD |
+							  WS_CLIPCHILDREN,
+							  0,0,2000,1000,
+							  DW_HWND_OBJECT,
+							  (HMENU)id,
+							  NULL,
+							  NULL);
 	dw_window_set_font(tmp, DefaultFont);
 	return tmp;
 }
@@ -3625,16 +3664,17 @@ HWND dw_mle_new(ULONG id)
  */
 HWND dw_entryfield_new(char *text, ULONG id)
 {
-	HWND tmp = CreateWindow(EDITCLASSNAME,
-							text,
-							ES_WANTRETURN | WS_CHILD |
-							WS_BORDER | ES_AUTOHSCROLL |
-							WS_CLIPCHILDREN,
-							0,0,2000,1000,
-							DW_HWND_OBJECT,
-							(HMENU)id,
-							NULL,
-							NULL);
+	HWND tmp = CreateWindowEx(WS_EX_CLIENTEDGE,
+							  EDITCLASSNAME,
+							  text,
+							  ES_WANTRETURN | WS_CHILD |
+							  WS_BORDER | ES_AUTOHSCROLL |
+							  WS_CLIPCHILDREN,
+							  0,0,2000,1000,
+							  DW_HWND_OBJECT,
+							  (HMENU)id,
+							  NULL,
+							  NULL);
 	ColorInfo *cinfo = calloc(1, sizeof(ColorInfo));
 
 	cinfo->back = cinfo->fore = -1;
@@ -3654,16 +3694,17 @@ HWND dw_entryfield_new(char *text, ULONG id)
  */
 HWND dw_entryfield_password_new(char *text, ULONG id)
 {
-	HWND tmp = CreateWindow(EDITCLASSNAME,
-							text,
-							ES_WANTRETURN | WS_CHILD |
-							ES_PASSWORD | WS_BORDER |
-							ES_AUTOHSCROLL | WS_CLIPCHILDREN,
-							0,0,2000,1000,
-							DW_HWND_OBJECT,
-							(HMENU)id,
-							NULL,
-							NULL);
+	HWND tmp = CreateWindowEx(WS_EX_CLIENTEDGE,
+							  EDITCLASSNAME,
+							  text,
+							  ES_WANTRETURN | WS_CHILD |
+							  ES_PASSWORD | WS_BORDER |
+							  ES_AUTOHSCROLL | WS_CLIPCHILDREN,
+							  0,0,2000,1000,
+							  DW_HWND_OBJECT,
+							  (HMENU)id,
+							  NULL,
+							  NULL);
 	ColorInfo *cinfo = calloc(1, sizeof(ColorInfo));
 
 	cinfo->back = cinfo->fore = -1;
@@ -3795,32 +3836,30 @@ HWND dw_bitmapbutton_new(char *text, ULONG id)
 HWND dw_spinbutton_new(char *text, ULONG id)
 {
 	ULONG *data = malloc(sizeof(ULONG));
-	HWND buddy = CreateWindow(EDITCLASSNAME,
-							  text,
-							  WS_CHILD | WS_BORDER |
-							  ES_NUMBER | WS_CLIPCHILDREN,
+	HWND buddy = CreateWindowEx(WS_EX_CLIENTEDGE,
+								EDITCLASSNAME,
+								text,
+								WS_CHILD | WS_BORDER |
+								ES_NUMBER | WS_CLIPCHILDREN,
+								0,0,2000,1000,
+								DW_HWND_OBJECT,
+								NULL,
+								NULL,
+								NULL);
+	HWND tmp = CreateWindowEx(WS_EX_CLIENTEDGE,
+							  UPDOWN_CLASS,
+							  NULL,
+							  WS_CHILD | UDS_ALIGNRIGHT | WS_BORDER |
+							  UDS_ARROWKEYS | UDS_SETBUDDYINT |
+							  UDS_WRAP | UDS_NOTHOUSANDS,
 							  0,0,2000,1000,
 							  DW_HWND_OBJECT,
-							  NULL,
+							  (HMENU)id,
 							  NULL,
 							  NULL);
-	HWND tmp = CreateUpDownControl(
-								   WS_CHILD | UDS_ALIGNRIGHT |
-								   UDS_ARROWKEYS | UDS_SETBUDDYINT |
-								   UDS_WRAP | UDS_NOTHOUSANDS,
-								   0,
-								   0,
-								   2000,
-								   1000,
-								   DW_HWND_OBJECT,
-								   id,
-								   DWInstance,
-								   buddy,
-								   0,
-								   100,
-								   0);
 	ColorInfo *cinfo = calloc(1, sizeof(ColorInfo));
 
+	SendMessage(tmp, UDM_SETBUDDY, (WPARAM)buddy, 0);
 	cinfo->back = cinfo->fore = -1;
 	cinfo->buddy = tmp;
 
@@ -3853,7 +3892,35 @@ HWND dw_radiobutton_new(char *text, ULONG id)
 							(HMENU)id,
 							NULL,
 							NULL);
+	BubbleButton *bubble = calloc(1, sizeof(BubbleButton));
+	bubble->id = id;
+	bubble->pOldProc = (WNDPROC)SubclassWindow(tmp, _BtProc);
+	bubble->cinfo.fore = -1;
+	bubble->cinfo.back = -1;
+	SetWindowLong(tmp, GWL_USERDATA, (ULONG)bubble);
+	dw_window_set_font(tmp, DefaultFont);
+	return tmp;
+}
 
+
+/*
+ * Create a new slider window (widget) to be packed.
+ * Parameters:
+ *       vertical: TRUE or FALSE if slider is vertical.
+ *       increments: Number of increments available.
+ *       id: An ID to be used with WinWindowFromID() or 0L.
+ */
+HWND dw_slider_new(int vertical, int increments, ULONG id)
+{
+	HWND tmp = CreateWindow(TRACKBAR_CLASS,
+							"",
+							WS_CHILD | WS_CLIPCHILDREN |
+							(vertical ? TBS_VERT : TBS_HORZ),
+							0,0,2000,1000,
+							DW_HWND_OBJECT,
+							NULL,
+							NULL,
+							NULL);
 	ColorInfo *cinfo = calloc(1, sizeof(ColorInfo));
 
 	cinfo->back = cinfo->fore = -1;
@@ -3862,10 +3929,9 @@ HWND dw_radiobutton_new(char *text, ULONG id)
 
 	cinfo->pOldProc = SubclassWindow(tmp, _colorwndproc);
 	SetWindowLong(tmp, GWL_USERDATA, (ULONG)cinfo);
-	dw_window_set_font(tmp, DefaultFont);
+	SendMessage(tmp, TBM_SETRANGE, (WPARAM)FALSE, (LPARAM)MAKELONG(0, increments-1));
 	return tmp;
 }
-
 
 /*
  * Create a new percent bar window (widget) to be packed.
@@ -4889,7 +4955,7 @@ void dw_mle_thaw(HWND handle)
 /*
  * Returns the range of the percent bar.
  * Parameters:
- *          handle: Handle to the slider to be queried.
+ *          handle: Handle to the percent bar to be queried.
  */
 unsigned int dw_percent_query_range(HWND handle)
 {
@@ -4899,12 +4965,44 @@ unsigned int dw_percent_query_range(HWND handle)
 /*
  * Sets the percent bar position.
  * Parameters:
- *          handle: Handle to the slider to be set.
- *          position: Position of the slider withing the range.
+ *          handle: Handle to the percent bar to be set.
+ *          position: Position of the percent bar withing the range.
  */
 void dw_percent_set_pos(HWND handle, unsigned int position)
 {
 	SendMessage(handle, PBM_SETPOS, (WPARAM)position, 0);
+}
+
+/*
+ * Returns the position of the slider.
+ * Parameters:
+ *          handle: Handle to the slider to be queried.
+ */
+unsigned int dw_slider_query_pos(HWND handle)
+{
+	int max = (int)SendMessage(handle, TBM_GETRANGEMAX, 0, 0);
+	ULONG currentstyle = GetWindowLong(handle, GWL_STYLE);
+
+	if(currentstyle & TBS_VERT)
+		return max - (unsigned int)SendMessage(handle, TBM_GETPOS, 0, 0);
+	return (unsigned int)SendMessage(handle, TBM_GETPOS, 0, 0);
+}
+
+/*
+ * Sets the slider position.
+ * Parameters:
+ *          handle: Handle to the slider to be set.
+ *          position: Position of the slider withing the range.
+ */
+void dw_slider_set_pos(HWND handle, unsigned int position)
+{
+	int max = (int)SendMessage(handle, TBM_GETRANGEMAX, 0, 0);
+	ULONG currentstyle = GetWindowLong(handle, GWL_STYLE);
+
+	if(currentstyle & TBS_VERT)
+		SendMessage(handle, TBM_SETPOS, (WPARAM)TRUE, (LPARAM)max - position);
+	else
+		SendMessage(handle, TBM_SETPOS, (WPARAM)TRUE, (LPARAM)position);
 }
 
 /*
@@ -4981,6 +5079,22 @@ int dw_checkbox_query(HWND handle)
 	return (in_checkbox_handler ? TRUE : FALSE);
 }
 
+/* This function unchecks all radiobuttons on a box */
+BOOL CALLBACK _uncheck_radios(HWND handle, LPARAM lParam)
+{
+	char tmpbuf[100];
+
+	GetClassName(handle, tmpbuf, 99);
+
+	if(strnicmp(tmpbuf, BUTTONCLASSNAME, strlen(BUTTONCLASSNAME)+1)==0)
+	{
+		BubbleButton *bubble= (BubbleButton *)GetWindowLong(handle, GWL_USERDATA);
+
+		if(bubble && !bubble->checkbox)
+			SendMessage(handle, BM_SETCHECK, 0, 0);
+	}
+	return TRUE;
+}
 /*
  * Sets the state of the checkbox.
  * Parameters:
@@ -4989,10 +5103,15 @@ int dw_checkbox_query(HWND handle)
  */
 void dw_checkbox_set(HWND handle, int value)
 {
-	ColorInfo *cinfo = (ColorInfo *)GetWindowLong(handle, GWL_USERDATA);
+	BubbleButton *bubble= (BubbleButton *)GetWindowLong(handle, GWL_USERDATA);
 
-	if(cinfo && !cinfo->user)
-		SendMessage(handle, BM_CLICK, 0, 0);
+	if(bubble && !bubble->checkbox)
+	{
+		HWND parent = GetParent(handle);
+
+		if(parent)
+			EnumChildWindows(parent, _uncheck_radios, 0);
+	}
 	SendMessage(handle, BM_SETCHECK, (WPARAM)value, 0);
 }
 
@@ -6056,7 +6175,18 @@ void dw_mutex_close(HMTX mutex)
  */
 void dw_mutex_lock(HMTX mutex)
 {
-	WaitForSingleObject((HANDLE)mutex, INFINITE);
+	if(_dwtid == dw_thread_id())
+	{
+		int rc = WaitForSingleObject((HANDLE)mutex, 0);
+
+		while(rc == WAIT_TIMEOUT)
+		{
+			dw_main_sleep(1);
+			rc = WaitForSingleObject((HANDLE)mutex, 0);
+		}
+	}
+    else
+		WaitForSingleObject((HANDLE)mutex, INFINITE);
 }
 
 /*

@@ -2,7 +2,7 @@
  * Dynamic Windows:
  *          A GTK like implementation of the PM GUI
  *
- * (C) 2000,2001 Brian Smith <dbsoft@technologist.com>
+ * (C) 2000-2002 Brian Smith <dbsoft@technologist.com>
  * (C) 2000 Achim Hasenmueller <achimha@innotek.de>
  * (C) 2000 Peter Nielsen <peter@pmview.com>
  * (C) 1998 Sergey I. Yevtushenko (some code borrowed from cell toolkit)
@@ -93,7 +93,7 @@ typedef struct
 } SignalList;
 
 /* List of signals and their equivilent OS/2 message */
-#define SIGNALMAX 14
+#define SIGNALMAX 15
 
 SignalList SignalTranslate[SIGNALMAX] = {
 	{ WM_SIZE, "configure_event" },
@@ -109,7 +109,8 @@ SignalList SignalTranslate[SIGNALMAX] = {
 	{ LN_SELECT, "item-select" },
 	{ CN_EMPHASIS, "tree-select" },
 	{ WM_SETFOCUS, "set-focus" },
-	{ WM_USER+1, "lose-focus" }
+	{ WM_USER+1, "lose-focus" },
+	{ SLN_SLIDERTRACK, "value_changed" }
 };
 
 /* This function adds a signal handler callback into the linked list.
@@ -186,8 +187,6 @@ void _fix_button_owner(HWND handle, HWND dw)
 
 		if(strncmp(tmpbuf, "#3", 3)==0 && dw)  /* Button */
 			WinSetOwner(child, dw);
-		if(strncmp(tmpbuf, "#38", 4)==0 && dw)  /* Slider */
-			WinSetOwner(child, 0);
 		else if(strncmp(tmpbuf, "dynamicwindows", 14) == 0)
 			dw = child;
 
@@ -262,9 +261,10 @@ int _validate_focus(HWND handle)
 	   strncmp(tmpbuf, "#3", 3)==0 ||  /* Button */
 	   strncmp(tmpbuf, "#6", 3)==0 ||  /* Entryfield */
 	   strncmp(tmpbuf, "#7", 3)==0 ||  /* List box */
-	   strncmp(tmpbuf, "#10", 3)==0 || /* MLE */
-	   strncmp(tmpbuf, "#32", 3)==0 || /* Spinbutton */
-	   strncmp(tmpbuf, "#37", 3)== 0)  /* Container */
+	   strncmp(tmpbuf, "#10", 4)==0 || /* MLE */
+	   strncmp(tmpbuf, "#32", 4)==0 || /* Spinbutton */
+	   strncmp(tmpbuf, "#37", 4)==0 || /* Container */
+	   strncmp(tmpbuf, "#38", 4)== 0)  /* Slider */
 		return 1;
 	return 0;
 }
@@ -350,7 +350,7 @@ int _focus_check_box(Box *box, HWND handle, int start, HWND defaultitem)
 					char tmpbuf[100] = "";
 
 					WinQueryClassName(box->items[z].hwnd, 99, tmpbuf);
-					if(strncmp(tmpbuf, "#40", 3)==0) /* Notebook */
+					if(strncmp(tmpbuf, "#40", 4)==0) /* Notebook */
 					{
 						Box *notebox;
 						HWND page = (HWND)WinSendMsg(box->items[z].hwnd, BKM_QUERYPAGEWINDOWHWND,
@@ -420,7 +420,7 @@ int _focus_check_box(Box *box, HWND handle, int start, HWND defaultitem)
 					char tmpbuf[100] = "";
 
 					WinQueryClassName(box->items[z].hwnd, 99, tmpbuf);
-					if(strncmp(tmpbuf, "#40", 3)==0) /* Notebook */
+					if(strncmp(tmpbuf, "#40", 4)==0) /* Notebook */
 					{
 						Box *notebox;
 						HWND page = (HWND)WinSendMsg(box->items[z].hwnd, BKM_QUERYPAGEWINDOWHWND,
@@ -522,7 +522,7 @@ int _focus_check_box_back(Box *box, HWND handle, int start, HWND defaultitem)
 					char tmpbuf[100] = "";
 
 					WinQueryClassName(box->items[z].hwnd, 99, tmpbuf);
-					if(strncmp(tmpbuf, "#40", 3)==0) /* Notebook */
+					if(strncmp(tmpbuf, "#40", 4)==0) /* Notebook */
 					{
 						Box *notebox;
 						HWND page = (HWND)WinSendMsg(box->items[z].hwnd, BKM_QUERYPAGEWINDOWHWND,
@@ -592,7 +592,7 @@ int _focus_check_box_back(Box *box, HWND handle, int start, HWND defaultitem)
 					char tmpbuf[100] = "";
 
 					WinQueryClassName(box->items[z].hwnd, 99, tmpbuf);
-					if(strncmp(tmpbuf, "#40", 3)==0) /* Notebook */
+					if(strncmp(tmpbuf, "#40", 4)==0) /* Notebook */
 					{
 						Box *notebox;
 						HWND page = (HWND)WinSendMsg(box->items[z].hwnd, BKM_QUERYPAGEWINDOWHWND,
@@ -697,6 +697,22 @@ void _ResetWindow(HWND hwndFrame)
 	WinQueryWindowPos(hwndFrame, &swp);
 	WinSetWindowPos(hwndFrame, HWND_TOP, 0, 0, swp.cx, swp.cy-1, SWP_SIZE);
 	WinSetWindowPos(hwndFrame, HWND_TOP, 0, 0, swp.cx, swp.cy, SWP_SIZE);
+}
+
+/* Focus toplevel window */
+void _toplevel_focus(HWND handle)
+{
+	HWND box, lastbox = WinQueryWindow(handle, QW_PARENT);
+
+	/* Find the toplevel window */
+	while((box = WinQueryWindow(lastbox, QW_PARENT)) > 0x80000001)
+	{
+		lastbox = box;
+	}
+
+	box = WinWindowFromID(lastbox, FID_CLIENT);
+	if(box)
+		WinSetActiveWindow(HWND_DESKTOP, lastbox);
 }
 
 /* This function will recursively search a box and add up the total height of it */
@@ -1238,27 +1254,37 @@ void _do_resize(Box *thisbox, int x, int y)
 MRESULT EXPENTRY _sizeproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 {
 	PFNWP *blah = WinQueryWindowPtr(hWnd, QWP_USER);
+	Box *thisbox = NULL;
+	HWND box;
 
-	switch(msg)
+	box = WinWindowFromID(hWnd, FID_CLIENT);
+	if(box)
+		thisbox = WinQueryWindowPtr(box, QWP_USER);
+
+	if(thisbox && !thisbox->titlebar)
 	{
-	case WM_QUERYTRACKINFO:
+		switch(msg)
 		{
-			if(blah && *blah)
+		case WM_QUERYTRACKINFO:
 			{
-				PTRACKINFO ptInfo;
-				int res;
-				PFNWP myfunc = *blah;
-				res = (int)myfunc(hWnd, msg, mp1, mp2);
+				if(blah && *blah)
+				{
+					PTRACKINFO ptInfo;
+					int res;
+					PFNWP myfunc = *blah;
+					res = (int)myfunc(hWnd, msg, mp1, mp2);
 
-				ptInfo = (PTRACKINFO)(mp2);
+					ptInfo = (PTRACKINFO)(mp2);
 
-				ptInfo->ptlMinTrackSize.y = 8;
-				ptInfo->ptlMinTrackSize.x = 8;
+					ptInfo->ptlMinTrackSize.y = 8;
+					ptInfo->ptlMinTrackSize.x = 8;
 
-				return (MRESULT)res;
+					return (MRESULT)res;
+				}
 			}
 		}
 	}
+
 	if(blah && *blah)
 	{
 		PFNWP myfunc = *blah;
@@ -1362,17 +1388,6 @@ MRESULT EXPENTRY _statusproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 	return WinDefWindowProc(hWnd, msg, mp1, mp2);
 }
 
-/* This procedure handles drawing of a percent bar */
-MRESULT EXPENTRY _percentproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
-{
-	WindowData *blah = (WindowData *)WinQueryWindowPtr(hWnd, QWP_USER);
-
-	if(blah)
-		return blah->oldproc(hWnd, msg, mp1, mp2);
-
-	return WinDefWindowProc(hWnd, msg, mp1, mp2);
-}
-
 void _click_default(HWND handle)
 {
 	char tmpbuf[100];
@@ -1416,6 +1431,7 @@ MRESULT EXPENTRY _comboentryproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 	switch(msg)
 	{
 	case WM_SETFOCUS:
+		_toplevel_focus(hWnd);
 		_run_event(hWnd, msg, mp1, mp2);
 		break;
 	}
@@ -1447,11 +1463,22 @@ MRESULT EXPENTRY _entryproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 
 			WinQueryClassName(hWnd, 99, tmpbuf);
 
-			if(strncmp(tmpbuf, "#32", 3)==0)
+			if(strncmp(tmpbuf, "#32", 4)==0)
 				_run_event(hWnd, WM_SETFOCUS, (MPARAM)FALSE, (MPARAM)TRUE);
 		}
 		break;
+	case WM_CONTROL:
+		{
+			char tmpbuf[100];
+
+			WinQueryClassName(hWnd, 99, tmpbuf);
+
+			if(strncmp(tmpbuf, "#38", 4)==0)
+				_run_event(hWnd, msg, mp1, mp2);
+		}
+		break;
 	case WM_SETFOCUS:
+		_toplevel_focus(hWnd);
 		_run_event(hWnd, msg, mp1, mp2);
 		break;
 	case WM_CHAR:
@@ -1506,6 +1533,7 @@ MRESULT EXPENTRY _comboproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 		_run_event(hWnd, WM_SETFOCUS, (MPARAM)FALSE, (MPARAM)TRUE);
 		break;
 	case WM_SETFOCUS:
+		_toplevel_focus(hWnd);
 		_run_event(hWnd, msg, mp1, mp2);
 		break;
 	case WM_PAINT:
@@ -1760,7 +1788,7 @@ MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 				}
 				break;
 			case WM_CONTROL:
-				if(tmp->message == SHORT2FROMMP(mp1))
+				if(tmp->message == SHORT2FROMMP(mp1) || (tmp->message == SLN_SLIDERTRACK && SHORT2FROMMP(mp1) == SLN_CHANGE))
 				{
 					switch(SHORT2FROMMP(mp1))
 					{
@@ -1866,44 +1894,87 @@ MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 						break;
 					case LN_SELECT:
 						{
-							int (*listboxselectfunc)(HWND, int, void *) = (int (*)(HWND, int, void *))tmp->signalfunction;
-							int id = SHORT1FROMMP(mp1);
-							HWND conthwnd = dw_window_from_id(hWnd, id);
-							static int _recursing = 0;
+							char classbuf[100];
 
-							if(_recursing == 0 && (tmp->window == conthwnd || (!id && tmp->window == (HWND)mp2)))
+							WinQueryClassName(tmp->window, 99, classbuf);
+
+							if(strncmp(classbuf, "#38", 4) == 0)
 							{
-								char buf1[500], classbuf[100];
-								unsigned int index = dw_listbox_selected(tmp->window);
+								int (*valuechangedfunc)(HWND, int, void *) = (int (*)(HWND, int, void *))tmp->signalfunction;
 
-								dw_listbox_query_text(tmp->window, index, buf1, 500);
-
-								WinQueryClassName(tmp->window, 99, classbuf);
-
-								_recursing = 1;
-
-								if(id && strncmp(classbuf, "#2", 3)==0)
+								if(tmp->window == hWnd || WinQueryWindow(tmp->window, QW_PARENT) == hWnd)
 								{
-									char *buf2;
+									static int lastvalue = -1;
+									static HWND lasthwnd = NULLHANDLE;
+									int ulValue = (int)WinSendMsg(tmp->window, SLM_QUERYSLIDERINFO, MPFROM2SHORT(SMA_SLIDERARMPOSITION, SMA_INCREMENTVALUE), 0);
+									if(lastvalue != ulValue || lasthwnd != tmp->window)
+									{
+										result = valuechangedfunc(tmp->window, ulValue, tmp->data);
+										lastvalue = ulValue;
+										lasthwnd = tmp->window;
+									}
+									tmp = NULL;
+								}
+							}
+							else
+							{
+								int (*listboxselectfunc)(HWND, int, void *) = (int (*)(HWND, int, void *))tmp->signalfunction;
+								int id = SHORT1FROMMP(mp1);
+								HWND conthwnd = dw_window_from_id(hWnd, id);
+								static int _recursing = 0;
 
-									buf2 = dw_window_get_text(tmp->window);
+								if(_recursing == 0 && (tmp->window == conthwnd || (!id && tmp->window == (HWND)mp2)))
+								{
+									char buf1[500];
+									unsigned int index = dw_listbox_selected(tmp->window);
 
-									/* This is to make sure the listboxselect function doesn't
-									 * get called if the user is modifying the entry text.
-									 */
-									if(buf2 && *buf2 && *buf1 && strncmp(buf1, buf2, 500) == 0)
+									dw_listbox_query_text(tmp->window, index, buf1, 500);
+
+									_recursing = 1;
+
+									if(id && strncmp(classbuf, "#2", 3)==0)
+									{
+										char *buf2;
+
+										buf2 = dw_window_get_text(tmp->window);
+
+										/* This is to make sure the listboxselect function doesn't
+										 * get called if the user is modifying the entry text.
+										 */
+										if(buf2 && *buf2 && *buf1 && strncmp(buf1, buf2, 500) == 0)
+											result = listboxselectfunc(tmp->window, index, tmp->data);
+
+										if(buf2)
+											free(buf2);
+									}
+									else
 										result = listboxselectfunc(tmp->window, index, tmp->data);
 
-									if(buf2)
-										free(buf2);
+									_recursing = 0;
+									tmp = NULL;
 								}
-								else
-									result = listboxselectfunc(tmp->window, index, tmp->data);
+							}
+						}
+						break;
+					case SLN_SLIDERTRACK:
+						{
+							int (*valuechangedfunc)(HWND, int, void *) = (int (*)(HWND, int, void *))tmp->signalfunction;
 
-								_recursing = 0;
+							if(tmp->window == hWnd || WinQueryWindow(tmp->window, QW_PARENT) == hWnd)
+							{
+								static int lastvalue = -1;
+								static HWND lasthwnd = NULLHANDLE;
+								int ulValue = (int)WinSendMsg(tmp->window, SLM_QUERYSLIDERINFO, MPFROM2SHORT(SMA_SLIDERARMPOSITION, SMA_INCREMENTVALUE), 0);
+								if(lastvalue != ulValue || lasthwnd != tmp->window)
+								{
+									result = valuechangedfunc(tmp->window, ulValue, tmp->data);
+									lastvalue = ulValue;
+									lasthwnd = tmp->window;
+								}
 								tmp = NULL;
 							}
 						}
+
 						break;
 					}
 				}
@@ -1920,6 +1991,40 @@ MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 }
 #endif
 
+int _warp4_focus_fix(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
+{
+	/* This is a hack to stop an infinite loop in the
+	 * Warp 4 default window procedure.  It seems that
+	 * under very rare circumstances, the same WM_FOCUSCHANGE
+	 * message will bounce between an entryfield and
+	 * the frame it sits on, this will stop duplicate
+	 * messages and thus prevent the infinite loop.
+	 */
+	if(msg == WM_FOCUSCHANGE && SHORT1FROMMP(mp2))
+	{
+		static HWND lastfocus = 0;
+		static time_t lasttime = 0;
+		static int count = 0;
+		time_t currtime = time(NULL);
+
+		if(lastfocus == (HWND)mp1 && currtime == lasttime)
+		{
+			if(count > 5)
+			{
+				count = 0;
+				return 1;
+			}
+			count++;
+			return 0;
+		}
+
+		count = 0;
+		lastfocus = (HWND)mp1;
+		lasttime = currtime;
+	}
+	return 0;
+}
+
 /* Handles control messages sent to the box (owner). */
 MRESULT EXPENTRY _controlproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 {
@@ -1933,10 +2038,14 @@ MRESULT EXPENTRY _controlproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 		break;
 	}
 #endif
+
+	if(_warp4_focus_fix(hWnd, msg, mp1, mp2))
+		return (MRESULT)0;
+	if(msg == WM_SETFOCUS)
+		_toplevel_focus(hWnd);
+
 	if(blah && blah->oldproc)
-	{
 		return blah->oldproc(hWnd, msg, mp1, mp2);
-	}
 
 	return WinDefWindowProc(hWnd, msg, mp1, mp2);
 }
@@ -2044,7 +2153,7 @@ MRESULT EXPENTRY _wndproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 						WinQueryClassName(mybox->items[z].hwnd, 99, tmpbuf);
 
 						/* If we have a notebook we resize the page again. */
-						if(strncmp(tmpbuf, "#40", 3)==0)
+						if(strncmp(tmpbuf, "#40", 4)==0)
 						{
 							unsigned long x, y, width, height;
 							int page = dw_notebook_page_query(mybox->items[z].hwnd);
@@ -2131,6 +2240,10 @@ MRESULT EXPENTRY _wndproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 		_free_window_memory(hWnd);
 		break;
 	}
+
+	if(_warp4_focus_fix(hWnd, msg, mp1, mp2))
+		return (MRESULT)0;
+
 	if(result != -1)
 		return (MRESULT)result;
 	else
@@ -2673,7 +2786,7 @@ MRESULT EXPENTRY _RendProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 	case WM_BUTTON2DOWN:
 	case WM_BUTTON3DOWN:
 		if(!res)
-			WinSetFocus(HWND_DESKTOP, hwnd);
+			_toplevel_focus(hwnd);
 		return (MPARAM)TRUE;
 	}
 	return WinDefWindowProc(hwnd, msg, mp1, mp2);
@@ -2756,16 +2869,16 @@ void dw_main(HAB currenthab, void *func)
 }
 
 /*
- * Runs a message loop for Dynamic Windows, for a period of seconds.
+ * Runs a message loop for Dynamic Windows, for a period of milliseconds.
  * Parameters:
- *           seconds: Number of seconds to run the loop for.
+ *           milliseconds: Number of milliseconds to run the loop for.
  */
-void dw_main_sleep(int seconds)
+void dw_main_sleep(int milliseconds)
 {
 	QMSG qmsg;
-	time_t start = time(NULL);
+	double start = (double)clock();
 
-	while(time(NULL) - start <= seconds)
+	while(((clock() - start) / (CLOCKS_PER_SEC/1000)) <= milliseconds)
 	{
 		if(WinPeekMsg(dwhab, &qmsg, 0, 0, 0, PM_NOREMOVE))
 		{
@@ -3705,7 +3818,6 @@ HWND dw_mle_new(ULONG id)
 							   NULL,
 							   NULL);
 	dw_window_set_font(tmp, DefaultFont);
-	dw_window_set_font(tmp, DefaultFont);
 	blah->oldproc = WinSubclassWindow(tmp, _comboentryproc);
 	WinSetWindowPtr(tmp, QWP_USER, blah);
 	return tmp;
@@ -3952,13 +4064,40 @@ HWND dw_radiobutton_new(char *text, ULONG id)
 }
 
 /*
+ * Create a new slider window (widget) to be packed.
+ * Parameters:
+ *       vertical: TRUE or FALSE if slider is vertical.
+ *       increments: Number of increments available.
+ *       id: An ID to be used with WinWindowFromID() or 0L.
+ */
+HWND dw_slider_new(int vertical, int increments, ULONG id)
+{
+	WindowData *blah = calloc(1, sizeof(WindowData));
+	SLDCDATA sldcData = { sizeof(SLDCDATA), increments, 0, 0, 0 };
+	HWND tmp = WinCreateWindow(HWND_OBJECT,
+							   WC_SLIDER,
+							   "",
+							   WS_VISIBLE | SLS_SNAPTOINCREMENT |
+							   (vertical ? SLS_VERTICAL : SLS_HORIZONTAL),
+							   0,0,2000,1000,
+							   NULLHANDLE,
+							   HWND_TOP,
+							   id,
+							   &sldcData,
+							   NULL);
+
+	blah->oldproc = WinSubclassWindow(tmp, _entryproc);
+	WinSetWindowPtr(tmp, QWP_USER, blah);
+	return tmp;
+}
+
+/*
  * Create a new percent bar window (widget) to be packed.
  * Parameters:
  *       id: An ID to be used with WinWindowFromID() or 0L.
  */
 HWND dw_percent_new(ULONG id)
 {
-	WindowData *blah = calloc(1, sizeof(WindowData));
 	HWND tmp = WinCreateWindow(HWND_OBJECT,
 							   WC_SLIDER,
 							   "",
@@ -3970,9 +4109,7 @@ HWND dw_percent_new(ULONG id)
 							   id,
 							   NULL,
 							   NULL);
-
-	blah->oldproc = WinSubclassWindow(tmp, _percentproc);
-	WinSetWindowPtr(tmp, QWP_USER, blah);
+	dw_window_disable(tmp);
 	return tmp;
 }
 
@@ -4178,7 +4315,6 @@ void dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, int 
 
 void dw_box_pack_end_stub(HWND box, HWND item, int width, int height, int hsize, int vsize, int pad)
 {
-    HWND boxowner = NULLHANDLE;
 	Box *thisbox;
 
 	if(WinWindowFromID(box, FID_CLIENT))
@@ -4243,13 +4379,8 @@ void dw_box_pack_end_stub(HWND box, HWND item, int width, int height, int hsize,
 
         /* Don't set the ownership if it's an entryfield  or spinbutton */
 		WinQueryClassName(item, 99, tmpbuf);
-		if(strncmp(tmpbuf, "#6", 3)!=0 && strncmp(tmpbuf, "#32", 3)!=0)
-		{
-			if((boxowner = WinQueryWindow(box, QW_OWNER)) != 0)
-				WinSetOwner(item, boxowner);
-			else
-				WinSetOwner(item, box);
-		}
+		if(strncmp(tmpbuf, "#6", 3)!=0 && strncmp(tmpbuf, "#32", 4)!=0)
+			WinSetOwner(item, box);
 		WinSetParent(item, box, FALSE);
 	}
 }
@@ -4822,7 +4953,7 @@ void dw_mle_thaw(HWND handle)
 /*
  * Returns the range of the percent bar.
  * Parameters:
- *          handle: Handle to the slider to be queried.
+ *          handle: Handle to the percent bar to be queried.
  */
 unsigned int dw_percent_query_range(HWND handle)
 {
@@ -4832,12 +4963,33 @@ unsigned int dw_percent_query_range(HWND handle)
 /*
  * Sets the percent bar position.
  * Parameters:
- *          handle: Handle to the slider to be set.
- *          position: Position of the slider withing the range.
+ *          handle: Handle to the percent bar to be set.
+ *          position: Position of the percent bar withing the range.
  */
 void dw_percent_set_pos(HWND handle, unsigned int position)
 {
 	WinSendMsg(handle, SLM_SETSLIDERINFO, MPFROM2SHORT(SMA_SLIDERARMPOSITION,SMA_RANGEVALUE), (MPARAM)position);
+}
+
+/*
+ * Returns the position of the slider.
+ * Parameters:
+ *          handle: Handle to the slider to be queried.
+ */
+unsigned int dw_slider_query_pos(HWND handle)
+{
+	return (unsigned int)WinSendMsg(handle, SLM_QUERYSLIDERINFO, MPFROM2SHORT(SMA_SLIDERARMPOSITION, SMA_INCREMENTVALUE), 0);
+}
+
+/*
+ * Sets the slider position.
+ * Parameters:
+ *          handle: Handle to the slider to be set.
+ *          position: Position of the slider withing the range.
+ */
+void dw_slider_set_pos(HWND handle, unsigned int position)
+{
+	WinSendMsg(handle, SLM_SETSLIDERINFO, MPFROM2SHORT(SMA_SLIDERARMPOSITION, SMA_INCREMENTVALUE), (MPARAM)position);
 }
 
 /*
@@ -6160,12 +6312,25 @@ void dw_mutex_close(HMTX mutex)
 
 /*
  * Tries to gain access to the semaphore, if it can't it blocks.
+ * If we are in a callback we must keep the message loop running
+ * while blocking.
  * Parameters:
  *       mutex: The handle to the mutex returned by dw_mutex_new().
  */
 void dw_mutex_lock(HMTX mutex)
 {
-	DosRequestMutexSem(mutex, SEM_INDEFINITE_WAIT);
+	if(_dwtid == dw_thread_id())
+	{
+		int rc = DosRequestMutexSem(mutex, SEM_IMMEDIATE_RETURN);
+
+		while(rc == ERROR_TIMEOUT)
+		{
+			dw_main_sleep(10);
+			rc = DosRequestMutexSem(mutex, SEM_IMMEDIATE_RETURN);
+		}
+	}
+    else
+		DosRequestMutexSem(mutex, SEM_INDEFINITE_WAIT);
 }
 
 /*
@@ -6421,7 +6586,6 @@ void dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize, in
 
 void dw_box_pack_start_stub(HWND box, HWND item, int width, int height, int hsize, int vsize, int pad)
 {
-	HWND boxowner = NULLHANDLE;
 	Box *thisbox;
 
 	if(WinWindowFromID(box, FID_CLIENT))
@@ -6476,13 +6640,8 @@ void dw_box_pack_start_stub(HWND box, HWND item, int width, int height, int hsiz
 
 		WinQueryClassName(item, 99, tmpbuf);
 		/* Don't set the ownership if it's an entryfield or spinbutton */
-		if(strncmp(tmpbuf, "#6", 3)!=0 && strncmp(tmpbuf, "#32", 3)!=0)
-		{
-			if((boxowner = WinQueryWindow(box, QW_OWNER)) != 0)
-				WinSetOwner(item, boxowner);
-			else
-				WinSetOwner(item, box);
-		}
+		if(strncmp(tmpbuf, "#6", 3)!=0 && strncmp(tmpbuf, "#32", 4)!=0)
+			WinSetOwner(item, box);
 		WinSetParent(item, box, FALSE);
 	}
 }
