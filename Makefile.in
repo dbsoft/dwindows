@@ -75,6 +75,7 @@ all: $(SYSCONF_LINK_TARGET) $(SYSCONF_LINK_TARGET2)
 install:
 		$(INSTALL) dw.h $(PREFIX)/include; \
 		$(INSTALL) compat.h $(PREFIX)/include; \
+		$(INSTALL) dw-config $(PREFIX)/bin; \
 		cd $(DESTDIR); \
 		$(INSTALL) $(SYSCONF_LINK_TARGET)  $(PREFIX)/lib; \
 		$(INSTALL) $(SYSCONF_LINK_TARGET2) $(PREFIX)/lib; \
