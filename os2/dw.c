@@ -2688,9 +2688,14 @@ MRESULT EXPENTRY _wndproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 		}
 		break;
 	case WM_MENUEND:
+		/* Delay removing the signal until we've executed
+		 * the signal handler.
+		 */
+		WinPostMsg(hWnd, WM_USER+2, mp1, mp2);
+		break;
+	case WM_USER+2:
 		_clear_emphasis();
-		if(dw_window_get_data((HWND)mp2, "_dw_popup"))
-			_free_menu_data((HWND)mp2);
+		_free_menu_data((HWND)mp2);
 		break;
 	}
 
