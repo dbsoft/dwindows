@@ -3056,7 +3056,7 @@ void dw_mle_query(HWND handle, unsigned long *bytes, unsigned long *lines)
 				gchar *text;
 
 				*lines = 0;
-				text = gtk_editable_get_chars(GTK_EDITABLE(&(GTK_TEXT(tmp)->editable)), 0, bytes ? *bytes : gtk_text_get_length(GTK_TEXT(tmp)));
+				text = gtk_editable_get_chars(GTK_EDITABLE(&(GTK_TEXT(tmp)->editable)), 0, gtk_text_get_length(GTK_TEXT(tmp)));
 
 				if(text)
 				{
