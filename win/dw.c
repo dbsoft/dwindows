@@ -6704,7 +6704,7 @@ void API dw_container_change_item(HWND handle, int column, int row, void *data)
  */
 void API dw_filesystem_change_item(HWND handle, int column, int row, void *data)
 {
-	dw_container_change_item(handle, column + 2, row, data);
+	dw_filesystem_set_item(handle, NULL, column, row, data);
 }
 
 /*
@@ -6718,8 +6718,7 @@ void API dw_filesystem_change_item(HWND handle, int column, int row, void *data)
  */
 void API dw_filesystem_change_file(HWND handle, int row, char *filename, unsigned long icon)
 {
-	dw_container_change_item(handle, 0, row, (void *)&icon);
-	dw_container_change_item(handle, 1, row, (void *)&filename);
+	dw_filesystem_set_file(handle, NULL, row, filename, icon);
 }
 
 /*
