@@ -1,7 +1,8 @@
 CC	=	@CC@
 CCFLAGS	=	@CFLAGS@ -g -O2 -Wall -D__UNIX__ -DBUILD_DLL -DDW_RESOURCES
 LFLAGS	=	@LIBS@
-INCPATH	=	-I../../include -I.
+INSTALL =	@INSTALL@
+INCPATH	=	-I../include -I.
 DESTDIR	=	./lib/
 MLFLAGS	=	-L$(DESTDIR) 
 TARGET	=	dw
@@ -12,6 +13,7 @@ OBJECTS2=	compat.o
 TARGET2 =	dwcompat
 VER_MAJ	=	1
 VER_MIN	=	0
+PREFIX	=	@prefix@
 
 .SUFFIXES:	.c .h
 
@@ -70,6 +72,18 @@ SYSCONF_LINK_LIB2 = $(SYSCONF_LINK_LIB_SHARED2)
 
 all: $(SYSCONF_LINK_TARGET) $(SYSCONF_LINK_TARGET2)
 
+install:  $(SYSCONF_LINK_TARGET) $(SYSCONF_LINK_TARGET2)
+		cd $(DESTDIR); \
+		$(INSTALL) $(SYSCONF_LINK_TARGET)  $(PREFIX)/lib; \
+		$(INSTALL) $(SYSCONF_LINK_TARGET2) $(PREFIX)/lib; \
+		cd $(PREFIX)/lib; \
+		rm -f lib$(TARGET).so lib$(TARGET).so.$(VER_MAJ); \
+		ln -s $(SYSCONF_LINK_TARGET_SHARED)  lib$(TARGET).so; \
+		ln -s $(SYSCONF_LINK_TARGET_SHARED)  lib$(TARGET).so.$(VER_MAJ); \
+		rm -f lib$(TARGET2).so lib$(TARGET2).so.$(VER_MAJ); \
+		ln -s $(SYSCONF_LINK_TARGET_SHARED2) lib$(TARGET2).so; \
+		ln -s $(SYSCONF_LINK_TARGET_SHARED2) lib$(TARGET2).so.$(VER_MAJ)
+                
 clean:
 	rm -f *.so
 	rm -f *.o
