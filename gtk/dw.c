@@ -3849,7 +3849,7 @@ HTREEITEM dw_tree_insert_after(HWND handle, HTREEITEM item, char *title, unsigne
 
 		gtk_tree_store_insert_after(store, iter, (GtkTreeIter *)parent, (GtkTreeIter *)item);
 		gtk_tree_store_set (store, iter, 0, title, 1, pixbuf, 2, itemdata, 3, iter, -1);
-		if(pixbuf)
+		if(pixbuf && !(icon & (1 << 31)))
 			g_object_unref(pixbuf);
 		retval = (HTREEITEM)iter;
 	}
@@ -3985,7 +3985,7 @@ HTREEITEM dw_tree_insert(HWND handle, char *title, unsigned long icon, HTREEITEM
 
 		gtk_tree_store_append (store, iter, (GtkTreeIter *)parent);
 		gtk_tree_store_set (store, iter, 0, title, 1, pixbuf, 2, itemdata, 3, iter, -1);
-		if(pixbuf)
+		if(pixbuf && !(icon & (1 << 31)))
 			g_object_unref(pixbuf);
 		retval = (HTREEITEM)iter;
 	}
@@ -4106,9 +4106,9 @@ void dw_tree_set(HWND handle, HTREEITEM item, char *title, unsigned long icon)
 		(store = (GtkTreeStore *)gtk_object_get_data(GTK_OBJECT(tree), "_dw_tree_store")))
 	{
 		pixbuf = _find_pixbuf(icon);
-    
+
 		gtk_tree_store_set(store, (GtkTreeIter *)item, 0, title, 1, pixbuf, -1);
-		if(pixbuf)
+		if(pixbuf && !(icon & (1 << 31)))
 			g_object_unref(pixbuf);
 	}
 	DW_MUTEX_UNLOCK;
