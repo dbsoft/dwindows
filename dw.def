@@ -218,6 +218,8 @@ EXPORTS
   dw_tree_set_data                       @378
   dw_tree_insert_after                   @379
   dw_tree_get_data                       @380
+  dw_tree_get_title                      @381
+  dw_tree_get_parent                     @382
 
   dw_font_text_extents                   @385
 

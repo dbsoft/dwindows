@@ -94,25 +94,26 @@ typedef struct
 static int in_checkbox_handler = 0;
 
 /* List of signals and their equivilent Win32 message */
-#define SIGNALMAX 16
+#define SIGNALMAX 17
 
 SignalList SignalTranslate[SIGNALMAX] = {
-	{ WM_SIZE,        DW_SIGNAL_CONFIGURE },
-	{ WM_CHAR,        DW_SIGNAL_KEY_PRESS },
-	{ WM_LBUTTONDOWN, DW_SIGNAL_BUTTON_PRESS },
-	{ WM_LBUTTONUP,   DW_SIGNAL_BUTTON_PRESS },
-	{ WM_MOUSEMOVE,   DW_SIGNAL_MOTION_NOTIFY },
-	{ WM_CLOSE,       DW_SIGNAL_DELETE },
-	{ WM_PAINT,       DW_SIGNAL_EXPOSE },
-	{ WM_COMMAND,     DW_SIGNAL_CLICKED },
-	{ NM_DBLCLK,      DW_SIGNAL_ITEM_ENTER },
-	{ NM_RCLICK,      DW_SIGNAL_ITEM_CONTEXT },
-	{ LBN_SELCHANGE,  DW_SIGNAL_LIST_SELECT },
-	{ TVN_SELCHANGED, DW_SIGNAL_ITEM_SELECT },
-	{ WM_SETFOCUS,    DW_SIGNAL_SET_FOCUS },
-	{ WM_VSCROLL,     DW_SIGNAL_VALUE_CHANGED },
-	{ TCN_SELCHANGE,  DW_SIGNAL_SWITCH_PAGE },
-	{ LVN_COLUMNCLICK,DW_SIGNAL_COLUMN_CLICK }
+	{ WM_SIZE,         DW_SIGNAL_CONFIGURE },
+	{ WM_CHAR,         DW_SIGNAL_KEY_PRESS },
+	{ WM_LBUTTONDOWN,  DW_SIGNAL_BUTTON_PRESS },
+	{ WM_LBUTTONUP,    DW_SIGNAL_BUTTON_PRESS },
+	{ WM_MOUSEMOVE,    DW_SIGNAL_MOTION_NOTIFY },
+	{ WM_CLOSE,        DW_SIGNAL_DELETE },
+	{ WM_PAINT,        DW_SIGNAL_EXPOSE },
+	{ WM_COMMAND,      DW_SIGNAL_CLICKED },
+	{ NM_DBLCLK,       DW_SIGNAL_ITEM_ENTER },
+	{ NM_RCLICK,       DW_SIGNAL_ITEM_CONTEXT },
+	{ LBN_SELCHANGE,   DW_SIGNAL_LIST_SELECT },
+	{ TVN_SELCHANGED,  DW_SIGNAL_ITEM_SELECT },
+	{ WM_SETFOCUS,     DW_SIGNAL_SET_FOCUS },
+	{ WM_VSCROLL,      DW_SIGNAL_VALUE_CHANGED },
+	{ TCN_SELCHANGE,   DW_SIGNAL_SWITCH_PAGE },
+	{ LVN_COLUMNCLICK, DW_SIGNAL_COLUMN_CLICK },
+	{ TVN_ITEMEXPANDED,DW_SIGNAL_TREE_EXPAND }
 };
 
 #ifdef BUILD_DLL
@@ -1587,7 +1588,9 @@ BOOL CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 					break;
 				case WM_NOTIFY:
 					{
-						if(tmp->message == TVN_SELCHANGED || tmp->message == NM_RCLICK)
+						if(tmp->message == TVN_SELCHANGED ||
+						   tmp->message == NM_RCLICK ||
+						   tmp->message == TVN_ITEMEXPANDED)
 						{
 							NMTREEVIEW FAR *tem=(NMTREEVIEW FAR *)mp2;
 							char tmpbuf[100];
@@ -1600,7 +1603,7 @@ BOOL CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 								{
 									if(tmp->window == tem->hdr.hwndFrom && !dw_window_get_data(tmp->window, "_dw_select_item"))
 									{
-										int (*treeselectfunc)(HWND, HWND, char *, void *, void *) = tmp->signalfunction;
+										int (*treeselectfunc)(HWND, HTREEITEM, char *, void *, void *) = tmp->signalfunction;
 										TVITEM tvi;
 										void **ptrs;
 
@@ -1611,8 +1614,18 @@ BOOL CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 
 										ptrs = (void **)tvi.lParam;
 										if(ptrs)
-											result = treeselectfunc(tmp->window, (HWND)tem->itemNew.hItem, (char *)ptrs[0], tmp->data, (void *)ptrs[1]);
+											result = treeselectfunc(tmp->window, tem->itemNew.hItem, (char *)ptrs[0], tmp->data, (void *)ptrs[1]);
 
+										tmp = NULL;
+									}
+								}
+								else if(tem->hdr.code == TVN_ITEMEXPANDED && tmp->message == TVN_ITEMEXPANDED)
+								{
+									if(tmp->window == tem->hdr.hwndFrom && tem->action == TVE_EXPAND)
+									{
+										int (*treeexpandfunc)(HWND, HTREEITEM, void *) = tmp->signalfunction;
+
+										result = treeexpandfunc(tmp->window, tem->itemNew.hItem, tmp->data);
 										tmp = NULL;
 									}
 								}
@@ -6180,6 +6193,35 @@ void * API dw_tree_get_data(HWND handle, HTREEITEM item)
 		return ptrs[1];
 	}
 	return NULL;
+}
+
+/*
+ * Gets the text an item in a tree window (widget).
+ * Parameters:
+ *          handle: Handle to the tree containing the item.
+ *          item: Handle of the item to be modified.
+ */
+char * API dw_tree_get_title(HWND handle, HTREEITEM item)
+{
+	TVITEM tvi;
+
+	tvi.mask = TVIF_HANDLE;
+	tvi.hItem = item;
+
+	if(TreeView_GetItem(handle, &tvi))
+		return tvi.pszText;
+    return NULL;
+}
+
+/*
+ * Gets the text an item in a tree window (widget).
+ * Parameters:
+ *          handle: Handle to the tree containing the item.
+ *          item: Handle of the item to be modified.
+ */
+HTREEITEM API dw_tree_get_parent(HWND handle, HTREEITEM item)
+{
+	return TreeView_GetParent(handle, item);
 }
 
 /*
