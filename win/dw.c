@@ -10,6 +10,7 @@
 #include <windows.h>
 #include <windowsx.h>
 #include <commctrl.h>
+#include <shlwapi.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
@@ -25,12 +26,12 @@ HWND hwndBubble = (HWND)NULL, hwndBubbleLast, DW_HWND_OBJECT = (HWND)NULL;
 
 HINSTANCE DWInstance = NULL;
 
-DWORD dwVersion = 0;
+DWORD dwVersion = 0, dwComctlVer = 0;
 DWTID _dwtid = -1;
 
-/* I should probably check the actual file version, but this will do for now */
-#define IS_WIN98PLUS (LOBYTE(LOWORD(dwVersion)) > 4 || \
-	(LOBYTE(LOWORD(dwVersion)) == 4 && HIBYTE(LOWORD(dwVersion)) > 0))
+#define PACKVERSION(major,minor) MAKELONG(minor,major)
+
+#define IS_IE5PLUS (dwComctlVer >= PACKVERSION(5,80))
 
 char monthlist[][4] = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug",
                         "Sep", "Oct", "Nov", "Dec" };
@@ -239,6 +240,46 @@ int IsWinNT(void)
 			isnt = 0;
 	}
 	return isnt;
+}
+
+DWORD GetDllVersion(LPCTSTR lpszDllName)
+{
+
+	HINSTANCE hinstDll;
+	DWORD dwVersion = 0;
+
+	hinstDll = LoadLibrary(lpszDllName);
+
+	if(hinstDll)
+	{
+		DLLGETVERSIONPROC pDllGetVersion;
+
+		pDllGetVersion = (DLLGETVERSIONPROC) GetProcAddress(hinstDll, "DllGetVersion");
+
+		/* Because some DLLs might not implement this function, you
+		 * must test for it explicitly. Depending on the particular
+		 * DLL, the lack of a DllGetVersion function can be a useful
+		 * indicator of the version.
+		 */
+		if(pDllGetVersion)
+		{
+			DLLVERSIONINFO dvi;
+			HRESULT hr;
+
+			ZeroMemory(&dvi, sizeof(dvi));
+			dvi.cbSize = sizeof(dvi);
+
+            hr = (*pDllGetVersion)(&dvi);
+
+			if(SUCCEEDED(hr))
+			{
+				dwVersion = PACKVERSION(dvi.dwMajorVersion, dvi.dwMinorVersion);
+			}
+		}
+
+		FreeLibrary(hinstDll);
+	}
+    return dwVersion;
 }
 
 /* This function adds a signal handler callback into the linked list.
@@ -1745,7 +1786,7 @@ BOOL CALLBACK _spinnerwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 
 					position = atol(tempbuf);
 
-					if(IS_WIN98PLUS)
+					if(IS_IE5PLUS)
 						SendMessage(hWnd, UDM_SETPOS32, 0, (LPARAM)position);
 					else
 						SendMessage(hWnd, UDM_SETPOS, 0, (LPARAM)MAKELONG((short)position, 0));
@@ -1876,7 +1917,7 @@ BOOL CALLBACK _colorwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 
 					position = atol(tmpbuf);
 
-					if(IS_WIN98PLUS)
+					if(IS_IE5PLUS)
 						val = (long)SendMessage(cinfo->buddy, UDM_GETPOS32, 0, 0);
 					else
 						val = (long)SendMessage(cinfo->buddy, UDM_GETPOS, 0, 0);
@@ -2735,6 +2776,7 @@ int dw_init(int newthread, int argc, char *argv[])
 #endif
 	/* We need the version to check capability like up-down controls */
 	dwVersion = GetVersion();
+	dwComctlVer = GetDllVersion(TEXT("comctl32.dll"));
 
 	for(z=0;z<THREAD_LIMIT;z++)
 	{
@@ -2744,17 +2786,6 @@ int dw_init(int newthread, int argc, char *argv[])
 		_hBrush[z] = CreateSolidBrush(_foreground[z]);
 	}
 
-#if 0
-	{
-		DWORD dwResult = GetSysColor(COLOR_3DFACE);
- 
-		dw_messagebox("DW",
-					  "Window color: {%x, %x, %x}",
-					  GetRValue(dwResult),
-					  GetGValue(dwResult),
-					  GetBValue(dwResult));
-	}
-#endif
 	return 0;
 }
 
@@ -4119,7 +4150,15 @@ void dw_window_set_bitmap(HWND handle, ULONG id)
  */
 void dw_window_set_text(HWND handle, char *text)
 {
+	char tmpbuf[100];
+
+	GetClassName(handle, tmpbuf, 99);
+
 	SetWindowText(handle, text);
+
+	/* Combobox */
+	if(strnicmp(tmpbuf, COMBOBOXCLASSNAME, strlen(COMBOBOXCLASSNAME)+1)==0)
+		SendMessage(handle, CB_SETEDITSEL, 0, MAKELPARAM(-1, 0));
 }
 
 /*
@@ -5089,7 +5128,7 @@ void dw_spinbutton_set_pos(HWND handle, long position)
 	if(cinfo && cinfo->buddy)
 		SetWindowText(cinfo->buddy, tmpbuf);
 
-	if(IS_WIN98PLUS)
+	if(IS_IE5PLUS)
 		SendMessage(handle, UDM_SETPOS32, 0, (LPARAM)position);
 	else
 		SendMessage(handle, UDM_SETPOS, 0, (LPARAM)MAKELONG((short)position, 0));
@@ -5104,7 +5143,7 @@ void dw_spinbutton_set_pos(HWND handle, long position)
  */
 void dw_spinbutton_set_limits(HWND handle, long upper, long lower)
 {
-	if(IS_WIN98PLUS)
+	if(IS_IE5PLUS)
 		SendMessage(handle, UDM_SETRANGE32, (WPARAM)lower,(LPARAM)upper);
 	else
 		SendMessage(handle, UDM_SETRANGE32, (WPARAM)((short)lower),
@@ -5129,7 +5168,7 @@ void dw_entryfield_set_limit(HWND handle, ULONG limit)
  */
 long dw_spinbutton_query(HWND handle)
 {
-	if(IS_WIN98PLUS)
+	if(IS_IE5PLUS)
 		return (long)SendMessage(handle, UDM_GETPOS32, 0, 0);
 	else
 		return (long)SendMessage(handle, UDM_GETPOS, 0, 0);
@@ -5357,7 +5396,7 @@ void dw_tree_collapse(HWND handle, HWND item)
  */
 void dw_tree_delete(HWND handle, HWND item)
 {
-	if((HTREEITEM)item == TVI_ROOT)
+	if((HTREEITEM)item == TVI_ROOT || !item)
 		return;
 
 	TreeView_DeleteItem(handle, (HTREEITEM)item);

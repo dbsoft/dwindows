@@ -60,14 +60,14 @@ GdkColor _background[DW_THREAD_LIMIT];
 
 GtkWidget *last_window = NULL;
 
-int _dw_file_active = 0, _dw_ignore_click = 0;
+int _dw_file_active = 0, _dw_ignore_click = 0, _dw_unselecting = 0;
 pthread_t _dw_thread = (pthread_t)-1;
-int _dw_mutex_locked = FALSE;
+int _dw_mutex_locked[DW_THREAD_LIMIT];
 /* Use default border size for the default enlightenment theme */
 int _dw_border_width = 12, _dw_border_height = 28;
 
-#define  DW_MUTEX_LOCK { if(pthread_self() != _dw_thread && _dw_mutex_locked == FALSE) { gdk_threads_enter(); _dw_mutex_locked = TRUE; _locked_by_me = TRUE;  } }
-#define  DW_MUTEX_UNLOCK { if(pthread_self() != _dw_thread && _locked_by_me == TRUE) { gdk_threads_leave(); _dw_mutex_locked = FALSE; _locked_by_me = FALSE; } }
+#define  DW_MUTEX_LOCK { int index = _find_thread_index(dw_thread_id()); if(pthread_self() != _dw_thread && _dw_mutex_locked[index] == FALSE) { gdk_threads_enter(); _dw_mutex_locked[index] = TRUE; _locked_by_me = TRUE;  } }
+#define  DW_MUTEX_UNLOCK { if(pthread_self() != _dw_thread && _locked_by_me == TRUE) { gdk_threads_leave(); _dw_mutex_locked[_find_thread_index(dw_thread_id())] = FALSE; _locked_by_me = FALSE; } }
 
 #define DEFAULT_SIZE_WIDTH 12
 #define DEFAULT_SIZE_HEIGHT 6
@@ -464,8 +464,14 @@ void _select_row(GtkWidget *widget, gint row, gint column, GdkEventButton *event
 
 void _unselect_row(GtkWidget *widget, gint row, gint column, GdkEventButton *event, gpointer data)
 {
-	GList *tmp = (GList *)gtk_object_get_data(GTK_OBJECT(widget), "selectlist");
-	char *rowdata = gtk_clist_get_row_data(GTK_CLIST(widget), row);
+	GList *tmp;
+	char *rowdata;
+
+	if(_dw_unselecting)
+		return;
+
+	tmp = (GList *)gtk_object_get_data(GTK_OBJECT(widget), "selectlist");
+	rowdata = gtk_clist_get_row_data(GTK_CLIST(widget), row);
 
 	if(rowdata)
 	{
@@ -3358,7 +3364,10 @@ void _dw_unselect(GtkWidget *clist)
 		g_list_free(list);
 
 	gtk_object_set_data(GTK_OBJECT(clist), "selectlist", NULL);
+
+	_dw_unselecting = 1;
 	gtk_clist_unselect_all(GTK_CLIST(clist));
+	_dw_unselecting = 0;
 }
 
 /*
@@ -3712,7 +3721,7 @@ char *dw_container_query_start(HWND handle, unsigned long flags)
 		list = (GList *)gtk_object_get_data(GTK_OBJECT(clist), "selectlist");
 		gtk_object_set_data(GTK_OBJECT(clist), "selectlist", NULL);
 		gtk_object_set_data(GTK_OBJECT(clist), "querylist", (gpointer)list);
-		gtk_clist_unselect_all(GTK_CLIST(clist));
+		_dw_unselect(clist);
 
 		if(list)
 		{
@@ -4754,7 +4763,7 @@ void dw_window_set_style(HWND handle, unsigned long style, unsigned long mask)
 	{
 		if(style & DW_CCS_EXTENDSEL)
 		{
-			gtk_clist_set_selection_mode(GTK_CLIST(handle2), GTK_SELECTION_MULTIPLE);
+			gtk_clist_set_selection_mode(GTK_CLIST(handle2), GTK_SELECTION_EXTENDED);
 			gtk_object_set_data(GTK_OBJECT(handle2), "multi", (gpointer)1);
 		}
 		if(style & DW_CCS_SINGLESEL)
