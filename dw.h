@@ -168,7 +168,7 @@ extern HMQ dwhmq;
 #define DW_DT_CENTER             SS_CENTER
 #define DW_DT_RIGHT              SS_RIGHT
 #define DW_DT_TOP                0
-#define DW_DT_VCENTER            0
+#define DW_DT_VCENTER            SS_NOPREFIX
 #define DW_DT_BOTTOM             0
 #define DW_DT_HALFTONE           0
 #define DW_DT_MNEMONIC           0
@@ -267,6 +267,7 @@ typedef struct _color {
 	int back;
 	HWND combo, buddy;
 	int user;
+	int vcenter;
 	HWND clickdefault;
 	HBRUSH hbrush;
 	char fontname[128];

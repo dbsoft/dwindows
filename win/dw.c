@@ -1102,13 +1102,13 @@ int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *usedy,
 
 				GetClassName(handle, tmpbuf, 99);
 
-				if(strnicmp(tmpbuf, COMBOBOXCLASSNAME, strlen(COMBOBOXCLASSNAME))==0)
+				if(strnicmp(tmpbuf, COMBOBOXCLASSNAME, strlen(COMBOBOXCLASSNAME)+1)==0)
 				{
 					/* Handle special case Combobox */
 					MoveWindow(handle, currentx + pad, currenty + pad,
 							   width + vectorx, (height + vectory) + 400, TRUE);
 				}
-				else if(strnicmp(tmpbuf, UPDOWN_CLASS, strlen(UPDOWN_CLASS))==0)
+				else if(strnicmp(tmpbuf, UPDOWN_CLASS, strlen(UPDOWN_CLASS)+1)==0)
 				{
 					/* Handle special case Spinbutton */
 					ColorInfo *cinfo = (ColorInfo *)GetWindowLong(handle, GWL_USERDATA);
@@ -1120,6 +1120,33 @@ int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *usedy,
 					{
 						MoveWindow(cinfo->buddy, currentx + pad, currenty + pad,
 								   (width + vectorx) - 20, height + vectory, TRUE);
+					}
+				}
+				else if(strnicmp(tmpbuf, STATICCLASSNAME, strlen(STATICCLASSNAME)+1)==0)
+				{
+					/* Handle special case Vertically Center static text */
+					ColorInfo *cinfo = (ColorInfo *)GetWindowLong(handle, GWL_USERDATA);
+
+					if(cinfo && cinfo->vcenter)
+					{
+						/* We are centered so calculate a new position */
+						char tmpbuf[1024];
+						int textheight, diff, total = height + vectory;
+
+						GetWindowText(handle, tmpbuf, 1023);
+
+						/* Figure out how big the text is */
+						dw_font_text_extents(handle, 0, tmpbuf, 0, &textheight);
+
+						diff = (total - textheight) / 2;
+
+						MoveWindow(handle, currentx + pad, currenty + pad + diff,
+								   width + vectorx, height + vectory - diff, TRUE);
+					}
+					else
+					{
+						MoveWindow(handle, currentx + pad, currenty + pad,
+								   width + vectorx, height + vectory, TRUE);
 					}
 				}
 				else
@@ -3088,7 +3115,7 @@ HFONT _acquire_font(HWND handle, char *fontname)
 	int z, size = 9;
 	LOGFONT lf;
 
-	if(fontname == DefaultFont)
+	if(fontname == DefaultFont || !fontname[0])
 		hfont = GetStockObject(DEFAULT_GUI_FONT);
 	else
 	{
@@ -4398,10 +4425,31 @@ void dw_window_get_pos_size(HWND handle, ULONG *x, ULONG *y, ULONG *width, ULONG
 void dw_window_set_style(HWND handle, ULONG style, ULONG mask)
 {
 	ULONG tmp, currentstyle = GetWindowLong(handle, GWL_STYLE);
+	ColorInfo *cinfo = (ColorInfo *)GetWindowLong(handle, GWL_USERDATA);
 
 	tmp = currentstyle | mask;
 	tmp ^= mask;
 	tmp |= style;
+
+
+	/* We are using SS_NOPREFIX as a VCENTER flag */
+	if(tmp & SS_NOPREFIX)
+	{
+
+		if(cinfo)
+			cinfo->vcenter = 1;
+		else
+		{
+			cinfo = calloc(1, sizeof(ColorInfo));
+			cinfo->fore = cinfo->back = -1;
+			cinfo->vcenter = 1;
+
+			cinfo->pOldProc = SubclassWindow(handle, _colorwndproc);
+			SetWindowLong(handle, GWL_USERDATA, (ULONG)cinfo);
+		}
+	}
+	else if(cinfo)
+		cinfo->vcenter = 0;
 
 	SetWindowLong(handle, GWL_STYLE, tmp);
 }
@@ -6197,7 +6245,7 @@ void dw_font_text_extents(HWND handle, HPIXMAP pixmap, char *text, int *width, i
 {
 	HDC hdc;
 	int mustdelete = 0;
-	HFONT hFont, oldFont;
+	HFONT hFont = NULL, oldFont;
 	SIZE sz;
 
 	if(handle)
