@@ -240,3 +240,6 @@ EXPORTS
   dw_scrollbar_set_pos                   @432
   dw_scrollbar_set_range                 @433
 
+  dw_taskbar_insert                      @440
+  dw_taskbar_delete                      @441
+  
