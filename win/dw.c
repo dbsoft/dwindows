@@ -845,35 +845,35 @@ int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *usedy,
 				if(strnicmp(tmpbuf, COMBOBOXCLASSNAME, strlen(COMBOBOXCLASSNAME))==0)
 				{
 					/* Handle special case Combobox */
-					SetWindowPos(handle, HWND_TOP, currentx + pad, currenty + pad,
-									width + vectorx, (height + vectory) + 400, 0);
+					MoveWindow(handle, currentx + pad, currenty + pad,
+							   width + vectorx, (height + vectory) + 400, TRUE);
 				}
 				else if(strnicmp(tmpbuf, UPDOWN_CLASS, strlen(UPDOWN_CLASS))==0)
 				{
 					/* Handle special case Spinbutton */
 					ColorInfo *cinfo = (ColorInfo *)GetWindowLong(handle, GWL_USERDATA);
 
-					SetWindowPos(handle, HWND_TOP, currentx + pad + ((width + vectorx) - 20), currenty + pad,
-								 20, height + vectory, 0);
+					MoveWindow(handle, currentx + pad + ((width + vectorx) - 20), currenty + pad,
+							   20, height + vectory, TRUE);
 
 					if(cinfo)
 					{
-						SetWindowPos(cinfo->buddy, HWND_TOP, currentx + pad, currenty + pad,
-									 (width + vectorx) - 20, height + vectory, 0);
+						MoveWindow(cinfo->buddy, currentx + pad, currenty + pad,
+								   (width + vectorx) - 20, height + vectory, TRUE);
 					}
 				}
 				else
 				{
 					/* Everything else */
-					SetWindowPos(handle, HWND_TOP, currentx + pad, currenty + pad,
-									width + vectorx, height + vectory, 0);
+					MoveWindow(handle, currentx + pad, currenty + pad,
+							   width + vectorx, height + vectory, TRUE);
 					if(thisbox->items[z].type == TYPEBOX)
 					{
 						Box *boxinfo = (Box *)GetWindowLong(handle, GWL_USERDATA);
 
 						if(boxinfo && boxinfo->grouphwnd)
-							SetWindowPos(boxinfo->grouphwnd, HWND_TOP, 0, 0,
-										 width + vectorx, height + vectory, 0);
+							MoveWindow(boxinfo->grouphwnd, 0, 0,
+									   width + vectorx, height + vectory, TRUE);
 
 					}
 				}
@@ -889,10 +889,8 @@ int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *usedy,
 					{
 						GetClientRect(handle,&rect);
 						TabCtrl_AdjustRect(handle,FALSE,&rect);
-						MoveWindow(array[pageid]->hwnd,rect.left,rect.top,
-								   rect.right - rect.left,rect.bottom-rect.top,
-								   TRUE);
-						ShowWindow(array[pageid]->hwnd,SW_SHOWNORMAL);
+						MoveWindow(array[pageid]->hwnd, rect.left, rect.top,
+								   rect.right - rect.left, rect.bottom-rect.top, TRUE);
 					}
 				}
 
@@ -914,7 +912,8 @@ int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *usedy,
 
 void _do_resize(Box *thisbox, int x, int y)
 {
-	if(x != 0 && y != 0) {
+	if(x != 0 && y != 0)
+	{
 		if(thisbox)
 		{
 			int usedx = 0, usedy = 0, depth = 0, usedpadx = 0, usedpady = 0;
@@ -933,6 +932,7 @@ void _do_resize(Box *thisbox, int x, int y)
 			usedpadx = usedpady = usedx = usedy = depth = 0;
 
 			_resize_box(thisbox, &depth, x, y, &usedx, &usedy, 2, &usedpadx, &usedpady);
+
 #ifdef DWDEBUG
 			fprintf(f, "WM_SIZE Resize Box Pass 2\r\nx = %d, y = %d, usedx = %d, usedy = %d, usedpadx = %d, usedpady = %d\r\n",
 					x, y, usedx, usedy, usedpadx, usedpady);
@@ -1164,11 +1164,17 @@ BOOL CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 			{
 				Box *mybox = (Box *)GetWindowLong(hWnd, GWL_USERDATA);
 
-				lastx = LOWORD(mp2);
-				lasty = HIWORD(mp2);
-				lasthwnd = hWnd;
+				if(mybox && mybox->count)
+				{
+					lastx = LOWORD(mp2);
+					lasty = HIWORD(mp2);
+					lasthwnd = hWnd;
 
-				_do_resize(mybox,LOWORD(mp2),HIWORD(mp2));
+					ShowWindow(mybox->items[0].hwnd, SW_HIDE);
+					_do_resize(mybox,LOWORD(mp2),HIWORD(mp2));
+					ShowWindow(mybox->items[0].hwnd, SW_SHOW);
+					return 0;
+				}
 			}
 		}
 		break;
@@ -1415,7 +1421,7 @@ BOOL CALLBACK _colorwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 												 _green[thiscinfo->back],
 												 _blue[thiscinfo->back]));
 						SelectObject((HDC)mp1, _colors[thiscinfo->back]);
-						return (LRESULT)_colors[thiscinfo->back];
+						return (LONG)_colors[thiscinfo->back];
 					}
 					if((thiscinfo->fore & DW_RGB_COLOR) == DW_RGB_COLOR && (thiscinfo->back & DW_RGB_COLOR) == DW_RGB_COLOR)
 					{
@@ -1429,7 +1435,8 @@ BOOL CALLBACK _colorwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 						thiscinfo->hbrush = CreateSolidBrush(RGB(DW_RED_VALUE(thiscinfo->back),
 																 DW_GREEN_VALUE(thiscinfo->back),
 																 DW_BLUE_VALUE(thiscinfo->back)));
-						return (LRESULT)thiscinfo->hbrush;
+						SelectObject((HDC)mp1, thiscinfo->hbrush);
+						return (LONG)thiscinfo->hbrush;
 					}
 				}
 
@@ -1933,11 +1940,14 @@ BOOL CALLBACK _BtProc(HWND hwnd, ULONG msg, WPARAM mp1, LPARAM mp2)
 		GetCursorPos(&point);
 		GetWindowRect(hwnd, &rect);
 
-		if(PtInRect(&rect, point)){
-			if(hwnd != GetCapture()){
+		if(PtInRect(&rect, point))
+		{
+			if(hwnd != GetCapture())
+			{
 				SetCapture(hwnd);
 			}
-			if(!bMouseOver){
+			if(!bMouseOver)
+			{
 				bMouseOver = 1;
 				if(!*bubble->bubbletext)
 					break;
@@ -2007,7 +2017,8 @@ BOOL CALLBACK _BtProc(HWND hwnd, ULONG msg, WPARAM mp1, LPARAM mp2)
 			 */
 			ReleaseCapture();
 
-			if(bMouseOver){
+			if(bMouseOver)
+			{
 				bMouseOver = 0;
 				DestroyWindow(hwndBubble);
 				hwndBubble = 0;
@@ -2020,7 +2031,8 @@ BOOL CALLBACK _BtProc(HWND hwnd, ULONG msg, WPARAM mp1, LPARAM mp2)
 		 * Either because we intentionally lost it or another window
 		 * stole it
 		 */
-		if(bMouseOver){
+		if(bMouseOver)
+		{
 			bMouseOver = 0;
 			DestroyWindow(hwndBubble);
 			hwndBubble = 0;
@@ -2034,6 +2046,9 @@ BOOL CALLBACK _BtProc(HWND hwnd, ULONG msg, WPARAM mp1, LPARAM mp2)
 	return CallWindowProc(bubble->pOldProc, hwnd, msg, mp1, mp2);
 }
 
+/* This function recalculates a notebook page for example
+ * during switching of notebook pages.
+ */
 void _resize_notebook_page(HWND handle, int pageid)
 {
 	RECT rect;
@@ -2045,13 +2060,16 @@ void _resize_notebook_page(HWND handle, int pageid)
 
 		GetClientRect(handle,&rect);
 		TabCtrl_AdjustRect(handle,FALSE,&rect);
-		MoveWindow(array[pageid]->hwnd,rect.left,rect.top,
-				   rect.right - rect.left,rect.bottom-rect.top,
-				   TRUE);
-		if(box)
+		MoveWindow(array[pageid]->hwnd, rect.left, rect.top,
+				   rect.right - rect.left, rect.bottom-rect.top, TRUE);
+		if(box && box->count)
+		{
+			ShowWindow(box->items[0].hwnd, SW_HIDE);
 			_do_resize(box, rect.right - rect.left, rect.bottom - rect.top);
+			ShowWindow(box->items[0].hwnd, SW_SHOW);
+		}
 
-		ShowWindow(array[pageid]->hwnd,SW_SHOWNORMAL);
+		ShowWindow(array[pageid]->hwnd, SW_SHOWNORMAL);
 	}
 }
 
@@ -2074,8 +2092,9 @@ int dw_init(int newthread, int argc, char *argv[])
 
 	memset(lookup, 0, sizeof(HICON) * ICON_INDEX_LIMIT);
 
+	/* Register the generic Dynamic Windows class */
 	memset(&wc, 0, sizeof(WNDCLASS));
-	wc.style = CS_DBLCLKS /*| CS_HREDRAW | CS_VREDRAW*/;
+	wc.style = CS_DBLCLKS;
 	wc.lpfnWndProc = (WNDPROC)_wndproc;
 	wc.cbClsExtra = 0;
 	wc.cbWndExtra = 32;
@@ -2085,6 +2104,7 @@ int dw_init(int newthread, int argc, char *argv[])
 
 	RegisterClass(&wc);
 
+	/* Register the splitbar control */
 	memset(&wc, 0, sizeof(WNDCLASS));
 	wc.style = CS_DBLCLKS | CS_HREDRAW | CS_VREDRAW;
 	wc.lpfnWndProc = (WNDPROC)_splitwndproc;
@@ -2096,8 +2116,9 @@ int dw_init(int newthread, int argc, char *argv[])
 
 	RegisterClass(&wc);
 
+	/* Register a frame control like on OS/2 */
 	memset(&wc, 0, sizeof(WNDCLASS));
-	wc.style = CS_DBLCLKS /*| CS_HREDRAW | CS_VREDRAW*/;
+	wc.style = CS_DBLCLKS;
 	wc.lpfnWndProc = (WNDPROC)_framewndproc;
 	wc.cbClsExtra = 0;
 	wc.cbWndExtra = 32;
@@ -2106,11 +2127,16 @@ int dw_init(int newthread, int argc, char *argv[])
 	wc.lpszMenuName = NULL;
 	wc.lpszClassName = FRAMECLASSNAME;
 
+	RegisterClass(&wc);
+
+	/* Create a set of brushes using the default OS/2 and DOS colors */
 	for(z=0;z<18;z++)
 		_colors[z] = CreateSolidBrush(RGB(_red[z],_green[z],_blue[z]));
 
-	RegisterClass(&wc);
-
+	/* Register an Object Windows class like OS/2 and Win2k+
+	 * so similar functionality can be used on earlier releases
+	 * of Windows.
+	 */
 	memset(&wc, 0, sizeof(WNDCLASS));
 	wc.style = 0;
 	wc.lpfnWndProc = (WNDPROC)_wndproc;
@@ -2301,7 +2327,7 @@ int dw_window_minimize(HWND handle)
  */
 int dw_window_show(HWND handle)
 {
-    int rc = ShowWindow(handle, TRUE);
+    int rc = ShowWindow(handle, SW_SHOW);
 	SetFocus(handle);
 	_initial_focus(handle);
 	return rc;
@@ -2314,7 +2340,7 @@ int dw_window_show(HWND handle)
  */
 int dw_window_hide(HWND handle)
 {
-	return ShowWindow(handle, FALSE);
+	return ShowWindow(handle, SW_HIDE);
 }
 
 /*
@@ -3761,10 +3787,20 @@ void dw_notebook_page_set(HWND handle, unsigned int pageidx)
 	if(!array)
 		return;
 
-	pageid= _findnotebookid(array, pageidx);
+	pageid = _findnotebookid(array, pageidx);
 
 	if(pageid > -1 && pageid < 256)
+	{
+		int oldpage = TabCtrl_GetCurSel(handle);
+
+		if(oldpage > -1 && array && array[oldpage])
+			SetParent(array[oldpage]->hwnd, DW_HWND_OBJECT);
+
 		TabCtrl_SetCurSel(handle, pageid);
+
+		SetParent(array[pageid]->hwnd, handle);
+		_resize_notebook_page(handle, pageid);
+	}
 }
 
 /*
@@ -4677,6 +4713,7 @@ char *dw_container_query_next(HWND handle, unsigned long flags)
  */
 HWND dw_render_new(unsigned long id)
 {
+	Box *newbox = malloc(sizeof(Box));
 	HWND tmp = CreateWindow(ObjectClassName,
 							"",
 							WS_CHILD | WS_CLIPCHILDREN,
@@ -4685,7 +4722,14 @@ HWND dw_render_new(unsigned long id)
 							NULL,
 							NULL,
 							NULL);
-	SubclassWindow(tmp, _rendwndproc);
+	newbox->pad = 0;
+	newbox->type = 0;
+	newbox->count = 0;
+	newbox->grouphwnd = (HWND)NULL;
+	newbox->cinfo.pOldProc = SubclassWindow(tmp, _rendwndproc);
+	newbox->cinfo.fore = newbox->cinfo.back = -1;
+
+	SetWindowLong(tmp, GWL_USERDATA, (ULONG)newbox);
 	return tmp;
 }
 
@@ -4843,19 +4887,12 @@ void dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
 		threadid = 0;
 
 	if(handle)
-	{
 		hdc = GetDC(handle);
-        hFont = (HFONT)SendMessage(handle, WM_GETFONT, 0, 0);
-	}
 	else if(pixmap)
-	{
 		hdc = pixmap->hdc;
-        hFont = (HFONT)SendMessage(pixmap->handle, WM_GETFONT, 0, 0);
-	}
 	else
 		return;
 
-	if(!hFont)
 	{
 		ColorInfo *cinfo;
 

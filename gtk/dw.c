@@ -695,7 +695,8 @@ int dw_window_destroy(HWND handle)
 		return 0;
 
 	DW_MUTEX_LOCK;
-	gtk_widget_destroy(handle);
+	if(GTK_IS_WIDGET(handle))
+		gtk_widget_destroy(handle);
 	DW_MUTEX_UNLOCK;
 	return 0;
 }
