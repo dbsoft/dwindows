@@ -1196,8 +1196,8 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 ac_config_headers="$ac_config_headers config.h"
 
 
-DW_MAJOR_VERSION=0
-DW_MINOR_VERSION=5
+DW_MAJOR_VERSION=1
+DW_MINOR_VERSION=0
 DW_SUB_VERSION=0
 
 
@@ -3615,7 +3615,11 @@ else
 echo "${ECHO_T}no" >&6
 fi
 
-if test x"$PKG_CFG" = x; then
+if test x"$PKG_CFG" != x; then
+  GTK_LIBS=`$PKG_CFG --silence-errors --libs gtk+-2.0 gthread-2.0`
+fi
+
+if test x"$GTK_LIBS" = x; then
 
 # Check whether --with-glib-prefix or --without-glib-prefix was given.
 if test "${with_glib_prefix+set}" = set; then
