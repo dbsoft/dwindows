@@ -7592,7 +7592,7 @@ static gint _gtk_file_cancel(GtkWidget *widget, DWDialog *dwwait)
  *       title: Title bar text for dialog.
  *       defpath: The default path of the open dialog.
  *       ext: Default file extention.
- *       flags: DW_FILE_OPEN or DW_FILE_SAVE.
+ *       flags: DW_FILE_OPEN or DW_FILE_SAVE or DW_DIRECTORY_OPEN
  * Returns:
  *       NULL on error. A malloced buffer containing
  *       the file path on success.

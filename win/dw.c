@@ -13,6 +13,7 @@
 #include <windowsx.h>
 #include <commctrl.h>
 #include <shlwapi.h>
+#include <shlobj.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
@@ -4226,6 +4227,7 @@ HWND API dw_combobox_new(char *text, ULONG id)
 
 	SetWindowLongPtr(tmp, GWLP_USERDATA, (LONG_PTR)cinfo);
 	dw_window_set_font(tmp, DefaultFont);
+	SetWindowText(tmp, text);
 	return tmp;
 }
 
@@ -7699,7 +7701,7 @@ void API dw_environment_query(DWEnv *env)
  *       title: Title bar text for dialog.
  *       defpath: The default path of the open dialog.
  *       ext: Default file extention.
- *       flags: DW_FILE_OPEN or DW_FILE_SAVE.
+ *       flags: DW_FILE_OPEN or DW_FILE_SAVE or DW_DIRECTORY_OPEN.
  * Returns:
  *       NULL on error. A malloced buffer containing
  *       the file path on success.
@@ -7711,32 +7713,66 @@ char * API dw_file_browse(char *title, char *defpath, char *ext, int flags)
 	char filenamebuf[1001] = "";
 	int rc;
 
-	if(ext)
+	BROWSEINFO bi;
+	TCHAR szDir[MAX_PATH];
+	LPITEMIDLIST pidl;
+	LPMALLOC pMalloc;
+
+	if(flags==DW_DIRECTORY_OPEN)
 	{
-		strcpy(filenamebuf, "*.");
-		strcat(filenamebuf, ext);
+		if (SUCCEEDED(SHGetMalloc(&pMalloc)))
+		{
+			ZeroMemory(&bi,sizeof(bi));
+			bi.hwndOwner = NULL;
+			bi.pszDisplayName = 0;
+			bi.pidlRoot = 0;
+			bi.lpszTitle = title;
+			bi.ulFlags = BIF_RETURNONLYFSDIRS | BIF_STATUSTEXT;
+			bi.lpfn = NULL; /*BrowseCallbackProc*/
+
+			pidl = SHBrowseForFolder(&bi);
+			if (pidl)
+			{
+				if (SHGetPathFromIDList(pidl,szDir))
+				{
+					strcpy(filenamebuf,szDir);
+				}
+
+				// In C++: pMalloc->Free(pidl); pMalloc->Release();
+				pMalloc->lpVtbl->Free(pMalloc,pidl);
+				pMalloc->lpVtbl->Release(pMalloc);
+				return strdup(filenamebuf);
+			}
+		}
 	}
-
-	memset(&of, 0, sizeof(OPENFILENAME));
-
-	of.lStructSize = sizeof(OPENFILENAME);
-	of.hwndOwner = HWND_DESKTOP;
-	of.hInstance = DWInstance;
-	of.lpstrInitialDir = defpath;
-	of.lpstrTitle = title;
-	of.lpstrFile = filenamebuf;
-	of.nMaxFile = 1000;
-	of.lpstrDefExt = ext;
-	of.Flags = 0;
-
-	if(flags & DW_FILE_SAVE)
-		rc = GetSaveFileName(&of);
 	else
-		rc = GetOpenFileName(&of);
+	{
+		if(ext)
+		{
+			strcpy(filenamebuf, "*.");
+			strcat(filenamebuf, ext);
+		}
 
-	if(rc)
-		return strdup(of.lpstrFile);
+		memset(&of, 0, sizeof(OPENFILENAME));
 
+		of.lStructSize = sizeof(OPENFILENAME);
+		of.hwndOwner = HWND_DESKTOP;
+		of.hInstance = DWInstance;
+		of.lpstrInitialDir = defpath;
+		of.lpstrTitle = title;
+		of.lpstrFile = filenamebuf;
+		of.nMaxFile = 1000;
+		of.lpstrDefExt = ext;
+		of.Flags = 0;
+
+		if(flags & DW_FILE_SAVE)
+			rc = GetSaveFileName(&of);
+		else
+			rc = GetOpenFileName(&of);
+
+		if(rc)
+			return strdup(of.lpstrFile);
+	}
 	return NULL;
 }
 

@@ -797,8 +797,9 @@ typedef struct _dwdialog {
 #define DW_EXEC_CON 0
 #define DW_EXEC_GUI 1
 
-#define DW_FILE_OPEN 0
-#define DW_FILE_SAVE 1
+#define DW_FILE_OPEN      0
+#define DW_FILE_SAVE      1
+#define DW_DIRECTORY_OPEN 2
 
 #define DW_HORZ 0
 #define DW_VERT 1
