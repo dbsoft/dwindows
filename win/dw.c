@@ -1,5 +1,4 @@
 /*
-/*
  * Dynamic Windows:
  *          A GTK like implementation of the Win32 GUI
  *
@@ -20,6 +19,15 @@
 #include <process.h>
 #include <time.h>
 #include "dw.h"
+
+/*
+ * MinGW (as at 3.2.3) doesn't have MIM_MENUDATA
+ * so #define it here
+ */
+
+#if !defined( MIM_MENUDATA )
+# define MIM_MENUDATA 0x00000008
+#endif
 
 HWND popup = (HWND)NULL, hwndBubble = (HWND)NULL, DW_HWND_OBJECT = (HWND)NULL;
 
@@ -383,7 +391,7 @@ BOOL CALLBACK _free_window_memory(HWND handle, LPARAM lParam)
 
 		if(array)
 		{
-			int z, refid = -1;
+			int z;
 
 			for(z=0;z<256;z++)
 			{
@@ -1473,7 +1481,7 @@ BOOL CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 
 						if(hWnd == tmp->window)
 						{
-							int button;
+							int button=0;
 
 							switch(origmsg)
 							{
@@ -1508,7 +1516,7 @@ BOOL CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 
 						if(hWnd == tmp->window)
 						{
-							int button;
+							int button=0;
 
 							switch(origmsg)
 							{
@@ -2433,7 +2441,7 @@ BOOL CALLBACK _colorwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 					else
 						val = (long)SendMessage(cinfo->buddy, UDM_GETPOS, 0, 0);
 
-					sprintf(tmpbuf, "%d", val);
+					sprintf(tmpbuf, "%ld", val);
 					SetWindowText(hWnd, tmpbuf);
 				}
 			}
@@ -2772,7 +2780,7 @@ BOOL CALLBACK _splitwndproc(HWND hwnd, UINT msg, WPARAM mp1, LPARAM mp2)
 
 			if((hdcPaint = GetDC(hwnd)) != NULL)
 			{
-				int cx, cy;
+				unsigned long cx, cy;
 				HBRUSH oldBrush = SelectObject(hdcPaint, GetSysColorBrush(COLOR_3DFACE));
 				HPEN oldPen = SelectObject(hdcPaint, CreatePen(PS_SOLID, 1, GetSysColor(COLOR_3DFACE)));
 
@@ -2873,7 +2881,6 @@ BOOL CALLBACK _statuswndproc(HWND hwnd, UINT msg, WPARAM mp1, LPARAM mp2)
 			PAINTSTRUCT ps;
 			RECT rc;
 			unsigned long cx, cy;
-			int threadid = dw_thread_id();
 			char tempbuf[1024] = "";
 			ColorInfo *cinfo = (ColorInfo *)GetWindowLongPtr(hwnd, GWLP_USERDATA);
 			HFONT hfont = _acquire_font(hwnd, cinfo ? cinfo->fontname : NULL);
@@ -3036,12 +3043,10 @@ BOOL CALLBACK _BtProc(HWND hwnd, ULONG msg, WPARAM mp1, LPARAM mp2)
 				if(!hwndBubble)
 				{
 					POINTL ptlWork = {0,0};
-					ULONG ulColor = DW_CLR_YELLOW;
 					SIZE size;
 					HFONT hFont, oldFont = (HFONT)0;
 					HDC hdc;
 					RECT rect;
-					void *oldproc;
 
 					/* Use the WS_EX_TOOLWINDOW extended style
 					 * so the window doesn't get listed in the
@@ -4105,7 +4110,7 @@ HWND API dw_menu_append_item(HMENUI menux, char *title, ULONG id, ULONG flags, i
 
 	if(!IS_WINNTOR95)
 	{
-		sprintf(buffer, "_dw_id%d", id);
+		sprintf(buffer, "_dw_id%ld", id);
 		dw_window_set_data(DW_HWND_OBJECT, buffer, (void *)mymenu);
 
 		/* According to the docs this will only work on Win2k/98 and above */
@@ -4651,7 +4656,6 @@ HWND API dw_bitmapbutton_new_from_file(char *text, unsigned long id, char *filen
  */
 HWND API dw_spinbutton_new(char *text, ULONG id)
 {
-	ULONG *data = malloc(sizeof(ULONG));
 	HWND buddy = CreateWindowEx(WS_EX_CLIENTEDGE,
 								EDITCLASSNAME,
 								text,
@@ -5499,6 +5503,30 @@ void API dw_listbox_append(HWND handle, char *text)
 }
 
 /*
+ * Appends the specified text items to the listbox's (or combobox) entry list.
+ * Parameters:
+ *          handle: Handle to the listbox to be appended to.
+ *          text: Text strings to append into listbox.
+ *          count: Number of text strings to append
+ */
+void API dw_listbox_list_append(HWND handle, char **text, int count)
+{
+	char tmpbuf[100];
+	int listbox_type;
+	int i;
+
+	GetClassName(handle, tmpbuf, 99);
+
+	if(strnicmp(tmpbuf, COMBOBOXCLASSNAME, strlen(COMBOBOXCLASSNAME)+1)==0)
+		listbox_type = CB_ADDSTRING;
+	else
+		listbox_type = LB_ADDSTRING;
+
+	for(i=0;i<count;i++)
+		SendMessage(handle,(WPARAM)listbox_type,0,(LPARAM)text[i]);
+}
+
+/*
  * Clears the listbox's (or combobox) list of all entries.
  * Parameters:
  *          handle: Handle to the listbox to be cleared.
@@ -6066,7 +6094,7 @@ void API dw_spinbutton_set_pos(HWND handle, long position)
 	char tmpbuf[100];
 	ColorInfo *cinfo = (ColorInfo *)GetWindowLongPtr(handle, GWLP_USERDATA);
 
-	sprintf(tmpbuf, "%d", position);
+	sprintf(tmpbuf, "%ld", position);
 
 	if(cinfo && cinfo->buddy)
 		SetWindowText(cinfo->buddy, tmpbuf);
@@ -6420,7 +6448,7 @@ void API dw_tree_item_collapse(HWND handle, HTREEITEM item)
 void API dw_tree_item_delete(HWND handle, HTREEITEM item)
 {
 	TVITEM tvi;
-	void **ptrs;
+	void **ptrs=NULL;
 
 	if(item == TVI_ROOT || !item)
 		return;
@@ -7033,7 +7061,6 @@ void API dw_container_cursor(HWND handle, char *text)
 
 		if((char *)lvi.lParam == text)
 		{
-			RECT viewport, item;
 
 			ListView_SetItemState(handle, index, LVIS_FOCUSED | LVIS_SELECTED, LVIS_FOCUSED | LVIS_SELECTED);
 			ListView_EnsureVisible(handle, index, TRUE);
@@ -7088,8 +7115,6 @@ void API dw_container_delete_row(HWND handle, char *text)
 void API dw_container_optimize(HWND handle)
 {
 	ContainerInfo *cinfo = (ContainerInfo *)GetWindowLongPtr(handle, GWLP_USERDATA);
-	ULONG *flags;
-	LV_ITEM lvi;
 
 	if(cinfo && cinfo->columns == 1)
 	{
@@ -7382,8 +7407,6 @@ void API dw_draw_line(HWND handle, HPIXMAP pixmap, int x1, int y1, int x2, int y
 void API dw_draw_rect(HWND handle, HPIXMAP pixmap, int fill, int x, int y, int width, int height)
 {
 	HDC hdcPaint;
-	HPEN oldPen;
-	HBRUSH oldBrush;
 	RECT Rect;
 	int threadid = dw_thread_id();
 
@@ -7417,7 +7440,7 @@ void API dw_draw_rect(HWND handle, HPIXMAP pixmap, int fill, int x, int y, int w
 void API dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
 {
 	HDC hdc;
-	int size = 9, z, mustdelete = 0;
+	int mustdelete = 0;
 	HFONT hFont = 0, oldFont = 0;
 	int threadid = dw_thread_id();
 	ColorInfo *cinfo;
@@ -7535,7 +7558,6 @@ void API dw_flush(void)
 HPIXMAP API dw_pixmap_new(HWND handle, unsigned long width, unsigned long height, int depth)
 {
 	HPIXMAP pixmap;
-	BITMAP bm;
 	HDC hdc;
 
 	if (!(pixmap = calloc(1,sizeof(struct _hpixmap))))

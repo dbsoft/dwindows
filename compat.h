@@ -94,7 +94,7 @@ void msleep(long period);
 
 #ifndef BKS_TABBEDDIALOG
 #define BKS_TABBEDDIALOG          0x0800
-#endif 
+#endif
 
 #define PIPENAME "\\socket\\" __TARGET__ "%d"
 #define TPIPENAME "\\socket\\" __TARGET__ "%d"
@@ -123,7 +123,15 @@ void msleep(long period);
 #if defined(__WIN32__) || defined(WINNT)
 
 #if defined(MSVC) && !defined(API)
-#define API _cdecl
+# ifdef __MINGW32__
+#  ifdef BUILD_DLL
+#   define API APIENTRY __declspec(dllexport)
+#  else
+#   define API APIENTRY __declspec(dllimport)
+#  endif
+# else
+#  define API _cdecl
+# endif
 #endif
 
 #include <windows.h>
@@ -131,15 +139,17 @@ void msleep(long period);
 #include <time.h>
 #include <process.h>
 #include <sys/stat.h>
+
 #ifdef MSVC
 #include "platform/dirent.h"
 #else
 #include <dir.h>
 #include <dirent.h>
 #endif
+
 #include <stdarg.h>
 
-#if defined(__CYGWIN32__) || defined(__MINGW32__)
+#if defined(__CYGWIN32__) /*|| defined(__MINGW32__)*/
 #include <sys/un.h>
 #endif /* __CYGWIN32__ || __MINGW32__ */
 
@@ -235,4 +245,10 @@ char * API locale_string(char *default_text, int message);
 void API nice_strformat(char *dest, long double val, int dec);
 void API initdir(int argc, char *argv[]);
 int API setpath(char *path);
+
+#ifdef __MINGW32__
+# undef API
+# define API APIENTRY
+#endif
+
 #endif

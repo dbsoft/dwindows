@@ -85,6 +85,7 @@ EXPORTS
   dw_listbox_set_text                    @148
   dw_listbox_selected                    @149
   dw_listbox_selected_multi              @150
+  dw_listbox_list_append                 @151
 
   dw_percent_new                         @160
   dw_percent_set_pos                     @162

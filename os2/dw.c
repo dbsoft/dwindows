@@ -5677,6 +5677,23 @@ void API dw_listbox_append(HWND handle, char *text)
 }
 
 /*
+ * Appends the specified text items to the listbox's (or combobox) entry list.
+ * Parameters:
+ *          handle: Handle to the listbox to be appended to.
+ *          text: Text strings to append into listbox.
+ *          count: Number of text strings to append
+ */
+void API dw_listbox_list_append(HWND handle, char **text, int count)
+{
+	int i;
+	for(i=0;i<count;i++)
+		WinSendMsg(handle,
+				   LM_INSERTITEM,
+				   MPFROMSHORT(LIT_END),
+				   MPFROMP(text[i]));
+}
+
+/*
  * Clears the listbox's (or combobox) list of all entries.
  * Parameters:
  *          handle: Handle to the listbox to be cleared.

@@ -8646,6 +8646,65 @@ void dw_listbox_append(HWND handle, char *text)
 }
 
 /*
+ * Appends the specified text items to the listbox's (or combobox) entry list.
+ * Parameters:
+ *          handle: Handle to the listbox to be appended to.
+ *          text: Text strings to append into listbox.
+ *          count: Number of text strings to append
+ */
+void dw_listbox_list_append(HWND handle, char **text, int count)
+{
+	GtkWidget *handle2 = handle;
+	int _locked_by_me = FALSE;
+
+	DW_MUTEX_LOCK;
+	if(GTK_IS_SCROLLED_WINDOW(handle))
+	{
+		GtkWidget *tmp = (GtkWidget *)gtk_object_get_user_data(GTK_OBJECT(handle));
+		if(tmp)
+			handle2 = tmp;
+	}
+	gtk_object_set_data(GTK_OBJECT(handle), "_dw_appending", (gpointer)1);
+	if(GTK_IS_LIST(handle2))
+	{
+		GtkWidget *list_item;
+		GList *tmp;
+		char *font = (char *)gtk_object_get_data(GTK_OBJECT(handle), "_dw_font");
+		GdkColor *fore = (GdkColor *)gtk_object_get_data(GTK_OBJECT(handle2), "_dw_foregdk");
+		GdkColor *back = (GdkColor *)gtk_object_get_data(GTK_OBJECT(handle2), "_dw_backgdk");
+
+		list_item=gtk_list_item_new_with_label(*text);
+
+		if(font)
+			_set_font(GTK_LIST_ITEM(list_item)->item.bin.child, font);
+		if(fore && back)
+			_set_color(GTK_LIST_ITEM(list_item)->item.bin.child,
+					   DW_RGB(fore->red, fore->green, fore->blue),
+					   DW_RGB(back->red, back->green, back->blue));
+
+		tmp  = g_list_append(NULL, list_item);
+		gtk_widget_show(list_item);
+		gtk_list_append_items(GTK_LIST(handle2),tmp);
+	}
+	else if(GTK_IS_COMBO(handle2))
+	{
+		GList *tmp = (GList *)gtk_object_get_user_data(GTK_OBJECT(handle2));
+		char *addtext;
+		int i;
+
+		for (i=0;i<count;i++)
+		{
+			addtext = strdup(text[i]);
+			tmp = g_list_append(tmp, addtext);
+		}
+		gtk_object_set_user_data(GTK_OBJECT(handle2), tmp);
+		gtk_combo_set_popdown_strings(GTK_COMBO(handle2), tmp);
+	}
+	gtk_object_set_data(GTK_OBJECT(handle), "_dw_appending", NULL);
+	DW_MUTEX_UNLOCK;
+}
+
+/*
  * Clears the listbox's (or combobox) list of all entries.
  * Parameters:
  *          handle: Handle to the listbox to be cleared.
