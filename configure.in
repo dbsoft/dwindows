@@ -50,7 +50,11 @@ AC_CHECK_LIB(dgc, inet_addr, LIBS="$LIBS -ldgc",)
 AC_CHECK_LIB(resolv, gethostbyname, LIBS="$LIBS -lresolv",)
 
 AC_CHECK_PROG(PKG_CFG, pkg-config, pkg-config)
-if test x"$PKG_CFG" = x; then
+if test x"$PKG_CFG" != x; then
+  GTK_LIBS=`$PKG_CFG --silence-errors --libs gtk+-2.0 gthread-2.0`
+fi
+
+if test x"$GTK_LIBS" = x; then
   AM_PATH_GLIB(1.2.0,,AC_MSG_ERROR(AC_MSG_ERROR(Cannot find GLIB: Is glib-config in path?)))
   AM_PATH_GTK(1.2.0,,AC_MSG_ERROR(AC_MSG_ERROR(Cannot find GTK: Is gtk-config in path?)), gthread)
   AM_PATH_GDK_IMLIB(1.9.4, AC_DEFINE(USE_IMLIB), AC_MSG_ERROR(IMLIB not found or too old. Dynamic Windows cannot build without it.))
