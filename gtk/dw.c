@@ -109,6 +109,7 @@ static gint _tree_select_event(GtkTreeSelection *sel, gpointer data);
 static gint _tree_select_event(GtkTree *tree, GtkWidget *child, gpointer data);
 #endif
 static gint _switch_page_event(GtkNotebook *notebook, GtkNotebookPage *page, guint page_num, gpointer user_data);
+static gint _column_click_event(GtkWidget *widget, gint column_num, gpointer user_data);
 
 typedef struct
 {
@@ -141,7 +142,7 @@ typedef struct
 
 } SignalHandler;
 
-#define SIGNALMAX 17
+#define SIGNALMAX 18
 
 /* A list of signal forwarders, to account for paramater differences. */
 static SignalList SignalTranslate[SIGNALMAX] = {
@@ -161,7 +162,8 @@ static SignalList SignalTranslate[SIGNALMAX] = {
 	{ _tree_select_event,       DW_SIGNAL_ITEM_SELECT },
 	{ _set_focus_event,         DW_SIGNAL_SET_FOCUS },
 	{ _value_changed_event,     DW_SIGNAL_VALUE_CHANGED },
-	{ _switch_page_event,       DW_SIGNAL_SWITCH_PAGE }
+	{ _switch_page_event,       DW_SIGNAL_SWITCH_PAGE },
+	{ _column_click_event,      DW_SIGNAL_COLUMN_CLICK }
 };
 
 /* Alignment flags */
@@ -681,6 +683,19 @@ static gint _switch_page_event(GtkNotebook *notebook, GtkNotebookPage *page, gui
 	{
 		int (*switchpagefunc)(HWND, unsigned long, void *) = work.func;
 		retval = switchpagefunc(work.window, _get_logical_page(GTK_WIDGET(notebook), page_num), work.data);
+	}
+	return retval;
+}
+
+static gint _column_click_event(GtkWidget *widget, gint column_num, gpointer data)
+{
+	SignalHandler work = _get_signal_handler(widget, data);
+	int retval = FALSE;
+
+	if(work.window)
+	{
+		int (*clickcolumnfunc)(HWND, int, void *) = work.func;
+		retval = clickcolumnfunc(work.window, column_num, work.data);
 	}
 	return retval;
 }
@@ -1817,6 +1832,21 @@ HWND dw_window_new(HWND hwndOwner, char *title, unsigned long flStyle)
 
 	if(flStyle & DW_FCF_BORDER || flStyle & DW_FCF_DLGBORDER)
 		flags |= GDK_DECOR_BORDER;
+
+	if(flStyle & DW_FCF_MAXIMIZE)
+	{
+		flags &= ~DW_FCF_MAXIMIZE;
+#if GTK_MAJOR_VERSION > 1
+		gtk_window_maximize(GTK_WINDOW(tmp));
+#endif
+	}
+	if(flStyle & DW_FCF_MINIMIZE)
+	{
+		flags &= ~DW_FCF_MINIMIZE;
+#if GTK_MAJOR_VERSION > 1
+		gtk_window_iconify(GTK_WINDOW(tmp));
+#endif
+	}
 
 	gdk_window_set_decorations(tmp->window, flags);
 
@@ -4570,19 +4600,17 @@ int dw_container_setup(HWND handle, unsigned long *flags, char **titles, int cou
  */
 int dw_filesystem_setup(HWND handle, unsigned long *flags, char **titles, int count)
 {
-	char **newtitles = malloc(sizeof(char *) * (count + 2));
-	unsigned long *newflags = malloc(sizeof(unsigned long) * (count + 2));
+	char **newtitles = malloc(sizeof(char *) * (count + 1));
+	unsigned long *newflags = malloc(sizeof(unsigned long) * (count + 1));
 
-	newtitles[0] = "Icon";
-	newtitles[1] = "Filename";
+	newtitles[0] = "Filename";
 
-	newflags[0] = DW_CFA_BITMAPORICON | DW_CFA_CENTER | DW_CFA_HORZSEPARATOR | DW_CFA_SEPARATOR;
-	newflags[1] = DW_CFA_STRING | DW_CFA_LEFT | DW_CFA_HORZSEPARATOR;
+	newflags[0] = DW_CFA_STRINGANDICON | DW_CFA_LEFT | DW_CFA_HORZSEPARATOR;
 
-	memcpy(&newtitles[2], titles, sizeof(char *) * count);
-	memcpy(&newflags[2], flags, sizeof(unsigned long) * count);
+	memcpy(&newtitles[1], titles, sizeof(char *) * count);
+	memcpy(&newflags[1], flags, sizeof(unsigned long) * count);
 
-	_dw_container_setup(handle, newflags, newtitles, count + 2, 2, 1);
+	_dw_container_setup(handle, newflags, newtitles, count + 1, 1, 1);
 
 	free(newtitles);
 	free(newflags);
@@ -4799,15 +4827,10 @@ void *dw_container_alloc(HWND handle, int rowcount)
 }
 
 /*
- * Sets an item in specified row and column to the given data.
- * Parameters:
- *          handle: Handle to the container window (widget).
- *          pointer: Pointer to the allocated memory in dw_container_alloc().
- *          column: Zero based column of data being set.
- *          row: Zero based row of data being set.
- *          data: Pointer to the data to be added.
+ * Internal representation of dw_container_set_item() extracted so we can pass
+ * two data pointers; icon and text for dw_filesystem_set_item().
  */
-void dw_container_set_item(HWND handle, void *pointer, int column, int row, void *data)
+void _dw_container_set_item(HWND handle, void *pointer, int column, int row, void *data, char *text)
 {
 	char numbuf[10], textbuffer[100];
 	int flag = 0;
@@ -4833,6 +4856,15 @@ void dw_container_set_item(HWND handle, void *pointer, int column, int row, void
 
 		if(pixmap)
 			gtk_clist_set_pixmap(GTK_CLIST(clist), row, column, pixmap, bitmap);
+	}
+	else if(flag & DW_CFA_STRINGANDICON)
+	{
+		long hicon = *((long *)data);
+		GdkBitmap *bitmap = NULL;
+		GdkPixmap *pixmap = _find_pixmap(&bitmap, hicon, clist, NULL, NULL);
+
+		if(pixmap)
+			gtk_clist_set_pixtext(GTK_CLIST(clist), row, column, text, 2, pixmap, bitmap);
 	}
 	else if(flag & DW_CFA_STRING)
 	{
@@ -4877,6 +4909,20 @@ void dw_container_set_item(HWND handle, void *pointer, int column, int row, void
 }
 
 /*
+ * Sets an item in specified row and column to the given data.
+ * Parameters:
+ *          handle: Handle to the container window (widget).
+ *          pointer: Pointer to the allocated memory in dw_container_alloc().
+ *          column: Zero based column of data being set.
+ *          row: Zero based row of data being set.
+ *          data: Pointer to the data to be added.
+ */
+void dw_container_set_item(HWND handle, void *pointer, int column, int row, void *data)
+{
+	_dw_container_set_item(handle, NULL, column, row, data, NULL);
+}
+
+/*
  * Changes an existing item in specified row and column to the given data.
  * Parameters:
  *          handle: Handle to the container window (widget).
@@ -4886,7 +4932,7 @@ void dw_container_set_item(HWND handle, void *pointer, int column, int row, void
  */
 void dw_container_change_item(HWND handle, int column, int row, void *data)
 {
-	dw_container_set_item(handle, NULL, column, row, data);
+	_dw_container_set_item(handle, NULL, column, row, data, NULL);
 }
 
 /*
@@ -4900,8 +4946,7 @@ void dw_container_change_item(HWND handle, int column, int row, void *data)
  */
 void dw_filesystem_set_file(HWND handle, void *pointer, int row, char *filename, unsigned long icon)
 {
-	dw_container_set_item(handle, pointer, 0, row, (void *)&icon);
-	dw_container_set_item(handle, pointer, 1, row, (void *)&filename);
+	_dw_container_set_item(handle, pointer, 0, row, (void *)&icon, filename);
 }
 
 /*
@@ -4915,7 +4960,7 @@ void dw_filesystem_set_file(HWND handle, void *pointer, int row, char *filename,
  */
 void dw_filesystem_set_item(HWND handle, void *pointer, int column, int row, void *data)
 {
-	dw_container_set_item(handle, pointer, column + 2, row, data);
+	_dw_container_set_item(handle, pointer, column + 1, row, data, NULL);
 }
 
 /*
@@ -7239,7 +7284,9 @@ void dw_listbox_delete(HWND handle, int index)
 		handle2 = GTK_COMBO(handle)->list;
 	}
 	if(GTK_IS_LIST(handle2))
+{
 		gtk_list_clear_items(GTK_LIST(handle2), index, index+1);
+}
 	DW_MUTEX_UNLOCK;
 }
 
@@ -8017,6 +8064,10 @@ void dw_signal_connect(HWND window, char *signame, void *sigfunc, void *data)
 	else if(GTK_IS_NOTEBOOK(thiswindow) && strcmp(signame, DW_SIGNAL_SWITCH_PAGE) == 0)
 	{
 		thisname = "switch-page";
+	}
+	else if(GTK_IS_CLIST(thiswindow) && strcmp(signame, DW_SIGNAL_COLUMN_CLICK) == 0)
+	{
+		thisname = "click-column";
 	}
 
 	if(!thisfunc || !thiswindow)
