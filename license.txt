@@ -10,8 +10,8 @@ This license allows you to use this source code in any way you wish, given the
 following restrictions:
 
 Source code must keep the copyrights.
-Entities using the source code must acknowledge the Dynamic Windows contributors.
-(either passively when queried or actively through acknowledgements in the program)
+Entities using the source code must acknowledge Dynamic Windows contributors.
+(either passively when queried or actively by acknowledgements in the program)
 The following are not allowed to use Dynamic Windows in a commercial product:
 
 F/X Communuications
