@@ -1231,9 +1231,10 @@ int _set_font(HWND handle, char *fontname)
 	}
 #else
 	PangoFontDescription *font = pango_font_description_from_string(fontname);
-
+  
 	if(font)
 		gtk_widget_modify_font(handle, font);
+ 
 	pango_font_description_free(font);
 #endif
 	return retval;
@@ -1247,6 +1248,9 @@ int _set_font(HWND handle, char *fontname)
  */
 int dw_window_set_font(HWND handle, char *fontname)
 {
+#if GTK_MAJOR_VERSION > 1
+	PangoFontDescription *pfont;
+#endif
 	GtkWidget *handle2 = handle;
 	char *font;
 	int _locked_by_me = FALSE;
@@ -1276,9 +1280,15 @@ int dw_window_set_font(HWND handle, char *fontname)
 
 	if(font)
 		gtk_object_set_data(GTK_OBJECT(handle2), "fontname", (gpointer)font);
+#if GTK_MAJOR_VERSION > 1
+	pfont = pango_font_description_from_string(fontname);
 
+	if(pfont)
+		gtk_widget_modify_font(handle2, pfont);
 
-    DW_MUTEX_UNLOCK;
+	pango_font_description_free(pfont);
+#endif
+	DW_MUTEX_UNLOCK;
 	return TRUE;
 }
 
@@ -2093,10 +2103,11 @@ HWND dw_mle_new(unsigned long id)
 	DW_MUTEX_LOCK;
 #if GTK_MAJOR_VERSION > 1
 	tmpbox = gtk_scrolled_window_new (NULL, NULL);
-	gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (tmpbox),
+	gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW(tmpbox),
 					GTK_POLICY_AUTOMATIC, GTK_POLICY_ALWAYS);
+	gtk_scrolled_window_set_shadow_type(GTK_SCROLLED_WINDOW(tmpbox), GTK_SHADOW_ETCHED_IN);
 	tmp = gtk_text_view_new();
-	gtk_scrolled_window_add_with_viewport(GTK_SCROLLED_WINDOW(tmpbox), tmp);
+	gtk_container_add (GTK_CONTAINER(tmpbox), tmp);
 	gtk_text_view_set_wrap_mode(GTK_TEXT_VIEW(tmp), GTK_WRAP_NONE);
 	gtk_object_set_user_data(GTK_OBJECT(tmpbox), (gpointer)tmp);
 	scroller = NULL;  
@@ -6095,6 +6106,7 @@ gint _splitbar_accept_position(GtkWidget *widget, gpointer data)
 	float *percent = (float *)gtk_object_get_data(GTK_OBJECT(widget), "_dw_percent");
 	int size = 0, position = gtk_paned_get_position(GTK_PANED(widget));
 
+  printf("Accept position\n");
 	if(!percent)
 		return FALSE;
 
@@ -6136,7 +6148,7 @@ HWND dw_splitbar_new(int type, HWND topleft, HWND bottomright, unsigned long id)
 	gtk_object_set_data(GTK_OBJECT(tmp), "_dw_percent", (gpointer)percent);
 	gtk_signal_connect(GTK_OBJECT(tmp), "size-allocate", GTK_SIGNAL_FUNC(_splitbar_size_allocate), NULL);
 #if GTK_MAJOR_VERSION > 1
-	gtk_signal_connect(GTK_OBJECT(tmp), "accept-position", GTK_SIGNAL_FUNC(_splitbar_accept_position), NULL);
+	g_signal_connect(G_OBJECT(tmp), "accept-position", (GCallback)_splitbar_accept_position, NULL);
 #else
 	gtk_paned_set_handle_size(GTK_PANED(tmp), 3);
 #endif
