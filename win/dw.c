@@ -2303,12 +2303,8 @@ void _changebox(Box *thisbox, int percent, int type)
 /* This handles any activity on the splitbars (sizers) */
 BOOL CALLBACK _splitwndproc(HWND hwnd, UINT msg, WPARAM mp1, LPARAM mp2)
 {
-	HWND hwndFrame = 0;
-	Box *thisbox = 0;
-
-	hwndFrame = GetParent(hwnd);
-	if(hwndFrame)
-		thisbox = (Box *)GetWindowLong(hwndFrame, GWL_USERDATA);
+	int percent = (int)dw_window_get_data(hwnd, "_dw_percent");
+	int type = (int)dw_window_get_data(hwnd, "_dw_type");
 
 	switch (msg)
 	{
@@ -2316,6 +2312,59 @@ BOOL CALLBACK _splitwndproc(HWND hwnd, UINT msg, WPARAM mp1, LPARAM mp2)
 	case WM_SETFOCUS:
 		return FALSE;
 
+	case WM_SIZE:
+		{
+			int x = LOWORD(mp2), y = HIWORD(mp2);
+
+			if(x > 0 && y > 0)
+			{
+				if(type == BOXHORZ)
+				{
+					int newx = x - SPLITBAR_WIDTH, newy = y;
+					float ratio = (float)percent/(float)100;
+					HWND handle = (HWND)dw_window_get_data(hwnd, "_dw_topleft");
+					Box *tmp = (Box *)GetWindowLong(handle, GWL_USERDATA);
+
+					newx = (int)((float)newx * ratio);
+
+					SetWindowPos(handle, (HWND)NULL, 0, 0, newx, y, SWP_NOZORDER | SWP_SHOWWINDOW | SWP_NOACTIVATE);
+					_do_resize(tmp, newx, y);
+
+					handle = (HWND)dw_window_get_data(hwnd, "_dw_bottomright");
+					tmp = (Box *)GetWindowLong(handle, GWL_USERDATA);
+
+					newx = x - newx - SPLITBAR_WIDTH;
+
+					SetWindowPos(handle, (HWND)NULL, x - newx, 0, newx, y, SWP_NOZORDER | SWP_SHOWWINDOW | SWP_NOACTIVATE);
+					_do_resize(tmp, newx, y);
+
+					dw_window_set_data(hwnd, "_dw_start", (void *)newx);
+				}
+                else
+				{
+					int newx = x, newy = y - SPLITBAR_WIDTH;
+					float ratio = (float)(100-percent)/(float)100;
+					HWND handle = (HWND)dw_window_get_data(hwnd, "_dw_bottomright");
+					Box *tmp = (Box *)GetWindowLong(handle, GWL_USERDATA);
+
+					newy = (int)((float)newy * ratio);
+
+					SetWindowPos(handle, (HWND)NULL, 0, y - newy, x, newy, SWP_NOZORDER | SWP_SHOWWINDOW | SWP_NOACTIVATE);
+					_do_resize(tmp, x, newy);
+
+					handle = (HWND)dw_window_get_data(hwnd, "_dw_topleft");
+					tmp = (Box *)GetWindowLong(handle, GWL_USERDATA);
+
+					newy = y - newy - SPLITBAR_WIDTH;
+
+					SetWindowPos(handle, (HWND)NULL, 0, 0, x, newy, SWP_NOZORDER | SWP_SHOWWINDOW | SWP_NOACTIVATE);
+					_do_resize(tmp, x, newy);
+
+					dw_window_set_data(hwnd, "_dw_start", (void *)newy);
+				}
+			}
+		}
+		break;
 	case WM_PAINT:
 		{
 			HDC hdcPaint;
@@ -2324,18 +2373,19 @@ BOOL CALLBACK _splitwndproc(HWND hwnd, UINT msg, WPARAM mp1, LPARAM mp2)
 			POINT ptlEnd[SPLITBAR_WIDTH];
 			RECT rcPaint;
 			USHORT i;
+			int start = (int)dw_window_get_data(hwnd, "_dw_start");
 
 			hdcPaint = BeginPaint(hwnd, &ps);
 			GetWindowRect(hwnd, &rcPaint);
 
-			if(thisbox->type == BOXHORZ)
+			if(type == BOXHORZ)
 			{
 				for(i = 0; i < SPLITBAR_WIDTH; i++)
 				{
-					ptlStart[i].x = i;
+					ptlStart[i].x = i + start - 1;
 					ptlStart[i].y = 0;
 
-					ptlEnd[i].x = i;
+					ptlEnd[i].x = i + start - 1;
 					ptlEnd[i].y = rcPaint.bottom - rcPaint.top;
 				}
 			}
@@ -2344,10 +2394,10 @@ BOOL CALLBACK _splitwndproc(HWND hwnd, UINT msg, WPARAM mp1, LPARAM mp2)
 				for(i = 0; i < SPLITBAR_WIDTH; i++)
 				{
 					ptlStart[i].x = 0;
-					ptlStart[i].y = i;
+					ptlStart[i].y = i + start;
 
 					ptlEnd[i].x = rcPaint.right - rcPaint.left;
-					ptlEnd[i].y = i;
+					ptlEnd[i].y = i + start;
 				}
 			}
 
@@ -2368,7 +2418,7 @@ BOOL CALLBACK _splitwndproc(HWND hwnd, UINT msg, WPARAM mp1, LPARAM mp2)
 		return FALSE;
 	case WM_MOUSEMOVE:
 		{
-			if(thisbox->type == BOXHORZ)
+			if(type == BOXHORZ)
 				SetCursor(LoadCursor(NULL, IDC_SIZEWE));
 			else
 				SetCursor(LoadCursor(NULL, IDC_SIZENS));
@@ -6713,6 +6763,65 @@ void dw_exit(int exitcode)
 }
 
 /*
+ * Creates a splitbar window (widget) with given parameters.
+ * Parameters:
+ *       type: Value can be BOXVERT or BOXHORZ.
+ *       topleft: Handle to the window to be top or left.
+ *       bottomright:  Handle to the window to be bottom or right.
+ * Returns:
+ *       A handle to a splitbar window or NULL on failure.
+ */
+HWND dw_splitbar_new(int type, HWND topleft, HWND bottomright)
+{
+	HWND tmp = CreateWindow(SplitbarClassName,
+							"",
+							WS_VISIBLE | WS_CHILD | WS_CLIPCHILDREN,
+							0,0,2000,1000,
+							DW_HWND_OBJECT,
+							NULL,
+							DWInstance,
+							NULL);
+
+	if(tmp)
+	{
+		HWND tmpbox = dw_box_new(BOXVERT, 0);
+
+		dw_box_pack_start(tmpbox, topleft, 1, 1, TRUE, TRUE, 0);
+		SetParent(tmpbox, tmp);
+		dw_window_set_data(tmp, "_dw_topleft", (void *)tmpbox);
+
+		tmpbox = dw_box_new(BOXVERT, 0);
+		dw_box_pack_start(tmpbox, bottomright, 1, 1, TRUE, TRUE, 0);
+		SetParent(tmpbox, tmp);
+		dw_window_set_data(tmp, "_dw_bottomright", (void *)tmpbox);
+		dw_window_set_data(tmp, "_dw_percent", (void *)50);
+		dw_window_set_data(tmp, "_dw_type", (void *)type);
+	}
+	return tmp;
+}
+
+/*
+ * Sets the position of a splitbar (pecentage).
+ * Parameters:
+ *       handle: The handle to the splitbar returned by dw_splitbar_new().
+ */
+void dw_splitbar_set(HWND handle, int percent)
+{
+	/* We probably need to force a redraw here */
+	dw_window_set_data(handle, "_dw_percent", (void *)percent);
+}
+
+/*
+ * Gets the position of a splitbar (pecentage).
+ * Parameters:
+ *       handle: The handle to the splitbar returned by dw_splitbar_new().
+ */
+int dw_splitbar_get(HWND handle)
+{
+	return (int)dw_window_get_data(handle, "_dw_percent");
+}
+
+/*
  * Pack a splitbar (sizer) into the specified box from the start.
  * Parameters:
  *       box: Window handle of the box to be packed into.
@@ -7158,6 +7267,12 @@ int remove_userdata(UserData **root, char *varname, int all)
 void dw_window_set_data(HWND window, char *dataname, void *data)
 {
 	ColorInfo *cinfo = (ColorInfo *)GetWindowLong(window, GWL_USERDATA);
+
+	if(!cinfo)
+	{
+		cinfo = calloc(1, sizeof(ColorInfo));
+		SetWindowLong(window, GWL_USERDATA, (LONG)cinfo);
+	}
 
 	if(cinfo)
 	{
