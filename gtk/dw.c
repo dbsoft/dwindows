@@ -2810,7 +2810,7 @@ void dw_window_set_bitmap(HWND handle, unsigned long id, char *filename)
  * Sets the text used for a given window.
  * Parameters:
  *       handle: Handle to the window.
- *       text: The text associsated with a given window.
+ *       text: The text associsated with a given window.                       f
  */
 void dw_window_set_text(HWND handle, char *text)
 {
@@ -2825,10 +2825,14 @@ void dw_window_set_text(HWND handle, char *text)
 		gtk_label_set_text(GTK_LABEL(handle), text);
 	else if(GTK_IS_BUTTON(handle))
 	{
+#if GTK_MAJOR_VERSION < 2
 		GtkWidget *label = GTK_BUTTON(handle)->child;
 
 		if(GTK_IS_LABEL(label))
 			gtk_label_set_text(GTK_LABEL(label), text);
+#else
+		gtk_button_set_label(GTK_BUTTON(handle), text);
+#endif
 	}
 	else if(GTK_IS_FRAME(handle))
 	{
