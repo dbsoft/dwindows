@@ -366,6 +366,10 @@ BOOL CALLBACK _free_window_memory(HWND handle, LPARAM lParam)
 		if(data)
 			free(data);
 	}
+	else if(strnicmp(tmpbuf, WC_TREEVIEW, strlen(WC_TREEVIEW)+1)==0)
+	{
+		dw_tree_clear(handle);
+	}
 	else if(strnicmp(tmpbuf, WC_TABCONTROL, strlen(WC_TABCONTROL)+1)==0) /* Notebook */
 	{
 		NotebookPage **array = (NotebookPage **)dw_window_get_data(handle, "_dw_array");
@@ -5857,6 +5861,23 @@ void API dw_tree_item_select(HWND handle, HWND item)
 	TreeView_SelectItem(handle, (HTREEITEM)item);
 }
 
+/* Delete all tree subitems */
+void _dw_tree_delete_recursive(HWND handle, HTREEITEM node)
+{
+	HTREEITEM hti;
+
+	hti = TreeView_GetChild(handle, node);
+
+	while(hti)
+	{
+		HTREEITEM lastitem = hti;
+
+		_dw_tree_delete_recursive(handle, hti);
+		hti = TreeView_GetNextSibling(handle, hti);
+		dw_tree_delete(handle, (HWND)lastitem);
+	}
+}
+
 /*
  * Removes all nodes from a tree.
  * Parameters:
@@ -5864,7 +5885,16 @@ void API dw_tree_item_select(HWND handle, HWND item)
  */
 void API dw_tree_clear(HWND handle)
 {
-	TreeView_DeleteAllItems(handle);
+	HTREEITEM hti = TreeView_GetRoot(handle);
+
+	while(hti)
+	{
+		HTREEITEM lastitem = hti;
+
+		_dw_tree_delete_recursive(handle, hti);
+		hti = TreeView_GetNextSibling(handle, hti);
+		dw_tree_delete(handle, (HWND)lastitem);
+	}
 }
 
 /*
@@ -5897,10 +5927,21 @@ void API dw_tree_collapse(HWND handle, HWND item)
  */
 void API dw_tree_delete(HWND handle, HWND item)
 {
+	TVITEM tvi;
+	void **ptrs;
+
 	if((HTREEITEM)item == TVI_ROOT || !item)
 		return;
 
+	tvi.mask = TVIF_HANDLE;
+	tvi.hItem = (HTREEITEM)item;
+
+	if(TreeView_GetItem(handle, &tvi))
+		ptrs = (void **)tvi.lParam;
+
 	TreeView_DeleteItem(handle, (HTREEITEM)item);
+	if(ptrs)
+		free(ptrs);
 }
 
 /*
