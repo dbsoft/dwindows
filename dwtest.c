@@ -386,11 +386,11 @@ int DWSIGNAL item_select_cb( HWND window, HTREEITEM item, char *text, void *data
 	return 0;
 }
 
-int DWSIGNAL switch_page_cb( HWND window, int page_num, void *itemdata )
+int DWSIGNAL switch_page_cb( HWND window, unsigned long page_num, void *itemdata )
 {
-FILE *fp=fopen("log","a");
-	fprintf(fp,"DW_SIGNAL_SWITCH_PAGE: Window: %x PageNum: %d Itemdata: %x\n", (unsigned int)window, (unsigned int)page_num, (unsigned int)itemdata );
-fclose(fp);
+	FILE *fp=fopen("log","a");
+	fprintf(fp,"DW_SIGNAL_SWITCH_PAGE: Window: %x PageNum: %u Itemdata: %x\n", (unsigned int)window, (unsigned int)page_num, (unsigned int)itemdata );
+	fclose(fp);
 	return 0;
 }
 

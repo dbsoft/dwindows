@@ -575,7 +575,7 @@ static gint _switch_page_event(GtkNotebook *notebook, GtkNotebookPage *page, gui
 
 	if(work)
 	{
-		int (*switchpagefunc)(HWND, int, void *) = work->func;
+		int (*switchpagefunc)(HWND, unsigned long, void *) = work->func;
 		retval = switchpagefunc(work->window, _get_logical_page(GTK_WIDGET(notebook), page_num), work->data);
 	}
 	return retval;
@@ -6355,7 +6355,7 @@ void dw_notebook_page_destroy(HWND handle, unsigned int pageid)
  * Parameters:
  *          handle: Handle to the notebook widget.
  */
-unsigned int dw_notebook_page_query(HWND handle)
+unsigned long dw_notebook_page_query(HWND handle)
 {
 	int retval, phys;
 	int _locked_by_me = FALSE;

@@ -1581,9 +1581,10 @@ BOOL CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 							NMHDR FAR *tem=(NMHDR FAR *)mp2;
 							if(tmp->window == tem->hwndFrom && tem->code == tmp->message)
 							{
-								int (*switchpagefunc)(HWND, int, void *) = tmp->signalfunction;
-								int num=dw_notebook_page_query(tem->hwndFrom);
+								int (*switchpagefunc)(HWND, unsigned long, void *) = tmp->signalfunction;
+								unsigned long num=dw_notebook_page_query(tem->hwndFrom);
 								result = switchpagefunc(tem->hwndFrom, num, tmp->data);
+								tmp = NULL;
 							}
 						}
 					}
@@ -5055,7 +5056,7 @@ void API dw_notebook_page_destroy(HWND handle, unsigned int pageidx)
  * Parameters:
  *          handle: Handle to the notebook widget.
  */
-unsigned int API dw_notebook_page_query(HWND handle)
+unsigned long API dw_notebook_page_query(HWND handle)
 {
 	NotebookPage **array = (NotebookPage **)dw_window_get_data(handle, "_dw_array");
 	int physid = TabCtrl_GetCurSel(handle);
