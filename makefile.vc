@@ -1,9 +1,17 @@
 #
+# Get our source directory
+#
+!if "$(DWINDOWS_SRCDIR)" == ""
+SRCDIR=.
+!else
+SRCDIR=$(DWINDOWS_SRCDIR)
+!endif
+
 FXLIBDIR=.\lib
 FXDLLDIR=.\dll
 
 CC = cl
-CFLAGS = -c -G5 -GD -Zp1 -DWIN32 -D__WIN32__ -DMSVC -DBUILD_DLL -I.\platform -I.
+CFLAGS = -c -G5 -GD -Zp1 -DWIN32 -D__WIN32__ -DMSVC -DBUILD_DLL -I$(SRCDIR)\platform -I$(SRCDIR)
 CFLAGS_DEBUG = -Zi
 CFLAGS_COMPILE = -MTd
 LIBS = wsock32.lib kernel32.lib user32.lib comctl32.lib gdi32.lib advapi32.lib shell32.lib comdlg32.lib
@@ -11,14 +19,14 @@ RES =
 LINKFLAGS = -machine:i386 -debug:full
 DLLLINKFLAGS = -dll
 LINK = link
-DEFFILE = dww.def
-DEFFILE2 = dwcompatw.def
+DEFFILE = $(SRCDIR)\dww.def
+DEFFILE2 = $(SRCDIR)\dwcompatw.def
 
-OBJS =	dw.obj
+OBJS = dw.obj
 
 OBJS2 = compat.obj dirent.obj
 
-all: dw dwcompat
+all: dw dwcompat dwtest
 
 clean:
 	-erase *.dll
@@ -35,6 +43,8 @@ clean:
 dw: dw.dll
 
 dw.dll: $(OBJS) $(DEFFILE)
+	-mkdir $(FXLIBDIR)
+	-mkdir $(FXDLLDIR)
 	$(LINK) @<<
 -out:$(@) -def:$(DEFFILE)
 $(LINKFLAGS) $(DLLLINKFLAGS)
@@ -58,14 +68,17 @@ $(LIBS)
         copy dwcompat.lib $(FXLIBDIR)\dwcompat.lib
         copy dwcompat.dll $(FXDLLDIR)\dwcompat.dll
 
-dw.obj: win\dw.c
-	$(CC) $(CFLAGS) $(CFLAGS_DEBUG) $(CFLAGS_COMPILE) win\dw.c
+dw.obj: $(SRCDIR)\win\dw.c
+	$(CC) $(CFLAGS) $(CFLAGS_DEBUG) $(CFLAGS_COMPILE) $(SRCDIR)\win\dw.c
 
-dirent.obj: win\dirent.c
-	$(CC) $(CFLAGS) $(CFLAGS_DEBUG) $(CFLAGS_COMPILE) win\dirent.c
+dirent.obj: $(SRCDIR)\win\dirent.c
+	$(CC) $(CFLAGS) $(CFLAGS_DEBUG) $(CFLAGS_COMPILE) $(SRCDIR)\win\dirent.c
 
-.c.obj:
-	$(CC) $(CFLAGS) $(CFLAGS_DEBUG) $(CFLAGS_COMPILE) $*.c
+compat.obj: $(SRCDIR)\compat.c
+	$(CC) $(CFLAGS) $(CFLAGS_DEBUG) $(CFLAGS_COMPILE) $(SRCDIR)\compat.c
+
+dwtest.obj: $(SRCDIR)\dwtest.c
+	$(CC) $(CFLAGS) $(CFLAGS_DEBUG) $(CFLAGS_COMPILE) $(SRCDIR)\dwtest.c
 
 dwtest: dwtest.exe
 
