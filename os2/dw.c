@@ -57,6 +57,7 @@ HWND hwndApp = NULLHANDLE, hwndBubble = NULLHANDLE, hwndBubbleLast = NULLHANDLE,
 PRECORDCORE pCoreEmph = NULL;
 ULONG aulBuffer[4], GlobalID = 10000;
 HWND lasthcnr = 0, lastitem = 0, popup = 0, desktop;
+HMOD wpconfig = 0;
 
 unsigned long _colors[] = {
 	CLR_BLACK,
@@ -373,43 +374,46 @@ void _free_window_memory(HWND handle)
 		WindowData *wd = (WindowData *)ptr;
 		char tmpbuf[100];
 
-		/* If this window has an associate bitmap destroy it. */
-		_free_bitmap(handle);
-
 		WinQueryClassName(handle, 99, tmpbuf);
 
-		if(strncmp(tmpbuf, "#1", 3)==0 && !WinWindowFromID(handle, FID_CLIENT))
+		if(strncmp(tmpbuf, "ColorSelectClass", 17)!=0)
 		{
-			Box *box = (Box *)ptr;
+			/* If this window has an associate bitmap destroy it. */
+			_free_bitmap(handle);
 
-			if(box->count && box->items)
-				free(box->items);
-		}
-		else if(strncmp(tmpbuf, SplitbarClassName, strlen(SplitbarClassName)+1)==0)
-		{
-			void *data = dw_window_get_data(handle, "_dw_percent");
-
-			if(data)
-				free(data);
-		}
-		else if(strncmp(tmpbuf, "#37", 4)==0)
-		{
-			dw_container_clear(handle, FALSE);
-			if(wd && dw_window_get_data(handle, "_dw_container"))
+			if(strncmp(tmpbuf, "#1", 3)==0 && !WinWindowFromID(handle, FID_CLIENT))
 			{
-				void *oldflags = wd->data;
+				Box *box = (Box *)ptr;
 
-				wd->data = NULL;
-				free(oldflags);
+				if(box->count && box->items)
+					free(box->items);
 			}
+			else if(strncmp(tmpbuf, SplitbarClassName, strlen(SplitbarClassName)+1)==0)
+			{
+				void *data = dw_window_get_data(handle, "_dw_percent");
+
+				if(data)
+					free(data);
+			}
+			else if(strncmp(tmpbuf, "#37", 4)==0)
+			{
+				dw_container_clear(handle, FALSE);
+				if(wd && dw_window_get_data(handle, "_dw_container"))
+				{
+					void *oldflags = wd->data;
+
+					wd->data = NULL;
+					free(oldflags);
+				}
+			}
+
+			if(wd->oldproc)
+				WinSubclassWindow(handle, wd->oldproc);
+
+			dw_window_set_data(handle, NULL, NULL);
+			WinSetWindowPtr(handle, QWP_USER, 0);
+			free(ptr);
 		}
-
-		if(wd->oldproc)
-			WinSubclassWindow(handle, wd->oldproc);
-
-		dw_window_set_data(handle, NULL, NULL);
-		WinSetWindowPtr(handle, QWP_USER, 0);
-		free(ptr);
 	}
 
 	henum = WinBeginEnumWindows(handle);
@@ -938,6 +942,11 @@ unsigned long _internal_color(unsigned long color)
 	if(color < 16)
 		return _colors[color];
 	return color;
+}
+
+unsigned long _os2_color(unsigned long color)
+{
+	return DW_RED_VALUE(color) << 16 | DW_GREEN_VALUE(color) << 8 | DW_BLUE_VALUE(color);;
 }
 
 BOOL _MySetWindowPos(HWND hwnd, HWND parent, HWND behind, LONG x, LONG y, LONG cx, LONG cy, ULONG fl)
@@ -3401,6 +3410,7 @@ MRESULT EXPENTRY _TreeProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 int API dw_init(int newthread, int argc, char *argv[])
 {
 	APIRET rc;
+	char objnamebuf[300] = "";
 
 	argc = argc; /* keep compiler happy */
 	argv = argv; /* keep compiler happy */
@@ -3425,6 +3435,7 @@ int API dw_init(int newthread, int argc, char *argv[])
 	 * application does and handles menu messages.
 	 */
 	hwndApp = dw_window_new(HWND_OBJECT, "", 0);
+	DosLoadModule(objnamebuf, sizeof(objnamebuf), "WPCONFIG", &wpconfig);
 
 	return rc;
 }
@@ -7249,8 +7260,80 @@ void API dw_color_background_set(unsigned long value)
  */
 unsigned long API dw_color_choose(unsigned long value)
 {
-	dw_messagebox("Not implemented", DW_MB_OK|DW_MB_INFORMATION, "This feature not yet supported.");
-	return value;
+	HWND window, hbox, vbox, col, button, text;
+	DWDialog *dwwait;
+	HMTX mtx = dw_mutex_new();
+
+	window = dw_window_new( HWND_DESKTOP, "Choose Color", FCF_SHELLPOSITION | FCF_TITLEBAR | FCF_DLGBORDER | FCF_CLOSEBUTTON | FCF_SYSMENU);
+
+	vbox = dw_box_new(DW_VERT, 5);
+
+	dw_box_pack_start(window, vbox, 0, 0, TRUE, TRUE, 0);
+
+	hbox = dw_box_new(DW_HORZ, 0);
+
+	dw_box_pack_start(vbox, hbox, 0, 0, FALSE, FALSE, 0);
+	dw_window_set_style(hbox, 0, WS_CLIPCHILDREN);
+
+	col = WinCreateWindow(vbox, "ColorSelectClass", "", WS_VISIBLE | WS_GROUP, 0, 0, 390, 300, vbox, HWND_TOP, 266, NULL,NULL);
+	dw_box_pack_start(hbox, col, 390, 300, FALSE, FALSE, 0);
+
+	dw_window_set_data(window, "_dw_mutex", (void *)mtx);
+	dw_window_set_data(window, "_dw_col", (void *)col);
+
+	hbox = dw_box_new(DW_HORZ, 0);
+
+	dw_box_pack_start(vbox, hbox, 0, 0, TRUE, FALSE, 0);
+
+	text = dw_text_new("Red:", 0);
+	dw_box_pack_start(hbox, text, 30, 20, FALSE, FALSE, 3);
+
+	button = dw_spinbutton_new("", 1001L);
+	dw_spinbutton_set_limits(button, 255, 0);
+	dw_box_pack_start(hbox, button, 20, 20, TRUE, FALSE, 3);
+	dw_window_set_data(window, "_dw_red_spin", (void *)button);
+	dw_spinbutton_set_pos(button, DW_RED_VALUE(value));
+
+	text = dw_text_new("Green:", 0);
+	dw_box_pack_start(hbox, text, 30, 20, FALSE, FALSE, 3);
+
+	button = dw_spinbutton_new("", 1002L);
+	dw_spinbutton_set_limits(button, 255, 0);
+	dw_box_pack_start(hbox, button, 20, 20, TRUE, FALSE, 3);
+	dw_window_set_data(window, "_dw_green_spin", (void *)button);
+	dw_spinbutton_set_pos(button, DW_GREEN_VALUE(value));
+
+	text = dw_text_new("Blue:", 0);
+	dw_box_pack_start(hbox, text, 30, 20, FALSE, FALSE, 3);
+
+	button = dw_spinbutton_new("", 1003L);
+	dw_spinbutton_set_limits(button, 255, 0);
+	dw_box_pack_start(hbox, button, 20, 20, TRUE, FALSE, 3);
+	dw_window_set_data(window, "_dw_blue_spin", (void *)button);
+	dw_spinbutton_set_pos(button, DW_BLUE_VALUE(value));
+
+	hbox = dw_box_new(DW_HORZ, 0);
+
+	dw_box_pack_start(vbox, hbox, 0, 0, TRUE, FALSE, 0);
+	dw_box_pack_start(hbox, 0, 100, 1, TRUE, FALSE, 0);
+
+	button = dw_button_new("Ok", 1001L);
+	dw_box_pack_start(hbox, button, 50, 30, TRUE, FALSE, 3);
+
+	button = dw_button_new("Cancel", 1002L);
+	dw_box_pack_start(hbox, button, 50, 30, TRUE, FALSE, 3);
+
+	dwwait = dw_dialog_new((void *)window);
+
+	dw_window_set_size(window, 400, 400);
+
+	WinSendMsg(col, 0x0602, MPFROMLONG(_os2_color(value)), 0);
+	if(!IS_WARP4())
+		WinSendMsg(col, 0x1384, MPFROMLONG(_os2_color(value)), 0);
+
+	dw_window_show(window);
+
+	return (unsigned long)dw_dialog_wait(dwwait);
 }
 
 HPS _set_hps(HPS hps)
@@ -8198,6 +8281,7 @@ void API dw_exit(int exitcode)
 	 */
 	Root = NULL;
 
+	DosFreeModule(wpconfig);
 	exit(exitcode);
 }
 
