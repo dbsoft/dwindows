@@ -215,7 +215,7 @@ struct _GtkMdiClass
 #include "gtk/kill.xpm"
 
 #define GTK_MDI_BACKGROUND "Grey70"
-#define GTK_MDI_LABEL_BACKGROUND    "black"
+#define GTK_MDI_LABEL_BACKGROUND    "RoyalBlue4"
 #define GTK_MDI_LABEL_FOREGROUND    "white"
 #define GTK_MDI_DEFAULT_WIDTH 0
 #define GTK_MDI_DEFAULT_HEIGHT 0
@@ -341,6 +341,7 @@ static void gtk_mdi_put(GtkMdi *mdi, GtkWidget *child_widget, gint x, gint y, Gt
 	GtkWidget *top_event_box;
 	GtkWidget *bottom_event_box;
 	GtkWidget *child_widget_box;
+	GtkWidget *image;
 
 	GdkColor color;
 	gint i, j;
@@ -394,15 +395,21 @@ static void gtk_mdi_put(GtkMdi *mdi, GtkWidget *child_widget, gint x, gint y, Gt
 	pixmap = gdk_pixmap_colormap_create_from_xpm_d (NULL, colormap, &mask,
 													&style->bg[GTK_STATE_NORMAL],
 													(gchar **) minimize_xpm);
-	gtk_container_add (GTK_CONTAINER (button[0]), gtk_image_new_from_pixmap (pixmap, mask));
+	image = gtk_image_new_from_pixmap (pixmap, mask);
+	gtk_widget_show(image);
+	gtk_container_add (GTK_CONTAINER (button[0]), image);
 	pixmap = gdk_pixmap_colormap_create_from_xpm_d (GTK_WIDGET (mdi)->window, colormap, &mask,
 													&style->bg[GTK_STATE_NORMAL],
 													(gchar **) maximize_xpm);
-	gtk_container_add (GTK_CONTAINER (button[1]), gtk_image_new_from_pixmap (pixmap, mask));
+	image = gtk_image_new_from_pixmap (pixmap, mask);
+	gtk_widget_show(image);
+	gtk_container_add (GTK_CONTAINER (button[1]), image);
 	pixmap = gdk_pixmap_colormap_create_from_xpm_d (GTK_WIDGET (mdi)->window, colormap, &mask,
 													&style->bg[GTK_STATE_NORMAL],
 													(gchar **) kill_xpm);
-	gtk_container_add (GTK_CONTAINER (button[2]), gtk_image_new_from_pixmap (pixmap, mask));
+	image = gtk_image_new_from_pixmap (pixmap, mask);
+	gtk_widget_show(image);
+	gtk_container_add (GTK_CONTAINER (button[2]), image);
 
 	gtk_table_attach (GTK_TABLE (table), child_widget_box, 1, 6, 2, 3,
 					  GTK_EXPAND | GTK_SHRINK | GTK_FILL,
