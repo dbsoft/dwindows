@@ -797,6 +797,7 @@ typedef struct _dwexpose {
 typedef struct _dwdialog {
 	HEV eve;
 	int done;
+	int method;
 	void *data, *result;
 } DWDialog;
 

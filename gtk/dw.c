@@ -1099,6 +1099,7 @@ DWDialog *dw_dialog_new(void *data)
 	dw_event_reset(tmp->eve);
 	tmp->data = data;
 	tmp->done = FALSE;
+	tmp->method = FALSE;
 	tmp->result = NULL;
 
     return tmp;
@@ -1114,7 +1115,7 @@ DWDialog *dw_dialog_new(void *data)
 int dw_dialog_dismiss(DWDialog *dialog, void *result)
 {
 	dialog->result = result;
-	if(pthread_self() == _dw_thread || _dw_thread == (pthread_t)-1)
+	if(dialog->method)
 		gtk_main_quit();
 	else
 		dw_event_post(dialog->eve);
@@ -1142,9 +1143,15 @@ void *dw_dialog_wait(DWDialog *dialog)
 	}
 
 	if(pthread_self() == _dw_thread)
+	{
+		dialog->method = TRUE;
 		gtk_main();
+	}
 	else
+	{
+		dialog->method = FALSE;
 		dw_event_wait(dialog->eve, -1);
+	}
 
 	if(newprocess)
 	{
