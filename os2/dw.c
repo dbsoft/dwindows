@@ -86,7 +86,7 @@ typedef struct
 } SignalList;
 
 /* List of signals and their equivilent OS/2 message */
-#define SIGNALMAX 11
+#define SIGNALMAX 12
 
 SignalList SignalTranslate[SIGNALMAX] = {
 	{ WM_SIZE, "configure_event" },
@@ -99,7 +99,8 @@ SignalList SignalTranslate[SIGNALMAX] = {
 	{ WM_COMMAND, "clicked" },
 	{ CN_ENTER, "container-select" },
 	{ CN_CONTEXTMENU, "container-context" },
-	{ LN_SELECT, "item-select" }
+	{ LN_SELECT, "item-select" },
+	{ WM_SETFOCUS, "set-focus" }
 };
 
 /* This function adds a signal handler callback into the linked list.
@@ -371,7 +372,7 @@ int _focus_check_box(Box *box, HWND handle, int start)
  */
 void _initial_focus(HWND handle)
 {
-	Box *thisbox;
+	Box *thisbox = NULL;
 	HWND box;
 
 	box = WinWindowFromID(handle, FID_CLIENT);
@@ -398,13 +399,12 @@ void _shift_focus(HWND handle)
 		lastbox = box;
 	}
 
-	thisbox = WinQueryWindowPtr(lastbox, QWP_USER);
-	if(!thisbox)
-	{
-		box = WinWindowFromID(lastbox, FID_CLIENT);
-		if(box)
-			thisbox = WinQueryWindowPtr(box, QWP_USER);
-	}
+	box = WinWindowFromID(lastbox, FID_CLIENT);
+	if(box)
+		thisbox = WinQueryWindowPtr(box, QWP_USER);
+    else
+		thisbox = WinQueryWindowPtr(lastbox, QWP_USER);
+
 	if(thisbox)
 	{
 		if(_focus_check_box(thisbox, handle, 1)  == 0)
@@ -1162,6 +1162,20 @@ MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 		{
 			switch(msg)
 			{
+			case WM_SETFOCUS:
+				{
+					if(mp2)
+					{
+						int (*setfocusfunc)(HWND, void *) = (int (*)(HWND, void *))tmp->signalfunction;
+
+						if(hWnd == tmp->window || WinWindowFromID(tmp->window, FID_CLIENT) == hWnd)
+						{
+							result = setfocusfunc(tmp->window, tmp->data);
+							tmp = NULL;
+						}
+					}
+				}
+				break;
 			case WM_SIZE:
 				{
 					int (*sizefunc)(HWND, int, int, void *) = (int (*)(HWND, int, int, void *))tmp->signalfunction;
@@ -2102,7 +2116,7 @@ MRESULT EXPENTRY _RendProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
  *           newthread: True if this is the only thread.
  *                      False if there is already a message loop running.
  */
-int dw_init(int newthread)
+int dw_init(int newthread, int argc, char *argv[])
 {
 	APIRET rc;
 
@@ -2285,6 +2299,16 @@ int dw_window_show(HWND handle)
 	}
 	return rc;
 
+}
+
+/*
+ * Minimizes or Iconifies a top-level window.
+ * Parameters:
+ *           handle: The window handle to minimize.
+ */
+int dw_window_minimize(HWND handle)
+{
+	return WinSetWindowPos(handle, NULLHANDLE, 0, 0, 0, 0, SWP_MINIMIZE);
 }
 
 /*
@@ -2535,6 +2559,28 @@ HWND dw_groupbox_new(int type, int pad, char *title)
 	dw_window_set_color(hwndframe, DW_CLR_PALEGRAY, DW_CLR_PALEGRAY);
 	dw_window_set_color(newbox->grouphwnd, DW_CLR_BLACK, DW_CLR_PALEGRAY);
 	dw_window_set_font(newbox->grouphwnd, DefaultFont);
+	return hwndframe;
+}
+
+/*
+ * Create a new MDI Frame to be packed.
+ * Parameters:
+ *       id: An ID to be used with dw_window_from_id or 0L.
+ */
+HWND dw_mdi_new(unsigned long id)
+{
+	HWND hwndframe;
+
+	hwndframe = WinCreateWindow(HWND_OBJECT,
+								WC_FRAME,
+								NULL,
+								WS_VISIBLE | WS_CLIPCHILDREN,
+								0,0,2000,1000,
+								NULLHANDLE,
+								HWND_TOP,
+								0L,
+								NULL,
+								NULL);
 	return hwndframe;
 }
 

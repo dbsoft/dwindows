@@ -51,7 +51,7 @@ GdkColor _foreground = { 0, 0x0000, 0x0000, 0x0000 };
 GdkColor _background = { 0, 0xaaaa, 0xaaaa, 0xaaaa };
 
 char *_dw_browse_file = NULL;
-int _dw_file_active = 0, _dw_file_ready = 0;
+int _dw_file_active = 0, _dw_file_ready = 0, _dw_ignore_click = 0;
 pthread_t _dw_thread = (pthread_t)-1;
 int _dw_mutex_locked = FALSE;
 
@@ -62,6 +62,10 @@ int _dw_mutex_locked = FALSE;
 #ifndef USE_IMLIB
 #define USE_IMLIB
 #endif
+
+#define DEFAULT_SIZE_WIDTH 12
+#define DEFAULT_SIZE_HEIGHT 6
+#define DEFAULT_TITLEBAR_HEIGHT 22
 
 GdkColormap *_dw_cmap = NULL;
 
@@ -78,6 +82,7 @@ void _container_select_event(GtkWidget *widget, GdkEventButton *event, gpointer 
 void _container_context_event(GtkWidget *widget, GdkEventButton *event, gpointer data);
 void _item_select_event(GtkWidget *widget, GtkWidget *child, gpointer data);
 void _expose_event(GtkWidget *widget, GdkEventExpose *event, gpointer data);
+void _set_focus_event(GtkWindow *window, GtkWidget *widget, gpointer data);
 
 typedef struct
 {
@@ -94,7 +99,7 @@ typedef struct
 
 } SignalHandler;
 
-#define SIGNALMAX 12
+#define SIGNALMAX 13
 
 /* A list of signal forwarders, to account for paramater differences. */
 SignalList SignalTranslate[SIGNALMAX] = {
@@ -109,7 +114,8 @@ SignalList SignalTranslate[SIGNALMAX] = {
 	{ _generic_event, "clicked" },
 	{ _container_select_event, "container-select" },
 	{ _container_context_event, "container-context" },
-	{ _item_select_event, "item-select" }
+	{ _item_select_event, "item-select" },
+	{ _set_focus_event, "set-focus" }
 };
 
 /* Finds the translation function for a given signal name */
@@ -123,6 +129,18 @@ void *_findsigfunc(char *signame)
 			return SignalTranslate[z].func;
 	}
 	return NULL;
+}
+
+void _set_focus_event(GtkWindow *window, GtkWidget *widget, gpointer data)
+{
+	SignalHandler *work = (SignalHandler *)data;
+
+	if(work)
+	{
+		int (*setfocusfunc)(HWND, void *) = work->func;
+
+		setfocusfunc((HWND)window, work->data);
+	}
 }
 
 gint _button_press_event(GtkWidget *widget, GdkEventButton *event, gpointer data)
@@ -188,7 +206,7 @@ gint _motion_notify_event(GtkWidget *widget, GdkEventMotion *event, gpointer dat
 			keys |= DW_BUTTON2_MASK;
 		if (state & GDK_BUTTON2_MASK)
 			keys |= DW_BUTTON3_MASK;
-   
+
 		motionfunc(widget, x, y, keys, work->data);
 	}
 	return TRUE;
@@ -237,7 +255,7 @@ void _activate_event(GtkWidget *widget, gpointer data)
 {
 	SignalHandler *work = (SignalHandler *)data;
 
-	if(work)
+	if(work && !_dw_ignore_click)
 	{
 		void (*activatefunc)(HWND, void *) = work->func;
 
@@ -429,7 +447,7 @@ void _size_allocate(GtkWindow *window)
  *           newthread: True if this is the only thread.
  *                      False if there is already a message loop running.
  */
-int dw_int_init(DWResources *res, int newthread)
+int dw_int_init(DWResources *res, int newthread, int argc, char *argv[])
 {
 	int z;
 
@@ -441,7 +459,8 @@ int dw_int_init(DWResources *res, int newthread)
 	}
 	gtk_set_locale();
 	g_thread_init(NULL);
-	gtk_init(0, NULL);
+
+	gtk_init(&argc, &argv);
 #ifdef USE_IMLIB
 	gdk_imlib_init();
 #endif
@@ -604,6 +623,26 @@ int dw_yesno(char *title, char *text)
 }
 
 /*
+ * Minimizes or Iconifies a top-level window.
+ * Parameters:
+ *           handle: The window handle to minimize.
+ */
+int dw_window_minimize(HWND handle)
+{
+	int _locked_by_me = FALSE;
+
+	if(!handle)
+		return 0;
+
+	DW_MUTEX_LOCK;
+	XIconifyWindow(GDK_WINDOW_XDISPLAY(GTK_WIDGET(handle)->window),
+				   GDK_WINDOW_XWINDOW(GTK_WIDGET(handle)->window),
+				   DefaultScreen (GDK_DISPLAY ()));
+	DW_MUTEX_UNLOCK;
+	return 0;
+}
+
+/*
  * Makes the window visible.
  * Parameters:
  *           handle: The window handle to make visible.
@@ -617,6 +656,10 @@ int dw_window_show(HWND handle)
 
 	DW_MUTEX_LOCK;
 	gtk_widget_show(handle);
+	gdk_window_raise(GTK_WIDGET(handle)->window);
+	gdk_flush();
+	gdk_window_show(GTK_WIDGET(handle)->window);
+	gdk_flush();
 	DW_MUTEX_UNLOCK;
 	return 0;
 }
@@ -665,7 +708,11 @@ int dw_window_destroy(HWND handle)
  */
 void dw_window_reparent(HWND handle, HWND newparent)
 {
-	gtk_widget_reparent(handle, newparent);
+	int _locked_by_me = FALSE;
+
+	DW_MUTEX_LOCK;
+	gdk_window_reparent(GTK_WIDGET(handle)->window, newparent ? GTK_WIDGET(newparent)->window : GDK_ROOT_PARENT(), 0, 0);
+	DW_MUTEX_UNLOCK;
 }
 
 int _set_font(HWND handle, char *fontname)
@@ -719,29 +766,86 @@ int dw_window_set_font(HWND handle, char *fontname)
 	return TRUE;
 }
 
+void _free_gdk_colors(HWND handle)
+{
+	GdkColor *old = (GdkColor *)gtk_object_get_data(GTK_OBJECT(handle), "foregdk");
+
+	if(old)
+		free(old);
+
+	old = (GdkColor *)gtk_object_get_data(GTK_OBJECT(handle), "backgdk");
+
+	if(old)
+		free(old);
+}
+
+/* Free old color pointers and allocate new ones */
+void _save_gdk_colors(HWND handle, GdkColor fore, GdkColor back)
+{
+	GdkColor *foregdk = malloc(sizeof(GdkColor));
+	GdkColor *backgdk = malloc(sizeof(GdkColor));
+
+	_free_gdk_colors(handle);
+
+	*foregdk = fore;
+	*backgdk = back;
+
+	gtk_object_set_data(GTK_OBJECT(handle), "foregdk", (gpointer)foregdk);
+	gtk_object_set_data(GTK_OBJECT(handle), "backgdk", (gpointer)backgdk);
+}
+
 int _set_color(HWND handle, unsigned long fore, unsigned long back)
 {
 	GtkStyle *style;
 
 	if(fore & DW_RGB_COLOR || back & DW_RGB_COLOR)
 	{
+		/* Remember that each color component in X11 use 16 bit no matter
+		 * what the destination display supports. (and thus GDK)
+		 */
 		GdkColor forecolor = { 0, DW_RED_VALUE(fore) << 8, DW_GREEN_VALUE(fore) << 8, DW_BLUE_VALUE(fore) << 8 };
 		GdkColor backcolor = { 0, DW_RED_VALUE(back) << 8, DW_GREEN_VALUE(back) << 8, DW_BLUE_VALUE(back) << 8 };
 
 		gdk_color_alloc(_dw_cmap, &forecolor);
 		gdk_color_alloc(_dw_cmap, &backcolor);
 
-		style = gtk_widget_get_style(handle);
-		style->fg[1] = style->fg[0] = forecolor;
+		style = gtk_style_copy(gtk_widget_get_style(handle));
+		style->text[0] = style->text[1] = style->fg[0] = style->fg[1] = forecolor;
 		style->base[0] = style->base[1] = style->bg[0] = style->bg[1] = backcolor;
 		gtk_widget_set_style(handle, style);
+
+		_save_gdk_colors(handle, forecolor, backcolor);
+
+		if(GTK_IS_CLIST(handle))
+		{
+			int z, rowcount = (int)gtk_object_get_data(GTK_OBJECT(handle), "rowcount");
+
+			for(z=0;z<rowcount;z++)
+			{
+				gtk_clist_set_foreground(GTK_CLIST(handle), z, &forecolor);
+				gtk_clist_set_background(GTK_CLIST(handle), z, &backcolor);
+			}
+		}
 	}
 	else
 	{
-		style = gtk_widget_get_style(handle);
-		style->fg[1] = style->fg[0] = _colors[fore];
+		style = gtk_style_copy(gtk_widget_get_style(handle));
+		style->text[0] = style->text[1] = style->fg[0] = style->fg[1] = _colors[fore];
 		style->base[0] = style->base[1] = style->bg[0] = style->bg[1] = _colors[back];
 		gtk_widget_set_style(handle, style);
+
+		_save_gdk_colors(handle, _colors[fore], _colors[back]);
+
+		if(GTK_IS_CLIST(handle))
+		{
+			int z, rowcount = (int)gtk_object_get_data(GTK_OBJECT(handle), "rowcount");
+
+			for(z=0;z<rowcount;z++)
+			{
+				gtk_clist_set_foreground(GTK_CLIST(handle), z, &_colors[fore]);
+				gtk_clist_set_background(GTK_CLIST(handle), z, &_colors[back]);
+			}
+		}
 	}
 
 	return TRUE;
@@ -772,10 +876,6 @@ int dw_window_set_color(HWND handle, unsigned long fore, unsigned long back)
 		if(tmp)
 			handle2 = tmp;
 	}
-
-
-	gtk_object_set_data(GTK_OBJECT(handle2), "fore", (gpointer)fore);
-	gtk_object_set_data(GTK_OBJECT(handle2), "back", (gpointer)back);
 
 	_set_color(handle2, fore, back);
 
@@ -832,7 +932,7 @@ HWND dw_window_new(HWND hwndOwner, char *title, unsigned long flStyle)
 {
 	GtkWidget *tmp;
 	int _locked_by_me = FALSE;
-	int flags = 0;
+	int flags = 0, cx = 0, cy = 0;
 
 	DW_MUTEX_LOCK;
 	tmp = gtk_window_new(GTK_WINDOW_TOPLEVEL);
@@ -844,18 +944,30 @@ HWND dw_window_new(HWND hwndOwner, char *title, unsigned long flStyle)
 	gtk_widget_realize(tmp);
 
 	if(flStyle & DW_FCF_TITLEBAR)
+	{
+		cy += DEFAULT_TITLEBAR_HEIGHT;
 		flags |= GDK_DECOR_TITLE;
+	}
 
 	if(flStyle & DW_FCF_MINMAX)
 		flags |= GDK_DECOR_MINIMIZE | GDK_DECOR_MAXIMIZE;
 
 	if(flStyle & DW_FCF_SIZEBORDER)
+	{
+		cy += DEFAULT_SIZE_HEIGHT;
+		cx += DEFAULT_SIZE_WIDTH;
 		flags |= GDK_DECOR_RESIZEH;
+	}
 
 	if(flStyle & DW_FCF_BORDER)
 		flags |= GDK_DECOR_BORDER;
 
 	gdk_window_set_decorations(tmp->window, flags);
+	gtk_object_set_data(GTK_OBJECT(tmp), "cx", (gpointer)cx);
+	gtk_object_set_data(GTK_OBJECT(tmp), "cy", (gpointer)cy);
+
+	if(hwndOwner)
+		gdk_window_reparent(GTK_WIDGET(tmp)->window, GTK_WIDGET(hwndOwner)->window, 0, 0);
 
 	DW_MUTEX_UNLOCK;
 	return tmp;
@@ -892,6 +1004,16 @@ HWND dw_box_new(int type, int pad)
 HWND dw_groupbox_new(int type, int pad, char *title)
 {
 	return dw_box_new(type, pad);
+}
+
+/*
+ * Create a new MDI Frame to be packed.
+ * Parameters:
+ *       id: An ID to be used with dw_window_from_id or 0L.
+ */
+HWND dw_mdi_new(unsigned long id)
+{
+	return gtk_vbox_new(FALSE, 0);
 }
 
 /*
@@ -1180,8 +1302,10 @@ void dw_menu_item_set_check(HMENUI menu, unsigned long id, int check)
 
 	if(tmphandle)
 	{
+		_dw_ignore_click = 1;
 		if(GTK_CHECK_MENU_ITEM(tmphandle)->active != check)
 			gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(tmphandle), check);
+		_dw_ignore_click = 0;
 	}
 	DW_MUTEX_UNLOCK;
 }
@@ -1287,16 +1411,21 @@ HWND dw_text_new(char *text, unsigned long id)
  */
 HWND dw_status_text_new(char *text, ULONG id)
 {
-	GtkWidget *tmp;
+	GtkWidget *tmp, *frame;
 	int _locked_by_me = FALSE;
 
 	DW_MUTEX_LOCK;
+	frame = gtk_frame_new(NULL);
+	gtk_frame_set_shadow_type(GTK_FRAME(frame), GTK_SHADOW_ETCHED_IN);
 	tmp = gtk_label_new(text);
-	gtk_label_set_justify(GTK_LABEL(tmp), GTK_JUSTIFY_LEFT);
+	gtk_container_add(GTK_CONTAINER(frame), tmp);
 	gtk_widget_show(tmp);
-	gtk_object_set_data(GTK_OBJECT(tmp), "id", (gpointer)id);
+	gtk_widget_show(frame);
+	gtk_label_set_justify(GTK_LABEL(tmp), GTK_JUSTIFY_LEFT);
+	gtk_object_set_data(GTK_OBJECT(frame), "id", (gpointer)id);
+	gtk_object_set_data(GTK_OBJECT(frame), "label", (gpointer)tmp);
 	DW_MUTEX_UNLOCK;
-	return tmp;
+	return frame;
 }
 
 /*
@@ -1537,7 +1666,7 @@ HWND dw_checkbox_new(char *text, unsigned long id)
  *       id: An ID to be used with WinWindowFromID() or 0L.
  *       multi: Multiple select TRUE or FALSE.
  */
-HWND dw_listbox_new(unsigned long id, int multi)
+HWND dw_listbox_new(unsigned long id, int multi)
 {
 	GtkWidget *tmp, *list;
 	int _locked_by_me = FALSE;
@@ -1618,6 +1747,12 @@ void dw_window_set_text(HWND handle, char *text)
 		gtk_entry_set_text(GTK_ENTRY(GTK_COMBO(handle)->entry), text);
 	else if(GTK_IS_LABEL(handle))
 		gtk_label_set_text(GTK_LABEL(handle), text);
+	else if(GTK_IS_FRAME(handle))
+	{
+		GtkWidget *tmp = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(handle), "label");
+		if(tmp && GTK_IS_LABEL(tmp))
+			gtk_label_set_text(GTK_LABEL(tmp), text);
+	}
 	DW_MUTEX_UNLOCK;
 }
 
@@ -2271,6 +2406,7 @@ void *dw_container_alloc(HWND handle, int rowcount)
 {
 	int z, count = 0;
 	GtkWidget *clist;
+	GdkColor *fore, *back;
 	char **blah;
 	int _locked_by_me = FALSE;
 
@@ -2293,11 +2429,18 @@ void *dw_container_alloc(HWND handle, int rowcount)
 	blah = malloc(sizeof(char *) * count);
 	memset(blah, 0, sizeof(char *) * count);
 
+	fore = (GdkColor *)gtk_object_get_data(GTK_OBJECT(clist), "foregdk");
+	back = (GdkColor *)gtk_object_get_data(GTK_OBJECT(clist), "backgdk");
 	gtk_clist_freeze(GTK_CLIST(clist));
 	for(z=0;z<rowcount;z++)
 	{
 		gtk_clist_append(GTK_CLIST(clist), blah);
+		if(fore)
+			gtk_clist_set_foreground(GTK_CLIST(clist), z, fore);
+		if(back)
+			gtk_clist_set_background(GTK_CLIST(clist), z, back);
 	}
+	gtk_object_set_data(GTK_OBJECT(clist), "rowcount", (gpointer)rowcount);
 	free(blah);
 	DW_MUTEX_UNLOCK;
 	return (void *)handle;
@@ -2460,6 +2603,7 @@ void dw_container_clear(HWND handle)
 		g_list_free(list);
 		gtk_object_set_data(GTK_OBJECT(clist), "selectlist", NULL);
 		gtk_clist_clear(GTK_CLIST(clist));
+		gtk_object_set_data(GTK_OBJECT(clist), "rowcount", (gpointer)0);
 	}
 	DW_MUTEX_UNLOCK;
 }
@@ -3224,7 +3368,7 @@ void dw_window_set_pos(HWND handle, unsigned long x, unsigned long y)
 	int _locked_by_me = FALSE;
 
 	DW_MUTEX_LOCK;
-	if(handle->window)
+	if(handle && handle->window)
 		gdk_window_move(handle->window, x, y);
 	DW_MUTEX_UNLOCK;
 }
@@ -3243,13 +3387,27 @@ void dw_window_set_pos_size(HWND handle, unsigned long x, unsigned long y, unsig
 	int _locked_by_me = FALSE;
 
 	DW_MUTEX_LOCK;
-	if(GTK_IS_WINDOW(handle))
+	if(handle && GTK_IS_WINDOW(handle))
 	{
+		GdkWindow *parent = gdk_window_get_parent(handle->window);
+		int cx = (int)gtk_object_get_data(GTK_OBJECT(handle), "cx");
+		int cy = (int)gtk_object_get_data(GTK_OBJECT(handle), "cy");
+
 		_size_allocate(GTK_WINDOW(handle));
-		gtk_widget_set_uposition(handle, x, y);
-		gtk_window_set_default_size(GTK_WINDOW(handle), width, height);
+#if 0
+		if(parent)
+		{
+			gdk_window_resize(parent, width, height);
+			gdk_window_move(parent, x, y);
+		}
+		else
+#endif
+		{
+			gtk_widget_set_uposition(handle, x, y);
+			gtk_window_set_default_size(GTK_WINDOW(handle), width - cx, height - cy);
+		}
 	}
-	else if(handle->window)
+	else if(handle && handle->window)
 	{
 		gdk_window_resize(handle->window, width, height);
 		gdk_window_move(handle->window, x, y);
@@ -3273,7 +3431,13 @@ void dw_window_get_pos_size(HWND handle, ULONG *x, ULONG *y, ULONG *width, ULONG
 
 	if(handle && handle->window)
 	{
+		int cx, cy;
+
 		DW_MUTEX_LOCK;
+
+		cx = (int)gtk_object_get_data(GTK_OBJECT(handle), "cx");
+		cy = (int)gtk_object_get_data(GTK_OBJECT(handle), "cy");
+
 		gdk_window_get_geometry(handle->window, &gx, &gy, &gwidth, &gheight, &gdepth);
 		gdk_window_get_root_origin(handle->window, &gx, &gy);
 		if(x)
@@ -3281,9 +3445,9 @@ void dw_window_get_pos_size(HWND handle, ULONG *x, ULONG *y, ULONG *width, ULONG
 		if(y)
 			*y = gy;
 		if(width)
-			*width = gwidth;
+			*width = gwidth - cx;
 		if(height)
-			*height = gheight;
+			*height = gheight - cy;
 		DW_MUTEX_UNLOCK;
 	}
 }
@@ -3463,15 +3627,17 @@ void dw_listbox_append(HWND handle, char *text)
 		GtkWidget *list_item;
 		GList *tmp;
 		char *font = (char *)gtk_object_get_data(GTK_OBJECT(handle), "font");
-		unsigned long fore = (unsigned long)gtk_object_get_data(GTK_OBJECT(handle), "fore");
-		unsigned long back = (unsigned long)gtk_object_get_data(GTK_OBJECT(handle), "back");
+		GdkColor *fore = (GdkColor *)gtk_object_get_data(GTK_OBJECT(handle2), "foregdk");
+		GdkColor *back = (GdkColor *)gtk_object_get_data(GTK_OBJECT(handle2), "backgdk");
 
 		list_item=gtk_list_item_new_with_label(text);
 
 		if(font)
 			_set_font(GTK_LIST_ITEM(list_item)->item.bin.child, font);
 		if(fore && back)
-			_set_color(GTK_LIST_ITEM(list_item)->item.bin.child, fore, back);
+			_set_color(GTK_LIST_ITEM(list_item)->item.bin.child,
+					   DW_RGB(fore->red, fore->green, fore->blue),
+					   DW_RGB(back->red, back->green, back->blue));
 
 		tmp  = g_list_append(NULL, list_item);
 		gtk_widget_show(list_item);
@@ -4195,6 +4361,10 @@ void dw_signal_connect(HWND window, char *signame, void *sigfunc, void *data)
 	else if(GTK_IS_LIST(thiswindow) && strcmp(signame, "item-select") == 0)
 	{
 		thisname = "select_child";
+	}
+	else if(GTK_IS_WINDOW(thiswindow) && strcmp(signame, "set-focus") == 0)
+	{
+		thisname = "focus-in-event";
 	}
 
 	if(!thisfunc || !thiswindow)

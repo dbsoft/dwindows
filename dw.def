@@ -28,6 +28,7 @@ EXPORTS
   dw_box_pack_end                        @43
   dw_box_pack_splitbar_start             @44
   dw_box_pack_splitbar_end               @45
+  dw_mdi_new                             @46
 
   dw_window_new                          @50
   dw_window_show                         @51
@@ -52,6 +53,7 @@ EXPORTS
   dw_window_function                     @70
   dw_window_from_id                      @71
   dw_window_set_border                   @72
+  dw_window_minimize                     @73
 
   dw_bitmap_new                          @80
 
