@@ -880,9 +880,24 @@ int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *usedy,
 	/* Used for the SIZEEXPAND */
 	int nux = *usedx, nuy = *usedy;
 	int nupx = *usedpadx, nupy = *usedpady;
+	int textheight = 0;
 
 	(*usedx) += (thisbox->pad * 2);
 	(*usedy) += (thisbox->pad * 2);
+
+	if(thisbox->grouphwnd)
+	{
+		char *text = dw_window_get_text(thisbox->grouphwnd);
+
+		if(text)
+		{
+			dw_font_text_extents(thisbox->grouphwnd, 0, text, NULL, &textheight);
+			dw_free(text);
+		}
+
+		(*usedx) += 6;
+		(*usedy) += textheight ? (3 + textheight) : 6;
+	}
 
 	for(z=0;z<thisbox->count;z++)
 	{
@@ -1086,6 +1101,12 @@ int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *usedy,
 
 	currentx += thisbox->pad;
 	currenty += thisbox->pad;
+
+	if(thisbox->grouphwnd)
+	{
+		currentx += 3;
+		currenty += 3;
+	}
 
 	/* The second pass is for expansion and actual placement. */
 	if(pass > 1)

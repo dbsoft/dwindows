@@ -47,8 +47,8 @@
 #define DW_SIGNAL_VALUE_CHANGED  "value_changed"
 #define DW_SIGNAL_SWITCH_PAGE    "switch-page"
 
-#if defined(__OS2__) || defined(__WIN32__) || defined(WINNT) || defined(__EMX__)
-/* OS/2 or Windows */
+#if defined(__OS2__) || defined(__WIN32__) || defined(__MAC__) || defined(WINNT) || defined(__EMX__)
+/* OS/2, Windows or MacOS */
 
 #if defined(__IBMC__) && !defined(API)
 #define API _System
@@ -222,24 +222,93 @@ extern HAB dwhab;
 extern HMQ dwhmq;
 #endif
 
+#if defined(__MAC__)
+/* MacOS specific section */
+#include <carbon.h>
+
+typedef ControlRef HWND;
+typedef void *HMTX;
+typedef void *HEV;
+typedef void *HMOD;
+typedef void *HPIXMAP;
+typedef void *HTREEITEM;
+typedef void *HMENUI;
+
+#define DW_DT_LEFT               0
+#define DW_DT_QUERYEXTENT        0
+#define DW_DT_UNDERSCORE         0
+#define DW_DT_STRIKEOUT          0
+#define DW_DT_TEXTATTRS          0
+#define DW_DT_EXTERNALLEADING    0
+#define DW_DT_CENTER             0
+#define DW_DT_RIGHT              0
+#define DW_DT_TOP                0
+#define DW_DT_VCENTER            0
+#define DW_DT_BOTTOM             0
+#define DW_DT_HALFTONE           0
+#define DW_DT_MNEMONIC           0
+#define DW_DT_WORDBREAK          0
+#define DW_DT_ERASERECT          0
+
+#define DW_FCF_TITLEBAR          0
+#define DW_FCF_SYSMENU           0
+#define DW_FCF_MENU              0
+#define DW_FCF_SIZEBORDER        FCF_SIZEBORDER
+#define DW_FCF_MINBUTTON         FCF_MINBUTTON
+#define DW_FCF_MAXBUTTON         FCF_MAXBUTTON
+#define DW_FCF_MINMAX            FCF_MINMAX
+#define DW_FCF_VERTSCROLL        FCF_VERTSCROLL
+#define DW_FCF_HORZSCROLL        FCF_HORZSCROLL
+#define DW_FCF_DLGBORDER         FCF_DLGBORDER
+#define DW_FCF_BORDER            FCF_BORDER
+#define DW_FCF_SHELLPOSITION     FCF_SHELLPOSITION
+#define DW_FCF_TASKLIST          FCF_TASKLIST
+#define DW_FCF_NOBYTEALIGN       FCF_NOBYTEALIGN
+#define DW_FCF_NOMOVEWITHOWNER   FCF_NOMOVEWITHOWNER
+#define DW_FCF_SYSMODAL          FCF_SYSMODAL
+#define DW_FCF_HIDEBUTTON        FCF_HIDEBUTTON
+#define DW_FCF_HIDEMAX           FCF_HIDEMAX
+#define DW_FCF_AUTOICON          FCF_AUTOICON
+
+#define DW_CFA_BITMAPORICON      CFA_BITMAPORICON
+#define DW_CFA_STRING            CFA_STRING
+#define DW_CFA_ULONG             CFA_ULONG
+#define DW_CFA_TIME              CFA_TIME
+#define DW_CFA_DATE              CFA_DATE
+#define DW_CFA_CENTER            CFA_CENTER
+#define DW_CFA_LEFT              CFA_LEFT
+#define DW_CFA_RIGHT             CFA_RIGHT
+#define DW_CFA_HORZSEPARATOR     CFA_HORZSEPARATOR
+#define DW_CFA_SEPARATOR         CFA_SEPARATOR
+
+#define DW_CRA_SELECTED          CRA_SELECTED
+#define DW_CRA_CURSORED          CRA_CURSORED
+
+#define DW_LS_MULTIPLESEL        LS_MULTIPLESEL
+
+#define DW_LIT_NONE              -1
+
+#define DW_MLE_CASESENSITIVE     MLFSEARCH_CASESENSITIVE
+
+#define DW_POINTER_ARROW         SPTR_ARROW
+#define DW_POINTER_CLOCK         SPTR_WAIT
+
+/* flag values for dw_messagebox() */
+#define DW_MB_OK                 MB_OK
+#define DW_MB_OKCANCEL           MB_OKCANCEL
+#define DW_MB_YESNO              MB_YESNO
+#define DW_MB_YESNOCANCEL        MB_YESNOCANCEL
+
+#define DW_MB_WARNING            MB_WARNING
+#define DW_MB_ERROR              MB_ERROR
+#define DW_MB_INFORMATION        MB_INFORMATION
+#define DW_MB_QUESTION           MB_QUERY
+#endif
+
 /* Windows specific section */
 #if defined(__WIN32__) || defined(WINNT)
 #include <windows.h>
 #include <commctrl.h>
-
-/* Cygwin doesn't seem to have these... */
-#if defined(__CYGWIN32__)
-#define LVS_EX_GRIDLINES        0x00000001
-#define LVS_EX_FULLROWSELECT    0x00000020
-#define LVM_SETEXTENDEDLISTVIEWSTYLE (0x1000 + 54)
-#define ListView_SetExtendedListViewStyle(hwndLV, dw) (DWORD)SendMessage((hwndLV), LVM_SETEXTENDEDLISTVIEWSTYLE, 0, dw)
-#endif
-#ifndef UDM_SETPOS32
-#define UDM_SETPOS32            (WM_USER+113)
-#endif
-#ifndef UDM_GETPOS32
-#define UDM_GETPOS32            (WM_USER+114)
-#endif
 
 #if defined(MSVC) && !defined(API)
 #define API _cdecl
