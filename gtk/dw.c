@@ -3500,16 +3500,15 @@ HWND dw_tree_insert_after(HWND handle, HWND item, char *title, unsigned long ico
 	hbox = gtk_hbox_new(FALSE, 2);
 	gtk_object_set_data(GTK_OBJECT(newitem), "hbox", (gpointer)hbox);
 	gdkpix = _find_pixmap(&gdkbmp, icon, hbox, NULL, NULL);
-#if GTK_MAJOR_VERSION > 1
-	pixmap = gtk_image_new_from_pixmap(gdkpix, gdkbmp);
-#else
-	pixmap = gtk_pixmap_new(gdkpix, gdkbmp);
-#endif
 	gtk_container_add(GTK_CONTAINER(newitem), hbox);
-	gtk_box_pack_start(GTK_BOX(hbox), pixmap, FALSE, TRUE, 0);
+	if(gdkpix)
+	{
+		pixmap = gtk_pixmap_new(gdkpix, gdkbmp);
+		gtk_box_pack_start(GTK_BOX(hbox), pixmap, FALSE, TRUE, 0);
+		gtk_widget_show(pixmap);
+	}
 	gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, TRUE, 0);
 	gtk_widget_show(label);
-	gtk_widget_show(pixmap);
 	gtk_widget_show(hbox);
 
 	if(parent)
@@ -3619,16 +3618,15 @@ HWND dw_tree_insert(HWND handle, char *title, unsigned long icon, HWND parent, v
 	hbox = gtk_hbox_new(FALSE, 2);
 	gtk_object_set_data(GTK_OBJECT(item), "hbox", (gpointer)hbox);
 	gdkpix = _find_pixmap(&gdkbmp, icon, hbox, NULL, NULL);
-#if GTK_MAJOR_VERSION > 1
-	pixmap = gtk_image_new_from_pixmap(gdkpix, gdkbmp);
-#else
-	pixmap = gtk_pixmap_new(gdkpix, gdkbmp);
-#endif
 	gtk_container_add(GTK_CONTAINER(item), hbox);
-	gtk_box_pack_start(GTK_BOX(hbox), pixmap, FALSE, TRUE, 0);
+	if(gdkpix)
+	{
+		pixmap = gtk_pixmap_new(gdkpix, gdkbmp);
+		gtk_box_pack_start(GTK_BOX(hbox), pixmap, FALSE, TRUE, 0);
+		gtk_widget_show(pixmap);
+	}
 	gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, TRUE, 0);
 	gtk_widget_show(label);
-	gtk_widget_show(pixmap);
 	gtk_widget_show(hbox);
 
 	if(parent)
@@ -3726,16 +3724,15 @@ void dw_tree_set(HWND handle, HWND item, char *title, unsigned long icon)
 	hbox = gtk_hbox_new(FALSE, 2);
 	gtk_object_set_data(GTK_OBJECT(item), "hbox", (gpointer)hbox);
 	gdkpix = _find_pixmap(&gdkbmp, icon, hbox, NULL, NULL);
-#if GTK_MAJOR_VERSION > 1
-	pixmap = gtk_image_new_from_pixmap(gdkpix, gdkbmp);
-#else
-	pixmap = gtk_pixmap_new(gdkpix, gdkbmp);
-#endif
 	gtk_container_add(GTK_CONTAINER(item), hbox);
-	gtk_box_pack_start(GTK_BOX(hbox), pixmap, FALSE, TRUE, 0);
+	if(gdkpix)
+	{
+		pixmap = gtk_pixmap_new(gdkpix, gdkbmp);
+		gtk_box_pack_start(GTK_BOX(hbox), pixmap, FALSE, TRUE, 0);
+		gtk_widget_show(pixmap);
+	}
 	gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, TRUE, 0);
 	gtk_widget_show(label);
-	gtk_widget_show(pixmap);
 	gtk_widget_show(hbox);
 	DW_MUTEX_UNLOCK;
 #endif
