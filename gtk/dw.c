@@ -16,6 +16,8 @@
 #include <unistd.h>
 #include <errno.h>
 #include <sys/time.h>
+#include <dirent.h>
+#include <sys/stat.h>
 #include "config.h"
 #include <gdk/gdkkeysyms.h>
 #ifdef USE_IMLIB
@@ -4283,9 +4285,12 @@ char * API dw_tree_get_title(HWND handle, HTREEITEM item)
 
 	DW_MUTEX_LOCK;
 #if GTK_MAJOR_VERSION > 1
-	GtkTreeModel *store = (GtkTreeModel *)gtk_object_get_data(GTK_OBJECT(handle), "_dw_tree_store");
+	GtkWidget *tree = (GtkWidget *)gtk_object_get_user_data(GTK_OBJECT(handle));
+	GtkTreeModel *store;
 
-	gtk_tree_model_get(store, (GtkTreeIter *)item, 0, &text, -1);
+	if(tree && GTK_IS_TREE_VIEW(tree) &&
+	   (store = (GtkTreeModel *)gtk_object_get_data(GTK_OBJECT(tree), "_dw_tree_store")))
+		gtk_tree_model_get(store, (GtkTreeIter *)item, 0, &text, -1);
 #else
 	text = (char *)gtk_object_get_data(GTK_OBJECT(item), "_dw_text");
 #endif
@@ -4309,9 +4314,14 @@ HTREEITEM API dw_tree_get_parent(HWND handle, HTREEITEM item)
 
 	DW_MUTEX_LOCK;
 #if GTK_MAJOR_VERSION > 1
-	GtkTreeModel *store = (GtkTreeModel *)gtk_object_get_data(GTK_OBJECT(handle), "_dw_tree_store");
+	GtkWidget *tree = (GtkWidget *)gtk_object_get_user_data(GTK_OBJECT(handle));
+	GtkTreeModel *store;
 
-	gtk_tree_model_get(store, (GtkTreeIter *)item, 4, &parent, -1);
+	if(tree && GTK_IS_TREE_VIEW(tree) &&
+	   (store = (GtkTreeModel *)gtk_object_get_data(GTK_OBJECT(tree), "_dw_tree_store")))
+	{
+		gtk_tree_model_get(store, (GtkTreeIter *)item, 4, &parent, -1);
+	}
 #else
 	parent = (HTREEITEM)gtk_object_get_data(GTK_OBJECT(item), "_dw_parent");
 #endif
@@ -6034,7 +6044,7 @@ int dw_module_load(char *name, HMOD *handle)
 	if(*handle == NULL)
 	{
 		strncpy(errorbuf, dlerror(), 1024);
-        printf("%s\n", errorbuf);
+		printf("%s\n", errorbuf);
 		sprintf(newname, "lib%s.so", name);
 		*handle = dlopen(newname, RTLD_NOW);
 	}
@@ -7740,6 +7750,129 @@ static gint _gtk_file_cancel(GtkWidget *widget, DWDialog *dwwait)
 	return FALSE;
 }
 
+/* The next few functions are support functions for the UNIX folder browser */
+static void _populate_directory(HWND tree, HTREEITEM parent, char *path)
+{
+	struct dirent *dent;
+	HTREEITEM item;
+	DIR *hdir;
+
+	if((hdir = opendir(path)))
+	{
+		while((dent = readdir(hdir)))
+		{
+			struct stat bleah;
+
+			stat(dent->d_name, &bleah);
+
+			if(S_ISDIR(bleah.st_mode) && strcmp(dent->d_name, ".") && strcmp(dent->d_name, ".."))
+			{
+				int len = strlen(path);
+				char *folder = malloc(len + strlen(dent->d_name) + 2);
+				HTREEITEM tempitem;
+
+				strcpy(folder, path);
+				strcpy(&folder[len-1], dent->d_name);
+
+				item = dw_tree_insert(tree, dent->d_name, 0, parent, (void *)parent);
+				tempitem = dw_tree_insert(tree, "", 0, item, 0);
+				dw_tree_set_data(tree, item, (void *)tempitem);
+
+				strcat(folder, "/");
+
+				free(folder);
+			}
+		}
+		closedir(hdir);
+	}
+}
+
+static int DWSIGNAL _dw_folder_ok_func(HWND window, void *data)
+{
+	DWDialog *dwwait = (DWDialog *)data;
+	void *treedata;
+
+	if(!dwwait)
+		return FALSE;
+
+	treedata = dw_window_get_data((HWND)dwwait->data, "_dw_tree_selected");
+	dw_window_destroy((HWND)dwwait->data);
+	dw_dialog_dismiss(dwwait, treedata);
+	return FALSE;
+}
+
+static int DWSIGNAL _dw_folder_cancel_func(HWND window, void *data)
+{
+	DWDialog *dwwait = (DWDialog *)data;
+
+	if(!dwwait)
+		return FALSE;
+
+	dw_window_destroy((HWND)dwwait->data);
+	dw_dialog_dismiss(dwwait, NULL);
+	return FALSE;
+}
+
+static char *_tree_folder(HWND tree, HTREEITEM item)
+{
+	char *folder=strdup("");
+	HTREEITEM parent = item;
+
+	while(parent)
+	{
+		char *temp, *text = dw_tree_get_title(tree, parent);
+
+		if(text)
+		{
+			temp = malloc(strlen(text) + strlen(folder) + 3);
+			strcpy(temp, text);
+            if(strcmp(text, "/"))
+				strcat(temp, "/");
+			strcat(temp, folder);
+			free(folder);
+			folder = temp;
+		}
+		parent = dw_tree_get_parent(tree, parent);
+	}
+	return folder;
+}
+
+static int DWSIGNAL _item_select(HWND window, HTREEITEM item, char *text, void *data, void *itemdata)
+{
+	DWDialog *dwwait = (DWDialog *)data;
+	char *treedata = (char *)dw_window_get_data((HWND)dwwait->data, "_dw_tree_selected");
+
+	text = text; itemdata = itemdata;
+	if(treedata)
+		free(treedata);
+
+	treedata = _tree_folder(window, item);
+	dw_window_set_data((HWND)dwwait->data, "_dw_tree_selected", (void *)treedata);
+
+	return FALSE;
+}
+
+static int DWSIGNAL _tree_expand(HWND window, HTREEITEM item, void *data)
+{
+	DWDialog *dwwait = (DWDialog *)data;
+	HWND tree = (HWND)dw_window_get_data((HWND)dwwait->data, "_dw_tree");
+	HTREEITEM tempitem = (HTREEITEM)dw_tree_get_data(tree, item);
+
+	if(tempitem)
+	{
+		char *folder = _tree_folder(tree, item);
+
+		dw_tree_set_data(tree, item, 0);
+		dw_tree_delete(tree, tempitem);
+
+		if(*folder)
+			_populate_directory(tree, item, folder);
+		free(folder);
+	}
+
+	return FALSE;
+}
+
 /*
  * Opens a file dialog and queries user selection.
  * Parameters:
@@ -7758,33 +7891,75 @@ char *dw_file_browse(char *title, char *defpath, char *ext, int flags)
 	int _locked_by_me = FALSE;
 	DWDialog *dwwait;
 
-	DW_MUTEX_LOCK;
-
-	/* The DW mutex should be sufficient for
-	 * insuring no thread changes this unknowingly.
-	 */
-	if(_dw_file_active)
+	if(flags == DW_DIRECTORY_OPEN)
 	{
-		DW_MUTEX_UNLOCK;
-		return NULL;
+		HWND window, hbox, vbox, tree, button;
+		HTREEITEM item, tempitem;
+
+		window = dw_window_new( HWND_DESKTOP, title, DW_FCF_SHELLPOSITION | DW_FCF_TITLEBAR | DW_FCF_SIZEBORDER | DW_FCF_MINMAX);
+
+		vbox = dw_box_new(DW_VERT, 5);
+
+		dw_box_pack_start(window, vbox, 0, 0, TRUE, TRUE, 0);
+
+		tree = dw_tree_new(60);
+
+		dw_box_pack_start(vbox, tree, 1, 1, TRUE, TRUE, 0);
+		dw_window_set_data(window, "_dw_tree", (void *)tree);
+
+		hbox = dw_box_new(DW_HORZ, 0);
+
+		dw_box_pack_start(vbox, hbox, 0, 0, TRUE, FALSE, 0);
+
+		dwwait = dw_dialog_new((void *)window);
+
+		dw_signal_connect(tree, DW_SIGNAL_ITEM_SELECT, DW_SIGNAL_FUNC(_item_select), (void *)dwwait);
+		dw_signal_connect(tree, DW_SIGNAL_TREE_EXPAND, DW_SIGNAL_FUNC(_tree_expand), (void *)dwwait);
+
+		button = dw_button_new("Ok", 1001L);
+		dw_box_pack_start(hbox, button, 50, 30, TRUE, FALSE, 3);
+		dw_signal_connect(button, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(_dw_folder_ok_func), (void *)dwwait);
+
+		button = dw_button_new("Cancel", 1002L);
+		dw_box_pack_start(hbox, button, 50, 30, TRUE, FALSE, 3);
+		dw_signal_connect(button, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(_dw_folder_cancel_func), (void *)dwwait);
+
+		item = dw_tree_insert(tree, "/", 0, NULL, 0);
+		tempitem = dw_tree_insert(tree, "", 0, item, 0);
+		dw_tree_set_data(tree, item, (void *)tempitem);
+
+		dw_window_set_usize(window, 225, 300);
+		dw_window_show(window);
 	}
+	else
+	{
+		DW_MUTEX_LOCK;
 
-	_dw_file_active = 1;
+		/* The DW mutex should be sufficient for
+		 * insuring no thread changes this unknowingly.
+		 */
+		if(_dw_file_active)
+		{
+			DW_MUTEX_UNLOCK;
+			return NULL;
+		}
 
-	filew = gtk_file_selection_new(title);
+		_dw_file_active = 1;
 
-	dwwait = dw_dialog_new((void *)filew);
+		filew = gtk_file_selection_new(title);
 
-	gtk_signal_connect(GTK_OBJECT(GTK_FILE_SELECTION(filew)->ok_button), "clicked", (GtkSignalFunc) _gtk_file_ok, dwwait);
-	gtk_signal_connect(GTK_OBJECT(GTK_FILE_SELECTION(filew)->cancel_button), "clicked", (GtkSignalFunc) _gtk_file_cancel, dwwait);
+		dwwait = dw_dialog_new((void *)filew);
 
-	if(defpath)
-		gtk_file_selection_set_filename(GTK_FILE_SELECTION(filew), defpath);
+		gtk_signal_connect(GTK_OBJECT(GTK_FILE_SELECTION(filew)->ok_button), "clicked", (GtkSignalFunc) _gtk_file_ok, dwwait);
+		gtk_signal_connect(GTK_OBJECT(GTK_FILE_SELECTION(filew)->cancel_button), "clicked", (GtkSignalFunc) _gtk_file_cancel, dwwait);
 
-	gtk_widget_show(filew);
+		if(defpath)
+			gtk_file_selection_set_filename(GTK_FILE_SELECTION(filew), defpath);
 
-	DW_MUTEX_UNLOCK;
+		gtk_widget_show(filew);
 
+		DW_MUTEX_UNLOCK;
+	}
 	return (char *)dw_dialog_wait(dwwait);
 }
 
