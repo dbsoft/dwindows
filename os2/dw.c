@@ -3006,13 +3006,25 @@ MRESULT EXPENTRY _button_draw(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2, PFNW
 {
 	HPIXMAP pixmap = (HPIXMAP)dw_window_get_data(hwnd, "_dw_hpixmap");
 	HPIXMAP disable = (HPIXMAP)dw_window_get_data(hwnd, "_dw_hpixmap_disabled");
+	HPOINTER icon = (HPOINTER)dw_window_get_data(hwnd, "_dw_button_icon");
 	MRESULT res;
 
 	if(!oldproc)
 		res = WinDefWindowProc(hwnd, msg, mp1, mp2);
 	res = oldproc(hwnd, msg, mp1, mp2);
 
-	if(pixmap)
+	if(icon)
+	{
+		ULONG halftone = DP_NORMAL;
+		HPS hps = WinGetPS(hwnd);
+
+		if(dw_window_get_data(hwnd, "_dw_disabled"))
+			halftone = DP_HALFTONED;
+
+		WinDrawPointer(hps, 5, 5, icon, halftone);
+		WinReleasePS(hps);
+	}
+	else if(pixmap)
 	{
 		unsigned long width, height;
 		int x, y;
@@ -4645,47 +4657,65 @@ HWND API dw_bitmapbutton_new_from_file(char *text, unsigned long id, char *filen
 							   NULL);
 	char *file = alloca(strlen(filename) + 5);
 	HPIXMAP pixmap = NULL, disabled = NULL;
+	HPOINTER icon = 0;
 
 	if(file && (pixmap = calloc(1,sizeof(struct _hpixmap))))
 	{
-		int z, j, lim;
+		int z, j, lim, len;
 		LONG fore;
 
 		strcpy(file, filename);
 
 		/* check if we can read from this file (it exists and read permission) */
-		if(access(file, 04) != 0)
+		if(access(file, 04) == 0)
 		{
-			/* Try with .bmp extention */
-			strcat(file, ".bmp");
-			if(access(file, 04) != 0)
+			len = strlen( file );
+			if(len > 4)
 			{
-#if 0 /* don't free pixmap if bitmap doesn't exist; causes crash several lines below */
-				free(pixmap);
-				pixmap = NULL;
-#endif
+				if(stricmp(file + len - 4, ".ico") == 0)
+					icon = WinLoadFileIcon(file, FALSE);
+				else
+					_load_bitmap_file(file, tmp, &pixmap->hbm, &pixmap->hdc, &pixmap->hps, &pixmap->width, &pixmap->height);
+			}
+		}
+		else
+		{
+			/* Try with .ico extension first...*/
+			strcat(file, ".ico");
+			if(access(file, 04) == 0)
+				icon = WinLoadFileIcon(file, FALSE);
+			else
+			{
+				strcpy(file, filename);
+				strcat(file, ".bmp");
+				if(access(file, 04) == 0)
+					_load_bitmap_file(file, tmp, &pixmap->hbm, &pixmap->hdc, &pixmap->hps, &pixmap->width, &pixmap->height);
 			}
 		}
 
-		/* Try to load the bitmap from file */
-		if(pixmap)
-			_load_bitmap_file(file, tmp, &pixmap->hbm, &pixmap->hdc, &pixmap->hps, &pixmap->width, &pixmap->height);
-
-		/* Create a disabled style pixmap */
-		disabled = dw_pixmap_new(tmp, pixmap->width, pixmap->height, dw_color_depth_get());
-		dw_pixmap_bitblt(0, disabled, 0, 0, pixmap->width, pixmap->height, 0, pixmap, 0, 0);
-
-		fore = _foreground;
-		dw_color_foreground_set(DW_CLR_PALEGRAY);
-		lim = pixmap->width/2;
-		for(j=0;j<pixmap->height;j++)
+		if(icon)
 		{
-			int mod = j%2;
-
-			for(z=0;z<lim;z++)
-				dw_draw_point(0, disabled, (z*2)+mod, j);
+			free(pixmap);
+			pixmap = NULL;
 		}
-		_foreground = fore;
+		else
+		{
+			/* Create a disabled style pixmap */
+			disabled = dw_pixmap_new(tmp, pixmap->width, pixmap->height, dw_color_depth_get());
+			dw_pixmap_bitblt(0, disabled, 0, 0, pixmap->width, pixmap->height, 0, pixmap, 0, 0);
+
+			fore = _foreground;
+			dw_color_foreground_set(DW_CLR_PALEGRAY);
+			lim = pixmap->width/2;
+			for(j=0;j<pixmap->height;j++)
+			{
+				int mod = j%2;
+
+				for(z=0;z<lim;z++)
+					dw_draw_point(0, disabled, (z*2)+mod, j);
+			}
+			_foreground = fore;
+		}
 	}
 
 	bubble->id = id;
@@ -4695,8 +4725,13 @@ HWND API dw_bitmapbutton_new_from_file(char *text, unsigned long id, char *filen
 
 	WinSetWindowPtr(tmp, QWP_USER, bubble);
 
-	dw_window_set_data(tmp, "_dw_hpixmap", (void *)pixmap);
-	dw_window_set_data(tmp, "_dw_hpixmap_disabled", (void *)disabled);
+	if(icon)
+		dw_window_set_data(tmp, "_dw_button_icon", (void *)icon);
+	else
+	{
+		dw_window_set_data(tmp, "_dw_hpixmap", (void *)pixmap);
+		dw_window_set_data(tmp, "_dw_hpixmap_disabled", (void *)disabled);
+	}
 	dw_window_set_data(tmp, "_dw_bitmapbutton", (void *)1);
 	return tmp;
 }
