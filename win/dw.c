@@ -1815,6 +1815,9 @@ BOOL CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 		if(windowfunc)
 			windowfunc((void *)mp2);
 		break;
+	case WM_USER+5:
+		dw_signal_disconnect_by_name((HWND)mp1, DW_SIGNAL_CLICKED);
+		break;
 	case WM_NOTIFY:
 		{
 			NMHDR FAR *tem=(NMHDR FAR *)mp2;
@@ -4032,6 +4035,8 @@ void API dw_menu_popup(HMENUI *menu, HWND parent, int x, int y)
 
 		popup = parent;
 		TrackPopupMenu(mymenu, 0, x, y, 0, parent, NULL);
+		/* TODO: This needs to call this on all submenus */
+		PostMessage(DW_HWND_OBJECT, WM_USER+5, (LPARAM)mymenu, 0);
 		DestroyMenu(mymenu);
 	}
 }
