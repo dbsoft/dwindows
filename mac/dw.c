@@ -650,7 +650,7 @@ void * API dw_dialog_wait(DWDialog *dialog)
  *           format: printf style format string.
  *           ...: Additional variables for use in the format.
  */
-int API dw_messagebox(char *title, char *format, ...)
+int API dw_messagebox(char *title, int flags, char *format, ...)
 {
 	va_list args;
 	char outbuf[1024];
@@ -664,19 +664,6 @@ int API dw_messagebox(char *title, char *format, ...)
 #endif
 
 	return strlen(outbuf);
-}
-
-/*
- * Displays a Message Box with given text and title..
- * Parameters:
- *           title: The title of the message box.
- *           text: The text to display in the box.
- * Returns:
- *           True if YES False of NO.
- */
-int API dw_yesno(char *title, char *text)
-{
-	return FALSE;
 }
 
 /*
