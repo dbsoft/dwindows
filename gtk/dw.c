@@ -3,7 +3,7 @@
  *          A GTK like implementation of the PM GUI
  *          GTK forwarder module for portabilty.
  *
- * (C) 2000,2001 Brian Smith <dbsoft@technologist.com>
+ * (C) 2000-2002 Brian Smith <dbsoft@technologist.com>
  *
  */
 #include "dw.h"
@@ -91,6 +91,8 @@ void _expose_event(GtkWidget *widget, GdkEventExpose *event, gpointer data);
 void _set_focus_event(GtkWindow *window, GtkWidget *widget, gpointer data);
 void _tree_select_event(GtkTree *tree, GtkWidget *child, gpointer data);
 void _tree_context_event(GtkWidget *widget, GdkEventButton *event, gpointer data);
+void _value_changed_event(GtkAdjustment *adjustment, gpointer user_data);
+
 
 void msleep(long period);
 
@@ -109,7 +111,7 @@ typedef struct
 
 } SignalHandler;
 
-#define SIGNALMAX 15
+#define SIGNALMAX 16
 
 /* A list of signal forwarders, to account for paramater differences. */
 SignalList SignalTranslate[SIGNALMAX] = {
@@ -127,7 +129,8 @@ SignalList SignalTranslate[SIGNALMAX] = {
 	{ _tree_context_event, "tree-context" },
 	{ _item_select_event, "item-select" },
 	{ _tree_select_event, "tree-select" },
-	{ _set_focus_event, "set-focus" }
+	{ _set_focus_event, "set-focus" },
+	{ _value_changed_event, "value_changed" }
 };
 
 /* Alignment flags */
@@ -464,6 +467,39 @@ void _unselect_row(GtkWidget *widget, gint row, gint column, GdkEventButton *eve
 	}
 }
 
+int _round_value(gfloat val)
+{
+	int newval = (int)val;
+
+	if(val >= 0.5 + (gfloat)newval)
+		newval++;
+
+	return newval;
+}
+
+void _value_changed_event(GtkAdjustment *adjustment, gpointer data)
+{
+	GtkWidget *slider = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(adjustment), "slider");
+	SignalHandler *work = (SignalHandler *)data;
+
+	if(slider && work)
+	{
+		int (*valuechangedfunc)(HWND, int, void *) = work->func;
+		int max = _round_value(adjustment->upper) - 1;
+		int val = _round_value(adjustment->value);
+		static int lastval = -1;
+		static GtkWidget *lastwidget = 0;
+
+		if(lastval != val || lastwidget != slider)
+		{
+			if(GTK_IS_VSCALE(slider))
+				valuechangedfunc(work->window, max - val,  work->data);
+			else
+				valuechangedfunc(work->window, val,  work->data);
+		}
+	}
+}
+
 gint _default_key_press_event(GtkWidget *widget, GdkEventKey *event, gpointer data)
 {
 	GtkWidget *next = (GtkWidget *)data;
@@ -633,17 +669,21 @@ void dw_main(HAB currenthab, void *func)
 }
 
 /*
- * Runs a message loop for Dynamic Windows, for a period of seconds.
+ * Runs a message loop for Dynamic Windows, for a period of milliseconds.
  * Parameters:
- *           seconds: Number of seconds to run the loop for.
+ *           milliseconds: Number of milliseconds to run the loop for.
  */
-void dw_main_sleep(int seconds)
+void dw_main_sleep(int milliseconds)
 {
-	time_t start = time(NULL);
+	struct timeval tv, start;
+
+	gettimeofday(&start, NULL);
 
 	if(_dw_thread == (pthread_t)-1 || _dw_thread == pthread_self())
 	{
-		while(time(NULL) - start <= seconds)
+		gettimeofday(&tv, NULL);
+
+		while(((tv.tv_sec - start.tv_sec)*1000) + ((tv.tv_usec - start.tv_usec)/1000) <= milliseconds)
 		{
 			gdk_threads_enter();
 			if(gtk_events_pending())
@@ -651,10 +691,11 @@ void dw_main_sleep(int seconds)
 			else
 				msleep(1);
 			gdk_threads_leave();
+			gettimeofday(&tv, NULL);
 		}
 	}
 	else
-		msleep(seconds * 1000);
+		msleep(milliseconds);
 }
 
 /*
@@ -2040,6 +2081,35 @@ HWND dw_radiobutton_new(char *text, ULONG id)
 }
 
 /*
+ * Create a new slider window (widget) to be packed.
+ * Parameters:
+ *       vertical: TRUE or FALSE if slider is vertical.
+ *       increments: Number of increments available.
+ *       id: An ID to be used with WinWindowFromID() or 0L.
+ */
+HWND dw_slider_new(int vertical, int increments, ULONG id)
+{
+	GtkWidget *tmp;
+	GtkAdjustment *adjustment;
+	int _locked_by_me = FALSE;
+
+	DW_MUTEX_LOCK;
+	adjustment = (GtkAdjustment *)gtk_adjustment_new(0, 0, (gfloat)(increments + 1), 1, 1, 1);
+	if(vertical)
+		tmp = gtk_vscale_new(adjustment);
+	else
+		tmp = gtk_hscale_new(adjustment);
+	gtk_widget_show(tmp);
+	gtk_scale_set_draw_value(GTK_SCALE(tmp), 0);
+	gtk_scale_set_digits(GTK_SCALE(tmp), 0);
+	gtk_object_set_data(GTK_OBJECT(tmp), "adjustment", (gpointer)adjustment);
+	gtk_object_set_data(GTK_OBJECT(adjustment), "slider", (gpointer)tmp);
+	gtk_object_set_data(GTK_OBJECT(tmp), "id", (gpointer)id);
+	DW_MUTEX_UNLOCK;
+	return tmp;
+}
+
+/*
  * Create a new percent bar window (widget) to be packed.
  * Parameters:
  *       id: An ID to be used with WinWindowFromID() or 0L.
@@ -2628,7 +2698,7 @@ void dw_mle_thaw(HWND handle)
 /*
  * Returns the range of the percent bar.
  * Parameters:
- *          handle: Handle to the slider to be queried.
+ *          handle: Handle to the percent bar to be queried.
  */
 unsigned int dw_percent_query_range(HWND handle)
 {
@@ -2638,8 +2708,8 @@ unsigned int dw_percent_query_range(HWND handle)
 /*
  * Sets the percent bar position.
  * Parameters:
- *          handle: Handle to the slider to be set.
- *          position: Position of the slider withing the range.
+ *          handle: Handle to the percent bar to be set.
+ *          position: Position of the percent bar withing the range.
  */
 void dw_percent_set_pos(HWND handle, unsigned int position)
 {
@@ -2647,6 +2717,63 @@ void dw_percent_set_pos(HWND handle, unsigned int position)
 
 	DW_MUTEX_LOCK;
 	gtk_progress_bar_update(GTK_PROGRESS_BAR(handle), (gfloat)position/100);
+	DW_MUTEX_UNLOCK;
+}
+
+/*
+ * Returns the position of the slider.
+ * Parameters:
+ *          handle: Handle to the slider to be queried.
+ */
+unsigned int dw_slider_query_pos(HWND handle)
+{
+	int val = 0, _locked_by_me = FALSE;
+	GtkAdjustment *adjustment;
+
+	if(!handle)
+		return 0;
+
+	DW_MUTEX_LOCK;
+	adjustment = (GtkAdjustment *)gtk_object_get_data(GTK_OBJECT(handle), "adjustment");
+	if(adjustment)
+	{
+		int max = _round_value(adjustment->upper) - 1;
+		int thisval = _round_value(adjustment->value);
+
+		if(GTK_IS_VSCALE(handle))
+			val = max - thisval;
+        else
+			val = thisval;
+	}
+	DW_MUTEX_UNLOCK;
+	return val;
+}
+
+/*
+ * Sets the slider position.
+ * Parameters:
+ *          handle: Handle to the slider to be set.
+ *          position: Position of the slider withing the range.
+ */
+void dw_slider_set_pos(HWND handle, unsigned int position)
+{
+	int _locked_by_me = FALSE;
+	GtkAdjustment *adjustment;
+
+	if(!handle)
+		return;
+
+	DW_MUTEX_LOCK;
+	adjustment = (GtkAdjustment *)gtk_object_get_data(GTK_OBJECT(handle), "adjustment");
+	if(adjustment)
+	{
+		int max = _round_value(adjustment->upper) - 1;
+
+		if(GTK_IS_VSCALE(handle))
+			gtk_adjustment_set_value(adjustment, (gfloat)(max - position));
+        else
+			gtk_adjustment_set_value(adjustment, (gfloat)position);
+	}
 	DW_MUTEX_UNLOCK;
 }
 
@@ -5605,6 +5732,10 @@ void dw_signal_connect(HWND window, char *signame, void *sigfunc, void *data)
 			gtk_object_set_data(GTK_OBJECT(thiswindow), "select-child-data", (gpointer)work);
 		}
 		thisname = "select-child";
+	}
+	else if(GTK_IS_VSCALE(thiswindow) || GTK_IS_HSCALE(thiswindow))
+	{
+		thiswindow = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(thiswindow), "adjustment");
 	}
 
 	if(!thisfunc || !thiswindow)
