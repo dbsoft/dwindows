@@ -838,9 +838,6 @@ int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *usedy,
 
 					(*depth)++;
 
-					/*tmp->xratio = ((float)((thisbox->items[z].width * thisbox->xratio)-tmp->upx) )/((float)(tmp->minwidth-tmp->upx));
-					tmp->yratio = ((float)((thisbox->items[z].height * thisbox->yratio)-tmp->upy))/((float)(tmp->minheight-tmp->upy));*/
-
 #ifdef DWDEBUG
 					fprintf(f, "2- Resize Box depth %d\r\nx = %d, y = %d, usedx = %d, usedy = %d, usedpadx = %d, usedpady = %d xratio = %f, yratio = %f,\r\nupx = %d, upy = %d, width = %d, height = %d, minwidth = %d, minheight = %d, box xratio = %f, box yratio = %f\r\n\r\n",
 						*depth, x, y, *usedx, *usedy, *usedpadx, *usedpady, tmp->xratio, tmp->yratio, tmp->upx, tmp->upy, thisbox->items[z].width, thisbox->items[z].height, tmp->minwidth, tmp->minheight, thisbox->xratio, thisbox->yratio);
@@ -962,6 +959,9 @@ void _do_resize(Box *thisbox, int x, int y)
 			int usedx = 0, usedy = 0, depth = 0, usedpadx = 0, usedpady = 0;
 
 			_resize_box(thisbox, &depth, x, y, &usedx, &usedy, 1, &usedpadx, &usedpady);
+
+			if(usedx-usedpadx == 0 || usedy-usedpady == 0)
+				return;
 
 			thisbox->xratio = ((float)(x-usedpadx))/((float)(usedx-usedpadx));
 			thisbox->yratio = ((float)(y-usedpady))/((float)(usedy-usedpady));

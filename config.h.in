@@ -32,3 +32,6 @@
 
 /* Define if IMLIB is available. */
 #undef USE_IMLIB
+
+/* Define if PIXBUF is available. */
+#undef USE_PIXBUF

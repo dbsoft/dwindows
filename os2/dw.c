@@ -596,7 +596,6 @@ int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *usedy,
 				int pass, int *usedpadx, int *usedpady)
 {
 	int z, currentx = 0, currenty = 0;
-	int vectorx = 0, vectory = 0;
 	int uymax = 0, uxmax = 0;
 	int upymax = 0, upxmax = 0;
 	/* Used for the SIZEEXPAND */
@@ -861,9 +860,6 @@ int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *usedy,
 
 					(*depth)++;
 
-					/*tmp->xratio = ((float)((thisbox->items[z].width * thisbox->xratio)-tmp->upx) )/((float)(tmp->minwidth-tmp->upx));
-					tmp->yratio = ((float)((thisbox->items[z].height * thisbox->yratio)-tmp->upy))/((float)(tmp->minheight-tmp->upy));*/
-
 #ifdef DWDEBUG
 					fprintf(f, "2- Resize Box depth %d\r\nx = %d, y = %d, usedx = %d, usedy = %d, usedpadx = %d, usedpady = %d xratio = %f, yratio = %f,\r\nupx = %d, upy = %d, width = %d, height = %d, minwidth = %d, minheight = %d, box xratio = %f, box yratio = %f\r\n\r\n",
 						*depth, x, y, *usedx, *usedy, *usedpadx, *usedpady, tmp->xratio, tmp->yratio, tmp->upx, tmp->upy, thisbox->items[z].width, thisbox->items[z].height, tmp->minwidth, tmp->minheight, thisbox->xratio, thisbox->yratio);
@@ -884,6 +880,7 @@ int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *usedy,
 			int width = thisbox->items[z].width;
 			int pad = thisbox->items[z].pad;
 			HWND handle = thisbox->items[z].hwnd;
+			int vectorx, vectory;
 
 			/* When upxmax != pad*2 then ratios are incorrect. */
 			vectorx = (int)((width*thisbox->items[z].xratio)-width);
@@ -929,7 +926,7 @@ int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *usedy,
 
 						if(boxinfo && boxinfo->grouphwnd)
 							WinSetWindowPos(boxinfo->grouphwnd, HWND_TOP, 0, 0,
-											width + vectorx, height + vectory, SWP_MOVE | SWP_SIZE /*| SWP_ZORDER*/);
+											width + vectorx, height + vectory, SWP_MOVE | SWP_SIZE);
 
 					}
 
@@ -2919,7 +2916,8 @@ HWND dw_box_new(int type, int pad)
 	hwndframe = WinCreateWindow(HWND_OBJECT,
 								WC_FRAME,
 								NULL,
-								WS_VISIBLE | WS_CLIPCHILDREN,
+								WS_VISIBLE | WS_CLIPCHILDREN |
+								FS_NOBYTEALIGN,
 								0,0,2000,1000,
 								NULLHANDLE,
 								HWND_TOP,
@@ -2952,7 +2950,8 @@ HWND dw_groupbox_new(int type, int pad, char *title)
 	hwndframe = WinCreateWindow(HWND_OBJECT,
 								WC_FRAME,
 								NULL,
-								WS_VISIBLE,
+								WS_VISIBLE |
+								FS_NOBYTEALIGN,
 								0,0,2000,1000,
 								NULLHANDLE,
 								HWND_TOP,
@@ -2991,7 +2990,8 @@ HWND dw_mdi_new(unsigned long id)
 	hwndframe = WinCreateWindow(HWND_OBJECT,
 								WC_FRAME,
 								NULL,
-								WS_VISIBLE | WS_CLIPCHILDREN,
+								WS_VISIBLE | WS_CLIPCHILDREN |
+								FS_NOBYTEALIGN,
 								0,0,2000,1000,
 								NULLHANDLE,
 								HWND_TOP,
@@ -5195,7 +5195,8 @@ HWND dw_render_new(unsigned long id)
 	HWND hwndframe = WinCreateWindow(HWND_OBJECT,
 									 WC_FRAME,
 									 NULL,
-									 WS_VISIBLE,
+									 WS_VISIBLE |
+									 FS_NOBYTEALIGN,
 									 0,0,2000,1000,
 									 NULLHANDLE,
 									 HWND_TOP,
