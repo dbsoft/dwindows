@@ -1324,89 +1324,101 @@ void _save_gdk_colors(HWND handle, GdkColor fore, GdkColor back)
 
 int _set_color(HWND handle, unsigned long fore, unsigned long back)
 {
+	/* Remember that each color component in X11 use 16 bit no matter
+	 * what the destination display supports. (and thus GDK)
+	 */
+	GdkColor forecolor, backcolor;
 #if GTK_MAJOR_VERSION < 2
-	GtkStyle *style;
+	GtkStyle *style = gtk_style_copy(gtk_widget_get_style(handle));
 #endif
 
-	if(fore & DW_RGB_COLOR || back & DW_RGB_COLOR)
+	if(fore & DW_RGB_COLOR)
 	{
-		/* Remember that each color component in X11 use 16 bit no matter
-		 * what the destination display supports. (and thus GDK)
-		 */
-		GdkColor forecolor = { 0, DW_RED_VALUE(fore) << 8, DW_GREEN_VALUE(fore) << 8, DW_BLUE_VALUE(fore) << 8 };
-		GdkColor backcolor = { 0, DW_RED_VALUE(back) << 8, DW_GREEN_VALUE(back) << 8, DW_BLUE_VALUE(back) << 8 };
+		forecolor.pixel = 0;
+		forecolor.red = DW_RED_VALUE(fore) << 8;
+		forecolor.green = DW_GREEN_VALUE(fore) << 8;
+		forecolor.blue = DW_BLUE_VALUE(fore) << 8;
 
 		gdk_color_alloc(_dw_cmap, &forecolor);
-		gdk_color_alloc(_dw_cmap, &backcolor);
 
 #if GTK_MAJOR_VERSION > 1
 		gtk_widget_modify_text(handle, 0, &forecolor);
 		gtk_widget_modify_text(handle, 1, &forecolor);
 		gtk_widget_modify_fg(handle, 0, &forecolor);
 		gtk_widget_modify_fg(handle, 1, &forecolor);
-		gtk_widget_modify_base(handle, 0, &backcolor);
-		gtk_widget_modify_base(handle, 1, &backcolor);
-		gtk_widget_modify_bg(handle, 0, &backcolor);
-		gtk_widget_modify_bg(handle, 1, &backcolor);
 #else
-		style = gtk_style_copy(gtk_widget_get_style(handle));
 		if(style)
-		{
 			style->text[0] = style->text[1] = style->fg[0] = style->fg[1] = forecolor;
-			style->base[0] = style->base[1] = style->bg[0] = style->bg[1] = backcolor;
-			gtk_widget_set_style(handle, style);
-			gtk_style_unref(style);
-		}
 #endif
-
-		_save_gdk_colors(handle, forecolor, backcolor);
-
-		if(GTK_IS_CLIST(handle))
-		{
-			int z, rowcount = (int)gtk_object_get_data(GTK_OBJECT(handle), "rowcount");
-
-			for(z=0;z<rowcount;z++)
-			{
-				gtk_clist_set_foreground(GTK_CLIST(handle), z, &forecolor);
-				gtk_clist_set_background(GTK_CLIST(handle), z, &backcolor);
-			}
-		}
 	}
-	else
+	else if(fore != DW_CLR_DEFAULT)
 	{
+		forecolor = _colors[fore];
+
 #if GTK_MAJOR_VERSION > 1
 		gtk_widget_modify_text(handle, 0, &_colors[fore]);
 		gtk_widget_modify_text(handle, 1, &_colors[fore]);
 		gtk_widget_modify_fg(handle, 0, &_colors[fore]);
 		gtk_widget_modify_fg(handle, 1, &_colors[fore]);
+#else
+		if(style)
+			style->text[0] = style->text[1] = style->fg[0] = style->fg[1] = _colors[fore];
+#endif
+	}
+	if(back & DW_RGB_COLOR)
+	{
+		backcolor.pixel = 0;
+		backcolor.red = DW_RED_VALUE(back) << 8;
+		backcolor.green = DW_GREEN_VALUE(back) << 8;
+		backcolor.blue = DW_BLUE_VALUE(back) << 8;
+
+		gdk_color_alloc(_dw_cmap, &backcolor);
+
+#if GTK_MAJOR_VERSION > 1
+		gtk_widget_modify_base(handle, 0, &backcolor);
+		gtk_widget_modify_base(handle, 1, &backcolor);
+		gtk_widget_modify_bg(handle, 0, &backcolor);
+		gtk_widget_modify_bg(handle, 1, &backcolor);
+#else
+		if(style)
+			style->base[0] = style->base[1] = style->bg[0] = style->bg[1] = backcolor;
+#endif
+	}
+	else if(back != DW_CLR_DEFAULT)
+	{
+		backcolor = _colors[back];
+
+#if GTK_MAJOR_VERSION > 1
 		gtk_widget_modify_base(handle, 0, &_colors[back]);
 		gtk_widget_modify_base(handle, 1, &_colors[back]);
 		gtk_widget_modify_bg(handle, 0, &_colors[back]);
 		gtk_widget_modify_bg(handle, 1, &_colors[back]);
 #else
-		style = gtk_style_copy(gtk_widget_get_style(handle));
 		if(style)
-		{
-			style->text[0] = style->text[1] = style->fg[0] = style->fg[1] = _colors[fore];
 			style->base[0] = style->base[1] = style->bg[0] = style->bg[1] = _colors[back];
-			gtk_widget_set_style(handle, style);
-		}
 #endif
+	}
 
-		_save_gdk_colors(handle, _colors[fore], _colors[back]);
+	_save_gdk_colors(handle, forecolor, backcolor);
 
-		if(GTK_IS_CLIST(handle))
+	if(GTK_IS_CLIST(handle))
+	{
+		int z, rowcount = (int)gtk_object_get_data(GTK_OBJECT(handle), "rowcount");
+
+		for(z=0;z<rowcount;z++)
 		{
-			int z, rowcount = (int)gtk_object_get_data(GTK_OBJECT(handle), "rowcount");
-
-			for(z=0;z<rowcount;z++)
-			{
-				gtk_clist_set_foreground(GTK_CLIST(handle), z, &_colors[fore]);
-				gtk_clist_set_background(GTK_CLIST(handle), z, &_colors[back]);
-			}
+			gtk_clist_set_foreground(GTK_CLIST(handle), z, &forecolor);
+			gtk_clist_set_background(GTK_CLIST(handle), z, &backcolor);
 		}
 	}
 
+#if GTK_MAJOR_VERSION < 2
+	if(style)
+	{
+		gtk_widget_set_style(handle, style);
+		gtk_style_unref(style);
+	}
+#endif
 	return TRUE;
 }
 /*

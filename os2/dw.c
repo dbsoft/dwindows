@@ -1384,6 +1384,8 @@ void _click_default(HWND handle)
 #define ENTRY_CUT   1001
 #define ENTRY_COPY  1002
 #define ENTRY_PASTE 1003
+#define ENTRY_UNDO  1004
+#define ENTRY_SALL  1005
 
 /* Originally just intended for entryfields, it now serves as a generic
  * procedure for handling TAB presses to change input focus on controls.
@@ -1413,13 +1415,21 @@ MRESULT EXPENTRY _entryproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 				HMENUI hwndMenu = dw_menu_new(0L);
 				long x, y;
 
+				if(strncmp(tmpbuf, "#10", 4)==0 && !WinSendMsg(hWnd, MLM_QUERYREADONLY, 0, 0))
+				{
+					menuitem = dw_menu_append_item(hwndMenu, "Undo", ENTRY_UNDO, 0L, TRUE, FALSE, 0L);
+					dw_menu_append_item(hwndMenu, "", 0L, 0L, TRUE, FALSE, 0L);
+				}
 				menuitem = dw_menu_append_item(hwndMenu, "Copy", ENTRY_COPY, 0L, TRUE, FALSE, 0L);
 				if(strncmp(tmpbuf, "#10", 4)!=0 || (strncmp(tmpbuf, "#10", 4)==0 && !WinSendMsg(hWnd, MLM_QUERYREADONLY, 0, 0)))
 				{
 					menuitem = dw_menu_append_item(hwndMenu, "Cut", ENTRY_CUT, 0L, TRUE, FALSE, 0L);
 					menuitem = dw_menu_append_item(hwndMenu, "Paste", ENTRY_PASTE, 0L, TRUE, FALSE, 0L);
 				}
+				dw_menu_append_item(hwndMenu, "", 0L, 0L, TRUE, FALSE, 0L);
+				menuitem = dw_menu_append_item(hwndMenu, "Select All", ENTRY_SALL, 0L, TRUE, FALSE, 0L);
 
+				WinSetFocus(HWND_DESKTOP, hWnd);
 				dw_pointer_query_pos(&x, &y);
 				dw_menu_popup(&hwndMenu, hWnd, x, y);
 			}
@@ -1439,6 +1449,13 @@ MRESULT EXPENTRY _entryproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 						return WinSendMsg(hWnd, MLM_COPY, 0, 0);
 					case ENTRY_PASTE:
 						return WinSendMsg(hWnd, MLM_PASTE, 0, 0);
+					case ENTRY_UNDO:
+						return WinSendMsg(hWnd, MLM_UNDO, 0, 0);
+					case ENTRY_SALL:
+						{
+							ULONG len = (ULONG)WinSendMsg(hWnd, MLM_QUERYTEXTLENGTH, 0, 0);
+							return WinSendMsg(hWnd, MLM_SETSEL, 0, (MPARAM)len);
+						}
 					}
 				}
 				else /* Other */
@@ -1461,6 +1478,11 @@ MRESULT EXPENTRY _entryproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 							return WinSendMsg(handle, EM_COPY, 0, 0);
 						case ENTRY_PASTE:
 							return WinSendMsg(handle, EM_PASTE, 0, 0);
+						case ENTRY_SALL:
+							{
+								LONG len = WinQueryWindowTextLength(hWnd);
+								return WinSendMsg(hWnd, EM_SETSEL, MPFROM2SHORT(0, (SHORT)len), 0);
+							}
 						}
 					}
 				}
@@ -1563,7 +1585,7 @@ MRESULT EXPENTRY _mleproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 		{
 			USHORT pos = SHORT1FROMMP(mp2);
 
-			return WinSendMsg(hWnd, msg, mp1, MPFROM2SHORT(pos, SB_SLIDERPOSITION));
+			WinSendMsg(hWnd, msg, mp1, MPFROM2SHORT(pos, SB_SLIDERPOSITION));
 		}
 		break;
 	}
@@ -3204,6 +3226,15 @@ int dw_window_set_color(HWND handle, ULONG fore, ULONG back)
 		WinSetPresParam(handle, PP_FOREGROUNDCOLOR, sizeof(RGB2), &rgb2);
 
 	}
+	else if(fore != DW_CLR_DEFAULT)
+	{
+		if(fore == DW_CLR_BLACK)
+			fore = CLR_BLACK;
+		if(fore == DW_CLR_WHITE)
+			fore = CLR_WHITE;
+
+		WinSetPresParam(handle, PP_FOREGROUNDCOLORINDEX, sizeof(ULONG), &fore);
+	}
 	if((back & DW_RGB_COLOR) == DW_RGB_COLOR)
 	{
 		RGB2 rgb2;
@@ -3216,22 +3247,16 @@ int dw_window_set_color(HWND handle, ULONG fore, ULONG back)
 		WinSetPresParam(handle, PP_BACKGROUNDCOLOR, sizeof(RGB2), &rgb2);
 		return 0;
 	}
-	if((fore & DW_RGB_COLOR) == DW_RGB_COLOR)
-		return 0;
+	else if(back != DW_CLR_DEFAULT)
+	{
+		if(back == DW_CLR_BLACK)
+			back = CLR_BLACK;
+		if(back == DW_CLR_WHITE)
+			back = CLR_WHITE;
 
-	/* Slight conversion */
-	if(fore == DW_CLR_BLACK)
-		fore = CLR_BLACK;
-	if(fore == DW_CLR_WHITE)
-		fore = CLR_WHITE;
-
-	if(back == DW_CLR_BLACK)
-		back = CLR_BLACK;
-	if(back == DW_CLR_WHITE)
-		back = CLR_WHITE;
-
-	return (WinSetPresParam(handle, PP_FOREGROUNDCOLORINDEX, sizeof(ULONG), &fore) |
-			WinSetPresParam(handle, PP_BACKGROUNDCOLORINDEX, sizeof(ULONG), &back));
+		WinSetPresParam(handle, PP_BACKGROUNDCOLORINDEX, sizeof(ULONG), &back);
+	}
+	return 0;
 }
 
 /*
