@@ -861,6 +861,20 @@ typedef struct _dwdialog {
 
 #define DWSIGNAL API
 
+/* Let other APIs know what types we've defined,
+ * Regina REXX in particular, on Unix.
+ */
+#define ULONG_TYPEDEFED 1
+#define LONG_TYPEDEFED 1
+#define USHORT_TYPEDEFED 1
+#define SHORT_TYPEDEFED 1
+#define UWORD_TYPEDEFED 1
+#define WORD_TYPEDEFED 1
+#define UCHAR_TYPEDEFED 1
+#define CHAR_TYPEDEFED 1
+#define UINT_TYPEDEFED 1
+#define INT_TYPEDEFED 1
+
 /* Public function prototypes */
 void API dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize, int vsize, int pad);
 void API dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, int vsize, int pad);
