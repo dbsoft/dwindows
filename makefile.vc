@@ -1,9 +1,9 @@
 #
-FXLIBDIR=..\..\lib
-FXDLLDIR=..\..\dll
+FXLIBDIR=.\lib
+FXDLLDIR=.\dll
 
 CC = cl
-CFLAGS = -c -G5 -GD -Zp1 -DWIN32 -D__WIN32__ -DMSVC -DBUILD_DLL -I..\..\include -I.
+CFLAGS = -c -G5 -GD -Zp1 -DWIN32 -D__WIN32__ -DMSVC -DBUILD_DLL -I.\platform -I.
 CFLAGS_DEBUG = -Zi
 CFLAGS_COMPILE = -MTd
 LIBS = wsock32.lib kernel32.lib user32.lib comctl32.lib gdi32.lib advapi32.lib shell32.lib comdlg32.lib
