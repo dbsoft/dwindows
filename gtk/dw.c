@@ -1693,7 +1693,7 @@ HWND dw_mdi_new(unsigned long id)
 /*
  * Create a bitmap object to be packed.
  * Parameters:
- *       id: An ID to be used with WinWindowFromID() or 0L.
+ *       id: An ID to be used with dw_window_from_id() or 0L.
  */
 HWND dw_bitmap_new(unsigned long id)
 {
@@ -2143,7 +2143,7 @@ HWND dw_tree_new(ULONG id)
  * Create a new static text window (widget) to be packed.
  * Parameters:
  *       text: The text to be display by the static text widget.
- *       id: An ID to be used with WinWindowFromID() or 0L.
+ *       id: An ID to be used with dw_window_from_id() or 0L.
  */
 HWND dw_text_new(char *text, unsigned long id)
 {
@@ -2166,7 +2166,7 @@ HWND dw_text_new(char *text, unsigned long id)
  * Create a new status text window (widget) to be packed.
  * Parameters:
  *       text: The text to be display by the static text widget.
- *       id: An ID to be used with WinWindowFromID() or 0L.
+ *       id: An ID to be used with dw_window_from_id() or 0L.
  */
 HWND dw_status_text_new(char *text, ULONG id)
 {
@@ -2192,7 +2192,7 @@ HWND dw_status_text_new(char *text, ULONG id)
 /*
  * Create a new Multiline Editbox window (widget) to be packed.
  * Parameters:
- *       id: An ID to be used with WinWindowFromID() or 0L.
+ *       id: An ID to be used with dw_window_from_id() or 0L.
  */
 HWND dw_mle_new(unsigned long id)
 {
@@ -2232,7 +2232,7 @@ HWND dw_mle_new(unsigned long id)
  * Create a new Entryfield window (widget) to be packed.
  * Parameters:
  *       text: The default text to be in the entryfield widget.
- *       id: An ID to be used with WinWindowFromID() or 0L.
+ *       id: An ID to be used with dw_window_from_id() or 0L.
  */
 HWND dw_entryfield_new(char *text, unsigned long id)
 {
@@ -2255,7 +2255,7 @@ HWND dw_entryfield_new(char *text, unsigned long id)
  * Create a new Entryfield (password) window (widget) to be packed.
  * Parameters:
  *       text: The default text to be in the entryfield widget.
- *       id: An ID to be used with WinWindowFromID() or 0L.
+ *       id: An ID to be used with dw_window_from_id() or 0L.
  */
 HWND dw_entryfield_password_new(char *text, ULONG id)
 {
@@ -2279,7 +2279,7 @@ HWND dw_entryfield_password_new(char *text, ULONG id)
  * Create a new Combobox window (widget) to be packed.
  * Parameters:
  *       text: The default text to be in the combpbox widget.
- *       id: An ID to be used with WinWindowFromID() or 0L.
+ *       id: An ID to be used with dw_window_from_id() or 0L.
  */
 HWND dw_combobox_new(char *text, unsigned long id)
 {
@@ -2308,7 +2308,7 @@ HWND dw_combobox_new(char *text, unsigned long id)
  * Create a new button window (widget) to be packed.
  * Parameters:
  *       text: The text to be display by the static text widget.
- *       id: An ID to be used with WinWindowFromID() or 0L.
+ *       id: An ID to be used with dw_window_from_id() or 0L.
  */
 HWND dw_button_new(char *text, unsigned long id)
 {
@@ -2342,7 +2342,44 @@ HWND dw_bitmapbutton_new(char *text, unsigned long id)
 
 	if(bitmap)
 	{
-		dw_window_set_bitmap(bitmap, id);
+		dw_window_set_bitmap(bitmap, id, NULL);
+		gtk_container_add (GTK_CONTAINER(tmp), bitmap);
+	}
+	gtk_widget_show(tmp);
+	if(text)
+	{
+		tooltips = gtk_tooltips_new();
+		gtk_tooltips_set_tip(tooltips, tmp, text, NULL);
+		gtk_object_set_data(GTK_OBJECT(tmp), "tooltip", (gpointer)tooltips);
+	}
+	gtk_object_set_data(GTK_OBJECT(tmp), "id", (gpointer)id);
+	DW_MUTEX_UNLOCK;
+	return tmp;
+}
+
+/*
+ * Create a new bitmap button window (widget) to be packed from a file.
+ * Parameters:
+ *       text: Bubble help text to be displayed.
+ *       id: An ID to be used with dw_window_from_id() or 0L.
+ *       filename: Name of the file, omit extention to have
+ *                 DW pick the appropriate file extension.
+ *                 (BMP on OS/2 or Windows, XPM on Unix)
+ */
+HWND dw_bitmapbutton_new_from_file(char *text, unsigned long id, char filename)
+{
+	GtkWidget *tmp;
+	GtkWidget *bitmap;
+    GtkTooltips *tooltips;
+	int _locked_by_me = FALSE;
+
+	DW_MUTEX_LOCK;
+	tmp = gtk_button_new();
+	bitmap = dw_bitmap_new(id);
+
+	if(bitmap)
+	{
+		dw_window_set_bitmap(bitmap, 0, filename);
 		gtk_container_add (GTK_CONTAINER(tmp), bitmap);
 	}
 	gtk_widget_show(tmp);
@@ -2361,7 +2398,7 @@ HWND dw_bitmapbutton_new(char *text, unsigned long id)
  * Create a new spinbutton window (widget) to be packed.
  * Parameters:
  *       text: The text to be display by the static text widget.
- *       id: An ID to be used with WinWindowFromID() or 0L.
+ *       id: An ID to be used with dw_window_from_id() or 0L.
  */
 HWND dw_spinbutton_new(char *text, unsigned long id)
 {
@@ -2384,7 +2421,7 @@ HWND dw_spinbutton_new(char *text, unsigned long id)
  * Create a new radiobutton window (widget) to be packed.
  * Parameters:
  *       text: The text to be display by the static text widget.
- *       id: An ID to be used with WinWindowFromID() or 0L.
+ *       id: An ID to be used with dw_window_from_id() or 0L.
  */
 HWND dw_radiobutton_new(char *text, ULONG id)
 {
@@ -2406,7 +2443,7 @@ HWND dw_radiobutton_new(char *text, ULONG id)
  * Parameters:
  *       vertical: TRUE or FALSE if slider is vertical.
  *       increments: Number of increments available.
- *       id: An ID to be used with WinWindowFromID() or 0L.
+ *       id: An ID to be used with dw_window_from_id() or 0L.
  */
 HWND dw_slider_new(int vertical, int increments, ULONG id)
 {
@@ -2435,7 +2472,7 @@ HWND dw_slider_new(int vertical, int increments, ULONG id)
  * Parameters:
  *       vertical: TRUE or FALSE if scrollbar is vertical.
  *       increments: Number of increments available.
- *       id: An ID to be used with WinWindowFromID() or 0L.
+ *       id: An ID to be used with dw_window_from_id() or 0L.
  */
 HWND dw_scrollbar_new(int vertical, int increments, ULONG id)
 {
@@ -2461,7 +2498,7 @@ HWND dw_scrollbar_new(int vertical, int increments, ULONG id)
 /*
  * Create a new percent bar window (widget) to be packed.
  * Parameters:
- *       id: An ID to be used with WinWindowFromID() or 0L.
+ *       id: An ID to be used with dw_window_from_id() or 0L.
  */
 HWND dw_percent_new(unsigned long id)
 {
@@ -2480,7 +2517,7 @@ HWND dw_percent_new(unsigned long id)
  * Create a new checkbox window (widget) to be packed.
  * Parameters:
  *       text: The text to be display by the static text widget.
- *       id: An ID to be used with WinWindowFromID() or 0L.
+ *       id: An ID to be used with dw_window_from_id() or 0L.
  */
 HWND dw_checkbox_new(char *text, unsigned long id)
 {
@@ -2498,7 +2535,7 @@ HWND dw_checkbox_new(char *text, unsigned long id)
 /*
  * Create a new listbox window (widget) to be packed.
  * Parameters:
- *       id: An ID to be used with WinWindowFromID() or 0L.
+ *       id: An ID to be used with dw_window_from_id() or 0L.
  *       multi: Multiple select TRUE or FALSE.
  */
 HWND dw_listbox_new(unsigned long id, int multi)
@@ -2546,20 +2583,128 @@ void dw_window_set_icon(HWND handle, unsigned long id)
 	DW_MUTEX_UNLOCK;
 }
 
+HPIXMAP dw_pixmap_new_from_file(HWND handle, char *filename)
+{
+	int _locked_by_me = FALSE;
+	HPIXMAP pixmap;
+#ifndef USE_IMLIB
+	GdkBitmap *bitmap = NULL;
+#endif
+#if GTK_MAJOR_VERSION > 1
+	GdkPixbuf *pixbuf;
+#elif defined(USE_IMLIB)
+	GdkImlibImage *image;
+#endif
+	char *file = alloca(strlen(filename) + 5);
+
+	if (!file || !(pixmap = calloc(1,sizeof(struct _hpixmap))))
+		return NULL;
+
+	strcpy(file, filename);
+
+	/* check if we can read from this file (it exists and read permission) */
+	if(access(file, 04) != 0)
+	{
+		/* Try with .xpm extention */
+		strcat(file, ".xpm");
+		if(access(file, 04) != 0)
+		{
+			free(pixmap);
+			return NULL;
+		}
+	}
+
+	DW_MUTEX_LOCK;
+#if GTK_MAJOR_VERSION > 1
+	pixbuf = gdk_pixbuf_new_from_file(file, NULL);
+
+	pixmap->width = gdk_pixbuf_get_width(pixbuf);
+	pixmap->height = gdk_pixbuf_get_height(pixbuf);
+
+	gdk_pixbuf_render_pixmap_and_mask(pixbuf, &pixmap->pixmap, &bitmap, 1);
+	g_object_unref(pixbuf);
+#elif defined(USE_IMLIB)
+	image = gdk_imlib_load_image(file);
+
+	pixmap->width = image->rgb_width;
+	pixmap->height = image->rgb_height;
+
+	gdk_imlib_render(image, pixmap->width, pixmap->height);
+	pixmap->pixmap = gdk_imlib_copy_image(image);
+	gdk_imlib_destroy_image(image);
+#else
+	pixmap->pixmap = gdk_pixmap_create_from_xpm(handle->window, &bitmap, &_colors[DW_CLR_PALEGRAY], file);
+#endif
+	pixmap->handle = handle;
+	DW_MUTEX_UNLOCK;
+	return pixmap;
+}
 /*
  * Sets the bitmap used for a given static window.
  * Parameters:
  *       handle: Handle to the window.
- *       id: An ID to be used to specify the icon.
+ *       id: An ID to be used to specify the icon,
+ *           (pass 0 if you use the filename param)
+ *       filename: a path to a file (Bitmap on OS/2 or
+ *                 Windows and a pixmap on Unix, pass
+ *                 NULL if you use the id param)
  */
-void dw_window_set_bitmap(HWND handle, unsigned long id)
+void dw_window_set_bitmap(HWND handle, unsigned long id, char *filename)
 {
 	GdkBitmap *bitmap = NULL;
 	GdkPixmap *tmp;
 	int _locked_by_me = FALSE;
 
+	if(!id && !filename)
+		return;
+
 	DW_MUTEX_LOCK;
-	tmp = _find_pixmap(&bitmap, id, handle, NULL, NULL);
+	if(id)
+		tmp = _find_pixmap(&bitmap, id, handle, NULL, NULL);
+	else
+	{
+		char *file = alloca(strlen(filename) + 5);
+#if GTK_MAJOR_VERSION > 1
+		GdkPixbuf *pixbuf;
+#elif defined(USE_IMLIB)
+		GdkImlibImage *image;
+#endif
+
+		if (!file)
+		{
+			DW_MUTEX_UNLOCK;
+			return;
+		}
+
+		strcpy(file, filename);
+
+		/* check if we can read from this file (it exists and read permission) */
+		if(access(file, 04) != 0)
+		{
+			/* Try with .xpm extention */
+			strcat(file, ".xpm");
+			if(access(file, 04) != 0)
+			{
+				DW_MUTEX_UNLOCK;
+				return NULL;
+			}
+		}
+#if GTK_MAJOR_VERSION > 1
+		pixbuf = gdk_pixbuf_new_from_file(file, NULL);
+
+		gdk_pixbuf_render_pixmap_and_mask(pixbuf, &tmp, &bitmap, 1);
+		g_object_unref(pixbuf);
+#elif defined(USE_IMLIB)
+		image = gdk_imlib_load_image(file);
+
+		gdk_imlib_render(image, image->rgb_width, image->rgb_height);
+		tmp = gdk_imlib_copy_image(image);
+		gdk_imlib_destroy_image(image);
+#else
+		tmp = gdk_pixmap_create_from_xpm(handle->window, &bitmap, &_colors[DW_CLR_PALEGRAY], file);
+#endif
+	}
+
 	if(tmp)
 #if GTK_MAJOR_VERSION > 1
 		gtk_image_set_from_pixmap(GTK_IMAGE(handle), tmp, bitmap);

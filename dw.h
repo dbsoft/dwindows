@@ -712,6 +712,7 @@ HWND API dw_groupbox_new(int type, int pad, char *title);
 HWND API dw_mdi_new(unsigned long id);
 HWND API dw_bitmap_new(unsigned long id);
 HWND API dw_bitmapbutton_new(char *text, unsigned long id);
+HWND API dw_bitmapbutton_new_from_file(char *text, unsigned long id, char filename);
 HWND API dw_container_new(unsigned long id);
 HWND API dw_tree_new(unsigned long id);
 HWND API dw_text_new(char *text, unsigned long id);
@@ -751,7 +752,7 @@ void API dw_window_set_pos_size(HWND handle, unsigned long x, unsigned long y, u
 void API dw_window_get_pos_size(HWND handle, unsigned long *x, unsigned long *y, unsigned long *width, unsigned long *height);
 void API dw_window_set_style(HWND handle, unsigned long style, unsigned long mask);
 void API dw_window_set_icon(HWND handle, unsigned long id);
-void API dw_window_set_bitmap(HWND handle, unsigned long id);
+void API dw_window_set_bitmap(HWND handle, unsigned long id, char *filename);
 char * API dw_window_get_text(HWND handle);
 void API dw_window_set_text(HWND handle, char *text);
 int API dw_window_set_border(HWND handle, int border);

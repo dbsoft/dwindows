@@ -65,6 +65,7 @@ EXPORTS
 
   dw_button_new                          @90
   dw_bitmapbutton_new                    @91
+  dw_bitmapbutton_new_from_file          @92
 
   dw_text_new                            @100
   dw_status_text_new                     @101
