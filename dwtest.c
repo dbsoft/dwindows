@@ -59,7 +59,6 @@ unsigned long fileicon,foldericon,mle_point=-1;
 
 int font_width = 8;
 int font_height=12;
-int font_gap = 2;
 int rows=100,width1=6,cols=80;
 char *current_file = NULL;
 int timerid;
@@ -239,7 +238,7 @@ void draw_file( int row, int col )
 		for ( i = 0;(i < rows) && (i+row < num_lines); i++)
 		{
 			fileline = i + row - 1;
-			y = i*(font_height+font_gap);
+			y = i*font_height;
 			dw_color_background_set( 1 + (fileline % 15) );
 			dw_color_foreground_set( fileline % 16 );
 			sprintf( buf, "%6.6d", i+row );
@@ -330,7 +329,7 @@ int DWSIGNAL configure_event(HWND hwnd, int width, int height, void *data)
 	HPIXMAP old1 = text1pm, old2 = text2pm;
 	int depth = dw_color_depth();
 
-	rows = height / (font_height+font_gap);
+	rows = height / font_height;
 	cols = width / font_width;
 
 	/* Create new pixmaps with the current sizes */
@@ -494,7 +493,7 @@ void text_add(void)
 	/* create render box for number pixmap */
 	textbox1 = dw_render_new( 100 );
 	dw_window_set_font(textbox1, FIXEDFONT);
-	dw_font_text_extents(textbox1, NULL, "Og", &font_width, &font_height);
+	dw_font_text_extents(textbox1, NULL, "(g", &font_width, &font_height);
 	font_width = font_width / 2;
 	vscrollbox = dw_box_new(BOXVERT, 0);
 	dw_box_pack_start(vscrollbox, textbox1, font_width*width1, font_height*rows, FALSE, TRUE, 0);
@@ -524,7 +523,7 @@ void text_add(void)
 	dw_box_pack_start(vscrollbox, 0, SCROLLBARWIDTH, SCROLLBARWIDTH, FALSE, FALSE, 0);
 	dw_box_pack_start(pagebox, vscrollbox, 0, 0, FALSE, TRUE, 0);
 
-	text1pm = dw_pixmap_new( textbox1, (font_width*(width1+1)), font_height*rows, depth );
+	text1pm = dw_pixmap_new( textbox1, font_width*width1, font_height*rows, depth );
 	text2pm = dw_pixmap_new( textbox2, font_width*cols, font_height*rows, depth );
 
 	dw_messagebox("DWTest", "Width: %d Height: %d\n", font_width, font_height);
