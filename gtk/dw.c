@@ -3282,14 +3282,7 @@ void dw_scrollbar_set_pos(HWND handle, unsigned int position)
 	DW_MUTEX_LOCK;
 	adjustment = (GtkAdjustment *)gtk_object_get_data(GTK_OBJECT(handle), "adjustment");
 	if(adjustment)
-	{
-		int max = _round_value(adjustment->upper) - 1;
-
-		if(GTK_IS_VSCROLLBAR(handle))
-			gtk_adjustment_set_value(adjustment, (gfloat)(max - position));
-        else
-			gtk_adjustment_set_value(adjustment, (gfloat)position);
-	}
+		gtk_adjustment_set_value(adjustment, (gfloat)position);
 	DW_MUTEX_UNLOCK;
 }
 
@@ -3313,7 +3306,7 @@ void API dw_scrollbar_set_range(HWND handle, unsigned int range, unsigned int vi
 	if(adjustment)
 	{
 		adjustment->upper = (gdouble)range;
-		adjustment->page_size = (gdouble)visible;
+		adjustment->page_incremenr = adjustment->page_size = (gdouble)visible;
 	}
 	DW_MUTEX_UNLOCK;
 }
