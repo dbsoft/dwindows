@@ -573,7 +573,7 @@ void getfsname(int drive, char *buf, int len)
 #endif
 }
 
-void setfileinfo(char *filename, char *url)
+void setfileinfo(char *filename, char *url, char *logfile)
 {
 	time_t		ltime;
 	struct tm	*tm;
@@ -629,7 +629,7 @@ void setfileinfo(char *filename, char *url)
 	free((void *)eaop2.fpFEA2List);
 #else
 
-	if((urlfile = fopen("handyftp.url", "a"))!=NULL)
+	if((urlfile = fopen(logfile, "a"))!=NULL)
 	{
 		fprintf(urlfile, "%s\n", buffer);
 		fclose(urlfile);
