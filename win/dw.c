@@ -2956,6 +2956,8 @@ void API dw_main(void)
 
 	while (GetMessage(&msg, NULL, 0, 0))
 	{
+		if(msg.hwnd == NULL && msg.message == WM_TIMER)
+			_wndproc(msg.hwnd, msg.message, msg.wParam, msg.lParam);
 		TranslateMessage(&msg);
 		DispatchMessage(&msg);
 	}
@@ -2976,6 +2978,8 @@ void API dw_main_sleep(int milliseconds)
 		if(PeekMessage(&msg, NULL, 0, 0, PM_NOREMOVE))
 		{
 			GetMessage(&msg, NULL, 0, 0);
+			if(msg.hwnd == NULL && msg.message == WM_TIMER)
+				_wndproc(msg.hwnd, msg.message, msg.wParam, msg.lParam);
 			TranslateMessage(&msg);
 			DispatchMessage(&msg);
 		}
@@ -3041,6 +3045,8 @@ void * API dw_dialog_wait(DWDialog *dialog)
 
 	while (GetMessage(&msg,NULL,0,0))
 	{
+		if(msg.hwnd == NULL && msg.message == WM_TIMER)
+			_wndproc(msg.hwnd, msg.message, msg.wParam, msg.lParam);
 		TranslateMessage(&msg);
 		DispatchMessage(&msg);
 		if(dialog->done)
@@ -7389,19 +7395,17 @@ void * API dw_window_get_data(HWND window, char *dataname)
  * Returns:
  *       Timer ID for use with dw_timer_disconnect(), 0 on error.
  */
-int API dw_timer_connect(HWND window, int interval, void *sigfunc, void *data)
+int API dw_timer_connect(int interval, void *sigfunc, void *data)
 {
-	static int timerid = 0;
-
-	if(window && sigfunc)
+	if(sigfunc)
 	{
-		timerid++;
+		int timerid = SetTimer(NULL, 0, interval, NULL);
 
-		if(timerid < 1)
-			timerid = 1;
-
-		_new_signal(WM_TIMER, window, timerid, sigfunc, data);
-		return SetTimer(window, timerid, interval, NULL);
+		if(timerid)
+		{
+			_new_signal(WM_TIMER, NULL, timerid, sigfunc, data);
+			return timerid;
+		}
 	}
 	return 0;
 }
@@ -7419,11 +7423,12 @@ void API dw_timer_disconnect(int id)
 	if(!id)
 		return;
 
+	KillTimer(NULL, id);
+
 	while(tmp)
 	{
 		if(tmp->id == id)
 		{
-			KillTimer(tmp->window, id);
 			if(prev)
 			{
 				prev->next = tmp->next;
