@@ -1419,7 +1419,7 @@ BOOL CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
                             if(mp2 & (1 << 29))
 								special |= KC_ALT;
 
-							result = keypressfunc(tmp->window, (char)mp1, mp1, special, tmp->data);
+							result = keypressfunc(tmp->window, mp1 > 255 ? 0 : (char)mp1, mp1, special, tmp->data);
 							tmp = NULL;
 						}
 					}
@@ -5938,7 +5938,7 @@ void API dw_tree_delete(HWND handle, HWND item)
 	if(TreeView_GetItem(handle, &tvi))
 		ptrs = (void **)tvi.lParam;
 
-	_dw_tree_delete_recursive(handle, item);
+	_dw_tree_delete_recursive(handle, (HTREEITEM)item);
 	TreeView_DeleteItem(handle, (HTREEITEM)item);
 	if(ptrs)
 		free(ptrs);
