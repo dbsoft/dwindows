@@ -888,7 +888,6 @@ void dw_main_iteration(void)
 	gtk_main_iteration();
 	_dw_thread = (pthread_t)-1;
 	gdk_threads_leave();
-_dw_thread = (pthread_t)-1;
 }
 
 /*
