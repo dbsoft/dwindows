@@ -2695,7 +2695,8 @@ MRESULT EXPENTRY _wndproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 		break;
 	case WM_USER+2:
 		_clear_emphasis();
-		_free_menu_data((HWND)mp2);
+		if(dw_window_get_data((HWND)mp2, "_dw_popup"))
+			_free_menu_data((HWND)mp2);
 		break;
 	}
 
@@ -4180,6 +4181,7 @@ void API dw_menu_popup(HMENUI *menu, HWND parent, int x, int y)
 	if(menu)
 	{
 		popup = parent;
+		dw_window_set_data(*menu, "_dw_popup", (void *)1);
 		WinPopupMenu(HWND_DESKTOP, parent, *menu, x, dw_screen_height() - y, 0, PU_KEYBOARD | PU_MOUSEBUTTON1 | PU_VCONSTRAIN | PU_HCONSTRAIN);
 	}
 }
