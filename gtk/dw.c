@@ -531,7 +531,7 @@ void _dw_thread_remove(DWTID tid)
 	for(z=0;z<DW_THREAD_LIMIT;z++)
 	{
 		if(_dw_thread_list[z] == (DWTID)tid)
-			_dw_thread_list[z] = -1;
+			_dw_thread_list[z] = (DWTID)-1;
 	}
 }
 
