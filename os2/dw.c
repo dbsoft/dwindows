@@ -2258,7 +2258,7 @@ MRESULT EXPENTRY _wndproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 {
 	int result = -1;
 	static int command_active = 0;
-	void (* windowfunc)(PVOID) = 0L;
+	void (* API windowfunc)(PVOID) = 0L;
 
 	if(!command_active)
 	{
@@ -2389,7 +2389,7 @@ MRESULT EXPENTRY _wndproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 		}
 		break;
 	case WM_USER:
-		windowfunc = (void (*)(void *))mp1;
+		windowfunc = (void (* API)(void *))mp1;
 
 		if(windowfunc)
 			windowfunc((void *)mp2);
@@ -2447,7 +2447,7 @@ void _handle_splitbar_resize(HWND hwnd, float percent, int type, int x, int y)
 {
 	if(type == BOXHORZ)
 	{
-		int newx = x - SPLITBAR_WIDTH;
+		int newx = x;
 		float ratio = (float)percent/(float)100.0;
 		HWND handle1 = (HWND)dw_window_get_data(hwnd, "_dw_topleft");
 		HWND handle2 = (HWND)dw_window_get_data(hwnd, "_dw_bottomright");
@@ -2456,10 +2456,10 @@ void _handle_splitbar_resize(HWND hwnd, float percent, int type, int x, int y)
 		WinShowWindow(handle1, FALSE);
 		WinShowWindow(handle2, FALSE);
 
-		newx = (int)((float)newx * ratio);
+		newx = (int)((float)newx * ratio) - (SPLITBAR_WIDTH/2);
 
 		WinSetWindowPos(handle1, NULLHANDLE, 0, 0, newx, y, SWP_MOVE | SWP_SIZE);
-		_do_resize(tmp, newx, y);
+		_do_resize(tmp, newx - 1, y - 1);
 
 		dw_window_set_data(hwnd, "_dw_start", (void *)newx);
 
@@ -2468,14 +2468,14 @@ void _handle_splitbar_resize(HWND hwnd, float percent, int type, int x, int y)
 		newx = x - newx - SPLITBAR_WIDTH;
 
 		WinSetWindowPos(handle2, NULLHANDLE, x - newx, 0, newx, y, SWP_MOVE | SWP_SIZE);
-		_do_resize(tmp, newx, y);
+		_do_resize(tmp, newx - 1, y - 1);
 
 		WinShowWindow(handle1, TRUE);
 		WinShowWindow(handle2, TRUE);
 	}
 	else
 	{
-		int newy = y - SPLITBAR_WIDTH;
+		int newy = y;
 		float ratio = (float)percent/(float)100.0;
 		HWND handle1 = (HWND)dw_window_get_data(hwnd, "_dw_topleft");
 		HWND handle2 = (HWND)dw_window_get_data(hwnd, "_dw_bottomright");
@@ -2484,17 +2484,17 @@ void _handle_splitbar_resize(HWND hwnd, float percent, int type, int x, int y)
 		WinShowWindow(handle1, FALSE);
 		WinShowWindow(handle2, FALSE);
 
-		newy = (int)((float)newy * ratio);
+		newy = (int)((float)newy * ratio) - (SPLITBAR_WIDTH/2);
 
 		WinSetWindowPos(handle1, NULLHANDLE, 0, y - newy, x, newy, SWP_MOVE | SWP_SIZE);
-		_do_resize(tmp, x, newy);
+		_do_resize(tmp, x - 1, newy - 1);
 
 		tmp = WinQueryWindowPtr(handle2, QWP_USER);
 
 		newy = y - newy - SPLITBAR_WIDTH;
 
 		WinSetWindowPos(handle2, NULLHANDLE, 0, 0, x, newy, SWP_MOVE | SWP_SIZE);
-		_do_resize(tmp, x, newy);
+		_do_resize(tmp, x - 1, newy - 1);
 
 		WinShowWindow(handle1, TRUE);
 		WinShowWindow(handle2, TRUE);
