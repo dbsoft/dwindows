@@ -397,6 +397,11 @@ void dw_box_pack_end_stub(HWND box, HWND item, int width, int height, int hsize,
 #define DW_DT_WORDBREAK          (1 << 10)
 #define DW_DT_ERASERECT          (1 << 11)
 
+/* these don't exist under gtk, so make them dummy entries */
+#define DW_DT_QUERYEXTENT        0
+#define DW_DT_TEXTATTRS          0
+#define DW_DT_EXTERNALLEADING    0
+
 #define DW_FCF_TITLEBAR          1
 #define DW_FCF_SYSMENU           (1 << 1)
 #define DW_FCF_MENU              (1 << 2)
@@ -450,7 +455,6 @@ void dw_box_pack_end_stub(HWND box, HWND item, int width, int height, int hsize,
 #define DW_POINTER_ARROW         GDK_ARROW
 #define DW_POINTER_CLOCK         GDK_CLOCK
 
-#define DW_DESKTOP               ((HWND)0)
 #define HWND_DESKTOP             ((HWND)0)
 
 typedef GtkWidget *HWND;
@@ -546,6 +550,7 @@ typedef struct _dwdialog {
 
 #define DW_SIGNAL_FUNC(a) ((void *)a)
 
+#define DW_DESKTOP               HWND_DESKTOP
 #define DW_MINIMIZED 1
 
 #define DW_BUTTON1_MASK 1
