@@ -209,4 +209,6 @@ FILE *fsopen(char *path, char *modes);
 int fsclose(FILE *fp);
 char *fsgets(char *str, int size, FILE *stream);
 int fsseek(FILE *stream, long offset, int whence);
+int locale_init(char *filename, int my_locale);
+char *locale_string(char *default_text, int message);
 

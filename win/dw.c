@@ -5315,7 +5315,6 @@ void dw_tree_set_data(HWND handle, HWND item, void *itemdata)
 void dw_tree_item_select(HWND handle, HWND item)
 {
 	TreeView_SelectItem(handle, (HTREEITEM)item);
-	SetFocus(handle);
 }
 
 /*

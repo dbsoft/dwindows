@@ -730,3 +730,103 @@ int fsseek(FILE *stream, long offset, int whence)
 {
 	return fseek(stream, offset, whence);
 }
+
+static int locale_number = -1, locale_count = 0;
+static char **locale_text = NULL;
+
+void _free_locale(void)
+{
+	if(locale_text)
+	{
+		int z;
+
+		for(z=0;z<locale_count;z++)
+		{
+			if(locale_text[z])
+				free(locale_text[z]);
+		}
+		free(locale_text);
+		locale_text = NULL;
+	}
+}
+
+void _stripcrlf(char *buf)
+{
+	int z, len = strlen(buf);
+
+	for(z=0;z<len;z++)
+	{
+		if(buf[z] == '\r' || buf[z] == '\n')
+		{
+			buf[z] = 0;
+			return;
+		}
+	}
+}
+
+/* Initialize the locale engine
+ * Returns: TRUE on success, FALSE on failure.
+ */
+int locale_init(char *filename, int my_locale)
+{
+	FILE *fp = fopen(filename, FOPEN_READ_TEXT);
+	static char text[1025];
+	int count = 0;
+
+	_free_locale();
+
+	if(fp)
+	{
+
+		fgets(text, 1024, fp);
+		if(strncasecmp(text, "MESSAGES=", 9) == 0 && (count = atoi(&text[9])) > 0)
+		{
+			int current = -1;
+
+			locale_text = calloc(count, sizeof(char *));
+
+			while(!feof(fp))
+			{
+				fgets(text, 1024, fp);
+				_stripcrlf(text);
+
+				if(strncasecmp(text, "LOCALE=", 7) == 0)
+				{
+					if(current > -1)
+					{
+						fclose(fp);
+						locale_count = count;
+						locale_number = my_locale;
+						return 1;
+					}
+					if(atoi(&text[7]) == my_locale)
+						current = 0;
+				}
+				else if(current > -1 && current < count)
+				{
+					/* Use defaults on blank lines */
+					if(text[0])
+						locale_text[current] = strdup(text);
+					current++;
+				}
+			}
+		}
+		fclose(fp);
+	}
+	if(locale_text && count)
+	{
+		locale_count = count;
+		locale_number = my_locale;
+		return 1;
+	}
+	return 0;
+}
+
+/* Retrieve a localized string if available */
+char *locale_string(char *default_text, int message)
+{
+	if(locale_number > -1 && message < locale_count && message > -1 && locale_text[message])
+		return locale_text[message];
+	return default_text;
+}
+

@@ -5424,7 +5424,7 @@ void *dw_container_alloc(HWND handle, int rowcount)
 		z++;
 		if(z > 5000000)
 			break;
-		DosSleep(1);
+		dw_main_sleep(1);
 	}
 
 	if(!blah)
@@ -5474,9 +5474,15 @@ void dw_container_set_item(HWND handle, void *pointer, int column, int row, void
 
 	temp = (PRECORDCORE)ci->data;
 
-	if(!WinSendMsg(handle, CM_QUERYCNRINFO, (MPARAM)&cnr, MPFROMSHORT(sizeof(CNRINFO))))
-		return;
+	z = 0;
 
+	while(WinSendMsg(handle, CM_QUERYCNRINFO, (MPARAM)&cnr, MPFROMSHORT(sizeof(CNRINFO))) == 0)
+	{
+		z++;
+		if(z > 5000000)
+			return;
+		dw_main_sleep(1);
+	}
 	currentcount = cnr.cRecords;
 
 	/* Figure out the offsets to the items in the struct */
@@ -5572,7 +5578,15 @@ void dw_container_set_row_title(void *pointer, int row, char *title)
 
 	temp = (PRECORDCORE)ci->data;
 
-	WinSendMsg(ci->handle, CM_QUERYCNRINFO, (MPARAM)&cnr, MPFROMSHORT(sizeof(CNRINFO)));
+	z = 0;
+
+	while(WinSendMsg(ci->handle, CM_QUERYCNRINFO, (MPARAM)&cnr, MPFROMSHORT(sizeof(CNRINFO))) == 0)
+	{
+		z++;
+		if(z > 5000000)
+			return;
+		dw_main_sleep(1);
+	}
 	currentcount = cnr.cRecords;
 
 	for(z=0;z<(row-currentcount);z++)
@@ -5613,7 +5627,7 @@ void dw_container_insert(HWND handle, void *pointer, int rowcount)
 		z++;
 		if(z > 5000000)
 			break;
-		DosSleep(1);
+		dw_main_sleep(1);
 	}
 
 	free(ci);
@@ -5634,7 +5648,7 @@ void dw_container_clear(HWND handle, int redraw)
 		z++;
 		if(z > 5000000)
 			break;
-		DosSleep(1);
+		dw_main_sleep(1);
 	}
 }
 
@@ -5664,7 +5678,7 @@ void dw_container_delete(HWND handle, int rowcount)
 		z++;
 		if(z > 5000000)
 			break;
-		DosSleep(1);
+		dw_main_sleep(1);
 	}
 	
 	free(prc);
