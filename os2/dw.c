@@ -26,6 +26,7 @@
 #ifndef __EMX__
 #include <direct.h>
 #endif
+#include <sys/time.h>
 #include "dw.h"
 
 #define QWP_USER 0
@@ -181,6 +182,9 @@ typedef struct _CNRITEM
 
 int _null_key(HWND window, int key, void *data)
 {
+	window = window; /* keep compiler happy */
+	key = key; /* keep compiler happy */
+	data = data; /* keep compiler happy */
 	return TRUE;
 }
 
@@ -3251,6 +3255,8 @@ int API dw_init(int newthread, int argc, char *argv[])
 {
 	APIRET rc;
 
+	argc = argc; /* keep compiler happy */
+	argv = argv; /* keep compiler happy */
 	if(newthread)
 	{
 		dwhab = WinInitialize(0);
@@ -3304,6 +3310,7 @@ void API dw_main(void)
 void API dw_main_sleep(int milliseconds)
 {
 	QMSG qmsg;
+#ifdef __EMX__
 	double start = (double)clock();
 
 	while(((clock() - start) / (CLOCKS_PER_SEC/1000)) <= milliseconds)
@@ -3318,6 +3325,26 @@ void API dw_main_sleep(int milliseconds)
 		else
 			DosSleep(1);
 	}
+#else
+	struct timeval tv, start;
+
+	gettimeofday(&start, NULL);
+	gettimeofday(&tv, NULL);
+
+	while(((tv.tv_sec - start.tv_sec)*1000) + ((tv.tv_usec - start.tv_usec)/1000) <= milliseconds)
+	{
+		if(WinPeekMsg(dwhab, &qmsg, 0, 0, 0, PM_NOREMOVE))
+		{
+			WinGetMsg(dwhab, &qmsg, 0, 0, 0);
+			if(qmsg.msg == WM_TIMER && qmsg.hwnd == NULLHANDLE)
+				_run_event(qmsg.hwnd, qmsg.msg, qmsg.mp1, qmsg.mp2);
+			WinDispatchMsg(dwhab, &qmsg);
+		}
+		else
+			DosSleep(1);
+		gettimeofday(&tv, NULL);
+	}
+#endif
 }
 
 /*
@@ -3780,6 +3807,7 @@ HWND API dw_window_new(HWND hwndOwner, char *title, ULONG flStyle)
 	HWND hwndclient = 0, hwndframe;
 	Box *newbox = calloc(1, sizeof(Box));
 	WindowData *blah = calloc(1, sizeof(WindowData));
+	ULONG winStyle = 0L;
 
 	newbox->pad = 0;
 	newbox->type = DW_VERT;
@@ -3795,7 +3823,18 @@ HWND API dw_window_new(HWND hwndOwner, char *title, ULONG flStyle)
 	if(!(flStyle & FCF_SHELLPOSITION))
 		blah->flags |= DW_OS2_NEW_WINDOW;
 
-	hwndframe = WinCreateStdWindow(hwndOwner, 0L, &flStyle, ClassName, title, 0L, NULLHANDLE, 0L, &hwndclient);
+	if(flStyle & WS_MAXIMIZED)
+	{
+		winStyle |= WS_MAXIMIZED;
+		flStyle &= ~WS_MAXIMIZED;
+	}
+	if(flStyle & WS_MINIMIZED)
+	{
+		winStyle |= WS_MINIMIZED;
+		flStyle &= ~WS_MINIMIZED;
+	}
+
+	hwndframe = WinCreateStdWindow(hwndOwner, winStyle, &flStyle, ClassName, title, 0L, NULLHANDLE, 0L, &hwndclient);
 	newbox->hwndtitle = WinWindowFromID(hwndframe, FID_TITLEBAR);
 	if(!newbox->titlebar && newbox->hwndtitle)
 		WinSetParent(newbox->hwndtitle, HWND_OBJECT, FALSE);
@@ -3896,6 +3935,7 @@ HWND API dw_mdi_new(unsigned long id)
 {
 	HWND hwndframe;
 
+	id = id; /* keep compiler happy */
 	hwndframe = WinCreateWindow(HWND_OBJECT,
 								WC_FRAME,
 								NULL,
@@ -3949,7 +3989,9 @@ HWND API dw_notebook_new(ULONG id, int top)
 						  WC_NOTEBOOK,
 						  NULL,
 						  WS_VISIBLE |
+#ifdef BKS_TABBEDDIALOG
 						  BKS_TABBEDDIALOG |
+#endif
 						  flags,
 						  0,0,2000,1000,
 						  NULLHANDLE,
@@ -4039,6 +4081,7 @@ HWND API dw_menu_append_item(HMENUI menux, char *title, ULONG id, ULONG flags, i
 	MENUITEM miSubMenu;
 	char buffer[15];
 
+	check = check; /* keep compiler happy */
 	if(!menux || id > 65536)
 		return NULLHANDLE;
 
@@ -4516,8 +4559,10 @@ HWND dw_bitmapbutton_new_from_file(char *text, unsigned long id, char *filename)
 			strcat(file, ".bmp");
 			if(access(file, 04) != 0)
 			{
+#if 0 /* don't free pixmap if bitmap doesn't exist; causes crash several lines below */
 				free(pixmap);
 				pixmap = NULL;
+#endif
 			}
 		}
 
@@ -4655,6 +4700,7 @@ HWND API dw_slider_new(int vertical, int increments, ULONG id)
  */
 HWND API dw_scrollbar_new(int vertical, int increments, ULONG id)
 {
+	increments = increments; /* keep compiler happy */
 	return WinCreateWindow(HWND_OBJECT,
 						   WC_SCROLLBAR,
 						   "",
@@ -5989,6 +6035,7 @@ void API dw_tree_set_data(HWND handle, HTREEITEM item, void *itemdata)
 {
 	PCNRITEM pci = (PCNRITEM)item;
 
+	handle = handle; /* keep compiler happy */
 	if(!pci)
 		return;
 
@@ -6005,6 +6052,7 @@ void * API dw_tree_get_data(HWND handle, HTREEITEM item)
 {
 	PCNRITEM pci = (PCNRITEM)item;
 
+	handle = handle; /* keep compiler happy */
 	if(!pci)
 		return NULL;
 	return pci->user;
@@ -6536,6 +6584,9 @@ void API dw_filesystem_set_item(HWND handle, void *pointer, int column, int row,
  */
 void API dw_container_set_column_width(HWND handle, int column, int width)
 {
+	handle = handle; /* keep compiler happy */
+	column = column; /* keep compiler happy */
+	width = width; /* keep compiler happy */
 }
 
 /*
@@ -6668,6 +6719,7 @@ void API dw_container_delete(HWND handle, int rowcount)
  */
 void API dw_container_scroll(HWND handle, int direction, long rows)
 {
+	rows = rows; /* keep compiler happy */
 	switch(direction)
 	{
 	case DW_SCROLL_TOP:
@@ -8061,6 +8113,7 @@ int _SetPath(char *path)
  */
 int API dw_exec(char *program, int type, char **params)
 {
+	type = type; /* keep compiler happy */
 	return spawnvp(P_NOWAIT, program, (const char **)params);
 }
 
@@ -8071,7 +8124,6 @@ int API dw_exec(char *program, int type, char **params)
  */
 int API dw_browse(char *url)
 {
-	/* Is there a way to find the webbrowser in Unix? */
 	char *execargs[3], browser[1024], *olddir, *newurl = NULL;
 	int len, ret;
 
