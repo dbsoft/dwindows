@@ -7067,18 +7067,12 @@ void *dw_window_get_data(HWND window, char *dataname)
  * Returns:
  *       Timer ID for use with dw_timer_disconnect(), 0 on error.
  */
-int API dw_timer_connect(HWND window, int interval, void *sigfunc, void *data)
+int API dw_timer_connect(int interval, void *sigfunc, void *data)
 {
 	int tag, _locked_by_me = FALSE;
-	char buf[100];
-
-	if(!window)
-		return 0;
 
 	DW_MUTEX_LOCK;
 	tag = gtk_timeout_add(interval, (GtkFunction)sigfunc, data);
-	sprintf(buf, "_dw_timer%d", tag);
-	gtk_object_set_data(GTK_OBJECT(window), buf, (gpointer)tag);
 	DW_MUTEX_UNLOCK;
 	return tag;
 }
