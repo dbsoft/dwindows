@@ -95,8 +95,6 @@ gint _tree_select_event(GtkTree *tree, GtkWidget *child, gpointer data);
 #endif
 
 
-void msleep(long period);
-
 typedef struct
 {
 	void *func;
@@ -138,6 +136,21 @@ SignalList SignalTranslate[SIGNALMAX] = {
 #define DW_CENTER 0.5f
 #define DW_LEFT 0.0f
 #define DW_RIGHT 1.0f
+
+void _dw_msleep(long period)
+{
+#ifdef __sun__
+	/* usleep() isn't threadsafe on Solaris */
+	struct timespec req;
+
+	req.tv_sec = 0;
+	req.tv_nsec = period * 10000000;
+
+	nanosleep(&req, NULL);
+#else
+	usleep(period * 1000);
+#endif
+}
 
 /* Finds the translation function for a given signal name */
 void *_findsigfunc(char *signame)
@@ -823,13 +836,13 @@ void dw_main_sleep(int milliseconds)
 			if(gtk_events_pending())
 				gtk_main_iteration();
 			else
-				msleep(1);
+				_dw_msleep(1);
 			gdk_threads_leave();
 			gettimeofday(&tv, NULL);
 		}
 	}
 	else
-		msleep(milliseconds);
+		_dw_msleep(milliseconds);
 }
 
 /*
