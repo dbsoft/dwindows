@@ -408,16 +408,21 @@ void _tree_context_event(GtkWidget *widget, GdkEventButton *event, gpointer data
 void _tree_select_event(GtkTree *tree, GtkWidget *child, gpointer data)
 {
 	SignalHandler *work = (SignalHandler *)data;
+	GtkWidget *treeroot = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(child), "tree");
+
+	if(treeroot && GTK_IS_TREE(treeroot))
+	{
+		GtkWidget *lastselect = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(treeroot), "lastselect");
+		if(lastselect && GTK_IS_TREE_ITEM(lastselect))
+			gtk_tree_item_deselect(GTK_TREE_ITEM(lastselect));
+		gtk_object_set_data(GTK_OBJECT(treeroot), "lastselect", (gpointer)child);
+	}
 
 	if(work)
 	{
 		void (*treeselectfunc)(HWND, HWND, char *, void *, void *) = work->func;
 		char *text = (char *)gtk_object_get_data(GTK_OBJECT(child), "text");
 		void *itemdata = (char *)gtk_object_get_data(GTK_OBJECT(child), "itemdata");
-		GtkWidget *treeroot = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(child), "tree");
-
-		if(treeroot && GTK_IS_TREE(treeroot))
-			gtk_object_set_data(GTK_OBJECT(treeroot), "lastselect", (gpointer)child);
 		treeselectfunc(work->window, child, text, itemdata, work->data);
 	}
 }
@@ -2906,7 +2911,7 @@ HWND dw_tree_insert_after(HWND handle, HWND item, char *title, unsigned long ico
 	GtkWidget *newitem, *tree, *subtree, *label, *hbox, *pixmap;
 	GdkPixmap *gdkpix;
 	GdkBitmap *gdkbmp = NULL;
-	int position = 0;
+	int position = -1;
 	int _locked_by_me = FALSE;
 
 	if(!handle)
@@ -3136,18 +3141,19 @@ void dw_tree_set_data(HWND handle, HWND item, void *itemdata)
  */
 void dw_tree_item_select(HWND handle, HWND item)
 {
-	GtkWidget *lastselect;
+	GtkWidget *lastselect, *tree;
 	int _locked_by_me = FALSE;
 
 	if(!handle || !item)
 		return;
 
 	DW_MUTEX_LOCK;
-	lastselect = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(handle), "lastselect");
+	tree = (GtkWidget *)gtk_object_get_user_data(GTK_OBJECT(handle));
+	lastselect = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(tree), "lastselect");
 	if(lastselect && GTK_IS_TREE_ITEM(lastselect))
 		gtk_tree_item_deselect(GTK_TREE_ITEM(lastselect));
 	gtk_tree_item_select(GTK_TREE_ITEM(item));
-	gtk_object_set_data(GTK_OBJECT(handle), "lastselect", (gpointer)item);
+	gtk_object_set_data(GTK_OBJECT(tree), "lastselect", (gpointer)item);
 	DW_MUTEX_UNLOCK;
 }
 
@@ -3171,6 +3177,7 @@ void dw_tree_clear(HWND handle)
 		DW_MUTEX_UNLOCK;
 		return;
 	}
+	gtk_object_set_data(GTK_OBJECT(tree), "lastselect", NULL);
 	gtk_tree_clear_items(GTK_TREE(tree), 0, 1000000);
 	DW_MUTEX_UNLOCK;
 }
@@ -3235,23 +3242,18 @@ void dw_tree_delete(HWND handle, HWND item)
 		return;
 	}
 
-	lastselect = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(handle), "lastselect");
-
-	if(lastselect == item)
-	{
-		if(lastselect && GTK_IS_WIDGET(lastselect))
-		{
-			parenttree = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(lastselect), "parenttree");
-			if(parenttree && GTK_IS_TREE(parenttree))
-				gtk_tree_unselect_child(GTK_TREE(parenttree), lastselect);
-		}
-		gtk_object_set_data(GTK_OBJECT(handle), "lastselect", NULL);
-	}
+	lastselect = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(tree), "lastselect");
 
 	parenttree = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(item), "parenttree");
 
+	if(lastselect == item)
+	{
+		gtk_tree_item_deselect(GTK_TREE_ITEM(lastselect));
+		gtk_object_set_data(GTK_OBJECT(tree), "lastselect", NULL);
+	}
+
 	if(parenttree && GTK_IS_WIDGET(parenttree))
-		gtk_tree_remove_item(GTK_TREE(parenttree), item);
+		gtk_container_remove(GTK_CONTAINER(parenttree), item);
 	DW_MUTEX_UNLOCK;
 }
 

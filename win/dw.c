@@ -3363,7 +3363,7 @@ HWND dw_box_new(int type, int pad)
 
 	hwndframe = CreateWindow(FRAMECLASSNAME,
 							 "",
-							 WS_CHILD | WS_CLIPCHILDREN,
+							 WS_VISIBLE | WS_CHILD | WS_CLIPCHILDREN,
 							 0,0,2000,1000,
 							 DW_HWND_OBJECT,
 							 NULL,
@@ -3396,7 +3396,7 @@ HWND dw_groupbox_new(int type, int pad, char *title)
 
 	hwndframe = CreateWindow(FRAMECLASSNAME,
 							 "",
-							 WS_CHILD,
+							 WS_VISIBLE | WS_CHILD,
 							 0,0,2000,1000,
 							 DW_HWND_OBJECT,
 							 NULL,
@@ -3433,7 +3433,7 @@ HWND dw_mdi_new(unsigned long id)
 
 	hwndframe = CreateWindow("MDICLIENT",
 							 "",
-							 WS_CHILD | WS_CLIPSIBLINGS,
+							 WS_VISIBLE | WS_CHILD | WS_CLIPSIBLINGS,
 							 0,0,2000,1000,
 							 DW_HWND_OBJECT,
 							 NULL,
@@ -3451,7 +3451,8 @@ HWND dw_bitmap_new(ULONG id)
 {
 	return CreateWindow(STATICCLASSNAME,
 						"",
-						SS_BITMAP | WS_CHILD | WS_CLIPCHILDREN,
+						SS_BITMAP | WS_VISIBLE |
+						WS_CHILD | WS_CLIPCHILDREN,
 						0,0,2000,1000,
 						DW_HWND_OBJECT,
 						NULL,
@@ -3476,7 +3477,7 @@ HWND dw_notebook_new(ULONG id, int top)
 
 	tmp = CreateWindow(WC_TABCONTROL,
 					   "",
-					   WS_CHILD | WS_CLIPCHILDREN,
+					   WS_VISIBLE | WS_CHILD | WS_CLIPCHILDREN,
 					   0,0,2000,1000,
 					   DW_HWND_OBJECT,
 					   NULL,
@@ -3648,7 +3649,8 @@ HWND dw_container_new(ULONG id)
 {
 	HWND tmp = CreateWindow(WC_LISTVIEW,
 							"",
-							WS_CHILD | LVS_REPORT | LVS_SHOWSELALWAYS |
+							WS_VISIBLE | WS_CHILD |
+							LVS_REPORT | LVS_SHOWSELALWAYS |
 							LVS_SHAREIMAGELISTS | WS_BORDER |
 							WS_CLIPCHILDREN,
 							0,0,2000,1000,
@@ -3682,7 +3684,8 @@ HWND dw_tree_new(ULONG id)
 {
 	HWND tmp = CreateWindow(WC_TREEVIEW,
 							"",
-							WS_CHILD | TVS_HASLINES | TVS_SHOWSELALWAYS |
+							WS_VISIBLE | WS_CHILD |
+							TVS_HASLINES | TVS_SHOWSELALWAYS |
 							TVS_HASBUTTONS | TVS_LINESATROOT |
 							WS_BORDER | WS_CLIPCHILDREN,
 							0,0,2000,1000,
@@ -3746,7 +3749,8 @@ HWND dw_text_new(char *text, ULONG id)
 {
 	HWND tmp = CreateWindow(STATICCLASSNAME,
 							text,
-							BS_TEXT | WS_CHILD | WS_CLIPCHILDREN,
+							BS_TEXT | WS_VISIBLE |
+							WS_CHILD | WS_CLIPCHILDREN,
 							0,0,2000,1000,
 							DW_HWND_OBJECT,
 							(HMENU)id,
@@ -3766,7 +3770,8 @@ HWND dw_status_text_new(char *text, ULONG id)
 {
 	HWND tmp = CreateWindow(STATICCLASSNAME,
 							text,
-							BS_TEXT | WS_CHILD | WS_CLIPCHILDREN,
+							BS_TEXT | WS_VISIBLE |
+							WS_CHILD | WS_CLIPCHILDREN,
 							0,0,2000,1000,
 							DW_HWND_OBJECT,
 							(HMENU)id,
@@ -3788,7 +3793,7 @@ HWND dw_mle_new(ULONG id)
 	HWND tmp = CreateWindowEx(WS_EX_CLIENTEDGE,
 							  EDITCLASSNAME,
 							  "",
-							  WS_BORDER |
+							  WS_VISIBLE | WS_BORDER |
 							  WS_VSCROLL | ES_MULTILINE |
 							  ES_WANTRETURN | WS_CHILD |
 							  WS_CLIPCHILDREN,
@@ -3826,7 +3831,7 @@ HWND dw_entryfield_new(char *text, ULONG id)
 							  text,
 							  ES_WANTRETURN | WS_CHILD |
 							  WS_BORDER | ES_AUTOHSCROLL |
-							  WS_CLIPCHILDREN,
+							  WS_VISIBLE | WS_CLIPCHILDREN,
 							  0,0,2000,1000,
 							  DW_HWND_OBJECT,
 							  (HMENU)id,
@@ -3855,7 +3860,7 @@ HWND dw_entryfield_password_new(char *text, ULONG id)
 							  EDITCLASSNAME,
 							  text,
 							  ES_WANTRETURN | WS_CHILD |
-							  ES_PASSWORD | WS_BORDER |
+							  ES_PASSWORD | WS_BORDER | WS_VISIBLE |
 							  ES_AUTOHSCROLL | WS_CLIPCHILDREN,
 							  0,0,2000,1000,
 							  DW_HWND_OBJECT,
@@ -3897,7 +3902,7 @@ HWND dw_combobox_new(char *text, ULONG id)
 	HWND tmp = CreateWindow(COMBOBOXCLASSNAME,
 							text,
 							WS_CHILD | CBS_DROPDOWN | WS_VSCROLL |
-							WS_CLIPCHILDREN,
+							WS_CLIPCHILDREN | WS_VISIBLE,
 							0,0,2000,1000,
 							DW_HWND_OBJECT,
 							(HMENU)id,
@@ -3938,7 +3943,8 @@ HWND dw_button_new(char *text, ULONG id)
 
 	HWND tmp = CreateWindow(BUTTONCLASSNAME,
 							text,
-							WS_CHILD | BS_PUSHBUTTON | WS_CLIPCHILDREN,
+							WS_CHILD | BS_PUSHBUTTON |
+							WS_VISIBLE | WS_CLIPCHILDREN,
 							0,0,2000,1000,
 							DW_HWND_OBJECT,
 							(HMENU)id,
@@ -3969,7 +3975,8 @@ HWND dw_bitmapbutton_new(char *text, ULONG id)
 	tmp = CreateWindow(BUTTONCLASSNAME,
 					   "",
 					   WS_CHILD | BS_PUSHBUTTON |
-					   BS_BITMAP | WS_CLIPCHILDREN,
+					   BS_BITMAP | WS_CLIPCHILDREN |
+					   WS_VISIBLE,
 					   0,0,2000,1000,
 					   DW_HWND_OBJECT,
 					   (HMENU)id,
@@ -4001,7 +4008,7 @@ HWND dw_spinbutton_new(char *text, ULONG id)
 	HWND buddy = CreateWindowEx(WS_EX_CLIENTEDGE,
 								EDITCLASSNAME,
 								text,
-								WS_CHILD | WS_BORDER |
+								WS_CHILD | WS_BORDER | WS_VISIBLE |
 								ES_NUMBER | WS_CLIPCHILDREN,
 								0,0,2000,1000,
 								DW_HWND_OBJECT,
@@ -4013,7 +4020,7 @@ HWND dw_spinbutton_new(char *text, ULONG id)
 							  NULL,
 							  WS_CHILD | UDS_ALIGNRIGHT | WS_BORDER |
 							  UDS_ARROWKEYS | UDS_SETBUDDYINT |
-							  UDS_WRAP | UDS_NOTHOUSANDS,
+							  UDS_WRAP | UDS_NOTHOUSANDS | WS_VISIBLE,
 							  0,0,2000,1000,
 							  DW_HWND_OBJECT,
 							  (HMENU)id,
@@ -4048,7 +4055,7 @@ HWND dw_radiobutton_new(char *text, ULONG id)
 	HWND tmp = CreateWindow(BUTTONCLASSNAME,
 							text,
 							WS_CHILD | BS_AUTORADIOBUTTON |
-							WS_CLIPCHILDREN,
+							WS_CLIPCHILDREN | WS_VISIBLE,
 							0,0,2000,1000,
 							DW_HWND_OBJECT,
 							(HMENU)id,
@@ -4076,7 +4083,7 @@ HWND dw_slider_new(int vertical, int increments, ULONG id)
 {
 	HWND tmp = CreateWindow(TRACKBAR_CLASS,
 							"",
-							WS_CHILD | WS_CLIPCHILDREN |
+							WS_CHILD | WS_CLIPCHILDREN | WS_VISIBLE |
 							(vertical ? TBS_VERT : TBS_HORZ),
 							0,0,2000,1000,
 							DW_HWND_OBJECT,
@@ -4104,7 +4111,7 @@ HWND dw_percent_new(ULONG id)
 {
 	return CreateWindow(PROGRESS_CLASS,
 						"",
-						WS_CHILD | WS_CLIPCHILDREN,
+						WS_VISIBLE | WS_CHILD | WS_CLIPCHILDREN,
 						0,0,2000,1000,
 						DW_HWND_OBJECT,
 						NULL,
@@ -4124,7 +4131,7 @@ HWND dw_checkbox_new(char *text, ULONG id)
 	HWND tmp = CreateWindow(BUTTONCLASSNAME,
 							text,
 							WS_CHILD | BS_AUTOCHECKBOX |
-							BS_TEXT | WS_CLIPCHILDREN,
+							BS_TEXT | WS_CLIPCHILDREN | WS_VISIBLE,
 							0,0,2000,1000,
 							DW_HWND_OBJECT,
 							NULL,
@@ -4150,7 +4157,8 @@ HWND dw_listbox_new(ULONG id, int multi)
 {
 	HWND tmp = CreateWindow(LISTBOXCLASSNAME,
 							"",
-							LBS_NOINTEGRALHEIGHT | WS_CHILD | LBS_HASSTRINGS |
+							WS_VISIBLE | LBS_NOINTEGRALHEIGHT |
+							WS_CHILD | LBS_HASSTRINGS |
 							LBS_NOTIFY | WS_BORDER  | WS_CLIPCHILDREN |
 							WS_VSCROLL | (multi ? LBS_MULTIPLESEL : 0) ,
 							0,0,2000,1000,
@@ -4329,7 +4337,6 @@ void dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize, in
 		thisbox->count++;
 
 		SetParent(item, box);
-		ShowWindow(item, SW_SHOW);
 		if(strncmp(tmpbuf, UPDOWN_CLASS, strlen(UPDOWN_CLASS))==0)
 		{
 			ColorInfo *cinfo = (ColorInfo *)GetWindowLong(item, GWL_USERDATA);
@@ -6067,7 +6074,7 @@ HWND dw_render_new(unsigned long id)
 	Box *newbox = calloc(sizeof(Box), 1);
 	HWND tmp = CreateWindow(ObjectClassName,
 							"",
-							WS_CHILD | WS_CLIPCHILDREN,
+							WS_VISIBLE | WS_CHILD | WS_CLIPCHILDREN,
 							0,0,2000,1000,
 							DW_HWND_OBJECT,
 							NULL,
@@ -6634,7 +6641,7 @@ void dw_box_pack_splitbar_start(HWND box)
 	{
 		HWND tmp = CreateWindow(SplitbarClassName,
 								"",
-								WS_CHILD | WS_CLIPCHILDREN,
+								WS_VISIBLE | WS_CHILD | WS_CLIPCHILDREN,
 								0,0,2000,1000,
 								DW_HWND_OBJECT,
 								NULL,
@@ -6661,7 +6668,7 @@ void dw_box_pack_splitbar_end(HWND box)
 	{
 		HWND tmp = CreateWindow(SplitbarClassName,
 								"",
-								WS_CHILD | WS_CLIPCHILDREN,
+								WS_VISIBLE | WS_CHILD | WS_CLIPCHILDREN,
 								0,0,2000,1000,
 								DW_HWND_OBJECT,
 								NULL,
@@ -6733,7 +6740,6 @@ void dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, int 
 		thisbox->count++;
 
 		SetParent(item, box);
-		ShowWindow(item, SW_SHOW);
 		if(strncmp(tmpbuf, UPDOWN_CLASS, strlen(UPDOWN_CLASS))==0)
 		{
 			ColorInfo *cinfo = (ColorInfo *)GetWindowLong(item, GWL_USERDATA);
