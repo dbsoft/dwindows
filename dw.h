@@ -712,7 +712,7 @@ HWND API dw_groupbox_new(int type, int pad, char *title);
 HWND API dw_mdi_new(unsigned long id);
 HWND API dw_bitmap_new(unsigned long id);
 HWND API dw_bitmapbutton_new(char *text, unsigned long id);
-HWND API dw_bitmapbutton_new_from_file(char *text, unsigned long id, char filename);
+HWND API dw_bitmapbutton_new_from_file(char *text, unsigned long id, char *filename);
 HWND API dw_container_new(unsigned long id);
 HWND API dw_tree_new(unsigned long id);
 HWND API dw_text_new(char *text, unsigned long id);
