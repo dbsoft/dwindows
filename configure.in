@@ -1,0 +1,76 @@
+AC_INIT(winmain.c)
+AC_CONFIG_HEADER(config.h)
+
+INCLUDES="-I."
+
+AC_PROG_CC
+
+AC_CHECK_PROG(MAKE, gmake, gmake)
+if test x"$MAKE" = x; then
+  AC_CHECK_PROG(MAKE, make, make)
+fi
+
+AC_PROG_INSTALL
+
+AC_SUBST(MAKE)
+
+AC_HEADER_STDC
+AC_HEADER_DIRENT
+AC_CHECK_HEADERS(unistd.h)
+AC_CHECK_HEADERS(sys/stat.h)
+
+AC_CHECK_FUNCS(pipe, AC_DEFINE(HAVE_PIPE,1,Determine whether we have the pipe function))                      
+
+AC_CHECK_FUNCS(connect)
+if test x"$ac_cv_func_connect" = x"no"; then
+  if test -z "$libsocket"; then
+    AC_CHECK_LIB(socket, socket, LIBS="$LIBS -lsocket",)
+  fi
+
+  dnl this is for isc.  need the nsl_s library as well.
+  if test -z "$libinet"; then
+    AC_CHECK_LIB(inet, socket, libnsl=1; LIBS="$LIBS -linet -lnsl_s",)
+  fi
+
+  if test -z "$libnsl"; then
+    AC_CHECK_LIB(nsl, gethostname, LIBS="$LIBS -lnsl",)
+  fi
+fi
+
+AC_CHECK_LIB(sun, getpwnam, LIBS="$LIBS -lsun",)
+AC_CHECK_LIB(dgc, inet_addr, LIBS="$LIBS -ldgc",)
+AC_CHECK_LIB(resolv, gethostbyname, LIBS="$LIBS -lresolv",)
+
+AM_PATH_GLIB(1.2.0,,AC_MSG_ERROR(AC_MSG_ERROR(Cannot find GLIB: Is glib-config in path?)))
+AM_PATH_GTK(1.2.0,,AC_MSG_ERROR(AC_MSG_ERROR(Cannot find GTK: Is gtk-config in path?)), gthread)
+
+AC_CHECK_HEADER(pthread.h,,AC_MSG_ERROR([pthread header not found. Dynamic Windows cannot build without it.]))
+AC_CHECK_LIB(pthread, pthread_attr_init, PTHREAD_LIBS="-lpthread",
+AC_CHECK_LIB(pthreads, pthread_attr_init, PTHREAD_LIBS="-lpthreads",
+  AC_CHECK_LIB(c_r, pthread_attr_init, PTHREAD_LIBS="-lc_r",
+      AC_MSG_ERROR(pthread library not found. HandyFTP cannot build without it.
+      )
+    )
+  )
+)
+
+AM_PATH_GDK_IMLIB(1.9.4, AC_DEFINE(USE_IMLIB), AC_MSG_ERROR(IMLIB not found or too old. Dynamic Windows cannot build without it.))
+
+CFLAGS="$CFLAGS $GTK_CFLAGS $GDK_IMLIB_FLAGS"
+LIBS="$LIBS $GTK_LIBS $PTHREAD_LIBS $GDK_IMLIB_LIBS"
+
+RM="rm -f"
+LN="ln -s"
+CP="cp"
+MV="mv"
+MKDIR="mkdir"
+
+
+AC_SUBST(INCLUDES)
+AC_SUBST(RM)
+AC_SUBST(LN)
+AC_SUBST(CP)
+AC_SUBST(MV)
+AC_SUBST(MKDIR)
+
+AC_OUTPUT(Makefile:Makefile.in)
