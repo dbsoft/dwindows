@@ -1036,12 +1036,14 @@ int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *usedy,
 
 		if(thisbox->type == DW_VERT)
 		{
-			if((thisbox->items[z].width + (thisbox->items[z].pad*2)) > uxmax)
-				uxmax = (thisbox->items[z].width + (thisbox->items[z].pad*2));
+			int itemwidth = thisbox->items[z].width + (thisbox->items[z].pad*2);
+
+			if(itemwidth > uxmax)
+				uxmax = itemwidth;
 			if(thisbox->items[z].hsize != SIZEEXPAND)
 			{
-				if(((thisbox->items[z].pad*2) + thisbox->items[z].width) > upxmax)
-					upxmax = (thisbox->items[z].pad*2) + thisbox->items[z].width;
+				if(itemwidth > upxmax)
+					upxmax = itemwidth;
 			}
 			else
 			{
@@ -1067,12 +1069,14 @@ int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *usedy,
 		}
 		if(thisbox->type == DW_HORZ)
 		{
-			if((thisbox->items[z].height + (thisbox->items[z].pad*2)) > uymax)
-				uymax = (thisbox->items[z].height + (thisbox->items[z].pad*2));
+			int itemheight = thisbox->items[z].height + (thisbox->items[z].pad*2);
+
+			if(itemheight > uymax)
+				uymax = itemheight;
 			if(thisbox->items[z].vsize != SIZEEXPAND)
 			{
-				if(((thisbox->items[z].pad*2) + thisbox->items[z].height) > upymax)
-					upymax = (thisbox->items[z].pad*2) + thisbox->items[z].height;
+				if(itemheight > upymax)
+					upymax = itemheight;
 			}
 			else
 			{

@@ -998,12 +998,14 @@ int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *usedy,
 
 		if(thisbox->type == DW_VERT)
 		{
-			if((thisbox->items[z].width + (thisbox->items[z].pad*2)) > uxmax)
-				uxmax = (thisbox->items[z].width + (thisbox->items[z].pad*2));
+			int itemwidth = (thisbox->items[z].pad*2) + thisbox->items[z].width;
+
+			if(itemwidth > uxmax)
+				uxmax = itemwidth;
 			if(thisbox->items[z].hsize != SIZEEXPAND)
 			{
-				if(((thisbox->items[z].pad*2) + thisbox->items[z].width) > upxmax)
-					upxmax = (thisbox->items[z].pad*2) + thisbox->items[z].width;
+				if(itemwidth > upxmax)
+					upxmax = itemwidth;
 			}
 			else
 			{
@@ -1029,12 +1031,14 @@ int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *usedy,
 		}
 		if(thisbox->type == DW_HORZ)
 		{
-			if((thisbox->items[z].height + (thisbox->items[z].pad*2)) > uymax)
-				uymax = (thisbox->items[z].height + (thisbox->items[z].pad*2));
+			int itemheight = (thisbox->items[z].pad*2) + thisbox->items[z].height;
+
+			if(itemheight > uymax)
+				uymax = itemheight;
 			if(thisbox->items[z].vsize != SIZEEXPAND)
 			{
-				if(((thisbox->items[z].pad*2) + thisbox->items[z].height) > upymax)
-					upymax = (thisbox->items[z].pad*2) + thisbox->items[z].height;
+				if(itemheight > upymax)
+					upymax = itemheight;
 			}
 			else
 			{
@@ -3406,11 +3410,9 @@ void API dw_window_reparent(HWND handle, HWND newparent)
 
 HFONT _acquire_font(HWND handle, char *fontname)
 {
-	HFONT hfont;
+	HFONT hfont = 0;
 
-	if(fontname == DefaultFont || !fontname[0])
-		hfont = GetStockObject(DEFAULT_GUI_FONT);
-	else
+	if(fontname != DefaultFont && fontname[0])
 	{
         int Italic, Bold;
 		char *myFontName;
@@ -3459,6 +3461,8 @@ HFONT _acquire_font(HWND handle, char *fontname)
 		ReleaseDC(handle, hDC);
 #endif
 	}
+	if(!hfont)
+		hfont = GetStockObject(DEFAULT_GUI_FONT);
 	return hfont;
 }
 
