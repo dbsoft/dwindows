@@ -54,6 +54,7 @@ typedef struct _user_data
 
 #define DW_CLR_WHITE             16
 #define DW_CLR_BLACK             17
+#define DW_CLR_DEFAULT           18
 #define DW_CLR_BLUE              CLR_BLUE
 #define DW_CLR_RED               CLR_RED
 #define DW_CLR_PINK              CLR_PINK
@@ -203,6 +204,7 @@ extern HMQ dwhmq;
 #define DW_CLR_PINK              13
 #define DW_CLR_CYAN              14
 #define DW_CLR_WHITE             15
+#define DW_CLR_DEFAULT           16
 
 #define DW_FCF_TITLEBAR          WS_CAPTION
 #define DW_FCF_SYSMENU           WS_SYSMENU
@@ -414,6 +416,7 @@ void dw_box_pack_end_stub(HWND box, HWND item, int width, int height, int hsize,
 #define DW_CLR_PINK              13
 #define DW_CLR_CYAN              14
 #define DW_CLR_WHITE             15
+#define DW_CLR_DEFAULT           16
 
 #define DW_FCF_TITLEBAR          1
 #define DW_FCF_SYSMENU           (1 << 1)

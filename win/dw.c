@@ -1510,28 +1510,48 @@ BOOL CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 			ColorInfo *thiscinfo = (ColorInfo *)GetWindowLong((HWND)mp2, GWL_USERDATA);
 			if(thiscinfo && thiscinfo->fore != -1 && thiscinfo->back != -1)
 			{
-				if(thiscinfo->fore > -1 && thiscinfo->back > -1 &&
-				   thiscinfo->fore < 18 && thiscinfo->back < 18)
+				/* Handle foreground */
+				if(thiscinfo->fore > -1 && thiscinfo->fore < 18)
 				{
-					SetTextColor((HDC)mp1, RGB(_red[thiscinfo->fore],
-											   _green[thiscinfo->fore],
-											   _blue[thiscinfo->fore]));
-					SetBkColor((HDC)mp1, RGB(_red[thiscinfo->back],
-											 _green[thiscinfo->back],
-											 _blue[thiscinfo->back]));
-					if(thiscinfo->hbrush)
-						DeleteObject(thiscinfo->hbrush);
-					thiscinfo->hbrush = CreateSolidBrush(RGB(_red[thiscinfo->back],
-															 _green[thiscinfo->back],
-															 _blue[thiscinfo->back]));
-					SelectObject((HDC)mp1, thiscinfo->hbrush);
-					return (LONG)thiscinfo->hbrush;
+					if(thiscinfo->fore != DW_CLR_DEFAULT)
+					{
+						SetTextColor((HDC)mp1, RGB(_red[thiscinfo->fore],
+												   _green[thiscinfo->fore],
+												   _blue[thiscinfo->fore]));
+					}
 				}
-				if((thiscinfo->fore & DW_RGB_COLOR) == DW_RGB_COLOR && (thiscinfo->back & DW_RGB_COLOR) == DW_RGB_COLOR)
+				else if((thiscinfo->fore & DW_RGB_COLOR) == DW_RGB_COLOR)
 				{
 					SetTextColor((HDC)mp1, RGB(DW_RED_VALUE(thiscinfo->fore),
 											   DW_GREEN_VALUE(thiscinfo->fore),
 											   DW_BLUE_VALUE(thiscinfo->fore)));
+				}
+				/* Handle background */
+				if(thiscinfo->back > -1 && thiscinfo->back < 18)
+				{
+					if(thiscinfo->back == DW_CLR_DEFAULT)
+					{
+						HBRUSH hbr = GetSysColorBrush(COLOR_3DFACE);
+
+						SelectObject((HDC)mp1, hbr);
+						return (LONG)hbr;
+					}
+					else
+					{
+						SetBkColor((HDC)mp1, RGB(_red[thiscinfo->back],
+												 _green[thiscinfo->back],
+												 _blue[thiscinfo->back]));
+						if(thiscinfo->hbrush)
+							DeleteObject(thiscinfo->hbrush);
+						thiscinfo->hbrush = CreateSolidBrush(RGB(_red[thiscinfo->back],
+																 _green[thiscinfo->back],
+																 _blue[thiscinfo->back]));
+						SelectObject((HDC)mp1, thiscinfo->hbrush);
+					}
+					return (LONG)thiscinfo->hbrush;
+				}
+				else if((thiscinfo->back & DW_RGB_COLOR) == DW_RGB_COLOR)
+				{
 					SetBkColor((HDC)mp1, RGB(DW_RED_VALUE(thiscinfo->back),
 												 DW_GREEN_VALUE(thiscinfo->back),
 												 DW_BLUE_VALUE(thiscinfo->back)));
@@ -1588,38 +1608,56 @@ BOOL CALLBACK _framewndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 				HDC hdcPaint = BeginPaint(hWnd, &ps);
 				int success = FALSE;
 
-				if(thiscinfo->fore > -1 && thiscinfo->back > -1 &&
-				   thiscinfo->fore < 18 && thiscinfo->back < 18)
+				if(thiscinfo && thiscinfo->fore != -1 && thiscinfo->back != -1)
 				{
-					SetTextColor((HDC)mp1, RGB(_red[thiscinfo->fore],
-											   _green[thiscinfo->fore],
-											   _blue[thiscinfo->fore]));
-					SetBkColor((HDC)mp1, RGB(_red[thiscinfo->back],
-											 _green[thiscinfo->back],
-											 _blue[thiscinfo->back]));
-					DeleteObject(thiscinfo->hbrush);
-					thiscinfo->hbrush = CreateSolidBrush(RGB(_red[thiscinfo->back],
-															 _green[thiscinfo->back],
-															 _blue[thiscinfo->back]));
-					SelectObject(hdcPaint, thiscinfo->hbrush);
-					Rectangle(hdcPaint, ps.rcPaint.left - 1, ps.rcPaint.top - 1, ps.rcPaint.right + 1, ps.rcPaint.bottom + 1);
-					success = TRUE;
-				}
-				if((thiscinfo->fore & DW_RGB_COLOR) == DW_RGB_COLOR && (thiscinfo->back & DW_RGB_COLOR) == DW_RGB_COLOR)
-				{
-					SetTextColor((HDC)mp1, RGB(DW_RED_VALUE(thiscinfo->fore),
-											   DW_GREEN_VALUE(thiscinfo->fore),
-											   DW_BLUE_VALUE(thiscinfo->fore)));
-					SetBkColor((HDC)mp1, RGB(DW_RED_VALUE(thiscinfo->back),
-											 DW_GREEN_VALUE(thiscinfo->back),
-											 DW_BLUE_VALUE(thiscinfo->back)));
-					DeleteObject(thiscinfo->hbrush);
-					thiscinfo->hbrush = CreateSolidBrush(RGB(DW_RED_VALUE(thiscinfo->back),
-															 DW_GREEN_VALUE(thiscinfo->back),
-															 DW_BLUE_VALUE(thiscinfo->back)));
-					SelectObject(hdcPaint, thiscinfo->hbrush);
-					Rectangle(hdcPaint, ps.rcPaint.left, ps.rcPaint.top, ps.rcPaint.right, ps.rcPaint.bottom);
-					success = TRUE;
+					/* Handle foreground */
+					if(thiscinfo->fore > -1 && thiscinfo->fore < 18)
+					{
+						if(thiscinfo->fore != DW_CLR_DEFAULT)
+						{
+							SetTextColor((HDC)mp1, RGB(_red[thiscinfo->fore],
+													   _green[thiscinfo->fore],
+													   _blue[thiscinfo->fore]));
+						}
+					}
+					else if((thiscinfo->fore & DW_RGB_COLOR) == DW_RGB_COLOR)
+					{
+						SetTextColor((HDC)mp1, RGB(DW_RED_VALUE(thiscinfo->fore),
+												   DW_GREEN_VALUE(thiscinfo->fore),
+												   DW_BLUE_VALUE(thiscinfo->fore)));
+					}
+					/* Handle background */
+					if(thiscinfo->back > -1 && thiscinfo->back < 18)
+					{
+						if(thiscinfo->back != DW_CLR_DEFAULT)
+						{
+							SetBkColor((HDC)mp1, RGB(_red[thiscinfo->back],
+													 _green[thiscinfo->back],
+													 _blue[thiscinfo->back]));
+							if(thiscinfo->hbrush)
+								DeleteObject(thiscinfo->hbrush);
+							thiscinfo->hbrush = CreateSolidBrush(RGB(_red[thiscinfo->back],
+																	 _green[thiscinfo->back],
+																	 _blue[thiscinfo->back]));
+							SelectObject(hdcPaint, thiscinfo->hbrush);
+							Rectangle(hdcPaint, ps.rcPaint.left - 1, ps.rcPaint.top - 1, ps.rcPaint.right + 1, ps.rcPaint.bottom + 1);
+							success = TRUE;
+						}
+					}
+					else if((thiscinfo->back & DW_RGB_COLOR) == DW_RGB_COLOR)
+					{
+						SetBkColor((HDC)mp1, RGB(DW_RED_VALUE(thiscinfo->back),
+												 DW_GREEN_VALUE(thiscinfo->back),
+												 DW_BLUE_VALUE(thiscinfo->back)));
+						if(thiscinfo->hbrush)
+							DeleteObject(thiscinfo->hbrush);
+						thiscinfo->hbrush = CreateSolidBrush(RGB(DW_RED_VALUE(thiscinfo->back),
+																 DW_GREEN_VALUE(thiscinfo->back),
+																 DW_BLUE_VALUE(thiscinfo->back)));
+						SelectObject(hdcPaint, thiscinfo->hbrush);
+						Rectangle(hdcPaint, ps.rcPaint.left - 1, ps.rcPaint.top - 1, ps.rcPaint.right + 1, ps.rcPaint.bottom + 1);
+						success = TRUE;
+					}
 				}
 
 				EndPaint(hWnd, &ps);
@@ -1937,28 +1975,51 @@ BOOL CALLBACK _colorwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 				ColorInfo *thiscinfo = (ColorInfo *)GetWindowLong((HWND)mp2, GWL_USERDATA);
 				if(thiscinfo && thiscinfo->fore != -1 && thiscinfo->back != -1)
 				{
-					if(thiscinfo->fore > -1 && thiscinfo->back > -1 &&
-					   thiscinfo->fore < 18 && thiscinfo->back < 18)
+					/* Handle foreground */
+					if(thiscinfo->fore > -1 && thiscinfo->fore < 18)
 					{
-						SetTextColor((HDC)mp1, RGB(_red[thiscinfo->fore],
-												   _green[thiscinfo->fore],
-											   _blue[thiscinfo->fore]));
-						SetBkColor((HDC)mp1, RGB(_red[thiscinfo->back],
-												 _green[thiscinfo->back],
-												 _blue[thiscinfo->back]));
-						if(thiscinfo->hbrush)
-							DeleteObject(thiscinfo->hbrush);
-						thiscinfo->hbrush = CreateSolidBrush(RGB(_red[thiscinfo->back],
-																 _green[thiscinfo->back],
-																 _blue[thiscinfo->back]));
-						SelectObject((HDC)mp1, thiscinfo->hbrush);
-						return (LONG)thiscinfo->hbrush;
+						if(thiscinfo->fore != DW_CLR_DEFAULT)
+						{
+							SetTextColor((HDC)mp1, RGB(_red[thiscinfo->fore],
+													   _green[thiscinfo->fore],
+													   _blue[thiscinfo->fore]));
+						}
 					}
-					if((thiscinfo->fore & DW_RGB_COLOR) == DW_RGB_COLOR && (thiscinfo->back & DW_RGB_COLOR) == DW_RGB_COLOR)
+					else if((thiscinfo->fore & DW_RGB_COLOR) == DW_RGB_COLOR)
 					{
 						SetTextColor((HDC)mp1, RGB(DW_RED_VALUE(thiscinfo->fore),
 												   DW_GREEN_VALUE(thiscinfo->fore),
 												   DW_BLUE_VALUE(thiscinfo->fore)));
+					}
+					/* Handle background */
+					if(thiscinfo->back > -1 && thiscinfo->back < 18)
+					{
+						if(thiscinfo->back == DW_CLR_DEFAULT)
+						{
+							HBRUSH hbr = GetSysColorBrush(COLOR_3DFACE);
+
+							SetBkColor((HDC)mp1, GetSysColor(COLOR_3DFACE));
+
+
+							SelectObject((HDC)mp1, hbr);
+							return (LONG)hbr;
+						}
+						else
+						{
+							SetBkColor((HDC)mp1, RGB(_red[thiscinfo->back],
+													 _green[thiscinfo->back],
+													 _blue[thiscinfo->back]));
+							if(thiscinfo->hbrush)
+								DeleteObject(thiscinfo->hbrush);
+							thiscinfo->hbrush = CreateSolidBrush(RGB(_red[thiscinfo->back],
+																	 _green[thiscinfo->back],
+																	 _blue[thiscinfo->back]));
+							SelectObject((HDC)mp1, thiscinfo->hbrush);
+						}
+						return (LONG)thiscinfo->hbrush;
+					}
+					else if((thiscinfo->back & DW_RGB_COLOR) == DW_RGB_COLOR)
+					{
 						SetBkColor((HDC)mp1, RGB(DW_RED_VALUE(thiscinfo->back),
 												 DW_GREEN_VALUE(thiscinfo->back),
 												 DW_BLUE_VALUE(thiscinfo->back)));
@@ -4023,17 +4084,18 @@ HWND dw_checkbox_new(char *text, ULONG id)
  */
 HWND dw_listbox_new(ULONG id, int multi)
 {
-	HWND tmp = CreateWindow(LISTBOXCLASSNAME,
-							"",
-							WS_VISIBLE | LBS_NOINTEGRALHEIGHT |
-							WS_CHILD | LBS_HASSTRINGS |
-							LBS_NOTIFY | WS_BORDER  | WS_CLIPCHILDREN |
-							WS_VSCROLL | (multi ? LBS_MULTIPLESEL : 0) ,
-							0,0,2000,1000,
-							DW_HWND_OBJECT,
-							(HMENU)id,
-							DWInstance,
-							NULL);
+	HWND tmp = CreateWindowEx(WS_EX_CLIENTEDGE,
+							  LISTBOXCLASSNAME,
+							  "",
+							  WS_VISIBLE | LBS_NOINTEGRALHEIGHT |
+							  WS_CHILD | LBS_HASSTRINGS |
+							  LBS_NOTIFY | WS_BORDER  | WS_CLIPCHILDREN |
+							  WS_VSCROLL | (multi ? LBS_MULTIPLESEL : 0) ,
+							  0,0,2000,1000,
+							  DW_HWND_OBJECT,
+							  (HMENU)id,
+							  DWInstance,
+							  NULL);
 	ContainerInfo *cinfo = (ContainerInfo *)calloc(1, sizeof(ContainerInfo));
 
 	if(!cinfo)
