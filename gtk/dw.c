@@ -4426,11 +4426,13 @@ HPIXMAP dw_pixmap_grab(HWND handle, ULONG id)
  */
 void dw_flush(void)
 {
+#if GTK_MAJOR_VERSION < 2
 	int _locked_by_me = FALSE;
 
 	DW_MUTEX_LOCK;
 	gdk_flush();
 	DW_MUTEX_UNLOCK;
+#endif
 }
 
 /*
@@ -4441,12 +4443,14 @@ void dw_flush(void)
  */
 void dw_pixmap_destroy(HPIXMAP pixmap)
 {
+#if GTK_MAJOR_VERSION < 2
 	int _locked_by_me = FALSE;
 
 	DW_MUTEX_LOCK;
 	gdk_pixmap_unref(pixmap->pixmap);
 	free(pixmap);
 	DW_MUTEX_UNLOCK;
+#endif
 }
 
 /*
