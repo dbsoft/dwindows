@@ -205,6 +205,7 @@ typedef struct _hpixmap {
 	HWND handle;
 } *HPIXMAP;
 
+typedef void *HTREEITEM;
 typedef HWND HMENUI;
 typedef HMODULE HMOD;
 typedef unsigned short UWORD;
@@ -622,6 +623,7 @@ typedef struct _hpixmap {
 } *HPIXMAP;
 
 typedef GtkWidget *HMENUI;
+typedef void *HTREEITEM;
 
 #define DW_NOMENU NULL
 
@@ -832,16 +834,16 @@ void API dw_entryfield_set_limit(HWND handle, ULONG limit);
 long API dw_spinbutton_query(HWND handle);
 int API dw_checkbox_query(HWND handle);
 void API dw_checkbox_set(HWND handle, int value);
-HWND API dw_tree_insert(HWND handle, char *title, unsigned long icon, HWND parent, void *itemdata);
-HWND API dw_tree_insert_after(HWND handle, HWND item, char *title, unsigned long icon, HWND parent, void *itemdata);
+HTREEITEM API dw_tree_insert(HWND handle, char *title, unsigned long icon, HTREEITEM parent, void *itemdata);
+HTREEITEM API dw_tree_insert_after(HWND handle, HTREEITEM item, char *title, unsigned long icon, HTREEITEM parent, void *itemdata);
 void API dw_tree_clear(HWND handle);
-void API dw_tree_delete(HWND handle, HWND item);
-void API dw_tree_set(HWND handle, HWND item, char *title, unsigned long icon);
-void API dw_tree_expand(HWND handle, HWND item);
-void API dw_tree_collapse(HWND handle, HWND item);
-void API dw_tree_item_select(HWND handle, HWND item);
-void API dw_tree_set_data(HWND handle, HWND item, void *itemdata);
-void * API dw_tree_get_data(HWND handle, HWND item);
+void API dw_tree_delete(HWND handle, HTREEITEM item);
+void API dw_tree_set(HWND handle, HTREEITEM item, char *title, unsigned long icon);
+void API dw_tree_expand(HWND handle, HTREEITEM item);
+void API dw_tree_collapse(HWND handle, HTREEITEM item);
+void API dw_tree_item_select(HWND handle, HTREEITEM item);
+void API dw_tree_set_data(HWND handle, HTREEITEM item, void *itemdata);
+void * API dw_tree_get_data(HWND handle, HTREEITEM item);
 int API dw_container_setup(HWND handle, unsigned long *flags, char **titles, int count, int separator);
 unsigned long API dw_icon_load(unsigned long module, unsigned long id);
 unsigned long API dw_icon_load_from_file(char *filename);

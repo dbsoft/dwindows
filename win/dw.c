@@ -1531,7 +1531,7 @@ BOOL CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 											tvi.hItem = hti;
 
 											TreeView_GetItem(tmp->window, &tvi);
-											dw_tree_item_select(tmp->window, (HWND)hti);
+											dw_tree_item_select(tmp->window, hti);
 
 											ptrs = (void **)tvi.lParam;
 
@@ -5725,7 +5725,7 @@ void API dw_checkbox_set(HWND handle, int value)
  *          parent: Parent handle or 0 if root.
  *          itemdata: Item specific data.
  */
-HWND API dw_tree_insert_after(HWND handle, HWND item, char *title, unsigned long icon, HWND parent, void *itemdata)
+HTREEITEM API dw_tree_insert_after(HWND handle, HTREEITEM item, char *title, unsigned long icon, HTREEITEM parent, void *itemdata)
 {
 	TVITEM tvi;
 	TVINSERTSTRUCT tvins;
@@ -5742,12 +5742,12 @@ HWND API dw_tree_insert_after(HWND handle, HWND item, char *title, unsigned long
 	tvi.iSelectedImage = tvi.iImage = _lookup_icon(handle, (HICON)icon, 1);
 
 	tvins.item = tvi;
-	tvins.hParent = (HTREEITEM)parent;
-	tvins.hInsertAfter = item ? (HTREEITEM)item : TVI_FIRST;
+	tvins.hParent = parent;
+	tvins.hInsertAfter = item ? item : TVI_FIRST;
 
 	hti = TreeView_InsertItem(handle, &tvins);
 
-	return (HWND)hti;
+	return hti;
 }
 
 /*
@@ -5759,7 +5759,7 @@ HWND API dw_tree_insert_after(HWND handle, HWND item, char *title, unsigned long
  *          parent: Parent handle or 0 if root.
  *          itemdata: Item specific data.
  */
-HWND API dw_tree_insert(HWND handle, char *title, unsigned long icon, HWND parent, void *itemdata)
+HTREEITEM API dw_tree_insert(HWND handle, char *title, unsigned long icon, HTREEITEM parent, void *itemdata)
 {
 	TVITEM tvi;
 	TVINSERTSTRUCT tvins;
@@ -5776,12 +5776,12 @@ HWND API dw_tree_insert(HWND handle, char *title, unsigned long icon, HWND paren
 	tvi.iSelectedImage = tvi.iImage = _lookup_icon(handle, (HICON)icon, 1);
 
 	tvins.item = tvi;
-	tvins.hParent = (HTREEITEM)parent;
+	tvins.hParent = parent;
 	tvins.hInsertAfter = TVI_LAST;
 
 	hti = TreeView_InsertItem(handle, &tvins);
 
-	return (HWND)hti;
+	return hti;
 }
 
 /*
@@ -5792,13 +5792,13 @@ HWND API dw_tree_insert(HWND handle, char *title, unsigned long icon, HWND paren
  *          title: The text title of the entry.
  *          icon: Handle to coresponding icon.
  */
-void API dw_tree_set(HWND handle, HWND item, char *title, unsigned long icon)
+void API dw_tree_set(HWND handle, HTREEITEM item, char *title, unsigned long icon)
 {
 	TVITEM tvi;
 	void **ptrs;
 
 	tvi.mask = TVIF_HANDLE;
-	tvi.hItem = (HTREEITEM)item;
+	tvi.hItem = item;
 
 	if(TreeView_GetItem(handle, &tvi))
 	{
@@ -5823,13 +5823,13 @@ void API dw_tree_set(HWND handle, HWND item, char *title, unsigned long icon)
  *          item: Handle of the item to be modified.
  *          itemdata: User defined data to be associated with item.
  */
-void API dw_tree_set_data(HWND handle, HWND item, void *itemdata)
+void API dw_tree_set_data(HWND handle, HTREEITEM item, void *itemdata)
 {
 	TVITEM tvi;
 	void **ptrs;
 
 	tvi.mask = TVIF_HANDLE;
-	tvi.hItem = (HTREEITEM)item;
+	tvi.hItem = item;
 
 	if(TreeView_GetItem(handle, &tvi))
 	{
@@ -5844,13 +5844,13 @@ void API dw_tree_set_data(HWND handle, HWND item, void *itemdata)
  *          handle: Handle to the tree containing the item.
  *          item: Handle of the item to be modified.
  */
-void * API dw_tree_get_data(HWND handle, HWND item)
+void * API dw_tree_get_data(HWND handle, HTREEITEM item)
 {
 	TVITEM tvi;
 	void **ptrs;
 
 	tvi.mask = TVIF_HANDLE;
-	tvi.hItem = (HTREEITEM)item;
+	tvi.hItem = item;
 
 	if(TreeView_GetItem(handle, &tvi))
 	{
@@ -5866,10 +5866,10 @@ void * API dw_tree_get_data(HWND handle, HWND item)
  *       handle: Handle to the tree window (widget) to be selected.
  *       item: Handle to the item to be selected.
  */
-void API dw_tree_item_select(HWND handle, HWND item)
+void API dw_tree_item_select(HWND handle, HTREEITEM item)
 {
 	dw_window_set_data(handle, "_dw_select_item", (void *)1);
-	TreeView_SelectItem(handle, (HTREEITEM)item);
+	TreeView_SelectItem(handle, item);
 	dw_window_set_data(handle, "_dw_select_item", (void *)0);
 }
 
@@ -5885,7 +5885,7 @@ void _dw_tree_delete_recursive(HWND handle, HTREEITEM node)
 		HTREEITEM lastitem = hti;
 
 		hti = TreeView_GetNextSibling(handle, hti);
-		dw_tree_delete(handle, (HWND)lastitem);
+		dw_tree_delete(handle, lastitem);
 	}
 }
 
@@ -5904,7 +5904,7 @@ void API dw_tree_clear(HWND handle)
 
 		_dw_tree_delete_recursive(handle, hti);
 		hti = TreeView_GetNextSibling(handle, hti);
-		dw_tree_delete(handle, (HWND)lastitem);
+		dw_tree_delete(handle, lastitem);
 	}
 }
 
@@ -5914,9 +5914,9 @@ void API dw_tree_clear(HWND handle)
  *       handle: Handle to the tree window (widget).
  *       item: Handle to node to be expanded.
  */
-void API dw_tree_expand(HWND handle, HWND item)
+void API dw_tree_expand(HWND handle, HTREEITEM item)
 {
-	TreeView_Expand(handle, (HTREEITEM)item, TVE_EXPAND);
+	TreeView_Expand(handle, item, TVE_EXPAND);
 }
 
 /*
@@ -5925,9 +5925,9 @@ void API dw_tree_expand(HWND handle, HWND item)
  *       handle: Handle to the tree window (widget).
  *       item: Handle to node to be collapsed.
  */
-void API dw_tree_collapse(HWND handle, HWND item)
+void API dw_tree_collapse(HWND handle, HTREEITEM item)
 {
-	TreeView_Expand(handle, (HTREEITEM)item, TVE_COLLAPSE);
+	TreeView_Expand(handle, item, TVE_COLLAPSE);
 }
 
 /*
@@ -5936,22 +5936,22 @@ void API dw_tree_collapse(HWND handle, HWND item)
  *       handle: Handle to the window (widget) to be cleared.
  *       item: Handle to node to be deleted.
  */
-void API dw_tree_delete(HWND handle, HWND item)
+void API dw_tree_delete(HWND handle, HTREEITEM item)
 {
 	TVITEM tvi;
 	void **ptrs;
 
-	if((HTREEITEM)item == TVI_ROOT || !item)
+	if(item == TVI_ROOT || !item)
 		return;
 
 	tvi.mask = TVIF_HANDLE;
-	tvi.hItem = (HTREEITEM)item;
+	tvi.hItem = item;
 
 	if(TreeView_GetItem(handle, &tvi))
 		ptrs = (void **)tvi.lParam;
 
-	_dw_tree_delete_recursive(handle, (HTREEITEM)item);
-	TreeView_DeleteItem(handle, (HTREEITEM)item);
+	_dw_tree_delete_recursive(handle, item);
+	TreeView_DeleteItem(handle, item);
 	if(ptrs)
 		free(ptrs);
 }

@@ -2119,7 +2119,7 @@ MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 									{
 										NOTIFYRECORDEMPHASIS pre;
 
-										dw_tree_item_select(tmp->window, (HWND)mp2);
+										dw_tree_item_select(tmp->window, (HTREEITEM)mp2);
 										pre.pRecord = mp2;
 										pre.fEmphasisMask = CRA_CURSORED;
 										pre.hwndCnr = tmp->window;
@@ -2157,7 +2157,7 @@ MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 
 										if(pci && pre->fEmphasisMask & CRA_CURSORED && (pci->rc.flRecordAttr & CRA_CURSORED))
 										{
-											int (* API treeselectfunc)(HWND, HWND, char *, void *, void *) = (int (* API)(HWND, HWND, char *, void *, void *))tmp->signalfunction;
+											int (* API treeselectfunc)(HWND, HTREEITEM, char *, void *, void *) = (int (* API)(HWND, HTREEITEM, char *, void *, void *))tmp->signalfunction;
 
 											if(dw_window_get_data(tmp->window, "_dw_container"))
 												result = treeselectfunc(tmp->window, 0, pci->rc.pszIcon, tmp->data, 0);
@@ -2172,7 +2172,7 @@ MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 												{
 													lasthcnr = tmp->window;
 													lastitem = (HWND)pci;
-													result = treeselectfunc(tmp->window, (HWND)pci, pci->rc.pszIcon, tmp->data, pci->user);
+													result = treeselectfunc(tmp->window, (HTREEITEM)pci, pci->rc.pszIcon, tmp->data, pci->user);
 												}
 											}
 											tmp = NULL;
@@ -5610,14 +5610,14 @@ void API dw_checkbox_set(HWND handle, int value)
  *          parent: Parent handle or 0 if root.
  *          itemdata: Item specific data.
  */
-HWND API dw_tree_insert_after(HWND handle, HWND item, char *title, unsigned long icon, HWND parent, void *itemdata)
+HTREEITEM API dw_tree_insert_after(HWND handle, HTREEITEM item, char *title, unsigned long icon, HTREEITEM parent, void *itemdata)
 {
 	ULONG        cbExtra;
 	PCNRITEM     pci;
 	RECORDINSERT ri;
 
 	if(!item)
-		item = CMA_FIRST;
+		item = (HTREEITEM)CMA_FIRST;
 
 	/* Calculate extra bytes needed for each record besides that needed for the
 	 * MINIRECORDCORE structure
@@ -5655,7 +5655,7 @@ HWND API dw_tree_insert_after(HWND handle, HWND item, char *title, unsigned long
 	/* Insert the record */
 	WinSendMsg(handle, CM_INSERTRECORD, MPFROMP(pci), MPFROMP(&ri));
 
-	return (HWND)pci;
+	return (HTREEITEM)pci;
 }
 
 /*
@@ -5667,9 +5667,9 @@ HWND API dw_tree_insert_after(HWND handle, HWND item, char *title, unsigned long
  *          parent: Parent handle or 0 if root.
  *          itemdata: Item specific data.
  */
-HWND API dw_tree_insert(HWND handle, char *title, unsigned long icon, HWND parent, void *itemdata)
+HTREEITEM API dw_tree_insert(HWND handle, char *title, unsigned long icon, HTREEITEM parent, void *itemdata)
 {
-	return dw_tree_insert_after(handle, (HWND)CMA_END, title, icon, parent, itemdata);
+	return dw_tree_insert_after(handle, (HTREEITEM)CMA_END, title, icon, parent, itemdata);
 }
 
 /*
@@ -5680,7 +5680,7 @@ HWND API dw_tree_insert(HWND handle, char *title, unsigned long icon, HWND paren
  *          title: The text title of the entry.
  *          icon: Handle to coresponding icon.
  */
-void API dw_tree_set(HWND handle, HWND item, char *title, unsigned long icon)
+void API dw_tree_set(HWND handle, HTREEITEM item, char *title, unsigned long icon)
 {
 	PCNRITEM pci = (PCNRITEM)item;
 
@@ -5705,7 +5705,7 @@ void API dw_tree_set(HWND handle, HWND item, char *title, unsigned long icon)
  *          item: Handle of the item to be modified.
  *          itemdata: User defined data to be associated with item.
  */
-void API dw_tree_set_data(HWND handle, HWND item, void *itemdata)
+void API dw_tree_set_data(HWND handle, HTREEITEM item, void *itemdata)
 {
 	PCNRITEM pci = (PCNRITEM)item;
 
@@ -5721,7 +5721,7 @@ void API dw_tree_set_data(HWND handle, HWND item, void *itemdata)
  *          handle: Handle to the tree containing the item.
  *          item: Handle of the item to be modified.
  */
-void * API dw_tree_get_data(HWND handle, HWND item)
+void * API dw_tree_get_data(HWND handle, HTREEITEM item)
 {
 	PCNRITEM pci = (PCNRITEM)item;
 
@@ -5736,7 +5736,7 @@ void * API dw_tree_get_data(HWND handle, HWND item)
  *       handle: Handle to the tree window (widget) to be selected.
  *       item: Handle to the item to be selected.
  */
-void API dw_tree_item_select(HWND handle, HWND item)
+void API dw_tree_item_select(HWND handle, HTREEITEM item)
 {
 	PRECORDCORE pCore = WinSendMsg(handle, CM_QUERYRECORD, (MPARAM)0L, MPFROM2SHORT(CMA_FIRST, CMA_ITEMORDER));
 
@@ -5767,7 +5767,7 @@ void API dw_tree_clear(HWND handle)
  *       handle: Handle to the tree window (widget).
  *       item: Handle to node to be expanded.
  */
-void API dw_tree_expand(HWND handle, HWND item)
+void API dw_tree_expand(HWND handle, HTREEITEM item)
 {
 	WinSendMsg(handle, CM_EXPANDTREE, MPFROMP(item), 0);
 }
@@ -5778,7 +5778,7 @@ void API dw_tree_expand(HWND handle, HWND item)
  *       handle: Handle to the tree window (widget).
  *       item: Handle to node to be collapsed.
  */
-void API dw_tree_collapse(HWND handle, HWND item)
+void API dw_tree_collapse(HWND handle, HTREEITEM item)
 {
 	WinSendMsg(handle, CM_COLLAPSETREE, MPFROMP(item), 0);
 }
@@ -5789,7 +5789,7 @@ void API dw_tree_collapse(HWND handle, HWND item)
  *       handle: Handle to the window (widget) to be cleared.
  *       item: Handle to node to be deleted.
  */
-void API dw_tree_delete(HWND handle, HWND item)
+void API dw_tree_delete(HWND handle, HTREEITEM item)
 {
 	PCNRITEM     pci = (PCNRITEM)item;
 
@@ -6110,7 +6110,7 @@ void _dw_container_set_item(HWND handle, PRECORDCORE temp, int column, int row, 
 	dest = (void *)(((ULONG)temp)+((ULONG)totalsize));
 
 	if(flags[column] & DW_CFA_BITMAPORICON)
-        memcpy(dest, data, sizeof(HPOINTER));
+		memcpy(dest, data, sizeof(HPOINTER));
 	else if(flags[column] & DW_CFA_STRING)
 	{
 		char **newstr = (char **)data, **str = dest;
@@ -6124,14 +6124,14 @@ void _dw_container_set_item(HWND handle, PRECORDCORE temp, int column, int row, 
 			*str = NULL;
 	}
 	else if(flags[column] & DW_CFA_ULONG)
-        memcpy(dest, data, sizeof(ULONG));
+		memcpy(dest, data, sizeof(ULONG));
 	else if(flags[column] & DW_CFA_DATE)
-        memcpy(dest, data, sizeof(CDATE));
+		memcpy(dest, data, sizeof(CDATE));
 	else if(flags[column] & DW_CFA_TIME)
-        memcpy(dest, data, sizeof(CTIME));
+		memcpy(dest, data, sizeof(CTIME));
 }
 
-/* Internal function that does the work for set_item and change_item */
+/* Internal function that free()s any strings allocated for a container item */
 void _dw_container_free_strings(HWND handle, PRECORDCORE temp)
 {
 	WindowData *blah = (WindowData *)WinQueryWindowPtr(handle, QWP_USER);
