@@ -4294,6 +4294,7 @@ static int _dw_container_setup(HWND handle, unsigned long *flags, char **titles,
 	char numbuf[10];
 	int z, multi;
 	int _locked_by_me = FALSE;
+	GtkJustification justification;
 
 	DW_MUTEX_LOCK;
     clist = gtk_clist_new_with_titles(count, (gchar **)titles);
@@ -4324,6 +4325,13 @@ static int _dw_container_setup(HWND handle, unsigned long *flags, char **titles,
 			gtk_clist_set_column_width(GTK_CLIST(clist), z, 50);
 		sprintf(numbuf, "%d", z);
 		gtk_object_set_data(GTK_OBJECT(clist), numbuf, (gpointer)flags[z]);
+		if(flags[z]&DW_CFA_RIGHT)
+			justification = GTK_JUSTIFY_RIGHT;
+		else if(flags[z]&DW_CFA_CENTER)
+			justification = GTK_JUSTIFY_CENTER;
+		else
+			justification = GTK_JUSTIFY_LEFT;
+		gtk_clist_set_column_justification(GTK_CLIST(clist),z,justification);
 	}
 
 	DW_MUTEX_UNLOCK;

@@ -6018,7 +6018,7 @@ int API dw_container_setup(HWND handle, unsigned long *flags, char **titles, int
 	ContainerInfo *cinfo = (ContainerInfo *)GetWindowLong(handle, GWL_USERDATA);
 	int z, l = 0;
 	unsigned long *tempflags = calloc(sizeof(unsigned long), count + 2);
-	LV_COLUMN lvc;
+	LVCOLUMN lvc;
 
 	if(separator == -1)
 	{
@@ -6036,10 +6036,15 @@ int API dw_container_setup(HWND handle, unsigned long *flags, char **titles, int
 	{
 		if(titles[z])
 		{
-			lvc.mask = LVCF_TEXT | LVCF_WIDTH | LVCF_SUBITEM;
+			lvc.mask = LVCF_TEXT | LVCF_WIDTH | LVCF_SUBITEM | LVCF_FMT;
 			lvc.pszText = titles[z];
 			lvc.cchTextMax = strlen(titles[z]);
-			lvc.fmt = flags[z];
+			if(flags[z] & DW_CFA_RIGHT)
+				lvc.fmt = LVCFMT_RIGHT;
+			else if(flags[z] & DW_CFA_CENTER)
+				lvc.fmt = LVCFMT_CENTER;
+			else
+				lvc.fmt = LVCFMT_LEFT;
 			lvc.cx = 75;
 			lvc.iSubItem = count;
 			SendMessage(handle, LVM_INSERTCOLUMN, (WPARAM)z + l, (LPARAM)&lvc);
