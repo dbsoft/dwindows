@@ -6460,6 +6460,40 @@ void dw_beep(int freq, int dur)
 	DosBeep(freq, dur);
 }
 
+/* Open a shared library and return a handle.
+ * Parameters:
+ *         name: Base name of the shared library.
+ *         handle: Pointer to a module handle,
+ *                 will be filled in with the handle.
+ */
+int dw_module_load(char *name, HMOD *handle)
+{
+	char objnamebuf[300] = "";
+
+	return DosLoadModule(objnamebuf, sizeof(objnamebuf), name, handle);
+}
+
+/* Queries the address of a symbol within open handle.
+ * Parameters:
+ *         handle: Module handle returned by dw_module_load()
+ *         name: Name of the symbol you want the address of.
+ *         func: A pointer to a function pointer, to obtain
+ *               the address.
+ */
+int dw_module_symbol(HMOD handle, char *name, void**func)
+{
+	return DosQueryProcAddr(handle, 0, name, (PFN*)func);
+}
+
+/* Frees the shared library previously opened.
+ * Parameters:
+ *         handle: Module handle returned by dw_module_load()
+ */
+int dw_module_close(HMOD handle)
+{
+	DosFreeModule(handle);
+}
+
 /*
  * Returns the handle to an unnamed mutex semaphore.
  */

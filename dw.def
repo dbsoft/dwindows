@@ -222,3 +222,8 @@ EXPORTS
   dw_splitbar_new                        @410
   dw_splitbar_set                        @411
   dw_splitbar_get                        @412
+
+  dw_module_load                         @420
+  dw_module_symbol                       @421
+  dw_module_close                        @422
+
