@@ -322,7 +322,7 @@ HWND _normalize_handle(HWND handle)
 	return handle;
 }
 
-int _focus_check_box(Box *box, HWND handle, int start)
+int _focus_check_box(Box *box, HWND handle, int start, HWND defaultitem)
 {
 	int z;
 	static HWND lasthwnd, firsthwnd;
@@ -356,7 +356,7 @@ int _focus_check_box(Box *box, HWND handle, int start)
 		{
 			Box *thisbox = (Box *)GetWindowLong(box->items[z].hwnd, GWL_USERDATA);
 
-			if(thisbox && _focus_check_box(thisbox, handle, start == 3 ? 3 : 0))
+			if(thisbox && _focus_check_box(thisbox, handle, start == 3 ? 3 : 0, defaultitem))
 				return 1;
 		}
 		else
@@ -383,8 +383,11 @@ int _focus_check_box(Box *box, HWND handle, int start)
 				 */
 				if(start == 3)
 				{
-					SetFocus(_normalize_handle(box->items[z].hwnd));
-					return 1;
+					if(!defaultitem || (defaultitem && box->items[z].hwnd == defaultitem))
+					{
+						SetFocus(_normalize_handle(box->items[z].hwnd));
+						return 1;
+					}
 				}
 
 				if(!firsthwnd)
@@ -411,7 +414,7 @@ int _focus_check_box(Box *box, HWND handle, int start)
 						{
 							notebox = (Box *)GetWindowLong(array[pageid]->hwnd, GWL_USERDATA);
 
-							if(notebox && _focus_check_box(notebox, handle, start == 3 ? 3 : 0))
+							if(notebox && _focus_check_box(notebox, handle, start == 3 ? 3 : 0, defaultitem))
 								return 1;
 						}
 					}
@@ -434,7 +437,7 @@ void _initial_focus(HWND handle)
 
 	if(thisbox)
 	{
-		_focus_check_box(thisbox, handle, 3);
+		_focus_check_box(thisbox, handle, 3, thisbox->defaultitem);
 	}
 }
 
@@ -456,8 +459,8 @@ void _shift_focus(HWND handle)
 	thisbox = (Box *)GetWindowLong(lastbox, GWL_USERDATA);
 	if(thisbox)
 	{
-		if(_focus_check_box(thisbox, handle, 1)  == 0)
-			_focus_check_box(thisbox, handle, 2);
+		if(_focus_check_box(thisbox, handle, 1, 0)  == 0)
+			_focus_check_box(thisbox, handle, 2, 0);
 	}
 }
 
@@ -4561,13 +4564,16 @@ int dw_container_setup(HWND handle, unsigned long *flags, char **titles, int cou
 
 	for(z=0;z<count;z++)
 	{
-		lvc.mask = LVCF_TEXT | LVCF_WIDTH | LVCF_SUBITEM /*| LVCF_FORMAT*/;
-		lvc.pszText = titles[z];
-		lvc.cchTextMax = strlen(titles[z]);
-		lvc.fmt = flags[z];
-		lvc.cx = 75;
-		lvc.iSubItem = count;
-		SendMessage(handle, LVM_INSERTCOLUMN, (WPARAM)z + l, (LPARAM)&lvc);
+		if(titles[z])
+		{
+			lvc.mask = LVCF_TEXT | LVCF_WIDTH | LVCF_SUBITEM /*| LVCF_FORMAT*/;
+			lvc.pszText = titles[z];
+			lvc.cchTextMax = strlen(titles[z]);
+			lvc.fmt = flags[z];
+			lvc.cx = 75;
+			lvc.iSubItem = count;
+			SendMessage(handle, LVM_INSERTCOLUMN, (WPARAM)z + l, (LPARAM)&lvc);
+		}
 	}
 	ListView_SetExtendedListViewStyle(handle, LVS_EX_FULLROWSELECT | LVS_EX_GRIDLINES);
 	return TRUE;
@@ -4656,8 +4662,8 @@ int _lookup_icon(HWND handle, HICON hicon, int type)
 
 	if(!hSmall || !hLarge)
 	{
-		hSmall = ImageList_Create(16, 16, FALSE, ICON_INDEX_LIMIT, 0);
-		hLarge = ImageList_Create(32, 32, FALSE, ICON_INDEX_LIMIT, 0);
+		hSmall = ImageList_Create(16, 16, ILC_COLOR16, ICON_INDEX_LIMIT, 0);
+		hLarge = ImageList_Create(32, 32, ILC_COLOR16, ICON_INDEX_LIMIT, 0);
 	}
 	for(z=0;z<ICON_INDEX_LIMIT;z++)
 	{
@@ -5598,6 +5604,20 @@ void dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, int 
 			}
 		}
 	}
+}
+
+/*
+ * Sets the default focus item for a window/dialog.
+ * Parameters:
+ *         window: Toplevel window or dialog.
+ *         defaultitem: Handle to the dialog item to be default.
+ */
+void dw_window_default(HWND window, HWND defaultitem)
+{
+	Box *thisbox = (Box *)GetWindowLong(window, GWL_USERDATA);
+
+	if(thisbox)
+		thisbox->defaultitem = defaultitem;
 }
 
 /*

@@ -723,6 +723,7 @@ int dw_window_minimize(HWND handle)
 int dw_window_show(HWND handle)
 {
 	int _locked_by_me = FALSE;
+	GtkWidget *defaultitem;
 
 	if(!handle)
 		return 0;
@@ -733,6 +734,9 @@ int dw_window_show(HWND handle)
 	gdk_flush();
 	gdk_window_show(GTK_WIDGET(handle)->window);
 	gdk_flush();
+	defaultitem = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(handle), "defaultitem");
+	if(defaultitem)
+		gtk_widget_grab_focus(defaultitem);
 	DW_MUTEX_UNLOCK;
 	return 0;
 }
@@ -4409,6 +4413,24 @@ void dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize, in
 		gtk_widget_set_usize(item, width, height);
 		gtk_object_set_user_data(GTK_OBJECT(box), vbox);
 	}
+	DW_MUTEX_UNLOCK;
+}
+
+/*
+ * Sets the default focus item for a window/dialog.
+ * Parameters:
+ *         window: Toplevel window or dialog.
+ *         defaultitem: Handle to the dialog item to be default.
+ */
+void dw_window_default(HWND window, HWND defaultitem)
+{
+	int _locked_by_me = FALSE;
+
+	if(!window)
+		return;
+
+	DW_MUTEX_LOCK;
+	gtk_object_set_data(GTK_OBJECT(window),  "defaultitem", (gpointer)defaultitem);
 	DW_MUTEX_UNLOCK;
 }
 

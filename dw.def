@@ -55,6 +55,7 @@ EXPORTS
   dw_window_set_border                   @72
   dw_window_minimize                     @73
   dw_window_pointer                      @74
+  dw_window_default                      @75
 
   dw_bitmap_new                          @80
 

@@ -150,6 +150,32 @@ ULONG _findsigmessage(char *signame)
 }
 #endif
 
+/* This function changes the owner of buttons in to the
+ * dynamicwindows handle to fix a problem in notebooks.
+ */
+void _fix_button_owner(HWND handle, HWND dw)
+{
+	HENUM henum;
+	HWND child;
+
+	henum = WinBeginEnumWindows(handle);
+	while((child = WinGetNextWindow(henum)) != NULLHANDLE)
+	{
+		char tmpbuf[100];
+
+		WinQueryClassName(child, 99, tmpbuf);
+
+		if(strncmp(tmpbuf, "#3", 3)==0 && dw)  /* Button */
+			WinSetOwner(child, dw);
+		else if(strncmp(tmpbuf, "dynamicwindows", 14) == 0)
+			dw = child;
+
+		_fix_button_owner(child, dw);
+	}
+	WinEndEnumWindows(henum);
+	return;
+}
+
 /* This function removes and handlers on windows and frees
  * the user memory allocated to it.
  */
@@ -194,10 +220,10 @@ int _validate_focus(HWND handle)
 	/* These are the window classes which can
 	 * obtain input focus.
 	 */
-	if(strncmp(tmpbuf, "#2", 2)==0 ||  /* Entryfield */
-	   strncmp(tmpbuf, "#3", 2)==0 ||  /* Button */
-	   strncmp(tmpbuf, "#6", 2)==0 ||  /* Combobox */
-	   strncmp(tmpbuf, "#7", 2)==0 ||  /* List box */
+	if(strncmp(tmpbuf, "#2", 3)==0 ||  /* Entryfield */
+	   strncmp(tmpbuf, "#3", 3)==0 ||  /* Button */
+	   strncmp(tmpbuf, "#6", 3)==0 ||  /* Combobox */
+	   strncmp(tmpbuf, "#7", 3)==0 ||  /* List box */
 	   strncmp(tmpbuf, "#10", 3)==0 || /* MLE */
 	   strncmp(tmpbuf, "#32", 3)==0 || /* Spinbutton */
 	   strncmp(tmpbuf, "#37", 3)== 0)  /* Container */
@@ -205,7 +231,7 @@ int _validate_focus(HWND handle)
 	return 0;
 }
 
-int _focus_check_box(Box *box, HWND handle, int start)
+int _focus_check_box(Box *box, HWND handle, int start, HWND defaultitem)
 {
 	int z;
 	static HWND lasthwnd, firsthwnd;
@@ -242,7 +268,7 @@ int _focus_check_box(Box *box, HWND handle, int start)
 			{
 				Box *thisbox = WinQueryWindowPtr(box->items[z].hwnd, QWP_USER);
 
-				if(thisbox && _focus_check_box(thisbox, handle, start == 3 ? 3 : 0))
+				if(thisbox && _focus_check_box(thisbox, handle, start == 3 ? 3 : 0, defaultitem))
 					return 1;
 			}
 			else
@@ -269,8 +295,11 @@ int _focus_check_box(Box *box, HWND handle, int start)
 					 */
 					if(start == 3)
 					{
-						WinSetFocus(HWND_DESKTOP, box->items[z].hwnd);
-						return 1;
+						if(!defaultitem || (defaultitem && defaultitem == box->items[z].hwnd))
+						{
+							WinSetFocus(HWND_DESKTOP, box->items[z].hwnd);
+							return 1;
+						}
 					}
 
 					if(!firsthwnd)
@@ -293,7 +322,7 @@ int _focus_check_box(Box *box, HWND handle, int start)
 						{
 							notebox = (Box *)WinQueryWindowPtr(page, QWP_USER);
 
-							if(notebox && _focus_check_box(notebox, handle, start == 3 ? 3 : 0))
+							if(notebox && _focus_check_box(notebox, handle, start == 3 ? 3 : 0, defaultitem))
 								return 1;
 						}
 					}
@@ -309,7 +338,7 @@ int _focus_check_box(Box *box, HWND handle, int start)
 			{
 				Box *thisbox = WinQueryWindowPtr(box->items[z].hwnd, QWP_USER);
 
-				if(thisbox && _focus_check_box(thisbox, handle, start == 3 ? 3 : 0))
+				if(thisbox && _focus_check_box(thisbox, handle, start == 3 ? 3 : 0, defaultitem))
 					return 1;
 			}
 			else
@@ -336,8 +365,11 @@ int _focus_check_box(Box *box, HWND handle, int start)
 					 */
 					if(start == 3)
 					{
-						WinSetFocus(HWND_DESKTOP, box->items[z].hwnd);
-						return 1;
+						if(!defaultitem || (defaultitem && defaultitem == box->items[z].hwnd))
+						{
+							WinSetFocus(HWND_DESKTOP, box->items[z].hwnd);
+							return 1;
+						}
 					}
 
 					if(!firsthwnd)
@@ -360,7 +392,7 @@ int _focus_check_box(Box *box, HWND handle, int start)
 						{
 							notebox = (Box *)WinQueryWindowPtr(page, QWP_USER);
 
-							if(notebox && _focus_check_box(notebox, handle, start == 3 ? 3 : 0))
+							if(notebox && _focus_check_box(notebox, handle, start == 3 ? 3 : 0, defaultitem))
 								return 1;
 						}
 					}
@@ -385,7 +417,7 @@ void _initial_focus(HWND handle)
 
 	if(thisbox)
 	{
-		_focus_check_box(thisbox, handle, 3);
+		_focus_check_box(thisbox, handle, 3, thisbox->defaultitem);
 	}
 }
 
@@ -411,8 +443,8 @@ void _shift_focus(HWND handle)
 
 	if(thisbox)
 	{
-		if(_focus_check_box(thisbox, handle, 1)  == 0)
-			_focus_check_box(thisbox, handle, 2);
+		if(_focus_check_box(thisbox, handle, 1, 0)  == 0)
+			_focus_check_box(thisbox, handle, 2, 0);
 	}
 }
 
@@ -869,13 +901,13 @@ int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *usedy,
 
 				WinQueryClassName(handle, 99, tmpbuf);
 
-				if(strncmp(tmpbuf, "#2", 2)==0)
+				if(strncmp(tmpbuf, "#2", 3)==0)
 				{
 					/* Make the combobox big enough to drop down. :) */
 					WinSetWindowPos(handle, HWND_TOP, currentx + pad, (currenty + pad) - 100,
 									width + vectorx, (height + vectory) + 100, SWP_MOVE | SWP_SIZE | SWP_ZORDER);
 				}
-				else if(strncmp(tmpbuf, "#6", 2)==0)
+				else if(strncmp(tmpbuf, "#6", 3)==0)
 				{
 					/* Entryfields on OS/2 have a thick border that isn't on Windows and GTK */
 					WinSetWindowPos(handle, HWND_TOP, (currentx + pad) + 3, (currenty + pad) + 3,
@@ -915,7 +947,8 @@ int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *usedy,
 
 void _do_resize(Box *thisbox, int x, int y)
 {
-	if(x != 0 && y != 0) {
+	if(x != 0 && y != 0)
+	{
 		if(thisbox)
 		{
 			int usedx = 0, usedy = 0, usedpadx = 0, usedpady = 0, depth = 0;
@@ -1524,7 +1557,7 @@ MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 
 								WinQueryClassName(tmp->window, 99, classbuf);
 
-								if(id && strncmp(classbuf, "#2", 2)==0)
+								if(id && strncmp(classbuf, "#2", 3)==0)
 								{
 									char *buf2;
 
@@ -1685,6 +1718,12 @@ MRESULT EXPENTRY _wndproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 			if(mybox && (swp->fl & SWP_MAXIMIZE))
 			{
 				int z;
+				SWP swp2;
+
+				WinQueryWindowPos(swp->hwnd, &swp2);
+
+				if(swp2.cx == swp->cx && swp2.cy == swp->cy)
+					return FALSE;
 
 				mybox->flags = 0;
 
@@ -2507,6 +2546,7 @@ int dw_window_show(HWND handle)
 	HSWITCH hswitch;
 	SWCNTRL swcntrl;
 
+	_fix_button_owner(handle, 0);
 	WinSetFocus(HWND_DESKTOP, handle);
 	_initial_focus(handle);
 
@@ -3596,7 +3636,7 @@ HWND dw_window_from_id(HWND handle, int id)
 		WinQueryClassName(child, 99, tmpbuf);
 
 		/* If the child is a box (frame) then recurse into it */
-		if(strncmp(tmpbuf, "#1", 2)==0)
+		if(strncmp(tmpbuf, "#1", 3)==0)
 			if((found = dw_window_from_id(child, id)) != NULLHANDLE)
 				return found;
 
@@ -3680,7 +3720,7 @@ void dw_box_pack_end_stub(HWND box, HWND item, int width, int height, int hsize,
 
 		WinQueryClassName(item, 99, tmpbuf);
 
-		if(strncmp(tmpbuf, "#1", 2)==0)
+		if(strncmp(tmpbuf, "#1", 3)==0)
 			tmpitem[thisbox->count].type = TYPEBOX;
 		else
 			tmpitem[thisbox->count].type = TYPEITEM;
@@ -3708,7 +3748,7 @@ void dw_box_pack_end_stub(HWND box, HWND item, int width, int height, int hsize,
 
         /* Don't set the ownership if it's an entryfield  or combobox */
 		WinQueryClassName(item, 99, tmpbuf);
-		if(strncmp(tmpbuf, "#6", 2)!=0 /*&& strncmp(tmpbuf, "#2", 2)!=0*/)
+		if(strncmp(tmpbuf, "#6", 3)!=0 /*&& strncmp(tmpbuf, "#2", 2)!=0*/)
 		{
 			if((boxowner = WinQueryWindow(box, QW_OWNER)) != 0)
 				WinSetOwner(item, boxowner);
@@ -4034,8 +4074,15 @@ int dw_listbox_selected_multi(HWND handle, int where)
  */
 void dw_listbox_select(HWND handle, int index, int state)
 {
+	char tmpbuf[100];
+
 	WinSendMsg(handle, LM_SELECTITEM, MPFROMSHORT(index), (MPARAM)state);
-	_run_event(handle, WM_CONTROL, MPFROM2SHORT(0, LN_SELECT), (MPARAM)handle);
+
+	WinQueryClassName(handle, 99, tmpbuf);
+
+	/* If we are setting a combobox call the event handler manually */
+	if(strncmp(tmpbuf, "#6", 3)==0)
+		_run_event(handle, WM_CONTROL, MPFROM2SHORT(0, LN_SELECT), (MPARAM)handle);
 }
 
 /*
@@ -4627,9 +4674,9 @@ void *dw_container_alloc(HWND handle, int rowcount)
 	int z, size = 0, totalsize, count = 0;
 	PRECORDCORE temp;
 	ContainerInfo *ci;
-	void *blah;
+	void *blah = NULL;
 
-	if(!flags)
+	if(!flags || rowcount < 1)
 		return NULL;
 
 	while(flags[count])
@@ -4652,7 +4699,15 @@ void *dw_container_alloc(HWND handle, int rowcount)
 
 	totalsize = size + sizeof(RECORDCORE);
 
-	blah = (void *)WinSendMsg(handle, CM_ALLOCRECORD, MPFROMLONG(size), MPFROMLONG(rowcount));
+	z = 0;
+
+	while((blah = (void *)WinSendMsg(handle, CM_ALLOCRECORD, MPFROMLONG(size), MPFROMLONG(rowcount))) == NULL)
+	{
+		z++;
+		if(z > 5000000)
+			break;
+		DosSleep(1);
+	}
 
 	if(!blah)
 		return NULL;
@@ -4787,12 +4842,14 @@ void dw_container_set_column_width(HWND handle, int column, int width)
 void dw_container_set_row_title(void *pointer, int row, char *title)
 {
 	ContainerInfo *ci = (ContainerInfo *)pointer;
-	PRECORDCORE temp = (PRECORDCORE)ci->data;
+	PRECORDCORE temp;
 	int z, currentcount;
 	CNRINFO cnr;
 
 	if(!ci)
 		return;
+
+	temp = (PRECORDCORE)ci->data;
 
 	WinSendMsg(ci->handle, CM_QUERYCNRINFO, (MPARAM)&cnr, MPFROMSHORT(sizeof(CNRINFO)));
 	currentcount = cnr.cRecords;
@@ -4816,6 +4873,7 @@ void dw_container_insert(HWND handle, void *pointer, int rowcount)
 {
 	RECORDINSERT recin;
 	ContainerInfo *ci = (ContainerInfo *)pointer;
+	int z;
 
 	if(!ci)
 		return;
@@ -4827,7 +4885,15 @@ void dw_container_insert(HWND handle, void *pointer, int rowcount)
 	recin.fInvalidateRecord = TRUE;
 	recin.cRecordsInsert = rowcount;
 
-	WinSendMsg(handle, CM_INSERTRECORD, MPFROMP(ci->data), MPFROMP(&recin));
+	z = 0;
+
+	while(WinSendMsg(handle, CM_INSERTRECORD, MPFROMP(ci->data), MPFROMP(&recin)) == 0)
+	{
+		z++;
+		if(z > 5000000)
+			break;
+		DosSleep(1);
+	}
 }
 
 /*
@@ -4837,7 +4903,15 @@ void dw_container_insert(HWND handle, void *pointer, int rowcount)
  */
 void dw_container_clear(HWND handle)
 {
-	WinSendMsg(handle, CM_REMOVERECORD, (MPARAM)0L, MPFROM2SHORT(0, CMA_INVALIDATE | CMA_FREE));
+	int z = 0;
+
+	while((int)WinSendMsg(handle, CM_REMOVERECORD, (MPARAM)0L, MPFROM2SHORT(0, CMA_INVALIDATE | CMA_FREE)) == -1)
+	{
+		z++;
+		if(z > 5000000)
+			break;
+		DosSleep(1);
+	}
 }
 
 /*
@@ -4849,7 +4923,7 @@ void dw_container_clear(HWND handle)
 void dw_container_delete(HWND handle, int rowcount)
 {
 	RECORDCORE *last, **prc = malloc(sizeof(RECORDCORE *) * rowcount);
-	int current = 1;
+	int current = 1, z;
 
 	prc[0] = last = (RECORDCORE *)WinSendMsg(handle, CM_QUERYRECORD, (MPARAM)0L, MPFROM2SHORT(CMA_FIRST, CMA_ITEMORDER));
 
@@ -4858,7 +4932,17 @@ void dw_container_delete(HWND handle, int rowcount)
 		prc[current] = last = (RECORDCORE *)WinSendMsg(handle, CM_QUERYRECORD, (MPARAM)last, MPFROM2SHORT(CMA_NEXT, CMA_ITEMORDER));
 		current++;
 	}
-	WinSendMsg(handle, CM_REMOVERECORD, (MPARAM)prc, MPFROM2SHORT(current, CMA_INVALIDATE | CMA_FREE));
+
+	z = 0;
+
+	while((int)WinSendMsg(handle, CM_REMOVERECORD, (MPARAM)prc, MPFROM2SHORT(current, CMA_INVALIDATE | CMA_FREE)) == -1)
+	{
+		z++;
+		if(z > 5000000)
+			break;
+		DosSleep(1);
+	}
+	
 	free(prc);
 }
 
@@ -5736,7 +5820,7 @@ void dw_box_pack_start_stub(HWND box, HWND item, int width, int height, int hsiz
 
 		WinQueryClassName(item, 99, tmpbuf);
 
-		if(strncmp(tmpbuf, "#1", 2)==0)
+		if(strncmp(tmpbuf, "#1", 3)==0)
 			tmpitem[0].type = TYPEBOX;
 		else
 			tmpitem[0].type = TYPEITEM;
@@ -5764,7 +5848,7 @@ void dw_box_pack_start_stub(HWND box, HWND item, int width, int height, int hsiz
 
 		WinQueryClassName(item, 99, tmpbuf);
 		/* Don't set the ownership if it's an entryfield or combobox */
-		if(strncmp(tmpbuf, "#6", 2)!=0 /*&& strncmp(tmpbuf, "#2", 2)!=0*/)
+		if(strncmp(tmpbuf, "#6", 3)!=0 /*&& strncmp(tmpbuf, "#2", 2)!=0*/)
 		{
 			if((boxowner = WinQueryWindow(box, QW_OWNER)) != 0)
 				WinSetOwner(item, boxowner);
@@ -5858,6 +5942,24 @@ ULONG _GetSystemBuildLevel(void) {
 	return (ulBuild);
 }
 
+/*
+ * Sets the default focus item for a window/dialog.
+ * Parameters:
+ *         window: Toplevel window or dialog.
+ *         defaultitem: Handle to the dialog item to be default.
+ */
+void dw_window_default(HWND window, HWND defaultitem)
+{
+	Box *thisbox = NULL;
+	HWND box;
+
+	box = WinWindowFromID(window, FID_CLIENT);
+	if(box)
+		thisbox = WinQueryWindowPtr(box, QWP_USER);
+
+	if(thisbox)
+		thisbox->defaultitem = defaultitem;
+}
 
 /*
  * Returns some information about the current operating environment.
