@@ -2643,6 +2643,7 @@ void dw_window_set_bitmap(HWND handle, unsigned long id, char *filename)
 
 		gdk_imlib_render(image, image->rgb_width, image->rgb_height);
 		tmp = gdk_imlib_copy_image(image);
+		bitmap = gdk_imlib_copy_mask(image);
 		gdk_imlib_destroy_image(image);
 #else
 		tmp = gdk_pixmap_create_from_xpm(handle->window, &bitmap, &_colors[DW_CLR_PALEGRAY], file);
