@@ -5813,7 +5813,7 @@ void *dw_window_get_data(HWND window, char *dataname)
 		return;
 
 	DW_MUTEX_LOCK;
-	ret = (void *)gtk_object_set_data(GTK_OBJECT(window),  dataname);
+	ret = (void *)gtk_object_get_data(GTK_OBJECT(window), dataname);
 	DW_MUTEX_UNLOCK;
 	return ret;
 }
