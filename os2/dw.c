@@ -204,6 +204,24 @@ HWND _toplevel_window(HWND handle)
 }
 
 
+/* A "safe" WinSendMsg() that tries multiple times in case the
+ * queue is blocked for one reason or another.
+ */
+MRESULT _dw_send_msg(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2, int failure)
+{
+	MRESULT res;
+	int z = 0;
+
+	while((int)(res = WinSendMsg(hwnd, msg, mp1, mp2)) == failure)
+	{
+		z++;
+		if(z > 5000000)
+			return (MRESULT)failure;
+		dw_main_sleep(1);
+	}
+	return res;
+}
+
 /* Return the entryfield child of a window */
 HWND _find_entryfield(HWND handle)
 {
@@ -5953,7 +5971,8 @@ HTREEITEM API dw_tree_insert_after(HWND handle, HTREEITEM item, char *title, uns
 
 	/* Allocate memory for the parent record */
 
-	pci = WinSendMsg(handle, CM_ALLOCRECORD, MPFROMLONG(cbExtra), MPFROMSHORT(1));
+	if((pci = (PCNRITEM)_dw_send_msg(handle, CM_ALLOCRECORD, MPFROMLONG(cbExtra), MPFROMSHORT(1), 0)) == 0)
+		return 0;
 
 	/* Fill in the parent record data */
 
@@ -6318,24 +6337,6 @@ unsigned long API dw_icon_load_from_file(char *filename)
 void API dw_icon_free(unsigned long handle)
 {
 	WinDestroyPointer(handle);
-}
-
-/* A "safe" WinSendMsg() that tries multiple times in case the
- * queue is blocked for one reason or another.
- */
-MRESULT _dw_send_msg(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2, int failure)
-{
-	MRESULT res;
-	int z = 0;
-
-	while((int)(res = WinSendMsg(hwnd, msg, mp1, mp2)) == failure)
-	{
-		z++;
-		if(z > 5000000)
-			return (MRESULT)failure;
-		dw_main_sleep(1);
-	}
-	return res;
 }
 
 /*
@@ -8027,6 +8028,159 @@ void API dw_environment_query(DWEnv *env)
 	env->DWSubVersion = DW_SUB_VERSION;
 }
 
+/* The next few functions are support functions for the OS/2 folder browser */
+void _populate_directory(HMTX mtx, HWND *tree, HTREEITEM parent, char *path)
+{
+	FILEFINDBUF3 ffbuf;
+	HTREEITEM item;
+	ULONG count;
+	HDIR hdir = HDIR_CREATE;
+	APIRET rc;
+
+	dw_mutex_lock(mtx);
+	if(*tree)
+	{
+		if((rc = DosFindFirst(path, &hdir, MUST_HAVE_DIRECTORY | FILE_NORMAL,
+						&ffbuf, sizeof(FILEFINDBUF3), &count, FIL_STANDARD)) == NO_ERROR)
+		{
+			while(DosFindNext(hdir, &ffbuf, sizeof(FILEFINDBUF3), &count) == NO_ERROR)
+			{
+				int len = strlen(path);
+				char *folder = malloc(len + ffbuf.cchName + 2);
+				strcpy(folder, path);
+				strcpy(&folder[len-1], ffbuf.achName);
+
+				item = dw_tree_insert(*tree, ffbuf.achName, WinLoadFileIcon(folder, TRUE), parent, 0);
+
+				dw_mutex_unlock(mtx);
+				strcat(folder, "\\*");
+
+				_populate_directory(mtx, tree, item, folder);
+
+				free(folder);
+				dw_mutex_lock(mtx);
+				if(!*tree)
+				{
+					dw_mutex_unlock(mtx);
+					DosFindClose(hdir);
+					return;
+				}
+			}
+			DosFindClose(hdir);
+		}
+	}
+	dw_mutex_unlock(mtx);
+}
+
+void _populate_tree_thread(void *data)
+{
+	HWND window = (HWND)data, *tree = (HWND *)dw_window_get_data(window, "_dw_tree");
+	HMTX mtx = (HMTX)dw_window_get_data(window, "_dw_mutex");
+	int drive;
+	HTREEITEM items[26];
+	FSINFO  volinfo;
+
+	DosError(FERR_DISABLEHARDERR);
+
+	for(drive=0;drive<26;drive++)
+	{
+		if(DosQueryFSInfo(drive+1, FSIL_VOLSER,(PVOID)&volinfo, sizeof(FSINFO)) == NO_ERROR)
+		{
+			char folder[5] = "C:\\", name[9] = "Drive C:";
+
+			folder[0] = name[6] = 'A' + drive;
+
+			dw_mutex_lock(mtx);
+			if(!*tree)
+			{
+				free(tree);
+				dw_mutex_close(mtx);
+				return;
+			}
+
+			items[drive] = dw_tree_insert(*tree, name, WinLoadFileIcon(folder, TRUE), NULL, 0);
+
+			dw_mutex_unlock(mtx);
+		}
+		else
+			items[drive] = 0;
+	}
+	DosError(FERR_ENABLEHARDERR);
+
+	for(drive=0;drive<26;drive++)
+	{
+		if(items[drive])
+		{
+			char folder[5] = "C:\\";
+
+			folder[0] = 'A' + drive;
+
+			strcat(folder, "*");
+
+			_populate_directory(mtx, tree, items[drive], folder);
+		}
+	}
+
+	dw_mutex_lock(mtx);
+	if(!*tree)
+	{
+		free(tree);
+		dw_mutex_close(mtx);
+	}
+}
+
+int DWSIGNAL _dw_ok_func(HWND window, void *data)
+{
+	DWDialog *dwwait = (DWDialog *)data;
+	HMTX mtx = (HMTX)dw_window_get_data(window, "_dw_mutex");
+	void *treedata;
+	HWND *tree;
+
+	if(!dwwait)
+		return FALSE;
+
+	dw_mutex_lock(mtx);
+	treedata = dw_window_get_data((HWND)dwwait->data, "_dw_tree_selected");
+	if((tree = (HWND *)dw_window_get_data((HWND)dwwait->data, "_dw_tree")) != 0)
+		*tree = 0;
+	dw_mutex_unlock(mtx);
+	dw_window_destroy((HWND)dwwait->data);
+	dw_dialog_dismiss((DWDialog *)data, treedata);
+	return FALSE;
+}
+
+int DWSIGNAL _dw_cancel_func(HWND window, void *data)
+{
+	DWDialog *dwwait = (DWDialog *)data;
+	HMTX mtx = (HMTX)dw_window_get_data(window, "_dw_mutex");
+	HWND *tree;
+
+	if(!dwwait)
+		return FALSE;
+
+	dw_mutex_lock(mtx);
+	if((tree = (HWND *)dw_window_get_data((HWND)dwwait->data, "_dw_tree")) != 0)
+		*tree = 0;
+	dw_mutex_unlock(mtx);
+	dw_window_destroy((HWND)dwwait->data);
+	dw_dialog_dismiss((DWDialog *)data, NULL);
+	return FALSE;
+}
+
+int DWSIGNAL _item_select(HWND window, HTREEITEM item, char *text, void *data, void *itemdata)
+{
+	DWDialog *dwwait = (DWDialog *)data;
+	char *treedata = (char *)dw_window_get_data((HWND)dwwait->data, "_dw_tree_selected");
+
+	if(treedata)
+		free(treedata);
+
+	treedata = strdup(text);
+	dw_window_set_data((HWND)dwwait->data, "_dw_tree_selected", (void *)treedata);
+
+	return FALSE;
+}
+
 /*
  * Opens a file dialog and queries user selection.
  * Parameters:
@@ -8041,46 +8195,91 @@ void API dw_environment_query(DWEnv *env)
  */
 char * API dw_file_browse(char *title, char *defpath, char *ext, int flags)
 {
-	FILEDLG fild;
-	HWND hwndFile;
-	int len;
+	if(flags == DW_DIRECTORY_OPEN)
+	{
+		HWND window, hbox, vbox, tree, button, *ptr;
+		DWDialog *dwwait;
+		HMTX mtx = dw_mutex_new();
 
-	if(defpath)
-		strcpy(fild.szFullFile, defpath);
+		window = dw_window_new( HWND_DESKTOP, title, FCF_SHELLPOSITION | FCF_TITLEBAR | FCF_SIZEBORDER | FCF_MINMAX);
+
+		vbox = dw_box_new(DW_VERT, 5);
+
+		dw_box_pack_start(window, vbox, 0, 0, TRUE, TRUE, 0);
+
+		tree = dw_tree_new(60);
+
+		dw_box_pack_start(vbox, tree, 1, 1, TRUE, TRUE, 0);
+		ptr = malloc(sizeof(HWND));
+		*ptr = tree;
+		dw_window_set_data(window, "_dw_tree", (void *)ptr);
+		dw_window_set_data(window, "_dw_mutex", (void *)mtx);
+
+		hbox = dw_box_new(DW_HORZ, 0);
+
+		dw_box_pack_start(vbox, hbox, 0, 0, TRUE, FALSE, 0);
+
+		dwwait = dw_dialog_new((void *)window);
+
+		dw_signal_connect(tree, DW_SIGNAL_ITEM_SELECT, DW_SIGNAL_FUNC(_item_select), (void *)dwwait);
+
+		button = dw_button_new("Ok", 1001L);
+		dw_box_pack_start(hbox, button, 50, 30, TRUE, FALSE, 3);
+		dw_signal_connect(button, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(_dw_ok_func), (void *)dwwait);
+
+		button = dw_button_new("Cancel", 1002L);
+		dw_box_pack_start(hbox, button, 50, 30, TRUE, FALSE, 3);
+		dw_signal_connect(button, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(_dw_cancel_func), (void *)dwwait);
+
+		dw_window_set_usize(window, 225, 300);
+		dw_window_show(window);
+
+		dw_thread_new((void *)_populate_tree_thread, (void *)window, 0xfff);
+		return (char *)dw_dialog_wait(dwwait);
+	}
 	else
-		strcpy(fild.szFullFile, "");
-
-	len = strlen(fild.szFullFile);
-
-	if(len)
 	{
-		if(fild.szFullFile[len-1] != '\\')
-			strcat(fild.szFullFile, "\\");
-	}
-	strcat(fild.szFullFile, "*");
+		FILEDLG fild;
+		HWND hwndFile;
+		int len;
 
-	if(ext)
-	{
-		strcat(fild.szFullFile, ".");
-		strcat(fild.szFullFile, ext);
-	}
+		if(defpath)
+			strcpy(fild.szFullFile, defpath);
+		else
+			strcpy(fild.szFullFile, "");
 
-	memset(&fild, 0, sizeof(FILEDLG));
-	fild.cbSize = sizeof(FILEDLG);
-	fild.fl = FDS_CENTER | FDS_OPEN_DIALOG;
-	fild.pszTitle = title;
-	fild.pszOKButton = ((flags & DW_FILE_SAVE) ? "Save" : "Open");
-	fild.pfnDlgProc = (PFNWP)WinDefFileDlgProc;
+		len = strlen(fild.szFullFile);
 
-	hwndFile = WinFileDlg(HWND_DESKTOP, HWND_DESKTOP, &fild);
-	if(hwndFile)
-	{
-		switch(fild.lReturn)
+		if(len)
 		{
-		case DID_OK:
-			return strdup(fild.szFullFile);
-		case DID_CANCEL:
-			return NULL;
+			if(fild.szFullFile[len-1] != '\\')
+				strcat(fild.szFullFile, "\\");
+		}
+		strcat(fild.szFullFile, "*");
+
+		if(ext)
+		{
+			strcat(fild.szFullFile, ".");
+			strcat(fild.szFullFile, ext);
+		}
+
+		memset(&fild, 0, sizeof(FILEDLG));
+		fild.cbSize = sizeof(FILEDLG);
+		fild.fl = FDS_CENTER | FDS_OPEN_DIALOG;
+		fild.pszTitle = title;
+		fild.pszOKButton = ((flags & DW_FILE_SAVE) ? "Save" : "Open");
+		fild.pfnDlgProc = (PFNWP)WinDefFileDlgProc;
+
+		hwndFile = WinFileDlg(HWND_DESKTOP, HWND_DESKTOP, &fild);
+		if(hwndFile)
+		{
+			switch(fild.lReturn)
+			{
+			case DID_OK:
+				return strdup(fild.szFullFile);
+			case DID_CANCEL:
+				return NULL;
+			}
 		}
 	}
 	return NULL;
