@@ -1582,7 +1582,7 @@ BOOL CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 							if(tmp->window == tem->hwndFrom && tem->code == tmp->message)
 							{
 								int (*switchpagefunc)(HWND, int, void *) = tmp->signalfunction;
-								int num=TabCtrl_GetCurSel(tem->hwndFrom);
+								int num=dw_notebook_page_query(tem->hwndFrom);
 								result = switchpagefunc(tem->hwndFrom, num, tmp->data);
 							}
 						}
