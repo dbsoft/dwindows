@@ -196,13 +196,8 @@ int makedir(char *path);
 void nonblock(int fd);
 void block(int fd);
 void setfileinfo(char *filename, char *url, char *logfile);
-#if (defined(__IBMC__) && __IBMC__ < 360) || (defined(__WIN32__) && !defined(__CYGWIN32__))
-unsigned long drivesize(int drive);
-unsigned long drivefree(int drive);
-#else
-unsigned long long drivefree(int drive);
-unsigned long long drivesize(int drive);
-#endif
+long double drivesize(int drive);
+long double drivefree(int drive);
 int isdrive(int drive);
 void getfsname(int drive, char *buf, int len);
 FILE *fsopen(char *path, char *modes);
