@@ -1,16 +1,11 @@
-This is an alpha release of dynamic windows version 0.5.0.
+This is an beta release of dynamic windows version 1.0.0.
 
 The current Dynamic Windows source base is relatively stable on
-OS/2, Windows, Linux, FreeBSD and Solaris.  Although not all functionality
-has been thoroughly tested.  When a feature set has been decided on for
-the 1.0 I will freeze the API and move into beta stage.  When the beta
+OS/2, Windows, Linux, FreeBSD and Solaris.  When the beta
 feature set is stable I will release a final.
 
 Known problems:
 
-Splitbars don't always calculate properly on OS/2.
-Splitbars are not implemented on Unix and only partially implemented
-    on Windows.
 Boxes don't adhere to ratios on Unix.
 
 Known limitations:
@@ -21,10 +16,6 @@ are packed.  For portablity pack widgets before operating on them.
 On Windows a slider control will only work properly if it is the
 only slider in a box.  If there is more than one slider control 
 in a box then signals may get misdirected to the wrong control.
-
-On OS/2 slider controls will be misplaced if their postition is
-set before showing the window.  The resizing that occurs when
-showing the window invalidates the position. 
 
 On OS/2 and Windows MLE controls scrolled position may get 
 corrupted when resizing.
