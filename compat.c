@@ -210,7 +210,7 @@ int sockpipe(int *pipes)
 
 /* Return in K to avoid big problems exceeding an
    unsigned long when no 64bit integers are available */
-#if (defined(__IBMC__) && __IBMC__ < 360) || (defined(__WIN32__) && !defined(__CYGWIN32__))
+#if (defined(__IBMC__) && __IBMC__ < 360)
 unsigned long drivefree(int drive)
 #else
 unsigned long long drivefree(int drive)
@@ -256,7 +256,7 @@ unsigned long long drivefree(int drive)
 	for (; entries-- > 0; fsp++)
 	{
 		if(index == drive)
-			return (fsp->f_bsize * fsp->f_bavail) / 1024;
+			return fsp->f_bsize * (fsp->f_bavail / 1024);
 		index++;
 	}
 	return 0;
@@ -319,7 +319,7 @@ unsigned long long drivefree(int drive)
 
 /* Return in K to avoid big problems exceeding an
    unsigned long when no 64bit integers are available */
-#if (defined(__IBMC__) && __IBMC__  < 360) || (defined(__WIN32__) && !defined(__CYGWIN32__))
+#if (defined(__IBMC__) && __IBMC__  < 360)
 unsigned long drivesize(int drive)
 #else
 unsigned long long drivesize(int drive)
@@ -365,7 +365,7 @@ unsigned long long drivesize(int drive)
 	for (; entries-- > 0; fsp++)
 	{
 		if(index == drive)
-			return (fsp->f_bsize * fsp->f_blocks) / 1024;
+			return fsp->f_bsize * (fsp->f_blocks / 1024);
 		index++;
 	}
 	return 0;
