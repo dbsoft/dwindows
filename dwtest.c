@@ -71,7 +71,7 @@ int DWSIGNAL text_expose(HWND hwnd, DWExpose *exp, void *data)
 	width = DW_PIXMAP_WIDTH(hpm);
 	height = DW_PIXMAP_HEIGHT(hpm);
 
-	dw_pixmap_bitblt(hwnd, NULL, 0, 0, width, height, NULL, hpm, 0, 0 );
+	dw_pixmap_bitblt(hwnd, NULL, 0, 0, width, height, 0, hpm, 0, 0 );
 	dw_flush();
 	return TRUE;
 }
@@ -118,9 +118,9 @@ void draw_file( int row, int col )
 			y = i*(font_height+font_gap);
 			dw_color_foreground_set( i );
 			sprintf( buf, "%6.6d", i+row );
-			dw_draw_text( NULL, text1pm, 0, y, buf);
+			dw_draw_text( 0, text1pm, 0, y, buf);
 			pLine = lp[i+row];
-			dw_draw_text( NULL, text2pm, 0, y, pLine+col );
+			dw_draw_text( 0, text2pm, 0, y, pLine+col );
 		}
 		text_expose( textbox1, NULL, NULL);
 		text_expose( textbox2, NULL, NULL);
@@ -349,9 +349,9 @@ void tree_add(void)
 	tree = dw_tree_new(0);
 	dw_box_pack_start( notebookbox3, tree, 500, 200, TRUE, FALSE, 1);
 
-	t1 = dw_tree_insert(tree, "tree item 1", 0, NULL, NULL );
-	t2 = dw_tree_insert(tree, "tree item 2", 0, NULL, NULL );
-	t3 = dw_tree_insert(tree, "tree item 3", 0, t2, NULL );
+	t1 = dw_tree_insert(tree, "tree item 1", 0, 0, 0 );
+	t2 = dw_tree_insert(tree, "tree item 2", 0, 0, 0 );
+	t3 = dw_tree_insert(tree, "tree item 3", 0, t2, 0 );
 
 /*
 	dw_signal_connect(textbox1, "expose_event", DW_SIGNAL_FUNC(text_expose), NULL);
