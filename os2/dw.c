@@ -3359,7 +3359,7 @@ int API dw_messagebox(char *title, int flags, char *format, ...)
 	vsprintf(outbuf, format, args);
 	va_end(args);
 
-	rc = WinMessageBox(HWND_DESKTOP, HWND_DESKTOP, outbuf, title, 0, flags | MB_MOVEABLE | MB_SYSTEMMODAL);
+	rc = WinMessageBox(HWND_DESKTOP, HWND_DESKTOP, outbuf, title, 0, flags | MB_MOVEABLE);
 	if(rc == MBID_OK)
 		return DW_MB_RETURN_OK;
 	else if(rc == MBID_YES)
