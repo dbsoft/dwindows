@@ -57,7 +57,7 @@ GdkColor _background[DW_THREAD_LIMIT];
 
 GtkWidget *last_window = NULL, *popup = NULL;
 
-static int _dw_file_active = 0, _dw_ignore_click = 0, _dw_unselecting = 0;
+static int _dw_file_active = 0, _dw_ignore_click = 0;
 static pthread_t _dw_thread = (pthread_t)-1;
 static int _dw_mutex_locked[DW_THREAD_LIMIT];
 /* Use default border size for the default enlightenment theme */
