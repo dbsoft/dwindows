@@ -485,7 +485,7 @@ void _value_changed_event(GtkAdjustment *adjustment, gpointer data)
 	if(slider && work)
 	{
 		int (*valuechangedfunc)(HWND, int, void *) = work->func;
-		int max = _round_value(adjustment->upper) - 1;
+		int max = _round_value(adjustment->upper);
 		int val = _round_value(adjustment->value);
 		static int lastval = -1;
 		static GtkWidget *lastwidget = 0;
@@ -493,9 +493,9 @@ void _value_changed_event(GtkAdjustment *adjustment, gpointer data)
 		if(lastval != val || lastwidget != slider)
 		{
 			if(GTK_IS_VSCALE(slider))
-				valuechangedfunc(work->window, max - val,  work->data);
+				valuechangedfunc(work->window, (max - val) - 1,  work->data);
 			else
-				valuechangedfunc(work->window, val,  work->data);
+				valuechangedfunc(work->window, val - 1,  work->data);
 		}
 	}
 }
@@ -2094,7 +2094,7 @@ HWND dw_slider_new(int vertical, int increments, ULONG id)
 	int _locked_by_me = FALSE;
 
 	DW_MUTEX_LOCK;
-	adjustment = (GtkAdjustment *)gtk_adjustment_new(0, 0, (gfloat)(increments + 1), 1, 1, 1);
+	adjustment = (GtkAdjustment *)gtk_adjustment_new(0, 0, (gfloat)increments, 1, 1, 1);
 	if(vertical)
 		tmp = gtk_vscale_new(adjustment);
 	else
