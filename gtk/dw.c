@@ -3655,15 +3655,7 @@ unsigned int dw_scrollbar_query_pos(HWND handle)
 	DW_MUTEX_LOCK;
 	adjustment = (GtkAdjustment *)gtk_object_get_data(GTK_OBJECT(handle), "_dw_adjustment");
 	if(adjustment)
-	{
-		int max = _round_value(adjustment->upper) - 1;
-		int thisval = _round_value(adjustment->value);
-
-		if(GTK_IS_VSCROLLBAR(handle))
-			val = max - thisval;
-        else
-			val = thisval;
-	}
+		val = _round_value(adjustment->value);
 	DW_MUTEX_UNLOCK;
 	return val;
 }
