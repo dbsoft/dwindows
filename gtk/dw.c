@@ -7920,6 +7920,11 @@ void dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, int 
 		{
 			GtkWidget *eventbox = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(item), "_dw_eventbox");
 
+			/* NOTE: I left in the ability to pack boxes with a size,
+			 *       this eliminates that by forcing the size to 0.
+			 */
+			height = width = 0;
+
 			if(eventbox)
 			{
 				int boxpad = (int)gtk_object_get_data(GTK_OBJECT(item), "_dw_boxpad");
@@ -7963,6 +7968,11 @@ void dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, int 
 		if(GTK_IS_TABLE(item) || (tmpitem && GTK_IS_TABLE(tmpitem)))
 		{
 			GtkWidget *eventbox = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(item), "_dw_eventbox");
+
+			/* NOTE: I left in the ability to pack boxes with a size,
+			 *       this eliminates that by forcing the size to 0.
+			 */
+			height = width = 0;
 
 			if(eventbox)
 			{
@@ -9156,6 +9166,11 @@ void dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize, in
 		{
 			GtkWidget *eventbox = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(item), "_dw_eventbox");
 
+			/* NOTE: I left in the ability to pack boxes with a size,
+			 *       this eliminates that by forcing the size to 0.
+			 */
+			height = width = 0;
+
 			if(eventbox)
 			{
 				int boxpad = (int)gtk_object_get_data(GTK_OBJECT(item), "_dw_boxpad");
@@ -9207,6 +9222,11 @@ void dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize, in
 		if(GTK_IS_TABLE(item) || (tmpitem && GTK_IS_TABLE(tmpitem)))
 		{
 			GtkWidget *eventbox = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(item), "_dw_eventbox");
+
+			/* NOTE: I left in the ability to pack boxes with a size,
+			 *       this eliminates that by forcing the size to 0.
+			 */
+			height = width = 0;
 
 			if(eventbox)
 			{
