@@ -307,7 +307,7 @@ typedef struct _item {
 typedef struct _box {
 #if defined(__WIN32__) || defined(WINNT)
 	ColorInfo cinfo;
-#elif defined(__OS2__)
+#elif defined(__OS2__) || defined(__EMX__)
 	PFNWP oldproc;
 #endif
     /* Number of items in the box */
@@ -555,14 +555,14 @@ typedef struct _dwdialog {
 #define DW_BLUE_VALUE(a) ((a & DW_BLUE_MASK) >> 16)
 #define DW_RGB(a, b, c) (0xFF000000 | a | b << 8 | c << 16)
 
-#ifdef __OS2__
+#if defined(__OS2__) || defined(__EMX__)
 #define DW_OS2_RGB(a) ((DW_RED_VALUE(a) << 16) | (DW_GREEN_VALUE(a) << 8) | DW_BLUE_VALUE(a))
 #endif
 
 /* Public function prototypes */
 void dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize, int vsize, int pad);
 void dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, int vsize, int pad);
-#if !defined(__OS2__) && !defined(__WIN32__)
+#if !defined(__OS2__) && !defined(__WIN32__) && !defined(__EMX__)
 int dw_int_init(DWResources *res, int newthread, int argc, char *argv[]);
 #define dw_init(a, b, c) dw_int_init(&_resources, a, b, c)
 #else

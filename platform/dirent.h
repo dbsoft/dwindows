@@ -1,4 +1,4 @@
-#ifdef OS2
+#ifdef __OS2__
 #ifndef __DIRENT_H__
 #define __DIRENT_H__
 
@@ -33,7 +33,7 @@ extern "C" {
 #endif
 
 struct dirent {
-#if defined(OS2) || defined(WIN32)        /* use the layout of EMX to avoid trouble */
+#if defined(__OS2__) || defined(__WIN32__) /* use the layout of EMX to avoid trouble */
     int            d_ino;                 /* Dummy */
     int            d_reclen;		  /* Dummy, same as d_namlen */
     int            d_namlen;              /* length of name */
@@ -81,7 +81,7 @@ extern char *		abs_path(const char *name, char *buffer, int len);
 #endif
 #endif
 
-#ifdef WIN32
+#ifdef __WIN32__
 #ifndef __DIRENT_H__
 #define __DIRENT_H__
 /*
@@ -132,7 +132,7 @@ extern "C" {
 #endif
 
 struct dirent {
-#if defined(OS2) || defined(WIN32)        /* use the layout of EMX to avoid trouble */
+#if defined(__OS2__) || defined(__WIN32__)        /* use the layout of EMX to avoid trouble */
     int            d_ino;                 /* Dummy */
     int            d_reclen;		  /* Dummy, same as d_namlen */
     int            d_namlen;              /* length of name */

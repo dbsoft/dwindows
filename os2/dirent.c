@@ -5,7 +5,7 @@
 #include <string.h>
 #include <ctype.h>
 
-#include "dirent.h"
+#include "platform/dirent.h"
 #include <errno.h>
 
 /*#ifndef __EMX__ 
@@ -121,6 +121,9 @@ openxdir(const char *path, unsigned att_mask)
 	DIR *dir;
 	char name[MAXPATHLEN+3];
 	Word rc;
+
+	if(!path)
+		return NULL;
 
 	dir = malloc(sizeof(DIR));
 	if (dir == NULL) {

@@ -55,6 +55,11 @@
 #define msleep(a) DosSleep(a)
 
 #ifdef __EMX__
+#include <dirent.h>
+#include <sys/stat.h>
+#ifdef FD_SETSIZE
+#undef FD_SETSIZE
+#endif
 #define FD_SETSIZE 1024
 #define strcasecmp stricmp
 #define strncasecmp strnicmp
@@ -88,7 +93,7 @@
 #include <direct.h>
 #include <stdarg.h>
 /* For VAC we are using the Mozilla dirent.c */
-#include "dirent.h"
+#include "platform/dirent.h"
 #endif
 
 /* Windows */
@@ -99,7 +104,7 @@
 #include <process.h>
 #include <sys/stat.h>
 #ifdef MSVC
-#include "dirent.h"
+#include "platform/dirent.h"
 #else
 #include <dir.h>
 #include <dirent.h>
@@ -145,7 +150,7 @@
 #include <netdb.h>
 #include <arpa/nameser.h>
 #include <resolv.h>
-#ifdef STDC_HEADERS
+#if defined(STDC_HEADERS) || defined(__EMX__)
 #include <stdarg.h>
 #include <string.h>
 #endif /* STDC_HEADERS */
@@ -191,4 +196,5 @@ int isdrive(int drive);
 FILE *fsopen(char *path, char *modes);
 int fsclose(FILE *fp);
 char *fsgets(char *str, int size, FILE *stream);
+int fsseek(FILE *stream, long offset, int whence);
 
