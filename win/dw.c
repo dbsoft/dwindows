@@ -1,8 +1,9 @@
 /*
+/*
  * Dynamic Windows:
  *          A GTK like implementation of the Win32 GUI
  *
- * (C) 2000-2002 Brian Smith <dbsoft@technologist.com>
+ * (C) 2000-2003 Brian Smith <dbsoft@technologist.com>
  *
  */
 #define _WIN32_IE 0x0500
@@ -547,8 +548,8 @@ int _focus_check_box(Box *box, HWND handle, int start, HWND defaultitem)
 
 				if(strncmp(tmpbuf, SplitbarClassName, strlen(SplitbarClassName)+1)==0)
 				{
-					/* Then try the bottom or right box */
-					HWND mybox = (HWND)dw_window_get_data(box->items[z].hwnd, "_dw_bottomright");
+					/* Try the top or left box */
+					HWND mybox = (HWND)dw_window_get_data(box->items[z].hwnd, "_dw_topleft");
 
 					if(mybox)
 					{
@@ -558,8 +559,8 @@ int _focus_check_box(Box *box, HWND handle, int start, HWND defaultitem)
 							return 1;
 					}
 
-					/* Try the top or left box */
-					mybox = (HWND)dw_window_get_data(box->items[z].hwnd, "_dw_topleft");
+					/* Then try the bottom or right box */
+					mybox = (HWND)dw_window_get_data(box->items[z].hwnd, "_dw_bottomright");
 
 					if(mybox)
 					{
@@ -672,7 +673,31 @@ int _focus_check_box_back(Box *box, HWND handle, int start, HWND defaultitem)
 
 				GetClassName(box->items[z].hwnd, tmpbuf, 99);
 
-				if(strnicmp(tmpbuf, WC_TABCONTROL, strlen(WC_TABCONTROL))==0) /* Notebook */
+				if(strncmp(tmpbuf, SplitbarClassName, strlen(SplitbarClassName)+1)==0)
+				{
+					/* Then try the bottom or right box */
+					HWND mybox = (HWND)dw_window_get_data(box->items[z].hwnd, "_dw_bottomright");
+
+					if(mybox)
+					{
+						Box *splitbox = (Box *)GetWindowLong(mybox, GWL_USERDATA);
+
+						if(splitbox && _focus_check_box_back(splitbox, handle, start == 3 ? 3 : 0, defaultitem))
+							return 1;
+					}
+
+					/* Try the top or left box */
+					mybox = (HWND)dw_window_get_data(box->items[z].hwnd, "_dw_topleft");
+
+					if(mybox)
+					{
+						Box *splitbox = (Box *)GetWindowLong(mybox, GWL_USERDATA);
+
+						if(splitbox && _focus_check_box_back(splitbox, handle, start == 3 ? 3 : 0, defaultitem))
+							return 1;
+					}
+				}
+				else if(strnicmp(tmpbuf, WC_TABCONTROL, strlen(WC_TABCONTROL))==0) /* Notebook */
 				{
 					NotebookPage **array = (NotebookPage **)dw_window_get_data(box->items[z].hwnd, "_dw_array");
 					int pageid = TabCtrl_GetCurSel(box->items[z].hwnd);
@@ -842,7 +867,7 @@ int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *usedy,
 					tmp->xratio = thisbox->xratio;
 					tmp->yratio = thisbox->yratio;
 
-					if(thisbox->type == BOXVERT)
+					if(thisbox->type == DW_VERT)
 					{
 						if((thisbox->items[z].width-((thisbox->items[z].pad*2)+(tmp->pad*2)))!=0)
 							tmp->xratio = ((float)((thisbox->items[z].width * thisbox->xratio)-((thisbox->items[z].pad*2)+(tmp->pad*2))))/((float)(thisbox->items[z].width-((thisbox->items[z].pad*2)+(tmp->pad*2))));
@@ -852,7 +877,7 @@ int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *usedy,
 						if((thisbox->items[z].width-tmp->upx)!=0)
 							tmp->xratio = ((float)((thisbox->items[z].width * thisbox->xratio)-tmp->upx))/((float)(thisbox->items[z].width-tmp->upx));
 					}
-					if(thisbox->type == BOXHORZ)
+					if(thisbox->type == DW_HORZ)
 					{
 						if((thisbox->items[z].height-((thisbox->items[z].pad*2)+(tmp->pad*2)))!=0)
 							tmp->yratio = ((float)((thisbox->items[z].height * thisbox->yratio)-((thisbox->items[z].pad*2)+(tmp->pad*2))))/((float)(thisbox->items[z].height-((thisbox->items[z].pad*2)+(tmp->pad*2))));
@@ -883,7 +908,7 @@ int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *usedy,
 
 		if(pass > 1 && *depth > 0)
 		{
-			if(thisbox->type == BOXVERT)
+			if(thisbox->type == DW_VERT)
 			{
 				if((thisbox->minwidth-((thisbox->items[z].pad*2)+(thisbox->parentpad*2))) == 0)
 					thisbox->items[z].xratio = 1.0;
@@ -898,7 +923,7 @@ int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *usedy,
 					thisbox->items[z].xratio = ((float)((thisbox->width * thisbox->parentxratio)-thisbox->upx))/((float)(thisbox->minwidth-thisbox->upx));
 			}
 
-			if(thisbox->type == BOXHORZ)
+			if(thisbox->type == DW_HORZ)
 			{
 				if((thisbox->minheight-((thisbox->items[z].pad*2)+(thisbox->parentpad*2))) == 0)
 					thisbox->items[z].yratio = 1.0;
@@ -930,7 +955,7 @@ int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *usedy,
 			thisbox->items[z].yratio = thisbox->yratio;
 		}
 
-		if(thisbox->type == BOXVERT)
+		if(thisbox->type == DW_VERT)
 		{
 			if((thisbox->items[z].width + (thisbox->items[z].pad*2)) > uxmax)
 				uxmax = (thisbox->items[z].width + (thisbox->items[z].pad*2));
@@ -961,7 +986,7 @@ int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *usedy,
 					(*usedpadx) += thisbox->items[z].pad*2;
 			}
 		}
-		if(thisbox->type == BOXHORZ)
+		if(thisbox->type == DW_HORZ)
 		{
 			if((thisbox->items[z].height + (thisbox->items[z].pad*2)) > uymax)
 				uymax = (thisbox->items[z].height + (thisbox->items[z].pad*2));
@@ -1008,9 +1033,9 @@ int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *usedy,
 		/* Any SIZEEXPAND items should be set to uxmax/uymax */
 		for(z=0;z<thisbox->count;z++)
 		{
-			if(thisbox->items[z].hsize == SIZEEXPAND && thisbox->type == BOXVERT)
+			if(thisbox->items[z].hsize == SIZEEXPAND && thisbox->type == DW_VERT)
 				thisbox->items[z].width = uxmax-(thisbox->items[z].pad*2);
-			if(thisbox->items[z].vsize == SIZEEXPAND && thisbox->type == BOXHORZ)
+			if(thisbox->items[z].vsize == SIZEEXPAND && thisbox->type == DW_HORZ)
 				thisbox->items[z].height = uymax-(thisbox->items[z].pad*2);
 			/* Run this code segment again to finalize the sized after setting uxmax/uymax values. */
 			if(thisbox->items[z].type == TYPEBOX)
@@ -1021,12 +1046,12 @@ int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *usedy,
 				{
 					if(*depth > 0)
 					{
-						if(thisbox->type == BOXVERT)
+						if(thisbox->type == DW_VERT)
 						{
 							tmp->xratio = ((float)((thisbox->items[z].width * thisbox->xratio)-((thisbox->items[z].pad*2)+(thisbox->pad*2))))/((float)(tmp->minwidth-((thisbox->items[z].pad*2)+(thisbox->pad*2))));
 							tmp->width = thisbox->items[z].width;
 						}
-						if(thisbox->type == BOXHORZ)
+						if(thisbox->type == DW_HORZ)
 						{
 							tmp->yratio = ((float)((thisbox->items[z].height * thisbox->yratio)-((thisbox->items[z].pad*2)+(thisbox->pad*2))))/((float)(tmp->minheight-((thisbox->items[z].pad*2)+(thisbox->pad*2))));
 							tmp->height = thisbox->items[z].height;
@@ -1166,9 +1191,9 @@ int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *usedy,
 					}
 				}
 
-				if(thisbox->type == BOXHORZ)
+				if(thisbox->type == DW_HORZ)
 					currentx += width + vectorx + (pad * 2);
-				if(thisbox->type == BOXVERT)
+				if(thisbox->type == DW_VERT)
 					currenty += height + vectory + (pad * 2);
 			}
 		}
@@ -2405,7 +2430,7 @@ void _changebox(Box *thisbox, int percent, int type)
 		}
 		else
 		{
-			if(type == BOXHORZ)
+			if(type == DW_HORZ)
 			{
 				if(thisbox->items[z].hsize == SIZEEXPAND)
 					thisbox->items[z].width = (int)(((float)thisbox->items[z].origwidth) * (((float)percent)/((float)100.0)));
@@ -2421,7 +2446,7 @@ void _changebox(Box *thisbox, int percent, int type)
 
 void _handle_splitbar_resize(HWND hwnd, float percent, int type, int x, int y)
 {
-	if(type == BOXHORZ)
+	if(type == DW_HORZ)
 	{
 		int newx = x;
 		float ratio = (float)percent/(float)100.0;
@@ -2507,7 +2532,7 @@ BOOL CALLBACK _splitwndproc(HWND hwnd, UINT msg, WPARAM mp1, LPARAM mp2)
 
 				dw_window_get_pos_size(hwnd, NULL, NULL, &cx, &cy);
 
-				if(type == BOXHORZ)
+				if(type == DW_HORZ)
 					Rectangle(hdcPaint, cx - start - SPLITBAR_WIDTH, 0, cx - start, cy);
 				else
 					Rectangle(hdcPaint, 0, start, cx, start + SPLITBAR_WIDTH);
@@ -2532,7 +2557,7 @@ BOOL CALLBACK _splitwndproc(HWND hwnd, UINT msg, WPARAM mp1, LPARAM mp2)
 		break;
 	case WM_MOUSEMOVE:
 		{
-			if(type == BOXHORZ)
+			if(type == DW_HORZ)
 				SetCursor(LoadCursor(NULL, IDC_SIZEWE));
 			else
 				SetCursor(LoadCursor(NULL, IDC_SIZENS));
@@ -2553,7 +2578,7 @@ BOOL CALLBACK _splitwndproc(HWND hwnd, UINT msg, WPARAM mp1, LPARAM mp2)
 						int width = (rect.right - rect.left);
 						int height = (rect.bottom - rect.top);
 
-						if(type == BOXHORZ)
+						if(type == DW_HORZ)
 						{
 							start = point.x - rect.left;
 							if(width - SPLITBAR_WIDTH > 1 && start < width - SPLITBAR_WIDTH)
@@ -3513,7 +3538,7 @@ HWND API dw_window_new(HWND hwndOwner, char *title, ULONG flStyle)
 	ULONG flStyleEx = 0;
 
 	newbox->pad = 0;
-	newbox->type = BOXVERT;
+	newbox->type = DW_VERT;
 	newbox->count = 0;
 	newbox->cinfo.fore = newbox->cinfo.back = -1;
 
@@ -3550,7 +3575,7 @@ HWND API dw_window_new(HWND hwndOwner, char *title, ULONG flStyle)
 /*
  * Create a new Box to be packed.
  * Parameters:
- *       type: Either BOXVERT (vertical) or BOXHORZ (horizontal).
+ *       type: Either DW_VERT (vertical) or DW_HORZ (horizontal).
  *       pad: Number of pixels to pad around the box.
  */
 HWND API dw_box_new(int type, int pad)
@@ -3583,7 +3608,7 @@ HWND API dw_box_new(int type, int pad)
 /*
  * Create a new Group Box to be packed.
  * Parameters:
- *       type: Either BOXVERT (vertical) or BOXHORZ (horizontal).
+ *       type: Either DW_VERT (vertical) or DW_HORZ (horizontal).
  *       pad: Number of pixels to pad around the box.
  *       title: Text to be displayined in the group outline.
  */
@@ -4948,7 +4973,7 @@ void API dw_notebook_pack(HWND handle, ULONG pageidx, HWND page)
 
 	if(pageid > -1 && array[pageid])
 	{
-		HWND tmpbox = dw_box_new(BOXVERT, 0);
+		HWND tmpbox = dw_box_new(DW_VERT, 0);
 
 		dw_box_pack_start(tmpbox, page, 0, 0, TRUE, TRUE, 0);
 		SubclassWindow(tmpbox, _wndproc);
@@ -7211,7 +7236,7 @@ void API dw_exit(int exitcode)
 /*
  * Creates a splitbar window (widget) with given parameters.
  * Parameters:
- *       type: Value can be BOXVERT or BOXHORZ.
+ *       type: Value can be DW_VERT or DW_HORZ.
  *       topleft: Handle to the window to be top or left.
  *       bottomright:  Handle to the window to be bottom or right.
  * Returns:
@@ -7230,14 +7255,14 @@ HWND API dw_splitbar_new(int type, HWND topleft, HWND bottomright, unsigned long
 
 	if(tmp)
 	{
-		HWND tmpbox = dw_box_new(BOXVERT, 0);
+		HWND tmpbox = dw_box_new(DW_VERT, 0);
         float *percent = (float *)malloc(sizeof(float));
 
 		dw_box_pack_start(tmpbox, topleft, 1, 1, TRUE, TRUE, 0);
 		SetParent(tmpbox, tmp);
 		dw_window_set_data(tmp, "_dw_topleft", (void *)tmpbox);
 
-		tmpbox = dw_box_new(BOXVERT, 0);
+		tmpbox = dw_box_new(DW_VERT, 0);
 		dw_box_pack_start(tmpbox, bottomright, 1, 1, TRUE, TRUE, 0);
 		SetParent(tmpbox, tmp);
 		dw_window_set_data(tmp, "_dw_bottomright", (void *)tmpbox);

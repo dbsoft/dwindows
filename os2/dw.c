@@ -2,7 +2,7 @@
  * Dynamic Windows:
  *          A GTK like implementation of the PM GUI
  *
- * (C) 2000-2002 Brian Smith <dbsoft@technologist.com>
+ * (C) 2000-2003 Brian Smith <dbsoft@technologist.com>
  * (C) 2000 Achim Hasenmueller <achimha@innotek.de>
  * (C) 2000 Peter Nielsen <peter@pmview.com>
  * (C) 1998 Sergey I. Yevtushenko (some code borrowed from cell toolkit)
@@ -366,7 +366,7 @@ int _validate_focus(HWND handle)
 
 int _focus_check_box(Box *box, HWND handle, int start, HWND defaultitem)
 {
-	int z;
+	int z, n;
 	static HWND lasthwnd, firsthwnd;
     static int finish_searching;
 
@@ -392,166 +392,98 @@ int _focus_check_box(Box *box, HWND handle, int start, HWND defaultitem)
 		firsthwnd = 0;
 	}
 
-	/* Vertical boxes are inverted on OS/2 */
-	if(box->type == BOXVERT)
+	for(n=0;n<box->count;n++)
 	{
-		for(z=0;z<box->count;z++)
+		/* Vertical boxes are inverted on OS/2 */
+		if(box->type == DW_VERT)
+			z = n;
+		else
+			z = box->count - n - 1;
+
+		if(box->items[z].type == TYPEBOX)
 		{
-			if(box->items[z].type == TYPEBOX)
-			{
-				Box *thisbox = WinQueryWindowPtr(box->items[z].hwnd, QWP_USER);
+			Box *thisbox = WinQueryWindowPtr(box->items[z].hwnd, QWP_USER);
 
-				if(thisbox && _focus_check_box(thisbox, handle, start == 3 ? 3 : 0, defaultitem))
-					return 1;
-			}
-			else
-			{
-				if(box->items[z].hwnd == handle)
-				{
-					if(lasthwnd == handle && firsthwnd)
-						WinSetFocus(HWND_DESKTOP, firsthwnd);
-					else if(lasthwnd == handle && !firsthwnd)
-						finish_searching = 1;
-					else
-						WinSetFocus(HWND_DESKTOP, lasthwnd);
-
-					/* If we aren't looking for the last handle,
-					 * return immediately.
-					 */
-					if(!finish_searching)
-						return 1;
-				}
-				if(_validate_focus(box->items[z].hwnd))
-				{
-					/* Start is 3 when we are looking for the
-					 * first valid item in the layout.
-					 */
-					if(start == 3)
-					{
-						if(!defaultitem || (defaultitem && defaultitem == box->items[z].hwnd))
-						{
-							WinSetFocus(HWND_DESKTOP, box->items[z].hwnd);
-							return 1;
-						}
-					}
-
-					if(!firsthwnd)
-						firsthwnd = box->items[z].hwnd;
-
-					lasthwnd = box->items[z].hwnd;
-				}
-				else
-				{
-					char tmpbuf[100] = "";
-
-					WinQueryClassName(box->items[z].hwnd, 99, tmpbuf);
-					if(strncmp(tmpbuf, SplitbarClassName, strlen(SplitbarClassName)+1)==0)
-					{
-						/* Then try the bottom or right box */
-						HWND mybox = (HWND)dw_window_get_data(box->items[z].hwnd, "_dw_bottomright");
-
-						if(mybox)
-						{
-							Box *splitbox = (Box *)WinQueryWindowPtr(mybox, QWP_USER);
-
-							if(splitbox && _focus_check_box(splitbox, handle, start == 3 ? 3 : 0, defaultitem))
-								return 1;
-						}
-
-						/* Try the top or left box */
-						mybox = (HWND)dw_window_get_data(box->items[z].hwnd, "_dw_topleft");
-
-						if(mybox)
-						{
-							Box *splitbox = (Box *)WinQueryWindowPtr(mybox, QWP_USER);
-
-							if(splitbox && _focus_check_box(splitbox, handle, start == 3 ? 3 : 0, defaultitem))
-								return 1;
-						}
-					}
-					else if(strncmp(tmpbuf, "#40", 4)==0) /* Notebook */
-					{
-						Box *notebox;
-						HWND page = (HWND)WinSendMsg(box->items[z].hwnd, BKM_QUERYPAGEWINDOWHWND,
-													 (MPARAM)dw_notebook_page_query(box->items[z].hwnd), 0);
-
-						if(page)
-						{
-							notebox = (Box *)WinQueryWindowPtr(page, QWP_USER);
-
-							if(notebox && _focus_check_box(notebox, handle, start == 3 ? 3 : 0, defaultitem))
-								return 1;
-						}
-					}
-				}
-			}
+			if(thisbox && _focus_check_box(thisbox, handle, start == 3 ? 3 : 0, defaultitem))
+				return 1;
 		}
-	}
-	else
-	{
-		for(z=box->count-1;z>-1;z--)
+		else
 		{
-			if(box->items[z].type == TYPEBOX)
+			if(box->items[z].hwnd == handle)
 			{
-				Box *thisbox = WinQueryWindowPtr(box->items[z].hwnd, QWP_USER);
+				if(lasthwnd == handle && firsthwnd)
+					WinSetFocus(HWND_DESKTOP, firsthwnd);
+				else if(lasthwnd == handle && !firsthwnd)
+					finish_searching = 1;
+				else
+					WinSetFocus(HWND_DESKTOP, lasthwnd);
 
-				if(thisbox && _focus_check_box(thisbox, handle, start == 3 ? 3 : 0, defaultitem))
+				/* If we aren't looking for the last handle,
+				 * return immediately.
+				 */
+				if(!finish_searching)
 					return 1;
+			}
+			if(_validate_focus(box->items[z].hwnd))
+			{
+				/* Start is 3 when we are looking for the
+				 * first valid item in the layout.
+				 */
+				if(start == 3)
+				{
+					if(!defaultitem || (defaultitem && defaultitem == box->items[z].hwnd))
+					{
+						WinSetFocus(HWND_DESKTOP, box->items[z].hwnd);
+						return 1;
+					}
+				}
+
+				if(!firsthwnd)
+					firsthwnd = box->items[z].hwnd;
+
+				lasthwnd = box->items[z].hwnd;
 			}
 			else
 			{
-				if(box->items[z].hwnd == handle)
-				{
-					if(lasthwnd == handle && firsthwnd)
-						WinSetFocus(HWND_DESKTOP, firsthwnd);
-					else if(lasthwnd == handle && !firsthwnd)
-						finish_searching = 1;
-					else
-						WinSetFocus(HWND_DESKTOP, lasthwnd);
+				char tmpbuf[100] = "";
 
-					/* If we aren't looking for the last handle,
-					 * return immediately.
-					 */
-					if(!finish_searching)
-						return 1;
-				}
-				if(_validate_focus(box->items[z].hwnd))
+				WinQueryClassName(box->items[z].hwnd, 99, tmpbuf);
+				if(strncmp(tmpbuf, SplitbarClassName, strlen(SplitbarClassName)+1)==0)
 				{
-					/* Start is 3 when we are looking for the
-					 * first valid item in the layout.
-					 */
-					if(start == 3)
+					/* Then try the bottom or right box */
+					HWND mybox = (HWND)dw_window_get_data(box->items[z].hwnd, "_dw_bottomright");
+
+					if(mybox)
 					{
-						if(!defaultitem || (defaultitem && defaultitem == box->items[z].hwnd))
-						{
-							WinSetFocus(HWND_DESKTOP, box->items[z].hwnd);
+						Box *splitbox = (Box *)WinQueryWindowPtr(mybox, QWP_USER);
+
+						if(splitbox && _focus_check_box(splitbox, handle, start == 3 ? 3 : 0, defaultitem))
 							return 1;
-						}
 					}
 
-					if(!firsthwnd)
-						firsthwnd = box->items[z].hwnd;
+					/* Try the top or left box */
+					mybox = (HWND)dw_window_get_data(box->items[z].hwnd, "_dw_topleft");
 
-					lasthwnd = box->items[z].hwnd;
-				}
-				else
-				{
-					char tmpbuf[100] = "";
-
-					WinQueryClassName(box->items[z].hwnd, 99, tmpbuf);
-					if(strncmp(tmpbuf, "#40", 4)==0) /* Notebook */
+					if(mybox)
 					{
-						Box *notebox;
-						HWND page = (HWND)WinSendMsg(box->items[z].hwnd, BKM_QUERYPAGEWINDOWHWND,
-													 (MPARAM)dw_notebook_page_query(box->items[z].hwnd), 0);
+						Box *splitbox = (Box *)WinQueryWindowPtr(mybox, QWP_USER);
 
-						if(page)
-						{
-							notebox = (Box *)WinQueryWindowPtr(page, QWP_USER);
+						if(splitbox && _focus_check_box(splitbox, handle, start == 3 ? 3 : 0, defaultitem))
+							return 1;
+					}
+				}
+				else if(strncmp(tmpbuf, "#40", 4)==0) /* Notebook */
+				{
+					Box *notebox;
+					HWND page = (HWND)WinSendMsg(box->items[z].hwnd, BKM_QUERYPAGEWINDOWHWND,
+												 (MPARAM)dw_notebook_page_query(box->items[z].hwnd), 0);
 
-							if(notebox && _focus_check_box(notebox, handle, start == 3 ? 3 : 0, defaultitem))
-								return 1;
-						}
+					if(page)
+					{
+						notebox = (Box *)WinQueryWindowPtr(page, QWP_USER);
+
+						if(notebox && _focus_check_box(notebox, handle, start == 3 ? 3 : 0, defaultitem))
+							return 1;
 					}
 				}
 			}
@@ -562,7 +494,7 @@ int _focus_check_box(Box *box, HWND handle, int start, HWND defaultitem)
 
 int _focus_check_box_back(Box *box, HWND handle, int start, HWND defaultitem)
 {
-	int z;
+	int z, n;
 	static HWND lasthwnd, firsthwnd;
     static int finish_searching;
 
@@ -588,142 +520,98 @@ int _focus_check_box_back(Box *box, HWND handle, int start, HWND defaultitem)
 		firsthwnd = 0;
 	}
 
-	/* Vertical boxes are inverted on OS/2 */
-	if(box->type == BOXVERT)
+	for(n=0;n<box->count;n++)
 	{
-		for(z=box->count-1;z>-1;z--)
+		/* Vertical boxes are inverted on OS/2 */
+		if(box->type == DW_VERT)
+			z = box->count - n - 1;
+		else
+			z = n;
+
+		if(box->items[z].type == TYPEBOX)
 		{
-			if(box->items[z].type == TYPEBOX)
-			{
-				Box *thisbox = WinQueryWindowPtr(box->items[z].hwnd, QWP_USER);
+			Box *thisbox = WinQueryWindowPtr(box->items[z].hwnd, QWP_USER);
 
-				if(thisbox && _focus_check_box_back(thisbox, handle, start == 3 ? 3 : 0, defaultitem))
-					return 1;
-			}
-			else
-			{
-				if(box->items[z].hwnd == handle)
-				{
-					if(lasthwnd == handle && firsthwnd)
-						WinSetFocus(HWND_DESKTOP, firsthwnd);
-					else if(lasthwnd == handle && !firsthwnd)
-						finish_searching = 1;
-					else
-						WinSetFocus(HWND_DESKTOP, lasthwnd);
-
-					/* If we aren't looking for the last handle,
-					 * return immediately.
-					 */
-					if(!finish_searching)
-						return 1;
-				}
-				if(_validate_focus(box->items[z].hwnd))
-				{
-					/* Start is 3 when we are looking for the
-					 * first valid item in the layout.
-					 */
-					if(start == 3)
-					{
-						if(!defaultitem || (defaultitem && defaultitem == box->items[z].hwnd))
-						{
-							WinSetFocus(HWND_DESKTOP, box->items[z].hwnd);
-							return 1;
-						}
-					}
-
-					if(!firsthwnd)
-						firsthwnd = box->items[z].hwnd;
-
-					lasthwnd = box->items[z].hwnd;
-				}
-				else
-				{
-					char tmpbuf[100] = "";
-
-					WinQueryClassName(box->items[z].hwnd, 99, tmpbuf);
-					if(strncmp(tmpbuf, "#40", 4)==0) /* Notebook */
-					{
-						Box *notebox;
-						HWND page = (HWND)WinSendMsg(box->items[z].hwnd, BKM_QUERYPAGEWINDOWHWND,
-													 (MPARAM)dw_notebook_page_query(box->items[z].hwnd), 0);
-
-						if(page)
-						{
-							notebox = (Box *)WinQueryWindowPtr(page, QWP_USER);
-
-							if(notebox && _focus_check_box_back(notebox, handle, start == 3 ? 3 : 0, defaultitem))
-								return 1;
-						}
-					}
-				}
-			}
+			if(thisbox && _focus_check_box_back(thisbox, handle, start == 3 ? 3 : 0, defaultitem))
+				return 1;
 		}
-	}
-	else
-	{
-		for(z=0;z<box->count;z++)
+		else
 		{
-			if(box->items[z].type == TYPEBOX)
+			if(box->items[z].hwnd == handle)
 			{
-				Box *thisbox = WinQueryWindowPtr(box->items[z].hwnd, QWP_USER);
+				if(lasthwnd == handle && firsthwnd)
+					WinSetFocus(HWND_DESKTOP, firsthwnd);
+				else if(lasthwnd == handle && !firsthwnd)
+					finish_searching = 1;
+				else
+					WinSetFocus(HWND_DESKTOP, lasthwnd);
 
-				if(thisbox && _focus_check_box_back(thisbox, handle, start == 3 ? 3 : 0, defaultitem))
+				/* If we aren't looking for the last handle,
+				 * return immediately.
+				 */
+				if(!finish_searching)
 					return 1;
+			}
+			if(_validate_focus(box->items[z].hwnd))
+			{
+				/* Start is 3 when we are looking for the
+				 * first valid item in the layout.
+				 */
+				if(start == 3)
+				{
+					if(!defaultitem || (defaultitem && defaultitem == box->items[z].hwnd))
+					{
+						WinSetFocus(HWND_DESKTOP, box->items[z].hwnd);
+						return 1;
+					}
+				}
+
+				if(!firsthwnd)
+					firsthwnd = box->items[z].hwnd;
+
+				lasthwnd = box->items[z].hwnd;
 			}
 			else
 			{
-				if(box->items[z].hwnd == handle)
-				{
-					if(lasthwnd == handle && firsthwnd)
-						WinSetFocus(HWND_DESKTOP, firsthwnd);
-					else if(lasthwnd == handle && !firsthwnd)
-						finish_searching = 1;
-					else
-						WinSetFocus(HWND_DESKTOP, lasthwnd);
+				char tmpbuf[100] = "";
 
-					/* If we aren't looking for the last handle,
-					 * return immediately.
-					 */
-					if(!finish_searching)
-						return 1;
-				}
-				if(_validate_focus(box->items[z].hwnd))
+				WinQueryClassName(box->items[z].hwnd, 99, tmpbuf);
+				if(strncmp(tmpbuf, SplitbarClassName, strlen(SplitbarClassName)+1)==0)
 				{
-					/* Start is 3 when we are looking for the
-					 * first valid item in the layout.
-					 */
-					if(start == 3)
+					/* Try the top or left box */
+					HWND mybox = (HWND)dw_window_get_data(box->items[z].hwnd, "_dw_topleft");
+
+					if(mybox)
 					{
-						if(!defaultitem || (defaultitem && defaultitem == box->items[z].hwnd))
-						{
-							WinSetFocus(HWND_DESKTOP, box->items[z].hwnd);
+						Box *splitbox = (Box *)WinQueryWindowPtr(mybox, QWP_USER);
+
+						if(splitbox && _focus_check_box_back(splitbox, handle, start == 3 ? 3 : 0, defaultitem))
 							return 1;
-						}
 					}
 
-					if(!firsthwnd)
-						firsthwnd = box->items[z].hwnd;
+					/* Then try the bottom or right box */
+					mybox = (HWND)dw_window_get_data(box->items[z].hwnd, "_dw_bottomright");
 
-					lasthwnd = box->items[z].hwnd;
-				}
-				else
-				{
-					char tmpbuf[100] = "";
-
-					WinQueryClassName(box->items[z].hwnd, 99, tmpbuf);
-					if(strncmp(tmpbuf, "#40", 4)==0) /* Notebook */
+					if(mybox)
 					{
-						Box *notebox;
-						HWND page = (HWND)WinSendMsg(box->items[z].hwnd, BKM_QUERYPAGEWINDOWHWND,
-													 (MPARAM)dw_notebook_page_query(box->items[z].hwnd), 0);
+						Box *splitbox = (Box *)WinQueryWindowPtr(mybox, QWP_USER);
 
-						if(page)
-						{
-							notebox = (Box *)WinQueryWindowPtr(page, QWP_USER);
+						if(splitbox && _focus_check_box_back(splitbox, handle, start == 3 ? 3 : 0, defaultitem))
+							return 1;
+					}
+				}
+				else if(strncmp(tmpbuf, "#40", 4)==0) /* Notebook */
+				{
+					Box *notebox;
+					HWND page = (HWND)WinSendMsg(box->items[z].hwnd, BKM_QUERYPAGEWINDOWHWND,
+												 (MPARAM)dw_notebook_page_query(box->items[z].hwnd), 0);
 
-							if(notebox && _focus_check_box_back(notebox, handle, start == 3 ? 3 : 0, defaultitem))
-								return 1;
-						}
+					if(page)
+					{
+						notebox = (Box *)WinQueryWindowPtr(page, QWP_USER);
+
+						if(notebox && _focus_check_box_back(notebox, handle, start == 3 ? 3 : 0, defaultitem))
+							return 1;
 					}
 				}
 			}
@@ -762,7 +650,7 @@ void _shift_focus(HWND handle)
 	box = WinWindowFromID(lastbox, FID_CLIENT);
 	if(box)
 		thisbox = WinQueryWindowPtr(box, QWP_USER);
-    else
+	else
 		thisbox = WinQueryWindowPtr(lastbox, QWP_USER);
 
 	if(thisbox)
@@ -783,7 +671,7 @@ void _shift_focus_back(HWND handle)
 	box = WinWindowFromID(lastbox, FID_CLIENT);
 	if(box)
 		thisbox = WinQueryWindowPtr(box, QWP_USER);
-    else
+	else
 		thisbox = WinQueryWindowPtr(lastbox, QWP_USER);
 
 	if(thisbox)
@@ -822,8 +710,8 @@ void _count_size(HWND box, int type, int *xsize, int *xorigsize)
 			}
 			else
 			{
-				size += (type == BOXHORZ ? tmp->items[z].width : tmp->items[z].height);
-				origsize += (type == BOXHORZ ? tmp->items[z].origwidth : tmp->items[z].origheight);
+				size += (type == DW_HORZ ? tmp->items[z].width : tmp->items[z].height);
+				origsize += (type == DW_HORZ ? tmp->items[z].origwidth : tmp->items[z].origheight);
 			}
 		}
 	}
@@ -840,8 +728,8 @@ void _count_size(HWND box, int type, int *xsize, int *xorigsize)
 				_count_size(tmp->items[z].hwnd, type, &tmpsize, &tmporigsize);
 			else
 			{
-				tmpsize = (type == BOXHORZ ? tmp->items[z].width : tmp->items[z].height);
-				tmporigsize = (type == BOXHORZ ? tmp->items[z].origwidth : tmp->items[z].origheight);
+				tmpsize = (type == DW_HORZ ? tmp->items[z].width : tmp->items[z].height);
+				tmporigsize = (type == DW_HORZ ? tmp->items[z].origwidth : tmp->items[z].origheight);
 			}
 
 			if(tmpsize > size)
@@ -1019,7 +907,7 @@ int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *usedy,
 					tmp->xratio = thisbox->xratio;
 					tmp->yratio = thisbox->yratio;
 
-					if(thisbox->type == BOXVERT)
+					if(thisbox->type == DW_VERT)
 					{
 						if((thisbox->items[z].width-((thisbox->items[z].pad*2)+(tmp->pad*2)))!=0)
 							tmp->xratio = ((float)((thisbox->items[z].width * thisbox->xratio)-((thisbox->items[z].pad*2)+(tmp->pad*2))))/((float)(thisbox->items[z].width-((thisbox->items[z].pad*2)+(tmp->pad*2))));
@@ -1029,7 +917,7 @@ int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *usedy,
 						if((thisbox->items[z].width-tmp->upx)!=0)
 							tmp->xratio = ((float)((thisbox->items[z].width * thisbox->xratio)-tmp->upx))/((float)(thisbox->items[z].width-tmp->upx));
 					}
-					if(thisbox->type == BOXHORZ)
+					if(thisbox->type == DW_HORZ)
 					{
 						if((thisbox->items[z].height-((thisbox->items[z].pad*2)+(tmp->pad*2)))!=0)
 							tmp->yratio = ((float)((thisbox->items[z].height * thisbox->yratio)-((thisbox->items[z].pad*2)+(tmp->pad*2))))/((float)(thisbox->items[z].height-((thisbox->items[z].pad*2)+(tmp->pad*2))));
@@ -1060,7 +948,7 @@ int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *usedy,
 
 		if(pass > 1 && *depth > 0)
 		{
-			if(thisbox->type == BOXVERT)
+			if(thisbox->type == DW_VERT)
 			{
 				if((thisbox->minwidth-((thisbox->items[z].pad*2)+(thisbox->parentpad*2))) == 0)
 					thisbox->items[z].xratio = 1.0;
@@ -1075,7 +963,7 @@ int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *usedy,
 					thisbox->items[z].xratio = ((float)((thisbox->width * thisbox->parentxratio)-thisbox->upx))/((float)(thisbox->minwidth-thisbox->upx));
 			}
 
-			if(thisbox->type == BOXHORZ)
+			if(thisbox->type == DW_HORZ)
 			{
 				if((thisbox->minheight-((thisbox->items[z].pad*2)+(thisbox->parentpad*2))) == 0)
 					thisbox->items[z].yratio = 1.0;
@@ -1107,7 +995,7 @@ int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *usedy,
 			thisbox->items[z].yratio = thisbox->yratio;
 		}
 
-		if(thisbox->type == BOXVERT)
+		if(thisbox->type == DW_VERT)
 		{
 			if((thisbox->items[z].width + (thisbox->items[z].pad*2)) > uxmax)
 				uxmax = (thisbox->items[z].width + (thisbox->items[z].pad*2));
@@ -1138,7 +1026,7 @@ int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *usedy,
 					(*usedpadx) += thisbox->items[z].pad*2;
 			}
 		}
-		if(thisbox->type == BOXHORZ)
+		if(thisbox->type == DW_HORZ)
 		{
 			if((thisbox->items[z].height + (thisbox->items[z].pad*2)) > uymax)
 				uymax = (thisbox->items[z].height + (thisbox->items[z].pad*2));
@@ -1185,9 +1073,9 @@ int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *usedy,
 		/* Any SIZEEXPAND items should be set to uxmax/uymax */
 		for(z=0;z<thisbox->count;z++)
 		{
-			if(thisbox->items[z].hsize == SIZEEXPAND && thisbox->type == BOXVERT)
+			if(thisbox->items[z].hsize == SIZEEXPAND && thisbox->type == DW_VERT)
 				thisbox->items[z].width = uxmax-(thisbox->items[z].pad*2);
-			if(thisbox->items[z].vsize == SIZEEXPAND && thisbox->type == BOXHORZ)
+			if(thisbox->items[z].vsize == SIZEEXPAND && thisbox->type == DW_HORZ)
 				thisbox->items[z].height = uymax-(thisbox->items[z].pad*2);
 			/* Run this code segment again to finalize the sized after setting uxmax/uymax values. */
 			if(thisbox->items[z].type == TYPEBOX)
@@ -1198,12 +1086,12 @@ int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *usedy,
 				{
 					if(*depth > 0)
 					{
-						if(thisbox->type == BOXVERT)
+						if(thisbox->type == DW_VERT)
 						{
 							tmp->xratio = ((float)((thisbox->items[z].width * thisbox->xratio)-((thisbox->items[z].pad*2)+(thisbox->pad*2))))/((float)(tmp->minwidth-((thisbox->items[z].pad*2)+(thisbox->pad*2))));
 							tmp->width = thisbox->items[z].width;
 						}
-						if(thisbox->type == BOXHORZ)
+						if(thisbox->type == DW_HORZ)
 						{
 							tmp->yratio = ((float)((thisbox->items[z].height * thisbox->yratio)-((thisbox->items[z].pad*2)+(thisbox->pad*2))))/((float)(tmp->minheight-((thisbox->items[z].pad*2)+(thisbox->pad*2))));
 							tmp->height = thisbox->items[z].height;
@@ -1298,9 +1186,9 @@ int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *usedy,
 
 				}
 
-				if(thisbox->type == BOXHORZ)
+				if(thisbox->type == DW_HORZ)
 					currentx += width + vectorx + (pad * 2);
-				if(thisbox->type == BOXVERT)
+				if(thisbox->type == DW_VERT)
 					currenty += height + vectory + (pad * 2);
 			}
 		}
@@ -2615,7 +2503,7 @@ void _changebox(Box *thisbox, int percent, int type)
 		}
 		else
 		{
-			if(type == BOXHORZ)
+			if(type == DW_HORZ)
 			{
 				if(thisbox->items[z].hsize == SIZEEXPAND)
 					thisbox->items[z].width = (int)(((float)thisbox->items[z].origwidth) * (((float)percent)/((float)100.0)));
@@ -2631,7 +2519,7 @@ void _changebox(Box *thisbox, int percent, int type)
 
 void _handle_splitbar_resize(HWND hwnd, float percent, int type, int x, int y)
 {
-	if(type == BOXHORZ)
+	if(type == DW_HORZ)
 	{
 		int newx = x;
 		float ratio = (float)percent/(float)100.0;
@@ -2713,7 +2601,7 @@ MRESULT EXPENTRY _splitwndproc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 
 			WinQueryWindowRect(hwnd, &rcl);
 
-			if(type == BOXHORZ)
+			if(type == DW_HORZ)
 			{
 				ptl[0].x = rcl.xLeft + start;
 				ptl[0].y = rcl.yBottom;
@@ -2738,7 +2626,7 @@ MRESULT EXPENTRY _splitwndproc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 
 	case WM_MOUSEMOVE:
 		{
-			if(type == BOXHORZ)
+			if(type == DW_HORZ)
 				WinSetPointer(HWND_DESKTOP,
 							  WinQuerySysPointer(HWND_DESKTOP,
 												 SPTR_SIZEWE,
@@ -2763,7 +2651,7 @@ MRESULT EXPENTRY _splitwndproc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 							   (PPOINTL)&rclBounds, 2);
 
 
-			if(type == BOXHORZ)
+			if(type == DW_HORZ)
 			{
 				rclFrame.xLeft = start;
 				rclFrame.xRight = start + SPLITBAR_WIDTH;
@@ -2783,7 +2671,7 @@ MRESULT EXPENTRY _splitwndproc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 					int width = (rclBounds.xRight - rclBounds.xLeft);
 					int height = (rclBounds.yTop - rclBounds.yBottom);
 
-					if(type == BOXHORZ)
+					if(type == DW_HORZ)
 					{
 						start = rclFrame.xLeft - rclBounds.xLeft;
 						if(width - SPLITBAR_WIDTH > 1 && start < width - SPLITBAR_WIDTH)
@@ -3679,7 +3567,7 @@ HWND API dw_window_new(HWND hwndOwner, char *title, ULONG flStyle)
 	WindowData *blah = calloc(1, sizeof(WindowData));
 
 	newbox->pad = 0;
-	newbox->type = BOXVERT;
+	newbox->type = DW_VERT;
 	newbox->count = 0;
 
 	flStyle |= FCF_NOBYTEALIGN;
@@ -3706,7 +3594,7 @@ HWND API dw_window_new(HWND hwndOwner, char *title, ULONG flStyle)
 /*
  * Create a new Box to be packed.
  * Parameters:
- *       type: Either BOXVERT (vertical) or BOXHORZ (horizontal).
+ *       type: Either DW_VERT (vertical) or DW_HORZ (horizontal).
  *       pad: Number of pixels to pad around the box.
  */
 HWND API dw_box_new(int type, int pad)
@@ -3740,7 +3628,7 @@ HWND API dw_box_new(int type, int pad)
 /*
  * Create a new Group Box to be packed.
  * Parameters:
- *       type: Either BOXVERT (vertical) or BOXHORZ (horizontal).
+ *       type: Either DW_VERT (vertical) or DW_HORZ (horizontal).
  *       pad: Number of pixels to pad around the box.
  *       title: Text to be displayined in the group outline.
  */
@@ -4914,7 +4802,7 @@ void API dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, 
 		thisbox = WinQueryWindowPtr(box, QWP_USER);
 	if(thisbox)
 	{
-		if(thisbox->type == BOXHORZ)
+		if(thisbox->type == DW_HORZ)
 			dw_box_pack_start_stub(box, item, width, height, hsize, vsize, pad);
 		else
 			dw_box_pack_end_stub(box, item, width, height, hsize, vsize, pad);
@@ -5182,7 +5070,7 @@ void API dw_notebook_page_set_status_text(HWND handle, ULONG pageid, char *text)
  */
 void API dw_notebook_pack(HWND handle, ULONG pageid, HWND page)
 {
-	HWND tmpbox = dw_box_new(BOXVERT, 0);
+	HWND tmpbox = dw_box_new(DW_VERT, 0);
 
 	dw_box_pack_start(tmpbox, page, 0, 0, TRUE, TRUE, 0);
 	WinSubclassWindow(tmpbox, _wndproc);
@@ -7396,7 +7284,7 @@ void API dw_exit(int exitcode)
 /*
  * Creates a splitbar window (widget) with given parameters.
  * Parameters:
- *       type: Value can be BOXVERT or BOXHORZ.
+ *       type: Value can be DW_VERT or DW_HORZ.
  *       topleft: Handle to the window to be top or left.
  *       bottomright:  Handle to the window to be bottom or right.
  * Returns:
@@ -7416,14 +7304,14 @@ HWND API dw_splitbar_new(int type, HWND topleft, HWND bottomright, unsigned long
 							   NULL);
 	if(tmp)
 	{
-		HWND tmpbox = dw_box_new(BOXVERT, 0);
+		HWND tmpbox = dw_box_new(DW_VERT, 0);
         float *percent = malloc(sizeof(float));
 
 		dw_box_pack_start(tmpbox, topleft, 1, 1, TRUE, TRUE, 0);
 		WinSetParent(tmpbox, tmp, FALSE);
 		dw_window_set_data(tmp, "_dw_topleft", (void *)tmpbox);
 
-		tmpbox = dw_box_new(BOXVERT, 0);
+		tmpbox = dw_box_new(DW_VERT, 0);
 		dw_box_pack_start(tmpbox, bottomright, 1, 1, TRUE, TRUE, 0);
 		WinSetParent(tmpbox, tmp, FALSE);
 		*percent = 50.0;
@@ -7491,7 +7379,7 @@ void API dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize
 		thisbox = WinQueryWindowPtr(box, QWP_USER);
 	if(thisbox)
 	{
-		if(thisbox->type == BOXHORZ)
+		if(thisbox->type == DW_HORZ)
 			dw_box_pack_end_stub(box, item, width, height, hsize, vsize, pad);
 		else
 			dw_box_pack_start_stub(box, item, width, height, hsize, vsize, pad);
