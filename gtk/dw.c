@@ -468,9 +468,8 @@ gint _tree_select_event(GtkTreeSelection *sel, gpointer data)
 		{
 			GtkTreeModel *store = (GtkTreeModel *)gtk_object_get_data(GTK_OBJECT(widget), "_dw_tree_store");
 			gtk_tree_model_get(store, &iter, 0, &text, 2, &itemdata, 3, &item, -1);
+			retval = treeselectfunc(work->window, item, text, itemdata, work->data);
 		}
-    
-		retval = treeselectfunc(work->window, item, text, itemdata, work->data);
 	}
 	return retval;
 }
@@ -1779,7 +1778,9 @@ HWND dw_menu_append_item(HMENUI menu, char *title, unsigned long id, unsigned lo
 			{
 				tmphandle=gtk_check_menu_item_new_with_label("");
 				tmp_key = gtk_label_parse_uline(GTK_LABEL(GTK_BIN(tmphandle)->child), tempbuf);
+#if 0 /* This isn't working right */
 				gtk_widget_add_accelerator(tmphandle, "activate", accel_group, tmp_key, GDK_MOD1_MASK, 0);
+#endif
 			}
 			else
 				tmphandle=gtk_check_menu_item_new_with_label(tempbuf);
@@ -1793,7 +1794,9 @@ HWND dw_menu_append_item(HMENUI menu, char *title, unsigned long id, unsigned lo
 			{
 				tmphandle=gtk_menu_item_new_with_label("");
 				tmp_key = gtk_label_parse_uline(GTK_LABEL(GTK_BIN(tmphandle)->child), tempbuf);
+#if 0 /* This isn't working right */
 				gtk_widget_add_accelerator(tmphandle, "activate", accel_group, tmp_key, GDK_MOD1_MASK, 0);
+#endif
 			}
 			else
 				tmphandle=gtk_menu_item_new_with_label(tempbuf);
@@ -3596,7 +3599,7 @@ void dw_tree_item_select(HWND handle, HWND item)
 	GtkTreeStore *store;
 	int _locked_by_me = FALSE;
 
-	if(!handle)
+	if(!handle || !item)
 		return;
 
 	DW_MUTEX_LOCK;
@@ -3630,6 +3633,24 @@ void dw_tree_item_select(HWND handle, HWND item)
 #endif
 }
 
+void _dw_recursive_free(GtkTreeModel *store, GtkTreeIter parent)
+{
+	void *data;
+	GtkTreeIter iter;
+  
+	gtk_tree_model_get(store, &parent, 3, &data, -1);
+	if(data)
+		free(data);
+	gtk_tree_store_set(GTK_TREE_STORE(store), &parent, 3, NULL, -1);
+
+	if(gtk_tree_model_iter_children(store, &iter, &parent))
+	{
+		do {
+			_dw_recursive_free(GTK_TREE_MODEL(store), iter);
+		} while(gtk_tree_model_iter_next(GTK_TREE_MODEL(store), &iter));
+	}
+}
+
 /*
  * Removes all nodes from a tree.
  * Parameters:
@@ -3638,7 +3659,7 @@ void dw_tree_item_select(HWND handle, HWND item)
 void dw_tree_clear(HWND handle)
 {
 #if GTK_MAJOR_VERSION > 1
-	GtkWidget *tree;
+	GtkWidget *tree;               
 	GtkTreeStore *store;
 	int _locked_by_me = FALSE;
 
@@ -3649,7 +3670,17 @@ void dw_tree_clear(HWND handle)
 	if((tree = (GtkWidget *)gtk_object_get_user_data(GTK_OBJECT(handle)))
 		&& GTK_IS_TREE_VIEW(tree) &&
 		(store = (GtkTreeStore *)gtk_object_get_data(GTK_OBJECT(tree), "_dw_tree_store")))
+		{
+			GtkTreeIter iter;
+
+			if(gtk_tree_model_get_iter_first(GTK_TREE_MODEL(store), &iter))
+			{
+				do {
+					_dw_recursive_free(GTK_TREE_MODEL(store), iter);
+				} while(gtk_tree_model_iter_next(GTK_TREE_MODEL(store), &iter));
+			}
 			gtk_tree_store_clear(store);
+		}
 	DW_MUTEX_UNLOCK;
 #else
 	GtkWidget *tree;
