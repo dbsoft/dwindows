@@ -57,6 +57,14 @@ GdkColor _colors[] =
 
 #define DW_THREAD_LIMIT 50
 
+#ifndef max
+# define max(a,b)        (((a) > (b)) ? (a) : (b))
+#endif
+
+#ifndef min
+# define min(a,b)        (((a) < (b)) ? (a) : (b))
+#endif
+
 DWTID _dw_thread_list[DW_THREAD_LIMIT];
 GdkColor _foreground[DW_THREAD_LIMIT];
 GdkColor _background[DW_THREAD_LIMIT];
@@ -1166,9 +1174,11 @@ int dw_messagebox(char *title, int flags, char *format, ...)
 	ULONG flStyle = DW_FCF_TITLEBAR | DW_FCF_SHELLPOSITION | DW_FCF_DLGBORDER;
 	DWDialog *dwwait;
 	va_list args;
-	char outbuf[256];
+	char outbuf[1000];
 	char **xpm_data = NULL;
-	int x, y, extra_width=0;
+	int x, y, extra_width=0,text_width,text_height;
+	gint width,height;
+	GtkStyle *style;
 
 	va_start(args, format);
 	vsprintf(outbuf, format, args);
@@ -1229,9 +1239,26 @@ int dw_messagebox(char *title, int flags, char *format, ...)
 	}
 
 	/* Create text */
+	text_width = 240;
+	text_height = 0;
 	stext = dw_text_new(outbuf, 0);
 	dw_window_set_style(stext, DW_DT_WORDBREAK, DW_DT_WORDBREAK);
-	dw_box_pack_start(texttargetbox, stext, 235+extra_width, 50, TRUE, TRUE, 2);
+	style = gtk_widget_get_style(stext);
+	gdk_text_extents(style->font, outbuf, strlen(outbuf), NULL, NULL, &width, NULL, NULL);
+	gdk_text_extents(style->font, "(g", 2, NULL, &height, NULL, NULL, NULL);
+	height = height+3;
+	if(width < text_width)
+		text_height = height*2;
+	else if(width < text_width*2)
+		text_height = height*3;
+	else if(width < text_width*3)
+		text_height = height*4;
+	else /* width > (3*text_width) */
+	{
+		text_width = (width / 3) + 60;
+		text_height = height*4;
+	}
+	dw_box_pack_start(texttargetbox, stext, text_width, text_height, TRUE, TRUE, 2);
 
 	/* Buttons */
 	buttonbox = dw_box_new(DW_HORZ, 10);
@@ -1278,10 +1305,11 @@ int dw_messagebox(char *title, int flags, char *format, ...)
 		dw_signal_connect(cancelbutton, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(_dw_cancel_func), (void *)dwwait);
 	}
 
-	x = (dw_screen_width() - (280+extra_width))/2;
-	y = (dw_screen_height() - 150)/2;
+	height = max(50,text_height)+100;
+	x = (dw_screen_width() - (text_width+60+extra_width))/2;
+	y = (dw_screen_height() - height)/2;
 
-	dw_window_set_pos_size(entrywindow, x, y, (280+extra_width), 150);
+	dw_window_set_pos_size(entrywindow, x, y, (text_width+60+extra_width), height);
 
 	dw_window_show(entrywindow);
 
@@ -7704,8 +7732,10 @@ int dw_exec(char *program, int type, char **params)
 int dw_browse(char *url)
 {
 	/* Is there a way to find the webbrowser in Unix? */
-	char *execargs[3], *browser = "netscape";
+	char *execargs[3], *browser = "netscape", *tmp;
 
+	tmp = getenv( "DW_BROWSER" );
+	if(tmp) browser = tmp;
 	execargs[0] = browser;
 	execargs[1] = url;
 	execargs[2] = NULL;
