@@ -660,6 +660,7 @@ int main(int argc, char *argv[])
 
 	dw_signal_connect(mainwindow, DW_SIGNAL_DELETE, DW_SIGNAL_FUNC(exit_callback), (void *)mainwindow);
 	timerid = dw_timer_connect(1000, DW_SIGNAL_FUNC(timer_callback), 0);
+	dw_window_set_icon(mainwindow, fileicon);
 	dw_window_set_usize(mainwindow, 640, 480);
 	dw_window_show(mainwindow);
 
