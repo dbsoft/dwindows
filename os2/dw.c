@@ -1838,6 +1838,14 @@ int _HandleScroller(HWND handle, int pos, int which)
 	return -1;
 }
 
+void _clear_emphasis(void)
+{
+	if(hwndEmph && pCoreEmph)
+		WinSendMsg(hwndEmph, CM_SETRECORDEMPHASIS, pCoreEmph, MPFROM2SHORT(FALSE, CRA_SOURCE));
+	hwndEmph = NULLHANDLE;
+	pCoreEmph = NULL;
+}
+
 MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 {
 	int result = -1;
@@ -2120,6 +2128,8 @@ MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 									}
 									else
 									{
+										if(pCoreEmph)
+											_clear_emphasis();
 										hwndEmph = tmp->window;
 										pCoreEmph = mp2;
 										WinSendMsg(tmp->window, CM_SETRECORDEMPHASIS, mp2, MPFROM2SHORT(TRUE, CRA_SOURCE));
@@ -2473,10 +2483,7 @@ MRESULT EXPENTRY _wndproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 		_free_window_memory(hWnd);
 		break;
 	case WM_MENUEND:
-		if(hwndEmph && pCoreEmph)
-			WinSendMsg(hwndEmph, CM_SETRECORDEMPHASIS, pCoreEmph, MPFROM2SHORT(FALSE, CRA_SOURCE));
-		hwndEmph = NULLHANDLE;
-		pCoreEmph = NULL;
+		_clear_emphasis();
 		break;
 	}
 
