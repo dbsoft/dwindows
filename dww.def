@@ -51,6 +51,7 @@ EXPORTS
   dw_window_from_id                      @71
   dw_window_set_border                   @72
   dw_window_minimize                     @73
+  dw_window_pointer                      @74
 
   dw_bitmap_new                          @80
 
@@ -120,6 +121,9 @@ EXPORTS
   dw_container_set_view                  @227
   dw_container_query_start               @228
   dw_container_query_next                @229
+  dw_container_delete                    @230
+  dw_container_scroll                    @231
+  dw_container_set_column_width          @232
 
   dw_filesystem_setup                    @240
   dw_filesystem_set_item                 @241
@@ -185,4 +189,7 @@ EXPORTS
   dw_signal_disconnect_by_window         @361
   dw_signal_disconnect_by_data           @362
   dw_signal_disconnect_by_name           @363
+
+  dw_tree_new                            @370
+  dw_tree_insert                         @371
 

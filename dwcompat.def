@@ -32,3 +32,4 @@ EXPORTS
   fsopen             @40
   fsclose            @41
   fsgets             @42
+  fsseek             @43

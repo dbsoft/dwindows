@@ -109,6 +109,9 @@
 
 #define DW_MLE_CASESENSITIVE     MLFSEARCH_CASESENSITIVE
 
+#define DW_POINTER_ARROW         SPTR_ARROW
+#define DW_POINTER_CLOCK         SPTR_WAIT
+
 typedef struct _hpixmap {
 	unsigned long width, height;
 	HDC hdc;
@@ -227,6 +230,9 @@ extern HMQ dwhmq;
 #define DW_LIT_NONE              -1
 
 #define DW_MLE_CASESENSITIVE     1
+
+#define DW_POINTER_ARROW         32512
+#define DW_POINTER_CLOCK         32514
 
 #define STATICCLASSNAME "STATIC"
 #define COMBOBOXCLASSNAME "COMBOBOX"
@@ -424,6 +430,9 @@ void dw_box_pack_end_stub(HWND box, HWND item, int width, int height, int hsize,
 
 #define DW_MLE_CASESENSITIVE     1
 
+#define DW_POINTER_ARROW         GDK_ARROW
+#define DW_POINTER_CLOCK         GDK_CLOCK
+
 #define DW_DESKTOP               ((HWND)0)
 #define HWND_DESKTOP             ((HWND)0)
 
@@ -528,6 +537,11 @@ typedef struct _dwdialog {
 #define BOXHORZ 0
 #define BOXVERT 1
 
+#define DW_SCROLL_UP 0
+#define DW_SCROLL_DOWN 1
+#define DW_SCROLL_TOP 2
+#define DW_SCROLL_BOTTOM 3
+
 #define DW_PIXMAP_WIDTH(x) (x ? x->width : 0)
 #define DW_PIXMAP_HEIGHT(x) (x ? x->height : 0)
 
@@ -569,6 +583,7 @@ HWND dw_mdi_new(unsigned long id);
 HWND dw_bitmap_new(unsigned long id);
 HWND dw_bitmapbutton_new(char *text, unsigned long id);
 HWND dw_container_new(unsigned long id);
+HWND dw_tree_new(unsigned long id);
 HWND dw_text_new(char *text, unsigned long id);
 HWND dw_status_text_new(char *text, unsigned long id);
 HWND dw_mle_new(unsigned long id);
@@ -608,6 +623,7 @@ void dw_window_enable(HWND handle);
 void dw_window_capture(HWND handle);
 void dw_window_release(void);
 void dw_window_reparent(HWND handle, HWND newparent);
+void dw_window_pointer(HWND handle, int pointertype);
 unsigned int dw_mle_import(HWND handle, char *buffer, int startpoint);
 void dw_mle_export(HWND handle, char *buffer, int startpoint, int length);
 void dw_mle_query(HWND handle, unsigned long *bytes, unsigned long *lines);
@@ -626,17 +642,21 @@ void dw_entryfield_set_limit(HWND handle, ULONG limit);
 long dw_spinbutton_query(HWND handle);
 int dw_checkbox_query(HWND handle);
 void dw_checkbox_set(HWND handle, int value);
+HWND dw_tree_insert(HWND handle, char *title, unsigned long icon, HWND parent);
 int dw_container_setup(HWND handle, unsigned long *flags, char **titles, int count, int separator);
 unsigned long dw_icon_load(unsigned long module, unsigned long id);
 void dw_icon_free(unsigned long handle);
 void *dw_container_alloc(HWND handle, int rowcount);
 void dw_container_set_item(HWND handle, void *pointer, int column, int row, void *data);
+void dw_container_set_column_width(HWND handle, int column, int width);
 void dw_container_set_row_title(void *pointer, int row, char *title);
 void dw_container_insert(HWND handle, void *pointer, int rowcount);
 void dw_container_clear(HWND handle);
+void dw_container_delete(HWND handle, int rowcount);
 void dw_container_set_view(HWND handle, unsigned long flags, int iconwidth, int iconheight);
 char *dw_container_query_start(HWND handle, unsigned long flags);
 char *dw_container_query_next(HWND handle, unsigned long flags);
+void dw_container_scroll(HWND handle, int direction, long rows);
 int dw_filesystem_setup(HWND handle, unsigned long *flags, char **titles, int count);
 void dw_filesystem_set_item(HWND handle, void *pointer, int column, int row, void *data);
 void dw_filesystem_set_file(HWND handle, void *pointer, int row, char *filename, unsigned long icon);
