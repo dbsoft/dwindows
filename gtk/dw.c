@@ -6163,7 +6163,7 @@ void dw_exit(int exitcode)
  */
 void dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, int vsize, int pad)
 {
-	int _locked_by_me = FALSE;
+	int warn = FALSE, _locked_by_me = FALSE;
 	GtkWidget *tmp;
 
 	if(!box)
@@ -6203,11 +6203,8 @@ void dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, int 
 		}
 		else
 		{
-            /* Only show warning if item is not a box */
-			if ( width == 0 && hsize == FALSE )
-				dw_messagebox("dw_box_pack_end()", DW_MB_OK|DW_MB_ERROR, "Width and expand Horizonal both unset for box: %x item: %x",box,item);
-			if ( height == 0 && vsize == FALSE )
-				dw_messagebox("dw_box_pack_end()", DW_MB_OK|DW_MB_ERROR, "Height and expand Vertical both unset for box: %x item: %x",box,item);
+			/* Only show warning if item is not a box */
+			warn = TRUE;
 		}
 
 		if(boxtype == DW_VERT)
@@ -6249,11 +6246,8 @@ void dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, int 
 		}
 		else
 		{
-            /* Only show warning if item is not a box */
-			if ( width == 0 && hsize == FALSE )
-				dw_messagebox("dw_box_pack_end()", DW_MB_OK|DW_MB_ERROR, "Width and expand Horizonal both unset for box: %x item: %x",box,item);
-			if ( height == 0 && vsize == FALSE )
-				dw_messagebox("dw_box_pack_end()", DW_MB_OK|DW_MB_ERROR, "Height and expand Vertical both unset for box: %x item: %x",box,item);
+			/* Only show warning if item is not a box */
+			warn = TRUE;
 		}
 
 		gtk_container_border_width(GTK_CONTAINER(box), pad);
@@ -6265,6 +6259,14 @@ void dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, int 
 		gtk_object_set_user_data(GTK_OBJECT(box), vbox);
 	}
 	DW_MUTEX_UNLOCK;
+
+	if(warn)
+	{
+		if ( width == 0 && hsize == FALSE )
+			dw_messagebox("dw_box_pack_end()", DW_MB_OK|DW_MB_ERROR, "Width and expand Horizonal both unset for box: %x item: %x",box,item);
+		if ( height == 0 && vsize == FALSE )
+			dw_messagebox("dw_box_pack_end()", DW_MB_OK|DW_MB_ERROR, "Height and expand Vertical both unset for box: %x item: %x",box,item);
+	}
 }
 
 /*
@@ -7340,7 +7342,7 @@ float dw_splitbar_get(HWND handle)
  */
 void dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize, int vsize, int pad)
 {
-	int _locked_by_me = FALSE;
+	int warn = FALSE, _locked_by_me = FALSE;
 	GtkWidget *tmp;
 
 	if(!box)
@@ -7381,11 +7383,8 @@ void dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize, in
 		}
 		else
 		{
-            /* Only show warning if item is not a box */
-			if ( width == 0 && hsize == FALSE )
-				dw_messagebox("dw_box_pack_start()", DW_MB_OK|DW_MB_ERROR, "Width and expand Horizonal both unset for box: %x item: %x",box,item);
-			if ( height == 0 && vsize == FALSE )
-				dw_messagebox("dw_box_pack_start()", DW_MB_OK|DW_MB_ERROR, "Height and expand Vertical both unset for box: %x item: %x",box,item);
+			/* Only show warning if item is not a box */
+			warn = TRUE;
 		}
 
 		if(boxtype == DW_VERT)
@@ -7435,11 +7434,8 @@ void dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize, in
 		}
 		else
 		{
-            /* Only show warning if item is not a box */
-			if ( width == 0 && hsize == FALSE )
-				dw_messagebox("dw_box_pack_start()", DW_MB_OK|DW_MB_ERROR, "Width and expand Horizonal both unset for box: %x item: %x",box,item);
-			if ( height == 0 && vsize == FALSE )
-				dw_messagebox("dw_box_pack_start()", DW_MB_OK|DW_MB_ERROR, "Height and expand Vertical both unset for box: %x item: %x",box,item);
+			/* Only show warning if item is not a box */
+			warn = TRUE;
 		}
 
 		gtk_container_border_width(GTK_CONTAINER(box), pad);
@@ -7451,6 +7447,14 @@ void dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize, in
 		gtk_object_set_user_data(GTK_OBJECT(box), vbox);
 	}
 	DW_MUTEX_UNLOCK;
+
+	if(warn)
+	{
+		if ( width == 0 && hsize == FALSE )
+			dw_messagebox("dw_box_pack_start()", DW_MB_OK|DW_MB_ERROR, "Width and expand Horizonal both unset for box: %x item: %x",box,item);
+		if ( height == 0 && vsize == FALSE )
+			dw_messagebox("dw_box_pack_start()", DW_MB_OK|DW_MB_ERROR, "Height and expand Vertical both unset for box: %x item: %x",box,item);
+	}
 }
 
 /*
