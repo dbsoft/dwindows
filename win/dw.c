@@ -349,7 +349,21 @@ BOOL CALLBACK _free_window_memory(HWND handle, LPARAM lParam)
 		if(oldbitmap)
 			DeleteObject(oldbitmap);
 	}
-	else if(strnicmp(tmpbuf, WC_TABCONTROL, strlen(WC_TABCONTROL))==0) /* Notebook */
+	else if(strnicmp(tmpbuf, FRAMECLASSNAME, strlen(FRAMECLASSNAME)+1)==0)
+	{
+		Box *box = (Box *)thiscinfo;
+
+		if(box->count && box->items)
+			free(box->items);
+	}
+	else if(strnicmp(tmpbuf, SplitbarClassName, strlen(SplitbarClassName)+1)==0)
+	{
+		void *data = dw_window_get_data(handle, "_dw_percent");
+
+		if(data)
+			free(data);
+	}
+	else if(strnicmp(tmpbuf, WC_TABCONTROL, strlen(WC_TABCONTROL)+1)==0) /* Notebook */
 	{
 		NotebookPage **array = (NotebookPage **)GetWindowLong(handle, GWL_USERDATA);
 
@@ -374,6 +388,8 @@ BOOL CALLBACK _free_window_memory(HWND handle, LPARAM lParam)
 
 	if(thiscinfo)
 	{
+		SubclassWindow(handle, thiscinfo->pOldProc);
+
 		/* Delete the brush so as not to leak GDI objects */
 		if(thiscinfo->hbrush)
 			DeleteObject(thiscinfo->hbrush);
@@ -3649,6 +3665,8 @@ HWND API dw_menu_append_item(HMENUI menux, char *title, ULONG id, ULONG flags, i
 	InsertMenuItem(menu, 65535, TRUE, &mii);
 	if(menux->hwnd)
 		DrawMenuBar(menux->hwnd);
+	if(submenu)
+		free(submenu);
 	return (HWND)id;
 }
 
@@ -7159,7 +7177,7 @@ void API dw_window_function(HWND handle, void *function, void *data)
  * a given window handle.  Used in dw_window_set_data() and
  * dw_window_get_data().
  */
-UserData *find_userdata(UserData **root, char *varname)
+UserData *_find_userdata(UserData **root, char *varname)
 {
 	UserData *tmp = *root;
 
@@ -7172,9 +7190,9 @@ UserData *find_userdata(UserData **root, char *varname)
 	return NULL;
 }
 
-int new_userdata(UserData **root, char *varname, void *data)
+int _new_userdata(UserData **root, char *varname, void *data)
 {
-	UserData *new = find_userdata(root, varname);
+	UserData *new = _find_userdata(root, varname);
 
 	if(new)
 	{
@@ -7212,7 +7230,7 @@ int new_userdata(UserData **root, char *varname, void *data)
 	return FALSE;
 }
 
-int remove_userdata(UserData **root, char *varname, int all)
+int _remove_userdata(UserData **root, char *varname, int all)
 {
 	UserData *prev = NULL, *tmp = *root;
 
@@ -7225,18 +7243,26 @@ int remove_userdata(UserData **root, char *varname, int all)
 				*root = tmp->next;
 				free(tmp->varname);
 				free(tmp);
-				return 0;
+				if(!all)
+					return 0;
+				tmp = *root;
 			}
 			else
 			{
+				/* If all is true we should
+				 * never get here.
+				 */
 				prev->next = tmp->next;
 				free(tmp->varname);
 				free(tmp);
 				return 0;
 			}
 		}
-		prev = tmp;
-		tmp = tmp->next;
+		else
+		{
+			prev = tmp;
+			tmp = tmp->next;
+		}
 	}
 	return 0;
 }
@@ -7254,6 +7280,9 @@ void API dw_window_set_data(HWND window, char *dataname, void *data)
 
 	if(!cinfo)
 	{
+		if(!dataname)
+			return;
+
 		cinfo = calloc(1, sizeof(ColorInfo));
 		SetWindowLong(window, GWL_USERDATA, (LONG)cinfo);
 	}
@@ -7261,13 +7290,13 @@ void API dw_window_set_data(HWND window, char *dataname, void *data)
 	if(cinfo)
 	{
 		if(data)
-			new_userdata(&(cinfo->root), dataname, data);
+			_new_userdata(&(cinfo->root), dataname, data);
 		else
 		{
 			if(dataname)
-				remove_userdata(&(cinfo->root), dataname, FALSE);
+				_remove_userdata(&(cinfo->root), dataname, FALSE);
 			else
-				remove_userdata(&(cinfo->root), NULL, TRUE);
+				_remove_userdata(&(cinfo->root), NULL, TRUE);
 		}
 	}
 }
@@ -7285,7 +7314,7 @@ void * API dw_window_get_data(HWND window, char *dataname)
 
 	if(cinfo && cinfo->root && dataname)
 	{
-		UserData *ud = find_userdata(&(cinfo->root), dataname);
+		UserData *ud = _find_userdata(&(cinfo->root), dataname);
 		if(ud)
 			return ud->data;
 	}

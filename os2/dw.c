@@ -235,9 +235,41 @@ void _free_window_memory(HWND handle)
 
 	dw_signal_disconnect_by_window(handle);
 
+	if((child = WinWindowFromID(handle, FID_CLIENT)) != NULLHANDLE)
+	{
+		Box *box = (Box *)WinQueryWindowPtr(child, QWP_USER);
+
+		if(box)
+		{
+			if(box->count && box->items)
+				free(box->items);
+
+			WinSetWindowPtr(child, QWP_USER, 0);
+			free(box);
+		}
+	}
+
 	if(ptr)
 	{
 		WindowData *wd = (WindowData *)ptr;
+		char tmpbuf[100];
+
+		WinQueryClassName(handle, 99, tmpbuf);
+
+		if(strncmp(tmpbuf, "#1", 3)==0)
+		{
+			Box *box = (Box *)ptr;
+
+			if(box->count && box->items)
+				free(box->items);
+		}
+		else if(strncmp(tmpbuf, SplitbarClassName, strlen(SplitbarClassName)+1)==0)
+		{
+			void *data = dw_window_get_data(handle, "_dw_percent");
+
+			if(data)
+				free(data);
+		}
 
 		if(wd->oldproc)
 			WinSubclassWindow(handle, wd->oldproc);
@@ -3730,6 +3762,8 @@ HWND API dw_menu_append_item(HMENUI menux, char *title, ULONG id, ULONG flags, i
 			   MM_INSERTITEM,
 			   MPFROMP(&miSubMenu),
 			   MPFROMP(title));
+	if(submenu)
+		free(submenu);
 	return (HWND)id;
 }
 
@@ -3911,11 +3945,10 @@ HWND API dw_status_text_new(char *text, ULONG id)
 							   id,
 							   NULL,
 							   NULL);
-	dw_window_set_font(tmp, DefaultFont);
-	dw_window_set_color(tmp, DW_CLR_BLACK, DW_CLR_PALEGRAY);
-
 	blah->oldproc = WinSubclassWindow(tmp, _statusproc);
 	WinSetWindowPtr(tmp, QWP_USER, blah);
+	dw_window_set_font(tmp, DefaultFont);
+	dw_window_set_color(tmp, DW_CLR_BLACK, DW_CLR_PALEGRAY);
 	return tmp;
 }
 
@@ -3944,9 +3977,9 @@ HWND API dw_mle_new(ULONG id)
 							   id,
 							   NULL,
 							   NULL);
-	dw_window_set_font(tmp, DefaultFont);
 	blah->oldproc = WinSubclassWindow(tmp, _mleproc);
 	WinSetWindowPtr(tmp, QWP_USER, blah);
+	dw_window_set_font(tmp, DefaultFont);
 	return tmp;
 }
 
@@ -3971,9 +4004,9 @@ HWND API dw_entryfield_new(char *text, ULONG id)
 							   id,
 							   NULL,
 							   NULL);
-	dw_window_set_font(tmp, DefaultFont);
 	blah->oldproc = WinSubclassWindow(tmp, _entryproc);
 	WinSetWindowPtr(tmp, QWP_USER, blah);
+	dw_window_set_font(tmp, DefaultFont);
 	dw_window_set_color(tmp, DW_CLR_BLACK, DW_CLR_WHITE);
 	return tmp;
 }
@@ -3998,9 +4031,9 @@ HWND API dw_entryfield_password_new(char *text, ULONG id)
 							   id,
 							   NULL,
 							   NULL);
-	dw_window_set_font(tmp, DefaultFont);
 	blah->oldproc = WinSubclassWindow(tmp, _entryproc);
 	WinSetWindowPtr(tmp, QWP_USER, blah);
+	dw_window_set_font(tmp, DefaultFont);
 	dw_window_set_color(tmp, DW_CLR_BLACK, DW_CLR_WHITE);
 	return tmp;
 }
@@ -4031,13 +4064,13 @@ HWND API dw_combobox_new(char *text, ULONG id)
 	{
 		WindowData *moreblah = calloc(1, sizeof(WindowData));
 		moreblah->oldproc = WinSubclassWindow(child, _comboentryproc);
-		dw_window_set_color(child, DW_CLR_BLACK, DW_CLR_WHITE);
 		WinSetWindowPtr(child, QWP_USER, moreblah);
+		dw_window_set_color(child, DW_CLR_BLACK, DW_CLR_WHITE);
 	}
 	WinEndEnumWindows(henum);
-	dw_window_set_font(tmp, DefaultFont);
 	blah->oldproc = WinSubclassWindow(tmp, _comboproc);
 	WinSetWindowPtr(tmp, QWP_USER, blah);
+	dw_window_set_font(tmp, DefaultFont);
 	dw_window_set_color(tmp, DW_CLR_BLACK, DW_CLR_WHITE);
 	return tmp;
 }
@@ -4162,12 +4195,12 @@ HWND API dw_spinbutton_new(char *text, ULONG id)
 							   NULL,
 							   NULL);
 	HWND entry = _find_entryfield(tmp);
-	dw_window_set_font(tmp, DefaultFont);
 	blah->oldproc = WinSubclassWindow(tmp, _entryproc);
 	WinSetWindowPtr(tmp, QWP_USER, blah);
 	blah = calloc(sizeof(WindowData), 1);
 	blah->oldproc = WinSubclassWindow(entry, _spinentryproc);
 	WinSetWindowPtr(entry, QWP_USER, blah);
+	dw_window_set_font(tmp, DefaultFont);
 	dw_window_set_color(entry, DW_CLR_BLACK, DW_CLR_WHITE);
 	return tmp;
 }
@@ -4192,10 +4225,10 @@ HWND API dw_radiobutton_new(char *text, ULONG id)
 							   id,
 							   NULL,
 							   NULL);
-	dw_window_set_font(tmp, DefaultFont);
-	dw_window_set_color(tmp, DW_CLR_BLACK, DW_CLR_PALEGRAY);
 	blah->oldproc = WinSubclassWindow(tmp, _entryproc);
 	WinSetWindowPtr(tmp, QWP_USER, blah);
+	dw_window_set_font(tmp, DefaultFont);
+	dw_window_set_color(tmp, DW_CLR_BLACK, DW_CLR_PALEGRAY);
 	return tmp;
 }
 
@@ -4252,9 +4285,9 @@ HWND API dw_percent_new(ULONG id)
 							   id,
 							   NULL,
 							   NULL);
-	dw_window_disable(tmp);
 	blah->oldproc = WinSubclassWindow(tmp, _percentproc);
 	WinSetWindowPtr(tmp, QWP_USER, blah);
+	dw_window_disable(tmp);
 	return tmp;
 }
 
@@ -4277,12 +4310,12 @@ HWND API dw_checkbox_new(char *text, ULONG id)
 							   id,
 							   NULL,
 							   NULL);
-	dw_window_set_font(tmp, DefaultFont);
-	dw_window_set_color(tmp, DW_CLR_BLACK, DW_CLR_PALEGRAY);
 	bubble->id = id;
 	bubble->bubbletext[0] = '\0';
 	bubble->pOldProc = WinSubclassWindow(tmp, _BtProc);
 	WinSetWindowPtr(tmp, QWP_USER, bubble);
+	dw_window_set_font(tmp, DefaultFont);
+	dw_window_set_color(tmp, DW_CLR_BLACK, DW_CLR_PALEGRAY);
 	return tmp;
 }
 
@@ -4306,10 +4339,10 @@ HWND API dw_listbox_new(ULONG id, int multi)
 							   id,
 							   NULL,
 							   NULL);
-	dw_window_set_font(tmp, DefaultFont);
-	dw_window_set_color(tmp, DW_CLR_BLACK, DW_CLR_WHITE);
 	blah->oldproc = WinSubclassWindow(tmp, _entryproc);
 	WinSetWindowPtr(tmp, QWP_USER, blah);
+	dw_window_set_font(tmp, DefaultFont);
+	dw_window_set_color(tmp, DW_CLR_BLACK, DW_CLR_WHITE);
 	return tmp;
 }
 
@@ -7453,18 +7486,26 @@ int _remove_userdata(UserData **root, char *varname, int all)
 				*root = tmp->next;
 				free(tmp->varname);
 				free(tmp);
-				return 0;
+				if(!all)
+					return 0;
+				tmp = *root;
 			}
 			else
 			{
+				/* If all is true we should
+				 * never get here.
+				 */
 				prev->next = tmp->next;
 				free(tmp->varname);
 				free(tmp);
 				return 0;
 			}
 		}
-		prev = tmp;
-		tmp = tmp->next;
+		else
+		{
+			prev = tmp;
+			tmp = tmp->next;
+		}
 	}
 	return 0;
 }
@@ -7482,6 +7523,9 @@ void API dw_window_set_data(HWND window, char *dataname, void *data)
 
 	if(!blah)
 	{
+		if(!dataname)
+			return;
+
 		blah = calloc(1, sizeof(WindowData));
 		WinSetWindowPtr(window, QWP_USER, blah);
 	}
