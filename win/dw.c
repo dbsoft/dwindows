@@ -4504,7 +4504,7 @@ HWND API dw_listbox_new(ULONG id, int multi)
  */
 void API dw_window_set_icon(HWND handle, ULONG id)
 {
-	HICON hicon = LoadIcon(DWInstance, MAKEINTRESOURCE(id));
+	HICON hicon = id < 65536 ? LoadIcon(DWInstance, MAKEINTRESOURCE(id)) : (HICON)id;
 
 	SendMessage(handle, WM_SETICON,
 				(WPARAM) IMAGE_ICON,

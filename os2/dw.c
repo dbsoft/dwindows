@@ -4484,9 +4484,7 @@ HWND API dw_listbox_new(ULONG id, int multi)
  */
 void API dw_window_set_icon(HWND handle, ULONG id)
 {
-	HPOINTER icon;
-
-	icon = WinLoadPointer(HWND_DESKTOP,NULLHANDLE,id);
+	HPOINTER icon = id < 65536 ? WinLoadPointer(HWND_DESKTOP,NULLHANDLE,id) : (HPOINTER)id;
 	WinSendMsg(handle, WM_SETICON, (MPARAM)icon, 0);
 }
 
