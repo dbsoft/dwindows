@@ -2821,7 +2821,6 @@ void _handle_splitbar_resize(HWND hwnd, float percent, int type, int x, int y)
 
 		WinSetWindowPos(handle2, NULLHANDLE, 0, 0, x, newy, SWP_MOVE | SWP_SIZE);
 		_do_resize(tmp, x - 1, newy - 1);
-		_do_resize(tmp, x - 1, newy - 1);
 
 		dw_window_set_data(hwnd, "_dw_start", (void *)newy);
 	}
@@ -2939,6 +2938,7 @@ MRESULT EXPENTRY _splitwndproc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 						if(height - SPLITBAR_WIDTH > 1 && start < height - SPLITBAR_WIDTH)
 							*percent = 100.0 - (((float)start / (float)(height - SPLITBAR_WIDTH)) * 100.0);
 					}
+					_handle_splitbar_resize(hwnd, *percent, type, width, height);
 					_handle_splitbar_resize(hwnd, *percent, type, width, height);
 				}
 			}
