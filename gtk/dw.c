@@ -5888,7 +5888,7 @@ void _dw_unselect(GtkWidget *clist)
  */
 void *dw_container_alloc(HWND handle, int rowcount)
 {
-	int z, count = 0;
+	int z, count = 0, prevrowcount = 0;
 	GtkWidget *clist;
 	GdkColor *fore, *back;
 	char **blah;
@@ -5903,6 +5903,7 @@ void *dw_container_alloc(HWND handle, int rowcount)
 	}
 
 	count = (int)gtk_object_get_data(GTK_OBJECT(clist), "_dw_colcount");
+	prevrowcount = (int)gtk_object_get_data(GTK_OBJECT(clist), "_dw_rowcount");
 
 	if(!count)
 	{
@@ -5920,11 +5921,11 @@ void *dw_container_alloc(HWND handle, int rowcount)
 	{
 		gtk_clist_append(GTK_CLIST(clist), blah);
 		if(fore)
-			gtk_clist_set_foreground(GTK_CLIST(clist), z, fore);
+			gtk_clist_set_foreground(GTK_CLIST(clist), z + prevrowcount, fore);
 		if(back)
-			gtk_clist_set_background(GTK_CLIST(clist), z, back);
+			gtk_clist_set_background(GTK_CLIST(clist), z + prevrowcount, back);
 	}
-	gtk_object_set_data(GTK_OBJECT(clist), "_dw_rowcount", (gpointer)rowcount);
+	gtk_object_set_data(GTK_OBJECT(clist), "_dw_rowcount", (gpointer)(rowcount + prevrowcount));
 	free(blah);
 	DW_MUTEX_UNLOCK;
 	return (void *)handle;
