@@ -19,6 +19,7 @@ HWND mainwindow,
      notebookbox1,
      notebookbox2,
      notebook,
+     scrollbar,
      stext,
      pagebox,
      textbox1, textbox2,
@@ -163,6 +164,10 @@ void text_add(void)
 	textbox2 = dw_render_new( 101 );
 	dw_box_pack_start( pagebox, textbox2, font_width*width2, font_height*rows, TRUE, TRUE, 4);
 	dw_window_set_font(textbox2, "9.WarpSans");
+
+	scrollbar = dw_scrollbar_new(FALSE, 100, 0);
+	dw_box_pack_start( pagebox, scrollbar, 100, 20, TRUE, FALSE, 0);
+	dw_scrollbar_set_range(scrollbar, 0, 0);
 
 	text1pm = dw_pixmap_new( textbox1, font_width*width1, font_height*rows, depth );
 	text2pm = dw_pixmap_new( textbox2, font_width*width2, font_height*rows, depth );
