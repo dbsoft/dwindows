@@ -1278,12 +1278,15 @@ BOOL CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 	void (*windowfunc)(PVOID);
 	ULONG origmsg = msg;
 
+	/* Deal with translating some messages */
 	if(msg == WM_RBUTTONDOWN || msg == WM_MBUTTONDOWN)
 		msg = WM_LBUTTONDOWN;
-	if(msg == WM_RBUTTONUP || msg == WM_MBUTTONUP)
+	else if(msg == WM_RBUTTONUP || msg == WM_MBUTTONUP)
 		msg = WM_LBUTTONUP;
-	if(msg == WM_HSCROLL)
+	else if(msg == WM_HSCROLL)
 		msg = WM_VSCROLL;
+	else if(msg == WM_KEYDOWN && mp1 >= VK_F1 && mp1 <= VK_F24)
+		msg = WM_CHAR;
 
 	if(result == -1)
 	{
@@ -1411,6 +1414,7 @@ BOOL CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 						if(hWnd == tmp->window)
 						{
 							int special = 0;
+							char ch = 0;
 
 							if(GetAsyncKeyState(VK_SHIFT) & 0x8000)
 								special |= KC_SHIFT;
@@ -1419,7 +1423,10 @@ BOOL CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
                             if(mp2 & (1 << 29))
 								special |= KC_ALT;
 
-							result = keypressfunc(tmp->window, mp1 > 255 ? 0 : (char)mp1, mp1, special, tmp->data);
+							if(origmsg == WM_CHAR && mp1 < 128)
+								ch = (char)mp1;
+
+							result = keypressfunc(tmp->window, ch, mp1, special, tmp->data);
 							tmp = NULL;
 						}
 					}
@@ -1923,6 +1930,7 @@ BOOL CALLBACK _rendwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 	case WM_SIZE:
 	case WM_COMMAND:
 	case WM_CHAR:
+	case WM_KEYDOWN:
 		_wndproc(hWnd, msg, mp1, mp2);
 		break;
 	}
