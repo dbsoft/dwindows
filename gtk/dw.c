@@ -508,7 +508,7 @@ void _value_changed_event(GtkAdjustment *adjustment, gpointer data)
 			if(GTK_IS_VSCALE(slider))
 				valuechangedfunc(work->window, (max - val) - 1,  work->data);
 			else
-				valuechangedfunc(work->window, val - 1,  work->data);
+				valuechangedfunc(work->window, val,  work->data);
 		}
 	}
 }
