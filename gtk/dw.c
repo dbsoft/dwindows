@@ -758,6 +758,9 @@ static void _dw_thread_add(DWTID tid)
 
 	for(z=0;z<DW_THREAD_LIMIT;z++)
 	{
+		if(_dw_thread_list[z] == tid)
+			return;
+
 		if(_dw_thread_list[z] == (DWTID)-1)
 		{
 			_dw_thread_list[z] = tid;
