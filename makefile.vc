@@ -1,0 +1,68 @@
+#
+FXLIBDIR=..\..\lib
+FXDLLDIR=..\..\dll
+
+CC = cl
+CFLAGS = -c -G5 -GD -Zp1 -DWIN32 -D__WIN32__ -DMSVC -DBUILD_DLL -I..\..\include -I.
+CFLAGS_DEBUG = -Zi
+CFLAGS_COMPILE = -MTd
+LIBS = wsock32.lib kernel32.lib user32.lib comctl32.lib gdi32.lib advapi32.lib shell32.lib comdlg32.lib
+RES = 
+LINKFLAGS = -machine:i386 -debug:full -debugtype:cv
+DLLLINKFLAGS = -dll
+LINK = link
+DEFFILE = dww.def
+DEFFILE2 = dwcompatw.def
+
+OBJS =	dw.obj
+
+OBJS2 = compat.obj dirent.obj
+
+all: dw dwcompat
+
+clean:
+	-erase *.dll
+        -erase *.exe
+        -erase *.opt
+        -erase *.lib
+        -erase *.obj
+        -erase *.map
+        -erase *.pdb
+        -erase *.ilk
+        -erase *.exp
+        -erase *~
+        
+dw: dw.dll
+
+dw.dll: $(OBJS) $(DEFFILE)
+	$(LINK) @<<
+-out:$(@) -def:$(DEFFILE)
+$(LINKFLAGS) $(DLLLINKFLAGS)
+$(OBJS) $(RES)
+$(LIBS)
+<<
+	lib /def:$(DEFFILE)
+        copy dw.lib $(FXLIBDIR)\dw.lib
+        copy dw.dll $(FXDLLDIR)\dw.dll
+
+dwcompat: dwcompat.dll
+
+dwcompat.dll: $(OBJS2) $(DEFFILE2)
+	$(LINK) @<<
+-out:$(@) -def:$(DEFFILE2)
+$(LINKFLAGS) $(DLLLINKFLAGS)
+$(OBJS2) $(RES)
+$(LIBS)
+<<
+	lib /def:$(DEFFILE2)
+        copy dwcompat.lib $(FXLIBDIR)\dwcompat.lib
+        copy dwcompat.dll $(FXDLLDIR)\dwcompat.dll
+
+dw.obj:
+	$(CC) $(CFLAGS) $(CFLAGS_DEBUG) $(CFLAGS_COMPILE) win\dw.c
+
+dirent.obj:
+	$(CC) $(CFLAGS) $(CFLAGS_DEBUG) $(CFLAGS_COMPILE) win\dirent.c
+
+.c.obj:
+	$(CC) $(CFLAGS) $(CFLAGS_DEBUG) $(CFLAGS_COMPILE) $*.c

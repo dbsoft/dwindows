@@ -1,0 +1,183 @@
+LIBRARY DW
+
+DESCRIPTION 'Dynamic Windows for Win32'
+
+EXPORTS
+  Win32_Set_Instance                     @1
+
+  dw_init                                @10
+  dw_main                                @11
+  dw_exit                                @12
+  dw_beep                                @13
+  dw_messagebox                          @14
+  dw_yesno                               @15
+  dw_environment_query                   @16
+  dw_exec                                @17
+  dw_browse                              @18
+  dw_file_browse                         @19
+  dw_user_dir                            @20
+  dw_flush                               @21
+  dw_free                                @22
+                                         
+  dw_box_new                             @40
+  dw_groupbox_new                        @41
+  dw_box_pack_start                      @42
+  dw_box_pack_end                        @43
+  dw_box_pack_splitbar_start             @44
+  dw_box_pack_splitbar_end               @45
+
+  dw_window_new                          @50
+  dw_window_show                         @51
+  dw_window_hide                         @52
+  dw_window_destroy                      @53
+  dw_window_set_font                     @54
+  dw_window_set_color                    @55
+  dw_window_set_pos                      @56
+  dw_window_set_usize                    @57
+  dw_window_set_pos_size                 @58
+  dw_window_get_pos_size                 @59
+  dw_window_set_style                    @60
+  dw_window_set_icon                     @61
+  dw_window_set_bitmap                   @62
+  dw_window_get_text                     @63
+  dw_window_set_text                     @64
+  dw_window_disable                      @65
+  dw_window_enable                       @66
+  dw_window_capture                      @67
+  dw_window_release                      @68
+  dw_window_reparent                     @69
+  dw_window_function                     @70
+  dw_window_from_id                      @71
+  dw_window_set_border                   @72
+
+  dw_bitmap_new                          @80
+
+  dw_button_new                          @90
+  dw_bitmapbutton_new                    @91
+
+  dw_text_new                            @100
+
+  dw_entryfield_new                      @110
+  dw_entryfield_password_new             @111
+
+  dw_combobox_new                        @120
+
+  dw_radiobutton_new                     @130
+
+  dw_listbox_new                         @140
+  dw_listbox_append                      @141
+  dw_listbox_clear                       @142
+  dw_listbox_count                       @143
+  dw_listbox_set_top                     @144
+  dw_listbox_select                      @145
+  dw_listbox_delete                      @146
+  dw_listbox_query_text                  @147
+  dw_listbox_set_text                    @148
+  dw_listbox_selected                    @149
+  dw_listbox_selected_multi              @150
+
+  dw_slider_new                          @160
+  dw_slider_query_range                  @161
+  dw_slider_set_pos                      @162
+
+  dw_mle_new                             @170
+  dw_mle_import                          @171
+  dw_mle_export                          @172
+  dw_mle_query                           @173
+  dw_mle_delete                          @174
+  dw_mle_clear                           @175
+  dw_mle_freeze                          @176
+  dw_mle_thaw                            @177
+  dw_mle_set                             @178
+  dw_mle_set_visible                     @179
+  dw_mle_search                          @180
+
+  dw_spinbutton_new                      @190
+  dw_spinbutton_set_pos                  @191
+  dw_spinbutton_set_limits               @192
+  dw_entryfield_set_limit                @193
+  dw_spinbutton_query                    @194
+
+  dw_checkbox_new                        @200
+  dw_checkbox_query                      @201
+  dw_checkbox_set                        @202
+
+  dw_icon_load                           @210
+  dw_icon_free                           @211
+
+  dw_container_new                       @220
+  dw_container_setup                     @221
+  dw_container_alloc                     @222
+  dw_container_set_item                  @223
+  dw_container_set_row_title             @224
+  dw_container_insert                    @225
+  dw_container_clear                     @226
+  dw_container_set_view                  @227
+  dw_container_query_start               @228
+  dw_container_query_next                @229
+
+  dw_filesystem_setup                    @240
+  dw_filesystem_set_item                 @241
+  dw_filesystem_set_file                 @242
+
+  dw_screen_width                        @250
+  dw_screen_height                       @251
+
+  dw_color_depth                         @260
+  dw_color_foreground_set                @261
+  dw_color_background_set                @262
+
+  dw_notebook_new                        @270
+  dw_notebook_page_new                   @271
+  dw_notebook_page_destroy               @272
+  dw_notebook_page_set_text              @273
+  dw_notebook_page_set_status_text       @274
+  dw_notebook_page_set                   @275
+  dw_notebook_page_query                 @276
+  dw_notebook_pack                       @277
+
+  dw_menu_new                            @280
+  dw_menubar_new                         @281
+  dw_menu_append_item                    @282
+  dw_menu_item_set_check                 @283
+  dw_menu_popup                          @284
+  dw_menu_destroy                        @285
+
+  dw_pointer_query_pos                   @290
+  dw_pointer_set_pos                     @291
+
+  dw_mutex_new                           @300
+  dw_mutex_close                         @301
+  dw_mutex_lock                          @302
+  dw_mutex_unlock                        @303
+
+  dw_event_new                           @310
+  dw_event_reset                         @311
+  dw_event_post                          @312
+  dw_event_wait                          @313
+  dw_event_close                         @314
+
+  dw_thread_new                          @320
+  dw_thread_end                          @321
+  dw_thread_id                           @322
+
+  dw_render_new                          @330
+  dw_draw_point                          @331
+  dw_draw_line                           @332
+  dw_draw_rect                           @333
+  dw_draw_text                           @334
+
+  dw_pixmap_bitblt                       @340
+  dw_pixmap_new                          @341
+  dw_pixmap_grab                         @342
+  dw_pixmap_destroy                      @343
+                                         
+  dw_dialog_new                          @350
+  dw_dialog_dismiss                      @351
+  dw_dialog_wait                         @352
+
+  dw_signal_connect                      @360
+  dw_signal_disconnect_by_window         @361
+  dw_signal_disconnect_by_data           @362
+  dw_signal_disconnect_by_name           @363
+

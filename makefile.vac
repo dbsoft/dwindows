@@ -1,0 +1,46 @@
+.SUFFIXES: .c .obj
+
+.all: \
+    .\dw.dll \
+    .\dwcompat.dll
+
+.c.obj:
+  icc.exe  /DOS2 /DTCPV40HDRS /DBUILD_DLL /I. /I..\..\include /Tdc /Sp1 /Ss /Wprorearet /Wpro+ /V"Dynamic Windows Compatibility" /Ti /Gm /Gd- /G5 /Ge- /C /W3 /Wini+ /Wpar+ /Wpro+ /Wuse+ %s
+
+.\dw.dll: \
+    .\os2\dw.obj
+    @echo " Link::Linker "
+    icc.exe @<<
+    /B" /NOE /de /ST:32768 /nologo /li"
+    /Fe"dw.dll" dw.def
+    .\dw.obj
+   so32dll.lib
+   tcp32dll.lib
+<<
+  IMPLIB DW.LIB DW.DEF
+  copy dw.lib lib\dw.lib
+  copy dw.dll dll\dw.dll
+
+.\dwcompat.dll: \
+    .\os2\dirent.obj \
+    .\compat.obj
+    @echo " Link::Linker "
+    icc.exe @<<
+    /B" /NOE /de /ST:32768 /nologo /li"
+    /Fe"dwcompat.dll" dwcompat.def
+    .\dirent.obj
+    .\compat.obj
+   so32dll.lib
+   tcp32dll.lib
+<<
+  IMPLIB DWCOMPAT.LIB DWCOMPAT.DEF
+  copy dwcompat.lib lib\dwcompat.lib
+  copy dwcompat.dll dll\dwcompat.dll
+
+clean :
+        @if exist *.obj del *.obj
+        @if exist *.map del *.map
+        @if exist *.lib del *.lib
+        @if exist *.dll del *.dll
+        @if exist *.exe del *.exe
+

@@ -1,0 +1,20 @@
+This is an alpha release of dynamic windows.
+
+Currently it is not quite complete and some functionality is broken.
+
+Known problems:
+
+Groupboxes are broken.
+Splitbars are based on the original position not the current position,
+    and don't update until a resize.
+
+Future features:
+
+Implementing all of the OS/2 controls. Currently a number of controls have not been implemented.
+Implementing a toolbar.
+
+If you have any questions or suggestions feel free to email me at dbsoft@technologist.com
+
+Thanks!
+
+Brian Smith
