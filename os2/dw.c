@@ -5025,11 +5025,8 @@ void API dw_window_set_style(HWND handle, ULONG style, ULONG mask)
  */
 unsigned long API dw_notebook_page_new(HWND handle, ULONG flags, int front)
 {
-	if(front)
-		return (ULONG)WinSendMsg(handle, BKM_INSERTPAGE, 0L,
-						  MPFROM2SHORT((BKA_STATUSTEXTON | BKA_AUTOPAGESIZE | BKA_MAJOR | flags), BKA_FIRST));
 	return (ULONG)WinSendMsg(handle, BKM_INSERTPAGE, 0L,
-					  MPFROM2SHORT((BKA_STATUSTEXTON | BKA_AUTOPAGESIZE | BKA_MAJOR | flags), BKA_LAST));
+							 MPFROM2SHORT((BKA_STATUSTEXTON | BKA_AUTOPAGESIZE | BKA_MAJOR | flags), front ? BKA_FIRST : BKA_LAST));
 }
 
 /*
