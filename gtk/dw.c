@@ -4595,6 +4595,19 @@ HWND dw_render_new(unsigned long id)
 	return tmp;
 }
 
+/* Returns a GdkColor from a DW color */
+GdkColor _internal_color(unsigned long value)
+{
+	if(DW_RGB_COLOR & value)
+	{
+		GdkColor color = { 0, DW_RED_VALUE(value) << 8, DW_GREEN_VALUE(value) << 8, DW_BLUE_VALUE(value) << 8 };
+		return color;
+	}
+	else if (value < 16)
+		return _colors[value];
+	return _colors[0];
+}
+
 /* Sets the current foreground drawing color.
  * Parameters:
  *       red: red value.
@@ -4604,7 +4617,7 @@ HWND dw_render_new(unsigned long id)
 void dw_color_foreground_set(unsigned long value)
 {
 	int _locked_by_me = FALSE, index = _find_thread_index(dw_thread_id());
-	GdkColor color = { 0, DW_RED_VALUE(value) << 8, DW_GREEN_VALUE(value) << 8, DW_BLUE_VALUE(value) << 8 };
+	GdkColor color = _internal_color(value);
 
 	DW_MUTEX_LOCK;
 	gdk_color_alloc(_dw_cmap, &color);
@@ -4621,7 +4634,7 @@ void dw_color_foreground_set(unsigned long value)
 void dw_color_background_set(unsigned long value)
 {
 	int _locked_by_me = FALSE, index = _find_thread_index(dw_thread_id());
-	GdkColor color = { 0, DW_RED_VALUE(value) << 8, DW_GREEN_VALUE(value) << 8, DW_BLUE_VALUE(value) << 8 };
+	GdkColor color = _internal_color(value);
 
 	DW_MUTEX_LOCK;
 	gdk_color_alloc(_dw_cmap, &color);

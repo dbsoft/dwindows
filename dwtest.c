@@ -61,7 +61,7 @@ void archive_add(void)
 
    browsebox = dw_box_new(BOXHORZ, 0);
 
-   dw_box_pack_start(lbbox, browsebox, 130, 15, TRUE, TRUE, 0);
+   dw_box_pack_start(lbbox, browsebox, 0, 0, TRUE, TRUE, 0);
 
    entryfield = dw_entryfield_new("", 100L);
 
@@ -110,7 +110,7 @@ void archive_add(void)
     /* Buttons */
    buttonbox = dw_box_new(BOXHORZ, 10);
 
-   dw_box_pack_start(lbbox, buttonbox, 140, 210, TRUE, TRUE, 0);
+   dw_box_pack_start(lbbox, buttonbox, 0, 0, TRUE, TRUE, 0);
 
    okbutton = dw_button_new("Ok", 1001L);
 
@@ -149,7 +149,7 @@ int DWSIGNAL text_expose(HWND hwnd, DWExpose *exp, void *data)
 
 void text_add(void)
 {
-   int i,x,y;
+   int i,y,depth = dw_color_depth();
    char buf[10];
    HPIXMAP text1pm,text2pm;
 
@@ -157,15 +157,15 @@ void text_add(void)
    dw_box_pack_start( notebookbox2, pagebox, 1, 1, TRUE, TRUE, 0);
 
    textbox1 = dw_render_new( 100 );
-   dw_box_pack_start( pagebox, textbox1, font_width*width1, font_height*rows, FALSE, TRUE, 4);
+   dw_box_pack_start( pagebox, textbox1, font_width*width1, font_height*rows, TRUE, TRUE, 4);
    dw_window_set_font(textbox1, "9.WarpSans");
 
    textbox2 = dw_render_new( 101 );
    dw_box_pack_start( pagebox, textbox2, font_width*width2, font_height*rows, TRUE, TRUE, 4);
    dw_window_set_font(textbox2, "9.WarpSans");
 
-   text1pm = dw_pixmap_new( textbox1, font_width*width1, font_height*rows, 32 );
-   text2pm = dw_pixmap_new( textbox2, font_width*width2, font_height*rows, 32 );
+   text1pm = dw_pixmap_new( textbox1, font_width*width1, font_height*rows, depth );
+   text2pm = dw_pixmap_new( textbox2, font_width*width2, font_height*rows, depth );
 
    dw_color_foreground_set(DW_CLR_WHITE);
    dw_draw_rect(0, text1pm, TRUE, 0, 0, font_width*width1, font_height*rows);
@@ -210,14 +210,14 @@ int main(int argc, char *argv[])
    notebookbox1 = dw_box_new( BOXVERT, 5 );
    notebookpage1 = dw_notebook_page_new( notebook, 0, TRUE );
    dw_notebook_pack( notebook, notebookpage1, notebookbox1 );
-   fprintf( stderr, "page1: %d\n", notebookpage1 );
+   fprintf( stderr, "page1: %ld\n", notebookpage1 );
    dw_notebook_page_set_text( notebook, notebookpage1, "first page");
    archive_add();
 
    notebookbox2 = dw_box_new( BOXVERT, 5 );
    notebookpage2 = dw_notebook_page_new( notebook, 1, FALSE );
    dw_notebook_pack( notebook, notebookpage2, notebookbox2 );
-   fprintf( stderr, "page2: %d\n",notebookpage2);
+   fprintf( stderr, "page2: %ld\n",notebookpage2);
    dw_notebook_page_set_text( notebook, notebookpage2, "second page");
    text_add();
 
