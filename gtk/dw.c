@@ -4973,8 +4973,8 @@ void dw_font_text_extents(HWND handle, HPIXMAP pixmap, char *text, int *width, i
 				PangoRectangle rect;
 
 				pango_layout_set_font_description(layout, font);
-				pango_layout_set_text(layout, text, strlen(text));
-				pango_layout_get_pixel_extents(layout, &rect, NULL);
+				pango_layout_set_text(layout, text, -1);
+				pango_layout_get_pixel_extents(layout, NULL, &rect);
 
 				if(width)
 					*width = rect.width;
