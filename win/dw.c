@@ -365,7 +365,7 @@ BOOL CALLBACK _free_window_memory(HWND handle, LPARAM lParam)
 	}
 	else if(strnicmp(tmpbuf, WC_TABCONTROL, strlen(WC_TABCONTROL)+1)==0) /* Notebook */
 	{
-		NotebookPage **array = (NotebookPage **)GetWindowLong(handle, GWL_USERDATA);
+		NotebookPage **array = (NotebookPage **)dw_window_get_data(handle, "_dw_array");
 
 		if(array)
 		{
@@ -402,6 +402,14 @@ BOOL CALLBACK _free_window_memory(HWND handle, LPARAM lParam)
 		free(thiscinfo);
 	}
 	return TRUE;
+}
+
+/* Convert to our internal color scheme */
+ULONG _internal_color(ULONG color)
+{
+	if(color < 18)
+		return DW_RGB(_red[color], _green[color], _blue[color]);
+	return color;
 }
 
 /* This function returns 1 if the window (widget) handle
@@ -561,7 +569,7 @@ int _focus_check_box(Box *box, HWND handle, int start, HWND defaultitem)
 				}
 				else if(strnicmp(tmpbuf, WC_TABCONTROL, strlen(WC_TABCONTROL))==0) /* Notebook */
 				{
-					NotebookPage **array = (NotebookPage **)GetWindowLong(box->items[z].hwnd, GWL_USERDATA);
+					NotebookPage **array = (NotebookPage **)dw_window_get_data(box->items[z].hwnd, "_dw_array");
 					int pageid = TabCtrl_GetCurSel(box->items[z].hwnd);
 
 					if(pageid > -1 && array && array[pageid])
@@ -664,7 +672,7 @@ int _focus_check_box_back(Box *box, HWND handle, int start, HWND defaultitem)
 
 				if(strnicmp(tmpbuf, WC_TABCONTROL, strlen(WC_TABCONTROL))==0) /* Notebook */
 				{
-					NotebookPage **array = (NotebookPage **)GetWindowLong(box->items[z].hwnd, GWL_USERDATA);
+					NotebookPage **array = (NotebookPage **)dw_window_get_data(box->items[z].hwnd, "_dw_array");
 					int pageid = TabCtrl_GetCurSel(box->items[z].hwnd);
 
 					if(pageid > -1 && array && array[pageid])
@@ -1144,7 +1152,7 @@ int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *usedy,
 				if(strncmp(tmpbuf, WC_TABCONTROL, strlen(WC_TABCONTROL))==0)
 				{
 					RECT rect;
-					NotebookPage **array = (NotebookPage **)GetWindowLong(handle, GWL_USERDATA);
+					NotebookPage **array = (NotebookPage **)dw_window_get_data(handle, "_dw_array");
 					int pageid = TabCtrl_GetCurSel(handle);
 
 					if(pageid > -1 && array && array[pageid])
@@ -1572,7 +1580,7 @@ BOOL CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 			if(tem->code == TCN_SELCHANGING)
 			{
 				int num=TabCtrl_GetCurSel(tem->hwndFrom);
-				NotebookPage **array = (NotebookPage **)GetWindowLong(tem->hwndFrom, GWL_USERDATA);
+				NotebookPage **array = (NotebookPage **)dw_window_get_data(tem->hwndFrom, "_dw_array");
 
 				if(num > -1 && array && array[num])
 					SetParent(array[num]->hwnd, DW_HWND_OBJECT);
@@ -1581,7 +1589,7 @@ BOOL CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 			else if(tem->code == TCN_SELCHANGE)
 			{
 				int num=TabCtrl_GetCurSel(tem->hwndFrom);
-				NotebookPage **array = (NotebookPage **)GetWindowLong(tem->hwndFrom, GWL_USERDATA);
+				NotebookPage **array = (NotebookPage **)dw_window_get_data(tem->hwndFrom, "_dw_array");
 
 				if(num > -1 && array && array[num])
 					SetParent(array[num]->hwnd, tem->hwndFrom);
@@ -2795,7 +2803,7 @@ BOOL CALLBACK _BtProc(HWND hwnd, ULONG msg, WPARAM mp1, LPARAM mp2)
 void _resize_notebook_page(HWND handle, int pageid)
 {
 	RECT rect;
-	NotebookPage **array = (NotebookPage **)GetWindowLong(handle, GWL_USERDATA);
+	NotebookPage **array = (NotebookPage **)dw_window_get_data(handle, "_dw_array");
 
 	if(array && array[pageid])
 	{
@@ -3298,6 +3306,9 @@ int API dw_window_set_color(HWND handle, ULONG fore, ULONG back)
 
 	if(strnicmp(tmpbuf, WC_LISTVIEW, strlen(WC_LISTVIEW))==0)
 	{
+		fore = _internal_color(fore);
+		back = _internal_color(back);
+
 		ListView_SetTextColor(handle, RGB(DW_RED_VALUE(fore),
 										  DW_GREEN_VALUE(fore),
 										  DW_BLUE_VALUE(fore)));
@@ -3558,7 +3569,7 @@ HWND API dw_notebook_new(ULONG id, int top)
 					   (HMENU)id,
 					   DWInstance,
 					   NULL);
-	SetWindowLong(tmp, GWL_USERDATA, (ULONG)array);
+	dw_window_set_data(tmp, "_dw_array", (void *)array);
 	dw_window_set_font(tmp, DefaultFont);
 	return tmp;
 }
@@ -4564,7 +4575,7 @@ int _findnotebookid(NotebookPage **array, int pageid)
  */
 unsigned long API dw_notebook_page_new(HWND handle, ULONG flags, int front)
 {
-	NotebookPage **array = (NotebookPage **)GetWindowLong(handle, GWL_USERDATA);
+	NotebookPage **array = (NotebookPage **)dw_window_get_data(handle, "_dw_array");
 
 	if(array)
 	{
@@ -4616,7 +4627,7 @@ unsigned long API dw_notebook_page_new(HWND handle, ULONG flags, int front)
 void API dw_notebook_page_set_text(HWND handle, ULONG pageidx, char *text)
 {
 
-	NotebookPage **array = (NotebookPage **)GetWindowLong(handle, GWL_USERDATA);
+	NotebookPage **array = (NotebookPage **)dw_window_get_data(handle, "_dw_array");
 	int pageid;
 
 	if(!array)
@@ -4653,7 +4664,7 @@ void API dw_notebook_page_set_status_text(HWND handle, ULONG pageid, char *text)
  */
 void API dw_notebook_pack(HWND handle, ULONG pageidx, HWND page)
 {
-	NotebookPage **array = (NotebookPage **)GetWindowLong(handle, GWL_USERDATA);
+	NotebookPage **array = (NotebookPage **)dw_window_get_data(handle, "_dw_array");
 	int pageid;
 
 	if(!array)
@@ -4686,7 +4697,7 @@ void API dw_notebook_pack(HWND handle, ULONG pageidx, HWND page)
  */
 void API dw_notebook_page_destroy(HWND handle, unsigned int pageidx)
 {
-	NotebookPage **array = (NotebookPage **)GetWindowLong(handle, GWL_USERDATA);
+	NotebookPage **array = (NotebookPage **)dw_window_get_data(handle, "_dw_array");
 	int newid = -1, z, pageid;
 
 	if(!array)
@@ -4734,7 +4745,7 @@ void API dw_notebook_page_destroy(HWND handle, unsigned int pageidx)
  */
 unsigned int API dw_notebook_page_query(HWND handle)
 {
-	NotebookPage **array = (NotebookPage **)GetWindowLong(handle, GWL_USERDATA);
+	NotebookPage **array = (NotebookPage **)dw_window_get_data(handle, "_dw_array");
 	int physid = TabCtrl_GetCurSel(handle);
 
 	if(physid > -1 && physid < 256 && array && array[physid])
@@ -4750,7 +4761,7 @@ unsigned int API dw_notebook_page_query(HWND handle)
  */
 void API dw_notebook_page_set(HWND handle, unsigned int pageidx)
 {
-	NotebookPage **array = (NotebookPage **)GetWindowLong(handle, GWL_USERDATA);
+	NotebookPage **array = (NotebookPage **)dw_window_get_data(handle, "_dw_array");
 	int pageid;
 
 	if(!array)
@@ -6211,6 +6222,8 @@ void API dw_color_foreground_set(unsigned long value)
 	if(threadid < 0 || threadid >= THREAD_LIMIT)
 		threadid = 0;
 
+	value = _internal_color(value);
+
 	DeleteObject(_hPen[threadid]);
 	DeleteObject(_hBrush[threadid]);
 	_foreground[threadid] = RGB(DW_RED_VALUE(value), DW_GREEN_VALUE(value), DW_BLUE_VALUE(value));
@@ -6230,6 +6243,8 @@ void API dw_color_background_set(unsigned long value)
 
 	if(threadid < 0 || threadid >= THREAD_LIMIT)
 		threadid = 0;
+
+	value = _internal_color(value);
 
 	_background[threadid] = RGB(DW_RED_VALUE(value), DW_GREEN_VALUE(value), DW_BLUE_VALUE(value));
 }

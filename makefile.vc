@@ -8,7 +8,7 @@ CFLAGS_DEBUG = -Zi
 CFLAGS_COMPILE = -MTd
 LIBS = wsock32.lib kernel32.lib user32.lib comctl32.lib gdi32.lib advapi32.lib shell32.lib comdlg32.lib
 RES = 
-LINKFLAGS = -machine:i386 -debug:full -debugtype:cv
+LINKFLAGS = -machine:i386 -debug:full
 DLLLINKFLAGS = -dll
 LINK = link
 DEFFILE = dww.def
@@ -58,11 +58,14 @@ $(LIBS)
         copy dwcompat.lib $(FXLIBDIR)\dwcompat.lib
         copy dwcompat.dll $(FXDLLDIR)\dwcompat.dll
 
-dw.obj:
+dw.obj: win\dw.c
 	$(CC) $(CFLAGS) $(CFLAGS_DEBUG) $(CFLAGS_COMPILE) win\dw.c
 
-dirent.obj:
+dirent.obj: win\dirent.c
 	$(CC) $(CFLAGS) $(CFLAGS_DEBUG) $(CFLAGS_COMPILE) win\dirent.c
 
 .c.obj:
 	$(CC) $(CFLAGS) $(CFLAGS_DEBUG) $(CFLAGS_COMPILE) $*.c
+
+dwtest.exe: dwtest.obj winmain.obj
+	$(LINK) $(LINKFLAGS) /out:dwtest.exe dwtest.obj winmain.obj /subsystem:windows $(FXLIBDIR)\dwcompat.lib $(FXLIBDIR)\dw.lib $(LIBS)
