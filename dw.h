@@ -132,11 +132,6 @@ typedef struct _hmenui {
 	HWND menu;
 } *HMENUI;
 
-typedef struct _percentbar {
-	unsigned long pos;
-	PFNWP oldproc;
-} PercentBar;
-
 extern HAB dwhab;
 extern HMQ dwhmq;
 #endif
@@ -566,7 +561,7 @@ typedef struct _dwdialog {
 #define DW_PIXMAP_WIDTH(x) (x ? x->width : 0)
 #define DW_PIXMAP_HEIGHT(x) (x ? x->height : 0)
 
-#define DW_RGB_COLOR (0xFF000000)
+#define DW_RGB_COLOR (0xF0000000)
 #define DW_RGB_MASK (0x00FFFFFF)
 #define DW_RED_MASK (0x000000FF)
 #define DW_GREEN_MASK (0x0000FF00)
@@ -574,7 +569,7 @@ typedef struct _dwdialog {
 #define DW_RED_VALUE(a) (a & DW_RED_MASK)
 #define DW_GREEN_VALUE(a) ((a & DW_GREEN_MASK) >> 8)
 #define DW_BLUE_VALUE(a) ((a & DW_BLUE_MASK) >> 16)
-#define DW_RGB(a, b, c) (0xFF000000 | a | b << 8 | c << 16)
+#define DW_RGB(a, b, c) (0xF0000000 | a | b << 8 | c << 16)
 
 #if defined(__OS2__) || defined(__EMX__)
 #define DW_OS2_RGB(a) ((DW_RED_VALUE(a) << 16) | (DW_GREEN_VALUE(a) << 8) | DW_BLUE_VALUE(a))
