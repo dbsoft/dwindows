@@ -2203,7 +2203,7 @@ int dw_messagebox(char *title, int flags, char *format, ...)
 	/* Buttons */
 	buttonbox = dw_box_new(DW_HORZ, 10);
 
-	dw_box_pack_start(mainbox, buttonbox, 0, 40, TRUE, FALSE, 0);
+	dw_box_pack_start(mainbox, buttonbox, 0, 0, TRUE, FALSE, 0);
 
 	dwwait = dw_dialog_new((void *)entrywindow);
 
