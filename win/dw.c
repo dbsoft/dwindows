@@ -2373,7 +2373,7 @@ BOOL CALLBACK _containerwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 			{
 				if(tmp->message == NM_RCLICK && tmp->window == hWnd)
 				{
-					int (*containercontextfunc)(HWND, char *, int, int, void *) = tmp->signalfunction;
+					int (*containercontextfunc)(HWND, char *, int, int, void *, void *) = tmp->signalfunction;
 					LONG x,y;
 					LV_ITEM lvi;
 					int iItem;
@@ -2403,7 +2403,7 @@ BOOL CALLBACK _containerwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 					if(lvi.lParam < 100)
 						lvi.lParam = 0;
 
-					containercontextfunc(tmp->window, (char *)lvi.lParam, x, y, tmp->data);
+					containercontextfunc(tmp->window, (char *)lvi.lParam, x, y, tmp->data, NULL);
 					tmp = NULL;
 				}
 				if(tmp)
