@@ -319,18 +319,18 @@ typedef HWND HMENUI;
 #endif
 
 typedef struct _item {
-    /* Item type - Box or Item */
+	/* Item type - Box or Item */
 	int type;
-    /* Handle to Frame or Window */
+	/* Handle to Frame or Window */
 	HWND hwnd;
-    /* Width and Height of static size */
+	/* Width and Height of static size */
 	int width, height, origwidth, origheight;
-    /* Size Type - Static or Expand */
+	/* Size Type - Static or Expand */
 	int hsize, vsize;
 	/* Padding */
 	int pad;
 	/* Ratio of current item */
-    float xratio, yratio;
+	float xratio, yratio;
 } Item;
 
 typedef struct _box {
@@ -342,7 +342,7 @@ typedef struct _box {
 	HWND hwndtitle;
 	int titlebar;
 #endif
-    /* Number of items in the box */
+	/* Number of items in the box */
 	int count;
 	/* Box type - horizontal or vertical */
 	int type;
@@ -353,7 +353,7 @@ typedef struct _box {
 	/* Default item */
 	HWND defaultitem;
 	/* Used as temporary storage in the calculation stage */
-    int upx, upy, minheight, minwidth;
+	int upx, upy, minheight, minwidth;
 	/* Ratio in this box */
 	float xratio, yratio, parentxratio, parentyratio;
 	/* Used for calculating individual item ratios */
@@ -566,7 +566,7 @@ typedef struct _dw_unix_event {
 	pthread_cond_t event;
 	pthread_t thread;
 	int alive;
-    int posted;
+	int posted;
 } *HEV;
 typedef pthread_t DWTID;
 typedef void * HMOD;
@@ -574,7 +574,7 @@ typedef void * HMOD;
 typedef struct _hpixmap {
 	unsigned long width, height;
 	GdkPixmap *pixmap;
-    HWND handle;
+	HWND handle;
 } *HPIXMAP;
 
 typedef GtkWidget *HMENUI;
@@ -597,18 +597,18 @@ extern DWResources _resources;
 #if !defined(__OS2__) && !defined(__EMX__)
 typedef struct _CDATE
 {
-  UCHAR	 day;
-  UCHAR	 month;
-  USHORT year;
+	UCHAR  day;
+	UCHAR  month;
+	USHORT year;
 } CDATE;
 typedef CDATE *PCDATE;
 
 typedef struct _CTIME
 {
-  UCHAR hours;
-  UCHAR minutes;
-  UCHAR seconds;
-  UCHAR ucReserved;
+	UCHAR hours;
+	UCHAR minutes;
+	UCHAR seconds;
+	UCHAR ucReserved;
 } CTIME;
 typedef CTIME *PCTIME;
 #endif
@@ -653,8 +653,12 @@ typedef struct _dwdialog {
 #define DW_FILE_OPEN 0
 #define DW_FILE_SAVE 1
 
-#define BOXHORZ 0
-#define BOXVERT 1
+#define DW_HORZ 0
+#define DW_VERT 1
+
+/* Obsolete, should disappear sometime */
+#define BOXHORZ DW_HORZ
+#define BOXVERT DW_VERT
 
 #define DW_SCROLL_UP 0
 #define DW_SCROLL_DOWN 1

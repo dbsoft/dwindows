@@ -3,7 +3,7 @@
  *          A GTK like implementation of the PM GUI
  *          GTK forwarder module for portabilty.
  *
- * (C) 2000-2002 Brian Smith <dbsoft@technologist.com>
+ * (C) 2000-2003 Brian Smith <dbsoft@technologist.com>
  *
  */
 #include "dw.h"
@@ -1006,7 +1006,7 @@ int dw_messagebox(char *title, char *format, ...)
 	va_end(args);
 
 	entrywindow = dw_window_new(HWND_DESKTOP, title, flStyle);
-	mainbox = dw_box_new(BOXVERT, 10);
+	mainbox = dw_box_new(DW_VERT, 10);
 	dw_box_pack_start(entrywindow, mainbox, 0, 0, TRUE, TRUE, 0);
 
 	/* Archive Name */
@@ -1016,7 +1016,7 @@ int dw_messagebox(char *title, char *format, ...)
 	dw_box_pack_start(mainbox, stext, 205, 50, TRUE, TRUE, 2);
 
 	/* Buttons */
-	buttonbox = dw_box_new(BOXHORZ, 10);
+	buttonbox = dw_box_new(DW_HORZ, 10);
 
 	dw_box_pack_start(mainbox, buttonbox, 0, 0, TRUE, FALSE, 0);
 
@@ -1081,7 +1081,7 @@ int dw_yesno(char *title, char *text)
 
 	entrywindow = dw_window_new(HWND_DESKTOP, title, flStyle);
 
-	mainbox = dw_box_new(BOXVERT, 10);
+	mainbox = dw_box_new(DW_VERT, 10);
 
 	dw_box_pack_start(entrywindow, mainbox, 0, 0, TRUE, TRUE, 0);
 
@@ -1092,7 +1092,7 @@ int dw_yesno(char *title, char *text)
 	dw_box_pack_start(mainbox, stext, 205, 50, TRUE, TRUE, 2);
 
 	/* Buttons */
-	buttonbox = dw_box_new(BOXHORZ, 10);
+	buttonbox = dw_box_new(DW_HORZ, 10);
 
 	dw_box_pack_start(mainbox, buttonbox, 0, 0, TRUE, FALSE, 0);
 
@@ -1625,7 +1625,7 @@ HWND dw_window_new(HWND hwndOwner, char *title, unsigned long flStyle)
 /*
  * Create a new Box to be packed.
  * Parameters:
- *       type: Either BOXVERT (vertical) or BOXHORZ (horizontal).
+ *       type: Either DW_VERT (vertical) or DW_HORZ (horizontal).
  *       pad: Number of pixels to pad around the box.
  */
 HWND dw_box_new(int type, int pad)
@@ -1649,7 +1649,7 @@ HWND dw_box_new(int type, int pad)
 /*
  * Create a new Group Box to be packed.
  * Parameters:
- *       type: Either BOXVERT (vertical) or BOXHORZ (horizontal).
+ *       type: Either DW_VERT (vertical) or DW_HORZ (horizontal).
  *       pad: Number of pixels to pad around the box.
  *       title: Text to be displayined in the group outline.
  */
@@ -5892,7 +5892,7 @@ void dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, int 
 			}
 		}
 
-		if(boxtype == BOXVERT)
+		if(boxtype == DW_VERT)
 			gtk_table_resize(GTK_TABLE(box), boxcount + 1, 1);
 		else
 			gtk_table_resize(GTK_TABLE(box), 1, boxcount + 1);
@@ -6942,7 +6942,7 @@ static void _splitbar_accept_position(GObject *object, GParamSpec *pspec, gpoint
 /*
  * Creates a splitbar window (widget) with given parameters.
  * Parameters:
- *       type: Value can be BOXVERT or BOXHORZ.
+ *       type: Value can be DW_VERT or DW_HORZ.
  *       topleft: Handle to the window to be top or left.
  *       bottomright:  Handle to the window to be bottom or right.
  * Returns:
@@ -6955,7 +6955,7 @@ HWND dw_splitbar_new(int type, HWND topleft, HWND bottomright, unsigned long id)
 	float *percent = malloc(sizeof(float));
   
 	DW_MUTEX_LOCK;
-	if(type == BOXHORZ)
+	if(type == DW_HORZ)
 		tmp = gtk_hpaned_new();
 	else
 		tmp = gtk_vpaned_new();
@@ -7069,7 +7069,7 @@ void dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize, in
 			}
 		}
 
-		if(boxtype == BOXVERT)
+		if(boxtype == DW_VERT)
 		{
 			x = 0;
 			y = boxcount;
