@@ -70,7 +70,7 @@ typedef struct _user_data
 #define DW_CLR_PALEGRAY          CLR_PALEGRAY
 
 #define DW_FCF_TITLEBAR          FCF_TITLEBAR
-#define DW_FCF_SYSMENU           FCF_SYSMENU
+#define DW_FCF_SYSMENU           (FCF_SYSMENU | FCF_CLOSEBUTTON)
 #define DW_FCF_MENU              FCF_MENU
 #define DW_FCF_SIZEBORDER        FCF_SIZEBORDER
 #define DW_FCF_MINBUTTON         FCF_MINBUTTON
