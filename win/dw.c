@@ -6729,6 +6729,49 @@ void API dw_filesystem_change_file(HWND handle, int row, char *filename, unsigne
 }
 
 /*
+ * Gets column type for a container column
+ * Parameters:
+ *          handle: Handle to the container window (widget).
+ *          column: Zero based column.
+ */
+int API dw_container_get_column_type(HWND handle, int column)
+{
+	ContainerInfo *cinfo = (ContainerInfo *)GetWindowLongPtr(handle, GWLP_USERDATA);
+	ULONG *flags;
+	int rc;
+
+	if(!cinfo || !cinfo->flags)
+		return 0;
+
+	flags = cinfo->flags;
+
+	if(flags[column] & DW_CFA_BITMAPORICON)
+		rc = DW_CFA_BITMAPORICON;
+	else if(flags[column] & DW_CFA_STRING)
+		rc = DW_CFA_STRING;
+	else if(flags[column] & DW_CFA_ULONG)
+		rc = DW_CFA_ULONG;
+	else if(flags[column] & DW_CFA_DATE)
+		rc = DW_CFA_DATE;
+	else if(flags[column] & DW_CFA_TIME)
+		rc = DW_CFA_TIME;
+	else
+		rc = 0;
+	return rc;
+}
+
+/*
+ * Gets column type for a filesystem container column
+ * Parameters:
+ *          handle: Handle to the container window (widget).
+ *          column: Zero based column.
+ */
+int API dw_filesystem_get_column_type(HWND handle, int column)
+{
+	return dw_container_get_column_type( handle, column + 1 );
+}
+
+/*
  * Sets the width of a column in the container.
  * Parameters:
  *          handle: Handle to window (widget) of container.

@@ -5136,6 +5136,57 @@ void dw_filesystem_set_item(HWND handle, void *pointer, int column, int row, voi
 }
 
 /*
+ * Gets column type for a container column
+ * Parameters:
+ *          handle: Handle to the container window (widget).
+ *          column: Zero based column.
+ */
+int dw_container_get_column_type(HWND handle, int column)
+{
+	char numbuf[10];
+	int flag, rc;
+	GtkWidget *clist;
+	int _locked_by_me = FALSE;
+
+	DW_MUTEX_LOCK;
+	clist = (GtkWidget *)gtk_object_get_user_data(GTK_OBJECT(handle));
+	if(!clist)
+	{
+		DW_MUTEX_UNLOCK;
+		return 0;
+	}
+
+	sprintf(numbuf, "%d", column);
+	flag = (int)gtk_object_get_data(GTK_OBJECT(clist), numbuf);
+
+	if(flag & DW_CFA_BITMAPORICON)
+		rc = DW_CFA_BITMAPORICON;
+	else if(flag & DW_CFA_STRING)
+		rc = DW_CFA_STRING;
+	else if(flag & DW_CFA_ULONG)
+		rc = DW_CFA_ULONG;
+	else if(flag & DW_CFA_DATE)
+		rc = DW_CFA_DATE;
+	else if(flag & DW_CFA_TIME)
+		rc = DW_CFA_TIME;
+	else
+		rc = 0;
+	DW_MUTEX_UNLOCK;
+	return rc;
+}
+
+/*
+ * Gets column type for a filesystem container column
+ * Parameters:
+ *          handle: Handle to the container window (widget).
+ *          column: Zero based column.
+ */
+int API dw_filesystem_get_column_type(HWND handle, int column)
+{
+	return dw_container_get_column_type( handle, column + 1 );
+}
+
+/*
  * Sets the width of a column in the container.
  * Parameters:
  *          handle: Handle to window (widget) of container.

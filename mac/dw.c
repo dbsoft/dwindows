@@ -2261,6 +2261,28 @@ void API dw_filesystem_set_item(HWND handle, void *pointer, int column, int row,
 }
 
 /*
+ * Gets column type for a container column
+ * Parameters:
+ *          handle: Handle to the container window (widget).
+ *          column: Zero based column.
+ */
+int API dw_container_get_column_type(HWND handle, int column)
+{
+	return 0;
+}
+
+/*
+ * Gets column type for a filesystem container column
+ * Parameters:
+ *          handle: Handle to the container window (widget).
+ *          column: Zero based column.
+ */
+int API dw_filesystem_get_column_type(HWND handle, int column)
+{
+	return dw_container_get_column_type( handle, column + 1 );
+}
+
+/*
  * Sets the width of a column in the container.
  * Parameters:
  *          handle: Handle to window (widget) of container.

@@ -134,12 +134,14 @@ EXPORTS
   dw_container_optimize                  @234
   dw_container_delete_row                @235
   dw_container_change_item               @236
+  dw_container_get_column_type           @237
 
   dw_filesystem_setup                    @240
   dw_filesystem_set_item                 @241
   dw_filesystem_set_file                 @242
   dw_filesystem_change_item              @243
   dw_filesystem_change_file              @244
+  dw_filesystem_get_column_type          @245
 
   dw_screen_width                        @250
   dw_screen_height                       @251
