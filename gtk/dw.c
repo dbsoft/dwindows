@@ -5014,7 +5014,7 @@ int dw_module_load(char *name, HMOD *handle)
 
 	free(newname);
 
-	return (NULL == *handle);
+	return (NULL == *handle) ? -1 : 0;
 }
 
 /* Queries the address of a symbol within open handle.
