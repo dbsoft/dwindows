@@ -2427,6 +2427,7 @@ unsigned int dw_mle_import(HWND handle, char *buffer, int startpoint)
 			gtk_text_buffer_get_iter_at_offset(tbuffer, &iter, startpoint);
 			gtk_text_buffer_place_cursor(tbuffer, &iter);
 			gtk_text_buffer_insert_at_cursor(tbuffer, impbuf, -1);
+			tmppoint = startpoint + strlen(impbuf);      
 			free(impbuf);
 		}
 #else
@@ -2461,16 +2462,32 @@ unsigned int dw_mle_import(HWND handle, char *buffer, int startpoint)
  */
 void dw_mle_export(HWND handle, char *buffer, int startpoint, int length)
 {
-#if GTK_MAJOR_VERSION > 1
-#else
 	int _locked_by_me = FALSE;
 	gchar *text;
 
 	DW_MUTEX_LOCK;
+#if GTK_MAJOR_VERSION > 1
+	if(GTK_IS_SCROLLED_WINDOW(handle))
+#else
 	if(GTK_IS_BOX(handle))
+#endif
 	{
 		GtkWidget *tmp = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(handle), "mle");
 
+#if GTK_MAJOR_VERSION > 1
+		if(tmp && GTK_IS_TEXT_VIEW(tmp))
+		{
+			GtkTextBuffer *tbuffer;
+			GtkTextIter start, end;
+
+			tbuffer = gtk_text_view_get_buffer (GTK_TEXT_VIEW (tmp));
+			gtk_text_buffer_get_iter_at_offset(tbuffer, &start, startpoint);
+			gtk_text_buffer_get_iter_at_offset(tbuffer, &end, startpoint + length);
+			text = gtk_text_iter_get_text(&start, &end);
+			if(text) /* Should this get freed? */
+				strcpy(buffer, text);
+		}
+#else
 		if(tmp && GTK_IS_TEXT(tmp))
 		{
 			text = gtk_editable_get_chars(GTK_EDITABLE(&(GTK_TEXT(tmp)->editable)), startpoint, startpoint + length);
@@ -2480,9 +2497,9 @@ void dw_mle_export(HWND handle, char *buffer, int startpoint, int length)
 				g_free(text);
 			}
 		}
+#endif
 	}
 	DW_MUTEX_UNLOCK;
-#endif
 }
 
 /*
@@ -2564,18 +2581,32 @@ void dw_mle_delete(HWND handle, int startpoint, int length)
 
 	DW_MUTEX_LOCK;
 #if GTK_MAJOR_VERSION > 1
+	if(GTK_IS_SCROLLED_WINDOW(handle))
 #else
 	if(GTK_IS_BOX(handle))
+#endif
 	{
 		GtkWidget *tmp = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(handle), "mle");
 
+#if GTK_MAJOR_VERSION > 1
+		if(tmp && GTK_IS_TEXT_VIEW(tmp))
+		{
+			GtkTextBuffer *tbuffer;
+			GtkTextIter start, end;
+
+			tbuffer = gtk_text_view_get_buffer (GTK_TEXT_VIEW (tmp));
+			gtk_text_buffer_get_iter_at_offset(tbuffer, &start, startpoint);
+			gtk_text_buffer_get_iter_at_offset(tbuffer, &end, startpoint + length);
+			gtk_text_buffer_delete(tbuffer, &start, &end);
+		}
+#else
 		if(tmp && GTK_IS_TEXT(tmp))
 		{
 			gtk_text_set_point(GTK_TEXT(tmp), startpoint);
 			gtk_text_forward_delete(GTK_TEXT(tmp), length);
 		}
-	}
 #endif
+	}
 	DW_MUTEX_UNLOCK;
 }
 
@@ -2733,11 +2764,24 @@ void dw_mle_set(HWND handle, int point)
 
 	DW_MUTEX_LOCK;
 #if GTK_MAJOR_VERSION > 1
+	if(GTK_IS_SCROLLED_WINDOW(handle))
 #else
 	if(GTK_IS_BOX(handle))
+#endif
 	{
 		GtkWidget *tmp = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(handle), "mle");
 
+#if GTK_MAJOR_VERSION > 1
+		if(tmp && GTK_IS_TEXT_VIEW(tmp))
+		{
+			GtkTextBuffer *tbuffer;
+			GtkTextIter iter;
+
+			tbuffer = gtk_text_view_get_buffer (GTK_TEXT_VIEW (tmp));
+			gtk_text_buffer_get_iter_at_offset(tbuffer, &iter, point);
+			gtk_text_buffer_place_cursor(tbuffer, &iter);
+		}
+#else
 		if(tmp && GTK_IS_TEXT(tmp))
 		{
 			unsigned long chars;
@@ -2755,8 +2799,8 @@ void dw_mle_set(HWND handle, int point)
 			}
 			gtk_text_set_point(GTK_TEXT(tmp), point);
 		}
-	}
 #endif
+	}
 	DW_MUTEX_UNLOCK;
 }
 
@@ -2774,11 +2818,25 @@ int dw_mle_search(HWND handle, char *text, int point, unsigned long flags)
 
 	DW_MUTEX_LOCK;
 #if GTK_MAJOR_VERSION > 1
+	if(GTK_IS_SCROLLED_WINDOW(handle))
 #else
 	if(GTK_IS_BOX(handle))
+#endif
 	{
 		GtkWidget *tmp = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(handle), "mle");
 
+#if GTK_MAJOR_VERSION > 1
+		if(tmp && GTK_IS_TEXT_VIEW(tmp))
+		{
+			GtkTextBuffer *tbuffer;
+			GtkTextIter iter, found;
+
+			tbuffer = gtk_text_view_get_buffer (GTK_TEXT_VIEW (tmp));
+			gtk_text_buffer_get_iter_at_offset(tbuffer, &iter, point);
+			gtk_text_iter_forward_search(&iter, text, GTK_TEXT_SEARCH_TEXT_ONLY, &found, NULL, NULL);
+			retval = gtk_text_iter_get_offset(&found);  
+		}
+#else
 		if(tmp && GTK_IS_TEXT(tmp))
 		{
 			int len = gtk_text_get_length(GTK_TEXT(tmp));
@@ -2817,8 +2875,8 @@ int dw_mle_search(HWND handle, char *text, int point, unsigned long flags)
 				g_free(tmpbuf);
 			}
 		}
-	}
 #endif
+	}
 	DW_MUTEX_UNLOCK;
 	return retval;
 }
@@ -2830,11 +2888,10 @@ int dw_mle_search(HWND handle, char *text, int point, unsigned long flags)
  */
 void dw_mle_freeze(HWND handle)
 {
+#if GTK_MAJOR_VERSION < 2
 	int _locked_by_me = FALSE;
 
 	DW_MUTEX_LOCK;
-#if GTK_MAJOR_VERSION > 1
-#else
 	if(GTK_IS_BOX(handle))
 	{
 		GtkWidget *tmp = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(handle), "mle");
@@ -2844,8 +2901,8 @@ void dw_mle_freeze(HWND handle)
 			gtk_text_freeze(GTK_TEXT(tmp));
 		}
 	}
-#endif
 	DW_MUTEX_UNLOCK;
+#endif
 }
 
 /*
@@ -2855,11 +2912,10 @@ void dw_mle_freeze(HWND handle)
  */
 void dw_mle_thaw(HWND handle)
 {
+#if GTK_MAJOR_VERSION < 2
 	int _locked_by_me = FALSE;
 
 	DW_MUTEX_LOCK;
-#if GTK_MAJOR_VERSION > 1
-#else
 	if(GTK_IS_BOX(handle))
 	{
 		GtkWidget *tmp = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(handle), "mle");
@@ -2869,8 +2925,8 @@ void dw_mle_thaw(HWND handle)
 			gtk_text_thaw(GTK_TEXT(tmp));
 		}
 	}
-#endif
 	DW_MUTEX_UNLOCK;
+#endif
 }
 
 /*
