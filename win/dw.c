@@ -51,16 +51,6 @@ COLORREF _background[THREAD_LIMIT];
 HPEN _hPen[THREAD_LIMIT];
 HBRUSH _hBrush[THREAD_LIMIT];
 
-#ifdef DWDEBUG
-FILE *f;
-
-void reopen(void)
-{
-	fclose(f);
-	f = fopen("dw.log", "at");
-}
-#endif
-
 BYTE _red[] = { 	0x00, 0xbb, 0x00, 0xaa, 0x00, 0xbb, 0x00, 0xaa, 0x77,
 			  0xff, 0x00, 0xee, 0x00, 0xff, 0x00, 0xff, 0xaa, 0x00 };
 BYTE _green[] = {	0x00, 0x00, 0xbb, 0xaa, 0x00, 0x00, 0xbb, 0xaa, 0x77,
@@ -487,7 +477,31 @@ int _focus_check_box(Box *box, HWND handle, int start, HWND defaultitem)
 
 				GetClassName(box->items[z].hwnd, tmpbuf, 99);
 
-				if(strnicmp(tmpbuf, WC_TABCONTROL, strlen(WC_TABCONTROL))==0) /* Notebook */
+				if(strncmp(tmpbuf, SplitbarClassName, strlen(SplitbarClassName)+1)==0)
+				{
+					/* Then try the bottom or right box */
+					HWND mybox = (HWND)dw_window_get_data(box->items[z].hwnd, "_dw_bottomright");
+
+					if(mybox)
+					{
+						Box *splitbox = (Box *)GetWindowLong(mybox, GWL_USERDATA);
+
+						if(splitbox && _focus_check_box(splitbox, handle, start == 3 ? 3 : 0, defaultitem))
+							return 1;
+					}
+
+					/* Try the top or left box */
+					mybox = (HWND)dw_window_get_data(box->items[z].hwnd, "_dw_topleft");
+
+					if(mybox)
+					{
+						Box *splitbox = (Box *)GetWindowLong(mybox, GWL_USERDATA);
+
+						if(splitbox && _focus_check_box(splitbox, handle, start == 3 ? 3 : 0, defaultitem))
+							return 1;
+					}
+				}
+				else if(strnicmp(tmpbuf, WC_TABCONTROL, strlen(WC_TABCONTROL))==0) /* Notebook */
 				{
 					NotebookPage **array = (NotebookPage **)GetWindowLong(box->items[z].hwnd, GWL_USERDATA);
 					int pageid = TabCtrl_GetCurSel(box->items[z].hwnd);
@@ -760,14 +774,6 @@ int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *usedy,
 					tmp->xratio = thisbox->xratio;
 					tmp->yratio = thisbox->yratio;
 
-#ifdef DWDEBUG
-					if(pass > 1)
-					{
-						fprintf(f, "FARK! depth %d\r\nwidth = %d, height = %d, nux = %d, nuy = %d, upx = %d, upy = %d xratio = %f, yratio = %f\r\n\r\n",
-								*depth, thisbox->items[z].width, thisbox->items[z].height, nux, nuy, tmp->upx, tmp->upy, tmp->xratio, tmp->yratio);
-						reopen();
-					}
-#endif
 					if(thisbox->type == BOXVERT)
 					{
 						if((thisbox->items[z].width-((thisbox->items[z].pad*2)+(tmp->pad*2)))!=0)
@@ -795,15 +801,6 @@ int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *usedy,
 
 				(*depth)++;
 
-#ifdef DWDEBUG
-				if(pass > 1)
-				{
-					fprintf(f, "Before Resize Box depth %d\r\nx = %d, y = %d, usedx = %d, usedy = %d, usedpadx = %d, usedpady = %d xratio = %f, yratio = %f\r\n\r\n",
-							*depth, x, y, *usedx, *usedy, *usedpadx, *usedpady, tmp->xratio, tmp->yratio);
-					reopen();
-				}
-#endif
-
 				_resize_box(tmp, depth, x, y, &nux, &nuy, pass, &upx, &upy);
 
 				(*depth)--;
@@ -813,15 +810,6 @@ int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *usedy,
 
 				tmp->minwidth = thisbox->items[z].width = initialx - newx;
 				tmp->minheight = thisbox->items[z].height = initialy - newy;
-
-#ifdef DWDEBUG
-				if(pass > 1)
-				{
-					fprintf(f, "After Resize Box depth %d\r\nx = %d, y = %d, usedx = %d, usedy = %d, usedpadx = %d, usedpady = %d width = %d, height = %d\r\n\r\n",
-							*depth, x, y, *usedx, *usedy, *usedpadx, *usedpady, thisbox->items[z].width, thisbox->items[z].height);
-					reopen();
-				}
-#endif
 			}
 		}
 
@@ -867,12 +855,6 @@ int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *usedy,
 					tmp->parentyratio = thisbox->items[z].yratio;
 				}
 			}
-
-#ifdef DWDEBUG
-			fprintf(f, "RATIO- xratio = %f, yratio = %f, width = %d, height = %d, pad = %d, box xratio = %f, box yratio = %f, parent xratio = %f, parent yratio = %f, minwidth = %d, minheight = %d, width = %d, height = %d, upx = %d, upy = %d\r\n\r\n",
-					thisbox->items[z].xratio, thisbox->items[z].yratio, thisbox->items[z].width, thisbox->items[z].height, thisbox->items[z].pad, thisbox->xratio, thisbox->yratio, thisbox->parentxratio, thisbox->parentyratio, thisbox->minwidth, thisbox->minheight, thisbox->width, thisbox->height, thisbox->upx, thisbox->upy);
-			reopen();
-#endif
 		}
 		else
 		{
@@ -952,12 +934,6 @@ int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *usedy,
 	currentx += thisbox->pad;
 	currenty += thisbox->pad;
 
-#ifdef DWDEBUG
-	fprintf(f, "Done Calc depth %d\r\nusedx = %d, usedy = %d, usedpadx = %d, usedpady = %d, currentx = %d, currenty = %d, uxmax = %d, uymax = %d\r\n\r\n",
-			*depth, *usedx, *usedy, *usedpadx, *usedpady, currentx, currenty, uxmax, uymax);
-	reopen();
-#endif
-
 	/* The second pass is for expansion and actual placement. */
 	if(pass > 1)
 	{
@@ -990,12 +966,6 @@ int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *usedy,
 					}
 
 					(*depth)++;
-
-#ifdef DWDEBUG
-					fprintf(f, "2- Resize Box depth %d\r\nx = %d, y = %d, usedx = %d, usedy = %d, usedpadx = %d, usedpady = %d xratio = %f, yratio = %f,\r\nupx = %d, upy = %d, width = %d, height = %d, minwidth = %d, minheight = %d, box xratio = %f, box yratio = %f\r\n\r\n",
-						*depth, x, y, *usedx, *usedy, *usedpadx, *usedpady, tmp->xratio, tmp->yratio, tmp->upx, tmp->upy, thisbox->items[z].width, thisbox->items[z].height, tmp->minwidth, tmp->minheight, thisbox->xratio, thisbox->yratio);
-					reopen();
-#endif
 
 					_resize_box(tmp, depth, x, y, &nux, &nuy, 3, &nupx, &nupy);
 
@@ -1114,12 +1084,6 @@ int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *usedy,
 					}
 				}
 
-#ifdef DWDEBUG
-				fprintf(f, "Window Pos depth %d\r\ncurrentx = %d, currenty = %d, pad = %d, width = %d, height = %d, vectorx = %d, vectory = %d, Box type = %s\r\n\r\n",
-						*depth, currentx, currenty, pad, width, height, vectorx, vectory,thisbox->type == BOXHORZ ? "Horizontal" : "Vertical");
-				reopen();
-#endif
-
 				if(thisbox->type == BOXHORZ)
 					currentx += width + vectorx + (pad * 2);
 				if(thisbox->type == BOXVERT)
@@ -1146,21 +1110,9 @@ void _do_resize(Box *thisbox, int x, int y)
 			thisbox->xratio = ((float)(x-usedpadx))/((float)(usedx-usedpadx));
 			thisbox->yratio = ((float)(y-usedpady))/((float)(usedy-usedpady));
 
-#ifdef DWDEBUG
-			fprintf(f, "WM_SIZE Resize Box Pass 1\r\nx = %d, y = %d, usedx = %d, usedy = %d, usedpadx = %d, usedpady = %d xratio = %f, yratio = %f\r\n\r\n",
-					x, y, usedx, usedy, usedpadx, usedpady, thisbox->xratio, thisbox->yratio);
-			reopen();
-#endif
-
 			usedpadx = usedpady = usedx = usedy = depth = 0;
 
 			_resize_box(thisbox, &depth, x, y, &usedx, &usedy, 2, &usedpadx, &usedpady);
-
-#ifdef DWDEBUG
-			fprintf(f, "WM_SIZE Resize Box Pass 2\r\nx = %d, y = %d, usedx = %d, usedy = %d, usedpadx = %d, usedpady = %d\r\n",
-					x, y, usedx, usedy, usedpadx, usedpady);
-			reopen();
-#endif
 		}
 	}
 }
@@ -2755,9 +2707,6 @@ int dw_init(int newthread, int argc, char *argv[])
 		exit(1);
 	}
 
-#ifdef DWDEBUG
-	f = fopen("dw.log", "wt");
-#endif
 	/* We need the version to check capability like up-down controls */
 	dwVersion = GetVersion();
 	dwComctlVer = GetDllVersion(TEXT("comctl32.dll"));
@@ -2787,10 +2736,6 @@ void dw_main(void)
 		TranslateMessage(&msg);
 		DispatchMessage(&msg);
 	}
-
-#ifdef DWDEBUG
-	fclose(f);
-#endif
 }
 
 /*
@@ -7187,153 +7132,3 @@ void dw_signal_disconnect_by_data(HWND window, void *data)
 	}
 }
 
-#ifdef TEST
-HWND mainwindow,
-	 listbox,
-	 okbutton,
-	 cancelbutton,
-	 lbbox,
-	 stext,
-	 buttonbox,
-	 testwindow,
-	 testbox,
-	 testok,
-	 testcancel,
-	 testbox2,
-	 testok2,
-	 testcancel2,
-	 notebook;
-int count = 2;
-
-int test_callback(HWND window, void *data)
-{
-	dw_window_destroy((HWND)data);
-	/* Return -1 to allow the default handlers to return. */
-	count--;
-	if(!count)
-        exit(0);
-	return -1;
-}
-
-/*
- * Let's demonstrate the functionality of this library. :)
- */
-int main(int argc, char *argv[])
-{
-	ULONG flStyle = DW_FCF_SYSMENU | DW_FCF_TITLEBAR |
-		DW_FCF_SHELLPOSITION | DW_FCF_TASKLIST | DW_FCF_DLGBORDER;
-	int pageid;
-
-	dw_init(TRUE, argc, argv);
-
-	/* Try a little server dialog. :) */
-	mainwindow = dw_window_new(HWND_DESKTOP, "Server", flStyle | DW_FCF_SIZEBORDER | DW_FCF_MINMAX);
-
-	lbbox = dw_box_new(BOXVERT, 10);
-
-	dw_box_pack_start(mainwindow, lbbox, 0, 0, TRUE, TRUE, 0);
-
-	stext = dw_text_new("Choose a server:", 0);
-
-	dw_window_set_style(stext, DW_DT_VCENTER, DW_DT_VCENTER);
-
-	dw_box_pack_start(lbbox, stext, 130, 15, FALSE, FALSE, 10);
-
-	listbox = dw_listbox_new(100L, FALSE);
-
-	dw_box_pack_start(lbbox, listbox, 130, 200, TRUE, TRUE, 10);
-
-	buttonbox = dw_box_new(BOXHORZ, 0);
-
-	dw_box_pack_start(lbbox, buttonbox, 0, 0, TRUE, TRUE, 0);
-
-	okbutton = dw_button_new("Ok", 1001L);
-
-	dw_box_pack_start(buttonbox, okbutton, 50, 30, TRUE, TRUE, 5);
-
-	cancelbutton = dw_button_new("Cancel", 1002L);
-
-	dw_box_pack_start(buttonbox, cancelbutton, 50, 30, TRUE, TRUE, 5);
-
-	/* Set some nice fonts and colors */
-	dw_window_set_color(lbbox, DW_CLR_PALEGRAY, DW_CLR_PALEGRAY);
-	dw_window_set_color(buttonbox, DW_CLR_PALEGRAY, DW_CLR_PALEGRAY);
-	dw_window_set_font(stext, "9.WarpSans");
-	dw_window_set_color(stext, DW_CLR_BLACK, DW_CLR_PALEGRAY);
-	dw_window_set_font(listbox, "9.WarpSans");
-	dw_window_set_font(okbutton, "9.WarpSans");
-	dw_window_set_font(cancelbutton, "9.WarpSans");
-
-	dw_window_show(mainwindow);
-
-	dw_window_set_usize(mainwindow, 170, 340);
-
-	/* Another small example */
-	flStyle |= DW_FCF_MINMAX | DW_FCF_SIZEBORDER;
-
-	testwindow = dw_window_new(HWND_DESKTOP, "Wow a test dialog! :) yay!", flStyle);
-
-	testbox = dw_box_new(BOXVERT, 0);
-
-	dw_box_pack_start(testwindow, testbox, 0, 0, TRUE, TRUE, 0);
-
-	notebook = dw_notebook_new(1010L, TRUE);
-
-	dw_box_pack_start(testbox, notebook, 100, 100, TRUE, TRUE, 0);
-
-	testbox = dw_box_new(BOXVERT, 10);
-
-	pageid = dw_notebook_page_new(notebook, 0L, FALSE);
-
-	dw_notebook_page_set_text(notebook, pageid, "Test page");
-	dw_notebook_page_set_status_text(notebook, pageid, "Test page");
-
-    dw_notebook_pack(notebook, pageid, testbox);
-
-	testok = dw_button_new("Ok", 1003L);
-
-	dw_box_pack_start(testbox, testok, 60, 40, TRUE, TRUE, 10);
-
-	testcancel = dw_button_new("Cancel", 1004L);
-
-	dw_box_pack_start(testbox, testcancel, 60, 40, TRUE, TRUE, 10);
-
-	testbox2 = dw_box_new(BOXHORZ, 0);
-
-	dw_box_pack_start(testbox, testbox2, 0, 0, TRUE, TRUE, 0);
-
-	testok2 = dw_button_new("Ok", 1003L);
-
-	dw_box_pack_start(testbox2, testok2, 60, 40, TRUE, TRUE, 10);
-
-	dw_box_pack_splitbar_start(testbox2);
-
-	testcancel2 = dw_button_new("Cancel", 1004L);
-
-	dw_box_pack_start(testbox2, testcancel2, 60, 40, TRUE, TRUE, 10);
-
-	/* Set some nice fonts and colors */
-	dw_window_set_color(testbox, DW_CLR_PALEGRAY, DW_CLR_PALEGRAY);
-	dw_window_set_color(testbox2, DW_CLR_PALEGRAY, DW_CLR_PALEGRAY);
-	dw_window_set_font(testok, "9.WarpSans");
-	dw_window_set_font(testcancel, "9.WarpSans");
-	dw_window_set_font(testok2, "9.WarpSans");
-	dw_window_set_font(testcancel2, "9.WarpSans");
-
-	dw_window_show(testwindow);
-
-	/* Setup the function callbacks */
-	dw_signal_connect(okbutton, "clicked", DW_SIGNAL_FUNC(test_callback), (void *)mainwindow);
-	dw_signal_connect(cancelbutton, "clicked", DW_SIGNAL_FUNC(test_callback), (void *)mainwindow);
-	dw_signal_connect(testok, "clicked", DW_SIGNAL_FUNC(test_callback), (void *)testwindow);
-	dw_signal_connect(testcancel, "clicked", DW_SIGNAL_FUNC(test_callback), (void *)testwindow);
-	dw_signal_connect(testok2, "clicked", DW_SIGNAL_FUNC(test_callback), (void *)testwindow);
-	dw_signal_connect(testcancel2, "clicked", DW_SIGNAL_FUNC(test_callback), (void *)testwindow);
-	dw_signal_connect(mainwindow, "delete_event", DW_SIGNAL_FUNC(test_callback), (void *)mainwindow);
-	dw_signal_connect(testwindow, "delete_event", DW_SIGNAL_FUNC(test_callback), (void *)testwindow);
-
-	dw_main();
-
-	return 0;
-}
-#endif
