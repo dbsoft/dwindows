@@ -5,7 +5,7 @@
  *
  * (C) 2000-2003 Brian Smith <dbsoft@technologist.com>
  * (C) 2003 Mark Hessling <m.hessling@qut.edu.au>
- *
+ * (C) 2002 Shmyrev <shmyrev@yandex.ru>
  */
 #include "dw.h"
 #include <string.h>
@@ -175,6 +175,876 @@ static SignalList SignalTranslate[SIGNALMAX] = {
 #define DW_CENTER 0.5f
 #define DW_LEFT 0.0f
 #define DW_RIGHT 1.0f
+
+/* MDI Support Code */
+#if GTK_MAJOR_VERSION > 1 
+#define GTK_MDI(obj)          GTK_CHECK_CAST (obj, gtk_mdi_get_type (), GtkMdi)
+#define GTK_MDI_CLASS(klass)  GTK_CHECK_CLASS_CAST (klass, gtk_mdi_get_type (), GtkMdiClass)
+#define GTK_IS_MDI(obj)       GTK_CHECK_TYPE (obj, gtk_mdi_get_type ())
+
+typedef struct _GtkMdi GtkMdi;
+typedef struct _GtkMdiClass GtkMdiClass;
+typedef struct _GtkMdiDragInfo GtkMdiDragInfo;
+typedef enum _GtkMdiChildState GtkMdiChildState;
+
+enum _GtkMdiChildState
+{
+	CHILD_NORMAL,
+	CHILD_MAXIMIZED,
+	CHILD_ICONIFIED
+};
+
+struct _GtkMdi
+{
+	GtkContainer container;
+	GList *children;
+
+	GdkPoint drag_start;
+	gint drag_button;
+};
+
+struct _GtkMdiClass
+{
+	GtkContainerClass parent_class;
+
+	void (*mdi) (GtkMdi * mdi);
+};
+
+#include "gtk/maximize.xpm"
+#include "gtk/minimize.xpm"
+#include "gtk/kill.xpm"
+
+#define GTK_MDI_BACKGROUND "Grey70"
+#define GTK_MDI_LABEL_BACKGROUND    "black"
+#define GTK_MDI_LABEL_FOREGROUND    "white"
+#define GTK_MDI_DEFAULT_WIDTH 0
+#define GTK_MDI_DEFAULT_HEIGHT 0
+#define GTK_MDI_MIN_HEIGHT 22
+#define GTK_MDI_MIN_WIDTH  55
+
+typedef struct _GtkMdiChild GtkMdiChild;
+
+struct _GtkMdiChild
+{
+	GtkWidget *widget;
+
+	GtkWidget *child;
+	GtkMdi *mdi;
+
+	gint x;
+	gint y;
+    gint width;
+	gint height;
+
+	GtkMdiChildState state;
+};
+
+static void gtk_mdi_class_init(GtkMdiClass *klass);
+static void gtk_mdi_init(GtkMdi *mdi);
+
+static void gtk_mdi_realize(GtkWidget *widget);
+static void gtk_mdi_size_request(GtkWidget *widget, GtkRequisition *requisition);
+static void gtk_mdi_size_allocate(GtkWidget *widget, GtkAllocation *allocation);
+static gint gtk_mdi_expose(GtkWidget *widget, GdkEventExpose *event);
+
+/* Callbacks */
+static gboolean move_child_callback(GtkWidget *widget, GdkEvent *event, gpointer data);
+static gboolean resize_child_callback(GtkWidget *widget, GdkEvent *event, gpointer data);
+static gboolean iconify_child_callback(GtkWidget *widget, GdkEvent *event, gpointer data);
+static gboolean maximize_child_callback(GtkWidget *widget, GdkEvent *event, gpointer data);
+static gboolean kill_child_callback(GtkWidget *widget, GdkEvent *event, gpointer data);
+
+static void gtk_mdi_add(GtkContainer *container, GtkWidget *widget);
+static void gtk_mdi_remove_true(GtkContainer *container, GtkWidget *widget);
+static void gtk_mdi_forall(GtkContainer *container, gboolean include_internals, GtkCallback callback, gpointer callback_data);
+
+static GtkMdiChild *get_child(GtkMdi *mdi, GtkWidget * widget);
+
+static GtkType gtk_mdi_get_type(void)
+{
+	static GType mdi_type = 0;
+
+	if (!mdi_type)
+	{
+
+		static const GTypeInfo mdi_info =
+		{
+			sizeof (GtkMdiClass),
+			NULL,
+			NULL,
+			(GClassInitFunc) gtk_mdi_class_init,
+			NULL,
+			NULL,
+			sizeof (GtkMdi),
+			0,
+			(GInstanceInitFunc) gtk_mdi_init,
+		};
+
+		mdi_type = g_type_register_static (GTK_TYPE_CONTAINER, "GtkMdi", &mdi_info, 0);
+	}
+
+	return mdi_type;
+}
+
+/* Local data */
+static GtkWidgetClass *parent_class = NULL;
+
+static void gtk_mdi_class_init(GtkMdiClass *class)
+{
+	GObjectClass *object_class;
+	GtkWidgetClass *widget_class;
+	GtkContainerClass *container_class;
+
+	object_class = (GObjectClass *) class;
+	widget_class = (GtkWidgetClass *) class;
+	container_class = (GtkContainerClass *) class;
+
+	parent_class = gtk_type_class (GTK_TYPE_CONTAINER);
+
+	widget_class->realize = gtk_mdi_realize;
+	widget_class->expose_event = gtk_mdi_expose;
+	widget_class->size_request = gtk_mdi_size_request;
+	widget_class->size_allocate = gtk_mdi_size_allocate;
+
+	container_class->add = gtk_mdi_add;
+	container_class->remove = gtk_mdi_remove_true;
+	container_class->forall = gtk_mdi_forall;
+	class->mdi = NULL;
+}
+
+static void gtk_mdi_init(GtkMdi *mdi)
+{
+	mdi->drag_button = -1;
+	mdi->children = NULL;
+}
+
+static GtkWidget *gtk_mdi_new(void)
+{
+	GtkWidget *mdi;
+	GdkColor background;
+
+	mdi = GTK_WIDGET (g_object_new (gtk_mdi_get_type (), NULL));
+	gdk_color_parse (GTK_MDI_BACKGROUND, &background);
+	gtk_widget_modify_bg (mdi, GTK_STATE_NORMAL, &background);
+
+	return mdi;
+}
+
+static void gtk_mdi_put(GtkMdi *mdi, GtkWidget *child_widget, gint x, gint y, GtkWidget *label)
+{
+	GtkMdiChild *child;
+
+	GtkWidget *table;
+	GtkWidget *button[3];
+
+	GtkWidget *child_box;
+	GtkWidget *top_event_box;
+	GtkWidget *bottom_event_box;
+	GtkWidget *child_widget_box;
+
+	GdkColor color;
+	gint i, j;
+	GdkCursor *cursor;
+	GdkColormap *colormap;
+	GdkPixmap *pixmap;
+	GdkBitmap *mask;
+	GtkStyle *style;
+
+	child_box = gtk_event_box_new ();
+	child_widget_box = gtk_event_box_new ();
+	top_event_box = gtk_event_box_new ();
+	bottom_event_box = gtk_event_box_new ();
+	table = gtk_table_new (4, 7, FALSE);
+	gtk_table_set_row_spacings (GTK_TABLE (table), 1);
+	gtk_table_set_col_spacings (GTK_TABLE (table), 1);
+	gtk_table_set_row_spacing (GTK_TABLE (table), 3, 0);
+	gtk_table_set_col_spacing (GTK_TABLE (table), 6, 0);
+	gtk_table_set_row_spacing (GTK_TABLE (table), 2, 0);
+	gtk_table_set_col_spacing (GTK_TABLE (table), 5, 0);
+
+	for (i = 0; i < 3; i++)
+	{
+		button[i] = gtk_event_box_new ();
+		gtk_widget_set_events (button[0], GDK_BUTTON_PRESS_MASK);
+	}
+
+	gdk_color_parse (GTK_MDI_LABEL_BACKGROUND, &color);
+
+	gtk_widget_modify_bg (top_event_box, GTK_STATE_NORMAL, &color);
+	gtk_widget_modify_bg (bottom_event_box, GTK_STATE_NORMAL, &color);
+	gtk_widget_modify_bg (child_box, GTK_STATE_NORMAL, &color);
+	for (i = GTK_STATE_NORMAL; i < GTK_STATE_ACTIVE; i++)
+	{
+		for (j = 0; j < 3; j++)
+		{
+			gtk_widget_modify_bg (button[j], i, &color);
+		}
+	}
+	gdk_color_parse (GTK_MDI_LABEL_FOREGROUND, &color);
+	gtk_widget_modify_fg (label, GTK_STATE_NORMAL, &color);
+	gtk_misc_set_alignment (GTK_MISC (label), 0.0, 0.5);
+
+	gtk_container_add (GTK_CONTAINER (top_event_box), label);
+	gtk_container_add (GTK_CONTAINER (child_widget_box), child_widget);
+	gtk_widget_set_size_request (bottom_event_box, 2, 2);
+
+
+	style = gtk_widget_get_default_style ();
+	colormap = gdk_colormap_get_system ();
+	pixmap = gdk_pixmap_colormap_create_from_xpm_d (NULL, colormap, &mask,
+													&style->bg[GTK_STATE_NORMAL],
+													(gchar **) minimize_xpm);
+	gtk_container_add (GTK_CONTAINER (button[0]), gtk_image_new_from_pixmap (pixmap, mask));
+	pixmap = gdk_pixmap_colormap_create_from_xpm_d (GTK_WIDGET (mdi)->window, colormap, &mask,
+													&style->bg[GTK_STATE_NORMAL],
+													(gchar **) maximize_xpm);
+	gtk_container_add (GTK_CONTAINER (button[1]), gtk_image_new_from_pixmap (pixmap, mask));
+	pixmap = gdk_pixmap_colormap_create_from_xpm_d (GTK_WIDGET (mdi)->window, colormap, &mask,
+													&style->bg[GTK_STATE_NORMAL],
+													(gchar **) kill_xpm);
+	gtk_container_add (GTK_CONTAINER (button[2]), gtk_image_new_from_pixmap (pixmap, mask));
+
+	gtk_table_attach (GTK_TABLE (table), child_widget_box, 1, 6, 2, 3,
+					  GTK_EXPAND | GTK_SHRINK | GTK_FILL,
+					  GTK_EXPAND | GTK_SHRINK | GTK_FILL,
+					  0, 0);
+	gtk_table_attach (GTK_TABLE (table), top_event_box, 1, 2, 1, 2,
+					  GTK_FILL | GTK_EXPAND | GTK_SHRINK,
+					  0,
+					  0, 0);
+	gtk_table_attach (GTK_TABLE (table), bottom_event_box, 6, 7, 3, 4,
+					  0,
+					  0,
+					  0, 0);
+	gtk_table_attach (GTK_TABLE (table), button[0], 2, 3, 1, 2,
+					  0,
+					  0,
+					  0, 0);
+	gtk_table_attach (GTK_TABLE (table), button[1], 3, 4, 1, 2,
+					  0,
+					  0,
+					  0, 0);
+	gtk_table_attach (GTK_TABLE (table), button[2], 4, 5, 1, 2,
+					  0,
+					  0,
+					  0, 0);
+
+	gtk_container_add (GTK_CONTAINER (child_box), table);
+
+	child = g_new (GtkMdiChild, 1);
+	child->widget = child_box;
+	child->x = x;
+	child->y = y;
+	child->width = -1;
+	child->height = -1;
+	child->child = child_widget;
+	child->mdi = mdi;
+	child->state = CHILD_NORMAL;
+
+	gtk_widget_set_parent (child_box, GTK_WIDGET (mdi));
+	mdi->children = g_list_append (mdi->children, child);
+
+	gtk_widget_show (child_box);
+	gtk_widget_show (table);
+	gtk_widget_show (top_event_box);
+	gtk_widget_show (bottom_event_box);
+	gtk_widget_show (child_widget_box);
+	for (i = 0; i < 3; i++)
+	{
+		gtk_widget_show (button[i]);
+	}
+
+	cursor = gdk_cursor_new (GDK_HAND1);
+	gtk_widget_realize (top_event_box);
+	gdk_window_set_cursor (top_event_box->window, cursor);
+	cursor = gdk_cursor_new (GDK_BOTTOM_RIGHT_CORNER);
+	gtk_widget_realize (bottom_event_box);
+	gdk_window_set_cursor (bottom_event_box->window, cursor);
+
+	g_signal_connect (G_OBJECT (top_event_box), "event",
+					  G_CALLBACK (move_child_callback),
+					  child);
+	g_signal_connect (G_OBJECT (bottom_event_box), "event",
+					  G_CALLBACK (resize_child_callback),
+					  child);
+	g_signal_connect (G_OBJECT (button[0]), "button_press_event",
+					  G_CALLBACK (iconify_child_callback),
+					  child);
+	g_signal_connect (G_OBJECT (button[1]), "button_press_event",
+					  G_CALLBACK (maximize_child_callback),
+					  child);
+	g_signal_connect (G_OBJECT (button[2]), "button_press_event",
+					  G_CALLBACK (kill_child_callback),
+					  child);
+}
+
+static void gtk_mdi_move(GtkMdi *mdi, GtkWidget *widget, gint x, gint y)
+{
+	GtkMdiChild *child;
+
+	g_return_if_fail (GTK_IS_MDI (mdi));
+	g_return_if_fail (GTK_IS_WIDGET (widget));
+
+	child = get_child (mdi, widget);
+	g_return_if_fail (child);
+
+	child->x = x;
+	child->y = y;
+	if (GTK_WIDGET_VISIBLE (widget) && GTK_WIDGET_VISIBLE (mdi))
+		gtk_widget_queue_resize (GTK_WIDGET (widget));
+}
+
+static void gtk_mdi_tile(GtkMdi *mdi)
+{
+	int i, n;
+	int width, height;
+	GList *children;
+	GtkMdiChild *child;
+
+	g_return_if_fail (GTK_IS_MDI (mdi));
+
+	children = mdi->children;
+	n = g_list_length (children);
+	width = GTK_WIDGET (mdi)->allocation.width;
+	height = GTK_WIDGET (mdi)->allocation.height / n;
+	for (i = 0; i < n; i++)
+	{
+		child = (GtkMdiChild *) children->data;
+		children = children->next;
+		child->x = 0;
+		child->y = i * height;
+		gtk_widget_set_size_request (child->widget, width, height);
+		child->state = CHILD_NORMAL;
+		child->width = -1;
+		child->height = -1;
+	}
+	if (GTK_WIDGET_VISIBLE (GTK_WIDGET (mdi)))
+		gtk_widget_queue_resize (GTK_WIDGET (mdi));
+	return;
+}
+static void gtk_mdi_cascade(GtkMdi *mdi)
+{
+	int i, n;
+	int width, height;
+	GList *children;
+	GtkMdiChild *child;
+
+	g_return_if_fail (GTK_IS_MDI (mdi));
+	if (!GTK_WIDGET_VISIBLE (GTK_WIDGET (mdi)))
+		return;
+
+	children = mdi->children;
+	n = g_list_length (children);
+	width = GTK_WIDGET (mdi)->allocation.width / (2 * n - 1);
+	height = GTK_WIDGET (mdi)->allocation.height / (2 * n - 1);
+	for (i = 0; i < n; i++)
+	{
+		child = (GtkMdiChild *) children->data;
+		children = children->next;
+		child->x = i * width;
+		child->y = i * height;
+		gtk_widget_set_size_request (child->widget, width * n, height * n);
+		child->state = CHILD_NORMAL;
+		child->width = -1;
+		child->height = -1;
+	}
+	if (GTK_WIDGET_VISIBLE (GTK_WIDGET (mdi)))
+		gtk_widget_queue_resize (GTK_WIDGET (mdi));
+	return;
+}
+
+static GtkMdiChildState gtk_mdi_get_state(GtkMdi *mdi, GtkWidget *widget)
+{
+	GtkMdiChild *child;
+
+	g_return_val_if_fail (GTK_IS_MDI (mdi), CHILD_NORMAL);
+	g_return_val_if_fail (GTK_IS_WIDGET (widget), CHILD_NORMAL);
+
+	child = get_child (mdi, widget);
+	g_return_val_if_fail (child, CHILD_NORMAL);
+
+	return child->state;
+}
+
+static void gtk_mdi_set_state(GtkMdi *mdi, GtkWidget *widget, GtkMdiChildState state)
+{
+	GtkMdiChild *child;
+
+	g_return_if_fail (GTK_IS_MDI (mdi));
+	g_return_if_fail (GTK_IS_WIDGET (widget));
+
+	child = get_child (mdi, widget);
+	g_return_if_fail (child);
+
+	child->state = state;
+	if (GTK_WIDGET_VISIBLE (child->widget) && GTK_WIDGET_VISIBLE (mdi))
+		gtk_widget_queue_resize (GTK_WIDGET (child->widget));
+}
+
+static void gtk_mdi_remove(GtkMdi *mdi, GtkWidget *widget)
+{
+	GtkMdiChild *child;
+
+	g_return_if_fail (GTK_IS_MDI (mdi));
+	child = get_child (mdi, widget);
+	g_return_if_fail (child);
+	g_return_if_fail (GTK_IS_WIDGET (child));
+	gtk_mdi_remove_true (GTK_CONTAINER (mdi), child->widget);
+}
+
+static void gtk_mdi_realize(GtkWidget *widget)
+{
+	GtkMdi *mdi;
+	GdkWindowAttr attributes;
+	gint attributes_mask;
+
+	mdi = GTK_MDI (widget);
+
+	g_return_if_fail (widget != NULL);
+	g_return_if_fail (GTK_IS_MDI (mdi));
+
+	GTK_WIDGET_SET_FLAGS (widget, GTK_REALIZED);
+
+	attributes.x = widget->allocation.x;
+	attributes.y = widget->allocation.y;
+	attributes.width = widget->allocation.width;
+	attributes.height = widget->allocation.height;
+	attributes.wclass = GDK_INPUT_OUTPUT;
+	attributes.window_type = GDK_WINDOW_CHILD;
+	attributes.event_mask = gtk_widget_get_events (widget) |
+		GDK_EXPOSURE_MASK | GDK_BUTTON_PRESS_MASK |
+		GDK_BUTTON_RELEASE_MASK | GDK_POINTER_MOTION_MASK |
+		GDK_POINTER_MOTION_HINT_MASK;
+	attributes.visual = gtk_widget_get_visual (widget);
+	attributes.colormap = gtk_widget_get_colormap (widget);
+
+	attributes_mask = GDK_WA_X | GDK_WA_Y | GDK_WA_VISUAL | GDK_WA_COLORMAP;
+	widget->window = gdk_window_new (widget->parent->window, &attributes, attributes_mask);
+
+	widget->style = gtk_style_attach (widget->style, widget->window);
+
+	gdk_window_set_user_data (widget->window, widget);
+
+	gtk_style_set_background (widget->style, widget->window, GTK_STATE_NORMAL);
+}
+
+static void gtk_mdi_size_request (GtkWidget *widget, GtkRequisition *requisition)
+{
+	GtkMdi *mdi;
+	GtkMdiChild *child;
+	GList *children;
+	GtkRequisition child_requisition;
+
+	mdi = GTK_MDI (widget);
+	requisition->width = GTK_MDI_DEFAULT_WIDTH;
+	requisition->height = GTK_MDI_DEFAULT_HEIGHT;
+
+	children = mdi->children;
+	while (children)
+	{
+		child = children->data;
+		children = children->next;
+
+		if (GTK_WIDGET_VISIBLE (child->widget))
+		{
+			gtk_widget_size_request (child->widget, &child_requisition);
+		}
+	}
+}
+
+static void gtk_mdi_size_allocate(GtkWidget *widget, GtkAllocation *allocation)
+{
+	GtkMdi *mdi;
+	GtkMdiChild *child;
+	GtkAllocation child_allocation;
+	GtkRequisition child_requisition;
+	GList *children;
+
+	mdi = GTK_MDI (widget);
+
+	widget->allocation = *allocation;
+
+	if (GTK_WIDGET_REALIZED (widget))
+		gdk_window_move_resize (widget->window,
+								allocation->x,
+								allocation->y,
+								allocation->width,
+								allocation->height);
+
+
+	children = mdi->children;
+	while (children)
+	{
+		child = children->data;
+		children = children->next;
+
+		if (GTK_WIDGET_VISIBLE (child->widget))
+		{
+			gtk_widget_get_child_requisition (child->widget, &child_requisition);
+			child_allocation.x = 0;
+			child_allocation.y = 0;
+			switch (child->state)
+			{
+			case CHILD_NORMAL:
+				{
+					if ((child->width < 0) && (child->height < 0))
+					{
+						child_allocation.width = child_requisition.width;
+						child_allocation.height = child_requisition.height;
+					}
+					else
+					{
+						child_allocation.width = child->width;
+						child_allocation.height = child->height;
+						child->width = -1;
+						child->height = -1;
+					}
+					child_allocation.x += child->x;
+					child_allocation.y += child->y;
+					break;
+				}
+			case CHILD_MAXIMIZED:
+				{
+					if ((child->width < 0) && (child->height < 0))
+					{
+						child->width = child_requisition.width;
+						child->height = child_requisition.height;
+					}
+					child_allocation.width = allocation->width;
+					child_allocation.height = allocation->height;
+				}
+				break;
+			case CHILD_ICONIFIED:
+				{
+					if ((child->width < 0) && (child->height < 0))
+					{
+						child->width = child_requisition.width;
+						child->height = child_requisition.height;
+					}
+					child_allocation.x += child->x;
+					child_allocation.y += child->y;
+					child_allocation.width = child_requisition.width;
+					child_allocation.height = GTK_MDI_MIN_HEIGHT;
+					break;
+				}
+			}
+			gtk_widget_size_allocate (child->widget, &child_allocation);
+		}
+	}
+}
+
+static gint gtk_mdi_expose(GtkWidget *widget, GdkEventExpose *event)
+{
+	GtkMdiChild *child;
+	GList *children;
+	GtkMdi *mdi;
+
+	g_return_val_if_fail (widget != NULL, FALSE);
+	g_return_val_if_fail (GTK_IS_MDI (widget), FALSE);
+	g_return_val_if_fail (event != NULL, FALSE);
+
+	mdi = GTK_MDI (widget);
+	for (children = mdi->children; children; children = children->next)
+	{
+		child = (GtkMdiChild *) children->data;
+		gtk_container_propagate_expose (GTK_CONTAINER (mdi),
+										child->widget,
+										event);
+	}
+	return FALSE;
+}
+
+static void gtk_mdi_add(GtkContainer *container, GtkWidget *widget)
+{
+	GtkWidget *label;
+	label = gtk_label_new ("");
+	gtk_mdi_put (GTK_MDI (container), widget, 0, 0, label);
+}
+
+static void gtk_mdi_remove_true(GtkContainer *container, GtkWidget *widget)
+{
+	GtkMdi *mdi;
+	GtkMdiChild *child = NULL;
+	GList *children;
+
+	mdi = GTK_MDI (container);
+
+	children = mdi->children;
+	while (children)
+	{
+		child = children->data;
+		if (child->widget == widget)
+			break;
+
+		children = children->next;
+	}
+
+	if(child)
+	{
+		gtk_widget_unparent (child->widget);
+		g_free (child);
+	}
+	mdi->children = g_list_remove_link (mdi->children, children);
+	g_list_free (children);
+}
+
+static void gtk_mdi_forall(GtkContainer *container, gboolean include_internals, GtkCallback callback, gpointer callback_data)
+{
+	GtkMdi *mdi;
+	GtkMdiChild *child;
+	GList *children;
+
+	g_return_if_fail (callback != NULL);
+
+	mdi = GTK_MDI (container);
+
+	children = mdi->children;
+	while (children)
+	{
+		child = children->data;
+		children = children->next;
+
+		(*callback) (child->widget, callback_data);
+	}
+}
+
+static gboolean move_child_callback(GtkWidget *widget, GdkEvent *event, gpointer data)
+{
+	GtkMdi *mdi;
+	GtkMdiChild *child;
+
+	child = (GtkMdiChild *) data;
+	mdi = child->mdi;
+
+	g_return_val_if_fail (GTK_IS_MDI (mdi), FALSE);
+	g_return_val_if_fail (GTK_IS_EVENT_BOX (widget), FALSE);
+
+
+	switch (event->type)
+	{
+	case GDK_2BUTTON_PRESS:
+		{
+			gdk_window_raise (child->widget->window);
+		}
+	case GDK_BUTTON_PRESS:
+		if (child->state == CHILD_MAXIMIZED)
+			return FALSE;
+		if (mdi->drag_button < 0)
+		{
+			if (gdk_pointer_grab (event->button.window,
+								  FALSE,
+								  GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK |
+								  GDK_BUTTON_RELEASE_MASK,
+								  NULL,
+								  NULL,
+								  event->button.time) != GDK_GRAB_SUCCESS)
+				return FALSE;
+
+			mdi->drag_button = event->button.button;
+
+			mdi->drag_start.x = event->button.x;
+			mdi->drag_start.y = event->button.y;
+		}
+		break;
+
+	case GDK_BUTTON_RELEASE:
+		if (mdi->drag_button < 0)
+			return FALSE;
+
+		if (mdi->drag_button == event->button.button)
+		{
+			int x, y;
+
+			gdk_pointer_ungrab (event->button.time);
+			mdi->drag_button = -1;
+
+			x = event->button.x + child->x - mdi->drag_start.x;
+			y = event->button.y + child->y - mdi->drag_start.y;
+
+			gtk_mdi_move (mdi, child->child, x, y);
+		}
+		break;
+
+	case GDK_MOTION_NOTIFY:
+		{
+			int x, y;
+
+			if (mdi->drag_button < 0)
+				return FALSE;
+
+			gdk_window_get_pointer (widget->window, &x, &y, NULL);
+
+
+			x = x - mdi->drag_start.x + child->x;
+			y = y - mdi->drag_start.y + child->y;
+
+
+			gtk_mdi_move (mdi, child->child, x, y);
+		}
+		break;
+
+	default:
+		break;
+	}
+
+	return FALSE;
+}
+
+static gboolean resize_child_callback(GtkWidget *widget, GdkEvent *event, gpointer data)
+{
+	GtkMdi *mdi;
+	GtkMdiChild *child;
+
+	child = (GtkMdiChild *) data;
+	mdi = child->mdi;
+
+	g_return_val_if_fail (GTK_IS_MDI (mdi), FALSE);
+	g_return_val_if_fail (GTK_IS_EVENT_BOX (widget), FALSE);
+
+	switch (event->type)
+	{
+	case GDK_BUTTON_PRESS:
+		if (mdi->drag_button < 0)
+		{
+			if (gdk_pointer_grab (event->button.window,
+								  FALSE,
+								  GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK |
+								  GDK_BUTTON_RELEASE_MASK,
+								  NULL,
+								  NULL,
+								  event->button.time) != GDK_GRAB_SUCCESS)
+				return FALSE;
+
+			mdi->drag_button = event->button.button;
+			if ((child->state == CHILD_MAXIMIZED) || (child->state == CHILD_ICONIFIED))
+			{
+				child->state = CHILD_NORMAL;
+				child->x = child->widget->allocation.x;
+				child->y = child->widget->allocation.y;
+				child->width = child->widget->allocation.width;
+				child->height = child->widget->allocation.height;
+			}
+
+		}
+		break;
+
+	case GDK_BUTTON_RELEASE:
+		if (mdi->drag_button < 0)
+			return FALSE;
+
+		if (mdi->drag_button == event->button.button)
+		{
+			int width, height;
+
+			gdk_pointer_ungrab (event->button.time);
+			mdi->drag_button = -1;
+
+			width = event->button.x + widget->allocation.x;
+			height = event->button.y + widget->allocation.y;
+
+			width = MAX (width, GTK_MDI_MIN_WIDTH);
+			height = MAX (height, GTK_MDI_MIN_HEIGHT);
+
+			gtk_widget_set_size_request (child->widget, width, height);
+			gtk_widget_queue_resize (child->widget);
+		}
+		break;
+
+	case GDK_MOTION_NOTIFY:
+		{
+			int x, y;
+			int width, height;
+
+			if (mdi->drag_button < 0)
+				return FALSE;
+
+			gdk_window_get_pointer (widget->window, &x, &y, NULL);
+
+			width = x + widget->allocation.x;
+			height = y + widget->allocation.y;
+
+			width = MAX (width, GTK_MDI_MIN_WIDTH);
+			height = MAX (height, GTK_MDI_MIN_HEIGHT);
+
+			gtk_widget_set_size_request (child->widget, width, height);
+			gtk_widget_queue_resize (child->widget);
+		}
+		break;
+
+	default:
+		break;
+	}
+
+	return FALSE;
+}
+
+static gboolean iconify_child_callback (GtkWidget *widget, GdkEvent *event, gpointer data)
+{
+	GtkMdiChild *child;
+	child = (GtkMdiChild *) data;
+	if (child->state == CHILD_ICONIFIED)
+	{
+		child->state = CHILD_NORMAL;
+	}
+	else
+	{
+		child->state = CHILD_ICONIFIED;
+	}
+	if (GTK_WIDGET_VISIBLE (child->widget))
+		gtk_widget_queue_resize (GTK_WIDGET (child->widget));
+	return FALSE;
+}
+
+static gboolean maximize_child_callback (GtkWidget *widget, GdkEvent * event, gpointer data)
+{
+	GtkMdiChild *child;
+	child = (GtkMdiChild *) data;
+	if (child->state == CHILD_MAXIMIZED)
+	{
+		child->state = CHILD_NORMAL;
+	}
+	else
+	{
+		child->state = CHILD_MAXIMIZED;
+	}
+	if (GTK_WIDGET_VISIBLE (child->widget))
+		gtk_widget_queue_resize (GTK_WIDGET (child->widget));
+	return FALSE;
+}
+
+static gboolean kill_child_callback (GtkWidget *widget, GdkEvent *event, gpointer data)
+{
+	GtkMdiChild *child;
+	GtkMdi *mdi;
+
+	child = (GtkMdiChild *) data;
+	mdi = child->mdi;
+
+	g_return_val_if_fail (GTK_IS_MDI (mdi), FALSE);
+
+	gtk_mdi_remove_true (GTK_CONTAINER (mdi), child->widget);
+	return FALSE;
+}
+
+static GtkMdiChild *get_child (GtkMdi *mdi, GtkWidget *widget)
+{
+	GList *children;
+
+	children = mdi->children;
+	while (children)
+	{
+		GtkMdiChild *child;
+
+		child = children->data;
+		children = children->next;
+
+		if (child->child == widget)
+			return child;
+	}
+
+	return NULL;
+}
+#endif
 
 static void _dw_msleep(long period)
 {
@@ -1851,49 +2721,67 @@ HWND dw_window_new(HWND hwndOwner, char *title, unsigned long flStyle)
 	int flags = 0;
 
 	DW_MUTEX_LOCK;
-	last_window = tmp = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-
-	gtk_window_set_title(GTK_WINDOW(tmp), title);
-	if(!(flStyle & DW_FCF_SIZEBORDER))
-		gtk_window_set_policy(GTK_WINDOW(tmp), FALSE, FALSE, TRUE);
-
-	gtk_widget_realize(tmp);
-
-	if(flStyle & DW_FCF_TITLEBAR)
-		flags |= GDK_DECOR_TITLE;
-
-	if(flStyle & DW_FCF_MINMAX)
-		flags |= GDK_DECOR_MINIMIZE | GDK_DECOR_MAXIMIZE;
-
-	if(flStyle & DW_FCF_SIZEBORDER)
-		flags |= GDK_DECOR_RESIZEH | GDK_DECOR_BORDER;
-
-	if(flStyle & DW_FCF_BORDER || flStyle & DW_FCF_DLGBORDER)
-		flags |= GDK_DECOR_BORDER;
-
-	if(flStyle & DW_FCF_MAXIMIZE)
-	{
-		flags &= ~DW_FCF_MAXIMIZE;
 #if GTK_MAJOR_VERSION > 1
-		gtk_window_maximize(GTK_WINDOW(tmp));
-#endif
-	}
-	if(flStyle & DW_FCF_MINIMIZE)
+	if(hwndOwner && GTK_IS_MDI(hwndOwner))
 	{
-		flags &= ~DW_FCF_MINIMIZE;
-#if GTK_MAJOR_VERSION > 1
-		gtk_window_iconify(GTK_WINDOW(tmp));
-#endif
+		GtkWidget *label;
+
+		tmp = dw_box_new(DW_VERT, 0);
+
+		label = gtk_label_new(title);
+		gtk_widget_show(label);
+		gtk_object_set_data(GTK_OBJECT(tmp), "_dw_mdi_child", (gpointer)1);
+		gtk_object_set_data(GTK_OBJECT(tmp), "_dw_mdi_title", (gpointer)label);
+
+		gtk_mdi_put(GTK_MDI(hwndOwner), tmp, 100, 75, label);
 	}
+	else
+#endif
+	{
+		last_window = tmp = gtk_window_new(GTK_WINDOW_TOPLEVEL);
 
-	gdk_window_set_decorations(tmp->window, flags);
+		gtk_window_set_title(GTK_WINDOW(tmp), title);
+		if(!(flStyle & DW_FCF_SIZEBORDER))
+			gtk_window_set_policy(GTK_WINDOW(tmp), FALSE, FALSE, TRUE);
 
-	if(hwndOwner)
-		gdk_window_reparent(GTK_WIDGET(tmp)->window, GTK_WIDGET(hwndOwner)->window, 0, 0);
+		gtk_widget_realize(tmp);
 
-	if(flStyle & DW_FCF_SIZEBORDER)
-		gtk_object_set_data(GTK_OBJECT(tmp), "_dw_size", (gpointer)1);
+		if(flStyle & DW_FCF_TITLEBAR)
+			flags |= GDK_DECOR_TITLE;
 
+		if(flStyle & DW_FCF_MINMAX)
+			flags |= GDK_DECOR_MINIMIZE | GDK_DECOR_MAXIMIZE;
+
+		if(flStyle & DW_FCF_SIZEBORDER)
+			flags |= GDK_DECOR_RESIZEH | GDK_DECOR_BORDER;
+
+		if(flStyle & DW_FCF_BORDER || flStyle & DW_FCF_DLGBORDER)
+			flags |= GDK_DECOR_BORDER;
+
+		if(flStyle & DW_FCF_MAXIMIZE)
+		{
+			flags &= ~DW_FCF_MAXIMIZE;
+#if GTK_MAJOR_VERSION > 1
+			gtk_window_maximize(GTK_WINDOW(tmp));
+#endif
+		}
+		if(flStyle & DW_FCF_MINIMIZE)
+		{
+			flags &= ~DW_FCF_MINIMIZE;
+#if GTK_MAJOR_VERSION > 1
+			gtk_window_iconify(GTK_WINDOW(tmp));
+#endif
+		}
+
+		gdk_window_set_decorations(tmp->window, flags);
+
+		if(hwndOwner)
+			gdk_window_reparent(GTK_WIDGET(tmp)->window, GTK_WIDGET(hwndOwner)->window, 0, 0);
+
+		if(flStyle & DW_FCF_SIZEBORDER)
+			gtk_object_set_data(GTK_OBJECT(tmp), "_dw_size", (gpointer)1);
+	}
+	gtk_object_set_data(GTK_OBJECT(tmp), "_dw_style", (gpointer)flStyle);
 	DW_MUTEX_UNLOCK;
 	return tmp;
 }
@@ -1961,7 +2849,12 @@ HWND dw_mdi_new(unsigned long id)
 	int _locked_by_me = FALSE;
 
 	DW_MUTEX_LOCK;
+#if GTK_MAJOR_VERSION > 1
+	tmp = gtk_mdi_new();
+#else
 	tmp = gtk_vbox_new(FALSE, 0);
+#endif
+	gtk_widget_show(tmp);
 	DW_MUTEX_UNLOCK;
 	return tmp;
 }
