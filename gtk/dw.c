@@ -53,6 +53,8 @@ GdkColor _background = { 0, 0xaaaa, 0xaaaa, 0xaaaa };
 int _dw_file_active = 0, _dw_ignore_click = 0;
 pthread_t _dw_thread = (pthread_t)-1;
 int _dw_mutex_locked = FALSE;
+/* Use default border size for the default enlightenment theme */
+int _dw_border_width = 12, _dw_border_height = 28;
 
 #define  DW_MUTEX_LOCK { if(pthread_self() != _dw_thread && _dw_mutex_locked == FALSE) { gdk_threads_enter(); _dw_mutex_locked = TRUE; _locked_by_me = TRUE;  } }
 #define  DW_MUTEX_UNLOCK { if(pthread_self() != _dw_thread && _locked_by_me == TRUE) { gdk_threads_leave(); _dw_mutex_locked = FALSE; _locked_by_me = FALSE; } }
@@ -83,6 +85,8 @@ void _item_select_event(GtkWidget *widget, GtkWidget *child, gpointer data);
 void _expose_event(GtkWidget *widget, GdkEventExpose *event, gpointer data);
 void _set_focus_event(GtkWindow *window, GtkWidget *widget, gpointer data);
 void _tree_select_event(GtkTree *tree, GtkWidget *child, gpointer data);
+
+void msleep(long period);
 
 typedef struct
 {
@@ -469,6 +473,7 @@ void _size_allocate(GtkWindow *window)
 int dw_int_init(DWResources *res, int newthread, int argc, char *argv[])
 {
 	int z;
+	char *tmp;
 
 	if(res)
 	{
@@ -487,6 +492,14 @@ int dw_int_init(DWResources *res, int newthread, int argc, char *argv[])
 	_dw_cmap = gdk_colormap_get_system();
 	for(z=0;z<16;z++)
 		gdk_color_alloc(_dw_cmap, &_colors[z]);
+
+	tmp = getenv("DW_BORDER_WIDTH");
+	if(tmp)
+		_dw_border_width = atoi(tmp);
+	tmp = getenv("DW_BORDER_HEIGHT");
+	if(tmp)
+		_dw_border_height = atoi(tmp);
+
 	return TRUE;
 }
 
@@ -503,6 +516,31 @@ void dw_main(HAB currenthab, void *func)
 	gdk_threads_enter();
 	gtk_main();
 	gdk_threads_leave();
+}
+
+/*
+ * Runs a message loop for Dynamic Windows, for a period of seconds.
+ * Parameters:
+ *           seconds: Number of seconds to run the loop for.
+ */
+void dw_main_sleep(int seconds)
+{
+	time_t start = time(NULL);
+
+	if(_dw_thread == (pthread_t)-1 || _dw_thread == pthread_self())
+	{
+		while(time(NULL) - start <= seconds)
+		{
+			gdk_threads_enter();
+			if(gtk_events_pending())
+				gtk_main_iteration();
+			else
+				msleep(1);
+			gdk_threads_leave();
+		}
+	}
+	else
+		msleep(seconds * 1000);
 }
 
 /*
@@ -998,7 +1036,7 @@ void dw_window_capture(HWND handle)
 	int _locked_by_me = FALSE;
 
 	DW_MUTEX_LOCK;
-	gdk_pointer_grab(handle->window, TRUE, GDK_BUTTON_RELEASE_MASK | GDK_BUTTON_PRESS_MASK | GDK_POINTER_MOTION_MASK, NULL, NULL, GDK_CURRENT_TIME);
+	gdk_pointer_grab(handle->window, TRUE, GDK_BUTTON_RELEASE_MASK | GDK_BUTTON_PRESS_MASK | GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK, NULL, NULL, GDK_CURRENT_TIME);
 	DW_MUTEX_UNLOCK;
 }
 
@@ -1100,7 +1138,22 @@ HWND dw_box_new(int type, int pad)
  */
 HWND dw_groupbox_new(int type, int pad, char *title)
 {
-	return dw_box_new(type, pad);
+	GtkWidget *tmp, *frame;
+	int _locked_by_me = FALSE;
+
+	DW_MUTEX_LOCK;
+	frame = gtk_frame_new(NULL);
+	gtk_frame_set_shadow_type(GTK_FRAME(frame), GTK_SHADOW_ETCHED_IN);
+	gtk_frame_set_label(GTK_FRAME(frame), title && *title ? title : NULL);
+	tmp = gtk_table_new(1, 1, FALSE);
+	gtk_object_set_data(GTK_OBJECT(tmp), "boxtype", (gpointer)type);
+	gtk_object_set_data(GTK_OBJECT(tmp), "boxpad", (gpointer)pad);
+	gtk_object_set_data(GTK_OBJECT(frame), "boxhandle", (gpointer)tmp);
+	gtk_container_add(GTK_CONTAINER(frame), tmp);
+	gtk_widget_show(tmp);
+	gtk_widget_show(frame);
+	DW_MUTEX_UNLOCK;
+	return frame;
 }
 
 /*
@@ -1535,6 +1588,7 @@ HWND dw_text_new(char *text, unsigned long id)
 	gtk_misc_set_alignment(GTK_MISC(tmp), 0.0f, 0.5f);
 	gtk_widget_show(tmp);
 	gtk_object_set_data(GTK_OBJECT(tmp), "id", (gpointer)id);
+	gtk_misc_set_alignment(GTK_MISC(tmp), DW_LEFT, DW_LEFT);
 	DW_MUTEX_UNLOCK;
 	return tmp;
 }
@@ -3612,11 +3666,15 @@ void dw_exit(int exitcode)
 void dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, int vsize, int pad)
 {
 	int _locked_by_me = FALSE;
+	GtkWidget *tmp;
 
 	if(!box)
 		return;
 
 	DW_MUTEX_LOCK;
+
+	if((tmp  = gtk_object_get_data(GTK_OBJECT(box), "boxhandle")))
+		box = tmp;
 
 	if(!item)
 	{
@@ -3771,7 +3829,7 @@ void dw_window_set_pos_size(HWND handle, unsigned long x, unsigned long y, unsig
 		_size_allocate(GTK_WINDOW(handle));
 
 		gtk_widget_set_uposition(handle, x, y);
-		gtk_window_set_default_size(GTK_WINDOW(handle), width, height);
+		gtk_window_set_default_size(GTK_WINDOW(handle), width - _dw_border_width, height - _dw_border_height);
 	}
 	else if(handle && handle->window)
 	{
@@ -3805,10 +3863,20 @@ void dw_window_get_pos_size(HWND handle, ULONG *x, ULONG *y, ULONG *width, ULONG
 			*x = gx;
 		if(y)
 			*y = gy;
-		if(width)
-			*width = gwidth;
-		if(height)
-			*height = gheight;
+		if(GTK_IS_WINDOW(handle))
+		{
+			if(width)
+				*width = gwidth + _dw_border_width;
+			if(height)
+				*height = gheight + _dw_border_height;
+		}
+		else
+		{
+			if(width)
+				*width = gwidth;
+			if(height)
+				*height = gheight;
+		}
 		DW_MUTEX_UNLOCK;
 	}
 }
@@ -3841,17 +3909,22 @@ void dw_window_set_style(HWND handle, unsigned long style, unsigned long mask)
 	}
 	if(GTK_IS_LABEL(handle2))
 	{
-		gfloat x, y;
+		if(style & DW_DT_CENTER || style & DW_DT_VCENTER)
+		{
+			gfloat x, y;
 
-		x = y = DW_LEFT;
+			x = y = DW_LEFT;
 
-		if(style & DW_DT_CENTER)
-			x = DW_CENTER;
+			if(style & DW_DT_CENTER)
+				x = DW_CENTER;
 
-		if(style & DW_DT_VCENTER)
-			y = DW_CENTER;
+			if(style & DW_DT_VCENTER)
+				y = DW_CENTER;
 
-		gtk_misc_set_alignment(GTK_MISC(handle2), x, y);
+			gtk_misc_set_alignment(GTK_MISC(handle2), x, y);
+		}
+		if(style & DW_DT_WORDBREAK)
+			gtk_label_set_line_wrap(GTK_LABEL(handle), TRUE);
 	}
 	DW_MUTEX_UNLOCK;
 }
@@ -4429,11 +4502,15 @@ void dw_box_pack_splitbar_end(HWND box)
 void dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize, int vsize, int pad)
 {
 	int _locked_by_me = FALSE;
+	GtkWidget *tmp;
 
 	if(!box)
 		return;
 
 	DW_MUTEX_LOCK;
+
+	if((tmp  = gtk_object_get_data(GTK_OBJECT(box), "boxhandle")))
+		box = tmp;
 
 	if(!item)
 	{
@@ -4738,7 +4815,12 @@ char *dw_user_dir(void)
  */
 void dw_window_function(HWND handle, void *function, void *data)
 {
-    /* TODO */
+	void (* windowfunc)(void *);
+
+	windowfunc = function;
+
+	if(windowfunc)
+		windowfunc(data);
 }
 
 #ifndef NO_SIGNALS
@@ -4788,7 +4870,7 @@ void dw_signal_connect(HWND window, char *signame, void *sigfunc, void *data)
 	{
 		thisname = "select_child";
 	}
-	else if(GTK_IS_WINDOW(thiswindow) && strcmp(signame, "set-focus") == 0)
+	else if(strcmp(signame, "set-focus") == 0)
 	{
 		thisname = "focus-in-event";
 	}

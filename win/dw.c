@@ -14,6 +14,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <process.h>
+#include <time.h>
 #include "dw.h"
 
 /* this is the callback handle for the window procedure */
@@ -1350,6 +1351,67 @@ BOOL CALLBACK _framewndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 	case WM_NOTIFY:
 		_wndproc(hWnd, msg, mp1, mp2);
 		break;
+#if 0
+	case WM_ERASEBKGND:
+		{
+			ColorInfo *thiscinfo = (ColorInfo *)GetWindowLong(hWnd, GWL_USERDATA);
+
+			if(thiscinfo && thiscinfo->fore != -1 && thiscinfo->back != -1)
+				return FALSE;
+		}
+		break;
+#endif
+	case WM_PAINT:
+		{
+			ColorInfo *thiscinfo = (ColorInfo *)GetWindowLong(hWnd, GWL_USERDATA);
+
+			if(thiscinfo && thiscinfo->fore != -1 && thiscinfo->back != -1)
+			{
+				PAINTSTRUCT ps;
+				HDC hdcPaint = BeginPaint(hWnd, &ps);
+				int success = FALSE;
+
+				if(thiscinfo->fore > -1 && thiscinfo->back > -1 &&
+				   thiscinfo->fore < 18 && thiscinfo->back < 18)
+				{
+					SetTextColor((HDC)mp1, RGB(_red[thiscinfo->fore],
+											   _green[thiscinfo->fore],
+											   _blue[thiscinfo->fore]));
+					SetBkColor((HDC)mp1, RGB(_red[thiscinfo->back],
+											 _green[thiscinfo->back],
+											 _blue[thiscinfo->back]));
+					DeleteObject(thiscinfo->hbrush);
+					thiscinfo->hbrush = CreateSolidBrush(RGB(_red[thiscinfo->back],
+															 _green[thiscinfo->back],
+															 _blue[thiscinfo->back]));
+					SelectObject(hdcPaint, thiscinfo->hbrush);
+					Rectangle(hdcPaint, ps.rcPaint.left - 1, ps.rcPaint.top - 1, ps.rcPaint.right + 1, ps.rcPaint.bottom + 1);
+					success = TRUE;
+				}
+				if((thiscinfo->fore & DW_RGB_COLOR) == DW_RGB_COLOR && (thiscinfo->back & DW_RGB_COLOR) == DW_RGB_COLOR)
+				{
+					SetTextColor((HDC)mp1, RGB(DW_RED_VALUE(thiscinfo->fore),
+											   DW_GREEN_VALUE(thiscinfo->fore),
+											   DW_BLUE_VALUE(thiscinfo->fore)));
+					SetBkColor((HDC)mp1, RGB(DW_RED_VALUE(thiscinfo->back),
+											 DW_GREEN_VALUE(thiscinfo->back),
+											 DW_BLUE_VALUE(thiscinfo->back)));
+					DeleteObject(thiscinfo->hbrush);
+					thiscinfo->hbrush = CreateSolidBrush(RGB(DW_RED_VALUE(thiscinfo->back),
+															 DW_GREEN_VALUE(thiscinfo->back),
+															 DW_BLUE_VALUE(thiscinfo->back)));
+					SelectObject(hdcPaint, thiscinfo->hbrush);
+					Rectangle(hdcPaint, ps.rcPaint.left, ps.rcPaint.top, ps.rcPaint.right, ps.rcPaint.bottom);
+					success = TRUE;
+				}
+
+				EndPaint(hWnd, &ps);
+				if(success)
+					return FALSE;
+			}
+
+		}
+		break;
 	}
 	return DefWindowProc(hWnd, msg, mp1, mp2);
 }
@@ -1448,6 +1510,9 @@ BOOL CALLBACK _colorwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 	{
 		switch( msg )
 		{
+		case WM_SETFOCUS:
+			_wndproc(hWnd, msg, mp1, mp2);
+			break;
 		case WM_CHAR:
 			if(LOWORD(mp1) == '\t')
 			{
@@ -1969,6 +2034,9 @@ BOOL CALLBACK _BtProc(HWND hwnd, ULONG msg, WPARAM mp1, LPARAM mp2)
 	switch(msg)
 	{
 #ifndef NO_SIGNALS
+	case WM_SETFOCUS:
+		_wndproc(hwnd, msg, mp1, mp2);
+		break;
 	case WM_LBUTTONUP:
 		{
 			SignalHandler *tmp = Root;
@@ -2309,7 +2377,8 @@ void dw_main(HAB currenthab, void *func)
 	/* Setup the filter function */
 	filterfunc = func;
 
-	while (GetMessage(&msg,NULL,0,0)) {
+	while (GetMessage(&msg, NULL, 0, 0))
+	{
 		TranslateMessage(&msg);
 		DispatchMessage(&msg);
 	}
@@ -2317,6 +2386,29 @@ void dw_main(HAB currenthab, void *func)
 #ifdef DWDEBUG
 	fclose(f);
 #endif
+}
+
+/*
+ * Runs a message loop for Dynamic Windows, for a period of seconds.
+ * Parameters:
+ *           seconds: Number of seconds to run the loop for.
+ */
+void dw_main_sleep(int seconds)
+{
+	MSG msg;
+	time_t start = time(NULL);
+
+	while(time(NULL) - start <= seconds)
+	{
+		if(PeekMessage(&msg, NULL, 0, 0, PM_NOREMOVE))
+		{
+			GetMessage(&msg, NULL, 0, 0);
+			TranslateMessage(&msg);
+			DispatchMessage(&msg);
+		}
+		else
+			Sleep(1);
+	}
 }
 
 /*
@@ -2564,9 +2656,6 @@ int dw_window_set_color(HWND handle, ULONG fore, ULONG back)
 	cinfo = (ColorInfo *)GetWindowLong(handle, GWL_USERDATA);
 
 	GetClassName(handle, tmpbuf, 99);
-
-	if(strnicmp(tmpbuf, FRAMECLASSNAME, strlen(FRAMECLASSNAME))==0)
-        return FALSE;
 
 	if(strnicmp(tmpbuf, WC_LISTVIEW, strlen(WC_LISTVIEW))==0)
 	{
@@ -4162,21 +4251,29 @@ void dw_listbox_set_top(HWND handle, int top)
  */
 unsigned int dw_mle_import(HWND handle, char *buffer, int startpoint)
 {
-	char *tmpbuf = malloc(MLE_MAX+1);
+	char *tmpbuf = calloc(1, MLE_MAX+1);
 	int len;
+
+	if(strlen(buffer) < 1)
+		return startpoint;
+
+	startpoint++;
 
 	if(startpoint < 0)
 		startpoint = 0;
 
 	GetWindowText(handle, tmpbuf, MLE_MAX);
-	tmpbuf[MLE_MAX] = 0;
 
 	len = strlen(tmpbuf);
-    if(len)
-		memcpy(&tmpbuf[startpoint+strlen(buffer)], &tmpbuf[startpoint], (len-startpoint));
-	memcpy(&tmpbuf[startpoint], buffer, strlen(buffer));
+	if(len)
+	{
+		char *dest = &tmpbuf[startpoint+strlen(buffer)-1], *start = &tmpbuf[startpoint];
+		int copylen = len - startpoint;
 
-	tmpbuf[len+strlen(buffer)] = 0;
+		if(copylen > 0)
+			memcpy(dest, start, copylen);
+	}
+	memcpy(&tmpbuf[startpoint], buffer, strlen(buffer));
 
 	SetWindowText(handle, tmpbuf);
 
@@ -5830,6 +5927,9 @@ void dw_signal_connect(HWND window, char *signame, void *sigfunc, void *data)
 
 	if(window && signame && sigfunc)
 	{
+		if(stricmp(signame, "set-focus") == 0)
+			window = _normalize_handle(window);
+
 		if((message = _findsigmessage(signame)) != 0)
 			_new_signal(message, window, sigfunc, data);
 	}
