@@ -4978,6 +4978,16 @@ void API dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, 
 {
 	Box *thisbox;
 
+		/*
+		 * If you try and pack an item into itself VERY bad things can happen; like at least an
+		 * infinite loop on GTK! Lets be safe!
+		 */
+	if(box == item)
+	{
+		dw_messagebox("dw_box_pack_end()", DW_MB_OK|DW_MB_ERROR, "Danger! Danger! Will Robinson; box and item are the same!",box,item);
+		return;
+	}
+
 	if(WinWindowFromID(box, FID_CLIENT))
 	{
 		box = WinWindowFromID(box, FID_CLIENT);
@@ -7623,6 +7633,16 @@ float API dw_splitbar_get(HWND handle)
 void API dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize, int vsize, int pad)
 {
 	Box *thisbox;
+
+		/*
+		 * If you try and pack an item into itself VERY bad things can happen; like at least an
+		 * infinite loop on GTK! Lets be safe!
+		 */
+	if(box == item)
+	{
+		dw_messagebox("dw_box_pack_start()", DW_MB_OK|DW_MB_ERROR, "Danger! Danger! Will Robinson; box and item are the same!",box,item);
+		return;
+	}
 
 	if(WinWindowFromID(box, FID_CLIENT))
 	{
