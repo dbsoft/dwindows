@@ -133,9 +133,9 @@ int DWSIGNAL beep_callback(HWND window, void *data)
 	return TRUE;
 }
 
-int DWSIGNAL keypress_callback(HWND window, char *text, void *data)
+int DWSIGNAL keypress_callback(HWND window, char ch, int vk, int state, void *data)
 {
-	fprintf(stderr,"got keypress\n");
+	fprintf(stderr,"got keypress %c %d %d\n", ch, vk, state);
 	return 0;
 }
 
