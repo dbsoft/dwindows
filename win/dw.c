@@ -5387,7 +5387,7 @@ int dw_container_setup(HWND handle, unsigned long *flags, char **titles, int cou
 	memcpy(&tempflags[l], flags, sizeof(unsigned long) * count);
 	tempflags[count + l] = 0;
 	cinfo->flags = tempflags;
-	cinfo->columns = count;
+	cinfo->columns = count + l;
 
 
 	for(z=0;z<count;z++)
@@ -5913,7 +5913,7 @@ void dw_container_optimize(HWND handle)
 
 		/* Set the new sizes */
 		for(z=0;z<cinfo->columns;z++)
-			ListView_SetColumnWidth(handle, z, columns[z] + 15);
+			ListView_SetColumnWidth(handle, z, columns[z] + 16);
 
 		free(columns);
 		free(text);
