@@ -446,9 +446,16 @@ void _select_row(GtkWidget *widget, gint row, gint column, GdkEventButton *event
 {
 	GList *tmp = (GList *)gtk_object_get_data(GTK_OBJECT(widget), "selectlist");
 	char *rowdata = gtk_clist_get_row_data(GTK_CLIST(widget), row);
+	int multi = (int)gtk_object_get_data(GTK_OBJECT(widget), "multi");
 
 	if(rowdata)
 	{
+		if(!multi)
+		{
+			g_list_free(tmp);
+			tmp = NULL;
+		}
+
 		tmp = g_list_append(tmp, rowdata);
 		gtk_object_set_data(GTK_OBJECT(widget), "selectlist", tmp);
 	}
@@ -3683,26 +3690,35 @@ char *dw_container_query_start(HWND handle, unsigned long flags)
 		return NULL;
 	}
 
-	/* If there is an old query list, free it */
-	list = (GList *)gtk_object_get_data(GTK_OBJECT(clist), "querylist");
-	if(list)
-		g_list_free(list);
-
-	/* Move the current selection list to the query list, and remove the
-	 * current selection list.
-	 */
-	list = (GList *)gtk_object_get_data(GTK_OBJECT(clist), "selectlist");
-	gtk_object_set_data(GTK_OBJECT(clist), "selectlist", NULL);
-	gtk_object_set_data(GTK_OBJECT(clist), "querylist", (gpointer)list);
-	gtk_clist_unselect_all(GTK_CLIST(clist));
-
-	if(list)
+	/* These should be separate but right now this will work */
+	if(flags & DW_CRA_SELECTED || flags & DW_CRA_CURSORED)
 	{
+		/* If there is an old query list, free it */
+		list = (GList *)gtk_object_get_data(GTK_OBJECT(clist), "querylist");
+		if(list)
+			g_list_free(list);
+
+		/* Move the current selection list to the query list, and remove the
+		 * current selection list.
+		 */
+		list = (GList *)gtk_object_get_data(GTK_OBJECT(clist), "selectlist");
+		gtk_object_set_data(GTK_OBJECT(clist), "selectlist", NULL);
+		gtk_object_set_data(GTK_OBJECT(clist), "querylist", (gpointer)list);
+		gtk_clist_unselect_all(GTK_CLIST(clist));
+
+		if(list)
+		{
+			gtk_object_set_data(GTK_OBJECT(clist), "querypos", (gpointer)1);
+			if(list->data)
+				retval =  list->data;
+			else
+				retval = "";
+		}
+	}
+	else
+	{
+		retval = (char *)gtk_clist_get_row_data(GTK_CLIST(clist), 0);
 		gtk_object_set_data(GTK_OBJECT(clist), "querypos", (gpointer)1);
-		if(list->data)
-			retval =  list->data;
-		else
-			retval = "";
 	}
 	DW_MUTEX_UNLOCK;
 	return retval;
@@ -3732,26 +3748,107 @@ char *dw_container_query_next(HWND handle, unsigned long flags)
 		return NULL;
 	}
 
-	list = (GList *)gtk_object_get_data(GTK_OBJECT(clist), "querylist");
-
-	if(list)
+	/* These should be separate but right now this will work */
+	if(flags & DW_CRA_SELECTED || flags & DW_CRA_CURSORED)
 	{
-		int counter = 0, pos = (int)gtk_object_get_data(GTK_OBJECT(clist), "querypos");
-		gtk_object_set_data(GTK_OBJECT(clist), "querypos", (gpointer)pos+1);
+		list = (GList *)gtk_object_get_data(GTK_OBJECT(clist), "querylist");
 
-		while(list && counter < pos)
+		if(list)
 		{
-			list = list->next;
-			counter++;
-		}
+			int counter = 0, pos = (int)gtk_object_get_data(GTK_OBJECT(clist), "querypos");
+			gtk_object_set_data(GTK_OBJECT(clist), "querypos", (gpointer)pos+1);
 
-		if(list && list->data)
-			retval = list->data;
-		else if(list && !list->data)
-			retval = "";
+			while(list && counter < pos)
+			{
+				list = list->next;
+				counter++;
+			}
+
+			if(list && list->data)
+				retval = list->data;
+			else if(list && !list->data)
+				retval = "";
+		}
+	}
+	else
+	{
+		int pos = (int)gtk_object_get_data(GTK_OBJECT(clist), "querypos");
+
+		retval = (char *)gtk_clist_get_row_data(GTK_CLIST(clist), pos);
+		gtk_object_set_data(GTK_OBJECT(clist), "querypos", (gpointer)pos+1);
 	}
 	DW_MUTEX_UNLOCK;
 	return retval;
+}
+
+/*
+ * Cursors the item with the text speficied, and scrolls to that item.
+ * Parameters:
+ *       handle: Handle to the window (widget) to be queried.
+ *       text:  Text usually returned by dw_container_query().
+ */
+void dw_container_cursor(HWND handle, char *text)
+{
+	int _locked_by_me = FALSE;
+	GtkWidget *clist;
+	int rowcount, z;
+	char *rowdata;
+
+	DW_MUTEX_LOCK;
+	clist = (GtkWidget*)gtk_object_get_user_data(GTK_OBJECT(handle));
+
+	if(!clist)
+	{
+		DW_MUTEX_UNLOCK;
+		return;
+	}
+	rowcount = (int)gtk_object_get_data(GTK_OBJECT(clist), "rowcount");
+
+	for(z=0;z<rowcount;z++)
+	{
+		rowdata = gtk_clist_get_row_data(GTK_CLIST(clist), z);
+		if(rowdata == text)
+		{
+			gfloat pos;
+			GtkAdjustment *adj = gtk_clist_get_vadjustment(GTK_CLIST(clist));
+			gtk_clist_select_row(GTK_CLIST(clist), z, 0);
+
+			pos = ((adj->upper - adj->lower) * ((gfloat)z/(gfloat)rowcount)) + adj->lower;
+			gtk_adjustment_set_value(adj, pos);
+			DW_MUTEX_UNLOCK;
+			return;
+		}
+	}
+
+	DW_MUTEX_UNLOCK;
+}
+
+/*
+ * Optimizes the column widths so that all data is visible.
+ * Parameters:
+ *       handle: Handle to the window (widget) to be optimized.
+ */
+void dw_container_optimize(HWND handle)
+{
+	int _locked_by_me = FALSE;
+	GtkWidget *clist;
+	int colcount, z;
+
+	DW_MUTEX_LOCK;
+	clist = (GtkWidget*)gtk_object_get_user_data(GTK_OBJECT(handle));
+
+	if(!clist)
+	{
+		DW_MUTEX_UNLOCK;
+		return;
+	}
+	colcount = (int)gtk_object_get_data(GTK_OBJECT(clist), "colcount");
+	for(z=0;z<colcount;z++)
+	{
+		int width = gtk_clist_optimal_column_width(GTK_CLIST(clist), z);
+		gtk_clist_set_column_width(GTK_CLIST(clist), z, width);
+	}
+	DW_MUTEX_UNLOCK;
 }
 
 /*
@@ -4645,9 +4742,15 @@ void dw_window_set_style(HWND handle, unsigned long style, unsigned long mask)
 	if(GTK_IS_CLIST(handle2))
 	{
 		if(style & DW_CCS_EXTENDSEL)
+		{
 			gtk_clist_set_selection_mode(GTK_CLIST(handle2), GTK_SELECTION_MULTIPLE);
+			gtk_object_set_data(GTK_OBJECT(handle2), "multi", (gpointer)1);
+		}
 		if(style & DW_CCS_SINGLESEL)
+		{
 			gtk_clist_set_selection_mode(GTK_CLIST(handle2), GTK_SELECTION_SINGLE);
+			gtk_object_set_data(GTK_OBJECT(handle2), "multi", (gpointer)0);
+		}
 	}
 	if(GTK_IS_LABEL(handle2))
 	{
