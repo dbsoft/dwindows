@@ -587,6 +587,22 @@ static gint _container_select_event(GtkWidget *widget, GdkEventButton *event, gp
 	return retval;
 }
 
+static gint _container_enter_event(GtkWidget *widget, GdkEventKey *event, gpointer data)
+{
+	SignalHandler work = _get_signal_handler(widget, data);
+	int retval = FALSE;
+
+	if(work.window && event->keyval == VK_RETURN)
+	{
+		int (*contextfunc)(HWND, char *, void *) = work.func;
+		char *text;
+
+		text = (char *)gtk_clist_get_row_data(GTK_CLIST(widget), GTK_CLIST(widget)->focus_row);
+		retval = contextfunc(work.window, text, work.data);
+	}
+	return retval;
+}
+
 /* Return the logical page id from the physical page id */
 int _get_logical_page(HWND handle, unsigned long pageid)
 {
@@ -4960,7 +4976,7 @@ char *dw_container_query_start(HWND handle, unsigned long flags)
 	}
 
 	/* These should be separate but right now this will work */
-	if(flags & DW_CRA_SELECTED || flags & DW_CRA_CURSORED)
+	if(flags & DW_CRA_SELECTED)
 	{
 		list = GTK_CLIST(clist)->selection;
 
@@ -4969,6 +4985,10 @@ char *dw_container_query_start(HWND handle, unsigned long flags)
 			gtk_object_set_data(GTK_OBJECT(clist), "_dw_querypos", (gpointer)1);
 			retval = (char *)gtk_clist_get_row_data(GTK_CLIST(clist), GPOINTER_TO_UINT(list->data));
 		}
+	}
+	else if(flags & DW_CRA_CURSORED)
+	{
+		retval = (char *)gtk_clist_get_row_data(GTK_CLIST(clist), GTK_CLIST(clist)->focus_row);
 	}
 	else
 	{
@@ -5004,7 +5024,7 @@ char *dw_container_query_next(HWND handle, unsigned long flags)
 	}
 
 	/* These should be separate but right now this will work */
-	if(flags & DW_CRA_SELECTED || flags & DW_CRA_CURSORED)
+	if(flags & DW_CRA_SELECTED)
 	{
 		list = GTK_CLIST(clist)->selection;
 
@@ -5022,6 +5042,13 @@ char *dw_container_query_next(HWND handle, unsigned long flags)
 			if(list)
 				retval = (char *)gtk_clist_get_row_data(GTK_CLIST(clist), GPOINTER_TO_UINT(list->data));
 		}
+	}
+	else if(flags & DW_CRA_CURSORED)
+	{
+		/* There will only be one item cursored,
+		 * retrieve it with dw_container_query_start()
+		 */
+		retval = NULL;
 	}
 	else
 	{
@@ -7696,6 +7723,9 @@ void dw_signal_connect(HWND window, char *signame, void *sigfunc, void *data)
 #endif
 	else if(GTK_IS_CLIST(thiswindow) && strcmp(signame, DW_SIGNAL_ITEM_ENTER) == 0)
 	{
+		gtk_signal_connect(GTK_OBJECT(thiswindow), "key_press_event", GTK_SIGNAL_FUNC(_container_enter_event),
+						   (gpointer)_set_signal_handler(thiswindow, window, sigfunc, data));
+
 		thisname = "button_press_event";
 		thisfunc = _findsigfunc(DW_SIGNAL_ITEM_ENTER);
 	}
