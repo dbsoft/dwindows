@@ -4195,6 +4195,71 @@ HWND API dw_bitmapbutton_new(char *text, ULONG id)
 }
 
 /*
+ * Create a new bitmap button window (widget) to be packed from a file.
+ * Parameters:
+ *       text: Bubble help text to be displayed.
+ *       id: An ID to be used with dw_window_from_id() or 0L.
+ *       filename: Name of the file, omit extention to have
+ *                 DW pick the appropriate file extension.
+ *                 (BMP on OS/2 or Windows, XPM on Unix)
+ */
+HWND dw_bitmapbutton_new_from_file(char *text, unsigned long id, char *filename)
+{
+	HWND tmp;
+	BubbleButton *bubble;
+	HBITMAP hbitmap;
+	char *file = malloc(strlen(filename) + 5);
+
+	if(!file || !(bubble = calloc(1, sizeof(BubbleButton))))
+	{
+		if(file)
+			free(file);
+		return 0;
+	}
+
+	strcpy(file, filename);
+
+	/* check if we can read from this file (it exists and read permission) */
+	if(access(file, 04) != 0)
+	{
+		/* Try with .bmp extention */
+		strcat(file, ".bmp");
+		if(access(file, 04) != 0)
+		{
+			free(bubble);
+			free(file);
+			return 0;
+		}
+	}
+
+	hbitmap = (HBITMAP)LoadImage(NULL, file, IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
+
+	tmp = CreateWindow(BUTTONCLASSNAME,
+					   "",
+					   WS_CHILD | BS_PUSHBUTTON |
+					   BS_BITMAP | WS_CLIPCHILDREN |
+					   WS_VISIBLE,
+					   0,0,2000,1000,
+					   DW_HWND_OBJECT,
+					   (HMENU)id,
+					   DWInstance,
+					   NULL);
+
+	bubble->id = id;
+	strncpy(bubble->bubbletext, text, BUBBLE_HELP_MAX - 1);
+	bubble->bubbletext[BUBBLE_HELP_MAX - 1] = '\0';
+	bubble->pOldProc = (WNDPROC)SubclassWindow(tmp, _BtProc);
+
+	SetWindowLong(tmp, GWL_USERDATA, (ULONG)bubble);
+
+	SendMessage(tmp, BM_SETIMAGE,
+				(WPARAM) IMAGE_BITMAP,
+				(LPARAM) hbitmap);
+	free(file);
+	return tmp;
+}
+
+/*
  * Create a new spinbutton window (widget) to be packed.
  * Parameters:
  *       text: The text to be display by the static text widget.
