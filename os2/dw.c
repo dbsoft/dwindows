@@ -1871,7 +1871,7 @@ MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 	if(msg == WM_BUTTON2UP || msg == WM_BUTTON3UP)
 		msg = WM_BUTTON1UP;
 	if(msg == WM_VSCROLL || msg == WM_HSCROLL)
-		msg = SLN_SLIDERTRACK;
+		msg = WM_CONTROL;
 
 	/* Find any callbacks for this function */
 	while(tmp)
@@ -2050,9 +2050,14 @@ MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 				}
 				break;
 			case WM_CONTROL:
-				if(tmp->message == SHORT2FROMMP(mp1) || (tmp->message == SLN_SLIDERTRACK && SHORT2FROMMP(mp1) == SLN_CHANGE))
+				if(origmsg == WM_VSCROLL || origmsg == WM_HSCROLL || tmp->message == SHORT2FROMMP(mp1) ||
+				   (tmp->message == SLN_SLIDERTRACK && SHORT2FROMMP(mp1) == SLN_CHANGE))
 				{
-					switch(SHORT2FROMMP(mp1))
+					int svar = SLN_SLIDERTRACK;
+					if(origmsg == WM_CONTROL)
+						svar = SHORT2FROMMP(mp1);
+
+					switch(svar)
 					{
 					case CN_ENTER:
 						{
@@ -2242,7 +2247,7 @@ MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 						{
 							int (* API valuechangedfunc)(HWND, int, void *) = (int (* API)(HWND, int, void *))tmp->signalfunction;
 
-							if(origmsg == SLN_SLIDERTRACK)
+							if(origmsg == WM_CONTROL)
 							{
 								/* Handle Slider control */
 								if(tmp->window == hWnd || WinQueryWindow(tmp->window, QW_PARENT) == hWnd)
@@ -2263,11 +2268,11 @@ MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 							else
 							{
 								/* Handle scrollbar control */
-								if(tmp->window = hWnd)
+								if(tmp->window > 65535 && tmp->window == WinWindowFromID(hWnd, (ULONG)mp1))
 								{
 									int pos = (int) SHORT1FROMMP(mp2);
 
-									dw_window_set_data(hWnd, "_dw_scrollbar_value", (void *)pos);
+									dw_window_set_data(tmp->window, "_dw_scrollbar_value", (void *)pos);
 									result = valuechangedfunc(tmp->window, pos, tmp->data);
 									tmp = NULL;
 								}
@@ -2295,6 +2300,8 @@ MRESULT EXPENTRY _controlproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 
 	switch(msg)
 	{
+	case WM_VSCROLL:
+	case WM_HSCROLL:
 	case WM_CONTROL:
 		_run_event(hWnd, msg, mp1, mp2);
 		break;
@@ -4327,20 +4334,17 @@ HWND API dw_slider_new(int vertical, int increments, ULONG id)
  */
 HWND API dw_scrollbar_new(int vertical, int increments, ULONG id)
 {
-	HWND tmp;
-
-	tmp = WinCreateWindow(HWND_OBJECT,
-						  WC_SCROLLBAR,
-						  "",
-						  WS_VISIBLE | SBS_AUTOTRACK |
-						  (vertical ? SBS_VERT : SBS_HORZ),
-						  0,0,2000,1000,
-						  NULLHANDLE,
-						  HWND_TOP,
-						  id,
-						  NULL,
-						  NULL);
-	return tmp;
+	return WinCreateWindow(HWND_OBJECT,
+						   WC_SCROLLBAR,
+						   "",
+						   WS_VISIBLE | SBS_AUTOTRACK |
+						   (vertical ? SBS_VERT : SBS_HORZ),
+						   0,0,2000,1000,
+						   NULLHANDLE,
+						   HWND_TOP,
+						   id,
+						   NULL,
+						   NULL);
 }
 
 /*
