@@ -42,8 +42,8 @@ HMQ dwhmq = 0;
 DWTID _dwtid = 0;
 LONG _foreground = 0xAAAAAA, _background = 0;
 
-HWND hwndBubble = NULLHANDLE, hwndBubbleLast = NULLHANDLE;
-PRECORDCORE pCore = NULL;
+HWND hwndBubble = NULLHANDLE, hwndBubbleLast = NULLHANDLE, hwndEmph = NULLHANDLE;
+PRECORDCORE pCore = NULL, pCoreEmph = NULL;
 ULONG aulBuffer[4];
 HWND lasthcnr = 0, lastitem = 0, popup = 0;
 
@@ -2074,16 +2074,27 @@ MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 
 							if(tmp->window == conthwnd)
 							{
+								int container = (int)dw_window_get_data(tmp->window, "_dw_container");
+
 								if(mp2)
 								{
-									NOTIFYRECORDEMPHASIS pre;
+									if(!container)
+									{
+										NOTIFYRECORDEMPHASIS pre;
 
-									dw_tree_item_select(tmp->window, (HWND)mp2);
-									pre.pRecord = mp2;
-									pre.fEmphasisMask = CRA_CURSORED;
-									pre.hwndCnr = tmp->window;
-									_run_event(hWnd, WM_CONTROL, MPFROM2SHORT(0, CN_EMPHASIS), (MPARAM)&pre);
-									pre.pRecord->flRecordAttr |= CRA_CURSORED;
+										dw_tree_item_select(tmp->window, (HWND)mp2);
+										pre.pRecord = mp2;
+										pre.fEmphasisMask = CRA_CURSORED;
+										pre.hwndCnr = tmp->window;
+										_run_event(hWnd, WM_CONTROL, MPFROM2SHORT(0, CN_EMPHASIS), (MPARAM)&pre);
+										pre.pRecord->flRecordAttr |= CRA_CURSORED;
+									}
+									else
+									{
+										hwndEmph = tmp->window;
+										pCoreEmph = mp2;
+										WinSendMsg(tmp->window, CM_SETRECORDEMPHASIS, mp2, MPFROM2SHORT(TRUE, CRA_SOURCE));
+									}
 								}
 								result = containercontextfunc(tmp->window, text, x, y, tmp->data, user);
 								tmp = NULL;
@@ -2407,6 +2418,12 @@ MRESULT EXPENTRY _wndproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 	case WM_DESTROY:
 		/* Free memory before destroying */
 		_free_window_memory(hWnd);
+		break;
+	case WM_MENUEND:
+		if(hwndEmph && pCoreEmph)
+			WinSendMsg(hwndEmph, CM_SETRECORDEMPHASIS, pCoreEmph, MPFROM2SHORT(FALSE, CRA_SOURCE));
+		hwndEmph = NULLHANDLE;
+		pCoreEmph = NULL;
 		break;
 	}
 
