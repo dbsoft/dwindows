@@ -4753,7 +4753,7 @@ void API dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize
 		if(hsize && !width)
 			width = 1;
 
-		if(strnicmp(tmpbuf, FRAMECLASSNAME, 2)==0)
+		if(strnicmp(tmpbuf, FRAMECLASSNAME, strlen(FRAMECLASSNAME)+1)==0)
 			tmpitem[thisbox->count].type = TYPEBOX;
 		else
 		{
@@ -4787,7 +4787,7 @@ void API dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize
 		thisbox->count++;
 
 		SetParent(item, box);
-		if(strncmp(tmpbuf, UPDOWN_CLASS, strlen(UPDOWN_CLASS))==0)
+		if(strncmp(tmpbuf, UPDOWN_CLASS, strlen(UPDOWN_CLASS)+1)==0)
 		{
 			ColorInfo *cinfo = (ColorInfo *)GetWindowLong(item, GWL_USERDATA);
 
@@ -7552,7 +7552,7 @@ void API dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, 
 		if(hsize && !width)
 			width = 1;
 
-		if(strnicmp(tmpbuf, FRAMECLASSNAME, 2)==0)
+		if(strnicmp(tmpbuf, FRAMECLASSNAME, strlen(FRAMECLASSNAME)+1)==0)
 			tmpitem[0].type = TYPEBOX;
 		else
 		{
@@ -7586,7 +7586,7 @@ void API dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, 
 		thisbox->count++;
 
 		SetParent(item, box);
-		if(strncmp(tmpbuf, UPDOWN_CLASS, strlen(UPDOWN_CLASS))==0)
+		if(strncmp(tmpbuf, UPDOWN_CLASS, strlen(UPDOWN_CLASS)+1)==0)
 		{
 			ColorInfo *cinfo = (ColorInfo *)GetWindowLong(item, GWL_USERDATA);
 
