@@ -697,6 +697,7 @@ void API dw_tree_item_select(HWND handle, HWND item);
 void API dw_tree_set_data(HWND handle, HWND item, void *itemdata);
 int API dw_container_setup(HWND handle, unsigned long *flags, char **titles, int count, int separator);
 unsigned long API dw_icon_load(unsigned long module, unsigned long id);
+unsigned long API dw_icon_load_from_file(char *filename);
 void API dw_icon_free(unsigned long handle);
 void * API dw_container_alloc(HWND handle, int rowcount);
 void API dw_container_set_item(HWND handle, void *pointer, int column, int row, void *data);
