@@ -6698,7 +6698,6 @@ HPIXMAP API dw_pixmap_new_from_file(HWND handle, char *filename)
 	HPIXMAP pixmap;
 	BITMAP bm;
 	HDC hdc;
-	SIZE sz;
 	char *file = malloc(strlen(filename) + 5);
 
 	if (!file || !(pixmap = calloc(1,sizeof(struct _hpixmap))))
@@ -6738,9 +6737,9 @@ HPIXMAP API dw_pixmap_new_from_file(HWND handle, char *filename)
 
 	pixmap->hdc = CreateCompatibleDC(hdc);
 
-	GetBitmapDimensionEx(pixmap->hbm, &sz);
+    GetObject(pixmap->hbm, sizeof(bm), &bm);
 
-	pixmap->width = sz.cx; pixmap->height = sz.cy;
+	pixmap->width = bm.bmWidth; pixmap->height = bm.bmHeight;
 
 	SelectObject(pixmap->hdc, pixmap->hbm);
 
