@@ -2395,6 +2395,7 @@ HWND dw_scrollbar_new(int vertical, int increments, ULONG id)
 	gtk_object_set_data(GTK_OBJECT(tmp), "id", (gpointer)id);
 	DW_MUTEX_UNLOCK;
 	return tmp;
+}
 
 /*
  * Create a new percent bar window (widget) to be packed.
