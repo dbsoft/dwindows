@@ -4487,6 +4487,18 @@ void API dw_window_enable(HWND handle)
 	EnableWindow(handle, TRUE);
 }
 
+static HWND _dw_wfid_hwnd = NULL;
+
+BOOL CALLBACK _wfid(HWND handle, LPARAM lParam)
+{
+	if(GetWindowLong(handle, GWL_ID) == lParam)
+	{
+		_dw_wfid_hwnd = handle;
+		return FALSE;
+	}
+	return TRUE;
+}
+
 /*
  * Gets the child window handle with specified ID.
  * Parameters:
@@ -4495,7 +4507,9 @@ void API dw_window_enable(HWND handle)
  */
 HWND API dw_window_from_id(HWND handle, int id)
 {
-    return 0L;
+	_dw_wfid_hwnd = NULL;
+	EnumChildWindows(handle, _wfid, (LPARAM)id);
+    return _dw_wfid_hwnd;
 }
 /*
  * Pack windows (widgets) into a box from the start (or top).
