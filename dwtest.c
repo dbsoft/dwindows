@@ -92,7 +92,7 @@ void draw_file( int row, int col )
 	char buf[10];
 	int i,y;
 	char *pLine;
-fprintf(stderr,"in draw_file: %d %d\n",row,col);
+
 	if ( current_file )
 	{
 		dw_color_foreground_set(DW_CLR_WHITE);
@@ -155,7 +155,6 @@ int DWSIGNAL browse_callback(HWND window, void *data)
 /* Callback to handle user selection of the scrollbar position */
 void DWSIGNAL scrollbar_valuechanged(HWND hwnd, int value, void *data)
 {
-fprintf(stderr,"scrollbar_valuechanged: value %d data %d, %s\n",value,data,(hwnd == vscrollbar) ? "vert" : "horz");
 	if(data)
 	{
 		HWND stext = (HWND)data;
