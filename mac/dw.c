@@ -965,7 +965,10 @@ HWND API dw_window_new(HWND hwndOwner, char *title, ULONG flStyle)
  */
 HWND API dw_box_new(int type, int pad)
 {
-	return 0;
+        ControlRef hwnd = NewControl(CreationWindow, NULL, "\p",
+                    true, kControlSupportsEmbedding | kControlHasSpecialBackground, 
+                    0, 1, kControlUserPaneProc, (SInt32) 0);
+        return (HWND)hwnd;
 }
 
 /*
@@ -1148,7 +1151,7 @@ HWND API dw_text_new(char *text, ULONG id)
 	HWND hwnd = 0;
 	CFStringRef cftext = CFStringCreateWithCString(NULL, text, kCFStringEncodingDOSLatinUS);
 	CreateStaticTextControl (CreationWindow, &CreationRect, cftext, NULL, &hwnd);
-    CFRelease(cftext);
+        CFRelease(cftext);
 	return hwnd;
 }
 
@@ -1313,7 +1316,7 @@ HWND API dw_slider_new(int vertical, int increments, ULONG id)
 HWND API dw_scrollbar_new(int vertical, ULONG id)
 {
 	HWND hwnd;
-	CreateScrollBarControl(CreationWindow, &CreationRect, 0, 0, increments, increments, FALSE, 0, &hwnd);
+	CreateScrollBarControl(CreationWindow, &CreationRect, 0, 0, 100, 100, FALSE, 0, &hwnd);
 	return hwnd;
 }
 
