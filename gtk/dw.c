@@ -595,7 +595,6 @@ static void gtk_mdi_remove(GtkMdi *mdi, GtkWidget *widget)
 	g_return_if_fail (GTK_IS_MDI (mdi));
 	child = get_child (mdi, widget);
 	g_return_if_fail (child);
-	g_return_if_fail (GTK_IS_WIDGET (child));
 	gtk_mdi_remove_true (GTK_CONTAINER (mdi), child->widget);
 }
 
@@ -2251,14 +2250,24 @@ int dw_messagebox(char *title, int flags, char *format, ...)
 int dw_window_minimize(HWND handle)
 {
 	int _locked_by_me = FALSE;
+	GtkWidget *mdi = NULL;
 
 	if(!handle)
 		return 0;
 
 	DW_MUTEX_LOCK;
-	XIconifyWindow(GDK_WINDOW_XDISPLAY(GTK_WIDGET(handle)->window),
-				   GDK_WINDOW_XWINDOW(GTK_WIDGET(handle)->window),
-				   DefaultScreen (GDK_DISPLAY ()));
+#if GTK_MAJOR_VERSION > 1
+	if((mdi = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(handle), "_dw_mdi")) && GTK_IS_MDI(mdi))
+	{
+		gtk_mdi_set_state(GTK_MDI(mdi), handle, CHILD_ICONIFIED);
+	}
+	else
+#endif
+	{
+		XIconifyWindow(GDK_WINDOW_XDISPLAY(GTK_WIDGET(handle)->window),
+					   GDK_WINDOW_XWINDOW(GTK_WIDGET(handle)->window),
+					   DefaultScreen (GDK_DISPLAY ()));
+	}
 	DW_MUTEX_UNLOCK;
 	return 0;
 }
@@ -2307,33 +2316,42 @@ int dw_window_lower(HWND handle)
 int dw_window_show(HWND handle)
 {
 	int _locked_by_me = FALSE;
-	GtkWidget *defaultitem;
+	GtkWidget *defaultitem, *mdi;
 
 	if(!handle)
 		return 0;
 
 	DW_MUTEX_LOCK;
 	gtk_widget_show(handle);
-	if(GTK_WIDGET(handle)->window)
+#if GTK_MAJOR_VERSION > 1
+	if((mdi = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(handle), "_dw_mdi")) && GTK_IS_MDI(mdi))
 	{
-		int width = (int)gtk_object_get_data(GTK_OBJECT(handle), "_dw_width");
-		int height = (int)gtk_object_get_data(GTK_OBJECT(handle), "_dw_height");
-
-		if(width && height)
-		{
-			gtk_widget_set_usize(handle, width, height);
-			gtk_object_set_data(GTK_OBJECT(handle), "_dw_width", 0);
-			gtk_object_set_data(GTK_OBJECT(handle), "_dw_height", 0);
-		}
-
-		gdk_window_raise(GTK_WIDGET(handle)->window);
-		gdk_flush();
-		gdk_window_show(GTK_WIDGET(handle)->window);
-		gdk_flush();
+		gtk_mdi_set_state(GTK_MDI(mdi), handle, CHILD_NORMAL);
 	}
-	defaultitem = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(handle), "_dw_defaultitem");
-	if(defaultitem)
-		gtk_widget_grab_focus(defaultitem);
+	else
+#endif
+	{
+		if(GTK_WIDGET(handle)->window)
+		{
+			int width = (int)gtk_object_get_data(GTK_OBJECT(handle), "_dw_width");
+			int height = (int)gtk_object_get_data(GTK_OBJECT(handle), "_dw_height");
+
+			if(width && height)
+			{
+				gtk_widget_set_usize(handle, width, height);
+				gtk_object_set_data(GTK_OBJECT(handle), "_dw_width", 0);
+				gtk_object_set_data(GTK_OBJECT(handle), "_dw_height", 0);
+			}
+
+			gdk_window_raise(GTK_WIDGET(handle)->window);
+			gdk_flush();
+			gdk_window_show(GTK_WIDGET(handle)->window);
+			gdk_flush();
+		}
+		defaultitem = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(handle), "_dw_defaultitem");
+		if(defaultitem)
+			gtk_widget_grab_focus(defaultitem);
+	}
 	DW_MUTEX_UNLOCK;
 	return 0;
 }
@@ -2346,12 +2364,20 @@ int dw_window_show(HWND handle)
 int dw_window_hide(HWND handle)
 {
 	int _locked_by_me = FALSE;
+	GtkWidget *mdi = NULL;
 
 	if(!handle)
 		return 0;
 
 	DW_MUTEX_LOCK;
-	gtk_widget_hide(handle);
+#if GTK_MAJOR_VERSION > 1
+	if((mdi = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(handle), "_dw_mdi")) && GTK_IS_MDI(mdi))
+	{
+		gtk_mdi_set_state(GTK_MDI(mdi), handle, CHILD_ICONIFIED);
+	}
+	else
+#endif
+		gtk_widget_hide(handle);
 	DW_MUTEX_UNLOCK;
 	return 0;
 }
@@ -2364,18 +2390,25 @@ int dw_window_hide(HWND handle)
 int dw_window_destroy(HWND handle)
 {
 	int _locked_by_me = FALSE;
+	GtkWidget *mdi = NULL;
 
 	if(!handle)
 		return 0;
 
 	DW_MUTEX_LOCK;
+#if GTK_MAJOR_VERSION > 1
+	if((mdi = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(handle), "_dw_mdi")) && GTK_IS_MDI(mdi))
+	{
+		gtk_mdi_remove(GTK_MDI(mdi), handle);
+	}
+#endif
 	if(GTK_IS_WIDGET(handle))
 	{
 		GtkWidget *eventbox = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(handle), "_dw_eventbox");
 
 		if(eventbox && GTK_IS_WIDGET(eventbox))
 			gtk_widget_destroy(eventbox);
-        else
+		else
 			gtk_widget_destroy(handle);
 	}
 	DW_MUTEX_UNLOCK;
@@ -2739,6 +2772,7 @@ HWND dw_window_new(HWND hwndOwner, char *title, unsigned long flStyle)
 		gtk_widget_show(label);
 		gtk_object_set_data(GTK_OBJECT(tmp), "_dw_mdi_child", (gpointer)1);
 		gtk_object_set_data(GTK_OBJECT(tmp), "_dw_mdi_title", (gpointer)label);
+		gtk_object_set_data(GTK_OBJECT(tmp), "_dw_mdi", (gpointer)hwndOwner);
 
 		gtk_mdi_put(GTK_MDI(hwndOwner), tmp, 100, 75, label);
 	}
@@ -3844,8 +3878,11 @@ void dw_window_set_bitmap(HWND handle, unsigned long id, char *filename)
 void dw_window_set_text(HWND handle, char *text)
 {
 	int _locked_by_me = FALSE;
+	GtkWidget *tmp;
 
 	DW_MUTEX_LOCK;
+	if((tmp = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(handle), "_dw_mdi_title")))
+		handle = tmp;
 	if(GTK_IS_ENTRY(handle))
 		gtk_entry_set_text(GTK_ENTRY(handle), text);
 	else if(GTK_IS_COMBO(handle))
