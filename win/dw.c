@@ -3775,8 +3775,15 @@ HWND API dw_window_new(HWND hwndOwner, char *title, ULONG flStyle)
 	newbox->count = 0;
 	newbox->cinfo.fore = newbox->cinfo.back = -1;
 
+	/* Hmm, the "correct" way doesn't seem to be
+	 * working, but the old hackish SetParent()
+	 * at the bottom seems to work, so I'll leave
+	 * it like this for now.
+	 */
+#if 0 
 	if(hwndOwner)
 		flStyleEx |= WS_EX_MDICHILD;
+#endif
 
 	if(!(flStyle & WS_CAPTION))
 		flStyle |= WS_POPUPWINDOW;
@@ -3797,10 +3804,8 @@ HWND API dw_window_new(HWND hwndOwner, char *title, ULONG flStyle)
 	}
 	SetWindowLongPtr(hwndframe, GWLP_USERDATA, (LONG_PTR)newbox);
 
-#if 0
 	if(hwndOwner)
 		SetParent(hwndframe, hwndOwner);
-#endif
 
 	return hwndframe;
 }
