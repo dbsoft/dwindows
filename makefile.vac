@@ -37,6 +37,16 @@
   copy dwcompat.lib lib\dwcompat.lib
   copy dwcompat.dll dll\dwcompat.dll
 
+dwtest.obj:
+	icc /Ti /DOS2 /DTCPV40HDRS /Sp1 /I. /I..\ipformat /I..\include /Sm /Ss /Q /Gm /Gt /C dwtest.c
+dwtest.exe:  dwtest.obj
+	icc @<<
+	 /B" /DE /optfunc"
+	 /Fedwtest.exe
+	 lib\dw.lib lib\dwcompat.lib
+	 dwtest.obj
+	 dwtest.def
+<<
 clean :
         @if exist *.obj del *.obj
         @if exist *.map del *.map

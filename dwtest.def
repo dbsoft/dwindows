@@ -1,0 +1,5 @@
+NAME DWTEST WINDOWAPI
+           
+DESCRIPTION 'Sample DW appliaction'
+
+STACKSIZE 128000
