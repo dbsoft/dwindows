@@ -6586,7 +6586,7 @@ HWND dw_splitbar_new(int type, HWND topleft, HWND bottomright, unsigned long id)
 	HWND tmp = WinCreateWindow(HWND_OBJECT,
 							   SplitbarClassName,
 							   NULL,
-							   WS_VISIBLE,
+							   WS_VISIBLE | WS_CLIPCHILDREN,
 							   0,0,2000,1000,
 							   NULLHANDLE,
 							   HWND_TOP,
