@@ -118,6 +118,7 @@ typedef struct _window_data {
 	PFNWP oldproc;
 	HWND clickdefault;
 	ULONG flags;
+	void *data;
 } WindowData;
 
 typedef struct _hpixmap {

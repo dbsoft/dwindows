@@ -3005,7 +3005,7 @@ void dw_window_reparent(HWND handle, HWND newparent)
 	SetParent(handle, newparent);
 }
 
-HFONT _aquire_font(char *fontname)
+HFONT _acquire_font(HWND handle, char *fontname)
 {
 	HFONT hfont;
 	int z, size = 9;
@@ -3015,6 +3015,9 @@ HFONT _aquire_font(char *fontname)
 		hfont = GetStockObject(DEFAULT_GUI_FONT);
 	else
 	{
+#if 0
+		HDC hDC = GetDC(handle);
+#endif
 		for(z=0;z<strlen(fontname);z++)
 		{
 			if(fontname[z]=='.')
@@ -3022,6 +3025,9 @@ HFONT _aquire_font(char *fontname)
 		}
 		size = atoi(fontname) + 5;
 
+#if 0
+		lf.lfHeight = -MulDiv(size, GetDeviceCaps(hDC, LOGPIXELSY), 72);
+#endif
 		lf.lfHeight = size;
 		lf.lfWidth = 0;
 		lf.lfEscapement = 0;
@@ -3038,6 +3044,9 @@ HFONT _aquire_font(char *fontname)
 		strcpy(lf.lfFaceName, &fontname[z+1]);
 
 		hfont = CreateFontIndirect(&lf);
+#if 0
+		ReleaseDC(handle, hDC);
+#endif
 	}
 	return hfont;
 }
@@ -3050,7 +3059,7 @@ HFONT _aquire_font(char *fontname)
  */
 int dw_window_set_font(HWND handle, char *fontname)
 {
-	HFONT hfont = _aquire_font(fontname);
+	HFONT hfont = _acquire_font(handle, fontname);
 	ColorInfo *cinfo;
 
 	cinfo = (ColorInfo *)GetWindowLong(handle, GWL_USERDATA);
@@ -3073,7 +3082,7 @@ int dw_window_set_font(HWND handle, char *fontname)
 			SetWindowLong(handle, GWL_USERDATA, (ULONG)cinfo);
 		}
 	}
-	SendMessage(handle, WM_SETFONT, (WPARAM)hfont, FALSE);
+	SendMessage(handle, WM_SETFONT, (WPARAM)hfont, (LPARAM)TRUE);
 	return 0;
 }
 
@@ -5421,8 +5430,8 @@ int _lookup_icon(HWND handle, HICON hicon, int type)
 
 	if(!hSmall || !hLarge)
 	{
-		hSmall = ImageList_Create(16, 16, ILC_COLOR16, ICON_INDEX_LIMIT, 0);
-		hLarge = ImageList_Create(32, 32, ILC_COLOR16, ICON_INDEX_LIMIT, 0);
+		hSmall = ImageList_Create(16, 16, ILC_COLOR16 | ILC_MASK, ICON_INDEX_LIMIT, 0);
+		hLarge = ImageList_Create(32, 32, ILC_COLOR16 | ILC_MASK, ICON_INDEX_LIMIT, 0);
 	}
 	for(z=0;z<ICON_INDEX_LIMIT;z++)
 	{
@@ -5939,7 +5948,7 @@ void dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
 
 		if(cinfo)
 		{
-			hFont = _aquire_font(cinfo->fontname);
+			hFont = _acquire_font(handle, cinfo->fontname);
 			mustdelete = 1;
 		}
 	}
@@ -5986,7 +5995,7 @@ void dw_font_text_extents(HWND handle, HPIXMAP pixmap, char *text, int *width, i
 
 		if(cinfo)
 		{
-			hFont = _aquire_font(cinfo->fontname);
+			hFont = _acquire_font(handle, cinfo->fontname);
 			mustdelete = 1;
 		}
 	}

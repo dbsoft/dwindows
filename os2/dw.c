@@ -170,6 +170,21 @@ typedef struct _CNRITEM
 } CNRITEM, *PCNRITEM;
 
 
+/* Find the desktop window handle */
+HWND _toplevel_window(HWND handle)
+{
+	HWND box, lastbox = WinQueryWindow(handle, QW_PARENT);
+
+	/* Find the toplevel window */
+	while((box = WinQueryWindow(lastbox, QW_PARENT)) > 0x80000001 && box > 0)
+	{
+		lastbox = box;
+	}
+	if(box > 0)
+		return lastbox;
+	return handle;
+}
+
 /* This function changes the owner of buttons in to the
  * dynamicwindows handle to fix a problem in notebooks.
  */
@@ -638,13 +653,7 @@ int _initial_focus(HWND handle)
 void _shift_focus(HWND handle)
 {
 	Box *thisbox;
-	HWND box, lastbox = WinQueryWindow(handle, QW_PARENT);
-
-	/* Find the toplevel window */
-	while((box = WinQueryWindow(lastbox, QW_PARENT)) > 0x80000001)
-	{
-		lastbox = box;
-	}
+	HWND box, lastbox = _toplevel_window(handle);
 
 	box = WinWindowFromID(lastbox, FID_CLIENT);
 	if(box)
@@ -665,13 +674,7 @@ void _shift_focus(HWND handle)
 void _shift_focus_back(HWND handle)
 {
 	Box *thisbox;
-	HWND box, lastbox = WinQueryWindow(handle, QW_PARENT);
-
-	/* Find the toplevel window */
-	while((box = WinQueryWindow(lastbox, QW_PARENT)) > 0x80000001)
-	{
-		lastbox = box;
-	}
+	HWND box, lastbox = _toplevel_window(handle);
 
 	box = WinWindowFromID(lastbox, FID_CLIENT);
 	if(box)
@@ -697,22 +700,6 @@ void _ResetWindow(HWND hwndFrame)
 	WinQueryWindowPos(hwndFrame, &swp);
 	WinSetWindowPos(hwndFrame, HWND_TOP, 0, 0, swp.cx, swp.cy-1, SWP_SIZE);
 	WinSetWindowPos(hwndFrame, HWND_TOP, 0, 0, swp.cx, swp.cy, SWP_SIZE);
-}
-
-/* Focus toplevel window */
-void _toplevel_focus(HWND handle)
-{
-	HWND box, lastbox = WinQueryWindow(handle, QW_PARENT);
-
-	/* Find the toplevel window */
-	while((box = WinQueryWindow(lastbox, QW_PARENT)) > 0x80000001)
-	{
-		lastbox = box;
-	}
-
-	box = WinWindowFromID(lastbox, FID_CLIENT);
-	if(box)
-		WinSetActiveWindow(HWND_DESKTOP, lastbox);
 }
 
 /* This function will recursively search a box and add up the total height of it */
@@ -1431,7 +1418,6 @@ MRESULT EXPENTRY _comboentryproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 	switch(msg)
 	{
 	case WM_SETFOCUS:
-		_toplevel_focus(hWnd);
 		_run_event(hWnd, msg, mp1, mp2);
 		break;
 	}
@@ -1478,7 +1464,6 @@ MRESULT EXPENTRY _entryproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 		}
 		break;
 	case WM_SETFOCUS:
-		_toplevel_focus(hWnd);
 		_run_event(hWnd, msg, mp1, mp2);
 		break;
 	case WM_CHAR:
@@ -1533,7 +1518,6 @@ MRESULT EXPENTRY _comboproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 		_run_event(hWnd, WM_SETFOCUS, (MPARAM)FALSE, (MPARAM)TRUE);
 		break;
 	case WM_SETFOCUS:
-		_toplevel_focus(hWnd);
 		_run_event(hWnd, msg, mp1, mp2);
 		break;
 	case WM_PAINT:
@@ -1991,40 +1975,6 @@ MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 }
 #endif
 
-int _warp4_focus_fix(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
-{
-	/* This is a hack to stop an infinite loop in the
-	 * Warp 4 default window procedure.  It seems that
-	 * under very rare circumstances, the same WM_FOCUSCHANGE
-	 * message will bounce between an entryfield and
-	 * the frame it sits on, this will stop duplicate
-	 * messages and thus prevent the infinite loop.
-	 */
-	if(msg == WM_FOCUSCHANGE && SHORT1FROMMP(mp2))
-	{
-		static HWND lastfocus = 0;
-		static time_t lasttime = 0;
-		static int count = 0;
-		time_t currtime = time(NULL);
-
-		if(lastfocus == (HWND)mp1 && currtime == lasttime)
-		{
-			if(count > 5)
-			{
-				count = 0;
-				return 1;
-			}
-			count++;
-			return 0;
-		}
-
-		count = 0;
-		lastfocus = (HWND)mp1;
-		lasttime = currtime;
-	}
-	return 0;
-}
-
 /* Handles control messages sent to the box (owner). */
 MRESULT EXPENTRY _controlproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 {
@@ -2038,11 +1988,6 @@ MRESULT EXPENTRY _controlproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 		break;
 	}
 #endif
-
-	if(_warp4_focus_fix(hWnd, msg, mp1, mp2))
-		return (MRESULT)0;
-	if(msg == WM_SETFOCUS)
-		_toplevel_focus(hWnd);
 
 	if(blah && blah->oldproc)
 		return blah->oldproc(hWnd, msg, mp1, mp2);
@@ -2240,9 +2185,6 @@ MRESULT EXPENTRY _wndproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 		_free_window_memory(hWnd);
 		break;
 	}
-
-	if(_warp4_focus_fix(hWnd, msg, mp1, mp2))
-		return (MRESULT)0;
 
 	if(result != -1)
 		return (MRESULT)result;
@@ -2785,22 +2727,43 @@ MRESULT EXPENTRY _RendProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 	case WM_BUTTON1DOWN:
 	case WM_BUTTON2DOWN:
 	case WM_BUTTON3DOWN:
-		if(!res)
-			_toplevel_focus(hwnd);
-		return (MPARAM)TRUE;
+		if(res)
+			return (MPARAM)TRUE;
 	}
 	return WinDefWindowProc(hwnd, msg, mp1, mp2);
 }
 
 MRESULT EXPENTRY _TreeProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 {
-	Box *blah = WinQueryWindowPtr(hwnd, QWP_USER);
+	WindowData *blah = (WindowData *)WinQueryWindowPtr(hwnd, QWP_USER);
+	PFNWP oldproc = 0;
+
+	if(blah)
+		oldproc = blah->oldproc;
+
+	switch(msg)
+	{
+	case WM_SETFOCUS:
+		_run_event(hwnd, msg, mp1, mp2);
+		break;
+	case WM_CHAR:
+		if(SHORT1FROMMP(mp2) == '\t')
+		{
+			if(CHARMSG(&msg)->fs & KC_SHIFT)
+				_shift_focus_back(hwnd);
+			else
+				_shift_focus(hwnd);
+			return FALSE;
+		}
+		break;
+	}
 
 #ifndef NO_SIGNALS
 	_run_event(hwnd, msg, mp1, mp2);
 #endif
-	if(blah && blah->oldproc)
-		return blah->oldproc(hwnd, msg, mp1, mp2);
+	if(oldproc)
+		return oldproc(hwnd, msg, mp1, mp2);
+
 	return WinDefWindowProc(hwnd, msg, mp1, mp2);
 }
 
@@ -3025,7 +2988,7 @@ int dw_window_show(HWND handle)
 	HSWITCH hswitch;
 	SWCNTRL swcntrl;
 
-	_fix_button_owner(handle, 0);
+	_fix_button_owner(_toplevel_window(handle), 0);
 	WinSetFocus(HWND_DESKTOP, handle);
 	_initial_focus(handle);
 
@@ -3699,6 +3662,7 @@ void dw_pointer_set_pos(long x, long y)
  */
 HWND dw_container_new(ULONG id)
 {
+	WindowData *blah = calloc(1, sizeof(WindowData));
 	HWND tmp = WinCreateWindow(HWND_OBJECT,
 							   WC_CONTAINER,
 							   NULL,
@@ -3710,6 +3674,8 @@ HWND dw_container_new(ULONG id)
 							   id,
 							   NULL,
 							   NULL);
+	blah->oldproc = WinSubclassWindow(tmp, _TreeProc);
+	WinSetWindowPtr(tmp, QWP_USER, blah);
 	dw_window_set_font(tmp, DefaultFont);
 	return tmp;
 }
@@ -3723,7 +3689,7 @@ HWND dw_container_new(ULONG id)
 HWND dw_tree_new(ULONG id)
 {
 	CNRINFO cnrinfo;
-	Box *newbox = calloc(1, sizeof(Box));
+	WindowData *blah = calloc(1, sizeof(WindowData));
 	HWND tmp = WinCreateWindow(HWND_OBJECT,
 							   WC_CONTAINER,
 							   NULL,
@@ -3741,8 +3707,8 @@ HWND dw_tree_new(ULONG id)
 	cnrinfo.slBitmapOrIcon.cy = 16;
 
 	WinSendMsg(tmp, CM_SETCNRINFO, &cnrinfo, MPFROMLONG(CMA_FLWINDOWATTR | CMA_SLBITMAPORICON));
-	newbox->oldproc = WinSubclassWindow(tmp, _TreeProc);
-	WinSetWindowPtr(tmp, QWP_USER, newbox);
+	blah->oldproc = WinSubclassWindow(tmp, _TreeProc);
+	WinSetWindowPtr(tmp, QWP_USER, blah);
 	dw_window_set_font(tmp, DefaultFont);
 	return tmp;
 }
@@ -3818,7 +3784,7 @@ HWND dw_mle_new(ULONG id)
 							   NULL,
 							   NULL);
 	dw_window_set_font(tmp, DefaultFont);
-	blah->oldproc = WinSubclassWindow(tmp, _comboentryproc);
+	blah->oldproc = WinSubclassWindow(tmp, _entryproc);
 	WinSetWindowPtr(tmp, QWP_USER, blah);
 	return tmp;
 }
@@ -5277,7 +5243,8 @@ int dw_container_setup(HWND handle, unsigned long *flags, char **titles, int cou
 	ULONG size = sizeof(RECORDCORE);
 	ULONG *offStruct = malloc(count * sizeof(ULONG));
 	ULONG *tempflags = malloc((count+1) * sizeof(ULONG));
-	ULONG *oldflags = (ULONG *)WinQueryWindowPtr(handle, 0);
+	WindowData *blah = (WindowData *)WinQueryWindowPtr(handle, QWP_USER);
+	ULONG *oldflags = blah ? blah->data : 0;
 
 	if(!offStruct || !tempflags)
 		return FALSE;
@@ -5285,7 +5252,7 @@ int dw_container_setup(HWND handle, unsigned long *flags, char **titles, int cou
 	memcpy(tempflags, flags, count * sizeof(ULONG));
 	tempflags[count] = 0;
 
-	WinSetWindowPtr(handle, 0, tempflags);
+	blah->data = tempflags;
 
 	if(oldflags)
 		free(oldflags);
@@ -5411,7 +5378,8 @@ void dw_icon_free(unsigned long handle)
  */
 void *dw_container_alloc(HWND handle, int rowcount)
 {
-	ULONG *flags = (ULONG *)WinQueryWindowPtr(handle, 0);
+	WindowData *wd = (WindowData *)WinQueryWindowPtr(handle, QWP_USER);
+	ULONG *flags = wd ? wd->data : 0;
 	int z, size = 0, totalsize, count = 0;
 	PRECORDCORE temp;
 	ContainerInfo *ci;
@@ -5481,7 +5449,8 @@ void *dw_container_alloc(HWND handle, int rowcount)
  */
 void dw_container_set_item(HWND handle, void *pointer, int column, int row, void *data)
 {
-	ULONG totalsize, size = 0, *flags = (ULONG *)WinQueryWindowPtr(handle, 0);
+	WindowData *blah = (WindowData *)WinQueryWindowPtr(handle, QWP_USER);
+	ULONG totalsize, size = 0, *flags = blah ? blah->data : 0;
 	int z, currentcount;
 	ContainerInfo *ci = (ContainerInfo *)pointer;
 	PRECORDCORE temp;
