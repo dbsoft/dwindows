@@ -196,7 +196,7 @@ int makedir(char *path);
 void nonblock(int fd);
 void block(int fd);
 void setfileinfo(char *filename, char *url, char *logfile);
-#if (defined(__IBMC__) && __IBMC__ < 360)
+#if (defined(__IBMC__) && __IBMC__ < 360) || (defined(__WIN32__) && !defined(__CYGWIN32__))
 unsigned long drivesize(int drive);
 unsigned long drivefree(int drive);
 #else
