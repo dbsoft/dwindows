@@ -64,13 +64,6 @@ void reopen(void)
 }
 #endif
 
-static LONG lColor[SPLITBAR_WIDTH] =
-{
-    DW_CLR_BLACK,
-    DW_CLR_PALEGRAY,
-    DW_CLR_WHITE
-};
-
 typedef struct _sighandler
 {
 	struct _sighandler	*next;
@@ -2362,45 +2355,21 @@ MRESULT EXPENTRY _splitwndproc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 		break;
 	case WM_PAINT:
 		{
-			HPS hpsPaint;
-			RECTL rclPaint;
-			POINTL ptlStart[SPLITBAR_WIDTH];
-			POINTL ptlEnd[SPLITBAR_WIDTH];
-			USHORT i;
+			HPS hps;
+			RECTL rcl;
+			POINTL ptl[2];
 
-			hpsPaint = WinBeginPaint(hwnd, 0, 0);
-			WinQueryWindowRect(hwnd, &rclPaint);
+			hps = WinBeginPaint(hwnd, 0, 0);
+			WinQueryWindowRect(hwnd, &rcl);
+			ptl[0].x = rcl.xLeft;
+			ptl[0].y = rcl.yBottom;
+			ptl[1].x = rcl.xRight;
+			ptl[1].y = rcl.yTop;
 
-			if(type == BOXHORZ)
-			{
-				for(i = 0; i < SPLITBAR_WIDTH; i++)
-				{
-					ptlStart[i].x = rclPaint.xLeft + i + start;
-					ptlStart[i].y = rclPaint.yTop;
-
-					ptlEnd[i].x = rclPaint.xLeft + i + start;
-					ptlEnd[i].y = rclPaint.yBottom;
-				}
-			}
-			else
-			{
-				for(i = 0; i < SPLITBAR_WIDTH; i++)
-				{
-					ptlStart[i].x = rclPaint.xLeft;
-					ptlStart[i].y = rclPaint.yBottom + i + start;
-
-					ptlEnd[i].x = rclPaint.xRight;
-					ptlEnd[i].y = rclPaint.yBottom + i + start;
-				}
-			}
-
-			for(i = 0; i < SPLITBAR_WIDTH; i++)
-			{
-				GpiSetColor( hpsPaint, lColor[i]);
-				GpiMove(hpsPaint, &ptlStart[i]);
-				GpiLine(hpsPaint, &ptlEnd[i]);
-			}
-			WinEndPaint(hpsPaint);
+			GpiSetColor(hps, CLR_PALEGRAY);
+			GpiMove(hps, &ptl[0]);
+			GpiBox(hps, DRO_OUTLINEFILL, &ptl[1], 0, 0);
+			WinEndPaint(hps);
 		}
 		return MRFROMSHORT(FALSE);
 
@@ -2760,6 +2729,30 @@ MRESULT EXPENTRY _TreeProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 
 	switch(msg)
 	{
+#if 0 /* Why doesn't this work? */
+	case WM_PAINT:
+		{
+			HPS hps;
+			RECTL rcl;
+			POINTL ptl[2];
+
+			if(oldproc)
+				return oldproc(hwnd, msg, mp1, mp2);
+
+			hps = WinBeginPaint(hwnd, 0, 0);
+			WinQueryWindowRect(hwnd, &rcl);
+			ptl[0].x = rcl.xLeft + 1;
+			ptl[0].y = rcl.yBottom + 1;
+			ptl[1].x = rcl.xRight - 1;
+			ptl[1].y = rcl.yTop - 1;
+
+			GpiSetColor(hps, CLR_BLACK);
+			GpiMove(hps, &ptl[0]);
+			GpiBox(hps, DRO_OUTLINE, &ptl[1], 0, 0);
+			WinEndPaint(hps);
+		}
+		return MRFROMSHORT(FALSE);
+#endif
 	case WM_SETFOCUS:
 		_run_event(hwnd, msg, mp1, mp2);
 		break;
