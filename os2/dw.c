@@ -22,7 +22,9 @@
 #include <ctype.h>
 #include <process.h>
 #include <time.h>
+#ifndef __EMX__
 #include <direct.h>
+#endif
 #include "dw.h"
 
 #define QWP_USER 0
