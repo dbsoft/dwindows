@@ -176,10 +176,8 @@ void msleep(long period);
 #undef RES_DEFAULT
 #endif
 #include <resolv.h>
-#if defined(STDC_HEADERS) || defined(__EMX__)
 #include <stdarg.h>
 #include <string.h>
-#endif /* STDC_HEADERS */
 #endif /* !WIN32 */
 #include <ctype.h>
 
