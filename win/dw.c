@@ -3406,6 +3406,7 @@ HFONT _acquire_font(HWND handle, char *fontname)
 	HFONT hfont;
 	int z, size = 9;
 	LOGFONT lf;
+	char *myFontName;
 
 	if(fontname == DefaultFont || !fontname[0])
 		hfont = GetStockObject(DEFAULT_GUI_FONT);
@@ -3437,7 +3438,19 @@ HFONT _acquire_font(HWND handle, char *fontname)
 		lf.lfClipPrecision = 0;
 		lf.lfQuality = DEFAULT_QUALITY;
 		lf.lfPitchAndFamily = DEFAULT_PITCH | FW_DONTCARE;
-		strcpy(lf.lfFaceName, &fontname[z+1]);
+		/* 
+		 * remove any font modifiers by truncating at the first space
+		 * - this may not be enough!; what about "Courier New" ???
+		 */
+		myFontName = strdup(&fontname[z+1]);
+		for(z=0;z<strlen(myFontName);z++)
+		if(myFontName[z] == ' ')
+		{
+			myFontName[z]='\0';
+			break;
+		}
+		strcpy(lf.lfFaceName, myFontName);
+		free(myFontName);
 
 		hfont = CreateFontIndirect(&lf);
 #if 0
@@ -6889,6 +6902,7 @@ void API dw_draw_rect(HWND handle, HPIXMAP pixmap, int fill, int x, int y, int w
 	HDC hdcPaint;
 	HPEN oldPen;
 	HBRUSH oldBrush;
+	RECT Rect;
 	int threadid = dw_thread_id();
 
 	if(threadid < 0 || threadid >= THREAD_LIMIT)
@@ -6901,11 +6915,11 @@ void API dw_draw_rect(HWND handle, HPIXMAP pixmap, int fill, int x, int y, int w
 	else
 		return;
 
-	oldPen = SelectObject(hdcPaint, _hPen[threadid]);
-	oldBrush = SelectObject(hdcPaint, _hBrush[threadid]);
-	Rectangle(hdcPaint, x, y, x + width, y + height);
-	SelectObject(hdcPaint, oldPen);
-	SelectObject(hdcPaint, oldBrush);
+	SetRect(&Rect, x, y, x + width , y + height );
+	if(fill)
+		FillRect(hdcPaint, &Rect, _hBrush[threadid]);
+	else
+		FrameRect(hdcPaint, &Rect, _hBrush[threadid]);
 	if(!pixmap)
 		ReleaseDC(handle, hdcPaint);
 }
