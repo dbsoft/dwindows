@@ -2959,7 +2959,6 @@ void dw_tree_delete(HWND handle, HWND item)
 	if(lastselect == item)
 		gtk_object_set_data(GTK_OBJECT(handle), "lastselect", NULL);
 
-	gtk_tree_remove_item(GTK_TREE(tree), item);
 	gtk_widget_destroy(item);
 	DW_MUTEX_UNLOCK;
 }
@@ -5405,6 +5404,12 @@ void dw_signal_connect(HWND window, char *signame, void *sigfunc, void *data)
 	else if(strcmp(signame, "set-focus") == 0)
 	{
 		thisname = "focus-in-event";
+		if(GTK_IS_COMBO(thiswindow))
+			thiswindow = GTK_COMBO(thiswindow)->entry;
+	}
+	else if(strcmp(signame, "lose-focus") == 0)
+	{
+		thisname = "focus-out-event";
 		if(GTK_IS_COMBO(thiswindow))
 			thiswindow = GTK_COMBO(thiswindow)->entry;
 	}

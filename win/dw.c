@@ -99,7 +99,7 @@ typedef struct
 } SignalList;
 
 /* List of signals and their equivilent Win32 message */
-#define SIGNALMAX 13
+#define SIGNALMAX 14
 
 SignalList SignalTranslate[SIGNALMAX] = {
 	{ WM_SIZE, "configure_event" },
@@ -114,7 +114,8 @@ SignalList SignalTranslate[SIGNALMAX] = {
 	{ NM_RCLICK, "container-context" },
 	{ LBN_SELCHANGE, "item-select" },
 	{ TVN_SELCHANGED, "tree-select" },
-	{ WM_SETFOCUS, "set-focus" }
+	{ WM_SETFOCUS, "set-focus" },
+	{ WM_USER+1, "lose-focus" }
 };
 
 #ifdef BUILD_DLL
@@ -241,6 +242,11 @@ int IsWinNT(void)
 void _new_signal(ULONG message, HWND window, void *signalfunction, void *data)
 {
 	SignalHandler *new = malloc(sizeof(SignalHandler));
+
+#ifndef NO_SIGNALS
+	if(message == WM_COMMAND)
+		dw_signal_disconnect_by_window(window);
+#endif
 
 	new->message = message;
 	new->window = window;
@@ -457,6 +463,16 @@ int _focus_check_box(Box *box, HWND handle, int start, HWND defaultitem)
 void _initial_focus(HWND handle)
 {
 	Box *thisbox;
+	char tmpbuf[100];
+
+	if(!handle)
+		return;
+
+	GetClassName(handle, tmpbuf, 99);
+
+	if(strnicmp(tmpbuf, ClassName, strlen(ClassName))!=0)
+		return;
+
 
 	if(handle)
 		thisbox = (Box *)GetWindowLong(handle, GWL_USERDATA);
@@ -1013,7 +1029,7 @@ BOOL CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 		/* Find any callbacks for this function */
 		while(tmp)
 		{
-			if(tmp->message == msg || msg == WM_COMMAND || msg == WM_NOTIFY)
+			if(tmp->message == msg || msg == WM_COMMAND || msg == WM_NOTIFY || tmp->message == WM_USER+1)
 			{
 				switch(msg)
 				{
@@ -1592,6 +1608,7 @@ BOOL CALLBACK _colorwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 {
 	ColorInfo *cinfo;
 	char tmpbuf[100];
+	WNDPROC pOldProc = 0;
 
 	cinfo = (ColorInfo *)GetWindowLong(hWnd, GWL_USERDATA);
 
@@ -1601,6 +1618,8 @@ BOOL CALLBACK _colorwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 
 	if(cinfo)
 	{
+		pOldProc = cinfo->pOldProc;
+
 		switch( msg )
 		{
 		case WM_SETFOCUS:
@@ -1720,9 +1739,9 @@ BOOL CALLBACK _colorwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 		}
 	}
 
-	if(!cinfo || !cinfo->pOldProc)
+	if(!pOldProc)
 		return DefWindowProc(hWnd, msg, mp1, mp2);
-	return CallWindowProc(cinfo->pOldProc, hWnd, msg, mp1, mp2);
+	return CallWindowProc(pOldProc, hWnd, msg, mp1, mp2);
 }
 
 BOOL CALLBACK _containerwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
