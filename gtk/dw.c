@@ -282,9 +282,10 @@ static gint _key_press_event(GtkWidget *widget, GdkEventKey *event, gpointer dat
 
 	if(work)
 	{
-		int (*keypressfunc)(HWND, int, void *) = work->func;
+		int (*keypressfunc)(HWND, char, int, int, void *) = work->func;
 
-		retval = keypressfunc(widget, *event->string, work->data);
+		retval = keypressfunc(widget, *event->string, event->keyval,
+							  event->state & (GDK_CONTROL_MASK | GDK_SHIFT_MASK | GDK_MOD1_MASK), work->data);
 	}
 	return retval;
 }
@@ -2643,6 +2644,35 @@ void dw_window_enable(HWND handle)
  */
 HWND API dw_window_from_id(HWND handle, int id)
 {
+	GList *orig = NULL, *list = NULL;
+	int _locked_by_me = FALSE;
+
+	DW_MUTEX_LOCK;
+	if(handle && GTK_IS_CONTAINER(handle))
+	{
+#if GTK_MAJOR_VERSION > 1
+		orig = list = gtk_container_get_children(GTK_CONTAINER(handle));
+#else
+		orig = list = gtk_container_children(GTK_CONTAINER(handle));
+#endif
+	}
+	while(list)
+	{
+		if(GTK_IS_WIDGET(list->data))
+		{
+			if(id == (int)gtk_object_get_data(GTK_OBJECT(list->data), "id"))
+			{
+				HWND ret = (HWND)list->data;
+				g_list_free(orig);
+				DW_MUTEX_UNLOCK;
+				return ret;
+			}
+		}
+		list = list->next;
+	}
+	if(orig)
+		g_list_free(orig);
+	DW_MUTEX_UNLOCK;
     return 0L;
 }
 
@@ -4871,9 +4901,11 @@ HWND dw_render_new(unsigned long id)
 	gtk_widget_set_events(tmp, GDK_EXPOSURE_MASK
 						  | GDK_LEAVE_NOTIFY_MASK
 						  | GDK_BUTTON_PRESS_MASK
+						  | GDK_KEY_PRESS_MASK
 						  | GDK_POINTER_MOTION_MASK
 						  | GDK_POINTER_MOTION_HINT_MASK);
 	gtk_object_set_data(GTK_OBJECT(tmp), "id", (gpointer)id);
+	GTK_WIDGET_SET_FLAGS(tmp, GTK_CAN_FOCUS);
 	gtk_widget_show(tmp);
 	DW_MUTEX_UNLOCK;
 	return tmp;

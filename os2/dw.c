@@ -2062,11 +2062,33 @@ MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 				break;
 			case WM_CHAR:
 				{
-					int (* API keypressfunc)(HWND, int, void *) = (int (* API)(HWND, int, void *))tmp->signalfunction;
+					int (* API keypressfunc)(HWND, char, int, int, void *) = (int (* API)(HWND, char, int, int, void *))tmp->signalfunction;
 
-					if(hWnd == tmp->window)
+					if(hWnd == tmp->window && !(SHORT1FROMMP(mp1) & KC_KEYUP))
 					{
-						result = keypressfunc(tmp->window, SHORT1FROMMP(mp2), tmp->data);
+						int vk;
+						char ch;
+
+						if(SHORT1FROMMP(mp1) & KC_CHAR)
+							ch = (char)SHORT1FROMMP(mp2);
+						else
+							ch = (char)SHORT2FROMMP(mp2);
+						if(SHORT1FROMMP(mp1) & KC_VIRTUALKEY)
+							vk = SHORT2FROMMP(mp2);
+						else
+							vk = SHORT1FROMMP(mp2);
+
+						/* This is a hack to fix shift presses showing
+						 * up as tabs!
+						 */
+						if(ch == '\t' && !(SHORT1FROMMP(mp1) & KC_CHAR))
+						{
+							ch = 0;
+							vk = VK_SHIFT;
+						}
+
+						result = keypressfunc(tmp->window, ch, vk,
+											  SHORT1FROMMP(mp1) & (KC_ALT | KC_SHIFT | KC_CTRL), tmp->data);
 						tmp = NULL;
 					}
 				}
@@ -3043,7 +3065,9 @@ MRESULT EXPENTRY _RendProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 	case WM_BUTTON1DOWN:
 	case WM_BUTTON2DOWN:
 	case WM_BUTTON3DOWN:
-		if(res)
+		if(res == -1)
+			WinSetFocus(HWND_DESKTOP, hwnd);
+		else if(res)
 			return (MPARAM)TRUE;
 	}
 	return WinDefWindowProc(hwnd, msg, mp1, mp2);

@@ -54,6 +54,7 @@ typedef struct _user_data
 	char              *varname;
 } UserData;
 
+/* OS/2 Specific section */
 #if defined(__OS2__) || defined(__EMX__)
 #define INCL_DOS
 #define INCL_WIN
@@ -61,7 +62,6 @@ typedef struct _user_data
 
 #include <os2.h>
 
-/* Lets make some platform independent defines :) */
 #define DW_DT_LEFT               DT_LEFT
 #define DW_DT_QUERYEXTENT        DT_QUERYEXTENT
 #define DW_DT_UNDERSCORE         DT_UNDERSCORE
@@ -163,6 +163,7 @@ extern HAB dwhab;
 extern HMQ dwhmq;
 #endif
 
+/* Windows specific section */
 #if defined(__WIN32__) || defined(WINNT)
 #include <windows.h>
 #include <commctrl.h>
@@ -185,7 +186,6 @@ extern HMQ dwhmq;
 #define API _cdecl
 #endif
 
-/* Lets make some platform independent defines :) */
 #define DW_DT_LEFT               SS_LEFT
 #define DW_DT_QUERYEXTENT        0
 #define DW_DT_UNDERSCORE         0
@@ -254,6 +254,11 @@ extern HMQ dwhmq;
 
 #define DW_POINTER_ARROW         32512
 #define DW_POINTER_CLOCK         32514
+
+/* Key Modifiers */
+#define KC_CTRL                  (1)
+#define KC_SHIFT                 (1 << 1)
+#define KC_ALT                   (1 << 2)
 
 #define STATICCLASSNAME "STATIC"
 #define COMBOBOXCLASSNAME "COMBOBOX"
@@ -376,14 +381,14 @@ typedef struct _bubblebutton {
 void dw_box_pack_start_stub(HWND box, HWND item, int width, int height, int hsize, int vsize, int pad);
 void dw_box_pack_end_stub(HWND box, HWND item, int width, int height, int hsize, int vsize, int pad);
 #else
-/* GTK */
+/* GTK Specific section */
 #include <gtk/gtk.h>
 #include <gdk/gdkx.h>
 #include <gdk/gdkprivate.h>
+#include <gdk/gdkkeysyms.h>
 #include <pthread.h>
 #include <dlfcn.h>
 
-/* Lets make some platform independent defines :) */
 #define DW_DT_LEFT               1
 #define DW_DT_UNDERSCORE         (1 << 1)
 #define DW_DT_STRIKEOUT          (1 << 2)
@@ -456,6 +461,91 @@ void dw_box_pack_end_stub(HWND box, HWND item, int width, int height, int hsize,
 #define DW_POINTER_CLOCK         GDK_CLOCK
 
 #define HWND_DESKTOP             ((HWND)0)
+
+/* Virtual Key Codes */
+#define VK_LBUTTON           GDK_Pointer_Button1
+#define VK_RBUTTON           GDK_Pointer_Button3
+#define VK_CANCEL            GDK_Cancel
+#define VK_MBUTTON           GDK_Pointer_Button2
+#define VK_BACK              GDK_Backspace
+#define VK_TAB               GDK_Tab
+#define VK_CLEAR             GDK_Clear
+#define VK_RETURN            GDK_Return
+#define VK_MENU              GDK_Menu
+#define VK_PAUSE             GDK_Pause
+#define VK_CAPITAL           GDK_Caps_Lock
+#define VK_ESCAPE            GDK_Escape
+#define VK_SPACE             GDK_space
+#define VK_PRIOR             GDK_Page_Up
+#define VK_NEXT              GDK_Page_Down
+#define VK_END               GDK_End
+#define VK_HOME              GDK_Home
+#define VK_LEFT              GDK_Left
+#define VK_UP                GDK_Up
+#define VK_RIGHT             GDK_Right
+#define VK_DOWN              GDK_Down
+#define VK_SELECT            GDK_Select
+#define VK_PRINT             GDK_Sys_Req
+#define VK_EXECUTE           GDK_Execute
+#define VK_SNAPSHOT          GDK_Print
+#define VK_INSERT            GDK_Insert
+#define VK_DELETE            GDK_Delete
+#define VK_HELP              GDK_Help
+#define VK_LWIN              GDK_Super_L
+#define VK_RWIN              GDK_Super_R
+#define VK_NUMPAD0           GDK_KP_0
+#define VK_NUMPAD1           GDK_KP_1
+#define VK_NUMPAD2           GDK_KP_2
+#define VK_NUMPAD3           GDK_KP_3
+#define VK_NUMPAD4           GDK_KP_4
+#define VK_NUMPAD5           GDK_KP_5
+#define VK_NUMPAD6           GDK_KP_6
+#define VK_NUMPAD7           GDK_KP_7
+#define VK_NUMPAD8           GDK_KP_8
+#define VK_NUMPAD9           GDK_KP_9
+#define VK_MULTIPLY          GDK_KP_Multiply
+#define VK_ADD               GDK_KP_Add
+#define VK_SEPARATOR         GDK_KP_Separator
+#define VK_SUBTRACT          GDK_KP_Subtract
+#define VK_DECIMAL           GDK_KP_Decimal
+#define VK_DIVIDE            GDK_KP_Divide
+#define VK_F1                GDK_F1
+#define VK_F2                GDK_F2
+#define VK_F3                GDK_F3
+#define VK_F4                GDK_F4
+#define VK_F5                GDK_F5
+#define VK_F6                GDK_F6
+#define VK_F7                GDK_F7
+#define VK_F8                GDK_F8
+#define VK_F9                GDK_F9
+#define VK_F10               GDK_F10
+#define VK_F11               GDK_F11
+#define VK_F12               GDK_F12
+#define VK_F13               GDK_F13
+#define VK_F14               GDK_F14
+#define VK_F15               GDK_F15
+#define VK_F16               GDK_F16
+#define VK_F17               GDK_F17
+#define VK_F18               GDK_F18
+#define VK_F19               GDK_F19
+#define VK_F20               GDK_F20
+#define VK_F21               GDK_F21
+#define VK_F22               GDK_F22
+#define VK_F23               GDK_F23
+#define VK_F24               GDK_F24
+#define VK_NUMLOCK           GDK_Num_Lock
+#define VK_SCROLL            GDK_Scroll_Lock
+#define VK_LSHIFT            GDK_Shift_L
+#define VK_RSHIFT            GDK_Shift_R
+#define VK_LCONTROL          GDK_Control_L
+#define VK_RCONTROL          GDK_Control_R
+#define VK_LMENU             GDK_Menu
+#define VK_RMENU             GDK_Menu
+
+/* Key Modifiers */
+#define KC_CTRL              GDK_CONTROL_MASK
+#define KC_SHIFT             GDK_SHIFT_MASK
+#define KC_ALT               GDK_MOD1_MASK
 
 typedef GtkWidget *HWND;
 #ifndef _ENVRNMNT_H

@@ -1377,11 +1377,20 @@ BOOL CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 					break;
 				case WM_CHAR:
 					{
-						int (*keypressfunc)(HWND, int, void *) = tmp->signalfunction;
+						int (*keypressfunc)(HWND, char, int, int, void *) = tmp->signalfunction;
 
 						if(hWnd == tmp->window)
 						{
-							result = keypressfunc(tmp->window, LOWORD(mp2), tmp->data);
+							int special = 0;
+
+							if(GetAsyncKeyState(VK_SHIFT) & 0x8000)
+								special |= KC_SHIFT;
+							if(GetAsyncKeyState(VK_CONTROL) & 0x8000)
+								special |= KC_CTRL;
+                            if(mp2 & (1 << 29))
+								special |= KC_ALT;
+
+							result = keypressfunc(tmp->window, (char)mp1, mp1, special, tmp->data);
 							tmp = NULL;
 						}
 					}
@@ -1874,7 +1883,7 @@ BOOL CALLBACK _rendwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 	case WM_LBUTTONDOWN:
 	case WM_MBUTTONDOWN:
 	case WM_RBUTTONDOWN:
-		SetActiveWindow(hWnd);
+		SetFocus(hWnd);
 		_wndproc(hWnd, msg, mp1, mp2);
 		break;
 	case WM_LBUTTONUP:
@@ -1884,6 +1893,7 @@ BOOL CALLBACK _rendwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 	case WM_PAINT:
 	case WM_SIZE:
 	case WM_COMMAND:
+	case WM_CHAR:
 		_wndproc(hWnd, msg, mp1, mp2);
 		break;
 	}
