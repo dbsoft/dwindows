@@ -2466,8 +2466,8 @@ HWND dw_entryfield_password_new(char *text, ULONG id)
 HWND dw_combobox_new(char *text, unsigned long id)
 {
 	GtkWidget *tmp;
-	SignalHandler *work = malloc(sizeof(SignalHandler));
-	int _locked_by_me = FALSE;
+	int sigid, _locked_by_me = FALSE;
+	gint cid;
 
 	DW_MUTEX_LOCK;
 	tmp = gtk_combo_new();
@@ -2477,11 +2477,9 @@ HWND dw_combobox_new(char *text, unsigned long id)
 	gtk_widget_show(tmp);
 	gtk_object_set_data(GTK_OBJECT(tmp), "_dw_id", (gpointer)id);
 
-	work->window = tmp;
-	work->func = NULL;
-	work->data = NULL;
-
-	gtk_signal_connect(GTK_OBJECT(GTK_COMBO(tmp)->list), "select_child", GTK_SIGNAL_FUNC(_item_select_event), work);
+	sigid = _set_signal_handler(GTK_COMBO(tmp)->list, tmp, NULL, NULL, NULL);
+	cid = gtk_signal_connect(GTK_OBJECT(GTK_COMBO(tmp)->list), "select_child", GTK_SIGNAL_FUNC(_item_select_event), (gpointer)sigid);
+	_set_signal_handler_id(GTK_COMBO(tmp)->list, sigid, cid);
 	DW_MUTEX_UNLOCK;
 	return tmp;
 }
