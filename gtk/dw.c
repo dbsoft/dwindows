@@ -5100,11 +5100,12 @@ HPIXMAP dw_pixmap_new_from_file(HWND handle, char *filename)
 	g_object_unref(pixbuf);
 #elif defined(USE_IMLIB)
 	image = gdk_imlib_load_image(file);
-	pixmap->pixmap = gdk_imlib_copy_image(image);
 
 	pixmap->width = image->rgb_width;
 	pixmap->height = image->rgb_height;
 
+	gdk_imlib_render(image, pixmap->width, pixmap->height);
+	pixmap->pixmap = gdk_imlib_copy_image(image);
 	gdk_imlib_destroy_image(image);
 #else
 	pixmap->pixmap = gdk_pixmap_create_from_xpm(handle->window, &bitmap, &_colors[DW_CLR_PALEGRAY], file);
