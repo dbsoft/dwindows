@@ -343,7 +343,31 @@ int _focus_check_box(Box *box, HWND handle, int start, HWND defaultitem)
 					char tmpbuf[100] = "";
 
 					WinQueryClassName(box->items[z].hwnd, 99, tmpbuf);
-					if(strncmp(tmpbuf, "#40", 4)==0) /* Notebook */
+					if(strncmp(tmpbuf, SplitbarClassName, strlen(SplitbarClassName)+1)==0)
+					{
+						/* Then try the bottom or right box */
+						HWND mybox = (HWND)dw_window_get_data(box->items[z].hwnd, "_dw_bottomright");
+
+						if(mybox)
+						{
+							Box *splitbox = (Box *)WinQueryWindowPtr(mybox, QWP_USER);
+
+							if(splitbox && _focus_check_box(splitbox, handle, start == 3 ? 3 : 0, defaultitem))
+								return 1;
+						}
+
+						/* Try the top or left box */
+						mybox = (HWND)dw_window_get_data(box->items[z].hwnd, "_dw_topleft");
+
+						if(mybox)
+						{
+							Box *splitbox = (Box *)WinQueryWindowPtr(mybox, QWP_USER);
+
+							if(splitbox && _focus_check_box(splitbox, handle, start == 3 ? 3 : 0, defaultitem))
+								return 1;
+						}
+					}
+					else if(strncmp(tmpbuf, "#40", 4)==0) /* Notebook */
 					{
 						Box *notebox;
 						HWND page = (HWND)WinSendMsg(box->items[z].hwnd, BKM_QUERYPAGEWINDOWHWND,
@@ -1357,27 +1381,9 @@ void _click_default(HWND handle)
 		WinSetFocus(HWND_DESKTOP, handle);
 }
 
-MRESULT EXPENTRY _comboentryproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
-{
-	WindowData *blah = (WindowData *)WinQueryWindowPtr(hWnd, QWP_USER);
-
-	switch(msg)
-	{
-	case WM_SETFOCUS:
-		_run_event(hWnd, msg, mp1, mp2);
-		break;
-	case WM_CHAR:
-		/* A Similar problem to the MLE, if ESC just return */
-		if(SHORT1FROMMP(mp2) == 283)
-			return (MRESULT)TRUE;
-		break;
-	}
-
-	if(blah && blah->oldproc)
-		return blah->oldproc(hWnd, msg, mp1, mp2);
-
-	return WinDefWindowProc(hWnd, msg, mp1, mp2);
-}
+#define ENTRY_CUT   1001
+#define ENTRY_COPY  1002
+#define ENTRY_PASTE 1003
 
 /* Originally just intended for entryfields, it now serves as a generic
  * procedure for handling TAB presses to change input focus on controls.
@@ -1386,9 +1392,82 @@ MRESULT EXPENTRY _entryproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 {
 	WindowData *blah = (WindowData *)WinQueryWindowPtr(hWnd, QWP_USER);
 	PFNWP oldproc = 0;
+	char tmpbuf[100];
 
 	if(blah)
 		oldproc = blah->oldproc;
+
+	WinQueryClassName(hWnd, 99, tmpbuf);
+
+	/* These are the window classes which should get a menu */
+	if(strncmp(tmpbuf, "#2", 3)==0 ||  /* Combobox */
+	   strncmp(tmpbuf, "#6", 3)==0 ||  /* Entryfield */
+	   strncmp(tmpbuf, "#10", 4)==0 || /* MLE */
+	   strncmp(tmpbuf, "#32", 4)==0)   /* Spinbutton */
+	{
+		switch(msg)
+		{
+		case WM_CONTEXTMENU:
+			{
+				HWND menuitem;
+				HMENUI hwndMenu = dw_menu_new(0L);
+				long x, y;
+
+				menuitem = dw_menu_append_item(hwndMenu, "Copy", ENTRY_COPY, 0L, TRUE, FALSE, 0L);
+				if(strncmp(tmpbuf, "#10", 4)!=0 || (strncmp(tmpbuf, "#10", 4)==0 && !WinSendMsg(hWnd, MLM_QUERYREADONLY, 0, 0)))
+				{
+					menuitem = dw_menu_append_item(hwndMenu, "Cut", ENTRY_CUT, 0L, TRUE, FALSE, 0L);
+					menuitem = dw_menu_append_item(hwndMenu, "Paste", ENTRY_PASTE, 0L, TRUE, FALSE, 0L);
+				}
+
+				dw_pointer_query_pos(&x, &y);
+				dw_menu_popup(&hwndMenu, hWnd, x, y);
+			}
+			break;
+		case WM_COMMAND:
+			{
+				ULONG command = COMMANDMSG(&msg)->cmd;
+
+				/* MLE */
+				if(strncmp(tmpbuf, "#10", 4)==0)
+				{
+					switch(command)
+					{
+					case ENTRY_CUT:
+						return WinSendMsg(hWnd, MLM_CUT, 0, 0);
+					case ENTRY_COPY:
+						return WinSendMsg(hWnd, MLM_COPY, 0, 0);
+					case ENTRY_PASTE:
+						return WinSendMsg(hWnd, MLM_PASTE, 0, 0);
+					}
+				}
+				else /* Other */
+				{
+					HWND handle = hWnd;
+
+					/* Get the entryfield handle from multi window controls */
+					if(strncmp(tmpbuf, "#2", 3)==0)
+						handle = WinWindowFromID(hWnd, 667);
+					if(strncmp(tmpbuf, "#32", 4)==0)
+						handle = WinWindowFromID(hWnd, 1703);
+
+					if(handle)
+					{
+						switch(command)
+						{
+						case ENTRY_CUT:
+							return WinSendMsg(handle, EM_CUT, 0, 0);
+						case ENTRY_COPY:
+							return WinSendMsg(handle, EM_COPY, 0, 0);
+						case ENTRY_PASTE:
+							return WinSendMsg(handle, EM_PASTE, 0, 0);
+						}
+					}
+				}
+			}
+			break;
+		}
+	}
 
 	switch(msg)
 	{
@@ -1396,20 +1475,12 @@ MRESULT EXPENTRY _entryproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 	case WM_BUTTON2DOWN:
 	case WM_BUTTON3DOWN:
 		{
-			char tmpbuf[100];
-
-			WinQueryClassName(hWnd, 99, tmpbuf);
-
 			if(strncmp(tmpbuf, "#32", 4)==0)
 				_run_event(hWnd, WM_SETFOCUS, (MPARAM)FALSE, (MPARAM)TRUE);
 		}
 		break;
 	case WM_CONTROL:
 		{
-			char tmpbuf[100];
-
-			WinQueryClassName(hWnd, 99, tmpbuf);
-
 			if(strncmp(tmpbuf, "#38", 4)==0)
 				_run_event(hWnd, msg, mp1, mp2);
 		}
@@ -1437,10 +1508,6 @@ MRESULT EXPENTRY _entryproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 		break;
 	case WM_SIZE:
 		{
-			char tmpbuf[100];
-
-			WinQueryClassName(hWnd, 99, tmpbuf);
-
 			/* If it's a slider... make sure it shows the correct value */
 			if(strncmp(tmpbuf, "#38", 4)==0)
 				WinPostMsg(hWnd, WM_USER+7, 0, 0);
@@ -1458,6 +1525,49 @@ MRESULT EXPENTRY _entryproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 		return oldproc(hWnd, msg, mp1, mp2);
 
 	return WinDefWindowProc(hWnd, msg, mp1, mp2);
+}
+
+/*  Deal with combobox specifics and enhancements */
+MRESULT EXPENTRY _comboentryproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
+{
+	WindowData *blah = (WindowData *)WinQueryWindowPtr(hWnd, QWP_USER);
+
+	switch(msg)
+	{
+	case WM_CONTEXTMENU:
+	case WM_COMMAND:
+		return _entryproc(hWnd, msg, mp1, mp2);
+	case WM_SETFOCUS:
+		_run_event(hWnd, msg, mp1, mp2);
+		break;
+	case WM_CHAR:
+		/* A Similar problem to the MLE, if ESC just return */
+		if(SHORT1FROMMP(mp2) == 283)
+			return (MRESULT)TRUE;
+		break;
+	}
+
+	if(blah && blah->oldproc)
+		return blah->oldproc(hWnd, msg, mp1, mp2);
+
+	return WinDefWindowProc(hWnd, msg, mp1, mp2);
+}
+
+/* Enhance the standard OS/2 MLE control */
+MRESULT EXPENTRY _mleproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
+{
+	switch(msg)
+	{
+	case WM_VSCROLL:
+		if(SHORT2FROMMP(mp2) == SB_SLIDERTRACK)
+		{
+			USHORT pos = SHORT1FROMMP(mp2);
+
+			return WinSendMsg(hWnd, msg, mp1, MPFROM2SHORT(pos, SB_SLIDERPOSITION));
+		}
+		break;
+	}
+	return _entryproc(hWnd, msg, mp1, mp2);
 }
 
 int _dw_int_pos(HWND hwnd)
@@ -3694,7 +3804,7 @@ HWND dw_mle_new(ULONG id)
 							   NULL,
 							   NULL);
 	dw_window_set_font(tmp, DefaultFont);
-	blah->oldproc = WinSubclassWindow(tmp, _entryproc);
+	blah->oldproc = WinSubclassWindow(tmp, _mleproc);
 	WinSetWindowPtr(tmp, QWP_USER, blah);
 	return tmp;
 }
@@ -4741,13 +4851,8 @@ void dw_mle_clear(HWND handle)
  */
 void dw_mle_set_visible(HWND handle, int line)
 {
-	int tmppnt;
-
-	if(line > 10)
-	{
-		tmppnt = (int)WinSendMsg(handle, MLM_CHARFROMLINE, MPFROMLONG(line - 10), 0);
-		WinSendMsg(handle, MLM_SETFIRSTCHAR, MPFROMLONG(tmppnt), 0);
-	}
+	int tmppnt = (int)WinSendMsg(handle, MLM_CHARFROMLINE, MPFROMLONG(line), 0);
+	WinSendMsg(handle, MLM_SETSEL, MPFROMLONG(tmppnt), MPFROMLONG(tmppnt));
 }
 
 /*
