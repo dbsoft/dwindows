@@ -341,8 +341,11 @@ void _item_select_event(GtkWidget *widget, GtkWidget *child, gpointer data)
 		{
 			if(list->data == (gpointer)child)
 			{
-				gtk_object_set_data(GTK_OBJECT(work->window), "item", (gpointer)item);
-				selectfunc(work->window, item, work->data);
+				if(!gtk_object_get_data(GTK_OBJECT(work->window), "appending"))
+				{
+					gtk_object_set_data(GTK_OBJECT(work->window), "item", (gpointer)item);
+					selectfunc(work->window, item, work->data);
+				}
 				break;
 			}
 			item++;
@@ -1318,10 +1321,15 @@ void dw_window_capture(HWND handle)
  */
 void dw_window_pointer(HWND handle, int pointertype)
 {
-	GdkCursor *cursor = gdk_cursor_new(pointertype);
+	int _locked_by_me = FALSE;
+	GdkCursor *cursor;
+
+	DW_MUTEX_LOCK;
+	cursor = gdk_cursor_new(pointertype);
 	if(handle && handle->window)
 		gdk_window_set_cursor(handle->window, cursor);
 	gdk_cursor_destroy(cursor);
+	DW_MUTEX_UNLOCK;
 }
 
 /*
@@ -1438,7 +1446,13 @@ HWND dw_groupbox_new(int type, int pad, char *title)
  */
 HWND dw_mdi_new(unsigned long id)
 {
-	return gtk_vbox_new(FALSE, 0);
+	GtkWidget *tmp;
+	int _locked_by_me = FALSE;
+
+	DW_MUTEX_LOCK;
+	tmp = gtk_vbox_new(FALSE, 0);
+	DW_MUTEX_UNLOCK;
+	return tmp;
 }
 
 /*
@@ -1484,7 +1498,7 @@ HWND dw_bitmap_new(unsigned long id)
  */
 HWND dw_notebook_new(unsigned long id, int top)
 {
-	GtkWidget *tmp;
+	GtkWidget *tmp, **pagearray = calloc(sizeof(GtkWidget *), 256);
 	int _locked_by_me = FALSE;
 
 	DW_MUTEX_LOCK;
@@ -1499,6 +1513,7 @@ HWND dw_notebook_new(unsigned long id, int top)
 #endif
 	gtk_widget_show(tmp);
 	gtk_object_set_data(GTK_OBJECT(tmp), "id", (gpointer)id);
+	gtk_object_set_data(GTK_OBJECT(tmp), "pagearray", (gpointer)pagearray);
 	DW_MUTEX_UNLOCK;
 	return tmp;
 }
@@ -4824,20 +4839,72 @@ unsigned long dw_notebook_page_new(HWND handle, unsigned long flags, int front)
 {
 	int z;
 	int _locked_by_me = FALSE;
+	GtkWidget **pagearray;
 
 	DW_MUTEX_LOCK;
-	for(z=0;z<256;z++)
-	{
-		if(!gtk_notebook_get_nth_page(GTK_NOTEBOOK(handle), z))
+	pagearray = (GtkWidget **)gtk_object_get_data(GTK_OBJECT(handle), "pagearray");
+
+	if(pagearray)
+	{    
+		for(z=0;z<256;z++)
 		{
-			DW_MUTEX_UNLOCK;
-			return z;
+			if(!pagearray[z])
+			{
+				char text[100];
+				int num = z;
+
+				if(front)
+					num |= 1 << 16;
+
+				sprintf(text, "page%d", z);
+				/* Save the real id and the creation flags */
+				gtk_object_set_data(GTK_OBJECT(handle), text, (gpointer)num);
+				DW_MUTEX_UNLOCK;
+				return z;
+			}
 		}
 	}
-
 	DW_MUTEX_UNLOCK;
-
+  
 	/* Hopefully this won't happen. */
+	return 256;
+}
+
+/* Return the physical page id from the logical page id */
+int _get_physical_page(HWND handle, unsigned long pageid)
+{
+	int z;
+	GtkWidget *thispage, **pagearray = gtk_object_get_data(GTK_OBJECT(handle), "pagearray");
+
+	if(pagearray)
+	{
+		for(z=0;z<256;z++)
+		{
+			if((thispage = gtk_notebook_get_nth_page(GTK_NOTEBOOK(handle), z)))
+			{
+				if(thispage == pagearray[pageid])
+					return z;
+			}
+		}
+	}
+	return 256;                                        
+}
+
+/* Return the logical page id from the physical page id */
+int _get_logical_page(HWND handle, unsigned long pageid)
+{
+	int z;
+	GtkWidget **pagearray = gtk_object_get_data(GTK_OBJECT(handle), "pagearray");
+	GtkWidget *thispage = gtk_notebook_get_nth_page(GTK_NOTEBOOK(handle), pageid);
+  
+	if(pagearray && thispage)
+	{
+		for(z=0;z<256;z++)
+		{
+			if(thispage == pagearray[z])
+				return z;
+		}
+	}
 	return 256;
 }
 
@@ -4849,10 +4916,17 @@ unsigned long dw_notebook_page_new(HWND handle, unsigned long flags, int front)
  */
 void dw_notebook_page_destroy(HWND handle, unsigned int pageid)
 {
-	int _locked_by_me = FALSE;
+	int realpage, _locked_by_me = FALSE;
+	GtkWidget **pagearray;
 
 	DW_MUTEX_LOCK;
-	gtk_notebook_remove_page(GTK_NOTEBOOK(handle), pageid);
+	realpage = _get_physical_page(handle, pageid);
+	if(realpage > -1 && realpage < 256)
+	{  
+		gtk_notebook_remove_page(GTK_NOTEBOOK(handle), realpage);
+		if((pagearray = gtk_object_get_data(GTK_OBJECT(handle), "pagearray")))
+			pagearray[pageid] = NULL;
+	}
 	DW_MUTEX_UNLOCK;
 }
 
@@ -4863,11 +4937,12 @@ void dw_notebook_page_destroy(HWND handle, unsigned int pageid)
  */
 unsigned int dw_notebook_page_query(HWND handle)
 {
-	int retval;
+	int retval, phys;
 	int _locked_by_me = FALSE;
 
 	DW_MUTEX_LOCK;
-	retval = gtk_notebook_get_current_page(GTK_NOTEBOOK(handle));
+	phys = gtk_notebook_get_current_page(GTK_NOTEBOOK(handle));
+	retval = _get_logical_page(handle, phys);
 	DW_MUTEX_UNLOCK;
 	return retval;
 }
@@ -4880,10 +4955,12 @@ unsigned int dw_notebook_page_query(HWND handle)
  */
 void dw_notebook_page_set(HWND handle, unsigned int pageid)
 {
-	int _locked_by_me = FALSE;
+	int realpage, _locked_by_me = FALSE;
 
 	DW_MUTEX_LOCK;
-	gtk_notebook_set_page(GTK_NOTEBOOK(handle), pageid);
+	realpage = _get_physical_page(handle, pageid);
+	if(realpage > -1 && realpage < 256)
+		gtk_notebook_set_page(GTK_NOTEBOOK(handle), pageid);
 	DW_MUTEX_UNLOCK;
 }
 
@@ -4898,12 +4975,26 @@ void dw_notebook_page_set(HWND handle, unsigned int pageid)
 void dw_notebook_page_set_text(HWND handle, unsigned long pageid, char *text)
 {
 	GtkWidget *child;
-	int _locked_by_me = FALSE;
+	int realpage, _locked_by_me = FALSE;
 
 	DW_MUTEX_LOCK;
-	child = gtk_notebook_get_nth_page(GTK_NOTEBOOK(handle), pageid);
-	if(child)
-		gtk_notebook_set_tab_label_text(GTK_NOTEBOOK(handle), child, text);
+	realpage = _get_physical_page(handle, pageid);
+	if(realpage < 0 || realpage > 255)
+	{
+		char ptext[100];
+		int num;
+    
+		sprintf(ptext, "page%d", (int)pageid);
+		num = (int)gtk_object_get_data(GTK_OBJECT(handle), ptext);
+		realpage = 0xFF & num;
+	}
+  
+	if(realpage > -1 && realpage < 256)
+	{  
+		child = gtk_notebook_get_nth_page(GTK_NOTEBOOK(handle), realpage);
+		if(child)
+			gtk_notebook_set_tab_label_text(GTK_NOTEBOOK(handle), child, text);
+	}
 	DW_MUTEX_UNLOCK;
 }
 
@@ -4928,18 +5019,42 @@ void dw_notebook_page_set_status_text(HWND handle, unsigned long pageid, char *t
  */
 void dw_notebook_pack(HWND handle, unsigned long pageid, HWND page)
 {
-	GtkWidget *label, *child, *oldlabel;
+	GtkWidget *label, *child, *oldlabel, **pagearray;
 	gchar *text = NULL;
-	int pad, _locked_by_me = FALSE;
+	int num, z, realpage = -1, pad, _locked_by_me = FALSE;
+	char ptext[100];
 
 	DW_MUTEX_LOCK;
-	child = gtk_notebook_get_nth_page(GTK_NOTEBOOK(handle), pageid);
-	if(child)
+	sprintf(ptext, "page%d", (int)pageid);
+	num = (int)gtk_object_get_data(GTK_OBJECT(handle), ptext);
+	gtk_object_set_data(GTK_OBJECT(handle), ptext, NULL);
+	pagearray = (GtkWidget **)gtk_object_get_data(GTK_OBJECT(handle), "pagearray");
+
+	if(!pagearray)
 	{
-		oldlabel = gtk_notebook_get_tab_label(GTK_NOTEBOOK(handle), child);
-		if(oldlabel)
-			gtk_label_get(GTK_LABEL(oldlabel), &text);
+		DW_MUTEX_UNLOCK;
+		return;
 	}
+
+	/* The page already exists... so get it's current page */
+	if(pagearray[pageid])
+	{
+		for(z=0;z<256;z++)
+		{
+			child = gtk_notebook_get_nth_page(GTK_NOTEBOOK(handle), z);
+			if(child == pagearray[pageid])
+			{
+				oldlabel = gtk_notebook_get_tab_label(GTK_NOTEBOOK(handle), child);
+				if(oldlabel)
+					gtk_label_get(GTK_LABEL(oldlabel), &text);
+				gtk_notebook_remove_page(GTK_NOTEBOOK(handle), z);
+				realpage = z;
+				break;
+			}
+		}
+	}
+  
+	pagearray[pageid] = page;
 
 	label = gtk_label_new(text ? text : "");
 
@@ -4949,9 +5064,12 @@ void dw_notebook_pack(HWND handle, unsigned long pageid, HWND page)
 		gtk_container_border_width(GTK_CONTAINER(page), pad);
 	}
 
-	gtk_notebook_insert_page(GTK_NOTEBOOK(handle), page, label, pageid);
-	if(child)
-		gtk_notebook_remove_page(GTK_NOTEBOOK(handle), pageid+1);
+	if(realpage != -1)
+		gtk_notebook_insert_page(GTK_NOTEBOOK(handle), page, label, realpage);
+	else if(num & ~(0xFF))
+		gtk_notebook_insert_page(GTK_NOTEBOOK(handle), page, label, 0);
+	else
+		gtk_notebook_insert_page(GTK_NOTEBOOK(handle), page, label, 256);
 	DW_MUTEX_UNLOCK;
 }
 
@@ -4973,6 +5091,7 @@ void dw_listbox_append(HWND handle, char *text)
 		if(tmp)
 			handle2 = tmp;
 	}
+	gtk_object_set_data(GTK_OBJECT(handle), "appending", (gpointer)1);
 	if(GTK_IS_LIST(handle2))
 	{
 		GtkWidget *list_item;
@@ -5006,6 +5125,7 @@ void dw_listbox_append(HWND handle, char *text)
 			gtk_combo_set_popdown_strings(GTK_COMBO(handle2), tmp);
 		}
 	}
+	gtk_object_set_data(GTK_OBJECT(handle), "appending", NULL);
 	DW_MUTEX_UNLOCK;
 }
 
