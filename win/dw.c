@@ -1988,6 +1988,13 @@ BOOL CALLBACK _rendwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 	return DefWindowProc(hWnd, msg, mp1, mp2);
 }
 
+#ifndef UDM_SETPOS32
+#define UDM_SETPOS32            (WM_USER+113)
+#endif
+#ifndef UDM_GETPOS32
+#define UDM_GETPOS32            (WM_USER+114)
+#endif
+
 BOOL CALLBACK _spinnerwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 {
 	ColorInfo *cinfo;
