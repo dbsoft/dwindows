@@ -137,6 +137,46 @@ typedef struct _user_data
 
 #define DW_OS2_NEW_WINDOW        1
 
+/* Virtual Key Codes */
+#define VK_LBUTTON           VK_BUTTON1
+#define VK_RBUTTON           VK_BUTTON2
+#define VK_MBUTTON           VK_BUTTON3
+#define VK_RETURN            VK_NEWLINE
+#define VK_PRINT             VK_PRINTSCRN
+#define VK_CANCEL            128
+#define VK_CAPITAL           129
+#define VK_ESCAPE            130
+#define VK_PRIOR             131
+#define VK_NEXT              132
+#define VK_SELECT            133
+#define VK_EXECUTE           134
+#define VK_SNAPSHOT          135
+#define VK_HELP              136
+#define VK_LWIN              137
+#define VK_RWIN              138
+#define VK_MULTIPLY          139
+#define VK_ADD               140
+#define VK_SEPARATOR         141
+#define VK_SUBTRACT          142
+#define VK_DECIMAL           143
+#define VK_DIVIDE            144
+#define VK_SCROLL            145
+#define VK_LSHIFT            146
+#define VK_RSHIFT            147
+#define VK_LCONTROL          148
+#define VK_RCONTROL          149
+#define VK_NUMPAD0           150
+#define VK_NUMPAD1           151
+#define VK_NUMPAD2           152
+#define VK_NUMPAD3           153
+#define VK_NUMPAD4           154
+#define VK_NUMPAD5           155
+#define VK_NUMPAD6           156
+#define VK_NUMPAD7           157
+#define VK_NUMPAD8           158
+#define VK_NUMPAD9           159
+
+
 typedef struct _window_data {
 	PFNWP oldproc;
 	UserData *root;

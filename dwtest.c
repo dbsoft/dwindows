@@ -76,7 +76,7 @@ char *resolve_keyname( int vk )
 			case  VK_TAB     : keyname =  "VK_TAB"; break;
 			case  VK_CLEAR   : keyname =  "VK_CLEAR"; break;
 			case  VK_RETURN  : keyname =  "VK_RETURN"; break;
-			case  VK_MENU    : keyname =  "VK_MENU"; break;
+/*			case  VK_MENU    : keyname =  "VK_MENU"; break;*/
 			case  VK_PAUSE   : keyname =  "VK_PAUSE"; break;
 			case  VK_CAPITAL : keyname =  "VK_CAPITAL"; break;
 			case  VK_ESCAPE  : keyname =  "VK_ESCAPE"; break;

@@ -197,6 +197,7 @@ HWND _toplevel_window(HWND handle)
 	return handle;
 }
 
+
 /* Return the entryfield child of a window */
 HWND _find_entryfield(HWND handle)
 {
@@ -1974,7 +1975,7 @@ MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 				{
 					int (* API keypressfunc)(HWND, char, int, int, void *) = (int (* API)(HWND, char, int, int, void *))tmp->signalfunction;
 
-					if(hWnd == tmp->window && !(SHORT1FROMMP(mp1) & KC_KEYUP))
+					if((hWnd == tmp->window || _toplevel_window(hWnd) == tmp->window) && !(SHORT1FROMMP(mp1) & KC_KEYUP))
 					{
 						int vk;
 						char ch = 0;
@@ -1984,7 +1985,7 @@ MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 						if(SHORT1FROMMP(mp1) & KC_VIRTUALKEY)
 							vk = SHORT2FROMMP(mp2);
 						else
-							vk = SHORT1FROMMP(mp2);
+							vk = SHORT1FROMMP(mp2) + 128;
 
 						/* This is a hack to fix shift presses showing
 						 * up as tabs!
