@@ -31,10 +31,18 @@ unsigned long flStyle = DW_FCF_SYSMENU | DW_FCF_TITLEBAR |
 int main(int argc, char *argv[])
 {
     DWEnv env;
+    HWND window;
+    
+    dw_init(TRUE, argc, argv);
+    
+    window = dw_window_new(HWND_DESKTOP, "Test Window", flStyle);
+    dw_window_set_pos_size(window, 100, 100, 300, 200);
+    dw_window_show(window);
     
     dw_environment_query(&env);
-    printf("Operating System: %s %d.%d\nBuild: %d.%d\n", env.osName, env.MajorVersion, env.MinorVersion, 
-            env.MajorBuild, env.MinorBuild);
+    dw_messagebox("Title", DW_MB_OK | DW_MB_INFORMATION, "Operating System: %s %d.%d\nBuild: %d.%d\n", 
+                env.osName, env.MajorVersion, env.MinorVersion, env.MajorBuild, env.MinorBuild);
+            
     return 0;
 }
 #else
