@@ -5514,7 +5514,7 @@ int dw_container_setup(HWND handle, unsigned long *flags, char **titles, int cou
 	{
 		if(titles[z])
 		{
-			lvc.mask = LVCF_TEXT | LVCF_WIDTH | LVCF_SUBITEM /*| LVCF_FORMAT*/;
+			lvc.mask = LVCF_TEXT | LVCF_WIDTH | LVCF_SUBITEM;
 			lvc.pszText = titles[z];
 			lvc.cchTextMax = strlen(titles[z]);
 			lvc.fmt = flags[z];
@@ -5523,7 +5523,7 @@ int dw_container_setup(HWND handle, unsigned long *flags, char **titles, int cou
 			SendMessage(handle, LVM_INSERTCOLUMN, (WPARAM)z + l, (LPARAM)&lvc);
 		}
 	}
-	ListView_SetExtendedListViewStyle(handle, LVS_EX_FULLROWSELECT | LVS_EX_GRIDLINES);
+	ListView_SetExtendedListViewStyle(handle, LVS_EX_FULLROWSELECT);
 	return TRUE;
 }
 
@@ -5975,7 +5975,11 @@ void dw_container_optimize(HWND handle)
 	ULONG *flags;
 	LV_ITEM lvi;
 
-	if(cinfo && cinfo->columns > 0)
+	if(cinfo && cinfo->columns == 1)
+	{
+		ListView_SetColumnWidth(handle, 0, LVSCW_AUTOSIZE);
+	}
+	else if(cinfo && cinfo->columns > 1)
 	{
 		int z, index;
 		ULONG *flags = cinfo->flags, *columns = calloc(sizeof(ULONG), cinfo->columns);
