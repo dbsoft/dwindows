@@ -137,6 +137,14 @@ void _new_signal(ULONG message, HWND window, void *signalfunction, void *data)
 		SignalHandler *prev = NULL, *tmp = Root;
 		while(tmp)
 		{
+			if(tmp->message == message &&
+			   tmp->window == window &&
+			   tmp->signalfunction == signalfunction)
+			{
+				tmp->data = data;
+				free(new);
+				return;
+			}
 			prev = tmp;
 			tmp = tmp->next;
 		}

@@ -265,6 +265,14 @@ void _new_signal(ULONG message, HWND window, void *signalfunction, void *data)
 		SignalHandler *prev = NULL, *tmp = Root;
 		while(tmp)
 		{
+			if(tmp->message == message &&
+			   tmp->window == window &&
+			   tmp->signalfunction == signalfunction)
+			{
+				tmp->data = data;
+				free(new);
+				return;
+			}
 			prev = tmp;
 			tmp = tmp->next;
 		}
@@ -332,7 +340,8 @@ int _validate_focus(HWND handle)
 	   strnicmp(tmpbuf, LISTBOXCLASSNAME, strlen(LISTBOXCLASSNAME)+1)==0 ||    /* List box */
 	   strnicmp(tmpbuf, UPDOWN_CLASS, strlen(UPDOWN_CLASS)+1)==0 ||            /* Spinbutton */
 	   strnicmp(tmpbuf, TRACKBAR_CLASS, strlen(TRACKBAR_CLASS)+1)==0 ||        /* Slider */
-	   strnicmp(tmpbuf, WC_LISTVIEW, strlen(WC_LISTVIEW)+1)== 0)               /* Container */
+	   strnicmp(tmpbuf, WC_LISTVIEW, strlen(WC_LISTVIEW)+1)== 0 ||             /* Container */
+	   strnicmp(tmpbuf, WC_TREEVIEW, strlen(WC_TREEVIEW)+1)== 0)               /* Tree */
 		return 1;
 	return 0;
 }
@@ -2073,6 +2082,31 @@ BOOL CALLBACK _containerwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 	return CallWindowProc(cinfo->pOldProc, hWnd, msg, mp1, mp2);
 }
 
+BOOL CALLBACK _treewndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
+{
+	ContainerInfo *cinfo;
+
+	cinfo = (ContainerInfo *)GetWindowLong(hWnd, GWL_USERDATA);
+
+	switch( msg )
+	{
+	case WM_CHAR:
+		if(LOWORD(mp1) == '\t')
+		{
+			if(GetAsyncKeyState(VK_SHIFT))
+				_shift_focus_back(hWnd);
+			else
+				_shift_focus(hWnd);
+			return FALSE;
+		}
+		break;
+	}
+
+	if(!cinfo || !cinfo->pOldProc)
+		return DefWindowProc(hWnd, msg, mp1, mp2);
+	return CallWindowProc(cinfo->pOldProc, hWnd, msg, mp1, mp2);
+}
+
 void _changebox(Box *thisbox, int percent, int type)
 {
 	int z;
@@ -3542,6 +3576,7 @@ HWND dw_container_new(ULONG id)
 	}
 
 	cinfo->pOldProc = (WNDPROC)SubclassWindow(tmp, _containerwndproc);
+	cinfo->cinfo.fore = cinfo->cinfo.back = -1;
 
 	SetWindowLong(tmp, GWL_USERDATA, (ULONG)cinfo);
 	dw_window_set_font(tmp, DefaultFont);
@@ -3566,7 +3601,19 @@ HWND dw_tree_new(ULONG id)
 							(HMENU)id,
 							NULL,
 							NULL);
+	ContainerInfo *cinfo = (ContainerInfo *)calloc(1, sizeof(ContainerInfo));
 	TreeView_SetItemHeight(tmp, 16);
+
+	if(!cinfo)
+	{
+		DestroyWindow(tmp);
+		return NULL;
+	}
+
+	cinfo->pOldProc = (WNDPROC)SubclassWindow(tmp, _treewndproc);
+	cinfo->cinfo.fore = cinfo->cinfo.back = -1;
+
+	SetWindowLong(tmp, GWL_USERDATA, (ULONG)cinfo);
 	dw_window_set_font(tmp, DefaultFont);
 	return tmp;
 }
@@ -3661,6 +3708,18 @@ HWND dw_mle_new(ULONG id)
 							  (HMENU)id,
 							  NULL,
 							  NULL);
+	ContainerInfo *cinfo = (ContainerInfo *)calloc(1, sizeof(ContainerInfo));
+
+	if(!cinfo)
+	{
+		DestroyWindow(tmp);
+		return NULL;
+	}
+
+	cinfo->pOldProc = (WNDPROC)SubclassWindow(tmp, _treewndproc);
+	cinfo->cinfo.fore = cinfo->cinfo.back = -1;
+
+	SetWindowLong(tmp, GWL_USERDATA, (ULONG)cinfo);
 	dw_window_set_font(tmp, DefaultFont);
 	return tmp;
 }
