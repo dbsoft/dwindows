@@ -2821,6 +2821,7 @@ void _handle_splitbar_resize(HWND hwnd, float percent, int type, int x, int y)
 
 		WinSetWindowPos(handle2, NULLHANDLE, 0, 0, x, newy, SWP_MOVE | SWP_SIZE);
 		_do_resize(tmp, x - 1, newy - 1);
+		_do_resize(tmp, x - 1, newy - 1);
 
 		dw_window_set_data(hwnd, "_dw_start", (void *)newy);
 	}
