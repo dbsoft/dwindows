@@ -501,6 +501,20 @@ static void gtk_mdi_move(GtkMdi *mdi, GtkWidget *widget, gint x, gint y)
 		gtk_widget_queue_resize (GTK_WIDGET (widget));
 }
 
+static void gtk_mdi_get_pos(GtkMdi *mdi, GtkWidget *widget, gint *x, gint *y)
+{
+	GtkMdiChild *child;
+
+	g_return_if_fail (GTK_IS_MDI (mdi));
+	g_return_if_fail (GTK_IS_WIDGET (widget));
+
+	child = get_child (mdi, widget);
+	g_return_if_fail (child);
+
+	*x = child->x;
+	*y = child->y;
+}
+
 static void gtk_mdi_tile(GtkMdi *mdi)
 {
 	int i, n;
@@ -7626,10 +7640,22 @@ unsigned long dw_color_depth_get(void)
 void dw_window_set_pos(HWND handle, unsigned long x, unsigned long y)
 {
 	int _locked_by_me = FALSE;
+#if GTK_MAJOR_VERSION > 1
+	GtkWidget *mdi;
+#endif
 
 	DW_MUTEX_LOCK;
-	if(handle && handle->window)
-		gdk_window_move(handle->window, x, y);
+#if GTK_MAJOR_VERSION > 1
+	if((mdi = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(handle), "_dw_mdi")) && GTK_IS_MDI(mdi))
+	{
+		gtk_mdi_move(GTK_MDI(mdi), handle, x, y);
+	}
+	else
+#endif
+	{
+		if(handle && handle->window)
+			gdk_window_move(handle->window, x, y);
+	}
 	DW_MUTEX_UNLOCK;
 }
 
@@ -7645,20 +7671,32 @@ void dw_window_set_pos(HWND handle, unsigned long x, unsigned long y)
 void dw_window_set_pos_size(HWND handle, unsigned long x, unsigned long y, unsigned long width, unsigned long height)
 {
 	int _locked_by_me = FALSE;
+#if GTK_MAJOR_VERSION > 1
+	GtkWidget *mdi;
+#endif
 
 	if(!handle)
 		return;
 
 	DW_MUTEX_LOCK;
-	if(GTK_IS_WINDOW(handle))
+#if GTK_MAJOR_VERSION > 1
+	if((mdi = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(handle), "_dw_mdi")) && GTK_IS_MDI(mdi))
 	{
-		dw_window_set_size(handle, width, height);
-		gtk_widget_set_uposition(handle, x, y);
+		gtk_mdi_move(GTK_MDI(mdi), handle, x, y);
 	}
-	else if(handle->window)
+	else
+#endif
 	{
-		gdk_window_resize(handle->window, width, height);
-		gdk_window_move(handle->window, x, y);
+		if(GTK_IS_WINDOW(handle))
+		{
+			dw_window_set_size(handle, width, height);
+			gtk_widget_set_uposition(handle, x, y);
+		}
+		else if(handle->window)
+		{
+			gdk_window_resize(handle->window, width, height);
+			gdk_window_move(handle->window, x, y);
+		}
 	}
 	DW_MUTEX_UNLOCK;
 }
@@ -7676,33 +7714,49 @@ void dw_window_get_pos_size(HWND handle, ULONG *x, ULONG *y, ULONG *width, ULONG
 {
 	int _locked_by_me = FALSE;
 	gint gx, gy, gwidth, gheight, gdepth;
+#if GTK_MAJOR_VERSION > 1
+	GtkWidget *mdi;
+#endif
 
-	if(handle && handle->window)
+	DW_MUTEX_LOCK;
+#if GTK_MAJOR_VERSION > 1
+	if((mdi = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(handle), "_dw_mdi")) && GTK_IS_MDI(mdi))
 	{
-		DW_MUTEX_LOCK;
+		gint myx, myy;
 
-		gdk_window_get_geometry(handle->window, &gx, &gy, &gwidth, &gheight, &gdepth);
-		gdk_window_get_root_origin(handle->window, &gx, &gy);
-		if(x)
-			*x = gx;
-		if(y)
-			*y = gy;
-		if(GTK_IS_WINDOW(handle))
-		{
-			if(width)
-				*width = gwidth + _dw_border_width;
-			if(height)
-				*height = gheight + _dw_border_height;
-		}
-		else
-		{
-			if(width)
-				*width = gwidth;
-			if(height)
-				*height = gheight;
-		}
-		DW_MUTEX_UNLOCK;
+		gtk_mdi_get_pos(GTK_MDI(mdi), handle, &myx, &myy);
+		*x = myx;
+		*y = myy;
 	}
+	else
+#endif
+	{
+		if(handle && handle->window)
+		{
+
+			gdk_window_get_geometry(handle->window, &gx, &gy, &gwidth, &gheight, &gdepth);
+			gdk_window_get_root_origin(handle->window, &gx, &gy);
+			if(x)
+				*x = gx;
+			if(y)
+				*y = gy;
+			if(GTK_IS_WINDOW(handle))
+			{
+				if(width)
+					*width = gwidth + _dw_border_width;
+				if(height)
+					*height = gheight + _dw_border_height;
+			}
+			else
+			{
+				if(width)
+					*width = gwidth;
+				if(height)
+					*height = gheight;
+			}
+		}
+	}
+	DW_MUTEX_UNLOCK;
 }
 
 /*
