@@ -25,6 +25,11 @@
 #include <gdk-pixbuf/gdk-pixbuf.h>
 #endif
 
+#include "messagebox_error.xpm"
+#include "messagebox_warning.xpm"
+#include "messagebox_information.xpm"
+#include "messagebox_question.xpm"
+
 /* These are used for resource management */
 #if defined(DW_RESOURCES) && !defined(BUILD_DLL)
 extern DWResources _resources;
@@ -1072,63 +1077,8 @@ static int _dw_ok_func(HWND window, void *data)
 		return FALSE;
 
 	dw_window_destroy((HWND)dwwait->data);
-	dw_dialog_dismiss((DWDialog *)data, (void *)0);
+	dw_dialog_dismiss((DWDialog *)data, (void *)DW_MB_RETURN_OK);
 	return FALSE;
-}
-
-/*
- * Displays a Message Box with given text and title..
- * Parameters:
- *           title: The title of the message box.
- *           format: printf style format string.
- *           ...: Additional variables for use in the format.
- */
-int dw_messagebox(char *title, char *format, ...)
-{
-	HWND entrywindow, mainbox, okbutton, buttonbox, stext;
-	ULONG flStyle = DW_FCF_TITLEBAR | DW_FCF_SHELLPOSITION | DW_FCF_DLGBORDER;
-	DWDialog *dwwait;
-	va_list args;
-	char outbuf[256];
-	int x, y;
-
-	va_start(args, format);
-	vsprintf(outbuf, format, args);
-	va_end(args);
-
-	entrywindow = dw_window_new(HWND_DESKTOP, title, flStyle);
-	mainbox = dw_box_new(DW_VERT, 10);
-	dw_box_pack_start(entrywindow, mainbox, 0, 0, TRUE, TRUE, 0);
-
-	/* Archive Name */
-	stext = dw_text_new(outbuf, 0);
-	dw_window_set_style(stext, DW_DT_WORDBREAK, DW_DT_WORDBREAK);
-
-	dw_box_pack_start(mainbox, stext, 205, 50, TRUE, TRUE, 2);
-
-	/* Buttons */
-	buttonbox = dw_box_new(DW_HORZ, 10);
-
-	dw_box_pack_start(mainbox, buttonbox, 0, 0, TRUE, FALSE, 0);
-
-	okbutton = dw_button_new("Ok", 1001L);
-
-	dw_box_pack_start(buttonbox, okbutton, 50, 30, TRUE, FALSE, 2);
-
-	dwwait = dw_dialog_new((void *)entrywindow);
-
-	dw_signal_connect(okbutton, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(_dw_ok_func), (void *)dwwait);
-
-	x = (dw_screen_width() - 220)/2;
-	y = (dw_screen_height() - 110)/2;
-
-	dw_window_set_pos_size(entrywindow, x, y, 220, 110);
-
-	dw_window_show(entrywindow);
-
-	dw_dialog_wait(dwwait);
-
-	return strlen(outbuf);
 }
 
 int _dw_yes_func(HWND window, void *data)
@@ -1139,7 +1089,7 @@ int _dw_yes_func(HWND window, void *data)
 		return FALSE;
 
 	dw_window_destroy((HWND)dwwait->data);
-	dw_dialog_dismiss((DWDialog *)data, (void *)1);
+	dw_dialog_dismiss((DWDialog *)data, (void *)DW_MB_RETURN_YES);
 	return FALSE;
 }
 
@@ -1151,7 +1101,19 @@ int _dw_no_func(HWND window, void *data)
 		return FALSE;
 
 	dw_window_destroy((HWND)dwwait->data);
-	dw_dialog_dismiss((DWDialog *)data, (void *)0);
+	dw_dialog_dismiss((DWDialog *)data, (void *)DW_MB_RETURN_NO);
+	return FALSE;
+}
+
+int _dw_cancel_func(HWND window, void *data)
+{
+	DWDialog *dwwait = (DWDialog *)data;
+
+	if(!dwwait)
+		return FALSE;
+
+	dw_window_destroy((HWND)dwwait->data);
+	dw_dialog_dismiss((DWDialog *)data, (void *)DW_MB_RETURN_CANCEL);
 	return FALSE;
 }
 
@@ -1159,46 +1121,127 @@ int _dw_no_func(HWND window, void *data)
  * Displays a Message Box with given text and title..
  * Parameters:
  *           title: The title of the message box.
- *           text: The text to display in the box.
- * Returns:
- *           True if YES False of NO.
+ *           flags: Defines buttons and icons to display
+ *           format: printf style format string.
+ *           ...: Additional variables for use in the format.
  */
-int dw_yesno(char *title, char *text)
+int dw_messagebox(char *title, int flags, char *format, ...)
 {
-	HWND entrywindow, mainbox, nobutton, yesbutton, buttonbox, stext;
+	HWND entrywindow, texttargetbox, imagetextbox, mainbox, okbutton, nobutton, yesbutton, cancelbutton, buttonbox, stext;
 	ULONG flStyle = DW_FCF_TITLEBAR | DW_FCF_SHELLPOSITION | DW_FCF_DLGBORDER;
 	DWDialog *dwwait;
+	va_list args;
+	char outbuf[256];
+	char **xpm_data = NULL;
 	int x, y;
 
+	va_start(args, format);
+	vsprintf(outbuf, format, args);
+	va_end(args);
+
 	entrywindow = dw_window_new(HWND_DESKTOP, title, flStyle);
-
 	mainbox = dw_box_new(DW_VERT, 10);
-
 	dw_box_pack_start(entrywindow, mainbox, 0, 0, TRUE, TRUE, 0);
+/* delete me */dw_window_set_color(mainbox, DW_CLR_BLACK, DW_CLR_RED);
 
-	/* Archive Name */
-	stext = dw_text_new(text, 0);
+/* determine if an icon is to be used - if so we need another HORZ box */
+	if((flags & DW_MB_ERROR) | (flags & DW_MB_WARNING) | (flags & DW_MB_INFORMATION) | (flags & DW_MB_QUESTION))
+	{
+		imagetextbox = dw_box_new(DW_HORZ, 101);
+		dw_box_pack_start(mainbox, imagetextbox, 0, 0, TRUE, TRUE, 2);
+		texttargetbox = imagetextbox;
+/* delete me */dw_window_set_color(imagetextbox, DW_CLR_BLACK, DW_CLR_YELLOW);
+	}
+	else
+	{
+		imagetextbox = NULL;
+		texttargetbox = mainbox;
+	}
+
+	if(flags & DW_MB_ERROR)
+		xpm_data = (char **)_dw_messagebox_error;
+	else if(flags & DW_MB_WARNING)
+		xpm_data = (char **)_dw_messagebox_warning;
+	else if(flags & DW_MB_INFORMATION)
+		xpm_data = (char **)_dw_messagebox_information;
+	else if(flags & DW_MB_QUESTION)
+		xpm_data = (char **)_dw_messagebox_question;
+
+	if(texttargetbox == imagetextbox)
+	{
+		GdkPixmap *icon_pixmap = NULL;
+		GdkBitmap *bitmap = NULL;
+		HWND handle = dw_bitmap_new( 100 );
+#if GTK_MAJOR_VERSION > 1
+		GdkPixbuf *icon_pixbuf = gdk_pixbuf_new_from_xpm_data((const char **)xpm_data);
+
+		gdk_pixbuf_render_pixmap_and_mask(icon_pixbuf, &icon_pixmap, &bitmap, 1);
+		g_object_unref(icon_pixbuf);
+#elif defined(USE_IMLIB)
+		gdk_imlib_data_to_pixmap((char **)xpm_data, &icon_pixmap, &bitmap);
+#else
+		icon_pixmap = gdk_pixmap_create_from_xpm_d(handle->window, &bitmap, &_colors[DW_CLR_PALEGRAY], (char **)xpm_data);
+#endif
+
+#if GTK_MAJOR_VERSION > 1
+		gtk_image_set_from_pixmap(GTK_IMAGE(handle), icon_pixmap, bitmap);
+#else
+		gtk_pixmap_set(GTK_PIXMAP(handle), icon_pixmap, bitmap);
+#endif
+
+		dw_box_pack_start( texttargetbox, handle, 32, 32, FALSE, FALSE, 2);
+	}
+
+	/* Create text */
+	stext = dw_text_new(outbuf, 0);
 	dw_window_set_style(stext, DW_DT_WORDBREAK, DW_DT_WORDBREAK);
-
-	dw_box_pack_start(mainbox, stext, 205, 50, TRUE, TRUE, 2);
+	dw_box_pack_start(texttargetbox, stext, 205, 50, TRUE, TRUE, 2);
 
 	/* Buttons */
 	buttonbox = dw_box_new(DW_HORZ, 10);
 
 	dw_box_pack_start(mainbox, buttonbox, 0, 0, TRUE, FALSE, 0);
-
-	yesbutton = dw_button_new("Yes", 1001L);
-
-	dw_box_pack_start(buttonbox, yesbutton, 50, 30, TRUE, FALSE, 2);
-
-	nobutton = dw_button_new("No", 1002L);
-
-	dw_box_pack_start(buttonbox, nobutton, 50, 30, TRUE, FALSE, 2);
+/* delete me */dw_window_set_color(buttonbox, DW_CLR_BLACK, DW_CLR_WHITE);
 
 	dwwait = dw_dialog_new((void *)entrywindow);
 
-	dw_signal_connect(yesbutton, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(_dw_yes_func), (void *)dwwait);
-	dw_signal_connect(nobutton, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(_dw_no_func), (void *)dwwait);
+/* which buttons ? */
+	if(flags & DW_MB_OK)
+	{
+		okbutton = dw_button_new("Ok", 1001L);
+		dw_box_pack_start(buttonbox, okbutton, 50, 30, TRUE, FALSE, 2);
+		dw_signal_connect(okbutton, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(_dw_ok_func), (void *)dwwait);
+	}
+	else if(flags & DW_MB_OKCANCEL)
+	{
+		okbutton = dw_button_new("Ok", 1001L);
+		dw_box_pack_start(buttonbox, okbutton, 50, 30, TRUE, FALSE, 2);
+		dw_signal_connect(okbutton, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(_dw_ok_func), (void *)dwwait);
+		cancelbutton = dw_button_new("Cancel", 1002L);
+		dw_box_pack_start(buttonbox, cancelbutton, 50, 30, TRUE, FALSE, 2);
+		dw_signal_connect(cancelbutton, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(_dw_cancel_func), (void *)dwwait);
+	}
+	else if(flags & DW_MB_YESNO)
+	{
+		yesbutton = dw_button_new("Yes", 1001L);
+		dw_box_pack_start(buttonbox, yesbutton, 50, 30, TRUE, FALSE, 2);
+		dw_signal_connect(yesbutton, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(_dw_yes_func), (void *)dwwait);
+		nobutton = dw_button_new("No", 1002L);
+		dw_box_pack_start(buttonbox, nobutton, 50, 30, TRUE, FALSE, 2);
+		dw_signal_connect(nobutton, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(_dw_no_func), (void *)dwwait);
+	}
+	else if(flags & DW_MB_YESNOCANCEL)
+	{
+		yesbutton = dw_button_new("Yes", 1001L);
+		dw_box_pack_start(buttonbox, yesbutton, 50, 30, TRUE, FALSE, 2);
+		dw_signal_connect(yesbutton, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(_dw_yes_func), (void *)dwwait);
+		nobutton = dw_button_new("No", 1002L);
+		dw_box_pack_start(buttonbox, nobutton, 50, 30, TRUE, FALSE, 2);
+		dw_signal_connect(nobutton, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(_dw_no_func), (void *)dwwait);
+		cancelbutton = dw_button_new("Cancel", 1003L);
+		dw_box_pack_start(buttonbox, cancelbutton, 50, 30, TRUE, FALSE, 2);
+		dw_signal_connect(cancelbutton, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(_dw_cancel_func), (void *)dwwait);
+	}
 
 	x = (dw_screen_width() - 220)/2;
 	y = (dw_screen_height() - 110)/2;

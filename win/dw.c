@@ -3046,7 +3046,7 @@ int API dw_init(int newthread, int argc, char *argv[])
 
 	if(!DW_HWND_OBJECT)
 	{
-		dw_messagebox("Dynamic Windows", "Could not initialize the object window. error code %d", GetLastError());
+		dw_messagebox("Dynamic Windows", DW_MB_OK|DW_MB_ERROR, "Could not initialize the object window. error code %d", GetLastError());
 		exit(1);
 	}
 
@@ -3203,33 +3203,26 @@ void * API dw_dialog_wait(DWDialog *dialog)
  *           format: printf style format string.
  *           ...: Additional variables for use in the format.
  */
-int API dw_messagebox(char *title, char *format, ...)
+int API dw_messagebox(char *title, int flags, char *format, ...)
 {
 	va_list args;
 	char outbuf[256];
+	int rc;
 
 	va_start(args, format);
 	vsprintf(outbuf, format, args);
 	va_end(args);
 
-	MessageBox(HWND_DESKTOP, outbuf, title, MB_OK);
-
-	return strlen(outbuf);
-}
-
-/*
- * Displays a Message Box with given text and title..
- * Parameters:
- *           title: The title of the message box.
- *           text: The text to display in the box.
- * Returns:
- *           True if YES False of NO.
- */
-int API dw_yesno(char *title, char *text)
-{
-	if(MessageBox(HWND_DESKTOP, text, title, MB_YESNO) == IDYES)
-		return TRUE;
-	return FALSE;
+	rc = MessageBox(HWND_DESKTOP, outbuf, title, flags);
+	if(rc == IDOK)
+		return DW_MB_RETURN_OK;
+	else if(rc == IDYES)
+		return DW_MB_RETURN_YES;
+	else if(rc == IDNO)
+		return DW_MB_RETURN_NO;
+	else if(rc == IDCANCEL)
+		return DW_MB_RETURN_CANCEL;
+	else return 0;
 }
 
 /*
@@ -3535,6 +3528,13 @@ void API dw_window_release(void)
  */
 void API dw_window_pointer(HWND handle, int pointertype)
 {
+/*
+	if(pointertype == DW_POINTER_ARROW)
+		SetClassLong( handle, GCL_HCURSOR, LoadCursor( NULL, IDC_ARROW));
+	else if(pointertype == DW_POINTER_CLOCK)
+		SetClassLong( handle, GCL_HCURSOR, LoadCursor( NULL, IDC_WAIT));
+	else
+*/
 	SetCursor(pointertype < 65536 ? LoadCursor(NULL, MAKEINTRESOURCE(pointertype)) : (HCURSOR)pointertype);
 }
 
