@@ -6612,11 +6612,16 @@ HWND dw_splitbar_new(int type, HWND topleft, HWND bottomright, unsigned long id)
  */
 void dw_splitbar_set(HWND handle, float percent)
 {
-	/* We probably need to force a redraw here */
 	float *mypercent = (float *)dw_window_get_data(handle, "_dw_percent");
+	int type = (int)dw_window_get_data(handle, "_dw_type");
+    unsigned long width, height;
 
 	if(mypercent)
 		*mypercent = percent;
+
+	dw_window_get_pos_size(handle, NULL, NULL, &width, &height);
+
+	_handle_splitbar_resize(handle, percent, type, width, height);
 }
 
 /*
