@@ -47,6 +47,7 @@
 #define DW_SIGNAL_VALUE_CHANGED  "value_changed"
 #define DW_SIGNAL_SWITCH_PAGE    "switch-page"
 #define DW_SIGNAL_COLUMN_CLICK   "click-column"
+#define DW_SIGNAL_TREE_EXPAND    "tree-expand"
 
 #if defined(__OS2__) || defined(__WIN32__) || defined(__MAC__) || defined(WINNT) || defined(__EMX__)
 /* OS/2, Windows or MacOS */
@@ -968,6 +969,8 @@ void API dw_tree_collapse(HWND handle, HTREEITEM item);
 void API dw_tree_item_select(HWND handle, HTREEITEM item);
 void API dw_tree_set_data(HWND handle, HTREEITEM item, void *itemdata);
 void * API dw_tree_get_data(HWND handle, HTREEITEM item);
+char * API dw_tree_get_title(HWND handle, HTREEITEM item);
+HTREEITEM API dw_tree_get_parent(HWND handle, HTREEITEM item);
 int API dw_container_setup(HWND handle, unsigned long *flags, char **titles, int count, int separator);
 unsigned long API dw_icon_load(unsigned long module, unsigned long id);
 unsigned long API dw_icon_load_from_file(char *filename);

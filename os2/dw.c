@@ -99,7 +99,7 @@ typedef struct
 } SignalList;
 
 /* List of signals and their equivilent OS/2 message */
-#define SIGNALMAX 15
+#define SIGNALMAX 16
 
 SignalList SignalTranslate[SIGNALMAX] = {
 	{ WM_SIZE,         DW_SIGNAL_CONFIGURE },
@@ -116,7 +116,8 @@ SignalList SignalTranslate[SIGNALMAX] = {
 	{ CN_EMPHASIS,     DW_SIGNAL_ITEM_SELECT },
 	{ WM_SETFOCUS,     DW_SIGNAL_SET_FOCUS },
 	{ SLN_SLIDERTRACK, DW_SIGNAL_VALUE_CHANGED },
-	{ BKN_PAGESELECTED,DW_SIGNAL_SWITCH_PAGE }
+	{ BKN_PAGESELECTED,DW_SIGNAL_SWITCH_PAGE },
+	{ CN_EXPANDTREE,   DW_SIGNAL_TREE_EXPAND }
 };
 
 /* This function adds a signal handler callback into the linked list.
@@ -176,6 +177,7 @@ typedef struct _CNRITEM
 	MINIRECORDCORE rc;
 	HPOINTER       hptrIcon;
 	PVOID          user;
+	HTREEITEM      parent;
 
 } CNRITEM, *PCNRITEM;
 
@@ -2247,6 +2249,19 @@ MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 							if(tmp->window == conthwnd)
 							{
 								result = containerselectfunc(tmp->window, text, tmp->data);
+								tmp = NULL;
+							}
+						}
+						break;
+					case CN_EXPANDTREE:
+						{
+							int (* API treeexpandfunc)(HWND, HTREEITEM, void *) = (int (* API)(HWND, HTREEITEM, void *))tmp->signalfunction;
+							int id = SHORT1FROMMP(mp1);
+							HWND conthwnd = dw_window_from_id(hWnd, id);
+
+							if(tmp->window == conthwnd)
+							{
+								result = treeexpandfunc(tmp->window, (HTREEITEM)mp2, tmp->data);
 								tmp = NULL;
 							}
 						}
@@ -5982,12 +5997,12 @@ HTREEITEM API dw_tree_insert_after(HWND handle, HTREEITEM item, char *title, uns
 
 	pci->hptrIcon       = icon;
 	pci->user           = itemdata;
+	pci->parent         = parent;
 
 	memset(&ri, 0, sizeof(RECORDINSERT));
 
 	ri.cb                 = sizeof(RECORDINSERT);
 	ri.pRecordOrder       = (PRECORDCORE)item;
-	ri.pRecordParent      = (PRECORDCORE)NULL;
 	ri.zOrder             = (USHORT)CMA_TOP;
 	ri.cRecordsInsert     = 1;
 	ri.fInvalidateRecord  = TRUE;
@@ -6041,6 +6056,38 @@ void API dw_tree_set(HWND handle, HTREEITEM item, char *title, unsigned long ico
 	pci->hptrIcon       = icon;
 
 	WinSendMsg(handle, CM_INVALIDATERECORD, (MPARAM)&pci, MPFROM2SHORT(1, CMA_TEXTCHANGED));
+}
+
+/*
+ * Gets the text an item in a tree window (widget).
+ * Parameters:
+ *          handle: Handle to the tree containing the item.
+ *          item: Handle of the item to be modified.
+ */
+char * API dw_tree_get_title(HWND handle, HTREEITEM item)
+{
+	PCNRITEM pci = (PCNRITEM)item;
+
+	handle = handle; /* keep compiler happy */
+	if(pci)
+		return pci->rc.pszIcon;
+	return NULL;
+}
+
+/*
+ * Gets the text an item in a tree window (widget).
+ * Parameters:
+ *          handle: Handle to the tree containing the item.
+ *          item: Handle of the item to be modified.
+ */
+HTREEITEM API dw_tree_get_parent(HWND handle, HTREEITEM item)
+{
+	PCNRITEM pci = (PCNRITEM)item;
+
+	handle = handle; /* keep compiler happy */
+	if(pci)
+		return pci->parent;
+	return (HTREEITEM)0;
 }
 
 /*
@@ -6680,7 +6727,7 @@ void API dw_container_clear(HWND handle, int redraw)
 				pCore->rc.pszIcon = 0;
 			}
 		}
-		pCore = WinSendMsg(handle, CM_QUERYRECORD, (MPARAM)pCore, MPFROM2SHORT(CMA_NEXT, CMA_ITEMORDER));
+		pCore = (PCNRITEM)pCore->rc.preccNextRecord;/*WinSendMsg(handle, CM_QUERYRECORD, (MPARAM)pCore, MPFROM2SHORT(CMA_NEXT, CMA_ITEMORDER));*/
 	}
 	_dw_send_msg(handle, CM_REMOVERECORD, (MPARAM)0L, MPFROM2SHORT(0, (redraw ? CMA_INVALIDATE : 0) | CMA_FREE), -1);
 }
@@ -8033,37 +8080,41 @@ void _populate_directory(HMTX mtx, HWND *tree, HTREEITEM parent, char *path)
 {
 	FILEFINDBUF3 ffbuf;
 	HTREEITEM item;
-	ULONG count;
+	ULONG count = 1;
 	HDIR hdir = HDIR_CREATE;
-	APIRET rc;
 
 	dw_mutex_lock(mtx);
 	if(*tree)
 	{
-		if((rc = DosFindFirst(path, &hdir, MUST_HAVE_DIRECTORY | FILE_NORMAL,
-						&ffbuf, sizeof(FILEFINDBUF3), &count, FIL_STANDARD)) == NO_ERROR)
+		if(DosFindFirst(path, &hdir, FILE_READONLY | FILE_HIDDEN | FILE_SYSTEM | FILE_ARCHIVED | MUST_HAVE_DIRECTORY,
+						&ffbuf, sizeof(FILEFINDBUF3), &count, FIL_STANDARD) == NO_ERROR)
 		{
 			while(DosFindNext(hdir, &ffbuf, sizeof(FILEFINDBUF3), &count) == NO_ERROR)
 			{
-				int len = strlen(path);
-				char *folder = malloc(len + ffbuf.cchName + 2);
-				strcpy(folder, path);
-				strcpy(&folder[len-1], ffbuf.achName);
-
-				item = dw_tree_insert(*tree, ffbuf.achName, WinLoadFileIcon(folder, TRUE), parent, 0);
-
-				dw_mutex_unlock(mtx);
-				strcat(folder, "\\*");
-
-				_populate_directory(mtx, tree, item, folder);
-
-				free(folder);
-				dw_mutex_lock(mtx);
-				if(!*tree)
+				if(strcmp(ffbuf.achName, ".") && strcmp(ffbuf.achName, ".."))
 				{
+					int len = strlen(path);
+					char *folder = malloc(len + ffbuf.cchName + 2);
+					HTREEITEM tempitem;
+
+					strcpy(folder, path);
+					strcpy(&folder[len-1], ffbuf.achName);
+
+					item = dw_tree_insert(*tree, ffbuf.achName, WinLoadFileIcon(folder, TRUE), parent, (void *)parent);
+					tempitem = dw_tree_insert(*tree, "", 0, item, 0);
+					dw_tree_set_data(*tree, item, (void *)tempitem);
+
 					dw_mutex_unlock(mtx);
-					DosFindClose(hdir);
-					return;
+					strcat(folder, "\\*");
+
+					free(folder);
+					dw_mutex_lock(mtx);
+					if(!*tree)
+					{
+						dw_mutex_unlock(mtx);
+						DosFindClose(hdir);
+						return;
+					}
 				}
 			}
 			DosFindClose(hdir);
@@ -8087,6 +8138,7 @@ void _populate_tree_thread(void *data)
 		if(DosQueryFSInfo(drive+1, FSIL_VOLSER,(PVOID)&volinfo, sizeof(FSINFO)) == NO_ERROR)
 		{
 			char folder[5] = "C:\\", name[9] = "Drive C:";
+			HTREEITEM tempitem;
 
 			folder[0] = name[6] = 'A' + drive;
 
@@ -8099,6 +8151,8 @@ void _populate_tree_thread(void *data)
 			}
 
 			items[drive] = dw_tree_insert(*tree, name, WinLoadFileIcon(folder, TRUE), NULL, 0);
+			tempitem = dw_tree_insert(*tree, "", 0, items[drive], 0);
+			dw_tree_set_data(*tree, items[drive], (void *)tempitem);
 
 			dw_mutex_unlock(mtx);
 		}
@@ -8106,20 +8160,6 @@ void _populate_tree_thread(void *data)
 			items[drive] = 0;
 	}
 	DosError(FERR_ENABLEHARDERR);
-
-	for(drive=0;drive<26;drive++)
-	{
-		if(items[drive])
-		{
-			char folder[5] = "C:\\";
-
-			folder[0] = 'A' + drive;
-
-			strcat(folder, "*");
-
-			_populate_directory(mtx, tree, items[drive], folder);
-		}
-	}
 
 	dw_mutex_lock(mtx);
 	if(!*tree)
@@ -8167,16 +8207,68 @@ int DWSIGNAL _dw_cancel_func(HWND window, void *data)
 	return FALSE;
 }
 
+char *_tree_folder(HWND tree, HTREEITEM item)
+{
+	char *folder=strdup("");
+	HTREEITEM parent = item;
+
+	while(parent)
+	{
+		char *temp, *text = dw_tree_get_title(tree, parent);
+
+		if(text)
+		{
+			if(strncmp(text, "Drive ", 6) == 0)
+				text = &text[6];
+
+			temp = malloc(strlen(text) + strlen(folder) + 3);
+			strcpy(temp, text);
+			strcat(temp, "\\");
+			strcat(temp, folder);
+			free(folder);
+			folder = temp;
+		}
+		parent = dw_tree_get_parent(tree, parent);
+	}
+	return folder;
+}
+
 int DWSIGNAL _item_select(HWND window, HTREEITEM item, char *text, void *data, void *itemdata)
 {
 	DWDialog *dwwait = (DWDialog *)data;
 	char *treedata = (char *)dw_window_get_data((HWND)dwwait->data, "_dw_tree_selected");
 
+	text = text; itemdata = itemdata;
 	if(treedata)
 		free(treedata);
 
-	treedata = strdup(text);
+	treedata = _tree_folder(window, item);
 	dw_window_set_data((HWND)dwwait->data, "_dw_tree_selected", (void *)treedata);
+
+	return FALSE;
+}
+
+int DWSIGNAL _tree_expand(HWND window, HTREEITEM item, void *data)
+{
+	DWDialog *dwwait = (DWDialog *)data;
+	HMTX mtx = (HMTX)dw_window_get_data(window, "_dw_mutex");
+	HWND *tree = (HWND *)dw_window_get_data((HWND)dwwait->data, "_dw_tree");
+	HTREEITEM tempitem = (HTREEITEM)dw_tree_get_data(*tree, item);
+
+	if(tempitem)
+	{
+		char *folder = _tree_folder(*tree, item);
+
+		dw_tree_set_data(*tree, item, 0);
+		dw_tree_delete(*tree, tempitem);
+
+		if(*folder)
+		{
+			strcat(folder, "*");
+			_populate_directory(mtx, tree, item, folder);
+		}
+		free(folder);
+	}
 
 	return FALSE;
 }
@@ -8222,6 +8314,7 @@ char * API dw_file_browse(char *title, char *defpath, char *ext, int flags)
 		dwwait = dw_dialog_new((void *)window);
 
 		dw_signal_connect(tree, DW_SIGNAL_ITEM_SELECT, DW_SIGNAL_FUNC(_item_select), (void *)dwwait);
+		dw_signal_connect(tree, DW_SIGNAL_TREE_EXPAND, DW_SIGNAL_FUNC(_tree_expand), (void *)dwwait);
 
 		button = dw_button_new("Ok", 1001L);
 		dw_box_pack_start(hbox, button, 50, 30, TRUE, FALSE, 3);
@@ -8234,7 +8327,7 @@ char * API dw_file_browse(char *title, char *defpath, char *ext, int flags)
 		dw_window_set_usize(window, 225, 300);
 		dw_window_show(window);
 
-		dw_thread_new((void *)_populate_tree_thread, (void *)window, 0xfff);
+		dw_thread_new((void *)_populate_tree_thread, (void *)window, 0xff);
 		return (char *)dw_dialog_wait(dwwait);
 	}
 	else
