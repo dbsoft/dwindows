@@ -1192,6 +1192,16 @@ int dw_window_show(HWND handle)
 	gtk_widget_show(handle);
 	if(GTK_WIDGET(handle)->window)
 	{
+		int width = (int)gtk_object_get_data(GTK_OBJECT(handle), "_dw_width");
+		int height = (int)gtk_object_get_data(GTK_OBJECT(handle), "_dw_height");
+
+		if(width && height)
+		{
+			gdk_window_resize(GTK_WIDGET(handle)->window, width, height);
+			gtk_object_set_data(GTK_OBJECT(handle), "_dw_width", 0);
+			gtk_object_set_data(GTK_OBJECT(handle), "_dw_height", 0);
+		}
+
 		gdk_window_raise(GTK_WIDGET(handle)->window);
 		gdk_flush();
 		gdk_window_show(GTK_WIDGET(handle)->window);
@@ -1604,6 +1614,9 @@ HWND dw_window_new(HWND hwndOwner, char *title, unsigned long flStyle)
 
 	if(hwndOwner)
 		gdk_window_reparent(GTK_WIDGET(tmp)->window, GTK_WIDGET(hwndOwner)->window, 0, 0);
+
+	if(flStyle & DW_FCF_SIZEBORDER)
+		gtk_object_set_data(GTK_OBJECT(tmp), "_dw_size", (gpointer)1);
 
 	DW_MUTEX_UNLOCK;
 	return tmp;
@@ -5859,6 +5872,11 @@ void dw_window_set_usize(HWND handle, unsigned long width, unsigned long height)
 		if(handle->window)
 			gdk_window_resize(handle->window, width - _dw_border_width, height - _dw_border_height);
 		gtk_window_set_default_size(GTK_WINDOW(handle), width - _dw_border_width, height - _dw_border_height);
+		if(!gtk_object_get_data(GTK_OBJECT(handle), "_dw_size"))
+		{
+			gtk_object_set_data(GTK_OBJECT(handle), "_dw_width", (gpointer)width - _dw_border_width);
+			gtk_object_set_data(GTK_OBJECT(handle), "_dw_height", (gpointer)height - _dw_border_height);
+		}
 	}
 	else
 		gtk_widget_set_usize(handle, width, height);
