@@ -180,28 +180,62 @@ static void *_findsigfunc(char *signame)
 	return NULL;
 }
 
+static SignalHandler _get_signal_handler(GtkWidget *widget, gpointer data)
+{
+	int counter = (int)data;
+	SignalHandler sh;
+	char text[100];
+
+	sprintf(text, "_dw_sigwindow%d", counter);
+	sh.window = (HWND)gtk_object_get_data(GTK_OBJECT(widget), text);
+	sprintf(text, "_dw_sigfunc%d", counter);
+	sh.func = (void *)gtk_object_get_data(GTK_OBJECT(widget), text);
+	sprintf(text, "_dw_sigdata%d", counter);
+	sh.data = gtk_object_get_data(GTK_OBJECT(widget), text);
+
+	return sh;
+}
+
+static int _set_signal_handler(GtkWidget *widget, HWND window, void *func, gpointer data)
+{
+	int counter = (int)gtk_object_get_data(GTK_OBJECT(widget), "_dw_sigcounter");
+	char text[100];
+
+	sprintf(text, "_dw_sigwindow%d", counter);
+	gtk_object_set_data(GTK_OBJECT(widget), text, (gpointer)window);
+	sprintf(text, "_dw_sigfunc%d", counter);
+	gtk_object_set_data(GTK_OBJECT(widget), text, (gpointer)func);
+	sprintf(text, "_dw_sigdata%d", counter);
+	gtk_object_set_data(GTK_OBJECT(widget), text, (gpointer)data);
+
+	counter++;
+	gtk_object_set_data(GTK_OBJECT(widget), "_dw_sigcounter", (gpointer)counter);
+
+	return counter - 1;
+}
+
 static gint _set_focus_event(GtkWindow *window, GtkWidget *widget, gpointer data)
 {
-	SignalHandler *work = (SignalHandler *)data;
+	SignalHandler work = _get_signal_handler((GtkWidget *)window, data);
 	int retval = FALSE;
 
-	if(work)
+	if(work.window)
 	{
-		int (*setfocusfunc)(HWND, void *) = work->func;
+		int (*setfocusfunc)(HWND, void *) = work.func;
 
-		retval = setfocusfunc((HWND)window, work->data);
+		retval = setfocusfunc(work.window, work.data);
 	}
 	return retval;
 }
 
 static gint _button_press_event(GtkWidget *widget, GdkEventButton *event, gpointer data)
 {
-	SignalHandler *work = (SignalHandler *)data;
+	SignalHandler work = _get_signal_handler(widget, data);
 	int retval = FALSE;
 
-	if(work)
+	if(work.window)
 	{
-		int (*buttonfunc)(HWND, int, int, int, void *) = work->func;
+		int (*buttonfunc)(HWND, int, int, int, void *) = work.func;
 		int mybutton = event->button;
 
 		if(event->button == 3)
@@ -209,19 +243,19 @@ static gint _button_press_event(GtkWidget *widget, GdkEventButton *event, gpoint
 		else if(event->button == 2)
 			mybutton = 3;
 
-		retval = buttonfunc(widget, event->x, event->y, mybutton, work->data);
+		retval = buttonfunc(work.window, event->x, event->y, mybutton, work.data);
 	}
 	return retval;
 }
 
 static gint _button_release_event(GtkWidget *widget, GdkEventButton *event, gpointer data)
 {
-	SignalHandler *work = (SignalHandler *)data;
+	SignalHandler work = _get_signal_handler(widget, data);
 	int retval = FALSE;
 
-	if(work)
+	if(work.window)
 	{
-		int (*buttonfunc)(HWND, int, int, int, void *) = work->func;
+		int (*buttonfunc)(HWND, int, int, int, void *) = work.func;
 		int mybutton = event->button;
 
 		if(event->button == 3)
@@ -229,19 +263,19 @@ static gint _button_release_event(GtkWidget *widget, GdkEventButton *event, gpoi
 		else if(event->button == 2)
 			mybutton = 3;
 
-		retval = buttonfunc(widget, event->x, event->y, mybutton, work->data);
+		retval = buttonfunc(work.window, event->x, event->y, mybutton, work.data);
 	}
 	return retval;
 }
 
 static gint _motion_notify_event(GtkWidget *widget, GdkEventMotion *event, gpointer data)
 {
-	SignalHandler *work = (SignalHandler *)data;
+	SignalHandler work = _get_signal_handler(widget, data);
 	int retval = FALSE;
 
-	if(work)
+	if(work.window)
 	{
-		int (*motionfunc)(HWND, int, int, int, void *) = work->func;
+		int (*motionfunc)(HWND, int, int, int, void *) = work.func;
 		int keys = 0, x, y;
 		GdkModifierType state;
 
@@ -261,120 +295,120 @@ static gint _motion_notify_event(GtkWidget *widget, GdkEventMotion *event, gpoin
 		if (state & GDK_BUTTON2_MASK)
 			keys |= DW_BUTTON3_MASK;
 
-		retval = motionfunc(widget, x, y, keys, work->data);
+		retval = motionfunc(work.window, x, y, keys, work.data);
 	}
 	return retval;
 }
 
 static gint _delete_event(GtkWidget *widget, GdkEvent *event, gpointer data)
 {
-	SignalHandler *work = (SignalHandler *)data;
+	SignalHandler work = _get_signal_handler(widget, data);
 	int retval = FALSE;
 
-	if(work)
+	if(work.window)
 	{
-		int (*closefunc)(HWND, void *) = work->func;
+		int (*closefunc)(HWND, void *) = work.func;
 
-		retval = closefunc(widget, work->data);
+		retval = closefunc(work.window, work.data);
 	}
 	return retval;
 }
 
 static gint _key_press_event(GtkWidget *widget, GdkEventKey *event, gpointer data)
 {
-	SignalHandler *work = (SignalHandler *)data;
+	SignalHandler work = _get_signal_handler(widget, data);
 	int retval = FALSE;
 
-	if(work)
+	if(work.window)
 	{
-		int (*keypressfunc)(HWND, char, int, int, void *) = work->func;
+		int (*keypressfunc)(HWND, char, int, int, void *) = work.func;
 
-		retval = keypressfunc(widget, *event->string, event->keyval,
-							  event->state & (GDK_CONTROL_MASK | GDK_SHIFT_MASK | GDK_MOD1_MASK), work->data);
+		retval = keypressfunc(work.window, *event->string, event->keyval,
+							  event->state & (GDK_CONTROL_MASK | GDK_SHIFT_MASK | GDK_MOD1_MASK), work.data);
 	}
 	return retval;
 }
 
 static gint _generic_event(GtkWidget *widget, gpointer data)
 {
-	SignalHandler *work = (SignalHandler *)data;
+	SignalHandler work = _get_signal_handler(widget, data);
 	int retval = FALSE;
 
-	if(work)
+	if(work.window)
 	{
-		int (*genericfunc)(HWND, void *) = work->func;
+		int (*genericfunc)(HWND, void *) = work.func;
 
-		retval = genericfunc(widget, work->data);
+		retval = genericfunc(work.window, work.data);
 	}
 	return retval;
 }
 
 static gint _activate_event(GtkWidget *widget, gpointer data)
 {
-	SignalHandler *work = (SignalHandler *)data;
+	SignalHandler work = _get_signal_handler(widget, data);
 	int retval = FALSE;
 
-	if(work && !_dw_ignore_click)
+	if(work.window && !_dw_ignore_click)
 	{
-		int (*activatefunc)(HWND, void *) = work->func;
+		int (*activatefunc)(HWND, void *) = work.func;
 
-		retval = activatefunc(popup ? popup : work->window, work->data);
+		retval = activatefunc(popup ? popup : work.window, work.data);
 	}
 	return retval;
 }
 
 static gint _configure_event(GtkWidget *widget, GdkEventConfigure *event, gpointer data)
 {
-	SignalHandler *work = (SignalHandler *)data;
+	SignalHandler work = _get_signal_handler(widget, data);
 	int retval = FALSE;
 
-	if(work)
+	if(work.window)
 	{
-		int (*sizefunc)(HWND, int, int, void *) = work->func;
+		int (*sizefunc)(HWND, int, int, void *) = work.func;
 
-		retval = sizefunc(widget, event->width, event->height, work->data);
+		retval = sizefunc(work.window, event->width, event->height, work.data);
 	}
 	return retval;
 }
 
 static gint _expose_event(GtkWidget *widget, GdkEventExpose *event, gpointer data)
 {
-	SignalHandler *work = (SignalHandler *)data;
+	SignalHandler work = _get_signal_handler(widget, data);
 	int retval = FALSE;
 
-	if(work)
+	if(work.window)
 	{
 		DWExpose exp;
-		int (*exposefunc)(HWND, DWExpose *, void *) = work->func;
+		int (*exposefunc)(HWND, DWExpose *, void *) = work.func;
 
 		exp.x = event->area.x;
 		exp.y = event->area.y;
 		exp.width = event->area.width;
 		exp.height = event->area.height;
-		retval = exposefunc(widget, &exp, work->data);
+		retval = exposefunc(work.window, &exp, work.data);
 	}
 	return retval;
 }
 
 static gint _item_select_event(GtkWidget *widget, GtkWidget *child, gpointer data)
 {
-	SignalHandler *work = (SignalHandler *)data;
+	SignalHandler work = _get_signal_handler(widget, data);
 	static int _dw_recursing = 0;
 	int retval = FALSE;
 
 	if(_dw_recursing)
 		return FALSE;
 
-	if(work)
+	if(work.window)
 	{
-		int (*selectfunc)(HWND, int, void *) = work->func;
+		int (*selectfunc)(HWND, int, void *) = work.func;
 		GList *list;
 		int item = 0;
 
 		_dw_recursing = 1;
 
-		if(GTK_IS_COMBO(work->window))
-			list = GTK_LIST(GTK_COMBO(work->window)->list)->children;
+		if(GTK_IS_COMBO(work.window))
+			list = GTK_LIST(GTK_COMBO(work.window)->list)->children;
 		else if(GTK_IS_LIST(widget))
 			list = GTK_LIST(widget)->children;
 		else
@@ -384,11 +418,11 @@ static gint _item_select_event(GtkWidget *widget, GtkWidget *child, gpointer dat
 		{
 			if(list->data == (gpointer)child)
 			{
-				if(!gtk_object_get_data(GTK_OBJECT(work->window), "_dw_appending"))
+				if(!gtk_object_get_data(GTK_OBJECT(work.window), "_dw_appending"))
 				{
-					gtk_object_set_data(GTK_OBJECT(work->window), "_dw_item", (gpointer)item);
+					gtk_object_set_data(GTK_OBJECT(work.window), "_dw_item", (gpointer)item);
 					if(selectfunc)
-						retval = selectfunc(work->window, item, work->data);
+						retval = selectfunc(work.window, item, work.data);
 				}
 				break;
 			}
@@ -402,21 +436,21 @@ static gint _item_select_event(GtkWidget *widget, GtkWidget *child, gpointer dat
 
 static gint _container_context_event(GtkWidget *widget, GdkEventButton *event, gpointer data)
 {
-	SignalHandler *work = (SignalHandler *)data;
+	SignalHandler work = _get_signal_handler(widget, data);
 	int retval = FALSE;
 
-	if(work)
+	if(work.window)
 	{
 		if(event->button == 3)
 		{
-			int (*contextfunc)(HWND, char *, int, int, void *, void *) = work->func;
+			int (*contextfunc)(HWND, char *, int, int, void *, void *) = work.func;
 			char *text;
 			int row, col;
 
 			gtk_clist_get_selection_info(GTK_CLIST(widget), event->x, event->y, &row, &col);
 
 			text = (char *)gtk_clist_get_row_data(GTK_CLIST(widget), row);
-			retval = contextfunc(work->window, text, event->x, event->y, work->data, NULL);
+			retval = contextfunc(work.window, text, event->x, event->y, work.data, NULL);
 		}
 	}
 	return retval;
@@ -424,15 +458,15 @@ static gint _container_context_event(GtkWidget *widget, GdkEventButton *event, g
 
 static gint _tree_context_event(GtkWidget *widget, GdkEventButton *event, gpointer data)
 {
-	SignalHandler *work = (SignalHandler *)data;
+	SignalHandler work = _get_signal_handler(widget, data);
 	int retval = FALSE;
 
-	if(work)
+	if(work.window)
 	{
 		if(event->button == 3)
 		{
 #if GTK_MAJOR_VERSION > 1
-			int (*contextfunc)(HWND, char *, int, int, void *, void *) = work->func;
+			int (*contextfunc)(HWND, char *, int, int, void *, void *) = work.func;
 			char *text = NULL;
 			void *itemdata = NULL;
 
@@ -448,15 +482,15 @@ static gint _tree_context_event(GtkWidget *widget, GdkEventButton *event, gpoint
 				}
 			}
 
-			retval = contextfunc(work->window, text, event->x, event->y, work->data, itemdata);
+			retval = contextfunc(work.window, text, event->x, event->y, work.data, itemdata);
 #else
-			int (*contextfunc)(HWND, char *, int, int, void *, void *) = work->func;
+			int (*contextfunc)(HWND, char *, int, int, void *, void *) = work.func;
 			char *text = (char *)gtk_object_get_data(GTK_OBJECT(widget), "_dw_text");
 			void *itemdata = (void *)gtk_object_get_data(GTK_OBJECT(widget), "_dw_itemdata");
 
-			if(widget != work->window)
+			if(widget != work.window)
 			{
-				GtkWidget *tree = (GtkWidget *)gtk_object_get_user_data(GTK_OBJECT(work->window));
+				GtkWidget *tree = (GtkWidget *)gtk_object_get_user_data(GTK_OBJECT(work.window));
 
 				if(tree && GTK_IS_TREE(tree))
 				{
@@ -470,7 +504,7 @@ static gint _tree_context_event(GtkWidget *widget, GdkEventButton *event, gpoint
 				}
 			}
 
-			retval = contextfunc(work->window, text, event->x, event->y, work->data, itemdata);
+			retval = contextfunc(work.window, text, event->x, event->y, work.data, itemdata);
 #endif
 		}
 	}
@@ -480,22 +514,22 @@ static gint _tree_context_event(GtkWidget *widget, GdkEventButton *event, gpoint
 #if GTK_MAJOR_VERSION > 1
 static gint _tree_select_event(GtkTreeSelection *sel, gpointer data)
 {
-	SignalHandler *work = (SignalHandler *)data;
+	GtkWidget *item, *widget = (GtkWidget *)gtk_tree_selection_get_tree_view(sel);
+	SignalHandler work = _get_signal_handler(widget, data);
 	int retval = FALSE;
 
-	if(work)
+	if(widget && work.window)
 	{
-		int (*treeselectfunc)(HWND, HTREEITEM, char *, void *, void *) = work->func;
+		int (*treeselectfunc)(HWND, HTREEITEM, char *, void *, void *) = work.func;
 		GtkTreeIter iter;
 		char *text = NULL;
 		void *itemdata = NULL;
-		GtkWidget *item, *widget = (GtkWidget *)gtk_tree_selection_get_tree_view(sel);
           
-		if(widget && gtk_tree_selection_get_selected(sel, NULL, &iter))
+		if(gtk_tree_selection_get_selected(sel, NULL, &iter))
 		{
 			GtkTreeModel *store = (GtkTreeModel *)gtk_object_get_data(GTK_OBJECT(widget), "_dw_tree_store");
 			gtk_tree_model_get(store, &iter, 0, &text, 2, &itemdata, 3, &item, -1);
-			retval = treeselectfunc(work->window, (HTREEITEM)item, text, work->data, itemdata);
+			retval = treeselectfunc(work.window, (HTREEITEM)item, text, work.data, itemdata);
 		}
 	}
 	return retval;
@@ -503,7 +537,7 @@ static gint _tree_select_event(GtkTreeSelection *sel, gpointer data)
 #else
 static gint _tree_select_event(GtkTree *tree, GtkWidget *child, gpointer data)
 {
-	SignalHandler *work = (SignalHandler *)data;
+	SignalHandler work = _get_signal_handler((GtkWidget *)tree, data);
 	GtkWidget *treeroot = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(child), "_dw_tree");
 	int retval = FALSE;
 
@@ -515,12 +549,12 @@ static gint _tree_select_event(GtkTree *tree, GtkWidget *child, gpointer data)
 		gtk_object_set_data(GTK_OBJECT(treeroot), "_dw_lastselect", (gpointer)child);
 	}
 
-	if(work)
+	if(work.window)
 	{
-		int (*treeselectfunc)(HWND, HTREEITEM, char *, void *, void *) = work->func;
+		int (*treeselectfunc)(HWND, HTREEITEM, char *, void *, void *) = work.func;
 		char *text = (char *)gtk_object_get_data(GTK_OBJECT(child), "_dw_text");
 		void *itemdata = (void *)gtk_object_get_data(GTK_OBJECT(child), "_dw_itemdata");
-		retval = treeselectfunc(work->window, (HTREEITEM)child, text, work->data, itemdata);
+		retval = treeselectfunc(work.window, (HTREEITEM)child, text, work.data, itemdata);
 	}
 	return retval;
 }
@@ -528,21 +562,21 @@ static gint _tree_select_event(GtkTree *tree, GtkWidget *child, gpointer data)
 
 static gint _container_select_event(GtkWidget *widget, GdkEventButton *event, gpointer data)
 {
-	SignalHandler *work = (SignalHandler *)data;
+	SignalHandler work = _get_signal_handler(widget, data);
 	int retval = FALSE;
 
-	if(work)
+	if(work.window)
 	{
 		if(event->button == 1 && event->type == GDK_2BUTTON_PRESS)
 		{
-			int (*contextfunc)(HWND, char *, void *) = work->func;
+			int (*contextfunc)(HWND, char *, void *) = work.func;
 			char *text;
 			int row, col;
 
 			gtk_clist_get_selection_info(GTK_CLIST(widget), event->x, event->y, &row, &col);
 
 			text = (char *)gtk_clist_get_row_data(GTK_CLIST(widget), row);
-			retval = contextfunc(work->window, text, work->data);
+			retval = contextfunc(work.window, text, work.data);
 			gtk_object_set_data(GTK_OBJECT(widget), "_dw_double_click", (gpointer)1);
 		}
 	}
@@ -570,29 +604,32 @@ int _get_logical_page(HWND handle, unsigned long pageid)
 
 static gint _switch_page_event(GtkNotebook *notebook, GtkNotebookPage *page, guint page_num, gpointer data)
 {
-	SignalHandler *work = (SignalHandler *)data;
+	SignalHandler work = _get_signal_handler((GtkWidget *)notebook, data);
 	int retval = FALSE;
 
-	if(work)
+	if(work.window)
 	{
-		int (*switchpagefunc)(HWND, unsigned long, void *) = work->func;
-		retval = switchpagefunc(work->window, _get_logical_page(GTK_WIDGET(notebook), page_num), work->data);
+		int (*switchpagefunc)(HWND, unsigned long, void *) = work.func;
+		retval = switchpagefunc(work.window, _get_logical_page(GTK_WIDGET(notebook), page_num), work.data);
 	}
 	return retval;
 }
 
 static gint _container_select_row(GtkWidget *widget, gint row, gint column, GdkEventButton *event, gpointer data)
 {
-	SignalHandler *work = (SignalHandler *)data;
+	SignalHandler work = _get_signal_handler(widget, data);
 	char *rowdata = gtk_clist_get_row_data(GTK_CLIST(widget), row);
-	int (*contextfunc)(HWND, HWND, char *, void *, void *) = work->func;
+	int (*contextfunc)(HWND, HWND, char *, void *, void *) = work.func;
+
+	if(!work.window)
+		return TRUE;
 
 	if(gtk_object_get_data(GTK_OBJECT(widget), "_dw_double_click"))
 	{
 		gtk_object_set_data(GTK_OBJECT(widget), "_dw_double_click", (gpointer)0);
 		return TRUE;
 	}
-	return contextfunc(work->window, 0, rowdata, work->data, 0);;
+	return contextfunc(work.window, 0, rowdata, work.data, 0);;
 }
 
 static int _round_value(gfloat val)
@@ -607,26 +644,34 @@ static int _round_value(gfloat val)
 
 static gint _value_changed_event(GtkAdjustment *adjustment, gpointer data)
 {
-	SignalHandler *work = (SignalHandler *)data;
+	int max = _round_value(adjustment->upper);
+	int val = _round_value(adjustment->value);
+	GtkWidget *slider = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(adjustment), "_dw_slider");
+	GtkWidget *scrollbar = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(adjustment), "_dw_scrollbar");
 
-	if(work)
+	if(slider)
 	{
-		int (*valuechangedfunc)(HWND, int, void *) = work->func;
-		int max = _round_value(adjustment->upper);
-		int val = _round_value(adjustment->value);
-		GtkWidget *slider = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(adjustment), "_dw_slider");
-		GtkWidget *scrollbar = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(adjustment), "_dw_scrollbar");
+		SignalHandler work = _get_signal_handler((GtkWidget *)adjustment, data);
 
-		if(slider)
+		if(work.window)
 		{
+			int (*valuechangedfunc)(HWND, int, void *) = work.func;
+
 			if(GTK_IS_VSCALE(slider))
-				valuechangedfunc(work->window, (max - val) - 1,  work->data);
+				valuechangedfunc(work.window, (max - val) - 1,  work.data);
 			else
-				valuechangedfunc(work->window, val,  work->data);
+				valuechangedfunc(work.window, val,  work.data);
 		}
-		else if(scrollbar)
+	}
+	else if(scrollbar)
+	{
+		SignalHandler work = _get_signal_handler((GtkWidget *)adjustment, data);
+
+		if(work.window)
 		{
-			valuechangedfunc(work->window, val,  work->data);
+			int (*valuechangedfunc)(HWND, int, void *) = work.func;
+
+			valuechangedfunc(work.window, val,  work.data);
 		}
 	}
 	return FALSE;
@@ -3749,18 +3794,26 @@ HTREEITEM dw_tree_insert_after(HWND handle, HTREEITEM item, char *title, unsigne
 		if(!subtree)
 		{
 			void *thisfunc = (void *)gtk_object_get_data(GTK_OBJECT(tree), "_dw_select_child_func");
-			void *work = (void *)gtk_object_get_data(GTK_OBJECT(tree), "_dw_select_child_data");
+			void *mydata = (void *)gtk_object_get_data(GTK_OBJECT(tree), "_dw_select_child_data");
+			SignalHandler work = _get_signal_handler(tree, mydata);
 
 			subtree = gtk_tree_new();
 
-			if(thisfunc && work)
-				gtk_signal_connect(GTK_OBJECT(subtree), "select-child", GTK_SIGNAL_FUNC(thisfunc), work);
+			if(thisfunc && work.window)
+			{
+				gtk_signal_connect(GTK_OBJECT(subtree), "select-child", GTK_SIGNAL_FUNC(thisfunc),
+								   (gpointer)_set_signal_handler(subtree, work.window, work.func, work.data));
+			}
 
 			thisfunc = (void *)gtk_object_get_data(GTK_OBJECT(tree), "_dw_container_context_func");
-			work = (void *)gtk_object_get_data(GTK_OBJECT(tree), "_dw_container_context_data");
+			mydata = (void *)gtk_object_get_data(GTK_OBJECT(tree), "_dw_container_context_data");
+			work = _get_signal_handler(tree, mydata);
 
-			if(thisfunc && work)
-				gtk_signal_connect(GTK_OBJECT(subtree), "button_press_event", GTK_SIGNAL_FUNC(thisfunc), work);
+			if(thisfunc && work.window)
+			{
+				gtk_signal_connect(GTK_OBJECT(subtree), "button_press_event", GTK_SIGNAL_FUNC(thisfunc),
+								   (gpointer)_set_signal_handler(subtree, work.window, work.func, work.data));
+			}
 
 			gtk_object_set_user_data(GTK_OBJECT(parent), subtree);
 			gtk_tree_set_selection_mode(GTK_TREE(subtree), GTK_SELECTION_SINGLE);
@@ -3868,18 +3921,26 @@ HTREEITEM dw_tree_insert(HWND handle, char *title, unsigned long icon, HTREEITEM
 		if(!subtree)
 		{
 			void *thisfunc = (void *)gtk_object_get_data(GTK_OBJECT(tree), "_dw_select_child_func");
-			void *work = (void *)gtk_object_get_data(GTK_OBJECT(tree), "_dw_select_child_data");
+			void *mydata = (void *)gtk_object_get_data(GTK_OBJECT(tree), "_dw_select_child_data");
+			SignalHandler work = _get_signal_handler(tree, mydata);
 
 			subtree = gtk_tree_new();
 
-			if(thisfunc && work)
-				gtk_signal_connect(GTK_OBJECT(subtree), "select-child", GTK_SIGNAL_FUNC(thisfunc), work);
+			if(thisfunc && work.window)
+			{
+				gtk_signal_connect(GTK_OBJECT(subtree), "select-child", GTK_SIGNAL_FUNC(thisfunc),
+								   (gpointer)_set_signal_handler(subtree, work.window, work.func, work.data));
+			}
 
 			thisfunc = (void *)gtk_object_get_data(GTK_OBJECT(tree), "_dw_container_context_func");
-			work = (void *)gtk_object_get_data(GTK_OBJECT(tree), "_dw_container_context_data");
+			mydata = (void *)gtk_object_get_data(GTK_OBJECT(tree), "_dw_container_context_data");
+			work = _get_signal_handler(tree, mydata);
 
-			if(thisfunc && work)
-				gtk_signal_connect(GTK_OBJECT(subtree), "button_press_event", GTK_SIGNAL_FUNC(thisfunc), work);
+			if(thisfunc && work.window)
+			{
+				gtk_signal_connect(GTK_OBJECT(subtree), "button_press_event", GTK_SIGNAL_FUNC(thisfunc),
+								   (gpointer)_set_signal_handler(subtree, work.window, work.func, work.data));
+			}
 
 			gtk_object_set_user_data(GTK_OBJECT(parent), subtree);
 			gtk_tree_set_selection_mode(GTK_TREE(subtree), GTK_SELECTION_SINGLE);
@@ -7558,7 +7619,6 @@ void API dw_timer_disconnect(int id)
  */
 void dw_signal_connect(HWND window, char *signame, void *sigfunc, void *data)
 {
-	SignalHandler *work = malloc(sizeof(SignalHandler));
 	void *thisfunc  = _findsigfunc(signame);
 	char *thisname = signame;
 	HWND thiswindow = window;
@@ -7585,41 +7645,35 @@ void dw_signal_connect(HWND window, char *signame, void *sigfunc, void *data)
 	{
 		thisfunc = _findsigfunc("tree-context");
 
-		work->window = window;
-		work->data = data;
-		work->func = sigfunc;
-
-		gtk_signal_connect(GTK_OBJECT(thiswindow), "button_press_event", GTK_SIGNAL_FUNC(thisfunc), work);
-		gtk_signal_connect(GTK_OBJECT(window), "button_press_event", GTK_SIGNAL_FUNC(thisfunc), work);
+		gtk_signal_connect(GTK_OBJECT(thiswindow), "button_press_event", GTK_SIGNAL_FUNC(thisfunc),
+						   (gpointer)_set_signal_handler(thiswindow, window, sigfunc, data));
+		gtk_signal_connect(GTK_OBJECT(window), "button_press_event", GTK_SIGNAL_FUNC(thisfunc),
+						   (gpointer)_set_signal_handler(window, window, sigfunc, data));
 		DW_MUTEX_UNLOCK;
 		return;
 	}
 	else if(GTK_IS_TREE_VIEW(thiswindow) && strcmp(signame, DW_SIGNAL_ITEM_SELECT) == 0)
 	{
-		work->window = window;
-		work->data = data;
-		work->func = sigfunc;
-    
 		thiswindow = (GtkWidget *)gtk_tree_view_get_selection(GTK_TREE_VIEW(thiswindow));
 		thisname = "changed";
     
-		g_signal_connect(G_OBJECT(thiswindow), thisname, (GCallback)thisfunc, work);
+		g_signal_connect(G_OBJECT(thiswindow), thisname, (GCallback)thisfunc,
+						   (gpointer)_set_signal_handler(thiswindow, window, sigfunc, data));
 		DW_MUTEX_UNLOCK;
 		return;
 	}
 #else
 	else if(GTK_IS_TREE(thiswindow)  && strcmp(signame, DW_SIGNAL_ITEM_CONTEXT) == 0)
 	{
+		int counter = (int)_set_signal_handler(thiswindow, window, sigfunc, data);
+
 		thisfunc = _findsigfunc("tree-context");
 
-		work->window = window;
-		work->data = data;
-		work->func = sigfunc;
-
 		gtk_object_set_data(GTK_OBJECT(thiswindow), "_dw_container_context_func", (gpointer)thisfunc);
-		gtk_object_set_data(GTK_OBJECT(thiswindow), "_dw_container_context_data", (gpointer)work);
-		gtk_signal_connect(GTK_OBJECT(thiswindow), "button_press_event", GTK_SIGNAL_FUNC(thisfunc), work);
-		gtk_signal_connect(GTK_OBJECT(window), "button_press_event", GTK_SIGNAL_FUNC(thisfunc), work);
+		gtk_object_set_data(GTK_OBJECT(thiswindow), "_dw_container_context_data", (gpointer)counter);
+		gtk_signal_connect(GTK_OBJECT(thiswindow), "button_press_event", GTK_SIGNAL_FUNC(thisfunc), (gpointer)counter);
+		gtk_signal_connect(GTK_OBJECT(window), "button_press_event", GTK_SIGNAL_FUNC(thisfunc),
+						   (gpointer)_set_signal_handler(window, window, sigfunc, data));
 		DW_MUTEX_UNLOCK;
 		return;
 	}
@@ -7628,7 +7682,8 @@ void dw_signal_connect(HWND window, char *signame, void *sigfunc, void *data)
 		if(thisfunc)
 		{
 			gtk_object_set_data(GTK_OBJECT(thiswindow), "_dw_select_child_func", (gpointer)thisfunc);
-			gtk_object_set_data(GTK_OBJECT(thiswindow), "_dw_select_child_data", (gpointer)work);
+			gtk_object_set_data(GTK_OBJECT(thiswindow), "_dw_select_child_data",
+								(gpointer)_set_signal_handler(thiswindow, window, sigfunc, data));
 		}
 		thisname = "select-child";
 	}
@@ -7678,16 +7733,12 @@ void dw_signal_connect(HWND window, char *signame, void *sigfunc, void *data)
 
 	if(!thisfunc || !thiswindow)
 	{
-		free(work);
 		DW_MUTEX_UNLOCK;
 		return;
 	}
 
-	work->window = window;
-	work->data = data;
-	work->func = sigfunc;
-
-	gtk_signal_connect(GTK_OBJECT(thiswindow), thisname, GTK_SIGNAL_FUNC(thisfunc), work);
+	gtk_signal_connect(GTK_OBJECT(thiswindow), thisname, GTK_SIGNAL_FUNC(thisfunc),
+					   (gpointer)_set_signal_handler(thiswindow, window, sigfunc, data));
 	DW_MUTEX_UNLOCK;
 }
 
