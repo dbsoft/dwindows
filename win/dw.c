@@ -5982,6 +5982,7 @@ void API dw_tree_clear(HWND handle)
 {
 	HTREEITEM hti = TreeView_GetRoot(handle);
 
+	dw_window_set_data(handle, "_dw_select_item", (void *)1);
 	while(hti)
 	{
 		HTREEITEM lastitem = hti;
@@ -5990,6 +5991,7 @@ void API dw_tree_clear(HWND handle)
 		hti = TreeView_GetNextSibling(handle, hti);
 		dw_tree_delete(handle, lastitem);
 	}
+	dw_window_set_data(handle, "_dw_select_item", (void *)0);
 }
 
 /*
