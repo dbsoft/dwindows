@@ -3551,9 +3551,10 @@ void API dw_window_track(HWND handle)
 void API dw_window_pointer(HWND handle, int pointertype)
 {
 	WinSetPointer(handle,
+				  pointertype < 65535 ?
 				  WinQuerySysPointer(HWND_DESKTOP,
 									 pointertype,
-									 FALSE));
+									 FALSE) : (HPOINTER)pointertype);
 }
 
 /*

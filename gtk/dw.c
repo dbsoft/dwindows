@@ -1591,7 +1591,14 @@ void dw_window_pointer(HWND handle, int pointertype)
 	GdkCursor *cursor;
 
 	DW_MUTEX_LOCK;
-	cursor = gdk_cursor_new(pointertype);
+	if(pointertype & (1 << 31))
+	{
+		GdkBitmap *bitmap = NULL;
+		GdkPixmap  *pixmap = _find_private_pixmap(bitmap, (pointertype & 0xFFFFFF), NULL, NULL);
+		cursor = gdk_cursor_new_from_pixmap(pixmap, (GdkPixmap *)mask, _colors[DW_CLR_WHITE], _colors[DW_CLR_BLACK], 8, 8);
+	}
+	else
+		cursor = gdk_cursor_new(pointertype);
 	if(handle && handle->window)
 		gdk_window_set_cursor(handle->window, cursor);
 	gdk_cursor_destroy(cursor);
