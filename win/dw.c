@@ -3965,7 +3965,7 @@ HWND API dw_combobox_new(char *text, ULONG id)
 	HWND tmp = CreateWindow(COMBOBOXCLASSNAME,
 							text,
 							WS_CHILD | CBS_DROPDOWN | WS_VSCROLL |
-							WS_CLIPCHILDREN | WS_VISIBLE,
+							WS_CLIPCHILDREN | CBS_AUTOHSCROLL | WS_VISIBLE,
 							0,0,2000,1000,
 							DW_HWND_OBJECT,
 							(HMENU)id,
