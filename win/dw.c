@@ -843,6 +843,7 @@ int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *usedy,
 	/* Used for the SIZEEXPAND */
 	int nux = *usedx, nuy = *usedy;
 	int nupx = *usedpadx, nupy = *usedpady;
+	int textheight = 0;
 
 	(*usedx) += (thisbox->pad * 2);
 	(*usedy) += (thisbox->pad * 2);
