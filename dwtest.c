@@ -181,12 +181,17 @@ fprintf(stderr,"scrollbar_valuechanged: value %d data %d, %s\n",value,data,(hwnd
 int DWSIGNAL configure_event(HWND hwnd, int width, int height, void *data)
 {
 	HPIXMAP old1 = text1pm, old2 = text2pm;
+	unsigned long height1;
+	int depth = dw_color_depth();
+
 	rows = height / font_height;
 	cols = width / font_width;
 
+	dw_window_get_pos_size(textbox1, NULL, NULL, NULL, &height1);
+
 	/* Create new pixmaps with the current sizes */
-	text1pm = dw_pixmap_new( textbox2, (font_width*width1)+2, height, dw_color_depth());
-	text2pm = dw_pixmap_new( textbox2, width, height, dw_color_depth());
+	text1pm = dw_pixmap_new(textbox1, (font_width*width1)+2, height1, depth);
+	text2pm = dw_pixmap_new(textbox2, width, height, depth);
 
 	/* Destroy the old pixmaps */
 	dw_pixmap_destroy(old1);
