@@ -615,12 +615,12 @@ void text_add(void)
 	dw_box_pack_start( textboxA, textbox2, 10, 10, TRUE, TRUE, 0);
 	dw_window_set_font(textbox2, FIXEDFONT);
 	/* create horizonal scrollbar */
-	hscrollbar = dw_scrollbar_new(FALSE, 100, 50);
+	hscrollbar = dw_scrollbar_new(FALSE, 50);
 	dw_box_pack_start( textboxA, hscrollbar, 100, SCROLLBARWIDTH, TRUE, FALSE, 0);
 
 	/* create vertical scrollbar */
 	vscrollbox = dw_box_new(BOXVERT, 0);
-	vscrollbar = dw_scrollbar_new(TRUE, 100, 50);
+	vscrollbar = dw_scrollbar_new(TRUE, 50);
 	dw_box_pack_start(vscrollbox, vscrollbar, SCROLLBARWIDTH, 100, FALSE, TRUE, 0);
 	/* Pack an area of empty space 14x14 pixels */
 	dw_box_pack_start(vscrollbox, 0, SCROLLBARWIDTH, SCROLLBARWIDTH, FALSE, FALSE, 0);
