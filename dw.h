@@ -112,9 +112,12 @@
 #define DW_POINTER_ARROW         SPTR_ARROW
 #define DW_POINTER_CLOCK         SPTR_WAIT
 
+#define DW_OS2_NEW_WINDOW        1
+
 typedef struct _window_data {
 	PFNWP oldproc;
 	HWND clickdefault;
+	ULONG flags;
 } WindowData;
 
 typedef struct _hpixmap {
@@ -666,6 +669,7 @@ long dw_spinbutton_query(HWND handle);
 int dw_checkbox_query(HWND handle);
 void dw_checkbox_set(HWND handle, int value);
 HWND dw_tree_insert(HWND handle, char *title, unsigned long icon, HWND parent, void *itemdata);
+HWND dw_tree_insert_after(HWND handle, HWND item, char *title, unsigned long icon, HWND parent, void *itemdata);
 void dw_tree_clear(HWND handle);
 void dw_tree_delete(HWND handle, HWND item);
 void dw_tree_set(HWND handle, HWND item, char *title, unsigned long icon);

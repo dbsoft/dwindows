@@ -98,6 +98,8 @@ typedef struct
 
 } SignalList;
 
+static int in_checkbox_handler = 0;
+
 /* List of signals and their equivilent Win32 message */
 #define SIGNALMAX 14
 
@@ -711,14 +713,34 @@ int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *usedy,
 		if(pass > 1 && *depth > 0)
 		{
 			if(thisbox->type == BOXVERT)
-				thisbox->items[z].xratio = ((float)((thisbox->width * thisbox->parentxratio)-((thisbox->items[z].pad*2)+(thisbox->parentpad*2))))/((float)(thisbox->minwidth-((thisbox->items[z].pad*2)+(thisbox->parentpad*2))));
+			{
+				if((thisbox->minwidth-((thisbox->items[z].pad*2)+(thisbox->parentpad*2))) == 0)
+					thisbox->items[z].xratio = 1.0;
+				else
+					thisbox->items[z].xratio = ((float)((thisbox->width * thisbox->parentxratio)-((thisbox->items[z].pad*2)+(thisbox->parentpad*2))))/((float)(thisbox->minwidth-((thisbox->items[z].pad*2)+(thisbox->parentpad*2))));
+			}
 			else
-				thisbox->items[z].xratio = ((float)((thisbox->width * thisbox->parentxratio)-thisbox->upx))/((float)(thisbox->minwidth-thisbox->upx));
+			{
+				if(thisbox->minwidth-thisbox->upx == 0)
+					thisbox->items[z].xratio = 1.0;
+				else
+					thisbox->items[z].xratio = ((float)((thisbox->width * thisbox->parentxratio)-thisbox->upx))/((float)(thisbox->minwidth-thisbox->upx));
+			}
 
 			if(thisbox->type == BOXHORZ)
-				thisbox->items[z].yratio = ((float)((thisbox->height * thisbox->parentyratio)-((thisbox->items[z].pad*2)+(thisbox->parentpad*2))))/((float)(thisbox->minheight-((thisbox->items[z].pad*2)+(thisbox->parentpad*2))));
+			{
+				if((thisbox->minheight-((thisbox->items[z].pad*2)+(thisbox->parentpad*2))) == 0)
+					thisbox->items[z].yratio = 1.0;
+				else
+					thisbox->items[z].yratio = ((float)((thisbox->height * thisbox->parentyratio)-((thisbox->items[z].pad*2)+(thisbox->parentpad*2))))/((float)(thisbox->minheight-((thisbox->items[z].pad*2)+(thisbox->parentpad*2))));
+			}
 			else
-				thisbox->items[z].yratio = ((float)((thisbox->height * thisbox->parentyratio)-thisbox->upy))/((float)(thisbox->minheight-thisbox->upy));
+			{
+				if(thisbox->minheight-thisbox->upy == 0)
+					thisbox->items[z].yratio = 1.0;
+				else
+					thisbox->items[z].yratio = ((float)((thisbox->height * thisbox->parentyratio)-thisbox->upy))/((float)(thisbox->minheight-thisbox->upy));
+			}
 
 			if(thisbox->items[z].type == TYPEBOX)
 			{
@@ -2192,7 +2214,13 @@ BOOL CALLBACK _BtProc(HWND hwnd, ULONG msg, WPARAM mp1, LPARAM mp2)
 					/* Make sure it's the right window, and the right ID */
 					if(tmp->window == hwnd)
 					{
+						if(bubble->checkbox)
+							in_checkbox_handler = 1;
+
 						clickfunc(tmp->window, tmp->data);
+
+						if(bubble->checkbox)
+							in_checkbox_handler = 0;
 						tmp = NULL;
 					}
 				}
@@ -3547,7 +3575,7 @@ HWND dw_combobox_new(char *text, ULONG id)
  */
 HWND dw_button_new(char *text, ULONG id)
 {
-	BubbleButton *bubble = malloc(sizeof(BubbleButton));
+	BubbleButton *bubble = calloc(1, sizeof(BubbleButton));
 
 	HWND tmp = CreateWindow(BUTTONCLASSNAME,
 							text,
@@ -3576,7 +3604,7 @@ HWND dw_button_new(char *text, ULONG id)
 HWND dw_bitmapbutton_new(char *text, ULONG id)
 {
 	HWND tmp;
-	BubbleButton *bubble = malloc(sizeof(BubbleButton));
+	BubbleButton *bubble = calloc(1, sizeof(BubbleButton));
 	HBITMAP hbitmap = LoadBitmap(DWInstance, MAKEINTRESOURCE(id));
 
 	tmp = CreateWindow(BUTTONCLASSNAME,
@@ -3708,6 +3736,7 @@ HWND dw_percent_new(ULONG id)
  */
 HWND dw_checkbox_new(char *text, ULONG id)
 {
+	BubbleButton *bubble = calloc(1, sizeof(BubbleButton));
 	HWND tmp = CreateWindow(BUTTONCLASSNAME,
 							text,
 							WS_CHILD | BS_AUTOCHECKBOX |
@@ -3717,14 +3746,12 @@ HWND dw_checkbox_new(char *text, ULONG id)
 							NULL,
 							NULL,
 							NULL);
-	ColorInfo *cinfo = calloc(1, sizeof(ColorInfo));
-
-	cinfo->back = cinfo->fore = -1;
-	cinfo->buddy = 0;
-	cinfo->user = 1;
-
-	cinfo->pOldProc = SubclassWindow(tmp, _colorwndproc);
-	SetWindowLong(tmp, GWL_USERDATA, (ULONG)cinfo);
+	bubble->id = id;
+	bubble->checkbox = 1;
+	bubble->pOldProc = (WNDPROC)SubclassWindow(tmp, _BtProc);
+	bubble->cinfo.fore = -1;
+	bubble->cinfo.back = -1;
+	SetWindowLong(tmp, GWL_USERDATA, (ULONG)bubble);
 	dw_window_set_font(tmp, DefaultFont);
 	return tmp;
 }
@@ -4794,8 +4821,8 @@ long dw_spinbutton_query(HWND handle)
 int dw_checkbox_query(HWND handle)
 {
 	if(SendMessage(handle, BM_GETCHECK, 0, 0) == BST_CHECKED)
-		return TRUE;
-	return FALSE;
+		return (in_checkbox_handler ? FALSE : TRUE);
+	return (in_checkbox_handler ? TRUE : FALSE);
 }
 
 /*
@@ -4811,6 +4838,41 @@ void dw_checkbox_set(HWND handle, int value)
 	if(cinfo && !cinfo->user)
 		SendMessage(handle, BM_CLICK, 0, 0);
 	SendMessage(handle, BM_SETCHECK, (WPARAM)value, 0);
+}
+
+/*
+ * Inserts an item into a tree window (widget) after another item.
+ * Parameters:
+ *          handle: Handle to the tree to be inserted.
+ *          item: Handle to the item to be positioned after.
+ *          title: The text title of the entry.
+ *          icon: Handle to coresponding icon.
+ *          parent: Parent handle or 0 if root.
+ *          itemdata: Item specific data.
+ */
+HWND dw_tree_insert_after(HWND handle, HWND item, char *title, unsigned long icon, HWND parent, void *itemdata)
+{
+	TVITEM tvi;
+	TVINSERTSTRUCT tvins;
+	HTREEITEM hti;
+	void **ptrs= malloc(sizeof(void *) * 2);
+
+	ptrs[0] = title;
+	ptrs[1] = itemdata;
+
+	tvi.mask = TVIF_TEXT | TVIF_IMAGE | TVIF_SELECTEDIMAGE | TVIF_PARAM;
+	tvi.pszText = title;
+	tvi.lParam = (LONG)ptrs;
+	tvi.cchTextMax = strlen(title);
+	tvi.iSelectedImage = tvi.iImage = _lookup_icon(handle, (HICON)icon, 1);
+
+	tvins.item = tvi;
+	tvins.hParent = (HTREEITEM)parent;
+	tvins.hInsertAfter = item ? (HTREEITEM)item : TVI_FIRST;
+
+	hti = TreeView_InsertItem(handle, &tvins);
+
+	return (HWND)hti;
 }
 
 /*
@@ -4863,18 +4925,20 @@ void dw_tree_set(HWND handle, HWND item, char *title, unsigned long icon)
 	tvi.mask = TVIF_HANDLE;
 	tvi.hItem = (HTREEITEM)item;
 
-	TreeView_GetItem(handle, &tvi);
+	if(TreeView_GetItem(handle, &tvi))
+	{
 
-	ptrs = (void **)tvi.lParam;
-	ptrs[0] = title;
+		ptrs = (void **)tvi.lParam;
+		ptrs[0] = title;
 
-	tvi.mask = TVIF_TEXT | TVIF_IMAGE | TVIF_SELECTEDIMAGE;
-	tvi.pszText = title;
-	tvi.cchTextMax = strlen(title);
-	tvi.iSelectedImage = tvi.iImage = _lookup_icon(handle, (HICON)icon, 1);
-	tvi.hItem = (HTREEITEM)item;
+		tvi.mask = TVIF_TEXT | TVIF_IMAGE | TVIF_SELECTEDIMAGE;
+		tvi.pszText = title;
+		tvi.cchTextMax = strlen(title);
+		tvi.iSelectedImage = tvi.iImage = _lookup_icon(handle, (HICON)icon, 1);
+		tvi.hItem = (HTREEITEM)item;
 
-	TreeView_SetItem(handle, &tvi);
+		TreeView_SetItem(handle, &tvi);
+	}
 }
 
 /*
@@ -4892,10 +4956,11 @@ void dw_tree_set_data(HWND handle, HWND item, void *itemdata)
 	tvi.mask = TVIF_HANDLE;
 	tvi.hItem = (HTREEITEM)item;
 
-	TreeView_GetItem(handle, &tvi);
-
-	ptrs = (void **)tvi.lParam;
-	ptrs[1] = itemdata;
+	if(TreeView_GetItem(handle, &tvi))
+	{
+		ptrs = (void **)tvi.lParam;
+		ptrs[1] = itemdata;
+	}
 }
 
 /*
@@ -4950,6 +5015,9 @@ void dw_tree_collapse(HWND handle, HWND item)
  */
 void dw_tree_delete(HWND handle, HWND item)
 {
+	if((HTREEITEM)item == TVI_ROOT)
+		return;
+
 	TreeView_DeleteItem(handle, (HTREEITEM)item);
 }
 
