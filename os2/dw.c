@@ -4201,7 +4201,7 @@ HWND API dw_menu_append_item(HMENUI menux, char *title, ULONG id, ULONG flags, i
 			   MPFROMP(&miSubMenu),
 			   MPFROMP(title));
 
-	sprintf(buffer, "_dw_id%d", id);
+	sprintf(buffer, "_dw_id%d", (int)id);
 	dw_window_set_data(hwndApp, buffer, (void *)menux);
 
 	if(submenu)

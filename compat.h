@@ -65,14 +65,14 @@ void msleep(long period);
 #define API _System
 #endif
 
+#ifndef API
+#define API
+#endif
+
 #define msleep(a) DosSleep(a)
 
 #ifdef __EMX__
-#ifdef _System
 #include "platform/dirent.h"
-#else
-#include <dirent.h>
-#endif
 #include <sys/stat.h>
 #define HAVE_PIPE
 #ifdef FD_SETSIZE
