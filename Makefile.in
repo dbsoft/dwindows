@@ -25,7 +25,7 @@ SRCDIR=dwindows-$(VER_MAJ).$(VER_MIN)
     
 
 # Link flags shared objects
-SYSCONF_LFLAGS_SHOBJ	= $(SHAREDFLAG)
+SYSCONF_LFLAGS_SHOBJ	= @SHAREDFLAG@
 
 # Linking shared libraries
 #   - Build the $(TARGET) library, eg. lib$(TARGET).so.0.0
