@@ -5257,9 +5257,9 @@ int dw_module_close(HMOD handle)
  */
 HMTX dw_mutex_new(void)
 {
-	HMTX mutex;
+	HMTX mutex = malloc(sizeof(pthread_mutex_t));
 
-	pthread_mutex_init(&mutex, NULL);
+	pthread_mutex_init(mutex, NULL);
 	return mutex;
 }
 
@@ -5270,7 +5270,11 @@ HMTX dw_mutex_new(void)
  */
 void dw_mutex_close(HMTX mutex)
 {
-	pthread_mutex_destroy(&mutex);
+	if(mutex)
+	{
+		pthread_mutex_destroy(mutex);
+		free(mutex);
+	}
 }
 
 /*
@@ -5286,7 +5290,7 @@ void dw_mutex_lock(HMTX mutex)
 	if(pthread_self() == _dw_thread)
 		gdk_threads_leave();
 
-	pthread_mutex_lock(&mutex);
+	pthread_mutex_lock(mutex);
 
 	/* And of course relock it when we have acquired the mutext */
 	if(pthread_self() == _dw_thread)
@@ -5300,7 +5304,7 @@ void dw_mutex_lock(HMTX mutex)
  */
 void dw_mutex_unlock(HMTX mutex)
 {
-	pthread_mutex_unlock(&mutex);
+	pthread_mutex_unlock(mutex);
 }
 
 /*
