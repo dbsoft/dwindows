@@ -5813,6 +5813,33 @@ unsigned long API dw_icon_load(unsigned long module, unsigned long id)
 }
 
 /*
+ * Obtains an icon from a file.
+ * Parameters:
+ *       filename: Name of the file, omit extention to have
+ *                 DW pick the appropriate file extension.
+ *                 (ICO on OS/2 or Windows, XPM on Unix)
+ */
+unsigned long API dw_icon_load_from_file(char *filename)
+{
+	char *file = alloca(strlen(filename) + 5);
+
+	if(!file)
+		return 0;
+
+	strcpy(file, filename);
+
+	/* check if we can read from this file (it exists and read permission) */
+	if(access(file, 04) != 0)
+	{
+		/* Try with .bmp extention */
+		strcat(file, ".ico");
+		if(access(file, 04) != 0)
+			return 0;
+	}
+	return WinLoadFileIcon(file, FALSE);
+}
+
+/*
  * Frees a loaded resource in OS/2 and Windows.
  * Parameters:
  *          handle: Handle to icon returned by dw_icon_load().
