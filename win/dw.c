@@ -3350,7 +3350,7 @@ int instring(char *text, char *buffer)
 
 	if(buflen > len)
 	{
-		for(z=0;z<(buflen-len);z++)
+		for(z=0;z<=(buflen-len);z++)
 		{
 			if(memcmp(text, &buffer[z], len) == 0)
 				return 1;
