@@ -57,7 +57,6 @@ static char API getFSType(const char *path)
 
 char * API abs_path(const char *name, char *buffer, int len)
 {
-	char *buf;
 	LPTSTR file;
 
 	if(isalpha(name[0]) && name[1] == ':' && name[2] == '\0')
