@@ -6607,7 +6607,7 @@ void API dw_icon_free(unsigned long handle)
 void * API dw_container_alloc(HWND handle, int rowcount)
 {
 	LV_ITEM lvi;
-	int z;
+	int z, item;
 
 	lvi.mask = LVIF_DI_SETITEM | LVIF_TEXT | LVIF_IMAGE;
 	lvi.iSubItem = 0;
@@ -6618,8 +6618,10 @@ void * API dw_container_alloc(HWND handle, int rowcount)
 	lvi.iImage = -1;
 
 	ShowWindow(handle, SW_HIDE);
-	for(z=0;z<rowcount;z++)
+	item = ListView_InsertItem(handle, &lvi);
+	for(z=1;z<rowcount;z++)
 		ListView_InsertItem(handle, &lvi);
+	dw_window_set_data(handle, "_dw_insertitem", (void *)item);
 	return (void *)handle;
 }
 
@@ -6729,6 +6731,7 @@ void API dw_container_set_item(HWND handle, void *pointer, int column, int row, 
 	ULONG *flags;
 	LV_ITEM lvi;
 	char textbuffer[100], *destptr = textbuffer;
+	int item = (int)dw_window_get_data(handle, "_dw_insertitem");
 
 	if(!cinfo || !cinfo->flags || !data)
 		return;
@@ -6736,7 +6739,7 @@ void API dw_container_set_item(HWND handle, void *pointer, int column, int row, 
 	flags = cinfo->flags;
 
 	lvi.mask = LVIF_DI_SETITEM | LVIF_TEXT;
-	lvi.iItem = row;
+	lvi.iItem = row + item;
 	lvi.iSubItem = column;
 
 	if(flags[column] & DW_CFA_BITMAPORICON)
@@ -6907,8 +6910,9 @@ void API dw_container_set_row_title(void *pointer, int row, char *title)
 {
 	LV_ITEM lvi;
 	HWND container = (HWND)pointer;
+	int item = (int)dw_window_get_data(container, "_dw_insertitem");
 
-	lvi.iItem = row;
+	lvi.iItem = row + item;
 	lvi.iSubItem = 0;
 	lvi.mask = LVIF_PARAM;
 	lvi.lParam = (LPARAM)title;
