@@ -830,6 +830,18 @@ void dw_main_sleep(int milliseconds)
 }
 
 /*
+ * Processes a single message iteration and returns.
+ */
+void dw_main_iteration(void)
+{
+	_dw_thread = pthread_self();
+	_dw_thread_add(_dw_thread);
+	gdk_threads_enter();
+	gtk_main_iteration();
+	gdk_threads_leave();
+}
+
+/*
  * Free's memory allocated by dynamic windows.
  * Parameters:
  *           ptr: Pointer to dynamic windows allocated
@@ -3283,8 +3295,9 @@ void dw_scrollbar_set_pos(HWND handle, unsigned int position)
  * Parameters:
  *          handle: Handle to the scrollbar to be set.
  *          range: Maximum range value.
+ *          visible: Visible area relative to the range.
  */
-void API dw_scrollbar_set_range(HWND handle, unsigned int range)
+void API dw_scrollbar_set_range(HWND handle, unsigned int range, unsigned int visible)
 {
 	int _locked_by_me = FALSE;
 	GtkAdjustment *adjustment;
@@ -3295,7 +3308,10 @@ void API dw_scrollbar_set_range(HWND handle, unsigned int range)
 	DW_MUTEX_LOCK;
 	adjustment = (GtkAdjustment *)gtk_object_get_data(GTK_OBJECT(handle), "adjustment");
 	if(adjustment)
-		adjustment->upper = (gfloat)range;
+	{
+		adjustment->upper = (gdouble)range;
+		adjustment->page_size = (gdouble)visible;
+	}
 	DW_MUTEX_UNLOCK;
 }
 
@@ -7206,7 +7222,8 @@ void dw_signal_connect(HWND window, char *signame, void *sigfunc, void *data)
 		if(GTK_IS_COMBO(thiswindow))
 			thiswindow = GTK_COMBO(thiswindow)->entry;
 	}
-	else if(GTK_IS_VSCALE(thiswindow) || GTK_IS_HSCALE(thiswindow))
+	else if(GTK_IS_VSCALE(thiswindow) || GTK_IS_HSCALE(thiswindow) ||
+			GTK_IS_VSCROLLBAR(thiswindow) || GTK_IS_HSCROLLBAR(thiswindow))
 	{
 		thiswindow = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(thiswindow), "adjustment");
 	}
