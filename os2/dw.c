@@ -47,6 +47,25 @@ PRECORDCORE pCore = NULL, pCoreEmph = NULL;
 ULONG aulBuffer[4];
 HWND lasthcnr = 0, lastitem = 0, popup = 0, desktop;
 
+unsigned long _colors[] = {
+	CLR_BLACK,
+	CLR_DARKRED,
+	CLR_DARKGREEN,
+	CLR_BROWN,
+	CLR_DARKBLUE,
+	CLR_DARKPINK,
+	CLR_DARKCYAN,
+	CLR_PALEGRAY,
+	CLR_DARKGRAY,
+	CLR_RED,
+	CLR_GREEN,
+	CLR_YELLOW,
+	CLR_BLUE,
+	CLR_PINK,
+	CLR_CYAN,
+	CLR_WHITE
+};
+
 #define IS_WARP4() (aulBuffer[0] == 20 && aulBuffer[1] >= 40)
 
 #ifndef min
@@ -910,10 +929,8 @@ void _check_resize_notebook(HWND hwnd)
 /* Return the OS/2 color from the DW color */
 unsigned long _internal_color(unsigned long color)
 {
-	if(color == DW_CLR_BLACK)
-		return CLR_BLACK;
-	if(color == DW_CLR_WHITE)
-		return CLR_WHITE;
+	if(color < 16)
+		return _colors[color];
 	return color;
 }
 
