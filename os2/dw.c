@@ -3941,14 +3941,15 @@ void API dw_pointer_set_pos(long x, long y)
  *       id: An ID to be used for getting the resource from the
  *           resource file.
  */
-HWND API dw_container_new(ULONG id)
+HWND API dw_container_new(ULONG id, int multi)
 {
 	WindowData *blah = calloc(1, sizeof(WindowData));
 	HWND tmp = WinCreateWindow(HWND_OBJECT,
 							   WC_CONTAINER,
 							   NULL,
 							   WS_VISIBLE | CCS_READONLY |
-							   CCS_SINGLESEL | CCS_AUTOPOSITION,
+							   (multi ? CCS_EXTENDSEL : CCS_SINGLESEL) |
+							   CCS_AUTOPOSITION,
 							   0,0,2000,1000,
 							   NULLHANDLE,
 							   HWND_TOP,

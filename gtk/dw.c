@@ -2126,7 +2126,7 @@ void dw_pointer_set_pos(long x, long y)
  *       id: An ID to be used for getting the resource from the
  *           resource file.
  */
-HWND dw_container_new(unsigned long id)
+HWND dw_container_new(unsigned long id, int multi)
 {
 	GtkWidget *tmp;
 	int _locked_by_me = FALSE;
@@ -2136,6 +2136,7 @@ HWND dw_container_new(unsigned long id)
 	gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (tmp),
 					GTK_POLICY_AUTOMATIC, GTK_POLICY_ALWAYS);
 
+	gtk_object_set_data(GTK_OBJECT(tmp), "multi", (gpointer)multi);
 	gtk_object_set_data(GTK_OBJECT(tmp), "id", (gpointer)id);
 	gtk_widget_show(tmp);
 
@@ -4295,7 +4296,7 @@ static int _dw_container_setup(HWND handle, unsigned long *flags, char **titles,
 {
 	GtkWidget *clist;
 	char numbuf[10];
-	int z;
+	int z, multi;
 	int _locked_by_me = FALSE;
 
 	DW_MUTEX_LOCK;
@@ -4305,14 +4306,18 @@ static int _dw_container_setup(HWND handle, unsigned long *flags, char **titles,
 		DW_MUTEX_UNLOCK;
 		return FALSE;
 	}
+	multi = (int)gtk_object_get_data(GTK_OBJECT(handle), "multi");
+	gtk_object_set_data(GTK_OBJECT(handle), "multi", (gpointer)multi);
 
 	gtk_signal_connect(GTK_OBJECT(clist), "select_row", GTK_SIGNAL_FUNC(_select_row),  NULL);
 	gtk_signal_connect(GTK_OBJECT(clist), "unselect_row", GTK_SIGNAL_FUNC(_unselect_row),  NULL);
 
 	gtk_clist_set_column_auto_resize(GTK_CLIST(clist), 0, TRUE);
-	gtk_clist_set_selection_mode(GTK_CLIST(clist), GTK_SELECTION_SINGLE);
+	if(multi)
+		gtk_clist_set_selection_mode(GTK_CLIST(clist), GTK_SELECTION_EXTENDED);
+	else
+		gtk_clist_set_selection_mode(GTK_CLIST(clist), GTK_SELECTION_SINGLE);
 	gtk_container_add(GTK_CONTAINER(handle), clist);
-	gtk_object_set_data(GTK_OBJECT(clist), "multi", (gpointer)0);
 	gtk_object_set_user_data(GTK_OBJECT(handle), (gpointer)clist);
 	gtk_widget_show(clist);
 	gtk_object_set_data(GTK_OBJECT(clist), "colcount", (gpointer)count);
@@ -6230,19 +6235,6 @@ void dw_window_set_style(HWND handle, unsigned long style, unsigned long mask)
 		GtkWidget *tmp = (GtkWidget *)gtk_object_get_user_data(GTK_OBJECT(handle));
 		if(tmp)
 			handle2 = tmp;
-	}
-	if(GTK_IS_CLIST(handle2))
-	{
-		if(style & DW_CCS_EXTENDSEL)
-		{
-			gtk_clist_set_selection_mode(GTK_CLIST(handle2), GTK_SELECTION_EXTENDED);
-			gtk_object_set_data(GTK_OBJECT(handle2), "multi", (gpointer)1);
-		}
-		if(style & DW_CCS_SINGLESEL)
-		{
-			gtk_clist_set_selection_mode(GTK_CLIST(handle2), GTK_SELECTION_SINGLE);
-			gtk_object_set_data(GTK_OBJECT(handle2), "multi", (gpointer)0);
-		}
 	}
 	if(GTK_IS_LABEL(handle2))
 	{
