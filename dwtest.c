@@ -6,12 +6,12 @@
 /* Select a fixed width font for our platform */
 #ifdef __OS2__
 #define FIXEDFONT "5.System VIO"
-#define FOLDER_ICON_NAME "os2\folder"
-#define FILE_ICON_NAME "os2\file"
+#define FOLDER_ICON_NAME "os2\\folder"
+#define FILE_ICON_NAME "os2\\file"
 #elif defined(__WIN32__)
 #define FIXEDFONT "10.Terminal"
-#define FOLDER_ICON_NAME "win\folder"
-#define FILE_ICON_NAME "win\file"
+#define FOLDER_ICON_NAME "win\\folder"
+#define FILE_ICON_NAME "win\\file"
 #elif GTK_MAJOR_VERSION > 1
 #define FIXEDFONT "monospace 10"
 #define FOLDER_ICON_NAME "gtk/folder"
