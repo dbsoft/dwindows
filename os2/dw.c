@@ -2147,16 +2147,12 @@ MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 
 										if(pci && pre->fEmphasisMask & CRA_CURSORED && (pci->rc.flRecordAttr & CRA_CURSORED))
 										{
-											if(dw_window_get_data(tmp->window, "_dw_container"))
-											{
-												int (* API containerselectfunc)(HWND, char *, void *) = (int (* API)(HWND, char *, void *))tmp->signalfunction;
+											int (* API treeselectfunc)(HWND, HWND, char *, void *, void *) = (int (* API)(HWND, HWND, char *, void *, void *))tmp->signalfunction;
 
-												result = containerselectfunc(tmp->window, pci->rc.pszIcon, tmp->data);
-											}
+											if(dw_window_get_data(tmp->window, "_dw_container"))
+												result = treeselectfunc(tmp->window, 0, pci->rc.pszIcon, tmp->data, 0);
 											else
 											{
-												int (* API treeselectfunc)(HWND, HWND, char *, void *, void *) = (int (* API)(HWND, HWND, char *, void *, void *))tmp->signalfunction;
-
 												if(lasthcnr == tmp->window && lastitem == (HWND)pci)
 												{
 													lasthcnr = 0;
@@ -2166,7 +2162,7 @@ MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 												{
 													lasthcnr = tmp->window;
 													lastitem = (HWND)pci;
-													result = treeselectfunc(tmp->window, (HWND)pci, pci->rc.pszIcon, pci->user, tmp->data);
+													result = treeselectfunc(tmp->window, (HWND)pci, pci->rc.pszIcon, tmp->data, pci->user);
 												}
 											}
 											tmp = NULL;

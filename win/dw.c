@@ -1500,7 +1500,7 @@ BOOL CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 
 										ptrs = (void **)tvi.lParam;
 										if(ptrs)
-											result = treeselectfunc(tmp->window, (HWND)tem->itemNew.hItem, (char *)ptrs[0], (void *)ptrs[1], tmp->data);
+											result = treeselectfunc(tmp->window, (HWND)tem->itemNew.hItem, (char *)ptrs[0], tmp->data, (void *)ptrs[1]);
 
 										tmp = NULL;
 									}
@@ -1556,7 +1556,7 @@ BOOL CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 
 										if(iItem > -1)
 										{
-											int (*containerselectfunc)(HWND, char *, void *) = tmp->signalfunction;
+											int (*treeselectfunc)(HWND, HWND, char *, void *, void *) = tmp->signalfunction;
 
 											lvi.iItem = iItem;
 											lvi.mask = LVIF_PARAM;
@@ -1567,7 +1567,7 @@ BOOL CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 											if(lvi.lParam < 100)
 												lvi.lParam = 0;
 
-											containerselectfunc(tmp->window, (char *)lvi.lParam, tmp->data);
+											treeselectfunc(tmp->window, 0, (char *)lvi.lParam, tmp->data, 0);
 											tmp = NULL;
 										}
 									}

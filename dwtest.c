@@ -346,52 +346,42 @@ int DWSIGNAL configure_event(HWND hwnd, int width, int height, void *data)
 	return TRUE;
 }
 
-int DWSIGNAL container_select_cb( HWND window, char *text, void *data )
+int DWSIGNAL item_enter_cb( HWND window, char *text, void *data )
 {
-	char buf[100];
+	char buf[200];
 	HWND statline = (HWND)data;
 
-	sprintf(buf,"container-select: Window: %d Text: %s", window, text );
+	sprintf(buf,"DW_SIGNAL_ITEM_ENTER: Window: %x Text: %s Data:", window, text, data );
 	dw_window_set_text( statline, buf);
 	return 0;
 }
 
-int DWSIGNAL container_context_cb( HWND window, char *text, int x, int y, void *data )
+int DWSIGNAL item_context_cb( HWND window, char *text, int x, int y, void *data, void *itemdata )
 {
-	char buf[100];
+	char buf[200];
 	HWND statline = (HWND)data;
 
-	sprintf(buf,"container-context: Window: %d Text: %s x: %d y: %d", window, text, x, y );
+	sprintf(buf,"DW_SIGNAL_ITEM_CONTEXT: Window: %x Text: %s x: %d y: %d Itemdata: %x", window, text, x, y, itemdata );
 	dw_window_set_text( statline, buf);
 	return 0;
 }
 
-int DWSIGNAL tree_context_cb( HWND window, char *text, int x, int y, void *data, void *itemdata )
+int DWSIGNAL list_select_cb( HWND window, int item, void *data )
 {
-	char buf[100];
+	char buf[200];
 	HWND statline = (HWND)data;
 
-	sprintf(buf,"tree-context: Window: %d Text: %s x: %d y: %d", window, text, x, y );
+	sprintf(buf,"DW_SIGNAL_LIST_SELECT: Window: %d Item: %d", window, item );
 	dw_window_set_text( statline, buf);
 	return 0;
 }
 
-int DWSIGNAL item_select_cb( HWND window, int item, void *data )
+int DWSIGNAL item_select_cb( HWND window, HWND item, char *text, void *data, void *itemdata )
 {
-	char buf[100];
+	char buf[200];
 	HWND statline = (HWND)data;
 
-	sprintf(buf,"item-seelct: Window: %d Item: %d", window, item );
-	dw_window_set_text( statline, buf);
-	return 0;
-}
-
-int DWSIGNAL tree_select_cb( HWND window, HWND item, char *text, void *itemdata, void *data )
-{
-	char buf[100];
-	HWND statline = (HWND)data;
-
-	sprintf(buf,"tree-select: Window: %d Item: %d Text: %s", window, item, text );
+	sprintf(buf,"DW_SIGNAL_ITEM_SELECT: Window: %x Item: %x Text: %s Itemdata: %x", window, item, text, itemdata );
 	dw_window_set_text( statline, buf);
 	return 0;
 }
@@ -446,9 +436,9 @@ void archive_add(void)
 	dw_window_set_color(buttonbox, DW_CLR_DARKCYAN, DW_CLR_PALEGRAY);
 	dw_window_set_color(okbutton, DW_CLR_PALEGRAY, DW_CLR_DARKCYAN);
 
-	dw_signal_connect(browsebutton, "clicked", DW_SIGNAL_FUNC(browse_callback), (void *)notebookbox1);
-	dw_signal_connect(okbutton, "clicked", DW_SIGNAL_FUNC(beep_callback), (void *)notebookbox1);
-	dw_signal_connect(cancelbutton, "clicked", DW_SIGNAL_FUNC(exit_callback), (void *)mainwindow);
+	dw_signal_connect(browsebutton, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(browse_callback), (void *)notebookbox1);
+	dw_signal_connect(okbutton, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(beep_callback), (void *)notebookbox1);
+	dw_signal_connect(cancelbutton, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(exit_callback), (void *)mainwindow);
 }
 
 
@@ -503,13 +493,13 @@ void text_add(void)
 	dw_messagebox("DWTest", "Width: %d Height: %d\n", font_width, font_height);
 	dw_draw_rect(0, text1pm, TRUE, 0, 0, font_width*width1, font_height*rows);
 	dw_draw_rect(0, text2pm, TRUE, 0, 0, font_width*cols, font_height*rows);
-	dw_signal_connect(textbox1, "expose_event", DW_SIGNAL_FUNC(text_expose), NULL);
-	dw_signal_connect(textbox2, "expose_event", DW_SIGNAL_FUNC(text_expose), NULL);
-	dw_signal_connect(textbox2, "configure_event", DW_SIGNAL_FUNC(configure_event), text2pm);
-	dw_signal_connect(hscrollbar, "value_changed", DW_SIGNAL_FUNC(scrollbar_valuechanged), (void *)status);
-	dw_signal_connect(vscrollbar, "value_changed", DW_SIGNAL_FUNC(scrollbar_valuechanged), (void *)status);
+	dw_signal_connect(textbox1, DW_SIGNAL_EXPOSE, DW_SIGNAL_FUNC(text_expose), NULL);
+	dw_signal_connect(textbox2, DW_SIGNAL_EXPOSE, DW_SIGNAL_FUNC(text_expose), NULL);
+	dw_signal_connect(textbox2, DW_SIGNAL_CONFIGURE, DW_SIGNAL_FUNC(configure_event), text2pm);
+	dw_signal_connect(hscrollbar, DW_SIGNAL_VALUE_CHANGED, DW_SIGNAL_FUNC(scrollbar_valuechanged), (void *)status);
+	dw_signal_connect(vscrollbar, DW_SIGNAL_VALUE_CHANGED, DW_SIGNAL_FUNC(scrollbar_valuechanged), (void *)status);
 
-	dw_signal_connect(mainwindow, "key_press_event", DW_SIGNAL_FUNC(keypress_callback), NULL);
+	dw_signal_connect(mainwindow, DW_SIGNAL_KEY_PRESS, DW_SIGNAL_FUNC(keypress_callback), NULL);
 }
 
 void tree_add(void)
@@ -539,13 +529,8 @@ void tree_add(void)
 	t6 = dw_tree_insert(tree, "tree file 4", fileicon, t2, NULL );
 
 	/* set up our signal trappers... */
-	/* looks odd, we use a container-context signal on a tree widget! */
-	dw_signal_connect(tree, "container-context", DW_SIGNAL_FUNC(container_context_cb), tree_status);
-	dw_signal_connect(tree, "tree-select", DW_SIGNAL_FUNC(tree_select_cb), tree_status);
-	/* also odd; the tree-context doesn't seem to do anything. In fact GTK complains that
-	 * tree-context is invalid in a tree widget
-	 */
-	dw_signal_connect(tree, "tree-context", DW_SIGNAL_FUNC(tree_context_cb), tree_status);
+	dw_signal_connect(tree, DW_SIGNAL_ITEM_CONTEXT, DW_SIGNAL_FUNC(item_context_cb), (void *)tree_status);
+	dw_signal_connect(tree, DW_SIGNAL_ITEM_SELECT, DW_SIGNAL_FUNC(item_select_cb), (void *)tree_status);
 }
 
 void container_add(void)
@@ -606,13 +591,9 @@ void container_add(void)
 	dw_container_optimize(container);
 
 	/* connect our event trappers... */
-	dw_signal_connect(container, "container-select", DW_SIGNAL_FUNC(container_select_cb), container_status);
-	dw_signal_connect(container, "container-context", DW_SIGNAL_FUNC(container_context_cb), container_status);
-	/* NOTE that even though we are trapping a tree-select on a container, we have to set
-	 * a container-select callback handler, otherwise dwindows will crash, because
-	 * the prototypes for tree-select and container-select callback handlers are different
-	 */
-	dw_signal_connect(container, "tree-select", DW_SIGNAL_FUNC(container_select_cb), container_status);
+	dw_signal_connect(container, DW_SIGNAL_ITEM_ENTER, DW_SIGNAL_FUNC(item_enter_cb), (void *)container_status);
+	dw_signal_connect(container, DW_SIGNAL_ITEM_CONTEXT, DW_SIGNAL_FUNC(item_context_cb), (void *)container_status);
+	dw_signal_connect(container, DW_SIGNAL_ITEM_SELECT, DW_SIGNAL_FUNC(item_select_cb), (void *)container_status);
 }
 
 /* Beep every second */
@@ -668,7 +649,7 @@ int main(int argc, char *argv[])
 	dw_notebook_page_set_text( notebook, notebookpage4, "container");
 	container_add();
 
-	dw_signal_connect(mainwindow, "delete_event", DW_SIGNAL_FUNC(exit_callback), (void *)mainwindow);
+	dw_signal_connect(mainwindow, DW_SIGNAL_DELETE, DW_SIGNAL_FUNC(exit_callback), (void *)mainwindow);
 	timerid = dw_timer_connect(1000, DW_SIGNAL_FUNC(timer_callback), 0);
 	dw_window_set_usize(mainwindow, 640, 480);
 	dw_window_show(mainwindow);
