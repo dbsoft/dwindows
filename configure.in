@@ -5,6 +5,8 @@ DW_MAJOR_VERSION=1
 DW_MINOR_VERSION=0
 DW_SUB_VERSION=0
 
+DW_SRC=gtk
+DW_DEFINE=__UNIX__
 AC_SUBST(DW_MAJOR_VERSION)
 AC_SUBST(DW_MINOR_VERSION)
 AC_SUBST(DW_SUB_VERSION)
@@ -49,18 +51,25 @@ AC_CHECK_LIB(sun, getpwnam, LIBS="$LIBS -lsun",)
 AC_CHECK_LIB(dgc, inet_addr, LIBS="$LIBS -ldgc",)
 AC_CHECK_LIB(resolv, gethostbyname, LIBS="$LIBS -lresolv",)
 
-AC_CHECK_PROG(PKG_CFG, pkg-config, pkg-config)
-if test x"$PKG_CFG" != x; then
-  GTK_LIBS=`$PKG_CFG --silence-errors --libs gtk+-2.0 gthread-2.0`
-fi
+OPSYSTEM=`uname -s`
 
-if test x"$GTK_LIBS" = x; then
-  AM_PATH_GLIB(1.2.0,,AC_MSG_ERROR(AC_MSG_ERROR(Cannot find GLIB: Is glib-config in path?)))
-  AM_PATH_GTK(1.2.0,,AC_MSG_ERROR(AC_MSG_ERROR(Cannot find GTK: Is gtk-config in path?)), gthread)
-  AM_PATH_GDK_IMLIB(1.9.4, AC_DEFINE(USE_IMLIB), AC_MSG_ERROR(IMLIB not found or too old. Dynamic Windows cannot build without it.))
+if test $OPSYSTEM = "Darwin"; then
+	DW_SRC=mac
+        DW_DEFINE=__MAC__
 else
-  GTK_CFLAGS=`$PKG_CFG --cflags gtk+-2.0 gthread-2.0`
-  GTK_LIBS=`$PKG_CFG --libs gtk+-2.0 gthread-2.0`
+	AC_CHECK_PROG(PKG_CFG, pkg-config, pkg-config)
+	if test x"$PKG_CFG" != x; then
+	  GTK_LIBS=`$PKG_CFG --silence-errors --libs gtk+-2.0 gthread-2.0`
+	fi
+
+	if test x"$GTK_LIBS" = x; then
+	  AM_PATH_GLIB(1.2.0,,AC_MSG_ERROR(AC_MSG_ERROR(Cannot find GLIB: Is glib-config in path?)))
+	  AM_PATH_GTK(1.2.0,,AC_MSG_ERROR(AC_MSG_ERROR(Cannot find GTK: Is gtk-config in path?)), gthread)
+	  AM_PATH_GDK_IMLIB(1.9.4, AC_DEFINE(USE_IMLIB), AC_MSG_ERROR(IMLIB not found or too old. Dynamic Windows cannot build without it.))
+	else
+	  GTK_CFLAGS=`$PKG_CFG --cflags gtk+-2.0 gthread-2.0`
+	  GTK_LIBS=`$PKG_CFG --libs gtk+-2.0 gthread-2.0`
+	fi
 fi
 
 AC_CHECK_HEADER(pthread.h,,AC_MSG_ERROR([pthread header not found. Dynamic Windows cannot build without it.]))
@@ -89,6 +98,9 @@ AC_SUBST(LN)
 AC_SUBST(CP)
 AC_SUBST(MV)
 AC_SUBST(MKDIR)
+
+AC_SUBST(DW_SRC)
+AC_SUBST(DW_DEFINE)
 
 AC_CONFIG_FILES([
 Makefile

@@ -1,13 +1,14 @@
 srcdir=@srcdir@
 CC	=	@CC@
-CCFLAGS	=	@CFLAGS@ -g -O2 -fPIC -Wall -D__UNIX__ -DBUILD_DLL -DDW_RESOURCES
+CCFLAGS	=	@CFLAGS@ -g -O2 -fPIC -Wall -D@DW_DEFINE@ -DBUILD_DLL -DDW_RESOURCES
 LFLAGS	=	@LIBS@
 INSTALL =	@INSTALL@
+DW_SRC  =	@DW_SRC@
 INCPATH	=	-I.. -I. -I$(srcdir)
 DESTDIR	=	./lib/
 MLFLAGS	=	-L$(DESTDIR) 
 TARGET	=	dw
-SRCS	=	$(srcdir)/gtk/dw.c
+SRCS	=	$(srcdir)/$(DW_SRC)/dw.c
 OBJECTS	=	dw.o
 SRCS2	=	$(srcdir)compat.c
 OBJECTS2=	compat.o
@@ -94,7 +95,7 @@ clean:
 	rm -f *.o
 	rm -f *~
 	rm -f *.a
-	rm -f gtk/*.o
+	rm -f $(DW_SRC)/*.o
 
 $(DESTDIR):
 	mkdir $(DESTDIR)
@@ -105,8 +106,8 @@ $(SYSCONF_LINK_TARGET2): $(OBJECTS2) $(DESTDIR)
 $(SYSCONF_LINK_TARGET): $(OBJECTS) $(DESTDIR)
 	$(SYSCONF_LINK_LIB)
 
-dw.o: $(srcdir)/gtk/dw.c
-	$(CC) -c $(INCPATH) $(CCFLAGS) -o $@ $(srcdir)/gtk/dw.c
+dw.o: $(srcdir)/$(DW_SRC)/dw.c
+	$(CC) -c $(INCPATH) $(CCFLAGS) -o $@ $(srcdir)/$(DW_SRC)/dw.c
 
 compat.o: $(srcdir)/compat.c
 	$(CC) -c $(INCPATH) $(CCFLAGS) -o $@ $(srcdir)/compat.c
