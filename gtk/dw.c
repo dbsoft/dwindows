@@ -4652,7 +4652,7 @@ unsigned long dw_color_depth(void)
 	int _locked_by_me = FALSE;
 
 	DW_MUTEX_UNLOCK;
-	retval = gdk_colormap_get_system_size();
+	retval = gdk_visual_get_best_depth();
 	DW_MUTEX_UNLOCK;
 	return retval;
 }
