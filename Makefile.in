@@ -15,6 +15,7 @@ TARGET2 =	dwcompat
 VER_MAJ	=	1
 VER_MIN	=	0
 PREFIX	=	@prefix@
+SRCDIR=dwindows-$(VER_MAJ).$(VER_MIN)
 
 #.SUFFIXES:	.c .h
 
@@ -105,16 +106,16 @@ $(SYSCONF_LINK_TARGET): $(OBJECTS) $(DESTDIR)
 	$(SYSCONF_LINK_LIB)
 
 dw.o: $(srcdir)/gtk/dw.c
-	$(CC) -c $(CCFLAGS) $(INCPATH) -o $@ $(srcdir)/gtk/dw.c
+	$(CC) -c $(INCPATH) $(CCFLAGS) -o $@ $(srcdir)/gtk/dw.c
 
 compat.o: $(srcdir)/compat.c
-	$(CC) -c $(CCFLAGS) $(INCPATH) -o $@ $(srcdir)/compat.c
+	$(CC) -c $(INCPATH) $(CCFLAGS) -o $@ $(srcdir)/compat.c
 
 ci.o: $(srcdir)/ci.c
-	$(CC) -c $(CCFLAGS) $(INCPATH) -o $@ $(srcdir)/ci.c
+	$(CC) -c $(INCPATH) $(CCFLAGS) -o $@ $(srcdir)/ci.c
 
 dwtest.o: $(srcdir)/dwtest.c
-	$(CC) -c $(CCFLAGS) $(INCPATH) -o $@ $(srcdir)/dwtest.c
+	$(CC) -c $(INCPATH) $(CCFLAGS) -o $@ $(srcdir)/dwtest.c
                 
 ci: ci.o
 	$(CC) -o ci ci.o -L$(PREFIX)/lib -ldw -ldwcompat $(LFLAGS)
@@ -123,7 +124,13 @@ dwtest: dwtest.o
 	$(CC) -o dwtest dwtest.o -L$(PREFIX)/lib -ldw -ldwcompat $(LFLAGS)
 
 zip:
-	zip dw.zip $(srcdir)/makefile.* $(srcdir)/readme $(srcdir)/*.c $(srcdir)/*.h \
+	zip dwindows$(VER_MAJ)$(VER_MIN).zip $(srcdir)/makefile.* $(srcdir)/readme $(srcdir)/*.c $(srcdir)/*.h \
 		$(srcdir)/*.def $(srcdir)/install.sh $(srcdir)/*.in $(srcdir)/configure \
 		$(srcdir)/ac*.m4 $(srcdir)/gtk/*.c $(srcdir)/win/*.c $(srcdir)/os2/*.c \
 		$(srcdir)/platform/*.h
+
+dist:
+	(cd $(srcdir)/..;tar -cvf - $(SRCDIR)/makefile.* $(SRCDIR)/readme $(SRCDIR)/*.c $(SRCDIR)/*.h \
+		$(SRCDIR)/*.def $(SRCDIR)/install.sh $(SRCDIR)/*.in $(SRCDIR)/configure \
+		$(SRCDIR)/ac*.m4 $(SRCDIR)/gtk/*.c $(SRCDIR)/win/*.c $(SRCDIR)/os2/*.c \
+		$(SRCDIR)/platform/*.h | gzip > dwindows-$(VER_MAJ).$(VER_MIN).tar.gz )
