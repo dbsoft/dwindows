@@ -1805,7 +1805,7 @@ BOOL CALLBACK _spinnerwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 		case WM_LBUTTONDOWN:
 		case WM_MBUTTONDOWN:
 		case WM_RBUTTONDOWN:
-		case WM_CHAR:
+		case WM_KEYDOWN:
 			{
 				BOOL ret;
 
@@ -1816,10 +1816,57 @@ BOOL CALLBACK _spinnerwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 				/* Tell the edit control that a buttonpress has
 				 * occured and to update it's window title.
 				 */
-				if(cinfo->buddy)
+				if(cinfo && cinfo->buddy)
 					SendMessage(cinfo->buddy, WM_USER+10, 0, 0);
 
+				SetTimer(hWnd, 100, 100, (TIMERPROC)NULL);
+
 				return ret;
+			}
+			break;
+		case WM_LBUTTONUP:
+		case WM_MBUTTONUP:
+		case WM_RBUTTONUP:
+		case WM_KEYUP:
+			{
+				BOOL ret;
+
+				if(!cinfo || !cinfo->pOldProc)
+					ret = DefWindowProc(hWnd, msg, mp1, mp2);
+				ret = CallWindowProc(cinfo->pOldProc, hWnd, msg, mp1, mp2);
+
+				/* Tell the edit control that a buttonpress has
+				 * occured and to update it's window title.
+				 */
+				if(cinfo && cinfo->buddy)
+					SendMessage(cinfo->buddy, WM_USER+10, 0, 0);
+
+				KillTimer(hWnd, 100);
+
+				return ret;
+			}
+			break;
+		case WM_TIMER:
+			{
+				if(mp1 == 100)
+				{
+					BOOL ret;
+
+					if(cinfo && cinfo->buddy)
+						SendMessage(cinfo->buddy, WM_USER+10, 0, 0);
+
+					if(!cinfo || !cinfo->pOldProc)
+						ret = DefWindowProc(hWnd, msg, mp1, mp2);
+					ret = CallWindowProc(cinfo->pOldProc, hWnd, msg, mp1, mp2);
+
+					/* Tell the edit control that a buttonpress has
+					 * occured and to update it's window title.
+					 */
+					if(cinfo && cinfo->buddy)
+						SendMessage(cinfo->buddy, WM_USER+10, 0, 0);
+
+					return ret;
+				}
 			}
 			break;
 		case WM_USER+10:
@@ -2631,7 +2678,7 @@ BOOL CALLBACK _BtProc(HWND hwnd, ULONG msg, WPARAM mp1, LPARAM mp2)
 												0,0,50,20,
 												HWND_DESKTOP,
 												NULL,
-												NULL,
+												DWInstance,
 												NULL);
 
 					dw_window_set_font(hwndBubble, DefaultFont);
@@ -2817,7 +2864,7 @@ int dw_init(int newthread, int argc, char *argv[])
 	 */
 
 	DW_HWND_OBJECT = CreateWindow(ObjectClassName, "", 0, 0, 0,
-								  0, 0, HWND_DESKTOP, NULL, NULL, NULL);
+								  0, 0, HWND_DESKTOP, NULL, DWInstance, NULL);
 
 	if(!DW_HWND_OBJECT)
 	{
@@ -3325,14 +3372,14 @@ HWND dw_window_new(HWND hwndOwner, char *title, ULONG flStyle)
 		ULONG newflags = (flStyle | WS_CLIPCHILDREN) & ~DW_FCF_TASKLIST;
 
 		hwndframe = CreateWindowEx(flStyleEx, ClassName, title, newflags, CW_USEDEFAULT, CW_USEDEFAULT,
-								   CW_USEDEFAULT, CW_USEDEFAULT, hwndOwner, NULL, NULL, NULL);
+								   CW_USEDEFAULT, CW_USEDEFAULT, hwndOwner, NULL, DWInstance, NULL);
 	}
 	else
 	{
 		flStyleEx |= WS_EX_TOOLWINDOW;
 
 		hwndframe = CreateWindowEx(flStyleEx, ClassName, title, flStyle | WS_CLIPCHILDREN, CW_USEDEFAULT, CW_USEDEFAULT,
-								   CW_USEDEFAULT, CW_USEDEFAULT, hwndOwner, NULL, NULL, NULL);
+								   CW_USEDEFAULT, CW_USEDEFAULT, hwndOwner, NULL, DWInstance, NULL);
 	}
 	SetWindowLong(hwndframe, GWL_USERDATA, (ULONG)newbox);
 
@@ -3367,7 +3414,7 @@ HWND dw_box_new(int type, int pad)
 							 0,0,2000,1000,
 							 DW_HWND_OBJECT,
 							 NULL,
-							 NULL,
+							 DWInstance,
 							 NULL);
 
 	newbox->cinfo.pOldProc = SubclassWindow(hwndframe, _colorwndproc);
@@ -3400,7 +3447,7 @@ HWND dw_groupbox_new(int type, int pad, char *title)
 							 0,0,2000,1000,
 							 DW_HWND_OBJECT,
 							 NULL,
-							 NULL,
+							 DWInstance,
 							 NULL);
 
 	newbox->grouphwnd = CreateWindow(BUTTONCLASSNAME,
@@ -3410,7 +3457,7 @@ HWND dw_groupbox_new(int type, int pad, char *title)
 									 0,0,2000,1000,
 									 hwndframe,
 									 NULL,
-									 NULL,
+									 DWInstance,
 									 NULL);
 
 	SetWindowLong(hwndframe, GWL_USERDATA, (ULONG)newbox);
@@ -3456,7 +3503,7 @@ HWND dw_bitmap_new(ULONG id)
 						0,0,2000,1000,
 						DW_HWND_OBJECT,
 						NULL,
-						NULL,
+						DWInstance,
 						NULL);
 }
 
@@ -3481,7 +3528,7 @@ HWND dw_notebook_new(ULONG id, int top)
 					   0,0,2000,1000,
 					   DW_HWND_OBJECT,
 					   NULL,
-					   NULL,
+					   DWInstance,
 					   NULL);
 	SetWindowLong(tmp, GWL_USERDATA, (ULONG)array);
 	dw_window_set_font(tmp, DefaultFont);
@@ -3656,7 +3703,7 @@ HWND dw_container_new(ULONG id)
 							0,0,2000,1000,
 							DW_HWND_OBJECT,
 							(HMENU)id,
-							NULL,
+							DWInstance,
 							NULL);
 	ContainerInfo *cinfo = (ContainerInfo *)calloc(1, sizeof(ContainerInfo));
 
@@ -3691,7 +3738,7 @@ HWND dw_tree_new(ULONG id)
 							0,0,2000,1000,
 							DW_HWND_OBJECT,
 							(HMENU)id,
-							NULL,
+							DWInstance,
 							NULL);
 	ContainerInfo *cinfo = (ContainerInfo *)calloc(1, sizeof(ContainerInfo));
 	TreeView_SetItemHeight(tmp, 16);
@@ -3754,7 +3801,7 @@ HWND dw_text_new(char *text, ULONG id)
 							0,0,2000,1000,
 							DW_HWND_OBJECT,
 							(HMENU)id,
-							NULL,
+							DWInstance,
 							NULL);
 	dw_window_set_font(tmp, DefaultFont);
 	return tmp;
@@ -3775,7 +3822,7 @@ HWND dw_status_text_new(char *text, ULONG id)
 							0,0,2000,1000,
 							DW_HWND_OBJECT,
 							(HMENU)id,
-							NULL,
+							DWInstance,
 							NULL);
 	dw_window_set_font(tmp, DefaultFont);
 	SubclassWindow(tmp, _statuswndproc);
@@ -3800,7 +3847,7 @@ HWND dw_mle_new(ULONG id)
 							  0,0,2000,1000,
 							  DW_HWND_OBJECT,
 							  (HMENU)id,
-							  NULL,
+							  DWInstance,
 							  NULL);
 	ContainerInfo *cinfo = (ContainerInfo *)calloc(1, sizeof(ContainerInfo));
 
@@ -3835,7 +3882,7 @@ HWND dw_entryfield_new(char *text, ULONG id)
 							  0,0,2000,1000,
 							  DW_HWND_OBJECT,
 							  (HMENU)id,
-							  NULL,
+							  DWInstance,
 							  NULL);
 	ColorInfo *cinfo = calloc(1, sizeof(ColorInfo));
 
@@ -3865,7 +3912,7 @@ HWND dw_entryfield_password_new(char *text, ULONG id)
 							  0,0,2000,1000,
 							  DW_HWND_OBJECT,
 							  (HMENU)id,
-							  NULL,
+							  DWInstance,
 							  NULL);
 	ColorInfo *cinfo = calloc(1, sizeof(ColorInfo));
 
@@ -3906,7 +3953,7 @@ HWND dw_combobox_new(char *text, ULONG id)
 							0,0,2000,1000,
 							DW_HWND_OBJECT,
 							(HMENU)id,
-							NULL,
+							DWInstance,
 							NULL);
 	ColorInfo *cinfo = (ColorInfo *)calloc(1, sizeof(ColorInfo));
 	ColorInfo *cinfo2 = (ColorInfo *)calloc(1, sizeof(ColorInfo));
@@ -3948,7 +3995,7 @@ HWND dw_button_new(char *text, ULONG id)
 							0,0,2000,1000,
 							DW_HWND_OBJECT,
 							(HMENU)id,
-							NULL,
+							DWInstance,
 							NULL);
 
 	bubble->id = id;
@@ -3980,7 +4027,7 @@ HWND dw_bitmapbutton_new(char *text, ULONG id)
 					   0,0,2000,1000,
 					   DW_HWND_OBJECT,
 					   (HMENU)id,
-					   NULL,
+					   DWInstance,
 					   NULL);
 
 	bubble->id = id;
@@ -4013,7 +4060,7 @@ HWND dw_spinbutton_new(char *text, ULONG id)
 								0,0,2000,1000,
 								DW_HWND_OBJECT,
 								NULL,
-								NULL,
+								DWInstance,
 								NULL);
 	HWND tmp = CreateWindowEx(WS_EX_CLIENTEDGE,
 							  UPDOWN_CLASS,
@@ -4024,7 +4071,7 @@ HWND dw_spinbutton_new(char *text, ULONG id)
 							  0,0,2000,1000,
 							  DW_HWND_OBJECT,
 							  (HMENU)id,
-							  NULL,
+							  DWInstance,
 							  NULL);
 	ColorInfo *cinfo = calloc(1, sizeof(ColorInfo));
 
@@ -4059,7 +4106,7 @@ HWND dw_radiobutton_new(char *text, ULONG id)
 							0,0,2000,1000,
 							DW_HWND_OBJECT,
 							(HMENU)id,
-							NULL,
+							DWInstance,
 							NULL);
 	BubbleButton *bubble = calloc(1, sizeof(BubbleButton));
 	bubble->id = id;
@@ -4088,7 +4135,7 @@ HWND dw_slider_new(int vertical, int increments, ULONG id)
 							0,0,2000,1000,
 							DW_HWND_OBJECT,
 							NULL,
-							NULL,
+							DWInstance,
 							NULL);
 	ColorInfo *cinfo = calloc(1, sizeof(ColorInfo));
 
@@ -4115,7 +4162,7 @@ HWND dw_percent_new(ULONG id)
 						0,0,2000,1000,
 						DW_HWND_OBJECT,
 						NULL,
-						NULL,
+						DWInstance,
 						NULL);
 }
 
@@ -4135,7 +4182,7 @@ HWND dw_checkbox_new(char *text, ULONG id)
 							0,0,2000,1000,
 							DW_HWND_OBJECT,
 							NULL,
-							NULL,
+							DWInstance,
 							NULL);
 	bubble->id = id;
 	bubble->checkbox = 1;
@@ -4164,7 +4211,7 @@ HWND dw_listbox_new(ULONG id, int multi)
 							0,0,2000,1000,
 							DW_HWND_OBJECT,
 							NULL,
-							NULL,
+							DWInstance,
 							NULL);
 	ContainerInfo *cinfo = (ContainerInfo *)calloc(1, sizeof(ContainerInfo));
 
@@ -6078,7 +6125,7 @@ HWND dw_render_new(unsigned long id)
 							0,0,2000,1000,
 							DW_HWND_OBJECT,
 							NULL,
-							NULL,
+							DWInstance,
 							NULL);
 	newbox->pad = 0;
 	newbox->type = 0;
@@ -6645,7 +6692,7 @@ void dw_box_pack_splitbar_start(HWND box)
 								0,0,2000,1000,
 								DW_HWND_OBJECT,
 								NULL,
-								NULL,
+								DWInstance,
 								NULL);
 		if(thisbox->type == BOXVERT)
 			dw_box_pack_start(box, tmp, 1, SPLITBAR_WIDTH, TRUE, FALSE, 0);
@@ -6672,7 +6719,7 @@ void dw_box_pack_splitbar_end(HWND box)
 								0,0,2000,1000,
 								DW_HWND_OBJECT,
 								NULL,
-								NULL,
+								DWInstance,
 								NULL);
 		if(thisbox->type == BOXVERT)
 			dw_box_pack_end(box, tmp, 1, SPLITBAR_WIDTH, TRUE, FALSE, 0);
