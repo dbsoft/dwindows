@@ -6522,9 +6522,10 @@ void _CopyFontSettings(HPS hpsSrc, HPS hpsDst)
 void API dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
 {
 	HPS hps;
-	int size = 9, z, height;
+	int z, height;
 	RECTL rcl;
 	char fontname[128];
+	POINTL aptl[TXTBOX_COUNT];
 
 	if(handle)
 	{
@@ -6550,12 +6551,13 @@ void API dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
 		if(fontname[z]=='.')
 			break;
 	}
-	size = atoi(fontname);
+
+	GpiQueryTextBox(hps, strlen(text), text, TXTBOX_COUNT, aptl);
 
 	rcl.xLeft = x;
 	rcl.yTop = height - y;
-	rcl.yBottom = rcl.yTop - (size*2);
-	rcl.xRight = rcl.xLeft + (size * strlen(text));
+	rcl.yBottom = rcl.yTop - (aptl[TXTBOX_TOPLEFT].y - aptl[TXTBOX_BOTTOMLEFT].y);
+	rcl.xRight = rcl.xLeft + (aptl[TXTBOX_TOPRIGHT].x - aptl[TXTBOX_TOPLEFT].x);
 
 	WinDrawText(hps, -1, text, &rcl, DT_TEXTATTRS, DT_TEXTATTRS, DT_VCENTER | DT_LEFT | DT_TEXTATTRS);
 
