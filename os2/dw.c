@@ -275,7 +275,6 @@ void _free_bitmap(HWND handle)
 
 	if(hbm)
 		GpiDeleteBitmap(hbm);
-
 }
 
 /* This function removes and handlers on windows and frees
@@ -2844,6 +2843,7 @@ MRESULT EXPENTRY _BtProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 	case WM_BUTTON3DBLCLK:
 		if(dw_window_get_data(hwnd, "_dw_disabled"))
 			return (MRESULT)FALSE;
+		break;
 	case WM_BUTTON1UP:
 		{
 			SignalHandler *tmp = Root;
