@@ -2782,7 +2782,7 @@ MRESULT EXPENTRY _BubbleProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 
 		/* Draw a border around the bubble help */
 		hpsTemp = WinGetPS(hwnd);
-		GpiSetColor(hpsTemp, DW_CLR_BLACK);
+		GpiSetColor(hpsTemp, CLR_BLACK);
 		ptl.x = ptl.y = 0;
 		GpiMove(hpsTemp, &ptl);
 		ptl.x = 0;
@@ -2958,7 +2958,7 @@ MRESULT EXPENTRY _BtProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 			LONG  lWidth;
 			POINTL txtPointl[TXTBOX_COUNT];
 			POINTL ptlWork = {0,0};
-			ULONG ulColor = DW_CLR_YELLOW;
+			ULONG ulColor = CLR_YELLOW;
 			void *blah;
 
 			hwndBubbleLast   = hwnd;
