@@ -417,6 +417,12 @@ BOOL CALLBACK _free_window_memory(HWND handle, LPARAM lParam)
 	return TRUE;
 }
 
+void _free_menu_data(HMENU menu)
+{
+	/* TODO: This needs to call this on all submenus */
+	dw_signal_disconnect_by_name((HWND)menu, DW_SIGNAL_CLICKED);
+}
+
 /* Convert to our internal color scheme */
 ULONG _internal_color(ULONG color)
 {
@@ -1816,7 +1822,8 @@ BOOL CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 			windowfunc((void *)mp2);
 		break;
 	case WM_USER+5:
-		dw_signal_disconnect_by_name((HWND)mp1, DW_SIGNAL_CLICKED);
+		_free_menu_data((HMENU)mp1);
+		DestroyMenu((HMENU)mp1);
 		break;
 	case WM_NOTIFY:
 		{
@@ -4035,9 +4042,7 @@ void API dw_menu_popup(HMENUI *menu, HWND parent, int x, int y)
 
 		popup = parent;
 		TrackPopupMenu(mymenu, 0, x, y, 0, parent, NULL);
-		/* TODO: This needs to call this on all submenus */
 		PostMessage(DW_HWND_OBJECT, WM_USER+5, (LPARAM)mymenu, 0);
-		DestroyMenu(mymenu);
 	}
 }
 

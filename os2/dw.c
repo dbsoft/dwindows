@@ -36,6 +36,7 @@ void _handle_splitbar_resize(HWND hwnd, float percent, int type, int x, int y);
 int _load_bitmap_file(char *file, HWND handle, HBITMAP *hbm, HDC *hdc, HPS *hps, unsigned long *width, unsigned long *height);
 void _dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize, int vsize, int pad, char *functionname);
 void _dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, int vsize, int pad, char *functionname);
+void _free_menu_data(HWND menu);
 
 char ClassName[] = "dynamicwindows";
 char SplitbarClassName[] = "dwsplitbar";
@@ -288,6 +289,9 @@ void _free_window_memory(HWND handle)
 
 	dw_signal_disconnect_by_window(handle);
 
+	if((child = WinWindowFromID(handle, FID_MENU)) != NULLHANDLE)
+		_free_menu_data(child);
+
 	if((child = WinWindowFromID(handle, FID_CLIENT)) != NULLHANDLE)
 	{
 		Box *box = (Box *)WinQueryWindowPtr(child, QWP_USER);
@@ -352,6 +356,24 @@ void _free_window_memory(HWND handle)
 
 	WinEndEnumWindows(henum);
 	return;
+}
+
+void _free_menu_data(HWND menu)
+{
+	int i, count = (int)WinSendMsg(menu, MM_QUERYITEMCOUNT, 0, 0);;
+
+	dw_signal_disconnect_by_name(menu, DW_SIGNAL_CLICKED);
+	_free_window_memory(menu);
+
+	for(i=0;i<count;i++)
+	{
+		SHORT menuid = (SHORT)WinSendMsg(menu, MM_ITEMIDFROMPOSITION, MPFROMSHORT(i), 0);
+		MENUITEM  mi;
+
+		if(WinSendMsg(menu, MM_QUERYITEM, MPFROMSHORT(menuid), MPFROMP(&mi))
+		   && mi.hwndSubMenu)
+			_free_menu_data(mi.hwndSubMenu);
+	}
 }
 
 /* This function returns 1 if the window (widget) handle
@@ -2618,11 +2640,20 @@ MRESULT EXPENTRY _wndproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 		}
 		break;
 	case WM_DESTROY:
-		/* Free memory before destroying */
-		_free_window_memory(hWnd);
+		{
+			HWND parent = WinQueryWindow(hWnd, QW_PARENT);
+
+			/* Free memory before destroying */
+			if(parent && WinWindowFromID(parent, FID_CLIENT) == hWnd)
+				_free_window_memory(parent);
+			else
+				_free_window_memory(hWnd);
+		}
 		break;
 	case WM_MENUEND:
 		_clear_emphasis();
+		if(dw_window_get_data((HWND)mp2, "_dw_popup"))
+			_free_menu_data((HWND)mp2);
 		break;
 	}
 
@@ -3534,13 +3565,16 @@ int API dw_window_hide(HWND handle)
  */
 int API dw_window_destroy(HWND handle)
 {
-	HWND frame, parent = WinQueryWindow(handle, QW_PARENT);
+	HWND frame, menu, parent = WinQueryWindow(handle, QW_PARENT);
 	Box *thisbox = WinQueryWindowPtr(parent, QWP_USER);
 
 	if(!handle)
 		return -1;
 
 	frame = (HWND)dw_window_get_data(handle, "_dw_combo_box");
+
+	if((menu = WinWindowFromID(handle, FID_MENU)) != NULLHANDLE)
+		_free_menu_data(menu);
 
 	if(parent != desktop && thisbox && thisbox->count)
 	{
