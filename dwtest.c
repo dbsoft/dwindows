@@ -458,6 +458,16 @@ int DWSIGNAL switch_page_cb( HWND window, unsigned long page_num, void *itemdata
 	return 0;
 }
 
+int DWSIGNAL column_click_cb( HWND window, int column_num, void *data )
+{
+	char buf[200];
+	HWND statline = (HWND)data;
+
+	sprintf(buf,"DW_SIGNAL_COLUMN_CLICK: Window: %x Column: %d Itemdata: %x", (unsigned int)window, column_num, (unsigned int)data );
+	dw_window_set_text( statline, buf);
+	return 0;
+}
+
 void archive_add(void)
 {
 	HWND browsebutton, browsebox;
@@ -684,6 +694,7 @@ void container_add(void)
 	dw_signal_connect(container, DW_SIGNAL_ITEM_ENTER, DW_SIGNAL_FUNC(item_enter_cb), (void *)container_status);
 	dw_signal_connect(container, DW_SIGNAL_ITEM_CONTEXT, DW_SIGNAL_FUNC(item_context_cb), (void *)container_status);
 	dw_signal_connect(container, DW_SIGNAL_ITEM_SELECT, DW_SIGNAL_FUNC(container_select_cb), (void *)container_status);
+	dw_signal_connect(container, DW_SIGNAL_COLUMN_CLICK, DW_SIGNAL_FUNC(column_click_cb), (void *)container_status);
 }
 
 /* Beep every second */
