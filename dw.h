@@ -542,21 +542,23 @@ typedef struct _dwdialog {
 void dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize, int vsize, int pad);
 void dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, int vsize, int pad);
 #if !defined(__OS2__) && !defined(__WIN32__)
-int dw_int_init(DWResources *res, int newthread);
-#define dw_init(a) dw_int_init(&_resources, a)
+int dw_int_init(DWResources *res, int newthread, int argc, char *argv[]);
+#define dw_init(a, b, c) dw_int_init(&_resources, a, b, c)
 #else
-int dw_init(int newthread);
+int dw_init(int newthread, int argc, char *argv[]);
 #endif
 void dw_main(HAB currenthab, void *filterfunc);
 void dw_free(void *ptr);
 int dw_window_show(HWND handle);
 int dw_window_hide(HWND handle);
+int dw_window_minimize(HWND handle);
 int dw_window_destroy(HWND handle);
 int dw_window_set_font(HWND handle, char *fontname);
 int dw_window_set_color(HWND handle, unsigned long fore, unsigned long back);
 HWND dw_window_new(HWND hwndOwner, char *title, unsigned long flStyle);
 HWND dw_box_new(int type, int pad);
 HWND dw_groupbox_new(int type, int pad, char *title);
+HWND dw_mdi_new(unsigned long id);
 HWND dw_bitmap_new(unsigned long id);
 HWND dw_bitmapbutton_new(char *text, unsigned long id);
 HWND dw_container_new(unsigned long id);

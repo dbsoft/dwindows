@@ -16,12 +16,6 @@
 #include <process.h>
 #include "dw.h"
 
-/* Get around apparent bugs in the
- * Microsoft runtime when in the debugger.
- * You can set this value to 0 when releasing.
- */
-#define DEBUG_MALLOC 100
-
 /* this is the callback handle for the window procedure */
 /* make sure you always match the calling convention! */
 int (*filterfunc)(HWND, UINT, WPARAM, LPARAM) = 0L;
@@ -103,7 +97,7 @@ typedef struct
 } SignalList;
 
 /* List of signals and their equivilent Win32 message */
-#define SIGNALMAX 11
+#define SIGNALMAX 12
 
 SignalList SignalTranslate[SIGNALMAX] = {
 	{ WM_SIZE, "configure_event" },
@@ -116,7 +110,8 @@ SignalList SignalTranslate[SIGNALMAX] = {
 	{ WM_COMMAND, "clicked" },
 	{ NM_DBLCLK, "container-select" },
 	{ NM_RCLICK, "container-context" },
-	{ LBN_SELCHANGE, "item-select" }
+	{ LBN_SELCHANGE, "item-select" },
+	{ WM_SETFOCUS, "set-focus" }
 };
 
 #ifdef BUILD_DLL
@@ -979,6 +974,17 @@ BOOL CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 			{
 				switch(msg)
 				{
+				case WM_SETFOCUS:
+					{
+						int (*setfocusfunc)(HWND, void *) = (int (*)(HWND, void *))tmp->signalfunction;
+
+						if(hWnd == tmp->window)
+						{
+							result = setfocusfunc(tmp->window, tmp->data);
+							tmp = NULL;
+						}
+					}
+					break;
 				case WM_SIZE:
 					{
 						int (*sizefunc)(HWND, int, int, void *) = tmp->signalfunction;
@@ -2055,7 +2061,7 @@ void _resize_notebook_page(HWND handle, int pageid)
  *           newthread: True if this is the only thread.
  *                      False if there is already a message loop running.
  */
-int dw_init(int newthread)
+int dw_init(int newthread, int argc, char *argv[])
 {
 	WNDCLASS wc;
 	int z;
@@ -2276,6 +2282,16 @@ int dw_yesno(char *title, char *text)
 	if(MessageBox(HWND_DESKTOP, text, title, MB_YESNO)==IDYES)
 		return TRUE;
 	return FALSE;
+}
+
+/*
+ * Minimizes or Iconifies a top-level window.
+ * Parameters:
+ *           handle: The window handle to minimize.
+ */
+int dw_window_minimize(HWND handle)
+{
+	return ShowWindow(handle, SW_MINIMIZE);
 }
 
 /*
@@ -2516,8 +2532,10 @@ HWND dw_window_new(HWND hwndOwner, char *title, ULONG flStyle)
 	}
 	SetWindowLong(hwndframe, GWL_USERDATA, (ULONG)newbox);
 
+#if 0
 	if(hwndOwner)
 		SetParent(hwndframe, hwndOwner);
+#endif
 
 	return hwndframe;
 }
@@ -2530,7 +2548,7 @@ HWND dw_window_new(HWND hwndOwner, char *title, ULONG flStyle)
  */
 HWND dw_box_new(int type, int pad)
 {
-	Box *newbox = malloc(sizeof(Box)+DEBUG_MALLOC);
+	Box *newbox = malloc(sizeof(Box));
 	HWND hwndframe;
 
 	newbox->pad = pad;
@@ -2595,9 +2613,33 @@ HWND dw_groupbox_new(int type, int pad, char *title)
 }
 
 /*
+ * Create a new MDI Frame to be packed.
+ * Parameters:
+ *       id: An ID to be used with dw_window_from_id or 0L.
+ */
+HWND dw_mdi_new(unsigned long id)
+{
+	CLIENTCREATESTRUCT ccs;
+	HWND hwndframe;
+
+	ccs.hWindowMenu = NULL;
+	ccs.idFirstChild = 0;
+
+	hwndframe = CreateWindow("MDICLIENT",
+							 "",
+							 WS_CHILD | WS_CLIPSIBLINGS,
+							 0,0,2000,1000,
+							 DW_HWND_OBJECT,
+							 NULL,
+							 DWInstance,
+							 &ccs);
+	return hwndframe;
+}
+
+/*
  * Create a bitmap object to be packed.
  * Parameters:
- *       id: An ID to be used with WinWindowFromID() or 0L.
+ *       id: An ID to be used with dw_window_from_id or 0L.
  */
 HWND dw_bitmap_new(ULONG id)
 {
@@ -3341,7 +3383,7 @@ void dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize, in
 		Item *tmpitem, *thisitem = thisbox->items;
 		char tmpbuf[100];
 
-		tmpitem = malloc(sizeof(Item)*(thisbox->count+1)+DEBUG_MALLOC);
+		tmpitem = malloc(sizeof(Item)*(thisbox->count+1));
 
 		for(z=0;z<thisbox->count;z++)
 		{
