@@ -1473,6 +1473,11 @@ MRESULT EXPENTRY _comboentryproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 	case WM_SETFOCUS:
 		_run_event(hWnd, msg, mp1, mp2);
 		break;
+	case WM_CHAR:
+		/* A Similar problem to the MLE, if ESC just return */
+		if(SHORT1FROMMP(mp2) == 283)
+			return TRUE;
+		break;
 	}
 
 	if(blah && blah->oldproc)
