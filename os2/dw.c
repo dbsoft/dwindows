@@ -166,6 +166,29 @@ HWND _toplevel_window(HWND handle)
 	return handle;
 }
 
+/* Return the entryfield child of a window */
+HWND _find_entryfield(HWND handle)
+{
+	HENUM henum;
+	HWND child, entry = 0;
+
+	henum = WinBeginEnumWindows(handle);
+	while((child = WinGetNextWindow(henum)) != NULLHANDLE)
+	{
+		char tmpbuf[100];
+
+		WinQueryClassName(child, 99, tmpbuf);
+
+		if(strncmp(tmpbuf, "#6", 3)==0)  /* Entryfield */
+		{
+			entry = child;
+			break;
+		}
+	}
+	WinEndEnumWindows(henum);
+	return entry;
+}
+
 /* This function changes the owner of buttons in to the
  * dynamicwindows handle to fix a problem in notebooks.
  */
@@ -1465,8 +1488,6 @@ MRESULT EXPENTRY _entryproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 					/* Get the entryfield handle from multi window controls */
 					if(strncmp(tmpbuf, "#2", 3)==0)
 						handle = WinWindowFromID(hWnd, 667);
-					if(strncmp(tmpbuf, "#32", 4)==0)
-						handle = WinWindowFromID(hWnd, 1703);
 
 					if(handle)
 					{
@@ -1590,6 +1611,28 @@ MRESULT EXPENTRY _mleproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 		break;
 	}
 	return _entryproc(hWnd, msg, mp1, mp2);
+}
+
+/* Handle special messages for the spinbutton's entryfield */
+MRESULT EXPENTRY _spinentryproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
+{
+	WindowData *blah = (WindowData *)WinQueryWindowPtr(hWnd, QWP_USER);
+	PFNWP oldproc = 0;
+
+	if(blah)
+		oldproc = blah->oldproc;
+
+	switch(msg)
+	{
+	case WM_CONTEXTMENU:
+	case WM_COMMAND:
+		return _entryproc(hWnd, msg, mp1, mp2);
+	}
+
+	if(oldproc)
+		return oldproc(hWnd, msg, mp1, mp2);
+
+	return WinDefWindowProc(hWnd, msg, mp1, mp2);
 }
 
 int _dw_int_pos(HWND hwnd)
@@ -4045,9 +4088,13 @@ HWND dw_spinbutton_new(char *text, ULONG id)
 							   id,
 							   NULL,
 							   NULL);
+	HWND entry = _find_entryfield(tmp);
 	dw_window_set_font(tmp, DefaultFont);
 	blah->oldproc = WinSubclassWindow(tmp, _entryproc);
 	WinSetWindowPtr(tmp, QWP_USER, blah);
+	blah = calloc(sizeof(WindowData), 1);
+	blah->oldproc = WinSubclassWindow(entry, _spinentryproc);
+	WinSetWindowPtr(entry, QWP_USER, blah);
 	return tmp;
 }
 
