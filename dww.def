@@ -215,3 +215,5 @@ EXPORTS
   dw_slider_query_pos                    @391
   dw_slider_set_pos                      @392
 
+  dw_window_set_data                     @400
+  dw_window_get_data                     @401

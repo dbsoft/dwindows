@@ -351,11 +351,18 @@ BOOL CALLBACK _free_window_memory(HWND handle, LPARAM lParam)
 
 	if(thiscinfo)
 	{
+		/* Delete the brush so as not to leak GDI objects */
 		if(thiscinfo->hbrush)
 			DeleteObject(thiscinfo->hbrush);
 
+		/* Free user data linked list memory */
+		if(thiscinfo->root)
+			dw_window_set_data(handle, NULL, NULL);
+
 		SetWindowLong(handle, GWL_USERDATA, 0);
+#if 0
 		free(thiscinfo);
+#endif
 	}
 	return TRUE;
 }
@@ -3291,12 +3298,13 @@ void dw_window_pointer(HWND handle, int pointertype)
 HWND dw_window_new(HWND hwndOwner, char *title, ULONG flStyle)
 {
 	HWND hwndframe;
-	Box *newbox = malloc(sizeof(Box));
+	Box *newbox = calloc(sizeof(Box), 1);
 	ULONG flStyleEx = 0;
 
 	newbox->pad = 0;
 	newbox->type = BOXVERT;
 	newbox->count = 0;
+	newbox->cinfo.fore = newbox->cinfo.back = -1;
 
 	if(hwndOwner)
 		flStyleEx |= WS_EX_MDICHILD;
@@ -3336,13 +3344,14 @@ HWND dw_window_new(HWND hwndOwner, char *title, ULONG flStyle)
  */
 HWND dw_box_new(int type, int pad)
 {
-	Box *newbox = malloc(sizeof(Box));
+	Box *newbox = calloc(sizeof(Box), 1);
 	HWND hwndframe;
 
 	newbox->pad = pad;
 	newbox->type = type;
 	newbox->count = 0;
 	newbox->grouphwnd = (HWND)NULL;
+	newbox->cinfo.fore = newbox->cinfo.back = -1;
 
 	hwndframe = CreateWindow(FRAMECLASSNAME,
 							 "",
@@ -3369,12 +3378,13 @@ HWND dw_box_new(int type, int pad)
  */
 HWND dw_groupbox_new(int type, int pad, char *title)
 {
-	Box *newbox = malloc(sizeof(Box));
+	Box *newbox = calloc(sizeof(Box), 1);
 	HWND hwndframe;
 
 	newbox->pad = pad;
 	newbox->type = type;
 	newbox->count = 0;
+	newbox->cinfo.fore = newbox->cinfo.back = -1;
 
 	hwndframe = CreateWindow(FRAMECLASSNAME,
 							 "",
@@ -3887,8 +3897,12 @@ HWND dw_combobox_new(char *text, ULONG id)
 	ColorInfo *cinfo = (ColorInfo *)calloc(1, sizeof(ColorInfo));
 	ColorInfo *cinfo2 = (ColorInfo *)calloc(1, sizeof(ColorInfo));
 
-	if(!cinfo)
+	if(!cinfo || !cinfo2)
 	{
+		if(cinfo)
+			free(cinfo);
+		if(cinfo2)
+			free(cinfo2);
 		DestroyWindow(tmp);
 		return NULL;
 	}
@@ -6029,7 +6043,7 @@ void dw_container_optimize(HWND handle)
  */
 HWND dw_render_new(unsigned long id)
 {
-	Box *newbox = malloc(sizeof(Box));
+	Box *newbox = calloc(sizeof(Box), 1);
 	HWND tmp = CreateWindow(ObjectClassName,
 							"",
 							WS_CHILD | WS_CLIPCHILDREN,
@@ -6936,6 +6950,136 @@ char *dw_user_dir(void)
 void dw_window_function(HWND handle, void *function, void *data)
 {
 	SendMessage(handle, WM_USER, (WPARAM)function, (LPARAM)data);
+}
+
+/* Functions for managing the user data lists that are associated with
+ * a given window handle.  Used in dw_window_set_data() and
+ * dw_window_get_data().
+ */
+UserData *find_userdata(UserData **root, char *varname)
+{
+	UserData *tmp = *root;
+
+	while(tmp)
+	{
+		if(stricmp(tmp->varname, varname) == 0)
+			return tmp;
+		tmp = tmp->next;
+	}
+	return NULL;
+}
+
+int new_userdata(UserData **root, char *varname, void *data)
+{
+	UserData *new = find_userdata(root, varname);
+
+	if(new)
+	{
+		new->data = data;
+		return TRUE;
+	}
+	else
+	{
+		new = malloc(sizeof(UserData));
+		if(new)
+		{
+			new->varname = strdup(varname);
+			new->data = data;
+
+			new->next = NULL;
+
+			if (!*root)
+				*root = new;
+			else
+			{
+				UserData *prev = NULL, *tmp = *root;
+				while(tmp)
+				{
+					prev = tmp;
+					tmp = tmp->next;
+				}
+				if(prev)
+					prev->next = new;
+				else
+					*root = new;
+			}
+			return TRUE;
+		}
+	}
+	return FALSE;
+}
+
+int remove_userdata(UserData **root, char *varname, int all)
+{
+	UserData *prev = NULL, *tmp = *root;
+
+	while(tmp)
+	{
+		if(all || stricmp(tmp->varname, varname) == 0)
+		{
+			if(!prev)
+			{
+				free(tmp->varname);
+				free(tmp);
+				*root = NULL;
+				return 0;
+			}
+			else
+			{
+				prev->next = tmp->next;
+				free(tmp->varname);
+				free(tmp);
+				return 0;
+			}
+		}
+		tmp = tmp->next;
+	}
+	return 0;
+}
+
+/*
+ * Add a named user data item to a window handle.
+ * Parameters:
+ *       window: Window handle of signal to be called back.
+ *       dataname: A string pointer identifying which signal to be hooked.
+ *       data: User data to be passed to the handler function.
+ */
+void dw_window_set_data(HWND window, char *dataname, void *data)
+{
+	ColorInfo *cinfo = (ColorInfo *)GetWindowLong(window, GWL_USERDATA);
+
+	if(cinfo)
+	{
+		if(data)
+			new_userdata(&(cinfo->root), dataname, data);
+		else
+		{
+			if(dataname)
+				remove_userdata(&(cinfo->root), dataname, FALSE);
+			else
+				remove_userdata(&(cinfo->root), NULL, TRUE);
+		}
+	}
+}
+
+/*
+ * Gets a named user data item to a window handle.
+ * Parameters:
+ *       window: Window handle of signal to be called back.
+ *       dataname: A string pointer identifying which signal to be hooked.
+ *       data: User data to be passed to the handler function.
+ */
+void *dw_window_get_data(HWND window, char *dataname)
+{
+	ColorInfo *cinfo = (ColorInfo *)GetWindowLong(window, GWL_USERDATA);
+
+	if(cinfo && cinfo->root && dataname)
+	{
+		UserData *ud = find_userdata(&(cinfo->root), dataname);
+		if(ud)
+			return ud->data;
+	}
+	return NULL;
 }
 
 #ifndef NO_SIGNALS

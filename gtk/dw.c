@@ -5778,6 +5778,46 @@ void dw_window_function(HWND handle, void *function, void *data)
 		windowfunc(data);
 }
 
+/*
+ * Add a named user data item to a window handle.
+ * Parameters:
+ *       window: Window handle of signal to be called back.
+ *       dataname: A string pointer identifying which signal to be hooked.
+ *       data: User data to be passed to the handler function.
+ */
+void dw_window_set_data(HWND window, char *dataname, void *data)
+{
+	int _locked_by_me = FALSE;
+
+	if(!window)
+		return;
+
+	DW_MUTEX_LOCK;
+	gtk_object_set_data(GTK_OBJECT(window),  dataname, (gpointer)data);
+	DW_MUTEX_UNLOCK;
+}
+
+/*
+ * Gets a named user data item to a window handle.
+ * Parameters:
+ *       window: Window handle of signal to be called back.
+ *       dataname: A string pointer identifying which signal to be hooked.
+ *       data: User data to be passed to the handler function.
+ */
+void *dw_window_get_data(HWND window, char *dataname)
+{
+	int _locked_by_me = FALSE;
+	void *ret;
+
+	if(!window)
+		return;
+
+	DW_MUTEX_LOCK;
+	ret = (void *)gtk_object_set_data(GTK_OBJECT(window),  dataname);
+	DW_MUTEX_UNLOCK;
+	return ret;
+}
+
 #ifndef NO_SIGNALS
 /*
  * Add a callback to a window event.

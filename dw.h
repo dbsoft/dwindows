@@ -21,6 +21,13 @@
 #define SPLITBAR_WIDTH 3
 #define BUBBLE_HELP_MAX 256
 
+typedef struct _user_data
+{
+	struct _user_data *next;
+	void              *data;
+	char              *varname;
+} UserData;
+
 #if defined(__OS2__) || defined(__EMX__)
 #define INCL_DOS
 #define INCL_WIN
@@ -119,6 +126,7 @@
 
 typedef struct _window_data {
 	PFNWP oldproc;
+	UserData *root;
 	HWND clickdefault;
 	ULONG flags;
 	void *data;
@@ -272,6 +280,7 @@ typedef struct _color {
 	HBRUSH hbrush;
 	char fontname[128];
 	WNDPROC pOldProc;
+	UserData *root;
 } ColorInfo;
 
 typedef struct _notebookpage {
@@ -327,6 +336,7 @@ typedef struct _box {
 	ColorInfo cinfo;
 #elif defined(__OS2__) || defined(__EMX__)
 	PFNWP oldproc;
+	UserData *root;
 	HWND hwndtitle;
 	int titlebar;
 #endif
@@ -356,14 +366,14 @@ typedef struct _bubblebutton {
 #if defined(__WIN32__) || defined(WINNT)
 	ColorInfo cinfo;
 	int checkbox;
+	WNDPROC pOldProc;
+#endif
+#if defined(__OS2__) || defined(__EMX__)
+	PFNWP pOldProc;
+	UserData *root;
 #endif
 	unsigned long id;
 	char bubbletext[BUBBLE_HELP_MAX];
-#if defined(__OS2__) || defined(__EMX__)
-	PFNWP pOldProc;
-#else
-	WNDPROC pOldProc;
-#endif
 } BubbleButton;
 
 void dw_box_pack_start_stub(HWND box, HWND item, int width, int height, int hsize, int vsize, int pad);
@@ -767,6 +777,8 @@ char *dw_user_dir(void);
 DWDialog *dw_dialog_new(void *data);
 int dw_dialog_dismiss(DWDialog *dialog, void *result);
 void *dw_dialog_wait(DWDialog *dialog);
+void dw_window_set_data(HWND window, char *dataname, void *data);
+void *dw_window_get_data(HWND window, char *dataname);
 #ifndef NO_SIGNALS
 void dw_signal_connect(HWND window, char *signame, void *sigfunc, void *data);
 void dw_signal_disconnect_by_window(HWND window);
