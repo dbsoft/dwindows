@@ -322,7 +322,9 @@ typedef struct _box {
 	/* Padding */
 	int pad, parentpad;
 	/* Groupbox */
-    HWND grouphwnd;
+	HWND grouphwnd;
+	/* Default item */
+	HWND defaultitem;
 	/* Used as temporary storage in the calculation stage */
     int upx, upy, minheight, minwidth;
 	/* Ratio in this box */
@@ -629,6 +631,7 @@ void dw_window_capture(HWND handle);
 void dw_window_release(void);
 void dw_window_reparent(HWND handle, HWND newparent);
 void dw_window_pointer(HWND handle, int pointertype);
+void dw_window_default(HWND window, HWND defaultitem);
 unsigned int dw_mle_import(HWND handle, char *buffer, int startpoint);
 void dw_mle_export(HWND handle, char *buffer, int startpoint, int length);
 void dw_mle_query(HWND handle, unsigned long *bytes, unsigned long *lines);
