@@ -5844,7 +5844,7 @@ void API dw_tree_set_data(HWND handle, HWND item, void *itemdata)
  *          handle: Handle to the tree containing the item.
  *          item: Handle of the item to be modified.
  */
-void * API dw_tree_set_data(HWND handle, HWND item)
+void * API dw_tree_get_data(HWND handle, HWND item)
 {
 	TVITEM tvi;
 	void **ptrs;
