@@ -376,7 +376,7 @@ int DWSIGNAL list_select_cb( HWND window, int item, void *data )
 	return 0;
 }
 
-int DWSIGNAL item_select_cb( HWND window, HWND item, char *text, void *data, void *itemdata )
+int DWSIGNAL item_select_cb( HWND window, HTREEITEM item, char *text, void *data, void *itemdata )
 {
 	char buf[200];
 	HWND statline = (HWND)data;
@@ -504,7 +504,7 @@ void text_add(void)
 
 void tree_add(void)
 {
-	HWND t1,t2,t3,t4,t5,t6;
+	HTREEITEM t1,t2,t3,t4,t5,t6;
 
 	/* create a box to pack into the notebook page */
 	treebox = dw_box_new(BOXHORZ, 2);

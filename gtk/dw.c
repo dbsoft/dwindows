@@ -483,7 +483,7 @@ static gint _tree_select_event(GtkTreeSelection *sel, gpointer data)
 
 	if(work)
 	{
-		int (*treeselectfunc)(HWND, HWND, char *, void *, void *) = work->func;
+		int (*treeselectfunc)(HWND, HTREEITEM, char *, void *, void *) = work->func;
 		GtkTreeIter iter;
 		char *text = NULL;
 		void *itemdata = NULL;
@@ -493,7 +493,7 @@ static gint _tree_select_event(GtkTreeSelection *sel, gpointer data)
 		{
 			GtkTreeModel *store = (GtkTreeModel *)gtk_object_get_data(GTK_OBJECT(widget), "_dw_tree_store");
 			gtk_tree_model_get(store, &iter, 0, &text, 2, &itemdata, 3, &item, -1);
-			retval = treeselectfunc(work->window, item, text, work->data, itemdata);
+			retval = treeselectfunc(work->window, (HTREEITEM)item, text, work->data, itemdata);
 		}
 	}
 	return retval;
@@ -515,10 +515,10 @@ static gint _tree_select_event(GtkTree *tree, GtkWidget *child, gpointer data)
 
 	if(work)
 	{
-		int (*treeselectfunc)(HWND, HWND, char *, void *, void *) = work->func;
+		int (*treeselectfunc)(HWND, HTREEITEM, char *, void *, void *) = work->func;
 		char *text = (char *)gtk_object_get_data(GTK_OBJECT(child), "text");
 		void *itemdata = (void *)gtk_object_get_data(GTK_OBJECT(child), "itemdata");
-		retval = treeselectfunc(work->window, child, text, work->data, itemdata);
+		retval = treeselectfunc(work->window, (HTREEITEM)child, text, work->data, itemdata);
 	}
 	return retval;
 }
@@ -3614,14 +3614,14 @@ void dw_checkbox_set(HWND handle, int value)
  *          parent: Parent handle or 0 if root.
  *          itemdata: Item specific data.
  */
-HWND dw_tree_insert_after(HWND handle, HWND item, char *title, unsigned long icon, HWND parent, void *itemdata)
+HTREEITEM dw_tree_insert_after(HWND handle, HTREEITEM item, char *title, unsigned long icon, HWND parent, void *itemdata)
 {
 #if GTK_MAJOR_VERSION > 1
 	GtkWidget *tree;
 	GtkTreeIter *iter;
 	GtkTreeStore *store;
 	GdkPixbuf *pixbuf;
-	HWND retval = 0;
+	HTREEITEM retval = 0;
 	int _locked_by_me = FALSE;
 
 	if(!handle)
@@ -3640,7 +3640,7 @@ HWND dw_tree_insert_after(HWND handle, HWND item, char *title, unsigned long ico
 		gtk_tree_store_set (store, iter, 0, title, 1, pixbuf, 2, itemdata, 3, iter, -1);
 		if(pixbuf)
 			g_object_unref(pixbuf);
-		retval = (HWND)iter;    
+		retval = (HTREEITEM)iter;
 	}
 	DW_MUTEX_UNLOCK;
   
@@ -3727,7 +3727,7 @@ HWND dw_tree_insert_after(HWND handle, HWND item, char *title, unsigned long ico
 	gtk_tree_item_collapse(GTK_TREE_ITEM(newitem));
 	gtk_widget_show(newitem);
 	DW_MUTEX_UNLOCK;
-	return newitem;
+	return (HTREEITEM)newitem;
 #endif
 }
 
@@ -3740,14 +3740,14 @@ HWND dw_tree_insert_after(HWND handle, HWND item, char *title, unsigned long ico
  *          parent: Parent handle or 0 if root.
  *          itemdata: Item specific data.
  */
-HWND dw_tree_insert(HWND handle, char *title, unsigned long icon, HWND parent, void *itemdata)
+HTREEITEM dw_tree_insert(HWND handle, char *title, unsigned long icon, HTREEITEM parent, void *itemdata)
 {
 #if GTK_MAJOR_VERSION > 1
 	GtkWidget *tree;
 	GtkTreeIter *iter;
 	GtkTreeStore *store;
 	GdkPixbuf *pixbuf;
-	HWND retval = 0;
+	HTREEITEM retval = 0;
 	int _locked_by_me = FALSE;
 
 	if(!handle)
@@ -3766,7 +3766,7 @@ HWND dw_tree_insert(HWND handle, char *title, unsigned long icon, HWND parent, v
 		gtk_tree_store_set (store, iter, 0, title, 1, pixbuf, 2, itemdata, 3, iter, -1);
 		if(pixbuf)
 			g_object_unref(pixbuf);
-		retval = (HWND)iter;
+		retval = (HTREEITEM)iter;
 	}
 	DW_MUTEX_UNLOCK;
 
@@ -3846,7 +3846,7 @@ HWND dw_tree_insert(HWND handle, char *title, unsigned long icon, HWND parent, v
 	gtk_tree_item_collapse(GTK_TREE_ITEM(item));
 	gtk_widget_show(item);
 	DW_MUTEX_UNLOCK;
-	return item;
+	return (HTREEITEM)item;
 #endif
 }
 
@@ -3858,7 +3858,7 @@ HWND dw_tree_insert(HWND handle, char *title, unsigned long icon, HWND parent, v
  *          title: The text title of the entry.
  *          icon: Handle to coresponding icon.
  */
-void dw_tree_set(HWND handle, HWND item, char *title, unsigned long icon)
+void dw_tree_set(HWND handle, HTREEITEM item, char *title, unsigned long icon)
 {
 #if GTK_MAJOR_VERSION > 1
 	GtkWidget *tree;
@@ -3923,7 +3923,7 @@ void dw_tree_set(HWND handle, HWND item, char *title, unsigned long icon)
  *          item: Handle of the item to be modified.
  *          itemdata: User defined data to be associated with item.
  */
-void dw_tree_set_data(HWND handle, HWND item, void *itemdata)
+void dw_tree_set_data(HWND handle, HTREEITEM item, void *itemdata)
 {
 #if GTK_MAJOR_VERSION > 1
 	GtkWidget *tree;
@@ -3957,7 +3957,7 @@ void dw_tree_set_data(HWND handle, HWND item, void *itemdata)
  *          handle: Handle to the tree containing the item.
  *          item: Handle of the item to be modified.
  */
-void *dw_tree_get_data(HWND handle, HWND item)
+void *dw_tree_get_data(HWND handle, HTREEITEM item)
 {
 	void *ret = NULL;
 #if GTK_MAJOR_VERSION > 1
@@ -3993,7 +3993,7 @@ void *dw_tree_get_data(HWND handle, HWND item)
  *       handle: Handle to the tree window (widget) to be selected.
  *       item: Handle to the item to be selected.
  */
-void dw_tree_item_select(HWND handle, HWND item)
+void dw_tree_item_select(HWND handle, HTREEITEM item)
 {
 #if GTK_MAJOR_VERSION > 1
 	GtkWidget *tree;
@@ -4111,7 +4111,7 @@ void dw_tree_clear(HWND handle)
  *       handle: Handle to the tree window (widget).
  *       item: Handle to node to be expanded.
  */
-void dw_tree_expand(HWND handle, HWND item)
+void dw_tree_expand(HWND handle, HTREEITEM item)
 {
 #if GTK_MAJOR_VERSION > 1
 	GtkWidget *tree;
@@ -4150,7 +4150,7 @@ void dw_tree_expand(HWND handle, HWND item)
  *       handle: Handle to the tree window (widget).
  *       item: Handle to node to be collapsed.
  */
-void dw_tree_collapse(HWND handle, HWND item)
+void dw_tree_collapse(HWND handle, HTREEITEM item)
 {
 #if GTK_MAJOR_VERSION > 1
 	GtkWidget *tree;
@@ -4189,7 +4189,7 @@ void dw_tree_collapse(HWND handle, HWND item)
  *       handle: Handle to the window (widget) to be cleared.
  *       item: Handle to node to be deleted.
  */
-void dw_tree_delete(HWND handle, HWND item)
+void dw_tree_delete(HWND handle, HTREEITEM item)
 {
 #if GTK_MAJOR_VERSION > 1
 	GtkWidget *tree;
