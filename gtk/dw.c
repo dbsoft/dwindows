@@ -1805,7 +1805,7 @@ void dw_window_capture(HWND handle)
  *       handle: Handle to widget for which to change.
  *       cursortype: ID of the pointer you want.
  */
-void dw_window_pointer(HWND handle, int pointertype)
+void dw_window_set_pointer(HWND handle, int pointertype)
 {
 	int _locked_by_me = FALSE;
 	GdkCursor *cursor;
@@ -3206,7 +3206,7 @@ void dw_mle_export(HWND handle, char *buffer, int startpoint, int length)
  *          bytes: A pointer to a variable to return the total bytes.
  *          lines: A pointer to a variable to return the number of lines.
  */
-void dw_mle_query(HWND handle, unsigned long *bytes, unsigned long *lines)
+void dw_mle_get_size(HWND handle, unsigned long *bytes, unsigned long *lines)
 {
 	int _locked_by_me = FALSE;
 
@@ -3352,7 +3352,7 @@ void dw_mle_clear(HWND handle)
  *          handle: Handle to the MLE.
  *          line: Line to be visible.
  */
-void dw_mle_set_visible(HWND handle, int line)
+void dw_mle_set_cursor_visible(HWND handle, int line)
 {
 	int _locked_by_me = FALSE;
 
@@ -3392,7 +3392,7 @@ void dw_mle_set_visible(HWND handle, int line)
 			unsigned long lines;
 			float pos, ratio;
 
-			dw_mle_query(handle, NULL, &lines);
+			dw_mle_get_size(handle, NULL, &lines);
 
 			if(lines)
 			{
@@ -3414,7 +3414,7 @@ void dw_mle_set_visible(HWND handle, int line)
  *          handle: Handle to the MLE.
  *          state: TRUE if it can be edited, FALSE for readonly.
  */
-void dw_mle_set_editable(HWND handle, int state)
+void dw_mle_set_cursor_editable(HWND handle, int state)
 {
 	int _locked_by_me = FALSE;
 
@@ -3445,7 +3445,7 @@ void dw_mle_set_editable(HWND handle, int state)
  *          handle: Handle to the MLE.
  *          state: TRUE if it wraps, FALSE if it doesn't.
  */
-void dw_mle_set_word_wrap(HWND handle, int state)
+void dw_mle_set_cursor_word_wrap(HWND handle, int state)
 {
 	int _locked_by_me = FALSE;
 
@@ -3479,7 +3479,7 @@ void dw_mle_set_word_wrap(HWND handle, int state)
  *          handle: Handle to the MLE to be positioned.
  *          point: Point to position cursor.
  */
-void dw_mle_set(HWND handle, int point)
+void dw_mle_set_cursor(HWND handle, int point)
 {
 	int _locked_by_me = FALSE;
 
@@ -3518,7 +3518,7 @@ void dw_mle_set(HWND handle, int point)
 			unsigned long chars;
 			float pos, ratio;
 
-			dw_mle_query(handle, &chars, NULL);
+			dw_mle_get_size(handle, &chars, NULL);
 
 			if(chars)
 			{
@@ -3665,7 +3665,7 @@ void dw_mle_thaw(HWND handle)
  * Parameters:
  *          handle: Handle to the percent bar to be queried.
  */
-unsigned int dw_percent_query_range(HWND handle)
+unsigned int dw_percent_get_range(HWND handle)
 {
 	return 100;
 }
@@ -3690,7 +3690,7 @@ void dw_percent_set_pos(HWND handle, unsigned int position)
  * Parameters:
  *          handle: Handle to the slider to be queried.
  */
-unsigned int dw_slider_query_pos(HWND handle)
+unsigned int dw_slider_get_pos(HWND handle)
 {
 	int val = 0, _locked_by_me = FALSE;
 	GtkAdjustment *adjustment;
@@ -3747,7 +3747,7 @@ void dw_slider_set_pos(HWND handle, unsigned int position)
  * Parameters:
  *          handle: Handle to the scrollbar to be queried.
  */
-unsigned int dw_scrollbar_query_pos(HWND handle)
+unsigned int dw_scrollbar_get_pos(HWND handle)
 {
 	int val = 0, _locked_by_me = FALSE;
 	GtkAdjustment *adjustment;
@@ -3837,7 +3837,7 @@ void dw_spinbutton_set_limits(HWND handle, long upper, long lower)
 	GtkAdjustment *adj;
 	int _locked_by_me = FALSE;
 
-	curval = dw_spinbutton_query(handle);
+	curval = dw_spinbutton_get_pos(handle);
 	DW_MUTEX_LOCK;
 	adj = (GtkAdjustment *)gtk_adjustment_new((gfloat)curval, (gfloat)lower, (gfloat)upper, 1.0, 5.0, 0.0);
 	gtk_spin_button_set_adjustment(GTK_SPIN_BUTTON(handle), adj);
@@ -3864,7 +3864,7 @@ void dw_entryfield_set_limit(HWND handle, ULONG limit)
  * Parameters:
  *          handle: Handle to the spinbutton to be queried.
  */
-long dw_spinbutton_query(HWND handle)
+long dw_spinbutton_get_pos(HWND handle)
 {
 	long retval;
 	int _locked_by_me = FALSE;
@@ -3881,7 +3881,7 @@ long dw_spinbutton_query(HWND handle)
  * Parameters:
  *          handle: Handle to the checkbox to be queried.
  */
-int dw_checkbox_query(HWND handle)
+int dw_checkbox_get(HWND handle)
 {
 	int retval;
 	int _locked_by_me = FALSE;
@@ -3993,8 +3993,8 @@ HTREEITEM dw_tree_insert_after(HWND handle, HTREEITEM item, char *title, unsigne
 	gtk_widget_show(hbox);
 
 	{
-		void *thisfunc = (void *)gtk_object_get_data(GTK_OBJECT(tree), "_dw_tree_expand_func");
-		void *mydata = (void *)gtk_object_get_data(GTK_OBJECT(tree), "_dw_tree_expand_data");
+		void *thisfunc = (void *)gtk_object_get_data(GTK_OBJECT(tree), "_dw_tree_item_expand_func");
+		void *mydata = (void *)gtk_object_get_data(GTK_OBJECT(tree), "_dw_tree_item_expand_data");
 		SignalHandler work = _get_signal_handler(tree, mydata);
 
 		if(thisfunc && work.window)
@@ -4139,8 +4139,8 @@ HTREEITEM dw_tree_insert(HWND handle, char *title, unsigned long icon, HTREEITEM
 	gtk_widget_show(hbox);
 
 	{
-		void *thisfunc = (void *)gtk_object_get_data(GTK_OBJECT(tree), "_dw_tree_expand_func");
-		void *mydata = (void *)gtk_object_get_data(GTK_OBJECT(tree), "_dw_tree_expand_data");
+		void *thisfunc = (void *)gtk_object_get_data(GTK_OBJECT(tree), "_dw_tree_item_expand_func");
+		void *mydata = (void *)gtk_object_get_data(GTK_OBJECT(tree), "_dw_tree_item_expand_data");
 		SignalHandler work = _get_signal_handler(tree, mydata);
 
 		if(thisfunc && work.window)
@@ -4216,7 +4216,7 @@ HTREEITEM dw_tree_insert(HWND handle, char *title, unsigned long icon, HTREEITEM
  *          title: The text title of the entry.
  *          icon: Handle to coresponding icon.
  */
-void dw_tree_set(HWND handle, HTREEITEM item, char *title, unsigned long icon)
+void dw_tree_item_change(HWND handle, HTREEITEM item, char *title, unsigned long icon)
 {
 #if GTK_MAJOR_VERSION > 1
 	GtkWidget *tree;
@@ -4281,7 +4281,7 @@ void dw_tree_set(HWND handle, HTREEITEM item, char *title, unsigned long icon)
  *          item: Handle of the item to be modified.
  *          itemdata: User defined data to be associated with item.
  */
-void dw_tree_set_data(HWND handle, HTREEITEM item, void *itemdata)
+void dw_tree_item_change_data(HWND handle, HTREEITEM item, void *itemdata)
 {
 #if GTK_MAJOR_VERSION > 1
 	GtkWidget *tree;
@@ -4386,7 +4386,7 @@ HTREEITEM API dw_tree_get_parent(HWND handle, HTREEITEM item)
  *          handle: Handle to the tree containing the item.
  *          item: Handle of the item to be modified.
  */
-void *dw_tree_get_data(HWND handle, HTREEITEM item)
+void *dw_tree_item_get_data(HWND handle, HTREEITEM item)
 {
 	void *ret = NULL;
 #if GTK_MAJOR_VERSION > 1
@@ -4540,7 +4540,7 @@ void dw_tree_clear(HWND handle)
  *       handle: Handle to the tree window (widget).
  *       item: Handle to node to be expanded.
  */
-void dw_tree_expand(HWND handle, HTREEITEM item)
+void dw_tree_item_expand(HWND handle, HTREEITEM item)
 {
 #if GTK_MAJOR_VERSION > 1
 	GtkWidget *tree;
@@ -4581,7 +4581,7 @@ void dw_tree_expand(HWND handle, HTREEITEM item)
  *       handle: Handle to the tree window (widget).
  *       item: Handle to node to be collapsed.
  */
-void dw_tree_collapse(HWND handle, HTREEITEM item)
+void dw_tree_item_collapse(HWND handle, HTREEITEM item)
 {
 #if GTK_MAJOR_VERSION > 1
 	GtkWidget *tree;
@@ -4620,7 +4620,7 @@ void dw_tree_collapse(HWND handle, HTREEITEM item)
  *       handle: Handle to the window (widget) to be cleared.
  *       item: Handle to node to be deleted.
  */
-void dw_tree_delete(HWND handle, HTREEITEM item)
+void dw_tree_item_delete(HWND handle, HTREEITEM item)
 {
 #if GTK_MAJOR_VERSION > 1
 	GtkWidget *tree;
@@ -6605,7 +6605,7 @@ void dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, int 
  *          width: New width in pixels.
  *          height: New height in pixels.
  */
-void dw_window_set_usize(HWND handle, unsigned long width, unsigned long height)
+void dw_window_set_size(HWND handle, unsigned long width, unsigned long height)
 {
 	int _locked_by_me = FALSE;
 
@@ -6706,7 +6706,7 @@ void dw_window_set_pos_size(HWND handle, unsigned long x, unsigned long y, unsig
 	DW_MUTEX_LOCK;
 	if(GTK_IS_WINDOW(handle))
 	{
-		dw_window_set_usize(handle, width, height);
+		dw_window_set_size(handle, width, height);
 		gtk_widget_set_uposition(handle, x, y);
 	}
 	else if(handle->window)
@@ -6895,7 +6895,7 @@ void dw_notebook_page_destroy(HWND handle, unsigned int pageid)
  * Parameters:
  *          handle: Handle to the notebook widget.
  */
-unsigned long dw_notebook_page_query(HWND handle)
+unsigned long dw_notebook_page_get(HWND handle)
 {
 	int retval, phys;
 	int _locked_by_me = FALSE;
@@ -7211,7 +7211,7 @@ void dw_listbox_set_top(HWND handle, int top)
  *          buffer: Buffer where text will be copied.
  *          length: Length of the buffer (including NULL).
  */
-void dw_listbox_query_text(HWND handle, unsigned int index, char *buffer, unsigned int length)
+void dw_listbox_get_text(HWND handle, unsigned int index, char *buffer, unsigned int length)
 {
 	GtkWidget *handle2 = handle;
 	int _locked_by_me = FALSE;
@@ -7935,7 +7935,7 @@ static void _populate_directory(HWND tree, HTREEITEM parent, char *path)
 				{
 					item = dw_tree_insert(tree, dent->d_name, 0, parent, (void *)parent);
 					tempitem = dw_tree_insert(tree, "", 0, item, 0);
-					dw_tree_set_data(tree, item, (void *)tempitem);
+					dw_tree_item_change_data(tree, item, (void *)tempitem);
 				}
 
 				free(folder);
@@ -8014,13 +8014,13 @@ static int DWSIGNAL _tree_expand(HWND window, HTREEITEM item, void *data)
 {
 	DWDialog *dwwait = (DWDialog *)data;
 	HWND tree = (HWND)dw_window_get_data((HWND)dwwait->data, "_dw_tree");
-	HTREEITEM tempitem = (HTREEITEM)dw_tree_get_data(tree, item);
+	HTREEITEM tempitem = (HTREEITEM)dw_tree_item_get_data(tree, item);
 
 	if(tempitem)
 	{
 		char *folder = _tree_folder(tree, item);
 
-		dw_tree_set_data(tree, item, 0);
+		dw_tree_item_change_data(tree, item, 0);
 
 		if(*folder)
 			_populate_directory(tree, item, folder);
@@ -8031,7 +8031,7 @@ static int DWSIGNAL _tree_expand(HWND window, HTREEITEM item, void *data)
 		 * it sits on ceases to be valid and attempts
 		 * to delete or recreate it fail horribly.
 		 */
-		dw_tree_delete(tree, tempitem);
+		dw_tree_item_delete(tree, tempitem);
 #endif
 		free(folder);
 	}
@@ -8092,9 +8092,9 @@ char *dw_file_browse(char *title, char *defpath, char *ext, int flags)
 
 		item = dw_tree_insert(tree, "/", 0, NULL, 0);
 		tempitem = dw_tree_insert(tree, "", 0, item, 0);
-		dw_tree_set_data(tree, item, (void *)tempitem);
+		dw_tree_item_change_data(tree, item, (void *)tempitem);
 
-		dw_window_set_usize(window, 225, 300);
+		dw_window_set_size(window, 225, 300);
 		dw_window_show(window);
 	}
 	else
@@ -8450,8 +8450,8 @@ void dw_signal_connect(HWND window, char *signame, void *sigfunc, void *data)
 		if(thisfunc)
 		{
 			sigid = _set_signal_handler(thiswindow, window, sigfunc, data, thisfunc);
-			gtk_object_set_data(GTK_OBJECT(thiswindow), "_dw_tree_expand_func", (gpointer)thisfunc);
-			gtk_object_set_data(GTK_OBJECT(thiswindow), "_dw_tree_expand_data", (gpointer)sigid);
+			gtk_object_set_data(GTK_OBJECT(thiswindow), "_dw_tree_item_expand_func", (gpointer)thisfunc);
+			gtk_object_set_data(GTK_OBJECT(thiswindow), "_dw_tree_item_expand_data", (gpointer)sigid);
 		}
 		DW_MUTEX_UNLOCK;
 		return;

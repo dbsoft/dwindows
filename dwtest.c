@@ -285,13 +285,13 @@ int DWSIGNAL cursortoggle_callback(HWND window, void *data)
 	if(cursor_arrow)
 	{
 		dw_window_set_text((HWND)cursortogglebutton,"Set Cursor pointer - ARROW");
-		dw_window_pointer((HWND)data,DW_POINTER_CLOCK);
+		dw_window_set_pointer((HWND)data,DW_POINTER_CLOCK);
 		cursor_arrow = 0;
 	}
 	else
 	{
 		dw_window_set_text((HWND)cursortogglebutton,"Set Cursor pointer - CLOCK");
-		dw_window_pointer((HWND)data,DW_POINTER_ARROW);
+		dw_window_set_pointer((HWND)data,DW_POINTER_ARROW);
 		cursor_arrow = 1;
 	}
 	return FALSE;
@@ -470,7 +470,7 @@ int DWSIGNAL container_select_cb( HWND window, HTREEITEM item, char *text, void 
 		str = dw_container_query_next(container, DW_CRA_SELECTED);
 	}
 	/* Make the last inserted point the cursor location */
-	dw_mle_set(container_mle, mle_point);
+	dw_mle_set_cursor(container_mle, mle_point);
 /* set the details of item 0 to new data */
 fprintf(stderr,"In cb: container: %x containerinfo: %x icon: %x\n", (int)container, (int)containerinfo, (int)fileicon);
 	dw_filesystem_change_file(container, 0, "new data", fileicon);
@@ -670,9 +670,9 @@ void tree_add(void)
 	t4 = dw_tree_insert(tree, "tree file 2", fileicon, t1, (void *)4 );
 	t5 = dw_tree_insert(tree, "tree file 3", fileicon, t2, (void *)5 );
 	t6 = dw_tree_insert(tree, "tree file 4", fileicon, t2, (void *)6 );
-	/* set the folder name and icon again to show error with dw_tree_set under GTK 2.0 */
-	dw_tree_set(tree, t1, "tree folder 1", foldericon );
-	dw_tree_set(tree, t2, "tree folder 2", foldericon );
+	/* set the folder name and icon again to show error with dw_tree_item_change under GTK 2.0 */
+	dw_tree_item_change(tree, t1, "tree folder 1", foldericon );
+	dw_tree_item_change(tree, t2, "tree folder 2", foldericon );
 }
 
 void container_add(void)
@@ -863,7 +863,7 @@ int main(int argc, char *argv[])
 	dw_signal_connect(mainwindow, DW_SIGNAL_DELETE, DW_SIGNAL_FUNC(exit_callback), (void *)mainwindow);
 	timerid = dw_timer_connect(1000, DW_SIGNAL_FUNC(timer_callback), 0);
 	dw_window_set_icon(mainwindow, fileicon);
-	dw_window_set_usize(mainwindow, 640, 480);
+	dw_window_set_size(mainwindow, 640, 480);
 	dw_window_show(mainwindow);
 
 	dw_main();
