@@ -3614,7 +3614,7 @@ void dw_checkbox_set(HWND handle, int value)
  *          parent: Parent handle or 0 if root.
  *          itemdata: Item specific data.
  */
-HTREEITEM dw_tree_insert_after(HWND handle, HTREEITEM item, char *title, unsigned long icon, HWND parent, void *itemdata)
+HTREEITEM dw_tree_insert_after(HWND handle, HTREEITEM item, char *title, unsigned long icon, HTREEITEM parent, void *itemdata)
 {
 #if GTK_MAJOR_VERSION > 1
 	GtkWidget *tree;
