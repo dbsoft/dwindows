@@ -25,10 +25,10 @@
 #include <gdk-pixbuf/gdk-pixbuf.h>
 #endif
 
-#include "messagebox_error.xpm"
-#include "messagebox_warning.xpm"
-#include "messagebox_information.xpm"
-#include "messagebox_question.xpm"
+#include "gtk/messagebox_error.xpm"
+#include "gtk/messagebox_warning.xpm"
+#include "gtk/messagebox_information.xpm"
+#include "gtk/messagebox_question.xpm"
 
 /* These are used for resource management */
 #if defined(DW_RESOURCES) && !defined(BUILD_DLL)
@@ -1142,15 +1142,13 @@ int dw_messagebox(char *title, int flags, char *format, ...)
 	entrywindow = dw_window_new(HWND_DESKTOP, title, flStyle);
 	mainbox = dw_box_new(DW_VERT, 10);
 	dw_box_pack_start(entrywindow, mainbox, 0, 0, TRUE, TRUE, 0);
-/* delete me */dw_window_set_color(mainbox, DW_CLR_BLACK, DW_CLR_RED);
 
-/* determine if an icon is to be used - if so we need another HORZ box */
+	/* determine if an icon is to be used - if so we need another HORZ box */
 	if((flags & DW_MB_ERROR) | (flags & DW_MB_WARNING) | (flags & DW_MB_INFORMATION) | (flags & DW_MB_QUESTION))
 	{
-		imagetextbox = dw_box_new(DW_HORZ, 101);
+		imagetextbox = dw_box_new(DW_HORZ, 0);
 		dw_box_pack_start(mainbox, imagetextbox, 0, 0, TRUE, TRUE, 2);
 		texttargetbox = imagetextbox;
-/* delete me */dw_window_set_color(imagetextbox, DW_CLR_BLACK, DW_CLR_YELLOW);
 	}
 	else
 	{
@@ -1195,17 +1193,16 @@ int dw_messagebox(char *title, int flags, char *format, ...)
 	/* Create text */
 	stext = dw_text_new(outbuf, 0);
 	dw_window_set_style(stext, DW_DT_WORDBREAK, DW_DT_WORDBREAK);
-	dw_box_pack_start(texttargetbox, stext, 205, 50, TRUE, TRUE, 2);
+	dw_box_pack_start(texttargetbox, stext, 235, 50, TRUE, TRUE, 2);
 
 	/* Buttons */
 	buttonbox = dw_box_new(DW_HORZ, 10);
 
 	dw_box_pack_start(mainbox, buttonbox, 0, 0, TRUE, FALSE, 0);
-/* delete me */dw_window_set_color(buttonbox, DW_CLR_BLACK, DW_CLR_WHITE);
 
 	dwwait = dw_dialog_new((void *)entrywindow);
 
-/* which buttons ? */
+	/* which buttons ? */
 	if(flags & DW_MB_OK)
 	{
 		okbutton = dw_button_new("Ok", 1001L);
@@ -1243,10 +1240,10 @@ int dw_messagebox(char *title, int flags, char *format, ...)
 		dw_signal_connect(cancelbutton, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(_dw_cancel_func), (void *)dwwait);
 	}
 
-	x = (dw_screen_width() - 220)/2;
-	y = (dw_screen_height() - 110)/2;
+	x = (dw_screen_width() - 280)/2;
+	y = (dw_screen_height() - 150)/2;
 
-	dw_window_set_pos_size(entrywindow, x, y, 220, 110);
+	dw_window_set_pos_size(entrywindow, x, y, 280, 150);
 
 	dw_window_show(entrywindow);
 
@@ -6310,12 +6307,8 @@ void dw_window_set_pos_size(HWND handle, unsigned long x, unsigned long y, unsig
 	DW_MUTEX_LOCK;
 	if(GTK_IS_WINDOW(handle))
 	{
-		_size_allocate(GTK_WINDOW(handle));
-
+		dw_window_set_usize(handle, width, height);
 		gtk_widget_set_uposition(handle, x, y);
-		if(handle->window)
-			gdk_window_resize(handle->window, width - _dw_border_width, height - _dw_border_height);
-		gtk_window_set_default_size(GTK_WINDOW(handle), width - _dw_border_width, height - _dw_border_height);
 	}
 	else if(handle->window)
 	{
