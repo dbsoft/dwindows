@@ -389,7 +389,7 @@ void DWSIGNAL scrollbar_valuechanged(HWND hwnd, int value, void *data)
 int DWSIGNAL configure_event(HWND hwnd, int width, int height, void *data)
 {
 	HPIXMAP old1 = text1pm, old2 = text2pm;
-	int depth = dw_color_depth();
+	int depth = dw_color_depth_get();
 
 	rows = height / font_height;
 	cols = width / font_width;
@@ -580,7 +580,7 @@ void archive_add(void)
 
 void text_add(void)
 {
-	int depth = dw_color_depth();
+	int depth = dw_color_depth_get();
 	HWND vscrollbox;
 
 	/* create a box to pack into the notebook page */
@@ -596,7 +596,7 @@ void text_add(void)
 	/* create render box for number pixmap */
 	textbox1 = dw_render_new( 100 );
 	dw_window_set_font(textbox1, FIXEDFONT);
-	dw_font_text_extents(textbox1, NULL, "(g", &font_width, &font_height);
+	dw_font_text_extents_get(textbox1, NULL, "(g", &font_width, &font_height);
 	font_width = font_width / 2;
 	vscrollbox = dw_box_new(BOXVERT, 0);
 	dw_box_pack_start(vscrollbox, textbox1, font_width*width1, font_height*rows, FALSE, TRUE, 0);

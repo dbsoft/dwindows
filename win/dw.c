@@ -880,7 +880,7 @@ int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *usedy,
 
 		if(text)
 		{
-			dw_font_text_extents(thisbox->grouphwnd, 0, text, NULL, &thisbox->grouppady);
+			dw_font_text_extents_get(thisbox->grouphwnd, 0, text, NULL, &thisbox->grouppady);
 			dw_free(text);
 		}
 
@@ -1247,7 +1247,7 @@ int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *usedy,
 						GetWindowText(handle, tmpbuf, 1023);
 
 						/* Figure out how big the text is */
-						dw_font_text_extents(handle, 0, tmpbuf, 0, &textheight);
+						dw_font_text_extents_get(handle, 0, tmpbuf, 0, &textheight);
 
 						diff = (total - textheight) / 2;
 
@@ -5033,7 +5033,7 @@ int API dw_screen_height(void)
 }
 
 /* This should return the current color depth */
-unsigned long API dw_color_depth(void)
+unsigned long API dw_color_depth_get(void)
 {
 	int bpp;
 	HDC hdc = GetDC(HWND_DESKTOP);
@@ -7357,7 +7357,7 @@ void API dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
  *       width: Pointer to a variable to be filled in with the width.
  *       height Pointer to a variable to be filled in with the height.
  */
-void API dw_font_text_extents(HWND handle, HPIXMAP pixmap, char *text, int *width, int *height)
+void API dw_font_text_extents_get(HWND handle, HPIXMAP pixmap, char *text, int *width, int *height)
 {
 	HDC hdc;
 	int mustdelete = 0;
