@@ -404,6 +404,8 @@ int DWSIGNAL container_select_cb( HWND window, HTREEITEM item, char *text, void 
 		mle_point = dw_mle_import( container_mle, buf, mle_point);
 		str = dw_container_query_next(container, DW_CRA_SELECTED);
 	}
+	/* Make the last inserted point the cursor location */
+	dw_mle_set(container_mle, mle_point);
 	return 0;
 }
 
@@ -581,7 +583,7 @@ void container_add(void)
 	dw_box_pack_start( notebookbox4, containerbox, 500, 200, TRUE, TRUE, 0);
 
 	/* now a container area under this box */
-	container = dw_container_new(100);
+	container = dw_container_new(100, TRUE);
 	dw_box_pack_start( notebookbox4, container, 500, 200, TRUE, FALSE, 1);
 
 	/* and a status area to see whats going on */

@@ -133,12 +133,6 @@ typedef struct _user_data
 #define DW_CRA_SELECTED          CRA_SELECTED
 #define DW_CRA_CURSORED          CRA_CURSORED
 
-#define DW_SLS_READONLY          SLS_READONLY
-#define DW_SLS_RIBBONSTRIP       SLS_RIBBONSTRIP
-
-#define DW_CCS_SINGLESEL         CCS_SINGLESEL
-#define DW_CCS_EXTENDSEL         CCS_EXTENDSEL
-
 #define DW_LS_MULTIPLESEL        LS_MULTIPLESEL
 
 #define DW_LIT_NONE              -1
@@ -289,12 +283,6 @@ extern HMQ dwhmq;
 
 #define DW_CRA_SELECTED          LVNI_SELECTED
 #define DW_CRA_CURSORED          LVNI_FOCUSED
-
-#define DW_SLS_READONLY          0
-#define DW_SLS_RIBBONSTRIP       0
-
-#define DW_CCS_SINGLESEL         0
-#define DW_CCS_EXTENDSEL         0
 
 #define DW_LS_MULTIPLESEL        LBS_MULTIPLESEL
 
@@ -487,12 +475,6 @@ void dw_box_pack_end_stub(HWND box, HWND item, int width, int height, int hsize,
 #define DW_CFA_RIGHT             (1 << 7)
 #define DW_CFA_HORZSEPARATOR     (1 << 8)
 #define DW_CFA_SEPARATOR         (1 << 9)
-
-#define DW_SLS_READONLY          1
-#define DW_SLS_RIBBONSTRIP       (1 << 1)
-
-#define DW_CCS_SINGLESEL         1
-#define DW_CCS_EXTENDSEL         (1 << 1)
 
 #define DW_CRA_SELECTED          1
 #define DW_CRA_CURSORED          (1 << 1)
@@ -766,7 +748,7 @@ HWND API dw_mdi_new(unsigned long id);
 HWND API dw_bitmap_new(unsigned long id);
 HWND API dw_bitmapbutton_new(char *text, unsigned long id);
 HWND API dw_bitmapbutton_new_from_file(char *text, unsigned long id, char *filename);
-HWND API dw_container_new(unsigned long id);
+HWND API dw_container_new(unsigned long id, int multi);
 HWND API dw_tree_new(unsigned long id);
 HWND API dw_text_new(char *text, unsigned long id);
 HWND API dw_status_text_new(char *text, unsigned long id);

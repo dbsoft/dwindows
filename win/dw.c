@@ -1552,7 +1552,7 @@ BOOL CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 										LV_ITEM lvi;
 										int iItem;
 
-										iItem = ListView_GetNextItem(tmp->window, -1, LVNI_FOCUSED);
+										iItem = ListView_GetNextItem(tmp->window, -1, LVNI_SELECTED);
 
 										memset(&lvi, 0, sizeof(LV_ITEM));
 
@@ -3881,11 +3881,12 @@ void API dw_menu_popup(HMENUI *menu, HWND parent, int x, int y)
  *       id: An ID to be used for getting the resource from the
  *           resource file.
  */
-HWND API dw_container_new(ULONG id)
+HWND API dw_container_new(ULONG id, int multi)
 {
 	HWND tmp = CreateWindow(WC_LISTVIEW,
 							"",
 							WS_VISIBLE | WS_CHILD |
+							(multi ? 0 : LVS_SINGLESEL) |
 							LVS_REPORT | LVS_SHOWSELALWAYS |
 							LVS_SHAREIMAGELISTS | WS_BORDER |
 							WS_CLIPCHILDREN,
