@@ -67,5 +67,7 @@ dirent.obj: win\dirent.c
 .c.obj:
 	$(CC) $(CFLAGS) $(CFLAGS_DEBUG) $(CFLAGS_COMPILE) $*.c
 
+dwtest: dwtest.exe
+
 dwtest.exe: dwtest.obj winmain.obj
 	$(LINK) $(LINKFLAGS) /out:dwtest.exe dwtest.obj winmain.obj /subsystem:windows $(FXLIBDIR)\dwcompat.lib $(FXLIBDIR)\dw.lib $(LIBS)
