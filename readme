@@ -10,7 +10,7 @@ Boxes don't adhere to ratios on Unix.
 
 Known limitations:
 
-It is not safe all all platforms to operate on widgets before they
+It is not safe on all platforms to operate on widgets before they
 are packed.  For portablity pack widgets before operating on them.
 
 On Windows a slider control will only work properly if it is the
@@ -22,7 +22,7 @@ corrupted when resizing.
 
 On Unix the window manager border is not a constant value so
 environment variables DW_BORDER_WIDTH and DW_BORDER_HEIGHT
-are ysed for proper positioning.
+are used for proper positioning.
 
 Future features:
 
@@ -31,7 +31,7 @@ GTK have been implemented.  Although not all the functionality of the native
 controls have been integrated into Dynamic Windows.
 
 Documentation, I have all the functions relatively well documented in the 
-source code but a developers manual and online API reference will need to
+source code but a developer's manual and online API reference will need to
 be written.
 
 If you have any questions or suggestions feel free to email me at
