@@ -33,9 +33,6 @@ DWTID _dwtid = -1;
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))
 #endif
 
-char monthlist[][4] = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug",
-                        "Sep", "Oct", "Nov", "Dec" };
-
 int main(int argc, char *argv[]);
 
 #define ICON_INDEX_LIMIT 200
@@ -5730,23 +5727,29 @@ void dw_container_set_item(HWND handle, void *pointer, int column, int row, void
 	}
 	else if(flags[column] & DW_CFA_DATE)
 	{
-		CDATE fdate = *((CDATE *)data);
+		struct tm curtm;
+		CDATE cdate = *((CDATE *)data);
 
-		if(fdate.month > -1 && fdate.month < 12 && fdate.day > 0 && fdate.year > 0)
-			sprintf(textbuffer, "%s %d, %d", monthlist[fdate.month], fdate.day, fdate.year);
-        else
-			strcpy(textbuffer, "");
+		curtm.tm_mday = cdate.day;
+		curtm.tm_mon = cdate.month - 1;
+		curtm.tm_year = cdate.year - 1900;
+
+		strftime(textbuffer, 100, "%x", &curtm);
+
 		lvi.pszText = textbuffer;
 		lvi.cchTextMax = strlen(textbuffer);
 	}
 	else if(flags[column] & DW_CFA_TIME)
 	{
-		CTIME ftime = *((CTIME *)data);
+		struct tm curtm;
+		CTIME ctime = *((CTIME *)data);
 
-		if(ftime.hours > 12)
-			sprintf(textbuffer, "%d:%s%dpm", ftime.hours - 12, (ftime.minutes < 10) ? "0" : "", ftime.minutes);
-		else
-			sprintf(textbuffer, "%d:%s%dam", ftime.hours ? ftime.hours : 12, (ftime.minutes < 10) ? "0" : "", ftime.minutes);
+		curtm.tm_hour = ctime.hours;
+		curtm.tm_min = ctime.minutes;
+		curtm.tm_sec = ctime.seconds;
+
+		strftime(textbuffer, 100, "%X", &curtm);
+
 		lvi.pszText = textbuffer;
 		lvi.cchTextMax = strlen(textbuffer);
 	}
