@@ -302,7 +302,7 @@ void _free_bitmap(HWND handle)
 		GpiDeleteBitmap(hbm);
 }
 
-/* This function removes and handlers on windows and frees
+/* This function removes any handlers on windows and frees
  * the user memory allocated to it.
  */
 void _free_window_memory(HWND handle)
@@ -3686,6 +3686,7 @@ void API dw_window_redraw(HWND handle)
 	HWND window = client ? client : handle;
 	Box *mybox = (Box *)WinQueryWindowPtr(window, QWP_USER);
 
+	_fix_button_owner(_toplevel_window(handle), 0);
 	if(window && mybox)
 	{
 		unsigned long width, height;
@@ -6599,6 +6600,34 @@ void API dw_container_change_item(HWND handle, int column, int row, void *data)
 		pCore = WinSendMsg(handle, CM_QUERYRECORD, (MPARAM)pCore, MPFROM2SHORT(CMA_NEXT, CMA_ITEMORDER));
 		count++;
 	}
+}
+
+/*
+ * Changes an existing item in specified row and column to the given data.
+ * Parameters:
+ *          handle: Handle to the container window (widget).
+ *          column: Zero based column of data being set.
+ *          row: Zero based row of data being set.
+ *          data: Pointer to the data to be added.
+ */
+void API dw_filesystem_change_item(HWND handle, int column, int row, void *data)
+{
+	dw_container_change_item(handle, column + 2, row, data);
+}
+
+/*
+ * Changes an item in specified row and column to the given data.
+ * Parameters:
+ *          handle: Handle to the container window (widget).
+ *          pointer: Pointer to the allocated memory in dw_container_alloc().
+ *          column: Zero based column of data being set.
+ *          row: Zero based row of data being set.
+ *          data: Pointer to the data to be added.
+ */
+void API dw_filesystem_change_file(HWND handle, int row, char *filename, unsigned long icon)
+{
+	dw_container_change_item(handle, 0, row, (void *)&icon);
+	dw_container_change_item(handle, 1, row, (void *)&filename);
 }
 
 /*
