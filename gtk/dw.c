@@ -5091,7 +5091,7 @@ HPIXMAP dw_pixmap_new_from_file(HWND handle, char *filename)
 
 	DW_MUTEX_LOCK;
 #if GTK_MAJOR_VERSION > 1
-	pixbuf = gdk_pixbuf_new_from_file(file);
+	pixbuf = gdk_pixbuf_new_from_file(file, NULL);
 
 	pixmap->width = gdk_pixbuf_get_width(pixbuf);
 	pixmap->height = gdk_pixbuf_get_height(pixbuf);
