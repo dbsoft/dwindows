@@ -4999,6 +4999,7 @@ HWND API dw_window_from_id(HWND handle, int id)
 void API dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, int vsize, int pad)
 {
 	Box *thisbox;
+	char *funcname = "dw_box_pack_end()";
 
 		/*
 		 * If you try and pack an item into itself VERY bad things can happen; like at least an
@@ -5006,29 +5007,9 @@ void API dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, 
 		 */
 	if(box == item)
 	{
-		dw_messagebox("dw_box_pack_end()", DW_MB_OK|DW_MB_ERROR, "Danger! Danger! Will Robinson; box and item are the same!",box,item);
+		dw_messagebox(funcname, DW_MB_OK|DW_MB_ERROR, "Danger! Danger! Will Robinson; box and item are the same!",box,item);
 		return;
 	}
-
-	if(WinWindowFromID(box, FID_CLIENT))
-	{
-		box = WinWindowFromID(box, FID_CLIENT);
-		thisbox = WinQueryWindowPtr(box, QWP_USER);
-	}
-	else
-		thisbox = WinQueryWindowPtr(box, QWP_USER);
-	if(thisbox)
-	{
-		if(thisbox->type == DW_HORZ)
-			_dw_box_pack_start(box, item, width, height, hsize, vsize, pad, "dw_box_pack_end()");
-		else
-			_dw_box_pack_end(box, item, width, height, hsize, vsize, pad, "dw_box_pack_end()");
-	}
-}
-
-void _dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, int vsize, int pad, char *functionname)
-{
-	Box *thisbox;
 
 	if(WinWindowFromID(box, FID_CLIENT))
 	{
@@ -5039,16 +5020,19 @@ void _dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, int
 	}
 	else
 		thisbox = WinQueryWindowPtr(box, QWP_USER);
-	if(!thisbox)
+	if(thisbox)
 	{
-		box = WinWindowFromID(box, FID_CLIENT);
-		if(box)
-		{
-			thisbox = WinQueryWindowPtr(box, QWP_USER);
-			hsize = TRUE;
-			vsize = TRUE;
-		}
+		if(thisbox->type == DW_HORZ)
+			_dw_box_pack_start(box, item, width, height, hsize, vsize, pad, funcname);
+		else
+			_dw_box_pack_end(box, item, width, height, hsize, vsize, pad, funcname);
 	}
+}
+
+void _dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, int vsize, int pad, char *functionname)
+{
+	Box *thisbox = WinQueryWindowPtr(box, QWP_USER);
+
 	if(thisbox)
 	{
 		int z;
@@ -7655,6 +7639,7 @@ float API dw_splitbar_get(HWND handle)
 void API dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize, int vsize, int pad)
 {
 	Box *thisbox;
+	char *funcname = "dw_box_pack_start()";
 
 		/*
 		 * If you try and pack an item into itself VERY bad things can happen; like at least an
@@ -7662,29 +7647,9 @@ void API dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize
 		 */
 	if(box == item)
 	{
-		dw_messagebox("dw_box_pack_start()", DW_MB_OK|DW_MB_ERROR, "Danger! Danger! Will Robinson; box and item are the same!",box,item);
+		dw_messagebox(funcname, DW_MB_OK|DW_MB_ERROR, "Danger! Danger! Will Robinson; box and item are the same!",box,item);
 		return;
 	}
-
-	if(WinWindowFromID(box, FID_CLIENT))
-	{
-		box = WinWindowFromID(box, FID_CLIENT);
-		thisbox = WinQueryWindowPtr(box, QWP_USER);
-	}
-	else
-		thisbox = WinQueryWindowPtr(box, QWP_USER);
-	if(thisbox)
-	{
-		if(thisbox->type == DW_HORZ)
-			_dw_box_pack_end(box, item, width, height, hsize, vsize, pad, "dw_box_pack_start()");
-		else
-			_dw_box_pack_start(box, item, width, height, hsize, vsize, pad, "dw_box_pack_start()");
-	}
-}
-
-void _dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize, int vsize, int pad, char *functionname)
-{
-	Box *thisbox;
 
 	if(WinWindowFromID(box, FID_CLIENT))
 	{
@@ -7695,6 +7660,19 @@ void _dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize, i
 	}
 	else
 		thisbox = WinQueryWindowPtr(box, QWP_USER);
+	if(thisbox)
+	{
+		if(thisbox->type == DW_HORZ)
+			_dw_box_pack_end(box, item, width, height, hsize, vsize, pad, funcname);
+		else
+			_dw_box_pack_start(box, item, width, height, hsize, vsize, pad, funcname);
+	}
+}
+
+void _dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize, int vsize, int pad, char *functionname)
+{
+	Box *thisbox = WinQueryWindowPtr(box, QWP_USER);
+
 	if(thisbox)
 	{
 		int z;
@@ -7954,24 +7932,12 @@ char * API dw_file_browse(char *title, char *defpath, char *ext, int flags)
 		strcat(fild.szFullFile, ext);
 	}
 
+	memset(&fild, 0, sizeof(FILEDLG));
 	fild.cbSize = sizeof(FILEDLG);
-	fild.fl = /*FDS_HELPBUTTON |*/ FDS_CENTER | FDS_OPEN_DIALOG;
+	fild.fl = FDS_CENTER | FDS_OPEN_DIALOG;
 	fild.pszTitle = title;
 	fild.pszOKButton = ((flags & DW_FILE_SAVE) ? "Save" : "Open");
-	fild.ulUser = 0L;
 	fild.pfnDlgProc = (PFNWP)WinDefFileDlgProc;
-	fild.lReturn = 0L;
-	fild.lSRC = 0L;
-	fild.hMod = 0;
-	fild.x = 0;
-	fild.y = 0;
-	fild.pszIType       = (PSZ)NULL;
-	fild.papszITypeList = (PAPSZ)NULL;
-	fild.pszIDrive      = (PSZ)NULL;
-	fild.papszIDriveList= (PAPSZ)NULL;
-	fild.sEAType        = (SHORT)0;
-	fild.papszFQFilename= (PAPSZ)NULL;
-	fild.ulFQFCount     = 0L;
 
 	hwndFile = WinFileDlg(HWND_DESKTOP, HWND_DESKTOP, &fild);
 	if(hwndFile)
@@ -7979,7 +7945,7 @@ char * API dw_file_browse(char *title, char *defpath, char *ext, int flags)
 		switch(fild.lReturn)
 		{
 		case DID_OK:
-            return strdup(fild.szFullFile);
+			return strdup(fild.szFullFile);
 		case DID_CANCEL:
 			return NULL;
 		}
