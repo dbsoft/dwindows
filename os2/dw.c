@@ -2319,7 +2319,7 @@ MRESULT EXPENTRY _splitwndproc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 		{
 			int x = SHORT1FROMMP(mp2), y = SHORT2FROMMP(mp2);
 
-			if(x > 0 && y > 0)
+			if(x > 0 && y > 0 && percent)
 			{
 				if(type == BOXHORZ)
 				{
