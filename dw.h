@@ -497,7 +497,7 @@ typedef struct _box {
 	/* Box type - horizontal or vertical */
 	int type;
 	/* Padding */
-	int pad, parentpad;
+	int pad, parentpad, grouppadx, grouppady;
 	/* Groupbox */
 	HWND grouphwnd;
 	/* Default item */
