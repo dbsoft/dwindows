@@ -490,7 +490,7 @@ static gint _tree_select_event(GtkTreeSelection *sel, gpointer data)
 		{
 			GtkTreeModel *store = (GtkTreeModel *)gtk_object_get_data(GTK_OBJECT(widget), "_dw_tree_store");
 			gtk_tree_model_get(store, &iter, 0, &text, 2, &itemdata, 3, &item, -1);
-			retval = treeselectfunc(work->window, item, text, itemdata, work->data);
+			retval = treeselectfunc(work->window, item, text, work->data, itemdata);
 		}
 	}
 	return retval;
@@ -515,7 +515,7 @@ static gint _tree_select_event(GtkTree *tree, GtkWidget *child, gpointer data)
 		int (*treeselectfunc)(HWND, HWND, char *, void *, void *) = work->func;
 		char *text = (char *)gtk_object_get_data(GTK_OBJECT(child), "text");
 		void *itemdata = (void *)gtk_object_get_data(GTK_OBJECT(child), "itemdata");
-		retval = treeselectfunc(work->window, child, text, itemdata, work->data);
+		retval = treeselectfunc(work->window, child, text, work->data, itemdata);
 	}
 	return retval;
 }
@@ -567,9 +567,9 @@ static gint _container_select_row(GtkWidget *widget, gint row, gint column, GdkE
 {
 	SignalHandler *work = (SignalHandler *)data;
 	char *rowdata = gtk_clist_get_row_data(GTK_CLIST(widget), row);
-	int (*contextfunc)(HWND, char *, void *) = work->func;
+	int (*contextfunc)(HWND, HWND, char *, void *, void *) = work->func;
 
-	return contextfunc(work->window, rowdata, work->data);;
+	return contextfunc(work->window, 0, rowdata, work->data, 0);;
 }
 
 static gint _unselect_row(GtkWidget *widget, gint row, gint column, GdkEventButton *event, gpointer data)
