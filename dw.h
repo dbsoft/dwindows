@@ -380,7 +380,6 @@ void dw_box_pack_start_stub(HWND box, HWND item, int width, int height, int hsiz
 void dw_box_pack_end_stub(HWND box, HWND item, int width, int height, int hsize, int vsize, int pad);
 #else
 /* GTK */
-#define GTK_ENABLE_BROKEN 1
 #include <gtk/gtk.h>
 #include <gdk/gdkx.h>
 #include <gdk/gdkprivate.h>

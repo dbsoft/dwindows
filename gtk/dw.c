@@ -88,9 +88,13 @@ gint _container_context_event(GtkWidget *widget, GdkEventButton *event, gpointer
 gint _item_select_event(GtkWidget *widget, GtkWidget *child, gpointer data);
 gint _expose_event(GtkWidget *widget, GdkEventExpose *event, gpointer data);
 gint _set_focus_event(GtkWindow *window, GtkWidget *widget, gpointer data);
-gint _tree_select_event(GtkTree *tree, GtkWidget *child, gpointer data);
 gint _tree_context_event(GtkWidget *widget, GdkEventButton *event, gpointer data);
 gint _value_changed_event(GtkAdjustment *adjustment, gpointer user_data);
+#if GTK_MAJOR_VERSION > 1
+gint _tree_select_event(GtkTreeSelection *sel, gpointer data);
+#else
+gint _tree_select_event(GtkTree *tree, GtkWidget *child, gpointer data);
+#endif
 
 
 void msleep(long period);
@@ -400,6 +404,25 @@ gint _tree_context_event(GtkWidget *widget, GdkEventButton *event, gpointer data
 	{
 		if(event->button == 3)
 		{
+#if GTK_MAJOR_VERSION > 1
+			int (*contextfunc)(HWND, char *, int, int, void *, void *) = work->func;
+			char *text = NULL;
+			void *itemdata = NULL;
+
+			if(widget && GTK_IS_TREE_VIEW(widget))
+			{
+				GtkTreeSelection *sel = gtk_tree_view_get_selection(GTK_TREE_VIEW(widget));
+				GtkTreeIter iter;
+        
+				if(sel && gtk_tree_selection_get_selected(sel, NULL, &iter))
+				{
+					GtkTreeModel *store = (GtkTreeModel *)gtk_object_get_data(GTK_OBJECT(widget), "_dw_tree_store");
+					gtk_tree_model_get(store, &iter, 0, &text, 2, &itemdata, -1);
+				}
+			}
+
+			retval = contextfunc(work->window, text, event->x, event->y, work->data, itemdata);
+#else
 			int (*contextfunc)(HWND, char *, int, int, void *, void *) = work->func;
 			char *text = (char *)gtk_object_get_data(GTK_OBJECT(widget), "text");
 			void *itemdata = (void *)gtk_object_get_data(GTK_OBJECT(widget), "itemdata");
@@ -421,11 +444,37 @@ gint _tree_context_event(GtkWidget *widget, GdkEventButton *event, gpointer data
 			}
 
 			retval = contextfunc(work->window, text, event->x, event->y, work->data, itemdata);
+#endif
 		}
 	}
 	return retval;
 }
 
+#if GTK_MAJOR_VERSION > 1
+gint _tree_select_event(GtkTreeSelection *sel, gpointer data)
+{
+	SignalHandler *work = (SignalHandler *)data;
+	int retval = FALSE;
+
+	if(work)
+	{
+		int (*treeselectfunc)(HWND, HWND, char *, void *, void *) = work->func;
+		GtkTreeIter iter;
+		char *text = NULL;
+		void *itemdata = NULL;
+		GtkWidget *item, *widget = (GtkWidget *)gtk_tree_selection_get_tree_view(sel);
+          
+		if(widget && gtk_tree_selection_get_selected(sel, NULL, &iter))
+		{
+			GtkTreeModel *store = (GtkTreeModel *)gtk_object_get_data(GTK_OBJECT(widget), "_dw_tree_store");
+			gtk_tree_model_get(store, &iter, 0, &text, 2, &itemdata, 3, &item, -1);
+		}
+    
+		retval = treeselectfunc(work->window, item, text, itemdata, work->data);
+	}
+	return retval;
+}
+#else
 gint _tree_select_event(GtkTree *tree, GtkWidget *child, gpointer data)
 {
 	SignalHandler *work = (SignalHandler *)data;
@@ -449,6 +498,7 @@ gint _tree_select_event(GtkTree *tree, GtkWidget *child, gpointer data)
 	}
 	return retval;
 }
+#endif
 
 gint _container_select_event(GtkWidget *widget, GdkEventButton *event, gpointer data)
 {
@@ -1923,6 +1973,7 @@ HWND dw_tree_new(ULONG id)
 	GtkTreeStore *store;
 	GtkTreeViewColumn *col;
 	GtkCellRenderer *rend;
+	GtkTreeSelection *sel;
 #endif
 	int _locked_by_me = FALSE;
 
@@ -1934,7 +1985,7 @@ HWND dw_tree_new(ULONG id)
 	gtk_object_set_data(GTK_OBJECT(tmp), "id", (gpointer)id);
 	gtk_widget_show(tmp);
 #if GTK_MAJOR_VERSION > 1
-	store = gtk_tree_store_new(2, G_TYPE_STRING, GDK_TYPE_PIXBUF);
+	store = gtk_tree_store_new(4, G_TYPE_STRING, GDK_TYPE_PIXBUF, G_TYPE_POINTER, G_TYPE_POINTER);
 	tree = gtk_tree_view_new_with_model(GTK_TREE_MODEL(store));
 	gtk_object_set_data(GTK_OBJECT(tree), "_dw_tree_store", (gpointer)store);
 	col = gtk_tree_view_column_new();
@@ -1949,6 +2000,9 @@ HWND dw_tree_new(ULONG id)
 	gtk_tree_view_append_column(GTK_TREE_VIEW (tree), col);
 	gtk_tree_view_set_expander_column(GTK_TREE_VIEW(tree), col);
 	gtk_tree_view_set_headers_visible(GTK_TREE_VIEW(tree), FALSE);
+  
+	sel = gtk_tree_view_get_selection(GTK_TREE_VIEW(tree));
+	gtk_tree_selection_set_mode(sel, GTK_SELECTION_SINGLE);
 #else
 	tree = gtk_tree_new();
 #endif
@@ -3196,7 +3250,7 @@ HWND dw_tree_insert_after(HWND handle, HWND item, char *title, unsigned long ico
 {
 #if GTK_MAJOR_VERSION > 1
 	GtkWidget *tree;
-	GtkTreeIter iter;
+	GtkTreeIter *iter;
 	GtkTreeStore *store;
 	GdkPixbuf *pixbuf;
 	HWND retval = 0;
@@ -3210,12 +3264,14 @@ HWND dw_tree_insert_after(HWND handle, HWND item, char *title, unsigned long ico
 		&& GTK_IS_TREE_VIEW(tree) &&
 		(store = (GtkTreeStore *)gtk_object_get_data(GTK_OBJECT(tree), "_dw_tree_store")))
 	{
+		iter = (GtkTreeIter *)malloc(sizeof(GtkTreeIter));
+        
 		pixbuf = _find_pixbuf(icon);
 
-		gtk_tree_store_insert_after(store, &iter, (GtkTreeIter *)parent, (GtkTreeIter *)item);
-		gtk_tree_store_set (store, &iter, 0, title, 1, pixbuf, -1);
+		gtk_tree_store_insert_after(store, iter, (GtkTreeIter *)parent, (GtkTreeIter *)item);
+		gtk_tree_store_set (store, iter, 0, title, 1, pixbuf, 2, itemdata, 3, iter, -1);
 		g_object_unref(pixbuf);
-		retval = (HWND)gtk_tree_iter_copy(&iter);    
+		retval = (HWND)iter;    
 	}
 	DW_MUTEX_UNLOCK;
   
@@ -3320,7 +3376,7 @@ HWND dw_tree_insert(HWND handle, char *title, unsigned long icon, HWND parent, v
 {
 #if GTK_MAJOR_VERSION > 1
 	GtkWidget *tree;
-	GtkTreeIter iter;
+	GtkTreeIter *iter;
 	GtkTreeStore *store;
 	GdkPixbuf *pixbuf;
 	HWND retval = 0;
@@ -3334,12 +3390,14 @@ HWND dw_tree_insert(HWND handle, char *title, unsigned long icon, HWND parent, v
 		&& GTK_IS_TREE_VIEW(tree) &&
 		(store = (GtkTreeStore *)gtk_object_get_data(GTK_OBJECT(tree), "_dw_tree_store")))
 	{
+		iter = (GtkTreeIter *)malloc(sizeof(GtkTreeIter));
+    
 		pixbuf = _find_pixbuf(icon);
 
-		gtk_tree_store_append (store, &iter, (GtkTreeIter *)parent);
-		gtk_tree_store_set (store, &iter, 0, title, 1, pixbuf, -1);
+		gtk_tree_store_append (store, iter, (GtkTreeIter *)parent);
+		gtk_tree_store_set (store, iter, 0, title, 1, pixbuf, 2, itemdata, 3, iter, -1);
 		g_object_unref(pixbuf);
-		retval = (HWND)gtk_tree_iter_copy(&iter);
+		retval = (HWND)iter;
 	}
 	DW_MUTEX_UNLOCK;
 
@@ -3499,6 +3557,21 @@ void dw_tree_set(HWND handle, HWND item, char *title, unsigned long icon)
  */
 void dw_tree_set_data(HWND handle, HWND item, void *itemdata)
 {
+#if GTK_MAJOR_VERSION > 1
+	GtkWidget *tree;
+	GtkTreeStore *store;
+	int _locked_by_me = FALSE;
+
+	if(!handle || !item)
+		return;
+
+	DW_MUTEX_LOCK;
+	if((tree = (GtkWidget *)gtk_object_get_user_data(GTK_OBJECT(handle)))
+		&& GTK_IS_TREE_VIEW(tree) &&
+		(store = (GtkTreeStore *)gtk_object_get_data(GTK_OBJECT(tree), "_dw_tree_store")))
+			gtk_tree_store_set(store, (GtkTreeIter *)item, 2, itemdata, -1);
+	DW_MUTEX_UNLOCK;
+#else
 	int _locked_by_me = FALSE;
 
 	if(!handle || !item)
@@ -3507,6 +3580,7 @@ void dw_tree_set_data(HWND handle, HWND item, void *itemdata)
 	DW_MUTEX_LOCK;
 	gtk_object_set_data(GTK_OBJECT(item), "itemdata", (gpointer)itemdata);
 	DW_MUTEX_UNLOCK;
+#endif
 }
 
 /*
@@ -3531,7 +3605,10 @@ void dw_tree_item_select(HWND handle, HWND item)
 		(store = (GtkTreeStore *)gtk_object_get_data(GTK_OBJECT(tree), "_dw_tree_store")))
 	{    
 		GtkTreePath *path = gtk_tree_model_get_path(GTK_TREE_MODEL(store), (GtkTreeIter *)item);
+		GtkTreeSelection *sel = gtk_tree_view_get_selection(GTK_TREE_VIEW(tree));
+    
 		gtk_tree_view_set_cursor(GTK_TREE_VIEW(tree), path, NULL, FALSE);
+		gtk_tree_selection_select_iter(sel, (GtkTreeIter *)item);
 		gtk_tree_path_free(path);
 	}
 	DW_MUTEX_UNLOCK;
@@ -3694,7 +3771,7 @@ void dw_tree_delete(HWND handle, HWND item)
 		(store = (GtkTreeStore *)gtk_object_get_data(GTK_OBJECT(tree), "_dw_tree_store")))
 	{
 		gtk_tree_store_remove(store, (GtkTreeIter *)item);
-		gtk_tree_iter_free((GtkTreeIter *)item);
+		free(item);
 	}
 	DW_MUTEX_UNLOCK;
 #else
@@ -6530,6 +6607,34 @@ void dw_signal_connect(HWND window, char *signame, void *sigfunc, void *data)
 		thisname = "button_press_event";
 		thisfunc = _findsigfunc("container-context");
 	}
+#if GTK_MAJOR_VERSION > 1
+	else if(GTK_IS_TREE_VIEW(thiswindow)  && strcmp(signame, "container-context") == 0)
+	{
+		thisfunc = _findsigfunc("tree-context");
+
+		work->window = window;
+		work->data = data;
+		work->func = sigfunc;
+
+		gtk_signal_connect(GTK_OBJECT(thiswindow), "button_press_event", GTK_SIGNAL_FUNC(thisfunc), work);
+		gtk_signal_connect(GTK_OBJECT(window), "button_press_event", GTK_SIGNAL_FUNC(thisfunc), work);
+		DW_MUTEX_UNLOCK;
+		return;
+	}
+	else if(GTK_IS_TREE_VIEW(thiswindow) && strcmp(signame, "tree-select") == 0)
+	{
+		work->window = window;
+		work->data = data;
+		work->func = sigfunc;
+    
+		thiswindow = (GtkWidget *)gtk_tree_view_get_selection(GTK_TREE_VIEW(thiswindow));
+		thisname = "changed";
+    
+		g_signal_connect(G_OBJECT(thiswindow), thisname, (GCallback)thisfunc, work);
+		DW_MUTEX_UNLOCK;
+		return;
+	}
+#else
 	else if(GTK_IS_TREE(thiswindow)  && strcmp(signame, "container-context") == 0)
 	{
 		thisfunc = _findsigfunc("tree-context");
@@ -6545,6 +6650,16 @@ void dw_signal_connect(HWND window, char *signame, void *sigfunc, void *data)
 		DW_MUTEX_UNLOCK;
 		return;
 	}
+	else if(GTK_IS_TREE(thiswindow) && strcmp(signame, "tree-select") == 0)
+	{
+		if(thisfunc)
+		{
+			gtk_object_set_data(GTK_OBJECT(thiswindow), "select-child-func", (gpointer)thisfunc);
+			gtk_object_set_data(GTK_OBJECT(thiswindow), "select-child-data", (gpointer)work);
+		}
+		thisname = "select-child";
+	}
+#endif
 	else if(GTK_IS_CLIST(thiswindow) && strcmp(signame, "container-select") == 0)
 	{
 		thisname = "button_press_event";
@@ -6570,15 +6685,6 @@ void dw_signal_connect(HWND window, char *signame, void *sigfunc, void *data)
 		thisname = "focus-out-event";
 		if(GTK_IS_COMBO(thiswindow))
 			thiswindow = GTK_COMBO(thiswindow)->entry;
-	}
-	else if(GTK_IS_TREE(thiswindow) && strcmp(signame, "tree-select") == 0)
-	{
-		if(thisfunc)
-		{
-			gtk_object_set_data(GTK_OBJECT(thiswindow), "select-child-func", (gpointer)thisfunc);
-			gtk_object_set_data(GTK_OBJECT(thiswindow), "select-child-data", (gpointer)work);
-		}
-		thisname = "select-child";
 	}
 	else if(GTK_IS_VSCALE(thiswindow) || GTK_IS_HSCALE(thiswindow))
 	{
