@@ -195,7 +195,7 @@ void sockshutdown(void);
 int makedir(char *path);
 void nonblock(int fd);
 void block(int fd);
-void setfileinfo(char *filename, char *url);
+void setfileinfo(char *filename, char *url, char *logfile);
 #if defined(__IBMC__) || defined(__WIN32__)
 unsigned long drivesize(int drive);
 unsigned long drivefree(int drive);
