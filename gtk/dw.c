@@ -1271,7 +1271,14 @@ int dw_window_destroy(HWND handle)
 
 	DW_MUTEX_LOCK;
 	if(GTK_IS_WIDGET(handle))
-		gtk_widget_destroy(handle);
+	{
+		GtkWidget *eventbox = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(handle), "eventbox");
+
+		if(eventbox && GTK_IS_WIDGET(eventbox))
+			gtk_widget_destroy(eventbox);
+        else
+			gtk_widget_destroy(handle);
+	}
 	DW_MUTEX_UNLOCK;
 	return 0;
 }
