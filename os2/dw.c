@@ -905,6 +905,16 @@ void _check_resize_notebook(HWND hwnd)
 	}
 }
 
+/* Return the OS/2 color from the DW color */
+unsigned long _internal_color(unsigned long color)
+{
+	if(color == DW_CLR_BLACK)
+		return CLR_BLACK;
+	if(color == DW_CLR_WHITE)
+		return CLR_WHITE;
+	return color;
+}
+
 /* This function calculates how much space the widgets and boxes require
  * and does expansion as necessary.
  */
@@ -3376,10 +3386,7 @@ int _dw_window_set_color(HWND handle, ULONG fore, ULONG back)
 	}
 	else if(fore != DW_CLR_DEFAULT)
 	{
-		if(fore == DW_CLR_BLACK)
-			fore = CLR_BLACK;
-		if(fore == DW_CLR_WHITE)
-			fore = CLR_WHITE;
+		fore = _internal_color(fore);
 
 		WinSetPresParam(handle, PP_FOREGROUNDCOLORINDEX, sizeof(ULONG), &fore);
 	}
@@ -3397,10 +3404,7 @@ int _dw_window_set_color(HWND handle, ULONG fore, ULONG back)
 	}
 	else if(back != DW_CLR_DEFAULT)
 	{
-		if(back == DW_CLR_BLACK)
-			back = CLR_BLACK;
-		if(back == DW_CLR_WHITE)
-			back = CLR_WHITE;
+		back = _internal_color(back);
 
 		WinSetPresParam(handle, PP_BACKGROUNDCOLORINDEX, sizeof(ULONG), &back);
 	}
@@ -6184,7 +6188,7 @@ HWND API dw_render_new(unsigned long id)
  */
 void API dw_color_foreground_set(unsigned long value)
 {
-	_foreground = DW_RED_VALUE(value) << 16 | DW_GREEN_VALUE(value) << 8 | DW_BLUE_VALUE(value);
+	_foreground = value;
 }
 
 /* Sets the current background drawing color.
@@ -6195,7 +6199,7 @@ void API dw_color_foreground_set(unsigned long value)
  */
 void API dw_color_background_set(unsigned long value)
 {
-	_background = DW_RED_VALUE(value) << 16 | DW_GREEN_VALUE(value) << 8 | DW_BLUE_VALUE(value);
+	_background = value;
 }
 
 HPS _set_hps(HPS hps)
@@ -6204,8 +6208,8 @@ HPS _set_hps(HPS hps)
 
 	GpiQueryLogColorTable(hps, 0L, 0L, 18L, alTable);
 
-	alTable[16] = _foreground;
-	alTable[17] = _background;
+	alTable[16] = DW_RED_VALUE(_foreground) << 16 | DW_GREEN_VALUE(_foreground) << 8 | DW_BLUE_VALUE(_foreground);
+	alTable[17] = DW_RED_VALUE(_background) << 16 | DW_GREEN_VALUE(_background) << 8 | DW_BLUE_VALUE(_background);
 
 	GpiCreateLogColorTable(hps,
 						   0L,
@@ -6213,8 +6217,14 @@ HPS _set_hps(HPS hps)
 						   0L,
 						   18,
 						   alTable);
-	GpiSetColor(hps, 16);
-	GpiSetBackColor(hps, 17);
+	if(_foreground & DW_RGB_COLOR)
+		GpiSetColor(hps, 16);
+	else
+		GpiSetColor(hps, _internal_color(_foreground));
+	if(_background & DW_RGB_COLOR)
+		GpiSetBackColor(hps, 17);
+	else
+		GpiSetBackColor(hps, _internal_color(_background));
 	return hps;
 }
 

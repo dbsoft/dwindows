@@ -24,20 +24,21 @@ HWND mainwindow,
     textbox1, textbox2,
     buttonbox;
 
-int exit_callback(HWND window, void *data)
+int DWSIGNAL exit_callback(HWND window, void *data)
 {
    dw_window_destroy((HWND)data);
    exit(0);
    return -1;
 }
 
-int test_callback(HWND window, void *data)
+int DWSIGNAL test_callback(HWND window, void *data)
 {
    dw_window_destroy((HWND)data);
    exit(0);
    return -1;
 }
-int browse_callback(HWND window, void *data)
+
+int DWSIGNAL browse_callback(HWND window, void *data)
 {
    dw_file_browse("test string", NULL, "c", DW_FILE_OPEN );
    return 0;
@@ -137,11 +138,13 @@ int font_height=6;
 int rows=100,width1=6,width2=50;
 
 /* This gets called when a part of the graph needs to be repainted. */
-int text_expose(HWND hwnd, DWExpose *exp, void *data)
+int DWSIGNAL text_expose(HWND hwnd, DWExpose *exp, void *data)
 {
    HPIXMAP hpm = (HPIXMAP)data;
 
    dw_pixmap_bitblt(hwnd, NULL, 0, 0, font_width*width1, font_height*rows, NULL, hpm, 0, 0 );
+   dw_flush();
+   return TRUE;
 }
 
 void text_add(void)
@@ -168,7 +171,6 @@ void text_add(void)
    dw_draw_rect(0, text1pm, TRUE, 0, 0, font_width*width1, font_height*rows);
    dw_draw_rect(0, text2pm, TRUE, 0, 0, font_width*width2, font_height*rows);
 
-   dw_window_set_font(textbox1, "9.WarpSans");
    dw_font_text_extents( NULL, text1pm, "O", &font_width, &font_height );
    dw_messagebox("DWTest", "Width: %d Height: %d\n", font_width, font_height);
 
@@ -184,7 +186,6 @@ void text_add(void)
    }
    dw_signal_connect(textbox1, "expose_event", DW_SIGNAL_FUNC(text_expose), text1pm);
    dw_signal_connect(textbox2, "expose_event", DW_SIGNAL_FUNC(text_expose), text2pm);
-   dw_flush();
 }
 
 /*
