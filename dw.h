@@ -30,6 +30,22 @@
 #define DW_CLR_WHITE             15
 #define DW_CLR_DEFAULT           16
 
+/* Signal handler defines */
+#define DW_SIGNAL_CONFIGURE      "configure_event"
+#define DW_SIGNAL_KEY_PRESS      "key_press_event"
+#define DW_SIGNAL_BUTTON_PRESS   "button_press_event"
+#define DW_SIGNAL_BUTTON_RELEASE "button_release_event"
+#define DW_SIGNAL_MOTION_NOTIFY  "motion_notify_event"
+#define DW_SIGNAL_DELETE         "delete_event"
+#define DW_SIGNAL_EXPOSE         "expose_event"
+#define DW_SIGNAL_CLICKED        "clicked"
+#define DW_SIGNAL_ITEM_ENTER     "container-select"
+#define DW_SIGNAL_ITEM_CONTEXT   "container-context"
+#define DW_SIGNAL_ITEM_SELECT    "tree-select"
+#define DW_SIGNAL_LIST_SELECT    "item-select"
+#define DW_SIGNAL_SET_FOCUS      "set-focus"
+#define DW_SIGNAL_VALUE_CHANGED  "value_changed"
+
 #if defined(__OS2__) || defined(__WIN32__) || defined(WINNT) || defined(__EMX__)
 /* OS/2 or Windows */
 
