@@ -5729,7 +5729,7 @@ void API dw_mle_clear(HWND handle)
  *          handle: Handle to the MLE to be positioned.
  *          line: Line to be visible.
  */
-void API dw_mle_set_cursor_visible(HWND handle, int line)
+void API dw_mle_set_visible(HWND handle, int line)
 {
 	int tmppnt = (int)WinSendMsg(handle, MLM_CHARFROMLINE, MPFROMLONG(line), 0);
 	WinSendMsg(handle, MLM_SETSEL, MPFROMLONG(tmppnt), MPFROMLONG(tmppnt));
@@ -5741,7 +5741,7 @@ void API dw_mle_set_cursor_visible(HWND handle, int line)
  *          handle: Handle to the MLE.
  *          state: TRUE if it can be edited, FALSE for readonly.
  */
-void API dw_mle_set_cursor_editable(HWND handle, int state)
+void API dw_mle_set_editable(HWND handle, int state)
 {
 	WinSendMsg(handle, MLM_SETREADONLY, MPFROMLONG(state ? FALSE : TRUE), 0);
 }
@@ -5752,7 +5752,7 @@ void API dw_mle_set_cursor_editable(HWND handle, int state)
  *          handle: Handle to the MLE.
  *          state: TRUE if it wraps, FALSE if it doesn't.
  */
-void API dw_mle_set_cursor_word_wrap(HWND handle, int state)
+void API dw_mle_set_word_wrap(HWND handle, int state)
 {
 	WinSendMsg(handle, MLM_SETWRAP, MPFROMLONG(state), 0);
 }
@@ -6104,7 +6104,7 @@ HTREEITEM API dw_tree_get_parent(HWND handle, HTREEITEM item)
  *          item: Handle of the item to be modified.
  *          itemdata: User defined data to be associated with item.
  */
-void API dw_tree_item_change_data(HWND handle, HTREEITEM item, void *itemdata)
+void API dw_tree_item_set_data(HWND handle, HTREEITEM item, void *itemdata)
 {
 	PCNRITEM pci = (PCNRITEM)item;
 
@@ -8219,7 +8219,7 @@ void _populate_directory(HWND tree, HTREEITEM parent, char *path)
 
 				item = dw_tree_insert(tree, ffbuf.achName, WinLoadFileIcon(folder, TRUE), parent, (void *)parent);
 				tempitem = dw_tree_insert(tree, "", 0, item, 0);
-				dw_tree_item_change_data(tree, item, (void *)tempitem);
+				dw_tree_item_set_data(tree, item, (void *)tempitem);
 			}
 		}
 		DosFindClose(hdir);
@@ -8248,7 +8248,7 @@ void _populate_tree_thread(void *data)
 
 			items[drive] = dw_tree_insert(tree, name, WinLoadFileIcon(folder, TRUE), NULL, 0);
 			tempitem = dw_tree_insert(tree, "", 0, items[drive], 0);
-			dw_tree_item_change_data(tree, items[drive], (void *)tempitem);
+			dw_tree_item_set_data(tree, items[drive], (void *)tempitem);
 		}
 		else
 			items[drive] = 0;
@@ -8342,7 +8342,7 @@ int DWSIGNAL _tree_expand(HWND window, HTREEITEM item, void *data)
 	{
 		char *folder = _tree_folder(window, item);
 
-		dw_tree_item_change_data(window, item, 0);
+		dw_tree_item_set_data(window, item, 0);
 		dw_tree_item_delete(window, tempitem);
 
 		if(*folder)
