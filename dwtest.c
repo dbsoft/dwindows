@@ -436,7 +436,7 @@ void archive_add(void)
 
 	dw_box_pack_start(lbbox, browsebox, 0, 0, TRUE, TRUE, 0);
 
-	entryfield = dw_combobox_new("", 100L);
+	entryfield = dw_entryfield_new("", 100L);
 
 	dw_entryfield_set_limit(entryfield, 260);
 
