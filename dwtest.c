@@ -259,6 +259,7 @@ void archive_add(void)
 void text_add(void)
 {
 	int depth = dw_color_depth();
+	HWND vscrollbox;
 
 	/* create a box to pack into the notebook page */
 	pagebox = dw_box_new(BOXHORZ, 2);
@@ -283,11 +284,14 @@ void text_add(void)
 	dw_window_set_font(textbox2, FIXEDFONT);
 	/* create horizonal scrollbar */
 	hscrollbar = dw_scrollbar_new(FALSE, 100, 50);
-	dw_box_pack_start( textboxA, hscrollbar, 100, 20, TRUE, FALSE, 0);
+	dw_box_pack_start( textboxA, hscrollbar, 100, 14, TRUE, FALSE, 0);
 
 	/* create vertical scrollbar */
+	vscrollbox = dw_box_new(BOXVERT, 0);
 	vscrollbar = dw_scrollbar_new(TRUE, 100, 50);
-	dw_box_pack_start(pagebox, vscrollbar, 20, 100, FALSE, TRUE, 0);
+	dw_box_pack_start(vscrollbox, vscrollbar, 14, 100, FALSE, TRUE, 0);
+	dw_box_pack_start(vscrollbox, 0, 14, 14, FALSE, FALSE, 0);
+	dw_box_pack_start(pagebox, vscrollbox, 0, 0, FALSE, TRUE, 0);
 
 	text1pm = dw_pixmap_new( textbox1, (font_width*width1)+2, font_height*rows, depth );
 	text2pm = dw_pixmap_new( textbox2, font_width*cols, font_height*rows, depth );
