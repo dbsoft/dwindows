@@ -13,6 +13,26 @@ Splitbars are not implemented on Unix and only partially implemented
     on Windows.
 Boxes don't adhere to ratios on Unix.
 
+Known limitations:
+
+It is not safe all all platforms to operate on widgets before they
+are packed.  For portablity pack widgets before operating on them.
+
+On Windows a slider control will only work properly if it is the
+only slider in a box.  If there is more than one slider control 
+in a box then signals may get misdirected to the wrong control.
+
+On OS/2 slider controls will be misplaced if their postition is
+set before showing the window.  The resizing that occurs when
+showing the window invalidates the position. 
+
+On OS/2 and Windows MLE controls scrolled position may get 
+corrupted when resizing.
+
+On Unix the window manager border is not a constant value so
+environment variables DW_BORDER_WIDTH and DW_BORDER_HEIGHT
+are ysed for proper positioning.
+
 Future features:
 
 Implementing a full set of controls. Most controls common to OS/2, Windows and
