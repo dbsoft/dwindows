@@ -32,3 +32,6 @@ EXPORTS
   fsgets             @42
   fsseek             @43
 
+  locale_init        @50
+  locale_string      @51
+

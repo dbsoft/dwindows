@@ -3263,6 +3263,7 @@ int _dw_container_setup(HWND handle, unsigned long *flags, char **titles, int co
 	gtk_clist_set_column_auto_resize(GTK_CLIST(clist), 0, TRUE);
 	gtk_clist_set_selection_mode(GTK_CLIST(clist), GTK_SELECTION_SINGLE);
 	gtk_container_add(GTK_CONTAINER(handle), clist);
+	gtk_object_set_data(GTK_OBJECT(clist), "multi", (gpointer)0);
 	gtk_object_set_user_data(GTK_OBJECT(handle), (gpointer)clist);
 	gtk_widget_show(clist);
 	gtk_object_set_data(GTK_OBJECT(clist), "colcount", (gpointer)count);
@@ -3346,6 +3347,18 @@ unsigned long dw_icon_load(unsigned long module, unsigned long id)
  */
 void dw_icon_free(unsigned long handle)
 {
+}
+
+/* Clears a CList selection and associated selection list */
+void _dw_unselect(GtkWidget *clist)
+{
+	GList *list = (GList *)gtk_object_get_data(GTK_OBJECT(clist), "selectlist");
+
+	if(list)
+		g_list_free(list);
+
+	gtk_object_set_data(GTK_OBJECT(clist), "selectlist", NULL);
+	gtk_clist_unselect_all(GTK_CLIST(clist));
 }
 
 /*
@@ -3569,7 +3582,6 @@ void dw_container_insert(HWND handle, void *pointer, int rowcount)
 void dw_container_delete(HWND handle, int rowcount)
 {
 	GtkWidget *clist;
-	GList *list;
 	int _locked_by_me = FALSE;
 
 	DW_MUTEX_LOCK;
@@ -3578,9 +3590,9 @@ void dw_container_delete(HWND handle, int rowcount)
 	{
 		int rows, z;
 
-		list = (GList *)gtk_object_get_data(GTK_OBJECT(clist), "selectlist");
 		rows = (int)gtk_object_get_data(GTK_OBJECT(clist), "rowcount");
-		g_list_free(list);
+
+		_dw_unselect(clist);
 
 		for(z=0;z<rowcount;z++)
 			gtk_clist_remove(GTK_CLIST(clist), 0);
@@ -3590,7 +3602,6 @@ void dw_container_delete(HWND handle, int rowcount)
 		else
 			rows -= rowcount;
 
-		gtk_object_set_data(GTK_OBJECT(clist), "selectlist", NULL);
 		gtk_object_set_data(GTK_OBJECT(clist), "rowcount", (gpointer)rows);
 	}
 	DW_MUTEX_UNLOCK;
@@ -3605,16 +3616,13 @@ void dw_container_delete(HWND handle, int rowcount)
 void dw_container_clear(HWND handle, int redraw)
 {
 	GtkWidget *clist;
-	GList *list;
 	int _locked_by_me = FALSE;
 
 	DW_MUTEX_LOCK;
 	clist = (GtkWidget*)gtk_object_get_user_data(GTK_OBJECT(handle));
 	if(clist && GTK_IS_CLIST(clist))
 	{
-		list = (GList *)gtk_object_get_data(GTK_OBJECT(clist), "selectlist");
-		g_list_free(list);
-		gtk_object_set_data(GTK_OBJECT(clist), "selectlist", NULL);
+		_dw_unselect(clist);
 		gtk_clist_clear(GTK_CLIST(clist));
 		gtk_object_set_data(GTK_OBJECT(clist), "rowcount", (gpointer)0);
 	}
@@ -3811,6 +3819,9 @@ void dw_container_cursor(HWND handle, char *text)
 		{
 			gfloat pos;
 			GtkAdjustment *adj = gtk_clist_get_vadjustment(GTK_CLIST(clist));
+
+			_dw_unselect(clist);
+
 			gtk_clist_select_row(GTK_CLIST(clist), z, 0);
 
 			pos = ((adj->upper - adj->lower) * ((gfloat)z/(gfloat)rowcount)) + adj->lower;
