@@ -18,6 +18,12 @@
 #include <sys/time.h>
 #include <dirent.h>
 #include <sys/stat.h>
+#include <signal.h>
+#include <sys/socket.h>
+#include <sys/un.h>
+#include <sys/mman.h>
+#include <fcntl.h>
+#include <unistd.h>
 #include "config.h"
 #include <gdk/gdkkeysyms.h>
 #ifdef USE_IMLIB
@@ -7535,7 +7541,7 @@ HEV dw_named_event_new(char *name)
 	DWTID dwthread;
 
 	if(!tmpsock)
-		return DB_EVENT_NO_MEM;
+		return NULL;
 
 	tmpsock[0] = socket(AF_UNIX, SOCK_STREAM, 0);
 	ev = socket(AF_UNIX, SOCK_STREAM, 0);
@@ -7564,12 +7570,12 @@ HEV dw_named_event_new(char *name)
 		if(ev > -1)
 			close(ev);
 		free(tmpsock);
-		return 0;
+		return NULL;
 	}
 
 	/* Create a thread to handle this event semaphore */
 	pthread_create(&dwthread, NULL, (void *)_handle_sem, (void *)tmpsock);
-	return ev;
+	return (HEV)ev;
 }
 
 /* Open an already existing named event semaphore.
@@ -7583,14 +7589,14 @@ HEV dw_named_event_get(char *name)
 	struct sockaddr_un un;
 	int ev = socket(AF_UNIX, SOCK_STREAM, 0);
 	if(ev < 0)
-		return 0;
+		return NULL;
 
 	un.sun_family=AF_UNIX;
 	mkdir("/tmp/.dw", S_IWGRP|S_IWOTH);
 	strcpy(un.sun_path, "/tmp/.dw/");
 	strcat(un.sun_path, name);
 	connect(ev, (struct sockaddr *)&un, sizeof(un));
-	return ev;
+	return (HEV)ev;
 }
 
 /* Resets the event semaphore so threads who call wait
@@ -7604,10 +7610,10 @@ int dw_named_event_reset(HEV eve)
 	/* signal reset */
 	char tmp = (char)0;
 
-	if(eve < 0)
+	if((int)eve < 0)
 		return 0;
 
-	if(write(eve, &tmp, 1) == 1)
+	if(write((int)eve, &tmp, 1) == 1)
 		return 0;
 	return 1;
 }
@@ -7624,10 +7630,10 @@ int dw_named_event_post(HEV eve)
 	/* signal post */
 	char tmp = (char)1;
 
-	if(eve < 0)
+	if((int)eve < 0)
 		return 0;
 
-	if(write(eve, &tmp, 1) == 1)
+	if(write((int)eve, &tmp, 1) == 1)
 		return 0;
 	return 1;
 }
@@ -7647,8 +7653,8 @@ int dw_named_event_wait(HEV eve, unsigned long timeout)
 	int retval = 0;
 	char tmp;
 
-	if(eve < 0)
-		return DB_EVENT_NON_INIT;
+	if((int)eve < 0)
+		return DW_ERROR_NON_INIT;
 
 	/* Set the timout or infinite */
 	if(timeout == -1)
@@ -7662,27 +7668,27 @@ int dw_named_event_wait(HEV eve, unsigned long timeout)
 	}
 
 	FD_ZERO(&rd);
-	FD_SET(eve, &rd);
+	FD_SET((int)eve, &rd);
 
 	/* Signal wait */
 	tmp = (char)2;
-	write(eve, &tmp, 1);
+	write((int)eve, &tmp, 1);
 
-	retval = select(eve+1, &rd, NULL, NULL, useme);
+	retval = select((int)eve+1, &rd, NULL, NULL, useme);
 
 	/* Signal done waiting. */
 	tmp = (char)3;
-	write(eve, &tmp, 1);
+	write((int)eve, &tmp, 1);
 
 	if(retval == 0)
-		return DW_EVENT_TIMEOUT;
+		return DW_ERROR_TIMEOUT;
 	else if(retval == -1)
-		return DW_EVENT_INTERRUPT;
+		return DW_ERROR_INTERRUPT;
 
 	/* Clear the entry from the pipe so
 	 * we don't loop endlessly. :)
 	 */
-	read(eve, &tmp, 1);
+	read((int)eve, &tmp, 1);
 	return 0;
 }
 
@@ -7697,7 +7703,7 @@ int dw_named_event_close(HEV eve)
 	/* Finally close the domain socket,
 	 * cleanup will continue in _handle_sem.
 	 */
-	close(eve);
+	close((int)eve);
 	return 0;
 }
 
@@ -7728,13 +7734,16 @@ void _dwthreadstart(void *data)
 HSHM dw_named_memory_new(void **dest, int size, char *name)
 {
 	char namebuf[1024];
-	HSHM handle;
+	struct _dw_unix_shm *handle = malloc(sizeof(struct _dw_unix_shm));
 
 	mkdir("/tmp/.dw", S_IWGRP|S_IWOTH);
 	sprintf(namebuf, "/tmp/.dw/%s", name);
 
 	if((handle->fd = open(namebuf, O_CREAT | O_RDWR, S_IRUSR | S_IWUSR)) < 0)
-		return 0;
+	{
+		free(handle);
+		return NULL;
+	}
 
 	ftruncate(handle->fd, size);
 
@@ -7745,7 +7754,8 @@ HSHM dw_named_memory_new(void **dest, int size, char *name)
 	{
 		close(handle->fd);
 		*dest = NULL;
-		return 0;
+		free(handle);
+		return NULL;
 	}
 
 	handle->size = size;
@@ -7765,13 +7775,16 @@ HSHM dw_named_memory_new(void **dest, int size, char *name)
 HSHM dw_named_memory_get(void **dest, int size, char *name)
 {
 	char namebuf[1024];
-	HSHM handle;
+	struct _dw_unix_shm *handle = malloc(sizeof(struct _dw_unix_shm));
 
 	mkdir("/tmp/.dw", S_IWGRP|S_IWOTH);
 	sprintf(namebuf, "/tmp/.dw/%s", name);
 
 	if((handle->fd = open(namebuf, O_RDWR)) < 0)
-		return -1;
+	{
+		free(handle);
+		return NULL;
+	}
 
 	/* attach the shared memory segment to our process's address space. */
 	*dest = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED, handle->fd, 0);
@@ -7780,7 +7793,8 @@ HSHM dw_named_memory_get(void **dest, int size, char *name)
 	{
 		close(handle->fd);
 		*dest = NULL;
-		return 0;
+		free(handle);
+		return NULL;
 	}
 
 	handle->size = size;
@@ -7798,17 +7812,18 @@ HSHM dw_named_memory_get(void **dest, int size, char *name)
  */
 int dw_named_memory_free(HSHM handle, void *ptr)
 {
-	int rc = munmap(ptr, handle.size);
+	struct _dw_unix_shm *h = handle;
+	int rc = munmap(ptr, h->size);
 
-	close(handle.fd);
-	if(handle.path)
+	close(h->fd);
+	if(h->path)
 	{
 		/* Only remove the actual file if we are the
 		 * creator of the file.
 		 */
-		if(handle.sid != -1 && handle.sid == getsid(0))
-			remove(handle.path);
-		free(handle.path);
+		if(h->sid != -1 && h->sid == getsid(0))
+			remove(h->path);
+		free(h->path);
 	}
 	return rc;
 }
