@@ -32,6 +32,9 @@
 
 #define QWP_USER 0
 
+/* The toolkit headers don't seem to have this */
+BOOL APIENTRY WinStretchPointer(HPS hps, LONG x, LONG y, LONG cx, LONG cy, HPOINTER hptr, ULONG fs);
+
 MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2);
 MRESULT EXPENTRY _wndproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2);
 void _do_resize(Box *thisbox, int x, int y);
@@ -3013,7 +3016,7 @@ MRESULT EXPENTRY _button_draw(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2, PFNW
 	HPOINTER icon = (HPOINTER)dw_window_get_data(hwnd, "_dw_button_icon");
 	MRESULT res;
 	unsigned long width, height;
-	int x, y;
+	int x = 5, y = 5;
 
 	dw_window_get_pos_size(hwnd, NULL, NULL, &width, &height);
 
@@ -3025,21 +3028,49 @@ MRESULT EXPENTRY _button_draw(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2, PFNW
 	{
 		ULONG halftone = DP_NORMAL;
 		HPS hps = WinGetPS(hwnd);
+		POINTERINFO pi;
+		int cx, cy;
 
 		if(dw_window_get_data(hwnd, "_dw_disabled"))
 			halftone = DP_HALFTONED;
 
-		x = (width - 16)/2;
-		y = (height - 16)/2;
+		cx = width - 10;
+		cy = height - 10;
 
-		WinDrawPointer(hps, x + indent, y - indent, icon, halftone | DP_MINI);
+		if(WinQueryPointerInfo(icon, &pi))
+		{
+			BITMAPINFOHEADER sl;
+			int newcx = cx, newcy = cy;
+
+			/* Check the mini icon first */
+			if(GpiQueryBitmapParameters(pi.hbmMiniColor, &sl))
+			{
+				if(sl.cx && sl.cy && cx > sl.cx && cy > sl.cy)
+				{
+					newcx = sl.cx;
+					newcy = sl.cy;
+				}
+			}
+			/* Check the normal icon second */
+			if(GpiQueryBitmapParameters(pi.hbmColor, &sl))
+			{
+				if(sl.cx && sl.cy && cx > sl.cx && cy > sl.cy)
+				{
+					newcx = sl.cx;
+					newcy = sl.cy;
+				}
+			}
+			cx = newcx; cy = newcy;
+			x = (width - cx)/2;
+			y = (height - cy)/2;
+		}
+		WinStretchPointer(hps, x + indent, y - indent, cx, cy, icon, halftone);
 		WinReleasePS(hps);
 	}
 	else if(pixmap)
 	{
 		x = (width - pixmap->width)/2;
 		y = (height - pixmap->height)/2;
-
 
 		if(disable && dw_window_get_data(hwnd, "_dw_disabled"))
 			dw_pixmap_bitblt(hwnd, 0, x + indent, y + indent, pixmap->width, pixmap->height, 0, disable, 0, 0);
