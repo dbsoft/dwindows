@@ -7002,9 +7002,9 @@ int remove_userdata(UserData **root, char *varname, int all)
 		{
 			if(!prev)
 			{
+				*root = tmp->next;
 				free(tmp->varname);
 				free(tmp);
-				*root = tmp->next;
 				return 0;
 			}
 			else

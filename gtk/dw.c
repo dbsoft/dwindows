@@ -1233,9 +1233,10 @@ int _set_font(HWND handle, char *fontname)
 	PangoFontDescription *font = pango_font_description_from_string(fontname);
   
 	if(font)
+	{
 		gtk_widget_modify_font(handle, font);
- 
-	pango_font_description_free(font);
+		pango_font_description_free(font);
+	}
 #endif
 	return retval;
 }
@@ -1250,12 +1251,13 @@ int dw_window_set_font(HWND handle, char *fontname)
 {
 #if GTK_MAJOR_VERSION > 1
 	PangoFontDescription *pfont;
+#else
+	GdkFont *gdkfont;
 #endif
 	GtkWidget *handle2 = handle;
 	char *font;
 	int _locked_by_me = FALSE;
 	gpointer data;
-	GdkFont *gdkfont;
 
 	DW_MUTEX_LOCK;
 	if(GTK_IS_SCROLLED_WINDOW(handle))
@@ -1266,27 +1268,31 @@ int dw_window_set_font(HWND handle, char *fontname)
 	}
 	font = strdup(fontname);
 
+#if GTK_MAJOR_VERSION < 2
 	/* Free old font if it exists */
 	gdkfont = (GdkFont *)gtk_object_get_data(GTK_OBJECT(handle2), "gdkfont");
 	if(gdkfont)
 		gdk_font_unref(gdkfont);
 	gdkfont = gdk_font_load(fontname);
+	if(!gdkfont)
+		gdkfont = gdk_font_load("fixed");
 	gtk_object_set_data(GTK_OBJECT(handle2), "gdkfont", (gpointer)gdkfont);
+#endif
 
 	/* Free old font name if one is allocated */
 	data = gtk_object_get_data(GTK_OBJECT(handle2), "fontname");
 	if(data)
 		free(data);
 
-	if(font)
-		gtk_object_set_data(GTK_OBJECT(handle2), "fontname", (gpointer)font);
+	gtk_object_set_data(GTK_OBJECT(handle2), "fontname", (gpointer)font);
 #if GTK_MAJOR_VERSION > 1
 	pfont = pango_font_description_from_string(fontname);
 
 	if(pfont)
+	{
 		gtk_widget_modify_font(handle2, pfont);
-
-	pango_font_description_free(pfont);
+		pango_font_description_free(pfont);
+	}
 #endif
 	DW_MUTEX_UNLOCK;
 	return TRUE;
@@ -1322,7 +1328,9 @@ void _save_gdk_colors(HWND handle, GdkColor fore, GdkColor back)
 
 int _set_color(HWND handle, unsigned long fore, unsigned long back)
 {
+#if GTK_MAJOR_VERSION < 2
 	GtkStyle *style;
+#endif
 
 	if(fore & DW_RGB_COLOR || back & DW_RGB_COLOR)
 	{
@@ -1335,10 +1343,25 @@ int _set_color(HWND handle, unsigned long fore, unsigned long back)
 		gdk_color_alloc(_dw_cmap, &forecolor);
 		gdk_color_alloc(_dw_cmap, &backcolor);
 
+#if GTK_MAJOR_VERSION > 1
+		gtk_widget_modify_text(handle, 0, &forecolor);
+		gtk_widget_modify_text(handle, 1, &forecolor);
+		gtk_widget_modify_fg(handle, 0, &forecolor);
+		gtk_widget_modify_fg(handle, 1, &forecolor);
+		gtk_widget_modify_base(handle, 0, &backcolor);
+		gtk_widget_modify_base(handle, 1, &backcolor);
+		gtk_widget_modify_bg(handle, 0, &backcolor);
+		gtk_widget_modify_bg(handle, 1, &backcolor);
+#else
 		style = gtk_style_copy(gtk_widget_get_style(handle));
-		style->text[0] = style->text[1] = style->fg[0] = style->fg[1] = forecolor;
-		style->base[0] = style->base[1] = style->bg[0] = style->bg[1] = backcolor;
-		gtk_widget_set_style(handle, style);
+		if(style)
+		{
+			style->text[0] = style->text[1] = style->fg[0] = style->fg[1] = forecolor;
+			style->base[0] = style->base[1] = style->bg[0] = style->bg[1] = backcolor;
+			gtk_widget_set_style(handle, style);
+			gtk_style_unref(style);
+		}
+#endif
 
 		_save_gdk_colors(handle, forecolor, backcolor);
 
@@ -1355,10 +1378,24 @@ int _set_color(HWND handle, unsigned long fore, unsigned long back)
 	}
 	else
 	{
+#if GTK_MAJOR_VERSION > 1
+		gtk_widget_modify_text(handle, 0, &_colors[fore]);
+		gtk_widget_modify_text(handle, 1, &_colors[fore]);
+		gtk_widget_modify_fg(handle, 0, &_colors[fore]);
+		gtk_widget_modify_fg(handle, 1, &_colors[fore]);
+		gtk_widget_modify_base(handle, 0, &_colors[back]);
+		gtk_widget_modify_base(handle, 1, &_colors[back]);
+		gtk_widget_modify_bg(handle, 0, &_colors[back]);
+		gtk_widget_modify_bg(handle, 1, &_colors[back]);
+#else
 		style = gtk_style_copy(gtk_widget_get_style(handle));
-		style->text[0] = style->text[1] = style->fg[0] = style->fg[1] = _colors[fore];
-		style->base[0] = style->base[1] = style->bg[0] = style->bg[1] = _colors[back];
-		gtk_widget_set_style(handle, style);
+		if(style)
+		{
+			style->text[0] = style->text[1] = style->fg[0] = style->fg[1] = _colors[fore];
+			style->base[0] = style->base[1] = style->bg[0] = style->bg[1] = _colors[back];
+			gtk_widget_set_style(handle, style);
+		}
+#endif
 
 		_save_gdk_colors(handle, _colors[fore], _colors[back]);
 
@@ -1390,15 +1427,9 @@ int dw_window_set_color(HWND handle, unsigned long fore, unsigned long back)
 
 	DW_MUTEX_LOCK;
 
-	if(GTK_IS_SCROLLED_WINDOW(handle))
+	if(GTK_IS_SCROLLED_WINDOW(handle) || GTK_IS_BOX(handle))
 	{
 		GtkWidget *tmp = (GtkWidget *)gtk_object_get_user_data(GTK_OBJECT(handle));
-		if(tmp)
-			handle2 = tmp;
-	}
-	else if(GTK_IS_BOX(handle))
-	{
-		GtkWidget *tmp = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(handle), "mle");
 		if(tmp)
 			handle2 = tmp;
 	}
@@ -2109,7 +2140,6 @@ HWND dw_mle_new(unsigned long id)
 	tmp = gtk_text_view_new();
 	gtk_container_add (GTK_CONTAINER(tmpbox), tmp);
 	gtk_text_view_set_wrap_mode(GTK_TEXT_VIEW(tmp), GTK_WRAP_NONE);
-	gtk_object_set_user_data(GTK_OBJECT(tmpbox), (gpointer)tmp);
 	scroller = NULL;  
 #else
 	tmpbox = gtk_hbox_new(FALSE, 0);
@@ -2123,7 +2153,7 @@ HWND dw_mle_new(unsigned long id)
 	gtk_widget_show(scroller);
 #endif
 	gtk_object_set_data(GTK_OBJECT(tmp), "id", (gpointer)id);
-	gtk_object_set_data(GTK_OBJECT(tmpbox), "mle", (gpointer)tmp);
+	gtk_object_set_user_data(GTK_OBJECT(tmpbox), (gpointer)tmp);
 	gtk_widget_show(tmp);
 	gtk_widget_show(tmpbox);
 	DW_MUTEX_UNLOCK;
@@ -2557,7 +2587,7 @@ unsigned int dw_mle_import(HWND handle, char *buffer, int startpoint)
 	if(GTK_IS_BOX(handle))
 #endif
 	{
-		GtkWidget *tmp = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(handle), "mle");
+		GtkWidget *tmp = (GtkWidget *)gtk_object_get_user_data(GTK_OBJECT(handle));
 
 #if GTK_MAJOR_VERSION > 1
 		if(tmp && GTK_IS_TEXT_VIEW(tmp))
@@ -2572,7 +2602,7 @@ unsigned int dw_mle_import(HWND handle, char *buffer, int startpoint)
 			gtk_text_buffer_get_iter_at_offset(tbuffer, &iter, startpoint);
 			gtk_text_buffer_place_cursor(tbuffer, &iter);
 			gtk_text_buffer_insert_at_cursor(tbuffer, impbuf, -1);
-			tmppoint = startpoint + strlen(impbuf);      
+			tmppoint = (startpoint > -1 ? startpoint : 0) + strlen(impbuf);
 			free(impbuf);
 		}
 #else
@@ -2617,7 +2647,7 @@ void dw_mle_export(HWND handle, char *buffer, int startpoint, int length)
 	if(GTK_IS_BOX(handle))
 #endif
 	{
-		GtkWidget *tmp = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(handle), "mle");
+		GtkWidget *tmp = (GtkWidget *)gtk_object_get_user_data(GTK_OBJECT(handle));
 
 #if GTK_MAJOR_VERSION > 1
 		if(tmp && GTK_IS_TEXT_VIEW(tmp))
@@ -2667,7 +2697,7 @@ void dw_mle_query(HWND handle, unsigned long *bytes, unsigned long *lines)
 #if GTK_MAJOR_VERSION > 1
 	if(GTK_IS_SCROLLED_WINDOW(handle))
 	{
-		GtkWidget *tmp = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(handle), "mle");
+		GtkWidget *tmp = (GtkWidget *)gtk_object_get_user_data(GTK_OBJECT(handle));
 
 		if(tmp && GTK_IS_TEXT_VIEW(tmp))
 		{
@@ -2682,7 +2712,7 @@ void dw_mle_query(HWND handle, unsigned long *bytes, unsigned long *lines)
 #else
 	if(GTK_IS_BOX(handle))
 	{
-		GtkWidget *tmp = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(handle), "mle");
+		GtkWidget *tmp = (GtkWidget *)gtk_object_get_user_data(GTK_OBJECT(handle));
 
 		if(tmp && GTK_IS_TEXT(tmp))
 		{
@@ -2731,7 +2761,7 @@ void dw_mle_delete(HWND handle, int startpoint, int length)
 	if(GTK_IS_BOX(handle))
 #endif
 	{
-		GtkWidget *tmp = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(handle), "mle");
+		GtkWidget *tmp = (GtkWidget *)gtk_object_get_user_data(GTK_OBJECT(handle));
 
 #if GTK_MAJOR_VERSION > 1
 		if(tmp && GTK_IS_TEXT_VIEW(tmp))
@@ -2768,7 +2798,7 @@ void dw_mle_clear(HWND handle)
 #if GTK_MAJOR_VERSION > 1
 	if(GTK_IS_SCROLLED_WINDOW(handle))
 	{
-		GtkWidget *tmp = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(handle), "mle");
+		GtkWidget *tmp = (GtkWidget *)gtk_object_get_user_data(GTK_OBJECT(handle));
 
 		if(tmp && GTK_IS_TEXT_VIEW(tmp))
 		{
@@ -2781,7 +2811,7 @@ void dw_mle_clear(HWND handle)
 #else
 	if(GTK_IS_BOX(handle))
 	{
-		GtkWidget *tmp = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(handle), "mle");
+		GtkWidget *tmp = (GtkWidget *)gtk_object_get_user_data(GTK_OBJECT(handle));
 
 		if(tmp && GTK_IS_TEXT(tmp))
 		{
@@ -2809,7 +2839,7 @@ void dw_mle_set_visible(HWND handle, int line)
 #else
 	if(GTK_IS_BOX(handle))
 	{
-		GtkWidget *tmp = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(handle), "mle");
+		GtkWidget *tmp = (GtkWidget *)gtk_object_get_user_data(GTK_OBJECT(handle));
 
 		if(tmp && GTK_IS_TEXT(tmp))
 		{
@@ -2846,7 +2876,7 @@ void dw_mle_set_editable(HWND handle, int state)
 #if GTK_MAJOR_VERSION > 1
 	if(GTK_IS_SCROLLED_WINDOW(handle))
 	{
-		GtkWidget *tmp = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(handle), "mle");
+		GtkWidget *tmp = (GtkWidget *)gtk_object_get_user_data(GTK_OBJECT(handle));
 
 		if(tmp && GTK_IS_TEXT_VIEW(tmp))
 			gtk_text_view_set_editable(GTK_TEXT_VIEW(tmp), state);
@@ -2854,7 +2884,7 @@ void dw_mle_set_editable(HWND handle, int state)
 #else
 	if(GTK_IS_BOX(handle))
 	{
-		GtkWidget *tmp = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(handle), "mle");
+		GtkWidget *tmp = (GtkWidget *)gtk_object_get_user_data(GTK_OBJECT(handle));
 
 		if(tmp && GTK_IS_TEXT(tmp))
 			gtk_text_set_editable(GTK_TEXT(tmp), state);
@@ -2877,7 +2907,7 @@ void dw_mle_set_word_wrap(HWND handle, int state)
 #if GTK_MAJOR_VERSION > 1
 	if(GTK_IS_SCROLLED_WINDOW(handle))
 	{
-		GtkWidget *tmp = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(handle), "mle");
+		GtkWidget *tmp = (GtkWidget *)gtk_object_get_user_data(GTK_OBJECT(handle));
 
 		if(tmp && GTK_IS_TEXT_VIEW(tmp))
 			gtk_text_view_set_wrap_mode(GTK_TEXT_VIEW(tmp), GTK_WRAP_WORD);
@@ -2885,7 +2915,7 @@ void dw_mle_set_word_wrap(HWND handle, int state)
 #else
 	if(GTK_IS_BOX(handle))
 	{
-		GtkWidget *tmp = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(handle), "mle");
+		GtkWidget *tmp = (GtkWidget *)gtk_object_get_user_data(GTK_OBJECT(handle));
 
 		if(tmp && GTK_IS_TEXT(tmp))
 		{
@@ -2914,7 +2944,7 @@ void dw_mle_set(HWND handle, int point)
 	if(GTK_IS_BOX(handle))
 #endif
 	{
-		GtkWidget *tmp = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(handle), "mle");
+		GtkWidget *tmp = (GtkWidget *)gtk_object_get_user_data(GTK_OBJECT(handle));
 
 #if GTK_MAJOR_VERSION > 1
 		if(tmp && GTK_IS_TEXT_VIEW(tmp))
@@ -2968,7 +2998,7 @@ int dw_mle_search(HWND handle, char *text, int point, unsigned long flags)
 	if(GTK_IS_BOX(handle))
 #endif
 	{
-		GtkWidget *tmp = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(handle), "mle");
+		GtkWidget *tmp = (GtkWidget *)gtk_object_get_user_data(GTK_OBJECT(handle));
 
 #if GTK_MAJOR_VERSION > 1
 		if(tmp && GTK_IS_TEXT_VIEW(tmp))
@@ -3039,7 +3069,7 @@ void dw_mle_freeze(HWND handle)
 	DW_MUTEX_LOCK;
 	if(GTK_IS_BOX(handle))
 	{
-		GtkWidget *tmp = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(handle), "mle");
+		GtkWidget *tmp = (GtkWidget *)gtk_object_get_user_data(GTK_OBJECT(handle));
 
 		if(tmp && GTK_IS_TEXT(tmp))
 		{
@@ -3063,7 +3093,7 @@ void dw_mle_thaw(HWND handle)
 	DW_MUTEX_LOCK;
 	if(GTK_IS_BOX(handle))
 	{
-		GtkWidget *tmp = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(handle), "mle");
+		GtkWidget *tmp = (GtkWidget *)gtk_object_get_user_data(GTK_OBJECT(handle));
 
 		if(tmp && GTK_IS_TEXT(tmp))
 		{
@@ -4638,7 +4668,11 @@ void dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
 {
 	int _locked_by_me = FALSE;
 	GdkGC *gc = NULL;
+#if GTK_MAJOR_VERSION > 1
+	PangoFontDescription *font;
+#else
 	GdkFont *font;
+#endif
 	char *fontname = "fixed";
 
 	if(!text)
@@ -4657,6 +4691,30 @@ void dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
 	}
 	if(gc)
 	{
+#if GTK_MAJOR_VERSION > 1
+		font = pango_font_description_from_string(fontname);
+		if(font)
+		{
+			PangoContext *context = gdk_pango_context_get();
+
+			if(context)
+			{
+				PangoLayout *layout = pango_layout_new(context);
+
+				if(layout)
+				{
+					pango_layout_set_font_description(layout, font);
+					pango_layout_set_text(layout, text, strlen(text));
+
+					gdk_draw_layout(handle ? handle->window : pixmap->pixmap, gc, x, y + 2, layout);
+
+					g_object_unref(layout);
+				}
+				g_object_unref(context);
+			}
+			pango_font_description_free(font);
+		}
+#else
 		font = gdk_font_load(fontname);
 		if(font)
 		{
@@ -4667,6 +4725,7 @@ void dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
 			gdk_gc_unref(gc);
 			gdk_font_unref(font);
 		}
+#endif
 	}
 	DW_MUTEX_UNLOCK;
 }
@@ -4682,7 +4741,11 @@ void dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
 void dw_font_text_extents(HWND handle, HPIXMAP pixmap, char *text, int *width, int *height)
 {
 	int _locked_by_me = FALSE;
+#if GTK_MAJOR_VERSION > 1
+	PangoFontDescription *font;
+#else
 	GdkFont *font;
+#endif
 	char *fontname = NULL;
 
 	if(!text)
@@ -4694,6 +4757,37 @@ void dw_font_text_extents(HWND handle, HPIXMAP pixmap, char *text, int *width, i
 	else if(pixmap)
 		fontname = (char *)gtk_object_get_data(GTK_OBJECT(pixmap->handle), "fontname");
 
+#if GTK_MAJOR_VERSION > 1
+	font = pango_font_description_from_string(fontname ? fontname : "monospace 10");
+	if(font)
+	{
+		PangoContext *context = gdk_pango_context_get();
+
+		if(context)
+		{
+			PangoLayout *layout = pango_layout_new(context);
+
+			if(layout)
+			{
+				PangoRectangle rect;
+
+				pango_layout_set_font_description(layout, font);
+				pango_layout_set_text(layout, text, strlen(text));
+				pango_layout_get_pixel_extents(layout, &rect, NULL);
+
+				if(width)
+					*width = rect.width;
+				if(height)
+					*height = rect.height;
+
+				g_object_unref(layout);
+			}
+			g_object_unref(context);
+		}
+		pango_font_description_free(font);
+	}
+#else
+
 	font = gdk_font_load(fontname ? fontname : "fixed");
 	if(font)
 	{
@@ -4703,6 +4797,7 @@ void dw_font_text_extents(HWND handle, HPIXMAP pixmap, char *text, int *width, i
 			*height = gdk_string_height(font, text);
 		gdk_font_unref(font);
 	}
+#endif
 	DW_MUTEX_UNLOCK;
 }
 
@@ -5282,6 +5377,8 @@ void dw_window_set_pos_size(HWND handle, unsigned long x, unsigned long y, unsig
 		_size_allocate(GTK_WINDOW(handle));
 
 		gtk_widget_set_uposition(handle, x, y);
+		if(handle->window)
+			gdk_window_resize(handle->window, width - _dw_border_width, height - _dw_border_height);
 		gtk_window_set_default_size(GTK_WINDOW(handle), width - _dw_border_width, height - _dw_border_height);
 	}
 	else if(handle && handle->window)
@@ -5933,6 +6030,21 @@ void dw_listbox_set_text(HWND handle, unsigned int index, char *buffer)
 	DW_MUTEX_UNLOCK;
 }
 
+#if GTK_MAJOR_VERSION < 2
+/* Check if a GList item is in another GList */
+int _dw_in_list(GList *item, GList *list)
+{
+	while(list)
+	{
+		if(list->data == item->data)
+			return TRUE;
+
+		list = list->next;
+	}
+	return FALSE;
+}
+#endif
+
 /*
  * Returns the index to the current selected item or -1 when done.
  * Parameters:
@@ -5954,11 +6066,33 @@ int dw_listbox_selected_multi(HWND handle, int where)
 	}
 	if(GTK_IS_LIST(handle2))
 	{
+#if GTK_MAJOR_VERSION > 1
 		int counter = 0;
-		GList *list = GTK_LIST(handle2)->selection;
+		GList *list = GTK_LIST(handle2)->children;
+
 		while(list)
 		{
-			if(counter > where)
+			GtkItem *item = (GtkItem *)list->data;
+
+			if(item &&
+			   item->bin.container.widget.state == GTK_STATE_SELECTED
+			   && counter > where)
+			{
+				retval = counter;
+				break;
+			}
+
+
+			list = list->next;
+			counter++;
+		}
+#else
+		int counter = 0;
+		GList *list = GTK_LIST(handle2)->children;
+
+		while(list)
+		{
+			if(counter > where && _dw_in_list(list, GTK_LIST(handle2)->selection))
 			{
 				retval = counter;
 				break;
@@ -5967,6 +6101,7 @@ int dw_listbox_selected_multi(HWND handle, int where)
 			list = list->next;
 			counter++;
 		}
+#endif
 	}
 	DW_MUTEX_UNLOCK;
 	return retval;
@@ -6000,16 +6135,24 @@ unsigned int dw_listbox_selected(HWND handle)
 	{
 		int counter = 0;
 		GList *list = GTK_LIST(handle2)->children;
-		while(list)
+#if GTK_MAJOR_VERSION > 1
+		GList *selection = GTK_LIST(handle2)->undo_unselection;
+#else
+		GList *selection = GTK_LIST(handle2)->selection;
+#endif
+		if(selection)
 		{
-			if(list->data == GTK_LIST(handle2)->selection->data)
+			while(list)
 			{
-				retval = counter;
-				break;
-			}
+				if(list->data == selection->data)
+				{
+					retval = counter;
+					break;
+				}
 
-			list = list->next;
-			counter++;
+				list = list->next;
+				counter++;
+			}
 		}
 	}
 	DW_MUTEX_UNLOCK;
