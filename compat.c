@@ -208,18 +208,11 @@ int sockpipe(int *pipes)
 	return 0;
 }
 
-/* Return in K to avoid big problems exceeding an
-   unsigned long when no 64bit integers are available */
-#if (defined(__IBMC__) && __IBMC__ < 360) || (defined(__WIN32__) && !defined(__CYGWIN32__))
-unsigned long drivefree(int drive)
-#else
-unsigned long long drivefree(int drive)
-#endif
+long double drivefree(int drive)
 {
 #if defined(__EMX__) || defined(__OS2__)
 	ULONG   aulFSInfoBuf[40] = {0};
 	APIRET  rc               = NO_ERROR;
-	ULONG kbytes;
 
 	DosError(FERR_DISABLEHARDERR);
 	rc = DosQueryFSInfo(drive,
@@ -231,22 +224,17 @@ unsigned long long drivefree(int drive)
 	if (rc != NO_ERROR)
 		return 0;
 
-	kbytes = aulFSInfoBuf[3]/1024;
-
-	return (kbytes * aulFSInfoBuf[1] * aulFSInfoBuf[4]);
+	return (long double)((double)aulFSInfoBuf[3] * (double)aulFSInfoBuf[1] * (double)aulFSInfoBuf[4]);
 #elif defined(__WIN32__) || defined(WINNT)
 	char buffer[10] = "C:\\";
 	DWORD spc, bps, fc, tc;
-	ULONG kbytes;
 
 	buffer[0] = drive + 'A' - 1;
 
 	if(GetDiskFreeSpace(buffer, &spc, &bps, &fc, &tc) == 0)
 		return 0;
 
-	kbytes = fc/1024;
-
-	return (spc*bps*kbytes);
+	return (long double)((double)spc*(double)bps*(double)fc);
 #elif defined(__FreeBSD__)
 	struct statfs *fsp;
 	int entries, index = 1;
@@ -256,7 +244,7 @@ unsigned long long drivefree(int drive)
 	for (; entries-- > 0; fsp++)
 	{
 		if(index == drive)
-			return fsp->f_bsize * (fsp->f_bavail / 1024);
+			return (long double)((double)fsp->f_bsize * (double)fsp->f_bavail);
 		index++;
 	}
 	return 0;
@@ -272,12 +260,12 @@ unsigned long long drivefree(int drive)
 		{
 			if(index == drive)
 			{
-				long long size = 0;
+				long double size = 0;
 
 				if(mnt.mnt_mountp)
 				{
 					statfs(mnt.mnt_mountp, &sfs, sizeof(struct statfs), 0);
-					size = sfs.f_bsize * (sfs.f_bfree / 1024);
+					size = (long double)((double)sfs.f_bsize * (double)sfs.f_bfree);
 				}
 				fclose(fp);
 				return size;
@@ -299,12 +287,12 @@ unsigned long long drivefree(int drive)
 		{
 			if(index == drive)
 			{
-				long long size = 0;
+				long double size = 0;
 
 				if(mnt->mnt_dir)
 				{
 					statfs(mnt->mnt_dir, &sfs);
-					size = sfs.f_bsize * (sfs.f_bavail / 1024);
+					size = (long double)((double)sfs.f_bsize * (double)sfs.f_bavail);
 				}
 				endmntent(fp);
 				return size;
@@ -317,18 +305,11 @@ unsigned long long drivefree(int drive)
 #endif
 }
 
-/* Return in K to avoid big problems exceeding an
-   unsigned long when no 64bit integers are available */
-#if (defined(__IBMC__) && __IBMC__  < 360) || (defined(__WIN32__) && !defined(__CYGWIN32__))
-unsigned long drivesize(int drive)
-#else
-unsigned long long drivesize(int drive)
-#endif
+long double drivesize(int drive)
 {
 #if defined(__EMX__) || defined(__OS2__)
 	ULONG   aulFSInfoBuf[40] = {0};
 	APIRET  rc               = NO_ERROR;
-	ULONG kbytes;
 
 	DosError(FERR_DISABLEHARDERR);
 	rc = DosQueryFSInfo(drive,
@@ -340,22 +321,17 @@ unsigned long long drivesize(int drive)
 	if (rc != NO_ERROR)
 		return 0;
 
-	kbytes = aulFSInfoBuf[2]/1024;
-
-	return (kbytes * aulFSInfoBuf[1] * aulFSInfoBuf[4]);
+	return (long double)((double)aulFSInfoBuf[2] * (double)aulFSInfoBuf[1] * (double)aulFSInfoBuf[4]);
 #elif defined(__WIN32__) || defined(WINNT)
 	char buffer[10] = "C:\\";
 	DWORD spc, bps, fc, tc;
-	ULONG kbytes;
 
 	buffer[0] = drive + 'A' - 1;
 
 	if(GetDiskFreeSpace(buffer, &spc, &bps, &fc, &tc) == 0)
 		return 0;
 
-	kbytes = tc/1024;
-
-	return (spc*bps*kbytes);
+	return (long double)((double)spc*(double)bps*(double)tc);
 #elif defined(__FreeBSD__)
 	struct statfs *fsp;
 	int entries, index = 1;
@@ -365,7 +341,7 @@ unsigned long long drivesize(int drive)
 	for (; entries-- > 0; fsp++)
 	{
 		if(index == drive)
-			return fsp->f_bsize * (fsp->f_blocks / 1024);
+			return (long double)((double)fsp->f_bsize * (double)fsp->f_blocks);
 		index++;
 	}
 	return 0;
@@ -381,12 +357,12 @@ unsigned long long drivesize(int drive)
 		{
 			if(index == drive)
 			{
-				long long size = 0;
+				long double size = 0;
 
 				if(mnt.mnt_mountp)
 				{
 					statfs(mnt.mnt_mountp, &sfs, sizeof(struct statfs), 0);
-					size = sfs.f_bsize * (sfs.f_blocks / 1024);
+					size = (long double)((double)sfs.f_bsize * (double)sfs.f_blocks);
 				}
 				fclose(fp);
 				return size;
@@ -408,12 +384,12 @@ unsigned long long drivesize(int drive)
 		{
 			if(index == drive)
 			{
-				long long size = 0;
+				long double size = 0;
 
 				if(mnt->mnt_dir)
 				{
 					statfs(mnt->mnt_dir, &sfs);
-					size = sfs.f_bsize * (sfs.f_blocks / 1024);
+					size = (long double)((double)sfs.f_bsize * (double)sfs.f_blocks);
 				}
 				endmntent(fp);
 				return size;
