@@ -22,6 +22,7 @@
 #include <ctype.h>
 #include <process.h>
 #include <time.h>
+#include <direct.h>
 #include "dw.h"
 
 #define QWP_USER 0
@@ -7249,6 +7250,20 @@ char *dw_file_browse(char *title, char *defpath, char *ext, int flags)
 	return NULL;
 }
 
+/* Internal function to set drive and directory */
+int _SetPath(char *path)
+{
+	if(strlen(path)	> 2)
+	{
+		if(path[1] == ':')
+		{
+			char drive = toupper(path[0]);
+			_chdrive((drive - 'A')+1);
+		}
+	}
+	return chdir(path);
+}
+
 /*
  * Execute and external program in a seperate session.
  * Parameters:
@@ -7271,8 +7286,16 @@ int dw_exec(char *program, int type, char **params)
 int dw_browse(char *url)
 {
 	/* Is there a way to find the webbrowser in Unix? */
-	char *execargs[3], browser[1024], *newurl = NULL;
-	int len;
+	char *execargs[3], browser[1024], *olddir, *newurl = NULL;
+	int len, ret;
+
+	olddir = _getcwd(NULL, 1024);
+
+	PrfQueryProfileString(HINI_USERPROFILE, "WPURLDEFAULTSETTINGS",
+						  "DefaultWorkingDir", NULL, browser, 1024);
+
+	if(browser[0])
+		_SetPath(browser);
 
 	PrfQueryProfileString(HINI_USERPROFILE, "WPURLDEFAULTSETTINGS",
 						  "DefaultBrowserExe", NULL, browser, 1024);
@@ -7305,7 +7328,14 @@ int dw_browse(char *url)
 		}
 	}
 
-	return dw_exec(browser, DW_EXEC_GUI, execargs);
+	ret = dw_exec(browser, DW_EXEC_GUI, execargs);
+
+	if(olddir)
+	{
+		_SetPath(olddir);
+		free(olddir);
+	}
+	return ret;
 }
 
 /*
