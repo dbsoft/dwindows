@@ -4305,12 +4305,12 @@ void dw_window_set_text(HWND handle, char *text)
  */
 char *dw_window_get_text(HWND handle)
 {
-	char tempbuf[4096] = "";
+	int len = GetWindowTextLength(handle);
+	char *tempbuf = calloc(1, len + 2);
 
-	GetWindowText(handle, tempbuf, 4095);
-	tempbuf[4095] = 0;
+	GetWindowText(handle, tempbuf, len + 1);
 
-	return strdup(tempbuf);
+	return tempbuf;
 }
 
 /*
