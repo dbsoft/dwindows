@@ -11,7 +11,7 @@ COMPRESS = lxlite
 DEFS =
 LIBS =
 
-CFLAGS = -O -g -Zomf -Zmt -D__ST_MT_ERRNO__ -I. -Wall
+CFLAGS = -O -g -Zomf -Zmt -D__OS2__ -D__ST_MT_ERRNO__ -I. -Wall
 LDFLAGS = -Zdll -Zcrtdll
 RCFLAGS = -r
 
