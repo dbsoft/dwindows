@@ -1347,6 +1347,38 @@ BOOL CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 									}
 								}
 							}
+							else if(strnicmp(tmpbuf, WC_LISTVIEW, strlen(WC_LISTVIEW)+1)==0)
+							{
+								if(tem->hdr.code == LVN_ITEMCHANGED && tmp->message == TVN_SELCHANGED)
+								{
+									if(tmp->window == tem->hdr.hwndFrom)
+									{
+										LV_ITEM lvi;
+										int iItem;
+
+										iItem = ListView_GetNextItem(tmp->window, -1, LVNI_FOCUSED);
+
+										memset(&lvi, 0, sizeof(LV_ITEM));
+
+										if(iItem > -1)
+										{
+											int (*containerselectfunc)(HWND, char *, void *) = tmp->signalfunction;
+
+											lvi.iItem = iItem;
+											lvi.mask = LVIF_PARAM;
+
+											ListView_GetItem(tmp->window, &lvi);
+
+											/* Seems to be having lParam as 1 which really sucks */
+											if(lvi.lParam < 100)
+												lvi.lParam = 0;
+
+											containerselectfunc(tmp->window, (char *)lvi.lParam, tmp->data);
+											tmp = NULL;
+										}
+									}
+								}
+							}
 						}
 					}
 					break;

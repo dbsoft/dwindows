@@ -2067,18 +2067,27 @@ MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 
 										if(pci && pre->fEmphasisMask & CRA_CURSORED && (pci->rc.flRecordAttr & CRA_CURSORED))
 										{
-											int (*treeselectfunc)(HWND, HWND, char *, void *, void *) = (int (*)(HWND, HWND, char *, void *, void *))tmp->signalfunction;
-
-											if(lasthcnr == tmp->window && lastitem == (HWND)pci)
+											if(dw_window_get_data(tmp->window, "_dw_container"))
 											{
-												lasthcnr = 0;
-												lastitem = 0;
+												int (*containerselectfunc)(HWND, char *, void *) = (int (*)(HWND, char *, void *))tmp->signalfunction;
+
+												result = containerselectfunc(tmp->window, pci->rc.pszIcon, tmp->data);
 											}
 											else
 											{
-												lasthcnr = tmp->window;
-												lastitem = (HWND)pci;
-												result = treeselectfunc(tmp->window, (HWND)pci, pci->rc.pszIcon, pci->user, tmp->data);
+												int (*treeselectfunc)(HWND, HWND, char *, void *, void *) = (int (*)(HWND, HWND, char *, void *, void *))tmp->signalfunction;
+
+												if(lasthcnr == tmp->window && lastitem == (HWND)pci)
+												{
+													lasthcnr = 0;
+													lastitem = 0;
+												}
+												else
+												{
+													lasthcnr = tmp->window;
+													lastitem = (HWND)pci;
+													result = treeselectfunc(tmp->window, (HWND)pci, pci->rc.pszIcon, pci->user, tmp->data);
+												}
 											}
 											tmp = NULL;
 										}
@@ -3794,6 +3803,7 @@ HWND dw_container_new(ULONG id)
 	blah->oldproc = WinSubclassWindow(tmp, _TreeProc);
 	WinSetWindowPtr(tmp, QWP_USER, blah);
 	dw_window_set_font(tmp, DefaultFont);
+	dw_window_set_data(tmp, "_dw_container", (void *)1);
 	return tmp;
 }
 
