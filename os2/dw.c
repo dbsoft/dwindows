@@ -234,6 +234,11 @@ void _free_window_memory(HWND handle)
 
 	if(ptr)
 	{
+		WindowData *wd = (WindowData *)ptr;
+
+		if(wd->oldproc)
+			WinSubclassWindow(handle, wd->oldproc);
+
 		dw_window_set_data(handle, NULL, NULL);
 		WinSetWindowPtr(handle, QWP_USER, 0);
 		free(ptr);
