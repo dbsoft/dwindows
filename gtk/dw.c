@@ -3960,7 +3960,7 @@ void *dw_tree_get_data(HWND handle, HWND item)
 	int _locked_by_me = FALSE;
 
 	if(!handle || !item)
-		return;
+		return NULL;
 
 	DW_MUTEX_LOCK;
 	if((tree = (GtkWidget *)gtk_object_get_user_data(GTK_OBJECT(handle)))
@@ -3972,7 +3972,7 @@ void *dw_tree_get_data(HWND handle, HWND item)
 	int _locked_by_me = FALSE;
 
 	if(!handle || !item)
-		return;
+		return NULL;
 
 	DW_MUTEX_LOCK;
 	ret = (void *)gtk_object_get_data(GTK_OBJECT(item), "itemdata");
