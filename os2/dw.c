@@ -33,6 +33,7 @@
 #define QWP_USER 0
 
 MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2);
+MRESULT EXPENTRY _wndproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2);
 void _do_resize(Box *thisbox, int x, int y);
 void _handle_splitbar_resize(HWND hwnd, float percent, int type, int x, int y);
 int _load_bitmap_file(char *file, HWND handle, HBITMAP *hbm, HDC *hdc, HPS *hps, unsigned long *width, unsigned long *height);
@@ -1437,6 +1438,9 @@ MRESULT EXPENTRY _statusproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 {
 	PFNWP *blah = WinQueryWindowPtr(hWnd, QWP_USER);
 
+	if(msg == WM_MOUSEMOVE)
+	   return _wndproc(hWnd, msg, mp1, mp2);
+
 	if(blah && *blah)
 	{
 		PFNWP myfunc = *blah;
@@ -1675,6 +1679,8 @@ MRESULT EXPENTRY _entryproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 			WinSendMsg(hWnd, SLM_SETSLIDERINFO, MPFROM2SHORT(SMA_SLIDERARMPOSITION, SMA_INCREMENTVALUE), (MPARAM)pos);
 		}
 		break;
+	case WM_MOUSEMOVE:
+		return _wndproc(hWnd, msg, mp1, mp2);
 	}
 
 	if(oldproc)
@@ -1690,6 +1696,8 @@ MRESULT EXPENTRY _comboentryproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 
 	switch(msg)
 	{
+	case WM_MOUSEMOVE:
+		return _wndproc(hWnd, msg, mp1, mp2);
 	case WM_CONTEXTMENU:
 	case WM_COMMAND:
 		return _entryproc(hWnd, msg, mp1, mp2);
@@ -1739,6 +1747,8 @@ MRESULT EXPENTRY _spinentryproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 
 	switch(msg)
 	{
+	case WM_MOUSEMOVE:
+		return _wndproc(hWnd, msg, mp1, mp2);
 	case WM_CONTEXTMENU:
 	case WM_COMMAND:
 		return _entryproc(hWnd, msg, mp1, mp2);
@@ -1784,6 +1794,8 @@ MRESULT EXPENTRY _percentproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 
 	switch(msg)
 	{
+	case WM_MOUSEMOVE:
+		return _wndproc(hWnd, msg, mp1, mp2);
 	case WM_SIZE:
 		WinPostMsg(hWnd, WM_USER+7, 0, 0);
 		break;
@@ -1811,6 +1823,8 @@ MRESULT EXPENTRY _comboproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 
 	switch(msg)
 	{
+	case WM_MOUSEMOVE:
+		return _wndproc(hWnd, msg, mp1, mp2);
 	case WM_CHAR:
 		if(SHORT1FROMMP(mp2) == '\t')
 		{
@@ -2499,6 +2513,8 @@ MRESULT EXPENTRY _controlproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 
 	switch(msg)
 	{
+	case WM_MOUSEMOVE:
+		return _wndproc(hWnd, msg, mp1, mp2);
 	case WM_VSCROLL:
 	case WM_HSCROLL:
 		if(_run_event(hWnd, msg, mp1, mp2))
@@ -2655,12 +2671,15 @@ MRESULT EXPENTRY _wndproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 		break;
 	case WM_MOUSEMOVE:
 		{
-			HPOINTER ptr = (HPOINTER)dw_window_get_data(hWnd, "_dw_pointer");
+			HPOINTER pointer;
 
-			if(ptr)
-				WinSetPointer(HWND_DESKTOP, ptr);
+			if((pointer = (HPOINTER)dw_window_get_data(hWnd, "_dw_pointer")) ||
+			   (pointer = (HPOINTER)dw_window_get_data(_toplevel_window(hWnd), "_dw_pointer")))
+			{
+				WinSetPointer(HWND_DESKTOP, pointer);
+			}
 		}
-		break;
+		return MRFROMSHORT(FALSE);
 	case WM_USER:
 		windowfunc = (void (* API)(void *))mp1;
 
@@ -3009,6 +3028,8 @@ MRESULT EXPENTRY _BtProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 
 	switch(msg)
 	{
+	case WM_MOUSEMOVE:
+		return _wndproc(hwnd, msg, mp1, mp2);
 	case WM_PAINT:
 		return _button_draw(hwnd, msg, mp1, mp2, oldproc, 0);
 	case BM_SETHILITE:
@@ -3219,6 +3240,8 @@ MRESULT EXPENTRY _RendProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 	res = (int)_run_event(hwnd, msg, mp1, mp2);
 	switch(msg)
 	{
+	case WM_MOUSEMOVE:
+		return _wndproc(hwnd, msg, mp1, mp2);
 	case WM_BUTTON1DOWN:
 	case WM_BUTTON2DOWN:
 	case WM_BUTTON3DOWN:
@@ -3240,6 +3263,8 @@ MRESULT EXPENTRY _TreeProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 
 	switch(msg)
 	{
+	case WM_MOUSEMOVE:
+		return _wndproc(hwnd, msg, mp1, mp2);
 	case WM_PAINT:
 		{
 			HPS hps;
