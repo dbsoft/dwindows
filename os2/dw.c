@@ -2306,7 +2306,7 @@ void _changebox(Box *thisbox, int percent, int type)
 /* This handles any activity on the splitbars (sizers) */
 MRESULT EXPENTRY _splitwndproc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 {
-	int percent = (int)dw_window_get_data(hwnd, "_dw_percent");
+	float *percent = (float *)dw_window_get_data(hwnd, "_dw_percent");
 	int type = (int)dw_window_get_data(hwnd, "_dw_type");
 
 	switch (msg)
@@ -2324,7 +2324,7 @@ MRESULT EXPENTRY _splitwndproc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 				if(type == BOXHORZ)
 				{
 					int newx = x - SPLITBAR_WIDTH, newy = y;
-					float ratio = (float)percent/(float)100;
+					float ratio = (float)*percent/(float)100.0;
 					HWND handle = (HWND)dw_window_get_data(hwnd, "_dw_topleft");
 					Box *tmp = WinQueryWindowPtr(handle, QWP_USER);
 
@@ -2346,7 +2346,7 @@ MRESULT EXPENTRY _splitwndproc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
                 else
 				{
 					int newx = x, newy = y - SPLITBAR_WIDTH;
-					float ratio = (float)percent/(float)100;
+					float ratio = (float)*percent/(float)100.0;
 					HWND handle = (HWND)dw_window_get_data(hwnd, "_dw_topleft");
 					Box *tmp = WinQueryWindowPtr(handle, QWP_USER);
 
@@ -6718,6 +6718,7 @@ HWND dw_splitbar_new(int type, HWND topleft, HWND bottomright, unsigned long id)
 	if(tmp)
 	{
 		HWND tmpbox = dw_box_new(BOXVERT, 0);
+        float *percent = malloc(sizeof(float));
 
 		dw_box_pack_start(tmpbox, topleft, 1, 1, TRUE, TRUE, 0);
 		WinSetParent(tmpbox, tmp, FALSE);
@@ -6726,8 +6727,9 @@ HWND dw_splitbar_new(int type, HWND topleft, HWND bottomright, unsigned long id)
 		tmpbox = dw_box_new(BOXVERT, 0);
 		dw_box_pack_start(tmpbox, bottomright, 1, 1, TRUE, TRUE, 0);
 		WinSetParent(tmpbox, tmp, FALSE);
+		*percent = 50.0;
 		dw_window_set_data(tmp, "_dw_bottomright", (void *)tmpbox);
-		dw_window_set_data(tmp, "_dw_percent", (void *)50);
+		dw_window_set_data(tmp, "_dw_percent", (void *)percent);
 		dw_window_set_data(tmp, "_dw_type", (void *)type);
 	}
 	return tmp;
@@ -6738,10 +6740,13 @@ HWND dw_splitbar_new(int type, HWND topleft, HWND bottomright, unsigned long id)
  * Parameters:
  *       handle: The handle to the splitbar returned by dw_splitbar_new().
  */
-void dw_splitbar_set(HWND handle, int percent)
+void dw_splitbar_set(HWND handle, float percent)
 {
 	/* We probably need to force a redraw here */
-	dw_window_set_data(handle, "_dw_percent", (void *)percent);
+	float *mypercent = (float *)dw_window_get_data(handle, "_dw_percent");
+
+	if(mypercent)
+		*mypercent = percent;
 }
 
 /*
@@ -6749,9 +6754,13 @@ void dw_splitbar_set(HWND handle, int percent)
  * Parameters:
  *       handle: The handle to the splitbar returned by dw_splitbar_new().
  */
-int dw_splitbar_get(HWND handle)
+float dw_splitbar_get(HWND handle)
 {
-	return (int)dw_window_get_data(handle, "_dw_percent");
+	float *percent = (float *)dw_window_get_data(handle, "_dw_percent");
+
+	if(percent)
+		return *percent;
+	return 0.0;
 }
 
 /*
