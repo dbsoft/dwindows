@@ -1977,12 +1977,10 @@ MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 					if(hWnd == tmp->window && !(SHORT1FROMMP(mp1) & KC_KEYUP))
 					{
 						int vk;
-						char ch;
+						char ch = 0;
 
 						if(SHORT1FROMMP(mp1) & KC_CHAR)
 							ch = (char)SHORT1FROMMP(mp2);
-						else
-							ch = (char)SHORT2FROMMP(mp2);
 						if(SHORT1FROMMP(mp1) & KC_VIRTUALKEY)
 							vk = SHORT2FROMMP(mp2);
 						else

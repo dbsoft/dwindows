@@ -139,7 +139,7 @@ int DWSIGNAL keypress_callback(HWND window, char ch, int vk, int state, void *da
 
 	if(fp)
 	{
-		fprintf(fp,"got keypress %c %d %d\n", ch, vk, state);
+		fprintf(fp,"got keypress %c 0x%x %d %d\n", ch, ch, vk, state);
 		fclose(fp);
 	}
 	return 0;
