@@ -495,7 +495,7 @@ void dw_box_pack_end_stub(HWND box, HWND item, int width, int height, int hsize,
 #define VK_RBUTTON           GDK_Pointer_Button3
 #define VK_CANCEL            GDK_Cancel
 #define VK_MBUTTON           GDK_Pointer_Button2
-#define VK_BACK              GDK_Backspace
+#define VK_BACK              GDK_BackSpace
 #define VK_TAB               GDK_Tab
 #define VK_CLEAR             GDK_Clear
 #define VK_RETURN            GDK_Return
