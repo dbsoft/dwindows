@@ -94,24 +94,23 @@ typedef struct
 } SignalList;
 
 /* List of signals and their equivilent OS/2 message */
-#define SIGNALMAX 15
+#define SIGNALMAX 14
 
 SignalList SignalTranslate[SIGNALMAX] = {
-	{ WM_SIZE, "configure_event" },
-	{ WM_CHAR, "key_press_event" },
-	{ WM_BUTTON1DOWN, "button_press_event" },
-	{ WM_BUTTON1UP, "button_release_event"},
-	{ WM_MOUSEMOVE, "motion_notify_event" },
-	{ WM_CLOSE, "delete_event" },
-	{ WM_PAINT, "expose_event" },
-	{ WM_COMMAND, "clicked" },
-	{ CN_ENTER, "container-select" },
-	{ CN_CONTEXTMENU, "container-context" },
-	{ LN_SELECT, "item-select" },
-	{ CN_EMPHASIS, "tree-select" },
-	{ WM_SETFOCUS, "set-focus" },
-	{ WM_USER+1, "lose-focus" },
-	{ SLN_SLIDERTRACK, "value_changed" }
+	{ WM_SIZE,         DW_SIGNAL_CONFIGURE },
+	{ WM_CHAR,         DW_SIGNAL_KEY_PRESS },
+	{ WM_BUTTON1DOWN,  DW_SIGNAL_BUTTON_PRESS },
+	{ WM_BUTTON1UP,    DW_SIGNAL_BUTTON_RELEASE },
+	{ WM_MOUSEMOVE,    DW_SIGNAL_MOTION_NOTIFY },
+	{ WM_CLOSE,        DW_SIGNAL_DELETE },
+	{ WM_PAINT,        DW_SIGNAL_EXPOSE },
+	{ WM_COMMAND,      DW_SIGNAL_CLICKED },
+	{ CN_ENTER,        DW_SIGNAL_ITEM_ENTER },
+	{ CN_CONTEXTMENU,  DW_SIGNAL_ITEM_CONTEXT },
+	{ LN_SELECT,       DW_SIGNAL_LIST_SELECT },
+	{ CN_EMPHASIS,     DW_SIGNAL_ITEM_SELECT },
+	{ WM_SETFOCUS,     DW_SIGNAL_SET_FOCUS },
+	{ SLN_SLIDERTRACK, DW_SIGNAL_VALUE_CHANGED }
 };
 
 /* This function adds a signal handler callback into the linked list.
@@ -4708,16 +4707,16 @@ void API dw_window_disable(HWND handle)
 		case 7:
 			hwnd = _find_entryfield(handle);
 			_dw_window_set_color(hwnd ? hwnd : handle, DW_CLR_BLACK, DW_CLR_PALEGRAY);
-			dw_signal_connect(hwnd ? hwnd : handle, "key_press_event", DW_SIGNAL_FUNC(_null_key), (void *)100);
+			dw_signal_connect(hwnd ? hwnd : handle, DW_SIGNAL_KEY_PRESS, DW_SIGNAL_FUNC(_null_key), (void *)100);
             if(val == 2)
-				dw_signal_connect(handle, "button_press_event", DW_SIGNAL_FUNC(_null_key), (void *)100);
+				dw_signal_connect(handle, DW_SIGNAL_BUTTON_PRESS, DW_SIGNAL_FUNC(_null_key), (void *)100);
 			if(hwnd)
 				dw_window_set_data(hwnd, "_dw_disabled", (void *)1);
 			return;
 		case 3:
 			_dw_window_set_color(handle, DW_CLR_DARKGRAY, DW_CLR_PALEGRAY);
-			dw_signal_connect(handle, "key_press_event", DW_SIGNAL_FUNC(_null_key), (void *)100);
-			dw_signal_connect(handle, "button_press_event", DW_SIGNAL_FUNC(_null_key), (void *)100);
+			dw_signal_connect(handle, DW_SIGNAL_KEY_PRESS, DW_SIGNAL_FUNC(_null_key), (void *)100);
+			dw_signal_connect(handle, DW_SIGNAL_BUTTON_PRESS, DW_SIGNAL_FUNC(_null_key), (void *)100);
 			return;
 		}
 	}
