@@ -8050,21 +8050,6 @@ void API dw_signal_connect(HWND window, char *signame, void *sigfunc, void *data
 {
 	ULONG message = 0L;
 
-	if(strcmp(signame, "lose-focus") == 0)
-	{
-		char tmpbuf[100];
-
-		WinQueryClassName(window, 99, tmpbuf);
-
-		if(strncmp(tmpbuf, "#2", 3) == 0)
-		{
-			HENUM henum = WinBeginEnumWindows(window);
-			HWND child = WinGetNextWindow(henum);
-			WinEndEnumWindows(henum);
-			if(child)
-				window = child;
-		}
-	}
 	if(window && signame && sigfunc)
 	{
 		if((message = _findsigmessage(signame)) != 0)
