@@ -2824,7 +2824,12 @@ void dw_window_set_text(HWND handle, char *text)
 	else if(GTK_IS_LABEL(handle))
 		gtk_label_set_text(GTK_LABEL(handle), text);
 	else if(GTK_IS_BUTTON(handle))
-		gtk_label_set_text(GTK_LABEL(GTK_BUTTON(handle)->child), text);
+	{
+		GtkWidget *label = GTK_BUTTON(handle)->child;
+
+		if(GTK_IS_LABEL(label))
+			gtk_label_set_text(GTK_LABEL(label), text);
+	}
 	else if(GTK_IS_FRAME(handle))
 	{
 		GtkWidget *tmp = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(handle), "_dw_label");
