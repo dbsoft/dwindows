@@ -16,6 +16,23 @@
 #endif
 #endif
 
+#ifdef __UNIX__
+void msleep(long period)
+{
+#ifdef __sun__
+	/* usleep() isn't threadsafe on Solaris */
+	struct timespec req;
+
+	req.tv_sec = 0;
+	req.tv_nsec = period * 1000000;
+
+	nanosleep(&req, NULL);
+#else
+	usleep(period * 1000);
+#endif
+}
+#endif
+
 int	sockread (int a, void *b, int c, int d)
 {
 #if defined(__IBMC__) || (defined(__WIN32__) && !defined(__CYGWIN32__))
@@ -66,6 +83,21 @@ void nonblock(int fd)
 	ioctlsocket(fd, FIONBIO, &_nonblock);
 #else
 	fcntl(fd, F_SETFL, O_NONBLOCK);
+#endif
+}
+
+void block(int fd)
+{
+#ifdef __IBMC__
+	static int _nonblock = 0;
+
+	ioctl(fd, FIONBIO, (char *)&_nonblock, sizeof(_nonblock));
+#elif defined(__WIN32__) && !defined(__CYGWIN32__)
+	static unsigned long _nonblock = 0;
+
+	ioctlsocket(fd, FIONBIO, &_nonblock);
+#else
+	fcntl(fd, F_SETFL, 0);
 #endif
 }
 
@@ -435,7 +467,7 @@ void getfsname(int drive, char *buf, int len)
 	/* No snprintf() on OS/2 ??? */
 	sprintf(buf, "Drive %c",  (char)drive + 'A' - 1);
 #else
-	snprintf(buf, len, "Drive %c",  (char)drive + 'A' - 1);
+	_snprintf(buf, len, "Drive %c",  (char)drive + 'A' - 1);
 #endif
 }
 

@@ -21,9 +21,12 @@
 #include <stddef.h>
 #include <ctype.h>
 #include <process.h>
+#include <time.h>
 #include "dw.h"
 
 #define QWP_USER 0
+
+MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2);
 
 char ClassName[] = "dynamicwindows";
 char SplitbarClassName[] = "dwsplitbar";
@@ -213,6 +216,9 @@ int _validate_focus(HWND handle)
 	char tmpbuf[100];
 
 	if(!handle)
+		return 0;
+
+	if(!WinIsWindowEnabled(handle))
 		return 0;
 
 	WinQueryClassName(handle, 99, tmpbuf);
@@ -923,7 +929,7 @@ int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *usedy,
 
 						if(boxinfo && boxinfo->grouphwnd)
 							WinSetWindowPos(boxinfo->grouphwnd, HWND_TOP, 0, 0,
-											width + vectorx, height + vectory, SWP_MOVE | SWP_SIZE | SWP_ZORDER);
+											width + vectorx, height + vectory, SWP_MOVE | SWP_SIZE /*| SWP_ZORDER*/);
 
 					}
 
@@ -1201,6 +1207,21 @@ MRESULT EXPENTRY _entryproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 
 	switch(msg)
 	{
+	case WM_BUTTON1DOWN:
+	case WM_BUTTON2DOWN:
+	case WM_BUTTON3DOWN:
+		{
+			char tmpbuf[100];
+
+			WinQueryClassName(hWnd, 99, tmpbuf);
+
+			if(strncmp(tmpbuf, "#32", 3)==0)
+				_run_event(hWnd, WM_SETFOCUS, FALSE, TRUE);
+		}
+		break;
+	case WM_SETFOCUS:
+		_run_event(hWnd, msg, mp1, mp2);
+		break;
 	case WM_CHAR:
 		if(SHORT1FROMMP(mp2) == '\t')
 		{
@@ -2162,6 +2183,9 @@ MRESULT EXPENTRY _BtProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 	switch(msg)
 	{
 #ifndef NO_SIGNALS
+	case WM_SETFOCUS:
+		_wndproc(hwnd, msg, mp1, mp2);
+		break;
 	case WM_BUTTON1UP:
 		{
 			SignalHandler *tmp = Root;
@@ -2428,6 +2452,28 @@ void dw_main(HAB currenthab, void *func)
 	{
 		WinDestroyMsgQueue(dwhmq);
 		WinTerminate(dwhab);
+	}
+}
+
+/*
+ * Runs a message loop for Dynamic Windows, for a period of seconds.
+ * Parameters:
+ *           seconds: Number of seconds to run the loop for.
+ */
+void dw_main_sleep(int seconds)
+{
+	QMSG qmsg;
+	time_t start = time(NULL);
+
+	while(time(NULL) - start <= seconds)
+	{
+		if(WinPeekMsg(dwhab, &qmsg, 0, 0, 0, PM_NOREMOVE))
+		{
+			WinGetMsg(dwhab, &qmsg, 0, 0, 0);
+			WinDispatchMsg(dwhab, &qmsg);
+		}
+		else
+			DosSleep(1);
 	}
 }
 
@@ -3746,9 +3792,9 @@ void dw_box_pack_end_stub(HWND box, HWND item, int width, int height, int hsize,
 
 		thisbox->count++;
 
-        /* Don't set the ownership if it's an entryfield  or combobox */
+        /* Don't set the ownership if it's an entryfield  or spinbutton */
 		WinQueryClassName(item, 99, tmpbuf);
-		if(strncmp(tmpbuf, "#6", 3)!=0 /*&& strncmp(tmpbuf, "#2", 2)!=0*/)
+		if(strncmp(tmpbuf, "#6", 3)!=0 && strncmp(tmpbuf, "#32", 3)!=0)
 		{
 			if((boxowner = WinQueryWindow(box, QW_OWNER)) != 0)
 				WinSetOwner(item, boxowner);
@@ -5847,8 +5893,8 @@ void dw_box_pack_start_stub(HWND box, HWND item, int width, int height, int hsiz
 		thisbox->count++;
 
 		WinQueryClassName(item, 99, tmpbuf);
-		/* Don't set the ownership if it's an entryfield or combobox */
-		if(strncmp(tmpbuf, "#6", 3)!=0 /*&& strncmp(tmpbuf, "#2", 2)!=0*/)
+		/* Don't set the ownership if it's an entryfield or spinbutton */
+		if(strncmp(tmpbuf, "#6", 3)!=0 && strncmp(tmpbuf, "#32", 3)!=0)
 		{
 			if((boxowner = WinQueryWindow(box, QW_OWNER)) != 0)
 				WinSetOwner(item, boxowner);

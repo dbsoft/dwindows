@@ -18,6 +18,7 @@ EXPORTS
   isdrive            @24
   drivesize          @25
   getfsname          @26
+  block              @27
 
   opendir            @30
   openxdir           @31
