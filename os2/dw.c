@@ -255,9 +255,13 @@ void _free_bitmap(HWND handle)
 	HPS hps = (HPS)dw_window_get_data(handle, "_dw_hps");
 	HDC hdc = (HDC)dw_window_get_data(handle, "_dw_hdc");
 	HPIXMAP pixmap = (HPIXMAP)dw_window_get_data(handle, "_dw_hpixmap");
+	HPIXMAP disable = (HPIXMAP)dw_window_get_data(handle, "_dw_hpixmap_disabled");
 
 	if(pixmap)
 		dw_pixmap_destroy(pixmap);
+
+	if(disable)
+		dw_pixmap_destroy(disable);
 
 	if(hps)
 	{
@@ -2779,6 +2783,7 @@ MRESULT EXPENTRY _BubbleProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 MRESULT EXPENTRY _button_draw(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2, PFNWP oldproc, int indent)
 {
 	HPIXMAP pixmap = (HPIXMAP)dw_window_get_data(hwnd, "_dw_hpixmap");
+	HPIXMAP disable = (HPIXMAP)dw_window_get_data(hwnd, "_dw_hpixmap_disabled");
 	MRESULT res;
 
 	if(!oldproc)
@@ -2795,7 +2800,10 @@ MRESULT EXPENTRY _button_draw(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2, PFNW
 		x = (width - pixmap->width)/2;
 		y = (height - pixmap->height)/2;
 
-		dw_pixmap_bitblt(hwnd, 0, x + indent, y + indent, pixmap->width, pixmap->height, 0, pixmap, 0, 0);
+		if(disable && dw_window_get_data(hwnd, "_dw_disabled"))
+			dw_pixmap_bitblt(hwnd, 0, x + indent, y + indent, pixmap->width, pixmap->height, 0, disable, 0, 0);
+		else
+			dw_pixmap_bitblt(hwnd, 0, x + indent, y + indent, pixmap->width, pixmap->height, 0, pixmap, 0, 0);
 	}
 	return res;
 }
@@ -2819,9 +2827,9 @@ MRESULT EXPENTRY _BtProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 	switch(msg)
 	{
 	case WM_PAINT:
-	case WM_BUTTON2UP:
-	case WM_BUTTON3UP:
 		return _button_draw(hwnd, msg, mp1, mp2, oldproc, 0);
+	case BM_SETHILITE:
+		return _button_draw(hwnd, msg, mp1, mp2, oldproc, (int)mp1);
 	case WM_SETFOCUS:
 		if(mp2)
 			_run_event(hwnd, msg, mp1, mp2);
@@ -2836,7 +2844,6 @@ MRESULT EXPENTRY _BtProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 	case WM_BUTTON3DBLCLK:
 		if(dw_window_get_data(hwnd, "_dw_disabled"))
 			return (MRESULT)FALSE;
-		return _button_draw(hwnd, msg, mp1, mp2, oldproc, 1);
 	case WM_BUTTON1UP:
 		{
 			SignalHandler *tmp = Root;
@@ -2866,7 +2873,7 @@ MRESULT EXPENTRY _BtProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 				}
 			}
 		}
-		return _button_draw(hwnd, msg, mp1, mp2, oldproc, 0);
+		break;
 	case WM_USER:
 		{
             SignalHandler *tmp = (SignalHandler *)mp1;
@@ -4304,6 +4311,7 @@ HWND API dw_bitmapbutton_new(char *text, ULONG id)
 	bubble->pOldProc = WinSubclassWindow(tmp, _BtProc);
 
 	WinSetWindowPtr(tmp, QWP_USER, bubble);
+	dw_window_set_data(tmp, "_dw_bitmapbutton", (void *)1);
 	return tmp;
 }
 
@@ -4331,10 +4339,13 @@ HWND dw_bitmapbutton_new_from_file(char *text, unsigned long id, char *filename)
 							   NULL,
 							   NULL);
 	char *file = alloca(strlen(filename) + 5);
-	HPIXMAP pixmap;
+	HPIXMAP pixmap = NULL, disabled = NULL;
 
 	if(file && (pixmap = calloc(1,sizeof(struct _hpixmap))))
 	{
+		int z, j, lim;
+		LONG fore;
+
 		strcpy(file, filename);
 
 		/* check if we can read from this file (it exists and read permission) */
@@ -4352,6 +4363,22 @@ HWND dw_bitmapbutton_new_from_file(char *text, unsigned long id, char *filename)
 		/* Try to load the bitmap from file */
 		if(pixmap)
 			_load_bitmap_file(file, tmp, &pixmap->hbm, &pixmap->hdc, &pixmap->hps, &pixmap->width, &pixmap->height);
+
+		/* Create a disabled style pixmap */
+		disabled = dw_pixmap_new(tmp, pixmap->width, pixmap->height, dw_color_depth());
+		dw_pixmap_bitblt(0, disabled, 0, 0, pixmap->width, pixmap->height, 0, pixmap, 0, 0);
+
+		fore = _foreground;
+		dw_color_foreground_set(DW_CLR_PALEGRAY);
+		lim = pixmap->width/2;
+		for(j=0;j<pixmap->height;j++)
+		{
+			int mod = j%2;
+
+			for(z=0;z<lim;z++)
+				dw_draw_point(0, disabled, (z*2)+mod, j);
+		}
+		_foreground = fore;
 	}
 
 	bubble->id = id;
@@ -4362,6 +4389,8 @@ HWND dw_bitmapbutton_new_from_file(char *text, unsigned long id, char *filename)
 	WinSetWindowPtr(tmp, QWP_USER, bubble);
 
 	dw_window_set_data(tmp, "_dw_hpixmap", (void *)pixmap);
+	dw_window_set_data(tmp, "_dw_hpixmap_disabled", (void *)disabled);
+	dw_window_set_data(tmp, "_dw_bitmapbutton", (void *)1);
 	return tmp;
 }
 
@@ -4802,7 +4831,12 @@ void API dw_window_disable(HWND handle)
 				dw_window_set_data(hwnd, "_dw_disabled", (void *)1);
 			return;
 		case 3:
-			_dw_window_set_color(handle, DW_CLR_DARKGRAY, DW_CLR_PALEGRAY);
+			if(dw_window_get_data(handle, "_dw_bitmapbutton") && !dw_window_get_data(handle, "_dw_hpixmap"))
+				WinEnableWindow(handle, FALSE);
+			else if(dw_window_get_data(handle, "_dw_bitmapbutton") && dw_window_get_data(handle, "_dw_hpixmap_disabled"))
+				WinInvalidateRect(handle, NULL, FALSE);
+			else
+				_dw_window_set_color(handle, DW_CLR_DARKGRAY, DW_CLR_PALEGRAY);
 			dw_signal_connect(handle, DW_SIGNAL_KEY_PRESS, DW_SIGNAL_FUNC(_null_key), (void *)100);
 			dw_signal_connect(handle, DW_SIGNAL_BUTTON_PRESS, DW_SIGNAL_FUNC(_null_key), (void *)100);
 			return;
@@ -4829,6 +4863,8 @@ void API dw_window_enable(HWND handle)
 		_dw_window_set_color(hwnd ? hwnd : handle, fore-1, back-1);
 	dw_signal_disconnect_by_data(handle, (void *)100);
 	WinEnableWindow(handle, TRUE);
+	if(dw_window_get_data(handle, "_dw_bitmapbutton") && dw_window_get_data(handle, "_dw_hpixmap_disabled"))
+		WinInvalidateRect(handle, NULL, FALSE);
 }
 
 /*
