@@ -1198,12 +1198,48 @@ MRESULT EXPENTRY _percentproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 	return WinDefWindowProc(hWnd, msg, mp1, mp2);
 }
 
+void _click_default(HWND handle)
+{
+	char tmpbuf[100];
+
+	WinQueryClassName(handle, 99, tmpbuf);
+
+	/* These are the window classes which can
+	 * obtain input focus.
+	 */
+	if(strncmp(tmpbuf, "#3", 3)==0)
+	{
+		/* Generate click on default item */
+		SignalHandler *tmp = Root;
+
+		/* Find any callbacks for this function */
+		while(tmp)
+		{
+			if(tmp->message == WM_COMMAND)
+			{
+				int (*clickfunc)(HWND, void *) = (int (*)(HWND, void *))tmp->signalfunction;
+
+				/* Make sure it's the right window, and the right ID */
+				if(tmp->window == handle)
+				{
+					clickfunc(tmp->window, tmp->data);
+					tmp = NULL;
+				}
+			}
+			if(tmp)
+				tmp= tmp->next;
+		}
+	}
+	else
+		WinSetFocus(HWND_DESKTOP, handle);
+}
+
 /* Originally just intended for entryfields, it now serves as a generic
  * procedure for handling TAB presses to change input focus on controls.
  */
 MRESULT EXPENTRY _entryproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 {
-	PFNWP *blah = WinQueryWindowPtr(hWnd, QWP_USER);
+	WindowData *blah = (WindowData *)WinQueryWindowPtr(hWnd, QWP_USER);
 
 	switch(msg)
 	{
@@ -1228,13 +1264,13 @@ MRESULT EXPENTRY _entryproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 			_shift_focus(hWnd);
 			return FALSE;
 		}
+		else if(SHORT1FROMMP(mp2) == '\r' && blah && blah->clickdefault)
+			_click_default(blah->clickdefault);
+
 		break;
 	}
-	if(blah && *blah)
-	{
-		PFNWP myfunc = *blah;
-		return myfunc(hWnd, msg, mp1, mp2);
-	}
+	if(blah && blah->oldproc)
+		return blah->oldproc(hWnd, msg, mp1, mp2);
 
 	return WinDefWindowProc(hWnd, msg, mp1, mp2);
 }
@@ -1244,7 +1280,7 @@ MRESULT EXPENTRY _entryproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
  */
 MRESULT EXPENTRY _comboproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 {
-	PFNWP *blah = WinQueryWindowPtr(hWnd, QWP_USER);
+	WindowData *blah = WinQueryWindowPtr(hWnd, QWP_USER);
 
 	switch(msg)
 	{
@@ -1254,6 +1290,8 @@ MRESULT EXPENTRY _comboproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 			_shift_focus(hWnd);
 			return FALSE;
 		}
+		else if(SHORT1FROMMP(mp2) == '\r' && blah && blah->clickdefault)
+			_click_default(blah->clickdefault);
 		break;
 	case WM_BUTTON1DOWN:
 	case WM_BUTTON2DOWN:
@@ -1289,11 +1327,8 @@ MRESULT EXPENTRY _comboproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 		}
 		break;
 	}
-	if(blah && *blah)
-	{
-		PFNWP myfunc = *blah;
-		return myfunc(hWnd, msg, mp1, mp2);
-	}
+	if(blah && blah->oldproc)
+		return blah->oldproc(hWnd, msg, mp1, mp2);
 
 	return WinDefWindowProc(hWnd, msg, mp1, mp2);
 }
@@ -2602,6 +2637,26 @@ int dw_yesno(char *title, char *text)
 }
 
 /*
+ * Makes the window topmost.
+ * Parameters:
+ *           handle: The window handle to make topmost.
+ */
+int dw_window_raise(HWND handle)
+{
+	return WinSetWindowPos(handle, HWND_TOP, 0, 0, 0, 0, SWP_ZORDER);
+}
+
+/*
+ * Makes the window bottommost.
+ * Parameters:
+ *           handle: The window handle to make bottommost.
+ */
+int dw_window_lower(HWND handle)
+{
+	return WinSetWindowPos(handle, HWND_BOTTOM, 0, 0, 0, 0, SWP_ZORDER);
+}
+
+/*
  * Makes the window visible.
  * Parameters:
  *           handle: The window handle to make visible.
@@ -3322,7 +3377,8 @@ HWND dw_mle_new(ULONG id)
  */
 HWND dw_entryfield_new(char *text, ULONG id)
 {
-	PFNWP *blah = malloc(sizeof(PFNWP));
+
+	WindowData *blah = calloc(1, sizeof(WindowData));
 	HWND tmp = WinCreateWindow(HWND_OBJECT,
 							   WC_ENTRYFIELD,
 							   text,
@@ -3335,7 +3391,7 @@ HWND dw_entryfield_new(char *text, ULONG id)
 							   NULL,
 							   NULL);
 	dw_window_set_font(tmp, DefaultFont);
-	*blah = WinSubclassWindow(tmp, _entryproc);
+	blah->oldproc = WinSubclassWindow(tmp, _entryproc);
 	WinSetWindowPtr(tmp, QWP_USER, blah);
 	return tmp;
 }
@@ -3348,7 +3404,7 @@ HWND dw_entryfield_new(char *text, ULONG id)
  */
 HWND dw_entryfield_password_new(char *text, ULONG id)
 {
-	PFNWP *blah = malloc(sizeof(PFNWP));
+	WindowData *blah = calloc(1, sizeof(WindowData));
 	HWND tmp = WinCreateWindow(HWND_OBJECT,
 							   WC_ENTRYFIELD,
 							   text,
@@ -3361,7 +3417,7 @@ HWND dw_entryfield_password_new(char *text, ULONG id)
 							   NULL,
 							   NULL);
 	dw_window_set_font(tmp, DefaultFont);
-	*blah = WinSubclassWindow(tmp, _entryproc);
+	blah->oldproc = WinSubclassWindow(tmp, _entryproc);
 	WinSetWindowPtr(tmp, QWP_USER, blah);
 	return tmp;
 }
@@ -3374,7 +3430,7 @@ HWND dw_entryfield_password_new(char *text, ULONG id)
  */
 HWND dw_combobox_new(char *text, ULONG id)
 {
-	PFNWP *blah = malloc(sizeof(PFNWP));
+	WindowData *blah = calloc(1, sizeof(WindowData));
 	HWND tmp = WinCreateWindow(HWND_OBJECT,
 							   WC_COMBOBOX,
 							   text,
@@ -3387,7 +3443,7 @@ HWND dw_combobox_new(char *text, ULONG id)
 							   NULL);
 	dw_window_set_font(tmp, DefaultFont);
 	dw_window_set_color(tmp, DW_CLR_BLACK, DW_CLR_WHITE);
-	*blah = WinSubclassWindow(tmp, _comboproc);
+	blah->oldproc = WinSubclassWindow(tmp, _comboproc);
 	WinSetWindowPtr(tmp, QWP_USER, blah);
 	return tmp;
 }
@@ -6046,6 +6102,26 @@ void dw_window_default(HWND window, HWND defaultitem)
 
 	if(thisbox)
 		thisbox->defaultitem = defaultitem;
+}
+
+/*
+ * Sets window to click the default dialog item when an ENTER is pressed.
+ * Parameters:
+ *         window: Window (widget) to look for the ENTER press.
+ *         next: Window (widget) to move to next (or click)
+ */
+void dw_window_click_default(HWND window, HWND next)
+{
+	WindowData *blah = (WindowData *)WinQueryWindowPtr(window, QWP_USER);
+	char tmpbuf[100];
+
+	WinQueryClassName(window, 99, tmpbuf);
+
+	/* These are the window classes which can
+	 * obtain input focus.
+	 */
+	if(strncmp(tmpbuf, "#6", 3) == 0 && blah)
+		blah->clickdefault = next;
 }
 
 /*

@@ -16,6 +16,7 @@
 #include <errno.h>
 #include <sys/time.h>
 #include "config.h"
+#include <gdk/gdkkeysyms.h>
 #ifdef USE_IMLIB
 #include <gdk_imlib.h>
 #endif
@@ -420,6 +421,23 @@ void _unselect_row(GtkWidget *widget, gint row, gint column, GdkEventButton *eve
 	}
 }
 
+gint _default_key_press_event(GtkWidget *widget, GdkEventKey *event, gpointer data)
+{
+	GtkWidget *next = (GtkWidget *)data;
+
+	if(next)
+	{
+		if(event->keyval == GDK_Return)
+		{
+			if(GTK_IS_BUTTON(next))
+				gtk_signal_emit_by_name(GTK_OBJECT(next), "clicked");
+			else
+				gtk_widget_grab_focus(next);
+		}
+	}
+	return TRUE;
+}
+
 GdkPixmap *_find_pixmap(GdkBitmap **bitmap, long id, HWND handle)
 {
 	char *data = NULL;
@@ -629,6 +647,17 @@ void _delete2(GtkWidget *widget, gpointer param)
 }
 
 
+void _dw_ok_func(HWND window, void *data)
+{
+	DWDialog *dwwait = (DWDialog *)data;
+
+	if(!dwwait)
+		return;
+
+	dw_window_destroy((HWND)dwwait->data);
+	dw_dialog_dismiss((DWDialog *)data, (void *)0);
+}
+
 /*
  * Displays a Message Box with given text and title..
  * Parameters:
@@ -638,37 +667,44 @@ void _delete2(GtkWidget *widget, gpointer param)
  */
 int dw_messagebox(char *title, char *format, ...)
 {
+	HWND entrywindow, mainbox, okbutton, buttonbox, stext;
+	ULONG flStyle = DW_FCF_TITLEBAR | DW_FCF_SHELLPOSITION | DW_FCF_DLGBORDER;
+	DWDialog *dwwait;
 	va_list args;
 	char outbuf[256];
-	GtkWidget 	*dialog,
-		        *button,
-	            *label;
-	int _locked_by_me = FALSE;
 
-	DW_MUTEX_LOCK;
 	va_start(args, format);
 	vsprintf(outbuf, format, args);
 	va_end(args);
 
-	dialog = gtk_dialog_new();
+	entrywindow = dw_window_new(HWND_DESKTOP, title, flStyle);
+	mainbox = dw_box_new(BOXVERT, 10);
+	dw_box_pack_start(entrywindow, mainbox, 0, 0, TRUE, TRUE, 0);
 
-	gtk_window_set_title(GTK_WINDOW(dialog), title);
+	/* Archive Name */
+	stext = dw_text_new(outbuf, 0);
+	dw_window_set_style(stext, DW_DT_WORDBREAK, DW_DT_WORDBREAK);
 
-	button = gtk_button_new_with_label("Ok");
-	gtk_box_pack_start(GTK_BOX(GTK_DIALOG(dialog)->action_area), button, TRUE, TRUE, 0);
-	gtk_widget_show(button);
+	dw_box_pack_start(mainbox, stext, 205, 50, TRUE, TRUE, 2);
 
-	gtk_signal_connect(GTK_OBJECT(button), "clicked", GTK_SIGNAL_FUNC(_delete2), (gpointer)dialog);
-	gtk_signal_connect(GTK_OBJECT(dialog), "delete_event", GTK_SIGNAL_FUNC(_delete), (gpointer)dialog);
+	/* Buttons */
+	buttonbox = dw_box_new(BOXHORZ, 10);
 
-	label = gtk_label_new(outbuf);
-	gtk_container_set_border_width(GTK_CONTAINER(GTK_DIALOG(dialog)->vbox), 20);
-	gtk_box_pack_start(GTK_BOX(GTK_DIALOG(dialog)->vbox), label, TRUE, TRUE, 0);
-	gtk_widget_show(label);
+	dw_box_pack_start(mainbox, buttonbox, 0, 0, TRUE, FALSE, 0);
 
-	gtk_widget_show(dialog);
+	okbutton = dw_button_new("Ok", 1001L);
 
-	DW_MUTEX_UNLOCK;
+	dw_box_pack_start(buttonbox, okbutton, 50, 30, TRUE, FALSE, 2);
+
+	dwwait = dw_dialog_new((void *)entrywindow);
+
+	dw_signal_connect(okbutton, "clicked", DW_SIGNAL_FUNC(_dw_ok_func), (void *)dwwait);
+
+	dw_window_set_usize(entrywindow, 220, 110);
+
+	dw_window_show(entrywindow);
+
+	dw_dialog_wait(dwwait);
 
 	return strlen(outbuf);
 }
@@ -717,28 +753,29 @@ int dw_yesno(char *title, char *text)
 
 	/* Archive Name */
 	stext = dw_text_new(text, 0);
+	dw_window_set_style(stext, DW_DT_WORDBREAK, DW_DT_WORDBREAK);
 
-	dw_box_pack_start(mainbox, stext, 130, 20, TRUE, TRUE, 2);
+	dw_box_pack_start(mainbox, stext, 205, 50, TRUE, TRUE, 2);
 
 	/* Buttons */
 	buttonbox = dw_box_new(BOXHORZ, 10);
 
-	dw_box_pack_start(mainbox, buttonbox, 0, 0, TRUE, TRUE, 0);
+	dw_box_pack_start(mainbox, buttonbox, 0, 0, TRUE, FALSE, 0);
 
 	yesbutton = dw_button_new("Yes", 1001L);
 
-	dw_box_pack_start(buttonbox, yesbutton, 130, 30, TRUE, TRUE, 2);
+	dw_box_pack_start(buttonbox, yesbutton, 50, 30, TRUE, FALSE, 2);
 
 	nobutton = dw_button_new("No", 1002L);
 
-	dw_box_pack_start(buttonbox, nobutton, 130, 30, TRUE, TRUE, 2);
+	dw_box_pack_start(buttonbox, nobutton, 50, 30, TRUE, FALSE, 2);
 
 	dwwait = dw_dialog_new((void *)entrywindow);
 
 	dw_signal_connect(yesbutton, "clicked", DW_SIGNAL_FUNC(_dw_yes_func), (void *)dwwait);
 	dw_signal_connect(nobutton, "clicked", DW_SIGNAL_FUNC(_dw_no_func), (void *)dwwait);
 
-	dw_window_set_usize(entrywindow, 340, 150);
+	dw_window_set_usize(entrywindow, 220, 110);
 
 	dw_window_show(entrywindow);
 
@@ -761,6 +798,42 @@ int dw_window_minimize(HWND handle)
 	XIconifyWindow(GDK_WINDOW_XDISPLAY(GTK_WIDGET(handle)->window),
 				   GDK_WINDOW_XWINDOW(GTK_WIDGET(handle)->window),
 				   DefaultScreen (GDK_DISPLAY ()));
+	DW_MUTEX_UNLOCK;
+	return 0;
+}
+
+/*
+ * Makes the window topmost.
+ * Parameters:
+ *           handle: The window handle to make topmost.
+ */
+int dw_window_raise(HWND handle)
+{
+	int _locked_by_me = FALSE;
+
+	if(!handle)
+		return 0;
+
+	DW_MUTEX_LOCK;
+	gdk_window_raise(GTK_WIDGET(handle)->window);
+	DW_MUTEX_UNLOCK;
+	return 0;
+}
+
+/*
+ * Makes the window bottommost.
+ * Parameters:
+ *           handle: The window handle to make bottommost.
+ */
+int dw_window_lower(HWND handle)
+{
+	int _locked_by_me = FALSE;
+
+	if(!handle)
+		return 0;
+
+	DW_MUTEX_LOCK;
+	gdk_window_lower(GTK_WIDGET(handle)->window);
 	DW_MUTEX_UNLOCK;
 	return 0;
 }
@@ -2111,7 +2184,7 @@ void dw_mle_query(HWND handle, unsigned long *bytes, unsigned long *lines)
 		if(tmp && GTK_IS_TEXT(tmp))
 		{
 			if(bytes)
-				*bytes = gtk_text_get_length(GTK_TEXT(tmp));
+				*bytes = gtk_text_get_length(GTK_TEXT(tmp)) + 1;
 			if(lines)
 			{
 				gchar *text;
@@ -2284,6 +2357,19 @@ void dw_mle_set(HWND handle, int point)
 
 		if(tmp && GTK_IS_TEXT(tmp))
 		{
+			unsigned long chars;
+			float pos, ratio;
+
+			dw_mle_query(handle, &chars, NULL);
+
+			if(chars)
+			{
+				ratio = (float)point/(float)chars;
+
+				pos = (ratio * (float)(GTK_TEXT(tmp)->vadj->upper - GTK_TEXT(tmp)->vadj->lower)) + GTK_TEXT(tmp)->vadj->lower;
+
+				gtk_adjustment_set_value(GTK_TEXT(tmp)->vadj, pos);
+			}
 			gtk_text_set_point(GTK_TEXT(tmp), point);
 		}
 	}
@@ -4598,6 +4684,24 @@ void dw_window_default(HWND window, HWND defaultitem)
 
 	DW_MUTEX_LOCK;
 	gtk_object_set_data(GTK_OBJECT(window),  "defaultitem", (gpointer)defaultitem);
+	DW_MUTEX_UNLOCK;
+}
+
+/*
+ * Sets window to click the default dialog item when an ENTER is pressed.
+ * Parameters:
+ *         window: Window (widget) to look for the ENTER press.
+ *         next: Window (widget) to move to next (or click)
+ */
+void dw_window_click_default(HWND window, HWND next)
+{
+	int _locked_by_me = FALSE;
+
+	if(!window)
+		return;
+
+	DW_MUTEX_LOCK;
+	gtk_signal_connect(GTK_OBJECT(window), "key_press_event", GTK_SIGNAL_FUNC(_default_key_press_event), next);
 	DW_MUTEX_UNLOCK;
 }
 
