@@ -45,7 +45,7 @@ LONG _foreground = 0xAAAAAA, _background = 0;
 HWND hwndBubble = NULLHANDLE, hwndBubbleLast = NULLHANDLE, hwndEmph = NULLHANDLE;
 PRECORDCORE pCore = NULL, pCoreEmph = NULL;
 ULONG aulBuffer[4];
-HWND lasthcnr = 0, lastitem = 0, popup = 0;
+HWND lasthcnr = 0, lastitem = 0, popup = 0, desktop;
 
 #define IS_WARP4() (aulBuffer[0] == 20 && aulBuffer[1] >= 40)
 
@@ -166,7 +166,7 @@ HWND _toplevel_window(HWND handle)
 	HWND box, lastbox = WinQueryWindow(handle, QW_PARENT);
 
 	/* Find the toplevel window */
-	while((box = WinQueryWindow(lastbox, QW_PARENT)) > 0x80000001 && box > 0)
+	while((box = WinQueryWindow(lastbox, QW_PARENT)) != desktop && box > 0)
 	{
 		lastbox = box;
 	}
@@ -2998,6 +2998,8 @@ int API dw_init(int newthread, int argc, char *argv[])
 
 	/* Get the OS/2 version. */
 	DosQuerySysInfo(QSV_VERSION_MAJOR, QSV_MS_COUNT,(void *)aulBuffer, 4*sizeof(ULONG));
+
+	desktop = WinQueryDesktopWindow(dwhab, NULLHANDLE);
 
 	return rc;
 }
