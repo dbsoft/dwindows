@@ -5482,7 +5482,7 @@ void dw_container_optimize(HWND handle)
  */
 void dw_taskbar_insert(HWND handle, unsigned long icon, char *bubbletext)
 {
-    /* TODO */
+	/* TODO */
 }
 
 /*
@@ -5493,7 +5493,7 @@ void dw_taskbar_insert(HWND handle, unsigned long icon, char *bubbletext)
  */
 void dw_taskbar_delete(HWND handle, unsigned long icon)
 {
-    /* TODO */
+	/* TODO */
 }
 
 /*
