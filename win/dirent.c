@@ -106,7 +106,7 @@ openxdir(const char *path, unsigned att_mask)
 	dir->attrmask = att_mask | A_DIR;
 
 	dir->count = 100;
-	if((dir->handle = FindFirstFile(dir->name, &dir->data))==NULL)
+	if((dir->handle = FindFirstFile(dir->name, &dir->data))==INVALID_HANDLE_VALUE)
 	{
 		free(dir);
 		error(rc);
