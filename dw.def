@@ -195,3 +195,6 @@ EXPORTS
 
   dw_tree_new                            @370
   dw_tree_insert                         @371
+  dw_tree_clear                          @372
+  dw_tree_delete                         @373
+
