@@ -2367,7 +2367,7 @@ HWND dw_tree_new(ULONG id)
 	gtk_object_set_data(GTK_OBJECT(tmp), "_dw_id", (gpointer)id);
 	gtk_widget_show(tmp);
 #if GTK_MAJOR_VERSION > 1
-	store = gtk_tree_store_new(5, G_TYPE_STRING, GDK_TYPE_PIXBUF, G_TYPE_POINTER, G_TYPE_POINTER, G_TYPE_POINTER);
+	store = gtk_tree_store_new(4, G_TYPE_STRING, GDK_TYPE_PIXBUF, G_TYPE_POINTER, G_TYPE_POINTER);
 	tree = gtk_tree_view_new_with_model(GTK_TREE_MODEL(store));
 	gtk_object_set_data(GTK_OBJECT(tree), "_dw_tree_store", (gpointer)store);
 	col = gtk_tree_view_column_new();
@@ -3934,7 +3934,7 @@ HTREEITEM dw_tree_insert_after(HWND handle, HTREEITEM item, char *title, unsigne
 		pixbuf = _find_pixbuf(icon);
 
 		gtk_tree_store_insert_after(store, iter, (GtkTreeIter *)parent, (GtkTreeIter *)item);
-		gtk_tree_store_set (store, iter, 0, title, 1, pixbuf, 2, itemdata, 3, iter, 4, parent, -1);
+		gtk_tree_store_set (store, iter, 0, title, 1, pixbuf, 2, itemdata, 3, iter, -1);
 		if(pixbuf && !(icon & (1 << 31)))
 			g_object_unref(pixbuf);
 		retval = (HTREEITEM)iter;
@@ -4087,7 +4087,7 @@ HTREEITEM dw_tree_insert(HWND handle, char *title, unsigned long icon, HTREEITEM
 		pixbuf = _find_pixbuf(icon);
 
 		gtk_tree_store_append (store, iter, (GtkTreeIter *)parent);
-		gtk_tree_store_set (store, iter, 0, title, 1, pixbuf, 2, itemdata, 3, iter, 4, parent, -1);
+		gtk_tree_store_set (store, iter, 0, title, 1, pixbuf, 2, itemdata, 3, iter, -1);
 		if(pixbuf && !(icon & (1 << 31)))
 			g_object_unref(pixbuf);
 		retval = (HTREEITEM)iter;
@@ -4353,7 +4353,12 @@ HTREEITEM API dw_tree_get_parent(HWND handle, HTREEITEM item)
 	if(tree && GTK_IS_TREE_VIEW(tree) &&
 	   (store = (GtkTreeModel *)gtk_object_get_data(GTK_OBJECT(tree), "_dw_tree_store")))
 	{
-		gtk_tree_model_get(store, (GtkTreeIter *)item, 4, &parent, -1);
+		GtkTreeIter *p = malloc(sizeof(GtkTreeIter));
+
+		if(gtk_tree_model_iter_parent(store, p, (GtkTreeIter *)item))
+			parent = p;
+		else
+			free(p);
 	}
 #else
 	parent = (HTREEITEM)gtk_object_get_data(GTK_OBJECT(item), "_dw_parent");
@@ -7796,24 +7801,24 @@ static void _populate_directory(HWND tree, HTREEITEM parent, char *path)
 	{
 		while((dent = readdir(hdir)))
 		{
-			struct stat bleah;
-
-			stat(dent->d_name, &bleah);
-
-			if(S_ISDIR(bleah.st_mode) && strcmp(dent->d_name, ".") && strcmp(dent->d_name, ".."))
+			if(strcmp(dent->d_name, ".") && strcmp(dent->d_name, ".."))
 			{
 				int len = strlen(path);
 				char *folder = malloc(len + strlen(dent->d_name) + 2);
+				struct stat bleah;
 				HTREEITEM tempitem;
 
 				strcpy(folder, path);
-				strcpy(&folder[len-1], dent->d_name);
+				strcpy(&folder[len], dent->d_name);
 
-				item = dw_tree_insert(tree, dent->d_name, 0, parent, (void *)parent);
-				tempitem = dw_tree_insert(tree, "", 0, item, 0);
-				dw_tree_set_data(tree, item, (void *)tempitem);
+				stat(folder, &bleah);
 
-				strcat(folder, "/");
+				if(S_IFDIR & bleah.st_mode)
+				{
+					item = dw_tree_insert(tree, dent->d_name, 0, parent, (void *)parent);
+					tempitem = dw_tree_insert(tree, "", 0, item, 0);
+					dw_tree_set_data(tree, item, (void *)tempitem);
+				}
 
 				free(folder);
 			}
