@@ -1,5 +1,8 @@
 /* $Id$ */
 
+#ifndef _COMPAT_H
+#define _COMPAT_H
+
 /* This header includes and defines everything needed for a given OS/compiler */
 #ifdef __UNIX__
 #include "config.h"
@@ -57,6 +60,10 @@ void msleep(long period);
 #define INCL_DOS
 #define INCL_DEV
 #define INCL_DOSERRORS
+
+#if defined(__IBMC__) && !defined(API)
+#define API _System
+#endif
 
 #define msleep(a) DosSleep(a)
 
@@ -122,6 +129,10 @@ void msleep(long period);
 #include <dirent.h>
 #endif
 #include <stdarg.h>
+
+#if defined(MSVC) && !defined(API)
+#define API _stdcall
+#endif
 
 #if defined(__CYGWIN32__) || defined(__MINGW32__)
 #include <sys/un.h>
@@ -192,26 +203,30 @@ void msleep(long period);
 #define FOPEN_WRITE_BINARY "wb"
 #define FOPEN_APPEND_BINARY "ab"
 
-/* Compatibility layer for IBM C/Winsock */
-int	sockread (int a, void *b, int c, int d);
-int	sockwrite (int a, void *b, int c, int d);
-int	sockclose(int a);
-int socksprintf(int fd, char *format, ...);
-int sockpipe(int *pipes);
-void sockinit(void);
-void sockshutdown(void);
-int makedir(char *path);
-void nonblock(int fd);
-void block(int fd);
-void setfileinfo(char *filename, char *url, char *logfile);
-long double drivesize(int drive);
-long double drivefree(int drive);
-int isdrive(int drive);
-void getfsname(int drive, char *buf, int len);
-FILE *fsopen(char *path, char *modes);
-int fsclose(FILE *fp);
-char *fsgets(char *str, int size, FILE *stream);
-int fsseek(FILE *stream, long offset, int whence);
-int locale_init(char *filename, int my_locale);
-char *locale_string(char *default_text, int message);
+#ifndef API
+#define API
+#endif
 
+/* Compatibility layer for IBM C/Winsock */
+int	API sockread (int a, void *b, int c, int d);
+int	API sockwrite (int a, void *b, int c, int d);
+int	API sockclose(int a);
+int API socksprintf(int fd, char *format, ...);
+int API sockpipe(int *pipes);
+void API sockinit(void);
+void API sockshutdown(void);
+int API makedir(char *path);
+void API nonblock(int fd);
+void API block(int fd);
+void API setfileinfo(char *filename, char *url, char *logfile);
+long double API drivesize(int drive);
+long double API drivefree(int drive);
+int API isdrive(int drive);
+void API getfsname(int drive, char *buf, int len);
+FILE * API fsopen(char *path, char *modes);
+int API fsclose(FILE *fp);
+char * API fsgets(char *str, int size, FILE *stream);
+int API fsseek(FILE *stream, long offset, int whence);
+int API locale_init(char *filename, int my_locale);
+char * API locale_string(char *default_text, int message);
+#endif

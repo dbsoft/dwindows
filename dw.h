@@ -11,6 +11,10 @@
 #if defined(__OS2__) || defined(__WIN32__) || defined(WINNT) || defined(__EMX__)
 /* OS/2 or Windows */
 
+#if defined(__IBMC__) && !defined(API)
+#define API _System
+#endif
+
 /* Used internally */
 #define TYPEBOX  0
 #define TYPEITEM 1
@@ -69,6 +73,10 @@ typedef struct _user_data
 #define DW_CLR_DARKCYAN          CLR_DARKCYAN
 #define DW_CLR_BROWN             CLR_BROWN
 #define DW_CLR_PALEGRAY          CLR_PALEGRAY
+
+#ifndef FCF_CLOSEBUTTON
+#define FCF_CLOSEBUTTON            0x04000000L
+#endif
 
 #define DW_FCF_TITLEBAR          FCF_TITLEBAR
 #define DW_FCF_SYSMENU           (FCF_SYSMENU | FCF_CLOSEBUTTON)
@@ -167,6 +175,10 @@ extern HMQ dwhmq;
 #endif
 #ifndef UDM_GETPOS32
 #define UDM_GETPOS32            (WM_USER+114)
+#endif
+
+#if defined(MSVC) && !defined(API)
+#define API _stdcall
 #endif
 
 /* Lets make some platform independent defines :) */
@@ -603,199 +615,203 @@ typedef struct _dwdialog {
 #define DW_OS2_RGB(a) ((DW_RED_VALUE(a) << 16) | (DW_GREEN_VALUE(a) << 8) | DW_BLUE_VALUE(a))
 #endif
 
+#ifndef API
+#define API
+#endif
+
 /* Public function prototypes */
-void dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize, int vsize, int pad);
-void dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, int vsize, int pad);
+void API dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize, int vsize, int pad);
+void API dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, int vsize, int pad);
 #if !defined(__OS2__) && !defined(__WIN32__) && !defined(__EMX__)
-int dw_int_init(DWResources *res, int newthread, int *argc, char **argv[]);
+int API dw_int_init(DWResources *res, int newthread, int *argc, char **argv[]);
 #define dw_init(a, b, c) dw_int_init(&_resources, a, &b, &c)
 #else
-int dw_init(int newthread, int argc, char *argv[]);
+int API dw_init(int newthread, int argc, char *argv[]);
 #endif
-void dw_main(void);
-void dw_main_sleep(int seconds);
-void dw_free(void *ptr);
-int dw_window_show(HWND handle);
-int dw_window_hide(HWND handle);
-int dw_window_minimize(HWND handle);
-int dw_window_raise(HWND handle);
-int dw_window_lower(HWND handle);
-int dw_window_destroy(HWND handle);
-void dw_window_redraw(HWND handle);
-int dw_window_set_font(HWND handle, char *fontname);
-int dw_window_set_color(HWND handle, unsigned long fore, unsigned long back);
-HWND dw_window_new(HWND hwndOwner, char *title, unsigned long flStyle);
-HWND dw_box_new(int type, int pad);
-HWND dw_groupbox_new(int type, int pad, char *title);
-HWND dw_mdi_new(unsigned long id);
-HWND dw_bitmap_new(unsigned long id);
-HWND dw_bitmapbutton_new(char *text, unsigned long id);
-HWND dw_container_new(unsigned long id);
-HWND dw_tree_new(unsigned long id);
-HWND dw_text_new(char *text, unsigned long id);
-HWND dw_status_text_new(char *text, unsigned long id);
-HWND dw_mle_new(unsigned long id);
-HWND dw_entryfield_new(char *text, unsigned long id);
-HWND dw_entryfield_password_new(char *text, ULONG id);
-HWND dw_combobox_new(char *text, unsigned long id);
-HWND dw_button_new(char *text, unsigned long id);
-HWND dw_spinbutton_new(char *text, unsigned long id);
-HWND dw_radiobutton_new(char *text, ULONG id);
-HWND dw_percent_new(unsigned long id);
-HWND dw_slider_new(int vertical, int increments, ULONG id);
-HWND dw_checkbox_new(char *text, unsigned long id);
-HWND dw_listbox_new(unsigned long id, int multi);
-void dw_listbox_append(HWND handle, char *text);
-void dw_listbox_clear(HWND handle);
-int dw_listbox_count(HWND handle);
-void dw_listbox_set_top(HWND handle, int top);
-void dw_listbox_select(HWND handle, int index, int state);
-void dw_listbox_delete(HWND handle, int index);
-void dw_listbox_query_text(HWND handle, unsigned int index, char *buffer, unsigned int length);
-void dw_listbox_set_text(HWND handle, unsigned int index, char *buffer);
-unsigned int dw_listbox_selected(HWND handle);
-int dw_listbox_selected_multi(HWND handle, int where);
-unsigned int dw_percent_query_range(HWND handle);
-void dw_percent_set_pos(HWND handle, unsigned int position);
-unsigned int dw_slider_query_pos(HWND handle);
-void dw_slider_set_pos(HWND handle, unsigned int position);
-void dw_window_set_pos(HWND handle, unsigned long x, unsigned long y);
-void dw_window_set_usize(HWND handle, unsigned long width, unsigned long height);
-void dw_window_set_pos_size(HWND handle, unsigned long x, unsigned long y, unsigned long width, unsigned long height);
-void dw_window_get_pos_size(HWND handle, unsigned long *x, unsigned long *y, unsigned long *width, unsigned long *height);
-void dw_window_set_style(HWND handle, unsigned long style, unsigned long mask);
-void dw_window_set_icon(HWND handle, unsigned long id);
-void dw_window_set_bitmap(HWND handle, unsigned long id);
-char *dw_window_get_text(HWND handle);
-void dw_window_set_text(HWND handle, char *text);
-int dw_window_set_border(HWND handle, int border);
-void dw_window_disable(HWND handle);
-void dw_window_enable(HWND handle);
-void dw_window_capture(HWND handle);
-void dw_window_release(void);
-void dw_window_reparent(HWND handle, HWND newparent);
-void dw_window_pointer(HWND handle, int pointertype);
-void dw_window_default(HWND window, HWND defaultitem);
-void dw_window_click_default(HWND window, HWND next);
-unsigned int dw_mle_import(HWND handle, char *buffer, int startpoint);
-void dw_mle_export(HWND handle, char *buffer, int startpoint, int length);
-void dw_mle_query(HWND handle, unsigned long *bytes, unsigned long *lines);
-void dw_mle_delete(HWND handle, int startpoint, int length);
-void dw_mle_clear(HWND handle);
-void dw_mle_freeze(HWND handle);
-void dw_mle_thaw(HWND handle);
-void dw_mle_set(HWND handle, int point);
-void dw_mle_set_visible(HWND handle, int line);
-void dw_mle_set_editable(HWND handle, int state);
-void dw_mle_set_word_wrap(HWND handle, int state);
-int dw_mle_search(HWND handle, char *text, int point, unsigned long flags);
-void dw_spinbutton_set_pos(HWND handle, long position);
-void dw_spinbutton_set_limits(HWND handle, long upper, long lower);
-void dw_entryfield_set_limit(HWND handle, ULONG limit);
-long dw_spinbutton_query(HWND handle);
-int dw_checkbox_query(HWND handle);
-void dw_checkbox_set(HWND handle, int value);
-HWND dw_tree_insert(HWND handle, char *title, unsigned long icon, HWND parent, void *itemdata);
-HWND dw_tree_insert_after(HWND handle, HWND item, char *title, unsigned long icon, HWND parent, void *itemdata);
-void dw_tree_clear(HWND handle);
-void dw_tree_delete(HWND handle, HWND item);
-void dw_tree_set(HWND handle, HWND item, char *title, unsigned long icon);
-void dw_tree_expand(HWND handle, HWND item);
-void dw_tree_collapse(HWND handle, HWND item);
-void dw_tree_item_select(HWND handle, HWND item);
-void dw_tree_set_data(HWND handle, HWND item, void *itemdata);
-int dw_container_setup(HWND handle, unsigned long *flags, char **titles, int count, int separator);
-unsigned long dw_icon_load(unsigned long module, unsigned long id);
-void dw_icon_free(unsigned long handle);
-void *dw_container_alloc(HWND handle, int rowcount);
-void dw_container_set_item(HWND handle, void *pointer, int column, int row, void *data);
-void dw_container_change_item(HWND handle, int column, int row, void *data);
-void dw_container_set_column_width(HWND handle, int column, int width);
-void dw_container_set_row_title(void *pointer, int row, char *title);
-void dw_container_insert(HWND handle, void *pointer, int rowcount);
-void dw_container_clear(HWND handle, int redraw);
-void dw_container_delete(HWND handle, int rowcount);
-void dw_container_set_view(HWND handle, unsigned long flags, int iconwidth, int iconheight);
-char *dw_container_query_start(HWND handle, unsigned long flags);
-char *dw_container_query_next(HWND handle, unsigned long flags);
-void dw_container_scroll(HWND handle, int direction, long rows);
-void dw_container_cursor(HWND handle, char *text);
-void dw_container_delete_row(HWND handle, char *text);
-void dw_container_optimize(HWND handle);
-int dw_filesystem_setup(HWND handle, unsigned long *flags, char **titles, int count);
-void dw_filesystem_set_item(HWND handle, void *pointer, int column, int row, void *data);
-void dw_filesystem_set_file(HWND handle, void *pointer, int row, char *filename, unsigned long icon);
-int dw_screen_width(void);
-int dw_screen_height(void);
-unsigned long dw_color_depth(void);
-HWND dw_notebook_new(unsigned long id, int top);
-unsigned long dw_notebook_page_new(HWND handle, unsigned long flags, int front);
-void dw_notebook_page_destroy(HWND handle, unsigned int pageid);
-void dw_notebook_page_set_text(HWND handle, unsigned long pageid, char *text);
-void dw_notebook_page_set_status_text(HWND handle, unsigned long pageid, char *text);
-void dw_notebook_page_set(HWND handle, unsigned int pageid);
-unsigned int dw_notebook_page_query(HWND handle);
-void dw_notebook_pack(HWND handle, unsigned long pageid, HWND page);
-HWND dw_splitbar_new(int type, HWND topleft, HWND bottomright, unsigned long id);
-void dw_splitbar_set(HWND handle, float percent);
-float dw_splitbar_get(HWND handle);
-HMENUI dw_menu_new(unsigned long id);
-HMENUI dw_menubar_new(HWND location);
-HWND dw_menu_append_item(HMENUI menu, char *title, unsigned long id, unsigned long flags, int end, int check, HMENUI submenu);
-void dw_menu_item_set_check(HMENUI menu, unsigned long id, int check);
-void dw_menu_popup(HMENUI *menu, HWND parent, int x, int y);
-void dw_menu_destroy(HMENUI *menu);
-void dw_pointer_query_pos(long *x, long *y);
-void dw_pointer_set_pos(long x, long y);
-void dw_window_function(HWND handle, void *function, void *data);
-HWND dw_window_from_id(HWND handle, int id);
-HMTX dw_mutex_new(void);
-void dw_mutex_close(HMTX mutex);
-void dw_mutex_lock(HMTX mutex);
-void dw_mutex_unlock(HMTX mutex);
-HEV dw_event_new(void);
-int dw_event_reset(HEV eve);
-int dw_event_post(HEV eve);
-int dw_event_wait(HEV eve, unsigned long timeout);
-int dw_event_close (HEV *eve);
-DWTID dw_thread_new(void *func, void *data, int stack);
-void dw_thread_end(void);
-DWTID dw_thread_id(void);
-void dw_exit(int exitcode);
-HWND dw_render_new(unsigned long id);
-void dw_color_foreground_set(unsigned long value);
-void dw_color_background_set(unsigned long value);
-void dw_draw_point(HWND handle, HPIXMAP pixmap, int x, int y);
-void dw_draw_line(HWND handle, HPIXMAP pixmap, int x1, int y1, int x2, int y2);
-void dw_draw_rect(HWND handle, HPIXMAP pixmap, int fill, int x, int y, int width, int height);
-void dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text);
-void dw_font_text_extents(HWND handle, HPIXMAP pixmap, char *text, int *width, int *height);
-void dw_flush(void);
-void dw_pixmap_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest, int width, int height, HWND src, HPIXMAP srcp, int xsrc, int ysrc);
-HPIXMAP dw_pixmap_new(HWND handle, unsigned long width, unsigned long height, int depth);
-HPIXMAP dw_pixmap_grab(HWND handle, ULONG id);
-void dw_pixmap_destroy(HPIXMAP pixmap);
-void dw_beep(int freq, int dur);
-int dw_messagebox(char *title, char *format, ...);
-int dw_yesno(char *title, char *text);
-void dw_environment_query(DWEnv *env);
-int dw_exec(char *program, int type, char **params);
-int dw_browse(char *url);
-char *dw_file_browse(char *title, char *defpath, char *ext, int flags);
-char *dw_user_dir(void);
-DWDialog *dw_dialog_new(void *data);
-int dw_dialog_dismiss(DWDialog *dialog, void *result);
-void *dw_dialog_wait(DWDialog *dialog);
-void dw_window_set_data(HWND window, char *dataname, void *data);
-void *dw_window_get_data(HWND window, char *dataname);
-int dw_module_load(char *name, HMOD *handle);
-int dw_module_symbol(HMOD handle, char *name, void**func);
-int dw_module_close(HMOD handle);
+void API dw_main(void);
+void API dw_main_sleep(int seconds);
+void API dw_free(void *ptr);
+int API dw_window_show(HWND handle);
+int API dw_window_hide(HWND handle);
+int API dw_window_minimize(HWND handle);
+int API dw_window_raise(HWND handle);
+int API dw_window_lower(HWND handle);
+int API dw_window_destroy(HWND handle);
+void API dw_window_redraw(HWND handle);
+int API dw_window_set_font(HWND handle, char *fontname);
+int API dw_window_set_color(HWND handle, unsigned long fore, unsigned long back);
+HWND API dw_window_new(HWND hwndOwner, char *title, unsigned long flStyle);
+HWND API dw_box_new(int type, int pad);
+HWND API dw_groupbox_new(int type, int pad, char *title);
+HWND API dw_mdi_new(unsigned long id);
+HWND API dw_bitmap_new(unsigned long id);
+HWND API dw_bitmapbutton_new(char *text, unsigned long id);
+HWND API dw_container_new(unsigned long id);
+HWND API dw_tree_new(unsigned long id);
+HWND API dw_text_new(char *text, unsigned long id);
+HWND API dw_status_text_new(char *text, unsigned long id);
+HWND API dw_mle_new(unsigned long id);
+HWND API dw_entryfield_new(char *text, unsigned long id);
+HWND API dw_entryfield_password_new(char *text, ULONG id);
+HWND API dw_combobox_new(char *text, unsigned long id);
+HWND API dw_button_new(char *text, unsigned long id);
+HWND API dw_spinbutton_new(char *text, unsigned long id);
+HWND API dw_radiobutton_new(char *text, ULONG id);
+HWND API dw_percent_new(unsigned long id);
+HWND API dw_slider_new(int vertical, int increments, ULONG id);
+HWND API dw_checkbox_new(char *text, unsigned long id);
+HWND API dw_listbox_new(unsigned long id, int multi);
+void API dw_listbox_append(HWND handle, char *text);
+void API dw_listbox_clear(HWND handle);
+int API dw_listbox_count(HWND handle);
+void API dw_listbox_set_top(HWND handle, int top);
+void API dw_listbox_select(HWND handle, int index, int state);
+void API dw_listbox_delete(HWND handle, int index);
+void API dw_listbox_query_text(HWND handle, unsigned int index, char *buffer, unsigned int length);
+void API dw_listbox_set_text(HWND handle, unsigned int index, char *buffer);
+unsigned int API dw_listbox_selected(HWND handle);
+int API dw_listbox_selected_multi(HWND handle, int where);
+unsigned int API dw_percent_query_range(HWND handle);
+void API dw_percent_set_pos(HWND handle, unsigned int position);
+unsigned int API dw_slider_query_pos(HWND handle);
+void API dw_slider_set_pos(HWND handle, unsigned int position);
+void API dw_window_set_pos(HWND handle, unsigned long x, unsigned long y);
+void API dw_window_set_usize(HWND handle, unsigned long width, unsigned long height);
+void API dw_window_set_pos_size(HWND handle, unsigned long x, unsigned long y, unsigned long width, unsigned long height);
+void API dw_window_get_pos_size(HWND handle, unsigned long *x, unsigned long *y, unsigned long *width, unsigned long *height);
+void API dw_window_set_style(HWND handle, unsigned long style, unsigned long mask);
+void API dw_window_set_icon(HWND handle, unsigned long id);
+void API dw_window_set_bitmap(HWND handle, unsigned long id);
+char * API dw_window_get_text(HWND handle);
+void API dw_window_set_text(HWND handle, char *text);
+int API dw_window_set_border(HWND handle, int border);
+void API dw_window_disable(HWND handle);
+void API dw_window_enable(HWND handle);
+void API dw_window_capture(HWND handle);
+void API dw_window_release(void);
+void API dw_window_reparent(HWND handle, HWND newparent);
+void API dw_window_pointer(HWND handle, int pointertype);
+void API dw_window_default(HWND window, HWND defaultitem);
+void API dw_window_click_default(HWND window, HWND next);
+unsigned int API dw_mle_import(HWND handle, char *buffer, int startpoint);
+void API dw_mle_export(HWND handle, char *buffer, int startpoint, int length);
+void API dw_mle_query(HWND handle, unsigned long *bytes, unsigned long *lines);
+void API dw_mle_delete(HWND handle, int startpoint, int length);
+void API dw_mle_clear(HWND handle);
+void API dw_mle_freeze(HWND handle);
+void API dw_mle_thaw(HWND handle);
+void API dw_mle_set(HWND handle, int point);
+void API dw_mle_set_visible(HWND handle, int line);
+void API dw_mle_set_editable(HWND handle, int state);
+void API dw_mle_set_word_wrap(HWND handle, int state);
+int API dw_mle_search(HWND handle, char *text, int point, unsigned long flags);
+void API dw_spinbutton_set_pos(HWND handle, long position);
+void API dw_spinbutton_set_limits(HWND handle, long upper, long lower);
+void API dw_entryfield_set_limit(HWND handle, ULONG limit);
+long API dw_spinbutton_query(HWND handle);
+int API dw_checkbox_query(HWND handle);
+void API dw_checkbox_set(HWND handle, int value);
+HWND API dw_tree_insert(HWND handle, char *title, unsigned long icon, HWND parent, void *itemdata);
+HWND API dw_tree_insert_after(HWND handle, HWND item, char *title, unsigned long icon, HWND parent, void *itemdata);
+void API dw_tree_clear(HWND handle);
+void API dw_tree_delete(HWND handle, HWND item);
+void API dw_tree_set(HWND handle, HWND item, char *title, unsigned long icon);
+void API dw_tree_expand(HWND handle, HWND item);
+void API dw_tree_collapse(HWND handle, HWND item);
+void API dw_tree_item_select(HWND handle, HWND item);
+void API dw_tree_set_data(HWND handle, HWND item, void *itemdata);
+int API dw_container_setup(HWND handle, unsigned long *flags, char **titles, int count, int separator);
+unsigned long API dw_icon_load(unsigned long module, unsigned long id);
+void API dw_icon_free(unsigned long handle);
+void * API dw_container_alloc(HWND handle, int rowcount);
+void API dw_container_set_item(HWND handle, void *pointer, int column, int row, void *data);
+void API dw_container_change_item(HWND handle, int column, int row, void *data);
+void API dw_container_set_column_width(HWND handle, int column, int width);
+void API dw_container_set_row_title(void *pointer, int row, char *title);
+void API dw_container_insert(HWND handle, void *pointer, int rowcount);
+void API dw_container_clear(HWND handle, int redraw);
+void API dw_container_delete(HWND handle, int rowcount);
+void API dw_container_set_view(HWND handle, unsigned long flags, int iconwidth, int iconheight);
+char * API dw_container_query_start(HWND handle, unsigned long flags);
+char * API dw_container_query_next(HWND handle, unsigned long flags);
+void API dw_container_scroll(HWND handle, int direction, long rows);
+void API dw_container_cursor(HWND handle, char *text);
+void API dw_container_delete_row(HWND handle, char *text);
+void API dw_container_optimize(HWND handle);
+int API dw_filesystem_setup(HWND handle, unsigned long *flags, char **titles, int count);
+void API dw_filesystem_set_item(HWND handle, void *pointer, int column, int row, void *data);
+void API dw_filesystem_set_file(HWND handle, void *pointer, int row, char *filename, unsigned long icon);
+int API dw_screen_width(void);
+int API dw_screen_height(void);
+unsigned long API dw_color_depth(void);
+HWND API dw_notebook_new(unsigned long id, int top);
+unsigned long API dw_notebook_page_new(HWND handle, unsigned long flags, int front);
+void API dw_notebook_page_destroy(HWND handle, unsigned int pageid);
+void API dw_notebook_page_set_text(HWND handle, unsigned long pageid, char *text);
+void API dw_notebook_page_set_status_text(HWND handle, unsigned long pageid, char *text);
+void API dw_notebook_page_set(HWND handle, unsigned int pageid);
+unsigned int API dw_notebook_page_query(HWND handle);
+void API dw_notebook_pack(HWND handle, unsigned long pageid, HWND page);
+HWND API dw_splitbar_new(int type, HWND topleft, HWND bottomright, unsigned long id);
+void API dw_splitbar_set(HWND handle, float percent);
+float API dw_splitbar_get(HWND handle);
+HMENUI API dw_menu_new(unsigned long id);
+HMENUI API dw_menubar_new(HWND location);
+HWND API dw_menu_append_item(HMENUI menu, char *title, unsigned long id, unsigned long flags, int end, int check, HMENUI submenu);
+void API dw_menu_item_set_check(HMENUI menu, unsigned long id, int check);
+void API dw_menu_popup(HMENUI *menu, HWND parent, int x, int y);
+void API dw_menu_destroy(HMENUI *menu);
+void API dw_pointer_query_pos(long *x, long *y);
+void API dw_pointer_set_pos(long x, long y);
+void API dw_window_function(HWND handle, void *function, void *data);
+HWND API dw_window_from_id(HWND handle, int id);
+HMTX API dw_mutex_new(void);
+void API dw_mutex_close(HMTX mutex);
+void API dw_mutex_lock(HMTX mutex);
+void API dw_mutex_unlock(HMTX mutex);
+HEV API dw_event_new(void);
+int API dw_event_reset(HEV eve);
+int API dw_event_post(HEV eve);
+int API dw_event_wait(HEV eve, unsigned long timeout);
+int API dw_event_close (HEV *eve);
+DWTID API dw_thread_new(void *func, void *data, int stack);
+void API dw_thread_end(void);
+DWTID API dw_thread_id(void);
+void API dw_exit(int exitcode);
+HWND API dw_render_new(unsigned long id);
+void API dw_color_foreground_set(unsigned long value);
+void API dw_color_background_set(unsigned long value);
+void API dw_draw_point(HWND handle, HPIXMAP pixmap, int x, int y);
+void API dw_draw_line(HWND handle, HPIXMAP pixmap, int x1, int y1, int x2, int y2);
+void API dw_draw_rect(HWND handle, HPIXMAP pixmap, int fill, int x, int y, int width, int height);
+void API dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text);
+void API dw_font_text_extents(HWND handle, HPIXMAP pixmap, char *text, int *width, int *height);
+void API dw_flush(void);
+void API dw_pixmap_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest, int width, int height, HWND src, HPIXMAP srcp, int xsrc, int ysrc);
+HPIXMAP API dw_pixmap_new(HWND handle, unsigned long width, unsigned long height, int depth);
+HPIXMAP API dw_pixmap_grab(HWND handle, ULONG id);
+void API dw_pixmap_destroy(HPIXMAP pixmap);
+void API dw_beep(int freq, int dur);
+int API dw_messagebox(char *title, char *format, ...);
+int API dw_yesno(char *title, char *text);
+void API dw_environment_query(DWEnv *env);
+int API dw_exec(char *program, int type, char **params);
+int API dw_browse(char *url);
+char * API dw_file_browse(char *title, char *defpath, char *ext, int flags);
+char * API dw_user_dir(void);
+DWDialog * API dw_dialog_new(void *data);
+int API dw_dialog_dismiss(DWDialog *dialog, void *result);
+void * API dw_dialog_wait(DWDialog *dialog);
+void API dw_window_set_data(HWND window, char *dataname, void *data);
+void * API dw_window_get_data(HWND window, char *dataname);
+int API dw_module_load(char *name, HMOD *handle);
+int API dw_module_symbol(HMOD handle, char *name, void**func);
+int API dw_module_close(HMOD handle);
 #ifndef NO_SIGNALS
-void dw_signal_connect(HWND window, char *signame, void *sigfunc, void *data);
-void dw_signal_disconnect_by_window(HWND window);
-void dw_signal_disconnect_by_data(HWND window, void *data);
-void dw_signal_disconnect_by_name(HWND window, char *signame);
+void API dw_signal_connect(HWND window, char *signame, void *sigfunc, void *data);
+void API dw_signal_disconnect_by_window(HWND window);
+void API dw_signal_disconnect_by_data(HWND window, void *data);
+void API dw_signal_disconnect_by_name(HWND window, char *signame);
 #endif
 
 #endif

@@ -1,5 +1,3 @@
-#ifdef OS2
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -100,7 +98,7 @@ getFSType(const char *path)
 }
 
 char *
-abs_path(const char *name, char *buffer, int len)
+_abs_path(const char *name, char *buffer, int len)
 {
 	char buf[4];
 	if (isalpha(name[0]) && name[1] == ':' && name[2] == '\0') {
@@ -116,7 +114,7 @@ abs_path(const char *name, char *buffer, int len)
 }
 
 DIR *
-openxdir(const char *path, unsigned att_mask)
+_openxdir(const char *path, unsigned att_mask)
 {
 	DIR *dir;
 	char name[MAXPATHLEN+3];
@@ -174,13 +172,13 @@ openxdir(const char *path, unsigned att_mask)
 }
 
 DIR *
-opendir(const char *pathname)
+_opendir(const char *pathname)
 {
 	return openxdir(pathname, 0);
 }
 
 struct dirent *
-readdir(DIR *dir)
+_readdir(DIR *dir)
 {
 	static int dummy_ino = 2;
 
@@ -228,13 +226,13 @@ readdir(DIR *dir)
 }
 
 long
-telldir(DIR *dir)
+_telldir(DIR *dir)
 {
 	return dir->number;
 }
 
 void
-seekdir(DIR *dir, long off)
+_seekdir(DIR *dir, long off)
 {
 	if (dir->number > off) {
 		char name[MAXPATHLEN+2];
@@ -268,7 +266,7 @@ seekdir(DIR *dir, long off)
 }
 
 void
-closedir(DIR *dir)
+_closedir(DIR *dir)
 {
 	DosFindClose(dir->handle);
 	free(dir);
@@ -300,6 +298,4 @@ main(int argc, char **argv)
 }
 
 #endif
-
-#endif /* OS2 */
 

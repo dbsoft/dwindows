@@ -14,7 +14,7 @@ CFLAGS  = -i=os2 -i=$(OS22_H) -bt=OS2 -zq -d2 -bd
 all:	dw.dll dwcompat.dll
 
 dwcompat.dll: compat.obj
-	wlink name dwcompat.dll system os2v2_pm library so32dll,tcp32dll d a option symf f $[@
+	wlink name dwcompat.dll system os2v2_pm d a library so32dll,tcp32dll option symf f $[@
 
 dw.dll: dw.obj
 	wlink name dw.dll system os2v2_pm d a option symf f $[@

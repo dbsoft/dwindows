@@ -20,12 +20,12 @@ EXPORTS
   getfsname          @26
   block              @27
 
-  opendir            @30
-  openxdir           @31
-  readdir            @32
-  seekdir            @33
-  telldir            @34
-  closedir           @35
+  _opendir           @30
+  _openxdir          @31
+  _readdir           @32
+  _seekdir           @33
+  _telldir           @34
+  _closedir          @35
 
   fsopen             @40
   fsclose            @41

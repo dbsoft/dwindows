@@ -16,8 +16,8 @@ LDFLAGS = -Zdll -Zcrtdll
 RCFLAGS = -r
 
 
-COMPATOBJECTS = compat.obj
-COMPATSOURCES = compat.c
+COMPATOBJECTS = compat.obj dirent.obj
+COMPATSOURCES = compat.c dirent.c
 
 all: dw.dll dwcompat.dll
 
@@ -28,16 +28,21 @@ $(COMPATOBJECTS):
 	$(CC) $(CFLAGS) -c $<	
 
 dw.dll:  
-	$(CC) $(CFLAGS) $(DEFS) -o dll/dw.dll os2/dw.c $(LDFLAGS) dw.def
-	emximp -o lib/dw.lib dw.def
-
+	$(CC) $(CFLAGS) $(DEFS) -o dw.dll os2/dw.c $(LDFLAGS) dw.def
+	emximp -o dw.lib dw.def
+	cp -f dw.dll ../dll
+	cp -f dw.lib ../lib
+        
 dwcompat.dll:  $(COMPATOBJECTS)
-	$(CC) $(CFLAGS) $(DEFS) -o dll/dwcompat.dll $(COMPATOBJECTS) $(LDFLAGS) -lsocket dwcompate.def
-	emximp -o lib/dwcompat.lib dwcompate.def
+	$(CC) $(CFLAGS) $(DEFS) -o dwcompat.dll $(COMPATOBJECTS) $(LDFLAGS) -lsocket dwcompat.def
+	emximp -o dwcompat.lib dwcompat.def
+	cp -f dwcompat.dll dll
+	cp -f dwcompat.lib lib
 
 clean: 
 	$(RM) $(OBJECTS) handyftp.exe handyftp.res
 
 dw.obj: dw.c
 compat.obj: compat.c
+dirent.obj: os2/dirent.c
 
