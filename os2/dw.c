@@ -71,9 +71,6 @@ static LONG lColor[SPLITBAR_WIDTH] =
     DW_CLR_WHITE
 };
 
-#ifdef NO_SIGNALS
-#define USE_FILTER
-#else
 typedef struct _sighandler
 {
 	struct _sighandler	*next;
@@ -120,10 +117,8 @@ void _new_signal(ULONG message, HWND window, void *signalfunction, void *data)
 {
 	SignalHandler *new = malloc(sizeof(SignalHandler));
 
-#ifndef NO_SIGNALS
 	if(message == WM_COMMAND)
 		dw_signal_disconnect_by_window(window);
-#endif
 
 	new->message = message;
 	new->window = window;
@@ -168,7 +163,6 @@ ULONG _findsigmessage(char *signame)
 	}
 	return 0L;
 }
-#endif
 
 typedef struct _CNRITEM
 {
@@ -225,9 +219,7 @@ void _disconnect_windows(HWND handle)
 	HENUM henum;
 	HWND child;
 
-#ifndef NO_SIGNALS
 	dw_signal_disconnect_by_window(handle);
-#endif
 
 	henum = WinBeginEnumWindows(handle);
 	while((child = WinGetNextWindow(henum)) != NULLHANDLE)
@@ -245,9 +237,7 @@ void _free_window_memory(HWND handle)
 	HWND child;
 	void *ptr = (void *)WinQueryWindowPtr(handle, QWP_USER);
 
-#ifndef NO_SIGNALS
 	dw_signal_disconnect_by_window(handle);
-#endif
 
 	if(ptr)
 	{
@@ -1723,7 +1713,6 @@ int _get_frame_height(HWND handle)
 	return dw_screen_height();
 }
 
-#ifndef NO_SIGNALS
 MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 {
 	int result = -1;
@@ -2102,21 +2091,18 @@ MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 
 	return (MRESULT)result;
 }
-#endif
 
 /* Handles control messages sent to the box (owner). */
 MRESULT EXPENTRY _controlproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 {
 	Box *blah = WinQueryWindowPtr(hWnd, QWP_USER);
 
-#ifndef NO_SIGNALS
 	switch(msg)
 	{
 	case WM_CONTROL:
 		_run_event(hWnd, msg, mp1, mp2);
 		break;
 	}
-#endif
 
 	if(blah && blah->oldproc)
 		return blah->oldproc(hWnd, msg, mp1, mp2);
@@ -2134,7 +2120,6 @@ MRESULT EXPENTRY _wndproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 	if(filterfunc)
 		result = filterfunc(hWnd, msg, mp1, mp2);
 
-#ifndef NO_SIGNALS
 	if(result == -1 && !command_active)
 	{
         /* Make sure we don't end up in infinite recursion */
@@ -2144,7 +2129,6 @@ MRESULT EXPENTRY _wndproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 
 		command_active = 0;
 	}
-#endif
 
 	/* Now that any handlers are done... do normal processing */
 	switch( msg )
@@ -2322,12 +2306,8 @@ void _changebox(Box *thisbox, int percent, int type)
 /* This handles any activity on the splitbars (sizers) */
 MRESULT EXPENTRY _splitwndproc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 {
-	HWND hwndFrame = 0;
-	Box *thisbox = 0;
-
-	hwndFrame = WinQueryWindow(hwnd, QW_PARENT);
-	if(hwndFrame)
-		thisbox = WinQueryWindowPtr(hwndFrame, QWL_USER);
+	int percent = (int)dw_window_get_data(hwnd, "_dw_percent");
+	int type = (int)dw_window_get_data(hwnd, "_dw_type");
 
 	switch (msg)
 	{
@@ -2335,6 +2315,59 @@ MRESULT EXPENTRY _splitwndproc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 	case WM_SETFOCUS:
 		return (MRESULT)(FALSE);
 
+	case WM_SIZE:
+		{
+			int x = SHORT1FROMMP(mp2), y = SHORT2FROMMP(mp2);
+
+			if(x > 0 && y > 0)
+			{
+				if(type == BOXHORZ)
+				{
+					int newx = x - SPLITBAR_WIDTH, newy = y;
+					float ratio = (float)percent/(float)100;
+					HWND handle = (HWND)dw_window_get_data(hwnd, "_dw_topleft");
+					Box *tmp = WinQueryWindowPtr(handle, QWP_USER);
+
+					newx = (int)((float)newx * ratio);
+
+					WinSetWindowPos(handle, NULLHANDLE, 0, 0, newx, y, SWP_MOVE | SWP_SIZE | SWP_SHOW);
+					_do_resize(tmp, newx, y);
+
+					handle = (HWND)dw_window_get_data(hwnd, "_dw_bottomright");
+					tmp = WinQueryWindowPtr(handle, QWP_USER);
+
+					newx = x - newx - SPLITBAR_WIDTH;
+
+					WinSetWindowPos(handle, NULLHANDLE, x - newx, 0, newx, y, SWP_MOVE | SWP_SIZE | SWP_SHOW);
+					_do_resize(tmp, newx, y);
+
+					dw_window_set_data(hwnd, "_dw_start", (void *)newx);
+				}
+                else
+				{
+					int newx = x, newy = y - SPLITBAR_WIDTH;
+					float ratio = (float)percent/(float)100;
+					HWND handle = (HWND)dw_window_get_data(hwnd, "_dw_topleft");
+					Box *tmp = WinQueryWindowPtr(handle, QWP_USER);
+
+					newy = (int)((float)newy * ratio);
+
+					WinSetWindowPos(handle, NULLHANDLE, 0, y - newy, x, newy, SWP_MOVE | SWP_SIZE | SWP_SHOW);
+					_do_resize(tmp, x, newy);
+
+					handle = (HWND)dw_window_get_data(hwnd, "_dw_bottomright");
+					tmp = WinQueryWindowPtr(handle, QWP_USER);
+
+					newy = y - newy - SPLITBAR_WIDTH;
+
+					WinSetWindowPos(handle, NULLHANDLE, 0, 0, x, newy, SWP_MOVE | SWP_SIZE | SWP_SHOW);
+					_do_resize(tmp, x, newy);
+
+					dw_window_set_data(hwnd, "_dw_start", (void *)newy);
+				}
+			}
+		}
+		break;
 	case WM_PAINT:
 		{
 			HPS hpsPaint;
@@ -2342,18 +2375,19 @@ MRESULT EXPENTRY _splitwndproc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 			POINTL ptlStart[SPLITBAR_WIDTH];
 			POINTL ptlEnd[SPLITBAR_WIDTH];
 			USHORT i;
+			int start = (int)dw_window_get_data(hwnd, "_dw_start");
 
 			hpsPaint = WinBeginPaint(hwnd, 0, 0);
 			WinQueryWindowRect(hwnd, &rclPaint);
 
-			if(thisbox->type == BOXHORZ)
+			if(type == BOXHORZ)
 			{
 				for(i = 0; i < SPLITBAR_WIDTH; i++)
 				{
-					ptlStart[i].x = rclPaint.xLeft + i;
+					ptlStart[i].x = rclPaint.xLeft + i + start;
 					ptlStart[i].y = rclPaint.yTop;
 
-					ptlEnd[i].x = rclPaint.xLeft + i;
+					ptlEnd[i].x = rclPaint.xLeft + i + start;
 					ptlEnd[i].y = rclPaint.yBottom;
 				}
 			}
@@ -2362,10 +2396,10 @@ MRESULT EXPENTRY _splitwndproc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 				for(i = 0; i < SPLITBAR_WIDTH; i++)
 				{
 					ptlStart[i].x = rclPaint.xLeft;
-					ptlStart[i].y = rclPaint.yBottom + i;
+					ptlStart[i].y = rclPaint.yBottom + i + start;
 
 					ptlEnd[i].x = rclPaint.xRight;
-					ptlEnd[i].y = rclPaint.yBottom + i;
+					ptlEnd[i].y = rclPaint.yBottom + i + start;
 				}
 			}
 
@@ -2381,7 +2415,7 @@ MRESULT EXPENTRY _splitwndproc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 
 	case WM_MOUSEMOVE:
 		{
-			if(thisbox->type == BOXHORZ)
+			if(type == BOXHORZ)
 				WinSetPointer(HWND_DESKTOP,
 							  WinQuerySysPointer(HWND_DESKTOP,
 												 SPTR_SIZEWE,
@@ -2395,6 +2429,7 @@ MRESULT EXPENTRY _splitwndproc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 		return MRFROMSHORT(FALSE);
 	case WM_BUTTON1DOWN:
 		{
+#if 0
 			APIRET rc;
 			RECTL  rclFrame;
 			RECTL  rclBounds;
@@ -2543,6 +2578,7 @@ MRESULT EXPENTRY _splitwndproc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 
 				_ResetWindow(WinQueryWindow(hwnd, QW_OWNER));
 			}
+#endif
 		}
 		return MRFROMSHORT(FALSE);
 	}
@@ -2621,7 +2657,6 @@ MRESULT EXPENTRY _BtProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 
 	switch(msg)
 	{
-#ifndef NO_SIGNALS
 	case WM_SETFOCUS:
 		if(mp2)
 			_run_event(hwnd, msg, mp1, mp2);
@@ -2671,10 +2706,8 @@ MRESULT EXPENTRY _BtProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 			}
 		}
         break;
-#endif
 	case WM_CHAR:
 		{
-#ifndef NO_SIGNALS
 			/* A button press should also occur for an ENTER or SPACE press
 			 * while the button has the active input focus.
 			 */
@@ -2698,7 +2731,6 @@ MRESULT EXPENTRY _BtProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 						tmp= tmp->next;
 				}
 			}
-#endif
 			if(SHORT1FROMMP(mp2) == '\t')
 			{
 				if(CHARMSG(&msg)->fs & KC_SHIFT)
@@ -2819,9 +2851,7 @@ MRESULT EXPENTRY _BtProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 MRESULT EXPENTRY _RendProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 {
 	int res = 0;
-#ifndef NO_SIGNALS
 	res = (int)_run_event(hwnd, msg, mp1, mp2);
-#endif
 	switch(msg)
 	{
 	case WM_BUTTON1DOWN:
@@ -2858,9 +2888,8 @@ MRESULT EXPENTRY _TreeProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 		break;
 	}
 
-#ifndef NO_SIGNALS
 	_run_event(hwnd, msg, mp1, mp2);
-#endif
+
 	if(oldproc)
 		return oldproc(hwnd, msg, mp1, mp2);
 
@@ -6660,82 +6689,69 @@ void dw_exit(int exitcode)
 	 * try to free memory that could possibly be
 	 * free()'d by the runtime already.
 	 */
-#ifndef NO_SIGNALS
 	Root = NULL;
-#endif
+
 	exit(exitcode);
 }
 
 /*
- * Pack a splitbar (sizer) into the specified box from the start.
+ * Creates a splitbar window (widget) with given parameters.
  * Parameters:
- *       box: Window handle of the box to be packed into.
+ *       type: Value can be BOXVERT or BOXHORZ.
+ *       topleft: Handle to the window to be top or left.
+ *       bottomright:  Handle to the window to be bottom or right.
+ * Returns:
+ *       A handle to a splitbar window or NULL on failure.
  */
-void dw_box_pack_splitbar_start(HWND box)
+HWND dw_splitbar_new(int type, HWND topleft, HWND bottomright)
 {
-	Box *thisbox;
-
-	if(WinWindowFromID(box, FID_CLIENT))
+	HWND tmp = WinCreateWindow(HWND_OBJECT,
+							   SplitbarClassName,
+							   NULL,
+							   WS_VISIBLE,
+							   0,0,2000,1000,
+							   NULLHANDLE,
+							   HWND_TOP,
+							   0L,
+							   NULL,
+							   NULL);
+	if(tmp)
 	{
-		box = WinWindowFromID(box, FID_CLIENT);
-		thisbox = WinQueryWindowPtr(box, QWP_USER);
-	}
-	else
-		thisbox = WinQueryWindowPtr(box, QWP_USER);
-	if(thisbox)
-	{
-		HWND tmp = WinCreateWindow(HWND_OBJECT,
-								   SplitbarClassName,
-								   NULL,
-								   WS_VISIBLE,
-								   0,0,2000,1000,
-								   NULLHANDLE,
-								   HWND_TOP,
-								   0L,
-								   NULL,
-								   NULL);
-		if(thisbox->type == BOXVERT)
-			dw_box_pack_start(box, tmp, 1, SPLITBAR_WIDTH, TRUE, FALSE, 0);
-		else
-			dw_box_pack_start(box, tmp, SPLITBAR_WIDTH, 1, FALSE, TRUE, 0);
+		HWND tmpbox = dw_box_new(BOXVERT, 0);
 
+		dw_box_pack_start(tmpbox, topleft, 1, 1, TRUE, TRUE, 0);
+		WinSetParent(tmpbox, tmp, FALSE);
+		dw_window_set_data(tmp, "_dw_topleft", (void *)tmpbox);
+
+		tmpbox = dw_box_new(BOXVERT, 0);
+		dw_box_pack_start(tmpbox, bottomright, 1, 1, TRUE, TRUE, 0);
+		WinSetParent(tmpbox, tmp, FALSE);
+		dw_window_set_data(tmp, "_dw_bottomright", (void *)tmpbox);
+		dw_window_set_data(tmp, "_dw_percent", (void *)50);
+		dw_window_set_data(tmp, "_dw_type", (void *)type);
 	}
+	return tmp;
 }
 
 /*
- * Pack a splitbar (sizer) into the specified box from the end.
+ * Sets the position of a splitbar (pecentage).
  * Parameters:
- *       box: Window handle of the box to be packed into.
+ *       handle: The handle to the splitbar returned by dw_splitbar_new().
  */
-void dw_box_pack_splitbar_end(HWND box)
+void dw_splitbar_set(HWND handle, int percent)
 {
-	Box *thisbox;
+	/* We probably need to force a redraw here */
+	dw_window_set_data(handle, "_dw_percent", (void *)percent);
+}
 
-	if(WinWindowFromID(box, FID_CLIENT))
-	{
-		box = WinWindowFromID(box, FID_CLIENT);
-		thisbox = WinQueryWindowPtr(box, QWP_USER);
-	}
-	else
-		thisbox = WinQueryWindowPtr(box, QWP_USER);
-	if(thisbox)
-	{
-		HWND tmp = WinCreateWindow(HWND_OBJECT,
-								   SplitbarClassName,
-								   NULL,
-								   WS_VISIBLE,
-								   0,0,2000,1000,
-								   NULLHANDLE,
-								   HWND_TOP,
-								   0L,
-								   NULL,
-								   NULL);
-		if(thisbox->type == BOXVERT)
-			dw_box_pack_end(box, tmp, 1, SPLITBAR_WIDTH, TRUE, FALSE, 0);
-		else
-			dw_box_pack_end(box, tmp, SPLITBAR_WIDTH, 1, FALSE, TRUE, 0);
-
-	}
+/*
+ * Gets the position of a splitbar (pecentage).
+ * Parameters:
+ *       handle: The handle to the splitbar returned by dw_splitbar_new().
+ */
+int dw_splitbar_get(HWND handle)
+{
+	return (int)dw_window_get_data(handle, "_dw_percent");
 }
 
 /*
@@ -7246,17 +7262,20 @@ void dw_window_set_data(HWND window, char *dataname, void *data)
 {
 	WindowData *blah = (WindowData *)WinQueryWindowPtr(window, QWP_USER);
 
-	if(blah)
+	if(!blah)
 	{
-		if(data)
-			new_userdata(&(blah->root), dataname, data);
+		blah = calloc(1, sizeof(WindowData));
+		WinSetWindowPtr(window, QWP_USER, blah);
+	}
+
+	if(data)
+		new_userdata(&(blah->root), dataname, data);
+	else
+	{
+		if(dataname)
+			remove_userdata(&(blah->root), dataname, FALSE);
 		else
-		{
-			if(dataname)
-				remove_userdata(&(blah->root), dataname, FALSE);
-			else
-				remove_userdata(&(blah->root), NULL, TRUE);
-		}
+			remove_userdata(&(blah->root), NULL, TRUE);
 	}
 }
 
@@ -7280,7 +7299,6 @@ void *dw_window_get_data(HWND window, char *dataname)
 	return NULL;
 }
 
-#ifndef NO_SIGNALS
 /*
  * Add a callback to a window event.
  * Parameters:
@@ -7421,7 +7439,6 @@ void dw_signal_disconnect_by_data(HWND window, void *data)
 		}
 	}
 }
-#endif
 
 #ifdef TEST
 HWND mainwindow,
