@@ -14,7 +14,7 @@ Entities using the source code must acknowledge Dynamic Windows contributors.
 (either passively when queried or actively by acknowledgements in the program)
 The following are not allowed to use Dynamic Windows in a commercial product:
 
-F/X Communuications
+F/X Communications
 Any entity associated with Bjarne Jensen
 
 
