@@ -1698,6 +1698,7 @@ BOOL CALLBACK _framewndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 	case WM_MBUTTONDOWN:
 	case WM_RBUTTONDOWN:
 		SetActiveWindow(hWnd);
+		SetFocus(hWnd);
 		break;
 	case WM_COMMAND:
 	case WM_NOTIFY:
