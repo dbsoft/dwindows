@@ -1168,7 +1168,7 @@ int dw_messagebox(char *title, int flags, char *format, ...)
 	va_list args;
 	char outbuf[256];
 	char **xpm_data = NULL;
-	int x, y;
+	int x, y, extra_width=0;
 
 	va_start(args, format);
 	vsprintf(outbuf, format, args);
@@ -1200,6 +1200,9 @@ int dw_messagebox(char *title, int flags, char *format, ...)
 	else if(flags & DW_MB_QUESTION)
 		xpm_data = (char **)_dw_messagebox_question;
 
+	if(xpm_data)
+		extra_width = 32;
+
 	if(texttargetbox == imagetextbox)
 	{
 		GdkPixmap *icon_pixmap = NULL;
@@ -1228,7 +1231,7 @@ int dw_messagebox(char *title, int flags, char *format, ...)
 	/* Create text */
 	stext = dw_text_new(outbuf, 0);
 	dw_window_set_style(stext, DW_DT_WORDBREAK, DW_DT_WORDBREAK);
-	dw_box_pack_start(texttargetbox, stext, 235, 50, TRUE, TRUE, 2);
+	dw_box_pack_start(texttargetbox, stext, 235+extra_width, 50, TRUE, TRUE, 2);
 
 	/* Buttons */
 	buttonbox = dw_box_new(DW_HORZ, 10);
@@ -1275,14 +1278,14 @@ int dw_messagebox(char *title, int flags, char *format, ...)
 		dw_signal_connect(cancelbutton, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(_dw_cancel_func), (void *)dwwait);
 	}
 
-	x = (dw_screen_width() - 280)/2;
+	x = (dw_screen_width() - (280+extra_width))/2;
 	y = (dw_screen_height() - 150)/2;
 
-	dw_window_set_pos_size(entrywindow, x, y, 280, 150);
+	dw_window_set_pos_size(entrywindow, x, y, (280+extra_width), 150);
 
 	dw_window_show(entrywindow);
 
-	return (int)dw_dialog_wait(dwwait);;
+	return (int)dw_dialog_wait(dwwait);
 }
 
 /*
@@ -3060,6 +3063,9 @@ void dw_mle_export(HWND handle, char *buffer, int startpoint, int length)
 	gchar *text;
 
 	DW_MUTEX_LOCK;
+	/* force the return value to nul in case the following tests fail */
+	if(buffer)
+		strcpy(buffer,"");
 #if GTK_MAJOR_VERSION > 1
 	if(GTK_IS_SCROLLED_WINDOW(handle))
 #else
@@ -3079,15 +3085,19 @@ void dw_mle_export(HWND handle, char *buffer, int startpoint, int length)
 			gtk_text_buffer_get_iter_at_offset(tbuffer, &end, startpoint + length);
 			text = gtk_text_iter_get_text(&start, &end);
 			if(text) /* Should this get freed? */
-				strcpy(buffer, text);
+			{
+				if(buffer)
+					strcpy(buffer, text);
+			}
 		}
 #else
 		if(tmp && GTK_IS_TEXT(tmp))
 		{
-			text = gtk_editable_get_chars(GTK_EDITABLE(&(GTK_TEXT(tmp)->editable)), startpoint, startpoint + length);
+			text = gtk_editable_get_chars(GTK_EDITABLE(&(GTK_TEXT(tmp)->editable)), startpoint, startpoint + length - 1);
 			if(text)
 			{
-				strcpy(buffer, text);
+				if(buffer)
+					strcpy(buffer, text);
 				g_free(text);
 			}
 		}
