@@ -6628,7 +6628,11 @@ void dw_color_background_set(unsigned long value)
 /* Internal function to handle the color OK press */
 static gint _gtk_color_ok(GtkWidget *widget, DWDialog *dwwait)
 {
+#if GTK_MAJOR_VERSION > 1
 	GdkColor color;
+#else
+	gdouble colors[4];
+#endif
 	unsigned long dw_color;
 	GtkColorSelection *colorsel;
 
@@ -6636,10 +6640,18 @@ static gint _gtk_color_ok(GtkWidget *widget, DWDialog *dwwait)
 		return FALSE;
 
 	colorsel = GTK_COLOR_SELECTION(GTK_COLOR_SELECTION_DIALOG(dwwait->data)->colorsel);
-	gtk_color_selection_get_current_color(colorsel,&color);
+#if GTK_MAJOR_VERSION > 1
+	gtk_color_selection_get_current_color(colorsel, &color);
+#else
+	gtk_color_selection_get_color(colorsel, colors);
+#endif
 	gtk_widget_destroy(GTK_WIDGET(dwwait->data));
 	_dw_color_active = 0;
+#if GTK_MAJOR_VERSION > 1
 	dw_color = DW_RGB( (color.red & 0xFF), (color.green & 0xFF), (color.blue & 0xFF));
+#else
+	dw_color = DW_RGB( (int)(colors[0] * 255), (int)(colors[1] * 255), (int)(colors[2] * 255));
+#endif
 	dw_dialog_dismiss(dwwait, (void *)dw_color);
 	return FALSE;
 }
@@ -6668,7 +6680,11 @@ unsigned long API dw_color_choose(unsigned long value)
 	int _locked_by_me = FALSE;
 	DWDialog *dwwait;
 	GtkColorSelection *colorsel;
+#if GTK_MAJOR_VERSION > 1
 	GdkColor color = _internal_color(value);
+#else
+	gdouble colors[4];
+#endif
 	unsigned long dw_color;
 
 	DW_MUTEX_LOCK;
@@ -6692,9 +6708,16 @@ unsigned long API dw_color_choose(unsigned long value)
 	gtk_signal_connect(GTK_OBJECT(GTK_COLOR_SELECTION_DIALOG(colorw)->cancel_button), "clicked", (GtkSignalFunc) _gtk_color_cancel, dwwait);
 
 	colorsel = GTK_COLOR_SELECTION(GTK_COLOR_SELECTION_DIALOG(colorw)->colorsel);
+#if GTK_MAJOR_VERSION > 1
 	gtk_color_selection_set_previous_color(colorsel,&color);
 	gtk_color_selection_set_current_color(colorsel,&color);
 	gtk_color_selection_set_has_palette(colorsel,TRUE);
+#else
+	colors[0] = ((gdouble)DW_RED_VALUE(value) / (gdouble)255);
+	colors[1] = ((gdouble)DW_GREEN_VALUE(value) / (gdouble)255);
+	colors[2] = ((gdouble)DW_BLUE_VALUE(value) / (gdouble)255);
+	gtk_color_selection_set_color(colorsel, colors);
+#endif
 
 	gtk_widget_show(colorw);
 
