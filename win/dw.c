@@ -2114,6 +2114,7 @@ BOOL CALLBACK _colorwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 			}
 			break;
 		case WM_CHAR:
+			_wndproc(hWnd, msg, mp1, mp2);
 			if(LOWORD(mp1) == '\t')
 			{
 				if(GetAsyncKeyState(VK_SHIFT) & 0x8000)
