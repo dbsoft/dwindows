@@ -1386,7 +1386,7 @@ MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 
 								WinQueryClassName(tmp->window, 99, classbuf);
 
-								if(id && strncmp(classbuf, "#6", 2)==0)
+								if(id && strncmp(classbuf, "#2", 2)==0)
 								{
 									char *buf2;
 
@@ -5424,6 +5424,11 @@ void dw_environment_query(DWEnv *env)
 		else if (i == 10)
 			env->MinorVersion = 1;
 	}
+	strcpy(env->buildDate, __DATE__);
+	strcpy(env->buildTime, __TIME__);
+	env->DWMajorVersion = DW_MAJOR_VERSION;
+	env->DWMinorVersion = DW_MINOR_VERSION;
+	env->DWSubVersion = DW_SUB_VERSION;
 }
 
 /*

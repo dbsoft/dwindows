@@ -3389,23 +3389,13 @@ void dw_window_set_pos_size(HWND handle, unsigned long x, unsigned long y, unsig
 	DW_MUTEX_LOCK;
 	if(handle && GTK_IS_WINDOW(handle))
 	{
-		GdkWindow *parent = gdk_window_get_parent(handle->window);
 		int cx = (int)gtk_object_get_data(GTK_OBJECT(handle), "cx");
 		int cy = (int)gtk_object_get_data(GTK_OBJECT(handle), "cy");
 
 		_size_allocate(GTK_WINDOW(handle));
-#if 0
-		if(parent)
-		{
-			gdk_window_resize(parent, width, height);
-			gdk_window_move(parent, x, y);
-		}
-		else
-#endif
-		{
-			gtk_widget_set_uposition(handle, x, y);
-			gtk_window_set_default_size(GTK_WINDOW(handle), width - cx, height - cy);
-		}
+
+		gtk_widget_set_uposition(handle, x, y);
+		gtk_window_set_default_size(GTK_WINDOW(handle), width - cx, height - cy);
 	}
 	else if(handle && handle->window)
 	{
@@ -3495,11 +3485,13 @@ unsigned long dw_notebook_page_new(HWND handle, unsigned long flags, int front)
 
 	DW_MUTEX_LOCK;
 	for(z=0;z<256;z++)
+	{
 		if(!gtk_notebook_get_nth_page(GTK_NOTEBOOK(handle), z))
 		{
 			DW_MUTEX_UNLOCK;
 			return z;
 		}
+	}
 
 	DW_MUTEX_UNLOCK;
 
@@ -3594,13 +3586,24 @@ void dw_notebook_page_set_status_text(HWND handle, unsigned long pageid, char *t
  */
 void dw_notebook_pack(HWND handle, unsigned long pageid, HWND page)
 {
-	GtkWidget *label;
+	GtkWidget *label, *child, *oldlabel;
+	gchar *text = NULL;
 	int _locked_by_me = FALSE;
 
 	DW_MUTEX_LOCK;
-	label = gtk_label_new("");
+	child = gtk_notebook_get_nth_page(GTK_NOTEBOOK(handle), pageid);
+	if(child)
+	{
+		oldlabel = gtk_notebook_get_tab_label(GTK_NOTEBOOK(handle), child);
+		if(oldlabel)
+			gtk_label_get(GTK_LABEL(oldlabel), &text);
+	}
 
-	gtk_notebook_append_page (GTK_NOTEBOOK(handle), page, label);
+	label = gtk_label_new(text ? text : "");
+
+	gtk_notebook_insert_page(GTK_NOTEBOOK(handle), page, label, pageid);
+	if(child)
+		gtk_notebook_remove_page(GTK_NOTEBOOK(handle), pageid+1);
 	DW_MUTEX_UNLOCK;
 }
 
@@ -4104,6 +4107,12 @@ void dw_environment_query(DWEnv *env)
 	env->MajorBuild = env->MinorBuild = 0;
 
 	len = strlen(tempbuf);
+
+	strcpy(env->buildDate, __DATE__);
+	strcpy(env->buildTime, __TIME__);
+	env->DWMajorVersion = DW_MAJOR_VERSION;
+	env->DWMinorVersion = DW_MINOR_VERSION;
+	env->DWSubVersion = DW_SUB_VERSION;
 
 	for(z=1;z<len;z++)
 	{
