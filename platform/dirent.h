@@ -1,3 +1,6 @@
+#ifdef __UNIX__
+#include <dirent.h>
+#else
 #ifndef __DIRENT_H__
 #define __DIRENT_H__
 
@@ -69,4 +72,5 @@ extern char *		_abs_path(const char *name, char *buffer, int len);
 }
 #endif
 
+#endif
 #endif
