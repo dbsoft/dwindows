@@ -250,6 +250,7 @@ void _free_window_memory(HWND handle)
 
 	if(ptr)
 	{
+		dw_window_set_data(handle, NULL, NULL);
 		WinSetWindowPtr(handle, QWP_USER, 0);
 		free(ptr);
 	}
@@ -3752,7 +3753,7 @@ HWND dw_text_new(char *text, ULONG id)
  */
 HWND dw_status_text_new(char *text, ULONG id)
 {
-	PFNWP *blah = malloc(sizeof(PFNWP));
+	WindowData *blah = calloc(sizeof(WindowData), 1);
 	HWND tmp = WinCreateWindow(HWND_OBJECT,
 							   WC_STATIC,
 							   text,
@@ -3766,7 +3767,7 @@ HWND dw_status_text_new(char *text, ULONG id)
 	dw_window_set_font(tmp, DefaultFont);
 	dw_window_set_color(tmp, DW_CLR_BLACK, DW_CLR_PALEGRAY);
 
-	*blah = WinSubclassWindow(tmp, _statusproc);
+	blah->oldproc = WinSubclassWindow(tmp, _statusproc);
 	WinSetWindowPtr(tmp, QWP_USER, blah);
 	return tmp;
 }
@@ -3894,7 +3895,7 @@ HWND dw_combobox_new(char *text, ULONG id)
  */
 HWND dw_button_new(char *text, ULONG id)
 {
-	BubbleButton *bubble = malloc(sizeof(BubbleButton));
+	BubbleButton *bubble = calloc(sizeof(BubbleButton), 1);
 
 	HWND tmp = WinCreateWindow(HWND_OBJECT,
 							   WC_BUTTON,
@@ -3959,7 +3960,7 @@ HWND dw_bitmapbutton_new(char *text, ULONG id)
 {
 	char idbuf[256];
 	HWND tmp;
-	BubbleButton *bubble = malloc(sizeof(BubbleButton));
+	BubbleButton *bubble = calloc(sizeof(BubbleButton), 1);
 
 	_GenResIDStr(idbuf, id);
 
@@ -3993,7 +3994,7 @@ HWND dw_bitmapbutton_new(char *text, ULONG id)
  */
 HWND dw_spinbutton_new(char *text, ULONG id)
 {
-	PFNWP *blah = malloc(sizeof(PFNWP));
+	WindowData *blah = calloc(sizeof(WindowData), 1);
 	HWND tmp = WinCreateWindow(HWND_OBJECT,
 							   WC_SPINBUTTON,
 							   text,
@@ -4005,7 +4006,7 @@ HWND dw_spinbutton_new(char *text, ULONG id)
 							   NULL,
 							   NULL);
 	dw_window_set_font(tmp, DefaultFont);
-	*blah = WinSubclassWindow(tmp, _entryproc);
+	blah->oldproc = WinSubclassWindow(tmp, _entryproc);
 	WinSetWindowPtr(tmp, QWP_USER, blah);
 	return tmp;
 }
@@ -4018,7 +4019,7 @@ HWND dw_spinbutton_new(char *text, ULONG id)
  */
 HWND dw_radiobutton_new(char *text, ULONG id)
 {
-	PFNWP *blah = malloc(sizeof(PFNWP));
+	WindowData *blah = calloc(sizeof(WindowData), 1);
 	HWND tmp = WinCreateWindow(HWND_OBJECT,
 							   WC_BUTTON,
 							   text,
@@ -4032,7 +4033,7 @@ HWND dw_radiobutton_new(char *text, ULONG id)
 							   NULL);
 	dw_window_set_font(tmp, DefaultFont);
 	dw_window_set_color(tmp, DW_CLR_BLACK, DW_CLR_PALEGRAY);
-	*blah = WinSubclassWindow(tmp, _entryproc);
+	blah->oldproc = WinSubclassWindow(tmp, _entryproc);
 	WinSetWindowPtr(tmp, QWP_USER, blah);
 	return tmp;
 }
@@ -4095,7 +4096,7 @@ HWND dw_percent_new(ULONG id)
  */
 HWND dw_checkbox_new(char *text, ULONG id)
 {
-	BubbleButton *bubble = malloc(sizeof(BubbleButton));
+	BubbleButton *bubble = calloc(sizeof(BubbleButton), 1);
 	HWND tmp = WinCreateWindow(HWND_OBJECT,
 							   WC_BUTTON,
 							   text,
@@ -4123,7 +4124,7 @@ HWND dw_checkbox_new(char *text, ULONG id)
  */
 HWND dw_listbox_new(ULONG id, int multi)
 {
-	PFNWP *blah = malloc(sizeof(PFNWP));
+	WindowData *blah = calloc(sizeof(WindowData), 1);
 	HWND tmp = WinCreateWindow(HWND_OBJECT,
 							   WC_LISTBOX,
 							   NULL,
@@ -4136,7 +4137,7 @@ HWND dw_listbox_new(ULONG id, int multi)
 							   NULL,
 							   NULL);
 	dw_window_set_font(tmp, DefaultFont);
-	*blah = WinSubclassWindow(tmp, _entryproc);
+	blah->oldproc = WinSubclassWindow(tmp, _entryproc);
 	WinSetWindowPtr(tmp, QWP_USER, blah);
 	return tmp;
 }
@@ -7050,6 +7051,136 @@ char *dw_user_dir(void)
 void dw_window_function(HWND handle, void *function, void *data)
 {
 	WinSendMsg(handle, WM_USER, (MPARAM)function, (MPARAM)data);
+}
+
+/* Functions for managing the user data lists that are associated with
+ * a given window handle.  Used in dw_window_set_data() and
+ * dw_window_get_data().
+ */
+UserData *find_userdata(UserData **root, char *varname)
+{
+	UserData *tmp = *root;
+
+	while(tmp)
+	{
+		if(stricmp(tmp->varname, varname) == 0)
+			return tmp;
+		tmp = tmp->next;
+	}
+	return NULL;
+}
+
+int new_userdata(UserData **root, char *varname, void *data)
+{
+	UserData *new = find_userdata(root, varname);
+
+	if(new)
+	{
+		new->data = data;
+		return TRUE;
+	}
+	else
+	{
+		new = malloc(sizeof(UserData));
+		if(new)
+		{
+			new->varname = strdup(varname);
+			new->data = data;
+
+			new->next = NULL;
+
+			if (!*root)
+				*root = new;
+			else
+			{
+				UserData *prev = NULL, *tmp = *root;
+				while(tmp)
+				{
+					prev = tmp;
+					tmp = tmp->next;
+				}
+				if(prev)
+					prev->next = new;
+				else
+					*root = new;
+			}
+			return TRUE;
+		}
+	}
+	return FALSE;
+}
+
+int remove_userdata(UserData **root, char *varname, int all)
+{
+	UserData *prev = NULL, *tmp = *root;
+
+	while(tmp)
+	{
+		if(all || stricmp(tmp->varname, varname) == 0)
+		{
+			if(!prev)
+			{
+				free(tmp->varname);
+				free(tmp);
+				*root = NULL;
+				return 0;
+			}
+			else
+			{
+				prev->next = tmp->next;
+				free(tmp->varname);
+				free(tmp);
+				return 0;
+			}
+		}
+		tmp = tmp->next;
+	}
+	return 0;
+}
+
+/*
+ * Add a named user data item to a window handle.
+ * Parameters:
+ *       window: Window handle of signal to be called back.
+ *       dataname: A string pointer identifying which signal to be hooked.
+ *       data: User data to be passed to the handler function.
+ */
+void dw_window_set_data(HWND window, char *dataname, void *data)
+{
+	WindowData *blah = (WindowData *)WinQueryWindowPtr(window, QWP_USER);
+
+	if(blah)
+	{
+		if(data)
+			new_userdata(&(blah->root), dataname, data);
+		else
+		{
+			if(dataname)
+				remove_userdata(&(blah->root), dataname, FALSE);
+			else
+				remove_userdata(&(blah->root), NULL, TRUE);
+		}
+	}
+}
+
+/*
+ * Gets a named user data item to a window handle.
+ * Parameters:
+ *       window: Window handle of signal to be called back.
+ *       dataname: A string pointer identifying which signal to be hooked.
+ *       data: User data to be passed to the handler function.
+ */
+void *dw_window_get_data(HWND window, char *dataname)
+{
+	WindowData *blah = (WindowData *)WinQueryWindowPtr(window, QWP_USER);
+
+	if(blah && blah->root && dataname)
+	{
+		UserData *ud = find_userdata(&(blah->root), dataname);
+		if(ud)
+			return ud->data;
+	}
+	return NULL;
 }
 
 #ifndef NO_SIGNALS
