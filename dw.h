@@ -255,7 +255,7 @@ extern HMQ dwhmq;
 typedef struct _color {
 	int fore;
 	int back;
-	HWND buddy;
+	HWND combo, buddy;
 	int user;
 	HBRUSH hbrush;
 	char fontname[128];

@@ -293,6 +293,9 @@ int _validate_focus(HWND handle)
 	if(!handle)
 		return 0;
 
+	if(!IsWindowEnabled(handle))
+		return 0;
+
 	GetClassName(handle, tmpbuf, 99);
 
 	/* These are the window classes which can
@@ -314,6 +317,13 @@ HWND _normalize_handle(HWND handle)
 
 	GetClassName(handle, tmpbuf, 99);
 	if(strnicmp(tmpbuf, UPDOWN_CLASS, strlen(UPDOWN_CLASS))==0) /* Spinner */
+	{
+		ColorInfo *cinfo = (ColorInfo *)GetWindowLong(handle, GWL_USERDATA);
+
+		if(cinfo && cinfo->buddy)
+			return cinfo->buddy;
+	}
+	if(strnicmp(tmpbuf, COMBOBOXCLASSNAME, strlen(COMBOBOXCLASSNAME))==0) /* Combobox */
 	{
 		ColorInfo *cinfo = (ColorInfo *)GetWindowLong(handle, GWL_USERDATA);
 
@@ -1516,7 +1526,9 @@ BOOL CALLBACK _colorwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 		case WM_CHAR:
 			if(LOWORD(mp1) == '\t')
 			{
-				if(cinfo->buddy)
+				if(cinfo->combo)
+					_shift_focus(cinfo->combo);
+				else if(cinfo->buddy)
 					_shift_focus(cinfo->buddy);
 				else
 					_shift_focus(hWnd);
@@ -1525,7 +1537,7 @@ BOOL CALLBACK _colorwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 			/* Tell the spinner control that a keypress has
 			 * occured and to update it's internal value.
 			 */
-			if(cinfo->buddy)
+			if(cinfo->buddy && !cinfo->combo)
 				SendMessage(cinfo->buddy, WM_USER+10, 0, 0);
 			break;
 		case WM_USER+10:
@@ -2532,7 +2544,7 @@ int dw_window_minimize(HWND handle)
  */
 int dw_window_show(HWND handle)
 {
-    int rc = ShowWindow(handle, SW_SHOW);
+	int rc = ShowWindow(handle, SW_SHOW);
 	SetFocus(handle);
 	_initial_focus(handle);
 	return rc;
@@ -3277,6 +3289,19 @@ HWND dw_entryfield_password_new(char *text, ULONG id)
 	return tmp;
 }
 
+BOOL CALLBACK _subclass_child(HWND handle, LPARAM lp)
+{
+	ColorInfo *cinfo = (ColorInfo *)lp;
+
+	if(cinfo)
+	{
+		cinfo->buddy = handle;
+		cinfo->pOldProc = (WNDPROC)SubclassWindow(handle, _colorwndproc);
+		SetWindowLong(handle, GWL_USERDATA, (ULONG)cinfo);
+	}
+	return FALSE;
+}
+
 /*
  * Create a new Combobox window (widget) to be packed.
  * Parameters:
@@ -3293,7 +3318,7 @@ HWND dw_combobox_new(char *text, ULONG id)
 							(HMENU)id,
 							NULL,
 							NULL);
-	ContainerInfo *cinfo = (ContainerInfo *)calloc(1, sizeof(ContainerInfo));
+	ColorInfo *cinfo = (ColorInfo *)calloc(1, sizeof(ColorInfo));
 
 	if(!cinfo)
 	{
@@ -3301,9 +3326,10 @@ HWND dw_combobox_new(char *text, ULONG id)
 		return NULL;
 	}
 
-	cinfo->cinfo.fore = -1;
-	cinfo->cinfo.back = -1;
-	cinfo->pOldProc = (WNDPROC)SubclassWindow(tmp, _containerwndproc);
+	cinfo->fore = -1;
+	cinfo->back = -1;
+	cinfo->combo = tmp;
+	EnumChildWindows(tmp, _subclass_child, (LPARAM)cinfo);
 
 	SetWindowLong(tmp, GWL_USERDATA, (ULONG)cinfo);
 	dw_window_set_font(tmp, DefaultFont);
@@ -4278,7 +4304,7 @@ unsigned int dw_mle_import(HWND handle, char *buffer, int startpoint)
 	SetWindowText(handle, tmpbuf);
 
 	free(tmpbuf);
-	return startpoint+strlen(buffer);
+	return startpoint+strlen(buffer) - 1;
 }
 
 /*
