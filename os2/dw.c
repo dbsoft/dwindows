@@ -1840,7 +1840,7 @@ int _HandleScroller(HWND handle, int pos, int which)
 
 void _clear_emphasis(void)
 {
-	if(hwndEmph && pCoreEmph)
+	if(hwndEmph && WinIsWindow(dwhab, hwndEmph) && pCoreEmph)
 		WinSendMsg(hwndEmph, CM_SETRECORDEMPHASIS, pCoreEmph, MPFROM2SHORT(FALSE, CRA_SOURCE));
 	hwndEmph = NULLHANDLE;
 	pCoreEmph = NULL;
@@ -6271,6 +6271,8 @@ void API dw_container_clear(HWND handle, int redraw)
 {
 	int z = 0;
 
+	if(hwndEmph == handle)
+		_clear_emphasis();
 	if(!dw_window_get_data(handle, "_dw_container"))
 	{
 		PCNRITEM pCore = WinSendMsg(handle, CM_QUERYRECORD, (MPARAM)0L, MPFROM2SHORT(CMA_FIRST, CMA_ITEMORDER));
