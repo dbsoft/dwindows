@@ -3037,8 +3037,12 @@ void API dw_main(void)
 
 	_dwtid = dw_thread_id();
 
-	while (WinGetMsg(dwhab, &qmsg, 0, 0, 0))
+	while(WinGetMsg(dwhab, &qmsg, 0, 0, 0))
+	{
+		if(qmsg.msg == WM_TIMER && qmsg.hwnd == NULLHANDLE)
+			_run_event(qmsg.hwnd, qmsg.msg, qmsg.mp1, qmsg.mp2);
 		WinDispatchMsg(dwhab, &qmsg);
+	}
 
 	WinDestroyMsgQueue(dwhmq);
 	WinTerminate(dwhab);
@@ -3059,6 +3063,8 @@ void API dw_main_sleep(int milliseconds)
 		if(WinPeekMsg(dwhab, &qmsg, 0, 0, 0, PM_NOREMOVE))
 		{
 			WinGetMsg(dwhab, &qmsg, 0, 0, 0);
+			if(qmsg.msg == WM_TIMER && qmsg.hwnd == NULLHANDLE)
+				_run_event(qmsg.hwnd, qmsg.msg, qmsg.mp1, qmsg.mp2);
 			WinDispatchMsg(dwhab, &qmsg);
 		}
 		else
@@ -3123,6 +3129,8 @@ void * API dw_dialog_wait(DWDialog *dialog)
 
 	while (WinGetMsg(dwhab, &qmsg, 0, 0, 0))
 	{
+		if(qmsg.msg == WM_TIMER && qmsg.hwnd == NULLHANDLE)
+			_run_event(qmsg.hwnd, qmsg.msg, qmsg.mp1, qmsg.mp2);
 		WinDispatchMsg(dwhab, &qmsg);
 		if(dialog->done)
 			break;
@@ -7638,26 +7646,23 @@ void *dw_window_get_data(HWND window, char *dataname)
 /*
  * Add a callback to a timer event.
  * Parameters:
- *       window: Window handle which owns this timer.
  *       interval: Milliseconds to delay between calls.
  *       sigfunc: The pointer to the function to be used as the callback.
  *       data: User data to be passed to the handler function.
  * Returns:
  *       Timer ID for use with dw_timer_disconnect(), 0 on error.
  */
-int API dw_timer_connect(HWND window, int interval, void *sigfunc, void *data)
+int API dw_timer_connect(int interval, void *sigfunc, void *data)
 {
-	static int timerid = 0;
-
-	if(window && sigfunc)
+	if(sigfunc)
 	{
-		timerid++;
+		int timerid = WinStartTimer(dwhab, NULLHANDLE, timerid, interval);
 
-		if(timerid >= TID_USERMAX)
-			timerid = 1;
-
-		_new_signal(WM_TIMER, window, timerid, sigfunc, data);
-		return WinStartTimer(dwhab, window, timerid, interval);
+		if(timerid)
+		{
+			_new_signal(WM_TIMER, NULLHANDLE, timerid, sigfunc, data);
+			return timerid;
+		}
 	}
 	return 0;
 }
@@ -7675,11 +7680,12 @@ void API dw_timer_disconnect(int id)
 	if(!id)
 		return;
 
+	WinStopTimer(dwhab, NULLHANDLE, id);
+
 	while(tmp)
 	{
 		if(tmp->id == id)
 		{
-			WinStopTimer(dwhab, tmp->window, id);
 			if(prev)
 			{
 				prev->next = tmp->next;

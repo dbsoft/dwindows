@@ -813,7 +813,7 @@ void * API dw_window_get_data(HWND window, char *dataname);
 int API dw_module_load(char *name, HMOD *handle);
 int API dw_module_symbol(HMOD handle, char *name, void**func);
 int API dw_module_close(HMOD handle);
-int API dw_timer_connect(HWND window, int interval, void *sigfunc, void *data);
+int API dw_timer_connect(int interval, void *sigfunc, void *data);
 void API dw_timer_disconnect(int id);
 void API dw_signal_connect(HWND window, char *signame, void *sigfunc, void *data);
 void API dw_signal_disconnect_by_window(HWND window);
