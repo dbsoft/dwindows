@@ -128,7 +128,6 @@ EXPORTS
   dw_container_set_row_title             @224
   dw_container_insert                    @225
   dw_container_clear                     @226
-  dw_container_set_view                  @227
   dw_container_query_start               @228
   dw_container_query_next                @229
   dw_container_delete                    @230

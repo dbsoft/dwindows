@@ -6371,15 +6371,6 @@ void API dw_container_scroll(HWND handle, int direction, long rows)
 }
 
 /*
- * Removes all rows from a container.
- * Parameters:
- *       handle: Handle to the window (widget) to be cleared.
- */
-void API dw_container_set_view(HWND handle, unsigned long flags, int iconwidth, int iconheight)
-{
-}
-
-/*
  * Starts a new query of a container.
  * Parameters:
  *       handle: Handle to the window (widget) to be queried.

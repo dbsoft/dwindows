@@ -3908,6 +3908,7 @@ void API dw_pointer_set_pos(long x, long y)
 	WinSetPointerPos(HWND_DESKTOP, x, dw_screen_height() - y);
 }
 
+
 /*
  * Create a container object to be packed.
  * Parameters:
@@ -5884,6 +5885,12 @@ int API dw_container_setup(HWND handle, unsigned long *flags, char **titles, int
 		WinSendMsg(handle, CM_SETCNRINFO, MPFROMP(&cnri),  MPFROMLONG(CMA_PFIELDINFOLAST | CMA_XVERTSPLITBAR));
 	}
 
+	cnri.flWindowAttr = CV_DETAIL | CV_MINI | CA_DETAILSVIEWTITLES;
+	cnri.slBitmapOrIcon.cx = 16;
+	cnri.slBitmapOrIcon.cy = 16;
+
+	WinSendMsg(handle, CM_SETCNRINFO, &cnri, MPFROMLONG(CMA_FLWINDOWATTR | CMA_SLBITMAPORICON));
+
 	free(offStruct);
 	return TRUE;
 }
@@ -6336,22 +6343,6 @@ void API dw_container_scroll(HWND handle, int direction, long rows)
 		WinSendMsg(handle, CM_SCROLLWINDOW, MPFROMSHORT(CMA_VERTICAL), MPFROMLONG(10000000));
 		break;
 	}
-}
-
-/*
- * Removes all rows from a container.
- * Parameters:
- *       handle: Handle to the window (widget) to be cleared.
- */
-void API dw_container_set_view(HWND handle, unsigned long flags, int iconwidth, int iconheight)
-{
-	CNRINFO cnrinfo;
-
-	cnrinfo.flWindowAttr = flags;
-	cnrinfo.slBitmapOrIcon.cx = iconwidth;
-	cnrinfo.slBitmapOrIcon.cy = iconheight;
-
-	WinSendMsg(handle, CM_SETCNRINFO, &cnrinfo, MPFROMLONG(CMA_FLWINDOWATTR | CMA_SLBITMAPORICON));
 }
 
 /*

@@ -129,10 +129,6 @@ typedef struct _user_data
 #define DW_CFA_HORZSEPARATOR     CFA_HORZSEPARATOR
 #define DW_CFA_SEPARATOR         CFA_SEPARATOR
 
-#define DW_CA_DETAILSVIEWTITLES  CA_DETAILSVIEWTITLES
-#define DW_CV_MINI               CV_MINI
-#define DW_CV_DETAIL             CV_DETAIL
-
 #define DW_CRA_SELECTED          CRA_SELECTED
 #define DW_CRA_CURSORED          CRA_CURSORED
 
@@ -288,10 +284,6 @@ extern HMQ dwhmq;
 #define DW_CFA_RIGHT             (1 << 7)
 #define DW_CFA_HORZSEPARATOR     0
 #define DW_CFA_SEPARATOR         0
-
-#define DW_CA_DETAILSVIEWTITLES  0
-#define DW_CV_MINI               0
-#define DW_CV_DETAIL             0
 
 #define DW_CRA_SELECTED          LVNI_SELECTED
 #define DW_CRA_CURSORED          LVNI_FOCUSED
@@ -493,10 +485,6 @@ void dw_box_pack_end_stub(HWND box, HWND item, int width, int height, int hsize,
 #define DW_CFA_RIGHT             (1 << 7)
 #define DW_CFA_HORZSEPARATOR     (1 << 8)
 #define DW_CFA_SEPARATOR         (1 << 9)
-
-#define DW_CA_DETAILSVIEWTITLES  1
-#define DW_CV_MINI               (1 << 1)
-#define DW_CV_DETAIL             (1 << 2)
 
 #define DW_SLS_READONLY          1
 #define DW_SLS_RIBBONSTRIP       (1 << 1)
@@ -863,7 +851,6 @@ void API dw_container_set_row_title(void *pointer, int row, char *title);
 void API dw_container_insert(HWND handle, void *pointer, int rowcount);
 void API dw_container_clear(HWND handle, int redraw);
 void API dw_container_delete(HWND handle, int rowcount);
-void API dw_container_set_view(HWND handle, unsigned long flags, int iconwidth, int iconheight);
 char * API dw_container_query_start(HWND handle, unsigned long flags);
 char * API dw_container_query_next(HWND handle, unsigned long flags);
 void API dw_container_scroll(HWND handle, int direction, long rows);
