@@ -689,19 +689,6 @@ void _shift_focus_back(HWND handle)
 	}
 }
 
-/* ResetWindow:
- *         Resizes window to the exact same size to trigger
- *         recalculation of frame.
- */
-void _ResetWindow(HWND hwndFrame)
-{
-	SWP swp;
-
-	WinQueryWindowPos(hwndFrame, &swp);
-	WinSetWindowPos(hwndFrame, HWND_TOP, 0, 0, swp.cx, swp.cy-1, SWP_SIZE);
-	WinSetWindowPos(hwndFrame, HWND_TOP, 0, 0, swp.cx, swp.cy, SWP_SIZE);
-}
-
 /* This function will recursively search a box and add up the total height of it */
 void _count_size(HWND box, int type, int *xsize, int *xorigsize)
 {
@@ -2303,11 +2290,61 @@ void _changebox(Box *thisbox, int percent, int type)
 	}
 }
 
+void _handle_splitbar_resize(HWND hwnd, float percent, int type, int x, int y)
+{
+	if(type == BOXHORZ)
+	{
+		int newx = x - SPLITBAR_WIDTH, newy = y;
+		float ratio = (float)percent/(float)100.0;
+		HWND handle = (HWND)dw_window_get_data(hwnd, "_dw_topleft");
+		Box *tmp = WinQueryWindowPtr(handle, QWP_USER);
+
+		newx = (int)((float)newx * ratio);
+
+		WinSetWindowPos(handle, NULLHANDLE, 0, 0, newx, y, SWP_MOVE | SWP_SIZE | SWP_SHOW);
+		_do_resize(tmp, newx, y);
+
+		dw_window_set_data(hwnd, "_dw_start", (void *)newx);
+
+		handle = (HWND)dw_window_get_data(hwnd, "_dw_bottomright");
+		tmp = WinQueryWindowPtr(handle, QWP_USER);
+
+		newx = x - newx - SPLITBAR_WIDTH;
+
+		WinSetWindowPos(handle, NULLHANDLE, x - newx, 0, newx, y, SWP_MOVE | SWP_SIZE | SWP_SHOW);
+		_do_resize(tmp, newx, y);
+	}
+	else
+	{
+		int newx = x, newy = y - SPLITBAR_WIDTH;
+		float ratio = (float)percent/(float)100.0;
+		HWND handle = (HWND)dw_window_get_data(hwnd, "_dw_topleft");
+		Box *tmp = WinQueryWindowPtr(handle, QWP_USER);
+
+		newy = (int)((float)newy * ratio);
+
+		WinSetWindowPos(handle, NULLHANDLE, 0, y - newy, x, newy, SWP_MOVE | SWP_SIZE | SWP_SHOW);
+		_do_resize(tmp, x, newy);
+
+		handle = (HWND)dw_window_get_data(hwnd, "_dw_bottomright");
+		tmp = WinQueryWindowPtr(handle, QWP_USER);
+
+		newy = y - newy - SPLITBAR_WIDTH;
+
+		WinSetWindowPos(handle, NULLHANDLE, 0, 0, x, newy, SWP_MOVE | SWP_SIZE | SWP_SHOW);
+		_do_resize(tmp, x, newy);
+
+		dw_window_set_data(hwnd, "_dw_start", (void *)newy);
+	}
+}
+
+
 /* This handles any activity on the splitbars (sizers) */
 MRESULT EXPENTRY _splitwndproc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 {
 	float *percent = (float *)dw_window_get_data(hwnd, "_dw_percent");
 	int type = (int)dw_window_get_data(hwnd, "_dw_type");
+	int start = (int)dw_window_get_data(hwnd, "_dw_start");
 
 	switch (msg)
 	{
@@ -2320,52 +2357,7 @@ MRESULT EXPENTRY _splitwndproc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 			int x = SHORT1FROMMP(mp2), y = SHORT2FROMMP(mp2);
 
 			if(x > 0 && y > 0 && percent)
-			{
-				if(type == BOXHORZ)
-				{
-					int newx = x - SPLITBAR_WIDTH, newy = y;
-					float ratio = (float)*percent/(float)100.0;
-					HWND handle = (HWND)dw_window_get_data(hwnd, "_dw_topleft");
-					Box *tmp = WinQueryWindowPtr(handle, QWP_USER);
-
-					newx = (int)((float)newx * ratio);
-
-					WinSetWindowPos(handle, NULLHANDLE, 0, 0, newx, y, SWP_MOVE | SWP_SIZE | SWP_SHOW);
-					_do_resize(tmp, newx, y);
-
-					handle = (HWND)dw_window_get_data(hwnd, "_dw_bottomright");
-					tmp = WinQueryWindowPtr(handle, QWP_USER);
-
-					newx = x - newx - SPLITBAR_WIDTH;
-
-					WinSetWindowPos(handle, NULLHANDLE, x - newx, 0, newx, y, SWP_MOVE | SWP_SIZE | SWP_SHOW);
-					_do_resize(tmp, newx, y);
-
-					dw_window_set_data(hwnd, "_dw_start", (void *)newx);
-				}
-                else
-				{
-					int newx = x, newy = y - SPLITBAR_WIDTH;
-					float ratio = (float)*percent/(float)100.0;
-					HWND handle = (HWND)dw_window_get_data(hwnd, "_dw_topleft");
-					Box *tmp = WinQueryWindowPtr(handle, QWP_USER);
-
-					newy = (int)((float)newy * ratio);
-
-					WinSetWindowPos(handle, NULLHANDLE, 0, y - newy, x, newy, SWP_MOVE | SWP_SIZE | SWP_SHOW);
-					_do_resize(tmp, x, newy);
-
-					handle = (HWND)dw_window_get_data(hwnd, "_dw_bottomright");
-					tmp = WinQueryWindowPtr(handle, QWP_USER);
-
-					newy = y - newy - SPLITBAR_WIDTH;
-
-					WinSetWindowPos(handle, NULLHANDLE, 0, 0, x, newy, SWP_MOVE | SWP_SIZE | SWP_SHOW);
-					_do_resize(tmp, x, newy);
-
-					dw_window_set_data(hwnd, "_dw_start", (void *)newy);
-				}
-			}
+				_handle_splitbar_resize(hwnd, *percent, type, x, y);
 		}
 		break;
 	case WM_PAINT:
@@ -2375,7 +2367,6 @@ MRESULT EXPENTRY _splitwndproc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 			POINTL ptlStart[SPLITBAR_WIDTH];
 			POINTL ptlEnd[SPLITBAR_WIDTH];
 			USHORT i;
-			int start = (int)dw_window_get_data(hwnd, "_dw_start");
 
 			hpsPaint = WinBeginPaint(hwnd, 0, 0);
 			WinQueryWindowRect(hwnd, &rclPaint);
@@ -2429,156 +2420,50 @@ MRESULT EXPENTRY _splitwndproc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 		return MRFROMSHORT(FALSE);
 	case WM_BUTTON1DOWN:
 		{
-#if 0
 			APIRET rc;
 			RECTL  rclFrame;
 			RECTL  rclBounds;
-			RECTL  rclStart;
-			USHORT startSize, orig, actual;
 
 			WinQueryWindowRect(hwnd, &rclFrame);
-			WinQueryWindowRect(hwnd, &rclStart);
+			WinQueryWindowRect(hwnd, &rclBounds);
 
-			WinQueryWindowRect(hwndFrame, &rclBounds);
-
-			WinMapWindowPoints(hwndFrame, HWND_DESKTOP,
-							   (PPOINTL)&rclBounds, 2);
 			WinMapWindowPoints(hwnd, HWND_DESKTOP,
-							   (PPOINTL)&rclStart, 2);
+							   (PPOINTL)&rclBounds, 2);
 
+
+			if(type == BOXHORZ)
 			{
-				int z, pastsplitbar = FALSE, found = FALSE;
-				orig = actual = 0;
-
-				for(z=0;z<thisbox->count;z++)
-				{
-					if(thisbox->items[z].hwnd == hwnd)
-						pastsplitbar = TRUE;
-					else
-					{
-						if(thisbox->type == BOXHORZ)
-						{
-							int tmpwidth, tmporigwidth;
-
-							if(thisbox->items[z].type == TYPEBOX)
-								_count_size(thisbox->items[z].hwnd, BOXHORZ, &tmpwidth, &tmporigwidth);
-							else
-							{
-								tmpwidth = thisbox->items[z].width;
-								tmporigwidth = thisbox->items[z].origwidth;
-							}
-
-							if(thisbox->items[z].hsize != SIZESTATIC && tmpwidth > actual && tmporigwidth)
-							{
-								found = pastsplitbar;
-								orig = tmporigwidth;
-								actual = tmpwidth;
-							}
-						}
-						else
-						{
-							int tmpheight, tmporigheight;
-
-							if(thisbox->items[z].type == TYPEBOX)
-								_count_size(thisbox->items[z].hwnd, BOXVERT, &tmpheight, &tmporigheight);
-							else
-							{
-								tmpheight = thisbox->items[z].height;
-								tmporigheight = thisbox->items[z].origheight;
-							}
-
-							if(thisbox->items[z].vsize != SIZESTATIC && tmpheight > actual && tmporigheight)
-							{
-								found = pastsplitbar;
-								orig = tmporigheight;
-								actual = tmpheight;
-							}
-						}
-					}
-				}
-
-				/* If we couldn't determine a valid scale... then abort */
-				if(!orig || !actual)
-					return MRFROMSHORT(FALSE);
-
-				if(thisbox->type == BOXHORZ)
-				{
-					if(found)
-						startSize = (rclStart.xLeft - rclBounds.xLeft)
-							* (((float)actual)/((float)orig));
-					else
-						startSize = (rclStart.xLeft - rclBounds.xLeft)
-							* (((float)orig)/((float)actual));
-				}
-				else
-				{
-					if(found)
-						startSize  = (rclStart.yBottom - rclBounds.yBottom)
-							* (((float)actual)/((float)orig));
-					else
-						startSize  = (rclStart.yBottom - rclBounds.yBottom)
-							* (((float)orig)/((float)actual));
-				}
+				rclFrame.xLeft = start;
+				rclFrame.xRight = start + SPLITBAR_WIDTH;
+			}
+			else
+			{
+				rclFrame.yBottom = start;
+				rclFrame.yTop = start + SPLITBAR_WIDTH;
 			}
 
-			rc = _TrackRectangle(hwnd, &rclFrame, &rclBounds);
-
-			if(rc == TRUE)
+			if(percent)
 			{
-				USHORT usNewRB;
-				USHORT percent;
-				int z;
+				rc = _TrackRectangle(hwnd, &rclFrame, &rclBounds);
 
-				if(thisbox->type == BOXHORZ)
+				if(rc == TRUE)
 				{
-					usNewRB = rclFrame.xLeft
-						- rclBounds.xLeft;
-				}
-				else
-				{
-					usNewRB = rclFrame.yBottom
-						- rclBounds.yBottom;
-				}
+					int width = (rclBounds.xRight - rclBounds.xLeft);
+					int height = (rclBounds.yTop - rclBounds.yBottom);
 
-				/* We don't want the item to disappear completely */
-				if(!usNewRB)
-					usNewRB++;
-
-				if(!startSize)
-					startSize++;
-
-				percent = (usNewRB*100)/startSize;
-
-				for(z=0;z<thisbox->count;z++)
-				{
-					if(thisbox->items[z].type == TYPEBOX)
+					if(type == BOXHORZ)
 					{
-						Box *tmp = WinQueryWindowPtr(thisbox->items[z].hwnd, QWP_USER);
-
-						if(tmp)
-							_changebox(tmp, percent, thisbox->type);
+						start = rclFrame.xLeft - rclBounds.xLeft;
+						*percent = ((float)start / (float)(rclBounds.xRight - rclBounds.xLeft - SPLITBAR_WIDTH)) * 100.0;
 					}
 					else
 					{
-						if(thisbox->items[z].hwnd == hwnd)
-							percent = (startSize*100)/usNewRB;
-
-						if(thisbox->type == BOXHORZ)
-						{
-							if(thisbox->items[z].hsize == SIZEEXPAND)
-								thisbox->items[z].width = (int)(((float)thisbox->items[z].origwidth) * (((float)percent)/((float)100.0)));
-						}
-						else
-						{
-							if(thisbox->items[z].vsize == SIZEEXPAND)
-								thisbox->items[z].height = (int)(((float)thisbox->items[z].origheight) * (((float)percent)/((float)100.0)));
-						}
+						start = rclFrame.yBottom - rclBounds.yBottom;
+						*percent = 100.0 - (((float)start / (float)(rclBounds.yTop - rclBounds.yBottom - SPLITBAR_WIDTH)) * 100.0);
 					}
+					_handle_splitbar_resize(hwnd, *percent, type, width, height);
 				}
-
-				_ResetWindow(WinQueryWindow(hwnd, QW_OWNER));
 			}
-#endif
 		}
 		return MRFROMSHORT(FALSE);
 	}
@@ -6744,9 +6629,15 @@ void dw_splitbar_set(HWND handle, float percent)
 {
 	/* We probably need to force a redraw here */
 	float *mypercent = (float *)dw_window_get_data(handle, "_dw_percent");
+	int type = (int)dw_window_get_data(handle, "_dw_type");
+    int width, height;
 
 	if(mypercent)
 		*mypercent = percent;
+
+	dw_window_get_pos_size(handle, NULL, NULL, &width, &height);
+
+	_handle_splitbar_resize(handle, percent, type, width, height);
 }
 
 /*
