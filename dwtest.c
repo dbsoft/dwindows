@@ -6,6 +6,16 @@
 #include <stdio.h>
 #include "dw.h"
 
+/* Select a fixed width font for our platform */
+#ifdef __OS2__
+#define FIXEDFONT "5.System VIO"
+#elif defined(__WIN32__)
+#define FIXEDFONT "10.Terminal"
+#elif GTK_MAJOR_VERSION > 1
+#define FIXEDFONT "monospace 10"
+#else
+#define FIXEDFONT "fixed"
+#endif
 
 unsigned long flStyle = DW_FCF_SYSMENU | DW_FCF_TITLEBAR |
 	DW_FCF_SHELLPOSITION | DW_FCF_TASKLIST | DW_FCF_DLGBORDER;
@@ -56,9 +66,7 @@ int DWSIGNAL text_expose(HWND hwnd, DWExpose *exp, void *data)
 
 void read_file( void )
 {
-	char line[1024];
-	char buf[10];
-	int i,y,len;
+	int i,len;
 	fp = fopen( current_file, "r" );
 	lp = (char **)calloc( 1000,sizeof(char *));
 	/* should test for out of memory */
@@ -177,7 +185,7 @@ int DWSIGNAL configure_event(HWND hwnd, int width, int height, void *data)
 	cols = width / font_width;
 
 	/* Create new pixmaps with the current sizes */
-	text1pm = dw_pixmap_new( textbox2, font_width*width1, height, dw_color_depth());
+	text1pm = dw_pixmap_new( textbox2, (font_width*width1)+2, height, dw_color_depth());
 	text2pm = dw_pixmap_new( textbox2, width, height, dw_color_depth());
 
 	/* Destroy the old pixmaps */
@@ -265,9 +273,9 @@ void text_add(void)
 
 	/* create render box for number pixmap */
 	textbox1 = dw_render_new( 100 );
-	dw_window_set_font(textbox1, "9.WarpSans");
-	dw_font_text_extents( NULL, text1pm, "O", &font_width, &font_height );
-	dw_box_pack_start(pagebox, textbox1, font_width*width1, font_height*rows, FALSE, TRUE, 0);
+	dw_window_set_font(textbox1, FIXEDFONT);
+	dw_font_text_extents(textbox1, NULL, "O", &font_width, &font_height );
+	dw_box_pack_start(pagebox, textbox1, (font_width*width1)+2, font_height*rows, FALSE, TRUE, 0);
 
 	/* create box for filecontents and horz scrollbar */
 	textboxA = dw_box_new( BOXVERT,0 );
@@ -276,7 +284,7 @@ void text_add(void)
 	/* create render box for filecontents pixmap */
 	textbox2 = dw_render_new( 101 );
 	dw_box_pack_start( textboxA, textbox2, 10, 10, TRUE, TRUE, 0);
-	dw_window_set_font(textbox2, "9.WarpSans");
+	dw_window_set_font(textbox2, FIXEDFONT);
 	/* create horizonal scrollbar */
 	hscrollbar = dw_scrollbar_new(FALSE, 100, 50);
 	dw_box_pack_start( textboxA, hscrollbar, 100, 20, TRUE, FALSE, 0);
@@ -285,7 +293,7 @@ void text_add(void)
 	vscrollbar = dw_scrollbar_new(TRUE, 100, 50);
 	dw_box_pack_start(pagebox, vscrollbar, 20, 100, FALSE, TRUE, 0);
 
-	text1pm = dw_pixmap_new( textbox1, font_width*width1, font_height*rows, depth );
+	text1pm = dw_pixmap_new( textbox1, (font_width*width1)+2, font_height*rows, depth );
 	text2pm = dw_pixmap_new( textbox2, font_width*cols, font_height*rows, depth );
 
 	dw_messagebox("DWTest", "Width: %d Height: %d\n", font_width, font_height);
