@@ -20,6 +20,7 @@ HWND mainwindow,
      notebookbox2,
      notebook,
      scrollbar,
+     scrollbar2,
      status,
      stext,
      pagebox,
@@ -166,9 +167,21 @@ void text_add(void)
 	int i,y,depth = dw_color_depth();
 	char buf[10];
 	HPIXMAP text1pm,text2pm;
+	HWND hbox;
 
 	pagebox = dw_box_new(BOXVERT, 5);
-	dw_box_pack_start( notebookbox2, pagebox, 1, 1, TRUE, TRUE, 0);
+	dw_box_pack_start(notebookbox2, pagebox, 0, 0, TRUE, TRUE, 0);
+
+	hbox = dw_box_new(BOXHORZ, 0);
+	dw_box_pack_start(pagebox, hbox, 0, 0, TRUE, TRUE, 0);
+
+	pagebox = dw_box_new(BOXVERT, 0);
+	dw_box_pack_start(hbox, pagebox, 0, 0, TRUE, TRUE, 0);
+
+	scrollbar2 = dw_scrollbar_new(TRUE, 100, 50);
+	dw_box_pack_start(hbox, scrollbar2, 20, 100, FALSE, TRUE, 0);
+	dw_scrollbar_set_range(scrollbar2, 100, 50);
+	dw_scrollbar_set_pos(scrollbar2, 10);
 
 	textbox1 = dw_render_new( 100 );
 	dw_box_pack_start( pagebox, textbox1, font_width*width1, font_height*rows, TRUE, TRUE, 4);
@@ -209,6 +222,7 @@ void text_add(void)
 	dw_signal_connect(textbox1, "expose_event", DW_SIGNAL_FUNC(text_expose), text1pm);
 	dw_signal_connect(textbox2, "expose_event", DW_SIGNAL_FUNC(text_expose), text2pm);
 	dw_signal_connect(scrollbar, "value_changed", DW_SIGNAL_FUNC(scrollbar_valuechanged), (void *)status);
+	dw_signal_connect(scrollbar2, "value_changed", DW_SIGNAL_FUNC(scrollbar_valuechanged), (void *)status);
 }
 
 /* Beep every second */
