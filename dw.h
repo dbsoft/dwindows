@@ -612,6 +612,7 @@ typedef struct _bubblebutton {
 
 #define DW_MLE_CASESENSITIVE     1
 
+#define DW_POINTER_DEFAULT       0
 #define DW_POINTER_ARROW         GDK_TOP_LEFT_ARROW
 #define DW_POINTER_CLOCK         GDK_WATCH
 
