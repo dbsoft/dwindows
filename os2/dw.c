@@ -3852,13 +3852,14 @@ void API dw_window_track(HWND handle)
  */
 void API dw_window_set_pointer(HWND handle, int pointertype)
 {
-	if(handle == HWND_DESKTOP)
-		WinSetPointer(handle, WinQuerySysPointer(HWND_DESKTOP,pointertype, FALSE));
-	else
-		dw_window_set_data(handle, "_dw_pointer",
-						   pointertype < 65535 ?
-						   (void *)WinQuerySysPointer(HWND_DESKTOP,pointertype, FALSE)
-						   : (void *)pointertype);
+	HPOINTER pointer = pointertype < 65535 ?
+		WinQuerySysPointer(HWND_DESKTOP, pointertype, FALSE)
+		: (HPOINTER)pointertype;
+
+	WinSetPointer(HWND_DESKTOP, pointer);
+
+	if(handle != HWND_DESKTOP)
+		dw_window_set_data(handle, "_dw_pointer", (void *)pointer);
 }
 
 /*
