@@ -4370,7 +4370,7 @@ unsigned long API dw_icon_load_from_file(char *filename)
 		gdk_imlib_destroy_image(image);
 	}
 #else
-	_PixmapArray[found].pixmap = gdk_pixmap_create_from_xpm(handle->window, &_PixmapArray[found].mask, &_colors[DW_CLR_PALEGRAY], file);
+	_PixmapArray[found].pixmap = gdk_pixmap_create_from_xpm(last_window->window, &_PixmapArray[found].mask, &_colors[DW_CLR_PALEGRAY], file);
 #endif
 	DW_MUTEX_UNLOCK;
 	if(!_PixmapArray[found].pixmap || !_PixmapArray[found].mask)
