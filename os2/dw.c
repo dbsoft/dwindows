@@ -2442,7 +2442,7 @@ void dw_window_track(HWND handle)
 HWND dw_window_new(HWND hwndOwner, char *title, ULONG flStyle)
 {
 	HWND hwndclient = 0, hwndframe;
-	Box *newbox = malloc(sizeof(Box));
+	Box *newbox = calloc(1, sizeof(Box));
 	PFNWP *blah = malloc(sizeof(PFNWP));
 
 	newbox->pad = 0;
@@ -2467,7 +2467,7 @@ HWND dw_window_new(HWND hwndOwner, char *title, ULONG flStyle)
  */
 HWND dw_box_new(int type, int pad)
 {
-	Box *newbox = malloc(sizeof(Box));
+	Box *newbox = calloc(1, sizeof(Box));
 	HWND hwndframe;
 
 	newbox->pad = pad;
@@ -2501,7 +2501,7 @@ HWND dw_box_new(int type, int pad)
  */
 HWND dw_groupbox_new(int type, int pad, char *title)
 {
-	Box *newbox = malloc(sizeof(Box));
+	Box *newbox = calloc(1, sizeof(Box));
 	HWND hwndframe;
 
 	newbox->pad = pad;
