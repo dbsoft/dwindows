@@ -538,7 +538,7 @@ gint _default_key_press_event(GtkWidget *widget, GdkEventKey *event, gpointer da
 	return TRUE;
 }
 
-GdkPixmap *_find_pixmap(GdkBitmap **bitmap, long id, HWND handle)
+GdkPixmap *_find_pixmap(GdkBitmap **bitmap, long id, HWND handle, unsigned long *userwidth, unsigned long *userheight)
 {
 	char *data = NULL;
 	int z;
@@ -556,11 +556,19 @@ GdkPixmap *_find_pixmap(GdkBitmap **bitmap, long id, HWND handle)
 	{
 		GdkPixmap *icon_pixmap = NULL;
 #if GTK_MAJOR_VERSION > 1
-		icon_pixmap = (GdkPixmap *)gdk_pixbuf_new_from_xpm_data((const char **)data);
+		GdkPixbuf *icon_pixbuf = gdk_pixbuf_new_from_xpm_data((const char **)data);
+
+		if(userwidth)
+			*userwidth = gdk_pixbuf_get_width(icon_pixbuf);
+		if(userheight)
+			*userheight = gdk_pixbuf_get_height(icon_pixbuf);
+      
+		gdk_pixbuf_render_pixmap_and_mask(icon_pixbuf, &icon_pixmap, bitmap, 1);
+		g_object_unref(icon_pixbuf);
 #elif defined(USE_IMLIB)
 		gdk_imlib_data_to_pixmap((char **)data, &icon_pixmap, bitmap);
 #else
-		icon_pixmap = gdk_pixmap_create_from_xpm_d(handle->window, bitmap, &_colors[DW_CLR_PALEGRAY], &data);
+		icon_pixmap = gdk_pixmap_create_from_xpm_d(handle->window, bitmap, &_colors[DW_CLR_PALEGRAY], (char **)data);
 #endif
 		return icon_pixmap;
 	}
@@ -1470,20 +1478,21 @@ HWND dw_mdi_new(unsigned long id)
  */
 HWND dw_bitmap_new(unsigned long id)
 {
+#if GTK_MAJOR_VERSION < 2
 	GdkPixmap *pixmap = NULL;
 	GdkBitmap *bitmap = NULL;
-	GtkWidget *tmp;
 	static char * test_xpm[] = {
 		"1 1 2 1",
 		"	c None",
 		".	c #FFFFFF",
 		"."};
+#endif
+	GtkWidget *tmp;
 	int _locked_by_me = FALSE;
 
 	DW_MUTEX_LOCK;
 #if GTK_MAJOR_VERSION > 1
-	pixmap = (GdkPixmap *)gdk_pixbuf_new_from_xpm_data((const char **)test_xpm);
-	tmp = gtk_image_new_from_pixbuf((GdkPixbuf *)pixmap);
+	tmp = gtk_image_new();
 #elif defined(USE_IMLIB)
 	gdk_imlib_data_to_pixmap(test_xpm, &pixmap, &bitmap);
 #else
@@ -2256,14 +2265,10 @@ void dw_window_set_icon(HWND handle, unsigned long id)
 	int _locked_by_me = FALSE;
 
 	DW_MUTEX_LOCK;
-	icon_pixmap = _find_pixmap(&bitmap, id, handle);
+	icon_pixmap = _find_pixmap(&bitmap, id, handle, NULL, NULL);
 
 	if(handle->window && icon_pixmap)
-#if GTK_MAJOR_VERSION > 1
-		gtk_window_set_icon(GTK_WINDOW(handle), (GdkPixbuf *)icon_pixmap);
-#else
 		gdk_window_set_icon(handle->window, NULL, icon_pixmap, bitmap);
-#endif
 
 	DW_MUTEX_UNLOCK;
 }
@@ -2281,10 +2286,10 @@ void dw_window_set_bitmap(HWND handle, unsigned long id)
 	int _locked_by_me = FALSE;
 
 	DW_MUTEX_LOCK;
-	tmp = _find_pixmap(&bitmap, id, handle);
+	tmp = _find_pixmap(&bitmap, id, handle, NULL, NULL);
 	if(tmp)
 #if GTK_MAJOR_VERSION > 1
-		gtk_image_set_from_pixbuf(GTK_IMAGE(handle), (GdkPixbuf *)tmp);
+		gtk_image_set_from_pixmap(GTK_IMAGE(handle), tmp, bitmap);
 #else
 		gtk_pixmap_set(GTK_PIXMAP(handle), tmp, bitmap);
 #endif
@@ -3070,9 +3075,9 @@ HWND dw_tree_insert_after(HWND handle, HWND item, char *title, unsigned long ico
 	gtk_object_set_data(GTK_OBJECT(newitem), "tree", (gpointer)tree);
 	hbox = gtk_hbox_new(FALSE, 2);
 	gtk_object_set_data(GTK_OBJECT(newitem), "hbox", (gpointer)hbox);
-	gdkpix = _find_pixmap(&gdkbmp, icon, hbox);
+	gdkpix = _find_pixmap(&gdkbmp, icon, hbox, NULL, NULL);
 #if GTK_MAJOR_VERSION > 1
-	pixmap = gtk_image_new_from_pixbuf((GdkPixbuf *)gdkbmp);
+	pixmap = gtk_image_new_from_pixmap(gdkpix, gdkbmp);
 #else
 	pixmap = gtk_pixmap_new(gdkpix, gdkbmp);
 #endif
@@ -3159,9 +3164,9 @@ HWND dw_tree_insert(HWND handle, char *title, unsigned long icon, HWND parent, v
 	gtk_object_set_data(GTK_OBJECT(item), "tree", (gpointer)tree);
 	hbox = gtk_hbox_new(FALSE, 2);
 	gtk_object_set_data(GTK_OBJECT(item), "hbox", (gpointer)hbox);
-	gdkpix = _find_pixmap(&gdkbmp, icon, hbox);
+	gdkpix = _find_pixmap(&gdkbmp, icon, hbox, NULL, NULL);
 #if GTK_MAJOR_VERSION > 1
-	pixmap = gtk_image_new_from_pixbuf((GdkPixbuf *)gdkbmp);
+	pixmap = gtk_image_new_from_pixmap(gdkpix, gdkbmp);
 #else
 	pixmap = gtk_pixmap_new(gdkpix, gdkbmp);
 #endif
@@ -3244,9 +3249,9 @@ void dw_tree_set(HWND handle, HWND item, char *title, unsigned long icon)
 	gtk_widget_destroy(hbox);
 	hbox = gtk_hbox_new(FALSE, 2);
 	gtk_object_set_data(GTK_OBJECT(item), "hbox", (gpointer)hbox);
-	gdkpix = _find_pixmap(&gdkbmp, icon, hbox);
+	gdkpix = _find_pixmap(&gdkbmp, icon, hbox, NULL, NULL);
 #if GTK_MAJOR_VERSION > 1
-	pixmap = gtk_image_new_from_pixbuf((GdkPixbuf *)gdkbmp);
+	pixmap = gtk_image_new_from_pixmap(gdkpix, gdkbmp);
 #else
 	pixmap = gtk_pixmap_new(gdkpix, gdkbmp);
 #endif
@@ -3605,12 +3610,10 @@ void dw_container_set_item(HWND handle, void *pointer, int column, int row, void
 	{
 		long hicon = *((long *)data);
 		GdkBitmap *bitmap = NULL;
-		GdkPixmap *pixmap = _find_pixmap(&bitmap, hicon, clist);
+		GdkPixmap *pixmap = _find_pixmap(&bitmap, hicon, clist, NULL, NULL);
 
-#if GTK_MAJOR_VERSION < 2
 		if(pixmap)
 			gtk_clist_set_pixmap(GTK_CLIST(clist), row, column, pixmap, bitmap);
-#endif
 	}
 	else if(flag & DW_CFA_STRING)
 	{
@@ -4315,15 +4318,12 @@ HPIXMAP dw_pixmap_grab(HWND handle, ULONG id)
 
 
 	DW_MUTEX_LOCK;
-	pixmap->pixmap = _find_pixmap(&bitmap, id, handle);
+	pixmap->pixmap = _find_pixmap(&bitmap, id, handle, &pixmap->width, &pixmap->height);
 	if(pixmap->pixmap)
 	{
 #if GTK_MAJOR_VERSION < 2
 		GdkPixmapPrivate *pvt = (GdkPixmapPrivate *)pixmap->pixmap;
 		pixmap->width = pvt->width; pixmap->height = pvt->height;
-#else
-		pixmap->width = gdk_pixbuf_get_width((GdkPixbuf *)pixmap->pixmap);
-		pixmap->height = gdk_pixbuf_get_height((GdkPixbuf *)pixmap->pixmap);
 #endif
 	}
 	DW_MUTEX_UNLOCK;
