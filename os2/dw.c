@@ -3354,7 +3354,7 @@ int API dw_window_destroy(HWND handle)
 	if(!handle)
 		return -1;
 
-	if(parent != HWND_DESKTOP && thisbox && thisbox->count)
+	if(parent != desktop && thisbox && thisbox->count)
 	{
 		int z, index = -1;
 		Item *tmpitem, *thisitem = thisbox->items;
