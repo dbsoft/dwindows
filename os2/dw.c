@@ -1438,8 +1438,8 @@ MRESULT EXPENTRY _statusproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 {
 	PFNWP *blah = WinQueryWindowPtr(hWnd, QWP_USER);
 
-	if(msg == WM_MOUSEMOVE)
-	   return _wndproc(hWnd, msg, mp1, mp2);
+	if(msg == WM_MOUSEMOVE && _wndproc(hWnd, msg, mp1, mp2))
+		return MPFROMSHORT(FALSE);
 
 	if(blah && *blah)
 	{
@@ -1478,6 +1478,24 @@ MRESULT EXPENTRY _statusproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 				return (MRESULT)TRUE;
 			}
 		}
+		return myfunc(hWnd, msg, mp1, mp2);
+	}
+
+	return WinDefWindowProc(hWnd, msg, mp1, mp2);
+}
+
+/* This procedure handles pointer changes */
+MRESULT EXPENTRY _textproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
+{
+	PFNWP *blah = WinQueryWindowPtr(hWnd, QWP_USER);
+
+	if(msg == WM_MOUSEMOVE &&_wndproc(hWnd, msg, mp1, mp2))
+		return MPFROMSHORT(FALSE);
+
+	if(blah && *blah)
+	{
+		PFNWP myfunc = *blah;
+
 		return myfunc(hWnd, msg, mp1, mp2);
 	}
 
@@ -1680,7 +1698,9 @@ MRESULT EXPENTRY _entryproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 		}
 		break;
 	case WM_MOUSEMOVE:
-		return _wndproc(hWnd, msg, mp1, mp2);
+		if(_wndproc(hWnd, msg, mp1, mp2))
+			return MPFROMSHORT(FALSE);
+		break;
 	}
 
 	if(oldproc)
@@ -1697,7 +1717,9 @@ MRESULT EXPENTRY _comboentryproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 	switch(msg)
 	{
 	case WM_MOUSEMOVE:
-		return _wndproc(hWnd, msg, mp1, mp2);
+		if(_wndproc(hWnd, msg, mp1, mp2))
+			return MPFROMSHORT(FALSE);
+		break;
 	case WM_CONTEXTMENU:
 	case WM_COMMAND:
 		return _entryproc(hWnd, msg, mp1, mp2);
@@ -1748,7 +1770,9 @@ MRESULT EXPENTRY _spinentryproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 	switch(msg)
 	{
 	case WM_MOUSEMOVE:
-		return _wndproc(hWnd, msg, mp1, mp2);
+		if(_wndproc(hWnd, msg, mp1, mp2))
+			return MPFROMSHORT(FALSE);
+		break;
 	case WM_CONTEXTMENU:
 	case WM_COMMAND:
 		return _entryproc(hWnd, msg, mp1, mp2);
@@ -1795,7 +1819,9 @@ MRESULT EXPENTRY _percentproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 	switch(msg)
 	{
 	case WM_MOUSEMOVE:
-		return _wndproc(hWnd, msg, mp1, mp2);
+		if(_wndproc(hWnd, msg, mp1, mp2))
+			return MPFROMSHORT(FALSE);
+		break;
 	case WM_SIZE:
 		WinPostMsg(hWnd, WM_USER+7, 0, 0);
 		break;
@@ -1824,7 +1850,9 @@ MRESULT EXPENTRY _comboproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 	switch(msg)
 	{
 	case WM_MOUSEMOVE:
-		return _wndproc(hWnd, msg, mp1, mp2);
+		if(_wndproc(hWnd, msg, mp1, mp2))
+			return MPFROMSHORT(FALSE);
+		break;
 	case WM_CHAR:
 		if(SHORT1FROMMP(mp2) == '\t')
 		{
@@ -2514,7 +2542,9 @@ MRESULT EXPENTRY _controlproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 	switch(msg)
 	{
 	case WM_MOUSEMOVE:
-		return _wndproc(hWnd, msg, mp1, mp2);
+		if(_wndproc(hWnd, msg, mp1, mp2))
+			return MPFROMSHORT(FALSE);
+		break;
 	case WM_VSCROLL:
 	case WM_HSCROLL:
 		if(_run_event(hWnd, msg, mp1, mp2))
@@ -2677,6 +2707,7 @@ MRESULT EXPENTRY _wndproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 			   (pointer = (HPOINTER)dw_window_get_data(_toplevel_window(hWnd), "_dw_pointer")))
 			{
 				WinSetPointer(HWND_DESKTOP, pointer);
+				return MRFROMSHORT(TRUE);
 			}
 		}
 		return MRFROMSHORT(FALSE);
@@ -3029,7 +3060,9 @@ MRESULT EXPENTRY _BtProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 	switch(msg)
 	{
 	case WM_MOUSEMOVE:
-		return _wndproc(hwnd, msg, mp1, mp2);
+		if(_wndproc(hwnd, msg, mp1, mp2))
+			return MPFROMSHORT(FALSE);
+		break;
 	case WM_PAINT:
 		return _button_draw(hwnd, msg, mp1, mp2, oldproc, 0);
 	case BM_SETHILITE:
@@ -3241,7 +3274,9 @@ MRESULT EXPENTRY _RendProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 	switch(msg)
 	{
 	case WM_MOUSEMOVE:
-		return _wndproc(hwnd, msg, mp1, mp2);
+		if(_wndproc(hwnd, msg, mp1, mp2))
+			return MPFROMSHORT(FALSE);
+		break;
 	case WM_BUTTON1DOWN:
 	case WM_BUTTON2DOWN:
 	case WM_BUTTON3DOWN:
@@ -3264,7 +3299,9 @@ MRESULT EXPENTRY _TreeProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 	switch(msg)
 	{
 	case WM_MOUSEMOVE:
-		return _wndproc(hwnd, msg, mp1, mp2);
+		if(_wndproc(hwnd, msg, mp1, mp2))
+			return MPFROMSHORT(FALSE);
+		break;
 	case WM_PAINT:
 		{
 			HPS hps;
@@ -3856,10 +3893,15 @@ void API dw_window_set_pointer(HWND handle, int pointertype)
 		WinQuerySysPointer(HWND_DESKTOP, pointertype, FALSE)
 		: (HPOINTER)pointertype;
 
-	WinSetPointer(HWND_DESKTOP, pointer);
+	if(!pointertype)
+		dw_window_set_data(handle, "_dw_pointer", 0);
+	else
+	{
+		WinSetPointer(HWND_DESKTOP, pointer);
 
-	if(handle != HWND_DESKTOP)
-		dw_window_set_data(handle, "_dw_pointer", (void *)pointer);
+		if(handle != HWND_DESKTOP)
+			dw_window_set_data(handle, "_dw_pointer", (void *)pointer);
+	}
 }
 
 /*
@@ -4319,6 +4361,7 @@ HWND API dw_tree_new(ULONG id)
  */
 HWND API dw_text_new(char *text, ULONG id)
 {
+	WindowData *blah = calloc(sizeof(WindowData), 1);
 	HWND tmp = WinCreateWindow(HWND_OBJECT,
 							   WC_STATIC,
 							   text,
@@ -4329,6 +4372,8 @@ HWND API dw_text_new(char *text, ULONG id)
 							   id,
 							   NULL,
 							   NULL);
+	blah->oldproc = WinSubclassWindow(tmp, _textproc);
+	WinSetWindowPtr(tmp, QWP_USER, blah);
 	dw_window_set_font(tmp, DefaultFont);
 	dw_window_set_color(tmp, DW_CLR_BLACK, DW_CLR_PALEGRAY);
 	return tmp;

@@ -144,6 +144,7 @@ typedef struct _user_data
 
 #define DW_MLE_CASESENSITIVE     MLFSEARCH_CASESENSITIVE
 
+#define DW_POINTER_DEFAULT       0
 #define DW_POINTER_ARROW         SPTR_ARROW
 #define DW_POINTER_CLOCK         SPTR_WAIT
 
@@ -316,6 +317,7 @@ typedef struct _window_data {
 
 #define DW_MLE_CASESENSITIVE     MLFSEARCH_CASESENSITIVE
 
+#define DW_POINTER_DEFAULT       0
 #define DW_POINTER_ARROW         0
 #define DW_POINTER_CLOCK         watchCursor
 
@@ -403,6 +405,7 @@ typedef struct _window_data {
 
 #define DW_MLE_CASESENSITIVE     1
 
+#define DW_POINTER_DEFAULT       0
 #define DW_POINTER_ARROW         32512
 #define DW_POINTER_CLOCK         32514
 
