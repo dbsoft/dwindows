@@ -362,7 +362,7 @@ BOOL CALLBACK _free_window_memory(HWND handle, LPARAM lParam)
 	{
 		Box *box = (Box *)thiscinfo;
 
-		if(box->count && box->items)
+		if(box && box->count && box->items)
 			free(box->items);
 	}
 	else if(strnicmp(tmpbuf, SplitbarClassName, strlen(SplitbarClassName)+1)==0)
