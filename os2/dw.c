@@ -27,6 +27,7 @@
 #define QWP_USER 0
 
 MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2);
+void _do_resize(Box *thisbox, int x, int y);
 
 char ClassName[] = "dynamicwindows";
 char SplitbarClassName[] = "dwsplitbar";
@@ -833,6 +834,43 @@ BOOL _TrackRectangle(HWND hwndBase, RECTL* rclTrack, RECTL* rclBounds)
 	return rc;
 }
 
+void _check_resize_notebook(HWND hwnd)
+{
+	char tmpbuf[100];
+
+	WinQueryClassName(hwnd, 99, tmpbuf);
+
+	/* If we have a notebook we resize the page again. */
+	if(strncmp(tmpbuf, "#40", 4)==0)
+	{
+		unsigned long x, y, width, height;
+		ULONG page = (ULONG)WinSendMsg(hwnd, BKM_QUERYPAGEID, 0, MPFROM2SHORT(BKA_FIRST, BKA_MAJOR));
+
+		while(page)
+		{
+			HWND pagehwnd = (HWND)WinSendMsg(hwnd, BKM_QUERYPAGEWINDOWHWND, MPFROMLONG(page), 0);
+			RECTL rc;
+
+			Box *pagebox = (Box *)WinQueryWindowPtr(pagehwnd, QWP_USER);
+			if(pagebox)
+			{
+				dw_window_get_pos_size(hwnd, &x, &y, &width, &height);
+
+				rc.xLeft = x;
+				rc.yBottom = y;
+				rc.xRight = x + width;
+				rc.yTop = y + height;
+
+				WinSendMsg(hwnd, BKM_CALCPAGERECT, (MPARAM)&rc, (MPARAM)TRUE);
+
+				_do_resize(pagebox, rc.xRight - rc.xLeft, rc.yTop - rc.yBottom);
+			}
+			page = (ULONG)WinSendMsg(hwnd, BKM_QUERYPAGEID, page, MPFROM2SHORT(BKA_NEXT, BKA_MAJOR));
+		}
+
+	}
+}
+
 /* This function calculates how much space the widgets and boxes require
  * and does expansion as necessary.
  */
@@ -1180,6 +1218,12 @@ int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *usedy,
 					WinSetWindowPos(handle, HWND_TOP, (currentx + pad) + 3, (currenty + pad) + 3,
 									(width + vectorx) - 6, (height + vectory) - 6, SWP_MOVE | SWP_SIZE | SWP_ZORDER);
 				}
+				else if(strncmp(tmpbuf, "#40", 5)==0)
+				{
+					WinSetWindowPos(handle, HWND_TOP, currentx + pad, currenty + pad,
+									width + vectorx, height + vectory, SWP_MOVE | SWP_SIZE | SWP_ZORDER);
+					_check_resize_notebook(handle);
+				}
 				else
 				{
 					WinSetWindowPos(handle, HWND_TOP, currentx + pad, currenty + pad,
@@ -1486,7 +1530,74 @@ MRESULT EXPENTRY _entryproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 		}
 		else if(SHORT1FROMMP(mp2) == '\r' && blah && blah->clickdefault)
 			_click_default(blah->clickdefault);
+		/* When you hit escape we get this value and the
+		 * window hangs for reasons unknown. (in an MLE)
+		 */
+		else if(SHORT1FROMMP(mp2) == 283)
+			return TRUE;
 
+		break;
+	case WM_SIZE:
+		{
+			char tmpbuf[100];
+
+			WinQueryClassName(hWnd, 99, tmpbuf);
+
+			/* If it's a slider... make sure it shows the correct value */
+			if(strncmp(tmpbuf, "#38", 4)==0)
+				WinPostMsg(hWnd, WM_USER+7, 0, 0);
+		}
+		break;
+	case WM_USER+7:
+		{
+			int pos = (int)dw_window_get_data(hWnd, "_dw_slider_value");
+			WinSendMsg(hWnd, SLM_SETSLIDERINFO, MPFROM2SHORT(SMA_SLIDERARMPOSITION, SMA_INCREMENTVALUE), (MPARAM)pos);
+		}
+		break;
+	}
+
+	if(oldproc)
+		return oldproc(hWnd, msg, mp1, mp2);
+
+	return WinDefWindowProc(hWnd, msg, mp1, mp2);
+}
+
+int _dw_int_pos(HWND hwnd)
+{
+	int pos = (int)dw_window_get_data(hwnd, "_dw_percent_value");
+	int range = dw_percent_query_range(hwnd);
+	float fpos = (float)pos;
+	float frange = (float)range;
+	float fnew = (fpos/1000.0)*frange;
+	return (int)fnew;
+}
+
+void _dw_int_set(HWND hwnd, int pos)
+{
+	int inew, range = dw_percent_query_range(hwnd);
+	float fpos = (float)pos;
+	float frange = (float)range;
+	float fnew = (fpos/frange)*1000.0;
+	inew = (int)fnew;
+	dw_window_set_data(hwnd, "_dw_percent_value", (void *)inew);
+}
+
+/* Handle size changes in the percent class */
+MRESULT EXPENTRY _percentproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
+{
+	WindowData *blah = (WindowData *)WinQueryWindowPtr(hWnd, QWP_USER);
+	PFNWP oldproc = 0;
+
+	if(blah)
+		oldproc = blah->oldproc;
+
+	switch(msg)
+	{
+	case WM_SIZE:
+		WinPostMsg(hWnd, WM_USER+7, 0, 0);
+		break;
+	case WM_USER+7:
+		WinSendMsg(hWnd, SLM_SETSLIDERINFO, MPFROM2SHORT(SMA_SLIDERARMPOSITION,SMA_RANGEVALUE), (MPARAM)_dw_int_pos(hWnd));
 		break;
 	}
 
@@ -1960,6 +2071,7 @@ MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 								int ulValue = (int)WinSendMsg(tmp->window, SLM_QUERYSLIDERINFO, MPFROM2SHORT(SMA_SLIDERARMPOSITION, SMA_INCREMENTVALUE), 0);
 								if(lastvalue != ulValue || lasthwnd != tmp->window)
 								{
+									dw_window_set_data(tmp->window, "_dw_slider_value", (void *)ulValue);
 									result = valuechangedfunc(tmp->window, ulValue, tmp->data);
 									lastvalue = ulValue;
 									lasthwnd = tmp->window;
@@ -2101,36 +2213,7 @@ MRESULT EXPENTRY _wndproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 					mybox = (Box *)WinQueryWindowPtr(mybox->items[0].hwnd, QWP_USER);
 
 					for(z=0;z<mybox->count;z++)
-					{
-						char tmpbuf[100];
-
-						WinQueryClassName(mybox->items[z].hwnd, 99, tmpbuf);
-
-						/* If we have a notebook we resize the page again. */
-						if(strncmp(tmpbuf, "#40", 4)==0)
-						{
-							unsigned long x, y, width, height;
-							int page = dw_notebook_page_query(mybox->items[z].hwnd);
-							HWND pagehwnd = (HWND)WinSendMsg(mybox->items[z].hwnd, BKM_QUERYPAGEWINDOWHWND, MPFROMLONG(page), 0);
-							RECTL rc;
-
-							Box *pagebox = (Box *)WinQueryWindowPtr(pagehwnd, QWP_USER);
-							if(pagebox)
-							{
-								dw_window_get_pos_size(mybox->items[z].hwnd, &x, &y, &width, &height);
-
-								rc.xLeft = x;
-								rc.yBottom = y;
-								rc.xRight = x + width;
-								rc.yTop = y + height;
-
-								WinSendMsg(mybox->items[z].hwnd, BKM_CALCPAGERECT, (MPARAM)&rc, (MPARAM)TRUE);
-
-								_do_resize(pagebox, rc.xRight - rc.xLeft, rc.yTop - rc.yBottom);
-							}
-
-						}
-					}
+						_check_resize_notebook(mybox->items[z].hwnd);
 
 				}
 
@@ -4039,6 +4122,7 @@ HWND dw_radiobutton_new(char *text, ULONG id)
 	return tmp;
 }
 
+
 /*
  * Create a new slider window (widget) to be packed.
  * Parameters:
@@ -4062,6 +4146,7 @@ HWND dw_slider_new(int vertical, int increments, ULONG id)
 							   &sldcData,
 							   NULL);
 
+
 	blah->oldproc = WinSubclassWindow(tmp, _entryproc);
 	WinSetWindowPtr(tmp, QWP_USER, blah);
 	return tmp;
@@ -4074,6 +4159,7 @@ HWND dw_slider_new(int vertical, int increments, ULONG id)
  */
 HWND dw_percent_new(ULONG id)
 {
+	WindowData *blah = calloc(1, sizeof(WindowData));
 	HWND tmp = WinCreateWindow(HWND_OBJECT,
 							   WC_SLIDER,
 							   "",
@@ -4086,6 +4172,8 @@ HWND dw_percent_new(ULONG id)
 							   NULL,
 							   NULL);
 	dw_window_disable(tmp);
+	blah->oldproc = WinSubclassWindow(tmp, _percentproc);
+	WinSetWindowPtr(tmp, QWP_USER, blah);
 	return tmp;
 }
 
@@ -4944,6 +5032,7 @@ unsigned int dw_percent_query_range(HWND handle)
  */
 void dw_percent_set_pos(HWND handle, unsigned int position)
 {
+	_dw_int_set(handle, position);
 	WinSendMsg(handle, SLM_SETSLIDERINFO, MPFROM2SHORT(SMA_SLIDERARMPOSITION,SMA_RANGEVALUE), (MPARAM)position);
 }
 
@@ -4965,6 +5054,7 @@ unsigned int dw_slider_query_pos(HWND handle)
  */
 void dw_slider_set_pos(HWND handle, unsigned int position)
 {
+	dw_window_set_data(handle, "_dw_slider_value", (void *)position);
 	WinSendMsg(handle, SLM_SETSLIDERINFO, MPFROM2SHORT(SMA_SLIDERARMPOSITION, SMA_INCREMENTVALUE), (MPARAM)position);
 }
 
@@ -6840,14 +6930,8 @@ void dw_window_default(HWND window, HWND defaultitem)
 void dw_window_click_default(HWND window, HWND next)
 {
 	WindowData *blah = (WindowData *)WinQueryWindowPtr(window, QWP_USER);
-	char tmpbuf[100];
 
-	WinQueryClassName(window, 99, tmpbuf);
-
-	/* These are the window classes which can
-	 * obtain input focus.
-	 */
-	if(strncmp(tmpbuf, "#6", 3) == 0 && blah)
+	if(blah)
 		blah->clickdefault = next;
 }
 
