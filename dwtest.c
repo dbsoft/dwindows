@@ -1,6 +1,3 @@
-#define INCL_DOS
-#define INCL_WIN
-
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
@@ -337,7 +334,6 @@ int main(int argc, char *argv[])
 
 	notebook = dw_notebook_new( 1, TRUE );
 	dw_box_pack_start( notebookbox, notebook, 100, 100, TRUE, TRUE, 0);
-	dw_window_set_font( notebook, "9.WarpSans");
 
 	notebookbox1 = dw_box_new( BOXVERT, 5 );
 	notebookpage1 = dw_notebook_page_new( notebook, 0, TRUE );
