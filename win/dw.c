@@ -16,6 +16,12 @@
 #include <process.h>
 #include "dw.h"
 
+/* Get around apparent bugs in the
+ * Microsoft runtime when in the debugger.
+ * You can set this value to 0 when releasing.
+ */
+#define DEBUG_MALLOC 100
+
 /* this is the callback handle for the window procedure */
 /* make sure you always match the calling convention! */
 int (*filterfunc)(HWND, UINT, WPARAM, LPARAM) = 0L;
@@ -39,10 +45,11 @@ int main(int argc, char *argv[]);
 HICON lookup[200];
 HIMAGELIST hSmall, hLarge;
 
-COLORREF _foreground = RGB(127, 127, 127);
-COLORREF _background = 0;
-HPEN _hPen;
-HBRUSH _hBrush;
+#define THREAD_LIMIT 128
+COLORREF _foreground[THREAD_LIMIT];
+COLORREF _background[THREAD_LIMIT];
+HPEN _hPen[THREAD_LIMIT];
+HBRUSH _hBrush[THREAD_LIMIT];
 
 #ifdef DWDEBUG
 FILE *f;
@@ -1752,62 +1759,76 @@ BOOL CALLBACK _statuswndproc(HWND hwnd, UINT msg, WPARAM mp1, LPARAM mp2)
 {
 	switch (msg)
 	{
+	case WM_SETTEXT:
+		{
+			/* Make sure the control redraws when there is a text change */
+			int ret = (int)DefWindowProc(hwnd, msg, mp1, mp2);
+
+			InvalidateRgn(hwnd, NULL, TRUE);
+			return ret;
+		}
 	case WM_PAINT:
 		{
 			HDC hdcPaint;
 			PAINTSTRUCT ps;
-			RECT rcPaint;
-			HBRUSH hBrush;
-			HPEN hPen;
+			RECT rc;
 			HFONT hFont;
+			HBRUSH oldBrush;
+			HPEN oldPen;
+			unsigned long cx, cy;
+			int threadid = dw_thread_id();
 			char tempbuf[1024] = "";
 
+			if(threadid < 0 || threadid >= THREAD_LIMIT)
+				threadid = 0;
+
 			hdcPaint = BeginPaint(hwnd, &ps);
-			GetWindowRect(hwnd, &rcPaint);
+			EndPaint(hwnd, &ps);
 
-			dw_color_foreground_set(DW_RGB(_red[DW_CLR_PALEGRAY],
-										   _green[DW_CLR_PALEGRAY],
-										   _blue[DW_CLR_PALEGRAY]));
+			hdcPaint = GetDC(hwnd);
 
-			dw_draw_rect(hwnd, 0, TRUE, 1, 1, rcPaint.right - rcPaint.left - 2, rcPaint.bottom - rcPaint.top - 2);
+			oldBrush = _hBrush[threadid];
+			oldPen = _hPen[threadid];
 
-			dw_color_foreground_set(DW_RGB(_red[DW_CLR_DARKGRAY],
-										   _green[DW_CLR_DARKGRAY],
-										   _blue[DW_CLR_DARKGRAY]));
+			dw_window_get_pos_size(hwnd, NULL, NULL, &cx, &cy);
 
-			dw_draw_line(hwnd, 0, 0, 0, rcPaint.right - rcPaint.left, 0);
-			dw_draw_line(hwnd, 0, 0, 0, 0, rcPaint.bottom - rcPaint.top);
+			_hBrush[threadid] = GetStockObject(LTGRAY_BRUSH);
 
-			dw_color_foreground_set(DW_RGB(_red[DW_CLR_WHITE],
-										   _green[DW_CLR_WHITE],
-										   _blue[DW_CLR_WHITE]));
+			dw_draw_rect(hwnd, 0, TRUE, 0, 0, cx, cy);
 
-			dw_draw_line(hwnd, 0, rcPaint.right - rcPaint.left - 1, rcPaint.bottom - rcPaint.top - 1, rcPaint.right - rcPaint.left - 1, 0);
-			dw_draw_line(hwnd, 0, rcPaint.right - rcPaint.left - 1, rcPaint.bottom - rcPaint.top - 1, 0, rcPaint.bottom - rcPaint.top - 1);
+			_hPen[threadid] = CreatePen(PS_SOLID, 1, RGB(_red[DW_CLR_DARKGRAY],
+														 _green[DW_CLR_DARKGRAY],
+														 _blue[DW_CLR_DARKGRAY]));
 
-			rcPaint.left += 3;
-			rcPaint.top++;
-			rcPaint.bottom--;
-			rcPaint.right--;
+			dw_draw_line(hwnd, 0, 0, 0, cx, 0);
+			dw_draw_line(hwnd, 0, 0, 0, 0, cy);
+
+			DeleteObject(_hPen[threadid]);
+
+			_hPen[threadid] = GetStockObject(WHITE_PEN);
+
+			dw_draw_line(hwnd, 0, cx - 1, cy - 1, cx - 1, 0);
+			dw_draw_line(hwnd, 0, cx - 1, cy - 1, 0, cy - 1);
+
+			rc.left = 3;
+			rc.top = 1;
+			rc.bottom = cy - 1;
+			rc.right = cx - 1;
 
 			GetWindowText(hwnd, tempbuf, 1024);
 
-			dw_color_foreground_set(DW_RGB(_red[DW_CLR_BLACK],
-										   _green[DW_CLR_BLACK],
-										   _blue[DW_CLR_BLACK]));
-
-			hBrush = (HBRUSH)SelectObject(hdcPaint, _hBrush);
-			hPen = (HPEN)SelectObject(hdcPaint, _hPen);
 			hFont = (HFONT)SelectObject(hdcPaint, GetStockObject(DEFAULT_GUI_FONT));
 
-			ExtTextOut(hdcPaint, rcPaint.left, rcPaint.top, ETO_CLIPPED,
-					   &rcPaint, tempbuf, strlen(tempbuf), NULL);
+			SetTextColor(hdcPaint, RGB(0,0,0));
+			SetBkMode(hdcPaint, TRANSPARENT);
 
-			SelectObject(hdcPaint, hBrush);
-			SelectObject(hdcPaint, hPen);
+			ExtTextOut(hdcPaint, 3, 1, ETO_CLIPPED, &rc, tempbuf, strlen(tempbuf), NULL);
+
 			SelectObject(hdcPaint, hFont);
 
-			EndPaint(hwnd, &ps);
+			_hBrush[threadid] = oldBrush;
+			_hPen[threadid] = oldPen;
+			ReleaseDC(hwnd, hdcPaint);
 		}
 		return FALSE;
 	}
@@ -1970,6 +1991,7 @@ BOOL CALLBACK _BtProc(HWND hwnd, ULONG msg, WPARAM mp1, LPARAM mp2)
 								 size.cy + 2,
 								 SWP_NOACTIVATE | SWP_SHOWWINDOW);
 
+					ReleaseDC(hwndBubble, hdc);
 				}
 			}
 		}
@@ -2117,8 +2139,13 @@ int dw_init(int newthread)
 	/* We need the version to check capability like up-down controls */
 	dwVersion = GetVersion();
 
-	_hPen = CreatePen(PS_SOLID, 1, _foreground);
-	_hBrush = CreateSolidBrush(_foreground);
+	for(z=0;z<THREAD_LIMIT;z++)
+	{
+		_foreground[z] = RGB(128,128,128);
+		_background[z] = 0;
+		_hPen[z] = CreatePen(PS_SOLID, 1, _foreground[z]);
+		_hBrush[z] = CreateSolidBrush(_foreground[z]);
+	}
 
 	return 0;
 }
@@ -2461,23 +2488,36 @@ HWND dw_window_new(HWND hwndOwner, char *title, ULONG flStyle)
 {
 	HWND hwndframe;
 	Box *newbox = malloc(sizeof(Box));
+	ULONG flStyleEx = 0;
 
 	newbox->pad = 0;
 	newbox->type = BOXVERT;
 	newbox->count = 0;
 
+	if(hwndOwner)
+		flStyleEx |= WS_EX_MDICHILD;
+
 	if(!(flStyle & WS_CAPTION))
 		flStyle |= WS_POPUPWINDOW;
+
 	if(flStyle & DW_FCF_TASKLIST)
 	{
-        ULONG newflags = (flStyle | WS_CLIPCHILDREN) & ~DW_FCF_TASKLIST;
-		hwndframe = CreateWindow(ClassName, title, newflags, CW_USEDEFAULT, CW_USEDEFAULT,
-								 CW_USEDEFAULT, CW_USEDEFAULT, hwndOwner, NULL, NULL, NULL);
+		ULONG newflags = (flStyle | WS_CLIPCHILDREN) & ~DW_FCF_TASKLIST;
+
+		hwndframe = CreateWindowEx(flStyleEx, ClassName, title, newflags, CW_USEDEFAULT, CW_USEDEFAULT,
+								   CW_USEDEFAULT, CW_USEDEFAULT, hwndOwner, NULL, NULL, NULL);
 	}
 	else
-		hwndframe = CreateWindowEx(WS_EX_TOOLWINDOW, ClassName, title, flStyle | WS_CLIPCHILDREN, CW_USEDEFAULT, CW_USEDEFAULT,
+	{
+		flStyleEx |= WS_EX_TOOLWINDOW;
+
+		hwndframe = CreateWindowEx(flStyleEx, ClassName, title, flStyle | WS_CLIPCHILDREN, CW_USEDEFAULT, CW_USEDEFAULT,
 								   CW_USEDEFAULT, CW_USEDEFAULT, hwndOwner, NULL, NULL, NULL);
+	}
 	SetWindowLong(hwndframe, GWL_USERDATA, (ULONG)newbox);
+
+	if(hwndOwner)
+		SetParent(hwndframe, hwndOwner);
 
 	return hwndframe;
 }
@@ -2490,7 +2530,7 @@ HWND dw_window_new(HWND hwndOwner, char *title, ULONG flStyle)
  */
 HWND dw_box_new(int type, int pad)
 {
-	Box *newbox = malloc(sizeof(Box));
+	Box *newbox = malloc(sizeof(Box)+DEBUG_MALLOC);
 	HWND hwndframe;
 
 	newbox->pad = pad;
@@ -2711,7 +2751,7 @@ HWND dw_menu_append_item(HMENUI menux, char *title, ULONG id, ULONG flags, int e
  *       id: Menuitem id.
  *       check: TRUE for checked FALSE for not checked.
  */
-void dw_menu_item_set_check(HMENUI menux, int id, int check)
+void dw_menu_item_set_check(HMENUI menux, unsigned long id, int check)
 {
 	MENUITEMINFO mii;
 	HMENU menu;
@@ -3301,7 +3341,7 @@ void dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize, in
 		Item *tmpitem, *thisitem = thisbox->items;
 		char tmpbuf[100];
 
-		tmpitem = malloc(sizeof(Item)*(thisbox->count+1));
+		tmpitem = malloc(sizeof(Item)*(thisbox->count+1)+DEBUG_MALLOC);
 
 		for(z=0;z<thisbox->count;z++)
 		{
@@ -4384,7 +4424,7 @@ void dw_filesystem_set_file(HWND handle, void *pointer, int row, char *filename,
 	lvi.cchTextMax = strlen(filename);
 	lvi.iImage = _lookup_icon(handle, (HICON)icon);
 
-	ListView_InsertItem(handle, &lvi);
+	ListView_SetItem(handle, &lvi);
 }
 
 /*
@@ -4615,11 +4655,16 @@ HWND dw_render_new(unsigned long id)
  */
 void dw_color_foreground_set(unsigned long value)
 {
-	DeleteObject(_hPen);
-	DeleteObject(_hBrush);
-	_foreground = RGB(DW_RED_VALUE(value), DW_GREEN_VALUE(value), DW_BLUE_VALUE(value));
-	_hPen = CreatePen(PS_SOLID, 1, _foreground);
-	_hBrush = CreateSolidBrush(_foreground);
+	int threadid = dw_thread_id();
+
+	if(threadid < 0 || threadid >= THREAD_LIMIT)
+		threadid = 0;
+
+	DeleteObject(_hPen[threadid]);
+	DeleteObject(_hBrush[threadid]);
+	_foreground[threadid] = RGB(DW_RED_VALUE(value), DW_GREEN_VALUE(value), DW_BLUE_VALUE(value));
+	_hPen[threadid] = CreatePen(PS_SOLID, 1, _foreground[threadid]);
+	_hBrush[threadid] = CreateSolidBrush(_foreground[threadid]);
 }
 
 /* Sets the current background drawing color.
@@ -4630,8 +4675,12 @@ void dw_color_foreground_set(unsigned long value)
  */
 void dw_color_background_set(unsigned long value)
 {
+	int threadid = dw_thread_id();
 
-	_background = RGB(DW_RED_VALUE(value), DW_GREEN_VALUE(value), DW_BLUE_VALUE(value));
+	if(threadid < 0 || threadid >= THREAD_LIMIT)
+		threadid = 0;
+
+	_background[threadid] = RGB(DW_RED_VALUE(value), DW_GREEN_VALUE(value), DW_BLUE_VALUE(value));
 }
 
 /* Draw a point on a window (preferably a render window).
@@ -4644,6 +4693,10 @@ void dw_color_background_set(unsigned long value)
 void dw_draw_point(HWND handle, HPIXMAP pixmap, int x, int y)
 {
 	HDC hdcPaint;
+	int threadid = dw_thread_id();
+
+	if(threadid < 0 || threadid >= THREAD_LIMIT)
+		threadid = 0;
 
 	if(handle)
 		hdcPaint = GetDC(handle);
@@ -4652,7 +4705,7 @@ void dw_draw_point(HWND handle, HPIXMAP pixmap, int x, int y)
 	else
 		return;
 
-	SetPixel(hdcPaint, x, y, _foreground);
+	SetPixel(hdcPaint, x, y, _foreground[threadid]);
 	if(!pixmap)
 		ReleaseDC(handle, hdcPaint);
 }
@@ -4670,6 +4723,10 @@ void dw_draw_line(HWND handle, HPIXMAP pixmap, int x1, int y1, int x2, int y2)
 {
 	HDC hdcPaint;
 	HPEN oldPen;
+	int threadid = dw_thread_id();
+
+	if(threadid < 0 || threadid >= THREAD_LIMIT)
+		threadid = 0;
 
 	if(handle)
 		hdcPaint = GetDC(handle);
@@ -4678,14 +4735,14 @@ void dw_draw_line(HWND handle, HPIXMAP pixmap, int x1, int y1, int x2, int y2)
 	else
 		return;
 
-	oldPen = SelectObject(hdcPaint, _hPen);
+	oldPen = SelectObject(hdcPaint, _hPen[threadid]);
 	MoveToEx(hdcPaint, x1, y1, NULL);
 	LineTo(hdcPaint, x2, y2);
 	SelectObject(hdcPaint, oldPen);
 	/* For some reason Win98 (at least) fails
 	 * to draw the last pixel.  So I do it myself.
 	 */
-	SetPixel(hdcPaint, x2, y2, _foreground);
+	SetPixel(hdcPaint, x2, y2, _foreground[threadid]);
 	if(!pixmap)
 		ReleaseDC(handle, hdcPaint);
 }
@@ -4704,6 +4761,10 @@ void dw_draw_rect(HWND handle, HPIXMAP pixmap, int fill, int x, int y, int width
 	HDC hdcPaint;
 	HPEN oldPen;
 	HBRUSH oldBrush;
+	int threadid = dw_thread_id();
+
+	if(threadid < 0 || threadid >= THREAD_LIMIT)
+		threadid = 0;
 
 	if(handle)
 		hdcPaint = GetDC(handle);
@@ -4712,8 +4773,8 @@ void dw_draw_rect(HWND handle, HPIXMAP pixmap, int fill, int x, int y, int width
 	else
 		return;
 
-	oldPen = SelectObject(hdcPaint, _hPen);
-	oldBrush = SelectObject(hdcPaint, _hBrush);
+	oldPen = SelectObject(hdcPaint, _hPen[threadid]);
+	oldBrush = SelectObject(hdcPaint, _hBrush[threadid]);
 	Rectangle(hdcPaint, x, y, x + width, y + height);
 	SelectObject(hdcPaint, oldPen);
 	SelectObject(hdcPaint, oldBrush);
@@ -4734,6 +4795,10 @@ void dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
 	HDC hdc;
 	int size = 9, z, mustdelete = 0;
 	HFONT hFont, oldFont;
+	int threadid = dw_thread_id();
+
+	if(threadid < 0 || threadid >= THREAD_LIMIT)
+		threadid = 0;
 
 	if(handle)
 	{
@@ -4764,7 +4829,7 @@ void dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
 		}
 	}
 	oldFont = SelectObject(hdc, hFont);
-	SetTextColor(hdc, _foreground);
+	SetTextColor(hdc, _foreground[threadid]);
 	SetBkMode(hdc, TRANSPARENT);
 	TextOut(hdc, x, y, text, strlen(text));
 	SelectObject(hdc, oldFont);

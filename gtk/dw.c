@@ -612,6 +612,9 @@ int dw_window_show(HWND handle)
 {
 	int _locked_by_me = FALSE;
 
+	if(!handle)
+		return 0;
+
 	DW_MUTEX_LOCK;
 	gtk_widget_show(handle);
 	DW_MUTEX_UNLOCK;
@@ -627,6 +630,9 @@ int dw_window_hide(HWND handle)
 {
 	int _locked_by_me = FALSE;
 
+	if(!handle)
+		return 0;
+
 	DW_MUTEX_LOCK;
 	gtk_widget_hide(handle);
 	DW_MUTEX_UNLOCK;
@@ -641,6 +647,9 @@ int dw_window_hide(HWND handle)
 int dw_window_destroy(HWND handle)
 {
 	int _locked_by_me = FALSE;
+
+	if(!handle)
+		return 0;
 
 	DW_MUTEX_LOCK;
 	gtk_widget_destroy(handle);
@@ -723,15 +732,15 @@ int _set_color(HWND handle, unsigned long fore, unsigned long back)
 		gdk_color_alloc(_dw_cmap, &backcolor);
 
 		style = gtk_widget_get_style(handle);
-		style->fg[0] = forecolor;
-		style->bg[0] = backcolor;
+		style->fg[1] = style->fg[0] = forecolor;
+		style->base[0] = style->base[1] = style->bg[0] = style->bg[1] = backcolor;
 		gtk_widget_set_style(handle, style);
 	}
 	else
 	{
 		style = gtk_widget_get_style(handle);
-		style->fg[0] = _colors[fore];
-		style->bg[0] = _colors[back];
+		style->fg[1] = style->fg[0] = _colors[fore];
+		style->base[0] = style->base[1] = style->bg[0] = style->bg[1] = _colors[back];
 		gtk_widget_set_style(handle, style);
 	}
 
@@ -757,6 +766,13 @@ int dw_window_set_color(HWND handle, unsigned long fore, unsigned long back)
 		if(tmp)
 			handle2 = tmp;
 	}
+	else if(GTK_IS_BOX(handle))
+	{
+		GtkWidget *tmp = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(handle), "mle");
+		if(tmp)
+			handle2 = tmp;
+	}
+
 
 	gtk_object_set_data(GTK_OBJECT(handle2), "fore", (gpointer)fore);
 	gtk_object_set_data(GTK_OBJECT(handle2), "back", (gpointer)back);
@@ -1046,7 +1062,7 @@ HWND dw_menu_append_item(HMENUI menu, char *title, unsigned long id, unsigned lo
 {
 	GtkWidget *tmphandle;
 	char accel, *tempbuf = malloc(strlen(title)+1);
-	int _locked_by_me = FALSE;
+	int _locked_by_me = FALSE, submenucount;
 	guint tmp_key;
 	GtkAccelGroup *accel_group;
 
@@ -1060,6 +1076,7 @@ HWND dw_menu_append_item(HMENUI menu, char *title, unsigned long id, unsigned lo
 	accel = _removetilde(tempbuf, title);
 
 	accel_group = (GtkAccelGroup *)gtk_object_get_data(GTK_OBJECT(menu->menu), "accel");
+	submenucount = (int)gtk_object_get_data(GTK_OBJECT(menu->menu), "submenucount");
 
 	if(strlen(tempbuf) == 0)
 		tmphandle=gtk_menu_item_new();
@@ -1096,7 +1113,15 @@ HWND dw_menu_append_item(HMENUI menu, char *title, unsigned long id, unsigned lo
 	gtk_widget_show(tmphandle);
 
 	if(submenu)
+	{
+		char tempbuf[100];
+
+		sprintf(tempbuf, "submenu%d", submenucount);
+		submenucount++;
 		gtk_menu_item_set_submenu(GTK_MENU_ITEM(tmphandle), submenu->menu);
+		gtk_object_set_data(GTK_OBJECT(menu->menu), tempbuf, (gpointer)submenu->menu);
+		gtk_object_set_data(GTK_OBJECT(menu->menu), "submenucount", (gpointer)submenucount);
+	}
 
 	if(GTK_IS_MENU_BAR(menu->menu))
 		gtk_menu_bar_append(GTK_MENU_BAR(menu->menu), tmphandle);
@@ -1109,6 +1134,30 @@ HWND dw_menu_append_item(HMENUI menu, char *title, unsigned long id, unsigned lo
 	return tmphandle;
 }
 
+GtkWidget *_find_submenu_id(GtkWidget *start, char *name)
+{
+	GtkWidget *tmp;
+	int z, submenucount = (int)gtk_object_get_data(GTK_OBJECT(start), "submenucount");
+
+	if((tmp = gtk_object_get_data(GTK_OBJECT(start), name)))
+		return tmp;
+
+	for(z=0;z<submenucount;z++)
+	{
+		char tempbuf[100];
+		GtkWidget *submenu, *menuitem;
+
+		sprintf(tempbuf, "submenu%d", z);
+
+		if((submenu = gtk_object_get_data(GTK_OBJECT(start), tempbuf)))
+		{
+			if((menuitem = _find_submenu_id(submenu, name)))
+				return menuitem;
+		}
+	}
+	return NULL;
+}
+
 /*
  * Sets the state of a menu item check.
  * Parameters:
@@ -1116,7 +1165,7 @@ HWND dw_menu_append_item(HMENUI menu, char *title, unsigned long id, unsigned lo
  *       id: Menuitem id.
  *       check: TRUE for checked FALSE for not checked.
  */
-void dw_menu_item_set_check(HMENUI menu, int id, int check)
+void dw_menu_item_set_check(HMENUI menu, unsigned long id, int check)
 {
 	char numbuf[10];
 	GtkWidget *tmphandle;
@@ -1126,8 +1175,8 @@ void dw_menu_item_set_check(HMENUI menu, int id, int check)
 		return;
 
 	DW_MUTEX_LOCK;
-	sprintf(numbuf, "%d", id);
-	tmphandle = gtk_object_get_data(GTK_OBJECT(menu->menu), numbuf);
+	sprintf(numbuf, "%lu", id);
+	tmphandle = _find_submenu_id(menu->menu, numbuf);
 
 	if(tmphandle)
 	{
@@ -3222,7 +3271,7 @@ void dw_window_get_pos_size(HWND handle, ULONG *x, ULONG *y, ULONG *width, ULONG
 	int _locked_by_me = FALSE;
 	gint gx, gy, gwidth, gheight, gdepth;
 
-	if(handle->window)
+	if(handle && handle->window)
 	{
 		DW_MUTEX_LOCK;
 		gdk_window_get_geometry(handle->window, &gx, &gy, &gwidth, &gheight, &gdepth);
