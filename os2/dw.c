@@ -2784,18 +2784,17 @@ void _changebox(Box *thisbox, int percent, int type)
 
 void _handle_splitbar_resize(HWND hwnd, float percent, int type, int x, int y)
 {
+	float ratio = (float)percent/(float)100.0;
+	HWND handle1 = (HWND)dw_window_get_data(hwnd, "_dw_topleft");
+	HWND handle2 = (HWND)dw_window_get_data(hwnd, "_dw_bottomright");
+	Box *tmp = WinQueryWindowPtr(handle1, QWP_USER);
+
+	WinShowWindow(handle1, FALSE);
+	WinShowWindow(handle2, FALSE);
+
 	if(type == DW_HORZ)
 	{
-		int newx = x;
-		float ratio = (float)percent/(float)100.0;
-		HWND handle1 = (HWND)dw_window_get_data(hwnd, "_dw_topleft");
-		HWND handle2 = (HWND)dw_window_get_data(hwnd, "_dw_bottomright");
-		Box *tmp = WinQueryWindowPtr(handle1, QWP_USER);
-
-		WinShowWindow(handle1, FALSE);
-		WinShowWindow(handle2, FALSE);
-
-		newx = (int)((float)newx * ratio) - (SPLITBAR_WIDTH/2);
+		int newx = (int)((float)x * ratio) - (SPLITBAR_WIDTH/2);
 
 		WinSetWindowPos(handle1, NULLHANDLE, 0, 0, newx, y, SWP_MOVE | SWP_SIZE);
 		_do_resize(tmp, newx - 1, y - 1);
@@ -2808,22 +2807,10 @@ void _handle_splitbar_resize(HWND hwnd, float percent, int type, int x, int y)
 
 		WinSetWindowPos(handle2, NULLHANDLE, x - newx, 0, newx, y, SWP_MOVE | SWP_SIZE);
 		_do_resize(tmp, newx - 1, y - 1);
-
-		WinShowWindow(handle1, TRUE);
-		WinShowWindow(handle2, TRUE);
 	}
 	else
 	{
-		int newy = y;
-		float ratio = (float)percent/(float)100.0;
-		HWND handle1 = (HWND)dw_window_get_data(hwnd, "_dw_topleft");
-		HWND handle2 = (HWND)dw_window_get_data(hwnd, "_dw_bottomright");
-		Box *tmp = WinQueryWindowPtr(handle1, QWP_USER);
-
-		WinShowWindow(handle1, FALSE);
-		WinShowWindow(handle2, FALSE);
-
-		newy = (int)((float)newy * ratio) - (SPLITBAR_WIDTH/2);
+		int newy = (int)((float)y * ratio) - (SPLITBAR_WIDTH/2);
 
 		WinSetWindowPos(handle1, NULLHANDLE, 0, y - newy, x, newy, SWP_MOVE | SWP_SIZE);
 		_do_resize(tmp, x - 1, newy - 1);
@@ -2835,21 +2822,17 @@ void _handle_splitbar_resize(HWND hwnd, float percent, int type, int x, int y)
 		WinSetWindowPos(handle2, NULLHANDLE, 0, 0, x, newy, SWP_MOVE | SWP_SIZE);
 		_do_resize(tmp, x - 1, newy - 1);
 
-		WinShowWindow(handle1, TRUE);
-		WinShowWindow(handle2, TRUE);
-
 		dw_window_set_data(hwnd, "_dw_start", (void *)newy);
 	}
+
+	WinShowWindow(handle1, TRUE);
+	WinShowWindow(handle2, TRUE);
 }
 
 
 /* This handles any activity on the splitbars (sizers) */
 MRESULT EXPENTRY _splitwndproc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 {
-	float *percent = (float *)dw_window_get_data(hwnd, "_dw_percent");
-	int type = (int)dw_window_get_data(hwnd, "_dw_type");
-	int start = (int)dw_window_get_data(hwnd, "_dw_start");
-
 	switch (msg)
 	{
 	case WM_ACTIVATE:
@@ -2861,6 +2844,8 @@ MRESULT EXPENTRY _splitwndproc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 			HPS hps;
 			POINTL ptl[2];
 			RECTL rcl;
+			int type = (int)dw_window_get_data(hwnd, "_dw_type");
+			int start = (int)dw_window_get_data(hwnd, "_dw_start");
 
 			hps = WinBeginPaint(hwnd, 0, 0);
 
@@ -2891,6 +2876,8 @@ MRESULT EXPENTRY _splitwndproc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 
 	case WM_MOUSEMOVE:
 		{
+			int type = (int)dw_window_get_data(hwnd, "_dw_type");
+
 			if(type == DW_HORZ)
 				WinSetPointer(HWND_DESKTOP,
 							  WinQuerySysPointer(HWND_DESKTOP,
@@ -2908,6 +2895,9 @@ MRESULT EXPENTRY _splitwndproc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 			APIRET rc;
 			RECTL  rclFrame;
 			RECTL  rclBounds;
+			float *percent = (float *)dw_window_get_data(hwnd, "_dw_percent");
+			int type = (int)dw_window_get_data(hwnd, "_dw_type");
+			int start = (int)dw_window_get_data(hwnd, "_dw_start");
 
 			WinQueryWindowRect(hwnd, &rclFrame);
 			WinQueryWindowRect(hwnd, &rclBounds);

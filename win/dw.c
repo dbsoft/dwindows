@@ -2714,9 +2714,6 @@ void _handle_splitbar_resize(HWND hwnd, float percent, int type, int x, int y)
 		MoveWindow(handle2, x - newx, 0, newx, y, FALSE);
 		_do_resize(tmp, newx - 1, y - 1);
 
-		ShowWindow(handle1, SW_SHOW);
-		ShowWindow(handle2, SW_SHOW);
-
 		dw_window_set_data(hwnd, "_dw_start", (void *)newx);
 	}
 	else
@@ -2742,20 +2739,16 @@ void _handle_splitbar_resize(HWND hwnd, float percent, int type, int x, int y)
 		MoveWindow(handle2, 0, 0, x, newy, FALSE);
 		_do_resize(tmp, x - 1, newy - 1);
 
-		ShowWindow(handle1, SW_SHOW);
-		ShowWindow(handle2, SW_SHOW);
-
 		dw_window_set_data(hwnd, "_dw_start", (void *)newy);
 	}
+
+	ShowWindow(handle1, SW_SHOW);
+	ShowWindow(handle2, SW_SHOW);
 }
 
 /* This handles any activity on the splitbars (sizers) */
 BOOL CALLBACK _splitwndproc(HWND hwnd, UINT msg, WPARAM mp1, LPARAM mp2)
 {
-	float *percent = (float *)dw_window_get_data(hwnd, "_dw_percent");
-	int type = (int)dw_window_get_data(hwnd, "_dw_type");
-	int start = (int)dw_window_get_data(hwnd, "_dw_start");
-
 	switch (msg)
 	{
 	case WM_ACTIVATE:
@@ -2766,6 +2759,8 @@ BOOL CALLBACK _splitwndproc(HWND hwnd, UINT msg, WPARAM mp1, LPARAM mp2)
 		{
 			PAINTSTRUCT ps;
 			HDC hdcPaint;
+			int type = (int)dw_window_get_data(hwnd, "_dw_type");
+			int start = (int)dw_window_get_data(hwnd, "_dw_start");
 
 			BeginPaint(hwnd, &ps);
 
@@ -2802,6 +2797,10 @@ BOOL CALLBACK _splitwndproc(HWND hwnd, UINT msg, WPARAM mp1, LPARAM mp2)
 		break;
 	case WM_MOUSEMOVE:
 		{
+			float *percent = (float *)dw_window_get_data(hwnd, "_dw_percent");
+			int type = (int)dw_window_get_data(hwnd, "_dw_type");
+			int start;
+
 			if(type == DW_HORZ)
 				SetCursor(LoadCursor(NULL, IDC_SIZEWE));
 			else
