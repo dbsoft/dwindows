@@ -4577,6 +4577,9 @@ void dw_container_set_row_title(void *pointer, int row, char *title)
 	int z, currentcount;
 	CNRINFO cnr;
 
+	if(!ci)
+		return;
+
 	WinSendMsg(ci->handle, CM_QUERYCNRINFO, (MPARAM)&cnr, MPFROMSHORT(sizeof(CNRINFO)));
 	currentcount = cnr.cRecords;
 
@@ -4599,6 +4602,9 @@ void dw_container_insert(HWND handle, void *pointer, int rowcount)
 {
 	RECORDINSERT recin;
 	ContainerInfo *ci = (ContainerInfo *)pointer;
+
+	if(!ci)
+		return;
 
 	recin.cb = sizeof(RECORDINSERT);
 	recin.pRecordOrder = (PRECORDCORE)CMA_END;
