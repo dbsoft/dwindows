@@ -1433,7 +1433,7 @@ MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 			}
 		}
 
-		if(origmsg == WM_BUTTON1DOWN)
+		if(tmp && origmsg == WM_BUTTON1DOWN)
 		{
 			if(tmp->message == WM_USER+1)
 			{
