@@ -8076,56 +8076,39 @@ void API dw_environment_query(DWEnv *env)
 }
 
 /* The next few functions are support functions for the OS/2 folder browser */
-void _populate_directory(HMTX mtx, HWND *tree, HTREEITEM parent, char *path)
+void _populate_directory(HWND tree, HTREEITEM parent, char *path)
 {
 	FILEFINDBUF3 ffbuf;
 	HTREEITEM item;
 	ULONG count = 1;
 	HDIR hdir = HDIR_CREATE;
 
-	dw_mutex_lock(mtx);
-	if(*tree)
+	if(DosFindFirst(path, &hdir, FILE_READONLY | FILE_HIDDEN | FILE_SYSTEM | FILE_ARCHIVED | MUST_HAVE_DIRECTORY,
+					&ffbuf, sizeof(FILEFINDBUF3), &count, FIL_STANDARD) == NO_ERROR)
 	{
-		if(DosFindFirst(path, &hdir, FILE_READONLY | FILE_HIDDEN | FILE_SYSTEM | FILE_ARCHIVED | MUST_HAVE_DIRECTORY,
-						&ffbuf, sizeof(FILEFINDBUF3), &count, FIL_STANDARD) == NO_ERROR)
+		while(DosFindNext(hdir, &ffbuf, sizeof(FILEFINDBUF3), &count) == NO_ERROR)
 		{
-			while(DosFindNext(hdir, &ffbuf, sizeof(FILEFINDBUF3), &count) == NO_ERROR)
+			if(strcmp(ffbuf.achName, ".") && strcmp(ffbuf.achName, ".."))
 			{
-				if(strcmp(ffbuf.achName, ".") && strcmp(ffbuf.achName, ".."))
-				{
-					int len = strlen(path);
-					char *folder = malloc(len + ffbuf.cchName + 2);
-					HTREEITEM tempitem;
+				int len = strlen(path);
+				char *folder = malloc(len + ffbuf.cchName + 2);
+				HTREEITEM tempitem;
 
-					strcpy(folder, path);
-					strcpy(&folder[len-1], ffbuf.achName);
+				strcpy(folder, path);
+				strcpy(&folder[len-1], ffbuf.achName);
 
-					item = dw_tree_insert(*tree, ffbuf.achName, WinLoadFileIcon(folder, TRUE), parent, (void *)parent);
-					tempitem = dw_tree_insert(*tree, "", 0, item, 0);
-					dw_tree_set_data(*tree, item, (void *)tempitem);
-
-					dw_mutex_unlock(mtx);
-					strcat(folder, "\\*");
-
-					free(folder);
-					dw_mutex_lock(mtx);
-					if(!*tree)
-					{
-						dw_mutex_unlock(mtx);
-						DosFindClose(hdir);
-						return;
-					}
-				}
+				item = dw_tree_insert(tree, ffbuf.achName, WinLoadFileIcon(folder, TRUE), parent, (void *)parent);
+				tempitem = dw_tree_insert(tree, "", 0, item, 0);
+				dw_tree_set_data(tree, item, (void *)tempitem);
 			}
-			DosFindClose(hdir);
 		}
+		DosFindClose(hdir);
 	}
-	dw_mutex_unlock(mtx);
 }
 
 void _populate_tree_thread(void *data)
 {
-	HWND window = (HWND)data, *tree = (HWND *)dw_window_get_data(window, "_dw_tree");
+	HWND window = (HWND)data, tree = (HWND)dw_window_get_data(window, "_dw_tree");
 	HMTX mtx = (HMTX)dw_window_get_data(window, "_dw_mutex");
 	int drive;
 	HTREEITEM items[26];
@@ -8133,6 +8116,7 @@ void _populate_tree_thread(void *data)
 
 	DosError(FERR_DISABLEHARDERR);
 
+	dw_mutex_lock(mtx);
 	for(drive=0;drive<26;drive++)
 	{
 		if(DosQueryFSInfo(drive+1, FSIL_VOLSER,(PVOID)&volinfo, sizeof(FSINFO)) == NO_ERROR)
@@ -8142,48 +8126,31 @@ void _populate_tree_thread(void *data)
 
 			folder[0] = name[6] = 'A' + drive;
 
-			dw_mutex_lock(mtx);
-			if(!*tree)
-			{
-				free(tree);
-				dw_mutex_close(mtx);
-				return;
-			}
-
-			items[drive] = dw_tree_insert(*tree, name, WinLoadFileIcon(folder, TRUE), NULL, 0);
-			tempitem = dw_tree_insert(*tree, "", 0, items[drive], 0);
-			dw_tree_set_data(*tree, items[drive], (void *)tempitem);
-
-			dw_mutex_unlock(mtx);
+			items[drive] = dw_tree_insert(tree, name, WinLoadFileIcon(folder, TRUE), NULL, 0);
+			tempitem = dw_tree_insert(tree, "", 0, items[drive], 0);
+			dw_tree_set_data(tree, items[drive], (void *)tempitem);
 		}
 		else
 			items[drive] = 0;
 	}
-	DosError(FERR_ENABLEHARDERR);
+	dw_mutex_unlock(mtx);
 
-	dw_mutex_lock(mtx);
-	if(!*tree)
-	{
-		free(tree);
-		dw_mutex_close(mtx);
-	}
+	DosError(FERR_ENABLEHARDERR);
 }
 
 int DWSIGNAL _dw_ok_func(HWND window, void *data)
 {
 	DWDialog *dwwait = (DWDialog *)data;
-	HMTX mtx = (HMTX)dw_window_get_data(window, "_dw_mutex");
+	HMTX mtx = (HMTX)dw_window_get_data((HWND)dwwait->data, "_dw_mutex");
 	void *treedata;
-	HWND *tree;
 
+	window = window;
 	if(!dwwait)
 		return FALSE;
 
 	dw_mutex_lock(mtx);
 	treedata = dw_window_get_data((HWND)dwwait->data, "_dw_tree_selected");
-	if((tree = (HWND *)dw_window_get_data((HWND)dwwait->data, "_dw_tree")) != 0)
-		*tree = 0;
-	dw_mutex_unlock(mtx);
+	dw_mutex_close(mtx);
 	dw_window_destroy((HWND)dwwait->data);
 	dw_dialog_dismiss((DWDialog *)data, treedata);
 	return FALSE;
@@ -8192,16 +8159,14 @@ int DWSIGNAL _dw_ok_func(HWND window, void *data)
 int DWSIGNAL _dw_cancel_func(HWND window, void *data)
 {
 	DWDialog *dwwait = (DWDialog *)data;
-	HMTX mtx = (HMTX)dw_window_get_data(window, "_dw_mutex");
-	HWND *tree;
+	HMTX mtx = (HMTX)dw_window_get_data((HWND)dwwait->data, "_dw_mutex");
 
+	window = window;
 	if(!dwwait)
 		return FALSE;
 
 	dw_mutex_lock(mtx);
-	if((tree = (HWND *)dw_window_get_data((HWND)dwwait->data, "_dw_tree")) != 0)
-		*tree = 0;
-	dw_mutex_unlock(mtx);
+	dw_mutex_close(mtx);
 	dw_window_destroy((HWND)dwwait->data);
 	dw_dialog_dismiss((DWDialog *)data, NULL);
 	return FALSE;
@@ -8250,22 +8215,20 @@ int DWSIGNAL _item_select(HWND window, HTREEITEM item, char *text, void *data, v
 
 int DWSIGNAL _tree_expand(HWND window, HTREEITEM item, void *data)
 {
-	DWDialog *dwwait = (DWDialog *)data;
-	HMTX mtx = (HMTX)dw_window_get_data(window, "_dw_mutex");
-	HWND *tree = (HWND *)dw_window_get_data((HWND)dwwait->data, "_dw_tree");
-	HTREEITEM tempitem = (HTREEITEM)dw_tree_get_data(*tree, item);
+	HTREEITEM tempitem = (HTREEITEM)dw_tree_get_data(window, item);
 
+	data = data;
 	if(tempitem)
 	{
-		char *folder = _tree_folder(*tree, item);
+		char *folder = _tree_folder(window, item);
 
-		dw_tree_set_data(*tree, item, 0);
-		dw_tree_delete(*tree, tempitem);
+		dw_tree_set_data(window, item, 0);
+		dw_tree_delete(window, tempitem);
 
 		if(*folder)
 		{
 			strcat(folder, "*");
-			_populate_directory(mtx, tree, item, folder);
+			_populate_directory(window, item, folder);
 		}
 		free(folder);
 	}
@@ -8289,7 +8252,7 @@ char * API dw_file_browse(char *title, char *defpath, char *ext, int flags)
 {
 	if(flags == DW_DIRECTORY_OPEN)
 	{
-		HWND window, hbox, vbox, tree, button, *ptr;
+		HWND window, hbox, vbox, tree, button;
 		DWDialog *dwwait;
 		HMTX mtx = dw_mutex_new();
 
@@ -8302,10 +8265,8 @@ char * API dw_file_browse(char *title, char *defpath, char *ext, int flags)
 		tree = dw_tree_new(60);
 
 		dw_box_pack_start(vbox, tree, 1, 1, TRUE, TRUE, 0);
-		ptr = malloc(sizeof(HWND));
-		*ptr = tree;
-		dw_window_set_data(window, "_dw_tree", (void *)ptr);
 		dw_window_set_data(window, "_dw_mutex", (void *)mtx);
+		dw_window_set_data(window, "_dw_tree", (void *)tree);
 
 		hbox = dw_box_new(DW_HORZ, 0);
 
