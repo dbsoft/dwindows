@@ -3936,7 +3936,7 @@ unsigned int dw_listbox_selected(HWND handle)
 		GList *list = GTK_LIST(handle2)->children;
 		while(list)
 		{
-			if(list == GTK_LIST(handle2)->selection)
+			if(list->data == GTK_LIST(handle2)->selection->data)
 			{
 				retval = counter;
 				break;
