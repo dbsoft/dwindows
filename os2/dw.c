@@ -36,7 +36,7 @@ void _handle_splitbar_resize(HWND hwnd, float percent, int type, int x, int y);
 
 char ClassName[] = "dynamicwindows";
 char SplitbarClassName[] = "dwsplitbar";
-char DefaultFont[] = "9.WarpSans";
+char *DefaultFont = "9.WarpSans";
 
 HAB dwhab = 0;
 HMQ dwhmq = 0;
@@ -3085,6 +3085,8 @@ int API dw_init(int newthread, int argc, char *argv[])
 
 	desktop = WinQueryDesktopWindow(dwhab, NULLHANDLE);
 
+	if(!IS_WARP4())
+        DefaultFont = "8.Helv";
 	return rc;
 }
 
