@@ -952,7 +952,6 @@ void API dw_listbox_get_text(HWND handle, unsigned int index, char *buffer, unsi
 void API dw_listbox_set_text(HWND handle, unsigned int index, char *buffer);
 unsigned int API dw_listbox_selected(HWND handle);
 int API dw_listbox_selected_multi(HWND handle, int where);
-unsigned int API dw_percent_get_range(HWND handle);
 void API dw_percent_set_pos(HWND handle, unsigned int position);
 unsigned int API dw_slider_get_pos(HWND handle);
 void API dw_slider_set_pos(HWND handle, unsigned int position);

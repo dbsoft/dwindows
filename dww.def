@@ -87,7 +87,6 @@ EXPORTS
   dw_listbox_selected_multi              @150
 
   dw_percent_new                         @160
-  dw_percent_get_range                   @161
   dw_percent_set_pos                     @162
 
   dw_mle_new                             @170
