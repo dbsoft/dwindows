@@ -611,6 +611,9 @@ void tree_add(void)
 	t4 = dw_tree_insert(tree, "tree file 2", fileicon, t1, (void *)4 );
 	t5 = dw_tree_insert(tree, "tree file 3", fileicon, t2, (void *)5 );
 	t6 = dw_tree_insert(tree, "tree file 4", fileicon, t2, (void *)6 );
+	/* set the folder name and icon again to show error with dw_tree_set under GTK 2.0 */
+	dw_tree_set(tree, t1, "tree folder 1", foldericon );
+	dw_tree_set(tree, t2, "tree folder 2", foldericon );
 }
 
 void container_add(void)
