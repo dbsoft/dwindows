@@ -3344,6 +3344,21 @@ void API dw_window_redraw(HWND handle)
 	}
 }
 
+int instring(char *text, char *buffer)
+{
+	int z, len = strlen(text), buflen = strlen(buffer);
+
+	if(buflen > len)
+	{
+		for(z=0;z<(buflen-len);z++)
+		{
+			if(memcmp(text, &buffer[z], len) == 0)
+				return 1;
+		}
+	}
+	return 0;
+}
+
 /*
  * Changes a window's parent to newparent.
  * Parameters:
@@ -3382,10 +3397,10 @@ HFONT _acquire_font(HWND handle, char *fontname)
 		lf.lfWidth = 0;
 		lf.lfEscapement = 0;
 		lf.lfOrientation = 0;
-		lf.lfItalic = 0;
+		lf.lfItalic = instring(" Italic", &fontname[z+1]);
 		lf.lfUnderline = 0;
 		lf.lfStrikeOut = 0;
-		lf.lfWeight = FW_NORMAL;
+		lf.lfWeight = instring(" Bold", &fontname[z+1]) ? FW_BOLD : FW_NORMAL;
 		lf.lfCharSet = DEFAULT_CHARSET;
 		lf.lfOutPrecision = 0;
 		lf.lfClipPrecision = 0;
