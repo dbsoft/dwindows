@@ -257,6 +257,7 @@ unsigned long long drivefree(int drive)
 	{
 		if(index == drive)
 			return (fsp->f_bsize * fsp->f_bavail) / 1024;
+		index++;
 	}
 	return 0;
 #elif defined(__sun__)
@@ -365,6 +366,7 @@ unsigned long long drivesize(int drive)
 	{
 		if(index == drive)
 			return (fsp->f_bsize * fsp->f_blocks) / 1024;
+		index++;
 	}
 	return 0;
 #elif defined(__sun__)
@@ -458,6 +460,7 @@ int isdrive(int drive)
 	{
 		if(index == drive && fsp->f_blocks)
 			return 1;
+		index++;
 	}
 	return 0;
 #elif defined(__sun__)
@@ -529,6 +532,7 @@ void getfsname(int drive, char *buf, int len)
 	{
 		if(index == drive)
 			strncpy(buf, fsp->f_mntonname, len);
+		index++;
 	}
 #elif defined(__sun__)
 	FILE *fp = fopen("/etc/mnttab", "r");
