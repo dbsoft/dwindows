@@ -594,15 +594,15 @@ static gint _tree_select_event(GtkTreeSelection *sel, gpointer data)
 	return retval;
 }
 
-static gint _tree_expand_event(GtkTreeView *treeview, GtkTreeIter *arg1, GtkTreePath *arg2, gpointer user_data)
+static gint _tree_expand_event(GtkTreeView *widget, GtkTreeIter *iter, GtkTreePath *path, gpointer data)
 {
-	SignalHandler work = _get_signal_handler(widget, data);
+	SignalHandler work = _get_signal_handler((GtkWidget *)widget, data);
 	int retval = FALSE;
 
 	if(work.window)
 	{
 		int (*treeexpandfunc)(HWND, HTREEITEM, void *) = work.func;
-		retval = treeexpandfunc(work.window, (HTREEITEM)arg1, work.data);
+		retval = treeexpandfunc(work.window, (HTREEITEM)iter, work.data);
 	}
 	return retval;
 }
@@ -2365,7 +2365,7 @@ HWND dw_tree_new(ULONG id)
 	gtk_object_set_data(GTK_OBJECT(tmp), "_dw_id", (gpointer)id);
 	gtk_widget_show(tmp);
 #if GTK_MAJOR_VERSION > 1
-	store = gtk_tree_store_new(4, G_TYPE_STRING, GDK_TYPE_PIXBUF, G_TYPE_POINTER, G_TYPE_POINTER);
+	store = gtk_tree_store_new(5, G_TYPE_STRING, GDK_TYPE_PIXBUF, G_TYPE_POINTER, G_TYPE_POINTER, G_TYPE_POINTER);
 	tree = gtk_tree_view_new_with_model(GTK_TREE_MODEL(store));
 	gtk_object_set_data(GTK_OBJECT(tree), "_dw_tree_store", (gpointer)store);
 	col = gtk_tree_view_column_new();
@@ -2377,7 +2377,6 @@ HWND dw_tree_new(ULONG id)
 	gtk_tree_view_column_pack_start(col, rend, TRUE);
 	gtk_tree_view_column_add_attribute(col, rend, "text", 0);
 
-	gtk_tree_view_append_column(GTK_TREE_VIEW (tree), col);
 	gtk_tree_view_append_column(GTK_TREE_VIEW (tree), col);
 	gtk_tree_view_set_expander_column(GTK_TREE_VIEW(tree), col);
 	gtk_tree_view_set_headers_visible(GTK_TREE_VIEW(tree), FALSE);
@@ -4284,10 +4283,9 @@ char * API dw_tree_get_title(HWND handle, HTREEITEM item)
 
 	DW_MUTEX_LOCK;
 #if GTK_MAJOR_VERSION > 1
-	GtkTreeIter iter = (GtkTreeIter)item;
 	GtkTreeModel *store = (GtkTreeModel *)gtk_object_get_data(GTK_OBJECT(handle), "_dw_tree_store");
 
-	gtk_tree_model_get(store, &iter, 0, &text, -1);
+	gtk_tree_model_get(store, (GtkTreeIter *)item, 0, &text, -1);
 #else
 	text = (char *)gtk_object_get_data(GTK_OBJECT(item), "_dw_text");
 #endif
@@ -4311,10 +4309,9 @@ HTREEITEM API dw_tree_get_parent(HWND handle, HTREEITEM item)
 
 	DW_MUTEX_LOCK;
 #if GTK_MAJOR_VERSION > 1
-	GtkTreeIter iter = (GtkTreeIter)item;
 	GtkTreeModel *store = (GtkTreeModel *)gtk_object_get_data(GTK_OBJECT(handle), "_dw_tree_store");
 
-	gtk_tree_model_get(store, &iter, 4, &parent, -1);
+	gtk_tree_model_get(store, (GtkTreeIter *)item, 4, &parent, -1);
 #else
 	parent = (HTREEITEM)gtk_object_get_data(GTK_OBJECT(item), "_dw_parent");
 #endif
