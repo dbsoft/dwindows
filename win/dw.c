@@ -2034,6 +2034,17 @@ BOOL CALLBACK _colorwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 					_click_default(cinfo->clickdefault);
 
 			}
+
+			/* Tell the spinner control that a keypress has
+			 * occured and to update it's internal value.
+			 */
+			if(cinfo->buddy && !cinfo->combo)
+			{
+				if(IsWinNT())
+					PostMessage(cinfo->buddy, WM_USER+10, 0, 0);
+				else
+					SendMessage(cinfo->buddy, WM_USER+10, 0, 0);
+			}
 			break;
 		case WM_USER+10:
 			{
