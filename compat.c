@@ -10,6 +10,11 @@
 #include <sys/param.h>
 #include <sys/ucred.h>
 #include <sys/mount.h>
+#elif defined(__sun__)
+#include <sys/mnttab.h>
+#include <sys/param.h>
+#include <sys/mount.h>
+#include <sys/statfs.h>
 #else
 #include <mntent.h>
 #include <sys/vfs.h>
@@ -24,7 +29,7 @@ void msleep(long period)
 	struct timespec req;
 
 	req.tv_sec = 0;
-	req.tv_nsec = period * 1000000;
+	req.tv_nsec = period * 10000000;
 
 	nanosleep(&req, NULL);
 #else
@@ -253,6 +258,33 @@ unsigned long long drivefree(int drive)
 			return (fsp->f_bsize * fsp->f_bavail) / 1024;
 	}
 	return 0;
+#elif defined(__sun__)
+	FILE *fp = fopen("/etc/mnttab", "r");
+	struct mnttab mnt;
+	struct statfs sfs;
+	int index = 1;
+
+	if(fp)
+	{
+		while((getmntent(fp, &mnt) == 0))
+		{
+			if(index == drive)
+			{
+				long long size = 0;
+
+				if(mnt.mnt_mountp)
+				{
+					statfs(mnt.mnt_mountp, &sfs, sizeof(struct statfs), 0);
+					size = sfs.f_bsize * (sfs.f_bfree / 1024);
+				}
+				fclose(fp);
+				return size;
+			}
+			index++;          
+		}
+		fclose(fp);
+	}
+	return 0;
 #else
 	FILE *fp = setmntent(MOUNTED, "r");
 	struct mntent *mnt;
@@ -334,6 +366,33 @@ unsigned long long drivesize(int drive)
 			return (fsp->f_bsize * fsp->f_blocks) / 1024;
 	}
 	return 0;
+#elif defined(__sun__)
+	FILE *fp = fopen("/etc/mnttab", "r");
+	struct mnttab mnt;
+	struct statfs sfs;
+	int index = 1;
+
+	if(fp)
+	{
+		while(getmntent(fp, &mnt) == 0)
+		{
+			if(index == drive)
+			{
+				long long size = 0;
+
+				if(mnt.mnt_mountp)
+				{
+					statfs(mnt.mnt_mountp, &sfs, sizeof(struct statfs), 0);
+					size = sfs.f_bsize * (sfs.f_blocks / 1024);
+				}
+				fclose(fp);
+				return size;
+			}
+			index++;          
+		}
+		fclose(fp);
+	}
+	return 0;
 #else
 	FILE *fp = setmntent(MOUNTED, "r");
 	struct mntent *mnt;
@@ -400,6 +459,31 @@ int isdrive(int drive)
 			return 1;
 	}
 	return 0;
+#elif defined(__sun__)
+	FILE *fp = fopen("/etc/mnttab", "r");
+	struct mnttab mnt;
+	struct statfs sfs;
+	int index = 1;
+
+	if(fp)
+	{
+		while(getmntent(fp, &mnt) == 0)
+		{
+			if(index == drive)
+			{
+				fclose(fp);
+				if(mnt.mnt_mountp)
+				{
+					statfs(mnt.mnt_mountp, &sfs, sizeof(struct statfs), 0);
+					if(sfs.f_blocks)
+						return 1;
+				}
+				return 0;
+			}
+			index++;          
+		}
+		fclose(fp);
+	}
 #else
 	FILE *fp = setmntent(MOUNTED, "r");
 	struct mntent *mnt;
@@ -444,6 +528,23 @@ void getfsname(int drive, char *buf, int len)
 	{
 		if(index == drive)
 			strncpy(buf, fsp->f_mntonname, len);
+	}
+#elif defined(__sun__)
+	FILE *fp = fopen("/etc/mnttab", "r");
+	struct mnttab mnt;
+	int index = 1;
+
+	strncpy(buf, "Unknown", len);
+
+	if(fp)
+	{
+		while(getmntent(fp, &mnt) == 0)
+		{
+			if(index == drive && mnt.mnt_mountp)
+				strncpy(buf, mnt.mnt_mountp, len);
+			index++;          
+		}
+		fclose(fp);
 	}
 #else
 	FILE *fp = setmntent(MOUNTED, "r");
