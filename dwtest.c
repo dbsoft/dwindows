@@ -417,6 +417,8 @@ void archive_add(void)
 
 	entryfield = dw_entryfield_new("", 100L);
 
+	dw_entryfield_set_limit(entryfield, 260);
+
 	dw_box_pack_start(browsebox, entryfield, 100, 15, TRUE, TRUE, 4);
 
 	browsebutton = dw_button_new("Browse", 1001L);
@@ -519,7 +521,7 @@ void tree_add(void)
 	dw_box_pack_start( notebookbox3, treebox, 500, 200, TRUE, TRUE, 0);
 
 	/* now a tree area under this box */
-	tree = dw_tree_new(0);
+	tree = dw_tree_new(101);
 	dw_box_pack_start( notebookbox3, tree, 500, 200, TRUE, FALSE, 1);
 
 	/* and a status area to see whats going on */
@@ -564,8 +566,10 @@ void container_add(void)
 	dw_box_pack_start( notebookbox4, containerbox, 500, 200, TRUE, TRUE, 0);
 
 	/* now a container area under this box */
-	container = dw_container_new(0);
+	container = dw_container_new(100);
 	dw_box_pack_start( notebookbox4, container, 500, 200, TRUE, FALSE, 1);
+
+	dw_container_set_view(container, DW_CV_DETAIL | DW_CV_MINI | DW_CA_DETAILSVIEWTITLES, 16, 16);
 
 	/* and a status area to see whats going on */
 	container_status = dw_status_text_new("", 0);
@@ -584,7 +588,7 @@ void container_add(void)
 		sprintf(buffer, "Filename %d",z+1);
 		if (z == 0 ) thisicon = foldericon;
 		else thisicon = fileicon;
-		dw_filesystem_set_file(container, containerinfo, z, buffer, thisicon);
+		dw_filesystem_set_file(container, containerinfo, z, strdup(buffer), thisicon);
 		dw_filesystem_set_item(container, containerinfo, 0, z, &size);
 
 		time.seconds = z+10;
@@ -597,7 +601,7 @@ void container_add(void)
 		date.year = z+2000;
 		dw_filesystem_set_item(container, containerinfo, 2, z, &date);
 
-		dw_container_set_row_title(containerinfo, z, buffer);
+		dw_container_set_row_title(containerinfo, z, "Don't allocate from the stack");
 	}
 
 	dw_container_insert(container, containerinfo, 3);
