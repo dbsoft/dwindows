@@ -6718,7 +6718,10 @@ void API dw_color_background_set(unsigned long value)
 
 	value = _internal_color(value);
 
-	_background[threadid] = RGB(DW_RED_VALUE(value), DW_GREEN_VALUE(value), DW_BLUE_VALUE(value));
+	if(value == DW_RGB_TRANSPARENT)
+		_background[threadid] = DW_RGB_TRANSPARENT;
+	else
+		_background[threadid] = RGB(DW_RED_VALUE(value), DW_GREEN_VALUE(value), DW_BLUE_VALUE(value));
 }
 
 /* Draw a point on a window (preferably a render window).
