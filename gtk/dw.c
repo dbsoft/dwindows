@@ -473,9 +473,9 @@ void _unselect_row(GtkWidget *widget, gint row, gint column, GdkEventButton *eve
 	tmp = (GList *)gtk_object_get_data(GTK_OBJECT(widget), "selectlist");
 	rowdata = gtk_clist_get_row_data(GTK_CLIST(widget), row);
 
-	if(rowdata)
+	if(rowdata && tmp)
 	{
-		g_list_remove(tmp, rowdata);
+		tmp = g_list_remove(tmp, rowdata);
 		gtk_object_set_data(GTK_OBJECT(widget), "selectlist", tmp);
 	}
 }
