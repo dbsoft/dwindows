@@ -4724,10 +4724,10 @@ void dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
 
 			gdk_text_extents(font, text, strlen(text), NULL, NULL, NULL, &ascent, NULL);
 			gdk_draw_text(handle ? handle->window : pixmap->pixmap, font, gc, x, y + ascent + 2, text, strlen(text));
-			gdk_gc_unref(gc);
 			gdk_font_unref(font);
 		}
 #endif
+		gdk_gc_unref(gc);
 	}
 	DW_MUTEX_UNLOCK;
 }
