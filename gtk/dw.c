@@ -3279,6 +3279,27 @@ void dw_scrollbar_set_pos(HWND handle, unsigned int position)
 }
 
 /*
+ * Sets the scrollbar range.
+ * Parameters:
+ *          handle: Handle to the scrollbar to be set.
+ *          range: Maximum range value.
+ */
+void API dw_scrollbar_set_range(HWND handle, unsigned int range)
+{
+	int _locked_by_me = FALSE;
+	GtkAdjustment *adjustment;
+
+	if(!handle)
+		return;
+
+	DW_MUTEX_LOCK;
+	adjustment = (GtkAdjustment *)gtk_object_get_data(GTK_OBJECT(handle), "adjustment");
+	if(adjustment)
+		adjustment->upper = (gfloat)range;
+	DW_MUTEX_UNLOCK;
+}
+
+/*
  * Sets the spinbutton value.
  * Parameters:
  *          handle: Handle to the spinbutton to be set.
