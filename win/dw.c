@@ -2303,28 +2303,33 @@ BOOL CALLBACK _splitwndproc(HWND hwnd, UINT msg, WPARAM mp1, LPARAM mp2)
 			{
 				POINT point;
 				RECT rect;
+				static POINT lastpoint;
 
 				GetCursorPos(&point);
 				GetWindowRect(hwnd, &rect);
 
-				if(PtInRect(&rect, point))
+				if(memcmp(&point, &lastpoint, sizeof(POINT)))
 				{
-					int width = (rect.right - rect.left);
-					int height = (rect.bottom - rect.top);
+					if(PtInRect(&rect, point))
+					{
+						int width = (rect.right - rect.left);
+						int height = (rect.bottom - rect.top);
 
-					if(type == BOXHORZ)
-					{
-						start = point.x - rect.left;
-						if(width - SPLITBAR_WIDTH > 1 && start < width - SPLITBAR_WIDTH)
-							*percent = ((float)start / (float)(width - SPLITBAR_WIDTH)) * 100.0;
+						if(type == BOXHORZ)
+						{
+							start = point.x - rect.left;
+							if(width - SPLITBAR_WIDTH > 1 && start < width - SPLITBAR_WIDTH)
+								*percent = ((float)start / (float)(width - SPLITBAR_WIDTH)) * 100.0;
+						}
+						else
+						{
+							start = point.y - rect.top;
+							if(height - SPLITBAR_WIDTH > 1 && start < height - SPLITBAR_WIDTH)
+								*percent = ((float)start / (float)(height - SPLITBAR_WIDTH)) * 100.0;
+						}
+						_handle_splitbar_resize(hwnd, *percent, type, width, height);
 					}
-					else
-					{
-						start = point.y - rect.top;
-						if(height - SPLITBAR_WIDTH > 1 && start < height - SPLITBAR_WIDTH)
-							*percent = ((float)start / (float)(height - SPLITBAR_WIDTH)) * 100.0;
-					}
-					_handle_splitbar_resize(hwnd, *percent, type, width, height);
+					memcpy(&lastpoint, &point, sizeof(POINT));
 				}
 			}
 			break;
@@ -6400,6 +6405,49 @@ void dw_pixmap_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest, int width,
 void dw_beep(int freq, int dur)
 {
 	Beep(freq, dur);
+}
+
+/* Open a shared library and return a handle.
+ * Parameters:
+ *         name: Base name of the shared library.
+ *         handle: Pointer to a module handle,
+ *                 will be filled in with the handle.
+ */
+int dw_module_load(char *name, HMOD *handle)
+{
+	if(!handle)
+		return	-1;
+
+	*handle = LoadLibrary(name);
+	return (NULL == *handle);
+}
+
+/* Queries the address of a symbol within open handle.
+ * Parameters:
+ *         handle: Module handle returned by dw_module_load()
+ *         name: Name of the symbol you want the address of.
+ *         func: A pointer to a function pointer, to obtain
+ *               the address.
+ */
+int dw_module_symbol(HMOD handle, char *name, void**func)
+{
+	if(!func || !name)
+		return	-1;
+
+	if(0 == strlen(name))
+		return	-1;
+
+	*func = (void*)GetProcAddress(handle, name);
+	return	(NULL == *func);
+}
+
+/* Frees the shared library previously opened.
+ * Parameters:
+ *         handle: Module handle returned by dw_module_load()
+ */
+int dw_module_close(HMOD handle)
+{
+	return FreeLibrary(handle);
 }
 
 /*

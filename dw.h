@@ -145,6 +145,8 @@ typedef struct _hmenui {
 	HWND menu;
 } *HMENUI;
 
+typedef HMODULE HMOD;
+
 extern HAB dwhab;
 extern HMQ dwhmq;
 #endif
@@ -294,6 +296,7 @@ typedef struct _notebookpage {
 
 typedef HANDLE HMTX;
 typedef HANDLE HEV;
+typedef HANDLE HMOD;
 
 typedef struct _container {
 	ColorInfo cinfo;
@@ -491,6 +494,7 @@ typedef struct _dw_unix_event {
     int posted;
 } *HEV;
 typedef pthread_t DWTID;
+typedef void * HMOD;
 
 typedef struct _hpixmap {
 	unsigned long width, height;
@@ -781,6 +785,9 @@ int dw_dialog_dismiss(DWDialog *dialog, void *result);
 void *dw_dialog_wait(DWDialog *dialog);
 void dw_window_set_data(HWND window, char *dataname, void *data);
 void *dw_window_get_data(HWND window, char *dataname);
+int dw_module_load(char *name, HMOD *handle);
+int dw_module_symbol(HMOD handle, char *name, void**func);
+int dw_module_close(HMOD handle);
 #ifndef NO_SIGNALS
 void dw_signal_connect(HWND window, char *signame, void *sigfunc, void *data);
 void dw_signal_disconnect_by_window(HWND window);

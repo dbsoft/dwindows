@@ -4965,6 +4965,86 @@ void dw_beep(int freq, int dur)
 	DW_MUTEX_UNLOCK;
 }
 
+void _my_strlwr(char *buf)
+{
+	int z, len = strlen(buf);
+
+	for(z=0;z<len;z++)
+	{
+		if(buf[z] >= 'A' && buf[z] <= 'Z')
+			buf[z] -= 'A' - 'a';
+	}
+}
+
+/* Open a shared library and return a handle.
+ * Parameters:
+ *         name: Base name of the shared library.
+ *         handle: Pointer to a module handle,
+ *                 will be filled in with the handle.
+ */
+int dw_module_load(char *name, HMOD *handle)
+{
+	int len;
+	char *newname;
+	char errorbuf[1024];
+
+
+	if(!handle)
+		return -1;
+
+	if((len = strlen(name)) == 0)
+		return	-1;
+
+	/* Lenth + "lib" + ".so" + NULL */
+	newname = malloc(len + 7);
+
+	if(!newname)
+		return -1;
+
+	sprintf(newname, "lib%s.so", name);
+	_my_strlwr(newname);
+
+	*handle = dlopen(newname, RTLD_NOW);
+	if(*handle == NULL)
+	{
+		strncpy(errorbuf, dlerror(), 1024);
+		sprintf(newname, "lib%s.so", name);
+		*handle = dlopen(newname, RTLD_NOW);
+	}
+
+	free(newname);
+
+	return (NULL == *handle);
+}
+
+/* Queries the address of a symbol within open handle.
+ * Parameters:
+ *         handle: Module handle returned by dw_module_load()
+ *         name: Name of the symbol you want the address of.
+ *         func: A pointer to a function pointer, to obtain
+ *               the address.
+ */
+int dw_module_symbol(HMOD handle, char *name, void**func)
+{
+	if(!func || !name)
+		return	-1;
+
+	if(strlen(name) == 0)
+		return	-1;
+
+	*func = (void*)dlsym(handle, name);
+	return	(NULL == *func);
+}
+
+/* Frees the shared library previously opened.
+ * Parameters:
+ *         handle: Module handle returned by dw_module_load()
+ */
+int dw_module_close(HMOD handle)
+{
+	return dlclose(handle);
+}
+
 /*
  * Returns the handle to an unnamed mutex semaphore.
  */
