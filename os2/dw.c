@@ -542,7 +542,7 @@ int _focus_check_box(Box *box, HWND handle, int start, HWND defaultitem)
 				{
 					Box *notebox;
 					HWND page = (HWND)WinSendMsg(box->items[z].hwnd, BKM_QUERYPAGEWINDOWHWND,
-												 (MPARAM)dw_notebook_page_query(box->items[z].hwnd), 0);
+												 (MPARAM)dw_notebook_page_get(box->items[z].hwnd), 0);
 
 					if(page)
 					{
@@ -670,7 +670,7 @@ int _focus_check_box_back(Box *box, HWND handle, int start, HWND defaultitem)
 				{
 					Box *notebox;
 					HWND page = (HWND)WinSendMsg(box->items[z].hwnd, BKM_QUERYPAGEWINDOWHWND,
-												 (MPARAM)dw_notebook_page_query(box->items[z].hwnd), 0);
+												 (MPARAM)dw_notebook_page_get(box->items[z].hwnd), 0);
 
 					if(page)
 					{
@@ -1752,7 +1752,7 @@ MRESULT EXPENTRY _spinentryproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 int _dw_int_pos(HWND hwnd)
 {
 	int pos = (int)dw_window_get_data(hwnd, "_dw_percent_value");
-	int range = dw_percent_query_range(hwnd);
+	int range = dw_percent_get_range(hwnd);
 	float fpos = (float)pos;
 	float frange = (float)range;
 	float fnew = (fpos/1000.0)*frange;
@@ -1761,7 +1761,7 @@ int _dw_int_pos(HWND hwnd)
 
 void _dw_int_set(HWND hwnd, int pos)
 {
-	int inew, range = dw_percent_query_range(hwnd);
+	int inew, range = dw_percent_get_range(hwnd);
 	if(range)
 	{
 		float fpos = (float)pos;
@@ -1935,7 +1935,7 @@ int _HandleScroller(HWND handle, int pos, int which)
 	if(which == SB_SLIDERTRACK)
 		return pos;
 
-	pos = dw_scrollbar_query_pos(handle);
+	pos = dw_scrollbar_get_pos(handle);
 	res = WinSendMsg(handle, SBM_QUERYRANGE, 0, 0);
 
 	min = SHORT1FROMMP(res);
@@ -2397,7 +2397,7 @@ MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 									char buf1[500];
 									unsigned int index = dw_listbox_selected(tmp->window);
 
-									dw_listbox_query_text(tmp->window, index, buf1, 500);
+									dw_listbox_get_text(tmp->window, index, buf1, 500);
 
 									_recursing = 1;
 
@@ -3824,7 +3824,7 @@ void API dw_window_track(HWND handle)
  *       handle: Handle to widget for which to change.
  *       cursortype: ID of the pointer you want.
  */
-void API dw_window_pointer(HWND handle, int pointertype)
+void API dw_window_set_pointer(HWND handle, int pointertype)
 {
 	if(handle == HWND_DESKTOP)
 		WinSetPointer(handle, WinQuerySysPointer(HWND_DESKTOP,pointertype, FALSE));
@@ -5267,7 +5267,7 @@ void _dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, int
  *          width: New width in pixels.
  *          height: New height in pixels.
  */
-void API dw_window_set_usize(HWND handle, ULONG width, ULONG height)
+void API dw_window_set_size(HWND handle, ULONG width, ULONG height)
 {
 	WinSetWindowPos(handle, NULLHANDLE, 0, 0, width, height, SWP_SHOW | SWP_SIZE);
 }
@@ -5395,7 +5395,7 @@ void API dw_notebook_page_destroy(HWND handle, unsigned int pageid)
  * Parameters:
  *          handle: Handle to the notebook widget.
  */
-unsigned long API dw_notebook_page_query(HWND handle)
+unsigned long API dw_notebook_page_get(HWND handle)
 {
 	return (unsigned long)WinSendMsg(handle, BKM_QUERYPAGEID,0L, MPFROM2SHORT(BKA_TOP, BKA_MAJOR));
 }
@@ -5512,7 +5512,7 @@ void API dw_listbox_set_top(HWND handle, int top)
  *          buffer: Buffer where text will be copied.
  *          length: Length of the buffer (including NULL).
  */
-void API dw_listbox_query_text(HWND handle, unsigned int index, char *buffer, unsigned int length)
+void API dw_listbox_get_text(HWND handle, unsigned int index, char *buffer, unsigned int length)
 {
 	WinSendMsg(handle, LM_QUERYITEMTEXT, MPFROM2SHORT(index, length), (MPARAM)buffer);
 }
@@ -5679,7 +5679,7 @@ void API dw_mle_export(HWND handle, char *buffer, int startpoint, int length)
  *          bytes: A pointer to a variable to return the total bytes.
  *          lines: A pointer to a variable to return the number of lines.
  */
-void API dw_mle_query(HWND handle, unsigned long *bytes, unsigned long *lines)
+void API dw_mle_get_size(HWND handle, unsigned long *bytes, unsigned long *lines)
 {
 	if(bytes)
 		*bytes = (unsigned long)WinSendMsg(handle, MLM_QUERYTEXTLENGTH, 0, 0);
@@ -5719,7 +5719,7 @@ void API dw_mle_clear(HWND handle)
 {
 	unsigned long bytes;
 
-	dw_mle_query(handle, &bytes, NULL);
+	dw_mle_get_size(handle, &bytes, NULL);
 
 	WinSendMsg(handle, MLM_DELETE, MPFROMLONG(0), MPFROMLONG(bytes));
 }
@@ -5730,7 +5730,7 @@ void API dw_mle_clear(HWND handle)
  *          handle: Handle to the MLE to be positioned.
  *          line: Line to be visible.
  */
-void API dw_mle_set_visible(HWND handle, int line)
+void API dw_mle_set_cursor_visible(HWND handle, int line)
 {
 	int tmppnt = (int)WinSendMsg(handle, MLM_CHARFROMLINE, MPFROMLONG(line), 0);
 	WinSendMsg(handle, MLM_SETSEL, MPFROMLONG(tmppnt), MPFROMLONG(tmppnt));
@@ -5742,7 +5742,7 @@ void API dw_mle_set_visible(HWND handle, int line)
  *          handle: Handle to the MLE.
  *          state: TRUE if it can be edited, FALSE for readonly.
  */
-void API dw_mle_set_editable(HWND handle, int state)
+void API dw_mle_set_cursor_editable(HWND handle, int state)
 {
 	WinSendMsg(handle, MLM_SETREADONLY, MPFROMLONG(state ? FALSE : TRUE), 0);
 }
@@ -5753,7 +5753,7 @@ void API dw_mle_set_editable(HWND handle, int state)
  *          handle: Handle to the MLE.
  *          state: TRUE if it wraps, FALSE if it doesn't.
  */
-void API dw_mle_set_word_wrap(HWND handle, int state)
+void API dw_mle_set_cursor_word_wrap(HWND handle, int state)
 {
 	WinSendMsg(handle, MLM_SETWRAP, MPFROMLONG(state), 0);
 }
@@ -5764,7 +5764,7 @@ void API dw_mle_set_word_wrap(HWND handle, int state)
  *          handle: Handle to the MLE to be positioned.
  *          point: Point to position cursor.
  */
-void API dw_mle_set(HWND handle, int point)
+void API dw_mle_set_cursor(HWND handle, int point)
 {
 	WinSendMsg(handle, MLM_SETSEL, MPFROMLONG(point), MPFROMLONG(point));
 }
@@ -5822,7 +5822,7 @@ void API dw_mle_thaw(HWND handle)
  * Parameters:
  *          handle: Handle to the percent bar to be queried.
  */
-unsigned int API dw_percent_query_range(HWND handle)
+unsigned int API dw_percent_get_range(HWND handle)
 {
 	return SHORT2FROMMP(WinSendMsg(handle, SLM_QUERYSLIDERINFO, MPFROM2SHORT(SMA_SLIDERARMPOSITION,SMA_RANGEVALUE), 0));
 }
@@ -5844,7 +5844,7 @@ void API dw_percent_set_pos(HWND handle, unsigned int position)
  * Parameters:
  *          handle: Handle to the slider to be queried.
  */
-unsigned int API dw_slider_query_pos(HWND handle)
+unsigned int API dw_slider_get_pos(HWND handle)
 {
 	return (unsigned int)WinSendMsg(handle, SLM_QUERYSLIDERINFO, MPFROM2SHORT(SMA_SLIDERARMPOSITION, SMA_INCREMENTVALUE), 0);
 }
@@ -5866,7 +5866,7 @@ void API dw_slider_set_pos(HWND handle, unsigned int position)
  * Parameters:
  *          handle: Handle to the scrollbar to be queried.
  */
-unsigned int API dw_scrollbar_query_pos(HWND handle)
+unsigned int API dw_scrollbar_get_pos(HWND handle)
 {
 	return (unsigned int)WinSendMsg(handle, SBM_QUERYPOS, 0, 0);
 }
@@ -5938,7 +5938,7 @@ void API dw_entryfield_set_limit(HWND handle, ULONG limit)
  * Parameters:
  *          handle: Handle to the spinbutton to be queried.
  */
-long API dw_spinbutton_query(HWND handle)
+long API dw_spinbutton_get_pos(HWND handle)
 {
 	long tmpval = 0L;
 
@@ -5951,7 +5951,7 @@ long API dw_spinbutton_query(HWND handle)
  * Parameters:
  *          handle: Handle to the checkbox to be queried.
  */
-int API dw_checkbox_query(HWND handle)
+int API dw_checkbox_get(HWND handle)
 {
 	return (int)WinSendMsg(handle,BM_QUERYCHECK,0,0);
 }
@@ -6048,7 +6048,7 @@ HTREEITEM API dw_tree_insert(HWND handle, char *title, unsigned long icon, HTREE
  *          title: The text title of the entry.
  *          icon: Handle to coresponding icon.
  */
-void API dw_tree_set(HWND handle, HTREEITEM item, char *title, unsigned long icon)
+void API dw_tree_item_change(HWND handle, HTREEITEM item, char *title, unsigned long icon)
 {
 	PCNRITEM pci = (PCNRITEM)item;
 
@@ -6105,7 +6105,7 @@ HTREEITEM API dw_tree_get_parent(HWND handle, HTREEITEM item)
  *          item: Handle of the item to be modified.
  *          itemdata: User defined data to be associated with item.
  */
-void API dw_tree_set_data(HWND handle, HTREEITEM item, void *itemdata)
+void API dw_tree_item_change_data(HWND handle, HTREEITEM item, void *itemdata)
 {
 	PCNRITEM pci = (PCNRITEM)item;
 
@@ -6122,7 +6122,7 @@ void API dw_tree_set_data(HWND handle, HTREEITEM item, void *itemdata)
  *          handle: Handle to the tree containing the item.
  *          item: Handle of the item to be modified.
  */
-void * API dw_tree_get_data(HWND handle, HTREEITEM item)
+void * API dw_tree_item_get_data(HWND handle, HTREEITEM item)
 {
 	PCNRITEM pci = (PCNRITEM)item;
 
@@ -6169,7 +6169,7 @@ void API dw_tree_clear(HWND handle)
  *       handle: Handle to the tree window (widget).
  *       item: Handle to node to be expanded.
  */
-void API dw_tree_expand(HWND handle, HTREEITEM item)
+void API dw_tree_item_expand(HWND handle, HTREEITEM item)
 {
 	WinSendMsg(handle, CM_EXPANDTREE, MPFROMP(item), 0);
 }
@@ -6180,7 +6180,7 @@ void API dw_tree_expand(HWND handle, HTREEITEM item)
  *       handle: Handle to the tree window (widget).
  *       item: Handle to node to be collapsed.
  */
-void API dw_tree_collapse(HWND handle, HTREEITEM item)
+void API dw_tree_item_collapse(HWND handle, HTREEITEM item)
 {
 	WinSendMsg(handle, CM_COLLAPSETREE, MPFROMP(item), 0);
 }
@@ -6191,7 +6191,7 @@ void API dw_tree_collapse(HWND handle, HTREEITEM item)
  *       handle: Handle to the window (widget) to be cleared.
  *       item: Handle to node to be deleted.
  */
-void API dw_tree_delete(HWND handle, HTREEITEM item)
+void API dw_tree_item_delete(HWND handle, HTREEITEM item)
 {
 	PCNRITEM     pci = (PCNRITEM)item;
 
@@ -8220,7 +8220,7 @@ void _populate_directory(HWND tree, HTREEITEM parent, char *path)
 
 				item = dw_tree_insert(tree, ffbuf.achName, WinLoadFileIcon(folder, TRUE), parent, (void *)parent);
 				tempitem = dw_tree_insert(tree, "", 0, item, 0);
-				dw_tree_set_data(tree, item, (void *)tempitem);
+				dw_tree_item_change_data(tree, item, (void *)tempitem);
 			}
 		}
 		DosFindClose(hdir);
@@ -8249,7 +8249,7 @@ void _populate_tree_thread(void *data)
 
 			items[drive] = dw_tree_insert(tree, name, WinLoadFileIcon(folder, TRUE), NULL, 0);
 			tempitem = dw_tree_insert(tree, "", 0, items[drive], 0);
-			dw_tree_set_data(tree, items[drive], (void *)tempitem);
+			dw_tree_item_change_data(tree, items[drive], (void *)tempitem);
 		}
 		else
 			items[drive] = 0;
@@ -8336,15 +8336,15 @@ int DWSIGNAL _item_select(HWND window, HTREEITEM item, char *text, void *data, v
 
 int DWSIGNAL _tree_expand(HWND window, HTREEITEM item, void *data)
 {
-	HTREEITEM tempitem = (HTREEITEM)dw_tree_get_data(window, item);
+	HTREEITEM tempitem = (HTREEITEM)dw_tree_item_get_data(window, item);
 
 	data = data;
 	if(tempitem)
 	{
 		char *folder = _tree_folder(window, item);
 
-		dw_tree_set_data(window, item, 0);
-		dw_tree_delete(window, tempitem);
+		dw_tree_item_change_data(window, item, 0);
+		dw_tree_item_delete(window, tempitem);
 
 		if(*folder)
 		{
@@ -8406,7 +8406,7 @@ char * API dw_file_browse(char *title, char *defpath, char *ext, int flags)
 		dw_box_pack_start(hbox, button, 50, 30, TRUE, FALSE, 3);
 		dw_signal_connect(button, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(_dw_cancel_func), (void *)dwwait);
 
-		dw_window_set_usize(window, 225, 300);
+		dw_window_set_size(window, 225, 300);
 		dw_window_show(window);
 
 		dw_thread_new((void *)_populate_tree_thread, (void *)window, 0xff);

@@ -520,7 +520,7 @@ static void _do_resize(Box *thisbox, int x, int y)
 static int _dw_int_pos(HWND hwnd)
 {
 	int pos = (int)dw_window_get_data(hwnd, "_dw_percent_value");
-	int range = dw_percent_query_range(hwnd);
+	int range = dw_percent_get_range(hwnd);
 	float fpos = (float)pos;
 	float frange = (float)range;
 	float fnew = (fpos/1000.0)*frange;
@@ -529,7 +529,7 @@ static int _dw_int_pos(HWND hwnd)
 
 static void _dw_int_set(HWND hwnd, int pos)
 {
-	int inew, range = dw_percent_query_range(hwnd);
+	int inew, range = dw_percent_get_range(hwnd);
 	if(range)
 	{
 		float fpos = (float)pos;
@@ -933,7 +933,7 @@ void API dw_window_track(HWND handle)
  *       handle: Handle to widget for which to change.
  *       cursortype: ID of the pointer you want.
  */
-void API dw_window_pointer(HWND handle, int pointertype)
+void API dw_window_set_pointer(HWND handle, int pointertype)
 {
 	SetCursor(*GetCursor(pointertype));
 }
@@ -1488,7 +1488,7 @@ void API dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, 
  *          width: New width in pixels.
  *          height: New height in pixels.
  */
-void API dw_window_set_usize(HWND handle, ULONG width, ULONG height)
+void API dw_window_set_size(HWND handle, ULONG width, ULONG height)
 {
         SizeWindow((WindowRef)handle, (short)width, (short)height, TRUE);
 }
@@ -1540,7 +1540,7 @@ void API dw_window_set_pos(HWND handle, ULONG x, ULONG y)
 void API dw_window_set_pos_size(HWND handle, ULONG x, ULONG y, ULONG width, ULONG height)
 {
 	dw_window_set_pos(handle, x, y);
-	dw_window_set_usize(handle, width, height);
+	dw_window_set_size(handle, width, height);
 }
 
 /*
@@ -1594,7 +1594,7 @@ void API dw_notebook_page_destroy(HWND handle, unsigned int pageid)
  * Parameters:
  *          handle: Handle to the notebook widget.
  */
-unsigned long API dw_notebook_page_query(HWND handle)
+unsigned long API dw_notebook_page_get(HWND handle)
 {
 	return 0;
 }
@@ -1689,7 +1689,7 @@ void API dw_listbox_set_top(HWND handle, int top)
  *          buffer: Buffer where text will be copied.
  *          length: Length of the buffer (including NULL).
  */
-void API dw_listbox_query_text(HWND handle, unsigned int index, char *buffer, unsigned int length)
+void API dw_listbox_get_text(HWND handle, unsigned int index, char *buffer, unsigned int length)
 {
 }
 
@@ -1777,7 +1777,7 @@ void API dw_mle_export(HWND handle, char *buffer, int startpoint, int length)
  *          bytes: A pointer to a variable to return the total bytes.
  *          lines: A pointer to a variable to return the number of lines.
  */
-void API dw_mle_query(HWND handle, unsigned long *bytes, unsigned long *lines)
+void API dw_mle_get_size(HWND handle, unsigned long *bytes, unsigned long *lines)
 {
 }
 
@@ -1807,7 +1807,7 @@ void API dw_mle_clear(HWND handle)
  *          handle: Handle to the MLE to be positioned.
  *          line: Line to be visible.
  */
-void API dw_mle_set_visible(HWND handle, int line)
+void API dw_mle_set_cursor_visible(HWND handle, int line)
 {
 }
 
@@ -1817,7 +1817,7 @@ void API dw_mle_set_visible(HWND handle, int line)
  *          handle: Handle to the MLE.
  *          state: TRUE if it can be edited, FALSE for readonly.
  */
-void API dw_mle_set_editable(HWND handle, int state)
+void API dw_mle_set_cursor_editable(HWND handle, int state)
 {
 }
 
@@ -1827,7 +1827,7 @@ void API dw_mle_set_editable(HWND handle, int state)
  *          handle: Handle to the MLE.
  *          state: TRUE if it wraps, FALSE if it doesn't.
  */
-void API dw_mle_set_word_wrap(HWND handle, int state)
+void API dw_mle_set_cursor_word_wrap(HWND handle, int state)
 {
 }
 
@@ -1837,7 +1837,7 @@ void API dw_mle_set_word_wrap(HWND handle, int state)
  *          handle: Handle to the MLE to be positioned.
  *          point: Point to position cursor.
  */
-void API dw_mle_set(HWND handle, int point)
+void API dw_mle_set_cursor(HWND handle, int point)
 {
 }
 
@@ -1877,7 +1877,7 @@ void API dw_mle_thaw(HWND handle)
  * Parameters:
  *          handle: Handle to the percent bar to be queried.
  */
-unsigned int API dw_percent_query_range(HWND handle)
+unsigned int API dw_percent_get_range(HWND handle)
 {
 	return 0;
 }
@@ -1897,7 +1897,7 @@ void API dw_percent_set_pos(HWND handle, unsigned int position)
  * Parameters:
  *          handle: Handle to the slider to be queried.
  */
-unsigned int API dw_slider_query_pos(HWND handle)
+unsigned int API dw_slider_get_pos(HWND handle)
 {
 	return 0;
 }
@@ -1917,7 +1917,7 @@ void API dw_slider_set_pos(HWND handle, unsigned int position)
  * Parameters:
  *          handle: Handle to the scrollbar to be queried.
  */
-unsigned int API dw_scrollbar_query_pos(HWND handle)
+unsigned int API dw_scrollbar_get_pos(HWND handle)
 {
 	return 0;
 }
@@ -1980,7 +1980,7 @@ void API dw_entryfield_set_limit(HWND handle, ULONG limit)
  * Parameters:
  *          handle: Handle to the spinbutton to be queried.
  */
-long API dw_spinbutton_query(HWND handle)
+long API dw_spinbutton_get_pos(HWND handle)
 {
     return 0;
 }
@@ -1990,7 +1990,7 @@ long API dw_spinbutton_query(HWND handle)
  * Parameters:
  *          handle: Handle to the checkbox to be queried.
  */
-int API dw_checkbox_query(HWND handle)
+int API dw_checkbox_get(HWND handle)
 {
 	return 0;
 }
@@ -2042,7 +2042,7 @@ HTREEITEM API dw_tree_insert(HWND handle, char *title, unsigned long icon, HTREE
  *          title: The text title of the entry.
  *          icon: Handle to coresponding icon.
  */
-void API dw_tree_set(HWND handle, HTREEITEM item, char *title, unsigned long icon)
+void API dw_tree_item_change(HWND handle, HTREEITEM item, char *title, unsigned long icon)
 {
 }
 
@@ -2053,7 +2053,7 @@ void API dw_tree_set(HWND handle, HTREEITEM item, char *title, unsigned long ico
  *          item: Handle of the item to be modified.
  *          itemdata: User defined data to be associated with item.
  */
-void API dw_tree_set_data(HWND handle, HTREEITEM item, void *itemdata)
+void API dw_tree_item_change_data(HWND handle, HTREEITEM item, void *itemdata)
 {
 }
 
@@ -2063,7 +2063,7 @@ void API dw_tree_set_data(HWND handle, HTREEITEM item, void *itemdata)
  *          handle: Handle to the tree containing the item.
  *          item: Handle of the item to be modified.
  */
-void * API dw_tree_get_data(HWND handle, HTREEITEM item)
+void * API dw_tree_item_get_data(HWND handle, HTREEITEM item)
 {
 	return NULL;
 }
@@ -2093,7 +2093,7 @@ void API dw_tree_clear(HWND handle)
  *       handle: Handle to the tree window (widget).
  *       item: Handle to node to be expanded.
  */
-void API dw_tree_expand(HWND handle, HTREEITEM item)
+void API dw_tree_item_expand(HWND handle, HTREEITEM item)
 {
 }
 
@@ -2103,7 +2103,7 @@ void API dw_tree_expand(HWND handle, HTREEITEM item)
  *       handle: Handle to the tree window (widget).
  *       item: Handle to node to be collapsed.
  */
-void API dw_tree_collapse(HWND handle, HTREEITEM item)
+void API dw_tree_item_collapse(HWND handle, HTREEITEM item)
 {
 }
 
@@ -2113,7 +2113,7 @@ void API dw_tree_collapse(HWND handle, HTREEITEM item)
  *       handle: Handle to the window (widget) to be cleared.
  *       item: Handle to node to be deleted.
  */
-void API dw_tree_delete(HWND handle, HTREEITEM item)
+void API dw_tree_item_delete(HWND handle, HTREEITEM item)
 {
 }
 

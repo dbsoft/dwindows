@@ -1726,7 +1726,7 @@ BOOL CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 							if(tmp->window == tem->hwndFrom && tem->code == tmp->message)
 							{
 								int (*switchpagefunc)(HWND, unsigned long, void *) = tmp->signalfunction;
-								unsigned long num=dw_notebook_page_query(tem->hwndFrom);
+								unsigned long num=dw_notebook_page_get(tem->hwndFrom);
 								result = switchpagefunc(tem->hwndFrom, num, tmp->data);
 								tmp = NULL;
 							}
@@ -3745,7 +3745,7 @@ void API dw_window_release(void)
  *       handle: Handle to widget for which to change.
  *       cursortype: ID of the pointer you want.
  */
-void API dw_window_pointer(HWND handle, int pointertype)
+void API dw_window_set_pointer(HWND handle, int pointertype)
 {
 /*
 	if(pointertype == DW_POINTER_ARROW)
@@ -5011,7 +5011,7 @@ void API dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize
  *          width: New width in pixels.
  *          height: New height in pixels.
  */
-void API dw_window_set_usize(HWND handle, ULONG width, ULONG height)
+void API dw_window_set_size(HWND handle, ULONG width, ULONG height)
 {
 	SetWindowPos(handle, (HWND)NULL, 0, 0, width, height, SWP_SHOWWINDOW | SWP_NOZORDER | SWP_NOMOVE);
 }
@@ -5279,7 +5279,7 @@ void API dw_notebook_pack(HWND handle, ULONG pageidx, HWND page)
 		if(array[pageid]->hwnd)
 			dw_window_destroy(array[pageid]->hwnd);
 		array[pageid]->hwnd = tmpbox;
-		if(pageidx == dw_notebook_page_query(handle))
+		if(pageidx == dw_notebook_page_get(handle))
 		{
 			SetParent(tmpbox, handle);
 			_resize_notebook_page(handle, pageid);
@@ -5341,7 +5341,7 @@ void API dw_notebook_page_destroy(HWND handle, unsigned int pageidx)
  * Parameters:
  *          handle: Handle to the notebook widget.
  */
-unsigned long API dw_notebook_page_query(HWND handle)
+unsigned long API dw_notebook_page_get(HWND handle)
 {
 	NotebookPage **array = (NotebookPage **)dw_window_get_data(handle, "_dw_array");
 	int physid = TabCtrl_GetCurSel(handle);
@@ -5468,7 +5468,7 @@ void API dw_listbox_set_text(HWND handle, unsigned int index, char *buffer)
  *          buffer: Buffer where text will be copied.
  *          length: Length of the buffer (including NULL).
  */
-void API dw_listbox_query_text(HWND handle, unsigned int index, char *buffer, unsigned int length)
+void API dw_listbox_get_text(HWND handle, unsigned int index, char *buffer, unsigned int length)
 {
 	char tmpbuf[100];
 	int len;
@@ -5718,7 +5718,7 @@ void API dw_mle_export(HWND handle, char *buffer, int startpoint, int length)
  *          bytes: A pointer to a variable to return the total bytes.
  *          lines: A pointer to a variable to return the number of lines.
  */
-void API dw_mle_query(HWND handle, unsigned long *bytes, unsigned long *lines)
+void API dw_mle_get_size(HWND handle, unsigned long *bytes, unsigned long *lines)
 {
 	if(bytes)
 		*bytes = GetWindowTextLength(handle);
@@ -5766,10 +5766,10 @@ void API dw_mle_clear(HWND handle)
  *          handle: Handle to the MLE.
  *          line: Line to be visible.
  */
-void API dw_mle_set_visible(HWND handle, int line)
+void API dw_mle_set_cursor_visible(HWND handle, int line)
 {
 	int point = (int)SendMessage(handle, EM_LINEINDEX, (WPARAM)line, 0);
-	dw_mle_set(handle, point);
+	dw_mle_set_cursor(handle, point);
 }
 
 /*
@@ -5778,7 +5778,7 @@ void API dw_mle_set_visible(HWND handle, int line)
  *          handle: Handle to the MLE.
  *          state: TRUE if it can be edited, FALSE for readonly.
  */
-void API dw_mle_set_editable(HWND handle, int state)
+void API dw_mle_set_cursor_editable(HWND handle, int state)
 {
 	SendMessage(handle, EM_SETREADONLY, (WPARAM)(state ? FALSE : TRUE), 0);
 }
@@ -5789,7 +5789,7 @@ void API dw_mle_set_editable(HWND handle, int state)
  *          handle: Handle to the MLE.
  *          state: TRUE if it wraps, FALSE if it doesn't.
  */
-void API dw_mle_set_word_wrap(HWND handle, int state)
+void API dw_mle_set_cursor_word_wrap(HWND handle, int state)
 {
 	/* If ES_AUTOHSCROLL is not set and there is not
 	 * horizontal scrollbar it word wraps.
@@ -5806,7 +5806,7 @@ void API dw_mle_set_word_wrap(HWND handle, int state)
  *          handle: Handle to the MLE to be positioned.
  *          point: Point to position cursor.
  */
-void API dw_mle_set(HWND handle, int point)
+void API dw_mle_set_cursor(HWND handle, int point)
 {
 	SendMessage(handle, EM_SETSEL, 0, MAKELONG(point,point));
 	SendMessage(handle, EM_SCROLLCARET, 0, 0);
@@ -5881,7 +5881,7 @@ void API dw_mle_thaw(HWND handle)
  * Parameters:
  *          handle: Handle to the percent bar to be queried.
  */
-unsigned int API dw_percent_query_range(HWND handle)
+unsigned int API dw_percent_get_range(HWND handle)
 {
 	return (unsigned int)SendMessage(handle, PBM_GETRANGE, (WPARAM)FALSE, 0);
 }
@@ -5902,7 +5902,7 @@ void API dw_percent_set_pos(HWND handle, unsigned int position)
  * Parameters:
  *          handle: Handle to the slider to be queried.
  */
-unsigned int API dw_slider_query_pos(HWND handle)
+unsigned int API dw_slider_get_pos(HWND handle)
 {
 	int max = (int)SendMessage(handle, TBM_GETRANGEMAX, 0, 0);
 	ULONG currentstyle = GetWindowLong(handle, GWL_STYLE);
@@ -5934,7 +5934,7 @@ void API dw_slider_set_pos(HWND handle, unsigned int position)
  * Parameters:
  *          handle: Handle to the scrollbar to be queried.
  */
-unsigned int API dw_scrollbar_query_pos(HWND handle)
+unsigned int API dw_scrollbar_get_pos(HWND handle)
 {
 	return (unsigned int)SendMessage(handle, SBM_GETPOS, 0, 0);
 }
@@ -6024,7 +6024,7 @@ void API dw_entryfield_set_limit(HWND handle, ULONG limit)
  * Parameters:
  *          handle: Handle to the spinbutton to be queried.
  */
-long API dw_spinbutton_query(HWND handle)
+long API dw_spinbutton_get_pos(HWND handle)
 {
 	if(IS_IE5PLUS)
 		return (long)SendMessage(handle, UDM_GETPOS32, 0, 0);
@@ -6037,7 +6037,7 @@ long API dw_spinbutton_query(HWND handle)
  * Parameters:
  *          handle: Handle to the checkbox to be queried.
  */
-int API dw_checkbox_query(HWND handle)
+int API dw_checkbox_get(HWND handle)
 {
 	if(SendMessage(handle, BM_GETCHECK, 0, 0) == BST_CHECKED)
 		return (in_checkbox_handler ? FALSE : TRUE);
@@ -6157,7 +6157,7 @@ HTREEITEM API dw_tree_insert(HWND handle, char *title, unsigned long icon, HTREE
  *          title: The text title of the entry.
  *          icon: Handle to coresponding icon.
  */
-void API dw_tree_set(HWND handle, HTREEITEM item, char *title, unsigned long icon)
+void API dw_tree_item_change(HWND handle, HTREEITEM item, char *title, unsigned long icon)
 {
 	TVITEM tvi;
 	void **ptrs;
@@ -6188,7 +6188,7 @@ void API dw_tree_set(HWND handle, HTREEITEM item, char *title, unsigned long ico
  *          item: Handle of the item to be modified.
  *          itemdata: User defined data to be associated with item.
  */
-void API dw_tree_set_data(HWND handle, HTREEITEM item, void *itemdata)
+void API dw_tree_item_change_data(HWND handle, HTREEITEM item, void *itemdata)
 {
 	TVITEM tvi;
 	void **ptrs;
@@ -6209,7 +6209,7 @@ void API dw_tree_set_data(HWND handle, HTREEITEM item, void *itemdata)
  *          handle: Handle to the tree containing the item.
  *          item: Handle of the item to be modified.
  */
-void * API dw_tree_get_data(HWND handle, HTREEITEM item)
+void * API dw_tree_item_get_data(HWND handle, HTREEITEM item)
 {
 	TVITEM tvi;
 	void **ptrs;
@@ -6268,7 +6268,7 @@ void API dw_tree_item_select(HWND handle, HTREEITEM item)
 }
 
 /* Delete all tree subitems */
-void _dw_tree_delete_recursive(HWND handle, HTREEITEM node)
+void _dw_tree_item_delete_recursive(HWND handle, HTREEITEM node)
 {
 	HTREEITEM hti;
 
@@ -6279,7 +6279,7 @@ void _dw_tree_delete_recursive(HWND handle, HTREEITEM node)
 		HTREEITEM lastitem = hti;
 
 		hti = TreeView_GetNextSibling(handle, hti);
-		dw_tree_delete(handle, lastitem);
+		dw_tree_item_delete(handle, lastitem);
 	}
 }
 
@@ -6297,9 +6297,9 @@ void API dw_tree_clear(HWND handle)
 	{
 		HTREEITEM lastitem = hti;
 
-		_dw_tree_delete_recursive(handle, hti);
+		_dw_tree_item_delete_recursive(handle, hti);
 		hti = TreeView_GetNextSibling(handle, hti);
-		dw_tree_delete(handle, lastitem);
+		dw_tree_item_delete(handle, lastitem);
 	}
 	dw_window_set_data(handle, "_dw_select_item", (void *)0);
 }
@@ -6310,7 +6310,7 @@ void API dw_tree_clear(HWND handle)
  *       handle: Handle to the tree window (widget).
  *       item: Handle to node to be expanded.
  */
-void API dw_tree_expand(HWND handle, HTREEITEM item)
+void API dw_tree_item_expand(HWND handle, HTREEITEM item)
 {
 	TreeView_Expand(handle, item, TVE_EXPAND);
 }
@@ -6321,7 +6321,7 @@ void API dw_tree_expand(HWND handle, HTREEITEM item)
  *       handle: Handle to the tree window (widget).
  *       item: Handle to node to be collapsed.
  */
-void API dw_tree_collapse(HWND handle, HTREEITEM item)
+void API dw_tree_item_collapse(HWND handle, HTREEITEM item)
 {
 	TreeView_Expand(handle, item, TVE_COLLAPSE);
 }
@@ -6332,7 +6332,7 @@ void API dw_tree_collapse(HWND handle, HTREEITEM item)
  *       handle: Handle to the window (widget) to be cleared.
  *       item: Handle to node to be deleted.
  */
-void API dw_tree_delete(HWND handle, HTREEITEM item)
+void API dw_tree_item_delete(HWND handle, HTREEITEM item)
 {
 	TVITEM tvi;
 	void **ptrs;
@@ -6346,7 +6346,7 @@ void API dw_tree_delete(HWND handle, HTREEITEM item)
 	if(TreeView_GetItem(handle, &tvi))
 		ptrs = (void **)tvi.lParam;
 
-	_dw_tree_delete_recursive(handle, item);
+	_dw_tree_item_delete_recursive(handle, item);
 	TreeView_DeleteItem(handle, item);
 	if(ptrs)
 		free(ptrs);
