@@ -18,10 +18,6 @@
 #include <time.h>
 #include "dw.h"
 
-/* this is the callback handle for the window procedure */
-/* make sure you always match the calling convention! */
-int (*filterfunc)(HWND, UINT, WPARAM, LPARAM) = 0L;
-
 HWND popup = (HWND)NULL, hwndBubble = (HWND)NULL, hwndBubbleLast, DW_HWND_OBJECT = (HWND)NULL;
 
 HINSTANCE DWInstance = NULL;
@@ -1184,9 +1180,6 @@ BOOL CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 		msg = WM_LBUTTONUP;
 	if(msg == WM_HSCROLL)
 		msg = WM_VSCROLL;
-
-	if(filterfunc)
-		result = filterfunc(hWnd, msg, mp1, mp2);
 
 	if(result == -1)
 	{
@@ -2782,17 +2775,10 @@ int dw_init(int newthread, int argc, char *argv[])
 
 /*
  * Runs a message loop for Dynamic Windows.
- * Parameters:
- *           currenthab: The handle to the current anchor block
- *                       or NULL if this DW is handling the message loop.
- *           func: Function pointer to the message filter function.
  */
-void dw_main(HAB currenthab, void *func)
+void dw_main(void)
 {
 	MSG msg;
-
-	/* Setup the filter function */
-	filterfunc = func;
 
 	_dwtid = dw_thread_id();
 
