@@ -21,7 +21,7 @@ EXPORTS
   dw_user_dir                            @20
   dw_flush                               @21
   dw_free                                @22
-                                       
+
   dw_box_new                             @40
   dw_groupbox_new                        @41
   dw_box_pack_start                      @42
@@ -183,7 +183,7 @@ EXPORTS
   dw_pixmap_new                          @341
   dw_pixmap_grab                         @342
   dw_pixmap_destroy                      @343
-                                   
+
   dw_dialog_new                          @350
   dw_dialog_dismiss                      @351
   dw_dialog_wait                         @352
