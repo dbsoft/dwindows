@@ -290,6 +290,7 @@ void text_add(void)
 	vscrollbox = dw_box_new(BOXVERT, 0);
 	vscrollbar = dw_scrollbar_new(TRUE, 100, 50);
 	dw_box_pack_start(vscrollbox, vscrollbar, 14, 100, FALSE, TRUE, 0);
+	/* Pack an area of empty space 14x14 pixels */
 	dw_box_pack_start(vscrollbox, 0, 14, 14, FALSE, FALSE, 0);
 	dw_box_pack_start(pagebox, vscrollbox, 0, 0, FALSE, TRUE, 0);
 
