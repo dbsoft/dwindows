@@ -728,7 +728,7 @@ void dw_notebook_page_set_status_text(HWND handle, unsigned long pageid, char *t
 void dw_notebook_page_set(HWND handle, unsigned int pageid);
 unsigned int dw_notebook_page_query(HWND handle);
 void dw_notebook_pack(HWND handle, unsigned long pageid, HWND page);
-HWND dw_splitbar_new(int type, HWND topleft, HWND bottomright);
+HWND dw_splitbar_new(int type, HWND topleft, HWND bottomright, unsigned long id);
 void dw_splitbar_set(HWND handle, int percent);
 int dw_splitbar_get(HWND handle);
 HMENUI dw_menu_new(unsigned long id);

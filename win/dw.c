@@ -3570,7 +3570,7 @@ HWND dw_mdi_new(unsigned long id)
 							 WS_VISIBLE | WS_CHILD | WS_CLIPSIBLINGS,
 							 0,0,2000,1000,
 							 DW_HWND_OBJECT,
-							 NULL,
+							 (HMENU)id,
 							 DWInstance,
 							 &ccs);
 	return hwndframe;
@@ -3589,7 +3589,7 @@ HWND dw_bitmap_new(ULONG id)
 						WS_CHILD | WS_CLIPCHILDREN,
 						0,0,2000,1000,
 						DW_HWND_OBJECT,
-						NULL,
+						(HMENU)id,
 						DWInstance,
 						NULL);
 }
@@ -3614,7 +3614,7 @@ HWND dw_notebook_new(ULONG id, int top)
 					   WS_VISIBLE | WS_CHILD | WS_CLIPCHILDREN,
 					   0,0,2000,1000,
 					   DW_HWND_OBJECT,
-					   NULL,
+					   (HMENU)id,
 					   DWInstance,
 					   NULL);
 	SetWindowLong(tmp, GWL_USERDATA, (ULONG)array);
@@ -4221,7 +4221,7 @@ HWND dw_slider_new(int vertical, int increments, ULONG id)
 							(vertical ? TBS_VERT : TBS_HORZ),
 							0,0,2000,1000,
 							DW_HWND_OBJECT,
-							NULL,
+							(HMENU)id,
 							DWInstance,
 							NULL);
 	ColorInfo *cinfo = calloc(1, sizeof(ColorInfo));
@@ -4248,7 +4248,7 @@ HWND dw_percent_new(ULONG id)
 						WS_VISIBLE | WS_CHILD | WS_CLIPCHILDREN,
 						0,0,2000,1000,
 						DW_HWND_OBJECT,
-						NULL,
+						(HMENU)id,
 						DWInstance,
 						NULL);
 }
@@ -4268,7 +4268,7 @@ HWND dw_checkbox_new(char *text, ULONG id)
 							BS_TEXT | WS_CLIPCHILDREN | WS_VISIBLE,
 							0,0,2000,1000,
 							DW_HWND_OBJECT,
-							NULL,
+							(HMENU)id,
 							DWInstance,
 							NULL);
 	bubble->id = id;
@@ -4297,7 +4297,7 @@ HWND dw_listbox_new(ULONG id, int multi)
 							WS_VSCROLL | (multi ? LBS_MULTIPLESEL : 0) ,
 							0,0,2000,1000,
 							DW_HWND_OBJECT,
-							NULL,
+							(HMENU)id,
 							DWInstance,
 							NULL);
 	ContainerInfo *cinfo = (ContainerInfo *)calloc(1, sizeof(ContainerInfo));
@@ -6211,7 +6211,7 @@ HWND dw_render_new(unsigned long id)
 							WS_VISIBLE | WS_CHILD | WS_CLIPCHILDREN,
 							0,0,2000,1000,
 							DW_HWND_OBJECT,
-							NULL,
+							(HMENU)id,
 							DWInstance,
 							NULL);
 	newbox->pad = 0;
@@ -6771,14 +6771,14 @@ void dw_exit(int exitcode)
  * Returns:
  *       A handle to a splitbar window or NULL on failure.
  */
-HWND dw_splitbar_new(int type, HWND topleft, HWND bottomright)
+HWND dw_splitbar_new(int type, HWND topleft, HWND bottomright, unsigned long id)
 {
 	HWND tmp = CreateWindow(SplitbarClassName,
 							"",
 							WS_VISIBLE | WS_CHILD | WS_CLIPCHILDREN,
 							0,0,2000,1000,
 							DW_HWND_OBJECT,
-							NULL,
+							(HMENU)id,
 							DWInstance,
 							NULL);
 

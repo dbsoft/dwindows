@@ -6703,7 +6703,7 @@ void dw_exit(int exitcode)
  * Returns:
  *       A handle to a splitbar window or NULL on failure.
  */
-HWND dw_splitbar_new(int type, HWND topleft, HWND bottomright)
+HWND dw_splitbar_new(int type, HWND topleft, HWND bottomright, unsigned long id)
 {
 	HWND tmp = WinCreateWindow(HWND_OBJECT,
 							   SplitbarClassName,
@@ -6712,7 +6712,7 @@ HWND dw_splitbar_new(int type, HWND topleft, HWND bottomright)
 							   0,0,2000,1000,
 							   NULLHANDLE,
 							   HWND_TOP,
-							   0L,
+							   id,
 							   NULL,
 							   NULL);
 	if(tmp)
