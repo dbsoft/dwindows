@@ -124,22 +124,22 @@ typedef struct
 
 /* A list of signal forwarders, to account for paramater differences. */
 static SignalList SignalTranslate[SIGNALMAX] = {
-	{ _configure_event, "configure_event" },
-	{ _key_press_event, "key_press_event" },
-	{ _button_press_event, "button_press_event" },
-	{ _button_release_event, "button_release_event" },
-	{ _motion_notify_event, "motion_notify_event" },
-	{ _delete_event, "delete_event" },
-	{ _expose_event, "expose_event" },
-	{ _activate_event, "activate" },
-	{ _generic_event, "clicked" },
-	{ _container_select_event, "container-select" },
-	{ _container_context_event, "container-context" },
-	{ _tree_context_event, "tree-context" },
-	{ _item_select_event, "item-select" },
-	{ _tree_select_event, "tree-select" },
-	{ _set_focus_event, "set-focus" },
-	{ _value_changed_event, "value_changed" }
+	{ _configure_event,         DW_SIGNAL_CONFIGURE },
+	{ _key_press_event,         DW_SIGNAL_KEY_PRESS },
+	{ _button_press_event,      DW_SIGNAL_BUTTON_PRESS },
+	{ _button_release_event,    DW_SIGNAL_BUTTON_RELEASE },
+	{ _motion_notify_event,     DW_SIGNAL_MOTION_NOTIFY },
+	{ _delete_event,            DW_SIGNAL_DELETE },
+	{ _expose_event,            DW_SIGNAL_EXPOSE },
+	{ _activate_event,          "activate" },
+	{ _generic_event,           DW_SIGNAL_CLICKED },
+	{ _container_select_event,  DW_SIGNAL_ITEM_ENTER },
+	{ _container_context_event, DW_SIGNAL_ITEM_CONTEXT },
+	{ _tree_context_event,      "tree-context" },
+	{ _item_select_event,       DW_SIGNAL_LIST_SELECT },
+	{ _tree_select_event,       DW_SIGNAL_ITEM_SELECT },
+	{ _set_focus_event,         DW_SIGNAL_SET_FOCUS },
+	{ _value_changed_event,     DW_SIGNAL_VALUE_CHANGED }
 };
 
 /* Alignment flags */
@@ -1026,7 +1026,7 @@ int dw_messagebox(char *title, char *format, ...)
 
 	dwwait = dw_dialog_new((void *)entrywindow);
 
-	dw_signal_connect(okbutton, "clicked", DW_SIGNAL_FUNC(_dw_ok_func), (void *)dwwait);
+	dw_signal_connect(okbutton, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(_dw_ok_func), (void *)dwwait);
 
 	x = (dw_screen_width() - 220)/2;
 	y = (dw_screen_height() - 110)/2;
@@ -1106,8 +1106,8 @@ int dw_yesno(char *title, char *text)
 
 	dwwait = dw_dialog_new((void *)entrywindow);
 
-	dw_signal_connect(yesbutton, "clicked", DW_SIGNAL_FUNC(_dw_yes_func), (void *)dwwait);
-	dw_signal_connect(nobutton, "clicked", DW_SIGNAL_FUNC(_dw_no_func), (void *)dwwait);
+	dw_signal_connect(yesbutton, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(_dw_yes_func), (void *)dwwait);
+	dw_signal_connect(nobutton, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(_dw_no_func), (void *)dwwait);
 
 	x = (dw_screen_width() - 220)/2;
 	y = (dw_screen_height() - 110)/2;
@@ -7508,18 +7508,18 @@ void dw_signal_connect(HWND window, char *signame, void *sigfunc, void *data)
 		thiswindow = (HWND)gtk_object_get_user_data(GTK_OBJECT(window));
 	}
 
-	if(GTK_IS_MENU_ITEM(thiswindow) && strcmp(signame, "clicked") == 0)
+	if(GTK_IS_MENU_ITEM(thiswindow) && strcmp(signame, DW_SIGNAL_CLICKED) == 0)
 	{
 		thisname = "activate";
 		thisfunc = _findsigfunc(thisname);
 	}
-	else if(GTK_IS_CLIST(thiswindow) && strcmp(signame, "container-context") == 0)
+	else if(GTK_IS_CLIST(thiswindow) && strcmp(signame, DW_SIGNAL_ITEM_CONTEXT) == 0)
 	{
 		thisname = "button_press_event";
-		thisfunc = _findsigfunc("container-context");
+		thisfunc = _findsigfunc(DW_SIGNAL_ITEM_CONTEXT);
 	}
 #if GTK_MAJOR_VERSION > 1
-	else if(GTK_IS_TREE_VIEW(thiswindow)  && strcmp(signame, "container-context") == 0)
+	else if(GTK_IS_TREE_VIEW(thiswindow)  && strcmp(signame, DW_SIGNAL_ITEM_CONTEXT) == 0)
 	{
 		thisfunc = _findsigfunc("tree-context");
 
@@ -7532,7 +7532,7 @@ void dw_signal_connect(HWND window, char *signame, void *sigfunc, void *data)
 		DW_MUTEX_UNLOCK;
 		return;
 	}
-	else if(GTK_IS_TREE_VIEW(thiswindow) && strcmp(signame, "tree-select") == 0)
+	else if(GTK_IS_TREE_VIEW(thiswindow) && strcmp(signame, DW_SIGNAL_ITEM_SELECT) == 0)
 	{
 		work->window = window;
 		work->data = data;
@@ -7546,7 +7546,7 @@ void dw_signal_connect(HWND window, char *signame, void *sigfunc, void *data)
 		return;
 	}
 #else
-	else if(GTK_IS_TREE(thiswindow)  && strcmp(signame, "container-context") == 0)
+	else if(GTK_IS_TREE(thiswindow)  && strcmp(signame, DW_SIGNAL_ITEM_CONTEXT) == 0)
 	{
 		thisfunc = _findsigfunc("tree-context");
 
@@ -7561,7 +7561,7 @@ void dw_signal_connect(HWND window, char *signame, void *sigfunc, void *data)
 		DW_MUTEX_UNLOCK;
 		return;
 	}
-	else if(GTK_IS_TREE(thiswindow) && strcmp(signame, "tree-select") == 0)
+	else if(GTK_IS_TREE(thiswindow) && strcmp(signame, DW_SIGNAL_ITEM_SELECT) == 0)
 	{
 		if(thisfunc)
 		{
@@ -7571,37 +7571,39 @@ void dw_signal_connect(HWND window, char *signame, void *sigfunc, void *data)
 		thisname = "select-child";
 	}
 #endif
-	else if(GTK_IS_CLIST(thiswindow) && strcmp(signame, "container-select") == 0)
+	else if(GTK_IS_CLIST(thiswindow) && strcmp(signame, DW_SIGNAL_ITEM_ENTER) == 0)
 	{
 		thisname = "button_press_event";
-		thisfunc = _findsigfunc("container-select");
+		thisfunc = _findsigfunc(DW_SIGNAL_ITEM_ENTER);
 	}
-	else if(GTK_IS_CLIST(thiswindow) && strcmp(signame, "tree-select") == 0)
+	else if(GTK_IS_CLIST(thiswindow) && strcmp(signame, DW_SIGNAL_ITEM_SELECT) == 0)
 	{
 		thisname = "select_row";
 		thisfunc = (void *)_container_select_row;
 	}
-	else if(GTK_IS_COMBO(thiswindow) && strcmp(signame, "item-select") == 0)
+	else if(GTK_IS_COMBO(thiswindow) && strcmp(signame, DW_SIGNAL_LIST_SELECT) == 0)
 	{
 		thisname = "select_child";
 		thiswindow = GTK_COMBO(thiswindow)->list;
 	}
-	else if(GTK_IS_LIST(thiswindow) && strcmp(signame, "item-select") == 0)
+	else if(GTK_IS_LIST(thiswindow) && strcmp(signame, DW_SIGNAL_LIST_SELECT) == 0)
 	{
 		thisname = "select_child";
 	}
-	else if(strcmp(signame, "set-focus") == 0)
+	else if(strcmp(signame, DW_SIGNAL_SET_FOCUS) == 0)
 	{
 		thisname = "focus-in-event";
 		if(GTK_IS_COMBO(thiswindow))
 			thiswindow = GTK_COMBO(thiswindow)->entry;
 	}
-	else if(strcmp(signame, "lose-focus") == 0)
+#if 0
+	else if(strcmp(signame, DW_SIGNAL_LOSE_FOCUS) == 0)
 	{
 		thisname = "focus-out-event";
 		if(GTK_IS_COMBO(thiswindow))
 			thiswindow = GTK_COMBO(thiswindow)->entry;
 	}
+#endif
 	else if(GTK_IS_VSCALE(thiswindow) || GTK_IS_HSCALE(thiswindow) ||
 			GTK_IS_VSCROLLBAR(thiswindow) || GTK_IS_HSCROLLBAR(thiswindow))
 	{

@@ -88,24 +88,23 @@ typedef struct
 static int in_checkbox_handler = 0;
 
 /* List of signals and their equivilent Win32 message */
-#define SIGNALMAX 15
+#define SIGNALMAX 14
 
 SignalList SignalTranslate[SIGNALMAX] = {
-	{ WM_SIZE, "configure_event" },
-	{ WM_CHAR, "key_press_event" },
-	{ WM_LBUTTONDOWN, "button_press_event" },
-	{ WM_LBUTTONUP, "button_release_event" },
-	{ WM_MOUSEMOVE, "motion_notify_event" },
-	{ WM_CLOSE, "delete_event" },
-	{ WM_PAINT, "expose_event" },
-	{ WM_COMMAND, "clicked" },
-	{ NM_DBLCLK, "container-select" },
-	{ NM_RCLICK, "container-context" },
-	{ LBN_SELCHANGE, "item-select" },
-	{ TVN_SELCHANGED, "tree-select" },
-	{ WM_SETFOCUS, "set-focus" },
-	{ WM_USER+1, "lose-focus" },
-	{ WM_VSCROLL, "value_changed" }
+	{ WM_SIZE,        DW_SIGNAL_CONFIGURE },
+	{ WM_CHAR,        DW_SIGNAL_KEY_PRESS },
+	{ WM_LBUTTONDOWN, DW_SIGNAL_BUTTON_PRESS },
+	{ WM_LBUTTONUP,   DW_SIGNAL_BUTTON_PRESS },
+	{ WM_MOUSEMOVE,   DW_SIGNAL_MOTION_NOTIFY },
+	{ WM_CLOSE,       DW_SIGNAL_DELETE },
+	{ WM_PAINT,       DW_SIGNAL_EXPOSE },
+	{ WM_COMMAND,     DW_SIGNAL_CLICKED },
+	{ NM_DBLCLK,      DW_SIGNAL_ITEM_ENTER },
+	{ NM_RCLICK,      DW_SIGNAL_ITEM_CONTEXT },
+	{ LBN_SELCHANGE,  DW_SIGNAL_LIST_SELECT },
+	{ TVN_SELCHANGED, DW_SIGNAL_ITEM_SELECT },
+	{ WM_SETFOCUS,    DW_SIGNAL_SET_FOCUS },
+	{ WM_VSCROLL,     DW_SIGNAL_VALUE_CHANGE }
 };
 
 #ifdef BUILD_DLL
@@ -7865,7 +7864,7 @@ void API dw_signal_connect(HWND window, char *signame, void *sigfunc, void *data
 
 	if(window && signame && sigfunc)
 	{
-		if(stricmp(signame, "set-focus") == 0)
+		if(stricmp(signame, DW_SIGNAL_SET_FOCUS) == 0)
 			window = _normalize_handle(window);
 
 		if((message = _findsigmessage(signame)) != 0)
