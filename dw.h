@@ -3,6 +3,11 @@
 #ifndef _H_DW
 #define _H_DW
 
+/* Dynamic Windows version numbers */
+#define DW_MAJOR_VERSION 0
+#define DW_MINOR_VERSION 5
+#define DW_SUB_VERSION 0
+
 #if defined(__OS2__) || defined(__WIN32__) || defined(WINNT) || defined(__EMX__)
 /* OS/2 or Windows */
 
@@ -486,10 +491,12 @@ typedef unsigned long DWTID;
 #endif
 
 typedef struct _dwenv {
-    /* Operating System Name */
-	char osName[30];
+	/* Operating System Name and DW Build Date/Time */
+	char osName[30], buildDate[30], buildTime[30];
 	/* Versions and builds */
 	short MajorVersion, MinorVersion, MajorBuild, MinorBuild;
+	/* Dynamic Window version */
+	short DWMajorVersion, DWMinorVersion, DWSubVersion;
 } DWEnv;
 
 

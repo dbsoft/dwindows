@@ -5329,6 +5329,12 @@ void dw_environment_query(DWEnv *env)
 		strcpy(env->osName, "Windows 95/98/ME");
 		env->MajorBuild =  0;
 	}
+
+	strcpy(env->buildDate, __DATE__);
+	strcpy(env->buildTime, __TIME__);
+	env->DWMajorVersion = DW_MAJOR_VERSION;
+	env->DWMinorVersion = DW_MINOR_VERSION;
+	env->DWSubVersion = DW_SUB_VERSION;
 }
 
 /*
