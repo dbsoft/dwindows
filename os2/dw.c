@@ -3329,21 +3329,6 @@ void API dw_main_sleep(int milliseconds)
 {
 	QMSG qmsg;
 #ifdef __EMX__
-	double start = (double)clock();
-
-	while(((clock() - start) / (CLOCKS_PER_SEC/1000)) <= milliseconds)
-	{
-		if(WinPeekMsg(dwhab, &qmsg, 0, 0, 0, PM_NOREMOVE))
-		{
-			WinGetMsg(dwhab, &qmsg, 0, 0, 0);
-			if(qmsg.msg == WM_TIMER && qmsg.hwnd == NULLHANDLE)
-				_run_event(qmsg.hwnd, qmsg.msg, qmsg.mp1, qmsg.mp2);
-			WinDispatchMsg(dwhab, &qmsg);
-		}
-		else
-			DosSleep(1);
-	}
-#else
 	struct timeval tv, start;
 
 	gettimeofday(&start, NULL);
@@ -3361,6 +3346,21 @@ void API dw_main_sleep(int milliseconds)
 		else
 			DosSleep(1);
 		gettimeofday(&tv, NULL);
+	}
+#else
+	double start = (double)clock();
+
+	while(((clock() - start) / (CLOCKS_PER_SEC/1000)) <= milliseconds)
+	{
+		if(WinPeekMsg(dwhab, &qmsg, 0, 0, 0, PM_NOREMOVE))
+		{
+			WinGetMsg(dwhab, &qmsg, 0, 0, 0);
+			if(qmsg.msg == WM_TIMER && qmsg.hwnd == NULLHANDLE)
+				_run_event(qmsg.hwnd, qmsg.msg, qmsg.mp1, qmsg.mp2);
+			WinDispatchMsg(dwhab, &qmsg);
+		}
+		else
+			DosSleep(1);
 	}
 #endif
 }
