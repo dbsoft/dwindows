@@ -661,6 +661,7 @@ HWND API dw_spinbutton_new(char *text, unsigned long id);
 HWND API dw_radiobutton_new(char *text, ULONG id);
 HWND API dw_percent_new(unsigned long id);
 HWND API dw_slider_new(int vertical, int increments, ULONG id);
+HWND API dw_scrollbar_new(int vertical, int increments, ULONG id);
 HWND API dw_checkbox_new(char *text, unsigned long id);
 HWND API dw_listbox_new(unsigned long id, int multi);
 void API dw_listbox_append(HWND handle, char *text);
@@ -677,6 +678,9 @@ unsigned int API dw_percent_query_range(HWND handle);
 void API dw_percent_set_pos(HWND handle, unsigned int position);
 unsigned int API dw_slider_query_pos(HWND handle);
 void API dw_slider_set_pos(HWND handle, unsigned int position);
+unsigned int API dw_scrollbar_query_pos(HWND handle);
+void API dw_scrollbar_set_pos(HWND handle, unsigned int position);
+void API dw_scrollbar_set_range(HWND handle, unsigned int range);
 void API dw_window_set_pos(HWND handle, unsigned long x, unsigned long y);
 void API dw_window_set_usize(HWND handle, unsigned long width, unsigned long height);
 void API dw_window_set_pos_size(HWND handle, unsigned long x, unsigned long y, unsigned long width, unsigned long height);
@@ -809,11 +813,11 @@ void * API dw_window_get_data(HWND window, char *dataname);
 int API dw_module_load(char *name, HMOD *handle);
 int API dw_module_symbol(HMOD handle, char *name, void**func);
 int API dw_module_close(HMOD handle);
-#ifndef NO_SIGNALS
+int API dw_timer_connect(HWND window, int interval, void *sigfunc, void *data);
+void API dw_timer_disconnect(int id);
 void API dw_signal_connect(HWND window, char *signame, void *sigfunc, void *data);
 void API dw_signal_disconnect_by_window(HWND window);
 void API dw_signal_disconnect_by_data(HWND window, void *data);
 void API dw_signal_disconnect_by_name(HWND window, char *signame);
-#endif
 
 #endif

@@ -2370,6 +2370,33 @@ HWND dw_slider_new(int vertical, int increments, ULONG id)
 }
 
 /*
+ * Create a new scrollbar window (widget) to be packed.
+ * Parameters:
+ *       vertical: TRUE or FALSE if scrollbar is vertical.
+ *       increments: Number of increments available.
+ *       id: An ID to be used with WinWindowFromID() or 0L.
+ */
+HWND dw_scrollbar_new(int vertical, int increments, ULONG id)
+{
+	GtkWidget *tmp;
+	GtkAdjustment *adjustment;
+	int _locked_by_me = FALSE;
+
+	DW_MUTEX_LOCK;
+	adjustment = (GtkAdjustment *)gtk_adjustment_new(0, 0, (gfloat)increments, 1, 1, 1);
+	if(vertical)
+		tmp = gtk_vscrollbar_new(adjustment);
+	else
+		tmp = gtk_hscrollbar_new(adjustment);
+	GTK_WIDGET_UNSET_FLAGS(tmp, GTK_CAN_FOCUS);
+	gtk_widget_show(tmp);
+	gtk_object_set_data(GTK_OBJECT(tmp), "adjustment", (gpointer)adjustment);
+	gtk_object_set_data(GTK_OBJECT(adjustment), "scrollbar", (gpointer)tmp);
+	gtk_object_set_data(GTK_OBJECT(tmp), "id", (gpointer)id);
+	DW_MUTEX_UNLOCK;
+	return tmp;
+
+/*
  * Create a new percent bar window (widget) to be packed.
  * Parameters:
  *       id: An ID to be used with WinWindowFromID() or 0L.
@@ -3186,6 +3213,63 @@ void dw_slider_set_pos(HWND handle, unsigned int position)
 		int max = _round_value(adjustment->upper) - 1;
 
 		if(GTK_IS_VSCALE(handle))
+			gtk_adjustment_set_value(adjustment, (gfloat)(max - position));
+        else
+			gtk_adjustment_set_value(adjustment, (gfloat)position);
+	}
+	DW_MUTEX_UNLOCK;
+}
+
+/*
+ * Returns the position of the scrollbar.
+ * Parameters:
+ *          handle: Handle to the scrollbar to be queried.
+ */
+unsigned int dw_scrollbar_query_pos(HWND handle)
+{
+	int val = 0, _locked_by_me = FALSE;
+	GtkAdjustment *adjustment;
+
+	if(!handle)
+		return 0;
+
+	DW_MUTEX_LOCK;
+	adjustment = (GtkAdjustment *)gtk_object_get_data(GTK_OBJECT(handle), "adjustment");
+	if(adjustment)
+	{
+		int max = _round_value(adjustment->upper) - 1;
+		int thisval = _round_value(adjustment->value);
+
+		if(GTK_IS_VSCROLLBAR(handle))
+			val = max - thisval;
+        else
+			val = thisval;
+	}
+	DW_MUTEX_UNLOCK;
+	return val;
+}
+
+/*
+ * Sets the scrollbar position.
+ * Parameters:
+ *          handle: Handle to the scrollbar to be set.
+ *          position: Position of the scrollbar withing the range.
+ */
+void dw_scrollbar_set_pos(HWND handle, unsigned int position)
+{
+	int _locked_by_me = FALSE;
+	GtkAdjustment *adjustment;
+
+	if(!handle)
+		return;
+
+	DW_MUTEX_LOCK;
+	adjustment = (GtkAdjustment *)gtk_object_get_data(GTK_OBJECT(handle), "adjustment");
+	if(adjustment)
+	{
+		int max = _round_value(adjustment->upper) - 1;
+
+		if(GTK_IS_VSCROLLBAR(handle))
 			gtk_adjustment_set_value(adjustment, (gfloat)(max - position));
         else
 			gtk_adjustment_set_value(adjustment, (gfloat)position);
@@ -6949,6 +7033,46 @@ void *dw_window_get_data(HWND window, char *dataname)
 		ret = (void *)gtk_object_get_data(GTK_OBJECT(window), dataname);
 	DW_MUTEX_UNLOCK;
 	return ret;
+}
+
+/*
+ * Add a callback to a timer event.
+ * Parameters:
+ *       window: Window handle which owns this timer.
+ *       interval: Milliseconds to delay between calls.
+ *       sigfunc: The pointer to the function to be used as the callback.
+ *       data: User data to be passed to the handler function.
+ * Returns:
+ *       Timer ID for use with dw_timer_disconnect(), 0 on error.
+ */
+int API dw_timer_connect(HWND window, int interval, void *sigfunc, void *data)
+{
+	int tag, _locked_by_me = FALSE;
+	char buf[100];
+
+	if(!window)
+		return 0;
+
+	DW_MUTEX_LOCK;
+	tag = gtk_timeout_add(interval, (GtkFunction)sigfunc, data);
+	sprintf(buf, "_dw_timer%d", tag);
+	gtk_object_set_data(GTK_OBJECT(window), buf, (gpointer)tag);
+	DW_MUTEX_UNLOCK;
+	return tag;
+}
+
+/*
+ * Removes timer callback.
+ * Parameters:
+ *       id: Timer ID returned by dw_timer_connect().
+ */
+void API dw_timer_disconnect(int id)
+{
+	int _locked_by_me = FALSE;
+
+	DW_MUTEX_LOCK;
+	gtk_timeout_remove(id);
+	DW_MUTEX_UNLOCK;
 }
 
 /*
