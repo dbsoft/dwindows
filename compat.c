@@ -170,18 +170,21 @@ unsigned long long drivefree(int drive)
 #if defined(__EMX__) || defined(__OS2__)
 	ULONG   aulFSInfoBuf[40] = {0};
 	APIRET  rc               = NO_ERROR;
+	ULONG kbytes;
 
 	DosError(FERR_DISABLEHARDERR);
 	rc = DosQueryFSInfo(drive,
-			    FSIL_ALLOC,
-			    (PVOID)aulFSInfoBuf,
-			    sizeof(aulFSInfoBuf));
+						FSIL_ALLOC,
+						(PVOID)aulFSInfoBuf,
+						sizeof(aulFSInfoBuf));
 
 	DosError(FERR_ENABLEHARDERR);
 	if (rc != NO_ERROR)
 		return 0;
 
-	return (unsigned long)((aulFSInfoBuf[3] * aulFSInfoBuf[1] * (USHORT)aulFSInfoBuf[4])/1024);
+	kbytes = aulFSInfoBuf[3]/1024;
+
+	return (unsigned long)(kbytes * aulFSInfoBuf[1] * aulFSInfoBuf[4]);
 #elif defined(__WIN32__) || defined(WINNT)
 	char buffer[10] = "C:\\";
 	DWORD spc, bps, fc, tc;
@@ -191,6 +194,46 @@ unsigned long long drivefree(int drive)
 	if(GetDiskFreeSpace(buffer, &spc, &bps, &fc, &tc) == 0)
 		return 0;
 	return (unsigned long)(spc*bps*(fc/1024));
+#else
+	return 0;
+#endif
+}
+
+/* Return in K to avoid big problems exceeding an
+   unsigned long when no 64bit integers are available */
+#if defined(__IBMC__) || (defined(__WIN32__) && !defined(__CYGWIN32__))
+unsigned long drivesize(int drive)
+#else
+unsigned long long drivesize(int drive)
+#endif
+{
+#if defined(__EMX__) || defined(__OS2__)
+	ULONG   aulFSInfoBuf[40] = {0};
+	APIRET  rc               = NO_ERROR;
+	ULONG kbytes;
+
+	DosError(FERR_DISABLEHARDERR);
+	rc = DosQueryFSInfo(drive,
+						FSIL_ALLOC,
+						(PVOID)aulFSInfoBuf,
+						sizeof(aulFSInfoBuf));
+
+	DosError(FERR_ENABLEHARDERR);
+	if (rc != NO_ERROR)
+		return 0;
+
+	kbytes = aulFSInfoBuf[2]/1024;
+
+	return (unsigned long)(kbytes * aulFSInfoBuf[1] * aulFSInfoBuf[4]);
+#elif defined(__WIN32__) || defined(WINNT)
+	char buffer[10] = "C:\\";
+	DWORD spc, bps, fc, tc;
+
+	buffer[0] = drive + 'A' - 1;
+
+	if(GetDiskFreeSpace(buffer, &spc, &bps, &fc, &tc) == 0)
+		return 0;
+	return (unsigned long)(spc*bps*(tc/1024));
 #else
 	return 0;
 #endif
