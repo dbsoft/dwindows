@@ -3481,7 +3481,7 @@ int API dw_window_destroy(HWND handle)
 		thisbox->items = tmpitem;
 		free(thisitem);
 		thisbox->count--;
-		_free_window_memory(handle);
+		_free_window_memory(frame ? frame : handle);
 	}
 	return WinDestroyWindow(frame ? frame : handle);
 }
@@ -4206,17 +4206,7 @@ HWND API dw_entryfield_password_new(char *text, ULONG id)
 HWND API dw_combobox_new(char *text, ULONG id)
 {
 	WindowData *blah = calloc(1, sizeof(WindowData));
-	HWND frame = WinCreateWindow(HWND_OBJECT,
-								 WC_FRAME,
-								 NULL,
-								 WS_VISIBLE | WS_CLIPCHILDREN |
-								 FS_NOBYTEALIGN,
-								 0,0,2000,1000,
-								 NULLHANDLE,
-								 HWND_TOP,
-								 0L,
-								 NULL,
-								 NULL);
+	HWND frame = dw_box_new(DW_HORZ, 0);
 	HWND tmp = WinCreateWindow(frame,
 							   WC_COMBOBOX,
 							   text,
@@ -4245,6 +4235,7 @@ HWND API dw_combobox_new(char *text, ULONG id)
 	dw_window_set_color(tmp, DW_CLR_BLACK, DW_CLR_WHITE);
 	dw_window_set_data(tmp, "_dw_comboentry", (void *)last);
 	dw_window_set_data(tmp, "_dw_combo_box", (void *)frame);
+	WinSetOwner(tmp, frame);
 	return tmp;
 }
 
@@ -5039,7 +5030,7 @@ void dw_box_pack_end_stub(HWND box, HWND item, int width, int height, int hsize,
 
         /* Don't set the ownership if it's an entryfield  or spinbutton */
 		WinQueryClassName(item, 99, tmpbuf);
-		if(strncmp(tmpbuf, "#6", 3)!=0 && strncmp(tmpbuf, "#32", 4)!=0)
+		if(strncmp(tmpbuf, "#6", 3)!=0 && strncmp(tmpbuf, "#32", 4)!=0 && strncmp(tmpbuf, "#2", 3)!=0)
 			WinSetOwner(item, box);
 		WinSetParent(frame ? frame : item, box, FALSE);
 	}
@@ -7668,7 +7659,7 @@ void dw_box_pack_start_stub(HWND box, HWND item, int width, int height, int hsiz
 
 		WinQueryClassName(item, 99, tmpbuf);
 		/* Don't set the ownership if it's an entryfield or spinbutton */
-		if(strncmp(tmpbuf, "#6", 3)!=0 && strncmp(tmpbuf, "#32", 4)!=0)
+		if(strncmp(tmpbuf, "#6", 3)!=0 && strncmp(tmpbuf, "#32", 4)!=0 && strncmp(tmpbuf, "#2", 3)!=0)
 			WinSetOwner(item, box);
 		WinSetParent(frame ? frame : item, box, FALSE);
 	}
