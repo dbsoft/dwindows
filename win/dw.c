@@ -82,7 +82,6 @@ typedef struct _sighandler
 } SignalHandler;
 
 SignalHandler *Root = NULL;
-int _index;
 
 typedef struct
 {
@@ -6759,16 +6758,16 @@ void API dw_container_clear(HWND handle, int redraw)
  */
 void API dw_container_delete(HWND handle, int rowcount)
 {
-	int z;
+	int z, _index = (int)dw_window_get_data(handle, "_dw_index");
 
 	for(z=0;z<rowcount;z++)
 	{
 		ListView_DeleteItem(handle, 0);
 	}
 	if(rowcount > _index)
-		_index = 0;
+		dw_window_set_data(handle, "_dw_index", 0);
 	else
-		_index -= rowcount;
+		dw_window_set_data(handle, "_dw_index", (void *)(_index - rowcount));
 }
 
 /*
@@ -6803,8 +6802,7 @@ void API dw_container_scroll(HWND handle, int direction, long rows)
 char * API dw_container_query_start(HWND handle, unsigned long flags)
 {
 	LV_ITEM lvi;
-
-	_index = ListView_GetNextItem(handle, -1, flags);
+	int _index = ListView_GetNextItem(handle, -1, flags);
 
 	if(_index == -1)
 		return NULL;
@@ -6816,6 +6814,7 @@ char * API dw_container_query_start(HWND handle, unsigned long flags)
 
 	ListView_GetItem(handle, &lvi);
 
+	dw_window_set_data(handle, "_dw_index", (void *)_index);
 	return (char *)lvi.lParam;
 }
 
@@ -6830,6 +6829,7 @@ char * API dw_container_query_start(HWND handle, unsigned long flags)
 char * API dw_container_query_next(HWND handle, unsigned long flags)
 {
 	LV_ITEM lvi;
+	int _index = (int)dw_window_get_data(handle, "_dw_index");
 
 	_index = ListView_GetNextItem(handle, _index, flags);
 
@@ -6843,6 +6843,7 @@ char * API dw_container_query_next(HWND handle, unsigned long flags)
 
 	ListView_GetItem(handle, &lvi);
 
+	dw_window_set_data(handle, "_dw_index", (void *)_index);
 	return (char *)lvi.lParam;
 }
 
@@ -6903,8 +6904,10 @@ void API dw_container_delete_row(HWND handle, char *text)
 
 		if((char *)lvi.lParam == text)
 		{
+			int _index = (int)dw_window_get_data(handle, "_dw_index");
+
 			if(index < _index)
-				_index--;
+				dw_window_set_data(handle, "_dw_index", (void *)(_index - 1));
 
 			ListView_DeleteItem(handle, index);
 			return;
