@@ -33,11 +33,6 @@ char ClassName[] = "dynamicwindows";
 char SplitbarClassName[] = "dwsplitbar";
 char DefaultFont[] = "9.WarpSans";
 
-/* this is the callback handle for the window procedure
- * make sure you always match the calling convention!
- */
-int (* EXPENTRY filterfunc)(HWND, ULONG, MPARAM, MPARAM) = 0L;
-
 HAB dwhab = 0;
 HMQ dwhmq = 0;
 DWTID _dwtid = 0;
@@ -2097,10 +2092,7 @@ MRESULT EXPENTRY _wndproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 	static int command_active = 0;
 	void (* windowfunc)(PVOID) = 0L;
 
-	if(filterfunc)
-		result = filterfunc(hWnd, msg, mp1, mp2);
-
-	if(result == -1 && !command_active)
+	if(!command_active)
 	{
         /* Make sure we don't end up in infinite recursion */
 		command_active = 1;
@@ -2804,38 +2796,22 @@ int dw_init(int newthread, int argc, char *argv[])
 
 /*
  * Runs a message loop for Dynamic Windows.
- * Parameters:
- *           currenthab: The handle to the current anchor block
- *                       or NULL if this DW is handling the message loop.
- *           func: Function pointer to the message filter function.
  */
-void dw_main(HAB currenthab, void *func)
+void dw_main(void)
 {
 	QMSG qmsg;
-	HAB habtouse;
-
-	if(!currenthab)
-		habtouse = dwhab;
-	else
-		habtouse = currenthab;
-
-	/* Setup the filter function */
-	filterfunc = (int (* EXPENTRY)(HWND, ULONG, MPARAM, MPARAM))func;
 
 	_dwtid = dw_thread_id();
 
-	while (WinGetMsg(habtouse, &qmsg, 0, 0, 0))
-		WinDispatchMsg(habtouse, &qmsg);
+	while (WinGetMsg(dwhab, &qmsg, 0, 0, 0))
+		WinDispatchMsg(dwhab, &qmsg);
 
 #ifdef DWDEBUG
 	fclose(f);
 #endif
 
-	if(!currenthab)
-	{
-		WinDestroyMsgQueue(dwhmq);
-		WinTerminate(dwhab);
-	}
+	WinDestroyMsgQueue(dwhmq);
+	WinTerminate(dwhab);
 }
 
 /*

@@ -290,7 +290,6 @@ typedef struct _notebookpage {
 	int realid;
 } NotebookPage;
 
-typedef unsigned long HAB;
 typedef HANDLE HMTX;
 typedef HANDLE HEV;
 
@@ -473,7 +472,6 @@ void dw_box_pack_end_stub(HWND box, HWND item, int width, int height, int hsize,
 #define HWND_DESKTOP             ((HWND)0)
 
 typedef GtkWidget *HWND;
-typedef void *HAB;
 #ifndef _ENVRNMNT_H
 typedef unsigned long ULONG;
 #endif
@@ -606,7 +604,7 @@ int dw_int_init(DWResources *res, int newthread, int *argc, char **argv[]);
 #else
 int dw_init(int newthread, int argc, char *argv[]);
 #endif
-void dw_main(HAB currenthab, void *filterfunc);
+void dw_main(void);
 void dw_main_sleep(int seconds);
 void dw_free(void *ptr);
 int dw_window_show(HWND handle);

@@ -782,12 +782,8 @@ int dw_int_init(DWResources *res, int newthread, int *argc, char **argv[])
 
 /*
  * Runs a message loop for Dynamic Windows.
- * Parameters:
- *           currenthab: The handle to the current anchor block
- *                       or NULL if this DW is handling the message loop.
- *           func: Function pointer to the message filter function.
  */
-void dw_main(HAB currenthab, void *func)
+void dw_main(void)
 {
 	_dw_thread = pthread_self();
 	_dw_thread_add(_dw_thread);
