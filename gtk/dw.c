@@ -6096,19 +6096,20 @@ gint _splitbar_size_allocate(GtkWidget *widget, GtkAllocation *event, gpointer d
 		gtk_paned_set_position(GTK_PANED(widget), (int)(event->width * (*percent / 100.0)));
 	if(GTK_IS_VPANED(widget))
 		gtk_paned_set_position(GTK_PANED(widget), (int)(event->height * (*percent / 100.0)));
+	gtk_object_set_data(GTK_OBJECT(widget), "_dw_waiting", NULL);
 	return FALSE;
 }
 
 #if GTK_MAJOR_VERSION > 1
 /* Figure out the new percentage */
-gint _splitbar_accept_position(GtkWidget *widget, gpointer data)
+void _splitbar_accept_position(GObject *object, GParamSpec *pspec, gpointer data)
 {
+	GtkWidget *widget = (GtkWidget *)data;
 	float *percent = (float *)gtk_object_get_data(GTK_OBJECT(widget), "_dw_percent");
 	int size = 0, position = gtk_paned_get_position(GTK_PANED(widget));
 
-  printf("Accept position\n");
-	if(!percent)
-		return FALSE;
+	if(!percent || gtk_object_get_data(GTK_OBJECT(widget), "_dw_waiting"))
+		return;
 
 	if(GTK_IS_VPANED(widget))
 		size = widget->allocation.height;
@@ -6117,7 +6118,6 @@ gint _splitbar_accept_position(GtkWidget *widget, gpointer data)
 
 	if(size > 0)
 		*percent = ((float)(position * 100) / (float)size);
-	return FALSE;
 }
 #endif
 
@@ -6146,9 +6146,10 @@ HWND dw_splitbar_new(int type, HWND topleft, HWND bottomright, unsigned long id)
 	gtk_object_set_data(GTK_OBJECT(tmp), "id", (gpointer)id);
 	*percent = 50.0;
 	gtk_object_set_data(GTK_OBJECT(tmp), "_dw_percent", (gpointer)percent);
+	gtk_object_set_data(GTK_OBJECT(tmp), "_dw_waiting", (gpointer)1);
 	gtk_signal_connect(GTK_OBJECT(tmp), "size-allocate", GTK_SIGNAL_FUNC(_splitbar_size_allocate), NULL);
 #if GTK_MAJOR_VERSION > 1
-	g_signal_connect(G_OBJECT(tmp), "accept-position", (GCallback)_splitbar_accept_position, NULL);
+	g_signal_connect(G_OBJECT(tmp), "notify::position", (GCallback)_splitbar_accept_position, (gpointer)tmp);
 #else
 	gtk_paned_set_handle_size(GTK_PANED(tmp), 3);
 #endif
@@ -6164,11 +6165,23 @@ HWND dw_splitbar_new(int type, HWND topleft, HWND bottomright, unsigned long id)
  */
 void dw_splitbar_set(HWND handle, float percent)
 {
-	/* We probably need to force a redraw here */
 	float *mypercent = (float *)dw_window_get_data(handle, "_dw_percent");
+	int size = 0, position;
+
+	if(GTK_IS_VPANED(handle))
+		size = handle->allocation.height;
+	else if(GTK_IS_HPANED(handle))
+		size = handle->allocation.width;
 
 	if(mypercent)
 		*mypercent = percent;
+
+	if(size > 10)
+	{        
+		position = (int)((float)size * (percent / 100.0));
+
+		gtk_paned_set_position(GTK_PANED(handle), position);
+	}
 }
 
 /*
