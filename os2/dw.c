@@ -7941,7 +7941,6 @@ int API dw_event_close(HEV *eve)
  */
 HEV API dw_named_event_new(char *name)
 {
-	int rc;
 	char *semname = malloc(strlen(name)+8);
 	HEV ev = 0;
 
@@ -8055,7 +8054,7 @@ int API dw_named_event_close(HEV eve)
 		break;
 
 	case ERROR_SEM_BUSY:
-		rc = DW_ERROR_BUSY;
+		rc = DW_ERROR_INTERRUPT;
 		break;
 	}
 
@@ -8070,16 +8069,16 @@ int API dw_named_event_close(HEV eve)
  *         size: Size in bytes of the shared memory region to allocate.
  *         name: A string pointer to a unique memory name.
  */
-int API dw_named_memory_alloc(HSHM *handle, void **dest, int size, char *name)
+HSHM API dw_named_memory_new(void **dest, int size, char *name)
 {
 	char namebuf[1024];
 
 	sprintf(namebuf, "\\sharemem\\%s", name);
 
 	if(DosAllocSharedMem((void *)dest, namebuf, size, PAG_COMMIT | PAG_WRITE | PAG_READ) != NO_ERROR)
-		return -1;
+		return 0;
 
-	return 0;
+	return 1;
 }
 
 /*
@@ -8089,16 +8088,17 @@ int API dw_named_memory_alloc(HSHM *handle, void **dest, int size, char *name)
  *         size: Size in bytes of the shared memory region to requested.
  *         name: A string pointer to a unique memory name.
  */
-int API dw_named_memory_get(HSHM *handle, void **dest, int size, char *name)
+HSHM API dw_named_memory_get(void **dest, int size, char *name)
 {
 	char namebuf[1024];
 
+	size = size;
 	sprintf(namebuf, "\\sharemem\\%s", name);
 
 	if(DosGetNamedSharedMem((void *)dest, namebuf, PAG_READ | PAG_WRITE) != NO_ERROR)
-		return -1;
+		return 0;
 
-	return 0;
+	return 1;
 }
 
 /*
@@ -8109,6 +8109,8 @@ int API dw_named_memory_get(HSHM *handle, void **dest, int size, char *name)
  */
 int API dw_named_memory_free(HSHM handle, void *ptr)
 {
+	handle = handle;
+
 	if(DosFreeMem(ptr) != NO_ERROR)
 		return -1;
 	return 0;
