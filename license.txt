@@ -1,0 +1,20 @@
+Copyright Information About Dynamic Windows.
+
+2000-2003 Brian Smith <dbsoft@technologist.com>
+2000 Achim Hasenmueller <achimha@innotek.de>
+2000 Peter Nielsen <peter@pmview.com>
+2003 Mark Hessling
+1998 Sergey I. Yevtushenko
+
+This license allows you to use this source code in any way you wish, given the
+following restrictions:
+
+Source code must keep the copyrights.
+Entities using the source code must acknowledge the Dynamic Windows contributors.
+(either passively when queried or actively through acknowledgements in the program)
+The following are not allowed to use Dynamic Windows in a commercial product:
+
+F/X Communuications
+Any entity associated with Bjarne Jensen
+
+
