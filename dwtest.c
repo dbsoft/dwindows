@@ -25,16 +25,20 @@ HWND mainwindow,
      notebookbox,
      notebookbox1,
      notebookbox2,
+     notebookbox3,
      notebook,
      vscrollbar,
      hscrollbar,
      status,
      stext,
+     tree,
      pagebox,
-     textbox1, textbox2, textboxA,
+     treebox,
+     textbox1, textbox2, textboxA, textbox3,
+     gap_box,
      buttonbox;
 
-HPIXMAP text1pm,text2pm;
+HPIXMAP text1pm,text2pm,text3pm;
 
 int font_width = 8;
 int font_height=12;
@@ -52,9 +56,18 @@ char **lp;
 /* This gets called when a part of the graph needs to be repainted. */
 int DWSIGNAL text_expose(HWND hwnd, DWExpose *exp, void *data)
 {
-	HPIXMAP hpm = (hwnd == textbox1 ? text1pm : text2pm);
-	int width = DW_PIXMAP_WIDTH(hpm);
-	int height = DW_PIXMAP_HEIGHT(hpm);
+	HPIXMAP hpm;
+	int width,height;
+
+	if ( hwnd == textbox1 )
+		hpm = text1pm;
+	else if ( hwnd == textbox2 )
+		hpm = text2pm;
+	else if ( hwnd == textbox3 )
+		hpm = text3pm;
+
+	width = DW_PIXMAP_WIDTH(hpm);
+	height = DW_PIXMAP_HEIGHT(hpm);
 
 	dw_pixmap_bitblt(hwnd, NULL, 0, 0, width, height, NULL, hpm, 0, 0 );
 	dw_flush();
@@ -107,8 +120,11 @@ void draw_file( int row, int col )
 			pLine = lp[i+row];
 			dw_draw_text( NULL, text2pm, 0, y, pLine+col );
 		}
-		text_expose( textbox1, NULL, text1pm);
-		text_expose( textbox2, NULL, text2pm);
+		dw_color_foreground_set(DW_CLR_DEFAULT);
+		dw_draw_rect(0, text3pm, TRUE, 0, 0, DW_PIXMAP_WIDTH(text3pm), DW_PIXMAP_HEIGHT(text3pm));
+		text_expose( textbox1, NULL, NULL);
+		text_expose( textbox2, NULL, NULL);
+		text_expose( textbox3, NULL, NULL);
 	}
 }
 
@@ -116,6 +132,12 @@ int DWSIGNAL beep_callback(HWND window, void *data)
 {
 	dw_timer_disconnect( timerid );
 	return TRUE;
+}
+
+int DWSIGNAL keypress_callback(HWND window, void *data)
+{
+fprintf(stderr,"got keypress\n");
+	return 0;
 }
 
 int DWSIGNAL exit_callback(HWND window, void *data)
@@ -176,7 +198,7 @@ void DWSIGNAL scrollbar_valuechanged(HWND hwnd, int value, void *data)
 /* Handle size change of the main render window */
 int DWSIGNAL configure_event(HWND hwnd, int width, int height, void *data)
 {
-	HPIXMAP old1 = text1pm, old2 = text2pm;
+	HPIXMAP old1 = text1pm, old2 = text2pm, old3 = text3pm;
 	unsigned long height1;
 	int depth = dw_color_depth();
 
@@ -186,12 +208,14 @@ int DWSIGNAL configure_event(HWND hwnd, int width, int height, void *data)
 	dw_window_get_pos_size(textbox1, NULL, NULL, NULL, &height1);
 
 	/* Create new pixmaps with the current sizes */
-	text1pm = dw_pixmap_new(textbox1, (font_width*width1)+2, height1, depth);
+	text1pm = dw_pixmap_new(textbox1, (font_width*width1)+2, height, depth); /* was height1 */
 	text2pm = dw_pixmap_new(textbox2, width, height, depth);
+	text3pm = dw_pixmap_new(textbox3, width, height, depth);
 
 	/* Destroy the old pixmaps */
 	dw_pixmap_destroy(old1);
 	dw_pixmap_destroy(old2);
+	dw_pixmap_destroy(old3);
 
 	/* Update scrollbar ranges with new values */
 	dw_scrollbar_set_range(hscrollbar, max_linewidth, cols);
@@ -272,7 +296,13 @@ void text_add(void)
 	textbox1 = dw_render_new( 100 );
 	dw_window_set_font(textbox1, FIXEDFONT);
 	dw_font_text_extents(textbox1, NULL, "O", &font_width, &font_height);
-	dw_box_pack_start(pagebox, textbox1, (font_width*width1)+2, font_height*rows, FALSE, TRUE, 0);
+	dw_box_pack_start(pagebox, textbox1, (font_width*width1), font_height*rows, FALSE, TRUE, 0);
+
+	/* create render box for gap pixmap */
+	textbox3 = dw_render_new( 102 );
+	dw_window_set_font(textbox3, FIXEDFONT);
+	dw_font_text_extents(textbox3, NULL, "O", &font_width, &font_height);
+	dw_box_pack_start(pagebox, textbox3, (font_width), font_height*rows, FALSE, TRUE, 0);
 
 	/* create box for filecontents and horz scrollbar */
 	textboxA = dw_box_new( BOXVERT,0 );
@@ -296,15 +326,47 @@ void text_add(void)
 
 	text1pm = dw_pixmap_new( textbox1, (font_width*width1)+2, font_height*rows, depth );
 	text2pm = dw_pixmap_new( textbox2, font_width*cols, font_height*rows, depth );
+	text3pm = dw_pixmap_new( textbox3, font_width, font_height*rows, depth );
 
 	dw_messagebox("DWTest", "Width: %d Height: %d\n", font_width, font_height);
 	dw_draw_rect(0, text1pm, TRUE, 0, 0, font_width*width1, font_height*rows);
 	dw_draw_rect(0, text2pm, TRUE, 0, 0, font_width*cols, font_height*rows);
 	dw_signal_connect(textbox1, "expose_event", DW_SIGNAL_FUNC(text_expose), NULL);
 	dw_signal_connect(textbox2, "expose_event", DW_SIGNAL_FUNC(text_expose), NULL);
+	dw_signal_connect(textbox3, "expose_event", DW_SIGNAL_FUNC(text_expose), NULL);
 	dw_signal_connect(textbox2, "configure_event", DW_SIGNAL_FUNC(configure_event), text2pm);
 	dw_signal_connect(hscrollbar, "value_changed", DW_SIGNAL_FUNC(scrollbar_valuechanged), (void *)status);
 	dw_signal_connect(vscrollbar, "value_changed", DW_SIGNAL_FUNC(scrollbar_valuechanged), (void *)status);
+	dw_signal_connect(textbox1, "key_press_event", DW_SIGNAL_FUNC(keypress_callback), text1pm);
+	dw_signal_connect(textbox2, "key_press_event", DW_SIGNAL_FUNC(keypress_callback), text2pm);
+}
+
+void tree_add(void)
+{
+	HWND t1,t2,t3;
+	int depth = dw_color_depth();
+
+	/* create a box to pack into the notebook page */
+	treebox = dw_box_new(BOXHORZ, 2);
+	dw_box_pack_start( notebookbox3, treebox, 500, 200, TRUE, TRUE, 0);
+
+	/* now a tree area under this box */
+	tree = dw_tree_new(0);
+	dw_box_pack_start( notebookbox3, tree, 500, 200, TRUE, FALSE, 1);
+
+t1 = dw_tree_insert(tree, "tree item 1", NULL, NULL, NULL );
+t2 = dw_tree_insert(tree, "tree item 2", NULL, NULL, NULL );
+t3 = dw_tree_insert(tree, "tree item 3", NULL, t2, NULL );
+
+/*
+	dw_signal_connect(textbox1, "expose_event", DW_SIGNAL_FUNC(text_expose), NULL);
+	dw_signal_connect(textbox2, "expose_event", DW_SIGNAL_FUNC(text_expose), NULL);
+	dw_signal_connect(textbox2, "configure_event", DW_SIGNAL_FUNC(configure_event), text2pm);
+	dw_signal_connect(hscrollbar, "value_changed", DW_SIGNAL_FUNC(scrollbar_valuechanged), (void *)status);
+	dw_signal_connect(vscrollbar, "value_changed", DW_SIGNAL_FUNC(scrollbar_valuechanged), (void *)status);
+	dw_signal_connect(textbox1, "key_press_event", DW_SIGNAL_FUNC(keypress_callback), text1pm);
+	dw_signal_connect(textbox2, "key_press_event", DW_SIGNAL_FUNC(keypress_callback), text2pm);
+*/
 }
 
 /* Beep every second */
@@ -323,6 +385,7 @@ int main(int argc, char *argv[])
 {
 	ULONG notebookpage1;
 	ULONG notebookpage2;
+	ULONG notebookpage3;
 
 	dw_init(TRUE, argc, argv);
 
@@ -345,6 +408,12 @@ int main(int argc, char *argv[])
 	dw_notebook_pack( notebook, notebookpage2, notebookbox2 );
 	dw_notebook_page_set_text( notebook, notebookpage2, "second page");
 	text_add();
+
+	notebookbox3 = dw_box_new( BOXVERT, 5 );
+	notebookpage3 = dw_notebook_page_new( notebook, 1, FALSE );
+	dw_notebook_pack( notebook, notebookpage3, notebookbox3 );
+	dw_notebook_page_set_text( notebook, notebookpage3, "third page");
+	tree_add();
 
 	dw_signal_connect(mainwindow, "delete_event", DW_SIGNAL_FUNC(exit_callback), (void *)mainwindow);
 	timerid = dw_timer_connect(1000, DW_SIGNAL_FUNC(timer_callback), 0);
