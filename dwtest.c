@@ -571,7 +571,7 @@ void container_add(void)
 		sprintf(buffer, "Filename %d",z+1);
 		if (z == 0 ) thisicon = foldericon;
 		else thisicon = fileicon;
-		dw_filesystem_set_file(container, containerinfo, z, strdup(buffer), thisicon);
+		dw_filesystem_set_file(container, containerinfo, z, buffer, thisicon);
 		dw_filesystem_set_item(container, containerinfo, 0, z, &size);
 
 		time.seconds = z+10;
