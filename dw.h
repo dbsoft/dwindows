@@ -1009,8 +1009,8 @@ void API dw_filesystem_set_item(HWND handle, void *pointer, int column, int row,
 void API dw_filesystem_set_file(HWND handle, void *pointer, int row, char *filename, unsigned long icon);
 void API dw_filesystem_change_item(HWND handle, int column, int row, void *data);
 void API dw_filesystem_change_file(HWND handle, int row, char *filename, unsigned long icon);
-void dw_taskbar_insert(HWND handle, unsigned long icon, char *bubbletext);
-void dw_taskbar_delete(HWND handle, unsigned long icon);
+void API dw_taskbar_insert(HWND handle, unsigned long icon, char *bubbletext);
+void API dw_taskbar_delete(HWND handle, unsigned long icon);
 int API dw_screen_width(void);
 int API dw_screen_height(void);
 unsigned long API dw_color_depth(void);
