@@ -1,11 +1,7 @@
-#ifdef __OS2__
+#if defined(__OS2__) || defined (__EMX__)
 #ifndef __DIRENT_H__
 #define __DIRENT_H__
 
-#ifdef __EMX__
-#include <sys/param.h>
-#else
-#if defined(__IBMC__) || defined(__IBMCPP__) || defined(XP_W32_MSVC)
 #include <stdio.h>
 #ifdef MAXPATHLEN
 	#undef MAXPATHLEN
@@ -33,7 +29,6 @@ extern "C" {
 #endif
 
 struct dirent {
-#if defined(__OS2__) || defined(__WIN32__) /* use the layout of EMX to avoid trouble */
     int            d_ino;                 /* Dummy */
     int            d_reclen;		  /* Dummy, same as d_namlen */
     int            d_namlen;              /* length of name */
@@ -42,25 +37,27 @@ struct dirent {
     unsigned short d_attribute;           /* attributes (see above) */
     unsigned short d_time;                /* modification time */
     unsigned short d_date;                /* modification date */
-#else
-    char	   d_name[MAXNAMLEN + 1]; /* garentee null termination */
-    char	   d_attribute;		  /* .. extension .. */
-    unsigned long  d_size;		  /* .. extension .. */
-#endif
 };
 
 typedef struct _dirdescr DIR;
 /* the structs do not have to be defined here */
 
-extern DIR		*opendir(const char *);
-extern DIR		*openxdir(const char *, unsigned);
-extern struct dirent	*readdir(DIR *);
-extern void		seekdir(DIR *, long);
-extern long		telldir(DIR *);
-extern void 		closedir(DIR *);
-#define			rewinddir(dirp) seekdir(dirp, 0L)
+extern DIR		*_opendir(const char *);
+#define opendir(a) _opendir(a)
+extern DIR		*_openxdir(const char *, unsigned);
+#define openxdir(a, b) _openxdir(a, b)
+extern struct dirent	*_readdir(DIR *);
+#define readdir(a) _readdir(a)
+extern void		_seekdir(DIR *, long);
+#define seekdir(a, b) _seekdir(a, b)
+extern long		_telldir(DIR *);
+#define telldir(a) _telldir(a)
+extern void 		_closedir(DIR *);
+#define closedir(a) _closedir(a)
 
-extern char *		abs_path(const char *name, char *buffer, int len);
+#define			rewinddir(dirp) _seekdir(dirp, 0L)
+extern char *		_abs_path(const char *name, char *buffer, int len);
+#define abs_path(a, b, c) _abs_path(a, b, c)
 
 #ifndef S_IFMT
 #define S_IFMT ( S_IFDIR | S_IFREG )
@@ -76,9 +73,6 @@ extern char *		abs_path(const char *name, char *buffer, int len);
 
 #ifdef __cplusplus
 }
-#endif
-
-#endif
 #endif
 
 #ifdef __WIN32__
@@ -102,9 +96,6 @@ extern char *		abs_path(const char *name, char *buffer, int len);
  *
  */
 
-#ifdef __EMX__
-#include <sys/param.h>
-#else
 #if defined(__IBMC__) || defined(__IBMCPP__) || defined(MSVC)
 #include <stdio.h>
 #ifdef MAXPATHLEN
@@ -132,7 +123,6 @@ extern "C" {
 #endif
 
 struct dirent {
-#if defined(__OS2__) || defined(__WIN32__)        /* use the layout of EMX to avoid trouble */
     int            d_ino;                 /* Dummy */
     int            d_reclen;		  /* Dummy, same as d_namlen */
     int            d_namlen;              /* length of name */
@@ -141,25 +131,27 @@ struct dirent {
     unsigned short d_attribute;           /* attributes (see above) */
     unsigned short d_time;                /* modification time */
     unsigned short d_date;                /* modification date */
-#else
-    char	   d_name[MAXNAMLEN + 1]; /* garentee null termination */
-    char	   d_attribute;		  /* .. extension .. */
-    unsigned long  d_size;		  /* .. extension .. */
-#endif
 };
 
 typedef struct _dirdescr DIR;
 /* the structs do not have to be defined here */
 
-extern DIR		*opendir(const char *);
-extern DIR		*openxdir(const char *, unsigned);
-extern struct dirent	*readdir(DIR *);
-extern void		seekdir(DIR *, long);
-extern long		telldir(DIR *);
-extern void 		closedir(DIR *);
-#define			rewinddir(dirp) seekdir(dirp, 0L)
+extern DIR		*_opendir(const char *);
+#define opendir(a) _opendir(a)
+extern DIR		*_openxdir(const char *, unsigned);
+#define openxdir(a, b) _openxdir(a, b)
+extern struct dirent	*_readdir(DIR *);
+#define readdir(a) _readdir(a)
+extern void		_seekdir(DIR *, long);
+#define seekdir(a, b) _seekdir(a, b)
+extern long		_telldir(DIR *);
+#define telldir(a) _telldir(a)
+extern void 		_closedir(DIR *);
+#define closedir(a) _closedir(a)
 
-extern char *		abs_path(const char *name, char *buffer, int len);
+#define			rewinddir(dirp) _seekdir(dirp, 0L)
+extern char *		_abs_path(const char *name, char *buffer, int len);
+#define abs_path(a, b, c) _abs_path(a, b, c)
 
 #ifndef S_IFMT
 #define S_IFMT ( S_IFDIR | S_IFREG )
@@ -177,5 +169,4 @@ extern char *		abs_path(const char *name, char *buffer, int len);
 }
 #endif
 
-#endif
 #endif
