@@ -20,6 +20,7 @@
 #include <sys/vfs.h>
 #endif
 #endif
+#include <time.h>
 
 #ifdef __UNIX__
 void msleep(long period)

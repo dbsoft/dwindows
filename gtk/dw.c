@@ -19,6 +19,10 @@
 #include <gdk/gdkkeysyms.h>
 #ifdef USE_IMLIB
 #include <gdk_imlib.h>
+#elif defined(USE_PIXBUF)
+#include <gdk-pixbuf/gdk-pixbuf.h>
+#include <gdk-pixbuf/gdk-pixbuf-xlibrgb.h>
+#include <gdk-pixbuf/gdk-pixbuf-xlib.h>
 #endif
 
 /* These are used for resource management */
@@ -51,6 +55,8 @@ GdkColor _colors[] =
 GdkColor _foreground = { 0, 0x0000, 0x0000, 0x0000 };
 GdkColor _background = { 0, 0xaaaa, 0xaaaa, 0xaaaa };
 
+GtkWidget *last_window = NULL;
+
 int _dw_file_active = 0, _dw_ignore_click = 0;
 pthread_t _dw_thread = (pthread_t)-1;
 int _dw_mutex_locked = FALSE;
@@ -59,11 +65,6 @@ int _dw_border_width = 12, _dw_border_height = 28;
 
 #define  DW_MUTEX_LOCK { if(pthread_self() != _dw_thread && _dw_mutex_locked == FALSE) { gdk_threads_enter(); _dw_mutex_locked = TRUE; _locked_by_me = TRUE;  } }
 #define  DW_MUTEX_UNLOCK { if(pthread_self() != _dw_thread && _locked_by_me == TRUE) { gdk_threads_leave(); _dw_mutex_locked = FALSE; _locked_by_me = FALSE; } }
-
-/* Currently the non Imlib method does not work */
-#ifndef USE_IMLIB
-#define USE_IMLIB
-#endif
 
 #define DEFAULT_SIZE_WIDTH 12
 #define DEFAULT_SIZE_HEIGHT 6
@@ -455,15 +456,12 @@ GdkPixmap *_find_pixmap(GdkBitmap **bitmap, long id, HWND handle)
 	if(data)
 	{
 		GdkPixmap *icon_pixmap = NULL;
-#ifndef USE_IMLIB
-		GtkStyle *iconstyle;
-
-		/* hmmm why do we need the handle here? */
-		iconstyle = gtk_widget_get_style(handle);
-		if (!icon_pixmap)
-			icon_pixmap = gdk_pixmap_create_from_xpm_d(handle->window, bitmap, &iconstyle->bg[GTK_STATE_NORMAL], &data);
-#else
+#ifdef USE_IMLIB
 		gdk_imlib_data_to_pixmap((char **)data, &icon_pixmap, bitmap);
+#elif defined(USE_PIXBUF)
+		icon_pixmap = (GdkPixmap *)gdk_pixbuf_new_from_xpm_data((const char **)data);
+#else
+		icon_pixmap = gdk_pixmap_create_from_xpm_d(handle->window, bitmap, &_colors[DW_CLR_PALEGRAY], &data);
 #endif
 		return icon_pixmap;
 	}
@@ -1175,7 +1173,7 @@ HWND dw_window_new(HWND hwndOwner, char *title, unsigned long flStyle)
 	int flags = 0;
 
 	DW_MUTEX_LOCK;
-	tmp = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+	last_window = tmp = gtk_window_new(GTK_WINDOW_TOPLEVEL);
 
 	gtk_window_set_title(GTK_WINDOW(tmp), title);
 	if(!(flStyle & DW_FCF_SIZEBORDER))
@@ -1190,9 +1188,9 @@ HWND dw_window_new(HWND hwndOwner, char *title, unsigned long flStyle)
 		flags |= GDK_DECOR_MINIMIZE | GDK_DECOR_MAXIMIZE;
 
 	if(flStyle & DW_FCF_SIZEBORDER)
-		flags |= GDK_DECOR_RESIZEH;
+		flags |= GDK_DECOR_RESIZEH | GDK_DECOR_BORDER;
 
-	if(flStyle & DW_FCF_BORDER)
+	if(flStyle & DW_FCF_BORDER || flStyle & DW_FCF_DLGBORDER)
 		flags |= GDK_DECOR_BORDER;
 
 	gdk_window_set_decorations(tmp->window, flags);
@@ -1271,22 +1269,23 @@ HWND dw_bitmap_new(unsigned long id)
 	GdkPixmap *pixmap= NULL;
 	GdkBitmap *bitmap;
 	GtkWidget *tmp;
-	char * test_xpm[] = {
-		"1 1 1 1",
-		"       c None",
-		" "};
+	static char * test_xpm[] = {
+		"1 1 2 1",
+		"	c None",
+		".	c #FFFFFF",
+		"."};
 	int _locked_by_me = FALSE;
 
 	DW_MUTEX_LOCK;
-#ifndef USE_IMLIB
-	GtkStyle *iconstyle;
-
-	/* hmmm why do we need the handle here? */
-	iconstyle = gtk_widget_get_style(handle);
-	if (!pixmap)
-		pixmap = gdk_pixmap_create_from_xpm_d(handle->window, &bitmap, &iconstyle->bg[GTK_STATE_NORMAL], &test_xpm);
-#else
+#ifdef USE_IMLIB
 	gdk_imlib_data_to_pixmap(test_xpm, &pixmap, &bitmap);
+#elif defined(USE_PIXBUF)
+	pixmap = (GdkPixmap *)gdk_pixbuf_new_from_xpm_data((const char **)test_xpm);
+#else
+	gtk_widget_realize(last_window);
+
+	if(last_window)
+		pixmap = gdk_pixmap_create_from_xpm_d(last_window->window, &bitmap, &_colors[DW_CLR_PALEGRAY], test_xpm);
 #endif
 	tmp = gtk_pixmap_new(pixmap, bitmap);
 	gtk_widget_show(tmp);
@@ -3459,7 +3458,11 @@ HPIXMAP dw_pixmap_new(HWND handle, unsigned long width, unsigned long height, in
 
 	DW_MUTEX_LOCK;
 	pixmap->handle = handle;
+#ifdef USE_PIXBUF
+	pixmap->pixmap = (GdkPixmap *)gdk_pixbuf_new(GDK_COLORSPACE_RGB, FALSE, depth, width, height);
+#else
 	pixmap->pixmap = gdk_pixmap_new(handle->window, width, height, depth);
+#endif
 	DW_MUTEX_UNLOCK;
 	return pixmap;
 }
@@ -3516,7 +3519,11 @@ void dw_pixmap_destroy(HPIXMAP pixmap)
 	int _locked_by_me = FALSE;
 
 	DW_MUTEX_LOCK;
+#ifdef USE_PIXBUF
+	gdk_pixbuf_unref((GdkPixbuf *)pixmap->pixmap);
+#else
 	gdk_pixmap_unref(pixmap->pixmap);
+#endif
 	free(pixmap);
 	DW_MUTEX_UNLOCK;
 }
@@ -3537,10 +3544,15 @@ void dw_pixmap_destroy(HPIXMAP pixmap)
  */
 void dw_pixmap_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest, int width, int height, HWND src, HPIXMAP srcp, int xsrc, int ysrc)
 {
+	/* Ok, these #ifdefs are going to get a bit confusing because
+	 * when using gdk-pixbuf, pixmaps are really pixbufs, so we
+	 * have to use the pixbuf functions on them, and thus convoluting
+	 * the code here a bit. -Brian
+	 */
 	int _locked_by_me = FALSE;
 	GdkGC *gc = NULL;
 
-	if((!dest && !destp) || (!src && !srcp))
+	if((!dest && (!destp || !destp->pixmap)) || (!src && (!srcp || !srcp->pixmap)))
 		return;
 
 	DW_MUTEX_LOCK;
@@ -3548,15 +3560,28 @@ void dw_pixmap_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest, int width,
 		gc = _set_colors(dest->window);
 	else if(src)
 		gc = _set_colors(src->window);
+#ifndef USE_PIXBUF
 	else if(destp)
 		gc = gdk_gc_new(destp->pixmap);
 	else if(srcp)
 		gc = gdk_gc_new(srcp->pixmap);
+#endif
 
-	if(gc)
+	if(gc
+#ifdef USE_PIXBUF
+       || (!dest && !src)
+#endif
+	  )
 	{
+#ifndef USE_PIXBUF
 		gdk_draw_pixmap(dest ? dest->window : destp->pixmap, gc, src ? src->window : srcp->pixmap, xsrc, ysrc, xdest, ydest, width, height);
-		gdk_gc_unref(gc);
+#else
+        if(dest && srcp)
+			gdk_pixbuf_xlib_render_to_drawable(dest->window, gc, (GdkPixbuf *)srcp->pixmap, xsrc, ysrc, xdest, ydest, width, height, XLIB_RGB_DITHER_NONE, 0, 0);
+
+        if(gc)
+#endif
+			gdk_gc_unref(gc);
 	}
 	DW_MUTEX_UNLOCK;
 }
@@ -5217,3 +5242,4 @@ int main(void)
 	return 0;
 }
 #endif
+
