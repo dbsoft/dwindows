@@ -2618,6 +2618,9 @@ MRESULT EXPENTRY _wndproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 				 */
 				WinShowWindow(hWnd, FALSE);
 
+                if(mybox->items)
+					WinSetWindowPos(mybox->items[0].hwnd, HWND_TOP, 0, 0, SHORT1FROMMP(mp2), SHORT2FROMMP(mp2), SWP_MOVE | SWP_SIZE);
+
 				_do_resize(mybox, SHORT1FROMMP(mp2), SHORT2FROMMP(mp2));
 
 				WinShowWindow(hWnd, TRUE);
@@ -2639,7 +2642,7 @@ MRESULT EXPENTRY _wndproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 				mybox->flags = 0;
 			}
 
-			if(mybox && (swp->fl & SWP_MAXIMIZE))
+			if(mybox && (swp->fl & (SWP_MAXIMIZE | SWP_RESTORE)))
 			{
 				int z;
 				SWP swp2;
