@@ -3158,6 +3158,69 @@ void _resize_notebook_page(HWND handle, int pageid)
 	}
 }
 
+/* This function determines the handle for a supplied image filename
+ */
+int _dw_get_image_handle(char *filename, HANDLE *icon, HBITMAP *hbitmap)
+{
+	int len, windowtype = 0;
+	char *file = malloc(strlen(filename) + 5);
+
+	*hbitmap = 0;
+	*icon = 0;
+
+	if(!file)
+	{
+		return 0;
+	}
+
+	strcpy(file, filename);
+
+	/* check if we can read from this file (it exists and read permission) */
+	if(access(file, 04) == 0)
+	{
+		len = strlen( file );
+		if ( len < 4 )
+		{
+			free(file);
+			return 0;
+		}
+		if ( stricmp( file + len - 4, ".ico" ) == 0 )
+		{
+			*icon = LoadImage(NULL, file, IMAGE_ICON, 0, 0, LR_LOADFROMFILE);
+			windowtype = BS_ICON;
+		}
+		else if ( stricmp( file + len - 4, ".bmp" ) == 0 )
+		{
+			*hbitmap = (HBITMAP)LoadImage(NULL, file, IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
+			windowtype = BS_BITMAP;
+		}
+		free(file);
+	}
+	else
+	{
+		/* Try with .ico extension first...*/
+		strcat(file, ".ico");
+		if(access(file, 04) == 0)
+		{
+			*icon = LoadImage(NULL, file, IMAGE_ICON, 0, 0, LR_LOADFROMFILE);
+			windowtype = BS_ICON;
+		}
+		else
+		{
+			strcpy(file, filename);
+			strcat(file, ".bmp");
+			if(access(file, 04) == 0)
+			{
+				*hbitmap = (HBITMAP)LoadImage(NULL, file, IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
+				windowtype = BS_BITMAP;
+			}
+		}
+		free(file);
+	}
+
+	return windowtype;
+}
+
 /*
  * Initializes the Dynamic Windows engine.
  * Parameters:
@@ -4562,57 +4625,11 @@ HWND API dw_bitmapbutton_new_from_file(char *text, unsigned long id, char *filen
 	HBITMAP hbitmap = 0;
 	HANDLE icon = 0;
 	int windowtype = 0, len;
-	char *file = malloc(strlen(filename) + 5);
 
-	if(!file || !(bubble = calloc(1, sizeof(BubbleButton))))
-	{
-		if(file)
-			free(file);
+	if(!(bubble = calloc(1, sizeof(BubbleButton))))
 		return 0;
-	}
 
-	strcpy(file, filename);
-
-	/* check if we can read from this file (it exists and read permission) */
-	if(access(file, 04) == 0)
-	{
-		len = strlen( file );
-		if ( len < 4 )
-		{
-			free(file);
-			return 0;
-		}
-		if ( stricmp( file + len - 4, ".ico" ) == 0 )
-		{
-			icon = LoadImage(NULL, file, IMAGE_ICON, 0, 0, LR_LOADFROMFILE);
-			windowtype = BS_ICON;
-		}
-		else if ( stricmp( file + len - 4, ".bmp" ) == 0 )
-		{
-			hbitmap = (HBITMAP)LoadImage(NULL, file, IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
-			windowtype = BS_BITMAP;
-		}
-	}
-	else
-	{
-		/* Try with .ico extension first...*/
-		strcat(file, ".ico");
-		if(access(file, 04) == 0)
-		{
-			icon = LoadImage(NULL, file, IMAGE_ICON, 0, 0, LR_LOADFROMFILE);
-			windowtype = BS_ICON;
-		}
-		else
-		{
-			strcpy(file, filename);
-			strcat(file, ".bmp");
-			if(access(file, 04) == 0)
-			{
-				hbitmap = (HBITMAP)LoadImage(NULL, file, IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
-				windowtype = BS_BITMAP;
-			}
-		}
-	}
+	windowtype = _dw_get_image_handle(filename, &icon, &hbitmap);
 
 	tmp = CreateWindow(BUTTONCLASSNAME,
 					   "",
@@ -4644,7 +4661,6 @@ HWND API dw_bitmapbutton_new_from_file(char *text, unsigned long id, char *filen
 					(WPARAM) IMAGE_BITMAP,
 					(LPARAM) hbitmap);
 	}
-	free(file);
 	return tmp;
 }
 
@@ -4875,7 +4891,6 @@ void API dw_window_set_icon(HWND handle, ULONG id)
 				(WPARAM) IMAGE_ICON,
 				(LPARAM) hicon);
 }
-
 /*
  * Sets the bitmap used for a given static window.
  * Parameters:
@@ -4890,43 +4905,40 @@ void API dw_window_set_bitmap(HWND handle, unsigned long id, char *filename)
 {
 	HBITMAP hbitmap;
 	HBITMAP oldbitmap = (HBITMAP)SendMessage(handle, STM_GETIMAGE, IMAGE_BITMAP, 0);
+	HICON icon;
+	HICON oldicon = (HICON)SendMessage(handle, STM_GETIMAGE, IMAGE_ICON, 0);
 
 	if(id)
+	{
 		hbitmap = LoadBitmap(DWInstance, MAKEINTRESOURCE(id));
+		icon = LoadImage(DWInstance, MAKEINTRESOURCE(id), IMAGE_ICON, 0, 0, LR_SHARED);
+	}
 	else if(filename)
 	{
-		char *file = malloc(strlen(filename) + 5);
-
-		if (!file)
+		_dw_get_image_handle(filename, &icon, &hbitmap);
+		if (icon == 0 && hbitmap == 0)
 			return;
-
-		strcpy(file, filename);
-
-		/* check if we can read from this file (it exists and read permission) */
-		if(access(file, 04) != 0)
-		{
-			/* Try with .bmp extention */
-			strcat(file, ".bmp");
-			if(access(file, 04) != 0)
-			{
-				free(file);
-				return;
-			}
-		}
-
-		hbitmap = (HBITMAP)LoadImage(NULL, file, IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
-		free(file);
 	}
-	else
-		return;
 
-	SendMessage(handle, STM_SETIMAGE,
-				(WPARAM) IMAGE_BITMAP,
-				(LPARAM) hbitmap);
+	if(icon)
+	{
+		SendMessage(handle, BM_SETIMAGE,
+					(WPARAM) IMAGE_ICON,
+					(LPARAM) icon);
+	}
+	else if(hbitmap)
+	{
+		SendMessage(handle, BM_SETIMAGE,
+					(WPARAM) IMAGE_BITMAP,
+					(LPARAM) hbitmap);
+	}
 
 	if(oldbitmap)
 		DeleteObject(oldbitmap);
+	if(oldicon)
+		DeleteObject(oldicon);
 }
+
 
 /*
  * Sets the text used for a given window.
@@ -7119,7 +7131,6 @@ void API dw_container_delete_row(HWND handle, char *text)
 void API dw_container_optimize(HWND handle)
 {
 	ContainerInfo *cinfo = (ContainerInfo *)GetWindowLongPtr(handle, GWLP_USERDATA);
-
 	if(cinfo && cinfo->columns == 1)
 	{
 		ListView_SetColumnWidth(handle, 0, LVSCW_AUTOSIZE);
