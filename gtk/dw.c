@@ -93,6 +93,7 @@ static gint _tree_select_event(GtkTreeSelection *sel, gpointer data);
 #else
 static gint _tree_select_event(GtkTree *tree, GtkWidget *child, gpointer data);
 #endif
+static gint _switch_page_event(GtkNotebook *notebook, GtkNotebookPage *page, guint page_num, gpointer user_data);
 
 typedef struct
 {
@@ -123,7 +124,7 @@ typedef struct
 
 } SignalHandler;
 
-#define SIGNALMAX 16
+#define SIGNALMAX 17
 
 /* A list of signal forwarders, to account for paramater differences. */
 static SignalList SignalTranslate[SIGNALMAX] = {
@@ -142,7 +143,8 @@ static SignalList SignalTranslate[SIGNALMAX] = {
 	{ _item_select_event,       DW_SIGNAL_LIST_SELECT },
 	{ _tree_select_event,       DW_SIGNAL_ITEM_SELECT },
 	{ _set_focus_event,         DW_SIGNAL_SET_FOCUS },
-	{ _value_changed_event,     DW_SIGNAL_VALUE_CHANGED }
+	{ _value_changed_event,     DW_SIGNAL_VALUE_CHANGED },
+	{ _switch_page_event,       DW_SIGNAL_SWITCH_PAGE }
 };
 
 /* Alignment flags */
@@ -543,6 +545,19 @@ static gint _container_select_event(GtkWidget *widget, GdkEventButton *event, gp
 			retval = contextfunc(work->window, text, work->data);
 			gtk_object_set_data(GTK_OBJECT(widget), "_dw_double_click", (gpointer)1);
 		}
+	}
+	return retval;
+}
+
+static gint _switch_page_event(GtkNotebook *notebook, GtkNotebookPage *page, guint page_num, gpointer data)
+{
+	SignalHandler *work = (SignalHandler *)data;
+	int retval = FALSE;
+
+	if(work)
+	{
+		int (*switchpagefunc)(HWND, int, void *) = work->func;
+		retval = switchpagefunc(work->window, page_num, work->data);
 	}
 	return retval;
 }
@@ -7661,6 +7676,10 @@ void dw_signal_connect(HWND window, char *signame, void *sigfunc, void *data)
 			GTK_IS_VSCROLLBAR(thiswindow) || GTK_IS_HSCROLLBAR(thiswindow))
 	{
 		thiswindow = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(thiswindow), "adjustment");
+	}
+	else if(GTK_IS_NOTEBOOK(thiswindow) && strcmp(signame, DW_SIGNAL_SWITCH_PAGE) == 0)
+	{
+		thisname = "switch-page";
 	}
 
 	if(!thisfunc || !thiswindow)
