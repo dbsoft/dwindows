@@ -2616,6 +2616,17 @@ void dw_window_enable(HWND handle)
 	DW_MUTEX_UNLOCK;
 }
 
+/*
+ * Gets the child window handle with specified ID.
+ * Parameters:
+ *       handle: Handle to the parent window.
+ *       id: Integer ID of the child.
+ */
+HWND API dw_window_from_id(HWND handle, int id)
+{
+    return 0L;
+}
+
 void _strip_cr(char *dest, char *src)
 {
 	int z, x = 0;
