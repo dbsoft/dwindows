@@ -874,10 +874,6 @@ typedef struct _dwdialog {
 #define DW_ERROR_NO_MEM    4
 #define DW_ERROR_INTERRUPT 5
 
-#if defined(__OS2__) || defined(__EMX__)
-#define DW_OS2_RGB(a) ((DW_RED_VALUE(a) << 16) | (DW_GREEN_VALUE(a) << 8) | DW_BLUE_VALUE(a))
-#endif
-
 #ifndef API
 #define API
 #endif
