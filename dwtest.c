@@ -101,7 +101,7 @@ fprintf(stderr,"in draw_file: %d %d\n",row,col);
 		dw_color_foreground_set(DW_CLR_WHITE);
 		dw_draw_rect(0, text1pm, TRUE, 0, 0, DW_PIXMAP_WIDTH(text1pm), DW_PIXMAP_HEIGHT(text1pm));
 		dw_draw_rect(0, text2pm, TRUE, 0, 0, DW_PIXMAP_WIDTH(text2pm), DW_PIXMAP_HEIGHT(text2pm));
-		for ( i = 0;(i < rows) & (i+row < rows); i++)
+		for ( i = 0;(i < rows); i++)
 		{
 			y = i*(font_height+font_gap);
 			dw_color_foreground_set( i );
