@@ -3710,6 +3710,7 @@ void API dw_menu_popup(HMENUI *menu, HWND parent, int x, int y)
 	{
 		popup = parent;
 		TrackPopupMenu((*menu)->menu, 0, x, y, 0, parent, NULL);
+		DestroyMenu((*menu)->menu);
 		free(*menu);
 		*menu = NULL;
 	}
