@@ -4501,13 +4501,13 @@ HWND API dw_bitmapbutton_new(char *text, ULONG id)
 	HWND tmp;
 	BubbleButton *bubble = calloc(1, sizeof(BubbleButton));
 	HBITMAP hbitmap = LoadBitmap(DWInstance, MAKEINTRESOURCE(id));
-	HICON icon = LoadIcon(DWInstance, MAKEINTRESOURCE(id));
+	HICON icon = LoadImage(DWInstance, MAKEINTRESOURCE(id), IMAGE_ICON, 0, 0, LR_SHARED);
 
 	tmp = CreateWindow(BUTTONCLASSNAME,
 					   "",
 					   WS_CHILD | BS_PUSHBUTTON |
-					   BS_BITMAP | WS_CLIPCHILDREN |
-					   WS_VISIBLE,
+					   WS_VISIBLE | WS_CLIPCHILDREN |
+					   (icon ? BS_ICON : BS_BITMAP),
 					   0,0,2000,1000,
 					   DW_HWND_OBJECT,
 					   (HMENU)id,
