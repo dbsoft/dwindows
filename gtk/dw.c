@@ -607,7 +607,7 @@ DWDialog *dw_dialog_new(void *data)
 int dw_dialog_dismiss(DWDialog *dialog, void *result)
 {
 	dialog->result = result;
-	if(pthread_self() == _dw_thread)
+	if(pthread_self() == _dw_thread || _dw_thread == (pthread_t)-1)
 		gtk_main_quit();
 	else
 		dw_event_post(dialog->eve);
@@ -624,11 +624,26 @@ int dw_dialog_dismiss(DWDialog *dialog, void *result)
 void *dw_dialog_wait(DWDialog *dialog)
 {
 	void *tmp;
+	int newprocess = 0;
+
+	/* _dw_thread will be -1 if dw_main hasn't been run yet. */
+	if(_dw_thread == (pthread_t)-1)
+	{
+		_dw_thread = pthread_self();
+		newprocess = 1;
+		gdk_threads_enter();
+	}
 
 	if(pthread_self() == _dw_thread)
 		gtk_main();
 	else
 		dw_event_wait(dialog->eve, -1);
+
+	if(newprocess)
+	{
+		_dw_thread = (pthread_t)-1;
+		gdk_threads_leave();
+	}
 
 	dw_event_close(&dialog->eve);
 	tmp = dialog->result;

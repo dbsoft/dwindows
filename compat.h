@@ -4,8 +4,14 @@
 #if !defined(__EMX__) && !defined(__IBMC__) && !defined(__WIN32__) && !defined(WINNT)
 #include "config.h"
 
-#define msleep(a) usleep(a*1000)
+#include <sys/stat.h>
+#include <unistd.h>
+void msleep(long period);
 #endif /* Unix */
+
+#ifndef __TARGET__
+#define __TARGET__ "dw"
+#endif
 
 #include <sys/types.h>
 #if HAVE_DIRENT_H
@@ -38,8 +44,8 @@
 #define TYPDIR "."
 #else
 #define DIRSEP "/"
-#define INIDIR "~/.handyftp"
-#define TYPDIR "/usr/local/handyftp"
+#define INIDIR "~/." __TARGET__
+#define TYPDIR "/usr/local/" __TARGET__
 #endif
 
 /* OS/2 */
@@ -76,11 +82,11 @@
 #define BKS_TABBEDDIALOG          0x0800
 #endif 
 
-#define PIPENAME "\\socket\\handyftp%d"
-#define TPIPENAME "\\socket\\handyftpt%d"
+#define PIPENAME "\\socket\\" __TARGET__ "%d"
+#define TPIPENAME "\\socket\\" __TARGET__ "%d"
 #else
-#define PIPENAME "/tmp/handyftp%d"
-#define TPIPENAME "/tmp/handyftpt%d"
+#define PIPENAME "/tmp/" __TARGET__ "%d"
+#define TPIPENAME "/tmp/" __TARGET__ "%d"
 #endif /* __EMX__ || __IBMC__ */
 
 #ifdef __IBMC__
@@ -156,6 +162,7 @@
 #include <string.h>
 #endif /* STDC_HEADERS */
 #endif /* !WIN32 */
+#include <ctype.h>
 
 #ifndef _MAX_PATH
 #define _MAX_PATH 255
@@ -187,6 +194,7 @@ void sockinit(void);
 void sockshutdown(void);
 int makedir(char *path);
 void nonblock(int fd);
+void block(int fd);
 void setfileinfo(char *filename, char *url);
 #if defined(__IBMC__) || defined(__WIN32__)
 unsigned long drivesize(int drive);
@@ -196,6 +204,7 @@ unsigned long long drivefree(int drive);
 unsigned long long drivesize(int drive);
 #endif
 int isdrive(int drive);
+void getfsname(int drive, char *buf, int len);
 FILE *fsopen(char *path, char *modes);
 int fsclose(FILE *fp);
 char *fsgets(char *str, int size, FILE *stream);
