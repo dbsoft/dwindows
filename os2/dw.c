@@ -89,7 +89,7 @@ typedef struct
 } SignalList;
 
 /* List of signals and their equivilent OS/2 message */
-#define SIGNALMAX 12
+#define SIGNALMAX 13
 
 SignalList SignalTranslate[SIGNALMAX] = {
 	{ WM_SIZE, "configure_event" },
@@ -103,6 +103,7 @@ SignalList SignalTranslate[SIGNALMAX] = {
 	{ CN_ENTER, "container-select" },
 	{ CN_CONTEXTMENU, "container-context" },
 	{ LN_SELECT, "item-select" },
+	{ WM_USER+1, "tree-select" },
 	{ WM_SETFOCUS, "set-focus" }
 };
 
@@ -1431,6 +1432,38 @@ MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 				break;
 			}
 		}
+
+		if(origmsg == WM_BUTTON1DOWN)
+		{
+			if(tmp->message == WM_USER+1)
+			{
+				if(tmp->window == hWnd)
+				{
+					QUERYRECFROMRECT rc;
+					POINTS pts = (*((POINTS*)&mp1));
+					RECORDCORE *prc;
+
+					rc.cb = sizeof(QUERYRECFROMRECT);
+					rc.rect.xLeft = pts.x;
+					rc.rect.xRight = pts.x + 1;
+					rc.rect.yTop = pts.y;
+					rc.rect.yBottom = pts.y - 1;
+					rc.fsSearch = CMA_PARTIAL | CMA_ITEMORDER;
+
+					prc = (RECORDCORE *)WinSendMsg(hWnd, CM_QUERYRECORDFROMRECT, (MPARAM)CMA_FIRST, MPFROMP(&rc));
+
+					if(prc)
+					{
+						int (*treeselectfunc)(HWND, HWND, char *, void *) = (int (*)(HWND, HWND, char *, void *))tmp->signalfunction;
+
+						result = treeselectfunc(tmp->window, (HWND)prc, prc->pszIcon, tmp->data);
+
+						tmp = NULL;
+					}
+				}
+			}
+		}
+
 		if(tmp)
 			tmp = tmp->next;
 
@@ -1445,12 +1478,14 @@ MRESULT EXPENTRY _controlproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 {
 	Box *blah = WinQueryWindowPtr(hWnd, QWP_USER);
 
+#ifndef NO_SIGNALS
 	switch(msg)
 	{
 	case WM_CONTROL:
 		_run_event(hWnd, msg, mp1, mp2);
 		break;
 	}
+#endif
 	if(blah && blah->oldproc)
 	{
 		return blah->oldproc(hWnd, msg, mp1, mp2);
@@ -2159,6 +2194,18 @@ MRESULT EXPENTRY _RendProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 			WinSetFocus(HWND_DESKTOP, hwnd);
 		return (MPARAM)TRUE;
 	}
+	return WinDefWindowProc(hwnd, msg, mp1, mp2);
+}
+
+MRESULT EXPENTRY _TreeProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
+{
+	Box *blah = WinQueryWindowPtr(hwnd, QWP_USER);
+
+#ifndef NO_SIGNALS
+	_run_event(hwnd, msg, mp1, mp2);
+#endif
+	if(blah && blah->oldproc)
+		return blah->oldproc(hwnd, msg, mp1, mp2);
 	return WinDefWindowProc(hwnd, msg, mp1, mp2);
 }
 
@@ -2923,6 +2970,7 @@ HWND dw_container_new(ULONG id)
 HWND dw_tree_new(ULONG id)
 {
 	CNRINFO cnrinfo;
+	Box *newbox = calloc(1, sizeof(Box));
 	HWND tmp = WinCreateWindow(HWND_OBJECT,
 							   WC_CONTAINER,
 							   NULL,
@@ -2940,6 +2988,8 @@ HWND dw_tree_new(ULONG id)
 	cnrinfo.slBitmapOrIcon.cy = 16;
 
 	WinSendMsg(tmp, CM_SETCNRINFO, &cnrinfo, MPFROMLONG(CMA_FLWINDOWATTR | CMA_SLBITMAPORICON));
+	newbox->oldproc = WinSubclassWindow(tmp, _TreeProc);
+	WinSetWindowPtr(tmp, QWP_USER, newbox);
 	dw_window_set_font(tmp, DefaultFont);
 	return tmp;
 }
@@ -4247,6 +4297,28 @@ HWND dw_tree_insert(HWND handle, char *title, unsigned long icon, HWND parent)
 	WinSendMsg(handle, CM_INSERTRECORD, MPFROMP(pci), MPFROMP(&ri));
 
 	return (HWND)pci;
+}
+
+/*
+ * Removes all nodes from a tree.
+ * Parameters:
+ *       handle: Handle to the window (widget) to be cleared.
+ */
+void dw_tree_clear(HWND handle)
+{
+	WinSendMsg(handle, CM_REMOVERECORD, (MPARAM)0L, MPFROM2SHORT(0, CMA_INVALIDATE | CMA_FREE));
+}
+
+/*
+ * Removes a node from a tree.
+ * Parameters:
+ *       handle: Handle to the window (widget) to be cleared.
+ *       item: Handle to node to be deleted.
+ */
+void dw_tree_delete(HWND handle, HWND item)
+{
+	PCNRITEM     pci = (PCNRITEM)item;
+	WinSendMsg(handle, CM_REMOVERECORD, (MPARAM)&pci, MPFROM2SHORT(1, CMA_INVALIDATE | CMA_FREE));
 }
 
 /* Some OS/2 specific container structs */
