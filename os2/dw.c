@@ -1579,7 +1579,7 @@ MRESULT EXPENTRY _wndproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 				unsigned long x, y, width, height;
 				RECTL rc;
 
-				if(pagebox)
+				if(pagebox && psn->ulPageIdNew != psn->ulPageIdCur)
 				{
 					dw_window_get_pos_size(psn->hwndBook, &x, &y, &width, &height);
 
