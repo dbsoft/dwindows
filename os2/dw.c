@@ -6746,7 +6746,7 @@ int API dw_container_get_column_type(HWND handle, int column)
  */
 int API dw_filesystem_get_column_type(HWND handle, int column)
 {
-	return dw_container_get_column_type( handle, column + 1 );
+	return dw_container_get_column_type( handle, column + 2 );
 }
 
 /*
