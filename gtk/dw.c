@@ -1749,11 +1749,11 @@ HWND dw_radiobutton_new(char *text, ULONG id)
 }
 
 /*
- * Create a new slider window (widget) to be packed.
+ * Create a new percent bar window (widget) to be packed.
  * Parameters:
  *       id: An ID to be used with WinWindowFromID() or 0L.
  */
-HWND dw_slider_new(unsigned long id)
+HWND dw_percent_new(unsigned long id)
 {
 	GtkWidget *tmp;
 	int _locked_by_me = FALSE;
@@ -2298,22 +2298,22 @@ void dw_mle_thaw(HWND handle)
 }
 
 /*
- * Returns the range of the slider.
+ * Returns the range of the percent bar.
  * Parameters:
  *          handle: Handle to the slider to be queried.
  */
-unsigned int dw_slider_query_range(HWND handle)
+unsigned int dw_percent_query_range(HWND handle)
 {
 	return 100;
 }
 
 /*
- * Sets the slider position.
+ * Sets the percent bar position.
  * Parameters:
  *          handle: Handle to the slider to be set.
  *          position: Position of the slider withing the range.
  */
-void dw_slider_set_pos(HWND handle, unsigned int position)
+void dw_percent_set_pos(HWND handle, unsigned int position)
 {
 	int _locked_by_me = FALSE;
 

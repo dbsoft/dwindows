@@ -124,6 +124,11 @@ typedef struct _hmenui {
 	HWND menu;
 } *HMENUI;
 
+typedef struct _percentbar {
+	unsigned long pos;
+	PFNWP oldproc;
+} PercentBar;
+
 extern HAB dwhab;
 extern HMQ dwhmq;
 #endif
@@ -593,7 +598,7 @@ HWND dw_combobox_new(char *text, unsigned long id);
 HWND dw_button_new(char *text, unsigned long id);
 HWND dw_spinbutton_new(char *text, unsigned long id);
 HWND dw_radiobutton_new(char *text, ULONG id);
-HWND dw_slider_new(unsigned long id);
+HWND dw_percent_new(unsigned long id);
 HWND dw_checkbox_new(char *text, unsigned long id);
 HWND dw_listbox_new(unsigned long id, int multi);
 void dw_listbox_append(HWND handle, char *text);
@@ -606,8 +611,8 @@ void dw_listbox_query_text(HWND handle, unsigned int index, char *buffer, unsign
 void dw_listbox_set_text(HWND handle, unsigned int index, char *buffer);
 unsigned int dw_listbox_selected(HWND handle);
 int dw_listbox_selected_multi(HWND handle, int where);
-unsigned int dw_slider_query_range(HWND handle);
-void dw_slider_set_pos(HWND handle, unsigned int position);
+unsigned int dw_percent_query_range(HWND handle);
+void dw_percent_set_pos(HWND handle, unsigned int position);
 void dw_window_set_pos(HWND handle, unsigned long x, unsigned long y);
 void dw_window_set_usize(HWND handle, unsigned long width, unsigned long height);
 void dw_window_set_pos_size(HWND handle, unsigned long x, unsigned long y, unsigned long width, unsigned long height);

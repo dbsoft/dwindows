@@ -979,6 +979,53 @@ MRESULT EXPENTRY _sizeproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 
 	return WinDefWindowProc(hWnd, msg, mp1, mp2);
 }
+
+void _Top(HPS hpsPaint, RECTL rclPaint)
+{
+	POINTL ptl1, ptl2;
+
+	ptl1.x = rclPaint.xLeft;
+	ptl2.y = ptl1.y = rclPaint.yTop - 1;
+	ptl2.x = rclPaint.xRight - 1;
+	GpiMove(hpsPaint, &ptl1);
+	GpiLine(hpsPaint, &ptl2);
+}
+
+/* Left hits the bottom */
+void _Left(HPS hpsPaint, RECTL rclPaint)
+{
+	POINTL ptl1, ptl2;
+
+	ptl2.x = ptl1.x = rclPaint.xLeft;
+	ptl1.y = rclPaint.yTop - 1;
+	ptl2.y = rclPaint.yBottom;
+	GpiMove(hpsPaint, &ptl1);
+	GpiLine(hpsPaint, &ptl2);
+}
+
+void _Bottom(HPS hpsPaint, RECTL rclPaint)
+{
+	POINTL ptl1, ptl2;
+
+	ptl1.x = rclPaint.xRight - 1;
+	ptl1.y = ptl2.y = rclPaint.yBottom;
+	ptl2.x = rclPaint.xLeft;
+	GpiMove(hpsPaint, &ptl1);
+	GpiLine(hpsPaint, &ptl2);
+}
+
+/* Right hits the top */
+void _Right(HPS hpsPaint, RECTL rclPaint)
+{
+	POINTL ptl1, ptl2;
+
+	ptl2.x = ptl1.x = rclPaint.xRight - 1;
+	ptl1.y = rclPaint.yBottom + 1;
+	ptl2.y = rclPaint.yTop - 1;
+	GpiMove(hpsPaint, &ptl1);
+	GpiLine(hpsPaint, &ptl2);
+}
+
 /* This procedure handles drawing of a status border */
 MRESULT EXPENTRY _statusproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 {
@@ -994,7 +1041,6 @@ MRESULT EXPENTRY _statusproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 			{
 				HPS hpsPaint;
 				RECTL rclPaint;
-				POINTL ptl1, ptl2;
 				char buf[1024];
 
 				hpsPaint = WinBeginPaint(hWnd, 0, 0);
@@ -1002,24 +1048,12 @@ MRESULT EXPENTRY _statusproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 				WinFillRect(hpsPaint, &rclPaint, CLR_PALEGRAY);
 
 				GpiSetColor(hpsPaint, CLR_DARKGRAY);
-				ptl1.x = 0;
-				ptl2.y = ptl1.y = rclPaint.yTop - rclPaint.yBottom;
-				ptl2.x = rclPaint.xRight - rclPaint.xLeft;
-				GpiMove(hpsPaint, &ptl1);
-				GpiLine(hpsPaint, &ptl2);
-				ptl2.y = ptl2.x = 0;
-				GpiMove(hpsPaint, &ptl1);
-				GpiLine(hpsPaint, &ptl2);
+				_Top(hpsPaint, rclPaint);
+				_Left(hpsPaint, rclPaint);
 
 				GpiSetColor(hpsPaint, CLR_WHITE);
-				ptl2.x = ptl1.x = rclPaint.xRight - rclPaint.xLeft;
-				ptl1.y = 0;
-				ptl2.y = rclPaint.yTop - rclPaint.yBottom;
-				GpiMove(hpsPaint, &ptl1);
-				GpiLine(hpsPaint, &ptl2);
-				ptl2.y = ptl2.x = 0;
-				GpiMove(hpsPaint, &ptl1);
-				GpiLine(hpsPaint, &ptl2);
+				_Right(hpsPaint, rclPaint);
+				_Bottom(hpsPaint, rclPaint);
 
 				WinQueryWindowText(hWnd, 1024, buf);
 				rclPaint.xLeft += 3;
@@ -1029,6 +1063,91 @@ MRESULT EXPENTRY _statusproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 
 				GpiSetColor(hpsPaint, CLR_BLACK);
 				WinDrawText(hpsPaint, -1, buf, &rclPaint, DT_TEXTATTRS, DT_TEXTATTRS, DT_VCENTER | DT_LEFT | DT_TEXTATTRS);
+				WinEndPaint(hpsPaint);
+
+				return (MRESULT)TRUE;
+			}
+		}
+		return myfunc(hWnd, msg, mp1, mp2);
+	}
+
+	return WinDefWindowProc(hWnd, msg, mp1, mp2);
+}
+
+/* This procedure handles drawing of a percent bar */
+MRESULT EXPENTRY _percentproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
+{
+	PercentBar *blah = (PercentBar *)WinQueryWindowPtr(hWnd, QWP_USER);
+
+	if(blah)
+	{
+		PFNWP myfunc = blah->oldproc;
+
+		switch(msg)
+		{
+		case WM_PAINT:
+			{
+				HPS hpsPaint;
+				RECTL rclPaint, rclBar;
+
+				hpsPaint = WinBeginPaint(hWnd, 0, 0);
+				WinQueryWindowRect(hWnd, &rclPaint);
+
+				/* Draw outer border */
+				rclBar = rclPaint;
+				GpiSetColor(hpsPaint, CLR_PALEGRAY);
+				_Top(hpsPaint, rclBar);
+				_Bottom(hpsPaint, rclBar);
+				rclBar.yTop--;
+				GpiSetColor(hpsPaint, CLR_WHITE);
+				_Right(hpsPaint, rclBar);
+				rclBar.yBottom++;
+				GpiSetColor(hpsPaint, CLR_DARKGRAY);
+				_Left(hpsPaint, rclBar);
+
+				/* Draw inner border */
+				rclBar.xLeft++;
+				rclBar.xRight--;
+				GpiSetColor(hpsPaint, CLR_DARKGRAY);
+				_Left(hpsPaint, rclBar);
+				_Top(hpsPaint, rclBar);
+				GpiSetColor(hpsPaint, CLR_WHITE);
+				_Bottom(hpsPaint, rclBar);
+				_Right(hpsPaint, rclBar);
+
+				/* Draw bar border */
+				rclBar.xLeft++;
+				rclBar.xRight--;
+				rclBar.yBottom++;
+				rclBar.yTop--;
+				GpiSetColor(hpsPaint, CLR_DARKGRAY);
+				_Left(hpsPaint, rclBar);
+				_Top(hpsPaint, rclBar);
+				_Bottom(hpsPaint, rclBar);
+				_Right(hpsPaint, rclBar);
+
+				if(blah->pos)
+				{
+					rclBar.xRight = 3 + blah->pos;
+					_Right(hpsPaint, rclBar);
+
+					/* Draw Bar itself */
+					rclBar.xLeft = rclPaint.xLeft + 3;
+					rclBar.xRight = rclPaint.xLeft +  2 + blah->pos;
+					rclBar.yTop = rclPaint.yTop - 3;
+					rclBar.yBottom = rclPaint.yBottom + 3;
+
+					WinFillRect(hpsPaint, &rclBar, CLR_DARKBLUE);
+				}
+
+				/* Draw the background */
+				rclBar.xLeft = rclPaint.xLeft + 3 + blah->pos;
+				rclBar.xRight = rclPaint.xRight - 3;
+				rclBar.yTop = rclPaint.yTop - 3;
+				rclBar.yBottom = rclPaint.yBottom + 3;
+
+				WinFillRect(hpsPaint, &rclBar, CLR_PALEGRAY);
+
 				WinEndPaint(hpsPaint);
 
 				return (MRESULT)TRUE;
@@ -3298,22 +3417,30 @@ HWND dw_radiobutton_new(char *text, ULONG id)
 }
 
 /*
- * Create a new slider window (widget) to be packed.
+ * Create a new percent bar window (widget) to be packed.
  * Parameters:
  *       id: An ID to be used with WinWindowFromID() or 0L.
  */
-HWND dw_slider_new(ULONG id)
+HWND dw_percent_new(ULONG id)
 {
-	return WinCreateWindow(HWND_OBJECT,
-						   WC_SLIDER,
-						   NULL,
-						   WS_VISIBLE,
-						   0,0,2000,1000,
-						   NULLHANDLE,
-						   HWND_TOP,
-						   id,
-						   NULL,
-						   NULL);
+	PercentBar *blah = malloc(sizeof(PercentBar));
+	HWND tmp = WinCreateWindow(HWND_OBJECT,
+							   WC_STATIC,
+							   "",
+							   WS_VISIBLE | SS_TEXT,
+							   0,0,2000,1000,
+							   NULLHANDLE,
+							   HWND_TOP,
+							   id,
+							   NULL,
+							   NULL);
+	dw_window_set_font(tmp, DefaultFont);
+	dw_window_set_color(tmp, DW_CLR_BLUE, DW_CLR_PALEGRAY);
+
+	blah->oldproc = WinSubclassWindow(tmp, _percentproc);
+	blah->pos = 0;
+	WinSetWindowPtr(tmp, QWP_USER, blah);
+	return tmp;
 }
 
 /*
@@ -4151,24 +4278,39 @@ void dw_mle_thaw(HWND handle)
 }
 
 /*
- * Returns the range of the slider.
+ * Returns the range of the percent bar.
  * Parameters:
  *          handle: Handle to the slider to be queried.
  */
-unsigned int dw_slider_query_range(HWND handle)
+unsigned int dw_percent_query_range(HWND handle)
 {
-	return SHORT2FROMMP(WinSendMsg(handle, SLM_QUERYSLIDERINFO, MPFROM2SHORT(SMA_SLIDERARMPOSITION,SMA_RANGEVALUE), 0));
+	unsigned long width;
+
+	dw_window_get_pos_size(handle, 0, 0, &width, 0);
+
+	if(width - 6 < 1)
+		return 1;
+	return width - 6;
 }
 
 /*
- * Sets the slider position.
+ * Sets the percent bar position.
  * Parameters:
  *          handle: Handle to the slider to be set.
  *          position: Position of the slider withing the range.
  */
-void dw_slider_set_pos(HWND handle, unsigned int position)
+void dw_percent_set_pos(HWND handle, unsigned int position)
 {
-	WinSendMsg(handle, SLM_SETSLIDERINFO, MPFROM2SHORT(SMA_SLIDERARMPOSITION,SMA_RANGEVALUE), (MPARAM)position);
+	PercentBar *pb = (PercentBar *)WinQueryWindowPtr(handle, 0);
+
+	if(pb)
+	{
+		RECTL rcl;
+
+		pb->pos = position;
+		WinQueryWindowRect(handle, &rcl);
+		WinInvalidateRect(handle, &rcl, FALSE);
+	}
 }
 
 /*

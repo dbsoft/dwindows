@@ -83,9 +83,9 @@ EXPORTS
   dw_listbox_selected                    @149
   dw_listbox_selected_multi              @150
 
-  dw_slider_new                          @160
-  dw_slider_query_range                  @161
-  dw_slider_set_pos                      @162
+  dw_percent_new                         @160
+  dw_percent_query_range                 @161
+  dw_percent_set_pos                     @162
 
   dw_mle_new                             @170
   dw_mle_import                          @171
