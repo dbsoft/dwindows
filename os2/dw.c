@@ -3029,8 +3029,8 @@ MRESULT EXPENTRY _button_draw(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2, PFNW
 		if(dw_window_get_data(hwnd, "_dw_disabled"))
 			halftone = DP_HALFTONED;
 
-	x = (width - 16)/2;
-	y = (height - 16)/2;
+		x = (width - 16)/2;
+		y = (height - 16)/2;
 
 		WinDrawPointer(hps, x + indent, y - indent, icon, halftone | DP_MINI);
 		WinReleasePS(hps);
@@ -4625,8 +4625,8 @@ HWND API dw_bitmapbutton_new(char *text, ULONG id)
 						  WC_BUTTON,
 						  name,
 						  WS_VISIBLE | BS_PUSHBUTTON |
-						  BS_BITMAP | BS_AUTOSIZE |
-						  BS_NOPOINTERFOCUS,
+						  BS_NOPOINTERFOCUS | BS_AUTOSIZE |
+						  (icon ? 0 : BS_BITMAP),
 						  0,0,2000,1000,
 						  NULLHANDLE,
 						  HWND_TOP,
@@ -4634,15 +4634,15 @@ HWND API dw_bitmapbutton_new(char *text, ULONG id)
 						  NULL,
 						  NULL);
 
-	if(icon)
-		dw_window_set_data(tmp, "_dw_button_icon", (void *)icon);
-
 	bubble->id = id;
 	strncpy(bubble->bubbletext, text, BUBBLE_HELP_MAX - 1);
 	bubble->bubbletext[BUBBLE_HELP_MAX - 1] = '\0';
 	bubble->pOldProc = WinSubclassWindow(tmp, _BtProc);
 
 	WinSetWindowPtr(tmp, QWP_USER, bubble);
+
+	if(icon)
+		dw_window_set_data(tmp, "_dw_button_icon", (void *)icon);
 	dw_window_set_data(tmp, "_dw_bitmapbutton", (void *)1);
 	return tmp;
 }
