@@ -2705,7 +2705,7 @@ HWND dw_menu_append_item(HMENUI menux, char *title, ULONG id, ULONG flags, int e
  *       id: Menuitem id.
  *       check: TRUE for checked FALSE for not checked.
  */
-void dw_menu_item_set_check(HMENUI menux, int id, int check)
+void dw_menu_item_set_check(HMENUI menux, unsigned long id, int check)
 {
 	HWND menu;
 
