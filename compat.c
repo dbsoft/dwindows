@@ -22,7 +22,7 @@
 #endif
 #include <time.h>
 
-#ifdef __UNIX__
+#if defined(__UNIX__) || defined(__MAC__)
 void msleep(long period)
 {
 #ifdef __sun__
