@@ -547,6 +547,7 @@ void API getfsname(int drive, char *buf, int len)
 #endif
 #elif defined(__OS2__)
 	/* No snprintf() on OS/2 ??? */
+	len = len;
 	sprintf(buf, "Drive %c",  (char)drive + 'A' - 1);
 #else
 	_snprintf(buf, len, "Drive %c",  (char)drive + 'A' - 1);
@@ -576,6 +577,7 @@ void API setfileinfo(char *filename, char *url, char *logfile)
 	sprintf(buffer, "%s %s", url, timebuf);
 
 #ifdef __OS2__
+	logfile = logfile;
 	eaop2.fpGEA2List = 0;
 	eaop2.fpFEA2List = (PFEA2LIST)malloc(fea2listsize);
 	pFEA2 = &eaop2.fpFEA2List->list[0];
