@@ -1205,7 +1205,7 @@ int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *usedy,
 	if(thisbox->grouphwnd)
 	{
 		currentx += 3;
-		currenty += 3;
+		currenty += thisbox->grouppady - 3;
 	}
 
 	/* The second pass is for expansion and actual placement. */
