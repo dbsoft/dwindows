@@ -5446,7 +5446,7 @@ int dw_filesystem_setup(HWND handle, unsigned long *flags, char **titles, int co
 	memcpy(&newtitles[2], titles, sizeof(char *) * count);
 	memcpy(&newflags[2], flags, sizeof(unsigned long) * count);
 
-	dw_container_setup(handle, newflags, newtitles, count + 2, 2);
+	dw_container_setup(handle, newflags, newtitles, count + 2, count ? 2 : 0);
 
 	free(newtitles);
 	free(newflags);
