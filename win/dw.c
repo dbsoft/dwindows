@@ -2211,7 +2211,8 @@ BOOL CALLBACK _spinnerwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 				if(cinfo && cinfo->buddy)
 					SendMessage(cinfo->buddy, WM_USER+10, 0, 0);
 
-				KillTimer(hWnd, 100);
+				if(hWnd)
+					KillTimer(hWnd, 100);
 
 				return ret;
 			}
@@ -2335,7 +2336,7 @@ BOOL CALLBACK _colorwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 		case WM_KEYDOWN:
 		case WM_KEYUP:
 			{
-				if(mp1 == VK_UP || mp1 == VK_DOWN)
+				if(hWnd && (mp1 == VK_UP || mp1 == VK_DOWN))
 				{
 					BOOL ret;
 
@@ -3056,8 +3057,6 @@ BOOL CALLBACK _BtProc(HWND hwnd, ULONG msg, WPARAM mp1, LPARAM mp2)
 					dw_window_set_font(hwndBubble, DefaultFont);
 					dw_window_set_color(hwndBubble, DW_CLR_BLACK, DW_CLR_YELLOW);
 
-					SetTimer(hwnd, 1, 3000, NULL);
-
 					hFont = (HFONT)SendMessage(hwndBubble, WM_GETFONT, 0, 0);
 
 					hdc = GetDC(hwndBubble);
@@ -3277,8 +3276,13 @@ void API dw_main(void)
 
 	while(GetMessage(&msg, NULL, 0, 0))
 	{
-		TranslateMessage(&msg);
-		DispatchMessage(&msg);
+		if(msg.hwnd == NULL && msg.message == WM_TIMER)
+			_wndproc(msg.hwnd, msg.message, msg.wParam, msg.lParam);
+		else
+		{
+			TranslateMessage(&msg);
+			DispatchMessage(&msg);
+		}
 	}
 }
 
@@ -3297,8 +3301,13 @@ void API dw_main_sleep(int milliseconds)
 		if(PeekMessage(&msg, NULL, 0, 0, PM_NOREMOVE))
 		{
 			GetMessage(&msg, NULL, 0, 0);
-			TranslateMessage(&msg);
-			DispatchMessage(&msg);
+			if(msg.hwnd == NULL && msg.message == WM_TIMER)
+				_wndproc(msg.hwnd, msg.message, msg.wParam, msg.lParam);
+			else
+			{
+				TranslateMessage(&msg);
+				DispatchMessage(&msg);
+			}
 		}
 		else
 			Sleep(1);
@@ -3316,8 +3325,13 @@ void API dw_main_iteration(void)
 
 	if(GetMessage(&msg, NULL, 0, 0))
 	{
-		TranslateMessage(&msg);
-		DispatchMessage(&msg);
+		if(msg.hwnd == NULL && msg.message == WM_TIMER)
+			_wndproc(msg.hwnd, msg.message, msg.wParam, msg.lParam);
+		else
+		{
+			TranslateMessage(&msg);
+			DispatchMessage(&msg);
+		}
 	}
 }
 
@@ -3380,8 +3394,11 @@ void * API dw_dialog_wait(DWDialog *dialog)
 	{
 		if(msg.hwnd == NULL && msg.message == WM_TIMER)
 			_wndproc(msg.hwnd, msg.message, msg.wParam, msg.lParam);
-		TranslateMessage(&msg);
-		DispatchMessage(&msg);
+		else
+		{
+			TranslateMessage(&msg);
+			DispatchMessage(&msg);
+		}
 		if(dialog->done)
 			break;
 	}
