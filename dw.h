@@ -525,8 +525,6 @@ typedef struct _bubblebutton {
 	char bubbletext[BUBBLE_HELP_MAX];
 } BubbleButton;
 
-void dw_box_pack_start_stub(HWND box, HWND item, int width, int height, int hsize, int vsize, int pad);
-void dw_box_pack_end_stub(HWND box, HWND item, int width, int height, int hsize, int vsize, int pad);
 #else
 /* GTK Specific section */
 #include <gtk/gtk.h>

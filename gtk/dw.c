@@ -6169,18 +6169,6 @@ void dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, int 
 	if(!box)
 		return;
 
-/* Can't use dw_messagebox() !!! */
-if ( width == 0 && hsize == FALSE )
-		dw_messagebox("dw_box_pack_end()", DW_MB_OK|DW_MB_ERROR, "Width and expand Horizonal both unset for box: %x item: %x",box,item);
-if ( height == 0 && vsize == FALSE )
-		dw_messagebox("dw_box_pack_end()", DW_MB_OK|DW_MB_ERROR, "Height and expand Vertical both unset for box: %x item: %x",box,item);
-/*
-if ( width == 0 && hsize == FALSE )
-		fprintf(stderr,"dw_box_pack_end() - Width and expand Horizonal both unset for box: %lx item: %lx",(long)box,(long)item);
-if ( height == 0 && vsize == FALSE )
-		fprintf(stderr,"dw_box_pack_end() - Height and expand Vertical both unset for box: %lx item: %lx",(long)box,(long)item);
-*/
-
 	DW_MUTEX_LOCK;
 
 	if((tmp  = gtk_object_get_data(GTK_OBJECT(box), "_dw_boxhandle")))
@@ -6212,6 +6200,14 @@ if ( height == 0 && vsize == FALSE )
 				pad = (int)gtk_object_get_data(GTK_OBJECT(item), "_dw_boxpad");
 				item = eventbox;
 			}
+		}
+		else
+		{
+            /* Only show warning if item is not a box */
+			if ( width == 0 && hsize == FALSE )
+				dw_messagebox("dw_box_pack_end()", DW_MB_OK|DW_MB_ERROR, "Width and expand Horizonal both unset for box: %x item: %x",box,item);
+			if ( height == 0 && vsize == FALSE )
+				dw_messagebox("dw_box_pack_end()", DW_MB_OK|DW_MB_ERROR, "Height and expand Vertical both unset for box: %x item: %x",box,item);
 		}
 
 		if(boxtype == DW_VERT)
@@ -6250,6 +6246,14 @@ if ( height == 0 && vsize == FALSE )
 				pad = (int)gtk_object_get_data(GTK_OBJECT(item), "_dw_boxpad");
 				item = eventbox;
 			}
+		}
+		else
+		{
+            /* Only show warning if item is not a box */
+			if ( width == 0 && hsize == FALSE )
+				dw_messagebox("dw_box_pack_end()", DW_MB_OK|DW_MB_ERROR, "Width and expand Horizonal both unset for box: %x item: %x",box,item);
+			if ( height == 0 && vsize == FALSE )
+				dw_messagebox("dw_box_pack_end()", DW_MB_OK|DW_MB_ERROR, "Height and expand Vertical both unset for box: %x item: %x",box,item);
 		}
 
 		gtk_container_border_width(GTK_CONTAINER(box), pad);
@@ -7342,11 +7346,6 @@ void dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize, in
 	if(!box)
 		return;
 
-if ( width == 0 && hsize == FALSE )
-		dw_messagebox("dw_box_pack_start()", DW_MB_OK|DW_MB_ERROR, "Width and expand Horizonal both unset for box: %x item: %x",box,item);
-if ( height == 0 && vsize == FALSE )
-		dw_messagebox("dw_box_pack_start()", DW_MB_OK|DW_MB_ERROR, "Height and expand Vertical both unset for box: %x item: %x",box,item);
-
 	DW_MUTEX_LOCK;
 
 	if((tmp  = gtk_object_get_data(GTK_OBJECT(box), "_dw_boxhandle")))
@@ -7379,6 +7378,14 @@ if ( height == 0 && vsize == FALSE )
 				pad = (int)gtk_object_get_data(GTK_OBJECT(item), "_dw_boxpad");
 				item = eventbox;
 			}
+		}
+		else
+		{
+            /* Only show warning if item is not a box */
+			if ( width == 0 && hsize == FALSE )
+				dw_messagebox("dw_box_pack_start()", DW_MB_OK|DW_MB_ERROR, "Width and expand Horizonal both unset for box: %x item: %x",box,item);
+			if ( height == 0 && vsize == FALSE )
+				dw_messagebox("dw_box_pack_start()", DW_MB_OK|DW_MB_ERROR, "Height and expand Vertical both unset for box: %x item: %x",box,item);
 		}
 
 		if(boxtype == DW_VERT)
@@ -7425,6 +7432,14 @@ if ( height == 0 && vsize == FALSE )
 				pad = (int)gtk_object_get_data(GTK_OBJECT(item), "_dw_boxpad");
 				item = eventbox;
 			}
+		}
+		else
+		{
+            /* Only show warning if item is not a box */
+			if ( width == 0 && hsize == FALSE )
+				dw_messagebox("dw_box_pack_start()", DW_MB_OK|DW_MB_ERROR, "Width and expand Horizonal both unset for box: %x item: %x",box,item);
+			if ( height == 0 && vsize == FALSE )
+				dw_messagebox("dw_box_pack_start()", DW_MB_OK|DW_MB_ERROR, "Height and expand Vertical both unset for box: %x item: %x",box,item);
 		}
 
 		gtk_container_border_width(GTK_CONTAINER(box), pad);
