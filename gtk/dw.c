@@ -1705,10 +1705,13 @@ void dw_pointer_query_pos(long *x, long *y)
 {
 	GdkModifierType state;
 	int gx, gy;
+	int _locked_by_me = FALSE;
 
+	DW_MUTEX_LOCK;
 	gdk_window_get_pointer (GDK_ROOT_PARENT(), &gx, &gy, &state);
 	*x = gx;
 	*y = gy;
+	DW_MUTEX_UNLOCK;
 }
 
 /*
@@ -1719,7 +1722,11 @@ void dw_pointer_query_pos(long *x, long *y)
  */
 void dw_pointer_set_pos(long x, long y)
 {
+	int _locked_by_me = FALSE;
+
+	DW_MUTEX_LOCK;
 	XWarpPointer(GDK_DISPLAY(), None, GDK_ROOT_WINDOW(), 0,0,0,0, x, y);
+	DW_MUTEX_UNLOCK;
 }
 
 /*
