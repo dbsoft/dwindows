@@ -1160,14 +1160,12 @@ int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *usedy,
 
 				if(strncmp(tmpbuf, "#2", 3)==0)
 				{
+					HWND frame = (HWND)dw_window_get_data(handle, "_dw_combo_box");
 					/* Make the combobox big enough to drop down. :) */
-                    if(dw_window_get_data(handle, "_dw_dropped"))
-						WinSetWindowPos(handle, HWND_TOP, currentx + pad, (currenty + pad) - 100,
-										width + vectorx, (height + vectory) + 100, SWP_MOVE | SWP_SIZE | SWP_ZORDER);
-					else
-						WinSetWindowPos(handle, HWND_TOP, currentx + pad, currenty + pad,
-										width + vectorx, height + vectory, SWP_MOVE | SWP_SIZE | SWP_ZORDER);
-
+					WinSetWindowPos(handle, HWND_TOP, 0, -100,
+									width + vectorx, (height + vectory) + 100, SWP_MOVE | SWP_SIZE | SWP_ZORDER);
+					WinSetWindowPos(frame, HWND_TOP, currentx + pad, currenty + pad,
+									width + vectorx, height + vectory, SWP_MOVE | SWP_SIZE | SWP_ZORDER);
 				}
 				else if(strncmp(tmpbuf, "#6", 3)==0)
 				{
@@ -1740,34 +1738,6 @@ MRESULT EXPENTRY _comboproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 		break;
 	case WM_SETFOCUS:
 		_run_event(hWnd, msg, mp1, mp2);
-		break;
-	case CBM_SHOWLIST:
-		{
-			int dropped = dw_window_get_data(hWnd, "_dw_dropped");
-
-			if(mp1)
-			{
-				if(!dropped)
-				{
-					SWP swp;
-
-					WinQueryWindowPos(hWnd, &swp);
-					WinSetWindowPos(hWnd, NULLHANDLE, swp.x, swp.y - 100, swp.cx, swp.cy + 100, SWP_MOVE | SWP_SIZE);
-					dw_window_set_data(hWnd, "_dw_dropped", (void *)1);
-				}
-			}
-			else
-			{
-				if(dropped)
-				{
-					SWP swp;
-
-					WinQueryWindowPos(hWnd, &swp);
-					WinSetWindowPos(hWnd, NULLHANDLE, swp.x, swp.y + 100, swp.cx, swp.cy - 100, SWP_MOVE | SWP_SIZE);
-					dw_window_set_data(hWnd, "_dw_dropped", (void *)0);
-				}
-			}
-		}
 		break;
 	case WM_PAINT:
 		{
@@ -3474,11 +3444,13 @@ int API dw_window_hide(HWND handle)
  */
 int API dw_window_destroy(HWND handle)
 {
-	HWND parent = WinQueryWindow(handle, QW_PARENT);
+	HWND frame, parent = WinQueryWindow(handle, QW_PARENT);
 	Box *thisbox = WinQueryWindowPtr(parent, QWP_USER);
 
 	if(!handle)
 		return -1;
+
+	frame = (HWND)dw_window_get_data(handle, "_dw_combo_box");
 
 	if(parent != desktop && thisbox && thisbox->count)
 	{
@@ -3511,7 +3483,7 @@ int API dw_window_destroy(HWND handle)
 		thisbox->count--;
 		_free_window_memory(handle);
 	}
-	return WinDestroyWindow(handle);
+	return WinDestroyWindow(frame ? frame : handle);
 }
 
 /* Causes entire window to be invalidated and redrawn.
@@ -4234,7 +4206,18 @@ HWND API dw_entryfield_password_new(char *text, ULONG id)
 HWND API dw_combobox_new(char *text, ULONG id)
 {
 	WindowData *blah = calloc(1, sizeof(WindowData));
-	HWND tmp = WinCreateWindow(HWND_OBJECT,
+	HWND frame = WinCreateWindow(HWND_OBJECT,
+								 WC_FRAME,
+								 NULL,
+								 WS_VISIBLE | WS_CLIPCHILDREN |
+								 FS_NOBYTEALIGN,
+								 0,0,2000,1000,
+								 NULLHANDLE,
+								 HWND_TOP,
+								 0L,
+								 NULL,
+								 NULL);
+	HWND tmp = WinCreateWindow(frame,
 							   WC_COMBOBOX,
 							   text,
 							   WS_VISIBLE | CBS_DROPDOWN | WS_GROUP,
@@ -4261,6 +4244,7 @@ HWND API dw_combobox_new(char *text, ULONG id)
 	dw_window_set_font(tmp, DefaultFont);
 	dw_window_set_color(tmp, DW_CLR_BLACK, DW_CLR_WHITE);
 	dw_window_set_data(tmp, "_dw_comboentry", (void *)last);
+	dw_window_set_data(tmp, "_dw_combo_box", (void *)frame);
 	return tmp;
 }
 
@@ -5011,6 +4995,7 @@ void dw_box_pack_end_stub(HWND box, HWND item, int width, int height, int hsize,
 		int z;
 		Item *tmpitem, *thisitem = thisbox->items;
 		char tmpbuf[100];
+		HWND frame = (HWND)dw_window_get_data(item, "_dw_combo_box");
 
 		tmpitem = malloc(sizeof(Item)*(thisbox->count+1));
 
@@ -5056,7 +5041,7 @@ void dw_box_pack_end_stub(HWND box, HWND item, int width, int height, int hsize,
 		WinQueryClassName(item, 99, tmpbuf);
 		if(strncmp(tmpbuf, "#6", 3)!=0 && strncmp(tmpbuf, "#32", 4)!=0)
 			WinSetOwner(item, box);
-		WinSetParent(item, box, FALSE);
+		WinSetParent(frame ? frame : item, box, FALSE);
 	}
 }
 
@@ -7639,6 +7624,7 @@ void dw_box_pack_start_stub(HWND box, HWND item, int width, int height, int hsiz
 		int z;
 		Item *tmpitem, *thisitem = thisbox->items;
 		char tmpbuf[100];
+		HWND frame = (HWND)dw_window_get_data(item, "_dw_combo_box");
 
 		tmpitem = malloc(sizeof(Item)*(thisbox->count+1));
 
@@ -7684,7 +7670,7 @@ void dw_box_pack_start_stub(HWND box, HWND item, int width, int height, int hsiz
 		/* Don't set the ownership if it's an entryfield or spinbutton */
 		if(strncmp(tmpbuf, "#6", 3)!=0 && strncmp(tmpbuf, "#32", 4)!=0)
 			WinSetOwner(item, box);
-		WinSetParent(item, box, FALSE);
+		WinSetParent(frame ? frame : item, box, FALSE);
 	}
 }
 
