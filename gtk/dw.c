@@ -3962,7 +3962,7 @@ void *dw_tree_get_data(HWND handle, HWND item)
 	void *ret = NULL;
 #if GTK_MAJOR_VERSION > 1
 	GtkWidget *tree;
-	GtkTreeStore *store;
+	GtkTreeModel *store;
 	int _locked_by_me = FALSE;
 
 	if(!handle || !item)
@@ -3971,7 +3971,7 @@ void *dw_tree_get_data(HWND handle, HWND item)
 	DW_MUTEX_LOCK;
 	if((tree = (GtkWidget *)gtk_object_get_user_data(GTK_OBJECT(handle)))
 		&& GTK_IS_TREE_VIEW(tree) &&
-		(store = (GtkTreeStore *)gtk_object_get_data(GTK_OBJECT(tree), "_dw_tree_store")))
+		(store = (GtkTreeModel *)gtk_object_get_data(GTK_OBJECT(tree), "_dw_tree_store")))
 			gtk_tree_model_get(store, (GtkTreeIter *)item, 2, &ret, -1);
 	DW_MUTEX_UNLOCK;
 #else
