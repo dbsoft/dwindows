@@ -1,4 +1,5 @@
 /*
+/*
  * Dynamic Windows:
  *          A GTK like implementation of the PM GUI
  *
@@ -452,10 +453,11 @@ int _validate_focus(HWND handle)
 	if(!handle)
 		return 0;
 
-	if(!WinIsWindowEnabled(handle) || dw_window_get_data(handle, "_dw_disabled"))
-		return 0;
-
 	WinQueryClassName(handle, 99, tmpbuf);
+
+	if(!WinIsWindowEnabled(handle) ||
+	   (strncmp(tmpbuf, "ColorSelectClass", 17) && dw_window_get_data(handle, "_dw_disabled")))
+		return 0;
 
 	/* These are the window classes which can
 	 * obtain input focus.
@@ -2551,6 +2553,42 @@ MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 	return (MRESULT)result;
 }
 
+/* Gets a DW_RGB value from the three spinbuttons */
+unsigned long _dw_color_spin_get(HWND window)
+{
+	HWND button = (HWND)dw_window_get_data(window, "_dw_red_spin");
+	long red, green, blue;
+
+	red = dw_spinbutton_get_pos(button);
+	button = (HWND)dw_window_get_data(window, "_dw_green_spin");
+	green = dw_spinbutton_get_pos(button);
+	button = (HWND)dw_window_get_data(window, "_dw_blue_spin");
+	blue = dw_spinbutton_get_pos(button);
+
+	return DW_RGB(red, green, blue);
+}
+
+/* Set the three spinbuttons from a DW_RGB value */
+void _dw_color_spin_set(HWND window, unsigned long value)
+{
+	HWND button = (HWND)dw_window_get_data(window, "_dw_red_spin");
+	dw_window_set_data(window, "_dw_updating", (void *)1);
+	dw_spinbutton_set_pos(button, DW_RED_VALUE(value));
+	button = (HWND)dw_window_get_data(window, "_dw_green_spin");
+	dw_spinbutton_set_pos(button, DW_GREEN_VALUE(value));
+	button = (HWND)dw_window_get_data(window, "_dw_blue_spin");
+	dw_spinbutton_set_pos(button, DW_BLUE_VALUE(value));
+	dw_window_set_data(window, "_dw_updating", NULL);
+}
+
+/* Sets the color selection control to be a DW_RGB value */
+void _dw_col_set(HWND col, unsigned long value)
+{
+	WinSendMsg(col, 0x0602, MPFROMLONG(_os2_color(value)), 0);
+	if(!IS_WARP4())
+		WinSendMsg(col, 0x1384, MPFROMLONG(_os2_color(value)), 0);
+}
+
 /* Handles control messages sent to the box (owner). */
 MRESULT EXPENTRY _controlproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 {
@@ -2570,7 +2608,30 @@ MRESULT EXPENTRY _controlproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 			_HandleScroller(window, (int)SHORT1FROMMP(mp2), (int)SHORT2FROMMP(mp2));
 		}
 		break;
+		/* Handles Color Selection control messages */
+	case 0x0601:
+	case 0x130C:
+		{
+			HWND window = (HWND)dw_window_get_data(hWnd, "_dw_window");
+			unsigned long val = (unsigned long)mp1;
+
+			if(window)
+				_dw_color_spin_set(window, DW_RGB((val & 0xFF0000) >> 16, (val & 0xFF00) >> 8, val & 0xFF));
+		}
+		break;
 	case WM_CONTROL:
+		if((SHORT2FROMMP(mp1) == SPBN_CHANGE || SHORT2FROMMP(mp1) == SPBN_ENDSPIN))
+		{
+			HWND window = (HWND)dw_window_get_data(hWnd, "_dw_window");
+
+			if(window && !dw_window_get_data(window, "_dw_updating"))
+			{
+				unsigned long val = _dw_color_spin_get(window);
+				HWND col = (HWND)dw_window_get_data(window, "_dw_col");
+
+				_dw_col_set(col, val);
+			}
+		}
 		_run_event(hWnd, msg, mp1, mp2);
 		break;
 	}
@@ -7252,6 +7313,38 @@ void API dw_color_background_set(unsigned long value)
 	_background = value;
 }
 
+int DWSIGNAL _dw_color_cancel_func(HWND window, void *data)
+{
+	DWDialog *dwwait = (DWDialog *)data;
+	HMTX mtx = (HMTX)dw_window_get_data((HWND)dwwait->data, "_dw_mutex");
+	void *val;
+
+	window = (HWND)dwwait->data;
+	val = dw_window_get_data(window, "_dw_val");
+
+	dw_mutex_lock(mtx);
+	dw_mutex_close(mtx);
+	dw_window_destroy(window);
+	dw_dialog_dismiss((DWDialog *)data, val);
+	return FALSE;
+}
+
+int DWSIGNAL _dw_color_ok_func(HWND window, void *data)
+{
+	DWDialog *dwwait = (DWDialog *)data;
+	HMTX mtx = (HMTX)dw_window_get_data((HWND)dwwait->data, "_dw_mutex");
+	unsigned long val;
+
+	window = (HWND)dwwait->data;
+	val = _dw_color_spin_get(window);
+
+	dw_mutex_lock(mtx);
+	dw_mutex_close(mtx);
+	dw_window_destroy(window);
+	dw_dialog_dismiss((DWDialog *)data, (void *)val);
+	return FALSE;
+}
+
 /* Allows the user to choose a color using the system's color chooser dialog.
  * Parameters:
  *       value: current color
@@ -7278,39 +7371,45 @@ unsigned long API dw_color_choose(unsigned long value)
 	col = WinCreateWindow(vbox, "ColorSelectClass", "", WS_VISIBLE | WS_GROUP, 0, 0, 390, 300, vbox, HWND_TOP, 266, NULL,NULL);
 	dw_box_pack_start(hbox, col, 390, 300, FALSE, FALSE, 0);
 
+	dw_window_set_data(hbox, "_dw_window", (void *)window);
 	dw_window_set_data(window, "_dw_mutex", (void *)mtx);
 	dw_window_set_data(window, "_dw_col", (void *)col);
+	dw_window_set_data(window, "_dw_val", (void *)value);
 
 	hbox = dw_box_new(DW_HORZ, 0);
+	dw_window_set_data(hbox, "_dw_window", (void *)window);
 
 	dw_box_pack_start(vbox, hbox, 0, 0, TRUE, FALSE, 0);
 
 	text = dw_text_new("Red:", 0);
+	dw_window_set_style(text, DW_DT_VCENTER, DW_DT_VCENTER);
 	dw_box_pack_start(hbox, text, 30, 20, FALSE, FALSE, 3);
 
 	button = dw_spinbutton_new("", 1001L);
 	dw_spinbutton_set_limits(button, 255, 0);
 	dw_box_pack_start(hbox, button, 20, 20, TRUE, FALSE, 3);
+	WinSetOwner(button, hbox);
 	dw_window_set_data(window, "_dw_red_spin", (void *)button);
-	dw_spinbutton_set_pos(button, DW_RED_VALUE(value));
 
 	text = dw_text_new("Green:", 0);
+	dw_window_set_style(text, DW_DT_VCENTER, DW_DT_VCENTER);
 	dw_box_pack_start(hbox, text, 30, 20, FALSE, FALSE, 3);
 
 	button = dw_spinbutton_new("", 1002L);
 	dw_spinbutton_set_limits(button, 255, 0);
 	dw_box_pack_start(hbox, button, 20, 20, TRUE, FALSE, 3);
+	WinSetOwner(button, hbox);
 	dw_window_set_data(window, "_dw_green_spin", (void *)button);
-	dw_spinbutton_set_pos(button, DW_GREEN_VALUE(value));
 
 	text = dw_text_new("Blue:", 0);
+	dw_window_set_style(text, DW_DT_VCENTER, DW_DT_VCENTER);
 	dw_box_pack_start(hbox, text, 30, 20, FALSE, FALSE, 3);
 
 	button = dw_spinbutton_new("", 1003L);
 	dw_spinbutton_set_limits(button, 255, 0);
 	dw_box_pack_start(hbox, button, 20, 20, TRUE, FALSE, 3);
+	WinSetOwner(button, hbox);
 	dw_window_set_data(window, "_dw_blue_spin", (void *)button);
-	dw_spinbutton_set_pos(button, DW_BLUE_VALUE(value));
 
 	hbox = dw_box_new(DW_HORZ, 0);
 
@@ -7320,16 +7419,20 @@ unsigned long API dw_color_choose(unsigned long value)
 	button = dw_button_new("Ok", 1001L);
 	dw_box_pack_start(hbox, button, 50, 30, TRUE, FALSE, 3);
 
+	dwwait = dw_dialog_new((void *)window);
+
+	dw_signal_connect(button, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(_dw_color_ok_func), (void *)dwwait);
+
 	button = dw_button_new("Cancel", 1002L);
 	dw_box_pack_start(hbox, button, 50, 30, TRUE, FALSE, 3);
 
-	dwwait = dw_dialog_new((void *)window);
+	dw_signal_connect(button, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(_dw_color_cancel_func), (void *)dwwait);
+	dw_signal_connect(window, DW_SIGNAL_DELETE, DW_SIGNAL_FUNC(_dw_color_cancel_func), (void *)dwwait);
 
 	dw_window_set_size(window, 400, 400);
 
-	WinSendMsg(col, 0x0602, MPFROMLONG(_os2_color(value)), 0);
-	if(!IS_WARP4())
-		WinSendMsg(col, 0x1384, MPFROMLONG(_os2_color(value)), 0);
+	_dw_col_set(col, value);
+	_dw_color_spin_set(window, value);
 
 	dw_window_show(window);
 
@@ -8827,6 +8930,7 @@ char * API dw_file_browse(char *title, char *defpath, char *ext, int flags)
 		button = dw_button_new("Cancel", 1002L);
 		dw_box_pack_start(hbox, button, 50, 30, TRUE, FALSE, 3);
 		dw_signal_connect(button, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(_dw_cancel_func), (void *)dwwait);
+		dw_signal_connect(window, DW_SIGNAL_DELETE, DW_SIGNAL_FUNC(_dw_cancel_func), (void *)dwwait);
 
 		dw_window_set_size(window, 225, 300);
 		dw_window_show(window);
