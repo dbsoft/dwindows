@@ -151,6 +151,11 @@ typedef struct _CNRITEM
 } CNRITEM, *PCNRITEM;
 
 
+int _null_key(HWND window, int key, void *data)
+{
+	return TRUE;
+}
+
 /* Find the desktop window handle */
 HWND _toplevel_window(HWND handle)
 {
@@ -265,7 +270,7 @@ int _validate_focus(HWND handle)
 	if(!handle)
 		return 0;
 
-	if(!WinIsWindowEnabled(handle))
+	if(!WinIsWindowEnabled(handle) || dw_window_get_data(handle, "_dw_disabled"))
 		return 0;
 
 	WinQueryClassName(handle, 99, tmpbuf);
@@ -1444,7 +1449,7 @@ MRESULT EXPENTRY _entryproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 					dw_menu_append_item(hwndMenu, "", 0L, 0L, TRUE, FALSE, 0L);
 				}
 				menuitem = dw_menu_append_item(hwndMenu, "Copy", ENTRY_COPY, 0L, TRUE, FALSE, 0L);
-				if(strncmp(tmpbuf, "#10", 4)!=0 || (strncmp(tmpbuf, "#10", 4)==0 && !WinSendMsg(hWnd, MLM_QUERYREADONLY, 0, 0)))
+				if((strncmp(tmpbuf, "#10", 4)!=0  && !dw_window_get_data(hWnd, "_dw_disabled")) || (strncmp(tmpbuf, "#10", 4)==0 && !WinSendMsg(hWnd, MLM_QUERYREADONLY, 0, 0)))
 				{
 					menuitem = dw_menu_append_item(hwndMenu, "Cut", ENTRY_CUT, 0L, TRUE, FALSE, 0L);
 					menuitem = dw_menu_append_item(hwndMenu, "Paste", ENTRY_PASTE, 0L, TRUE, FALSE, 0L);
@@ -1532,6 +1537,8 @@ MRESULT EXPENTRY _entryproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 		_run_event(hWnd, msg, mp1, mp2);
 		break;
 	case WM_CHAR:
+		if(_run_event(hWnd, msg, mp1, mp2) == TRUE)
+			return (MRESULT)TRUE;
 		if(SHORT1FROMMP(mp2) == '\t')
 		{
 			if(CHARMSG(&msg)->fs & KC_SHIFT)
@@ -1584,6 +1591,8 @@ MRESULT EXPENTRY _comboentryproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 		_run_event(hWnd, msg, mp1, mp2);
 		break;
 	case WM_CHAR:
+		if(_run_event(hWnd, msg, mp1, mp2) == TRUE)
+			return (MRESULT)TRUE;
 		/* A Similar problem to the MLE, if ESC just return */
 		if(SHORT1FROMMP(mp2) == 283)
 			return (MRESULT)TRUE;
@@ -2614,11 +2623,20 @@ MRESULT EXPENTRY _BtProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 		else
 			WinSendMsg(hwnd, BM_SETDEFAULT, 0, 0);
 		break;
+	case WM_BUTTON1DOWN:
+	case WM_BUTTON2DOWN:
+	case WM_BUTTON3DOWN:
+	case WM_BUTTON1DBLCLK:
+	case WM_BUTTON2DBLCLK:
+	case WM_BUTTON3DBLCLK:
+		if(dw_window_get_data(hwnd, "_dw_disabled"))
+			return (MRESULT)FALSE;
+		break;
 	case WM_BUTTON1UP:
 		{
 			SignalHandler *tmp = Root;
 
-			if(WinIsWindowEnabled(hwnd))
+			if(WinIsWindowEnabled(hwnd) && !dw_window_get_data(hwnd, "_dw_disabled"))
 			{
 				/* Find any callbacks for this function */
 				while(tmp)
@@ -3248,14 +3266,8 @@ int dw_window_set_font(HWND handle, char *fontname)
 	return WinSetPresParam(handle, PP_FONTNAMESIZE, strlen(fontname)+1, fontname);
 }
 
-/*
- * Sets the colors used by a specified window (widget) handle.
- * Parameters:
- *          handle: The window (widget) handle.
- *          fore: Foreground color in DW_RGB format or a default color index.
- *          back: Background color in DW_RGB format or a default color index.
- */
-int dw_window_set_color(HWND handle, ULONG fore, ULONG back)
+/* Internal version */
+int _dw_window_set_color(HWND handle, ULONG fore, ULONG back)
 {
 	if((fore & DW_RGB_COLOR) == DW_RGB_COLOR)
 	{
@@ -3300,6 +3312,20 @@ int dw_window_set_color(HWND handle, ULONG fore, ULONG back)
 		WinSetPresParam(handle, PP_BACKGROUNDCOLORINDEX, sizeof(ULONG), &back);
 	}
 	return 0;
+}
+/*
+ * Sets the colors used by a specified window (widget) handle.
+ * Parameters:
+ *          handle: The window (widget) handle.
+ *          fore: Foreground color in DW_RGB format or a default color index.
+ *          back: Background color in DW_RGB format or a default color index.
+ */
+int dw_window_set_color(HWND handle, ULONG fore, ULONG back)
+{
+	dw_window_set_data(handle, "_dw_fore", (void *)fore);
+	dw_window_set_data(handle, "_dw_back", (void *)back);
+
+	return _dw_window_set_color(handle, fore, back);
 }
 
 /*
@@ -3905,6 +3931,7 @@ HWND dw_entryfield_new(char *text, ULONG id)
 	dw_window_set_font(tmp, DefaultFont);
 	blah->oldproc = WinSubclassWindow(tmp, _entryproc);
 	WinSetWindowPtr(tmp, QWP_USER, blah);
+	dw_window_set_color(tmp, DW_CLR_BLACK, DW_CLR_WHITE);
 	return tmp;
 }
 
@@ -3931,6 +3958,7 @@ HWND dw_entryfield_password_new(char *text, ULONG id)
 	dw_window_set_font(tmp, DefaultFont);
 	blah->oldproc = WinSubclassWindow(tmp, _entryproc);
 	WinSetWindowPtr(tmp, QWP_USER, blah);
+	dw_window_set_color(tmp, DW_CLR_BLACK, DW_CLR_WHITE);
 	return tmp;
 }
 
@@ -3960,13 +3988,14 @@ HWND dw_combobox_new(char *text, ULONG id)
 	{
 		WindowData *moreblah = calloc(1, sizeof(WindowData));
 		moreblah->oldproc = WinSubclassWindow(child, _comboentryproc);
+		dw_window_set_color(child, DW_CLR_BLACK, DW_CLR_WHITE);
 		WinSetWindowPtr(child, QWP_USER, moreblah);
 	}
 	WinEndEnumWindows(henum);
 	dw_window_set_font(tmp, DefaultFont);
-	dw_window_set_color(tmp, DW_CLR_BLACK, DW_CLR_WHITE);
 	blah->oldproc = WinSubclassWindow(tmp, _comboproc);
 	WinSetWindowPtr(tmp, QWP_USER, blah);
+	dw_window_set_color(tmp, DW_CLR_BLACK, DW_CLR_WHITE);
 	return tmp;
 }
 
@@ -3997,6 +4026,7 @@ HWND dw_button_new(char *text, ULONG id)
 
 	WinSetWindowPtr(tmp, QWP_USER, bubble);
 	dw_window_set_font(tmp, DefaultFont);
+	dw_window_set_color(tmp, DW_CLR_BLACK, DW_CLR_PALEGRAY);
 	return tmp;
 }
 
@@ -4095,6 +4125,7 @@ HWND dw_spinbutton_new(char *text, ULONG id)
 	blah = calloc(sizeof(WindowData), 1);
 	blah->oldproc = WinSubclassWindow(entry, _spinentryproc);
 	WinSetWindowPtr(entry, QWP_USER, blah);
+	dw_window_set_color(entry, DW_CLR_BLACK, DW_CLR_WHITE);
 	return tmp;
 }
 
@@ -4229,6 +4260,7 @@ HWND dw_listbox_new(ULONG id, int multi)
 							   NULL,
 							   NULL);
 	dw_window_set_font(tmp, DefaultFont);
+	dw_window_set_color(tmp, DW_CLR_BLACK, DW_CLR_WHITE);
 	blah->oldproc = WinSubclassWindow(tmp, _entryproc);
 	WinSetWindowPtr(tmp, QWP_USER, blah);
 	return tmp;
@@ -4301,6 +4333,37 @@ char *dw_window_get_text(HWND handle)
  */
 void dw_window_disable(HWND handle)
 {
+	char tmpbuf[100];
+
+	WinQueryClassName(handle, 99, tmpbuf);
+
+	if(tmpbuf[0] == '#')
+	{
+		int val = atoi(&tmpbuf[1]);
+		HWND hwnd;
+
+		switch(val)
+		{
+		case 2:
+		case 6:
+		case 10:
+		case 32:
+		case 7:
+			hwnd = _find_entryfield(handle);
+			_dw_window_set_color(hwnd ? hwnd : handle, DW_CLR_BLACK, DW_CLR_PALEGRAY);
+			dw_signal_connect(hwnd ? hwnd : handle, "key_press_event", DW_SIGNAL_FUNC(_null_key), (void *)100);
+			dw_window_set_data(handle, "_dw_disabled", (void *)1);
+			if(hwnd)
+				dw_window_set_data(hwnd, "_dw_disabled", (void *)1);
+			return;
+		case 3:
+			_dw_window_set_color(handle, DW_CLR_DARKGRAY, DW_CLR_PALEGRAY);
+			dw_signal_connect(handle, "key_press_event", DW_SIGNAL_FUNC(_null_key), (void *)100);
+			dw_signal_connect(handle, "button_press_event", DW_SIGNAL_FUNC(_null_key), (void *)100);
+			dw_window_set_data(handle, "_dw_disabled", (void *)1);
+			return;
+		}
+	}
 	WinEnableWindow(handle, FALSE);
 }
 
@@ -4311,6 +4374,16 @@ void dw_window_disable(HWND handle)
  */
 void dw_window_enable(HWND handle)
 {
+	ULONG fore = (ULONG)dw_window_get_data(handle, "_dw_fore");
+	ULONG back = (ULONG)dw_window_get_data(handle, "_dw_back");
+	HWND hwnd = _find_entryfield(handle);
+
+	dw_window_set_data(handle, "_dw_disabled", 0);
+	if(hwnd)
+		dw_window_set_data(hwnd, "_dw_disabled", 0);
+	if(fore && back)
+		_dw_window_set_color(hwnd ? hwnd : handle, fore, back);
+	dw_signal_disconnect_by_data(handle, (void *)100);
 	WinEnableWindow(handle, TRUE);
 }
 
@@ -6492,6 +6565,7 @@ int dw_module_symbol(HMOD handle, char *name, void**func)
 int dw_module_close(HMOD handle)
 {
 	DosFreeModule(handle);
+	return 0;
 }
 
 /*
@@ -7175,7 +7249,7 @@ void dw_window_function(HWND handle, void *function, void *data)
  * a given window handle.  Used in dw_window_set_data() and
  * dw_window_get_data().
  */
-UserData *find_userdata(UserData **root, char *varname)
+UserData *_find_userdata(UserData **root, char *varname)
 {
 	UserData *tmp = *root;
 
@@ -7188,9 +7262,9 @@ UserData *find_userdata(UserData **root, char *varname)
 	return NULL;
 }
 
-int new_userdata(UserData **root, char *varname, void *data)
+int _new_userdata(UserData **root, char *varname, void *data)
 {
-	UserData *new = find_userdata(root, varname);
+	UserData *new = _find_userdata(root, varname);
 
 	if(new)
 	{
@@ -7228,7 +7302,7 @@ int new_userdata(UserData **root, char *varname, void *data)
 	return FALSE;
 }
 
-int remove_userdata(UserData **root, char *varname, int all)
+int _remove_userdata(UserData **root, char *varname, int all)
 {
 	UserData *prev = NULL, *tmp = *root;
 
@@ -7275,13 +7349,13 @@ void dw_window_set_data(HWND window, char *dataname, void *data)
 	}
 
 	if(data)
-		new_userdata(&(blah->root), dataname, data);
+		_new_userdata(&(blah->root), dataname, data);
 	else
 	{
 		if(dataname)
-			remove_userdata(&(blah->root), dataname, FALSE);
+			_remove_userdata(&(blah->root), dataname, FALSE);
 		else
-			remove_userdata(&(blah->root), NULL, TRUE);
+			_remove_userdata(&(blah->root), NULL, TRUE);
 	}
 }
 
@@ -7298,7 +7372,7 @@ void *dw_window_get_data(HWND window, char *dataname)
 
 	if(blah && blah->root && dataname)
 	{
-		UserData *ud = find_userdata(&(blah->root), dataname);
+		UserData *ud = _find_userdata(&(blah->root), dataname);
 		if(ud)
 			return ud->data;
 	}
