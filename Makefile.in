@@ -11,8 +11,8 @@ OBJECTS	=	gtk/dw.o
 SRCS2	=	compat.c
 OBJECTS2=	compat.o
 TARGET2 =	dwcompat
-VER_MAJ	=	1
-VER_MIN	=	0
+VER_MAJ	=	0
+VER_MIN	=	5
 PREFIX	=	@prefix@
 
 .SUFFIXES:	.c .h
