@@ -5062,9 +5062,13 @@ HPIXMAP dw_pixmap_new_from_file(HWND handle, char *filename)
 {
 	int _locked_by_me = FALSE;
 	HPIXMAP pixmap;
+#ifndef USE_IMLIB
 	GdkBitmap *bitmap = NULL;
+#endif
 #if GTK_MAJOR_VERSION > 1
 	GdkPixbuf *pixbuf;
+#elif defined(USE_IMLIB)
+	GdkImlibImage *image;
 #endif
 	char *file = alloca(strlen(filename) + 5);
 
@@ -5094,6 +5098,16 @@ HPIXMAP dw_pixmap_new_from_file(HWND handle, char *filename)
 
 	gdk_pixbuf_render_pixmap_and_mask(pixbuf, &pixmap->pixmap, &bitmap, 1);
 	g_object_unref(pixbuf);
+#elif defined(USE_IMLIB)
+	image = gdk_imlib_load_image(file);
+	pixmap->pixmap = gdk_imlib_copy_image(image);
+
+	pixmap->width = image->rgb_width;
+	pixmap->height = image->rgb_height;
+
+	gdk_imlib_destroy_image(image);
+#else
+	pixmap->pixmap = gdk_pixmap_create_from_xpm(handle->window, &bitmap, &_colors[DW_CLR_PALEGRAY], file);
 #endif
 	pixmap->handle = handle;
 	DW_MUTEX_UNLOCK;
