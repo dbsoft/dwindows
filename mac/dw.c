@@ -823,7 +823,8 @@ void API dw_window_pointer(HWND handle, int pointertype)
 HWND API dw_window_new(HWND hwndOwner, char *title, ULONG flStyle)
 {
 	HWND hwnd = 0;
-
+	CreateNewWindow (kDocumentWindowClass, flStyle,
+					 &contentRect, &theWindow);
 	return hwnd;
 }
 
@@ -847,7 +848,11 @@ HWND API dw_box_new(int type, int pad)
  */
 HWND API dw_groupbox_new(int type, int pad, char *title)
 {
-	return 0;
+OSStatus CreateRadioGroupControl (
+   WindowRef window,
+   const Rect * boundsRect,
+   ControlRef * outControl
+);	return 0;
 }
 
 /*
@@ -867,7 +872,12 @@ HWND API dw_mdi_new(unsigned long id)
  */
 HWND API dw_bitmap_new(ULONG id)
 {
-	return 0;
+OSStatus CreateImageWellControl (
+   WindowRef window,
+   const Rect * boundsRect,
+   const ControlButtonContentInfo * info,
+   ControlRef * outControl
+);	return 0;
 }
 
 /*
@@ -878,7 +888,15 @@ HWND API dw_bitmap_new(ULONG id)
  */
 HWND API dw_notebook_new(ULONG id, int top)
 {
-	return 0;
+OSStatus CreateTabsControl (
+   WindowRef window,
+   const Rect * boundsRect,
+   ControlTabSize size,
+   ControlTabDirection direction,
+   UInt16 numTabs,
+   const ControlTabEntry * tabArray,
+   ControlRef * outControl
+);	return 0;
 }
 
 /*
@@ -1001,7 +1019,13 @@ HWND API dw_tree_new(ULONG id)
  */
 HWND API dw_text_new(char *text, ULONG id)
 {
-	return 0;
+OSStatus CreateStaticTextControl (
+   WindowRef window,
+   const Rect * boundsRect,
+   CFStringRef text,
+   const ControlFontStyleRec * style,
+   ControlRef * outControl
+);	return 0;
 }
 
 /*
@@ -1012,6 +1036,12 @@ HWND API dw_text_new(char *text, ULONG id)
  */
 HWND API dw_status_text_new(char *text, ULONG id)
 {
+OSStatus CreateStaticTextControl (
+   WindowRef window,
+   const Rect * boundsRect,
+   CFStringRef text,
+   const ControlFontStyleRec * style,
+   ControlRef * outControl
 	return 0;
 }
 
@@ -1022,6 +1052,16 @@ HWND API dw_status_text_new(char *text, ULONG id)
  */
 HWND API dw_mle_new(ULONG id)
 {
+OSStatus CreateScrollingTextBoxControl (
+   WindowRef window,
+   const Rect * boundsRect,
+   SInt16 contentResID,
+   Boolean autoScroll,
+   UInt32 delayBeforeAutoScroll,
+   UInt32 delayBetweenAutoScroll,
+   UInt16 autoScrollAmount,
+   ControlRef * outControl
+);
 	return 0;
 }
 
@@ -1033,8 +1073,15 @@ HWND API dw_mle_new(ULONG id)
  */
 HWND API dw_entryfield_new(char *text, ULONG id)
 {
-
-	return 0;
+OSStatus CreateEditTextControl (
+   WindowRef window,
+   const Rect * boundsRect,
+   CFStringRef text,
+   Boolean isPassword,
+   Boolean useInlineInput,
+   const ControlFontStyleRec * style,
+   ControlRef * outControl
+);	return 0;
 }
 
 /*
@@ -1045,6 +1092,14 @@ HWND API dw_entryfield_new(char *text, ULONG id)
  */
 HWND API dw_entryfield_password_new(char *text, ULONG id)
 {
+OSStatus CreateEditTextControl (
+   WindowRef window,
+   const Rect * boundsRect,
+   CFStringRef text,
+   Boolean isPassword,
+   Boolean useInlineInput,
+   const ControlFontStyleRec * style,
+   ControlRef * outControl
 	return 0;
 }
 
@@ -1067,7 +1122,12 @@ HWND API dw_combobox_new(char *text, ULONG id)
  */
 HWND API dw_button_new(char *text, ULONG id)
 {
-	return 0;
+OSStatus CreatePushButtonControl (
+   WindowRef window,
+   const Rect * boundsRect,
+   CFStringRef title,
+   ControlRef * outControl
+);	return 0;
 }
 
 /*
@@ -1078,7 +1138,14 @@ HWND API dw_button_new(char *text, ULONG id)
  */
 HWND API dw_bitmapbutton_new(char *text, ULONG id)
 {
-	return 0;
+OSStatus CreatePushButtonWithIconControl (
+   WindowRef window,
+   const Rect * boundsRect,
+   CFStringRef title,
+   ControlButtonContentInfo * icon,
+   ControlPushButtonIconAlignment iconAlignment,
+   ControlRef * outControl
+);	return 0;
 }
 
 /*
@@ -1114,6 +1181,16 @@ HWND API dw_spinbutton_new(char *text, ULONG id)
  */
 HWND API dw_radiobutton_new(char *text, ULONG id)
 {
+OSStatus CreateRadioButtonControl (
+   WindowRef window,
+   const Rect * boundsRect,
+   CFStringRef title,
+   SInt32 initialValue,
+   Boolean autoToggle,
+   ControlRef * outControl
+);
+
+
 	return 0;
 }
 
@@ -1127,7 +1204,18 @@ HWND API dw_radiobutton_new(char *text, ULONG id)
  */
 HWND API dw_slider_new(int vertical, int increments, ULONG id)
 {
-	return 0;
+OSStatus CreateSliderControl (
+   WindowRef window,
+   const Rect * boundsRect,
+   SInt32 value,
+   SInt32 minimum,
+   SInt32 maximum,
+   ControlSliderOrientation orientation,
+   UInt16 numTickMarks,
+   Boolean liveTracking,
+   ControlActionUPP liveTrackingProc,
+   ControlRef * outControl
+);	return 0;
 }
 
 /*
@@ -1139,7 +1227,17 @@ HWND API dw_slider_new(int vertical, int increments, ULONG id)
  */
 HWND API dw_scrollbar_new(int vertical, int increments, ULONG id)
 {
-	return 0;
+OSStatus CreateScrollBarControl (
+   WindowRef window,
+   const Rect * boundsRect,
+   SInt32 value,
+   SInt32 minimum,
+   SInt32 maximum,
+   SInt32 viewSize,
+   Boolean liveTracking,
+   ControlActionUPP liveTrackingProc,
+   ControlRef * outControl
+);	return 0;
 }
 
 /*
@@ -1149,7 +1247,15 @@ HWND API dw_scrollbar_new(int vertical, int increments, ULONG id)
  */
 HWND API dw_percent_new(ULONG id)
 {
-	return 0;
+OSStatus CreateProgressBarControl (
+   WindowRef window,
+   const Rect * boundsRect,
+   SInt32 value,
+   SInt32 minimum,
+   SInt32 maximum,
+   Boolean indeterminate,
+   ControlRef * outControl
+);	return 0;
 }
 
 /*
@@ -1160,7 +1266,14 @@ HWND API dw_percent_new(ULONG id)
  */
 HWND API dw_checkbox_new(char *text, ULONG id)
 {
-	return 0;
+OSStatus CreateCheckBoxControl (
+   WindowRef window,
+   const Rect * boundsRect,
+   CFStringRef title,
+   SInt32 initialValue,
+   Boolean autoToggle,
+   ControlRef * outControl
+);	return 0;
 }
 
 /*
@@ -1171,7 +1284,20 @@ HWND API dw_checkbox_new(char *text, ULONG id)
  */
 HWND API dw_listbox_new(ULONG id, int multi)
 {
-	return 0;
+OSStatus CreateListBoxControl (
+   WindowRef window,
+   const Rect * boundsRect,
+   Boolean autoSize,
+   SInt16 numRows,
+   SInt16 numColumns,
+   Boolean horizScroll,
+   Boolean vertScroll,
+   SInt16 cellHeight,
+   SInt16 cellWidth,
+   Boolean hasGrowSpace,
+   const ListDefSpec * listDef,
+   ControlRef * outControl
+);	return 0;
 }
 
 /*
@@ -1206,6 +1332,7 @@ void API dw_window_set_bitmap(HWND handle, unsigned long id, char *filename)
  */
 void API dw_window_set_text(HWND handle, char *text)
 {
+	SetControlTitleWithCFString(handle, text);
 }
 
 /*
@@ -1227,6 +1354,7 @@ char * API dw_window_get_text(HWND handle)
  */
 void API dw_window_disable(HWND handle)
 {
+	DisableControl(handle);
 }
 
 /*
@@ -1236,6 +1364,7 @@ void API dw_window_disable(HWND handle)
  */
 void API dw_window_enable(HWND handle)
 {
+	EnableControl(handle);
 }
 
 /*
@@ -1246,6 +1375,14 @@ void API dw_window_enable(HWND handle)
  */
 HWND API dw_window_from_id(HWND handle, int id)
 {
+	HWND ret;
+
+	ControlID cid = (ControlID)id;
+	GetControlByID(handle, &cid, &ret);
+	return ret;
+);
+
+
 	return 0;
 }
 
@@ -2774,7 +2911,7 @@ void API dw_window_set_data(HWND window, char *dataname, void *data)
 			return;
 
 		blah = calloc(1, sizeof(WindowData));
-		WinSetWindowPtr(window, QWP_USER, blah);
+		SetWindowProperty(window, QWP_USER, blah);
 	}
 
 	if(data)
