@@ -36,19 +36,25 @@ HWND mainwindow,
      notebookbox1,
      notebookbox2,
      notebookbox3,
+     notebookbox4,
      notebook,
      vscrollbar,
      hscrollbar,
      status, status1,
+     container_status,
+     tree_status,
      stext,
      tree,
+     container,
      pagebox,
      treebox,
+     containerbox,
      textbox1, textbox2, textboxA,
      gap_box,
      buttonbox;
 
 HPIXMAP text1pm,text2pm;
+unsigned long fileicon,foldericon;
 
 int font_width = 8;
 int font_height=12;
@@ -340,6 +346,56 @@ int DWSIGNAL configure_event(HWND hwnd, int width, int height, void *data)
 	return TRUE;
 }
 
+int DWSIGNAL container_select_cb( HWND window, char *text, void *data )
+{
+	char buf[100];
+	HWND statline = (HWND)data;
+
+	sprintf(buf,"container-select: Window: %d Text: %s", window, text );
+	dw_window_set_text( statline, buf);
+	return 0;
+}
+
+int DWSIGNAL container_context_cb( HWND window, char *text, int x, int y, void *data )
+{
+	char buf[100];
+	HWND statline = (HWND)data;
+
+	sprintf(buf,"container-context: Window: %d Text: %s x: %d y: %d", window, text, x, y );
+	dw_window_set_text( statline, buf);
+	return 0;
+}
+
+int DWSIGNAL tree_context_cb( HWND window, char *text, int x, int y, void *data, void *itemdata )
+{
+	char buf[100];
+	HWND statline = (HWND)data;
+
+	sprintf(buf,"tree-context: Window: %d Text: %s x: %d y: %d", window, text, x, y );
+	dw_window_set_text( statline, buf);
+	return 0;
+}
+
+int DWSIGNAL item_select_cb( HWND window, int item, void *data )
+{
+	char buf[100];
+	HWND statline = (HWND)data;
+
+	sprintf(buf,"item-seelct: Window: %d Item: %d", window, item );
+	dw_window_set_text( statline, buf);
+	return 0;
+}
+
+int DWSIGNAL tree_select_cb( HWND window, HWND item, char *text, void *itemdata, void *data )
+{
+	char buf[100];
+	HWND statline = (HWND)data;
+
+	sprintf(buf,"tree-select: Window: %d Item: %d Text: %s", window, item, text );
+	dw_window_set_text( statline, buf);
+	return 0;
+}
+
 void archive_add(void)
 {
 	HWND browsebutton, browsebox;
@@ -456,9 +512,7 @@ void text_add(void)
 
 void tree_add(void)
 {
-	HWND t1,t2,t3;
-	int depth = dw_color_depth();
-	unsigned long fileicon,foldericon;
+	HWND t1,t2,t3,t4,t5,t6;
 
 	/* create a box to pack into the notebook page */
 	treebox = dw_box_new(BOXHORZ, 2);
@@ -468,22 +522,95 @@ void tree_add(void)
 	tree = dw_tree_new(0);
 	dw_box_pack_start( notebookbox3, tree, 500, 200, TRUE, FALSE, 1);
 
+	/* and a status area to see whats going on */
+	tree_status = dw_status_text_new("", 0);
+	dw_box_pack_start( notebookbox3, tree_status, 100, 20, TRUE, FALSE, 1);
+
 	foldericon = dw_icon_load_from_file( FOLDER_ICON_NAME );
 	fileicon = dw_icon_load_from_file( FILE_ICON_NAME  );
 
-	t1 = dw_tree_insert(tree, "tree item 1", foldericon, NULL, NULL );
-	t2 = dw_tree_insert(tree, "tree item 2", foldericon, NULL, NULL );
-	t3 = dw_tree_insert(tree, "tree item 3", fileicon, t2, NULL );
+	t1 = dw_tree_insert(tree, "tree folder 1", foldericon, NULL, NULL );
+	t2 = dw_tree_insert(tree, "tree folder 2", foldericon, NULL, NULL );
+	t3 = dw_tree_insert(tree, "tree file 1", fileicon, t1, NULL );
+	t4 = dw_tree_insert(tree, "tree file 2", fileicon, t1, NULL );
+	t5 = dw_tree_insert(tree, "tree file 3", fileicon, t2, NULL );
+	t6 = dw_tree_insert(tree, "tree file 4", fileicon, t2, NULL );
 
-/*
-	dw_signal_connect(textbox1, "expose_event", DW_SIGNAL_FUNC(text_expose), NULL);
-	dw_signal_connect(textbox2, "expose_event", DW_SIGNAL_FUNC(text_expose), NULL);
-	dw_signal_connect(textbox2, "configure_event", DW_SIGNAL_FUNC(configure_event), text2pm);
-	dw_signal_connect(hscrollbar, "value_changed", DW_SIGNAL_FUNC(scrollbar_valuechanged), (void *)status);
-	dw_signal_connect(vscrollbar, "value_changed", DW_SIGNAL_FUNC(scrollbar_valuechanged), (void *)status);
-	dw_signal_connect(textbox1, "key_press_event", DW_SIGNAL_FUNC(keypress_callback), text1pm);
-	dw_signal_connect(textbox2, "key_press_event", DW_SIGNAL_FUNC(keypress_callback), text2pm);
-*/
+	/* set up our signal trappers... */
+	/* looks odd, we use a container-context signal on a tree widget! */
+	dw_signal_connect(tree, "container-context", DW_SIGNAL_FUNC(container_context_cb), tree_status);
+	dw_signal_connect(tree, "tree-select", DW_SIGNAL_FUNC(tree_select_cb), tree_status);
+	/* also odd; the tree-context doesn't seem to do anything. In fact GTK complains that
+	 * tree-context is invalid in a tree widget
+	 */
+	dw_signal_connect(tree, "tree-context", DW_SIGNAL_FUNC(tree_context_cb), tree_status);
+}
+
+void container_add(void)
+{
+	char *titles[3];
+	char buffer[100];
+	unsigned long flags[3] = {  DW_CFA_ULONG | DW_CFA_RIGHT | DW_CFA_HORZSEPARATOR | DW_CFA_SEPARATOR,
+	DW_CFA_TIME | DW_CFA_LEFT | DW_CFA_HORZSEPARATOR | DW_CFA_SEPARATOR,
+	DW_CFA_DATE | DW_CFA_RIGHT | DW_CFA_HORZSEPARATOR | DW_CFA_SEPARATOR };
+	void *containerinfo;
+	int z;
+	CTIME time;
+	CDATE date;
+	unsigned long size, thisicon;
+
+	/* create a box to pack into the notebook page */
+	containerbox = dw_box_new(BOXHORZ, 2);
+	dw_box_pack_start( notebookbox4, containerbox, 500, 200, TRUE, TRUE, 0);
+
+	/* now a container area under this box */
+	container = dw_container_new(0);
+	dw_box_pack_start( notebookbox4, container, 500, 200, TRUE, FALSE, 1);
+
+	/* and a status area to see whats going on */
+	container_status = dw_status_text_new("", 0);
+	dw_box_pack_start( notebookbox4, container_status, 100, 20, TRUE, FALSE, 1);
+
+	titles[0] = "Size";
+	titles[1] = "Time";
+	titles[2] = "Date";
+
+	dw_filesystem_setup(container, flags, titles, 3);
+	containerinfo = dw_container_alloc(container, 3);
+
+	for(z=0;z<3;z++)
+	{
+		size = z+100;
+		sprintf(buffer, "Filename %d",z+1);
+		if (z == 0 ) thisicon = foldericon;
+		else thisicon = fileicon;
+		dw_filesystem_set_file(container, containerinfo, z, buffer, thisicon);
+		dw_filesystem_set_item(container, containerinfo, 0, z, &size);
+
+		time.seconds = z+10;
+		time.minutes = z+10;
+		time.hours = z+10;
+		dw_filesystem_set_item(container, containerinfo, 1, z, &time);
+
+		date.day = z+10;
+		date.month = z+10;
+		date.year = z+2000;
+		dw_filesystem_set_item(container, containerinfo, 2, z, &date);
+
+		dw_container_set_row_title(containerinfo, z, buffer);
+	}
+
+	dw_container_insert(container, containerinfo, 3);
+	dw_container_optimize(container);
+
+	/* connect our event trappers... */
+	dw_signal_connect(container, "container-select", DW_SIGNAL_FUNC(container_select_cb), container_status);
+	dw_signal_connect(container, "container-context", DW_SIGNAL_FUNC(container_context_cb), container_status);
+	/* NOTE that even though we are trapping a tree-select on a container, we have to set
+	 * a container-select callback handler, otherwise dwindows will crash, because
+	 * the prototypes for tree-select and container-select callback handlers are different
+	 */
+	dw_signal_connect(container, "tree-select", DW_SIGNAL_FUNC(container_select_cb), container_status);
 }
 
 /* Beep every second */
@@ -503,6 +630,7 @@ int main(int argc, char *argv[])
 	ULONG notebookpage1;
 	ULONG notebookpage2;
 	ULONG notebookpage3;
+	ULONG notebookpage4;
 
 	dw_init(TRUE, argc, argv);
 
@@ -517,20 +645,26 @@ int main(int argc, char *argv[])
 	notebookbox1 = dw_box_new( BOXVERT, 5 );
 	notebookpage1 = dw_notebook_page_new( notebook, 0, TRUE );
 	dw_notebook_pack( notebook, notebookpage1, notebookbox1 );
-	dw_notebook_page_set_text( notebook, notebookpage1, "first page");
+	dw_notebook_page_set_text( notebook, notebookpage1, "buttons and entry");
 	archive_add();
 
 	notebookbox2 = dw_box_new( BOXVERT, 5 );
 	notebookpage2 = dw_notebook_page_new( notebook, 1, FALSE );
 	dw_notebook_pack( notebook, notebookpage2, notebookbox2 );
-	dw_notebook_page_set_text( notebook, notebookpage2, "second page");
+	dw_notebook_page_set_text( notebook, notebookpage2, "render");
 	text_add();
 
 	notebookbox3 = dw_box_new( BOXVERT, 5 );
 	notebookpage3 = dw_notebook_page_new( notebook, 1, FALSE );
 	dw_notebook_pack( notebook, notebookpage3, notebookbox3 );
-	dw_notebook_page_set_text( notebook, notebookpage3, "third page");
+	dw_notebook_page_set_text( notebook, notebookpage3, "tree");
 	tree_add();
+
+	notebookbox4 = dw_box_new( BOXVERT, 5 );
+	notebookpage4 = dw_notebook_page_new( notebook, 1, FALSE );
+	dw_notebook_pack( notebook, notebookpage4, notebookbox4 );
+	dw_notebook_page_set_text( notebook, notebookpage4, "container");
+	container_add();
 
 	dw_signal_connect(mainwindow, "delete_event", DW_SIGNAL_FUNC(exit_callback), (void *)mainwindow);
 	timerid = dw_timer_connect(1000, DW_SIGNAL_FUNC(timer_callback), 0);
