@@ -27,22 +27,24 @@
 unsigned long flStyle = DW_FCF_SYSMENU | DW_FCF_TITLEBAR |
 	DW_FCF_SHELLPOSITION | DW_FCF_TASKLIST | DW_FCF_DLGBORDER;
 
+	void create_button( int);
+
 #ifdef __MAC__
 int main(int argc, char *argv[])
 {
     DWEnv env;
     HWND window;
-    
+
     dw_init(TRUE, argc, argv);
-    
+
     window = dw_window_new(HWND_DESKTOP, "Test Window", flStyle);
     dw_window_set_pos_size(window, 100, 100, 300, 200);
     dw_window_show(window);
-    
+
     dw_environment_query(&env);
-    dw_messagebox("Title", DW_MB_OK | DW_MB_INFORMATION, "Operating System: %s %d.%d\nBuild: %d.%d\n", 
+    dw_messagebox("Title", DW_MB_OK | DW_MB_INFORMATION, "Operating System: %s %d.%d\nBuild: %d.%d\n",
                 env.osName, env.MajorVersion, env.MinorVersion, env.MajorBuild, env.MinorBuild);
-            
+
     return 0;
 }
 #else
@@ -58,6 +60,7 @@ HWND mainwindow,
      notebookbox2,
      notebookbox3,
      notebookbox4,
+     notebookbox5,
      notebook,
      vscrollbar,
      hscrollbar,
@@ -73,7 +76,11 @@ HWND mainwindow,
      containerbox,
      textbox1, textbox2, textboxA,
      gap_box,
-     buttonbox;
+     buttonbox,
+     buttonboxperm,
+     filetoolbarbox;
+
+void *containerinfo;
 
 HPIXMAP text1pm,text2pm;
 unsigned long fileicon,foldericon,mle_point=-1;
@@ -326,7 +333,7 @@ int DWSIGNAL test_callback(HWND window, void *data)
 int DWSIGNAL browse_callback(HWND window, void *data)
 {
 	char *tmp;
-	tmp = dw_file_browse("test string", NULL, "c", DW_DIRECTORY_OPEN );
+	tmp = dw_file_browse("test string", NULL, "c", DW_FILE_OPEN );
 	if ( tmp )
 	{
 		if ( current_file )
@@ -338,6 +345,22 @@ int DWSIGNAL browse_callback(HWND window, void *data)
 		read_file();
 		draw_file(0,0);
 	}
+	return 0;
+}
+
+int DWSIGNAL button_callback(HWND window, void *data)
+{
+	return 0;
+}
+
+int DWSIGNAL redraw_button_box_callback(HWND window, void *data)
+{
+#if 0
+	dw_window_destroy( filetoolbarbox );
+	create_button(1);
+#else
+	dw_window_enable( window);
+#endif
 	return 0;
 }
 
@@ -433,6 +456,7 @@ int DWSIGNAL container_select_cb( HWND window, HTREEITEM item, char *text, void 
 	char buf[200];
 	char *str;
 	HWND statline = (HWND)data;
+	unsigned long size;
 
 	sprintf(buf,"DW_SIGNAL_ITEM_SELECT: Window: %x Item: %x Text: %s Itemdata: %x", (unsigned int)window, (unsigned int)item, text, (unsigned int)itemdata );
 	dw_window_set_text( statline, buf);
@@ -447,6 +471,12 @@ int DWSIGNAL container_select_cb( HWND window, HTREEITEM item, char *text, void 
 	}
 	/* Make the last inserted point the cursor location */
 	dw_mle_set(container_mle, mle_point);
+/* set the details of item 0 to new data */
+fprintf(stderr,"In cb: container: %x containerinfo: %x icon: %x\n", container, containerinfo, fileicon);
+	dw_filesystem_change_file(container, 0, "new data", fileicon);
+	size = 999;
+fprintf(stderr,"In cb: container: %x containerinfo: %x icon: %x\n", container, containerinfo, fileicon);
+	dw_filesystem_change_item(container, 0, 0, &size);
 	return 0;
 }
 
@@ -634,7 +664,6 @@ void container_add(void)
 	unsigned long flags[3] = {  DW_CFA_ULONG | DW_CFA_RIGHT | DW_CFA_HORZSEPARATOR | DW_CFA_SEPARATOR,
 	DW_CFA_TIME | DW_CFA_CENTER | DW_CFA_HORZSEPARATOR | DW_CFA_SEPARATOR,
 	DW_CFA_DATE | DW_CFA_LEFT | DW_CFA_HORZSEPARATOR | DW_CFA_SEPARATOR };
-	void *containerinfo;
 	int z;
 	CTIME time;
 	CDATE date;
@@ -668,6 +697,7 @@ void container_add(void)
 		sprintf(buffer, "Filename %d",z+1);
 		if (z == 0 ) thisicon = foldericon;
 		else thisicon = fileicon;
+fprintf(stderr,"Initial: container: %x containerinfo: %x icon: %x\n", container, containerinfo, thisicon);
 		dw_filesystem_set_file(container, containerinfo, z, buffer, thisicon);
 		dw_filesystem_set_item(container, containerinfo, 0, z, &size);
 
@@ -706,6 +736,59 @@ int DWSIGNAL timer_callback(void *data)
 	return TRUE;
 }
 
+
+void buttons_add(void)
+{
+	HWND buttonsbox,abutton1,abutton2;
+
+	/* create a box to pack into the notebook page */
+	buttonsbox = dw_box_new(BOXVERT, 2);
+	dw_box_pack_start( notebookbox5, buttonsbox, 25, 200, TRUE, TRUE, 0);
+	dw_window_set_color(buttonsbox, DW_CLR_RED, DW_CLR_RED);
+/*
+ * Create our file toolbar boxes...
+ */
+	buttonboxperm = dw_box_new( BOXVERT, 0 );
+	dw_box_pack_start( buttonsbox, buttonboxperm, 25, 0, FALSE, TRUE, 2 );
+	dw_window_set_color(buttonboxperm, DW_CLR_WHITE, DW_CLR_WHITE);
+	abutton1 = dw_bitmapbutton_new_from_file( "Top", 0, "junk" );
+	dw_box_pack_start( buttonboxperm, abutton1, 25, 25, FALSE, FALSE, 0 );
+	dw_signal_connect( abutton1, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(button_callback), NULL );
+	dw_box_pack_start( buttonboxperm, 0, 25, 5, FALSE, FALSE, 0 );
+	abutton2 = dw_bitmapbutton_new_from_file( "Bottom", 0, "junk" );
+	dw_box_pack_start( buttonsbox, abutton2, 25, 25, FALSE, FALSE, 0 );
+	dw_signal_connect( abutton2, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(button_callback), NULL );
+
+	create_button(0);
+}
+
+void create_button( int redraw)
+{
+	HWND abutton1;
+	filetoolbarbox = dw_box_new( BOXVERT, 0 );
+	dw_box_pack_start( buttonboxperm, filetoolbarbox, 0, 0, TRUE, TRUE, 0 );
+
+	abutton1 = dw_bitmapbutton_new_from_file( "Should be under Top button", 0, "junk" );
+	dw_box_pack_start( filetoolbarbox, abutton1, 25, 25, FALSE, FALSE, 0);
+	dw_signal_connect( abutton1, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(redraw_button_box_callback), NULL );
+	dw_box_pack_start( filetoolbarbox, 0, 25, 5, FALSE, FALSE, 0 );
+
+	abutton1 = dw_bitmapbutton_new_from_file( "Should be under Top button", 0, "junk" );
+	dw_box_pack_start( filetoolbarbox, abutton1, 25, 25, FALSE, FALSE, 0);
+	dw_signal_connect( abutton1, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(redraw_button_box_callback), NULL );
+	dw_box_pack_start( filetoolbarbox, 0, 25, 5, FALSE, FALSE, 0 );
+
+	abutton1 = dw_bitmapbutton_new_from_file( "Should be under Top button", 0, "junk" );
+	dw_box_pack_start( filetoolbarbox, abutton1, 25, 25, FALSE, FALSE, 0);
+	dw_signal_connect( abutton1, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(redraw_button_box_callback), NULL );
+	dw_box_pack_start( filetoolbarbox, 0, 25, 5, FALSE, FALSE, 0 );
+	if ( redraw )
+	{
+		dw_window_redraw( filetoolbarbox );
+		dw_window_redraw( mainwindow );
+	}
+}
+
 /*
  * Let's demonstrate the functionality of this library. :)
  */
@@ -715,6 +798,7 @@ int main(int argc, char *argv[])
 	ULONG notebookpage2;
 	ULONG notebookpage3;
 	ULONG notebookpage4;
+	ULONG notebookpage5;
 
 	dw_init(TRUE, argc, argv);
 
@@ -750,6 +834,12 @@ int main(int argc, char *argv[])
 	dw_notebook_pack( notebook, notebookpage4, notebookbox4 );
 	dw_notebook_page_set_text( notebook, notebookpage4, "container");
 	container_add();
+
+	notebookbox5 = dw_box_new( BOXVERT, 5 );
+	notebookpage5 = dw_notebook_page_new( notebook, 1, FALSE );
+	dw_notebook_pack( notebook, notebookpage5, notebookbox5 );
+	dw_notebook_page_set_text( notebook, notebookpage5, "buttons");
+	buttons_add();
 
 	dw_signal_connect(mainwindow, DW_SIGNAL_DELETE, DW_SIGNAL_FUNC(exit_callback), (void *)mainwindow);
 	timerid = dw_timer_connect(1000, DW_SIGNAL_FUNC(timer_callback), 0);

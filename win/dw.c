@@ -6695,6 +6695,34 @@ void API dw_container_change_item(HWND handle, int column, int row, void *data)
 }
 
 /*
+ * Changes an existing item in specified row and column to the given data.
+ * Parameters:
+ *          handle: Handle to the container window (widget).
+ *          column: Zero based column of data being set.
+ *          row: Zero based row of data being set.
+ *          data: Pointer to the data to be added.
+ */
+void API dw_filesystem_change_item(HWND handle, int column, int row, void *data)
+{
+	dw_container_change_item(handle, column + 2, row, data);
+}
+
+/*
+ * Changes an item in specified row and column to the given data.
+ * Parameters:
+ *          handle: Handle to the container window (widget).
+ *          pointer: Pointer to the allocated memory in dw_container_alloc().
+ *          column: Zero based column of data being set.
+ *          row: Zero based row of data being set.
+ *          data: Pointer to the data to be added.
+ */
+void API dw_filesystem_change_file(HWND handle, int row, char *filename, unsigned long icon)
+{
+	dw_container_change_item(handle, 0, row, (void *)&icon);
+	dw_container_change_item(handle, 1, row, (void *)&filename);
+}
+
+/*
  * Sets the width of a column in the container.
  * Parameters:
  *          handle: Handle to window (widget) of container.
