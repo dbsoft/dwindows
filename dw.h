@@ -992,6 +992,8 @@ void API dw_container_optimize(HWND handle);
 int API dw_filesystem_setup(HWND handle, unsigned long *flags, char **titles, int count);
 void API dw_filesystem_set_item(HWND handle, void *pointer, int column, int row, void *data);
 void API dw_filesystem_set_file(HWND handle, void *pointer, int row, char *filename, unsigned long icon);
+void dw_taskbar_insert(HWND handle, unsigned long icon, char *bubbletext);
+void dw_taskbar_delete(HWND handle, unsigned long icon);
 int API dw_screen_width(void);
 int API dw_screen_height(void);
 unsigned long API dw_color_depth(void);

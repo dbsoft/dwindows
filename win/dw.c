@@ -1413,6 +1413,8 @@ BOOL CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 		msg = WM_VSCROLL;
 	else if(msg == WM_KEYDOWN) /* && mp1 >= VK_F1 && mp1 <= VK_F24) allow ALL special keys */
 		msg = WM_CHAR;
+	else if(msg == WM_USER+2)
+		msg = (UINT)mp2;
 
 	if(result == -1)
 	{
@@ -6966,6 +6968,48 @@ void API dw_container_optimize(HWND handle)
 		free(columns);
 		free(text);
 	}
+}
+
+/*
+ * Inserts an icon into the taskbar.
+ * Parameters:
+ *       handle: Window handle that will handle taskbar icon messages.
+ *       icon: Icon handle to display in the taskbar.
+ *       bubbletext: Text to show when the mouse is above the icon.
+ */
+void dw_taskbar_insert(HWND handle, unsigned long icon, char *bubbletext)
+{
+	NOTIFYICONDATA tnid;
+ 
+	tnid.cbSize = sizeof(NOTIFYICONDATA);
+	tnid.hWnd = handle;
+	tnid.uID = icon;
+	tnid.uFlags = NIF_MESSAGE | NIF_ICON | NIF_TIP;
+	tnid.uCallbackMessage = WM_USER+2;
+	tnid.hIcon = (HICON)icon;
+	if(bubbletext)
+		strncpy(tnid.szTip, bubbletext, sizeof(tnid.szTip));
+	else
+		tnid.szTip[0] = 0;
+
+	Shell_NotifyIcon(NIM_ADD, &tnid);
+}
+
+/*
+ * Deletes an icon from the taskbar.
+ * Parameters:
+ *       handle: Window handle that was used with dw_taskbar_insert().
+ *       icon: Icon handle that was used with dw_taskbar_insert().
+ */
+void dw_taskbar_delete(HWND handle, unsigned long icon)
+{
+	NOTIFYICONDATA tnid;
+
+	tnid.cbSize = sizeof(NOTIFYICONDATA);
+	tnid.hWnd = handle;
+	tnid.uID = icon;
+
+	Shell_NotifyIcon(NIM_DELETE, &tnid);
 }
 
 /*

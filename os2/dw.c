@@ -6943,6 +6943,29 @@ void API dw_container_optimize(HWND handle)
 }
 
 /*
+ * Inserts an icon into the taskbar.
+ * Parameters:
+ *       handle: Window handle that will handle taskbar icon messages.
+ *       icon: Icon handle to display in the taskbar.
+ *       bubbletext: Text to show when the mouse is above the icon.
+ */
+void dw_taskbar_insert(HWND handle, unsigned long icon, char *bubbletext)
+{
+    /* TODO */
+}
+
+/*
+ * Deletes an icon from the taskbar.
+ * Parameters:
+ *       handle: Window handle that was used with dw_taskbar_insert().
+ *       icon: Icon handle that was used with dw_taskbar_insert().
+ */
+void dw_taskbar_delete(HWND handle, unsigned long icon)
+{
+    /* TODO */
+}
+
+/*
  * Creates a rendering context widget (window) to be packed.
  * Parameters:
  *       id: An id to be used with dw_window_from_id.
