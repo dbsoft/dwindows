@@ -5473,7 +5473,9 @@ void dw_container_set_item(HWND handle, void *pointer, int column, int row, void
 
 	temp = (PRECORDCORE)ci->data;
 
-	WinSendMsg(handle, CM_QUERYCNRINFO, (MPARAM)&cnr, MPFROMSHORT(sizeof(CNRINFO)));
+	if(!WinSendMsg(handle, CM_QUERYCNRINFO, (MPARAM)&cnr, MPFROMSHORT(sizeof(CNRINFO))))
+		return;
+
 	currentcount = cnr.cRecords;
 
 	/* Figure out the offsets to the items in the struct */
@@ -5612,6 +5614,8 @@ void dw_container_insert(HWND handle, void *pointer, int rowcount)
 			break;
 		DosSleep(1);
 	}
+
+	free(ci);
 }
 
 /*
@@ -5719,7 +5723,7 @@ char *dw_container_query_start(HWND handle, unsigned long flags)
 		{
 			while(pCore)
 			{
-				if(pCore->flRecordAttr & CRA_SELECTED)
+				if(pCore->flRecordAttr & flags)
 					return pCore->pszIcon;
 				pCore = WinSendMsg(handle, CM_QUERYRECORD, (MPARAM)pCore, MPFROM2SHORT(CMA_NEXT, CMA_ITEMORDER));
 			}
@@ -5747,7 +5751,7 @@ char *dw_container_query_next(HWND handle, unsigned long flags)
 		{
 			while(pCore)
 			{
-				if(pCore->flRecordAttr & CRA_SELECTED)
+				if(pCore->flRecordAttr & flags)
 					return pCore->pszIcon;
 
 				pCore = WinSendMsg(handle, CM_QUERYRECORD, (MPARAM)pCore, MPFROM2SHORT(CMA_NEXT, CMA_ITEMORDER));
@@ -5757,6 +5761,53 @@ char *dw_container_query_next(HWND handle, unsigned long flags)
 			return pCore->pszIcon;
 	}
     return NULL;
+}
+
+/*
+ * Cursors the item with the text speficied, and scrolls to that item.
+ * Parameters:
+ *       handle: Handle to the window (widget) to be queried.
+ *       text:  Text usually returned by dw_container_query().
+ */
+void dw_container_cursor(HWND handle, char *text)
+{
+	RECTL viewport, item;
+
+	pCore = WinSendMsg(handle, CM_QUERYRECORD, (MPARAM)0L, MPFROM2SHORT(CMA_FIRST, CMA_ITEMORDER));
+	while(pCore)
+	{
+		if(pCore->pszIcon == text)
+		{
+			QUERYRECORDRECT qrr;
+			int scrollpixels = 0, midway;
+
+			qrr.cb = sizeof(QUERYRECORDRECT);
+			qrr.pRecord = pCore;
+			qrr.fRightSplitWindow = 0;
+			qrr.fsExtent = CMA_TEXT;
+
+			WinSendMsg(handle, CM_SETRECORDEMPHASIS, (MPARAM)pCore, MPFROM2SHORT(TRUE, CRA_CURSORED));
+			WinSendMsg(handle, CM_QUERYVIEWPORTRECT, (MPARAM)&viewport, MPFROM2SHORT(CMA_WORKSPACE, FALSE));
+			WinSendMsg(handle, CM_QUERYRECORDRECT, (MPARAM)&item, (MPARAM)&qrr);
+
+			midway = (viewport.yTop - viewport.yBottom)/2;
+			scrollpixels = viewport.yTop - (item.yTop + midway);
+
+			WinSendMsg(handle, CM_SCROLLWINDOW, MPFROMSHORT(CMA_VERTICAL),  MPFROMLONG(scrollpixels));
+			return;
+		}
+
+		pCore = WinSendMsg(handle, CM_QUERYRECORD, (MPARAM)pCore, MPFROM2SHORT(CMA_NEXT, CMA_ITEMORDER));
+	}
+}
+
+/*
+ * Optimizes the column widths so that all data is visible.
+ * Parameters:
+ *       handle: Handle to the window (widget) to be optimized.
+ */
+void dw_container_optimize(HWND handle)
+{
 }
 
 /*

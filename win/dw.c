@@ -1985,6 +1985,8 @@ BOOL CALLBACK _containerwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 
 			iItem = ListView_GetNextItem(hWnd, -1, LVNI_FOCUSED);
 
+			memset(&lvi, 0, sizeof(LV_ITEM));
+
 			if(iItem > -1)
 			{
 				lvi.iItem = iItem;
@@ -1992,8 +1994,6 @@ BOOL CALLBACK _containerwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 
 				ListView_GetItem(hWnd, &lvi);
 			}
-			else
-				lvi.lParam = (LPARAM)NULL;
 
 			{
 				SignalHandler *tmp = Root;
@@ -2040,6 +2040,8 @@ BOOL CALLBACK _containerwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 
 					iItem = ListView_HitTest(tmp->window, &lhi);
 
+					memset(&lvi, 0, sizeof(LV_ITEM));
+
 					if(iItem > -1)
 					{
 						lvi.iItem = iItem;
@@ -2048,8 +2050,6 @@ BOOL CALLBACK _containerwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 						ListView_GetItem(tmp->window, &lvi);
 						ListView_SetSelectionMark(tmp->window, iItem);
 					}
-					else
-						lvi.lParam = (LPARAM)NULL;
 
 					/* Seems to be having lParam as 1 which really sucks */
 					if(lvi.lParam < 100)
@@ -3559,7 +3559,7 @@ HWND dw_container_new(ULONG id)
 {
 	HWND tmp = CreateWindow(WC_LISTVIEW,
 							"",
-							WS_CHILD | LVS_REPORT |
+							WS_CHILD | LVS_REPORT | LVS_SHOWSELALWAYS |
 							LVS_SHAREIMAGELISTS | WS_BORDER |
 							WS_CLIPCHILDREN,
 							0,0,2000,1000,
@@ -3593,7 +3593,7 @@ HWND dw_tree_new(ULONG id)
 {
 	HWND tmp = CreateWindow(WC_TREEVIEW,
 							"",
-							WS_CHILD | TVS_HASLINES |
+							WS_CHILD | TVS_HASLINES | TVS_SHOWSELALWAYS |
 							TVS_HASBUTTONS | TVS_LINESATROOT |
 							WS_BORDER | WS_CLIPCHILDREN,
 							0,0,2000,1000,
@@ -5387,6 +5387,7 @@ int dw_container_setup(HWND handle, unsigned long *flags, char **titles, int cou
 	memcpy(&tempflags[l], flags, sizeof(unsigned long) * count);
 	tempflags[count + l] = 0;
 	cinfo->flags = tempflags;
+	cinfo->columns = count;
 
 
 	for(z=0;z<count;z++)
@@ -5766,11 +5767,12 @@ char *dw_container_query_start(HWND handle, unsigned long flags)
 {
 	LV_ITEM lvi;
 
-    if(flags)
-		_index = ListView_GetNextItem(handle, -1, LVNI_SELECTED);
-	else
-		_index = ListView_GetNextItem(handle, -1, LVNI_ALL);
+	_index = ListView_GetNextItem(handle, -1, flags);
 
+	if(_index == -1)
+		return NULL;
+
+	memset(&lvi, 0, sizeof(LV_ITEM));
 
 	lvi.iItem = _index;
 	lvi.mask = LVIF_PARAM;
@@ -5792,13 +5794,12 @@ char *dw_container_query_next(HWND handle, unsigned long flags)
 {
 	LV_ITEM lvi;
 
-	if(flags)
-		_index = ListView_GetNextItem(handle, _index, LVNI_SELECTED);
-	else
-		_index = ListView_GetNextItem(handle, _index, LVNI_ALL);
+	_index = ListView_GetNextItem(handle, _index, flags);
 
 	if(_index == -1)
 		return NULL;
+
+	memset(&lvi, 0, sizeof(LV_ITEM));
 
 	lvi.iItem = _index;
 	lvi.mask = LVIF_PARAM;
@@ -5806,6 +5807,117 @@ char *dw_container_query_next(HWND handle, unsigned long flags)
 	ListView_GetItem(handle, &lvi);
 
 	return (char *)lvi.lParam;
+}
+
+/*
+ * Cursors the item with the text speficied, and scrolls to that item.
+ * Parameters:
+ *       handle: Handle to the window (widget) to be queried.
+ *       text:  Text usually returned by dw_container_query().
+ */
+void dw_container_cursor(HWND handle, char *text)
+{
+	int index = ListView_GetNextItem(handle, -1, LVNI_ALL);
+
+	while(index != -1)
+	{
+		LV_ITEM lvi;
+
+		memset(&lvi, 0, sizeof(LV_ITEM));
+
+		lvi.iItem = index;
+		lvi.mask = LVIF_PARAM;
+
+		ListView_GetItem(handle, &lvi);
+
+		if((char *)lvi.lParam == text)
+		{
+			RECT viewport, item;
+
+			ListView_SetItemState(handle, index, LVIS_FOCUSED | LVIS_SELECTED, LVIS_FOCUSED | LVIS_SELECTED);
+			ListView_EnsureVisible(handle, index, TRUE);
+			return;
+		}
+
+        index = ListView_GetNextItem(handle, index, LVNI_ALL);
+	}
+}
+
+/*
+ * Optimizes the column widths so that all data is visible.
+ * Parameters:
+ *       handle: Handle to the window (widget) to be optimized.
+ */
+void dw_container_optimize(HWND handle)
+{
+	ContainerInfo *cinfo = (ContainerInfo *)GetWindowLong(handle, GWL_USERDATA);
+	ULONG *flags;
+	LV_ITEM lvi;
+
+	if(cinfo && cinfo->columns > 0)
+	{
+		int z, index;
+		ULONG *flags = cinfo->flags, *columns = calloc(sizeof(ULONG), cinfo->columns);
+		char *text = malloc(1024);
+
+		/* Initialize with sizes of column labels */
+		for(z=0;z<cinfo->columns;z++)
+		{
+			if(flags[z] & DW_CFA_BITMAPORICON)
+				columns[z] = 5;
+			else
+			{
+				LVCOLUMN lvc;
+
+				lvc.mask = LVCF_TEXT;
+				lvc.cchTextMax = 1023;
+				lvc.pszText = text;
+
+				if(ListView_GetColumn(handle, z, &lvc))
+					columns[z] = ListView_GetStringWidth(handle, lvc.pszText);
+			}
+		}
+
+		index = ListView_GetNextItem(handle, -1, LVNI_ALL);
+
+		/* Query all the item texts */
+		while(index != -1)
+		{
+			for(z=0;z<cinfo->columns;z++)
+			{
+				LV_ITEM lvi;
+
+				memset(&lvi, 0, sizeof(LV_ITEM));
+
+				lvi.iItem = index;
+				lvi.iSubItem = z;
+				lvi.mask = LVIF_TEXT;
+				lvi.cchTextMax = 1023;
+				lvi.pszText = text;
+
+				if(ListView_GetItem(handle, &lvi))
+				{
+					int width = ListView_GetStringWidth(handle, lvi.pszText);
+					if(width > columns[z])
+					{
+						if(z == 0)
+							columns[z] = width + 20;
+						else
+							columns[z] = width;
+					}
+				}
+			}
+
+			index = ListView_GetNextItem(handle, index, LVNI_ALL);
+		}
+
+		/* Set the new sizes */
+		for(z=0;z<cinfo->columns;z++)
+			ListView_SetColumnWidth(handle, z, columns[z] + 15);
+
+		free(columns);
+		free(text);
+	}
 }
 
 /*

@@ -97,6 +97,9 @@
 #define DW_CV_MINI               CV_MINI
 #define DW_CV_DETAIL             CV_DETAIL
 
+#define DW_CRA_SELECTED          CRA_SELECTED
+#define DW_CRA_CURSORED          CRA_CURSORED
+
 #define DW_SLS_READONLY          SLS_READONLY
 #define DW_SLS_RIBBONSTRIP       SLS_RIBBONSTRIP
 
@@ -214,19 +217,22 @@ extern HMQ dwhmq;
 #define DW_FCF_AUTOICON          0
 
 #define DW_CFA_BITMAPORICON      1
-#define DW_CFA_STRING            1 << 2
-#define DW_CFA_ULONG             1 << 3
-#define DW_CFA_TIME              1 << 4
-#define DW_CFA_DATE              1 << 5
-#define DW_CFA_CENTER            1 << 6
-#define DW_CFA_LEFT              1 << 7
-#define DW_CFA_RIGHT             1 << 8
+#define DW_CFA_STRING            (1 << 1)
+#define DW_CFA_ULONG             (1 << 2)
+#define DW_CFA_TIME              (1 << 3)
+#define DW_CFA_DATE              (1 << 4)
+#define DW_CFA_CENTER            (1 << 5)
+#define DW_CFA_LEFT              (1 << 6)
+#define DW_CFA_RIGHT             (1 << 7)
 #define DW_CFA_HORZSEPARATOR     0
 #define DW_CFA_SEPARATOR         0
 
 #define DW_CA_DETAILSVIEWTITLES  0
 #define DW_CV_MINI               0
 #define DW_CV_DETAIL             0
+
+#define DW_CRA_SELECTED          LVNI_SELECTED
+#define DW_CRA_CURSORED          LVNI_FOCUSED
 
 #define DW_SLS_READONLY          0
 #define DW_SLS_RIBBONSTRIP       0
@@ -438,6 +444,9 @@ void dw_box_pack_end_stub(HWND box, HWND item, int width, int height, int hsize,
 
 #define DW_CCS_SINGLESEL         1
 #define DW_CCS_EXTENDSEL         (1 << 1)
+
+#define DW_CRA_SELECTED          1
+#define DW_CRA_CURSORED          (1 << 1)
 
 #define DW_LS_MULTIPLESEL        1
 
@@ -691,6 +700,8 @@ void dw_container_set_view(HWND handle, unsigned long flags, int iconwidth, int 
 char *dw_container_query_start(HWND handle, unsigned long flags);
 char *dw_container_query_next(HWND handle, unsigned long flags);
 void dw_container_scroll(HWND handle, int direction, long rows);
+void dw_container_cursor(HWND handle, char *text);
+void dw_container_optimize(HWND handle);
 int dw_filesystem_setup(HWND handle, unsigned long *flags, char **titles, int count);
 void dw_filesystem_set_item(HWND handle, void *pointer, int column, int row, void *data);
 void dw_filesystem_set_file(HWND handle, void *pointer, int row, char *filename, unsigned long icon);
