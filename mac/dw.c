@@ -1807,7 +1807,7 @@ void API dw_mle_clear(HWND handle)
  *          handle: Handle to the MLE to be positioned.
  *          line: Line to be visible.
  */
-void API dw_mle_set_cursor_visible(HWND handle, int line)
+void API dw_mle_set_visible(HWND handle, int line)
 {
 }
 
@@ -1817,7 +1817,7 @@ void API dw_mle_set_cursor_visible(HWND handle, int line)
  *          handle: Handle to the MLE.
  *          state: TRUE if it can be edited, FALSE for readonly.
  */
-void API dw_mle_set_cursor_editable(HWND handle, int state)
+void API dw_mle_set_editable(HWND handle, int state)
 {
 }
 
@@ -1827,7 +1827,7 @@ void API dw_mle_set_cursor_editable(HWND handle, int state)
  *          handle: Handle to the MLE.
  *          state: TRUE if it wraps, FALSE if it doesn't.
  */
-void API dw_mle_set_cursor_word_wrap(HWND handle, int state)
+void API dw_mle_set_word_wrap(HWND handle, int state)
 {
 }
 
@@ -2053,7 +2053,7 @@ void API dw_tree_item_change(HWND handle, HTREEITEM item, char *title, unsigned 
  *          item: Handle of the item to be modified.
  *          itemdata: User defined data to be associated with item.
  */
-void API dw_tree_item_change_data(HWND handle, HTREEITEM item, void *itemdata)
+void API dw_tree_item_set_data(HWND handle, HTREEITEM item, void *itemdata)
 {
 }
 

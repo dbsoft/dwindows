@@ -34,7 +34,7 @@ EXPORTS
   dw_window_set_font                     @54
   dw_window_set_color                    @55
   dw_window_set_pos                      @56
-  dw_window_set_size                    @57
+  dw_window_set_size                     @57
   dw_window_set_pos_size                 @58
   dw_window_get_pos_size                 @59
   dw_window_set_style                    @60
@@ -51,7 +51,7 @@ EXPORTS
   dw_window_from_id                      @71
   dw_window_set_border                   @72
   dw_window_minimize                     @73
-  dw_window_set_pointer                      @74
+  dw_window_set_pointer                  @74
   dw_window_default                      @75
   dw_window_raise                        @76
   dw_window_lower                        @77
@@ -81,37 +81,37 @@ EXPORTS
   dw_listbox_set_top                     @144
   dw_listbox_select                      @145
   dw_listbox_delete                      @146
-  dw_listbox_get_text                  @147
+  dw_listbox_get_text                    @147
   dw_listbox_set_text                    @148
   dw_listbox_selected                    @149
   dw_listbox_selected_multi              @150
 
   dw_percent_new                         @160
-  dw_percent_get_range                 @161
+  dw_percent_get_range                   @161
   dw_percent_set_pos                     @162
 
   dw_mle_new                             @170
   dw_mle_import                          @171
   dw_mle_export                          @172
-  dw_mle_get_size                           @173
+  dw_mle_get_size                        @173
   dw_mle_delete                          @174
   dw_mle_clear                           @175
   dw_mle_freeze                          @176
   dw_mle_thaw                            @177
-  dw_mle_set_cursor                             @178
-  dw_mle_set_cursor_visible                     @179
+  dw_mle_set_cursor                      @178
+  dw_mle_set_visible                     @179
   dw_mle_search                          @180
-  dw_mle_set_cursor_editable                    @181
-  dw_mle_set_cursor_word_wrap                   @182
+  dw_mle_set_editable                    @181
+  dw_mle_set_word_wrap                   @182
 
   dw_spinbutton_new                      @190
   dw_spinbutton_set_pos                  @191
   dw_spinbutton_set_limits               @192
   dw_entryfield_set_limit                @193
-  dw_spinbutton_get_pos                    @194
+  dw_spinbutton_get_pos                  @194
 
   dw_checkbox_new                        @200
-  dw_checkbox_get                      @201
+  dw_checkbox_get                        @201
   dw_checkbox_set                        @202
 
   dw_icon_load                           @210
@@ -156,7 +156,7 @@ EXPORTS
   dw_notebook_page_set_text              @273
   dw_notebook_page_set_status_text       @274
   dw_notebook_page_set                   @275
-  dw_notebook_page_get                 @276
+  dw_notebook_page_get                   @276
   dw_notebook_pack                       @277
 
   dw_menu_new                            @280
@@ -211,21 +211,21 @@ EXPORTS
   dw_tree_new                            @370
   dw_tree_insert                         @371
   dw_tree_clear                          @372
-  dw_tree_item_delete                         @373
-  dw_tree_item_change                            @374
-  dw_tree_item_expand                         @375
-  dw_tree_item_collapse                       @376
+  dw_tree_item_delete                    @373
+  dw_tree_item_change                    @374
+  dw_tree_item_expand                    @375
+  dw_tree_item_collapse                  @376
   dw_tree_item_select                    @377
-  dw_tree_item_change_data                       @378
+  dw_tree_item_set_data                  @378
   dw_tree_insert_after                   @379
-  dw_tree_item_get_data                       @380
+  dw_tree_item_get_data                  @380
   dw_tree_get_title                      @381
   dw_tree_get_parent                     @382
 
   dw_font_text_extents                   @385
 
   dw_slider_new                          @390
-  dw_slider_get_pos                    @391
+  dw_slider_get_pos                      @391
   dw_slider_set_pos                      @392
 
   dw_window_set_data                     @400
@@ -240,7 +240,7 @@ EXPORTS
   dw_module_close                        @422
 
   dw_scrollbar_new                       @430
-  dw_scrollbar_get_pos                 @431
+  dw_scrollbar_get_pos                   @431
   dw_scrollbar_set_pos                   @432
   dw_scrollbar_set_range                 @433
 

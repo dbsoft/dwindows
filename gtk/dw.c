@@ -3352,7 +3352,7 @@ void dw_mle_clear(HWND handle)
  *          handle: Handle to the MLE.
  *          line: Line to be visible.
  */
-void dw_mle_set_cursor_visible(HWND handle, int line)
+void dw_mle_set_visible(HWND handle, int line)
 {
 	int _locked_by_me = FALSE;
 
@@ -3414,7 +3414,7 @@ void dw_mle_set_cursor_visible(HWND handle, int line)
  *          handle: Handle to the MLE.
  *          state: TRUE if it can be edited, FALSE for readonly.
  */
-void dw_mle_set_cursor_editable(HWND handle, int state)
+void dw_mle_set_editable(HWND handle, int state)
 {
 	int _locked_by_me = FALSE;
 
@@ -3445,7 +3445,7 @@ void dw_mle_set_cursor_editable(HWND handle, int state)
  *          handle: Handle to the MLE.
  *          state: TRUE if it wraps, FALSE if it doesn't.
  */
-void dw_mle_set_cursor_word_wrap(HWND handle, int state)
+void dw_mle_set_word_wrap(HWND handle, int state)
 {
 	int _locked_by_me = FALSE;
 
@@ -4281,7 +4281,7 @@ void dw_tree_item_change(HWND handle, HTREEITEM item, char *title, unsigned long
  *          item: Handle of the item to be modified.
  *          itemdata: User defined data to be associated with item.
  */
-void dw_tree_item_change_data(HWND handle, HTREEITEM item, void *itemdata)
+void dw_tree_item_set_data(HWND handle, HTREEITEM item, void *itemdata)
 {
 #if GTK_MAJOR_VERSION > 1
 	GtkWidget *tree;
@@ -7935,7 +7935,7 @@ static void _populate_directory(HWND tree, HTREEITEM parent, char *path)
 				{
 					item = dw_tree_insert(tree, dent->d_name, 0, parent, (void *)parent);
 					tempitem = dw_tree_insert(tree, "", 0, item, 0);
-					dw_tree_item_change_data(tree, item, (void *)tempitem);
+					dw_tree_item_set_data(tree, item, (void *)tempitem);
 				}
 
 				free(folder);
@@ -8020,7 +8020,7 @@ static int DWSIGNAL _tree_expand(HWND window, HTREEITEM item, void *data)
 	{
 		char *folder = _tree_folder(tree, item);
 
-		dw_tree_item_change_data(tree, item, 0);
+		dw_tree_item_set_data(tree, item, 0);
 
 		if(*folder)
 			_populate_directory(tree, item, folder);
@@ -8092,7 +8092,7 @@ char *dw_file_browse(char *title, char *defpath, char *ext, int flags)
 
 		item = dw_tree_insert(tree, "/", 0, NULL, 0);
 		tempitem = dw_tree_insert(tree, "", 0, item, 0);
-		dw_tree_item_change_data(tree, item, (void *)tempitem);
+		dw_tree_item_set_data(tree, item, (void *)tempitem);
 
 		dw_window_set_size(window, 225, 300);
 		dw_window_show(window);
