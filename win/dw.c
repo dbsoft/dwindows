@@ -221,6 +221,21 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 }
 #endif
 
+/* This should return true for WinNT/2K/XP and false on Win9x */
+int IsWinNT(void)
+{
+	static int isnt = -1;
+
+	if(isnt == -1)
+	{
+		if (GetVersion() < 0x80000000)
+			isnt = 1;
+		else
+			isnt = 0;
+	}
+	return isnt;
+}
+
 /* This function adds a signal handler callback into the linked list.
  */
 void _new_signal(ULONG message, HWND window, void *signalfunction, void *data)
@@ -1581,7 +1596,12 @@ BOOL CALLBACK _colorwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 			 * occured and to update it's internal value.
 			 */
 			if(cinfo->buddy && !cinfo->combo)
-				SendMessage(cinfo->buddy, WM_USER+10, 0, 0);
+			{
+				if(IsWinNT())
+					PostMessage(cinfo->buddy, WM_USER+10, 0, 0);
+				else
+					SendMessage(cinfo->buddy, WM_USER+10, 0, 0);
+			}
 			break;
 		case WM_USER+10:
 			{
