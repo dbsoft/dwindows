@@ -267,7 +267,6 @@ int DWSIGNAL cursortoggle_callback(HWND window, void *data)
 		dw_window_pointer((HWND)data,DW_POINTER_ARROW);
 		cursor_arrow = 1;
 	}
-	dw_window_show(mainwindow);
 	return FALSE;
 }
 
@@ -551,7 +550,7 @@ void text_add(void)
 	text1pm = dw_pixmap_new( textbox1, font_width*width1, font_height*rows, depth );
 	text2pm = dw_pixmap_new( textbox2, font_width*cols, font_height*rows, depth );
 
-	dw_messagebox("DWTest", "Width: %d Height: %d\n", font_width, font_height);
+	dw_messagebox("DWTest", DW_MB_OK|DW_MB_INFORMATION, "Width: %d Height: %d\n", font_width, font_height);
 	dw_draw_rect(0, text1pm, TRUE, 0, 0, font_width*width1, font_height*rows);
 	dw_draw_rect(0, text2pm, TRUE, 0, 0, font_width*cols, font_height*rows);
 	dw_signal_connect(textbox1, DW_SIGNAL_EXPOSE, DW_SIGNAL_FUNC(text_expose), NULL);
