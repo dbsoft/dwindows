@@ -57,6 +57,7 @@
 #ifdef __EMX__
 #include <dirent.h>
 #include <sys/stat.h>
+#define HAVE_PIPE
 #ifdef FD_SETSIZE
 #undef FD_SETSIZE
 #endif
