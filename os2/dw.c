@@ -46,7 +46,7 @@ HMQ dwhmq = 0;
 DWTID _dwtid = 0;
 LONG _foreground = 0xAAAAAA, _background = DW_CLR_DEFAULT;
 
-HWND hwndBubble = NULLHANDLE, hwndBubbleLast = NULLHANDLE, hwndEmph = NULLHANDLE;
+HWND hwndApp = NULLHANDLE, hwndBubble = NULLHANDLE, hwndBubbleLast = NULLHANDLE, hwndEmph = NULLHANDLE;
 PRECORDCORE pCore = NULL, pCoreEmph = NULL;
 ULONG aulBuffer[4];
 HWND lasthcnr = 0, lastitem = 0, popup = 0, desktop;
@@ -123,9 +123,6 @@ void _new_signal(ULONG message, HWND window, int id, void *signalfunction, void 
 {
 	SignalHandler *new = malloc(sizeof(SignalHandler));
 
-	if(message == WM_COMMAND)
-		dw_signal_disconnect_by_window(window);
-
 	new->message = message;
 	new->window = window;
 	new->id = id;
@@ -142,6 +139,7 @@ void _new_signal(ULONG message, HWND window, int id, void *signalfunction, void 
 		{
 			if(tmp->message == message &&
 			   tmp->window == window &&
+			   tmp->id == id &&
 			   tmp->signalfunction == signalfunction)
 			{
 				tmp->data = data;
@@ -1936,6 +1934,27 @@ void _clear_emphasis(void)
 	pCoreEmph = NULL;
 }
 
+/* Find the desktop window handle */
+HWND _menu_owner(HWND handle)
+{
+	HWND menuowner = NULLHANDLE, lastowner = (HWND)dw_window_get_data(handle, "_dw_owner");
+	int menubar = (int)dw_window_get_data(handle, "_dw_menubar");
+
+	/* Find the toplevel window */
+	while(!menubar && (menuowner = (HWND)dw_window_get_data(lastowner, "_dw_owner")) != NULLHANDLE)
+	{
+		menubar = (int)dw_window_get_data(lastowner, "_dw_menubar");
+		lastowner = menuowner;
+	}
+	if(menuowner && menubar)
+	{
+		HWND client = WinWindowFromID(menuowner, FID_CLIENT);
+
+		return client ? client : menuowner;
+	}
+	return NULLHANDLE;
+}
+
 MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 {
 	int result = -1;
@@ -2138,7 +2157,17 @@ MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 					int (* API clickfunc)(HWND, void *) = (int (* API)(HWND, void *))tmp->signalfunction;
 					ULONG command = COMMANDMSG(&msg)->cmd;
 
-					if(tmp->window < 65536 && command == tmp->window)
+					if(tmp->id)
+					{
+						HWND menuowner = _menu_owner(tmp->window);
+
+						if((menuowner == hWnd || menuowner == NULLHANDLE) && command == tmp->id)
+						{
+							result = clickfunc(tmp->window, tmp->data);
+							tmp = NULL;
+						}
+					}
+					else if(tmp->window < 65536 && command == tmp->window)
 					{
 						result = clickfunc(popup ?  popup : tmp->window, tmp->data);
 						tmp = NULL;
@@ -3206,7 +3235,13 @@ int API dw_init(int newthread, int argc, char *argv[])
 	desktop = WinQueryDesktopWindow(dwhab, NULLHANDLE);
 
 	if(!IS_WARP4())
-        DefaultFont = "8.Helv";
+		DefaultFont = "8.Helv";
+
+	/* This is a window that hangs around as long as the
+	 * application does and handles menu messages.
+	 */
+	hwndApp = dw_window_new(HWND_OBJECT, "", 0);
+
 	return rc;
 }
 
@@ -3938,6 +3973,8 @@ HMENUI API dw_menubar_new(HWND location)
 								 FID_MENU,
 								 NULL,
 								 NULL);
+	dw_window_set_data(tmp, "_dw_owner", (void *)location);
+	dw_window_set_data(tmp, "_dw_menubar", (void *)location);
 	return tmp;
 }
 
@@ -3966,8 +4003,9 @@ void API dw_menu_destroy(HMENUI *menu)
 HWND API dw_menu_append_item(HMENUI menux, char *title, ULONG id, ULONG flags, int end, int check, HMENUI submenu)
 {
 	MENUITEM miSubMenu;
+	char buffer[15];
 
-	if(!menux)
+	if(!menux || id > 65536)
 		return NULLHANDLE;
 
 	if(end)
@@ -3988,6 +4026,12 @@ HWND API dw_menu_append_item(HMENUI menux, char *title, ULONG id, ULONG flags, i
 			   MM_INSERTITEM,
 			   MPFROMP(&miSubMenu),
 			   MPFROMP(title));
+
+	sprintf(buffer, "_dw_id%d", id);
+	dw_window_set_data(hwndApp, buffer, (void *)menux);
+
+	if(submenu)
+		dw_window_set_data(submenu, "_dw_owner", (void *)menux);
 	return (HWND)id;
 }
 
@@ -7542,6 +7586,9 @@ DWTID API dw_thread_id(void)
  */
 void API dw_exit(int exitcode)
 {
+	/* Destroy the menu message window */
+	dw_window_destroy(hwndApp);
+
 	/* In case we are in a signal handler, don't
 	 * try to free memory that could possibly be
 	 * free()'d by the runtime already.
@@ -8297,12 +8344,35 @@ void API dw_timer_disconnect(int id)
  */
 void API dw_signal_connect(HWND window, char *signame, void *sigfunc, void *data)
 {
-	ULONG message = 0L;
+	ULONG message = 0, id = 0;
 
 	if(window && signame && sigfunc)
 	{
 		if((message = _findsigmessage(signame)) != 0)
-			_new_signal(message, window, 0, sigfunc, data);
+		{
+			/* Handle special case of the menu item */
+			if(message == WM_COMMAND && window < 65536)
+			{
+				char buffer[15];
+				HWND owner;
+
+				sprintf(buffer, "_dw_id%d", (int)window);
+				owner = (HWND)dw_window_get_data(hwndApp, buffer);
+
+				if(owner)
+				{
+					id = window;
+					window = owner;
+					dw_window_set_data(hwndApp, buffer, 0);
+				}
+				else
+				{
+					/* If it is a popup menu clear all entries */
+					dw_signal_disconnect_by_window(window);
+				}
+			}
+			_new_signal(message, window, id, sigfunc, data);
+		}
 	}
 }
 
