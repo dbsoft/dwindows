@@ -45,6 +45,7 @@ LONG _foreground = 0xAAAAAA, _background = 0;
 HWND hwndBubble = NULLHANDLE, hwndBubbleLast = NULLHANDLE;
 PRECORDCORE pCore = NULL;
 ULONG aulBuffer[4];
+HWND lasthcnr = 0, lastitem = 0;
 
 #define IS_WARP4() (aulBuffer[0] == 20 && aulBuffer[1] >= 40)
 
@@ -92,7 +93,7 @@ typedef struct
 } SignalList;
 
 /* List of signals and their equivilent OS/2 message */
-#define SIGNALMAX 13
+#define SIGNALMAX 14
 
 SignalList SignalTranslate[SIGNALMAX] = {
 	{ WM_SIZE, "configure_event" },
@@ -107,7 +108,8 @@ SignalList SignalTranslate[SIGNALMAX] = {
 	{ CN_CONTEXTMENU, "container-context" },
 	{ LN_SELECT, "item-select" },
 	{ CN_EMPHASIS, "tree-select" },
-	{ WM_SETFOCUS, "set-focus" }
+	{ WM_SETFOCUS, "set-focus" },
+	{ WM_USER+1, "lose-focus" }
 };
 
 /* This function adds a signal handler callback into the linked list.
@@ -115,6 +117,11 @@ SignalList SignalTranslate[SIGNALMAX] = {
 void _new_signal(ULONG message, HWND window, void *signalfunction, void *data)
 {
 	SignalHandler *new = malloc(sizeof(SignalHandler));
+
+#ifndef NO_SIGNALS
+	if(message == WM_COMMAND)
+		dw_signal_disconnect_by_window(window);
+#endif
 
 	new->message = message;
 	new->window = window;
@@ -188,6 +195,22 @@ void _fix_button_owner(HWND handle, HWND dw)
 	return;
 }
 
+void _disconnect_windows(HWND handle)
+{
+	HENUM henum;
+	HWND child;
+
+#ifndef NO_SIGNALS
+	dw_signal_disconnect_by_window(handle);
+#endif
+
+	henum = WinBeginEnumWindows(handle);
+	while((child = WinGetNextWindow(henum)) != NULLHANDLE)
+		_disconnect_windows(child);
+
+	WinEndEnumWindows(henum);
+}
+
 /* This function removes and handlers on windows and frees
  * the user memory allocated to it.
  */
@@ -233,9 +256,9 @@ int _validate_focus(HWND handle)
 	/* These are the window classes which can
 	 * obtain input focus.
 	 */
-	if(strncmp(tmpbuf, "#2", 3)==0 ||  /* Entryfield */
+	if(strncmp(tmpbuf, "#2", 3)==0 ||  /* Combobox */
 	   strncmp(tmpbuf, "#3", 3)==0 ||  /* Button */
-	   strncmp(tmpbuf, "#6", 3)==0 ||  /* Combobox */
+	   strncmp(tmpbuf, "#6", 3)==0 ||  /* Entryfield */
 	   strncmp(tmpbuf, "#7", 3)==0 ||  /* List box */
 	   strncmp(tmpbuf, "#10", 3)==0 || /* MLE */
 	   strncmp(tmpbuf, "#32", 3)==0 || /* Spinbutton */
@@ -419,7 +442,7 @@ int _focus_check_box(Box *box, HWND handle, int start, HWND defaultitem)
 /* This function finds the first widget in the
  * layout and moves the current focus to it.
  */
-void _initial_focus(HWND handle)
+int _initial_focus(HWND handle)
 {
 	Box *thisbox = NULL;
 	HWND box;
@@ -427,11 +450,12 @@ void _initial_focus(HWND handle)
 	box = WinWindowFromID(handle, FID_CLIENT);
 	if(box)
 		thisbox = WinQueryWindowPtr(box, QWP_USER);
+	else
+		return 1;
 
 	if(thisbox)
-	{
 		_focus_check_box(thisbox, handle, 3, thisbox->defaultitem);
-	}
+	return 0;
 }
 
 /* This function finds the current widget in the
@@ -1238,12 +1262,33 @@ void _click_default(HWND handle)
 		WinSetFocus(HWND_DESKTOP, handle);
 }
 
+MRESULT EXPENTRY _comboentryproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
+{
+	WindowData *blah = (WindowData *)WinQueryWindowPtr(hWnd, QWP_USER);
+
+	switch(msg)
+	{
+	case WM_SETFOCUS:
+		_run_event(hWnd, msg, mp1, mp2);
+		break;
+	}
+
+	if(blah && blah->oldproc)
+		return blah->oldproc(hWnd, msg, mp1, mp2);
+
+	return WinDefWindowProc(hWnd, msg, mp1, mp2);
+}
+
 /* Originally just intended for entryfields, it now serves as a generic
  * procedure for handling TAB presses to change input focus on controls.
  */
 MRESULT EXPENTRY _entryproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 {
 	WindowData *blah = (WindowData *)WinQueryWindowPtr(hWnd, QWP_USER);
+	PFNWP oldproc = 0;
+
+	if(blah)
+		oldproc = blah->oldproc;
 
 	switch(msg)
 	{
@@ -1273,8 +1318,9 @@ MRESULT EXPENTRY _entryproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 
 		break;
 	}
-	if(blah && blah->oldproc)
-		return blah->oldproc(hWnd, msg, mp1, mp2);
+
+	if(oldproc)
+		return oldproc(hWnd, msg, mp1, mp2);
 
 	return WinDefWindowProc(hWnd, msg, mp1, mp2);
 }
@@ -1285,6 +1331,10 @@ MRESULT EXPENTRY _entryproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 MRESULT EXPENTRY _comboproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 {
 	WindowData *blah = WinQueryWindowPtr(hWnd, QWP_USER);
+	PFNWP oldproc = 0;
+
+	if(blah)
+		oldproc = blah->oldproc;
 
 	switch(msg)
 	{
@@ -1331,8 +1381,8 @@ MRESULT EXPENTRY _comboproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 		}
 		break;
 	}
-	if(blah && blah->oldproc)
-		return blah->oldproc(hWnd, msg, mp1, mp2);
+	if(oldproc)
+		return oldproc(hWnd, msg, mp1, mp2);
 
 	return WinDefWindowProc(hWnd, msg, mp1, mp2);
 }
@@ -1395,13 +1445,13 @@ MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 	/* Find any callbacks for this function */
 	while(tmp)
 	{
-		if(tmp->message == msg || msg == WM_CONTROL)
+		if(tmp->message == msg || msg == WM_CONTROL || tmp->message == WM_USER+1)
 		{
 			switch(msg)
 			{
 			case WM_SETFOCUS:
 				{
-					if(mp2)
+					if((mp2 && tmp->message == WM_SETFOCUS) || (!mp2 && tmp->message == WM_USER+1))
 					{
 						int (*setfocusfunc)(HWND, void *) = (int (*)(HWND, void *))tmp->signalfunction;
 
@@ -1616,6 +1666,7 @@ MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 									pre.fEmphasisMask = CRA_CURSORED;
 									pre.hwndCnr = tmp->window;
 									_run_event(hWnd, WM_CONTROL, MPFROM2SHORT(0, CN_EMPHASIS), (MPARAM)&pre);
+									pre.pRecord->flRecordAttr |= CRA_CURSORED;
 								}
 								result = containercontextfunc(tmp->window, text, x, y, tmp->data, user);
 								tmp = NULL;
@@ -1637,12 +1688,21 @@ MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 									{
 										PCNRITEM pci = (PCNRITEM)pre->pRecord;
 
-										if(pci && pre->fEmphasisMask & CRA_CURSORED)
+										if(pci && pre->fEmphasisMask & CRA_CURSORED && (pci->rc.flRecordAttr & CRA_CURSORED))
 										{
 											int (*treeselectfunc)(HWND, HWND, char *, void *, void *) = (int (*)(HWND, HWND, char *, void *, void *))tmp->signalfunction;
 
-											result = treeselectfunc(tmp->window, (HWND)pci, pci->rc.pszIcon, pci->user, tmp->data);
-
+											if(lasthcnr == tmp->window && lastitem == (HWND)pci)
+											{
+												lasthcnr = 0;
+												lastitem = 0;
+											}
+											else
+											{
+												lasthcnr = tmp->window;
+												lastitem = (HWND)pci;
+												result = treeselectfunc(tmp->window, (HWND)pci, pci->rc.pszIcon, pci->user, tmp->data);
+											}
 											tmp = NULL;
 										}
 									}
@@ -2787,7 +2847,7 @@ int dw_window_destroy(HWND handle)
 		free(thisitem);
 		thisbox->count--;
 	}
-	_free_window_memory(handle);
+	_disconnect_windows(handle);
 	return WinDestroyWindow(handle);
 }
 
@@ -3519,6 +3579,16 @@ HWND dw_combobox_new(char *text, ULONG id)
 							   id,
 							   NULL,
 							   NULL);
+	HENUM henum = WinBeginEnumWindows(tmp);
+	HWND child;
+	
+	while((child = WinGetNextWindow(henum)) != NULLHANDLE)
+	{
+		WindowData *moreblah = calloc(1, sizeof(WindowData));
+		moreblah->oldproc = WinSubclassWindow(child, _comboentryproc);
+		WinSetWindowPtr(child, QWP_USER, moreblah);
+	}
+	WinEndEnumWindows(henum);
 	dw_window_set_font(tmp, DefaultFont);
 	dw_window_set_color(tmp, DW_CLR_BLACK, DW_CLR_WHITE);
 	blah->oldproc = WinSubclassWindow(tmp, _comboproc);
@@ -4678,7 +4748,7 @@ HWND dw_tree_insert(HWND handle, char *title, unsigned long icon, HWND parent, v
 	/* Fill in the parent record data */
 
 	pci->rc.cb          = sizeof(MINIRECORDCORE);
-	pci->rc.pszIcon     = title;
+	pci->rc.pszIcon     = strdup(title);
 	pci->rc.hptrIcon    = icon;
 
 	pci->hptrIcon       = icon;
@@ -4719,7 +4789,10 @@ void dw_tree_set(HWND handle, HWND item, char *title, unsigned long icon)
 	if(!pci)
 		return;
 
-	pci->rc.pszIcon     = title;
+	if(pci->rc.pszIcon)
+		free(pci->rc.pszIcon);
+
+	pci->rc.pszIcon     = strdup(title);
 	pci->rc.hptrIcon    = icon;
 
 	pci->hptrIcon       = icon;
@@ -4761,6 +4834,8 @@ void dw_tree_item_select(HWND handle, HWND item)
 		pCore = WinSendMsg(handle, CM_QUERYRECORD, (MPARAM)pCore, MPFROM2SHORT(CMA_NEXT, CMA_ITEMORDER));
 	}
 	WinSendMsg(handle, CM_SETRECORDEMPHASIS, (MPARAM)item, MPFROM2SHORT(TRUE, CRA_SELECTED | CRA_CURSORED));
+	lastitem = 0;
+	lasthcnr = 0;
 }
 
 /*
@@ -4804,6 +4879,13 @@ void dw_tree_collapse(HWND handle, HWND item)
 void dw_tree_delete(HWND handle, HWND item)
 {
 	PCNRITEM     pci = (PCNRITEM)item;
+
+	if(!item)
+		return;
+
+	if(pci->rc.pszIcon)
+		free(pci->rc.pszIcon);
+
 	WinSendMsg(handle, CM_REMOVERECORD, (MPARAM)&pci, MPFROM2SHORT(1, CMA_INVALIDATE | CMA_FREE));
 }
 
@@ -6439,7 +6521,7 @@ char *dw_file_browse(char *title, char *defpath, char *ext, int flags)
  */
 int dw_exec(char *program, int type, char **params)
 {
-	return spawnvp(P_NOWAIT, program, params);
+	return spawnvp(P_NOWAIT, program, (const char **)params);
 }
 
 /*
@@ -6533,6 +6615,21 @@ void dw_signal_connect(HWND window, char *signame, void *sigfunc, void *data)
 {
 	ULONG message = 0L;
 
+	if(strcmp(signame, "lose-focus") == 0)
+	{
+		char tmpbuf[100];
+
+		WinQueryClassName(window, 99, tmpbuf);
+
+		if(strncmp(tmpbuf, "#2", 3) == 0)
+		{
+			HENUM henum = WinBeginEnumWindows(window);
+			HWND child = WinGetNextWindow(henum);
+			WinEndEnumWindows(henum);
+			if(child)
+				window = child;
+		}
+	}
 	if(window && signame && sigfunc)
 	{
 		if((message = _findsigmessage(signame)) != 0)
