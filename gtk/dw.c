@@ -3946,6 +3946,42 @@ void dw_tree_set_data(HWND handle, HWND item, void *itemdata)
 }
 
 /*
+ * Gets the item data of a tree item.
+ * Parameters:
+ *          handle: Handle to the tree containing the item.
+ *          item: Handle of the item to be modified.
+ */
+void *dw_tree_get_data(HWND handle, HWND item)
+{
+	void *ret = NULL;
+#if GTK_MAJOR_VERSION > 1
+	GtkWidget *tree;
+	GtkTreeStore *store;
+	int _locked_by_me = FALSE;
+
+	if(!handle || !item)
+		return;
+
+	DW_MUTEX_LOCK;
+	if((tree = (GtkWidget *)gtk_object_get_user_data(GTK_OBJECT(handle)))
+		&& GTK_IS_TREE_VIEW(tree) &&
+		(store = (GtkTreeStore *)gtk_object_get_data(GTK_OBJECT(tree), "_dw_tree_store")))
+			gtk_tree_model_get(store, (GtkTreeIter *)item, 2, &ret, -1);
+	DW_MUTEX_UNLOCK;
+#else
+	int _locked_by_me = FALSE;
+
+	if(!handle || !item)
+		return;
+
+	DW_MUTEX_LOCK;
+	ret = (void *)gtk_object_get_data(GTK_OBJECT(item), "itemdata");
+	DW_MUTEX_UNLOCK;
+#endif
+	return ret;
+}
+
+/*
  * Sets this item as the active selection.
  * Parameters:
  *       handle: Handle to the tree window (widget) to be selected.

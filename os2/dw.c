@@ -5716,6 +5716,21 @@ void API dw_tree_set_data(HWND handle, HWND item, void *itemdata)
 }
 
 /*
+ * Gets the item data of a tree item.
+ * Parameters:
+ *          handle: Handle to the tree containing the item.
+ *          item: Handle of the item to be modified.
+ */
+void * API dw_tree_get_data(HWND handle, HWND item)
+{
+	PCNRITEM pci = (PCNRITEM)item;
+
+	if(!pci)
+		return NULL;
+	return pci->user;
+}
+
+/*
  * Sets this item as the active selection.
  * Parameters:
  *       handle: Handle to the tree window (widget) to be selected.

@@ -5839,6 +5839,28 @@ void API dw_tree_set_data(HWND handle, HWND item, void *itemdata)
 }
 
 /*
+ * Gets the item data of a tree item.
+ * Parameters:
+ *          handle: Handle to the tree containing the item.
+ *          item: Handle of the item to be modified.
+ */
+void * API dw_tree_set_data(HWND handle, HWND item)
+{
+	TVITEM tvi;
+	void **ptrs;
+
+	tvi.mask = TVIF_HANDLE;
+	tvi.hItem = (HTREEITEM)item;
+
+	if(TreeView_GetItem(handle, &tvi))
+	{
+		ptrs = (void **)tvi.lParam;
+		return ptrs[1];
+	}
+	return NULL;
+}
+
+/*
  * Sets this item as the active selection.
  * Parameters:
  *       handle: Handle to the tree window (widget) to be selected.

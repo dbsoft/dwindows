@@ -217,8 +217,9 @@ EXPORTS
   dw_tree_item_select                    @377
   dw_tree_set_data                       @378
   dw_tree_insert_after                   @379
+  dw_tree_get_data                       @380
 
-  dw_font_text_extents                   @380
+  dw_font_text_extents                   @385
 
   dw_slider_new                          @390
   dw_slider_query_pos                    @391
