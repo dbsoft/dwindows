@@ -360,7 +360,7 @@ void _free_window_memory(HWND handle)
 
 void _free_menu_data(HWND menu)
 {
-	int i, count = (int)WinSendMsg(menu, MM_QUERYITEMCOUNT, 0, 0);;
+	int i, count = (int)WinSendMsg(menu, MM_QUERYITEMCOUNT, 0, 0);
 
 	dw_signal_disconnect_by_name(menu, DW_SIGNAL_CLICKED);
 	_free_window_memory(menu);
@@ -368,7 +368,7 @@ void _free_menu_data(HWND menu)
 	for(i=0;i<count;i++)
 	{
 		SHORT menuid = (SHORT)WinSendMsg(menu, MM_ITEMIDFROMPOSITION, MPFROMSHORT(i), 0);
-		MENUITEM  mi;
+		MENUITEM mi;
 
 		if(WinSendMsg(menu, MM_QUERYITEM, MPFROMSHORT(menuid), MPFROMP(&mi))
 		   && mi.hwndSubMenu)
