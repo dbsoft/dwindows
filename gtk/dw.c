@@ -105,11 +105,13 @@ static gint _tree_context_event(GtkWidget *widget, GdkEventButton *event, gpoint
 static gint _value_changed_event(GtkAdjustment *adjustment, gpointer user_data);
 #if GTK_MAJOR_VERSION > 1
 static gint _tree_select_event(GtkTreeSelection *sel, gpointer data);
+static gint _tree_expand_event(GtkTreeView *treeview, GtkTreeIter *arg1, GtkTreePath *arg2, gpointer data);
 #else
 static gint _tree_select_event(GtkTree *tree, GtkWidget *child, gpointer data);
+static gint _tree_expand_event(GtkTreeItem *treeitem, gpointer data);
 #endif
-static gint _switch_page_event(GtkNotebook *notebook, GtkNotebookPage *page, guint page_num, gpointer user_data);
-static gint _column_click_event(GtkWidget *widget, gint column_num, gpointer user_data);
+static gint _switch_page_event(GtkNotebook *notebook, GtkNotebookPage *page, guint page_num, gpointer data);
+static gint _column_click_event(GtkWidget *widget, gint column_num, gpointer data);
 
 typedef struct
 {
@@ -142,7 +144,7 @@ typedef struct
 
 } SignalHandler;
 
-#define SIGNALMAX 18
+#define SIGNALMAX 19
 
 /* A list of signal forwarders, to account for paramater differences. */
 static SignalList SignalTranslate[SIGNALMAX] = {
@@ -163,7 +165,8 @@ static SignalList SignalTranslate[SIGNALMAX] = {
 	{ _set_focus_event,         DW_SIGNAL_SET_FOCUS },
 	{ _value_changed_event,     DW_SIGNAL_VALUE_CHANGED },
 	{ _switch_page_event,       DW_SIGNAL_SWITCH_PAGE },
-	{ _column_click_event,      DW_SIGNAL_COLUMN_CLICK }
+	{ _column_click_event,      DW_SIGNAL_COLUMN_CLICK },
+	{ _tree_expand_event,       DW_SIGNAL_TREE_EXPAND }
 };
 
 /* Alignment flags */
@@ -590,6 +593,19 @@ static gint _tree_select_event(GtkTreeSelection *sel, gpointer data)
 	}
 	return retval;
 }
+
+static gint _tree_expand_event(GtkTreeView *treeview, GtkTreeIter *arg1, GtkTreePath *arg2, gpointer user_data)
+{
+	SignalHandler work = _get_signal_handler(widget, data);
+	int retval = FALSE;
+
+	if(work.window)
+	{
+		int (*treeexpandfunc)(HWND, HTREEITEM, void *) = work.func;
+		retval = treeexpandfunc(work.window, (HTREEITEM)arg1, work.data);
+	}
+	return retval;
+}
 #else
 static gint _tree_select_event(GtkTree *tree, GtkWidget *child, gpointer data)
 {
@@ -611,6 +627,19 @@ static gint _tree_select_event(GtkTree *tree, GtkWidget *child, gpointer data)
 		char *text = (char *)gtk_object_get_data(GTK_OBJECT(child), "_dw_text");
 		void *itemdata = (void *)gtk_object_get_data(GTK_OBJECT(child), "_dw_itemdata");
 		retval = treeselectfunc(work.window, (HTREEITEM)child, text, work.data, itemdata);
+	}
+	return retval;
+}
+
+static gint _tree_expand_event(GtkTreeItem *treeitem, gpointer data)
+{
+	SignalHandler work = _get_signal_handler(widget, data);
+	int retval = FALSE;
+
+	if(work.window)
+	{
+		int (*treeexpandfunc)(HWND, HTREEITEM, void *) = work.func;
+		retval = treeexpandfunc(work.window, (HTREEITEM)treeitem, work.data);
 	}
 	return retval;
 }
@@ -2349,6 +2378,7 @@ HWND dw_tree_new(ULONG id)
 	gtk_tree_view_column_add_attribute(col, rend, "text", 0);
 
 	gtk_tree_view_append_column(GTK_TREE_VIEW (tree), col);
+	gtk_tree_view_append_column(GTK_TREE_VIEW (tree), col);
 	gtk_tree_view_set_expander_column(GTK_TREE_VIEW(tree), col);
 	gtk_tree_view_set_headers_visible(GTK_TREE_VIEW(tree), FALSE);
   
@@ -3903,7 +3933,7 @@ HTREEITEM dw_tree_insert_after(HWND handle, HTREEITEM item, char *title, unsigne
 		pixbuf = _find_pixbuf(icon);
 
 		gtk_tree_store_insert_after(store, iter, (GtkTreeIter *)parent, (GtkTreeIter *)item);
-		gtk_tree_store_set (store, iter, 0, title, 1, pixbuf, 2, itemdata, 3, iter, -1);
+		gtk_tree_store_set (store, iter, 0, title, 1, pixbuf, 2, itemdata, 3, iter, 4, parent, -1);
 		if(pixbuf && !(icon & (1 << 31)))
 			g_object_unref(pixbuf);
 		retval = (HTREEITEM)iter;
@@ -3939,6 +3969,7 @@ HTREEITEM dw_tree_insert_after(HWND handle, HTREEITEM item, char *title, unsigne
 	gtk_object_set_data(GTK_OBJECT(newitem), "_dw_text", (gpointer)strdup(title));
 	gtk_object_set_data(GTK_OBJECT(newitem), "_dw_itemdata", (gpointer)itemdata);
 	gtk_object_set_data(GTK_OBJECT(newitem), "_dw_tree", (gpointer)tree);
+	gtk_object_set_data(GTK_OBJECT(newitem), "_dw_parent", (gpointer)parent);
 	hbox = gtk_hbox_new(FALSE, 2);
 	gtk_object_set_data(GTK_OBJECT(newitem), "_dw_hbox", (gpointer)hbox);
 	gdkpix = _find_pixmap(&gdkbmp, icon, hbox, NULL, NULL);
@@ -4039,7 +4070,7 @@ HTREEITEM dw_tree_insert(HWND handle, char *title, unsigned long icon, HTREEITEM
 		pixbuf = _find_pixbuf(icon);
 
 		gtk_tree_store_append (store, iter, (GtkTreeIter *)parent);
-		gtk_tree_store_set (store, iter, 0, title, 1, pixbuf, 2, itemdata, 3, iter, -1);
+		gtk_tree_store_set (store, iter, 0, title, 1, pixbuf, 2, itemdata, 3, iter, 4, NULL, -1);
 		if(pixbuf && !(icon & (1 << 31)))
 			g_object_unref(pixbuf);
 		retval = (HTREEITEM)iter;
@@ -4235,6 +4266,60 @@ void dw_tree_set_data(HWND handle, HTREEITEM item, void *itemdata)
 	gtk_object_set_data(GTK_OBJECT(item), "_dw_itemdata", (gpointer)itemdata);
 	DW_MUTEX_UNLOCK;
 #endif
+}
+
+/*
+ * Gets the text an item in a tree window (widget).
+ * Parameters:
+ *          handle: Handle to the tree containing the item.
+ *          item: Handle of the item to be modified.
+ */
+char * API dw_tree_get_title(HWND handle, HTREEITEM item)
+{
+	int _locked_by_me = FALSE;
+	char *text = NULL;
+
+	if(!handle || !item)
+		return;
+
+	DW_MUTEX_LOCK;
+#if GTK_MAJOR_VERSION > 1
+	GtkTreeIter iter = (GtkTreeIter)item;
+	GtkTreeModel *store = (GtkTreeModel *)gtk_object_get_data(GTK_OBJECT(handle), "_dw_tree_store");
+
+	gtk_tree_model_get(store, &iter, 0, &text, -1);
+#else
+	text = (char *)gtk_object_get_data(GTK_OBJECT(item), "_dw_text");
+#endif
+	DW_MUTEX_UNLOCK;
+	return text;
+}
+
+/*
+ * Gets the text an item in a tree window (widget).
+ * Parameters:
+ *          handle: Handle to the tree containing the item.
+ *          item: Handle of the item to be modified.
+ */
+HTREEITEM API dw_tree_get_parent(HWND handle, HTREEITEM item)
+{
+	int _locked_by_me = FALSE;
+	HTREEITEM parent = (HTREEITEM)0;
+
+	if(!handle || !item)
+		return;
+
+	DW_MUTEX_LOCK;
+#if GTK_MAJOR_VERSION > 1
+	GtkTreeIter iter = (GtkTreeIter)item;
+	GtkTreeModel *store = (GtkTreeModel *)gtk_object_get_data(GTK_OBJECT(handle), "_dw_tree_store");
+
+	gtk_tree_model_get(store, &iter, 4, &parent, -1);
+#else
+	parent = (HTREEITEM)gtk_object_get_data(GTK_OBJECT(item), "_dw_parent");
+#endif
+	DW_MUTEX_UNLOCK;
+	return parent;
 }
 
 /*
@@ -7991,6 +8076,10 @@ void dw_signal_connect(HWND window, char *signame, void *sigfunc, void *data)
 		_set_signal_handler_id(treeview, sigid, cid);
 		DW_MUTEX_UNLOCK;
 		return;
+	}
+	else if(GTK_IS_TREE_VIEW(thiswindow) && strcmp(signame, DW_SIGNAL_TREE_EXPAND) == 0)
+	{
+		thisname = "row-expanded";
 	}
 #else
 	else if(GTK_IS_TREE(thiswindow)  && strcmp(signame, DW_SIGNAL_ITEM_CONTEXT) == 0)
