@@ -62,6 +62,7 @@ HBRUSH _colors[18];
 void _resize_notebook_page(HWND handle, int pageid);
 void _handle_splitbar_resize(HWND hwnd, float percent, int type, int x, int y);
 int _lookup_icon(HWND handle, HICON hicon, int type);
+HFONT _acquire_font(HWND handle, char *fontname);
 
 typedef struct _sighandler
 {
@@ -2631,65 +2632,28 @@ BOOL CALLBACK _statuswndproc(HWND hwnd, UINT msg, WPARAM mp1, LPARAM mp2)
 			HDC hdcPaint;
 			PAINTSTRUCT ps;
 			RECT rc;
-			HFONT hFont;
-			HBRUSH oldBrush;
-			HPEN oldPen;
 			unsigned long cx, cy;
 			int threadid = dw_thread_id();
 			char tempbuf[1024] = "";
-
-			if(threadid < 0 || threadid >= THREAD_LIMIT)
-				threadid = 0;
-
-			hdcPaint = BeginPaint(hwnd, &ps);
-			EndPaint(hwnd, &ps);
-
-			hdcPaint = GetDC(hwnd);
-
-			oldBrush = _hBrush[threadid];
-			oldPen = _hPen[threadid];
+			ColorInfo *cinfo = (ColorInfo *)GetWindowLong(hwnd, GWL_USERDATA);
+			HFONT hfont = _acquire_font(hwnd, cinfo ? cinfo->fontname : NULL);
+			HFONT oldfont = (HFONT)SendMessage(hwnd, WM_GETFONT, 0, 0);
 
 			dw_window_get_pos_size(hwnd, NULL, NULL, &cx, &cy);
-
- 
-			_hBrush[threadid] = CreateSolidBrush(GetSysColor(COLOR_3DFACE));
-
-			dw_draw_rect(hwnd, 0, TRUE, 0, 0, cx, cy);
-
-			_hPen[threadid] = CreatePen(PS_SOLID, 1, RGB(_red[DW_CLR_DARKGRAY],
-														 _green[DW_CLR_DARKGRAY],
-														 _blue[DW_CLR_DARKGRAY]));
-
-			dw_draw_line(hwnd, 0, 0, 0, cx, 0);
-			dw_draw_line(hwnd, 0, 0, 0, 0, cy);
-
-			DeleteObject(_hPen[threadid]);
-
-			_hPen[threadid] = GetStockObject(WHITE_PEN);
-
-			dw_draw_line(hwnd, 0, cx - 1, cy - 1, cx - 1, 0);
-			dw_draw_line(hwnd, 0, cx - 1, cy - 1, 0, cy - 1);
-
-			rc.left = 3;
-			rc.top = 1;
-			rc.bottom = cy - 1;
-			rc.right = cx - 1;
-
 			GetWindowText(hwnd, tempbuf, 1024);
 
-			hFont = (HFONT)SelectObject(hdcPaint, GetStockObject(DEFAULT_GUI_FONT));
-
-			SetTextColor(hdcPaint, RGB(0,0,0));
-			SetBkMode(hdcPaint, TRANSPARENT);
-
-			ExtTextOut(hdcPaint, 3, 1, ETO_CLIPPED, &rc, tempbuf, strlen(tempbuf), NULL);
-
-			SelectObject(hdcPaint, hFont);
-
-			DeleteObject(_hBrush[threadid]);
-			_hBrush[threadid] = oldBrush;
-			_hPen[threadid] = oldPen;
-			ReleaseDC(hwnd, hdcPaint);
+			hdcPaint = BeginPaint(hwnd, &ps);
+			if(hfont)
+				oldfont = (HFONT)SelectObject(hdcPaint, hfont);
+			rc.top = rc.left = 0;
+			rc.right = cx;
+			rc.bottom = cy;
+			DrawStatusText(hdcPaint, &rc, tempbuf, 0);
+			if(hfont && oldfont)
+				SelectObject(hdcPaint, oldfont);
+			if(hfont)
+				DeleteObject(hfont);
+			EndPaint(hwnd, &ps);
 		}
 		return FALSE;
 	}
@@ -4005,7 +3969,7 @@ HWND API dw_text_new(char *text, ULONG id)
  */
 HWND API dw_status_text_new(char *text, ULONG id)
 {
-	HWND tmp = CreateWindow(STATICCLASSNAME,
+	HWND tmp = CreateWindow(ObjectClassName,
 							text,
 							BS_TEXT | WS_VISIBLE |
 							WS_CHILD | WS_CLIPCHILDREN,
