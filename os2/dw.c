@@ -5992,6 +5992,24 @@ void API dw_icon_free(unsigned long handle)
 	WinDestroyPointer(handle);
 }
 
+/* A "safe" WinSendMsg() that tries multiple times in case the
+ * queue is blocked for one reason or another.
+ */
+MRESULT _dw_send_msg(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2, int failure)
+{
+	MRESULT res;
+	int z = 0;
+
+	while((int)(res = WinSendMsg(hwnd, msg, mp1, mp2)) == failure)
+	{
+		z++;
+		if(z > 5000000)
+			return (MRESULT)failure;
+		dw_main_sleep(1);
+	}
+	return res;
+}
+
 /*
  * Allocates memory used to populate a container.
  * Parameters:
@@ -6032,15 +6050,7 @@ void * API dw_container_alloc(HWND handle, int rowcount)
 
 	z = 0;
 
-	while((blah = (void *)WinSendMsg(handle, CM_ALLOCRECORD, MPFROMLONG(size), MPFROMLONG(rowcount))) == NULL)
-	{
-		z++;
-		if(z > 5000000)
-			break;
-		dw_main_sleep(1);
-	}
-
-	if(!blah)
+	if(!(blah = (void *)_dw_send_msg(handle, CM_ALLOCRECORD, MPFROMLONG(size), MPFROMLONG(rowcount), 0)))
 		return NULL;
 
 	temp = (PRECORDCORE)blah;
@@ -6072,15 +6082,9 @@ void _dw_container_set_item(HWND handle, PRECORDCORE temp, int column, int row, 
 	if(!flags)
 		return;
 
-	z = 0;
+	if(!_dw_send_msg(handle, CM_QUERYCNRINFO, (MPARAM)&cnr, MPFROMSHORT(sizeof(CNRINFO)), 0))
+		return;
 
-	while(WinSendMsg(handle, CM_QUERYCNRINFO, (MPARAM)&cnr, MPFROMSHORT(sizeof(CNRINFO))) == 0)
-	{
-		z++;
-		if(z > 5000000)
-			return;
-		dw_main_sleep(1);
-	}
 	currentcount = cnr.cRecords;
 
 	/* Figure out the offsets to the items in the struct */
@@ -6108,13 +6112,65 @@ void _dw_container_set_item(HWND handle, PRECORDCORE temp, int column, int row, 
 	if(flags[column] & DW_CFA_BITMAPORICON)
         memcpy(dest, data, sizeof(HPOINTER));
 	else if(flags[column] & DW_CFA_STRING)
-        memcpy(dest, data, sizeof(char *));
+	{
+		char **newstr = (char **)data, **str = dest;
+
+		if(*str)
+			free(*str);
+
+		if(newstr && *newstr)
+			*str = strdup(*newstr);
+		else
+			*str = NULL;
+	}
 	else if(flags[column] & DW_CFA_ULONG)
         memcpy(dest, data, sizeof(ULONG));
 	else if(flags[column] & DW_CFA_DATE)
         memcpy(dest, data, sizeof(CDATE));
 	else if(flags[column] & DW_CFA_TIME)
         memcpy(dest, data, sizeof(CTIME));
+}
+
+/* Internal function that does the work for set_item and change_item */
+void _dw_container_free_strings(HWND handle, PRECORDCORE temp)
+{
+	WindowData *blah = (WindowData *)WinQueryWindowPtr(handle, QWP_USER);
+	ULONG totalsize, size = 0, *flags = blah ? blah->data : 0;
+	int z, count = 0;
+
+	if(!flags)
+		return;
+
+	while(flags[count])
+		count++;
+
+	/* Figure out the offsets to the items in the struct */
+	for(z=0;z<count;z++)
+	{
+		if(flags[z] & DW_CFA_BITMAPORICON)
+			size += sizeof(HPOINTER);
+		else if(flags[z] & DW_CFA_STRING)
+		{
+			char **str;
+
+			totalsize = size + sizeof(RECORDCORE);
+
+			str = (char **)(((ULONG)temp)+((ULONG)totalsize));
+
+			if(*str)
+			{
+				free(*str);
+				*str = NULL;
+			}
+			size += sizeof(char *);
+		}
+		else if(flags[z] & DW_CFA_ULONG)
+			size += sizeof(ULONG);
+		else if(flags[z] & DW_CFA_DATE)
+			size += sizeof(CDATE);
+		else if(flags[z] & DW_CFA_TIME)
+			size += sizeof(CTIME);
+	}
 }
 
 /*
@@ -6153,7 +6209,7 @@ void API dw_container_change_item(HWND handle, int column, int row, void *data)
 	{
 		if(count == row)
 		{
-			_dw_container_set_item(handle, pCore, column, row, data);
+			_dw_container_set_item(handle, pCore, column, 0, data);
 			WinSendMsg(handle, CM_INVALIDATERECORD, (MPARAM)&pCore, MPFROM2SHORT(1, CMA_NOREPOSITION | CMA_TEXTCHANGED));
 			return;
 		}
@@ -6223,13 +6279,9 @@ void API dw_container_set_row_title(void *pointer, int row, char *title)
 
 	z = 0;
 
-	while(WinSendMsg(ci->handle, CM_QUERYCNRINFO, (MPARAM)&cnr, MPFROMSHORT(sizeof(CNRINFO))) == 0)
-	{
-		z++;
-		if(z > 5000000)
-			return;
-		dw_main_sleep(1);
-	}
+	if(!_dw_send_msg(ci->handle, CM_QUERYCNRINFO, (MPARAM)&cnr, MPFROMSHORT(sizeof(CNRINFO)), 0))
+		return;
+
 	currentcount = cnr.cRecords;
 
 	for(z=0;z<(row-currentcount);z++)
@@ -6251,7 +6303,6 @@ void API dw_container_insert(HWND handle, void *pointer, int rowcount)
 {
 	RECORDINSERT recin;
 	ContainerInfo *ci = (ContainerInfo *)pointer;
-	int z;
 
 	if(!ci)
 		return;
@@ -6263,15 +6314,7 @@ void API dw_container_insert(HWND handle, void *pointer, int rowcount)
 	recin.fInvalidateRecord = TRUE;
 	recin.cRecordsInsert = rowcount;
 
-	z = 0;
-
-	while(WinSendMsg(handle, CM_INSERTRECORD, MPFROMP(ci->data), MPFROMP(&recin)) == 0)
-	{
-		z++;
-		if(z > 5000000)
-			break;
-		dw_main_sleep(1);
-	}
+	_dw_send_msg(handle, CM_INSERTRECORD, MPFROMP(ci->data), MPFROMP(&recin), 0);
 
 	free(ci);
 }
@@ -6284,15 +6327,19 @@ void API dw_container_insert(HWND handle, void *pointer, int rowcount)
  */
 void API dw_container_clear(HWND handle, int redraw)
 {
-	int z = 0;
+	PCNRITEM pCore;
+	int container = (int)dw_window_get_data(handle, "_dw_container");
 
 	if(hwndEmph == handle)
 		_clear_emphasis();
-	if(!dw_window_get_data(handle, "_dw_container"))
-	{
-		PCNRITEM pCore = WinSendMsg(handle, CM_QUERYRECORD, (MPARAM)0L, MPFROM2SHORT(CMA_FIRST, CMA_ITEMORDER));
 
-		while(pCore)
+	pCore = WinSendMsg(handle, CM_QUERYRECORD, (MPARAM)0L, MPFROM2SHORT(CMA_FIRST, CMA_ITEMORDER));
+
+	while(pCore)
+	{
+		if(container)
+			_dw_container_free_strings(handle, (PRECORDCORE)pCore);
+		else
 		{
 			/* Free icon text */
 			if(pCore->rc.pszIcon)
@@ -6300,16 +6347,10 @@ void API dw_container_clear(HWND handle, int redraw)
 				free(pCore->rc.pszIcon);
 				pCore->rc.pszIcon = 0;
 			}
-			pCore = WinSendMsg(handle, CM_QUERYRECORD, (MPARAM)pCore, MPFROM2SHORT(CMA_NEXT, CMA_ITEMORDER));
 		}
+		pCore = WinSendMsg(handle, CM_QUERYRECORD, (MPARAM)pCore, MPFROM2SHORT(CMA_NEXT, CMA_ITEMORDER));
 	}
-	while((int)WinSendMsg(handle, CM_REMOVERECORD, (MPARAM)0L, MPFROM2SHORT(0, (redraw ? CMA_INVALIDATE : 0) | CMA_FREE)) == -1)
-	{
-		z++;
-		if(z > 5000000)
-			break;
-		dw_main_sleep(1);
-	}
+	_dw_send_msg(handle, CM_REMOVERECORD, (MPARAM)0L, MPFROM2SHORT(0, (redraw ? CMA_INVALIDATE : 0) | CMA_FREE), -1);
 }
 
 /*
@@ -6321,25 +6362,18 @@ void API dw_container_clear(HWND handle, int redraw)
 void API dw_container_delete(HWND handle, int rowcount)
 {
 	RECORDCORE *last, **prc = malloc(sizeof(RECORDCORE *) * rowcount);
-	int current = 1, z;
+	int current = 1;
 
 	prc[0] = last = (RECORDCORE *)WinSendMsg(handle, CM_QUERYRECORD, (MPARAM)0L, MPFROM2SHORT(CMA_FIRST, CMA_ITEMORDER));
 
 	while(last && current < rowcount)
 	{
+		_dw_container_free_strings(handle, last);
 		prc[current] = last = (RECORDCORE *)WinSendMsg(handle, CM_QUERYRECORD, (MPARAM)last, MPFROM2SHORT(CMA_NEXT, CMA_ITEMORDER));
 		current++;
 	}
 
-	z = 0;
-
-	while((int)WinSendMsg(handle, CM_REMOVERECORD, (MPARAM)prc, MPFROM2SHORT(current, CMA_INVALIDATE | CMA_FREE)) == -1)
-	{
-		z++;
-		if(z > 5000000)
-			break;
-		dw_main_sleep(1);
-	}
+	_dw_send_msg(handle, CM_REMOVERECORD, (MPARAM)prc, MPFROM2SHORT(current, CMA_INVALIDATE | CMA_FREE), -1);
 	
 	free(prc);
 }
