@@ -4218,6 +4218,7 @@ unsigned long API dw_icon_load_from_file(char *filename)
 
 	gdk_imlib_render(image, image->rgb_width, image->rgb_height);
 	_PixmapArray[found].pixmap = gdk_imlib_copy_image(image);
+	_PixmapArray[found].mask = gdk_imlib_copy_mask(image);
 	gdk_imlib_destroy_image(image);
 #else
 	_PixmapArray[found].pixmap = gdk_pixmap_create_from_xpm(handle->window, &_PixmapArray[found].mask, &_colors[DW_CLR_PALEGRAY], file);
