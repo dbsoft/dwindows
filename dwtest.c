@@ -46,6 +46,7 @@ HWND mainwindow,
      stext,
      tree,
      container,
+     container_mle,
      pagebox,
      treebox,
      containerbox,
@@ -54,7 +55,7 @@ HWND mainwindow,
      buttonbox;
 
 HPIXMAP text1pm,text2pm;
-unsigned long fileicon,foldericon;
+unsigned long fileicon,foldericon,mle_point=-1;
 
 int font_width = 8;
 int font_height=12;
@@ -386,6 +387,25 @@ int DWSIGNAL item_select_cb( HWND window, HTREEITEM item, char *text, void *data
 	return 0;
 }
 
+int DWSIGNAL container_select_cb( HWND window, HTREEITEM item, char *text, void *data, void *itemdata )
+{
+	char buf[200];
+	char *str;
+	HWND statline = (HWND)data;
+
+	sprintf(buf,"\nDW_SIGNAL_ITEM_SELECT: Window: %x Item: %x Text: %s Itemdata: %x\n", (unsigned int)window, (unsigned int)item, text, (unsigned int)itemdata );
+	dw_window_set_text( statline, buf);
+	mle_point = dw_mle_import( container_mle, buf, mle_point);
+	str = dw_container_query_start(container, DW_CRA_SELECTED);
+	while(str)
+	{
+		sprintf(buf,"Selected: %s\n", str);
+		mle_point = dw_mle_import( container_mle, buf, mle_point);
+		str = dw_container_query_next(container, DW_CRA_SELECTED);
+	}
+	return 0;
+}
+
 int DWSIGNAL switch_page_cb( HWND window, unsigned long page_num, void *itemdata )
 {
 	FILE *fp=fopen("log","a");
@@ -544,6 +564,7 @@ void tree_add(void)
 void container_add(void)
 {
 	char *titles[3];
+	char *names[3];
 	char buffer[100];
 	unsigned long flags[3] = {  DW_CFA_ULONG | DW_CFA_RIGHT | DW_CFA_HORZSEPARATOR | DW_CFA_SEPARATOR,
 	DW_CFA_TIME | DW_CFA_CENTER | DW_CFA_HORZSEPARATOR | DW_CFA_SEPARATOR,
@@ -575,6 +596,9 @@ void container_add(void)
 
 	for(z=0;z<3;z++)
 	{
+		names[z] = (char *)malloc( 100 );
+		/* yes, there is a memory leak here */
+		sprintf(names[z],"Don't allocate from stack: Item: %d",z);
 		size = z*100;
 		sprintf(buffer, "Filename %d",z+1);
 		if (z == 0 ) thisicon = foldericon;
@@ -592,16 +616,19 @@ void container_add(void)
 		date.year = z+2000;
 		dw_filesystem_set_item(container, containerinfo, 2, z, &date);
 
-		dw_container_set_row_title(containerinfo, z, "Don't allocate from the stack");
+		dw_container_set_row_title(containerinfo, z, names[z]);
 	}
 
 	dw_container_insert(container, containerinfo, 3);
 	dw_container_optimize(container);
 
+	container_mle = dw_mle_new( 111 );
+	dw_box_pack_start( containerbox, container_mle, 500, 200, TRUE, TRUE, 0);
+
 	/* connect our event trappers... */
 	dw_signal_connect(container, DW_SIGNAL_ITEM_ENTER, DW_SIGNAL_FUNC(item_enter_cb), (void *)container_status);
 	dw_signal_connect(container, DW_SIGNAL_ITEM_CONTEXT, DW_SIGNAL_FUNC(item_context_cb), (void *)container_status);
-	dw_signal_connect(container, DW_SIGNAL_ITEM_SELECT, DW_SIGNAL_FUNC(item_select_cb), (void *)container_status);
+	dw_signal_connect(container, DW_SIGNAL_ITEM_SELECT, DW_SIGNAL_FUNC(container_select_cb), (void *)container_status);
 }
 
 /* Beep every second */
