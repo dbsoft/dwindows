@@ -380,6 +380,7 @@ void dw_box_pack_start_stub(HWND box, HWND item, int width, int height, int hsiz
 void dw_box_pack_end_stub(HWND box, HWND item, int width, int height, int hsize, int vsize, int pad);
 #else
 /* GTK */
+#define GTK_ENABLE_BROKEN 1
 #include <gtk/gtk.h>
 #include <gdk/gdkx.h>
 #include <gdk/gdkprivate.h>
@@ -729,8 +730,8 @@ void dw_notebook_page_set(HWND handle, unsigned int pageid);
 unsigned int dw_notebook_page_query(HWND handle);
 void dw_notebook_pack(HWND handle, unsigned long pageid, HWND page);
 HWND dw_splitbar_new(int type, HWND topleft, HWND bottomright, unsigned long id);
-void dw_splitbar_set(HWND handle, int percent);
-int dw_splitbar_get(HWND handle);
+void dw_splitbar_set(HWND handle, float percent);
+float dw_splitbar_get(HWND handle);
 HMENUI dw_menu_new(unsigned long id);
 HMENUI dw_menubar_new(HWND location);
 HWND dw_menu_append_item(HMENUI menu, char *title, unsigned long id, unsigned long flags, int end, int check, HMENUI submenu);
