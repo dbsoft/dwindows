@@ -46,6 +46,7 @@
 #define DW_SIGNAL_SET_FOCUS      "set-focus"
 #define DW_SIGNAL_VALUE_CHANGED  "value_changed"
 #define DW_SIGNAL_SWITCH_PAGE    "switch-page"
+#define DW_SIGNAL_COLUMN_CLICK   "click-column"
 
 #if defined(__OS2__) || defined(__WIN32__) || defined(__MAC__) || defined(WINNT) || defined(__EMX__)
 /* OS/2, Windows or MacOS */
@@ -118,6 +119,8 @@ typedef struct _user_data
 #define DW_FCF_HIDEBUTTON        FCF_HIDEBUTTON
 #define DW_FCF_HIDEMAX           FCF_HIDEMAX
 #define DW_FCF_AUTOICON          FCF_AUTOICON
+#define DW_FCF_MAXIMIZE          WS_MAXIMIZED
+#define DW_FCF_MINIMIZE          WS_MINIMIZED
 
 #define DW_CFA_BITMAPORICON      CFA_BITMAPORICON
 #define DW_CFA_STRING            CFA_STRING
@@ -129,6 +132,7 @@ typedef struct _user_data
 #define DW_CFA_RIGHT             CFA_RIGHT
 #define DW_CFA_HORZSEPARATOR     CFA_HORZSEPARATOR
 #define DW_CFA_SEPARATOR         CFA_SEPARATOR
+#define DW_CFA_STRINGANDICON     0
 
 #define DW_CRA_SELECTED          CRA_SELECTED
 #define DW_CRA_CURSORED          CRA_CURSORED
@@ -287,6 +291,8 @@ typedef struct _window_data {
 #define DW_FCF_HIDEBUTTON        0
 #define DW_FCF_HIDEMAX           0
 #define DW_FCF_AUTOICON          0
+#define DW_FCF_MAXIMIZE          0
+#define DW_FCF_MINIMIZE          0
 
 #define DW_CFA_BITMAPORICON      1
 #define DW_CFA_STRING            (1 << 1)
@@ -296,6 +302,7 @@ typedef struct _window_data {
 #define DW_CFA_CENTER            (1 << 5)
 #define DW_CFA_LEFT              (1 << 6)
 #define DW_CFA_RIGHT             (1 << 7)
+#define DW_CFA_STRINGANDICON     (1 << 8)
 #define DW_CFA_HORZSEPARATOR     0
 #define DW_CFA_SEPARATOR         0
 
@@ -371,6 +378,8 @@ typedef struct _window_data {
 #define DW_FCF_HIDEBUTTON        WS_MINIMIZEBOX
 #define DW_FCF_HIDEMAX           0
 #define DW_FCF_AUTOICON          0
+#define DW_FCF_MAXIMIZE          WS_MAXIMIZE
+#define DW_FCF_MINIMIZE          WS_MINIMIZE
 
 #define DW_CFA_BITMAPORICON      1
 #define DW_CFA_STRING            (1 << 1)
@@ -380,6 +389,7 @@ typedef struct _window_data {
 #define DW_CFA_CENTER            (1 << 5)
 #define DW_CFA_LEFT              (1 << 6)
 #define DW_CFA_RIGHT             (1 << 7)
+#define DW_CFA_STRINGANDICON     (1 << 8)
 #define DW_CFA_HORZSEPARATOR     0
 #define DW_CFA_SEPARATOR         0
 
@@ -574,6 +584,8 @@ typedef struct _bubblebutton {
 #define DW_FCF_HIDEBUTTON        (1 << 16)
 #define DW_FCF_HIDEMAX           (1 << 17)
 #define DW_FCF_AUTOICON          (1 << 18)
+#define DW_FCF_MAXIMIZE          (1 << 19)
+#define DW_FCF_MINIMIZE          (1 << 20)
 
 #define DW_CFA_BITMAPORICON      1
 #define DW_CFA_STRING            (1 << 1)
@@ -585,6 +597,7 @@ typedef struct _bubblebutton {
 #define DW_CFA_RIGHT             (1 << 7)
 #define DW_CFA_HORZSEPARATOR     (1 << 8)
 #define DW_CFA_SEPARATOR         (1 << 9)
+#define DW_CFA_STRINGANDICON     (1 << 10)
 
 #define DW_CRA_SELECTED          1
 #define DW_CRA_CURSORED          (1 << 1)
