@@ -459,6 +459,109 @@ int _focus_check_box(Box *box, HWND handle, int start, HWND defaultitem)
 	return 0;
 }
 
+int _focus_check_box_back(Box *box, HWND handle, int start, HWND defaultitem)
+{
+	int z;
+	static HWND lasthwnd, firsthwnd;
+    static int finish_searching;
+
+	/* Start is 2 when we have cycled completely and
+	 * need to set the focus to the last widget we found
+	 * that was valid.
+	 */
+	if(start == 2)
+	{
+		if(lasthwnd)
+			SetFocus(lasthwnd);
+		return 0;
+	}
+
+	/* Start is 1 when we are entering the function
+	 * for the first time, it is zero when entering
+	 * the function recursively.
+	 */
+	if(start == 1)
+	{
+		lasthwnd = handle;
+		finish_searching = 0;
+		firsthwnd = 0;
+	}
+
+	for(z=0;z<box->count;z++)
+	{
+		if(box->items[z].type == TYPEBOX)
+		{
+			Box *thisbox = (Box *)GetWindowLong(box->items[z].hwnd, GWL_USERDATA);
+
+			if(thisbox && _focus_check_box_back(thisbox, handle, start == 3 ? 3 : 0, defaultitem))
+				return 1;
+		}
+		else
+		{
+			if(box->items[z].hwnd == handle)
+			{
+				if(lasthwnd == handle && firsthwnd)
+					SetFocus(firsthwnd);
+				else if(lasthwnd == handle && !firsthwnd)
+					finish_searching = 1;
+				else
+					SetFocus(lasthwnd);
+
+				/* If we aren't looking for the last handle,
+				 * return immediately.
+				 */
+				if(!finish_searching)
+					return 1;
+			}
+			if(_validate_focus(box->items[z].hwnd))
+			{
+				/* Start is 3 when we are looking for the
+				 * first valid item in the layout.
+				 */
+				if(start == 3)
+				{
+					if(!defaultitem || (defaultitem && box->items[z].hwnd == defaultitem))
+					{
+						SetFocus(_normalize_handle(box->items[z].hwnd));
+						return 1;
+					}
+				}
+
+				if(!firsthwnd)
+					firsthwnd = _normalize_handle(box->items[z].hwnd);
+
+				lasthwnd = _normalize_handle(box->items[z].hwnd);
+			}
+			else
+			{
+				char tmpbuf[100] = "";
+
+				GetClassName(box->items[z].hwnd, tmpbuf, 99);
+
+				if(strnicmp(tmpbuf, WC_TABCONTROL, strlen(WC_TABCONTROL))==0) /* Notebook */
+				{
+					NotebookPage **array = (NotebookPage **)GetWindowLong(box->items[z].hwnd, GWL_USERDATA);
+					int pageid = TabCtrl_GetCurSel(box->items[z].hwnd);
+
+					if(pageid > -1 && array && array[pageid])
+					{
+						Box *notebox;
+
+						if(array[pageid]->hwnd)
+						{
+							notebox = (Box *)GetWindowLong(array[pageid]->hwnd, GWL_USERDATA);
+
+							if(notebox && _focus_check_box_back(notebox, handle, start == 3 ? 3 : 0, defaultitem))
+								return 1;
+						}
+					}
+				}
+			}
+		}
+	}
+	return 0;
+}
+
 /* This function finds the first widget in the
  * layout and moves the current focus to it.
  */
@@ -505,6 +608,29 @@ void _shift_focus(HWND handle)
 	{
 		if(_focus_check_box(thisbox, handle, 1, 0)  == 0)
 			_focus_check_box(thisbox, handle, 2, 0);
+	}
+}
+
+/* This function finds the current widget in the
+ * layout and moves the current focus to the next item.
+ */
+void _shift_focus_back(HWND handle)
+{
+	Box *thisbox;
+
+	HWND box, lastbox = GetParent(handle);
+
+	/* Find the toplevel window */
+	while((box = GetParent(lastbox)))
+	{
+		lastbox = box;
+	}
+
+	thisbox = (Box *)GetWindowLong(lastbox, GWL_USERDATA);
+	if(thisbox)
+	{
+		if(_focus_check_box_back(thisbox, handle, 1, 0)  == 0)
+			_focus_check_box_back(thisbox, handle, 2, 0);
 	}
 }
 
@@ -1332,7 +1458,10 @@ BOOL CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 	case WM_CHAR:
 		if(LOWORD(mp1) == '\t')
 		{
-			_shift_focus(hWnd);
+			if(GetAsyncKeyState(VK_SHIFT))
+				_shift_focus_back(hWnd);
+			else
+				_shift_focus(hWnd);
 			return TRUE;
 		}
 		break;
@@ -1653,12 +1782,24 @@ BOOL CALLBACK _colorwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 		case WM_CHAR:
 			if(LOWORD(mp1) == '\t')
 			{
-				if(cinfo->combo)
-					_shift_focus(cinfo->combo);
-				else if(cinfo->buddy)
-					_shift_focus(cinfo->buddy);
+				if(GetAsyncKeyState(VK_SHIFT))
+				{
+					if(cinfo->combo)
+						_shift_focus_back(cinfo->combo);
+					else if(cinfo->buddy)
+						_shift_focus_back(cinfo->buddy);
+					else
+						_shift_focus_back(hWnd);
+				}
 				else
-					_shift_focus(hWnd);
+				{
+					if(cinfo->combo)
+						_shift_focus(cinfo->combo);
+					else if(cinfo->buddy)
+						_shift_focus(cinfo->buddy);
+					else
+						_shift_focus(hWnd);
+				}
 				return FALSE;
 			}
 			else if(LOWORD(mp1) == '\r')
@@ -1787,7 +1928,10 @@ BOOL CALLBACK _containerwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 
 			if(LOWORD(mp1) == '\t')
 			{
-				_shift_focus(hWnd);
+				if(GetAsyncKeyState(VK_SHIFT))
+					_shift_focus_back(hWnd);
+				else
+					_shift_focus(hWnd);
 				return FALSE;
 			}
 
@@ -1878,7 +2022,10 @@ BOOL CALLBACK _containerwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 	case WM_CHAR:
 		if(LOWORD(mp1) == '\t')
 		{
-			_shift_focus(hWnd);
+			if(GetAsyncKeyState(VK_SHIFT))
+				_shift_focus_back(hWnd);
+			else
+				_shift_focus(hWnd);
 			return FALSE;
 		}
 		break;
@@ -2261,10 +2408,19 @@ BOOL CALLBACK _BtProc(HWND hwnd, ULONG msg, WPARAM mp1, LPARAM mp2)
 #endif
 			if(LOWORD(mp1) == '\t')
 			{
-				_shift_focus(hwnd);
+				if(GetAsyncKeyState(VK_SHIFT))
+					_shift_focus_back(hwnd);
+				else
+					_shift_focus(hwnd);
 				return FALSE;
 			}
 		}
+		break;
+	case WM_KEYDOWN:
+		if(mp1 == VK_LEFT || mp1 == VK_UP)
+			_shift_focus_back(hwnd);
+		if(mp1 == VK_RIGHT || mp1 == VK_DOWN)
+			_shift_focus(hwnd);
 		break;
 	case WM_TIMER:
 		if (hwndBubble)
