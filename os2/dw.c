@@ -4610,15 +4610,20 @@ void _GenResIDStr(CHAR *buff, ULONG ulID)
  */
 HWND API dw_bitmapbutton_new(char *text, ULONG id)
 {
-	char idbuf[256];
+	char idbuf[256], *name = NULL;
 	HWND tmp;
 	BubbleButton *bubble = calloc(sizeof(BubbleButton), 1);
+	HPOINTER icon = WinLoadPointer(HWND_DESKTOP, 0L, id);
 
-	_GenResIDStr(idbuf, id);
+	if(!icon)
+	{
+		name = idbuf;
+		_GenResIDStr(idbuf, id);
+	}
 
 	tmp = WinCreateWindow(HWND_OBJECT,
 						  WC_BUTTON,
-						  idbuf,
+						  name,
 						  WS_VISIBLE | BS_PUSHBUTTON |
 						  BS_BITMAP | BS_AUTOSIZE |
 						  BS_NOPOINTERFOCUS,
@@ -4628,6 +4633,9 @@ HWND API dw_bitmapbutton_new(char *text, ULONG id)
 						  id,
 						  NULL,
 						  NULL);
+
+	if(icon)
+		dw_window_set_data(tmp, "_dw_button_icon", (void *)icon);
 
 	bubble->id = id;
 	strncpy(bubble->bubbletext, text, BUBBLE_HELP_MAX - 1);
