@@ -2157,11 +2157,11 @@ MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 					int (* API clickfunc)(HWND, void *) = (int (* API)(HWND, void *))tmp->signalfunction;
 					ULONG command = COMMANDMSG(&msg)->cmd;
 
-					if(tmp->id)
+					if(tmp->id && command == tmp->id)
 					{
 						HWND menuowner = _menu_owner(tmp->window);
 
-						if((menuowner == hWnd || menuowner == NULLHANDLE) && command == tmp->id)
+						if(menuowner == hWnd || menuowner == NULLHANDLE)
 						{
 							result = clickfunc(tmp->window, tmp->data);
 							tmp = NULL;
