@@ -7127,7 +7127,7 @@ int remove_userdata(UserData **root, char *varname, int all)
 			{
 				free(tmp->varname);
 				free(tmp);
-				*root = NULL;
+				*root = tmp->next;
 				return 0;
 			}
 			else
@@ -7138,6 +7138,7 @@ int remove_userdata(UserData **root, char *varname, int all)
 				return 0;
 			}
 		}
+		prev = tmp;
 		tmp = tmp->next;
 	}
 	return 0;
