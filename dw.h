@@ -647,7 +647,7 @@ void dw_box_pack_splitbar_end(HWND box);
 HMENUI dw_menu_new(unsigned long id);
 HMENUI dw_menubar_new(HWND location);
 HWND dw_menu_append_item(HMENUI menu, char *title, unsigned long id, unsigned long flags, int end, int check, HMENUI submenu);
-void dw_menu_item_set_check(HMENUI menu, int id, int check);
+void dw_menu_item_set_check(HMENUI menu, unsigned long id, int check);
 void dw_menu_popup(HMENUI *menu, HWND parent, int x, int y);
 void dw_menu_destroy(HMENUI *menu);
 void dw_pointer_query_pos(long *x, long *y);
