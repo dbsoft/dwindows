@@ -662,6 +662,8 @@ int dw_int_init(DWResources *res, int newthread, int argc, char *argv[])
 	for(z=0;z<DW_THREAD_LIMIT;z++)
 		_dw_thread_list[z] = (DWTID)-1;
 
+	gtk_rc_parse_string("style \"gtk-tooltips-style\" { bg[NORMAL] = \"#eeee00\" } widget \"gtk-tooltips\" style \"gtk-tooltips-style\"");
+
 	return TRUE;
 }
 
@@ -2040,7 +2042,6 @@ HWND dw_bitmapbutton_new(char *text, unsigned long id)
 	if(text)
 	{
 		tooltips = gtk_tooltips_new();
-		gtk_tooltips_set_colors(tooltips, &_colors[DW_CLR_BLACK], &_colors[DW_CLR_YELLOW]);
 		gtk_tooltips_set_tip(tooltips, tmp, text, NULL);
 		gtk_object_set_data(GTK_OBJECT(tmp), "tooltip", (gpointer)tooltips);
 	}
