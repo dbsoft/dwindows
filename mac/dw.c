@@ -557,48 +557,6 @@ static void _changebox(Box *thisbox, int percent, int type)
 	}
 }
 
-/* Main MacOS Message loop, all events are handled here. */
-static void _doEvents(EventRecord *event)
-{
-	SignalHandler *tmp = Root;
-
-    /* Find signal handlers */
-	while(tmp)
-	{
-		if(tmp->message == event->what)
-		{
-			switch(event->what)
-			{
-			case mouseDown:
-				break;
-			case mouseUp:
-				break;
-			case keyDown:
-				break;
-			case activateEvt:
-				break;
-			case updateEvt:
-				/*DrawWindow((WindowPtr) event->message);*/
-				break;
-			}
-		}
-		if(tmp)
-			tmp = tmp->next;
-	}
-
-	/* Handle system events */
-	switch(event->what)
-	{
-	case keyDown:
-		HiliteMenu(0);
-	case kHighLevelEvent:
-		break;
-	case diskEvt:
-		break;
-	}
-	AEProcessAppleEvent(event);
-}
-
 static pascal OSErr QuitAppleEventHandler(const AppleEvent *appleEvt, AppleEvent* reply, UInt32 refcon)
 {
 	ExitToShell();
@@ -622,7 +580,6 @@ int API dw_init(int newthread, int argc, char *argv[])
 	HideWindow(CreationWindow);
 	if(AEInstallEventHandler(kCoreEventClass, kAEQuitApplication, NewAEEventHandlerUPP(QuitAppleEventHandler), 0, false) != noErr)
 		ExitToShell();
-	DrawMenuBar();
 
 	/* Save the height, width and color depth */
 	_dw_screen_height = (*gd)->gdRect.bottom - (*gd)->gdRect.top;
@@ -636,14 +593,7 @@ int API dw_init(int newthread, int argc, char *argv[])
  */
 void API dw_main(void)
 {
-	EventRecord eventStructure;
-	int gDone = false;
-
-	while(!gDone)
-	{
-		if(WaitNextEvent(everyEvent, &eventStructure, 0xffffffff, 0))
-			_doEvents(&eventStructure);
-	}
+	RunApplicationEventLoop();
 }
 
 /*
@@ -657,9 +607,7 @@ void API dw_main_sleep(int milliseconds)
 
 	while(((((clock() - start) / CLOCKS_PER_SEC)/1000)) <= milliseconds)
 	{
-		EventRecord eventStructure;
-		if(WaitNextEvent(everyEvent, &eventStructure, 1, 0))
-			_doEvents(&eventStructure);
+		RunCurrentEventLoop(1);
 	}
 }
 
@@ -671,7 +619,7 @@ void API dw_main_iteration(void)
 	EventRecord eventStructure;
 
 	if(WaitNextEvent(everyEvent, &eventStructure, 0, 0))
-		_doEvents(&eventStructure);
+		RunCurrentEventLoop(0);
 }
 
 /*
@@ -727,12 +675,10 @@ int API dw_dialog_dismiss(DWDialog *dialog, void *result)
 void * API dw_dialog_wait(DWDialog *dialog)
 {
 	void *tmp;
-	EventRecord eventStructure;
 
 	while(!dialog->done)
 	{
-		if(WaitNextEvent(everyEvent, &eventStructure, 180, 0))
-			_doEvents(&eventStructure);
+		RunCurrentEventLoop(180);
 	}
 	dw_event_close(&dialog->eve);
 	tmp = dialog->result;
@@ -1045,6 +991,25 @@ HWND API dw_notebook_new(ULONG id, int top)
 	return hwnd;
 }
 
+char _removetilde(char *dest, char *src)
+{
+	int z, cur=0;
+	char accel = '\0';
+
+	for(z=0;z<strlen(src);z++)
+	{
+		if(src[z] != '~')
+		{
+			dest[cur] = src[z];
+			cur++;
+		}
+		else
+			accel = src[z+1];
+	}
+	dest[cur] = 0;
+	return accel;
+}
+
 /*
  * Create a menu object to be popped up.
  * Parameters:
@@ -1053,7 +1018,7 @@ HWND API dw_notebook_new(ULONG id, int top)
  */
 HMENUI API dw_menu_new(ULONG id)
 {
-	return 0;
+	return NewMenu(id % 256, "");
 }
 
 /*
@@ -1089,17 +1054,36 @@ void API dw_menu_destroy(HMENUI *menu)
  */
 HWND API dw_menu_append_item(HMENUI menux, char *title, ULONG id, ULONG flags, int end, int check, HMENUI submenu)
 {
-	char *buf = CToPascal(title);
+	char accel, *buf, *tempbuf = alloca(strlen(title)+1);
+
+    accel = _removetilde(tempbuf, title);
+	buf = CToPascal(tempbuf);
 
 	if(menux == (HMENUI)-1)
-		NewMenu(id, buf);
+	{
+		SetMenuTitle(submenu, buf);
+		InsertMenu(submenu, 0);
+	}
 	else
 	{
 		/* Add a separator if requested */
 		if(!title || !*title)
-			AppendMenu(menux, "\002(-");
+			AppendMenu(menux, "\001-");
 		else
-			AppendMenuItemText(menux, buf);
+		{
+			MenuItemIndex item;
+			CFStringRef cftext = CFStringCreateWithCString(NULL, tempbuf, kCFStringEncodingDOSLatinUS);
+
+			AppendMenuItemTextWithCFString(menux, cftext, 0, 0, &item);
+			CFRelease(cftext);
+
+			id = item;
+			if(accel)
+			{
+				SetItemCmd(menux, item, accel);
+				SetMenuItemModifiers(menux, item, kMenuOptionModifier);
+			}
+		}
 	}
 	DrawMenuBar();
 	return (HWND)id;
