@@ -4847,6 +4847,11 @@ void dw_box_pack_end_stub(HWND box, HWND item, int width, int height, int hsize,
 
 		WinQueryClassName(item, 99, tmpbuf);
 
+		if(vsize && !height)
+			height = 1;
+		if(hsize && !width)
+			width = 1;
+
 		if(strncmp(tmpbuf, "#1", 3)==0)
 			tmpitem[thisbox->count].type = TYPEBOX;
 		else
@@ -7428,6 +7433,11 @@ void dw_box_pack_start_stub(HWND box, HWND item, int width, int height, int hsiz
 		}
 
 		WinQueryClassName(item, 99, tmpbuf);
+
+		if(vsize && !height)
+			height = 1;
+		if(hsize && !width)
+			width = 1;
 
 		if(strncmp(tmpbuf, "#1", 3)==0)
 			tmpitem[0].type = TYPEBOX;
