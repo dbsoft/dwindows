@@ -1910,23 +1910,15 @@ BOOL CALLBACK _colorwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 			{
 				if(cinfo->buddy)
 				{
-					long val, position;
-					char tmpbuf[100] = "";
-
-					GetWindowText(cinfo->buddy, tmpbuf, 99);
-
-					position = atol(tmpbuf);
+					long val;
 
 					if(IS_IE5PLUS)
 						val = (long)SendMessage(cinfo->buddy, UDM_GETPOS32, 0, 0);
 					else
 						val = (long)SendMessage(cinfo->buddy, UDM_GETPOS, 0, 0);
 
-					if(val != position)
-					{
-						sprintf(tmpbuf, "%d", val);
-						SetWindowText(hWnd, tmpbuf);
-					}
+					sprintf(tmpbuf, "%d", val);
+					SetWindowText(hWnd, tmpbuf);
 				}
 			}
 			break;
@@ -4826,7 +4818,7 @@ void dw_listbox_set_top(HWND handle, int top)
 	SendMessage(handle, LB_SETTOPINDEX, (WPARAM)top, 0);
 }
 
-#define MLE_MAX 200000
+#define MLE_MAX 1000000
 /*
  * Adds text to an MLE box and returns the current point.
  * Parameters:
@@ -5513,6 +5505,7 @@ void *dw_container_alloc(HWND handle, int rowcount)
 	lvi.cchTextMax = 1;
 	lvi.iImage = -1;
 
+	ShowWindow(handle, SW_HIDE);
 	for(z=0;z<rowcount;z++)
 		ListView_InsertItem(handle, &lvi);
 	return (void *)handle;
@@ -5733,7 +5726,7 @@ void dw_container_set_row_title(void *pointer, int row, char *title)
  */
 void dw_container_insert(HWND handle, void *pointer, int rowcount)
 {
-	/* This isn't a separate step in windows. */
+	ShowWindow(handle, SW_SHOW);
 }
 
 /*
