@@ -2241,6 +2241,7 @@ HWND dw_mle_new(unsigned long id)
 	tmp = gtk_text_view_new();
 	gtk_container_add (GTK_CONTAINER(tmpbox), tmp);
 	gtk_text_view_set_wrap_mode(GTK_TEXT_VIEW(tmp), GTK_WRAP_NONE);
+
 	scroller = NULL;  
 #else
 	tmpbox = gtk_hbox_new(FALSE, 0);
@@ -3210,10 +3211,20 @@ void dw_mle_set(HWND handle, int point)
 		{
 			GtkTextBuffer *tbuffer;
 			GtkTextIter iter;
+			GtkTextMark *mark = (GtkTextMark *)gtk_object_get_data(GTK_OBJECT(handle), "_dw_mark");
 
 			tbuffer = gtk_text_view_get_buffer (GTK_TEXT_VIEW (tmp));
 			gtk_text_buffer_get_iter_at_offset(tbuffer, &iter, point);
+			if(!mark)
+			{
+				mark = gtk_text_buffer_create_mark(tbuffer, NULL, &iter, FALSE);
+				gtk_object_set_data(GTK_OBJECT(handle), "_dw_mark", (gpointer)mark);
+			}
+			else
+				gtk_text_buffer_move_mark(tbuffer, mark, &iter);
 			gtk_text_buffer_place_cursor(tbuffer, &iter);
+			gtk_text_view_scroll_to_mark(GTK_TEXT_VIEW(tmp), mark,
+										 0, FALSE, 0, 0);
 		}
 #else
 		if(tmp && GTK_IS_TEXT(tmp))
