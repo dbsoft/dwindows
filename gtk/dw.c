@@ -52,8 +52,11 @@ GdkColor _colors[] =
 	{ 0, 0xffff, 0xffff, 0xffff },	/* 15 bright white */
 };
 
-GdkColor _foreground = { 0, 0x0000, 0x0000, 0x0000 };
-GdkColor _background = { 0, 0xaaaa, 0xaaaa, 0xaaaa };
+#define DW_THREAD_LIMIT 50
+
+DWTID _dw_thread_list[DW_THREAD_LIMIT];
+GdkColor _foreground[DW_THREAD_LIMIT];
+GdkColor _background[DW_THREAD_LIMIT];
 
 GtkWidget *last_window = NULL;
 
@@ -487,6 +490,51 @@ void _size_allocate(GtkWindow *window)
   gdk_flush ();
 }
 
+/* Find the index of a given thread */
+int _find_thread_index(DWTID tid)
+{
+	int z;
+
+	for(z=0;z<DW_THREAD_LIMIT;z++)
+	{
+		if(_dw_thread_list[z] == tid)
+			return z;
+	}
+	return 0;
+}
+
+/* Add a thread id to the thread list */
+void _dw_thread_add(DWTID tid)
+{
+	int z;
+
+	for(z=0;z<DW_THREAD_LIMIT;z++)
+	{
+		if(_dw_thread_list[z] == (DWTID)-1)
+		{
+			_dw_thread_list[z] = tid;
+			_foreground[z].pixel = _foreground[z].red =_foreground[z].green = _foreground[z].blue = 0;
+			_background[z].pixel = 0;
+			_background[z].red = 0xaaaa;
+			_background[z].green = 0xaaaa;
+			_background[z].blue = 0xaaaa;
+			return;
+		}
+	}
+}
+
+/* Remove a thread id to the thread list */
+void _dw_thread_remove(DWTID tid)
+{
+	int z;
+
+	for(z=0;z<DW_THREAD_LIMIT;z++)
+	{
+		if(_dw_thread_list[z] == (DWTID)tid)
+			_dw_thread_list[z] = -1;
+	}
+}
+
 /*
  * Initializes the Dynamic Windows engine.
  * Parameters:
@@ -523,6 +571,9 @@ int dw_int_init(DWResources *res, int newthread, int argc, char *argv[])
 	if(tmp)
 		_dw_border_height = atoi(tmp);
 
+	for(z=0;z<DW_THREAD_LIMIT;z++)
+		_dw_thread_list[z] = (DWTID)-1;
+
 	return TRUE;
 }
 
@@ -536,6 +587,7 @@ int dw_int_init(DWResources *res, int newthread, int argc, char *argv[])
 void dw_main(HAB currenthab, void *func)
 {
 	_dw_thread = pthread_self();
+	_dw_thread_add(_dw_thread);
 	gdk_threads_enter();
 	gtk_main();
 	gdk_threads_leave();
@@ -685,6 +737,7 @@ int dw_messagebox(char *title, char *format, ...)
 	DWDialog *dwwait;
 	va_list args;
 	char outbuf[256];
+	int x, y;
 
 	va_start(args, format);
 	vsprintf(outbuf, format, args);
@@ -713,7 +766,10 @@ int dw_messagebox(char *title, char *format, ...)
 
 	dw_signal_connect(okbutton, "clicked", DW_SIGNAL_FUNC(_dw_ok_func), (void *)dwwait);
 
-	dw_window_set_usize(entrywindow, 220, 110);
+	x = (dw_screen_width() - 220)/2;
+	y = (dw_screen_height() - 110)/2;
+
+	dw_window_set_pos_size(entrywindow, x, y, 220, 110);
 
 	dw_window_show(entrywindow);
 
@@ -757,6 +813,7 @@ int dw_yesno(char *title, char *text)
 	HWND entrywindow, mainbox, nobutton, yesbutton, buttonbox, stext;
 	ULONG flStyle = DW_FCF_TITLEBAR | DW_FCF_SHELLPOSITION | DW_FCF_DLGBORDER;
 	DWDialog *dwwait;
+	int x, y;
 
 	entrywindow = dw_window_new(HWND_DESKTOP, title, flStyle);
 
@@ -788,7 +845,10 @@ int dw_yesno(char *title, char *text)
 	dw_signal_connect(yesbutton, "clicked", DW_SIGNAL_FUNC(_dw_yes_func), (void *)dwwait);
 	dw_signal_connect(nobutton, "clicked", DW_SIGNAL_FUNC(_dw_no_func), (void *)dwwait);
 
-	dw_window_set_usize(entrywindow, 220, 110);
+	x = (dw_screen_width() - 220)/2;
+	y = (dw_screen_height() - 110)/2;
+
+	dw_window_set_pos_size(entrywindow, x, y, 220, 110);
 
 	dw_window_show(entrywindow);
 
@@ -1100,6 +1160,12 @@ int dw_window_set_color(HWND handle, unsigned long fore, unsigned long back)
 		if(tmp)
 			handle2 = tmp;
 	}
+	else if(GTK_IS_TABLE(handle))
+	{
+		GtkWidget *tmp = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(handle), "eventbox");
+		if(tmp)
+			handle2 = tmp;
+	}
 
 	_set_color(handle2, fore, back);
 
@@ -1210,11 +1276,15 @@ HWND dw_window_new(HWND hwndOwner, char *title, unsigned long flStyle)
  */
 HWND dw_box_new(int type, int pad)
 {
-	GtkWidget *tmp;
+	GtkWidget *tmp, *eventbox;
 	int _locked_by_me = FALSE;
 
 	DW_MUTEX_LOCK;
 	tmp = gtk_table_new(1, 1, FALSE);
+	eventbox = gtk_event_box_new();
+
+	gtk_widget_show(eventbox);
+	gtk_object_set_data(GTK_OBJECT(tmp), "eventbox", (gpointer)eventbox);
 	gtk_object_set_data(GTK_OBJECT(tmp), "boxtype", (gpointer)type);
 	gtk_object_set_data(GTK_OBJECT(tmp), "boxpad", (gpointer)pad);
 	gtk_widget_show(tmp);
@@ -1239,6 +1309,7 @@ HWND dw_groupbox_new(int type, int pad, char *title)
 	gtk_frame_set_shadow_type(GTK_FRAME(frame), GTK_SHADOW_ETCHED_IN);
 	gtk_frame_set_label(GTK_FRAME(frame), title && *title ? title : NULL);
 	tmp = gtk_table_new(1, 1, FALSE);
+	gtk_container_border_width(GTK_CONTAINER(tmp), pad);
 	gtk_object_set_data(GTK_OBJECT(tmp), "boxtype", (gpointer)type);
 	gtk_object_set_data(GTK_OBJECT(tmp), "boxpad", (gpointer)pad);
 	gtk_object_set_data(GTK_OBJECT(frame), "boxhandle", (gpointer)tmp);
@@ -3271,12 +3342,12 @@ HWND dw_render_new(unsigned long id)
  */
 void dw_color_foreground_set(unsigned long value)
 {
-	int _locked_by_me = FALSE;
+	int _locked_by_me = FALSE, index = _find_thread_index(dw_thread_id());
 	GdkColor color = { 0, DW_RED_VALUE(value) << 8, DW_GREEN_VALUE(value) << 8, DW_BLUE_VALUE(value) << 8 };
 
 	DW_MUTEX_LOCK;
 	gdk_color_alloc(_dw_cmap, &color);
-	_foreground = color;
+	_foreground[index] = color;
 	DW_MUTEX_UNLOCK;
 }
 
@@ -3288,25 +3359,27 @@ void dw_color_foreground_set(unsigned long value)
  */
 void dw_color_background_set(unsigned long value)
 {
-	int _locked_by_me = FALSE;
+	int _locked_by_me = FALSE, index = _find_thread_index(dw_thread_id());
 	GdkColor color = { 0, DW_RED_VALUE(value) << 8, DW_GREEN_VALUE(value) << 8, DW_BLUE_VALUE(value) << 8 };
 
 	DW_MUTEX_LOCK;
 	gdk_color_alloc(_dw_cmap, &color);
-	_background = color;
+	_background[index] = color;
 	DW_MUTEX_UNLOCK;
 }
 
 GdkGC *_set_colors(GdkWindow *window)
 {
 	GdkGC *gc;
+	int index = _find_thread_index(dw_thread_id());
+
 	if(!window)
 		return NULL;
 	gc = gdk_gc_new(window);
 	if(gc)
 	{
-		gdk_gc_set_foreground(gc, &_foreground);
-		gdk_gc_set_background(gc, &_background);
+		gdk_gc_set_foreground(gc, &_foreground[index]);
+		gdk_gc_set_background(gc, &_background[index]);
 	}
 	return gc;
 }
@@ -3755,6 +3828,21 @@ int dw_event_close(HEV *eve)
 }
 
 /*
+ * Setup thread independent color sets.
+ */
+void _dwthreadstart(void *data)
+{
+	void (*threadfunc)(void *) = NULL;
+	void **tmp = (void **)data;
+
+	threadfunc = (void (*)(void *))tmp[0];
+
+	_dw_thread_add(dw_thread_id());
+	threadfunc(tmp[1]);
+	_dw_thread_remove(dw_thread_id());
+	free(tmp);
+}
+/*
  * Creates a new thread with a starting point of func.
  * Parameters:
  *       func: Function which will be run in the new thread.
@@ -3764,8 +3852,12 @@ int dw_event_close(HEV *eve)
 DWTID dw_thread_new(void *func, void *data, int stack)
 {
 	DWTID gtkthread;
+	void **tmp = malloc(sizeof(void *) * 2);
 
-	pthread_create(&gtkthread, NULL, func, data);
+	tmp[0] = func;
+	tmp[1] = data;
+
+	pthread_create(&gtkthread, NULL, (void *)_dwthreadstart, (void *)tmp);
 	return gtkthread;
 }
 
@@ -3775,6 +3867,14 @@ DWTID dw_thread_new(void *func, void *data, int stack)
 void dw_thread_end(void)
 {
 	pthread_exit(NULL);
+}
+
+/*
+ * Returns the current thread's ID.
+ */
+DWTID dw_thread_id(void)
+{
+	return (DWTID)pthread_self();
 }
 
 /*
@@ -3830,7 +3930,16 @@ void dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, int 
 		 * of the GtkTable class.
 		 */
 		if(GTK_IS_TABLE(item))
-			pad = (int)gtk_object_get_data(GTK_OBJECT(item), "boxpad");
+		{
+			GtkWidget *eventbox = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(item), "eventbox");
+
+			if(eventbox)
+			{
+				gtk_container_add(GTK_CONTAINER(eventbox), item);
+				pad = (int)gtk_object_get_data(GTK_OBJECT(item), "boxpad");
+				item = eventbox;
+			}
+		}
 
 		if(boxtype == BOXVERT)
 			gtk_table_resize(GTK_TABLE(box), boxcount + 1, 1);
@@ -3858,6 +3967,19 @@ void dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, int 
 	{
 		GtkWidget *vbox = gtk_vbox_new(FALSE, 0);
 
+		if(GTK_IS_TABLE(item))
+		{
+			GtkWidget *eventbox = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(item), "eventbox");
+
+			if(eventbox)
+			{
+				gtk_container_add(GTK_CONTAINER(eventbox), item);
+				pad = (int)gtk_object_get_data(GTK_OBJECT(item), "boxpad");
+				item = eventbox;
+			}
+		}
+
+		gtk_container_border_width(GTK_CONTAINER(box), pad);
 		gtk_container_add(GTK_CONTAINER(box), vbox);
 		gtk_box_pack_end(GTK_BOX(vbox), item, TRUE, TRUE, 0);
 		gtk_widget_show(vbox);
@@ -4183,7 +4305,7 @@ void dw_notebook_pack(HWND handle, unsigned long pageid, HWND page)
 {
 	GtkWidget *label, *child, *oldlabel;
 	gchar *text = NULL;
-	int _locked_by_me = FALSE;
+	int pad, _locked_by_me = FALSE;
 
 	DW_MUTEX_LOCK;
 	child = gtk_notebook_get_nth_page(GTK_NOTEBOOK(handle), pageid);
@@ -4195,6 +4317,12 @@ void dw_notebook_pack(HWND handle, unsigned long pageid, HWND page)
 	}
 
 	label = gtk_label_new(text ? text : "");
+
+	if(GTK_IS_TABLE(page))
+	{
+		pad = (int)gtk_object_get_data(GTK_OBJECT(page), "boxpad");
+		gtk_container_border_width(GTK_CONTAINER(page), pad);
+	}
 
 	gtk_notebook_insert_page(GTK_NOTEBOOK(handle), page, label, pageid);
 	if(child)
@@ -4667,7 +4795,16 @@ void dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize, in
 		 * of the GtkTable class.
 		 */
 		if(GTK_IS_TABLE(item))
-			pad = (int)gtk_object_get_data(GTK_OBJECT(item), "boxpad");
+		{
+			GtkWidget *eventbox = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(item), "eventbox");
+
+			if(eventbox)
+			{
+				gtk_container_add(GTK_CONTAINER(eventbox), item);
+				pad = (int)gtk_object_get_data(GTK_OBJECT(item), "boxpad");
+				item = eventbox;
+			}
+		}
 
 		if(boxtype == BOXVERT)
 		{
@@ -4703,6 +4840,19 @@ void dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize, in
 	{
 		GtkWidget *vbox = gtk_vbox_new(FALSE, 0);
 
+		if(GTK_IS_TABLE(item))
+		{
+			GtkWidget *eventbox = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(item), "eventbox");
+
+			if(eventbox)
+			{
+				gtk_container_add(GTK_CONTAINER(eventbox), item);
+				pad = (int)gtk_object_get_data(GTK_OBJECT(item), "boxpad");
+				item = eventbox;
+			}
+		}
+
+		gtk_container_border_width(GTK_CONTAINER(box), pad);
 		gtk_container_add(GTK_CONTAINER(box), vbox);
 		gtk_box_pack_end(GTK_BOX(vbox), item, TRUE, TRUE, 0);
 		gtk_widget_show(vbox);
@@ -5123,13 +5273,13 @@ int test_callback(HWND window, void *data)
 /*
  * Let's demonstrate the functionality of this library. :)
  */
-int main(void)
+int main(int argc, char *argv[])
 {
 	unsigned long flStyle = DW_FCF_SYSMENU | DW_FCF_TITLEBAR |
 		DW_FCF_SHELLPOSITION | DW_FCF_TASKLIST | DW_FCF_DLGBORDER;
 	int pageid;
 
-	dw_init(TRUE);
+	dw_init(TRUE, argc, argv);
 
 	/* Try a little server dialog. :) */
 	mainwindow = dw_window_new(DW_DESKTOP, "Server", flStyle | DW_FCF_SIZEBORDER | DW_FCF_MINMAX);
