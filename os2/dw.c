@@ -1096,7 +1096,7 @@ MRESULT EXPENTRY _comboproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 			GpiSetColor(hpsPaint, CLR_PALEGRAY);
 
 			ptl.x = 0;
-			ptl.y = 99;
+			ptl.y = 0;
 			GpiMove(hpsPaint, &ptl);
 
 			ptl.x = width;
@@ -1210,7 +1210,7 @@ MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 
 					if(hWnd == tmp->window || WinWindowFromID(tmp->window, FID_CLIENT) == hWnd || WinQueryCapture(HWND_DESKTOP) == tmp->window)
 					{
-						int button;
+						int button = 0;
 
 						switch(origmsg)
 						{
@@ -1237,7 +1237,7 @@ MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 
 					if(hWnd == tmp->window || WinWindowFromID(tmp->window, FID_CLIENT) == hWnd || WinQueryCapture(HWND_DESKTOP) == tmp->window)
 					{
-						int button;
+						int button = 0;
 
 						switch(origmsg)
 						{
