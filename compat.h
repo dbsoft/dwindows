@@ -61,14 +61,18 @@ void msleep(long period);
 #define INCL_DEV
 #define INCL_DOSERRORS
 
-#if defined(__IBMC__) && !defined(API)
+#if (defined(__IBMC__) || defined(_System)) && !defined(API)
 #define API _System
 #endif
 
 #define msleep(a) DosSleep(a)
 
 #ifdef __EMX__
+#ifdef _System
+#include "platform/dirent.h"
+#else
 #include <dirent.h>
+#endif
 #include <sys/stat.h>
 #define HAVE_PIPE
 #ifdef FD_SETSIZE
