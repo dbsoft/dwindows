@@ -98,7 +98,7 @@ typedef struct
 } SignalList;
 
 /* List of signals and their equivilent Win32 message */
-#define SIGNALMAX 12
+#define SIGNALMAX 13
 
 SignalList SignalTranslate[SIGNALMAX] = {
 	{ WM_SIZE, "configure_event" },
@@ -112,6 +112,7 @@ SignalList SignalTranslate[SIGNALMAX] = {
 	{ NM_DBLCLK, "container-select" },
 	{ NM_RCLICK, "container-context" },
 	{ LBN_SELCHANGE, "item-select" },
+	{ TVN_SELCHANGED, "tree-select" },
 	{ WM_SETFOCUS, "set-focus" }
 };
 
@@ -983,7 +984,7 @@ BOOL CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 		/* Find any callbacks for this function */
 		while(tmp)
 		{
-			if(tmp->message == msg || msg == WM_COMMAND)
+			if(tmp->message == msg || msg == WM_COMMAND || msg == WM_NOTIFY)
 			{
 				switch(msg)
 				{
@@ -1119,6 +1120,38 @@ BOOL CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 							exp.height = ps.rcPaint.bottom - ps.rcPaint.top;
 							result = exposefunc(hWnd, &exp, tmp->data);
 							EndPaint(hWnd, &ps);
+						}
+					}
+					break;
+				case WM_NOTIFY:
+					{
+						if(tmp->message == TVN_SELCHANGED)
+						{
+							NMTREEVIEW FAR *tem=(NMTREEVIEW FAR *)mp2;
+							char tmpbuf[100];
+
+							GetClassName(tem->hdr.hwndFrom, tmpbuf, 99);
+
+							if(strnicmp(tmpbuf, WC_TREEVIEW, strlen(WC_TREEVIEW))==0)
+							{
+								if(tem->hdr.code == TVN_SELCHANGED)
+								{
+									if(tmp->window == tem->hdr.hwndFrom)
+									{
+										int (*treeselectfunc)(HWND, HWND, char *, void *) = tmp->signalfunction;
+                                        TVITEM tvi;
+
+										tvi.mask = TVIF_HANDLE;
+										tvi.hItem = tem->itemNew.hItem;
+
+										TreeView_GetItem(tmp->window, &tvi);
+
+										result = treeselectfunc(tmp->window, (HWND)tem->itemNew.hItem, (char *)tvi.lParam, tmp->data);
+
+										tmp = NULL;
+									}
+								}
+							}
 						}
 					}
 					break;
@@ -4465,8 +4498,9 @@ HWND dw_tree_insert(HWND handle, char *title, unsigned long icon, HWND parent)
 	TVINSERTSTRUCT tvins;
 	HTREEITEM hti;
 
-	tvi.mask = TVIF_TEXT | TVIF_IMAGE | TVIF_SELECTEDIMAGE ;
+	tvi.mask = TVIF_TEXT | TVIF_IMAGE | TVIF_SELECTEDIMAGE | TVIF_PARAM;
 	tvi.pszText = title;
+	tvi.lParam = (LONG)title;
 	tvi.cchTextMax = strlen(title);
 	tvi.iSelectedImage = tvi.iImage = _lookup_icon(handle, (HICON)icon, 1);
 
@@ -4477,6 +4511,27 @@ HWND dw_tree_insert(HWND handle, char *title, unsigned long icon, HWND parent)
 	hti = TreeView_InsertItem(handle, &tvins);
 
 	return (HWND)hti;
+}
+
+/*
+ * Removes all nodes from a tree.
+ * Parameters:
+ *       handle: Handle to the window (widget) to be cleared.
+ */
+void dw_tree_clear(HWND handle)
+{
+	TreeView_DeleteAllItems(handle);
+}
+
+/*
+ * Removes a node from a tree.
+ * Parameters:
+ *       handle: Handle to the window (widget) to be cleared.
+ *       item: Handle to node to be deleted.
+ */
+void dw_tree_delete(HWND handle, HWND item)
+{
+	TreeView_DeleteItem(handle, (HTREEITEM)item);
 }
 
 /*

@@ -82,6 +82,7 @@ void _container_context_event(GtkWidget *widget, GdkEventButton *event, gpointer
 void _item_select_event(GtkWidget *widget, GtkWidget *child, gpointer data);
 void _expose_event(GtkWidget *widget, GdkEventExpose *event, gpointer data);
 void _set_focus_event(GtkWindow *window, GtkWidget *widget, gpointer data);
+void _tree_select_event(GtkTree *tree, GtkWidget *child, gpointer data);
 
 typedef struct
 {
@@ -98,7 +99,7 @@ typedef struct
 
 } SignalHandler;
 
-#define SIGNALMAX 13
+#define SIGNALMAX 14
 
 /* A list of signal forwarders, to account for paramater differences. */
 SignalList SignalTranslate[SIGNALMAX] = {
@@ -114,6 +115,7 @@ SignalList SignalTranslate[SIGNALMAX] = {
 	{ _container_select_event, "container-select" },
 	{ _container_context_event, "container-context" },
 	{ _item_select_event, "item-select" },
+	{ _tree_select_event, "tree-select" },
 	{ _set_focus_event, "set-focus" }
 };
 
@@ -341,6 +343,19 @@ void _container_context_event(GtkWidget *widget, GdkEventButton *event, gpointer
 			text = (char *)gtk_clist_get_row_data(GTK_CLIST(widget), row);
 			contextfunc(work->window, text, event->x, event->y, work->data);
 		}
+	}
+}
+
+void _tree_select_event(GtkTree *tree, GtkWidget *child, gpointer data)
+{
+	SignalHandler *work = (SignalHandler *)data;
+
+	if(work)
+	{
+		void (*treeselectfunc)(HWND, HWND, char *, void *) = work->func;
+		char *text = (char *)gtk_object_get_data(GTK_OBJECT(child), "text");
+
+		treeselectfunc(work->window, child, text, work->data);
 	}
 }
 
@@ -977,7 +992,8 @@ void dw_window_capture(HWND handle)
 void dw_window_pointer(HWND handle, int pointertype)
 {
 	GdkCursor *cursor = gdk_cursor_new(pointertype);
-	gdk_window_set_cursor(handle->window, cursor);
+	if(handle && handle->window)
+		gdk_window_set_cursor(handle->window, cursor);
 	gdk_cursor_destroy(cursor);
 }
 
@@ -2424,6 +2440,7 @@ HWND dw_tree_insert(HWND handle, char *title, unsigned long icon, HWND parent)
 	}
 	item = gtk_tree_item_new();
 	label = gtk_label_new(title);
+	gtk_object_set_data(GTK_OBJECT(item), "text", (gpointer)strdup(title));
 	hbox = gtk_hbox_new(FALSE, 2);
 	gdkpix = _find_pixmap(&gdkbmp, icon, hbox);
 	pixmap = gtk_pixmap_new(gdkpix, gdkbmp);
@@ -2439,7 +2456,14 @@ HWND dw_tree_insert(HWND handle, char *title, unsigned long icon, HWND parent)
 		subtree = (GtkWidget *)gtk_object_get_user_data(GTK_OBJECT(parent));
 		if(!subtree)
 		{
+			void *thisfunc = (void *)gtk_object_get_data(GTK_OBJECT(tree), "select-child-func");
+			void *work = (void *)gtk_object_get_data(GTK_OBJECT(tree), "select-child-data");
+
 			subtree = gtk_tree_new();
+
+			if(thisfunc && work)
+				gtk_signal_connect(GTK_OBJECT(subtree), "select-child", GTK_SIGNAL_FUNC(thisfunc), work);
+
 			gtk_object_set_user_data(GTK_OBJECT(parent), subtree);
 			gtk_tree_set_selection_mode(GTK_TREE(subtree), GTK_SELECTION_SINGLE);
 			gtk_tree_set_view_mode(GTK_TREE(subtree), GTK_TREE_VIEW_ITEM);
@@ -2453,6 +2477,49 @@ HWND dw_tree_insert(HWND handle, char *title, unsigned long icon, HWND parent)
 	gtk_widget_show(item);
 	DW_MUTEX_UNLOCK;
 	return item;
+}
+
+/*
+ * Removes all nodes from a tree.
+ * Parameters:
+ *       handle: Handle to the window (widget) to be cleared.
+ */
+void dw_tree_clear(HWND handle)
+{
+	GtkWidget *tree;
+	int _locked_by_me = FALSE;
+
+	DW_MUTEX_LOCK;
+	tree = (GtkWidget *)gtk_object_get_user_data(GTK_OBJECT(handle));
+	if(!tree || !GTK_IS_TREE(tree))
+	{
+		DW_MUTEX_UNLOCK;
+		return;
+	}
+	gtk_tree_clear_items(GTK_TREE(tree), 0, 1000000);
+	DW_MUTEX_UNLOCK;
+}
+
+/*
+ * Removes a node from a tree.
+ * Parameters:
+ *       handle: Handle to the window (widget) to be cleared.
+ *       item: Handle to node to be deleted.
+ */
+void dw_tree_delete(HWND handle, HWND item)
+{
+	GtkWidget *tree;
+	int _locked_by_me = FALSE;
+
+	DW_MUTEX_LOCK;
+	tree = (GtkWidget *)gtk_object_get_user_data(GTK_OBJECT(handle));
+	if(!tree || !GTK_IS_TREE(tree))
+	{
+		DW_MUTEX_UNLOCK;
+		return;
+	}
+	gtk_tree_remove_item(GTK_TREE(tree), item);
+	DW_MUTEX_UNLOCK;
 }
 
 int _dw_container_setup(HWND handle, unsigned long *flags, char **titles, int count, int separator, int extra)
@@ -4619,6 +4686,15 @@ void dw_signal_connect(HWND window, char *signame, void *sigfunc, void *data)
 	else if(GTK_IS_WINDOW(thiswindow) && strcmp(signame, "set-focus") == 0)
 	{
 		thisname = "focus-in-event";
+	}
+	else if(GTK_IS_TREE(thiswindow) && strcmp(signame, "tree-select") == 0)
+	{
+		if(thisfunc)
+		{
+			gtk_object_set_data(GTK_OBJECT(thiswindow), "select-child-func", (gpointer)thisfunc);
+			gtk_object_set_data(GTK_OBJECT(thiswindow), "select-child-data", (gpointer)work);
+		}
+		thisname = "select-child";
 	}
 
 	if(!thisfunc || !thiswindow)
