@@ -5,7 +5,7 @@
     .\dwcompat.dll
 
 .c.obj:
-  icc.exe  /DOS2 /DTCPV40HDRS /DBUILD_DLL /I. /I..\..\include /Tdc /Sp1 /Ss /Wprorearet /Wpro+ /V"Dynamic Windows Compatibility" /Ti /Gm /Gd- /G5 /Ge- /C /W3 /Wini+ /Wpar+ /Wpro+ /Wuse+ %s
+  icc.exe  /DOS2 /DTCPV40HDRS /DBUILD_DLL /I. /I..\..\include /Tdc /Ss /Wprorearet /Wpro+ /V"Dynamic Windows Compatibility" /Ti /Gm /Gd- /G5 /Ge- /C /W3 /Wini+ /Wpar+ /Wpro+ /Wuse+ %s
 
 .\dw.dll: \
     .\os2\dw.obj

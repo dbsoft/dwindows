@@ -3932,6 +3932,7 @@ void dw_mle_set_editable(HWND handle, int state)
  */
 void dw_mle_set_word_wrap(HWND handle, int state)
 {
+	WinSendMsg(handle, MLM_SETWRAP, MPFROMLONG(state), 0);
 }
 
 /*
@@ -3957,6 +3958,9 @@ int dw_mle_search(HWND handle, char *text, int point, unsigned long flags)
 {
 	MLE_SEARCHDATA msd;
 
+	/* This code breaks with structure packing set to 1 (/Sp1 in VAC)
+	 * if this is needed we need to add a pragma here.
+	 */
 	msd.cb = sizeof(msd);
 	msd.pchFind = text;
 	msd.pchReplace = NULL;
