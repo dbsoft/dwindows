@@ -404,14 +404,14 @@ static gint _container_context_event(GtkWidget *widget, GdkEventButton *event, g
 	{
 		if(event->button == 3)
 		{
-			int (*contextfunc)(HWND, char *, int, int, void *) = work->func;
+			int (*contextfunc)(HWND, char *, int, int, void *, void *) = work->func;
 			char *text;
 			int row, col;
 
 			gtk_clist_get_selection_info(GTK_CLIST(widget), event->x, event->y, &row, &col);
 
 			text = (char *)gtk_clist_get_row_data(GTK_CLIST(widget), row);
-			retval = contextfunc(work->window, text, event->x, event->y, work->data);
+			retval = contextfunc(work->window, text, event->x, event->y, work->data, NULL);
 		}
 	}
 	return retval;
