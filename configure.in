@@ -7,6 +7,7 @@ DW_SUB_VERSION=0
 
 DW_SRC=gtk
 DW_DEFINE=__UNIX__
+SHAREDFLAG=-shared
 AC_SUBST(DW_MAJOR_VERSION)
 AC_SUBST(DW_MINOR_VERSION)
 AC_SUBST(DW_SUB_VERSION)
@@ -56,6 +57,8 @@ OPSYSTEM=`uname -s`
 if test $OPSYSTEM = "Darwin"; then
 	DW_SRC=mac
         DW_DEFINE=__MAC__
+	SHAREDFLAG=-dynamic
+	LIBS="$LIBS -framework Carbon"
 else
 	AC_CHECK_PROG(PKG_CFG, pkg-config, pkg-config)
 	if test x"$PKG_CFG" != x; then
@@ -98,6 +101,7 @@ AC_SUBST(LN)
 AC_SUBST(CP)
 AC_SUBST(MV)
 AC_SUBST(MKDIR)
+AC_SUBST(SHAREDFLAG)
 
 AC_SUBST(DW_SRC)
 AC_SUBST(DW_DEFINE)
