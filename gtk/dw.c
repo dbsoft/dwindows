@@ -669,7 +669,7 @@ void _dw_thread_remove(DWTID tid)
  *           newthread: True if this is the only thread.
  *                      False if there is already a message loop running.
  */
-int dw_int_init(DWResources *res, int newthread, int argc, char *argv[])
+int dw_int_init(DWResources *res, int newthread, int *argc, char **argv[])
 {
 	int z;
 	char *tmp;
@@ -683,7 +683,7 @@ int dw_int_init(DWResources *res, int newthread, int argc, char *argv[])
 	gtk_set_locale();
 	g_thread_init(NULL);
 
-	gtk_init(&argc, &argv);
+	gtk_init(argc, argv);
 #ifdef USE_IMLIB
 	gdk_imlib_init();
 #endif
@@ -836,26 +836,29 @@ void *dw_dialog_wait(DWDialog *dialog)
 	return tmp;
 }
 
-void _delete(GtkWidget *widget, GtkWidget *event, gpointer param)
+int _delete(GtkWidget *widget, GtkWidget *event, gpointer param)
 {
 	gtk_widget_destroy(GTK_WIDGET(param));
+	return FALSE;
 }
 
-void _delete2(GtkWidget *widget, gpointer param)
+int _delete2(GtkWidget *widget, gpointer param)
 {
 	gtk_widget_destroy(GTK_WIDGET(param));
+	return FALSE;
 }
 
 
-void _dw_ok_func(HWND window, void *data)
+int _dw_ok_func(HWND window, void *data)
 {
 	DWDialog *dwwait = (DWDialog *)data;
 
 	if(!dwwait)
-		return;
+		return FALSE;
 
 	dw_window_destroy((HWND)dwwait->data);
 	dw_dialog_dismiss((DWDialog *)data, (void *)0);
+	return FALSE;
 }
 
 /*
@@ -913,26 +916,28 @@ int dw_messagebox(char *title, char *format, ...)
 	return strlen(outbuf);
 }
 
-void _dw_yes_func(HWND window, void *data)
+int _dw_yes_func(HWND window, void *data)
 {
 	DWDialog *dwwait = (DWDialog *)data;
 
 	if(!dwwait)
-		return;
+		return FALSE;
 
 	dw_window_destroy((HWND)dwwait->data);
 	dw_dialog_dismiss((DWDialog *)data, (void *)1);
+	return FALSE;
 }
 
-void _dw_no_func(HWND window, void *data)
+int _dw_no_func(HWND window, void *data)
 {
 	DWDialog *dwwait = (DWDialog *)data;
 
 	if(!dwwait)
-		return;
+		return FALSE;
 
 	dw_window_destroy((HWND)dwwait->data);
 	dw_dialog_dismiss((DWDialog *)data, (void *)0);
+	return FALSE;
 }
 
 /*
@@ -4443,14 +4448,12 @@ void dw_flush(void)
  */
 void dw_pixmap_destroy(HPIXMAP pixmap)
 {
-#if GTK_MAJOR_VERSION < 2
 	int _locked_by_me = FALSE;
 
 	DW_MUTEX_LOCK;
 	gdk_pixmap_unref(pixmap->pixmap);
 	free(pixmap);
 	DW_MUTEX_UNLOCK;
-#endif
 }
 
 /*
@@ -5740,7 +5743,7 @@ gint _splitbar_size_allocate(GtkWidget *widget, GtkAllocation *event, gpointer d
 
 	/* Prevent infinite recursion ;) */  
 	if(!percent || (lastwidth == event->width && lastheight == event->height))
-		return TRUE;
+		return FALSE;
 
 	lastwidth = event->width; lastheight = event->height;
   
@@ -5751,7 +5754,7 @@ gint _splitbar_size_allocate(GtkWidget *widget, GtkAllocation *event, gpointer d
 		gtk_paned_set_position(GTK_PANED(widget), (int)(event->width * (*percent / 100.0)));
 	if(GTK_IS_VPANED(widget))
 		gtk_paned_set_position(GTK_PANED(widget), (int)(event->height * (*percent / 100.0)));
-	return TRUE;
+	return FALSE;
 }
 
 #if GTK_MAJOR_VERSION > 1
@@ -5762,7 +5765,7 @@ gint _splitbar_accept_position(GtkWidget *widget, gpointer data)
 	int size = 0, position = gtk_paned_get_position(GTK_PANED(widget));
 
 	if(!percent)
-		return TRUE;
+		return FALSE;
 
 	if(GTK_IS_VPANED(widget))
 		size = widget->allocation.height;
@@ -5771,7 +5774,7 @@ gint _splitbar_accept_position(GtkWidget *widget, gpointer data)
 
 	if(size > 0)
 		*percent = ((float)(position * 100) / (float)size);
-	return TRUE;
+	return FALSE;
 }
 #endif
 
@@ -6025,7 +6028,7 @@ void dw_environment_query(DWEnv *env)
 }
 
 /* Internal function to handle the file OK press */
-void _gtk_file_ok(GtkWidget *widget, DWDialog *dwwait)
+gint _gtk_file_ok(GtkWidget *widget, DWDialog *dwwait)
 {
 #if GTK_MAJOR_VERSION > 1
 	const char *tmp;
@@ -6034,23 +6037,25 @@ void _gtk_file_ok(GtkWidget *widget, DWDialog *dwwait)
 #endif
 
 	if(!dwwait)
-		return;
+		return FALSE;
 
 	tmp = gtk_file_selection_get_filename(GTK_FILE_SELECTION(dwwait->data));
 	gtk_widget_destroy(GTK_WIDGET(dwwait->data));
 	_dw_file_active = 0;
 	dw_dialog_dismiss(dwwait, (void *)(tmp ? strdup(tmp) : NULL));
+	return FALSE;
 }
 
 /* Internal function to handle the file Cancel press */
-void _gtk_file_cancel(GtkWidget *widget, DWDialog *dwwait)
+gint _gtk_file_cancel(GtkWidget *widget, DWDialog *dwwait)
 {
 	if(!dwwait)
-		return;
+		return FALSE;
 
 	gtk_widget_destroy(GTK_WIDGET(dwwait->data));
 	_dw_file_active = 0;
 	dw_dialog_dismiss(dwwait, NULL);
+	return FALSE;
 }
 
 /*

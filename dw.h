@@ -602,8 +602,8 @@ typedef struct _dwdialog {
 void dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize, int vsize, int pad);
 void dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, int vsize, int pad);
 #if !defined(__OS2__) && !defined(__WIN32__) && !defined(__EMX__)
-int dw_int_init(DWResources *res, int newthread, int argc, char *argv[]);
-#define dw_init(a, b, c) dw_int_init(&_resources, a, b, c)
+int dw_int_init(DWResources *res, int newthread, int *argc, char **argv[]);
+#define dw_init(a, b, c) dw_int_init(&_resources, a, &b, &c)
 #else
 int dw_init(int newthread, int argc, char *argv[]);
 #endif
