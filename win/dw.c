@@ -1615,6 +1615,7 @@ BOOL CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 						   tmp->message == TVN_ITEMEXPANDED)
 						{
 							NMTREEVIEW FAR *tem=(NMTREEVIEW FAR *)mp2;
+							NMLISTVIEW FAR *lem=(NMLISTVIEW FAR *)mp2;
 							char tmpbuf[100];
 
 							GetClassName(tem->hdr.hwndFrom, tmpbuf, 99);
@@ -1689,7 +1690,7 @@ BOOL CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 							}
 							else if(strnicmp(tmpbuf, WC_LISTVIEW, strlen(WC_LISTVIEW)+1)==0)
 							{
-								if(tem->hdr.code == LVN_ITEMCHANGED && tmp->message == TVN_SELCHANGED)
+								if((lem->hdr.code == LVN_ITEMCHANGED && (lem->uChanged & LVIF_STATE)) && tmp->message == TVN_SELCHANGED)
 								{
 									if(tmp->window == tem->hdr.hwndFrom)
 									{
