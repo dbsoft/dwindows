@@ -279,6 +279,7 @@ extern HMQ dwhmq;
 #define POPUPMENUCLASSNAME "POPUPMENU"
 #define EDITCLASSNAME "EDIT"
 #define FRAMECLASSNAME "FRAME"
+#define SCROLLBARCLASSNAME "SCROLLBAR"
 
 #define ClassName "dynamicwindows"
 #define SplitbarClassName "dwsplitbar"
