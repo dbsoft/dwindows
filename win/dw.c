@@ -4633,12 +4633,13 @@ void *dw_container_alloc(HWND handle, int rowcount)
 	LV_ITEM lvi;
 	int z;
 
-	lvi.mask = LVIF_DI_SETITEM | LVIF_TEXT;
+	lvi.mask = LVIF_DI_SETITEM | LVIF_TEXT | LVIF_IMAGE;
 	lvi.iSubItem = 0;
 	/* Insert at the end */
 	lvi.iItem = 1000000;
 	lvi.pszText = "";
 	lvi.cchTextMax = 1;
+	lvi.iImage = -1;
 
 	for(z=0;z<rowcount;z++)
 		ListView_InsertItem(handle, &lvi);

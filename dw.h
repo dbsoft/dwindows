@@ -643,6 +643,8 @@ long dw_spinbutton_query(HWND handle);
 int dw_checkbox_query(HWND handle);
 void dw_checkbox_set(HWND handle, int value);
 HWND dw_tree_insert(HWND handle, char *title, unsigned long icon, HWND parent);
+void dw_tree_clear(HWND handle);
+void dw_tree_delete(HWND handle, HWND item);
 int dw_container_setup(HWND handle, unsigned long *flags, char **titles, int count, int separator);
 unsigned long dw_icon_load(unsigned long module, unsigned long id);
 void dw_icon_free(unsigned long handle);
