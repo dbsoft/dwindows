@@ -351,7 +351,7 @@ int DWSIGNAL item_enter_cb( HWND window, char *text, void *data )
 	char buf[200];
 	HWND statline = (HWND)data;
 
-	sprintf(buf,"DW_SIGNAL_ITEM_ENTER: Window: %x Text: %s Data:", window, text, data );
+	sprintf(buf,"DW_SIGNAL_ITEM_ENTER: Window: %x Text: %s Data:", (unsigned int)window, text, data );
 	dw_window_set_text( statline, buf);
 	return 0;
 }
@@ -361,7 +361,7 @@ int DWSIGNAL item_context_cb( HWND window, char *text, int x, int y, void *data,
 	char buf[200];
 	HWND statline = (HWND)data;
 
-	sprintf(buf,"DW_SIGNAL_ITEM_CONTEXT: Window: %x Text: %s x: %d y: %d Itemdata: %x", window, text, x, y, itemdata );
+	sprintf(buf,"DW_SIGNAL_ITEM_CONTEXT: Window: %x Text: %s x: %d y: %d Itemdata: %x", (unsigned int)window, text, x, y, (unsigned int)itemdata );
 	dw_window_set_text( statline, buf);
 	return 0;
 }
@@ -371,7 +371,7 @@ int DWSIGNAL list_select_cb( HWND window, int item, void *data )
 	char buf[200];
 	HWND statline = (HWND)data;
 
-	sprintf(buf,"DW_SIGNAL_LIST_SELECT: Window: %d Item: %d", window, item );
+	sprintf(buf,"DW_SIGNAL_LIST_SELECT: Window: %d Item: %d", (unsigned int)window, item );
 	dw_window_set_text( statline, buf);
 	return 0;
 }
@@ -381,7 +381,7 @@ int DWSIGNAL item_select_cb( HWND window, HWND item, char *text, void *data, voi
 	char buf[200];
 	HWND statline = (HWND)data;
 
-	sprintf(buf,"DW_SIGNAL_ITEM_SELECT: Window: %x Item: %x Text: %s Itemdata: %x", window, item, text, itemdata );
+	sprintf(buf,"DW_SIGNAL_ITEM_SELECT: Window: %x Item: %x Text: %s Itemdata: %x", (unsigned int)window, (unsigned int)item, text, (unsigned int)itemdata );
 	dw_window_set_text( statline, buf);
 	return 0;
 }
