@@ -137,13 +137,13 @@ int DWSIGNAL test_callback(HWND window, void *data)
 int DWSIGNAL browse_callback(HWND window, void *data)
 {
 	char *tmp;
-	if ( current_file )
-	{
-		dw_free( current_file );
-	}
 	tmp = dw_file_browse("test string", NULL, "c", DW_FILE_OPEN );
 	if ( tmp )
 	{
+		if ( current_file )
+		{
+			dw_free( current_file );
+		}
 		current_file = tmp;
 		dw_window_set_text( entryfield, current_file );
 		read_file();
