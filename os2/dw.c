@@ -50,7 +50,7 @@ LONG _foreground = 0xAAAAAA, _background = DW_CLR_DEFAULT;
 
 HWND hwndApp = NULLHANDLE, hwndBubble = NULLHANDLE, hwndBubbleLast = NULLHANDLE, hwndEmph = NULLHANDLE;
 PRECORDCORE pCoreEmph = NULL;
-ULONG aulBuffer[4];
+ULONG aulBuffer[4], GlobalID = 10000;
 HWND lasthcnr = 0, lastitem = 0, popup = 0, desktop;
 
 unsigned long _colors[] = {
@@ -4234,7 +4234,7 @@ HWND API dw_container_new(ULONG id, int multi)
 							   0,0,2000,1000,
 							   NULLHANDLE,
 							   HWND_TOP,
-							   id,
+							   id ? id : (GlobalID++),
 							   NULL,
 							   NULL);
 	blah->oldproc = WinSubclassWindow(tmp, _TreeProc);
@@ -4262,7 +4262,7 @@ HWND API dw_tree_new(ULONG id)
 							   0,0,2000,1000,
 							   NULLHANDLE,
 							   HWND_TOP,
-							   id,
+							   id ? id : (GlobalID++),
 							   NULL,
 							   NULL);
 
@@ -4749,7 +4749,7 @@ HWND API dw_scrollbar_new(int vertical, int increments, ULONG id)
 						   0,0,2000,1000,
 						   NULLHANDLE,
 						   HWND_TOP,
-						   id,
+						   id ? id : (GlobalID++),
 						   NULL,
 						   NULL);
 }
@@ -4824,7 +4824,7 @@ HWND API dw_listbox_new(ULONG id, int multi)
 							   0,0,2000,1000,
 							   NULLHANDLE,
 							   HWND_TOP,
-							   id,
+							   id ? id : (GlobalID++),
 							   NULL,
 							   NULL);
 	blah->oldproc = WinSubclassWindow(tmp, _entryproc);
