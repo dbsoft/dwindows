@@ -130,6 +130,8 @@ EXPORTS
   dw_container_set_column_width          @232
   dw_container_cursor                    @233
   dw_container_optimize                  @234
+  dw_container_delete_row                @235
+  dw_container_change_item               @236
 
   dw_filesystem_setup                    @240
   dw_filesystem_set_item                 @241

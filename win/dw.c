@@ -59,6 +59,7 @@ HBRUSH _colors[18];
 
 
 void _resize_notebook_page(HWND handle, int pageid);
+void _handle_splitbar_resize(HWND hwnd, float percent, int type, int x, int y);
 int _lookup_icon(HWND handle, HICON hicon, int type);
 
 typedef struct _sighandler
@@ -322,6 +323,52 @@ ULONG _findsigmessage(char *signame)
 BOOL CALLBACK _free_window_memory(HWND handle, LPARAM lParam)
 {
 	ColorInfo *thiscinfo = (ColorInfo *)GetWindowLong(handle, GWL_USERDATA);
+	HFONT oldfont = (HFONT)SendMessage(handle, WM_GETFONT, 0, 0);
+	HICON oldicon = (HICON)SendMessage(handle, WM_GETICON, 0, 0);
+	char tmpbuf[100];
+
+	/* Delete font, icon and bitmap GDI objects in use */
+	if(oldfont)
+		DeleteObject(oldfont);
+	if(oldicon)
+		DeleteObject(oldicon);
+
+	GetClassName(handle, tmpbuf, 99);
+
+	if(strnicmp(tmpbuf, STATICCLASSNAME, strlen(STATICCLASSNAME)+1)==0)
+	{
+		HBITMAP oldbitmap = (HBITMAP)SendMessage(handle, STM_GETIMAGE, IMAGE_BITMAP, 0);
+
+		if(oldbitmap)
+			DeleteObject(oldbitmap);
+	}
+	if(strnicmp(tmpbuf, BUTTONCLASSNAME, strlen(BUTTONCLASSNAME)+1)==0)
+	{
+		HBITMAP oldbitmap = (HBITMAP)SendMessage(handle, BM_GETIMAGE, IMAGE_BITMAP, 0);
+
+		if(oldbitmap)
+			DeleteObject(oldbitmap);
+	}
+	else if(strnicmp(tmpbuf, WC_TABCONTROL, strlen(WC_TABCONTROL))==0) /* Notebook */
+	{
+		NotebookPage **array = (NotebookPage **)GetWindowLong(handle, GWL_USERDATA);
+
+		if(array)
+		{
+			int z, refid = -1;
+
+			for(z=0;z<256;z++)
+			{
+				if(array[z])
+				{
+					_free_window_memory(array[z]->hwnd, 0);
+					EnumChildWindows(array[z]->hwnd, _free_window_memory, 0);
+					DestroyWindow(array[z]->hwnd);
+					free(array[z]);
+				}
+			}
+		}
+	}
 
 	dw_signal_disconnect_by_window(handle);
 
@@ -336,9 +383,7 @@ BOOL CALLBACK _free_window_memory(HWND handle, LPARAM lParam)
 			dw_window_set_data(handle, NULL, NULL);
 
 		SetWindowLong(handle, GWL_USERDATA, 0);
-#if 0
 		free(thiscinfo);
-#endif
 	}
 	return TRUE;
 }
@@ -1006,7 +1051,7 @@ int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *usedy,
 				{
 					/* Handle special case Combobox */
 					MoveWindow(handle, currentx + pad, currenty + pad,
-							   width + vectorx, (height + vectory) + 400, TRUE);
+							   width + vectorx, (height + vectory) + 400, FALSE);
 				}
 				else if(strnicmp(tmpbuf, UPDOWN_CLASS, strlen(UPDOWN_CLASS)+1)==0)
 				{
@@ -1014,13 +1059,27 @@ int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *usedy,
 					ColorInfo *cinfo = (ColorInfo *)GetWindowLong(handle, GWL_USERDATA);
 
 					MoveWindow(handle, currentx + pad + ((width + vectorx) - 20), currenty + pad,
-							   20, height + vectory, TRUE);
+							   20, height + vectory, FALSE);
 
 					if(cinfo)
 					{
 						MoveWindow(cinfo->buddy, currentx + pad, currenty + pad,
-								   (width + vectorx) - 20, height + vectory, TRUE);
+								   (width + vectorx) - 20, height + vectory, FALSE);
 					}
+				}
+				else if(strncmp(tmpbuf, SplitbarClassName, strlen(SplitbarClassName)+1)==0)
+				{
+					/* Then try the bottom or right box */
+					float *percent = (float *)dw_window_get_data(handle, "_dw_percent");
+					int type = (int)dw_window_get_data(handle, "_dw_type");
+					int cx = width + vectorx;
+					int cy = height + vectory;
+
+					MoveWindow(handle, currentx + pad, currenty + pad,
+							   cx, cy, FALSE);
+
+					if(cx > 0 && cy > 0 && percent)
+						_handle_splitbar_resize(handle, *percent, type, cx, cy);
 				}
 				else if(strnicmp(tmpbuf, STATICCLASSNAME, strlen(STATICCLASSNAME)+1)==0)
 				{
@@ -1041,26 +1100,26 @@ int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *usedy,
 						diff = (total - textheight) / 2;
 
 						MoveWindow(handle, currentx + pad, currenty + pad + diff,
-								   width + vectorx, height + vectory - diff, TRUE);
+								   width + vectorx, height + vectory - diff, FALSE);
 					}
 					else
 					{
 						MoveWindow(handle, currentx + pad, currenty + pad,
-								   width + vectorx, height + vectory, TRUE);
+								   width + vectorx, height + vectory, FALSE);
 					}
 				}
 				else
 				{
 					/* Everything else */
 					MoveWindow(handle, currentx + pad, currenty + pad,
-							   width + vectorx, height + vectory, TRUE);
+							   width + vectorx, height + vectory, FALSE);
 					if(thisbox->items[z].type == TYPEBOX)
 					{
 						Box *boxinfo = (Box *)GetWindowLong(handle, GWL_USERDATA);
 
 						if(boxinfo && boxinfo->grouphwnd)
 							MoveWindow(boxinfo->grouphwnd, 0, 0,
-									   width + vectorx, height + vectory, TRUE);
+									   width + vectorx, height + vectory, FALSE);
 
 					}
 				}
@@ -1077,7 +1136,7 @@ int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *usedy,
 						GetClientRect(handle,&rect);
 						TabCtrl_AdjustRect(handle,FALSE,&rect);
 						MoveWindow(array[pageid]->hwnd, rect.left, rect.top,
-								   rect.right - rect.left, rect.bottom-rect.top, TRUE);
+								   rect.right - rect.left, rect.bottom-rect.top, FALSE);
 					}
 				}
 
@@ -2247,21 +2306,27 @@ void _handle_splitbar_resize(HWND hwnd, float percent, int type, int x, int y)
 	{
 		int newx = x - SPLITBAR_WIDTH, newy = y;
 		float ratio = (float)percent/(float)100.0;
-		HWND handle = (HWND)dw_window_get_data(hwnd, "_dw_topleft");
-		Box *tmp = (Box *)GetWindowLong(handle, GWL_USERDATA);
+		HWND handle1 = (HWND)dw_window_get_data(hwnd, "_dw_topleft");
+		HWND handle2 = (HWND)dw_window_get_data(hwnd, "_dw_bottomright");
+		Box *tmp = (Box *)GetWindowLong(handle1, GWL_USERDATA);
 
 		newx = (int)((float)newx * ratio);
 
-		SetWindowPos(handle, (HWND)NULL, 0, 0, newx, y, SWP_NOZORDER | SWP_SHOWWINDOW | SWP_NOACTIVATE);
+		ShowWindow(handle1, SW_HIDE);
+		ShowWindow(handle2, SW_HIDE);
+
+		MoveWindow(handle1, 0, 0, newx, y, FALSE);
 		_do_resize(tmp, newx, y);
 
-		handle = (HWND)dw_window_get_data(hwnd, "_dw_bottomright");
-		tmp = (Box *)GetWindowLong(handle, GWL_USERDATA);
+		tmp = (Box *)GetWindowLong(handle2, GWL_USERDATA);
 
 		newx = x - newx - SPLITBAR_WIDTH;
 
-		SetWindowPos(handle, (HWND)NULL, x - newx, 0, newx, y, SWP_NOZORDER | SWP_SHOWWINDOW | SWP_NOACTIVATE);
+		MoveWindow(handle2, x - newx, 0, newx, y, FALSE);
 		_do_resize(tmp, newx, y);
+
+		ShowWindow(handle1, SW_SHOW);
+		ShowWindow(handle2, SW_SHOW);
 
 		dw_window_set_data(hwnd, "_dw_start", (void *)newx);
 	}
@@ -2269,21 +2334,27 @@ void _handle_splitbar_resize(HWND hwnd, float percent, int type, int x, int y)
 	{
 		int newx = x, newy = y - SPLITBAR_WIDTH;
 		float ratio = (float)(100.0-percent)/(float)100.0;
-		HWND handle = (HWND)dw_window_get_data(hwnd, "_dw_bottomright");
-		Box *tmp = (Box *)GetWindowLong(handle, GWL_USERDATA);
+		HWND handle1 = (HWND)dw_window_get_data(hwnd, "_dw_bottomright");
+		HWND handle2 = (HWND)dw_window_get_data(hwnd, "_dw_topleft");
+		Box *tmp = (Box *)GetWindowLong(handle1, GWL_USERDATA);
 
 		newy = (int)((float)newy * ratio);
 
-		SetWindowPos(handle, (HWND)NULL, 0, y - newy, x, newy, SWP_NOZORDER | SWP_SHOWWINDOW | SWP_NOACTIVATE);
+		ShowWindow(handle1, SW_HIDE);
+		ShowWindow(handle2, SW_HIDE);
+
+		MoveWindow(handle1, 0, y - newy, x, newy, FALSE);
 		_do_resize(tmp, x, newy);
 
-		handle = (HWND)dw_window_get_data(hwnd, "_dw_topleft");
-		tmp = (Box *)GetWindowLong(handle, GWL_USERDATA);
+		tmp = (Box *)GetWindowLong(handle2, GWL_USERDATA);
 
 		newy = y - newy - SPLITBAR_WIDTH;
 
-		SetWindowPos(handle, (HWND)NULL, 0, 0, x, newy, SWP_NOZORDER | SWP_SHOWWINDOW | SWP_NOACTIVATE);
+		MoveWindow(handle2, 0, 0, x, newy, FALSE);
 		_do_resize(tmp, x, newy);
+
+		ShowWindow(handle1, SW_SHOW);
+		ShowWindow(handle2, SW_SHOW);
 
 		dw_window_set_data(hwnd, "_dw_start", (void *)newy);
 	}
@@ -2302,13 +2373,32 @@ BOOL CALLBACK _splitwndproc(HWND hwnd, UINT msg, WPARAM mp1, LPARAM mp2)
 	case WM_SETFOCUS:
 		return FALSE;
 
-	case WM_SIZE:
+	case WM_PAINT:
 		{
-			int x = LOWORD(mp2), y = HIWORD(mp2);
+			PAINTSTRUCT ps;
+			HDC hdcPaint;
 
-			if(x > 0 && y > 0 && percent)
-				_handle_splitbar_resize(hwnd, *percent, type, x, y);
-    	}
+			BeginPaint(hwnd, &ps);
+
+			if((hdcPaint = GetDC(hwnd)) != NULL)
+			{
+				int cx, cy;
+				HBRUSH oldBrush = SelectObject(hdcPaint, GetSysColorBrush(COLOR_3DFACE));
+				HPEN oldPen = SelectObject(hdcPaint, CreatePen(PS_SOLID, 1, GetSysColor(COLOR_3DFACE)));
+
+				dw_window_get_pos_size(hwnd, NULL, NULL, &cx, &cy);
+
+				if(type == BOXHORZ)
+					Rectangle(hdcPaint, cx - start - 3, 0, cx - start, cy);
+				else
+					Rectangle(hdcPaint, 0, start, cx, start + 3);
+
+				SelectObject(hdcPaint, oldBrush);
+				DeleteObject(SelectObject(hdcPaint, oldPen));
+				ReleaseDC(hwnd, hdcPaint);
+			}
+			EndPaint(hwnd, &ps);
+		}
 		break;
 	case WM_LBUTTONDOWN:
 		{
@@ -2747,7 +2837,7 @@ int dw_init(int newthread, int argc, char *argv[])
 	wc.lpfnWndProc = (WNDPROC)_splitwndproc;
 	wc.cbClsExtra = 0;
 	wc.cbWndExtra = 0;
-	wc.hbrBackground = (HBRUSH)GetSysColorBrush(COLOR_3DFACE);
+	wc.hbrBackground = NULL;
 	wc.lpszMenuName = NULL;
 	wc.lpszClassName = SplitbarClassName;
 
@@ -3052,6 +3142,8 @@ int dw_window_destroy(HWND handle)
 		thisbox->items = tmpitem;
 		free(thisitem);
 		thisbox->count--;
+		_free_window_memory(handle, 0);
+		EnumChildWindows(handle, _free_window_memory, 0);
 	}
 	return DestroyWindow(handle);
 }
@@ -3067,12 +3159,13 @@ void dw_window_redraw(HWND handle)
 	if(mybox)
 	{
 		RECT rect;
+		int istoplevel = (GetParent(handle) == HWND_DESKTOP);
 
 		GetClientRect(handle, &rect);
 
-		ShowWindow(mybox->items[0].hwnd, SW_HIDE);
+		ShowWindow(istoplevel ? mybox->items[0].hwnd : handle, SW_HIDE);
 		_do_resize(mybox, rect.right - rect.left, rect.bottom - rect.top);
-		ShowWindow(mybox->items[0].hwnd, SW_SHOW);
+		ShowWindow(istoplevel ? mybox->items[0].hwnd : handle, SW_SHOW);
 	}
 }
 
@@ -3141,6 +3234,7 @@ HFONT _acquire_font(HWND handle, char *fontname)
  */
 int dw_window_set_font(HWND handle, char *fontname)
 {
+	HFONT oldfont = (HFONT)SendMessage(handle, WM_GETFONT, 0, 0);
 	HFONT hfont = _acquire_font(handle, fontname);
 	ColorInfo *cinfo;
 
@@ -3165,6 +3259,8 @@ int dw_window_set_font(HWND handle, char *fontname)
 		}
 	}
 	SendMessage(handle, WM_SETFONT, (WPARAM)hfont, (LPARAM)TRUE);
+	if(oldfont)
+		DeleteObject(oldfont);
 	return 0;
 }
 
@@ -4171,10 +4267,14 @@ void dw_window_set_icon(HWND handle, ULONG id)
 void dw_window_set_bitmap(HWND handle, ULONG id)
 {
 	HBITMAP hbitmap = LoadBitmap(DWInstance, MAKEINTRESOURCE(id));
+	HBITMAP oldbitmap = (HBITMAP)SendMessage(handle, STM_GETIMAGE, IMAGE_BITMAP, 0);
 
 	SendMessage(handle, STM_SETIMAGE,
 				(WPARAM) IMAGE_BITMAP,
 				(LPARAM) hbitmap);
+
+	if(oldbitmap)
+		DeleteObject(oldbitmap);
 }
 
 /*
@@ -5758,6 +5858,19 @@ void dw_container_set_item(HWND handle, void *pointer, int column, int row, void
 }
 
 /*
+ * Changes an existing item in specified row and column to the given data.
+ * Parameters:
+ *          handle: Handle to the container window (widget).
+ *          column: Zero based column of data being set.
+ *          row: Zero based row of data being set.
+ *          data: Pointer to the data to be added.
+ */
+void dw_container_change_item(HWND handle, int column, int row, void *data)
+{
+	dw_container_set_item(handle, NULL, column, row, data);
+}
+
+/*
  * Sets the width of a column in the container.
  * Parameters:
  *          handle: Handle to window (widget) of container.
@@ -5941,6 +6054,37 @@ void dw_container_cursor(HWND handle, char *text)
 
 			ListView_SetItemState(handle, index, LVIS_FOCUSED | LVIS_SELECTED, LVIS_FOCUSED | LVIS_SELECTED);
 			ListView_EnsureVisible(handle, index, TRUE);
+			return;
+		}
+
+        index = ListView_GetNextItem(handle, index, LVNI_ALL);
+	}
+}
+
+/*
+ * Deletes the item with the text speficied.
+ * Parameters:
+ *       handle: Handle to the window (widget).
+ *       text:  Text usually returned by dw_container_query().
+ */
+void dw_container_delete_row(HWND handle, char *text)
+{
+	int index = ListView_GetNextItem(handle, -1, LVNI_ALL);
+
+	while(index != -1)
+	{
+		LV_ITEM lvi;
+
+		memset(&lvi, 0, sizeof(LV_ITEM));
+
+		lvi.iItem = index;
+		lvi.mask = LVIF_PARAM;
+
+		ListView_GetItem(handle, &lvi);
+
+		if((char *)lvi.lParam == text)
+		{
+			ListView_DeleteItem(handle, index);
 			return;
 		}
 
