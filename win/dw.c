@@ -4222,7 +4222,7 @@ HWND dw_bitmapbutton_new_from_file(char *text, unsigned long id, char *filename)
 {
 	HWND tmp;
 	BubbleButton *bubble;
-	HBITMAP hbitmap;
+	HBITMAP hbitmap = 0;
 	char *file = malloc(strlen(filename) + 5);
 
 	if(!file || !(bubble = calloc(1, sizeof(BubbleButton))))
@@ -4231,23 +4231,6 @@ HWND dw_bitmapbutton_new_from_file(char *text, unsigned long id, char *filename)
 			free(file);
 		return 0;
 	}
-
-	strcpy(file, filename);
-
-	/* check if we can read from this file (it exists and read permission) */
-	if(access(file, 04) != 0)
-	{
-		/* Try with .bmp extention */
-		strcat(file, ".bmp");
-		if(access(file, 04) != 0)
-		{
-			free(bubble);
-			free(file);
-			return 0;
-		}
-	}
-
-	hbitmap = (HBITMAP)LoadImage(NULL, file, IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
 
 	tmp = CreateWindow(BUTTONCLASSNAME,
 					   "",
@@ -4267,9 +4250,24 @@ HWND dw_bitmapbutton_new_from_file(char *text, unsigned long id, char *filename)
 
 	SetWindowLong(tmp, GWL_USERDATA, (ULONG)bubble);
 
-	SendMessage(tmp, BM_SETIMAGE,
-				(WPARAM) IMAGE_BITMAP,
-				(LPARAM) hbitmap);
+	strcpy(file, filename);
+
+	/* check if we can read from this file (it exists and read permission) */
+	if(access(file, 04) == 0)
+		hbitmap = (HBITMAP)LoadImage(NULL, file, IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
+	else
+	{
+		/* Try with .bmp extention */
+		strcat(file, ".bmp");
+		if(access(file, 04) == 0)
+			hbitmap = (HBITMAP)LoadImage(NULL, file, IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
+	}
+
+
+	if(hbitmap)
+		SendMessage(tmp, BM_SETIMAGE,
+					(WPARAM) IMAGE_BITMAP,
+					(LPARAM) hbitmap);
 	free(file);
 	return tmp;
 }
