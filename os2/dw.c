@@ -4353,7 +4353,11 @@ void dw_window_disable(HWND handle)
 {
 	char tmpbuf[100];
 
+	if(dw_window_get_data(handle, "_dw_disabled"))
+		return;
+
 	WinQueryClassName(handle, 99, tmpbuf);
+	dw_window_set_data(handle, "_dw_disabled", (void *)1);
 
 	if(tmpbuf[0] == '#')
 	{
@@ -4372,7 +4376,6 @@ void dw_window_disable(HWND handle)
 			dw_signal_connect(hwnd ? hwnd : handle, "key_press_event", DW_SIGNAL_FUNC(_null_key), (void *)100);
             if(val == 2)
 				dw_signal_connect(handle, "button_press_event", DW_SIGNAL_FUNC(_null_key), (void *)100);
-			dw_window_set_data(handle, "_dw_disabled", (void *)1);
 			if(hwnd)
 				dw_window_set_data(hwnd, "_dw_disabled", (void *)1);
 			return;
@@ -4380,7 +4383,6 @@ void dw_window_disable(HWND handle)
 			_dw_window_set_color(handle, DW_CLR_DARKGRAY, DW_CLR_PALEGRAY);
 			dw_signal_connect(handle, "key_press_event", DW_SIGNAL_FUNC(_null_key), (void *)100);
 			dw_signal_connect(handle, "button_press_event", DW_SIGNAL_FUNC(_null_key), (void *)100);
-			dw_window_set_data(handle, "_dw_disabled", (void *)1);
 			return;
 		}
 	}
