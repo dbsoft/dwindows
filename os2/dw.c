@@ -3555,8 +3555,8 @@ int _dw_window_set_color(HWND handle, ULONG fore, ULONG back)
  */
 int API dw_window_set_color(HWND handle, ULONG fore, ULONG back)
 {
-	dw_window_set_data(handle, "_dw_fore", (void *)fore);
-	dw_window_set_data(handle, "_dw_back", (void *)back);
+	dw_window_set_data(handle, "_dw_fore", (void *)(fore+1));
+	dw_window_set_data(handle, "_dw_back", (void *)(back+1));
 
 	return _dw_window_set_color(handle, fore, back);
 }
@@ -4619,7 +4619,7 @@ void API dw_window_enable(HWND handle)
 	if(hwnd)
 		dw_window_set_data(hwnd, "_dw_disabled", 0);
 	if(fore && back)
-		_dw_window_set_color(hwnd ? hwnd : handle, fore, back);
+		_dw_window_set_color(hwnd ? hwnd : handle, fore-1, back-1);
 	dw_signal_disconnect_by_data(handle, (void *)100);
 	WinEnableWindow(handle, TRUE);
 }
