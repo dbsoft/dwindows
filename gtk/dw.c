@@ -5405,7 +5405,7 @@ void dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
 					pango_layout_set_font_description(layout, font);
 					pango_layout_set_text(layout, text, strlen(text));
 
-                    if(_transparent[index])
+					if(_transparent[index])
 						gdk_draw_layout(handle ? handle->window : pixmap->pixmap, gc, x, y + 2, layout);
 					else
 						gdk_draw_layout_with_colors(handle ? handle->window : pixmap->pixmap, gc, x, y + 2, layout, &_foreground[index], &_background[index]);
@@ -5422,9 +5422,23 @@ void dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
 			font = gdk_font_load("fixed");
 		if(font)
 		{
-			gint ascent;
+			gint ascent, descent, width;
+			int index = _find_thread_index(dw_thread_id());
 
-			gdk_text_extents(font, text, strlen(text), NULL, NULL, NULL, &ascent, NULL);
+			gdk_text_extents(font, text, strlen(text), NULL, NULL, &width, &ascent, &descent);
+			if(!_transparent[index])
+			{
+				GdkGC *gc2 = NULL;
+
+				gc2 = gdk_gc_new(handle ? handle->window : pixmap->pixmap);
+				if(gc2)
+				{
+					gdk_gc_set_foreground(gc2, &_background[index]);
+					gdk_gc_set_background(gc2, &_background[index]);
+				}
+				gdk_draw_rectangle(handle ? handle->window : pixmap->pixmap, gc2, TRUE, x, y, width, ascent + descent + 2);
+				gdk_gc_unref(gc2);
+			}
 			gdk_draw_text(handle ? handle->window : pixmap->pixmap, font, gc, x, y + ascent + 2, text, strlen(text));
 			gdk_font_unref(font);
 		}
