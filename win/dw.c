@@ -21,7 +21,7 @@
 #include <time.h>
 #include "dw.h"
 
-HWND popup = (HWND)NULL, hwndBubble = (HWND)NULL, hwndBubbleLast, DW_HWND_OBJECT = (HWND)NULL;
+HWND popup = (HWND)NULL, hwndBubble = (HWND)NULL, DW_HWND_OBJECT = (HWND)NULL;
 
 HINSTANCE DWInstance = NULL;
 
@@ -1430,17 +1430,20 @@ BOOL CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 				switch(msg)
 				{
 				case WM_TIMER:
-				{
-					int (*timerfunc)(void *) = tmp->signalfunction;
-					if(tmp->id == (int)mp1)
 					{
-						if(!timerfunc(tmp->data))
-							dw_timer_disconnect(tmp->id);
-						tmp = NULL;
+						if(!hWnd)
+						{
+							int (*timerfunc)(void *) = tmp->signalfunction;
+							if(tmp->id == (int)mp1)
+							{
+								if(!timerfunc(tmp->data))
+									dw_timer_disconnect(tmp->id);
+								tmp = NULL;
+							}
+						}
+						result = 0;
 					}
-					result = 0;
-				}
-				break;
+					break;
 				case WM_SETFOCUS:
 					{
 						int (*setfocusfunc)(HWND, void *) = (int (*)(HWND, void *))tmp->signalfunction;
@@ -1942,6 +1945,17 @@ BOOL CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 			EnumChildWindows(hWnd, _free_window_memory, 0);
 		}
 		break;
+	case WM_MOUSEMOVE:
+		{
+			HCURSOR cursor;
+
+			if((cursor = (HCURSOR)dw_window_get_data(hWnd, "_dw_cursor")) ||
+			   (cursor = (HCURSOR)dw_window_get_data(_toplevel_window(hWnd), "_dw_cursor")))
+			{
+				SetCursor(cursor);
+			}
+		}
+		break;
 	case WM_CTLCOLORSTATIC:
 	case WM_CTLCOLORLISTBOX:
 	case WM_CTLCOLORBTN:
@@ -2034,6 +2048,7 @@ BOOL CALLBACK _framewndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 		break;
 	case WM_COMMAND:
 	case WM_NOTIFY:
+	case WM_MOUSEMOVE:
 		_wndproc(hWnd, msg, mp1, mp2);
 		break;
 #if 0
@@ -2149,6 +2164,9 @@ BOOL CALLBACK _spinnerwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 	ColorInfo *cinfo;
 
 	cinfo = (ColorInfo *)GetWindowLongPtr(hWnd, GWLP_USERDATA);
+
+	if(msg == WM_MOUSEMOVE)
+		_wndproc(hWnd, msg, mp1, mp2);
 
 	if(cinfo)
 	{
@@ -2294,6 +2312,9 @@ BOOL CALLBACK _colorwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 	GetClassName(hWnd, tmpbuf, 99);
 	if(strcmp(tmpbuf, FRAMECLASSNAME) == 0)
 		cinfo = &(((Box *)cinfo)->cinfo);
+
+	if(msg == WM_MOUSEMOVE)
+		_wndproc(hWnd, msg, mp1, mp2);
 
 	if(cinfo)
 	{
@@ -2504,6 +2525,7 @@ BOOL CALLBACK _containerwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 	{
 	case WM_COMMAND:
 	case WM_NOTIFY:
+	case WM_MOUSEMOVE:
 		_wndproc(hWnd, msg, mp1, mp2);
 		break;
 	case WM_LBUTTONDBLCLK:
@@ -2619,6 +2641,9 @@ BOOL CALLBACK _treewndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 
 	switch( msg )
 	{
+	case WM_MOUSEMOVE:
+		_wndproc(hWnd, msg, mp1, mp2);
+		break;
 	case WM_CHAR:
 		if(LOWORD(mp1) == '\t')
 		{
@@ -2825,6 +2850,9 @@ BOOL CALLBACK _statuswndproc(HWND hwnd, UINT msg, WPARAM mp1, LPARAM mp2)
 {
 	switch (msg)
 	{
+	case WM_MOUSEMOVE:
+		_wndproc(hwnd, msg, mp1, mp2);
+		break;
 	case WM_SETTEXT:
 		{
 			/* Make sure the control redraws when there is a text change */
@@ -2976,16 +3004,6 @@ BOOL CALLBACK _BtProc(HWND hwnd, ULONG msg, WPARAM mp1, LPARAM mp2)
 		if(mp1 == VK_RIGHT || mp1 == VK_DOWN)
 			_shift_focus(hwnd);
 		break;
-	case WM_TIMER:
-		if (hwndBubble)
-		{
-			_free_window_memory(hwndBubble, 0);
-			DestroyWindow(hwndBubble);
-			hwndBubble = 0;
-			KillTimer(hwnd, 1);
-		}
-		break;
-
 	case WM_MOUSEMOVE:
 		GetCursorPos(&point);
 		GetWindowRect(hwnd, &rect);
@@ -3007,7 +3025,6 @@ BOOL CALLBACK _BtProc(HWND hwnd, ULONG msg, WPARAM mp1, LPARAM mp2)
 					_free_window_memory(hwndBubble, 0);
 					DestroyWindow(hwndBubble);
 					hwndBubble = 0;
-					KillTimer(hwndBubbleLast, 1);
 				}
 
 				if(!hwndBubble)
@@ -3038,8 +3055,6 @@ BOOL CALLBACK _BtProc(HWND hwnd, ULONG msg, WPARAM mp1, LPARAM mp2)
 
 					dw_window_set_font(hwndBubble, DefaultFont);
 					dw_window_set_color(hwndBubble, DW_CLR_BLACK, DW_CLR_YELLOW);
-
-					hwndBubbleLast = hwnd;
 
 					SetTimer(hwnd, 1, 3000, NULL);
 
@@ -3083,9 +3098,9 @@ BOOL CALLBACK _BtProc(HWND hwnd, ULONG msg, WPARAM mp1, LPARAM mp2)
 				_free_window_memory(hwndBubble, 0);
 				DestroyWindow(hwndBubble);
 				hwndBubble = 0;
-				KillTimer(hwndBubbleLast, 1);
 			}
 		}
+		_wndproc(hwnd, msg, mp1, mp2);
 		break;
 	case WM_CAPTURECHANGED:
 		/* This message means we are losing the capture for some reason
@@ -3098,7 +3113,6 @@ BOOL CALLBACK _BtProc(HWND hwnd, ULONG msg, WPARAM mp1, LPARAM mp2)
 			_free_window_memory(hwndBubble, 0);
 			DestroyWindow(hwndBubble);
 			hwndBubble = 0;
-			KillTimer(hwndBubbleLast, 1);
 		}
 		break;
 	}
@@ -3747,14 +3761,10 @@ void API dw_window_release(void)
  */
 void API dw_window_set_pointer(HWND handle, int pointertype)
 {
-/*
-	if(pointertype == DW_POINTER_ARROW)
-		SetClassLong( handle, GCL_HCURSOR, LoadCursor( NULL, IDC_ARROW));
-	else if(pointertype == DW_POINTER_CLOCK)
-		SetClassLong( handle, GCL_HCURSOR, LoadCursor( NULL, IDC_WAIT));
-	else
-*/
-	SetCursor(pointertype < 65536 ? LoadCursor(NULL, MAKEINTRESOURCE(pointertype)) : (HCURSOR)pointertype);
+	HCURSOR cursor = pointertype < 65536 ? LoadCursor(NULL, MAKEINTRESOURCE(pointertype)) : (HCURSOR)pointertype;
+
+	dw_window_set_data(handle, "_dw_cursor", (void *)cursor);
+	SetCursor(cursor);
 }
 
 /*
@@ -7606,6 +7616,18 @@ void API dw_pixmap_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest, int wi
 		ReleaseDC(src, hdcsrc);
 }
 
+/* Run Beep() in a separate thread so it doesn't block */
+void _beepthread(void *data)
+{
+	int *info = (int *)data;
+
+	if(data)
+	{
+		Beep(info[0], info[1]);
+		free(data);
+	}
+}
+
 /*
  * Emits a beep.
  * Parameters:
@@ -7614,7 +7636,15 @@ void API dw_pixmap_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest, int wi
  */
 void API dw_beep(int freq, int dur)
 {
-	Beep(freq, dur);
+	int *info = malloc(sizeof(int) * 2);
+
+	if(info)
+	{
+		info[0] = freq;
+		info[1] = dur;
+
+		_beginthread(_beepthread, 100, (void *)info);
+	}
 }
 
 /* Open a shared library and return a handle.

@@ -5,7 +5,7 @@
 
 #include <windows.h>
 
-#include "dirent.h"
+#include "compat.h"
 #include <errno.h>
 
 #define error(rc) errno = 255
@@ -25,8 +25,7 @@ struct _dirdescr {
 /*
  * Return first char of filesystem type, or 0 if unknown.
  */
-static char
-getFSType(const char *path)
+static char API getFSType(const char *path)
 {
 	static char cache[1+26];
 	char drive[3];
@@ -56,7 +55,7 @@ getFSType(const char *path)
 	return cache [unit] = r;
 }
 
-char *abs_path(const char *name, char *buffer, int len)
+char * API abs_path(const char *name, char *buffer, int len)
 {
 	char *buf;
 	LPTSTR file;
@@ -81,7 +80,7 @@ char *abs_path(const char *name, char *buffer, int len)
 	return NULL;
 }
 
-DIR *openxdir(const char *path, unsigned att_mask)
+DIR * API openxdir(const char *path, unsigned att_mask)
 {
 	DIR *dir;
 	char name[MAXPATHLEN+3];
@@ -127,14 +126,12 @@ DIR *openxdir(const char *path, unsigned att_mask)
 	return (DIR *)dir;
 }
 
-DIR *
-opendir(const char *pathname)
+DIR * API opendir(const char *pathname)
 {
 	return openxdir(pathname, 0);
 }
 
-struct dirent *
-readdir(DIR *dir)
+struct dirent * API readdir(DIR *dir)
 {
 	static int dummy_ino = 2;
 
@@ -167,14 +164,12 @@ readdir(DIR *dir)
 	return &dir->entry;
 }
 
-long
-telldir(DIR *dir)
+long API telldir(DIR *dir)
 {
 	return dir->number;
 }
 
-void
-seekdir(DIR *dir, long off)
+void API seekdir(DIR *dir, long off)
 {
 	if (dir->number > off) {
 		char name[MAXPATHLEN+2];
@@ -199,8 +194,7 @@ seekdir(DIR *dir, long off)
 		;
 }
 
-void
-closedir(DIR *dir)
+void API closedir(DIR *dir)
 {
 	FindClose(dir->handle);
 	free(dir);
