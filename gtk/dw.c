@@ -3429,7 +3429,7 @@ void dw_entryfield_set_limit(HWND handle, ULONG limit)
 	int _locked_by_me = FALSE;
 
 	DW_MUTEX_LOCK;
-	gtk_entry_set_max_length(handle, limit);
+	gtk_entry_set_max_length(GTK_ENTRY(handle), limit);
 	DW_MUTEX_UNLOCK;
 }
 
