@@ -933,35 +933,14 @@ int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *usedy,
 
 		if(pass > 1 && *depth > 0)
 		{
-			if(thisbox->type == DW_VERT)
-			{
-				if((thisbox->minwidth-((thisbox->items[z].pad*2)+(thisbox->parentpad*2))) == 0)
-					thisbox->items[z].xratio = 1.0;
-				else
-					thisbox->items[z].xratio = ((float)((thisbox->width * thisbox->parentxratio)-((thisbox->items[z].pad*2)+(thisbox->parentpad*2))))/((float)(thisbox->minwidth-((thisbox->items[z].pad*2)+(thisbox->parentpad*2))));
-			}
+			if(thisbox->minwidth-thisbox->upx == 0)
+				thisbox->items[z].xratio = 1.0;
 			else
-			{
-				if(thisbox->minwidth-thisbox->upx == 0)
-					thisbox->items[z].xratio = 1.0;
-				else
-					thisbox->items[z].xratio = ((float)((thisbox->width * thisbox->parentxratio)-thisbox->upx))/((float)(thisbox->minwidth-thisbox->upx));
-			}
-
-			if(thisbox->type == DW_HORZ)
-			{
-				if((thisbox->minheight-((thisbox->items[z].pad*2)+(thisbox->parentpad*2))) == 0)
-					thisbox->items[z].yratio = 1.0;
-				else
-					thisbox->items[z].yratio = ((float)((thisbox->height * thisbox->parentyratio)-((thisbox->items[z].pad*2)+(thisbox->parentpad*2))))/((float)(thisbox->minheight-((thisbox->items[z].pad*2)+(thisbox->parentpad*2))));
-			}
+				thisbox->items[z].xratio = ((float)((thisbox->width * thisbox->parentxratio)-thisbox->upx))/((float)(thisbox->minwidth-thisbox->upx));
+			if(thisbox->minheight-thisbox->upy == 0)
+				thisbox->items[z].yratio = 1.0;
 			else
-			{
-				if(thisbox->minheight-thisbox->upy == 0)
-					thisbox->items[z].yratio = 1.0;
-				else
-					thisbox->items[z].yratio = ((float)((thisbox->height * thisbox->parentyratio)-thisbox->upy))/((float)(thisbox->minheight-thisbox->upy));
-			}
+				thisbox->items[z].yratio = ((float)((thisbox->height * thisbox->parentyratio)-thisbox->upy))/((float)(thisbox->minheight-thisbox->upy));
 
 			if(thisbox->items[z].type == TYPEBOX)
 			{
