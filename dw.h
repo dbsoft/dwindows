@@ -466,7 +466,7 @@ typedef unsigned char UCHAR;
 typedef char CHAR;
 typedef unsigned UINT;
 typedef int INT;
-typedef pthread_mutex_t HMTX;
+typedef pthread_mutex_t *HMTX;
 typedef struct _dw_unix_event {
 	pthread_mutex_t mutex;
 	pthread_cond_t event;
