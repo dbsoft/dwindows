@@ -1177,8 +1177,7 @@ int dw_messagebox(char *title, int flags, char *format, ...)
 	char outbuf[1000];
 	char **xpm_data = NULL;
 	int x, y, extra_width=0,text_width,text_height;
-	gint width,height;
-	GtkStyle *style;
+	int width,height;
 
 	va_start(args, format);
 	vsprintf(outbuf, format, args);
@@ -1243,9 +1242,7 @@ int dw_messagebox(char *title, int flags, char *format, ...)
 	text_height = 0;
 	stext = dw_text_new(outbuf, 0);
 	dw_window_set_style(stext, DW_DT_WORDBREAK, DW_DT_WORDBREAK);
-	style = gtk_widget_get_style(stext);
-	gdk_text_extents(style->font, outbuf, strlen(outbuf), NULL, NULL, &width, NULL, NULL);
-	gdk_text_extents(style->font, "(g", 2, NULL, &height, NULL, NULL, NULL);
+	dw_font_text_extents(stext, NULL, outbuf, &width, &height);
 	height = height+3;
 	if(width < text_width)
 		text_height = height*2;
@@ -7242,7 +7239,7 @@ void dw_listbox_delete(HWND handle, int index)
 		handle2 = GTK_COMBO(handle)->list;
 	}
 	if(GTK_IS_LIST(handle2))
-		gtk_list_clear_items(GTK_LIST(handle2), index, index);
+		gtk_list_clear_items(GTK_LIST(handle2), index, index+1);
 	DW_MUTEX_UNLOCK;
 }
 
