@@ -4717,15 +4717,6 @@ void dw_container_clear(HWND handle, int redraw)
 }
 
 /*
- * Removes all rows from a container.
- * Parameters:
- *       handle: Handle to the window (widget) to be cleared.
- */
-void dw_container_set_view(HWND handle, unsigned long flags, int iconwidth, int iconheight)
-{
-}
-
-/*
  * Scrolls container up or down.
  * Parameters:
  *       handle: Handle to the window (widget) to be scrolled.

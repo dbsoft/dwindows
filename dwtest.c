@@ -569,8 +569,6 @@ void container_add(void)
 	container = dw_container_new(100);
 	dw_box_pack_start( notebookbox4, container, 500, 200, TRUE, FALSE, 1);
 
-	dw_container_set_view(container, DW_CV_DETAIL | DW_CV_MINI | DW_CA_DETAILSVIEWTITLES, 16, 16);
-
 	/* and a status area to see whats going on */
 	container_status = dw_status_text_new("", 0);
 	dw_box_pack_start( notebookbox4, container_status, 100, 20, TRUE, FALSE, 1);
