@@ -2250,7 +2250,9 @@ int dw_messagebox(char *title, int flags, char *format, ...)
 int dw_window_minimize(HWND handle)
 {
 	int _locked_by_me = FALSE;
+#if GTK_MAJOR_VERSION > 1
 	GtkWidget *mdi = NULL;
+#endif
 
 	if(!handle)
 		return 0;
@@ -2316,7 +2318,10 @@ int dw_window_lower(HWND handle)
 int dw_window_show(HWND handle)
 {
 	int _locked_by_me = FALSE;
-	GtkWidget *defaultitem, *mdi;
+	GtkWidget *defaultitem;
+#if GTK_MAJOR_VERSION > 1
+	GtkWidget *mdi;
+#endif
 
 	if(!handle)
 		return 0;
@@ -2364,7 +2369,9 @@ int dw_window_show(HWND handle)
 int dw_window_hide(HWND handle)
 {
 	int _locked_by_me = FALSE;
+#if GTK_MAJOR_VERSION > 1
 	GtkWidget *mdi = NULL;
+#endif
 
 	if(!handle)
 		return 0;
@@ -2390,7 +2397,9 @@ int dw_window_hide(HWND handle)
 int dw_window_destroy(HWND handle)
 {
 	int _locked_by_me = FALSE;
+#if GTK_MAJOR_VERSION > 1
 	GtkWidget *mdi = NULL;
+#endif
 
 	if(!handle)
 		return 0;
