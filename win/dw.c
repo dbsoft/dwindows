@@ -3384,7 +3384,7 @@ int instring(char *text, char *buffer)
 		for(z=0;z<=(buflen-len);z++)
 		{
 			if(memcmp(text, &buffer[z], len) == 0)
-				return 1;
+				return z;
 		}
 	}
 	return 0;
@@ -3404,14 +3404,15 @@ void API dw_window_reparent(HWND handle, HWND newparent)
 HFONT _acquire_font(HWND handle, char *fontname)
 {
 	HFONT hfont;
-	int z, size = 9;
-	LOGFONT lf;
-	char *myFontName;
 
 	if(fontname == DefaultFont || !fontname[0])
 		hfont = GetStockObject(DEFAULT_GUI_FONT);
 	else
 	{
+        int Italic, Bold;
+		char *myFontName;
+		int z, size = 9;
+		LOGFONT lf;
 #if 0
 		HDC hDC = GetDC(handle);
 #endif
@@ -3421,7 +3422,8 @@ HFONT _acquire_font(HWND handle, char *fontname)
 				break;
 		}
 		size = atoi(fontname) + 5;
-
+		Italic = instring(" Italic", &fontname[z+1]);
+		Bold = instring(" Bold", &fontname[z+1]);
 #if 0
 		lf.lfHeight = -MulDiv(size, GetDeviceCaps(hDC, LOGPIXELSY), 72);
 #endif
@@ -3429,26 +3431,23 @@ HFONT _acquire_font(HWND handle, char *fontname)
 		lf.lfWidth = 0;
 		lf.lfEscapement = 0;
 		lf.lfOrientation = 0;
-		lf.lfItalic = instring(" Italic", &fontname[z+1]);
+		lf.lfItalic = Italic ? TRUE : FALSE;
 		lf.lfUnderline = 0;
 		lf.lfStrikeOut = 0;
-		lf.lfWeight = instring(" Bold", &fontname[z+1]) ? FW_BOLD : FW_NORMAL;
+		lf.lfWeight = Bold ? FW_BOLD : FW_NORMAL;
 		lf.lfCharSet = DEFAULT_CHARSET;
 		lf.lfOutPrecision = 0;
 		lf.lfClipPrecision = 0;
 		lf.lfQuality = DEFAULT_QUALITY;
 		lf.lfPitchAndFamily = DEFAULT_PITCH | FW_DONTCARE;
 		/* 
-		 * remove any font modifiers by truncating at the first space
-		 * - this may not be enough!; what about "Courier New" ???
+		 * remove any font modifiers
 		 */
 		myFontName = strdup(&fontname[z+1]);
-		for(z=0;z<strlen(myFontName);z++)
-		if(myFontName[z] == ' ')
-		{
-			myFontName[z]='\0';
-			break;
-		}
+		if(Italic)
+			myFontName[Italic] = 0;
+		if(Bold)
+			myFontName[Bold] = 0;
 		strcpy(lf.lfFaceName, myFontName);
 		free(myFontName);
 
