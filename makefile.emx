@@ -19,30 +19,39 @@ RCFLAGS = -r
 COMPATOBJECTS = compat.obj dirent.obj
 COMPATSOURCES = compat.c dirent.c
 
-all: dw.dll dwcompat.dll
+all: dw.dll dwcompat.dll dwtest.exe
 
-dirent.obj:
-	$(CC) $(CFLAGS) -c os2/dirent.c
-
-$(COMPATOBJECTS):
-	$(CC) $(CFLAGS) -c $<	
-
-dw.dll:  
+dw.dll:  os2\dw.c dw.def
 	$(CC) $(CFLAGS) $(DEFS) -o dw.dll os2/dw.c $(LDFLAGS) dw.def
+
+dw.lib: dw.def
 	emximp -o dw.lib dw.def
-	cp -f dw.dll ../dll
-	cp -f dw.lib ../lib
+	copy dw.dll dll
+	copy dw.lib lib
         
-dwcompat.dll:  $(COMPATOBJECTS)
+dwcompat.dll:  $(COMPATOBJECTS) dwcompat.def
 	$(CC) $(CFLAGS) $(DEFS) -o dwcompat.dll $(COMPATOBJECTS) $(LDFLAGS) -lsocket dwcompat.def
+
+dwcompat.lib: dwcompat.def
 	emximp -o dwcompat.lib dwcompat.def
-	cp -f dwcompat.dll dll
-	cp -f dwcompat.lib lib
+	copy dwcompat.dll dll
+	copy dwcompat.lib lib
+
+dwtest.exe: dwtest.obj dw.lib dwcompat.lib
+	$(CC) $(CFLAGS) -Zcrtdll -Zomf -Zmt -o dwtest.exe dwtest.obj -Llib -ldw -ldwcompat dwtest.def
 
 clean: 
-	$(RM) $(OBJECTS) handyftp.exe handyftp.res
+	$(RM) $(OBJECTS) dwtest.exe
 
 dw.obj: dw.c
+	$(CC) $(CFLAGS) -c $<	
+
 compat.obj: compat.c
+	$(CC) $(CFLAGS) -c $<	
+
 dirent.obj: os2/dirent.c
+	$(CC) $(CFLAGS) -c $<	
+
+dwtest.obj: dwtest.c
+	$(CC) $(CFLAGS) -c $<	
 
