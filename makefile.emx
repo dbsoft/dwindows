@@ -1,0 +1,46 @@
+# $Id$ 
+
+# HandyFTP Makefile
+
+DWINCDIR = d:/work/fx/include
+DWLIBDIR = d:/work/fx/lib
+
+CC = gcc
+RM = rm -f
+RC = rc
+MAKE = make
+COMPRESS = lxlite
+
+DEFS =
+LIBS =
+
+CFLAGS = -O -g -Zomf -Zmt -D__ST_MT_ERRNO__ -I. -Wall -I$(DWINCDIR)
+LDFLAGS = -Zdll -Zcrtdll
+RCFLAGS = -r
+
+
+COMPATOBJECTS = compat.obj
+COMPATSOURCES = compat.c
+
+all: dw.dll dwcompat.dll
+
+dirent.obj:
+	$(CC) $(CFLAGS) -c os2/dirent.c
+
+$(COMPATOBJECTS):
+	$(CC) $(CFLAGS) -c $<	
+
+dw.dll:  
+	$(CC) $(CFLAGS) $(DEFS) -o dll/dw.dll os2/dw.c $(LDFLAGS) dw.def
+	emximp -o lib/dw.lib dw.def
+
+dwcompat.dll:  $(COMPATOBJECTS)
+	$(CC) $(CFLAGS) $(DEFS) -o dll/dwcompat.dll $(COMPATOBJECTS) $(LDFLAGS) -lsocket dwcompate.def
+	emximp -o lib/dwcompat.lib dwcompate.def
+
+clean: 
+	$(RM) $(OBJECTS) handyftp.exe handyftp.res
+
+dw.obj: dw.c
+compat.obj: compat.c
+
