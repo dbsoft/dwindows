@@ -393,13 +393,14 @@ int DWSIGNAL container_select_cb( HWND window, HTREEITEM item, char *text, void 
 	char *str;
 	HWND statline = (HWND)data;
 
-	sprintf(buf,"\nDW_SIGNAL_ITEM_SELECT: Window: %x Item: %x Text: %s Itemdata: %x\n", (unsigned int)window, (unsigned int)item, text, (unsigned int)itemdata );
+	sprintf(buf,"DW_SIGNAL_ITEM_SELECT: Window: %x Item: %x Text: %s Itemdata: %x", (unsigned int)window, (unsigned int)item, text, (unsigned int)itemdata );
 	dw_window_set_text( statline, buf);
+	sprintf(buf,"\r\nDW_SIGNAL_ITEM_SELECT: Window: %x Item: %x Text: %s Itemdata: %x\r\n", (unsigned int)window, (unsigned int)item, text, (unsigned int)itemdata );
 	mle_point = dw_mle_import( container_mle, buf, mle_point);
 	str = dw_container_query_start(container, DW_CRA_SELECTED);
 	while(str)
 	{
-		sprintf(buf,"Selected: %s\n", str);
+		sprintf(buf,"Selected: %s\r\n", str);
 		mle_point = dw_mle_import( container_mle, buf, mle_point);
 		str = dw_container_query_next(container, DW_CRA_SELECTED);
 	}
