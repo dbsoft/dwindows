@@ -3633,6 +3633,7 @@ void dw_tree_item_select(HWND handle, HWND item)
 #endif
 }
 
+#if GTK_MAJOR_VERSION > 1
 void _dw_recursive_free(GtkTreeModel *store, GtkTreeIter parent)
 {
 	void *data;
@@ -3650,6 +3651,7 @@ void _dw_recursive_free(GtkTreeModel *store, GtkTreeIter parent)
 		} while(gtk_tree_model_iter_next(GTK_TREE_MODEL(store), &iter));
 	}
 }
+#endif
 
 /*
  * Removes all nodes from a tree.
