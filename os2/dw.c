@@ -6951,7 +6951,10 @@ void API dw_container_optimize(HWND handle)
  */
 void dw_taskbar_insert(HWND handle, unsigned long icon, char *bubbletext)
 {
-    /* TODO */
+	handle = handle;
+	icon = icon;
+	bubbletext = bubbletext;
+	/* TODO */
 }
 
 /*
@@ -6962,7 +6965,9 @@ void dw_taskbar_insert(HWND handle, unsigned long icon, char *bubbletext)
  */
 void dw_taskbar_delete(HWND handle, unsigned long icon)
 {
-    /* TODO */
+	handle = handle;
+	icon = icon;
+	/* TODO */
 }
 
 /*
