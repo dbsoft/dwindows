@@ -515,21 +515,25 @@ static gint _tree_context_event(GtkWidget *widget, GdkEventButton *event, gpoint
 static gint _tree_select_event(GtkTreeSelection *sel, gpointer data)
 {
 	GtkWidget *item, *widget = (GtkWidget *)gtk_tree_selection_get_tree_view(sel);
-	SignalHandler work = _get_signal_handler(widget, data);
 	int retval = FALSE;
 
-	if(widget && work.window)
+	if(widget)
 	{
-		int (*treeselectfunc)(HWND, HTREEITEM, char *, void *, void *) = work.func;
-		GtkTreeIter iter;
-		char *text = NULL;
-		void *itemdata = NULL;
-          
-		if(gtk_tree_selection_get_selected(sel, NULL, &iter))
+		SignalHandler work = _get_signal_handler(widget, data);
+
+		if(work.window)
 		{
-			GtkTreeModel *store = (GtkTreeModel *)gtk_object_get_data(GTK_OBJECT(widget), "_dw_tree_store");
-			gtk_tree_model_get(store, &iter, 0, &text, 2, &itemdata, 3, &item, -1);
-			retval = treeselectfunc(work.window, (HTREEITEM)item, text, work.data, itemdata);
+			int (*treeselectfunc)(HWND, HTREEITEM, char *, void *, void *) = work.func;
+			GtkTreeIter iter;
+			char *text = NULL;
+			void *itemdata = NULL;
+
+			if(gtk_tree_selection_get_selected(sel, NULL, &iter))
+			{
+				GtkTreeModel *store = (GtkTreeModel *)gtk_object_get_data(GTK_OBJECT(widget), "_dw_tree_store");
+				gtk_tree_model_get(store, &iter, 0, &text, 2, &itemdata, 3, &item, -1);
+				retval = treeselectfunc(work.window, (HTREEITEM)item, text, work.data, itemdata);
+			}
 		}
 	}
 	return retval;
@@ -7654,11 +7658,13 @@ void dw_signal_connect(HWND window, char *signame, void *sigfunc, void *data)
 	}
 	else if(GTK_IS_TREE_VIEW(thiswindow) && strcmp(signame, DW_SIGNAL_ITEM_SELECT) == 0)
 	{
+		GtkWidget *treeview = thiswindow;
+
 		thiswindow = (GtkWidget *)gtk_tree_view_get_selection(GTK_TREE_VIEW(thiswindow));
 		thisname = "changed";
     
 		g_signal_connect(G_OBJECT(thiswindow), thisname, (GCallback)thisfunc,
-						   (gpointer)_set_signal_handler(thiswindow, window, sigfunc, data));
+						   (gpointer)_set_signal_handler(treeview, window, sigfunc, data));
 		DW_MUTEX_UNLOCK;
 		return;
 	}
