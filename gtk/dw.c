@@ -4716,6 +4716,8 @@ void dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
 		}
 #else
 		font = gdk_font_load(fontname);
+		if(!font)
+			font = gdk_font_load("fixed");
 		if(font)
 		{
 			gint ascent;
@@ -4789,6 +4791,8 @@ void dw_font_text_extents(HWND handle, HPIXMAP pixmap, char *text, int *width, i
 #else
 
 	font = gdk_font_load(fontname ? fontname : "fixed");
+	if(!font)
+		font = gdk_font_load("fixed");
 	if(font)
 	{
 		if(width)
@@ -5290,13 +5294,18 @@ void dw_window_set_usize(HWND handle, unsigned long width, unsigned long height)
 {
 	int _locked_by_me = FALSE;
 
+	if(!handle)
+		return;
+
 	DW_MUTEX_LOCK;
 	if(GTK_IS_WINDOW(handle))
+	{
 		_size_allocate(GTK_WINDOW(handle));
-#if 0
-		gtk_window_set_default_size(GTK_WINDOW(handle), width, height);
+		if(handle->window)
+			gdk_window_resize(handle->window, width - _dw_border_width, height - _dw_border_height);
+		gtk_window_set_default_size(GTK_WINDOW(handle), width - _dw_border_width, height - _dw_border_height);
+	}
 	else
-#endif
 		gtk_widget_set_usize(handle, width, height);
 	DW_MUTEX_UNLOCK;
 }
@@ -5371,8 +5380,11 @@ void dw_window_set_pos_size(HWND handle, unsigned long x, unsigned long y, unsig
 {
 	int _locked_by_me = FALSE;
 
+	if(!handle)
+		return;
+
 	DW_MUTEX_LOCK;
-	if(handle && GTK_IS_WINDOW(handle))
+	if(GTK_IS_WINDOW(handle))
 	{
 		_size_allocate(GTK_WINDOW(handle));
 
@@ -5381,7 +5393,7 @@ void dw_window_set_pos_size(HWND handle, unsigned long x, unsigned long y, unsig
 			gdk_window_resize(handle->window, width - _dw_border_width, height - _dw_border_height);
 		gtk_window_set_default_size(GTK_WINDOW(handle), width - _dw_border_width, height - _dw_border_height);
 	}
-	else if(handle && handle->window)
+	else if(handle->window)
 	{
 		gdk_window_resize(handle->window, width, height);
 		gdk_window_move(handle->window, x, y);
