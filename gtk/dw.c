@@ -5431,7 +5431,7 @@ void dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
 			 */
 			gdk_text_extents(font, text, strlen(text), NULL, NULL, &width, &junk_ascent, &junk_descent);
 			/* force ascent/descent to be maximum values */
-			gdk_text_extents(font, "Xg", 2, NULL, NULL, &junk_width, &ascent, &descent);
+			gdk_text_extents(font, "(g", 2, NULL, NULL, &junk_width, &ascent, &descent);
 			if(!_transparent[index])
 			{
 				GdkGC *gc2 = NULL;
@@ -5442,10 +5442,10 @@ void dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
 					gdk_gc_set_foreground(gc2, &_background[index]);
 					gdk_gc_set_background(gc2, &_background[index]);
 				}
-				gdk_draw_rectangle(handle ? handle->window : pixmap->pixmap, gc2, TRUE, x, y, width, ascent + descent + 2);
+				gdk_draw_rectangle(handle ? handle->window : pixmap->pixmap, gc2, TRUE, x, y, width, ascent + descent + 1);
 				gdk_gc_unref(gc2);
 			}
-			gdk_draw_text(handle ? handle->window : pixmap->pixmap, font, gc, x, y + ascent + 2, text, strlen(text));
+			gdk_draw_text(handle ? handle->window : pixmap->pixmap, font, gc, x, y + ascent + 1, text, strlen(text));
 			gdk_font_unref(font);
 		}
 #endif
