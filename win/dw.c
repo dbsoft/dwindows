@@ -1154,7 +1154,7 @@ BOOL CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 					break;
 				case WM_NOTIFY:
 					{
-						if(tmp->message == TVN_SELCHANGED)
+						if(tmp->message == TVN_SELCHANGED || tmp->message == NM_RCLICK)
 						{
 							NMTREEVIEW FAR *tem=(NMTREEVIEW FAR *)mp2;
 							char tmpbuf[100];
@@ -1163,20 +1163,58 @@ BOOL CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 
 							if(strnicmp(tmpbuf, WC_TREEVIEW, strlen(WC_TREEVIEW))==0)
 							{
-								if(tem->hdr.code == TVN_SELCHANGED)
+								if(tem->hdr.code == TVN_SELCHANGED && tmp->message == TVN_SELCHANGED)
 								{
 									if(tmp->window == tem->hdr.hwndFrom)
 									{
-										int (*treeselectfunc)(HWND, HWND, char *, void *) = tmp->signalfunction;
-                                        TVITEM tvi;
+										int (*treeselectfunc)(HWND, HWND, char *, void *, void *) = tmp->signalfunction;
+										TVITEM tvi;
+										void **ptrs;
 
 										tvi.mask = TVIF_HANDLE;
 										tvi.hItem = tem->itemNew.hItem;
 
 										TreeView_GetItem(tmp->window, &tvi);
 
-										result = treeselectfunc(tmp->window, (HWND)tem->itemNew.hItem, (char *)tvi.lParam, tmp->data);
+										ptrs = (void **)tvi.lParam;
+										if(ptrs)
+											result = treeselectfunc(tmp->window, (HWND)tem->itemNew.hItem, (char *)ptrs[0], (void *)ptrs[1], tmp->data);
 
+										tmp = NULL;
+									}
+								}
+								else if(tem->hdr.code == NM_RCLICK && tmp->message == NM_RCLICK)
+								{
+									if(tmp->window == tem->hdr.hwndFrom)
+									{
+										int (*containercontextfunc)(HWND, char *, int, int, void *, void *) = tmp->signalfunction;
+										HTREEITEM hti;
+										TVITEM tvi;
+										TVHITTESTINFO thi;
+										void **ptrs = NULL;
+										LONG x, y;
+
+										dw_pointer_query_pos(&x, &y);
+
+										thi.pt.x = x;
+										thi.pt.y = y;
+
+										MapWindowPoints(HWND_DESKTOP, tmp->window, &thi.pt, 1);
+
+										hti = TreeView_HitTest(tmp->window, &thi);
+
+										if(hti)
+										{
+											tvi.mask = TVIF_HANDLE;
+											tvi.hItem = hti;
+
+											TreeView_GetItem(tmp->window, &tvi);
+											dw_tree_item_select(tmp->window, (HWND)hti);
+
+											ptrs = (void **)tvi.lParam;
+
+										}
+										containercontextfunc(tmp->window, ptrs ? (char *)ptrs[0] : NULL, x, y, tmp->data, ptrs ? ptrs[1] : NULL);
 										tmp = NULL;
 									}
 								}
@@ -1301,61 +1339,55 @@ BOOL CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 		break;
 	case WM_DESTROY:
 		/* Free memory before destroying */
-#if 0
-		/* Is this the right message? I seem to be
-		 * getting WM_DESTROY on windows that aren't
-		 * being destroyed.
-		 */
 		_free_window_memory(hWnd, 0);
 		EnumChildWindows(hWnd, _free_window_memory, 0);
-#endif
 		break;
-		case WM_CTLCOLORSTATIC:
-		case WM_CTLCOLORLISTBOX:
-		case WM_CTLCOLORBTN:
-		case WM_CTLCOLOREDIT:
-		case WM_CTLCOLORMSGBOX:
-		case WM_CTLCOLORSCROLLBAR:
-		case WM_CTLCOLORDLG:
+	case WM_CTLCOLORSTATIC:
+	case WM_CTLCOLORLISTBOX:
+	case WM_CTLCOLORBTN:
+	case WM_CTLCOLOREDIT:
+	case WM_CTLCOLORMSGBOX:
+	case WM_CTLCOLORSCROLLBAR:
+	case WM_CTLCOLORDLG:
+		{
+			ColorInfo *thiscinfo = (ColorInfo *)GetWindowLong((HWND)mp2, GWL_USERDATA);
+			if(thiscinfo && thiscinfo->fore != -1 && thiscinfo->back != -1)
 			{
-				ColorInfo *thiscinfo = (ColorInfo *)GetWindowLong((HWND)mp2, GWL_USERDATA);
-				if(thiscinfo && thiscinfo->fore != -1 && thiscinfo->back != -1)
+				if(thiscinfo->fore > -1 && thiscinfo->back > -1 &&
+				   thiscinfo->fore < 18 && thiscinfo->back < 18)
 				{
-					if(thiscinfo->fore > -1 && thiscinfo->back > -1 &&
-					   thiscinfo->fore < 18 && thiscinfo->back < 18)
-					{
-						SetTextColor((HDC)mp1, RGB(_red[thiscinfo->fore],
-												   _green[thiscinfo->fore],
+					SetTextColor((HDC)mp1, RGB(_red[thiscinfo->fore],
+											   _green[thiscinfo->fore],
 											   _blue[thiscinfo->fore]));
-						SetBkColor((HDC)mp1, RGB(_red[thiscinfo->back],
-												 _green[thiscinfo->back],
-												 _blue[thiscinfo->back]));
-						DeleteObject(thiscinfo->hbrush);
-						thiscinfo->hbrush = CreateSolidBrush(RGB(_red[thiscinfo->back],
-																 _green[thiscinfo->back],
-																 _blue[thiscinfo->back]));
-						SelectObject((HDC)mp1, thiscinfo->hbrush);
-						return (LONG)thiscinfo->hbrush;
-					}
-					if((thiscinfo->fore & DW_RGB_COLOR) == DW_RGB_COLOR && (thiscinfo->back & DW_RGB_COLOR) == DW_RGB_COLOR)
-					{
-						SetTextColor((HDC)mp1, RGB(DW_RED_VALUE(thiscinfo->fore),
-												   DW_GREEN_VALUE(thiscinfo->fore),
-												   DW_BLUE_VALUE(thiscinfo->fore)));
-						SetBkColor((HDC)mp1, RGB(DW_RED_VALUE(thiscinfo->back),
+					SetBkColor((HDC)mp1, RGB(_red[thiscinfo->back],
+											 _green[thiscinfo->back],
+											 _blue[thiscinfo->back]));
+					DeleteObject(thiscinfo->hbrush);
+					thiscinfo->hbrush = CreateSolidBrush(RGB(_red[thiscinfo->back],
+															 _green[thiscinfo->back],
+															 _blue[thiscinfo->back]));
+					SelectObject((HDC)mp1, thiscinfo->hbrush);
+					return (LONG)thiscinfo->hbrush;
+				}
+				if((thiscinfo->fore & DW_RGB_COLOR) == DW_RGB_COLOR && (thiscinfo->back & DW_RGB_COLOR) == DW_RGB_COLOR)
+				{
+					SetTextColor((HDC)mp1, RGB(DW_RED_VALUE(thiscinfo->fore),
+											   DW_GREEN_VALUE(thiscinfo->fore),
+											   DW_BLUE_VALUE(thiscinfo->fore)));
+					SetBkColor((HDC)mp1, RGB(DW_RED_VALUE(thiscinfo->back),
 												 DW_GREEN_VALUE(thiscinfo->back),
 												 DW_BLUE_VALUE(thiscinfo->back)));
-						DeleteObject(thiscinfo->hbrush);
-						thiscinfo->hbrush = CreateSolidBrush(RGB(DW_RED_VALUE(thiscinfo->back),
-																 DW_GREEN_VALUE(thiscinfo->back),
-																 DW_BLUE_VALUE(thiscinfo->back)));
-						SelectObject((HDC)mp1, thiscinfo->hbrush);
-						return (LONG)thiscinfo->hbrush;
-					}
+					DeleteObject(thiscinfo->hbrush);
+					thiscinfo->hbrush = CreateSolidBrush(RGB(DW_RED_VALUE(thiscinfo->back),
+															 DW_GREEN_VALUE(thiscinfo->back),
+															 DW_BLUE_VALUE(thiscinfo->back)));
+					SelectObject((HDC)mp1, thiscinfo->hbrush);
+					return (LONG)thiscinfo->hbrush;
 				}
-
 			}
-			break;
+
+		}
+		break;
 	}
 	if(result != -1)
 		return result;
@@ -1572,7 +1604,10 @@ BOOL CALLBACK _colorwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 		switch( msg )
 		{
 		case WM_SETFOCUS:
-			_wndproc(hWnd, msg, mp1, mp2);
+            if(cinfo->combo)
+				_wndproc(cinfo->combo, msg, mp1, mp2);
+			else
+				_wndproc(hWnd, msg, mp1, mp2);
 			break;
 		case WM_CHAR:
 			if(LOWORD(mp1) == '\t')
@@ -1754,43 +1789,47 @@ BOOL CALLBACK _containerwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 		break;
 	case WM_CONTEXTMENU:
 		{
-			LONG x,y;
-			LV_ITEM lvi;
-			int iItem;
+			SignalHandler *tmp = Root;
 
-			iItem = ListView_GetNextItem(hWnd, -1, LVNI_FOCUSED);
-
-			if(iItem > -1)
+			while(tmp)
 			{
-				lvi.iItem = iItem;
-				lvi.mask = LVIF_PARAM;
-
-				ListView_GetItem(hWnd, &lvi);
-			}
-			else
-				lvi.lParam = (LPARAM)NULL;
-
-			dw_pointer_query_pos(&x, &y);
-
-			{
-				SignalHandler *tmp = Root;
-
-				while(tmp)
+				if(tmp->message == NM_RCLICK && tmp->window == hWnd)
 				{
-					if(tmp->message == NM_RCLICK && tmp->window == hWnd)
+					int (*containercontextfunc)(HWND, char *, int, int, void *) = tmp->signalfunction;
+					LONG x,y;
+					LV_ITEM lvi;
+					int iItem;
+					LVHITTESTINFO lhi;
+
+					dw_pointer_query_pos(&x, &y);
+
+					lhi.pt.x = x;
+					lhi.pt.y = y;
+
+					MapWindowPoints(HWND_DESKTOP, tmp->window, &lhi.pt, 1);
+
+					iItem = ListView_HitTest(tmp->window, &lhi);
+
+					if(iItem > -1)
 					{
-						int (*containercontextfunc)(HWND, char *, int, int, void *) = tmp->signalfunction;
+						lvi.iItem = iItem;
+						lvi.mask = LVIF_PARAM;
 
-						/* Seems to be having lParam as 1 which really sucks */
-						if(lvi.lParam < 100)
-							lvi.lParam = 0;
-
-						containercontextfunc(tmp->window, (char *)lvi.lParam, x, y, tmp->data);
-						tmp = NULL;
+						ListView_GetItem(tmp->window, &lvi);
+						ListView_SetSelectionMark(tmp->window, iItem);
 					}
-					if(tmp)
-						tmp = tmp->next;
+					else
+						lvi.lParam = (LPARAM)NULL;
+
+					/* Seems to be having lParam as 1 which really sucks */
+					if(lvi.lParam < 100)
+						lvi.lParam = 0;
+
+					containercontextfunc(tmp->window, (char *)lvi.lParam, x, y, tmp->data);
+					tmp = NULL;
 				}
+				if(tmp)
+					tmp = tmp->next;
 			}
 		}
 		break;
@@ -2100,11 +2139,19 @@ BOOL CALLBACK _BtProc(HWND hwnd, ULONG msg, WPARAM mp1, LPARAM mp2)
 	static int bMouseOver = 0;
 	POINT point;
 	RECT rect;
+	WNDPROC pOldProc;
 
 	bubble = (BubbleButton *)GetWindowLong(hwnd, GWL_USERDATA);
 
 	if(!bubble)
 		return DefWindowProc(hwnd, msg, mp1, mp2);
+
+	/* We must save a pointer to the old
+	 * window procedure because if a signal
+	 * handler attached here destroys this
+	 * window it will then be invalid.
+	 */
+	pOldProc = bubble->pOldProc;
 
 	switch(msg)
 	{
@@ -2286,9 +2333,9 @@ BOOL CALLBACK _BtProc(HWND hwnd, ULONG msg, WPARAM mp1, LPARAM mp2)
 		break;
 	}
 
-	if(!bubble->pOldProc)
+	if(!pOldProc)
 		return DefWindowProc(hwnd, msg, mp1, mp2);
-	return CallWindowProc(bubble->pOldProc, hwnd, msg, mp1, mp2);
+	return CallWindowProc(pOldProc, hwnd, msg, mp1, mp2);
 }
 
 /* This function recalculates a notebook page for example
@@ -2650,7 +2697,60 @@ int dw_window_hide(HWND handle)
  */
 int dw_window_destroy(HWND handle)
 {
+	HWND parent = GetParent(handle);
+	Box *thisbox = (Box *)GetWindowLong(parent, GWL_USERDATA);
+
+	if(parent != HWND_DESKTOP && thisbox && thisbox->count)
+	{
+		int z, index = -1;
+		Item *tmpitem, *thisitem = thisbox->items;
+
+		for(z=0;z<thisbox->count;z++)
+		{
+			if(thisitem[z].hwnd == handle)
+				index = z;
+		}
+
+		if(index == -1)
+			return 0;
+
+		tmpitem = malloc(sizeof(Item)*(thisbox->count-1));
+
+		/* Copy all but the current entry to the new list */
+		for(z=0;z<index;z++)
+		{
+			tmpitem[z] = thisitem[z];
+		}
+		for(z=index+1;z<thisbox->count;z++)
+		{
+			tmpitem[z-1] = thisitem[z];
+		}
+
+		thisbox->items = tmpitem;
+		free(thisitem);
+		thisbox->count--;
+	}
 	return DestroyWindow(handle);
+}
+
+/* Causes entire window to be invalidated and redrawn.
+ * Parameters:
+ *           handle: Toplevel window handle to be redrawn.
+ */
+void dw_window_redraw(HWND handle)
+{
+	Box *mybox = (Box *)GetWindowLong(handle, GWL_USERDATA);
+
+	if(mybox)
+	{
+		RECT rect;
+
+		GetClientRect(handle, &rect);
+
+		ShowWindow(mybox->items[0].hwnd, SW_HIDE);
+		_do_resize(mybox, rect.right - rect.left, rect.bottom - rect.top);
+		ShowWindow(mybox->items[0].hwnd, SW_SHOW);
+	}
 }
 
 /*
@@ -3402,6 +3502,7 @@ HWND dw_combobox_new(char *text, ULONG id)
 							NULL,
 							NULL);
 	ColorInfo *cinfo = (ColorInfo *)calloc(1, sizeof(ColorInfo));
+	ColorInfo *cinfo2 = (ColorInfo *)calloc(1, sizeof(ColorInfo));
 
 	if(!cinfo)
 	{
@@ -3409,10 +3510,10 @@ HWND dw_combobox_new(char *text, ULONG id)
 		return NULL;
 	}
 
-	cinfo->fore = -1;
-	cinfo->back = -1;
-	cinfo->combo = tmp;
-	EnumChildWindows(tmp, _subclass_child, (LPARAM)cinfo);
+	cinfo2->fore = cinfo->fore = -1;
+	cinfo2->back = cinfo->back = -1;
+	cinfo2->combo = cinfo->combo = tmp;
+	EnumChildWindows(tmp, _subclass_child, (LPARAM)cinfo2);
 
 	SetWindowLong(tmp, GWL_USERDATA, (ULONG)cinfo);
 	dw_window_set_font(tmp, DefaultFont);
@@ -4700,16 +4801,21 @@ void dw_checkbox_set(HWND handle, int value)
  *          title: The text title of the entry.
  *          icon: Handle to coresponding icon.
  *          parent: Parent handle or 0 if root.
+ *          itemdata: Item specific data.
  */
-HWND dw_tree_insert(HWND handle, char *title, unsigned long icon, HWND parent)
+HWND dw_tree_insert(HWND handle, char *title, unsigned long icon, HWND parent, void *itemdata)
 {
 	TVITEM tvi;
 	TVINSERTSTRUCT tvins;
 	HTREEITEM hti;
+	void **ptrs= malloc(sizeof(void *) * 2);
+
+	ptrs[0] = title;
+	ptrs[1] = itemdata;
 
 	tvi.mask = TVIF_TEXT | TVIF_IMAGE | TVIF_SELECTEDIMAGE | TVIF_PARAM;
 	tvi.pszText = title;
-	tvi.lParam = (LONG)title;
+	tvi.lParam = (LONG)ptrs;
 	tvi.cchTextMax = strlen(title);
 	tvi.iSelectedImage = tvi.iImage = _lookup_icon(handle, (HICON)icon, 1);
 
@@ -4723,6 +4829,69 @@ HWND dw_tree_insert(HWND handle, char *title, unsigned long icon, HWND parent)
 }
 
 /*
+ * Sets the text and icon of an item in a tree window (widget).
+ * Parameters:
+ *          handle: Handle to the tree containing the item.
+ *          item: Handle of the item to be modified.
+ *          title: The text title of the entry.
+ *          icon: Handle to coresponding icon.
+ */
+void dw_tree_set(HWND handle, HWND item, char *title, unsigned long icon)
+{
+	TVITEM tvi;
+	void **ptrs;
+
+	tvi.mask = TVIF_HANDLE;
+	tvi.hItem = (HTREEITEM)item;
+
+	TreeView_GetItem(handle, &tvi);
+
+	ptrs = (void **)tvi.lParam;
+	ptrs[0] = title;
+
+	tvi.mask = TVIF_TEXT | TVIF_IMAGE | TVIF_SELECTEDIMAGE;
+	tvi.pszText = title;
+	tvi.cchTextMax = strlen(title);
+	tvi.iSelectedImage = tvi.iImage = _lookup_icon(handle, (HICON)icon, 1);
+	tvi.hItem = (HTREEITEM)item;
+
+	TreeView_SetItem(handle, &tvi);
+}
+
+/*
+ * Sets the item data of a tree item.
+ * Parameters:
+ *          handle: Handle to the tree containing the item.
+ *          item: Handle of the item to be modified.
+ *          itemdata: User defined data to be associated with item.
+ */
+void dw_tree_set_data(HWND handle, HWND item, void *itemdata)
+{
+	TVITEM tvi;
+	void **ptrs;
+
+	tvi.mask = TVIF_HANDLE;
+	tvi.hItem = (HTREEITEM)item;
+
+	TreeView_GetItem(handle, &tvi);
+
+	ptrs = (void **)tvi.lParam;
+	ptrs[1] = itemdata;
+}
+
+/*
+ * Sets this item as the active selection.
+ * Parameters:
+ *       handle: Handle to the tree window (widget) to be selected.
+ *       item: Handle to the item to be selected.
+ */
+void dw_tree_item_select(HWND handle, HWND item)
+{
+	TreeView_SelectItem(handle, (HTREEITEM)item);
+	SetFocus(handle);
+}
+
+/*
  * Removes all nodes from a tree.
  * Parameters:
  *       handle: Handle to the window (widget) to be cleared.
@@ -4730,6 +4899,28 @@ HWND dw_tree_insert(HWND handle, char *title, unsigned long icon, HWND parent)
 void dw_tree_clear(HWND handle)
 {
 	TreeView_DeleteAllItems(handle);
+}
+
+/*
+ * Expands a node on a tree.
+ * Parameters:
+ *       handle: Handle to the tree window (widget).
+ *       item: Handle to node to be expanded.
+ */
+void dw_tree_expand(HWND handle, HWND item)
+{
+	TreeView_Expand(handle, (HTREEITEM)item, TVE_EXPAND);
+}
+
+/*
+ * Collapses a node on a tree.
+ * Parameters:
+ *       handle: Handle to the tree window (widget).
+ *       item: Handle to node to be collapsed.
+ */
+void dw_tree_collapse(HWND handle, HWND item)
+{
+	TreeView_Expand(handle, (HTREEITEM)item, TVE_COLLAPSE);
 }
 
 /*

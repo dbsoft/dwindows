@@ -90,6 +90,7 @@ void _item_select_event(GtkWidget *widget, GtkWidget *child, gpointer data);
 void _expose_event(GtkWidget *widget, GdkEventExpose *event, gpointer data);
 void _set_focus_event(GtkWindow *window, GtkWidget *widget, gpointer data);
 void _tree_select_event(GtkTree *tree, GtkWidget *child, gpointer data);
+void _tree_context_event(GtkWidget *widget, GdkEventButton *event, gpointer data);
 
 void msleep(long period);
 
@@ -108,7 +109,7 @@ typedef struct
 
 } SignalHandler;
 
-#define SIGNALMAX 14
+#define SIGNALMAX 15
 
 /* A list of signal forwarders, to account for paramater differences. */
 SignalList SignalTranslate[SIGNALMAX] = {
@@ -123,6 +124,7 @@ SignalList SignalTranslate[SIGNALMAX] = {
 	{ _generic_event, "clicked" },
 	{ _container_select_event, "container-select" },
 	{ _container_context_event, "container-context" },
+	{ _tree_context_event, "tree-context" },
 	{ _item_select_event, "item-select" },
 	{ _tree_select_event, "tree-select" },
 	{ _set_focus_event, "set-focus" }
@@ -235,7 +237,7 @@ gint _delete_event(GtkWidget *widget, GdkEvent *event, gpointer data)
 	{
 		int (*closefunc)(HWND, void *) = work->func;
 
-		closefunc(widget, data);
+		closefunc(widget, work->data);
 	}
 	return TRUE;
 }
@@ -367,16 +369,53 @@ void _container_context_event(GtkWidget *widget, GdkEventButton *event, gpointer
 	}
 }
 
+void _tree_context_event(GtkWidget *widget, GdkEventButton *event, gpointer data)
+{
+	SignalHandler *work = (SignalHandler *)data;
+
+	if(work)
+	{
+		if(event->button == 3)
+		{
+			void (*contextfunc)(HWND, char *, int, int, void *, void *) = work->func;
+			char *text = (char *)gtk_object_get_data(GTK_OBJECT(widget), "text");
+			void *itemdata = (void *)gtk_object_get_data(GTK_OBJECT(widget), "itemdata");
+
+			if(widget != work->window)
+			{
+				GtkWidget *tree = (GtkWidget *)gtk_object_get_user_data(GTK_OBJECT(work->window));
+
+				if(tree && GTK_IS_TREE(tree))
+				{
+					GtkWidget *lastselect = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(tree), "lastselect");
+
+					if(lastselect && GTK_IS_TREE_ITEM(lastselect))
+					{
+						text = (char *)gtk_object_get_data(GTK_OBJECT(lastselect), "text");
+						itemdata = (void *)gtk_object_get_data(GTK_OBJECT(lastselect), "itemdata");
+					}
+				}
+			}
+
+			contextfunc(work->window, text, event->x, event->y, work->data, itemdata);
+		}
+	}
+}
+
 void _tree_select_event(GtkTree *tree, GtkWidget *child, gpointer data)
 {
 	SignalHandler *work = (SignalHandler *)data;
 
 	if(work)
 	{
-		void (*treeselectfunc)(HWND, HWND, char *, void *) = work->func;
+		void (*treeselectfunc)(HWND, HWND, char *, void *, void *) = work->func;
 		char *text = (char *)gtk_object_get_data(GTK_OBJECT(child), "text");
+		void *itemdata = (char *)gtk_object_get_data(GTK_OBJECT(child), "itemdata");
+		GtkWidget *treeroot = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(child), "tree");
 
-		treeselectfunc(work->window, child, text, work->data);
+		if(treeroot && GTK_IS_TREE(treeroot))
+			gtk_object_set_data(GTK_OBJECT(treeroot), "lastselect", (gpointer)child);
+		treeselectfunc(work->window, child, text, itemdata, work->data);
 	}
 }
 
@@ -972,6 +1011,14 @@ int dw_window_destroy(HWND handle)
 		gtk_widget_destroy(handle);
 	DW_MUTEX_UNLOCK;
 	return 0;
+}
+
+/* Causes entire window to be invalidated and redrawn.
+ * Parameters:
+ *           handle: Toplevel window handle to be redrawn.
+ */
+void dw_window_redraw(HWND handle)
+{
 }
 
 /*
@@ -2692,8 +2739,9 @@ void dw_checkbox_set(HWND handle, int value)
  *          title: The text title of the entry.
  *          icon: Handle to coresponding icon.
  *          parent: Parent handle or 0 if root.
+ *          itemdata: Item specific data.
  */
-HWND dw_tree_insert(HWND handle, char *title, unsigned long icon, HWND parent)
+HWND dw_tree_insert(HWND handle, char *title, unsigned long icon, HWND parent, void *itemdata)
 {
 	GtkWidget *item, *tree, *subtree, *label, *hbox, *pixmap;
 	GdkPixmap *gdkpix;
@@ -2710,7 +2758,10 @@ HWND dw_tree_insert(HWND handle, char *title, unsigned long icon, HWND parent)
 	item = gtk_tree_item_new();
 	label = gtk_label_new(title);
 	gtk_object_set_data(GTK_OBJECT(item), "text", (gpointer)strdup(title));
+	gtk_object_set_data(GTK_OBJECT(item), "itemdata", (gpointer)itemdata);
+	gtk_object_set_data(GTK_OBJECT(item), "tree", (gpointer)tree);
 	hbox = gtk_hbox_new(FALSE, 2);
+	gtk_object_set_data(GTK_OBJECT(item), "hbox", (gpointer)hbox);
 	gdkpix = _find_pixmap(&gdkbmp, icon, hbox);
 	pixmap = gtk_pixmap_new(gdkpix, gdkbmp);
 	gtk_container_add(GTK_CONTAINER(item), hbox);
@@ -2733,19 +2784,103 @@ HWND dw_tree_insert(HWND handle, char *title, unsigned long icon, HWND parent)
 			if(thisfunc && work)
 				gtk_signal_connect(GTK_OBJECT(subtree), "select-child", GTK_SIGNAL_FUNC(thisfunc), work);
 
+			thisfunc = (void *)gtk_object_get_data(GTK_OBJECT(tree), "container-context-func");
+			work = (void *)gtk_object_get_data(GTK_OBJECT(tree), "container-context-data");
+
+			if(thisfunc && work)
+				gtk_signal_connect(GTK_OBJECT(subtree), "button_press_event", GTK_SIGNAL_FUNC(thisfunc), work);
+
 			gtk_object_set_user_data(GTK_OBJECT(parent), subtree);
 			gtk_tree_set_selection_mode(GTK_TREE(subtree), GTK_SELECTION_SINGLE);
 			gtk_tree_set_view_mode(GTK_TREE(subtree), GTK_TREE_VIEW_ITEM);
 			gtk_tree_item_set_subtree(GTK_TREE_ITEM(parent), subtree);
+			gtk_tree_item_collapse(GTK_TREE_ITEM(parent));
 			gtk_widget_show(subtree);
+			gtk_tree_item_expand(GTK_TREE_ITEM(parent));
+			gtk_tree_item_collapse(GTK_TREE_ITEM(parent));
 		}
 		gtk_tree_append(GTK_TREE(subtree), item);
 	}
 	else
 		gtk_tree_append(GTK_TREE(tree), item);
+	gtk_tree_item_expand(GTK_TREE_ITEM(item));
+	gtk_tree_item_collapse(GTK_TREE_ITEM(item));
 	gtk_widget_show(item);
 	DW_MUTEX_UNLOCK;
 	return item;
+}
+
+/*
+ * Sets the text and icon of an item in a tree window (widget).
+ * Parameters:
+ *          handle: Handle to the tree containing the item.
+ *          item: Handle of the item to be modified.
+ *          title: The text title of the entry.
+ *          icon: Handle to coresponding icon.
+ */
+void dw_tree_set(HWND handle, HWND item, char *title, unsigned long icon)
+{
+	GtkWidget *label, *hbox, *pixmap;
+	GdkPixmap *gdkpix;
+	GdkBitmap *gdkbmp;
+	char *oldtext;
+	int _locked_by_me = FALSE;
+
+	DW_MUTEX_LOCK;
+	oldtext = (char *)gtk_object_get_data(GTK_OBJECT(item), "text");
+	if(oldtext)
+		free(oldtext);
+	label = gtk_label_new(title);
+	gtk_object_set_data(GTK_OBJECT(item), "text", (gpointer)strdup(title));
+	hbox = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(item), "hbox");
+	gtk_widget_destroy(hbox);
+	hbox = gtk_hbox_new(FALSE, 2);
+	gtk_object_set_data(GTK_OBJECT(item), "hbox", (gpointer)hbox);
+	gdkpix = _find_pixmap(&gdkbmp, icon, hbox);
+	pixmap = gtk_pixmap_new(gdkpix, gdkbmp);
+	gtk_container_add(GTK_CONTAINER(item), hbox);
+	gtk_box_pack_start(GTK_BOX(hbox), pixmap, FALSE, TRUE, 0);
+	gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, TRUE, 0);
+	gtk_widget_show(label);
+	gtk_widget_show(pixmap);
+	gtk_widget_show(hbox);
+	DW_MUTEX_UNLOCK;
+}
+
+/*
+ * Sets the item data of a tree item.
+ * Parameters:
+ *          handle: Handle to the tree containing the item.
+ *          item: Handle of the item to be modified.
+ *          itemdata: User defined data to be associated with item.
+ */
+void dw_tree_set_data(HWND handle, HWND item, void *itemdata)
+{
+	int _locked_by_me = FALSE;
+
+	DW_MUTEX_LOCK;
+	gtk_object_set_data(GTK_OBJECT(item), "itemdata", (gpointer)itemdata);
+	DW_MUTEX_UNLOCK;
+}
+
+/*
+ * Sets this item as the active selection.
+ * Parameters:
+ *       handle: Handle to the tree window (widget) to be selected.
+ *       item: Handle to the item to be selected.
+ */
+void dw_tree_item_select(HWND handle, HWND item)
+{
+	GtkWidget *lastselect;
+	int _locked_by_me = FALSE;
+
+	DW_MUTEX_LOCK;
+	lastselect = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(handle), "lastselect");
+	if(lastselect && GTK_IS_TREE_ITEM(lastselect))
+		gtk_tree_item_deselect(GTK_TREE_ITEM(lastselect));
+	gtk_tree_item_select(GTK_TREE_ITEM(item));
+	gtk_object_set_data(GTK_OBJECT(handle), "lastselect", (gpointer)item);
+	DW_MUTEX_UNLOCK;
 }
 
 /*
@@ -2770,6 +2905,38 @@ void dw_tree_clear(HWND handle)
 }
 
 /*
+ * Expands a node on a tree.
+ * Parameters:
+ *       handle: Handle to the tree window (widget).
+ *       item: Handle to node to be expanded.
+ */
+void dw_tree_expand(HWND handle, HWND item)
+{
+	int _locked_by_me = FALSE;
+
+	DW_MUTEX_LOCK;
+	if(GTK_IS_TREE_ITEM(item))
+		gtk_tree_item_expand(GTK_TREE_ITEM(item));
+	DW_MUTEX_UNLOCK;
+}
+
+/*
+ * Collapses a node on a tree.
+ * Parameters:
+ *       handle: Handle to the tree window (widget).
+ *       item: Handle to node to be collapsed.
+ */
+void dw_tree_collapse(HWND handle, HWND item)
+{
+	int _locked_by_me = FALSE;
+
+	DW_MUTEX_LOCK;
+	if(GTK_IS_TREE_ITEM(item))
+		gtk_tree_item_collapse(GTK_TREE_ITEM(item));
+	DW_MUTEX_UNLOCK;
+}
+
+/*
  * Removes a node from a tree.
  * Parameters:
  *       handle: Handle to the window (widget) to be cleared.
@@ -2777,7 +2944,7 @@ void dw_tree_clear(HWND handle)
  */
 void dw_tree_delete(HWND handle, HWND item)
 {
-	GtkWidget *tree;
+	GtkWidget *tree, *lastselect;
 	int _locked_by_me = FALSE;
 
 	DW_MUTEX_LOCK;
@@ -2787,7 +2954,13 @@ void dw_tree_delete(HWND handle, HWND item)
 		DW_MUTEX_UNLOCK;
 		return;
 	}
+
+	lastselect = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(handle), "lastselect");
+	if(lastselect == item)
+		gtk_object_set_data(GTK_OBJECT(handle), "lastselect", NULL);
+
 	gtk_tree_remove_item(GTK_TREE(tree), item);
+	gtk_widget_destroy(item);
 	DW_MUTEX_UNLOCK;
 }
 
@@ -5199,6 +5372,21 @@ void dw_signal_connect(HWND window, char *signame, void *sigfunc, void *data)
 	{
 		thisname = "button_press_event";
 		thisfunc = _findsigfunc("container-context");
+	}
+	else if(GTK_IS_TREE(thiswindow)  && strcmp(signame, "container-context") == 0)
+	{
+		thisfunc = _findsigfunc("tree-context");
+
+		work->window = window;
+		work->data = data;
+		work->func = sigfunc;
+
+		gtk_object_set_data(GTK_OBJECT(thiswindow), "container-context-func", (gpointer)thisfunc);
+		gtk_object_set_data(GTK_OBJECT(thiswindow), "container-context-data", (gpointer)work);
+		gtk_signal_connect(GTK_OBJECT(thiswindow), "button_press_event", GTK_SIGNAL_FUNC(thisfunc), work);
+		gtk_signal_connect(GTK_OBJECT(window), "button_press_event", GTK_SIGNAL_FUNC(thisfunc), work);
+		DW_MUTEX_UNLOCK;
+		return;
 	}
 	else if(GTK_IS_CLIST(thiswindow) && strcmp(signame, "container-select") == 0)
 	{
