@@ -7078,10 +7078,23 @@ unsigned int dw_listbox_selected(HWND handle)
 		int counter = 0;
 		GList *list = GTK_LIST(handle2)->children;
 #if GTK_MAJOR_VERSION > 1
-		GList *selection = GTK_LIST(handle2)->undo_unselection;
+
+		while(list)
+		{
+			GtkItem *item = (GtkItem *)list->data;
+
+			if(item && item->bin.container.widget.state == GTK_STATE_SELECTED)
+			{
+				retval = counter;
+				break;
+			}
+
+			list = list->next;
+			counter++;
+		}
 #else
 		GList *selection = GTK_LIST(handle2)->selection;
-#endif
+
 		if(selection)
 		{
 			while(list)
@@ -7096,6 +7109,7 @@ unsigned int dw_listbox_selected(HWND handle)
 				counter++;
 			}
 		}
+#endif
 	}
 	DW_MUTEX_UNLOCK;
 	return retval;
