@@ -541,6 +541,15 @@ gint _select_row(GtkWidget *widget, gint row, gint column, GdkEventButton *event
 	return FALSE;
 }
 
+gint _container_select_row(GtkWidget *widget, gint row, gint column, GdkEventButton *event, gpointer data)
+{
+	SignalHandler *work = (SignalHandler *)data;
+	char *rowdata = gtk_clist_get_row_data(GTK_CLIST(widget), row);
+	int (*contextfunc)(HWND, char *, void *) = work->func;
+
+	return contextfunc(work->window, rowdata, work->data);;
+}
+
 gint _unselect_row(GtkWidget *widget, gint row, gint column, GdkEventButton *event, gpointer data)
 {
 	GList *tmp;
@@ -5008,6 +5017,7 @@ int dw_module_load(char *name, HMOD *handle)
 	if(*handle == NULL)
 	{
 		strncpy(errorbuf, dlerror(), 1024);
+        printf("%s\n", errorbuf);
 		sprintf(newname, "lib%s.so", name);
 		*handle = dlopen(newname, RTLD_NOW);
 	}
@@ -6966,6 +6976,11 @@ void dw_signal_connect(HWND window, char *signame, void *sigfunc, void *data)
 	{
 		thisname = "button_press_event";
 		thisfunc = _findsigfunc("container-select");
+	}
+	else if(GTK_IS_CLIST(thiswindow) && strcmp(signame, "tree-select") == 0)
+	{
+		thisname = "select_row";
+		thisfunc = (void *)_container_select_row;
 	}
 	else if(GTK_IS_COMBO(thiswindow) && strcmp(signame, "item-select") == 0)
 	{
