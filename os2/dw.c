@@ -948,7 +948,7 @@ unsigned long _internal_color(unsigned long color)
 
 unsigned long _os2_color(unsigned long color)
 {
-	return DW_RED_VALUE(color) << 16 | DW_GREEN_VALUE(color) << 8 | DW_BLUE_VALUE(color);;
+	return DW_RED_VALUE(color) << 16 | DW_GREEN_VALUE(color) << 8 | DW_BLUE_VALUE(color);
 }
 
 BOOL _MySetWindowPos(HWND hwnd, HWND parent, HWND behind, LONG x, LONG y, LONG cx, LONG cy, ULONG fl)
@@ -1563,7 +1563,7 @@ void _click_default(HWND handle)
 		{
 			if(tmp->message == WM_COMMAND)
 			{
-				int (*clickfunc)(HWND, void *) = (int (*)(HWND, void *))tmp->signalfunction;
+				int (* API clickfunc)(HWND, void *) = (int (* API)(HWND, void *))tmp->signalfunction;
 
 				/* Make sure it's the right window, and the right ID */
 				if(tmp->window == handle)
