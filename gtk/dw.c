@@ -3478,7 +3478,7 @@ void dw_container_set_item(HWND handle, void *pointer, int column, int row, void
 	{
 		CDATE fdate = *((CDATE *)data);
 
-		if(fdate.month > -1 && fdate.month < 12 && fdate.day > 0 && fdate.year > 0)
+		if(/*fdate.month > -1 &&*/ fdate.month < 12 && fdate.day > 0 && fdate.year > 0)
 			sprintf(textbuffer, "%s %d, %d", monthlist[fdate.month], fdate.day, fdate.year);
         else
 			strcpy(textbuffer, "");
@@ -5810,7 +5810,7 @@ void *dw_window_get_data(HWND window, char *dataname)
 	void *ret;
 
 	if(!window)
-		return;
+		return NULL;
 
 	DW_MUTEX_LOCK;
 	ret = (void *)gtk_object_get_data(GTK_OBJECT(window), dataname);
