@@ -5392,7 +5392,7 @@ void API dw_scrollbar_set_range(HWND handle, unsigned int range, unsigned int vi
 	si.cbSize = sizeof(SCROLLINFO);
 	si.fMask = SIF_RANGE | SIF_PAGE;
 	si.nMin = 0;
-	si.nMax = range;
+	si.nMax = range - 1;
 	si.nPage = visible;
 	SendMessage(handle, SBM_SETSCROLLINFO, (WPARAM)TRUE, (LPARAM)&si);
 }
