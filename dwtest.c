@@ -27,6 +27,18 @@
 unsigned long flStyle = DW_FCF_SYSMENU | DW_FCF_TITLEBAR |
 	DW_FCF_SHELLPOSITION | DW_FCF_TASKLIST | DW_FCF_DLGBORDER;
 
+#ifdef __MAC__
+int main(int argc, char *argv[])
+{
+    DWEnv env;
+    
+    dw_environment_query(&env);
+    printf("Operating System: %s %d.%d\nBuild: %d.%d\n", env.osName, env.MajorVersion, env.MinorVersion, 
+            env.MajorBuild, env.MinorBuild);
+    return 0;
+}
+#else
+
 HWND mainwindow,
      entryfield,
      cursortogglebutton,
@@ -727,3 +739,4 @@ int main(int argc, char *argv[])
 
 	return 0;
 }
+#endif
