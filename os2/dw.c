@@ -252,6 +252,12 @@ MRESULT _dw_send_msg(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2, int failure)
 	return res;
 }
 
+/* Used in the slider and percent classes internally */
+unsigned int _dw_percent_get_range(HWND handle)
+{
+	return SHORT2FROMMP(WinSendMsg(handle, SLM_QUERYSLIDERINFO, MPFROM2SHORT(SMA_SLIDERARMPOSITION,SMA_RANGEVALUE), 0));
+}
+
 /* Return the entryfield child of a window */
 HWND _find_entryfield(HWND handle)
 {
@@ -1812,7 +1818,7 @@ MRESULT EXPENTRY _spinentryproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 int _dw_int_pos(HWND hwnd)
 {
 	int pos = (int)dw_window_get_data(hwnd, "_dw_percent_value");
-	int range = dw_percent_get_range(hwnd);
+	int range = _dw_percent_get_range(hwnd);
 	float fpos = (float)pos;
 	float frange = (float)range;
 	float fnew = (fpos/1000.0)*frange;
@@ -1821,7 +1827,7 @@ int _dw_int_pos(HWND hwnd)
 
 void _dw_int_set(HWND hwnd, int pos)
 {
-	int inew, range = dw_percent_get_range(hwnd);
+	int inew, range = _dw_percent_get_range(hwnd);
 	if(range)
 	{
 		float fpos = (float)pos;
@@ -5948,16 +5954,6 @@ void API dw_mle_thaw(HWND handle)
 }
 
 /*
- * Returns the range of the percent bar.
- * Parameters:
- *          handle: Handle to the percent bar to be queried.
- */
-unsigned int API dw_percent_get_range(HWND handle)
-{
-	return SHORT2FROMMP(WinSendMsg(handle, SLM_QUERYSLIDERINFO, MPFROM2SHORT(SMA_SLIDERARMPOSITION,SMA_RANGEVALUE), 0));
-}
-
-/*
  * Sets the percent bar position.
  * Parameters:
  *          handle: Handle to the percent bar to be set.
@@ -5965,8 +5961,14 @@ unsigned int API dw_percent_get_range(HWND handle)
  */
 void API dw_percent_set_pos(HWND handle, unsigned int position)
 {
-	_dw_int_set(handle, position);
-	WinSendMsg(handle, SLM_SETSLIDERINFO, MPFROM2SHORT(SMA_SLIDERARMPOSITION,SMA_RANGEVALUE), (MPARAM)position);
+	int range = _dw_percent_get_range(handle);
+	int mypos = ((float)position/100)*range;
+
+	if(range)
+	{
+		_dw_int_set(handle, mypos);
+		WinSendMsg(handle, SLM_SETSLIDERINFO, MPFROM2SHORT(SMA_SLIDERARMPOSITION,SMA_RANGEVALUE), (MPARAM)mypos);
+	}
 }
 
 /*

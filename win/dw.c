@@ -5972,16 +5972,6 @@ void API dw_mle_thaw(HWND handle)
 }
 
 /*
- * Returns the range of the percent bar.
- * Parameters:
- *          handle: Handle to the percent bar to be queried.
- */
-unsigned int API dw_percent_get_range(HWND handle)
-{
-	return (unsigned int)SendMessage(handle, PBM_GETRANGE, (WPARAM)FALSE, 0);
-}
-
-/*
  * Sets the percent bar position.
  * Parameters:
  *          handle: Handle to the percent bar to be set.
