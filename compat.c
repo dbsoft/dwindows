@@ -39,7 +39,7 @@ void msleep(long period)
 }
 #endif
 
-int	sockread (int a, void *b, int c, int d)
+int	API sockread (int a, void *b, int c, int d)
 {
 #if defined(__IBMC__) || (defined(__WIN32__) && !defined(__CYGWIN32__))
 	return recv(a,b,c,d);
@@ -48,7 +48,7 @@ int	sockread (int a, void *b, int c, int d)
 #endif
 }
 
-int	sockwrite (int a, void *b, int c, int d)
+int	API sockwrite (int a, void *b, int c, int d)
 {
 #if defined(__IBMC__) || (defined(__WIN32__) && !defined(__CYGWIN32__))
 	return send(a,b,c,d);
@@ -57,7 +57,7 @@ int	sockwrite (int a, void *b, int c, int d)
 #endif
 }
 
-int	sockclose(int a)
+int	API sockclose(int a)
 {
 #ifdef __IBMC__
 	return soclose(a);
@@ -68,7 +68,7 @@ int	sockclose(int a)
 #endif
 }
 
-int makedir(char *path)
+int API makedir(char *path)
 {
 #if defined(__IBMC__) || defined(__WATCOMC__) || (defined(__WIN32__) && !defined(__CYGWIN32__))
 	return mkdir(path);
@@ -77,7 +77,7 @@ int makedir(char *path)
 #endif
 }
 
-void nonblock(int fd)
+void API nonblock(int fd)
 {
 #if defined(__OS2__) && !defined(__EMX__)
 	static int _nonblock = 1;
@@ -92,7 +92,7 @@ void nonblock(int fd)
 #endif
 }
 
-void block(int fd)
+void API block(int fd)
 {
 #if defined(__OS2__) && !defined(__EMX__)
 	static int _nonblock = 0;
@@ -107,7 +107,7 @@ void block(int fd)
 #endif
 }
 
-int socksprintf(int fd, char *format, ...)
+int API socksprintf(int fd, char *format, ...)
 {
 	va_list args;
 	char outbuf[1024];
@@ -123,7 +123,7 @@ int socksprintf(int fd, char *format, ...)
 	return len;
 }
 
-void sockinit(void)
+void API sockinit(void)
 {
 #ifdef __IBMC__
 	sock_init();
@@ -134,14 +134,14 @@ void sockinit(void)
 #endif /* !WIN32 */
 }
 
-void sockshutdown(void)
+void API sockshutdown(void)
 {
 #if defined(__WIN32__) || defined(WINNT)
     WSACleanup();
 #endif /* !WIN32 */
 }
 
-int sockpipe(int *pipes)
+int API sockpipe(int *pipes)
 {
 #ifndef NO_DOMAIN_SOCKETS
 #ifndef HAVE_PIPE
@@ -208,7 +208,7 @@ int sockpipe(int *pipes)
 	return 0;
 }
 
-long double drivefree(int drive)
+long double API drivefree(int drive)
 {
 #if defined(__EMX__) || defined(__OS2__)
 	ULONG   aulFSInfoBuf[40] = {0};
@@ -305,7 +305,7 @@ long double drivefree(int drive)
 #endif
 }
 
-long double drivesize(int drive)
+long double API drivesize(int drive)
 {
 #if defined(__EMX__) || defined(__OS2__)
 	ULONG   aulFSInfoBuf[40] = {0};
@@ -402,7 +402,7 @@ long double drivesize(int drive)
 #endif
 }
 
-int isdrive(int drive)
+int API isdrive(int drive)
 {
 #if defined(__EMX__) || defined(__OS2__)
 	APIRET  rc               = NO_ERROR;
@@ -493,7 +493,7 @@ int isdrive(int drive)
 	return 0;
 }
 
-void getfsname(int drive, char *buf, int len)
+void API getfsname(int drive, char *buf, int len)
 {
 #ifdef __UNIX__
 #ifdef __FreeBSD__
@@ -553,7 +553,7 @@ void getfsname(int drive, char *buf, int len)
 #endif
 }
 
-void setfileinfo(char *filename, char *url, char *logfile)
+void API setfileinfo(char *filename, char *url, char *logfile)
 {
 	time_t		ltime;
 	struct tm	*tm;
@@ -629,7 +629,7 @@ FSInfo *FSIRoot = NULL;
 #endif
 
 /* Sharable fopen() and fclose() calls. */
-FILE *fsopen(char *path, char *modes)
+FILE * API fsopen(char *path, char *modes)
 {
 #if (defined(__OS2__) && !defined(__WATCOMC__)) || defined(__WIN32__)
 	int z;
@@ -678,7 +678,7 @@ FILE *fsopen(char *path, char *modes)
 #endif
 }
 
-int fsclose(FILE *fp)
+int API fsclose(FILE *fp)
 {
 #if defined(__OS2__) || defined(__WIN32__)
 	if(FSIRoot)
@@ -701,12 +701,12 @@ int fsclose(FILE *fp)
 	return fclose(fp);
 }
 
-char *fsgets(char *str, int size, FILE *stream)
+char * API fsgets(char *str, int size, FILE *stream)
 {
 	return fgets(str, size, stream);
 }
 
-int fsseek(FILE *stream, long offset, int whence)
+int API fsseek(FILE *stream, long offset, int whence)
 {
 	return fseek(stream, offset, whence);
 }
@@ -777,7 +777,7 @@ char locale_convert(int codepage, char c)
 /* Initialize the locale engine
  * Returns: TRUE on success, FALSE on failure.
  */
-int locale_init(char *filename, int my_locale)
+int API locale_init(char *filename, int my_locale)
 {
 	FILE *fp = fopen(filename, FOPEN_READ_TEXT);
 	static char text[1025];
@@ -871,7 +871,7 @@ int locale_init(char *filename, int my_locale)
 }
 
 /* Retrieve a localized string if available */
-char *locale_string(char *default_text, int message)
+char * API locale_string(char *default_text, int message)
 {
 	if(locale_number > -1 && message < locale_count && message > -1 && locale_text[message])
 		return locale_text[message];
