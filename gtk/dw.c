@@ -889,21 +889,32 @@ void dw_main(void)
 void dw_main_sleep(int milliseconds)
 {
 	struct timeval tv, start;
+	pthread_t curr = pthread_self();
 
 	gettimeofday(&start, NULL);
 
-	if(_dw_thread == (pthread_t)-1 || _dw_thread == pthread_self())
+	if(_dw_thread == (pthread_t)-1 || _dw_thread == curr)
 	{
+		pthread_t orig = _dw_thread;
+
 		gettimeofday(&tv, NULL);
 
 		while(((tv.tv_sec - start.tv_sec)*1000) + ((tv.tv_usec - start.tv_usec)/1000) <= milliseconds)
 		{
-			gdk_threads_enter();
+			if(orig == (pthread_t)-1)
+			{
+				gdk_threads_enter();
+				_dw_thread = curr;
+			}
 			if(gtk_events_pending())
 				gtk_main_iteration();
 			else
 				_dw_msleep(1);
-			gdk_threads_leave();
+			if(orig == (pthread_t)-1)
+			{
+				_dw_thread = orig;
+				gdk_threads_leave();
+			}
 			gettimeofday(&tv, NULL);
 		}
 	}
