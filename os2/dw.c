@@ -898,7 +898,9 @@ int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *usedy,
 		}
 
 		(*usedx) += 6;
+		(*usedpadx) += 6;
 		(*usedy) += textheight ? (3 + textheight) : 6;
+		(*usedpady) += textheight ? (3 + textheight) : 6;
 	}
 
 	for(z=0;z<thisbox->count;z++)
