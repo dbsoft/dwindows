@@ -3975,8 +3975,8 @@ HWND API dw_groupbox_new(int type, int pad, char *title)
 HWND API dw_mdi_new(unsigned long id)
 {
 	HWND hwndframe;
+	ULONG back = CLR_DARKGRAY;
 
-	id = id; /* keep compiler happy */
 	hwndframe = WinCreateWindow(HWND_OBJECT,
 								WC_FRAME,
 								NULL,
@@ -3985,9 +3985,11 @@ HWND API dw_mdi_new(unsigned long id)
 								0,0,2000,1000,
 								NULLHANDLE,
 								HWND_TOP,
-								0L,
+								id,
 								NULL,
 								NULL);
+	/* Make the MDI Client area the same color as Windows and Unix */
+	WinSetPresParam(hwndframe, PP_BACKGROUNDCOLORINDEX, sizeof(ULONG), &back);
 	return hwndframe;
 }
 
