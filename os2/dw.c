@@ -378,7 +378,7 @@ void _free_window_memory(HWND handle)
 
 		WinQueryClassName(handle, 99, tmpbuf);
 
-		if(strncmp(tmpbuf, "#1", 3)==0)
+		if(strncmp(tmpbuf, "#1", 3)==0 && !WinWindowFromID(handle, FID_CLIENT))
 		{
 			Box *box = (Box *)ptr;
 
