@@ -33,6 +33,7 @@
 MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2);
 void _do_resize(Box *thisbox, int x, int y);
 void _handle_splitbar_resize(HWND hwnd, float percent, int type, int x, int y);
+int _load_bitmap_file(char *file, HWND handle, HBITMAP *hbm, HDC *hdc, HPS *hps, unsigned long *width, unsigned long *height);
 
 char ClassName[] = "dynamicwindows";
 char SplitbarClassName[] = "dwsplitbar";
@@ -253,6 +254,10 @@ void _free_bitmap(HWND handle)
 	HBITMAP hbm = (HBITMAP)dw_window_get_data(handle, "_dw_bitmap");
 	HPS hps = (HPS)dw_window_get_data(handle, "_dw_hps");
 	HDC hdc = (HDC)dw_window_get_data(handle, "_dw_hdc");
+	HPIXMAP pixmap = (HPIXMAP)dw_window_get_data(handle, "_dw_hpixmap");
+
+	if(pixmap)
+		dw_pixmap_destroy(pixmap);
 
 	if(hps)
 	{
@@ -2771,6 +2776,30 @@ MRESULT EXPENTRY _BubbleProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 	return res;
 }
 
+MRESULT EXPENTRY _button_draw(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2, PFNWP oldproc)
+{
+	HPIXMAP pixmap = (HPIXMAP)dw_window_get_data(hwnd, "_dw_hpixmap");
+	MRESULT res;
+
+	if(!oldproc)
+		res = WinDefWindowProc(hwnd, msg, mp1, mp2);
+	res = oldproc(hwnd, msg, mp1, mp2);
+
+	if(pixmap)
+	{
+		unsigned long width, height;
+		int x, y;
+
+		dw_window_get_pos_size(hwnd, NULL, NULL, &width, &height);
+
+		x = (width - pixmap->width)/2;
+		y = (height - pixmap->height)/2;
+
+		dw_pixmap_bitblt(hwnd, 0, x, y, pixmap->width, pixmap->height, 0, pixmap, 0, 0);
+	}
+	return res;
+}
+
 /* Function: BtProc
  * Abstract: Subclass procedure for buttons
  */
@@ -2789,6 +2818,10 @@ MRESULT EXPENTRY _BtProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 
 	switch(msg)
 	{
+	case WM_PAINT:
+	case WM_BUTTON2UP:
+	case WM_BUTTON3UP:
+		return _button_draw(hwnd, msg, mp1, mp2, oldproc);
 	case WM_SETFOCUS:
 		if(mp2)
 			_run_event(hwnd, msg, mp1, mp2);
@@ -2803,7 +2836,7 @@ MRESULT EXPENTRY _BtProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 	case WM_BUTTON3DBLCLK:
 		if(dw_window_get_data(hwnd, "_dw_disabled"))
 			return (MRESULT)FALSE;
-		break;
+		return _button_draw(hwnd, msg, mp1, mp2, oldproc);
 	case WM_BUTTON1UP:
 		{
 			SignalHandler *tmp = Root;
@@ -2833,7 +2866,7 @@ MRESULT EXPENTRY _BtProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 				}
 			}
 		}
-		break;
+		return _button_draw(hwnd, msg, mp1, mp2, oldproc);
 	case WM_USER:
 		{
             SignalHandler *tmp = (SignalHandler *)mp1;
@@ -4285,20 +4318,41 @@ HWND API dw_bitmapbutton_new(char *text, ULONG id)
  */
 HWND dw_bitmapbutton_new_from_file(char *text, unsigned long id, char *filename)
 {
-	/* TODO: Actually get it to draw the bitmap */
 	BubbleButton *bubble = calloc(sizeof(BubbleButton), 1);
 	HWND tmp = WinCreateWindow(HWND_OBJECT,
 							   WC_BUTTON,
 							   "",
 							   WS_VISIBLE | BS_PUSHBUTTON |
-							   BS_BITMAP | BS_AUTOSIZE |
-							   BS_NOPOINTERFOCUS,
+							   BS_AUTOSIZE | BS_NOPOINTERFOCUS,
 							   0,0,2000,1000,
 							   NULLHANDLE,
 							   HWND_TOP,
 							   id,
 							   NULL,
 							   NULL);
+	char *file = alloca(strlen(filename) + 5);
+	HPIXMAP pixmap;
+
+	if(file && (pixmap = calloc(1,sizeof(struct _hpixmap))))
+	{
+		strcpy(file, filename);
+
+		/* check if we can read from this file (it exists and read permission) */
+		if(access(file, 04) != 0)
+		{
+			/* Try with .bmp extention */
+			strcat(file, ".bmp");
+			if(access(file, 04) != 0)
+			{
+				free(pixmap);
+				pixmap = NULL;
+			}
+		}
+
+		/* Try to load the bitmap from file */
+		if(pixmap)
+			_load_bitmap_file(file, tmp, &pixmap->hbm, &pixmap->hdc, &pixmap->hps, &pixmap->width, &pixmap->height);
+	}
 
 	bubble->id = id;
 	strncpy(bubble->bubbletext, text, BUBBLE_HELP_MAX - 1);
@@ -4306,6 +4360,8 @@ HWND dw_bitmapbutton_new_from_file(char *text, unsigned long id, char *filename)
 	bubble->pOldProc = WinSubclassWindow(tmp, _BtProc);
 
 	WinSetWindowPtr(tmp, QWP_USER, bubble);
+
+	dw_window_set_data(tmp, "_dw_hpixmap", (void *)pixmap);
 	return tmp;
 }
 
@@ -4580,9 +4636,15 @@ int _load_bitmap_file(char *file, HWND handle, HBITMAP *hbm, HDC *hdc, HPS *hps,
 	/* find out if it's the new 2.0 format or the old format */
 	/* and query number of lines */
 	if(pBitmapInfoHeader->cbFix == sizeof(BITMAPINFOHEADER))
-		ScanLines = (ULONG)((PBITMAPINFOHEADER)pBitmapInfoHeader)->cy;
+	{
+		*height = ScanLines = (ULONG)((PBITMAPINFOHEADER)pBitmapInfoHeader)->cy;
+		*width = (ULONG)((PBITMAPINFOHEADER)pBitmapInfoHeader)->cx;
+	}
 	else
-		ScanLines = pBitmapInfoHeader->cy;
+	{
+		*height = ScanLines = pBitmapInfoHeader->cy;
+		*width = pBitmapInfoHeader->cx;
+	}
 
 	/* now we need a presentation space, get it from static control */
 	hps1 = WinGetPS(handle);
@@ -4592,8 +4654,6 @@ int _load_bitmap_file(char *file, HWND handle, HBITMAP *hbm, HDC *hdc, HPS *hps,
 
 	*hdc = DevOpenDC(dwhab, OD_MEMORY, "*", 0L, NULL, hdc1);
 	*hps = GpiCreatePS (dwhab, *hdc, &sizl, ulFlags | GPIA_ASSOC);
-
-	*width = pBitmapInfoHeader->cx; *height = pBitmapInfoHeader->cy;
 
 	/* create bitmap now using the parameters from the info block */
 	*hbm = GpiCreateBitmap(*hps, pBitmapInfoHeader, 0L, NULL, NULL);
