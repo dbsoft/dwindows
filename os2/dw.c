@@ -6805,13 +6805,13 @@ int test_callback(HWND window, void *data)
 /*
  * Let's demonstrate the functionality of this library. :)
  */
-int main(void)
+int main(int argc, char *argv[])
 {
 	ULONG flStyle = DW_FCF_SYSMENU | DW_FCF_TITLEBAR |
 		DW_FCF_SHELLPOSITION | DW_FCF_TASKLIST | DW_FCF_DLGBORDER;
 	int pageid;
 
-	dw_init(TRUE);
+	dw_init(TRUE, argc, argv);
 
 	/* Try a little server dialog. :) */
 	mainwindow = dw_window_new(HWND_DESKTOP, "Server", flStyle | DW_FCF_SIZEBORDER | DW_FCF_MINMAX);

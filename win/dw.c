@@ -1,57 +1,50 @@
 /*
  * Dynamic Windows:
- *          A GTK like implementation of the PM GUI
+ *          A GTK like implementation of the Win32 GUI
  *
  * (C) 2000,2001 Brian Smith <dbsoft@technologist.com>
- * (C) 2000 Achim Hasenmueller <achimha@innotek.de>
- * (C) 2000 Peter Nielsen <peter@pmview.com>
- * (C) 1998 Sergey I. Yevtushenko (some code borrowed from cell toolkit)
  *
  */
-#define INCL_DOS
-#define INCL_DOSERRORS
-#define INCL_WIN
-#define INCL_GPI
-
-#include <os2.h>
+#define _WIN32_IE 0x0500
+#define WINVER 0x400
+#include <windows.h>
+#include <windowsx.h>
+#include <commctrl.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
-#include <stdarg.h>
-#include <stddef.h>
-#include <ctype.h>
 #include <process.h>
 #include <time.h>
 #include "dw.h"
 
-#define QWP_USER 0
+/* this is the callback handle for the window procedure */
+/* make sure you always match the calling convention! */
+int (*filterfunc)(HWND, UINT, WPARAM, LPARAM) = 0L;
 
-MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2);
+HWND hwndBubble = (HWND)NULL, hwndBubbleLast, DW_HWND_OBJECT = (HWND)NULL;
 
-char ClassName[] = "dynamicwindows";
-char SplitbarClassName[] = "dwsplitbar";
-char DefaultFont[] = "9.WarpSans";
+HINSTANCE DWInstance = NULL;
 
-/* this is the callback handle for the window procedure
- * make sure you always match the calling convention!
- */
-int (* EXPENTRY filterfunc)(HWND, ULONG, MPARAM, MPARAM) = 0L;
+DWORD dwVersion = 0;
 
-HAB dwhab = 0;
-HMQ dwhmq = 0;
-DWTID _dwtid = 0;
-LONG _foreground = 0xAAAAAA, _background = 0;
+/* I should probably check the actual file version, but this will do for now */
+#define IS_WIN98PLUS (LOBYTE(LOWORD(dwVersion)) > 4 || \
+	(LOBYTE(LOWORD(dwVersion)) == 4 && HIBYTE(LOWORD(dwVersion)) > 0))
 
-HWND hwndBubble = NULLHANDLE, hwndBubbleLast = NULLHANDLE;
-PRECORDCORE pCore = NULL;
-ULONG aulBuffer[4];
-HWND lasthcnr = 0, lastitem = 0;
+char monthlist[][4] = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug",
+                        "Sep", "Oct", "Nov", "Dec" };
 
-#define IS_WARP4() (aulBuffer[0] == 20 && aulBuffer[1] >= 40)
+int main(int argc, char *argv[]);
 
-#ifndef min
-#define min(a, b) (((a < b) ? a : b))
-#endif
+#define ICON_INDEX_LIMIT 200
+HICON lookup[200];
+HIMAGELIST hSmall  = 0, hLarge = 0;
+
+#define THREAD_LIMIT 128
+COLORREF _foreground[THREAD_LIMIT];
+COLORREF _background[THREAD_LIMIT];
+HPEN _hPen[THREAD_LIMIT];
+HBRUSH _hBrush[THREAD_LIMIT];
 
 #ifdef DWDEBUG
 FILE *f;
@@ -59,9 +52,18 @@ FILE *f;
 void reopen(void)
 {
 	fclose(f);
-	f = fopen("dw.log", "a+");
+	f = fopen("dw.log", "at");
 }
 #endif
+
+BYTE _red[] = { 	0x00, 0xbb, 0x00, 0xaa, 0x00, 0xbb, 0x00, 0xaa, 0x77,
+			  0xff, 0x00, 0xee, 0x00, 0xff, 0x00, 0xff, 0xaa, 0x00 };
+BYTE _green[] = {	0x00, 0x00, 0xbb, 0xaa, 0x00, 0x00, 0xbb, 0xaa, 0x77,
+			  0x00, 0xff, 0xee, 0x00, 0x00, 0xee, 0xff, 0xaa, 0x00 };
+BYTE _blue[] = { 	0x00, 0x00, 0x00, 0x00, 0xcc, 0xbb, 0xbb, 0xaa, 0x77,
+		      0x00, 0x00, 0x00, 0xff, 0xff, 0xee, 0xff, 0xaa, 0x00};
+
+HBRUSH _colors[18];
 
 static LONG lColor[SPLITBAR_WIDTH] =
 {
@@ -69,6 +71,9 @@ static LONG lColor[SPLITBAR_WIDTH] =
     DW_CLR_PALEGRAY,
     DW_CLR_WHITE
 };
+
+void _resize_notebook_page(HWND handle, int pageid);
+int _lookup_icon(HWND handle, HICON hicon, int type);
 
 #ifdef NO_SIGNALS
 #define USE_FILTER
@@ -84,6 +89,7 @@ typedef struct _sighandler
 } SignalHandler;
 
 SignalHandler *Root = NULL;
+int _index;
 
 typedef struct
 {
@@ -92,25 +98,144 @@ typedef struct
 
 } SignalList;
 
-/* List of signals and their equivilent OS/2 message */
+/* List of signals and their equivilent Win32 message */
 #define SIGNALMAX 14
 
 SignalList SignalTranslate[SIGNALMAX] = {
 	{ WM_SIZE, "configure_event" },
 	{ WM_CHAR, "key_press_event" },
-	{ WM_BUTTON1DOWN, "button_press_event" },
-	{ WM_BUTTON1UP, "button_release_event"},
+	{ WM_LBUTTONDOWN, "button_press_event" },
+	{ WM_LBUTTONUP, "button_release_event" },
 	{ WM_MOUSEMOVE, "motion_notify_event" },
 	{ WM_CLOSE, "delete_event" },
 	{ WM_PAINT, "expose_event" },
 	{ WM_COMMAND, "clicked" },
-	{ CN_ENTER, "container-select" },
-	{ CN_CONTEXTMENU, "container-context" },
-	{ LN_SELECT, "item-select" },
-	{ CN_EMPHASIS, "tree-select" },
+	{ NM_DBLCLK, "container-select" },
+	{ NM_RCLICK, "container-context" },
+	{ LBN_SELCHANGE, "item-select" },
+	{ TVN_SELCHANGED, "tree-select" },
 	{ WM_SETFOCUS, "set-focus" },
 	{ WM_USER+1, "lose-focus" }
 };
+
+#ifdef BUILD_DLL
+void Win32_Set_Instance(HINSTANCE hInstance)
+{
+	DWInstance = hInstance;
+}
+#else
+char **_convertargs(int *count, char *start)
+{
+	char *tmp, *argstart, **argv;
+	int loc = 0, inquotes = 0;
+
+	(*count) = 1;
+
+	tmp = start;
+
+	/* Count the number of entries */
+	if(*start)
+	{
+		(*count)++;
+
+		while(*tmp)
+		{
+			if(*tmp == '"' && inquotes)
+				inquotes = 0;
+			else if(*tmp == '"' && !inquotes)
+				inquotes = 1;
+			else if(*tmp == ' ' && !inquotes)
+			{
+				/* Push past any white space */
+				while(*(tmp+1) == ' ')
+					tmp++;
+				/* If we aren't at the end of the command
+				 * line increment the count.
+				 */
+				if(*(tmp+1))
+					(*count)++;
+			}
+			tmp++;
+		}
+	}
+
+	argv = (char **)malloc(sizeof(char *) * ((*count)+1));
+	argv[0] = malloc(260);
+	GetModuleFileName(DWInstance, argv[0], 260);
+
+	argstart = tmp = start;
+
+	if(*start)
+	{
+		loc = 1;
+
+		while(*tmp)
+		{
+			if(*tmp == '"' && inquotes)
+			{
+				*tmp = 0;
+				inquotes = 0;
+			}
+			else if(*tmp == '"' && !inquotes)
+			{
+				argstart = tmp+1;
+				inquotes = 1;
+			}
+			else if(*tmp == ' ' && !inquotes)
+			{
+				*tmp = 0;
+				argv[loc] = strdup(argstart);
+
+				/* Push past any white space */
+				while(*(tmp+1) == ' ')
+					tmp++;
+
+				/* Move the start pointer */
+				argstart = tmp+1;
+
+				/* If we aren't at the end of the command
+				 * line increment the count.
+				 */
+				if(*(tmp+1))
+					loc++;
+			}
+			tmp++;
+		}
+		if(*argstart)
+			argv[loc] = strdup(argstart);
+	}
+	argv[loc+1] = NULL;
+	return argv;
+}
+
+/* Ok this is a really big hack but what the hell ;) */
+int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
+{
+	char **argv;
+    int argc;
+
+	DWInstance = hInstance;
+
+	argv = _convertargs(&argc, lpCmdLine);
+
+	return main(argc, argv);
+}
+#endif
+
+/* This should return true for WinNT/2K/XP and false on Win9x */
+int IsWinNT(void)
+{
+	static int isnt = -1;
+
+	if(isnt == -1)
+	{
+		if (GetVersion() < 0x80000000)
+			isnt = 1;
+		else
+			isnt = 0;
+	}
+	return isnt;
+}
 
 /* This function adds a signal handler callback into the linked list.
  */
@@ -160,65 +285,12 @@ ULONG _findsigmessage(char *signame)
 }
 #endif
 
-typedef struct _CNRITEM
-{
-	MINIRECORDCORE rc;
-	HPOINTER       hptrIcon;
-	PVOID          user;
-
-} CNRITEM, *PCNRITEM;
-
-
-/* This function changes the owner of buttons in to the
- * dynamicwindows handle to fix a problem in notebooks.
- */
-void _fix_button_owner(HWND handle, HWND dw)
-{
-	HENUM henum;
-	HWND child;
-
-	henum = WinBeginEnumWindows(handle);
-	while((child = WinGetNextWindow(henum)) != NULLHANDLE)
-	{
-		char tmpbuf[100];
-
-		WinQueryClassName(child, 99, tmpbuf);
-
-		if(strncmp(tmpbuf, "#3", 3)==0 && dw)  /* Button */
-			WinSetOwner(child, dw);
-		else if(strncmp(tmpbuf, "dynamicwindows", 14) == 0)
-			dw = child;
-
-		_fix_button_owner(child, dw);
-	}
-	WinEndEnumWindows(henum);
-	return;
-}
-
-void _disconnect_windows(HWND handle)
-{
-	HENUM henum;
-	HWND child;
-
-#ifndef NO_SIGNALS
-	dw_signal_disconnect_by_window(handle);
-#endif
-
-	henum = WinBeginEnumWindows(handle);
-	while((child = WinGetNextWindow(henum)) != NULLHANDLE)
-		_disconnect_windows(child);
-
-	WinEndEnumWindows(henum);
-}
-
 /* This function removes and handlers on windows and frees
  * the user memory allocated to it.
  */
-void _free_window_memory(HWND handle)
+BOOL CALLBACK _free_window_memory(HWND handle, LPARAM lParam)
 {
-	HENUM henum;
-	HWND child;
-	void *ptr = (void *)WinQueryWindowPtr(handle, QWP_USER);
+	void *ptr = (void *)GetWindowLong(handle, GWL_USERDATA);
 
 #ifndef NO_SIGNALS
 	dw_signal_disconnect_by_window(handle);
@@ -226,16 +298,10 @@ void _free_window_memory(HWND handle)
 
 	if(ptr)
 	{
-		WinSetWindowPtr(handle, QWP_USER, 0);
+		SetWindowLong(handle, GWL_USERDATA, 0);
 		free(ptr);
 	}
-
-	henum = WinBeginEnumWindows(handle);
-	while((child = WinGetNextWindow(henum)) != NULLHANDLE)
-		_free_window_memory(child);
-
-	WinEndEnumWindows(henum);
-	return;
+	return TRUE;
 }
 
 /* This function returns 1 if the window (widget) handle
@@ -248,23 +314,44 @@ int _validate_focus(HWND handle)
 	if(!handle)
 		return 0;
 
-	if(!WinIsWindowEnabled(handle))
+	if(!IsWindowEnabled(handle))
 		return 0;
 
-	WinQueryClassName(handle, 99, tmpbuf);
+	GetClassName(handle, tmpbuf, 99);
 
 	/* These are the window classes which can
 	 * obtain input focus.
 	 */
-	if(strncmp(tmpbuf, "#2", 3)==0 ||  /* Combobox */
-	   strncmp(tmpbuf, "#3", 3)==0 ||  /* Button */
-	   strncmp(tmpbuf, "#6", 3)==0 ||  /* Entryfield */
-	   strncmp(tmpbuf, "#7", 3)==0 ||  /* List box */
-	   strncmp(tmpbuf, "#10", 3)==0 || /* MLE */
-	   strncmp(tmpbuf, "#32", 3)==0 || /* Spinbutton */
-	   strncmp(tmpbuf, "#37", 3)== 0)  /* Container */
+	if(strnicmp(tmpbuf, EDITCLASSNAME, strlen(EDITCLASSNAME))==0 ||  /* Entryfield */
+	   strnicmp(tmpbuf, BUTTONCLASSNAME, strlen(BUTTONCLASSNAME))==0 ||  /* Button */
+	   strnicmp(tmpbuf, COMBOBOXCLASSNAME, strlen(COMBOBOXCLASSNAME))==0 ||  /* Combobox */
+	   strnicmp(tmpbuf, LISTBOXCLASSNAME, strlen(LISTBOXCLASSNAME))==0 ||  /* List box */
+	   strnicmp(tmpbuf, UPDOWN_CLASS, strlen(UPDOWN_CLASS))==0 || /* Spinbutton */
+	   strnicmp(tmpbuf, WC_LISTVIEW, strlen(WC_LISTVIEW))== 0)  /* Container */
 		return 1;
 	return 0;
+}
+
+HWND _normalize_handle(HWND handle)
+{
+	char tmpbuf[100] = "";
+
+	GetClassName(handle, tmpbuf, 99);
+	if(strnicmp(tmpbuf, UPDOWN_CLASS, strlen(UPDOWN_CLASS))==0) /* Spinner */
+	{
+		ColorInfo *cinfo = (ColorInfo *)GetWindowLong(handle, GWL_USERDATA);
+
+		if(cinfo && cinfo->buddy)
+			return cinfo->buddy;
+	}
+	if(strnicmp(tmpbuf, COMBOBOXCLASSNAME, strlen(COMBOBOXCLASSNAME))==0) /* Combobox */
+	{
+		ColorInfo *cinfo = (ColorInfo *)GetWindowLong(handle, GWL_USERDATA);
+
+		if(cinfo && cinfo->buddy)
+			return cinfo->buddy;
+	}
+	return handle;
 }
 
 int _focus_check_box(Box *box, HWND handle, int start, HWND defaultitem)
@@ -280,7 +367,7 @@ int _focus_check_box(Box *box, HWND handle, int start, HWND defaultitem)
 	if(start == 2)
 	{
 		if(lasthwnd)
-			WinSetFocus(HWND_DESKTOP, lasthwnd);
+			SetFocus(lasthwnd);
 		return 0;
 	}
 
@@ -295,138 +382,69 @@ int _focus_check_box(Box *box, HWND handle, int start, HWND defaultitem)
 		firsthwnd = 0;
 	}
 
-	/* Vertical boxes are inverted on OS/2 */
-	if(box->type == BOXVERT)
+	for(z=box->count-1;z>-1;z--)
 	{
-		for(z=0;z<box->count;z++)
+		if(box->items[z].type == TYPEBOX)
 		{
-			if(box->items[z].type == TYPEBOX)
-			{
-				Box *thisbox = WinQueryWindowPtr(box->items[z].hwnd, QWP_USER);
+			Box *thisbox = (Box *)GetWindowLong(box->items[z].hwnd, GWL_USERDATA);
 
-				if(thisbox && _focus_check_box(thisbox, handle, start == 3 ? 3 : 0, defaultitem))
-					return 1;
-			}
-			else
-			{
-				if(box->items[z].hwnd == handle)
-				{
-					if(lasthwnd == handle && firsthwnd)
-						WinSetFocus(HWND_DESKTOP, firsthwnd);
-					else if(lasthwnd == handle && !firsthwnd)
-						finish_searching = 1;
-					else
-						WinSetFocus(HWND_DESKTOP, lasthwnd);
-
-					/* If we aren't looking for the last handle,
-					 * return immediately.
-					 */
-					if(!finish_searching)
-						return 1;
-				}
-				if(_validate_focus(box->items[z].hwnd))
-				{
-					/* Start is 3 when we are looking for the
-					 * first valid item in the layout.
-					 */
-					if(start == 3)
-					{
-						if(!defaultitem || (defaultitem && defaultitem == box->items[z].hwnd))
-						{
-							WinSetFocus(HWND_DESKTOP, box->items[z].hwnd);
-							return 1;
-						}
-					}
-
-					if(!firsthwnd)
-						firsthwnd = box->items[z].hwnd;
-
-					lasthwnd = box->items[z].hwnd;
-				}
-				else
-				{
-					char tmpbuf[100] = "";
-
-					WinQueryClassName(box->items[z].hwnd, 99, tmpbuf);
-					if(strncmp(tmpbuf, "#40", 3)==0) /* Notebook */
-					{
-						Box *notebox;
-						HWND page = (HWND)WinSendMsg(box->items[z].hwnd, BKM_QUERYPAGEWINDOWHWND,
-													 (MPARAM)dw_notebook_page_query(box->items[z].hwnd), 0);
-
-						if(page)
-						{
-							notebox = (Box *)WinQueryWindowPtr(page, QWP_USER);
-
-							if(notebox && _focus_check_box(notebox, handle, start == 3 ? 3 : 0, defaultitem))
-								return 1;
-						}
-					}
-				}
-			}
+			if(thisbox && _focus_check_box(thisbox, handle, start == 3 ? 3 : 0, defaultitem))
+				return 1;
 		}
-	}
-	else
-	{
-		for(z=box->count-1;z>-1;z--)
+		else
 		{
-			if(box->items[z].type == TYPEBOX)
+			if(box->items[z].hwnd == handle)
 			{
-				Box *thisbox = WinQueryWindowPtr(box->items[z].hwnd, QWP_USER);
+				if(lasthwnd == handle && firsthwnd)
+					SetFocus(firsthwnd);
+				else if(lasthwnd == handle && !firsthwnd)
+					finish_searching = 1;
+				else
+					SetFocus(lasthwnd);
 
-				if(thisbox && _focus_check_box(thisbox, handle, start == 3 ? 3 : 0, defaultitem))
+				/* If we aren't looking for the last handle,
+				 * return immediately.
+				 */
+				if(!finish_searching)
 					return 1;
+			}
+			if(_validate_focus(box->items[z].hwnd))
+			{
+				/* Start is 3 when we are looking for the
+				 * first valid item in the layout.
+				 */
+				if(start == 3)
+				{
+					if(!defaultitem || (defaultitem && box->items[z].hwnd == defaultitem))
+					{
+						SetFocus(_normalize_handle(box->items[z].hwnd));
+						return 1;
+					}
+				}
+
+				if(!firsthwnd)
+					firsthwnd = _normalize_handle(box->items[z].hwnd);
+
+				lasthwnd = _normalize_handle(box->items[z].hwnd);
 			}
 			else
 			{
-				if(box->items[z].hwnd == handle)
+				char tmpbuf[100] = "";
+
+				GetClassName(box->items[z].hwnd, tmpbuf, 99);
+
+				if(strnicmp(tmpbuf, WC_TABCONTROL, strlen(WC_TABCONTROL))==0) /* Notebook */
 				{
-					if(lasthwnd == handle && firsthwnd)
-						WinSetFocus(HWND_DESKTOP, firsthwnd);
-					else if(lasthwnd == handle && !firsthwnd)
-						finish_searching = 1;
-					else
-						WinSetFocus(HWND_DESKTOP, lasthwnd);
+					NotebookPage **array = (NotebookPage **)GetWindowLong(box->items[z].hwnd, GWL_USERDATA);
+					int pageid = TabCtrl_GetCurSel(box->items[z].hwnd);
 
-					/* If we aren't looking for the last handle,
-					 * return immediately.
-					 */
-					if(!finish_searching)
-						return 1;
-				}
-				if(_validate_focus(box->items[z].hwnd))
-				{
-					/* Start is 3 when we are looking for the
-					 * first valid item in the layout.
-					 */
-					if(start == 3)
-					{
-						if(!defaultitem || (defaultitem && defaultitem == box->items[z].hwnd))
-						{
-							WinSetFocus(HWND_DESKTOP, box->items[z].hwnd);
-							return 1;
-						}
-					}
-
-					if(!firsthwnd)
-						firsthwnd = box->items[z].hwnd;
-
-					lasthwnd = box->items[z].hwnd;
-				}
-				else
-				{
-					char tmpbuf[100] = "";
-
-					WinQueryClassName(box->items[z].hwnd, 99, tmpbuf);
-					if(strncmp(tmpbuf, "#40", 3)==0) /* Notebook */
+					if(pageid > -1 && array && array[pageid])
 					{
 						Box *notebox;
-						HWND page = (HWND)WinSendMsg(box->items[z].hwnd, BKM_QUERYPAGEWINDOWHWND,
-													 (MPARAM)dw_notebook_page_query(box->items[z].hwnd), 0);
 
-						if(page)
+						if(array[pageid]->hwnd)
 						{
-							notebox = (Box *)WinQueryWindowPtr(page, QWP_USER);
+							notebox = (Box *)GetWindowLong(array[pageid]->hwnd, GWL_USERDATA);
 
 							if(notebox && _focus_check_box(notebox, handle, start == 3 ? 3 : 0, defaultitem))
 								return 1;
@@ -442,20 +460,27 @@ int _focus_check_box(Box *box, HWND handle, int start, HWND defaultitem)
 /* This function finds the first widget in the
  * layout and moves the current focus to it.
  */
-int _initial_focus(HWND handle)
+void _initial_focus(HWND handle)
 {
-	Box *thisbox = NULL;
-	HWND box;
+	Box *thisbox;
+	char tmpbuf[100];
 
-	box = WinWindowFromID(handle, FID_CLIENT);
-	if(box)
-		thisbox = WinQueryWindowPtr(box, QWP_USER);
-	else
-		return 1;
+	if(!handle)
+		return;
+
+	GetClassName(handle, tmpbuf, 99);
+
+	if(strnicmp(tmpbuf, ClassName, strlen(ClassName))!=0)
+		return;
+
+
+	if(handle)
+		thisbox = (Box *)GetWindowLong(handle, GWL_USERDATA);
 
 	if(thisbox)
+	{
 		_focus_check_box(thisbox, handle, 3, thisbox->defaultitem);
-	return 0;
+	}
 }
 
 /* This function finds the current widget in the
@@ -464,20 +489,16 @@ int _initial_focus(HWND handle)
 void _shift_focus(HWND handle)
 {
 	Box *thisbox;
-	HWND box, lastbox = WinQueryWindow(handle, QW_PARENT);
+
+	HWND box, lastbox = GetParent(handle);
 
 	/* Find the toplevel window */
-	while((box = WinQueryWindow(lastbox, QW_PARENT)) > 0x80000001)
+	while((box = GetParent(lastbox)))
 	{
 		lastbox = box;
 	}
 
-	box = WinWindowFromID(lastbox, FID_CLIENT);
-	if(box)
-		thisbox = WinQueryWindowPtr(box, QWP_USER);
-    else
-		thisbox = WinQueryWindowPtr(lastbox, QWP_USER);
-
+	thisbox = (Box *)GetWindowLong(lastbox, GWL_USERDATA);
 	if(thisbox)
 	{
 		if(_focus_check_box(thisbox, handle, 1, 0)  == 0)
@@ -491,73 +512,14 @@ void _shift_focus(HWND handle)
  */
 void _ResetWindow(HWND hwndFrame)
 {
-	SWP swp;
+	RECT rcl;
 
-	WinQueryWindowPos(hwndFrame, &swp);
-	WinSetWindowPos(hwndFrame, HWND_TOP, 0, 0, swp.cx, swp.cy-1, SWP_SIZE);
-	WinSetWindowPos(hwndFrame, HWND_TOP, 0, 0, swp.cx, swp.cy, SWP_SIZE);
+	GetWindowRect(hwndFrame, &rcl);
+	SetWindowPos(hwndFrame, HWND_TOP, 0, 0, rcl.right - rcl.left,
+				 rcl.bottom - rcl.top - 1, SWP_NOMOVE | SWP_NOZORDER);
+	SetWindowPos(hwndFrame, HWND_TOP, 0, 0, rcl.right - rcl.left,
+				 rcl.bottom - rcl.top, SWP_NOMOVE | SWP_NOZORDER);
 }
-
-/* This function will recursively search a box and add up the total height of it */
-void _count_size(HWND box, int type, int *xsize, int *xorigsize)
-{
-	int size = 0, origsize = 0, z;
-	Box *tmp = WinQueryWindowPtr(box, QWP_USER);
-
-	if(!tmp)
-	{
-		*xsize = *xorigsize = 0;
-		return;
-	}
-
-	if(type == tmp->type)
-	{
-		/* If the box is going in the direction we want, then we
-		 * return the entire sum of the items.
-		 */
-		for(z=0;z<tmp->count;z++)
-		{
-			if(tmp->items[z].type == TYPEBOX)
-			{
-				int s, os;
-
-				_count_size(tmp->items[z].hwnd, type, &s, &os);
-				size += s;
-				origsize += os;
-			}
-			else
-			{
-				size += (type == BOXHORZ ? tmp->items[z].width : tmp->items[z].height);
-				origsize += (type == BOXHORZ ? tmp->items[z].origwidth : tmp->items[z].origheight);
-			}
-		}
-	}
-	else
-	{
-		/* If the box is not going in the direction we want, then we only
-		 * want to return the maximum value.
-		 */
-		int tmpsize = 0, tmporigsize = 0;
-
-		for(z=0;z<tmp->count;z++)
-		{
-			if(tmp->items[z].type == TYPEBOX)
-				_count_size(tmp->items[z].hwnd, type, &tmpsize, &tmporigsize);
-			else
-			{
-				tmpsize = (type == BOXHORZ ? tmp->items[z].width : tmp->items[z].height);
-				tmporigsize = (type == BOXHORZ ? tmp->items[z].origwidth : tmp->items[z].origheight);
-			}
-
-			if(tmpsize > size)
-				size = tmpsize;
-		}
-	}
-
-	*xsize = size;
-	*xorigsize = origsize;
-}
-
 
 /* Function: TrackRectangle
  * Abstract: Tracks given rectangle.
@@ -569,8 +531,9 @@ void _count_size(HWND box, int type, int *xsize, int *xorigsize)
 
 BOOL _TrackRectangle(HWND hwndBase, RECTL* rclTrack, RECTL* rclBounds)
 {
+	ULONG rc = 0;
+#if 0
 	TRACKINFO track;
-	APIRET rc;
 
 	track.cxBorder = 1;
 	track.cyBorder = 1;
@@ -596,10 +559,10 @@ BOOL _TrackRectangle(HWND hwndBase, RECTL* rclTrack, RECTL* rclBounds)
 
 	track.rclTrack = *rclTrack;
 
-	WinMapWindowPoints(hwndBase,
-					   HWND_DESKTOP,
-					   (PPOINTL)&track.rclTrack,
-					   2);
+	MapWindowPoints(hwndBase,
+					HWND_DESKTOP,
+					(PPOINT)&track.rclTrack,
+					2);
 
 	track.ptlMinTrackSize.x = track.rclTrack.xRight
 		- track.rclTrack.xLeft;
@@ -617,6 +580,7 @@ BOOL _TrackRectangle(HWND hwndBase, RECTL* rclTrack, RECTL* rclBounds)
 	if(rc)
 		*rclTrack = track.rclTrack;
 
+#endif
 	return rc;
 }
 
@@ -641,7 +605,7 @@ int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *usedy,
 		if(thisbox->items[z].type == TYPEBOX)
 		{
 			int initialx, initialy;
-			Box *tmp = WinQueryWindowPtr(thisbox->items[z].hwnd, QWP_USER);
+			Box *tmp = (Box *)GetWindowLong(thisbox->items[z].hwnd, GWL_USERDATA);
 
 			initialx = x - (*usedx);
 			initialy = y - (*usedy);
@@ -687,7 +651,6 @@ int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *usedy,
 						reopen();
 					}
 #endif
-
 					if(thisbox->type == BOXVERT)
 					{
 						if((thisbox->items[z].width-((thisbox->items[z].pad*2)+(tmp->pad*2)))!=0)
@@ -759,7 +722,7 @@ int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *usedy,
 
 			if(thisbox->items[z].type == TYPEBOX)
 			{
-				Box *tmp = WinQueryWindowPtr(thisbox->items[z].hwnd, QWP_USER);
+				Box *tmp = (Box *)GetWindowLong(thisbox->items[z].hwnd, GWL_USERDATA);
 
 				if(tmp)
 				{
@@ -871,7 +834,7 @@ int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *usedy,
 			/* Run this code segment again to finalize the sized after setting uxmax/uymax values. */
 			if(thisbox->items[z].type == TYPEBOX)
 			{
-				Box *tmp = WinQueryWindowPtr(thisbox->items[z].hwnd, QWP_USER);
+				Box *tmp = (Box *)GetWindowLong(thisbox->items[z].hwnd, GWL_USERDATA);
 
 				if(tmp)
 				{
@@ -933,34 +896,58 @@ int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *usedy,
 				if(thisbox->items[z].hsize != SIZEEXPAND)
 					vectorx = 0;
 
-				WinQueryClassName(handle, 99, tmpbuf);
+				GetClassName(handle, tmpbuf, 99);
 
-				if(strncmp(tmpbuf, "#2", 3)==0)
+				if(strnicmp(tmpbuf, COMBOBOXCLASSNAME, strlen(COMBOBOXCLASSNAME))==0)
 				{
-					/* Make the combobox big enough to drop down. :) */
-					WinSetWindowPos(handle, HWND_TOP, currentx + pad, (currenty + pad) - 100,
-									width + vectorx, (height + vectory) + 100, SWP_MOVE | SWP_SIZE | SWP_ZORDER);
+					/* Handle special case Combobox */
+					MoveWindow(handle, currentx + pad, currenty + pad,
+							   width + vectorx, (height + vectory) + 400, TRUE);
 				}
-				else if(strncmp(tmpbuf, "#6", 3)==0)
+				else if(strnicmp(tmpbuf, UPDOWN_CLASS, strlen(UPDOWN_CLASS))==0)
 				{
-					/* Entryfields on OS/2 have a thick border that isn't on Windows and GTK */
-					WinSetWindowPos(handle, HWND_TOP, (currentx + pad) + 3, (currenty + pad) + 3,
-									(width + vectorx) - 6, (height + vectory) - 6, SWP_MOVE | SWP_SIZE | SWP_ZORDER);
+					/* Handle special case Spinbutton */
+					ColorInfo *cinfo = (ColorInfo *)GetWindowLong(handle, GWL_USERDATA);
+
+					MoveWindow(handle, currentx + pad + ((width + vectorx) - 20), currenty + pad,
+							   20, height + vectory, TRUE);
+
+					if(cinfo)
+					{
+						MoveWindow(cinfo->buddy, currentx + pad, currenty + pad,
+								   (width + vectorx) - 20, height + vectory, TRUE);
+					}
 				}
 				else
 				{
-					WinSetWindowPos(handle, HWND_TOP, currentx + pad, currenty + pad,
-									width + vectorx, height + vectory, SWP_MOVE | SWP_SIZE | SWP_ZORDER);
+					/* Everything else */
+					MoveWindow(handle, currentx + pad, currenty + pad,
+							   width + vectorx, height + vectory, TRUE);
 					if(thisbox->items[z].type == TYPEBOX)
 					{
-						Box *boxinfo = WinQueryWindowPtr(handle, QWP_USER);
+						Box *boxinfo = (Box *)GetWindowLong(handle, GWL_USERDATA);
 
 						if(boxinfo && boxinfo->grouphwnd)
-							WinSetWindowPos(boxinfo->grouphwnd, HWND_TOP, 0, 0,
-											width + vectorx, height + vectory, SWP_MOVE | SWP_SIZE);
+							MoveWindow(boxinfo->grouphwnd, 0, 0,
+									   width + vectorx, height + vectory, TRUE);
 
 					}
+				}
 
+				/* Notebook dialog requires additional processing */
+				if(strncmp(tmpbuf, WC_TABCONTROL, strlen(WC_TABCONTROL))==0)
+				{
+					RECT rect;
+					NotebookPage **array = (NotebookPage **)GetWindowLong(handle, GWL_USERDATA);
+					int pageid = TabCtrl_GetCurSel(handle);
+
+					if(pageid > -1 && array && array[pageid])
+					{
+						GetClientRect(handle,&rect);
+						TabCtrl_AdjustRect(handle,FALSE,&rect);
+						MoveWindow(array[pageid]->hwnd, rect.left, rect.top,
+								   rect.right - rect.left, rect.bottom-rect.top, TRUE);
+					}
 				}
 
 #ifdef DWDEBUG
@@ -985,7 +972,7 @@ void _do_resize(Box *thisbox, int x, int y)
 	{
 		if(thisbox)
 		{
-			int usedx = 0, usedy = 0, usedpadx = 0, usedpady = 0, depth = 0;
+			int usedx = 0, usedy = 0, depth = 0, usedpadx = 0, usedpady = 0;
 
 			_resize_box(thisbox, &depth, x, y, &usedx, &usedy, 1, &usedpadx, &usedpady);
 
@@ -1001,9 +988,10 @@ void _do_resize(Box *thisbox, int x, int y)
 			reopen();
 #endif
 
-			usedx = usedy = usedpadx = usedpady = depth = 0;
+			usedpadx = usedpady = usedx = usedy = depth = 0;
 
 			_resize_box(thisbox, &depth, x, y, &usedx, &usedy, 2, &usedpadx, &usedpady);
+
 #ifdef DWDEBUG
 			fprintf(f, "WM_SIZE Resize Box Pass 2\r\nx = %d, y = %d, usedx = %d, usedy = %d, usedpadx = %d, usedpady = %d\r\n",
 					x, y, usedx, usedy, usedpadx, usedpady);
@@ -1013,229 +1001,583 @@ void _do_resize(Box *thisbox, int x, int y)
 	}
 }
 
-/* This procedure handles WM_QUERYTRACKINFO requests from the frame */
-MRESULT EXPENTRY _sizeproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
+/* The main window procedure for Dynamic Windows, all the resizing code is done here. */
+BOOL CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 {
-	PFNWP *blah = WinQueryWindowPtr(hWnd, QWP_USER);
+	int result = -1;
+	static int command_active = 0;
+#ifndef NO_SIGNALS
+	SignalHandler *tmp = Root;
+#endif
+	void (* windowfunc)(PVOID);
+	ULONG origmsg = msg;
 
-	switch(msg)
+	if(msg == WM_RBUTTONDOWN || msg == WM_MBUTTONDOWN)
+		msg = WM_LBUTTONDOWN;
+	if(msg == WM_RBUTTONUP || msg == WM_MBUTTONUP)
+		msg = WM_LBUTTONUP;
+
+	if(filterfunc)
+		result = filterfunc(hWnd, msg, mp1, mp2);
+
+#ifndef NO_SIGNALS
+	if(result == -1)
 	{
-	case WM_QUERYTRACKINFO:
+		/* Avoid infinite recursion */
+		command_active = 1;
+
+		/* Find any callbacks for this function */
+		while(tmp)
 		{
-			if(blah && *blah)
+			if(tmp->message == msg || msg == WM_COMMAND || msg == WM_NOTIFY || tmp->message == WM_USER+1)
 			{
-				PTRACKINFO ptInfo;
-				int res;
-				PFNWP myfunc = *blah;
-				res = (int)myfunc(hWnd, msg, mp1, mp2);
-
-				ptInfo = (PTRACKINFO)(mp2);
-
-				ptInfo->ptlMinTrackSize.y = 8;
-				ptInfo->ptlMinTrackSize.x = 8;
-
-				return (MRESULT)res;
-			}
-		}
-	}
-	if(blah && *blah)
-	{
-		PFNWP myfunc = *blah;
-		return myfunc(hWnd, msg, mp1, mp2);
-	}
-
-	return WinDefWindowProc(hWnd, msg, mp1, mp2);
-}
-
-void _Top(HPS hpsPaint, RECTL rclPaint)
-{
-	POINTL ptl1, ptl2;
-
-	ptl1.x = rclPaint.xLeft;
-	ptl2.y = ptl1.y = rclPaint.yTop - 1;
-	ptl2.x = rclPaint.xRight - 1;
-	GpiMove(hpsPaint, &ptl1);
-	GpiLine(hpsPaint, &ptl2);
-}
-
-/* Left hits the bottom */
-void _Left(HPS hpsPaint, RECTL rclPaint)
-{
-	POINTL ptl1, ptl2;
-
-	ptl2.x = ptl1.x = rclPaint.xLeft;
-	ptl1.y = rclPaint.yTop - 1;
-	ptl2.y = rclPaint.yBottom;
-	GpiMove(hpsPaint, &ptl1);
-	GpiLine(hpsPaint, &ptl2);
-}
-
-void _Bottom(HPS hpsPaint, RECTL rclPaint)
-{
-	POINTL ptl1, ptl2;
-
-	ptl1.x = rclPaint.xRight - 1;
-	ptl1.y = ptl2.y = rclPaint.yBottom;
-	ptl2.x = rclPaint.xLeft;
-	GpiMove(hpsPaint, &ptl1);
-	GpiLine(hpsPaint, &ptl2);
-}
-
-/* Right hits the top */
-void _Right(HPS hpsPaint, RECTL rclPaint)
-{
-	POINTL ptl1, ptl2;
-
-	ptl2.x = ptl1.x = rclPaint.xRight - 1;
-	ptl1.y = rclPaint.yBottom + 1;
-	ptl2.y = rclPaint.yTop - 1;
-	GpiMove(hpsPaint, &ptl1);
-	GpiLine(hpsPaint, &ptl2);
-}
-
-/* This procedure handles drawing of a status border */
-MRESULT EXPENTRY _statusproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
-{
-	PFNWP *blah = WinQueryWindowPtr(hWnd, QWP_USER);
-
-	if(blah && *blah)
-	{
-		PFNWP myfunc = *blah;
-
-		switch(msg)
-		{
-		case WM_PAINT:
-			{
-				HPS hpsPaint;
-				RECTL rclPaint;
-				char buf[1024];
-
-				hpsPaint = WinBeginPaint(hWnd, 0, 0);
-				WinQueryWindowRect(hWnd, &rclPaint);
-				WinFillRect(hpsPaint, &rclPaint, CLR_PALEGRAY);
-
-				GpiSetColor(hpsPaint, CLR_DARKGRAY);
-				_Top(hpsPaint, rclPaint);
-				_Left(hpsPaint, rclPaint);
-
-				GpiSetColor(hpsPaint, CLR_WHITE);
-				_Right(hpsPaint, rclPaint);
-				_Bottom(hpsPaint, rclPaint);
-
-				WinQueryWindowText(hWnd, 1024, buf);
-				rclPaint.xLeft += 3;
-				rclPaint.xRight--;
-				rclPaint.yTop--;
-				rclPaint.yBottom++;
-
-				GpiSetColor(hpsPaint, CLR_BLACK);
-				WinDrawText(hpsPaint, -1, buf, &rclPaint, DT_TEXTATTRS, DT_TEXTATTRS, DT_VCENTER | DT_LEFT | DT_TEXTATTRS);
-				WinEndPaint(hpsPaint);
-
-				return (MRESULT)TRUE;
-			}
-		}
-		return myfunc(hWnd, msg, mp1, mp2);
-	}
-
-	return WinDefWindowProc(hWnd, msg, mp1, mp2);
-}
-
-/* This procedure handles drawing of a percent bar */
-MRESULT EXPENTRY _percentproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
-{
-	PercentBar *blah = (PercentBar *)WinQueryWindowPtr(hWnd, QWP_USER);
-
-	if(blah)
-	{
-		PFNWP myfunc = blah->oldproc;
-
-		switch(msg)
-		{
-		case WM_PAINT:
-			{
-				HPS hpsPaint;
-				RECTL rclPaint, rclBar;
-
-				hpsPaint = WinBeginPaint(hWnd, 0, 0);
-				WinQueryWindowRect(hWnd, &rclPaint);
-
-				/* Draw outer border */
-				rclBar = rclPaint;
-				GpiSetColor(hpsPaint, CLR_PALEGRAY);
-				_Top(hpsPaint, rclBar);
-				_Bottom(hpsPaint, rclBar);
-				rclBar.yTop--;
-				GpiSetColor(hpsPaint, CLR_WHITE);
-				_Right(hpsPaint, rclBar);
-				rclBar.yBottom++;
-				GpiSetColor(hpsPaint, CLR_DARKGRAY);
-				_Left(hpsPaint, rclBar);
-
-				/* Draw inner border */
-				rclBar.xLeft++;
-				rclBar.xRight--;
-				GpiSetColor(hpsPaint, CLR_DARKGRAY);
-				_Left(hpsPaint, rclBar);
-				_Top(hpsPaint, rclBar);
-				GpiSetColor(hpsPaint, CLR_WHITE);
-				_Bottom(hpsPaint, rclBar);
-				_Right(hpsPaint, rclBar);
-
-				/* Draw bar border */
-				rclBar.xLeft++;
-				rclBar.xRight--;
-				rclBar.yBottom++;
-				rclBar.yTop--;
-				GpiSetColor(hpsPaint, CLR_DARKGRAY);
-				_Left(hpsPaint, rclBar);
-				_Top(hpsPaint, rclBar);
-				_Bottom(hpsPaint, rclBar);
-				_Right(hpsPaint, rclBar);
-
-				if(blah->pos)
+				switch(msg)
 				{
-					rclBar.xRight = 3 + blah->pos;
-					_Right(hpsPaint, rclBar);
+				case WM_SETFOCUS:
+					{
+						int (*setfocusfunc)(HWND, void *) = (int (*)(HWND, void *))tmp->signalfunction;
 
-					/* Draw Bar itself */
-					rclBar.xLeft = rclPaint.xLeft + 3;
-					rclBar.xRight = rclPaint.xLeft +  2 + blah->pos;
-					rclBar.yTop = rclPaint.yTop - 3;
-					rclBar.yBottom = rclPaint.yBottom + 3;
+						if(hWnd == tmp->window)
+						{
+							result = setfocusfunc(tmp->window, tmp->data);
+							tmp = NULL;
+						}
+					}
+					break;
+				case WM_SIZE:
+					{
+						int (*sizefunc)(HWND, int, int, void *) = tmp->signalfunction;
 
-					WinFillRect(hpsPaint, &rclBar, CLR_DARKBLUE);
+						if(hWnd == tmp->window)
+						{
+							result = sizefunc(tmp->window, LOWORD(mp2), HIWORD(mp2), tmp->data);
+							tmp = NULL;
+						}
+					}
+					break;
+				case WM_LBUTTONDOWN:
+					{
+						POINTS pts = MAKEPOINTS(mp2);
+						int (*buttonfunc)(HWND, int, int, int, void *) = (int (*)(HWND, int, int, int, void *))tmp->signalfunction;
+
+						if(hWnd == tmp->window)
+						{
+							int button;
+
+							switch(origmsg)
+							{
+							case WM_LBUTTONDOWN:
+								button = 1;
+								break;
+							case WM_RBUTTONDOWN:
+								button = 2;
+								break;
+							case WM_MBUTTONDOWN:
+								button = 3;
+								break;
+							}
+							result = buttonfunc(tmp->window, pts.x, pts.y, button, tmp->data);
+							tmp = NULL;
+						}
+					}
+					break;
+				case WM_LBUTTONUP:
+					{
+						POINTS pts = MAKEPOINTS(mp2);
+						int (*buttonfunc)(HWND, int, int, int, void *) = (int (*)(HWND, int, int, int, void *))tmp->signalfunction;
+
+						if(hWnd == tmp->window)
+						{
+							int button;
+
+							switch(origmsg)
+							{
+							case WM_LBUTTONUP:
+								button = 1;
+								break;
+							case WM_RBUTTONUP:
+								button = 2;
+								break;
+							case WM_MBUTTONUP:
+								button = 3;
+								break;
+							}
+							result = buttonfunc(tmp->window, pts.x, pts.y, button, tmp->data);
+							tmp = NULL;
+						}
+					}
+					break;
+				case WM_MOUSEMOVE:
+					{
+						POINTS pts = MAKEPOINTS(mp2);
+						int (*motionfunc)(HWND, int, int, int, void *) = (int (*)(HWND, int, int, int, void *))tmp->signalfunction;
+
+						if(hWnd == tmp->window)
+						{
+							int keys = 0;
+
+							if (mp1 & MK_LBUTTON)
+								keys = DW_BUTTON1_MASK;
+							if (mp1 & MK_RBUTTON)
+								keys |= DW_BUTTON2_MASK;
+							if (mp1 & MK_MBUTTON)
+								keys |= DW_BUTTON3_MASK;
+
+							result = motionfunc(tmp->window, pts.x, pts.y, keys, tmp->data);
+							tmp = NULL;
+						}
+					}
+					break;
+				case WM_CHAR:
+					{
+						int (*keypressfunc)(HWND, int, void *) = tmp->signalfunction;
+
+						if(hWnd == tmp->window)
+						{
+							result = keypressfunc(tmp->window, LOWORD(mp2), tmp->data);
+							tmp = NULL;
+						}
+					}
+					break;
+				case WM_CLOSE:
+					{
+						int (*closefunc)(HWND, void *) = tmp->signalfunction;
+
+						if(hWnd == tmp->window)
+						{
+							result = closefunc(tmp->window, tmp->data);
+							tmp = NULL;
+						}
+					}
+					break;
+				case WM_PAINT:
+					{
+						PAINTSTRUCT ps;
+						DWExpose exp;
+						int (*exposefunc)(HWND, DWExpose *, void *) = tmp->signalfunction;
+
+						if(hWnd == tmp->window)
+						{
+							BeginPaint(hWnd, &ps);
+							exp.x = ps.rcPaint.left;
+							exp.y = ps.rcPaint.top;
+							exp.width = ps.rcPaint.right - ps.rcPaint.left;
+							exp.height = ps.rcPaint.bottom - ps.rcPaint.top;
+							result = exposefunc(hWnd, &exp, tmp->data);
+							EndPaint(hWnd, &ps);
+						}
+					}
+					break;
+				case WM_NOTIFY:
+					{
+						if(tmp->message == TVN_SELCHANGED || tmp->message == NM_RCLICK)
+						{
+							NMTREEVIEW FAR *tem=(NMTREEVIEW FAR *)mp2;
+							char tmpbuf[100];
+
+							GetClassName(tem->hdr.hwndFrom, tmpbuf, 99);
+
+							if(strnicmp(tmpbuf, WC_TREEVIEW, strlen(WC_TREEVIEW))==0)
+							{
+								if(tem->hdr.code == TVN_SELCHANGED && tmp->message == TVN_SELCHANGED)
+								{
+									if(tmp->window == tem->hdr.hwndFrom)
+									{
+										int (*treeselectfunc)(HWND, HWND, char *, void *, void *) = tmp->signalfunction;
+										TVITEM tvi;
+										void **ptrs;
+
+										tvi.mask = TVIF_HANDLE;
+										tvi.hItem = tem->itemNew.hItem;
+
+										TreeView_GetItem(tmp->window, &tvi);
+
+										ptrs = (void **)tvi.lParam;
+										if(ptrs)
+											result = treeselectfunc(tmp->window, (HWND)tem->itemNew.hItem, (char *)ptrs[0], (void *)ptrs[1], tmp->data);
+
+										tmp = NULL;
+									}
+								}
+								else if(tem->hdr.code == NM_RCLICK && tmp->message == NM_RCLICK)
+								{
+									if(tmp->window == tem->hdr.hwndFrom)
+									{
+										int (*containercontextfunc)(HWND, char *, int, int, void *, void *) = tmp->signalfunction;
+										HTREEITEM hti;
+										TVITEM tvi;
+										TVHITTESTINFO thi;
+										void **ptrs = NULL;
+										LONG x, y;
+
+										dw_pointer_query_pos(&x, &y);
+
+										thi.pt.x = x;
+										thi.pt.y = y;
+
+										MapWindowPoints(HWND_DESKTOP, tmp->window, &thi.pt, 1);
+
+										hti = TreeView_HitTest(tmp->window, &thi);
+
+										if(hti)
+										{
+											tvi.mask = TVIF_HANDLE;
+											tvi.hItem = hti;
+
+											TreeView_GetItem(tmp->window, &tvi);
+											dw_tree_item_select(tmp->window, (HWND)hti);
+
+											ptrs = (void **)tvi.lParam;
+
+										}
+										containercontextfunc(tmp->window, ptrs ? (char *)ptrs[0] : NULL, x, y, tmp->data, ptrs ? ptrs[1] : NULL);
+										tmp = NULL;
+									}
+								}
+							}
+						}
+					}
+					break;
+				case WM_COMMAND:
+					{
+						int (*clickfunc)(HWND, void *) = tmp->signalfunction;
+						HWND command;
+						ULONG passthru = (ULONG)LOWORD(mp1);
+						ULONG message = HIWORD(mp1);
+
+						command = (HWND)passthru;
+
+						if(message == LBN_SELCHANGE || message == CBN_SELCHANGE)
+						{
+							int (*listboxselectfunc)(HWND, int, void *) = tmp->signalfunction;
+
+							if(tmp->message == LBN_SELCHANGE && tmp->window == (HWND)mp2)
+							{
+								result = listboxselectfunc(tmp->window, dw_listbox_selected(tmp->window), tmp->data);
+								tmp = NULL;
+							}
+						} /* Make sure it's the right window, and the right ID */
+						else if(tmp->window < (HWND)65536 && command == tmp->window)
+						{
+							result = clickfunc(tmp->window, tmp->data);
+							tmp = NULL;
+						}
+					}
+					break;
+				}
+			}
+			if(tmp)
+				tmp = tmp->next;
+		}
+		command_active = 0;
+	}
+#endif
+
+	/* Now that any handlers are done... do normal processing */
+	switch( msg )
+	{
+	case WM_PAINT:
+		{
+			PAINTSTRUCT ps;
+
+			BeginPaint(hWnd, &ps);
+			EndPaint(hWnd, &ps);
+		}
+		break;
+	case WM_SIZE:
+		{
+			static int lastx = -1, lasty = -1;
+			static HWND lasthwnd = 0;
+
+			if(lastx != LOWORD(mp2) || lasty != HIWORD(mp2) || lasthwnd != hWnd)
+			{
+				Box *mybox = (Box *)GetWindowLong(hWnd, GWL_USERDATA);
+
+				if(mybox && mybox->count)
+				{
+					lastx = LOWORD(mp2);
+					lasty = HIWORD(mp2);
+					lasthwnd = hWnd;
+
+					ShowWindow(mybox->items[0].hwnd, SW_HIDE);
+					_do_resize(mybox,LOWORD(mp2),HIWORD(mp2));
+					ShowWindow(mybox->items[0].hwnd, SW_SHOW);
+					return 0;
+				}
+			}
+		}
+		break;
+	case WM_CHAR:
+		if(LOWORD(mp1) == '\t')
+		{
+			_shift_focus(hWnd);
+			return TRUE;
+		}
+		break;
+	case WM_USER:
+		windowfunc = (void *)mp1;
+
+		if(windowfunc)
+			windowfunc((void *)mp2);
+		break;
+	case WM_NOTIFY:
+		{
+			NMHDR FAR *tem=(NMHDR FAR *)mp2;
+
+			if(tem->code == TCN_SELCHANGING)
+			{
+				int num=TabCtrl_GetCurSel(tem->hwndFrom);
+				NotebookPage **array = (NotebookPage **)GetWindowLong(tem->hwndFrom, GWL_USERDATA);
+
+				if(num > -1 && array && array[num])
+					SetParent(array[num]->hwnd, DW_HWND_OBJECT);
+
+			}
+			else if(tem->code == TCN_SELCHANGE)
+			{
+				int num=TabCtrl_GetCurSel(tem->hwndFrom);
+				NotebookPage **array = (NotebookPage **)GetWindowLong(tem->hwndFrom, GWL_USERDATA);
+
+				if(num > -1 && array && array[num])
+					SetParent(array[num]->hwnd, tem->hwndFrom);
+
+				_resize_notebook_page(tem->hwndFrom, num);
+			}
+		}
+		break;
+	case WM_GETMINMAXINFO:
+		{
+			MINMAXINFO *info = (MINMAXINFO *)mp2;
+			info->ptMinTrackSize.x = 8;
+			info->ptMinTrackSize.y = 8;
+			return 0;
+		}
+		break;
+	case WM_DESTROY:
+		/* Free memory before destroying */
+		_free_window_memory(hWnd, 0);
+		EnumChildWindows(hWnd, _free_window_memory, 0);
+		break;
+	case WM_CTLCOLORSTATIC:
+	case WM_CTLCOLORLISTBOX:
+	case WM_CTLCOLORBTN:
+	case WM_CTLCOLOREDIT:
+	case WM_CTLCOLORMSGBOX:
+	case WM_CTLCOLORSCROLLBAR:
+	case WM_CTLCOLORDLG:
+		{
+			ColorInfo *thiscinfo = (ColorInfo *)GetWindowLong((HWND)mp2, GWL_USERDATA);
+			if(thiscinfo && thiscinfo->fore != -1 && thiscinfo->back != -1)
+			{
+				if(thiscinfo->fore > -1 && thiscinfo->back > -1 &&
+				   thiscinfo->fore < 18 && thiscinfo->back < 18)
+				{
+					SetTextColor((HDC)mp1, RGB(_red[thiscinfo->fore],
+											   _green[thiscinfo->fore],
+											   _blue[thiscinfo->fore]));
+					SetBkColor((HDC)mp1, RGB(_red[thiscinfo->back],
+											 _green[thiscinfo->back],
+											 _blue[thiscinfo->back]));
+					DeleteObject(thiscinfo->hbrush);
+					thiscinfo->hbrush = CreateSolidBrush(RGB(_red[thiscinfo->back],
+															 _green[thiscinfo->back],
+															 _blue[thiscinfo->back]));
+					SelectObject((HDC)mp1, thiscinfo->hbrush);
+					return (LONG)thiscinfo->hbrush;
+				}
+				if((thiscinfo->fore & DW_RGB_COLOR) == DW_RGB_COLOR && (thiscinfo->back & DW_RGB_COLOR) == DW_RGB_COLOR)
+				{
+					SetTextColor((HDC)mp1, RGB(DW_RED_VALUE(thiscinfo->fore),
+											   DW_GREEN_VALUE(thiscinfo->fore),
+											   DW_BLUE_VALUE(thiscinfo->fore)));
+					SetBkColor((HDC)mp1, RGB(DW_RED_VALUE(thiscinfo->back),
+												 DW_GREEN_VALUE(thiscinfo->back),
+												 DW_BLUE_VALUE(thiscinfo->back)));
+					DeleteObject(thiscinfo->hbrush);
+					thiscinfo->hbrush = CreateSolidBrush(RGB(DW_RED_VALUE(thiscinfo->back),
+															 DW_GREEN_VALUE(thiscinfo->back),
+															 DW_BLUE_VALUE(thiscinfo->back)));
+					SelectObject((HDC)mp1, thiscinfo->hbrush);
+					return (LONG)thiscinfo->hbrush;
+				}
+			}
+
+		}
+		break;
+	}
+	if(result != -1)
+		return result;
+	else
+		return DefWindowProc(hWnd, msg, mp1, mp2);
+}
+
+BOOL CALLBACK _framewndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
+{
+	switch( msg )
+	{
+	case WM_LBUTTONDOWN:
+	case WM_MBUTTONDOWN:
+	case WM_RBUTTONDOWN:
+		SetActiveWindow(hWnd);
+		break;
+	case WM_COMMAND:
+	case WM_NOTIFY:
+		_wndproc(hWnd, msg, mp1, mp2);
+		break;
+#if 0
+	case WM_ERASEBKGND:
+		{
+			ColorInfo *thiscinfo = (ColorInfo *)GetWindowLong(hWnd, GWL_USERDATA);
+
+			if(thiscinfo && thiscinfo->fore != -1 && thiscinfo->back != -1)
+				return FALSE;
+		}
+		break;
+#endif
+	case WM_PAINT:
+		{
+			ColorInfo *thiscinfo = (ColorInfo *)GetWindowLong(hWnd, GWL_USERDATA);
+
+			if(thiscinfo && thiscinfo->fore != -1 && thiscinfo->back != -1)
+			{
+				PAINTSTRUCT ps;
+				HDC hdcPaint = BeginPaint(hWnd, &ps);
+				int success = FALSE;
+
+				if(thiscinfo->fore > -1 && thiscinfo->back > -1 &&
+				   thiscinfo->fore < 18 && thiscinfo->back < 18)
+				{
+					SetTextColor((HDC)mp1, RGB(_red[thiscinfo->fore],
+											   _green[thiscinfo->fore],
+											   _blue[thiscinfo->fore]));
+					SetBkColor((HDC)mp1, RGB(_red[thiscinfo->back],
+											 _green[thiscinfo->back],
+											 _blue[thiscinfo->back]));
+					DeleteObject(thiscinfo->hbrush);
+					thiscinfo->hbrush = CreateSolidBrush(RGB(_red[thiscinfo->back],
+															 _green[thiscinfo->back],
+															 _blue[thiscinfo->back]));
+					SelectObject(hdcPaint, thiscinfo->hbrush);
+					Rectangle(hdcPaint, ps.rcPaint.left - 1, ps.rcPaint.top - 1, ps.rcPaint.right + 1, ps.rcPaint.bottom + 1);
+					success = TRUE;
+				}
+				if((thiscinfo->fore & DW_RGB_COLOR) == DW_RGB_COLOR && (thiscinfo->back & DW_RGB_COLOR) == DW_RGB_COLOR)
+				{
+					SetTextColor((HDC)mp1, RGB(DW_RED_VALUE(thiscinfo->fore),
+											   DW_GREEN_VALUE(thiscinfo->fore),
+											   DW_BLUE_VALUE(thiscinfo->fore)));
+					SetBkColor((HDC)mp1, RGB(DW_RED_VALUE(thiscinfo->back),
+											 DW_GREEN_VALUE(thiscinfo->back),
+											 DW_BLUE_VALUE(thiscinfo->back)));
+					DeleteObject(thiscinfo->hbrush);
+					thiscinfo->hbrush = CreateSolidBrush(RGB(DW_RED_VALUE(thiscinfo->back),
+															 DW_GREEN_VALUE(thiscinfo->back),
+															 DW_BLUE_VALUE(thiscinfo->back)));
+					SelectObject(hdcPaint, thiscinfo->hbrush);
+					Rectangle(hdcPaint, ps.rcPaint.left, ps.rcPaint.top, ps.rcPaint.right, ps.rcPaint.bottom);
+					success = TRUE;
 				}
 
-				/* Draw the background */
-				rclBar.xLeft = rclPaint.xLeft + 3 + blah->pos;
-				rclBar.xRight = rclPaint.xRight - 3;
-				rclBar.yTop = rclPaint.yTop - 3;
-				rclBar.yBottom = rclPaint.yBottom + 3;
-
-				WinFillRect(hpsPaint, &rclBar, CLR_PALEGRAY);
-
-				WinEndPaint(hpsPaint);
-
-				return (MRESULT)TRUE;
+				EndPaint(hWnd, &ps);
+				if(success)
+					return FALSE;
 			}
+
 		}
-		return myfunc(hWnd, msg, mp1, mp2);
+		break;
+	}
+	return DefWindowProc(hWnd, msg, mp1, mp2);
+}
+
+BOOL CALLBACK _rendwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
+{
+	switch( msg )
+	{
+	case WM_LBUTTONDOWN:
+	case WM_MBUTTONDOWN:
+	case WM_RBUTTONDOWN:
+		SetActiveWindow(hWnd);
+		_wndproc(hWnd, msg, mp1, mp2);
+		break;
+	case WM_LBUTTONUP:
+	case WM_MBUTTONUP:
+	case WM_RBUTTONUP:
+	case WM_MOUSEMOVE:
+	case WM_PAINT:
+	case WM_SIZE:
+	case WM_COMMAND:
+		_wndproc(hWnd, msg, mp1, mp2);
+		break;
+	}
+	return DefWindowProc(hWnd, msg, mp1, mp2);
+}
+
+BOOL CALLBACK _spinnerwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
+{
+	ColorInfo *cinfo;
+
+	cinfo = (ColorInfo *)GetWindowLong(hWnd, GWL_USERDATA);
+
+	if(cinfo)
+	{
+		switch( msg )
+		{
+		case WM_LBUTTONDOWN:
+		case WM_MBUTTONDOWN:
+		case WM_RBUTTONDOWN:
+		case WM_CHAR:
+			{
+				BOOL ret;
+
+				if(!cinfo || !cinfo->pOldProc)
+					ret = DefWindowProc(hWnd, msg, mp1, mp2);
+				ret = CallWindowProc(cinfo->pOldProc, hWnd, msg, mp1, mp2);
+
+				/* Tell the edit control that a buttonpress has
+				 * occured and to update it's window title.
+				 */
+				if(cinfo->buddy)
+					SendMessage(cinfo->buddy, WM_USER+10, 0, 0);
+
+				return ret;
+			}
+			break;
+		case WM_USER+10:
+			{
+				if(cinfo->buddy)
+				{
+					char tempbuf[100] = "";
+					long position;
+
+					GetWindowText(cinfo->buddy, tempbuf, 99);
+
+					position = atol(tempbuf);
+
+					if(IS_WIN98PLUS)
+						SendMessage(hWnd, UDM_SETPOS32, 0, (LPARAM)position);
+					else
+						SendMessage(hWnd, UDM_SETPOS, 0, (LPARAM)MAKELONG((short)position, 0));
+				}
+			}
+			break;
+		}
 	}
 
-	return WinDefWindowProc(hWnd, msg, mp1, mp2);
+	if(!cinfo || !cinfo->pOldProc)
+		return DefWindowProc(hWnd, msg, mp1, mp2);
+	return CallWindowProc(cinfo->pOldProc, hWnd, msg, mp1, mp2);
 }
 
 void _click_default(HWND handle)
 {
 	char tmpbuf[100];
 
-	WinQueryClassName(handle, 99, tmpbuf);
+	GetClassName(handle, tmpbuf, 99);
 
 	/* These are the window classes which can
 	 * obtain input focus.
 	 */
-	if(strncmp(tmpbuf, "#3", 3)==0)
+	if(strnicmp(tmpbuf, BUTTONCLASSNAME, strlen(BUTTONCLASSNAME))==0)
 	{
 		/* Generate click on default item */
 		SignalHandler *tmp = Root;
@@ -1245,7 +1587,7 @@ void _click_default(HWND handle)
 		{
 			if(tmp->message == WM_COMMAND)
 			{
-				int (*clickfunc)(HWND, void *) = (int (*)(HWND, void *))tmp->signalfunction;
+				int (*clickfunc)(HWND, void *) = tmp->signalfunction;
 
 				/* Make sure it's the right window, and the right ID */
 				if(tmp->window == handle)
@@ -1259,726 +1601,271 @@ void _click_default(HWND handle)
 		}
 	}
 	else
-		WinSetFocus(HWND_DESKTOP, handle);
+		SetFocus(handle);
 }
 
-MRESULT EXPENTRY _comboentryproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
+BOOL CALLBACK _colorwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 {
-	WindowData *blah = (WindowData *)WinQueryWindowPtr(hWnd, QWP_USER);
+	ColorInfo *cinfo;
+	char tmpbuf[100];
+	WNDPROC pOldProc = 0;
 
-	switch(msg)
+	cinfo = (ColorInfo *)GetWindowLong(hWnd, GWL_USERDATA);
+
+	GetClassName(hWnd, tmpbuf, 99);
+	if(strcmp(tmpbuf, FRAMECLASSNAME) == 0)
+		cinfo = &(((Box *)cinfo)->cinfo);
+
+	if(cinfo)
 	{
-	case WM_SETFOCUS:
-		_run_event(hWnd, msg, mp1, mp2);
-		break;
-	}
+		pOldProc = cinfo->pOldProc;
 
-	if(blah && blah->oldproc)
-		return blah->oldproc(hWnd, msg, mp1, mp2);
-
-	return WinDefWindowProc(hWnd, msg, mp1, mp2);
-}
-
-/* Originally just intended for entryfields, it now serves as a generic
- * procedure for handling TAB presses to change input focus on controls.
- */
-MRESULT EXPENTRY _entryproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
-{
-	WindowData *blah = (WindowData *)WinQueryWindowPtr(hWnd, QWP_USER);
-	PFNWP oldproc = 0;
-
-	if(blah)
-		oldproc = blah->oldproc;
-
-	switch(msg)
-	{
-	case WM_BUTTON1DOWN:
-	case WM_BUTTON2DOWN:
-	case WM_BUTTON3DOWN:
+		switch( msg )
 		{
-			char tmpbuf[100];
-
-			WinQueryClassName(hWnd, 99, tmpbuf);
-
-			if(strncmp(tmpbuf, "#32", 3)==0)
-				_run_event(hWnd, WM_SETFOCUS, (MPARAM)FALSE, (MPARAM)TRUE);
-		}
-		break;
-	case WM_SETFOCUS:
-		_run_event(hWnd, msg, mp1, mp2);
-		break;
-	case WM_CHAR:
-		if(SHORT1FROMMP(mp2) == '\t')
-		{
-			_shift_focus(hWnd);
-			return FALSE;
-		}
-		else if(SHORT1FROMMP(mp2) == '\r' && blah && blah->clickdefault)
-			_click_default(blah->clickdefault);
-
-		break;
-	}
-
-	if(oldproc)
-		return oldproc(hWnd, msg, mp1, mp2);
-
-	return WinDefWindowProc(hWnd, msg, mp1, mp2);
-}
-
-/* Handle correct painting of a combobox with the WS_CLIPCHILDREN
- * flag enabled, and also handle TABs to switch input focus.
- */
-MRESULT EXPENTRY _comboproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
-{
-	WindowData *blah = WinQueryWindowPtr(hWnd, QWP_USER);
-	PFNWP oldproc = 0;
-
-	if(blah)
-		oldproc = blah->oldproc;
-
-	switch(msg)
-	{
-	case WM_CHAR:
-		if(SHORT1FROMMP(mp2) == '\t')
-		{
-			_shift_focus(hWnd);
-			return FALSE;
-		}
-		else if(SHORT1FROMMP(mp2) == '\r' && blah && blah->clickdefault)
-			_click_default(blah->clickdefault);
-		break;
-	case WM_BUTTON1DOWN:
-	case WM_BUTTON2DOWN:
-	case WM_BUTTON3DOWN:
-		_run_event(hWnd, WM_SETFOCUS, (MPARAM)FALSE, (MPARAM)TRUE);
-		break;
-	case WM_SETFOCUS:
-		_run_event(hWnd, msg, mp1, mp2);
-		break;
-	case WM_PAINT:
-		{
-			HWND parent = WinQueryWindow(hWnd, QW_PARENT);
-			ULONG bcol, av[32];
-			HPS hpsPaint;
-			POINTL ptl;                  /* Add 6 because it has a thick border like the entryfield */
-			unsigned long width, height, thumbheight = WinQuerySysValue(HWND_DESKTOP, SV_CYVSCROLLARROW) + 6;
-
-			WinQueryPresParam(parent, PP_BACKGROUNDCOLORINDEX, 0, &bcol, sizeof(ULONG), &av, QPF_ID1COLORINDEX | QPF_NOINHERIT);
-            dw_window_get_pos_size(hWnd, 0, 0, &width, &height);
-
-			hpsPaint = WinGetPS(hWnd);
-			GpiSetColor(hpsPaint, CLR_PALEGRAY);
-
-			ptl.x = 0;
-			ptl.y = 0;
-			GpiMove(hpsPaint, &ptl);
-
-			ptl.x = width;
-			ptl.y = height - thumbheight;
-			GpiBox(hpsPaint, DRO_FILL, &ptl, 0, 0);
-
-			WinReleasePS(hpsPaint);
-		}
-		break;
-	}
-	if(oldproc)
-		return oldproc(hWnd, msg, mp1, mp2);
-
-	return WinDefWindowProc(hWnd, msg, mp1, mp2);
-}
-
-void _GetPPFont(HWND hwnd, char *buff)
-{
-    ULONG AttrFound;
-    BYTE  AttrValue[128];
-    ULONG cbRetLen;
-
-    cbRetLen = WinQueryPresParam(hwnd,
-                                 PP_FONTNAMESIZE,
-                                 0,
-                                 &AttrFound,
-                                 sizeof(AttrValue),
-                                 &AttrValue,
-                                 QPF_NOINHERIT);
-
-    if(PP_FONTNAMESIZE == AttrFound && cbRetLen)
-    {
-        memcpy(buff, AttrValue, cbRetLen);
-    }
-}
-
-/* Returns height of specified window. */
-int _get_height(HWND handle)
-{
-	unsigned long height;
-	dw_window_get_pos_size(handle, NULL, NULL, NULL, &height);
-	return (int)height;
-}
-
-/* Find the height of the frame a desktop style window is sitting on */
-int _get_frame_height(HWND handle)
-{
-	while(handle)
-	{
-		HWND client;
-		if((client = WinWindowFromID(handle, FID_CLIENT)) != NULLHANDLE)
-		{
-            return _get_height(WinQueryWindow(handle, QW_PARENT));
-		}
-        handle = WinQueryWindow(handle, QW_PARENT);
-	}
-	return dw_screen_height();
-}
-
-#ifndef NO_SIGNALS
-MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
-{
-	int result = -1;
-	SignalHandler *tmp = Root;
-	ULONG origmsg = msg;
-
-	if(msg == WM_BUTTON2DOWN || msg == WM_BUTTON3DOWN)
-		msg = WM_BUTTON1DOWN;
-	if(msg == WM_BUTTON2UP || msg == WM_BUTTON3UP)
-		msg = WM_BUTTON1UP;
-
-	/* Find any callbacks for this function */
-	while(tmp)
-	{
-		if(tmp->message == msg || msg == WM_CONTROL || tmp->message == WM_USER+1)
-		{
-			switch(msg)
+		case WM_SETFOCUS:
+            if(cinfo->combo)
+				_wndproc(cinfo->combo, msg, mp1, mp2);
+			else
+				_wndproc(hWnd, msg, mp1, mp2);
+			break;
+		case WM_CHAR:
+			if(LOWORD(mp1) == '\t')
 			{
-			case WM_SETFOCUS:
-				{
-					if((mp2 && tmp->message == WM_SETFOCUS) || (!mp2 && tmp->message == WM_USER+1))
-					{
-						int (*setfocusfunc)(HWND, void *) = (int (*)(HWND, void *))tmp->signalfunction;
-
-						if(hWnd == tmp->window || WinWindowFromID(tmp->window, FID_CLIENT) == hWnd)
-						{
-							result = setfocusfunc(tmp->window, tmp->data);
-							tmp = NULL;
-						}
-					}
-				}
-				break;
-			case WM_SIZE:
-				{
-					int (*sizefunc)(HWND, int, int, void *) = (int (*)(HWND, int, int, void *))tmp->signalfunction;
-
-					if(hWnd == tmp->window || WinWindowFromID(tmp->window, FID_CLIENT) == hWnd)
-					{
-						result = sizefunc(tmp->window, SHORT1FROMMP(mp2), SHORT2FROMMP(mp2), tmp->data);
-						tmp = NULL;
-					}
-				}
-				break;
-			case WM_BUTTON1DOWN:
-				{
-					POINTS pts = (*((POINTS*)&mp1));
-					int (*buttonfunc)(HWND, int, int, int, void *) = (int (*)(HWND, int, int, int, void *))tmp->signalfunction;
-
-					if(hWnd == tmp->window || WinWindowFromID(tmp->window, FID_CLIENT) == hWnd || WinQueryCapture(HWND_DESKTOP) == tmp->window)
-					{
-						int button = 0;
-
-						switch(origmsg)
-						{
-						case WM_BUTTON1DOWN:
-							button = 1;
-							break;
-						case WM_BUTTON2DOWN:
-							button = 2;
-							break;
-						case WM_BUTTON3DOWN:
-							button = 3;
-							break;
-						}
-
-						result = buttonfunc(tmp->window, pts.x, _get_frame_height(tmp->window) - pts.y, button, tmp->data);
-						tmp = NULL;
-					}
-				}
-				break;
-			case WM_BUTTON1UP:
-				{
-					POINTS pts = (*((POINTS*)&mp1));
-					int (*buttonfunc)(HWND, int, int, int, void *) = (int (*)(HWND, int, int, int, void *))tmp->signalfunction;
-
-					if(hWnd == tmp->window || WinWindowFromID(tmp->window, FID_CLIENT) == hWnd || WinQueryCapture(HWND_DESKTOP) == tmp->window)
-					{
-						int button = 0;
-
-						switch(origmsg)
-						{
-						case WM_BUTTON1UP:
-							button = 1;
-							break;
-						case WM_BUTTON2UP:
-							button = 2;
-							break;
-						case WM_BUTTON3UP:
-							button = 3;
-							break;
-						}
-
-						result = buttonfunc(tmp->window, pts.x, WinQueryWindow(tmp->window, QW_PARENT) == HWND_DESKTOP ? dw_screen_height() - pts.y : _get_height(tmp->window) - pts.y, button, tmp->data);
-						tmp = NULL;
-					}
-				}
-				break;
-			case WM_MOUSEMOVE:
-				{
-					int (*motionfunc)(HWND, int, int, int, void *) = (int (*)(HWND, int, int, int, void *))tmp->signalfunction;
-
-					if(hWnd == tmp->window || WinWindowFromID(tmp->window, FID_CLIENT) == hWnd || WinQueryCapture(HWND_DESKTOP) == tmp->window)
-					{
-						int keys = 0;
-						SHORT x = SHORT1FROMMP(mp1), y = SHORT2FROMMP(mp1);
-
-						if (WinGetKeyState(HWND_DESKTOP, VK_BUTTON1) & 0x8000)
-							keys = DW_BUTTON1_MASK;
-						if (WinGetKeyState(HWND_DESKTOP, VK_BUTTON2) & 0x8000)
-							keys |= DW_BUTTON2_MASK;
-						if (WinGetKeyState(HWND_DESKTOP, VK_BUTTON3) & 0x8000)
-							keys |= DW_BUTTON3_MASK;
-
-						result = motionfunc(tmp->window, x, _get_frame_height(tmp->window) - y, keys, tmp->data);
-						tmp = NULL;
-					}
-				}
-				break;
-			case WM_CHAR:
-				{
-					int (*keypressfunc)(HWND, int, void *) = (int (*)(HWND, int, void *))tmp->signalfunction;
-
-					if(hWnd == tmp->window)
-					{
-						result = keypressfunc(tmp->window, SHORT1FROMMP(mp2), tmp->data);
-						tmp = NULL;
-					}
-				}
-				break;
-			case WM_CLOSE:
-				{
-					int (*closefunc)(HWND, void *) = (int (*)(HWND, void *))tmp->signalfunction;
-
-					if(hWnd == tmp->window || hWnd == WinWindowFromID(tmp->window, FID_CLIENT))
-					{
-						result = closefunc(tmp->window, tmp->data);
-						if(result)
-							result = FALSE;
-						tmp = NULL;
-					}
-				}
-				break;
-			case WM_PAINT:
-				{
-					HPS hps;
-					DWExpose exp;
-					int (*exposefunc)(HWND, DWExpose *, void *) = (int (*)(HWND, DWExpose *, void *))tmp->signalfunction;
-					RECTL  rc;
-
-					if(hWnd == tmp->window)
-					{
-						int height = _get_height(hWnd);
-
-						hps = WinBeginPaint(hWnd, 0L, &rc);
-						exp.x = rc.xLeft;
-						exp.y = height - rc.yTop - 1;
-						exp.width = rc.xRight - rc. xLeft;
-						exp.height = rc.yTop - rc.yBottom;
-						result = exposefunc(hWnd, &exp, tmp->data);
-						WinEndPaint(hps);
-					}
-				}
-				break;
-			case WM_COMMAND:
-				{
-					int (*clickfunc)(HWND, void *) = (int (*)(HWND, void *))tmp->signalfunction;
-					ULONG command = COMMANDMSG(&msg)->cmd;
-
-					if(tmp->window < 65536 && command == tmp->window)
-					{
-						result = clickfunc(tmp->window, tmp->data);
-						tmp = NULL;
-					}
-				}
-				break;
-			case WM_CONTROL:
-				if(tmp->message == SHORT2FROMMP(mp1))
-				{
-					switch(SHORT2FROMMP(mp1))
-					{
-					case CN_ENTER:
-						{
-							int (*containerselectfunc)(HWND, char *, void *) = (int (*)(HWND, char *, void *))tmp->signalfunction;
-							int id = SHORT1FROMMP(mp1);
-							HWND conthwnd = dw_window_from_id(hWnd, id);
-							char *text = NULL;
-
-							if(mp2)
-							{
-								PRECORDCORE pre;
-
-								pre = ((PNOTIFYRECORDENTER)mp2)->pRecord;
-								if(pre)
-									text = pre->pszIcon;
-							}
-
-							if(tmp->window == conthwnd)
-							{
-								result = containerselectfunc(tmp->window, text, tmp->data);
-								tmp = NULL;
-							}
-						}
-						break;
-					case CN_CONTEXTMENU:
-						{
-							int (*containercontextfunc)(HWND, char *, int, int, void *, void *) = (int (*)(HWND, char *, int, int, void *, void *))tmp->signalfunction;
-							int id = SHORT1FROMMP(mp1);
-							HWND conthwnd = dw_window_from_id(hWnd, id);
-							char *text = NULL;
-							void *user = NULL;
-							LONG x,y;
-
-							if(mp2)
-							{
-								PCNRITEM pci;
-
-								pci = (PCNRITEM)mp2;
-
-								text = pci->rc.pszIcon;
-								user = pci->user;
-							}
-
-							dw_pointer_query_pos(&x, &y);
-
-							if(tmp->window == conthwnd)
-							{
-								if(mp2)
-								{
-									NOTIFYRECORDEMPHASIS pre;
-
-									dw_tree_item_select(tmp->window, (HWND)mp2);
-									pre.pRecord = mp2;
-									pre.fEmphasisMask = CRA_CURSORED;
-									pre.hwndCnr = tmp->window;
-									_run_event(hWnd, WM_CONTROL, MPFROM2SHORT(0, CN_EMPHASIS), (MPARAM)&pre);
-									pre.pRecord->flRecordAttr |= CRA_CURSORED;
-								}
-								result = containercontextfunc(tmp->window, text, x, y, tmp->data, user);
-								tmp = NULL;
-							}
-						}
-						break;
-					case CN_EMPHASIS:
-						{
-							PNOTIFYRECORDEMPHASIS pre = (PNOTIFYRECORDEMPHASIS)mp2;
-							static int emph_recurse = 0;
-
-							if(!emph_recurse)
-							{
-								emph_recurse = 1;
-
-								if(mp2)
-								{
-									if(tmp->window == pre->hwndCnr)
-									{
-										PCNRITEM pci = (PCNRITEM)pre->pRecord;
-
-										if(pci && pre->fEmphasisMask & CRA_CURSORED && (pci->rc.flRecordAttr & CRA_CURSORED))
-										{
-											int (*treeselectfunc)(HWND, HWND, char *, void *, void *) = (int (*)(HWND, HWND, char *, void *, void *))tmp->signalfunction;
-
-											if(lasthcnr == tmp->window && lastitem == (HWND)pci)
-											{
-												lasthcnr = 0;
-												lastitem = 0;
-											}
-											else
-											{
-												lasthcnr = tmp->window;
-												lastitem = (HWND)pci;
-												result = treeselectfunc(tmp->window, (HWND)pci, pci->rc.pszIcon, pci->user, tmp->data);
-											}
-											tmp = NULL;
-										}
-									}
-								}
-								emph_recurse = 0;
-							}
-						}
-						break;
-					case LN_SELECT:
-						{
-							int (*listboxselectfunc)(HWND, int, void *) = (int (*)(HWND, int, void *))tmp->signalfunction;
-							int id = SHORT1FROMMP(mp1);
-							HWND conthwnd = dw_window_from_id(hWnd, id);
-							static int _recursing = 0;
-
-							if(_recursing == 0 && (tmp->window == conthwnd || (!id && tmp->window == (HWND)mp2)))
-							{
-								char buf1[500], classbuf[100];
-								unsigned int index = dw_listbox_selected(tmp->window);
-
-								dw_listbox_query_text(tmp->window, index, buf1, 500);
-
-								WinQueryClassName(tmp->window, 99, classbuf);
-
-								_recursing = 1;
-
-								if(id && strncmp(classbuf, "#2", 3)==0)
-								{
-									char *buf2;
-
-									buf2 = dw_window_get_text(tmp->window);
-
-									/* This is to make sure the listboxselect function doesn't
-									 * get called if the user is modifying the entry text.
-									 */
-									if(buf2 && *buf2 && *buf1 && strncmp(buf1, buf2, 500) == 0)
-										result = listboxselectfunc(tmp->window, index, tmp->data);
-
-									if(buf2)
-										free(buf2);
-								}
-								else
-									result = listboxselectfunc(tmp->window, index, tmp->data);
-
-								_recursing = 0;
-								tmp = NULL;
-							}
-						}
-						break;
-					}
-				}
-				break;
+				if(cinfo->combo)
+					_shift_focus(cinfo->combo);
+				else if(cinfo->buddy)
+					_shift_focus(cinfo->buddy);
+				else
+					_shift_focus(hWnd);
+				return FALSE;
 			}
-		}
-
-		if(tmp)
-			tmp = tmp->next;
-
-	}
-
-	return (MRESULT)result;
-}
-#endif
-
-/* Handles control messages sent to the box (owner). */
-MRESULT EXPENTRY _controlproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
-{
-	Box *blah = WinQueryWindowPtr(hWnd, QWP_USER);
-
-#ifndef NO_SIGNALS
-	switch(msg)
-	{
-	case WM_CONTROL:
-		_run_event(hWnd, msg, mp1, mp2);
-		break;
-	}
-#endif
-	if(blah && blah->oldproc)
-	{
-		return blah->oldproc(hWnd, msg, mp1, mp2);
-	}
-
-	return WinDefWindowProc(hWnd, msg, mp1, mp2);
-}
-
-/* The main window procedure for Dynamic Windows, all the resizing code is done here. */
-MRESULT EXPENTRY _wndproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
-{
-	int result = -1;
-	static int command_active = 0;
-	void (* windowfunc)(PVOID) = 0L;
-
-	if(filterfunc)
-		result = filterfunc(hWnd, msg, mp1, mp2);
-
-#ifndef NO_SIGNALS
-	if(result == -1 && !command_active)
-	{
-        /* Make sure we don't end up in infinite recursion */
-		command_active = 1;
-
-		result = (int)_run_event(hWnd, msg, mp1, mp2);
-
-		command_active = 0;
-	}
-#endif
-
-	/* Now that any handlers are done... do normal processing */
-	switch( msg )
-	{
-   case WM_ERASEBACKGROUND:
-      return 0;
-
-	case WM_PAINT:
-		{
-		HPS    hps;
-		RECTL  rc;
-
-		hps = WinBeginPaint( hWnd, 0L, &rc );
-		WinEndPaint( hps );
-		break;
-		}
-
-	case WM_SIZE:
-		{
-			Box *mybox = (Box *)WinQueryWindowPtr(hWnd, QWP_USER);
-
-			if(!SHORT1FROMMP(mp2) && !SHORT2FROMMP(mp2))
-				return (MPARAM)TRUE;
-
-			if(mybox && mybox->flags != DW_MINIMIZED)
+			else if(LOWORD(mp1) == '\r')
 			{
-				/* Hide the window when recalculating to reduce
-				 * CPU load.
-				 */
-				WinShowWindow(hWnd, FALSE);
+				if(cinfo->clickdefault)
+					_click_default(cinfo->clickdefault);
 
-				_do_resize(mybox, SHORT1FROMMP(mp2), SHORT2FROMMP(mp2));
-
-				WinShowWindow(hWnd, TRUE);
-			}
-		}
-		break;
-	case WM_MINMAXFRAME:
-		{
-			Box *mybox = (Box *)WinQueryWindowPtr(hWnd, QWP_USER);
-			SWP *swp = (SWP *)mp1;
-
-			if(mybox && (swp->fl & SWP_MINIMIZE))
-				mybox->flags = DW_MINIMIZED;
-
-			if(mybox && (swp->fl & SWP_RESTORE))
-			{
-				if(!mybox->titlebar && mybox->hwndtitle)
-					WinSetParent(mybox->hwndtitle, HWND_OBJECT, FALSE);
-				mybox->flags = 0;
 			}
 
-			if(mybox && (swp->fl & SWP_MAXIMIZE))
+			/* Tell the spinner control that a keypress has
+			 * occured and to update it's internal value.
+			 */
+			if(cinfo->buddy && !cinfo->combo)
 			{
-				int z;
-				SWP swp2;
-
-				WinQueryWindowPos(swp->hwnd, &swp2);
-
-				if(swp2.cx == swp->cx && swp2.cy == swp->cy)
-					return FALSE;
-
-				mybox->flags = 0;
-
-				/* Hide the window when recalculating to reduce
-				 * CPU load.
-				 */
-				WinShowWindow(hWnd, FALSE);
-
-				_do_resize(mybox, swp->cx, swp->cy);
-
-				if(mybox->count == 1 && mybox->items[0].type == TYPEBOX)
-				{
-					mybox = (Box *)WinQueryWindowPtr(mybox->items[0].hwnd, QWP_USER);
-
-					for(z=0;z<mybox->count;z++)
-					{
-						char tmpbuf[100];
-
-						WinQueryClassName(mybox->items[z].hwnd, 99, tmpbuf);
-
-						/* If we have a notebook we resize the page again. */
-						if(strncmp(tmpbuf, "#40", 3)==0)
-						{
-							unsigned long x, y, width, height;
-							int page = dw_notebook_page_query(mybox->items[z].hwnd);
-							HWND pagehwnd = (HWND)WinSendMsg(mybox->items[z].hwnd, BKM_QUERYPAGEWINDOWHWND, MPFROMLONG(page), 0);
-							RECTL rc;
-
-							Box *pagebox = (Box *)WinQueryWindowPtr(pagehwnd, QWP_USER);
-							if(pagebox)
-							{
-								dw_window_get_pos_size(mybox->items[z].hwnd, &x, &y, &width, &height);
-
-								rc.xLeft = x;
-								rc.yBottom = y;
-								rc.xRight = x + width;
-								rc.yTop = y + height;
-
-								WinSendMsg(mybox->items[z].hwnd, BKM_CALCPAGERECT, (MPARAM)&rc, (MPARAM)TRUE);
-
-								_do_resize(pagebox, rc.xRight - rc.xLeft, rc.yTop - rc.yBottom);
-							}
-
-						}
-					}
-
-				}
-
-				WinShowWindow(hWnd, TRUE);
+				if(IsWinNT())
+					PostMessage(cinfo->buddy, WM_USER+10, 0, 0);
+				else
+					SendMessage(cinfo->buddy, WM_USER+10, 0, 0);
 			}
-		}
-		break;
-	case WM_CONTROL:
-		switch(SHORT2FROMMP(mp1))
-		{
-		case BKN_PAGESELECTEDPENDING:
+			break;
+		case WM_USER+10:
 			{
-				PAGESELECTNOTIFY *psn = (PAGESELECTNOTIFY *)mp2;
-				HWND pagehwnd = (HWND)WinSendMsg(psn->hwndBook, BKM_QUERYPAGEWINDOWHWND, MPFROMLONG(psn->ulPageIdNew), 0);
-				Box *pagebox = (Box *)WinQueryWindowPtr(pagehwnd, QWP_USER);
-				unsigned long x, y, width, height;
-				RECTL rc;
-
-				if(pagebox && psn->ulPageIdNew != psn->ulPageIdCur)
+				if(cinfo->buddy)
 				{
-					dw_window_get_pos_size(psn->hwndBook, &x, &y, &width, &height);
+					long val, position;
+					char tmpbuf[100] = "";
 
-					rc.xLeft = x;
-					rc.yBottom = y;
-					rc.xRight = x + width;
-					rc.yTop = y + height;
+					GetWindowText(cinfo->buddy, tmpbuf, 99);
 
-					WinSendMsg(psn->hwndBook, BKM_CALCPAGERECT, (MPARAM)&rc, (MPARAM)TRUE);
+					position = atol(tmpbuf);
 
-					_do_resize(pagebox, rc.xRight - rc.xLeft, rc.yTop - rc.yBottom);
+					if(IS_WIN98PLUS)
+						val = (long)SendMessage(cinfo->buddy, UDM_GETPOS32, 0, 0);
+					else
+						val = (long)SendMessage(cinfo->buddy, UDM_GETPOS, 0, 0);
+
+					if(val != position)
+					{
+						sprintf(tmpbuf, "%d", val);
+						SetWindowText(hWnd, tmpbuf);
+					}
 				}
 			}
 			break;
-		}
-		break;
-	case WM_CLOSE:
-		if(result == -1)
-		{
-			dw_window_destroy(WinQueryWindow(hWnd, QW_PARENT));
-			return (MRESULT)TRUE;
-		}
-		break;
-	case WM_USER:
-		windowfunc = (void (*)(void *))mp1;
+		case WM_KEYUP:
+			{
+				if(mp1 == VK_UP || mp1 == VK_DOWN)
+				{
+					if(cinfo->buddy)
+						PostMessage(hWnd, WM_USER+10, 0, 0);
+				}
+			}
+			break;
+		case WM_CTLCOLORSTATIC:
+		case WM_CTLCOLORLISTBOX:
+		case WM_CTLCOLORBTN:
+		case WM_CTLCOLOREDIT:
+		case WM_CTLCOLORMSGBOX:
+		case WM_CTLCOLORSCROLLBAR:
+		case WM_CTLCOLORDLG:
+			{
+				ColorInfo *thiscinfo = (ColorInfo *)GetWindowLong((HWND)mp2, GWL_USERDATA);
+				if(thiscinfo && thiscinfo->fore != -1 && thiscinfo->back != -1)
+				{
+					if(thiscinfo->fore > -1 && thiscinfo->back > -1 &&
+					   thiscinfo->fore < 18 && thiscinfo->back < 18)
+					{
+						SetTextColor((HDC)mp1, RGB(_red[thiscinfo->fore],
+												   _green[thiscinfo->fore],
+											   _blue[thiscinfo->fore]));
+						SetBkColor((HDC)mp1, RGB(_red[thiscinfo->back],
+												 _green[thiscinfo->back],
+												 _blue[thiscinfo->back]));
+						DeleteObject(thiscinfo->hbrush);
+						thiscinfo->hbrush = CreateSolidBrush(RGB(_red[thiscinfo->back],
+																 _green[thiscinfo->back],
+																 _blue[thiscinfo->back]));
+						SelectObject((HDC)mp1, thiscinfo->hbrush);
+						return (LONG)thiscinfo->hbrush;
+					}
+					if((thiscinfo->fore & DW_RGB_COLOR) == DW_RGB_COLOR && (thiscinfo->back & DW_RGB_COLOR) == DW_RGB_COLOR)
+					{
+						SetTextColor((HDC)mp1, RGB(DW_RED_VALUE(thiscinfo->fore),
+												   DW_GREEN_VALUE(thiscinfo->fore),
+												   DW_BLUE_VALUE(thiscinfo->fore)));
+						SetBkColor((HDC)mp1, RGB(DW_RED_VALUE(thiscinfo->back),
+												 DW_GREEN_VALUE(thiscinfo->back),
+												 DW_BLUE_VALUE(thiscinfo->back)));
+						DeleteObject(thiscinfo->hbrush);
+						thiscinfo->hbrush = CreateSolidBrush(RGB(DW_RED_VALUE(thiscinfo->back),
+																 DW_GREEN_VALUE(thiscinfo->back),
+																 DW_BLUE_VALUE(thiscinfo->back)));
+						SelectObject((HDC)mp1, thiscinfo->hbrush);
+						return (LONG)thiscinfo->hbrush;
+					}
+				}
 
-		if(windowfunc)
-			windowfunc((void *)mp2);
+			}
+			break;
+		}
+	}
+
+	if(!pOldProc)
+		return DefWindowProc(hWnd, msg, mp1, mp2);
+	return CallWindowProc(pOldProc, hWnd, msg, mp1, mp2);
+}
+
+BOOL CALLBACK _containerwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
+{
+	ContainerInfo *cinfo;
+
+	cinfo = (ContainerInfo *)GetWindowLong(hWnd, GWL_USERDATA);
+
+	switch( msg )
+	{
+	case WM_COMMAND:
+	case WM_NOTIFY:
+		_wndproc(hWnd, msg, mp1, mp2);
 		break;
+#ifndef NO_SIGNALS
+	case WM_LBUTTONDBLCLK:
 	case WM_CHAR:
-		if(SHORT1FROMMP(mp2) == '\t')
+		{
+			LV_ITEM lvi;
+			int iItem;
+
+			if(LOWORD(mp1) == '\t')
+			{
+				_shift_focus(hWnd);
+				return FALSE;
+			}
+
+			if(msg == WM_CHAR && (char)mp1 != '\r')
+				break;
+
+			iItem = ListView_GetNextItem(hWnd, -1, LVNI_FOCUSED);
+
+			if(iItem > -1)
+			{
+				lvi.iItem = iItem;
+				lvi.mask = LVIF_PARAM;
+
+				ListView_GetItem(hWnd, &lvi);
+			}
+			else
+				lvi.lParam = (LPARAM)NULL;
+
+			{
+				SignalHandler *tmp = Root;
+
+				while(tmp)
+				{
+					if(tmp->message == NM_DBLCLK && tmp->window == hWnd)
+					{
+						int (*containerselectfunc)(HWND, char *, void *) = tmp->signalfunction;
+
+						/* Seems to be having lParam as 1 which really sucks */
+						if(lvi.lParam < 100)
+							lvi.lParam = 0;
+
+						containerselectfunc(tmp->window, (char *)lvi.lParam, tmp->data);
+						tmp = NULL;
+					}
+					if(tmp)
+						tmp = tmp->next;
+				}
+			}
+		}
+		break;
+	case WM_CONTEXTMENU:
+		{
+			SignalHandler *tmp = Root;
+
+			while(tmp)
+			{
+				if(tmp->message == NM_RCLICK && tmp->window == hWnd)
+				{
+					int (*containercontextfunc)(HWND, char *, int, int, void *) = tmp->signalfunction;
+					LONG x,y;
+					LV_ITEM lvi;
+					int iItem;
+					LVHITTESTINFO lhi;
+
+					dw_pointer_query_pos(&x, &y);
+
+					lhi.pt.x = x;
+					lhi.pt.y = y;
+
+					MapWindowPoints(HWND_DESKTOP, tmp->window, &lhi.pt, 1);
+
+					iItem = ListView_HitTest(tmp->window, &lhi);
+
+					if(iItem > -1)
+					{
+						lvi.iItem = iItem;
+						lvi.mask = LVIF_PARAM;
+
+						ListView_GetItem(tmp->window, &lvi);
+						ListView_SetSelectionMark(tmp->window, iItem);
+					}
+					else
+						lvi.lParam = (LPARAM)NULL;
+
+					/* Seems to be having lParam as 1 which really sucks */
+					if(lvi.lParam < 100)
+						lvi.lParam = 0;
+
+					containercontextfunc(tmp->window, (char *)lvi.lParam, x, y, tmp->data);
+					tmp = NULL;
+				}
+				if(tmp)
+					tmp = tmp->next;
+			}
+		}
+		break;
+#else
+	case WM_CHAR:
+		if(LOWORD(mp1) == '\t')
 		{
 			_shift_focus(hWnd);
 			return FALSE;
 		}
 		break;
-	case WM_DESTROY:
-		/* Free memory before destroying */
-		_free_window_memory(hWnd);
-		break;
+#endif
 	}
-	if(result != -1)
-		return (MRESULT)result;
-	else
-		return WinDefWindowProc(hWnd, msg, mp1, mp2);
+
+	if(!cinfo || !cinfo->pOldProc)
+		return DefWindowProc(hWnd, msg, mp1, mp2);
+	return CallWindowProc(cinfo->pOldProc, hWnd, msg, mp1, mp2);
 }
 
 void _changebox(Box *thisbox, int percent, int type)
@@ -1989,7 +1876,7 @@ void _changebox(Box *thisbox, int percent, int type)
 	{
 		if(thisbox->items[z].type == TYPEBOX)
 		{
-			Box *tmp = WinQueryWindowPtr(thisbox->items[z].hwnd, QWP_USER);
+			Box *tmp = (Box*)GetWindowLong(thisbox->items[z].hwnd, GWL_USERDATA);
 			_changebox(tmp, percent, type);
 		}
 		else
@@ -2009,170 +1896,113 @@ void _changebox(Box *thisbox, int percent, int type)
 }
 
 /* This handles any activity on the splitbars (sizers) */
-MRESULT EXPENTRY _splitwndproc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
+BOOL CALLBACK _splitwndproc(HWND hwnd, UINT msg, WPARAM mp1, LPARAM mp2)
 {
 	HWND hwndFrame = 0;
 	Box *thisbox = 0;
 
-	hwndFrame = WinQueryWindow(hwnd, QW_PARENT);
+	hwndFrame = GetParent(hwnd);
 	if(hwndFrame)
-		thisbox = WinQueryWindowPtr(hwndFrame, QWL_USER);
+		thisbox = (Box *)GetWindowLong(hwndFrame, GWL_USERDATA);
 
 	switch (msg)
 	{
 	case WM_ACTIVATE:
 	case WM_SETFOCUS:
-		return (MRESULT)(FALSE);
+		return FALSE;
 
 	case WM_PAINT:
 		{
-			HPS hpsPaint;
-			RECTL rclPaint;
-			POINTL ptlStart[SPLITBAR_WIDTH];
-			POINTL ptlEnd[SPLITBAR_WIDTH];
+			HDC hdcPaint;
+			PAINTSTRUCT ps;
+			POINT ptlStart[SPLITBAR_WIDTH];
+			POINT ptlEnd[SPLITBAR_WIDTH];
+			RECT rcPaint;
 			USHORT i;
 
-			hpsPaint = WinBeginPaint(hwnd, 0, 0);
-			WinQueryWindowRect(hwnd, &rclPaint);
+			hdcPaint = BeginPaint(hwnd, &ps);
+			GetWindowRect(hwnd, &rcPaint);
 
 			if(thisbox->type == BOXHORZ)
 			{
 				for(i = 0; i < SPLITBAR_WIDTH; i++)
 				{
-					ptlStart[i].x = rclPaint.xLeft + i;
-					ptlStart[i].y = rclPaint.yTop;
+					ptlStart[i].x = i;
+					ptlStart[i].y = 0;
 
-					ptlEnd[i].x = rclPaint.xLeft + i;
-					ptlEnd[i].y = rclPaint.yBottom;
+					ptlEnd[i].x = i;
+					ptlEnd[i].y = rcPaint.bottom - rcPaint.top;
 				}
 			}
 			else
 			{
 				for(i = 0; i < SPLITBAR_WIDTH; i++)
 				{
-					ptlStart[i].x = rclPaint.xLeft;
-					ptlStart[i].y = rclPaint.yBottom + i;
+					ptlStart[i].x = 0;
+					ptlStart[i].y = i;
 
-					ptlEnd[i].x = rclPaint.xRight;
-					ptlEnd[i].y = rclPaint.yBottom + i;
+					ptlEnd[i].x = rcPaint.right - rcPaint.left;
+					ptlEnd[i].y = i;
 				}
 			}
 
 			for(i = 0; i < SPLITBAR_WIDTH; i++)
 			{
-				GpiSetColor( hpsPaint, lColor[i]);
-				GpiMove(hpsPaint, &ptlStart[i]);
-				GpiLine(hpsPaint, &ptlEnd[i]);
+				HPEN hPen;
+				HPEN hOldPen;
+	 
+				hPen = CreatePen(PS_SOLID, 1, RGB (_red[lColor[i]], _green[lColor[i]], _blue[lColor[i]]));
+				hOldPen = (HPEN)SelectObject(hdcPaint, hPen);
+				MoveToEx(hdcPaint, ptlStart[i].x, ptlStart[i].y, NULL);
+				LineTo(hdcPaint, ptlEnd[i].x, ptlEnd[i].y);
+				SelectObject(hdcPaint, hOldPen);
+				DeleteObject(hPen);
 			}
-			WinEndPaint(hpsPaint);
+			EndPaint(hwnd, &ps);
 		}
-		return MRFROMSHORT(FALSE);
-
+		return FALSE;
 	case WM_MOUSEMOVE:
 		{
 			if(thisbox->type == BOXHORZ)
-				WinSetPointer(HWND_DESKTOP,
-							  WinQuerySysPointer(HWND_DESKTOP,
-												 SPTR_SIZEWE,
-												 FALSE));
+				SetCursor(LoadCursor(NULL, IDC_SIZEWE));
 			else
-				WinSetPointer(HWND_DESKTOP,
-							  WinQuerySysPointer(HWND_DESKTOP,
-												 SPTR_SIZENS,
-												 FALSE));
+				SetCursor(LoadCursor(NULL, IDC_SIZENS));
 		}
-		return MRFROMSHORT(FALSE);
+		return FALSE;
+#if 0
 	case WM_BUTTON1DOWN:
 		{
-			APIRET rc;
+			ULONG rc;
 			RECTL  rclFrame;
 			RECTL  rclBounds;
 			RECTL  rclStart;
 			USHORT startSize, orig, actual;
 
-			WinQueryWindowRect(hwnd, &rclFrame);
-			WinQueryWindowRect(hwnd, &rclStart);
+			GetWindowRect(hwnd, &rclFrame);
+			GetWindowRect(hwnd, &rclStart);
 
-			WinQueryWindowRect(hwndFrame, &rclBounds);
+			GetWindowRect(hwndFrame, &rclBounds);
 
 			WinMapWindowPoints(hwndFrame, HWND_DESKTOP,
 							   (PPOINTL)&rclBounds, 2);
 			WinMapWindowPoints(hwnd, HWND_DESKTOP,
 							   (PPOINTL)&rclStart, 2);
 
+			if(thisbox->type == BOXHORZ)
 			{
-				int z, pastsplitbar = FALSE, found = FALSE;
-				orig = actual = 0;
+				orig =  thisbox->items[0].origwidth;
+				actual = thisbox->items[0].width;
 
-				for(z=0;z<thisbox->count;z++)
-				{
-					if(thisbox->items[z].hwnd == hwnd)
-						pastsplitbar = TRUE;
-					else
-					{
-						if(thisbox->type == BOXHORZ)
-						{
-							int tmpwidth, tmporigwidth;
+				startSize = (rclStart.xLeft - rclBounds.xLeft)
+					* (((float)orig)/((float)actual));
+			}
+			else
+			{
+				orig = thisbox->items[0].origheight;
+				actual = thisbox->items[0].height;
 
-							if(thisbox->items[z].type == TYPEBOX)
-								_count_size(thisbox->items[z].hwnd, BOXHORZ, &tmpwidth, &tmporigwidth);
-							else
-							{
-								tmpwidth = thisbox->items[z].width;
-								tmporigwidth = thisbox->items[z].origwidth;
-							}
-
-							if(thisbox->items[z].hsize != SIZESTATIC && tmpwidth > actual && tmporigwidth)
-							{
-								found = pastsplitbar;
-								orig = tmporigwidth;
-								actual = tmpwidth;
-							}
-						}
-						else
-						{
-							int tmpheight, tmporigheight;
-
-							if(thisbox->items[z].type == TYPEBOX)
-								_count_size(thisbox->items[z].hwnd, BOXVERT, &tmpheight, &tmporigheight);
-							else
-							{
-								tmpheight = thisbox->items[z].height;
-								tmporigheight = thisbox->items[z].origheight;
-							}
-
-							if(thisbox->items[z].vsize != SIZESTATIC && tmpheight > actual && tmporigheight)
-							{
-								found = pastsplitbar;
-								orig = tmporigheight;
-								actual = tmpheight;
-							}
-						}
-					}
-				}
-
-				/* If we couldn't determine a valid scale... then abort */
-				if(!orig || !actual)
-					return MRFROMSHORT(FALSE);
-
-				if(thisbox->type == BOXHORZ)
-				{
-					if(found)
-						startSize = (rclStart.xLeft - rclBounds.xLeft)
-							* (((float)actual)/((float)orig));
-					else
-						startSize = (rclStart.xLeft - rclBounds.xLeft)
-							* (((float)orig)/((float)actual));
-				}
-				else
-				{
-					if(found)
-						startSize  = (rclStart.yBottom - rclBounds.yBottom)
-							* (((float)actual)/((float)orig));
-					else
-						startSize  = (rclStart.yBottom - rclBounds.yBottom)
-							* (((float)orig)/((float)actual));
-				}
+				startSize  = (rclStart.yBottom - rclBounds.yBottom)
+					* (((float)actual)/((float)orig));
 			}
 
 			rc = _TrackRectangle(hwnd, &rclFrame, &rclBounds);
@@ -2180,6 +2010,7 @@ MRESULT EXPENTRY _splitwndproc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 			if(rc == TRUE)
 			{
 				USHORT usNewRB;
+				USHORT usSize;
 				USHORT percent;
 				int z;
 
@@ -2187,19 +2018,16 @@ MRESULT EXPENTRY _splitwndproc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 				{
 					usNewRB = rclFrame.xLeft
 						- rclBounds.xLeft;
+					usSize  = rclBounds.xRight
+						- rclBounds.xLeft;
 				}
 				else
 				{
 					usNewRB = rclFrame.yBottom
 						- rclBounds.yBottom;
+					usSize  = rclBounds.yTop
+						- rclBounds.yBottom;
 				}
-
-				/* We don't want the item to disappear completely */
-				if(!usNewRB)
-					usNewRB++;
-
-				if(!startSize)
-					startSize++;
 
 				percent = (usNewRB*100)/startSize;
 
@@ -2207,10 +2035,8 @@ MRESULT EXPENTRY _splitwndproc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 				{
 					if(thisbox->items[z].type == TYPEBOX)
 					{
-						Box *tmp = WinQueryWindowPtr(thisbox->items[z].hwnd, QWP_USER);
-
-						if(tmp)
-							_changebox(tmp, percent, thisbox->type);
+						Box *tmp = (Box *)GetWindowLong(thisbox->items[z].hwnd, GWL_USERDATA);
+						_changebox(tmp, percent, thisbox->type);
 					}
 					else
 					{
@@ -2230,136 +2056,151 @@ MRESULT EXPENTRY _splitwndproc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 					}
 				}
 
-				_ResetWindow(WinQueryWindow(hwnd, QW_OWNER));
+				_ResetWindow(GetWindow(hwnd, GW_OWNER));
 			}
 		}
 		return MRFROMSHORT(FALSE);
+#endif
 	}
-	return WinDefWindowProc(hwnd, msg, mp1, mp2);
+	return DefWindowProc(hwnd, msg, mp1, mp2);
 }
 
-/* Function: BubbleProc
- * Abstract: Subclass procedure for bubble help
- */
-MRESULT EXPENTRY _BubbleProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
+/* This handles drawing the status text areas */
+BOOL CALLBACK _statuswndproc(HWND hwnd, UINT msg, WPARAM mp1, LPARAM mp2)
 {
-	MRESULT res;
-	PFNWP proc = (PFNWP)WinQueryWindowPtr(hwnd, QWL_USER);
-
-	if(proc)
-		res = proc(hwnd, msg, mp1, mp2);
-	else
-		res = WinDefWindowProc(hwnd, msg, mp1, mp2);
-
-	if(msg == WM_PAINT)
+	switch (msg)
 	{
-		POINTL ptl;
-		HPS hpsTemp;
-		RECTL rcl;
-		int height, width;
+	case WM_SETTEXT:
+		{
+			/* Make sure the control redraws when there is a text change */
+			int ret = (int)DefWindowProc(hwnd, msg, mp1, mp2);
 
-		WinQueryWindowRect(hwnd, &rcl);
-		height = rcl.yTop - rcl.yBottom - 1;
-		width = rcl.xRight - rcl.xLeft - 1;
+			InvalidateRgn(hwnd, NULL, TRUE);
+			return ret;
+		}
+	case WM_PAINT:
+		{
+			HDC hdcPaint;
+			PAINTSTRUCT ps;
+			RECT rc;
+			HFONT hFont;
+			HBRUSH oldBrush;
+			HPEN oldPen;
+			unsigned long cx, cy;
+			int threadid = dw_thread_id();
+			char tempbuf[1024] = "";
 
-		/* Draw a border around the bubble help */
-		hpsTemp = WinGetPS(hwnd);
-		GpiSetColor(hpsTemp, DW_CLR_BLACK);
-		ptl.x = ptl.y = 0;
-		GpiMove(hpsTemp, &ptl);
-		ptl.x = 0;
-		ptl.y = height;
-		GpiLine(hpsTemp, &ptl);
-		ptl.x = ptl.y = 0;
-		GpiMove(hpsTemp, &ptl);
-		ptl.y = 0;
-		ptl.x = width;
-		GpiLine(hpsTemp, &ptl);
-		ptl.x = width;
-		ptl.y = height;
-		GpiMove(hpsTemp, &ptl);
-		ptl.x = 0;
-		ptl.y = height;
-		GpiLine(hpsTemp, &ptl);
-		ptl.x = width;
-		ptl.y = height;
-		GpiMove(hpsTemp, &ptl);
-		ptl.y = 0;
-		ptl.x = width;
-		GpiLine(hpsTemp, &ptl);
-		WinReleasePS(hpsTemp);
+			if(threadid < 0 || threadid >= THREAD_LIMIT)
+				threadid = 0;
+
+			hdcPaint = BeginPaint(hwnd, &ps);
+			EndPaint(hwnd, &ps);
+
+			hdcPaint = GetDC(hwnd);
+
+			oldBrush = _hBrush[threadid];
+			oldPen = _hPen[threadid];
+
+			dw_window_get_pos_size(hwnd, NULL, NULL, &cx, &cy);
+
+ 
+			_hBrush[threadid] = CreateSolidBrush(GetSysColor(COLOR_3DFACE));
+
+			dw_draw_rect(hwnd, 0, TRUE, 0, 0, cx, cy);
+
+			_hPen[threadid] = CreatePen(PS_SOLID, 1, RGB(_red[DW_CLR_DARKGRAY],
+														 _green[DW_CLR_DARKGRAY],
+														 _blue[DW_CLR_DARKGRAY]));
+
+			dw_draw_line(hwnd, 0, 0, 0, cx, 0);
+			dw_draw_line(hwnd, 0, 0, 0, 0, cy);
+
+			DeleteObject(_hPen[threadid]);
+
+			_hPen[threadid] = GetStockObject(WHITE_PEN);
+
+			dw_draw_line(hwnd, 0, cx - 1, cy - 1, cx - 1, 0);
+			dw_draw_line(hwnd, 0, cx - 1, cy - 1, 0, cy - 1);
+
+			rc.left = 3;
+			rc.top = 1;
+			rc.bottom = cy - 1;
+			rc.right = cx - 1;
+
+			GetWindowText(hwnd, tempbuf, 1024);
+
+			hFont = (HFONT)SelectObject(hdcPaint, GetStockObject(DEFAULT_GUI_FONT));
+
+			SetTextColor(hdcPaint, RGB(0,0,0));
+			SetBkMode(hdcPaint, TRANSPARENT);
+
+			ExtTextOut(hdcPaint, 3, 1, ETO_CLIPPED, &rc, tempbuf, strlen(tempbuf), NULL);
+
+			SelectObject(hdcPaint, hFont);
+
+			DeleteObject(_hBrush[threadid]);
+			_hBrush[threadid] = oldBrush;
+			_hPen[threadid] = oldPen;
+			ReleaseDC(hwnd, hdcPaint);
+		}
+		return FALSE;
 	}
-	return res;
+	return DefWindowProc(hwnd, msg, mp1, mp2);
 }
 
-/* Function: BtProc
+/* Function: _BtProc
  * Abstract: Subclass procedure for buttons
  */
 
-MRESULT EXPENTRY _BtProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
+BOOL CALLBACK _BtProc(HWND hwnd, ULONG msg, WPARAM mp1, LPARAM mp2)
 {
 	BubbleButton *bubble;
-	PFNWP oldproc;
+	static int bMouseOver = 0;
+	POINT point;
+	RECT rect;
+	WNDPROC pOldProc;
 
-	bubble = (BubbleButton *)WinQueryWindowPtr(hwnd, QWL_USER);
+	bubble = (BubbleButton *)GetWindowLong(hwnd, GWL_USERDATA);
 
 	if(!bubble)
-		return WinDefWindowProc(hwnd, msg, mp1, mp2);
+		return DefWindowProc(hwnd, msg, mp1, mp2);
 
-	oldproc = bubble->pOldProc;
+	/* We must save a pointer to the old
+	 * window procedure because if a signal
+	 * handler attached here destroys this
+	 * window it will then be invalid.
+	 */
+	pOldProc = bubble->pOldProc;
 
 	switch(msg)
 	{
 #ifndef NO_SIGNALS
 	case WM_SETFOCUS:
-		if(mp2)
-			_run_event(hwnd, msg, mp1, mp2);
-		else
-			WinSendMsg(hwnd, BM_SETDEFAULT, 0, 0);
+		_wndproc(hwnd, msg, mp1, mp2);
 		break;
-	case WM_BUTTON1UP:
+	case WM_LBUTTONUP:
 		{
 			SignalHandler *tmp = Root;
 
-			if(WinIsWindowEnabled(hwnd))
+			/* Find any callbacks for this function */
+			while(tmp)
 			{
-				/* Find any callbacks for this function */
-				while(tmp)
+				if(tmp->message == WM_COMMAND)
 				{
-					if(tmp->message == WM_COMMAND)
+					int (*clickfunc)(HWND, void *) = tmp->signalfunction;
+
+					/* Make sure it's the right window, and the right ID */
+					if(tmp->window == hwnd)
 					{
-						/* Make sure it's the right window, and the right ID */
-						if(tmp->window == hwnd)
-						{
-							/* Due to the fact that if we run the function
-							 * here, finishing actions on the button will occur
-							 * after we run the signal handler.  So we post the
-							 * message so the button can finish what it needs to
-							 * do before we run our handler.
-							 */
-							WinPostMsg(hwnd, WM_USER, (MPARAM)tmp, 0);
-							tmp = NULL;
-						}
+						clickfunc(tmp->window, tmp->data);
+						tmp = NULL;
 					}
-					if(tmp)
-						tmp= tmp->next;
 				}
+				if(tmp)
+					tmp= tmp->next;
 			}
 		}
 		break;
-	case WM_USER:
-		{
-            SignalHandler *tmp = (SignalHandler *)mp1;
-			int (*clickfunc)(HWND, void *) = NULL;
-
-			if(tmp)
-			{
-				clickfunc = (int (*)(HWND, void *))tmp->signalfunction;
-
-				clickfunc(tmp->window, tmp->data);
-			}
-		}
-        break;
 #endif
 	case WM_CHAR:
 		{
@@ -2367,7 +2208,7 @@ MRESULT EXPENTRY _BtProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 			/* A button press should also occur for an ENTER or SPACE press
 			 * while the button has the active input focus.
 			 */
-			if(SHORT1FROMMP(mp2) == '\r' || SHORT1FROMMP(mp2) == ' ')
+			if(LOWORD(mp1) == '\r' || LOWORD(mp1) == ' ')
 			{
 				SignalHandler *tmp = Root;
 
@@ -2376,10 +2217,12 @@ MRESULT EXPENTRY _BtProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 				{
 					if(tmp->message == WM_COMMAND)
 					{
+						int (*clickfunc)(HWND, void *) = tmp->signalfunction;
+
 						/* Make sure it's the right window, and the right ID */
 						if(tmp->window == hwnd)
 						{
-							WinPostMsg(hwnd, WM_USER, (MPARAM)tmp, 0);
+							clickfunc(tmp->window, tmp->data);
 							tmp = NULL;
 						}
 					}
@@ -2388,139 +2231,157 @@ MRESULT EXPENTRY _BtProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 				}
 			}
 #endif
-			if(SHORT1FROMMP(mp2) == '\t')
+			if(LOWORD(mp1) == '\t')
 			{
 				_shift_focus(hwnd);
-				WinSendMsg(hwnd, BM_SETDEFAULT, 0, 0);
 				return FALSE;
 			}
 		}
 		break;
-	case 0x041f:
+	case WM_TIMER:
 		if (hwndBubble)
 		{
-			WinDestroyWindow(hwndBubble);
+			DestroyWindow(hwndBubble);
 			hwndBubble = 0;
+			KillTimer(hwnd, 1);
 		}
 		break;
 
-	case 0x041e:
+	case WM_MOUSEMOVE:
+		GetCursorPos(&point);
+		GetWindowRect(hwnd, &rect);
 
-		if(!*bubble->bubbletext)
-			break;
-
-
-		if(hwndBubble)
+		if(PtInRect(&rect, point))
 		{
-			WinDestroyWindow(hwndBubble);
-			hwndBubble = 0;
+			if(hwnd != GetCapture())
+			{
+				SetCapture(hwnd);
+			}
+			if(!bMouseOver)
+			{
+				bMouseOver = 1;
+				if(!*bubble->bubbletext)
+					break;
+
+				if(hwndBubble)
+				{
+					DestroyWindow(hwndBubble);
+					hwndBubble = 0;
+					KillTimer(hwndBubbleLast, 1);
+				}
+
+				if(!hwndBubble)
+				{
+					POINTL ptlWork = {0,0};
+					ULONG ulColor = DW_CLR_YELLOW;
+					SIZE size;
+					HDC hdc;
+					RECT rect;
+					void *oldproc;
+
+					/* Use the WS_EX_TOOLWINDOW extended style
+					 * so the window doesn't get listed in the
+					 * taskbar.
+					 */
+					hwndBubble = CreateWindowEx(WS_EX_TOOLWINDOW,
+												STATICCLASSNAME,
+												bubble->bubbletext,
+												BS_TEXT | WS_POPUP |
+												WS_BORDER |
+												SS_CENTER,
+												0,0,50,20,
+												HWND_DESKTOP,
+												NULL,
+												NULL,
+												NULL);
+
+					dw_window_set_font(hwndBubble, DefaultFont);
+					dw_window_set_color(hwndBubble, DW_CLR_BLACK, DW_CLR_YELLOW);
+
+					hwndBubbleLast = hwnd;
+
+					SetTimer(hwnd, 1, 3000, NULL);
+
+					hdc = GetDC(hwndBubble);
+
+					GetTextExtentPoint(hdc, bubble->bubbletext, strlen(bubble->bubbletext), &size);
+
+					MapWindowPoints(hwnd, HWND_DESKTOP, (LPPOINT)&ptlWork, 1);
+
+					GetWindowRect(hwnd, &rect);
+
+					SetWindowPos(hwndBubble,
+								 HWND_TOP,
+								 ptlWork.x,
+								 ptlWork.y + (rect.bottom-rect.top) + 1,
+								 size.cx + 2,
+								 size.cy + 2,
+								 SWP_NOACTIVATE | SWP_SHOWWINDOW);
+
+					ReleaseDC(hwndBubble, hdc);
+				}
+			}
 		}
+		else{
+			/* Calling ReleaseCapture in Win95 also causes WM_CAPTURECHANGED
+			 * to be sent.  Be sure to account for that.
+			 */
+			ReleaseCapture();
 
-		if(!hwndBubble)
+			if(bMouseOver)
+			{
+				bMouseOver = 0;
+				DestroyWindow(hwndBubble);
+				hwndBubble = 0;
+				KillTimer(hwndBubbleLast, 1);
+			}
+		}
+		break;
+	case WM_CAPTURECHANGED:
+		/* This message means we are losing the capture for some reason
+		 * Either because we intentionally lost it or another window
+		 * stole it
+		 */
+		if(bMouseOver)
 		{
-			HPS   hpsTemp = 0;
-			LONG  lHight;
-			LONG  lWidth;
-			POINTL txtPointl[TXTBOX_COUNT];
-			POINTL ptlWork = {0,0};
-			ULONG ulColor = DW_CLR_YELLOW;
-			void *blah;
-
-			hwndBubbleLast   = hwnd;
-			hwndBubble = WinCreateWindow(HWND_DESKTOP,
-										 WC_STATIC,
-										 "",
-										 SS_TEXT |
-										 DT_CENTER |
-										 DT_VCENTER,
-                                         0,0,0,0,
-										 HWND_DESKTOP,
-										 HWND_TOP,
-										 0,
-										 NULL,
-										 NULL);
-
-			WinSetPresParam(hwndBubble,
-							PP_FONTNAMESIZE,
-							sizeof(DefaultFont),
-							DefaultFont);
-
-
-			WinSetPresParam(hwndBubble,
-							PP_BACKGROUNDCOLORINDEX,
-							sizeof(ulColor),
-							&ulColor);
-
-			WinSetWindowText(hwndBubble,
-							 bubble->bubbletext);
-
-			WinMapWindowPoints(hwnd, HWND_DESKTOP, &ptlWork, 1);
-
-			hpsTemp = WinGetPS(hwndBubble);
-			GpiQueryTextBox(hpsTemp,
-							strlen(bubble->bubbletext),
-							bubble->bubbletext,
-							TXTBOX_COUNT,
-							txtPointl);
-			WinReleasePS(hpsTemp);
-
-			lWidth = txtPointl[TXTBOX_TOPRIGHT].x -
-				txtPointl[TXTBOX_TOPLEFT ].x + 8;
-
-			lHight = txtPointl[TXTBOX_TOPLEFT].y -
-				txtPointl[TXTBOX_BOTTOMLEFT].y + 8;
-
-			ptlWork.y -= lHight;
-
-			blah = (void *)WinSubclassWindow(hwndBubble, _BubbleProc);
-
-			if(blah)
-				WinSetWindowPtr(hwndBubble, QWP_USER, blah);
-
-			WinSetWindowPos(hwndBubble,
-							HWND_TOP,
-							ptlWork.x,
-							ptlWork.y,
-							lWidth,
-							lHight,
-							SWP_SIZE | SWP_MOVE | SWP_SHOW);
+			bMouseOver = 0;
+			DestroyWindow(hwndBubble);
+			hwndBubble = 0;
+			KillTimer(hwndBubbleLast, 1);
 		}
 		break;
 	}
 
-	if(!oldproc)
-		return WinDefWindowProc(hwnd, msg, mp1, mp2);
-	return oldproc(hwnd, msg, mp1, mp2);
+	if(!pOldProc)
+		return DefWindowProc(hwnd, msg, mp1, mp2);
+	return CallWindowProc(pOldProc, hwnd, msg, mp1, mp2);
 }
 
-MRESULT EXPENTRY _RendProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
+/* This function recalculates a notebook page for example
+ * during switching of notebook pages.
+ */
+void _resize_notebook_page(HWND handle, int pageid)
 {
-	int res = 0;
-#ifndef NO_SIGNALS
-	res = (int)_run_event(hwnd, msg, mp1, mp2);
-#endif
-	switch(msg)
+	RECT rect;
+	NotebookPage **array = (NotebookPage **)GetWindowLong(handle, GWL_USERDATA);
+
+	if(array && array[pageid])
 	{
-	case WM_BUTTON1DOWN:
-	case WM_BUTTON2DOWN:
-	case WM_BUTTON3DOWN:
-		if(!res)
-			WinSetFocus(HWND_DESKTOP, hwnd);
-		return (MPARAM)TRUE;
+		Box *box = (Box *)GetWindowLong(array[pageid]->hwnd, GWL_USERDATA);
+
+		GetClientRect(handle,&rect);
+		TabCtrl_AdjustRect(handle,FALSE,&rect);
+		MoveWindow(array[pageid]->hwnd, rect.left, rect.top,
+				   rect.right - rect.left, rect.bottom-rect.top, TRUE);
+		if(box && box->count)
+		{
+			ShowWindow(box->items[0].hwnd, SW_HIDE);
+			_do_resize(box, rect.right - rect.left, rect.bottom - rect.top);
+			ShowWindow(box->items[0].hwnd, SW_SHOW);
+		}
+
+		ShowWindow(array[pageid]->hwnd, SW_SHOWNORMAL);
 	}
-	return WinDefWindowProc(hwnd, msg, mp1, mp2);
-}
-
-MRESULT EXPENTRY _TreeProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
-{
-	Box *blah = WinQueryWindowPtr(hwnd, QWP_USER);
-
-#ifndef NO_SIGNALS
-	_run_event(hwnd, msg, mp1, mp2);
-#endif
-	if(blah && blah->oldproc)
-		return blah->oldproc(hwnd, msg, mp1, mp2);
-	return WinDefWindowProc(hwnd, msg, mp1, mp2);
 }
 
 /*
@@ -2531,24 +2392,116 @@ MRESULT EXPENTRY _TreeProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
  */
 int dw_init(int newthread, int argc, char *argv[])
 {
-	APIRET rc;
+	WNDCLASS wc;
+	int z;
+	INITCOMMONCONTROLSEX icc;
 
-	if(newthread)
+	icc.dwSize = sizeof(INITCOMMONCONTROLSEX);
+	icc.dwICC = ICC_WIN95_CLASSES;
+
+	InitCommonControlsEx(&icc);
+
+	memset(lookup, 0, sizeof(HICON) * ICON_INDEX_LIMIT);
+
+	/* Register the generic Dynamic Windows class */
+	memset(&wc, 0, sizeof(WNDCLASS));
+	wc.style = CS_DBLCLKS;
+	wc.lpfnWndProc = (WNDPROC)_wndproc;
+	wc.cbClsExtra = 0;
+	wc.cbWndExtra = 32;
+	wc.hbrBackground = NULL;
+	wc.lpszMenuName = NULL;
+	wc.lpszClassName = ClassName;
+
+	RegisterClass(&wc);
+
+	/* Register the splitbar control */
+	memset(&wc, 0, sizeof(WNDCLASS));
+	wc.style = CS_DBLCLKS | CS_HREDRAW | CS_VREDRAW;
+	wc.lpfnWndProc = (WNDPROC)_splitwndproc;
+	wc.cbClsExtra = 0;
+	wc.cbWndExtra = 0;
+	wc.hbrBackground = NULL;
+	wc.lpszMenuName = NULL;
+	wc.lpszClassName = SplitbarClassName;
+
+	RegisterClass(&wc);
+
+	/* Register a frame control like on OS/2 */
+	memset(&wc, 0, sizeof(WNDCLASS));
+	wc.style = CS_DBLCLKS;
+	wc.lpfnWndProc = (WNDPROC)_framewndproc;
+	wc.cbClsExtra = 0;
+	wc.cbWndExtra = 32;
+	wc.hbrBackground = (HBRUSH)COLOR_WINDOW;
+	wc.hCursor = LoadCursor(NULL, IDC_ARROW);
+	wc.lpszMenuName = NULL;
+	wc.lpszClassName = FRAMECLASSNAME;
+
+	RegisterClass(&wc);
+
+	/* Create a set of brushes using the default OS/2 and DOS colors */
+	for(z=0;z<18;z++)
+		_colors[z] = CreateSolidBrush(RGB(_red[z],_green[z],_blue[z]));
+
+	/* Register an Object Windows class like OS/2 and Win2k+
+	 * so similar functionality can be used on earlier releases
+	 * of Windows.
+	 */
+	memset(&wc, 0, sizeof(WNDCLASS));
+	wc.style = 0;
+	wc.lpfnWndProc = (WNDPROC)_wndproc;
+	wc.cbClsExtra = 0;
+	wc.cbWndExtra = 0;
+	wc.hbrBackground = NULL;
+	wc.hCursor = LoadCursor(NULL, IDC_ARROW);
+	wc.lpszMenuName = NULL;
+	wc.lpszClassName = ObjectClassName;
+
+	RegisterClass(&wc);
+
+	/* Since Windows 95/98/NT don't have a HWND_OBJECT class
+	 * also known as a input only window, I will create a
+	 * temporary window that isn't visible and really does nothing
+	 * except temporarily hold the child windows before they are
+	 * packed into their correct parent.
+	 */
+
+	DW_HWND_OBJECT = CreateWindow(ObjectClassName, "", 0, 0, 0,
+								  0, 0, HWND_DESKTOP, NULL, NULL, NULL);
+
+	if(!DW_HWND_OBJECT)
 	{
-		dwhab = WinInitialize(0);
-		dwhmq = WinCreateMsgQueue(dwhab, 0);
+		dw_messagebox("Dynamic Windows", "Could not initialize the object window. error code %d", GetLastError());
+		exit(1);
 	}
 
-	rc = WinRegisterClass(dwhab, ClassName, _wndproc, CS_SIZEREDRAW | CS_CLIPCHILDREN, 32);
-	rc = WinRegisterClass(dwhab, SplitbarClassName, _splitwndproc, 0L, 32);
-
-	/* Get the OS/2 version. */
-	DosQuerySysInfo(QSV_VERSION_MAJOR, QSV_MS_COUNT,(void *)aulBuffer, 4*sizeof(ULONG));
-
 #ifdef DWDEBUG
-	f = fopen("dw.log", "w");
+	f = fopen("dw.log", "wt");
 #endif
-	return rc;
+	/* We need the version to check capability like up-down controls */
+	dwVersion = GetVersion();
+
+	for(z=0;z<THREAD_LIMIT;z++)
+	{
+		_foreground[z] = RGB(128,128,128);
+		_background[z] = 0;
+		_hPen[z] = CreatePen(PS_SOLID, 1, _foreground[z]);
+		_hBrush[z] = CreateSolidBrush(_foreground[z]);
+	}
+
+#if 0
+	{
+		DWORD dwResult = GetSysColor(COLOR_3DFACE);
+ 
+		dw_messagebox("DW",
+					  "Window color: {%x, %x, %x}",
+					  GetRValue(dwResult),
+					  GetGValue(dwResult),
+					  GetBValue(dwResult));
+	}
+#endif
+	return 0;
 }
 
 /*
@@ -2560,31 +2513,20 @@ int dw_init(int newthread, int argc, char *argv[])
  */
 void dw_main(HAB currenthab, void *func)
 {
-	QMSG qmsg;
-	HAB habtouse;
-
-	if(!currenthab)
-		habtouse = dwhab;
-	else
-		habtouse = currenthab;
+	MSG msg;
 
 	/* Setup the filter function */
-	filterfunc = (int (* EXPENTRY)(HWND, ULONG, MPARAM, MPARAM))func;
+	filterfunc = func;
 
-	_dwtid = dw_thread_id();
-
-	while (WinGetMsg(habtouse, &qmsg, 0, 0, 0))
-		WinDispatchMsg(habtouse, &qmsg);
+	while (GetMessage(&msg, NULL, 0, 0))
+	{
+		TranslateMessage(&msg);
+		DispatchMessage(&msg);
+	}
 
 #ifdef DWDEBUG
 	fclose(f);
 #endif
-
-	if(!currenthab)
-	{
-		WinDestroyMsgQueue(dwhmq);
-		WinTerminate(dwhab);
-	}
 }
 
 /*
@@ -2594,18 +2536,19 @@ void dw_main(HAB currenthab, void *func)
  */
 void dw_main_sleep(int seconds)
 {
-	QMSG qmsg;
+	MSG msg;
 	time_t start = time(NULL);
 
 	while(time(NULL) - start <= seconds)
 	{
-		if(WinPeekMsg(dwhab, &qmsg, 0, 0, 0, PM_NOREMOVE))
+		if(PeekMessage(&msg, NULL, 0, 0, PM_NOREMOVE))
 		{
-			WinGetMsg(dwhab, &qmsg, 0, 0, 0);
-			WinDispatchMsg(dwhab, &qmsg);
+			GetMessage(&msg, NULL, 0, 0);
+			TranslateMessage(&msg);
+			DispatchMessage(&msg);
 		}
 		else
-			DosSleep(1);
+			Sleep(1);
 	}
 }
 
@@ -2661,12 +2604,13 @@ int dw_dialog_dismiss(DWDialog *dialog, void *result)
  */
 void *dw_dialog_wait(DWDialog *dialog)
 {
-	QMSG qmsg;
+	MSG msg;
 	void *tmp;
 
-	while (WinGetMsg(dwhab, &qmsg, 0, 0, 0))
+	while (GetMessage(&msg,NULL,0,0))
 	{
-		WinDispatchMsg(dwhab, &qmsg);
+		TranslateMessage(&msg);
+		DispatchMessage(&msg);
 		if(dialog->done)
 			break;
 	}
@@ -2675,7 +2619,6 @@ void *dw_dialog_wait(DWDialog *dialog)
 	free(dialog);
 	return tmp;
 }
-
 
 /*
  * Displays a Message Box with given text and title..
@@ -2687,13 +2630,13 @@ void *dw_dialog_wait(DWDialog *dialog)
 int dw_messagebox(char *title, char *format, ...)
 {
 	va_list args;
-	char outbuf[1024];
+	char outbuf[256];
 
 	va_start(args, format);
 	vsprintf(outbuf, format, args);
 	va_end(args);
 
-	WinMessageBox(HWND_DESKTOP, HWND_DESKTOP, outbuf, title, 0, MB_OK | MB_INFORMATION | MB_MOVEABLE);
+	MessageBox(HWND_DESKTOP, outbuf, title, MB_OK);
 
 	return strlen(outbuf);
 }
@@ -2708,56 +2651,9 @@ int dw_messagebox(char *title, char *format, ...)
  */
 int dw_yesno(char *title, char *text)
 {
-	if(WinMessageBox(HWND_DESKTOP, HWND_DESKTOP, text, title, 0, MB_YESNO | MB_INFORMATION | MB_MOVEABLE | MB_SYSTEMMODAL)==MBID_YES)
+	if(MessageBox(HWND_DESKTOP, text, title, MB_YESNO) == IDYES)
 		return TRUE;
 	return FALSE;
-}
-
-/*
- * Makes the window topmost.
- * Parameters:
- *           handle: The window handle to make topmost.
- */
-int dw_window_raise(HWND handle)
-{
-	return WinSetWindowPos(handle, HWND_TOP, 0, 0, 0, 0, SWP_ZORDER);
-}
-
-/*
- * Makes the window bottommost.
- * Parameters:
- *           handle: The window handle to make bottommost.
- */
-int dw_window_lower(HWND handle)
-{
-	return WinSetWindowPos(handle, HWND_BOTTOM, 0, 0, 0, 0, SWP_ZORDER);
-}
-
-/*
- * Makes the window visible.
- * Parameters:
- *           handle: The window handle to make visible.
- */
-int dw_window_show(HWND handle)
-{
-	int rc = WinSetWindowPos(handle, NULLHANDLE, 0, 0, 0, 0, SWP_SHOW);
-	HSWITCH hswitch;
-	SWCNTRL swcntrl;
-
-	_fix_button_owner(handle, 0);
-	WinSetFocus(HWND_DESKTOP, handle);
-	_initial_focus(handle);
-
-	/* If this window has a  switch list entry make sure it is visible */
-	hswitch = WinQuerySwitchHandle(handle, 0);
-	if(hswitch)
-	{
-		WinQuerySwitchEntry(hswitch, &swcntrl);
-		swcntrl.uchVisibility = SWL_VISIBLE;
-		WinChangeSwitchEntry(hswitch, &swcntrl);
-	}
-	return rc;
-
 }
 
 /*
@@ -2767,20 +2663,40 @@ int dw_window_show(HWND handle)
  */
 int dw_window_minimize(HWND handle)
 {
-	HWND hwndclient = WinWindowFromID(handle, FID_CLIENT);
+	return ShowWindow(handle, SW_MINIMIZE);
+}
 
-	if(hwndclient)
-	{
-		Box *box = (Box *)WinQueryWindowPtr(hwndclient, QWP_USER);
+/*
+ * Makes the window topmost.
+ * Parameters:
+ *           handle: The window handle to make topmost.
+ */
+int dw_window_raise(HWND handle)
+{
+	return SetWindowPos(handle, HWND_TOP, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
+}
 
-		if(box)
-		{
-			if(!box->titlebar && box->hwndtitle)
-				WinSetParent(box->hwndtitle, handle, FALSE);
-		}
-	}
+/*
+ * Makes the window bottommost.
+ * Parameters:
+ *           handle: The window handle to make bottommost.
+ */
+int dw_window_lower(HWND handle)
+{
+	return SetWindowPos(handle, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
+}
 
-	return WinSetWindowPos(handle, NULLHANDLE, 0, 0, 0, 0, SWP_MINIMIZE);
+/*
+ * Makes the window visible.
+ * Parameters:
+ *           handle: The window handle to make visible.
+ */
+int dw_window_show(HWND handle)
+{
+	int rc = ShowWindow(handle, SW_SHOW);
+	SetFocus(handle);
+	_initial_focus(handle);
+	return rc;
 }
 
 /*
@@ -2790,18 +2706,7 @@ int dw_window_minimize(HWND handle)
  */
 int dw_window_hide(HWND handle)
 {
-	HSWITCH hswitch;
-	SWCNTRL swcntrl;
-
-	/* If this window has a  switch list entry make sure it is invisible */
-	hswitch = WinQuerySwitchHandle(handle, 0);
-	if(hswitch)
-	{
-		WinQuerySwitchEntry(hswitch, &swcntrl);
-		swcntrl.uchVisibility = SWL_INVISIBLE;
-		WinChangeSwitchEntry(hswitch, &swcntrl);
-	}
-	return WinShowWindow(handle, FALSE);
+	return ShowWindow(handle, SW_HIDE);
 }
 
 /*
@@ -2811,11 +2716,8 @@ int dw_window_hide(HWND handle)
  */
 int dw_window_destroy(HWND handle)
 {
-	HWND parent = WinQueryWindow(handle, QW_PARENT);
-	Box *thisbox = WinQueryWindowPtr(parent, QWP_USER);
-
-	if(!handle)
-		return -1;
+	HWND parent = GetParent(handle);
+	Box *thisbox = (Box *)GetWindowLong(parent, GWL_USERDATA);
 
 	if(parent != HWND_DESKTOP && thisbox && thisbox->count)
 	{
@@ -2847,8 +2749,7 @@ int dw_window_destroy(HWND handle)
 		free(thisitem);
 		thisbox->count--;
 	}
-	_disconnect_windows(handle);
-	return WinDestroyWindow(handle);
+	return DestroyWindow(handle);
 }
 
 /* Causes entire window to be invalidated and redrawn.
@@ -2857,18 +2758,17 @@ int dw_window_destroy(HWND handle)
  */
 void dw_window_redraw(HWND handle)
 {
-	HWND window = WinWindowFromID(handle, FID_CLIENT);
-	Box *mybox = (Box *)WinQueryWindowPtr(window, QWP_USER);
+	Box *mybox = (Box *)GetWindowLong(handle, GWL_USERDATA);
 
-	if(window && mybox)
+	if(mybox)
 	{
-		unsigned long width, height;
+		RECT rect;
 
-		dw_window_get_pos_size(window, NULL, NULL, &width, &height);
+		GetClientRect(handle, &rect);
 
-		WinShowWindow(mybox->items[0].hwnd, FALSE);
-		_do_resize(mybox, width, height);
-		WinShowWindow(mybox->items[0].hwnd, TRUE);
+		ShowWindow(mybox->items[0].hwnd, SW_HIDE);
+		_do_resize(mybox, rect.right - rect.left, rect.bottom - rect.top);
+		ShowWindow(mybox->items[0].hwnd, SW_SHOW);
 	}
 }
 
@@ -2880,8 +2780,44 @@ void dw_window_redraw(HWND handle)
  */
 void dw_window_reparent(HWND handle, HWND newparent)
 {
-	HWND blah = WinWindowFromID(newparent, FID_CLIENT);
-	WinSetParent(handle, blah ? blah : newparent, TRUE);
+	SetParent(handle, newparent);
+}
+
+HFONT _aquire_font(char *fontname)
+{
+	HFONT hfont;
+	int z, size = 9;
+	LOGFONT lf;
+
+	if(fontname == DefaultFont)
+		hfont = GetStockObject(DEFAULT_GUI_FONT);
+	else
+	{
+		for(z=0;z<strlen(fontname);z++)
+		{
+			if(fontname[z]=='.')
+				break;
+		}
+		size = atoi(fontname) + 5;
+
+		lf.lfHeight = size;
+		lf.lfWidth = 0;
+		lf.lfEscapement = 0;
+		lf.lfOrientation = 0;
+		lf.lfItalic = 0;
+		lf.lfUnderline = 0;
+		lf.lfStrikeOut = 0;
+		lf.lfWeight = FW_NORMAL;
+		lf.lfCharSet = DEFAULT_CHARSET;
+		lf.lfOutPrecision = 0;
+		lf.lfClipPrecision = 0;
+		lf.lfQuality = DEFAULT_QUALITY;
+		lf.lfPitchAndFamily = DEFAULT_PITCH | FW_DONTCARE;
+		strcpy(lf.lfFaceName, &fontname[z+1]);
+
+		hfont = CreateFontIndirect(&lf);
+	}
+	return hfont;
 }
 
 /*
@@ -2892,58 +2828,82 @@ void dw_window_reparent(HWND handle, HWND newparent)
  */
 int dw_window_set_font(HWND handle, char *fontname)
 {
-	return WinSetPresParam(handle, PP_FONTNAMESIZE, strlen(fontname)+1, fontname);
+	HFONT hfont = _aquire_font(fontname);
+	ColorInfo *cinfo;
+
+	cinfo = (ColorInfo *)GetWindowLong(handle, GWL_USERDATA);
+
+	if(fontname)
+	{
+		if(cinfo)
+		{
+			strcpy(cinfo->fontname, fontname);
+		}
+		else
+		{
+			cinfo = calloc(1, sizeof(ColorInfo));
+			cinfo->fore = cinfo->back = -1;
+			cinfo->buddy = 0;
+
+			strcpy(cinfo->fontname, fontname);
+
+			cinfo->pOldProc = SubclassWindow(handle, _colorwndproc);
+			SetWindowLong(handle, GWL_USERDATA, (ULONG)cinfo);
+		}
+	}
+	SendMessage(handle, WM_SETFONT, (WPARAM)hfont, FALSE);
+	return 0;
 }
 
 /*
  * Sets the colors used by a specified window (widget) handle.
  * Parameters:
  *          handle: The window (widget) handle.
- *          fore: Foreground color in DW_RGB format or a default color index.
- *          back: Background color in DW_RGB format or a default color index.
+ *          fore: Foreground color in RGB format.
+ *          back: Background color in RGB format.
  */
 int dw_window_set_color(HWND handle, ULONG fore, ULONG back)
 {
-	if((fore & DW_RGB_COLOR) == DW_RGB_COLOR)
+	ColorInfo *cinfo;
+	char tmpbuf[100];
+
+	cinfo = (ColorInfo *)GetWindowLong(handle, GWL_USERDATA);
+
+	GetClassName(handle, tmpbuf, 99);
+
+	if(strnicmp(tmpbuf, WC_LISTVIEW, strlen(WC_LISTVIEW))==0)
 	{
-		RGB2 rgb2;
-
-		rgb2.bBlue = DW_BLUE_VALUE(fore);
-		rgb2.bGreen = DW_GREEN_VALUE(fore);
-		rgb2.bRed = DW_RED_VALUE(fore);
-		rgb2.fcOptions = 0;
-
-		WinSetPresParam(handle, PP_FOREGROUNDCOLOR, sizeof(RGB2), &rgb2);
-
+		ListView_SetTextColor(handle, RGB(DW_RED_VALUE(fore),
+										  DW_GREEN_VALUE(fore),
+										  DW_BLUE_VALUE(fore)));
+		ListView_SetTextBkColor(handle, RGB(DW_RED_VALUE(back),
+											DW_GREEN_VALUE(back),
+											DW_BLUE_VALUE(back)));
+		ListView_SetBkColor(handle, RGB(DW_RED_VALUE(back),
+										DW_GREEN_VALUE(back),
+										DW_BLUE_VALUE(back)));
+		InvalidateRgn(handle, NULL, TRUE);
+		return TRUE;
 	}
-	if((back & DW_RGB_COLOR) == DW_RGB_COLOR)
+
+	if(cinfo)
 	{
-		RGB2 rgb2;
-
-		rgb2.bBlue = DW_BLUE_VALUE(back);
-		rgb2.bGreen = DW_GREEN_VALUE(back);
-		rgb2.bRed = DW_RED_VALUE(back);
-		rgb2.fcOptions = 0;
-
-		WinSetPresParam(handle, PP_BACKGROUNDCOLOR, sizeof(RGB2), &rgb2);
-		return 0;
+		cinfo->fore = fore;
+		cinfo->back = back;
 	}
-	if((fore & DW_RGB_COLOR) == DW_RGB_COLOR)
-		return 0;
+	else
+	{
+		cinfo = calloc(1, sizeof(ColorInfo));
 
-	/* Slight conversion */
-	if(fore == DW_CLR_BLACK)
-		fore = CLR_BLACK;
-	if(fore == DW_CLR_WHITE)
-		fore = CLR_WHITE;
+		cinfo->fore = fore;
+		cinfo->back = back;
+		cinfo->buddy = 0;
 
-	if(back == DW_CLR_BLACK)
-		back = CLR_BLACK;
-	if(back == DW_CLR_WHITE)
-		back = CLR_WHITE;
-
-	return (WinSetPresParam(handle, PP_FOREGROUNDCOLORINDEX, sizeof(ULONG), &fore) |
-			WinSetPresParam(handle, PP_BACKGROUNDCOLORINDEX, sizeof(ULONG), &back));
+		cinfo->pOldProc = SubclassWindow(handle, _colorwndproc);
+		SetWindowLong(handle, GWL_USERDATA, (ULONG)cinfo);
+	}
+	InvalidateRgn(handle, NULL, TRUE);
+	return TRUE;
 }
 
 /*
@@ -2954,7 +2914,6 @@ int dw_window_set_color(HWND handle, ULONG fore, ULONG back)
  */
 int dw_window_set_border(HWND handle, int border)
 {
-	WinSendMsg(handle, WM_SETBORDERSIZE, MPFROMSHORT(border), MPFROMSHORT(border));
 	return 0;
 }
 
@@ -2965,7 +2924,7 @@ int dw_window_set_border(HWND handle, int border)
  */
 void dw_window_capture(HWND handle)
 {
-	WinSetCapture(HWND_DESKTOP, handle);
+	SetCapture(handle);
 }
 
 /*
@@ -2973,17 +2932,7 @@ void dw_window_capture(HWND handle)
  */
 void dw_window_release(void)
 {
-	WinSetCapture(HWND_DESKTOP, NULLHANDLE);
-}
-
-/*
- * Tracks this window movement.
- * Parameters:
- *       handle: Handle to frame to be tracked.
- */
-void dw_window_track(HWND handle)
-{
-	WinSendMsg(handle, WM_TRACKFRAME, MPFROMSHORT(TF_MOVE), 0);
+	ReleaseCapture();
 }
 
 /*
@@ -2994,10 +2943,7 @@ void dw_window_track(HWND handle)
  */
 void dw_window_pointer(HWND handle, int pointertype)
 {
-	WinSetPointer(handle,
-				  WinQuerySysPointer(HWND_DESKTOP,
-									 pointertype,
-									 FALSE));
+	SetCursor(LoadCursor(NULL, MAKEINTRESOURCE(pointertype)));
 }
 
 /*
@@ -3005,32 +2951,44 @@ void dw_window_pointer(HWND handle, int pointertype)
  * Parameters:
  *       owner: The Owner's window handle or HWND_DESKTOP.
  *       title: The Window title.
- *       flStyle: Style flags, see the PM reference.
+ *       flStyle: Style flags, see the DW reference.
  */
 HWND dw_window_new(HWND hwndOwner, char *title, ULONG flStyle)
 {
-	HWND hwndclient = 0, hwndframe;
-	Box *newbox = calloc(1, sizeof(Box));
-	PFNWP *blah = malloc(sizeof(PFNWP));
+	HWND hwndframe;
+	Box *newbox = malloc(sizeof(Box));
+	ULONG flStyleEx = 0;
 
 	newbox->pad = 0;
 	newbox->type = BOXVERT;
 	newbox->count = 0;
 
-	flStyle |= FCF_NOBYTEALIGN;
+	if(hwndOwner)
+		flStyleEx |= WS_EX_MDICHILD;
 
-	if(flStyle & DW_FCF_TITLEBAR)
-		newbox->titlebar = 1;
+	if(!(flStyle & WS_CAPTION))
+		flStyle |= WS_POPUPWINDOW;
+
+	if(flStyle & DW_FCF_TASKLIST)
+	{
+		ULONG newflags = (flStyle | WS_CLIPCHILDREN) & ~DW_FCF_TASKLIST;
+
+		hwndframe = CreateWindowEx(flStyleEx, ClassName, title, newflags, CW_USEDEFAULT, CW_USEDEFAULT,
+								   CW_USEDEFAULT, CW_USEDEFAULT, hwndOwner, NULL, NULL, NULL);
+	}
 	else
-		flStyle |= FCF_TITLEBAR;
+	{
+		flStyleEx |= WS_EX_TOOLWINDOW;
 
-	hwndframe = WinCreateStdWindow(hwndOwner, 0L, &flStyle, ClassName, title, 0L, NULLHANDLE, 0L, &hwndclient);
-	newbox->hwndtitle = WinWindowFromID(hwndframe, FID_TITLEBAR);
-	if(!newbox->titlebar && newbox->hwndtitle)
-		WinSetParent(newbox->hwndtitle, HWND_OBJECT, FALSE);
-	*blah = WinSubclassWindow(hwndframe, _sizeproc);
-	WinSetWindowPtr(hwndframe, QWP_USER, blah);
-	WinSetWindowPtr(hwndclient, QWP_USER, newbox);
+		hwndframe = CreateWindowEx(flStyleEx, ClassName, title, flStyle | WS_CLIPCHILDREN, CW_USEDEFAULT, CW_USEDEFAULT,
+								   CW_USEDEFAULT, CW_USEDEFAULT, hwndOwner, NULL, NULL, NULL);
+	}
+	SetWindowLong(hwndframe, GWL_USERDATA, (ULONG)newbox);
+
+#if 0
+	if(hwndOwner)
+		SetParent(hwndframe, hwndOwner);
+#endif
 
 	return hwndframe;
 }
@@ -3043,29 +3001,27 @@ HWND dw_window_new(HWND hwndOwner, char *title, ULONG flStyle)
  */
 HWND dw_box_new(int type, int pad)
 {
-	Box *newbox = calloc(1, sizeof(Box));
+	Box *newbox = malloc(sizeof(Box));
 	HWND hwndframe;
 
 	newbox->pad = pad;
 	newbox->type = type;
 	newbox->count = 0;
-    newbox->grouphwnd = NULLHANDLE;
+	newbox->grouphwnd = (HWND)NULL;
 
-	hwndframe = WinCreateWindow(HWND_OBJECT,
-								WC_FRAME,
-								NULL,
-								WS_VISIBLE | WS_CLIPCHILDREN |
-								FS_NOBYTEALIGN,
-								0,0,2000,1000,
-								NULLHANDLE,
-								HWND_TOP,
-								0L,
-								NULL,
-								NULL);
+	hwndframe = CreateWindow(FRAMECLASSNAME,
+							 "",
+							 WS_CHILD | WS_CLIPCHILDREN,
+							 0,0,2000,1000,
+							 DW_HWND_OBJECT,
+							 NULL,
+							 NULL,
+							 NULL);
 
-	newbox->oldproc = WinSubclassWindow(hwndframe, _controlproc);
-	WinSetWindowPtr(hwndframe, QWP_USER, newbox);
-	dw_window_set_color(hwndframe, DW_CLR_PALEGRAY, DW_CLR_PALEGRAY);
+	newbox->cinfo.pOldProc = SubclassWindow(hwndframe, _colorwndproc);
+	newbox->cinfo.fore = newbox->cinfo.back = -1;
+
+	SetWindowLong(hwndframe, GWL_USERDATA, (ULONG)newbox);
 	return hwndframe;
 }
 
@@ -3078,40 +3034,33 @@ HWND dw_box_new(int type, int pad)
  */
 HWND dw_groupbox_new(int type, int pad, char *title)
 {
-	Box *newbox = calloc(1, sizeof(Box));
+	Box *newbox = malloc(sizeof(Box));
 	HWND hwndframe;
 
 	newbox->pad = pad;
 	newbox->type = type;
 	newbox->count = 0;
 
-	hwndframe = WinCreateWindow(HWND_OBJECT,
-								WC_FRAME,
-								NULL,
-								WS_VISIBLE |
-								FS_NOBYTEALIGN,
-								0,0,2000,1000,
-								NULLHANDLE,
-								HWND_TOP,
-								0L,
-								NULL,
-								NULL);
+	hwndframe = CreateWindow(FRAMECLASSNAME,
+							 "",
+							 WS_CHILD,
+							 0,0,2000,1000,
+							 DW_HWND_OBJECT,
+							 NULL,
+							 NULL,
+							 NULL);
 
-	newbox->grouphwnd = WinCreateWindow(hwndframe,
-										WC_STATIC,
-										title,
-										WS_VISIBLE | SS_GROUPBOX |
-										WS_GROUP,
-										0,0,2000,1000,
-										NULLHANDLE,
-										HWND_TOP,
-										0L,
-										NULL,
-										NULL);
+	newbox->grouphwnd = CreateWindow(BUTTONCLASSNAME,
+									 title,
+									 WS_CHILD | BS_GROUPBOX |
+									 WS_VISIBLE | WS_CLIPCHILDREN,
+									 0,0,2000,1000,
+									 hwndframe,
+									 NULL,
+									 NULL,
+									 NULL);
 
-	WinSetWindowPtr(hwndframe, QWP_USER, newbox);
-	dw_window_set_color(hwndframe, DW_CLR_PALEGRAY, DW_CLR_PALEGRAY);
-	dw_window_set_color(newbox->grouphwnd, DW_CLR_BLACK, DW_CLR_PALEGRAY);
+	SetWindowLong(hwndframe, GWL_USERDATA, (ULONG)newbox);
 	dw_window_set_font(newbox->grouphwnd, DefaultFont);
 	return hwndframe;
 }
@@ -3123,39 +3072,38 @@ HWND dw_groupbox_new(int type, int pad, char *title)
  */
 HWND dw_mdi_new(unsigned long id)
 {
+	CLIENTCREATESTRUCT ccs;
 	HWND hwndframe;
 
-	hwndframe = WinCreateWindow(HWND_OBJECT,
-								WC_FRAME,
-								NULL,
-								WS_VISIBLE | WS_CLIPCHILDREN |
-								FS_NOBYTEALIGN,
-								0,0,2000,1000,
-								NULLHANDLE,
-								HWND_TOP,
-								0L,
-								NULL,
-								NULL);
+	ccs.hWindowMenu = NULL;
+	ccs.idFirstChild = 0;
+
+	hwndframe = CreateWindow("MDICLIENT",
+							 "",
+							 WS_CHILD | WS_CLIPSIBLINGS,
+							 0,0,2000,1000,
+							 DW_HWND_OBJECT,
+							 NULL,
+							 DWInstance,
+							 &ccs);
 	return hwndframe;
 }
 
 /*
  * Create a bitmap object to be packed.
  * Parameters:
- *       id: An ID to be used with WinWindowFromID() or 0L.
+ *       id: An ID to be used with dw_window_from_id or 0L.
  */
 HWND dw_bitmap_new(ULONG id)
 {
-	return WinCreateWindow(HWND_OBJECT,
-						   WC_STATIC,
-						   NULL,
-						   WS_VISIBLE | SS_TEXT,
-						   0,0,2000,1000,
-						   NULLHANDLE,
-						   HWND_TOP,
-						   id,
-						   NULL,
-						   NULL);
+	return CreateWindow(STATICCLASSNAME,
+						"",
+						SS_BITMAP | WS_CHILD | WS_CLIPCHILDREN,
+						0,0,2000,1000,
+						DW_HWND_OBJECT,
+						NULL,
+						NULL,
+						NULL);
 }
 
 /*
@@ -3166,34 +3114,22 @@ HWND dw_bitmap_new(ULONG id)
  */
 HWND dw_notebook_new(ULONG id, int top)
 {
-	ULONG flags;
+	ULONG flags = 0;
 	HWND tmp;
+	NotebookPage **array = calloc(256, sizeof(NotebookPage *));
 
-	if(top)
-		flags = BKS_MAJORTABTOP;
-	else
-		flags = BKS_MAJORTABBOTTOM;
+	if(!top)
+		flags = TCS_BOTTOM;
 
-	tmp = WinCreateWindow(HWND_OBJECT,
-						  WC_NOTEBOOK,
-						  NULL,
-						  WS_VISIBLE |
-						  BKS_TABBEDDIALOG |
-						  flags,
-						  0,0,2000,1000,
-						  NULLHANDLE,
-						  HWND_TOP,
-						  id,
-						  NULL,
-						  NULL);
-
-	/* Fix tab sizes on Warp 3 */
-	if(!IS_WARP4())
-	{
-		/* best sizes to be determined by trial and error */
-		WinSendMsg(tmp, BKM_SETDIMENSIONS,MPFROM2SHORT(102, 28), MPFROMSHORT( BKA_MAJORTAB));
-	}
-
+	tmp = CreateWindow(WC_TABCONTROL,
+					   "",
+					   WS_CHILD | WS_CLIPCHILDREN,
+					   0,0,2000,1000,
+					   DW_HWND_OBJECT,
+					   NULL,
+					   NULL,
+					   NULL);
+	SetWindowLong(tmp, GWL_USERDATA, (ULONG)array);
 	dw_window_set_font(tmp, DefaultFont);
 	return tmp;
 }
@@ -3211,16 +3147,8 @@ HMENUI dw_menu_new(ULONG id)
 	if(!tmp)
 		return NULL;
 
-	tmp->menu = WinCreateWindow(HWND_OBJECT,
-								WC_MENU,
-								NULL,
-								WS_VISIBLE,
-								0,0,2000,1000,
-								NULLHANDLE,
-								HWND_TOP,
-								id,
-								NULL,
-								NULL);
+	tmp->menu = CreatePopupMenu();
+	tmp->hwnd = NULL;
 	return tmp;
 }
 
@@ -3236,16 +3164,10 @@ HMENUI dw_menubar_new(HWND location)
 	if(!tmp)
 		return NULL;
 
-	tmp->menu = WinCreateWindow(location,
-								WC_MENU,
-								NULL,
-								WS_VISIBLE | MS_ACTIONBAR,
-								0,0,2000,1000,
-								location,
-								HWND_TOP,
-								FID_MENU,
-								NULL,
-								NULL);
+	tmp->menu = CreateMenu();
+	tmp->hwnd = location;
+
+	SetMenu(location, tmp->menu);
 	return tmp;
 }
 
@@ -3258,7 +3180,7 @@ void dw_menu_destroy(HMENUI *menu)
 {
 	if(menu && *menu)
 	{
-		WinDestroyWindow((*menu)->menu);
+		DestroyMenu((*menu)->menu);
 		free(*menu);
 		*menu = NULL;
 	}
@@ -3270,39 +3192,50 @@ void dw_menu_destroy(HMENUI *menu)
  *       menu: The handle the the existing menu.
  *       title: The title text on the menu item to be added.
  *       id: An ID to be used for message passing.
- *       flags: Extended attributes to set on the menu.
  *       end: If TRUE memu is positioned at the end of the menu.
  *       check: If TRUE menu is "check"able.
+ *       flags: Extended attributes to set on the menu.
  *       submenu: Handle to an existing menu to be a submenu or NULL.
  */
 HWND dw_menu_append_item(HMENUI menux, char *title, ULONG id, ULONG flags, int end, int check, HMENUI submenu)
 {
-	MENUITEM miSubMenu;
-	HWND menu;
+	MENUITEMINFO mii;
+	HMENU menu;
 
 	if(!menux)
-		return NULLHANDLE;
+		return NULL;
 
 	menu = menux->menu;
 
-	if(end)
-		miSubMenu.iPosition=MIT_END;
-	else
-		miSubMenu.iPosition=0;
+	mii.cbSize = sizeof(MENUITEMINFO);
+	mii.fMask = MIIM_ID | MIIM_SUBMENU | MIIM_TYPE;
 
-	if(strlen(title) == 0)
-		miSubMenu.afStyle=MIS_SEPARATOR | flags;
-	else
-		miSubMenu.afStyle=MIS_TEXT | flags;
-	miSubMenu.afAttribute=0;
-	miSubMenu.id=id;
-	miSubMenu.hwndSubMenu = submenu ? submenu->menu : 0;
-	miSubMenu.hItem=NULLHANDLE;
+	/* Convert from OS/2 style accellerators to Win32 style */
+	if(title)
+	{
+		char *tmp = title;
 
-	WinSendMsg(menu,
-			   MM_INSERTITEM,
-			   MPFROMP(&miSubMenu),
-			   MPFROMP(title));
+		while(*tmp)
+		{
+			if(*tmp == '~')
+				*tmp = '&';
+			tmp++;
+		}
+	}
+
+	if(title && *title)
+		mii.fType = MFT_STRING;
+	else
+		mii.fType = MFT_SEPARATOR;
+
+	mii.wID = id;
+	mii.hSubMenu = submenu ? submenu->menu : 0;
+	mii.dwTypeData = title;
+	mii.cch = strlen(title);
+
+	InsertMenuItem(menu, 65535, TRUE, &mii);
+	if(menux->hwnd)
+		DrawMenuBar(menux->hwnd);
 	return (HWND)id;
 }
 
@@ -3315,19 +3248,21 @@ HWND dw_menu_append_item(HMENUI menux, char *title, ULONG id, ULONG flags, int e
  */
 void dw_menu_item_set_check(HMENUI menux, unsigned long id, int check)
 {
-	HWND menu;
+	MENUITEMINFO mii;
+	HMENU menu;
 
 	if(!menux)
 		return;
 
 	menu = menux->menu;
 
+	mii.cbSize = sizeof(MENUITEMINFO);
+	mii.fMask = MIIM_STATE;
 	if(check)
-		WinSendMsg(menu, MM_SETITEMATTR, MPFROM2SHORT(id, TRUE),
-				   MPFROM2SHORT(MIA_CHECKED, MIA_CHECKED));
+		mii.fState = MFS_CHECKED;
 	else
-		WinSendMsg(menu, MM_SETITEMATTR, MPFROM2SHORT(id, TRUE),
-				   MPFROM2SHORT(MIA_CHECKED, 0));
+		mii.fState = MFS_UNCHECKED;
+	SetMenuItemInfo(menu, id, FALSE, &mii);
 }
 
 /*
@@ -3342,40 +3277,12 @@ void dw_menu_popup(HMENUI *menu, HWND parent, int x, int y)
 {
 	if(menu && *menu)
 	{
-		WinPopupMenu(HWND_DESKTOP, parent, (*menu)->menu, x, dw_screen_height() - y, 0, PU_KEYBOARD | PU_MOUSEBUTTON1 | PU_VCONSTRAIN | PU_HCONSTRAIN);
+		TrackPopupMenu((*menu)->menu, 0, x, y, 0, parent, NULL);
 		free(*menu);
 		*menu = NULL;
 	}
 }
 
-/*
- * Returns the current X and Y coordinates of the mouse pointer.
- * Parameters:
- *       x: Pointer to variable to store X coordinate.
- *       y: Pointer to variable to store Y coordinate.
- */
-void dw_pointer_query_pos(long *x, long *y)
-{
-	POINTL ptl;
-
-	WinQueryPointerPos(HWND_DESKTOP, &ptl);
-	if(x && y)
-	{
-		*x = ptl.x;
-		*y = dw_screen_height() - ptl.y;
-	}
-}
-
-/*
- * Sets the X and Y coordinates of the mouse pointer.
- * Parameters:
- *       x: X coordinate.
- *       y: Y coordinate.
- */
-void dw_pointer_set_pos(long x, long y)
-{
-	WinSetPointerPos(HWND_DESKTOP, x, dw_screen_height() - y);
-}
 
 /*
  * Create a container object to be packed.
@@ -3385,17 +3292,27 @@ void dw_pointer_set_pos(long x, long y)
  */
 HWND dw_container_new(ULONG id)
 {
-	HWND tmp = WinCreateWindow(HWND_OBJECT,
-							   WC_CONTAINER,
-							   NULL,
-							   WS_VISIBLE | CCS_READONLY |
-							   CCS_SINGLESEL | CCS_AUTOPOSITION,
-							   0,0,2000,1000,
-							   NULLHANDLE,
-							   HWND_TOP,
-							   id,
-							   NULL,
-							   NULL);
+	HWND tmp = CreateWindow(WC_LISTVIEW,
+							"",
+							WS_CHILD | LVS_REPORT |
+							LVS_SHAREIMAGELISTS | WS_BORDER |
+							WS_CLIPCHILDREN,
+							0,0,2000,1000,
+							DW_HWND_OBJECT,
+							(HMENU)id,
+							NULL,
+							NULL);
+	ContainerInfo *cinfo = (ContainerInfo *)calloc(1, sizeof(ContainerInfo));
+
+	if(!cinfo)
+	{
+		DestroyWindow(tmp);
+		return NULL;
+	}
+
+	cinfo->pOldProc = (WNDPROC)SubclassWindow(tmp, _containerwndproc);
+
+	SetWindowLong(tmp, GWL_USERDATA, (ULONG)cinfo);
 	dw_window_set_font(tmp, DefaultFont);
 	return tmp;
 }
@@ -3408,29 +3325,48 @@ HWND dw_container_new(ULONG id)
  */
 HWND dw_tree_new(ULONG id)
 {
-	CNRINFO cnrinfo;
-	Box *newbox = calloc(1, sizeof(Box));
-	HWND tmp = WinCreateWindow(HWND_OBJECT,
-							   WC_CONTAINER,
-							   NULL,
-							   WS_VISIBLE | CCS_READONLY |
-							   CCS_SINGLESEL | CCS_AUTOPOSITION,
-							   0,0,2000,1000,
-							   NULLHANDLE,
-							   HWND_TOP,
-							   id,
-							   NULL,
-							   NULL);
-
-	cnrinfo.flWindowAttr = CV_TREE | CA_TREELINE;
-	cnrinfo.slBitmapOrIcon.cx = 16;
-	cnrinfo.slBitmapOrIcon.cy = 16;
-
-	WinSendMsg(tmp, CM_SETCNRINFO, &cnrinfo, MPFROMLONG(CMA_FLWINDOWATTR | CMA_SLBITMAPORICON));
-	newbox->oldproc = WinSubclassWindow(tmp, _TreeProc);
-	WinSetWindowPtr(tmp, QWP_USER, newbox);
+	HWND tmp = CreateWindow(WC_TREEVIEW,
+							"",
+							WS_CHILD | TVS_HASLINES |
+							TVS_HASBUTTONS | TVS_LINESATROOT |
+							WS_BORDER | WS_CLIPCHILDREN,
+							0,0,2000,1000,
+							DW_HWND_OBJECT,
+							(HMENU)id,
+							NULL,
+							NULL);
+	TreeView_SetItemHeight(tmp, 16);
 	dw_window_set_font(tmp, DefaultFont);
 	return tmp;
+}
+
+/*
+ * Returns the current X and Y coordinates of the mouse pointer.
+ * Parameters:
+ *       x: Pointer to variable to store X coordinate.
+ *       y: Pointer to variable to store Y coordinate.
+ */
+void dw_pointer_query_pos(long *x, long *y)
+{
+	POINT ptl;
+
+	GetCursorPos(&ptl);
+	if(x && y)
+	{
+		*x = ptl.x;
+		*y = ptl.y;
+	}
+}
+
+/*
+ * Sets the X and Y coordinates of the mouse pointer.
+ * Parameters:
+ *       x: X coordinate.
+ *       y: Y coordinate.
+ */
+void dw_pointer_set_pos(long x, long y)
+{
+	SetCursorPos(x, y);
 }
 
 /*
@@ -3441,18 +3377,15 @@ HWND dw_tree_new(ULONG id)
  */
 HWND dw_text_new(char *text, ULONG id)
 {
-	HWND tmp = WinCreateWindow(HWND_OBJECT,
-							   WC_STATIC,
-							   text,
-							   WS_VISIBLE | SS_TEXT,
-							   0,0,2000,1000,
-							   NULLHANDLE,
-							   HWND_TOP,
-							   id,
-							   NULL,
-							   NULL);
+	HWND tmp = CreateWindow(STATICCLASSNAME,
+							text,
+							BS_TEXT | WS_CHILD | WS_CLIPCHILDREN,
+							0,0,2000,1000,
+							DW_HWND_OBJECT,
+							(HMENU)id,
+							NULL,
+							NULL);
 	dw_window_set_font(tmp, DefaultFont);
-	dw_window_set_color(tmp, DW_CLR_BLACK, DW_CLR_PALEGRAY);
 	return tmp;
 }
 
@@ -3464,22 +3397,16 @@ HWND dw_text_new(char *text, ULONG id)
  */
 HWND dw_status_text_new(char *text, ULONG id)
 {
-	PFNWP *blah = malloc(sizeof(PFNWP));
-	HWND tmp = WinCreateWindow(HWND_OBJECT,
-							   WC_STATIC,
-							   text,
-							   WS_VISIBLE | SS_TEXT,
-							   0,0,2000,1000,
-							   NULLHANDLE,
-							   HWND_TOP,
-							   id,
-							   NULL,
-							   NULL);
+	HWND tmp = CreateWindow(STATICCLASSNAME,
+							text,
+							BS_TEXT | WS_CHILD | WS_CLIPCHILDREN,
+							0,0,2000,1000,
+							DW_HWND_OBJECT,
+							(HMENU)id,
+							NULL,
+							NULL);
 	dw_window_set_font(tmp, DefaultFont);
-	dw_window_set_color(tmp, DW_CLR_BLACK, DW_CLR_PALEGRAY);
-
-	*blah = WinSubclassWindow(tmp, _statusproc);
-	WinSetWindowPtr(tmp, QWP_USER, blah);
+	SubclassWindow(tmp, _statuswndproc);
 	return tmp;
 }
 
@@ -3490,19 +3417,18 @@ HWND dw_status_text_new(char *text, ULONG id)
  */
 HWND dw_mle_new(ULONG id)
 {
-	HWND tmp = WinCreateWindow(HWND_OBJECT,
-							   WC_MLE,
-							   "",
-							   WS_VISIBLE |
-							   MLS_BORDER | MLS_IGNORETAB |
-							   MLS_READONLY | MLS_VSCROLL,
-							   0,0,2000,1000,
-							   NULLHANDLE,
-							   HWND_TOP,
-							   id,
-							   NULL,
-							   NULL);
-	dw_window_set_font(tmp, DefaultFont);
+    
+	HWND tmp = CreateWindow(EDITCLASSNAME,
+							"",
+							WS_BORDER |
+							WS_VSCROLL | ES_MULTILINE |
+							ES_WANTRETURN | WS_CHILD |
+							WS_CLIPCHILDREN,
+							0,0,2000,1000,
+							DW_HWND_OBJECT,
+							(HMENU)id,
+							NULL,
+							NULL);
 	dw_window_set_font(tmp, DefaultFont);
 	return tmp;
 }
@@ -3515,49 +3441,67 @@ HWND dw_mle_new(ULONG id)
  */
 HWND dw_entryfield_new(char *text, ULONG id)
 {
+	HWND tmp = CreateWindow(EDITCLASSNAME,
+							text,
+							ES_WANTRETURN | WS_CHILD |
+							WS_BORDER | ES_AUTOHSCROLL |
+							WS_CLIPCHILDREN,
+							0,0,2000,1000,
+							DW_HWND_OBJECT,
+							(HMENU)id,
+							NULL,
+							NULL);
+	ColorInfo *cinfo = calloc(1, sizeof(ColorInfo));
 
-	WindowData *blah = calloc(1, sizeof(WindowData));
-	HWND tmp = WinCreateWindow(HWND_OBJECT,
-							   WC_ENTRYFIELD,
-							   text,
-							   WS_VISIBLE | ES_MARGIN |
-							   ES_AUTOSCROLL | WS_TABSTOP,
-							   0,0,2000,1000,
-							   NULLHANDLE,
-							   HWND_TOP,
-							   id,
-							   NULL,
-							   NULL);
+	cinfo->back = cinfo->fore = -1;
+	cinfo->buddy = 0;
+
+	cinfo->pOldProc = SubclassWindow(tmp, _colorwndproc);
+	SetWindowLong(tmp, GWL_USERDATA, (ULONG)cinfo);
 	dw_window_set_font(tmp, DefaultFont);
-	blah->oldproc = WinSubclassWindow(tmp, _entryproc);
-	WinSetWindowPtr(tmp, QWP_USER, blah);
 	return tmp;
 }
 
 /*
- * Create a new Entryfield (password) window (widget) to be packed.
+ * Create a new Entryfield passwird window (widget) to be packed.
  * Parameters:
  *       text: The default text to be in the entryfield widget.
  *       id: An ID to be used with WinWindowFromID() or 0L.
  */
 HWND dw_entryfield_password_new(char *text, ULONG id)
 {
-	WindowData *blah = calloc(1, sizeof(WindowData));
-	HWND tmp = WinCreateWindow(HWND_OBJECT,
-							   WC_ENTRYFIELD,
-							   text,
-							   WS_VISIBLE | ES_MARGIN | ES_UNREADABLE |
-							   ES_AUTOSCROLL | WS_TABSTOP,
-							   0,0,2000,1000,
-							   NULLHANDLE,
-							   HWND_TOP,
-							   id,
-							   NULL,
-							   NULL);
+	HWND tmp = CreateWindow(EDITCLASSNAME,
+							text,
+							ES_WANTRETURN | WS_CHILD |
+							ES_PASSWORD | WS_BORDER |
+							ES_AUTOHSCROLL | WS_CLIPCHILDREN,
+							0,0,2000,1000,
+							DW_HWND_OBJECT,
+							(HMENU)id,
+							NULL,
+							NULL);
+	ColorInfo *cinfo = calloc(1, sizeof(ColorInfo));
+
+	cinfo->back = cinfo->fore = -1;
+	cinfo->buddy = 0;
+
+	cinfo->pOldProc = SubclassWindow(tmp, _colorwndproc);
+	SetWindowLong(tmp, GWL_USERDATA, (ULONG)cinfo);
 	dw_window_set_font(tmp, DefaultFont);
-	blah->oldproc = WinSubclassWindow(tmp, _entryproc);
-	WinSetWindowPtr(tmp, QWP_USER, blah);
 	return tmp;
+}
+
+BOOL CALLBACK _subclass_child(HWND handle, LPARAM lp)
+{
+	ColorInfo *cinfo = (ColorInfo *)lp;
+
+	if(cinfo)
+	{
+		cinfo->buddy = handle;
+		cinfo->pOldProc = (WNDPROC)SubclassWindow(handle, _colorwndproc);
+		SetWindowLong(handle, GWL_USERDATA, (ULONG)cinfo);
+	}
+	return FALSE;
 }
 
 /*
@@ -3568,31 +3512,30 @@ HWND dw_entryfield_password_new(char *text, ULONG id)
  */
 HWND dw_combobox_new(char *text, ULONG id)
 {
-	WindowData *blah = calloc(1, sizeof(WindowData));
-	HWND tmp = WinCreateWindow(HWND_OBJECT,
-							   WC_COMBOBOX,
-							   text,
-							   WS_VISIBLE | CBS_DROPDOWN | WS_GROUP,
-							   0,0,2000,1000,
-							   NULLHANDLE,
-							   HWND_TOP,
-							   id,
-							   NULL,
-							   NULL);
-	HENUM henum = WinBeginEnumWindows(tmp);
-	HWND child;
-	
-	while((child = WinGetNextWindow(henum)) != NULLHANDLE)
+	HWND tmp = CreateWindow(COMBOBOXCLASSNAME,
+							"",
+                            WS_CHILD | CBS_DROPDOWN | WS_CLIPCHILDREN,
+							0,0,2000,1000,
+							DW_HWND_OBJECT,
+							(HMENU)id,
+							NULL,
+							NULL);
+	ColorInfo *cinfo = (ColorInfo *)calloc(1, sizeof(ColorInfo));
+	ColorInfo *cinfo2 = (ColorInfo *)calloc(1, sizeof(ColorInfo));
+
+	if(!cinfo)
 	{
-		WindowData *moreblah = calloc(1, sizeof(WindowData));
-		moreblah->oldproc = WinSubclassWindow(child, _comboentryproc);
-		WinSetWindowPtr(child, QWP_USER, moreblah);
+		DestroyWindow(tmp);
+		return NULL;
 	}
-	WinEndEnumWindows(henum);
+
+	cinfo2->fore = cinfo->fore = -1;
+	cinfo2->back = cinfo->back = -1;
+	cinfo2->combo = cinfo->combo = tmp;
+	EnumChildWindows(tmp, _subclass_child, (LPARAM)cinfo2);
+
+	SetWindowLong(tmp, GWL_USERDATA, (ULONG)cinfo);
 	dw_window_set_font(tmp, DefaultFont);
-	dw_window_set_color(tmp, DW_CLR_BLACK, DW_CLR_WHITE);
-	blah->oldproc = WinSubclassWindow(tmp, _comboproc);
-	WinSetWindowPtr(tmp, QWP_USER, blah);
 	return tmp;
 }
 
@@ -3606,58 +3549,23 @@ HWND dw_button_new(char *text, ULONG id)
 {
 	BubbleButton *bubble = malloc(sizeof(BubbleButton));
 
-	HWND tmp = WinCreateWindow(HWND_OBJECT,
-							   WC_BUTTON,
-							   text,
-							   WS_VISIBLE,
-							   0,0,2000,1000,
-							   NULLHANDLE,
-							   HWND_TOP,
-							   id,
-							   NULL,
-							   NULL);
+	HWND tmp = CreateWindow(BUTTONCLASSNAME,
+							text,
+							WS_CHILD | BS_PUSHBUTTON | WS_CLIPCHILDREN,
+							0,0,2000,1000,
+							DW_HWND_OBJECT,
+							(HMENU)id,
+							NULL,
+							NULL);
 
 	bubble->id = id;
 	bubble->bubbletext[0] = '\0';
-	bubble->pOldProc = WinSubclassWindow(tmp, _BtProc);
+	bubble->pOldProc = (WNDPROC)SubclassWindow(tmp, _BtProc);
 
-	WinSetWindowPtr(tmp, QWP_USER, bubble);
+	SetWindowLong(tmp, GWL_USERDATA, (ULONG)bubble);
 	dw_window_set_font(tmp, DefaultFont);
 	return tmp;
 }
-
-/* Function: GenResIDStr
-** Abstract: Generate string '#nnnn' for a given ID for using with Button
-**           controls
-*/
-
-void _GenResIDStr(CHAR *buff, ULONG ulID)
-{
-	char *str;
-	int  slen = 0;
-
-	*buff++ = '#';
-
-	str = buff;
-
-	do
-	{
-		*str++ = (ulID % 10) + '0';
-		ulID /= 10;
-		slen++;
-	}
-	while(ulID);
-
-	*str-- = 0;
-
-	for(; str > buff; str--, buff++)
-	{
-		*buff ^= *str;
-		*str  ^= *buff;
-		*buff ^= *str;
-	}
-}
-
 
 /*
  * Create a new bitmap button window (widget) to be packed.
@@ -3667,31 +3575,30 @@ void _GenResIDStr(CHAR *buff, ULONG ulID)
  */
 HWND dw_bitmapbutton_new(char *text, ULONG id)
 {
-	char idbuf[256];
 	HWND tmp;
 	BubbleButton *bubble = malloc(sizeof(BubbleButton));
+	HBITMAP hbitmap = LoadBitmap(DWInstance, MAKEINTRESOURCE(id));
 
-	_GenResIDStr(idbuf, id);
-
-	tmp = WinCreateWindow(HWND_OBJECT,
-						  WC_BUTTON,
-						  idbuf,
-						  WS_VISIBLE | BS_PUSHBUTTON |
-						  BS_BITMAP | BS_AUTOSIZE |
-						  BS_NOPOINTERFOCUS,
-						  0,0,2000,1000,
-						  NULLHANDLE,
-						  HWND_TOP,
-						  id,
-						  NULL,
-						  NULL);
+	tmp = CreateWindow(BUTTONCLASSNAME,
+					   "",
+					   WS_CHILD | BS_PUSHBUTTON |
+					   BS_BITMAP | WS_CLIPCHILDREN,
+					   0,0,2000,1000,
+					   DW_HWND_OBJECT,
+					   (HMENU)id,
+					   NULL,
+					   NULL);
 
 	bubble->id = id;
 	strncpy(bubble->bubbletext, text, BUBBLE_HELP_MAX - 1);
 	bubble->bubbletext[BUBBLE_HELP_MAX - 1] = '\0';
-	bubble->pOldProc = WinSubclassWindow(tmp, _BtProc);
+	bubble->pOldProc = (WNDPROC)SubclassWindow(tmp, _BtProc);
 
-	WinSetWindowPtr(tmp, QWP_USER, bubble);
+	SetWindowLong(tmp, GWL_USERDATA, (ULONG)bubble);
+
+	SendMessage(tmp, BM_SETIMAGE,
+				(WPARAM) IMAGE_BITMAP,
+				(LPARAM) hbitmap);
 	return tmp;
 }
 
@@ -3703,20 +3610,45 @@ HWND dw_bitmapbutton_new(char *text, ULONG id)
  */
 HWND dw_spinbutton_new(char *text, ULONG id)
 {
-	PFNWP *blah = malloc(sizeof(PFNWP));
-	HWND tmp = WinCreateWindow(HWND_OBJECT,
-							   WC_SPINBUTTON,
-							   text,
-							   WS_VISIBLE | SPBS_MASTER,
-							   0,0,2000,1000,
-							   NULLHANDLE,
-							   HWND_TOP,
-							   id,
-							   NULL,
-							   NULL);
-	dw_window_set_font(tmp, DefaultFont);
-	*blah = WinSubclassWindow(tmp, _entryproc);
-	WinSetWindowPtr(tmp, QWP_USER, blah);
+	ULONG *data = malloc(sizeof(ULONG));
+	HWND buddy = CreateWindow(EDITCLASSNAME,
+							  text,
+							  WS_CHILD | WS_BORDER |
+							  ES_NUMBER | WS_CLIPCHILDREN,
+							  0,0,2000,1000,
+							  DW_HWND_OBJECT,
+							  NULL,
+							  NULL,
+							  NULL);
+	HWND tmp = CreateUpDownControl(
+								   WS_CHILD | UDS_ALIGNRIGHT |
+								   UDS_ARROWKEYS | UDS_SETBUDDYINT |
+								   UDS_WRAP | UDS_NOTHOUSANDS,
+								   0,
+								   0,
+								   2000,
+								   1000,
+								   DW_HWND_OBJECT,
+								   id,
+								   DWInstance,
+								   buddy,
+								   0,
+								   100,
+								   0);
+	ColorInfo *cinfo = calloc(1, sizeof(ColorInfo));
+
+	cinfo->back = cinfo->fore = -1;
+	cinfo->buddy = tmp;
+
+	cinfo->pOldProc = SubclassWindow(buddy, _colorwndproc);
+	SetWindowLong(buddy, GWL_USERDATA, (ULONG)cinfo);
+
+	cinfo = calloc(1, sizeof(ColorInfo));
+	cinfo->buddy = buddy;
+	cinfo->pOldProc = SubclassWindow(tmp, _spinnerwndproc);
+
+	SetWindowLong(tmp, GWL_USERDATA, (ULONG)cinfo);
+	dw_window_set_font(buddy, DefaultFont);
 	return tmp;
 }
 
@@ -3728,24 +3660,28 @@ HWND dw_spinbutton_new(char *text, ULONG id)
  */
 HWND dw_radiobutton_new(char *text, ULONG id)
 {
-	PFNWP *blah = malloc(sizeof(PFNWP));
-	HWND tmp = WinCreateWindow(HWND_OBJECT,
-							   WC_BUTTON,
-							   text,
-							   WS_VISIBLE |
-							   BS_AUTORADIOBUTTON,
-							   0,0,2000,1000,
-							   NULLHANDLE,
-							   HWND_TOP,
-							   id,
-							   NULL,
-							   NULL);
+	HWND tmp = CreateWindow(BUTTONCLASSNAME,
+							text,
+							WS_CHILD | BS_AUTORADIOBUTTON |
+							WS_CLIPCHILDREN,
+							0,0,2000,1000,
+							DW_HWND_OBJECT,
+							(HMENU)id,
+							NULL,
+							NULL);
+
+	ColorInfo *cinfo = calloc(1, sizeof(ColorInfo));
+
+	cinfo->back = cinfo->fore = -1;
+	cinfo->buddy = 0;
+	cinfo->user = 0;
+
+	cinfo->pOldProc = SubclassWindow(tmp, _colorwndproc);
+	SetWindowLong(tmp, GWL_USERDATA, (ULONG)cinfo);
 	dw_window_set_font(tmp, DefaultFont);
-	dw_window_set_color(tmp, DW_CLR_BLACK, DW_CLR_PALEGRAY);
-	*blah = WinSubclassWindow(tmp, _entryproc);
-	WinSetWindowPtr(tmp, QWP_USER, blah);
 	return tmp;
 }
+
 
 /*
  * Create a new percent bar window (widget) to be packed.
@@ -3754,24 +3690,14 @@ HWND dw_radiobutton_new(char *text, ULONG id)
  */
 HWND dw_percent_new(ULONG id)
 {
-	PercentBar *blah = malloc(sizeof(PercentBar));
-	HWND tmp = WinCreateWindow(HWND_OBJECT,
-							   WC_STATIC,
-							   "",
-							   WS_VISIBLE | SS_TEXT,
-							   0,0,2000,1000,
-							   NULLHANDLE,
-							   HWND_TOP,
-							   id,
-							   NULL,
-							   NULL);
-	dw_window_set_font(tmp, DefaultFont);
-	dw_window_set_color(tmp, DW_CLR_BLUE, DW_CLR_PALEGRAY);
-
-	blah->oldproc = WinSubclassWindow(tmp, _percentproc);
-	blah->pos = 0;
-	WinSetWindowPtr(tmp, QWP_USER, blah);
-	return tmp;
+	return CreateWindow(PROGRESS_CLASS,
+						"",
+						WS_CHILD | WS_CLIPCHILDREN,
+						0,0,2000,1000,
+						DW_HWND_OBJECT,
+						NULL,
+						NULL,
+						NULL);
 }
 
 /*
@@ -3782,21 +3708,24 @@ HWND dw_percent_new(ULONG id)
  */
 HWND dw_checkbox_new(char *text, ULONG id)
 {
-	PFNWP *blah = malloc(sizeof(PFNWP));
-	HWND tmp = WinCreateWindow(HWND_OBJECT,
-							   WC_BUTTON,
-							   text,
-							   WS_VISIBLE | BS_AUTOCHECKBOX,
-							   0,0,2000,1000,
-							   NULLHANDLE,
-							   HWND_TOP,
-							   id,
-							   NULL,
-							   NULL);
+	HWND tmp = CreateWindow(BUTTONCLASSNAME,
+							text,
+							WS_CHILD | BS_AUTOCHECKBOX |
+							BS_TEXT | WS_CLIPCHILDREN,
+							0,0,2000,1000,
+							DW_HWND_OBJECT,
+							NULL,
+							NULL,
+							NULL);
+	ColorInfo *cinfo = calloc(1, sizeof(ColorInfo));
+
+	cinfo->back = cinfo->fore = -1;
+	cinfo->buddy = 0;
+	cinfo->user = 1;
+
+	cinfo->pOldProc = SubclassWindow(tmp, _colorwndproc);
+	SetWindowLong(tmp, GWL_USERDATA, (ULONG)cinfo);
 	dw_window_set_font(tmp, DefaultFont);
-	dw_window_set_color(tmp, DW_CLR_BLACK, DW_CLR_PALEGRAY);
-	*blah = WinSubclassWindow(tmp, _entryproc);
-	WinSetWindowPtr(tmp, QWP_USER, blah);
 	return tmp;
 }
 
@@ -3808,21 +3737,30 @@ HWND dw_checkbox_new(char *text, ULONG id)
  */
 HWND dw_listbox_new(ULONG id, int multi)
 {
-	PFNWP *blah = malloc(sizeof(PFNWP));
-	HWND tmp = WinCreateWindow(HWND_OBJECT,
-							   WC_LISTBOX,
-							   NULL,
-							   WS_VISIBLE | LS_NOADJUSTPOS |
-							   (multi ? LS_MULTIPLESEL : 0),
-							   0,0,2000,1000,
-							   NULLHANDLE,
-							   HWND_TOP,
-							   id,
-							   NULL,
-							   NULL);
+	HWND tmp = CreateWindow(LISTBOXCLASSNAME,
+							"",
+							LBS_NOINTEGRALHEIGHT | WS_CHILD | LBS_HASSTRINGS |
+							LBS_NOTIFY | WS_BORDER  | WS_CLIPCHILDREN |
+							WS_VSCROLL | (multi ? LBS_EXTENDEDSEL : 0) ,
+							0,0,2000,1000,
+							DW_HWND_OBJECT,
+							NULL,
+							NULL,
+							NULL);
+	ContainerInfo *cinfo = (ContainerInfo *)calloc(1, sizeof(ContainerInfo));
+
+	if(!cinfo)
+	{
+		DestroyWindow(tmp);
+		return NULL;
+	}
+
+	cinfo->cinfo.fore = -1;
+	cinfo->cinfo.back = -1;
+	cinfo->pOldProc = (WNDPROC)SubclassWindow(tmp, _containerwndproc);
+
+	SetWindowLong(tmp, GWL_USERDATA, (ULONG)cinfo);
 	dw_window_set_font(tmp, DefaultFont);
-	*blah = WinSubclassWindow(tmp, _entryproc);
-	WinSetWindowPtr(tmp, QWP_USER, blah);
 	return tmp;
 }
 
@@ -3834,10 +3772,11 @@ HWND dw_listbox_new(ULONG id, int multi)
  */
 void dw_window_set_icon(HWND handle, ULONG id)
 {
-	HPOINTER icon;
+	HICON hicon = LoadIcon(DWInstance, MAKEINTRESOURCE(id));
 
-	icon = WinLoadPointer(HWND_DESKTOP,NULLHANDLE,id);
-	WinSendMsg(handle, WM_SETICON, (MPARAM)icon, 0);
+	SendMessage(handle, WM_SETICON,
+				(WPARAM) IMAGE_ICON,
+				(LPARAM) hicon);
 }
 
 /*
@@ -3848,14 +3787,11 @@ void dw_window_set_icon(HWND handle, ULONG id)
  */
 void dw_window_set_bitmap(HWND handle, ULONG id)
 {
-	HBITMAP hbm;
-	HPS     hps = WinGetPS(handle);
+	HBITMAP hbitmap = LoadBitmap(DWInstance, MAKEINTRESOURCE(id));
 
-	hbm = GpiLoadBitmap(hps, NULLHANDLE, id, 0, 0);
-	WinSetWindowBits(handle,QWL_STYLE,SS_BITMAP,SS_BITMAP | 0x7f);
-	WinSendMsg( handle, SM_SETHANDLE, MPFROMP(hbm), NULL );
-	/*WinSetWindowULong( hwndDlg, QWL_USER, (ULONG) hbm );*/
-	WinReleasePS(hps);
+	SendMessage(handle, STM_SETIMAGE,
+				(WPARAM) IMAGE_BITMAP,
+				(LPARAM) hbitmap);
 }
 
 /*
@@ -3866,7 +3802,7 @@ void dw_window_set_bitmap(HWND handle, ULONG id)
  */
 void dw_window_set_text(HWND handle, char *text)
 {
-	WinSetWindowText(handle, text);
+	SetWindowText(handle, text);
 }
 
 /*
@@ -3880,7 +3816,7 @@ char *dw_window_get_text(HWND handle)
 {
 	char tempbuf[4096] = "";
 
-	WinQueryWindowText(handle, 4095, tempbuf);
+	GetWindowText(handle, tempbuf, 4095);
 	tempbuf[4095] = 0;
 
 	return strdup(tempbuf);
@@ -3893,7 +3829,7 @@ char *dw_window_get_text(HWND handle)
  */
 void dw_window_disable(HWND handle)
 {
-	WinEnableWindow(handle, FALSE);
+	EnableWindow(handle, FALSE);
 }
 
 /*
@@ -3903,7 +3839,7 @@ void dw_window_disable(HWND handle)
  */
 void dw_window_enable(HWND handle)
 {
-	WinEnableWindow(handle, TRUE);
+	EnableWindow(handle, TRUE);
 }
 
 /*
@@ -3914,35 +3850,10 @@ void dw_window_enable(HWND handle)
  */
 HWND dw_window_from_id(HWND handle, int id)
 {
-	HENUM henum;
-	HWND child;
-	char tmpbuf[100];
-
-	henum = WinBeginEnumWindows(handle);
-	while((child = WinGetNextWindow(henum)) != NULLHANDLE)
-	{
-		int windowid = WinQueryWindowUShort(child, QWS_ID);
-		HWND found;
-
-		WinQueryClassName(child, 99, tmpbuf);
-
-		/* If the child is a box (frame) then recurse into it */
-		if(strncmp(tmpbuf, "#1", 3)==0)
-			if((found = dw_window_from_id(child, id)) != NULLHANDLE)
-				return found;
-
-		if(windowid && windowid == id)
-		{
-			WinEndEnumWindows(henum);
-			return child;
-		}
-	}
-	WinEndEnumWindows(henum);
-	return NULLHANDLE;
+    return 0L;
 }
-
 /*
- * Pack windows (widgets) into a box from the end (or bottom).
+ * Pack windows (widgets) into a box from the start (or top).
  * Parameters:
  *       box: Window handle of the box to be packed into.
  *       item: Window handle of the item to be back.
@@ -3952,50 +3863,11 @@ HWND dw_window_from_id(HWND handle, int id)
  *       vsize: TRUE if the window (widget) should expand vertically to fill space given.
  *       pad: Number of pixels of padding around the item.
  */
-void dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, int vsize, int pad)
+void dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize, int vsize, int pad)
 {
 	Box *thisbox;
 
-	if(WinWindowFromID(box, FID_CLIENT))
-	{
-		box = WinWindowFromID(box, FID_CLIENT);
-		thisbox = WinQueryWindowPtr(box, QWP_USER);
-	}
-	else
-		thisbox = WinQueryWindowPtr(box, QWP_USER);
-	if(thisbox)
-	{
-		if(thisbox->type == BOXHORZ)
-			dw_box_pack_start_stub(box, item, width, height, hsize, vsize, pad);
-		else
-			dw_box_pack_end_stub(box, item, width, height, hsize, vsize, pad);
-	}
-}
-
-void dw_box_pack_end_stub(HWND box, HWND item, int width, int height, int hsize, int vsize, int pad)
-{
-    HWND boxowner = NULLHANDLE;
-	Box *thisbox;
-
-	if(WinWindowFromID(box, FID_CLIENT))
-	{
-		box = WinWindowFromID(box, FID_CLIENT);
-		thisbox = WinQueryWindowPtr(box, QWP_USER);
-		hsize = TRUE;
-		vsize = TRUE;
-	}
-	else
-		thisbox = WinQueryWindowPtr(box, QWP_USER);
-	if(!thisbox)
-	{
-		box = WinWindowFromID(box, FID_CLIENT);
-		if(box)
-		{
-			thisbox = WinQueryWindowPtr(box, QWP_USER);
-			hsize = TRUE;
-			vsize = TRUE;
-		}
-	}
+	thisbox = (Box *)GetWindowLong(box, GWL_USERDATA);
 	if(thisbox)
 	{
 		int z;
@@ -4009,9 +3881,9 @@ void dw_box_pack_end_stub(HWND box, HWND item, int width, int height, int hsize,
 			tmpitem[z] = thisitem[z];
 		}
 
-		WinQueryClassName(item, 99, tmpbuf);
+		GetClassName(item, tmpbuf, 99);
 
-		if(strncmp(tmpbuf, "#1", 3)==0)
+		if(strnicmp(tmpbuf, FRAMECLASSNAME, 2)==0)
 			tmpitem[thisbox->count].type = TYPEBOX;
 		else
 			tmpitem[thisbox->count].type = TYPEITEM;
@@ -4037,16 +3909,19 @@ void dw_box_pack_end_stub(HWND box, HWND item, int width, int height, int hsize,
 
 		thisbox->count++;
 
-        /* Don't set the ownership if it's an entryfield  or spinbutton */
-		WinQueryClassName(item, 99, tmpbuf);
-		if(strncmp(tmpbuf, "#6", 3)!=0 && strncmp(tmpbuf, "#32", 3)!=0)
+		SetParent(item, box);
+		ShowWindow(item, SW_SHOW);
+		if(strncmp(tmpbuf, UPDOWN_CLASS, strlen(UPDOWN_CLASS))==0)
 		{
-			if((boxowner = WinQueryWindow(box, QW_OWNER)) != 0)
-				WinSetOwner(item, boxowner);
-			else
-				WinSetOwner(item, box);
+			ColorInfo *cinfo = (ColorInfo *)GetWindowLong(item, GWL_USERDATA);
+
+			if(cinfo)
+			{
+				SetParent(cinfo->buddy, box);
+				ShowWindow(cinfo->buddy, SW_SHOW);
+				SendMessage(item, UDM_SETBUDDY, (WPARAM)cinfo->buddy, 0);
+			}
 		}
-		WinSetParent(item, box, FALSE);
 	}
 }
 
@@ -4059,7 +3934,7 @@ void dw_box_pack_end_stub(HWND box, HWND item, int width, int height, int hsize,
  */
 void dw_window_set_usize(HWND handle, ULONG width, ULONG height)
 {
-	WinSetWindowPos(handle, NULLHANDLE, 0, 0, width, height, SWP_SHOW | SWP_SIZE);
+	SetWindowPos(handle, (HWND)NULL, 0, 0, width, height, SWP_SHOWWINDOW | SWP_NOZORDER | SWP_NOMOVE);
 }
 
 /*
@@ -4067,7 +3942,7 @@ void dw_window_set_usize(HWND handle, ULONG width, ULONG height)
  */
 int dw_screen_width(void)
 {
-	return WinQuerySysValue(HWND_DESKTOP,SV_CXSCREEN);
+	return GetSystemMetrics(SM_CXSCREEN);
 }
 
 /*
@@ -4075,18 +3950,20 @@ int dw_screen_width(void)
  */
 int dw_screen_height(void)
 {
-	return WinQuerySysValue(HWND_DESKTOP,SV_CYSCREEN);
+	return GetSystemMetrics(SM_CYSCREEN);
 }
 
 /* This should return the current color depth */
 unsigned long dw_color_depth(void)
 {
-	HDC hdc = WinOpenWindowDC(HWND_DESKTOP);
-	long colors;
+	int bpp;
+	HDC hdc = GetDC(HWND_DESKTOP);
+    
+	bpp = GetDeviceCaps(hdc, BITSPIXEL);
 
-	DevQueryCaps(hdc, CAPS_COLOR_BITCOUNT, 1, &colors);
-	DevCloseDC(hdc);
-	return colors;
+	ReleaseDC(HWND_DESKTOP, hdc);
+
+	return bpp;
 }
 
 
@@ -4099,9 +3976,7 @@ unsigned long dw_color_depth(void)
  */
 void dw_window_set_pos(HWND handle, ULONG x, ULONG y)
 {
-	int myy = _get_frame_height(handle) - (y + _get_height(handle));
-
-	WinSetWindowPos(handle, NULLHANDLE, x, myy, 0, 0, SWP_MOVE);
+	SetWindowPos(handle, (HWND)NULL, x, y, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
 }
 
 /*
@@ -4115,9 +3990,7 @@ void dw_window_set_pos(HWND handle, ULONG x, ULONG y)
  */
 void dw_window_set_pos_size(HWND handle, ULONG x, ULONG y, ULONG width, ULONG height)
 {
-	int myy = _get_frame_height(handle) - (y + height);
-
-	WinSetWindowPos(handle, NULLHANDLE, x, myy, width, height, SWP_MOVE | SWP_SIZE | SWP_SHOW);
+	SetWindowPos(handle, (HWND)NULL, x, y, width, height, SWP_NOZORDER | SWP_SHOWWINDOW | SWP_NOACTIVATE);
 }
 
 /*
@@ -4131,16 +4004,20 @@ void dw_window_set_pos_size(HWND handle, ULONG x, ULONG y, ULONG width, ULONG he
  */
 void dw_window_get_pos_size(HWND handle, ULONG *x, ULONG *y, ULONG *width, ULONG *height)
 {
-	SWP swp;
-	WinQueryWindowPos(handle, &swp);
+	WINDOWPLACEMENT wp;
+
+	wp.length = sizeof(WINDOWPLACEMENT);
+
+	GetWindowPlacement(handle, &wp);
 	if(x)
-		*x = swp.x;
+		*x = wp.rcNormalPosition.left;
 	if(y)
-		*y = _get_frame_height(handle) - (swp.y + swp.cy);
+		*y = wp.rcNormalPosition.top;
 	if(width)
-		*width = swp.cx;
+		*width = wp.rcNormalPosition.right - wp.rcNormalPosition.left;
 	if(height)
-		*height = swp.cy;
+		*height = wp.rcNormalPosition.bottom - wp.rcNormalPosition.top;
+
 }
 
 /*
@@ -4152,7 +4029,26 @@ void dw_window_get_pos_size(HWND handle, ULONG *x, ULONG *y, ULONG *width, ULONG
  */
 void dw_window_set_style(HWND handle, ULONG style, ULONG mask)
 {
-	WinSetWindowBits(handle, QWL_STYLE, style, mask);
+	ULONG tmp, currentstyle = GetWindowLong(handle, GWL_STYLE);
+
+	tmp = currentstyle | mask;
+	tmp ^= mask;
+	tmp |= style;
+
+	SetWindowLong(handle, GWL_STYLE, tmp);
+}
+
+/* Finds the physical ID from the reference ID */
+int _findnotebookid(NotebookPage **array, int pageid)
+{
+	int z;
+
+	for(z=0;z<256;z++)
+	{
+		if(array[z] && array[z]->realid == pageid)
+			return z;
+	}
+	return -1;
 }
 
 /*
@@ -4164,44 +4060,46 @@ void dw_window_set_style(HWND handle, ULONG style, ULONG mask)
  */
 ULONG dw_notebook_page_new(HWND handle, ULONG flags, int front)
 {
-	if(front)
-		return (ULONG)WinSendMsg(handle, BKM_INSERTPAGE, 0L,
-						  MPFROM2SHORT((BKA_STATUSTEXTON | BKA_AUTOPAGESIZE | BKA_MAJOR | flags), BKA_FIRST));
-	return (ULONG)WinSendMsg(handle, BKM_INSERTPAGE, 0L,
-					  MPFROM2SHORT((BKA_STATUSTEXTON | BKA_AUTOPAGESIZE | BKA_MAJOR | flags), BKA_LAST));
-}
+	NotebookPage **array = (NotebookPage **)GetWindowLong(handle, GWL_USERDATA);
 
-/*
- * Remove a page from a notebook.
- * Parameters:
- *          handle: Handle to the notebook widget.
- *          pageid: ID of the page to be destroyed.
- */
-void dw_notebook_page_destroy(HWND handle, unsigned int pageid)
-{
-	WinSendMsg(handle, BKM_DELETEPAGE,
-			   MPFROMLONG(pageid),	(MPARAM)BKA_SINGLE);
-}
+	if(array)
+	{
+		int z, refid = -1;
 
-/*
- * Queries the currently visible page ID.
- * Parameters:
- *          handle: Handle to the notebook widget.
- */
-unsigned int dw_notebook_page_query(HWND handle)
-{
-	return (int)WinSendMsg(handle, BKM_QUERYPAGEID,0L, MPFROM2SHORT(BKA_TOP, BKA_MAJOR));
-}
+		for(z=0;z<256;z++)
+		{
+			if(_findnotebookid(array, z) == -1)
+			{
+				refid = z;
+				break;
+			}
+		}
 
-/*
- * Sets the currently visibale page ID.
- * Parameters:
- *          handle: Handle to the notebook widget.
- *          pageid: ID of the page to be made visible.
- */
-void dw_notebook_page_set(HWND handle, unsigned int pageid)
-{
-	WinSendMsg(handle, BKM_TURNTOPAGE, MPFROMLONG(pageid), 0L);
+		if(refid == -1)
+			return -1;
+
+		for(z=0;z<256;z++)
+		{
+			if(!array[z])
+			{
+				int oldpage = TabCtrl_GetCurSel(handle);
+
+				array[z] = calloc(1, sizeof(NotebookPage));
+				array[z]->realid = refid;
+				array[z]->item.mask = TCIF_TEXT;
+				array[z]->item.iImage = -1;
+				array[z]->item.pszText = "";
+				TabCtrl_InsertItem(handle, z, &(array[z]->item));
+
+				if(oldpage > -1 && array[oldpage])
+					SetParent(array[oldpage]->hwnd, DW_HWND_OBJECT);
+
+				TabCtrl_SetCurSel(handle, z);
+				return refid;
+			}
+		}
+	}
+	return -1;
 }
 
 /*
@@ -4211,10 +4109,24 @@ void dw_notebook_page_set(HWND handle, unsigned int pageid)
  *          pageid: Page ID of the tab to set.
  *          text: Pointer to the text to set.
  */
-void dw_notebook_page_set_text(HWND handle, ULONG pageid, char *text)
+void dw_notebook_page_set_text(HWND handle, ULONG pageidx, char *text)
 {
-	WinSendMsg(handle, BKM_SETTABTEXT,
-			   MPFROMLONG(pageid),	MPFROMP(text));
+
+	NotebookPage **array = (NotebookPage **)GetWindowLong(handle, GWL_USERDATA);
+	int pageid;
+
+	if(!array)
+		return;
+
+	pageid = _findnotebookid(array, pageidx);
+
+	if(pageid > -1 && array[pageid])
+	{
+		array[pageid]->item.mask = TCIF_TEXT;
+		array[pageid]->item.pszText = text;
+		TabCtrl_SetItem(handle, pageid, &(array[pageid]->item));
+		_resize_notebook_page(handle, pageid);
+	}
 }
 
 /*
@@ -4226,8 +4138,6 @@ void dw_notebook_page_set_text(HWND handle, ULONG pageid, char *text)
  */
 void dw_notebook_page_set_status_text(HWND handle, ULONG pageid, char *text)
 {
-	WinSendMsg(handle, BKM_SETSTATUSLINETEXT,
-			   MPFROMLONG(pageid),	MPFROMP(text));
 }
 
 /*
@@ -4237,14 +4147,125 @@ void dw_notebook_page_set_status_text(HWND handle, ULONG pageid, char *text)
  *          pageid: Page ID in the notebook which is being packed.
  *          page: Box handle to be packed.
  */
-void dw_notebook_pack(HWND handle, ULONG pageid, HWND page)
+void dw_notebook_pack(HWND handle, ULONG pageidx, HWND page)
 {
-	HWND tmpbox = dw_box_new(BOXVERT, 0);
+	NotebookPage **array = (NotebookPage **)GetWindowLong(handle, GWL_USERDATA);
+	int pageid;
 
-	dw_box_pack_start(tmpbox, page, 0, 0, TRUE, TRUE, 0);
-	WinSubclassWindow(tmpbox, _wndproc);
-	WinSendMsg(handle, BKM_SETPAGEWINDOWHWND,
-			   MPFROMLONG(pageid),	MPFROMHWND(tmpbox));
+	if(!array)
+		return;
+
+	pageid = _findnotebookid(array, pageidx);
+
+	if(pageid > -1 && array[pageid])
+	{
+		HWND tmpbox = dw_box_new(BOXVERT, 0);
+
+		dw_box_pack_start(tmpbox, page, 0, 0, TRUE, TRUE, 0);
+		SubclassWindow(tmpbox, _wndproc);
+		if(array[pageid]->hwnd)
+			dw_window_destroy(array[pageid]->hwnd);
+		array[pageid]->hwnd = tmpbox;
+		if(pageidx == dw_notebook_page_query(handle))
+		{
+			SetParent(tmpbox, handle);
+			_resize_notebook_page(handle, pageid);
+		}
+	}
+}
+
+/*
+ * Remove a page from a notebook.
+ * Parameters:
+ *          handle: Handle to the notebook widget.
+ *          pageid: ID of the page to be destroyed.
+ */
+void dw_notebook_page_destroy(HWND handle, unsigned int pageidx)
+{
+	NotebookPage **array = (NotebookPage **)GetWindowLong(handle, GWL_USERDATA);
+	int newid = -1, z, pageid;
+
+	if(!array)
+		return;
+
+	pageid = _findnotebookid(array, pageidx);
+
+	if(pageid < 0)
+		return;
+
+	if(array[pageid])
+	{
+		SetParent(array[pageid]->hwnd, DW_HWND_OBJECT);
+		free(array[pageid]);
+		array[pageid] = NULL;
+	}
+
+	TabCtrl_DeleteItem(handle, pageid);
+
+	/* Shift the pages over 1 */
+	for(z=pageid;z<255;z++)
+		array[z] = array[z+1];
+	array[255] = NULL;
+
+	for(z=0;z<256;z++)
+	{
+		if(array[z])
+		{
+			newid = z;
+			break;
+		}
+	}
+	if(newid > -1)
+	{
+		SetParent(array[newid]->hwnd, handle);
+		_resize_notebook_page(handle, newid);
+		dw_notebook_page_set(handle, array[newid]->realid);
+	}
+}
+
+/*
+ * Queries the currently visible page ID.
+ * Parameters:
+ *          handle: Handle to the notebook widget.
+ */
+unsigned int dw_notebook_page_query(HWND handle)
+{
+	NotebookPage **array = (NotebookPage **)GetWindowLong(handle, GWL_USERDATA);
+	int physid = TabCtrl_GetCurSel(handle);
+
+	if(physid > -1 && physid < 256 && array && array[physid])
+		return array[physid]->realid;
+	return -1;
+}
+
+/*
+ * Sets the currently visible page ID.
+ * Parameters:
+ *          handle: Handle to the notebook widget.
+ *          pageid: ID of the page to be made visible.
+ */
+void dw_notebook_page_set(HWND handle, unsigned int pageidx)
+{
+	NotebookPage **array = (NotebookPage **)GetWindowLong(handle, GWL_USERDATA);
+	int pageid;
+
+	if(!array)
+		return;
+
+	pageid = _findnotebookid(array, pageidx);
+
+	if(pageid > -1 && pageid < 256)
+	{
+		int oldpage = TabCtrl_GetCurSel(handle);
+
+		if(oldpage > -1 && array && array[oldpage])
+			SetParent(array[oldpage]->hwnd, DW_HWND_OBJECT);
+
+		TabCtrl_SetCurSel(handle, pageid);
+
+		SetParent(array[pageid]->hwnd, handle);
+		_resize_notebook_page(handle, pageid);
+	}
 }
 
 /*
@@ -4255,10 +4276,18 @@ void dw_notebook_pack(HWND handle, ULONG pageid, HWND page)
  */
 void dw_listbox_append(HWND handle, char *text)
 {
-	WinSendMsg(handle,
-			   LM_INSERTITEM,
-			   MPFROMSHORT(LIT_END),
-			   MPFROMP(text));
+	char tmpbuf[100];
+
+	GetClassName(handle, tmpbuf, 99);
+
+	if(strnicmp(tmpbuf, COMBOBOXCLASSNAME, strlen(COMBOBOXCLASSNAME))==0)
+		SendMessage(handle,
+					CB_ADDSTRING,
+					0, (LPARAM)text);
+	else
+		SendMessage(handle,
+					LB_ADDSTRING,
+					0, (LPARAM)text);
 }
 
 /*
@@ -4268,33 +4297,42 @@ void dw_listbox_append(HWND handle, char *text)
  */
 void dw_listbox_clear(HWND handle)
 {
-	WinSendMsg(handle,
-			   LM_DELETEALL, 0L, 0L);
+	char tmpbuf[100];
+
+	GetClassName(handle, tmpbuf, 99);
+
+	if(strnicmp(tmpbuf, COMBOBOXCLASSNAME, strlen(COMBOBOXCLASSNAME))==0)
+	{
+		char *buf = dw_window_get_text(handle);
+
+		SendMessage(handle,
+					CB_RESETCONTENT, 0L, 0L);
+
+		if(buf)
+		{
+			dw_window_set_text(handle, buf);
+			free(buf);
+		}
+	}
+	else
+		SendMessage(handle,
+					LB_RESETCONTENT, 0L, 0L);
 }
 
 /*
- * Returns the listbox's item count.
+ * Sets the text of a given listbox entry.
  * Parameters:
- *          handle: Handle to the listbox to be cleared.
+ *          handle: Handle to the listbox to be queried.
+ *          index: Index into the list to be queried.
+ *          buffer: Buffer where text will be copied.
  */
-int dw_listbox_count(HWND handle)
+void dw_listbox_set_text(HWND handle, unsigned int index, char *buffer)
 {
-	return (int)WinSendMsg(handle,
-						   LM_QUERYITEMCOUNT,0L, 0L);
-}
-
-/*
- * Sets the topmost item in the viewport.
- * Parameters:
- *          handle: Handle to the listbox to be cleared.
- *          top: Index to the top item.
- */
-void dw_listbox_set_top(HWND handle, int top)
-{
-	WinSendMsg(handle,
-			   LM_SETTOPINDEX,
-			   MPFROMSHORT(top),
-			   0L);
+	unsigned int sel = (unsigned int)SendMessage(handle, LB_GETCURSEL, 0, 0);
+	SendMessage(handle,	LB_DELETESTRING, (WPARAM)index, 0);
+	SendMessage(handle, LB_INSERTSTRING, (WPARAM)index, (LPARAM)buffer);
+	SendMessage(handle, LB_SETCURSEL, (WPARAM)sel, 0);
+	SendMessage(handle, LB_SETSEL, (WPARAM)TRUE, (LPARAM)sel);
 }
 
 /*
@@ -4307,19 +4345,8 @@ void dw_listbox_set_top(HWND handle, int top)
  */
 void dw_listbox_query_text(HWND handle, unsigned int index, char *buffer, unsigned int length)
 {
-	WinSendMsg(handle, LM_QUERYITEMTEXT, MPFROM2SHORT(index, length), (MPARAM)buffer);
-}
-
-/*
- * Sets the text of a given listbox entry.
- * Parameters:
- *          handle: Handle to the listbox to be queried.
- *          index: Index into the list to be queried.
- *          buffer: Buffer where text will be copied.
- */
-void dw_listbox_set_text(HWND handle, unsigned int index, char *buffer)
-{
-	WinSendMsg(handle, LM_SETITEMTEXT, MPFROMSHORT(index), (MPARAM)buffer);
+	SendMessage(handle,
+				LB_GETTEXT, (WPARAM)index, (LPARAM)buffer);
 }
 
 /*
@@ -4329,10 +4356,18 @@ void dw_listbox_set_text(HWND handle, unsigned int index, char *buffer)
  */
 unsigned int dw_listbox_selected(HWND handle)
 {
-		return (unsigned int)WinSendMsg(handle,
-										LM_QUERYSELECTION,
-										MPFROMSHORT(LIT_CURSOR),
-										0);
+	char tmpbuf[100];
+
+	GetClassName(handle, tmpbuf, 99);
+
+	if(strnicmp(tmpbuf, COMBOBOXCLASSNAME, strlen(COMBOBOXCLASSNAME))==0)
+		return (unsigned int)SendMessage(handle,
+										 CB_GETCURSEL,
+										 0, 0);
+
+	return (unsigned int)SendMessage(handle,
+									 LB_GETCURSEL,
+									 0, 0);
 }
 
 /*
@@ -4343,17 +4378,32 @@ unsigned int dw_listbox_selected(HWND handle)
  */
 int dw_listbox_selected_multi(HWND handle, int where)
 {
-	int place = where;
+	int *array, count, z;
 
-	if(where == -1)
-		place = LIT_FIRST;
+	count = (int)SendMessage(handle, LB_GETSELCOUNT, 0, 0);
+	if(count > 0)
+	{
+		array = malloc(sizeof(int)*count);
+		SendMessage(handle, LB_GETSELITEMS, (WPARAM)count, (LPARAM)array);
 
-	place = (int)WinSendMsg(handle,
-							LM_QUERYSELECTION,
-							MPFROMSHORT(place),0L);
-	if(place == LIT_NONE)
-		return -1;
-	return place;
+		if(where == -1)
+		{
+			int ret = array[0];
+			free(array);
+			return ret;
+		}
+		for(z=0;z<count;z++)
+		{
+			if(array[z] == where && (z+1) < count)
+			{
+				int ret = array[z+1];
+				free(array);
+				return ret;
+			}
+		}
+		free(array);
+	}
+	return -1;
 }
 
 /*
@@ -4367,13 +4417,16 @@ void dw_listbox_select(HWND handle, int index, int state)
 {
 	char tmpbuf[100];
 
-	WinSendMsg(handle, LM_SELECTITEM, MPFROMSHORT(index), (MPARAM)state);
+	GetClassName(handle, tmpbuf, 99);
 
-	WinQueryClassName(handle, 99, tmpbuf);
-
-	/* If we are setting a combobox call the event handler manually */
-	if(strncmp(tmpbuf, "#6", 3)==0)
-		_run_event(handle, WM_CONTROL, MPFROM2SHORT(0, LN_SELECT), (MPARAM)handle);
+	if(strnicmp(tmpbuf, COMBOBOXCLASSNAME, strlen(COMBOBOXCLASSNAME))==0)
+		SendMessage(handle, CB_SETCURSEL, (WPARAM)index, 0);
+	else
+	{
+		SendMessage(handle, LB_SETCURSEL, (WPARAM)index, 0);
+		SendMessage(handle, LB_SETSEL, (WPARAM)state, (LPARAM)index);
+	}
+	_wndproc(handle, WM_COMMAND, (WPARAM)(LBN_SELCHANGE << 16), (LPARAM)handle);
 }
 
 /*
@@ -4384,9 +4437,40 @@ void dw_listbox_select(HWND handle, int index, int state)
  */
 void dw_listbox_delete(HWND handle, int index)
 {
-	WinSendMsg(handle, LM_DELETEITEM, MPFROMSHORT(index), 0);
+	SendMessage(handle, LB_DELETESTRING, (WPARAM)index, 0);
 }
 
+/*
+ * Returns the listbox's item count.
+ * Parameters:
+ *          handle: Handle to the listbox to be cleared.
+ */
+int dw_listbox_count(HWND handle)
+{
+	char tmpbuf[100];
+
+	GetClassName(handle, tmpbuf, 99);
+
+	if(strnicmp(tmpbuf, COMBOBOXCLASSNAME, strlen(COMBOBOXCLASSNAME))==0)
+		return (int)SendMessage(handle,
+								CB_GETCOUNT,0L, 0L);
+
+	return (int)SendMessage(handle,
+							LB_GETCOUNT,0L, 0L);
+}
+
+/*
+ * Sets the topmost item in the viewport.
+ * Parameters:
+ *          handle: Handle to the listbox to be cleared.
+ *          top: Index to the top item.
+ */
+void dw_listbox_set_top(HWND handle, int top)
+{
+	SendMessage(handle, LB_SETTOPINDEX, (WPARAM)top, 0);
+}
+
+#define MLE_MAX 200000
 /*
  * Adds text to an MLE box and returns the current point.
  * Parameters:
@@ -4396,33 +4480,34 @@ void dw_listbox_delete(HWND handle, int index)
  */
 unsigned int dw_mle_import(HWND handle, char *buffer, int startpoint)
 {
-	unsigned long point = startpoint;
-	PBYTE mlebuf;
+	char *tmpbuf = calloc(1, MLE_MAX+1);
+	int len;
 
-	/* Work around 64K limit */
-	if(!DosAllocMem((PPVOID) &mlebuf, 65536, PAG_COMMIT | PAG_READ | PAG_WRITE | OBJ_TILE))
+	if(strlen(buffer) < 1)
+		return startpoint;
+
+	startpoint++;
+
+	if(startpoint < 0)
+		startpoint = 0;
+
+	GetWindowText(handle, tmpbuf, MLE_MAX);
+
+	len = strlen(tmpbuf);
+	if(len)
 	{
-		int amount, len = strlen(buffer), written = 0;
+		char *dest = &tmpbuf[startpoint+strlen(buffer)-1], *start = &tmpbuf[startpoint];
+		int copylen = len - startpoint;
 
-		while(written < len)
-		{
-			if((len - written) > 65535)
-				amount = 65535;
-			else
-				amount = len - written;
-
-			memcpy(mlebuf, &buffer[written], amount);
-			mlebuf[amount] = '\0';
-
-			WinSendMsg(handle, MLM_SETIMPORTEXPORT, MPFROMP(mlebuf), MPFROMLONG(amount+1));
-			WinSendMsg(handle, MLM_IMPORT, MPFROMP(&point), MPFROMLONG(amount + 1));
-			dw_mle_delete(handle, point, 1);
-
-			written += amount;
-		}
-		DosFreeMem(mlebuf);
+		if(copylen > 0)
+			memcpy(dest, start, copylen);
 	}
-	return point - 1;
+	memcpy(&tmpbuf[startpoint], buffer, strlen(buffer));
+
+	SetWindowText(handle, tmpbuf);
+
+	free(tmpbuf);
+	return startpoint+strlen(buffer) - 1;
 }
 
 /*
@@ -4435,34 +4520,14 @@ unsigned int dw_mle_import(HWND handle, char *buffer, int startpoint)
  */
 void dw_mle_export(HWND handle, char *buffer, int startpoint, int length)
 {
-	PBYTE mlebuf;
+	char *tmpbuf = malloc(MLE_MAX+1);
 
-	/* Work around 64K limit */
-	if(!DosAllocMem((PPVOID) &mlebuf, 65535, PAG_COMMIT | PAG_READ | PAG_WRITE | OBJ_TILE))
-	{
-		int amount, copied, written = 0;
+	GetWindowText(handle, tmpbuf, MLE_MAX);
+	tmpbuf[MLE_MAX] = 0;
 
-		while(written < length)
-		{
-			if((length - written) > 65535)
-				amount = 65535;
-			else
-				amount = length - written;
+	memcpy(buffer, &tmpbuf[startpoint], length);
 
-			WinSendMsg(handle, MLM_SETIMPORTEXPORT, MPFROMP(mlebuf), MPFROMLONG(amount));
-			copied = (int)WinSendMsg(handle, MLM_EXPORT, MPFROMP(&startpoint), MPFROMLONG(&amount));
-
-			if(copied)
-			{
-				memcpy(&buffer[written], mlebuf, copied);
-
-				written += copied;
-			}
-			else
-				break;
-		}
-		DosFreeMem(mlebuf);
-	}
+	free(tmpbuf);
 }
 
 /*
@@ -4474,10 +4539,17 @@ void dw_mle_export(HWND handle, char *buffer, int startpoint, int length)
  */
 void dw_mle_query(HWND handle, unsigned long *bytes, unsigned long *lines)
 {
+	char *tmpbuf = malloc(MLE_MAX+1);
+
+	GetWindowText(handle, tmpbuf, MLE_MAX);
+	tmpbuf[MLE_MAX] = 0;
+
 	if(bytes)
-		*bytes = (unsigned long)WinSendMsg(handle, MLM_QUERYTEXTLENGTH, 0, 0);
+		*bytes = strlen(tmpbuf);
 	if(lines)
-		*lines = (unsigned long)WinSendMsg(handle, MLM_QUERYLINECOUNT, 0, 0);
+		*lines = (unsigned long)SendMessage(handle, EM_GETLINECOUNT, 0, 0);
+
+	free(tmpbuf);
 }
 
 /*
@@ -4489,18 +4561,19 @@ void dw_mle_query(HWND handle, unsigned long *bytes, unsigned long *lines)
  */
 void dw_mle_delete(HWND handle, int startpoint, int length)
 {
-	char *buf = malloc(length+1);
-	int z, dellen = length;
+	char *tmpbuf = malloc(MLE_MAX+1);
+	int len;
 
-	dw_mle_export(handle, buf, startpoint, length);
+	GetWindowText(handle, tmpbuf, MLE_MAX);
+	tmpbuf[MLE_MAX] = 0;
 
-	for(z=0;z<length-1;z++)
-	{
-		if(strncmp(&buf[z], "\r\n", 2) == 0)
-			dellen--;
-	}
-	WinSendMsg(handle, MLM_DELETE, MPFROMLONG(startpoint), MPFROMLONG(dellen));
-	free(buf);
+	len = strlen(tmpbuf);
+
+	strcpy(&tmpbuf[startpoint], &tmpbuf[startpoint+length]);
+
+	SetWindowText(handle, tmpbuf);
+
+	free(tmpbuf);
 }
 
 /*
@@ -4510,28 +4583,19 @@ void dw_mle_delete(HWND handle, int startpoint, int length)
  */
 void dw_mle_clear(HWND handle)
 {
-	unsigned long bytes;
-
-	dw_mle_query(handle, &bytes, NULL);
-
-	WinSendMsg(handle, MLM_DELETE, MPFROMLONG(0), MPFROMLONG(bytes));
+	SetWindowText(handle, "");
 }
 
 /*
  * Sets the visible line of an MLE box.
  * Parameters:
- *          handle: Handle to the MLE to be positioned.
+ *          handle: Handle to the MLE.
  *          line: Line to be visible.
  */
 void dw_mle_set_visible(HWND handle, int line)
 {
-	int tmppnt;
-
-	if(line > 10)
-	{
-		tmppnt = (int)WinSendMsg(handle, MLM_CHARFROMLINE, MPFROMLONG(line - 10), 0);
-		WinSendMsg(handle, MLM_SETFIRSTCHAR, MPFROMLONG(tmppnt), 0);
-	}
+	int point = (int)SendMessage(handle, EM_LINEINDEX, (WPARAM)line, 0);
+	dw_mle_set(handle, point);
 }
 
 /*
@@ -4542,7 +4606,7 @@ void dw_mle_set_visible(HWND handle, int line)
  */
 void dw_mle_set_editable(HWND handle, int state)
 {
-	WinSendMsg(handle, MLM_SETREADONLY, MPFROMLONG(state ? FALSE : TRUE), 0);
+	SendMessage(handle, EM_SETREADONLY, (WPARAM)(state ? FALSE : TRUE), 0);
 }
 
 /*
@@ -4553,7 +4617,13 @@ void dw_mle_set_editable(HWND handle, int state)
  */
 void dw_mle_set_word_wrap(HWND handle, int state)
 {
-	WinSendMsg(handle, MLM_SETWRAP, MPFROMLONG(state), 0);
+	/* If ES_AUTOHSCROLL is not set and there is not
+	 * horizontal scrollbar it word wraps.
+	 */
+	if(state)
+		dw_window_set_style(handle, 0, ES_AUTOHSCROLL);
+	else
+		dw_window_set_style(handle, ES_AUTOHSCROLL, ES_AUTOHSCROLL);
 }
 
 /*
@@ -4564,7 +4634,8 @@ void dw_mle_set_word_wrap(HWND handle, int state)
  */
 void dw_mle_set(HWND handle, int point)
 {
-	WinSendMsg(handle, MLM_SETSEL, MPFROMLONG(point), MPFROMLONG(point));
+	SendMessage(handle, EM_SETSEL, (WPARAM)point, (LPARAM)point);
+	SendMessage(handle, EM_SCROLLCARET, 0, 0);
 }
 
 /*
@@ -4577,22 +4648,41 @@ void dw_mle_set(HWND handle, int point)
  */
 int dw_mle_search(HWND handle, char *text, int point, unsigned long flags)
 {
-	MLE_SEARCHDATA msd;
+	char *tmpbuf = malloc(MLE_MAX+1);
+	int z, len, textlen, retval = 0;
 
-	/* This code breaks with structure packing set to 1 (/Sp1 in VAC)
-	 * if this is needed we need to add a pragma here.
-	 */
-	msd.cb = sizeof(msd);
-	msd.pchFind = text;
-	msd.pchReplace = NULL;
-	msd.cchFind = strlen(text);
-	msd.cchReplace = 0;
-	msd.iptStart = point;
-	msd.iptStop = -1;
+	GetWindowText(handle, tmpbuf, MLE_MAX);
+	tmpbuf[MLE_MAX] = 0;
 
-	if(WinSendMsg(handle, MLM_SEARCH, MPFROMLONG(MLFSEARCH_SELECTMATCH | flags), (MPARAM)&msd))
-		return (int)WinSendMsg(handle, MLM_QUERYSEL,(MPARAM)MLFQS_MAXSEL, 0);
-	return 0;
+	len = strlen(tmpbuf);
+	textlen = strlen(text);
+
+	if(flags & DW_MLE_CASESENSITIVE)
+	{
+		for(z=point;z<(len-textlen) && !retval;z++)
+		{
+			if(strncmp(&tmpbuf[z], text, textlen) == 0)
+				retval = z + textlen;
+		}
+	}
+	else
+	{
+		for(z=point;z<(len-textlen) && !retval;z++)
+		{
+			if(strnicmp(&tmpbuf[z], text, textlen) == 0)
+				retval = z + textlen;
+		}
+	}
+
+	if(retval)
+	{
+		SendMessage(handle, EM_SETSEL, (WPARAM)retval - textlen, (LPARAM)retval);
+		SendMessage(handle, EM_SCROLLCARET, 0, 0);
+	}
+
+	free(tmpbuf);
+
+	return retval;
 }
 
 /*
@@ -4602,7 +4692,6 @@ int dw_mle_search(HWND handle, char *text, int point, unsigned long flags)
  */
 void dw_mle_freeze(HWND handle)
 {
-	WinSendMsg(handle, MLM_DISABLEREFRESH, 0, 0);
 }
 
 /*
@@ -4612,7 +4701,6 @@ void dw_mle_freeze(HWND handle)
  */
 void dw_mle_thaw(HWND handle)
 {
-	WinSendMsg(handle, MLM_ENABLEREFRESH, 0, 0);
 }
 
 /*
@@ -4622,13 +4710,7 @@ void dw_mle_thaw(HWND handle)
  */
 unsigned int dw_percent_query_range(HWND handle)
 {
-	unsigned long width;
-
-	dw_window_get_pos_size(handle, 0, 0, &width, 0);
-
-	if(width - 6 < 1)
-		return 1;
-	return width - 6;
+	return (unsigned int)SendMessage(handle, PBM_GETRANGE, (WPARAM)FALSE, 0);
 }
 
 /*
@@ -4639,16 +4721,7 @@ unsigned int dw_percent_query_range(HWND handle)
  */
 void dw_percent_set_pos(HWND handle, unsigned int position)
 {
-	PercentBar *pb = (PercentBar *)WinQueryWindowPtr(handle, 0);
-
-	if(pb)
-	{
-		RECTL rcl;
-
-		pb->pos = position;
-		WinQueryWindowRect(handle, &rcl);
-		WinInvalidateRect(handle, &rcl, FALSE);
-	}
+	SendMessage(handle, PBM_SETPOS, (WPARAM)position, 0);
 }
 
 /*
@@ -4659,19 +4732,34 @@ void dw_percent_set_pos(HWND handle, unsigned int position)
  */
 void dw_spinbutton_set_pos(HWND handle, long position)
 {
-	WinSendMsg(handle, SPBM_SETCURRENTVALUE, MPFROMLONG((long)position), 0L);
+	char tmpbuf[100];
+	ColorInfo *cinfo = (ColorInfo *)GetWindowLong(handle, GWL_USERDATA);
+
+	sprintf(tmpbuf, "%d", position);
+
+	if(cinfo && cinfo->buddy)
+		SetWindowText(cinfo->buddy, tmpbuf);
+
+	if(IS_WIN98PLUS)
+		SendMessage(handle, UDM_SETPOS32, 0, (LPARAM)position);
+	else
+		SendMessage(handle, UDM_SETPOS, 0, (LPARAM)MAKELONG((short)position, 0));
 }
 
 /*
  * Sets the spinbutton limits.
  * Parameters:
  *          handle: Handle to the spinbutton to be set.
- *          upper: Upper limit.
- *          lower: Lower limit.
+ *          position: Current value of the spinbutton.
+ *          position: Current value of the spinbutton.
  */
 void dw_spinbutton_set_limits(HWND handle, long upper, long lower)
 {
-	WinSendMsg(handle, SPBM_SETLIMITS, MPFROMLONG(upper), MPFROMLONG(lower));
+	if(IS_WIN98PLUS)
+		SendMessage(handle, UDM_SETRANGE32, (WPARAM)lower,(LPARAM)upper);
+	else
+		SendMessage(handle, UDM_SETRANGE32, (WPARAM)((short)lower),
+					(LPARAM)((short)upper));
 }
 
 /*
@@ -4682,9 +4770,8 @@ void dw_spinbutton_set_limits(HWND handle, long upper, long lower)
  */
 void dw_entryfield_set_limit(HWND handle, ULONG limit)
 {
-	WinSendMsg(handle, EM_SETTEXTLIMIT, (MPARAM)limit, (MPARAM)0);
+	SendMessage(handle, EM_SETLIMITTEXT, (WPARAM)limit, 0);
 }
-
 
 /*
  * Returns the current value of the spinbutton.
@@ -4693,10 +4780,10 @@ void dw_entryfield_set_limit(HWND handle, ULONG limit)
  */
 long dw_spinbutton_query(HWND handle)
 {
-	long tmpval = 0L;
-
-	WinSendMsg(handle, SPBM_QUERYVALUE, (MPARAM)&tmpval,0L);
-    return tmpval;
+	if(IS_WIN98PLUS)
+		return (long)SendMessage(handle, UDM_GETPOS32, 0, 0);
+	else
+		return (long)SendMessage(handle, UDM_GETPOS, 0, 0);
 }
 
 /*
@@ -4706,7 +4793,9 @@ long dw_spinbutton_query(HWND handle)
  */
 int dw_checkbox_query(HWND handle)
 {
-	return (int)WinSendMsg(handle,BM_QUERYCHECK,0,0);
+	if(SendMessage(handle, BM_GETCHECK, 0, 0) == BST_CHECKED)
+		return TRUE;
+	return FALSE;
 }
 
 /*
@@ -4717,7 +4806,11 @@ int dw_checkbox_query(HWND handle)
  */
 void dw_checkbox_set(HWND handle, int value)
 {
-	WinSendMsg(handle,BM_SETCHECK,MPFROMSHORT(value),0);
+	ColorInfo *cinfo = (ColorInfo *)GetWindowLong(handle, GWL_USERDATA);
+
+	if(cinfo && !cinfo->user)
+		SendMessage(handle, BM_CLICK, 0, 0);
+	SendMessage(handle, BM_SETCHECK, (WPARAM)value, 0);
 }
 
 /*
@@ -4731,47 +4824,27 @@ void dw_checkbox_set(HWND handle, int value)
  */
 HWND dw_tree_insert(HWND handle, char *title, unsigned long icon, HWND parent, void *itemdata)
 {
-	ULONG        cbExtra;
-	PCNRITEM     pci;
-	RECORDINSERT ri;
+	TVITEM tvi;
+	TVINSERTSTRUCT tvins;
+	HTREEITEM hti;
+	void **ptrs= malloc(sizeof(void *) * 2);
 
-	/* Calculate extra bytes needed for each record besides that needed for the
-	 * MINIRECORDCORE structure
-	 */
+	ptrs[0] = title;
+	ptrs[1] = itemdata;
 
-	cbExtra = sizeof(CNRITEM) - sizeof(MINIRECORDCORE);
+	tvi.mask = TVIF_TEXT | TVIF_IMAGE | TVIF_SELECTEDIMAGE | TVIF_PARAM;
+	tvi.pszText = title;
+	tvi.lParam = (LONG)ptrs;
+	tvi.cchTextMax = strlen(title);
+	tvi.iSelectedImage = tvi.iImage = _lookup_icon(handle, (HICON)icon, 1);
 
-	/* Allocate memory for the parent record */
+	tvins.item = tvi;
+	tvins.hParent = (HTREEITEM)parent;
+	tvins.hInsertAfter = TVI_LAST;
 
-	pci = WinSendMsg(handle, CM_ALLOCRECORD, MPFROMLONG(cbExtra), MPFROMSHORT(1));
+	hti = TreeView_InsertItem(handle, &tvins);
 
-	/* Fill in the parent record data */
-
-	pci->rc.cb          = sizeof(MINIRECORDCORE);
-	pci->rc.pszIcon     = strdup(title);
-	pci->rc.hptrIcon    = icon;
-
-	pci->hptrIcon       = icon;
-	pci->user           = itemdata;
-
-	memset(&ri, 0, sizeof(RECORDINSERT));
-
-	ri.cb                 = sizeof(RECORDINSERT);
-	ri.pRecordOrder       = (PRECORDCORE)CMA_END;
-	ri.pRecordParent      = (PRECORDCORE)NULL;
-	ri.zOrder             = (USHORT)CMA_TOP;
-	ri.cRecordsInsert     = 1;
-	ri.fInvalidateRecord  = TRUE;
-
-	/* We are about to insert the child records. Set the parent record to be
-	 * the one we just inserted.
-	 */
-	ri.pRecordParent = (PRECORDCORE)parent;
-
-	/* Insert the record */
-	WinSendMsg(handle, CM_INSERTRECORD, MPFROMP(pci), MPFROMP(&ri));
-
-	return (HWND)pci;
+	return (HWND)hti;
 }
 
 /*
@@ -4784,20 +4857,24 @@ HWND dw_tree_insert(HWND handle, char *title, unsigned long icon, HWND parent, v
  */
 void dw_tree_set(HWND handle, HWND item, char *title, unsigned long icon)
 {
-	PCNRITEM pci = (PCNRITEM)item;
+	TVITEM tvi;
+	void **ptrs;
 
-	if(!pci)
-		return;
+	tvi.mask = TVIF_HANDLE;
+	tvi.hItem = (HTREEITEM)item;
 
-	if(pci->rc.pszIcon)
-		free(pci->rc.pszIcon);
+	TreeView_GetItem(handle, &tvi);
 
-	pci->rc.pszIcon     = strdup(title);
-	pci->rc.hptrIcon    = icon;
+	ptrs = (void **)tvi.lParam;
+	ptrs[0] = title;
 
-	pci->hptrIcon       = icon;
+	tvi.mask = TVIF_TEXT | TVIF_IMAGE | TVIF_SELECTEDIMAGE;
+	tvi.pszText = title;
+	tvi.cchTextMax = strlen(title);
+	tvi.iSelectedImage = tvi.iImage = _lookup_icon(handle, (HICON)icon, 1);
+	tvi.hItem = (HTREEITEM)item;
 
-	WinSendMsg(handle, CM_INVALIDATERECORD, (MPARAM)&pci, MPFROM2SHORT(1, CMA_TEXTCHANGED));
+	TreeView_SetItem(handle, &tvi);
 }
 
 /*
@@ -4809,12 +4886,16 @@ void dw_tree_set(HWND handle, HWND item, char *title, unsigned long icon)
  */
 void dw_tree_set_data(HWND handle, HWND item, void *itemdata)
 {
-	PCNRITEM pci = (PCNRITEM)item;
+	TVITEM tvi;
+	void **ptrs;
 
-	if(!pci)
-		return;
+	tvi.mask = TVIF_HANDLE;
+	tvi.hItem = (HTREEITEM)item;
 
-	pci->user = itemdata;
+	TreeView_GetItem(handle, &tvi);
+
+	ptrs = (void **)tvi.lParam;
+	ptrs[1] = itemdata;
 }
 
 /*
@@ -4825,17 +4906,8 @@ void dw_tree_set_data(HWND handle, HWND item, void *itemdata)
  */
 void dw_tree_item_select(HWND handle, HWND item)
 {
-	PRECORDCORE pCore = WinSendMsg(handle, CM_QUERYRECORD, (MPARAM)0L, MPFROM2SHORT(CMA_FIRST, CMA_ITEMORDER));
-
-	while(pCore)
-	{
-		if(pCore->flRecordAttr & CRA_SELECTED)
-			WinSendMsg(handle, CM_SETRECORDEMPHASIS, (MPARAM)pCore, MPFROM2SHORT(FALSE, CRA_SELECTED | CRA_CURSORED));
-		pCore = WinSendMsg(handle, CM_QUERYRECORD, (MPARAM)pCore, MPFROM2SHORT(CMA_NEXT, CMA_ITEMORDER));
-	}
-	WinSendMsg(handle, CM_SETRECORDEMPHASIS, (MPARAM)item, MPFROM2SHORT(TRUE, CRA_SELECTED | CRA_CURSORED));
-	lastitem = 0;
-	lasthcnr = 0;
+	TreeView_SelectItem(handle, (HTREEITEM)item);
+	SetFocus(handle);
 }
 
 /*
@@ -4845,7 +4917,7 @@ void dw_tree_item_select(HWND handle, HWND item)
  */
 void dw_tree_clear(HWND handle)
 {
-	WinSendMsg(handle, CM_REMOVERECORD, (MPARAM)0L, MPFROM2SHORT(0, CMA_INVALIDATE | CMA_FREE));
+	TreeView_DeleteAllItems(handle);
 }
 
 /*
@@ -4856,7 +4928,7 @@ void dw_tree_clear(HWND handle)
  */
 void dw_tree_expand(HWND handle, HWND item)
 {
-	WinSendMsg(handle, CM_EXPANDTREE, MPFROMP(item), 0);
+	TreeView_Expand(handle, (HTREEITEM)item, TVE_EXPAND);
 }
 
 /*
@@ -4867,7 +4939,7 @@ void dw_tree_expand(HWND handle, HWND item)
  */
 void dw_tree_collapse(HWND handle, HWND item)
 {
-	WinSendMsg(handle, CM_COLLAPSETREE, MPFROMP(item), 0);
+	TreeView_Expand(handle, (HTREEITEM)item, TVE_COLLAPSE);
 }
 
 /*
@@ -4878,23 +4950,8 @@ void dw_tree_collapse(HWND handle, HWND item)
  */
 void dw_tree_delete(HWND handle, HWND item)
 {
-	PCNRITEM     pci = (PCNRITEM)item;
-
-	if(!item)
-		return;
-
-	if(pci->rc.pszIcon)
-		free(pci->rc.pszIcon);
-
-	WinSendMsg(handle, CM_REMOVERECORD, (MPARAM)&pci, MPFROM2SHORT(1, CMA_INVALIDATE | CMA_FREE));
+	TreeView_DeleteItem(handle, (HTREEITEM)item);
 }
-
-/* Some OS/2 specific container structs */
-typedef struct _containerinfo {
-	int count;
-	void *data;
-	HWND handle;
-} ContainerInfo;
 
 /*
  * Sets up the container columns.
@@ -4904,88 +4961,37 @@ typedef struct _containerinfo {
  *          titles: An array of strings with column text titles.
  *          count: The number of columns (this should match the arrays).
  *          separator: The column number that contains the main separator.
- *                     (this item may only be used in OS/2)
+ *                     (only used on OS/2 but must be >= 0 on all)
  */
 int dw_container_setup(HWND handle, unsigned long *flags, char **titles, int count, int separator)
 {
-	PFIELDINFO details, first, left = NULL;
-	FIELDINFOINSERT detin;
-	CNRINFO cnri;
-	int z;
-	ULONG size = sizeof(RECORDCORE);
-	ULONG *offStruct = malloc(count * sizeof(ULONG));
-	ULONG *tempflags = malloc((count+1) * sizeof(ULONG));
-	ULONG *oldflags = (ULONG *)WinQueryWindowPtr(handle, 0);
+	ContainerInfo *cinfo = (ContainerInfo *)GetWindowLong(handle, GWL_USERDATA);
+	int z, l = 0;
+	unsigned long *tempflags = malloc(sizeof(unsigned long) * (count + 2));
+	LV_COLUMN lvc;
 
-	if(!offStruct || !tempflags)
-		return FALSE;
+	if(separator == -1)
+		l = 1;
 
-	memcpy(tempflags, flags, count * sizeof(ULONG));
-	tempflags[count] = 0;
+	memcpy(&tempflags[l], flags, sizeof(unsigned long) * count);
+	tempflags[count + l] = 0;
+	cinfo->flags = tempflags;
 
-	WinSetWindowPtr(handle, 0, tempflags);
-
-	if(oldflags)
-		free(oldflags);
-
-	while((first = (PFIELDINFO)WinSendMsg(handle, CM_QUERYDETAILFIELDINFO,  0, MPFROMSHORT(CMA_FIRST))) != NULL)
-	{
-		WinSendMsg(handle, CM_REMOVEDETAILFIELDINFO, (MPARAM)&first, MPFROM2SHORT(1, CMA_FREE));
-	}
-
-	/* Figure out the offsets to the items in the struct */
-	for(z=0;z<count;z++)
-	{
-		offStruct[z] = size;
-		if(flags[z] & DW_CFA_BITMAPORICON)
-			size += sizeof(HPOINTER);
-		else if(flags[z] & DW_CFA_STRING)
-			size += sizeof(char *);
-		else if(flags[z] & DW_CFA_ULONG)
-			size += sizeof(ULONG);
-		else if(flags[z] & DW_CFA_DATE)
-			size += sizeof(CDATE);
-		else if(flags[z] & DW_CFA_TIME)
-			size += sizeof(CTIME);
-	}
-
-	first = details = (PFIELDINFO)WinSendMsg(handle, CM_ALLOCDETAILFIELDINFO, MPFROMLONG(count), 0L);
-
-	if(!first)
-	{
-		free(offStruct);
-		return FALSE;
-	}
 
 	for(z=0;z<count;z++)
 	{
-		if(z==separator-1)
-			left=details;
-		details->cb = sizeof(FIELDINFO);
-		details->flData = flags[z];
-		details->flTitle = CFA_FITITLEREADONLY;
-		details->pTitleData = titles[z];
-		details->offStruct = offStruct[z];
-		details = details->pNextFieldInfo;
+		if(titles[z])
+		{
+			lvc.mask = LVCF_TEXT | LVCF_WIDTH | LVCF_SUBITEM /*| LVCF_FORMAT*/;
+			lvc.pszText = titles[z];
+			lvc.cchTextMax = strlen(titles[z]);
+			lvc.fmt = flags[z];
+			lvc.cx = 75;
+			lvc.iSubItem = count;
+			SendMessage(handle, LVM_INSERTCOLUMN, (WPARAM)z + l, (LPARAM)&lvc);
+		}
 	}
-
-	detin.cb = sizeof(FIELDINFOINSERT);
-	detin.fInvalidateFieldInfo = FALSE;
-	detin.pFieldInfoOrder = (PFIELDINFO) CMA_FIRST;
-	detin.cFieldInfoInsert = (ULONG)count;
-
-	WinSendMsg(handle, CM_INSERTDETAILFIELDINFO, MPFROMP(first), MPFROMP(&detin));
-
-	if(count > separator && separator > 0)
-	{
-		cnri.cb = sizeof(CNRINFO);
-		cnri.pFieldInfoLast = left;
-		cnri.xVertSplitbar  = 150;
-
-		WinSendMsg(handle, CM_SETCNRINFO, MPFROMP(&cnri),  MPFROMLONG(CMA_PFIELDINFOLAST | CMA_XVERTSPLITBAR));
-	}
-
-	free(offStruct);
+	ListView_SetExtendedListViewStyle(handle, LVS_EX_FULLROWSELECT | LVS_EX_GRIDLINES);
 	return TRUE;
 }
 
@@ -4999,22 +5005,19 @@ int dw_container_setup(HWND handle, unsigned long *flags, char **titles, int cou
  */
 int dw_filesystem_setup(HWND handle, unsigned long *flags, char **titles, int count)
 {
-	char **newtitles = malloc(sizeof(char *) * (count + 2));
-	unsigned long *newflags = malloc(sizeof(unsigned long) * (count + 2));
+	LV_COLUMN lvc;
 
-	newtitles[0] = "Icon";
-	newtitles[1] = "Filename";
-
-	newflags[0] = DW_CFA_BITMAPORICON | DW_CFA_CENTER | DW_CFA_HORZSEPARATOR | DW_CFA_SEPARATOR;
-	newflags[1] = DW_CFA_STRING | DW_CFA_LEFT | DW_CFA_HORZSEPARATOR;
-
-	memcpy(&newtitles[2], titles, sizeof(char *) * count);
-	memcpy(&newflags[2], flags, sizeof(unsigned long) * count);
-
-	dw_container_setup(handle, newflags, newtitles, count + 2, 2);
-
-	free(newtitles);
-	free(newflags);
+	lvc.mask = LVCF_TEXT | LVCF_WIDTH | LVCF_SUBITEM;
+	lvc.pszText = "Filename";
+	lvc.cchTextMax = 8;
+	lvc.fmt = 0;
+	if(!count)
+		lvc.cx = 300;
+	else
+		lvc.cx = 150;
+	lvc.iSubItem = count;
+	SendMessage(handle, LVM_INSERTCOLUMN, (WPARAM)0, (LPARAM)&lvc);
+	dw_container_setup(handle, flags, titles, count, -1);
 	return TRUE;
 }
 
@@ -5028,7 +5031,7 @@ int dw_filesystem_setup(HWND handle, unsigned long *flags, char **titles, int co
  */
 unsigned long dw_icon_load(unsigned long module, unsigned long id)
 {
-	return WinLoadPointer(HWND_DESKTOP,module,id);
+	return (unsigned long)LoadIcon(DWInstance, MAKEINTRESOURCE(id));
 }
 
 /*
@@ -5038,7 +5041,7 @@ unsigned long dw_icon_load(unsigned long module, unsigned long id)
  */
 void dw_icon_free(unsigned long handle)
 {
-	WinDestroyPointer(handle);
+	DestroyIcon((HICON)handle);
 }
 
 /*
@@ -5049,126 +5052,74 @@ void dw_icon_free(unsigned long handle)
  */
 void *dw_container_alloc(HWND handle, int rowcount)
 {
-	ULONG *flags = (ULONG *)WinQueryWindowPtr(handle, 0);
-	int z, size = 0, totalsize, count = 0;
-	PRECORDCORE temp;
-	ContainerInfo *ci;
-	void *blah = NULL;
+	LV_ITEM lvi;
+	int z;
 
-	if(!flags || rowcount < 1)
-		return NULL;
-
-	while(flags[count])
-		count++;
-
-	/* Figure out the offsets to the items in the struct */
-	for(z=0;z<count;z++)
-	{
-		if(flags[z] & DW_CFA_BITMAPORICON)
-			size += sizeof(HPOINTER);
-		else if(flags[z] & DW_CFA_STRING)
-			size += sizeof(char *);
-		else if(flags[z] & DW_CFA_ULONG)
-			size += sizeof(ULONG);
-		else if(flags[z] & DW_CFA_DATE)
-			size += sizeof(CDATE);
-		else if(flags[z] & DW_CFA_TIME)
-			size += sizeof(CTIME);
-	}
-
-	totalsize = size + sizeof(RECORDCORE);
-
-	z = 0;
-
-	while((blah = (void *)WinSendMsg(handle, CM_ALLOCRECORD, MPFROMLONG(size), MPFROMLONG(rowcount))) == NULL)
-	{
-		z++;
-		if(z > 5000000)
-			break;
-		DosSleep(1);
-	}
-
-	if(!blah)
-		return NULL;
-
-	temp = (PRECORDCORE)blah;
+	lvi.mask = LVIF_DI_SETITEM | LVIF_TEXT | LVIF_IMAGE;
+	lvi.iSubItem = 0;
+	/* Insert at the end */
+	lvi.iItem = 1000000;
+	lvi.pszText = "";
+	lvi.cchTextMax = 1;
+	lvi.iImage = -1;
 
 	for(z=0;z<rowcount;z++)
-	{
-		temp->cb = totalsize;
-		temp = temp->preccNextRecord;
-	}
-
-	ci = malloc(sizeof(struct _containerinfo));
-
-	ci->count = rowcount;
-	ci->data = blah;
-	ci->handle = handle;
-
-	return (void *)ci;
+		ListView_InsertItem(handle, &lvi);
+	return (void *)handle;
 }
 
-/*
- * Sets an item in specified row and column to the given data.
- * Parameters:
- *          handle: Handle to the container window (widget).
- *          pointer: Pointer to the allocated memory in dw_container_alloc().
- *          column: Zero based column of data being set.
- *          row: Zero based row of data being set.
- *          data: Pointer to the data to be added.
+/* Finds a icon in the table, otherwise it adds it to the table
+ * and returns the index in the table.
  */
-void dw_container_set_item(HWND handle, void *pointer, int column, int row, void *data)
+int _lookup_icon(HWND handle, HICON hicon, int type)
 {
-	ULONG totalsize, size = 0, *flags = (ULONG *)WinQueryWindowPtr(handle, 0);
-	int z, currentcount;
-	ContainerInfo *ci = (ContainerInfo *)pointer;
-	PRECORDCORE temp;
-	CNRINFO cnr;
-    void *dest;
+	int z;
+	static HWND lasthwnd = NULL;
 
-	if(!ci)
-		return;
-
-	if(!flags)
-		return;
-
-	temp = (PRECORDCORE)ci->data;
-
-	WinSendMsg(handle, CM_QUERYCNRINFO, (MPARAM)&cnr, MPFROMSHORT(sizeof(CNRINFO)));
-	currentcount = cnr.cRecords;
-
-	/* Figure out the offsets to the items in the struct */
-	for(z=0;z<column;z++)
+	if(!hSmall || !hLarge)
 	{
-		if(flags[z] & DW_CFA_BITMAPORICON)
-			size += sizeof(HPOINTER);
-		else if(flags[z] & DW_CFA_STRING)
-			size += sizeof(char *);
-		else if(flags[z] & DW_CFA_ULONG)
-			size += sizeof(ULONG);
-		else if(flags[z] & DW_CFA_DATE)
-			size += sizeof(CDATE);
-		else if(flags[z] & DW_CFA_TIME)
-			size += sizeof(CTIME);
+		hSmall = ImageList_Create(16, 16, ILC_COLOR16, ICON_INDEX_LIMIT, 0);
+		hLarge = ImageList_Create(32, 32, ILC_COLOR16, ICON_INDEX_LIMIT, 0);
 	}
+	for(z=0;z<ICON_INDEX_LIMIT;z++)
+	{
+		if(!lookup[z])
+		{
+			lookup[z] = hicon;
+			ImageList_AddIcon(hSmall, hicon);
+			ImageList_AddIcon(hLarge, hicon);
+			if(type)
+			{
+				TreeView_SetImageList(handle, hSmall, TVSIL_NORMAL);
+			}
+			else
+			{
+				ListView_SetImageList(handle, hSmall, LVSIL_SMALL);
+				ListView_SetImageList(handle, hLarge, LVSIL_NORMAL);
+			}
+			lasthwnd = handle;
+			return z;
+		}
 
-	totalsize = size + sizeof(RECORDCORE);
-
-	for(z=0;z<(row-currentcount);z++)
-		temp = temp->preccNextRecord;
-
-	dest = (void *)(((ULONG)temp)+((ULONG)totalsize));
-
-	if(flags[column] & DW_CFA_BITMAPORICON)
-        memcpy(dest, data, sizeof(HPOINTER));
-	else if(flags[column] & DW_CFA_STRING)
-        memcpy(dest, data, sizeof(char *));
-	else if(flags[column] & DW_CFA_ULONG)
-        memcpy(dest, data, sizeof(ULONG));
-	else if(flags[column] & DW_CFA_DATE)
-        memcpy(dest, data, sizeof(CDATE));
-	else if(flags[column] & DW_CFA_TIME)
-        memcpy(dest, data, sizeof(CTIME));
+		if(hicon == lookup[z])
+		{
+			if(lasthwnd != handle)
+			{
+				if(type)
+				{
+					TreeView_SetImageList(handle, hSmall, TVSIL_NORMAL);
+				}
+				else
+				{
+					ListView_SetImageList(handle, hSmall, LVSIL_SMALL);
+					ListView_SetImageList(handle, hLarge, LVSIL_NORMAL);
+				}
+                lasthwnd = handle;
+			}
+			return z;
+		}
+	}
+	return -1;
 }
 
 /*
@@ -5182,8 +5133,16 @@ void dw_container_set_item(HWND handle, void *pointer, int column, int row, void
  */
 void dw_filesystem_set_file(HWND handle, void *pointer, int row, char *filename, unsigned long icon)
 {
-	dw_container_set_item(handle, pointer, 0, row, (void *)&icon);
-	dw_container_set_item(handle, pointer, 1, row, (void *)&filename);
+	LV_ITEM lvi;
+
+	lvi.iItem = row;
+	lvi.iSubItem = 0;
+	lvi.mask = LVIF_DI_SETITEM | LVIF_IMAGE | LVIF_TEXT;
+	lvi.pszText = filename;
+	lvi.cchTextMax = strlen(filename);
+	lvi.iImage = _lookup_icon(handle, (HICON)icon, 0);
+
+	ListView_SetItem(handle, &lvi);
 }
 
 /*
@@ -5197,7 +5156,88 @@ void dw_filesystem_set_file(HWND handle, void *pointer, int row, char *filename,
  */
 void dw_filesystem_set_item(HWND handle, void *pointer, int column, int row, void *data)
 {
-	dw_container_set_item(handle, pointer, column + 2, row, data);
+	dw_container_set_item(handle, pointer, column + 1, row, data);
+}
+
+/*
+ * Sets an item in specified row and column to the given data.
+ * Parameters:
+ *          handle: Handle to the container window (widget).
+ *          pointer: Pointer to the allocated memory in dw_container_alloc().
+ *          column: Zero based column of data being set.
+ *          row: Zero based row of data being set.
+ *          data: Pointer to the data to be added.
+ */
+void dw_container_set_item(HWND handle, void *pointer, int column, int row, void *data)
+{
+	ContainerInfo *cinfo = (ContainerInfo *)GetWindowLong(handle, GWL_USERDATA);
+	ULONG *flags;
+	LV_ITEM lvi;
+	char textbuffer[100], *destptr = textbuffer;
+
+	if(!cinfo || !cinfo->flags || !data)
+		return;
+
+	flags = cinfo->flags;
+
+	lvi.mask = LVIF_DI_SETITEM | LVIF_TEXT;
+	lvi.iItem = row;
+	lvi.iSubItem = column;
+
+	if(flags[column] & DW_CFA_BITMAPORICON)
+	{
+		HICON hicon = *((HICON *)data);
+
+		lvi.mask = LVIF_DI_SETITEM | LVIF_IMAGE;
+		lvi.pszText = NULL;
+		lvi.cchTextMax = 0;
+
+		lvi.iImage = _lookup_icon(handle, hicon, 0);
+	}
+	else if(flags[column] & DW_CFA_STRING)
+	{
+		char *tmp = *((char **)data);
+
+		if(!tmp)
+			tmp = "";
+
+		lvi.pszText = tmp;
+		lvi.cchTextMax = strlen(tmp);
+		destptr = tmp;
+	}
+	else if(flags[column] & DW_CFA_ULONG)
+	{
+		ULONG tmp = *((ULONG *)data);
+
+		sprintf(textbuffer, "%lu", tmp);
+
+		lvi.pszText = textbuffer;
+		lvi.cchTextMax = strlen(textbuffer);
+	}
+	else if(flags[column] & DW_CFA_DATE)
+	{
+		CDATE fdate = *((CDATE *)data);
+
+		if(fdate.month > 0)
+			sprintf(textbuffer, "%s %d, %d", monthlist[fdate.month-1], fdate.day, fdate.year);
+        else
+			strcpy(textbuffer, "");
+		lvi.pszText = textbuffer;
+		lvi.cchTextMax = strlen(textbuffer);
+	}
+	else if(flags[column] & DW_CFA_TIME)
+	{
+		CTIME ftime = *((CTIME *)data);
+
+		if(ftime.hours > 12)
+			sprintf(textbuffer, "%d:%s%dpm", ftime.hours - 12, (ftime.minutes < 10) ? "0" : "", ftime.minutes);
+		else
+			sprintf(textbuffer, "%d:%s%dam", ftime.hours ? ftime.hours : 12, (ftime.minutes < 10) ? "0" : "", ftime.minutes);
+		lvi.pszText = textbuffer;
+		lvi.cchTextMax = strlen(textbuffer);
+	}
+
+	ListView_SetItem(handle, &lvi);
 }
 
 /*
@@ -5209,6 +5249,7 @@ void dw_filesystem_set_item(HWND handle, void *pointer, int column, int row, voi
  */
 void dw_container_set_column_width(HWND handle, int column, int width)
 {
+	ListView_SetColumnWidth(handle, column, width);
 }
 
 /*
@@ -5220,25 +5261,17 @@ void dw_container_set_column_width(HWND handle, int column, int width)
  */
 void dw_container_set_row_title(void *pointer, int row, char *title)
 {
-	ContainerInfo *ci = (ContainerInfo *)pointer;
-	PRECORDCORE temp;
-	int z, currentcount;
-	CNRINFO cnr;
+	LV_ITEM lvi;
+	HWND container = (HWND)pointer;
 
-	if(!ci)
-		return;
+	lvi.iItem = row;
+	lvi.iSubItem = 0;
+	lvi.mask = LVIF_PARAM;
+	lvi.lParam = (LPARAM)title;
 
-	temp = (PRECORDCORE)ci->data;
+	if(!ListView_SetItem(container, &lvi) && lvi.lParam)
+		lvi.lParam = 0;
 
-	WinSendMsg(ci->handle, CM_QUERYCNRINFO, (MPARAM)&cnr, MPFROMSHORT(sizeof(CNRINFO)));
-	currentcount = cnr.cRecords;
-
-	for(z=0;z<(row-currentcount);z++)
-		temp = temp->preccNextRecord;
-
-	temp->pszIcon = title;
-	temp->pszName = title;
-	temp->pszText = title;
 }
 
 /*
@@ -5250,29 +5283,7 @@ void dw_container_set_row_title(void *pointer, int row, char *title)
  */
 void dw_container_insert(HWND handle, void *pointer, int rowcount)
 {
-	RECORDINSERT recin;
-	ContainerInfo *ci = (ContainerInfo *)pointer;
-	int z;
-
-	if(!ci)
-		return;
-
-	recin.cb = sizeof(RECORDINSERT);
-	recin.pRecordOrder = (PRECORDCORE)CMA_END;
-	recin.pRecordParent = NULL;
-	recin.zOrder = CMA_TOP;
-	recin.fInvalidateRecord = TRUE;
-	recin.cRecordsInsert = rowcount;
-
-	z = 0;
-
-	while(WinSendMsg(handle, CM_INSERTRECORD, MPFROMP(ci->data), MPFROMP(&recin)) == 0)
-	{
-		z++;
-		if(z > 5000000)
-			break;
-		DosSleep(1);
-	}
+	/* This isn't a separate step in windows. */
 }
 
 /*
@@ -5283,15 +5294,7 @@ void dw_container_insert(HWND handle, void *pointer, int rowcount)
  */
 void dw_container_clear(HWND handle, int redraw)
 {
-	int z = 0;
-
-	while((int)WinSendMsg(handle, CM_REMOVERECORD, (MPARAM)0L, MPFROM2SHORT(0, (redraw ? CMA_INVALIDATE : 0) | CMA_FREE)) == -1)
-	{
-		z++;
-		if(z > 5000000)
-			break;
-		DosSleep(1);
-	}
+	ListView_DeleteAllItems(handle);
 }
 
 /*
@@ -5302,28 +5305,12 @@ void dw_container_clear(HWND handle, int redraw)
  */
 void dw_container_delete(HWND handle, int rowcount)
 {
-	RECORDCORE *last, **prc = malloc(sizeof(RECORDCORE *) * rowcount);
-	int current = 1, z;
+	int z;
 
-	prc[0] = last = (RECORDCORE *)WinSendMsg(handle, CM_QUERYRECORD, (MPARAM)0L, MPFROM2SHORT(CMA_FIRST, CMA_ITEMORDER));
-
-	while(last && current < rowcount)
+	for(z=0;z<rowcount;z++)
 	{
-		prc[current] = last = (RECORDCORE *)WinSendMsg(handle, CM_QUERYRECORD, (MPARAM)last, MPFROM2SHORT(CMA_NEXT, CMA_ITEMORDER));
-		current++;
+		ListView_DeleteItem(handle, 0);
 	}
-
-	z = 0;
-
-	while((int)WinSendMsg(handle, CM_REMOVERECORD, (MPARAM)prc, MPFROM2SHORT(current, CMA_INVALIDATE | CMA_FREE)) == -1)
-	{
-		z++;
-		if(z > 5000000)
-			break;
-		DosSleep(1);
-	}
-	
-	free(prc);
 }
 
 /*
@@ -5339,10 +5326,10 @@ void dw_container_scroll(HWND handle, int direction, long rows)
 	switch(direction)
 	{
 	case DW_SCROLL_TOP:
-		WinSendMsg(handle, CM_SCROLLWINDOW, MPFROMSHORT(CMA_VERTICAL), MPFROMLONG(-10000000));
+		ListView_Scroll(handle, 0, -10000000);
         break;
 	case DW_SCROLL_BOTTOM:
-		WinSendMsg(handle, CM_SCROLLWINDOW, MPFROMSHORT(CMA_VERTICAL), MPFROMLONG(10000000));
+		ListView_Scroll(handle, 0, 10000000);
 		break;
 	}
 }
@@ -5354,13 +5341,6 @@ void dw_container_scroll(HWND handle, int direction, long rows)
  */
 void dw_container_set_view(HWND handle, unsigned long flags, int iconwidth, int iconheight)
 {
-	CNRINFO cnrinfo;
-
-	cnrinfo.flWindowAttr = flags;
-	cnrinfo.slBitmapOrIcon.cx = iconwidth;
-	cnrinfo.slBitmapOrIcon.cy = iconheight;
-
-	WinSendMsg(handle, CM_SETCNRINFO, &cnrinfo, MPFROMLONG(CMA_FLWINDOWATTR | CMA_SLBITMAPORICON));
 }
 
 /*
@@ -5373,22 +5353,20 @@ void dw_container_set_view(HWND handle, unsigned long flags, int iconwidth, int 
  */
 char *dw_container_query_start(HWND handle, unsigned long flags)
 {
-	pCore = WinSendMsg(handle, CM_QUERYRECORD, (MPARAM)0L, MPFROM2SHORT(CMA_FIRST, CMA_ITEMORDER));
-	if(pCore)
-	{
-		if(flags)
-		{
-			while(pCore)
-			{
-				if(pCore->flRecordAttr & CRA_SELECTED)
-					return pCore->pszIcon;
-				pCore = WinSendMsg(handle, CM_QUERYRECORD, (MPARAM)pCore, MPFROM2SHORT(CMA_NEXT, CMA_ITEMORDER));
-			}
-		}
-		else
-			return pCore->pszIcon;
-	}
-    return NULL;
+	LV_ITEM lvi;
+
+    if(flags)
+		_index = ListView_GetNextItem(handle, -1, LVNI_SELECTED);
+	else
+		_index = ListView_GetNextItem(handle, -1, LVNI_ALL);
+
+
+	lvi.iItem = _index;
+	lvi.mask = LVIF_PARAM;
+
+	ListView_GetItem(handle, &lvi);
+
+	return (char *)lvi.lParam;
 }
 
 /*
@@ -5401,23 +5379,22 @@ char *dw_container_query_start(HWND handle, unsigned long flags)
  */
 char *dw_container_query_next(HWND handle, unsigned long flags)
 {
-	pCore = WinSendMsg(handle, CM_QUERYRECORD, (MPARAM)pCore, MPFROM2SHORT(CMA_NEXT, CMA_ITEMORDER));
-	if(pCore)
-	{
-		if(flags)
-		{
-			while(pCore)
-			{
-				if(pCore->flRecordAttr & CRA_SELECTED)
-					return pCore->pszIcon;
+	LV_ITEM lvi;
 
-				pCore = WinSendMsg(handle, CM_QUERYRECORD, (MPARAM)pCore, MPFROM2SHORT(CMA_NEXT, CMA_ITEMORDER));
-			}
-		}
-		else
-			return pCore->pszIcon;
-	}
-    return NULL;
+	if(flags)
+		_index = ListView_GetNextItem(handle, _index, LVNI_SELECTED);
+	else
+		_index = ListView_GetNextItem(handle, _index, LVNI_ALL);
+
+	if(_index == -1)
+		return NULL;
+
+	lvi.iItem = _index;
+	lvi.mask = LVIF_PARAM;
+
+	ListView_GetItem(handle, &lvi);
+
+	return (char *)lvi.lParam;
 }
 
 /*
@@ -5429,19 +5406,24 @@ char *dw_container_query_next(HWND handle, unsigned long flags)
  */
 HWND dw_render_new(unsigned long id)
 {
-	HWND hwndframe = WinCreateWindow(HWND_OBJECT,
-									 WC_FRAME,
-									 NULL,
-									 WS_VISIBLE |
-									 FS_NOBYTEALIGN,
-									 0,0,2000,1000,
-									 NULLHANDLE,
-									 HWND_TOP,
-									 id,
-									 NULL,
-									 NULL);
-	WinSubclassWindow(hwndframe, _RendProc);
-	return hwndframe;
+	Box *newbox = malloc(sizeof(Box));
+	HWND tmp = CreateWindow(ObjectClassName,
+							"",
+							WS_CHILD | WS_CLIPCHILDREN,
+							0,0,2000,1000,
+							DW_HWND_OBJECT,
+							NULL,
+							NULL,
+							NULL);
+	newbox->pad = 0;
+	newbox->type = 0;
+	newbox->count = 0;
+	newbox->grouphwnd = (HWND)NULL;
+	newbox->cinfo.pOldProc = SubclassWindow(tmp, _rendwndproc);
+	newbox->cinfo.fore = newbox->cinfo.back = -1;
+
+	SetWindowLong(tmp, GWL_USERDATA, (ULONG)newbox);
+	return tmp;
 }
 
 /* Sets the current foreground drawing color.
@@ -5452,7 +5434,16 @@ HWND dw_render_new(unsigned long id)
  */
 void dw_color_foreground_set(unsigned long value)
 {
-	_foreground = DW_RED_VALUE(value) << 16 | DW_GREEN_VALUE(value) << 8 | DW_BLUE_VALUE(value);
+	int threadid = dw_thread_id();
+
+	if(threadid < 0 || threadid >= THREAD_LIMIT)
+		threadid = 0;
+
+	DeleteObject(_hPen[threadid]);
+	DeleteObject(_hBrush[threadid]);
+	_foreground[threadid] = RGB(DW_RED_VALUE(value), DW_GREEN_VALUE(value), DW_BLUE_VALUE(value));
+	_hPen[threadid] = CreatePen(PS_SOLID, 1, _foreground[threadid]);
+	_hBrush[threadid] = CreateSolidBrush(_foreground[threadid]);
 }
 
 /* Sets the current background drawing color.
@@ -5463,35 +5454,12 @@ void dw_color_foreground_set(unsigned long value)
  */
 void dw_color_background_set(unsigned long value)
 {
-	_background = DW_RED_VALUE(value) << 16 | DW_GREEN_VALUE(value) << 8 | DW_BLUE_VALUE(value);
-}
+	int threadid = dw_thread_id();
 
-HPS _set_hps(HPS hps)
-{
-	LONG alTable[18];
+	if(threadid < 0 || threadid >= THREAD_LIMIT)
+		threadid = 0;
 
-	GpiQueryLogColorTable(hps, 0L, 0L, 18L, alTable);
-
-	alTable[16] = _foreground;
-	alTable[17] = _background;
-
-	GpiCreateLogColorTable(hps,
-						   0L,
-						   LCOLF_CONSECRGB,
-						   0L,
-						   18,
-						   alTable);
-	GpiSetColor(hps, 16);
-	GpiSetBackColor(hps, 17);
-	return hps;
-}
-
-HPS _set_colors(HWND handle)
-{
-	HPS hps = WinGetPS(handle);
-
-	_set_hps(hps);
-	return hps;
+	_background[threadid] = RGB(DW_RED_VALUE(value), DW_GREEN_VALUE(value), DW_BLUE_VALUE(value));
 }
 
 /* Draw a point on a window (preferably a render window).
@@ -5503,29 +5471,22 @@ HPS _set_colors(HWND handle)
  */
 void dw_draw_point(HWND handle, HPIXMAP pixmap, int x, int y)
 {
-	HPS hps;
-	int height;
-	POINTL ptl;
+	HDC hdcPaint;
+	int threadid = dw_thread_id();
+
+	if(threadid < 0 || threadid >= THREAD_LIMIT)
+		threadid = 0;
 
 	if(handle)
-	{
-		hps = _set_colors(handle);
-        height = _get_height(handle);
-	}
+		hdcPaint = GetDC(handle);
 	else if(pixmap)
-	{
-		hps = _set_hps(pixmap->hps);
-		height = pixmap->height;
-	}
+		hdcPaint = pixmap->hdc;
 	else
 		return;
 
-	ptl.x = x;
-	ptl.y = height - y - 1;
-
-	GpiSetPel(hps, &ptl);
+	SetPixel(hdcPaint, x, y, _foreground[threadid]);
 	if(!pixmap)
-		WinReleasePS(hps);
+		ReleaseDC(handle, hdcPaint);
 }
 
 /* Draw a line on a window (preferably a render window).
@@ -5539,56 +5500,65 @@ void dw_draw_point(HWND handle, HPIXMAP pixmap, int x, int y)
  */
 void dw_draw_line(HWND handle, HPIXMAP pixmap, int x1, int y1, int x2, int y2)
 {
-	HPS hps;
-	int height;
-	POINTL ptl[2];
+	HDC hdcPaint;
+	HPEN oldPen;
+	int threadid = dw_thread_id();
+
+	if(threadid < 0 || threadid >= THREAD_LIMIT)
+		threadid = 0;
 
 	if(handle)
-	{
-		hps = _set_colors(handle);
-        height = _get_height(handle);
-	}
+		hdcPaint = GetDC(handle);
 	else if(pixmap)
-	{
-		hps = _set_hps(pixmap->hps);
-		height = pixmap->height;
-	}
+		hdcPaint = pixmap->hdc;
 	else
 		return;
 
-	ptl[0].x = x1;
-	ptl[0].y = height - y1 - 1;
-	ptl[1].x = x2;
-	ptl[1].y = height - y2 - 1;
-
-	GpiMove(hps, &ptl[0]);
-	GpiLine(hps, &ptl[1]);
-	
+	oldPen = SelectObject(hdcPaint, _hPen[threadid]);
+	MoveToEx(hdcPaint, x1, y1, NULL);
+	LineTo(hdcPaint, x2, y2);
+	SelectObject(hdcPaint, oldPen);
+	/* For some reason Win98 (at least) fails
+	 * to draw the last pixel.  So I do it myself.
+	 */
+	SetPixel(hdcPaint, x2, y2, _foreground[threadid]);
 	if(!pixmap)
-		WinReleasePS(hps);
+		ReleaseDC(handle, hdcPaint);
 }
 
-
-void _CopyFontSettings(HPS hpsSrc, HPS hpsDst)
+/* Draw a rectangle on a window (preferably a render window).
+ * Parameters:
+ *       handle: Handle to the window.
+ *       pixmap: Handle to the pixmap. (choose only one of these)
+ *       x: X coordinate.
+ *       y: Y coordinate.
+ *       width: Width of rectangle.
+ *       height: Height of rectangle.
+ */
+void dw_draw_rect(HWND handle, HPIXMAP pixmap, int fill, int x, int y, int width, int height)
 {
-	FONTMETRICS fm;
-	FATTRS fat;
-	SIZEF sizf;
+	HDC hdcPaint;
+	HPEN oldPen;
+	HBRUSH oldBrush;
+	int threadid = dw_thread_id();
 
-	GpiQueryFontMetrics(hpsSrc, sizeof(FONTMETRICS), &fm);
+	if(threadid < 0 || threadid >= THREAD_LIMIT)
+		threadid = 0;
 
-    memset(&fat, 0, sizeof(fat));
+	if(handle)
+		hdcPaint = GetDC(handle);
+	else if(pixmap)
+		hdcPaint = pixmap->hdc;
+	else
+		return;
 
-	fat.usRecordLength  = sizeof(FATTRS);
-	fat.lMatch          = fm.lMatch;
-	strcpy(fat.szFacename, fm.szFacename);
-
-	GpiCreateLogFont(hpsDst, 0, 1L, &fat);
-	GpiSetCharSet(hpsDst, 1L);
-
-	sizf.cx = MAKEFIXED(fm.lEmInc,0);
-	sizf.cy = MAKEFIXED(fm.lMaxBaselineExt,0);
-	GpiSetCharBox(hpsDst, &sizf );
+	oldPen = SelectObject(hdcPaint, _hPen[threadid]);
+	oldBrush = SelectObject(hdcPaint, _hBrush[threadid]);
+	Rectangle(hdcPaint, x, y, x + width, y + height);
+	SelectObject(hdcPaint, oldPen);
+	SelectObject(hdcPaint, oldBrush);
+	if(!pixmap)
+		ReleaseDC(handle, hdcPaint);
 }
 
 /* Draw text on a window (preferably a render window).
@@ -5601,46 +5571,44 @@ void _CopyFontSettings(HPS hpsSrc, HPS hpsDst)
  */
 void dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
 {
-	HPS hps;
-	int size = 9, z, height;
-	RECTL rcl;
-	char fontname[128];
+	HDC hdc;
+	int size = 9, z, mustdelete = 0;
+	HFONT hFont, oldFont;
+	int threadid = dw_thread_id();
+
+	if(threadid < 0 || threadid >= THREAD_LIMIT)
+		threadid = 0;
 
 	if(handle)
-	{
-		hps = _set_colors(handle);
-		height = _get_height(handle);
-		_GetPPFont(handle, fontname);
-	}
+		hdc = GetDC(handle);
 	else if(pixmap)
-	{
-		HPS pixmaphps = WinGetPS(pixmap->handle);
-
-		hps = _set_hps(pixmap->hps);
-		height = pixmap->height;
-		_GetPPFont(pixmap->handle, fontname);
-		_CopyFontSettings(pixmaphps, hps);
-		WinReleasePS(pixmaphps);
-	}
+		hdc = pixmap->hdc;
 	else
 		return;
 
-	for(z=0;z<strlen(fontname);z++)
 	{
-		if(fontname[z]=='.')
-			break;
+		ColorInfo *cinfo;
+
+		if(handle)
+			cinfo = (ColorInfo *)GetWindowLong(handle, GWL_USERDATA);
+		else
+			cinfo = (ColorInfo *)GetWindowLong(pixmap->handle, GWL_USERDATA);
+
+		if(cinfo)
+		{
+			hFont = _aquire_font(cinfo->fontname);
+			mustdelete = 1;
+		}
 	}
-	size = atoi(fontname);
-
-	rcl.xLeft = x;
-	rcl.yTop = height - y;
-	rcl.yBottom = rcl.yTop - (size*2);
-	rcl.xRight = rcl.xLeft + (size * strlen(text));
-
-	WinDrawText(hps, -1, text, &rcl, DT_TEXTATTRS, DT_TEXTATTRS, DT_VCENTER | DT_LEFT | DT_TEXTATTRS);
-
+	oldFont = SelectObject(hdc, hFont);
+	SetTextColor(hdc, _foreground[threadid]);
+	SetBkMode(hdc, TRANSPARENT);
+	TextOut(hdc, x, y, text, strlen(text));
+	SelectObject(hdc, oldFont);
+	if(mustdelete)
+		DeleteObject(hFont);
 	if(!pixmap)
-		WinReleasePS(hps);
+		ReleaseDC(handle, hdc);
 }
 
 /* Query the width and height of a text string.
@@ -5653,75 +5621,47 @@ void dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
  */
 void dw_font_text_extents(HWND handle, HPIXMAP pixmap, char *text, int *width, int *height)
 {
-	HPS hps;
-	POINTL aptl[TXTBOX_COUNT];
+	HDC hdc;
+	int mustdelete = 0;
+	HFONT hFont, oldFont;
+	SIZE sz;
 
 	if(handle)
-	{
-		hps = _set_colors(handle);
-	}
+		hdc = GetDC(handle);
 	else if(pixmap)
-	{
-		HPS pixmaphps = WinGetPS(pixmap->handle);
-
-		hps = _set_hps(pixmap->hps);
-		_CopyFontSettings(pixmaphps, hps);
-		WinReleasePS(pixmaphps);
-	}
+		hdc = pixmap->hdc;
 	else
 		return;
 
-	GpiQueryTextBox(hps, strlen(text), text, TXTBOX_COUNT, aptl);
+	{
+		ColorInfo *cinfo;
+
+		if(handle)
+			cinfo = (ColorInfo *)GetWindowLong(handle, GWL_USERDATA);
+		else
+			cinfo = (ColorInfo *)GetWindowLong(pixmap->handle, GWL_USERDATA);
+
+		if(cinfo)
+		{
+			hFont = _aquire_font(cinfo->fontname);
+			mustdelete = 1;
+		}
+	}
+	oldFont = SelectObject(hdc, hFont);
+
+	GetTextExtentPoint32(hdc, text, strlen(text), &sz);
 
 	if(width)
-		*width = aptl[TXTBOX_TOPRIGHT].x - aptl[TXTBOX_TOPLEFT].x;
+		*width = sz.cx;
 
 	if(height)
-		*height = aptl[TXTBOX_TOPLEFT].y - aptl[TXTBOX_BOTTOMLEFT].y;
+		*height = sz.cy;
 
+	SelectObject(hdc, oldFont);
+	if(mustdelete)
+		DeleteObject(hFont);
 	if(!pixmap)
-		WinReleasePS(hps);
-}
-
-/* Draw a rectangle on a window (preferably a render window).
- * Parameters:
- *       handle: Handle to the window.
- *       pixmap: Handle to the pixmap. (choose only one of these)
- *       fill: Fill box TRUE or FALSE.
- *       x: X coordinate.
- *       y: Y coordinate.
- *       width: Width of rectangle.
- *       height: Height of rectangle.
- */
-void dw_draw_rect(HWND handle, HPIXMAP pixmap, int fill, int x, int y, int width, int height)
-{
-	HPS hps;
-	int thisheight;
-	POINTL ptl[2];
-
-	if(handle)
-	{
-		hps = _set_colors(handle);
-        thisheight = _get_height(handle);
-	}
-	else if(pixmap)
-	{
-		hps = _set_hps(pixmap->hps);
-		thisheight = pixmap->height;
-	}
-	else
-		return;
-
-	ptl[0].x = x;
-	ptl[0].y = thisheight - y - 1;
-	ptl[1].x = x + width - 1;
-	ptl[1].y = thisheight - y - height;
-
-	GpiMove(hps, &ptl[0]);
-	GpiBox(hps, fill ? DRO_OUTLINEFILL : DRO_OUTLINE, &ptl[1], 0, 0);
-	
-	if(!pixmap)
-		WinReleasePS(hps);
+		ReleaseDC(handle, hdc);
 }
 
 /* Call this after drawing to the screen to make sure
@@ -5743,50 +5683,24 @@ void dw_flush(void)
  */
 HPIXMAP dw_pixmap_new(HWND handle, unsigned long width, unsigned long height, int depth)
 {
-	BITMAPINFOHEADER bmih;
-	SIZEL sizl = { 0, 0 };
 	HPIXMAP pixmap;
+	BITMAP bm;
 	HDC hdc;
-	HPS hps;
-	ULONG ulFlags;
-    LONG cPlanes, cBitCount;
 
 	if (!(pixmap = calloc(1,sizeof(struct _hpixmap))))
 		return NULL;
 
-	hps = WinGetPS(handle);
-
-	hdc     = GpiQueryDevice(hps);
-	ulFlags = GpiQueryPS(hps, &sizl);
-
-	pixmap->handle = handle;
-	pixmap->hdc = DevOpenDC(dwhab, OD_MEMORY, "*", 0L, NULL, hdc);
-	pixmap->hps = GpiCreatePS (dwhab, pixmap->hdc, &sizl, ulFlags | GPIA_ASSOC);
-
-	DevQueryCaps(hdc, CAPS_COLOR_PLANES  , 1L, &cPlanes);
-	if (!depth)
-	{
-		DevQueryCaps(hdc, CAPS_COLOR_BITCOUNT, 1L, &cBitCount);
-		depth = cBitCount;
-	}
-
-	memset(&bmih, 0, sizeof(BITMAPINFOHEADER));
-	bmih.cbFix     = sizeof(BITMAPINFOHEADER);
-	bmih.cx        = (SHORT)width;
-	bmih.cy        = (SHORT)height;
-	bmih.cPlanes   = (SHORT)cPlanes;
-	bmih.cBitCount = (SHORT)depth;
+	hdc = GetDC(handle);
 
 	pixmap->width = width; pixmap->height = height;
 
-	pixmap->hbm = GpiCreateBitmap(pixmap->hps, (PBITMAPINFOHEADER2)&bmih, 0L, NULL, NULL);
+	pixmap->handle = handle;
+	pixmap->hbm = CreateCompatibleBitmap(hdc, width, height);
+	pixmap->hdc = CreateCompatibleDC(hdc);
 
-	GpiSetBitmap(pixmap->hps, pixmap->hbm);
+	SelectObject(pixmap->hdc, pixmap->hbm);
 
-	if (depth>8)
-		GpiCreateLogColorTable(pixmap->hps, LCOL_PURECOLOR, LCOLF_RGB, 0, 0, NULL );
-
-	WinReleasePS(hps);
+	ReleaseDC(handle, hdc);
 
 	return pixmap;
 }
@@ -5801,33 +5715,26 @@ HPIXMAP dw_pixmap_new(HWND handle, unsigned long width, unsigned long height, in
  */
 HPIXMAP dw_pixmap_grab(HWND handle, ULONG id)
 {
-	BITMAPINFOHEADER bmih;
-	SIZEL sizl = { 0, 0 };
 	HPIXMAP pixmap;
+	BITMAP bm;
 	HDC hdc;
-	HPS hps;
-	ULONG ulFlags;
 
 	if (!(pixmap = calloc(1,sizeof(struct _hpixmap))))
 		return NULL;
 
-	hps = WinGetPS(handle);
+	hdc = GetDC(handle);
 
-	hdc     = GpiQueryDevice(hps);
-	ulFlags = GpiQueryPS(hps, &sizl);
 
-	pixmap->hdc = DevOpenDC(dwhab, OD_MEMORY, "*", 0L, NULL, hdc);
-	pixmap->hps = GpiCreatePS (dwhab, pixmap->hdc, &sizl, ulFlags | GPIA_ASSOC);
+	pixmap->hbm = LoadBitmap(DWInstance, MAKEINTRESOURCE(id));
+	pixmap->hdc = CreateCompatibleDC(hdc);
 
-	pixmap->hbm = GpiLoadBitmap(pixmap->hps, NULLHANDLE, id, 0, 0);
+	GetObject(pixmap->hbm, sizeof(BITMAP), (void *)&bm);
 
-	GpiQueryBitmapParameters(pixmap->hbm, &bmih);
+	pixmap->width = bm.bmWidth; pixmap->height = bm.bmHeight;
 
-	GpiSetBitmap(pixmap->hps, pixmap->hbm);
+	SelectObject(pixmap->hdc, pixmap->hbm);
 
-	pixmap->width = bmih.cx; pixmap->height = bmih.cy;
-
-	WinReleasePS(hps);
+	ReleaseDC(handle, hdc);
 
 	return pixmap;
 }
@@ -5840,12 +5747,12 @@ HPIXMAP dw_pixmap_grab(HWND handle, ULONG id)
  */
 void dw_pixmap_destroy(HPIXMAP pixmap)
 {
-	GpiSetBitmap(pixmap->hps, NULLHANDLE);
-	GpiDeleteBitmap(pixmap->hbm);
-	GpiAssociate(pixmap->hps, NULLHANDLE);
-	GpiDestroyPS(pixmap->hps);
-	DevCloseDC(pixmap->hdc);
-	free(pixmap);
+	if(pixmap)
+	{
+		DeleteDC(pixmap->hdc);
+		DeleteObject(pixmap->hbm);
+		free(pixmap);
+	}
 }
 
 /*
@@ -5864,56 +5771,29 @@ void dw_pixmap_destroy(HPIXMAP pixmap)
  */
 void dw_pixmap_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest, int width, int height, HWND src, HPIXMAP srcp, int xsrc, int ysrc)
 {
-	HPS hpsdest;
-	HPS hpssrc;
-	POINTL ptl[4];
-    int destheight, srcheight;
+	HDC hdcdest;
+	HDC hdcsrc;
 
 	if(dest)
-	{
-		hpsdest = WinGetPS(dest);
-		destheight = _get_height(dest);
-	}
+		hdcdest = GetDC(dest);
 	else if(destp)
-	{
-		hpsdest = destp->hps;
-		destheight = destp->height;
-	}
+		hdcdest = destp->hdc;
 	else
 		return;
 
 	if(src)
-	{
-		hpssrc = WinGetPS(src);
-		srcheight = _get_height(src);
-	}
+		hdcsrc = GetDC(src);
 	else if(srcp)
-	{
-		hpssrc = srcp->hps;
-		srcheight = srcp->height;
-	}
+		hdcsrc = srcp->hdc;
 	else
-	{
-		if(!destp)
-			WinReleasePS(hpsdest);
 		return;
-	}
 
-	ptl[0].x = xdest;
-	ptl[0].y = (destheight - ydest) - height;
-	ptl[1].x = ptl[0].x + width;
-	ptl[1].y = destheight - ydest;
-	ptl[2].x = xsrc;
-	ptl[2].y = srcheight - (ysrc + height);
-	ptl[3].x = ptl[2].x + width;
-	ptl[3].y = ptl[2].y + height;
-
-	GpiBitBlt(hpsdest, hpssrc, 4, ptl, ROP_SRCCOPY, BBO_IGNORE);
+	BitBlt(hdcdest, xdest, ydest, width, height, hdcsrc, xsrc, ysrc, SRCCOPY);
 
 	if(!destp)
-		WinReleasePS(hpsdest);
+		ReleaseDC(dest, hdcdest);
 	if(!srcp)
-		WinReleasePS(hpssrc);
+		ReleaseDC(src, hdcsrc);
 }
 
 /*
@@ -5924,7 +5804,7 @@ void dw_pixmap_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest, int width,
  */
 void dw_beep(int freq, int dur)
 {
-	DosBeep(freq, dur);
+	Beep(freq, dur);
 }
 
 /*
@@ -5932,10 +5812,7 @@ void dw_beep(int freq, int dur)
  */
 HMTX dw_mutex_new(void)
 {
-	HMTX mutex;
-
-	DosCreateMutexSem(NULL, &mutex, 0, FALSE);
-	return mutex;
+	return (HMTX)CreateMutex(NULL, FALSE, NULL);
 }
 
 /*
@@ -5945,7 +5822,7 @@ HMTX dw_mutex_new(void)
  */
 void dw_mutex_close(HMTX mutex)
 {
-	DosCloseMutexSem(mutex);
+	CloseHandle((HANDLE)mutex);
 }
 
 /*
@@ -5955,7 +5832,7 @@ void dw_mutex_close(HMTX mutex)
  */
 void dw_mutex_lock(HMTX mutex)
 {
-	DosRequestMutexSem(mutex, SEM_INDEFINITE_WAIT);
+	WaitForSingleObject((HANDLE)mutex, INFINITE);
 }
 
 /*
@@ -5965,7 +5842,7 @@ void dw_mutex_lock(HMTX mutex)
  */
 void dw_mutex_unlock(HMTX mutex)
 {
-	DosReleaseMutexSem(mutex);
+	ReleaseMutex((HANDLE)mutex);
 }
 
 /*
@@ -5973,12 +5850,7 @@ void dw_mutex_unlock(HMTX mutex)
  */
 HEV dw_event_new(void)
 {
-	HEV blah;
-
-	if(DosCreateEventSem (NULL, &blah, 0L, FALSE))
-		return 0;
-
-	return blah;
+    return CreateEvent(NULL, TRUE, FALSE, NULL);
 }
 
 /*
@@ -5988,11 +5860,7 @@ HEV dw_event_new(void)
  */
 int dw_event_reset(HEV eve)
 {
-	ULONG count;
-
-	if(DosResetEventSem(eve, &count))
-		return FALSE;
-	return TRUE;
+	return ResetEvent(eve);
 }
 
 /*
@@ -6003,11 +5871,8 @@ int dw_event_reset(HEV eve)
  */
 int dw_event_post(HEV eve)
 {
-	if(DosPostEventSem(eve))
-		return FALSE;
-	return TRUE;
+	return SetEvent(eve);
 }
-
 
 /*
  * Waits on a semaphore created by dw_event_new(), until the
@@ -6017,10 +5882,12 @@ int dw_event_post(HEV eve)
  */
 int dw_event_wait(HEV eve, unsigned long timeout)
 {
-	int rc = DosWaitEventSem(eve, timeout);
-	if(!rc)
+	int rc;
+
+	rc = WaitForSingleObject(eve, timeout);
+	if(rc == WAIT_OBJECT_0)
 		return 1;
-	if(rc == ERROR_TIMEOUT)
+	if(rc == WAIT_ABANDONED)
 		return -1;
 	return 0;
 }
@@ -6032,28 +5899,9 @@ int dw_event_wait(HEV eve, unsigned long timeout)
  */
 int dw_event_close(HEV *eve)
 {
-	if(!eve || ~DosCloseEventSem(*eve))
-		return FALSE;
-	return TRUE;
-}
-
-/*
- * Encapsulate the message queues on OS/2.
- */
-void _dwthreadstart(void *data)
-{
-	HAB thishab = WinInitialize(0);
-	HMQ thishmq = WinCreateMsgQueue(dwhab, 0);
-	void (*threadfunc)(void *) = NULL;
-	void **tmp = (void **)data;
-
-	threadfunc = (void (*)(void *))tmp[0];
-	threadfunc(tmp[1]);
-
-	free(tmp);
-
-	WinDestroyMsgQueue(thishmq);
-	WinTerminate(thishab);
+	if(eve)
+		return CloseHandle(*eve);
+	return FALSE;
 }
 
 /*
@@ -6065,12 +5913,11 @@ void _dwthreadstart(void *data)
  */
 DWTID dw_thread_new(void *func, void *data, int stack)
 {
-	void **tmp = malloc(sizeof(void *) * 2);
-
-	tmp[0] = func;
-	tmp[1] = data;
-
-	return (DWTID)_beginthread((void (*)(void *))_dwthreadstart, NULL, stack, (void *)tmp);
+#if defined(__CYGWIN__)
+	return 0;
+#else
+	return (DWTID)_beginthread((void(*)(void *))func, stack, data);
+#endif
 }
 
 /*
@@ -6078,7 +5925,9 @@ DWTID dw_thread_new(void *func, void *data, int stack)
  */
 void dw_thread_end(void)
 {
+#if !defined(__CYGWIN__)
 	_endthread();
+#endif
 }
 
 /*
@@ -6086,7 +5935,11 @@ void dw_thread_end(void)
  */
 DWTID dw_thread_id(void)
 {
-	return (DWTID)_threadid;
+#if defined(__CYGWIN__)
+	return 0;
+#else
+	return (DWTID)GetCurrentThreadId();
+#endif
 }
 
 /*
@@ -6096,13 +5949,6 @@ DWTID dw_thread_id(void)
  */
 void dw_exit(int exitcode)
 {
-	/* In case we are in a signal handler, don't
-	 * try to free memory that could possibly be
-	 * free()'d by the runtime already.
-	 */
-#ifndef NO_SIGNALS
-	Root = NULL;
-#endif
 	exit(exitcode);
 }
 
@@ -6113,27 +5959,18 @@ void dw_exit(int exitcode)
  */
 void dw_box_pack_splitbar_start(HWND box)
 {
-	Box *thisbox;
+	Box *thisbox = (Box *)GetWindowLong(box, GWL_USERDATA);
 
-	if(WinWindowFromID(box, FID_CLIENT))
-	{
-		box = WinWindowFromID(box, FID_CLIENT);
-		thisbox = WinQueryWindowPtr(box, QWP_USER);
-	}
-	else
-		thisbox = WinQueryWindowPtr(box, QWP_USER);
 	if(thisbox)
 	{
-		HWND tmp = WinCreateWindow(HWND_OBJECT,
-								   SplitbarClassName,
-								   NULL,
-								   WS_VISIBLE,
-								   0,0,2000,1000,
-								   NULLHANDLE,
-								   HWND_TOP,
-								   0L,
-								   NULL,
-								   NULL);
+		HWND tmp = CreateWindow(SplitbarClassName,
+								"",
+								WS_CHILD | WS_CLIPCHILDREN,
+								0,0,2000,1000,
+								DW_HWND_OBJECT,
+								NULL,
+								NULL,
+								NULL);
 		if(thisbox->type == BOXVERT)
 			dw_box_pack_start(box, tmp, 1, SPLITBAR_WIDTH, TRUE, FALSE, 0);
 		else
@@ -6149,27 +5986,18 @@ void dw_box_pack_splitbar_start(HWND box)
  */
 void dw_box_pack_splitbar_end(HWND box)
 {
-	Box *thisbox;
+	Box *thisbox = (Box *)GetWindowLong(box, GWL_USERDATA);
 
-	if(WinWindowFromID(box, FID_CLIENT))
-	{
-		box = WinWindowFromID(box, FID_CLIENT);
-		thisbox = WinQueryWindowPtr(box, QWP_USER);
-	}
-	else
-		thisbox = WinQueryWindowPtr(box, QWP_USER);
 	if(thisbox)
 	{
-		HWND tmp = WinCreateWindow(HWND_OBJECT,
-								   SplitbarClassName,
-								   NULL,
-								   WS_VISIBLE,
-								   0,0,2000,1000,
-								   NULLHANDLE,
-								   HWND_TOP,
-								   0L,
-								   NULL,
-								   NULL);
+		HWND tmp = CreateWindow(SplitbarClassName,
+								"",
+								WS_CHILD | WS_CLIPCHILDREN,
+								0,0,2000,1000,
+								DW_HWND_OBJECT,
+								NULL,
+								NULL,
+								NULL);
 		if(thisbox->type == BOXVERT)
 			dw_box_pack_end(box, tmp, 1, SPLITBAR_WIDTH, TRUE, FALSE, 0);
 		else
@@ -6179,7 +6007,7 @@ void dw_box_pack_splitbar_end(HWND box)
 }
 
 /*
- * Pack windows (widgets) into a box from the start (or top).
+ * Pack windows (widgets) into a box from the end (or bottom).
  * Parameters:
  *       box: Window handle of the box to be packed into.
  *       item: Window handle of the item to be back.
@@ -6189,40 +6017,11 @@ void dw_box_pack_splitbar_end(HWND box)
  *       vsize: TRUE if the window (widget) should expand vertically to fill space given.
  *       pad: Number of pixels of padding around the item.
  */
-void dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize, int vsize, int pad)
+void dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, int vsize, int pad)
 {
 	Box *thisbox;
 
-	if(WinWindowFromID(box, FID_CLIENT))
-	{
-		box = WinWindowFromID(box, FID_CLIENT);
-		thisbox = WinQueryWindowPtr(box, QWP_USER);
-	}
-	else
-		thisbox = WinQueryWindowPtr(box, QWP_USER);
-	if(thisbox)
-	{
-		if(thisbox->type == BOXHORZ)
-			dw_box_pack_end_stub(box, item, width, height, hsize, vsize, pad);
-		else
-			dw_box_pack_start_stub(box, item, width, height, hsize, vsize, pad);
-	}
-}
-
-void dw_box_pack_start_stub(HWND box, HWND item, int width, int height, int hsize, int vsize, int pad)
-{
-	HWND boxowner = NULLHANDLE;
-	Box *thisbox;
-
-	if(WinWindowFromID(box, FID_CLIENT))
-	{
-		box = WinWindowFromID(box, FID_CLIENT);
-		thisbox = WinQueryWindowPtr(box, QWP_USER);
-		hsize = TRUE;
-		vsize = TRUE;
-	}
-	else
-		thisbox = WinQueryWindowPtr(box, QWP_USER);
+	thisbox = (Box *)GetWindowLong(box, GWL_USERDATA);
 	if(thisbox)
 	{
 		int z;
@@ -6236,9 +6035,9 @@ void dw_box_pack_start_stub(HWND box, HWND item, int width, int height, int hsiz
 			tmpitem[z+1] = thisitem[z];
 		}
 
-		WinQueryClassName(item, 99, tmpbuf);
+		GetClassName(item, tmpbuf, 99);
 
-		if(strncmp(tmpbuf, "#1", 3)==0)
+		if(strnicmp(tmpbuf, FRAMECLASSNAME, 2)==0)
 			tmpitem[0].type = TYPEBOX;
 		else
 			tmpitem[0].type = TYPEITEM;
@@ -6264,100 +6063,20 @@ void dw_box_pack_start_stub(HWND box, HWND item, int width, int height, int hsiz
 
 		thisbox->count++;
 
-		WinQueryClassName(item, 99, tmpbuf);
-		/* Don't set the ownership if it's an entryfield or spinbutton */
-		if(strncmp(tmpbuf, "#6", 3)!=0 && strncmp(tmpbuf, "#32", 3)!=0)
+		SetParent(item, box);
+		ShowWindow(item, SW_SHOW);
+		if(strncmp(tmpbuf, UPDOWN_CLASS, strlen(UPDOWN_CLASS))==0)
 		{
-			if((boxowner = WinQueryWindow(box, QW_OWNER)) != 0)
-				WinSetOwner(item, boxowner);
-			else
-				WinSetOwner(item, box);
-		}
-		WinSetParent(item, box, FALSE);
-	}
-}
+			ColorInfo *cinfo = (ColorInfo *)GetWindowLong(item, GWL_USERDATA);
 
-/* The following two functions graciously contributed by Peter Nielsen. */
-static ULONG _ParseBuildLevel (char* pchBuffer, ULONG ulSize) {
-	char* pchStart = pchBuffer;
-	char* pchEnd = pchStart + ulSize - 2;
-
-	while (pchEnd >= pchStart)
-	{
-		if ((pchEnd[0] == '#') && (pchEnd[1] == '@'))
-		{
-			*pchEnd-- = '\0';
-			while (pchEnd >= pchStart)
+			if(cinfo)
 			{
-				if ((pchEnd[0] == '@') && (pchEnd[1] == '#'))
-				{
-					ULONG ulMajor = 0;
-					ULONG ulMinor = 0;
-
-					char* pch = pchEnd + 2;
-					while (!isdigit (*pch) && *pch)
-						pch++;
-
-					while (isdigit (*pch))
-						ulMajor = ulMajor * 10 + *pch++ - '0';
-
-					if (*pch == '.')
-					{
-						while (isdigit (*++pch))
-							ulMinor = ulMinor * 10 + *pch - '0';
-					}
-					return ((ulMajor << 16) | ulMinor);
-				}
-				pchEnd--;
+				SetParent(cinfo->buddy, box);
+				ShowWindow(cinfo->buddy, SW_SHOW);
+				SendMessage(item, UDM_SETBUDDY, (WPARAM)cinfo->buddy, 0);
 			}
 		}
-		pchEnd--;
 	}
-	return (0);
-}
-
-ULONG _GetSystemBuildLevel(void) {
-	/* The build level info is normally available in the end of the OS2KRNL file. However, this is not the case in some beta versions of OS/2.
-	 * We first try to find the info in the 256 last bytes of the file. If that fails, we load the entire file and search it completely.
-	 */
-	ULONG ulBootDrive = 0;
-	ULONG ulBuild = 0;
-	if (DosQuerySysInfo (QSV_BOOT_DRIVE, QSV_BOOT_DRIVE, &ulBootDrive, sizeof (ulBootDrive)) == NO_ERROR)
-	{
-		char achFileName[11] = { (char)('A'+ulBootDrive-1),':','\\','O','S','2','K','R','N','L','\0' };
-		HFILE hfile;
-		ULONG ulResult;
-		if (DosOpen (achFileName, &hfile, &ulResult, 0, 0, OPEN_ACTION_FAIL_IF_NEW | OPEN_ACTION_OPEN_IF_EXISTS, OPEN_FLAGS_FAIL_ON_ERROR | OPEN_FLAGS_NO_CACHE | OPEN_FLAGS_SEQUENTIAL | OPEN_SHARE_DENYNONE | OPEN_ACCESS_READONLY, NULL) == NO_ERROR)
-		{
-			ULONG ulFileSize = 0;
-			if (DosSetFilePtr (hfile, 0, FILE_END, &ulFileSize) == NO_ERROR)
-			{
-				const ULONG ulFirstTry = min (256, ulFileSize);
-				if (DosSetFilePtr (hfile, -(LONG)ulFirstTry, FILE_END, &ulResult) == NO_ERROR)
-				{
-					char *pchBuffer = malloc(ulFirstTry);
-					if (DosRead (hfile, pchBuffer, ulFirstTry, &ulResult) == NO_ERROR)
-					{
-						ulBuild = _ParseBuildLevel (pchBuffer, ulFirstTry);
-						if (ulBuild == 0)
-						{
-							if (DosSetFilePtr (hfile, 0, FILE_BEGIN, &ulResult) == NO_ERROR)
-							{
-								free(pchBuffer);
-								pchBuffer = malloc(ulFileSize);
-
-								if (DosRead (hfile, pchBuffer, ulFileSize, &ulResult) == NO_ERROR)
-									ulBuild = _ParseBuildLevel (pchBuffer, ulFileSize);
-							}
-						}
-					}
-					free(pchBuffer);
-				}
-			}
-			DosClose (hfile);
-		}
-	}
-	return (ulBuild);
 }
 
 /*
@@ -6368,12 +6087,7 @@ ULONG _GetSystemBuildLevel(void) {
  */
 void dw_window_default(HWND window, HWND defaultitem)
 {
-	Box *thisbox = NULL;
-	HWND box;
-
-	box = WinWindowFromID(window, FID_CLIENT);
-	if(box)
-		thisbox = WinQueryWindowPtr(box, QWP_USER);
+	Box *thisbox = (Box *)GetWindowLong(window, GWL_USERDATA);
 
 	if(thisbox)
 		thisbox->defaultitem = defaultitem;
@@ -6387,16 +6101,10 @@ void dw_window_default(HWND window, HWND defaultitem)
  */
 void dw_window_click_default(HWND window, HWND next)
 {
-	WindowData *blah = (WindowData *)WinQueryWindowPtr(window, QWP_USER);
-	char tmpbuf[100];
+	ColorInfo *cinfo = (ColorInfo *)GetWindowLong(window, GWL_USERDATA);
 
-	WinQueryClassName(window, 99, tmpbuf);
-
-	/* These are the window classes which can
-	 * obtain input focus.
-	 */
-	if(strncmp(tmpbuf, "#6", 3) == 0 && blah)
-		blah->clickdefault = next;
+	if(cinfo)
+		cinfo->clickdefault = next;
 }
 
 /*
@@ -6406,32 +6114,35 @@ void dw_window_click_default(HWND window, HWND next)
  */
 void dw_environment_query(DWEnv *env)
 {
-	ULONG Build;
-
 	if(!env)
 		return;
 
-	/* The default is OS/2 2.0 */
-	strcpy(env->osName,"OS/2");
-	env->MajorVersion = 2;
-	env->MinorVersion = 0;
+	/* Get the Windows version. */
 
-	Build = _GetSystemBuildLevel();
-	env->MinorBuild =  Build & 0xFFFF;
-	env->MajorBuild =  Build >> 16;
+	env->MajorVersion =  (DWORD)(LOBYTE(LOWORD(dwVersion)));
+	env->MinorVersion =  (DWORD)(HIBYTE(LOWORD(dwVersion)));
 
-	if (aulBuffer[0] == 20)
+	/* Get the build number for Windows NT/Windows 2000. */
+
+	env->MinorBuild =  0;
+
+	if (dwVersion < 0x80000000)
 	{
-		int i = (unsigned int)aulBuffer[1];
-		if (i > 20)
-		{
-			strcpy(env->osName,"Warp");
-			env->MajorVersion = (int)i/10;
-			env->MinorVersion = i-(((int)i/10)*10);
-		}
-		else if (i == 10)
-			env->MinorVersion = 1;
+		if(env->MajorVersion == 5 && env->MinorVersion == 1)
+			strcpy(env->osName, "Windows XP");
+		else if(env->MajorVersion == 5 && env->MinorVersion == 0)
+			strcpy(env->osName, "Windows 2000");
+		else
+			strcpy(env->osName, "Windows NT");
+
+		env->MajorBuild = (DWORD)(HIWORD(dwVersion));
 	}
+	else
+	{
+		strcpy(env->osName, "Windows 95/98/ME");
+		env->MajorBuild =  0;
+	}
+
 	strcpy(env->buildDate, __DATE__);
 	strcpy(env->buildTime, __TIME__);
 	env->DWMajorVersion = DW_MAJOR_VERSION;
@@ -6453,60 +6164,36 @@ void dw_environment_query(DWEnv *env)
  */
 char *dw_file_browse(char *title, char *defpath, char *ext, int flags)
 {
-	FILEDLG fild;
-	HWND hwndFile;
-	int len;
-
-	if(defpath)
-		strcpy(fild.szFullFile, defpath);
-	else
-		strcpy(fild.szFullFile, "");
-
-	len = strlen(fild.szFullFile);
-
-	if(len)
-	{
-		if(fild.szFullFile[len-1] != '\\')
-			strcat(fild.szFullFile, "\\");
-	}
-	strcat(fild.szFullFile, "*");
+	OPENFILENAME of;
+	char filenamebuf[1001] = "";
+	int rc;
 
 	if(ext)
 	{
-		strcat(fild.szFullFile, ".");
-		strcat(fild.szFullFile, ext);
+		strcpy(filenamebuf, "*.");
+		strcat(filenamebuf, ext);
 	}
 
-	fild.cbSize = sizeof(FILEDLG);
-	fild.fl = /*FDS_HELPBUTTON |*/ FDS_CENTER | FDS_OPEN_DIALOG;
-	fild.pszTitle = title;
-	fild.pszOKButton = ((flags & DW_FILE_SAVE) ? "Save" : "Open");
-	fild.ulUser = 0L;
-	fild.pfnDlgProc = (PFNWP)WinDefFileDlgProc;
-	fild.lReturn = 0L;
-	fild.lSRC = 0L;
-	fild.hMod = 0;
-	fild.x = 0;
-	fild.y = 0;
-	fild.pszIType       = (PSZ)NULL;
-	fild.papszITypeList = (PAPSZ)NULL;
-	fild.pszIDrive      = (PSZ)NULL;
-	fild.papszIDriveList= (PAPSZ)NULL;
-	fild.sEAType        = (SHORT)0;
-	fild.papszFQFilename= (PAPSZ)NULL;
-	fild.ulFQFCount     = 0L;
+	memset(&of, 0, sizeof(OPENFILENAME));
 
-	hwndFile = WinFileDlg(HWND_DESKTOP, HWND_DESKTOP, &fild);
-	if(hwndFile)
-	{
-		switch(fild.lReturn)
-		{
-		case DID_OK:
-            return strdup(fild.szFullFile);
-		case DID_CANCEL:
-			return NULL;
-		}
-	}
+	of.lStructSize = sizeof(OPENFILENAME);
+	of.hwndOwner = HWND_DESKTOP;
+	of.hInstance = DWInstance;
+	of.lpstrInitialDir = defpath;
+	of.lpstrTitle = title;
+	of.lpstrFile = filenamebuf;
+	of.nMaxFile = 1000;
+	of.lpstrDefExt = ext;
+	of.Flags = 0;
+
+	if(flags & DW_FILE_SAVE)
+		rc = GetSaveFileName(&of);
+	else
+		rc = GetOpenFileName(&of);
+
+	if(rc)
+		return strdup(of.lpstrFile);
+
 	return NULL;
 }
 
@@ -6521,7 +6208,34 @@ char *dw_file_browse(char *title, char *defpath, char *ext, int flags)
  */
 int dw_exec(char *program, int type, char **params)
 {
-	return spawnvp(P_NOWAIT, program, (const char **)params);
+	char **newparams;
+	int retcode, count = 0, z;
+
+	while(params[count])
+	{
+		count++;
+	}
+
+	newparams = (char **)malloc(sizeof(char *) * (count+1));
+
+	for(z=0;z<count;z++)
+	{
+		newparams[z] = malloc(strlen(params[z])+3);
+		strcpy(newparams[z], "\"");
+		strcat(newparams[z], params[z]);
+		strcat(newparams[z], "\"");
+	}
+	newparams[count] = NULL;
+
+	retcode = spawnvp(P_NOWAIT, program, newparams);
+
+	for(z=0;z<count;z++)
+	{
+		free(newparams[z]);
+	}
+	free(newparams);
+
+	return retcode;
 }
 
 /*
@@ -6531,42 +6245,29 @@ int dw_exec(char *program, int type, char **params)
  */
 int dw_browse(char *url)
 {
-	/* Is there a way to find the webbrowser in Unix? */
-	char *execargs[3], browser[1024], *newurl = NULL;
-	int len;
+	char *browseurl = url;
+	int retcode;
 
-	PrfQueryProfileString(HINI_USERPROFILE, "WPURLDEFAULTSETTINGS",
-						  "DefaultBrowserExe", NULL, browser, 1024);
-
-	len = strlen(browser) - strlen("explore.exe");
-
-	execargs[0] = browser;
-	execargs[1] = url;
-	execargs[2] = NULL;
-
-	/* Special case for Web Explorer, it requires file:/// instead
-	 * of file:// so I am handling it here.
-	 */
-	if(len > 0)
+	if(strlen(url) > 7 && strncmp(url, "file://", 7) == 0)
 	{
-		if(stricmp(&browser[len], "explore.exe") == 0)
+		int len, z;
+
+		browseurl = &url[7];
+		len = strlen(browseurl);
+
+		for(z=0;z<len;z++)
 		{
-			int newlen, z;
-			newurl = alloca(strlen(url) + 2);
-			sprintf(newurl, "file:///%s", &url[7]);
-			newlen = strlen(newurl);
-			for(z=8;z<(newlen-8);z++)
-			{
-				if(newurl[z] == '|')
-					newurl[z] = ':';
-				if(newurl[z] == '/')
-					newurl[z] = '\\';
-			}
-			execargs[1] = newurl;
+			if(browseurl[z] == '|')
+				browseurl[z] = ':';
+			if(browseurl[z] == '/')
+				browseurl[z] = '\\';
 		}
 	}
 
-	return dw_exec(browser, DW_EXEC_GUI, execargs);
+	retcode = (int)ShellExecute(NULL, "open", browseurl, NULL, NULL, SW_SHOWNORMAL);
+	if(retcode<33 && retcode != 2)
+		return -1;
+	return 1;
 }
 
 /*
@@ -6580,6 +6281,7 @@ char *dw_user_dir(void)
 
 	if(!_user_dir[0])
 	{
+		/* Figure out how to do this the "Windows way" */
 		char *home = getenv("HOME");
 
 		if(home)
@@ -6599,7 +6301,7 @@ char *dw_user_dir(void)
  */
 void dw_window_function(HWND handle, void *function, void *data)
 {
-	WinSendMsg(handle, WM_USER, (MPARAM)function, (MPARAM)data);
+	SendMessage(handle, WM_USER, (WPARAM)function, (LPARAM)data);
 }
 
 #ifndef NO_SIGNALS
@@ -6615,23 +6317,11 @@ void dw_signal_connect(HWND window, char *signame, void *sigfunc, void *data)
 {
 	ULONG message = 0L;
 
-	if(strcmp(signame, "lose-focus") == 0)
-	{
-		char tmpbuf[100];
-
-		WinQueryClassName(window, 99, tmpbuf);
-
-		if(strncmp(tmpbuf, "#2", 3) == 0)
-		{
-			HENUM henum = WinBeginEnumWindows(window);
-			HWND child = WinGetNextWindow(henum);
-			WinEndEnumWindows(henum);
-			if(child)
-				window = child;
-		}
-	}
 	if(window && signame && sigfunc)
 	{
+		if(stricmp(signame, "set-focus") == 0)
+			window = _normalize_handle(window);
+
 		if((message = _findsigmessage(signame)) != 0)
 			_new_signal(message, window, sigfunc, data);
 	}
@@ -6780,7 +6470,7 @@ LONG testfilter(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 		case 1003L:
 		case 1004L:
 			dw_window_destroy(testwindow);;
-			count--;
+            count--;
 			break;
 		}
 		if(!count)
@@ -6797,7 +6487,7 @@ int test_callback(HWND window, void *data)
 	/* Return -1 to allow the default handlers to return. */
 	count--;
 	if(!count)
-		exit(0);
+        exit(0);
 	return -1;
 }
 #endif
@@ -6805,13 +6495,18 @@ int test_callback(HWND window, void *data)
 /*
  * Let's demonstrate the functionality of this library. :)
  */
-int main(void)
+int WINAPI WinMain(
+  HINSTANCE hInstance,
+  HINSTANCE hPrevInstance,
+  LPSTR lpCmdLine,
+  int nCmdShow
+)
 {
 	ULONG flStyle = DW_FCF_SYSMENU | DW_FCF_TITLEBAR |
 		DW_FCF_SHELLPOSITION | DW_FCF_TASKLIST | DW_FCF_DLGBORDER;
 	int pageid;
 
-	dw_init(TRUE);
+	dw_init(TRUE, 0, NULL);
 
 	/* Try a little server dialog. :) */
 	mainwindow = dw_window_new(HWND_DESKTOP, "Server", flStyle | DW_FCF_SIZEBORDER | DW_FCF_MINMAX);
@@ -6856,7 +6551,7 @@ int main(void)
 	dw_window_set_usize(mainwindow, 170, 340);
 
 	/* Another small example */
-	flStyle |= FCF_MINMAX | FCF_SIZEBORDER;
+	flStyle |= DW_FCF_MINMAX | DW_FCF_SIZEBORDER;
 
 	testwindow = dw_window_new(HWND_DESKTOP, "Wow a test dialog! :) yay!", flStyle);
 
@@ -6875,7 +6570,7 @@ int main(void)
 	dw_notebook_page_set_text(notebook, pageid, "Test page");
 	dw_notebook_page_set_status_text(notebook, pageid, "Test page");
 
-	dw_notebook_pack(notebook, pageid, testbox);
+    dw_notebook_pack(notebook, pageid, testbox);
 
 	testok = dw_button_new("Ok", 1003L);
 
@@ -6910,6 +6605,7 @@ int main(void)
 	dw_window_show(testwindow);
 
 #ifdef USE_FILTER
+
 	dw_main(0L, (void *)testfilter);
 #else
 	/* Setup the function callbacks */
