@@ -7488,8 +7488,9 @@ void dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, int 
 
 			if(eventbox)
 			{
+				int boxpad = (int)gtk_object_get_data(GTK_OBJECT(item), "_dw_boxpad");
 				gtk_container_add(GTK_CONTAINER(eventbox), item);
-				pad = (int)gtk_object_get_data(GTK_OBJECT(item), "_dw_boxpad");
+				gtk_container_border_width(GTK_CONTAINER(eventbox), boxpad);
 				item = eventbox;
 			}
 		}
@@ -7531,8 +7532,9 @@ void dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, int 
 
 			if(eventbox)
 			{
+				int boxpad = (int)gtk_object_get_data(GTK_OBJECT(item), "_dw_boxpad");
 				gtk_container_add(GTK_CONTAINER(eventbox), item);
-				pad = (int)gtk_object_get_data(GTK_OBJECT(item), "_dw_boxpad");
+				gtk_container_border_width(GTK_CONTAINER(eventbox), boxpad);
 				item = eventbox;
 			}
 		}
@@ -8722,8 +8724,9 @@ void dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize, in
 
 			if(eventbox)
 			{
+				int boxpad = (int)gtk_object_get_data(GTK_OBJECT(item), "_dw_boxpad");
 				gtk_container_add(GTK_CONTAINER(eventbox), item);
-				pad = (int)gtk_object_get_data(GTK_OBJECT(item), "_dw_boxpad");
+				gtk_container_border_width(GTK_CONTAINER(eventbox), boxpad);
 				item = eventbox;
 			}
 		}
@@ -8773,8 +8776,9 @@ void dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize, in
 
 			if(eventbox)
 			{
+				int boxpad = (int)gtk_object_get_data(GTK_OBJECT(item), "_dw_boxpad");
 				gtk_container_add(GTK_CONTAINER(eventbox), item);
-				pad = (int)gtk_object_get_data(GTK_OBJECT(item), "_dw_boxpad");
+				gtk_container_border_width(GTK_CONTAINER(eventbox), boxpad);
 				item = eventbox;
 			}
 		}
