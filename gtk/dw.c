@@ -74,7 +74,7 @@ int _transparent[DW_THREAD_LIMIT];
 
 GtkWidget *last_window = NULL, *popup = NULL;
 
-static int _dw_file_active = 0, _dw_ignore_click = 0;
+static int _dw_file_active = 0, _dw_ignore_click = 0, _dw_ignore_expand = 0;
 static pthread_t _dw_thread = (pthread_t)-1;
 static int _dw_mutex_locked[DW_THREAD_LIMIT];
 /* Use default border size for the default enlightenment theme */
@@ -601,7 +601,7 @@ static gint _tree_expand_event(GtkTreeView *widget, GtkTreeIter *iter, GtkTreePa
 	SignalHandler work = _get_signal_handler((GtkWidget *)widget, data);
 	int retval = FALSE;
 
-	if(work.window)
+	if(!_dw_ignore_expand && work.window)
 	{
 		int (*treeexpandfunc)(HWND, HTREEITEM, void *) = work.func;
 		retval = treeexpandfunc(work.window, (HTREEITEM)iter, work.data);
@@ -638,7 +638,7 @@ static gint _tree_expand_event(GtkTreeItem *treeitem, gpointer data)
 	SignalHandler work = _get_signal_handler((GtkWidget *)treeitem, data);
 	int retval = FALSE;
 
-	if(work.window)
+	if(!_dw_ignore_expand && work.window)
 	{
 		int (*treeexpandfunc)(HWND, HTREEITEM, void *) = work.func;
 		retval = treeexpandfunc(work.window, (HTREEITEM)treeitem, work.data);
@@ -3985,10 +3985,24 @@ HTREEITEM dw_tree_insert_after(HWND handle, HTREEITEM item, char *title, unsigne
 	gtk_widget_show(label);
 	gtk_widget_show(hbox);
 
+	{
+		void *thisfunc = (void *)gtk_object_get_data(GTK_OBJECT(tree), "_dw_tree_expand_func");
+		void *mydata = (void *)gtk_object_get_data(GTK_OBJECT(tree), "_dw_tree_expand_data");
+		SignalHandler work = _get_signal_handler(tree, mydata);
+
+		if(thisfunc && work.window)
+		{
+			int sigid = _set_signal_handler(newitem, work.window, work.func, work.data, thisfunc);
+			gint cid =gtk_signal_connect(GTK_OBJECT(newitem), "expand", GTK_SIGNAL_FUNC(thisfunc),(gpointer)sigid);
+			_set_signal_handler_id(newitem, sigid, cid);
+		}
+	}
+
+	_dw_ignore_expand = 1;
 	if(parent)
 	{
 		subtree = (GtkWidget *)gtk_object_get_user_data(GTK_OBJECT(parent));
-		if(!subtree)
+		if(!subtree || !GTK_IS_TREE(subtree))
 		{
 			void *thisfunc = (void *)gtk_object_get_data(GTK_OBJECT(tree), "_dw_select_child_func");
 			void *mydata = (void *)gtk_object_get_data(GTK_OBJECT(tree), "_dw_select_child_data");
@@ -4018,6 +4032,7 @@ HTREEITEM dw_tree_insert_after(HWND handle, HTREEITEM item, char *title, unsigne
 			gtk_tree_set_selection_mode(GTK_TREE(subtree), GTK_SELECTION_SINGLE);
 			gtk_tree_set_view_mode(GTK_TREE(subtree), GTK_TREE_VIEW_ITEM);
 			gtk_tree_item_set_subtree(GTK_TREE_ITEM(parent), subtree);
+			gtk_object_set_data(GTK_OBJECT(subtree), "_dw_parentitem", (gpointer)parent);
 			gtk_tree_item_collapse(GTK_TREE_ITEM(parent));
 			gtk_widget_show(subtree);
 			gtk_tree_item_expand(GTK_TREE_ITEM(parent));
@@ -4034,6 +4049,7 @@ HTREEITEM dw_tree_insert_after(HWND handle, HTREEITEM item, char *title, unsigne
 	gtk_tree_item_expand(GTK_TREE_ITEM(newitem));
 	gtk_tree_item_collapse(GTK_TREE_ITEM(newitem));
 	gtk_widget_show(newitem);
+	_dw_ignore_expand = 0;
 	DW_MUTEX_UNLOCK;
 	return (HTREEITEM)newitem;
 #endif
@@ -4071,7 +4087,7 @@ HTREEITEM dw_tree_insert(HWND handle, char *title, unsigned long icon, HTREEITEM
 		pixbuf = _find_pixbuf(icon);
 
 		gtk_tree_store_append (store, iter, (GtkTreeIter *)parent);
-		gtk_tree_store_set (store, iter, 0, title, 1, pixbuf, 2, itemdata, 3, iter, 4, NULL, -1);
+		gtk_tree_store_set (store, iter, 0, title, 1, pixbuf, 2, itemdata, 3, iter, 4, parent, -1);
 		if(pixbuf && !(icon & (1 << 31)))
 			g_object_unref(pixbuf);
 		retval = (HTREEITEM)iter;
@@ -4100,6 +4116,7 @@ HTREEITEM dw_tree_insert(HWND handle, char *title, unsigned long icon, HTREEITEM
 	gtk_object_set_data(GTK_OBJECT(item), "_dw_text", (gpointer)strdup(title));
 	gtk_object_set_data(GTK_OBJECT(item), "_dw_itemdata", (gpointer)itemdata);
 	gtk_object_set_data(GTK_OBJECT(item), "_dw_tree", (gpointer)tree);
+	gtk_object_set_data(GTK_OBJECT(item), "_dw_parent", (gpointer)parent);
 	hbox = gtk_hbox_new(FALSE, 2);
 	gtk_object_set_data(GTK_OBJECT(item), "_dw_hbox", (gpointer)hbox);
 	gdkpix = _find_pixmap(&gdkbmp, icon, hbox, NULL, NULL);
@@ -4114,10 +4131,24 @@ HTREEITEM dw_tree_insert(HWND handle, char *title, unsigned long icon, HTREEITEM
 	gtk_widget_show(label);
 	gtk_widget_show(hbox);
 
+	{
+		void *thisfunc = (void *)gtk_object_get_data(GTK_OBJECT(tree), "_dw_tree_expand_func");
+		void *mydata = (void *)gtk_object_get_data(GTK_OBJECT(tree), "_dw_tree_expand_data");
+		SignalHandler work = _get_signal_handler(tree, mydata);
+
+		if(thisfunc && work.window)
+		{
+			int sigid = _set_signal_handler(item, work.window, work.func, work.data, thisfunc);
+			gint cid =gtk_signal_connect(GTK_OBJECT(item), "expand", GTK_SIGNAL_FUNC(thisfunc),(gpointer)sigid);
+			_set_signal_handler_id(item, sigid, cid);
+		}
+	}
+
+	_dw_ignore_expand = 1;
 	if(parent)
 	{
 		subtree = (GtkWidget *)gtk_object_get_user_data(GTK_OBJECT(parent));
-		if(!subtree)
+		if(!subtree || !GTK_IS_TREE(subtree))
 		{
 			void *thisfunc = (void *)gtk_object_get_data(GTK_OBJECT(tree), "_dw_select_child_func");
 			void *mydata = (void *)gtk_object_get_data(GTK_OBJECT(tree), "_dw_select_child_data");
@@ -4147,6 +4178,7 @@ HTREEITEM dw_tree_insert(HWND handle, char *title, unsigned long icon, HTREEITEM
 			gtk_tree_set_selection_mode(GTK_TREE(subtree), GTK_SELECTION_SINGLE);
 			gtk_tree_set_view_mode(GTK_TREE(subtree), GTK_TREE_VIEW_ITEM);
 			gtk_tree_item_set_subtree(GTK_TREE_ITEM(parent), subtree);
+			gtk_object_set_data(GTK_OBJECT(subtree), "_dw_parentitem", (gpointer)parent);
 			gtk_tree_item_collapse(GTK_TREE_ITEM(parent));
 			gtk_widget_show(subtree);
 			gtk_tree_item_expand(GTK_TREE_ITEM(parent));
@@ -4163,6 +4195,7 @@ HTREEITEM dw_tree_insert(HWND handle, char *title, unsigned long icon, HTREEITEM
 	gtk_tree_item_expand(GTK_TREE_ITEM(item));
 	gtk_tree_item_collapse(GTK_TREE_ITEM(item));
 	gtk_widget_show(item);
+	_dw_ignore_expand = 0;
 	DW_MUTEX_UNLOCK;
 	return (HTREEITEM)item;
 #endif
@@ -4516,8 +4549,10 @@ void dw_tree_expand(HWND handle, HTREEITEM item)
 		return;
 
 	DW_MUTEX_LOCK;
+	_dw_ignore_expand = 1;
 	if(GTK_IS_TREE_ITEM(item))
 		gtk_tree_item_expand(GTK_TREE_ITEM(item));
+	_dw_ignore_expand = 0;
 	DW_MUTEX_UNLOCK;
 #endif
 }
@@ -7863,10 +7898,18 @@ static int DWSIGNAL _tree_expand(HWND window, HTREEITEM item, void *data)
 		char *folder = _tree_folder(tree, item);
 
 		dw_tree_set_data(tree, item, 0);
+#if GTK_MAJOR_VERSION > 1
+		/* FIXME: GTK 1.x tree control goes crazy when
+		 * I delete the temporary item.  The subtree
+		 * it sits on ceases to be valid and attempts
+		 * to delete or recreate it fail horribly.
+		 */
 		dw_tree_delete(tree, tempitem);
+#endif
 
 		if(*folder)
 			_populate_directory(tree, item, folder);
+
 		free(folder);
 	}
 
@@ -8278,6 +8321,17 @@ void dw_signal_connect(HWND window, char *signame, void *sigfunc, void *data)
 			gtk_object_set_data(GTK_OBJECT(thiswindow), "_dw_select_child_data", (gpointer)sigid);
 		}
 		thisname = "select-child";
+	}
+	else if(GTK_IS_TREE(thiswindow) && strcmp(signame, DW_SIGNAL_TREE_EXPAND) == 0)
+	{
+		if(thisfunc)
+		{
+			sigid = _set_signal_handler(thiswindow, window, sigfunc, data, thisfunc);
+			gtk_object_set_data(GTK_OBJECT(thiswindow), "_dw_tree_expand_func", (gpointer)thisfunc);
+			gtk_object_set_data(GTK_OBJECT(thiswindow), "_dw_tree_expand_data", (gpointer)sigid);
+		}
+		DW_MUTEX_UNLOCK;
+		return;
 	}
 #endif
 	else if(GTK_IS_CLIST(thiswindow) && strcmp(signame, DW_SIGNAL_ITEM_ENTER) == 0)
