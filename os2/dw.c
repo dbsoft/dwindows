@@ -6902,7 +6902,10 @@ void API dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
 	rcl.yBottom = rcl.yTop - (aptl[TXTBOX_TOPLEFT].y - aptl[TXTBOX_BOTTOMLEFT].y);
 	rcl.xRight = rcl.xLeft + (aptl[TXTBOX_TOPRIGHT].x - aptl[TXTBOX_TOPLEFT].x);
 
-	WinDrawText(hps, -1, text, &rcl, DT_TEXTATTRS, DT_TEXTATTRS, DT_VCENTER | DT_LEFT | DT_TEXTATTRS);
+	if(_background == DW_CLR_DEFAULT)
+		WinDrawText(hps, -1, text, &rcl, DT_TEXTATTRS, DT_TEXTATTRS, DT_VCENTER | DT_LEFT | DT_TEXTATTRS);
+	else
+		WinDrawText(hps, -1, text, &rcl, _internal_color(_foreground), _internal_color(_background), DT_VCENTER | DT_LEFT | DT_ERASERECT);
 
 	if(!pixmap)
 		WinReleasePS(hps);
