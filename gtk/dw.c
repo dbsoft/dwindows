@@ -5269,7 +5269,6 @@ GdkGC *_set_colors(GdkWindow *window)
 	{
 		gdk_gc_set_foreground(gc, &_foreground[index]);
 		gdk_gc_set_background(gc, &_background[index]);
-		gdk_gc_set_colormap(gc, _dw_cmap);
 	}
 	return gc;
 }
