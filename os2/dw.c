@@ -7327,34 +7327,6 @@ HWND mainwindow,
 	 notebook;
 int count = 2;
 
-#ifdef USE_FILTER
-/* Do any handling you need in the filter function */
-LONG testfilter(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
-{
-	switch(msg)
-	{
-	case WM_COMMAND:
-		switch (COMMANDMSG(&msg)->cmd)
-		{
-		case 1001L:
-		case 1002L:
-			dw_window_destroy(mainwindow);;
-			count--;
-			break;
-		case 1003L:
-		case 1004L:
-			dw_window_destroy(testwindow);;
-			count--;
-			break;
-		}
-		if(!count)
-			exit(0);
-		break;
-	}
-	/* Return -1 to allow the default handlers to return. */
-	return TRUE;
-}
-#else
 int test_callback(HWND window, void *data)
 {
 	dw_window_destroy((HWND)data);
@@ -7364,7 +7336,6 @@ int test_callback(HWND window, void *data)
 		exit(0);
 	return -1;
 }
-#endif
 
 /*
  * Let's demonstrate the functionality of this library. :)
@@ -7473,9 +7444,6 @@ int main(int argc, char *argv[])
 
 	dw_window_show(testwindow);
 
-#ifdef USE_FILTER
-	dw_main(0L, (void *)testfilter);
-#else
 	/* Setup the function callbacks */
 	dw_signal_connect(okbutton, "clicked", DW_SIGNAL_FUNC(test_callback), (void *)mainwindow);
 	dw_signal_connect(cancelbutton, "clicked", DW_SIGNAL_FUNC(test_callback), (void *)mainwindow);
@@ -7486,8 +7454,7 @@ int main(int argc, char *argv[])
 	dw_signal_connect(mainwindow, "delete_event", DW_SIGNAL_FUNC(test_callback), (void *)mainwindow);
 	dw_signal_connect(testwindow, "delete_event", DW_SIGNAL_FUNC(test_callback), (void *)testwindow);
 
-	dw_main(0L, NULL);
-#endif
+	dw_main();
 
 	return 0;
 }

@@ -7096,7 +7096,7 @@ int main(int argc, char *argv[])
 	dw_signal_connect(mainwindow, "delete_event", DW_SIGNAL_FUNC(test_callback), (void *)mainwindow);
 	dw_signal_connect(testwindow, "delete_event", DW_SIGNAL_FUNC(test_callback), (void *)testwindow);
 
-	dw_main(0L, NULL);
+	dw_main();
 
 	return 0;
 }
