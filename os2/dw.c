@@ -1580,11 +1580,14 @@ int _dw_int_pos(HWND hwnd)
 void _dw_int_set(HWND hwnd, int pos)
 {
 	int inew, range = dw_percent_query_range(hwnd);
-	float fpos = (float)pos;
-	float frange = (float)range;
-	float fnew = (fpos/frange)*1000.0;
-	inew = (int)fnew;
-	dw_window_set_data(hwnd, "_dw_percent_value", (void *)inew);
+	if(range)
+	{
+		float fpos = (float)pos;
+		float frange = (float)range;
+		float fnew = (fpos/frange)*1000.0;
+		inew = (int)fnew;
+		dw_window_set_data(hwnd, "_dw_percent_value", (void *)inew);
+	}
 }
 
 /* Handle size changes in the percent class */
