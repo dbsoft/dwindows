@@ -1,9 +1,6 @@
 # $Id$ 
 
-# HandyFTP Makefile
-
-DWINCDIR = d:/work/fx/include
-DWLIBDIR = d:/work/fx/lib
+# Dynamic Windows EMX Makefile
 
 CC = gcc
 RM = rm -f
@@ -14,7 +11,7 @@ COMPRESS = lxlite
 DEFS =
 LIBS =
 
-CFLAGS = -O -g -Zomf -Zmt -D__ST_MT_ERRNO__ -I. -Wall -I$(DWINCDIR)
+CFLAGS = -O -g -Zomf -Zmt -D__ST_MT_ERRNO__ -I. -Wall
 LDFLAGS = -Zdll -Zcrtdll
 RCFLAGS = -r
 
