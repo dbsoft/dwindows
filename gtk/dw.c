@@ -1236,7 +1236,7 @@ int dw_messagebox(char *title, int flags, char *format, ...)
 	/* Buttons */
 	buttonbox = dw_box_new(DW_HORZ, 10);
 
-	dw_box_pack_start(mainbox, buttonbox, 0, 0, TRUE, FALSE, 0);
+	dw_box_pack_start(mainbox, buttonbox, 0, 40, TRUE, FALSE, 0);
 
 	dwwait = dw_dialog_new((void *)entrywindow);
 
@@ -6169,6 +6169,18 @@ void dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, int 
 	if(!box)
 		return;
 
+/* Can't use dw_messagebox() !!! */
+if ( width == 0 && hsize == FALSE )
+		dw_messagebox("dw_box_pack_end()", DW_MB_OK|DW_MB_ERROR, "Width and expand Horizonal both unset for box: %x item: %x",box,item);
+if ( height == 0 && vsize == FALSE )
+		dw_messagebox("dw_box_pack_end()", DW_MB_OK|DW_MB_ERROR, "Height and expand Vertical both unset for box: %x item: %x",box,item);
+/*
+if ( width == 0 && hsize == FALSE )
+		fprintf(stderr,"dw_box_pack_end() - Width and expand Horizonal both unset for box: %lx item: %lx",(long)box,(long)item);
+if ( height == 0 && vsize == FALSE )
+		fprintf(stderr,"dw_box_pack_end() - Height and expand Vertical both unset for box: %lx item: %lx",(long)box,(long)item);
+*/
+
 	DW_MUTEX_LOCK;
 
 	if((tmp  = gtk_object_get_data(GTK_OBJECT(box), "_dw_boxhandle")))
@@ -7329,6 +7341,11 @@ void dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize, in
 
 	if(!box)
 		return;
+
+if ( width == 0 && hsize == FALSE )
+		dw_messagebox("dw_box_pack_start()", DW_MB_OK|DW_MB_ERROR, "Width and expand Horizonal both unset for box: %x item: %x",box,item);
+if ( height == 0 && vsize == FALSE )
+		dw_messagebox("dw_box_pack_start()", DW_MB_OK|DW_MB_ERROR, "Height and expand Vertical both unset for box: %x item: %x",box,item);
 
 	DW_MUTEX_LOCK;
 

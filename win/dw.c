@@ -4720,6 +4720,11 @@ void API dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize
 {
 	Box *thisbox;
 
+if ( width == 0 && hsize == FALSE )
+		dw_messagebox("dw_box_pack_start()", DW_MB_OK|DW_MB_ERROR, "Width and expand Horizonal both unset for box: %x item: %x",box,item);
+if ( height == 0 && vsize == FALSE )
+		dw_messagebox("dw_box_pack_start()", DW_MB_OK|DW_MB_ERROR, "Height and expand Vertical both unset for box: %x item: %x",box,item);
+
 	thisbox = (Box *)GetWindowLong(box, GWL_USERDATA);
 	if(thisbox)
 	{
@@ -7510,6 +7515,11 @@ float API dw_splitbar_get(HWND handle)
 void API dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, int vsize, int pad)
 {
 	Box *thisbox;
+
+if ( width == 0 && hsize == FALSE )
+		dw_messagebox("dw_box_pack_end()", DW_MB_OK|DW_MB_ERROR, "Width and expand Horizonal both unset for box: %x item: %x",box,item);
+if ( height == 0 && vsize == FALSE )
+		dw_messagebox("dw_box_pack_end()", DW_MB_OK|DW_MB_ERROR, "Height and expand Vertical both unset for box: %x item: %x",box,item);
 
 	thisbox = (Box *)GetWindowLong(box, GWL_USERDATA);
 	if(thisbox)
