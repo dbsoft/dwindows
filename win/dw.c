@@ -5601,7 +5601,7 @@ int dw_container_setup(HWND handle, unsigned long *flags, char **titles, int cou
 			SendMessage(handle, LVM_INSERTCOLUMN, (WPARAM)z + l, (LPARAM)&lvc);
 		}
 	}
-	ListView_SetExtendedListViewStyle(handle, LVS_EX_FULLROWSELECT);
+	ListView_SetExtendedListViewStyle(handle, LVS_EX_FULLROWSELECT | LVS_EX_SUBITEMIMAGES);
 	return TRUE;
 }
 
