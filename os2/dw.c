@@ -3716,9 +3716,9 @@ void dw_listbox_set_text(HWND handle, unsigned int index, char *buffer)
 unsigned int dw_listbox_selected(HWND handle)
 {
 		return (unsigned int)WinSendMsg(handle,
-										 LM_QUERYSELECTION,
-										 MPFROMSHORT(LIT_CURSOR),
-										 0);
+										LM_QUERYSELECTION,
+										MPFROMSHORT(LIT_CURSOR),
+										0);
 }
 
 /*
@@ -4164,7 +4164,7 @@ int dw_container_setup(HWND handle, unsigned long *flags, char **titles, int cou
 
 	WinSendMsg(handle, CM_INSERTDETAILFIELDINFO, MPFROMP(first), MPFROMP(&detin));
 
-	if(count > separator)
+	if(count > separator && separator > 0)
 	{
 		cnri.cb = sizeof(CNRINFO);
 		cnri.pFieldInfoLast = left;
