@@ -70,7 +70,7 @@ void read_file( void )
 	max_linewidth=0;
 	for ( i = 0; i < 1000; i++ )
 	{
-		lp[i] = (char *)malloc( 1025 );
+		lp[i] = (char *)calloc(1, 1025);
 		if ( fgets( lp[i], 1024, fp ) == NULL )
 			break;
 		len = strlen( lp[i] );
