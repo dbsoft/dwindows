@@ -186,6 +186,8 @@ void _fix_button_owner(HWND handle, HWND dw)
 
 		if(strncmp(tmpbuf, "#3", 3)==0 && dw)  /* Button */
 			WinSetOwner(child, dw);
+		if(strncmp(tmpbuf, "#38", 4)==0 && dw)  /* Slider */
+			WinSetOwner(child, 0);
 		else if(strncmp(tmpbuf, "dynamicwindows", 14) == 0)
 			dw = child;
 
@@ -1363,84 +1365,10 @@ MRESULT EXPENTRY _statusproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 /* This procedure handles drawing of a percent bar */
 MRESULT EXPENTRY _percentproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 {
-	PercentBar *blah = (PercentBar *)WinQueryWindowPtr(hWnd, QWP_USER);
+	WindowData *blah = (WindowData *)WinQueryWindowPtr(hWnd, QWP_USER);
 
 	if(blah)
-	{
-		PFNWP myfunc = blah->oldproc;
-
-		switch(msg)
-		{
-		case WM_PAINT:
-			{
-				HPS hpsPaint;
-				RECTL rclPaint, rclBar;
-
-				hpsPaint = WinBeginPaint(hWnd, 0, 0);
-				WinQueryWindowRect(hWnd, &rclPaint);
-
-				/* Draw outer border */
-				rclBar = rclPaint;
-				GpiSetColor(hpsPaint, CLR_PALEGRAY);
-				_Top(hpsPaint, rclBar);
-				_Bottom(hpsPaint, rclBar);
-				rclBar.yTop--;
-				GpiSetColor(hpsPaint, CLR_WHITE);
-				_Right(hpsPaint, rclBar);
-				rclBar.yBottom++;
-				GpiSetColor(hpsPaint, CLR_DARKGRAY);
-				_Left(hpsPaint, rclBar);
-
-				/* Draw inner border */
-				rclBar.xLeft++;
-				rclBar.xRight--;
-				GpiSetColor(hpsPaint, CLR_DARKGRAY);
-				_Left(hpsPaint, rclBar);
-				_Top(hpsPaint, rclBar);
-				GpiSetColor(hpsPaint, CLR_WHITE);
-				_Bottom(hpsPaint, rclBar);
-				_Right(hpsPaint, rclBar);
-
-				/* Draw bar border */
-				rclBar.xLeft++;
-				rclBar.xRight--;
-				rclBar.yBottom++;
-				rclBar.yTop--;
-				GpiSetColor(hpsPaint, CLR_DARKGRAY);
-				_Left(hpsPaint, rclBar);
-				_Top(hpsPaint, rclBar);
-				_Bottom(hpsPaint, rclBar);
-				_Right(hpsPaint, rclBar);
-
-				if(blah->pos)
-				{
-					rclBar.xRight = 3 + blah->pos;
-					_Right(hpsPaint, rclBar);
-
-					/* Draw Bar itself */
-					rclBar.xLeft = rclPaint.xLeft + 3;
-					rclBar.xRight = rclPaint.xLeft +  2 + blah->pos;
-					rclBar.yTop = rclPaint.yTop - 3;
-					rclBar.yBottom = rclPaint.yBottom + 3;
-
-					WinFillRect(hpsPaint, &rclBar, CLR_DARKBLUE);
-				}
-
-				/* Draw the background */
-				rclBar.xLeft = rclPaint.xLeft + 3 + blah->pos;
-				rclBar.xRight = rclPaint.xRight - 3;
-				rclBar.yTop = rclPaint.yTop - 3;
-				rclBar.yBottom = rclPaint.yBottom + 3;
-
-				WinFillRect(hpsPaint, &rclBar, CLR_PALEGRAY);
-
-				WinEndPaint(hpsPaint);
-
-				return (MRESULT)TRUE;
-			}
-		}
-		return myfunc(hWnd, msg, mp1, mp2);
-	}
+		return blah->oldproc(hWnd, msg, mp1, mp2);
 
 	return WinDefWindowProc(hWnd, msg, mp1, mp2);
 }
@@ -4030,22 +3958,20 @@ HWND dw_radiobutton_new(char *text, ULONG id)
  */
 HWND dw_percent_new(ULONG id)
 {
-	PercentBar *blah = malloc(sizeof(PercentBar));
+	WindowData *blah = calloc(1, sizeof(WindowData));
 	HWND tmp = WinCreateWindow(HWND_OBJECT,
-							   WC_STATIC,
+							   WC_SLIDER,
 							   "",
-							   WS_VISIBLE | SS_TEXT,
+							   WS_VISIBLE | SLS_READONLY
+							   | SLS_RIBBONSTRIP,
 							   0,0,2000,1000,
 							   NULLHANDLE,
 							   HWND_TOP,
 							   id,
 							   NULL,
 							   NULL);
-	dw_window_set_font(tmp, DefaultFont);
-	dw_window_set_color(tmp, DW_CLR_BLUE, DW_CLR_PALEGRAY);
 
 	blah->oldproc = WinSubclassWindow(tmp, _percentproc);
-	blah->pos = 0;
 	WinSetWindowPtr(tmp, QWP_USER, blah);
 	return tmp;
 }
@@ -4900,13 +4826,7 @@ void dw_mle_thaw(HWND handle)
  */
 unsigned int dw_percent_query_range(HWND handle)
 {
-	unsigned long width;
-
-	dw_window_get_pos_size(handle, 0, 0, &width, 0);
-
-	if(width - 6 < 1)
-		return 1;
-	return width - 6;
+	return SHORT2FROMMP(WinSendMsg(handle, SLM_QUERYSLIDERINFO, MPFROM2SHORT(SMA_SLIDERARMPOSITION,SMA_RANGEVALUE), 0));
 }
 
 /*
@@ -4917,16 +4837,7 @@ unsigned int dw_percent_query_range(HWND handle)
  */
 void dw_percent_set_pos(HWND handle, unsigned int position)
 {
-	PercentBar *pb = (PercentBar *)WinQueryWindowPtr(handle, 0);
-
-	if(pb)
-	{
-		RECTL rcl;
-
-		pb->pos = position;
-		WinQueryWindowRect(handle, &rcl);
-		WinInvalidateRect(handle, &rcl, FALSE);
-	}
+	WinSendMsg(handle, SLM_SETSLIDERINFO, MPFROM2SHORT(SMA_SLIDERARMPOSITION,SMA_RANGEVALUE), (MPARAM)position);
 }
 
 /*

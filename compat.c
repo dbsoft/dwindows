@@ -210,7 +210,7 @@ int sockpipe(int *pipes)
 
 /* Return in K to avoid big problems exceeding an
    unsigned long when no 64bit integers are available */
-#if defined(__IBMC__) || (defined(__WIN32__) && !defined(__CYGWIN32__))
+#if (defined(__IBMC__) && __IBMC__ < 360) || (defined(__WIN32__) && !defined(__CYGWIN32__))
 unsigned long drivefree(int drive)
 #else
 unsigned long long drivefree(int drive)
@@ -233,7 +233,7 @@ unsigned long long drivefree(int drive)
 
 	kbytes = aulFSInfoBuf[3]/1024;
 
-	return (unsigned long)(kbytes * aulFSInfoBuf[1] * aulFSInfoBuf[4]);
+	return (kbytes * aulFSInfoBuf[1] * aulFSInfoBuf[4]);
 #elif defined(__WIN32__) || defined(WINNT)
 	char buffer[10] = "C:\\";
 	DWORD spc, bps, fc, tc;
@@ -246,7 +246,7 @@ unsigned long long drivefree(int drive)
 
 	kbytes = fc/1024;
 
-	return (unsigned long)(spc*bps*kbytes);
+	return (spc*bps*kbytes);
 #elif defined(__FreeBSD__)
 	struct statfs *fsp;
 	int entries, index = 1;
@@ -318,7 +318,7 @@ unsigned long long drivefree(int drive)
 
 /* Return in K to avoid big problems exceeding an
    unsigned long when no 64bit integers are available */
-#if defined(__IBMC__) || (defined(__WIN32__) && !defined(__CYGWIN32__))
+#if (defined(__IBMC__) && __IBMC__  < 360) || (defined(__WIN32__) && !defined(__CYGWIN32__))
 unsigned long drivesize(int drive)
 #else
 unsigned long long drivesize(int drive)
@@ -341,7 +341,7 @@ unsigned long long drivesize(int drive)
 
 	kbytes = aulFSInfoBuf[2]/1024;
 
-	return (unsigned long)(kbytes * aulFSInfoBuf[1] * aulFSInfoBuf[4]);
+	return (kbytes * aulFSInfoBuf[1] * aulFSInfoBuf[4]);
 #elif defined(__WIN32__) || defined(WINNT)
 	char buffer[10] = "C:\\";
 	DWORD spc, bps, fc, tc;
@@ -354,7 +354,7 @@ unsigned long long drivesize(int drive)
 
 	kbytes = tc/1024;
 
-	return (unsigned long)(spc*bps*kbytes);
+	return (spc*bps*kbytes);
 #elif defined(__FreeBSD__)
 	struct statfs *fsp;
 	int entries, index = 1;
