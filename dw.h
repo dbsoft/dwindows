@@ -764,6 +764,7 @@ void API dw_font_text_extents(HWND handle, HPIXMAP pixmap, char *text, int *widt
 void API dw_flush(void);
 void API dw_pixmap_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest, int width, int height, HWND src, HPIXMAP srcp, int xsrc, int ysrc);
 HPIXMAP API dw_pixmap_new(HWND handle, unsigned long width, unsigned long height, int depth);
+HPIXMAP API dw_pixmap_new_from_file(HWND handle, char *filename);
 HPIXMAP API dw_pixmap_grab(HWND handle, ULONG id);
 void API dw_pixmap_destroy(HPIXMAP pixmap);
 void API dw_beep(int freq, int dur);

@@ -5049,6 +5049,58 @@ HPIXMAP dw_pixmap_new(HWND handle, unsigned long width, unsigned long height, in
 }
 
 /*
+ * Creates a pixmap from a file.
+ * Parameters:
+ *       handle: Window handle the pixmap is associated with.
+ *       filename: Name of the file, omit extention to have
+ *                 DW pick the appropriate file extension.
+ *                 (BMP on OS/2 or Windows, XPM on Unix)
+ * Returns:
+ *       A handle to a pixmap or NULL on failure.
+ */
+HPIXMAP dw_pixmap_new_from_file(HWND handle, char *filename)
+{
+	int _locked_by_me = FALSE;
+	HPIXMAP pixmap;
+	GdkBitmap *bitmap = NULL;
+#if GTK_MAJOR_VERSION > 1
+	GdkPixbuf *pixbuf;
+#endif
+	char *file = alloca(strlen(filename) + 5);
+
+	if (!file || !(pixmap = calloc(1,sizeof(struct _hpixmap))))
+		return NULL;
+
+	strcpy(file, filename);
+
+	/* check if we can read from this file (it exists and read permission) */
+	if(access(file, 04) != 0)
+	{
+		/* Try with .xpm extention */
+		strcat(file, ".xpm");
+		if(access(file, 04) != 0)
+		{
+			free(pixmap);
+			return NULL;
+		}
+	}
+
+	DW_MUTEX_LOCK;
+#if GTK_MAJOR_VERSION > 1
+	pixbuf = gdk_pixbuf_new_from_file(file);
+
+	pixmap->width = gdk_pixbuf_get_width(pixbuf);
+	pixmap->height = gdk_pixbuf_get_height(pixbuf);
+
+	gdk_pixbuf_render_pixmap_and_mask(pixbuf, &pixmap->pixmap, &bitmap, 1);
+	g_object_unref(pixbuf);
+#endif
+	pixmap->handle = handle;
+	DW_MUTEX_UNLOCK;
+	return pixmap;
+}
+
+/*
  * Creates a pixmap from internal resource graphic specified by id.
  * Parameters:
  *       handle: Window handle the pixmap is associated with.

@@ -22,6 +22,7 @@
 #include <ctype.h>
 #include <process.h>
 #include <time.h>
+#include <io.h>
 #ifndef __EMX__
 #include <direct.h>
 #endif
@@ -6729,6 +6730,135 @@ HPIXMAP API dw_pixmap_new(HWND handle, unsigned long width, unsigned long height
 		GpiCreateLogColorTable(pixmap->hps, LCOL_PURECOLOR, LCOLF_RGB, 0, 0, NULL );
 
 	WinReleasePS(hps);
+
+	return pixmap;
+}
+
+/*
+ * Creates a pixmap from a file.
+ * Parameters:
+ *       handle: Window handle the pixmap is associated with.
+ *       filename: Name of the file, omit extention to have
+ *                 DW pick the appropriate file extension.
+ *                 (BMP on OS/2 or Windows, XPM on Unix)
+ * Returns:
+ *       A handle to a pixmap or NULL on failure.
+ */
+HPIXMAP API dw_pixmap_new_from_file(HWND handle, char *filename)
+{
+	HFILE BitmapFileHandle = NULLHANDLE; /* handle for the file */
+	ULONG OpenAction = 0;
+	PBYTE BitmapFileBegin; /* pointer to the first byte of bitmap data  */
+	FILESTATUS BitmapStatus;
+	ULONG cbRead;
+	PBITMAPFILEHEADER2 pBitmapFileHeader;
+	PBITMAPINFOHEADER2 pBitmapInfoHeader;
+	ULONG ScanLines, ulFlags;
+	HPS hps;
+	HDC hdc;
+	SIZEL sizl = { 0, 0 };
+	HPIXMAP pixmap;
+	char *file = alloca(strlen(filename) + 5);
+
+	if(!file || !(pixmap = calloc(1,sizeof(struct _hpixmap))))
+		return NULL;
+
+	strcpy(file, filename);
+
+	/* check if we can read from this file (it exists and read permission) */
+	if(access(file, 04) != 0)
+	{
+		/* Try with .bmp extention */
+		strcat(file, ".bmp");
+		if(access(file, 04) != 0)
+		{
+			free(pixmap);
+			return NULL;
+		}
+	}
+
+	/* open bitmap file */
+	DosOpen(filename, &BitmapFileHandle, &OpenAction, 0L,
+			FILE_ARCHIVED | FILE_NORMAL | FILE_READONLY,
+			OPEN_ACTION_FAIL_IF_NEW | OPEN_ACTION_OPEN_IF_EXISTS,
+			OPEN_SHARE_DENYNONE | OPEN_ACCESS_READONLY |
+			OPEN_FLAGS_NOINHERIT, 0L);
+	if(!BitmapFileHandle)
+	{
+		free(pixmap);
+		return NULL;
+	}
+
+	/* find out how big the file is  */
+	DosQueryFileInfo(BitmapFileHandle, 1, &BitmapStatus,
+					 sizeof(BitmapStatus));
+
+	/* allocate memory to load the bitmap */
+	DosAllocMem((PPVOID)&BitmapFileBegin, (ULONG)BitmapStatus.cbFile,
+				PAG_READ | PAG_WRITE | PAG_COMMIT);
+
+	/* read bitmap file into memory buffer */
+	DosRead(BitmapFileHandle, (PVOID)BitmapFileBegin,
+			BitmapStatus.cbFile, &cbRead);
+
+	/* access first bytes as bitmap header */
+	pBitmapFileHeader = (PBITMAPFILEHEADER2)BitmapFileBegin;
+
+	/* check if it's a valid bitmap data file */
+	if((pBitmapFileHeader->usType != BFT_BITMAPARRAY) &&
+	   (pBitmapFileHeader->usType != BFT_BMAP))
+	{
+		/* free memory of bitmap file buffer */
+		DosFreeMem(BitmapFileBegin);
+		/* close the bitmap file */
+		DosClose(BitmapFileHandle);
+		return NULL;
+	}
+
+	/* check if it's a file with multiple bitmaps */
+	if(pBitmapFileHeader->usType == BFT_BITMAPARRAY)
+	{
+		/* we'll just use the first bitmap and ignore the others */
+		pBitmapFileHeader = &(((PBITMAPARRAYFILEHEADER2)BitmapFileBegin)->bfh2);
+	}
+
+	/* set pointer to bitmap information block */
+	pBitmapInfoHeader = &pBitmapFileHeader->bmp2;
+
+	/* find out if it's the new 2.0 format or the old format */
+	/* and query number of lines */
+	if(pBitmapInfoHeader->cbFix == sizeof(BITMAPINFOHEADER))
+		ScanLines = (ULONG)((PBITMAPINFOHEADER)pBitmapInfoHeader)->cy;
+	else
+		ScanLines = pBitmapInfoHeader->cy;
+
+	/* now we need a presentation space, get it from static control */
+	hps = WinGetPS(handle);
+
+	hdc     = GpiQueryDevice(hps);
+	ulFlags = GpiQueryPS(hps, &sizl);
+
+	pixmap->handle = handle;
+	pixmap->hdc = DevOpenDC(dwhab, OD_MEMORY, "*", 0L, NULL, hdc);
+	pixmap->hps = GpiCreatePS (dwhab, pixmap->hdc, &sizl, ulFlags | GPIA_ASSOC);
+
+	pixmap->width = pBitmapInfoHeader->cx; pixmap->height = pBitmapInfoHeader->cy;
+
+	/* create bitmap now using the parameters from the info block */
+	pixmap->hbm = GpiCreateBitmap(pixmap->hps, pBitmapInfoHeader, 0L, NULL, NULL);
+
+	/* select the new bitmap into presentation space */
+	GpiSetBitmap(pixmap->hps, pixmap->hbm);
+
+	/* now copy the bitmap data into the bitmap */
+	GpiSetBitmapBits(pixmap->hps, 0L, ScanLines,
+					 BitmapFileBegin + pBitmapFileHeader->offBits,
+					 (PBITMAPINFO2)pBitmapInfoHeader);
+
+	/* free memory of bitmap file buffer */
+	DosFreeMem(BitmapFileBegin);
+	/* close the bitmap file */
+	DosClose(BitmapFileHandle);
 
 	return pixmap;
 }
