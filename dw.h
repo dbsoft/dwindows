@@ -739,12 +739,12 @@ typedef struct _dw_unix_event {
 } *HEV;
 typedef pthread_t DWTID;
 typedef void * HMOD;
-typedef struct _dw_unix_shm {
+struct _dw_unix_shm {
 	int fd;
 	char *path;
 	int sid;
 	int size;
-} HSHM;
+};
 
 typedef struct _hpixmap {
 	unsigned long width, height;
@@ -754,6 +754,7 @@ typedef struct _hpixmap {
 
 typedef GtkWidget *HMENUI;
 typedef void *HTREEITEM;
+typedef void *HSHM;
 
 typedef struct _resource_struct {
 	long resource_max, *resource_id;
