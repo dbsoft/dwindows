@@ -2869,6 +2869,8 @@ void dw_window_set_text(HWND handle, char *text)
 		gtk_button_set_label(GTK_BUTTON(handle), text);
 #endif
 	}
+	else if(GTK_WIDGET_TOPLEVEL(handle))
+		gtk_window_set_title(GTK_WINDOW(handle), text);
 	else if(GTK_IS_FRAME(handle))
 	{
 		GtkWidget *tmp = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(handle), "_dw_label");
