@@ -4148,7 +4148,7 @@ HWND dw_listbox_new(ULONG id, int multi)
 							"",
 							LBS_NOINTEGRALHEIGHT | WS_CHILD | LBS_HASSTRINGS |
 							LBS_NOTIFY | WS_BORDER  | WS_CLIPCHILDREN |
-							WS_VSCROLL | (multi ? LBS_EXTENDEDSEL : 0) ,
+							WS_VSCROLL | (multi ? LBS_MULTIPLESEL : 0) ,
 							0,0,2000,1000,
 							DW_HWND_OBJECT,
 							NULL,
