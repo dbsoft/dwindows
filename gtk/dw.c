@@ -6835,14 +6835,16 @@ gint _gtk_file_ok(GtkWidget *widget, DWDialog *dwwait)
 #else
 	char *tmp;
 #endif
+	char *tmpdup=NULL;
 
 	if(!dwwait)
 		return FALSE;
 
-	tmp = gtk_file_selection_get_filename(GTK_FILE_SELECTION(dwwait->data));
+	if((tmp = gtk_file_selection_get_filename(GTK_FILE_SELECTION(dwwait->data))))
+		tmpdup = strdup(tmp);
 	gtk_widget_destroy(GTK_WIDGET(dwwait->data));
 	_dw_file_active = 0;
-	dw_dialog_dismiss(dwwait, (void *)(tmp ? strdup(tmp) : NULL));
+	dw_dialog_dismiss(dwwait, (void *)tmpdup);
 	return FALSE;
 }
 
