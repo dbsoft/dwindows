@@ -4733,11 +4733,6 @@ void API dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize
 {
 	Box *thisbox;
 
-if ( width == 0 && hsize == FALSE )
-		dw_messagebox("dw_box_pack_start()", DW_MB_OK|DW_MB_ERROR, "Width and expand Horizonal both unset for box: %x item: %x",box,item);
-if ( height == 0 && vsize == FALSE )
-		dw_messagebox("dw_box_pack_start()", DW_MB_OK|DW_MB_ERROR, "Height and expand Vertical both unset for box: %x item: %x",box,item);
-
 	thisbox = (Box *)GetWindowLong(box, GWL_USERDATA);
 	if(thisbox)
 	{
@@ -4762,7 +4757,14 @@ if ( height == 0 && vsize == FALSE )
 		if(strnicmp(tmpbuf, FRAMECLASSNAME, 2)==0)
 			tmpitem[thisbox->count].type = TYPEBOX;
 		else
+		{
+			if ( width == 0 && hsize == FALSE )
+				dw_messagebox("dw_box_pack_start()", DW_MB_OK|DW_MB_ERROR, "Width and expand Horizonal both unset for box: %x item: %x",box,item);
+			if ( height == 0 && vsize == FALSE )
+				dw_messagebox("dw_box_pack_start()", DW_MB_OK|DW_MB_ERROR, "Height and expand Vertical both unset for box: %x item: %x",box,item);
+
 			tmpitem[thisbox->count].type = TYPEITEM;
+		}
 
 		tmpitem[thisbox->count].hwnd = item;
 		tmpitem[thisbox->count].origwidth = tmpitem[thisbox->count].width = width;
@@ -7530,11 +7532,6 @@ void API dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, 
 {
 	Box *thisbox;
 
-if ( width == 0 && hsize == FALSE )
-		dw_messagebox("dw_box_pack_end()", DW_MB_OK|DW_MB_ERROR, "Width and expand Horizonal both unset for box: %x item: %x",box,item);
-if ( height == 0 && vsize == FALSE )
-		dw_messagebox("dw_box_pack_end()", DW_MB_OK|DW_MB_ERROR, "Height and expand Vertical both unset for box: %x item: %x",box,item);
-
 	thisbox = (Box *)GetWindowLong(box, GWL_USERDATA);
 	if(thisbox)
 	{
@@ -7559,7 +7556,14 @@ if ( height == 0 && vsize == FALSE )
 		if(strnicmp(tmpbuf, FRAMECLASSNAME, 2)==0)
 			tmpitem[0].type = TYPEBOX;
 		else
+		{
+			if ( width == 0 && hsize == FALSE )
+				dw_messagebox("dw_box_pack_end()", DW_MB_OK|DW_MB_ERROR, "Width and expand Horizonal both unset for box: %x item: %x",box,item);
+			if ( height == 0 && vsize == FALSE )
+				dw_messagebox("dw_box_pack_end()", DW_MB_OK|DW_MB_ERROR, "Height and expand Vertical both unset for box: %x item: %x",box,item);
+
 			tmpitem[0].type = TYPEITEM;
+		}
 
 		tmpitem[0].hwnd = item;
 		tmpitem[0].origwidth = tmpitem[0].width = width;
