@@ -16,7 +16,7 @@ LDFLAGS = -Zdll -Zcrtdll
 RCFLAGS = -r
 
 
-COMPATOBJECTS = compat.obj dirent.obj
+COMPATOBJECTS = compat.o dirent.o
 COMPATSOURCES = compat.c dirent.c
 
 all: dw.dll dwcompat.dll dwtest.exe
@@ -37,21 +37,21 @@ dwcompat.lib: dwcompat.def
 	copy dwcompat.dll dll
 	copy dwcompat.lib lib
 
-dwtest.exe: dwtest.obj dw.lib dwcompat.lib
-	$(CC) $(CFLAGS) -Zcrtdll -Zomf -Zmt -o dwtest.exe dwtest.obj -Llib -ldw -ldwcompat dwtest.def
+dwtest.exe: dwtest.o dw.lib dwcompat.lib
+	$(CC) $(CFLAGS) -Zcrtdll -Zomf -Zmt -o dwtest.exe dwtest.o -Llib -ldw -ldwcompat dwtest.def
 
 clean: 
 	$(RM) $(OBJECTS) dwtest.exe
 
-dw.obj: dw.c
+dw.o: dw.c
 	$(CC) $(CFLAGS) -c $<	
 
-compat.obj: compat.c
+compat.o: compat.c
 	$(CC) $(CFLAGS) -c $<	
 
-dirent.obj: os2/dirent.c
+dirent.o: os2/dirent.c
 	$(CC) $(CFLAGS) -c $<	
 
-dwtest.obj: dwtest.c
+dwtest.o: dwtest.c
 	$(CC) $(CFLAGS) -c $<	
 
