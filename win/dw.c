@@ -4540,6 +4540,8 @@ HWND API dw_bitmapbutton_new_from_file(char *text, unsigned long id, char *filen
 	HWND tmp;
 	BubbleButton *bubble;
 	HBITMAP hbitmap = 0;
+	HANDLE icon = 0;
+	int windowtype = 0, len;
 	char *file = malloc(strlen(filename) + 5);
 
 	if(!file || !(bubble = calloc(1, sizeof(BubbleButton))))
@@ -4549,10 +4551,53 @@ HWND API dw_bitmapbutton_new_from_file(char *text, unsigned long id, char *filen
 		return 0;
 	}
 
+	strcpy(file, filename);
+
+	/* check if we can read from this file (it exists and read permission) */
+	if(access(file, 04) == 0)
+	{
+		len = strlen( file );
+		if ( len < 4 )
+		{
+			free(file);
+			return 0;
+		}
+		if ( stricmp( file + len - 4, ".ico" ) == 0 )
+		{
+			icon = LoadImage(NULL, file, IMAGE_ICON, 0, 0, LR_LOADFROMFILE);
+			windowtype = BS_ICON;
+		}
+		else if ( stricmp( file + len - 4, ".bmp" ) == 0 )
+		{
+			hbitmap = (HBITMAP)LoadImage(NULL, file, IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
+			windowtype = BS_BITMAP;
+		}
+	}
+	else
+	{
+		/* Try with .ico extension first...*/
+		strcat(file, ".ico");
+		if(access(file, 04) == 0)
+		{
+			icon = LoadImage(NULL, file, IMAGE_ICON, 0, 0, LR_LOADFROMFILE);
+			windowtype = BS_ICON;
+		}
+		else
+		{
+			strcpy(file, filename);
+			strcat(file, ".bmp");
+			if(access(file, 04) == 0)
+			{
+				hbitmap = (HBITMAP)LoadImage(NULL, file, IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
+				windowtype = BS_BITMAP;
+			}
+		}
+	}
+
 	tmp = CreateWindow(BUTTONCLASSNAME,
 					   "",
 					   WS_CHILD | BS_PUSHBUTTON |
-					   BS_BITMAP | WS_CLIPCHILDREN |
+					   windowtype | WS_CLIPCHILDREN |
 					   WS_VISIBLE,
 					   0,0,2000,1000,
 					   DW_HWND_OBJECT,
@@ -4567,24 +4612,18 @@ HWND API dw_bitmapbutton_new_from_file(char *text, unsigned long id, char *filen
 
 	SetWindowLongPtr(tmp, GWLP_USERDATA, (LONG_PTR)bubble);
 
-	strcpy(file, filename);
-
-	/* check if we can read from this file (it exists and read permission) */
-	if(access(file, 04) == 0)
-		hbitmap = (HBITMAP)LoadImage(NULL, file, IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
-	else
+	if(icon)
 	{
-		/* Try with .bmp extention */
-		strcat(file, ".bmp");
-		if(access(file, 04) == 0)
-			hbitmap = (HBITMAP)LoadImage(NULL, file, IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
+		SendMessage(tmp, BM_SETIMAGE,
+					(WPARAM) IMAGE_ICON,
+					(LPARAM) icon);
 	}
-
-
-	if(hbitmap)
+	else if(hbitmap)
+	{
 		SendMessage(tmp, BM_SETIMAGE,
 					(WPARAM) IMAGE_BITMAP,
 					(LPARAM) hbitmap);
+	}
 	free(file);
 	return tmp;
 }
