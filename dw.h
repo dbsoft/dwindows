@@ -351,6 +351,7 @@ typedef struct _box {
 typedef struct _bubblebutton {
 #if defined(__WIN32__) || defined(WINNT)
 	ColorInfo cinfo;
+	int checkbox;
 #endif
 	unsigned long id;
 	char bubbletext[BUBBLE_HELP_MAX];
