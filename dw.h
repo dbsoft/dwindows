@@ -445,7 +445,9 @@ void dw_box_pack_end_stub(HWND box, HWND item, int width, int height, int hsize,
 
 typedef GtkWidget *HWND;
 typedef void *HAB;
+#ifndef _ENVRNMNT_H
 typedef unsigned long ULONG;
+#endif
 typedef unsigned char UCHAR;
 typedef long LONG;
 typedef unsigned short USHORT;
@@ -576,6 +578,7 @@ int dw_int_init(DWResources *res, int newthread, int argc, char *argv[]);
 int dw_init(int newthread, int argc, char *argv[]);
 #endif
 void dw_main(HAB currenthab, void *filterfunc);
+void dw_main_sleep(int seconds);
 void dw_free(void *ptr);
 int dw_window_show(HWND handle);
 int dw_window_hide(HWND handle);

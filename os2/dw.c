@@ -1216,7 +1216,7 @@ MRESULT EXPENTRY _entryproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 			WinQueryClassName(hWnd, 99, tmpbuf);
 
 			if(strncmp(tmpbuf, "#32", 3)==0)
-				_run_event(hWnd, WM_SETFOCUS, FALSE, TRUE);
+				_run_event(hWnd, WM_SETFOCUS, (MPARAM)FALSE, (MPARAM)TRUE);
 		}
 		break;
 	case WM_SETFOCUS:
