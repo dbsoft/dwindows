@@ -1,9 +1,10 @@
 Copyright Information About Dynamic Windows.
 
-2000-2003 Brian Smith <dbsoft@technologist.com>
+2000-2004 Brian Smith <dbsoft@technologist.com>
+2003-2004 Mark Hessling <m.hessling@qut.edu.au>
+2002 Shmyrev <shmyrev@yandex.ru>
 2000 Achim Hasenmueller <achimha@innotek.de>
 2000 Peter Nielsen <peter@pmview.com>
-2003 Mark Hessling <m.hessling@qut.edu.au>
 1998 Sergey I. Yevtushenko
 
 This license allows you to use this source code in any way you wish, given the

@@ -3,8 +3,8 @@
  *          A GTK like implementation of the PM GUI
  *          GTK forwarder module for portabilty.
  *
- * (C) 2000-2003 Brian Smith <dbsoft@technologist.com>
- * (C) 2003 Mark Hessling <m.hessling@qut.edu.au>
+ * (C) 2000-2004 Brian Smith <dbsoft@technologist.com>
+ * (C) 2003-2004 Mark Hessling <m.hessling@qut.edu.au>
  * (C) 2002 Shmyrev <shmyrev@yandex.ru>
  */
 #include "dw.h"

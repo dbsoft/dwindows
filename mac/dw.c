@@ -2,7 +2,7 @@
  * Dynamic Windows:
  *          A GTK like implementation of the MacOS GUI
  *
- * (C) 2003 Brian Smith <dbsoft@technologist.com>
+ * (C) 2003-2004 Brian Smith <dbsoft@technologist.com>
  *
  */
 #include "dw.h"
