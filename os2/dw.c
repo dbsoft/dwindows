@@ -28,6 +28,7 @@
 
 MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2);
 void _do_resize(Box *thisbox, int x, int y);
+void _handle_splitbar_resize(HWND hwnd, float percent, int type, int x, int y);
 
 char ClassName[] = "dynamicwindows";
 char SplitbarClassName[] = "dwsplitbar";
@@ -218,20 +219,6 @@ void _fix_button_owner(HWND handle, HWND dw)
 	}
 	WinEndEnumWindows(henum);
 	return;
-}
-
-void _disconnect_windows(HWND handle)
-{
-	HENUM henum;
-	HWND child;
-
-	dw_signal_disconnect_by_window(handle);
-
-	henum = WinBeginEnumWindows(handle);
-	while((child = WinGetNextWindow(henum)) != NULLHANDLE)
-		_disconnect_windows(child);
-
-	WinEndEnumWindows(henum);
 }
 
 /* This function removes and handlers on windows and frees
@@ -1186,6 +1173,20 @@ int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *usedy,
 									width + vectorx, height + vectory, SWP_MOVE | SWP_SIZE | SWP_ZORDER);
 					_check_resize_notebook(handle);
 				}
+				else if(strncmp(tmpbuf, SplitbarClassName, strlen(SplitbarClassName)+1)==0)
+				{
+					/* Then try the bottom or right box */
+					float *percent = (float *)dw_window_get_data(handle, "_dw_percent");
+					int type = (int)dw_window_get_data(handle, "_dw_type");
+					int cx = width + vectorx;
+					int cy = height + vectory;
+
+					WinSetWindowPos(handle, HWND_TOP, currentx + pad, currenty + pad,
+									cx, cy, SWP_MOVE | SWP_SIZE | SWP_ZORDER);
+
+					if(cx > 0 && cy > 0 && percent)
+						_handle_splitbar_resize(handle, *percent, type, cx, cy);
+				}
 				else
 				{
 					WinSetWindowPos(handle, HWND_TOP, currentx + pad, currenty + pad,
@@ -1439,23 +1440,22 @@ MRESULT EXPENTRY _entryproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 		{
 		case WM_CONTEXTMENU:
 			{
-				HWND menuitem;
 				HMENUI hwndMenu = dw_menu_new(0L);
 				long x, y;
 
 				if(strncmp(tmpbuf, "#10", 4)==0 && !WinSendMsg(hWnd, MLM_QUERYREADONLY, 0, 0))
 				{
-					menuitem = dw_menu_append_item(hwndMenu, "Undo", ENTRY_UNDO, 0L, TRUE, FALSE, 0L);
+					dw_menu_append_item(hwndMenu, "Undo", ENTRY_UNDO, 0L, TRUE, FALSE, 0L);
 					dw_menu_append_item(hwndMenu, "", 0L, 0L, TRUE, FALSE, 0L);
 				}
-				menuitem = dw_menu_append_item(hwndMenu, "Copy", ENTRY_COPY, 0L, TRUE, FALSE, 0L);
+				dw_menu_append_item(hwndMenu, "Copy", ENTRY_COPY, 0L, TRUE, FALSE, 0L);
 				if((strncmp(tmpbuf, "#10", 4)!=0  && !dw_window_get_data(hWnd, "_dw_disabled")) || (strncmp(tmpbuf, "#10", 4)==0 && !WinSendMsg(hWnd, MLM_QUERYREADONLY, 0, 0)))
 				{
-					menuitem = dw_menu_append_item(hwndMenu, "Cut", ENTRY_CUT, 0L, TRUE, FALSE, 0L);
-					menuitem = dw_menu_append_item(hwndMenu, "Paste", ENTRY_PASTE, 0L, TRUE, FALSE, 0L);
+					dw_menu_append_item(hwndMenu, "Cut", ENTRY_CUT, 0L, TRUE, FALSE, 0L);
+					dw_menu_append_item(hwndMenu, "Paste", ENTRY_PASTE, 0L, TRUE, FALSE, 0L);
 				}
 				dw_menu_append_item(hwndMenu, "", 0L, 0L, TRUE, FALSE, 0L);
-				menuitem = dw_menu_append_item(hwndMenu, "Select All", ENTRY_SALL, 0L, TRUE, FALSE, 0L);
+				dw_menu_append_item(hwndMenu, "Select All", ENTRY_SALL, 0L, TRUE, FALSE, 0L);
 
 				WinSetFocus(HWND_DESKTOP, hWnd);
 				dw_pointer_query_pos(&x, &y);
@@ -1537,7 +1537,7 @@ MRESULT EXPENTRY _entryproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 		_run_event(hWnd, msg, mp1, mp2);
 		break;
 	case WM_CHAR:
-		if(_run_event(hWnd, msg, mp1, mp2) == TRUE)
+		if(_run_event(hWnd, msg, mp1, mp2) == (MRESULT)TRUE)
 			return (MRESULT)TRUE;
 		if(SHORT1FROMMP(mp2) == '\t')
 		{
@@ -1591,7 +1591,7 @@ MRESULT EXPENTRY _comboentryproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 		_run_event(hWnd, msg, mp1, mp2);
 		break;
 	case WM_CHAR:
-		if(_run_event(hWnd, msg, mp1, mp2) == TRUE)
+		if(_run_event(hWnd, msg, mp1, mp2) == (MRESULT)TRUE)
 			return (MRESULT)TRUE;
 		/* A Similar problem to the MLE, if ESC just return */
 		if(SHORT1FROMMP(mp2) == 283)
@@ -1726,7 +1726,7 @@ MRESULT EXPENTRY _comboproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 	case WM_BUTTON1DOWN:
 	case WM_BUTTON2DOWN:
 	case WM_BUTTON3DOWN:
-		if(_run_event(hWnd, msg, mp1, mp2) == TRUE)
+		if(_run_event(hWnd, msg, mp1, mp2) == (MRESULT)TRUE)
 			return (MRESULT)TRUE;
 		_run_event(hWnd, WM_SETFOCUS, (MPARAM)FALSE, (MPARAM)TRUE);
 		break;
@@ -2410,43 +2410,55 @@ void _handle_splitbar_resize(HWND hwnd, float percent, int type, int x, int y)
 	{
 		int newx = x - SPLITBAR_WIDTH;
 		float ratio = (float)percent/(float)100.0;
-		HWND handle = (HWND)dw_window_get_data(hwnd, "_dw_topleft");
-		Box *tmp = WinQueryWindowPtr(handle, QWP_USER);
+		HWND handle1 = (HWND)dw_window_get_data(hwnd, "_dw_topleft");
+		HWND handle2 = (HWND)dw_window_get_data(hwnd, "_dw_bottomright");
+		Box *tmp = WinQueryWindowPtr(handle1, QWP_USER);
+
+		WinShowWindow(handle1, FALSE);
+		WinShowWindow(handle2, FALSE);
 
 		newx = (int)((float)newx * ratio);
 
-		WinSetWindowPos(handle, NULLHANDLE, 0, 0, newx, y, SWP_MOVE | SWP_SIZE | SWP_SHOW);
+		WinSetWindowPos(handle1, NULLHANDLE, 0, 0, newx, y, SWP_MOVE | SWP_SIZE);
 		_do_resize(tmp, newx, y);
 
 		dw_window_set_data(hwnd, "_dw_start", (void *)newx);
 
-		handle = (HWND)dw_window_get_data(hwnd, "_dw_bottomright");
-		tmp = WinQueryWindowPtr(handle, QWP_USER);
+		tmp = WinQueryWindowPtr(handle2, QWP_USER);
 
 		newx = x - newx - SPLITBAR_WIDTH;
 
-		WinSetWindowPos(handle, NULLHANDLE, x - newx, 0, newx, y, SWP_MOVE | SWP_SIZE | SWP_SHOW);
+		WinSetWindowPos(handle2, NULLHANDLE, x - newx, 0, newx, y, SWP_MOVE | SWP_SIZE);
 		_do_resize(tmp, newx, y);
+
+		WinShowWindow(handle1, TRUE);
+		WinShowWindow(handle2, TRUE);
 	}
 	else
 	{
 		int newy = y - SPLITBAR_WIDTH;
 		float ratio = (float)percent/(float)100.0;
-		HWND handle = (HWND)dw_window_get_data(hwnd, "_dw_topleft");
-		Box *tmp = WinQueryWindowPtr(handle, QWP_USER);
+		HWND handle1 = (HWND)dw_window_get_data(hwnd, "_dw_topleft");
+		HWND handle2 = (HWND)dw_window_get_data(hwnd, "_dw_bottomright");
+		Box *tmp = WinQueryWindowPtr(handle1, QWP_USER);
+
+		WinShowWindow(handle1, FALSE);
+		WinShowWindow(handle2, FALSE);
 
 		newy = (int)((float)newy * ratio);
 
-		WinSetWindowPos(handle, NULLHANDLE, 0, y - newy, x, newy, SWP_MOVE | SWP_SIZE | SWP_SHOW);
+		WinSetWindowPos(handle1, NULLHANDLE, 0, y - newy, x, newy, SWP_MOVE | SWP_SIZE);
 		_do_resize(tmp, x, newy);
 
-		handle = (HWND)dw_window_get_data(hwnd, "_dw_bottomright");
-		tmp = WinQueryWindowPtr(handle, QWP_USER);
+		tmp = WinQueryWindowPtr(handle2, QWP_USER);
 
 		newy = y - newy - SPLITBAR_WIDTH;
 
-		WinSetWindowPos(handle, NULLHANDLE, 0, 0, x, newy, SWP_MOVE | SWP_SIZE | SWP_SHOW);
+		WinSetWindowPos(handle2, NULLHANDLE, 0, 0, x, newy, SWP_MOVE | SWP_SIZE);
 		_do_resize(tmp, x, newy);
+
+		WinShowWindow(handle1, TRUE);
+		WinShowWindow(handle2, TRUE);
 
 		dw_window_set_data(hwnd, "_dw_start", (void *)newy);
 	}
@@ -2466,26 +2478,31 @@ MRESULT EXPENTRY _splitwndproc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 	case WM_SETFOCUS:
 		return (MRESULT)(FALSE);
 
-	case WM_SIZE:
-		{
-			int x = SHORT1FROMMP(mp2), y = SHORT2FROMMP(mp2);
-
-			if(x > 0 && y > 0 && percent)
-				_handle_splitbar_resize(hwnd, *percent, type, x, y);
-		}
-		break;
 	case WM_PAINT:
 		{
 			HPS hps;
-			RECTL rcl;
 			POINTL ptl[2];
+			RECTL rcl;
 
 			hps = WinBeginPaint(hwnd, 0, 0);
+
 			WinQueryWindowRect(hwnd, &rcl);
-			ptl[0].x = rcl.xLeft;
-			ptl[0].y = rcl.yBottom;
-			ptl[1].x = rcl.xRight;
-			ptl[1].y = rcl.yTop;
+
+			if(type == BOXHORZ)
+			{
+				ptl[0].x = rcl.xLeft + start;
+				ptl[0].y = rcl.yBottom;
+				ptl[1].x = rcl.xRight + start + 3;
+				ptl[1].y = rcl.yTop;
+			}
+			else
+			{
+				ptl[0].x = rcl.xLeft;
+				ptl[0].y = rcl.yBottom + start;
+				ptl[1].x = rcl.xRight;
+				ptl[1].y = rcl.yTop + start + 3;
+			}
+
 
 			GpiSetColor(hps, CLR_PALEGRAY);
 			GpiMove(hps, &ptl[0]);
@@ -3234,8 +3251,8 @@ int dw_window_destroy(HWND handle)
 		thisbox->items = tmpitem;
 		free(thisitem);
 		thisbox->count--;
+		_free_window_memory(handle);
 	}
-	_disconnect_windows(handle);
 	return WinDestroyWindow(handle);
 }
 
@@ -3245,7 +3262,8 @@ int dw_window_destroy(HWND handle)
  */
 void dw_window_redraw(HWND handle)
 {
-	HWND window = WinWindowFromID(handle, FID_CLIENT);
+	HWND client = WinWindowFromID(handle, FID_CLIENT);
+	HWND window = client ? client : handle;
 	Box *mybox = (Box *)WinQueryWindowPtr(window, QWP_USER);
 
 	if(window && mybox)
@@ -3254,9 +3272,9 @@ void dw_window_redraw(HWND handle)
 
 		dw_window_get_pos_size(window, NULL, NULL, &width, &height);
 
-		WinShowWindow(mybox->items[0].hwnd, FALSE);
+		WinShowWindow(client ? mybox->items[0].hwnd : handle, FALSE);
 		_do_resize(mybox, width, height);
-		WinShowWindow(mybox->items[0].hwnd, TRUE);
+		WinShowWindow(client ? mybox->items[0].hwnd : handle, TRUE);
 	}
 }
 
@@ -5632,32 +5650,17 @@ void *dw_container_alloc(HWND handle, int rowcount)
 	return (void *)ci;
 }
 
-/*
- * Sets an item in specified row and column to the given data.
- * Parameters:
- *          handle: Handle to the container window (widget).
- *          pointer: Pointer to the allocated memory in dw_container_alloc().
- *          column: Zero based column of data being set.
- *          row: Zero based row of data being set.
- *          data: Pointer to the data to be added.
- */
-void dw_container_set_item(HWND handle, void *pointer, int column, int row, void *data)
+/* Internal function that does the work for set_item and change_item */
+void _dw_container_set_item(HWND handle, PRECORDCORE temp, int column, int row, void *data)
 {
 	WindowData *blah = (WindowData *)WinQueryWindowPtr(handle, QWP_USER);
 	ULONG totalsize, size = 0, *flags = blah ? blah->data : 0;
 	int z, currentcount;
-	ContainerInfo *ci = (ContainerInfo *)pointer;
-	PRECORDCORE temp;
 	CNRINFO cnr;
     void *dest;
 
-	if(!ci)
-		return;
-
 	if(!flags)
 		return;
-
-	temp = (PRECORDCORE)ci->data;
 
 	z = 0;
 
@@ -5702,6 +5705,51 @@ void dw_container_set_item(HWND handle, void *pointer, int column, int row, void
         memcpy(dest, data, sizeof(CDATE));
 	else if(flags[column] & DW_CFA_TIME)
         memcpy(dest, data, sizeof(CTIME));
+}
+
+/*
+ * Sets an item in specified row and column to the given data.
+ * Parameters:
+ *          handle: Handle to the container window (widget).
+ *          pointer: Pointer to the allocated memory in dw_container_alloc().
+ *          column: Zero based column of data being set.
+ *          row: Zero based row of data being set.
+ *          data: Pointer to the data to be added.
+ */
+void dw_container_set_item(HWND handle, void *pointer, int column, int row, void *data)
+{
+	ContainerInfo *ci = (ContainerInfo *)pointer;
+
+	if(!ci)
+		return;
+
+	_dw_container_set_item(handle, (PRECORDCORE)ci->data, column, row, data);
+}
+
+/*
+ * Changes an existing item in specified row and column to the given data.
+ * Parameters:
+ *          handle: Handle to the container window (widget).
+ *          column: Zero based column of data being set.
+ *          row: Zero based row of data being set.
+ *          data: Pointer to the data to be added.
+ */
+void dw_container_change_item(HWND handle, int column, int row, void *data)
+{
+	PRECORDCORE pCore = WinSendMsg(handle, CM_QUERYRECORD, (MPARAM)0L, MPFROM2SHORT(CMA_FIRST, CMA_ITEMORDER));
+	int count = 0;
+
+	while(pCore)
+	{
+		if(count == row)
+		{
+			_dw_container_set_item(handle, pCore, column, row, data);
+			WinSendMsg(handle, CM_INVALIDATERECORD, (MPARAM)&pCore, MPFROM2SHORT(1, CMA_NOREPOSITION | CMA_TEXTCHANGED));
+			return;
+		}
+		pCore = WinSendMsg(handle, CM_QUERYRECORD, (MPARAM)pCore, MPFROM2SHORT(CMA_NEXT, CMA_ITEMORDER));
+		count++;
+	}
 }
 
 /*
@@ -5997,6 +6045,27 @@ void dw_container_cursor(HWND handle, char *text)
 			return;
 		}
 
+		pCore = WinSendMsg(handle, CM_QUERYRECORD, (MPARAM)pCore, MPFROM2SHORT(CMA_NEXT, CMA_ITEMORDER));
+	}
+}
+
+/*
+ * Deletes the item with the text speficied.
+ * Parameters:
+ *       handle: Handle to the window (widget).
+ *       text:  Text usually returned by dw_container_query().
+ */
+void dw_container_delete_row(HWND handle, char *text)
+{
+	PRECORDCORE pCore = WinSendMsg(handle, CM_QUERYRECORD, (MPARAM)0L, MPFROM2SHORT(CMA_FIRST, CMA_ITEMORDER));
+
+	while(pCore)
+	{
+		if((char *)pCore->pszIcon == text)
+		{
+			WinSendMsg(handle, CM_REMOVERECORD, (MPARAM)&pCore, MPFROM2SHORT(1, CMA_FREE | CMA_INVALIDATE));
+			return;
+		}
 		pCore = WinSendMsg(handle, CM_QUERYRECORD, (MPARAM)pCore, MPFROM2SHORT(CMA_NEXT, CMA_ITEMORDER));
 	}
 }

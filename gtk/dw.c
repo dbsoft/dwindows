@@ -4145,6 +4145,19 @@ void dw_container_set_item(HWND handle, void *pointer, int column, int row, void
 }
 
 /*
+ * Changes an existing item in specified row and column to the given data.
+ * Parameters:
+ *          handle: Handle to the container window (widget).
+ *          column: Zero based column of data being set.
+ *          row: Zero based row of data being set.
+ *          data: Pointer to the data to be added.
+ */
+void dw_container_change_item(HWND handle, int column, int row, void *data)
+{
+	dw_container_set_item(handle, NULL, column, row, data);
+}
+
+/*
  * Sets an item in specified row and column to the given data.
  * Parameters:
  *          handle: Handle to the container window (widget).
@@ -4486,6 +4499,49 @@ void dw_container_cursor(HWND handle, char *text)
 
 			pos = ((adj->upper - adj->lower) * ((gfloat)z/(gfloat)rowcount)) + adj->lower;
 			gtk_adjustment_set_value(adj, pos);
+			DW_MUTEX_UNLOCK;
+			return;
+		}
+	}
+
+	DW_MUTEX_UNLOCK;
+}
+
+/*
+ * Deletes the item with the text speficied.
+ * Parameters:
+ *       handle: Handle to the window (widget).
+ *       text:  Text usually returned by dw_container_query().
+ */
+void dw_container_delete_row(HWND handle, char *text)
+{
+	int _locked_by_me = FALSE;
+	GtkWidget *clist;
+	int rowcount, z;
+	char *rowdata;
+
+	DW_MUTEX_LOCK;
+	clist = (GtkWidget*)gtk_object_get_user_data(GTK_OBJECT(handle));
+
+	if(!clist)
+	{
+		DW_MUTEX_UNLOCK;
+		return;
+	}
+	rowcount = (int)gtk_object_get_data(GTK_OBJECT(clist), "rowcount");
+
+	for(z=0;z<rowcount;z++)
+	{
+		rowdata = gtk_clist_get_row_data(GTK_CLIST(clist), z);
+		if(rowdata == text)
+		{
+			_dw_unselect(clist);
+
+			gtk_clist_remove(GTK_CLIST(clist), z);
+
+			rowcount--;
+
+			gtk_object_set_data(GTK_OBJECT(clist), "rowcount", (gpointer)rowcount);
 			DW_MUTEX_UNLOCK;
 			return;
 		}
