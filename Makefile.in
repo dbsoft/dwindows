@@ -15,6 +15,7 @@ OBJECTS2=	compat.o
 TARGET2 =	dwcompat
 VER_MAJ	=	1
 VER_MIN	=	0
+SOSUFFIX=	@SOSUFFIX@
 PREFIX	=	@prefix@
 SRCDIR=dwindows-$(VER_MAJ).$(VER_MIN)
 
@@ -33,25 +34,25 @@ SYSCONF_LFLAGS_SHOBJ	= @SHAREDFLAG@
 #   - Usually needs to incorporate $(VER_MAJ) and $(VER_MIN)
 #
 SYSCONF_LINK_SHLIB	= gcc
-SYSCONF_LINK_TARGET_SHARED	= lib$(TARGET).so.$(VER_MAJ).$(VER_MIN)
+SYSCONF_LINK_TARGET_SHARED	= lib$(TARGET).$(SOSUFFIX).$(VER_MAJ).$(VER_MIN)
 SYSCONF_LINK_LIB_SHARED	=  $(SYSCONF_LINK_SHLIB) $(SYSCONF_LFLAGS_SHOBJ) \
 				     -o $(SYSCONF_LINK_TARGET_SHARED) \
 				     $(OBJECTS) $(LFLAGS); \
 				 mv $(SYSCONF_LINK_TARGET_SHARED) $(DESTDIR); \
 				 cd $(DESTDIR); \
-				 rm -f lib$(TARGET).so lib$(TARGET).so.$(VER_MAJ); \
-				 ln -s $(SYSCONF_LINK_TARGET_SHARED) lib$(TARGET).so; \
-				 ln -s $(SYSCONF_LINK_TARGET_SHARED) lib$(TARGET).so.$(VER_MAJ)
+				 rm -f lib$(TARGET).$(SOSUFFIX) lib$(TARGET).$(SOSUFFIX).$(VER_MAJ); \
+				 ln -s $(SYSCONF_LINK_TARGET_SHARED) lib$(TARGET).$(SOSUFFIX); \
+				 ln -s $(SYSCONF_LINK_TARGET_SHARED) lib$(TARGET).$(SOSUFFIX).$(VER_MAJ)
                                  
-SYSCONF_LINK_TARGET_SHARED2	= lib$(TARGET2).so.$(VER_MAJ).$(VER_MIN)
+SYSCONF_LINK_TARGET_SHARED2	= lib$(TARGET2).$(SOSUFFIX).$(VER_MAJ).$(VER_MIN)
 SYSCONF_LINK_LIB_SHARED2 =  $(SYSCONF_LINK_SHLIB) $(SYSCONF_LFLAGS_SHOBJ) \
 				     -o $(SYSCONF_LINK_TARGET_SHARED2) \
 				     $(OBJECTS2) $(LFLAGS); \
 				 mv $(SYSCONF_LINK_TARGET_SHARED2) $(DESTDIR); \
 				 cd $(DESTDIR); \
-				 rm -f lib$(TARGET2).so lib$(TARGET2).so.$(VER_MAJ); \
-				 ln -s $(SYSCONF_LINK_TARGET_SHARED2) lib$(TARGET2).so; \
-				 ln -s $(SYSCONF_LINK_TARGET_SHARED2) lib$(TARGET2).so.$(VER_MAJ)
+				 rm -f lib$(TARGET2).$(SOSUFFIX) lib$(TARGET2).$(SOSUFFIX).$(VER_MAJ); \
+				 ln -s $(SYSCONF_LINK_TARGET_SHARED2) lib$(TARGET2).$(SOSUFFIX); \
+				 ln -s $(SYSCONF_LINK_TARGET_SHARED2) lib$(TARGET2).$(SOSUFFIX).$(VER_MAJ)
 
 
 # Linking static libraries
