@@ -227,7 +227,7 @@ void read_file( void )
 void draw_file( int row, int col )
 {
 	char buf[10];
-	int i,y;
+	int i,y,fileline;
 	char *pLine;
 
 	if ( current_file )
@@ -235,10 +235,13 @@ void draw_file( int row, int col )
 		dw_color_foreground_set(DW_CLR_WHITE);
 		dw_draw_rect(0, text1pm, TRUE, 0, 0, DW_PIXMAP_WIDTH(text1pm), DW_PIXMAP_HEIGHT(text1pm));
 		dw_draw_rect(0, text2pm, TRUE, 0, 0, DW_PIXMAP_WIDTH(text2pm), DW_PIXMAP_HEIGHT(text2pm));
+
 		for ( i = 0;(i < rows) && (i+row < num_lines); i++)
 		{
+			fileline = i + row - 1;
 			y = i*(font_height+font_gap);
-			dw_color_foreground_set( i );
+			dw_color_background_set( 1 + (fileline % 15) );
+			dw_color_foreground_set( fileline % 16 );
 			sprintf( buf, "%6.6d", i+row );
 			dw_draw_text( 0, text1pm, 0, y, buf);
 			pLine = lp[i+row];
@@ -331,7 +334,7 @@ int DWSIGNAL configure_event(HWND hwnd, int width, int height, void *data)
 	cols = width / font_width;
 
 	/* Create new pixmaps with the current sizes */
-	text1pm = dw_pixmap_new(textbox1, (font_width*(width1+1)), height+1, depth);
+	text1pm = dw_pixmap_new(textbox1, (font_width*(width1)), height, depth);
 	text2pm = dw_pixmap_new(textbox2, width, height, depth);
 
 	/* Destroy the old pixmaps */
@@ -491,13 +494,16 @@ void text_add(void)
 	/* create render box for number pixmap */
 	textbox1 = dw_render_new( 100 );
 	dw_window_set_font(textbox1, FIXEDFONT);
-	dw_font_text_extents(textbox1, NULL, "O", &font_width, &font_height);
+	dw_font_text_extents(textbox1, NULL, "Og", &font_width, &font_height);
+	font_width = font_width / 2;
 	vscrollbox = dw_box_new(BOXVERT, 0);
 	dw_box_pack_start(vscrollbox, textbox1, font_width*width1, font_height*rows, FALSE, TRUE, 0);
 	dw_box_pack_start(vscrollbox, 0, (font_width*(width1+1)), SCROLLBARWIDTH, FALSE, FALSE, 0);
 	dw_box_pack_start(pagebox, vscrollbox, 0, 0, FALSE, TRUE, 0);
 
-	/* create render box for gap pixmap */
+	/* pack empty space 1 character wide */
+	dw_box_pack_start(pagebox, 0, font_width, 0, FALSE, TRUE, 0);
+
 	/* create box for filecontents and horz scrollbar */
 	textboxA = dw_box_new( BOXVERT,0 );
 	dw_box_pack_start( pagebox, textboxA, 0, 0, TRUE, TRUE, 0);
