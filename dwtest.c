@@ -61,6 +61,7 @@ HWND mainwindow,
      notebookbox3,
      notebookbox4,
      notebookbox5,
+     notebookbox6,
      notebook,
      vscrollbar,
      hscrollbar,
@@ -808,6 +809,36 @@ void create_button( int redraw)
 	}
 }
 
+void mdi_add(void)
+{
+	HWND mdibox, mdi, mdi1w, ef, mdi2w, mdi2box, bb;
+
+	/* create a box to pack into the notebook page */
+	mdibox = dw_box_new(DW_HORZ, 0);
+
+	dw_box_pack_start(notebookbox6, mdibox, 500, 200, TRUE, TRUE, 1);
+
+	/* now a mdi under this box */
+	mdi = dw_mdi_new(333);
+	dw_box_pack_start(mdibox, mdi, 500, 200, TRUE, TRUE, 2);
+
+	mdi1w = dw_window_new(mdi, "MDI1", flStyle | DW_FCF_SIZEBORDER | DW_FCF_MINMAX);
+	ef = dw_entryfield_new("", 0);
+	dw_box_pack_start(mdi1w, ef, 100, 15, FALSE, FALSE, 4);
+	dw_window_set_size(mdi1w, 200, 100);
+	dw_window_show(mdi1w);
+
+	mdi2w = dw_window_new(mdi, "MDI2", flStyle | DW_FCF_SIZEBORDER | DW_FCF_MINMAX);
+	mdi2box = dw_box_new(DW_HORZ, 0);
+	dw_box_pack_start(mdi2w, mdi2box, 0, 0, TRUE, TRUE, 0);
+	ef = dw_entryfield_new( "", 0);
+	dw_box_pack_start(mdi2box, ef, 150, 30, FALSE, FALSE, 4);
+	bb = dw_button_new("Browse", 0);
+	dw_box_pack_start(mdi2box, bb, 60, 30, FALSE, FALSE, 0);
+	dw_window_set_size(mdi2w, 200, 100);
+	dw_window_show(mdi2w);
+}
+
 /*
  * Let's demonstrate the functionality of this library. :)
  */
@@ -818,6 +849,7 @@ int main(int argc, char *argv[])
 	ULONG notebookpage3;
 	ULONG notebookpage4;
 	ULONG notebookpage5;
+	ULONG notebookpage6;
 
 	dw_init(TRUE, argc, argv);
 
@@ -859,6 +891,12 @@ int main(int argc, char *argv[])
 	dw_notebook_pack( notebook, notebookpage5, notebookbox5 );
 	dw_notebook_page_set_text( notebook, notebookpage5, "buttons");
 	buttons_add();
+
+	notebookbox6 = dw_box_new( BOXVERT, 5 );
+	notebookpage6 = dw_notebook_page_new( notebook, 1, FALSE );
+	dw_notebook_pack( notebook, notebookpage6, notebookbox6 );
+	dw_notebook_page_set_text( notebook, notebookpage6, "mdi");
+	mdi_add();
 
 	dw_signal_connect(mainwindow, DW_SIGNAL_DELETE, DW_SIGNAL_FUNC(exit_callback), (void *)mainwindow);
 	timerid = dw_timer_connect(1000, DW_SIGNAL_FUNC(timer_callback), 0);
