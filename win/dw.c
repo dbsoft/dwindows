@@ -1195,7 +1195,7 @@ BOOL CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 	int result = -1;
 	static int command_active = 0;
 	SignalHandler *tmp = Root;
-	void (* windowfunc)(PVOID);
+	void (*windowfunc)(PVOID);
 	ULONG origmsg = msg;
 
 	if(msg == WM_RBUTTONDOWN || msg == WM_MBUTTONDOWN)
@@ -2320,26 +2320,26 @@ void _handle_splitbar_resize(HWND hwnd, float percent, int type, int x, int y)
 {
 	if(type == BOXHORZ)
 	{
-		int newx = x - SPLITBAR_WIDTH, newy = y;
+		int newx = x;
 		float ratio = (float)percent/(float)100.0;
 		HWND handle1 = (HWND)dw_window_get_data(hwnd, "_dw_topleft");
 		HWND handle2 = (HWND)dw_window_get_data(hwnd, "_dw_bottomright");
 		Box *tmp = (Box *)GetWindowLong(handle1, GWL_USERDATA);
 
-		newx = (int)((float)newx * ratio);
+		newx = (int)((float)newx * ratio) - (SPLITBAR_WIDTH/2);
 
 		ShowWindow(handle1, SW_HIDE);
 		ShowWindow(handle2, SW_HIDE);
 
 		MoveWindow(handle1, 0, 0, newx, y, FALSE);
-		_do_resize(tmp, newx, y);
+		_do_resize(tmp, newx - 1, y - 1);
 
 		tmp = (Box *)GetWindowLong(handle2, GWL_USERDATA);
 
 		newx = x - newx - SPLITBAR_WIDTH;
 
 		MoveWindow(handle2, x - newx, 0, newx, y, FALSE);
-		_do_resize(tmp, newx, y);
+		_do_resize(tmp, newx - 1, y - 1);
 
 		ShowWindow(handle1, SW_SHOW);
 		ShowWindow(handle2, SW_SHOW);
@@ -2348,26 +2348,26 @@ void _handle_splitbar_resize(HWND hwnd, float percent, int type, int x, int y)
 	}
 	else
 	{
-		int newx = x, newy = y - SPLITBAR_WIDTH;
+		int newy = y;
 		float ratio = (float)(100.0-percent)/(float)100.0;
 		HWND handle1 = (HWND)dw_window_get_data(hwnd, "_dw_bottomright");
 		HWND handle2 = (HWND)dw_window_get_data(hwnd, "_dw_topleft");
 		Box *tmp = (Box *)GetWindowLong(handle1, GWL_USERDATA);
 
-		newy = (int)((float)newy * ratio);
+		newy = (int)((float)newy * ratio) - (SPLITBAR_WIDTH/2);
 
 		ShowWindow(handle1, SW_HIDE);
 		ShowWindow(handle2, SW_HIDE);
 
 		MoveWindow(handle1, 0, y - newy, x, newy, FALSE);
-		_do_resize(tmp, x, newy);
+		_do_resize(tmp, x - 1, newy - 1);
 
 		tmp = (Box *)GetWindowLong(handle2, GWL_USERDATA);
 
 		newy = y - newy - SPLITBAR_WIDTH;
 
 		MoveWindow(handle2, 0, 0, x, newy, FALSE);
-		_do_resize(tmp, x, newy);
+		_do_resize(tmp, x - 1, newy - 1);
 
 		ShowWindow(handle1, SW_SHOW);
 		ShowWindow(handle2, SW_SHOW);
@@ -2405,9 +2405,9 @@ BOOL CALLBACK _splitwndproc(HWND hwnd, UINT msg, WPARAM mp1, LPARAM mp2)
 				dw_window_get_pos_size(hwnd, NULL, NULL, &cx, &cy);
 
 				if(type == BOXHORZ)
-					Rectangle(hdcPaint, cx - start - 3, 0, cx - start, cy);
+					Rectangle(hdcPaint, cx - start - SPLITBAR_WIDTH, 0, cx - start, cy);
 				else
-					Rectangle(hdcPaint, 0, start, cx, start + 3);
+					Rectangle(hdcPaint, 0, start, cx, start + SPLITBAR_WIDTH);
 
 				SelectObject(hdcPaint, oldBrush);
 				DeleteObject(SelectObject(hdcPaint, oldPen));

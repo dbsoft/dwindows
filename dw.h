@@ -22,7 +22,7 @@
 #define SIZESTATIC 0
 #define SIZEEXPAND 1
 
-#define SPLITBAR_WIDTH 3
+#define SPLITBAR_WIDTH 4
 #define BUBBLE_HELP_MAX 256
 
 typedef struct _user_data
