@@ -962,6 +962,67 @@ MRESULT EXPENTRY _sizeproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 
 	return WinDefWindowProc(hWnd, msg, mp1, mp2);
 }
+/* This procedure handles drawing of a status border */
+MRESULT EXPENTRY _statusproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
+{
+	PFNWP *blah = WinQueryWindowPtr(hWnd, QWP_USER);
+
+	if(blah && *blah)
+	{
+		PFNWP myfunc = *blah;
+
+		switch(msg)
+		{
+		case WM_PAINT:
+			{
+				HPS hpsPaint;
+				RECTL rclPaint;
+				POINTL ptl1, ptl2;
+				char buf[1024];
+
+				hpsPaint = WinBeginPaint(hWnd, 0, 0);
+				WinQueryWindowRect(hWnd, &rclPaint);
+				WinFillRect(hpsPaint, &rclPaint, CLR_PALEGRAY);
+
+				GpiSetColor(hpsPaint, CLR_DARKGRAY);
+				ptl1.x = 0;
+				ptl2.y = ptl1.y = rclPaint.yTop - rclPaint.yBottom;
+				ptl2.x = rclPaint.xRight - rclPaint.xLeft;
+				GpiMove(hpsPaint, &ptl1);
+				GpiLine(hpsPaint, &ptl2);
+				ptl2.y = ptl2.x = 0;
+				GpiMove(hpsPaint, &ptl1);
+				GpiLine(hpsPaint, &ptl2);
+
+				GpiSetColor(hpsPaint, CLR_WHITE);
+				ptl2.x = ptl1.x = rclPaint.xRight - rclPaint.xLeft;
+				ptl1.y = 0;
+				ptl2.y = rclPaint.yTop - rclPaint.yBottom;
+				GpiMove(hpsPaint, &ptl1);
+				GpiLine(hpsPaint, &ptl2);
+				ptl2.y = ptl2.x = 0;
+				GpiMove(hpsPaint, &ptl1);
+				GpiLine(hpsPaint, &ptl2);
+
+				WinQueryWindowText(hWnd, 1024, buf);
+				rclPaint.xLeft += 3;
+				rclPaint.xRight--;
+				rclPaint.yTop--;
+				rclPaint.yBottom++;
+
+				GpiSetColor(hpsPaint, CLR_BLACK);
+				WinDrawText(hpsPaint, -1, buf, &rclPaint, DT_TEXTATTRS, DT_TEXTATTRS, DT_VCENTER | DT_LEFT | DT_TEXTATTRS);
+				WinEndPaint(hpsPaint);
+
+				return (MRESULT)TRUE;
+			}
+		}
+		return myfunc(hWnd, msg, mp1, mp2);
+	}
+
+	return WinDefWindowProc(hWnd, msg, mp1, mp2);
+}
+
 /* Originally just intended for entryfields, it now serves as a generic
  * procedure for handling TAB presses to change input focus on controls.
  */
@@ -1411,7 +1472,7 @@ MRESULT EXPENTRY _wndproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 			if(!SHORT1FROMMP(mp2) && !SHORT2FROMMP(mp2))
 				return (MPARAM)TRUE;
 
-			if(mybox)
+			if(mybox && mybox->flags != DW_MINIMIZED)
 			{
 				/* Hide the window when recalculating to reduce
 				 * CPU load.
@@ -1429,9 +1490,17 @@ MRESULT EXPENTRY _wndproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 			Box *mybox = (Box *)WinQueryWindowPtr(hWnd, QWP_USER);
 			SWP *swp = (SWP *)mp1;
 
+			if(mybox && (swp->fl & SWP_MINIMIZE))
+				mybox->flags = DW_MINIMIZED;
+
+			if(mybox && (swp->fl & SWP_RESTORE))
+				mybox->flags = 0;
+
 			if(mybox && (swp->fl & SWP_MAXIMIZE))
 			{
 				int z;
+
+				mybox->flags = 0;
 
 				/* Hide the window when recalculating to reduce
 				 * CPU load.
@@ -2509,7 +2578,7 @@ HWND dw_notebook_new(ULONG id, int top)
 						  NULL,
 						  WS_VISIBLE |
 						  BKS_TABBEDDIALOG |
-						   flags,
+						  flags,
 						  0,0,2000,1000,
 						  NULLHANDLE,
 						  HWND_TOP,
@@ -2747,6 +2816,33 @@ HWND dw_text_new(char *text, ULONG id)
 }
 
 /*
+ * Create a new status text window (widget) to be packed.
+ * Parameters:
+ *       text: The text to be display by the static text widget.
+ *       id: An ID to be used with WinWindowFromID() or 0L.
+ */
+HWND dw_status_text_new(char *text, ULONG id)
+{
+	PFNWP *blah = malloc(sizeof(PFNWP));
+	HWND tmp = WinCreateWindow(HWND_OBJECT,
+							   WC_STATIC,
+							   text,
+							   WS_VISIBLE | SS_TEXT,
+							   0,0,2000,1000,
+							   NULLHANDLE,
+							   HWND_TOP,
+							   id,
+							   NULL,
+							   NULL);
+	dw_window_set_font(tmp, DefaultFont);
+	dw_window_set_color(tmp, DW_CLR_BLACK, DW_CLR_PALEGRAY);
+
+	*blah = WinSubclassWindow(tmp, _statusproc);
+	WinSetWindowPtr(tmp, QWP_USER, blah);
+	return tmp;
+}
+
+/*
  * Create a new Multiline Editbox window (widget) to be packed.
  * Parameters:
  *       id: An ID to be used with WinWindowFromID() or 0L.
@@ -2953,8 +3049,7 @@ HWND dw_bitmapbutton_new(char *text, ULONG id)
  *       text: The text to be display by the static text widget.
  *       id: An ID to be used with WinWindowFromID() or 0L.
  */
-HWND
-dw_spinbutton_new(char *text, ULONG id)
+HWND dw_spinbutton_new(char *text, ULONG id)
 {
 	PFNWP *blah = malloc(sizeof(PFNWP));
 	HWND tmp = WinCreateWindow(HWND_OBJECT,
@@ -3770,6 +3865,27 @@ void dw_mle_set_visible(HWND handle, int line)
 		tmppnt = (int)WinSendMsg(handle, MLM_CHARFROMLINE, MPFROMLONG(line - 10), 0);
 		WinSendMsg(handle, MLM_SETFIRSTCHAR, MPFROMLONG(tmppnt), 0);
 	}
+}
+
+/*
+ * Sets the editablity of an MLE box.
+ * Parameters:
+ *          handle: Handle to the MLE.
+ *          state: TRUE if it can be edited, FALSE for readonly.
+ */
+void dw_mle_set_editable(HWND handle, int state)
+{
+	WinSendMsg(handle, MLM_SETREADONLY, MPFROMLONG(state ? FALSE : TRUE), 0);
+}
+
+/*
+ * Sets the word wrap state of an MLE box.
+ * Parameters:
+ *          handle: Handle to the MLE.
+ *          state: TRUE if it wraps, FALSE if it doesn't.
+ */
+void dw_mle_set_word_wrap(HWND handle, int state)
+{
 }
 
 /*

@@ -1747,6 +1747,73 @@ BOOL CALLBACK _splitwndproc(HWND hwnd, UINT msg, WPARAM mp1, LPARAM mp2)
 	return DefWindowProc(hwnd, msg, mp1, mp2);
 }
 
+/* This handles drawing the status text areas */
+BOOL CALLBACK _statuswndproc(HWND hwnd, UINT msg, WPARAM mp1, LPARAM mp2)
+{
+	switch (msg)
+	{
+	case WM_PAINT:
+		{
+			HDC hdcPaint;
+			PAINTSTRUCT ps;
+			RECT rcPaint;
+			HBRUSH hBrush;
+			HPEN hPen;
+			HFONT hFont;
+			char tempbuf[1024] = "";
+
+			hdcPaint = BeginPaint(hwnd, &ps);
+			GetWindowRect(hwnd, &rcPaint);
+
+			dw_color_foreground_set(DW_RGB(_red[DW_CLR_PALEGRAY],
+										   _green[DW_CLR_PALEGRAY],
+										   _blue[DW_CLR_PALEGRAY]));
+
+			dw_draw_rect(hwnd, 0, TRUE, 1, 1, rcPaint.right - rcPaint.left - 2, rcPaint.bottom - rcPaint.top - 2);
+
+			dw_color_foreground_set(DW_RGB(_red[DW_CLR_DARKGRAY],
+										   _green[DW_CLR_DARKGRAY],
+										   _blue[DW_CLR_DARKGRAY]));
+
+			dw_draw_line(hwnd, 0, 0, 0, rcPaint.right - rcPaint.left, 0);
+			dw_draw_line(hwnd, 0, 0, 0, 0, rcPaint.bottom - rcPaint.top);
+
+			dw_color_foreground_set(DW_RGB(_red[DW_CLR_WHITE],
+										   _green[DW_CLR_WHITE],
+										   _blue[DW_CLR_WHITE]));
+
+			dw_draw_line(hwnd, 0, rcPaint.right - rcPaint.left - 1, rcPaint.bottom - rcPaint.top - 1, rcPaint.right - rcPaint.left - 1, 0);
+			dw_draw_line(hwnd, 0, rcPaint.right - rcPaint.left - 1, rcPaint.bottom - rcPaint.top - 1, 0, rcPaint.bottom - rcPaint.top - 1);
+
+			rcPaint.left += 3;
+			rcPaint.top++;
+			rcPaint.bottom--;
+			rcPaint.right--;
+
+			GetWindowText(hwnd, tempbuf, 1024);
+
+			dw_color_foreground_set(DW_RGB(_red[DW_CLR_BLACK],
+										   _green[DW_CLR_BLACK],
+										   _blue[DW_CLR_BLACK]));
+
+			hBrush = (HBRUSH)SelectObject(hdcPaint, _hBrush);
+			hPen = (HPEN)SelectObject(hdcPaint, _hPen);
+			hFont = (HFONT)SelectObject(hdcPaint, GetStockObject(DEFAULT_GUI_FONT));
+
+			ExtTextOut(hdcPaint, rcPaint.left, rcPaint.top, ETO_CLIPPED,
+					   &rcPaint, tempbuf, strlen(tempbuf), NULL);
+
+			SelectObject(hdcPaint, hBrush);
+			SelectObject(hdcPaint, hPen);
+			SelectObject(hdcPaint, hFont);
+
+			EndPaint(hwnd, &ps);
+		}
+		return FALSE;
+	}
+	return DefWindowProc(hwnd, msg, mp1, mp2);
+}
+
 /* Function: _BtProc
  * Abstract: Subclass procedure for buttons
  */
@@ -2319,6 +2386,21 @@ int dw_window_set_color(HWND handle, ULONG fore, ULONG back)
 	if(strnicmp(tmpbuf, FRAMECLASSNAME, strlen(FRAMECLASSNAME))==0)
         return FALSE;
 
+	if(strnicmp(tmpbuf, WC_LISTVIEW, strlen(WC_LISTVIEW))==0)
+	{
+		ListView_SetTextColor(handle, RGB(DW_RED_VALUE(fore),
+										  DW_GREEN_VALUE(fore),
+										  DW_BLUE_VALUE(fore)));
+		ListView_SetTextBkColor(handle, RGB(DW_RED_VALUE(back),
+											DW_GREEN_VALUE(back),
+											DW_BLUE_VALUE(back)));
+		ListView_SetBkColor(handle, RGB(DW_RED_VALUE(back),
+										DW_GREEN_VALUE(back),
+										DW_BLUE_VALUE(back)));
+		InvalidateRgn(handle, NULL, TRUE);
+		return TRUE;
+	}
+
 	if(cinfo)
 	{
 		cinfo->fore = fore;
@@ -2335,6 +2417,7 @@ int dw_window_set_color(HWND handle, ULONG fore, ULONG back)
 		cinfo->pOldProc = SubclassWindow(handle, _colorwndproc);
 		SetWindowLong(handle, GWL_USERDATA, (ULONG)cinfo);
 	}
+	InvalidateRgn(handle, NULL, TRUE);
 	return TRUE;
 }
 
@@ -2737,14 +2820,35 @@ void dw_pointer_set_pos(long x, long y)
 HWND dw_text_new(char *text, ULONG id)
 {
 	HWND tmp = CreateWindow(STATICCLASSNAME,
-							 text,
-							 BS_TEXT | WS_CHILD | WS_CLIPCHILDREN,
-							 0,0,2000,1000,
-							 DW_HWND_OBJECT,
-							 (HMENU)id,
-							 NULL,
-							 NULL);
+							text,
+							BS_TEXT | WS_CHILD | WS_CLIPCHILDREN,
+							0,0,2000,1000,
+							DW_HWND_OBJECT,
+							(HMENU)id,
+							NULL,
+							NULL);
 	dw_window_set_font(tmp, DefaultFont);
+	return tmp;
+}
+
+/*
+ * Create a new status text window (widget) to be packed.
+ * Parameters:
+ *       text: The text to be display by the static text widget.
+ *       id: An ID to be used with WinWindowFromID() or 0L.
+ */
+HWND dw_status_text_new(char *text, ULONG id)
+{
+	HWND tmp = CreateWindow(STATICCLASSNAME,
+							text,
+							BS_TEXT | WS_CHILD | WS_CLIPCHILDREN,
+							0,0,2000,1000,
+							DW_HWND_OBJECT,
+							(HMENU)id,
+							NULL,
+							NULL);
+	dw_window_set_font(tmp, DefaultFont);
+	SubclassWindow(tmp, _statuswndproc);
 	return tmp;
 }
 
@@ -3904,6 +4008,27 @@ void dw_mle_set_visible(HWND handle, int line)
 }
 
 /*
+ * Sets the editablity of an MLE box.
+ * Parameters:
+ *          handle: Handle to the MLE.
+ *          state: TRUE if it can be edited, FALSE for readonly.
+ */
+void dw_mle_set_editable(HWND handle, int state)
+{
+	SendMessage(handle, EM_SETREADONLY, (WPARAM)(state ? FALSE : TRUE), 0);
+}
+
+/*
+ * Sets the word wrap state of an MLE box.
+ * Parameters:
+ *          handle: Handle to the MLE.
+ *          state: TRUE if it wraps, FALSE if it doesn't.
+ */
+void dw_mle_set_word_wrap(HWND handle, int state)
+{
+}
+
+/*
  * Sets the current cursor position of an MLE box.
  * Parameters:
  *          handle: Handle to the MLE to be positioned.
@@ -4186,6 +4311,16 @@ void dw_icon_free(unsigned long handle)
  */
 void *dw_container_alloc(HWND handle, int rowcount)
 {
+	LV_ITEM lvi;
+	int z;
+
+	lvi.mask = LVIF_DI_SETITEM | LVIF_TEXT;
+	lvi.iSubItem = 0;
+	lvi.pszText = "";
+	lvi.cchTextMax = 1;
+
+	for(z=0;z<rowcount;z++)
+		ListView_InsertItem(handle, &lvi);
 	return (void *)handle;
 }
 
@@ -4337,10 +4472,7 @@ void dw_container_set_item(HWND handle, void *pointer, int column, int row, void
 		lvi.cchTextMax = strlen(textbuffer);
 	}
 
-	if(column == 0)
-		ListView_InsertItem(handle, &lvi);
-	else
-		ListView_SetItemText(handle, row, column, destptr);
+	ListView_SetItemText(handle, row, column, destptr);
 }
 
 /*
@@ -4361,10 +4493,7 @@ void dw_container_set_row_title(void *pointer, int row, char *title)
 	lvi.lParam = (LPARAM)title;
 
 	if(!ListView_SetItem(container, &lvi) && lvi.lParam)
-	{
-		free((void *)lvi.lParam);
 		lvi.lParam = 0;
-	}
 
 }
 

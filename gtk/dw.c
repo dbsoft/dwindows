@@ -944,7 +944,8 @@ HWND dw_notebook_new(unsigned long id, int top)
 HMENUI dw_menu_new(unsigned long id)
 {
 	int _locked_by_me = FALSE;
-	HMENUI tmp = malloc(sizeof(struct _hmenui));;
+	HMENUI tmp = malloc(sizeof(struct _hmenui));
+	GtkAccelGroup *accel_group;
 
 	if(!tmp)
 		return NULL;
@@ -952,7 +953,9 @@ HMENUI dw_menu_new(unsigned long id)
 	DW_MUTEX_LOCK;
 	tmp->menu = gtk_menu_new();
 	gtk_widget_show(tmp->menu);
+	accel_group = gtk_accel_group_new();
 	gtk_object_set_data(GTK_OBJECT(tmp->menu), "id", (gpointer)id);
+	gtk_object_set_data(GTK_OBJECT(tmp->menu), "accel", (gpointer)accel_group);
 	DW_MUTEX_UNLOCK;
 	return tmp;
 }
@@ -966,7 +969,8 @@ HMENUI dw_menubar_new(HWND location)
 {
 	GtkWidget *box;
 	int _locked_by_me = FALSE;
-	HMENUI tmp = malloc(sizeof(struct _hmenui));;
+	HMENUI tmp = malloc(sizeof(struct _hmenui));
+	GtkAccelGroup *accel_group;
 
 	if(!tmp)
 		return NULL;
@@ -975,6 +979,8 @@ HMENUI dw_menubar_new(HWND location)
 	tmp->menu = gtk_menu_bar_new();
 	box = (GtkWidget *)gtk_object_get_user_data(GTK_OBJECT(location));
 	gtk_widget_show(tmp->menu);
+	accel_group = gtk_accel_group_new();
+	gtk_object_set_data(GTK_OBJECT(tmp->menu), "accel", (gpointer)accel_group);
 
 	if(box)
 		gtk_box_pack_end(GTK_BOX(box), tmp->menu, FALSE, FALSE, 0);
@@ -1002,19 +1008,27 @@ void dw_menu_destroy(HMENUI *menu)
 	}
 }
 
-void _removetilde(char *dest, char *src)
+char _removetilde(char *dest, char *src)
 {
 	int z, cur=0;
+	char accel = '\0';
 
 	for(z=0;z<strlen(src);z++)
 	{
 		if(src[z] != '~')
-			{
-				dest[cur] = src[z];
-				cur++;
-			}
+		{
+			dest[cur] = src[z];
+			cur++;
+		}
+		else
+		{
+			dest[cur] = '_';
+			accel = src[z+1];
+			cur++;
+		}
 	}
 	dest[cur] = 0;
+	return accel;
 }
 
 /*
@@ -1031,8 +1045,10 @@ void _removetilde(char *dest, char *src)
 HWND dw_menu_append_item(HMENUI menu, char *title, unsigned long id, unsigned long flags, int end, int check, HMENUI submenu)
 {
 	GtkWidget *tmphandle;
-	char *tempbuf = malloc(strlen(title)+1);
+	char accel, *tempbuf = malloc(strlen(title)+1);
 	int _locked_by_me = FALSE;
+	guint tmp_key;
+	GtkAccelGroup *accel_group;
 
 	if(!menu || !menu->menu)
 	{
@@ -1041,7 +1057,9 @@ HWND dw_menu_append_item(HMENUI menu, char *title, unsigned long id, unsigned lo
 	}
 
 	DW_MUTEX_LOCK;
-	_removetilde(tempbuf, title);
+	accel = _removetilde(tempbuf, title);
+
+	accel_group = (GtkAccelGroup *)gtk_object_get_data(GTK_OBJECT(menu->menu), "accel");
 
 	if(strlen(tempbuf) == 0)
 		tmphandle=gtk_menu_item_new();
@@ -1050,13 +1068,29 @@ HWND dw_menu_append_item(HMENUI menu, char *title, unsigned long id, unsigned lo
 		if(check)
 		{
 			char numbuf[10];
-			tmphandle=gtk_check_menu_item_new_with_label(tempbuf);
+			if(accel && accel_group)
+			{
+				tmphandle=gtk_check_menu_item_new_with_label("");
+				tmp_key = gtk_label_parse_uline(GTK_LABEL(GTK_BIN(tmphandle)->child), tempbuf);
+				gtk_widget_add_accelerator(tmphandle, "activate_item", accel_group, tmp_key, GDK_MOD1_MASK, 0);
+			}
+			else
+				tmphandle=gtk_check_menu_item_new_with_label(tempbuf);
 			gtk_check_menu_item_set_show_toggle(GTK_CHECK_MENU_ITEM(tmphandle), TRUE);
 			sprintf(numbuf, "%lu", id);
 			gtk_object_set_data(GTK_OBJECT(menu->menu), numbuf, (gpointer)tmphandle);
 		}
 		else
-			tmphandle=gtk_menu_item_new_with_label(tempbuf);
+		{
+			if(accel && accel_group)
+			{
+				tmphandle=gtk_menu_item_new_with_label("");
+				tmp_key = gtk_label_parse_uline(GTK_LABEL(GTK_BIN(tmphandle)->child), tempbuf);
+				gtk_widget_add_accelerator(tmphandle, "activate_item", accel_group, tmp_key, GDK_MOD1_MASK, 0);
+			}
+			else
+				tmphandle=gtk_menu_item_new_with_label(tempbuf);
+		}
 	}
 
 	gtk_widget_show(tmphandle);
@@ -1183,6 +1217,26 @@ HWND dw_container_new(unsigned long id)
  *       id: An ID to be used with WinWindowFromID() or 0L.
  */
 HWND dw_text_new(char *text, unsigned long id)
+{
+	GtkWidget *tmp;
+	int _locked_by_me = FALSE;
+
+	DW_MUTEX_LOCK;
+	tmp = gtk_label_new(text);
+	gtk_label_set_justify(GTK_LABEL(tmp), GTK_JUSTIFY_LEFT);
+	gtk_widget_show(tmp);
+	gtk_object_set_data(GTK_OBJECT(tmp), "id", (gpointer)id);
+	DW_MUTEX_UNLOCK;
+	return tmp;
+}
+
+/*
+ * Create a new status text window (widget) to be packed.
+ * Parameters:
+ *       text: The text to be display by the static text widget.
+ *       id: An ID to be used with WinWindowFromID() or 0L.
+ */
+HWND dw_status_text_new(char *text, ULONG id)
 {
 	GtkWidget *tmp;
 	int _locked_by_me = FALSE;
@@ -1755,6 +1809,52 @@ void dw_mle_set_visible(HWND handle, int line)
 
 				gtk_adjustment_set_value(GTK_TEXT(tmp)->vadj, pos);
 			}
+		}
+	}
+	DW_MUTEX_UNLOCK;
+}
+
+/*
+ * Sets the editablity of an MLE box.
+ * Parameters:
+ *          handle: Handle to the MLE.
+ *          state: TRUE if it can be edited, FALSE for readonly.
+ */
+void dw_mle_set_editable(HWND handle, int state)
+{
+	int _locked_by_me = FALSE;
+
+	DW_MUTEX_LOCK;
+	if(GTK_IS_BOX(handle))
+	{
+		GtkWidget *tmp = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(handle), "mle");
+
+		if(tmp && GTK_IS_TEXT(tmp))
+		{
+			gtk_text_set_editable(GTK_TEXT(tmp), state);
+		}
+	}
+	DW_MUTEX_UNLOCK;
+}
+
+/*
+ * Sets the word wrap state of an MLE box.
+ * Parameters:
+ *          handle: Handle to the MLE.
+ *          state: TRUE if it wraps, FALSE if it doesn't.
+ */
+void dw_mle_set_word_wrap(HWND handle, int state)
+{
+	int _locked_by_me = FALSE;
+
+	DW_MUTEX_LOCK;
+	if(GTK_IS_BOX(handle))
+	{
+		GtkWidget *tmp = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(handle), "mle");
+
+		if(tmp && GTK_IS_TEXT(tmp))
+		{
+			gtk_text_set_word_wrap(GTK_TEXT(tmp), state);
 		}
 	}
 	DW_MUTEX_UNLOCK;

@@ -56,6 +56,7 @@ EXPORTS
   dw_bitmapbutton_new                    @91
 
   dw_text_new                            @100
+  dw_status_text_new                     @101
 
   dw_entryfield_new                      @110
   dw_entryfield_password_new             @111
