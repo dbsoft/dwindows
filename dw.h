@@ -8,6 +8,28 @@
 #define DW_MINOR_VERSION 0
 #define DW_SUB_VERSION 0
 
+/* These corespond to the entries in the color
+ * arrays in the Win32 dw.c, they are also the
+ * same as DOS ANSI colors.
+ */
+#define DW_CLR_BLACK             0
+#define DW_CLR_DARKRED           1
+#define DW_CLR_DARKGREEN         2
+#define DW_CLR_BROWN             3
+#define DW_CLR_DARKBLUE          4
+#define DW_CLR_DARKPINK          5
+#define DW_CLR_DARKCYAN          6
+#define DW_CLR_PALEGRAY          7
+#define DW_CLR_DARKGRAY          8
+#define DW_CLR_RED               9
+#define DW_CLR_GREEN             10
+#define DW_CLR_YELLOW            11
+#define DW_CLR_BLUE              12
+#define DW_CLR_PINK              13
+#define DW_CLR_CYAN              14
+#define DW_CLR_WHITE             15
+#define DW_CLR_DEFAULT           16
+
 #if defined(__OS2__) || defined(__WIN32__) || defined(WINNT) || defined(__EMX__)
 /* OS/2 or Windows */
 
@@ -55,24 +77,6 @@ typedef struct _user_data
 #define DW_DT_MNEMONIC           DT_MNEMONIC
 #define DW_DT_WORDBREAK          DT_WORDBREAK
 #define DW_DT_ERASERECT          DT_ERASERECT
-
-#define DW_CLR_WHITE             16
-#define DW_CLR_BLACK             17
-#define DW_CLR_DEFAULT           18
-#define DW_CLR_BLUE              CLR_BLUE
-#define DW_CLR_RED               CLR_RED
-#define DW_CLR_PINK              CLR_PINK
-#define DW_CLR_GREEN             CLR_GREEN
-#define DW_CLR_CYAN              CLR_CYAN
-#define DW_CLR_YELLOW            CLR_YELLOW
-#define DW_CLR_DARKGRAY          CLR_DARKGRAY
-#define DW_CLR_DARKBLUE          CLR_DARKBLUE
-#define DW_CLR_DARKRED           CLR_DARKRED
-#define DW_CLR_DARKPINK          CLR_DARKPINK
-#define DW_CLR_DARKGREEN         CLR_DARKGREEN
-#define DW_CLR_DARKCYAN          CLR_DARKCYAN
-#define DW_CLR_BROWN             CLR_BROWN
-#define DW_CLR_PALEGRAY          CLR_PALEGRAY
 
 #ifndef FCF_CLOSEBUTTON
 #define FCF_CLOSEBUTTON            0x04000000L
@@ -196,28 +200,6 @@ extern HMQ dwhmq;
 #define DW_DT_MNEMONIC           0
 #define DW_DT_WORDBREAK          0
 #define DW_DT_ERASERECT          0
-
-/* These corespond to the entries in the color
- * arrays in the Win32 dw.c, they are also the
- * same as DOS ANSI colors.
- */
-#define DW_CLR_BLACK             0
-#define DW_CLR_DARKRED           1
-#define DW_CLR_DARKGREEN         2
-#define DW_CLR_BROWN             3
-#define DW_CLR_DARKBLUE          4
-#define DW_CLR_DARKPINK          5
-#define DW_CLR_DARKCYAN          6
-#define DW_CLR_PALEGRAY          7
-#define DW_CLR_DARKGRAY          8
-#define DW_CLR_RED               9
-#define DW_CLR_GREEN             10
-#define DW_CLR_YELLOW            11
-#define DW_CLR_BLUE              12
-#define DW_CLR_PINK              13
-#define DW_CLR_CYAN              14
-#define DW_CLR_WHITE             15
-#define DW_CLR_DEFAULT           16
 
 #define DW_FCF_TITLEBAR          WS_CAPTION
 #define DW_FCF_SYSMENU           WS_SYSMENU
@@ -416,24 +398,6 @@ void dw_box_pack_end_stub(HWND box, HWND item, int width, int height, int hsize,
 #define DW_DT_MNEMONIC           (1 << 9)
 #define DW_DT_WORDBREAK          (1 << 10)
 #define DW_DT_ERASERECT          (1 << 11)
-
-#define DW_CLR_BLACK             0
-#define DW_CLR_DARKRED           1
-#define DW_CLR_DARKGREEN         2
-#define DW_CLR_BROWN             3
-#define DW_CLR_DARKBLUE          4
-#define DW_CLR_DARKPINK          5
-#define DW_CLR_DARKCYAN          6
-#define DW_CLR_PALEGRAY          7
-#define DW_CLR_DARKGRAY          8
-#define DW_CLR_RED               9
-#define DW_CLR_GREEN             10
-#define DW_CLR_YELLOW            11
-#define DW_CLR_BLUE              12
-#define DW_CLR_PINK              13
-#define DW_CLR_CYAN              14
-#define DW_CLR_WHITE             15
-#define DW_CLR_DEFAULT           16
 
 #define DW_FCF_TITLEBAR          1
 #define DW_FCF_SYSMENU           (1 << 1)
