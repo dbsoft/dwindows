@@ -5,7 +5,7 @@
  *
  * (C) 2000-2004 Brian Smith <dbsoft@technologist.com>
  * (C) 2003-2004 Mark Hessling <m.hessling@qut.edu.au>
- * (C) 2002 Shmyrev <shmyrev@yandex.ru>
+ * (C) 2002 Nickolay V. Shmyrev <shmyrev@yandex.ru>
  */
 #include "dw.h"
 #include <string.h>
