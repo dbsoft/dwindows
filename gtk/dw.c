@@ -581,26 +581,6 @@ static gint _switch_page_event(GtkNotebook *notebook, GtkNotebookPage *page, gui
 	return retval;
 }
 
-static gint _select_row(GtkWidget *widget, gint row, gint column, GdkEventButton *event, gpointer data)
-{
-	GList *tmp = (GList *)gtk_object_get_data(GTK_OBJECT(widget), "selectlist");
-	char *rowdata = gtk_clist_get_row_data(GTK_CLIST(widget), row);
-	int multi = (int)gtk_object_get_data(GTK_OBJECT(widget), "multi");
-
-	if(rowdata)
-	{
-		if(!multi)
-		{
-			g_list_free(tmp);
-			tmp = NULL;
-		}
-
-		tmp = g_list_append(tmp, rowdata);
-		gtk_object_set_data(GTK_OBJECT(widget), "selectlist", tmp);
-	}
-	return FALSE;
-}
-
 static gint _container_select_row(GtkWidget *widget, gint row, gint column, GdkEventButton *event, gpointer data)
 {
 	SignalHandler *work = (SignalHandler *)data;
@@ -613,25 +593,6 @@ static gint _container_select_row(GtkWidget *widget, gint row, gint column, GdkE
 		return TRUE;
 	}
 	return contextfunc(work->window, 0, rowdata, work->data, 0);;
-}
-
-static gint _unselect_row(GtkWidget *widget, gint row, gint column, GdkEventButton *event, gpointer data)
-{
-	GList *tmp;
-	char *rowdata;
-
-	if(_dw_unselecting)
-		return FALSE;
-
-	tmp = (GList *)gtk_object_get_data(GTK_OBJECT(widget), "selectlist");
-	rowdata = gtk_clist_get_row_data(GTK_CLIST(widget), row);
-
-	if(rowdata && tmp)
-	{
-		tmp = g_list_remove(tmp, rowdata);
-		gtk_object_set_data(GTK_OBJECT(widget), "selectlist", tmp);
-	}
-	return FALSE;
 }
 
 static int _round_value(gfloat val)
@@ -4309,9 +4270,6 @@ static int _dw_container_setup(HWND handle, unsigned long *flags, char **titles,
 	multi = (int)gtk_object_get_data(GTK_OBJECT(handle), "multi");
 	gtk_object_set_data(GTK_OBJECT(handle), "multi", (gpointer)multi);
 
-	gtk_signal_connect(GTK_OBJECT(clist), "select_row", GTK_SIGNAL_FUNC(_select_row),  NULL);
-	gtk_signal_connect(GTK_OBJECT(clist), "unselect_row", GTK_SIGNAL_FUNC(_unselect_row),  NULL);
-
 	gtk_clist_set_column_auto_resize(GTK_CLIST(clist), 0, TRUE);
 	if(multi)
 		gtk_clist_set_selection_mode(GTK_CLIST(clist), GTK_SELECTION_EXTENDED);
@@ -4898,26 +4856,12 @@ char *dw_container_query_start(HWND handle, unsigned long flags)
 	/* These should be separate but right now this will work */
 	if(flags & DW_CRA_SELECTED || flags & DW_CRA_CURSORED)
 	{
-		/* If there is an old query list, free it */
-		list = (GList *)gtk_object_get_data(GTK_OBJECT(clist), "querylist");
-		if(list)
-			g_list_free(list);
-
-		/* Move the current selection list to the query list, and remove the
-		 * current selection list.
-		 */
-		list = (GList *)gtk_object_get_data(GTK_OBJECT(clist), "selectlist");
-		gtk_object_set_data(GTK_OBJECT(clist), "selectlist", NULL);
-		gtk_object_set_data(GTK_OBJECT(clist), "querylist", (gpointer)list);
-		_dw_unselect(clist);
+		list = GTK_CLIST(clist)->selection;
 
 		if(list)
 		{
 			gtk_object_set_data(GTK_OBJECT(clist), "querypos", (gpointer)1);
-			if(list->data)
-				retval =  list->data;
-			else
-				retval = "";
+			retval = (char *)gtk_clist_get_row_data(GTK_CLIST(clist), GPOINTER_TO_UINT(list->data));
 		}
 	}
 	else
@@ -4956,7 +4900,7 @@ char *dw_container_query_next(HWND handle, unsigned long flags)
 	/* These should be separate but right now this will work */
 	if(flags & DW_CRA_SELECTED || flags & DW_CRA_CURSORED)
 	{
-		list = (GList *)gtk_object_get_data(GTK_OBJECT(clist), "querylist");
+		list = GTK_CLIST(clist)->selection;
 
 		if(list)
 		{
@@ -4969,10 +4913,8 @@ char *dw_container_query_next(HWND handle, unsigned long flags)
 				counter++;
 			}
 
-			if(list && list->data)
-				retval = list->data;
-			else if(list && !list->data)
-				retval = "";
+			if(list)
+				retval = (char *)gtk_clist_get_row_data(GTK_CLIST(clist), GPOINTER_TO_UINT(list->data));
 		}
 	}
 	else
