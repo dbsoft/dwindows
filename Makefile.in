@@ -117,13 +117,15 @@ ci.o: $(srcdir)/ci.c
 	$(CC) -c $(INCPATH) $(CCFLAGS) -o $@ $(srcdir)/ci.c
 
 dwtest.o: $(srcdir)/dwtest.c
-	$(CC) -c $(INCPATH) $(CCFLAGS) -o $@ $(srcdir)/dwtest.c
+	$(CC) -c $(INCPATH) $(CCFLAGS) -o $@ $(srcdir)/dwtest.c	
                 
 ci: ci.o
 	$(CC) -o ci ci.o -L$(PREFIX)/lib -ldw -ldwcompat $(LFLAGS)
                 
 dwtest: dwtest.o
 	$(CC) -o dwtest dwtest.o -L$(PREFIX)/lib -ldw -ldwcompat $(LFLAGS)
+	chmod +x mac/finishup.sh
+	mac/finishup.sh
 
 zip:
 	zip dwindows$(VER_MAJ)$(VER_MIN).zip $(srcdir)/license.txt $(srcdir)/makefile.* $(srcdir)/readme $(srcdir)/*.c $(srcdir)/dw.h  $(srcdir)/compat.h \

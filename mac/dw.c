@@ -31,6 +31,7 @@ typedef struct
 
 const Rect CreationRect = { 0, 0, 2000, 1000 };
 WindowRef CreationWindow = 0;
+ControlRef RootControl = 0;
 
 /* List of signals and their equivilent MacOS event */
 #define SIGNALMAX 15
@@ -590,6 +591,10 @@ void _doEvents(EventRecord *eventStrucPtr)
  */
 int API dw_init(int newthread, int argc, char *argv[])
 {
+	CreateNewWindow (kDocumentWindowClass, 0,
+                        &CreationRect, &CreationWindow);
+        CreateRootControl(CreationWindow, &RootControl);
+        HideWindow(CreationWindow);
 	return 0;
 }
 
@@ -775,6 +780,7 @@ int API dw_messagebox(char *title, int flags, char *format, ...)
  */
 int API dw_window_raise(HWND handle)
 {
+        BringToFront((WindowRef)handle);
 	return 0;
 }
 
@@ -795,6 +801,7 @@ int API dw_window_lower(HWND handle)
  */
 int API dw_window_show(HWND handle)
 {
+        ShowWindow((WindowRef)handle);
 	return 0;
 }
 
@@ -815,6 +822,7 @@ int API dw_window_minimize(HWND handle)
  */
 int API dw_window_hide(HWND handle)
 {
+        HideWindow((WindowRef)handle);
 	return 0;
 }
 
@@ -825,6 +833,7 @@ int API dw_window_hide(HWND handle)
  */
 int API dw_window_destroy(HWND handle)
 {
+        DisposeWindow((WindowRef)handle);
 	return 0;
 }
 
@@ -926,9 +935,13 @@ void API dw_window_pointer(HWND handle, int pointertype)
 HWND API dw_window_new(HWND hwndOwner, char *title, ULONG flStyle)
 {
 	WindowRef hwnd = 0;
+        ControlRef rootcontrol = 0;
+        
 	CreateNewWindow (kDocumentWindowClass, flStyle,
 					 &CreationRect, &hwnd);
-	return (HWND)hwnd;
+        CreateRootControl(hwnd, &rootcontrol);
+	dw_window_set_text((HWND)hwnd, title);
+        return (HWND)hwnd;
 }
 
 /*
@@ -1364,7 +1377,10 @@ void API dw_window_set_bitmap(HWND handle, unsigned long id, char *filename)
 void API dw_window_set_text(HWND handle, char *text)
 {
     CFStringRef cftext = CFStringCreateWithCString(NULL, text, kCFStringEncodingDOSLatinUS);
-    SetControlTitleWithCFString(handle, cftext);
+    if(IsValidWindowRef((WindowRef)handle))
+        SetWindowTitleWithCFString((WindowRef)handle, cftext);
+    else
+        SetControlTitleWithCFString(handle, cftext);
     CFRelease(cftext);
 }
 
@@ -1377,7 +1393,27 @@ void API dw_window_set_text(HWND handle, char *text)
  */
 char * API dw_window_get_text(HWND handle)
 {
-	return NULL;
+    CFStringRef cftext;
+    char *ret = NULL;
+    
+    if(IsValidWindowRef((WindowRef)handle))
+        CopyWindowTitleAsCFString((WindowRef)handle, &cftext);
+    else
+    {
+        Str255 str;
+        
+        GetControlTitle(handle, str);
+        cftext = CFStringCreateWithPascalString(NULL, str, CFStringGetSystemEncoding());
+    }
+    
+    if(cftext)
+    {
+        int length = CFStringGetLength(cftext) + 1;
+        char *ret = malloc(length);
+        CFStringGetCString(cftext, ret, length, kCFStringEncodingDOSLatinUS);
+        CFRelease(cftext);
+    }
+    return ret;
 }
 
 /*
@@ -1441,6 +1477,7 @@ void API dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, 
  */
 void API dw_window_set_usize(HWND handle, ULONG width, ULONG height)
 {
+        SizeWindow((WindowRef)handle, (short)width, (short)height, TRUE);
 }
 
 /*
@@ -1475,6 +1512,7 @@ unsigned long API dw_color_depth(void)
  */
 void API dw_window_set_pos(HWND handle, ULONG x, ULONG y)
 {
+        MoveWindow((WindowRef)handle, (short)x, (short)y, FALSE);
 }
 
 /*
@@ -1488,6 +1526,8 @@ void API dw_window_set_pos(HWND handle, ULONG x, ULONG y)
  */
 void API dw_window_set_pos_size(HWND handle, ULONG x, ULONG y, ULONG width, ULONG height)
 {
+        dw_window_set_pos(handle, x, y);
+        dw_window_set_usize(handle, width, height);
 }
 
 /*
