@@ -4585,6 +4585,28 @@ void dw_draw_line(HWND handle, HPIXMAP pixmap, int x1, int y1, int x2, int y2)
 }
 
 
+void _CopyFontSettings(HPS hpsSrc, HPS hpsDst)
+{
+	FONTMETRICS fm;
+	FATTRS fat;
+	SIZEF sizf;
+
+	GpiQueryFontMetrics(hpsSrc, sizeof(FONTMETRICS), &fm);
+
+    memset(&fat, 0, sizeof(fat));
+
+	fat.usRecordLength  = sizeof(FATTRS);
+	fat.lMatch          = fm.lMatch;
+	strcpy(fat.szFacename, fm.szFacename);
+
+	GpiCreateLogFont(hpsDst, 0, 1L, &fat);
+	GpiSetCharSet(hpsDst, 1L);
+
+	sizf.cx = MAKEFIXED(fm.lEmInc,0);
+	sizf.cy = MAKEFIXED(fm.lMaxBaselineExt,0);
+	GpiSetCharBox(hpsDst, &sizf );
+}
+
 /* Draw text on a window (preferably a render window).
  * Parameters:
  *       handle: Handle to the window.
@@ -4596,13 +4618,8 @@ void dw_draw_line(HWND handle, HPIXMAP pixmap, int x1, int y1, int x2, int y2)
 void dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
 {
 	HPS hps;
-	int size = 9, z, l, height;
-	POINTL ptl;
-	FATTRS fat;
-	SIZEF sizfCharBox;
-	FONTMETRICS *fm;
-	LONG lHorzRes, lVertRes, lRequestFonts, lNumberFonts;
-	HDC hdc;
+	int size = 9, z, height;
+	RECTL rcl;
 	char fontname[128];
 
 	if(handle)
@@ -4613,15 +4630,16 @@ void dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
 	}
 	else if(pixmap)
 	{
+		HPS pixmaphps = WinGetPS(pixmap->handle);
+
 		hps = _set_hps(pixmap->hps);
 		height = pixmap->height;
 		_GetPPFont(pixmap->handle, fontname);
+		_CopyFontSettings(pixmaphps, hps);
+		WinReleasePS(pixmaphps);
 	}
 	else
 		return;
-
-	ptl.x = x;
-	ptl.y = height - y - 2;
 
 	for(z=0;z<strlen(fontname);z++)
 	{
@@ -4630,58 +4648,12 @@ void dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
 	}
 	size = atoi(fontname);
 
-	ptl.y -= size;
+	rcl.xLeft = x;
+	rcl.yTop = height - y;
+	rcl.yBottom = rcl.yTop - (size*2);
+	rcl.xRight = rcl.xLeft + (size * strlen(text));
 
-	hdc = GpiQueryDevice(hps);
-
-	DevQueryCaps(hdc, CAPS_HORIZONTAL_FONT_RES, 1L, &lHorzRes);
-	DevQueryCaps(hdc, CAPS_VERTICAL_FONT_RES, 1L, &lVertRes);
-
-	lNumberFonts = GpiQueryFonts(hps, QF_PUBLIC | QF_PRIVATE, &fontname[z+1], &lRequestFonts, 0, NULL);
-
-	fm = malloc(lNumberFonts * sizeof(FONTMETRICS));
-
-	GpiQueryFonts(hps, QF_PUBLIC | QF_PRIVATE, &fontname[z+1], &lNumberFonts, sizeof(FONTMETRICS), fm);
-
-	fat.lMatch = 0L;
-
-	for(l=0;l<lNumberFonts;l++)
-	{
-		if(fm[l].sXDeviceRes == (SHORT)lHorzRes &&
-		   fm[l].sYDeviceRes == (SHORT)lVertRes &&
-		   (fm[l].fsDefn & 1) == 0 &&
-		   fm[l].sNominalPointSize == (size*10))
-		{
-			fat.lMatch = fm[l].lMatch;
-			break;
-		}
-	}
-
-	fat.usRecordLength = sizeof(FATTRS);
-	fat.fsSelection = 0;
-	fat.idRegistry = 0;
-	fat.usCodePage = GpiQueryCp(hps);
-	fat.lMaxBaselineExt = 0;
-	fat.lAveCharWidth = 0;
-	fat.fsType = 0;
-	fat.fsFontUse = 0;
-
-	strcpy(fat.szFacename , &fontname[z+1]);
-
-	GpiCreateLogFont(hps, NULL, 1L, &fat);
-
-	GpiSetCharSet(hps, 1L);
-
-	if(fm)
-		free(fm);
-	else
-	{
-		sizfCharBox.cx = MAKEFIXED(size,0);
-		sizfCharBox.cy = MAKEFIXED(size,0);
-		GpiSetCharBox(hps, &sizfCharBox);
-	}
-
-	GpiCharStringAt(hps, &ptl, strlen(text), text);
+	WinDrawText(hps, -1, text, &rcl, DT_TEXTATTRS, DT_TEXTATTRS, DT_VCENTER | DT_LEFT | DT_TEXTATTRS);
 
 	if(!pixmap)
 		WinReleasePS(hps);
