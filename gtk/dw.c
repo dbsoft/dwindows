@@ -3478,8 +3478,8 @@ void dw_container_set_item(HWND handle, void *pointer, int column, int row, void
 	{
 		CDATE fdate = *((CDATE *)data);
 
-		if(fdate.month > 0)
-			sprintf(textbuffer, "%s %d, %d", monthlist[fdate.month-1], fdate.day, fdate.year);
+		if(fdate.month > -1 && fdate.month < 12 && fdate.day > 0 && fdate.year > 0)
+			sprintf(textbuffer, "%s %d, %d", monthlist[fdate.month], fdate.day, fdate.year);
         else
 			strcpy(textbuffer, "");
 
