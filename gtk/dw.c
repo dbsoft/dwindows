@@ -4309,7 +4309,17 @@ void dw_mutex_close(HMTX mutex)
  */
 void dw_mutex_lock(HMTX mutex)
 {
+	/* If we are being called from an event handler we must release
+	 * the GTK mutex so we don't deadlock.
+	 */
+	if(pthread_self() == _dw_thread)
+		gdk_threads_leave();
+
 	pthread_mutex_lock(&mutex);
+
+	/* And of course relock it when we have acquired the mutext */
+	if(pthread_self() == _dw_thread)
+		gdk_threads_enter();
 }
 
 /*
