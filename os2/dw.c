@@ -4211,20 +4211,22 @@ HWND API dw_slider_new(int vertical, int increments, ULONG id)
 {
 	WindowData *blah = calloc(1, sizeof(WindowData));
 	SLDCDATA sldcData = { 0, 0, 0, 0, 0 };
-	HWND tmp = WinCreateWindow(HWND_OBJECT,
-							   WC_SLIDER,
-							   "",
-							   WS_VISIBLE | SLS_SNAPTOINCREMENT |
-							   (vertical ? SLS_VERTICAL : SLS_HORIZONTAL),
-							   0,0,2000,1000,
-							   NULLHANDLE,
-							   HWND_TOP,
-							   id,
-							   &sldcData,
-							   NULL);
+	HWND tmp;
 
 	sldcData.cbSize = sizeof(SLDCDATA);
     sldcData.usScale1Increments = increments;
+
+	tmp = WinCreateWindow(HWND_OBJECT,
+						  WC_SLIDER,
+						  "",
+						  WS_VISIBLE | SLS_SNAPTOINCREMENT |
+						  (vertical ? SLS_VERTICAL : SLS_HORIZONTAL),
+						  0,0,2000,1000,
+						  NULLHANDLE,
+						  HWND_TOP,
+						  id,
+						  &sldcData,
+						  NULL);
 
 	blah->oldproc = WinSubclassWindow(tmp, _entryproc);
 	WinSetWindowPtr(tmp, QWP_USER, blah);
