@@ -1978,7 +1978,7 @@ MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 				{
 					int (* API sizefunc)(HWND, int, int, void *) = (int (* API)(HWND, int, int, void *))tmp->signalfunction;
 
-					if(hWnd == tmp->window || WinWindowFromID(tmp->window, FID_CLIENT) == hWnd)
+					if((hWnd == tmp->window || WinWindowFromID(tmp->window, FID_CLIENT) == hWnd) && SHORT1FROMMP(mp2) && SHORT2FROMMP(mp2))
 					{
 						result = sizefunc(tmp->window, SHORT1FROMMP(mp2), SHORT2FROMMP(mp2), tmp->data);
 						tmp = NULL;
