@@ -1,19 +1,30 @@
-This is an alpha release of dynamic windows.
+This is an alpha release of dynamic windows version 0.5.0.
 
-Currently it is not quite complete and some functionality is broken.
+The current Dynamic Windows source base is relatively stable on
+OS/2, Windows, Linux, FreeBSD and Solaris.  Although not all functionality
+has been thoroughly tested.  When a feature set has been decided on for
+the 1.0 I will freeze the API and move into beta stage.  When the beta
+feature set is stable I will release a final.
 
 Known problems:
 
-Groupboxes are broken.
-Splitbars are based on the original position not the current position,
-    and don't update until a resize.
+Splitbars don't always calculate properly on OS/2.
+Splitbars are not implemented on Unix and only partially implemented
+    on Windows.
+Boxes don't adhere to ratios on Unix.
 
 Future features:
 
-Implementing all of the OS/2 controls. Currently a number of controls have not been implemented.
-Implementing a toolbar.
+Implementing a full set of controls. Most controls common to OS/2, Windows and
+GTK have been implemented.  Although not all the functionality of the native 
+controls have been integrated into Dynamic Windows.
 
-If you have any questions or suggestions feel free to email me at dbsoft@technologist.com
+Documentation, I have all the functions relatively well documented in the 
+source code but a developers manual and online API reference will need to
+be written.
+
+If you have any questions or suggestions feel free to email me at
+dbsoft@technologist.com
 
 Thanks!
 
