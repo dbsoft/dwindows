@@ -41,6 +41,9 @@ LONG _foreground = 0xAAAAAA, _background = 0;
 
 HWND hwndBubble = NULLHANDLE, hwndBubbleLast = NULLHANDLE;
 PRECORDCORE pCore = NULL;
+ULONG aulBuffer[4];
+
+#define IS_WARP4() (aulBuffer[0] == 20 && aulBuffer[1] >= 40)
 
 #ifndef min
 #define min(a, b) (((a < b) ? a : b))
@@ -1565,6 +1568,34 @@ MRESULT EXPENTRY _wndproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 			}
 		}
 		break;
+	case WM_CONTROL:
+		switch(SHORT2FROMMP(mp1))
+		{
+		case BKN_PAGESELECTEDPENDING:
+			{
+				PAGESELECTNOTIFY *psn = (PAGESELECTNOTIFY *)mp2;
+				HWND pagehwnd = (HWND)WinSendMsg(psn->hwndBook, BKM_QUERYPAGEWINDOWHWND, MPFROMLONG(psn->ulPageIdNew), 0);
+				Box *pagebox = (Box *)WinQueryWindowPtr(pagehwnd, QWP_USER);
+				unsigned long x, y, width, height;
+				RECTL rc;
+
+				if(pagebox)
+				{
+					dw_window_get_pos_size(psn->hwndBook, &x, &y, &width, &height);
+
+					rc.xLeft = x;
+					rc.yBottom = y;
+					rc.xRight = x + width;
+					rc.yTop = y + height;
+
+					WinSendMsg(psn->hwndBook, BKM_CALCPAGERECT, (MPARAM)&rc, (MPARAM)TRUE);
+
+					_do_resize(pagebox, rc.xRight - rc.xLeft, rc.yTop - rc.yBottom);
+				}
+			}
+			break;
+		}
+		break;
 	case WM_CLOSE:
 		dw_window_destroy(WinQueryWindow(hWnd, QW_PARENT));
 		return (MRESULT)TRUE;
@@ -2129,6 +2160,9 @@ int dw_init(int newthread, int argc, char *argv[])
 	rc = WinRegisterClass(dwhab, ClassName, _wndproc, CS_SIZEREDRAW | CS_CLIPCHILDREN, 32);
 	rc = WinRegisterClass(dwhab, SplitbarClassName, _splitwndproc, 0L, 32);
 
+	/* Get the OS/2 version. */
+	DosQuerySysInfo(QSV_VERSION_MAJOR, QSV_MS_COUNT,(void *)aulBuffer, 4*sizeof(ULONG));
+
 #ifdef DWDEBUG
 	f = fopen("dw.log", "wt");
 #endif
@@ -2631,6 +2665,13 @@ HWND dw_notebook_new(ULONG id, int top)
 						  id,
 						  NULL,
 						  NULL);
+
+	/* Fix tab sizes on Warp 3 */
+	if(!IS_WARP4())
+	{
+		/* best sizes to be determined by trial and error */
+		WinSendMsg(tmp, BKM_SETDIMENSIONS,MPFROM2SHORT(102, 28), MPFROMSHORT( BKA_MAJORTAB));
+	}
 
 	dw_window_set_font(tmp, DefaultFont);
 	return tmp;
@@ -5397,15 +5438,10 @@ ULONG _GetSystemBuildLevel(void) {
  */
 void dw_environment_query(DWEnv *env)
 {
-	ULONG aulBuffer[4];
 	ULONG Build;
 
 	if(!env)
 		return;
-
-	/* Get the OS/2 version. */
-
-	DosQuerySysInfo(QSV_VERSION_MAJOR, QSV_MS_COUNT,(void *)aulBuffer, 4*sizeof(ULONG));
 
 	/* The default is OS/2 2.0 */
 	strcpy(env->osName,"OS/2");
@@ -5528,14 +5564,39 @@ int dw_exec(char *program, int type, char **params)
 int dw_browse(char *url)
 {
 	/* Is there a way to find the webbrowser in Unix? */
-	char *execargs[3], browser[1024];
+	char *execargs[3], browser[1024], *newurl = NULL;
+	int len;
 
 	PrfQueryProfileString(HINI_USERPROFILE, "WPURLDEFAULTSETTINGS",
 						  "DefaultBrowserExe", NULL, browser, 1024);
 
+	len = strlen(browser) - strlen("explore.exe");
+
 	execargs[0] = browser;
 	execargs[1] = url;
 	execargs[2] = NULL;
+
+	/* Special case for Web Explorer, it requires file:/// instead
+	 * of file:// so I am handling it here.
+	 */
+	if(len > 0)
+	{
+		if(stricmp(&browser[len], "explore.exe") == 0)
+		{
+			int newlen, z;
+			newurl = alloca(strlen(url) + 2);
+			sprintf(newurl, "file:///%s", &url[7]);
+			newlen = strlen(newurl);
+			for(z=8;z<(newlen-8);z++)
+			{
+				if(newurl[z] == '|')
+					newurl[z] = ':';
+				if(newurl[z] == '/')
+					newurl[z] = '\\';
+			}
+			execargs[1] = newurl;
+		}
+	}
 
 	return dw_exec(browser, DW_EXEC_GUI, execargs);
 }
