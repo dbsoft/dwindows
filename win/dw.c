@@ -419,7 +419,21 @@ BOOL CALLBACK _free_window_memory(HWND handle, LPARAM lParam)
 
 void _free_menu_data(HMENU menu)
 {
-	/* TODO: This needs to call this on all submenus */
+#ifndef WINNT_COMPAT
+	int i, count = GetMenuItemCount(menu);
+
+	for(i=0;i<count;i++)
+	{
+		MENUITEMINFO mii;
+
+		mii.cbSize = sizeof(MENUITEMINFO);
+		mii.fMask = MIIM_SUBMENU;
+
+		if(GetMenuItemInfo(menu, i, TRUE, &mii)
+		   && mii.hSubMenu)
+			_free_menu_data(mii.hSubMenu);
+	}
+#endif
 	dw_signal_disconnect_by_name((HWND)menu, DW_SIGNAL_CLICKED);
 }
 
@@ -1873,9 +1887,16 @@ BOOL CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 		}
 		break;
 	case WM_DESTROY:
-		/* Free memory before destroying */
-		_free_window_memory(hWnd, 0);
-		EnumChildWindows(hWnd, _free_window_memory, 0);
+		{
+			HMENU menu = GetMenu(hWnd);
+
+			if(menu)
+				_free_menu_data(menu);
+
+			/* Free memory before destroying */
+			_free_window_memory(hWnd, 0);
+			EnumChildWindows(hWnd, _free_window_memory, 0);
+		}
 		break;
 	case WM_CTLCOLORSTATIC:
 	case WM_CTLCOLORLISTBOX:
@@ -3393,6 +3414,12 @@ int API dw_window_destroy(HWND handle)
 {
 	HWND parent = GetParent(handle);
 	Box *thisbox = (Box *)GetWindowLongPtr(parent, GWLP_USERDATA);
+#ifndef WINNT_COMPAT
+	HMENU menu = GetMenu(handle);
+
+	if(menu)
+		_free_menu_data(menu);
+#endif
 
 	if(parent != HWND_DESKTOP && thisbox && thisbox->count)
 	{
