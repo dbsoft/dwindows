@@ -5527,7 +5527,7 @@ void API dw_mle_set_word_wrap(HWND handle, int state)
  */
 void API dw_mle_set(HWND handle, int point)
 {
-	SendMessage(handle, EM_SETSEL, (WPARAM)point, (LPARAM)point);
+	SendMessage(handle, EM_SETSEL, 0, MAKELONG(point,point));
 	SendMessage(handle, EM_SCROLLCARET, 0, 0);
 }
 
