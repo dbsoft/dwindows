@@ -806,7 +806,41 @@ int locale_init(char *filename, int my_locale)
 				{
 					/* Use defaults on blank lines */
 					if(text[0])
-						locale_text[current] = strdup(text);
+					{
+						int x = 0, z, len = strlen(text);
+
+						locale_text[current] = calloc(1, len + 1);
+
+						for(z=0;z<len;z++)
+						{
+							if(text[z] == '\\' && (text[z+1] == 'r' || text[z+1] == 'n'
+							   || text[z+1] == '\"'  || text[z+1] == '\''))
+							{
+								switch(text[z+1])
+								{
+								case 'r':
+									locale_text[current][x] = '\r';
+                                    break;
+								case 'n':
+									locale_text[current][x] = '\n';
+                                    break;
+								case '\"':
+									locale_text[current][x] = '\"';
+                                    break;
+								case '\'':
+									locale_text[current][x] = '\'';
+                                    break;
+								}
+								x++;
+								z++;
+							}
+							else
+							{
+								locale_text[current][x] = text[z];
+								x++;
+							}
+						}
+					}
 					current++;
 				}
 			}

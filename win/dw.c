@@ -2687,7 +2687,7 @@ int dw_init(int newthread, int argc, char *argv[])
 	wc.lpfnWndProc = (WNDPROC)_framewndproc;
 	wc.cbClsExtra = 0;
 	wc.cbWndExtra = 32;
-	wc.hbrBackground = (HBRUSH)COLOR_WINDOW;
+	wc.hbrBackground = (HBRUSH)GetSysColorBrush(COLOR_3DFACE);
 	wc.hCursor = LoadCursor(NULL, IDC_ARROW);
 	wc.lpszMenuName = NULL;
 	wc.lpszClassName = FRAMECLASSNAME;
