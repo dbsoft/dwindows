@@ -938,7 +938,7 @@ int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *usedy,
 
 		if(text)
 		{
-			dw_font_text_extents(thisbox->grouphwnd, 0, text, NULL, &thisbox->grouppady);
+			dw_font_text_extents_get(thisbox->grouphwnd, 0, text, NULL, &thisbox->grouppady);
 			dw_free(text);
 		}
 
@@ -4612,7 +4612,7 @@ HWND API dw_bitmapbutton_new_from_file(char *text, unsigned long id, char *filen
 			_load_bitmap_file(file, tmp, &pixmap->hbm, &pixmap->hdc, &pixmap->hps, &pixmap->width, &pixmap->height);
 
 		/* Create a disabled style pixmap */
-		disabled = dw_pixmap_new(tmp, pixmap->width, pixmap->height, dw_color_depth());
+		disabled = dw_pixmap_new(tmp, pixmap->width, pixmap->height, dw_color_depth_get());
 		dw_pixmap_bitblt(0, disabled, 0, 0, pixmap->width, pixmap->height, 0, pixmap, 0, 0);
 
 		fore = _foreground;
@@ -5288,7 +5288,7 @@ int API dw_screen_height(void)
 }
 
 /* This should return the current color depth */
-unsigned long API dw_color_depth(void)
+unsigned long API dw_color_depth_get(void)
 {
 	HDC hdc = WinOpenWindowDC(HWND_DESKTOP);
 	long colors;
@@ -7302,7 +7302,7 @@ void API dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
  *       width: Pointer to a variable to be filled in with the width.
  *       height Pointer to a variable to be filled in with the height.
  */
-void API dw_font_text_extents(HWND handle, HPIXMAP pixmap, char *text, int *width, int *height)
+void API dw_font_text_extents_get(HWND handle, HPIXMAP pixmap, char *text, int *width, int *height)
 {
 	HPS hps;
 	POINTL aptl[TXTBOX_COUNT];

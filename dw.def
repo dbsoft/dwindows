@@ -149,7 +149,7 @@ EXPORTS
   dw_screen_width                        @250
   dw_screen_height                       @251
 
-  dw_color_depth                         @260
+  dw_color_depth_get                     @260
   dw_color_foreground_set                @261
   dw_color_background_set                @262
 
@@ -225,7 +225,7 @@ EXPORTS
   dw_tree_get_title                      @381
   dw_tree_get_parent                     @382
 
-  dw_font_text_extents                   @385
+  dw_font_text_extents_get               @385
 
   dw_slider_new                          @390
   dw_slider_get_pos                      @391

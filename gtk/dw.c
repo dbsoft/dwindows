@@ -1295,7 +1295,7 @@ int dw_messagebox(char *title, int flags, char *format, ...)
 	text_height = 0;
 	stext = dw_text_new(outbuf, 0);
 	dw_window_set_style(stext, DW_DT_WORDBREAK, DW_DT_WORDBREAK);
-	dw_font_text_extents(stext, NULL, outbuf, &width, &height);
+	dw_font_text_extents_get(stext, NULL, outbuf, &width, &height);
 	height = height+3;
 	if(width < text_width)
 		text_height = height*2;
@@ -5871,7 +5871,7 @@ void dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
  *       width: Pointer to a variable to be filled in with the width.
  *       height Pointer to a variable to be filled in with the height.
  */
-void dw_font_text_extents(HWND handle, HPIXMAP pixmap, char *text, int *width, int *height)
+void dw_font_text_extents_get(HWND handle, HPIXMAP pixmap, char *text, int *width, int *height)
 {
 	int _locked_by_me = FALSE;
 #if GTK_MAJOR_VERSION > 1
@@ -6659,7 +6659,7 @@ int dw_screen_height(void)
 }
 
 /* This should return the current color depth */
-unsigned long dw_color_depth(void)
+unsigned long dw_color_depth_get(void)
 {
 	int retval;
 	int _locked_by_me = FALSE;
