@@ -811,7 +811,7 @@ void create_button( int redraw)
 
 void mdi_add(void)
 {
-	HWND mdibox, mdi, mdi1w, ef, mdi2w, mdi2box, bb;
+	HWND mdibox, mdi, mdi1w, mdi1box, ef, mdi2w, mdi2box, bb;
 
 	/* create a box to pack into the notebook page */
 	mdibox = dw_box_new(DW_HORZ, 0);
@@ -823,8 +823,10 @@ void mdi_add(void)
 	dw_box_pack_start(mdibox, mdi, 500, 200, TRUE, TRUE, 2);
 
 	mdi1w = dw_window_new(mdi, "MDI1", flStyle | DW_FCF_SIZEBORDER | DW_FCF_MINMAX);
+    mdi1box = dw_box_new(DW_HORZ, 0);
+	dw_box_pack_start(mdi1w, mdi1box, 0, 0, TRUE, TRUE, 0);
 	ef = dw_entryfield_new("", 0);
-	dw_box_pack_start(mdi1w, ef, 100, 15, FALSE, FALSE, 4);
+    dw_box_pack_start(mdi1box, ef, 100, 20, FALSE, FALSE, 4);
 	dw_window_set_size(mdi1w, 200, 100);
 	dw_window_show(mdi1w);
 
@@ -834,7 +836,7 @@ void mdi_add(void)
 	ef = dw_entryfield_new( "", 0);
 	dw_box_pack_start(mdi2box, ef, 150, 30, FALSE, FALSE, 4);
 	bb = dw_button_new("Browse", 0);
-	dw_box_pack_start(mdi2box, bb, 60, 30, FALSE, FALSE, 0);
+	dw_box_pack_start(mdi2box, bb, 60, 30, FALSE, FALSE, 4);
 	dw_window_set_size(mdi2w, 200, 100);
 	dw_window_show(mdi2w);
 	dw_window_set_pos(mdi2w, 200, 200);
