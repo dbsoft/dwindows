@@ -193,7 +193,9 @@ typedef struct _user_data
 #define VK_NUMPAD7           ('7' + 128)
 #define VK_NUMPAD8           ('8' + 128)
 #define VK_NUMPAD9           ('9' + 128)
-
+#define VK_BACK              VK_BACKSPACE
+#define VK_LMENU             VK_MENU
+#define VK_RMENU             VK_MENU
 
 typedef struct _window_data {
 	PFNWP oldproc;
