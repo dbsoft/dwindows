@@ -1197,7 +1197,7 @@ int dw_window_show(HWND handle)
 
 		if(width && height)
 		{
-			gdk_window_resize(GTK_WIDGET(handle)->window, width, height);
+			gtk_widget_set_usize(handle, width, height);
 			gtk_object_set_data(GTK_OBJECT(handle), "_dw_width", 0);
 			gtk_object_set_data(GTK_OBJECT(handle), "_dw_height", 0);
 		}
@@ -1207,7 +1207,7 @@ int dw_window_show(HWND handle)
 		gdk_window_show(GTK_WIDGET(handle)->window);
 		gdk_flush();
 	}
-	defaultitem = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(handle), "defaultitem");
+	defaultitem = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(handle), "_dw_defaultitem");
 	if(defaultitem)
 		gtk_widget_grab_focus(defaultitem);
 	DW_MUTEX_UNLOCK;
@@ -7050,7 +7050,7 @@ void dw_window_default(HWND window, HWND defaultitem)
 		return;
 
 	DW_MUTEX_LOCK;
-	gtk_object_set_data(GTK_OBJECT(window),  "defaultitem", (gpointer)defaultitem);
+	gtk_object_set_data(GTK_OBJECT(window),  "_dw_defaultitem", (gpointer)defaultitem);
 	DW_MUTEX_UNLOCK;
 }
 
