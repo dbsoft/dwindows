@@ -306,6 +306,10 @@ void _free_bitmap(HWND handle)
 	HDC hdc = (HDC)dw_window_get_data(handle, "_dw_hdc");
 	HPIXMAP pixmap = (HPIXMAP)dw_window_get_data(handle, "_dw_hpixmap");
 	HPIXMAP disable = (HPIXMAP)dw_window_get_data(handle, "_dw_hpixmap_disabled");
+	HPOINTER icon = (HPOINTER)dw_window_get_data(handle, "_dw_button_icon");
+
+	if(icon)
+		WinDestroyPointer(icon);
 
 	if(pixmap)
 		dw_pixmap_destroy(pixmap);
