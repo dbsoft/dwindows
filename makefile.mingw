@@ -1,0 +1,48 @@
+
+# Dynamic Windows MINGW Makefile
+
+# make -C MingW32-gcc-3.4.0-DEBUG -f ../makefile.mingw DEBUG=Y > MingW32-gcc-3.4.0-DEBUG/make-out.log 2>&1
+# make -C MingW32-gcc-3.4.0-RELEASE -f ../makefile.mingw > MingW32-gcc-3.4.0-RELEASE/make-out.log 2>&1
+
+CC = gcc
+
+DEFS =
+LIBS =
+
+CFLAGS = -O -g -DMSVC -DBUILD_DLL -I../ -I../platform -Wall -mthreads -o $(@)
+LDFLAGS = -shared -mwindows -mthreads -lcomctl32
+
+COMPATOBJECTS = compat.o dirent.o
+
+VPATH=../ ../win
+
+all: dw.dll dwcompat.dll dwtest.exe
+
+dw.dll:  dw.o ../dww.def
+	$(CC) $(CFLAGS) $(DEFS) -o dw.dll dw.o $(LDFLAGS) \
+	-Wl,--out-implib,dw.a -Wl,-Map,dw.dll.map -Wl,--cref ../dww-mingw.def
+
+dwcompat.dll:  $(COMPATOBJECTS)
+	$(CC) $(CFLAGS) $(DEFS) -o dwcompat.dll $(COMPATOBJECTS) $(LDFLAGS) -lwsock32 \
+  -Wl,--out-implib,dwcompat.a -Wl,-Map,dwcompat.dll.map -Wl,--cref ../dwcompatw-mingw.def
+
+dwtest.exe: dwtest.o dw.a dwcompat.a
+	$(CC) $(CFLAGS) -o dwtest.exe dwtest.o dw.a dwcompat.a
+
+dw.obj: dw.c
+	$(CC) $(CFLAGS) -c $<	
+
+compat.obj: compat.c
+	$(CC) $(CFLAGS) -c $<	
+
+dirent.obj: os2/dirent.c
+	$(CC) $(CFLAGS) -c $<	
+
+dwtest.obj: dwtest.c
+	$(CC) $(CFLAGS) -c $<	
+
+DEPS := $(wildcard *.d)
+ifneq ($(DEPS),)
+include $(DEPS)
+endif
+
