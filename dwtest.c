@@ -6,12 +6,20 @@
 /* Select a fixed width font for our platform */
 #ifdef __OS2__
 #define FIXEDFONT "5.System VIO"
+#define FOLDER_ICON_NAME "os2\folder"
+#define FILE_ICON_NAME "os2\file"
 #elif defined(__WIN32__)
 #define FIXEDFONT "10.Terminal"
+#define FOLDER_ICON_NAME "win\folder"
+#define FILE_ICON_NAME "win\file"
 #elif GTK_MAJOR_VERSION > 1
 #define FIXEDFONT "monospace 10"
+#define FOLDER_ICON_NAME "gtk/folder"
+#define FILE_ICON_NAME "gtk/file"
 #else
 #define FIXEDFONT "fixed"
+#define FOLDER_ICON_NAME "gtk/folder"
+#define FILE_ICON_NAME "gtk/file"
 #endif
 
 #define SCROLLBARWIDTH 14
@@ -31,7 +39,7 @@ HWND mainwindow,
      notebook,
      vscrollbar,
      hscrollbar,
-     status,
+     status, status1,
      stext,
      tree,
      pagebox,
@@ -54,6 +62,113 @@ int current_row=0,current_col=0;
 
 FILE *fp=NULL;
 char **lp;
+
+char *resolve_keyname( int vk )
+{
+	char *keyname;
+	switch(vk)
+		{
+			case  VK_LBUTTON : keyname =  "VK_LBUTTON"; break;
+			case  VK_RBUTTON : keyname =  "VK_RBUTTON"; break;
+			case  VK_CANCEL  : keyname =  "VK_CANCEL"; break;
+			case  VK_MBUTTON : keyname =  "VK_MBUTTON"; break;
+/*			case  VK_BACK    : keyname =  "VK_BACK"; break;*/
+			case  VK_TAB     : keyname =  "VK_TAB"; break;
+			case  VK_CLEAR   : keyname =  "VK_CLEAR"; break;
+			case  VK_RETURN  : keyname =  "VK_RETURN"; break;
+			case  VK_MENU    : keyname =  "VK_MENU"; break;
+			case  VK_PAUSE   : keyname =  "VK_PAUSE"; break;
+			case  VK_CAPITAL : keyname =  "VK_CAPITAL"; break;
+			case  VK_ESCAPE  : keyname =  "VK_ESCAPE"; break;
+			case  VK_SPACE   : keyname =  "VK_SPACE"; break;
+			case  VK_PRIOR   : keyname =  "VK_PRIOR"; break;
+			case  VK_NEXT    : keyname =  "VK_NEXT"; break;
+			case  VK_END     : keyname =  "VK_END"; break;
+			case  VK_HOME    : keyname =  "VK_HOME"; break;
+			case  VK_LEFT    : keyname =  "VK_LEFT"; break;
+			case  VK_UP      : keyname =  "VK_UP"; break;
+			case  VK_RIGHT   : keyname =  "VK_RIGHT"; break;
+			case  VK_DOWN    : keyname =  "VK_DOWN"; break;
+			case  VK_SELECT  : keyname =  "VK_SELECT"; break;
+			case  VK_PRINT   : keyname =  "VK_PRINT"; break;
+			case  VK_EXECUTE : keyname =  "VK_EXECUTE"; break;
+			case  VK_SNAPSHOT: keyname =  "VK_SNAPSHOT"; break;
+			case  VK_INSERT  : keyname =  "VK_INSERT"; break;
+			case  VK_DELETE  : keyname =  "VK_DELETE"; break;
+			case  VK_HELP    : keyname =  "VK_HELP"; break;
+			case  VK_LWIN    : keyname =  "VK_LWIN"; break;
+			case  VK_RWIN    : keyname =  "VK_RWIN"; break;
+			case  VK_NUMPAD0 : keyname =  "VK_NUMPAD0"; break;
+			case  VK_NUMPAD1 : keyname =  "VK_NUMPAD1"; break;
+			case  VK_NUMPAD2 : keyname =  "VK_NUMPAD2"; break;
+			case  VK_NUMPAD3 : keyname =  "VK_NUMPAD3"; break;
+			case  VK_NUMPAD4 : keyname =  "VK_NUMPAD4"; break;
+			case  VK_NUMPAD5 : keyname =  "VK_NUMPAD5"; break;
+			case  VK_NUMPAD6 : keyname =  "VK_NUMPAD6"; break;
+			case  VK_NUMPAD7 : keyname =  "VK_NUMPAD7"; break;
+			case  VK_NUMPAD8 : keyname =  "VK_NUMPAD8"; break;
+			case  VK_NUMPAD9 : keyname =  "VK_NUMPAD9"; break;
+			case  VK_MULTIPLY: keyname =  "VK_MULTIPLY"; break;
+			case  VK_ADD     : keyname =  "VK_ADD"; break;
+			case  VK_SEPARATOR: keyname = "VK_SEPARATOR"; break;
+			case  VK_SUBTRACT: keyname =  "VK_SUBTRACT"; break;
+			case  VK_DECIMAL : keyname =  "VK_DECIMAL"; break;
+			case  VK_DIVIDE  : keyname =  "VK_DIVIDE"; break;
+			case  VK_F1      : keyname =  "VK_F1"; break;
+			case  VK_F2      : keyname =  "VK_F2"; break;
+			case  VK_F3      : keyname =  "VK_F3"; break;
+			case  VK_F4      : keyname =  "VK_F4"; break;
+			case  VK_F5      : keyname =  "VK_F5"; break;
+			case  VK_F6      : keyname =  "VK_F6"; break;
+			case  VK_F7      : keyname =  "VK_F7"; break;
+			case  VK_F8      : keyname =  "VK_F8"; break;
+			case  VK_F9      : keyname =  "VK_F9"; break;
+			case  VK_F10     : keyname =  "VK_F10"; break;
+			case  VK_F11     : keyname =  "VK_F11"; break;
+			case  VK_F12     : keyname =  "VK_F12"; break;
+			case  VK_F13     : keyname =  "VK_F13"; break;
+			case  VK_F14     : keyname =  "VK_F14"; break;
+			case  VK_F15     : keyname =  "VK_F15"; break;
+			case  VK_F16     : keyname =  "VK_F16"; break;
+			case  VK_F17     : keyname =  "VK_F17"; break;
+			case  VK_F18     : keyname =  "VK_F18"; break;
+			case  VK_F19     : keyname =  "VK_F19"; break;
+			case  VK_F20     : keyname =  "VK_F20"; break;
+			case  VK_F21     : keyname =  "VK_F21"; break;
+			case  VK_F22     : keyname =  "VK_F22"; break;
+			case  VK_F23     : keyname =  "VK_F23"; break;
+			case  VK_F24     : keyname =  "VK_F24"; break;
+			case  VK_NUMLOCK : keyname =  "VK_NUMLOCK"; break;
+			case  VK_SCROLL  : keyname =  "VK_SCROLL"; break;
+			case  VK_LSHIFT  : keyname =  "VK_LSHIFT"; break;
+			case  VK_RSHIFT  : keyname =  "VK_RSHIFT"; break;
+			case  VK_LCONTROL: keyname =  "VK_LCONTROL"; break;
+			case  VK_RCONTROL: keyname =  "VK_RCONTROL"; break;
+/*			case  VK_LMENU   : keyname =  "VK_LMENU"; break; */
+/*			case  VK_RMENU   : keyname =  "VK_RMENU"; break;*/
+			default: keyname = "<unknown>"; break;
+		}
+	return keyname;
+}
+
+char *resolve_keymodifiers( int mask )
+{
+	if ( (mask & KC_CTRL) && (mask & KC_SHIFT) && (mask && KC_ALT) )
+		return "KC_CTRL KC_SHIFT KC_ALT";
+	else if ( (mask & KC_CTRL) && (mask & KC_SHIFT) )
+		return "KC_CTRL KC_SHIFT";
+	else if ( (mask & KC_CTRL) && (mask & KC_ALT) )
+		return "KC_CTRL KC_ALT";
+	else if ( (mask & KC_SHIFT) && (mask & KC_ALT) )
+		return "KC_SHIFT KC_ALT";
+	else if ( (mask & KC_SHIFT) )
+		return "KC_SHIFT";
+	else if ( (mask & KC_CTRL) )
+		return "KC_CTRL";
+	else if ( (mask & KC_ALT) )
+		return "KC_ALT";
+	else return "none";
+}
 
 /* This gets called when a part of the graph needs to be repainted. */
 int DWSIGNAL text_expose(HWND hwnd, DWExpose *exp, void *data)
@@ -135,13 +250,12 @@ int DWSIGNAL beep_callback(HWND window, void *data)
 
 int DWSIGNAL keypress_callback(HWND window, char ch, int vk, int state, void *data)
 {
-	FILE *fp = fopen("log", "a+");
-
-	if(fp)
-	{
-		fprintf(fp,"got keypress %c 0x%x %d %d\n", ch, ch, vk, state);
-		fclose(fp);
-	}
+	char tmpbuf[100];
+	if ( ch )
+		sprintf( tmpbuf, "Key: %c(%d) Modifiers: %s(%d)", ch, ch, resolve_keymodifiers(state), state );
+	else
+		sprintf( tmpbuf, "Key: %s(%d) Modifiers: %s(%d)", resolve_keyname(vk), vk, resolve_keymodifiers(state), state );
+	dw_window_set_text( status1, tmpbuf);
 	return 0;
 }
 
@@ -291,13 +405,16 @@ void text_add(void)
 	/* now a status area under this box */
 	status = dw_status_text_new("", 0);
 	dw_box_pack_start( notebookbox2, status, 100, 20, TRUE, FALSE, 1);
+	/* and another one */
+	status1 = dw_status_text_new("", 0);
+	dw_box_pack_start( notebookbox2, status1, 100, 20, TRUE, FALSE, 1);
 
 	/* create render box for number pixmap */
 	textbox1 = dw_render_new( 100 );
 	dw_window_set_font(textbox1, FIXEDFONT);
 	dw_font_text_extents(textbox1, NULL, "O", &font_width, &font_height);
 	vscrollbox = dw_box_new(BOXVERT, 0);
-	dw_box_pack_start(vscrollbox, textbox1, (font_width*(width1+1)), font_height*rows, FALSE, TRUE, 0);
+	dw_box_pack_start(vscrollbox, textbox1, font_width*width1, font_height*rows, FALSE, TRUE, 0);
 	dw_box_pack_start(vscrollbox, 0, (font_width*(width1+1)), SCROLLBARWIDTH, FALSE, FALSE, 0);
 	dw_box_pack_start(pagebox, vscrollbox, 0, 0, FALSE, TRUE, 0);
 
@@ -333,13 +450,15 @@ void text_add(void)
 	dw_signal_connect(textbox2, "configure_event", DW_SIGNAL_FUNC(configure_event), text2pm);
 	dw_signal_connect(hscrollbar, "value_changed", DW_SIGNAL_FUNC(scrollbar_valuechanged), (void *)status);
 	dw_signal_connect(vscrollbar, "value_changed", DW_SIGNAL_FUNC(scrollbar_valuechanged), (void *)status);
-	dw_signal_connect(textbox1, "key_press_event", DW_SIGNAL_FUNC(keypress_callback), text1pm);
-	dw_signal_connect(textbox2, "key_press_event", DW_SIGNAL_FUNC(keypress_callback), text2pm);
+
+	dw_signal_connect(mainwindow, "key_press_event", DW_SIGNAL_FUNC(keypress_callback), NULL);
 }
 
 void tree_add(void)
 {
 	HWND t1,t2,t3;
+	int depth = dw_color_depth();
+	unsigned long fileicon,foldericon;
 
 	/* create a box to pack into the notebook page */
 	treebox = dw_box_new(BOXHORZ, 2);
@@ -349,9 +468,12 @@ void tree_add(void)
 	tree = dw_tree_new(0);
 	dw_box_pack_start( notebookbox3, tree, 500, 200, TRUE, FALSE, 1);
 
-	t1 = dw_tree_insert(tree, "tree item 1", 0, 0, 0 );
-	t2 = dw_tree_insert(tree, "tree item 2", 0, 0, 0 );
-	t3 = dw_tree_insert(tree, "tree item 3", 0, t2, 0 );
+	foldericon = dw_icon_load_from_file( FOLDER_ICON_NAME );
+	fileicon = dw_icon_load_from_file( FILE_ICON_NAME  );
+
+	t1 = dw_tree_insert(tree, "tree item 1", foldericon, NULL, NULL );
+	t2 = dw_tree_insert(tree, "tree item 2", foldericon, NULL, NULL );
+	t3 = dw_tree_insert(tree, "tree item 3", fileicon, t2, NULL );
 
 /*
 	dw_signal_connect(textbox1, "expose_event", DW_SIGNAL_FUNC(text_expose), NULL);
