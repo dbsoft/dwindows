@@ -20,6 +20,7 @@ HWND mainwindow,
      notebookbox2,
      notebook,
      scrollbar,
+     status,
      stext,
      pagebox,
      textbox1, textbox2,
@@ -148,6 +149,18 @@ int DWSIGNAL text_expose(HWND hwnd, DWExpose *exp, void *data)
 	return TRUE;
 }
 
+/* Callback to handle user selection of the scrollbar position */
+void DWSIGNAL scrollbar_valuechanged(HWND hwnd, int value, void *data)
+{
+	if(data)
+	{
+		HWND stext = (HWND)data;
+		char tmpbuf[100];
+
+		sprintf(tmpbuf, "%d", value);
+		dw_window_set_text(stext, tmpbuf);
+	}
+}
 void text_add(void)
 {
 	int i,y,depth = dw_color_depth();
@@ -169,6 +182,9 @@ void text_add(void)
 	dw_box_pack_start( pagebox, scrollbar, 100, 20, TRUE, FALSE, 0);
 	dw_scrollbar_set_range(scrollbar, 100, 50);
 	dw_scrollbar_set_pos(scrollbar, 10);
+
+	status = dw_status_text_new("", 0);
+	dw_box_pack_start( pagebox, status, 100, 20, TRUE, FALSE, 1);
 
 	text1pm = dw_pixmap_new( textbox1, font_width*width1, font_height*rows, depth );
 	text2pm = dw_pixmap_new( textbox2, font_width*width2, font_height*rows, depth );
@@ -192,6 +208,7 @@ void text_add(void)
 	}
 	dw_signal_connect(textbox1, "expose_event", DW_SIGNAL_FUNC(text_expose), text1pm);
 	dw_signal_connect(textbox2, "expose_event", DW_SIGNAL_FUNC(text_expose), text2pm);
+	dw_signal_connect(scrollbar, "value_changed", DW_SIGNAL_FUNC(scrollbar_valuechanged), (void *)status);
 }
 
 /* Beep every second */
