@@ -1338,7 +1338,7 @@ BOOL CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 		msg = WM_LBUTTONUP;
 	else if(msg == WM_HSCROLL)
 		msg = WM_VSCROLL;
-	else if(msg == WM_KEYDOWN && mp1 >= VK_F1 && mp1 <= VK_F24)
+	else if(msg == WM_KEYDOWN) /* && mp1 >= VK_F1 && mp1 <= VK_F24) allow ALL special keys */
 		msg = WM_CHAR;
 
 	if(result == -1)
