@@ -2750,11 +2750,14 @@ void dw_window_set_pointer(HWND handle, int pointertype)
 		GdkPixmap  *pixmap = _find_private_pixmap(&bitmap, (pointertype & 0xFFFFFF), NULL, NULL);
 		cursor = gdk_cursor_new_from_pixmap(pixmap, (GdkPixmap *)bitmap, &_colors[DW_CLR_WHITE], &_colors[DW_CLR_BLACK], 8, 8);
 	}
+	else if(!pointertype)
+		cursor = NULL;
 	else
 		cursor = gdk_cursor_new(pointertype);
 	if(handle && handle->window)
 		gdk_window_set_cursor(handle->window, cursor);
-	gdk_cursor_destroy(cursor);
+	if(cursor)
+		gdk_cursor_destroy(cursor);
 	DW_MUTEX_UNLOCK;
 }
 
