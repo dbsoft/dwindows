@@ -8,7 +8,11 @@
  *
  */
 #define _WIN32_IE 0x0500
+#ifdef WINNT_COMPAT
 #define WINVER 0x400
+#else
+#define WINVER 0x500
+#endif
 #include <windows.h>
 #include <windowsx.h>
 #include <commctrl.h>
@@ -204,7 +208,7 @@ char **_convertargs(int *count, char *start)
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
 	char **argv;
-    int argc;
+	int argc;
 
 	DWInstance = hInstance;
 
@@ -275,9 +279,6 @@ void _new_signal(ULONG message, HWND window, int id, void *signalfunction, void 
 {
 	SignalHandler *new = malloc(sizeof(SignalHandler));
 
-	if(message == WM_COMMAND)
-		dw_signal_disconnect_by_window(window);
-
 	new->message = message;
 	new->window = window;
 	new->id = id;
@@ -294,6 +295,7 @@ void _new_signal(ULONG message, HWND window, int id, void *signalfunction, void 
 		{
 			if(tmp->message == message &&
 			   tmp->window == window &&
+			   tmp->id == id &&
 			   tmp->signalfunction == signalfunction)
 			{
 				tmp->data = data;
@@ -1342,6 +1344,35 @@ int _HandleScroller(HWND handle, int pos, int which)
 	return -1;
 }
 
+#ifndef WINNT_COMPAT
+HMENU _get_owner(HMENU menu)
+{
+	MENUINFO mi;
+
+	mi.cbSize = sizeof(MENUINFO);
+	mi.fMask = MIM_MENUDATA;
+
+	if(GetMenuInfo(menu, &mi))
+		return (HMENU)mi.dwMenuData;
+	return (HMENU)0;
+}
+
+/* Find the desktop window handle */
+HMENU _menu_owner(HMENU handle)
+{
+	HMENU menuowner = 0, lastowner = _get_owner(handle);
+
+	/* Find the toplevel menu */
+	while((menuowner = _get_owner(lastowner)) != 0)
+	{
+		if(menuowner == (HMENU)1)
+			return lastowner;
+		lastowner = menuowner;
+	}
+	return (HMENU)0;
+}
+#endif
+
 /* The main window procedure for Dynamic Windows, all the resizing code is done here. */
 BOOL CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 {
@@ -1664,7 +1695,19 @@ BOOL CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 								result = listboxselectfunc(tmp->window, dw_listbox_selected(tmp->window), tmp->data);
 								tmp = NULL;
 							}
+						}
+#ifndef WINNT_COMPAT
+						else if(tmp->id && passthru == tmp->id)
+						{
+							HMENU hwndmenu = GetMenu(hWnd), menuowner = _menu_owner((HMENU)tmp->window);
+
+							if(menuowner == hwndmenu || !menuowner)
+							{
+								result = clickfunc(tmp->window, tmp->data);
+								tmp = NULL;
+							}
 						} /* Make sure it's the right window, and the right ID */
+#endif
 						else if(tmp->window < (HWND)65536 && command == tmp->window)
 						{
 							result = clickfunc(popup ? popup : tmp->window, tmp->data);
@@ -3835,6 +3878,18 @@ HMENUI API dw_menubar_new(HWND location)
 
 	tmp = (HMENUI)CreateMenu();
 
+#ifndef WINNT_COMPAT
+	{
+		MENUINFO mi;
+
+		mi.cbSize = sizeof(MENUINFO);
+		mi.fMask = MIM_MENUDATA;
+		mi.dwMenuData = (ULONG_PTR)1;
+
+		SetMenuInfo((HMENU)tmp, &mi);
+	}
+#endif
+
 	dw_window_set_data(location, "_dw_menu", (void *)tmp);
 
 	SetMenu(location, (HMENU)tmp);
@@ -3874,6 +3929,9 @@ HWND API dw_menu_append_item(HMENUI menux, char *title, ULONG id, ULONG flags, i
 {
 	MENUITEMINFO mii;
 	HMENU mymenu = (HMENU)menux;
+#ifndef WINNT_COMPAT
+	char buffer[15];
+#endif
 
 	if(IsWindow(menux) && !IsMenu(mymenu))
 		mymenu = (HMENU)dw_window_get_data(menux, "_dw_menu");
@@ -3908,6 +3966,24 @@ HWND API dw_menu_append_item(HMENUI menux, char *title, ULONG id, ULONG flags, i
 	mii.cch = strlen(title);
 
 	InsertMenuItem(mymenu, 65535, TRUE, &mii);
+
+#ifndef WINNT_COMPAT
+	sprintf(buffer, "_dw_id%d", id);
+	dw_window_set_data(DW_HWND_OBJECT, buffer, (void *)mymenu);
+
+	/* According to the docs this will only work on Win2k/98 and above */
+	if(submenu)
+	{
+		MENUINFO mi;
+
+		mi.cbSize = sizeof(MENUINFO);
+		mi.fMask = MIM_MENUDATA;
+		mi.dwMenuData = (ULONG_PTR)mymenu;
+
+		SetMenuInfo((HMENU)submenu, &mi);
+	}
+#endif
+
 	if(IsWindow(menux) && !IsMenu((HMENU)menux))
 		DrawMenuBar(menux);
 	return (HWND)id;
@@ -8128,7 +8204,7 @@ void API dw_timer_disconnect(int id)
  */
 void API dw_signal_connect(HWND window, char *signame, void *sigfunc, void *data)
 {
-	ULONG message = 0L;
+	ULONG message = 0, id = 0;
 
 	if(window && signame && sigfunc)
 	{
@@ -8136,7 +8212,30 @@ void API dw_signal_connect(HWND window, char *signame, void *sigfunc, void *data
 			window = _normalize_handle(window);
 
 		if((message = _findsigmessage(signame)) != 0)
-			_new_signal(message, window, 0, sigfunc, data);
+		{
+			/* Handle special case of the menu item */
+			if(message == WM_COMMAND && window < (HWND)65536)
+			{
+				char buffer[15];
+				HWND owner;
+
+				sprintf(buffer, "_dw_id%d", (int)window);
+				owner = (HWND)dw_window_get_data(DW_HWND_OBJECT, buffer);
+
+				if(owner)
+				{
+					id = (ULONG)window;
+					window = owner;
+					dw_window_set_data(DW_HWND_OBJECT, buffer, 0);
+				}
+				else
+				{
+					/* If it is a popup menu clear all entries */
+					dw_signal_disconnect_by_window(window);
+				}
+			}
+			_new_signal(message, window, id, sigfunc, data);
+		}
 	}
 }
 
