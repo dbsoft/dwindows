@@ -4511,6 +4511,7 @@ HWND API dw_window_from_id(HWND handle, int id)
 	EnumChildWindows(handle, _wfid, (LPARAM)id);
     return _dw_wfid_hwnd;
 }
+
 /*
  * Pack windows (widgets) into a box from the start (or top).
  * Parameters:
