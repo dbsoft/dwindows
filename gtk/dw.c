@@ -4319,14 +4319,17 @@ char * API dw_tree_get_title(HWND handle, HTREEITEM item)
 {
 	int _locked_by_me = FALSE;
 	char *text = NULL;
+#if GTK_MAJOR_VERSION > 1
+	GtkWidget *tree;
+	GtkTreeModel *store;
+#endif
 
 	if(!handle || !item)
 		return text;
 
 	DW_MUTEX_LOCK;
 #if GTK_MAJOR_VERSION > 1
-	GtkWidget *tree = (GtkWidget *)gtk_object_get_user_data(GTK_OBJECT(handle));
-	GtkTreeModel *store;
+	tree = (GtkWidget *)gtk_object_get_user_data(GTK_OBJECT(handle));
 
 	if(tree && GTK_IS_TREE_VIEW(tree) &&
 	   (store = (GtkTreeModel *)gtk_object_get_data(GTK_OBJECT(tree), "_dw_tree_store")))
@@ -4348,14 +4351,17 @@ HTREEITEM API dw_tree_get_parent(HWND handle, HTREEITEM item)
 {
 	int _locked_by_me = FALSE;
 	HTREEITEM parent = (HTREEITEM)0;
+#if GTK_MAJOR_VERSION > 1
+	GtkWidget *tree;
+	GtkTreeModel *store;
+#endif
 
 	if(!handle || !item)
 		return parent;
 
 	DW_MUTEX_LOCK;
 #if GTK_MAJOR_VERSION > 1
-	GtkWidget *tree = (GtkWidget *)gtk_object_get_user_data(GTK_OBJECT(handle));
-	GtkTreeModel *store;
+	tree = (GtkWidget *)gtk_object_get_user_data(GTK_OBJECT(handle));
 
 	if(tree && GTK_IS_TREE_VIEW(tree) &&
 	   (store = (GtkTreeModel *)gtk_object_get_data(GTK_OBJECT(tree), "_dw_tree_store")))
