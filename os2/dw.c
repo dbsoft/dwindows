@@ -3008,6 +3008,10 @@ MRESULT EXPENTRY _button_draw(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2, PFNW
 	HPIXMAP disable = (HPIXMAP)dw_window_get_data(hwnd, "_dw_hpixmap_disabled");
 	HPOINTER icon = (HPOINTER)dw_window_get_data(hwnd, "_dw_button_icon");
 	MRESULT res;
+	unsigned long width, height;
+	int x, y;
+
+	dw_window_get_pos_size(hwnd, NULL, NULL, &width, &height);
 
 	if(!oldproc)
 		res = WinDefWindowProc(hwnd, msg, mp1, mp2);
@@ -3021,18 +3025,17 @@ MRESULT EXPENTRY _button_draw(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2, PFNW
 		if(dw_window_get_data(hwnd, "_dw_disabled"))
 			halftone = DP_HALFTONED;
 
-		WinDrawPointer(hps, 5, 5, icon, halftone);
+	x = (width - 16)/2;
+	y = (height - 16)/2;
+
+		WinDrawPointer(hps, x + indent, y - indent, icon, halftone | DP_MINI);
 		WinReleasePS(hps);
 	}
 	else if(pixmap)
 	{
-		unsigned long width, height;
-		int x, y;
-
-		dw_window_get_pos_size(hwnd, NULL, NULL, &width, &height);
-
 		x = (width - pixmap->width)/2;
 		y = (height - pixmap->height)/2;
+
 
 		if(disable && dw_window_get_data(hwnd, "_dw_disabled"))
 			dw_pixmap_bitblt(hwnd, 0, x + indent, y + indent, pixmap->width, pixmap->height, 0, disable, 0, 0);
