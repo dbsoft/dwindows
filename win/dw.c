@@ -389,6 +389,7 @@ BOOL CALLBACK _free_window_memory(HWND handle, LPARAM lParam)
 					free(array[z]);
 				}
 			}
+			free(array);
 		}
 	}
 
