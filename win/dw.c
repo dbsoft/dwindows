@@ -3448,6 +3448,9 @@ int API dw_window_set_font(HWND handle, char *fontname)
 		if(cinfo)
 		{
 			strcpy(cinfo->fontname, fontname);
+			if(!oldfont)
+				oldfont = cinfo->hfont;
+			cinfo->hfont = hfont;
 		}
 		else
 		{
@@ -6918,8 +6921,9 @@ void API dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
 {
 	HDC hdc;
 	int size = 9, z, mustdelete = 0;
-	HFONT hFont, oldFont;
+	HFONT hFont = 0, oldFont = 0;
 	int threadid = dw_thread_id();
+	ColorInfo *cinfo;
 
 	if(threadid < 0 || threadid >= THREAD_LIMIT)
 		threadid = 0;
@@ -6931,21 +6935,19 @@ void API dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
 	else
 		return;
 
+	if(handle)
+		cinfo = (ColorInfo *)GetWindowLongPtr(handle, GWLP_USERDATA);
+	else
+		cinfo = (ColorInfo *)GetWindowLongPtr(pixmap->handle, GWLP_USERDATA);
+
+	if(cinfo)
 	{
-		ColorInfo *cinfo;
-
-		if(handle)
-			cinfo = (ColorInfo *)GetWindowLongPtr(handle, GWLP_USERDATA);
-		else
-			cinfo = (ColorInfo *)GetWindowLongPtr(pixmap->handle, GWLP_USERDATA);
-
-		if(cinfo)
-		{
-			hFont = _acquire_font(handle, cinfo->fontname);
-			mustdelete = 1;
-		}
+		hFont = _acquire_font(handle, cinfo->fontname);
+		mustdelete = 1;
 	}
-	oldFont = SelectObject(hdc, hFont);
+
+	if(hFont)
+		oldFont = SelectObject(hdc, hFont);
 	SetTextColor(hdc, _foreground[threadid]);
 	if(_background[threadid] == DW_RGB_TRANSPARENT)
 		SetBkMode(hdc, TRANSPARENT);
@@ -6955,7 +6957,8 @@ void API dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
 		SetBkColor(hdc, _background[threadid]);
 	}
 	TextOut(hdc, x, y, text, strlen(text));
-	SelectObject(hdc, oldFont);
+	if(oldFont)
+		SelectObject(hdc, oldFont);
 	if(mustdelete)
 		DeleteObject(hFont);
 	if(!pixmap)

@@ -433,6 +433,7 @@ typedef struct _color {
 	int vcenter;
 	HWND clickdefault;
 	HBRUSH hbrush;
+	HFONT hfont;
 	char fontname[128];
 	WNDPROC pOldProc;
 	UserData *root;
