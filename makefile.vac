@@ -38,7 +38,7 @@
   copy dwcompat.dll dll\dwcompat.dll
 
 dwtest.obj:
-	icc /Ti /DOS2 /DTCPV40HDRS /Sp1 /I. /I..\ipformat /I..\include /Sm /Ss /Q /Gm /Gt /C dwtest.c
+	icc /Ti /DOS2 /DTCPV40HDRS /Sp1 /I. /Sm /Ss /Q /Gm /Gt /C dwtest.c
 dwtest.exe:  dwtest.obj
 	icc @<<
 	 /B" /DE /optfunc"
