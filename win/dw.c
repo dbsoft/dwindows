@@ -2293,7 +2293,7 @@ BOOL CALLBACK _splitwndproc(HWND hwnd, UINT msg, WPARAM mp1, LPARAM mp2)
 			else
 				SetCursor(LoadCursor(NULL, IDC_SIZENS));
 
-			if(GetCapture() == hwnd)
+			if(GetCapture() == hwnd && percent)
 			{
 				POINT point;
 				RECT rect;
@@ -2309,12 +2309,14 @@ BOOL CALLBACK _splitwndproc(HWND hwnd, UINT msg, WPARAM mp1, LPARAM mp2)
 					if(type == BOXHORZ)
 					{
 						start = point.x - rect.left;
-						*percent = ((float)start / (float)(rect.right - rect.left - SPLITBAR_WIDTH)) * 100.0;
+						if(width - SPLITBAR_WIDTH > 1 && start < width - SPLITBAR_WIDTH)
+							*percent = ((float)start / (float)(width - SPLITBAR_WIDTH)) * 100.0;
 					}
 					else
 					{
 						start = point.y - rect.top;
-						*percent = ((float)start / (float)(rect.bottom - rect.top - SPLITBAR_WIDTH)) * 100.0;
+						if(height - SPLITBAR_WIDTH > 1 && start < height - SPLITBAR_WIDTH)
+							*percent = ((float)start / (float)(height - SPLITBAR_WIDTH)) * 100.0;
 					}
 					_handle_splitbar_resize(hwnd, *percent, type, width, height);
 				}

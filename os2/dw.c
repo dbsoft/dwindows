@@ -2454,12 +2454,14 @@ MRESULT EXPENTRY _splitwndproc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 					if(type == BOXHORZ)
 					{
 						start = rclFrame.xLeft - rclBounds.xLeft;
-						*percent = ((float)start / (float)(rclBounds.xRight - rclBounds.xLeft - SPLITBAR_WIDTH)) * 100.0;
+						if(width - SPLITBAR_WIDTH > 1 && start < width - SPLITBAR_WIDTH)
+							*percent = ((float)start / (float)(width - SPLITBAR_WIDTH)) * 100.0;
 					}
 					else
 					{
 						start = rclFrame.yBottom - rclBounds.yBottom;
-						*percent = 100.0 - (((float)start / (float)(rclBounds.yTop - rclBounds.yBottom - SPLITBAR_WIDTH)) * 100.0);
+						if(height - SPLITBAR_WIDTH > 1 && start < height - SPLITBAR_WIDTH)
+							*percent = 100.0 - (((float)start / (float)(height - SPLITBAR_WIDTH)) * 100.0);
 					}
 					_handle_splitbar_resize(hwnd, *percent, type, width, height);
 				}
