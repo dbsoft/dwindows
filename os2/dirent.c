@@ -3,16 +3,11 @@
 #include <string.h>
 #include <ctype.h>
 
-#include "platform/dirent.h"
-#include <errno.h>
-
-/*#ifndef __EMX__ 
-#include <libx.h>
-#endif */
-
 #define INCL_DOSFILEMGR
 #define INCL_DOSERRORS
-#include <os2.h>
+#include "dw.h"
+#include "platform/dirent.h"
+#include <errno.h>
 
 # define FFBUF	FILEFINDBUF3
 # define Word	ULONG
@@ -59,8 +54,7 @@ struct _dirdescr {
 /*
  * Return first char of filesystem type, or 0 if unknown.
  */
-static char
-getFSType(const char *path)
+static char API getFSType(const char *path)
 {
 	static char cache[1+26];
 	char drive[3], info[512];
@@ -97,8 +91,7 @@ getFSType(const char *path)
 	return cache [unit] = r;
 }
 
-char *
-_abs_path(const char *name, char *buffer, int len)
+char * API _abs_path(const char *name, char *buffer, int len)
 {
 	char buf[4];
 	if (isalpha((int)name[0]) && name[1] == ':' && name[2] == '\0') {
@@ -113,8 +106,7 @@ _abs_path(const char *name, char *buffer, int len)
 	return buffer;
 }
 
-DIR *
-_openxdir(const char *path, unsigned att_mask)
+DIR * API _openxdir(const char *path, unsigned att_mask)
 {
 	DIR *dir;
 	char name[MAXPATHLEN+3];
@@ -171,14 +163,12 @@ _openxdir(const char *path, unsigned att_mask)
 	return (DIR *)dir;
 }
 
-DIR *
-_opendir(const char *pathname)
+DIR * API _opendir(const char *pathname)
 {
 	return openxdir(pathname, 0);
 }
 
-struct dirent *
-_readdir(DIR *dir)
+struct dirent * API _readdir(DIR *dir)
 {
 	static int dummy_ino = 2;
 
@@ -225,14 +215,12 @@ _readdir(DIR *dir)
 	return &dir->entry;
 }
 
-long
-_telldir(DIR *dir)
+long API _telldir(DIR *dir)
 {
 	return dir->number;
 }
 
-void
-_seekdir(DIR *dir, long off)
+void API _seekdir(DIR *dir, long off)
 {
 	if (dir->number > off) {
 		char name[MAXPATHLEN+2];
@@ -265,8 +253,7 @@ _seekdir(DIR *dir, long off)
 		;
 }
 
-void
-_closedir(DIR *dir)
+void API _closedir(DIR *dir)
 {
 	DosFindClose(dir->handle);
 	free(dir);

@@ -11,12 +11,12 @@ COMPRESS = lxlite
 DEFS =
 LIBS =
 
-CFLAGS = -O -g -Zomf -Zmt -D__OS2__ -D__ST_MT_ERRNO__ -I. -Wall
+CFLAGS = -O -g -Zomf -Zmt -D__OS2__ -D__ST_MT_ERRNO__ -I. -Wall -o $(@)
 LDFLAGS = -Zdll -Zcrtdll
 RCFLAGS = -r
 
 
-COMPATOBJECTS = compat.o dirent.o
+COMPATOBJECTS = compat.obj dirent.obj
 COMPATSOURCES = compat.c dirent.c
 
 all: dw.dll dwcompat.dll dwtest.exe
@@ -43,15 +43,15 @@ dwtest.exe: dwtest.o dw.lib dwcompat.lib
 clean: 
 	$(RM) $(OBJECTS) dwtest.exe
 
-dw.o: dw.c
+dw.obj: dw.c
 	$(CC) $(CFLAGS) -c $<	
 
-compat.o: compat.c
+compat.obj: compat.c
 	$(CC) $(CFLAGS) -c $<	
 
-dirent.o: os2/dirent.c
+dirent.obj: os2/dirent.c
 	$(CC) $(CFLAGS) -c $<	
 
-dwtest.o: dwtest.c
+dwtest.obj: dwtest.c
 	$(CC) $(CFLAGS) -c $<	
 

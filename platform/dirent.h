@@ -4,6 +4,7 @@
 #ifndef __DIRENT_H__
 #define __DIRENT_H__
 
+#include "compat.h"
 #include <stdio.h>
 #ifdef MAXPATHLEN
 	#undef MAXPATHLEN
@@ -39,21 +40,21 @@ struct dirent {
 typedef struct _dirdescr DIR;
 /* the structs do not have to be defined here */
 
-extern DIR		*_opendir(const char *);
+extern DIR		* API _opendir(const char *);
 #define opendir(a) _opendir(a)
-extern DIR		*_openxdir(const char *, unsigned);
+extern DIR		*API _openxdir(const char *, unsigned);
 #define openxdir(a, b) _openxdir(a, b)
-extern struct dirent	*_readdir(DIR *);
+extern struct dirent	* API _readdir(DIR *);
 #define readdir(a) _readdir(a)
-extern void		_seekdir(DIR *, long);
+extern void		API _seekdir(DIR *, long);
 #define seekdir(a, b) _seekdir(a, b)
-extern long		_telldir(DIR *);
+extern long		API _telldir(DIR *);
 #define telldir(a) _telldir(a)
-extern void 		_closedir(DIR *);
+extern void 		API _closedir(DIR *);
 #define closedir(a) _closedir(a)
 
 #define			rewinddir(dirp) _seekdir(dirp, 0L)
-extern char *		_abs_path(const char *name, char *buffer, int len);
+extern char *		API _abs_path(const char *name, char *buffer, int len);
 #define abs_path(a, b, c) _abs_path(a, b, c)
 
 #ifndef S_IFMT

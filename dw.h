@@ -52,7 +52,7 @@
 #if defined(__OS2__) || defined(__WIN32__) || defined(__MAC__) || defined(WINNT) || defined(__EMX__)
 /* OS/2, Windows or MacOS */
 
-#if defined(__IBMC__) && !defined(API)
+#if (defined(__IBMC__) || defined(_System)) && !defined(API)
 #define API _System
 #endif
 
