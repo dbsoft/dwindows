@@ -3876,8 +3876,9 @@ BOOL CALLBACK _subclass_child(HWND handle, LPARAM lp)
 HWND dw_combobox_new(char *text, ULONG id)
 {
 	HWND tmp = CreateWindow(COMBOBOXCLASSNAME,
-							"",
-                            WS_CHILD | CBS_DROPDOWN | WS_CLIPCHILDREN,
+							text,
+							WS_CHILD | CBS_DROPDOWN | WS_VSCROLL |
+							WS_CLIPCHILDREN,
 							0,0,2000,1000,
 							DW_HWND_OBJECT,
 							(HMENU)id,
