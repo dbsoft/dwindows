@@ -4365,7 +4365,7 @@ HWND API dw_bitmapbutton_new(char *text, ULONG id)
  *                 DW pick the appropriate file extension.
  *                 (BMP on OS/2 or Windows, XPM on Unix)
  */
-HWND dw_bitmapbutton_new_from_file(char *text, unsigned long id, char filename)
+HWND dw_bitmapbutton_new_from_file(char *text, unsigned long id, char *filename)
 {
 	/* TODO: Actually get it to draw the bitmap */
 	BubbleButton *bubble = calloc(sizeof(BubbleButton), 1);
