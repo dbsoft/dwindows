@@ -7829,7 +7829,7 @@ void dw_signal_connect(HWND window, char *signame, void *sigfunc, void *data)
 
 		sigid = _set_signal_handler(treeview, window, sigfunc, data, thisfunc);
 		cid = g_signal_connect(G_OBJECT(thiswindow), thisname, (GCallback)thisfunc, (gpointer)sigid);
-		_set_signal_handler_id(thiswindow, sigid, cid);
+		_set_signal_handler_id(treeview, sigid, cid);
 		DW_MUTEX_UNLOCK;
 		return;
 	}
