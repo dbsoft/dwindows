@@ -49,7 +49,7 @@ DWTID _dwtid = 0;
 LONG _foreground = 0xAAAAAA, _background = DW_CLR_DEFAULT;
 
 HWND hwndApp = NULLHANDLE, hwndBubble = NULLHANDLE, hwndBubbleLast = NULLHANDLE, hwndEmph = NULLHANDLE;
-PRECORDCORE pCore = NULL, pCoreEmph = NULL;
+PRECORDCORE pCoreEmph = NULL;
 ULONG aulBuffer[4];
 HWND lasthcnr = 0, lastitem = 0, popup = 0, desktop;
 
@@ -6789,7 +6789,8 @@ void API dw_container_scroll(HWND handle, int direction, long rows)
  */
 char * API dw_container_query_start(HWND handle, unsigned long flags)
 {
-	pCore = WinSendMsg(handle, CM_QUERYRECORD, (MPARAM)0L, MPFROM2SHORT(CMA_FIRST, CMA_ITEMORDER));
+	PRECORDCORE pCore = WinSendMsg(handle, CM_QUERYRECORD, (MPARAM)0L, MPFROM2SHORT(CMA_FIRST, CMA_ITEMORDER));
+
 	if(pCore)
 	{
 		if(flags)
@@ -6797,12 +6798,18 @@ char * API dw_container_query_start(HWND handle, unsigned long flags)
 			while(pCore)
 			{
 				if(pCore->flRecordAttr & flags)
+				{
+					dw_window_set_data(handle, "_dw_pcore", (void *)pCore);
 					return pCore->pszIcon;
+				}
 				pCore = WinSendMsg(handle, CM_QUERYRECORD, (MPARAM)pCore, MPFROM2SHORT(CMA_NEXT, CMA_ITEMORDER));
 			}
 		}
 		else
+		{
+			dw_window_set_data(handle, "_dw_pcore", (void *)pCore);
 			return pCore->pszIcon;
+		}
 	}
     return NULL;
 }
@@ -6817,7 +6824,10 @@ char * API dw_container_query_start(HWND handle, unsigned long flags)
  */
 char * API dw_container_query_next(HWND handle, unsigned long flags)
 {
+	PRECORDCORE pCore = (PRECORDCORE)dw_window_get_data(handle, "_dw_pcore");
+
 	pCore = WinSendMsg(handle, CM_QUERYRECORD, (MPARAM)pCore, MPFROM2SHORT(CMA_NEXT, CMA_ITEMORDER));
+
 	if(pCore)
 	{
 		if(flags)
@@ -6825,13 +6835,19 @@ char * API dw_container_query_next(HWND handle, unsigned long flags)
 			while(pCore)
 			{
 				if(pCore->flRecordAttr & flags)
+				{
+					dw_window_set_data(handle, "_dw_pcore", (void *)pCore);
 					return pCore->pszIcon;
+				}
 
 				pCore = WinSendMsg(handle, CM_QUERYRECORD, (MPARAM)pCore, MPFROM2SHORT(CMA_NEXT, CMA_ITEMORDER));
 			}
 		}
 		else
+		{
+			dw_window_set_data(handle, "_dw_pcore", (void *)pCore);
 			return pCore->pszIcon;
+		}
 	}
     return NULL;
 }
@@ -6845,8 +6861,8 @@ char * API dw_container_query_next(HWND handle, unsigned long flags)
 void API dw_container_cursor(HWND handle, char *text)
 {
 	RECTL viewport, item;
+	PRECORDCORE pCore = WinSendMsg(handle, CM_QUERYRECORD, (MPARAM)0L, MPFROM2SHORT(CMA_FIRST, CMA_ITEMORDER));
 
-	pCore = WinSendMsg(handle, CM_QUERYRECORD, (MPARAM)0L, MPFROM2SHORT(CMA_FIRST, CMA_ITEMORDER));
 	while(pCore)
 	{
 		if((char *)pCore->pszIcon == text)
