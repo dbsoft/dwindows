@@ -3803,8 +3803,12 @@ HWND dw_tree_new(ULONG id)
 	cnrinfo.flWindowAttr = CV_TREE | CA_TREELINE;
 	cnrinfo.slBitmapOrIcon.cx = 16;
 	cnrinfo.slBitmapOrIcon.cy = 16;
+	cnrinfo.cyLineSpacing = 0;
+	cnrinfo.cxTreeIndent = 16;
+	cnrinfo.cxTreeLine = 1;
 
-	WinSendMsg(tmp, CM_SETCNRINFO, &cnrinfo, MPFROMLONG(CMA_FLWINDOWATTR | CMA_SLBITMAPORICON));
+	WinSendMsg(tmp, CM_SETCNRINFO, &cnrinfo, MPFROMLONG(CMA_FLWINDOWATTR | CMA_SLBITMAPORICON |
+														CMA_LINESPACING | CMA_CXTREEINDENT | CMA_CXTREELINE));
 	blah->oldproc = WinSubclassWindow(tmp, _TreeProc);
 	WinSetWindowPtr(tmp, QWP_USER, blah);
 	dw_window_set_font(tmp, DefaultFont);
