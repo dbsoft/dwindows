@@ -838,10 +838,11 @@ int dw_int_init(DWResources *res, int newthread, int *argc, char **argv[])
  */
 void dw_main(void)
 {
+	gdk_threads_enter();
 	_dw_thread = pthread_self();
 	_dw_thread_add(_dw_thread);
-	gdk_threads_enter();
 	gtk_main();
+	_dw_thread = (pthread_t)-1;
 	gdk_threads_leave();
 }
 
@@ -880,10 +881,11 @@ void dw_main_sleep(int milliseconds)
  */
 void dw_main_iteration(void)
 {
+	gdk_threads_enter();
 	_dw_thread = pthread_self();
 	_dw_thread_add(_dw_thread);
-	gdk_threads_enter();
 	gtk_main_iteration();
+	_dw_thread = (pthread_t)-1;
 	gdk_threads_leave();
 }
 
@@ -4152,13 +4154,14 @@ unsigned long dw_icon_load(unsigned long module, unsigned long id)
  */
 unsigned long API dw_icon_load_from_file(char *filename)
 {
-	int z, found = -1, _locked_by_me = FALSE;
+	int found = -1, _locked_by_me = FALSE;
 #if GTK_MAJOR_VERSION > 1
 	GdkPixbuf *pixbuf;
 #elif defined(USE_IMLIB)
 	GdkImlibImage *image;
 #endif
 	char *file = alloca(strlen(filename) + 5);
+	unsigned long z, ret = 0;
 
 	if (!file)
 		return 0;
@@ -4180,7 +4183,7 @@ unsigned long API dw_icon_load_from_file(char *filename)
 	{
 		if(!_PixmapArray[z].used)
 		{
-			found = z;
+			ret = found = z;
 			break;
 		}
 	}
@@ -4192,7 +4195,7 @@ unsigned long API dw_icon_load_from_file(char *filename)
 	{
 		DWPrivatePixmap *old = _PixmapArray;
 
-		found = _PixmapCount;
+		ret = found = _PixmapCount;
 		_PixmapCount++;
 
 		_PixmapArray = malloc(sizeof(DWPrivatePixmap) * _PixmapCount);
@@ -4208,26 +4211,38 @@ unsigned long API dw_icon_load_from_file(char *filename)
 #if GTK_MAJOR_VERSION > 1
 	pixbuf = gdk_pixbuf_new_from_file(file, NULL);
 
-	_PixmapArray[found].width = gdk_pixbuf_get_width(pixbuf);
-	_PixmapArray[found].height = gdk_pixbuf_get_height(pixbuf);
+	if(pixbuf)
+	{
+		_PixmapArray[found].width = gdk_pixbuf_get_width(pixbuf);
+		_PixmapArray[found].height = gdk_pixbuf_get_height(pixbuf);
 
-	gdk_pixbuf_render_pixmap_and_mask(pixbuf, &_PixmapArray[found].pixmap, &_PixmapArray[found].mask, 1);
-	g_object_unref(pixbuf);
+		gdk_pixbuf_render_pixmap_and_mask(pixbuf, &_PixmapArray[found].pixmap, &_PixmapArray[found].mask, 1);
+		g_object_unref(pixbuf);
+	}
 #elif defined(USE_IMLIB)
 	image = gdk_imlib_load_image(file);
 
-	_PixmapArray[found].width = image->rgb_width;
-	_PixmapArray[found].height = image->rgb_height;
+	if(image)
+	{
+		_PixmapArray[found].width = image->rgb_width;
+		_PixmapArray[found].height = image->rgb_height;
 
-	gdk_imlib_render(image, image->rgb_width, image->rgb_height);
-	_PixmapArray[found].pixmap = gdk_imlib_copy_image(image);
-	_PixmapArray[found].mask = gdk_imlib_copy_mask(image);
-	gdk_imlib_destroy_image(image);
+		gdk_imlib_render(image, image->rgb_width, image->rgb_height);
+		_PixmapArray[found].pixmap = gdk_imlib_copy_image(image);
+		_PixmapArray[found].mask = gdk_imlib_copy_mask(image);
+		gdk_imlib_destroy_image(image);
+	}
 #else
 	_PixmapArray[found].pixmap = gdk_pixmap_create_from_xpm(handle->window, &_PixmapArray[found].mask, &_colors[DW_CLR_PALEGRAY], file);
 #endif
 	DW_MUTEX_UNLOCK;
-	return found | (1 << 31);
+	if(!_PixmapArray[found].pixmap || !_PixmapArray[found].mask)
+	{
+		_PixmapArray[found].used = 0;
+		_PixmapArray[found].pixmap = _PixmapArray[found].mask = NULL;
+		return 0;
+	}
+	return ret | (1 << 31);
 }
 
 /*
