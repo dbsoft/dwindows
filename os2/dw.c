@@ -3782,6 +3782,10 @@ HWND dw_status_text_new(char *text, ULONG id)
 	return tmp;
 }
 
+#ifndef MLS_LIMITVSCROLL
+#define MLS_LIMITVSCROLL           0x00000080L
+#endif
+
 /*
  * Create a new Multiline Editbox window (widget) to be packed.
  * Parameters:
@@ -5805,7 +5809,7 @@ void dw_container_cursor(HWND handle, char *text)
 	pCore = WinSendMsg(handle, CM_QUERYRECORD, (MPARAM)0L, MPFROM2SHORT(CMA_FIRST, CMA_ITEMORDER));
 	while(pCore)
 	{
-		if(pCore->pszIcon == text)
+		if((char *)pCore->pszIcon == text)
 		{
 			QUERYRECORDRECT qrr;
 			int scrollpixels = 0, midway;
@@ -6760,15 +6764,15 @@ static ULONG _ParseBuildLevel (char* pchBuffer, ULONG ulSize) {
 					ULONG ulMinor = 0;
 
 					char* pch = pchEnd + 2;
-					while (!isdigit (*pch) && *pch)
+					while (!isdigit ((int)*pch) && *pch)
 						pch++;
 
-					while (isdigit (*pch))
+					while (isdigit ((int)*pch))
 						ulMajor = ulMajor * 10 + *pch++ - '0';
 
 					if (*pch == '.')
 					{
-						while (isdigit (*++pch))
+						while (isdigit ((int)*++pch))
 							ulMinor = ulMinor * 10 + *pch - '0';
 					}
 					return ((ulMajor << 16) | ulMinor);
