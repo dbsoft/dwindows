@@ -3096,6 +3096,30 @@ void dw_mle_set_visible(HWND handle, int line)
 
 	DW_MUTEX_LOCK;
 #if GTK_MAJOR_VERSION > 1
+	if(GTK_IS_SCROLLED_WINDOW(handle))
+	{
+		GtkWidget *tmp = (GtkWidget *)gtk_object_get_user_data(GTK_OBJECT(handle));
+
+		if(tmp && GTK_IS_TEXT_VIEW(tmp))
+		{
+			GtkTextBuffer *tbuffer;
+			GtkTextIter iter;
+			GtkTextMark *mark = (GtkTextMark *)gtk_object_get_data(GTK_OBJECT(handle), "_dw_mark");
+
+			tbuffer = gtk_text_view_get_buffer (GTK_TEXT_VIEW (tmp));
+			gtk_text_buffer_get_iter_at_offset(tbuffer, &iter, 0);
+			gtk_text_iter_set_line(&iter, line);
+			if(!mark)
+			{
+				mark = gtk_text_buffer_create_mark(tbuffer, NULL, &iter, FALSE);
+				gtk_object_set_data(GTK_OBJECT(handle), "_dw_mark", (gpointer)mark);
+			}
+			else
+				gtk_text_buffer_move_mark(tbuffer, mark, &iter);
+			gtk_text_view_scroll_to_mark(GTK_TEXT_VIEW(tmp), mark,
+										 0, FALSE, 0, 0);
+		}
+	}
 #else
 	if(GTK_IS_BOX(handle))
 	{
