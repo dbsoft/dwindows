@@ -58,7 +58,7 @@ DWTID _dw_thread_list[DW_THREAD_LIMIT];
 GdkColor _foreground[DW_THREAD_LIMIT];
 GdkColor _background[DW_THREAD_LIMIT];
 
-GtkWidget *last_window = NULL;
+GtkWidget *last_window = NULL, *popup = NULL;
 
 int _dw_file_active = 0, _dw_ignore_click = 0, _dw_unselecting = 0;
 pthread_t _dw_thread = (pthread_t)-1;
@@ -266,7 +266,7 @@ gint _generic_event(GtkWidget *widget, gpointer data)
 	{
 		int (*genericfunc)(HWND, void *) = work->func;
 
-		genericfunc(widget, work->data);
+		genericfunc(popup ? popup : widget, work->data);
 	}
 	return TRUE;
 }
@@ -1749,6 +1749,8 @@ void dw_menu_popup(HMENUI *menu, HWND parent, int x, int y)
 
 	if(!menu || !*menu)
 		return;
+
+	popup = parent;
 
 	DW_MUTEX_LOCK;
 	gtk_menu_popup(GTK_MENU((*menu)->menu), NULL, NULL, NULL, NULL, x, y);

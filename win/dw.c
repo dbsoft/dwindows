@@ -22,7 +22,7 @@
 /* make sure you always match the calling convention! */
 int (*filterfunc)(HWND, UINT, WPARAM, LPARAM) = 0L;
 
-HWND hwndBubble = (HWND)NULL, hwndBubbleLast, DW_HWND_OBJECT = (HWND)NULL;
+HWND popup = (HWND)NULL, hwndBubble = (HWND)NULL, hwndBubbleLast, DW_HWND_OBJECT = (HWND)NULL;
 
 HINSTANCE DWInstance = NULL;
 
@@ -1499,7 +1499,7 @@ BOOL CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 						} /* Make sure it's the right window, and the right ID */
 						else if(tmp->window < (HWND)65536 && command == tmp->window)
 						{
-							result = clickfunc(tmp->window, tmp->data);
+							result = clickfunc(popup ? popup : tmp->window, tmp->data);
 							tmp = NULL;
 						}
 					}
@@ -3622,6 +3622,7 @@ void dw_menu_popup(HMENUI *menu, HWND parent, int x, int y)
 {
 	if(menu && *menu)
 	{
+		popup = parent;
 		TrackPopupMenu((*menu)->menu, 0, x, y, 0, parent, NULL);
 		free(*menu);
 		*menu = NULL;

@@ -45,7 +45,7 @@ LONG _foreground = 0xAAAAAA, _background = 0;
 HWND hwndBubble = NULLHANDLE, hwndBubbleLast = NULLHANDLE;
 PRECORDCORE pCore = NULL;
 ULONG aulBuffer[4];
-HWND lasthcnr = 0, lastitem = 0;
+HWND lasthcnr = 0, lastitem = 0, popup = 0;
 
 #define IS_WARP4() (aulBuffer[0] == 20 && aulBuffer[1] >= 40)
 
@@ -1775,7 +1775,7 @@ MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 
 					if(tmp->window < 65536 && command == tmp->window)
 					{
-						result = clickfunc(tmp->window, tmp->data);
+						result = clickfunc(popup ?  popup : tmp->window, tmp->data);
 						tmp = NULL;
 					}
 				}
@@ -3628,6 +3628,7 @@ void dw_menu_popup(HMENUI *menu, HWND parent, int x, int y)
 {
 	if(menu && *menu)
 	{
+		popup = parent;
 		WinPopupMenu(HWND_DESKTOP, parent, (*menu)->menu, x, dw_screen_height() - y, 0, PU_KEYBOARD | PU_MOUSEBUTTON1 | PU_VCONSTRAIN | PU_HCONSTRAIN);
 		free(*menu);
 		*menu = NULL;
