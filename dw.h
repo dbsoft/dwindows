@@ -288,6 +288,7 @@ typedef struct _container {
 	ColorInfo cinfo;
 	ULONG *flags;
 	WNDPROC pOldProc;
+	ULONG columns;
 } ContainerInfo;
 
 typedef struct _hpixmap {
