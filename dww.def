@@ -10,7 +10,7 @@ EXPORTS
   dw_exit                                @12
   dw_beep                                @13
   dw_messagebox                          @14
-  dw_yesno                               @15
+
   dw_environment_query                   @16
   dw_exec                                @17
   dw_browse                              @18
