@@ -1817,7 +1817,7 @@ void dw_menu_popup(HMENUI *menu, HWND parent, int x, int y)
 	popup = parent;
 
 	DW_MUTEX_LOCK;
-	gtk_menu_popup(GTK_MENU((*menu)->menu), NULL, NULL, NULL, NULL, x, y);
+	gtk_menu_popup(GTK_MENU((*menu)->menu), NULL, NULL, NULL, NULL, 1, GDK_CURRENT_TIME);
 	free(*menu);
 	*menu = NULL;
 	DW_MUTEX_UNLOCK;
