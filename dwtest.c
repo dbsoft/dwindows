@@ -351,7 +351,7 @@ int DWSIGNAL item_enter_cb( HWND window, char *text, void *data )
 	char buf[200];
 	HWND statline = (HWND)data;
 
-	sprintf(buf,"DW_SIGNAL_ITEM_ENTER: Window: %x Text: %s Data:", (unsigned int)window, text, data );
+	sprintf(buf,"DW_SIGNAL_ITEM_ENTER: Window: %x Text: %s", (unsigned int)window, text );
 	dw_window_set_text( statline, buf);
 	return 0;
 }
