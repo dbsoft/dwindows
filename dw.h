@@ -144,6 +144,17 @@ typedef struct _user_data
 
 #define DW_OS2_NEW_WINDOW        1
 
+/* flag values for dw_messagebox() */
+#define DW_MB_OK                 MB_OK
+#define DW_MB_OKCANCEL           MB_OKCANCEL
+#define DW_MB_YESNO              MB_YESNO
+#define DW_MB_YESNOCANCEL        MB_YESNOCANCEL
+
+#define DW_MB_WARNING            MB_WARNING
+#define DW_MB_ERROR              MB_ERROR
+#define DW_MB_INFORMATION        MB_INFORMATION
+#define DW_MB_QUESTION           MB_QUERY
+
 /* Virtual Key Codes */
 #define VK_LBUTTON           VK_BUTTON1
 #define VK_RBUTTON           VK_BUTTON2
@@ -292,6 +303,17 @@ extern HMQ dwhmq;
 
 #define DW_POINTER_ARROW         32512
 #define DW_POINTER_CLOCK         32514
+
+/* flag values for dw_messagebox() */
+#define DW_MB_OK                 MB_OK
+#define DW_MB_OKCANCEL           MB_OKCANCEL
+#define DW_MB_YESNO              MB_YESNO
+#define DW_MB_YESNOCANCEL        MB_YESNOCANCEL
+
+#define DW_MB_WARNING            MB_ICONWARNING
+#define DW_MB_ERROR              MB_ICONERROR
+#define DW_MB_INFORMATION        MB_ICONINFORMATION
+#define DW_MB_QUESTION           MB_ICONQUESTION
 
 /* Key Modifiers */
 #define KC_CTRL                  (1)
@@ -489,6 +511,17 @@ void dw_box_pack_end_stub(HWND box, HWND item, int width, int height, int hsize,
 #define DW_POINTER_CLOCK         GDK_WATCH
 
 #define HWND_DESKTOP             ((HWND)0)
+
+/* flag values for dw_messagebox() */
+#define DW_MB_OK                 (1 << 1)
+#define DW_MB_OKCANCEL           (1 << 2)
+#define DW_MB_YESNO              (1 << 3)
+#define DW_MB_YESNOCANCEL        (1 << 4)
+
+#define DW_MB_WARNING            (1 << 10)
+#define DW_MB_ERROR              (1 << 11)
+#define DW_MB_INFORMATION        (1 << 12)
+#define DW_MB_QUESTION           (1 << 13)
 
 /* Virtual Key Codes */
 #define VK_LBUTTON           GDK_Pointer_Button1
@@ -693,6 +726,12 @@ typedef struct _dwdialog {
 #define DW_SCROLL_DOWN 1
 #define DW_SCROLL_TOP 2
 #define DW_SCROLL_BOTTOM 3
+
+/* return values for dw_messagebox() */
+#define DW_MB_RETURN_OK           0
+#define DW_MB_RETURN_YES          1
+#define DW_MB_RETURN_NO           0
+#define DW_MB_RETURN_CANCEL       2
 
 #define DW_PIXMAP_WIDTH(x) (x ? x->width : 0)
 #define DW_PIXMAP_HEIGHT(x) (x ? x->height : 0)
@@ -901,8 +940,7 @@ HPIXMAP API dw_pixmap_new_from_file(HWND handle, char *filename);
 HPIXMAP API dw_pixmap_grab(HWND handle, ULONG id);
 void API dw_pixmap_destroy(HPIXMAP pixmap);
 void API dw_beep(int freq, int dur);
-int API dw_messagebox(char *title, char *format, ...);
-int API dw_yesno(char *title, char *text);
+int API dw_messagebox(char *title, int flags, char *format, ...);
 void API dw_environment_query(DWEnv *env);
 int API dw_exec(char *program, int type, char **params);
 int API dw_browse(char *url);
