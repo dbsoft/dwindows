@@ -124,13 +124,13 @@ dwtest: dwtest.o
 	$(CC) -o dwtest dwtest.o -L$(PREFIX)/lib -ldw -ldwcompat $(LFLAGS)
 
 zip:
-	zip dwindows$(VER_MAJ)$(VER_MIN).zip $(srcdir)/makefile.* $(srcdir)/readme $(srcdir)/*.c $(srcdir)/*.h \
+	zip dwindows$(VER_MAJ)$(VER_MIN).zip $(srcdir)/license.txt $(srcdir)/makefile.* $(srcdir)/readme $(srcdir)/*.c $(srcdir)/*.h \
 		$(srcdir)/*.def $(srcdir)/install.sh $(srcdir)/*.in $(srcdir)/configure \
 		$(srcdir)/ac*.m4 $(srcdir)/gtk/*.c $(srcdir)/win/*.c $(srcdir)/os2/*.c \
 		$(srcdir)/platform/*.h
 
 dist:
-	(cd $(srcdir)/..;tar -cvf - $(SRCDIR)/makefile.* $(SRCDIR)/readme $(SRCDIR)/*.c $(SRCDIR)/*.h \
+	(cd $(srcdir)/..;tar -cvf - $(SRCDIR)/license.txt $(SRCDIR)/makefile.* $(SRCDIR)/readme $(SRCDIR)/*.c $(SRCDIR)/*.h \
 		$(SRCDIR)/*.def $(SRCDIR)/install.sh $(SRCDIR)/*.in $(SRCDIR)/configure \
 		$(SRCDIR)/ac*.m4 $(SRCDIR)/gtk/*.c $(SRCDIR)/win/*.c $(SRCDIR)/os2/*.c \
 		$(SRCDIR)/platform/*.h | gzip > dwindows-$(VER_MAJ).$(VER_MIN).tar.gz )
