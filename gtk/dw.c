@@ -6421,6 +6421,12 @@ void dw_window_set_style(HWND handle, unsigned long style, unsigned long mask)
 		if(tmp)
 			handle2 = tmp;
 	}
+	else if(GTK_IS_FRAME(handle))
+	{
+		GtkWidget *tmp = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(handle), "_dw_label");
+		if(tmp && GTK_IS_LABEL(tmp))
+			handle2 = tmp;
+	}
 	if(GTK_IS_LABEL(handle2))
 	{
 		if(style & DW_DT_CENTER || style & DW_DT_VCENTER)
