@@ -8340,7 +8340,7 @@ void _dwthreadstart(void *data)
 {
 	HAB thishab = WinInitialize(0);
 	HMQ thishmq = WinCreateMsgQueue(dwhab, 0);
-	void (*threadfunc)(void *) = NULL;
+	void (* API threadfunc)(void *) = NULL;
 	void **tmp = (void **)data;
 
 	threadfunc = (void (*)(void *))tmp[0];
