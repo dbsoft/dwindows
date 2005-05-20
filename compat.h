@@ -265,8 +265,7 @@ void msleep(long period);
 #ifdef __IBMC__
 #define sockinit() sock_init();
 #elif defined(__WIN32__) || defined(WINNT)
-static WSADATA wsa;
-#define sockinit() WSAStartup(MAKEWORD (1, 1), &wsa)
+#define sockinit() { static WSADATA wsa; WSAStartup(MAKEWORD (1, 1), &wsa); }
 #else  /* !WIN32 */
 #define sockinit()
 #endif
