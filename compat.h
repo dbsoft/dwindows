@@ -142,6 +142,7 @@ void msleep(long period);
 
 #ifdef MSVC
 #include "platform/dirent.h"
+#define alloca _alloca
 #else
 #include <dir.h>
 #include <dirent.h>
@@ -296,7 +297,7 @@ static WSADATA wsa;
 #define sockpipe(pipes) { \
 	struct sockaddr_in server_addr; \
 	struct sockaddr_in listen_addr = { 0 }; \
-	int len = sizeof(struct sockaddr_in); \
+	int tmpsock, len = sizeof(struct sockaddr_in); \
 	struct hostent *he = gethostbyname("localhost"); \
 	pipes[0] = pipes[1] = -1; \
 	if(he) \
@@ -305,19 +306,19 @@ static WSADATA wsa;
 		server_addr.sin_family = AF_INET; \
 		server_addr.sin_port   = 0; \
 		server_addr.sin_addr.s_addr = INADDR_ANY; \
-		if ((tmpsock = socket(AF_INET, SOCK_STREAM, 0)) < 0 ||  bind(tmpsock, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0 || listen(tmpsock, 0) < 0) \
-			break; \
-		memset(&listen_addr, 0, sizeof(listen_addr)); \
-		getsockname(tmpsock, (struct sockaddr *)&listen_addr, &len); \
-		server_addr.sin_family      = AF_INET; \
-		server_addr.sin_port        = listen_addr.sin_port; \
-		server_addr.sin_addr.s_addr = *((unsigned long *)he->h_addr); \
-		if((pipes[1] = socket(AF_INET, SOCK_STREAM, 0)) < 0 || connect(pipes[1], (struct sockaddr *)&server_addr, sizeof(server_addr))) \
-			break; \
-		else \
-			pipes[0] = accept(tmpsock, 0, 0); \
+		if ((tmpsock = socket(AF_INET, SOCK_STREAM, 0)) > -1 && bind(tmpsock, (struct sockaddr *)&server_addr, sizeof(server_addr)) > -1 && listen(tmpsock, 0) > -1) \
+	    { \
+		    memset(&listen_addr, 0, sizeof(listen_addr)); \
+		    getsockname(tmpsock, (struct sockaddr *)&listen_addr, &len); \
+		    server_addr.sin_family      = AF_INET; \
+		    server_addr.sin_port        = listen_addr.sin_port; \
+		    server_addr.sin_addr.s_addr = *((unsigned long *)he->h_addr); \
+		    if((pipes[1] = socket(AF_INET, SOCK_STREAM, 0)) > -1 && !connect(pipes[1], (struct sockaddr *)&server_addr, sizeof(server_addr))) \
+			   pipes[0] = accept(tmpsock, 0, 0); \
+	    } \
 		sockclose(tmpsock); \
-	}
+	} \
+}
 #endif
 
 #define socksprint(a, b) sockwrite(a, b, strlen(b), 0)
