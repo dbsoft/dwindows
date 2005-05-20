@@ -4925,17 +4925,23 @@ void API dw_window_set_bitmap(HWND handle, unsigned long id, char *filename)
 		SendMessage(handle, BM_SETIMAGE,
 					(WPARAM) IMAGE_ICON,
 					(LPARAM) icon);
+		SendMessage(handle, STM_SETIMAGE,
+					(WPARAM) IMAGE_ICON,
+					(LPARAM) icon);
 	}
 	else if(hbitmap)
 	{
 		SendMessage(handle, BM_SETIMAGE,
 					(WPARAM) IMAGE_BITMAP,
 					(LPARAM) hbitmap);
+		SendMessage(handle, STM_SETIMAGE,
+					(WPARAM) IMAGE_BITMAP,
+					(LPARAM) hbitmap);
 	}
 
-	if(oldbitmap)
+	if(hbitmap && oldbitmap)
 		DeleteObject(oldbitmap);
-	if(oldicon)
+	else if(icon && oldicon)
 		DeleteObject(oldicon);
 }
 
