@@ -220,17 +220,110 @@ void msleep(long period);
 #define API
 #endif
 
-/* Compatibility layer for IBM C/Winsock */
-int	API sockread (int a, void *b, int c, int d);
-int	API sockwrite (int a, void *b, int c, int d);
-int	API sockclose(int a);
-int API socksprintf(int fd, char *format, ...);
-int API sockpipe(int *pipes);
-void API sockinit(void);
-void API sockshutdown(void);
+/* Compatibility layer for IBM C/Winsock
+ * Now using macros so we can allow cross
+ * compiler support.
+ */
+
+#if defined(__IBMC__) || (defined(__WIN32__) && !defined(__CYGWIN32__))
+#define sockread(a, b, c, d) recv(a, b, c, d)
+#else
+#define sockread(a, b, c, d) read(a, b, c)
+#endif
+
+#if defined(__IBMC__) || (defined(__WIN32__) && !defined(__CYGWIN32__))
+#define sockwrite(a, b, c, d) send(a, b, c, d)
+#else
+#define sockwrite(a, b, c, d) write(a, b, c)
+#endif
+
+#ifdef __IBMC__
+#define sockclose(a) soclose(a)
+#elif defined(__WIN32__) && !defined(__CYGWIN32__)
+#define sockclose(a) closesocket(a)
+#else
+#define sockclose(a) close(a)
+#endif
+
+#if defined(__OS2__) && !defined(__EMX__)
+#define nonblock(a)	{ int _nonblock = 1; ioctl(a, FIONBIO, (char *)&_nonblock, sizeof(_nonblock)); }
+#elif defined(__WIN32__) && !defined(__CYGWIN32__)
+#define nonblock(a) { int _nonblock = 1; ioctlsocket(a, FIONBIO, (unsigned long *)&_nonblock); }
+#else
+#define nonblock(a) fcntl(a, F_SETFL, O_NONBLOCK)
+#endif
+
+#if defined(__OS2__) && !defined(__EMX__)
+#define block(a) { int _block = 0; ioctl(a, FIONBIO, (char *)&_nonblock, sizeof(_block)); }
+#elif defined(__WIN32__) && !defined(__CYGWIN32__)
+#define block(a) { int _block = 0; ioctlsocket(a, FIONBIO, (unsigned long *)&_block); }
+#else
+#define block(a) fcntl(a, F_SETFL, 0)
+#endif
+
+#ifdef __IBMC__
+#define sockinit() sock_init();
+#elif defined(__WIN32__) || defined(WINNT)
+static WSADATA wsa;
+#define sockinit() WSAStartup(MAKEWORD (1, 1), &wsa)
+#else  /* !WIN32 */
+#define sockinit()
+#endif
+
+#if defined(__WIN32__) || defined(WINNT)
+#define sockshutdown() WSACleanup()
+#else /* !WIN32 */
+#define sockshutdown()
+#endif
+
+#ifdef HAVE_PIPE
+#define sockpipe(pipes) { if(pipe(pipes) < 0) pipes[0] = pipes[1] = -1; }
+#elif !defined(NO_DOMAIN_SOCKETS)
+#define sockpipe(pipes) { \
+	struct sockaddr_un un; \
+	int tmpsock = socket(AF_UNIX, SOCK_STREAM, 0); \
+	pipes[1] = socket(AF_UNIX, SOCK_STREAM, 0); \
+	memset(&un, 0, sizeof(un)); \
+	un.sun_family=AF_UNIX; \
+	sprintf(un.sun_path, PIPENAME, pipes[1]); \
+	bind(tmpsock, (struct sockaddr *)&un, sizeof(un)); \
+	listen(tmpsock, 0); \
+	connect(pipes[1], (struct sockaddr *)&un, sizeof(un)); \
+	pipes[0] = accept(tmpsock, 0, 0); \
+	sockclose(tmpsock); \
+	}
+#else
+#define sockpipe(pipes) { \
+	struct sockaddr_in server_addr; \
+	struct sockaddr_in listen_addr = { 0 }; \
+	int len = sizeof(struct sockaddr_in); \
+	struct hostent *he = gethostbyname("localhost"); \
+	pipes[0] = pipes[1] = -1; \
+	if(he) \
+	{ \
+		memset(&server_addr, 0, sizeof(server_addr)); \
+		server_addr.sin_family = AF_INET; \
+		server_addr.sin_port   = 0; \
+		server_addr.sin_addr.s_addr = INADDR_ANY; \
+		if ((tmpsock = socket(AF_INET, SOCK_STREAM, 0)) < 0 ||  bind(tmpsock, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0 || listen(tmpsock, 0) < 0) \
+			break; \
+		memset(&listen_addr, 0, sizeof(listen_addr)); \
+		getsockname(tmpsock, (struct sockaddr *)&listen_addr, &len); \
+		server_addr.sin_family      = AF_INET; \
+		server_addr.sin_port        = listen_addr.sin_port; \
+		server_addr.sin_addr.s_addr = *((unsigned long *)he->h_addr); \
+		if((pipes[1] = socket(AF_INET, SOCK_STREAM, 0)) < 0 || connect(pipes[1], (struct sockaddr *)&server_addr, sizeof(server_addr))) \
+			break; \
+		else \
+			pipes[0] = accept(tmpsock, 0, 0); \
+		sockclose(tmpsock); \
+	}
+#endif
+
+#define socksprint(a, b) sockwrite(a, b, strlen(b), 0)
+
+char * API vargs(char *buf, int len, char *format, ...);
 int API makedir(char *path);
-void API nonblock(int fd);
-void API block(int fd);
 void API setfileinfo(char *filename, char *url, char *logfile);
 long double API drivesize(int drive);
 long double API drivefree(int drive);

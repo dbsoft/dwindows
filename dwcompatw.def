@@ -3,22 +3,13 @@ LIBRARY DWCOMPAT
 DESCRIPTION 'Dynamic Windows Compatibility Module for Win32'
 
 EXPORTS
-  sockread           @10
-  sockwrite          @11
-  sockclose          @12
-  socksprintf        @13
-  sockpipe           @14
-  sockinit           @15
-  sockshutdown       @16
-
   makedir            @20
-  nonblock           @21
+  vargs              @21
   setfileinfo        @22
   drivefree          @23
   isdrive            @24
   drivesize          @25
   getfsname          @26
-  block              @27
 
   _opendir           @30
   _openxdir          @31
