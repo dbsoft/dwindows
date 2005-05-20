@@ -39,35 +39,6 @@ void msleep(long period)
 }
 #endif
 
-int	API sockread (int a, void *b, int c, int d)
-{
-#if defined(__IBMC__) || (defined(__WIN32__) && !defined(__CYGWIN32__))
-	return recv(a,b,c,d);
-#else
-	return read(a,b,c);
-#endif
-}
-
-int	API sockwrite (int a, void *b, int c, int d)
-{
-#if defined(__IBMC__) || (defined(__WIN32__) && !defined(__CYGWIN32__))
-	return send(a,b,c,d);
-#else
-	return write(a,b,c);
-#endif
-}
-
-int	API sockclose(int a)
-{
-#ifdef __IBMC__
-	return soclose(a);
-#elif defined(__WIN32__) && !defined(__CYGWIN32__)
-	return closesocket(a);
-#else
-	return close(a);
-#endif
-}
-
 int API makedir(char *path)
 {
 #if defined(__IBMC__) || defined(__WATCOMC__) || (defined(__WIN32__) && !defined(__CYGWIN32__))
@@ -77,135 +48,20 @@ int API makedir(char *path)
 #endif
 }
 
-void API nonblock(int fd)
-{
-#if defined(__OS2__) && !defined(__EMX__)
-	static int _nonblock = 1;
-
-	ioctl(fd, FIONBIO, (char *)&_nonblock, sizeof(_nonblock));
-#elif defined(__WIN32__) && !defined(__CYGWIN32__)
-	static unsigned long _nonblock = 1;
-
-	ioctlsocket(fd, FIONBIO, &_nonblock);
-#else
-	fcntl(fd, F_SETFL, O_NONBLOCK);
-#endif
-}
-
-void API block(int fd)
-{
-#if defined(__OS2__) && !defined(__EMX__)
-	static int _nonblock = 0;
-
-	ioctl(fd, FIONBIO, (char *)&_nonblock, sizeof(_nonblock));
-#elif defined(__WIN32__) && !defined(__CYGWIN32__)
-	static unsigned long _nonblock = 0;
-
-	ioctlsocket(fd, FIONBIO, &_nonblock);
-#else
-	fcntl(fd, F_SETFL, 0);
-#endif
-}
-
-int API socksprintf(int fd, char *format, ...)
+char * API vargs(char *buf, int len, char *format, ...)
 {
 	va_list args;
-	char outbuf[1024];
-	int len;
 
 	va_start(args, format);
-	vsprintf(outbuf, format, args);
+#ifdef HAVE_VSNPRINTF
+	vsnprintf(buf, len, format, args);
+#else
+	len = len;
+	vsprintf(buf, format, args);
+#endif
 	va_end(args);
 
-	len = strlen(outbuf);
-	sockwrite(fd, outbuf, len, 0);
-
-	return len;
-}
-
-void API sockinit(void)
-{
-#ifdef __IBMC__
-	sock_init();
-#elif defined(__WIN32__) || defined(WINNT)
-    WSADATA wsa;
-
-    WSAStartup(MAKEWORD (1, 1), &wsa);
-#endif /* !WIN32 */
-}
-
-void API sockshutdown(void)
-{
-#if defined(__WIN32__) || defined(WINNT)
-    WSACleanup();
-#endif /* !WIN32 */
-}
-
-int API sockpipe(int *pipes)
-{
-#ifndef NO_DOMAIN_SOCKETS
-#ifndef HAVE_PIPE
-	struct sockaddr_un un;
-#endif
-#else
-	struct sockaddr_in server_addr;
-	struct sockaddr_in listen_addr = { 0 };
-	int len = sizeof(struct sockaddr_in);
-	struct hostent *he;
-#endif
-#ifndef HAVE_PIPE
-	int tmpsock;
-#endif	
-
-#ifdef HAVE_PIPE
-    return pipe(pipes);
-#elif !defined(NO_DOMAIN_SOCKETS)
-	static int instance = -1;
-
-	instance++;
-
-	/* Use UNIX domain sockets to pass messages */
-	tmpsock = socket(AF_UNIX, SOCK_STREAM, 0);
-	pipes[1] = socket(AF_UNIX, SOCK_STREAM, 0);
-	memset(&un, 0, sizeof(un));
-	un.sun_family=AF_UNIX;
-	sprintf(un.sun_path, PIPENAME, instance);
-	bind(tmpsock, (struct sockaddr *)&un, sizeof(un));
-	listen(tmpsock, 0);
-	connect(pipes[1], (struct sockaddr *)&un, sizeof(un));
-	pipes[0] = accept(tmpsock, 0, 0);
-	sockclose(tmpsock);
-#else
-	/* Use localhost socket to pass messages if no domain sockets */
-	he = gethostbyname("localhost");
-
-	if(he)
-	{
-		memset(&server_addr, 0, sizeof(server_addr));
-		server_addr.sin_family = AF_INET;
-		server_addr.sin_port   = 0;
-		server_addr.sin_addr.s_addr = INADDR_ANY;
-		if ((tmpsock = socket(AF_INET, SOCK_STREAM, 0)) < 0 ||  bind(tmpsock, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0 || listen(tmpsock, 0) < 0)
-			return -1;
-
-		memset(&listen_addr, 0, sizeof(listen_addr));
-		getsockname(tmpsock, (struct sockaddr *)&listen_addr, &len);
-
-		server_addr.sin_family      = AF_INET;
-		server_addr.sin_port        = listen_addr.sin_port;
-		server_addr.sin_addr.s_addr = *((unsigned long *)he->h_addr);
-		if((pipes[1] = socket(AF_INET, SOCK_STREAM, 0)) < 0 || connect(pipes[1], (struct sockaddr *)&server_addr, sizeof(server_addr)))
-			return -1;
-		else
-			pipes[0] = accept(tmpsock, 0, 0);
-		sockclose(tmpsock);
-	}
-	else
-		return -1;
-#endif
-	if(pipes[0] < 0 || pipes[1] < 0)
-		return -1;
-	return 0;
+	return buf;
 }
 
 long double API drivefree(int drive)
