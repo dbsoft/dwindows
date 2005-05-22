@@ -65,6 +65,7 @@ HWND mainwindow,
      notebookbox4,
      notebookbox5,
      notebookbox6,
+     html,
      notebook,
      vscrollbar,
      hscrollbar,
@@ -865,6 +866,7 @@ int main(int argc, char *argv[])
 	ULONG notebookpage4;
 	ULONG notebookpage5;
 	ULONG notebookpage6;
+	ULONG notebookpage7;
 
 	dw_init(TRUE, argc, argv);
 
@@ -912,6 +914,12 @@ int main(int argc, char *argv[])
 	dw_notebook_pack( notebook, notebookpage6, notebookbox6 );
 	dw_notebook_page_set_text( notebook, notebookpage6, "mdi");
 	mdi_add();
+
+	html = dw_html_new(0);
+	notebookpage7 = dw_notebook_page_new( notebook, 1, FALSE );
+	dw_notebook_pack( notebook, notebookpage7, html );
+	dw_notebook_page_set_text( notebook, notebookpage7, "html");
+	dw_html_url(html, "http://dwindows.netlabs.org");
 
 	dw_signal_connect(mainwindow, DW_SIGNAL_DELETE, DW_SIGNAL_FUNC(exit_callback), (void *)mainwindow);
 	timerid = dw_timer_connect(1000, DW_SIGNAL_FUNC(timer_callback), 0);
