@@ -447,6 +447,7 @@ typedef struct _window_data {
 #define ClassName "dynamicwindows"
 #define SplitbarClassName "dwsplitbar"
 #define ObjectClassName "dwobjectclass"
+#define BrowserClassName "dwbrowserclass"
 #define DefaultFont NULL
 
 typedef struct _color {
@@ -882,6 +883,14 @@ typedef struct _dwdialog {
 #define DW_ERROR_NO_MEM    4
 #define DW_ERROR_INTERRUPT 5
 
+/* Embedded HTML actions */
+#define DW_HTML_GOBACK		0
+#define DW_HTML_GOFORWARD	1
+#define DW_HTML_GOHOME		2
+#define DW_HTML_SEARCH		3
+#define DW_HTML_RELOAD		4
+#define DW_HTML_STOP		5
+
 #ifndef API
 #define API
 #endif
@@ -1121,5 +1130,9 @@ int API dw_named_event_close(HEV eve);
 HSHM API dw_named_memory_new(void **dest, int size, char *name);
 HSHM API dw_named_memory_get(void **dest, int size, char *name);
 int API dw_named_memory_free(HSHM handle, void *ptr);
+void API dw_html_action(HWND hwnd, int action);
+int API dw_html_raw(HWND hwnd, char *string);
+int API dw_html_url(HWND hwnd, char *url);
+HWND API dw_html_new(unsigned long id);
 
 #endif

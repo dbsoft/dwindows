@@ -2,8 +2,8 @@
  * Dynamic Windows:
  *          A GTK like implementation of the Win32 GUI
  *
- * (C) 2000-2004 Brian Smith <dbsoft@technologist.com>
- * (C) 2003-2004 Mark Hessling <m.hessling@qut.edu.au>
+ * (C) 2000-2005 Brian Smith <dbsoft@technologist.com>
+ * (C) 2003-2005 Mark Hessling <m.hessling@qut.edu.au>
  *
  */
 #define _WIN32_IE 0x0500
@@ -74,6 +74,7 @@ BYTE _blue[] = { 	0x00, 0x00, 0x00, 0x00, 0xcc, 0xbb, 0xbb, 0xaa, 0x77,
 HBRUSH _colors[18];
 
 
+LRESULT CALLBACK _browserWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 void _resize_notebook_page(HWND handle, int pageid);
 void _handle_splitbar_resize(HWND hwnd, float percent, int type, int x, int y);
 int _lookup_icon(HWND handle, HICON hicon, int type);
@@ -3277,6 +3278,13 @@ int API dw_init(int newthread, int argc, char *argv[])
 
 	RegisterClass(&wc);
 
+	/* Register HTML renderer class */
+	memset(&wc, 0, sizeof(WNDCLASS));
+	wc.lpfnWndProc = (WNDPROC)_browserWindowProc;
+	wc.lpszClassName = BrowserClassName;
+	wc.style = CS_HREDRAW|CS_VREDRAW;
+	RegisterClass(&wc);
+
 	/* Create a set of brushes using the default OS/2 and DOS colors */
 	for(z=0;z<18;z++)
 		_colors[z] = CreateSolidBrush(RGB(_red[z],_green[z],_blue[z]));
@@ -3339,6 +3347,7 @@ int API dw_init(int newthread, int argc, char *argv[])
 	InitializeSecurityDescriptor(&_dwsd, SECURITY_DESCRIPTOR_REVISION);
 	SetSecurityDescriptorDacl(&_dwsd, TRUE, (PACL) NULL, FALSE);
 
+	OleInitialize(NULL);
 	return 0;
 }
 
@@ -4015,6 +4024,23 @@ HWND API dw_mdi_new(unsigned long id)
 							 DWInstance,
 							 &ccs);
 	return hwndframe;
+}
+
+/*
+ * Create a new HTML browser frame to be packed.
+ * Parameters:
+ *       id: An ID to be used with dw_window_from_id or 0L.
+ */
+HWND API dw_html_new(unsigned long id)
+{
+	return CreateWindow(BrowserClassName,
+						"",
+						WS_VISIBLE | WS_CHILD | WS_CLIPSIBLINGS,
+						0,0,2000,1000,
+						DW_HWND_OBJECT,
+						(HMENU)id,
+						DWInstance,
+						NULL);
 }
 
 /*
@@ -8165,6 +8191,7 @@ DWTID API dw_thread_id(void)
  */
 void API dw_exit(int exitcode)
 {
+	OleUninitialize();
 	exit(exitcode);
 }
 
