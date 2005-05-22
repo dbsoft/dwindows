@@ -261,3 +261,8 @@ EXPORTS
   dw_named_event_post                    @463
   dw_named_event_wait                    @464
   dw_named_event_close                   @465
+
+  dw_html_new                            @470
+  dw_html_action                         @471
+  dw_html_raw                            @472
+  dw_html_url                            @473
