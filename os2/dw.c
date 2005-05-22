@@ -8343,7 +8343,7 @@ void _dwthreadstart(void *data)
 	void (* API threadfunc)(void *) = NULL;
 	void **tmp = (void **)data;
 
-	threadfunc = (void (*)(void *))tmp[0];
+	threadfunc = (void (* API)(void *))tmp[0];
 	threadfunc(tmp[1]);
 
 	free(tmp);
@@ -9093,6 +9093,62 @@ int API dw_browse(char *url)
 	if(newurl)
 		free(newurl);
 	return ret;
+}
+
+/*
+ * Causes the embedded HTML widget to take action.
+ * Parameters:
+ *       handle: Handle to the window.
+ *       action: One of the DW_HTML_* constants.
+ */
+void API dw_html_action(HWND handle, int action)
+{
+	handle = handle;
+	action = action;
+}
+
+/*
+ * Render raw HTML code in the embedded HTML widget..
+ * Parameters:
+ *       handle: Handle to the window.
+ *       string: String buffer containt HTML code to
+ *               be rendered.
+ * Returns:
+ *       0 on success.
+ */
+int API dw_html_raw(HWND handle, char *string)
+{
+	handle = handle;
+	string = string;
+	return -1;
+}
+
+/*
+ * Render file or web page in the embedded HTML widget..
+ * Parameters:
+ *       handle: Handle to the window.
+ *       url: Universal Resource Locator of the web or
+ *               file object to be rendered.
+ * Returns:
+ *       0 on success.
+ */
+int API dw_html_url(HWND handle, char *url)
+{
+	handle = handle;
+	url = url;
+	return -1;
+}
+
+/*
+ * Create a new Entryfield window (widget) to be packed.
+ * Parameters:
+ *       text: The default text to be in the entryfield widget.
+ *       id: An ID to be used with dw_window_from_id() or 0L.
+ */
+HWND API dw_html_new(unsigned long id)
+{
+	id = id;
+    return dw_box_new(DW_HORZ, 0);
 }
 
 /*
