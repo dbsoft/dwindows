@@ -29,6 +29,9 @@
 #ifdef USE_IMLIB
 #include <gdk_imlib.h>
 #endif
+#ifdef USE_GTKMOZEMBED
+#include <gtkmozembed.h>
+#endif
 #if GTK_MAJOR_VERSION > 1
 #include <gdk-pixbuf/gdk-pixbuf.h>
 #endif
@@ -9849,6 +9852,30 @@ int dw_browse(char *url)
  */
 void dw_html_action(HWND handle, int action)
 {
+#ifdef USE_GTKMOZEMBED
+	int _locked_by_me = FALSE;
+
+	DW_MUTEX_LOCK;
+	switch(action)
+	{
+	case DW_HTML_GOBACK:
+        gtk_moz_embed_go_back(GTK_MOZ_EMBED(handle));
+		break;
+	case DW_HTML_GOFORWARD:
+        gtk_moz_embed_go_forward(GTK_MOZ_EMBED(handle));
+		break;
+	case DW_HTML_GOHOME:
+		gtk_moz_embed_load_url(GTK_MOZ_EMBED(handle), "http://dwindows.netlabs.org");
+		break;
+	case DW_HTML_RELOAD:
+        gtk_moz_embed_reload(GTK_MOZ_EMBED(handle), 0);
+		break;
+	case DW_HTML_STOP:
+        gtk_moz_embed_stop_load(GTK_MOZ_EMBED(handle));
+		break;
+	}
+	DW_MUTEX_UNLOCK;
+#endif
 }
 
 /*
@@ -9862,6 +9889,14 @@ void dw_html_action(HWND handle, int action)
  */
 int dw_html_raw(HWND handle, char *string)
 {
+#ifdef USE_GTKMOZEMBED
+	int _locked_by_me = FALSE;
+
+	DW_MUTEX_LOCK;
+    gtk_moz_embed_render_data(GTK_MOZ_EMBED(handle), string, strlen(string), "", "");
+	DW_MUTEX_UNLOCK;
+	return 0;
+#endif
 	return -1;
 }
 
@@ -9876,6 +9911,14 @@ int dw_html_raw(HWND handle, char *string)
  */
 int dw_html_url(HWND handle, char *url)
 {
+#ifdef USE_GTKMOZEMBED
+	int _locked_by_me = FALSE;
+
+	DW_MUTEX_LOCK;
+	gtk_moz_embed_load_url(GTK_MOZ_EMBED(handle), url);
+	DW_MUTEX_UNLOCK;
+	return 0;
+#endif
 	return -1;
 }
 
@@ -9887,7 +9930,17 @@ int dw_html_url(HWND handle, char *url)
  */
 HWND dw_html_new(unsigned long id)
 {
+#ifdef USE_GTKMOZEMBED
+	GtkWidget *widget;
+	int _locked_by_me = FALSE;
+
+	DW_MUTEX_LOCK;
+	widget = gtk_moz_embed_new();
+	DW_MUTEX_UNLOCK;
+	return widget;
+#else
     return dw_box_new(DW_HORZ, 0);
+#endif
 }
 
 /*
