@@ -30,6 +30,9 @@
 /* Determine whether we have the pipe function */
 #undef HAVE_PIPE
 
+/* Define if GtkMozEmbed is available */
+#undef USE_GTKMOZEMBED
+
 /* Define if IMLIB is available. */
 #undef USE_IMLIB
 
