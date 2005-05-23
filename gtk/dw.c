@@ -31,6 +31,8 @@
 #endif
 #ifdef USE_GTKMOZEMBED
 #include <gtkmozembed.h>
+#undef GTK_TYPE_MOZ_EMBED
+#define GTK_TYPE_MOZ_EMBED             (_dw_moz_embed_get_type())
 #endif
 #if GTK_MAJOR_VERSION > 1
 #include <gdk-pixbuf/gdk-pixbuf.h>
@@ -123,6 +125,18 @@ static gint _tree_expand_event(GtkTreeItem *treeitem, gpointer data);
 #endif
 static gint _switch_page_event(GtkNotebook *notebook, GtkNotebookPage *page, guint page_num, gpointer data);
 static gint _column_click_event(GtkWidget *widget, gint column_num, gpointer data);
+
+/* Embedable Mozilla functions*/
+#ifdef USE_GTKMOZEMBED
+void (*_gtk_moz_embed_go_back)(GtkMozEmbed *) = NULL;
+void (*_gtk_moz_embed_go_forward)(GtkMozEmbed *) = NULL;
+void (*_gtk_moz_embed_load_url)(GtkMozEmbed *, const char *) = NULL;
+void (*_gtk_moz_embed_reload)(GtkMozEmbed *, guint32) = NULL;
+void (*_gtk_moz_embed_stop_load)(GtkMozEmbed *) = NULL;
+void (*_gtk_moz_embed_render_data)(GtkMozEmbed *, const char *, guint32, const char *, const char *) = NULL;
+GtkWidget *(*_gtk_moz_embed_new)(void) = NULL;
+GtkType (*_dw_moz_embed_get_type)(void) = NULL;
+#endif
 
 typedef struct
 {
@@ -1860,6 +1874,65 @@ static void _dw_thread_remove(DWTID tid)
 	}
 }
 
+/* Try to load the mozilla embed shared libary */
+#ifdef USE_GTKMOZEMBED
+#include <ctype.h>
+void init_mozembed(void)
+{
+	void *handle = NULL;
+	FILE *fp = popen("pkg-config --libs-only-L mozilla-gtkmozembed", "r");
+	char output[1024];
+
+	/* First we try to get the correct location
+	 * from pkg-config.
+     */
+	if(fp)
+	{
+		fgets(output, 1024, fp);
+
+		printf("Output: %s\n", output);
+		if(output[0] == '-' && output[1] == 'L')
+		{
+			int x, len = strlen(output);
+
+			for(x=len;x>0;x--)
+			{
+				if(!isalpha(output[x]) && !isnumber(output[x]) && output[x] != '/')
+					output[x] = 0;
+			}
+			strncat(output, "/libgtkembedmoz.so", 1024);
+			handle = dlopen(&output[2], RTLD_NOW);
+			if(!handle)
+				printf("Output: %s Error: %s\n", &output[2], dlerror());
+		}
+		fclose(fp);
+	}
+	/* Try the default path */
+	if(!handle)
+		handle = dlopen("libgtkembedmoz.so", RTLD_NOW);
+	/* Finally try some common locations */
+	if(!handle)
+		handle = dlopen("/usr/X11R6/lib/mozilla/libgtkembedmoz.so", RTLD_NOW);
+	if(!handle)
+		handle = dlopen("/usr/lib/mozilla/libgtkembedmoz.so", RTLD_NOW);
+	if(!handle)
+		handle = dlopen("/usr/local/lib/mozilla/libgtkembedmoz.so", RTLD_NOW);
+
+	/* If we loaded it, grab the symbols we want */
+	if(handle)
+	{
+		_gtk_moz_embed_go_back = dlsym(handle, "gtk_moz_embed_go_back");
+		_gtk_moz_embed_go_forward = dlsym(handle, "gtk_moz_embed_go_forward");
+		_gtk_moz_embed_load_url = dlsym(handle, "gtk_moz_embed_load_url");
+		_gtk_moz_embed_reload = dlsym(handle, "gtk_moz_embed_reload");
+		_gtk_moz_embed_stop_load = dlsym(handle, "gtk_moz_embed_stop_load");
+		_gtk_moz_embed_render_data = dlsym(handle, "gtk_moz_embed_render_data");
+		_dw_moz_embed_get_type = dlsym(handle, "gtk_moz_embed_get_type");
+		_gtk_moz_embed_new = dlsym(handle, "gtk_moz_embed_new");
+	}
+}
+#endif
+
 /*
  * Initializes the Dynamic Windows engine.
  * Parameters:
@@ -1903,6 +1976,10 @@ int dw_int_init(DWResources *res, int newthread, int *argc, char **argv[])
 		_dw_thread_list[z] = (DWTID)-1;
 
 	gtk_rc_parse_string("style \"gtk-tooltips-style\" { bg[NORMAL] = \"#eeee00\" } widget \"gtk-tooltips\" style \"gtk-tooltips-style\"");
+
+#ifdef USE_GTKMOZEMBED
+	init_mozembed();
+#endif
 
 	return TRUE;
 }
@@ -9855,23 +9932,26 @@ void dw_html_action(HWND handle, int action)
 #ifdef USE_GTKMOZEMBED
 	int _locked_by_me = FALSE;
 
+	if(!_gtk_moz_embed_new)
+		return;
+
 	DW_MUTEX_LOCK;
 	switch(action)
 	{
 	case DW_HTML_GOBACK:
-        gtk_moz_embed_go_back(GTK_MOZ_EMBED(handle));
+		_gtk_moz_embed_go_back(GTK_MOZ_EMBED(handle));
 		break;
 	case DW_HTML_GOFORWARD:
-        gtk_moz_embed_go_forward(GTK_MOZ_EMBED(handle));
+		_gtk_moz_embed_go_forward(GTK_MOZ_EMBED(handle));
 		break;
 	case DW_HTML_GOHOME:
-		gtk_moz_embed_load_url(GTK_MOZ_EMBED(handle), "http://dwindows.netlabs.org");
+		_gtk_moz_embed_load_url(GTK_MOZ_EMBED(handle), "http://dwindows.netlabs.org");
 		break;
 	case DW_HTML_RELOAD:
-        gtk_moz_embed_reload(GTK_MOZ_EMBED(handle), 0);
+		_gtk_moz_embed_reload(GTK_MOZ_EMBED(handle), 0);
 		break;
 	case DW_HTML_STOP:
-        gtk_moz_embed_stop_load(GTK_MOZ_EMBED(handle));
+		_gtk_moz_embed_stop_load(GTK_MOZ_EMBED(handle));
 		break;
 	}
 	DW_MUTEX_UNLOCK;
@@ -9892,8 +9972,11 @@ int dw_html_raw(HWND handle, char *string)
 #ifdef USE_GTKMOZEMBED
 	int _locked_by_me = FALSE;
 
+	if(!_gtk_moz_embed_new)
+		return -1;
+
 	DW_MUTEX_LOCK;
-    gtk_moz_embed_render_data(GTK_MOZ_EMBED(handle), string, strlen(string), "", "");
+	_gtk_moz_embed_render_data(GTK_MOZ_EMBED(handle), string, strlen(string), "", "");
 	DW_MUTEX_UNLOCK;
 	return 0;
 #endif
@@ -9914,8 +9997,11 @@ int dw_html_url(HWND handle, char *url)
 #ifdef USE_GTKMOZEMBED
 	int _locked_by_me = FALSE;
 
+	if(!_gtk_moz_embed_new)
+		return -1;
+
 	DW_MUTEX_LOCK;
-	gtk_moz_embed_load_url(GTK_MOZ_EMBED(handle), url);
+	_gtk_moz_embed_load_url(GTK_MOZ_EMBED(handle), url);
 	DW_MUTEX_UNLOCK;
 	return 0;
 #endif
@@ -9934,8 +10020,11 @@ HWND dw_html_new(unsigned long id)
 	GtkWidget *widget;
 	int _locked_by_me = FALSE;
 
+	if(!_gtk_moz_embed_new)
+		return NULL;
+
 	DW_MUTEX_LOCK;
-	widget = gtk_moz_embed_new();
+	widget = _gtk_moz_embed_new();
 	DW_MUTEX_UNLOCK;
 	return widget;
 #else
