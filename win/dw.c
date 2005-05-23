@@ -346,13 +346,17 @@ BOOL CALLBACK _free_window_memory(HWND handle, LPARAM lParam)
 	HICON oldicon = (HICON)SendMessage(handle, WM_GETICON, 0, 0);
 	char tmpbuf[100];
 
+	GetClassName(handle, tmpbuf, 99);
+
+	/* Don't try to free memory from an OLE embedded IE */
+	if(strncmp(tmpbuf, "Internet Explorer_Server", 25) == 0)
+		return TRUE;
+
 	/* Delete font, icon and bitmap GDI objects in use */
 	if(oldfont)
 		DeleteObject(oldfont);
 	if(oldicon)
 		DeleteObject(oldicon);
-
-	GetClassName(handle, tmpbuf, 99);
 
 	if(strnicmp(tmpbuf, STATICCLASSNAME, strlen(STATICCLASSNAME)+1)==0)
 	{
