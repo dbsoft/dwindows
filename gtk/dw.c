@@ -1877,46 +1877,57 @@ static void _dw_thread_remove(DWTID tid)
 /* Try to load the mozilla embed shared libary */
 #ifdef USE_GTKMOZEMBED
 #include <ctype.h>
+
+static char _dw_mozdir[1024];
+
 void init_mozembed(void)
 {
 	void *handle = NULL;
 	FILE *fp = popen("pkg-config --libs-only-L mozilla-gtkmozembed", "r");
-	char output[1024];
 
 	/* First we try to get the correct location
 	 * from pkg-config.
      */
 	if(fp)
 	{
-		fgets(output, 1024, fp);
+		fgets(_dw_mozdir, 1024, fp);
 
-		printf("Output: %s\n", output);
-		if(output[0] == '-' && output[1] == 'L')
+		if(_dw_mozdir[0] == '-' && _dw_mozdir[1] == 'L')
 		{
-			int x, len = strlen(output);
+			int x, len = strlen(_dw_mozdir);
 
 			for(x=len;x>0;x--)
 			{
-				if(!isalpha(output[x]) && !isnumber(output[x]) && output[x] != '/')
-					output[x] = 0;
+				if(!isalpha(_dw_mozdir[x]) && !isnumber(_dw_mozdir[x]) && _dw_mozdir[x] != '/')
+					_dw_mozdir[x] = 0;
 			}
-			strncat(output, "/libgtkembedmoz.so", 1024);
-			handle = dlopen(&output[2], RTLD_NOW);
-			if(!handle)
-				printf("Output: %s Error: %s\n", &output[2], dlerror());
+			strncat(_dw_mozdir, "/libgtkembedmoz.so", 1024);
+			handle = dlopen(&_dw_mozdir[2], RTLD_NOW);
 		}
 		fclose(fp);
 	}
 	/* Try the default path */
 	if(!handle)
-		handle = dlopen("libgtkembedmoz.so", RTLD_NOW);
+	{
+		strncpy(_dw_mozdir, "libgtkembedmoz.so", 1024);
+		handle = dlopen(_dw_mozdir, RTLD_NOW);
+	}
 	/* Finally try some common locations */
 	if(!handle)
-		handle = dlopen("/usr/X11R6/lib/mozilla/libgtkembedmoz.so", RTLD_NOW);
+	{
+		strncpy(_dw_mozdir, "/usr/X11R6/lib/mozilla/libgtkembedmoz.so", 1024);
+		handle = dlopen(_dw_mozdir, RTLD_NOW);
+	}
 	if(!handle)
-		handle = dlopen("/usr/lib/mozilla/libgtkembedmoz.so", RTLD_NOW);
+	{
+		strncpy(_dw_mozdir, "/usr/lib/mozilla/libgtkembedmoz.so", 1024);
+		handle = dlopen(_dw_mozdir, RTLD_NOW);
+	}
 	if(!handle)
-		handle = dlopen("/usr/local/lib/mozilla/libgtkembedmoz.so", RTLD_NOW);
+	{
+		strncpy(_dw_mozdir, "/usr/local/lib/mozilla/libgtkembedmoz.so", 1024);
+		handle = dlopen(_dw_mozdir, RTLD_NOW);
+	}
 
 	/* If we loaded it, grab the symbols we want */
 	if(handle)
@@ -1930,6 +1941,8 @@ void init_mozembed(void)
 		_dw_moz_embed_get_type = dlsym(handle, "gtk_moz_embed_get_type");
 		_gtk_moz_embed_new = dlsym(handle, "gtk_moz_embed_new");
 	}
+	else
+		_dw_mozdir[0] = 0;
 }
 #endif
 
@@ -8092,7 +8105,7 @@ void dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, int 
 	if(!item)
 	{
 		item = gtk_label_new("");
-		gtk_widget_show(item);
+		gtk_widget_show_all(item);
 	}
 
 	tmpitem = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(item), "_dw_boxhandle");
@@ -9396,7 +9409,7 @@ void dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize, in
 	if(!item)
 	{
 		item = gtk_label_new("");
-		gtk_widget_show(item);
+		gtk_widget_show_all(item);
 	}
 
 	tmpitem = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(item), "_dw_boxhandle");
