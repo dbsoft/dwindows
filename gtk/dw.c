@@ -9373,6 +9373,74 @@ float dw_splitbar_get(HWND handle)
 }
 
 /*
+ * Creates a calnedar window (widget) with given parameters.
+ * Parameters:
+ *       type: Value can be DW_VERT or DW_HORZ.
+ *       topleft: Handle to the window to be top or left.
+ *       bottomright:  Handle to the window to be bottom or right.
+ * Classname: SysMonthCal32
+ * Returns:
+ *       A handle to a calendar window or NULL on failure.
+ */
+HWND dw_calendar_new(unsigned long id)
+{
+	GtkCalendar *tmp;
+	int _locked_by_me = FALSE;
+	GtkCalendarDisplayOptions flags;
+
+	DW_MUTEX_LOCK;
+	tmp = gtk_calendar_new();
+	gtk_widget_show(tmp);
+	gtk_object_set_data(GTK_OBJECT(tmp), "_dw_id", (gpointer)id);
+	/* select today */
+	flags = GTK_CALENDAR_WEEK_START_MONDAY|GTK_CALENDAR_SHOW_HEADING|GTK_CALENDAR_SHOW_DAY_NAMES;
+	gtk_calendar_display_options(tmp,flags);
+	gtk_calendar_select_month(tmp,11,2005);
+	gtk_calendar_select_day(tmp, 12);
+
+	DW_MUTEX_UNLOCK;
+	return tmp;
+}
+
+/*
+ * Sets the current date of a calendar
+ * Parameters:
+ *       handle: The handle to the calendar returned by dw_calendar_new().
+ *       year...
+ */
+void dw_calendar_set_date(HWND handle, int year, int month, int day)
+{
+	int _locked_by_me = FALSE;
+
+	DW_MUTEX_LOCK;
+	if(GTK_IS_CALENDAR(handle))
+	{
+		gtk_calendar_select_month(GTK_CALENDAR(handle),month-1,year);
+		gtk_calendar_select_day(GTK_CALENDAR(handle), day);
+	}
+	DW_MUTEX_UNLOCK;
+	return;
+}
+
+/*
+ * Gets the position of a splitbar (pecentage).
+ * Parameters:
+ *       handle: The handle to the splitbar returned by dw_splitbar_new().
+ */
+void dw_calendar_get_date(HWND handle, int *year, int *month, int *day)
+{
+	int _locked_by_me = FALSE;
+
+	DW_MUTEX_LOCK;
+	if(GTK_IS_CALENDAR(handle))
+	{
+		gtk_calendar_get_date(GTK_CALENDAR(handle),year,month,day);
+	}
+	DW_MUTEX_UNLOCK;
+	return;
+}
+
+/*
  * Pack windows (widgets) into a box from the start (or top).
  * Parameters:
  *       box: Window handle of the box to be packed into.
