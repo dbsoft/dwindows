@@ -772,12 +772,18 @@ int DWSIGNAL timer_callback(void *data)
 
 void buttons_add(void)
 {
-	HWND buttonsbox,abutton1,abutton2;
+	HWND buttonsbox,abutton1,abutton2,cal,calbox;
 
 	/* create a box to pack into the notebook page */
 	buttonsbox = dw_box_new(BOXVERT, 2);
 	dw_box_pack_start( notebookbox5, buttonsbox, 25, 200, TRUE, TRUE, 0);
 	dw_window_set_color(buttonsbox, DW_CLR_RED, DW_CLR_RED);
+
+	calbox = dw_box_new(DW_HORZ, 0);
+	dw_box_pack_start(notebookbox5, calbox, 500, 200, TRUE, TRUE, 1);
+	cal = dw_calendar_new(100);
+	dw_box_pack_start(calbox, cal, 0, 0, FALSE, FALSE, 0);
+	dw_calendar_set_date(cal, 2001, 1, 1);
 /*
  * Create our file toolbar boxes...
  */

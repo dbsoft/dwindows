@@ -266,3 +266,7 @@ EXPORTS
   dw_html_action                         @471
   dw_html_raw                            @472
   dw_html_url                            @473
+
+  dw_calendar_new                        @480
+  dw_calendar_set_date                   @481
+  dw_calendar_get_date                   @482
