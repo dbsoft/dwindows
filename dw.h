@@ -6,7 +6,7 @@
 /* Dynamic Windows version numbers */
 #define DW_MAJOR_VERSION 0
 #define DW_MINOR_VERSION 9
-#define DW_SUB_VERSION 0
+#define DW_SUB_VERSION 2
 
 /* These corespond to the entries in the color
  * arrays in the Win32 dw.c, they are also the
@@ -1065,6 +1065,10 @@ float API dw_splitbar_get(HWND handle);
 HMENUI API dw_menu_new(unsigned long id);
 HMENUI API dw_menubar_new(HWND location);
 HWND API dw_menu_append_item(HMENUI menu, char *title, unsigned long id, unsigned long flags, int end, int check, HMENUI submenu);
+#if 0
+TBD
+void API dw_menu_delete_item(HMENUI menu, unsigned long id);
+#endif
 void API dw_menu_item_set_check(HMENUI menu, unsigned long id, int check);
 void API dw_menu_popup(HMENUI *menu, HWND parent, int x, int y);
 void API dw_menu_destroy(HMENUI *menu);
@@ -1134,5 +1138,8 @@ void API dw_html_action(HWND hwnd, int action);
 int API dw_html_raw(HWND hwnd, char *string);
 int API dw_html_url(HWND hwnd, char *url);
 HWND API dw_html_new(unsigned long id);
+HWND API dw_calendar_new(unsigned long id);
+void API dw_calendar_set_date( HWND window, int year, int month, int day );
+void API dw_calendar_get_date( HWND window, int *year, int *month, int *day );
 
 #endif
