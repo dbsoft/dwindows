@@ -92,7 +92,7 @@ AC_CHECK_HEADER(pthread.h,,AC_MSG_ERROR([pthread header not found. Dynamic Windo
 AC_CHECK_LIB(pthread, pthread_attr_init, PTHREAD_LIBS="-lpthread",
 AC_CHECK_LIB(pthreads, pthread_attr_init, PTHREAD_LIBS="-lpthreads",
   AC_CHECK_LIB(c_r, pthread_attr_init, PTHREAD_LIBS="-lc_r",
-      AC_MSG_ERROR(pthread library not found. HandyFTP cannot build without it.
+      AC_MSG_ERROR(pthread library not found. dwindows cannot build without it.
       )
     )
   )
