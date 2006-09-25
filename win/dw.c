@@ -3239,7 +3239,7 @@ int API dw_init(int newthread, int argc, char *argv[])
 	INITCOMMONCONTROLSEX icc;
 
 	icc.dwSize = sizeof(INITCOMMONCONTROLSEX);
-	icc.dwICC = ICC_WIN95_CLASSES;
+	icc.dwICC = ICC_WIN95_CLASSES|ICC_DATE_CLASSES;
 
 	InitCommonControlsEx(&icc);
 
@@ -4153,7 +4153,7 @@ void API dw_menu_destroy(HMENUI *menu)
 /*
  * Adds a menuitem or submenu to an existing menu.
  * Parameters:
- *       menu: The handle the the existing menu.
+ *       menu: The handle to the existing menu.
  *       title: The title text on the menu item to be added.
  *       id: An ID to be used for message passing.
  *       end: If TRUE memu is positioned at the end of the menu.
@@ -4227,7 +4227,7 @@ HWND API dw_menu_append_item(HMENUI menux, char *title, ULONG id, ULONG flags, i
 /*
  * Sets the state of a menu item check.
  * Parameters:
- *       menu: The handle the the existing menu.
+ *       menu: The handle to the existing menu.
  *       id: Menuitem id.
  *       check: TRUE for checked FALSE for not checked.
  */
@@ -4247,6 +4247,26 @@ void API dw_menu_item_set_check(HMENUI menux, unsigned long id, int check)
 		mii.fState = MFS_UNCHECKED;
 	SetMenuItemInfo(mymenu, id, FALSE, &mii);
 }
+
+#if 0
+/*
+ * TBD
+ * Deletes the menu item specified
+ * Parameters:
+ *       menu: The handle to the  menu in which the item was appended.
+ *       id: Menuitem id.
+ */
+void API dw_menu_delete_item(HMENUI menux, unsigned long id)
+{
+	HMENU mymenu = (HMENU)menux;
+
+	if(IsWindow(menux) && !IsMenu(mymenu))
+		mymenu = (HMENU)dw_window_get_data(menux, "_dw_menu");
+
+	DeleteMenu(mymenu, id, MF_BYCOMMAND);
+	DrawMenuBar(menux);
+}
+#endif
 
 /*
  * Pops up a context menu at given x and y coordinates.
@@ -5105,6 +5125,14 @@ void API dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize
 
 		if(strnicmp(tmpbuf, FRAMECLASSNAME, strlen(FRAMECLASSNAME)+1)==0)
 			tmpitem[thisbox->count].type = TYPEBOX;
+		else if(strnicmp(tmpbuf, "SysMonthCal32", 13)==0)
+		{
+			RECT rc;
+			MonthCal_GetMinReqRect(item, &rc);
+			width = 1 + rc.right - rc.left;
+			height = 1 + rc.bottom - rc.top;
+			tmpitem[thisbox->count].type = TYPEITEM;
+		}
 		else
 		{
 			if ( width == 0 && hsize == FALSE )
@@ -8273,6 +8301,93 @@ float API dw_splitbar_get(HWND handle)
 }
 
 /*
+ * Creates a calendar window (widget) with given parameters.
+ * Parameters:
+ *       type: Value can be DW_VERT or DW_HORZ.
+ *       topleft: Handle to the window to be top or left.
+ *       bottomright:  Handle to the window to be bottom or right.
+ * Classname: SysMonthCal32
+ * Returns:
+ *       A handle to a calendar window or NULL on failure.
+ */
+HWND API dw_calendar_new(unsigned long id)
+{
+	RECT rc;
+	MONTHDAYSTATE mds[3];
+	HWND tmp = CreateWindowEx(WS_EX_CLIENTEDGE,
+                           MONTHCAL_CLASS,
+                           "",
+                           WS_VISIBLE | WS_CHILD | WS_CLIPCHILDREN | MCS_DAYSTATE,
+                           0,0,2000,1000, // resize it later
+                           DW_HWND_OBJECT,
+                           (HMENU)id,
+                           DWInstance,
+                           NULL);
+	if ( tmp )
+	{
+		// Get the size required to show an entire month.
+		MonthCal_GetMinReqRect(tmp, &rc);
+		// Resize the control now that the size values have been obtained.
+		SetWindowPos(tmp, NULL, 0, 0,
+               rc.right, rc.bottom,
+               SWP_NOZORDER | SWP_NOMOVE);
+		mds[0] = mds[1] = mds[2] = (MONTHDAYSTATE)0;
+		MonthCal_SetDayState(tmp,3,mds);
+		return tmp;
+	}
+	else
+		return NULL;
+}
+
+/*
+ * Sets the current date of a calendar
+ * Parameters:
+ *       handle: The handle to the calendar returned by dw_calendar_new().
+ *       year:   The year to set the date to
+ *       month:  The month to set the date to
+ *       day:    The day to set the date to
+ */
+void API dw_calendar_set_date(HWND handle, int year, int month, int day)
+{
+	MONTHDAYSTATE mds[3];
+	SYSTEMTIME date;
+	date.wYear = year;
+	date.wMonth = month;
+	date.wDay = day;
+	if ( MonthCal_SetCurSel( handle, &date ) )
+	{
+	}
+	else
+	{
+	}
+	mds[0] = mds[1] = mds[2] = (MONTHDAYSTATE)0;
+	MonthCal_SetDayState(handle,3,mds);
+}
+
+/*
+ * Gets the date from the calendar
+ * Parameters:
+ *       handle: The handle to the calendar returned by dw_calendar_new().
+ *       year:   Pointer to the year to get the date to
+ *       month:  Pointer to the month to get the date to
+ *       day:    Pointer to the day to get the date to
+ */
+void API dw_calendar_get_date(HWND handle, int *year, int *month, int *day)
+{
+	SYSTEMTIME date;
+	if ( MonthCal_GetCurSel( handle, &date ) )
+	{
+		*year = date.wYear;
+		*month = date.wMonth;
+		*day = date.wDay;
+	}
+	else
+	{
+		*year = *month = *day = 0;
+	}
+}
+
+/*
  * Pack windows (widgets) into a box from the end (or bottom).
  * Parameters:
  *       box: Window handle of the box to be packed into.
@@ -8320,6 +8435,14 @@ void API dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, 
 
 		if(strnicmp(tmpbuf, FRAMECLASSNAME, strlen(FRAMECLASSNAME)+1)==0)
 			tmpitem[0].type = TYPEBOX;
+		else if(strnicmp(tmpbuf, "SysMonthCal32", 13)==0)
+		{
+			RECT rc;
+			MonthCal_GetMinReqRect(item, &rc);
+			width = 1 + rc.right - rc.left;
+			height = 1 + rc.bottom - rc.top;
+			tmpitem[thisbox->count].type = TYPEITEM;
+		}
 		else
 		{
 			if ( width == 0 && hsize == FALSE )
