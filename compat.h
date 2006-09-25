@@ -187,11 +187,11 @@ void msleep(long period);
 #include <sys/un.h>
 #include <netinet/in.h>
 #include <netdb.h>
-#include <arpa/nameser.h>
+//#include <arpa/nameser.h>
 #if defined(__OS2__) && defined(RES_DEFAULT)
 #undef RES_DEFAULT
 #endif
-#include <resolv.h>
+//#include <resolv.h>
 #include <stdarg.h>
 #include <string.h>
 #endif /* !WIN32 */
