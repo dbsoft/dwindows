@@ -166,6 +166,7 @@ EXPORTS
   dw_menu_item_set_check                 @283
   dw_menu_popup                          @284
   dw_menu_destroy                        @285
+  dw_menu_delete_item                    @286
 
   dw_pointer_query_pos                   @290
   dw_pointer_set_pos                     @291
@@ -263,4 +264,8 @@ EXPORTS
   dw_html_action                         @471
   dw_html_raw                            @472
   dw_html_url                            @473
-  
+
+  dw_calendar_new                        @480
+  dw_calendar_set_date                   @481
+  dw_calendar_get_date                   @482
+
