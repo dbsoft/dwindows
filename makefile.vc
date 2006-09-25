@@ -15,7 +15,7 @@ CFLAGS = -c -G5 -GD -Zp1 -DWIN32 -D__WIN32__ -DMSVC -DBUILD_DLL -I$(SRCDIR)\plat
 CFLAGS_DEBUG = -Zi
 CFLAGS_COMPILE = -MTd
 LIBS = wsock32.lib kernel32.lib user32.lib comctl32.lib gdi32.lib advapi32.lib shell32.lib comdlg32.lib ole32.lib oleaut32.lib
-RES = 
+RES =
 LINKFLAGS = -machine:i386 -debug:full
 DLLLINKFLAGS = -dll
 LINK = link
@@ -39,7 +39,7 @@ clean:
         -erase *.ilk
         -erase *.exp
         -erase *~
-        
+
 dw: dw.dll
 
 dw.dll: $(OBJS) $(DEFFILE)
@@ -51,7 +51,7 @@ $(LINKFLAGS) $(DLLLINKFLAGS)
 $(OBJS) $(RES)
 $(LIBS)
 <<
-	lib /def:$(DEFFILE)
+	lib /def:$(DEFFILE) /out:dw.lib
         copy dw.lib $(FXLIBDIR)\dw.lib
         copy dw.dll $(FXDLLDIR)\dw.dll
 
@@ -64,7 +64,7 @@ $(LINKFLAGS) $(DLLLINKFLAGS)
 $(OBJS2) $(RES)
 $(LIBS)
 <<
-	lib /def:$(DEFFILE2)
+	lib /def:$(DEFFILE2) /out:dwcompat.lib
         copy dwcompat.lib $(FXLIBDIR)\dwcompat.lib
         copy dwcompat.dll $(FXDLLDIR)\dwcompat.dll
 
