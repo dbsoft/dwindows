@@ -29,6 +29,7 @@ unsigned long flStyle = DW_FCF_SYSMENU | DW_FCF_TITLEBAR |
 
 unsigned long current_color = DW_RGB(100,100,100);
 
+int iteration = 0;
 	void create_button( int);
 
 #ifdef __MAC__
@@ -58,6 +59,10 @@ HWND mainwindow,
      okbutton,
      cancelbutton,
      lbbox,
+     combox,
+     combobox1,
+     combobox2,
+     spinbutton,
      notebookbox,
      notebookbox1,
      notebookbox2,
@@ -398,6 +403,12 @@ void DWSIGNAL scrollbar_valuechanged(HWND hwnd, int value, void *data)
 	}
 }
 
+/* Callback to handle user selection of the spinbutton position */
+void DWSIGNAL spinbutton_valuechanged(HWND hwnd, int value, void *data)
+{
+	dw_messagebox("DWTest", DW_MB_OK, "New value from spinbutton: %d\n", value);
+}
+
 /* Handle size change of the main render window */
 int DWSIGNAL configure_event(HWND hwnd, int width, int height, void *data)
 {
@@ -528,6 +539,12 @@ int DWSIGNAL column_click_cb( HWND window, int column_num, void *data )
 	sprintf(buf,"DW_SIGNAL_COLUMN_CLICK: Window: %x Column: %d Type: %s Itemdata: %x", (unsigned int)window, column_num, buf1, (unsigned int)data );
 	dw_window_set_text( statline, buf);
 	return 0;
+}
+
+int DWSIGNAL combobox_select_event_callback(HWND window, int index)
+{
+	fprintf(stderr,"got combobox_select_event for index: %d, iteration: %d\n", index, iteration++);
+	return FALSE;
 }
 
 void archive_add(void)
@@ -773,6 +790,9 @@ int DWSIGNAL timer_callback(void *data)
 void buttons_add(void)
 {
 	HWND buttonsbox,abutton1,abutton2,cal,calbox;
+	int i;
+	char buf[20];
+	char **text;
 
 	/* create a box to pack into the notebook page */
 	buttonsbox = dw_box_new(BOXVERT, 2);
@@ -799,6 +819,53 @@ void buttons_add(void)
 	dw_signal_connect( abutton2, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(button_callback), NULL );
 
 	create_button(0);
+/* make a combobox */
+	combox = dw_box_new(BOXVERT, 2);
+	dw_box_pack_start( notebookbox5, combox, 25, 200, TRUE, TRUE, 0);
+	combobox1 = dw_combobox_new( "fred", 0 ); /* no point in specifying an initial value */
+	dw_box_pack_start( combox, combobox1, 200, 20, TRUE, FALSE, 0);
+/*
+	dw_window_set_text( combobox, "initial value");
+*/
+	dw_signal_connect( combobox1, DW_SIGNAL_LIST_SELECT, DW_SIGNAL_FUNC(combobox_select_event_callback), NULL );
+#if 0
+	/* add LOTS of items */
+	fprintf(stderr,"before appending 100 items to combobox using dw_listbox_append()\n");
+	for( i = 0; i < 100; i++ )
+	{
+		sprintf( buf, "item %d", i);
+		dw_listbox_append( combobox1, buf );
+	}
+	fprintf(stderr,"after appending 100 items to combobox\n");
+#endif
+
+	combobox2 = dw_combobox_new( "joe", 0 ); /* no point in specifying an initial value */
+	dw_box_pack_start( combox, combobox2, 200, 20, TRUE, FALSE, 0);
+/*
+	dw_window_set_text( combobox, "initial value");
+*/
+	dw_signal_connect( combobox2, DW_SIGNAL_LIST_SELECT, DW_SIGNAL_FUNC(combobox_select_event_callback), NULL );
+	/* add LOTS of items */
+	fprintf(stderr,"before appending 500 items to combobox using dw_listbox_list_append()\n");
+	text = (char **)malloc(500*sizeof(char *));
+	for( i = 0; i < 500; i++ )
+	{
+		text[i] = (char *)malloc( 50 );
+		sprintf( text[i], "item %d", i);
+	}
+	dw_listbox_list_append( combobox2, text, 500 );
+	fprintf(stderr,"after appending 500 items to combobox\n");
+	for( i = 0; i < 500; i++ )
+	{
+		free(text[i]);
+	}
+	free(text);
+/* make a spinbutton */
+	spinbutton = dw_spinbutton_new( "", 0 ); /* no point in specifying text */
+	dw_box_pack_start( combox, spinbutton, 200, 20, TRUE, FALSE, 0);
+	dw_spinbutton_set_limits( spinbutton, 100, 1 );
+	dw_spinbutton_set_pos( spinbutton, 30 );
+	dw_signal_connect( spinbutton, DW_SIGNAL_VALUE_CHANGED, DW_SIGNAL_FUNC(spinbutton_valuechanged), NULL );
 }
 
 void create_button( int redraw)
@@ -856,9 +923,8 @@ void mdi_add(void)
 	dw_box_pack_start(mdi2box, ef, 150, 30, FALSE, FALSE, 4);
 	bb = dw_button_new("Browse", 0);
 	dw_box_pack_start(mdi2box, bb, 60, 30, FALSE, FALSE, 4);
-	dw_window_set_size(mdi2w, 200, 100);
+	dw_window_set_size(mdi2w, 200, 200);
 	dw_window_show(mdi2w);
-	dw_window_set_pos(mdi2w, 200, 200);
 }
 
 /*
