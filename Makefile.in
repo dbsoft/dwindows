@@ -1,36 +1,34 @@
 srcdir=@srcdir@
 CC	=	@CC@
+MLFLAGS	=	-L.
 CCFLAGS	=	@CFLAGS@ -g -O2 -fPIC -Wall -D@DW_DEFINE@ -DBUILD_DLL -DDW_RESOURCES
 LFLAGS	=	@LIBS@
 INSTALL =	@INSTALL@
 DW_SRC  =	@DW_SRC@
 INCPATH	=	-I.. -I. -I$(srcdir)
-DESTDIR	=	./lib/
-MLFLAGS	=	-L$(DESTDIR) 
 TARGET	=	dw
 SRCS	=	$(srcdir)/$(DW_SRC)/dw.c
 OBJECTS	=	dw.o
 SRCS2	=	$(srcdir)compat.c
 OBJECTS2=	compat.o
 TARGET2 =	dwcompat
-VER_MAJ	=	1
-VER_MIN	=	0
+VER_MAJ	=	0
+VER_MIN	=	9
 SOSUFFIX=	@SOSUFFIX@
-PREFIX	=	@prefix@
+PREFIX	=	$(DESTDIR)@prefix@
 SRCDIR=dwindows-$(VER_MAJ).$(VER_MIN)
 
 #.SUFFIXES:	.c .h
 
 #.c.o:
 #	$(CC) -c $(CCFLAGS) $(INCPATH) -o $@ $<
-    
+
 
 # Link flags shared objects
 SYSCONF_LFLAGS_SHOBJ	= @SHAREDFLAG@
 
 # Linking shared libraries
 #   - Build the $(TARGET) library, eg. lib$(TARGET).so.0.0
-#   - Place target in $(DESTDIR) - which has a trailing /
 #   - Usually needs to incorporate $(VER_MAJ) and $(VER_MIN)
 #
 SYSCONF_LINK_SHLIB	= gcc
@@ -38,18 +36,14 @@ SYSCONF_LINK_TARGET_SHARED	= lib$(TARGET).$(SOSUFFIX).$(VER_MAJ).$(VER_MIN)
 SYSCONF_LINK_LIB_SHARED	=  $(SYSCONF_LINK_SHLIB) $(SYSCONF_LFLAGS_SHOBJ) \
 				     -o $(SYSCONF_LINK_TARGET_SHARED) \
 				     $(OBJECTS) $(LFLAGS); \
-				 mv $(SYSCONF_LINK_TARGET_SHARED) $(DESTDIR); \
-				 cd $(DESTDIR); \
 				 rm -f lib$(TARGET).$(SOSUFFIX) lib$(TARGET).$(SOSUFFIX).$(VER_MAJ); \
 				 ln -s $(SYSCONF_LINK_TARGET_SHARED) lib$(TARGET).$(SOSUFFIX); \
 				 ln -s $(SYSCONF_LINK_TARGET_SHARED) lib$(TARGET).$(SOSUFFIX).$(VER_MAJ)
-                                 
+
 SYSCONF_LINK_TARGET_SHARED2	= lib$(TARGET2).$(SOSUFFIX).$(VER_MAJ).$(VER_MIN)
 SYSCONF_LINK_LIB_SHARED2 =  $(SYSCONF_LINK_SHLIB) $(SYSCONF_LFLAGS_SHOBJ) \
 				     -o $(SYSCONF_LINK_TARGET_SHARED2) \
 				     $(OBJECTS2) $(LFLAGS); \
-				 mv $(SYSCONF_LINK_TARGET_SHARED2) $(DESTDIR); \
-				 cd $(DESTDIR); \
 				 rm -f lib$(TARGET2).$(SOSUFFIX) lib$(TARGET2).$(SOSUFFIX).$(VER_MAJ); \
 				 ln -s $(SYSCONF_LINK_TARGET_SHARED2) lib$(TARGET2).$(SOSUFFIX); \
 				 ln -s $(SYSCONF_LINK_TARGET_SHARED2) lib$(TARGET2).$(SOSUFFIX).$(VER_MAJ)
@@ -57,12 +51,11 @@ SYSCONF_LINK_LIB_SHARED2 =  $(SYSCONF_LINK_SHLIB) $(SYSCONF_LFLAGS_SHOBJ) \
 
 # Linking static libraries
 #   - Build the $(TARGET) library, eg. lib$(TARGET).a
-#   - Place target in $(DESTDIR) - which has a trailing /
 #
 SYSCONF_AR		= ar cqs
 SYSCONF_LINK_TARGET_STATIC = lib$(TARGET).a
-SYSCONF_LINK_LIB_STATIC	= rm -f $(DESTDIR)$(SYSCONF_LINK_TARGET_STATIC) ; \
-				 $(SYSCONF_AR) $(DESTDIR)$(SYSCONF_LINK_TARGET_STATIC) $(OBJECTS) 
+SYSCONF_LINK_LIB_STATIC	= rm -f $(SYSCONF_LINK_TARGET_STATIC) ; \
+				 $(SYSCONF_AR) $(SYSCONF_LINK_TARGET_STATIC) $(OBJECTS)
 
 
 
@@ -77,10 +70,12 @@ SYSCONF_LINK_LIB2 = $(SYSCONF_LINK_LIB_SHARED2)
 all: $(SYSCONF_LINK_TARGET) $(SYSCONF_LINK_TARGET2) dwtest
 
 install:
+		$(INSTALL) -d $(PREFIX)/include; \
+		$(INSTALL) -d $(PREFIX)/bin; \
+		$(INSTALL) -d $(PREFIX)/lib; \
 		$(INSTALL) $(srcdir)/dw.h $(PREFIX)/include; \
-		$(INSTALL) $(srcdir)/compat.h $(PREFIX)/include; \
 		$(INSTALL) dw-config $(PREFIX)/bin; \
-		cd $(DESTDIR); \
+		$(INSTALL) dwtest $(PREFIX)/bin; \
 		$(INSTALL) $(SYSCONF_LINK_TARGET)  $(PREFIX)/lib; \
 		$(INSTALL) $(SYSCONF_LINK_TARGET2) $(PREFIX)/lib; \
 		cd $(PREFIX)/lib; \
@@ -90,7 +85,7 @@ install:
 		rm -f lib$(TARGET2).$(SOSUFFIX) lib$(TARGET2).$(SOSUFFIX).$(VER_MAJ); \
 		ln -s $(SYSCONF_LINK_TARGET_SHARED2) lib$(TARGET2).$(SOSUFFIX); \
 		ln -s $(SYSCONF_LINK_TARGET_SHARED2) lib$(TARGET2).$(SOSUFFIX).$(VER_MAJ)
-                
+
 clean:
 	rm -f *.so
 	rm -f *.o
@@ -98,13 +93,10 @@ clean:
 	rm -f *.a
 	rm -f $(DW_SRC)/*.o
 
-$(DESTDIR):
-	mkdir $(DESTDIR)
-        
-$(SYSCONF_LINK_TARGET2): $(OBJECTS2) $(DESTDIR)
+$(SYSCONF_LINK_TARGET2): $(OBJECTS2)
 	$(SYSCONF_LINK_LIB2)
-        
-$(SYSCONF_LINK_TARGET): $(OBJECTS) $(DESTDIR)
+
+$(SYSCONF_LINK_TARGET): $(OBJECTS)
 	$(SYSCONF_LINK_LIB)
 
 dw.o: $(srcdir)/$(DW_SRC)/dw.c
@@ -118,12 +110,12 @@ ci.o: $(srcdir)/ci.c
 
 dwtest.o: $(srcdir)/dwtest.c
 	$(CC) -c $(INCPATH) $(CCFLAGS) -o $@ $(srcdir)/dwtest.c	
-                
+
 ci: ci.o
 	$(CC) -o ci ci.o -L$(PREFIX)/lib -ldw -ldwcompat $(LFLAGS)
-                
+
 dwtest: dwtest.o
-	$(CC) -o dwtest dwtest.o -L$(PREFIX)/lib -ldw -ldwcompat $(LFLAGS)
+	$(CC) -o dwtest dwtest.o $(MLFLAGS) -ldw -ldwcompat $(LFLAGS)
 	-chmod +x mac/finishup.sh
 	-mac/finishup.sh
 
