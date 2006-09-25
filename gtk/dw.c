@@ -1676,6 +1676,7 @@ static gint _value_changed_event(GtkAdjustment *adjustment, gpointer data)
 	int max = _round_value(adjustment->upper);
 	int val = _round_value(adjustment->value);
 	GtkWidget *slider = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(adjustment), "_dw_slider");
+	GtkWidget *spinbutton = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(adjustment), "_dw_spinbutton");
 	GtkWidget *scrollbar = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(adjustment), "_dw_scrollbar");
 
 	if(slider)
@@ -1692,7 +1693,7 @@ static gint _value_changed_event(GtkAdjustment *adjustment, gpointer data)
 				valuechangedfunc(work.window, val,  work.data);
 		}
 	}
-	else if(scrollbar)
+	else if(scrollbar || spinbutton)
 	{
 		SignalHandler work = _get_signal_handler((GtkWidget *)adjustment, data);
 
@@ -1898,7 +1899,7 @@ void init_mozembed(void)
 
 			for(x=len;x>0;x--)
 			{
-				if(!isalpha(_dw_mozdir[x]) && !isnumber(_dw_mozdir[x]) && _dw_mozdir[x] != '/')
+				if(!isalpha(_dw_mozdir[x]) && !isdigit(_dw_mozdir[x]) && _dw_mozdir[x] != '/')
 					_dw_mozdir[x] = 0;
 			}
 			strncat(_dw_mozdir, "/libgtkembedmoz.so", 1024);
@@ -3747,6 +3748,8 @@ HWND dw_spinbutton_new(char *text, unsigned long id)
 	gtk_spin_button_set_numeric(GTK_SPIN_BUTTON(tmp), TRUE);
 	gtk_spin_button_set_wrap(GTK_SPIN_BUTTON(tmp), TRUE);
 	gtk_widget_show(tmp);
+	gtk_object_set_data(GTK_OBJECT(tmp), "_dw_adjustment", (gpointer)adj);
+	gtk_object_set_data(GTK_OBJECT(adj), "_dw_spinbutton", (gpointer)tmp);
 	gtk_object_set_data(GTK_OBJECT(tmp), "_dw_id", (gpointer)id);
 	DW_MUTEX_UNLOCK;
 	return tmp;
@@ -9373,12 +9376,9 @@ float dw_splitbar_get(HWND handle)
 }
 
 /*
- * Creates a calnedar window (widget) with given parameters.
+ * Creates a calendar window (widget) with given parameters.
  * Parameters:
- *       type: Value can be DW_VERT or DW_HORZ.
- *       topleft: Handle to the window to be top or left.
- *       bottomright:  Handle to the window to be bottom or right.
- * Classname: SysMonthCal32
+ *       id: Unique identifier for calendar widget
  * Returns:
  *       A handle to a calendar window or NULL on failure.
  */
