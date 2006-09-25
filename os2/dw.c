@@ -9543,3 +9543,39 @@ void API dw_signal_disconnect_by_data(HWND window, void *data)
 }
 
 
+
+/*
+ * Create a new static text window (widget) to be packed.
+ * **** temporary calendar *****
+ * Parameters:
+ *       text: The text to be display by the static text widget.
+ *       id: An ID to be used with dw_window_from_id() or 0L.
+ */
+HWND API dw_calendar_new(ULONG id)
+{
+char *text = "a calendar";
+	WindowData *blah = calloc(sizeof(WindowData), 1);
+	HWND tmp = WinCreateWindow(HWND_OBJECT,
+							   WC_STATIC,
+							   text,
+							   WS_VISIBLE | SS_TEXT,
+							   0,0,2000,1000,
+							   NULLHANDLE,
+							   HWND_TOP,
+							   id,
+							   NULL,
+							   NULL);
+	blah->oldproc = WinSubclassWindow(tmp, _textproc);
+	WinSetWindowPtr(tmp, QWP_USER, blah);
+	dw_window_set_font(tmp, DefaultFont);
+	dw_window_set_color(tmp, DW_CLR_BLACK, DW_CLR_PALEGRAY);
+	return tmp;
+}
+
+void API dw_calendar_set_date( HWND window, int year, int month, int day )
+{
+}
+void API dw_calendar_get_date( HWND window, int *year, int *month, int *day )
+{
+*year = *month = *day = 0;
+}
