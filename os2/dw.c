@@ -1,5 +1,4 @@
 /*
-/*
  * Dynamic Windows:
  *          A GTK like implementation of the PM GUI
  *
@@ -9553,7 +9552,7 @@ void API dw_signal_disconnect_by_data(HWND window, void *data)
  */
 HWND API dw_calendar_new(ULONG id)
 {
-char *text = "a calendar";
+char *text = "dummy calendar";
 	WindowData *blah = calloc(sizeof(WindowData), 1);
 	HWND tmp = WinCreateWindow(HWND_OBJECT,
 							   WC_STATIC,
@@ -9569,11 +9568,15 @@ char *text = "a calendar";
 	WinSetWindowPtr(tmp, QWP_USER, blah);
 	dw_window_set_font(tmp, DefaultFont);
 	dw_window_set_color(tmp, DW_CLR_BLACK, DW_CLR_PALEGRAY);
+	WinSetWindowText(tmp, text);
 	return tmp;
 }
 
 void API dw_calendar_set_date( HWND window, int year, int month, int day )
 {
+	char tmp[30];
+	sprintf( tmp, "%4.4d-%2.2d-%2.2d", year, month, day);
+	WinSetWindowText(window, tmp);
 }
 void API dw_calendar_get_date( HWND window, int *year, int *month, int *day )
 {
