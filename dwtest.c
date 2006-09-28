@@ -802,7 +802,7 @@ void buttons_add(void)
 	calbox = dw_box_new(DW_HORZ, 0);
 	dw_box_pack_start(notebookbox5, calbox, 500, 200, TRUE, TRUE, 1);
 	cal = dw_calendar_new(100);
-	dw_box_pack_start(calbox, cal, 0, 0, FALSE, FALSE, 0);
+	dw_box_pack_start(calbox, cal, 180, 160, TRUE, TRUE, 0);
 	dw_calendar_set_date(cal, 2001, 1, 1);
 /*
  * Create our file toolbar boxes...
