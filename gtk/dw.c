@@ -4245,7 +4245,7 @@ void dw_mle_export(HWND handle, char *buffer, int startpoint, int length)
 			if(text) /* Should this get freed? */
 			{
 				if(buffer)
-					memcpy(buffer, text);
+					strcpy(buffer, text);
 			}
 		}
 #else
