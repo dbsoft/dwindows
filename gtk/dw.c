@@ -4211,7 +4211,7 @@ unsigned int dw_mle_import(HWND handle, char *buffer, int startpoint)
  * Grabs text from an MLE box.
  * Parameters:
  *          handle: Handle to the MLE to be queried.
- *          buffer: Text buffer to be exported.
+ *          buffer: Text buffer to be exported. MUST allow for trailing nul character.
  *          startpoint: Point to start grabbing text.
  *          length: Amount of text to be grabbed.
  */
@@ -4223,7 +4223,7 @@ void dw_mle_export(HWND handle, char *buffer, int startpoint, int length)
 	DW_MUTEX_LOCK;
 	/* force the return value to nul in case the following tests fail */
 	if(buffer)
-		strcpy(buffer,"");
+		buffer[0] = '\0';
 #if GTK_MAJOR_VERSION > 1
 	if(GTK_IS_SCROLLED_WINDOW(handle))
 #else
@@ -4245,17 +4245,25 @@ void dw_mle_export(HWND handle, char *buffer, int startpoint, int length)
 			if(text) /* Should this get freed? */
 			{
 				if(buffer)
-					strcpy(buffer, text);
+					memcpy(buffer, text);
 			}
 		}
 #else
 		if(tmp && GTK_IS_TEXT(tmp))
 		{
-			text = gtk_editable_get_chars(GTK_EDITABLE(&(GTK_TEXT(tmp)->editable)), startpoint, startpoint + length - 1);
+			text = gtk_editable_get_chars(GTK_EDITABLE(&(GTK_TEXT(tmp)->editable)), 0, -1);  /* get the complete contents */
 			if(text)
 			{
 				if(buffer)
-					strcpy(buffer, text);
+				{
+					len = strlen(text);
+					if(startpoint < len)
+					{
+						max = min(length, len - startpoint);
+						memcpy(buffer, &text[startpoint], max);
+						buffer[max] = '\0';
+					}
+				}
 				g_free(text);
 			}
 		}
