@@ -5886,7 +5886,7 @@ unsigned int API dw_mle_import(HWND handle, char *buffer, int startpoint)
  * Grabs text from an MLE box.
  * Parameters:
  *          handle: Handle to the MLE to be queried.
- *          buffer: Text buffer to be exported.
+ *          buffer: Text buffer to be exported. MUST allow for trailing nul character.
  *          startpoint: Point to start grabbing text.
  *          length: Amount of text to be grabbed.
  */
@@ -5905,6 +5905,7 @@ void API dw_mle_export(HWND handle, char *buffer, int startpoint, int length)
 		max = MIN(length, len - startpoint);
 
 		memcpy(buffer, &tmpbuf[startpoint], max);
+		buffer[max] = '\0';
 	}
 
 	free(tmpbuf);
