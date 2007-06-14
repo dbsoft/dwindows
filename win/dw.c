@@ -109,7 +109,7 @@ SignalList SignalTranslate[SIGNALMAX] = {
 	{ WM_SIZE,         DW_SIGNAL_CONFIGURE },
 	{ WM_CHAR,         DW_SIGNAL_KEY_PRESS },
 	{ WM_LBUTTONDOWN,  DW_SIGNAL_BUTTON_PRESS },
-	{ WM_LBUTTONUP,    DW_SIGNAL_BUTTON_PRESS },
+	{ WM_LBUTTONUP,    DW_SIGNAL_BUTTON_RELEASE },
 	{ WM_MOUSEMOVE,    DW_SIGNAL_MOTION_NOTIFY },
 	{ WM_CLOSE,        DW_SIGNAL_DELETE },
 	{ WM_PAINT,        DW_SIGNAL_EXPOSE },
@@ -4082,7 +4082,7 @@ HWND API dw_notebook_new(ULONG id, int top)
 
 	tmp = CreateWindow(WC_TABCONTROL,
 					   "",
-					   WS_VISIBLE | WS_CHILD | WS_CLIPCHILDREN,
+					   WS_VISIBLE | WS_CHILD | WS_CLIPCHILDREN | flags,
 					   0,0,2000,1000,
 					   DW_HWND_OBJECT,
 					   (HMENU)id,
