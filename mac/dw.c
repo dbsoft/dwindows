@@ -708,7 +708,7 @@ int API dw_messagebox(char *title, int flags, char *format, ...)
 	va_start(args, format);
 	vsprintf(outbuf, format, args);
 	va_end(args);
-        
+
 	GetStandardAlertDefaultParams(&param, kStdCFStringAlertVersionOne);
 	param.movable = TRUE;
 	param.helpButton = FALSE;
@@ -920,7 +920,7 @@ HWND API dw_window_new(HWND hwndOwner, char *title, ULONG flStyle)
 {
 	WindowRef hwnd = 0;
 	ControlRef rootcontrol = 0;
-        
+
 	CreateNewWindow (kDocumentWindowClass, flStyle | kWindowStandardHandlerAttribute,
 					 &CreationRect, &hwnd);
 	CreateRootControl(hwnd, &rootcontrol);
@@ -937,7 +937,7 @@ HWND API dw_window_new(HWND hwndOwner, char *title, ULONG flStyle)
 HWND API dw_box_new(int type, int pad)
 {
         ControlRef hwnd = NewControl(CreationWindow, NULL, "",
-                    true, kControlSupportsEmbedding | kControlHasSpecialBackground, 
+                    true, kControlSupportsEmbedding | kControlHasSpecialBackground,
                     0, 1, kControlUserPaneProc, (SInt32) 0);
         return (HWND)hwnd;
 }
@@ -1290,6 +1290,20 @@ HWND dw_bitmapbutton_new_from_file(char *text, unsigned long id, char *filename)
 }
 
 /*
+ * Create a new bitmap button window (widget) to be packed from data.
+ * Parameters:
+ *       text: Bubble help text to be displayed.
+ *       id: An ID to be used with dw_window_from_id() or 0L.
+ *       data: Raw data of image.
+ *                 (BMP on OS/2 or Windows, XPM on Unix)
+ *       len:  Length of raw data
+ */
+HWND dw_bitmapbutton_new_from_data(char *text, unsigned long id, char *data, int len)
+{
+	return 0;
+}
+
+/*
  * Create a new spinbutton window (widget) to be packed.
  * Parameters:
  *       text: The text to be display by the static text widget.
@@ -1409,6 +1423,21 @@ void API dw_window_set_bitmap(HWND handle, unsigned long id, char *filename)
 }
 
 /*
+ * Sets the bitmap used for a given static window.
+ * Parameters:
+ *       handle: Handle to the window.
+ *       id: An ID to be used to specify the icon,
+ *           (pass 0 if you use the filename param)
+ *       data: the image data
+ *                 Bitmap on Windows and a pixmap on Unix, pass
+ *                 NULL if you use the id param)
+ *       len: length of data
+ */
+void dw_window_set_bitmap_from_data(HWND handle, unsigned long id, char *data, int len)
+{
+}
+
+/*
  * Sets the text used for a given window.
  * Parameters:
  *       handle: Handle to the window.
@@ -1441,7 +1470,7 @@ char * API dw_window_get_text(HWND handle)
 	else
 	{
 		Str255 str;
-        
+
 		GetControlTitle(handle, str);
 		cftext = CFStringCreateWithPascalString(NULL, str, CFStringGetSystemEncoding());
 	}
@@ -1676,6 +1705,17 @@ void API dw_notebook_pack(HWND handle, ULONG pageid, HWND page)
  *          text: Text to append into listbox.
  */
 void API dw_listbox_append(HWND handle, char *text)
+{
+}
+
+/*
+ * Appends the specified text items to the listbox's (or combobox) entry list.
+ * Parameters:
+ *          handle: Handle to the listbox to be appended to.
+ *          text: Text strings to append into listbox.
+ *          count: Number of text strings to append
+ */
+void API dw_listbox_list_append(HWND handle, char **text, int count)
 {
 }
 
@@ -2204,6 +2244,17 @@ unsigned long API dw_icon_load_from_file(char *filename)
 }
 
 /*
+ * Obtains an icon from data.
+ * Parameters:
+ *       data: Source of data for image.
+ *       len:  length of data
+ */
+unsigned long API dw_icon_load_from_data(char *data, int len)
+{
+	return 0;
+}
+
+/*
  * Frees a loaded resource in OS/2 and Windows.
  * Parameters:
  *          handle: Handle to icon returned by dw_icon_load().
@@ -2246,6 +2297,33 @@ void API dw_container_set_item(HWND handle, void *pointer, int column, int row, 
  */
 void API dw_container_change_item(HWND handle, int column, int row, void *data)
 {
+}
+
+/*
+ * Changes an existing item in specified row and column to the given data.
+ * Parameters:
+ *          handle: Handle to the container window (widget).
+ *          column: Zero based column of data being set.
+ *          row: Zero based row of data being set.
+ *          data: Pointer to the data to be added.
+ */
+void API dw_filesystem_change_item(HWND handle, int column, int row, void *data)
+{
+	dw_filesystem_set_item(handle, NULL, column, row, data);
+}
+
+/*
+ * Changes an item in specified row and column to the given data.
+ * Parameters:
+ *          handle: Handle to the container window (widget).
+ *          pointer: Pointer to the allocated memory in dw_container_alloc().
+ *          column: Zero based column of data being set.
+ *          row: Zero based row of data being set.
+ *          data: Pointer to the data to be added.
+ */
+void API dw_filesystem_change_file(HWND handle, int row, char *filename, unsigned long icon)
+{
+	dw_filesystem_set_file(handle, NULL, row, filename, icon);
 }
 
 /*
@@ -2579,6 +2657,21 @@ HPIXMAP API dw_pixmap_new(HWND handle, unsigned long width, unsigned long height
  *       A handle to a pixmap or NULL on failure.
  */
 HPIXMAP API dw_pixmap_new_from_file(HWND handle, char *filename)
+{
+	return 0;
+}
+
+/*
+ * Creates a pixmap from data
+ * Parameters:
+ *       handle: Window handle the pixmap is associated with.
+ *       data: Source of image data
+ *                 DW pick the appropriate file extension.
+ *                 (BMP on OS/2 or Windows, XPM on Unix)
+ * Returns:
+ *       A handle to a pixmap or NULL on failure.
+ */
+HPIXMAP API dw_pixmap_new_from_data(HWND handle, char *data, int len)
 {
 	return 0;
 }
@@ -2933,6 +3026,39 @@ float API dw_splitbar_get(HWND handle)
 }
 
 /*
+ * Creates a calendar window (widget) with given parameters.
+ * Parameters:
+ *       id: Unique identifier for calendar widget
+ * Returns:
+ *       A handle to a calendar window or NULL on failure.
+ */
+HWND dw_calendar_new(unsigned long id)
+{
+	return 0;
+}
+
+/*
+ * Sets the current date of a calendar
+ * Parameters:
+ *       handle: The handle to the calendar returned by dw_calendar_new().
+ *       year...
+ */
+void dw_calendar_set_date(HWND handle, unsigned int year, unsigned int month, unsigned int day)
+{
+	return;
+}
+
+/*
+ * Gets the position of a splitbar (pecentage).
+ * Parameters:
+ *       handle: The handle to the splitbar returned by dw_splitbar_new().
+ */
+void dw_calendar_get_date(HWND handle, unsigned int *year, unsigned int *month, unsigned int *day)
+{
+	return;
+}
+
+/*
  * Pack windows (widgets) into a box from the start (or top).
  * Parameters:
  *       box: Window handle of the box to be packed into.
@@ -3010,7 +3136,7 @@ void API dw_environment_query(DWEnv *env)
  * Returns:
  *       NULL on error. A malloced buffer containing
  *       the file path on success.
- *       
+ *
  */
 char * API dw_file_browse(char *title, char *defpath, char *ext, int flags)
 {
