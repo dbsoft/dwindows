@@ -1,5 +1,5 @@
 /* Browser.c
- 
+
 This is a Win32 C application (ie, no MFC, WTL, nor even any C++ -- just plain C) that demonstrates
 how to embed a browser "control" (actually, an OLE object) in your own window (in order to display a
 web page, or an HTML file on disk).
@@ -393,7 +393,8 @@ HRESULT STDMETHODCALLTYPE UI_ShowContextMenu(IDocHostUIHandler FAR* This, DWORD 
     // We will return S_OK to tell the browser not to display its default context menu,
 	// or return S_FALSE to let the browser show its default context menu. For this
 	// example, we wish to disable the browser's default context menu.
-	return(S_OK);
+//	return(S_OK);
+	return(S_FALSE);
 }
 
 // Called at initialization of the browser object UI. We can set various features of the browser object here.
@@ -730,7 +731,7 @@ HRESULT STDMETHODCALLTYPE Site_QueryInterface(IOleClientSite FAR* This, REFIID r
 	// _IOleClientSiteEx is an embedded IOleClientSite, so the browser doesn't mind. We want the browser
 	// to continue passing our _IOleClientSiteEx pointer wherever it would normally pass a IOleClientSite
 	// pointer.
-	// 
+	//
 	// The IUnknown interface uses the same VTable as the first object in our _IOleClientSiteEx
 	// struct (which happens to be an IOleClientSite). So if the browser is asking us to match
 	// IID_IUnknown, then we'll also return a pointer to our _IOleClientSiteEx.
