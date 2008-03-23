@@ -68,6 +68,16 @@ GdkColor _colors[] =
 	{ 0, 0xffff, 0xffff, 0xffff },	/* 15 bright white */
 };
 
+#define NUM_EXTS 5
+char *image_exts[NUM_EXTS] =
+{
+   ".xpm",
+   ".png",
+   ".bmp",
+   ".jpg",
+   ".ico",
+};
+
 #define DW_THREAD_LIMIT 50
 
 #ifndef max
@@ -82,6 +92,8 @@ DWTID _dw_thread_list[DW_THREAD_LIMIT];
 GdkColor _foreground[DW_THREAD_LIMIT];
 GdkColor _background[DW_THREAD_LIMIT];
 int _transparent[DW_THREAD_LIMIT];
+GtkClipboard *_clipboard_object[DW_THREAD_LIMIT];
+gchar *_clipboard_contents[DW_THREAD_LIMIT];
 
 GtkWidget *last_window = NULL, *popup = NULL;
 
@@ -1858,6 +1870,8 @@ static void _dw_thread_add(DWTID tid)
 			_background[z].pixel = 1;
 			_background[z].red = _background[z].green = _background[z].blue = 0;
 			_transparent[z] = 1;
+			_clipboard_contents[z] = NULL;
+			_clipboard_object[z] = NULL;
 			return;
 		}
 	}
@@ -1871,7 +1885,15 @@ static void _dw_thread_remove(DWTID tid)
 	for(z=0;z<DW_THREAD_LIMIT;z++)
 	{
 		if(_dw_thread_list[z] == (DWTID)tid)
+		{
 			_dw_thread_list[z] = (DWTID)-1;
+			if ( _clipboard_contents[z] != NULL )
+			{
+				g_free( _clipboard_contents[z] );
+				_clipboard_contents[z] = NULL;;
+			}
+			_clipboard_object[z] = NULL;;
+		}
 	}
 }
 
@@ -3696,6 +3718,7 @@ HWND dw_bitmapbutton_new(char *text, unsigned long id)
 /*
  * Create a new bitmap button window (widget) to be packed from a file.
  * Parameters:
+ *       label_text: Text to display on button. TBD when Windows works
  *       text: Bubble help text to be displayed.
  *       id: An ID to be used with dw_window_from_id() or 0L.
  *       filename: Name of the file, omit extention to have
@@ -3704,30 +3727,90 @@ HWND dw_bitmapbutton_new(char *text, unsigned long id)
  */
 HWND dw_bitmapbutton_new_from_file(char *text, unsigned long id, char *filename)
 {
-	GtkWidget *tmp;
-	GtkWidget *bitmap;
-    GtkTooltips *tooltips;
-	int _locked_by_me = FALSE;
+   GtkWidget *bitmap;
+   GtkWidget *box;
+   GtkWidget *label;
+   GtkWidget *button;
+   GtkTooltips *tooltips;
+   char *label_text=NULL;
+   int _locked_by_me = FALSE;
 
-	DW_MUTEX_LOCK;
-	tmp = gtk_button_new();
-	bitmap = dw_bitmap_new(id);
+   DW_MUTEX_LOCK;
 
-	if(bitmap)
-	{
-		dw_window_set_bitmap(bitmap, 0, filename);
-		gtk_container_add (GTK_CONTAINER(tmp), bitmap);
-	}
-	gtk_widget_show(tmp);
-	if(text)
-	{
-		tooltips = gtk_tooltips_new();
-		gtk_tooltips_set_tip(tooltips, tmp, text, NULL);
-		gtk_object_set_data(GTK_OBJECT(tmp), "tooltip", (gpointer)tooltips);
-	}
-	gtk_object_set_data(GTK_OBJECT(tmp), "_dw_id", (gpointer)id);
-	DW_MUTEX_UNLOCK;
-	return tmp;
+    /* Create box for image and label */
+    box = gtk_hbox_new (FALSE, 0);
+    gtk_container_set_border_width (GTK_CONTAINER (box), 2);
+
+   /* Now on to the image stuff */
+   bitmap = dw_bitmap_new(id);
+   if ( bitmap )
+   {
+      dw_window_set_bitmap( bitmap, 0, filename );
+      /* Pack the image into the box */
+      gtk_box_pack_start( GTK_BOX(box), bitmap, TRUE, FALSE, 3 );
+      gtk_widget_show( bitmap );
+   }
+   if ( label_text )
+   {
+      /* Create a label for the button */
+      label = gtk_label_new( label_text );
+      /* Pack the label into the box */
+      gtk_box_pack_start( GTK_BOX(box), label, TRUE, FALSE, 3 );
+      gtk_widget_show( label );
+   }
+   /* Create a new button */
+   button = gtk_button_new();
+
+   /* Pack and show all our widgets */
+   gtk_widget_show( box );
+   gtk_container_add( GTK_CONTAINER(button), box );
+   gtk_widget_show( button );
+   if ( text )
+   {
+      tooltips = gtk_tooltips_new();
+      gtk_tooltips_set_tip( tooltips, button, text, NULL );
+      gtk_object_set_data( GTK_OBJECT(button), "tooltip", (gpointer)tooltips );
+   }
+   gtk_object_set_data( GTK_OBJECT(button), "_dw_id", (gpointer)id );
+   DW_MUTEX_UNLOCK;
+   return button;
+}
+
+/*
+ * Create a new bitmap button window (widget) to be packed from data.
+ * Parameters:
+ *       text: Bubble help text to be displayed.
+ *       id: An ID to be used with dw_window_from_id() or 0L.
+ *       data: Raw data of image.
+ *                 (BMP on OS/2 or Windows, XPM on Unix)
+ *       len:  Length of raw data
+ */
+HWND dw_bitmapbutton_new_from_data(char *text, unsigned long id, char *data, int len)
+{
+   GtkWidget *tmp;
+   GtkWidget *bitmap;
+   GtkTooltips *tooltips;
+   int _locked_by_me = FALSE;
+
+   DW_MUTEX_LOCK;
+   tmp = gtk_button_new();
+   bitmap = dw_bitmap_new(id);
+
+   if ( bitmap )
+   {
+      dw_window_set_bitmap_from_data(bitmap, 0, data, len);
+      gtk_container_add (GTK_CONTAINER(tmp), bitmap);
+   }
+   gtk_widget_show(tmp);
+   if(text)
+   {
+      tooltips = gtk_tooltips_new();
+      gtk_tooltips_set_tip(tooltips, tmp, text, NULL);
+      gtk_object_set_data(GTK_OBJECT(tmp), "tooltip", (gpointer)tooltips);
+   }
+   gtk_object_set_data(GTK_OBJECT(tmp), "_dw_id", (gpointer)id);
+   DW_MUTEX_UNLOCK;
+   return tmp;
 }
 
 /*
@@ -3933,75 +4016,167 @@ void dw_window_set_icon(HWND handle, unsigned long id)
  */
 void dw_window_set_bitmap(HWND handle, unsigned long id, char *filename)
 {
-	GdkBitmap *bitmap = NULL;
-	GdkPixmap *tmp;
-	int _locked_by_me = FALSE;
+   GdkBitmap *bitmap = NULL;
+   GdkPixmap *tmp;
+   int found_ext = 0;
+   int i;
+   int _locked_by_me = FALSE;
 
-	if(!id && !filename)
-		return;
+   if(!id && !filename)
+      return;
 
-	DW_MUTEX_LOCK;
-	if(id)
-		tmp = _find_pixmap(&bitmap, id, handle, NULL, NULL);
-	else
-	{
-		char *file = alloca(strlen(filename) + 5);
+   DW_MUTEX_LOCK;
+   if(id)
+      tmp = _find_pixmap(&bitmap, id, handle, NULL, NULL);
+   else
+   {
+      char *file = alloca(strlen(filename) + 5);
 #if GTK_MAJOR_VERSION > 1
-		GdkPixbuf *pixbuf;
+      GdkPixbuf *pixbuf;
 #elif defined(USE_IMLIB)
-		GdkImlibImage *image;
+      GdkImlibImage *image;
 #endif
 
-		if (!file)
-		{
-			DW_MUTEX_UNLOCK;
-			return;
-		}
+      if (!file)
+      {
+         DW_MUTEX_UNLOCK;
+         return;
+      }
 
-		strcpy(file, filename);
+      strcpy(file, filename);
 
-		/* check if we can read from this file (it exists and read permission) */
-		if(access(file, 04) != 0)
-		{
-			/* Try with .xpm extention */
-			strcat(file, ".xpm");
-			if(access(file, 04) != 0)
-			{
-				DW_MUTEX_UNLOCK;
-				return;
-			}
-		}
+      /* check if we can read from this file (it exists and read permission) */
+      if ( access(file, 04 ) != 0 )
+      {
+         /* Try with .xpm extention */
+         for ( i = 0; i < NUM_EXTS; i++ )
+         {
+            strcpy( file, filename );
+            strcat( file, image_exts[i] );
+            if ( access( file, 04 ) == 0 )
+            {
+               found_ext = 1;
+               break;
+            }
+         }
+         if ( found_ext == 0 )
+         {
+            DW_MUTEX_UNLOCK;
+            return;
+         }
+      }
 #if GTK_MAJOR_VERSION > 1
-		pixbuf = gdk_pixbuf_new_from_file(file, NULL);
-
-		gdk_pixbuf_render_pixmap_and_mask(pixbuf, &tmp, &bitmap, 1);
-		g_object_unref(pixbuf);
+      pixbuf = gdk_pixbuf_new_from_file(file, NULL );
+      gdk_pixbuf_render_pixmap_and_mask(pixbuf, &tmp, &bitmap, 1);
+      g_object_unref(pixbuf);
 #elif defined(USE_IMLIB)
-		image = gdk_imlib_load_image(file);
-
-		gdk_imlib_render(image, image->rgb_width, image->rgb_height);
-		tmp = gdk_imlib_copy_image(image);
-		bitmap = gdk_imlib_copy_mask(image);
-		gdk_imlib_destroy_image(image);
+      image = gdk_imlib_load_image(file);
+      gdk_imlib_render(image, image->rgb_width, image->rgb_height);
+      tmp = gdk_imlib_copy_image(image);
+      bitmap = gdk_imlib_copy_mask(image);
+      gdk_imlib_destroy_image(image);
 #else
-		tmp = gdk_pixmap_create_from_xpm(handle->window, &bitmap, &_colors[DW_CLR_PALEGRAY], file);
+      tmp = gdk_pixmap_create_from_xpm(handle->window, &bitmap, &_colors[DW_CLR_PALEGRAY], file);
 #endif
-	}
+   }
 
-	if(tmp)
+   if(tmp)
+   {
 #if GTK_MAJOR_VERSION > 1
-		gtk_image_set_from_pixmap(GTK_IMAGE(handle), tmp, bitmap);
+      gtk_image_set_from_pixmap(GTK_IMAGE(handle), tmp, bitmap);
 #else
-		gtk_pixmap_set(GTK_PIXMAP(handle), tmp, bitmap);
+      gtk_pixmap_set(GTK_PIXMAP(handle), tmp, bitmap);
 #endif
-	DW_MUTEX_UNLOCK;
+   }
+   DW_MUTEX_UNLOCK;
+}
+
+/*
+ * Sets the bitmap used for a given static window.
+ * Parameters:
+ *       handle: Handle to the window.
+ *       id: An ID to be used to specify the icon,
+ *           (pass 0 if you use the filename param)
+ *       data: the image data
+ *                 Bitmap on Windows and a pixmap on Unix, pass
+ *                 NULL if you use the id param)
+ *       len: length of data
+ */
+void dw_window_set_bitmap_from_data(HWND handle, unsigned long id, char *data, int len)
+{
+   GdkBitmap *bitmap = NULL;
+   GdkPixmap *tmp;
+   int _locked_by_me = FALSE;
+   char *file;
+   FILE *fp;
+
+   if (!id && !data)
+      return;
+
+   DW_MUTEX_LOCK;
+   if (id)
+      tmp = _find_pixmap(&bitmap, id, handle, NULL, NULL);
+   else
+   {
+#if GTK_MAJOR_VERSION > 1
+      GdkPixbuf *pixbuf;
+#elif defined(USE_IMLIB)
+      GdkImlibImage *image;
+#endif
+      if (!data)
+      {
+         DW_MUTEX_UNLOCK;
+         return;
+      }
+      /*
+       * A real hack; create a temporary file and write the contents
+       * of the data to the file
+       */
+      file = tmpnam( NULL );
+      fp = fopen( file, "wb" );
+      if ( fp )
+      {
+         fwrite( data, len, 1, fp );
+         fclose( fp );
+      }
+      else
+      {
+         DW_MUTEX_UNLOCK;
+         return;
+      }
+#if GTK_MAJOR_VERSION > 1
+      pixbuf = gdk_pixbuf_new_from_file(file, NULL );
+      gdk_pixbuf_render_pixmap_and_mask(pixbuf, &tmp, &bitmap, 1);
+      g_object_unref(pixbuf);
+#elif defined(USE_IMLIB)
+      image = gdk_imlib_load_image(file);
+      gdk_imlib_render(image, image->rgb_width, image->rgb_height);
+      tmp = gdk_imlib_copy_image(image);
+      bitmap = gdk_imlib_copy_mask(image);
+      gdk_imlib_destroy_image(image);
+#else
+      tmp = gdk_pixmap_create_from_xpm_d(handle->window, &bitmap, &_colors[DW_CLR_PALEGRAY], mydata);
+#endif
+      /* remove our temporary file */
+      unlink (file );
+   }
+
+   if(tmp)
+   {
+#if GTK_MAJOR_VERSION > 1
+      gtk_image_set_from_pixmap(GTK_IMAGE(handle), tmp, bitmap);
+#else
+      gtk_pixmap_set(GTK_PIXMAP(handle), tmp, bitmap);
+#endif
+   }
+   DW_MUTEX_UNLOCK;
 }
 
 /*
  * Sets the text used for a given window.
  * Parameters:
  *       handle: Handle to the window.
- *       text: The text associsated with a given window.                       f
+ *       text: The text associated with a given window.
  */
 void dw_window_set_text(HWND handle, char *text)
 {
@@ -5847,96 +6022,198 @@ unsigned long dw_icon_load(unsigned long module, unsigned long id)
  */
 unsigned long API dw_icon_load_from_file(char *filename)
 {
-	int found = -1, _locked_by_me = FALSE;
+   int found = -1, _locked_by_me = FALSE;
 #if GTK_MAJOR_VERSION > 1
-	GdkPixbuf *pixbuf;
+   GdkPixbuf *pixbuf;
 #elif defined(USE_IMLIB)
-	GdkImlibImage *image;
+   GdkImlibImage *image;
 #endif
-	char *file = alloca(strlen(filename) + 5);
-	unsigned long z, ret = 0;
+   char *file = alloca(strlen(filename) + 5);
+   unsigned long z, ret = 0;
 
-	if (!file)
-		return 0;
+   if (!file)
+      return 0;
 
-	strcpy(file, filename);
+   strcpy(file, filename);
 
-	/* check if we can read from this file (it exists and read permission) */
-	if(access(file, 04) != 0)
-	{
-		/* Try with .xpm extention */
-		strcat(file, ".xpm");
-		if(access(file, 04) != 0)
-			return 0;
-	}
+   /* check if we can read from this file (it exists and read permission) */
+   if (access(file, 04) != 0)
+   {
+      /* Try with .xpm extention */
+      strcat(file, ".xpm");
+      if(access(file, 04) != 0)
+         return 0;
+   }
 
-	DW_MUTEX_LOCK;
-	/* Find a free entry in the array */
-	for(z=0;z<_PixmapCount;z++)
-	{
-		if(!_PixmapArray[z].used)
-		{
-			ret = found = z;
-			break;
-		}
-	}
+   DW_MUTEX_LOCK;
+   /* Find a free entry in the array */
+   for (z=0;z<_PixmapCount;z++)
+   {
+      if (!_PixmapArray[z].used)
+      {
+         ret = found = z;
+         break;
+      }
+   }
 
-	/* If there are no free entries, expand the
-	 * array.
-	 */
-	if(found == -1)
-	{
-		DWPrivatePixmap *old = _PixmapArray;
+   /* If there are no free entries, expand the
+    * array.
+    */
+   if (found == -1)
+   {
+      DWPrivatePixmap *old = _PixmapArray;
 
-		ret = found = _PixmapCount;
-		_PixmapCount++;
+      ret = found = _PixmapCount;
+      _PixmapCount++;
 
-		_PixmapArray = malloc(sizeof(DWPrivatePixmap) * _PixmapCount);
+      _PixmapArray = malloc(sizeof(DWPrivatePixmap) * _PixmapCount);
 
-		if(found)
-			memcpy(_PixmapArray, old, sizeof(DWPrivatePixmap) * found);
-		if(old)
-			free(old);
-		_PixmapArray[found].used = 1;
-		_PixmapArray[found].pixmap = _PixmapArray[found].mask = NULL;
-	}
+      if (found)
+         memcpy(_PixmapArray, old, sizeof(DWPrivatePixmap) * found);
+      if (old)
+         free(old);
+      _PixmapArray[found].used = 1;
+      _PixmapArray[found].pixmap = _PixmapArray[found].mask = NULL;
+   }
 
 #if GTK_MAJOR_VERSION > 1
-	pixbuf = gdk_pixbuf_new_from_file(file, NULL);
+   pixbuf = gdk_pixbuf_new_from_file(file, NULL);
+   if (pixbuf)
+   {
+      _PixmapArray[found].pixbuf = pixbuf;
+      _PixmapArray[found].width = gdk_pixbuf_get_width(pixbuf);
+      _PixmapArray[found].height = gdk_pixbuf_get_height(pixbuf);
 
-	if(pixbuf)
-	{
-		_PixmapArray[found].pixbuf = pixbuf;
-		_PixmapArray[found].width = gdk_pixbuf_get_width(pixbuf);
-		_PixmapArray[found].height = gdk_pixbuf_get_height(pixbuf);
-
-		gdk_pixbuf_render_pixmap_and_mask(pixbuf, &_PixmapArray[found].pixmap, &_PixmapArray[found].mask, 1);
-	}
+      gdk_pixbuf_render_pixmap_and_mask(pixbuf, &_PixmapArray[found].pixmap, &_PixmapArray[found].mask, 1);
+   }
 #elif defined(USE_IMLIB)
-	image = gdk_imlib_load_image(file);
+   image = gdk_imlib_load_image(file);
+   if (image)
+   {
+      _PixmapArray[found].width = image->rgb_width;
+      _PixmapArray[found].height = image->rgb_height;
 
-	if(image)
-	{
-		_PixmapArray[found].width = image->rgb_width;
-		_PixmapArray[found].height = image->rgb_height;
-
-		gdk_imlib_render(image, image->rgb_width, image->rgb_height);
-		_PixmapArray[found].pixmap = gdk_imlib_copy_image(image);
-		_PixmapArray[found].mask = gdk_imlib_copy_mask(image);
-		gdk_imlib_destroy_image(image);
-	}
+      gdk_imlib_render(image, image->rgb_width, image->rgb_height);
+      _PixmapArray[found].pixmap = gdk_imlib_copy_image(image);
+      _PixmapArray[found].mask = gdk_imlib_copy_mask(image);
+      gdk_imlib_destroy_image(image);
+   }
 #else
-	if (last_window)
-		_PixmapArray[found].pixmap = gdk_pixmap_create_from_xpm(last_window->window, &_PixmapArray[found].mask, &_colors[DW_CLR_PALEGRAY], file);
+   if (last_window)
+      _PixmapArray[found].pixmap = gdk_pixmap_create_from_xpm(last_window->window, &_PixmapArray[found].mask, &_colors[DW_CLR_PALEGRAY], file);
 #endif
-	DW_MUTEX_UNLOCK;
-	if(!_PixmapArray[found].pixmap || !_PixmapArray[found].mask)
-	{
-		_PixmapArray[found].used = 0;
-		_PixmapArray[found].pixmap = _PixmapArray[found].mask = NULL;
-		return 0;
-	}
-	return ret | (1 << 31);
+   DW_MUTEX_UNLOCK;
+   if (!_PixmapArray[found].pixmap || !_PixmapArray[found].mask)
+   {
+      _PixmapArray[found].used = 0;
+      _PixmapArray[found].pixmap = _PixmapArray[found].mask = NULL;
+      return 0;
+   }
+   return ret | (1 << 31);
+}
+
+/*
+ * Obtains an icon from data.
+ * Parameters:
+ *       data: Source of data for image.
+ *       len:  length of data
+ */
+unsigned long API dw_icon_load_from_data(char *data, int len)
+{
+   int found = -1, _locked_by_me = FALSE;
+   char *file;
+   FILE *fp;
+#if GTK_MAJOR_VERSION > 1
+   GdkPixbuf *pixbuf;
+#elif defined(USE_IMLIB)
+   GdkImlibImage *image;
+#endif
+   unsigned long z, ret = 0;
+
+   DW_MUTEX_LOCK;
+   /*
+    * A real hack; create a temporary file and write the contents
+    * of the data to the file
+    */
+   file = tmpnam( NULL );
+   fp = fopen( file, "wb" );
+   if ( fp )
+   {
+      fwrite( data, len, 1, fp );
+      fclose( fp );
+   }
+   else
+   {
+      DW_MUTEX_UNLOCK;
+      return 0;
+   }
+   /* Find a free entry in the array */
+   for (z=0;z<_PixmapCount;z++)
+   {
+      if(!_PixmapArray[z].used)
+      {
+         ret = found = z;
+         break;
+      }
+   }
+
+   /* If there are no free entries, expand the
+    * array.
+    */
+   if (found == -1)
+   {
+      DWPrivatePixmap *old = _PixmapArray;
+
+      ret = found = _PixmapCount;
+      _PixmapCount++;
+
+      _PixmapArray = malloc(sizeof(DWPrivatePixmap) * _PixmapCount);
+
+      if (found)
+         memcpy(_PixmapArray, old, sizeof(DWPrivatePixmap) * found);
+      if (old)
+         free(old);
+      _PixmapArray[found].used = 1;
+      _PixmapArray[found].pixmap = _PixmapArray[found].mask = NULL;
+   }
+
+#if GTK_MAJOR_VERSION > 1
+   pixbuf = gdk_pixbuf_new_from_file(file, NULL);
+   if (pixbuf)
+   {
+      _PixmapArray[found].pixbuf = pixbuf;
+      _PixmapArray[found].width = gdk_pixbuf_get_width(pixbuf);
+      _PixmapArray[found].height = gdk_pixbuf_get_height(pixbuf);
+
+      gdk_pixbuf_render_pixmap_and_mask(pixbuf, &_PixmapArray[found].pixmap, &_PixmapArray[found].mask, 1);
+   }
+#elif defined(USE_IMLIB)
+   image = gdk_imlib_load_image(file);
+
+   if (image)
+   {
+      _PixmapArray[found].width = image->rgb_width;
+      _PixmapArray[found].height = image->rgb_height;
+
+      gdk_imlib_render(image, image->rgb_width, image->rgb_height);
+      _PixmapArray[found].pixmap = gdk_imlib_copy_image(image);
+      _PixmapArray[found].mask = gdk_imlib_copy_mask(image);
+      gdk_imlib_destroy_image(image);
+   }
+#else
+   if (last_window)
+      _PixmapArray[found].pixmap = gdk_pixmap_create_from_xpm_d(last_window->window, &_PixmapArray[found].mask, &_colors[DW_CLR_PALEGRAY], data);
+#endif
+   /* remove our temporary file */
+   unlink (file );
+   DW_MUTEX_UNLOCK;
+   if (!_PixmapArray[found].pixmap || !_PixmapArray[found].mask)
+   {
+      _PixmapArray[found].used = 0;
+      _PixmapArray[found].pixmap = _PixmapArray[found].mask = NULL;
+      return 0;
+   }
+   return ret | (1 << 31);
 }
 
 /*
@@ -7153,59 +7430,127 @@ HPIXMAP dw_pixmap_new(HWND handle, unsigned long width, unsigned long height, in
  */
 HPIXMAP dw_pixmap_new_from_file(HWND handle, char *filename)
 {
-	int _locked_by_me = FALSE;
-	HPIXMAP pixmap;
+   int _locked_by_me = FALSE;
+   HPIXMAP pixmap;
 #ifndef USE_IMLIB
-	GdkBitmap *bitmap = NULL;
+   GdkBitmap *bitmap = NULL;
 #endif
 #if GTK_MAJOR_VERSION > 1
-	GdkPixbuf *pixbuf;
+   GdkPixbuf *pixbuf;
 #elif defined(USE_IMLIB)
-	GdkImlibImage *image;
+   GdkImlibImage *image;
 #endif
-	char *file = alloca(strlen(filename) + 5);
+   char *file = alloca(strlen(filename) + 5);
 
-	if (!file || !(pixmap = calloc(1,sizeof(struct _hpixmap))))
-		return NULL;
+   if (!file || !(pixmap = calloc(1,sizeof(struct _hpixmap))))
+      return NULL;
 
-	strcpy(file, filename);
+   strcpy(file, filename);
 
-	/* check if we can read from this file (it exists and read permission) */
-	if(access(file, 04) != 0)
-	{
-		/* Try with .xpm extention */
-		strcat(file, ".xpm");
-		if(access(file, 04) != 0)
-		{
-			free(pixmap);
-			return NULL;
-		}
-	}
+   /* check if we can read from this file (it exists and read permission) */
+   if(access(file, 04) != 0)
+   {
+      /* Try with .xpm extention */
+      strcat(file, ".xpm");
+      if(access(file, 04) != 0)
+      {
+         free(pixmap);
+         return NULL;
+      }
+   }
 
-	DW_MUTEX_LOCK;
+   DW_MUTEX_LOCK;
 #if GTK_MAJOR_VERSION > 1
-	pixbuf = gdk_pixbuf_new_from_file(file, NULL);
-
-	pixmap->width = gdk_pixbuf_get_width(pixbuf);
-	pixmap->height = gdk_pixbuf_get_height(pixbuf);
-
-	gdk_pixbuf_render_pixmap_and_mask(pixbuf, &pixmap->pixmap, &bitmap, 1);
-	g_object_unref(pixbuf);
+   pixbuf = gdk_pixbuf_new_from_file(file, NULL);
+   pixmap->width = gdk_pixbuf_get_width(pixbuf);
+   pixmap->height = gdk_pixbuf_get_height(pixbuf);
+   gdk_pixbuf_render_pixmap_and_mask(pixbuf, &pixmap->pixmap, &bitmap, 1);
+   g_object_unref(pixbuf);
 #elif defined(USE_IMLIB)
-	image = gdk_imlib_load_image(file);
+   image = gdk_imlib_load_image(file);
 
-	pixmap->width = image->rgb_width;
-	pixmap->height = image->rgb_height;
+   pixmap->width = image->rgb_width;
+   pixmap->height = image->rgb_height;
 
-	gdk_imlib_render(image, pixmap->width, pixmap->height);
-	pixmap->pixmap = gdk_imlib_copy_image(image);
-	gdk_imlib_destroy_image(image);
+   gdk_imlib_render(image, pixmap->width, pixmap->height);
+   pixmap->pixmap = gdk_imlib_copy_image(image);
+   gdk_imlib_destroy_image(image);
 #else
-	pixmap->pixmap = gdk_pixmap_create_from_xpm(handle->window, &bitmap, &_colors[DW_CLR_PALEGRAY], file);
+   pixmap->pixmap = gdk_pixmap_create_from_xpm(handle->window, &bitmap, &_colors[DW_CLR_PALEGRAY], file);
 #endif
-	pixmap->handle = handle;
-	DW_MUTEX_UNLOCK;
-	return pixmap;
+   pixmap->handle = handle;
+   DW_MUTEX_UNLOCK;
+   return pixmap;
+}
+
+/*
+ * Creates a pixmap from data
+ * Parameters:
+ *       handle: Window handle the pixmap is associated with.
+ *       data: Source of image data
+ *                 DW pick the appropriate file extension.
+ *                 (BMP on OS/2 or Windows, XPM on Unix)
+ * Returns:
+ *       A handle to a pixmap or NULL on failure.
+ */
+HPIXMAP dw_pixmap_new_from_data(HWND handle, char *data, int len)
+{
+   int _locked_by_me = FALSE;
+   char *file;
+   FILE *fp;
+   HPIXMAP pixmap;
+#ifndef USE_IMLIB
+   GdkBitmap *bitmap = NULL;
+#endif
+#if GTK_MAJOR_VERSION > 1
+   GdkPixbuf *pixbuf;
+#elif defined(USE_IMLIB)
+   GdkImlibImage *image;
+#endif
+
+   if (!data || !(pixmap = calloc(1,sizeof(struct _hpixmap))))
+      return NULL;
+
+   DW_MUTEX_LOCK;
+   /*
+    * A real hack; create a temporary file and write the contents
+    * of the data to the file
+    */
+   file = tmpnam( NULL );
+   fp = fopen( file, "wb" );
+   if ( fp )
+   {
+      fwrite( data, len, 1, fp );
+      fclose( fp );
+   }
+   else
+   {
+      DW_MUTEX_UNLOCK;
+      return 0;
+   }
+#if GTK_MAJOR_VERSION > 1
+   pixbuf = gdk_pixbuf_new_from_file(file, NULL);
+   pixmap->width = gdk_pixbuf_get_width(pixbuf);
+   pixmap->height = gdk_pixbuf_get_height(pixbuf);
+   gdk_pixbuf_render_pixmap_and_mask(pixbuf, &pixmap->pixmap, &bitmap, 1);
+   g_object_unref(pixbuf);
+#elif defined(USE_IMLIB)
+   image = gdk_imlib_load_image(file);
+
+   pixmap->width = image->rgb_width;
+   pixmap->height = image->rgb_height;
+
+   gdk_imlib_render(image, pixmap->width, pixmap->height);
+   pixmap->pixmap = gdk_imlib_copy_image(image);
+   gdk_imlib_destroy_image(image);
+#else
+   pixmap->pixmap = gdk_pixmap_create_from_xpm_d(handle->window, &bitmap, &_colors[DW_CLR_PALEGRAY], data);
+#endif
+   /* remove our temporary file */
+   unlink (file );
+   pixmap->handle = handle;
+   DW_MUTEX_UNLOCK;
+   return pixmap;
 }
 
 /*
@@ -8231,27 +8576,33 @@ void dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, int 
  */
 void dw_window_set_size(HWND handle, unsigned long width, unsigned long height)
 {
-	int _locked_by_me = FALSE;
+   int _locked_by_me = FALSE;
+   long default_width = width - _dw_border_width;
+   long default_height = height - _dw_border_height;
 
-	if(!handle)
-		return;
+   if(!handle)
+      return;
 
-	DW_MUTEX_LOCK;
-	if(GTK_IS_WINDOW(handle))
-	{
-		_size_allocate(GTK_WINDOW(handle));
-		if(handle->window)
-			gdk_window_resize(handle->window, width - _dw_border_width, height - _dw_border_height);
-		gtk_window_set_default_size(GTK_WINDOW(handle), width - _dw_border_width, height - _dw_border_height);
-		if(!gtk_object_get_data(GTK_OBJECT(handle), "_dw_size"))
-		{
-			gtk_object_set_data(GTK_OBJECT(handle), "_dw_width", (gpointer)width - _dw_border_width);
-			gtk_object_set_data(GTK_OBJECT(handle), "_dw_height", (gpointer)height - _dw_border_height);
-		}
-	}
-	else
-		gtk_widget_set_usize(handle, width, height);
-	DW_MUTEX_UNLOCK;
+   DW_MUTEX_LOCK;
+   if(GTK_IS_WINDOW(handle))
+   {
+      if ( width == 0 )
+         default_width = -1;
+      if ( height == 0 )
+         default_height = -1;
+      _size_allocate(GTK_WINDOW(handle));
+      if(handle->window)
+         gdk_window_resize(handle->window, default_width , default_height );
+      gtk_window_set_default_size(GTK_WINDOW(handle), default_width , default_height );
+      if(!gtk_object_get_data(GTK_OBJECT(handle), "_dw_size"))
+      {
+         gtk_object_set_data(GTK_OBJECT(handle), "_dw_width", (gpointer)default_width );
+         gtk_object_set_data(GTK_OBJECT(handle), "_dw_height", (gpointer)default_height );
+      }
+   }
+   else
+      gtk_widget_set_usize(handle, width, height);
+   DW_MUTEX_UNLOCK;
 }
 
 /*
@@ -8286,10 +8637,12 @@ int dw_screen_height(void)
 unsigned long dw_color_depth_get(void)
 {
 	int retval;
+	GdkVisual *vis;
 	int _locked_by_me = FALSE;
 
 	DW_MUTEX_UNLOCK;
-	retval = gdk_visual_get_best_depth();
+	vis = gdk_visual_get_system();
+	retval = vis->depth;
 	DW_MUTEX_UNLOCK;
 	return retval;
 }
@@ -8386,7 +8739,7 @@ void dw_window_get_pos_size(HWND handle, ULONG *x, ULONG *y, ULONG *width, ULONG
 #if GTK_MAJOR_VERSION > 1
 	if((mdi = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(handle), "_dw_mdi")) && GTK_IS_MDI(mdi))
 	{
-		gint myx, myy;
+		gint myx=0, myy=0;
 
 		gtk_mdi_get_pos(GTK_MDI(mdi), handle, &myx, &myy);
 		*x = myx;
@@ -9392,9 +9745,11 @@ float dw_splitbar_get(HWND handle)
  */
 HWND dw_calendar_new(unsigned long id)
 {
-	GtkCalendar *tmp;
+	GtkWidget *tmp;
 	int _locked_by_me = FALSE;
 	GtkCalendarDisplayOptions flags;
+	time_t now;
+	struct tm *tmdata;
 
 	DW_MUTEX_LOCK;
 	tmp = gtk_calendar_new();
@@ -9402,9 +9757,11 @@ HWND dw_calendar_new(unsigned long id)
 	gtk_object_set_data(GTK_OBJECT(tmp), "_dw_id", (gpointer)id);
 	/* select today */
 	flags = GTK_CALENDAR_WEEK_START_MONDAY|GTK_CALENDAR_SHOW_HEADING|GTK_CALENDAR_SHOW_DAY_NAMES;
-	gtk_calendar_display_options(tmp,flags);
-	gtk_calendar_select_month(tmp,11,2005);
-	gtk_calendar_select_day(tmp, 12);
+	gtk_calendar_display_options( GTK_CALENDAR(tmp), flags );
+	now = time( NULL );
+	tmdata = localtime( & now );
+	gtk_calendar_select_month( GTK_CALENDAR(tmp), tmdata->tm_mon, 1900+tmdata->tm_year );
+	gtk_calendar_select_day( GTK_CALENDAR(tmp), tmdata->tm_mday );
 
 	DW_MUTEX_UNLOCK;
 	return tmp;
@@ -9416,7 +9773,7 @@ HWND dw_calendar_new(unsigned long id)
  *       handle: The handle to the calendar returned by dw_calendar_new().
  *       year...
  */
-void dw_calendar_set_date(HWND handle, int year, int month, int day)
+void dw_calendar_set_date(HWND handle, unsigned int year, unsigned int month, unsigned int day)
 {
 	int _locked_by_me = FALSE;
 
@@ -9435,7 +9792,7 @@ void dw_calendar_set_date(HWND handle, int year, int month, int day)
  * Parameters:
  *       handle: The handle to the splitbar returned by dw_splitbar_new().
  */
-void dw_calendar_get_date(HWND handle, int *year, int *month, int *day)
+void dw_calendar_get_date(HWND handle, unsigned int *year, unsigned int *month, unsigned int *day)
 {
 	int _locked_by_me = FALSE;
 
@@ -9443,6 +9800,7 @@ void dw_calendar_get_date(HWND handle, int *year, int *month, int *day)
 	if(GTK_IS_CALENDAR(handle))
 	{
 		gtk_calendar_get_date(GTK_CALENDAR(handle),year,month,day);
+		*month = *month + 1;
 	}
 	DW_MUTEX_UNLOCK;
 	return;
@@ -10122,6 +10480,50 @@ HWND dw_html_new(unsigned long id)
 }
 
 /*
+ * Gets the contents of the default clipboard as text.
+ * Parameters:
+ *       None.
+ * Returns:
+ *       Pointer to an allocated string of text or NULL if clipboard empty or contents could not
+ *       be converted to text.
+ */
+char *dw_clipboard_get_text()
+{
+   int _locked_by_me = FALSE, index = _find_thread_index(dw_thread_id());
+
+   DW_MUTEX_LOCK;
+   if ( _clipboard_object[index] == NULL )
+   {
+      _clipboard_object[index] = gtk_clipboard_get( GDK_SELECTION_CLIPBOARD );
+   }
+   if ( _clipboard_contents[index] != NULL )
+   {
+      g_free( _clipboard_contents[index] );
+   }
+   _clipboard_contents[index] = gtk_clipboard_wait_for_text( _clipboard_object[index] );
+   DW_MUTEX_UNLOCK;
+   return (char *)_clipboard_contents[index];
+}
+
+/*
+ * Sets the contents of the default clipboard to the supplied text.
+ * Parameters:
+ *       Text.
+ */
+void  dw_clipboard_set_text( char *str, int len )
+{
+   int _locked_by_me = FALSE, index = _find_thread_index(dw_thread_id());
+
+   DW_MUTEX_LOCK;
+   if ( _clipboard_object[index] == NULL )
+   {
+      _clipboard_object[index] = gtk_clipboard_get( GDK_SELECTION_CLIPBOARD );
+   }
+   gtk_clipboard_set_text( _clipboard_object[index], str, len );
+   DW_MUTEX_UNLOCK;
+}
+
+/*
  * Returns a pointer to a static buffer which containes the
  * current user directory.  Or the root directory (C:\ on
  * OS/2 and Windows).
@@ -10285,6 +10687,10 @@ void dw_signal_connect(HWND window, char *signame, void *sigfunc, void *data)
 	gint cid;
 
 	DW_MUTEX_LOCK;
+/*
+ * If the window we are setting the signal on is a scrolled window we need to get
+ * the "real" widget type. thiswindow is the "real" widget type
+ */
 	if(GTK_IS_SCROLLED_WINDOW(thiswindow))
 	{
 		thiswindow = (HWND)gtk_object_get_user_data(GTK_OBJECT(window));
@@ -10304,12 +10710,17 @@ void dw_signal_connect(HWND window, char *signame, void *sigfunc, void *data)
 	else if(GTK_IS_TREE_VIEW(thiswindow)  && strcmp(signame, DW_SIGNAL_ITEM_CONTEXT) == 0)
 	{
 		thisfunc = _findsigfunc("tree-context");
+
 		sigid = _set_signal_handler(thiswindow, window, sigfunc, data, thisfunc);
 		cid = gtk_signal_connect(GTK_OBJECT(thiswindow), "button_press_event", GTK_SIGNAL_FUNC(thisfunc), (gpointer)sigid);
 		_set_signal_handler_id(thiswindow, sigid, cid);
+
+#if 0
 		sigid = _set_signal_handler(window, window, sigfunc, data, thisfunc);
 		cid = gtk_signal_connect(GTK_OBJECT(window), "button_press_event", GTK_SIGNAL_FUNC(thisfunc), (gpointer)sigid);
 		_set_signal_handler_id(window, sigid, cid);
+#endif
+
 		DW_MUTEX_UNLOCK;
 		return;
 	}

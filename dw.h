@@ -249,7 +249,6 @@ typedef void *HMTX;
 typedef void *HEV;
 typedef void *HSHM;
 typedef void *HMOD;
-typedef void *HPIXMAP;
 typedef void *HTREEITEM;
 typedef MenuRef HMENUI;
 
@@ -259,6 +258,12 @@ typedef struct _window_data {
 	ULONG flags;
 	void *data;
 } WindowData;
+
+typedef struct _hpixmap {
+	unsigned long width, height;
+	/* ?? *pixmap; */
+	HWND handle;
+} *HPIXMAP;
 
 #define DW_DT_LEFT               0
 #define DW_DT_QUERYEXTENT        0
@@ -292,7 +297,7 @@ typedef struct _window_data {
 #define DW_FCF_NOBYTEALIGN       0
 #define DW_FCF_NOMOVEWITHOWNER   0
 #define DW_FCF_SYSMODAL          0
-#define DW_FCF_HIDEBUTTON        kWindowCollapseAttribute
+#define DW_FCF_HIDEBUTTON        kWindowCollapseBoxAttribute
 #define DW_FCF_HIDEMAX           0
 #define DW_FCF_AUTOICON          0
 #define DW_FCF_MAXIMIZE          0
@@ -317,7 +322,11 @@ typedef struct _window_data {
 
 #define DW_LIT_NONE              -1
 
-#define DW_MLE_CASESENSITIVE     MLFSEARCH_CASESENSITIVE
+#ifdef MLFSEARCH_CASESENSITIVE
+# define DW_MLE_CASESENSITIVE    MLFSEARCH_CASESENSITIVE
+#else
+# define DW_MLE_CASESENSITIVE    0
+#endif
 
 #define DW_POINTER_DEFAULT       0
 #define DW_POINTER_ARROW         0
@@ -336,6 +345,90 @@ typedef struct _window_data {
 #define DW_MB_INFORMATION        (1 << 12)
 #define DW_MB_QUESTION           (1 << 13)
 
+/* Virtual Key Codes */
+#define VK_LBUTTON               0
+#define VK_RBUTTON               0
+#define VK_CANCEL                0
+#define VK_MBUTTON               0
+#define VK_BACK                  0
+#define VK_TAB                   0
+#define VK_CLEAR                 0
+#define VK_RETURN                0
+#define VK_MENU                  0
+#define VK_PAUSE                 0
+#define VK_CAPITAL               0
+#define VK_ESCAPE                0
+#define VK_SPACE                 0
+#define VK_PRIOR                 0
+#define VK_NEXT                  0
+#define VK_END                   0
+#define VK_HOME                  0
+#define VK_LEFT                  0
+#define VK_UP                    0
+#define VK_RIGHT                 0
+#define VK_DOWN                  0
+#define VK_SELECT                0
+#define VK_PRINT                 0
+#define VK_EXECUTE               0
+#define VK_SNAPSHOT              0
+#define VK_INSERT                0
+#define VK_DELETE                0
+#define VK_HELP                  0
+#define VK_LWIN                  0
+#define VK_RWIN                  0
+#define VK_NUMPAD0               0
+#define VK_NUMPAD1               0
+#define VK_NUMPAD2               0
+#define VK_NUMPAD3               0
+#define VK_NUMPAD4               0
+#define VK_NUMPAD5               0
+#define VK_NUMPAD6               0
+#define VK_NUMPAD7               0
+#define VK_NUMPAD8               0
+#define VK_NUMPAD9               0
+#define VK_MULTIPLY              0
+#define VK_ADD                   0
+#define VK_SEPARATOR             0
+#define VK_SUBTRACT              0
+#define VK_DECIMAL               0
+#define VK_DIVIDE                0
+#define VK_F1                    0
+#define VK_F2                    0
+#define VK_F3                    0
+#define VK_F4                    0
+#define VK_F5                    0
+#define VK_F6                    0
+#define VK_F7                    0
+#define VK_F8                    0
+#define VK_F9                    0
+#define VK_F10                   0
+#define VK_F11                   0
+#define VK_F12                   0
+#define VK_F13                   0
+#define VK_F14                   0
+#define VK_F15                   0
+#define VK_F16                   0
+#define VK_F17                   0
+#define VK_F18                   0
+#define VK_F19                   0
+#define VK_F20                   0
+#define VK_F21                   0
+#define VK_F22                   0
+#define VK_F23                   0
+#define VK_F24                   0
+#define VK_NUMLOCK               0
+#define VK_SCROLL                0
+#define VK_LSHIFT                0
+#define VK_RSHIFT                0
+#define VK_LCONTROL              0
+#define VK_RCONTROL              0
+#define VK_LMENU                 0
+#define VK_RMENU                 0
+
+/* Key Modifiers */
+#define KC_CTRL                  (1)
+#define KC_SHIFT                 (1 << 1)
+#define KC_ALT                   (1 << 2)
 
 #endif
 
@@ -940,6 +1033,7 @@ HWND API dw_mdi_new(unsigned long id);
 HWND API dw_bitmap_new(unsigned long id);
 HWND API dw_bitmapbutton_new(char *text, unsigned long id);
 HWND API dw_bitmapbutton_new_from_file(char *text, unsigned long id, char *filename);
+HWND API dw_bitmapbutton_new_from_data(char *text, unsigned long id, char *str, int len);
 HWND API dw_container_new(unsigned long id, int multi);
 HWND API dw_tree_new(unsigned long id);
 HWND API dw_text_new(char *text, unsigned long id);
@@ -980,6 +1074,7 @@ void API dw_window_get_pos_size(HWND handle, unsigned long *x, unsigned long *y,
 void API dw_window_set_style(HWND handle, unsigned long style, unsigned long mask);
 void API dw_window_set_icon(HWND handle, unsigned long id);
 void API dw_window_set_bitmap(HWND handle, unsigned long id, char *filename);
+void API dw_window_set_bitmap_from_data(HWND handle, unsigned long id, char *data, int len);
 char * API dw_window_get_text(HWND handle);
 void API dw_window_set_text(HWND handle, char *text);
 int API dw_window_set_border(HWND handle, int border);
@@ -1024,6 +1119,7 @@ HTREEITEM API dw_tree_get_parent(HWND handle, HTREEITEM item);
 int API dw_container_setup(HWND handle, unsigned long *flags, char **titles, int count, int separator);
 unsigned long API dw_icon_load(unsigned long module, unsigned long id);
 unsigned long API dw_icon_load_from_file(char *filename);
+unsigned long API dw_icon_load_from_data(char *data, int len);
 void API dw_icon_free(unsigned long handle);
 void * API dw_container_alloc(HWND handle, int rowcount);
 void API dw_container_set_item(HWND handle, void *pointer, int column, int row, void *data);
@@ -1102,6 +1198,7 @@ void API dw_flush(void);
 void API dw_pixmap_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest, int width, int height, HWND src, HPIXMAP srcp, int xsrc, int ysrc);
 HPIXMAP API dw_pixmap_new(HWND handle, unsigned long width, unsigned long height, int depth);
 HPIXMAP API dw_pixmap_new_from_file(HWND handle, char *filename);
+HPIXMAP API dw_pixmap_new_from_data(HWND handle, char *data, int len);
 HPIXMAP API dw_pixmap_grab(HWND handle, ULONG id);
 void API dw_pixmap_destroy(HPIXMAP pixmap);
 void API dw_beep(int freq, int dur);
@@ -1138,8 +1235,10 @@ void API dw_html_action(HWND hwnd, int action);
 int API dw_html_raw(HWND hwnd, char *string);
 int API dw_html_url(HWND hwnd, char *url);
 HWND API dw_html_new(unsigned long id);
+char API *dw_clipboard_get_text();
+void API dw_clipboard_set_text( char *str, int len );
 HWND API dw_calendar_new(unsigned long id);
-void API dw_calendar_set_date( HWND window, int year, int month, int day );
-void API dw_calendar_get_date( HWND window, int *year, int *month, int *day );
+void API dw_calendar_set_date( HWND window, unsigned int year, unsigned int month, unsigned int day );
+void API dw_calendar_get_date( HWND window, unsigned int *year, unsigned int *month, unsigned int *day );
 
 #endif

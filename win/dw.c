@@ -63,6 +63,7 @@ COLORREF _foreground[THREAD_LIMIT];
 COLORREF _background[THREAD_LIMIT];
 HPEN _hPen[THREAD_LIMIT];
 HBRUSH _hBrush[THREAD_LIMIT];
+char *_clipboard_contents[THREAD_LIMIT];
 
 BYTE _red[] = { 	0x00, 0xbb, 0x00, 0xaa, 0x00, 0xbb, 0x00, 0xaa, 0x77,
 			  0xff, 0x00, 0xee, 0x00, 0xff, 0x00, 0xff, 0xaa, 0x00 };
@@ -3335,6 +3336,7 @@ int API dw_init(int newthread, int argc, char *argv[])
 		_background[z] = DW_RGB_TRANSPARENT;
 		_hPen[z] = CreatePen(PS_SOLID, 1, _foreground[z]);
 		_hBrush[z] = CreateSolidBrush(_foreground[z]);
+		_clipboard_contents[z] = NULL;
 	}
 
 	if(!IS_WINNTOR95)
@@ -4666,52 +4668,52 @@ HWND API dw_bitmapbutton_new(char *text, ULONG id)
  *       id: An ID to be used with dw_window_from_id() or 0L.
  *       filename: Name of the file, omit extention to have
  *                 DW pick the appropriate file extension.
- *                 (BMP on OS/2 or Windows, XPM on Unix)
+ *                 (BMP or ICO on OS/2 or Windows, XPM on Unix)
  */
 HWND API dw_bitmapbutton_new_from_file(char *text, unsigned long id, char *filename)
 {
-	HWND tmp;
-	BubbleButton *bubble;
-	HBITMAP hbitmap = 0;
-	HANDLE icon = 0;
-	int windowtype = 0, len;
+   HWND tmp;
+   BubbleButton *bubble;
+   HBITMAP hbitmap = 0;
+   HANDLE icon = 0;
+   int windowtype = 0, len;
 
-	if(!(bubble = calloc(1, sizeof(BubbleButton))))
-		return 0;
+   if(!(bubble = calloc(1, sizeof(BubbleButton))))
+      return 0;
 
-	windowtype = _dw_get_image_handle(filename, &icon, &hbitmap);
+   windowtype = _dw_get_image_handle(filename, &icon, &hbitmap);
 
-	tmp = CreateWindow(BUTTONCLASSNAME,
-					   "",
-					   WS_CHILD | BS_PUSHBUTTON |
-					   windowtype | WS_CLIPCHILDREN |
-					   WS_VISIBLE,
-					   0,0,2000,1000,
-					   DW_HWND_OBJECT,
-					   (HMENU)id,
-					   DWInstance,
-					   NULL);
+   tmp = CreateWindow(BUTTONCLASSNAME,
+                  "",
+                  WS_CHILD | BS_PUSHBUTTON |
+                  windowtype | WS_CLIPCHILDREN |
+                  WS_VISIBLE,
+                  0,0,2000,1000,
+                  DW_HWND_OBJECT,
+                  (HMENU)id,
+                  DWInstance,
+                  NULL);
 
-	bubble->id = id;
-	strncpy(bubble->bubbletext, text, BUBBLE_HELP_MAX - 1);
-	bubble->bubbletext[BUBBLE_HELP_MAX - 1] = '\0';
-	bubble->pOldProc = (WNDPROC)SubclassWindow(tmp, _BtProc);
+   bubble->id = id;
+   strncpy(bubble->bubbletext, text, BUBBLE_HELP_MAX - 1);
+   bubble->bubbletext[BUBBLE_HELP_MAX - 1] = '\0';
+   bubble->pOldProc = (WNDPROC)SubclassWindow(tmp, _BtProc);
 
-	SetWindowLongPtr(tmp, GWLP_USERDATA, (LONG_PTR)bubble);
+   SetWindowLongPtr(tmp, GWLP_USERDATA, (LONG_PTR)bubble);
 
-	if(icon)
-	{
-		SendMessage(tmp, BM_SETIMAGE,
-					(WPARAM) IMAGE_ICON,
-					(LPARAM) icon);
-	}
-	else if(hbitmap)
-	{
-		SendMessage(tmp, BM_SETIMAGE,
-					(WPARAM) IMAGE_BITMAP,
-					(LPARAM) hbitmap);
-	}
-	return tmp;
+   if(icon)
+   {
+      SendMessage(tmp, BM_SETIMAGE,
+               (WPARAM) IMAGE_ICON,
+               (LPARAM) icon);
+   }
+   else if(hbitmap)
+   {
+      SendMessage(tmp, BM_SETIMAGE,
+               (WPARAM) IMAGE_BITMAP,
+               (LPARAM) hbitmap);
+   }
+   return tmp;
 }
 
 /*
@@ -8348,7 +8350,7 @@ HWND API dw_calendar_new(unsigned long id)
  *       month:  The month to set the date to
  *       day:    The day to set the date to
  */
-void API dw_calendar_set_date(HWND handle, int year, int month, int day)
+void API dw_calendar_set_date(HWND handle, unsigned int year, unsigned int month, unsigned int day)
 {
 	MONTHDAYSTATE mds[3];
 	SYSTEMTIME date;
@@ -8373,7 +8375,7 @@ void API dw_calendar_set_date(HWND handle, int year, int month, int day)
  *       month:  Pointer to the month to get the date to
  *       day:    Pointer to the day to get the date to
  */
-void API dw_calendar_get_date(HWND handle, int *year, int *month, int *day)
+void API dw_calendar_get_date(HWND handle, unsigned int *year, unsigned int *month, unsigned int *day)
 {
 	SYSTEMTIME date;
 	if ( MonthCal_GetCurSel( handle, &date ) )
@@ -8516,6 +8518,87 @@ void API dw_window_click_default(HWND window, HWND next)
 
 	if(cinfo)
 		cinfo->clickdefault = next;
+}
+
+/*
+ * Gets the contents of the default clipboard as text.
+ * Parameters:
+ *       None.
+ * Returns:
+ *       Pointer to an allocated string of text or NULL if clipboard empty or contents could not
+ *       be converted to text.
+ */
+char *dw_clipboard_get_text()
+{
+   HANDLE handle;
+   int threadid = dw_thread_id();
+   long len;
+
+   if ( !OpenClipboard( NULL ) )
+      return NULL;
+
+   if ( ( handle = GetClipboardData( CF_TEXT) ) == NULL )
+   {
+      CloseClipboard();
+      return NULL;
+   }
+
+   len = strlen( (char *)handle );
+
+   if ( threadid < 0 || threadid >= THREAD_LIMIT )
+      threadid = 0;
+
+   if ( _clipboard_contents[threadid] != NULL )
+   {
+      GlobalFree( _clipboard_contents[threadid] );
+   }
+   _clipboard_contents[threadid] = (char *)GlobalAlloc(GMEM_FIXED, len + 1);
+   if ( !_clipboard_contents[threadid] )
+   {
+      CloseClipboard();
+      return NULL;
+   }
+
+   strcpy( (char *)_clipboard_contents[threadid], (char *)handle );
+   CloseClipboard();
+
+   return _clipboard_contents[threadid];
+}
+
+/*
+ * Sets the contents of the default clipboard to the supplied text.
+ * Parameters:
+ *       Text.
+ */
+void dw_clipboard_set_text( char *str, int len )
+{
+   HGLOBAL ptr1;
+   LPTSTR ptr2;
+
+   if ( !OpenClipboard( NULL ) )
+      return;
+
+   ptr1 = GlobalAlloc( GMEM_MOVEABLE|GMEM_DDESHARE, (len + 1) * sizeof(TCHAR) );
+
+   if ( !ptr1 )
+      return;
+
+   ptr2 = GlobalLock( ptr1 );
+
+   memcpy( (char *)ptr2, str, len + 1);
+   GlobalUnlock( ptr1 );
+   EmptyClipboard();
+
+   if ( !SetClipboardData( CF_TEXT, ptr1 ) )
+   {
+      GlobalFree( ptr1 );
+      return;
+   }
+
+   CloseClipboard();
+   GlobalFree( ptr1 );
+
+   return;
 }
 
 /*
