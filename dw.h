@@ -1235,7 +1235,7 @@ void API dw_html_action(HWND hwnd, int action);
 int API dw_html_raw(HWND hwnd, char *string);
 int API dw_html_url(HWND hwnd, char *url);
 HWND API dw_html_new(unsigned long id);
-char API *dw_clipboard_get_text();
+char * API dw_clipboard_get_text(void);
 void API dw_clipboard_set_text( char *str, int len );
 HWND API dw_calendar_new(unsigned long id);
 void API dw_calendar_set_date( HWND window, unsigned int year, unsigned int month, unsigned int day );
