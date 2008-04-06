@@ -16,13 +16,47 @@
 #define FIXEDFONT "monospace 10"
 #define FOLDER_ICON_NAME "gtk/folder"
 #define FILE_ICON_NAME "gtk/file"
+#define FOLDER_DATA_NAME folder_xpm
+#define FOLDER_DATA_LENGTH sizeof(folder_xpm)
 #else
 #define FIXEDFONT "fixed"
 #define FOLDER_ICON_NAME "gtk/folder"
 #define FILE_ICON_NAME "gtk/file"
+#define FOLDER_DATA_NAME folder_xpm
+#define FOLDER_DATA_LENGTH sizeof(folder_xpm)
 #endif
 
 #define SCROLLBARWIDTH 14
+
+/* XPM */
+static char * folder_xpm[] = {
+"16 16 10 1",
+" 	c None",
+".	c #000000",
+"+	c #AA9200",
+"@	c #FFFFAA",
+"#	c #FFDB55",
+"$	c #000000",
+"%	c #F7F7F7",
+"&	c #000000",
+"*	c #FFDBAA",
+"=	c #D5B655",
+"                ",
+"  &&&&          ",
+" &%%%%&         ",
+"&%@@@@%+++++$   ",
+"&@@@@@@%%%%%$   ",
+"&@*++++++++++++ ",
+"&#+%%%%%%%%%*%+$",
+"&#+@@@@@@@@@#@+$",
+"&#+@@@@@@@@@.@+$",
+"&#+@@**@**@@=@+$",
+"&#+@########=@+$",
+"&#+@########=@+$",
+" ++++++++++++++$",
+"  $$$$$$$$$$$$$ ",
+"                ",
+"                "};
 
 unsigned long flStyle = DW_FCF_SYSMENU | DW_FCF_TITLEBAR |
    DW_FCF_SHELLPOSITION | DW_FCF_TASKLIST | DW_FCF_DLGBORDER;
@@ -1020,8 +1054,7 @@ void menu_add(void)
    dw_signal_connect( checkable_menuitem, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(menu_callback), (void *)"checkable");
    noncheckable_menuitem = dw_menu_append_item( changeable_menu, "~Non-checkable Menu Item", NONCHECKABLE_MENUITEMID, 0, TRUE, FALSE, 0 );
    dw_signal_connect( noncheckable_menuitem, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(menu_callback), (void *)"non-checkable");
-   menuitem = dw_menu_append_item( changeable_menu, "~Disabled menu Item", 2003, DW_MIS_DISABLED, TRUE, FALSE, 0 );
-   dw_signal_connect( noncheckable_menuitem, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(menu_callback), (void *)"non-checkable");
+   menuitem = dw_menu_append_item( changeable_menu, "~Disabled menu Item", 2003, DW_MIS_DISABLED|DW_MIS_CHECKED, TRUE, TRUE, 0 );
    /* seperator */
    dw_menu_append_item( changeable_menu, DW_MENU_SEPARATOR, 3999, 0, TRUE, FALSE, 0 );
    menuitem = dw_menu_append_item( changeable_menu, "~Menu Items Disabled", 2009, 0, TRUE, TRUE, 0 );
