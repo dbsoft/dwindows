@@ -49,6 +49,12 @@
 #define DW_SIGNAL_COLUMN_CLICK   "click-column"
 #define DW_SIGNAL_TREE_EXPAND    "tree-expand"
 
+/* status of menu items */
+#define DW_MIS_ENABLED           1
+#define DW_MIS_DISABLED          (1 << 1)
+#define DW_MIS_CHECKED           (1 << 2)
+#define DW_MIS_UNCHECKED         (1 << 3)
+
 #if defined(__OS2__) || defined(__WIN32__) || defined(__MAC__) || defined(WINNT) || defined(__EMX__)
 /* OS/2, Windows or MacOS */
 
@@ -1166,6 +1172,7 @@ TBD
 void API dw_menu_delete_item(HMENUI menu, unsigned long id);
 #endif
 void API dw_menu_item_set_check(HMENUI menu, unsigned long id, int check);
+void API dw_menu_item_set_state( HMENUI menux, unsigned long id, unsigned long state);
 void API dw_menu_popup(HMENUI *menu, HWND parent, int x, int y);
 void API dw_menu_destroy(HMENUI *menu);
 void API dw_pointer_query_pos(long *x, long *y);
