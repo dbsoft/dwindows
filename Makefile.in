@@ -8,7 +8,7 @@ DW_SRC  =	@DW_SRC@
 INCPATH	=	-I.. -I. -I$(srcdir)
 TARGET	=	dw
 SRCS	=	$(srcdir)/$(DW_SRC)/dw.c
-OBJECTS	=	dw.o
+OBJECTS	=	dw.o browser.o
 SRCS2	=	$(srcdir)compat.c
 OBJECTS2=	compat.o
 TARGET2 =	dwcompat
@@ -102,6 +102,9 @@ $(SYSCONF_LINK_TARGET): $(OBJECTS)
 dw.o: $(srcdir)/$(DW_SRC)/dw.c
 	$(CC) -c $(INCPATH) $(CCFLAGS) -o $@ $(srcdir)/$(DW_SRC)/dw.c
 
+browser.o: $(srcdir)/$(DW_SRC)/browser.cpp
+	$(CXX) -c $(INCPATH) $(CCFLAGS) -o $@ $(srcdir)/$(DW_SRC)/browser.cpp
+
 compat.o: $(srcdir)/compat.c
 	$(CC) -c $(INCPATH) $(CCFLAGS) -o $@ $(srcdir)/compat.c
 
@@ -109,7 +112,7 @@ ci.o: $(srcdir)/ci.c
 	$(CC) -c $(INCPATH) $(CCFLAGS) -o $@ $(srcdir)/ci.c
 
 dwtest.o: $(srcdir)/dwtest.c
-	$(CC) -c $(INCPATH) $(CCFLAGS) -o $@ $(srcdir)/dwtest.c	
+	$(CC) -c $(INCPATH) $(CCFLAGS) -o $@ $(srcdir)/dwtest.c
 
 ci: ci.o
 	$(CC) -o ci ci.o -L$(PREFIX)/lib -ldw -ldwcompat $(LFLAGS)
