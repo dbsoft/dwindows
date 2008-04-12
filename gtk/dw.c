@@ -10541,7 +10541,8 @@ int dw_html_raw(HWND handle, char *string)
       return -1;
 
    DW_MUTEX_LOCK;
-   _gtk_moz_embed_render_data(GTK_MOZ_EMBED(handle), string, strlen(string), "", "");
+   _gtk_moz_embed_render_data(GTK_MOZ_EMBED(handle), string, strlen(string), "file:///", "text/html");
+   gtk_widget_show(GTK_WIDGET(handle));
    DW_MUTEX_UNLOCK;
    return 0;
 #endif
