@@ -1725,7 +1725,7 @@ ac_config_headers="$ac_config_headers config.h"
 
 
 DW_MAJOR_VERSION=1
-DW_MINOR_VERSION=0
+DW_MINOR_VERSION=1
 DW_SUB_VERSION=0
 
 DW_SRC=gtk
