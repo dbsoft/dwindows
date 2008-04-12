@@ -9122,6 +9122,7 @@ char * API dw_file_browse(char *title, char *defpath, char *ext, int flags)
 {
    OPENFILENAME of;
    char filenamebuf[1001] = "";
+   char filterbuf[1000] = "";
    int rc;
 
    BROWSEINFO bi;
@@ -9158,13 +9159,25 @@ char * API dw_file_browse(char *title, char *defpath, char *ext, int flags)
    }
    else
    {
-      if(ext)
+      if (ext)
       {
-         strcpy(filenamebuf, "*.");
-         strcat(filenamebuf, ext);
+         /*
+          * The following mess is because sprintf() trunates at first \0
+          * and format of filter is eg: "c files (*.c)\0*.c\0All Files\0*.*\0\0"
+          */
+         int len;
+         char *ptr = filterbuf;
+         memset( filterbuf, 0, sizeof(filterbuf) );
+         len = sprintf( ptr, "%s Files (*.%s)", ext, ext );
+         ptr = ptr + len + 1; // past first \0
+         len = sprintf( ptr, "*.%s", ext );
+         ptr = ptr + len + 1; // past next \0
+         len = sprintf( ptr, "All Files" );
+         ptr = ptr + len + 1; // past next \0
+         len = sprintf( ptr, "*.*" );
       }
 
-      memset(&of, 0, sizeof(OPENFILENAME));
+      memset( &of, 0, sizeof(OPENFILENAME) );
 
       of.lStructSize = sizeof(OPENFILENAME);
       of.hwndOwner = HWND_DESKTOP;
@@ -9172,16 +9185,24 @@ char * API dw_file_browse(char *title, char *defpath, char *ext, int flags)
       of.lpstrInitialDir = defpath;
       of.lpstrTitle = title;
       of.lpstrFile = filenamebuf;
+      of.lpstrFilter = filterbuf;
+      of.nFilterIndex = 1;
       of.nMaxFile = 1000;
-      of.lpstrDefExt = ext;
-      of.Flags = 0;
+      //of.lpstrDefExt = ext;
+      of.Flags = OFN_NOCHANGEDIR;
 
-      if(flags & DW_FILE_SAVE)
+      if (flags & DW_FILE_SAVE)
+      {
+         of.Flags |= OFN_OVERWRITEPROMPT;
          rc = GetSaveFileName(&of);
+      }
       else
+      {
+         of.Flags |= OFN_FILEMUSTEXIST;
          rc = GetOpenFileName(&of);
+      }
 
-      if(rc)
+      if (rc)
          return strdup(of.lpstrFile);
    }
    return NULL;
