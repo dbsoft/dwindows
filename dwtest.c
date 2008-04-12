@@ -99,6 +99,7 @@ HWND mainwindow,
    combobox1,
    combobox2,
    spinbutton,
+   slider,
    notebookbox,
    notebookbox1,
    notebookbox2,
@@ -108,6 +109,7 @@ HWND mainwindow,
    notebookbox6,
    notebookbox7,
    html,
+   rawhtml,
    notebook,
    vscrollbar,
    hscrollbar,
@@ -511,6 +513,12 @@ void DWSIGNAL scrollbar_valuechanged_callback(HWND hwnd, int value, void *data)
 void DWSIGNAL spinbutton_valuechanged_callback(HWND hwnd, int value, void *data)
 {
    dw_messagebox("DWTest", DW_MB_OK, "New value from spinbutton: %d\n", value);
+}
+
+/* Callback to handle user selection of the slider position */
+void DWSIGNAL slider_valuechanged_callback(HWND hwnd, int value, void *data)
+{
+   dw_messagebox("DWTest", DW_MB_OK, "New value from slider: %d\n", value);
 }
 
 /* Handle size change of the main render window */
@@ -968,12 +976,16 @@ void buttons_add(void)
       free(text[i]);
    }
    free(text);
-/* make a spinbutton */
+   /* make a spinbutton */
    spinbutton = dw_spinbutton_new( "", 0 ); /* no point in specifying text */
    dw_box_pack_start( combox, spinbutton, 200, 20, TRUE, FALSE, 0);
    dw_spinbutton_set_limits( spinbutton, 100, 1 );
    dw_spinbutton_set_pos( spinbutton, 30 );
    dw_signal_connect( spinbutton, DW_SIGNAL_VALUE_CHANGED, DW_SIGNAL_FUNC(spinbutton_valuechanged_callback), NULL );
+   /* make a slider */
+   slider = dw_slider_new( FALSE, 10, 0 ); /* no point in specifying text */
+   dw_box_pack_start( combox, slider, 200, 20, TRUE, FALSE, 0);
+   dw_signal_connect( slider, DW_SIGNAL_VALUE_CHANGED, DW_SIGNAL_FUNC(slider_valuechanged_callback), NULL );
 }
 
 void create_button( int redraw)
@@ -1140,8 +1152,12 @@ int main(int argc, char *argv[])
    notebookpage7 = dw_notebook_page_new( notebook, 1, FALSE );
    dw_notebook_pack( notebook, notebookpage7, notebookbox7 );
    dw_notebook_page_set_text( notebook, notebookpage7, "html");
-   html = dw_html_new(1001);
-   dw_box_pack_start( notebookbox7, html, 100, 100, TRUE, TRUE, 0);
+
+   rawhtml = dw_html_new(1001);
+   dw_box_pack_start( notebookbox7, rawhtml, 0, 100, TRUE, FALSE, 0);
+   dw_html_raw(rawhtml, "<html><body><center><h1>dwtest</h1></center></body></html>");
+   html = dw_html_new(1002);
+   dw_box_pack_start( notebookbox7, html, 0, 100, TRUE, TRUE, 0);
    /*
     * This originally had:
       dw_html_url(html, "http://dwindows.netlabs.org");
