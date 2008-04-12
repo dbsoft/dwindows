@@ -102,7 +102,10 @@ gchar *_clipboard_contents[DW_THREAD_LIMIT];
 
 GtkWidget *last_window = NULL, *popup = NULL;
 
-static int _dw_file_active = 0, _dw_ignore_click = 0, _dw_ignore_expand = 0, _dw_color_active = 0;
+#if GTK_MAJOR_VERSION < 2
+static int _dw_file_active = 0;
+#endif
+static int _dw_ignore_click = 0, _dw_ignore_expand = 0, _dw_color_active = 0;
 static pthread_t _dw_thread = (pthread_t)-1;
 static int _dw_mutex_locked[DW_THREAD_LIMIT];
 /* Use default border size for the default enlightenment theme */
@@ -1698,11 +1701,11 @@ static gint _value_changed_event(GtkAdjustment *adjustment, gpointer data)
    GtkWidget *spinbutton = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(adjustment), "_dw_spinbutton");
    GtkWidget *scrollbar = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(adjustment), "_dw_scrollbar");
 
-   if(slider)
+   if (slider)
    {
       SignalHandler work = _get_signal_handler((GtkWidget *)adjustment, data);
 
-      if(work.window)
+      if (work.window)
       {
          int (*valuechangedfunc)(HWND, int, void *) = work.func;
 
@@ -1712,11 +1715,11 @@ static gint _value_changed_event(GtkAdjustment *adjustment, gpointer data)
             valuechangedfunc(work.window, val,  work.data);
       }
    }
-   else if(scrollbar || spinbutton)
+   else if (scrollbar || spinbutton)
    {
       SignalHandler work = _get_signal_handler((GtkWidget *)adjustment, data);
 
-      if(work.window)
+      if (work.window)
       {
          int (*valuechangedfunc)(HWND, int, void *) = work.func;
 
@@ -5122,6 +5125,11 @@ void dw_spinbutton_set_limits(HWND handle, long upper, long lower)
    DW_MUTEX_LOCK;
    adj = (GtkAdjustment *)gtk_adjustment_new((gfloat)curval, (gfloat)lower, (gfloat)upper, 1.0, 5.0, 0.0);
    gtk_spin_button_set_adjustment(GTK_SPIN_BUTTON(handle), adj);
+   /*
+    * Set our internal relationships between the adjustment and the spinbutton
+    */
+   gtk_object_set_data(GTK_OBJECT(handle), "_dw_adjustment", (gpointer)adj);
+   gtk_object_set_data(GTK_OBJECT(adj), "_dw_spinbutton", (gpointer)handle);
    DW_MUTEX_UNLOCK;
 }
 
@@ -10078,14 +10086,11 @@ void dw_environment_query(DWEnv *env)
    env->MinorVersion = 0;
 }
 
+#if GTK_MAJOR_VERSION < 2
 /* Internal function to handle the file OK press */
 static gint _gtk_file_ok(GtkWidget *widget, DWDialog *dwwait)
 {
-#if GTK_MAJOR_VERSION > 1
-   const char *tmp;
-#else
    char *tmp;
-#endif
    char *tmpdup=NULL;
 
    if(!dwwait)
@@ -10241,6 +10246,7 @@ static int DWSIGNAL _tree_expand(HWND window, HTREEITEM item, void *data)
 
    return FALSE;
 }
+#endif
 
 /*
  * Opens a file dialog and queries user selection.
@@ -10257,9 +10263,75 @@ static int DWSIGNAL _tree_expand(HWND window, HTREEITEM item, void *data)
 char *dw_file_browse(char *title, char *defpath, char *ext, int flags)
 {
    GtkWidget *filew;
+
+#if GTK_MAJOR_VERSION > 1
+   GtkFileChooserAction action;
+   GtkFileFilter *filter1 = NULL;
+   GtkFileFilter *filter2 = NULL;
+   gchar *button;
+   char *filename = NULL;
+   char buf[1000];
+
+   switch (flags )
+   {
+      case DW_DIRECTORY_OPEN:
+         action = GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER;
+         button = GTK_STOCK_OPEN;
+         break;
+      case DW_FILE_OPEN:
+         action = GTK_FILE_CHOOSER_ACTION_OPEN;
+         button = GTK_STOCK_OPEN;
+         break;
+      case DW_FILE_SAVE:
+         action = GTK_FILE_CHOOSER_ACTION_SAVE;
+         button = GTK_STOCK_SAVE;
+         break;
+      default:
+         dw_messagebox( "Coding error", DW_MB_OK|DW_MB_ERROR, "dw_file_browse() flags argument invalid.");
+         return NULL;
+         break;
+   }
+
+   filew = gtk_file_chooser_dialog_new ( title,
+                                         NULL,
+                                         action,
+                                         GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
+                                         button, GTK_RESPONSE_ACCEPT,
+                                         NULL);
+
+   if ( flags == DW_FILE_SAVE )
+      gtk_file_chooser_set_do_overwrite_confirmation( GTK_FILE_CHOOSER( filew ), TRUE );
+
+   if ( ext )
+   {
+      filter1 = gtk_file_filter_new();
+      sprintf( buf, "*.%s", ext );
+      gtk_file_filter_add_pattern( filter1, (gchar *)buf );
+      sprintf( buf, "\"%s\" files", ext );
+      gtk_file_filter_set_name( filter1, (gchar *)buf );
+      filter2 = gtk_file_filter_new();
+      gtk_file_filter_add_pattern( filter2, (gchar *)"*" );
+      gtk_file_filter_set_name( filter2, (gchar *)"All Files" );
+      gtk_file_chooser_add_filter( GTK_FILE_CHOOSER( filew ), filter1 );
+      gtk_file_chooser_add_filter( GTK_FILE_CHOOSER( filew ), filter2 );
+   }
+
+   if ( defpath )
+   {
+      gtk_file_chooser_set_current_folder( GTK_FILE_CHOOSER( filew ), defpath );
+   }
+
+   if ( gtk_dialog_run( GTK_DIALOG( filew ) ) == GTK_RESPONSE_ACCEPT )
+   {
+      filename = gtk_file_chooser_get_filename( GTK_FILE_CHOOSER( filew ) );
+//      g_free (filename);
+   }
+
+   gtk_widget_destroy( filew );
+   return filename;
+#else
    int _locked_by_me = FALSE;
    DWDialog *dwwait;
-
    if(flags == DW_DIRECTORY_OPEN)
    {
       HWND window, hbox, vbox, tree, button;
@@ -10330,6 +10402,7 @@ char *dw_file_browse(char *title, char *defpath, char *ext, int flags)
       DW_MUTEX_UNLOCK;
    }
    return (char *)dw_dialog_wait(dwwait);
+#endif
 }
 
 
@@ -10809,7 +10882,8 @@ static HWND _find_signal_window(HWND window, char *signame)
    else if(GTK_IS_COMBO(thiswindow) && signame && strcmp(signame, DW_SIGNAL_SET_FOCUS) == 0)
       thiswindow = GTK_COMBO(thiswindow)->entry;
    else if(GTK_IS_VSCALE(thiswindow) || GTK_IS_HSCALE(thiswindow) ||
-         GTK_IS_VSCROLLBAR(thiswindow) || GTK_IS_HSCROLLBAR(thiswindow))
+         GTK_IS_VSCROLLBAR(thiswindow) || GTK_IS_HSCROLLBAR(thiswindow) ||
+         GTK_IS_SPIN_BUTTON(thiswindow))
       thiswindow = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(thiswindow), "_dw_adjustment");
 #if GTK_MAJOR_VERSION > 1
    else if(GTK_IS_TREE_VIEW(thiswindow) && strcmp(signame, DW_SIGNAL_ITEM_SELECT) == 0)
@@ -10835,10 +10909,10 @@ void dw_signal_connect(HWND window, char *signame, void *sigfunc, void *data)
    gint cid;
 
    DW_MUTEX_LOCK;
-/*
- * If the window we are setting the signal on is a scrolled window we need to get
- * the "real" widget type. thiswindow is the "real" widget type
- */
+   /*
+    * If the window we are setting the signal on is a scrolled window we need to get
+    * the "real" widget type. thiswindow is the "real" widget type
+    */
    if (GTK_IS_SCROLLED_WINDOW(thiswindow))
    {
       thiswindow = (HWND)gtk_object_get_user_data(GTK_OBJECT(window));
@@ -10965,7 +11039,8 @@ void dw_signal_connect(HWND window, char *signame, void *sigfunc, void *data)
    }
 #endif
    else if (GTK_IS_VSCALE(thiswindow) || GTK_IS_HSCALE(thiswindow) ||
-         GTK_IS_VSCROLLBAR(thiswindow) || GTK_IS_HSCROLLBAR(thiswindow))
+         GTK_IS_VSCROLLBAR(thiswindow) || GTK_IS_HSCROLLBAR(thiswindow) ||
+         GTK_IS_SPIN_BUTTON(thiswindow) )
    {
       thiswindow = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(thiswindow), "_dw_adjustment");
    }
