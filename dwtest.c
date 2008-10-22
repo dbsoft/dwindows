@@ -437,7 +437,7 @@ int DWSIGNAL test_callback(HWND window, void *data)
 int DWSIGNAL browse_callback(HWND window, void *data)
 {
    char *tmp;
-   tmp = dw_file_browse("test string", NULL, "c", DW_FILE_OPEN );
+   tmp = dw_file_browse("test string", ".", "c", DW_FILE_OPEN );
    if ( tmp )
    {
       if ( current_file )
