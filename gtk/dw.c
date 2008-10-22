@@ -10271,6 +10271,8 @@ char *dw_file_browse(char *title, char *defpath, char *ext, int flags)
    gchar *button;
    char *filename = NULL;
    char buf[1000];
+   char mypath[PATH_MAX+1];
+   char cwd[PATH_MAX+1];
 
    switch (flags )
    {
@@ -10318,7 +10320,23 @@ char *dw_file_browse(char *title, char *defpath, char *ext, int flags)
 
    if ( defpath )
    {
-      gtk_file_chooser_set_current_folder( GTK_FILE_CHOOSER( filew ), defpath );
+      if ( g_path_is_absolute( defpath ) )
+      {
+         strcpy( mypath, defpath );
+      }
+      else
+      {
+         if ( !getcwd(cwd, PATH_MAX ) )
+         {
+         }
+         else
+         {
+            if ( rel2abs( defpath, cwd, mypath, PATH_MAX ) )
+            {
+            }
+         }
+      }
+      gtk_file_chooser_set_current_folder( GTK_FILE_CHOOSER( filew ), mypath );
    }
 
    if ( gtk_dialog_run( GTK_DIALOG( filew ) ) == GTK_RESPONSE_ACCEPT )
@@ -10568,6 +10586,7 @@ int dw_html_url(HWND handle, char *url)
 
    DW_MUTEX_LOCK;
    _gtk_moz_embed_load_url( GTK_MOZ_EMBED(handle), url );
+   gtk_widget_show(GTK_WIDGET(handle));
    DW_MUTEX_UNLOCK;
    return 0;
 #endif

@@ -9,8 +9,8 @@ INCPATH	=	-I.. -I. -I$(srcdir)
 TARGET	=	dw
 SRCS	=	$(srcdir)/$(DW_SRC)/dw.c
 OBJECTS	=	dw.o browser.o
-SRCS2	=	$(srcdir)compat.c
-OBJECTS2=	compat.o
+SRCS2	=	$(srcdir)compat.c $(DW_SRC)rel2abs.c
+OBJECTS2=	compat.o rel2abs.o
 TARGET2 =	dwcompat
 VER_MAJ	=	@DW_MAJOR_VERSION@
 VER_MIN	=	@DW_MINOR_VERSION@
@@ -107,6 +107,9 @@ browser.o: $(srcdir)/$(DW_SRC)/browser.cpp
 
 compat.o: $(srcdir)/compat.c
 	$(CC) -c $(INCPATH) $(CCFLAGS) -o $@ $(srcdir)/compat.c
+
+rel2abs.o: $(DW_SRC)/rel2abs.c
+	$(CC) -c $(INCPATH) $(CCFLAGS) -o $@ $(DW_SRC)/rel2abs.c
 
 ci.o: $(srcdir)/ci.c
 	$(CC) -c $(INCPATH) $(CCFLAGS) -o $@ $(srcdir)/ci.c
