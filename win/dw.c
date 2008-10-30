@@ -19,6 +19,7 @@
 #include <process.h>
 #include <time.h>
 #include "dw.h"
+#include "XBrowseForFolder.h"
 
 /*
  * MinGW (as at 3.2.3) doesn't have MIM_MENUDATA
@@ -82,6 +83,7 @@ void _resize_notebook_page(HWND handle, int pageid);
 void _handle_splitbar_resize(HWND hwnd, float percent, int type, int x, int y);
 int _lookup_icon(HWND handle, HICON hicon, int type);
 HFONT _acquire_font(HWND handle, char *fontname);
+void _click_default(HWND handle);
 
 typedef struct _sighandler
 {
@@ -313,7 +315,9 @@ void _new_signal(ULONG message, HWND window, int id, void *signalfunction, void 
    new->next = NULL;
 
    if (!Root)
+   {
       Root = new;
+   }
    else
    {
       SignalHandler *prev = NULL, *tmp = Root;
@@ -1486,7 +1490,9 @@ BOOL CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
                         if (tmp->id == (int)mp1)
                         {
                            if (!timerfunc(tmp->data))
+                           {
                               dw_timer_disconnect(tmp->id);
+                           }
                            tmp = NULL;
                         }
                      }
@@ -1921,13 +1927,21 @@ BOOL CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
       }
       break;
    case WM_CHAR:
-      if(LOWORD(mp1) == '\t')
+      if ( LOWORD( mp1 ) == '\t' )
       {
-         if(GetAsyncKeyState(VK_SHIFT) & 0x8000)
-            _shift_focus_back(hWnd);
+         if ( GetAsyncKeyState( VK_SHIFT ) & 0x8000 )
+            _shift_focus_back( hWnd );
          else
-            _shift_focus(hWnd);
+            _shift_focus( hWnd );
          return TRUE;
+      }
+      else if( LOWORD( mp1 ) == '\r' )
+      {
+         ColorInfo *cinfo = (ColorInfo *)GetWindowLongPtr( hWnd, GWLP_USERDATA );
+         if ( cinfo && cinfo->clickdefault )
+         {
+            _click_default( cinfo->clickdefault );
+         }
       }
       break;
    case WM_USER:
@@ -2368,7 +2382,7 @@ BOOL CALLBACK _colorwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
    if(strcmp(tmpbuf, FRAMECLASSNAME) == 0)
       cinfo = &(((Box *)cinfo)->cinfo);
 
-   if(msg == WM_MOUSEMOVE)
+   if ( msg == WM_MOUSEMOVE )
       _wndproc(hWnd, msg, mp1, mp2);
 
    if (cinfo)
@@ -2459,9 +2473,23 @@ BOOL CALLBACK _colorwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
          }
          else if(LOWORD(mp1) == '\r')
          {
-            if (cinfo->clickdefault)
+
+            if ( cinfo->clickdefault )
             {
                _click_default(cinfo->clickdefault);
+            }
+            else
+            {
+               /*
+                * Find the toplevel window for the current window and check if it
+                * has a default click set
+                */
+               HWND tl = _toplevel_window( hWnd );
+               ColorInfo *mycinfo = (ColorInfo *)GetWindowLongPtr( tl, GWLP_USERDATA );
+               if ( mycinfo && cinfo->clickdefault )
+               {
+                  _click_default( mycinfo->clickdefault );
+               }
             }
          }
 
@@ -3147,7 +3175,7 @@ BOOL CALLBACK _BtProc(HWND hwnd, ULONG msg, WPARAM mp1, LPARAM mp2)
           */
          ReleaseCapture();
 
-         if(bMouseOver)
+         if(bMouseOver && hwndBubble)
          {
             bMouseOver = 0;
             _free_window_memory(hwndBubble, 0);
@@ -3162,7 +3190,7 @@ BOOL CALLBACK _BtProc(HWND hwnd, ULONG msg, WPARAM mp1, LPARAM mp2)
        * Either because we intentionally lost it or another window
        * stole it
        */
-      if(bMouseOver)
+      if(bMouseOver && hwndBubble)
       {
          bMouseOver = 0;
          _free_window_memory(hwndBubble, 0);
@@ -7527,7 +7555,7 @@ void API dw_container_cursor(HWND handle, char *text)
 {
    int index = ListView_GetNextItem(handle, -1, LVNI_ALL);
 
-   while(index != -1)
+   while ( index != -1 )
    {
       LV_ITEM lvi;
 
@@ -7536,17 +7564,17 @@ void API dw_container_cursor(HWND handle, char *text)
       lvi.iItem = index;
       lvi.mask = LVIF_PARAM;
 
-      ListView_GetItem(handle, &lvi);
+      ListView_GetItem( handle, &lvi );
 
-      if((char *)lvi.lParam == text)
+      if ( strcmp( (char *)lvi.lParam, text ) == 0 )
       {
 
-         ListView_SetItemState(handle, index, LVIS_FOCUSED | LVIS_SELECTED, LVIS_FOCUSED | LVIS_SELECTED);
-         ListView_EnsureVisible(handle, index, TRUE);
+         ListView_SetItemState( handle, index, LVIS_FOCUSED | LVIS_SELECTED, LVIS_FOCUSED | LVIS_SELECTED );
+         ListView_EnsureVisible( handle, index, TRUE );
          return;
       }
 
-        index = ListView_GetNextItem(handle, index, LVNI_ALL);
+      index = ListView_GetNextItem( handle, index, LVNI_ALL );
    }
 }
 
@@ -7571,7 +7599,7 @@ void API dw_container_delete_row(HWND handle, char *text)
 
       ListView_GetItem(handle, &lvi);
 
-      if((char *)lvi.lParam == text)
+      if ( strcmp( (char *)lvi.lParam, text ) == 0 )
       {
          int _index = (int)dw_window_get_data(handle, "_dw_index");
 
@@ -8979,7 +9007,9 @@ void API dw_window_click_default(HWND window, HWND next)
    ColorInfo *cinfo = (ColorInfo *)GetWindowLongPtr(window, GWLP_USERDATA);
 
    if (cinfo)
+   {
       cinfo->clickdefault = next;
+   }
 }
 
 /*
@@ -9130,8 +9160,9 @@ char * API dw_file_browse(char *title, char *defpath, char *ext, int flags)
    LPITEMIDLIST pidl;
    LPMALLOC pMalloc;
 
-   if(flags==DW_DIRECTORY_OPEN)
+   if ( flags == DW_DIRECTORY_OPEN )
    {
+#if 0
       if (SUCCEEDED(SHGetMalloc(&pMalloc)))
       {
          ZeroMemory(&bi,sizeof(bi));
@@ -9156,6 +9187,18 @@ char * API dw_file_browse(char *title, char *defpath, char *ext, int flags)
             return strdup(filenamebuf);
          }
       }
+#else
+     if ( XBrowseForFolder( NULL,
+                            (LPCTSTR)defpath,
+                            -1,
+                            (LPCTSTR)title,
+                            (LPTSTR)filenamebuf,
+                            1000,
+                            FALSE ) )
+     {
+        return strdup( filenamebuf );
+     }
+#endif
    }
    else
    {
