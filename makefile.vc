@@ -22,7 +22,7 @@ LINK = link
 DEFFILE = $(SRCDIR)\dww.def
 DEFFILE2 = $(SRCDIR)\dwcompatw.def
 
-OBJS = dw.obj browser.obj
+OBJS = dw.obj browser.obj XBrowseForFolder.obj
 
 OBJS2 = compat.obj dirent.obj
 
@@ -73,6 +73,9 @@ dw.obj: $(SRCDIR)\win\dw.c
 
 browser.obj: $(SRCDIR)\win\browser.c
 	$(CC) $(CFLAGS) $(CFLAGS_DEBUG) $(CFLAGS_COMPILE) $(SRCDIR)\win\browser.c
+
+XBrowseForFolder.obj: $(SRCDIR)\win\XBrowseForFolder.cpp
+	$(CC) $(CFLAGS) $(CFLAGS_DEBUG) $(CFLAGS_COMPILE) $(SRCDIR)\win\XBrowseForFolder.cpp
 
 dirent.obj: $(SRCDIR)\win\dirent.c
 	$(CC) $(CFLAGS) $(CFLAGS_DEBUG) $(CFLAGS_COMPILE) $(SRCDIR)\win\dirent.c
