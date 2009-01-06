@@ -6423,6 +6423,7 @@ void _dw_container_set_item(HWND handle, void *pointer, int column, int row, voi
       struct tm curtm;
       CDATE cdate = *((CDATE *)data);
 
+      memset( &curtm, 0, sizeof(curtm) );
       curtm.tm_mday = cdate.day;
       curtm.tm_mon = cdate.month - 1;
       curtm.tm_year = cdate.year - 1900;
@@ -6436,6 +6437,7 @@ void _dw_container_set_item(HWND handle, void *pointer, int column, int row, voi
       struct tm curtm;
       CTIME ctime = *((CTIME *)data);
 
+      memset( &curtm, 0, sizeof(curtm) );
       curtm.tm_hour = ctime.hours;
       curtm.tm_min = ctime.minutes;
       curtm.tm_sec = ctime.seconds;
@@ -6999,6 +7001,7 @@ HWND dw_render_new(unsigned long id)
    gtk_widget_set_events(tmp, GDK_EXPOSURE_MASK
                     | GDK_LEAVE_NOTIFY_MASK
                     | GDK_BUTTON_PRESS_MASK
+                    | GDK_BUTTON_RELEASE_MASK
                     | GDK_KEY_PRESS_MASK
                     | GDK_POINTER_MOTION_MASK
                     | GDK_POINTER_MOTION_HINT_MASK);
@@ -7236,10 +7239,52 @@ void dw_draw_line(HWND handle, HPIXMAP pixmap, int x1, int y1, int x2, int y2)
    DW_MUTEX_UNLOCK;
 }
 
+/* Draw a closed polygon on a window (preferably a render window).
+ * Parameters:
+ *       handle: Handle to the window.
+ *       pixmap: Handle to the pixmap. (choose only one of these)
+ *       fill: if true filled
+ *       number of points
+ *       x[]: X coordinates.
+ *       y[]: Y coordinates.
+ */
+void dw_draw_polygon(HWND handle, HPIXMAP pixmap, int fill, int npoints, int *x, int *y)
+{
+   int _locked_by_me = FALSE;
+   int i;
+   GdkGC *gc = NULL;
+   GdkPoint *points;
+
+   DW_MUTEX_LOCK;
+   if ( handle )
+      gc = _set_colors( handle->window );
+   else if ( pixmap )
+      gc = _set_colors( pixmap->pixmap );
+   if ( npoints )
+   {
+      points = alloca( npoints * sizeof(GdkPoint) );
+      /*
+       * should check for NULL pointer return!
+       */
+      for ( i = 0 ; i < npoints ; i++ )
+      {
+         points[i].x = x[i];
+         points[i].y = y[i];
+      }
+   }
+   if ( gc )
+   {
+      gdk_draw_polygon(handle ? handle->window : pixmap->pixmap, gc, fill, points, npoints );
+      gdk_gc_unref( gc );
+   }
+   DW_MUTEX_UNLOCK;
+}
+
 /* Draw a rectangle on a window (preferably a render window).
  * Parameters:
  *       handle: Handle to the window.
  *       pixmap: Handle to the pixmap. (choose only one of these)
+ *       fill: if true filled
  *       x: X coordinate.
  *       y: Y coordinate.
  *       width: Width of rectangle.
@@ -7483,9 +7528,6 @@ HPIXMAP dw_pixmap_new_from_file(HWND handle, char *filename)
 {
    int _locked_by_me = FALSE;
    HPIXMAP pixmap;
-#ifndef USE_IMLIB
-   GdkBitmap *bitmap = NULL;
-#endif
 #if GTK_MAJOR_VERSION > 1
    GdkPixbuf *pixbuf;
 #elif defined(USE_IMLIB)
@@ -7515,7 +7557,7 @@ HPIXMAP dw_pixmap_new_from_file(HWND handle, char *filename)
    pixbuf = gdk_pixbuf_new_from_file(file, NULL);
    pixmap->width = gdk_pixbuf_get_width(pixbuf);
    pixmap->height = gdk_pixbuf_get_height(pixbuf);
-   gdk_pixbuf_render_pixmap_and_mask(pixbuf, &pixmap->pixmap, &bitmap, 1);
+   gdk_pixbuf_render_pixmap_and_mask(pixbuf, &pixmap->pixmap, &pixmap->bitmap, 1);
    g_object_unref(pixbuf);
 #elif defined(USE_IMLIB)
    image = gdk_imlib_load_image(file);
@@ -7527,7 +7569,7 @@ HPIXMAP dw_pixmap_new_from_file(HWND handle, char *filename)
    pixmap->pixmap = gdk_imlib_copy_image(image);
    gdk_imlib_destroy_image(image);
 #else
-   pixmap->pixmap = gdk_pixmap_create_from_xpm(handle->window, &bitmap, &_colors[DW_CLR_PALEGRAY], file);
+   pixmap->pixmap = gdk_pixmap_create_from_xpm(handle->window, &pixmap->bitmap, &_colors[DW_CLR_PALEGRAY], file);
 #endif
    pixmap->handle = handle;
    DW_MUTEX_UNLOCK;
@@ -7550,9 +7592,6 @@ HPIXMAP dw_pixmap_new_from_data(HWND handle, char *data, int len)
    char *file;
    FILE *fp;
    HPIXMAP pixmap;
-#ifndef USE_IMLIB
-   GdkBitmap *bitmap = NULL;
-#endif
 #if GTK_MAJOR_VERSION > 1
    GdkPixbuf *pixbuf;
 #elif defined(USE_IMLIB)
@@ -7583,7 +7622,7 @@ HPIXMAP dw_pixmap_new_from_data(HWND handle, char *data, int len)
    pixbuf = gdk_pixbuf_new_from_file(file, NULL);
    pixmap->width = gdk_pixbuf_get_width(pixbuf);
    pixmap->height = gdk_pixbuf_get_height(pixbuf);
-   gdk_pixbuf_render_pixmap_and_mask(pixbuf, &pixmap->pixmap, &bitmap, 1);
+   gdk_pixbuf_render_pixmap_and_mask(pixbuf, &pixmap->pixmap, &pixmap->bitmap, 1);
    g_object_unref(pixbuf);
 #elif defined(USE_IMLIB)
    image = gdk_imlib_load_image(file);
@@ -7595,7 +7634,7 @@ HPIXMAP dw_pixmap_new_from_data(HWND handle, char *data, int len)
    pixmap->pixmap = gdk_imlib_copy_image(image);
    gdk_imlib_destroy_image(image);
 #else
-   pixmap->pixmap = gdk_pixmap_create_from_xpm_d(handle->window, &bitmap, &_colors[DW_CLR_PALEGRAY], data);
+   pixmap->pixmap = gdk_pixmap_create_from_xpm_d(handle->window, &pixmap->bitmap, &_colors[DW_CLR_PALEGRAY], data);
 #endif
    /* remove our temporary file */
    unlink (file );
@@ -7614,7 +7653,6 @@ HPIXMAP dw_pixmap_new_from_data(HWND handle, char *data, int len)
  */
 HPIXMAP dw_pixmap_grab(HWND handle, ULONG id)
 {
-   GdkBitmap *bitmap = NULL;
    HPIXMAP pixmap;
    int _locked_by_me = FALSE;
 
@@ -7623,7 +7661,7 @@ HPIXMAP dw_pixmap_grab(HWND handle, ULONG id)
 
 
    DW_MUTEX_LOCK;
-   pixmap->pixmap = _find_pixmap(&bitmap, id, handle, &pixmap->width, &pixmap->height);
+   pixmap->pixmap = _find_pixmap(&pixmap->bitmap, id, handle, &pixmap->width, &pixmap->height);
    if(pixmap->pixmap)
    {
 #if GTK_MAJOR_VERSION < 2
@@ -7702,10 +7740,26 @@ void dw_pixmap_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest, int width,
    else if(srcp)
       gc = gdk_gc_new(srcp->pixmap);
 
-   if(gc)
+   if ( gc )
    {
-         gdk_draw_pixmap(dest ? dest->window : destp->pixmap, gc, src ? src->window : srcp->pixmap, xsrc, ysrc, xdest, ydest, width, height);
-         gdk_gc_unref(gc);
+      /*
+       * If we have a bitmap (mask) in the source pixmap, then set the clipping region
+       */
+      if ( srcp->bitmap )
+      {
+         gdk_gc_set_clip_mask( gc, srcp->bitmap );
+         gdk_gc_set_clip_origin( gc, xdest, ydest );
+      }
+      gdk_draw_pixmap( dest ? dest->window : destp->pixmap, gc, src ? src->window : srcp->pixmap, xsrc, ysrc, xdest, ydest, width, height );
+      /*
+       * Reset the clipping region
+       */
+      if ( srcp->bitmap )
+      {
+         gdk_gc_set_clip_mask( gc, NULL );
+         gdk_gc_set_clip_origin( gc, 0, 0 );
+      }
+      gdk_gc_unref( gc );
    }
    DW_MUTEX_UNLOCK;
 }
@@ -8439,12 +8493,16 @@ DWTID dw_thread_new(void *func, void *data, int stack)
 {
    DWTID gtkthread;
    void **tmp = malloc(sizeof(void *) * 2);
+   int rc;
 
    tmp[0] = func;
    tmp[1] = data;
 
-   pthread_create(&gtkthread, NULL, (void *)_dwthreadstart, (void *)tmp);
-   return gtkthread;
+   rc = pthread_create(&gtkthread, NULL, (void *)_dwthreadstart, (void *)tmp);
+   if ( rc == 0 )
+      return gtkthread;
+   else
+      return rc;
 }
 
 /*
@@ -9254,7 +9312,7 @@ void dw_listbox_clear(HWND handle)
    {
       int count = dw_listbox_count(handle);
 
-      gtk_list_clear_items(GTK_LIST(handle2), 0, count - 1);
+      gtk_list_clear_items(GTK_LIST(handle2), 0, count);
    }
    DW_MUTEX_UNLOCK;
 }
