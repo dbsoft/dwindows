@@ -55,7 +55,14 @@
 #define DW_MIS_CHECKED           (1 << 2)
 #define DW_MIS_UNCHECKED         (1 << 3)
 
-#if defined(__OS2__) || defined(__WIN32__) || defined(__MAC__) || defined(WINNT) || defined(__EMX__)
+/* ensure we can build the Gtk port with MingW on Windows */
+#if defined(DW_USE_GTK) && defined(__MINGW32__)
+# ifndef GDK_WINDOWING_WIN32
+#   define GDK_WINDOWING_WIN32
+# endif
+#endif
+
+#if defined(__OS2__) || (defined(__WIN32__) && !defined(GDK_WINDOWING_WIN32)) || defined(__MAC__) || (defined(WINNT) && !defined(GDK_WINDOWING_WIN32)) || defined(__EMX__)
 /* OS/2, Windows or MacOS */
 
 #if (defined(__IBMC__) || defined(_System)) && !defined(API)
@@ -586,6 +593,7 @@ typedef struct _hpixmap {
 	unsigned long width, height;
 	HBITMAP hbm;
 	HDC hdc;
+	unsigned long transcolor;
 	HWND handle;
 	void *bits;
 } *HPIXMAP;
@@ -656,11 +664,17 @@ typedef struct _bubblebutton {
 #else
 /* GTK Specific section */
 #include <gtk/gtk.h>
-#include <gdk/gdkx.h>
+#ifdef GDK_WINDOWING_X11
+# include <gdk/gdkx.h>
+#else
+# include <gdk/gdk.h>
+#endif
 #include <gdk/gdkprivate.h>
 #include <gdk/gdkkeysyms.h>
 #include <pthread.h>
-#include <dlfcn.h>
+#if !defined(GDK_WINDOWING_WIN32)
+# include <dlfcn.h>
+#endif
 
 #define DW_DT_LEFT               1
 #define DW_DT_UNDERSCORE         (1 << 1)
@@ -898,7 +912,7 @@ typedef struct _CTIME
 typedef CTIME *PCTIME;
 #endif
 
-#if defined(__OS2__) || defined(__WIN32__) || defined(WINNT) || defined(__EMX__)
+#if defined(__OS2__) || (defined(__WIN32__) && !defined(GDK_WINDOWING_WIN32)) || (defined(WINNT) && !defined(GDK_WINDOWING_WIN32)) || defined(__EMX__)
 typedef unsigned long DWTID;
 #endif
 
@@ -1035,6 +1049,9 @@ int API dw_window_set_font(HWND handle, char *fontname);
 int API dw_window_set_color(HWND handle, unsigned long fore, unsigned long back);
 HWND API dw_window_new(HWND hwndOwner, char *title, unsigned long flStyle);
 HWND API dw_box_new(int type, int pad);
+#ifdef INCOMPLETE
+HWND API dw_scrollbox_new(int type, int pad);
+#endif
 HWND API dw_groupbox_new(int type, int pad, char *title);
 HWND API dw_mdi_new(unsigned long id);
 HWND API dw_bitmap_new(unsigned long id);
@@ -1074,10 +1091,10 @@ void API dw_slider_set_pos(HWND handle, unsigned int position);
 unsigned int API dw_scrollbar_get_pos(HWND handle);
 void API dw_scrollbar_set_pos(HWND handle, unsigned int position);
 void API dw_scrollbar_set_range(HWND handle, unsigned int range, unsigned int visible);
-void API dw_window_set_pos(HWND handle, unsigned long x, unsigned long y);
+void API dw_window_set_pos(HWND handle, long x, long y);
 void API dw_window_set_size(HWND handle, unsigned long width, unsigned long height);
-void API dw_window_set_pos_size(HWND handle, unsigned long x, unsigned long y, unsigned long width, unsigned long height);
-void API dw_window_get_pos_size(HWND handle, unsigned long *x, unsigned long *y, unsigned long *width, unsigned long *height);
+void API dw_window_set_pos_size(HWND handle, long x, long y, unsigned long width, unsigned long height);
+void API dw_window_get_pos_size(HWND handle, long *x, long *y, unsigned long *width, unsigned long *height);
 void API dw_window_set_style(HWND handle, unsigned long style, unsigned long mask);
 void API dw_window_set_icon(HWND handle, unsigned long id);
 void API dw_window_set_bitmap(HWND handle, unsigned long id, char *filename);
@@ -1168,8 +1185,7 @@ float API dw_splitbar_get(HWND handle);
 HMENUI API dw_menu_new(unsigned long id);
 HMENUI API dw_menubar_new(HWND location);
 HWND API dw_menu_append_item(HMENUI menu, char *title, unsigned long id, unsigned long flags, int end, int check, HMENUI submenu);
-#if 0
-TBD
+#ifdef INCOMPLETE
 void API dw_menu_delete_item(HMENUI menu, unsigned long id);
 #endif
 void API dw_menu_item_set_check(HMENUI menu, unsigned long id, int check);
@@ -1209,6 +1225,7 @@ HPIXMAP API dw_pixmap_new(HWND handle, unsigned long width, unsigned long height
 HPIXMAP API dw_pixmap_new_from_file(HWND handle, char *filename);
 HPIXMAP API dw_pixmap_new_from_data(HWND handle, char *data, int len);
 HPIXMAP API dw_pixmap_grab(HWND handle, ULONG id);
+void API dw_pixmap_set_transparent_color( HPIXMAP pixmap, ULONG color );
 void API dw_pixmap_destroy(HPIXMAP pixmap);
 void API dw_beep(int freq, int dur);
 int API dw_messagebox(char *title, int flags, char *format, ...);

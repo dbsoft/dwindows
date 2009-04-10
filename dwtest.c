@@ -126,6 +126,7 @@ HWND mainwindow,
    textbox1, textbox2, textboxA,
    gap_box,
    buttonbox,
+   buttonsbox,
    buttonboxperm,
    cal,
    filetoolbarbox;
@@ -480,13 +481,31 @@ int DWSIGNAL button_callback(HWND window, void *data)
 int DWSIGNAL redraw_button_box_callback(HWND window, void *data)
 {
 #if 0
+
+   long x, y, width, height;
+   dw_window_get_pos_size(filetoolbarbox , &x, &y, &width, &height);
    dw_window_destroy( filetoolbarbox );
    create_button(1);
+   dw_window_set_pos_size(filetoolbarbox, x, y, width, height);
 #else
    dw_window_enable( window);
+   dw_menu_delete_item( changeable_menu, NONCHECKABLE_MENUITEMID );
 #endif
    return 0;
 }
+
+int DWSIGNAL change_color_red_callback(HWND window, void *data)
+{
+   dw_window_set_color(buttonsbox, DW_CLR_RED, DW_CLR_RED);
+   return 0;
+}
+
+int DWSIGNAL change_color_yellow_callback(HWND window, void *data)
+{
+   dw_window_set_color(buttonsbox, DW_CLR_YELLOW, DW_CLR_YELLOW);
+   return 0;
+}
+
 
 /* Callback to handle user selection of the scrollbar position */
 void DWSIGNAL scrollbar_valuechanged_callback(HWND hwnd, int value, void *data)
@@ -902,12 +921,13 @@ int DWSIGNAL timer_callback(void *data)
 
 void buttons_add(void)
 {
-   HWND buttonsbox,abutton1,abutton2,calbox,bw;
+   HWND abutton1,abutton2,calbox,bw;
    int i;
    char buf[20];
    char **text;
 
    /* create a box to pack into the notebook page */
+// buttonsbox = dw_scrollbox_new(BOXVERT, 2);
    buttonsbox = dw_box_new(BOXVERT, 2);
    dw_box_pack_start( notebookbox5, buttonsbox, 25, 200, TRUE, TRUE, 0);
    dw_window_set_color(buttonsbox, DW_CLR_RED, DW_CLR_RED);
@@ -925,7 +945,8 @@ void buttons_add(void)
    buttonboxperm = dw_box_new( BOXVERT, 0 );
    dw_box_pack_start( buttonsbox, buttonboxperm, 25, 0, FALSE, TRUE, 2 );
    dw_window_set_color(buttonboxperm, DW_CLR_WHITE, DW_CLR_WHITE);
-   abutton1 = dw_bitmapbutton_new_from_file( "Top Button", 0, FILE_ICON_NAME );
+//   abutton1 = dw_bitmapbutton_new_from_file( "Top Button", 0, FILE_ICON_NAME );
+   abutton1 = dw_bitmapbutton_new_from_file( "Top Button", 0, "z:\\projects\\RexxGd\\regina\\tile_up.png" );
    dw_box_pack_start( buttonboxperm, abutton1, 100, 30, FALSE, FALSE, 0 );
    dw_signal_connect( abutton1, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(button_callback), NULL );
    dw_box_pack_start( buttonboxperm, 0, 25, 5, FALSE, FALSE, 0 );
@@ -996,12 +1017,12 @@ void create_button( int redraw)
 
    abutton1 = dw_bitmapbutton_new_from_file( "Should be under Top button", 0, "junk" );
    dw_box_pack_start( filetoolbarbox, abutton1, 25, 25, FALSE, FALSE, 0);
-   dw_signal_connect( abutton1, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(redraw_button_box_callback), NULL );
+   dw_signal_connect( abutton1, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(change_color_red_callback), NULL );
    dw_box_pack_start( filetoolbarbox, 0, 25, 5, FALSE, FALSE, 0 );
 
    abutton1 = dw_bitmapbutton_new_from_file( "Should be under Top button", 0, "junk" );
    dw_box_pack_start( filetoolbarbox, abutton1, 25, 25, FALSE, FALSE, 0);
-   dw_signal_connect( abutton1, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(redraw_button_box_callback), NULL );
+   dw_signal_connect( abutton1, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(change_color_yellow_callback), NULL );
    dw_box_pack_start( filetoolbarbox, 0, 25, 5, FALSE, FALSE, 0 );
 
    abutton1 = dw_bitmapbutton_new_from_file( "Should be under Top button", 0, "junk" );
@@ -1167,7 +1188,7 @@ int main(int argc, char *argv[])
    dw_html_url(html, "http://www.rexx.org");
 
    dw_signal_connect(mainwindow, DW_SIGNAL_DELETE, DW_SIGNAL_FUNC(exit_callback), (void *)mainwindow);
-   timerid = dw_timer_connect(1000, DW_SIGNAL_FUNC(timer_callback), 0);
+   timerid = dw_timer_connect(2000, DW_SIGNAL_FUNC(timer_callback), 0);
    dw_window_set_size(mainwindow, 640, 520);
    dw_window_show(mainwindow);
 

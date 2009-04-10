@@ -194,6 +194,7 @@ EXPORTS
   dw_draw_line                           @332
   dw_draw_rect                           @333
   dw_draw_text                           @334
+  dw_draw_polygon                        @335
 
   dw_pixmap_bitblt                       @340
   dw_pixmap_new                          @341
@@ -201,6 +202,7 @@ EXPORTS
   dw_pixmap_destroy                      @343
   dw_pixmap_new_from_file                @344
   dw_pixmap_new_from_data                @345
+  dw_pixmap_set_transparent_color        @346
 
   dw_dialog_new                          @350
   dw_dialog_dismiss                      @351

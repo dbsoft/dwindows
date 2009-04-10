@@ -62,10 +62,12 @@ EXPORTS
   dw_window_redraw                       @79
 
   dw_bitmap_new                          @80
+  dw_window_set_bitmap_from_data         @81
 
   dw_button_new                          @90
   dw_bitmapbutton_new                    @91
   dw_bitmapbutton_new_from_file          @92
+  dw_bitmapbutton_new_from_data          @93
 
   dw_text_new                            @100
   dw_status_text_new                     @101
@@ -120,6 +122,7 @@ EXPORTS
   dw_icon_load                           @210
   dw_icon_free                           @211
   dw_icon_load_from_file                 @212
+  dw_icon_load_from_data                 @213
 
   dw_container_new                       @220
   dw_container_setup                     @221
@@ -194,12 +197,15 @@ EXPORTS
   dw_draw_line                           @332
   dw_draw_rect                           @333
   dw_draw_text                           @334
+  dw_draw_polygon                        @335
 
   dw_pixmap_bitblt                       @340
   dw_pixmap_new                          @341
   dw_pixmap_grab                         @342
   dw_pixmap_destroy                      @343
   dw_pixmap_new_from_file                @344
+  dw_pixmap_new_from_data                @345
+  dw_pixmap_set_transparent_color        @346
 
   dw_dialog_new                          @350
   dw_dialog_dismiss                      @351
@@ -271,3 +277,8 @@ EXPORTS
   dw_calendar_new                        @480
   dw_calendar_set_date                   @481
   dw_calendar_get_date                   @482
+
+
+  dw_clipboard_get_text                  @490
+  dw_clipboard_set_text                  @491
+
