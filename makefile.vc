@@ -10,13 +10,21 @@ SRCDIR=$(DWINDOWS_SRCDIR)
 FXLIBDIR=.\lib
 FXDLLDIR=.\dll
 
+!if "$(DEBUG)" == "Y"
+CFLAGS_DEBUG = -Z7 -Od # was -Zi
+LINK_DEBUG = -debug:full
+!else
+CFLAGS_DEBUG = -Ox
+LINK_DEBUG = -release
+!endif
+
 CC = cl
 CFLAGS = -c -G5 -GD -Zp1 -DWIN32 -D__WIN32__ -DMSVC -DBUILD_DLL -I$(SRCDIR)\platform -I$(SRCDIR)
-CFLAGS_DEBUG = -Zi
-CFLAGS_COMPILE = -MTd
+#CFLAGS_COMPILE = -MTd
+CFLAGS_COMPILE = -MD
 LIBS = wsock32.lib kernel32.lib user32.lib comctl32.lib gdi32.lib advapi32.lib shell32.lib comdlg32.lib ole32.lib oleaut32.lib
 RES =
-LINKFLAGS = -machine:i386 -debug:full
+LINKFLAGS = -machine:i386 $(LINK_DEBUG)
 DLLLINKFLAGS = -dll
 LINK = link
 DEFFILE = $(SRCDIR)\dww.def

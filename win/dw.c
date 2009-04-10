@@ -67,6 +67,7 @@ COLORREF _background[THREAD_LIMIT];
 HPEN _hPen[THREAD_LIMIT];
 HBRUSH _hBrush[THREAD_LIMIT];
 char *_clipboard_contents[THREAD_LIMIT];
+int _PointerOnWnd[THREAD_LIMIT];
 
 BYTE _red[] = {   0x00, 0xbb, 0x00, 0xaa, 0x00, 0xbb, 0x00, 0xaa, 0x77,
            0xff, 0x00, 0xee, 0x00, 0xff, 0x00, 0xff, 0xaa, 0x00 };
@@ -77,6 +78,7 @@ BYTE _blue[] = {  0x00, 0x00, 0x00, 0x00, 0xcc, 0xbb, 0xbb, 0xaa, 0x77,
 
 HBRUSH _colors[18];
 
+static int screenx, screeny;
 
 LRESULT CALLBACK _browserWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 void _resize_notebook_page(HWND handle, int pageid);
@@ -259,6 +261,107 @@ int IsWinNT(void)
          isnt = 0;
    }
    return isnt;
+}
+
+void DrawTransparentBitmap(HDC hdc, HDC hdcSrc, HBITMAP hBitmap, int xStart, int yStart, COLORREF cTransparentColor)
+{
+   BITMAP bm;
+   COLORREF cColor;
+   HBITMAP bmAndBack, bmAndObject, bmAndMem, bmSave;
+   HBITMAP bmBackOld, bmObjectOld, bmMemOld, bmSaveOld;
+   HDC hdcMem, hdcBack, hdcObject, hdcTemp, hdcSave;
+   POINT ptSize;
+
+#if 0
+   hdcTemp = CreateCompatibleDC(hdc);
+   SelectObject(hdcTemp, hBitmap); // Select the bitmap
+#else
+   hdcTemp = hdcSrc;
+#endif
+
+   GetObject(hBitmap, sizeof(BITMAP), (LPSTR)&bm);
+   ptSize.x = bm.bmWidth; // Get width of bitmap
+   ptSize.y = bm.bmHeight; // Get height of bitmap
+   DPtoLP(hdcTemp, &ptSize, 1); // Convert from device
+
+   // to logical points
+
+   // Create some DCs to hold temporary data.
+   hdcBack = CreateCompatibleDC(hdc);
+   hdcObject = CreateCompatibleDC(hdc);
+   hdcMem = CreateCompatibleDC(hdc);
+   hdcSave = CreateCompatibleDC(hdc);
+
+   // Create a bitmap for each DC. DCs are required for a number of
+   // GDI functions.
+
+   // Monochrome DC
+   bmAndBack = CreateBitmap(ptSize.x, ptSize.y, 1, 1, NULL);
+
+   // Monochrome DC
+   bmAndObject = CreateBitmap(ptSize.x, ptSize.y, 1, 1, NULL);
+
+   bmAndMem = CreateCompatibleBitmap(hdc, ptSize.x, ptSize.y);
+   bmSave = CreateCompatibleBitmap(hdc, ptSize.x, ptSize.y);
+
+   // Each DC must select a bitmap object to store pixel data.
+   bmBackOld = (HBITMAP)SelectObject(hdcBack, bmAndBack);
+   bmObjectOld = (HBITMAP)SelectObject(hdcObject, bmAndObject);
+   bmMemOld = (HBITMAP)SelectObject(hdcMem, bmAndMem);
+   bmSaveOld = (HBITMAP)SelectObject(hdcSave, bmSave);
+
+   // Set proper mapping mode.
+   SetMapMode(hdcTemp, GetMapMode(hdc));
+
+   // Save the bitmap sent here, because it will be overwritten.
+   BitBlt(hdcSave, 0, 0, ptSize.x, ptSize.y, hdcTemp, 0, 0, SRCCOPY);
+
+   // Set the background color of the source DC to the color.
+   // contained in the parts of the bitmap that should be transparent
+   cColor = SetBkColor(hdcTemp, cTransparentColor);
+
+   // Create the object mask for the bitmap by performing a BitBlt
+   // from the source bitmap to a monochrome bitmap.
+   BitBlt(hdcObject, 0, 0, ptSize.x, ptSize.y, hdcTemp, 0, 0, SRCCOPY);
+
+   // Set the background color of the source DC back to the original
+   // color.
+   SetBkColor(hdcTemp, cColor);
+
+   // Create the inverse of the object mask.
+   BitBlt(hdcBack, 0, 0, ptSize.x, ptSize.y, hdcObject, 0, 0, NOTSRCCOPY);
+
+   // Copy the background of the main DC to the destination.
+   BitBlt(hdcMem, 0, 0, ptSize.x, ptSize.y, hdc, xStart, yStart, SRCCOPY);
+
+   // Mask out the places where the bitmap will be placed.
+   BitBlt(hdcMem, 0, 0, ptSize.x, ptSize.y, hdcObject, 0, 0, SRCAND);
+
+   // Mask out the transparent colored pixels on the bitmap.
+   BitBlt(hdcTemp, 0, 0, ptSize.x, ptSize.y, hdcBack, 0, 0, SRCAND);
+
+   // XOR the bitmap with the background on the destination DC.
+   BitBlt(hdcMem, 0, 0, ptSize.x, ptSize.y, hdcTemp, 0, 0, SRCPAINT);
+
+   // Copy the destination to the screen.
+   BitBlt(hdc, xStart, yStart, ptSize.x, ptSize.y, hdcMem, 0, 0,
+   SRCCOPY);
+
+   // Place the original bitmap back into the bitmap sent here.
+   BitBlt(hdcTemp, 0, 0, ptSize.x, ptSize.y, hdcSave, 0, 0, SRCCOPY);
+
+   // Delete the memory bitmaps.
+   DeleteObject(SelectObject(hdcBack, bmBackOld));
+   DeleteObject(SelectObject(hdcObject, bmObjectOld));
+   DeleteObject(SelectObject(hdcMem, bmMemOld));
+   DeleteObject(SelectObject(hdcSave, bmSaveOld));
+
+   // Delete the memory DCs.
+   DeleteDC(hdcMem);
+   DeleteDC(hdcBack);
+   DeleteDC(hdcObject);
+   DeleteDC(hdcSave);
+   DeleteDC(hdcTemp);
 }
 
 DWORD GetDllVersion(LPCTSTR lpszDllName)
@@ -1303,8 +1406,10 @@ int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *usedy,
                   Box *boxinfo = (Box *)GetWindowLongPtr(handle, GWLP_USERDATA);
 
                   if(boxinfo && boxinfo->grouphwnd)
+                  {
                      MoveWindow(boxinfo->grouphwnd, 0, 0,
                               width + vectorx, height + vectory, FALSE);
+                  }
 
                }
             }
@@ -1513,7 +1618,6 @@ BOOL CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
                case WM_SIZE:
                   {
                      int (*sizefunc)(HWND, int, int, void *) = tmp->signalfunction;
-
                      if(hWnd == tmp->window)
                      {
                         result = sizefunc(tmp->window, LOWORD(mp2), HIWORD(mp2), tmp->data);
@@ -1653,7 +1757,7 @@ BOOL CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
                      DWExpose exp;
                      int (*exposefunc)(HWND, DWExpose *, void *) = tmp->signalfunction;
 
-                     if(hWnd == tmp->window)
+                     if ( hWnd == tmp->window )
                      {
                         BeginPaint(hWnd, &ps);
                         exp.x = ps.rcPaint.left;
@@ -1833,8 +1937,8 @@ BOOL CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
                            result = clickfunc(tmp->window, tmp->data);
                            tmp = NULL;
                         }
-                     } /* Make sure it's the right window, and the right ID */
-                     else if (tmp->window < (HWND)65536 && command == tmp->window)
+                     } /* this fires for checkable menu items */
+                     else if ( tmp->window < (HWND)65536 && command == tmp->window && tmp->message != WM_TIMER )
                      {
                         _dw_toggle_checkable_menu_item( popup ? popup : tmp->window, (int)tmp->data );
                         result = clickfunc(popup ? popup : tmp->window, tmp->data);
@@ -1846,7 +1950,7 @@ BOOL CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
                case WM_VSCROLL:
                   {
                      char tmpbuf[100];
-                           HWND handle = (HWND)mp2;
+                     HWND handle = (HWND)mp2;
                      int (*valuechangefunc)(HWND, int, void *) = tmp->signalfunction;
 
                      GetClassName(handle, tmpbuf, 99);
@@ -1983,6 +2087,7 @@ BOOL CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
    case WM_VSCROLL:
       {
          HWND handle = (HWND)mp2;
+         char tmpbuf[100];
 
          if(dw_window_get_data(handle, "_dw_scrollbar"))
          {
@@ -1991,7 +2096,11 @@ BOOL CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
             if(value > -1)
                dw_scrollbar_set_pos(handle, value);
          }
-      }
+         GetClassName( hWnd, tmpbuf, 99 );
+         if ( strnicmp(tmpbuf, FRAMECLASSNAME, strlen(FRAMECLASSNAME)+1 ) == 0 )
+         {
+            int value = _HandleScroller(hWnd, (int)HIWORD(mp1), (int)LOWORD(mp1));
+      }  }
       break;
    case WM_GETMINMAXINFO:
       {
@@ -2096,7 +2205,9 @@ BOOL CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
    if(result != -1)
       return result;
    else
+   {
       return DefWindowProc(hWnd, msg, mp1, mp2);
+   }
 }
 
 VOID CALLBACK _TimerProc(HWND hwnd, UINT msg, UINT_PTR idEvent, DWORD dwTime)
@@ -2204,6 +2315,12 @@ BOOL CALLBACK _framewndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 
 BOOL CALLBACK _rendwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 {
+   RECT wndRect;
+   POINTS points;
+   POINT point;
+   int threadid = dw_thread_id();
+
+
    switch( msg )
    {
    case WM_LBUTTONDOWN:
@@ -2212,10 +2329,41 @@ BOOL CALLBACK _rendwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
       SetFocus(hWnd);
       _wndproc(hWnd, msg, mp1, mp2);
       break;
+   case WM_MOUSEMOVE:
+      if ( threadid < 0 || threadid >= THREAD_LIMIT )
+         threadid = 0;
+      /*
+       * Set the mouse capture and focus on the renderbox
+       * when the mouse moves into the window.
+       */
+      points = MAKEPOINTS(mp2); /* get the mouse point */
+      point.x = points.x;
+      point.y = points.y;
+      SetCapture( hWnd ); /*  Capture the mouse input */
+
+      GetWindowRect( hWnd, &wndRect );
+      ClientToScreen( hWnd, &point );
+
+      if ( PtInRect( &wndRect, point ) )
+      {  // Test if the pointer is on the window
+
+         if ( _PointerOnWnd[threadid] == 0 )
+         {
+            SetFocus(hWnd);
+            _PointerOnWnd[threadid] = 1;
+         }
+      }
+      else
+      {
+         ReleaseCapture();
+         _PointerOnWnd[threadid] = 0;
+      }
+      /* call our standard Windows procedure */
+      _wndproc(hWnd, msg, mp1, mp2);
+      break;
    case WM_LBUTTONUP:
    case WM_MBUTTONUP:
    case WM_RBUTTONUP:
-   case WM_MOUSEMOVE:
    case WM_PAINT:
    case WM_SIZE:
    case WM_COMMAND:
@@ -2989,13 +3137,30 @@ BOOL CALLBACK _BtProc(HWND hwnd, ULONG msg, WPARAM mp1, LPARAM mp2)
 {
    BubbleButton *bubble;
    static int bMouseOver = 0;
+   static BubbleButton *this_bubble = NULL;
    POINT point;
    RECT rect;
    WNDPROC pOldProc;
 
    bubble = (BubbleButton *)GetWindowLongPtr(hwnd, GWLP_USERDATA);
+   if ( bubble != this_bubble )
+   {
+      /*
+       * If we missed the release capture, then if the bubble details
+       * from this window are different from the last we must be in a
+       * different button, so delete the last bubble text
+       */
+      bMouseOver = 0;
+      this_bubble = bubble;
+      if ( hwndBubble )
+      {
+         _free_window_memory(hwndBubble, 0);
+         DestroyWindow(hwndBubble);
+         hwndBubble = 0;
+      }
+   }
 
-   if(!bubble)
+   if ( !bubble )
       return DefWindowProc(hwnd, msg, mp1, mp2);
 
    /* We must save a pointer to the old
@@ -3022,6 +3187,16 @@ BOOL CALLBACK _BtProc(HWND hwnd, ULONG msg, WPARAM mp1, LPARAM mp2)
    case WM_LBUTTONUP:
       {
          SignalHandler *tmp = Root;
+         /*
+          * If we have bubbletext displaying when we
+          * release the mouse, get rid of the bubbletext window
+          */
+         if ( hwndBubble )
+         {
+            _free_window_memory(hwndBubble, 0);
+            DestroyWindow(hwndBubble);
+            hwndBubble = 0;
+         }
 
          /* Find any callbacks for this function */
          while(tmp)
@@ -3095,13 +3270,13 @@ BOOL CALLBACK _BtProc(HWND hwnd, ULONG msg, WPARAM mp1, LPARAM mp2)
       GetCursorPos(&point);
       GetWindowRect(hwnd, &rect);
 
-      if(PtInRect(&rect, point))
+      if ( PtInRect(&rect, point) )
       {
-         if(hwnd != GetCapture())
+         if ( hwnd != GetCapture() )
          {
             SetCapture(hwnd);
          }
-         if(!bMouseOver)
+         if ( !bMouseOver )
          {
             bMouseOver = 1;
             if(!*bubble->bubbletext)
@@ -3190,7 +3365,7 @@ BOOL CALLBACK _BtProc(HWND hwnd, ULONG msg, WPARAM mp1, LPARAM mp2)
        * Either because we intentionally lost it or another window
        * stole it
        */
-      if(bMouseOver && hwndBubble)
+      if ( bMouseOver && hwndBubble )
       {
          bMouseOver = 0;
          _free_window_memory(hwndBubble, 0);
@@ -3200,7 +3375,7 @@ BOOL CALLBACK _BtProc(HWND hwnd, ULONG msg, WPARAM mp1, LPARAM mp2)
       break;
    }
 
-   if(!pOldProc)
+   if ( !pOldProc )
       return DefWindowProc(hwnd, msg, mp1, mp2);
    return CallWindowProc(pOldProc, hwnd, msg, mp1, mp2);
 }
@@ -3264,6 +3439,11 @@ int _dw_get_image_handle(char *filename, HANDLE *icon, HBITMAP *hbitmap)
          windowtype = BS_ICON;
       }
       else if ( stricmp( file + len - 4, ".bmp" ) == 0 )
+      {
+         *hbitmap = (HBITMAP)LoadImage(NULL, file, IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
+         windowtype = BS_BITMAP;
+      }
+      else if ( stricmp( file + len - 4, ".png" ) == 0 )
       {
          *hbitmap = (HBITMAP)LoadImage(NULL, file, IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
          windowtype = BS_BITMAP;
@@ -3405,6 +3585,7 @@ int API dw_init(int newthread, int argc, char *argv[])
       _hPen[z] = CreatePen(PS_SOLID, 1, _foreground[z]);
       _hBrush[z] = CreateSolidBrush(_foreground[z]);
       _clipboard_contents[z] = NULL;
+      _PointerOnWnd[z] = 0;
    }
 
    if ( !IS_WINNTOR95 )
@@ -3429,6 +3610,13 @@ int API dw_init(int newthread, int argc, char *argv[])
    {
       dbgfp = fopen( fname, "w" );
    }
+   /*
+    * Get screen size. Used to make calls to dw_screen_width()
+    * and dw_screen-height() quicker, but to alos limit the
+    * default size of windows.
+    */
+   screenx = GetSystemMetrics(SM_CXSCREEN);
+   screeny = GetSystemMetrics(SM_CYSCREEN);
    return 0;
 }
 
@@ -3865,9 +4053,11 @@ int API dw_window_set_font(HWND handle, char *fontname)
 int API dw_window_set_color(HWND handle, ULONG fore, ULONG back)
 {
    ColorInfo *cinfo;
+   Box *newbox;
    char tmpbuf[100];
 
    cinfo = (ColorInfo *)GetWindowLongPtr(handle, GWLP_USERDATA);
+   newbox = (Box *)GetWindowLongPtr(handle, GWLP_USERDATA);
 
    GetClassName(handle, tmpbuf, 99);
 
@@ -4029,6 +4219,40 @@ HWND API dw_box_new(int type, int pad)
    hwndframe = CreateWindow(FRAMECLASSNAME,
                       "",
                       WS_VISIBLE | WS_CHILD | WS_CLIPCHILDREN,
+                      0,0,2000,1000,
+                      DW_HWND_OBJECT,
+                      NULL,
+                      DWInstance,
+                      NULL);
+
+   newbox->cinfo.pOldProc = SubclassWindow(hwndframe, _colorwndproc);
+   newbox->cinfo.fore = newbox->cinfo.back = -1;
+
+   SetWindowLongPtr(hwndframe, GWLP_USERDATA, (LONG_PTR)newbox);
+   return hwndframe;
+}
+
+/*
+ * INCOMPLETE
+ * Create a new scroll Box to be packed.
+ * Parameters:
+ *       type: Either DW_VERT (vertical) or DW_HORZ (horizontal).
+ *       pad: Number of pixels to pad around the box.
+ */
+HWND API dw_scrollbox_new(int type, int pad)
+{
+   Box *newbox = calloc(sizeof(Box), 1);
+   HWND hwndframe;
+
+   newbox->pad = pad;
+   newbox->type = type;
+   newbox->count = 0;
+   newbox->grouphwnd = (HWND)NULL;
+   newbox->cinfo.fore = newbox->cinfo.back = -1;
+
+   hwndframe = CreateWindow(FRAMECLASSNAME,
+                      "",
+                      WS_VISIBLE | WS_CHILD | WS_CLIPCHILDREN | WS_VSCROLL | WS_HSCROLL,
                       0,0,2000,1000,
                       DW_HWND_OBJECT,
                       NULL,
@@ -4457,9 +4681,8 @@ void API dw_menu_item_set_state( HMENUI menux, unsigned long id, unsigned long s
    dw_window_set_data( DW_HWND_OBJECT, buffer2, (void *)disabled );
 }
 
-#if 0
 /*
- * TBD
+ * INCOMPLETE
  * Deletes the menu item specified
  * Parameters:
  *       menu: The handle to the  menu in which the item was appended.
@@ -4469,13 +4692,17 @@ void API dw_menu_delete_item(HMENUI menux, unsigned long id)
 {
    HMENU mymenu = (HMENU)menux;
 
-   if(IsWindow(menux) && !IsMenu(mymenu))
+   if ( IsWindow(menux) && !IsMenu(mymenu) )
       mymenu = (HMENU)dw_window_get_data(menux, "_dw_menu");
 
-   DeleteMenu(mymenu, id, MF_BYCOMMAND);
+   if ( DeleteMenu(mymenu, id, MF_BYCOMMAND) == 0 )
+   {
+      char lasterror[257];
+      FormatMessage( FORMAT_MESSAGE_FROM_SYSTEM, NULL, GetLastError(), MAKELANGID( LANG_NEUTRAL, SUBLANG_DEFAULT), lasterror, 256, NULL);
+      fprintf(stderr, "Error deleting menu: %s", lasterror);
+   }
    DrawMenuBar(menux);
 }
-#endif
 
 /*
  * Pops up a context menu at given x and y coordinates.
@@ -4855,15 +5082,11 @@ HWND API dw_bitmapbutton_new(char *text, ULONG id)
 
    if(icon)
    {
-      SendMessage(tmp, BM_SETIMAGE,
-               (WPARAM) IMAGE_ICON,
-               (LPARAM) icon);
+      SendMessage(tmp, BM_SETIMAGE, (WPARAM) IMAGE_ICON, (LPARAM) icon);
    }
    else if(hbitmap)
    {
-      SendMessage(tmp, BM_SETIMAGE,
-               (WPARAM) IMAGE_BITMAP,
-               (LPARAM) hbitmap);
+      SendMessage(tmp, BM_SETIMAGE, (WPARAM) IMAGE_BITMAP, (LPARAM) hbitmap);
    }
    return tmp;
 }
@@ -4892,8 +5115,6 @@ HWND API dw_bitmapbutton_new_from_file(char *text, unsigned long id, char *filen
 
    tmp = CreateWindow( BUTTONCLASSNAME,
                        "",
-//                     label_text,
-//                     WS_CHILD | BS_OWNERDRAW | WS_CLIPCHILDREN | WS_VISIBLE,
                        windowtype | WS_CHILD | BS_PUSHBUTTON | WS_CLIPCHILDREN | WS_VISIBLE,
                        0,0,2000,1000,
                        DW_HWND_OBJECT,
@@ -4987,15 +5208,11 @@ HWND API dw_bitmapbutton_new_from_data(char *text, unsigned long id, char *data,
 
    if ( icon )
    {
-      SendMessage( tmp, BM_SETIMAGE,
-                   (WPARAM) IMAGE_ICON,
-                   (LPARAM) icon);
+      SendMessage( tmp, BM_SETIMAGE, (WPARAM) IMAGE_ICON, (LPARAM) icon);
    }
    else if( hbitmap )
    {
-      SendMessage( tmp, BM_SETIMAGE,
-                   (WPARAM) IMAGE_BITMAP,
-                   (LPARAM) hbitmap);
+      SendMessage( tmp, BM_SETIMAGE, (WPARAM) IMAGE_BITMAP, (LPARAM) hbitmap);
    }
    return tmp;
 }
@@ -5367,6 +5584,7 @@ void API dw_window_set_bitmap_from_data(HWND handle, unsigned long id, char *dat
  */
 void API dw_window_set_text(HWND handle, char *text)
 {
+   Box *thisbox;
    char tmpbuf[100];
 
    GetClassName(handle, tmpbuf, 99);
@@ -5374,8 +5592,15 @@ void API dw_window_set_text(HWND handle, char *text)
    SetWindowText(handle, text);
 
    /* Combobox */
-   if(strnicmp(tmpbuf, COMBOBOXCLASSNAME, strlen(COMBOBOXCLASSNAME)+1)==0)
+   if ( strnicmp( tmpbuf, COMBOBOXCLASSNAME, strlen(COMBOBOXCLASSNAME)+1) == 0 )
       SendMessage(handle, CB_SETEDITSEL, 0, MAKELPARAM(-1, 0));
+   else if ( strnicmp( tmpbuf, FRAMECLASSNAME, strlen(FRAMECLASSNAME)+1) == 0 )
+   {
+      /* groupbox */
+      thisbox = (Box *)GetWindowLongPtr( handle, GWLP_USERDATA );
+      if ( thisbox && thisbox->grouphwnd != (HWND)NULL )
+         SetWindowText( thisbox->grouphwnd, text );
+   }
 }
 
 /*
@@ -5567,6 +5792,10 @@ void API dw_window_set_size(HWND handle, ULONG width, ULONG height)
    if ( width == 0 ) width = usedx;
    if ( height == 0 ) height = usedy;
    SetWindowPos(handle, (HWND)NULL, 0, 0, width, height, SWP_SHOWWINDOW | SWP_NOZORDER | SWP_NOMOVE);
+#if 0
+   /* force a configure event */
+   SendMessage( handle, WM_SIZE, 0, MAKELPARAM(usedx, usedy) );
+#endif
 }
 
 /*
@@ -5574,7 +5803,7 @@ void API dw_window_set_size(HWND handle, ULONG width, ULONG height)
  */
 int API dw_screen_width(void)
 {
-   return GetSystemMetrics(SM_CXSCREEN);
+   return screenx;
 }
 
 /*
@@ -5582,7 +5811,7 @@ int API dw_screen_width(void)
  */
 int API dw_screen_height(void)
 {
-   return GetSystemMetrics(SM_CYSCREEN);
+   return screeny;
 }
 
 /* This should return the current color depth */
@@ -5606,7 +5835,7 @@ unsigned long API dw_color_depth_get(void)
  *          x: X location from the bottom left.
  *          y: Y location from the bottom left.
  */
-void API dw_window_set_pos(HWND handle, ULONG x, ULONG y)
+void API dw_window_set_pos(HWND handle, long x, long y)
 {
    SetWindowPos(handle, (HWND)NULL, x, y, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
 }
@@ -5620,7 +5849,7 @@ void API dw_window_set_pos(HWND handle, ULONG x, ULONG y)
  *          width: Width of the widget.
  *          height: Height of the widget.
  */
-void API dw_window_set_pos_size(HWND handle, ULONG x, ULONG y, ULONG width, ULONG height)
+void API dw_window_set_pos_size(HWND handle, long x, long y, ULONG width, ULONG height)
 {
    int usedx = 0, usedy = 0, depth = 0, usedpadx = 0, usedpady = 0;
    Box *thisbox;
@@ -5635,7 +5864,13 @@ void API dw_window_set_pos_size(HWND handle, ULONG x, ULONG y, ULONG width, ULON
       _resize_box(thisbox, &depth, 0, 0, &usedx, &usedy, 1, &usedpadx, &usedpady);
       _resize_box(thisbox, &depth, usedx, usedy, &usedx, &usedy, 2, &usedpadx, &usedpady);
    }
+   if ( width == 0 ) width = usedx;
+   if ( height == 0 ) height = usedy;
    SetWindowPos(handle, (HWND)NULL, x, y, width, height, SWP_NOZORDER | SWP_SHOWWINDOW | SWP_NOACTIVATE);
+#if 0
+   /* force a configure event */
+   SendMessage( handle, WM_SIZE, 0, MAKELPARAM(width, height) );
+#endif
 }
 
 /*
@@ -5647,7 +5882,7 @@ void API dw_window_set_pos_size(HWND handle, ULONG x, ULONG y, ULONG width, ULON
  *          width: Width of the widget.
  *          height: Height of the widget.
  */
-void API dw_window_get_pos_size(HWND handle, ULONG *x, ULONG *y, ULONG *width, ULONG *height)
+void API dw_window_get_pos_size(HWND handle, long *x, long *y, ULONG *width, ULONG *height)
 {
    WINDOWPLACEMENT wp;
 
@@ -5665,7 +5900,7 @@ void API dw_window_get_pos_size(HWND handle, ULONG *x, ULONG *y, ULONG *width, U
       if(height)
          *height=dw_screen_height();
    }
-else
+   else
    {
       if(x)
          *x = wp.rcNormalPosition.left;
@@ -7750,7 +7985,7 @@ HWND API dw_render_new(unsigned long id)
    HWND tmp = CreateWindow(ObjectClassName,
                      "",
                      WS_VISIBLE | WS_CHILD | WS_CLIPCHILDREN,
-                     0,0,2000,1000,
+                     0,0,screenx,screeny,
                      DW_HWND_OBJECT,
                      (HMENU)id,
                      DWInstance,
@@ -7761,8 +7996,7 @@ HWND API dw_render_new(unsigned long id)
    newbox->grouphwnd = (HWND)NULL;
    newbox->cinfo.pOldProc = SubclassWindow(tmp, _rendwndproc);
    newbox->cinfo.fore = newbox->cinfo.back = -1;
-
-   SetWindowLongPtr(tmp, GWLP_USERDATA, (LONG_PTR)newbox);
+   SetWindowLongPtr( tmp, GWLP_USERDATA, (LONG_PTR)newbox );
    return tmp;
 }
 
@@ -7899,6 +8133,73 @@ void API dw_draw_line(HWND handle, HPIXMAP pixmap, int x1, int y1, int x2, int y
    SetPixel(hdcPaint, x2, y2, _foreground[threadid]);
    if(!pixmap)
       ReleaseDC(handle, hdcPaint);
+}
+
+/* Draw a closed polygon on a window (preferably a render window).
+ * Parameters:
+ *       handle: Handle to the window.
+ *       pixmap: Handle to the pixmap. (choose only one of these)
+ *       fill: if true filled
+ *       number of points
+ *       x[]: X coordinates.
+ *       y[]: Y coordinates.
+ */
+void API dw_draw_polygon(HWND handle, HPIXMAP pixmap, int fill, int npoints, int *x, int *y)
+{
+   HDC hdcPaint;
+   HBRUSH oldBrush;
+   HPEN oldPen;
+   POINT *points;
+   int i;
+   int threadid = dw_thread_id();
+
+   if(threadid < 0 || threadid >= THREAD_LIMIT)
+      threadid = 0;
+
+   if ( handle )
+      hdcPaint = GetDC( handle );
+   else if ( pixmap )
+      hdcPaint = pixmap->hdc;
+   else
+      return;
+   if ( npoints )
+   {
+      /*
+       * Allocate enough space for the number of points supplied plus 1.
+       * Under windows, unless the first and last points are the same
+       * the polygon won't be closed
+       */
+      points = (POINT *)malloc( (npoints+1) * sizeof(POINT) );
+      /*
+       * should check for NULL pointer return!
+       */
+      for ( i = 0 ; i < npoints ; i++ )
+      {
+         points[i].x = x[i];
+         points[i].y = y[i];
+      }
+      if ( !( points[0].x == points[npoints-1].x
+      &&   points[0].y == points[npoints-1].y ) )
+      {
+         /* set the last point to be the same as the first point... */
+         points[npoints].x = points[0].x;
+         points[npoints].y = points[0].y;
+         /* ... and increment the number of points */
+         npoints++;
+      }
+   }
+
+   oldBrush = SelectObject( hdcPaint, _hBrush[threadid] );
+   oldPen = SelectObject( hdcPaint, _hPen[threadid] );
+   if ( fill )
+      Polygon( hdcPaint, points, npoints );
+   else
+      Polyline( hdcPaint, points, npoints );
+   SelectObject( hdcPaint, oldBrush );
+   SelectObject( hdcPaint, oldPen );
+   if ( !pixmap )
+      ReleaseDC( handle, hdcPaint );
+   free(points);
 }
 
 /* Draw a rectangle on a window (preferably a render window).
@@ -8065,6 +8366,8 @@ HPIXMAP API dw_pixmap_new(HWND handle, unsigned long width, unsigned long height
 {
    HPIXMAP pixmap;
    HDC hdc;
+   COLORREF bkcolor;
+   ULONG cx, cy;
 
    if (!(pixmap = calloc(1,sizeof(struct _hpixmap))))
       return NULL;
@@ -8076,10 +8379,17 @@ HPIXMAP API dw_pixmap_new(HWND handle, unsigned long width, unsigned long height
    pixmap->handle = handle;
    pixmap->hbm = CreateCompatibleBitmap(hdc, width, height);
    pixmap->hdc = CreateCompatibleDC(hdc);
+   pixmap->transcolor = DW_RGB_TRANSPARENT;
 
    SelectObject(pixmap->hdc, pixmap->hbm);
 
    ReleaseDC(handle, hdc);
+
+#if 0
+   /* force a CONFIGURE event on the underlying renderbox */
+   dw_window_get_pos_size( handle, NULL, NULL, &cx, &cy );
+   SendMessage( handle, WM_SIZE, 0, MAKELPARAM(cx, cy) );
+#endif
 
    return pixmap;
 }
@@ -8099,6 +8409,7 @@ HPIXMAP API dw_pixmap_new_from_file(HWND handle, char *filename)
    HPIXMAP pixmap;
    BITMAP bm;
    HDC hdc;
+   ULONG cx, cy;
    char *file = malloc(strlen(filename) + 5);
 
    if (!file || !(pixmap = calloc(1,sizeof(struct _hpixmap))))
@@ -8128,7 +8439,7 @@ HPIXMAP API dw_pixmap_new_from_file(HWND handle, char *filename)
    pixmap->handle = handle;
    pixmap->hbm = (HBITMAP)LoadImage(NULL, file, IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
 
-   if(!pixmap->hbm)
+   if ( !pixmap->hbm )
    {
       free(file);
       free(pixmap);
@@ -8136,18 +8447,19 @@ HPIXMAP API dw_pixmap_new_from_file(HWND handle, char *filename)
       return NULL;
    }
 
-   pixmap->hdc = CreateCompatibleDC(hdc);
-
-    GetObject(pixmap->hbm, sizeof(bm), &bm);
-
+   pixmap->hdc = CreateCompatibleDC( hdc );
+   GetObject( pixmap->hbm, sizeof(bm), &bm );
    pixmap->width = bm.bmWidth; pixmap->height = bm.bmHeight;
+   SelectObject( pixmap->hdc, pixmap->hbm );
+   ReleaseDC( handle, hdc );
+   free( file );
+   pixmap->transcolor = DW_RGB_TRANSPARENT;
 
-   SelectObject(pixmap->hdc, pixmap->hbm);
-
-   ReleaseDC(handle, hdc);
-
-   free(file);
-
+#if 0
+   /* force a CONFIGURE event on the underlying renderbox */
+   dw_window_get_pos_size( handle, NULL, NULL, &cx, &cy );
+   SendMessage( handle, WM_SIZE, 0, MAKELPARAM(cx, cy) );
+#endif
    return pixmap;
 }
 
@@ -8168,6 +8480,7 @@ HPIXMAP API dw_pixmap_new_from_data(HWND handle, char *data, int len)
    HDC hdc;
    char *file;
    FILE *fp;
+   ULONG cx, cy;
 
    if ( !(pixmap = calloc(1,sizeof(struct _hpixmap))) )
    {
@@ -8213,8 +8526,26 @@ HPIXMAP API dw_pixmap_new_from_data(HWND handle, char *data, int len)
    SelectObject( pixmap->hdc, pixmap->hbm );
 
    ReleaseDC( handle, hdc );
+   pixmap->transcolor = DW_RGB_TRANSPARENT;
+
+#if 0
+   /* force a CONFIGURE event on the underlying renderbox */
+   dw_window_get_pos_size( handle, NULL, NULL, &cx, &cy );
+   SendMessage( handle, WM_SIZE, 0, MAKELPARAM(cx, cy) );
+#endif
 
    return pixmap;
+}
+
+/*
+ * Creates a bitmap mask for rendering bitmaps with transparent backgrounds
+ */
+void API dw_pixmap_set_transparent_color( HPIXMAP pixmap, ULONG color )
+{
+   if ( pixmap )
+   {
+      pixmap->transcolor = _internal_color(color);
+   }
 }
 
 /*
@@ -8261,9 +8592,9 @@ void API dw_pixmap_destroy(HPIXMAP pixmap)
 {
    if(pixmap)
    {
-      DeleteDC(pixmap->hdc);
-      DeleteObject(pixmap->hbm);
-      free(pixmap);
+      DeleteDC( pixmap->hdc );
+      DeleteObject( pixmap->hbm );
+      free( pixmap );
    }
 }
 
@@ -8285,27 +8616,33 @@ void API dw_pixmap_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest, int wi
 {
    HDC hdcdest;
    HDC hdcsrc;
+   HDC hdcMem;
 
-   if(dest)
-      hdcdest = GetDC(dest);
-   else if(destp)
+   if ( dest )
+      hdcdest = GetDC( dest );
+   else if ( destp )
       hdcdest = destp->hdc;
    else
       return;
 
-   if(src)
-      hdcsrc = GetDC(src);
-   else if(srcp)
+   if ( src )
+      hdcsrc = GetDC( src );
+   else if ( srcp )
       hdcsrc = srcp->hdc;
    else
       return;
-
-   BitBlt(hdcdest, xdest, ydest, width, height, hdcsrc, xsrc, ysrc, SRCCOPY);
-
-   if(!destp)
-      ReleaseDC(dest, hdcdest);
-   if(!srcp)
-      ReleaseDC(src, hdcsrc);
+   if ( srcp && srcp->transcolor != DW_RGB_TRANSPARENT )
+   {
+      DrawTransparentBitmap( hdcdest, srcp->hdc, srcp->hbm, xdest, ydest, RGB( DW_RED_VALUE(srcp->transcolor), DW_GREEN_VALUE(srcp->transcolor), DW_BLUE_VALUE(srcp->transcolor)) );
+   }
+   else
+   {
+      BitBlt( hdcdest, xdest, ydest, width, height, hdcsrc, xsrc, ysrc, SRCCOPY );
+   }
+   if ( !destp )
+      ReleaseDC( dest, hdcdest );
+   if ( !srcp )
+      ReleaseDC( src, hdcsrc );
 }
 
 /* Run Beep() in a separate thread so it doesn't block */
