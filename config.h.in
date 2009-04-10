@@ -38,3 +38,7 @@
 
 /* Define if PIXBUF is available. */
 #undef USE_PIXBUF
+
+/* Define if USING GTK (but not on X11). */
+#undef DW_USE_GTK
+

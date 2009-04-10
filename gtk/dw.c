@@ -7,10 +7,16 @@
  * (C) 2003-2004 Mark Hessling <m.hessling@qut.edu.au>
  * (C) 2002 Nickolay V. Shmyrev <shmyrev@yandex.ru>
  */
+#include "config.h"
 #include "dw.h"
 #include <string.h>
 #include <stdlib.h>
-#include <sys/utsname.h>
+#if !defined(GDK_WINDOWING_WIN32)
+# include <sys/utsname.h>
+# include <sys/socket.h>
+# include <sys/un.h>
+# include <sys/mman.h>
+#endif
 #include <stdarg.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -19,12 +25,8 @@
 #include <dirent.h>
 #include <sys/stat.h>
 #include <signal.h>
-#include <sys/socket.h>
-#include <sys/un.h>
-#include <sys/mman.h>
 #include <fcntl.h>
 #include <unistd.h>
-#include "config.h"
 #include <gdk/gdkkeysyms.h>
 #ifdef USE_IMLIB
 #include <gdk_imlib.h>
@@ -36,6 +38,14 @@
 #endif
 #if GTK_MAJOR_VERSION > 1
 #include <gdk-pixbuf/gdk-pixbuf.h>
+#endif
+
+#if __STDC_VERSION__ < 199901L
+# if __GNUC__ >= 2
+#  define __func__ __FUNCTION__
+# else
+#  define __func__ "<unknown>"
+# endif
 #endif
 
 #include "gtk/messagebox_error.xpm"
@@ -92,6 +102,8 @@ char *image_exts[NUM_EXTS] =
 #ifndef min
 # define min(a,b)        (((a) < (b)) ? (a) : (b))
 #endif
+
+FILE *dbgfp = NULL;
 
 DWTID _dw_thread_list[DW_THREAD_LIMIT];
 GdkColor _foreground[DW_THREAD_LIMIT];
@@ -304,6 +316,18 @@ static void gtk_mdi_remove_true(GtkContainer *container, GtkWidget *widget);
 static void gtk_mdi_forall(GtkContainer *container, gboolean include_internals, GtkCallback callback, gpointer callback_data);
 
 static GtkMdiChild *get_child(GtkMdi *mdi, GtkWidget * widget);
+
+static void _dw_log( char *format, ... )
+{
+   va_list args;
+   va_start(args, format);
+   if ( dbgfp != NULL )
+   {
+      vfprintf( dbgfp, format, args );
+      fflush( dbgfp );
+   }
+   va_end(args);
+}
 
 static GtkType gtk_mdi_get_type(void)
 {
@@ -1211,6 +1235,7 @@ static gint _set_focus_event(GtkWindow *window, GtkWidget *widget, gpointer data
    SignalHandler work = _get_signal_handler((GtkWidget *)window, data);
    int retval = FALSE;
 
+   if ( dbgfp != NULL ) _dw_log("%s %d: %s\n",__FILE__,__LINE__,__func__);
    if(work.window)
    {
       int (*setfocusfunc)(HWND, void *) = work.func;
@@ -1225,6 +1250,7 @@ static gint _button_press_event(GtkWidget *widget, GdkEventButton *event, gpoint
    SignalHandler work = _get_signal_handler(widget, data);
    int retval = FALSE;
 
+   if ( dbgfp != NULL ) _dw_log("%s %d: %s\n",__FILE__,__LINE__,__func__);
    if(work.window)
    {
       int (*buttonfunc)(HWND, int, int, int, void *) = work.func;
@@ -1245,6 +1271,7 @@ static gint _button_release_event(GtkWidget *widget, GdkEventButton *event, gpoi
    SignalHandler work = _get_signal_handler(widget, data);
    int retval = FALSE;
 
+   if ( dbgfp != NULL ) _dw_log("%s %d: %s\n",__FILE__,__LINE__,__func__);
    if(work.window)
    {
       int (*buttonfunc)(HWND, int, int, int, void *) = work.func;
@@ -1265,6 +1292,7 @@ static gint _motion_notify_event(GtkWidget *widget, GdkEventMotion *event, gpoin
    SignalHandler work = _get_signal_handler(widget, data);
    int retval = FALSE;
 
+   if ( dbgfp != NULL ) _dw_log("%s %d: %s\n",__FILE__,__LINE__,__func__);
    if(work.window)
    {
       int (*motionfunc)(HWND, int, int, int, void *) = work.func;
@@ -1297,6 +1325,7 @@ static gint _delete_event(GtkWidget *widget, GdkEvent *event, gpointer data)
    SignalHandler work = _get_signal_handler(widget, data);
    int retval = FALSE;
 
+   if ( dbgfp != NULL ) _dw_log("%s %d: %s\n",__FILE__,__LINE__,__func__);
    if(work.window)
    {
       int (*closefunc)(HWND, void *) = work.func;
@@ -1311,6 +1340,7 @@ static gint _key_press_event(GtkWidget *widget, GdkEventKey *event, gpointer dat
    SignalHandler work = _get_signal_handler(widget, data);
    int retval = FALSE;
 
+   if ( dbgfp != NULL ) _dw_log("%s %d: %s\n",__FILE__,__LINE__,__func__);
    if(work.window)
    {
       int (*keypressfunc)(HWND, char, int, int, void *) = work.func;
@@ -1326,6 +1356,7 @@ static gint _generic_event(GtkWidget *widget, gpointer data)
    SignalHandler work = _get_signal_handler(widget, data);
    int retval = FALSE;
 
+   if ( dbgfp != NULL ) _dw_log("%s %d: %s\n",__FILE__,__LINE__,__func__);
    if(work.window)
    {
       int (*genericfunc)(HWND, void *) = work.func;
@@ -1340,11 +1371,13 @@ static gint _activate_event(GtkWidget *widget, gpointer data)
    SignalHandler work = _get_signal_handler(widget, data);
    int retval = FALSE;
 
+   if ( dbgfp != NULL ) _dw_log("%s %d: %s\n",__FILE__,__LINE__,__func__);
    if(work.window && !_dw_ignore_click)
    {
       int (*activatefunc)(HWND, void *) = work.func;
 
       retval = activatefunc(popup ? popup : work.window, work.data);
+      popup = NULL;
    }
    return retval;
 }
@@ -1354,6 +1387,7 @@ static gint _configure_event(GtkWidget *widget, GdkEventConfigure *event, gpoint
    SignalHandler work = _get_signal_handler(widget, data);
    int retval = FALSE;
 
+   if ( dbgfp != NULL ) _dw_log("%s %d: %s\n",__FILE__,__LINE__,__func__);
    if(work.window)
    {
       int (*sizefunc)(HWND, int, int, void *) = work.func;
@@ -1368,6 +1402,7 @@ static gint _expose_event(GtkWidget *widget, GdkEventExpose *event, gpointer dat
    SignalHandler work = _get_signal_handler(widget, data);
    int retval = FALSE;
 
+   if ( dbgfp != NULL ) _dw_log("%s %d: %s\n",__FILE__,__LINE__,__func__);
    if(work.window)
    {
       DWExpose exp;
@@ -1388,6 +1423,7 @@ static gint _item_select_event(GtkWidget *widget, GtkWidget *child, gpointer dat
    static int _dw_recursing = 0;
    int retval = FALSE;
 
+   if ( dbgfp != NULL ) _dw_log("%s %d: %s\n",__FILE__,__LINE__,__func__);
    if(_dw_recursing)
       return FALSE;
 
@@ -1431,6 +1467,7 @@ static gint _container_context_event(GtkWidget *widget, GdkEventButton *event, g
    SignalHandler work = _get_signal_handler(widget, data);
    int retval = FALSE;
 
+   if ( dbgfp != NULL ) _dw_log("%s %d: %s\n",__FILE__,__LINE__,__func__);
    if(work.window)
    {
       if(event->button == 3)
@@ -1453,6 +1490,7 @@ static gint _tree_context_event(GtkWidget *widget, GdkEventButton *event, gpoint
    SignalHandler work = _get_signal_handler(widget, data);
    int retval = FALSE;
 
+   if ( dbgfp != NULL ) _dw_log("%s %d: %s\n",__FILE__,__LINE__,__func__);
    if(work.window)
    {
       if(event->button == 3)
@@ -1509,6 +1547,7 @@ static gint _tree_select_event(GtkTreeSelection *sel, gpointer data)
    GtkWidget *item, *widget = (GtkWidget *)gtk_tree_selection_get_tree_view(sel);
    int retval = FALSE;
 
+   if ( dbgfp != NULL ) _dw_log("%s %d: %s\n",__FILE__,__LINE__,__func__);
    if(widget)
    {
       SignalHandler work = _get_signal_handler(widget, data);
@@ -1536,6 +1575,7 @@ static gint _tree_expand_event(GtkTreeView *widget, GtkTreeIter *iter, GtkTreePa
    SignalHandler work = _get_signal_handler((GtkWidget *)widget, data);
    int retval = FALSE;
 
+   if ( dbgfp != NULL ) _dw_log("%s %d: %s\n",__FILE__,__LINE__,__func__);
    if(!_dw_ignore_expand && work.window)
    {
       int (*treeexpandfunc)(HWND, HTREEITEM, void *) = work.func;
@@ -1550,6 +1590,7 @@ static gint _tree_select_event(GtkTree *tree, GtkWidget *child, gpointer data)
    GtkWidget *treeroot = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(child), "_dw_tree");
    int retval = FALSE;
 
+   if ( dbgfp != NULL ) _dw_log("%s %d: %s\n",__FILE__,__LINE__,__func__);
    if(treeroot && GTK_IS_TREE(treeroot))
    {
       GtkWidget *lastselect = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(treeroot), "_dw_lastselect");
@@ -1573,6 +1614,7 @@ static gint _tree_expand_event(GtkTreeItem *treeitem, gpointer data)
    SignalHandler work = _get_signal_handler((GtkWidget *)treeitem, data);
    int retval = FALSE;
 
+   if ( dbgfp != NULL ) _dw_log("%s %d: %s\n",__FILE__,__LINE__,__func__);
    if(!_dw_ignore_expand && work.window)
    {
       int (*treeexpandfunc)(HWND, HTREEITEM, void *) = work.func;
@@ -1587,6 +1629,7 @@ static gint _container_select_event(GtkWidget *widget, GdkEventButton *event, gp
    SignalHandler work = _get_signal_handler(widget, data);
    int retval = FALSE;
 
+   if ( dbgfp != NULL ) _dw_log("%s %d: %s\n",__FILE__,__LINE__,__func__);
    if(work.window)
    {
       if(event->button == 1 && event->type == GDK_2BUTTON_PRESS)
@@ -1610,6 +1653,7 @@ static gint _container_enter_event(GtkWidget *widget, GdkEventKey *event, gpoint
    SignalHandler work = _get_signal_handler(widget, data);
    int retval = FALSE;
 
+   if ( dbgfp != NULL ) _dw_log("%s %d: %s\n",__FILE__,__LINE__,__func__);
    if(work.window && event->keyval == VK_RETURN)
    {
       int (*contextfunc)(HWND, char *, void *) = work.func;
@@ -1645,6 +1689,7 @@ static gint _switch_page_event(GtkNotebook *notebook, GtkNotebookPage *page, gui
    SignalHandler work = _get_signal_handler((GtkWidget *)notebook, data);
    int retval = FALSE;
 
+   if ( dbgfp != NULL ) _dw_log("%s %d: %s\n",__FILE__,__LINE__,__func__);
    if(work.window)
    {
       int (*switchpagefunc)(HWND, unsigned long, void *) = work.func;
@@ -1658,6 +1703,7 @@ static gint _column_click_event(GtkWidget *widget, gint column_num, gpointer dat
    SignalHandler work = _get_signal_handler(widget, data);
    int retval = FALSE;
 
+   if ( dbgfp != NULL ) _dw_log("%s %d: %s\n",__FILE__,__LINE__,__func__);
    if(work.window)
    {
       int (*clickcolumnfunc)(HWND, int, void *) = work.func;
@@ -1672,6 +1718,7 @@ static gint _container_select_row(GtkWidget *widget, gint row, gint column, GdkE
    char *rowdata = gtk_clist_get_row_data(GTK_CLIST(widget), row);
    int (*contextfunc)(HWND, HWND, char *, void *, void *) = work.func;
 
+   if ( dbgfp != NULL ) _dw_log("%s %d: %s\n",__FILE__,__LINE__,__func__);
    if(!work.window)
       return TRUE;
 
@@ -1701,6 +1748,7 @@ static gint _value_changed_event(GtkAdjustment *adjustment, gpointer data)
    GtkWidget *spinbutton = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(adjustment), "_dw_spinbutton");
    GtkWidget *scrollbar = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(adjustment), "_dw_scrollbar");
 
+   if ( dbgfp != NULL ) _dw_log("%s %d: %s\n",__FILE__,__LINE__,__func__);
    if (slider)
    {
       SignalHandler work = _get_signal_handler((GtkWidget *)adjustment, data);
@@ -1733,6 +1781,7 @@ static gint _default_key_press_event(GtkWidget *widget, GdkEventKey *event, gpoi
 {
    GtkWidget *next = (GtkWidget *)data;
 
+   if ( dbgfp != NULL ) _dw_log("%s %d: %s\n",__FILE__,__LINE__,__func__);
    if(next)
    {
       if(event->keyval == GDK_Return)
@@ -1831,6 +1880,7 @@ static GdkPixbuf *_find_pixbuf(long id)
 }
 #endif
 
+#if defined(GDK_WINDOWING_X11)
 static void _size_allocate(GtkWindow *window)
 {
   XSizeHints sizehints;
@@ -1849,6 +1899,7 @@ static void _size_allocate(GtkWindow *window)
            &sizehints);
   gdk_flush ();
 }
+#endif
 
 /* Find the index of a given thread */
 static int _find_thread_index(DWTID tid)
@@ -1954,6 +2005,7 @@ int dw_int_init(DWResources *res, int newthread, int *argc, char **argv[])
 {
    int z;
    char *tmp;
+   char *fname;
 
    if(res)
    {
@@ -1991,6 +2043,13 @@ int dw_int_init(DWResources *res, int newthread, int *argc, char **argv[])
 #ifdef USE_GTKMOZEMBED
    init_mozembed();
 #endif
+   /*
+    * Setup logging/debugging
+    */
+   if ( (fname = getenv( "DWINDOWS_DEBUGFILE" ) ) != NULL )
+   {
+      dbgfp = fopen( fname, "w" );
+   }
 
    return TRUE;
 }
@@ -2974,6 +3033,42 @@ HWND dw_box_new(int type, int pad)
    return tmp;
 }
 
+#ifdef INCOMPLETE
+/*
+ * Create a new scrollable Box to be packed.
+ * Parameters:
+ *       type: Either DW_VERT (vertical) or DW_HORZ (horizontal).
+ *       pad: Number of pixels to pad around the box.
+ * This works fine under GTK+, but is incomplete on other platforms
+ */
+HWND dw_scrollbox_new( int type, int pad )
+{
+   GtkWidget *tmp, *box, *eventbox;
+   int _locked_by_me = FALSE;
+
+   DW_MUTEX_LOCK;
+   tmp = gtk_scrolled_window_new(NULL, NULL);
+   gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW (tmp), GTK_POLICY_AUTOMATIC, GTK_POLICY_ALWAYS);
+
+   box = gtk_table_new(1, 1, FALSE);
+   eventbox = gtk_event_box_new();
+
+   gtk_widget_show(eventbox);
+   gtk_object_set_data(GTK_OBJECT(box), "_dw_eventbox", (gpointer)eventbox);
+   gtk_object_set_data(GTK_OBJECT(box), "_dw_boxtype", GINT_TO_POINTER(type));
+   gtk_object_set_data(GTK_OBJECT(box), "_dw_boxpad", GINT_TO_POINTER(pad));
+   gtk_object_set_data(GTK_OBJECT(tmp), "_dw_boxhandle", (gpointer)box);
+
+   gtk_scrolled_window_add_with_viewport(GTK_SCROLLED_WINDOW(tmp),box);
+   gtk_object_set_user_data(GTK_OBJECT(tmp), box);
+   gtk_widget_show(box);
+   gtk_widget_show(tmp);
+
+   DW_MUTEX_UNLOCK;
+   return tmp;
+}
+#endif
+
 /*
  * Create a new Group Box to be packed.
  * Parameters:
@@ -3320,6 +3415,7 @@ GtkWidget *_find_submenu_id(GtkWidget *start, char *name)
  *       menu: The handle the the existing menu.
  *       id: Menuitem id.
  *       check: TRUE for checked FALSE for not checked.
+ * deprecated: use dw_menu_item_set_state()
  */
 void dw_menu_item_set_check(HMENUI menu, unsigned long id, int check)
 {
@@ -3449,7 +3545,14 @@ void dw_pointer_set_pos(long x, long y)
    int _locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
+#if GTK_CHECK_VERSION(2,8,0)
+   gdk_display_warp_pointer( gdk_display_get_default(), gdk_screen_get_default(), x, y );
+//   gdk_display_warp_pointer( GDK_DISPLAY(), gdk_screen_get_default(), x, y );
+#else
+# if GDK_WINDOWING_X11
    XWarpPointer(GDK_DISPLAY(), None, GDK_ROOT_WINDOW(), 0,0,0,0, x, y);
+# endif
+#endif
    DW_MUTEX_UNLOCK;
 }
 
@@ -4251,11 +4354,16 @@ void dw_window_set_text(HWND handle, char *text)
    }
    else if(GTK_WIDGET_TOPLEVEL(handle))
       gtk_window_set_title(GTK_WINDOW(handle), text);
-   else if(GTK_IS_FRAME(handle))
+   else if ( GTK_IS_FRAME(handle) )
    {
+      /*
+       * This is a groupbox or status_text
+       */
       GtkWidget *tmp = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(handle), "_dw_label");
-      if(tmp && GTK_IS_LABEL(tmp))
+      if ( tmp && GTK_IS_LABEL(tmp) )
          gtk_label_set_text(GTK_LABEL(tmp), text);
+      else /* assume groupbox */
+         gtk_frame_set_label(GTK_FRAME(handle), text && *text ? text : NULL);
    }
    DW_MUTEX_UNLOCK;
 }
@@ -7253,7 +7361,7 @@ void dw_draw_polygon(HWND handle, HPIXMAP pixmap, int fill, int npoints, int *x,
    int _locked_by_me = FALSE;
    int i;
    GdkGC *gc = NULL;
-   GdkPoint *points;
+   GdkPoint *points = NULL;
 
    DW_MUTEX_LOCK;
    if ( handle )
@@ -7487,6 +7595,8 @@ void dw_font_text_extents_get(HWND handle, HPIXMAP pixmap, char *text, int *widt
  * Creates a pixmap with given parameters.
  * Parameters:
  *       handle: Window handle the pixmap is associated with.
+ *               or zero to enable this pixmap to be written
+ *               off the screen to reduce flicker
  *       width: Width of the pixmap in pixels.
  *       height: Height of the pixmap in pixels.
  *       depth: Color depth of the pixmap.
@@ -7509,7 +7619,10 @@ HPIXMAP dw_pixmap_new(HWND handle, unsigned long width, unsigned long height, in
 
    DW_MUTEX_LOCK;
    pixmap->handle = handle;
-   pixmap->pixmap = gdk_pixmap_new(handle->window, width, height, depth);
+   if ( handle )
+      pixmap->pixmap = gdk_pixmap_new( handle->window, width, height, depth );
+   else
+      pixmap->pixmap = gdk_pixmap_new( NULL, width, height, depth );
    DW_MUTEX_UNLOCK;
    return pixmap;
 }
@@ -7641,6 +7754,25 @@ HPIXMAP dw_pixmap_new_from_data(HWND handle, char *data, int len)
    pixmap->handle = handle;
    DW_MUTEX_UNLOCK;
    return pixmap;
+}
+
+/*
+ * Sets the transparent color for a pixmap
+ * Parameters:
+ *       pixmap: Handle to a pixmap returned by
+ *               dw_pixmap_new..
+ *       color:  transparent color
+ * Note: This does nothing on GTK+ as transparency
+ *       is handled automatically
+ */
+void dw_pixmap_set_transparent_color(HPIXMAP pixmap, unsigned long color)
+{
+   int _locked_by_me = FALSE;
+
+   DW_MUTEX_LOCK;
+   pixmap = pixmap;
+   color = color;
+   DW_MUTEX_UNLOCK;
 }
 
 /*
@@ -8528,6 +8660,10 @@ DWTID dw_thread_id(void)
  */
 void dw_exit(int exitcode)
 {
+   if ( dbgfp != NULL )
+   {
+      fclose( dbgfp );
+   }
    exit(exitcode);
 }
 
@@ -8699,7 +8835,10 @@ void dw_window_set_size(HWND handle, unsigned long width, unsigned long height)
          default_width = -1;
       if ( height == 0 )
          default_height = -1;
+#if defined(GDK_WINDOWING_X11)
+
       _size_allocate(GTK_WINDOW(handle));
+#endif
       if(handle->window)
          gdk_window_resize(handle->window, default_width , default_height );
       gtk_window_set_default_size(GTK_WINDOW(handle), default_width , default_height );
@@ -8763,7 +8902,7 @@ unsigned long dw_color_depth_get(void)
  *          x: X location from the bottom left.
  *          y: Y location from the bottom left.
  */
-void dw_window_set_pos(HWND handle, unsigned long x, unsigned long y)
+void dw_window_set_pos(HWND handle, long x, long y)
 {
    int _locked_by_me = FALSE;
 #if GTK_MAJOR_VERSION > 1
@@ -8794,7 +8933,7 @@ void dw_window_set_pos(HWND handle, unsigned long x, unsigned long y)
  *          width: Width of the widget.
  *          height: Height of the widget.
  */
-void dw_window_set_pos_size(HWND handle, unsigned long x, unsigned long y, unsigned long width, unsigned long height)
+void dw_window_set_pos_size(HWND handle, long x, long y, unsigned long width, unsigned long height)
 {
    int _locked_by_me = FALSE;
 #if GTK_MAJOR_VERSION > 1
@@ -8803,7 +8942,6 @@ void dw_window_set_pos_size(HWND handle, unsigned long x, unsigned long y, unsig
 
    if(!handle)
       return;
-
    DW_MUTEX_LOCK;
 #if GTK_MAJOR_VERSION > 1
    if((mdi = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(handle), "_dw_mdi")) && GTK_IS_MDI(mdi))
@@ -8836,7 +8974,7 @@ void dw_window_set_pos_size(HWND handle, unsigned long x, unsigned long y, unsig
  *          width: Width of the widget.
  *          height: Height of the widget.
  */
-void dw_window_get_pos_size(HWND handle, ULONG *x, ULONG *y, ULONG *width, ULONG *height)
+void dw_window_get_pos_size(HWND handle, long *x, long *y, ULONG *width, ULONG *height)
 {
    int _locked_by_me = FALSE;
    gint gx, gy, gwidth, gheight, gdepth;
@@ -9226,6 +9364,9 @@ void dw_listbox_list_append(HWND handle, char **text, int count)
 {
    GtkWidget *handle2 = handle;
    int _locked_by_me = FALSE;
+
+   if ( count == 0 )
+      return;
 
    DW_MUTEX_LOCK;
    if(GTK_IS_SCROLLED_WINDOW(handle))
