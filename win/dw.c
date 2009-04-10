@@ -9054,6 +9054,10 @@ DWTID API dw_thread_id(void)
 void API dw_exit(int exitcode)
 {
    OleUninitialize();
+   if ( dbgfp != NULL )
+   {
+      fclose( dbgfp );
+   }
    exit(exitcode);
 }
 
