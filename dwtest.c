@@ -489,7 +489,7 @@ int DWSIGNAL redraw_button_box_callback(HWND window, void *data)
    dw_window_set_pos_size(filetoolbarbox, x, y, width, height);
 #else
    dw_window_enable( window);
-   dw_menu_delete_item( changeable_menu, NONCHECKABLE_MENUITEMID );
+   dw_window_destroy( noncheckable_menuitem );
 #endif
    return 0;
 }
@@ -927,7 +927,6 @@ void buttons_add(void)
    char **text;
 
    /* create a box to pack into the notebook page */
-// buttonsbox = dw_scrollbox_new(BOXVERT, 2);
    buttonsbox = dw_box_new(BOXVERT, 2);
    dw_box_pack_start( notebookbox5, buttonsbox, 25, 200, TRUE, TRUE, 0);
    dw_window_set_color(buttonsbox, DW_CLR_RED, DW_CLR_RED);
@@ -1174,6 +1173,7 @@ int main(int argc, char *argv[])
    dw_notebook_pack( notebook, notebookpage7, notebookbox7 );
    dw_notebook_page_set_text( notebook, notebookpage7, "html");
 
+#if 1
    rawhtml = dw_html_new(1001);
    dw_box_pack_start( notebookbox7, rawhtml, 0, 100, TRUE, FALSE, 0);
    dw_html_raw(rawhtml, "<html><body><center><h1>dwtest</h1></center></body></html>");
@@ -1186,7 +1186,7 @@ int main(int argc, char *argv[])
     * Instead a pure HTML based web page is displayed. MHES 5/4/2008
     */
    dw_html_url(html, "http://www.rexx.org");
-
+#endif
    dw_signal_connect(mainwindow, DW_SIGNAL_DELETE, DW_SIGNAL_FUNC(exit_callback), (void *)mainwindow);
    timerid = dw_timer_connect(2000, DW_SIGNAL_FUNC(timer_callback), 0);
    dw_window_set_size(mainwindow, 640, 520);

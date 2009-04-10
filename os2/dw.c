@@ -7681,6 +7681,65 @@ void API dw_font_text_extents_get(HWND handle, HPIXMAP pixmap, char *text, int *
 		WinReleasePS(hps);
 }
 
+/* Draw a polygon on a window (preferably a render window).
+ * Parameters:
+ *       handle: Handle to the window.
+ *       pixmap: Handle to the pixmap. (choose only one of these)
+ *       fill: Fill box TRUE or FALSE.
+ *       x: X coordinate.
+ *       y: Y coordinate.
+ *       width: Width of rectangle.
+ *       height: Height of rectangle.
+ */
+void API dw_draw_polygon( HWND handle, HPIXMAP pixmap, int fill, int npoints, int *x, int *y )
+{
+   HPS hps;
+   int thisheight;
+   POINTL *ptl[2];
+   POINTL start;
+
+   if(handle)
+   {
+      hps = _set_colors(handle);
+        thisheight = _get_height(handle);
+   }
+   else if(pixmap)
+   {
+      hps = _set_hps(pixmap->hps);
+      thisheight = pixmap->height;
+   }
+   else
+      return;
+   /*
+    * For a filled polygon we need to start an area
+    */
+   if ( fill )
+      GpiBeginArea( hps, 0L );
+   if ( npoints )
+   {
+      /*
+       * Move to the first point of the polygon
+       */
+      start.x = x[0];
+      start.y = y[0];
+      GpiMove( hps, &start );
+      /*
+       * Convert the remainder of the x and y points
+       */
+      for ( i = 1; i < npoints; i++ )
+      {
+         ptl[i-1].x = x[i];
+         ptl[i-1].y = y[i];
+      }
+      GpiPolyLine( hps, npoints-1, &ptl );
+
+      if ( fill )
+         GpiEndArea( hps );
+   }
+   if ( !pixmap )
+      WinReleasePS(hps);
+}
+
 /* Draw a rectangle on a window (preferably a render window).
  * Parameters:
  *       handle: Handle to the window.
