@@ -230,6 +230,7 @@ typedef struct _hpixmap {
 	HPS hps;
 	HBITMAP hbm;
 	HWND handle;
+	unsigned long transcolor;
 } *HPIXMAP;
 
 typedef void *HTREEITEM;
