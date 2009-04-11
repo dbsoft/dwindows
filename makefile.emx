@@ -1,4 +1,4 @@
-# $Id$ 
+# $Id$
 
 # Dynamic Windows EMX Makefile
 
@@ -7,6 +7,8 @@ RM = rm -f
 RC = rc
 MAKE = make
 COMPRESS = lxlite
+VER = 11
+VERDOT = 1.1
 
 DEFS =
 LIBS =
@@ -28,7 +30,7 @@ dw.lib: dw.def
 	emximp -o dw.lib dw.def
 	copy dw.dll dll
 	copy dw.lib lib
-        
+
 dwcompat.dll:  $(COMPATOBJECTS) dwcompat.def
 	$(CC) $(CFLAGS) $(DEFS) -o dwcompat.dll $(COMPATOBJECTS) $(LDFLAGS) -lsocket dwcompat.def
 
@@ -40,7 +42,7 @@ dwcompat.lib: dwcompat.def
 dwtest.exe: dwtest.o dw.lib dwcompat.lib
 	$(CC) $(CFLAGS) -Zcrtdll -Zomf -Zmt -o dwtest.exe dwtest.o -Llib -ldw -ldwcompat dwtest.def
 
-clean: 
+clean:
 	$(RM) $(OBJECTS) dwtest.exe
 
 dw.obj: dw.c
@@ -55,3 +57,6 @@ dirent.obj: os2/dirent.c
 dwtest.obj: dwtest.c
 	$(CC) $(CFLAGS) -c $<	
 
+zip: dw.dll
+	copy os2\readme-os2.txt .
+	zip dwindows-os2-$(VERDOT).zip readme-os2.txt dw.dll dwcompat.dll dw.lib dwcompat.lib dw.h
