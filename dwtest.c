@@ -1074,7 +1074,7 @@ void menu_add(void)
    mainmenubar = dw_menubar_new( mainwindow );
    /* add menus to the menubar */
    menu = dw_menu_new( 0 );
-   menuitem = dw_menu_append_item( menu, "~Quit", 1019, 0, TRUE, FALSE, NULL );
+   menuitem = dw_menu_append_item( menu, "~Quit", 1019, 0, TRUE, FALSE, 0 );
    dw_signal_connect( menuitem, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(exit_callback), (void *)mainwindow);
    /*
     * Add the "File" menu to the menubar...
