@@ -650,6 +650,8 @@ LIBS
 build_alias
 host_alias
 target_alias
+TARGET
+TARGET2
 DW_MAJOR_VERSION
 DW_MINOR_VERSION
 DW_SUB_VERSION
@@ -667,6 +669,8 @@ MAKE
 INSTALL_PROGRAM
 INSTALL_SCRIPT
 INSTALL_DATA
+SYSCONF_LINK_TARGET_SHARED
+SYSCONF_LINK_TARGET_SHARED2
 CPP
 GREP
 EGREP
@@ -691,6 +695,8 @@ SOSUFFIX
 DW_SRC
 DW_DEFINE
 BROWSER_OBJECT
+COMPAT_OBJECT
+INSTALL_COMPAT
 LIBOBJS
 LTLIBOBJS'
 ac_subst_files=''
@@ -1281,6 +1287,8 @@ Optional Features:
 Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
   --without-PACKAGE       do not use PACKAGE (same as --with-PACKAGE=no)
+  --with-compat           specify this to build the optional dwcompat library
+  --with-gtk              specify this to build dwindows with GTK+ (only relevant for OSX)
   --with-glib-prefix=PFX  Prefix where GLIB is installed (optional)
   --with-glib-exec-prefix=PFX Exec prefix where GLIB is installed (optional)
   --with-gtk-prefix=PFX   Prefix where GTK is installed (optional)
@@ -1728,6 +1736,11 @@ ac_config_headers="$ac_config_headers config.h"
 DW_MAJOR_VERSION=1
 DW_MINOR_VERSION=1
 DW_SUB_VERSION=0
+
+TARGET="dw"
+TARGET2="dwcompat"
+
+
 
 DW_SRC=gtk
 DW_DEFINE=__UNIX__
@@ -3212,6 +3225,37 @@ test -z "$INSTALL_SCRIPT" && INSTALL_SCRIPT='${INSTALL}'
 test -z "$INSTALL_DATA" && INSTALL_DATA='${INSTALL} -m 644'
 
 
+
+
+with_compat=no
+
+# Check whether --with-compat was given.
+if test "${with_compat+set}" = set; then
+  withval=$with_compat; with_compat=$withval
+else
+  with_compat=no
+fi
+
+if test $with_compat = yes; then
+   COMPAT_OBJECT="compat.o"
+   INSTALL_COMPAT="installcompat"
+   SYSCONF_LINK_TARGET_SHARED2="lib$TARGET2.$SOSUFFIX.$DW_MAJOR_VERSION.$DW_MINOR_VERSION"
+else
+   COMPAT_OBJECT=""
+   INSTALL_COMPAT=""
+   SYSCONF_LINK_TARGET_SHARED2=""
+fi
+SYSCONF_LINK_TARGET_SHARED="lib$TARGET.$SOSUFFIX.$DW_MAJOR_VERSION.$DW_MINOR_VERSION"
+
+
+
+
+# Check whether --with-gtk was given.
+if test "${with_gtk+set}" = set; then
+  withval=$with_gtk; with_gtk=$withval
+else
+  with_gtk=no
+fi
 
 
 
@@ -4979,11 +5023,18 @@ _ACEOF
 esac
 
 if test $OPSYSTEM = "Darwin"; then
-   DW_SRC=mac
-   DW_DEFINE=__MAC__
-   SHAREDFLAG=-dynamiclib
+   ARCH="-arch ppc -arch ppc64 -arch x86_64 -arch i386"
+   SHAREDFLAG="-dynamiclib -flat_namespace -undefined suppress $ARCH"
    SOSUFFIX=dylib
-   LIBS="$LIBS -framework Carbon"
+   if test $with_gtk = yes; then
+      DW_SRC=gtk
+      LIBS="$LIBS -framework Gtk -framework Glib -framework Cairo"
+      GTK_CFLAGS="-I/Library/Frameworks/Gtk.framework/Headers -I/Library/Frameworks/Glib.framework/Headers -I/Library/Frameworks/Cairo.framework/Headers $ARCH"
+   else
+      DW_SRC=mac
+      DW_DEFINE=__MAC__
+      LIBS="$LIBS -framework Carbon"
+   fi
 else
    # Extract the first word of "pkg-config", so it can be a program name with args.
 set dummy pkg-config; ac_word=$2
@@ -6415,6 +6466,8 @@ MKDIR="mkdir"
 
 
 
+
+
 ac_config_files="$ac_config_files Makefile dw-config"
 
 cat >confcache <<\_ACEOF
@@ -7071,6 +7124,8 @@ LIBS!$LIBS$ac_delim
 build_alias!$build_alias$ac_delim
 host_alias!$host_alias$ac_delim
 target_alias!$target_alias$ac_delim
+TARGET!$TARGET$ac_delim
+TARGET2!$TARGET2$ac_delim
 DW_MAJOR_VERSION!$DW_MAJOR_VERSION$ac_delim
 DW_MINOR_VERSION!$DW_MINOR_VERSION$ac_delim
 DW_SUB_VERSION!$DW_SUB_VERSION$ac_delim
@@ -7088,6 +7143,8 @@ MAKE!$MAKE$ac_delim
 INSTALL_PROGRAM!$INSTALL_PROGRAM$ac_delim
 INSTALL_SCRIPT!$INSTALL_SCRIPT$ac_delim
 INSTALL_DATA!$INSTALL_DATA$ac_delim
+SYSCONF_LINK_TARGET_SHARED!$SYSCONF_LINK_TARGET_SHARED$ac_delim
+SYSCONF_LINK_TARGET_SHARED2!$SYSCONF_LINK_TARGET_SHARED2$ac_delim
 CPP!$CPP$ac_delim
 GREP!$GREP$ac_delim
 EGREP!$EGREP$ac_delim
@@ -7112,11 +7169,13 @@ SOSUFFIX!$SOSUFFIX$ac_delim
 DW_SRC!$DW_SRC$ac_delim
 DW_DEFINE!$DW_DEFINE$ac_delim
 BROWSER_OBJECT!$BROWSER_OBJECT$ac_delim
+COMPAT_OBJECT!$COMPAT_OBJECT$ac_delim
+INSTALL_COMPAT!$INSTALL_COMPAT$ac_delim
 LIBOBJS!$LIBOBJS$ac_delim
 LTLIBOBJS!$LTLIBOBJS$ac_delim
 _ACEOF
 
-  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 80; then
+  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 86; then
     break
   elif $ac_last_try; then
     { { echo "$as_me:$LINENO: error: could not make $CONFIG_STATUS" >&5

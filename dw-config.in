@@ -74,6 +74,6 @@ if test "$echo_cflags" = "yes"; then
 fi
 
 if test "$echo_libs" = "yes"; then
-      echo -L${prefix}/lib -ldw -ldwcompat $dw_libs
-fi      
+      echo -L${prefix}/lib -ldw $dw_libs
+fi
 

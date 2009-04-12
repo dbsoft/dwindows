@@ -5,6 +5,11 @@ DW_MAJOR_VERSION=1
 DW_MINOR_VERSION=1
 DW_SUB_VERSION=0
 
+TARGET="dw"
+TARGET2="dwcompat"
+AC_SUBST(TARGET)
+AC_SUBST(TARGET2)
+
 DW_SRC=gtk
 DW_DEFINE=__UNIX__
 SHAREDFLAG=-shared
@@ -26,6 +31,33 @@ fi
 AC_PROG_INSTALL
 
 AC_SUBST(MAKE)
+
+dnl ---------------------- check for '--with-compat' switch -----------------
+with_compat=no
+AC_ARG_WITH(compat,
+   [  --with-compat           specify this to build the optional dwcompat library],
+   [with_compat=$withval],
+   [with_compat=no],
+)
+if test $with_compat = yes; then
+   COMPAT_OBJECT="compat.o"
+   INSTALL_COMPAT="installcompat"
+   SYSCONF_LINK_TARGET_SHARED2="lib$TARGET2.$SOSUFFIX.$DW_MAJOR_VERSION.$DW_MINOR_VERSION"
+else
+   COMPAT_OBJECT=""
+   INSTALL_COMPAT=""
+   SYSCONF_LINK_TARGET_SHARED2=""
+fi
+SYSCONF_LINK_TARGET_SHARED="lib$TARGET.$SOSUFFIX.$DW_MAJOR_VERSION.$DW_MINOR_VERSION"
+AC_SUBST(SYSCONF_LINK_TARGET_SHARED)
+AC_SUBST(SYSCONF_LINK_TARGET_SHARED2)
+
+dnl ---------------------- check for '--with-gtk+' switch -----------------
+AC_ARG_WITH(gtk,
+   [  --with-gtk              specify this to build dwindows with GTK+ (only relevant for OSX)],
+   [with_gtk=$withval],
+   [with_gtk=no],
+)
 
 AC_HEADER_STDC
 AC_HEADER_DIRENT
@@ -62,11 +94,18 @@ case "OPSYSTEM" in
 esac
 
 if test $OPSYSTEM = "Darwin"; then
-   DW_SRC=mac
-   DW_DEFINE=__MAC__
-   SHAREDFLAG=-dynamiclib
+   ARCH="-arch ppc -arch ppc64 -arch x86_64 -arch i386"
+   SHAREDFLAG="-dynamiclib -flat_namespace -undefined suppress $ARCH"
    SOSUFFIX=dylib
-   LIBS="$LIBS -framework Carbon"
+   if test $with_gtk = yes; then
+      DW_SRC=gtk
+      LIBS="$LIBS -framework Gtk -framework Glib -framework Cairo"
+      GTK_CFLAGS="-I/Library/Frameworks/Gtk.framework/Headers -I/Library/Frameworks/Glib.framework/Headers -I/Library/Frameworks/Cairo.framework/Headers $ARCH"
+   else
+      DW_SRC=mac
+      DW_DEFINE=__MAC__
+      LIBS="$LIBS -framework Carbon"
+   fi
 else
    AC_CHECK_PROG(PKG_CFG, pkg-config, pkg-config)
    if test x"$PKG_CFG" != x; then
@@ -142,6 +181,8 @@ AC_SUBST(SOSUFFIX)
 AC_SUBST(DW_SRC)
 AC_SUBST(DW_DEFINE)
 AC_SUBST(BROWSER_OBJECT)
+AC_SUBST(COMPAT_OBJECT)
+AC_SUBST(INSTALL_COMPAT)
 
 AC_CONFIG_FILES([
 Makefile

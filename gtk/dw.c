@@ -1880,7 +1880,7 @@ static GdkPixbuf *_find_pixbuf(long id)
 }
 #endif
 
-#if defined(GDK_WINDOWING_X11)
+#ifdef GDK_WINDOWING_X11
 static void _size_allocate(GtkWindow *window)
 {
   XSizeHints sizehints;
@@ -1894,9 +1894,7 @@ static void _size_allocate(GtkWindow *window)
 
   sizehints.flags = (PBaseSize|PMinSize|PResizeInc);
 
-  XSetWMNormalHints (GDK_DISPLAY(),
-           GDK_WINDOW_XWINDOW (GTK_WIDGET (window)->window),
-           &sizehints);
+  XSetWMNormalHints (GDK_DISPLAY(),GDK_WINDOW_XWINDOW (GTK_WIDGET (window)->window),&sizehints);
   gdk_flush ();
 }
 #endif
@@ -2436,9 +2434,13 @@ int dw_window_minimize(HWND handle)
    else
 #endif
    {
+#if 0
       XIconifyWindow(GDK_WINDOW_XDISPLAY(GTK_WIDGET(handle)->window),
                   GDK_WINDOW_XWINDOW(GTK_WIDGET(handle)->window),
                   DefaultScreen (GDK_DISPLAY ()));
+#else
+      gtk_window_iconify( GTK_WINDOW(handle) );
+#endif
    }
    DW_MUTEX_UNLOCK;
    return 0;
@@ -3545,11 +3547,11 @@ void dw_pointer_set_pos(long x, long y)
    int _locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
-#if GTK_CHECK_VERSION(2,8,0)
+#ifdef GDK_WINDOWING_X11
+# if GTK_CHECK_VERSION(2,8,0)
    gdk_display_warp_pointer( gdk_display_get_default(), gdk_screen_get_default(), x, y );
 //   gdk_display_warp_pointer( GDK_DISPLAY(), gdk_screen_get_default(), x, y );
-#else
-# if GDK_WINDOWING_X11
+# else
    XWarpPointer(GDK_DISPLAY(), None, GDK_ROOT_WINDOW(), 0,0,0,0, x, y);
 # endif
 #endif
@@ -8835,8 +8837,7 @@ void dw_window_set_size(HWND handle, unsigned long width, unsigned long height)
          default_width = -1;
       if ( height == 0 )
          default_height = -1;
-#if defined(GDK_WINDOWING_X11)
-
+#ifdef GDK_WINDOWING_X11
       _size_allocate(GTK_WINDOW(handle));
 #endif
       if(handle->window)
