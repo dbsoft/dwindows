@@ -1,6 +1,9 @@
 #
 # Get our source directory
 #
+VER = 11
+VERDOT = 1.1
+
 !if "$(DWINDOWS_SRCDIR)" == ""
 SRCDIR=.
 !else
@@ -98,3 +101,7 @@ dwtest: dwtest.exe
 
 dwtest.exe: dwtest.obj winmain.obj
 	$(LINK) $(LINKFLAGS) /out:dwtest.exe dwtest.obj winmain.obj /subsystem:windows $(FXLIBDIR)\dwcompat.lib $(FXLIBDIR)\dw.lib $(LIBS)
+
+zip: dw.dll
+	copy win\readme-win.txt .
+	zip dwindows-win32-$(VERDOT).zip readme-win.txt dw.dll dwcompat.dll dw.lib dwcompat.lib dw.h
