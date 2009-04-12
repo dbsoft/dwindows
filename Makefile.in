@@ -9,9 +9,11 @@ INCPATH	=	-I.. -I. -I$(srcdir)
 TARGET	=	dw
 SRCS	=	$(srcdir)/$(DW_SRC)/dw.c $(DW_SRC)rel2abs.c
 BROWSER_OBJECT=@BROWSER_OBJECT@
+COMPAT_OBJECT=@COMPAT_OBJECT@
+INSTALL_COMPAT=@INSTALL_COMPAT@
 OBJECTS	=	dw.o rel2abs.o $(BROWSER_OBJECT)
 SRCS2	=	$(srcdir)compat.c
-OBJECTS2=	compat.o
+OBJECTS2=	$(COMPAT_OBJECT)
 TARGET2 =	dwcompat
 VER_MAJ	=	@DW_MAJOR_VERSION@
 VER_MIN	=	@DW_MINOR_VERSION@
@@ -33,7 +35,7 @@ SYSCONF_LFLAGS_SHOBJ	= @SHAREDFLAG@
 #   - Usually needs to incorporate $(VER_MAJ) and $(VER_MIN)
 #
 SYSCONF_LINK_SHLIB	= gcc
-SYSCONF_LINK_TARGET_SHARED	= lib$(TARGET).$(SOSUFFIX).$(VER_MAJ).$(VER_MIN)
+SYSCONF_LINK_TARGET_SHARED = @SYSCONF_LINK_TARGET_SHARED@
 SYSCONF_LINK_LIB_SHARED	=  $(SYSCONF_LINK_SHLIB) $(SYSCONF_LFLAGS_SHOBJ) \
 				     -o $(SYSCONF_LINK_TARGET_SHARED) \
 				     $(OBJECTS) $(LFLAGS); \
@@ -41,7 +43,7 @@ SYSCONF_LINK_LIB_SHARED	=  $(SYSCONF_LINK_SHLIB) $(SYSCONF_LFLAGS_SHOBJ) \
 				 ln -s $(SYSCONF_LINK_TARGET_SHARED) lib$(TARGET).$(SOSUFFIX); \
 				 ln -s $(SYSCONF_LINK_TARGET_SHARED) lib$(TARGET).$(SOSUFFIX).$(VER_MAJ)
 
-SYSCONF_LINK_TARGET_SHARED2	= lib$(TARGET2).$(SOSUFFIX).$(VER_MAJ).$(VER_MIN)
+SYSCONF_LINK_TARGET_SHARED2 = @SYSCONF_LINK_TARGET_SHARED2@
 SYSCONF_LINK_LIB_SHARED2 =  $(SYSCONF_LINK_SHLIB) $(SYSCONF_LFLAGS_SHOBJ) \
 				     -o $(SYSCONF_LINK_TARGET_SHARED2) \
 				     $(OBJECTS2) $(LFLAGS); \
@@ -70,7 +72,9 @@ SYSCONF_LINK_LIB2 = $(SYSCONF_LINK_LIB_SHARED2)
 
 all: $(SYSCONF_LINK_TARGET) $(SYSCONF_LINK_TARGET2) dwtest
 
-install:
+install: installbase $(INSTALL_COMPAT)
+
+installbase: $(SYSCONF_LINK_TARGET)
 		$(INSTALL) -d $(PREFIX)/include; \
 		$(INSTALL) -d $(PREFIX)/bin; \
 		$(INSTALL) -d $(PREFIX)/lib; \
@@ -78,17 +82,21 @@ install:
 		$(INSTALL) dw-config $(PREFIX)/bin; \
 		$(INSTALL) dwtest $(PREFIX)/bin; \
 		$(INSTALL) $(SYSCONF_LINK_TARGET)  $(PREFIX)/lib; \
-		$(INSTALL) $(SYSCONF_LINK_TARGET2) $(PREFIX)/lib; \
 		cd $(PREFIX)/lib; \
 		rm -f lib$(TARGET).so lib$(TARGET).so.$(VER_MAJ); \
-		ln -s $(SYSCONF_LINK_TARGET_SHARED) lib$(TARGET).$(SOSUFFIX); \
-		ln -s $(SYSCONF_LINK_TARGET_SHARED) lib$(TARGET).$(SOSUFFIX).$(VER_MAJ); \
+		ln -sf $(SYSCONF_LINK_TARGET_SHARED) lib$(TARGET).$(SOSUFFIX); \
+		ln -sf $(SYSCONF_LINK_TARGET_SHARED) lib$(TARGET).$(SOSUFFIX).$(VER_MAJ)
+
+installcompat: $(SYSCONF_LINK_TARGET2)
+		$(INSTALL) -d $(PREFIX)/lib; \
+		$(INSTALL) $(SYSCONF_LINK_TARGET2) $(PREFIX)/lib; \
+		cd $(PREFIX)/lib; \
 		rm -f lib$(TARGET2).$(SOSUFFIX) lib$(TARGET2).$(SOSUFFIX).$(VER_MAJ); \
-		ln -s $(SYSCONF_LINK_TARGET_SHARED2) lib$(TARGET2).$(SOSUFFIX); \
-		ln -s $(SYSCONF_LINK_TARGET_SHARED2) lib$(TARGET2).$(SOSUFFIX).$(VER_MAJ)
+		ln -sf $(SYSCONF_LINK_TARGET_SHARED2) lib$(TARGET2).$(SOSUFFIX); \
+		ln -sf $(SYSCONF_LINK_TARGET_SHARED2) lib$(TARGET2).$(SOSUFFIX).$(VER_MAJ)
 
 clean:
-	rm -f *.so
+	rm -f *.$(SOSUFFIX)
 	rm -f *.o
 	rm -f *~
 	rm -f *.a
@@ -109,22 +117,16 @@ browser.o: $(srcdir)/$(DW_SRC)/browser.cpp
 compat.o: $(srcdir)/compat.c
 	$(CC) -c $(INCPATH) $(CCFLAGS) -o $@ $(srcdir)/compat.c
 
-rel2abs.o: $(DW_SRC)/rel2abs.c
-	$(CC) -c $(INCPATH) $(CCFLAGS) -o $@ $(DW_SRC)/rel2abs.c
-
-ci.o: $(srcdir)/ci.c
-	$(CC) -c $(INCPATH) $(CCFLAGS) -o $@ $(srcdir)/ci.c
+rel2abs.o: $(srcdir)/gtk/rel2abs.c
+	$(CC) -c $(INCPATH) $(CCFLAGS) -o $@ $(srcdir)/gtk/rel2abs.c
 
 dwtest.o: $(srcdir)/dwtest.c
 	$(CC) -c $(INCPATH) $(CCFLAGS) -o $@ $(srcdir)/dwtest.c
 
-ci: ci.o
-	$(CC) -o ci ci.o -L$(PREFIX)/lib -ldw -ldwcompat $(LFLAGS)
-
 dwtest: dwtest.o
 	$(CC) -o dwtest dwtest.o $(MLFLAGS) -ldw -ldwcompat $(LFLAGS)
-	-chmod +x mac/finishup.sh
-	-mac/finishup.sh
+	-chmod +x $(srcdir)/mac/finishup.sh
+	-$(srcdir)/mac/finishup.sh $(srcdir)
 
 zip:
 	zip dwindows$(VER_MAJ)$(VER_MIN).zip $(srcdir)/license.txt $(srcdir)/makefile.* $(srcdir)/readme $(srcdir)/*.c $(srcdir)/dw.h  $(srcdir)/compat.h \

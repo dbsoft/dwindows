@@ -11,12 +11,12 @@ static void _do_resize(Box *thisbox, int x, int y);
 
 typedef struct _sighandler
 {
-	struct _sighandler	*next;
-	ULONG message;
-	HWND window;
-	int id;
-	void *signalfunction;
-	void *data;
+   struct _sighandler   *next;
+   ULONG message;
+   HWND window;
+   int id;
+   void *signalfunction;
+   void *data;
 
 } SignalHandler;
 
@@ -24,8 +24,8 @@ SignalHandler *Root = NULL;
 
 typedef struct
 {
-	ULONG message;
-	char name[30];
+   ULONG message;
+   char name[30];
 
 } SignalList;
 
@@ -38,528 +38,528 @@ int _dw_screen_width = 0, _dw_screen_height = 0, _dw_color_depth = 16;
 #define SIGNALMAX 15
 
 SignalList SignalTranslate[SIGNALMAX] = {
-	{ nullEvent,       DW_SIGNAL_CONFIGURE },
-	{ keyUp,           DW_SIGNAL_KEY_PRESS },
-	{ mouseDown,       DW_SIGNAL_BUTTON_PRESS },
-	{ mouseUp,         DW_SIGNAL_BUTTON_RELEASE },
-	{ nullEvent,       DW_SIGNAL_MOTION_NOTIFY },
-	{ nullEvent,       DW_SIGNAL_DELETE },
-	{ updateEvt,       DW_SIGNAL_EXPOSE },
-	{ nullEvent,       DW_SIGNAL_CLICKED },
-	{ nullEvent,       DW_SIGNAL_ITEM_ENTER },
-	{ nullEvent,       DW_SIGNAL_ITEM_CONTEXT },
-	{ nullEvent,       DW_SIGNAL_LIST_SELECT },
-	{ nullEvent,       DW_SIGNAL_ITEM_SELECT },
-	{ activateEvt,     DW_SIGNAL_SET_FOCUS },
-	{ nullEvent,       DW_SIGNAL_VALUE_CHANGED },
-	{ nullEvent,       DW_SIGNAL_SWITCH_PAGE }
+   { nullEvent,       DW_SIGNAL_CONFIGURE },
+   { keyUp,           DW_SIGNAL_KEY_PRESS },
+   { mouseDown,       DW_SIGNAL_BUTTON_PRESS },
+   { mouseUp,         DW_SIGNAL_BUTTON_RELEASE },
+   { nullEvent,       DW_SIGNAL_MOTION_NOTIFY },
+   { nullEvent,       DW_SIGNAL_DELETE },
+   { updateEvt,       DW_SIGNAL_EXPOSE },
+   { nullEvent,       DW_SIGNAL_CLICKED },
+   { nullEvent,       DW_SIGNAL_ITEM_ENTER },
+   { nullEvent,       DW_SIGNAL_ITEM_CONTEXT },
+   { nullEvent,       DW_SIGNAL_LIST_SELECT },
+   { nullEvent,       DW_SIGNAL_ITEM_SELECT },
+   { activateEvt,     DW_SIGNAL_SET_FOCUS },
+   { nullEvent,       DW_SIGNAL_VALUE_CHANGED },
+   { nullEvent,       DW_SIGNAL_SWITCH_PAGE }
 };
 
 /* This function adds a signal handler callback into the linked list.
  */
 void _new_signal(ULONG message, HWND window, int id, void *signalfunction, void *data)
 {
-	SignalHandler *new = malloc(sizeof(SignalHandler));
+   SignalHandler *new = malloc(sizeof(SignalHandler));
 
-	new->message = message;
-	new->window = window;
-	new->id = id;
-	new->signalfunction = signalfunction;
-	new->data = data;
-	new->next = NULL;
+   new->message = message;
+   new->window = window;
+   new->id = id;
+   new->signalfunction = signalfunction;
+   new->data = data;
+   new->next = NULL;
 
-	if (!Root)
-		Root = new;
-	else
-	{
-		SignalHandler *prev = NULL, *tmp = Root;
-		while(tmp)
-		{
-			if(tmp->message == message &&
-			   tmp->window == window &&
-			   tmp->signalfunction == signalfunction)
-			{
-				tmp->data = data;
-				free(new);
-				return;
-			}
-			prev = tmp;
-			tmp = tmp->next;
-		}
-		if(prev)
-			prev->next = new;
-		else
-			Root = new;
-	}
+   if (!Root)
+      Root = new;
+   else
+   {
+      SignalHandler *prev = NULL, *tmp = Root;
+      while(tmp)
+      {
+         if(tmp->message == message &&
+            tmp->window == window &&
+            tmp->signalfunction == signalfunction)
+         {
+            tmp->data = data;
+            free(new);
+            return;
+         }
+         prev = tmp;
+         tmp = tmp->next;
+      }
+      if(prev)
+         prev->next = new;
+      else
+         Root = new;
+   }
 }
 
 /* Finds the message number for a given signal name */
 static ULONG _findsigmessage(char *signame)
 {
-	int z;
+   int z;
 
-	for(z=0;z<SIGNALMAX;z++)
-	{
-		if(strcasecmp(signame, SignalTranslate[z].name) == 0)
-			return SignalTranslate[z].message;
-	}
-	return 0L;
+   for(z=0;z<SIGNALMAX;z++)
+   {
+      if(strcasecmp(signame, SignalTranslate[z].name) == 0)
+         return SignalTranslate[z].message;
+   }
+   return 0L;
 }
 
 /* Creates a Pascal string from a C string */
 char *_CToPascal(unsigned char *ptr, char *cstring)
 {
-	unsigned char len = (char)strlen(cstring);
+   unsigned char len = (char)strlen(cstring);
 
-	ptr[0] = len;
-	memcpy(&ptr[1], cstring, len+1);
-	return (char *)ptr;
+   ptr[0] = len;
+   memcpy(&ptr[1], cstring, len+1);
+   return (char *)ptr;
 }
 
 #define CToPascal(a) _CToPascal(alloca(strlen(a)+2), a)
 
 static void *_get_window_pointer(HWND handle)
 {
-	void *ret = NULL;
+   void *ret = NULL;
 
-	if(IsValidWindowRef((WindowRef)handle))
-		GetWindowProperty((WindowRef)handle, 0, 'user', sizeof(void *), NULL, &ret);
-	else
-		GetControlProperty(handle, 0, 'user', sizeof(void *), NULL, &ret);
-	return ret;
+   if(IsValidWindowRef((WindowRef)handle))
+      GetWindowProperty((WindowRef)handle, 0, 'user', sizeof(void *), NULL, &ret);
+   else
+      GetControlProperty(handle, 0, 'user', sizeof(void *), NULL, &ret);
+   return ret;
 }
 
 static void _set_window_pointer(HWND handle, void *pointer)
 {
-	if(IsValidWindowRef((WindowRef)handle))
-		SetWindowProperty((WindowRef)handle, 0, 'user', sizeof(void *), &pointer);
-	else
-		SetControlProperty(handle, 0, 'user', sizeof(void *), &pointer);
+   if(IsValidWindowRef((WindowRef)handle))
+      SetWindowProperty((WindowRef)handle, 0, 'user', sizeof(void *), &pointer);
+   else
+      SetControlProperty(handle, 0, 'user', sizeof(void *), &pointer);
 }
 
 /* This function will recursively search a box and add up the total height of it */
 static void _count_size(HWND box, int type, int *xsize, int *xorigsize)
 {
-	int size = 0, origsize = 0, z;
-	Box *tmp = _get_window_pointer(box);
+   int size = 0, origsize = 0, z;
+   Box *tmp = _get_window_pointer(box);
 
-	if(!tmp)
-	{
-		*xsize = *xorigsize = 0;
-		return;
-	}
+   if(!tmp)
+   {
+      *xsize = *xorigsize = 0;
+      return;
+   }
 
-	if(type == tmp->type)
-	{
-		/* If the box is going in the direction we want, then we
-		 * return the entire sum of the items.
-		 */
-		for(z=0;z<tmp->count;z++)
-		{
-			if(tmp->items[z].type == TYPEBOX)
-			{
-				int s, os;
+   if(type == tmp->type)
+   {
+      /* If the box is going in the direction we want, then we
+       * return the entire sum of the items.
+       */
+      for(z=0;z<tmp->count;z++)
+      {
+         if(tmp->items[z].type == TYPEBOX)
+         {
+            int s, os;
 
-				_count_size(tmp->items[z].hwnd, type, &s, &os);
-				size += s;
-				origsize += os;
-			}
-			else
-			{
-				size += (type == DW_HORZ ? tmp->items[z].width : tmp->items[z].height);
-				origsize += (type == DW_HORZ ? tmp->items[z].origwidth : tmp->items[z].origheight);
-			}
-		}
-	}
-	else
-	{
-		/* If the box is not going in the direction we want, then we only
-		 * want to return the maximum value.
-		 */
-		int tmpsize = 0, tmporigsize = 0;
+            _count_size(tmp->items[z].hwnd, type, &s, &os);
+            size += s;
+            origsize += os;
+         }
+         else
+         {
+            size += (type == DW_HORZ ? tmp->items[z].width : tmp->items[z].height);
+            origsize += (type == DW_HORZ ? tmp->items[z].origwidth : tmp->items[z].origheight);
+         }
+      }
+   }
+   else
+   {
+      /* If the box is not going in the direction we want, then we only
+       * want to return the maximum value.
+       */
+      int tmpsize = 0, tmporigsize = 0;
 
-		for(z=0;z<tmp->count;z++)
-		{
-			if(tmp->items[z].type == TYPEBOX)
-				_count_size(tmp->items[z].hwnd, type, &tmpsize, &tmporigsize);
-			else
-			{
-				tmpsize = (type == DW_HORZ ? tmp->items[z].width : tmp->items[z].height);
-				tmporigsize = (type == DW_HORZ ? tmp->items[z].origwidth : tmp->items[z].origheight);
-			}
+      for(z=0;z<tmp->count;z++)
+      {
+         if(tmp->items[z].type == TYPEBOX)
+            _count_size(tmp->items[z].hwnd, type, &tmpsize, &tmporigsize);
+         else
+         {
+            tmpsize = (type == DW_HORZ ? tmp->items[z].width : tmp->items[z].height);
+            tmporigsize = (type == DW_HORZ ? tmp->items[z].origwidth : tmp->items[z].origheight);
+         }
 
-			if(tmpsize > size)
-				size = tmpsize;
-		}
-	}
+         if(tmpsize > size)
+            size = tmpsize;
+      }
+   }
 
-	*xsize = size;
-	*xorigsize = origsize;
+   *xsize = size;
+   *xorigsize = origsize;
 }
 
 /* This function calculates how much space the widgets and boxes require
  * and does expansion as necessary.
  */
 static int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *usedy,
-				int pass, int *usedpadx, int *usedpady)
+            int pass, int *usedpadx, int *usedpady)
 {
-	int z, currentx = 0, currenty = 0;
-	int uymax = 0, uxmax = 0;
-	int upymax = 0, upxmax = 0;
-	/* Used for the SIZEEXPAND */
-	int nux = *usedx, nuy = *usedy;
-	int nupx = *usedpadx, nupy = *usedpady;
+   int z, currentx = 0, currenty = 0;
+   int uymax = 0, uxmax = 0;
+   int upymax = 0, upxmax = 0;
+   /* Used for the SIZEEXPAND */
+   int nux = *usedx, nuy = *usedy;
+   int nupx = *usedpadx, nupy = *usedpady;
 
-	(*usedx) += (thisbox->pad * 2);
-	(*usedy) += (thisbox->pad * 2);
+   (*usedx) += (thisbox->pad * 2);
+   (*usedy) += (thisbox->pad * 2);
 
-	for(z=0;z<thisbox->count;z++)
-	{
-		if(thisbox->items[z].type == TYPEBOX)
-		{
-			int initialx, initialy;
-			Box *tmp = _get_window_pointer(thisbox->items[z].hwnd);
+   for(z=0;z<thisbox->count;z++)
+   {
+      if(thisbox->items[z].type == TYPEBOX)
+      {
+         int initialx, initialy;
+         Box *tmp = _get_window_pointer(thisbox->items[z].hwnd);
 
-			initialx = x - (*usedx);
-			initialy = y - (*usedy);
+         initialx = x - (*usedx);
+         initialy = y - (*usedy);
 
-			if(tmp)
-			{
-				int newx, newy;
-				int nux = *usedx, nuy = *usedy;
-				int upx = *usedpadx + (tmp->pad*2), upy = *usedpady + (tmp->pad*2);
+         if(tmp)
+         {
+            int newx, newy;
+            int nux = *usedx, nuy = *usedy;
+            int upx = *usedpadx + (tmp->pad*2), upy = *usedpady + (tmp->pad*2);
 
-				/* On the second pass we know how big the box needs to be and how
-				 * much space we have, so we can calculate a ratio for the new box.
-				 */
-				if(pass == 2)
-				{
-					int deep = *depth + 1;
+            /* On the second pass we know how big the box needs to be and how
+             * much space we have, so we can calculate a ratio for the new box.
+             */
+            if(pass == 2)
+            {
+               int deep = *depth + 1;
 
-					_resize_box(tmp, &deep, x, y, &nux, &nuy, 1, &upx, &upy);
+               _resize_box(tmp, &deep, x, y, &nux, &nuy, 1, &upx, &upy);
 
-					tmp->upx = upx - *usedpadx;
-					tmp->upy = upy - *usedpady;
+               tmp->upx = upx - *usedpadx;
+               tmp->upy = upy - *usedpady;
 
-					newx = x - nux;
-					newy = y - nuy;
+               newx = x - nux;
+               newy = y - nuy;
 
-					tmp->width = thisbox->items[z].width = initialx - newx;
-					tmp->height = thisbox->items[z].height = initialy - newy;
+               tmp->width = thisbox->items[z].width = initialx - newx;
+               tmp->height = thisbox->items[z].height = initialy - newy;
 
-					tmp->parentxratio = thisbox->xratio;
-					tmp->parentyratio = thisbox->yratio;
+               tmp->parentxratio = thisbox->xratio;
+               tmp->parentyratio = thisbox->yratio;
 
-					tmp->parentpad = tmp->pad;
+               tmp->parentpad = tmp->pad;
 
-					/* Just in case */
-					tmp->xratio = thisbox->xratio;
-					tmp->yratio = thisbox->yratio;
+               /* Just in case */
+               tmp->xratio = thisbox->xratio;
+               tmp->yratio = thisbox->yratio;
 
-					if(thisbox->type == DW_VERT)
-					{
-						if((thisbox->items[z].width-((thisbox->items[z].pad*2)+(tmp->pad*2)))!=0)
-							tmp->xratio = ((float)((thisbox->items[z].width * thisbox->xratio)-((thisbox->items[z].pad*2)+(tmp->pad*2))))/((float)(thisbox->items[z].width-((thisbox->items[z].pad*2)+(tmp->pad*2))));
-					}
-					else
-					{
-						if((thisbox->items[z].width-tmp->upx)!=0)
-							tmp->xratio = ((float)((thisbox->items[z].width * thisbox->xratio)-tmp->upx))/((float)(thisbox->items[z].width-tmp->upx));
-					}
-					if(thisbox->type == DW_HORZ)
-					{
-						if((thisbox->items[z].height-((thisbox->items[z].pad*2)+(tmp->pad*2)))!=0)
-							tmp->yratio = ((float)((thisbox->items[z].height * thisbox->yratio)-((thisbox->items[z].pad*2)+(tmp->pad*2))))/((float)(thisbox->items[z].height-((thisbox->items[z].pad*2)+(tmp->pad*2))));
-					}
-					else
-					{
-						if((thisbox->items[z].height-tmp->upy)!=0)
-							tmp->yratio = ((float)((thisbox->items[z].height * thisbox->yratio)-tmp->upy))/((float)(thisbox->items[z].height-tmp->upy));
-					}
+               if(thisbox->type == DW_VERT)
+               {
+                  if((thisbox->items[z].width-((thisbox->items[z].pad*2)+(tmp->pad*2)))!=0)
+                     tmp->xratio = ((float)((thisbox->items[z].width * thisbox->xratio)-((thisbox->items[z].pad*2)+(tmp->pad*2))))/((float)(thisbox->items[z].width-((thisbox->items[z].pad*2)+(tmp->pad*2))));
+               }
+               else
+               {
+                  if((thisbox->items[z].width-tmp->upx)!=0)
+                     tmp->xratio = ((float)((thisbox->items[z].width * thisbox->xratio)-tmp->upx))/((float)(thisbox->items[z].width-tmp->upx));
+               }
+               if(thisbox->type == DW_HORZ)
+               {
+                  if((thisbox->items[z].height-((thisbox->items[z].pad*2)+(tmp->pad*2)))!=0)
+                     tmp->yratio = ((float)((thisbox->items[z].height * thisbox->yratio)-((thisbox->items[z].pad*2)+(tmp->pad*2))))/((float)(thisbox->items[z].height-((thisbox->items[z].pad*2)+(tmp->pad*2))));
+               }
+               else
+               {
+                  if((thisbox->items[z].height-tmp->upy)!=0)
+                     tmp->yratio = ((float)((thisbox->items[z].height * thisbox->yratio)-tmp->upy))/((float)(thisbox->items[z].height-tmp->upy));
+               }
 
-					nux = *usedx; nuy = *usedy;
-					upx = *usedpadx + (tmp->pad*2); upy = *usedpady + (tmp->pad*2);
-				}
+               nux = *usedx; nuy = *usedy;
+               upx = *usedpadx + (tmp->pad*2); upy = *usedpady + (tmp->pad*2);
+            }
 
-				(*depth)++;
+            (*depth)++;
 
-				_resize_box(tmp, depth, x, y, &nux, &nuy, pass, &upx, &upy);
+            _resize_box(tmp, depth, x, y, &nux, &nuy, pass, &upx, &upy);
 
-				(*depth)--;
+            (*depth)--;
 
-				newx = x - nux;
-				newy = y - nuy;
+            newx = x - nux;
+            newy = y - nuy;
 
-				tmp->minwidth = thisbox->items[z].width = initialx - newx;
-				tmp->minheight = thisbox->items[z].height = initialy - newy;
-			}
-		}
+            tmp->minwidth = thisbox->items[z].width = initialx - newx;
+            tmp->minheight = thisbox->items[z].height = initialy - newy;
+         }
+      }
 
-		if(pass > 1 && *depth > 0)
-		{
-			if(thisbox->type == DW_VERT)
-			{
-				if((thisbox->minwidth-((thisbox->items[z].pad*2)+(thisbox->parentpad*2))) == 0)
-					thisbox->items[z].xratio = 1.0;
-				else
-					thisbox->items[z].xratio = ((float)((thisbox->width * thisbox->parentxratio)-((thisbox->items[z].pad*2)+(thisbox->parentpad*2))))/((float)(thisbox->minwidth-((thisbox->items[z].pad*2)+(thisbox->parentpad*2))));
-			}
-			else
-			{
-				if(thisbox->minwidth-thisbox->upx == 0)
-					thisbox->items[z].xratio = 1.0;
-				else
-					thisbox->items[z].xratio = ((float)((thisbox->width * thisbox->parentxratio)-thisbox->upx))/((float)(thisbox->minwidth-thisbox->upx));
-			}
+      if(pass > 1 && *depth > 0)
+      {
+         if(thisbox->type == DW_VERT)
+         {
+            if((thisbox->minwidth-((thisbox->items[z].pad*2)+(thisbox->parentpad*2))) == 0)
+               thisbox->items[z].xratio = 1.0;
+            else
+               thisbox->items[z].xratio = ((float)((thisbox->width * thisbox->parentxratio)-((thisbox->items[z].pad*2)+(thisbox->parentpad*2))))/((float)(thisbox->minwidth-((thisbox->items[z].pad*2)+(thisbox->parentpad*2))));
+         }
+         else
+         {
+            if(thisbox->minwidth-thisbox->upx == 0)
+               thisbox->items[z].xratio = 1.0;
+            else
+               thisbox->items[z].xratio = ((float)((thisbox->width * thisbox->parentxratio)-thisbox->upx))/((float)(thisbox->minwidth-thisbox->upx));
+         }
 
-			if(thisbox->type == DW_HORZ)
-			{
-				if((thisbox->minheight-((thisbox->items[z].pad*2)+(thisbox->parentpad*2))) == 0)
-					thisbox->items[z].yratio = 1.0;
-				else
-					thisbox->items[z].yratio = ((float)((thisbox->height * thisbox->parentyratio)-((thisbox->items[z].pad*2)+(thisbox->parentpad*2))))/((float)(thisbox->minheight-((thisbox->items[z].pad*2)+(thisbox->parentpad*2))));
-			}
-			else
-			{
-				if(thisbox->minheight-thisbox->upy == 0)
-					thisbox->items[z].yratio = 1.0;
-				else
-					thisbox->items[z].yratio = ((float)((thisbox->height * thisbox->parentyratio)-thisbox->upy))/((float)(thisbox->minheight-thisbox->upy));
-			}
+         if(thisbox->type == DW_HORZ)
+         {
+            if((thisbox->minheight-((thisbox->items[z].pad*2)+(thisbox->parentpad*2))) == 0)
+               thisbox->items[z].yratio = 1.0;
+            else
+               thisbox->items[z].yratio = ((float)((thisbox->height * thisbox->parentyratio)-((thisbox->items[z].pad*2)+(thisbox->parentpad*2))))/((float)(thisbox->minheight-((thisbox->items[z].pad*2)+(thisbox->parentpad*2))));
+         }
+         else
+         {
+            if(thisbox->minheight-thisbox->upy == 0)
+               thisbox->items[z].yratio = 1.0;
+            else
+               thisbox->items[z].yratio = ((float)((thisbox->height * thisbox->parentyratio)-thisbox->upy))/((float)(thisbox->minheight-thisbox->upy));
+         }
 
-			if(thisbox->items[z].type == TYPEBOX)
-			{
-				Box *tmp = _get_window_pointer(thisbox->items[z].hwnd);
+         if(thisbox->items[z].type == TYPEBOX)
+         {
+            Box *tmp = _get_window_pointer(thisbox->items[z].hwnd);
 
-				if(tmp)
-				{
-					tmp->parentxratio = thisbox->items[z].xratio;
-					tmp->parentyratio = thisbox->items[z].yratio;
-				}
-			}
-		}
-		else
-		{
-			thisbox->items[z].xratio = thisbox->xratio;
-			thisbox->items[z].yratio = thisbox->yratio;
-		}
+            if(tmp)
+            {
+               tmp->parentxratio = thisbox->items[z].xratio;
+               tmp->parentyratio = thisbox->items[z].yratio;
+            }
+         }
+      }
+      else
+      {
+         thisbox->items[z].xratio = thisbox->xratio;
+         thisbox->items[z].yratio = thisbox->yratio;
+      }
 
-		if(thisbox->type == DW_VERT)
-		{
-			if((thisbox->items[z].width + (thisbox->items[z].pad*2)) > uxmax)
-				uxmax = (thisbox->items[z].width + (thisbox->items[z].pad*2));
-			if(thisbox->items[z].hsize != SIZEEXPAND)
-			{
-				if(((thisbox->items[z].pad*2) + thisbox->items[z].width) > upxmax)
-					upxmax = (thisbox->items[z].pad*2) + thisbox->items[z].width;
-			}
-			else
-			{
-				if(thisbox->items[z].pad*2 > upxmax)
-					upxmax = thisbox->items[z].pad*2;
-			}
-		}
-		else
-		{
-			if(thisbox->items[z].width == -1)
-			{
-				/* figure out how much space this item requires */
-				/* thisbox->items[z].width = */
-			}
-			else
-			{
-				(*usedx) += thisbox->items[z].width + (thisbox->items[z].pad*2);
-				if(thisbox->items[z].hsize != SIZEEXPAND)
-					(*usedpadx) += (thisbox->items[z].pad*2) + thisbox->items[z].width;
-				else
-					(*usedpadx) += thisbox->items[z].pad*2;
-			}
-		}
-		if(thisbox->type == DW_HORZ)
-		{
-			if((thisbox->items[z].height + (thisbox->items[z].pad*2)) > uymax)
-				uymax = (thisbox->items[z].height + (thisbox->items[z].pad*2));
-			if(thisbox->items[z].vsize != SIZEEXPAND)
-			{
-				if(((thisbox->items[z].pad*2) + thisbox->items[z].height) > upymax)
-					upymax = (thisbox->items[z].pad*2) + thisbox->items[z].height;
-			}
-			else
-			{
-				if(thisbox->items[z].pad*2 > upymax)
-					upymax = thisbox->items[z].pad*2;
-			}
-		}
-		else
-		{
-			if(thisbox->items[z].height == -1)
-			{
-				/* figure out how much space this item requires */
-				/* thisbox->items[z].height = */
-			}
-			else
-			{
-				(*usedy) += thisbox->items[z].height + (thisbox->items[z].pad*2);
-				if(thisbox->items[z].vsize != SIZEEXPAND)
-					(*usedpady) += (thisbox->items[z].pad*2) + thisbox->items[z].height;
-				else
-					(*usedpady) += thisbox->items[z].pad*2;
-			}
-		}
-	}
+      if(thisbox->type == DW_VERT)
+      {
+         if((thisbox->items[z].width + (thisbox->items[z].pad*2)) > uxmax)
+            uxmax = (thisbox->items[z].width + (thisbox->items[z].pad*2));
+         if(thisbox->items[z].hsize != SIZEEXPAND)
+         {
+            if(((thisbox->items[z].pad*2) + thisbox->items[z].width) > upxmax)
+               upxmax = (thisbox->items[z].pad*2) + thisbox->items[z].width;
+         }
+         else
+         {
+            if(thisbox->items[z].pad*2 > upxmax)
+               upxmax = thisbox->items[z].pad*2;
+         }
+      }
+      else
+      {
+         if(thisbox->items[z].width == -1)
+         {
+            /* figure out how much space this item requires */
+            /* thisbox->items[z].width = */
+         }
+         else
+         {
+            (*usedx) += thisbox->items[z].width + (thisbox->items[z].pad*2);
+            if(thisbox->items[z].hsize != SIZEEXPAND)
+               (*usedpadx) += (thisbox->items[z].pad*2) + thisbox->items[z].width;
+            else
+               (*usedpadx) += thisbox->items[z].pad*2;
+         }
+      }
+      if(thisbox->type == DW_HORZ)
+      {
+         if((thisbox->items[z].height + (thisbox->items[z].pad*2)) > uymax)
+            uymax = (thisbox->items[z].height + (thisbox->items[z].pad*2));
+         if(thisbox->items[z].vsize != SIZEEXPAND)
+         {
+            if(((thisbox->items[z].pad*2) + thisbox->items[z].height) > upymax)
+               upymax = (thisbox->items[z].pad*2) + thisbox->items[z].height;
+         }
+         else
+         {
+            if(thisbox->items[z].pad*2 > upymax)
+               upymax = thisbox->items[z].pad*2;
+         }
+      }
+      else
+      {
+         if(thisbox->items[z].height == -1)
+         {
+            /* figure out how much space this item requires */
+            /* thisbox->items[z].height = */
+         }
+         else
+         {
+            (*usedy) += thisbox->items[z].height + (thisbox->items[z].pad*2);
+            if(thisbox->items[z].vsize != SIZEEXPAND)
+               (*usedpady) += (thisbox->items[z].pad*2) + thisbox->items[z].height;
+            else
+               (*usedpady) += thisbox->items[z].pad*2;
+         }
+      }
+   }
 
-	(*usedx) += uxmax;
-	(*usedy) += uymax;
-	(*usedpadx) += upxmax;
-	(*usedpady) += upymax;
+   (*usedx) += uxmax;
+   (*usedy) += uymax;
+   (*usedpadx) += upxmax;
+   (*usedpady) += upymax;
 
-	currentx += thisbox->pad;
-	currenty += thisbox->pad;
+   currentx += thisbox->pad;
+   currenty += thisbox->pad;
 
-	/* The second pass is for expansion and actual placement. */
-	if(pass > 1)
-	{
-		/* Any SIZEEXPAND items should be set to uxmax/uymax */
-		for(z=0;z<thisbox->count;z++)
-		{
-			if(thisbox->items[z].hsize == SIZEEXPAND && thisbox->type == DW_VERT)
-				thisbox->items[z].width = uxmax-(thisbox->items[z].pad*2);
-			if(thisbox->items[z].vsize == SIZEEXPAND && thisbox->type == DW_HORZ)
-				thisbox->items[z].height = uymax-(thisbox->items[z].pad*2);
-			/* Run this code segment again to finalize the sized after setting uxmax/uymax values. */
-			if(thisbox->items[z].type == TYPEBOX)
-			{
-				Box *tmp = _get_window_pointer(thisbox->items[z].hwnd);
+   /* The second pass is for expansion and actual placement. */
+   if(pass > 1)
+   {
+      /* Any SIZEEXPAND items should be set to uxmax/uymax */
+      for(z=0;z<thisbox->count;z++)
+      {
+         if(thisbox->items[z].hsize == SIZEEXPAND && thisbox->type == DW_VERT)
+            thisbox->items[z].width = uxmax-(thisbox->items[z].pad*2);
+         if(thisbox->items[z].vsize == SIZEEXPAND && thisbox->type == DW_HORZ)
+            thisbox->items[z].height = uymax-(thisbox->items[z].pad*2);
+         /* Run this code segment again to finalize the sized after setting uxmax/uymax values. */
+         if(thisbox->items[z].type == TYPEBOX)
+         {
+            Box *tmp = _get_window_pointer(thisbox->items[z].hwnd);
 
-				if(tmp)
-				{
-					if(*depth > 0)
-					{
-						float calcval;
+            if(tmp)
+            {
+               if(*depth > 0)
+               {
+                  float calcval;
 
-						if(thisbox->type == DW_VERT)
-						{
-							calcval = (float)(tmp->minwidth-((thisbox->items[z].pad*2)+(thisbox->pad*2)));
-							if(calcval == 0.0)
-								tmp->xratio = thisbox->xratio;
-							else
-								tmp->xratio = ((float)((thisbox->items[z].width * thisbox->xratio)-((thisbox->items[z].pad*2)+(thisbox->pad*2))))/calcval;
-							tmp->width = thisbox->items[z].width;
-						}
-						if(thisbox->type == DW_HORZ)
-						{
-							calcval = (float)(tmp->minheight-((thisbox->items[z].pad*2)+(thisbox->pad*2)));
-							if(calcval == 0.0)
-								tmp->yratio = thisbox->yratio;
-							else
-								tmp->yratio = ((float)((thisbox->items[z].height * thisbox->yratio)-((thisbox->items[z].pad*2)+(thisbox->pad*2))))/calcval;
-							tmp->height = thisbox->items[z].height;
-						}
-					}
+                  if(thisbox->type == DW_VERT)
+                  {
+                     calcval = (float)(tmp->minwidth-((thisbox->items[z].pad*2)+(thisbox->pad*2)));
+                     if(calcval == 0.0)
+                        tmp->xratio = thisbox->xratio;
+                     else
+                        tmp->xratio = ((float)((thisbox->items[z].width * thisbox->xratio)-((thisbox->items[z].pad*2)+(thisbox->pad*2))))/calcval;
+                     tmp->width = thisbox->items[z].width;
+                  }
+                  if(thisbox->type == DW_HORZ)
+                  {
+                     calcval = (float)(tmp->minheight-((thisbox->items[z].pad*2)+(thisbox->pad*2)));
+                     if(calcval == 0.0)
+                        tmp->yratio = thisbox->yratio;
+                     else
+                        tmp->yratio = ((float)((thisbox->items[z].height * thisbox->yratio)-((thisbox->items[z].pad*2)+(thisbox->pad*2))))/calcval;
+                     tmp->height = thisbox->items[z].height;
+                  }
+               }
 
-					(*depth)++;
+               (*depth)++;
 
-					_resize_box(tmp, depth, x, y, &nux, &nuy, 3, &nupx, &nupy);
+               _resize_box(tmp, depth, x, y, &nux, &nuy, 3, &nupx, &nupy);
 
-					(*depth)--;
+               (*depth)--;
 
-				}
-			}
-		}
+            }
+         }
+      }
 
-		for(z=0;z<(thisbox->count);z++)
-		{
-			int height = thisbox->items[z].height;
-			int width = thisbox->items[z].width;
-			int pad = thisbox->items[z].pad;
-			HWND handle = thisbox->items[z].hwnd;
-			int vectorx, vectory;
+      for(z=0;z<(thisbox->count);z++)
+      {
+         int height = thisbox->items[z].height;
+         int width = thisbox->items[z].width;
+         int pad = thisbox->items[z].pad;
+         HWND handle = thisbox->items[z].hwnd;
+         int vectorx, vectory;
 
-			/* When upxmax != pad*2 then ratios are incorrect. */
-			vectorx = (int)((width*thisbox->items[z].xratio)-width);
-			vectory = (int)((height*thisbox->items[z].yratio)-height);
+         /* When upxmax != pad*2 then ratios are incorrect. */
+         vectorx = (int)((width*thisbox->items[z].xratio)-width);
+         vectory = (int)((height*thisbox->items[z].yratio)-height);
 
-			if(width > 0 && height > 0)
-			{
-				/* This is a hack to fix rounding of the sizing */
-				if(*depth == 0)
-				{
-					vectorx++;
-					vectory++;
-				}
+         if(width > 0 && height > 0)
+         {
+            /* This is a hack to fix rounding of the sizing */
+            if(*depth == 0)
+            {
+               vectorx++;
+               vectory++;
+            }
 
-				/* If this item isn't going to expand... reset the vectors to 0 */
-				if(thisbox->items[z].vsize != SIZEEXPAND)
-					vectory = 0;
-				if(thisbox->items[z].hsize != SIZEEXPAND)
-					vectorx = 0;
+            /* If this item isn't going to expand... reset the vectors to 0 */
+            if(thisbox->items[z].vsize != SIZEEXPAND)
+               vectory = 0;
+            if(thisbox->items[z].hsize != SIZEEXPAND)
+               vectorx = 0;
 
-				MoveControl(handle, currentx + pad, currenty + pad);
-				SizeControl(handle, width + vectorx, height + vectory);
+            MoveControl(handle, currentx + pad, currenty + pad);
+            SizeControl(handle, width + vectorx, height + vectory);
 
-				if(thisbox->type == DW_HORZ)
-					currentx += width + vectorx + (pad * 2);
-				if(thisbox->type == DW_VERT)
-					currenty += height + vectory + (pad * 2);
-			}
-		}
-	}
-	return 0;
+            if(thisbox->type == DW_HORZ)
+               currentx += width + vectorx + (pad * 2);
+            if(thisbox->type == DW_VERT)
+               currenty += height + vectory + (pad * 2);
+         }
+      }
+   }
+   return 0;
 }
 
 static void _do_resize(Box *thisbox, int x, int y)
 {
-	if(x != 0 && y != 0)
-	{
-		if(thisbox)
-		{
-			int usedx = 0, usedy = 0, usedpadx = 0, usedpady = 0, depth = 0;
+   if(x != 0 && y != 0)
+   {
+      if(thisbox)
+      {
+         int usedx = 0, usedy = 0, usedpadx = 0, usedpady = 0, depth = 0;
 
-			_resize_box(thisbox, &depth, x, y, &usedx, &usedy, 1, &usedpadx, &usedpady);
+         _resize_box(thisbox, &depth, x, y, &usedx, &usedy, 1, &usedpadx, &usedpady);
 
-			if(usedx-usedpadx == 0 || usedy-usedpady == 0)
-				return;
+         if(usedx-usedpadx == 0 || usedy-usedpady == 0)
+            return;
 
-			thisbox->xratio = ((float)(x-usedpadx))/((float)(usedx-usedpadx));
-			thisbox->yratio = ((float)(y-usedpady))/((float)(usedy-usedpady));
+         thisbox->xratio = ((float)(x-usedpadx))/((float)(usedx-usedpadx));
+         thisbox->yratio = ((float)(y-usedpady))/((float)(usedy-usedpady));
 
-			usedx = usedy = usedpadx = usedpady = depth = 0;
+         usedx = usedy = usedpadx = usedpady = depth = 0;
 
-			_resize_box(thisbox, &depth, x, y, &usedx, &usedy, 2, &usedpadx, &usedpady);
-		}
-	}
+         _resize_box(thisbox, &depth, x, y, &usedx, &usedy, 2, &usedpadx, &usedpady);
+      }
+   }
 }
 
 static void _changebox(Box *thisbox, int percent, int type)
 {
-	int z;
+   int z;
 
-	for(z=0;z<thisbox->count;z++)
-	{
-		if(thisbox->items[z].type == TYPEBOX)
-		{
-			Box *tmp = _get_window_pointer(thisbox->items[z].hwnd);
-			_changebox(tmp, percent, type);
-		}
-		else
-		{
-			if(type == DW_HORZ)
-			{
-				if(thisbox->items[z].hsize == SIZEEXPAND)
-					thisbox->items[z].width = (int)(((float)thisbox->items[z].origwidth) * (((float)percent)/((float)100.0)));
-			}
-			else
-			{
-				if(thisbox->items[z].vsize == SIZEEXPAND)
-					thisbox->items[z].height = (int)(((float)thisbox->items[z].origheight) * (((float)percent)/((float)100.0)));
-			}
-		}
-	}
+   for(z=0;z<thisbox->count;z++)
+   {
+      if(thisbox->items[z].type == TYPEBOX)
+      {
+         Box *tmp = _get_window_pointer(thisbox->items[z].hwnd);
+         _changebox(tmp, percent, type);
+      }
+      else
+      {
+         if(type == DW_HORZ)
+         {
+            if(thisbox->items[z].hsize == SIZEEXPAND)
+               thisbox->items[z].width = (int)(((float)thisbox->items[z].origwidth) * (((float)percent)/((float)100.0)));
+         }
+         else
+         {
+            if(thisbox->items[z].vsize == SIZEEXPAND)
+               thisbox->items[z].height = (int)(((float)thisbox->items[z].origheight) * (((float)percent)/((float)100.0)));
+         }
+      }
+   }
 }
 
 static pascal OSErr QuitAppleEventHandler(const AppleEvent *appleEvt, AppleEvent* reply, UInt32 refcon)
 {
-	ExitToShell();
+   ExitToShell();
 }
 
 /*
@@ -570,22 +570,22 @@ static pascal OSErr QuitAppleEventHandler(const AppleEvent *appleEvt, AppleEvent
  */
 int API dw_init(int newthread, int argc, char *argv[])
 {
-	GDHandle gd = GetMainDevice();
+   GDHandle gd = GetMainDevice();
 
-	FlushEvents(everyEvent, 0);
-	InitCursor();
-	CreateNewWindow (kDocumentWindowClass, kWindowOpaqueForEventsAttribute,
-					 &CreationRect, &CreationWindow);
-	CreateRootControl(CreationWindow, &RootControl);
-	HideWindow(CreationWindow);
-	if(AEInstallEventHandler(kCoreEventClass, kAEQuitApplication, NewAEEventHandlerUPP(QuitAppleEventHandler), 0, false) != noErr)
-		ExitToShell();
+   FlushEvents(everyEvent, 0);
+   InitCursor();
+   CreateNewWindow (kDocumentWindowClass, kWindowOpaqueForEventsAttribute,
+                &CreationRect, &CreationWindow);
+   CreateRootControl(CreationWindow, &RootControl);
+   HideWindow(CreationWindow);
+   if(AEInstallEventHandler(kCoreEventClass, kAEQuitApplication, NewAEEventHandlerUPP(QuitAppleEventHandler), 0, false) != noErr)
+      ExitToShell();
 
-	/* Save the height, width and color depth */
-	_dw_screen_height = (*gd)->gdRect.bottom - (*gd)->gdRect.top;
-	_dw_screen_width = (*gd)->gdRect.right - (*gd)->gdRect.left;
-	_dw_color_depth = (*(*gd)->gdPMap)->cmpSize * (*(*gd)->gdPMap)->cmpCount;
-	return 0;
+   /* Save the height, width and color depth */
+   _dw_screen_height = (*gd)->gdRect.bottom - (*gd)->gdRect.top;
+   _dw_screen_width = (*gd)->gdRect.right - (*gd)->gdRect.left;
+   _dw_color_depth = (*(*gd)->gdPMap)->cmpSize * (*(*gd)->gdPMap)->cmpCount;
+   return 0;
 }
 
 /*
@@ -593,7 +593,7 @@ int API dw_init(int newthread, int argc, char *argv[])
  */
 void API dw_main(void)
 {
-	RunApplicationEventLoop();
+   RunApplicationEventLoop();
 }
 
 /*
@@ -603,12 +603,12 @@ void API dw_main(void)
  */
 void API dw_main_sleep(int milliseconds)
 {
-	double start = (double)clock();
+   double start = (double)clock();
 
-	while(((((clock() - start) / CLOCKS_PER_SEC)/1000)) <= milliseconds)
-	{
-		RunCurrentEventLoop(1);
-	}
+   while(((((clock() - start) / CLOCKS_PER_SEC)/1000)) <= milliseconds)
+   {
+      RunCurrentEventLoop(1);
+   }
 }
 
 /*
@@ -616,10 +616,10 @@ void API dw_main_sleep(int milliseconds)
  */
 void API dw_main_iteration(void)
 {
-	EventRecord eventStructure;
+   EventRecord eventStructure;
 
-	if(WaitNextEvent(everyEvent, &eventStructure, 0, 0))
-		RunCurrentEventLoop(0);
+   if(WaitNextEvent(everyEvent, &eventStructure, 0, 0))
+      RunCurrentEventLoop(0);
 }
 
 /*
@@ -630,7 +630,7 @@ void API dw_main_iteration(void)
  */
 void API dw_free(void *ptr)
 {
-	free(ptr);
+   free(ptr);
 }
 
 /*
@@ -640,15 +640,15 @@ void API dw_free(void *ptr)
  */
 DWDialog * API dw_dialog_new(void *data)
 {
-	DWDialog *tmp = malloc(sizeof(DWDialog));
+   DWDialog *tmp = malloc(sizeof(DWDialog));
 
-	tmp->eve = dw_event_new();
-	dw_event_reset(tmp->eve);
-	tmp->data = data;
-	tmp->done = FALSE;
-	tmp->result = NULL;
+   tmp->eve = dw_event_new();
+   dw_event_reset(tmp->eve);
+   tmp->data = data;
+   tmp->done = FALSE;
+   tmp->result = NULL;
 
-	return tmp;
+   return tmp;
 }
 
 /*
@@ -660,10 +660,10 @@ DWDialog * API dw_dialog_new(void *data)
  */
 int API dw_dialog_dismiss(DWDialog *dialog, void *result)
 {
-	dialog->result = result;
-	dw_event_post(dialog->eve);
-	dialog->done = TRUE;
-	return 0;
+   dialog->result = result;
+   dw_event_post(dialog->eve);
+   dialog->done = TRUE;
+   return 0;
 }
 
 /*
@@ -674,16 +674,16 @@ int API dw_dialog_dismiss(DWDialog *dialog, void *result)
  */
 void * API dw_dialog_wait(DWDialog *dialog)
 {
-	void *tmp;
+   void *tmp;
 
-	while(!dialog->done)
-	{
-		RunCurrentEventLoop(180);
-	}
-	dw_event_close(&dialog->eve);
-	tmp = dialog->result;
-	free(dialog);
-	return tmp;
+   while(!dialog->done)
+   {
+      RunCurrentEventLoop(180);
+   }
+   dw_event_close(&dialog->eve);
+   tmp = dialog->result;
+   free(dialog);
+   return tmp;
 }
 
 
@@ -696,65 +696,65 @@ void * API dw_dialog_wait(DWDialog *dialog)
  */
 int API dw_messagebox(char *title, int flags, char *format, ...)
 {
-	va_list args;
-	char outbuf[1024];
-	AlertStdCFStringAlertParamRec param;
-	DialogRef dialog;
-	CFStringRef cftext, cftitle;
-	DialogItemIndex item;
-	int ret = DW_MB_RETURN_OK;
-	AlertType alert = kAlertPlainAlert;
+   va_list args;
+   char outbuf[1024];
+   AlertStdCFStringAlertParamRec param;
+   DialogRef dialog;
+   CFStringRef cftext, cftitle;
+   DialogItemIndex item;
+   int ret = DW_MB_RETURN_OK;
+   AlertType alert = kAlertPlainAlert;
 
-	va_start(args, format);
-	vsprintf(outbuf, format, args);
-	va_end(args);
+   va_start(args, format);
+   vsprintf(outbuf, format, args);
+   va_end(args);
 
-	GetStandardAlertDefaultParams(&param, kStdCFStringAlertVersionOne);
-	param.movable = TRUE;
-	param.helpButton = FALSE;
-	if(flags & DW_MB_INFORMATION)
-		alert = kAlertNoteAlert;
-	else if(flags & DW_MB_ERROR)
-		alert = kAlertStopAlert;
-	else if(flags & DW_MB_WARNING)
-		alert = kAlertCautionAlert;
+   GetStandardAlertDefaultParams(&param, kStdCFStringAlertVersionOne);
+   param.movable = TRUE;
+   param.helpButton = FALSE;
+   if(flags & DW_MB_INFORMATION)
+      alert = kAlertNoteAlert;
+   else if(flags & DW_MB_ERROR)
+      alert = kAlertStopAlert;
+   else if(flags & DW_MB_WARNING)
+      alert = kAlertCautionAlert;
 
-	if(flags & DW_MB_OK || flags & DW_MB_OKCANCEL)
-	{
-		param.defaultText = CFSTR("Ok");
-		param.cancelText = flags & DW_MB_OK ? 0 : CFSTR("Cancel");
-	}
-	else
-	{
-		param.defaultText = CFSTR("Yes");
-		param.cancelText = CFSTR("No");
-		param.otherText = CFSTR("Cancel");
-	}
-	cftext = CFStringCreateWithCString(NULL, outbuf, kCFStringEncodingDOSLatinUS);
-	cftitle = CFStringCreateWithCString(NULL, title, kCFStringEncodingDOSLatinUS);
-	if(CreateStandardAlert(alert, cftext, cftitle, &param, &dialog) == noErr)
-	{
-		if(RunStandardAlert(dialog, NULL, &item) == noErr)
-		{
-			if(item == kAlertStdAlertOtherButton)
-				ret = DW_MB_RETURN_CANCEL;
-			else if(item == kAlertStdAlertCancelButton)
-			{
-				if(flags & DW_MB_OK || flags & DW_MB_OKCANCEL)
-					ret = DW_MB_RETURN_CANCEL;
-				else
-					ret = DW_MB_RETURN_NO;
-			}
-			else if(item == kAlertStdAlertOKButton)
-			{
-				if(flags & DW_MB_YESNO || flags & DW_MB_YESNOCANCEL)
-					ret = DW_MB_RETURN_YES;
-			}
-		}
-        }
-	CFRelease(cftext);
-	CFRelease(cftitle);
-	return ret;
+   if(flags & DW_MB_OK || flags & DW_MB_OKCANCEL)
+   {
+      param.defaultText = CFSTR("Ok");
+      param.cancelText = flags & DW_MB_OK ? 0 : CFSTR("Cancel");
+   }
+   else
+   {
+      param.defaultText = CFSTR("Yes");
+      param.cancelText = CFSTR("No");
+      param.otherText = CFSTR("Cancel");
+   }
+   cftext = CFStringCreateWithCString(NULL, outbuf, kCFStringEncodingDOSLatinUS);
+   cftitle = CFStringCreateWithCString(NULL, title, kCFStringEncodingDOSLatinUS);
+   if(CreateStandardAlert(alert, cftext, cftitle, &param, &dialog) == noErr)
+   {
+      if(RunStandardAlert(dialog, NULL, &item) == noErr)
+      {
+         if(item == kAlertStdAlertOtherButton)
+            ret = DW_MB_RETURN_CANCEL;
+         else if(item == kAlertStdAlertCancelButton)
+         {
+            if(flags & DW_MB_OK || flags & DW_MB_OKCANCEL)
+               ret = DW_MB_RETURN_CANCEL;
+            else
+               ret = DW_MB_RETURN_NO;
+         }
+         else if(item == kAlertStdAlertOKButton)
+         {
+            if(flags & DW_MB_YESNO || flags & DW_MB_YESNOCANCEL)
+               ret = DW_MB_RETURN_YES;
+         }
+      }
+   }
+   CFRelease(cftext);
+   CFRelease(cftitle);
+   return ret;
 }
 
 /*
@@ -764,8 +764,8 @@ int API dw_messagebox(char *title, int flags, char *format, ...)
  */
 int API dw_window_raise(HWND handle)
 {
-	BringToFront((WindowRef)handle);
-	return 0;
+   BringToFront((WindowRef)handle);
+   return 0;
 }
 
 /*
@@ -775,7 +775,7 @@ int API dw_window_raise(HWND handle)
  */
 int API dw_window_lower(HWND handle)
 {
-	return 0;
+   return 0;
 }
 
 /*
@@ -785,8 +785,8 @@ int API dw_window_lower(HWND handle)
  */
 int API dw_window_show(HWND handle)
 {
-	ShowWindow((WindowRef)handle);
-	return 0;
+   ShowWindow((WindowRef)handle);
+   return 0;
 }
 
 /*
@@ -796,7 +796,7 @@ int API dw_window_show(HWND handle)
  */
 int API dw_window_minimize(HWND handle)
 {
-	return 0;
+   return 0;
 }
 
 /*
@@ -806,8 +806,8 @@ int API dw_window_minimize(HWND handle)
  */
 int API dw_window_hide(HWND handle)
 {
-	HideWindow((WindowRef)handle);
-	return 0;
+   HideWindow((WindowRef)handle);
+   return 0;
 }
 
 /*
@@ -817,8 +817,8 @@ int API dw_window_hide(HWND handle)
  */
 int API dw_window_destroy(HWND handle)
 {
-	DisposeWindow((WindowRef)handle);
-	return 0;
+   DisposeWindow((WindowRef)handle);
+   return 0;
 }
 
 /* Causes entire window to be invalidated and redrawn.
@@ -847,7 +847,7 @@ void API dw_window_reparent(HWND handle, HWND newparent)
  */
 int API dw_window_set_font(HWND handle, char *fontname)
 {
-	return 0;
+   return 0;
 }
 
 /*
@@ -859,7 +859,7 @@ int API dw_window_set_font(HWND handle, char *fontname)
  */
 int API dw_window_set_color(HWND handle, ULONG fore, ULONG back)
 {
-	return 0;
+   return 0;
 }
 
 /*
@@ -870,7 +870,7 @@ int API dw_window_set_color(HWND handle, ULONG fore, ULONG back)
  */
 int API dw_window_set_border(HWND handle, int border)
 {
-	return 0;
+   return 0;
 }
 
 /*
@@ -906,7 +906,7 @@ void API dw_window_track(HWND handle)
  */
 void API dw_window_set_pointer(HWND handle, int pointertype)
 {
-	SetCursor(*GetCursor(pointertype));
+   SetCursor(*GetCursor(pointertype));
 }
 
 /*
@@ -918,14 +918,14 @@ void API dw_window_set_pointer(HWND handle, int pointertype)
  */
 HWND API dw_window_new(HWND hwndOwner, char *title, ULONG flStyle)
 {
-	WindowRef hwnd = 0;
-	ControlRef rootcontrol = 0;
+   WindowRef hwnd = 0;
+   ControlRef rootcontrol = 0;
 
-	CreateNewWindow (kDocumentWindowClass, flStyle | kWindowStandardHandlerAttribute,
-					 &CreationRect, &hwnd);
-	CreateRootControl(hwnd, &rootcontrol);
-	dw_window_set_text((HWND)hwnd, title);
-	return (HWND)hwnd;
+   CreateNewWindow (kDocumentWindowClass, flStyle | kWindowStandardHandlerAttribute,
+                &CreationRect, &hwnd);
+   CreateRootControl(hwnd, &rootcontrol);
+   dw_window_set_text((HWND)hwnd, title);
+   return (HWND)hwnd;
 }
 
 /*
@@ -951,9 +951,9 @@ HWND API dw_box_new(int type, int pad)
  */
 HWND API dw_groupbox_new(int type, int pad, char *title)
 {
-	HWND hwnd = 0;
-	CreateRadioGroupControl(CreationWindow, &CreationRect, &hwnd);
-	return hwnd;
+   HWND hwnd = 0;
+   CreateRadioGroupControl(CreationWindow, &CreationRect, &hwnd);
+   return hwnd;
 }
 
 /*
@@ -963,7 +963,7 @@ HWND API dw_groupbox_new(int type, int pad, char *title)
  */
 HWND API dw_mdi_new(unsigned long id)
 {
-	return 0;
+   return 0;
 }
 
 /*
@@ -973,9 +973,9 @@ HWND API dw_mdi_new(unsigned long id)
  */
 HWND API dw_bitmap_new(ULONG id)
 {
-	HWND hwnd = 0;
-	CreateImageWellControl(CreationWindow, &CreationRect, NULL, &hwnd);
-	return hwnd;
+   HWND hwnd = 0;
+   CreateImageWellControl(CreationWindow, &CreationRect, NULL, &hwnd);
+   return hwnd;
 }
 
 /*
@@ -986,28 +986,28 @@ HWND API dw_bitmap_new(ULONG id)
  */
 HWND API dw_notebook_new(ULONG id, int top)
 {
-	HWND hwnd = 0;
-	CreateTabsControl(CreationWindow, &CreationRect, kControlTabSizeSmall, kControlTabDirectionNorth, 1, NULL, &hwnd);
-	return hwnd;
+   HWND hwnd = 0;
+   CreateTabsControl(CreationWindow, &CreationRect, kControlTabSizeSmall, kControlTabDirectionNorth, 1, NULL, &hwnd);
+   return hwnd;
 }
 
 char _removetilde(char *dest, char *src)
 {
-	int z, cur=0;
-	char accel = '\0';
+   int z, cur=0;
+   char accel = '\0';
 
-	for(z=0;z<strlen(src);z++)
-	{
-		if(src[z] != '~')
-		{
-			dest[cur] = src[z];
-			cur++;
-		}
-		else
-			accel = src[z+1];
-	}
-	dest[cur] = 0;
-	return accel;
+   for(z=0;z<strlen(src);z++)
+   {
+      if(src[z] != '~')
+      {
+         dest[cur] = src[z];
+         cur++;
+      }
+      else
+         accel = src[z+1];
+   }
+   dest[cur] = 0;
+   return accel;
 }
 
 /*
@@ -1018,7 +1018,7 @@ char _removetilde(char *dest, char *src)
  */
 HMENUI API dw_menu_new(ULONG id)
 {
-	return NewMenu(id % 256, "");
+   return NewMenu(id % 256, "");
 }
 
 /*
@@ -1028,7 +1028,7 @@ HMENUI API dw_menu_new(ULONG id)
  */
 HMENUI API dw_menubar_new(HWND location)
 {
-	return (HMENUI)-1;
+   return (HMENUI)-1;
 }
 
 /*
@@ -1038,7 +1038,7 @@ HMENUI API dw_menubar_new(HWND location)
  */
 void API dw_menu_destroy(HMENUI *menu)
 {
-	DisposeMenu(*menu);
+   DisposeMenu(*menu);
 }
 
 /*
@@ -1054,39 +1054,39 @@ void API dw_menu_destroy(HMENUI *menu)
  */
 HWND API dw_menu_append_item(HMENUI menux, char *title, ULONG id, ULONG flags, int end, int check, HMENUI submenu)
 {
-	char accel, *buf, *tempbuf = alloca(strlen(title)+1);
+   char accel, *buf, *tempbuf = alloca(strlen(title)+1);
 
     accel = _removetilde(tempbuf, title);
-	buf = CToPascal(tempbuf);
+   buf = CToPascal(tempbuf);
 
-	if(menux == (HMENUI)-1)
-	{
-		SetMenuTitle(submenu, buf);
-		InsertMenu(submenu, 0);
-	}
-	else
-	{
-		/* Add a separator if requested */
-		if(!title || !*title)
-			AppendMenu(menux, "\001-");
-		else
-		{
-			MenuItemIndex item;
-			CFStringRef cftext = CFStringCreateWithCString(NULL, tempbuf, kCFStringEncodingDOSLatinUS);
+   if(menux == (HMENUI)-1)
+   {
+      SetMenuTitle(submenu, buf);
+      InsertMenu(submenu, 0);
+   }
+   else
+   {
+      /* Add a separator if requested */
+      if(!title || !*title)
+         AppendMenu(menux, "\001-");
+      else
+      {
+         MenuItemIndex item;
+         CFStringRef cftext = CFStringCreateWithCString(NULL, tempbuf, kCFStringEncodingDOSLatinUS);
 
-			AppendMenuItemTextWithCFString(menux, cftext, 0, 0, &item);
-			CFRelease(cftext);
+         AppendMenuItemTextWithCFString(menux, cftext, 0, 0, &item);
+         CFRelease(cftext);
 
-			id = item;
-			if(accel)
-			{
-				SetItemCmd(menux, item, accel);
-				SetMenuItemModifiers(menux, item, kMenuOptionModifier);
-			}
-		}
-	}
-	DrawMenuBar();
-	return (HWND)id;
+         id = item;
+         if(accel)
+         {
+            SetItemCmd(menux, item, accel);
+            SetMenuItemModifiers(menux, item, kMenuOptionModifier);
+         }
+      }
+   }
+   DrawMenuBar();
+   return (HWND)id;
 }
 
 /*
@@ -1098,7 +1098,7 @@ HWND API dw_menu_append_item(HMENUI menux, char *title, ULONG id, ULONG flags, i
  */
 void API dw_menu_item_set_check(HMENUI menux, unsigned long id, int check)
 {
-	CheckMenuItem(menux, id, check);
+   CheckMenuItem(menux, id, check);
 }
 
 /*
@@ -1142,15 +1142,15 @@ void API dw_pointer_set_pos(long x, long y)
  */
 HWND API dw_container_new(ULONG id, int multi)
 {
-	ListHandle hwnd = 0;
-	Point CellSize;
-	ListDefSpec def;
+   ListHandle hwnd = 0;
+   Point CellSize;
+   ListDefSpec def;
 
-	SetPt(&CellSize, 52, 52);
-	/*def.u.userProc = listDefinitionFunctionUPP;*/
+   SetPt(&CellSize, 52, 52);
+   /*def.u.userProc = listDefinitionFunctionUPP;*/
 
-	CreateCustomList(&CreationRect, &CreationRect, CellSize, &def, CreationWindow, TRUE, TRUE, TRUE, TRUE, &hwnd);
-	return (HWND)hwnd;
+   CreateCustomList(&CreationRect, &CreationRect, CellSize, &def, CreationWindow, TRUE, TRUE, TRUE, TRUE, &hwnd);
+   return (HWND)hwnd;
 }
 
 /*
@@ -1161,7 +1161,7 @@ HWND API dw_container_new(ULONG id, int multi)
  */
 HWND API dw_tree_new(ULONG id)
 {
-	return dw_container_new(id, FALSE);
+   return dw_container_new(id, FALSE);
 }
 
 /*
@@ -1172,11 +1172,11 @@ HWND API dw_tree_new(ULONG id)
  */
 HWND API dw_text_new(char *text, ULONG id)
 {
-	HWND hwnd = 0;
-	CFStringRef cftext = CFStringCreateWithCString(NULL, text, kCFStringEncodingDOSLatinUS);
-	CreateStaticTextControl (CreationWindow, &CreationRect, cftext, NULL, &hwnd);
+   HWND hwnd = 0;
+   CFStringRef cftext = CFStringCreateWithCString(NULL, text, kCFStringEncodingDOSLatinUS);
+   CreateStaticTextControl (CreationWindow, &CreationRect, cftext, NULL, &hwnd);
         CFRelease(cftext);
-	return hwnd;
+   return hwnd;
 }
 
 /*
@@ -1187,11 +1187,11 @@ HWND API dw_text_new(char *text, ULONG id)
  */
 HWND API dw_status_text_new(char *text, ULONG id)
 {
-	HWND hwnd = 0;
-	CFStringRef cftext = CFStringCreateWithCString(NULL, text, kCFStringEncodingDOSLatinUS);
-	CreateStaticTextControl (CreationWindow, &CreationRect, cftext, NULL, &hwnd);
-	CFRelease(cftext);
-	return hwnd;
+   HWND hwnd = 0;
+   CFStringRef cftext = CFStringCreateWithCString(NULL, text, kCFStringEncodingDOSLatinUS);
+   CreateStaticTextControl (CreationWindow, &CreationRect, cftext, NULL, &hwnd);
+   CFRelease(cftext);
+   return hwnd;
 }
 
 /*
@@ -1201,9 +1201,9 @@ HWND API dw_status_text_new(char *text, ULONG id)
  */
 HWND API dw_mle_new(ULONG id)
 {
-	HWND hwnd = 0;
-	CreateScrollingTextBoxControl(CreationWindow, &CreationRect, id, FALSE, 0, 0, 0, &hwnd);
-	return hwnd;
+   HWND hwnd = 0;
+   CreateScrollingTextBoxControl(CreationWindow, &CreationRect, id, FALSE, 0, 0, 0, &hwnd);
+   return hwnd;
 }
 
 /*
@@ -1214,11 +1214,11 @@ HWND API dw_mle_new(ULONG id)
  */
 HWND API dw_entryfield_new(char *text, ULONG id)
 {
-	HWND hwnd = 0;
-	CFStringRef cftext = CFStringCreateWithCString(NULL, text, kCFStringEncodingDOSLatinUS);
-	CreateEditTextControl(CreationWindow, &CreationRect, cftext, FALSE, FALSE, NULL, &hwnd);
-	CFRelease(cftext);
-	return hwnd;
+   HWND hwnd = 0;
+   CFStringRef cftext = CFStringCreateWithCString(NULL, text, kCFStringEncodingDOSLatinUS);
+   CreateEditTextControl(CreationWindow, &CreationRect, cftext, FALSE, FALSE, NULL, &hwnd);
+   CFRelease(cftext);
+   return hwnd;
 }
 
 /*
@@ -1229,11 +1229,11 @@ HWND API dw_entryfield_new(char *text, ULONG id)
  */
 HWND API dw_entryfield_password_new(char *text, ULONG id)
 {
-	HWND hwnd = 0;
-	CFStringRef cftext = CFStringCreateWithCString(NULL, text, kCFStringEncodingDOSLatinUS);
-	CreateEditTextControl(CreationWindow, &CreationRect, cftext, TRUE, FALSE, NULL, &hwnd);
-	CFRelease(cftext);
-	return hwnd;
+   HWND hwnd = 0;
+   CFStringRef cftext = CFStringCreateWithCString(NULL, text, kCFStringEncodingDOSLatinUS);
+   CreateEditTextControl(CreationWindow, &CreationRect, cftext, TRUE, FALSE, NULL, &hwnd);
+   CFRelease(cftext);
+   return hwnd;
 }
 
 /*
@@ -1244,7 +1244,7 @@ HWND API dw_entryfield_password_new(char *text, ULONG id)
  */
 HWND API dw_combobox_new(char *text, ULONG id)
 {
-	return 0;
+   return 0;
 }
 
 /*
@@ -1255,11 +1255,11 @@ HWND API dw_combobox_new(char *text, ULONG id)
  */
 HWND API dw_button_new(char *text, ULONG id)
 {
-	HWND hwnd = 0;
-	CFStringRef cftext = CFStringCreateWithCString(NULL, text, kCFStringEncodingDOSLatinUS);
-	CreatePushButtonControl(CreationWindow, &CreationRect, cftext, &hwnd);
-	CFRelease(cftext);
-	return hwnd;
+   HWND hwnd = 0;
+   CFStringRef cftext = CFStringCreateWithCString(NULL, text, kCFStringEncodingDOSLatinUS);
+   CreatePushButtonControl(CreationWindow, &CreationRect, cftext, &hwnd);
+   CFRelease(cftext);
+   return hwnd;
 }
 
 /*
@@ -1270,9 +1270,9 @@ HWND API dw_button_new(char *text, ULONG id)
  */
 HWND API dw_bitmapbutton_new(char *text, ULONG id)
 {
-	HWND hwnd = 0;
-	CreatePushButtonWithIconControl(CreationWindow, &CreationRect, 0, NULL, kControlPushButtonIconOnLeft, &hwnd);
-	return hwnd;
+   HWND hwnd = 0;
+   CreatePushButtonWithIconControl(CreationWindow, &CreationRect, 0, NULL, kControlPushButtonIconOnLeft, &hwnd);
+   return hwnd;
 }
 
 /*
@@ -1286,7 +1286,7 @@ HWND API dw_bitmapbutton_new(char *text, ULONG id)
  */
 HWND dw_bitmapbutton_new_from_file(char *text, unsigned long id, char *filename)
 {
-	return 0;
+   return 0;
 }
 
 /*
@@ -1300,7 +1300,7 @@ HWND dw_bitmapbutton_new_from_file(char *text, unsigned long id, char *filename)
  */
 HWND dw_bitmapbutton_new_from_data(char *text, unsigned long id, char *data, int len)
 {
-	return 0;
+   return 0;
 }
 
 /*
@@ -1311,7 +1311,7 @@ HWND dw_bitmapbutton_new_from_data(char *text, unsigned long id, char *data, int
  */
 HWND API dw_spinbutton_new(char *text, ULONG id)
 {
-	return 0;
+   return 0;
 }
 
 /*
@@ -1322,11 +1322,11 @@ HWND API dw_spinbutton_new(char *text, ULONG id)
  */
 HWND API dw_radiobutton_new(char *text, ULONG id)
 {
-	HWND hwnd = 0;
-	CFStringRef cftext = CFStringCreateWithCString(NULL, text, kCFStringEncodingDOSLatinUS);
-	CreateRadioButtonControl(CreationWindow, &CreationRect, cftext, 0, FALSE, &hwnd);
-	CFRelease(cftext);
-	return hwnd;
+   HWND hwnd = 0;
+   CFStringRef cftext = CFStringCreateWithCString(NULL, text, kCFStringEncodingDOSLatinUS);
+   CreateRadioButtonControl(CreationWindow, &CreationRect, cftext, 0, FALSE, &hwnd);
+   CFRelease(cftext);
+   return hwnd;
 }
 
 
@@ -1339,9 +1339,9 @@ HWND API dw_radiobutton_new(char *text, ULONG id)
  */
 HWND API dw_slider_new(int vertical, int increments, ULONG id)
 {
-	HWND hwnd = 0;
-	CreateSliderControl(CreationWindow, &CreationRect, 0, 0, increments, kControlSliderDoesNotPoint, 0, FALSE, 0, &hwnd);
-	return hwnd;
+   HWND hwnd = 0;
+   CreateSliderControl(CreationWindow, &CreationRect, 0, 0, increments, kControlSliderDoesNotPoint, 0, FALSE, 0, &hwnd);
+   return hwnd;
 }
 
 /*
@@ -1353,9 +1353,9 @@ HWND API dw_slider_new(int vertical, int increments, ULONG id)
  */
 HWND API dw_scrollbar_new(int vertical, ULONG id)
 {
-	HWND hwnd;
-	CreateScrollBarControl(CreationWindow, &CreationRect, 0, 0, 100, 100, FALSE, 0, &hwnd);
-	return hwnd;
+   HWND hwnd;
+   CreateScrollBarControl(CreationWindow, &CreationRect, 0, 0, 100, 100, FALSE, 0, &hwnd);
+   return hwnd;
 }
 
 /*
@@ -1365,9 +1365,9 @@ HWND API dw_scrollbar_new(int vertical, ULONG id)
  */
 HWND API dw_percent_new(ULONG id)
 {
-	HWND hwnd = 0;
-	CreateProgressBarControl(CreationWindow, &CreationRect, 0, 0, 100, FALSE, &hwnd);
-	return hwnd;
+   HWND hwnd = 0;
+   CreateProgressBarControl(CreationWindow, &CreationRect, 0, 0, 100, FALSE, &hwnd);
+   return hwnd;
 }
 
 /*
@@ -1378,11 +1378,11 @@ HWND API dw_percent_new(ULONG id)
  */
 HWND API dw_checkbox_new(char *text, ULONG id)
 {
-	HWND hwnd = 0;
-	CFStringRef cftext = CFStringCreateWithCString(NULL, text, kCFStringEncodingDOSLatinUS);
-	CreateCheckBoxControl(CreationWindow, &CreationRect, cftext, 0, TRUE, &hwnd);
-	CFRelease(cftext);
-	return hwnd;
+   HWND hwnd = 0;
+   CFStringRef cftext = CFStringCreateWithCString(NULL, text, kCFStringEncodingDOSLatinUS);
+   CreateCheckBoxControl(CreationWindow, &CreationRect, cftext, 0, TRUE, &hwnd);
+   CFRelease(cftext);
+   return hwnd;
 }
 
 /*
@@ -1393,9 +1393,9 @@ HWND API dw_checkbox_new(char *text, ULONG id)
  */
 HWND API dw_listbox_new(ULONG id, int multi)
 {
-	HWND hwnd = 0;
-	CreateListBoxControl(CreationWindow, &CreationRect, TRUE, 0, 1, FALSE, TRUE, 50, 50, TRUE, NULL, &hwnd);
-	return hwnd;
+   HWND hwnd = 0;
+   CreateListBoxControl(CreationWindow, &CreationRect, TRUE, 0, 1, FALSE, TRUE, 50, 50, TRUE, NULL, &hwnd);
+   return hwnd;
 }
 
 /*
@@ -1445,12 +1445,12 @@ void dw_window_set_bitmap_from_data(HWND handle, unsigned long id, char *data, i
  */
 void API dw_window_set_text(HWND handle, char *text)
 {
-	CFStringRef cftext = CFStringCreateWithCString(NULL, text, kCFStringEncodingDOSLatinUS);
-	if(IsValidWindowRef((WindowRef)handle))
-		SetWindowTitleWithCFString((WindowRef)handle, cftext);
-	else
-		SetControlTitleWithCFString(handle, cftext);
-	CFRelease(cftext);
+   CFStringRef cftext = CFStringCreateWithCString(NULL, text, kCFStringEncodingDOSLatinUS);
+   if(IsValidWindowRef((WindowRef)handle))
+      SetWindowTitleWithCFString((WindowRef)handle, cftext);
+   else
+      SetControlTitleWithCFString(handle, cftext);
+   CFRelease(cftext);
 }
 
 /*
@@ -1462,26 +1462,26 @@ void API dw_window_set_text(HWND handle, char *text)
  */
 char * API dw_window_get_text(HWND handle)
 {
-	CFStringRef cftext;
-	char *ret = NULL;
+   CFStringRef cftext;
+   char *ret = NULL;
 
-	if(IsValidWindowRef((WindowRef)handle))
-		CopyWindowTitleAsCFString((WindowRef)handle, &cftext);
-	else
-	{
-		Str255 str;
+   if(IsValidWindowRef((WindowRef)handle))
+      CopyWindowTitleAsCFString((WindowRef)handle, &cftext);
+   else
+   {
+      Str255 str;
 
-		GetControlTitle(handle, str);
-		cftext = CFStringCreateWithPascalString(NULL, str, CFStringGetSystemEncoding());
-	}
+      GetControlTitle(handle, str);
+      cftext = CFStringCreateWithPascalString(NULL, str, CFStringGetSystemEncoding());
+   }
 
-	if(cftext)
-	{
-		int length = CFStringGetLength(cftext) + 1;
-		char *ret = malloc(length);
-		CFStringGetCString(cftext, ret, length, kCFStringEncodingDOSLatinUS);
-		CFRelease(cftext);
-	}
+   if(cftext)
+   {
+      int length = CFStringGetLength(cftext) + 1;
+      char *ret = malloc(length);
+      CFStringGetCString(cftext, ret, length, kCFStringEncodingDOSLatinUS);
+      CFRelease(cftext);
+   }
     return ret;
 }
 
@@ -1492,7 +1492,7 @@ char * API dw_window_get_text(HWND handle)
  */
 void API dw_window_disable(HWND handle)
 {
-	DisableControl(handle);
+   DisableControl(handle);
 }
 
 /*
@@ -1502,7 +1502,7 @@ void API dw_window_disable(HWND handle)
  */
 void API dw_window_enable(HWND handle)
 {
-	EnableControl(handle);
+   EnableControl(handle);
 }
 
 /*
@@ -1513,13 +1513,13 @@ void API dw_window_enable(HWND handle)
  */
 HWND API dw_window_from_id(HWND handle, int id)
 {
-	HWND ret = 0;
+   HWND ret = 0;
 
 #if 0
-	ControlID cid = (ControlID)id;
-	GetControlByID((WindowRef)handle, &cid, &ret);
+   ControlID cid = (ControlID)id;
+   GetControlByID((WindowRef)handle, &cid, &ret);
 #endif
-	return ret;
+   return ret;
 }
 
 /*
@@ -1554,7 +1554,7 @@ void API dw_window_set_size(HWND handle, ULONG width, ULONG height)
  */
 int API dw_screen_width(void)
 {
-	return _dw_screen_width;
+   return _dw_screen_width;
 }
 
 /*
@@ -1562,13 +1562,13 @@ int API dw_screen_width(void)
  */
 int API dw_screen_height(void)
 {
-	return _dw_screen_height;
+   return _dw_screen_height;
 }
 
 /* This should return the current color depth */
 unsigned long API dw_color_depth_get(void)
 {
-	return _dw_color_depth;
+   return _dw_color_depth;
 }
 
 
@@ -1579,9 +1579,9 @@ unsigned long API dw_color_depth_get(void)
  *          x: X location from the bottom left.
  *          y: Y location from the bottom left.
  */
-void API dw_window_set_pos(HWND handle, ULONG x, ULONG y)
+void API dw_window_set_pos(HWND handle, LONG x, LONG y)
 {
-	MoveWindow((WindowRef)handle, (short)x, (short)y, FALSE);
+   MoveWindow((WindowRef)handle, (short)x, (short)y, FALSE);
 }
 
 /*
@@ -1593,10 +1593,10 @@ void API dw_window_set_pos(HWND handle, ULONG x, ULONG y)
  *          width: Width of the widget.
  *          height: Height of the widget.
  */
-void API dw_window_set_pos_size(HWND handle, ULONG x, ULONG y, ULONG width, ULONG height)
+void API dw_window_set_pos_size(HWND handle, LONG x, LONG y, ULONG width, ULONG height)
 {
-	dw_window_set_pos(handle, x, y);
-	dw_window_set_size(handle, width, height);
+   dw_window_set_pos(handle, x, y);
+   dw_window_set_size(handle, width, height);
 }
 
 /*
@@ -1608,7 +1608,7 @@ void API dw_window_set_pos_size(HWND handle, ULONG x, ULONG y, ULONG width, ULON
  *          width: Width of the widget.
  *          height: Height of the widget.
  */
-void API dw_window_get_pos_size(HWND handle, ULONG *x, ULONG *y, ULONG *width, ULONG *height)
+void API dw_window_get_pos_size(HWND handle, LONG *x, LONG *y, ULONG *width, ULONG *height)
 {
 }
 
@@ -1632,7 +1632,7 @@ void API dw_window_set_style(HWND handle, ULONG style, ULONG mask)
  */
 unsigned long API dw_notebook_page_new(HWND handle, ULONG flags, int front)
 {
-	return 0;
+   return 0;
 }
 
 /*
@@ -1652,7 +1652,7 @@ void API dw_notebook_page_destroy(HWND handle, unsigned int pageid)
  */
 unsigned long API dw_notebook_page_get(HWND handle)
 {
-	return 0;
+   return 0;
 }
 
 /*
@@ -1735,7 +1735,7 @@ void API dw_listbox_clear(HWND handle)
  */
 int API dw_listbox_count(HWND handle)
 {
-	return 0;
+   return 0;
 }
 
 /*
@@ -1789,7 +1789,7 @@ unsigned int API dw_listbox_selected(HWND handle)
  */
 int API dw_listbox_selected_multi(HWND handle, int where)
 {
-	return -1;
+   return -1;
 }
 
 /*
@@ -1918,7 +1918,7 @@ void API dw_mle_set_cursor(HWND handle, int point)
  */
 int API dw_mle_search(HWND handle, char *text, int point, unsigned long flags)
 {
-	return 0;
+   return 0;
 }
 
 /*
@@ -1956,7 +1956,7 @@ void API dw_percent_set_pos(HWND handle, unsigned int position)
  */
 unsigned int API dw_slider_get_pos(HWND handle)
 {
-	return 0;
+   return 0;
 }
 
 /*
@@ -1976,7 +1976,7 @@ void API dw_slider_set_pos(HWND handle, unsigned int position)
  */
 unsigned int API dw_scrollbar_get_pos(HWND handle)
 {
-	return 0;
+   return 0;
 }
 
 /*
@@ -2049,7 +2049,7 @@ long API dw_spinbutton_get_pos(HWND handle)
  */
 int API dw_checkbox_get(HWND handle)
 {
-	return 0;
+   return 0;
 }
 
 /*
@@ -2074,7 +2074,7 @@ void API dw_checkbox_set(HWND handle, int value)
  */
 HTREEITEM API dw_tree_insert_after(HWND handle, HTREEITEM item, char *title, unsigned long icon, HTREEITEM parent, void *itemdata)
 {
-	return 0;
+   return 0;
 }
 
 /*
@@ -2088,7 +2088,7 @@ HTREEITEM API dw_tree_insert_after(HWND handle, HTREEITEM item, char *title, uns
  */
 HTREEITEM API dw_tree_insert(HWND handle, char *title, unsigned long icon, HTREEITEM parent, void *itemdata)
 {
-	return 0;
+   return 0;
 }
 
 /*
@@ -2122,7 +2122,7 @@ void API dw_tree_item_set_data(HWND handle, HTREEITEM item, void *itemdata)
  */
 void * API dw_tree_item_get_data(HWND handle, HTREEITEM item)
 {
-	return NULL;
+   return NULL;
 }
 
 /*
@@ -2186,7 +2186,7 @@ void API dw_tree_item_delete(HWND handle, HTREEITEM item)
  */
 int API dw_container_setup(HWND handle, unsigned long *flags, char **titles, int count, int separator)
 {
-	return TRUE;
+   return TRUE;
 }
 
 /*
@@ -2199,23 +2199,23 @@ int API dw_container_setup(HWND handle, unsigned long *flags, char **titles, int
  */
 int API dw_filesystem_setup(HWND handle, unsigned long *flags, char **titles, int count)
 {
-	char **newtitles = malloc(sizeof(char *) * (count + 2));
-	unsigned long *newflags = malloc(sizeof(unsigned long) * (count + 2));
+   char **newtitles = malloc(sizeof(char *) * (count + 2));
+   unsigned long *newflags = malloc(sizeof(unsigned long) * (count + 2));
 
-	newtitles[0] = "Icon";
-	newtitles[1] = "Filename";
+   newtitles[0] = "Icon";
+   newtitles[1] = "Filename";
 
-	newflags[0] = DW_CFA_BITMAPORICON | DW_CFA_CENTER | DW_CFA_HORZSEPARATOR | DW_CFA_SEPARATOR;
-	newflags[1] = DW_CFA_STRING | DW_CFA_LEFT | DW_CFA_HORZSEPARATOR;
+   newflags[0] = DW_CFA_BITMAPORICON | DW_CFA_CENTER | DW_CFA_HORZSEPARATOR | DW_CFA_SEPARATOR;
+   newflags[1] = DW_CFA_STRING | DW_CFA_LEFT | DW_CFA_HORZSEPARATOR;
 
-	memcpy(&newtitles[2], titles, sizeof(char *) * count);
-	memcpy(&newflags[2], flags, sizeof(unsigned long) * count);
+   memcpy(&newtitles[2], titles, sizeof(char *) * count);
+   memcpy(&newflags[2], flags, sizeof(unsigned long) * count);
 
-	dw_container_setup(handle, newflags, newtitles, count + 2, count ? 2 : 0);
+   dw_container_setup(handle, newflags, newtitles, count + 2, count ? 2 : 0);
 
-	free(newtitles);
-	free(newflags);
-	return TRUE;
+   free(newtitles);
+   free(newflags);
+   return TRUE;
 }
 
 /*
@@ -2228,7 +2228,7 @@ int API dw_filesystem_setup(HWND handle, unsigned long *flags, char **titles, in
  */
 unsigned long API dw_icon_load(unsigned long module, unsigned long id)
 {
-	return 0;
+   return 0;
 }
 
 /*
@@ -2240,7 +2240,7 @@ unsigned long API dw_icon_load(unsigned long module, unsigned long id)
  */
 unsigned long API dw_icon_load_from_file(char *filename)
 {
-	return 0;
+   return 0;
 }
 
 /*
@@ -2251,7 +2251,7 @@ unsigned long API dw_icon_load_from_file(char *filename)
  */
 unsigned long API dw_icon_load_from_data(char *data, int len)
 {
-	return 0;
+   return 0;
 }
 
 /*
@@ -2271,7 +2271,7 @@ void API dw_icon_free(unsigned long handle)
  */
 void * API dw_container_alloc(HWND handle, int rowcount)
 {
-	return NULL;
+   return NULL;
 }
 
 /*
@@ -2309,7 +2309,7 @@ void API dw_container_change_item(HWND handle, int column, int row, void *data)
  */
 void API dw_filesystem_change_item(HWND handle, int column, int row, void *data)
 {
-	dw_filesystem_set_item(handle, NULL, column, row, data);
+   dw_filesystem_set_item(handle, NULL, column, row, data);
 }
 
 /*
@@ -2323,7 +2323,7 @@ void API dw_filesystem_change_item(HWND handle, int column, int row, void *data)
  */
 void API dw_filesystem_change_file(HWND handle, int row, char *filename, unsigned long icon)
 {
-	dw_filesystem_set_file(handle, NULL, row, filename, icon);
+   dw_filesystem_set_file(handle, NULL, row, filename, icon);
 }
 
 /*
@@ -2337,8 +2337,8 @@ void API dw_filesystem_change_file(HWND handle, int row, char *filename, unsigne
  */
 void API dw_filesystem_set_file(HWND handle, void *pointer, int row, char *filename, unsigned long icon)
 {
-	dw_container_set_item(handle, pointer, 0, row, (void *)&icon);
-	dw_container_set_item(handle, pointer, 1, row, (void *)&filename);
+   dw_container_set_item(handle, pointer, 0, row, (void *)&icon);
+   dw_container_set_item(handle, pointer, 1, row, (void *)&filename);
 }
 
 /*
@@ -2352,7 +2352,7 @@ void API dw_filesystem_set_file(HWND handle, void *pointer, int row, char *filen
  */
 void API dw_filesystem_set_item(HWND handle, void *pointer, int column, int row, void *data)
 {
-	dw_container_set_item(handle, pointer, column + 2, row, data);
+   dw_container_set_item(handle, pointer, column + 2, row, data);
 }
 
 /*
@@ -2363,7 +2363,7 @@ void API dw_filesystem_set_item(HWND handle, void *pointer, int column, int row,
  */
 int API dw_container_get_column_type(HWND handle, int column)
 {
-	return 0;
+   return 0;
 }
 
 /*
@@ -2374,7 +2374,7 @@ int API dw_container_get_column_type(HWND handle, int column)
  */
 int API dw_filesystem_get_column_type(HWND handle, int column)
 {
-	return dw_container_get_column_type( handle, column + 1 );
+   return dw_container_get_column_type( handle, column + 1 );
 }
 
 /*
@@ -2527,7 +2527,7 @@ void dw_taskbar_delete(HWND handle, unsigned long icon)
  */
 HWND API dw_render_new(unsigned long id)
 {
-	return 0;
+   return 0;
 }
 
 /* Sets the current foreground drawing color.
@@ -2558,8 +2558,8 @@ void API dw_color_background_set(unsigned long value)
  */
 unsigned long API dw_color_choose(unsigned long value)
 {
-	dw_messagebox("Not implemented", DW_MB_OK|DW_MB_INFORMATION, "This feature not yet supported.");
-	return value;
+   dw_messagebox("Not implemented", DW_MB_OK|DW_MB_INFORMATION, "This feature not yet supported.");
+   return value;
 }
 
 /* Draw a point on a window (preferably a render window).
@@ -2643,7 +2643,7 @@ void API dw_flush(void)
  */
 HPIXMAP API dw_pixmap_new(HWND handle, unsigned long width, unsigned long height, int depth)
 {
-	return 0;
+   return 0;
 }
 
 /*
@@ -2658,7 +2658,7 @@ HPIXMAP API dw_pixmap_new(HWND handle, unsigned long width, unsigned long height
  */
 HPIXMAP API dw_pixmap_new_from_file(HWND handle, char *filename)
 {
-	return 0;
+   return 0;
 }
 
 /*
@@ -2673,7 +2673,7 @@ HPIXMAP API dw_pixmap_new_from_file(HWND handle, char *filename)
  */
 HPIXMAP API dw_pixmap_new_from_data(HWND handle, char *data, int len)
 {
-	return 0;
+   return 0;
 }
 
 /*
@@ -2686,7 +2686,7 @@ HPIXMAP API dw_pixmap_new_from_data(HWND handle, char *data, int len)
  */
 HPIXMAP API dw_pixmap_grab(HWND handle, ULONG id)
 {
-	return 0;
+   return 0;
 }
 
 /*
@@ -2725,7 +2725,7 @@ void API dw_pixmap_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest, int wi
  */
 void API dw_beep(int freq, int dur)
 {
-	SysBeep(dur);
+   SysBeep(dur);
 }
 
 /* Open a shared library and return a handle.
@@ -2736,7 +2736,7 @@ void API dw_beep(int freq, int dur)
  */
 int API dw_module_load(char *name, HMOD *handle)
 {
-	return 0;
+   return 0;
 }
 
 /* Queries the address of a symbol within open handle.
@@ -2748,7 +2748,7 @@ int API dw_module_load(char *name, HMOD *handle)
  */
 int API dw_module_symbol(HMOD handle, char *name, void**func)
 {
-	return 0;
+   return 0;
 }
 
 /* Frees the shared library previously opened.
@@ -2757,7 +2757,7 @@ int API dw_module_symbol(HMOD handle, char *name, void**func)
  */
 int API dw_module_close(HMOD handle)
 {
-	return 0;
+   return 0;
 }
 
 /*
@@ -2765,7 +2765,7 @@ int API dw_module_close(HMOD handle)
  */
 HMTX API dw_mutex_new(void)
 {
-	return 0;
+   return 0;
 }
 
 /*
@@ -2802,7 +2802,7 @@ void API dw_mutex_unlock(HMTX mutex)
  */
 HEV API dw_event_new(void)
 {
-	return 0;
+   return 0;
 }
 
 /*
@@ -2812,7 +2812,7 @@ HEV API dw_event_new(void)
  */
 int API dw_event_reset(HEV eve)
 {
-	return TRUE;
+   return TRUE;
 }
 
 /*
@@ -2823,7 +2823,7 @@ int API dw_event_reset(HEV eve)
  */
 int API dw_event_post(HEV eve)
 {
-	return TRUE;
+   return TRUE;
 }
 
 
@@ -2835,7 +2835,7 @@ int API dw_event_post(HEV eve)
  */
 int API dw_event_wait(HEV eve, unsigned long timeout)
 {
-	return TRUE;
+   return TRUE;
 }
 
 /*
@@ -2845,7 +2845,7 @@ int API dw_event_wait(HEV eve, unsigned long timeout)
  */
 int API dw_event_close(HEV *eve)
 {
-	return TRUE;
+   return TRUE;
 }
 
 /* Create a named event semaphore which can be
@@ -2857,7 +2857,7 @@ int API dw_event_close(HEV *eve)
  */
 HEV API dw_named_event_new(char *name)
 {
-	return 0;
+   return 0;
 }
 
 /* Open an already existing named event semaphore.
@@ -2868,7 +2868,7 @@ HEV API dw_named_event_new(char *name)
  */
 HEV API dw_named_event_get(char *name)
 {
-	return 0;
+   return 0;
 }
 
 /* Resets the event semaphore so threads who call wait
@@ -2879,7 +2879,7 @@ HEV API dw_named_event_get(char *name)
  */
 int API dw_named_event_reset(HEV eve)
 {
-	return 0;
+   return 0;
 }
 
 /* Sets the posted state of an event semaphore, any threads
@@ -2890,7 +2890,7 @@ int API dw_named_event_reset(HEV eve)
  */
 int API dw_named_event_post(HEV eve)
 {
-	return 0;
+   return 0;
 }
 
 
@@ -2904,7 +2904,7 @@ int API dw_named_event_post(HEV eve)
  */
 int API dw_named_event_wait(HEV eve, unsigned long timeout)
 {
-	return 0;
+   return 0;
 }
 
 /* Release this semaphore, if there are no more open
@@ -2915,7 +2915,7 @@ int API dw_named_event_wait(HEV eve, unsigned long timeout)
  */
 int API dw_named_event_close(HEV eve)
 {
-	return 0;
+   return 0;
 }
 
 /*
@@ -2928,7 +2928,7 @@ int API dw_named_event_close(HEV eve)
  */
 HSHM API dw_named_memory_new(void **dest, int size, char *name)
 {
-	return 0;
+   return 0;
 }
 
 /*
@@ -2940,7 +2940,7 @@ HSHM API dw_named_memory_new(void **dest, int size, char *name)
  */
 HSHM API dw_named_memory_get(void **dest, int size, char *name)
 {
-	return 0;
+   return 0;
 }
 
 /*
@@ -2952,7 +2952,7 @@ HSHM API dw_named_memory_get(void **dest, int size, char *name)
 int API dw_named_memory_free(HSHM handle, void *ptr)
 {
 
-	return 0;
+   return 0;
 }
 
 /*
@@ -2964,7 +2964,7 @@ int API dw_named_memory_free(HSHM handle, void *ptr)
  */
 DWTID API dw_thread_new(void *func, void *data, int stack)
 {
-	return (DWTID)-1;
+   return (DWTID)-1;
 }
 
 /*
@@ -2979,7 +2979,7 @@ void API dw_thread_end(void)
  */
 DWTID API dw_thread_id(void)
 {
-	return 0;
+   return 0;
 }
 
 /*
@@ -2989,7 +2989,7 @@ DWTID API dw_thread_id(void)
  */
 void API dw_exit(int exitcode)
 {
-	exit(exitcode);
+   exit(exitcode);
 }
 
 /*
@@ -3003,7 +3003,7 @@ void API dw_exit(int exitcode)
  */
 HWND API dw_splitbar_new(int type, HWND topleft, HWND bottomright, unsigned long id)
 {
-	return 0;
+   return 0;
 }
 
 /*
@@ -3022,7 +3022,7 @@ void API dw_splitbar_set(HWND handle, float percent)
  */
 float API dw_splitbar_get(HWND handle)
 {
-	return 0.0;
+   return 0.0;
 }
 
 /*
@@ -3034,7 +3034,7 @@ float API dw_splitbar_get(HWND handle)
  */
 HWND dw_calendar_new(unsigned long id)
 {
-	return 0;
+   return 0;
 }
 
 /*
@@ -3045,7 +3045,7 @@ HWND dw_calendar_new(unsigned long id)
  */
 void dw_calendar_set_date(HWND handle, unsigned int year, unsigned int month, unsigned int day)
 {
-	return;
+   return;
 }
 
 /*
@@ -3055,7 +3055,7 @@ void dw_calendar_set_date(HWND handle, unsigned int year, unsigned int month, un
  */
 void dw_calendar_get_date(HWND handle, unsigned int *year, unsigned int *month, unsigned int *day)
 {
-	return;
+   return;
 }
 
 /*
@@ -3100,30 +3100,30 @@ void API dw_window_click_default(HWND window, HWND next)
  */
 void API dw_environment_query(DWEnv *env)
 {
-	ULONG Build;
-	char verbuf[10];
+   ULONG Build;
+   char verbuf[10];
 
-	if(!env)
-		return;
+   if(!env)
+      return;
 
-	Gestalt(gestaltSystemVersion, &Build);
+   Gestalt(gestaltSystemVersion, &Build);
 
-	sprintf(verbuf, "%04x", (int)Build);
+   sprintf(verbuf, "%04x", (int)Build);
 
-	strcpy(env->osName,"MacOS");
-	env->MajorBuild = atoi(&verbuf[3]);
-	verbuf[3] = 0;
-	env->MinorVersion = atoi(&verbuf[2]);
-	verbuf[2] = 0;
-	env->MajorVersion = atoi(verbuf);
+   strcpy(env->osName,"MacOS");
+   env->MajorBuild = atoi(&verbuf[3]);
+   verbuf[3] = 0;
+   env->MinorVersion = atoi(&verbuf[2]);
+   verbuf[2] = 0;
+   env->MajorVersion = atoi(verbuf);
 
-	env->MinorBuild = 0;
+   env->MinorBuild = 0;
 
-	strcpy(env->buildDate, __DATE__);
-	strcpy(env->buildTime, __TIME__);
-	env->DWMajorVersion = DW_MAJOR_VERSION;
-	env->DWMinorVersion = DW_MINOR_VERSION;
-	env->DWSubVersion = DW_SUB_VERSION;
+   strcpy(env->buildDate, __DATE__);
+   strcpy(env->buildTime, __TIME__);
+   env->DWMajorVersion = DW_MAJOR_VERSION;
+   env->DWMinorVersion = DW_MINOR_VERSION;
+   env->DWSubVersion = DW_SUB_VERSION;
 }
 
 /*
@@ -3140,7 +3140,7 @@ void API dw_environment_query(DWEnv *env)
  */
 char * API dw_file_browse(char *title, char *defpath, char *ext, int flags)
 {
-	return NULL;
+   return NULL;
 }
 
 /*
@@ -3154,7 +3154,7 @@ char * API dw_file_browse(char *title, char *defpath, char *ext, int flags)
  */
 int API dw_exec(char *program, int type, char **params)
 {
-	return -1;
+   return -1;
 }
 
 /*
@@ -3164,7 +3164,7 @@ int API dw_exec(char *program, int type, char **params)
  */
 int API dw_browse(char *url)
 {
-	return -1;
+   return -1;
 }
 
 /*
@@ -3174,18 +3174,18 @@ int API dw_browse(char *url)
  */
 char * API dw_user_dir(void)
 {
-	static char _user_dir[1024] = "";
+   static char _user_dir[1024] = "";
 
-	if(!_user_dir[0])
-	{
-		char *home = getenv("HOME");
+   if(!_user_dir[0])
+   {
+      char *home = getenv("HOME");
 
-		if(home)
-			strcpy(_user_dir, home);
-		else
-			strcpy(_user_dir, "/");
-	}
-	return _user_dir;
+      if(home)
+         strcpy(_user_dir, home);
+      else
+         strcpy(_user_dir, "/");
+   }
+   return _user_dir;
 }
 
 /*
@@ -3205,92 +3205,92 @@ void API dw_window_function(HWND handle, void *function, void *data)
  */
 static UserData *_find_userdata(UserData **root, char *varname)
 {
-	UserData *tmp = *root;
+   UserData *tmp = *root;
 
-	while(tmp)
-	{
-		if(strcasecmp(tmp->varname, varname) == 0)
-			return tmp;
-		tmp = tmp->next;
-	}
-	return NULL;
+   while(tmp)
+   {
+      if(strcasecmp(tmp->varname, varname) == 0)
+         return tmp;
+      tmp = tmp->next;
+   }
+   return NULL;
 }
 
 static int _new_userdata(UserData **root, char *varname, void *data)
 {
-	UserData *new = _find_userdata(root, varname);
+   UserData *new = _find_userdata(root, varname);
 
-	if(new)
-	{
-		new->data = data;
-		return TRUE;
-	}
-	else
-	{
-		new = malloc(sizeof(UserData));
-		if(new)
-		{
-			new->varname = strdup(varname);
-			new->data = data;
+   if(new)
+   {
+      new->data = data;
+      return TRUE;
+   }
+   else
+   {
+      new = malloc(sizeof(UserData));
+      if(new)
+      {
+         new->varname = strdup(varname);
+         new->data = data;
 
-			new->next = NULL;
+         new->next = NULL;
 
-			if (!*root)
-				*root = new;
-			else
-			{
-				UserData *prev = NULL, *tmp = *root;
-				while(tmp)
-				{
-					prev = tmp;
-					tmp = tmp->next;
-				}
-				if(prev)
-					prev->next = new;
-				else
-					*root = new;
-			}
-			return TRUE;
-		}
-	}
-	return FALSE;
+         if (!*root)
+            *root = new;
+         else
+         {
+            UserData *prev = NULL, *tmp = *root;
+            while(tmp)
+            {
+               prev = tmp;
+               tmp = tmp->next;
+            }
+            if(prev)
+               prev->next = new;
+            else
+               *root = new;
+         }
+         return TRUE;
+      }
+   }
+   return FALSE;
 }
 
 static int _remove_userdata(UserData **root, char *varname, int all)
 {
-	UserData *prev = NULL, *tmp = *root;
+   UserData *prev = NULL, *tmp = *root;
 
-	while(tmp)
-	{
-		if(all || strcasecmp(tmp->varname, varname) == 0)
-		{
-			if(!prev)
-			{
-				*root = tmp->next;
-				free(tmp->varname);
-				free(tmp);
-				if(!all)
-					return 0;
-				tmp = *root;
-			}
-			else
-			{
-				/* If all is true we should
-				 * never get here.
-				 */
-				prev->next = tmp->next;
-				free(tmp->varname);
-				free(tmp);
-				return 0;
-			}
-		}
-		else
-		{
-			prev = tmp;
-			tmp = tmp->next;
-		}
-	}
-	return 0;
+   while(tmp)
+   {
+      if(all || strcasecmp(tmp->varname, varname) == 0)
+      {
+         if(!prev)
+         {
+            *root = tmp->next;
+            free(tmp->varname);
+            free(tmp);
+            if(!all)
+               return 0;
+            tmp = *root;
+         }
+         else
+         {
+            /* If all is true we should
+             * never get here.
+             */
+            prev->next = tmp->next;
+            free(tmp->varname);
+            free(tmp);
+            return 0;
+         }
+      }
+      else
+      {
+         prev = tmp;
+         tmp = tmp->next;
+      }
+   }
+   return 0;
 }
 
 /*
@@ -3302,26 +3302,26 @@ static int _remove_userdata(UserData **root, char *varname, int all)
  */
 void API dw_window_set_data(HWND window, char *dataname, void *data)
 {
-	WindowData *blah = (WindowData *)_get_window_pointer(window);
+   WindowData *blah = (WindowData *)_get_window_pointer(window);
 
-	if(!blah)
-	{
-		if(!dataname)
-			return;
+   if(!blah)
+   {
+      if(!dataname)
+         return;
 
-		blah = calloc(1, sizeof(WindowData));
-		_set_window_pointer(window, blah);
-	}
+      blah = calloc(1, sizeof(WindowData));
+      _set_window_pointer(window, blah);
+   }
 
-	if(data)
-		_new_userdata(&(blah->root), dataname, data);
-	else
-	{
-		if(dataname)
-			_remove_userdata(&(blah->root), dataname, FALSE);
-		else
-			_remove_userdata(&(blah->root), NULL, TRUE);
-	}
+   if(data)
+      _new_userdata(&(blah->root), dataname, data);
+   else
+   {
+      if(dataname)
+         _remove_userdata(&(blah->root), dataname, FALSE);
+      else
+         _remove_userdata(&(blah->root), NULL, TRUE);
+   }
 }
 
 /*
@@ -3333,15 +3333,15 @@ void API dw_window_set_data(HWND window, char *dataname, void *data)
  */
 void *dw_window_get_data(HWND window, char *dataname)
 {
-	WindowData *blah = (WindowData *)_get_window_pointer(window);
+   WindowData *blah = (WindowData *)_get_window_pointer(window);
 
-	if(blah && blah->root && dataname)
-	{
-		UserData *ud = _find_userdata(&(blah->root), dataname);
-		if(ud)
-			return ud->data;
-	}
-	return NULL;
+   if(blah && blah->root && dataname)
+   {
+      UserData *ud = _find_userdata(&(blah->root), dataname);
+      if(ud)
+         return ud->data;
+   }
+   return NULL;
 }
 
 /*
@@ -3355,7 +3355,7 @@ void *dw_window_get_data(HWND window, char *dataname)
  */
 int API dw_timer_connect(int interval, void *sigfunc, void *data)
 {
-	return 0;
+   return 0;
 }
 
 /*
@@ -3365,35 +3365,35 @@ int API dw_timer_connect(int interval, void *sigfunc, void *data)
  */
 void API dw_timer_disconnect(int id)
 {
-	SignalHandler *prev = NULL, *tmp = Root;
+   SignalHandler *prev = NULL, *tmp = Root;
 
-	/* 0 is an invalid timer ID */
-	if(!id)
-		return;
+   /* 0 is an invalid timer ID */
+   if(!id)
+      return;
 
-	while(tmp)
-	{
-		if(tmp->id == id)
-		{
-			if(prev)
-			{
-				prev->next = tmp->next;
-				free(tmp);
-				tmp = prev->next;
-			}
-			else
-			{
-				Root = tmp->next;
-				free(tmp);
-				tmp = Root;
-			}
-		}
-		else
-		{
-			prev = tmp;
-			tmp = tmp->next;
-		}
-	}
+   while(tmp)
+   {
+      if(tmp->id == id)
+      {
+         if(prev)
+         {
+            prev->next = tmp->next;
+            free(tmp);
+            tmp = prev->next;
+         }
+         else
+         {
+            Root = tmp->next;
+            free(tmp);
+            tmp = Root;
+         }
+      }
+      else
+      {
+         prev = tmp;
+         tmp = tmp->next;
+      }
+   }
 }
 
 /*
@@ -3406,13 +3406,13 @@ void API dw_timer_disconnect(int id)
  */
 void API dw_signal_connect(HWND window, char *signame, void *sigfunc, void *data)
 {
-	ULONG message = 0L;
+   ULONG message = 0L;
 
-	if(window && signame && sigfunc)
-	{
-		if((message = _findsigmessage(signame)) != 0)
-			_new_signal(message, window, 0, sigfunc, data);
-	}
+   if(window && signame && sigfunc)
+   {
+      if((message = _findsigmessage(signame)) != 0)
+         _new_signal(message, window, 0, sigfunc, data);
+   }
 }
 
 /*
@@ -3422,35 +3422,35 @@ void API dw_signal_connect(HWND window, char *signame, void *sigfunc, void *data
  */
 void API dw_signal_disconnect_by_name(HWND window, char *signame)
 {
-	SignalHandler *prev = NULL, *tmp = Root;
-	ULONG message;
+   SignalHandler *prev = NULL, *tmp = Root;
+   ULONG message;
 
-	if(!window || !signame || (message = _findsigmessage(signame)) == 0)
-		return;
+   if(!window || !signame || (message = _findsigmessage(signame)) == 0)
+      return;
 
-	while(tmp)
-	{
-		if(tmp->window == window && tmp->message == message)
-		{
-			if(prev)
-			{
-				prev->next = tmp->next;
-				free(tmp);
-				tmp = prev->next;
-			}
-			else
-			{
-				Root = tmp->next;
-				free(tmp);
-				tmp = Root;
-			}
-		}
-		else
-		{
-			prev = tmp;
-			tmp = tmp->next;
-		}
-	}
+   while(tmp)
+   {
+      if(tmp->window == window && tmp->message == message)
+      {
+         if(prev)
+         {
+            prev->next = tmp->next;
+            free(tmp);
+            tmp = prev->next;
+         }
+         else
+         {
+            Root = tmp->next;
+            free(tmp);
+            tmp = Root;
+         }
+      }
+      else
+      {
+         prev = tmp;
+         tmp = tmp->next;
+      }
+   }
 }
 
 /*
@@ -3460,31 +3460,31 @@ void API dw_signal_disconnect_by_name(HWND window, char *signame)
  */
 void API dw_signal_disconnect_by_window(HWND window)
 {
-	SignalHandler *prev = NULL, *tmp = Root;
+   SignalHandler *prev = NULL, *tmp = Root;
 
-	while(tmp)
-	{
-		if(tmp->window == window)
-		{
-			if(prev)
-			{
-				prev->next = tmp->next;
-				free(tmp);
-				tmp = prev->next;
-			}
-			else
-			{
-				Root = tmp->next;
-				free(tmp);
-				tmp = Root;
-			}
-		}
-		else
-		{
-			prev = tmp;
-			tmp = tmp->next;
-		}
-	}
+   while(tmp)
+   {
+      if(tmp->window == window)
+      {
+         if(prev)
+         {
+            prev->next = tmp->next;
+            free(tmp);
+            tmp = prev->next;
+         }
+         else
+         {
+            Root = tmp->next;
+            free(tmp);
+            tmp = Root;
+         }
+      }
+      else
+      {
+         prev = tmp;
+         tmp = tmp->next;
+      }
+   }
 }
 
 /*
@@ -3495,31 +3495,31 @@ void API dw_signal_disconnect_by_window(HWND window)
  */
 void API dw_signal_disconnect_by_data(HWND window, void *data)
 {
-	SignalHandler *prev = NULL, *tmp = Root;
+   SignalHandler *prev = NULL, *tmp = Root;
 
-	while(tmp)
-	{
-		if(tmp->window == window && tmp->data == data)
-		{
-			if(prev)
-			{
-				prev->next = tmp->next;
-				free(tmp);
-				tmp = prev->next;
-			}
-			else
-			{
-				Root = tmp->next;
-				free(tmp);
-				tmp = Root;
-			}
-		}
-		else
-		{
-			prev = tmp;
-			tmp = tmp->next;
-		}
-	}
+   while(tmp)
+   {
+      if(tmp->window == window && tmp->data == data)
+      {
+         if(prev)
+         {
+            prev->next = tmp->next;
+            free(tmp);
+            tmp = prev->next;
+         }
+         else
+         {
+            Root = tmp->next;
+            free(tmp);
+            tmp = Root;
+         }
+      }
+      else
+      {
+         prev = tmp;
+         tmp = tmp->next;
+      }
+   }
 }
 
 
