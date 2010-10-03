@@ -10,7 +10,7 @@ exec_prefix_set=no
 usage()
 {
 	cat <<EOF
-Usage: dw-config [OPTIONS]
+Usage: dwindows-config [OPTIONS]
 Options:
 	[--prefix[=DIR]]
 	[--exec-prefix[=DIR]]
@@ -74,6 +74,6 @@ if test "$echo_cflags" = "yes"; then
 fi
 
 if test "$echo_libs" = "yes"; then
-      echo -L${prefix}/lib -ldw $dw_libs
+      echo -L${prefix}/lib -ldwindows $dw_libs
 fi
 

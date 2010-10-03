@@ -81,9 +81,9 @@
 
 typedef struct _user_data
 {
-	struct _user_data *next;
-	void              *data;
-	char              *varname;
+   struct _user_data *next;
+   void              *data;
+   char              *varname;
 } UserData;
 
 /* OS/2 Specific section */
@@ -217,20 +217,20 @@ typedef struct _user_data
 #define VK_RMENU             VK_MENU
 
 typedef struct _window_data {
-	PFNWP oldproc;
-	UserData *root;
-	HWND clickdefault;
-	ULONG flags;
-	void *data;
+   PFNWP oldproc;
+   UserData *root;
+   HWND clickdefault;
+   ULONG flags;
+   void *data;
 } WindowData;
 
 typedef struct _hpixmap {
-	unsigned long width, height;
-	HDC hdc;
-	HPS hps;
-	HBITMAP hbm;
-	HWND handle;
-	unsigned long transcolor;
+   unsigned long width, height;
+   HDC hdc;
+   HPS hps;
+   HBITMAP hbm;
+   HWND handle;
+   unsigned long transcolor;
 } *HPIXMAP;
 
 typedef void *HTREEITEM;
@@ -267,16 +267,16 @@ typedef void *HTREEITEM;
 typedef MenuRef HMENUI;
 
 typedef struct _window_data {
-	UserData *root;
-	HWND clickdefault;
-	ULONG flags;
-	void *data;
+   UserData *root;
+   HWND clickdefault;
+   ULONG flags;
+   void *data;
 } WindowData;
 
 typedef struct _hpixmap {
-	unsigned long width, height;
-	/* ?? *pixmap; */
-	HWND handle;
+   unsigned long width, height;
+   /* ?? *pixmap; */
+   HWND handle;
 } *HPIXMAP;
 
 #define DW_DT_LEFT               0
@@ -346,7 +346,7 @@ typedef struct _hpixmap {
 #define DW_POINTER_ARROW         0
 #define DW_POINTER_CLOCK         watchCursor
 
-#define HWND_DESKTOP		 ((HWND)0)
+#define HWND_DESKTOP     ((HWND)0)
 
 /* flag values for dw_messagebox() */
 #define DW_MB_OK                 (1 << 1)
@@ -496,7 +496,7 @@ typedef struct _hpixmap {
 #define DW_FCF_NOMOVEWITHOWNER   0
 #define DW_FCF_SYSMODAL          0
 #define DW_FCF_HIDEBUTTON        WS_MINIMIZEBOX
-#define DW_FCF_HIDEMAX           0
+#define DW_FCF_HIDEMAX           (WS_MINIMIZEBOX|WS_MAXIMIZEBOX)
 #define DW_FCF_AUTOICON          0
 #define DW_FCF_MAXIMIZE          WS_MAXIMIZE
 #define DW_FCF_MINIMIZE          WS_MINIMIZE
@@ -558,24 +558,24 @@ typedef struct _hpixmap {
 #define DefaultFont NULL
 
 typedef struct _color {
-	int fore;
-	int back;
-	HWND combo, buddy;
-	int user;
-	int vcenter;
-	HWND clickdefault;
-	HBRUSH hbrush;
-	HFONT hfont;
-	char fontname[128];
-	WNDPROC pOldProc;
-	UserData *root;
+   int fore;
+   int back;
+   HWND combo, buddy;
+   int user;
+   int vcenter;
+   HWND clickdefault;
+   HBRUSH hbrush;
+   HFONT hfont;
+   char fontname[128];
+   WNDPROC pOldProc;
+   UserData *root;
 } ColorInfo;
 
 typedef struct _notebookpage {
-	ColorInfo cinfo;
-	TC_ITEM item;
-	HWND hwnd;
-	int realid;
+   ColorInfo cinfo;
+   TC_ITEM item;
+   HWND hwnd;
+   int realid;
 } NotebookPage;
 
 typedef HANDLE HMTX;
@@ -584,82 +584,82 @@ typedef HANDLE HMOD;
 typedef HANDLE HSHM;
 
 typedef struct _container {
-	ColorInfo cinfo;
-	ULONG *flags;
-	WNDPROC pOldProc;
-	ULONG columns;
+   ColorInfo cinfo;
+   ULONG *flags;
+   WNDPROC pOldProc;
+   ULONG columns;
 } ContainerInfo;
 
 typedef struct _hpixmap {
-	unsigned long width, height;
-	HBITMAP hbm;
-	HDC hdc;
-	unsigned long transcolor;
-	HWND handle;
-	void *bits;
+   unsigned long width, height;
+   HBITMAP hbm;
+   HDC hdc;
+   unsigned long transcolor;
+   HWND handle;
+   void *bits;
 } *HPIXMAP;
 
 typedef HWND HMENUI;
 #endif
 
 typedef struct _item {
-	/* Item type - Box or Item */
-	int type;
-	/* Handle to Frame or Window */
-	HWND hwnd;
-	/* Width and Height of static size */
-	int width, height, origwidth, origheight;
-	/* Size Type - Static or Expand */
-	int hsize, vsize;
-	/* Padding */
-	int pad;
-	/* Ratio of current item */
-	float xratio, yratio;
+   /* Item type - Box or Item */
+   int type;
+   /* Handle to Frame or Window */
+   HWND hwnd;
+   /* Width and Height of static size */
+   int width, height, origwidth, origheight;
+   /* Size Type - Static or Expand */
+   int hsize, vsize;
+   /* Padding */
+   int pad;
+   /* Ratio of current item */
+   float xratio, yratio;
 } Item;
 
 typedef struct _box {
 #if defined(__WIN32__) || defined(WINNT)
-	ColorInfo cinfo;
+   ColorInfo cinfo;
 #elif defined(__OS2__) || defined(__EMX__)
-	PFNWP oldproc;
-	UserData *root;
-	HWND hwndtitle, hwnd;
-	int titlebar;
+   PFNWP oldproc;
+   UserData *root;
+   HWND hwndtitle, hwnd;
+   int titlebar;
 #endif
-	/* Number of items in the box */
-	int count;
-	/* Box type - horizontal or vertical */
-	int type;
-	/* Padding */
-	int pad, parentpad, grouppadx, grouppady;
-	/* Groupbox */
-	HWND grouphwnd;
-	/* Default item */
-	HWND defaultitem;
-	/* Used as temporary storage in the calculation stage */
-	int upx, upy, minheight, minwidth;
-	/* Ratio in this box */
-	float xratio, yratio, parentxratio, parentyratio;
-	/* Used for calculating individual item ratios */
-	int width, height;
-	/* Any combinations of flags describing the box */
-	unsigned long flags;
-	/* Array of item structures */
-	struct _item *items;
+   /* Number of items in the box */
+   int count;
+   /* Box type - horizontal or vertical */
+   int type;
+   /* Padding */
+   int pad, parentpad, grouppadx, grouppady;
+   /* Groupbox */
+   HWND grouphwnd;
+   /* Default item */
+   HWND defaultitem;
+   /* Used as temporary storage in the calculation stage */
+   int upx, upy, minheight, minwidth;
+   /* Ratio in this box */
+   float xratio, yratio, parentxratio, parentyratio;
+   /* Used for calculating individual item ratios */
+   int width, height;
+   /* Any combinations of flags describing the box */
+   unsigned long flags;
+   /* Array of item structures */
+   struct _item *items;
 } Box;
 
 typedef struct _bubblebutton {
 #if defined(__WIN32__) || defined(WINNT)
-	ColorInfo cinfo;
-	int checkbox;
-	WNDPROC pOldProc;
+   ColorInfo cinfo;
+   int checkbox;
+   WNDPROC pOldProc;
 #endif
 #if defined(__OS2__) || defined(__EMX__)
-	PFNWP pOldProc;
-	UserData *root;
+   PFNWP pOldProc;
+   UserData *root;
 #endif
-	unsigned long id;
-	char bubbletext[BUBBLE_HELP_MAX];
+   unsigned long id;
+   char bubbletext[BUBBLE_HELP_MAX];
 } BubbleButton;
 
 #else
@@ -855,19 +855,19 @@ typedef unsigned UINT;
 typedef int INT;
 typedef pthread_mutex_t *HMTX;
 typedef struct _dw_unix_event {
-	pthread_mutex_t mutex;
-	pthread_cond_t event;
-	pthread_t thread;
-	int alive;
-	int posted;
+   pthread_mutex_t mutex;
+   pthread_cond_t event;
+   pthread_t thread;
+   int alive;
+   int posted;
 } *HEV;
 typedef pthread_t DWTID;
 typedef void * HMOD;
 struct _dw_unix_shm {
-	int fd;
-	char *path;
-	int sid;
-	int size;
+   int fd;
+   char *path;
+   int sid;
+   int size;
 };
 
 typedef struct _hpixmap {
@@ -882,8 +882,8 @@ typedef void *HTREEITEM;
 typedef void *HSHM;
 
 typedef struct _resource_struct {
-	long resource_max, *resource_id;
-	char **resource_data;
+   long resource_max, *resource_id;
+   char **resource_data;
 } DWResources;
 
 #if !defined(DW_RESOURCES) || defined(BUILD_DLL)
@@ -897,18 +897,18 @@ extern DWResources _resources;
 #if !defined(__OS2__) && !defined(__EMX__)
 typedef struct _CDATE
 {
-	UCHAR  day;
-	UCHAR  month;
-	USHORT year;
+   UCHAR  day;
+   UCHAR  month;
+   USHORT year;
 } CDATE;
 typedef CDATE *PCDATE;
 
 typedef struct _CTIME
 {
-	UCHAR hours;
-	UCHAR minutes;
-	UCHAR seconds;
-	UCHAR ucReserved;
+   UCHAR hours;
+   UCHAR minutes;
+   UCHAR seconds;
+   UCHAR ucReserved;
 } CTIME;
 typedef CTIME *PCTIME;
 #endif
@@ -918,25 +918,25 @@ typedef unsigned long DWTID;
 #endif
 
 typedef struct _dwenv {
-	/* Operating System Name and DW Build Date/Time */
-	char osName[30], buildDate[30], buildTime[30];
-	/* Versions and builds */
-	short MajorVersion, MinorVersion, MajorBuild, MinorBuild;
-	/* Dynamic Window version */
-	short DWMajorVersion, DWMinorVersion, DWSubVersion;
+   /* Operating System Name and DW Build Date/Time */
+   char osName[30], buildDate[30], buildTime[30];
+   /* Versions and builds */
+   short MajorVersion, MinorVersion, MajorBuild, MinorBuild;
+   /* Dynamic Window version */
+   short DWMajorVersion, DWMinorVersion, DWSubVersion;
 } DWEnv;
 
 
 typedef struct _dwexpose {
-	int x, y;
-	int width, height;
+   int x, y;
+   int width, height;
 } DWExpose;
 
 typedef struct _dwdialog {
-	HEV eve;
-	int done;
-	int method;
-	void *data, *result;
+   HEV eve;
+   int done;
+   int method;
+   void *data, *result;
 } DWDialog;
 
 #define DW_SIGNAL_FUNC(a) ((void *)a)
@@ -999,12 +999,13 @@ typedef struct _dwdialog {
 #define DW_ERROR_INTERRUPT 5
 
 /* Embedded HTML actions */
-#define DW_HTML_GOBACK		0
-#define DW_HTML_GOFORWARD	1
-#define DW_HTML_GOHOME		2
-#define DW_HTML_SEARCH		3
-#define DW_HTML_RELOAD		4
-#define DW_HTML_STOP		5
+#define DW_HTML_GOBACK     0
+#define DW_HTML_GOFORWARD  1
+#define DW_HTML_GOHOME     2
+#define DW_HTML_SEARCH     3
+#define DW_HTML_RELOAD     4
+#define DW_HTML_STOP       5
+#define DW_HTML_PRINT      6
 
 #ifndef API
 #define API
@@ -1076,6 +1077,7 @@ HWND API dw_scrollbar_new(int vertical, ULONG id);
 HWND API dw_checkbox_new(char *text, unsigned long id);
 HWND API dw_listbox_new(unsigned long id, int multi);
 void API dw_listbox_append(HWND handle, char *text);
+void API dw_listbox_insert(HWND handle, char *text, int pos);
 void API dw_listbox_list_append(HWND handle, char **text, int count);
 void API dw_listbox_clear(HWND handle);
 int API dw_listbox_count(HWND handle);

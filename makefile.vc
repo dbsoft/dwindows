@@ -14,7 +14,7 @@ FXLIBDIR=.\lib
 FXDLLDIR=.\dll
 
 !if "$(DEBUG)" == "Y"
-CFLAGS_DEBUG = -Z7 -Od # was -Zi
+CFLAGS_DEBUG = -DDEBUG -Z7 -Od # was -Zi
 LINK_DEBUG = -debug:full
 !else
 CFLAGS_DEBUG = -Ox

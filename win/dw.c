@@ -1551,6 +1551,87 @@ static void _dw_toggle_checkable_menu_item( HWND window, int id )
    }
 }
 
+#ifdef DEBUG
+long ProcessCustomDraw (LPARAM lParam)
+{
+    LPNMLVCUSTOMDRAW lplvcd = (LPNMLVCUSTOMDRAW)lParam;
+
+    switch(lplvcd->nmcd.dwDrawStage)
+    {
+        case CDDS_PREPAINT : //Before the paint cycle begins
+            //request notifications for individual listview items
+dw_messagebox("LISTVIEW", DW_MB_OK|DW_MB_ERROR, "PREPAINT");
+//            return CDRF_NOTIFYITEMDRAW;
+            return (CDRF_NOTIFYPOSTPAINT | CDRF_NOTIFYITEMDRAW);
+
+        case CDDS_ITEMPREPAINT: //Before an item is drawn
+            {
+dw_messagebox("LISTVIEW", DW_MB_OK|DW_MB_ERROR, "ITEMPREPAINT");
+                return CDRF_NOTIFYSUBITEMDRAW;
+            }
+            break;
+
+        case CDDS_SUBITEM | CDDS_ITEMPREPAINT: //Before a subitem is drawn
+            {
+dw_messagebox("LISTVIEW", DW_MB_OK|DW_MB_ERROR, "SUBITEM ITEMPREPAINT %d",lplvcd->iSubItem);
+                switch(lplvcd->iSubItem)
+                {
+                    case 0:
+                    {
+                      lplvcd->clrText   = RGB(255,255,255);
+                      lplvcd->clrTextBk = RGB(240,55,23);
+                      return CDRF_NEWFONT;
+                    }
+                    break;
+
+                    case 1:
+                    {
+                      lplvcd->clrText   = RGB(255,255,0);
+                      lplvcd->clrTextBk = RGB(0,0,0);
+                      return CDRF_NEWFONT;
+                    }
+                    break;
+
+                    case 2:
+                    {
+                      lplvcd->clrText   = RGB(20,26,158);
+                      lplvcd->clrTextBk = RGB(200,200,10);
+                      return CDRF_NEWFONT;
+                    }
+                    break;
+
+                    case 3:
+                    {
+                      lplvcd->clrText   = RGB(12,15,46);
+                      lplvcd->clrTextBk = RGB(200,200,200);
+                      return CDRF_NEWFONT;
+                    }
+                    break;
+
+                    case 4:
+                    {
+                      lplvcd->clrText   = RGB(120,0,128);
+                      lplvcd->clrTextBk = RGB(20,200,200);
+                      return CDRF_NEWFONT;
+                    }
+                    break;
+
+                    case 5:
+                    {
+                      lplvcd->clrText   = RGB(255,255,255);
+                      lplvcd->clrTextBk = RGB(0,0,150);
+                      return CDRF_NEWFONT;
+                    }
+                    break;
+
+                }
+
+            }
+    }
+    return CDRF_DODEFAULT;
+}
+#endif
+
 /* The main window procedure for Dynamic Windows, all the resizing code is done here. */
 BOOL CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 {
@@ -1780,6 +1861,10 @@ BOOL CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
                         char tmpbuf[100];
 
                         GetClassName(tem->hdr.hwndFrom, tmpbuf, 99);
+#ifdef DEBUG_NOTUSED
+if ( lem->hdr.code == NM_CUSTOMDRAW )
+dw_messagebox("NM_CUSTOMDRAW for (WM_NOTIFY)", DW_MB_OK|DW_MB_ERROR, "%s %d: Classname:%s",__FILE__,__LINE__,tmpbuf);
+#endif
 
                         if(strnicmp(tmpbuf, WC_TREEVIEW, strlen(WC_TREEVIEW))==0)
                         {
@@ -1880,6 +1965,14 @@ BOOL CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
                                  }
                               }
                            }
+#ifdef DEBUG
+                           else if ( lem->hdr.code == NM_CUSTOMDRAW )
+                           {
+dw_messagebox("NM_CUSTOMDRAW for WC_LISTVIEW from _wndproc (WM_NOTIFY)", DW_MB_OK|DW_MB_ERROR, "Hello");
+                              SetWindowLong( hWnd, DWL_MSGRESULT, (LONG)ProcessCustomDraw(mp2) );
+                              return TRUE;
+                           }
+#endif
                         }
                      }
                      else if(tmp->message == TCN_SELCHANGE)
@@ -1903,6 +1996,20 @@ BOOL CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
                            tmp = NULL;
                         }
                      }
+#ifdef DEBUG_NOTUSED
+                     else
+                     {
+                        NMLISTVIEW FAR *lem=(NMLISTVIEW FAR *)mp2;
+                        char tmpbuf[100];
+                        GetClassName(lem->hdr.hwndFrom, tmpbuf, 99);
+                        if ( strnicmp( tmpbuf, WC_LISTVIEW, strlen(WC_LISTVIEW)+1 ) == 0 && lem->hdr.code == NM_CUSTOMDRAW )
+                        {
+dw_messagebox("NM_CUSTOMDRAW for WC_LISTVIEW(mp2) from _wndproc (WM_NOTIFY)", DW_MB_OK|DW_MB_ERROR, "Hello");
+                           SetWindowLong( hWnd, DWL_MSGRESULT, (LONG)ProcessCustomDraw(mp2) );
+                           tmp = NULL; //return TRUE;
+                        }
+                     }
+#endif
                   }
                   break;
                case WM_COMMAND:
@@ -2081,6 +2188,25 @@ BOOL CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 
             _resize_notebook_page(tem->hwndFrom, num);
          }
+#ifdef DEBUG
+         else
+         {
+            /*
+             * Check if we have a click_default for this window
+             */
+            NMLISTVIEW FAR *lem=(NMLISTVIEW FAR *)mp2;
+            char tmpbuf[100];
+            GetClassName(lem->hdr.hwndFrom, tmpbuf, 99);
+if ( lem->hdr.code == NM_CUSTOMDRAW )
+dw_messagebox("NM_CUSTOMDRAW for (WM_NOTIFY)", DW_MB_OK|DW_MB_ERROR, "%s %d: Classname:%s is it %s",__FILE__,__LINE__,tmpbuf,WC_LISTVIEW);
+            if ( strnicmp( tmpbuf, WC_LISTVIEW, strlen(WC_LISTVIEW)+1 ) == 0 && lem->hdr.code == NM_CUSTOMDRAW )
+            {
+dw_messagebox("NM_CUSTOMDRAW for WC_LISTVIEW(mp2) from _wndproc (WM_NOTIFY) - normal processing", DW_MB_OK|DW_MB_ERROR, "Hello");
+               SetWindowLong( hWnd, DWL_MSGRESULT, (long)ProcessCustomDraw(mp2) );
+               return TRUE;
+            }
+         }
+#endif
       }
       break;
    case WM_HSCROLL:
@@ -2501,11 +2627,10 @@ void _click_default(HWND handle)
       {
          if (tmp->message == WM_COMMAND)
          {
-            int (*clickfunc)(HWND, void *) = tmp->signalfunction;
-
             /* Make sure it's the right window, and the right ID */
             if (tmp->window == handle)
             {
+               int (*clickfunc)(HWND, void *) = tmp->signalfunction;
                clickfunc(tmp->window, tmp->data);
                tmp = NULL;
             }
@@ -2634,7 +2759,7 @@ BOOL CALLBACK _colorwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
                 */
                HWND tl = _toplevel_window( hWnd );
                ColorInfo *mycinfo = (ColorInfo *)GetWindowLongPtr( tl, GWLP_USERDATA );
-               if ( mycinfo && cinfo->clickdefault )
+               if ( mycinfo && mycinfo->clickdefault )
                {
                   _click_default( mycinfo->clickdefault );
                }
@@ -6226,6 +6351,29 @@ void API dw_listbox_list_append(HWND handle, char **text, int count)
 
    for(i=0;i<count;i++)
       SendMessage(handle,(WPARAM)listbox_type,0,(LPARAM)text[i]);
+}
+
+/*
+ * Inserts the specified text to the listbox's (or combobox) entry list.
+ * Parameters:
+ *          handle: Handle to the listbox to be appended to.
+ *          text: Text to append into listbox.
+ *          pos: 0 based position to insert text
+ */
+void API dw_listbox_insert(HWND handle, char *text, int pos)
+{
+   char tmpbuf[100];
+
+   GetClassName(handle, tmpbuf, 99);
+
+   if(strnicmp(tmpbuf, COMBOBOXCLASSNAME, strlen(COMBOBOXCLASSNAME)+1)==0)
+      SendMessage(handle,
+               CB_INSERTSTRING,
+               pos, (LPARAM)text);
+   else
+      SendMessage(handle,
+               LB_INSERTSTRING,
+               pos, (LPARAM)text);
 }
 
 /*
