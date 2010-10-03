@@ -16,47 +16,13 @@
 #define FIXEDFONT "monospace 10"
 #define FOLDER_ICON_NAME "gtk/folder"
 #define FILE_ICON_NAME "gtk/file"
-#define FOLDER_DATA_NAME folder_xpm
-#define FOLDER_DATA_LENGTH sizeof(folder_xpm)
 #else
 #define FIXEDFONT "fixed"
 #define FOLDER_ICON_NAME "gtk/folder"
 #define FILE_ICON_NAME "gtk/file"
-#define FOLDER_DATA_NAME folder_xpm
-#define FOLDER_DATA_LENGTH sizeof(folder_xpm)
 #endif
 
 #define SCROLLBARWIDTH 14
-
-/* XPM */
-static char * folder_xpm[] = {
-"16 16 10 1",
-" 	c None",
-".	c #000000",
-"+	c #AA9200",
-"@	c #FFFFAA",
-"#	c #FFDB55",
-"$	c #000000",
-"%	c #F7F7F7",
-"&	c #000000",
-"*	c #FFDBAA",
-"=	c #D5B655",
-"                ",
-"  &&&&          ",
-" &%%%%&         ",
-"&%@@@@%+++++$   ",
-"&@@@@@@%%%%%$   ",
-"&@*++++++++++++ ",
-"&#+%%%%%%%%%*%+$",
-"&#+@@@@@@@@@#@+$",
-"&#+@@@@@@@@@.@+$",
-"&#+@@**@**@@=@+$",
-"&#+@########=@+$",
-"&#+@########=@+$",
-" ++++++++++++++$",
-"  $$$$$$$$$$$$$ ",
-"                ",
-"                "};
 
 unsigned long flStyle = DW_FCF_SYSMENU | DW_FCF_TITLEBAR |
    DW_FCF_SHELLPOSITION | DW_FCF_TASKLIST | DW_FCF_DLGBORDER;
@@ -996,6 +962,9 @@ void buttons_add(void)
       free(text[i]);
    }
    free(text);
+   /* now insert a couple of items */
+   dw_listbox_insert( combobox2, "inserted item 2", 2 );
+   dw_listbox_insert( combobox2, "inserted item 5", 5 );
    /* make a spinbutton */
    spinbutton = dw_spinbutton_new( "", 0 ); /* no point in specifying text */
    dw_box_pack_start( combox, spinbutton, 200, 20, TRUE, FALSE, 0);
