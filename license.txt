@@ -1,5 +1,5 @@
 
-Copyright (c) 2000-2009, Brian Smith <dbsoft@technologist.com>
+Copyright (c) 2000-2011, Brian Smith <brian@dbsoft.org>
 Copyright (c) 2003-2010, Mark Hessling <mark@rexx.org>
 Copyright (c) 2002, Nickolay V. Shmyrev <shmyrev@yandex.ru>
 Copyright (c) 2000, Achim Hasenmueller <achimha@innotek.de>
