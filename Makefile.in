@@ -94,6 +94,7 @@ installbase: $(SYSCONF_LINK_TARGET)
 installcompat: $(SYSCONF_LINK_TARGET2)
 	$(INSTALL) -d $(prefix)/lib; \
 	$(INSTALL) $(SYSCONF_LINK_TARGET2) $(prefix)/lib; \
+	$(INSTALL) $(srcdir)/compat.h $(prefix)/include; \
 	cd $(prefix)/lib; \
 	rm -f lib$(TARGET2).$(SOSUFFIX) lib$(TARGET2).$(SOSUFFIX).$(VER_MAJ); \
 	ln -sf $(SYSCONF_LINK_TARGET_SHARED2) lib$(TARGET2).$(SOSUFFIX); \
