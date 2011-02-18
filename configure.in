@@ -33,7 +33,6 @@ AC_PROG_INSTALL
 AC_SUBST(MAKE)
 
 dnl ---------------------- check for '--with-compat' switch -----------------
-with_compat=no
 AC_ARG_WITH(compat,
    [  --with-compat           specify this to build the optional dwcompat library],
    [with_compat=$withval],
