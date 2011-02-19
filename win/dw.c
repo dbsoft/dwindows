@@ -1551,7 +1551,7 @@ static void _dw_toggle_checkable_menu_item( HWND window, int id )
    }
 }
 
-#ifdef DEBUG
+#ifdef DWDEBUG
 long ProcessCustomDraw (LPARAM lParam)
 {
     LPNMLVCUSTOMDRAW lplvcd = (LPNMLVCUSTOMDRAW)lParam;
@@ -1965,7 +1965,7 @@ dw_messagebox("NM_CUSTOMDRAW for (WM_NOTIFY)", DW_MB_OK|DW_MB_ERROR, "%s %d: Cla
                                  }
                               }
                            }
-#ifdef DEBUG
+#ifdef DWDEBUG
                            else if ( lem->hdr.code == NM_CUSTOMDRAW )
                            {
 dw_messagebox("NM_CUSTOMDRAW for WC_LISTVIEW from _wndproc (WM_NOTIFY)", DW_MB_OK|DW_MB_ERROR, "Hello");
@@ -2188,7 +2188,7 @@ dw_messagebox("NM_CUSTOMDRAW for WC_LISTVIEW(mp2) from _wndproc (WM_NOTIFY)", DW
 
             _resize_notebook_page(tem->hwndFrom, num);
          }
-#ifdef DEBUG
+#ifdef DWDEBUG
          else
          {
             /*
@@ -7663,11 +7663,22 @@ void API dw_container_set_item(HWND handle, void *pointer, int column, int row, 
       struct tm curtm;
       CDATE cdate = *((CDATE *)data);
 
-      curtm.tm_mday = cdate.day;
-      curtm.tm_mon = cdate.month - 1;
-      curtm.tm_year = cdate.year - 1900;
 
-      strftime(textbuffer, 100, "%x", &curtm);
+	  /* Safety check... zero dates are crashing
+	   * Visual Studio 2008. -Brian
+	   */
+	  if(cdate.year > 1900)
+	  {
+		  curtm.tm_mday = cdate.day;
+		  curtm.tm_mon = cdate.month > 0 ? cdate.month - 1 : 0;
+		  curtm.tm_year = cdate.year - 1900;
+
+		  strftime(textbuffer, 100, "%x", &curtm);
+	  }
+	  else
+	  {
+		  textbuffer[0] = 0;
+	  }
 
       lvi.pszText = textbuffer;
       lvi.cchTextMax = strlen(textbuffer);
