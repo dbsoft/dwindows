@@ -651,7 +651,7 @@ int API setpath(char *path)
 static int locale_number = -1, locale_count = 0;
 static char **locale_text = NULL;
 
-void _free_locale(void)
+void _compat_free_locale(void)
 {
 	if(locale_text)
 	{
@@ -720,7 +720,7 @@ int API locale_init(char *filename, int my_locale)
 	static char text[1025];
 	int count = 0;
 
-	_free_locale();
+	_compat_free_locale();
 
 	if(fp)
 	{
