@@ -120,8 +120,10 @@ long double API drivefree(int drive)
 
 				if(mnt.mnt_mountp)
 				{
-					statfs(mnt.mnt_mountp, &sfs, sizeof(struct statfs), 0);
-					size = (long double)((double)sfs.f_bsize * (double)sfs.f_bfree);
+					if(!statfs(mnt.mnt_mountp, &sfs, sizeof(struct statfs), 0))
+					{
+						size = (long double)((double)sfs.f_bsize * (double)sfs.f_bfree);
+					}
 				}
 				fclose(fp);
 				return size;
@@ -133,22 +135,25 @@ long double API drivefree(int drive)
 	return 0;
 #else
 	FILE *fp = setmntent(MOUNTED, "r");
-	struct mntent *mnt;
+	struct mntent mnt;
 	struct statfs sfs;
+	char buffer[1024];
 	int index = 1;
 
 	if(fp)
 	{
-		while((mnt = getmntent(fp)))
+		while(getmntent_r(fp, &mnt, buffer, sizeof(buffer)))
 		{
 			if(index == drive)
 			{
 				long double size = 0;
 
-				if(mnt->mnt_dir)
+				if(mnt.mnt_dir)
 				{
-					statfs(mnt->mnt_dir, &sfs);
-					size = (long double)((double)sfs.f_bsize * (double)sfs.f_bavail);
+					if(!statfs(mnt.mnt_dir, &sfs))
+					{
+						size = (long double)((double)sfs.f_bsize * (double)sfs.f_bavail);
+					}
 				}
 				endmntent(fp);
 				return size;
@@ -217,8 +222,10 @@ long double API drivesize(int drive)
 
 				if(mnt.mnt_mountp)
 				{
-					statfs(mnt.mnt_mountp, &sfs, sizeof(struct statfs), 0);
-					size = (long double)((double)sfs.f_bsize * (double)sfs.f_blocks);
+					if(!statfs(mnt.mnt_mountp, &sfs, sizeof(struct statfs), 0))
+					{
+						size = (long double)((double)sfs.f_bsize * (double)sfs.f_blocks);
+					}
 				}
 				fclose(fp);
 				return size;
@@ -230,22 +237,25 @@ long double API drivesize(int drive)
 	return 0;
 #else
 	FILE *fp = setmntent(MOUNTED, "r");
-	struct mntent *mnt;
+	struct mntent mnt;
+	char buffer[1024];
 	struct statfs sfs;
 	int index = 1;
 
 	if(fp)
 	{
-		while((mnt = getmntent(fp)))
+		while(getmntent_r(fp, &mnt, buffer, sizeof(buffer)))
 		{
 			if(index == drive)
 			{
 				long double size = 0;
 
-				if(mnt->mnt_dir)
+				if(mnt.mnt_dir)
 				{
-					statfs(mnt->mnt_dir, &sfs);
-					size = (long double)((double)sfs.f_bsize * (double)sfs.f_blocks);
+					if(!statfs(mnt.mnt_dir, &sfs))
+					{
+						size = (long double)((double)sfs.f_bsize * (double)sfs.f_blocks);
+					}
 				}
 				endmntent(fp);
 				return size;
@@ -310,8 +320,7 @@ int API isdrive(int drive)
 				fclose(fp);
 				if(mnt.mnt_mountp)
 				{
-					statfs(mnt.mnt_mountp, &sfs, sizeof(struct statfs), 0);
-					if(sfs.f_blocks)
+					if(!statfs(mnt.mnt_mountp, &sfs, sizeof(struct statfs), 0) && sfs.f_blocks)
 						return 1;
 				}
 				return 0;
@@ -322,22 +331,24 @@ int API isdrive(int drive)
 	}
 #else
 	FILE *fp = setmntent(MOUNTED, "r");
-	struct mntent *mnt;
+	struct mntent mnt;
+	char buffer[1024];
 	struct statfs sfs;
 	int index = 1;
 
 	if(fp)
 	{
-		while((mnt = getmntent(fp)))
+		while(getmntent_r(fp, &mnt, buffer, sizeof(buffer)))
 		{
 			if(index == drive)
 			{
 				endmntent(fp);
-				if(mnt->mnt_dir)
+				if(mnt.mnt_dir)
 				{
-					statfs(mnt->mnt_dir, &sfs);
-					if(sfs.f_blocks)
+					if(!statfs(mnt.mnt_dir, &sfs) && sfs.f_blocks)
+					{
 						return 1;
+					}
 				}
 				return 0;
 			}
@@ -385,17 +396,18 @@ void API getfsname(int drive, char *buf, int len)
 	}
 #else
 	FILE *fp = setmntent(MOUNTED, "r");
-	struct mntent *mnt;
+	struct mntent mnt;
+	char buffer[1024];
 	int index = 1;
 
 	strncpy(buf, "Unknown", len);
 
 	if(fp)
 	{
-		while((mnt = getmntent(fp)))
+		while(getmntent_r(fp, &mnt, buffer, sizeof(buffer)))
 		{
-			if(index == drive && mnt->mnt_dir)
-				strncpy(buf, mnt->mnt_dir, len);
+			if(index == drive && mnt.mnt_dir)
+				strncpy(buf, mnt.mnt_dir, len);
 			index++;          
 		}
 		endmntent(fp);
