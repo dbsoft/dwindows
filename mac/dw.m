@@ -109,6 +109,34 @@ static void _do_resize(Box *thisbox, int x, int y);
 -(void)setUserdata:(void *)input { userdata = input; }
 @end
 
+/* Subclass for a entryfield type */
+@interface DWEntryField : NSTextField
+{
+	void *userdata; 
+}
+-(void *)userdata;
+-(void)setUserdata:(void *)input;
+@end
+
+@implementation DWEntryField
+-(void *)userdata { return userdata; }
+-(void)setUserdata:(void *)input { userdata = input; }
+@end
+
+/* Subclass for a entryfield password type */
+@interface DWEntryFieldPassword : NSSecureTextField
+{
+	void *userdata; 
+}
+-(void *)userdata;
+-(void)setUserdata:(void *)input;
+@end
+
+@implementation DWEntryFieldPassword
+-(void *)userdata { return userdata; }
+-(void)setUserdata:(void *)input { userdata = input; }
+@end
+
 NSApplication *DWApp;
 NSRunLoop *DWRunLoop;
 
@@ -886,7 +914,52 @@ int API dw_messagebox(char *title, int flags, char *format, ...)
  */
 char * API dw_file_browse(char *title, char *defpath, char *ext, int flags)
 {
-	NSLog(@"dw_file_browse() unimplemented\n");
+	if(flags == DW_FILE_OPEN)
+	{
+		/* Create the File Open Dialog class. */
+		NSOpenPanel* openDlg = [NSOpenPanel openPanel];
+	
+		/* Enable the selection of files in the dialog. */
+		[openDlg setCanChooseFiles:YES];
+		[openDlg setCanChooseDirectories:NO];
+	
+		/* Disable multiple selection */
+		[openDlg setAllowsMultipleSelection:NO];
+	
+		/* Display the dialog.  If the OK button was pressed,
+		 * process the files.
+		 */
+		if([openDlg runModal] == NSOKButton)
+		{
+			/* Get an array containing the full filenames of all
+			 * files and directories selected.
+			 */
+			NSArray* files = [openDlg filenames];
+			NSString* fileName = [files objectAtIndex:0];
+			return strdup([ fileName UTF8String ]);		
+		}
+	}
+	else
+	{
+		/* Create the File Save Dialog class. */
+		NSSavePanel* saveDlg = [NSSavePanel savePanel];
+		
+		/* Enable the selection of files in the dialog. */
+		[saveDlg setCanCreateDirectories:YES];
+		
+		/* Display the dialog.  If the OK button was pressed,
+		 * process the files.
+		 */
+		if([saveDlg runModal] == NSFileHandlingPanelOKButton)
+		{
+			/* Get an array containing the full filenames of all
+			 * files and directories selected.
+			 */
+			NSString* fileName = [saveDlg filename];
+			return strdup([ fileName UTF8String ]);		
+		}		
+	}
+
 	return NULL;
 }
 
@@ -900,7 +973,12 @@ char * API dw_file_browse(char *title, char *defpath, char *ext, int flags)
  */
 char *dw_clipboard_get_text()
 {
-	NSLog(@"dw_clipboard_get_text() unimplemented\n");
+	NSPasteboard *pasteboard = [NSPasteboard generalPasteboard];
+	NSString *str = [pasteboard stringForType:NSStringPboardType];
+	if(str != nil)
+	{
+		return strdup([ str UTF8String ]);
+	}
 	return NULL;
 }
 
@@ -909,10 +987,13 @@ char *dw_clipboard_get_text()
  * Parameters:
  *       Text.
  */
-void dw_clipboard_set_text( char *str, int len )
+void dw_clipboard_set_text( char *str, int len)
 {
-	NSLog(@"dw_clipboard_set_text() unimplemented\n");
-	return;
+	NSPasteboard *pasteboard = [NSPasteboard generalPasteboard];
+	
+	[pasteboard clearContents];
+	
+	[pasteboard setString:[ NSString stringWithUTF8String:str ] forType:NSStringPboardType];
 }
 
 
@@ -1166,7 +1247,7 @@ HWND API dw_button_new(char *text, ULONG id)
  */
 HWND API dw_entryfield_new(char *text, ULONG id)
 {
-	NSTextField *entry = [[NSTextField alloc] init];
+	DWEntryField *entry = [[DWEntryField alloc] init];
 	[entry setStringValue:[ NSString stringWithUTF8String:text ]];
 	[entry setTag:id];
 	return entry;
@@ -1180,7 +1261,7 @@ HWND API dw_entryfield_new(char *text, ULONG id)
  */
 HWND API dw_entryfield_password_new(char *text, ULONG id)
 {
-	NSSecureTextField *entry = [[NSSecureTextField alloc] init];
+	DWEntryFieldPassword *entry = [[DWEntryFieldPassword alloc] init];
 	[entry setStringValue:[ NSString stringWithUTF8String:text ]];
 	[entry setTag:id];
 	return entry;
@@ -2678,18 +2759,6 @@ HWND API dw_html_new(unsigned long id)
 }
 
 /*
- * Call a function from the window (widget)'s context.
- * Parameters:
- *       handle: Window handle of the widget.
- *       function: Function pointer to be called.
- *       data: Pointer to the data to be passed to the function.
- */
-void API dw_window_function(HWND handle, void *function, void *data)
-{
-	NSLog(@"dw_window_function() unimplemented\n");
-}
-
-/*
  * Returns the current X and Y coordinates of the mouse pointer.
  * Parameters:
  *       x: Pointer to variable to store X coordinate.
@@ -2985,6 +3054,24 @@ HWND API dw_window_new(HWND hwndOwner, char *title, ULONG flStyle)
 	
 	return (HWND)window;
 }
+
+/*
+ * Call a function from the window (widget)'s context.
+ * Parameters:
+ *       handle: Window handle of the widget.
+ *       function: Function pointer to be called.
+ *       data: Pointer to the data to be passed to the function.
+ */
+void API dw_window_function(HWND handle, void *function, void *data)
+{
+	void (* windowfunc)(void *);
+	
+	windowfunc = function;
+	
+	if(windowfunc)
+		windowfunc(data);	
+}
+
 
 /*
  * Changes the appearance of the mouse pointer.
@@ -3500,7 +3587,7 @@ void dw_environment_query(DWEnv *env)
  */
 void API dw_beep(int freq, int dur)
 {
-	NSLog(@"dw_beep() unimplemented\n");
+	NSBeep();
 }
 
 /* Call this after drawing to the screen to make sure
@@ -3508,6 +3595,100 @@ void API dw_beep(int freq, int dur)
  */
 void API dw_flush(void)
 {
+}
+
+/* Functions for managing the user data lists that are associated with
+ * a given window handle.  Used in dw_window_set_data() and
+ * dw_window_get_data().
+ */
+UserData *_find_userdata(UserData **root, char *varname)
+{
+	UserData *tmp = *root;
+	
+	while(tmp)
+	{
+		if(strcasecmp(tmp->varname, varname) == 0)
+			return tmp;
+		tmp = tmp->next;
+	}
+	return NULL;
+}
+
+int _new_userdata(UserData **root, char *varname, void *data)
+{
+	UserData *new = _find_userdata(root, varname);
+	
+	if(new)
+	{
+		new->data = data;
+		return TRUE;
+	}
+	else
+	{
+		new = malloc(sizeof(UserData));
+		if(new)
+		{
+			new->varname = strdup(varname);
+			new->data = data;
+			
+			new->next = NULL;
+			
+			if (!*root)
+				*root = new;
+			else
+			{
+				UserData *prev = NULL, *tmp = *root;
+				while(tmp)
+				{
+					prev = tmp;
+					tmp = tmp->next;
+				}
+				if(prev)
+					prev->next = new;
+				else
+					*root = new;
+			}
+			return TRUE;
+		}
+	}
+	return FALSE;
+}
+
+int _remove_userdata(UserData **root, char *varname, int all)
+{
+	UserData *prev = NULL, *tmp = *root;
+	
+	while(tmp)
+	{
+		if(all || strcasecmp(tmp->varname, varname) == 0)
+		{
+			if(!prev)
+			{
+				*root = tmp->next;
+				free(tmp->varname);
+				free(tmp);
+				if(!all)
+					return 0;
+				tmp = *root;
+			}
+			else
+			{
+				/* If all is true we should
+				 * never get here.
+				 */
+				prev->next = tmp->next;
+				free(tmp->varname);
+				free(tmp);
+				return 0;
+			}
+		}
+		else
+		{
+			prev = tmp;
+			tmp = tmp->next;
+		}
+	}
+	return 0;
 }
 
 /*
@@ -3519,7 +3700,27 @@ void API dw_flush(void)
  */
 void dw_window_set_data(HWND window, char *dataname, void *data)
 {
-	NSLog(@"dw_window_set_data() unimplemented\n");
+	id object = window;
+	WindowData *blah = (WindowData *)[object userdata];
+	
+	if(!blah)
+	{
+		if(!dataname)
+			return;
+		
+		blah = calloc(1, sizeof(WindowData));
+		[object setUserdata:blah];
+	}
+	
+	if(data)
+		_new_userdata(&(blah->root), dataname, data);
+	else
+	{
+		if(dataname)
+			_remove_userdata(&(blah->root), dataname, FALSE);
+		else
+			_remove_userdata(&(blah->root), NULL, TRUE);
+	}
 }
 
 /*
@@ -3531,7 +3732,15 @@ void dw_window_set_data(HWND window, char *dataname, void *data)
  */
 void *dw_window_get_data(HWND window, char *dataname)
 {
-	NSLog(@"dw_window_get_data() unimplemented\n");
+	id object = window;
+	WindowData *blah = (WindowData *)[object userdata];
+	
+	if(blah && blah->root && dataname)
+	{
+		UserData *ud = _find_userdata(&(blah->root), dataname);
+		if(ud)
+			return ud->data;
+	}
 	return NULL;
 }
 
@@ -4518,6 +4727,7 @@ int main(int argc, char *argv[])
 	dw_window_set_pos_size(window, 400, 400, 500, 500);
 	dw_window_get_pos_size(window, &x, &y, &width, &height);
 	dw_messagebox("Dynamic Windows Information", DW_MB_OK | DW_MB_INFORMATION, "%d %d %d %d %d %d %d\n", (int)x, (int)y, (int)width, (int)height, (int)dw_screen_width(), (int)dw_screen_height(), (int)dw_color_depth_get());
+	dw_messagebox("File selection", DW_MB_OK | DW_MB_INFORMATION, "%s", dw_file_browse("Choose file", "", "", DW_FILE_OPEN));
 	dw_main();
 	
 	return 0;
