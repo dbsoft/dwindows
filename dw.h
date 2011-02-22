@@ -245,10 +245,21 @@ extern HMQ dwhmq;
 
 #if defined(__MAC__)
 /* MacOS specific section */
-#include <Carbon/Carbon.h>
+#include <pthread.h>
+#include <dlfcn.h>
 
-typedef ControlRef HWND;
-typedef ThreadID DWTID;
+/* Unfortunately using Cocoa we can't include
+ * Cocoa.h from C code, so we have to instead
+ * use opaque types and use the values from 
+ * Cocoa.h in the header here directly without
+ * using the symbolic names.
+ */
+
+#define TRUE	1
+#define FALSE	0
+
+typedef void *HWND;
+typedef void *HSHM;
 typedef unsigned long ULONG;
 typedef long LONG;
 typedef unsigned short USHORT;
@@ -259,12 +270,24 @@ typedef unsigned char UCHAR;
 typedef char CHAR;
 typedef unsigned UINT;
 typedef int INT;
-typedef void *HMTX;
-typedef void *HEV;
-typedef void *HSHM;
-typedef void *HMOD;
+typedef pthread_mutex_t *HMTX;
+typedef struct _dw_unix_event {
+   pthread_mutex_t mutex;
+   pthread_cond_t event;
+   pthread_t thread;
+   int alive;
+   int posted;
+} *HEV;
+typedef pthread_t DWTID;
+typedef void * HMOD;
+struct _dw_unix_shm {
+   int fd;
+   char *path;
+   int sid;
+   int size;
+};
 typedef void *HTREEITEM;
-typedef MenuRef HMENUI;
+typedef void *HMENUI;
 
 typedef struct _window_data {
    UserData *root;
@@ -295,13 +318,13 @@ typedef struct _hpixmap {
 #define DW_DT_WORDBREAK          0
 #define DW_DT_ERASERECT          0
 
-#define DW_FCF_TITLEBAR          0
-#define DW_FCF_SYSMENU           kWindowCloseBoxAttribute
+#define DW_FCF_TITLEBAR          (1 << 0) /* NSTitledWindowMask */
+#define DW_FCF_SYSMENU           (1 << 1) /* NSClosableWindowMask */
 #define DW_FCF_MENU              0
-#define DW_FCF_SIZEBORDER        (kWindowResizableAttribute|kWindowLiveResizeAttribute)
-#define DW_FCF_MINBUTTON         kWindowCollapseBoxAttribute
-#define DW_FCF_MAXBUTTON         kWindowFullZoomAttribute
-#define DW_FCF_MINMAX            (kWindowCollapseBoxAttribute|kWindowFullZoomAttribute)
+#define DW_FCF_SIZEBORDER        (1 << 3) /* NSResizableWindowMask */
+#define DW_FCF_MINBUTTON         (1 << 2) /* NSMiniaturizableWindowMask */
+#define DW_FCF_MAXBUTTON         0
+#define DW_FCF_MINMAX            (1 << 2) /* NSMiniaturizableWindowMask */
 #define DW_FCF_VERTSCROLL        0
 #define DW_FCF_HORZSCROLL        0
 #define DW_FCF_DLGBORDER         0
@@ -311,7 +334,7 @@ typedef struct _hpixmap {
 #define DW_FCF_NOBYTEALIGN       0
 #define DW_FCF_NOMOVEWITHOWNER   0
 #define DW_FCF_SYSMODAL          0
-#define DW_FCF_HIDEBUTTON        kWindowCollapseBoxAttribute
+#define DW_FCF_HIDEBUTTON        0
 #define DW_FCF_HIDEMAX           0
 #define DW_FCF_AUTOICON          0
 #define DW_FCF_MAXIMIZE          0
@@ -344,7 +367,7 @@ typedef struct _hpixmap {
 
 #define DW_POINTER_DEFAULT       0
 #define DW_POINTER_ARROW         0
-#define DW_POINTER_CLOCK         watchCursor
+#define DW_POINTER_CLOCK         0
 
 #define HWND_DESKTOP     ((HWND)0)
 
@@ -361,83 +384,83 @@ typedef struct _hpixmap {
 
 /* Virtual Key Codes */
 #define VK_LBUTTON               0
-#define VK_RBUTTON               0
-#define VK_CANCEL                0
-#define VK_MBUTTON               0
-#define VK_BACK                  0
-#define VK_TAB                   0
-#define VK_CLEAR                 0
-#define VK_RETURN                0
-#define VK_MENU                  0
-#define VK_PAUSE                 0
-#define VK_CAPITAL               0
-#define VK_ESCAPE                0
-#define VK_SPACE                 0
-#define VK_PRIOR                 0
-#define VK_NEXT                  0
-#define VK_END                   0
-#define VK_HOME                  0
-#define VK_LEFT                  0
-#define VK_UP                    0
-#define VK_RIGHT                 0
-#define VK_DOWN                  0
-#define VK_SELECT                0
-#define VK_PRINT                 0
-#define VK_EXECUTE               0
-#define VK_SNAPSHOT              0
-#define VK_INSERT                0
-#define VK_DELETE                0
-#define VK_HELP                  0
-#define VK_LWIN                  0
-#define VK_RWIN                  0
-#define VK_NUMPAD0               0
-#define VK_NUMPAD1               0
-#define VK_NUMPAD2               0
-#define VK_NUMPAD3               0
-#define VK_NUMPAD4               0
-#define VK_NUMPAD5               0
-#define VK_NUMPAD6               0
-#define VK_NUMPAD7               0
-#define VK_NUMPAD8               0
-#define VK_NUMPAD9               0
-#define VK_MULTIPLY              0
-#define VK_ADD                   0
-#define VK_SEPARATOR             0
-#define VK_SUBTRACT              0
-#define VK_DECIMAL               0
-#define VK_DIVIDE                0
-#define VK_F1                    0
-#define VK_F2                    0
-#define VK_F3                    0
-#define VK_F4                    0
-#define VK_F5                    0
-#define VK_F6                    0
-#define VK_F7                    0
-#define VK_F8                    0
-#define VK_F9                    0
-#define VK_F10                   0
-#define VK_F11                   0
-#define VK_F12                   0
-#define VK_F13                   0
-#define VK_F14                   0
-#define VK_F15                   0
-#define VK_F16                   0
-#define VK_F17                   0
-#define VK_F18                   0
-#define VK_F19                   0
-#define VK_F20                   0
-#define VK_F21                   0
-#define VK_F22                   0
-#define VK_F23                   0
-#define VK_F24                   0
-#define VK_NUMLOCK               0
-#define VK_SCROLL                0
-#define VK_LSHIFT                0
-#define VK_RSHIFT                0
-#define VK_LCONTROL              0
-#define VK_RCONTROL              0
-#define VK_LMENU                 0
-#define VK_RMENU                 0
+#define VK_RBUTTON               1
+#define VK_CANCEL                2
+#define VK_MBUTTON               3
+#define VK_BACK                  4
+#define VK_TAB                   5
+#define VK_CLEAR                 6
+#define VK_RETURN                7
+#define VK_MENU                  8
+#define VK_PAUSE                 9
+#define VK_CAPITAL               10
+#define VK_ESCAPE                11
+#define VK_SPACE                 12
+#define VK_PRIOR                 13
+#define VK_NEXT                  14
+#define VK_END                   15
+#define VK_HOME                  16
+#define VK_LEFT                  17
+#define VK_UP                    18
+#define VK_RIGHT                 19
+#define VK_DOWN                  20
+#define VK_SELECT                21
+#define VK_PRINT                 22
+#define VK_EXECUTE               23
+#define VK_SNAPSHOT              24
+#define VK_INSERT                25
+#define VK_DELETE                26
+#define VK_HELP                  27
+#define VK_LWIN                  28
+#define VK_RWIN                  29
+#define VK_NUMPAD0               30
+#define VK_NUMPAD1               31
+#define VK_NUMPAD2               32
+#define VK_NUMPAD3               33
+#define VK_NUMPAD4               34
+#define VK_NUMPAD5               35
+#define VK_NUMPAD6               36
+#define VK_NUMPAD7               37
+#define VK_NUMPAD8               38
+#define VK_NUMPAD9               39
+#define VK_MULTIPLY              40
+#define VK_ADD                   41
+#define VK_SEPARATOR             42
+#define VK_SUBTRACT              43
+#define VK_DECIMAL               44
+#define VK_DIVIDE                45
+#define VK_F1                    46
+#define VK_F2                    47
+#define VK_F3                    48
+#define VK_F4                    49
+#define VK_F5                    50
+#define VK_F6                    51
+#define VK_F7                    52
+#define VK_F8                    53
+#define VK_F9                    54
+#define VK_F10                   55
+#define VK_F11                   56
+#define VK_F12                   57
+#define VK_F13                   58
+#define VK_F14                   59
+#define VK_F15                   60
+#define VK_F16                   61
+#define VK_F17                   62
+#define VK_F18                   63
+#define VK_F19                   64
+#define VK_F20                   65
+#define VK_F21                   66
+#define VK_F22                   67
+#define VK_F23                   68
+#define VK_F24                   69
+#define VK_NUMLOCK               70
+#define VK_SCROLL                71
+#define VK_LSHIFT                72
+#define VK_RSHIFT                73
+#define VK_LCONTROL              74
+#define VK_RCONTROL              75
+#define VK_LMENU                 76
+#define VK_RMENU                 77
 
 /* Key Modifiers */
 #define KC_CTRL                  (1)
