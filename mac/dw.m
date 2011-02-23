@@ -54,56 +54,66 @@ int _event_handler(id object, NSEvent *event, int message)
 	
 	if(handler)
 	{
-		if(message == 3 || message == 4)
+		switch(message)
 		{
-			int (* API buttonfunc)(HWND, int, int, int, void *) = (int (* API)(HWND, int, int, int, void *))handler->signalfunction;
-			int flags = [object pressedMouseButtons];
-			NSPoint point = [object mouseLocation];
-			int button = 0;
-			char *which = "pressed";
-			
-			if(message == 4)
+			case 3:
+			case 4:
 			{
-				which = "released";
-			}
+				int (* API buttonfunc)(HWND, int, int, int, void *) = (int (* API)(HWND, int, int, int, void *))handler->signalfunction;
+				int flags = [object pressedMouseButtons];
+				NSPoint point = [object mouseLocation];
+				int button = 0;
+				char *which = "pressed";
 			
-			if(flags & 1)
-			{
-				button = 1;
-			}
-			else if(flags & (1 << 1))
-			{
-				button = 2;
-			}
-			else if(flags & (1 << 2))
-			{
-				button = 3;
-			}
+				if(message == 4)
+				{
+					which = "released";
+				}
 			
-			NSLog(@"Button %s x:%d y:%d button:%d\n", which, (int)point.x, (int)point.y, (int)button);
-			return buttonfunc(object, point.x, point.y, button, handler->data);
-		}
-		else if(message == 7)
-		{
-			DWExpose exp;
-			int (* API exposefunc)(HWND, DWExpose *, void *) = (int (* API)(HWND, DWExpose *, void *))handler->signalfunction;
-			NSRect rect = [object frame];
+				if(flags & 1)
+				{
+					button = 1;
+				}
+				else if(flags & (1 << 1))
+				{
+					button = 2;
+				}
+				else if(flags & (1 << 2))
+				{
+					button = 3;
+				}
 			
-			exp.x = rect.origin.x;
-			exp.y = rect.origin.y;
-			exp.width = rect.size.width;
-			exp.height = rect.size.height;
-			return exposefunc(object, &exp, handler->data);
-		}
-		else if(message == 8)
-		{
-			int (* API clickfunc)(HWND, void *) = (int (* API)(HWND, void *))handler->signalfunction;
+				NSLog(@"Button %s x:%d y:%d button:%d\n", which, (int)point.x, (int)point.y, (int)button);
+				return buttonfunc(object, point.x, point.y, button, handler->data);
+			}
+			case 6:
+			{
+				int (* API closefunc)(HWND, void *) = (int (* API)(HWND, void *))handler->signalfunction;
+				NSLog(@"Close\n");
+				return closefunc(object, handler->data);
+			}
+			case 7:
+			{
+				DWExpose exp;
+				int (* API exposefunc)(HWND, DWExpose *, void *) = (int (* API)(HWND, DWExpose *, void *))handler->signalfunction;
+				NSRect rect = [object frame];
+			
+				exp.x = rect.origin.x;
+				exp.y = rect.origin.y;
+				exp.width = rect.size.width;
+				exp.height = rect.size.height;
+				return exposefunc(object, &exp, handler->data);
+			}
+			case 8:
+			{
+				int (* API clickfunc)(HWND, void *) = (int (* API)(HWND, void *))handler->signalfunction;
 
-			NSLog(@"Clicked\n");
-			return clickfunc(object, handler->data);
+				NSLog(@"Clicked\n");
+				return clickfunc(object, handler->data);
+			}
 		}
 	}
-	return 0;
+	return -1;
 }
 
 /* So basically to implement our event handlers...
@@ -151,12 +161,15 @@ int _event_handler(id object, NSEvent *event, int message)
 
 /* Subclass for a top-level window */
 @interface DWView : DWBox  { }
+-(BOOL)windowShouldClose:(id)sender;
 @end
 
 @implementation DWView
--(void)windowWillClose:(NSNotification *)note 
+-(BOOL)windowShouldClose:(id)sender 
 {
-    [[NSApplication sharedApplication] terminate:self];
+    if(_event_handler(self, nil, 6) == FALSE)
+		return NO;
+	return YES;
 }
 - (void)viewDidMoveToWindow
 {
@@ -322,6 +335,74 @@ int _event_handler(id object, NSEvent *event, int message)
 		}
 	}		
 }
+@end
+
+/* Subclass for a slider type */
+@interface DWSlider : NSSlider
+{
+	void *userdata; 
+}
+-(void *)userdata;
+-(void)setUserdata:(void *)input;
+@end
+
+@implementation DWSlider
+-(void *)userdata { return userdata; }
+-(void)setUserdata:(void *)input { userdata = input; }
+@end
+
+/* Subclass for a slider type */
+@interface DWScrollbar : NSScroller
+{
+	void *userdata;
+	float range;
+	float visible;
+}
+-(void *)userdata;
+-(void)setUserdata:(void *)input;
+-(float)range;
+-(float)visible;
+-(void)setRange:(float)input1 andVisible:(float)input2;
+@end
+
+@implementation DWScrollbar
+-(void *)userdata { return userdata; }
+-(void)setUserdata:(void *)input { userdata = input; }
+-(float)range { return range; }
+-(float)visible { return visible; }
+-(void)setRange:(float)input1 andVisible:(float)input2 { range = input1; visible = input2; }
+@end
+
+/* Subclass for a render area type */
+@interface DWRender : NSView 
+{
+	void *userdata;
+}
+-(void *)userdata;
+-(void)setUserdata:(void *)input;
+-(void)drawRect:(NSRect)rect;
+-(BOOL)isFlipped;
+@end
+
+@implementation DWRender
+-(void *)userdata { return userdata; }
+-(void)setUserdata:(void *)input { userdata = input; }
+-(void)drawRect:(NSRect)rect { _event_handler(self, nil, 7); }
+-(BOOL)isFlipped { return YES; }
+@end
+
+/* Subclass for a MLE type */
+@interface DWMLE : NSTextView 
+{
+	void *userdata;
+}
+-(void *)userdata;
+-(void)setUserdata:(void *)input;
+@end
+
+@implementation DWMLE
+-(void *)userdata { return userdata; }
+-(void)setUserdata:(void *)input { userdata = input; }
 @end
 
 NSApplication *DWApp;
@@ -1444,7 +1525,10 @@ void API dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize
 HWND API dw_button_new(char *text, ULONG id)
 {
 	DWButton *button = [[DWButton alloc] init];
-	[button setTitle:[ NSString stringWithUTF8String:text ]];
+	if(text && *text)
+	{
+		[button setTitle:[ NSString stringWithUTF8String:text ]];
+	}
 	[button setButtonType:NSMomentaryPushInButton];
 	[button setBezelStyle:NSThickerSquareBezelStyle];
 	[button setTarget:button];
@@ -1516,8 +1600,10 @@ HWND API dw_bitmapbutton_new(char *text, ULONG id)
  */
 HWND API dw_bitmapbutton_new_from_file(char *text, unsigned long id, char *filename)
 {
-	NSLog(@"dw_bitmapbutton_new_from_file() unimplemented\n");
-	return HWND_DESKTOP;
+	NSImage *image = [[NSImage alloc] initWithContentsOfFile:[ NSString stringWithUTF8String:filename ]];
+	DWButton *button = dw_button_new("", id);
+	[button setImage:image];
+	return button;
 }
 
 /*
@@ -1531,8 +1617,11 @@ HWND API dw_bitmapbutton_new_from_file(char *text, unsigned long id, char *filen
  */
 HWND API dw_bitmapbutton_new_from_data(char *text, unsigned long id, char *data, int len)
 {
-	NSLog(@"dw_bitmapbutton_new_from_data() unimplemented\n");
-	return HWND_DESKTOP;
+	NSData *thisdata = [[NSData alloc] dataWithBytes:data length:len];
+	NSImage *image = [[NSImage alloc] initWithData:thisdata];
+	DWButton *button = dw_button_new("", id);
+	[button setImage:image];
+	return button;
 }
 
 /*
@@ -1603,8 +1692,10 @@ HWND API dw_radiobutton_new(char *text, ULONG id)
  */
 HWND API dw_slider_new(int vertical, int increments, ULONG id)
 {
-	NSLog(@"dw_slider_new() unimplemented\n");
-	return HWND_DESKTOP;
+	DWSlider *slider = [[DWSlider alloc] init];
+	[slider setMaxValue:(double)increments];
+	[slider setMinValue:0];
+	return slider;
 }
 
 /*
@@ -1614,8 +1705,9 @@ HWND API dw_slider_new(int vertical, int increments, ULONG id)
  */
 unsigned int API dw_slider_get_pos(HWND handle)
 {
-	NSLog(@"dw_slider_get_pos() unimplemented\n");
-	return 0;
+	DWSlider *slider = handle;
+	double val = [slider doubleValue];
+	return (int)val;
 }
 
 /*
@@ -1626,7 +1718,8 @@ unsigned int API dw_slider_get_pos(HWND handle)
  */
 void API dw_slider_set_pos(HWND handle, unsigned int position)
 {
-	NSLog(@"dw_slider_set_pos() unimplemented\n");
+	DWSlider *slider = handle;
+	[slider setDoubleValue:(double)position];
 }
 
 /*
@@ -1638,8 +1731,8 @@ void API dw_slider_set_pos(HWND handle, unsigned int position)
  */
 HWND API dw_scrollbar_new(int vertical, ULONG id)
 {
-	NSLog(@"dw_scrollbar_new() unimplemented\n");
-	return HWND_DESKTOP;
+	DWScrollbar *scrollbar = [[DWScrollbar alloc] init];
+	return scrollbar;
 }
 
 /*
@@ -1649,8 +1742,10 @@ HWND API dw_scrollbar_new(int vertical, ULONG id)
  */
 unsigned int API dw_scrollbar_get_pos(HWND handle)
 {
-	NSLog(@"dw_scrollbar_get_pos() unimplemented\n");
-	return 0;
+	DWScrollbar *scrollbar = handle;
+	float range = [scrollbar range];
+	float fresult = [scrollbar doubleValue] * range;
+	return (int)fresult;
 }
 
 /*
@@ -1661,7 +1756,10 @@ unsigned int API dw_scrollbar_get_pos(HWND handle)
  */
 void API dw_scrollbar_set_pos(HWND handle, unsigned int position)
 {
-	NSLog(@"dw_scrollbar_set_pos() unimplemented\n");
+	DWScrollbar *scrollbar = handle;
+	double range = (double)[scrollbar range];
+	double newpos = (double)position/range;
+	[scrollbar setDoubleValue:newpos];
 }
 
 /*
@@ -1673,7 +1771,10 @@ void API dw_scrollbar_set_pos(HWND handle, unsigned int position)
  */
 void API dw_scrollbar_set_range(HWND handle, unsigned int range, unsigned int visible)
 {
-	NSLog(@"dw_scrollbar_set_range() unimplemented\n");
+	DWScrollbar *scrollbar = handle;
+	float knob = (float)visible/(float)range;
+	[scrollbar setRange:(float)range andVisible:(float)visible];
+	[scrollbar setKnobProportion:knob];
 }
 
 /*
@@ -1908,8 +2009,8 @@ HWND API dw_combobox_new(char *text, ULONG id)
  */
 HWND API dw_mle_new(ULONG id)
 {
-	NSLog(@"dw_mle_new() unimplemented\n");
-	return HWND_DESKTOP;
+	DWMLE *mle = [[DWMLE alloc] init];
+	return mle;
 }	
 
 /*
@@ -1921,8 +2022,9 @@ HWND API dw_mle_new(ULONG id)
  */
 unsigned int API dw_mle_import(HWND handle, char *buffer, int startpoint)
 {
-	NSLog(@"dw_mle_import() unimplemented\n");
-	return 0;
+	DWMLE *mle = handle;
+	[mle insertText:[ NSString stringWithUTF8String:buffer ]];
+	return strlen(buffer) + startpoint;
 }
 
 /*
@@ -1991,7 +2093,15 @@ void API dw_mle_set_visible(HWND handle, int line)
  */
 void API dw_mle_set_editable(HWND handle, int state)
 {
-	NSLog(@"dw_mle_set_editable() unimplemented\n");
+	DWMLE *mle = handle;
+	if(state)
+	{
+		[mle setEditable:YES];
+	}
+	else 
+	{
+		[mle setEditable:NO];
+	}
 }
 
 /*
@@ -2058,8 +2168,11 @@ void API dw_mle_thaw(HWND handle)
  */
 HWND API dw_status_text_new(char *text, ULONG id)
 {
-	NSLog(@"dw_status_text_new() unimplemented\n");
-	return HWND_DESKTOP;
+	NSTextField *textfield = dw_text_new(text, id);
+	[textfield setBordered:YES];
+	[textfield setBezeled:YES];
+	[textfield setBezelStyle:NSRecessedBezelStyle];
+	return textfield;
 }
 
 /*
@@ -2070,8 +2183,13 @@ HWND API dw_status_text_new(char *text, ULONG id)
  */
 HWND API dw_text_new(char *text, ULONG id)
 {
-	NSLog(@"dw_text_new() unimplemented\n");
-	return HWND_DESKTOP;
+	NSTextField *textfield = [[NSTextField alloc] init];
+	[textfield setEditable:NO];
+	[textfield setSelectable:NO];
+	[textfield setBordered:NO];
+	[textfield setDrawsBackground:NO];
+	[textfield setStringValue:[ NSString stringWithUTF8String:text ]];
+	return textfield;
 }
 
 /*
@@ -2083,8 +2201,8 @@ HWND API dw_text_new(char *text, ULONG id)
  */
 HWND API dw_render_new(unsigned long id)
 {
-	NSLog(@"dw_render_new() unimplemented\n");
-	return HWND_DESKTOP;
+	DWRender *render = [[DWRender alloc] init];
+	return render;
 }
 
 /* Sets the current foreground drawing color.
@@ -2140,7 +2258,9 @@ unsigned long API dw_color_choose(unsigned long value)
  */
 void API dw_draw_point(HWND handle, HPIXMAP pixmap, int x, int y)
 {
-	NSLog(@"dw_draw_point() unimplemented\n");
+	NSRect rect = NSMakeRect(x, y, x, y);
+	[[NSColor colorWithDeviceRed: DW_RED_VALUE(_foreground)/255.0 green: DW_GREEN_VALUE(_foreground)/255.0 blue: DW_BLUE_VALUE(_foreground)/255.0 alpha: 1] set];
+	NSRectFill(rect);
 }
 
 /* Draw a line on a window (preferably a render window).
@@ -2210,7 +2330,9 @@ void API dw_draw_polygon( HWND handle, HPIXMAP pixmap, int fill, int npoints, in
  */
 void API dw_draw_rect(HWND handle, HPIXMAP pixmap, int fill, int x, int y, int width, int height)
 {
-	NSLog(@"dw_draw_rect() unimplemented\n");
+	NSRect rect = NSMakeRect(x, y, x + width, y + height);
+	[[NSColor colorWithDeviceRed: DW_RED_VALUE(_foreground)/255.0 green: DW_GREEN_VALUE(_foreground)/255.0 blue: DW_BLUE_VALUE(_foreground)/255.0 alpha: 1] set];
+	NSRectFill(rect);
 }
 
 /*
@@ -2796,8 +2918,10 @@ float API dw_splitbar_get(HWND handle)
  */
 HWND API dw_bitmap_new(ULONG id)
 {
-	NSLog(@"dw_bitmap_new() unimplemented\n");
-	return HWND_DESKTOP;
+	NSImageView *bitmap = [[NSImageView alloc] init];
+	[bitmap setImageFrameStyle:NSImageFrameNone];
+	[bitmap setEditable:NO];
+	return bitmap;
 }
 
 /*
@@ -2812,8 +2936,9 @@ HWND API dw_bitmap_new(ULONG id)
  */
 HPIXMAP API dw_pixmap_new(HWND handle, unsigned long width, unsigned long height, int depth)
 {
-	NSLog(@"dw_pixmap_new() unimplemented\n");
-	return HWND_DESKTOP;
+	NSSize size = { (float)width, (float)height };
+	NSImage *pixmap = [[NSImage alloc] initWithSize:size];
+	return (HPIXMAP)pixmap;
 }
 
 /*
@@ -2828,8 +2953,8 @@ HPIXMAP API dw_pixmap_new(HWND handle, unsigned long width, unsigned long height
  */
 HPIXMAP API dw_pixmap_new_from_file(HWND handle, char *filename)
 {
-	NSLog(@"dw_pixmap_new_from_file() unimplemented\n");
-	return HWND_DESKTOP;
+	NSImage *pixmap = [[NSImage alloc] initWithContentsOfFile:[ NSString stringWithUTF8String:filename ]];
+	return (HPIXMAP)pixmap;
 }
 
 /*
@@ -2844,8 +2969,9 @@ HPIXMAP API dw_pixmap_new_from_file(HWND handle, char *filename)
  */
 HPIXMAP API dw_pixmap_new_from_data(HWND handle, char *data, int len)
 {
-	NSLog(@"dw_pixmap_new_from_data() unimplemented\n");
-	return HWND_DESKTOP;
+	NSData *thisdata = [[NSData alloc] dataWithBytes:data length:len];
+	NSImage *pixmap = [[NSImage alloc] initWithData:thisdata];
+	return (HPIXMAP)pixmap;
 }
 
 /*
@@ -2878,7 +3004,8 @@ HPIXMAP API dw_pixmap_grab(HWND handle, ULONG id)
  */
 void API dw_pixmap_destroy(HPIXMAP pixmap)
 {
-	NSLog(@"dw_pixmap_destroy() unimplemented\n");
+	NSImage *image = (NSImage *)pixmap;
+	[image dealloc];
 }
 
 /*
@@ -3326,7 +3453,7 @@ HWND API dw_window_new(HWND hwndOwner, char *title, ULONG flStyle)
 	NSRect frame = NSMakeRect(1,1,1,1);
     NSWindow *window = [[NSWindow alloc]
 						initWithContentRect:frame
-						styleMask:flStyle
+						styleMask:(flStyle | NSTexturedBackgroundWindowMask)
 						backing:NSBackingStoreBuffered
 						defer:false];
 
@@ -3411,8 +3538,14 @@ int API dw_window_hide(HWND handle)
  */
 int API dw_window_set_color(HWND handle, ULONG fore, ULONG back)
 {
-	NSLog(@"dw_window_set_color() unimplemented\n");
-	return -1;
+	id object = handle;
+	
+	if([object isMemberOfClass:[NSTextFieldCell class]])
+	{
+		NSTextFieldCell *text = object;
+		[text setTextColor:[NSColor colorWithDeviceRed: DW_RED_VALUE(_foreground)/255.0 green: DW_GREEN_VALUE(_foreground)/255.0 blue: DW_BLUE_VALUE(_foreground)/255.0 alpha: 1]];
+	}
+	return 0;
 }
 
 /*
@@ -3423,7 +3556,6 @@ int API dw_window_set_color(HWND handle, ULONG fore, ULONG back)
  */
 int API dw_window_set_border(HWND handle, int border)
 {
-	NSLog(@"dw_window_set_border() unimplemented\n");
 	return 0;
 }
 
@@ -3436,7 +3568,20 @@ int API dw_window_set_border(HWND handle, int border)
  */
 void API dw_window_set_style(HWND handle, ULONG style, ULONG mask)
 {
-	NSLog(@"dw_window_set_style() unimplemented\n");
+	id object = handle;
+	
+	if([object isMemberOfClass:[NSWindow class]])
+	{
+		NSWindow *window = object;
+		int currentstyle = [window styleMask];
+		int tmp;
+		
+		tmp = currentstyle | mask;
+		tmp ^= mask;
+		tmp |= style;
+		
+		[window setStyleMask:tmp];
+	}
 }
 
 /*
