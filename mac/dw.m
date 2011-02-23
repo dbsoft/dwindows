@@ -449,7 +449,7 @@ NSAutoreleasePool *pool;
 -(void)setUserdata:(void *)input { userdata = input; }
 @end
 
-/* Subclass for a Container/List type */
+/* Subclass for a Calendar type */
 @interface DWCalendar : NSDatePicker 
 {
 	void *userdata;
@@ -459,6 +459,20 @@ NSAutoreleasePool *pool;
 @end
 
 @implementation DWCalendar
+-(void *)userdata { return userdata; }
+-(void)setUserdata:(void *)input { userdata = input; }
+@end
+
+/* Subclass for a Combobox type */
+@interface DWComboBox : NSComboBox 
+{
+	void *userdata;
+}
+-(void *)userdata;
+-(void)setUserdata:(void *)input;
+@end
+
+@implementation DWComboBox
 -(void *)userdata { return userdata; }
 -(void)setUserdata:(void *)input { userdata = input; }
 @end
@@ -1883,8 +1897,12 @@ HWND API dw_checkbox_new(char *text, ULONG id)
  */
 int API dw_checkbox_get(HWND handle)
 {
-	NSLog(@"dw_checkbox_set() unimplemented\n");
-	return 0;
+	DWButton *button = handle;
+	if([button state])
+	{
+		return TRUE;
+	}
+	return FALSE;
 }
 
 /*
@@ -1895,7 +1913,16 @@ int API dw_checkbox_get(HWND handle)
  */
 void API dw_checkbox_set(HWND handle, int value)
 {
-	NSLog(@"dw_checkbox_set() unimplemented\n");
+	DWButton *button = handle;
+	if(value)
+	{
+		[button setState:NSOnState];
+	}
+	else 
+	{
+		[button setState:NSOffState];
+	}
+
 }
 
 /*
@@ -1918,7 +1945,14 @@ HWND API dw_listbox_new(ULONG id, int multi)
  */
 void API dw_listbox_append(HWND handle, char *text)
 {
-	NSLog(@"dw_listbox_append() unimplemented\n");
+	id object = handle;
+	
+	if([object isMemberOfClass:[DWComboBox class]])
+	{
+		DWComboBox *combo = handle;
+		
+		[combo addItemWithObjectValue:[ NSString stringWithUTF8String:text ]];
+	}
 }
 
 /*
@@ -1930,7 +1964,14 @@ void API dw_listbox_append(HWND handle, char *text)
  */
 void API dw_listbox_insert(HWND handle, char *text, int pos)
 {
-	NSLog(@"dw_listbox_insert() unimplemented\n");
+	id object = handle;
+	
+	if([object isMemberOfClass:[DWComboBox class]])
+	{
+		DWComboBox *combo = handle;
+		
+		[combo insertItemWithObjectValue:[ NSString stringWithUTF8String:text ] atIndex:pos];
+	}
 }
 
 /*
@@ -1942,7 +1983,18 @@ void API dw_listbox_insert(HWND handle, char *text, int pos)
  */
 void API dw_listbox_list_append(HWND handle, char **text, int count)
 {
-	NSLog(@"dw_listbox_list_append() unimplemented\n");
+	id object = handle;
+	
+	if([object isMemberOfClass:[DWComboBox class]])
+	{
+		DWComboBox *combo = handle;
+		int z;
+		
+		for(z=0;z<count;z++)
+		{		
+			[combo addItemWithObjectValue:[ NSString stringWithUTF8String:text[z] ]];
+		}
+	}
 }
 
 /*
@@ -1952,7 +2004,14 @@ void API dw_listbox_list_append(HWND handle, char **text, int count)
  */
 void API dw_listbox_clear(HWND handle)
 {
-	NSLog(@"dw_listbox_clear() unimplemented\n");
+	id object = handle;
+	
+	if([object isMemberOfClass:[DWComboBox class]])
+	{
+		DWComboBox *combo = handle;
+		
+		[combo removeAllItems];
+	}
 }
 
 /*
@@ -1962,7 +2021,14 @@ void API dw_listbox_clear(HWND handle)
  */
 int API dw_listbox_count(HWND handle)
 {
-	NSLog(@"dw_listbox_count() unimplemented\n");
+	id object = handle;
+	
+	if([object isMemberOfClass:[DWComboBox class]])
+	{
+		DWComboBox *combo = handle;
+		
+		return [combo numberOfItems];
+	}
 	return 0;
 }
 
@@ -1974,7 +2040,14 @@ int API dw_listbox_count(HWND handle)
  */
 void API dw_listbox_set_top(HWND handle, int top)
 {
-	NSLog(@"dw_listbox_set_top() unimplemented\n");
+	id object = handle;
+	
+	if([object isMemberOfClass:[DWComboBox class]])
+	{
+		DWComboBox *combo = handle;
+		
+		[combo scrollItemAtIndexToTop:top];
+	}
 }
 
 /*
@@ -1987,7 +2060,14 @@ void API dw_listbox_set_top(HWND handle, int top)
  */
 void API dw_listbox_get_text(HWND handle, unsigned int index, char *buffer, unsigned int length)
 {
-	NSLog(@"dw_listbox_get_text() unimplemented\n");
+	id object = handle;
+	
+	if([object isMemberOfClass:[DWComboBox class]])
+	{
+		DWComboBox *combo = handle;
+		NSString *nstr = [combo itemObjectValueAtIndex:index];
+		strncpy(buffer, [ nstr UTF8String ], length - 1);
+	}
 }
 
 /*
@@ -1999,7 +2079,15 @@ void API dw_listbox_get_text(HWND handle, unsigned int index, char *buffer, unsi
  */
 void API dw_listbox_set_text(HWND handle, unsigned int index, char *buffer)
 {
-	NSLog(@"dw_listbox_set_text() unimplemented\n");
+	id object = handle;
+	
+	if([object isMemberOfClass:[DWComboBox class]])
+	{
+		DWComboBox *combo = handle;
+		
+		[combo removeItemAtIndex:pos];
+		[combo insertItemWithObjectValue:[ NSString stringWithUTF8String:bufer ] atIndex:pos];
+	}
 }
 
 /*
@@ -2009,8 +2097,14 @@ void API dw_listbox_set_text(HWND handle, unsigned int index, char *buffer)
  */
 unsigned int API dw_listbox_selected(HWND handle)
 {
-	NSLog(@"dw_listbox_selected() unimplemented\n");
-	return 0;
+	id object = handle;
+	
+	if([object isMemberOfClass:[DWComboBox class]])
+	{
+		DWComboBox *combo = handle;
+		return [combo indexOfSelectedItem];
+	}
+	return -1;
 }
 
 /*
@@ -2034,7 +2128,16 @@ int API dw_listbox_selected_multi(HWND handle, int where)
  */
 void API dw_listbox_select(HWND handle, int index, int state)
 {
-	NSLog(@"dw_listbox_select() unimplemented\n");
+	id object = handle;
+	
+	if([object isMemberOfClass:[DWComboBox class]])
+	{
+		DWComboBox *combo = handle;
+		if(state)
+			[combo selectItemAtIndex:index];
+		else
+			[combo deselectItemAtIndex:index];
+	}
 }
 
 /*
@@ -2045,7 +2148,14 @@ void API dw_listbox_select(HWND handle, int index, int state)
  */
 void API dw_listbox_delete(HWND handle, int index)
 {
-	NSLog(@"dw_listbox_delete() unimplemented\n");
+	id object = handle;
+	
+	if([object isMemberOfClass:[DWComboBox class]])
+	{
+		DWComboBox *combo = handle;
+		
+		[combo removeItemAtIndex:index];
+	}
 }
 
 /*
@@ -2056,8 +2166,8 @@ void API dw_listbox_delete(HWND handle, int index)
  */
 HWND API dw_combobox_new(char *text, ULONG id)
 {
-	NSLog(@"dw_combobox_new() unimplemented\n");
-	return HWND_DESKTOP;
+	DWComboBox *combo = [[DWComboBox alloc] init];
+	return combo;
 }
 
 /*
