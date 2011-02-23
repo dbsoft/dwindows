@@ -435,7 +435,7 @@ NSAutoreleasePool *pool;
 -(void)setUserdata:(void *)input { userdata = input; }
 @end
 
-/* Subclass for a MLE type */
+/* Subclass for a Container/List type */
 @interface DWContainer : NSTableView 
 {
 	void *userdata;
@@ -445,6 +445,20 @@ NSAutoreleasePool *pool;
 @end
 
 @implementation DWContainer
+-(void *)userdata { return userdata; }
+-(void)setUserdata:(void *)input { userdata = input; }
+@end
+
+/* Subclass for a Container/List type */
+@interface DWCalendar : NSDatePicker 
+{
+	void *userdata;
+}
+-(void *)userdata;
+-(void)setUserdata:(void *)input;
+@end
+
+@implementation DWCalendar
 -(void *)userdata { return userdata; }
 -(void)setUserdata:(void *)input { userdata = input; }
 @end
@@ -3109,8 +3123,9 @@ void API dw_pixmap_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest, int wi
  */
 HWND API dw_calendar_new(ULONG id)
 {
-	NSLog(@"dw_calendar_new() unimplemented\n");
-	return HWND_DESKTOP;
+	DWCalendar *calendar = [[DWCalendar alloc] init];
+	/*[calendar setDatePickerMode:UIDatePickerModeDate];*/
+	return calendar;
 }
 
 /*
@@ -3121,7 +3136,14 @@ HWND API dw_calendar_new(ULONG id)
  */
 void dw_calendar_set_date(HWND handle, unsigned int year, unsigned int month, unsigned int day)
 {
-	NSLog(@"dw_calendar_set_date() unimplemented\n");
+	DWCalendar *calendar = handle;
+	NSDate *date;
+	char buffer[100];
+	
+	sprintf(buffer, "%04d-%02d-%02d 00:00:00 +0600", year, month, day);
+	
+	date = [[NSDate alloc] initWithString:[ NSString stringWithUTF8String:buffer ]];
+	[calendar setDateValue:date];
 }
 
 /*
@@ -3131,7 +3153,11 @@ void dw_calendar_set_date(HWND handle, unsigned int year, unsigned int month, un
  */
 void dw_calendar_get_date(HWND handle, unsigned int *year, unsigned int *month, unsigned int *day)
 {
-	NSLog(@"dw_calendar_get_date() unimplemented\n");
+	DWCalendar *calendar = handle;
+	NSDate *date = [calendar dateValue];
+	NSDateFormatter *df = [[NSDateFormatter alloc] init];
+	NSString *nstr = [df stringFromDate:date];
+	sscanf([ nstr UTF8String ], "%d-%d-%d", year, month, day);
 }
 
 /*
@@ -3142,7 +3168,28 @@ void dw_calendar_get_date(HWND handle, unsigned int *year, unsigned int *month, 
  */
 void API dw_html_action(HWND handle, int action)
 {
-	NSLog(@"dw_html_action() unimplemented\n");
+	WebView *html = handle;
+	switch(action)
+	{
+		case DW_HTML_GOBACK:
+			[html goBack];
+			break;
+		case DW_HTML_GOFORWARD:
+			[html goForward];
+			break;
+		case DW_HTML_GOHOME:
+			break;
+		case DW_HTML_SEARCH:
+			break;
+		case DW_HTML_RELOAD:
+			[html reload:html];
+			break;
+		case DW_HTML_STOP:
+			[html stopLoading:html];
+			break;
+		case DW_HTML_PRINT:
+			break;
+	}
 }
 
 /*
@@ -3399,7 +3446,6 @@ void API dw_menu_item_set_state(HMENUI menux, unsigned long itemid, unsigned lon
 	id menu = menux;
 	NSMenuItem *menuitem = (NSMenuItem *)[menu itemWithTag:itemid];
 	
-	NSLog(@"MenuItem: %x", menuitem);
 	if(menuitem != nil)
 	{
 		if(state & DW_MIS_CHECKED)
