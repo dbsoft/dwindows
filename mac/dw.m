@@ -17,7 +17,94 @@
 #include <sys/time.h>
 #include <sys/stat.h>
 
+typedef struct _sighandler
+{
+	struct _sighandler   *next;
+	ULONG message;
+	HWND window;
+	int id;
+	void *signalfunction;
+	void *data;
+	
+} SignalHandler;
+
+SignalHandler *Root = NULL;
+
 static void _do_resize(Box *thisbox, int x, int y);
+SignalHandler *_get_handler(HWND window, int messageid)
+{
+	SignalHandler *tmp = Root;
+	
+	/* Find any callbacks for this function */
+	while(tmp)
+	{
+		if(tmp->message == messageid && window == tmp->window)
+		{
+			return tmp;
+		}
+		tmp = tmp->next;
+	}
+	return NULL;
+}
+
+int _event_handler(id object, NSEvent *event, int message)
+{
+	SignalHandler *handler = _get_handler(object, message);
+	NSLog(@"Event handler\n");
+	
+	if(handler)
+	{
+		if(message == 3 || message == 4)
+		{
+			int (* API buttonfunc)(HWND, int, int, int, void *) = (int (* API)(HWND, int, int, int, void *))handler->signalfunction;
+			int flags = [object pressedMouseButtons];
+			NSPoint point = [object mouseLocation];
+			int button = 0;
+			char *which = "pressed";
+			
+			if(message == 4)
+			{
+				which = "released";
+			}
+			
+			if(flags & 1)
+			{
+				button = 1;
+			}
+			else if(flags & (1 << 1))
+			{
+				button = 2;
+			}
+			else if(flags & (1 << 2))
+			{
+				button = 3;
+			}
+			
+			NSLog(@"Button %s x:%d y:%d button:%d\n", which, (int)point.x, (int)point.y, (int)button);
+			return buttonfunc(object, point.x, point.y, button, handler->data);
+		}
+		else if(message == 7)
+		{
+			DWExpose exp;
+			int (* API exposefunc)(HWND, DWExpose *, void *) = (int (* API)(HWND, DWExpose *, void *))handler->signalfunction;
+			NSRect rect = [object frame];
+			
+			exp.x = rect.origin.x;
+			exp.y = rect.origin.y;
+			exp.width = rect.size.width;
+			exp.height = rect.size.height;
+			return exposefunc(object, &exp, handler->data);
+		}
+		else if(message == 8)
+		{
+			int (* API clickfunc)(HWND, void *) = (int (* API)(HWND, void *))handler->signalfunction;
+
+			NSLog(@"Clicked\n");
+			return clickfunc(object, handler->data);
+		}
+	}
+	return 0;
+}
 
 /* So basically to implement our event handlers...
  * it looks like we are going to have to subclass
@@ -39,6 +126,9 @@ static void _do_resize(Box *thisbox, int x, int y);
 -(void)setBox:(Box)input;
 -(void)setUserdata:(void *)input;
 -(void)drawRect:(NSRect)rect;
+-(BOOL)isFlipped;
+-(void)mouseDown:(NSEvent *)theEvent;
+-(void)mouseUp:(NSEvent *)theEvent;
 @end
 
 @implementation DWBox
@@ -54,6 +144,9 @@ static void _do_resize(Box *thisbox, int x, int y);
 		NSRectFill( [self bounds] );
 	}
 }
+-(BOOL)isFlipped { return YES; }
+-(void)mouseDown:(NSEvent *)theEvent { _event_handler(self, theEvent, 3); }
+-(void)mouseUp:(NSEvent *)theEvent { _event_handler(self, theEvent, 4); }
 @end
 
 /* Subclass for a top-level window */
@@ -88,11 +181,13 @@ static void _do_resize(Box *thisbox, int x, int y);
 }
 -(void *)userdata;
 -(void)setUserdata:(void *)input;
+-(void)buttonClicked:(id)sender;
 @end
 
 @implementation DWButton
 -(void *)userdata { return userdata; }
 -(void)setUserdata:(void *)input { userdata = input; }
+-(void)buttonClicked:(id)sender { _event_handler(self, nil, 8); }
 @end
 
 /* Subclass for a progress type */
@@ -137,21 +232,103 @@ static void _do_resize(Box *thisbox, int x, int y);
 -(void)setUserdata:(void *)input { userdata = input; }
 @end
 
+/* Subclass for a Notebook control type */
+@interface DWNotebook : NSTabView
+{
+	void *userdata;
+	int pageid;
+}
+-(void *)userdata;
+-(void)setUserdata:(void *)input;
+-(int)pageid;
+-(void)setPageid:(int)input;
+-(void)tabView:(NSTabView *)notebook didSelectTabViewItem:(NSTabViewItem *)notepage;
+@end
+
+@implementation DWNotebook
+-(void *)userdata { return userdata; }
+-(void)setUserdata:(void *)input { userdata = input; }
+-(int)pageid { return pageid; }
+-(void)setPageid:(int)input { pageid = input; }
+-(void)tabView:(NSTabView *)notebook didSelectTabViewItem:(NSTabViewItem *)notepage
+{
+	id object = [notepage view];
+	
+	if([object isMemberOfClass:[DWBox class]])
+	{
+		DWBox *view = object;
+		Box box = [view box];
+		NSSize size = [view frame].size;
+		_do_resize(&box, size.width, size.height);
+	}
+}	
+@end
+
+/* Subclass for a Notebook page type */
+@interface DWNotebookPage : NSTabViewItem
+{
+	void *userdata;
+	int pageid;
+}
+-(void *)userdata;
+-(void)setUserdata:(void *)input;
+-(int)pageid;
+-(void)setPageid:(int)input;
+@end
+
+@implementation DWNotebookPage
+-(void *)userdata { return userdata; }
+-(void)setUserdata:(void *)input { userdata = input; }
+-(int)pageid { return pageid; }
+-(void)setPageid:(int)input { pageid = input; }
+@end
+
+/* Subclass for a color chooser type */
+@interface DWColorChoose : NSColorPanel 
+{
+	DWDialog *dialog;
+}
+-(void)changeColor:(id)sender;
+-(void)setDialog:(DWDialog *)input;
+@end
+
+@implementation DWColorChoose
+- (void)changeColor:(id)sender
+{
+	dw_dialog_dismiss(dialog, [self color]);
+}
+-(void)setDialog:(DWDialog *)input { dialog = input; }
+@end
+
+/* Subclass for a splitbar type */
+@interface DWSplitBar : NSSplitView { }
+- (void)splitViewDidResizeSubviews:(NSNotification *)aNotification;
+@end
+
+@implementation DWSplitBar
+- (void)splitViewDidResizeSubviews:(NSNotification *)aNotification
+{
+	NSArray *views = [self subviews];
+	id object;
+	
+	for(object in views)
+	{
+		if([object isMemberOfClass:[DWBox class]])
+		{
+			DWBox *view = object;
+			Box box = [view box];
+			NSSize size = [view frame].size;
+			_do_resize(&box, size.width, size.height);
+		}
+	}		
+}
+@end
+
 NSApplication *DWApp;
 NSRunLoop *DWRunLoop;
-
-typedef struct _sighandler
-{
-	struct _sighandler   *next;
-	ULONG message;
-	HWND window;
-	int id;
-	void *signalfunction;
-	void *data;
-	
-} SignalHandler;
-
-SignalHandler *Root = NULL;
+#if !defined(GARBAGE_COLLECT)
+NSAutoreleasePool *pool;
+#endif
 
 typedef struct
 {
@@ -614,7 +791,21 @@ static int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *
 			[handle setFrameOrigin:point];
 			[handle setFrameSize:size];
 
-            if(thisbox->type == DW_HORZ)
+			/* Special handling for notebook controls */
+			if([handle isMemberOfClass:[DWNotebook class]])
+			{
+				DWNotebook *notebook = (DWNotebook *)handle;
+				DWNotebookPage *notepage = (DWNotebookPage *)[notebook selectedTabViewItem];
+				DWBox *view = [notepage view];
+					 
+				if(view != nil)
+				{
+					Box box = [view box];
+					NSSize size = [view frame].size;
+					_do_resize(&box, size.width, size.height);
+				}
+			}
+			if(thisbox->type == DW_HORZ)
                currentx += width + vectorx + (pad * 2);
             if(thisbox->type == DW_VERT)
                currenty += height + vectory + (pad * 2);
@@ -689,6 +880,9 @@ int API dw_init(int newthread, int argc, char *argv[])
 	DWApp = [NSApplication sharedApplication];
 	/* Create a run loop for doing manual loops */
 	DWRunLoop = [NSRunLoop alloc];
+#if !defined(GARBAGE_COLLECT)
+	pool = [[NSAutoreleasePool alloc] init];
+#endif
 	
 	/* This only works on 10.6 so we have a backup method */
 	NSString * applicationName = [[NSRunningApplication currentApplication] localizedName];
@@ -944,7 +1138,7 @@ char * API dw_file_browse(char *title, char *defpath, char *ext, int flags)
 		/* Create the File Save Dialog class. */
 		NSSavePanel* saveDlg = [NSSavePanel savePanel];
 		
-		/* Enable the selection of files in the dialog. */
+		/* Enable the creation of directories in the dialog. */
 		[saveDlg setCanCreateDirectories:YES];
 		
 		/* Display the dialog.  If the OK button was pressed,
@@ -1004,8 +1198,17 @@ void dw_clipboard_set_text( char *str, int len)
  */
 DWDialog * API dw_dialog_new(void *data)
 {
-	NSLog(@"dw_dialog_new() unimplemented\n");
-	return NULL;
+	DWDialog *tmp = malloc(sizeof(DWDialog));
+	
+	if(tmp)
+	{
+		tmp->eve = dw_event_new();
+		dw_event_reset(tmp->eve);
+		tmp->data = data;
+		tmp->done = FALSE;
+		tmp->result = NULL;
+	}
+	return tmp;	
 }
 
 /*
@@ -1017,7 +1220,9 @@ DWDialog * API dw_dialog_new(void *data)
  */
 int API dw_dialog_dismiss(DWDialog *dialog, void *result)
 {
-	NSLog(@"dw_dialog_dismiss() unimplemented\n");
+	dialog->result = result;
+	dw_event_post(dialog->eve);
+	dialog->done = TRUE;
 	return 0;
 }
 
@@ -1029,8 +1234,16 @@ int API dw_dialog_dismiss(DWDialog *dialog, void *result)
  */
 void * API dw_dialog_wait(DWDialog *dialog)
 {
-	NSLog(@"dw_dialog_wait() unimplemented\n");
-	return NULL;
+	void *tmp;
+	
+	while(!dialog->done)
+	{
+		dw_main_iteration();
+	}
+	dw_event_close(&dialog->eve);
+	tmp = dialog->result;
+	free(dialog);
+	return tmp;
 }
 
 /*
@@ -1234,6 +1447,8 @@ HWND API dw_button_new(char *text, ULONG id)
 	[button setTitle:[ NSString stringWithUTF8String:text ]];
 	[button setButtonType:NSMomentaryPushInButton];
 	[button setBezelStyle:NSThickerSquareBezelStyle];
+	[button setTarget:button];
+	[button setAction:@selector(buttonClicked:)];
 	/*[button setGradientType:NSGradientConvexWeak];*/
 	[button setTag:id];
 	return button;
@@ -1902,8 +2117,18 @@ void API dw_color_background_set(unsigned long value)
  */
 unsigned long API dw_color_choose(unsigned long value)
 {
-	NSLog(@"dw_color_choose() unimplemented\n");
-	return 0;
+	/* Create the File Save Dialog class. */
+	DWColorChoose *colorDlg = (DWColorChoose *)[DWColorChoose sharedColorPanel];
+	NSColor *color = [[NSColor alloc] init]; 
+	DWDialog *dialog = dw_dialog_new(colorDlg);
+	
+	/* Set defaults for the dialog. */
+	[colorDlg setColor:color];
+	[colorDlg setDialog:dialog];
+	
+	color = (NSColor *)dw_dialog_wait(dialog);
+	[color release];
+	return _foreground;
 }
 
 /* Draw a point on a window (preferably a render window).
@@ -2532,8 +2757,14 @@ HWND API dw_mdi_new(unsigned long id)
  */
 HWND API dw_splitbar_new(int type, HWND topleft, HWND bottomright, unsigned long id)
 {
-	NSLog(@"dw_splitbar_new() unimplemented\n");
-	return HWND_DESKTOP;
+	DWSplitBar *split = [[DWSplitBar alloc] init];
+	[split addSubview:topleft];
+	[split addSubview:bottomright];
+	if(type == DW_VERT)
+	{
+		[split setVertical:YES];
+	}
+	return split;
 }
 
 /*
@@ -2543,7 +2774,8 @@ HWND API dw_splitbar_new(int type, HWND topleft, HWND bottomright, unsigned long
  */
 void API dw_splitbar_set(HWND handle, float percent)
 {
-	NSLog(@"dw_splitbar_set() unimplemented\n");
+	DWSplitBar *split = handle;
+	[split setPosition:percent ofDividerAtIndex:0];
 }
 
 /*
@@ -2934,6 +3166,20 @@ void API dw_menu_item_set_state( HMENUI menux, unsigned long id, unsigned long s
 	NSLog(@"dw_menu_item_set_state() unimplemented\n");
 }
 
+/* Gets the notebook page from associated ID */
+DWNotebookPage *_notepage_from_id(DWNotebook *notebook, unsigned long pageid)
+{
+	NSArray *pages = [notebook tabViewItems];
+	for(DWNotebookPage *notepage in pages) 
+	{
+		if([notepage pageid] == pageid)
+		{
+			return notepage;
+		}
+	}
+	return nil;
+}
+
 /*
  * Create a notebook object to be packed.
  * Parameters:
@@ -2942,8 +3188,9 @@ void API dw_menu_item_set_state( HMENUI menux, unsigned long id, unsigned long s
  */
 HWND API dw_notebook_new(ULONG id, int top)
 {
-	NSLog(@"dw_notebook_new() unimplemented\n");
-	return HWND_DESKTOP;
+	DWNotebook *notebook = [[DWNotebook alloc] init];
+	[notebook setDelegate:notebook];
+	return notebook;
 }
 
 /*
@@ -2955,8 +3202,20 @@ HWND API dw_notebook_new(ULONG id, int top)
  */
 unsigned long API dw_notebook_page_new(HWND handle, ULONG flags, int front)
 {
-	NSLog(@"dw_notebook_page_new() unimplemented\n");
-	return 0;
+	DWNotebook *notebook = handle;
+	int page = [notebook pageid];
+	DWNotebookPage *notepage = [[DWNotebookPage alloc] initWithIdentifier:nil];
+	[notepage setPageid:(NSInteger)page];
+	if(front)
+	{
+		[notebook insertTabViewItem:notepage atIndex:(NSInteger)0];
+	}
+	else
+	{
+		[notebook addTabViewItem:notepage];
+	}
+	[notebook setPageid:(page+1)];
+	return (unsigned long)page;
 }
 
 /*
@@ -2967,7 +3226,14 @@ unsigned long API dw_notebook_page_new(HWND handle, ULONG flags, int front)
  */
 void API dw_notebook_page_destroy(HWND handle, unsigned int pageid)
 {
-	NSLog(@"dw_notebook_page_destroy() unimplemented\n");
+	DWNotebook *notebook = handle;
+	DWNotebookPage *notepage = _notepage_from_id(notebook, pageid);
+	
+	if(notepage != nil)
+	{
+		[notebook removeTabViewItem:notepage];
+		[notepage release];
+	}
 }
 
 /*
@@ -2977,8 +3243,9 @@ void API dw_notebook_page_destroy(HWND handle, unsigned int pageid)
  */
 unsigned long API dw_notebook_page_get(HWND handle)
 {
-	NSLog(@"dw_notebook_page_get() unimplemented\n");
-	return 0;
+	DWNotebook *notebook = handle;
+	DWNotebookPage *notepage = (DWNotebookPage *)[notebook selectedTabViewItem];
+	return [notepage pageid];
 }
 
 /*
@@ -2989,7 +3256,13 @@ unsigned long API dw_notebook_page_get(HWND handle)
  */
 void API dw_notebook_page_set(HWND handle, unsigned int pageid)
 {
-	NSLog(@"dw_notebook_page_set() unimplemented\n");
+	DWNotebook *notebook = handle;
+	DWNotebookPage *notepage = _notepage_from_id(notebook, pageid);
+	
+	if(notepage != nil)
+	{
+		[notebook selectTabViewItem:notepage];
+	}
 }
 
 /*
@@ -3001,7 +3274,13 @@ void API dw_notebook_page_set(HWND handle, unsigned int pageid)
  */
 void API dw_notebook_page_set_text(HWND handle, ULONG pageid, char *text)
 {
-	NSLog(@"dw_notebook_page_set_text() unimplemented\n");
+	DWNotebook *notebook = handle;
+	DWNotebookPage *notepage = _notepage_from_id(notebook, pageid);
+	
+	if(notepage != nil)
+	{
+		[notepage setLabel:[ NSString stringWithUTF8String:text ]];
+	}
 }
 
 /*
@@ -3013,7 +3292,7 @@ void API dw_notebook_page_set_text(HWND handle, ULONG pageid, char *text)
  */
 void API dw_notebook_page_set_status_text(HWND handle, ULONG pageid, char *text)
 {
-	NSLog(@"dw_notebook_page_set_status_text() unimplemented\n");
+	/* Note supported here... do nothing */
 }
 
 /*
@@ -3025,7 +3304,14 @@ void API dw_notebook_page_set_status_text(HWND handle, ULONG pageid, char *text)
  */
 void API dw_notebook_pack(HWND handle, ULONG pageid, HWND page)
 {
-	NSLog(@"dw_notebook_pack() unimplemented\n");
+	DWNotebook *notebook = handle;
+	DWNotebookPage *notepage = _notepage_from_id(notebook, pageid);
+	DWBox *box = page;
+	
+	if(notepage != nil)
+	{
+		[notepage setView:box];
+	}
 }
 
 /*
