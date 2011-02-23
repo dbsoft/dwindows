@@ -116,6 +116,13 @@ int _event_handler(id object, NSEvent *event, int message)
 	return -1;
 }
 
+NSApplication *DWApp;
+NSRunLoop *DWRunLoop;
+NSMenu *DWMainMenu;
+#if !defined(GARBAGE_COLLECT)
+NSAutoreleasePool *pool;
+#endif
+
 /* So basically to implement our event handlers...
  * it looks like we are going to have to subclass
  * basically everything.  Was hoping to add methods
@@ -160,8 +167,14 @@ int _event_handler(id object, NSEvent *event, int message)
 @end
 
 /* Subclass for a top-level window */
-@interface DWView : DWBox  { }
+@interface DWView : DWBox  
+{
+	NSMenu *windowmenu;
+}
 -(BOOL)windowShouldClose:(id)sender;
+-(void)setMenu:(NSMenu *)input;
+-(void)windowDidBecomeMain:(id)sender;
+-(void)menuHandler:(id)sender;
 @end
 
 @implementation DWView
@@ -174,6 +187,7 @@ int _event_handler(id object, NSEvent *event, int message)
 - (void)viewDidMoveToWindow
 {
 	[[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(windowResized:) name:NSWindowDidResizeNotification object:[self window]];
+	[[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(windowDidBecomeMain:) name:NSWindowDidBecomeMainNotification object:[self window]];
 }
 - (void)dealloc
 {
@@ -185,6 +199,22 @@ int _event_handler(id object, NSEvent *event, int message)
         NSSize size = [self frame].size;
 		_do_resize(&box, size.width, size.height);
 }
+-(void)windowDidBecomeMain:(id)sender
+{
+	if(windowmenu)
+	{
+		NSLog(@"Setting local menu");
+		[DWApp setMainMenu:windowmenu];
+	}
+	else 
+	{
+		NSLog(@"Setting global menu");
+		[DWApp setMainMenu:DWMainMenu];
+	}
+
+}
+-(void)setMenu:(NSMenu *)input { windowmenu = input; NSLog(@"Setting window menu"); }
+-(void)menuHandler:(id)sender { _event_handler(sender, nil, 8); }
 @end
 
 /* Subclass for a button type */
@@ -405,11 +435,19 @@ int _event_handler(id object, NSEvent *event, int message)
 -(void)setUserdata:(void *)input { userdata = input; }
 @end
 
-NSApplication *DWApp;
-NSRunLoop *DWRunLoop;
-#if !defined(GARBAGE_COLLECT)
-NSAutoreleasePool *pool;
-#endif
+/* Subclass for a MLE type */
+@interface DWContainer : NSTableView 
+{
+	void *userdata;
+}
+-(void *)userdata;
+-(void)setUserdata:(void *)input;
+@end
+
+@implementation DWContainer
+-(void *)userdata { return userdata; }
+-(void)setUserdata:(void *)input { userdata = input; }
+@end
 
 typedef struct
 {
@@ -949,22 +987,8 @@ static void _changebox(Box *thisbox, int percent, int type)
    }
 }
 
-/*
- * Initializes the Dynamic Windows engine.
- * Parameters:
- *           newthread: True if this is the only thread.
- *                      False if there is already a message loop running.
- */
-int API dw_init(int newthread, int argc, char *argv[])
+NSMenu *_generate_main_menu()
 {
-	/* Create the application object */
-	DWApp = [NSApplication sharedApplication];
-	/* Create a run loop for doing manual loops */
-	DWRunLoop = [NSRunLoop alloc];
-#if !defined(GARBAGE_COLLECT)
-	pool = [[NSAutoreleasePool alloc] init];
-#endif
-	
 	/* This only works on 10.6 so we have a backup method */
 	NSString * applicationName = [[NSRunningApplication currentApplication] localizedName];
 	if(applicationName == nil)
@@ -977,15 +1001,13 @@ int API dw_init(int newthread, int argc, char *argv[])
 	
 	NSMenuItem * mitem = [mainMenu addItemWithTitle:@"Apple" action:NULL keyEquivalent:@""];
 	NSMenu * menu = [[[NSMenu alloc] initWithTitle:@"Apple"] autorelease];
-
-	[DWApp setMainMenu:mainMenu];
-
+	
 	[DWApp performSelector:@selector(setAppleMenu:) withObject:menu];
 	
 	/* Setup the Application menu */
 	NSMenuItem * item = [menu addItemWithTitle:[NSString stringWithFormat:@"%@ %@", NSLocalizedString(@"About", nil), applicationName]
-						   action:@selector(orderFrontStandardAboutPanel:)
-					keyEquivalent:@""];
+										action:@selector(orderFrontStandardAboutPanel:)
+								 keyEquivalent:@""];
 	[item setTarget:DWApp];
 	
 	[menu addItem:[NSMenuItem separatorItem]];
@@ -1029,6 +1051,28 @@ int API dw_init(int newthread, int argc, char *argv[])
 	[item setTarget:DWApp];
 	
 	[mainMenu setSubmenu:menu forItem:mitem];
+	
+	return mainMenu;
+}
+
+/*
+ * Initializes the Dynamic Windows engine.
+ * Parameters:
+ *           newthread: True if this is the only thread.
+ *                      False if there is already a message loop running.
+ */
+int API dw_init(int newthread, int argc, char *argv[])
+{
+	/* Create the application object */
+	DWApp = [NSApplication sharedApplication];
+	/* Create a run loop for doing manual loops */
+	DWRunLoop = [NSRunLoop alloc];
+#if !defined(GARBAGE_COLLECT)
+	pool = [[NSAutoreleasePool alloc] init];
+#endif
+	DWMainMenu = _generate_main_menu();
+	[DWApp setMainMenu:DWMainMenu];
+	
 	return 0;
 }
 
@@ -2501,8 +2545,16 @@ void API dw_tree_item_delete(HWND handle, HTREEITEM item)
  */
 HWND API dw_container_new(ULONG id, int multi)
 {
-	NSLog(@"dw_container_new() unimplemented\n");
-	return HWND_DESKTOP;
+	DWContainer *cont = [[DWContainer alloc] init];
+	if(multi)
+	{
+		[cont setAllowsMultipleSelection:YES];
+	}
+	else
+	{
+		[cont setAllowsMultipleSelection:NO];
+	}
+	return cont;
 }
 
 /*
@@ -2517,8 +2569,16 @@ HWND API dw_container_new(ULONG id, int multi)
  */
 int API dw_container_setup(HWND handle, unsigned long *flags, char **titles, int count, int separator)
 {
-	NSLog(@"dw_container_setup() unimplemented\n");
-	return 0;
+	int z;
+	DWContainer *cont = handle;
+	
+	for(z=0;z<count;z++)
+	{
+		NSTableColumn *column = [[NSTableColumn alloc] init];
+		[[column headerCell] setStringValue:[ NSString stringWithUTF8String:titles[z] ]];
+		[cont addTableColumn:column];
+	}		
+	return TRUE;
 }
 
 /*
@@ -2531,8 +2591,21 @@ int API dw_container_setup(HWND handle, unsigned long *flags, char **titles, int
  */
 int API dw_filesystem_setup(HWND handle, unsigned long *flags, char **titles, int count)
 {
-	NSLog(@"dw_filesystem_setup() unimplemented\n");
-	return 0;
+	char **newtitles = malloc(sizeof(char *) * (count + 1));
+	unsigned long *newflags = malloc(sizeof(unsigned long) * (count + 1));
+	
+	newtitles[0] = "Filename";
+	
+	newflags[0] = DW_CFA_STRINGANDICON | DW_CFA_LEFT | DW_CFA_HORZSEPARATOR;
+	
+	memcpy(&newtitles[1], titles, sizeof(char *) * count);
+	memcpy(&newflags[1], flags, sizeof(unsigned long) * count);
+	
+	dw_container_setup(handle, newflags, newtitles, count + 1, 0);
+	
+	free(newtitles);
+	free(newflags);
+	return TRUE;
 }
 
 /*
@@ -3156,7 +3229,8 @@ void API dw_pointer_set_pos(long x, long y)
  */
 HMENUI API dw_menu_new(ULONG id)
 {
-	NSMenu *menu = [[[NSMenu alloc] initWithTitle:@"Apple"] autorelease];
+	NSMenu *menu = [[[NSMenu alloc] init] autorelease];
+	[menu setAutoenablesItems:NO];
 	return menu;
 }
 
@@ -3167,8 +3241,10 @@ HMENUI API dw_menu_new(ULONG id)
  */
 HMENUI API dw_menubar_new(HWND location)
 {
-	NSLog(@"dw_menubar_new() unimplemented\n");
-	return HWND_DESKTOP;
+	NSWindow *window = location;
+	NSMenu *windowmenu = _generate_main_menu();
+	[[window contentView] setMenu:windowmenu];
+	return (HMENUI)windowmenu;
 }
 
 /*
@@ -3221,9 +3297,7 @@ char _removetilde(char *dest, char *src)
 		}
 		else
 		{
-			dest[cur] = '_';
 			accel = src[z+1];
-			cur++;
 		}
 	}
 	dest[cur] = 0;
@@ -3242,9 +3316,10 @@ char _removetilde(char *dest, char *src)
  *       flags: Extended attributes to set on the menu.
  *       submenu: Handle to an existing menu to be a submenu or NULL.
  */
-HWND API dw_menu_append_item(HMENUI menux, char *title, ULONG id, ULONG flags, int end, int check, HMENUI submenu)
+HWND API dw_menu_append_item(HMENUI menux, char *title, ULONG itemid, ULONG flags, int end, int check, HMENUI submenux)
 {
 	NSMenu *menu = menux;
+	NSMenu *submenu = submenux;
 	NSMenuItem *item = NULL;
 	if(strlen(title) == 0)
 	{
@@ -3254,14 +3329,32 @@ HWND API dw_menu_append_item(HMENUI menux, char *title, ULONG id, ULONG flags, i
 	{
 		char accel[2];
 		char *newtitle = malloc(strlen(title)+1);
+		NSString *nstr;
 	
 		accel[0] = _removetilde(newtitle, title);
 		accel[1] = 0;
 	
-		item = [menu addItemWithTitle:[ NSString stringWithUTF8String:newtitle ]
-													action:NULL
-													keyEquivalent:[ NSString stringWithUTF8String:accel ]];
+		nstr = [ NSString stringWithUTF8String:newtitle ];
 		free(newtitle);
+
+		item = [menu addItemWithTitle:	nstr
+										action:@selector(menuHandler:)
+										keyEquivalent:[ NSString stringWithUTF8String:accel ]];
+		[item setTag:itemid];
+		if(flags & DW_MIS_CHECKED)
+		{
+			[item setState:NSOnState];
+		}
+		if(flags & DW_MIS_DISABLED)
+		{
+			[item setEnabled:NO];
+		}			
+		
+		if(submenux)
+		{
+			[submenu setTitle:nstr];
+			[menu setSubmenu:submenu forItem:item];
+		}
 		return item;
 	}
 	return item;
@@ -3275,9 +3368,22 @@ HWND API dw_menu_append_item(HMENUI menux, char *title, ULONG id, ULONG flags, i
  *       id: Menuitem id.
  *       check: TRUE for checked FALSE for not checked.
  */
-void API dw_menu_item_set_check(HMENUI menux, unsigned long id, int check)
+void API dw_menu_item_set_check(HMENUI menux, unsigned long itemid, int check)
 {
-	NSLog(@"dw_menu_item_set_check() unimplemented\n");
+	id menu = menux;
+	NSMenuItem *menuitem = (NSMenuItem *)[menu itemWithTag:itemid];
+	
+	if(menuitem != nil)
+	{
+		if(check)
+		{
+			[menuitem setState:NSOnState];
+		}
+		else
+		{	
+			[menuitem setState:NSOffState];
+		}
+	}
 }
 
 /*
@@ -3288,9 +3394,31 @@ void API dw_menu_item_set_check(HMENUI menux, unsigned long id, int check)
  *       flags: DW_MIS_ENABLED/DW_MIS_DISABLED
  *              DW_MIS_CHECKED/DW_MIS_UNCHECKED
  */
-void API dw_menu_item_set_state( HMENUI menux, unsigned long id, unsigned long state)
+void API dw_menu_item_set_state(HMENUI menux, unsigned long itemid, unsigned long state)
 {
-	NSLog(@"dw_menu_item_set_state() unimplemented\n");
+	id menu = menux;
+	NSMenuItem *menuitem = (NSMenuItem *)[menu itemWithTag:itemid];
+	
+	NSLog(@"MenuItem: %x", menuitem);
+	if(menuitem != nil)
+	{
+		if(state & DW_MIS_CHECKED)
+		{
+			[menuitem setState:NSOnState];
+		}
+		else if(state & DW_MIS_UNCHECKED)
+		{	
+			[menuitem setState:NSOffState];
+		}
+		if(state & DW_MIS_ENABLED)
+		{
+			[menuitem setEnabled:YES];
+		}
+		else if(state & DW_MIS_DISABLED)
+		{
+			[menuitem setEnabled:NO];
+		}
+	}
 }
 
 /* Gets the notebook page from associated ID */
