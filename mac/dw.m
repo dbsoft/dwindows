@@ -84,7 +84,7 @@ SignalHandler *_get_handler(HWND window, int messageid)
 int _event_handler(id object, NSEvent *event, int message)
 {
 	SignalHandler *handler = _get_handler(object, message);
-	NSLog(@"Event handler\n");
+	NSLog(@"Event handler - type %d\n", message);
 	
 	if(handler)
 	{
@@ -152,6 +152,25 @@ int _event_handler(id object, NSEvent *event, int message)
 
 				NSLog(@"Clicked\n");
 				return clickfunc(object, handler->data);
+			}
+			case 10:
+			{
+				int (* API containercontextfunc)(HWND, char *, int, int, void *, void *) = (int (* API)(HWND, char *, int, int, void *, void *))handler->signalfunction;
+				char *text = (char *)event;
+				void *user = NULL;
+				LONG x,y;
+				
+				dw_pointer_query_pos(&x, &y);
+				
+				return containercontextfunc(handler->window, text, x, y, handler->data, user);
+			}
+			case 12:
+			{
+				int (* API treeselectfunc)(HWND, HTREEITEM, char *, void *, void *) = (int (* API)(HWND, HTREEITEM, char *, void *, void *))handler->signalfunction;
+				char *text = (char *)event;
+				void *user = NULL;
+				
+				return treeselectfunc(handler->window, NULL, text, handler->data, user);
 			}
 		}
 	}
@@ -455,6 +474,7 @@ NSAutoreleasePool *pool;
 -(float)range;
 -(float)visible;
 -(void)setRange:(float)input1 andVisible:(float)input2;
+-(void)changed:(id)sender;
 @end
 
 @implementation DWScrollbar
@@ -463,6 +483,7 @@ NSAutoreleasePool *pool;
 -(float)range { return range; }
 -(float)visible { return visible; }
 -(void)setRange:(float)input1 andVisible:(float)input2 { range = input1; visible = input2; }
+-(void)changed:(id)sender { /*NSNumber *num = [NSNumber numberWithDouble:[scroller floatValue]]; NSLog([num stringValue]);*/ }
 @end
 
 /* Subclass for a render area type */
@@ -504,7 +525,7 @@ NSAutoreleasePool *pool;
 	NSMutableArray *tvcols;
 	NSMutableArray *data;
 	NSMutableArray *types;
-	NSMutableArray *titles;
+	NSPointerArray *titles;
 	int lastAddPoint;
 }
 -(NSInteger)numberOfRowsInTableView:(NSTableView *)aTable;
@@ -517,9 +538,13 @@ NSAutoreleasePool *pool;
 -(int)addRows:(int)number;
 -(void)editCell:(id)input at:(int)row and:(int)col;
 -(int)cellType:(int)col;
+-(void)setRow:(int)row title:(void *)input;
+-(void *)getRowTitle:(int)row;
 -(int)lastAddPoint;
 -(void)clear;
 -(void)setup;
+-(void)selectionChanged:(id)sender;
+-(NSMenu *)menuForEvent:(NSEvent *)event;
 @end
 
 @implementation DWContainer
@@ -553,7 +578,8 @@ NSAutoreleasePool *pool;
 		if(col != -1)
 		{
 			int index = (aRow * count) + col;
-			return [data objectAtIndex:index];
+			id this = [data objectAtIndex:index];
+			return ([this isKindOfClass:[NSNull class]]) ? nil : this;
 		}
 	}
 	return nil;
@@ -583,7 +609,7 @@ NSAutoreleasePool *pool;
 -(void *)userdata { return userdata; }
 -(void)setUserdata:(void *)input { userdata = input; }
 -(void)addColumn:(NSTableColumn *)input andType:(int)type { if(tvcols) { [tvcols addObject:input]; [types addObject:[NSNumber numberWithInt:type]]; } }
--(int)addRow:(NSArray *)input { if(data) { [data addObjectsFromArray:input]; [titles addObject:[NSNull null]]; return [titles count]; } return 0; }
+-(int)addRow:(NSArray *)input { if(data) { [data addObjectsFromArray:input]; [titles addPointer:NULL]; return [titles count]; } return 0; }
 -(int)addRows:(int)number
 {
 	if(tvcols)
@@ -599,7 +625,7 @@ NSAutoreleasePool *pool;
 		}
 		for(z=0;z<number;z++)
 		{
-			[titles addObject:[NSNull null]];
+			[titles addPointer:NULL];
 		}
 		return [titles count];
 	}
@@ -614,9 +640,30 @@ NSAutoreleasePool *pool;
 	}
 }
 -(int)cellType:(int)col { return [[types objectAtIndex:col] intValue]; }
+-(void)setRow:(int)row title:(void *)input { if(titles && input) { [titles replacePointerAtIndex:row withPointer:input]; } }
+-(void *)getRowTitle:(int)row { if(titles) { return [titles pointerAtIndex:row]; } return NULL; }
 -(int)lastAddPoint { return lastAddPoint; }
--(void)clear { if(data) { [data removeAllObjects]; } }
--(void)setup { tvcols = [[NSMutableArray alloc] init]; data = [[NSMutableArray alloc] init]; types = [[NSMutableArray alloc] init]; titles = [[NSMutableArray alloc] init];}
+-(void)clear { if(data) { [data removeAllObjects]; while([titles count]) { [titles removePointerAtIndex:0]; } } lastAddPoint = 0; }
+-(void)setup 
+{ 
+	tvcols = [[NSMutableArray alloc] init]; 
+	data = [[NSMutableArray alloc] init]; 
+	types = [[NSMutableArray alloc] init]; 
+	titles = [NSPointerArray pointerArrayWithWeakObjects];
+	[[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(selectionChanged:) name:NSTableViewSelectionDidChangeNotification object:[self window]];
+}
+-(void)selectionChanged:(id)sender
+{
+	_event_handler(self, (NSEvent *)[self getRowTitle:[self selectedRow]], 12);
+}
+-(NSMenu *)menuForEvent:(NSEvent *)event 
+{
+	int row;
+	NSPoint where = [self convertPoint:[event locationInWindow] fromView:nil];
+	row = [self rowAtPoint:where];
+	_event_handler(self, (NSEvent *)[self getRowTitle:row], 10);
+	return nil;
+}
 @end
 
 /* Subclass for a Calendar type */
@@ -1976,6 +2023,10 @@ void API dw_slider_set_pos(HWND handle, unsigned int position)
 HWND API dw_scrollbar_new(int vertical, ULONG id)
 {
 	DWScrollbar *scrollbar = [[DWScrollbar alloc] init];
+	[scrollbar setTarget:scrollbar]; 
+	[scrollbar setAction:@selector(changed:)];
+	[scrollbar setRange:0.0 andVisible:0.0];
+	[scrollbar setKnobProportion:1.0];
 	return scrollbar;
 }
 
@@ -3184,7 +3235,8 @@ void API dw_container_set_column_width(HWND handle, int column, int width)
  */
 void API dw_container_set_row_title(void *pointer, int row, char *title)
 {
-	NSLog(@"dw_container_set_row_title() unimplemented\n");
+	DWContainer *cont = pointer;
+	return [cont setRow:row title:title];
 }
 
 /*
