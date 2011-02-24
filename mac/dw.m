@@ -98,6 +98,24 @@ int _event_handler(id object, NSEvent *event, int message)
 					dw_timer_disconnect(handler->id);
 				return 0;
 			}
+			case 1:
+			{
+				int (*sizefunc)(HWND, int, int, void *) = handler->signalfunction;
+				NSSize size;
+				
+				if([object isMemberOfClass:[NSWindow class]])
+				{
+					NSWindow *window = object;
+					size = [[window contentView] frame].size;
+				}
+				else
+				{
+					NSView *view = object;
+					size = [view frame].size;
+				}
+				
+				return sizefunc(object, size.width, size.height, handler->data);
+			}	
 			case 3:
 			case 4:
 			{
@@ -144,7 +162,10 @@ int _event_handler(id object, NSEvent *event, int message)
 				exp.y = rect.origin.y;
 				exp.width = rect.size.width;
 				exp.height = rect.size.height;
-				return exposefunc(object, &exp, handler->data);
+				int result = exposefunc(object, &exp, handler->data);
+				NSGraphicsContext *gc = [[object window] graphicsContext];
+				[gc flushGraphics];
+				return result;
 			}
 			case 8:
 			{
@@ -279,8 +300,9 @@ NSAutoreleasePool *pool;
 }
 - (void)windowResized:(NSNotification *)notification;
 {
-        NSSize size = [self frame].size;
-		_do_resize(&box, size.width, size.height);
+	NSSize size = [self frame].size;
+	_do_resize(&box, size.width, size.height);
+	_event_handler([self window], nil, 1);
 }
 -(void)windowDidBecomeMain:(id)sender
 {
@@ -495,6 +517,8 @@ NSAutoreleasePool *pool;
 -(void)setUserdata:(void *)input;
 -(void)drawRect:(NSRect)rect;
 -(BOOL)isFlipped;
+-(void)mouseDown:(NSEvent *)theEvent;
+-(void)mouseUp:(NSEvent *)theEvent;
 @end
 
 @implementation DWRender
@@ -502,6 +526,8 @@ NSAutoreleasePool *pool;
 -(void)setUserdata:(void *)input { userdata = input; }
 -(void)drawRect:(NSRect)rect { _event_handler(self, nil, 7); }
 -(BOOL)isFlipped { return YES; }
+-(void)mouseDown:(NSEvent *)theEvent { _event_handler(self, theEvent, 3); }
+-(void)mouseUp:(NSEvent *)theEvent { _event_handler(self, theEvent, 4); }
 @end
 
 /* Subclass for a MLE type */
@@ -692,6 +718,15 @@ NSAutoreleasePool *pool;
 @implementation DWComboBox
 -(void *)userdata { return userdata; }
 -(void)setUserdata:(void *)input { userdata = input; }
+@end
+
+/* Subclass for a test object type */
+@interface DWObject : NSObject {}
+-(void)uselessThread:(id)sender;
+@end
+
+@implementation DWObject
+-(void)uselessThread:(id)sender { /* Thread only to initialize threading */ } 
 @end
 
 typedef struct
@@ -1169,6 +1204,11 @@ static int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *
 					_do_resize(&box, size.width, size.height);
 				}
 			}
+			else if([handle isMemberOfClass:[DWRender class]])
+			{
+				_event_handler(handle, nil, 1);
+			}
+			 
 			if(thisbox->type == DW_HORZ)
                currentx += width + vectorx + (pad * 2);
             if(thisbox->type == DW_VERT)
@@ -1319,7 +1359,9 @@ int API dw_init(int newthread, int argc, char *argv[])
 #endif
 	DWMainMenu = _generate_main_menu();
 	[DWApp setMainMenu:DWMainMenu];
-	
+	DWObject *test = [[DWObject alloc] init];
+	NSThread *thread = [[ NSThread alloc] initWithTarget:test selector:@selector(uselessThread:) object:nil];
+	[thread start];
 	return 0;
 }
 
@@ -2673,9 +2715,13 @@ void API dw_draw_point(HWND handle, HPIXMAP pixmap, int x, int y)
 	id image = handle;
 	if(pixmap)
 	{
-		image = (id)pixmap;
+		image = (id)pixmap->handle;
+		[image lockFocus];
 	}
-	[image lockFocus];
+	else
+	{
+		[image lockFocusIfCanDraw];
+	}
 	NSRect rect = NSMakeRect(x, y, x, y);
 	[[NSColor colorWithDeviceRed: DW_RED_VALUE(_foreground)/255.0 green: DW_GREEN_VALUE(_foreground)/255.0 blue: DW_BLUE_VALUE(_foreground)/255.0 alpha: 1] set];
 	NSRectFill(rect);
@@ -2696,13 +2742,19 @@ void API dw_draw_line(HWND handle, HPIXMAP pixmap, int x1, int y1, int x2, int y
 	id image = handle;
 	if(pixmap)
 	{
-		image = (id)pixmap;
+		image = (id)pixmap->handle;
+		[image lockFocus];
 	}
-	[image lockFocus];
+	else
+	{
+		[image lockFocusIfCanDraw];
+	}
 	NSBezierPath* aPath = [NSBezierPath bezierPath];
+	[aPath setLineWidth: 1.0];
 	
 	[aPath moveToPoint:NSMakePoint(x1, y1)];	
 	[aPath lineToPoint:NSMakePoint(x2, y2)];
+	[aPath stroke];
 	
 	[image unlockFocus];
 }
@@ -2723,7 +2775,7 @@ void API dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
 	{
 		if([image isMemberOfClass:[NSView class]])
 		{
-			[image lockFocus];
+			[image lockFocusIfCanDraw];
 			NSDictionary *dict = [[NSDictionary alloc] init];
 			[nstr drawAtPoint:NSMakePoint(x, y) withAttributes:dict];
 			[image unlockFocus];
@@ -2731,8 +2783,11 @@ void API dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
 	}
 	if(pixmap)
 	{
-		image = (id)pixmap;
-		/* TODO: Figure out how to write here */
+		image = (id)pixmap->handle;
+		[image lockFocus];
+		NSDictionary *dict = [[NSDictionary alloc] init];
+		[nstr drawAtPoint:NSMakePoint(x, y) withAttributes:dict];
+		[image unlockFocus];
 	}
 }
 
@@ -2749,7 +2804,7 @@ void API dw_font_text_extents_get(HWND handle, HPIXMAP pixmap, char *text, int *
 	id image = handle;
 	if(pixmap)
 	{
-		image = (id)pixmap;
+		image = (id)pixmap->handle;
 	}
 	NSLog(@"dw_font_text_extents_get() unimplemented\n");
 }
@@ -2770,10 +2825,15 @@ void API dw_draw_polygon( HWND handle, HPIXMAP pixmap, int fill, int npoints, in
 	int z;
 	if(pixmap)
 	{
-		image = (id)pixmap;
+		image = (id)pixmap->handle;
+		[image lockFocus];
 	}
-	[image lockFocus];
+	else
+	{
+		[image lockFocusIfCanDraw];
+	}
 	NSBezierPath* aPath = [NSBezierPath bezierPath];
+	[aPath setLineWidth: 1.0];
 	
 	[aPath moveToPoint:NSMakePoint(*x, *y)];
 	for(z=1;z<npoints;z++)
@@ -2785,6 +2845,7 @@ void API dw_draw_polygon( HWND handle, HPIXMAP pixmap, int fill, int npoints, in
 	{
 		[aPath fill];
 	}
+	[aPath stroke];
 	[image unlockFocus];
 }
 
@@ -2803,9 +2864,13 @@ void API dw_draw_rect(HWND handle, HPIXMAP pixmap, int fill, int x, int y, int w
 	id image = handle;
 	if(pixmap)
 	{
-		image = (id)pixmap;
+		image = (id)pixmap->handle;
+		[image lockFocus];
 	}
-	[image lockFocus];
+	else
+	{
+		[image lockFocusIfCanDraw];
+	}
 	NSRect rect = NSMakeRect(x, y, x + width, y + height);
 	[[NSColor colorWithDeviceRed: DW_RED_VALUE(_foreground)/255.0 green: DW_GREEN_VALUE(_foreground)/255.0 blue: DW_BLUE_VALUE(_foreground)/255.0 alpha: 1] set];
 	NSRectFill(rect);
@@ -3503,8 +3568,14 @@ HWND API dw_bitmap_new(ULONG id)
 HPIXMAP API dw_pixmap_new(HWND handle, unsigned long width, unsigned long height, int depth)
 {
 	NSSize size = { (float)width, (float)height };
-	NSImage *pixmap = [[NSImage alloc] initWithSize:size];
-	return (HPIXMAP)pixmap;
+	HPIXMAP pixmap;
+	
+	if (!(pixmap = calloc(1,sizeof(struct _hpixmap))))
+		return NULL;
+	pixmap->width = width;
+	pixmap->height = height;
+	pixmap->handle = [[NSImage alloc] initWithSize:size];
+	return pixmap;
 }
 
 /*
@@ -3519,8 +3590,16 @@ HPIXMAP API dw_pixmap_new(HWND handle, unsigned long width, unsigned long height
  */
 HPIXMAP API dw_pixmap_new_from_file(HWND handle, char *filename)
 {
-	NSImage *pixmap = [[NSImage alloc] initWithContentsOfFile:[ NSString stringWithUTF8String:filename ]];
-	return (HPIXMAP)pixmap;
+	HPIXMAP pixmap;
+	
+	if (!(pixmap = calloc(1,sizeof(struct _hpixmap))))
+		return NULL;
+	NSImage *image = [[NSImage alloc] initWithContentsOfFile:[ NSString stringWithUTF8String:filename ]];
+	NSSize size = [image size];
+	pixmap->width = size.width;
+	pixmap->height = size.height;
+	pixmap->handle = image;
+	return pixmap;
 }
 
 /*
@@ -3535,9 +3614,17 @@ HPIXMAP API dw_pixmap_new_from_file(HWND handle, char *filename)
  */
 HPIXMAP API dw_pixmap_new_from_data(HWND handle, char *data, int len)
 {
+	HPIXMAP pixmap;
+	
+	if (!(pixmap = calloc(1,sizeof(struct _hpixmap))))
+		return NULL;
 	NSData *thisdata = [[NSData alloc] dataWithBytes:data length:len];
-	NSImage *pixmap = [[NSImage alloc] initWithData:thisdata];
-	return (HPIXMAP)pixmap;
+	NSImage *image = [[NSImage alloc] initWithData:thisdata];
+	NSSize size = [image size];
+	pixmap->width = size.width;
+	pixmap->height = size.height;
+	pixmap->handle = image;
+	return pixmap;
 }
 
 /*
@@ -3570,8 +3657,9 @@ HPIXMAP API dw_pixmap_grab(HWND handle, ULONG id)
  */
 void API dw_pixmap_destroy(HPIXMAP pixmap)
 {
-	NSImage *image = (NSImage *)pixmap;
+	NSImage *image = (NSImage *)pixmap->handle;
 	[image dealloc];
+	free(pixmap);
 }
 
 /*
@@ -3594,12 +3682,16 @@ void API dw_pixmap_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest, int wi
 	id bltsrc = src;
 	if(destp)
 	{
-		bltdest = (id)destp;
+		bltdest = (id)destp->handle;
+		[bltdest lockFocus];
 	}
-	[bltdest lockFocus];
+	else
+	{
+		[bltdest lockFocusIfCanDraw];
+	}
 	if(srcp)
 	{
-		bltsrc = (id)srcp;
+		bltsrc = (id)srcp->handle;
 		NSImage *image = bltsrc;
 		[image drawAtPoint:NSMakePoint(xdest, ydest) fromRect:NSMakeRect(xsrc, ysrc, width, height) operation:NSCompositeCopy fraction:1.0];
 	}
@@ -5699,7 +5791,10 @@ void _dwthreadstart(void *data)
 {
    void (*threadfunc)(void *) = NULL;
    void **tmp = (void **)data;
-
+#if !defined(GARBAGE_COLLECT)
+	NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+#endif
+	
    threadfunc = (void (*)(void *))tmp[0];
 
    threadfunc(tmp[1]);
@@ -5819,9 +5914,9 @@ int dw_named_memory_free(HSHM handle, void *ptr)
  */
 DWTID dw_thread_new(void *func, void *data, int stack)
 {
-   DWTID thread;
-   void **tmp = malloc(sizeof(void *) * 2);
-   int rc;
+	DWTID thread;
+	void **tmp = malloc(sizeof(void *) * 2);
+	int rc;
 
    tmp[0] = func;
    tmp[1] = data;
