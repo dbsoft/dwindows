@@ -184,7 +184,7 @@ NSAutoreleasePool *pool;
  */
 
 /* Subclass for a box type */
-@interface DWBox : NSView 
+@interface DWBox : NSView <NSWindowDelegate>
 {
 	Box box;
 	void *userdata;
@@ -338,7 +338,7 @@ NSAutoreleasePool *pool;
 @end
 
 /* Subclass for a Notebook control type */
-@interface DWNotebook : NSTabView
+@interface DWNotebook : NSTabView <NSTabViewDelegate>
 {
 	void *userdata;
 	int pageid;
@@ -498,30 +498,44 @@ NSAutoreleasePool *pool;
 @end
 
 /* Subclass for a Container/List type */
-@interface DWContainer : NSTableView 
+@interface DWContainer : NSTableView <NSTableViewDataSource>
 {
 	void *userdata;
 	NSMutableArray *tvcols;
 	NSMutableArray *data;
 	NSMutableArray *types;
+	NSMutableArray *titles;
+	int lastAddPoint;
 }
+-(NSInteger)numberOfRowsInTableView:(NSTableView *)aTable;
+-(id)tableView:(NSTableView *)aTable objectValueForTableColumn:(NSTableColumn *)aCol row:(NSInteger)aRow;
+-(void)tableView:(NSTableView *)aTableView setObjectValue:(id)anObject forTableColumn:(NSTableColumn *)aTableColumn row:(NSInteger)rowIndex;
 -(void *)userdata;
 -(void)setUserdata:(void *)input;
--(id)tableView:(NSTableView *)aTable objectValueForColumn:(NSTableColumn *)aCol row:(int)aRow;
--(int)numberOfRowsInTableView:(NSTableView *)aTable;
 -(void)addColumn:(NSTableColumn *)input andType:(int)type;
--(void)addRow:(NSArray *)input;
--(void)addRows:(int)number;
+-(int)addRow:(NSArray *)input;
+-(int)addRows:(int)number;
 -(void)editCell:(id)input at:(int)row and:(int)col;
 -(int)cellType:(int)col;
+-(int)lastAddPoint;
 -(void)clear;
 -(void)setup;
 @end
 
 @implementation DWContainer
--(void *)userdata { return userdata; }
--(void)setUserdata:(void *)input { userdata = input; }
--(id)tableView:(NSTableView *)aTable objectValueForColumn:(NSTableColumn *)aCol row:(int)aRow
+-(NSInteger)numberOfRowsInTableView:(NSTableView *)aTable
+{
+	if(tvcols && data)
+	{
+		int cols = [tvcols count];
+		if(cols)
+		{
+			return [data count] / cols;
+		}
+	}
+	return 0;
+}
+-(id)tableView:(NSTableView *)aTable objectValueForTableColumn:(NSTableColumn *)aCol row:(NSInteger)aRow
 {
 	if(tvcols)
 	{
@@ -544,32 +558,52 @@ NSAutoreleasePool *pool;
 	}
 	return nil;
 }
--(int)numberOfRowsInTableView:(NSTableView *)aTable
+-(void)tableView:(NSTableView *)aTableView setObjectValue:(id)anObject forTableColumn:(NSTableColumn *)aTableColumn row:(NSInteger)rowIndex
 {
-	if(tvcols && data)
+	if(tvcols)
 	{
-		int cols = [tvcols count];
-		if(cols)
+		int z, col = -1;
+		int count = [tvcols count];
+		
+		for(z=0;z<count;z++)
 		{
-			return [data count] / cols;
+			if([tvcols objectAtIndex:z] == aTableColumn)
+			{
+				col = z;
+				break;
+			}
+		}
+		if(col != -1)
+		{
+			int index = (rowIndex * count) + col;
+			[data replaceObjectAtIndex:index withObject:anObject];
 		}
 	}
-	return 0;
 }
+-(void *)userdata { return userdata; }
+-(void)setUserdata:(void *)input { userdata = input; }
 -(void)addColumn:(NSTableColumn *)input andType:(int)type { if(tvcols) { [tvcols addObject:input]; [types addObject:[NSNumber numberWithInt:type]]; } }
--(void)addRow:(NSArray *)input { if(data) { [data addObjectsFromArray:input]; } }
--(void)addRows:(int)number
+-(int)addRow:(NSArray *)input { if(data) { [data addObjectsFromArray:input]; [titles addObject:[NSNull null]]; return [titles count]; } return 0; }
+-(int)addRows:(int)number
 {
 	if(tvcols)
 	{
 		int count = number * [tvcols count];
 		int z;
 		
+		lastAddPoint = [titles count];
+		
 		for(z=0;z<count;z++)
 		{
 			[data addObject:[NSNull null]];
 		}
+		for(z=0;z<number;z++)
+		{
+			[titles addObject:[NSNull null]];
+		}
+		return [titles count];
 	}
+	return 0;
 }		
 -(void)editCell:(id)input at:(int)row and:(int)col
 {
@@ -580,8 +614,9 @@ NSAutoreleasePool *pool;
 	}
 }
 -(int)cellType:(int)col { return [[types objectAtIndex:col] intValue]; }
+-(int)lastAddPoint { return lastAddPoint; }
 -(void)clear { if(data) { [data removeAllObjects]; } }
--(void)setup { tvcols = [[NSMutableArray alloc] init]; data = [[NSMutableArray alloc] init];  types = [[NSMutableArray alloc] init]; }
+-(void)setup { tvcols = [[NSMutableArray alloc] init]; data = [[NSMutableArray alloc] init]; types = [[NSMutableArray alloc] init]; titles = [[NSMutableArray alloc] init];}
 @end
 
 /* Subclass for a Calendar type */
@@ -2062,6 +2097,22 @@ void API dw_checkbox_set(HWND handle, int value)
 
 }
 
+/* Common code for containers and listboxes */
+HWND _cont_new(ULONG id, int multi)
+{
+	DWContainer *cont = [[DWContainer alloc] init];
+	if(multi)
+	{
+		[cont setAllowsMultipleSelection:YES];
+	}
+	else
+	{
+		[cont setAllowsMultipleSelection:NO];
+	}
+	[cont setDataSource:cont];
+	return cont;
+}
+
 /*
  * Create a new listbox window (widget) to be packed.
  * Parameters:
@@ -2070,8 +2121,13 @@ void API dw_checkbox_set(HWND handle, int value)
  */
 HWND API dw_listbox_new(ULONG id, int multi)
 {
-	NSLog(@"dw_listbox_new() unimplemented\n");
-	return HWND_DESKTOP;
+	DWContainer *cont = _cont_new(id, multi);
+	int type = DW_CFA_STRING;
+	[cont setup];
+	NSTableColumn *column = [[NSTableColumn alloc] init];
+	[cont addTableColumn:column];
+	[cont addColumn:column andType:type];
+	return cont;
 }
 
 /*
@@ -2871,16 +2927,9 @@ void API dw_tree_item_delete(HWND handle, HTREEITEM item)
  */
 HWND API dw_container_new(ULONG id, int multi)
 {
-	DWContainer *cont = [[DWContainer alloc] init];
-	if(multi)
-	{
-		[cont setAllowsMultipleSelection:YES];
-	}
-	else
-	{
-		[cont setAllowsMultipleSelection:NO];
-	}
-	[cont setDataSource:cont];
+	DWContainer *cont = _cont_new(id, multi);
+	NSTableHeaderView *header = [[NSTableHeaderView alloc] init];
+	[cont setHeaderView:header];
 	return cont;
 }
 
@@ -2968,6 +3017,7 @@ void API dw_container_set_item(HWND handle, void *pointer, int column, int row, 
 	DWContainer *cont = handle;
 	id object = nil;
 	int type = [cont cellType:column];
+	int lastadd = [cont lastAddPoint];
 	
 	if(type & DW_CFA_BITMAPORICON)
 	{
@@ -3018,7 +3068,7 @@ void API dw_container_set_item(HWND handle, void *pointer, int column, int row, 
 		object = [ NSString stringWithUTF8String:textbuffer ];
 	}
 	
-	[cont editCell:object at:row and:column];
+	[cont editCell:object at:(row+lastadd) and:column];
 }
 
 /*
@@ -3058,7 +3108,7 @@ void API dw_filesystem_change_item(HWND handle, int column, int row, void *data)
  */
 void API dw_filesystem_change_file(HWND handle, int row, char *filename, unsigned long icon)
 {
-	dw_container_change_item(handle, 0, row, filename);
+	dw_container_change_item(handle, 1, row, filename);
 }
 
 /*
@@ -3072,7 +3122,7 @@ void API dw_filesystem_change_file(HWND handle, int row, char *filename, unsigne
  */
 void API dw_filesystem_set_file(HWND handle, void *pointer, int row, char *filename, unsigned long icon)
 {
-	dw_container_set_item(handle, pointer, 0, row, filename);
+	dw_container_set_item(handle, pointer, 1, row, filename);
 }
 
 /*
@@ -3146,7 +3196,8 @@ void API dw_container_set_row_title(void *pointer, int row, char *title)
  */
 void API dw_container_insert(HWND handle, void *pointer, int rowcount)
 {
-	NSLog(@"dw_container_insert() unimplemented\n");
+	DWContainer *cont = handle;
+	return [cont reloadData];
 }
 
 /*
@@ -3242,7 +3293,9 @@ void API dw_container_delete_row(HWND handle, char *text)
  */
 void API dw_container_optimize(HWND handle)
 {
-	NSLog(@"dw_container_optimize() unimplemented\n");
+	DWContainer *cont = handle;
+	/*[cont sizeToFit];*/
+	[cont setColumnAutoresizingStyle:NSTableViewUniformColumnAutoresizingStyle];
 }
 
 /*
@@ -3491,12 +3544,13 @@ void API dw_pixmap_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest, int wi
 	{
 		bltdest = (id)destp;
 	}
+	[bltdest lockFocus];
 	if(srcp)
 	{
 		bltsrc = (id)srcp;
+		NSImage *image = bltsrc;
+		[image drawAtPoint:NSMakePoint(xdest, ydest) fromRect:NSMakeRect(xsrc, ysrc, width, height) operation:NSCompositeCopy fraction:1.0];
 	}
-	[bltdest lockFocus];
-	NSLog(@"dw_pixmap_bitblt() unimplemented\n");
 	[bltdest unlockFocus];
 }
 
@@ -3688,7 +3742,7 @@ HMENUI API dw_menubar_new(HWND location)
 void API dw_menu_destroy(HMENUI *menu)
 {
 	NSMenu *thismenu = *menu;
-	[thismenu dealloc];
+	[thismenu release];
 }
 
 /*
