@@ -84,7 +84,7 @@ SignalHandler *_get_handler(HWND window, int messageid)
 int _event_handler(id object, NSEvent *event, int message)
 {
 	SignalHandler *handler = _get_handler(object, message);
-	NSLog(@"Event handler - type %d\n", message);
+	/*NSLog(@"Event handler - type %d\n", message);*/
 	
 	if(handler)
 	{
@@ -149,7 +149,6 @@ int _event_handler(id object, NSEvent *event, int message)
 			case 6:
 			{
 				int (* API closefunc)(HWND, void *) = (int (* API)(HWND, void *))handler->signalfunction;
-				NSLog(@"Close\n");
 				return closefunc(object, handler->data);
 			}
 			case 7:
@@ -163,15 +162,13 @@ int _event_handler(id object, NSEvent *event, int message)
 				exp.width = rect.size.width;
 				exp.height = rect.size.height;
 				int result = exposefunc(object, &exp, handler->data);
-				NSGraphicsContext *gc = [[object window] graphicsContext];
-				[gc flushGraphics];
+				[[object window] flushWindow];
 				return result;
 			}
 			case 8:
 			{
 				int (* API clickfunc)(HWND, void *) = (int (* API)(HWND, void *))handler->signalfunction;
 
-				NSLog(@"Clicked\n");
 				return clickfunc(object, handler->data);
 			}
 			case 10:
@@ -214,6 +211,7 @@ DWTimerHandler *DWHandler;
 #if !defined(GARBAGE_COLLECT)
 NSAutoreleasePool *pool;
 #endif
+HWND _DWLastDrawable;
 
 /* So basically to implement our event handlers...
  * it looks like we are going to have to subclass
@@ -516,7 +514,6 @@ NSAutoreleasePool *pool;
 -(void *)userdata;
 -(void)setUserdata:(void *)input;
 -(void)drawRect:(NSRect)rect;
--(BOOL)isFlipped;
 -(void)mouseDown:(NSEvent *)theEvent;
 -(void)mouseUp:(NSEvent *)theEvent;
 @end
@@ -525,7 +522,6 @@ NSAutoreleasePool *pool;
 -(void *)userdata { return userdata; }
 -(void)setUserdata:(void *)input { userdata = input; }
 -(void)drawRect:(NSRect)rect { _event_handler(self, nil, 7); }
--(BOOL)isFlipped { return YES; }
 -(void)mouseDown:(NSEvent *)theEvent { _event_handler(self, theEvent, 3); }
 -(void)mouseUp:(NSEvent *)theEvent { _event_handler(self, theEvent, 4); }
 @end
@@ -1149,6 +1145,7 @@ static int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *
                _resize_box(tmp, depth, x, y, &nux, &nuy, 3, &nupx, &nupy);
 
                (*depth)--;
+				[box setBox:_tmp];
 
             }
          }
@@ -1202,11 +1199,16 @@ static int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *
 					Box box = [view box];
 					NSSize size = [view frame].size;
 					_do_resize(&box, size.width, size.height);
+					[view setBox:box];
 				}
 			}
 			else if([handle isMemberOfClass:[DWRender class]])
 			{
 				_event_handler(handle, nil, 1);
+			}
+			else if([handle isMemberOfClass:[WebView class]])
+			{
+				NSLog(@"x: %d y: %d width: %d height: %d", (int)point.x, (int)point.y, (int)size.width, (int)size.height);
 			}
 			 
 			if(thisbox->type == DW_HORZ)
@@ -1359,9 +1361,9 @@ int API dw_init(int newthread, int argc, char *argv[])
 #endif
 	DWMainMenu = _generate_main_menu();
 	[DWApp setMainMenu:DWMainMenu];
-	DWObject *test = [[DWObject alloc] init];
+	/*DWObject *test = [[DWObject alloc] init];
 	NSThread *thread = [[ NSThread alloc] initWithTarget:test selector:@selector(uselessThread:) object:nil];
-	[thread start];
+	[thread start];*/
 	return 0;
 }
 
@@ -2721,6 +2723,7 @@ void API dw_draw_point(HWND handle, HPIXMAP pixmap, int x, int y)
 	else
 	{
 		[image lockFocusIfCanDraw];
+		_DWLastDrawable = handle;
 	}
 	NSRect rect = NSMakeRect(x, y, x, y);
 	[[NSColor colorWithDeviceRed: DW_RED_VALUE(_foreground)/255.0 green: DW_GREEN_VALUE(_foreground)/255.0 blue: DW_BLUE_VALUE(_foreground)/255.0 alpha: 1] set];
@@ -2748,9 +2751,10 @@ void API dw_draw_line(HWND handle, HPIXMAP pixmap, int x1, int y1, int x2, int y
 	else
 	{
 		[image lockFocusIfCanDraw];
+		_DWLastDrawable = handle;
 	}
 	NSBezierPath* aPath = [NSBezierPath bezierPath];
-	[aPath setLineWidth: 1.0];
+	[aPath setLineWidth: 0.5];
 	
 	[aPath moveToPoint:NSMakePoint(x1, y1)];	
 	[aPath lineToPoint:NSMakePoint(x2, y2)];
@@ -2780,6 +2784,7 @@ void API dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
 			[nstr drawAtPoint:NSMakePoint(x, y) withAttributes:dict];
 			[image unlockFocus];
 		}
+		_DWLastDrawable = handle;
 	}
 	if(pixmap)
 	{
@@ -2802,11 +2807,27 @@ void API dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
 void API dw_font_text_extents_get(HWND handle, HPIXMAP pixmap, char *text, int *width, int *height)
 {
 	id image = handle;
+	NSString *nstr = [ NSString stringWithUTF8String:text ];
 	if(pixmap)
 	{
 		image = (id)pixmap->handle;
+		[image lockFocus];
 	}
-	NSLog(@"dw_font_text_extents_get() unimplemented\n");
+	else
+	{
+		[image lockFocusIfCanDraw];
+	}
+	NSDictionary *dict = [[NSDictionary alloc] init];
+	NSSize size = [nstr sizeWithAttributes:dict];
+	if(width)
+	{
+		*width = size.width;
+	}
+	if(height)
+	{
+		*height = size.height;
+	}
+	[image unlockFocus];
 }
 
 /* Draw a polygon on a window (preferably a render window).
@@ -2831,9 +2852,10 @@ void API dw_draw_polygon( HWND handle, HPIXMAP pixmap, int fill, int npoints, in
 	else
 	{
 		[image lockFocusIfCanDraw];
+		_DWLastDrawable = handle;
 	}
 	NSBezierPath* aPath = [NSBezierPath bezierPath];
-	[aPath setLineWidth: 1.0];
+	[aPath setLineWidth: 0.5];
 	
 	[aPath moveToPoint:NSMakePoint(*x, *y)];
 	for(z=1;z<npoints;z++)
@@ -2870,6 +2892,7 @@ void API dw_draw_rect(HWND handle, HPIXMAP pixmap, int fill, int x, int y, int w
 	else
 	{
 		[image lockFocusIfCanDraw];
+		_DWLastDrawable = handle;
 	}
 	NSRect rect = NSMakeRect(x, y, x + width, y + height);
 	[[NSColor colorWithDeviceRed: DW_RED_VALUE(_foreground)/255.0 green: DW_GREEN_VALUE(_foreground)/255.0 blue: DW_BLUE_VALUE(_foreground)/255.0 alpha: 1] set];
@@ -3688,6 +3711,7 @@ void API dw_pixmap_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest, int wi
 	else
 	{
 		[bltdest lockFocusIfCanDraw];
+		_DWLastDrawable = dest;
 	}
 	if(srcp)
 	{
@@ -4222,6 +4246,7 @@ HWND API dw_window_new(HWND hwndOwner, char *title, ULONG flStyle)
     [window setContentView:view];
     [window setDelegate:view];
     [window makeKeyAndOrderFront:nil];
+	[window setAllowsConcurrentViewDrawing:NO];
 	
 	return (HWND)window;
 }
@@ -4587,7 +4612,7 @@ void API dw_window_set_bitmap(HWND handle, unsigned long id, char *filename)
  */
 void API dw_window_set_icon(HWND handle, ULONG id)
 {
-	NSLog(@"dw_window_set_icon() unimplemented\n");
+	/* This isn't needed, it is loaded from the bundle */
 }
 
 /*
@@ -4831,6 +4856,12 @@ void API dw_beep(int freq, int dur)
  */
 void API dw_flush(void)
 {
+	if(_DWLastDrawable)
+	{
+		id object = _DWLastDrawable;
+		NSWindow *window = [object window];
+		[window flushWindow];
+	}
 }
 
 /* Functions for managing the user data lists that are associated with
@@ -5941,6 +5972,86 @@ void dw_thread_end(void)
 DWTID dw_thread_id(void)
 {
    return (DWTID)pthread_self();
+}
+
+/*
+ * Execute and external program in a seperate session.
+ * Parameters:
+ *       program: Program name with optional path.
+ *       type: Either DW_EXEC_CON or DW_EXEC_GUI.
+ *       params: An array of pointers to string arguements.
+ * Returns:
+ *       -1 on error.
+ */
+int dw_exec(char *program, int type, char **params)
+{
+	int ret = -1;
+	
+	if((ret = fork()) == 0)
+	{
+		int i;
+		
+		for (i = 3; i < 256; i++)
+			close(i);
+		setsid();
+		if(type == DW_EXEC_GUI)
+		{
+			execvp(program, params);
+		}
+		else if(type == DW_EXEC_CON)
+		{
+			char **tmpargs;
+			
+			if(!params)
+			{
+				tmpargs = malloc(sizeof(char *));
+				tmpargs[0] = NULL;
+			}
+			else
+			{
+				int z = 0;
+				
+				while(params[z])
+				{
+					z++;
+				}
+				tmpargs = malloc(sizeof(char *)*(z+3));
+				z=0;
+				tmpargs[0] = "xterm";
+				tmpargs[1] = "-e";
+				while(params[z])
+				{
+					tmpargs[z+2] = params[z];
+					z++;
+				}
+				tmpargs[z+2] = NULL;
+			}
+			execvp("xterm", tmpargs);
+			free(tmpargs);
+		}
+		/* If we got here exec failed */
+		_exit(-1);
+	}
+	return ret;
+}
+
+/*
+ * Loads a web browser pointed at the given URL.
+ * Parameters:
+ *       url: Uniform resource locator.
+ */
+int dw_browse(char *url)
+{
+	/* Is there a way to find the webbrowser in Unix? */
+	char *execargs[3], *browser = "netscape", *tmp;
+	
+	tmp = getenv( "DW_BROWSER" );
+	if(tmp) browser = tmp;
+	execargs[0] = browser;
+	execargs[1] = url;
+	execargs[2] = NULL;
+	
+	return dw_exec(browser, DW_EXEC_GUI, execargs);
 }
 
 #ifdef DWTEST
