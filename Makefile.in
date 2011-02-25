@@ -6,9 +6,10 @@ CCFLAGS	=	@CFLAGS@ -g -O2 @ARCH@ -fPIC -Wall -D@DW_DEFINE@ -DBUILD_DLL -DDW_RESO
 LFLAGS	=	@LIBS@ @ARCH@
 INSTALL =	@INSTALL@
 DW_SRC  =	@DW_SRC@
+DW_DIR  =	@DW_DIR@
 INCPATH	=	-I.. -I. -I$(srcdir)
 TARGET	=	@TARGET@
-SRCS	=	$(srcdir)/$(DW_SRC)/dw.c $(DW_SRC)rel2abs.c
+SRCS	=	$(srcdir)/$(DW_DIR)/$(DW_SRC) $(DW_DIR)rel2abs.c
 BROWSER_OBJECT=@BROWSER_OBJECT@
 COMPAT_OBJECT=@COMPAT_OBJECT@
 INSTALL_COMPAT=@INSTALL_COMPAT@
@@ -114,7 +115,7 @@ clean:
 	rm -f *.o
 	rm -f *~
 	rm -f *.a
-	rm -f $(DW_SRC)/*.o
+	rm -f $(DW_DIR)/*.o
 	rm -f dwtest
 
 $(SYSCONF_LINK_TARGET2): $(OBJECTS2)
@@ -123,11 +124,11 @@ $(SYSCONF_LINK_TARGET2): $(OBJECTS2)
 $(SYSCONF_LINK_TARGET): $(OBJECTS)
 	$(SYSCONF_LINK_LIB)
 
-dw.o: $(srcdir)/$(DW_SRC)/dw.c
-	$(CC) -c $(INCPATH) $(CCFLAGS) -o $@ $(srcdir)/$(DW_SRC)/dw.c
+dw.o: $(srcdir)/$(DW_DIR)/$(DW_SRC)
+	$(CC) -c $(INCPATH) $(CCFLAGS) -o $@ $(srcdir)/$(DW_DIR)/$(DW_SRC)
 
-browser.o: $(srcdir)/$(DW_SRC)/browser.cpp
-	$(CXX) -c $(INCPATH) $(CCFLAGS) -o $@ $(srcdir)/$(DW_SRC)/browser.cpp
+browser.o: $(srcdir)/$(DW_DIR)/browser.cpp
+	$(CXX) -c $(INCPATH) $(CCFLAGS) -o $@ $(srcdir)/$(DW_DIR)/browser.cpp
 
 compat.o: $(srcdir)/compat.c
 	$(CC) -c $(INCPATH) $(CCFLAGS) -o $@ $(srcdir)/compat.c
