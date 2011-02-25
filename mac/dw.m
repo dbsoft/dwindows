@@ -516,6 +516,7 @@ HWND _DWLastDrawable;
 -(void)drawRect:(NSRect)rect;
 -(void)mouseDown:(NSEvent *)theEvent;
 -(void)mouseUp:(NSEvent *)theEvent;
+-(BOOL)isFlipped;
 @end
 
 @implementation DWRender
@@ -524,6 +525,7 @@ HWND _DWLastDrawable;
 -(void)drawRect:(NSRect)rect { _event_handler(self, nil, 7); }
 -(void)mouseDown:(NSEvent *)theEvent { _event_handler(self, theEvent, 3); }
 -(void)mouseUp:(NSEvent *)theEvent { _event_handler(self, theEvent, 4); }
+-(BOOL)isFlipped { return NO; }
 @end
 
 /* Subclass for a MLE type */
@@ -2747,9 +2749,12 @@ void API dw_draw_point(HWND handle, HPIXMAP pixmap, int x, int y)
 		[image lockFocusIfCanDraw];
 		_DWLastDrawable = handle;
 	}
-	NSRect rect = NSMakeRect(x, y, x, y);
+	NSBezierPath* aPath = [NSBezierPath bezierPath];
+	[aPath setLineWidth: 0.5];
 	[[NSColor colorWithDeviceRed: DW_RED_VALUE(_foreground)/255.0 green: DW_GREEN_VALUE(_foreground)/255.0 blue: DW_BLUE_VALUE(_foreground)/255.0 alpha: 1] set];
-	NSRectFill(rect);
+	
+	[aPath moveToPoint:NSMakePoint(x, y)];	
+	[aPath stroke];
 	[image unlockFocus];
 }
 
@@ -2814,8 +2819,10 @@ void API dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
 	{
 		image = (id)pixmap->handle;
 		[image lockFocus];
-		[[NSColor colorWithDeviceRed: DW_RED_VALUE(_foreground)/255.0 green: DW_GREEN_VALUE(_foreground)/255.0 blue: DW_BLUE_VALUE(_foreground)/255.0 alpha: 1] set];
-		NSDictionary *dict = [[NSDictionary alloc] init];
+		NSColor *color = [NSColor colorWithDeviceRed: DW_RED_VALUE(_foreground)/255.0 green: DW_GREEN_VALUE(_foreground)/255.0 blue: DW_BLUE_VALUE(_foreground)/255.0 alpha: 1];
+        NSDictionary *dict = [[NSDictionary alloc] initWithObjectsAndKeys:
+                                    /*[NSFont fontWithName:@"Helvetica" size:26], NSFontAttributeName,*/
+                                    color, NSForegroundColorAttributeName, nil];
 		[nstr drawAtPoint:NSMakePoint(x, y) withAttributes:dict];
 		[image unlockFocus];
 	}
@@ -2920,9 +2927,17 @@ void API dw_draw_rect(HWND handle, HPIXMAP pixmap, int fill, int x, int y, int w
 		[image lockFocusIfCanDraw];
 		_DWLastDrawable = handle;
 	}
-	NSRect rect = NSMakeRect(x, y, x + width, y + height);
+	NSBezierPath* aPath = [NSBezierPath bezierPath];
+	[aPath setLineWidth: 0.5];
 	[[NSColor colorWithDeviceRed: DW_RED_VALUE(_foreground)/255.0 green: DW_GREEN_VALUE(_foreground)/255.0 blue: DW_BLUE_VALUE(_foreground)/255.0 alpha: 1] set];
-	NSRectFill(rect);
+	
+	[aPath moveToPoint:NSMakePoint(x, y)];	
+	[aPath lineToPoint:NSMakePoint(x, y + height)];
+	[aPath lineToPoint:NSMakePoint(x + width, y + height)];
+	[aPath lineToPoint:NSMakePoint(x + width, y)];
+    [aPath closePath];
+    [aPath fill];
+	[aPath stroke];
 	[image unlockFocus];
 }
 
@@ -3623,7 +3638,8 @@ HPIXMAP API dw_pixmap_new(HWND handle, unsigned long width, unsigned long height
 		return NULL;
 	pixmap->width = width;
 	pixmap->height = height;
-	pixmap->handle = [[NSImage alloc] initWithSize:size];
+	NSImage *image = pixmap->handle = [[NSImage alloc] initWithSize:size];
+    [image setFlipped:YES];
 	return pixmap;
 }
 
