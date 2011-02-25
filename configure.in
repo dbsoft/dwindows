@@ -10,7 +10,8 @@ TARGET2="dwcompat"
 AC_SUBST(TARGET)
 AC_SUBST(TARGET2)
 
-DW_SRC=gtk
+DW_DIR=gtk
+DW_SRC=dw.c
 DW_DEFINE=__UNIX__
 SHAREDFLAG=-shared
 SOSUFFIX=so
@@ -138,13 +139,15 @@ if test $OPSYSTEM = "Darwin"; then
    SHAREDFLAG="-dynamiclib -flat_namespace -undefined suppress"
    SOSUFFIX=dylib
    if test $with_gtk = yes; then
-      DW_SRC=gtk
+      DW_DIR=gtk
+      DW_SRC=dw.c
       LIBS="$LIBS -framework Gtk -framework Glib -framework Cairo"
       GTK_CFLAGS="-I/Library/Frameworks/Gtk.framework/Headers -I/Library/Frameworks/Glib.framework/Headers -I/Library/Frameworks/Cairo.framework/Headers"
    else
-      DW_SRC=mac
+      DW_DIR=mac
+      DW_SRC=dw.m
       DW_DEFINE=__MAC__
-      LIBS="$LIBS -framework Carbon"
+      LIBS="$LIBS -framework Cocoa -framework WebKit"
    fi
 else
    AC_CHECK_PROG(PKG_CFG, pkg-config, pkg-config)
@@ -253,6 +256,7 @@ AC_SUBST(SOSUFFIX)
 AC_SUBST(SONAME)
 
 AC_SUBST(DW_SRC)
+AC_SUBST(DW_DIR)
 AC_SUBST(DW_DEFINE)
 AC_SUBST(BROWSER_OBJECT)
 AC_SUBST(COMPAT_OBJECT)

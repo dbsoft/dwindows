@@ -559,9 +559,10 @@ HWND _DWLastDrawable;
 -(int)addRow:(NSArray *)input;
 -(int)addRows:(int)number;
 -(void)editCell:(id)input at:(int)row and:(int)col;
--(int)cellType:(int)col;
+-(void)removeRow:(int)row;
 -(void)setRow:(int)row title:(void *)input;
 -(void *)getRowTitle:(int)row;
+-(int)cellType:(int)col;
 -(int)lastAddPoint;
 -(void)clear;
 -(void)setup;
@@ -661,9 +662,30 @@ HWND _DWLastDrawable;
 		[data replaceObjectAtIndex:index withObject:input];
 	}
 }
--(int)cellType:(int)col { return [[types objectAtIndex:col] intValue]; }
+-(void)removeRow:(int)row
+{
+	if(tvcols)
+	{
+		int z, start, end;
+		int count = [tvcols count];
+		
+		start = count * row;
+		end = start + count;
+		
+		for(z=start;z<end;z++)
+		{
+			[data removeObjectAtIndex:z];
+		}
+		[titles removePointerAtIndex:row];
+		if(lastAddPoint > 0 && lastAddPoint < row)
+		{
+			lastAddPoint--;
+		}
+	}
+}
 -(void)setRow:(int)row title:(void *)input { if(titles && input) { [titles replacePointerAtIndex:row withPointer:input]; } }
 -(void *)getRowTitle:(int)row { if(titles) { return [titles pointerAtIndex:row]; } return NULL; }
+-(int)cellType:(int)col { return [[types objectAtIndex:col] intValue]; }
 -(int)lastAddPoint { return lastAddPoint; }
 -(void)clear { if(data) { [data removeAllObjects]; while([titles count]) { [titles removePointerAtIndex:0]; } } lastAddPoint = 0; }
 -(void)setup 
@@ -2755,6 +2777,7 @@ void API dw_draw_line(HWND handle, HPIXMAP pixmap, int x1, int y1, int x2, int y
 	}
 	NSBezierPath* aPath = [NSBezierPath bezierPath];
 	[aPath setLineWidth: 0.5];
+	[[NSColor colorWithDeviceRed: DW_RED_VALUE(_foreground)/255.0 green: DW_GREEN_VALUE(_foreground)/255.0 blue: DW_BLUE_VALUE(_foreground)/255.0 alpha: 1] set];
 	
 	[aPath moveToPoint:NSMakePoint(x1, y1)];	
 	[aPath lineToPoint:NSMakePoint(x2, y2)];
@@ -2780,6 +2803,7 @@ void API dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
 		if([image isMemberOfClass:[NSView class]])
 		{
 			[image lockFocusIfCanDraw];
+			[[NSColor colorWithDeviceRed: DW_RED_VALUE(_foreground)/255.0 green: DW_GREEN_VALUE(_foreground)/255.0 blue: DW_BLUE_VALUE(_foreground)/255.0 alpha: 1] set];
 			NSDictionary *dict = [[NSDictionary alloc] init];
 			[nstr drawAtPoint:NSMakePoint(x, y) withAttributes:dict];
 			[image unlockFocus];
@@ -2790,6 +2814,7 @@ void API dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
 	{
 		image = (id)pixmap->handle;
 		[image lockFocus];
+		[[NSColor colorWithDeviceRed: DW_RED_VALUE(_foreground)/255.0 green: DW_GREEN_VALUE(_foreground)/255.0 blue: DW_BLUE_VALUE(_foreground)/255.0 alpha: 1] set];
 		NSDictionary *dict = [[NSDictionary alloc] init];
 		[nstr drawAtPoint:NSMakePoint(x, y) withAttributes:dict];
 		[image unlockFocus];
@@ -2856,6 +2881,7 @@ void API dw_draw_polygon( HWND handle, HPIXMAP pixmap, int fill, int npoints, in
 	}
 	NSBezierPath* aPath = [NSBezierPath bezierPath];
 	[aPath setLineWidth: 0.5];
+	[[NSColor colorWithDeviceRed: DW_RED_VALUE(_foreground)/255.0 green: DW_GREEN_VALUE(_foreground)/255.0 blue: DW_BLUE_VALUE(_foreground)/255.0 alpha: 1] set];
 	
 	[aPath moveToPoint:NSMakePoint(*x, *y)];
 	for(z=1;z<npoints;z++)
