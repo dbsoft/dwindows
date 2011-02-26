@@ -1235,10 +1235,6 @@ static int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *
 			{
 				_event_handler(handle, nil, 1);
 			}
-			else if([handle isMemberOfClass:[WebView class]])
-			{
-				NSLog(@"x: %d y: %d width: %d height: %d", (int)point.x, (int)point.y, (int)size.width, (int)size.height);
-			}
 			 
 			if(thisbox->type == DW_HORZ)
                currentx += width + vectorx + (pad * 2);
@@ -4278,10 +4274,13 @@ void API dw_notebook_pack(HWND handle, ULONG pageid, HWND page)
 {
 	DWNotebook *notebook = handle;
 	DWNotebookPage *notepage = _notepage_from_id(notebook, pageid);
-	DWBox *box = page;
 	
 	if(notepage != nil)
 	{
+        HWND tmpbox = dw_box_new(DW_VERT, 0);
+        DWBox *box = tmpbox;
+        
+        dw_box_pack_start(tmpbox, page, 0, 0, TRUE, TRUE, 0);
 		[notepage setView:box];
 	}
 }
