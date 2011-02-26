@@ -180,7 +180,7 @@ int _event_handler(id object, NSEvent *event, int message)
 				
 				dw_pointer_query_pos(&x, &y);
 				
-				return containercontextfunc(handler->window, text, x, y, handler->data, user);
+				return containercontextfunc(handler->window, text, (int)x, (int)y, handler->data, user);
 			}
 			case 12:
 			{
@@ -577,7 +577,7 @@ HWND _DWLastDrawable;
 {
 	if(tvcols && data)
 	{
-		int cols = [tvcols count];
+		int cols = (int)[tvcols count];
 		if(cols)
 		{
 			return [data count] / cols;
@@ -590,7 +590,7 @@ HWND _DWLastDrawable;
 	if(tvcols)
 	{
 		int z, col = -1;
-		int count = [tvcols count];
+		int count = (int)[tvcols count];
 		
 		for(z=0;z<count;z++)
 		{
@@ -602,7 +602,7 @@ HWND _DWLastDrawable;
 		}
 		if(col != -1)
 		{
-			int index = (aRow * count) + col;
+			int index = (int)(aRow * count) + col;
 			id this = [data objectAtIndex:index];
 			return ([this isKindOfClass:[NSNull class]]) ? nil : this;
 		}
@@ -614,7 +614,7 @@ HWND _DWLastDrawable;
 	if(tvcols)
 	{
 		int z, col = -1;
-		int count = [tvcols count];
+		int count = (int)[tvcols count];
 		
 		for(z=0;z<count;z++)
 		{
@@ -626,7 +626,7 @@ HWND _DWLastDrawable;
 		}
 		if(col != -1)
 		{
-			int index = (rowIndex * count) + col;
+			int index = (int)(rowIndex * count) + col;
 			[data replaceObjectAtIndex:index withObject:anObject];
 		}
 	}
@@ -634,15 +634,15 @@ HWND _DWLastDrawable;
 -(void *)userdata { return userdata; }
 -(void)setUserdata:(void *)input { userdata = input; }
 -(void)addColumn:(NSTableColumn *)input andType:(int)type { if(tvcols) { [tvcols addObject:input]; [types addObject:[NSNumber numberWithInt:type]]; } }
--(int)addRow:(NSArray *)input { if(data) { [data addObjectsFromArray:input]; [titles addPointer:NULL]; return [titles count]; } return 0; }
+-(int)addRow:(NSArray *)input { if(data) { [data addObjectsFromArray:input]; [titles addPointer:NULL]; return (int)[titles count]; } return 0; }
 -(int)addRows:(int)number
 {
 	if(tvcols)
 	{
-		int count = number * [tvcols count];
+		int count = (int)number * [tvcols count];
 		int z;
 		
-		lastAddPoint = [titles count];
+		lastAddPoint = (int)[titles count];
 		
 		for(z=0;z<count;z++)
 		{
@@ -652,7 +652,7 @@ HWND _DWLastDrawable;
 		{
 			[titles addPointer:NULL];
 		}
-		return [titles count];
+		return (int)[titles count];
 	}
 	return 0;
 }		
@@ -660,7 +660,7 @@ HWND _DWLastDrawable;
 {
 	if(tvcols && input)
 	{
-		int index = (row * [tvcols count]) + col;
+		int index = (int)(row * [tvcols count]) + col;
 		[data replaceObjectAtIndex:index withObject:input];
 	}
 }
@@ -669,7 +669,7 @@ HWND _DWLastDrawable;
 	if(tvcols)
 	{
 		int z, start, end;
-		int count = [tvcols count];
+		int count = (int)[tvcols count];
 		
 		start = count * row;
 		end = start + count;
@@ -700,13 +700,13 @@ HWND _DWLastDrawable;
 }
 -(void)selectionChanged:(id)sender
 {
-	_event_handler(self, (NSEvent *)[self getRowTitle:[self selectedRow]], 12);
+	_event_handler(self, (NSEvent *)[self getRowTitle:(int)[self selectedRow]], 12);
 }
 -(NSMenu *)menuForEvent:(NSEvent *)event 
 {
 	int row;
 	NSPoint where = [self convertPoint:[event locationInWindow] fromView:nil];
-	row = [self rowAtPoint:where];
+	row = (int)[self rowAtPoint:where];
 	_event_handler(self, (NSEvent *)[self getRowTitle:row], 10);
 	return nil;
 }
@@ -1500,13 +1500,13 @@ int API dw_messagebox(char *title, int flags, char *format, ...)
 	
 	if(flags & DW_MB_ERROR)
 	{
-		iResponse =
+		iResponse = (int)
 		NSRunCriticalAlertPanel([ NSString stringWithUTF8String:title ], 
 								[ NSString stringWithUTF8String:outbuf ],
 								button1, button2, button3);	}
 	else 
 	{
-		iResponse =
+		iResponse = (int)
 		NSRunAlertPanel([ NSString stringWithUTF8String:title ], 
 						[ NSString stringWithUTF8String:outbuf ],
 						button1, button2, button3);
@@ -2339,7 +2339,7 @@ int API dw_listbox_count(HWND handle)
 	{
 		DWComboBox *combo = handle;
 		
-		return [combo numberOfItems];
+		return (int)[combo numberOfItems];
 	}
 	return 0;
 }
@@ -2414,7 +2414,7 @@ unsigned int API dw_listbox_selected(HWND handle)
 	if([object isMemberOfClass:[DWComboBox class]])
 	{
 		DWComboBox *combo = handle;
-		return [combo indexOfSelectedItem];
+		return (int)[combo indexOfSelectedItem];
 	}
 	return -1;
 }
@@ -2504,7 +2504,7 @@ unsigned int API dw_mle_import(HWND handle, char *buffer, int startpoint)
 {
 	DWMLE *mle = handle;
 	[mle insertText:[ NSString stringWithUTF8String:buffer ]];
-	return strlen(buffer) + startpoint;
+	return (unsigned int)strlen(buffer) + startpoint;
 }
 
 /*
@@ -2717,7 +2717,7 @@ unsigned long API dw_color_choose(unsigned long value)
 {
 	/* Create the File Save Dialog class. */
 	DWColorChoose *colorDlg = (DWColorChoose *)[DWColorChoose sharedColorPanel];
-	NSColor *color = [[NSColor alloc] init]; 
+	NSColor *color = [[[NSColor alloc] init] autorelease]; 
 	DWDialog *dialog = dw_dialog_new(colorDlg);
 	
 	/* Set defaults for the dialog. */
@@ -2751,10 +2751,13 @@ void API dw_draw_point(HWND handle, HPIXMAP pixmap, int x, int y)
 	}
 	NSBezierPath* aPath = [NSBezierPath bezierPath];
 	[aPath setLineWidth: 0.5];
-	[[NSColor colorWithDeviceRed: DW_RED_VALUE(_foreground)/255.0 green: DW_GREEN_VALUE(_foreground)/255.0 blue: DW_BLUE_VALUE(_foreground)/255.0 alpha: 1] set];
+    NSColor *color = [NSColor colorWithDeviceRed: DW_RED_VALUE(_foreground)/255.0 green: DW_GREEN_VALUE(_foreground)/255.0 blue: DW_BLUE_VALUE(_foreground)/255.0 alpha: 1];
+    [color set];
+    [color release];
 	
 	[aPath moveToPoint:NSMakePoint(x, y)];	
 	[aPath stroke];
+    [aPath release];
 	[image unlockFocus];
 }
 
@@ -2782,11 +2785,14 @@ void API dw_draw_line(HWND handle, HPIXMAP pixmap, int x1, int y1, int x2, int y
 	}
 	NSBezierPath* aPath = [NSBezierPath bezierPath];
 	[aPath setLineWidth: 0.5];
-	[[NSColor colorWithDeviceRed: DW_RED_VALUE(_foreground)/255.0 green: DW_GREEN_VALUE(_foreground)/255.0 blue: DW_BLUE_VALUE(_foreground)/255.0 alpha: 1] set];
+    NSColor *color = [NSColor colorWithDeviceRed: DW_RED_VALUE(_foreground)/255.0 green: DW_GREEN_VALUE(_foreground)/255.0 blue: DW_BLUE_VALUE(_foreground)/255.0 alpha: 1];
+    [color set];
+    [color release];
 	
 	[aPath moveToPoint:NSMakePoint(x1, y1)];	
 	[aPath lineToPoint:NSMakePoint(x2, y2)];
 	[aPath stroke];
+    [aPath release];
 	
 	[image unlockFocus];
 }
@@ -2808,9 +2814,13 @@ void API dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
 		if([image isMemberOfClass:[NSView class]])
 		{
 			[image lockFocusIfCanDraw];
-			[[NSColor colorWithDeviceRed: DW_RED_VALUE(_foreground)/255.0 green: DW_GREEN_VALUE(_foreground)/255.0 blue: DW_BLUE_VALUE(_foreground)/255.0 alpha: 1] set];
-			NSDictionary *dict = [[NSDictionary alloc] init];
+            NSColor *color = [NSColor colorWithDeviceRed: DW_RED_VALUE(_foreground)/255.0 green: DW_GREEN_VALUE(_foreground)/255.0 blue: DW_BLUE_VALUE(_foreground)/255.0 alpha: 1];
+            NSDictionary *dict = [[NSDictionary alloc] initWithObjectsAndKeys:
+                                  /*[NSFont fontWithName:@"Helvetica" size:26], NSFontAttributeName,*/
+                                  color, NSForegroundColorAttributeName, nil];
 			[nstr drawAtPoint:NSMakePoint(x, y) withAttributes:dict];
+            [dict release];
+            [color release];
 			[image unlockFocus];
 		}
 		_DWLastDrawable = handle;
@@ -2824,8 +2834,11 @@ void API dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
                                     /*[NSFont fontWithName:@"Helvetica" size:26], NSFontAttributeName,*/
                                     color, NSForegroundColorAttributeName, nil];
 		[nstr drawAtPoint:NSMakePoint(x, y) withAttributes:dict];
+        [dict release];
+        [color release];
 		[image unlockFocus];
 	}
+    [nstr release];
 }
 
 /* Query the width and height of a text string.
@@ -2839,7 +2852,7 @@ void API dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
 void API dw_font_text_extents_get(HWND handle, HPIXMAP pixmap, char *text, int *width, int *height)
 {
 	id image = handle;
-	NSString *nstr = [ NSString stringWithUTF8String:text ];
+	NSString *nstr = [[ NSString stringWithUTF8String:text ] autorelease];
 	if(pixmap)
 	{
 		image = (id)pixmap->handle;
@@ -2851,6 +2864,7 @@ void API dw_font_text_extents_get(HWND handle, HPIXMAP pixmap, char *text, int *
 	}
 	NSDictionary *dict = [[NSDictionary alloc] init];
 	NSSize size = [nstr sizeWithAttributes:dict];
+    [dict release];
 	if(width)
 	{
 		*width = size.width;
@@ -2859,6 +2873,7 @@ void API dw_font_text_extents_get(HWND handle, HPIXMAP pixmap, char *text, int *
 	{
 		*height = size.height;
 	}
+    [nstr release];
 	[image unlockFocus];
 }
 
@@ -2888,7 +2903,9 @@ void API dw_draw_polygon( HWND handle, HPIXMAP pixmap, int fill, int npoints, in
 	}
 	NSBezierPath* aPath = [NSBezierPath bezierPath];
 	[aPath setLineWidth: 0.5];
-	[[NSColor colorWithDeviceRed: DW_RED_VALUE(_foreground)/255.0 green: DW_GREEN_VALUE(_foreground)/255.0 blue: DW_BLUE_VALUE(_foreground)/255.0 alpha: 1] set];
+    NSColor *color = [NSColor colorWithDeviceRed: DW_RED_VALUE(_foreground)/255.0 green: DW_GREEN_VALUE(_foreground)/255.0 blue: DW_BLUE_VALUE(_foreground)/255.0 alpha: 1];
+    [color set];
+    [color release];
 	
 	[aPath moveToPoint:NSMakePoint(*x, *y)];
 	for(z=1;z<npoints;z++)
@@ -2901,6 +2918,7 @@ void API dw_draw_polygon( HWND handle, HPIXMAP pixmap, int fill, int npoints, in
 		[aPath fill];
 	}
 	[aPath stroke];
+    [aPath release];
 	[image unlockFocus];
 }
 
@@ -2929,7 +2947,9 @@ void API dw_draw_rect(HWND handle, HPIXMAP pixmap, int fill, int x, int y, int w
 	}
 	NSBezierPath* aPath = [NSBezierPath bezierPath];
 	[aPath setLineWidth: 0.5];
-	[[NSColor colorWithDeviceRed: DW_RED_VALUE(_foreground)/255.0 green: DW_GREEN_VALUE(_foreground)/255.0 blue: DW_BLUE_VALUE(_foreground)/255.0 alpha: 1] set];
+    NSColor *color = [NSColor colorWithDeviceRed: DW_RED_VALUE(_foreground)/255.0 green: DW_GREEN_VALUE(_foreground)/255.0 blue: DW_BLUE_VALUE(_foreground)/255.0 alpha: 1];
+    [color set];
+    [color release];
 	
 	[aPath moveToPoint:NSMakePoint(x, y)];	
 	[aPath lineToPoint:NSMakePoint(x, y + height)];
@@ -2938,6 +2958,7 @@ void API dw_draw_rect(HWND handle, HPIXMAP pixmap, int fill, int x, int y, int w
     [aPath closePath];
     [aPath fill];
 	[aPath stroke];
+    [aPath release];
 	[image unlockFocus];
 }
 
@@ -3135,7 +3156,7 @@ int API dw_container_setup(HWND handle, unsigned long *flags, char **titles, int
 		NSTableColumn *column = [[NSTableColumn alloc] init];
 		[[column headerCell] setStringValue:[ NSString stringWithUTF8String:titles[z] ]];
 		[cont addTableColumn:column];
-		[cont addColumn:column andType:flags[z]];
+		[cont addColumn:column andType:(int)flags[z]];
 	}	
 
 	return TRUE;
@@ -3683,7 +3704,7 @@ HPIXMAP API dw_pixmap_new_from_data(HWND handle, char *data, int len)
 	
 	if (!(pixmap = calloc(1,sizeof(struct _hpixmap))))
 		return NULL;
-	NSData *thisdata = [[NSData alloc] dataWithBytes:data length:len];
+	NSData *thisdata = [[[NSData alloc] dataWithBytes:data length:len] autorelease];
 	NSImage *image = [[NSImage alloc] initWithData:thisdata];
 	NSSize size = [image size];
 	pixmap->width = size.width;
@@ -4154,9 +4175,9 @@ HWND API dw_notebook_new(ULONG id, int top)
 unsigned long API dw_notebook_page_new(HWND handle, ULONG flags, int front)
 {
 	DWNotebook *notebook = handle;
-	int page = [notebook pageid];
+	NSInteger page = [notebook pageid];
 	DWNotebookPage *notepage = [[DWNotebookPage alloc] initWithIdentifier:nil];
-	[notepage setPageid:(NSInteger)page];
+	[notepage setPageid:page];
 	if(front)
 	{
 		[notebook insertTabViewItem:notepage atIndex:(NSInteger)0];
@@ -4406,10 +4427,10 @@ void API dw_window_set_style(HWND handle, ULONG style, ULONG mask)
 	if([object isMemberOfClass:[NSWindow class]])
 	{
 		NSWindow *window = object;
-		int currentstyle = [window styleMask];
+		int currentstyle = (int)[window styleMask];
 		int tmp;
 		
-		tmp = currentstyle | mask;
+		tmp = currentstyle | (int)mask;
 		tmp ^= mask;
 		tmp |= style;
 		
@@ -4849,7 +4870,7 @@ void dw_environment_query(DWEnv *env)
 	
 	env->MajorBuild = env->MinorBuild = 0;
 	
-	len = strlen(tempbuf);
+	len = (int)strlen(tempbuf);
 	
 	strcpy(env->buildDate, __DATE__);
 	strcpy(env->buildTime, __TIME__);
@@ -5147,7 +5168,7 @@ void API dw_signal_connect(HWND window, char *signame, void *sigfunc, void *data
 	{
 		if((message = _findsigmessage(signame)) != 0)
 		{
-			_new_signal(message, window, msgid, sigfunc, data);
+			_new_signal(message, window, (int)msgid, sigfunc, data);
 		}
 	}
 }
