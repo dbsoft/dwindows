@@ -120,7 +120,7 @@ int _event_handler(id object, NSEvent *event, int message)
 			case 4:
 			{
 				int (* API buttonfunc)(HWND, int, int, int, void *) = (int (* API)(HWND, int, int, int, void *))handler->signalfunction;
-				int flags = [object pressedMouseButtons];
+				int flags = (int)[object pressedMouseButtons];
 				NSPoint point = [object mouseLocation];
 				int button = 0;
 				char *which = "pressed";
@@ -224,13 +224,14 @@ HWND _DWLastDrawable;
 /* Subclass for a box type */
 @interface DWBox : NSView <NSWindowDelegate>
 {
-	Box box;
+	Box *box;
 	void *userdata;
 	NSColor *bgcolor;
 }
--(Box)box;
+- (id)init;
+-(void) dealloc; 
+-(Box *)box;
 -(void *)userdata;
--(void)setBox:(Box)input;
 -(void)setUserdata:(void *)input;
 -(void)drawRect:(NSRect)rect;
 -(BOOL)isFlipped;
@@ -240,9 +241,23 @@ HWND _DWLastDrawable;
 @end
 
 @implementation DWBox
--(Box)box { return box; }
+- (id)init 
+{
+    self = [super init];
+    
+    if (self) 
+    {
+        box = calloc(1, sizeof(Box));
+    }
+    return self;
+}
+-(void) dealloc 
+{
+    free(box);
+    [super dealloc];
+}
+-(Box *)box { return box; }
 -(void *)userdata { return userdata; }
--(void)setBox:(Box)input { box = input; }
 -(void)setUserdata:(void *)input { userdata = input; }
 -(void)drawRect:(NSRect)rect 
 {
@@ -299,7 +314,7 @@ HWND _DWLastDrawable;
 - (void)windowResized:(NSNotification *)notification;
 {
 	NSSize size = [self frame].size;
-	_do_resize(&box, size.width, size.height);
+	_do_resize(box, size.width, size.height);
 	_event_handler([self window], nil, 1);
 }
 -(void)windowDidBecomeMain:(id)sender
@@ -401,9 +416,9 @@ HWND _DWLastDrawable;
 	if([object isMemberOfClass:[DWBox class]])
 	{
 		DWBox *view = object;
-		Box box = [view box];
+		Box *box = [view box];
 		NSSize size = [view frame].size;
-		_do_resize(&box, size.width, size.height);
+		_do_resize(box, size.width, size.height);
 	}
 }	
 @end
@@ -460,9 +475,9 @@ HWND _DWLastDrawable;
 		if([object isMemberOfClass:[DWBox class]])
 		{
 			DWBox *view = object;
-			Box box = [view box];
+			Box *box = [view box];
 			NSSize size = [view frame].size;
-			_do_resize(&box, size.width, size.height);
+			_do_resize(box, size.width, size.height);
 		}
 	}		
 }
@@ -837,8 +852,7 @@ static void _count_size(HWND thisbox, int type, int *xsize, int *xorigsize)
 {
    int size = 0, origsize = 0, z;
    DWBox *box = thisbox;
-   Box _tmp = [box box];
-   Box *tmp = &_tmp;
+   Box *tmp = [box box];
 
    if(!tmp)
    {
@@ -916,8 +930,7 @@ static int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *
       {
 		int initialx, initialy;
 		DWBox *box = thisbox->items[z].hwnd;
-		Box _tmp = [box box];
-		Box *tmp = &_tmp;
+		Box *tmp = [box box];
 
          initialx = x - (*usedx);
          initialy = y - (*usedy);
@@ -979,7 +992,6 @@ static int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *
                nux = *usedx; nuy = *usedy;
                upx = *usedpadx + (tmp->pad*2); upy = *usedpady + (tmp->pad*2);
             }
-			[box setBox:_tmp];
 
             (*depth)++;
 
@@ -992,7 +1004,6 @@ static int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *
 
             tmp->minwidth = thisbox->items[z].width = initialx - newx;
             tmp->minheight = thisbox->items[z].height = initialy - newy;
-			[box setBox:_tmp];
          }
       }
 
@@ -1031,15 +1042,13 @@ static int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *
          if(thisbox->items[z].type == TYPEBOX)
          {
 			DWBox *box = thisbox->items[z].hwnd;
-			Box _tmp = [box box];
-			Box *tmp = &_tmp;
+			Box *tmp = [box box];
 
             if(tmp)
             {
                tmp->parentxratio = thisbox->items[z].xratio;
                tmp->parentyratio = thisbox->items[z].yratio;
             }
-			[box setBox:_tmp];
          }
       }
       else
@@ -1134,8 +1143,7 @@ static int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *
          if(thisbox->items[z].type == TYPEBOX)
          {
 			DWBox *box = thisbox->items[z].hwnd;
-			Box _tmp = [box box];
-			Box *tmp = &_tmp;
+			Box *tmp = [box box];
 
             if(tmp)
             {
@@ -1162,14 +1170,12 @@ static int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *
                      tmp->height = thisbox->items[z].height;
                   }
                }
-			   [box setBox:_tmp];
 
                (*depth)++;
 
                _resize_box(tmp, depth, x, y, &nux, &nuy, 3, &nupx, &nupy);
 
                (*depth)--;
-				[box setBox:_tmp];
 
             }
          }
@@ -1220,10 +1226,9 @@ static int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *
 					 
 				if(view != nil)
 				{
-					Box box = [view box];
+					Box *box = [view box];
 					NSSize size = [view frame].size;
-					_do_resize(&box, size.width, size.height);
-					[view setBox:box];
+					_do_resize(box, size.width, size.height);
 				}
 			}
 			else if([handle isMemberOfClass:[DWRender class]])
@@ -1277,10 +1282,8 @@ static void _changebox(Box *thisbox, int percent, int type)
       if(thisbox->items[z].type == TYPEBOX)
       {
 		 DWBox *box = thisbox->items[z].hwnd;
-		 Box _tmp = [box box];
-		 Box *tmp = &_tmp;
+		 Box *tmp = [box box];
          _changebox(tmp, percent, type);
-		 [box setBox:_tmp];
       }
       else
       {
@@ -1695,11 +1698,10 @@ void * API dw_dialog_wait(DWDialog *dialog)
 HWND API dw_box_new(int type, int pad)
 {
     DWBox *view = [[DWBox alloc] init];  
-	Box newbox;
-	memset(&newbox, 0, sizeof(Box));
-   	newbox.pad = pad;
-   	newbox.type = type;
-	[view setBox:newbox];
+	Box *newbox = [view box];
+	memset(newbox, 0, sizeof(Box));
+   	newbox->pad = pad;
+   	newbox->type = type;
 	return view;
 }
 
@@ -1733,7 +1735,7 @@ void API dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, 
 	NSObject *object = box;
 	DWBox *view = box;
 	DWBox *this = item;
-	Box thisbox;
+	Box *thisbox;
     int z;
     Item *tmpitem, *thisitem;
 
@@ -1745,13 +1747,13 @@ void API dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, 
 	}
 	
 	thisbox = [view box];
-	thisitem = thisbox.items;
+	thisitem = thisbox->items;
 	object = item;
 
 	/* Duplicate the existing data */
-    tmpitem = malloc(sizeof(Item)*(thisbox.count+1));
+    tmpitem = malloc(sizeof(Item)*(thisbox->count+1));
 
-    for(z=0;z<thisbox.count;z++)
+    for(z=0;z<thisbox->count;z++)
     {
        tmpitem[z+1] = thisitem[z];
     }
@@ -1782,17 +1784,16 @@ void API dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, 
     else
        tmpitem[0].vsize = SIZESTATIC;
 
-    thisbox.items = tmpitem;
+    thisbox->items = tmpitem;
 
 	/* Update the item count */
-    thisbox.count++;
+    thisbox->count++;
 
 	/* Add the item to the box */
-	[view setBox:thisbox];
 	[view addSubview:this];
 	
 	/* Free the old data */
-    if(thisbox.count)
+    if(thisbox->count)
        free(thisitem);
 }
 
@@ -1812,7 +1813,7 @@ void API dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize
 	NSObject *object = box;
 	DWBox *view = box;
 	DWBox *this = item;
-	Box thisbox;
+	Box *thisbox;
     int z;
     Item *tmpitem, *thisitem;
 
@@ -1824,13 +1825,13 @@ void API dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize
 	}
 	
 	thisbox = [view box];
-	thisitem = thisbox.items;
+	thisitem = thisbox->items;
 	object = item;
 
 	/* Duplicate the existing data */
-    tmpitem = malloc(sizeof(Item)*(thisbox.count+1));
+    tmpitem = malloc(sizeof(Item)*(thisbox->count+1));
 
-    for(z=0;z<thisbox.count;z++)
+    for(z=0;z<thisbox->count;z++)
     {
        tmpitem[z] = thisitem[z];
     }
@@ -1843,35 +1844,34 @@ void API dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize
 
 	/* Fill in the item data appropriately */
 	if([ object isKindOfClass:[ DWBox class ] ])
-       tmpitem[thisbox.count].type = TYPEBOX;
+       tmpitem[thisbox->count].type = TYPEBOX;
     else
-       tmpitem[thisbox.count].type = TYPEITEM;
+       tmpitem[thisbox->count].type = TYPEITEM;
 
-    tmpitem[thisbox.count].hwnd = item;
-    tmpitem[thisbox.count].origwidth = tmpitem[thisbox.count].width = width;
-    tmpitem[thisbox.count].origheight = tmpitem[thisbox.count].height = height;
-    tmpitem[thisbox.count].pad = pad;
+    tmpitem[thisbox->count].hwnd = item;
+    tmpitem[thisbox->count].origwidth = tmpitem[thisbox->count].width = width;
+    tmpitem[thisbox->count].origheight = tmpitem[thisbox->count].height = height;
+    tmpitem[thisbox->count].pad = pad;
     if(hsize)
-       tmpitem[thisbox.count].hsize = SIZEEXPAND;
+       tmpitem[thisbox->count].hsize = SIZEEXPAND;
     else
-       tmpitem[thisbox.count].hsize = SIZESTATIC;
+       tmpitem[thisbox->count].hsize = SIZESTATIC;
 
     if(vsize)
-       tmpitem[thisbox.count].vsize = SIZEEXPAND;
+       tmpitem[thisbox->count].vsize = SIZEEXPAND;
     else
-       tmpitem[thisbox.count].vsize = SIZESTATIC;
+       tmpitem[thisbox->count].vsize = SIZESTATIC;
 
-	thisbox.items = tmpitem;
+	thisbox->items = tmpitem;
 
 	/* Update the item count */
-    thisbox.count++;
+    thisbox->count++;
 
 	/* Add the item to the box */
-	[view setBox:thisbox];
 	[view addSubview:this];
 	
 	/* Free the old data */
-    if(thisbox.count)
+    if(thisbox->count)
        free(thisitem);
 }
 
@@ -4177,7 +4177,7 @@ unsigned long API dw_notebook_page_new(HWND handle, ULONG flags, int front)
 	DWNotebook *notebook = handle;
 	NSInteger page = [notebook pageid];
 	DWNotebookPage *notepage = [[DWNotebookPage alloc] initWithIdentifier:nil];
-	[notepage setPageid:page];
+	[notepage setPageid:(NSInteger)page];
 	if(front)
 	{
 		[notebook insertTabViewItem:notepage atIndex:(NSInteger)0];
@@ -5892,6 +5892,9 @@ void _dwthreadstart(void *data)
    threadfunc = (void (*)(void *))tmp[0];
 
    threadfunc(tmp[1]);
+#if !defined(GARBAGE_COLLECT)
+	[pool release];
+#endif
    free(tmp);
 }
 
