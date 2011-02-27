@@ -171,6 +171,12 @@ int _event_handler(id object, NSEvent *event, int message)
 
 				return clickfunc(object, handler->data);
 			}
+            case 9:
+            {
+                int (*containerselectfunc)(HWND, char *, void *) = handler->signalfunction;
+                
+                return containerselectfunc(handler->window, (char *)event, handler->data);
+            }
 			case 10:
 			{
 				int (* API containercontextfunc)(HWND, char *, int, int, void *, void *) = (int (* API)(HWND, char *, int, int, void *, void *))handler->signalfunction;
@@ -570,7 +576,7 @@ HWND _DWLastDrawable;
 }
 -(NSInteger)numberOfRowsInTableView:(NSTableView *)aTable;
 -(id)tableView:(NSTableView *)aTable objectValueForTableColumn:(NSTableColumn *)aCol row:(NSInteger)aRow;
--(void)tableView:(NSTableView *)aTableView setObjectValue:(id)anObject forTableColumn:(NSTableColumn *)aTableColumn row:(NSInteger)rowIndex;
+/*-(void)tableView:(NSTableView *)aTableView setObjectValue:(id)anObject forTableColumn:(NSTableColumn *)aTableColumn row:(NSInteger)rowIndex;*/
 -(void *)userdata;
 -(void)setUserdata:(void *)input;
 -(id)scrollview;
@@ -582,6 +588,7 @@ HWND _DWLastDrawable;
 -(void)removeRow:(int)row;
 -(void)setRow:(int)row title:(void *)input;
 -(void *)getRowTitle:(int)row;
+-(id)getRow:(int)row and:(int)col;
 -(int)cellType:(int)col;
 -(int)lastAddPoint;
 -(void)clear;
@@ -627,7 +634,7 @@ HWND _DWLastDrawable;
 	}
 	return nil;
 }
--(void)tableView:(NSTableView *)aTableView setObjectValue:(id)anObject forTableColumn:(NSTableColumn *)aTableColumn row:(NSInteger)rowIndex
+/*-(void)tableView:(NSTableView *)aTableView setObjectValue:(id)anObject forTableColumn:(NSTableColumn *)aTableColumn row:(NSInteger)rowIndex
 {
 	if(tvcols)
 	{
@@ -648,13 +655,13 @@ HWND _DWLastDrawable;
 			[data replaceObjectAtIndex:index withObject:anObject];
 		}
 	}
-}
+}*/
 -(void *)userdata { return userdata; }
 -(void)setUserdata:(void *)input { userdata = input; }
 -(NSScrollView *)scrollview { return scrollview; }
 -(void)setScrollview:(NSScrollView *)input { scrollview = input; }
 -(void)addColumn:(NSTableColumn *)input andType:(int)type { if(tvcols) { [tvcols addObject:input]; [types addObject:[NSNumber numberWithInt:type]]; } }
--(int)addRow:(NSArray *)input { if(data) { [data addObjectsFromArray:input]; [titles addPointer:NULL]; return (int)[titles count]; } return 0; }
+-(int)addRow:(NSArray *)input { if(data) { lastAddPoint = (int)[titles count]; [data addObjectsFromArray:input]; [titles addPointer:NULL]; return (int)[titles count]; } return 0; }
 -(int)addRows:(int)number
 {
 	if(tvcols)
@@ -707,6 +714,7 @@ HWND _DWLastDrawable;
 }
 -(void)setRow:(int)row title:(void *)input { if(titles && input) { [titles replacePointerAtIndex:row withPointer:input]; } }
 -(void *)getRowTitle:(int)row { if(titles) { return [titles pointerAtIndex:row]; } return NULL; }
+-(id)getRow:(int)row and:(int)col { if(data) { int index = (int)(row * [tvcols count]) + col; return [data objectAtIndex:index]; } return nil; }
 -(int)cellType:(int)col { return [[types objectAtIndex:col] intValue]; }
 -(int)lastAddPoint { return lastAddPoint; }
 -(void)clear { if(data) { [data removeAllObjects]; while([titles count]) { [titles removePointerAtIndex:0]; } } lastAddPoint = 0; }
@@ -720,7 +728,7 @@ HWND _DWLastDrawable;
 }
 -(void)selectionChanged:(id)sender
 {
-	_event_handler(self, (NSEvent *)[self getRowTitle:(int)[self selectedRow]], 12);
+	_event_handler(self, (NSEvent *)[self getRowTitle:(int)[self selectedRow]], 9);
 }
 -(NSMenu *)menuForEvent:(NSEvent *)event 
 {
@@ -1890,6 +1898,21 @@ void API dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize
        free(thisitem);
 }
 
+HWND _button_new(char *text, ULONG id)
+{
+	DWButton *button = [[DWButton alloc] init];
+	if(text && *text)
+	{
+		[button setTitle:[ NSString stringWithUTF8String:text ]];
+	}
+	[button setTarget:button];
+	[button setAction:@selector(buttonClicked:)];
+	[button setTag:id];
+	[button setButtonType:NSMomentaryPushInButton];
+	[button setBezelStyle:NSThickerSquareBezelStyle];
+    return button;
+}
+
 /*
  * Create a new button window (widget) to be packed.
  * Parameters:
@@ -1898,17 +1921,12 @@ void API dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize
  */
 HWND API dw_button_new(char *text, ULONG id)
 {
-	DWButton *button = [[DWButton alloc] init];
-	if(text && *text)
-	{
-		[button setTitle:[ NSString stringWithUTF8String:text ]];
-	}
-	[button setButtonType:NSMomentaryPushInButton];
-	[button setBezelStyle:NSThickerSquareBezelStyle];
-	[button setTarget:button];
-	[button setAction:@selector(buttonClicked:)];
-	/*[button setGradientType:NSGradientConvexWeak];*/
-	[button setTag:id];
+    DWButton *button = _button_new(text, id);
+    [button setButtonType:NSMomentaryPushInButton];
+    [button setBezelStyle:NSRoundedBezelStyle];
+    [button setImagePosition:NSNoImage];
+    [button setAlignment:NSCenterTextAlignment];
+    [[button cell] setControlTint:NSBlueControlTint];
 	return button;
 }
 
@@ -1975,7 +1993,7 @@ HWND API dw_bitmapbutton_new(char *text, ULONG id)
 HWND API dw_bitmapbutton_new_from_file(char *text, unsigned long id, char *filename)
 {
 	NSImage *image = [[NSImage alloc] initWithContentsOfFile:[ NSString stringWithUTF8String:filename ]];
-	DWButton *button = dw_button_new("", id);
+	DWButton *button = _button_new("", id);
 	[button setImage:image];
 	return button;
 }
@@ -1993,7 +2011,7 @@ HWND API dw_bitmapbutton_new_from_data(char *text, unsigned long id, char *data,
 {
 	NSData *thisdata = [[NSData alloc] dataWithBytes:data length:len];
 	NSImage *image = [[NSImage alloc] initWithData:thisdata];
-	DWButton *button = dw_button_new("", id);
+	DWButton *button = _button_new("", id);
 	[button setImage:image];
 	return button;
 }
@@ -2052,7 +2070,7 @@ long API dw_spinbutton_get_pos(HWND handle)
  */
 HWND API dw_radiobutton_new(char *text, ULONG id)
 {
-	DWButton *button = dw_button_new(text, id);
+	DWButton *button = _button_new(text, id);
 	[button setButtonType:NSRadioButton];
 	return button;
 }
@@ -2190,7 +2208,7 @@ void API dw_percent_set_pos(HWND handle, unsigned int position)
  */
 HWND API dw_checkbox_new(char *text, ULONG id)
 {
-	DWButton *button = dw_button_new(text, id);
+	DWButton *button = _button_new(text, id);
 	[button setButtonType:NSSwitchButton];
 	[button setBezelStyle:NSRegularSquareBezelStyle];
 	return button;
@@ -2289,6 +2307,16 @@ void API dw_listbox_append(HWND handle, char *text)
 		
 		[combo addItemWithObjectValue:[ NSString stringWithUTF8String:text ]];
 	}
+    else if([object isMemberOfClass:[DWContainer class]])
+    {
+        DWContainer *cont = handle;
+        NSString *nstr = [ NSString stringWithUTF8String:text ];
+        NSArray *newrow = [NSArray arrayWithObject:nstr];
+        
+        [cont addRow:newrow];
+        
+        [newrow release];
+    }
 }
 
 /*
@@ -2308,6 +2336,10 @@ void API dw_listbox_insert(HWND handle, char *text, int pos)
 		
 		[combo insertItemWithObjectValue:[ NSString stringWithUTF8String:text ] atIndex:pos];
 	}
+    else if([object isMemberOfClass:[DWContainer class]])
+    {
+        NSLog(@"dw_listbox_insert() unimplemented\n");
+    }
 }
 
 /*
@@ -2331,6 +2363,21 @@ void API dw_listbox_list_append(HWND handle, char **text, int count)
 			[combo addItemWithObjectValue:[ NSString stringWithUTF8String:text[z] ]];
 		}
 	}
+    else if([object isMemberOfClass:[DWContainer class]])
+    {
+        DWContainer *cont = handle;
+		int z;
+		
+		for(z=0;z<count;z++)
+		{		
+            NSString *nstr = [ NSString stringWithUTF8String:text[z] ];
+            NSArray *newrow = [[NSArray alloc] arrayWithObject:nstr];
+        
+            [cont addRow:newrow];
+            
+            [newrow release];
+        }
+    }
 }
 
 /*
@@ -2348,6 +2395,12 @@ void API dw_listbox_clear(HWND handle)
 		
 		[combo removeAllItems];
 	}
+    else if([object isMemberOfClass:[DWContainer class]])
+    {
+        DWContainer *cont = handle;
+        
+        [cont clear];
+    }
 }
 
 /*
@@ -2365,6 +2418,12 @@ int API dw_listbox_count(HWND handle)
 		
 		return (int)[combo numberOfItems];
 	}
+    else if([object isMemberOfClass:[DWContainer class]])
+    {
+        DWContainer *cont = handle;
+        
+        return (int)[cont numberOfRowsInTableView:cont];
+    }
 	return 0;
 }
 
@@ -2384,6 +2443,12 @@ void API dw_listbox_set_top(HWND handle, int top)
 		
 		[combo scrollItemAtIndexToTop:top];
 	}
+    else if([object isMemberOfClass:[DWContainer class]])
+    {
+        DWContainer *cont = handle;
+        
+        [cont scrollRowToVisible:top];
+    }
 }
 
 /*
@@ -2404,6 +2469,13 @@ void API dw_listbox_get_text(HWND handle, unsigned int index, char *buffer, unsi
 		NSString *nstr = [combo itemObjectValueAtIndex:index];
 		strncpy(buffer, [ nstr UTF8String ], length - 1);
 	}
+    else if([object isMemberOfClass:[DWContainer class]])
+    {
+        DWContainer *cont = handle;
+        NSString *nstr = [cont getRow:index and:0];
+        
+        strncpy(buffer, [ nstr UTF8String ], length - 1);
+    }
 }
 
 /*
@@ -2424,6 +2496,14 @@ void API dw_listbox_set_text(HWND handle, unsigned int index, char *buffer)
 		[combo removeItemAtIndex:index];
 		[combo insertItemWithObjectValue:[ NSString stringWithUTF8String:buffer ] atIndex:index];
 	}
+    else if([object isMemberOfClass:[DWContainer class]])
+    {
+        DWContainer *cont = handle;
+        NSString *nstr = [ NSString stringWithUTF8String:buffer ];
+        
+        [cont editCell:nstr at:index and:0];
+    }
+        
 }
 
 /*
@@ -2440,6 +2520,12 @@ unsigned int API dw_listbox_selected(HWND handle)
 		DWComboBox *combo = handle;
 		return (int)[combo indexOfSelectedItem];
 	}
+    else if([object isMemberOfClass:[DWContainer class]])
+    {
+        DWContainer *cont = handle;
+        
+        return (int)[cont selectedRow];
+    }
 	return -1;
 }
 
@@ -2451,8 +2537,22 @@ unsigned int API dw_listbox_selected(HWND handle)
  */
 int API dw_listbox_selected_multi(HWND handle, int where)
 {
-	NSLog(@"dw_listbox_selected_multi() unimplemented\n");
-	return 0;
+	id object = handle;
+    int retval = -1;
+    
+    if([object isMemberOfClass:[DWContainer class]])
+    {
+        DWContainer *cont = handle;
+        NSIndexSet *selected = [cont selectedRowIndexes];
+        NSUInteger result = [selected indexGreaterThanIndex:where];
+        
+        if(result != NSNotFound)
+        {
+            retval = (int)result;
+        }
+        [selected release];
+    }        
+	return retval;
 }
 
 /*
@@ -2474,6 +2574,14 @@ void API dw_listbox_select(HWND handle, int index, int state)
 		else
 			[combo deselectItemAtIndex:index];
 	}
+    else if([object isMemberOfClass:[DWContainer class]])
+    {
+        DWContainer *cont = handle;
+        NSIndexSet *selected = [[NSIndexSet alloc] initWithIndex:(NSUInteger)index];
+        
+        [cont selectRowIndexes:selected byExtendingSelection:YES];
+        [selected release];
+    }        
 }
 
 /*
@@ -2492,6 +2600,12 @@ void API dw_listbox_delete(HWND handle, int index)
 		
 		[combo removeItemAtIndex:index];
 	}
+    else if([object isMemberOfClass:[DWContainer class]])
+    {
+        DWContainer *cont = handle;
+        
+        [cont removeRow:index];
+    }
 }
 
 /*
@@ -2741,7 +2855,7 @@ unsigned long API dw_color_choose(unsigned long value)
 {
 	/* Create the File Save Dialog class. */
 	DWColorChoose *colorDlg = (DWColorChoose *)[DWColorChoose sharedColorPanel];
-	NSColor *color = [[[NSColor alloc] init] autorelease]; 
+    NSColor *color = [NSColor colorWithDeviceRed: DW_RED_VALUE(_foreground)/255.0 green: DW_GREEN_VALUE(_foreground)/255.0 blue: DW_BLUE_VALUE(_foreground)/255.0 alpha: 1];
 	DWDialog *dialog = dw_dialog_new(colorDlg);
 	
 	/* Set defaults for the dialog. */
@@ -4378,7 +4492,25 @@ void API dw_window_function(HWND handle, void *function, void *data)
  */
 void API dw_window_set_pointer(HWND handle, int pointertype)
 {
-	NSLog(@"dw_window_set_pointer() unimplemented\n");
+    id object = handle;
+    
+	if([ object isKindOfClass:[ NSView class ] ])
+	{
+		NSView *view = handle;
+        
+        if(pointertype == DW_POINTER_DEFAULT)
+        {
+            [view discardCursorRects];
+        }
+        else if(pointertype == DW_POINTER_ARROW)
+        {
+            NSRect rect = [view frame];
+            NSCursor *cursor = [NSCursor arrowCursor];
+        
+            [view addCursorRect:rect cursor:cursor];
+        }
+        /* No cursor for DW_POINTER_CLOCK? */
+    }
 }
 
 /*
