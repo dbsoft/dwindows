@@ -4326,14 +4326,14 @@ HWND dw_listbox_new(unsigned long id, int multi)
  *       handle: Handle to the window.
  *       id: An ID to be used to specify the icon.
  */
-void dw_window_set_icon(HWND handle, unsigned long id)
+void dw_window_set_icon(HWND handle, HICN icon)
 {
    GdkBitmap *bitmap = NULL;
    GdkPixmap *icon_pixmap;
    int _locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
-   icon_pixmap = _find_pixmap(&bitmap, id, handle, NULL, NULL);
+   icon_pixmap = _find_pixmap(&bitmap, icon, handle, NULL, NULL);
 
    if(handle->window && icon_pixmap)
       gdk_window_set_icon(handle->window, NULL, icon_pixmap, bitmap);

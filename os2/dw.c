@@ -5245,10 +5245,10 @@ HWND API dw_listbox_new(ULONG id, int multi)
  *       handle: Handle to the window.
  *       id: An ID to be used to specify the icon.
  */
-void API dw_window_set_icon(HWND handle, ULONG id)
+void API dw_window_set_icon(HWND handle, HICN icon)
 {
-   HPOINTER icon = id < 65536 ? WinLoadPointer(HWND_DESKTOP,NULLHANDLE,id) : (HPOINTER)id;
-   WinSendMsg(handle, WM_SETICON, (MPARAM)icon, 0);
+   HPOINTER hptr = icon < 65536 ? WinLoadPointer(HWND_DESKTOP,NULLHANDLE,icon) : (HPOINTER)icon;
+   WinSendMsg(handle, WM_SETICON, (MPARAM)hptr, 0);
 }
 
 /* Internal function to load a bitmap from a file and return handles

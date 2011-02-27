@@ -4811,7 +4811,7 @@ void API dw_window_set_bitmap(HWND handle, unsigned long id, char *filename)
  *       handle: Handle to the window.
  *       id: An ID to be used to specify the icon.
  */
-void API dw_window_set_icon(HWND handle, ULONG id)
+void API dw_window_set_icon(HWND handle, HICN icon)
 {
 	/* This isn't needed, it is loaded from the bundle */
 }
