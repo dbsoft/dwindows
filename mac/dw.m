@@ -2714,7 +2714,9 @@ HWND API dw_status_text_new(char *text, ULONG id)
 	NSTextField *textfield = dw_text_new(text, id);
 	[textfield setBordered:YES];
 	[textfield setBezeled:YES];
-	[textfield setBezelStyle:NSRecessedBezelStyle];
+	[textfield setBezelStyle:NSTextFieldSquareBezel];
+    [textfield setBackgroundColor:[NSColor colorWithDeviceRed:1 green:1 blue:1 alpha: 0]];
+    [textfield setDrawsBackground:NO];
 	return textfield;
 }
 
@@ -4654,10 +4656,17 @@ int API dw_window_set_font(HWND handle, char *fontname)
 		*name = 0;
 		name++;
 		NSFont *font = [NSFont fontWithName:[ NSString stringWithUTF8String:name ] size:(float)size];
-		id object = handle;
-		[object lockFocus];
-		[font set];
-		[object unlockFocus];		
+        if(font)
+        {
+            id object = handle;
+            if([object window])
+            {
+                [object lockFocus];
+                [font set];
+                [object unlockFocus];
+            }
+            [object setFont:font];
+        }
 	}
 	free(fontcopy);
 	return 0;
