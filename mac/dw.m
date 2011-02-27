@@ -460,7 +460,7 @@ HWND _DWLastDrawable;
 @end
 
 /* Subclass for a splitbar type */
-@interface DWSplitBar : NSSplitView { }
+@interface DWSplitBar : NSSplitView <NSSplitViewDelegate> { }
 - (void)splitViewDidResizeSubviews:(NSNotification *)aNotification;
 @end
 
@@ -566,12 +566,15 @@ HWND _DWLastDrawable;
 	NSMutableArray *types;
 	NSPointerArray *titles;
 	int lastAddPoint;
+    id scrollview;
 }
 -(NSInteger)numberOfRowsInTableView:(NSTableView *)aTable;
 -(id)tableView:(NSTableView *)aTable objectValueForTableColumn:(NSTableColumn *)aCol row:(NSInteger)aRow;
 -(void)tableView:(NSTableView *)aTableView setObjectValue:(id)anObject forTableColumn:(NSTableColumn *)aTableColumn row:(NSInteger)rowIndex;
 -(void *)userdata;
 -(void)setUserdata:(void *)input;
+-(id)scrollview;
+-(void)setScrollview:(id)input;
 -(void)addColumn:(NSTableColumn *)input andType:(int)type;
 -(int)addRow:(NSArray *)input;
 -(int)addRows:(int)number;
@@ -648,6 +651,8 @@ HWND _DWLastDrawable;
 }
 -(void *)userdata { return userdata; }
 -(void)setUserdata:(void *)input { userdata = input; }
+-(NSScrollView *)scrollview { return scrollview; }
+-(void)setScrollview:(NSScrollView *)input { scrollview = input; }
 -(void)addColumn:(NSTableColumn *)input andType:(int)type { if(tvcols) { [tvcols addObject:input]; [types addObject:[NSNumber numberWithInt:type]]; } }
 -(int)addRow:(NSArray *)input { if(data) { [data addObjectsFromArray:input]; [titles addPointer:NULL]; return (int)[titles count]; } return 0; }
 -(int)addRows:(int)number
@@ -1746,6 +1751,13 @@ void API dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, 
 	thisitem = thisbox->items;
 	object = item;
 
+	/* Query the objects */
+	if([ object isKindOfClass:[ DWContainer class ] ])
+	{
+		DWContainer *cont = item;
+		this = item = [cont scrollview];
+	}
+    
 	/* Duplicate the existing data */
     tmpitem = malloc(sizeof(Item)*(thisbox->count+1));
 
@@ -1823,6 +1835,13 @@ void API dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize
 	thisbox = [view box];
 	thisitem = thisbox->items;
 	object = item;
+
+	/* Query the objects */
+	if([ object isKindOfClass:[ DWContainer class ] ])
+	{
+		DWContainer *cont = item;
+		this = item = [cont scrollview];
+	}
 
 	/* Duplicate the existing data */
     tmpitem = malloc(sizeof(Item)*(thisbox->count+1));
@@ -2215,7 +2234,14 @@ void API dw_checkbox_set(HWND handle, int value)
 /* Common code for containers and listboxes */
 HWND _cont_new(ULONG id, int multi)
 {
+    NSScrollView *scrollview  = [[NSScrollView alloc] init];    
 	DWContainer *cont = [[DWContainer alloc] init];
+    
+    [cont setScrollview:scrollview];
+    [scrollview setBorderType:NSBezelBorder];
+    [scrollview setHasVerticalScroller:YES];
+    [scrollview setAutohidesScrollers:YES];
+    
 	if(multi)
 	{
 		[cont setAllowsMultipleSelection:YES];
@@ -2225,6 +2251,7 @@ HWND _cont_new(ULONG id, int multi)
 		[cont setAllowsMultipleSelection:NO];
 	}
 	[cont setDataSource:cont];
+    [scrollview setDocumentView:cont];
 	return cont;
 }
 
@@ -2237,6 +2264,7 @@ HWND _cont_new(ULONG id, int multi)
 HWND API dw_listbox_new(ULONG id, int multi)
 {
 	DWContainer *cont = _cont_new(id, multi);
+	[cont setHeaderView:nil];
 	int type = DW_CFA_STRING;
 	[cont setup];
 	NSTableColumn *column = [[NSTableColumn alloc] init];
@@ -3125,6 +3153,8 @@ void API dw_tree_item_delete(HWND handle, HTREEITEM item)
 HWND API dw_container_new(ULONG id, int multi)
 {
 	DWContainer *cont = _cont_new(id, multi);
+    NSScrollView *scrollview = [cont scrollview];
+    [scrollview setHasHorizontalScroller:YES];
 	NSTableHeaderView *header = [[NSTableHeaderView alloc] init];
 	[cont setHeaderView:header];
 	return cont;
@@ -3592,12 +3622,21 @@ HWND API dw_mdi_new(unsigned long id)
 HWND API dw_splitbar_new(int type, HWND topleft, HWND bottomright, unsigned long id)
 {
 	DWSplitBar *split = [[DWSplitBar alloc] init];
-	[split addSubview:topleft];
-	[split addSubview:bottomright];
+    HWND tmpbox = dw_box_new(DW_VERT, 0); 
+    [split setDelegate:split];
+    dw_box_pack_start(tmpbox, topleft, 0, 0, TRUE, TRUE, 0);
+	[split addSubview:tmpbox];
+    tmpbox = dw_box_new(DW_VERT, 0);    
+    dw_box_pack_start(tmpbox, bottomright, 0, 0, TRUE, TRUE, 0);
+	[split addSubview:tmpbox];
 	if(type == DW_VERT)
 	{
-		[split setVertical:YES];
+		[split setVertical:NO];
 	}
+    else
+    {
+        [split setVertical:YES];
+    }
 	return split;
 }
 
@@ -4359,6 +4398,7 @@ int API dw_window_show(HWND handle)
 			[window deminiaturize:nil];
 		}
 		[[window contentView] windowResized:nil];
+        [[window contentView] windowDidBecomeMain:nil];
 	}
 	return 0;
 }
