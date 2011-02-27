@@ -32,26 +32,6 @@ unsigned long current_color = DW_RGB(100,100,100);
 int iteration = 0;
    void create_button( int);
 
-#ifdef __MAC__
-int main(int argc, char *argv[])
-{
-   DWEnv env;
-   HWND window;
-
-   dw_init(TRUE, argc, argv);
-
-   window = dw_window_new(HWND_DESKTOP, "Test Window", flStyle);
-   dw_window_set_pos_size(window, 100, 100, 300, 200);
-   dw_window_show(window);
-
-   dw_environment_query(&env);
-   dw_messagebox("Title", DW_MB_OK | DW_MB_INFORMATION, "Operating System: %s %d.%d\nBuild: %d.%d\n",
-               env.osName, env.MajorVersion, env.MinorVersion, env.MajorBuild, env.MinorBuild);
-
-   return 0;
-}
-#else
-
 HWND mainwindow,
    entryfield,
    checkable_menuitem,
@@ -107,7 +87,8 @@ void *containerinfo;
 int menu_enabled = 1;
 
 HPIXMAP text1pm,text2pm;
-unsigned long fileicon,foldericon,mle_point=-1;
+HICN fileicon,foldericon;
+int mle_point=-1;
 
 int font_width = 8;
 int font_height=12;
@@ -212,7 +193,7 @@ char *resolve_keyname( int vk )
 
 char *resolve_keymodifiers( int mask )
 {
-   if ( (mask & KC_CTRL) && (mask & KC_SHIFT) && (mask && KC_ALT) )
+   if ( (mask & KC_CTRL) && (mask & KC_SHIFT) && (mask & KC_ALT) )
       return "KC_CTRL KC_SHIFT KC_ALT";
    else if ( (mask & KC_CTRL) && (mask & KC_SHIFT) )
       return "KC_CTRL KC_SHIFT";
@@ -233,7 +214,7 @@ char *resolve_keymodifiers( int mask )
 int DWSIGNAL text_expose(HWND hwnd, DWExpose *exp, void *data)
 {
    HPIXMAP hpm;
-   int width,height;
+   unsigned long width,height;
 
    if ( hwnd == textbox1 )
       hpm = text1pm;
@@ -245,7 +226,7 @@ int DWSIGNAL text_expose(HWND hwnd, DWExpose *exp, void *data)
    width = DW_PIXMAP_WIDTH(hpm);
    height = DW_PIXMAP_HEIGHT(hpm);
 
-   dw_pixmap_bitblt(hwnd, NULL, 0, 0, width, height, 0, hpm, 0, 0 );
+   dw_pixmap_bitblt(hwnd, NULL, 0, 0, (int)width, (int)height, 0, hpm, 0, 0 );
    dw_flush();
    return TRUE;
 }
@@ -285,8 +266,8 @@ void draw_file( int row, int col )
    if ( current_file )
    {
       dw_color_foreground_set(DW_CLR_WHITE);
-      dw_draw_rect(0, text1pm, TRUE, 0, 0, DW_PIXMAP_WIDTH(text1pm), DW_PIXMAP_HEIGHT(text1pm));
-      dw_draw_rect(0, text2pm, TRUE, 0, 0, DW_PIXMAP_WIDTH(text2pm), DW_PIXMAP_HEIGHT(text2pm));
+      dw_draw_rect(0, text1pm, TRUE, 0, 0, (int)DW_PIXMAP_WIDTH(text1pm), (int)DW_PIXMAP_HEIGHT(text1pm));
+      dw_draw_rect(0, text2pm, TRUE, 0, 0, (int)DW_PIXMAP_WIDTH(text2pm), (int)DW_PIXMAP_HEIGHT(text2pm));
 
       for ( i = 0;(i < rows) && (i+row < num_lines); i++)
       {
@@ -510,14 +491,14 @@ void DWSIGNAL slider_valuechanged_callback(HWND hwnd, int value, void *data)
 int DWSIGNAL configure_event(HWND hwnd, int width, int height, void *data)
 {
    HPIXMAP old1 = text1pm, old2 = text2pm;
-   int depth = dw_color_depth_get();
+   unsigned long depth = dw_color_depth_get();
 
    rows = height / font_height;
    cols = width / font_width;
 
    /* Create new pixmaps with the current sizes */
-   text1pm = dw_pixmap_new(textbox1, (font_width*(width1)), height, depth);
-   text2pm = dw_pixmap_new(textbox2, width, height, depth);
+   text1pm = dw_pixmap_new(textbox1, (unsigned long)(font_width*(width1)), (unsigned long)height, (int)depth);
+   text2pm = dw_pixmap_new(textbox2, (unsigned long)width, (unsigned long)height, (int)depth);
 
    /* Destroy the old pixmaps */
    dw_pixmap_destroy(old1);
@@ -709,7 +690,7 @@ void archive_add(void)
 
 void text_add(void)
 {
-   int depth = dw_color_depth_get();
+   unsigned long depth = dw_color_depth_get();
    HWND vscrollbox;
 
    /* create a box to pack into the notebook page */
@@ -815,7 +796,8 @@ void container_add(void)
    int z;
    CTIME time;
    CDATE date;
-   unsigned long size, thisicon;
+   unsigned long size;
+   HICN thisicon;
 
    /* create a box to pack into the notebook page */
    containerbox = dw_box_new(BOXHORZ, 2);
@@ -887,9 +869,8 @@ int DWSIGNAL timer_callback(void *data)
 
 void buttons_add(void)
 {
-   HWND abutton1,abutton2,calbox,bw;
+   HWND abutton1,abutton2,calbox;
    int i;
-   char buf[20];
    char **text;
 
    /* create a box to pack into the notebook page */
@@ -1165,4 +1146,3 @@ int main(int argc, char *argv[])
 
    return 0;
 }
-#endif

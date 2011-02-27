@@ -1126,7 +1126,7 @@ void API dw_window_set_size(HWND handle, unsigned long width, unsigned long heig
 void API dw_window_set_pos_size(HWND handle, long x, long y, unsigned long width, unsigned long height);
 void API dw_window_get_pos_size(HWND handle, long *x, long *y, unsigned long *width, unsigned long *height);
 void API dw_window_set_style(HWND handle, unsigned long style, unsigned long mask);
-void API dw_window_set_icon(HWND handle, unsigned long id);
+void API dw_window_set_icon(HWND handle, HICN icon);
 void API dw_window_set_bitmap(HWND handle, unsigned long id, char *filename);
 void API dw_window_set_bitmap_from_data(HWND handle, unsigned long id, char *data, int len);
 char * API dw_window_get_text(HWND handle);
