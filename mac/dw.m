@@ -1975,10 +1975,22 @@ void API dw_entryfield_set_limit(HWND handle, ULONG limit)
  *       text: Bubble help text to be displayed.
  *       id: An ID of a bitmap in the resource file.
  */
-HWND API dw_bitmapbutton_new(char *text, ULONG id)
+HWND API dw_bitmapbutton_new(char *text, ULONG resid)
 {
-	NSLog(@"dw_bitmapbutton_new() unimplemented\n");
-	return HWND_DESKTOP;
+    NSBundle *bundle = [NSBundle mainBundle];
+    NSString *respath = [bundle resourcePath];
+    NSString *filepath = [respath stringByAppendingFormat:@"/%u.png", resid]; 
+	NSImage *image = [[NSImage alloc] initWithContentsOfFile:filepath];
+	DWButton *button = _button_new("", resid);
+	[button setImage:image];
+    //[button setBezelStyle:0];
+    [button setButtonType:NSMomentaryLight];
+    [button setBordered:NO];
+    [bundle release];
+    [respath release];
+    [filepath release];
+    [image release];
+	return button;
 }
 
 /*
@@ -2314,6 +2326,7 @@ void API dw_listbox_append(HWND handle, char *text)
         NSArray *newrow = [NSArray arrayWithObject:nstr];
         
         [cont addRow:newrow];
+        [cont reloadData];
         
         [newrow release];
     }
@@ -2377,6 +2390,7 @@ void API dw_listbox_list_append(HWND handle, char **text, int count)
             
             [newrow release];
         }
+        [cont reloadData];
     }
 }
 
@@ -2400,6 +2414,7 @@ void API dw_listbox_clear(HWND handle)
         DWContainer *cont = handle;
         
         [cont clear];
+        [cont reloadData];
     }
 }
 
@@ -2502,6 +2517,7 @@ void API dw_listbox_set_text(HWND handle, unsigned int index, char *buffer)
         NSString *nstr = [ NSString stringWithUTF8String:buffer ];
         
         [cont editCell:nstr at:index and:0];
+        [cont reloadData];
     }
         
 }
@@ -2605,6 +2621,7 @@ void API dw_listbox_delete(HWND handle, int index)
         DWContainer *cont = handle;
         
         [cont removeRow:index];
+        [cont reloadData];
     }
 }
 
@@ -3551,7 +3568,11 @@ void API dw_container_insert(HWND handle, void *pointer, int rowcount)
 void API dw_container_clear(HWND handle, int redraw)
 {
 	DWContainer *cont = handle;
-	return [cont clear];
+	[cont clear];
+    if(redraw)
+    {
+        [cont reloadData];
+    }
 }
 
 /*
@@ -3878,10 +3899,26 @@ void API dw_pixmap_set_transparent_color( HPIXMAP pixmap, ULONG color )
  * Returns:
  *       A handle to a pixmap or NULL on failure.
  */
-HPIXMAP API dw_pixmap_grab(HWND handle, ULONG id)
+HPIXMAP API dw_pixmap_grab(HWND handle, ULONG resid)
 {
-	NSLog(@"dw_pixmap_grab() unimplemented\n");
-	return HWND_DESKTOP;
+	HPIXMAP pixmap;
+	
+	if (!(pixmap = calloc(1,sizeof(struct _hpixmap))))
+		return NULL;
+    
+    NSBundle *bundle = [NSBundle mainBundle];
+    NSString *respath = [bundle resourcePath];
+    NSString *filepath = [respath stringByAppendingFormat:@"/%u.png", resid]; 
+	NSImage *image = [[NSImage alloc] initWithContentsOfFile:filepath];
+	NSSize size = [image size];
+	pixmap->width = size.width;
+	pixmap->height = size.height;
+	pixmap->handle = image;
+    [bundle release];
+    [respath release];
+    [filepath release];
+    [image release];
+	return pixmap;
 }
 
 /*
