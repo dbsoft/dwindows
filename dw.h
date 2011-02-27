@@ -238,6 +238,7 @@ typedef HWND HMENUI;
 typedef HMODULE HMOD;
 typedef unsigned short UWORD;
 typedef unsigned long HSHM;
+typedef unsigned long HICN;
 
 extern HAB dwhab;
 extern HMQ dwhmq;
@@ -288,6 +289,7 @@ struct _dw_unix_shm {
 };
 typedef void *HTREEITEM;
 typedef void *HMENUI;
+typedef void *HICN;
 
 typedef struct _window_data {
    UserData *root;
@@ -366,8 +368,8 @@ typedef struct _hpixmap {
 #endif
 
 #define DW_POINTER_DEFAULT       0
-#define DW_POINTER_ARROW         0
-#define DW_POINTER_CLOCK         0
+#define DW_POINTER_ARROW         1
+#define DW_POINTER_CLOCK         2
 
 #define HWND_DESKTOP     ((HWND)0)
 
@@ -605,6 +607,7 @@ typedef HANDLE HMTX;
 typedef HANDLE HEV;
 typedef HANDLE HMOD;
 typedef HANDLE HSHM;
+typedef unsigned long HICN;
 
 typedef struct _container {
    ColorInfo cinfo;
@@ -903,6 +906,7 @@ typedef struct _hpixmap {
 typedef GtkWidget *HMENUI;
 typedef void *HTREEITEM;
 typedef void *HSHM;
+typedef unsigned long HICN;
 
 typedef struct _resource_struct {
    long resource_max, *resource_id;
@@ -1154,11 +1158,11 @@ void API dw_entryfield_set_limit(HWND handle, ULONG limit);
 long API dw_spinbutton_get_pos(HWND handle);
 int API dw_checkbox_get(HWND handle);
 void API dw_checkbox_set(HWND handle, int value);
-HTREEITEM API dw_tree_insert(HWND handle, char *title, unsigned long icon, HTREEITEM parent, void *itemdata);
-HTREEITEM API dw_tree_insert_after(HWND handle, HTREEITEM item, char *title, unsigned long icon, HTREEITEM parent, void *itemdata);
+HTREEITEM API dw_tree_insert(HWND handle, char *title, HICN icon, HTREEITEM parent, void *itemdata);
+HTREEITEM API dw_tree_insert_after(HWND handle, HTREEITEM item, char *title, HICN icon, HTREEITEM parent, void *itemdata);
 void API dw_tree_clear(HWND handle);
 void API dw_tree_item_delete(HWND handle, HTREEITEM item);
-void API dw_tree_item_change(HWND handle, HTREEITEM item, char *title, unsigned long icon);
+void API dw_tree_item_change(HWND handle, HTREEITEM item, char *title, HICN icon);
 void API dw_tree_item_expand(HWND handle, HTREEITEM item);
 void API dw_tree_item_collapse(HWND handle, HTREEITEM item);
 void API dw_tree_item_select(HWND handle, HTREEITEM item);
@@ -1167,10 +1171,10 @@ void * API dw_tree_item_get_data(HWND handle, HTREEITEM item);
 char * API dw_tree_get_title(HWND handle, HTREEITEM item);
 HTREEITEM API dw_tree_get_parent(HWND handle, HTREEITEM item);
 int API dw_container_setup(HWND handle, unsigned long *flags, char **titles, int count, int separator);
-unsigned long API dw_icon_load(unsigned long module, unsigned long id);
-unsigned long API dw_icon_load_from_file(char *filename);
-unsigned long API dw_icon_load_from_data(char *data, int len);
-void API dw_icon_free(unsigned long handle);
+HICN API dw_icon_load(unsigned long module, unsigned long id);
+HICN API dw_icon_load_from_file(char *filename);
+HICN API dw_icon_load_from_data(char *data, int len);
+void API dw_icon_free(HICN handle);
 void * API dw_container_alloc(HWND handle, int rowcount);
 void API dw_container_set_item(HWND handle, void *pointer, int column, int row, void *data);
 void API dw_container_change_item(HWND handle, int column, int row, void *data);
@@ -1187,13 +1191,13 @@ void API dw_container_delete_row(HWND handle, char *text);
 void API dw_container_optimize(HWND handle);
 int API dw_filesystem_setup(HWND handle, unsigned long *flags, char **titles, int count);
 void API dw_filesystem_set_item(HWND handle, void *pointer, int column, int row, void *data);
-void API dw_filesystem_set_file(HWND handle, void *pointer, int row, char *filename, unsigned long icon);
+void API dw_filesystem_set_file(HWND handle, void *pointer, int row, char *filename, HICN icon);
 void API dw_filesystem_change_item(HWND handle, int column, int row, void *data);
-void API dw_filesystem_change_file(HWND handle, int row, char *filename, unsigned long icon);
+void API dw_filesystem_change_file(HWND handle, int row, char *filename, HICN icon);
 int API dw_container_get_column_type(HWND handle, int column);
 int API dw_filesystem_get_column_type(HWND handle, int column);
-void API dw_taskbar_insert(HWND handle, unsigned long icon, char *bubbletext);
-void API dw_taskbar_delete(HWND handle, unsigned long icon);
+void API dw_taskbar_insert(HWND handle, HICN icon, char *bubbletext);
+void API dw_taskbar_delete(HWND handle, HICN icon);
 int API dw_screen_width(void);
 int API dw_screen_height(void);
 unsigned long API dw_color_depth_get(void);

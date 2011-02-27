@@ -3,7 +3,7 @@
  *          A GTK like implementation of the PM GUI
  *          GTK forwarder module for portabilty.
  *
- * (C) 2000-2004 Brian Smith <dbsoft@technologist.com>
+ * (C) 2000-2011 Brian Smith <brian@dbsoft.org>
  * (C) 2003-2004 Mark Hessling <m.hessling@qut.edu.au>
  * (C) 2002 Nickolay V. Shmyrev <shmyrev@yandex.ru>
  */
@@ -5503,7 +5503,7 @@ void dw_checkbox_set(HWND handle, int value)
  *          parent: Parent handle or 0 if root.
  *          itemdata: Item specific data.
  */
-HTREEITEM dw_tree_insert_after(HWND handle, HTREEITEM item, char *title, unsigned long icon, HTREEITEM parent, void *itemdata)
+HTREEITEM dw_tree_insert_after(HWND handle, HTREEITEM item, char *title, HICN icon, HTREEITEM parent, void *itemdata)
 {
 #if GTK_MAJOR_VERSION > 1
    GtkWidget *tree;
@@ -5656,7 +5656,7 @@ HTREEITEM dw_tree_insert_after(HWND handle, HTREEITEM item, char *title, unsigne
  *          parent: Parent handle or 0 if root.
  *          itemdata: Item specific data.
  */
-HTREEITEM dw_tree_insert(HWND handle, char *title, unsigned long icon, HTREEITEM parent, void *itemdata)
+HTREEITEM dw_tree_insert(HWND handle, char *title, HICN icon, HTREEITEM parent, void *itemdata)
 {
 #if GTK_MAJOR_VERSION > 1
    GtkWidget *tree;
@@ -5801,7 +5801,7 @@ HTREEITEM dw_tree_insert(HWND handle, char *title, unsigned long icon, HTREEITEM
  *          title: The text title of the entry.
  *          icon: Handle to coresponding icon.
  */
-void dw_tree_item_change(HWND handle, HTREEITEM item, char *title, unsigned long icon)
+void dw_tree_item_change(HWND handle, HTREEITEM item, char *title, HICN icon)
 {
 #if GTK_MAJOR_VERSION > 1
    GtkWidget *tree;
@@ -6355,7 +6355,7 @@ int dw_filesystem_setup(HWND handle, unsigned long *flags, char **titles, int co
  *              Windows, on GTK this is converted to a pointer
  *              to an embedded XPM.
  */
-unsigned long dw_icon_load(unsigned long module, unsigned long id)
+HICN dw_icon_load(unsigned long module, unsigned long id)
 {
    return id;
 }
@@ -6367,7 +6367,7 @@ unsigned long dw_icon_load(unsigned long module, unsigned long id)
  *                 DW pick the appropriate file extension.
  *                 (ICO on OS/2 or Windows, XPM on Unix)
  */
-unsigned long API dw_icon_load_from_file(char *filename)
+HICN API dw_icon_load_from_file(char *filename)
 {
    int found = -1, _locked_by_me = FALSE;
 #if GTK_MAJOR_VERSION > 1
@@ -6469,7 +6469,7 @@ unsigned long API dw_icon_load_from_file(char *filename)
       _PixmapArray[found].pixmap = _PixmapArray[found].mask = NULL;
       return 0;
    }
-   return ret | (1 << 31);
+   return (HICN)ret | (1 << 31);
 }
 
 /*
@@ -6478,7 +6478,7 @@ unsigned long API dw_icon_load_from_file(char *filename)
  *       data: Source of data for image.
  *       len:  length of data
  */
-unsigned long API dw_icon_load_from_data(char *data, int len)
+HICN API dw_icon_load_from_data(char *data, int len)
 {
    int found = -1, _locked_by_me = FALSE;
    char *file;
@@ -6573,7 +6573,7 @@ unsigned long API dw_icon_load_from_data(char *data, int len)
       _PixmapArray[found].pixmap = _PixmapArray[found].mask = NULL;
       return 0;
    }
-   return ret | (1 << 31);
+   return (HICN)ret | (1 << 31);
 }
 
 /*
@@ -6581,7 +6581,7 @@ unsigned long API dw_icon_load_from_data(char *data, int len)
  * Parameters:
  *          handle: Handle to icon returned by dw_icon_load().
  */
-void dw_icon_free(unsigned long handle)
+void dw_icon_free(HICN handle)
 {
    /* If it is a private icon, find the item
     * free the associated structures and set
@@ -6807,7 +6807,7 @@ void API dw_filesystem_change_item(HWND handle, int column, int row, void *data)
  *          row: Zero based row of data being set.
  *          data: Pointer to the data to be added.
  */
-void API dw_filesystem_change_file(HWND handle, int row, char *filename, unsigned long icon)
+void API dw_filesystem_change_file(HWND handle, int row, char *filename, HICN icon)
 {
    dw_filesystem_set_file(handle, NULL, row, filename, icon);
 }
@@ -6821,7 +6821,7 @@ void API dw_filesystem_change_file(HWND handle, int row, char *filename, unsigne
  *          row: Zero based row of data being set.
  *          data: Pointer to the data to be added.
  */
-void dw_filesystem_set_file(HWND handle, void *pointer, int row, char *filename, unsigned long icon)
+void dw_filesystem_set_file(HWND handle, void *pointer, int row, char *filename, HICN icon)
 {
    _dw_container_set_item(handle, pointer, 0, row, (void *)&icon, filename);
 }
@@ -7277,7 +7277,7 @@ void dw_container_optimize(HWND handle)
  *       icon: Icon handle to display in the taskbar.
  *       bubbletext: Text to show when the mouse is above the icon.
  */
-void dw_taskbar_insert(HWND handle, unsigned long icon, char *bubbletext)
+void dw_taskbar_insert(HWND handle, HICN icon, char *bubbletext)
 {
    /* TODO */
 }
@@ -7288,7 +7288,7 @@ void dw_taskbar_insert(HWND handle, unsigned long icon, char *bubbletext)
  *       handle: Window handle that was used with dw_taskbar_insert().
  *       icon: Icon handle that was used with dw_taskbar_insert().
  */
-void dw_taskbar_delete(HWND handle, unsigned long icon)
+void dw_taskbar_delete(HWND handle, HICN icon)
 {
    /* TODO */
 }

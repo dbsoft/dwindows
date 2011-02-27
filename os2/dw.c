@@ -2,7 +2,7 @@
  * Dynamic Windows:
  *          A GTK like implementation of the PM GUI
  *
- * (C) 2000-2004 Brian Smith <dbsoft@technologist.com>
+ * (C) 2000-2011 Brian Smith <brian@dbsoft.org>
  * (C) 2003-2008 Mark Hessling <m.hessling@qut.edu.au>
  * (C) 2000 Achim Hasenmueller <achimha@innotek.de>
  * (C) 2000 Peter Nielsen <peter@pmview.com>
@@ -6468,7 +6468,7 @@ void API dw_checkbox_set(HWND handle, int value)
  *          parent: Parent handle or 0 if root.
  *          itemdata: Item specific data.
  */
-HTREEITEM API dw_tree_insert_after(HWND handle, HTREEITEM item, char *title, unsigned long icon, HTREEITEM parent, void *itemdata)
+HTREEITEM API dw_tree_insert_after(HWND handle, HTREEITEM item, char *title, HICN icon, HTREEITEM parent, void *itemdata)
 {
    ULONG        cbExtra;
    PCNRITEM     pci;
@@ -6526,7 +6526,7 @@ HTREEITEM API dw_tree_insert_after(HWND handle, HTREEITEM item, char *title, uns
  *          parent: Parent handle or 0 if root.
  *          itemdata: Item specific data.
  */
-HTREEITEM API dw_tree_insert(HWND handle, char *title, unsigned long icon, HTREEITEM parent, void *itemdata)
+HTREEITEM API dw_tree_insert(HWND handle, char *title, HICN icon, HTREEITEM parent, void *itemdata)
 {
    return dw_tree_insert_after(handle, (HTREEITEM)CMA_END, title, icon, parent, itemdata);
 }
@@ -6539,7 +6539,7 @@ HTREEITEM API dw_tree_insert(HWND handle, char *title, unsigned long icon, HTREE
  *          title: The text title of the entry.
  *          icon: Handle to coresponding icon.
  */
-void API dw_tree_item_change(HWND handle, HTREEITEM item, char *title, unsigned long icon)
+void API dw_tree_item_change(HWND handle, HTREEITEM item, char *title, HICN icon)
 {
    PCNRITEM pci = (PCNRITEM)item;
 
@@ -6843,7 +6843,7 @@ int API dw_filesystem_setup(HWND handle, unsigned long *flags, char **titles, in
  *              Windows, on GTK this is converted to a pointer
  *              to an embedded XPM.
  */
-unsigned long API dw_icon_load(unsigned long module, unsigned long id)
+HICN API dw_icon_load(unsigned long module, unsigned long id)
 {
    return WinLoadPointer(HWND_DESKTOP,module,id);
 }
@@ -6855,7 +6855,7 @@ unsigned long API dw_icon_load(unsigned long module, unsigned long id)
  *                 DW pick the appropriate file extension.
  *                 (ICO on OS/2 or Windows, XPM on Unix)
  */
-unsigned long API dw_icon_load_from_file(char *filename)
+HICN API dw_icon_load_from_file(char *filename)
 {
    char *file = alloca(strlen(filename) + 5);
 
@@ -6882,9 +6882,9 @@ unsigned long API dw_icon_load_from_file(char *filename)
  *                 DW pick the appropriate file extension.
  *                 (ICO on OS/2 or Windows, XPM on Unix)
  */
-unsigned long API dw_icon_load_from_data(char *data, int len)
+HICN API dw_icon_load_from_data(char *data, int len)
 {
-   unsigned long icon=0;
+   HICN icon=0;
    char *file;
    FILE *fp;
 
@@ -6915,7 +6915,7 @@ unsigned long API dw_icon_load_from_data(char *data, int len)
  * Parameters:
  *          handle: Handle to icon returned by dw_icon_load().
  */
-void API dw_icon_free(unsigned long handle)
+void API dw_icon_free(HICN handle)
 {
    WinDestroyPointer(handle);
 }
@@ -7150,7 +7150,7 @@ void API dw_filesystem_change_item(HWND handle, int column, int row, void *data)
  *          row: Zero based row of data being set.
  *          data: Pointer to the data to be added.
  */
-void API dw_filesystem_change_file(HWND handle, int row, char *filename, unsigned long icon)
+void API dw_filesystem_change_file(HWND handle, int row, char *filename, HICN icon)
 {
    dw_container_change_item(handle, 0, row, (void *)&icon);
    dw_container_change_item(handle, 1, row, (void *)&filename);
@@ -7165,7 +7165,7 @@ void API dw_filesystem_change_file(HWND handle, int row, char *filename, unsigne
  *          row: Zero based row of data being set.
  *          data: Pointer to the data to be added.
  */
-void API dw_filesystem_set_file(HWND handle, void *pointer, int row, char *filename, unsigned long icon)
+void API dw_filesystem_set_file(HWND handle, void *pointer, int row, char *filename, HICN icon)
 {
    dw_container_set_item(handle, pointer, 0, row, (void *)&icon);
    dw_container_set_item(handle, pointer, 1, row, (void *)&filename);
@@ -7568,7 +7568,7 @@ void API dw_container_optimize(HWND handle)
  *       icon: Icon handle to display in the taskbar.
  *       bubbletext: Text to show when the mouse is above the icon.
  */
-void API dw_taskbar_insert(HWND handle, unsigned long icon, char *bubbletext)
+void API dw_taskbar_insert(HWND handle, HICN icon, char *bubbletext)
 {
    handle = handle;
    icon = icon;
@@ -7582,7 +7582,7 @@ void API dw_taskbar_insert(HWND handle, unsigned long icon, char *bubbletext)
  *       handle: Window handle that was used with dw_taskbar_insert().
  *       icon: Icon handle that was used with dw_taskbar_insert().
  */
-void API dw_taskbar_delete(HWND handle, unsigned long icon)
+void API dw_taskbar_delete(HWND handle, HICN icon)
 {
    handle = handle;
    icon = icon;

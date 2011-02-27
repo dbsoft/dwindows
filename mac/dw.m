@@ -5,7 +5,7 @@
  * (C) 2011 Brian Smith <brian@dbsoft.org>
  *
  * Using garbage collection so requires 10.5 or later.
- * clang -std=c99 -g -o dwtest -D__MAC__ -I. mac/dw.m -framework Cocoa -fobjc-gc-only
+ * clang -std=c99 -g -o dwtest -D__MAC__ -I. dwtest.c mac/dw.m -framework Cocoa -framework WebKit -fobjc-gc-only
  */
 #import <Cocoa/Cocoa.h>
 #import <WebKit/WebKit.h> 
@@ -123,12 +123,6 @@ int _event_handler(id object, NSEvent *event, int message)
 				int flags = (int)[object pressedMouseButtons];
 				NSPoint point = [object mouseLocation];
 				int button = 0;
-				char *which = "pressed";
-			
-				if(message == 4)
-				{
-					which = "released";
-				}
 			
 				if(flags & 1)
 				{
@@ -143,7 +137,6 @@ int _event_handler(id object, NSEvent *event, int message)
 					button = 3;
 				}
 			
-				NSLog(@"Button %s x:%d y:%d button:%d\n", which, (int)point.x, (int)point.y, (int)button);
 				return buttonfunc(object, point.x, point.y, button, handler->data);
 			}
 			case 6:
@@ -860,67 +853,6 @@ ULONG _findsigmessage(char *signame)
 
 unsigned long _foreground = 0xAAAAAA, _background = 0;
 
-/* This function will recursively search a box and add up the total height of it */
-static void _count_size(HWND thisbox, int type, int *xsize, int *xorigsize)
-{
-   int size = 0, origsize = 0, z;
-   DWBox *box = thisbox;
-   Box *tmp = [box box];
-
-   if(!tmp)
-   {
-      *xsize = *xorigsize = 0;
-      return;
-   }
-
-   if(type == tmp->type)
-   {
-      /* If the box is going in the direction we want, then we
-       * return the entire sum of the items.
-       */
-      for(z=0;z<tmp->count;z++)
-      {
-         if(tmp->items[z].type == TYPEBOX)
-         {
-            int s, os;
-
-            _count_size(tmp->items[z].hwnd, type, &s, &os);
-            size += s;
-            origsize += os;
-         }
-         else
-         {
-            size += (type == DW_HORZ ? tmp->items[z].width : tmp->items[z].height);
-            origsize += (type == DW_HORZ ? tmp->items[z].origwidth : tmp->items[z].origheight);
-         }
-      }
-   }
-   else
-   {
-      /* If the box is not going in the direction we want, then we only
-       * want to return the maximum value.
-       */
-      int tmpsize = 0, tmporigsize = 0;
-
-      for(z=0;z<tmp->count;z++)
-      {
-         if(tmp->items[z].type == TYPEBOX)
-            _count_size(tmp->items[z].hwnd, type, &tmpsize, &tmporigsize);
-         else
-         {
-            tmpsize = (type == DW_HORZ ? tmp->items[z].width : tmp->items[z].height);
-            tmporigsize = (type == DW_HORZ ? tmp->items[z].origwidth : tmp->items[z].origheight);
-         }
-
-         if(tmpsize > size)
-            size = tmpsize;
-      }
-   }
-
-   *xsize = size;
-   *xorigsize = origsize;
-}
-
 /* This function calculates how much space the widgets and boxes require
  * and does expansion as necessary.
  */
@@ -1282,34 +1214,6 @@ static void _do_resize(Box *thisbox, int x, int y)
    }
 }
 
-static void _changebox(Box *thisbox, int percent, int type)
-{
-   int z;
-
-   for(z=0;z<thisbox->count;z++)
-   {
-      if(thisbox->items[z].type == TYPEBOX)
-      {
-		 DWBox *box = thisbox->items[z].hwnd;
-		 Box *tmp = [box box];
-         _changebox(tmp, percent, type);
-      }
-      else
-      {
-         if(type == DW_HORZ)
-         {
-            if(thisbox->items[z].hsize == SIZEEXPAND)
-               thisbox->items[z].width = (int)(((float)thisbox->items[z].origwidth) * (((float)percent)/((float)100.0)));
-         }
-         else
-         {
-            if(thisbox->items[z].vsize == SIZEEXPAND)
-               thisbox->items[z].height = (int)(((float)thisbox->items[z].origheight) * (((float)percent)/((float)100.0)));
-         }
-      }
-   }
-}
-
 NSMenu *_generate_main_menu()
 {
 	/* This only works on 10.6 so we have a backup method */
@@ -1392,14 +1296,17 @@ int API dw_init(int newthread, int argc, char *argv[])
 	DWRunLoop = [NSRunLoop alloc];
 	/* Create object for handling timers */
 	DWHandler = [[DWTimerHandler alloc] init];
+    /* If we aren't using garbage collection we need autorelease pools */
 #if !defined(GARBAGE_COLLECT)
 	pool = [[NSAutoreleasePool alloc] init];
 #endif
+    /* Create a default main menu, with just the application menu */
 	DWMainMenu = _generate_main_menu();
 	[DWApp setMainMenu:DWMainMenu];
-	/*DWObject *test = [[DWObject alloc] init];
+	DWObject *test = [[DWObject alloc] init];
+    /* Use NSThread to start a dummy thread to initialize the threading subsystem */
 	NSThread *thread = [[ NSThread alloc] initWithTarget:test selector:@selector(uselessThread:) object:nil];
-	[thread start];*/
+	[thread start];
 	return 0;
 }
 
@@ -1977,6 +1884,7 @@ void API dw_entryfield_set_limit(HWND handle, ULONG limit)
  */
 HWND API dw_bitmapbutton_new(char *text, ULONG resid)
 {
+    /* TODO: Implement tooltips */
     NSBundle *bundle = [NSBundle mainBundle];
     NSString *respath = [bundle resourcePath];
     NSString *filepath = [respath stringByAppendingFormat:@"/%u.png", resid]; 
@@ -2848,6 +2756,7 @@ HWND API dw_render_new(unsigned long id)
  */
 void API dw_color_foreground_set(unsigned long value)
 {
+    /* This may need to be thread specific */
 	_foreground = _get_color(value);
 }
 
@@ -2859,6 +2768,7 @@ void API dw_color_foreground_set(unsigned long value)
  */
 void API dw_color_background_set(unsigned long value)
 {
+    /* This may need to be thread specific */
 	_background = _get_color(value);
 }
 
@@ -3139,7 +3049,7 @@ HWND API dw_tree_new(ULONG id)
  *          parent: Parent handle or 0 if root.
  *          itemdata: Item specific data.
  */
-HTREEITEM API dw_tree_insert_after(HWND handle, HTREEITEM item, char *title, unsigned long icon, HTREEITEM parent, void *itemdata)
+HTREEITEM API dw_tree_insert_after(HWND handle, HTREEITEM item, char *title, HICN icon, HTREEITEM parent, void *itemdata)
 {
 	NSLog(@"dw_tree_insert_item_after() unimplemented\n");
 	return HWND_DESKTOP;
@@ -3154,7 +3064,7 @@ HTREEITEM API dw_tree_insert_after(HWND handle, HTREEITEM item, char *title, uns
  *          parent: Parent handle or 0 if root.
  *          itemdata: Item specific data.
  */
-HTREEITEM API dw_tree_insert(HWND handle, char *title, unsigned long icon, HTREEITEM parent, void *itemdata)
+HTREEITEM API dw_tree_insert(HWND handle, char *title, HICN icon, HTREEITEM parent, void *itemdata)
 {
 	NSLog(@"dw_tree_insert_item() unimplemented\n");
 	return HWND_DESKTOP;
@@ -3192,7 +3102,7 @@ HTREEITEM API dw_tree_get_parent(HWND handle, HTREEITEM item)
  *          title: The text title of the entry.
  *          icon: Handle to coresponding icon.
  */
-void API dw_tree_item_change(HWND handle, HTREEITEM item, char *title, unsigned long icon)
+void API dw_tree_item_change(HWND handle, HTREEITEM item, char *title, HICN icon)
 {
 	NSLog(@"dw_tree_item_change() unimplemented\n");
 }
@@ -3312,6 +3222,11 @@ int API dw_container_setup(HWND handle, unsigned long *flags, char **titles, int
 	{
 		NSTableColumn *column = [[NSTableColumn alloc] init];
 		[[column headerCell] setStringValue:[ NSString stringWithUTF8String:titles[z] ]];
+        if(flags[z] & DW_CFA_BITMAPORICON)
+        {
+            NSImageCell *imagecell = [[[NSImageCell alloc] init] autorelease];
+            [column setDataCell:imagecell];
+        }
 		[cont addTableColumn:column];
 		[cont addColumn:column andType:(int)flags[z]];
 	}	
@@ -3376,10 +3291,14 @@ void API dw_container_set_item(HWND handle, void *pointer, int column, int row, 
 	id object = nil;
 	int type = [cont cellType:column];
 	int lastadd = [cont lastAddPoint];
-	
+    
+    if(!data)
+    {
+        return;
+    }
 	if(type & DW_CFA_BITMAPORICON)
 	{
-		/* TODO: Handle image here */
+		object = *((NSImage **)data);
 	}
 	else if(type & DW_CFA_STRING)
 	{
@@ -3464,8 +3383,9 @@ void API dw_filesystem_change_item(HWND handle, int column, int row, void *data)
  *          row: Zero based row of data being set.
  *          data: Pointer to the data to be added.
  */
-void API dw_filesystem_change_file(HWND handle, int row, char *filename, unsigned long icon)
+void API dw_filesystem_change_file(HWND handle, int row, char *filename, HICN icon)
 {
+    dw_container_change_item(handle, 0, row, &icon);
 	dw_container_change_item(handle, 1, row, filename);
 }
 
@@ -3478,8 +3398,9 @@ void API dw_filesystem_change_file(HWND handle, int row, char *filename, unsigne
  *          row: Zero based row of data being set.
  *          data: Pointer to the data to be added.
  */
-void API dw_filesystem_set_file(HWND handle, void *pointer, int row, char *filename, unsigned long icon)
+void API dw_filesystem_set_file(HWND handle, void *pointer, int row, char *filename, HICN icon)
 {
+    dw_container_set_item(handle, pointer, 0, row, &icon);
 	dw_container_set_item(handle, pointer, 1, row, filename);
 }
 
@@ -3668,7 +3589,7 @@ void API dw_container_optimize(HWND handle)
  *       icon: Icon handle to display in the taskbar.
  *       bubbletext: Text to show when the mouse is above the icon.
  */
-void API dw_taskbar_insert(HWND handle, unsigned long icon, char *bubbletext)
+void API dw_taskbar_insert(HWND handle, HICN icon, char *bubbletext)
 {
 	NSLog(@"dw_taskbar_insert() unimplemented\n");
 }
@@ -3679,7 +3600,7 @@ void API dw_taskbar_insert(HWND handle, unsigned long icon, char *bubbletext)
  *       handle: Window handle that was used with dw_taskbar_insert().
  *       icon: Icon handle that was used with dw_taskbar_insert().
  */
-void API dw_taskbar_delete(HWND handle, unsigned long icon)
+void API dw_taskbar_delete(HWND handle, HICN icon)
 {
 	NSLog(@"dw_taskbar_delete() unimplemented\n");
 }
@@ -3692,10 +3613,16 @@ void API dw_taskbar_delete(HWND handle, unsigned long icon)
  *              Windows, on GTK this is converted to a pointer
  *              to an embedded XPM.
  */
-unsigned long API dw_icon_load(unsigned long module, unsigned long id)
+HICN API dw_icon_load(unsigned long module, unsigned long resid)
 {
-	NSLog(@"dw_icon_load() unimplemented\n");
-	return 0;
+    NSBundle *bundle = [NSBundle mainBundle];
+    NSString *respath = [bundle resourcePath];
+    NSString *filepath = [respath stringByAppendingFormat:@"/%u.png", resid]; 
+	NSImage *image = [[NSImage alloc] initWithContentsOfFile:filepath];
+    [bundle release];
+    [respath release];
+    [filepath release];
+	return image;
 }
 
 /*
@@ -3705,10 +3632,9 @@ unsigned long API dw_icon_load(unsigned long module, unsigned long id)
  *                 DW pick the appropriate file extension.
  *                 (ICO on OS/2 or Windows, XPM on Unix)
  */
-unsigned long API dw_icon_load_from_file(char *filename)
+HICN API dw_icon_load_from_file(char *filename)
 {
-	NSLog(@"dw_icon_load_from_file() unimplemented\n");
-	return 0;
+	return [[NSImage alloc] initWithContentsOfFile:[ NSString stringWithUTF8String:filename ]];
 }
 
 /*
@@ -3718,10 +3644,12 @@ unsigned long API dw_icon_load_from_file(char *filename)
  *                 DW pick the appropriate file extension.
  *                 (ICO on OS/2 or Windows, XPM on Unix)
  */
-unsigned long API dw_icon_load_from_data(char *data, int len)
+HICN API dw_icon_load_from_data(char *data, int len)
 {
-	NSLog(@"dw_icon_load_from_data() unimplemented\n");
-	return 0;
+	NSData *thisdata = [[[NSData alloc] dataWithBytes:data length:len] autorelease];
+	NSImage *image = [[NSImage alloc] initWithData:thisdata];
+    [thisdata release];
+	return image;
 }
 
 /*
@@ -3729,9 +3657,10 @@ unsigned long API dw_icon_load_from_data(char *data, int len)
  * Parameters:
  *          handle: Handle to icon returned by dw_icon_load().
  */
-void API dw_icon_free(unsigned long handle)
+void API dw_icon_free(HICN handle)
 {
-	NSLog(@"dw_icon_free() unimplemented\n");
+    NSImage *image = handle;
+    [image release];
 }
 
 /*
@@ -3880,6 +3809,7 @@ HPIXMAP API dw_pixmap_new_from_data(HWND handle, char *data, int len)
 	pixmap->width = size.width;
 	pixmap->height = size.height;
 	pixmap->handle = image;
+    [thisdata release];
 	return pixmap;
 }
 
@@ -5127,6 +5057,7 @@ void API dw_beep(int freq, int dur)
  */
 void API dw_flush(void)
 {
+    /* This may need to be thread specific */
 	if(_DWLastDrawable)
 	{
 		id object = _DWLastDrawable;
@@ -6093,6 +6024,7 @@ void _dwthreadstart(void *data)
 {
    void (*threadfunc)(void *) = NULL;
    void **tmp = (void **)data;
+    /* If we aren't using garbage collection we need autorelease pools */
 #if !defined(GARBAGE_COLLECT)
 	NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
 #endif
@@ -6100,6 +6032,7 @@ void _dwthreadstart(void *data)
    threadfunc = (void (*)(void *))tmp[0];
 
    threadfunc(tmp[1]);
+    /* Release the pool when we are done so we don't leak */
 #if !defined(GARBAGE_COLLECT)
 	[pool release];
 #endif
@@ -6327,44 +6260,3 @@ int dw_browse(char *url)
 	
 	return dw_exec(browser, DW_EXEC_GUI, execargs);
 }
-
-#ifdef DWTEST
-int main(int argc, char *argv[]) 
-{
-	HWND window, box, vbox, hbox, button, text, checkbox, html;
-	LONG x, y;
-	ULONG width, height;
-	
-	dw_init(TRUE, argc, argv);
-	
-	window = dw_window_new(HWND_DESKTOP, "Dynamic Windows Test", DW_FCF_TITLEBAR | DW_FCF_SYSMENU | DW_FCF_MINMAX | DW_FCF_SIZEBORDER);
-	box = dw_box_new(DW_VERT, 0);
-	vbox = dw_groupbox_new(DW_VERT, 4, "Checks");
-	checkbox = dw_checkbox_new("Checkbox 1", 0);
-	dw_box_pack_start(vbox, checkbox, 100, 25, TRUE, FALSE, 2);
-	checkbox = dw_checkbox_new("Checkbox 2", 0);
-	dw_box_pack_start(vbox, checkbox, 100, 25, TRUE, FALSE, 2);
-	checkbox = dw_checkbox_new("Checkbox 3", 0);
-	dw_box_pack_start(vbox, checkbox, 100, 25, TRUE, FALSE, 2);
-	hbox = dw_box_new(DW_HORZ, 0);
-	button = dw_button_new("Test Button", 0);
-	/*dw_window_disable(button);*/
-	text = dw_entryfield_new("Entry", 0);
-	dw_box_pack_start(hbox, button, 100, 40, TRUE, FALSE, 2);
-	dw_box_pack_start(hbox, text, 100, 40, TRUE, FALSE, 2);
-	dw_box_pack_start(vbox, hbox, 0, 0, TRUE, FALSE, 0);
-	html = dw_html_new(0);
-	dw_html_url(html, "http://dbsoft.org");
-	dw_box_pack_start(vbox, html, 0, 0, TRUE, TRUE, 0);
-	dw_box_pack_start(box, vbox, 0, 0, TRUE, TRUE, 0);
-	dw_box_pack_start(window, box, 0, 0, TRUE, TRUE, 0);
-	dw_window_show(window);
-	dw_window_set_pos_size(window, 400, 400, 500, 500);
-	dw_window_get_pos_size(window, &x, &y, &width, &height);
-	dw_messagebox("Dynamic Windows Information", DW_MB_OK | DW_MB_INFORMATION, "%d %d %d %d %d %d %d\n", (int)x, (int)y, (int)width, (int)height, (int)dw_screen_width(), (int)dw_screen_height(), (int)dw_color_depth_get());
-	dw_messagebox("File selection", DW_MB_OK | DW_MB_INFORMATION, "%s", dw_file_browse("Choose file", "", "", DW_FILE_OPEN));
-	dw_main();
-	
-	return 0;
-}
-#endif
