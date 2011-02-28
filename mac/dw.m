@@ -564,7 +564,7 @@ HWND _DWLastDrawable;
 	NSMutableArray *data;
 	NSMutableArray *types;
 	NSPointerArray *titles;
-	int lastAddPoint;
+	int lastAddPoint, lastQueryPoint;
     id scrollview;
 }
 -(NSInteger)numberOfRowsInTableView:(NSTableView *)aTable;
@@ -575,6 +575,7 @@ HWND _DWLastDrawable;
 -(id)scrollview;
 -(void)setScrollview:(id)input;
 -(void)addColumn:(NSTableColumn *)input andType:(int)type;
+-(NSTableColumn *)getColumn:(int)col;
 -(int)addRow:(NSArray *)input;
 -(int)addRows:(int)number;
 -(void)editCell:(id)input at:(int)row and:(int)col;
@@ -584,6 +585,8 @@ HWND _DWLastDrawable;
 -(id)getRow:(int)row and:(int)col;
 -(int)cellType:(int)col;
 -(int)lastAddPoint;
+-(int)lastQueryPoint;
+-(void)setLastQueryPoint:(int)input;
 -(void)clear;
 -(void)setup;
 -(void)selectionChanged:(id)sender;
@@ -654,12 +657,13 @@ HWND _DWLastDrawable;
 -(NSScrollView *)scrollview { return scrollview; }
 -(void)setScrollview:(NSScrollView *)input { scrollview = input; }
 -(void)addColumn:(NSTableColumn *)input andType:(int)type { if(tvcols) { [tvcols addObject:input]; [types addObject:[NSNumber numberWithInt:type]]; } }
+-(NSTableColumn *)getColumn:(int)col { if(tvcols) { return [tvcols objectAtIndex:col]; } return nil; }
 -(int)addRow:(NSArray *)input { if(data) { lastAddPoint = (int)[titles count]; [data addObjectsFromArray:input]; [titles addPointer:NULL]; return (int)[titles count]; } return 0; }
 -(int)addRows:(int)number
 {
 	if(tvcols)
 	{
-		int count = (int)number * [tvcols count];
+		int count = (int)(number * [tvcols count]);
 		int z;
 		
 		lastAddPoint = (int)[titles count];
@@ -710,6 +714,8 @@ HWND _DWLastDrawable;
 -(id)getRow:(int)row and:(int)col { if(data) { int index = (int)(row * [tvcols count]) + col; return [data objectAtIndex:index]; } return nil; }
 -(int)cellType:(int)col { return [[types objectAtIndex:col] intValue]; }
 -(int)lastAddPoint { return lastAddPoint; }
+-(int)lastQueryPoint { return lastQueryPoint; }
+-(void)setLastQueryPoint:(int)input { lastQueryPoint = input; }
 -(void)clear { if(data) { [data removeAllObjects]; while([titles count]) { [titles removePointerAtIndex:0]; } } lastAddPoint = 0; }
 -(void)setup 
 { 
@@ -2573,7 +2579,10 @@ HWND API dw_mle_new(ULONG id)
 unsigned int API dw_mle_import(HWND handle, char *buffer, int startpoint)
 {
 	DWMLE *mle = handle;
-	[mle insertText:[ NSString stringWithUTF8String:buffer ]];
+    NSTextStorage *ts = [mle textStorage];
+    NSString *nstr = [NSString stringWithUTF8String:buffer];
+    NSMutableString *ms = [ts mutableString];
+    [ms insertString:nstr atIndex:(startpoint+1)];
 	return (unsigned int)strlen(buffer) + startpoint;
 }
 
@@ -2587,7 +2596,10 @@ unsigned int API dw_mle_import(HWND handle, char *buffer, int startpoint)
  */
 void API dw_mle_export(HWND handle, char *buffer, int startpoint, int length)
 {
-	NSLog(@"dw_mle_export() unimplemented\n");
+	DWMLE *mle = handle;
+    NSTextStorage *ts = [mle textStorage];
+    NSMutableString *ms = [ts mutableString];
+    strncpy(buffer, [ms UTF8String], length);
 }
 
 /*
@@ -2599,7 +2611,12 @@ void API dw_mle_export(HWND handle, char *buffer, int startpoint, int length)
  */
 void API dw_mle_get_size(HWND handle, unsigned long *bytes, unsigned long *lines)
 {
-	NSLog(@"dw_mle_get_size() unimplemented\n");
+	DWMLE *mle = handle;
+    NSTextStorage *ts = [mle textStorage];
+    NSMutableString *ms = [ts mutableString];
+    
+    *bytes = [ms length];
+    *lines = 0; /* TODO: Line count */
 }
 
 /*
@@ -2611,7 +2628,10 @@ void API dw_mle_get_size(HWND handle, unsigned long *bytes, unsigned long *lines
  */
 void API dw_mle_delete(HWND handle, int startpoint, int length)
 {
-	NSLog(@"dw_mle_delete() unimplemented\n");
+	DWMLE *mle = handle;
+    NSTextStorage *ts = [mle textStorage];
+    NSMutableString *ms = [ts mutableString];
+    [ms deleteCharactersInRange:NSMakeRange(startpoint+1, length)];
 }
 
 /*
@@ -2621,7 +2641,11 @@ void API dw_mle_delete(HWND handle, int startpoint, int length)
  */
 void API dw_mle_clear(HWND handle)
 {
-	NSLog(@"dw_mle_clear() unimplemented\n");
+	DWMLE *mle = handle;
+    NSTextStorage *ts = [mle textStorage];
+    NSMutableString *ms = [ts mutableString];
+    NSUInteger length = [ms length];
+    [ms deleteCharactersInRange:NSMakeRange(0, length)];
 }
 
 /*
@@ -2632,7 +2656,7 @@ void API dw_mle_clear(HWND handle)
  */
 void API dw_mle_set_visible(HWND handle, int line)
 {
-	NSLog(@"dw_mle_clear() unimplemented\n");
+	NSLog(@"dw_mle_set_visible() unimplemented\n");
 }
 
 /*
@@ -2662,7 +2686,15 @@ void API dw_mle_set_editable(HWND handle, int state)
  */
 void API dw_mle_set_word_wrap(HWND handle, int state)
 {
-	NSLog(@"dw_mle_set_word_wrap() unimplemented\n");
+    DWMLE *mle = handle;
+    if(state)
+    {
+        [mle setHorizontallyResizable:NO];
+    }
+    else
+    {
+        [mle setHorizontallyResizable:YES];
+    }
 }
 
 /*
@@ -2697,7 +2729,7 @@ int API dw_mle_search(HWND handle, char *text, int point, unsigned long flags)
  */
 void API dw_mle_freeze(HWND handle)
 {
-	NSLog(@"dw_mle_freeze() unimplemented\n");
+	/* Don't think this is necessary */
 }
 
 /*
@@ -2707,7 +2739,7 @@ void API dw_mle_freeze(HWND handle)
  */
 void API dw_mle_thaw(HWND handle)
 {
-	NSLog(@"dw_mle_thaw() unimplemented\n");
+	/* Don't think this is necessary */
 }
 
 /*
@@ -3235,6 +3267,11 @@ int API dw_container_setup(HWND handle, unsigned long *flags, char **titles, int
         {
             NSImageCell *imagecell = [[[NSImageCell alloc] init] autorelease];
             [column setDataCell:imagecell];
+            if(z == 0 && titles[z] && strcmp(titles[z], "Icon") == 0)
+            {
+                [column setResizingMask:NSTableColumnNoResizing];
+                [column setWidth:20];
+            }
         }
 		[cont addTableColumn:column];
 		[cont addColumn:column andType:(int)flags[z]];
@@ -3460,7 +3497,10 @@ int API dw_filesystem_get_column_type(HWND handle, int column)
  */
 void API dw_container_set_column_width(HWND handle, int column, int width)
 {
-	NSLog(@"dw_container_set_column_width() unimplemented\n");
+    DWContainer *cont = handle;
+    NSTableColumn *col = [cont getColumn:column];
+    
+    [col setWidth:width];
 }
 
 /*
@@ -3513,7 +3553,13 @@ void API dw_container_clear(HWND handle, int redraw)
  */
 void API dw_container_delete(HWND handle, int rowcount)
 {
-	NSLog(@"dw_container_delete() unimplemented\n");
+    DWContainer *cont = handle;
+    int x;
+    
+    for(x=0;x<rowcount;x++)
+    {
+        [cont removeRow:0];
+    }
 }
 
 /*
@@ -3539,8 +3585,18 @@ void API dw_container_scroll(HWND handle, int direction, long rows)
  */
 char * API dw_container_query_start(HWND handle, unsigned long flags)
 {
-	NSLog(@"dw_container_query_start() unimplemented\n");
-	return NULL;
+    DWContainer *cont = handle;
+    NSIndexSet *selected = [cont selectedRowIndexes];
+    NSUInteger result = [selected indexGreaterThanOrEqualToIndex:0];
+    char *retval = NULL;
+    
+    if(result != NSNotFound)
+    {
+        retval = [cont getRowTitle:(int)result];
+        [cont setLastQueryPoint:(int)result];
+    }
+    [selected release];
+	return retval;
 }
 
 /*
@@ -3553,8 +3609,19 @@ char * API dw_container_query_start(HWND handle, unsigned long flags)
  */
 char * API dw_container_query_next(HWND handle, unsigned long flags)
 {
-	NSLog(@"dw_container_query_next() unimplemented\n");
-	return NULL;
+    DWContainer *cont = handle;
+    int lastQueryPoint = [cont lastQueryPoint];
+    NSIndexSet *selected = [cont selectedRowIndexes];
+    NSUInteger result = [selected indexGreaterThanIndex:lastQueryPoint];
+    char *retval = NULL;
+    
+    if(result != NSNotFound)
+    {
+        retval = [cont getRowTitle:(int)result];
+        [cont setLastQueryPoint:(int)result];
+    }
+    [selected release];
+	return retval;
 }
 
 /*
@@ -3565,7 +3632,22 @@ char * API dw_container_query_next(HWND handle, unsigned long flags)
  */
 void API dw_container_cursor(HWND handle, char *text)
 {
-	NSLog(@"dw_container_cursor() unimplemented\n");
+    DWContainer *cont = handle;
+    char *thistext;
+    int x, count = (int)[cont numberOfRowsInTableView:cont];
+    
+    for(x=0;x<count;x++)
+    {
+        thistext = [cont getRowTitle:x];
+        
+        if(thistext == text)
+        {
+            NSIndexSet *selected = [[NSIndexSet alloc] initWithIndex:(NSUInteger)x];
+            
+            [cont selectRowIndexes:selected byExtendingSelection:YES];
+            [selected release];
+        }
+    }
 }
 
 /*
@@ -3576,7 +3658,20 @@ void API dw_container_cursor(HWND handle, char *text)
  */
 void API dw_container_delete_row(HWND handle, char *text)
 {
-	NSLog(@"dw_container_delete_row() unimplemented\n");
+    DWContainer *cont = handle;
+    char *thistext;
+    int x, count = (int)[cont numberOfRowsInTableView:cont];
+    
+    for(x=0;x<count;x++)
+    {
+        thistext = [cont getRowTitle:x];
+        
+        if(thistext == text)
+        {
+            [cont removeRow:x];
+            return;
+        }
+    }
 }
 
 /*
@@ -4598,6 +4693,11 @@ void API dw_window_set_style(HWND handle, ULONG style, ULONG mask)
 		
 		[window setStyleMask:tmp];
 	}
+    else if([object isMemberOfClass:[NSTextView class]])
+    {
+        NSTextView *tv = handle;
+        [tv setAlignment:(style & mask)];
+    }
 }
 
 /*
@@ -4813,7 +4913,10 @@ void API dw_window_set_bitmap_from_data(HWND handle, unsigned long id, char *dat
 		NSData *thisdata = [[NSData alloc] dataWithBytes:data length:len];
 		NSImage *pixmap = [[NSImage alloc] initWithData:thisdata];
 		
-		[iv setImage:pixmap];
+        if(pixmap)
+        {
+            [iv setImage:pixmap];
+        }
 	}
 }
 
@@ -4827,15 +4930,27 @@ void API dw_window_set_bitmap_from_data(HWND handle, unsigned long id, char *dat
  *                 Windows and a pixmap on Unix, pass
  *                 NULL if you use the id param)
  */
-void API dw_window_set_bitmap(HWND handle, unsigned long id, char *filename)
+void API dw_window_set_bitmap(HWND handle, unsigned long resid, char *filename)
 {
 	NSObject *object = handle;
 	if([ object isKindOfClass:[ NSImageView class ] ])
 	{
 		NSImageView *iv = handle;
-		NSImage *pixmap = [[NSImage alloc] initWithContentsOfFile:[ NSString stringWithUTF8String:filename ]];
+        NSImage *bitmap = NULL;
+        
+        if(filename)
+        {
+             bitmap = [[NSImage alloc] initWithContentsOfFile:[ NSString stringWithUTF8String:filename ]];
+        }
+        else if(resid > 0 && resid < 65536)
+        {
+            bitmap = dw_icon_load(0, resid);
+        }
 		
-		[iv setImage:pixmap];
+        if(bitmap)
+        {
+            [iv setImage:bitmap];
+        }
 	}
 }
 
