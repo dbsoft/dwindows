@@ -310,9 +310,9 @@ typedef struct _hpixmap {
 #define DW_DT_STRIKEOUT          0
 #define DW_DT_TEXTATTRS          0
 #define DW_DT_EXTERNALLEADING    0
-#define DW_DT_CENTER             0
-#define DW_DT_RIGHT              0
-#define DW_DT_TOP                0
+#define DW_DT_CENTER             2 /* NSCenterTextAlignment */
+#define DW_DT_RIGHT              1 /* NSCenterTextAlignment */
+#define DW_DT_TOP                0 /* NSLeftTextAlignment */
 #define DW_DT_VCENTER            0
 #define DW_DT_BOTTOM             0
 #define DW_DT_HALFTONE           0
