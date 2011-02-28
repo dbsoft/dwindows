@@ -200,7 +200,7 @@ int _event_handler(id object, NSEvent *event, int message)
 @end
 
 @implementation DWTimerHandler
--(void)runTimer:(id)sender { _event_handler(self, nil, 0); }
+-(void)runTimer:(id)sender { _event_handler(sender, nil, 0); }
 @end
 
 NSApplication *DWApp;
@@ -1912,7 +1912,14 @@ HWND API dw_bitmapbutton_new(char *text, ULONG resid)
  */
 HWND API dw_bitmapbutton_new_from_file(char *text, unsigned long id, char *filename)
 {
-	NSImage *image = [[NSImage alloc] initWithContentsOfFile:[ NSString stringWithUTF8String:filename ]];
+    NSString *nstr = [ NSString stringWithUTF8String:filename ];
+    NSImage *image = [[NSImage alloc] initWithContentsOfFile:nstr];
+    if(!image)
+    {
+        nstr = [nstr stringByAppendingString:@".png"];
+        image = [[NSImage alloc] initWithContentsOfFile:nstr];
+    }
+    [nstr release];
 	DWButton *button = _button_new("", id);
 	[button setImage:image];
 	return button;
@@ -3636,7 +3643,15 @@ HICN API dw_icon_load(unsigned long module, unsigned long resid)
  */
 HICN API dw_icon_load_from_file(char *filename)
 {
-	return [[NSImage alloc] initWithContentsOfFile:[ NSString stringWithUTF8String:filename ]];
+    NSString *nstr = [ NSString stringWithUTF8String:filename ];
+    NSImage *image = [[NSImage alloc] initWithContentsOfFile:nstr];
+    if(!image)
+    {
+        nstr = [nstr stringByAppendingString:@".png"];
+        image = [[NSImage alloc] initWithContentsOfFile:nstr];
+    }
+    [nstr release];
+	return image;
 }
 
 /*
@@ -3781,7 +3796,14 @@ HPIXMAP API dw_pixmap_new_from_file(HWND handle, char *filename)
 	
 	if (!(pixmap = calloc(1,sizeof(struct _hpixmap))))
 		return NULL;
-	NSImage *image = [[NSImage alloc] initWithContentsOfFile:[ NSString stringWithUTF8String:filename ]];
+    NSString *nstr = [ NSString stringWithUTF8String:filename ];
+    NSImage *image = [[NSImage alloc] initWithContentsOfFile:nstr];
+    if(!image)
+    {
+        nstr = [nstr stringByAppendingString:@".png"];
+        image = [[NSImage alloc] initWithContentsOfFile:nstr];
+    }
+    [nstr release];
 	NSSize size = [image size];
 	pixmap->width = size.width;
 	pixmap->height = size.height;
@@ -4665,7 +4687,10 @@ int API dw_window_set_font(HWND handle, char *fontname)
                 [font set];
                 [object unlockFocus];
             }
-            [object setFont:font];
+            if([object isMemberOfClass:[NSControl class]])
+            {
+                [object setFont:font];
+            }
         }
 	}
 	free(fontcopy);
