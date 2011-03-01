@@ -2566,7 +2566,16 @@ HWND API dw_combobox_new(char *text, ULONG id)
 HWND API dw_mle_new(ULONG id)
 {
 	DWMLE *mle = [[DWMLE alloc] init];
-	return mle;
+    NSScrollView *scrollview  = [[NSScrollView alloc] init];    
+    
+    //[mle setScrollview:scrollview];
+    [scrollview setBorderType:NSBezelBorder];
+    [scrollview setHasVerticalScroller:YES];
+    [scrollview setAutohidesScrollers:YES];
+    [scrollview setAutoresizingMask:NSViewWidthSizable|NSViewHeightSizable];
+    [scrollview setDocumentView:mle];
+    [mle setAutoresizingMask:NSViewWidthSizable];
+	return scrollview;
 }	
 
 /*
@@ -2578,7 +2587,8 @@ HWND API dw_mle_new(ULONG id)
  */
 unsigned int API dw_mle_import(HWND handle, char *buffer, int startpoint)
 {
-	DWMLE *mle = handle;
+    NSScrollView *sv = handle;
+	DWMLE *mle = [sv documentView];
     NSTextStorage *ts = [mle textStorage];
     NSString *nstr = [NSString stringWithUTF8String:buffer];
     NSMutableString *ms = [ts mutableString];
@@ -2596,7 +2606,8 @@ unsigned int API dw_mle_import(HWND handle, char *buffer, int startpoint)
  */
 void API dw_mle_export(HWND handle, char *buffer, int startpoint, int length)
 {
-	DWMLE *mle = handle;
+    NSScrollView *sv = handle;
+	DWMLE *mle = [sv documentView];
     NSTextStorage *ts = [mle textStorage];
     NSMutableString *ms = [ts mutableString];
     strncpy(buffer, [ms UTF8String], length);
@@ -2611,7 +2622,8 @@ void API dw_mle_export(HWND handle, char *buffer, int startpoint, int length)
  */
 void API dw_mle_get_size(HWND handle, unsigned long *bytes, unsigned long *lines)
 {
-	DWMLE *mle = handle;
+    NSScrollView *sv = handle;
+	DWMLE *mle = [sv documentView];
     NSTextStorage *ts = [mle textStorage];
     NSMutableString *ms = [ts mutableString];
     
@@ -2628,7 +2640,8 @@ void API dw_mle_get_size(HWND handle, unsigned long *bytes, unsigned long *lines
  */
 void API dw_mle_delete(HWND handle, int startpoint, int length)
 {
-	DWMLE *mle = handle;
+    NSScrollView *sv = handle;
+	DWMLE *mle = [sv documentView];
     NSTextStorage *ts = [mle textStorage];
     NSMutableString *ms = [ts mutableString];
     [ms deleteCharactersInRange:NSMakeRange(startpoint+1, length)];
@@ -2641,7 +2654,8 @@ void API dw_mle_delete(HWND handle, int startpoint, int length)
  */
 void API dw_mle_clear(HWND handle)
 {
-	DWMLE *mle = handle;
+    NSScrollView *sv = handle;
+	DWMLE *mle = [sv documentView];
     NSTextStorage *ts = [mle textStorage];
     NSMutableString *ms = [ts mutableString];
     NSUInteger length = [ms length];
@@ -2667,7 +2681,8 @@ void API dw_mle_set_visible(HWND handle, int line)
  */
 void API dw_mle_set_editable(HWND handle, int state)
 {
-	DWMLE *mle = handle;
+    NSScrollView *sv = handle;
+	DWMLE *mle = [sv documentView];
 	if(state)
 	{
 		[mle setEditable:YES];
@@ -2686,7 +2701,8 @@ void API dw_mle_set_editable(HWND handle, int state)
  */
 void API dw_mle_set_word_wrap(HWND handle, int state)
 {
-    DWMLE *mle = handle;
+    NSScrollView *sv = handle;
+	DWMLE *mle = [sv documentView];
     if(state)
     {
         [mle setHorizontallyResizable:NO];
@@ -3824,7 +3840,17 @@ HWND API dw_splitbar_new(int type, HWND topleft, HWND bottomright, unsigned long
 void API dw_splitbar_set(HWND handle, float percent)
 {
 	DWSplitBar *split = handle;
-	[split setPosition:percent ofDividerAtIndex:0];
+    NSRect rect = [split frame];
+    float pos;
+    if([split isVertical])
+    {
+        pos = rect.size.height * (percent / 100.0);
+    }
+    else
+    {
+        pos = rect.size.width * (percent / 100.0);
+    }
+	[split setPosition:pos ofDividerAtIndex:0];
 }
 
 /*
@@ -3834,8 +3860,27 @@ void API dw_splitbar_set(HWND handle, float percent)
  */
 float API dw_splitbar_get(HWND handle)
 {
-	NSLog(@"dw_splitbar_get() unimplemented\n");
-	return 0.0;
+	DWSplitBar *split = handle;
+    NSRect rect1 = [split frame];
+    NSArray *subviews = [split subviews];
+    NSView *view = [subviews objectAtIndex:0];
+    NSRect rect2 = [view frame];
+    float pos, total, retval = 0.0;
+    if([split isVertical])
+    {
+        total = rect1.size.height;
+        pos = rect2.size.height;
+    }
+    else
+    {
+        total = rect1.size.width;
+        pos = rect2.size.width;
+    }
+    if(total > 0)
+    {
+        retval = pos / total;
+    }
+	return retval;
 }
 
 /*
@@ -5319,6 +5364,11 @@ int _remove_userdata(UserData **root, char *varname, int all)
 void dw_window_set_data(HWND window, char *dataname, void *data)
 {
 	id object = window;
+    if([object isMemberOfClass:[NSScrollView class]])
+    {
+        NSScrollView *sv = window;
+        object = [sv documentView];
+    }
 	WindowData *blah = (WindowData *)[object userdata];
 	
 	if(!blah)
@@ -5351,6 +5401,11 @@ void dw_window_set_data(HWND window, char *dataname, void *data)
 void *dw_window_get_data(HWND window, char *dataname)
 {
 	id object = window;
+    if([object isMemberOfClass:[NSScrollView class]])
+    {
+        NSScrollView *sv = window;
+        object = [sv documentView];
+    }
 	WindowData *blah = (WindowData *)[object userdata];
 	
 	if(blah && blah->root && dataname)
