@@ -64,7 +64,10 @@ typedef struct _sighandler
 
 SignalHandler *Root = NULL;
 
+/* Some internal prototypes */
 static void _do_resize(Box *thisbox, int x, int y);
+int _remove_userdata(UserData **root, char *varname, int all);
+
 SignalHandler *_get_handler(HWND window, int messageid)
 {
 	SignalHandler *tmp = Root;
@@ -227,8 +230,8 @@ HWND _DWLastDrawable;
 	void *userdata;
 	NSColor *bgcolor;
 }
-- (id)init;
--(void) dealloc; 
+-(id)init;
+-(void)dealloc; 
 -(Box *)box;
 -(void *)userdata;
 -(void)setUserdata:(void *)input;
@@ -240,7 +243,7 @@ HWND _DWLastDrawable;
 @end
 
 @implementation DWBox
-- (id)init 
+-(id)init 
 {
     self = [super init];
     
@@ -250,9 +253,11 @@ HWND _DWLastDrawable;
     }
     return self;
 }
--(void) dealloc 
+-(void)dealloc 
 {
+    UserData *root = userdata;
     free(box);
+    _remove_userdata(&root, NULL, TRUE);
     [super dealloc];
 }
 -(Box *)box { return box; }
@@ -346,6 +351,7 @@ HWND _DWLastDrawable;
 -(void *)userdata { return userdata; }
 -(void)setUserdata:(void *)input { userdata = input; }
 -(void)buttonClicked:(id)sender { _event_handler(self, nil, 8); }
+-(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); [super dealloc]; }
 @end
 
 /* Subclass for a progress type */
@@ -360,6 +366,7 @@ HWND _DWLastDrawable;
 @implementation DWPercent
 -(void *)userdata { return userdata; }
 -(void)setUserdata:(void *)input { userdata = input; }
+-(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); [super dealloc]; }
 @end
 
 /* Subclass for a entryfield type */
@@ -374,6 +381,7 @@ HWND _DWLastDrawable;
 @implementation DWEntryField
 -(void *)userdata { return userdata; }
 -(void)setUserdata:(void *)input { userdata = input; }
+-(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); [super dealloc]; }
 @end
 
 /* Subclass for a entryfield password type */
@@ -388,6 +396,7 @@ HWND _DWLastDrawable;
 @implementation DWEntryFieldPassword
 -(void *)userdata { return userdata; }
 -(void)setUserdata:(void *)input { userdata = input; }
+-(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); [super dealloc]; }
 @end
 
 /* Subclass for a Notebook control type */
@@ -420,6 +429,7 @@ HWND _DWLastDrawable;
 		_do_resize(box, size.width, size.height);
 	}
 }	
+-(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); [super dealloc]; }
 @end
 
 /* Subclass for a Notebook page type */
@@ -439,6 +449,7 @@ HWND _DWLastDrawable;
 -(void)setUserdata:(void *)input { userdata = input; }
 -(int)pageid { return pageid; }
 -(void)setPageid:(int)input { pageid = input; }
+-(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); [super dealloc]; }
 @end
 
 /* Subclass for a color chooser type */
@@ -492,6 +503,7 @@ HWND _DWLastDrawable;
 -(void)setUserdata:(void *)input { userdata = input; }
 -(float)percent { return percent; }
 -(void)setPercent:(float)input { percent = input; }
+-(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); [super dealloc]; }
 @end
 
 /* Subclass for a slider type */
@@ -506,6 +518,7 @@ HWND _DWLastDrawable;
 @implementation DWSlider
 -(void *)userdata { return userdata; }
 -(void)setUserdata:(void *)input { userdata = input; }
+-(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); [super dealloc]; }
 @end
 
 /* Subclass for a slider type */
@@ -530,6 +543,7 @@ HWND _DWLastDrawable;
 -(float)visible { return visible; }
 -(void)setRange:(float)input1 andVisible:(float)input2 { range = input1; visible = input2; }
 -(void)changed:(id)sender { /*NSNumber *num = [NSNumber numberWithDouble:[scroller floatValue]]; NSLog([num stringValue]);*/ }
+-(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); [super dealloc]; }
 @end
 
 /* Subclass for a render area type */
@@ -552,6 +566,7 @@ HWND _DWLastDrawable;
 -(void)mouseDown:(NSEvent *)theEvent { _event_handler(self, theEvent, 3); }
 -(void)mouseUp:(NSEvent *)theEvent { _event_handler(self, theEvent, 4); }
 -(BOOL)isFlipped { return NO; }
+-(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); [super dealloc]; }
 @end
 
 /* Subclass for a MLE type */
@@ -566,6 +581,7 @@ HWND _DWLastDrawable;
 @implementation DWMLE
 -(void *)userdata { return userdata; }
 -(void)setUserdata:(void *)input { userdata = input; }
+-(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); [super dealloc]; }
 @end
 
 /* Subclass for a Container/List type */
@@ -749,6 +765,7 @@ HWND _DWLastDrawable;
 	_event_handler(self, (NSEvent *)[self getRowTitle:row], 10);
 	return nil;
 }
+-(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); [super dealloc]; }
 @end
 
 /* Subclass for a Calendar type */
@@ -763,6 +780,7 @@ HWND _DWLastDrawable;
 @implementation DWCalendar
 -(void *)userdata { return userdata; }
 -(void)setUserdata:(void *)input { userdata = input; }
+-(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); [super dealloc]; }
 @end
 
 /* Subclass for a Combobox type */
@@ -777,6 +795,43 @@ HWND _DWLastDrawable;
 @implementation DWComboBox
 -(void *)userdata { return userdata; }
 -(void)setUserdata:(void *)input { userdata = input; }
+-(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); [super dealloc]; }
+@end
+
+/* Subclass for a Spinbutton type */
+@interface DWSpinButton : NSView{
+	void *userdata;
+    NSTextField *textfield;
+    NSStepper *stepper;
+}
+-(id)init;
+-(void *)userdata;
+-(void)setUserdata:(void *)input;
+-(NSTextField *)textfield;
+-(NSStepper *)stepper;
+@end
+
+@implementation DWSpinButton
+-(id)init 
+{
+    self = [super init];
+    
+    if (self) 
+    {
+        textfield = [[NSTextField alloc] init];
+        [self addSubview:textfield];
+        stepper = [[NSStepper alloc] init];
+        [self addSubview:stepper];
+        [textfield takeIntValueFrom:stepper];
+        [stepper takeIntValueFrom:textfield];
+    }
+    return self;
+}
+-(void *)userdata { return userdata; }
+-(void)setUserdata:(void *)input { userdata = input; }
+-(NSTextField *)textfield { return textfield; }
+-(NSStepper *)stepper { return stepper; }
+-(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); [super dealloc]; }
 @end
 
 /* Subclass for a test object type */
@@ -1194,6 +1249,17 @@ static int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *
 					_do_resize(box, size.width, size.height);
 				}
 			}
+            /* Special handling for spinbutton controls */
+            else if([handle isMemberOfClass:[DWSpinButton class]])
+            {
+                DWSpinButton *spinbutton = (DWSpinButton *)handle;
+                NSTextField *textfield = [spinbutton textfield];
+                NSStepper *stepper = [spinbutton stepper];
+                [textfield setFrameOrigin:NSMakePoint(0,0)];
+                [textfield setFrameSize:NSMakeSize(size.width-20,size.height)];
+                [stepper setFrameOrigin:NSMakePoint(size.width-20,0)];
+                [stepper setFrameSize:NSMakeSize(20,size.height)];
+            }
 			else if([handle isMemberOfClass:[DWRender class]])
 			{
 				_event_handler(handle, nil, 1);
@@ -1980,8 +2046,10 @@ HWND API dw_bitmapbutton_new_from_data(char *text, unsigned long id, char *data,
  */
 HWND API dw_spinbutton_new(char *text, ULONG id)
 {
-	NSLog(@"dw_spinbutton_new() unimplemented\n");
-	return HWND_DESKTOP;
+    DWSpinButton *spinbutton = [[DWSpinButton alloc] init];
+	NSStepper *stepper = [spinbutton stepper];
+    [stepper setIncrement:1];
+    return spinbutton;
 }
 
 /*
@@ -1992,7 +2060,9 @@ HWND API dw_spinbutton_new(char *text, ULONG id)
  */
 void API dw_spinbutton_set_pos(HWND handle, long position)
 {
-	NSLog(@"dw_spinbutton_set_pos() unimplemented\n");
+    DWSpinButton *spinbutton = handle;
+	NSStepper *stepper = [spinbutton stepper];
+    [stepper setIntValue:(int)position];
 }
 
 /*
@@ -2004,7 +2074,10 @@ void API dw_spinbutton_set_pos(HWND handle, long position)
  */
 void API dw_spinbutton_set_limits(HWND handle, long upper, long lower)
 {
-	NSLog(@"dw_spinbutton_set_limits() unimplemented\n");
+    DWSpinButton *spinbutton = handle;
+	NSStepper *stepper = [spinbutton stepper];
+    [stepper setMinValue:(double)lower];
+    [stepper setMaxValue:(double)upper];
 }
 
 /*
@@ -2014,8 +2087,9 @@ void API dw_spinbutton_set_limits(HWND handle, long upper, long lower)
  */
 long API dw_spinbutton_get_pos(HWND handle)
 {
-	NSLog(@"dw_spinbutton_get_pos() unimplemented\n");
-    return 0;
+    DWSpinButton *spinbutton = handle;
+	NSStepper *stepper = [spinbutton stepper];
+    return (long)[stepper integerValue];
 }
 
 /*
