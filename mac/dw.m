@@ -459,12 +459,20 @@ HWND _DWLastDrawable;
 @end
 
 /* Subclass for a splitbar type */
-@interface DWSplitBar : NSSplitView <NSSplitViewDelegate> { }
-- (void)splitViewDidResizeSubviews:(NSNotification *)aNotification;
+@interface DWSplitBar : NSSplitView <NSSplitViewDelegate> 
+{ 
+	void *userdata; 
+    float percent;
+}
+-(void)splitViewDidResizeSubviews:(NSNotification *)aNotification;
+-(void *)userdata;
+-(void)setUserdata:(void *)input;
+-(float)percent;
+-(void)setPercent:(float)input;
 @end
 
 @implementation DWSplitBar
-- (void)splitViewDidResizeSubviews:(NSNotification *)aNotification
+-(void)splitViewDidResizeSubviews:(NSNotification *)aNotification
 {
 	NSArray *views = [self subviews];
 	id object;
@@ -480,6 +488,10 @@ HWND _DWLastDrawable;
 		}
 	}		
 }
+-(void *)userdata { return userdata; }
+-(void)setUserdata:(void *)input { userdata = input; }
+-(float)percent { return percent; }
+-(void)setPercent:(float)input { percent = input; }
 @end
 
 /* Subclass for a slider type */
@@ -1185,6 +1197,17 @@ static int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *
 			else if([handle isMemberOfClass:[DWRender class]])
 			{
 				_event_handler(handle, nil, 1);
+			}
+			else if([handle isMemberOfClass:[DWSplitBar class]] && size.width > 20 && size.height > 20)
+			{
+                DWSplitBar *split = (DWSplitBar *)handle;
+				float percent = [split percent];
+                
+                if(percent > 0)
+                {
+                    dw_splitbar_set(handle, percent);
+                    [split setPercent:0];
+                }
 			}
 			 
 			if(thisbox->type == DW_HORZ)
@@ -3842,15 +3865,27 @@ void API dw_splitbar_set(HWND handle, float percent)
 	DWSplitBar *split = handle;
     NSRect rect = [split frame];
     float pos;
+    /* Calculate the position based on the size */
     if([split isVertical])
-    {
-        pos = rect.size.height * (percent / 100.0);
-    }
-    else
     {
         pos = rect.size.width * (percent / 100.0);
     }
-	[split setPosition:pos ofDividerAtIndex:0];
+    else
+    {
+        pos = rect.size.height * (percent / 100.0);
+    }
+    if(pos > 0)
+    {
+        [split setPosition:pos ofDividerAtIndex:0];
+    }
+    else
+    {
+        /* If we have no size.. wait until the resize
+         * event when we get an actual size to try 
+         * to set the splitbar again.
+         */
+        [split setPercent:percent];
+    }
 }
 
 /*
@@ -3868,13 +3903,13 @@ float API dw_splitbar_get(HWND handle)
     float pos, total, retval = 0.0;
     if([split isVertical])
     {
-        total = rect1.size.height;
-        pos = rect2.size.height;
+        total = rect1.size.width;
+        pos = rect2.size.width;
     }
     else
     {
-        total = rect1.size.width;
-        pos = rect2.size.width;
+        total = rect1.size.height;
+        pos = rect2.size.height;
     }
     if(total > 0)
     {
