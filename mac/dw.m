@@ -738,7 +738,7 @@ HWND _DWLastDrawable;
 	}
 }
 -(void)setRow:(int)row title:(void *)input { if(titles && input) { [titles replacePointerAtIndex:row withPointer:input]; } }
--(void *)getRowTitle:(int)row { if(titles) { return [titles pointerAtIndex:row]; } return NULL; }
+-(void *)getRowTitle:(int)row { if(titles && row > -1) { return [titles pointerAtIndex:row]; } return NULL; }
 -(id)getRow:(int)row and:(int)col { if(data) { int index = (int)(row * [tvcols count]) + col; return [data objectAtIndex:index]; } return nil; }
 -(int)cellType:(int)col { return [[types objectAtIndex:col] intValue]; }
 -(int)lastAddPoint { return lastAddPoint; }
