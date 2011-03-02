@@ -5653,7 +5653,12 @@ int _remove_userdata(UserData **root, char *varname, int all)
 void dw_window_set_data(HWND window, char *dataname, void *data)
 {
 	id object = window;
-    if([object isMemberOfClass:[NSScrollView class]])
+    if([object isMemberOfClass:[NSWindow class]])
+    {
+        NSWindow *win = window;
+        object = [win contentView];
+    }
+    else if([object isMemberOfClass:[NSScrollView class]])
     {
         NSScrollView *sv = window;
         object = [sv documentView];
@@ -5690,7 +5695,12 @@ void dw_window_set_data(HWND window, char *dataname, void *data)
 void *dw_window_get_data(HWND window, char *dataname)
 {
 	id object = window;
-    if([object isMemberOfClass:[NSScrollView class]])
+    if([object isMemberOfClass:[NSWindow class]])
+    {
+        NSWindow *win = window;
+        object = [win contentView];
+    }
+    else if([object isMemberOfClass:[NSScrollView class]])
     {
         NSScrollView *sv = window;
         object = [sv documentView];
