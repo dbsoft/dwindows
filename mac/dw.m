@@ -798,17 +798,48 @@ HWND _DWLastDrawable;
 -(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); [super dealloc]; }
 @end
 
+/* Subclass for a stepper component of the spinbutton type */
+/* This is a bad way of doing this... but I can't get the other methods to work */
+@interface DWStepper : NSStepper 
+{ 
+    id textfield;
+}
+-(void)setTextfield:(id)input;
+-(id)textfield;
+-(void)mouseDown:(NSEvent *)event;
+-(void)mouseUp:(NSEvent *)event;
+@end
+
+@implementation DWStepper
+-(void)setTextfield:(id)input { textfield = input; }
+-(id)textfield { return textfield; }
+-(void)mouseDown:(NSEvent *)event
+{
+    [super mouseDown:event];
+    if([[NSApp currentEvent] type] == NSLeftMouseUp) 
+    {
+        [textfield takeIntValueFrom:self]; 
+    }
+}
+-(void)mouseUp:(NSEvent *)event
+{
+    [textfield takeIntValueFrom:self]; 
+}
+@end
+
 /* Subclass for a Spinbutton type */
-@interface DWSpinButton : NSView{
+@interface DWSpinButton : NSView <NSTextFieldDelegate>
+{
 	void *userdata;
     NSTextField *textfield;
-    NSStepper *stepper;
+    DWStepper *stepper;
 }
 -(id)init;
 -(void *)userdata;
 -(void)setUserdata:(void *)input;
 -(NSTextField *)textfield;
 -(NSStepper *)stepper;
+-(void)controlTextDidChange:(NSNotification *)aNotification;
 @end
 
 @implementation DWSpinButton
@@ -816,14 +847,15 @@ HWND _DWLastDrawable;
 {
     self = [super init];
     
-    if (self) 
+    if(self) 
     {
         textfield = [[NSTextField alloc] init];
         [self addSubview:textfield];
-        stepper = [[NSStepper alloc] init];
+        stepper = [[DWStepper alloc] init];
         [self addSubview:stepper];
+        [stepper setTextfield:textfield];
         [textfield takeIntValueFrom:stepper];
-        [stepper takeIntValueFrom:textfield];
+        [textfield setDelegate:self];
     }
     return self;
 }
@@ -831,6 +863,10 @@ HWND _DWLastDrawable;
 -(void)setUserdata:(void *)input { userdata = input; }
 -(NSTextField *)textfield { return textfield; }
 -(NSStepper *)stepper { return stepper; }
+-(void)controlTextDidChange:(NSNotification *)aNotification
+{
+    [stepper takeIntValueFrom:textfield];
+}
 -(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); [super dealloc]; }
 @end
 
@@ -2062,7 +2098,9 @@ void API dw_spinbutton_set_pos(HWND handle, long position)
 {
     DWSpinButton *spinbutton = handle;
 	NSStepper *stepper = [spinbutton stepper];
+    NSTextField *textfield = [spinbutton textfield];
     [stepper setIntValue:(int)position];
+    [textfield takeIntValueFrom:stepper];
 }
 
 /*
