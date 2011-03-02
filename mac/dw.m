@@ -768,6 +768,129 @@ HWND _DWLastDrawable;
 -(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); [super dealloc]; }
 @end
 
+/* Subclass for a Tree type */
+@interface DWTree : NSOutlineView <NSOutlineViewDataSource>
+{
+	void *userdata;
+	NSTableColumn *imagecol;
+    NSTableColumn *textcol;
+	NSMutableArray *data;
+    /* Each data item consists of a linked lists of tree item data. 
+     * NSImage *, NSString *, Item Data *, NSMutableArray * of Children
+     */
+    id scrollview;
+}
+-(id)outlineView:(NSOutlineView *)outlineView child:(int)index ofItem:(id)item;
+-(BOOL)outlineView:(NSOutlineView *)outlineView isItemExpandable:(id)item;
+-(int)outlineView:(NSOutlineView *)outlineView numberOfChildrenOfItem:(id)item;
+-(id)outlineView:(NSOutlineView *)outlineView objectValueForTableColumn:(NSTableColumn *)tableColumn byItem:(id)item;
+-(void)addTree:(NSPointerArray *)item and:(NSPointerArray *)parent;
+-(void *)userdata;
+-(void)setUserdata:(void *)input;
+-(NSScrollView *)scrollview;
+-(void)setScrollview:(NSScrollView *)input;
+@end
+
+@implementation DWTree
+-(id)init 
+{
+    self = [super init];
+    
+    if (self) 
+    {
+        imagecol = [[NSTableColumn alloc] init];
+        NSImageCell *imagecell = [[[NSImageCell alloc] init] autorelease];
+        [imagecol setDataCell:imagecell];
+        [imagecol setResizingMask:NSTableColumnNoResizing];
+        [imagecol setWidth:20];
+        [self addTableColumn:imagecol];
+        textcol = [[NSTableColumn alloc] init];
+        [self addTableColumn:textcol];
+    }
+    return self;
+}
+-(id)outlineView:(NSOutlineView *)outlineView child:(int)index ofItem:(id)item
+{
+	if (item) 
+    {
+        NSMutableArray *array = [item pointerAtIndex:3];
+		return array ? [array objectAtIndex:index] : nil;
+	}
+	else
+    {
+		return [data objectAtIndex:index];
+    }
+}
+-(BOOL)outlineView:(NSOutlineView *)outlineView isItemExpandable:(id)item
+{
+	return [self outlineView:outlineView numberOfChildrenOfItem:item] != 0;
+}
+-(int)outlineView:(NSOutlineView *)outlineView numberOfChildrenOfItem:(id)item
+{
+	if(item)
+    {
+		if([item isKindOfClass:[NSPointerArray class]])
+        {
+            NSMutableArray *array = [item pointerAtIndex:3];
+			return array ? (int)[array count] : 0;
+        }
+		else
+        {
+			return 0;
+        }
+    }
+    else
+    {   
+        return data ? (int)[data count] : 0;
+    }
+}
+-(id)outlineView:(NSOutlineView *)outlineView objectValueForTableColumn:(NSTableColumn *)tableColumn byItem:(id)item
+{
+	if(item) 
+    {
+		if([item isKindOfClass:[NSPointerArray class]])
+        {  
+			NSPointerArray *this = (NSPointerArray *)item;
+            if(tableColumn == imagecol)
+            {
+                return [this pointerAtIndex:0];
+            }
+            return [this pointerAtIndex:1];
+        }
+		else
+        {   
+			return nil;
+        }
+	}
+    return @"List Root";
+}
+-(void)addTree:(NSPointerArray *)item and:(NSPointerArray *)parent;
+{
+    NSMutableArray *children = data;
+    if(parent)
+    {
+        children = [parent pointerAtIndex:3];
+        if(!children)
+        {
+            children = [[NSMutableArray alloc] init];
+            [parent replacePointerAtIndex:3 withPointer:children];
+        }
+    }
+    else
+    {
+        if(!data)
+        {
+            data = [[NSMutableArray alloc] init];
+        }
+    }
+    [children addObject:item];
+}
+-(void *)userdata { return userdata; }
+-(void)setUserdata:(void *)input { userdata = input; }
+-(NSScrollView *)scrollview { return scrollview; }
+-(void)setScrollview:(NSScrollView *)input { scrollview = input; }
+@end
+
 /* Subclass for a Calendar type */
 @interface DWCalendar : NSDatePicker 
 {
@@ -3227,8 +3350,19 @@ void API dw_draw_rect(HWND handle, HPIXMAP pixmap, int fill, int x, int y, int w
  */
 HWND API dw_tree_new(ULONG id)
 {
-	NSLog(@"dw_tree_new() unimplemented\n");
-	return HWND_DESKTOP;
+    NSScrollView *scrollview  = [[NSScrollView alloc] init];    
+	DWTree *tree = [[DWTree alloc] init];
+    
+    [tree setScrollview:scrollview];
+    [scrollview setBorderType:NSBezelBorder];
+    [scrollview setHasVerticalScroller:YES];
+    [scrollview setAutohidesScrollers:YES];
+    
+    [tree setAllowsMultipleSelection:NO];
+	[tree setDataSource:tree];
+    [scrollview setDocumentView:tree];
+    [tree setHeaderView:nil];
+    return tree;
 }
 
 /*
@@ -3243,8 +3377,16 @@ HWND API dw_tree_new(ULONG id)
  */
 HTREEITEM API dw_tree_insert_after(HWND handle, HTREEITEM item, char *title, HICN icon, HTREEITEM parent, void *itemdata)
 {
-	NSLog(@"dw_tree_insert_item_after() unimplemented\n");
-	return HWND_DESKTOP;
+    DWTree *tree = handle;
+    NSString *nstr = [NSString stringWithUTF8String:title];
+    NSPointerArray *treenode = [NSPointerArray pointerArrayWithWeakObjects];
+    [treenode addPointer:icon];
+    [treenode addPointer:nstr];
+    [treenode addPointer:itemdata];
+    [treenode addPointer:NULL];
+    [tree addTree:treenode and:parent];
+    [tree reloadData];
+	return treenode;
 }
 
 /*
@@ -3258,8 +3400,7 @@ HTREEITEM API dw_tree_insert_after(HWND handle, HTREEITEM item, char *title, HIC
  */
 HTREEITEM API dw_tree_insert(HWND handle, char *title, HICN icon, HTREEITEM parent, void *itemdata)
 {
-	NSLog(@"dw_tree_insert_item() unimplemented\n");
-	return HWND_DESKTOP;
+    return dw_tree_insert_after(handle, NULL, title, icon, parent, itemdata);
 }
 
 /*
@@ -3270,8 +3411,9 @@ HTREEITEM API dw_tree_insert(HWND handle, char *title, HICN icon, HTREEITEM pare
  */
 char * API dw_tree_get_title(HWND handle, HTREEITEM item)
 {
-	NSLog(@"dw_tree_get_title() unimplemented\n");
-	return NULL;
+    NSPointerArray *array = (NSPointerArray *)item;
+    NSString *nstr = (NSString *)[array pointerAtIndex:1];
+    return strdup([nstr UTF8String]);
 }
 
 /*
