@@ -768,6 +768,42 @@ HWND _DWLastDrawable;
 -(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); [super dealloc]; }
 @end
 
+/* Dive into the tree showing all nodes */
+void _free_tree_recurse(NSMutableArray *node, NSPointerArray *item)
+{
+    if(node)
+    {
+        int count = (int)[node count];
+        int z;
+        
+        for(z=0;z<count;z++)
+        {
+            NSPointerArray *pnt = [node objectAtIndex:z];
+            NSMutableArray *children = (NSMutableArray *)[pnt pointerAtIndex:3];
+            
+            if(children)
+            {
+                if(item == pnt)
+                {
+                    _free_tree_recurse(children, NULL);
+                }
+                else
+                {
+                    _free_tree_recurse(children, item);
+                }
+            }
+            if(!item || item == pnt)
+            {
+                [pnt release];
+            }
+        }
+    }
+    if(!item)
+    {
+        [node release];
+    }
+}
+
 /* Subclass for a Tree type */
 @interface DWTree : NSOutlineView <NSOutlineViewDataSource>
 {
@@ -789,6 +825,8 @@ HWND _DWLastDrawable;
 -(void)setUserdata:(void *)input;
 -(NSScrollView *)scrollview;
 -(void)setScrollview:(NSScrollView *)input;
+-(void)deleteNode:(NSPointerArray *)item;
+-(void)clear;
 @end
 
 @implementation DWTree
@@ -806,12 +844,13 @@ HWND _DWLastDrawable;
         [self addTableColumn:imagecol];
         textcol = [[NSTableColumn alloc] init];
         [self addTableColumn:textcol];
+        [self setOutlineTableColumn:textcol];
     }
     return self;
 }
 -(id)outlineView:(NSOutlineView *)outlineView child:(int)index ofItem:(id)item
 {
-	if (item) 
+	if(item) 
     {
         NSMutableArray *array = [item pointerAtIndex:3];
 		return array ? [array objectAtIndex:index] : nil;
@@ -880,7 +919,7 @@ HWND _DWLastDrawable;
     {
         if(!data)
         {
-            data = [[NSMutableArray alloc] init];
+            children = data = [[NSMutableArray alloc] init];
         }
     }
     [children addObject:item];
@@ -889,6 +928,17 @@ HWND _DWLastDrawable;
 -(void)setUserdata:(void *)input { userdata = input; }
 -(NSScrollView *)scrollview { return scrollview; }
 -(void)setScrollview:(NSScrollView *)input { scrollview = input; }
+-(void)deleteNode:(NSPointerArray *)item { _free_tree_recurse(data, item); }
+-(void)clear { NSMutableArray *toclear = data; data = nil; _free_tree_recurse(toclear, NULL); [self reloadData]; }
+-(void)dealloc 
+{ 
+    UserData *root = userdata; 
+    _remove_userdata(&root, NULL, TRUE); 
+    _free_tree_recurse(data, NULL); 
+    [imagecol release];
+    [textcol release];
+    [super dealloc]; 
+}
 @end
 
 /* Subclass for a Calendar type */
@@ -1926,6 +1976,11 @@ void API dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, 
 		DWContainer *cont = item;
 		this = item = [cont scrollview];
 	}
+	else if([ object isKindOfClass:[ DWTree class ] ])
+	{
+		DWTree *tree = item;
+		this = item = [tree scrollview];
+	}
     
 	/* Duplicate the existing data */
     tmpitem = malloc(sizeof(Item)*(thisbox->count+1));
@@ -2010,6 +2065,11 @@ void API dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize
 	{
 		DWContainer *cont = item;
 		this = item = [cont scrollview];
+	}
+	else if([ object isKindOfClass:[ DWTree class ] ])
+	{
+		DWTree *tree = item;
+		this = item = [tree scrollview];
 	}
 
 	/* Duplicate the existing data */
@@ -3438,7 +3498,18 @@ HTREEITEM API dw_tree_get_parent(HWND handle, HTREEITEM item)
  */
 void API dw_tree_item_change(HWND handle, HTREEITEM item, char *title, HICN icon)
 {
-	NSLog(@"dw_tree_item_change() unimplemented\n");
+    DWTree *tree = handle;
+    NSPointerArray *array = (NSPointerArray *)item;
+    if(title)
+    {
+        NSString *nstr = [NSString stringWithUTF8String:title];
+        [array replacePointerAtIndex:1 withPointer:nstr];
+    }
+    if(icon)
+    {
+        [array replacePointerAtIndex:0 withPointer:icon];
+    }
+    [tree reloadData];
 }
 
 /*
@@ -3450,7 +3521,8 @@ void API dw_tree_item_change(HWND handle, HTREEITEM item, char *title, HICN icon
  */
 void API dw_tree_item_set_data(HWND handle, HTREEITEM item, void *itemdata)
 {
-	NSLog(@"dw_tree_item_set_data() unimplemented\n");
+    NSPointerArray *array = (NSPointerArray *)item;
+    [array replacePointerAtIndex:2 withPointer:itemdata];
 }
 
 /*
@@ -3461,8 +3533,8 @@ void API dw_tree_item_set_data(HWND handle, HTREEITEM item, void *itemdata)
  */
 void * API dw_tree_item_get_data(HWND handle, HTREEITEM item)
 {
-	NSLog(@"dw_tree_item_get_data() unimplemented\n");
-	return NULL;
+    NSPointerArray *array = (NSPointerArray *)item;
+    return [array pointerAtIndex:2];
 }
 
 /*
@@ -3473,7 +3545,12 @@ void * API dw_tree_item_get_data(HWND handle, HTREEITEM item)
  */
 void API dw_tree_item_select(HWND handle, HTREEITEM item)
 {
-	NSLog(@"dw_tree_item_select() unimplemented\n");
+    DWTree *tree = handle;
+    NSInteger itemIndex = [tree rowForItem:item];
+    if(itemIndex > -1)
+    {
+        [tree selectRowIndexes:[NSIndexSet indexSetWithIndex:itemIndex] byExtendingSelection:NO];
+    }
 }
 
 /*
@@ -3483,7 +3560,8 @@ void API dw_tree_item_select(HWND handle, HTREEITEM item)
  */
 void API dw_tree_clear(HWND handle)
 {
-	NSLog(@"dw_tree_clear() unimplemented\n");
+    DWTree *tree = handle;
+    [tree clear];
 }
 
 /*
@@ -3494,7 +3572,8 @@ void API dw_tree_clear(HWND handle)
  */
 void API dw_tree_item_expand(HWND handle, HTREEITEM item)
 {
-	NSLog(@"dw_tree_item_expand() unimplemented\n");
+    DWTree *tree = handle;
+    [tree expandItem:item];
 }
 
 /*
@@ -3505,7 +3584,8 @@ void API dw_tree_item_expand(HWND handle, HTREEITEM item)
  */
 void API dw_tree_item_collapse(HWND handle, HTREEITEM item)
 {
-	NSLog(@"dw_tree_item_collapse() unimplemented\n");
+    DWTree *tree = handle;
+    [tree collapseItem:item];
 }
 
 /*
@@ -3516,7 +3596,9 @@ void API dw_tree_item_collapse(HWND handle, HTREEITEM item)
  */
 void API dw_tree_item_delete(HWND handle, HTREEITEM item)
 {
-	NSLog(@"dw_tree_item_delete() unimplemented\n");
+    DWTree *tree = handle;
+    [tree deleteNode:item];
+    [tree reloadData];
 }
 
 /*
