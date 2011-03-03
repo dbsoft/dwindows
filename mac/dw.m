@@ -1043,6 +1043,16 @@ void _free_tree_recurse(NSMutableArray *node, NSPointerArray *item)
 -(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); [super dealloc]; }
 @end
 
+/* Subclass for a MDI type 
+ * This is just a box for display purposes... but it is a
+ * unique class so it can be identified when creating windows.
+ */
+@interface DWMDI : DWBox {}
+@end
+
+@implementation DWMDI
+@end
+
 /* Subclass for a test object type */
 @interface DWObject : NSObject {}
 -(void)uselessThread:(id)sender;
@@ -4157,8 +4167,13 @@ void API dw_icon_free(HICN handle)
  */
 HWND API dw_mdi_new(unsigned long id)
 {
-	NSLog(@"dw_mdi_new() unimplemented\n");
-	return HWND_DESKTOP;
+    /* There isn't anything like quite like MDI on MacOS...
+     * However we will make floating windows that hide
+     * when the application is deactivated to simulate
+     * similar behavior. 
+     */
+    DWMDI *mdi = [[DWMDI alloc] init];
+    return mdi;
 }
 
 /*
@@ -4964,6 +4979,20 @@ HWND API dw_window_new(HWND hwndOwner, char *title, ULONG flStyle)
     [window setDelegate:view];
     [window makeKeyAndOrderFront:nil];
 	[window setAllowsConcurrentViewDrawing:NO];
+    
+    /* If it isn't a toplevel window... */
+    if(hwndOwner)
+    {
+        id object = hwndOwner;
+        
+        /* Check to see if the parent is an MDI window */
+        if([object isMemberOfClass:[DWMDI class]])
+        {
+            /* Set the window level to be floating */
+            [window setLevel:NSFloatingWindowLevel];
+            [window setHidesOnDeactivate:YES];
+        }
+    }
 	
 	return (HWND)window;
 }
