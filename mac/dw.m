@@ -2129,7 +2129,7 @@ void API dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize
        free(thisitem);
 }
 
-HWND _button_new(char *text, ULONG id)
+HWND _button_new(char *text, ULONG cid)
 {
 	DWButton *button = [[DWButton alloc] init];
 	if(text && *text)
@@ -2138,7 +2138,7 @@ HWND _button_new(char *text, ULONG id)
 	}
 	[button setTarget:button];
 	[button setAction:@selector(buttonClicked:)];
-	[button setTag:id];
+	[button setTag:cid];
 	[button setButtonType:NSMomentaryPushInButton];
 	[button setBezelStyle:NSThickerSquareBezelStyle];
     return button;
@@ -2150,9 +2150,9 @@ HWND _button_new(char *text, ULONG id)
  *       text: The text to be display by the static text widget.
  *       id: An ID to be used with dw_window_from_id() or 0L.
  */
-HWND API dw_button_new(char *text, ULONG id)
+HWND API dw_button_new(char *text, ULONG cid)
 {
-    DWButton *button = _button_new(text, id);
+    DWButton *button = _button_new(text, cid);
     [button setButtonType:NSMomentaryPushInButton];
     [button setBezelStyle:NSRoundedBezelStyle];
     [button setImagePosition:NSNoImage];
@@ -2167,11 +2167,11 @@ HWND API dw_button_new(char *text, ULONG id)
  *       text: The default text to be in the entryfield widget.
  *       id: An ID to be used with dw_window_from_id() or 0L.
  */
-HWND API dw_entryfield_new(char *text, ULONG id)
+HWND API dw_entryfield_new(char *text, ULONG cid)
 {
 	DWEntryField *entry = [[DWEntryField alloc] init];
 	[entry setStringValue:[ NSString stringWithUTF8String:text ]];
-	[entry setTag:id];
+	[entry setTag:cid];
 	return entry;
 }
 
@@ -2181,11 +2181,11 @@ HWND API dw_entryfield_new(char *text, ULONG id)
  *       text: The default text to be in the entryfield widget.
  *       id: An ID to be used with dw_window_from_id() or 0L.
  */
-HWND API dw_entryfield_password_new(char *text, ULONG id)
+HWND API dw_entryfield_password_new(char *text, ULONG cid)
 {
 	DWEntryFieldPassword *entry = [[DWEntryFieldPassword alloc] init];
 	[entry setStringValue:[ NSString stringWithUTF8String:text ]];
-	[entry setTag:id];
+	[entry setTag:cid];
 	return entry;
 }
 
@@ -2234,7 +2234,7 @@ HWND API dw_bitmapbutton_new(char *text, ULONG resid)
  *                 DW pick the appropriate file extension.
  *                 (BMP on OS/2 or Windows, XPM on Unix)
  */
-HWND API dw_bitmapbutton_new_from_file(char *text, unsigned long id, char *filename)
+HWND API dw_bitmapbutton_new_from_file(char *text, unsigned long cid, char *filename)
 {
     NSString *nstr = [ NSString stringWithUTF8String:filename ];
     NSImage *image = [[NSImage alloc] initWithContentsOfFile:nstr];
@@ -2244,7 +2244,7 @@ HWND API dw_bitmapbutton_new_from_file(char *text, unsigned long id, char *filen
         image = [[NSImage alloc] initWithContentsOfFile:nstr];
     }
     [nstr release];
-	DWButton *button = _button_new("", id);
+	DWButton *button = _button_new("", cid);
 	[button setImage:image];
 	return button;
 }
@@ -2258,11 +2258,11 @@ HWND API dw_bitmapbutton_new_from_file(char *text, unsigned long id, char *filen
  *            (BMP or ICO on OS/2 or Windows, XPM on Unix)
  *       len: length of str
  */
-HWND API dw_bitmapbutton_new_from_data(char *text, unsigned long id, char *data, int len)
+HWND API dw_bitmapbutton_new_from_data(char *text, unsigned long cid, char *data, int len)
 {
 	NSData *thisdata = [[NSData alloc] dataWithBytes:data length:len];
 	NSImage *image = [[NSImage alloc] initWithData:thisdata];
-	DWButton *button = _button_new("", id);
+	DWButton *button = _button_new("", cid);
 	[button setImage:image];
 	return button;
 }
@@ -2273,11 +2273,12 @@ HWND API dw_bitmapbutton_new_from_data(char *text, unsigned long id, char *data,
  *       text: The text to be display by the static text widget.
  *       id: An ID to be used with dw_window_from_id() or 0L.
  */
-HWND API dw_spinbutton_new(char *text, ULONG id)
+HWND API dw_spinbutton_new(char *text, ULONG cid)
 {
     DWSpinButton *spinbutton = [[DWSpinButton alloc] init];
 	NSStepper *stepper = [spinbutton stepper];
     [stepper setIncrement:1];
+    [stepper setTag:cid];
     return spinbutton;
 }
 
@@ -2329,9 +2330,9 @@ long API dw_spinbutton_get_pos(HWND handle)
  *       text: The text to be display by the static text widget.
  *       id: An ID to be used with dw_window_from_id() or 0L.
  */
-HWND API dw_radiobutton_new(char *text, ULONG id)
+HWND API dw_radiobutton_new(char *text, ULONG cid)
 {
-	DWButton *button = _button_new(text, id);
+	DWButton *button = _button_new(text, cid);
 	[button setButtonType:NSRadioButton];
 	return button;
 }
@@ -2343,11 +2344,12 @@ HWND API dw_radiobutton_new(char *text, ULONG id)
  *       increments: Number of increments available.
  *       id: An ID to be used with dw_window_from_id() or 0L.
  */
-HWND API dw_slider_new(int vertical, int increments, ULONG id)
+HWND API dw_slider_new(int vertical, int increments, ULONG cid)
 {
 	DWSlider *slider = [[DWSlider alloc] init];
 	[slider setMaxValue:(double)increments];
 	[slider setMinValue:0];
+    [slider setTag:cid];
 	return slider;
 }
 
@@ -2382,13 +2384,15 @@ void API dw_slider_set_pos(HWND handle, unsigned int position)
  *       increments: Number of increments available.
  *       id: An ID to be used with dw_window_from_id() or 0L.
  */
-HWND API dw_scrollbar_new(int vertical, ULONG id)
+HWND API dw_scrollbar_new(int vertical, ULONG cid)
 {
 	DWScrollbar *scrollbar = [[DWScrollbar alloc] init];
+    [scrollbar setArrowsPosition: NSScrollerArrowsDefaultSetting];
 	[scrollbar setTarget:scrollbar]; 
 	[scrollbar setAction:@selector(changed:)];
 	[scrollbar setRange:0.0 andVisible:0.0];
 	[scrollbar setKnobProportion:1.0];
+    [scrollbar setTag:cid];
 	return scrollbar;
 }
 
@@ -2439,13 +2443,13 @@ void API dw_scrollbar_set_range(HWND handle, unsigned int range, unsigned int vi
  * Parameters:
  *       id: An ID to be used with dw_window_from_id() or 0L.
  */
-HWND API dw_percent_new(ULONG id)
+HWND API dw_percent_new(ULONG cid)
 {
 	DWPercent *percent = [[DWPercent alloc] init];
 	[percent setBezeled:YES];
 	[percent setMaxValue:100];
 	[percent setMinValue:0];
-	/*[percent setTag:id]; Why doesn't this work? */
+	/*[percent setTag:cid]; Why doesn't this work? */
 	return percent;
 }
 
@@ -2467,9 +2471,9 @@ void API dw_percent_set_pos(HWND handle, unsigned int position)
  *       text: The text to be display by the static text widget.
  *       id: An ID to be used with dw_window_from_id() or 0L.
  */
-HWND API dw_checkbox_new(char *text, ULONG id)
+HWND API dw_checkbox_new(char *text, ULONG cid)
 {
-	DWButton *button = _button_new(text, id);
+	DWButton *button = _button_new(text, cid);
 	[button setButtonType:NSSwitchButton];
 	[button setBezelStyle:NSRegularSquareBezelStyle];
 	return button;
@@ -2511,7 +2515,7 @@ void API dw_checkbox_set(HWND handle, int value)
 }
 
 /* Common code for containers and listboxes */
-HWND _cont_new(ULONG id, int multi)
+HWND _cont_new(ULONG cid, int multi)
 {
     NSScrollView *scrollview  = [[NSScrollView alloc] init];    
 	DWContainer *cont = [[DWContainer alloc] init];
@@ -2531,6 +2535,7 @@ HWND _cont_new(ULONG id, int multi)
 	}
 	[cont setDataSource:cont];
     [scrollview setDocumentView:cont];
+    [cont setTag:cid];
 	return cont;
 }
 
@@ -2540,9 +2545,9 @@ HWND _cont_new(ULONG id, int multi)
  *       id: An ID to be used with dw_window_from_id() or 0L.
  *       multi: Multiple select TRUE or FALSE.
  */
-HWND API dw_listbox_new(ULONG id, int multi)
+HWND API dw_listbox_new(ULONG cid, int multi)
 {
-	DWContainer *cont = _cont_new(id, multi);
+	DWContainer *cont = _cont_new(cid, multi);
 	[cont setHeaderView:nil];
 	int type = DW_CFA_STRING;
 	[cont setup];
@@ -2880,9 +2885,10 @@ void API dw_listbox_delete(HWND handle, int index)
  *       text: The default text to be in the combpbox widget.
  *       id: An ID to be used with dw_window_from_id() or 0L.
  */
-HWND API dw_combobox_new(char *text, ULONG id)
+HWND API dw_combobox_new(char *text, ULONG cid)
 {
 	DWComboBox *combo = [[DWComboBox alloc] init];
+    [combo setTag:cid];
 	return combo;
 }
 
@@ -2891,7 +2897,7 @@ HWND API dw_combobox_new(char *text, ULONG id)
  * Parameters:
  *       id: An ID to be used with dw_window_from_id() or 0L.
  */
-HWND API dw_mle_new(ULONG id)
+HWND API dw_mle_new(ULONG cid)
 {
 	DWMLE *mle = [[DWMLE alloc] init];
     NSScrollView *scrollview  = [[NSScrollView alloc] init];    
@@ -2903,6 +2909,7 @@ HWND API dw_mle_new(ULONG id)
     [scrollview setAutoresizingMask:NSViewWidthSizable|NSViewHeightSizable];
     [scrollview setDocumentView:mle];
     [mle setAutoresizingMask:NSViewWidthSizable];
+    /* [mle setTag:cid]; Why doesn't this work? */
 	return scrollview;
 }	
 
@@ -3092,9 +3099,9 @@ void API dw_mle_thaw(HWND handle)
  *       text: The text to be display by the static text widget.
  *       id: An ID to be used with dw_window_from_id() or 0L.
  */
-HWND API dw_status_text_new(char *text, ULONG id)
+HWND API dw_status_text_new(char *text, ULONG cid)
 {
-	NSTextField *textfield = dw_text_new(text, id);
+	NSTextField *textfield = dw_text_new(text, cid);
 	[textfield setBordered:YES];
 	[textfield setBezeled:YES];
 	[textfield setBezelStyle:NSTextFieldSquareBezel];
@@ -3109,7 +3116,7 @@ HWND API dw_status_text_new(char *text, ULONG id)
  *       text: The text to be display by the static text widget.
  *       id: An ID to be used with dw_window_from_id() or 0L.
  */
-HWND API dw_text_new(char *text, ULONG id)
+HWND API dw_text_new(char *text, ULONG cid)
 {
 	NSTextField *textfield = [[NSTextField alloc] init];
 	[textfield setEditable:NO];
@@ -3117,6 +3124,7 @@ HWND API dw_text_new(char *text, ULONG id)
 	[textfield setBordered:NO];
 	[textfield setDrawsBackground:NO];
 	[textfield setStringValue:[ NSString stringWithUTF8String:text ]];
+    [textfield setTag:cid];
 	return textfield;
 }
 
@@ -3127,9 +3135,10 @@ HWND API dw_text_new(char *text, ULONG id)
  * Returns:
  *       A handle to the widget or NULL on failure.
  */
-HWND API dw_render_new(unsigned long id)
+HWND API dw_render_new(unsigned long cid)
 {
 	DWRender *render = [[DWRender alloc] init];
+    /* [render setTag:cid]; Why doesn't this work? */
 	return render;
 }
 
@@ -3418,7 +3427,7 @@ void API dw_draw_rect(HWND handle, HPIXMAP pixmap, int fill, int x, int y, int w
  *       id: An ID to be used for getting the resource from the
  *           resource file.
  */
-HWND API dw_tree_new(ULONG id)
+HWND API dw_tree_new(ULONG cid)
 {
     NSScrollView *scrollview  = [[NSScrollView alloc] init];    
 	DWTree *tree = [[DWTree alloc] init];
@@ -3432,6 +3441,7 @@ HWND API dw_tree_new(ULONG id)
 	[tree setDataSource:tree];
     [scrollview setDocumentView:tree];
     [tree setHeaderView:nil];
+    [tree setTag:cid];
     return tree;
 }
 
@@ -3617,9 +3627,9 @@ void API dw_tree_item_delete(HWND handle, HTREEITEM item)
  *       id: An ID to be used for getting the resource from the
  *           resource file.
  */
-HWND API dw_container_new(ULONG id, int multi)
+HWND API dw_container_new(ULONG cid, int multi)
 {
-	DWContainer *cont = _cont_new(id, multi);
+	DWContainer *cont = _cont_new(cid, multi);
     NSScrollView *scrollview = [cont scrollview];
     [scrollview setHasHorizontalScroller:YES];
 	NSTableHeaderView *header = [[NSTableHeaderView alloc] init];
@@ -4165,7 +4175,7 @@ void API dw_icon_free(HICN handle)
  * Parameters:
  *       id: An ID to be used with dw_window_from_id or 0L.
  */
-HWND API dw_mdi_new(unsigned long id)
+HWND API dw_mdi_new(unsigned long cid)
 {
     /* There isn't anything like quite like MDI on MacOS...
      * However we will make floating windows that hide
@@ -4173,6 +4183,7 @@ HWND API dw_mdi_new(unsigned long id)
      * similar behavior. 
      */
     DWMDI *mdi = [[DWMDI alloc] init];
+    /* [mdi setTag:cid]; Why doesn't this work? */
     return mdi;
 }
 
@@ -4185,7 +4196,7 @@ HWND API dw_mdi_new(unsigned long id)
  * Returns:
  *       A handle to a splitbar window or NULL on failure.
  */
-HWND API dw_splitbar_new(int type, HWND topleft, HWND bottomright, unsigned long id)
+HWND API dw_splitbar_new(int type, HWND topleft, HWND bottomright, unsigned long cid)
 {
 	DWSplitBar *split = [[DWSplitBar alloc] init];
     HWND tmpbox = dw_box_new(DW_VERT, 0); 
@@ -4203,6 +4214,7 @@ HWND API dw_splitbar_new(int type, HWND topleft, HWND bottomright, unsigned long
     {
         [split setVertical:YES];
     }
+    /* [split setTag:cid]; Why doesn't this work? */
 	return split;
 }
 
@@ -4274,11 +4286,12 @@ float API dw_splitbar_get(HWND handle)
  * Parameters:
  *       id: An ID to be used with dw_window_from_id() or 0L.
  */
-HWND API dw_bitmap_new(ULONG id)
+HWND API dw_bitmap_new(ULONG cid)
 {
 	NSImageView *bitmap = [[NSImageView alloc] init];
 	[bitmap setImageFrameStyle:NSImageFrameNone];
 	[bitmap setEditable:NO];
+    [bitmap setTag:cid];
 	return bitmap;
 }
 
@@ -4458,10 +4471,11 @@ void API dw_pixmap_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest, int wi
  *       text: The text to be display by the static text widget.
  *       id: An ID to be used with dw_window_from_id() or 0L.
  */
-HWND API dw_calendar_new(ULONG id)
+HWND API dw_calendar_new(ULONG cid)
 {
 	DWCalendar *calendar = [[DWCalendar alloc] init];
 	/*[calendar setDatePickerMode:UIDatePickerModeDate];*/
+    [calendar setTag:cid];
 	return calendar;
 }
 
@@ -4568,9 +4582,10 @@ int API dw_html_url(HWND handle, char *url)
  *       text: The default text to be in the entryfield widget.
  *       id: An ID to be used with dw_window_from_id() or 0L.
  */
-HWND API dw_html_new(unsigned long id)
+HWND API dw_html_new(unsigned long cid)
 {
 	WebView *web = [[WebView alloc] init];
+    /* [web setTag:cid]; Why doesn't this work? */
 	return web;
 }
 
@@ -4611,10 +4626,11 @@ void API dw_pointer_set_pos(long x, long y)
  *       id: An ID to be used for getting the resource from the
  *           resource file.
  */
-HMENUI API dw_menu_new(ULONG id)
+HMENUI API dw_menu_new(ULONG cid)
 {
 	NSMenu *menu = [[[NSMenu alloc] init] autorelease];
 	[menu setAutoenablesItems:NO];
+    /* [menu setTag:cid]; Why doesn't this work? */
 	return menu;
 }
 
@@ -4824,10 +4840,11 @@ DWNotebookPage *_notepage_from_id(DWNotebook *notebook, unsigned long pageid)
  *       id: An ID to be used for getting the resource from the
  *           resource file.
  */
-HWND API dw_notebook_new(ULONG id, int top)
+HWND API dw_notebook_new(ULONG cid, int top)
 {
 	DWNotebook *notebook = [[DWNotebook alloc] init];
 	[notebook setDelegate:notebook];
+    /* [notebook setTag:cid]; Why doesn't this work? */
 	return notebook;
 }
 
@@ -5349,7 +5366,7 @@ void API dw_window_enable(HWND handle)
  *                 Windows and a pixmap on Unix, pass
  *                 NULL if you use the id param)
  */
-void API dw_window_set_bitmap_from_data(HWND handle, unsigned long id, char *data, int len)
+void API dw_window_set_bitmap_from_data(HWND handle, unsigned long cid, char *data, int len)
 {
 	NSObject *object = handle;
 	if([ object isKindOfClass:[ NSImageView class ] ])
@@ -5416,7 +5433,7 @@ void API dw_window_set_icon(HWND handle, HICN icon)
  *       handle: Handle to the parent window.
  *       id: Integer ID of the child.
  */
-HWND API dw_window_from_id(HWND handle, int id)
+HWND API dw_window_from_id(HWND handle, int cid)
 {
 	NSObject *object = handle;
 	NSView *view = handle;
@@ -5425,7 +5442,7 @@ HWND API dw_window_from_id(HWND handle, int id)
 		NSWindow *window = handle;
 		view = [window contentView];
 	}
-	return [view viewWithTag:id];
+	return [view viewWithTag:cid];
 }
 
 /*
