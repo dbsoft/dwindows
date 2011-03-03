@@ -5090,7 +5090,11 @@ int API dw_window_show(HWND handle)
  */
 int API dw_window_hide(HWND handle)
 {
-	NSLog(@"dw_window_hide() unimplemented\n");
+    /* TODO: Figure out proper dw_window_hide behavior...
+     * individual windows don't appear to be hidable, 
+     * but all application windows can be hidden/deactivated
+     * via the NS/DWApplication class.
+     */
 	return 0;
 }
 
@@ -5184,6 +5188,8 @@ void API dw_window_click_default(HWND window, HWND next)
 	NSLog(@"dw_window_click_default() unimplemented\n");
 }
 
+static id _DWCapture;
+
 /*
  * Captures the mouse input to this window.
  * Parameters:
@@ -5191,7 +5197,17 @@ void API dw_window_click_default(HWND window, HWND next)
  */
 void API dw_window_capture(HWND handle)
 {
-	NSLog(@"dw_window_capture() unimplemented\n");
+    id object = handle;
+    
+    if(![object isMemberOfClass:[NSWindow class]])
+    {
+        object = [object window];
+    }
+    if(object)
+    {
+        [object setAcceptsMouseMovedEvents:YES];
+        _DWCapture = object;
+    }
 }
 
 /*
@@ -5199,7 +5215,11 @@ void API dw_window_capture(HWND handle)
  */
 void API dw_window_release(void)
 {
-	NSLog(@"dw_window_release() unimplemented\n");
+    if(_DWCapture)
+    {
+        [_DWCapture setAcceptsMouseMovedEvents:NO];
+        _DWCapture = nil;
+    }
 }
 
 /*
@@ -5220,8 +5240,34 @@ void API dw_window_track(HWND handle)
  */
 void API dw_window_reparent(HWND handle, HWND newparent)
 {
-	/* Is this even possible? */
-	NSLog(@"dw_window_reparent() unimplemented\n");
+    id object = handle;
+    
+    if([object isMemberOfClass:[NSWindow class]])
+    {
+        /* We can't actually reparent on MacOS but if the
+         * new parent is an MDI window, change to be a
+         * floating window... otherwise set it to normal.
+         */
+        NSWindow *window = handle;
+    
+        /* If it isn't a toplevel window... */
+        if(newparent)
+        {
+            object = newparent;
+        
+            /* Check to see if the parent is an MDI window */
+            if([object isMemberOfClass:[DWMDI class]])
+            {
+                /* Set the window level to be floating */
+                [window setLevel:NSFloatingWindowLevel];
+                [window setHidesOnDeactivate:YES];
+                return;
+            }
+        }
+        /* Set the window back to a normal window */
+        [window setLevel:NSNormalWindowLevel];
+        [window setHidesOnDeactivate:NO];
+    }
 }
 
 /*
