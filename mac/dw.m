@@ -686,6 +686,23 @@ HWND _DWLastDrawable;
 -(void)setScrollview:(NSScrollView *)input { scrollview = input; }
 -(void)addColumn:(NSTableColumn *)input andType:(int)type { if(tvcols) { [tvcols addObject:input]; [types addObject:[NSNumber numberWithInt:type]]; } }
 -(NSTableColumn *)getColumn:(int)col { if(tvcols) { return [tvcols objectAtIndex:col]; } return nil; }
+-(int)insertRow:(NSArray *)input at:(int)index 
+{ 
+    if(data) 
+    { 
+        unsigned long start = [tvcols count] * index;
+        NSIndexSet *set = [[NSIndexSet alloc] initWithIndexesInRange:NSMakeRange(start, start + [tvcols count])];  
+        if(index < lastAddPoint)
+        {
+            lastAddPoint++;
+        }
+        [data insertObjects:input atIndexes:set]; 
+        [titles insertPointer:NULL atIndex:index]; 
+        [set release];
+        return (int)[titles count]; 
+    } 
+    return 0; 
+}
 -(int)addRow:(NSArray *)input { if(data) { lastAddPoint = (int)[titles count]; [data addObjectsFromArray:input]; [titles addPointer:NULL]; return (int)[titles count]; } return 0; }
 -(int)addRows:(int)number
 {
@@ -2605,7 +2622,14 @@ void API dw_listbox_insert(HWND handle, char *text, int pos)
 	}
     else if([object isMemberOfClass:[DWContainer class]])
     {
-        NSLog(@"dw_listbox_insert() unimplemented\n");
+        DWContainer *cont = handle;
+        NSString *nstr = [ NSString stringWithUTF8String:text ];
+        NSArray *newrow = [NSArray arrayWithObject:nstr];
+        
+        [cont insertRow:newrow at:pos];
+        [cont reloadData];
+        
+        [newrow release];
     }
 }
 
