@@ -35,7 +35,7 @@ unsigned long _colors[] =
 	0x00ff00ff,   /* 13 bright magenta */
 	0x0000eeee,   /* 14 bright cyan */
 	0x00ffffff,   /* 15 bright white */
-	0xff000000	  /* 16 default color */
+	0xff000000    /* 16 default color */
 };
 
 unsigned long _get_color(unsigned long thiscolor)
@@ -2403,14 +2403,24 @@ void API dw_slider_set_pos(HWND handle, unsigned int position)
  */
 HWND API dw_scrollbar_new(int vertical, ULONG cid)
 {
-	DWScrollbar *scrollbar = [[DWScrollbar alloc] init];
-    [scrollbar setArrowsPosition: NSScrollerArrowsDefaultSetting];
-	[scrollbar setTarget:scrollbar]; 
-	[scrollbar setAction:@selector(changed:)];
-	[scrollbar setRange:0.0 andVisible:0.0];
-	[scrollbar setKnobProportion:1.0];
+    DWScrollbar *scrollbar = [DWScrollbar alloc];
+    if(vertical)
+    {
+        [scrollbar init];
+    }
+    else
+    {
+        [scrollbar initWithFrame:NSMakeRect(0,0,100,5)];
+    }
+    [scrollbar setArrowsPosition:NSScrollerArrowsDefaultSetting];
+    [scrollbar setTarget:scrollbar]; 
+    [scrollbar setAction:@selector(changed:)];
+    [scrollbar setRange:0.0 andVisible:0.0];
+    [scrollbar setKnobProportion:1.0];
     [scrollbar setTag:cid];
-	return scrollbar;
+    [scrollbar setEnabled:YES];
+    return scrollbar;
+
 }
 
 /*
