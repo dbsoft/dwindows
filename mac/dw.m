@@ -1110,13 +1110,13 @@ SignalList SignalTranslate[SIGNALMAX] = {
 
 /* This function adds a signal handler callback into the linked list.
  */
-void _new_signal(ULONG message, HWND window, int id, void *signalfunction, void *data)
+void _new_signal(ULONG message, HWND window, int msgid, void *signalfunction, void *data)
 {
 	SignalHandler *new = malloc(sizeof(SignalHandler));
 	
 	new->message = message;
 	new->window = window;
-	new->id = id;
+	new->id = msgid;
 	new->signalfunction = signalfunction;
 	new->data = data;
 	new->next = NULL;
@@ -1130,7 +1130,7 @@ void _new_signal(ULONG message, HWND window, int id, void *signalfunction, void 
 		{
 			if(tmp->message == message &&
 			   tmp->window == window &&
-			   tmp->id == id &&
+			   tmp->id == msgid &&
 			   tmp->signalfunction == signalfunction)
 			{
 				tmp->data = data;
@@ -2597,6 +2597,9 @@ void API dw_listbox_append(HWND handle, char *text)
         NSArray *newrow = [NSArray arrayWithObject:nstr];
         
         [cont addRow:newrow];
+        /*[cont performSelectorOnMainThread:@selector(addRow:)
+                               withObject:newrow
+                            waitUntilDone:YES];*/
         [cont reloadData];
         
         [newrow release];
@@ -5941,7 +5944,7 @@ int API dw_timer_connect(int interval, void *sigfunc, void *data)
 	if(sigfunc && !DWTimers[z])
 	{
 		NSTimeInterval seconds = (double)interval / 1000.0;
-		NSTimer *thistimer = DWTimers[z] = [NSTimer timerWithTimeInterval:seconds target:DWHandler selector:@selector(runTimer:) userInfo:nil repeats:YES];
+		NSTimer *thistimer = DWTimers[z] = [NSTimer scheduledTimerWithTimeInterval:seconds target:DWHandler selector:@selector(runTimer:) userInfo:nil repeats:YES];
 		_new_signal(0, thistimer, z+1, sigfunc, data);
 		return z+1;
 	}
@@ -5965,11 +5968,11 @@ void API dw_timer_disconnect(int timerid)
 	thistimer = DWTimers[timerid-1];
 	DWTimers[timerid-1] = nil;
 	
-	[thistimer release];
+	[thistimer invalidate];
 	
 	while(tmp)
 	{
-		if(tmp->id == (timerid-1) && tmp->window == thistimer)
+		if(tmp->id == timerid && tmp->window == thistimer)
 		{
 			if(prev)
 			{
