@@ -2420,7 +2420,6 @@ HWND API dw_scrollbar_new(int vertical, ULONG cid)
     [scrollbar setTag:cid];
     [scrollbar setEnabled:YES];
     return scrollbar;
-
 }
 
 /*
@@ -3211,18 +3210,22 @@ void API dw_color_background_set(unsigned long value)
  */
 unsigned long API dw_color_choose(unsigned long value)
 {
-	/* Create the File Save Dialog class. */
-	DWColorChoose *colorDlg = (DWColorChoose *)[DWColorChoose sharedColorPanel];
+    /* Create the File Save Dialog class. */
+    DWColorChoose *colorDlg = (DWColorChoose *)[DWColorChoose sharedColorPanel];
     NSColor *color = [NSColor colorWithDeviceRed: DW_RED_VALUE(_foreground)/255.0 green: DW_GREEN_VALUE(_foreground)/255.0 blue: DW_BLUE_VALUE(_foreground)/255.0 alpha: 1];
-	DWDialog *dialog = dw_dialog_new(colorDlg);
+    DWDialog *dialog = dw_dialog_new(colorDlg);
 	
-	/* Set defaults for the dialog. */
-	[colorDlg setColor:color];
-	[colorDlg setDialog:dialog];
+    /* Set defaults for the dialog. */
+    [colorDlg setColor:color];
+    [colorDlg setDialog:dialog];
+    [colorDlg setContinuous:YES]; 
+    [colorDlg setTarget:colorDlg]; 
+    [colorDlg setAction:@selector(changeColor:)]; 
+    [colorDlg makeKeyAndOrderFront:nil];
 	
-	color = (NSColor *)dw_dialog_wait(dialog);
-	[color release];
-	return _foreground;
+    color = (NSColor *)dw_dialog_wait(dialog);
+    [color release];
+    return _foreground;
 }
 
 /* Draw a point on a window (preferably a render window).
