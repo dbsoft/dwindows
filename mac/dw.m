@@ -821,10 +821,10 @@ DWObject *DWObj;
 -(void)clear { if(data) { [data removeAllObjects]; while([titles count]) { [titles removePointerAtIndex:0]; } } lastAddPoint = 0; }
 -(void)setup 
 { 
-	tvcols = [[NSMutableArray alloc] init]; 
-	data = [[NSMutableArray alloc] init]; 
-	types = [[NSMutableArray alloc] init]; 
-	titles = [NSPointerArray pointerArrayWithWeakObjects];
+	tvcols = [[[NSMutableArray alloc] init] retain]; 
+	data = [[[NSMutableArray alloc] init] retain]; 
+	types = [[[NSMutableArray alloc] init] retain]; 
+	titles = [[NSPointerArray pointerArrayWithWeakObjects] retain];
 	[[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(selectionChanged:) name:NSTableViewSelectionDidChangeNotification object:[self window]];
 }
 -(void)selectionChanged:(id)sender
@@ -981,7 +981,7 @@ void _free_tree_recurse(NSMutableArray *node, NSPointerArray *item)
         children = [parent pointerAtIndex:3];
         if(!children)
         {
-            children = [[NSMutableArray alloc] init];
+            children = [[[NSMutableArray alloc] init] retain];
             [parent replacePointerAtIndex:3 withPointer:children];
         }
     }
@@ -989,7 +989,7 @@ void _free_tree_recurse(NSMutableArray *node, NSPointerArray *item)
     {
         if(!data)
         {
-            children = data = [[NSMutableArray alloc] init];
+            children = data = [[[NSMutableArray alloc] init] retain];
         }
     }
     [children addObject:item];
