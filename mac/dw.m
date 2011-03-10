@@ -1613,12 +1613,6 @@ NSMenu *_generate_main_menu()
 	
 	[menu addItem:[NSMenuItem separatorItem]];
 	
-	item = [menu addItemWithTitle:NSLocalizedString(@"Preferences...", nil)
-						   action:NULL
-					keyEquivalent:@","];
-	
-	[menu addItem:[NSMenuItem separatorItem]];
-	
 	item = [menu addItemWithTitle:NSLocalizedString(@"Services", nil)
 						   action:NULL
 					keyEquivalent:@""];
