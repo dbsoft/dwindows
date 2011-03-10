@@ -1,6 +1,7 @@
 /* $Id$ */
 
 #include "compat.h"
+#include "dw.h"
 #if defined(__OS2__) || defined(__WIN32__)
 #include <share.h>
 #endif
@@ -35,6 +36,9 @@ void msleep(long period)
 	nanosleep(&req, NULL);
 #else
 	usleep(period * 1000);
+#ifdef __MAC__
+    _dw_pool_drain();
+#endif
 #endif
 }
 #endif
