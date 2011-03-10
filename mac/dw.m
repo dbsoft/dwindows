@@ -1718,18 +1718,18 @@ void API dw_main_sleep(int milliseconds)
         gettimeofday(&tv, NULL);
         
         dw_mutex_lock(DWRunMutex);
+        if(orig == (DWTID)-1)
+        {
+            DWThread = curr;
+        }
         while(((tv.tv_sec - start.tv_sec)*1000) + ((tv.tv_usec - start.tv_usec)/1000) <= milliseconds)
         {
-            if(orig == (DWTID)-1)
-            {
-                DWThread = curr;
-            }
-            dw_main_iteration();
-            if(orig == (DWTID)-1)
-            {
-                DWThread = orig;
-            }
-            gettimeofday(&tv, NULL);
+             dw_main_iteration();
+             gettimeofday(&tv, NULL);
+        }
+        if(orig == (DWTID)-1)
+        {
+            DWThread = orig;
         }
         dw_mutex_unlock(DWRunMutex);
     }
@@ -6503,12 +6503,10 @@ void dw_mutex_lock(HMTX mutex)
      */
     if(DWThread == pthread_self())
     {
-        pthread_mutex_unlock(DWRunMutex);
         while(pthread_mutex_trylock(mutex) != 0)
         {
             dw_main_iteration();
         }
-        pthread_mutex_lock(DWRunMutex);
     }
     else
     {
