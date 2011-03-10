@@ -304,6 +304,8 @@ typedef struct _hpixmap {
    HWND handle;
 } *HPIXMAP;
 
+void _dw_pool_drain(void);
+
 #define DW_DT_LEFT               0 /* NSLeftTextAlignment */
 #define DW_DT_QUERYEXTENT        0
 #define DW_DT_UNDERSCORE         0

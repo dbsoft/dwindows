@@ -1651,37 +1651,6 @@ NSMenu *_generate_main_menu()
 }
 
 /*
- * Initializes the Dynamic Windows engine.
- * Parameters:
- *           newthread: True if this is the only thread.
- *                      False if there is already a message loop running.
- */
-int API dw_init(int newthread, int argc, char *argv[])
-{
-	/* Create the application object */
-	DWApp = [NSApplication sharedApplication];
-	/* Create object for handling timers */
-	DWHandler = [[DWTimerHandler alloc] init];
-    /* If we aren't using garbage collection we need autorelease pools */
-#if !defined(GARBAGE_COLLECT)
-	pool = [[NSAutoreleasePool alloc] init];
-#endif
-    /* Create a default main menu, with just the application menu */
-	DWMainMenu = _generate_main_menu();
-	[DWApp setMainMenu:DWMainMenu];
-	DWObj = [[DWObject alloc] init];
-    /* Create mutexes for thread safety */
-    DWRunMutex = dw_mutex_new();
-    DWThreadMutex = dw_mutex_new();
-    DWThreadMutex2 = dw_mutex_new();
-    /* Use NSThread to start a dummy thread to initialize the threading subsystem */
-	NSThread *thread = [[ NSThread alloc] initWithTarget:DWObj selector:@selector(uselessThread:) object:nil];
-	[thread start];
-    [thread release];
-	return 0;
-}
-
-/*
  * Runs a message loop for Dynamic Windows.
  */
 void API dw_main(void)
@@ -6988,8 +6957,22 @@ int dw_named_event_close(HEV eve)
 	return 0;
 }
 
+#if !defined(GARBAGE_COLLECT)
+pthread_key_t _dw_pool_key;
+#endif
+
+/* Mac specific function to cause garbage collection */
+void _dw_pool_drain(void)
+{
+#if !defined(GARBAGE_COLLECT)
+    NSAutoreleasePool *pool = pthread_getspecific(_dw_pool_key);
+    NSLog(@"Pool draining %x", (int)pool);
+    [pool drain];
+#endif    
+}
+
 /*
- * Setup thread independent color sets.
+ * Setup thread independent pools.
  */
 void _dwthreadstart(void *data)
 {
@@ -6998,6 +6981,7 @@ void _dwthreadstart(void *data)
     /* If we aren't using garbage collection we need autorelease pools */
 #if !defined(GARBAGE_COLLECT)
 	NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+    pthread_setspecific(_dw_pool_key, pool);
 #endif
 	
    threadfunc = (void (*)(void *))tmp[0];
@@ -7008,6 +6992,38 @@ void _dwthreadstart(void *data)
 	[pool release];
 #endif
    free(tmp);
+}
+
+/*
+ * Initializes the Dynamic Windows engine.
+ * Parameters:
+ *           newthread: True if this is the only thread.
+ *                      False if there is already a message loop running.
+ */
+int API dw_init(int newthread, int argc, char *argv[])
+{
+	/* Create the application object */
+	DWApp = [NSApplication sharedApplication];
+	/* Create object for handling timers */
+	DWHandler = [[DWTimerHandler alloc] init];
+    /* If we aren't using garbage collection we need autorelease pools */
+#if !defined(GARBAGE_COLLECT)
+    pthread_key_create(&_dw_pool_key, NULL);
+	pool = [[NSAutoreleasePool alloc] init];
+#endif
+    /* Create a default main menu, with just the application menu */
+	DWMainMenu = _generate_main_menu();
+	[DWApp setMainMenu:DWMainMenu];
+	DWObj = [[DWObject alloc] init];
+    /* Create mutexes for thread safety */
+    DWRunMutex = dw_mutex_new();
+    DWThreadMutex = dw_mutex_new();
+    DWThreadMutex2 = dw_mutex_new();
+    /* Use NSThread to start a dummy thread to initialize the threading subsystem */
+	NSThread *thread = [[ NSThread alloc] initWithTarget:DWObj selector:@selector(uselessThread:) object:nil];
+	[thread start];
+    [thread release];
+	return 0;
 }
 
 /*
@@ -7114,6 +7130,7 @@ int dw_named_memory_free(HSHM handle, void *ptr)
    }
    return rc;
 }
+
 /*
  * Creates a new thread with a starting point of func.
  * Parameters:
