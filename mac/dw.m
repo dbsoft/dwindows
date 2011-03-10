@@ -227,7 +227,6 @@ int _event_handler(id object, NSEvent *event, int message)
 @end
 
 NSApplication *DWApp;
-NSRunLoop *DWRunLoop;
 NSMenu *DWMainMenu;
 DWTimerHandler *DWHandler;
 #if !defined(GARBAGE_COLLECT)
@@ -1667,8 +1666,6 @@ int API dw_init(int newthread, int argc, char *argv[])
 {
 	/* Create the application object */
 	DWApp = [NSApplication sharedApplication];
-	/* Create a run loop for doing manual loops */
-	DWRunLoop = [NSRunLoop alloc];
 	/* Create object for handling timers */
 	DWHandler = [[DWTimerHandler alloc] init];
     /* If we aren't using garbage collection we need autorelease pools */
@@ -1709,10 +1706,35 @@ void API dw_main(void)
  */
 void API dw_main_sleep(int milliseconds)
 {
-	double seconds = (double)milliseconds/1000.0;
-	NSDate *time = [[NSDate alloc] initWithTimeIntervalSinceNow:seconds];
-	[DWRunLoop runUntilDate:time];
-    [time release];
+    struct timeval tv, start;
+    DWTID curr = pthread_self();
+    
+    gettimeofday(&start, NULL);
+    
+    if(DWThread == (DWTID)-1 || DWThread == curr)
+    {
+        DWTID orig = DWThread;
+        
+        gettimeofday(&tv, NULL);
+        
+        dw_mutex_lock(DWRunMutex);
+        while(((tv.tv_sec - start.tv_sec)*1000) + ((tv.tv_usec - start.tv_usec)/1000) <= milliseconds)
+        {
+            if(orig == (DWTID)-1)
+            {
+                DWThread = curr;
+            }
+            dw_main_iteration();
+            if(orig == (DWTID)-1)
+            {
+                DWThread = orig;
+            }
+            gettimeofday(&tv, NULL);
+        }
+        dw_mutex_unlock(DWRunMutex);
+    }
+    else
+        usleep(milliseconds * 1000);
 }
 
 /*
@@ -1720,7 +1742,15 @@ void API dw_main_sleep(int milliseconds)
  */
 void API dw_main_iteration(void)
 {
-	[DWRunLoop limitDateForMode:NSDefaultRunLoopMode];
+    NSDate *distant_future = [NSDate distantFuture];
+    NSEvent *event = [DWApp nextEventMatchingMask:NSAnyEventMask
+                                        untilDate:distant_future
+                                           inMode:NSDefaultRunLoopMode
+                                          dequeue:YES];
+    if(event) 
+    {
+        [DWApp sendEvent:event];
+    }
 }
 
 /*
