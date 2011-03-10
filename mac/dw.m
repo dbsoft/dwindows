@@ -6466,19 +6466,23 @@ void dw_mutex_close(HMTX mutex)
  */
 void dw_mutex_lock(HMTX mutex)
 {
-    DWTID saved = (DWTID)-1;
-    
+    /* We need to handle locks from the main thread differently...
+     * since we can't stop message processing... otherwise we 
+     * will deadlock... so try to acquire the lock and continue
+     * processing messages in between tries.
+     */
     if(DWThread == pthread_self())
     {
-        saved = DWThread;
-        DWThread = (DWTID)-1;
         pthread_mutex_unlock(DWRunMutex);
-    }
-    pthread_mutex_lock(mutex);
-    if(saved != (DWTID)-1)
-    {
-        DWThread = saved;
+        while(pthread_mutex_trylock(mutex) != 0)
+        {
+            dw_main_iteration();
+        }
         pthread_mutex_lock(DWRunMutex);
+    }
+    else
+    {
+        pthread_mutex_lock(mutex);
     }
 }
 
