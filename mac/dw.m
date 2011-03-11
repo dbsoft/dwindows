@@ -23,14 +23,11 @@
         dw_mutex_lock(DWThreadMutex); \
         _dw_mutex_locked = pthread_self(); \
         dw_mutex_lock(DWThreadMutex2); \
-        /*NSLog(@"Thread %d asking the main thread to stop %x", (int)pthread_self(), (int)DWObj);*/ \
         [DWObj performSelectorOnMainThread:@selector(synchronizeThread:) withObject:nil waitUntilDone:NO]; \
         dw_mutex_lock(DWRunMutex); \
-        /*NSLog(@"Thread %d proceeding", (int)pthread_self());*/ \
         _locked_by_me = TRUE; } }
 #define  DW_MUTEX_UNLOCK { \
     if(pthread_self() != DWThread && _locked_by_me == TRUE) { \
-        /*NSLog(@"Thread %d releasing", (int)pthread_self());*/ \
         dw_mutex_unlock(DWRunMutex); \
         dw_mutex_unlock(DWThreadMutex2); \
         _dw_mutex_locked = (pthread_t)-1; \
@@ -87,6 +84,7 @@ SignalHandler *Root = NULL;
 /* Some internal prototypes */
 static void _do_resize(Box *thisbox, int x, int y);
 int _remove_userdata(UserData **root, char *varname, int all);
+void _dw_main_iteration(void);
 
 SignalHandler *_get_handler(HWND window, int messageid)
 {
@@ -1737,7 +1735,7 @@ void API dw_main_sleep(int milliseconds)
         }
         while(((tv.tv_sec - start.tv_sec)*1000) + ((tv.tv_usec - start.tv_usec)/1000) <= milliseconds)
         {
-             dw_main_iteration();
+             _dw_main_iteration();
              gettimeofday(&tv, NULL);
         }
         if(orig == (DWTID)-1)
@@ -1750,10 +1748,8 @@ void API dw_main_sleep(int milliseconds)
         usleep(milliseconds * 1000);
 }
 
-/*
- * Processes a single message iteration and returns.
- */
-void API dw_main_iteration(void)
+/* Internal version that doesn't lock the run mutex */
+void _dw_main_iteration(void)
 {
     NSDate *distant_future = [NSDate distantFuture];
     NSEvent *event = [DWApp nextEventMatchingMask:NSAnyEventMask
@@ -1764,6 +1760,16 @@ void API dw_main_iteration(void)
     {
         [DWApp sendEvent:event];
     }
+}
+
+/*
+ * Processes a single message iteration and returns.
+ */
+void API dw_main_iteration(void)
+{
+    dw_mutex_lock(DWRunMutex);
+    _dw_main_iteration();
+    dw_mutex_unlock(DWRunMutex);
 }
 
 /*
@@ -2025,7 +2031,7 @@ void * API dw_dialog_wait(DWDialog *dialog)
 	
 	while(!dialog->done)
 	{
-		dw_main_iteration();
+		_dw_main_iteration();
 	}
 	dw_event_close(&dialog->eve);
 	tmp = dialog->result;
@@ -6511,7 +6517,7 @@ void dw_mutex_lock(HMTX mutex)
     {
         while(pthread_mutex_trylock(mutex) != 0)
         {
-            dw_main_iteration();
+            _dw_main_iteration();
         }
     }
     else
