@@ -6966,8 +6966,9 @@ void _dw_pool_drain(void)
 {
 #if !defined(GARBAGE_COLLECT)
     NSAutoreleasePool *pool = pthread_getspecific(_dw_pool_key);
-    NSLog(@"Pool draining %x", (int)pool);
     [pool drain];
+    pool = [[NSAutoreleasePool alloc] init];
+    pthread_setspecific(_dw_pool_key, pool);
 #endif    
 }
 
@@ -6989,6 +6990,7 @@ void _dwthreadstart(void *data)
    threadfunc(tmp[1]);
     /* Release the pool when we are done so we don't leak */
 #if !defined(GARBAGE_COLLECT)
+    pool = pthread_getspecific(_dw_pool_key);
 	[pool release];
 #endif
    free(tmp);
