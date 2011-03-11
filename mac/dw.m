@@ -664,13 +664,13 @@ DWObject *DWObj;
 }
 -(void *)userdata;
 -(void)setUserdata:(void *)input;
--(void)sliderMoved:(id)sender;
+-(void)sliderChanged:(id)sender;
 @end
 
 @implementation DWSlider
 -(void *)userdata { return userdata; }
 -(void)setUserdata:(void *)input { userdata = input; }
--(void)sliderMoved:(id)sender { NSLog(@"Slider changed"); _event_handler(self, (void *)[self integerValue], 14); }
+-(void)sliderChanged:(id)sender { NSLog(@"Slider changed"); _event_handler(self, (void *)[self integerValue], 14); }
 -(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); [super dealloc]; }
 @end
 
@@ -2516,11 +2516,14 @@ HWND API dw_radiobutton_new(char *text, ULONG cid)
  */
 HWND API dw_slider_new(int vertical, int increments, ULONG cid)
 {
-	DWSlider *slider = [[DWSlider alloc] init];
-	[slider setMaxValue:(double)increments];
-	[slider setMinValue:0];
+    DWSlider *slider = [[DWSlider alloc] init];
+    [slider setMaxValue:(double)increments];
+    [slider setMinValue:0];
+    [slider setContinuous:YES];
+    [slider setTarget:slider];
+    [slider setAction:@selector(sliderChanged:)];
     [slider setTag:cid];
-	return slider;
+    return slider;
 }
 
 /*
