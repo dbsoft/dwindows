@@ -239,10 +239,25 @@ HMTX DWThreadMutex2;
 DWTID DWThread = (DWTID)-1;
 DWTID _dw_mutex_locked = (DWTID)-1;
 
+/* Used for doing bitblts from the main thread */
+typedef struct _bitbltinfo
+{
+    id src;
+    id dest;
+    int xdest;
+    int ydest;
+    int width;
+    int height;
+    int xsrc;
+    int ysrc;
+} DWBitBlt;
+
 /* Subclass for a test object type */
 @interface DWObject : NSObject {}
 -(void)uselessThread:(id)sender;
 -(void)synchronizeThread:(id)param;
+-(void)doBitBlt:(id)param;
+-(void)doFlush:(id)param;
 @end
 
 @implementation DWObject
@@ -255,6 +270,41 @@ DWTID _dw_mutex_locked = (DWTID)-1;
     pthread_mutex_unlock(DWThreadMutex2);
     pthread_mutex_lock(DWRunMutex);
     //NSLog(@"Main thread reacquiring lock");
+}
+-(void)doBitBlt:(id)param
+{
+    NSValue *bi = (NSValue *)param;
+    DWBitBlt *bltinfo = (DWBitBlt *)[bi pointerValue];
+    id bltdest = bltinfo->dest;
+    id bltsrc = bltinfo->src;
+    
+    if([bltdest isMemberOfClass:[NSImage class]])
+    {
+        [bltdest lockFocus];
+    }
+    else
+    {
+        [bltdest lockFocusIfCanDraw];
+        _DWLastDrawable = bltinfo->dest;
+    }
+    if([bltsrc isMemberOfClass:[NSImage class]])
+    {
+        NSImage *image = bltsrc;
+        [image drawAtPoint:NSMakePoint(bltinfo->xdest, bltinfo->ydest) fromRect:NSMakeRect(bltinfo->xsrc, bltinfo->ysrc, bltinfo->width, bltinfo->height) 
+                        operation:NSCompositeCopy fraction:1.0];
+        [bltsrc release];
+    }
+    [bltdest unlockFocus];
+    free(bltinfo);
+}
+-(void)doFlush:(id)param
+{
+	if(_DWLastDrawable)
+	{
+		id object = _DWLastDrawable;
+		NSWindow *window = [object window];
+		[window flushWindow];
+	}
 }
 @end
 
@@ -4663,28 +4713,29 @@ void API dw_pixmap_destroy(HPIXMAP pixmap)
  */
 void API dw_pixmap_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest, int width, int height, HWND src, HPIXMAP srcp, int xsrc, int ysrc)
 {
-    int _locked_by_me = FALSE;
-    DW_MUTEX_LOCK;
-	id bltdest = dest;
-	id bltsrc = src;
-	if(destp)
-	{
-		bltdest = (id)destp->handle;
-		[bltdest lockFocus];
-	}
-	else
-	{
-		[bltdest lockFocusIfCanDraw];
-		_DWLastDrawable = dest;
-	}
-	if(srcp)
-	{
-		bltsrc = (id)srcp->handle;
-		NSImage *image = bltsrc;
-		[image drawAtPoint:NSMakePoint(xdest, ydest) fromRect:NSMakeRect(xsrc, ysrc, width, height) operation:NSCompositeCopy fraction:1.0];
-	}
-	[bltdest unlockFocus];
-    DW_MUTEX_UNLOCK;
+    DWBitBlt *bltinfo = calloc(1, sizeof(DWBitBlt));
+    NSValue* bi = [NSValue valueWithPointer:bltinfo];
+    
+    /* Fill in the information */
+    bltinfo->dest = dest;
+    bltinfo->src = src;
+    bltinfo->xdest = xdest;
+    bltinfo->ydest = ydest;
+    bltinfo->width = width;
+    bltinfo->height = height;   
+    bltinfo->xsrc = xsrc;
+    bltinfo->ysrc = ysrc;
+    
+    if(destp)
+    {
+        bltinfo->dest = (id)destp->handle;
+    }
+    if(srcp)
+    {
+        id object = bltinfo->src = (id)srcp->handle;
+        [object retain];
+    }   
+    [DWObj performSelectorOnMainThread:@selector(doBitBlt:) withObject:bi waitUntilDone:YES];
 }
 
 /*
@@ -5960,15 +6011,7 @@ void API dw_beep(int freq, int dur)
 void API dw_flush(void)
 {
     /* This may need to be thread specific */
-	if(_DWLastDrawable)
-	{
-        int _locked_by_me = FALSE;
-        DW_MUTEX_LOCK;
-		id object = _DWLastDrawable;
-		NSWindow *window = [object window];
-		[window flushWindow];
-        DW_MUTEX_UNLOCK;
-	}
+    [DWObj performSelectorOnMainThread:@selector(doFlush:) withObject:nil waitUntilDone:NO];
 }
 
 /* Functions for managing the user data lists that are associated with
