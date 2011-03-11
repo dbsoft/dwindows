@@ -141,24 +141,12 @@ int _event_handler(id object, NSEvent *event, int message)
 			case 4:
 			{
 				int (* API buttonfunc)(HWND, int, int, int, void *) = (int (* API)(HWND, int, int, int, void *))handler->signalfunction;
-				int flags = (int)[object pressedMouseButtons];
-				NSPoint point = [object mouseLocation];
-				int button = 0;
-			
-				if(flags & 1)
-				{
-					button = 1;
-				}
-				else if(flags & (1 << 1))
-				{
-					button = 2;
-				}
-				else if(flags & (1 << 2))
-				{
-					button = 3;
-				}
-			
-				return buttonfunc(object, point.x, point.y, button, handler->data);
+				int button = (int)event;
+				LONG x,y;
+				
+				dw_pointer_query_pos(&x, &y);
+                
+				return buttonfunc(object, (int)x, (int)y, button, handler->data);
 			}
 			case 6:
 			{
@@ -332,6 +320,10 @@ DWObject *DWObj;
 -(BOOL)isFlipped;
 -(void)mouseDown:(NSEvent *)theEvent;
 -(void)mouseUp:(NSEvent *)theEvent;
+-(NSMenu *)menuForEvent:(NSEvent *)theEvent;
+-(void)rightMouseUp:(NSEvent *)theEvent;
+-(void)otherMouseDown:(NSEvent *)theEvent;
+-(void)otherMouseUp:(NSEvent *)theEvent;
 -(void)setColor:(unsigned long)input;
 @end
 
@@ -365,8 +357,12 @@ DWObject *DWObj;
 	}
 }
 -(BOOL)isFlipped { return YES; }
--(void)mouseDown:(NSEvent *)theEvent { _event_handler(self, theEvent, 3); }
--(void)mouseUp:(NSEvent *)theEvent { _event_handler(self, theEvent, 4); }
+-(void)mouseDown:(NSEvent *)theEvent { _event_handler(self, (void *)1, 3); }
+-(void)mouseUp:(NSEvent *)theEvent { _event_handler(self, (void *)1, 4); }
+-(NSMenu *)menuForEvent:(NSEvent *)theEvent { _event_handler(self, (void *)2, 3); return nil; }
+-(void)rightMouseUp:(NSEvent *)theEvent { _event_handler(self, (void *)2, 4); }
+-(void)otherMouseDown:(NSEvent *)theEvent { _event_handler(self, (void *)3, 3); }
+-(void)otherMouseUp:(NSEvent *)theEvent { _event_handler(self, (void *)3, 4); }
 -(void)setColor:(unsigned long)input
 {
 	if(input == _colors[DW_CLR_DEFAULT])
@@ -646,18 +642,26 @@ DWObject *DWObj;
 }
 -(void *)userdata;
 -(void)setUserdata:(void *)input;
--(void)drawRect:(NSRect)rect;
 -(void)mouseDown:(NSEvent *)theEvent;
 -(void)mouseUp:(NSEvent *)theEvent;
+-(NSMenu *)menuForEvent:(NSEvent *)theEvent;
+-(void)rightMouseUp:(NSEvent *)theEvent;
+-(void)otherMouseDown:(NSEvent *)theEvent;
+-(void)otherMouseUp:(NSEvent *)theEvent;
+-(void)drawRect:(NSRect)rect;
 -(BOOL)isFlipped;
 @end
 
 @implementation DWRender
 -(void *)userdata { return userdata; }
 -(void)setUserdata:(void *)input { userdata = input; }
+-(void)mouseDown:(NSEvent *)theEvent { _event_handler(self, (void *)1, 3); }
+-(void)mouseUp:(NSEvent *)theEvent { _event_handler(self, (void *)1, 4); }
+-(NSMenu *)menuForEvent:(NSEvent *)theEvent { _event_handler(self, (void *)2, 3); return nil; }
+-(void)rightMouseUp:(NSEvent *)theEvent { _event_handler(self, (void *)2, 4); }
+-(void)otherMouseDown:(NSEvent *)theEvent { _event_handler(self, (void *)3, 3); }
+-(void)otherMouseUp:(NSEvent *)theEvent { _event_handler(self, (void *)3, 4); }
 -(void)drawRect:(NSRect)rect { _event_handler(self, nil, 7); }
--(void)mouseDown:(NSEvent *)theEvent { _event_handler(self, theEvent, 3); }
--(void)mouseUp:(NSEvent *)theEvent { _event_handler(self, theEvent, 4); }
 -(BOOL)isFlipped { return NO; }
 -(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); [super dealloc]; }
 @end
@@ -4953,19 +4957,10 @@ void API dw_menu_destroy(HMENUI *menu)
  */
 void API dw_menu_popup(HMENUI *menu, HWND parent, int x, int y)
 {
-	NSMenu *thismenu = (NSMenu *)menu;
+	NSMenu *thismenu = (NSMenu *)*menu;
 	NSView *view = parent;
-	NSEvent* fake = [[NSEvent alloc]
-					mouseEventWithType:NSLeftMouseDown
-					location:NSMakePoint(x,y)
-					modifierFlags:0
-					timestamp:1
-					windowNumber:[[view window] windowNumber]
-					context:[NSGraphicsContext currentContext]
-					eventNumber:1
-					clickCount:1
-					pressure:0.0];
-	[NSMenu popUpContextMenu:thismenu withEvent:fake forView:view];
+    NSEvent *event = [DWApp currentEvent];
+    [NSMenu popUpContextMenu:thismenu withEvent:event forView:view];
 }
 
 char _removetilde(char *dest, char *src)
