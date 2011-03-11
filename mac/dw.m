@@ -134,7 +134,7 @@ SignalList SignalTranslate[SIGNALMAX] = {
 int _event_handler(id object, NSEvent *event, int message)
 {
 	SignalHandler *handler = _get_handler(object, message);
-	/*NSLog(@"Event handler - type %d\n", message);*/
+	NSLog(@"Event handler - type %d\n", message);
 	
 	if(handler)
 	{
@@ -670,7 +670,7 @@ DWObject *DWObj;
 @implementation DWSlider
 -(void *)userdata { return userdata; }
 -(void)setUserdata:(void *)input { userdata = input; }
--(void)sliderChanged:(id)sender { NSLog(@"Slider changed"); _event_handler(self, (void *)[self integerValue], 14); }
+-(void)sliderChanged:(id)sender { _event_handler(self, (void *)[self integerValue], 14); }
 -(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); [super dealloc]; }
 @end
 
@@ -686,7 +686,7 @@ DWObject *DWObj;
 -(float)range;
 -(float)visible;
 -(void)setRange:(float)input1 andVisible:(float)input2;
--(void)changed:(id)sender;
+-(void)scrollerChanged:(id)sender;
 @end
 
 @implementation DWScrollbar
@@ -695,7 +695,7 @@ DWObject *DWObj;
 -(float)range { return range; }
 -(float)visible { return visible; }
 -(void)setRange:(float)input1 andVisible:(float)input2 { range = input1; visible = input2; }
--(void)changed:(id)sender { NSNumber *num = [NSNumber numberWithDouble:[self floatValue]]; _event_handler(self, (void *)[num integerValue], 14); }
+-(void)scrollerChanged:(id)sender { NSNumber *num = [NSNumber numberWithDouble:[self floatValue]]; _event_handler(self, (void *)[num integerValue], 14); }
 -(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); [super dealloc]; }
 @end
 
@@ -1165,9 +1165,12 @@ void _free_tree_recurse(NSMutableArray *node, NSPointerArray *item)
 @interface DWStepper : NSStepper 
 { 
     id textfield;
+    id parent;
 }
 -(void)setTextfield:(id)input;
 -(id)textfield;
+-(void)setParent:(id)input;
+-(id)parent;
 -(void)mouseDown:(NSEvent *)event;
 -(void)mouseUp:(NSEvent *)event;
 @end
@@ -1175,17 +1178,21 @@ void _free_tree_recurse(NSMutableArray *node, NSPointerArray *item)
 @implementation DWStepper
 -(void)setTextfield:(id)input { textfield = input; }
 -(id)textfield { return textfield; }
+-(void)setParent:(id)input { parent = input; }
+-(id)parent { return parent; }
 -(void)mouseDown:(NSEvent *)event
 {
     [super mouseDown:event];
     if([[NSApp currentEvent] type] == NSLeftMouseUp) 
     {
-        [textfield takeIntValueFrom:self]; 
+        [textfield takeIntValueFrom:self];
+        _event_handler(parent, (void *)[self integerValue], 14);
     }
 }
 -(void)mouseUp:(NSEvent *)event
 {
     [textfield takeIntValueFrom:self]; 
+    _event_handler(parent, (void *)[self integerValue], 14);
 }
 @end
 
@@ -1215,6 +1222,7 @@ void _free_tree_recurse(NSMutableArray *node, NSPointerArray *item)
         [self addSubview:textfield];
         stepper = [[DWStepper alloc] init];
         [self addSubview:stepper];
+        [stepper setParent:self];
         [stepper setTextfield:textfield];
         [textfield takeIntValueFrom:stepper];
         [textfield setDelegate:self];
@@ -1228,6 +1236,8 @@ void _free_tree_recurse(NSMutableArray *node, NSPointerArray *item)
 -(void)controlTextDidChange:(NSNotification *)aNotification
 {
     [stepper takeIntValueFrom:textfield];
+    [textfield takeIntValueFrom:stepper];
+    _event_handler(self, (void *)[stepper integerValue], 14);
 }
 -(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); [super dealloc]; }
 @end
@@ -2573,6 +2583,8 @@ HWND API dw_scrollbar_new(int vertical, ULONG cid)
     [scrollbar setAction:@selector(changed:)];
     [scrollbar setRange:0.0 andVisible:0.0];
     [scrollbar setKnobProportion:1.0];
+    [scrollbar setTarget:scrollbar];
+    [scrollbar setAction:@selector(scrollerChanged:)];
     [scrollbar setTag:cid];
     [scrollbar setEnabled:YES];
     return scrollbar;
