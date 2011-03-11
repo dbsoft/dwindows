@@ -102,6 +102,35 @@ SignalHandler *_get_handler(HWND window, int messageid)
 	return NULL;
 }
 
+typedef struct
+{
+	ULONG message;
+	char name[30];
+	
+} SignalList;
+
+/* List of signals */
+#define SIGNALMAX 16
+
+SignalList SignalTranslate[SIGNALMAX] = {
+	{ 1,	DW_SIGNAL_CONFIGURE },
+	{ 2,	DW_SIGNAL_KEY_PRESS },
+	{ 3,	DW_SIGNAL_BUTTON_PRESS },
+	{ 4,	DW_SIGNAL_BUTTON_RELEASE },
+	{ 5,	DW_SIGNAL_MOTION_NOTIFY },
+	{ 6,	DW_SIGNAL_DELETE },
+	{ 7,	DW_SIGNAL_EXPOSE },
+	{ 8,	DW_SIGNAL_CLICKED },
+	{ 9,	DW_SIGNAL_ITEM_ENTER },
+	{ 10,	DW_SIGNAL_ITEM_CONTEXT },
+	{ 11,	DW_SIGNAL_LIST_SELECT },
+	{ 12,	DW_SIGNAL_ITEM_SELECT },
+	{ 13,	DW_SIGNAL_SET_FOCUS },
+	{ 14,	DW_SIGNAL_VALUE_CHANGED },
+	{ 15,	DW_SIGNAL_SWITCH_PAGE },
+	{ 16,	DW_SIGNAL_TREE_EXPAND }
+};
+
 int _event_handler(id object, NSEvent *event, int message)
 {
 	SignalHandler *handler = _get_handler(object, message);
@@ -111,6 +140,7 @@ int _event_handler(id object, NSEvent *event, int message)
 	{
 		switch(message)
 		{
+            /* Timer event */
 			case 0:
 			{
 				int (* API timerfunc)(void *) = (int (* API)(void *))handler->signalfunction;
@@ -119,6 +149,7 @@ int _event_handler(id object, NSEvent *event, int message)
 					dw_timer_disconnect(handler->id);
 				return 0;
 			}
+            /* Configure/Resize event */
 			case 1:
 			{
 				int (*sizefunc)(HWND, int, int, void *) = handler->signalfunction;
@@ -137,6 +168,7 @@ int _event_handler(id object, NSEvent *event, int message)
 				
 				return sizefunc(object, size.width, size.height, handler->data);
 			}	
+            /* Button press and release event */
 			case 3:
 			case 4:
 			{
@@ -148,11 +180,13 @@ int _event_handler(id object, NSEvent *event, int message)
                 
 				return buttonfunc(object, (int)x, (int)y, button, handler->data);
 			}
+            /* Window close event */
 			case 6:
 			{
 				int (* API closefunc)(HWND, void *) = (int (* API)(HWND, void *))handler->signalfunction;
 				return closefunc(object, handler->data);
 			}
+            /* Window expose/draw event */
 			case 7:
 			{
 				DWExpose exp;
@@ -167,18 +201,21 @@ int _event_handler(id object, NSEvent *event, int message)
 				[[object window] flushWindow];
 				return result;
 			}
+            /* Clicked event for buttons and menu items */
 			case 8:
 			{
 				int (* API clickfunc)(HWND, void *) = (int (* API)(HWND, void *))handler->signalfunction;
 
 				return clickfunc(object, handler->data);
 			}
+            /* Container class selection event */
             case 9:
             {
                 int (*containerselectfunc)(HWND, char *, void *) = handler->signalfunction;
                 
                 return containerselectfunc(handler->window, (char *)event, handler->data);
             }
+            /* Container context menu event */
 			case 10:
 			{
 				int (* API containercontextfunc)(HWND, char *, int, int, void *, void *) = (int (* API)(HWND, char *, int, int, void *, void *))handler->signalfunction;
@@ -190,6 +227,16 @@ int _event_handler(id object, NSEvent *event, int message)
 				
 				return containercontextfunc(handler->window, text, (int)x, (int)y, handler->data, user);
 			}
+            /* Generic selection changed event for several classes */
+            case 11:
+            case 14:
+            {
+                int (* API valuechangedfunc)(HWND, int, void *) = (int (* API)(HWND, int, void *))handler->signalfunction;
+                int selected = (int)event;
+                
+                return valuechangedfunc(handler->window, selected, handler->data);;
+            }
+            /* Tree class selection event */
 			case 12:
 			{
 				int (* API treeselectfunc)(HWND, HTREEITEM, char *, void *, void *) = (int (* API)(HWND, HTREEITEM, char *, void *, void *))handler->signalfunction;
@@ -198,6 +245,21 @@ int _event_handler(id object, NSEvent *event, int message)
 				
 				return treeselectfunc(handler->window, NULL, text, handler->data, user);
 			}
+            /* Set Focus event */
+            case 13:
+            {
+                int (* API setfocusfunc)(HWND, void *) = (int (* API)(HWND, void *))handler->signalfunction;
+                
+                return setfocusfunc(handler->window, handler->data);
+            }
+            /* Notebook page change event */
+            case 15:
+            {
+                int (* API switchpagefunc)(HWND, unsigned long, void *) = (int (* API)(HWND, unsigned long, void *))handler->signalfunction;
+                int pageid = (int)event;
+                
+                return switchpagefunc(handler->window, pageid, handler->data);
+            }
 		}
 	}
 	return -1;
@@ -251,11 +313,9 @@ typedef struct _bitbltinfo
 -(void)synchronizeThread:(id)param
 {
     pthread_mutex_unlock(DWRunMutex);
-    //NSLog(@"Main thread releasing lock");
     pthread_mutex_lock(DWThreadMutex2);
     pthread_mutex_unlock(DWThreadMutex2);
     pthread_mutex_lock(DWRunMutex);
-    //NSLog(@"Main thread reacquiring lock");
 }
 -(void)doBitBlt:(id)param
 {
@@ -420,7 +480,7 @@ DWObject *DWObj;
 	{
 		[DWApp setMainMenu:DWMainMenu];
 	}
-
+    _event_handler(self, nil, 13);
 }
 -(void)setMenu:(NSMenu *)input { windowmenu = input; }
 -(void)menuHandler:(id)sender { _event_handler(sender, nil, 8); }
@@ -501,26 +561,6 @@ DWObject *DWObj;
 -(void)tabView:(NSTabView *)notebook didSelectTabViewItem:(NSTabViewItem *)notepage;
 @end
 
-@implementation DWNotebook
--(void *)userdata { return userdata; }
--(void)setUserdata:(void *)input { userdata = input; }
--(int)pageid { return pageid; }
--(void)setPageid:(int)input { pageid = input; }
--(void)tabView:(NSTabView *)notebook didSelectTabViewItem:(NSTabViewItem *)notepage
-{
-	id object = [notepage view];
-	
-	if([object isMemberOfClass:[DWBox class]])
-	{
-		DWBox *view = object;
-		Box *box = [view box];
-		NSSize size = [view frame].size;
-		_do_resize(box, size.width, size.height);
-	}
-}	
--(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); [super dealloc]; }
-@end
-
 /* Subclass for a Notebook page type */
 @interface DWNotebookPage : NSTabViewItem
 {
@@ -531,6 +571,28 @@ DWObject *DWObj;
 -(void)setUserdata:(void *)input;
 -(int)pageid;
 -(void)setPageid:(int)input;
+@end
+
+@implementation DWNotebook
+-(void *)userdata { return userdata; }
+-(void)setUserdata:(void *)input { userdata = input; }
+-(int)pageid { return pageid; }
+-(void)setPageid:(int)input { pageid = input; }
+-(void)tabView:(NSTabView *)notebook didSelectTabViewItem:(NSTabViewItem *)notepage
+{
+	id object = [notepage view];
+    DWNotebookPage *page = (DWNotebookPage *)notepage;
+	
+	if([object isMemberOfClass:[DWBox class]])
+	{
+		DWBox *view = object;
+		Box *box = [view box];
+		NSSize size = [view frame].size;
+		_do_resize(box, size.width, size.height);
+	}
+    _event_handler(self, (void *)[page pageid], 15);
+}	
+-(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); [super dealloc]; }
 @end
 
 @implementation DWNotebookPage
@@ -602,11 +664,13 @@ DWObject *DWObj;
 }
 -(void *)userdata;
 -(void)setUserdata:(void *)input;
+-(void)sliderMoved:(id)sender;
 @end
 
 @implementation DWSlider
 -(void *)userdata { return userdata; }
 -(void)setUserdata:(void *)input { userdata = input; }
+-(void)sliderMoved:(id)sender { NSLog(@"Slider changed"); _event_handler(self, (void *)[self integerValue], 14); }
 -(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); [super dealloc]; }
 @end
 
@@ -631,7 +695,7 @@ DWObject *DWObj;
 -(float)range { return range; }
 -(float)visible { return visible; }
 -(void)setRange:(float)input1 andVisible:(float)input2 { range = input1; visible = input2; }
--(void)changed:(id)sender { /*NSNumber *num = [NSNumber numberWithDouble:[scroller floatValue]]; NSLog([num stringValue]);*/ }
+-(void)changed:(id)sender { NSNumber *num = [NSNumber numberWithDouble:[self floatValue]]; _event_handler(self, (void *)[num integerValue], 14); }
 -(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); [super dealloc]; }
 @end
 
@@ -804,7 +868,6 @@ DWObject *DWObj;
 { 
     if(data) 
     { 
-        NSLog(@"addRow: titles: %x data %x", (int)titles, (int)data);
         lastAddPoint = (int)[titles count]; 
         [data addObjectsFromArray:input]; 
         [titles addPointer:NULL]; 
@@ -880,7 +943,10 @@ DWObject *DWObj;
 }
 -(void)selectionChanged:(id)sender
 {
+    /* Handler for container class */
 	_event_handler(self, (NSEvent *)[self getRowTitle:(int)[self selectedRow]], 9);
+    /* Handler for listbox class */
+	_event_handler(self, (NSEvent *)(int)[self selectedRow], 11);
 }
 -(NSMenu *)menuForEvent:(NSEvent *)event 
 {
@@ -1078,17 +1144,19 @@ void _free_tree_recurse(NSMutableArray *node, NSPointerArray *item)
 @end
 
 /* Subclass for a Combobox type */
-@interface DWComboBox : NSComboBox 
+@interface DWComboBox : NSComboBox <NSComboBoxDelegate>
 {
 	void *userdata;
 }
 -(void *)userdata;
 -(void)setUserdata:(void *)input;
+-(void)comboBoxSelectionDidChange:(NSNotification *)not;
 @end
 
 @implementation DWComboBox
 -(void *)userdata { return userdata; }
 -(void)setUserdata:(void *)input { userdata = input; }
+-(void)comboBoxSelectionDidChange:(NSNotification *)not { _event_handler(self, (void *)[self indexOfSelectedItem], 11); }
 -(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); [super dealloc]; }
 @end
 
@@ -1173,35 +1241,6 @@ void _free_tree_recurse(NSMutableArray *node, NSPointerArray *item)
 
 @implementation DWMDI
 @end
-
-typedef struct
-{
-	ULONG message;
-	char name[30];
-	
-} SignalList;
-
-/* List of signals */
-#define SIGNALMAX 16
-
-SignalList SignalTranslate[SIGNALMAX] = {
-	{ 1,	DW_SIGNAL_CONFIGURE },
-	{ 2,	DW_SIGNAL_KEY_PRESS },
-	{ 3,	DW_SIGNAL_BUTTON_PRESS },
-	{ 4,	DW_SIGNAL_BUTTON_RELEASE },
-	{ 5,	DW_SIGNAL_MOTION_NOTIFY },
-	{ 6,	DW_SIGNAL_DELETE },
-	{ 7,	DW_SIGNAL_EXPOSE },
-	{ 8,	DW_SIGNAL_CLICKED },
-	{ 9,	DW_SIGNAL_ITEM_ENTER },
-	{ 10,	DW_SIGNAL_ITEM_CONTEXT },
-	{ 11,	DW_SIGNAL_LIST_SELECT },
-	{ 12,	DW_SIGNAL_ITEM_SELECT },
-	{ 13,	DW_SIGNAL_SET_FOCUS },
-	{ 14,	DW_SIGNAL_VALUE_CHANGED },
-	{ 15,	DW_SIGNAL_SWITCH_PAGE },
-	{ 16,	DW_SIGNAL_TREE_EXPAND }
-};
 
 /* This function adds a signal handler callback into the linked list.
  */
@@ -3071,6 +3110,7 @@ void API dw_listbox_delete(HWND handle, int index)
 HWND API dw_combobox_new(char *text, ULONG cid)
 {
 	DWComboBox *combo = [[DWComboBox alloc] init];
+    [combo setDelegate:combo];
     [combo setTag:cid];
 	return combo;
 }
