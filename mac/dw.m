@@ -4957,10 +4957,20 @@ void API dw_menu_destroy(HMENUI *menu)
  */
 void API dw_menu_popup(HMENUI *menu, HWND parent, int x, int y)
 {
-	NSMenu *thismenu = (NSMenu *)*menu;
-	NSView *view = parent;
+    NSMenu *thismenu = (NSMenu *)*menu;
+    NSView *view = parent;
+    NSWindow *window = [view window];
     NSEvent *event = [DWApp currentEvent];
-    [NSMenu popUpContextMenu:thismenu withEvent:event forView:view];
+    NSEvent* fake = [NSEvent mouseEventWithType:NSRightMouseDown 
+                                       location:[window convertScreenToBase:NSMakePoint(x, y)]
+                                  modifierFlags:0 
+                                      timestamp:[event timestamp]
+                                   windowNumber:[window windowNumber]
+                                        context:[NSGraphicsContext currentContext] 
+                                    eventNumber:1 
+                                     clickCount:1 
+                                       pressure:0.0];     
+    [NSMenu popUpContextMenu:thismenu withEvent:fake forView:view];
 }
 
 char _removetilde(char *dest, char *src)
