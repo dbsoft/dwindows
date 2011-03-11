@@ -134,7 +134,7 @@ SignalList SignalTranslate[SIGNALMAX] = {
 int _event_handler(id object, NSEvent *event, int message)
 {
 	SignalHandler *handler = _get_handler(object, message);
-	NSLog(@"Event handler - type %d\n", message);
+	/* NSLog(@"Event handler - type %d\n", message); */
 	
 	if(handler)
 	{
@@ -166,7 +166,11 @@ int _event_handler(id object, NSEvent *event, int message)
 					size = [view frame].size;
 				}
 				
-				return sizefunc(object, size.width, size.height, handler->data);
+                if(size.width > 0 && size.height > 0)
+                {
+                    return sizefunc(object, size.width, size.height, handler->data);
+                }
+                return 0;
 			}	
             /* Button press and release event */
 			case 3:
@@ -695,7 +699,7 @@ DWObject *DWObj;
 -(float)range { return range; }
 -(float)visible { return visible; }
 -(void)setRange:(float)input1 andVisible:(float)input2 { range = input1; visible = input2; }
--(void)scrollerChanged:(id)sender { NSNumber *num = [NSNumber numberWithDouble:[self floatValue]]; _event_handler(self, (void *)[num integerValue], 14); }
+-(void)scrollerChanged:(id)sender { int result = (int)([self doubleValue] * [self range]); _event_handler(self, (void *)result, 14); }
 -(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); [super dealloc]; }
 @end
 
