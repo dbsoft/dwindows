@@ -7442,14 +7442,7 @@ int dw_exec(char *program, int type, char **params)
  */
 int dw_browse(char *url)
 {
-	/* Is there a way to find the webbrowser in Unix? */
-	char *execargs[3], *browser = "netscape", *tmp;
-	
-	tmp = getenv( "DW_BROWSER" );
-	if(tmp) browser = tmp;
-	execargs[0] = browser;
-	execargs[1] = url;
-	execargs[2] = NULL;
-	
-	return dw_exec(browser, DW_EXEC_GUI, execargs);
+    NSURL *myurl = [NSURL URLWithString:[NSString stringWithUTF8String:url]];
+    [[NSWorkspace sharedWorkspace] openURL:myurl];
+    return 0;
 }
