@@ -243,12 +243,25 @@ int _event_handler(id object, NSEvent *event, int message)
             /* Tree class selection event */
 			case 12:
 			{
-				int (* API treeselectfunc)(HWND, HTREEITEM, char *, void *, void *) = (int (* API)(HWND, HTREEITEM, char *, void *, void *))handler->signalfunction;
-				char *text = (char *)event;
-				void *user = NULL;
+                int (* API treeselectfunc)(HWND, HTREEITEM, char *, void *, void *) = (int (* API)(HWND, HTREEITEM, char *, void *, void *))handler->signalfunction;
+                char *text = (char *)event;
+                void *user = NULL;
+                id item = nil;
+                
+                if([object isMemberOfClass:[NSOutlineView class]])
+                {
+                    item = (id)event;
+                    NSString *nstr = [item pointerAtIndex:1];
+                    
+                    user = [item pointerAtIndex:3];
+                    text = strdup([nstr UTF8String]);
+                    int result = treeselectfunc(handler->window, item, text, handler->data, user);
+                    free(text);
+                    return result;
+                }
 				
-				return treeselectfunc(handler->window, NULL, text, handler->data, user);
-			}
+                return treeselectfunc(handler->window, item, text, handler->data, user);
+ 			}
             /* Set Focus event */
             case 13:
             {
@@ -1048,6 +1061,7 @@ void _free_tree_recurse(NSMutableArray *node, NSPointerArray *item)
 -(void)addTree:(NSPointerArray *)item and:(NSPointerArray *)parent;
 -(void *)userdata;
 -(void)setUserdata:(void *)input;
+-(void)treeSelectionChanged:(id)sender;
 -(NSScrollView *)scrollview;
 -(void)setScrollview:(NSScrollView *)input;
 -(void)deleteNode:(NSPointerArray *)item;
@@ -1070,6 +1084,7 @@ void _free_tree_recurse(NSMutableArray *node, NSPointerArray *item)
         textcol = [[NSTableColumn alloc] init];
         [self addTableColumn:textcol];
         [self setOutlineTableColumn:textcol];
+        [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(treeSelectionChanged:) name:NSOutlineViewSelectionDidChangeNotification object:[self window]];
     }
     return self;
 }
@@ -1151,6 +1166,13 @@ void _free_tree_recurse(NSMutableArray *node, NSPointerArray *item)
 }
 -(void *)userdata { return userdata; }
 -(void)setUserdata:(void *)input { userdata = input; }
+-(void)treeSelectionChanged:(id)sender
+{
+    /* Handler for container class */
+    id item = [self itemAtRow:[self selectedRow]];
+
+	_event_handler(self, (void *)item, 12);
+}
 -(NSScrollView *)scrollview { return scrollview; }
 -(void)setScrollview:(NSScrollView *)input { scrollview = input; }
 -(void)deleteNode:(NSPointerArray *)item { _free_tree_recurse(data, item); }
