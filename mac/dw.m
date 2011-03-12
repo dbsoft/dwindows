@@ -705,7 +705,6 @@ DWObject *DWObj;
     int result = (int)([self doubleValue] * range);
     int newpos = result;
     int page = (int)(proportion * range);
-    int max = (int)(range - page);
     
     switch ([sender hitPart]) 
     {
@@ -812,7 +811,7 @@ DWObject *DWObj;
 }
 -(NSInteger)numberOfRowsInTableView:(NSTableView *)aTable;
 -(id)tableView:(NSTableView *)aTable objectValueForTableColumn:(NSTableColumn *)aCol row:(NSInteger)aRow;
-/*-(void)tableView:(NSTableView *)aTableView setObjectValue:(id)anObject forTableColumn:(NSTableColumn *)aTableColumn row:(NSInteger)rowIndex;*/
+-(BOOL)tableView:(NSTableView *)aTableView shouldEditTableColumn:(NSTableColumn *)aTableColumn row:(int)rowIndex;
 -(void *)userdata;
 -(void)setUserdata:(void *)input;
 -(id)scrollview;
@@ -832,6 +831,7 @@ DWObject *DWObj;
 -(void)setLastQueryPoint:(int)input;
 -(void)clear;
 -(void)setup;
+-(void)doubleClicked:(id)sender;
 -(void)selectionChanged:(id)sender;
 -(NSMenu *)menuForEvent:(NSEvent *)event;
 @end
@@ -873,28 +873,7 @@ DWObject *DWObj;
 	}
 	return nil;
 }
-/*-(void)tableView:(NSTableView *)aTableView setObjectValue:(id)anObject forTableColumn:(NSTableColumn *)aTableColumn row:(NSInteger)rowIndex
-{
-	if(tvcols)
-	{
-		int z, col = -1;
-		int count = (int)[tvcols count];
-		
-		for(z=0;z<count;z++)
-		{
-			if([tvcols objectAtIndex:z] == aTableColumn)
-			{
-				col = z;
-				break;
-			}
-		}
-		if(col != -1)
-		{
-			int index = (int)(rowIndex * count) + col;
-			[data replaceObjectAtIndex:index withObject:anObject];
-		}
-	}
-}*/
+-(BOOL)tableView:(NSTableView *)aTableView shouldEditTableColumn:(NSTableColumn *)aTableColumn row:(int)rowIndex { return NO; }
 -(void *)userdata { return userdata; }
 -(void)setUserdata:(void *)input { userdata = input; }
 -(NSScrollView *)scrollview { return scrollview; }
@@ -995,10 +974,15 @@ DWObject *DWObj;
 	titles = [[NSPointerArray pointerArrayWithWeakObjects] retain];
 	[[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(selectionChanged:) name:NSTableViewSelectionDidChangeNotification object:[self window]];
 }
--(void)selectionChanged:(id)sender
+-(void)doubleClicked:(id)sender
 {
     /* Handler for container class */
 	_event_handler(self, (NSEvent *)[self getRowTitle:(int)[self selectedRow]], 9);
+}
+-(void)selectionChanged:(id)sender
+{
+    /* Handler for container class */
+	_event_handler(self, (NSEvent *)[self getRowTitle:(int)[self selectedRow]], 12);
     /* Handler for listbox class */
 	_event_handler(self, (NSEvent *)(int)[self selectedRow], 11);
 }
@@ -3969,14 +3953,16 @@ HWND API dw_container_new(ULONG cid, int multi)
 {
     int _locked_by_me = FALSE;
     DW_MUTEX_LOCK;
-	DWContainer *cont = _cont_new(cid, multi);
+    DWContainer *cont = _cont_new(cid, multi);
     NSScrollView *scrollview = [cont scrollview];
     [scrollview setHasHorizontalScroller:YES];
-	NSTableHeaderView *header = [[NSTableHeaderView alloc] init];
-	[cont setHeaderView:header];
+    NSTableHeaderView *header = [[NSTableHeaderView alloc] init];
+    [cont setHeaderView:header];
+    [cont setTarget:cont];
+    [cont setDoubleAction:@selector(doubleClicked:)];
     [header release];
     DW_MUTEX_UNLOCK;
-	return cont;
+    return cont;
 }
 
 /*
