@@ -258,6 +258,10 @@ int _event_handler(id object, NSEvent *event, int message)
                     {
                         text = strdup([nstr UTF8String]);
                     }
+                    else
+                    {
+                        text = NULL;
+                    }
                     int result = treeselectfunc(handler->window, item, text, handler->data, user);
                     free(text);
                     return result;
@@ -1177,7 +1181,10 @@ void _free_tree_recurse(NSMutableArray *node, NSPointerArray *item)
     /* Handler for tree class */
     id item = [self itemAtRow:[self selectedRow]];
 
-    _event_handler(self, (void *)item, 12);
+    if(item)
+    {
+        _event_handler(self, (void *)item, 12);
+    }
 }
 -(NSMenu *)menuForEvent:(NSEvent *)event 
 {
