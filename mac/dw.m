@@ -699,7 +699,57 @@ DWObject *DWObj;
 -(float)range { return range; }
 -(float)visible { return visible; }
 -(void)setRange:(float)input1 andVisible:(float)input2 { range = input1; visible = input2; }
--(void)scrollerChanged:(id)sender { int result = (int)([self doubleValue] * [self range]); _event_handler(self, (void *)result, 14); }
+-(void)scrollerChanged:(id)sender 
+{ 
+    double proportion = [self knobProportion];
+    int result = (int)([self doubleValue] * range);
+    int newpos = result;
+    int page = (int)(proportion * range);
+    int max = (int)(range - page);
+    
+    switch ([sender hitPart]) 
+    {
+            
+        case NSScrollerDecrementLine:
+            if(newpos > 0)
+            {
+                newpos--;
+            }
+            break;
+            
+        case NSScrollerIncrementLine:
+            if(newpos < range)
+            {
+                newpos++;
+            }
+            break;
+            
+        case NSScrollerDecrementPage:
+            newpos -= page;
+            if(newpos < 0)
+            {
+                newpos = 0;
+            }
+            break;
+            
+        case NSScrollerIncrementPage:
+            newpos += page;
+            if(newpos > range)
+            {
+                newpos = range;
+            }
+            break;
+            
+        default:
+            ; // do nothing
+    }
+    if(newpos != result)
+    {
+        double newposd = (double)newpos/range;
+        [self setDoubleValue:newposd];
+    }
+    _event_handler(self, (void *)newpos, 14); 
+}
 -(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); [super dealloc]; }
 @end
 
