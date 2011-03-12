@@ -5087,7 +5087,8 @@ void API dw_menu_destroy(HMENUI *menu)
 void API dw_menu_popup(HMENUI *menu, HWND parent, int x, int y)
 {
     NSMenu *thismenu = (NSMenu *)*menu;
-    NSView *view = parent;
+    id object = parent;
+    NSView *view = [object isKindOfClass:[NSWindow class]] ? [object contentView] : parent;
     NSWindow *window = [view window];
     NSEvent *event = [DWApp currentEvent];
     NSEvent* fake = [NSEvent mouseEventWithType:NSRightMouseDown 
