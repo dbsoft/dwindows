@@ -254,7 +254,10 @@ int _event_handler(id object, NSEvent *event, int message)
                     NSString *nstr = [item pointerAtIndex:1];
                     
                     user = [item pointerAtIndex:3];
-                    text = strdup([nstr UTF8String]);
+                    if(user)
+                    {
+                        text = strdup([nstr UTF8String]);
+                    }
                     int result = treeselectfunc(handler->window, item, text, handler->data, user);
                     free(text);
                     return result;
@@ -715,9 +718,10 @@ DWObject *DWObj;
 -(void)scrollerChanged:(id)sender 
 { 
     double proportion = [self knobProportion];
-    int result = (int)([self doubleValue] * range);
-    int newpos = result;
     int page = (int)(proportion * range);
+    int max = (int)(range - page); 
+    int result = (int)([self doubleValue] * max);
+    int newpos = result;
     
     switch ([sender hitPart]) 
     {
@@ -730,7 +734,7 @@ DWObject *DWObj;
             break;
             
         case NSScrollerIncrementLine:
-            if(newpos < range)
+            if(newpos < max)
             {
                 newpos++;
             }
@@ -746,9 +750,9 @@ DWObject *DWObj;
             
         case NSScrollerIncrementPage:
             newpos += page;
-            if(newpos > range)
+            if(newpos > max)
             {
-                newpos = range;
+                newpos = max;
             }
             break;
             
@@ -757,7 +761,7 @@ DWObject *DWObj;
     }
     if(newpos != result)
     {
-        double newposd = (double)newpos/range;
+        double newposd = (double)newpos/max;
         [self setDoubleValue:newposd];
     }
     _event_handler(self, (void *)newpos, 14); 
@@ -3316,6 +3320,9 @@ void API dw_mle_clear(HWND handle)
  */
 void API dw_mle_set_visible(HWND handle, int line)
 {
+    /*NSScrollView *sv = handle;
+	DWMLE *mle = [sv documentView];
+    [mle scrollrangeToVisible:NSMakeRange(0,13)];*/
 	NSLog(@"dw_mle_set_visible() unimplemented\n");
 }
 
@@ -3367,7 +3374,9 @@ void API dw_mle_set_word_wrap(HWND handle, int state)
  */
 void API dw_mle_set_cursor(HWND handle, int point)
 {
-	NSLog(@"dw_mle_set_cursor() unimplemented\n");
+    NSScrollView *sv = handle;
+	DWMLE *mle = [sv documentView];
+    [mle setSelectedRange: NSMakeRange(point,point)];
 }
 
 /*
