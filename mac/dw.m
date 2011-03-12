@@ -248,7 +248,7 @@ int _event_handler(id object, NSEvent *event, int message)
                 void *user = NULL;
                 id item = nil;
                 
-                if([object isMemberOfClass:[NSOutlineView class]])
+                if([object isKindOfClass:[NSOutlineView class]])
                 {
                     item = (id)event;
                     NSString *nstr = [item pointerAtIndex:1];
@@ -1001,11 +1001,11 @@ DWObject *DWObj;
 }
 -(NSMenu *)menuForEvent:(NSEvent *)event 
 {
-	int row;
-	NSPoint where = [self convertPoint:[event locationInWindow] fromView:nil];
-	row = (int)[self rowAtPoint:where];
-	_event_handler(self, (NSEvent *)[self getRowTitle:row], 10);
-	return nil;
+    int row;
+    NSPoint where = [self convertPoint:[event locationInWindow] fromView:nil];
+    row = (int)[self rowAtPoint:where];
+    _event_handler(self, (NSEvent *)[self getRowTitle:row], 10);
+    return nil;
 }
 -(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); [super dealloc]; }
 @end
@@ -1058,6 +1058,7 @@ void _free_tree_recurse(NSMutableArray *node, NSPointerArray *item)
 -(BOOL)outlineView:(NSOutlineView *)outlineView isItemExpandable:(id)item;
 -(int)outlineView:(NSOutlineView *)outlineView numberOfChildrenOfItem:(id)item;
 -(id)outlineView:(NSOutlineView *)outlineView objectValueForTableColumn:(NSTableColumn *)tableColumn byItem:(id)item;
+-(BOOL)outlineView:(NSOutlineView *)outlineView shouldEditTableColumn:(NSTableColumn *)tableColumn item:(id)item;
 -(void)addTree:(NSPointerArray *)item and:(NSPointerArray *)parent;
 -(void *)userdata;
 -(void)setUserdata:(void *)input;
@@ -1143,6 +1144,7 @@ void _free_tree_recurse(NSMutableArray *node, NSPointerArray *item)
 	}
     return @"List Root";
 }
+-(BOOL)outlineView:(NSOutlineView *)outlineView shouldEditTableColumn:(NSTableColumn *)tableColumn item:(id)item { return NO; }
 -(void)addTree:(NSPointerArray *)item and:(NSPointerArray *)parent;
 {
     NSMutableArray *children = data;
@@ -1168,10 +1170,20 @@ void _free_tree_recurse(NSMutableArray *node, NSPointerArray *item)
 -(void)setUserdata:(void *)input { userdata = input; }
 -(void)treeSelectionChanged:(id)sender
 {
-    /* Handler for container class */
+    /* Handler for tree class */
     id item = [self itemAtRow:[self selectedRow]];
 
-	_event_handler(self, (void *)item, 12);
+    _event_handler(self, (void *)item, 12);
+}
+-(NSMenu *)menuForEvent:(NSEvent *)event 
+{
+    int row;
+    NSPoint where = [self convertPoint:[event locationInWindow] fromView:nil];
+    row = (int)[self rowAtPoint:where];
+    id item = [self itemAtRow:row];
+    NSString *nstr = [item pointerAtIndex:1];
+    _event_handler(self, (NSEvent *)[nstr UTF8String], 10);
+    return nil;
 }
 -(NSScrollView *)scrollview { return scrollview; }
 -(void)setScrollview:(NSScrollView *)input { scrollview = input; }
