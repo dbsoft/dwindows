@@ -9614,10 +9614,14 @@ void API dw_environment_query(DWEnv *env)
 
    if (dwVersion < 0x80000000)
    {
-      if(env->MajorVersion == 5 && env->MinorVersion == 1)
-         strcpy(env->osName, "Windows XP");
-      else if(env->MajorVersion == 5 && env->MinorVersion == 0)
+      if(env->MajorVersion == 5 && env->MinorVersion == 0)
          strcpy(env->osName, "Windows 2000");
+      else if(env->MajorVersion == 5 && env->MinorVersion > 0)
+         strcpy(env->osName, "Windows XP");
+      else if(env->MajorVersion == 6 && env->MinorVersion == 0)
+         strcpy(env->osName, "Windows Vista");
+      else if(env->MajorVersion == 6 && env->MinorVersion > 0)
+         strcpy(env->osName, "Windows 7");
       else
          strcpy(env->osName, "Windows NT");
 
