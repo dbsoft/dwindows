@@ -17,6 +17,11 @@
 #include <sys/time.h>
 #include <sys/stat.h>
 
+/* Create a define to let us know to include Snow Leopard specific features */
+#if defined(MAC_OS_X_VERSION_10_6) && ((defined(MAC_OS_X_VERSION_MIN_REQUIRED) && MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_6) || !defined(MAC_OS_X_VERSION_MIN_REQUIRED))
+#define BUILDING_FOR_SNOW_LEOPARD
+#endif
+
 /* Macros to protect access to thread unsafe classes */
 #define  DW_MUTEX_LOCK { \
     if(DWThread != (DWTID)-1 && pthread_self() != DWThread && pthread_self() != _dw_mutex_locked) { \
@@ -390,7 +395,7 @@ DWObject *DWObj;
 
 /* Subclass for a box type */
 @interface DWBox : NSView 
-#if MAC_OS_X_VERSION_10_6 > MAC_OS_X_VERSION_MAX_ALLOWED
+#ifdef BUILDING_FOR_SNOW_LEOPARD
 <NSWindowDelegate>
 #endif
 {
@@ -577,7 +582,7 @@ DWObject *DWObj;
 
 /* Subclass for a Notebook control type */
 @interface DWNotebook : NSTabView 
-#if MAC_OS_X_VERSION_10_6 > MAC_OS_X_VERSION_MAX_ALLOWED
+#ifdef BUILDING_FOR_SNOW_LEOPARD
 <NSTabViewDelegate>
 #endif
 {
@@ -652,7 +657,7 @@ DWObject *DWObj;
 
 /* Subclass for a splitbar type */
 @interface DWSplitBar : NSSplitView 
-#if MAC_OS_X_VERSION_10_6 > MAC_OS_X_VERSION_MAX_ALLOWED
+#ifdef BUILDING_FOR_SNOW_LEOPARD
 <NSSplitViewDelegate> 
 #endif
 { 
@@ -830,7 +835,7 @@ DWObject *DWObj;
 
 /* Subclass for a Container/List type */
 @interface DWContainer : NSTableView 
-#if MAC_OS_X_VERSION_10_6 > MAC_OS_X_VERSION_MAX_ALLOWED
+#ifdef BUILDING_FOR_SNOW_LEOPARD
 <NSTableViewDataSource>
 #endif
 {
@@ -1064,7 +1069,7 @@ void _free_tree_recurse(NSMutableArray *node, NSPointerArray *item)
 
 /* Subclass for a Tree type */
 @interface DWTree : NSOutlineView 
-#if MAC_OS_X_VERSION_10_6 > MAC_OS_X_VERSION_MAX_ALLOWED
+#ifdef BUILDING_FOR_SNOW_LEOPARD
 <NSOutlineViewDataSource>
 #endif
 {
@@ -1243,7 +1248,7 @@ void _free_tree_recurse(NSMutableArray *node, NSPointerArray *item)
 
 /* Subclass for a Combobox type */
 @interface DWComboBox : NSComboBox 
-#if MAC_OS_X_VERSION_10_6 > MAC_OS_X_VERSION_MAX_ALLOWED
+#ifdef BUILDING_FOR_SNOW_LEOPARD
 <NSComboBoxDelegate>
 #endif
 {
@@ -1299,7 +1304,7 @@ void _free_tree_recurse(NSMutableArray *node, NSPointerArray *item)
 
 /* Subclass for a Spinbutton type */
 @interface DWSpinButton : NSView 
-#if MAC_OS_X_VERSION_10_6 > MAC_OS_X_VERSION_MAX_ALLOWED
+#ifdef BUILDING_FOR_SNOW_LEOPARD
 <NSTextFieldDelegate>
 #endif
 {
@@ -1798,7 +1803,7 @@ NSMenu *_generate_main_menu()
 	NSString *applicationName = nil;
 	
 	/* This only works on 10.6 so we have a backup method */
-#if MAC_OS_X_VERSION_10_6 > MAC_OS_X_VERSION_MAX_ALLOWED
+#ifdef BUILDING_FOR_SNOW_LEOPARD
 	applicationName = [[NSRunningApplication currentApplication] localizedName];
 #endif
 	if(applicationName == nil)
@@ -2139,7 +2144,7 @@ void dw_clipboard_set_text( char *str, int len)
 {
 	NSPasteboard *pasteboard = [NSPasteboard generalPasteboard];
 	
-#if MAC_OS_X_VERSION_10_6 > MAC_OS_X_VERSION_MAX_ALLOWED
+#ifdef BUILDING_FOR_SNOW_LEOPARD
 	[pasteboard clearContents];
 #endif
 	
@@ -5464,7 +5469,7 @@ HWND API dw_window_new(HWND hwndOwner, char *title, ULONG flStyle)
     [window setContentView:view];
     [window setDelegate:view];
     [window makeKeyAndOrderFront:nil];
-#if MAC_OS_X_VERSION_10_6 > MAC_OS_X_VERSION_MAX_ALLOWED
+#ifdef BUILDING_FOR_SNOW_LEOPARD
 	[window setAllowsConcurrentViewDrawing:NO];
 #endif
     [view release];
@@ -5621,7 +5626,7 @@ void API dw_window_set_style(HWND handle, ULONG style, ULONG mask)
 	
 	if([object isMemberOfClass:[NSWindow class]])
 	{
-#if MAC_OS_X_VERSION_10_6 > MAC_OS_X_VERSION_MAX_ALLOWED
+#ifdef BUILDING_FOR_SNOW_LEOPARD
 		NSWindow *window = object;
 		int currentstyle = (int)[window styleMask];
 		int tmp;
