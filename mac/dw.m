@@ -389,7 +389,10 @@ DWObject *DWObj;
  */
 
 /* Subclass for a box type */
-@interface DWBox : NSView <NSWindowDelegate>
+@interface DWBox : NSView 
+#if MAC_OS_X_VERSION_10_6 > MAC_OS_X_VERSION_MAX_ALLOWED
+<NSWindowDelegate>
+#endif
 {
 	Box *box;
 	void *userdata;
@@ -573,7 +576,10 @@ DWObject *DWObj;
 @end
 
 /* Subclass for a Notebook control type */
-@interface DWNotebook : NSTabView <NSTabViewDelegate>
+@interface DWNotebook : NSTabView 
+#if MAC_OS_X_VERSION_10_6 > MAC_OS_X_VERSION_MAX_ALLOWED
+<NSTabViewDelegate>
+#endif
 {
 	void *userdata;
 	int pageid;
@@ -645,7 +651,10 @@ DWObject *DWObj;
 @end
 
 /* Subclass for a splitbar type */
-@interface DWSplitBar : NSSplitView <NSSplitViewDelegate> 
+@interface DWSplitBar : NSSplitView 
+#if MAC_OS_X_VERSION_10_6 > MAC_OS_X_VERSION_MAX_ALLOWED
+<NSSplitViewDelegate> 
+#endif
 { 
 	void *userdata; 
     float percent;
@@ -820,7 +829,10 @@ DWObject *DWObj;
 @end
 
 /* Subclass for a Container/List type */
-@interface DWContainer : NSTableView <NSTableViewDataSource>
+@interface DWContainer : NSTableView 
+#if MAC_OS_X_VERSION_10_6 > MAC_OS_X_VERSION_MAX_ALLOWED
+<NSTableViewDataSource>
+#endif
 {
 	void *userdata;
 	NSMutableArray *tvcols;
@@ -897,8 +909,8 @@ DWObject *DWObj;
 -(BOOL)tableView:(NSTableView *)aTableView shouldEditTableColumn:(NSTableColumn *)aTableColumn row:(int)rowIndex { return NO; }
 -(void *)userdata { return userdata; }
 -(void)setUserdata:(void *)input { userdata = input; }
--(NSScrollView *)scrollview { return scrollview; }
--(void)setScrollview:(NSScrollView *)input { scrollview = input; }
+-(id)scrollview { return scrollview; }
+-(void)setScrollview:(id)input { scrollview = input; }
 -(void)addColumn:(NSTableColumn *)input andType:(int)type { if(tvcols) { [tvcols addObject:input]; [types addObject:[NSNumber numberWithInt:type]]; } }
 -(NSTableColumn *)getColumn:(int)col { if(tvcols) { return [tvcols objectAtIndex:col]; } return nil; }
 -(int)insertRow:(NSArray *)input at:(int)index 
@@ -1051,7 +1063,10 @@ void _free_tree_recurse(NSMutableArray *node, NSPointerArray *item)
 }
 
 /* Subclass for a Tree type */
-@interface DWTree : NSOutlineView <NSOutlineViewDataSource>
+@interface DWTree : NSOutlineView 
+#if MAC_OS_X_VERSION_10_6 > MAC_OS_X_VERSION_MAX_ALLOWED
+<NSOutlineViewDataSource>
+#endif
 {
 	void *userdata;
 	NSTableColumn *imagecol;
@@ -1227,7 +1242,10 @@ void _free_tree_recurse(NSMutableArray *node, NSPointerArray *item)
 @end
 
 /* Subclass for a Combobox type */
-@interface DWComboBox : NSComboBox <NSComboBoxDelegate>
+@interface DWComboBox : NSComboBox 
+#if MAC_OS_X_VERSION_10_6 > MAC_OS_X_VERSION_MAX_ALLOWED
+<NSComboBoxDelegate>
+#endif
 {
 	void *userdata;
 }
@@ -1280,7 +1298,10 @@ void _free_tree_recurse(NSMutableArray *node, NSPointerArray *item)
 @end
 
 /* Subclass for a Spinbutton type */
-@interface DWSpinButton : NSView <NSTextFieldDelegate>
+@interface DWSpinButton : NSView 
+#if MAC_OS_X_VERSION_10_6 > MAC_OS_X_VERSION_MAX_ALLOWED
+<NSTextFieldDelegate>
+#endif
 {
 	void *userdata;
     NSTextField *textfield;
@@ -1774,8 +1795,12 @@ static void _do_resize(Box *thisbox, int x, int y)
 
 NSMenu *_generate_main_menu()
 {
+	NSString *applicationName = nil;
+	
 	/* This only works on 10.6 so we have a backup method */
-	NSString * applicationName = [[NSRunningApplication currentApplication] localizedName];
+#if MAC_OS_X_VERSION_10_6 > MAC_OS_X_VERSION_MAX_ALLOWED
+	applicationName = [[NSRunningApplication currentApplication] localizedName];
+#endif
 	if(applicationName == nil)
 	{
 		applicationName = [[NSProcessInfo processInfo] processName];
