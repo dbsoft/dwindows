@@ -2139,7 +2139,9 @@ void dw_clipboard_set_text( char *str, int len)
 {
 	NSPasteboard *pasteboard = [NSPasteboard generalPasteboard];
 	
+#if MAC_OS_X_VERSION_10_6 > MAC_OS_X_VERSION_MAX_ALLOWED
 	[pasteboard clearContents];
+#endif
 	
 	[pasteboard setString:[ NSString stringWithUTF8String:str ] forType:NSStringPboardType];
 }
@@ -5462,7 +5464,9 @@ HWND API dw_window_new(HWND hwndOwner, char *title, ULONG flStyle)
     [window setContentView:view];
     [window setDelegate:view];
     [window makeKeyAndOrderFront:nil];
+#if MAC_OS_X_VERSION_10_6 > MAC_OS_X_VERSION_MAX_ALLOWED
 	[window setAllowsConcurrentViewDrawing:NO];
+#endif
     [view release];
     
     /* If it isn't a toplevel window... */
@@ -5617,6 +5621,7 @@ void API dw_window_set_style(HWND handle, ULONG style, ULONG mask)
 	
 	if([object isMemberOfClass:[NSWindow class]])
 	{
+#if MAC_OS_X_VERSION_10_6 > MAC_OS_X_VERSION_MAX_ALLOWED
 		NSWindow *window = object;
 		int currentstyle = (int)[window styleMask];
 		int tmp;
@@ -5626,6 +5631,7 @@ void API dw_window_set_style(HWND handle, ULONG style, ULONG mask)
 		tmp |= style;
 		
 		[window setStyleMask:tmp];
+#endif
 	}
     else if([object isMemberOfClass:[NSTextView class]])
     {
