@@ -3,6 +3,7 @@
  *          A GTK like implementation of the MacOS GUI using Cocoa
  *
  * (C) 2011 Brian Smith <brian@dbsoft.org>
+ * (C) 2011 Mark Hessling <mark@rexx.org>
  *
  * Using garbage collection so requires 10.5 or later.
  * clang -std=c99 -g -o dwtest -D__MAC__ -I. dwtest.c mac/dw.m -framework Cocoa -framework WebKit -fobjc-gc-only
@@ -4324,10 +4325,23 @@ int API dw_container_get_column_type(HWND handle, int column)
 {
     int _locked_by_me = FALSE;
     DW_MUTEX_LOCK;
-	DWContainer *cont = handle;
-	int result = [cont cellType:column];
+    DWContainer *cont = handle;
+    int rc;
+    int flag = [cont cellType:column];
+    if(flag & DW_CFA_BITMAPORICON)
+        rc = DW_CFA_BITMAPORICON;
+    else if(flag & DW_CFA_STRING)
+        rc = DW_CFA_STRING;
+    else if(flag & DW_CFA_ULONG)
+        rc = DW_CFA_ULONG;
+    else if(flag & DW_CFA_DATE)
+        rc = DW_CFA_DATE;
+    else if(flag & DW_CFA_TIME)
+        rc = DW_CFA_TIME;
+    else
+        rc = 0;
     DW_MUTEX_UNLOCK;
-    return result;
+    return rc;
 }
 
 /*
@@ -4338,12 +4352,7 @@ int API dw_container_get_column_type(HWND handle, int column)
  */
 int API dw_filesystem_get_column_type(HWND handle, int column)
 {
-    int _locked_by_me = FALSE;
-    DW_MUTEX_LOCK;
-	DWContainer *cont = handle;
-	int result = [cont cellType:column+2];
-    DW_MUTEX_UNLOCK;
-    return result;
+    return dw_container_get_column_type(handle, column+2);
 }
 
 /*
