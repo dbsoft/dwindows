@@ -268,7 +268,10 @@ int _event_handler(id object, NSEvent *event, int message)
                         text = NULL;
                     }
                     int result = treeselectfunc(handler->window, item, text, handler->data, user);
-                    free(text);
+                    if(text)
+                    {
+                        free(text);
+                    }
                     return result;
                 }
 				
@@ -3076,15 +3079,33 @@ void API dw_listbox_get_text(HWND handle, unsigned int index, char *buffer, unsi
 	if([object isMemberOfClass:[DWComboBox class]])
 	{
 		DWComboBox *combo = handle;
-		NSString *nstr = [combo itemObjectValueAtIndex:index];
-		strncpy(buffer, [ nstr UTF8String ], length - 1);
+        int count = (int)[combo numberOfItems];
+        
+        if(index > count)
+        {
+            *buffer = '\0';
+        }
+        else
+        {
+            NSString *nstr = [combo itemObjectValueAtIndex:index];
+            strncpy(buffer, [ nstr UTF8String ], length - 1);
+        }
 	}
     else if([object isMemberOfClass:[DWContainer class]])
     {
         DWContainer *cont = handle;
-        NSString *nstr = [cont getRow:index and:0];
+        int count = (int)[cont numberOfRowsInTableView:cont];
         
-        strncpy(buffer, [ nstr UTF8String ], length - 1);
+        if(index > count)
+        {
+            *buffer = '\0';
+        }
+        else
+        {
+            NSString *nstr = [cont getRow:index and:0];
+        
+            strncpy(buffer, [ nstr UTF8String ], length - 1);
+        }
     }
     DW_MUTEX_UNLOCK;
 }
@@ -3105,17 +3126,26 @@ void API dw_listbox_set_text(HWND handle, unsigned int index, char *buffer)
 	if([object isMemberOfClass:[DWComboBox class]])
 	{
 		DWComboBox *combo = handle;
+        int count = (int)[combo numberOfItems];
 		
-		[combo removeItemAtIndex:index];
-		[combo insertItemWithObjectValue:[ NSString stringWithUTF8String:buffer ] atIndex:index];
+        if(index <= count)
+        {
+            [combo removeItemAtIndex:index];
+            [combo insertItemWithObjectValue:[ NSString stringWithUTF8String:buffer ] atIndex:index];
+        }
 	}
     else if([object isMemberOfClass:[DWContainer class]])
     {
         DWContainer *cont = handle;
-        NSString *nstr = [ NSString stringWithUTF8String:buffer ];
+        int count = (int)[cont numberOfRowsInTableView:cont];
         
-        [cont editCell:nstr at:index and:0];
-        [cont reloadData];
+        if(index <= count)
+        {
+            NSString *nstr = [ NSString stringWithUTF8String:buffer ];
+        
+            [cont editCell:nstr at:index and:0];
+            [cont reloadData];
+        }
     }
     DW_MUTEX_UNLOCK;    
 }
