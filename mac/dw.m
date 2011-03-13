@@ -293,6 +293,12 @@ int _event_handler(id object, NSEvent *event, int message)
                 
                 return switchpagefunc(handler->window, pageid, handler->data);
             }
+            case 16:
+            {
+                int (* API treeexpandfunc)(HWND, HTREEITEM, void *) = (int (* API)(HWND, HTREEITEM, void *))handler->signalfunction;
+                
+                return treeexpandfunc(handler->window, (HTREEITEM)event, handler->data);
+            }
 		}
 	}
 	return -1;
@@ -1095,6 +1101,7 @@ void _free_tree_recurse(NSMutableArray *node, NSPointerArray *item)
 -(void *)userdata;
 -(void)setUserdata:(void *)input;
 -(void)treeSelectionChanged:(id)sender;
+-(void)treeItemExpanded:(NSNotification *)notification;
 -(NSScrollView *)scrollview;
 -(void)setScrollview:(NSScrollView *)input;
 -(void)deleteNode:(NSPointerArray *)item;
@@ -1118,6 +1125,7 @@ void _free_tree_recurse(NSMutableArray *node, NSPointerArray *item)
         [self addTableColumn:textcol];
         [self setOutlineTableColumn:textcol];
         [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(treeSelectionChanged:) name:NSOutlineViewSelectionDidChangeNotification object:[self window]];
+        [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(treeItemExpanded:) name:NSOutlineViewItemDidExpandNotification object:[self window]];
     }
     return self;
 }
@@ -1208,6 +1216,15 @@ void _free_tree_recurse(NSMutableArray *node, NSPointerArray *item)
     if(item)
     {
         _event_handler(self, (void *)item, 12);
+    }
+}
+-(void)treeItemExpanded:(NSNotification *)notification 
+{ 
+    id item = [[notification userInfo ] objectForKey: @"NSObject"];
+    
+    if(item)
+    {
+        _event_handler(self, (void *)item, 16);
     }
 }
 -(NSMenu *)menuForEvent:(NSEvent *)event 
