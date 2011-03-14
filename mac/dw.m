@@ -90,7 +90,7 @@ SignalHandler *Root = NULL;
 /* Some internal prototypes */
 static void _do_resize(Box *thisbox, int x, int y);
 int _remove_userdata(UserData **root, char *varname, int all);
-void _dw_main_iteration(void);
+int _dw_main_iteration(NSDate *date);
 
 SignalHandler *_get_handler(HWND window, int messageid)
 {
@@ -1930,26 +1930,22 @@ void API dw_main(void)
  */
 void API dw_main_sleep(int milliseconds)
 {
-    struct timeval tv, start;
     DWTID curr = pthread_self();
-    
-    gettimeofday(&start, NULL);
     
     if(DWThread == (DWTID)-1 || DWThread == curr)
     {
         DWTID orig = DWThread;
-        
-        gettimeofday(&tv, NULL);
+        NSDate *until = [NSDate dateWithTimeIntervalSinceNow:(milliseconds/1000.0)];
         
         dw_mutex_lock(DWRunMutex);
         if(orig == (DWTID)-1)
         {
             DWThread = curr;
         }
-        while(((tv.tv_sec - start.tv_sec)*1000) + ((tv.tv_usec - start.tv_usec)/1000) <= milliseconds)
+        /* Process any pending events */
+        while(_dw_main_iteration(until))
         {
-             _dw_main_iteration();
-             gettimeofday(&tv, NULL);
+            /* Just loop */
         }
         if(orig == (DWTID)-1)
         {
@@ -1958,21 +1954,25 @@ void API dw_main_sleep(int milliseconds)
         dw_mutex_unlock(DWRunMutex);
     }
     else
+    {
         usleep(milliseconds * 1000);
+    }
 }
 
 /* Internal version that doesn't lock the run mutex */
-void _dw_main_iteration(void)
+int _dw_main_iteration(NSDate *date)
 {
-    NSDate *distant_future = [NSDate distantFuture];
     NSEvent *event = [DWApp nextEventMatchingMask:NSAnyEventMask
-                                        untilDate:distant_future
+                                        untilDate:date
                                            inMode:NSDefaultRunLoopMode
                                           dequeue:YES];
     if(event) 
     {
         [DWApp sendEvent:event];
+        [DWApp updateWindows];
+        return 1;
     }
+    return 0;
 }
 
 /*
@@ -1981,7 +1981,7 @@ void _dw_main_iteration(void)
 void API dw_main_iteration(void)
 {
     dw_mutex_lock(DWRunMutex);
-    _dw_main_iteration();
+    _dw_main_iteration([NSDate distantPast]);
     dw_mutex_unlock(DWRunMutex);
 }
 
@@ -2246,7 +2246,7 @@ void * API dw_dialog_wait(DWDialog *dialog)
 	
 	while(!dialog->done)
 	{
-		_dw_main_iteration();
+		_dw_main_iteration([NSDate dateWithTimeIntervalSinceNow:0.01]);
 	}
 	dw_event_close(&dialog->eve);
 	tmp = dialog->result;
@@ -6753,10 +6753,15 @@ int dw_module_close(HMOD handle)
  */
 HMTX dw_mutex_new(void)
 {
-   HMTX mutex = malloc(sizeof(pthread_mutex_t));
-
-   pthread_mutex_init(mutex, NULL);
-   return mutex;
+    HMTX mutex = malloc(sizeof(pthread_mutex_t));
+#if 0
+    pthread_mutexattr_t    attr;
+    
+    pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
+    pthread_mutex_init(mutex, &attr);
+#endif
+    pthread_mutex_init(mutex, NULL);
+    return mutex;
 }
 
 /*
@@ -6789,7 +6794,11 @@ void dw_mutex_lock(HMTX mutex)
     {
         while(pthread_mutex_trylock(mutex) != 0)
         {
-            _dw_main_iteration();
+            /* Process any pending events */
+            while(_dw_main_iteration([NSDate dateWithTimeIntervalSinceNow:0.01]))
+            {
+                /* Just loop */
+            }
         }
     }
     else
