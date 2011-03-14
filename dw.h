@@ -429,7 +429,7 @@ void _dw_pool_drain(void);
 #define VK_NUMPAD9               92
 #define VK_MULTIPLY              67
 #define VK_ADD                   69
-#define VK_SEPARATOR             42
+#define VK_SEPARATOR             0xFF15 /* TODO */
 #define VK_SUBTRACT              78
 #define VK_DECIMAL               65
 #define VK_DIVIDE                75
@@ -457,7 +457,7 @@ void _dw_pool_drain(void);
 #define VK_F22                   0xF719 /* NSF22FunctionKey */
 #define VK_F23                   0xF71A /* NSF23FunctionKey */
 #define VK_F24                   0xF71B /* NSF24FunctionKey */
-#define VK_NUMLOCK               70
+#define VK_NUMLOCK               0xFF16 /* TODO */
 #define VK_SCROLL                0xF72F /* NSScrollLockFunctionKey */
 #define VK_LSHIFT                56
 #define VK_RSHIFT                60
