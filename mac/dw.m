@@ -183,15 +183,11 @@ int _event_handler(id object, NSEvent *event, int message)
                 int (*keypressfunc)(HWND, char, int, int, void *) = handler->signalfunction;
                 NSString *nchar = [event charactersIgnoringModifiers];
                 int special = (int)[event modifierFlags];
+                unichar vk = [nchar characterAtIndex:0];
                 char ch;
-                    
-                /* Reject dead keys */
-                if([nchar length] == 0)
-                {
-                    return 0;
-                }
+                
                 /* Handle a valid key */
-                else if([nchar length] == 1)
+                if([nchar length] == 1)
                 {
                     const char *tmp = [nchar UTF8String];
                     if(tmp)
@@ -200,7 +196,7 @@ int _event_handler(id object, NSEvent *event, int message)
                     }
                 }
                     
-                return keypressfunc(handler->window, ch, 0, special, handler->data);
+                return keypressfunc(handler->window, ch, (int)vk, special, handler->data);
             }
             /* Button press and release event */
 			case 3:
