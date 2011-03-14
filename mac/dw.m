@@ -4240,7 +4240,8 @@ void API dw_container_set_item(HWND handle, void *pointer, int column, int row, 
 	}
 	else if(type & DW_CFA_STRING)
 	{
-		object = [ NSString stringWithUTF8String:data ];
+        char *str = *((char **)data);
+		object = [ NSString stringWithUTF8String:str ];
 	}
 	else 
 	{
@@ -4326,7 +4327,7 @@ void API dw_filesystem_change_item(HWND handle, int column, int row, void *data)
 void API dw_filesystem_change_file(HWND handle, int row, char *filename, HICN icon)
 {
     dw_container_change_item(handle, 0, row, &icon);
-	dw_container_change_item(handle, 1, row, filename);
+	dw_container_change_item(handle, 1, row, &filename);
 }
 
 /*
@@ -4341,7 +4342,7 @@ void API dw_filesystem_change_file(HWND handle, int row, char *filename, HICN ic
 void API dw_filesystem_set_file(HWND handle, void *pointer, int row, char *filename, HICN icon)
 {
     dw_container_set_item(handle, pointer, 0, row, &icon);
-	dw_container_set_item(handle, pointer, 1, row, filename);
+	dw_container_set_item(handle, pointer, 1, row, &filename);
 }
 
 /*
@@ -7342,6 +7343,7 @@ int API dw_init(int newthread, int argc, char *argv[])
 #if !defined(GARBAGE_COLLECT)
     pthread_key_create(&_dw_pool_key, NULL);
 	pool = [[NSAutoreleasePool alloc] init];
+    pthread_setspecific(_dw_pool_key, pool);
 #endif
     /* Create a default main menu, with just the application menu */
 	DWMainMenu = _generate_main_menu();
