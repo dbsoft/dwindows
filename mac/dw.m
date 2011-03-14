@@ -279,8 +279,7 @@ int _event_handler(id object, NSEvent *event, int message)
                     item = (id)event;
                     NSString *nstr = [item pointerAtIndex:1];
                     
-                    user = [item pointerAtIndex:3];
-                    if(user)
+                    if(nstr)
                     {
                         text = strdup([nstr UTF8String]);
                     }
@@ -288,6 +287,7 @@ int _event_handler(id object, NSEvent *event, int message)
                     {
                         text = NULL;
                     }
+                    user = [item pointerAtIndex:2];
                     int result = treeselectfunc(handler->window, item, text, handler->data, user);
                     if(text)
                     {
@@ -6755,12 +6755,7 @@ int dw_module_close(HMOD handle)
 HMTX dw_mutex_new(void)
 {
     HMTX mutex = malloc(sizeof(pthread_mutex_t));
-#if 0
-    pthread_mutexattr_t    attr;
-    
-    pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
-    pthread_mutex_init(mutex, &attr);
-#endif
+
     pthread_mutex_init(mutex, NULL);
     return mutex;
 }
