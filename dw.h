@@ -387,90 +387,89 @@ void _dw_pool_drain(void);
 #define DW_MB_QUESTION           (1 << 13)
 
 /* Virtual Key Codes */
-#define VK_LBUTTON               0
-#define VK_RBUTTON               1
-#define VK_CANCEL                2
-#define VK_MBUTTON               3
-#define VK_BACK                  4
-#define VK_TAB                   5
-#define VK_CLEAR                 6
-#define VK_RETURN                7
-#define VK_MENU                  8
-#define VK_PAUSE                 9
-#define VK_CAPITAL               10
-#define VK_ESCAPE                11
-#define VK_SPACE                 12
-#define VK_PRIOR                 13
-#define VK_NEXT                  14
-#define VK_END                   15
-#define VK_HOME                  16
-#define VK_LEFT                  17
-#define VK_UP                    18
-#define VK_RIGHT                 19
-#define VK_DOWN                  20
-#define VK_SELECT                21
-#define VK_PRINT                 22
-#define VK_EXECUTE               23
-#define VK_SNAPSHOT              24
-#define VK_INSERT                25
-#define VK_DELETE                26
-#define VK_HELP                  27
-#define VK_LWIN                  28
-#define VK_RWIN                  29
-#define VK_NUMPAD0               30
-#define VK_NUMPAD1               31
-#define VK_NUMPAD2               32
-#define VK_NUMPAD3               33
-#define VK_NUMPAD4               34
-#define VK_NUMPAD5               35
-#define VK_NUMPAD6               36
-#define VK_NUMPAD7               37
-#define VK_NUMPAD8               38
-#define VK_NUMPAD9               39
-#define VK_MULTIPLY              40
-#define VK_ADD                   41
+#define VK_LBUTTON               0xFF10 /* TODO */
+#define VK_RBUTTON               0xFF11 /* TODO */
+#define VK_CANCEL                0xFF12 /* TODO */
+#define VK_MBUTTON               0xFF13 /* TODO */
+#define VK_BACK                  0x7F
+#define VK_TAB                   0x09
+#define VK_CLEAR                 71
+#define VK_RETURN                3
+#define VK_MENU                  0xF735 /* NSMenuFunctionKey */
+#define VK_PAUSE                 0xF730 /* NSPauseFunctionKey */
+#define VK_CAPITAL               57
+#define VK_ESCAPE                0x1B
+#define VK_SPACE                 ' '
+#define VK_PRIOR                 0xF72C /* NSPageUpFunctionKey */
+#define VK_NEXT                  0xF72D /* NSPageDownFunctionKey */
+#define VK_END                   0xF72B /* NSEndFunctionKey */
+#define VK_HOME                  0xF729 /* NSHomeFunctionKey */
+#define VK_LEFT                  0xF702 /* NSLeftArrowFunctionKey */
+#define VK_UP                    0xF700 /* NSUpArrowFunctionKey */
+#define VK_RIGHT                 0xF703 /* NSRightArrowFunctionKey */
+#define VK_DOWN                  0xF701 /* NSDownArrowFunctionKey */
+#define VK_SELECT                0xF741 /* NSSelectFunctionKey */
+#define VK_PRINT                 0xF738 /* NSPrintFunctionKey */
+#define VK_EXECUTE               0xF742 /* NSExecuteFunctionKey */
+#define VK_SNAPSHOT              0xF72E /* NSPrintScreenFunctionKey */
+#define VK_INSERT                0xF727 /* NSInsertFunctionKey */
+#define VK_DELETE                0xF728 /* NSDeleteFunctionKey */
+#define VK_HELP                  0xF746 /* NSHelpFunctionKey */
+#define VK_LWIN                  55
+#define VK_RWIN                  0xFF14 /* TODO */
+#define VK_NUMPAD0               82
+#define VK_NUMPAD1               83
+#define VK_NUMPAD2               84
+#define VK_NUMPAD3               85
+#define VK_NUMPAD4               86
+#define VK_NUMPAD5               87
+#define VK_NUMPAD6               88
+#define VK_NUMPAD7               89
+#define VK_NUMPAD8               91
+#define VK_NUMPAD9               92
+#define VK_MULTIPLY              67
+#define VK_ADD                   69
 #define VK_SEPARATOR             42
-#define VK_SUBTRACT              43
-#define VK_DECIMAL               44
-#define VK_DIVIDE                45
-#define VK_F1                    46
-#define VK_F2                    47
-#define VK_F3                    48
-#define VK_F4                    49
-#define VK_F5                    50
-#define VK_F6                    51
-#define VK_F7                    52
-#define VK_F8                    53
-#define VK_F9                    54
-#define VK_F10                   55
-#define VK_F11                   56
-#define VK_F12                   57
-#define VK_F13                   58
-#define VK_F14                   59
-#define VK_F15                   60
-#define VK_F16                   61
-#define VK_F17                   62
-#define VK_F18                   63
-#define VK_F19                   64
-#define VK_F20                   65
-#define VK_F21                   66
-#define VK_F22                   67
-#define VK_F23                   68
-#define VK_F24                   69
+#define VK_SUBTRACT              78
+#define VK_DECIMAL               65
+#define VK_DIVIDE                75
+#define VK_F1                    0xF704 /* NSF1FunctionKey */
+#define VK_F2                    0xF705 /* NSF2FunctionKey */
+#define VK_F3                    0xF706 /* NSF3FunctionKey */
+#define VK_F4                    0xF707 /* NSF4FunctionKey */
+#define VK_F5                    0xF708 /* NSF5FunctionKey */
+#define VK_F6                    0xF709 /* NSF6FunctionKey */
+#define VK_F7                    0xF70A /* NSF7FunctionKey */
+#define VK_F8                    0xF70B /* NSF8FunctionKey */
+#define VK_F9                    0xF70C /* NSF9FunctionKey */
+#define VK_F10                   0xF70D /* NSF10FunctionKey */
+#define VK_F11                   0xF70E /* NSF11FunctionKey */
+#define VK_F12                   0xF70F /* NSF12FunctionKey */
+#define VK_F13                   0xF710 /* NSF13FunctionKey */
+#define VK_F14                   0xF711 /* NSF14FunctionKey */
+#define VK_F15                   0xF712 /* NSF15FunctionKey */
+#define VK_F16                   0xF713 /* NSF16FunctionKey */
+#define VK_F17                   0xF714 /* NSF17FunctionKey */
+#define VK_F18                   0xF715 /* NSF18FunctionKey */
+#define VK_F19                   0xF716 /* NSF19FunctionKey */
+#define VK_F20                   0xF717 /* NSF20FunctionKey */
+#define VK_F21                   0xF718 /* NSF21FunctionKey */
+#define VK_F22                   0xF719 /* NSF22FunctionKey */
+#define VK_F23                   0xF71A /* NSF23FunctionKey */
+#define VK_F24                   0xF71B /* NSF24FunctionKey */
 #define VK_NUMLOCK               70
-#define VK_SCROLL                71
-#define VK_LSHIFT                72
-#define VK_RSHIFT                73
-#define VK_LCONTROL              74
-#define VK_RCONTROL              75
-#define VK_LMENU                 76
-#define VK_RMENU                 77
+#define VK_SCROLL                0xF72F /* NSScrollLockFunctionKey */
+#define VK_LSHIFT                56
+#define VK_RSHIFT                60
+#define VK_LCONTROL              59
+#define VK_RCONTROL              62
+#define VK_LMENU                 0xF735 /* NSMenuFunctionKey */
+#define VK_RMENU                 0xF735 /* NSMenuFunctionKey */
 
 /* Key Modifiers */
-#define KC_CTRL                  (1)
-#define KC_SHIFT                 (1 << 1)
-#define KC_ALT                   (1 << 2)
-
+#define KC_CTRL                  (1 << 18) /* NSControlKeyMask */
+#define KC_SHIFT                 (1 << 17) /* NSShiftKeyMask */
+#define KC_ALT                   (1 << 19) /* NSAlternateKeyMask */
 #endif
 
 /* Windows specific section */

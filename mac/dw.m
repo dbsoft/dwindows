@@ -178,6 +178,30 @@ int _event_handler(id object, NSEvent *event, int message)
                 }
                 return 0;
 			}	
+            case 2:
+            {
+                int (*keypressfunc)(HWND, char, int, int, void *) = handler->signalfunction;
+                NSString *nchar = [event charactersIgnoringModifiers];
+                int special = (int)[event modifierFlags];
+                char ch;
+                    
+                /* Reject dead keys */
+                if([nchar length] == 0)
+                {
+                    return 0;
+                }
+                /* Handle a valid key */
+                else if([nchar length] == 1)
+                {
+                    const char *tmp = [nchar UTF8String];
+                    if(tmp)
+                    {
+                        ch = tmp[0];
+                    }
+                }
+                    
+                return keypressfunc(handler->window, ch, 0, special, handler->data);
+            }
             /* Button press and release event */
 			case 3:
 			case 4:
@@ -426,6 +450,7 @@ DWObject *DWObj;
 -(void)rightMouseUp:(NSEvent *)theEvent;
 -(void)otherMouseDown:(NSEvent *)theEvent;
 -(void)otherMouseUp:(NSEvent *)theEvent;
+-(void)keyDown:(NSEvent *)theEvent;
 -(void)setColor:(unsigned long)input;
 @end
 
@@ -465,6 +490,7 @@ DWObject *DWObj;
 -(void)rightMouseUp:(NSEvent *)theEvent { _event_handler(self, (void *)2, 4); }
 -(void)otherMouseDown:(NSEvent *)theEvent { _event_handler(self, (void *)3, 3); }
 -(void)otherMouseUp:(NSEvent *)theEvent { _event_handler(self, (void *)3, 4); }
+-(void)keyDown:(NSEvent *)theEvent { _event_handler(self, theEvent, 2); _event_handler([self window], theEvent, 2); }
 -(void)setColor:(unsigned long)input
 {
 	if(input == _colors[DW_CLR_DEFAULT])
@@ -487,6 +513,7 @@ DWObject *DWObj;
 -(void)setMenu:(NSMenu *)input;
 -(void)windowDidBecomeMain:(id)sender;
 -(void)menuHandler:(id)sender;
+-(void)keyDown:(NSEvent *)theEvent;
 @end
 
 @implementation DWView
@@ -526,6 +553,7 @@ DWObject *DWObj;
 }
 -(void)setMenu:(NSMenu *)input { windowmenu = input; }
 -(void)menuHandler:(id)sender { _event_handler(sender, nil, 8); }
+-(void)keyDown:(NSEvent *)theEvent { _event_handler(self, theEvent, 2); _event_handler([self window], theEvent, 2); }
 @end
 
 /* Subclass for a button type */
@@ -811,6 +839,7 @@ DWObject *DWObj;
 -(void)otherMouseDown:(NSEvent *)theEvent;
 -(void)otherMouseUp:(NSEvent *)theEvent;
 -(void)drawRect:(NSRect)rect;
+-(void)keyDown:(NSEvent *)theEvent;
 -(BOOL)isFlipped;
 @end
 
@@ -824,6 +853,7 @@ DWObject *DWObj;
 -(void)otherMouseDown:(NSEvent *)theEvent { _event_handler(self, (void *)3, 3); }
 -(void)otherMouseUp:(NSEvent *)theEvent { _event_handler(self, (void *)3, 4); }
 -(void)drawRect:(NSRect)rect { _event_handler(self, nil, 7); }
+-(void)keyDown:(NSEvent *)theEvent { _event_handler(self, theEvent, 2); _event_handler([self window], theEvent, 2); }
 -(BOOL)isFlipped { return NO; }
 -(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); [super dealloc]; }
 @end
@@ -6522,7 +6552,7 @@ void API dw_timer_disconnect(int timerid)
 void API dw_signal_connect(HWND window, char *signame, void *sigfunc, void *data)
 {
 	ULONG message = 0, msgid = 0;
-	
+    
 	if(window && signame && sigfunc)
 	{
 		if((message = _findsigmessage(signame)) != 0)
