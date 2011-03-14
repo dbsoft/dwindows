@@ -1937,9 +1937,9 @@ void API dw_main_sleep(int milliseconds)
         DWTID orig = DWThread;
         NSDate *until = [NSDate dateWithTimeIntervalSinceNow:(milliseconds/1000.0)];
         
-        dw_mutex_lock(DWRunMutex);
         if(orig == (DWTID)-1)
         {
+            dw_mutex_lock(DWRunMutex);
             DWThread = curr;
         }
         /* Process any pending events */
@@ -1950,8 +1950,8 @@ void API dw_main_sleep(int milliseconds)
         if(orig == (DWTID)-1)
         {
             DWThread = orig;
+            dw_mutex_unlock(DWRunMutex);
         }
-        dw_mutex_unlock(DWRunMutex);
     }
     else
     {
@@ -1980,9 +1980,20 @@ int _dw_main_iteration(NSDate *date)
  */
 void API dw_main_iteration(void)
 {
-    dw_mutex_lock(DWRunMutex);
-    _dw_main_iteration([NSDate distantPast]);
-    dw_mutex_unlock(DWRunMutex);
+    DWTID curr = pthread_self();
+    
+    if(DWThread == (DWTID)-1)
+    {
+        dw_mutex_lock(DWRunMutex);
+        DWThread = curr;
+        _dw_main_iteration([NSDate distantPast]);
+        DWThread = (DWTID)-1;
+        dw_mutex_unlock(DWRunMutex);
+    }
+    else if(DWThread == curr)
+    {
+        _dw_main_iteration([NSDate distantPast]);
+    }
 }
 
 /*
