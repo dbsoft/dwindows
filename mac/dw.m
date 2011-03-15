@@ -676,17 +676,18 @@ DWObject *DWObj;
 @interface DWColorChoose : NSColorPanel
 {
 	DWDialog *dialog;
+    NSColor *pickedcolor;
 }
 -(void)changeColor:(id)sender;
 -(void)setDialog:(DWDialog *)input;
+-(DWDialog *)dialog;
 @end
 
 @implementation DWColorChoose
-- (void)changeColor:(id)sender
-{
-	dw_dialog_dismiss(dialog, [self color]);
-}
+-(void)changeColor:(id)sender { pickedcolor = [self color]; }
+-(BOOL)windowShouldClose:(id)window { dw_dialog_dismiss(dialog, pickedcolor); return YES; }
 -(void)setDialog:(DWDialog *)input { dialog = input; }
+-(DWDialog *)dialog { return dialog; }
 @end
 
 /* Subclass for a splitbar type */
@@ -3664,22 +3665,41 @@ void API dw_color_background_set(unsigned long value)
  */
 unsigned long API dw_color_choose(unsigned long value)
 {
-    /* Create the File Save Dialog class. */
+    /* Create the Color Chooser Dialog class. */
+    int created = [NSColorPanel sharedColorPanelExists];
     DWColorChoose *colorDlg = (DWColorChoose *)[DWColorChoose sharedColorPanel];
-    NSColor *color = [NSColor colorWithDeviceRed: DW_RED_VALUE(_foreground)/255.0 green: DW_GREEN_VALUE(_foreground)/255.0 blue: DW_BLUE_VALUE(_foreground)/255.0 alpha: 1];
-    DWDialog *dialog = dw_dialog_new(colorDlg);
+    NSColor *color = [NSColor colorWithDeviceRed: DW_RED_VALUE(value)/255.0 green: DW_GREEN_VALUE(value)/255.0 blue: DW_BLUE_VALUE(value)/255.0 alpha: 1];
+    DWDialog *dialog;
+    
+    if(created)
+    {
+        dialog = [colorDlg dialog];
+        /* TODO: Something is wrong reopening... crashes on setcolor: */
+        return value;
+    }
+    else
+    {
+        dialog = dw_dialog_new(colorDlg);
+        /* Set defaults for the dialog. */
+        [colorDlg setDialog:dialog];
+        [colorDlg setContinuous:NO]; 
+        [colorDlg setTarget:colorDlg]; 
+        [colorDlg setAction:@selector(changeColor:)]; 
+    }
 	
-    /* Set defaults for the dialog. */
+    dialog->done = FALSE;
     [colorDlg setColor:color];
-    [colorDlg setDialog:dialog];
-    [colorDlg setContinuous:YES];
-    [colorDlg setTarget:colorDlg];
-    [colorDlg setAction:@selector(changeColor:)];
     [colorDlg makeKeyAndOrderFront:nil];
 	
+    /* Wait for them to pick a color */
     color = (NSColor *)dw_dialog_wait(dialog);
+    
+    /* Figure out the value of what they returned */
+    double red, green, blue;
+    [color getRed:&red green:&green blue:&blue alpha:NULL];
+    value = DW_RGB((int)(red * 255), (int)(green *255), (int)(blue *255));
     [color release];
-    return _foreground;
+    return value;
 }
 
 /* Draw a point on a window (preferably a render window).
