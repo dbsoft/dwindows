@@ -8,6 +8,7 @@
 #define DW_MINOR_VERSION 1
 #define DW_SUB_VERSION 0
 
+#if !defined(__PHOTON__)
 /* These corespond to the entries in the color
  * arrays in the Win32 dw.c, they are also the
  * same as DOS ANSI colors.
@@ -29,6 +30,7 @@
 #define DW_CLR_CYAN              14
 #define DW_CLR_WHITE             15
 #define DW_CLR_DEFAULT           16
+#endif
 
 /* Signal handler defines */
 #define DW_SIGNAL_CONFIGURE      "configure_event"
@@ -114,6 +116,7 @@ typedef struct _user_data
 #define FCF_CLOSEBUTTON            0x04000000L
 #endif
 
+#define DW_FCF_CLOSEBUTTON       0
 #define DW_FCF_TITLEBAR          FCF_TITLEBAR
 #define DW_FCF_SYSMENU           (FCF_SYSMENU | FCF_CLOSEBUTTON)
 #define DW_FCF_MENU              FCF_MENU
@@ -160,6 +163,7 @@ typedef struct _user_data
 #define DW_POINTER_DEFAULT       0
 #define DW_POINTER_ARROW         SPTR_ARROW
 #define DW_POINTER_CLOCK         SPTR_WAIT
+#define DW_POINTER_QUESTION      SPTR_ICONQUESICON
 
 #define DW_OS2_NEW_WINDOW        1
 
@@ -251,13 +255,13 @@ extern HMQ dwhmq;
 
 /* Unfortunately using Cocoa we can't include
  * Cocoa.h from C code, so we have to instead
- * use opaque types and use the values from 
+ * use opaque types and use the values from
  * Cocoa.h in the header here directly without
  * using the symbolic names.
  */
 
-#define TRUE	1
-#define FALSE	0
+#define TRUE 1
+#define FALSE 0
 
 typedef void *HWND;
 typedef void *HSHM;
@@ -314,7 +318,7 @@ void _dw_pool_drain(void);
 #define DW_DT_EXTERNALLEADING    0
 #define DW_DT_CENTER             2 /* NSCenterTextAlignment */
 #define DW_DT_RIGHT              1 /* NSCenterTextAlignment */
-#define DW_DT_TOP                0 
+#define DW_DT_TOP                0
 #define DW_DT_VCENTER            0
 #define DW_DT_BOTTOM             0
 #define DW_DT_HALFTONE           0
@@ -322,6 +326,7 @@ void _dw_pool_drain(void);
 #define DW_DT_WORDBREAK          0
 #define DW_DT_ERASERECT          0
 
+#define DW_FCF_CLOSEBUTTON       0
 #define DW_FCF_TITLEBAR          (1 << 0) /* NSTitledWindowMask */
 #define DW_FCF_SYSMENU           (1 << 1) /* NSClosableWindowMask */
 #define DW_FCF_MENU              0
@@ -505,6 +510,7 @@ void _dw_pool_drain(void);
 #define DW_DT_WORDBREAK          0
 #define DW_DT_ERASERECT          0
 
+#define DW_FCF_CLOSEBUTTON       0
 #define DW_FCF_TITLEBAR          WS_CAPTION
 #define DW_FCF_SYSMENU           WS_SYSMENU
 #define DW_FCF_MENU              0
@@ -551,6 +557,7 @@ void _dw_pool_drain(void);
 #define DW_POINTER_DEFAULT       0
 #define DW_POINTER_ARROW         32512
 #define DW_POINTER_CLOCK         32514
+#define DW_POINTER_QUESTION      32651
 
 /* flag values for dw_messagebox() */
 #define DW_MB_OK                 MB_OK
@@ -689,6 +696,264 @@ typedef struct _bubblebutton {
    char bubbletext[BUBBLE_HELP_MAX];
 } BubbleButton;
 
+#elif defined(__PHOTON__)
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/utsname.h>
+/* Photon specific section */
+#include <Pt.h>
+#include <Ph.h>
+/* which image formats supported */
+#define PX_IMAGE_MODULES
+#define PX_GIF_SUPPORT
+#define PX_JPG_SUPPORT
+#define PX_BMP_SUPPORT
+#define PX_PND_SUPPORT
+#include <photon/PxImage.h>
+
+#define TRUE  1
+#define FALSE 0
+
+typedef PtWidget_t *pPtWidget_t;
+typedef pPtWidget_t HWND;
+
+typedef unsigned long ULONG;
+typedef long LONG;
+typedef unsigned short USHORT;
+typedef short SHORT;
+typedef unsigned short UWORD;
+typedef short WORD ;
+typedef unsigned char UCHAR;
+typedef char CHAR;
+typedef unsigned UINT;
+typedef int INT;
+typedef void *HMTX;
+typedef void *HEV;
+typedef void *HSHM;
+typedef void *HMOD;
+typedef PtTreeItem_t *HTREEITEM;
+typedef HWND HMENUI;
+typedef int DWTID;
+typedef unsigned long HICN;
+
+typedef struct _user_data
+{
+   struct _user_data *next;
+   void              *data;
+   char              *varname;
+} UserData;
+
+typedef struct _window_data {
+   UserData *root;
+   HWND clickdefault;
+   ULONG flags;
+   void *data;
+} WindowData;
+
+typedef struct _hpixmap {
+   unsigned long width, height;
+   /* ?? *pixmap; */
+   HWND handle;
+} *HPIXMAP;
+
+/* colors matching Photon Graphics colors */
+#define DW_CLR_BLACK             Pg_BLACK
+#define DW_CLR_DARKRED           Pg_DRED
+#define DW_CLR_DARKGREEN         Pg_DGREEN
+#define DW_CLR_BROWN             Pg_BROWN
+#define DW_CLR_DARKBLUE          Pg_DBLUE
+#define DW_CLR_DARKPINK          Pg_PURPLE
+#define DW_CLR_DARKCYAN          Pg_DCYAN
+#define DW_CLR_PALEGRAY          Pg_GRAY
+#define DW_CLR_DARKGRAY          Pg_MGRAY
+#define DW_CLR_RED               Pg_RED
+#define DW_CLR_GREEN             Pg_GREEN
+#define DW_CLR_YELLOW            Pg_YELLOW
+#define DW_CLR_BLUE              Pg_BLUE
+#define DW_CLR_PINK              Pg_MAGENTA
+#define DW_CLR_CYAN              Pg_CYAN
+#define DW_CLR_WHITE             Pg_WHITE
+#define DW_CLR_DEFAULT           Pg_GRAY
+/* color manipulation macros */
+#define DW_RGB_COLOR (0xF0000000)
+#define DW_RGB_TRANSPARENT (0x0F000000)
+#define DW_RGB_MASK (0x00FFFFFF)
+#define DW_RED_MASK (0x00FF0000)
+#define DW_GREEN_MASK (0x0000FF00)
+#define DW_BLUE_MASK (0x000000FF)
+#define DW_RED_VALUE(a) PgRedValue(a)
+#define DW_GREEN_VALUE(a) PgGreenValue(a)
+#define DW_BLUE_VALUE(a) PgBluValue(a)
+#define DW_RGB(a, b, c) PgRGB( a, b, c )
+
+#define DW_DT_LEFT               0
+#define DW_DT_QUERYEXTENT        0
+#define DW_DT_UNDERSCORE         0
+#define DW_DT_STRIKEOUT          0
+#define DW_DT_TEXTATTRS          0
+#define DW_DT_EXTERNALLEADING    0
+#define DW_DT_CENTER             0
+#define DW_DT_RIGHT              0
+#define DW_DT_TOP                0
+#define DW_DT_VCENTER            0
+#define DW_DT_BOTTOM             0
+#define DW_DT_HALFTONE           0
+#define DW_DT_MNEMONIC           0
+#define DW_DT_WORDBREAK          0
+#define DW_DT_ERASERECT          0
+
+#define DW_FCF_CLOSEBUTTON       Ph_WM_RENDER_CLOSE
+#define DW_FCF_TITLEBAR          Ph_WM_RENDER_TITLE
+#define DW_FCF_SYSMENU           0
+#define DW_FCF_MENU              Ph_WM_RENDER_MENU
+#define DW_FCF_SIZEBORDER        Ph_WM_RENDER_RESIZE
+#define DW_FCF_MINBUTTON         Ph_WM_RENDER_MIN
+#define DW_FCF_MAXBUTTON         Ph_WM_RENDER_MAX
+#define DW_FCF_MINMAX            (Ph_WM_RENDER_MIN|Ph_WM_RENDER_MAX)
+#define DW_FCF_VERTSCROLL        0
+#define DW_FCF_HORZSCROLL        0
+#define DW_FCF_DLGBORDER         0
+#define DW_FCF_BORDER            Ph_WM_RENDER_BORDER
+#define DW_FCF_SHELLPOSITION     0
+#define DW_FCF_TASKLIST          0
+#define DW_FCF_NOBYTEALIGN       0
+#define DW_FCF_NOMOVEWITHOWNER   0
+#define DW_FCF_SYSMODAL          0
+#define DW_FCF_HIDEBUTTON        0
+#define DW_FCF_HIDEMAX           0
+#define DW_FCF_AUTOICON          (Ph_WM_RENDER_ASICON | ~Ph_WM_RENDER_ASAPP)
+#define DW_FCF_MAXIMIZE          0
+#define DW_FCF_MINIMIZE          0
+
+#define DW_CFA_BITMAPORICON      1
+#define DW_CFA_STRING            (1 << 1)
+#define DW_CFA_ULONG             (1 << 2)
+#define DW_CFA_TIME              (1 << 3)
+#define DW_CFA_DATE              (1 << 4)
+#define DW_CFA_CENTER            (1 << 5)
+#define DW_CFA_LEFT              (1 << 6)
+#define DW_CFA_RIGHT             (1 << 7)
+#define DW_CFA_STRINGANDICON     (1 << 8)
+#define DW_CFA_HORZSEPARATOR     0
+#define DW_CFA_SEPARATOR         0
+
+#define DW_CRA_SELECTED          1
+#define DW_CRA_CURSORED          (1 << 1)
+
+#define DW_LS_MULTIPLESEL        1
+
+#define DW_LIT_NONE              -1
+
+#ifdef MLFSEARCH_CASESENSITIVE
+# define DW_MLE_CASESENSITIVE    MLFSEARCH_CASESENSITIVE
+#else
+# define DW_MLE_CASESENSITIVE    0
+#endif
+
+#define DW_POINTER_DEFAULT       0
+#define DW_POINTER_ARROW         0
+#define DW_POINTER_CLOCK         0
+#define DW_POINTER_QUESTION      0
+
+#define HWND_DESKTOP     ((HWND)0)
+
+/* flag values for dw_messagebox() */
+#define DW_MB_OK                 (1 << 1)
+#define DW_MB_OKCANCEL           (1 << 2)
+#define DW_MB_YESNO              (1 << 3)
+#define DW_MB_YESNOCANCEL        (1 << 4)
+
+#define DW_MB_WARNING            (1 << 10)
+#define DW_MB_ERROR              (1 << 11)
+#define DW_MB_INFORMATION        (1 << 12)
+#define DW_MB_QUESTION           (1 << 13)
+
+/* Virtual Key Codes */
+#define VK_LBUTTON               0
+#define VK_RBUTTON               0
+#define VK_CANCEL                0
+#define VK_MBUTTON               0
+#define VK_BACK                  0
+#define VK_TAB                   0
+#define VK_CLEAR                 0
+#define VK_RETURN                0
+#define VK_MENU                  0
+#define VK_PAUSE                 0
+#define VK_CAPITAL               0
+#define VK_ESCAPE                0
+#define VK_SPACE                 0
+#define VK_PRIOR                 0
+#define VK_NEXT                  0
+#define VK_END                   0
+#define VK_HOME                  0
+#define VK_LEFT                  0
+#define VK_UP                    0
+#define VK_RIGHT                 0
+#define VK_DOWN                  0
+#define VK_SELECT                0
+#define VK_PRINT                 0
+#define VK_EXECUTE               0
+#define VK_SNAPSHOT              0
+#define VK_INSERT                0
+#define VK_DELETE                0
+#define VK_HELP                  0
+#define VK_LWIN                  0
+#define VK_RWIN                  0
+#define VK_NUMPAD0               0
+#define VK_NUMPAD1               0
+#define VK_NUMPAD2               0
+#define VK_NUMPAD3               0
+#define VK_NUMPAD4               0
+#define VK_NUMPAD5               0
+#define VK_NUMPAD6               0
+#define VK_NUMPAD7               0
+#define VK_NUMPAD8               0
+#define VK_NUMPAD9               0
+#define VK_MULTIPLY              0
+#define VK_ADD                   0
+#define VK_SEPARATOR             0
+#define VK_SUBTRACT              0
+#define VK_DECIMAL               0
+#define VK_DIVIDE                0
+#define VK_F1                    0
+#define VK_F2                    0
+#define VK_F3                    0
+#define VK_F4                    0
+#define VK_F5                    0
+#define VK_F6                    0
+#define VK_F7                    0
+#define VK_F8                    0
+#define VK_F9                    0
+#define VK_F10                   0
+#define VK_F11                   0
+#define VK_F12                   0
+#define VK_F13                   0
+#define VK_F14                   0
+#define VK_F15                   0
+#define VK_F16                   0
+#define VK_F17                   0
+#define VK_F18                   0
+#define VK_F19                   0
+#define VK_F20                   0
+#define VK_F21                   0
+#define VK_F22                   0
+#define VK_F23                   0
+#define VK_F24                   0
+#define VK_NUMLOCK               0
+#define VK_SCROLL                0
+#define VK_LSHIFT                0
+#define VK_RSHIFT                0
+#define VK_LCONTROL              0
+#define VK_RCONTROL              0
+#define VK_LMENU                 0
+#define VK_RMENU                 0
+
+/* Key Modifiers */
+#define KC_CTRL                  (1)
+#define KC_SHIFT                 (1 << 1)
+#define KC_ALT                   (1 << 2)
+
 #else
 /* GTK Specific section */
 #include <gtk/gtk.h>
@@ -743,6 +1008,7 @@ typedef struct _bubblebutton {
 #define DW_FCF_AUTOICON          (1 << 18)
 #define DW_FCF_MAXIMIZE          (1 << 19)
 #define DW_FCF_MINIMIZE          (1 << 20)
+#define DW_FCF_CLOSEBUTTON       (1 << 21)
 
 #define DW_CFA_BITMAPORICON      1
 #define DW_CFA_STRING            (1 << 1)
@@ -768,6 +1034,7 @@ typedef struct _bubblebutton {
 #define DW_POINTER_DEFAULT       0
 #define DW_POINTER_ARROW         GDK_TOP_LEFT_ARROW
 #define DW_POINTER_CLOCK         GDK_WATCH
+#define DW_POINTER_QUESTION      GDK_QUESTION_ARROW
 
 #define HWND_DESKTOP             ((HWND)0)
 
@@ -1004,6 +1271,7 @@ typedef struct _dwdialog {
 #define DW_PIXMAP_WIDTH(x) (x ? x->width : 0)
 #define DW_PIXMAP_HEIGHT(x) (x ? x->height : 0)
 
+#if !defined(__PHOTON__)
 #define DW_RGB_COLOR (0xF0000000)
 #define DW_RGB_TRANSPARENT (0x0F000000)
 #define DW_RGB_MASK (0x00FFFFFF)
@@ -1014,6 +1282,7 @@ typedef struct _dwdialog {
 #define DW_GREEN_VALUE(a) ((a & DW_GREEN_MASK) >> 8)
 #define DW_BLUE_VALUE(a) ((a & DW_BLUE_MASK) >> 16)
 #define DW_RGB(a, b, c) (0xF0000000 | a | b << 8 | c << 16)
+#endif
 
 #define DW_MENU_SEPARATOR ""
 #define DW_NOMENU 0
@@ -1076,11 +1345,14 @@ int API dw_window_lower(HWND handle);
 int API dw_window_destroy(HWND handle);
 void API dw_window_redraw(HWND handle);
 int API dw_window_set_font(HWND handle, char *fontname);
+char * API dw_window_get_font(HWND handle);
 int API dw_window_set_color(HWND handle, unsigned long fore, unsigned long back);
 HWND API dw_window_new(HWND hwndOwner, char *title, unsigned long flStyle);
 HWND API dw_box_new(int type, int pad);
-#ifdef INCOMPLETE
+#ifndef INCOMPLETE
 HWND API dw_scrollbox_new(int type, int pad);
+int API dw_scrollbox_get_pos( HWND handle, int orient );
+int API dw_scrollbox_get_range( HWND handle, int orient );
 #endif
 HWND API dw_groupbox_new(int type, int pad, char *title);
 HWND API dw_mdi_new(unsigned long id);

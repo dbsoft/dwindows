@@ -9,7 +9,7 @@
  * clang -std=c99 -g -o dwtest -D__MAC__ -I. dwtest.c mac/dw.m -framework Cocoa -framework WebKit -fobjc-gc-only
  */
 #import <Cocoa/Cocoa.h>
-#import <WebKit/WebKit.h> 
+#import <WebKit/WebKit.h>
 #include "dw.h"
 #include <sys/utsname.h>
 #include <sys/socket.h>
@@ -185,7 +185,7 @@ int _event_handler(id object, NSEvent *event, int message)
                 int special = (int)[event modifierFlags];
                 unichar vk = [nchar characterAtIndex:0];
                 char ch;
-                
+
                 /* Handle a valid key */
                 if([nchar length] == 1)
                 {
@@ -195,7 +195,7 @@ int _event_handler(id object, NSEvent *event, int message)
                         ch = tmp[0];
                     }
                 }
-                    
+
                 return keypressfunc(handler->window, ch, (int)vk, special, handler->data);
             }
             /* Button press and release event */
@@ -207,7 +207,7 @@ int _event_handler(id object, NSEvent *event, int message)
 				LONG x,y;
 				
 				dw_pointer_query_pos(&x, &y);
-                
+
 				return buttonfunc(object, (int)x, (int)y, button, handler->data);
 			}
             /* Window close event */
@@ -242,7 +242,7 @@ int _event_handler(id object, NSEvent *event, int message)
             case 9:
             {
                 int (*containerselectfunc)(HWND, char *, void *) = handler->signalfunction;
-                
+
                 return containerselectfunc(handler->window, (char *)event, handler->data);
             }
             /* Container context menu event */
@@ -263,7 +263,7 @@ int _event_handler(id object, NSEvent *event, int message)
             {
                 int (* API valuechangedfunc)(HWND, int, void *) = (int (* API)(HWND, int, void *))handler->signalfunction;
                 int selected = (int)event;
-                
+
                 return valuechangedfunc(handler->window, selected, handler->data);;
             }
             /* Tree class selection event */
@@ -273,12 +273,12 @@ int _event_handler(id object, NSEvent *event, int message)
                 char *text = (char *)event;
                 void *user = NULL;
                 id item = nil;
-                
+
                 if([object isKindOfClass:[NSOutlineView class]])
                 {
                     item = (id)event;
                     NSString *nstr = [item pointerAtIndex:1];
-                    
+
                     if(nstr)
                     {
                         text = strdup([nstr UTF8String]);
@@ -302,7 +302,7 @@ int _event_handler(id object, NSEvent *event, int message)
             case 13:
             {
                 int (* API setfocusfunc)(HWND, void *) = (int (* API)(HWND, void *))handler->signalfunction;
-                
+
                 return setfocusfunc(handler->window, handler->data);
             }
             /* Notebook page change event */
@@ -310,13 +310,13 @@ int _event_handler(id object, NSEvent *event, int message)
             {
                 int (* API switchpagefunc)(HWND, unsigned long, void *) = (int (* API)(HWND, unsigned long, void *))handler->signalfunction;
                 int pageid = (int)event;
-                
+
                 return switchpagefunc(handler->window, pageid, handler->data);
             }
             case 16:
             {
                 int (* API treeexpandfunc)(HWND, HTREEITEM, void *) = (int (* API)(HWND, HTREEITEM, void *))handler->signalfunction;
-                
+
                 return treeexpandfunc(handler->window, (HTREEITEM)event, handler->data);
             }
 		}
@@ -368,7 +368,7 @@ typedef struct _bitbltinfo
 @end
 
 @implementation DWObject
--(void)uselessThread:(id)sender { /* Thread only to initialize threading */ } 
+-(void)uselessThread:(id)sender { /* Thread only to initialize threading */ }
 -(void)synchronizeThread:(id)param
 {
     pthread_mutex_unlock(DWRunMutex);
@@ -382,7 +382,7 @@ typedef struct _bitbltinfo
     DWBitBlt *bltinfo = (DWBitBlt *)[bi pointerValue];
     id bltdest = bltinfo->dest;
     id bltsrc = bltinfo->src;
-    
+
     if([bltdest isMemberOfClass:[NSImage class]])
     {
         [bltdest lockFocus];
@@ -395,7 +395,7 @@ typedef struct _bitbltinfo
     if([bltsrc isMemberOfClass:[NSImage class]])
     {
         NSImage *image = bltsrc;
-        [image drawAtPoint:NSMakePoint(bltinfo->xdest, bltinfo->ydest) fromRect:NSMakeRect(bltinfo->xsrc, bltinfo->ysrc, bltinfo->width, bltinfo->height) 
+        [image drawAtPoint:NSMakePoint(bltinfo->xdest, bltinfo->ydest) fromRect:NSMakeRect(bltinfo->xsrc, bltinfo->ysrc, bltinfo->width, bltinfo->height)
                         operation:NSCompositeCopy fraction:1.0];
         [bltsrc release];
     }
@@ -418,13 +418,13 @@ DWObject *DWObj;
 /* So basically to implement our event handlers...
  * it looks like we are going to have to subclass
  * basically everything.  Was hoping to add methods
- * to the superclasses but it looks like you can 
- * only add methods and no variables, which isn't 
+ * to the superclasses but it looks like you can
+ * only add methods and no variables, which isn't
  * going to work. -Brian
  */
 
 /* Subclass for a box type */
-@interface DWBox : NSView 
+@interface DWBox : NSView
 #ifdef BUILDING_FOR_SNOW_LEOPARD
 <NSWindowDelegate>
 #endif
@@ -434,7 +434,7 @@ DWObject *DWObj;
 	NSColor *bgcolor;
 }
 -(id)init;
--(void)dealloc; 
+-(void)dealloc;
 -(Box *)box;
 -(void *)userdata;
 -(void)setUserdata:(void *)input;
@@ -451,17 +451,17 @@ DWObject *DWObj;
 @end
 
 @implementation DWBox
--(id)init 
+-(id)init
 {
     self = [super init];
-    
-    if (self) 
+
+    if (self)
     {
         box = calloc(1, sizeof(Box));
     }
     return self;
 }
--(void)dealloc 
+-(void)dealloc
 {
     UserData *root = userdata;
     free(box);
@@ -471,7 +471,7 @@ DWObject *DWObj;
 -(Box *)box { return box; }
 -(void *)userdata { return userdata; }
 -(void)setUserdata:(void *)input { userdata = input; }
--(void)drawRect:(NSRect)rect 
+-(void)drawRect:(NSRect)rect
 {
 	if(bgcolor)
 	{
@@ -501,7 +501,7 @@ DWObject *DWObj;
 @end
 
 /* Subclass for a top-level window */
-@interface DWView : DWBox  
+@interface DWView : DWBox
 {
 	NSMenu *windowmenu;
 }
@@ -513,7 +513,7 @@ DWObject *DWObj;
 @end
 
 @implementation DWView
--(BOOL)windowShouldClose:(id)sender 
+-(BOOL)windowShouldClose:(id)sender
 {
     if(_event_handler(self, nil, 6) == FALSE)
 		return NO;
@@ -541,7 +541,7 @@ DWObject *DWObj;
 	{
 		[DWApp setMainMenu:windowmenu];
 	}
-	else 
+	else
 	{
 		[DWApp setMainMenu:DWMainMenu];
 	}
@@ -555,7 +555,7 @@ DWObject *DWObj;
 /* Subclass for a button type */
 @interface DWButton : NSButton
 {
-	void *userdata; 
+	void *userdata;
 }
 -(void *)userdata;
 -(void)setUserdata:(void *)input;
@@ -572,7 +572,7 @@ DWObject *DWObj;
 /* Subclass for a progress type */
 @interface DWPercent : NSProgressIndicator
 {
-	void *userdata; 
+	void *userdata;
 }
 -(void *)userdata;
 -(void)setUserdata:(void *)input;
@@ -587,7 +587,7 @@ DWObject *DWObj;
 /* Subclass for a entryfield type */
 @interface DWEntryField : NSTextField
 {
-	void *userdata; 
+	void *userdata;
 }
 -(void *)userdata;
 -(void)setUserdata:(void *)input;
@@ -602,7 +602,7 @@ DWObject *DWObj;
 /* Subclass for a entryfield password type */
 @interface DWEntryFieldPassword : NSSecureTextField
 {
-	void *userdata; 
+	void *userdata;
 }
 -(void *)userdata;
 -(void)setUserdata:(void *)input;
@@ -615,7 +615,7 @@ DWObject *DWObj;
 @end
 
 /* Subclass for a Notebook control type */
-@interface DWNotebook : NSTabView 
+@interface DWNotebook : NSTabView
 #ifdef BUILDING_FOR_SNOW_LEOPARD
 <NSTabViewDelegate>
 #endif
@@ -673,7 +673,7 @@ DWObject *DWObj;
 @end
 
 /* Subclass for a color chooser type */
-@interface DWColorChoose : NSColorPanel 
+@interface DWColorChoose : NSColorPanel
 {
 	DWDialog *dialog;
 }
@@ -690,12 +690,12 @@ DWObject *DWObj;
 @end
 
 /* Subclass for a splitbar type */
-@interface DWSplitBar : NSSplitView 
+@interface DWSplitBar : NSSplitView
 #ifdef BUILDING_FOR_SNOW_LEOPARD
-<NSSplitViewDelegate> 
+<NSSplitViewDelegate>
 #endif
-{ 
-	void *userdata; 
+{
+	void *userdata;
     float percent;
 }
 -(void)splitViewDidResizeSubviews:(NSNotification *)aNotification;
@@ -732,7 +732,7 @@ DWObject *DWObj;
 /* Subclass for a slider type */
 @interface DWSlider : NSSlider
 {
-	void *userdata; 
+	void *userdata;
 }
 -(void *)userdata;
 -(void)setUserdata:(void *)input;
@@ -767,31 +767,31 @@ DWObject *DWObj;
 -(float)range { return range; }
 -(float)visible { return visible; }
 -(void)setRange:(float)input1 andVisible:(float)input2 { range = input1; visible = input2; }
--(void)scrollerChanged:(id)sender 
-{ 
+-(void)scrollerChanged:(id)sender
+{
     double proportion = [self knobProportion];
     int page = (int)(proportion * range);
-    int max = (int)(range - page); 
+    int max = (int)(range - page);
     int result = (int)([self doubleValue] * max);
     int newpos = result;
-    
-    switch ([sender hitPart]) 
+
+    switch ([sender hitPart])
     {
-            
+
         case NSScrollerDecrementLine:
             if(newpos > 0)
             {
                 newpos--;
             }
             break;
-            
+
         case NSScrollerIncrementLine:
             if(newpos < max)
             {
                 newpos++;
             }
             break;
-            
+
         case NSScrollerDecrementPage:
             newpos -= page;
             if(newpos < 0)
@@ -799,7 +799,7 @@ DWObject *DWObj;
                 newpos = 0;
             }
             break;
-            
+
         case NSScrollerIncrementPage:
             newpos += page;
             if(newpos > max)
@@ -807,7 +807,7 @@ DWObject *DWObj;
                 newpos = max;
             }
             break;
-            
+
         default:
             ; // do nothing
     }
@@ -816,13 +816,13 @@ DWObject *DWObj;
         double newposd = (double)newpos/max;
         [self setDoubleValue:newposd];
     }
-    _event_handler(self, (void *)newpos, 14); 
+    _event_handler(self, (void *)newpos, 14);
 }
 -(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); [super dealloc]; }
 @end
 
 /* Subclass for a render area type */
-@interface DWRender : NSView 
+@interface DWRender : NSView
 {
 	void *userdata;
 }
@@ -855,7 +855,7 @@ DWObject *DWObj;
 @end
 
 /* Subclass for a MLE type */
-@interface DWMLE : NSTextView 
+@interface DWMLE : NSTextView
 {
 	void *userdata;
 }
@@ -870,7 +870,7 @@ DWObject *DWObj;
 @end
 
 /* Subclass for a Container/List type */
-@interface DWContainer : NSTableView 
+@interface DWContainer : NSTableView
 #ifdef BUILDING_FOR_SNOW_LEOPARD
 <NSTableViewDataSource>
 #endif
@@ -954,33 +954,33 @@ DWObject *DWObj;
 -(void)setScrollview:(id)input { scrollview = input; }
 -(void)addColumn:(NSTableColumn *)input andType:(int)type { if(tvcols) { [tvcols addObject:input]; [types addObject:[NSNumber numberWithInt:type]]; } }
 -(NSTableColumn *)getColumn:(int)col { if(tvcols) { return [tvcols objectAtIndex:col]; } return nil; }
--(int)insertRow:(NSArray *)input at:(int)index 
-{ 
-    if(data) 
-    { 
+-(int)insertRow:(NSArray *)input at:(int)index
+{
+    if(data)
+    {
         unsigned long start = [tvcols count] * index;
-        NSIndexSet *set = [[NSIndexSet alloc] initWithIndexesInRange:NSMakeRange(start, start + [tvcols count])];  
+        NSIndexSet *set = [[NSIndexSet alloc] initWithIndexesInRange:NSMakeRange(start, start + [tvcols count])];
         if(index < lastAddPoint)
         {
             lastAddPoint++;
         }
-        [data insertObjects:input atIndexes:set]; 
-        [titles insertPointer:NULL atIndex:index]; 
+        [data insertObjects:input atIndexes:set];
+        [titles insertPointer:NULL atIndex:index];
         [set release];
-        return (int)[titles count]; 
-    } 
-    return 0; 
+        return (int)[titles count];
+    }
+    return 0;
 }
--(int)addRow:(NSArray *)input 
-{ 
-    if(data) 
-    { 
-        lastAddPoint = (int)[titles count]; 
-        [data addObjectsFromArray:input]; 
-        [titles addPointer:NULL]; 
-        return (int)[titles count]; 
-    } 
-    return 0; 
+-(int)addRow:(NSArray *)input
+{
+    if(data)
+    {
+        lastAddPoint = (int)[titles count];
+        [data addObjectsFromArray:input];
+        [titles addPointer:NULL];
+        return (int)[titles count];
+    }
+    return 0;
 }
 -(int)addRows:(int)number
 {
@@ -1040,11 +1040,11 @@ DWObject *DWObj;
 -(int)lastQueryPoint { return lastQueryPoint; }
 -(void)setLastQueryPoint:(int)input { lastQueryPoint = input; }
 -(void)clear { if(data) { [data removeAllObjects]; while([titles count]) { [titles removePointerAtIndex:0]; } } lastAddPoint = 0; }
--(void)setup 
-{ 
-	tvcols = [[[NSMutableArray alloc] init] retain]; 
-	data = [[[NSMutableArray alloc] init] retain]; 
-	types = [[[NSMutableArray alloc] init] retain]; 
+-(void)setup
+{
+	tvcols = [[[NSMutableArray alloc] init] retain];
+	data = [[[NSMutableArray alloc] init] retain];
+	types = [[[NSMutableArray alloc] init] retain];
 	titles = [[NSPointerArray pointerArrayWithWeakObjects] retain];
 	[[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(selectionChanged:) name:NSTableViewSelectionDidChangeNotification object:[self window]];
 }
@@ -1060,7 +1060,7 @@ DWObject *DWObj;
     /* Handler for listbox class */
 	_event_handler(self, (NSEvent *)(int)[self selectedRow], 11);
 }
--(NSMenu *)menuForEvent:(NSEvent *)event 
+-(NSMenu *)menuForEvent:(NSEvent *)event
 {
     int row;
     NSPoint where = [self convertPoint:[event locationInWindow] fromView:nil];
@@ -1078,12 +1078,12 @@ void _free_tree_recurse(NSMutableArray *node, NSPointerArray *item)
     {
         int count = (int)[node count];
         int z;
-        
+
         for(z=0;z<count;z++)
         {
             NSPointerArray *pnt = [node objectAtIndex:z];
             NSMutableArray *children = (NSMutableArray *)[pnt pointerAtIndex:3];
-            
+
             if(children)
             {
                 if(item == pnt)
@@ -1104,7 +1104,7 @@ void _free_tree_recurse(NSMutableArray *node, NSPointerArray *item)
 }
 
 /* Subclass for a Tree type */
-@interface DWTree : NSOutlineView 
+@interface DWTree : NSOutlineView
 #ifdef BUILDING_FOR_SNOW_LEOPARD
 <NSOutlineViewDataSource>
 #endif
@@ -1113,7 +1113,7 @@ void _free_tree_recurse(NSMutableArray *node, NSPointerArray *item)
 	NSTableColumn *imagecol;
     NSTableColumn *textcol;
 	NSMutableArray *data;
-    /* Each data item consists of a linked lists of tree item data. 
+    /* Each data item consists of a linked lists of tree item data.
      * NSImage *, NSString *, Item Data *, NSMutableArray * of Children
      */
     id scrollview;
@@ -1135,11 +1135,11 @@ void _free_tree_recurse(NSMutableArray *node, NSPointerArray *item)
 @end
 
 @implementation DWTree
--(id)init 
+-(id)init
 {
     self = [super init];
-    
-    if (self) 
+
+    if (self)
     {
         imagecol = [[NSTableColumn alloc] init];
         NSImageCell *imagecell = [[[NSImageCell alloc] init] autorelease];
@@ -1157,7 +1157,7 @@ void _free_tree_recurse(NSMutableArray *node, NSPointerArray *item)
 }
 -(id)outlineView:(NSOutlineView *)outlineView child:(int)index ofItem:(id)item
 {
-	if(item) 
+	if(item)
     {
         NSMutableArray *array = [item pointerAtIndex:3];
 		return array ? [array objectAtIndex:index] : nil;
@@ -1186,16 +1186,16 @@ void _free_tree_recurse(NSMutableArray *node, NSPointerArray *item)
         }
     }
     else
-    {   
+    {
         return data ? (int)[data count] : 0;
     }
 }
 -(id)outlineView:(NSOutlineView *)outlineView objectValueForTableColumn:(NSTableColumn *)tableColumn byItem:(id)item
 {
-	if(item) 
+	if(item)
     {
 		if([item isKindOfClass:[NSPointerArray class]])
-        {  
+        {
 			NSPointerArray *this = (NSPointerArray *)item;
             if(tableColumn == imagecol)
             {
@@ -1204,7 +1204,7 @@ void _free_tree_recurse(NSMutableArray *node, NSPointerArray *item)
             return [this pointerAtIndex:1];
         }
 		else
-        {   
+        {
 			return nil;
         }
 	}
@@ -1244,16 +1244,16 @@ void _free_tree_recurse(NSMutableArray *node, NSPointerArray *item)
         _event_handler(self, (void *)item, 12);
     }
 }
--(void)treeItemExpanded:(NSNotification *)notification 
-{ 
+-(void)treeItemExpanded:(NSNotification *)notification
+{
     id item = [[notification userInfo ] objectForKey: @"NSObject"];
-    
+
     if(item)
     {
         _event_handler(self, (void *)item, 16);
     }
 }
--(NSMenu *)menuForEvent:(NSEvent *)event 
+-(NSMenu *)menuForEvent:(NSEvent *)event
 {
     int row;
     NSPoint where = [self convertPoint:[event locationInWindow] fromView:nil];
@@ -1267,19 +1267,19 @@ void _free_tree_recurse(NSMutableArray *node, NSPointerArray *item)
 -(void)setScrollview:(NSScrollView *)input { scrollview = input; }
 -(void)deleteNode:(NSPointerArray *)item { _free_tree_recurse(data, item); }
 -(void)clear { NSMutableArray *toclear = data; data = nil; _free_tree_recurse(toclear, NULL); [self reloadData]; }
--(void)dealloc 
-{ 
-    UserData *root = userdata; 
-    _remove_userdata(&root, NULL, TRUE); 
-    _free_tree_recurse(data, NULL); 
+-(void)dealloc
+{
+    UserData *root = userdata;
+    _remove_userdata(&root, NULL, TRUE);
+    _free_tree_recurse(data, NULL);
     [imagecol release];
     [textcol release];
-    [super dealloc]; 
+    [super dealloc];
 }
 @end
 
 /* Subclass for a Calendar type */
-@interface DWCalendar : NSDatePicker 
+@interface DWCalendar : NSDatePicker
 {
 	void *userdata;
 }
@@ -1294,7 +1294,7 @@ void _free_tree_recurse(NSMutableArray *node, NSPointerArray *item)
 @end
 
 /* Subclass for a Combobox type */
-@interface DWComboBox : NSComboBox 
+@interface DWComboBox : NSComboBox
 #ifdef BUILDING_FOR_SNOW_LEOPARD
 <NSComboBoxDelegate>
 #endif
@@ -1315,8 +1315,8 @@ void _free_tree_recurse(NSMutableArray *node, NSPointerArray *item)
 
 /* Subclass for a stepper component of the spinbutton type */
 /* This is a bad way of doing this... but I can't get the other methods to work */
-@interface DWStepper : NSStepper 
-{ 
+@interface DWStepper : NSStepper
+{
     id textfield;
     id parent;
 }
@@ -1336,7 +1336,7 @@ void _free_tree_recurse(NSMutableArray *node, NSPointerArray *item)
 -(void)mouseDown:(NSEvent *)event
 {
     [super mouseDown:event];
-    if([[NSApp currentEvent] type] == NSLeftMouseUp) 
+    if([[NSApp currentEvent] type] == NSLeftMouseUp)
     {
         [textfield takeIntValueFrom:self];
         _event_handler(parent, (void *)[self integerValue], 14);
@@ -1344,13 +1344,13 @@ void _free_tree_recurse(NSMutableArray *node, NSPointerArray *item)
 }
 -(void)mouseUp:(NSEvent *)event
 {
-    [textfield takeIntValueFrom:self]; 
+    [textfield takeIntValueFrom:self];
     _event_handler(parent, (void *)[self integerValue], 14);
 }
 @end
 
 /* Subclass for a Spinbutton type */
-@interface DWSpinButton : NSView 
+@interface DWSpinButton : NSView
 #ifdef BUILDING_FOR_SNOW_LEOPARD
 <NSTextFieldDelegate>
 #endif
@@ -1368,11 +1368,11 @@ void _free_tree_recurse(NSMutableArray *node, NSPointerArray *item)
 @end
 
 @implementation DWSpinButton
--(id)init 
+-(id)init
 {
     self = [super init];
-    
-    if(self) 
+
+    if(self)
     {
         textfield = [[NSTextField alloc] init];
         [self addSubview:textfield];
@@ -1398,7 +1398,7 @@ void _free_tree_recurse(NSMutableArray *node, NSPointerArray *item)
 -(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); [super dealloc]; }
 @end
 
-/* Subclass for a MDI type 
+/* Subclass for a MDI type
  * This is just a box for display purposes... but it is a
  * unique class so it can be identified when creating windows.
  */
@@ -1777,7 +1777,7 @@ static int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *
 				DWNotebook *notebook = (DWNotebook *)handle;
 				DWNotebookPage *notepage = (DWNotebookPage *)[notebook selectedTabViewItem];
 				DWBox *view = [notepage view];
-					 
+					
 				if(view != nil)
 				{
 					Box *box = [view box];
@@ -1804,14 +1804,14 @@ static int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *
 			{
                 DWSplitBar *split = (DWSplitBar *)handle;
 				float percent = [split percent];
-                
+
                 if(percent > 0)
                 {
                     dw_splitbar_set(handle, percent);
                     [split setPercent:0];
                 }
 			}
-			 
+			
 			if(thisbox->type == DW_HORZ)
                currentx += width + vectorx + (pad * 2);
             if(thisbox->type == DW_VERT)
@@ -1931,12 +1931,12 @@ void API dw_main(void)
 void API dw_main_sleep(int milliseconds)
 {
     DWTID curr = pthread_self();
-    
+
     if(DWThread == (DWTID)-1 || DWThread == curr)
     {
         DWTID orig = DWThread;
         NSDate *until = [NSDate dateWithTimeIntervalSinceNow:(milliseconds/1000.0)];
-        
+
         if(orig == (DWTID)-1)
         {
             dw_mutex_lock(DWRunMutex);
@@ -1966,7 +1966,7 @@ int _dw_main_iteration(NSDate *date)
                                         untilDate:date
                                            inMode:NSDefaultRunLoopMode
                                           dequeue:YES];
-    if(event) 
+    if(event)
     {
         [DWApp sendEvent:event];
         [DWApp updateWindows];
@@ -1981,7 +1981,7 @@ int _dw_main_iteration(NSDate *date)
 void API dw_main_iteration(void)
 {
     DWTID curr = pthread_self();
-    
+
     if(DWThread == (DWTID)-1)
     {
         dw_mutex_lock(DWRunMutex);
@@ -2078,18 +2078,18 @@ int API dw_messagebox(char *title, int flags, char *format, ...)
 	if(flags & DW_MB_ERROR)
 	{
 		iResponse = (int)
-		NSRunCriticalAlertPanel([ NSString stringWithUTF8String:title ], 
+		NSRunCriticalAlertPanel([ NSString stringWithUTF8String:title ],
 								[ NSString stringWithUTF8String:outbuf ],
 								button1, button2, button3);	}
-	else 
+	else
 	{
 		iResponse = (int)
-		NSRunAlertPanel([ NSString stringWithUTF8String:title ], 
+		NSRunAlertPanel([ NSString stringWithUTF8String:title ],
 						[ NSString stringWithUTF8String:outbuf ],
 						button1, button2, button3);
 	}
 	
-	switch(iResponse) 
+	switch(iResponse)
 	{
 		case NSAlertDefaultReturn:    /* user pressed OK */
 			if(flags & DW_MB_YESNO || flags & DW_MB_YESNOCANCEL)
@@ -2275,7 +2275,7 @@ HWND API dw_box_new(int type, int pad)
 {
     int _locked_by_me = FALSE;
     DW_MUTEX_LOCK;
-    DWBox *view = [[DWBox alloc] init];  
+    DWBox *view = [[DWBox alloc] init];
 	Box *newbox = [view box];
 	memset(newbox, 0, sizeof(Box));
    	newbox->pad = pad;
@@ -2297,6 +2297,49 @@ HWND API dw_groupbox_new(int type, int pad, char *title)
 	[box setFocusRingType:NSFocusRingTypeExterior];
 	return box;
 }
+
+#ifndef INCOMPLETE
+/*
+ * Create a new scrollable Box to be packed.
+ * Parameters:
+ *       type: Either DW_VERT (vertical) or DW_HORZ (horizontal).
+ *       pad: Number of pixels to pad around the box.
+ * This works fine under GTK+, but is incomplete on other platforms
+ */
+HWND dw_scrollbox_new( int type, int pad )
+{
+   DWBox *box = dw_box_new(type, pad);
+   [box setFocusRingType:NSFocusRingTypeExterior];
+   NSLog(@"dw_scrollbox_new() unimplemented\n");
+   return box;
+}
+
+/*
+ * Returns the position of the scrollbar in the scrollbox
+ * Parameters:
+ *          handle: Handle to the scrollbox to be queried.
+ *          orient: The vertical or horizontal scrollbar.
+ */
+int dw_scrollbox_get_pos(HWND handle, int orient)
+{
+   int val = -1;
+   NSLog(@"dw_scrollbox_get_pos() unimplemented\n");
+   return val;
+}
+
+/*
+ * Gets the range for the scrollbar in the scrollbox.
+ * Parameters:
+ *          handle: Handle to the scrollbox to be queried.
+ *          orient: The vertical or horizontal scrollbar.
+ */
+int API dw_scrollbox_get_range(HWND handle, int orient)
+{
+   int val = -1;
+   NSLog(@"dw_scrollbox_get_range() unimplemented\n");
+   return val;
+}
+#endif
 
 /*
  * Pack windows (widgets) into a box from the end (or bottom).
@@ -2342,7 +2385,7 @@ void API dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, 
 		DWTree *tree = item;
 		this = item = [tree scrollview];
 	}
-    
+
 	/* Duplicate the existing data */
     tmpitem = malloc(sizeof(Item)*(thisbox->count+1));
 
@@ -2566,7 +2609,7 @@ HWND API dw_bitmapbutton_new(char *text, ULONG resid)
     /* TODO: Implement tooltips */
     NSBundle *bundle = [NSBundle mainBundle];
     NSString *respath = [bundle resourcePath];
-    NSString *filepath = [respath stringByAppendingFormat:@"/%u.png", resid]; 
+    NSString *filepath = [respath stringByAppendingFormat:@"/%u.png", resid];
 	NSImage *image = [[NSImage alloc] initWithContentsOfFile:filepath];
 	DWButton *button = _button_new("", resid);
 	[button setImage:image];
@@ -2752,7 +2795,7 @@ HWND API dw_scrollbar_new(int vertical, ULONG cid)
         scrollbar = [[DWScrollbar alloc] initWithFrame:NSMakeRect(0,0,100,5)];
     }
     [scrollbar setArrowsPosition:NSScrollerArrowsDefaultSetting];
-    [scrollbar setTarget:scrollbar]; 
+    [scrollbar setTarget:scrollbar];
     [scrollbar setAction:@selector(changed:)];
     [scrollbar setRange:0.0 andVisible:0.0];
     [scrollbar setKnobProportion:1.0];
@@ -2877,7 +2920,7 @@ void API dw_checkbox_set(HWND handle, int value)
 	{
 		[button setState:NSOnState];
 	}
-	else 
+	else
 	{
 		[button setState:NSOffState];
 	}
@@ -2887,14 +2930,14 @@ void API dw_checkbox_set(HWND handle, int value)
 /* Common code for containers and listboxes */
 HWND _cont_new(ULONG cid, int multi)
 {
-    NSScrollView *scrollview  = [[NSScrollView alloc] init];    
+    NSScrollView *scrollview  = [[NSScrollView alloc] init];
 	DWContainer *cont = [[DWContainer alloc] init];
-    
+
     [cont setScrollview:scrollview];
     [scrollview setBorderType:NSBezelBorder];
     [scrollview setHasVerticalScroller:YES];
     [scrollview setAutohidesScrollers:YES];
-    
+
 	if(multi)
 	{
 		[cont setAllowsMultipleSelection:YES];
@@ -2955,7 +2998,7 @@ void API dw_listbox_append(HWND handle, char *text)
         DWContainer *cont = handle;
         NSString *nstr = [ NSString stringWithUTF8String:text ];
         NSArray *newrow = [NSArray arrayWithObject:nstr];
-        
+
         [cont addRow:newrow];
         /*[cont performSelectorOnMainThread:@selector(addRow:)
                                withObject:newrow
@@ -2989,7 +3032,7 @@ void API dw_listbox_insert(HWND handle, char *text, int pos)
         DWContainer *cont = handle;
         NSString *nstr = [ NSString stringWithUTF8String:text ];
         NSArray *newrow = [NSArray arrayWithObject:nstr];
-        
+
         [cont insertRow:newrow at:pos];
         [cont reloadData];
     }
@@ -3028,7 +3071,7 @@ void API dw_listbox_list_append(HWND handle, char **text, int count)
 		{		
             NSString *nstr = [ NSString stringWithUTF8String:text[z] ];
             NSArray *newrow = [[NSArray alloc] arrayWithObject:nstr];
-        
+
             [cont addRow:newrow];
         }
         [cont reloadData];
@@ -3056,7 +3099,7 @@ void API dw_listbox_clear(HWND handle)
     else if([object isMemberOfClass:[DWContainer class]])
     {
         DWContainer *cont = handle;
-        
+
         [cont clear];
         [cont reloadData];
     }
@@ -3111,7 +3154,7 @@ void API dw_listbox_set_top(HWND handle, int top)
     else if([object isMemberOfClass:[DWContainer class]])
     {
         DWContainer *cont = handle;
-        
+
         [cont scrollRowToVisible:top];
     }
     DW_MUTEX_UNLOCK;
@@ -3135,7 +3178,7 @@ void API dw_listbox_get_text(HWND handle, unsigned int index, char *buffer, unsi
 	{
 		DWComboBox *combo = handle;
         int count = (int)[combo numberOfItems];
-        
+
         if(index > count)
         {
             *buffer = '\0';
@@ -3150,7 +3193,7 @@ void API dw_listbox_get_text(HWND handle, unsigned int index, char *buffer, unsi
     {
         DWContainer *cont = handle;
         int count = (int)[cont numberOfRowsInTableView:cont];
-        
+
         if(index > count)
         {
             *buffer = '\0';
@@ -3158,7 +3201,7 @@ void API dw_listbox_get_text(HWND handle, unsigned int index, char *buffer, unsi
         else
         {
             NSString *nstr = [cont getRow:index and:0];
-        
+
             strncpy(buffer, [ nstr UTF8String ], length - 1);
         }
     }
@@ -3193,16 +3236,16 @@ void API dw_listbox_set_text(HWND handle, unsigned int index, char *buffer)
     {
         DWContainer *cont = handle;
         int count = (int)[cont numberOfRowsInTableView:cont];
-        
+
         if(index <= count)
         {
             NSString *nstr = [ NSString stringWithUTF8String:buffer ];
-        
+
             [cont editCell:nstr at:index and:0];
             [cont reloadData];
         }
     }
-    DW_MUTEX_UNLOCK;    
+    DW_MUTEX_UNLOCK;
 }
 
 /*
@@ -3243,18 +3286,18 @@ int API dw_listbox_selected_multi(HWND handle, int where)
     DW_MUTEX_LOCK;
 	id object = handle;
     int retval = -1;
-    
+
     if([object isMemberOfClass:[DWContainer class]])
     {
         DWContainer *cont = handle;
         NSIndexSet *selected = [cont selectedRowIndexes];
         NSUInteger result = [selected indexGreaterThanIndex:where];
-        
+
         if(result != NSNotFound)
         {
             retval = (int)result;
         }
-    }     
+    }
     DW_MUTEX_UNLOCK;
 	return retval;
 }
@@ -3284,10 +3327,10 @@ void API dw_listbox_select(HWND handle, int index, int state)
     {
         DWContainer *cont = handle;
         NSIndexSet *selected = [[NSIndexSet alloc] initWithIndex:(NSUInteger)index];
-        
+
         [cont selectRowIndexes:selected byExtendingSelection:YES];
         [selected release];
-    }    
+    }
     DW_MUTEX_UNLOCK;
 }
 
@@ -3312,7 +3355,7 @@ void API dw_listbox_delete(HWND handle, int index)
     else if([object isMemberOfClass:[DWContainer class]])
     {
         DWContainer *cont = handle;
-        
+
         [cont removeRow:index];
         [cont reloadData];
     }
@@ -3341,8 +3384,8 @@ HWND API dw_combobox_new(char *text, ULONG cid)
 HWND API dw_mle_new(ULONG cid)
 {
 	DWMLE *mle = [[DWMLE alloc] init];
-    NSScrollView *scrollview  = [[NSScrollView alloc] init];    
-    
+    NSScrollView *scrollview  = [[NSScrollView alloc] init];
+
     //[mle setScrollview:scrollview];
     [scrollview setBorderType:NSBezelBorder];
     [scrollview setHasVerticalScroller:YES];
@@ -3403,7 +3446,7 @@ void API dw_mle_get_size(HWND handle, unsigned long *bytes, unsigned long *lines
 	DWMLE *mle = [sv documentView];
     NSTextStorage *ts = [mle textStorage];
     NSMutableString *ms = [ts mutableString];
-    
+
     *bytes = [ms length];
     *lines = 0; /* TODO: Line count */
 }
@@ -3467,7 +3510,7 @@ void API dw_mle_set_editable(HWND handle, int state)
 	{
 		[mle setEditable:YES];
 	}
-	else 
+	else
 	{
 		[mle setEditable:NO];
 	}
@@ -3629,9 +3672,9 @@ unsigned long API dw_color_choose(unsigned long value)
     /* Set defaults for the dialog. */
     [colorDlg setColor:color];
     [colorDlg setDialog:dialog];
-    [colorDlg setContinuous:YES]; 
-    [colorDlg setTarget:colorDlg]; 
-    [colorDlg setAction:@selector(changeColor:)]; 
+    [colorDlg setContinuous:YES];
+    [colorDlg setTarget:colorDlg];
+    [colorDlg setAction:@selector(changeColor:)];
     [colorDlg makeKeyAndOrderFront:nil];
 	
     color = (NSColor *)dw_dialog_wait(dialog);
@@ -3888,14 +3931,14 @@ HWND API dw_tree_new(ULONG cid)
 {
     int _locked_by_me = FALSE;
     DW_MUTEX_LOCK;
-    NSScrollView *scrollview  = [[NSScrollView alloc] init];    
+    NSScrollView *scrollview  = [[NSScrollView alloc] init];
 	DWTree *tree = [[DWTree alloc] init];
-    
+
     [tree setScrollview:scrollview];
     [scrollview setBorderType:NSBezelBorder];
     [scrollview setHasVerticalScroller:YES];
     [scrollview setAutohidesScrollers:YES];
-    
+
     [tree setAllowsMultipleSelection:NO];
 	[tree setDataSource:tree];
     [scrollview setDocumentView:tree];
@@ -4239,7 +4282,7 @@ void API dw_container_set_item(HWND handle, void *pointer, int column, int row, 
 	id object = nil;
 	int type = [cont cellType:column];
 	int lastadd = [cont lastAddPoint];
-    
+
     if(!data)
     {
         DW_MUTEX_UNLOCK;
@@ -4254,7 +4297,7 @@ void API dw_container_set_item(HWND handle, void *pointer, int column, int row, 
         char *str = *((char **)data);
 		object = [ NSString stringWithUTF8String:str ];
 	}
-	else 
+	else
 	{
 		char textbuffer[100];
 		
@@ -4288,7 +4331,7 @@ void API dw_container_set_item(HWND handle, void *pointer, int column, int row, 
 			
 			strftime(textbuffer, 100, "%X", &curtm);
 		}
-		else 
+		else
 		{
             DW_MUTEX_UNLOCK;
 			return;
@@ -4423,7 +4466,7 @@ void API dw_container_set_column_width(HWND handle, int column, int width)
     DW_MUTEX_LOCK;
     DWContainer *cont = handle;
     NSTableColumn *col = [cont getColumn:column];
-    
+
     [col setWidth:width];
     DW_MUTEX_UNLOCK;
 }
@@ -4491,7 +4534,7 @@ void API dw_container_delete(HWND handle, int rowcount)
     DW_MUTEX_LOCK;
     DWContainer *cont = handle;
     int x;
-    
+
     for(x=0;x<rowcount;x++)
     {
         [cont removeRow:0];
@@ -4528,7 +4571,7 @@ char * API dw_container_query_start(HWND handle, unsigned long flags)
     NSIndexSet *selected = [cont selectedRowIndexes];
     NSUInteger result = [selected indexGreaterThanOrEqualToIndex:0];
     char *retval = NULL;
-    
+
     if(result != NSNotFound)
     {
         retval = [cont getRowTitle:(int)result];
@@ -4555,7 +4598,7 @@ char * API dw_container_query_next(HWND handle, unsigned long flags)
     NSIndexSet *selected = [cont selectedRowIndexes];
     NSUInteger result = [selected indexGreaterThanIndex:lastQueryPoint];
     char *retval = NULL;
-    
+
     if(result != NSNotFound)
     {
         retval = [cont getRowTitle:(int)result];
@@ -4578,15 +4621,15 @@ void API dw_container_cursor(HWND handle, char *text)
     DWContainer *cont = handle;
     char *thistext;
     int x, count = (int)[cont numberOfRowsInTableView:cont];
-    
+
     for(x=0;x<count;x++)
     {
         thistext = [cont getRowTitle:x];
-        
+
         if(thistext == text)
         {
             NSIndexSet *selected = [[NSIndexSet alloc] initWithIndex:(NSUInteger)x];
-            
+
             [cont selectRowIndexes:selected byExtendingSelection:YES];
             [selected release];
         }
@@ -4607,11 +4650,11 @@ void API dw_container_delete_row(HWND handle, char *text)
     DWContainer *cont = handle;
     char *thistext;
     int x, count = (int)[cont numberOfRowsInTableView:cont];
-    
+
     for(x=0;x<count;x++)
     {
         thistext = [cont getRowTitle:x];
-        
+
         if(thistext == text)
         {
             [cont removeRow:x];
@@ -4671,7 +4714,7 @@ HICN API dw_icon_load(unsigned long module, unsigned long resid)
 {
     NSBundle *bundle = [NSBundle mainBundle];
     NSString *respath = [bundle resourcePath];
-    NSString *filepath = [respath stringByAppendingFormat:@"/%u.png", resid]; 
+    NSString *filepath = [respath stringByAppendingFormat:@"/%u.png", resid];
 	NSImage *image = [[NSImage alloc] initWithContentsOfFile:filepath];
 	return image;
 }
@@ -4730,7 +4773,7 @@ HWND API dw_mdi_new(unsigned long cid)
     /* There isn't anything like quite like MDI on MacOS...
      * However we will make floating windows that hide
      * when the application is deactivated to simulate
-     * similar behavior. 
+     * similar behavior.
      */
     DWMDI *mdi = [[DWMDI alloc] init];
     /* [mdi setTag:cid]; Why doesn't this work? */
@@ -4748,14 +4791,14 @@ HWND API dw_mdi_new(unsigned long cid)
  */
 HWND API dw_splitbar_new(int type, HWND topleft, HWND bottomright, unsigned long cid)
 {
-    HWND tmpbox = dw_box_new(DW_VERT, 0); 
+    HWND tmpbox = dw_box_new(DW_VERT, 0);
     int _locked_by_me = FALSE;
     DW_MUTEX_LOCK;
 	DWSplitBar *split = [[DWSplitBar alloc] init];
     [split setDelegate:split];
     dw_box_pack_start(tmpbox, topleft, 0, 0, TRUE, TRUE, 0);
 	[split addSubview:tmpbox];
-    tmpbox = dw_box_new(DW_VERT, 0);    
+    tmpbox = dw_box_new(DW_VERT, 0);
     dw_box_pack_start(tmpbox, bottomright, 0, 0, TRUE, TRUE, 0);
 	[split addSubview:tmpbox];
 	if(type == DW_VERT)
@@ -4799,7 +4842,7 @@ void API dw_splitbar_set(HWND handle, float percent)
     else
     {
         /* If we have no size.. wait until the resize
-         * event when we get an actual size to try 
+         * event when we get an actual size to try
          * to set the splitbar again.
          */
         [split setPercent:percent];
@@ -4955,10 +4998,10 @@ HPIXMAP API dw_pixmap_grab(HWND handle, ULONG resid)
 	
 	if (!(pixmap = calloc(1,sizeof(struct _hpixmap))))
 		return NULL;
-    
+
     NSBundle *bundle = [NSBundle mainBundle];
     NSString *respath = [bundle resourcePath];
-    NSString *filepath = [respath stringByAppendingFormat:@"/%u.png", resid]; 
+    NSString *filepath = [respath stringByAppendingFormat:@"/%u.png", resid];
 	NSImage *image = [[NSImage alloc] initWithContentsOfFile:filepath];
 	NSSize size = [image size];
 	pixmap->width = size.width;
@@ -4999,17 +5042,17 @@ void API dw_pixmap_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest, int wi
 {
     DWBitBlt *bltinfo = calloc(1, sizeof(DWBitBlt));
     NSValue* bi = [NSValue valueWithPointer:bltinfo];
-    
+
     /* Fill in the information */
     bltinfo->dest = dest;
     bltinfo->src = src;
     bltinfo->xdest = xdest;
     bltinfo->ydest = ydest;
     bltinfo->width = width;
-    bltinfo->height = height;   
+    bltinfo->height = height;
     bltinfo->xsrc = xsrc;
     bltinfo->ysrc = ysrc;
-    
+
     if(destp)
     {
         bltinfo->dest = (id)destp->handle;
@@ -5018,7 +5061,7 @@ void API dw_pixmap_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest, int wi
     {
         id object = bltinfo->src = (id)srcp->handle;
         [object retain];
-    }   
+    }
     [DWObj performSelectorOnMainThread:@selector(doBitBlt:) withObject:bi waitUntilDone:YES];
 }
 
@@ -5171,7 +5214,7 @@ HWND API dw_html_new(unsigned long cid)
  */
 void API dw_pointer_query_pos(long *x, long *y)
 {
-    NSPoint mouseLoc; 
+    NSPoint mouseLoc;
     mouseLoc = [NSEvent mouseLocation];
 	if(x)
 	{
@@ -5247,15 +5290,15 @@ void API dw_menu_popup(HMENUI *menu, HWND parent, int x, int y)
     NSView *view = [object isKindOfClass:[NSWindow class]] ? [object contentView] : parent;
     NSWindow *window = [view window];
     NSEvent *event = [DWApp currentEvent];
-    NSEvent* fake = [NSEvent mouseEventWithType:NSRightMouseDown 
+    NSEvent* fake = [NSEvent mouseEventWithType:NSRightMouseDown
                                        location:[window convertScreenToBase:NSMakePoint(x, y)]
-                                  modifierFlags:0 
+                                  modifierFlags:0
                                       timestamp:[event timestamp]
                                    windowNumber:[window windowNumber]
-                                        context:[NSGraphicsContext currentContext] 
-                                    eventNumber:1 
-                                     clickCount:1 
-                                       pressure:0.0];     
+                                        context:[NSGraphicsContext currentContext]
+                                    eventNumber:1
+                                     clickCount:1
+                                       pressure:0.0];
     [NSMenu popUpContextMenu:thismenu withEvent:fake forView:view];
 }
 
@@ -5301,7 +5344,7 @@ HWND API dw_menu_append_item(HMENUI menux, char *title, ULONG itemid, ULONG flag
 	{
 		[menu addItem:[NSMenuItem separatorItem]];
 	}
-	else 
+	else
 	{
 		char accel[2];
 		char *newtitle = malloc(strlen(title)+1);
@@ -5400,7 +5443,7 @@ void API dw_menu_item_set_state(HMENUI menux, unsigned long itemid, unsigned lon
 DWNotebookPage *_notepage_from_id(DWNotebook *notebook, unsigned long pageid)
 {
 	NSArray *pages = [notebook tabViewItems];
-	for(DWNotebookPage *notepage in pages) 
+	for(DWNotebookPage *notepage in pages)
 	{
 		if([notepage pageid] == pageid)
 		{
@@ -5543,7 +5586,7 @@ void API dw_notebook_pack(HWND handle, ULONG pageid, HWND page)
 	{
         HWND tmpbox = dw_box_new(DW_VERT, 0);
         DWBox *box = tmpbox;
-        
+
         dw_box_pack_start(tmpbox, page, 0, 0, TRUE, TRUE, 0);
 		[notepage setView:box];
 	}
@@ -5578,12 +5621,12 @@ HWND API dw_window_new(HWND hwndOwner, char *title, ULONG flStyle)
 	[window setAllowsConcurrentViewDrawing:NO];
 #endif
     [view release];
-    
+
     /* If it isn't a toplevel window... */
     if(hwndOwner)
     {
         id object = hwndOwner;
-        
+
         /* Check to see if the parent is an MDI window */
         if([object isMemberOfClass:[DWMDI class]])
         {
@@ -5623,11 +5666,11 @@ void API dw_window_function(HWND handle, void *function, void *data)
 void API dw_window_set_pointer(HWND handle, int pointertype)
 {
     id object = handle;
-    
+
 	if([ object isKindOfClass:[ NSView class ] ])
 	{
 		NSView *view = handle;
-        
+
         if(pointertype == DW_POINTER_DEFAULT)
         {
             [view discardCursorRects];
@@ -5636,7 +5679,7 @@ void API dw_window_set_pointer(HWND handle, int pointertype)
         {
             NSRect rect = [view frame];
             NSCursor *cursor = [NSCursor arrowCursor];
-        
+
             [view addCursorRect:rect cursor:cursor];
         }
         /* No cursor for DW_POINTER_CLOCK? */
@@ -5673,7 +5716,7 @@ int API dw_window_show(HWND handle)
 int API dw_window_hide(HWND handle)
 {
     /* TODO: Figure out proper dw_window_hide behavior...
-     * individual windows don't appear to be hidable, 
+     * individual windows don't appear to be hidable,
      * but all application windows can be hidden/deactivated
      * via the NS/DWApplication class.
      */
@@ -5782,7 +5825,7 @@ static id _DWCapture;
 void API dw_window_capture(HWND handle)
 {
     id object = handle;
-    
+
     if(![object isMemberOfClass:[NSWindow class]])
     {
         object = [object window];
@@ -5825,7 +5868,7 @@ void API dw_window_track(HWND handle)
 void API dw_window_reparent(HWND handle, HWND newparent)
 {
     id object = handle;
-    
+
     if([object isMemberOfClass:[NSWindow class]])
     {
         /* We can't actually reparent on MacOS but if the
@@ -5833,12 +5876,12 @@ void API dw_window_reparent(HWND handle, HWND newparent)
          * floating window... otherwise set it to normal.
          */
         NSWindow *window = handle;
-    
+
         /* If it isn't a toplevel window... */
         if(newparent)
         {
             object = newparent;
-        
+
             /* Check to see if the parent is an MDI window */
             if([object isMemberOfClass:[DWMDI class]])
             {
@@ -5866,7 +5909,7 @@ int API dw_window_set_font(HWND handle, char *fontname)
 	char *name = strchr(fontcopy, '.');
 	if(name)
 	{
-		int size = atoi(fontcopy); 
+		int size = atoi(fontcopy);
 		*name = 0;
 		name++;
 		NSFont *font = [NSFont fontWithName:[ NSString stringWithUTF8String:name ] size:(float)size];
@@ -5887,6 +5930,17 @@ int API dw_window_set_font(HWND handle, char *fontname)
 	}
 	free(fontcopy);
 	return 0;
+}
+
+/*
+ * Returns the current font for the specified window
+ * Parameters:
+ *           handle: The window handle from which to obtain the font.
+ */
+char * API dw_window_get_font(HWND handle)
+{
+   NSLog(@"dw_window_get_font() unimplemented\n");
+   return "8.Monaco";
 }
 
 /*
@@ -6036,7 +6090,7 @@ void API dw_window_set_bitmap(HWND handle, unsigned long resid, char *filename)
 	{
 		NSImageView *iv = handle;
         NSImage *bitmap = NULL;
-        
+
         if(filename)
         {
              bitmap = [[NSImage alloc] initWithContentsOfFile:[ NSString stringWithUTF8String:filename ]];
@@ -6142,7 +6196,7 @@ void API dw_window_set_size(HWND handle, ULONG width, ULONG height)
 	NSObject *object = handle;
 	NSSize size;
 	size.width = width;
-	size.height = height; 
+	size.height = height;
 	
 	if([ object isKindOfClass:[ NSWindow class ] ])
 	{
@@ -6166,7 +6220,7 @@ void API dw_window_set_pos(HWND handle, LONG x, LONG y)
 	NSObject *object = handle;
 	NSPoint point;
 	point.x = x;
-	point.y = y; 
+	point.y = y;
 	
 	if([ object isKindOfClass:[ NSWindow class ] ])
 	{
@@ -6216,7 +6270,7 @@ void API dw_window_get_pos_size(HWND handle, LONG *x, LONG *y, ULONG *width, ULO
 			*width = rect.size.width;
 		if(height)
 			*height = rect.size.height;
-		return; 
+		return;
 	}
 }
 
@@ -6225,7 +6279,7 @@ void API dw_window_get_pos_size(HWND handle, LONG *x, LONG *y, ULONG *width, ULO
  */
 int API dw_screen_width(void)
 {
-	NSRect screenRect = [[NSScreen mainScreen] frame]; 
+	NSRect screenRect = [[NSScreen mainScreen] frame];
 	return screenRect.size.width;
 }
 
@@ -6234,7 +6288,7 @@ int API dw_screen_width(void)
  */
 int API dw_screen_height(void)
 {
-	NSRect screenRect = [[NSScreen mainScreen] frame]; 
+	NSRect screenRect = [[NSScreen mainScreen] frame];
 	return screenRect.size.height;
 }
 
@@ -6571,7 +6625,7 @@ void API dw_timer_disconnect(int timerid)
 void API dw_signal_connect(HWND window, char *signame, void *sigfunc, void *data)
 {
 	ULONG message = 0, msgid = 0;
-    
+
 	if(window && signame && sigfunc)
 	{
 		if((message = _findsigmessage(signame)) != 0)
@@ -6804,7 +6858,7 @@ void dw_mutex_close(HMTX mutex)
 void dw_mutex_lock(HMTX mutex)
 {
     /* We need to handle locks from the main thread differently...
-     * since we can't stop message processing... otherwise we 
+     * since we can't stop message processing... otherwise we
      * will deadlock... so try to acquire the lock and continue
      * processing messages in between tries.
      */
@@ -7317,7 +7371,7 @@ void _dw_pool_drain(void)
     [pool drain];
     pool = [[NSAutoreleasePool alloc] init];
     pthread_setspecific(_dw_pool_key, pool);
-#endif    
+#endif
 }
 
 /*
