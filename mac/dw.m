@@ -5031,10 +5031,12 @@ void API dw_pixmap_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest, int wi
  */
 HWND API dw_calendar_new(ULONG cid)
 {
-	DWCalendar *calendar = [[DWCalendar alloc] init];
-	/*[calendar setDatePickerMode:UIDatePickerModeDate];*/
+    DWCalendar *calendar = [[DWCalendar alloc] init];
+    [calendar setDatePickerMode:NSSingleDateMode];
+    [calendar setDatePickerStyle:NSClockAndCalendarDatePickerStyle];
+    [calendar setDatePickerElements:NSYearMonthDayDatePickerElementFlag];
     [calendar setTag:cid];
-	return calendar;
+    return calendar;
 }
 
 /*
@@ -5045,14 +5047,14 @@ HWND API dw_calendar_new(ULONG cid)
  */
 void dw_calendar_set_date(HWND handle, unsigned int year, unsigned int month, unsigned int day)
 {
-	DWCalendar *calendar = handle;
-	NSDate *date;
-	char buffer[100];
+    DWCalendar *calendar = handle;
+    NSDate *date;
+    char buffer[100];
 	
-	sprintf(buffer, "%04d-%02d-%02d 00:00:00 +0600", year, month, day);
+    sprintf(buffer, "%04d-%02d-%02d 00:00:00 +0600", year, month, day);
 	
-	date = [[NSDate alloc] initWithString:[ NSString stringWithUTF8String:buffer ]];
-	[calendar setDateValue:date];
+    date = [[NSDate alloc] initWithString:[ NSString stringWithUTF8String:buffer ]];
+    [calendar setDateValue:date];
     [date release];
 }
 
@@ -5063,11 +5065,12 @@ void dw_calendar_set_date(HWND handle, unsigned int year, unsigned int month, un
  */
 void dw_calendar_get_date(HWND handle, unsigned int *year, unsigned int *month, unsigned int *day)
 {
-	DWCalendar *calendar = handle;
-	NSDate *date = [calendar dateValue];
-	NSDateFormatter *df = [[NSDateFormatter alloc] init];
-	NSString *nstr = [df stringFromDate:date];
-	sscanf([ nstr UTF8String ], "%d-%d-%d", year, month, day);
+    DWCalendar *calendar = handle;
+    NSDate *date = [calendar dateValue];
+    NSDateFormatter *df = [[NSDateFormatter alloc] init];
+    [df setDateStyle:NSDateFormatterShortStyle];
+    NSString *nstr = [df stringFromDate:date];
+    sscanf([ nstr UTF8String ], "%d/%d/%d", month, day, year);
     [df release];
 }
 
