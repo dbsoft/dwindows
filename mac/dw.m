@@ -7639,6 +7639,20 @@ int dw_exec(char *program, int type, char **params)
 {
 	int ret = -1;
 	
+    if(type == DW_EXEC_GUI)
+    {
+        if(params && params[0] && params[1])
+        {
+            [[NSWorkspace sharedWorkspace] openFile:[NSString stringWithUTF8String:params[1]]
+                                    withApplication:[NSString stringWithUTF8String:program]];
+        }
+        else
+        {
+            [[NSWorkspace sharedWorkspace] launchApplication:[NSString stringWithUTF8String:program]];
+        }
+        return 0;
+    }
+    
 	if((ret = fork()) == 0)
 	{
 		int i;
@@ -7646,11 +7660,8 @@ int dw_exec(char *program, int type, char **params)
 		for (i = 3; i < 256; i++)
 			close(i);
 		setsid();
-		if(type == DW_EXEC_GUI)
-		{
-			execvp(program, params);
-		}
-		else if(type == DW_EXEC_CON)
+        
+		if(type == DW_EXEC_CON)
 		{
 			char **tmpargs;
 			
