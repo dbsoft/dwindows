@@ -411,6 +411,21 @@ typedef struct _bitbltinfo
 		[window flushWindow];
 	}
 }
+-(void)doWindowFunc:(id)param
+{
+    NSValue *v = (NSValue *)param;
+    void **params = (void **)[v pointerValue];
+	void (* windowfunc)(void *);
+	
+    if(params)
+    {
+        windowfunc = params[0];
+        if(windowfunc)
+        {
+            windowfunc(params[1]);
+        }
+    }	
+}
 @end
 
 DWObject *DWObj;
@@ -5625,12 +5640,12 @@ HWND API dw_window_new(HWND hwndOwner, char *title, ULONG flStyle)
 {
     int _locked_by_me = FALSE;
     DW_MUTEX_LOCK;
-	NSRect frame = NSMakeRect(1,1,1,1);
+    NSRect frame = NSMakeRect(1,1,1,1);
     NSWindow *window = [[NSWindow alloc]
-						initWithContentRect:frame
-						styleMask:(flStyle | NSTexturedBackgroundWindowMask)
-						backing:NSBackingStoreBuffered
-						defer:false];
+                        initWithContentRect:frame
+                        styleMask:(flStyle | NSTexturedBackgroundWindowMask)
+                        backing:NSBackingStoreBuffered
+                        defer:false];
 
     [window setTitle:[ NSString stringWithUTF8String:title ]];
 	
@@ -5638,9 +5653,8 @@ HWND API dw_window_new(HWND hwndOwner, char *title, ULONG flStyle)
 	
     [window setContentView:view];
     [window setDelegate:view];
-    [window makeKeyAndOrderFront:nil];
 #ifdef BUILDING_FOR_SNOW_LEOPARD
-	[window setAllowsConcurrentViewDrawing:NO];
+    [window setAllowsConcurrentViewDrawing:NO];
 #endif
     [view release];
 
@@ -5657,8 +5671,8 @@ HWND API dw_window_new(HWND hwndOwner, char *title, ULONG flStyle)
             [window setHidesOnDeactivate:YES];
         }
     }
-	DW_MUTEX_UNLOCK;
-	return (HWND)window;
+    DW_MUTEX_UNLOCK;
+    return (HWND)window;
 }
 
 /*
@@ -5670,12 +5684,12 @@ HWND API dw_window_new(HWND hwndOwner, char *title, ULONG flStyle)
  */
 void API dw_window_function(HWND handle, void *function, void *data)
 {
-	void (* windowfunc)(void *);
-	
-	windowfunc = function;
-	
-	if(windowfunc)
-		windowfunc(data);	
+    void **params = calloc(2, sizeof(void *));
+    NSValue *v = [NSValue valueWithPointer:params];
+    params[0] = function;
+    params[1] = data;
+    [DWObj performSelectorOnMainThread:@selector(doWindowFunc:) withObject:v waitUntilDone:YES];
+    free(params);
 }
 
 
@@ -5715,20 +5729,27 @@ void API dw_window_set_pointer(HWND handle, int pointertype)
  */
 int API dw_window_show(HWND handle)
 {
-	NSObject *object = handle;
+    NSObject *object = handle;
 	
-	if([ object isKindOfClass:[ NSWindow class ] ])
-	{
-		NSWindow *window = handle;
-		if([window isMiniaturized])
-		{
-			[window deminiaturize:nil];
-		}
-        [window orderFront:nil];
-		[[window contentView] windowResized:nil];
+    if([ object isKindOfClass:[ NSWindow class ] ])
+    {
+        NSWindow *window = handle;
+        NSRect rect = [window frame];
+        if([window isMiniaturized])
+        {
+            [window deminiaturize:nil];
+        }
+        /* If we haven't been sized by a call.. */
+        if(rect.size.width < 1 || rect.size.height < 1)
+        {
+            /* Make a sane default size because MacOS won't automatically */
+            [window setContentSize:NSMakeSize(200,150)];
+        }
+        [window makeKeyAndOrderFront:nil];
+        [[window contentView] windowResized:nil];
         [[window contentView] windowDidBecomeMain:nil];
-	}
-	return 0;
+    }
+    return 0;
 }
 
 /*
