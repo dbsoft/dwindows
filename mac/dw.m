@@ -5744,7 +5744,7 @@ int API dw_window_show(HWND handle)
             [window deminiaturize:nil];
         }
         /* If we haven't been sized by a call.. */
-        if(rect.size.width < 1 || rect.size.height < 1)
+        if(rect.size.width < 5 || rect.size.height < 5)
         {
             /* Make a sane default size because MacOS won't automatically */
             [window setContentSize:NSMakeSize(200,150)];
