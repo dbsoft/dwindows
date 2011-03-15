@@ -5071,6 +5071,14 @@ void dw_calendar_get_date(HWND handle, unsigned int *year, unsigned int *month, 
     [df setDateStyle:NSDateFormatterShortStyle];
     NSString *nstr = [df stringFromDate:date];
     sscanf([ nstr UTF8String ], "%d/%d/%d", month, day, year);
+    if(*year < 70)
+    {
+        *year += 2000; 
+    }
+    else if(*year < 100)
+    { 
+        *year += 1900;
+    }
     [df release];
 }
 
