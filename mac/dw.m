@@ -685,7 +685,7 @@ DWObject *DWObj;
 
 @implementation DWColorChoose
 -(void)changeColor:(id)sender { pickedcolor = [self color]; }
--(BOOL)windowShouldClose:(id)window { dw_dialog_dismiss(dialog, pickedcolor); return YES; }
+-(BOOL)windowShouldClose:(id)window { DWDialog *d = dialog; dialog = nil; dw_dialog_dismiss(d, pickedcolor); [window orderOut:nil]; return NO; }
 -(void)setDialog:(DWDialog *)input { dialog = input; }
 -(DWDialog *)dialog { return dialog; }
 @end
@@ -3665,32 +3665,34 @@ void API dw_color_background_set(unsigned long value)
  */
 unsigned long API dw_color_choose(unsigned long value)
 {
+    NSColor *color = [[NSColor colorWithDeviceRed: DW_RED_VALUE(value)/255.0 green: DW_GREEN_VALUE(value)/255.0 blue: DW_BLUE_VALUE(value)/255.0 alpha: 1] retain];    
     /* Create the Color Chooser Dialog class. */
-    int created = [NSColorPanel sharedColorPanelExists];
-    DWColorChoose *colorDlg = (DWColorChoose *)[DWColorChoose sharedColorPanel];
-    NSColor *color = [NSColor colorWithDeviceRed: DW_RED_VALUE(value)/255.0 green: DW_GREEN_VALUE(value)/255.0 blue: DW_BLUE_VALUE(value)/255.0 alpha: 1];
+    static DWColorChoose *colorDlg = nil;
     DWDialog *dialog;
     
-    if(created)
+    if(colorDlg)
     {
         dialog = [colorDlg dialog];
-        /* TODO: Something is wrong reopening... crashes on setcolor: */
-        return value;
+        /* If someone is already waiting just return */
+        if(dialog)
+        {
+            return value;
+        }
     }
     else
     {
-        dialog = dw_dialog_new(colorDlg);
+        colorDlg = (DWColorChoose *)[DWColorChoose sharedColorPanel];
         /* Set defaults for the dialog. */
-        [colorDlg setDialog:dialog];
         [colorDlg setContinuous:NO]; 
         [colorDlg setTarget:colorDlg]; 
         [colorDlg setAction:@selector(changeColor:)]; 
     }
 	
-    dialog->done = FALSE;
+    dialog = dw_dialog_new(colorDlg);
     [colorDlg setColor:color];
+    [colorDlg setDialog:dialog];
     [colorDlg makeKeyAndOrderFront:nil];
-	
+
     /* Wait for them to pick a color */
     color = (NSColor *)dw_dialog_wait(dialog);
     
@@ -3698,7 +3700,6 @@ unsigned long API dw_color_choose(unsigned long value)
     double red, green, blue;
     [color getRed:&red green:&green blue:&blue alpha:NULL];
     value = DW_RGB((int)(red * 255), (int)(green *255), (int)(blue *255));
-    [color release];
     return value;
 }
 
@@ -5722,6 +5723,7 @@ int API dw_window_show(HWND handle)
 		{
 			[window deminiaturize:nil];
 		}
+        [window orderFront:nil];
 		[[window contentView] windowResized:nil];
         [[window contentView] windowDidBecomeMain:nil];
 	}
@@ -5735,11 +5737,14 @@ int API dw_window_show(HWND handle)
  */
 int API dw_window_hide(HWND handle)
 {
-    /* TODO: Figure out proper dw_window_hide behavior...
-     * individual windows don't appear to be hidable,
-     * but all application windows can be hidden/deactivated
-     * via the NS/DWApplication class.
-     */
+	NSObject *object = handle;
+	
+	if([ object isKindOfClass:[ NSWindow class ] ])
+	{
+		NSWindow *window = handle;
+        
+        [window orderOut:nil];
+    }
 	return 0;
 }
 
