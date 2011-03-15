@@ -542,8 +542,12 @@ DWObject *DWObj;
 }
 - (void)dealloc
 {
-        [[NSNotificationCenter defaultCenter] removeObserver:self];
-        [super dealloc];
+    if(windowmenu)
+    {
+        [windowmenu release];
+    }
+    [[NSNotificationCenter defaultCenter] removeObserver:self];
+    [super dealloc];
 }
 - (void)windowResized:(NSNotification *)notification;
 {
@@ -563,7 +567,7 @@ DWObject *DWObj;
 	}
     _event_handler(self, nil, 13);
 }
--(void)setMenu:(NSMenu *)input { windowmenu = input; }
+-(void)setMenu:(NSMenu *)input { windowmenu = input; [windowmenu retain]; }
 -(void)menuHandler:(id)sender { _event_handler(sender, nil, 8); }
 -(void)keyDown:(NSEvent *)theEvent { _event_handler(self, theEvent, 2); _event_handler([self window], theEvent, 2); }
 @end
@@ -7453,29 +7457,30 @@ void _dwthreadstart(void *data)
  */
 int API dw_init(int newthread, int argc, char *argv[])
 {
-	/* Create the application object */
-	DWApp = [NSApplication sharedApplication];
-	/* Create object for handling timers */
-	DWHandler = [[DWTimerHandler alloc] init];
+    /* Create the application object */
+    DWApp = [NSApplication sharedApplication];
+    /* Create object for handling timers */
+    DWHandler = [[DWTimerHandler alloc] init];
     /* If we aren't using garbage collection we need autorelease pools */
 #if !defined(GARBAGE_COLLECT)
     pthread_key_create(&_dw_pool_key, NULL);
-	pool = [[NSAutoreleasePool alloc] init];
+    pool = [[NSAutoreleasePool alloc] init];
     pthread_setspecific(_dw_pool_key, pool);
 #endif
     /* Create a default main menu, with just the application menu */
-	DWMainMenu = _generate_main_menu();
-	[DWApp setMainMenu:DWMainMenu];
-	DWObj = [[DWObject alloc] init];
+    DWMainMenu = _generate_main_menu();
+    [DWMainMenu retain];
+    [DWApp setMainMenu:DWMainMenu];
+    DWObj = [[DWObject alloc] init];
     /* Create mutexes for thread safety */
     DWRunMutex = dw_mutex_new();
     DWThreadMutex = dw_mutex_new();
     DWThreadMutex2 = dw_mutex_new();
     /* Use NSThread to start a dummy thread to initialize the threading subsystem */
-	NSThread *thread = [[ NSThread alloc] initWithTarget:DWObj selector:@selector(uselessThread:) object:nil];
-	[thread start];
+    NSThread *thread = [[ NSThread alloc] initWithTarget:DWObj selector:@selector(uselessThread:) object:nil];
+    [thread start];
     [thread release];
-	return 0;
+    return 0;
 }
 
 /*
