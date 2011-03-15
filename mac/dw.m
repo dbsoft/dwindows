@@ -43,20 +43,20 @@
 unsigned long _colors[] =
 {
 	0x00000000,   /* 0  black */
-	0x00bb0000,   /* 1  red */
+	0x000000bb,   /* 1  red */
 	0x0000bb00,   /* 2  green */
-	0x00aaaa00,   /* 3  yellow */
-	0x000000cc,   /* 4  blue */
+	0x0000aaaa,   /* 3  yellow */
+	0x00cc0000,   /* 4  blue */
 	0x00bb00bb,   /* 5  magenta */
-	0x0000bbbb,   /* 6  cyan */
+	0x00bbbb00,   /* 6  cyan */
 	0x00bbbbbb,   /* 7  white */
 	0x00777777,   /* 8  grey */
-	0x00ff0000,   /* 9  bright red */
+	0x000000ff,   /* 9  bright red */
 	0x0000ff00,   /* 10 bright green */
-	0x00eeee00,   /* 11 bright yellow */
-	0x000000ff,   /* 12 bright blue */
+	0x0000eeee,   /* 11 bright yellow */
+	0x00ff0000,   /* 12 bright blue */
 	0x00ff00ff,   /* 13 bright magenta */
-	0x0000eeee,   /* 14 bright cyan */
+	0x00eeee00,   /* 14 bright cyan */
 	0x00ffffff,   /* 15 bright white */
 	0xff000000    /* 16 default color */
 };
@@ -495,6 +495,7 @@ DWObject *DWObj;
 	}
 	else
 	{
+        NSLog(@"R: %d G: %d B: %d", (int)DW_RED_VALUE(input), (int)DW_GREEN_VALUE(input), (int)DW_BLUE_VALUE(input));
 		bgcolor = [NSColor colorWithDeviceRed: DW_RED_VALUE(input)/255.0 green: DW_GREEN_VALUE(input)/255.0 blue: DW_BLUE_VALUE(input)/255.0 alpha: 1];
 	}
 }
@@ -3697,7 +3698,7 @@ unsigned long API dw_color_choose(unsigned long value)
     color = (NSColor *)dw_dialog_wait(dialog);
     
     /* Figure out the value of what they returned */
-    double red, green, blue;
+    CGFloat red, green, blue;
     [color getRed:&red green:&green blue:&blue alpha:NULL];
     value = DW_RGB((int)(red * 255), (int)(green *255), (int)(blue *255));
     return value;
