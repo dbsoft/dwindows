@@ -3637,7 +3637,7 @@ HWND API dw_text_new(char *text, ULONG cid)
 	[textfield setDrawsBackground:NO];
 	[textfield setStringValue:[ NSString stringWithUTF8String:text ]];
     [textfield setTag:cid];
-    [[textfield cell] setFont:DWDefaultFont];
+    /*[[textfield cell] setFont:DWDefaultFont];*/
 	return textfield;
 }
 
