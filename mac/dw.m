@@ -2551,16 +2551,20 @@ void API dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize
 
 HWND _button_new(char *text, ULONG cid)
 {
-	DWButton *button = [[DWButton alloc] init];
-	if(text && *text)
-	{
-		[button setTitle:[ NSString stringWithUTF8String:text ]];
-	}
-	[button setTarget:button];
-	[button setAction:@selector(buttonClicked:)];
-	[button setTag:cid];
-	[button setButtonType:NSMomentaryPushInButton];
-	[button setBezelStyle:NSThickerSquareBezelStyle];
+    DWButton *button = [[DWButton alloc] init];
+    if(text && *text)
+    {
+        [button setTitle:[ NSString stringWithUTF8String:text ]];
+    }
+    [button setTarget:button];
+    [button setAction:@selector(buttonClicked:)];
+    [button setTag:cid];
+    [button setButtonType:NSMomentaryPushInButton];
+    [button setBezelStyle:NSThickerSquareBezelStyle];
+    if(DWDefaultFont)
+    {
+        [[button cell] setFont:DWDefaultFont];
+    }
     return button;
 }
 
@@ -3630,15 +3634,18 @@ HWND API dw_status_text_new(char *text, ULONG cid)
  */
 HWND API dw_text_new(char *text, ULONG cid)
 {
-	NSTextField *textfield = [[NSTextField alloc] init];
-	[textfield setEditable:NO];
-	[textfield setSelectable:NO];
-	[textfield setBordered:NO];
-	[textfield setDrawsBackground:NO];
-	[textfield setStringValue:[ NSString stringWithUTF8String:text ]];
+    NSTextField *textfield = [[NSTextField alloc] init];
+    [textfield setEditable:NO];
+    [textfield setSelectable:NO];
+    [textfield setBordered:NO];
+    [textfield setDrawsBackground:NO];
+    [textfield setStringValue:[ NSString stringWithUTF8String:text ]];
     [textfield setTag:cid];
-    /*[[textfield cell] setFont:DWDefaultFont];*/
-	return textfield;
+    if(DWDefaultFont)
+    {
+        [[textfield cell] setFont:DWDefaultFont];
+    }
+    return textfield;
 }
 
 /*
@@ -5965,6 +5972,23 @@ void API dw_window_reparent(HWND handle, HWND newparent)
     }
 }
 
+NSFont *_dw_font_by_name(char *fontname)
+{
+    char *fontcopy = strdup(fontname);
+    char *name = strchr(fontcopy, '.');
+    NSFont *font = nil;
+    
+    if(name)
+    {
+        int size = atoi(fontcopy);
+        *name = 0;
+        name++;
+        font = [NSFont fontWithName:[ NSString stringWithUTF8String:name ] size:(float)size];
+    }
+    free(fontcopy);
+    return font;
+}
+
 /*
  * Sets the font used by a specified window (widget) handle.
  * Parameters:
@@ -5973,31 +5997,23 @@ void API dw_window_reparent(HWND handle, HWND newparent)
  */
 int API dw_window_set_font(HWND handle, char *fontname)
 {
-    char *fontcopy = strdup(fontname);
-    char *name = strchr(fontcopy, '.');
-    if(name)
+    NSFont *font = _dw_font_by_name(fontname);
+    
+    if(font)
     {
-        int size = atoi(fontcopy);
-        *name = 0;
-        name++;
-        NSFont *font = [NSFont fontWithName:[ NSString stringWithUTF8String:name ] size:(float)size];
-        if(font)
+        id object = handle;
+        if([object window])
         {
-            id object = handle;
-            if([object window])
-            {
-                [object lockFocus];
-                [font set];
-                [object unlockFocus];
-            }
-            if([object isKindOfClass:[NSControl class]])
-            {
-                [object setFont:font];
-                [[object cell] setFont:font];
-            }
+            [object lockFocus];
+            [font set];
+            [object unlockFocus];
+        }
+        if([object isKindOfClass:[NSControl class]])
+        {
+            [object setFont:font];
+            [[object cell] setFont:font];
         }
     }
-    free(fontcopy);
     return 0;
 }
 
@@ -7476,6 +7492,16 @@ void _dwthreadstart(void *data)
    free(tmp);
 }
 
+void _dw_default_font(char *fontname)
+{
+    if(DWDefaultFont)
+    {
+        [DWDefaultFont release];
+    }
+    DWDefaultFont = _dw_font_by_name(fontname);
+    [DWDefaultFont retain];
+}
+
 /*
  * Initializes the Dynamic Windows engine.
  * Parameters:
@@ -7499,7 +7525,7 @@ int API dw_init(int newthread, int argc, char *argv[])
     [DWMainMenu retain];
     [DWApp setMainMenu:DWMainMenu];
     DWObj = [[DWObject alloc] init];
-    DWDefaultFont = [[NSFont fontWithName:@"Geneva" size:10.0] retain];
+    DWDefaultFont = nil;
     /* Create mutexes for thread safety */
     DWRunMutex = dw_mutex_new();
     DWThreadMutex = dw_mutex_new();
