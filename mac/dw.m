@@ -335,6 +335,7 @@ int _event_handler(id object, NSEvent *event, int message)
 
 NSApplication *DWApp;
 NSMenu *DWMainMenu;
+NSFont *DWDefaultFont;
 DWTimerHandler *DWHandler;
 #if !defined(GARBAGE_COLLECT)
 NSAutoreleasePool *pool;
@@ -3636,6 +3637,7 @@ HWND API dw_text_new(char *text, ULONG cid)
 	[textfield setDrawsBackground:NO];
 	[textfield setStringValue:[ NSString stringWithUTF8String:text ]];
     [textfield setTag:cid];
+    [[textfield cell] setFont:DWDefaultFont];
 	return textfield;
 }
 
@@ -5845,6 +5847,13 @@ void API dw_window_set_style(HWND handle, ULONG style, ULONG mask)
 		[window setStyleMask:tmp];
 #endif
 	}
+    else if([object isKindOfClass:[NSTextField class]])
+    {
+        NSTextField *tf = object;
+        
+        /* TODO: See if we need to switch to a bitmask */
+        [[tf cell] setAlignment:style];
+    }
     else if([object isMemberOfClass:[NSTextView class]])
     {
         NSTextView *tv = handle;
@@ -5964,14 +5973,14 @@ void API dw_window_reparent(HWND handle, HWND newparent)
  */
 int API dw_window_set_font(HWND handle, char *fontname)
 {
-	char *fontcopy = strdup(fontname);
-	char *name = strchr(fontcopy, '.');
-	if(name)
-	{
-		int size = atoi(fontcopy);
-		*name = 0;
-		name++;
-		NSFont *font = [NSFont fontWithName:[ NSString stringWithUTF8String:name ] size:(float)size];
+    char *fontcopy = strdup(fontname);
+    char *name = strchr(fontcopy, '.');
+    if(name)
+    {
+        int size = atoi(fontcopy);
+        *name = 0;
+        name++;
+        NSFont *font = [NSFont fontWithName:[ NSString stringWithUTF8String:name ] size:(float)size];
         if(font)
         {
             id object = handle;
@@ -5984,11 +5993,12 @@ int API dw_window_set_font(HWND handle, char *fontname)
             if([object isKindOfClass:[NSControl class]])
             {
                 [object setFont:font];
+                [[object cell] setFont:font];
             }
         }
-	}
-	free(fontcopy);
-	return 0;
+    }
+    free(fontcopy);
+    return 0;
 }
 
 /*
@@ -7489,6 +7499,7 @@ int API dw_init(int newthread, int argc, char *argv[])
     [DWMainMenu retain];
     [DWApp setMainMenu:DWMainMenu];
     DWObj = [[DWObject alloc] init];
+    DWDefaultFont = [[NSFont fontWithName:@"Geneva" size:10.0] retain];
     /* Create mutexes for thread safety */
     DWRunMutex = dw_mutex_new();
     DWThreadMutex = dw_mutex_new();
