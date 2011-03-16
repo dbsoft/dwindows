@@ -303,9 +303,9 @@ typedef struct _window_data {
 } WindowData;
 
 typedef struct _hpixmap {
-   unsigned long width, height;
-   /* ?? *pixmap; */
-   HWND handle;
+    unsigned long width, height;
+    void *image;
+    HWND handle;
 } *HPIXMAP;
 
 void _dw_pool_drain(void);
