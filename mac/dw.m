@@ -1068,7 +1068,7 @@ DWObject *DWObj;
 	data = [[[NSMutableArray alloc] init] retain];
 	types = [[[NSMutableArray alloc] init] retain];
 	titles = [[NSPointerArray pointerArrayWithWeakObjects] retain];
-	[[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(selectionChanged:) name:NSTableViewSelectionDidChangeNotification object:[self window]];
+	[[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(selectionChanged:) name:NSTableViewSelectionDidChangeNotification object:self];
 }
 -(void)doubleClicked:(id)sender
 {
@@ -1172,8 +1172,8 @@ void _free_tree_recurse(NSMutableArray *node, NSPointerArray *item)
         textcol = [[NSTableColumn alloc] init];
         [self addTableColumn:textcol];
         [self setOutlineTableColumn:textcol];
-        [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(treeSelectionChanged:) name:NSOutlineViewSelectionDidChangeNotification object:[self window]];
-        [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(treeItemExpanded:) name:NSOutlineViewItemDidExpandNotification object:[self window]];
+        [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(treeSelectionChanged:) name:NSOutlineViewSelectionDidChangeNotification object:self];
+        [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(treeItemExpanded:) name:NSOutlineViewItemDidExpandNotification object:self];
     }
     return self;
 }
