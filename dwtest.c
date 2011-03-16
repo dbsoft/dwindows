@@ -13,7 +13,7 @@
 #define FOLDER_ICON_NAME "win\\folder"
 #define FILE_ICON_NAME "win\\file"
 #elif defined(__MAC__)
-#define FIXEDFONT "8.Monaco"
+#define FIXEDFONT "9.Monaco"
 #define FOLDER_ICON_NAME "mac/folder"
 #define FILE_ICON_NAME "mac/file"
 #elif GTK_MAJOR_VERSION > 1
