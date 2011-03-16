@@ -2645,9 +2645,13 @@ HWND API dw_bitmapbutton_new(char *text, ULONG resid)
     NSString *filepath = [respath stringByAppendingFormat:@"/%u.png", resid];
 	NSImage *image = [[NSImage alloc] initWithContentsOfFile:filepath];
 	DWButton *button = _button_new("", resid);
-	[button setImage:image];
-    [button setButtonType:NSMomentaryLight];
-    [button setBordered:NO];
+    if(image)
+    {
+        [button setImage:image];
+        [button setButtonType:NSMomentaryLight];
+    [   button setBordered:NO];
+    }
+    [button setToolTip:[NSString stringWithUTF8String:text]];
     [image release];
 	return button;
 }
@@ -2671,7 +2675,13 @@ HWND API dw_bitmapbutton_new_from_file(char *text, unsigned long cid, char *file
         image = [[NSImage alloc] initWithContentsOfFile:nstr];
     }
 	DWButton *button = _button_new("", cid);
-	[button setImage:image];
+    if(image)
+    {
+        [button setImage:image];
+        [button setButtonType:NSMomentaryLight];
+        [button setBordered:NO];
+    }
+    [button setToolTip:[NSString stringWithUTF8String:text]];
     [image release];
 	return button;
 }
@@ -2690,7 +2700,13 @@ HWND API dw_bitmapbutton_new_from_data(char *text, unsigned long cid, char *data
 	NSData *thisdata = [[NSData alloc] dataWithBytes:data length:len];
 	NSImage *image = [[NSImage alloc] initWithData:thisdata];
 	DWButton *button = _button_new("", cid);
-	[button setImage:image];
+    if(image)
+    {
+        [button setImage:image];
+        [button setButtonType:NSMomentaryLight];
+        [button setBordered:NO];
+    }
+    [button setToolTip:[NSString stringWithUTF8String:text]];
     [image release];
 	return button;
 }
