@@ -2639,21 +2639,20 @@ void API dw_entryfield_set_limit(HWND handle, ULONG limit)
  */
 HWND API dw_bitmapbutton_new(char *text, ULONG resid)
 {
-    /* TODO: Implement tooltips */
     NSBundle *bundle = [NSBundle mainBundle];
     NSString *respath = [bundle resourcePath];
     NSString *filepath = [respath stringByAppendingFormat:@"/%u.png", resid];
-	NSImage *image = [[NSImage alloc] initWithContentsOfFile:filepath];
-	DWButton *button = _button_new("", resid);
+    NSImage *image = [[NSImage alloc] initWithContentsOfFile:filepath];
+    DWButton *button = _button_new("", resid);
     if(image)
     {
         [button setImage:image];
         [button setButtonType:NSMomentaryLight];
-    [   button setBordered:NO];
+        [button setBordered:NO];
     }
     [button setToolTip:[NSString stringWithUTF8String:text]];
     [image release];
-	return button;
+    return button;
 }
 
 /*
@@ -2674,7 +2673,7 @@ HWND API dw_bitmapbutton_new_from_file(char *text, unsigned long cid, char *file
         nstr = [nstr stringByAppendingString:@".png"];
         image = [[NSImage alloc] initWithContentsOfFile:nstr];
     }
-	DWButton *button = _button_new("", cid);
+    DWButton *button = _button_new("", cid);
     if(image)
     {
         [button setImage:image];
@@ -2683,7 +2682,7 @@ HWND API dw_bitmapbutton_new_from_file(char *text, unsigned long cid, char *file
     }
     [button setToolTip:[NSString stringWithUTF8String:text]];
     [image release];
-	return button;
+    return button;
 }
 
 /*
@@ -2697,9 +2696,9 @@ HWND API dw_bitmapbutton_new_from_file(char *text, unsigned long cid, char *file
  */
 HWND API dw_bitmapbutton_new_from_data(char *text, unsigned long cid, char *data, int len)
 {
-	NSData *thisdata = [[NSData alloc] dataWithBytes:data length:len];
-	NSImage *image = [[NSImage alloc] initWithData:thisdata];
-	DWButton *button = _button_new("", cid);
+    NSData *thisdata = [[NSData alloc] dataWithBytes:data length:len];
+    NSImage *image = [[NSImage alloc] initWithData:thisdata];
+    DWButton *button = _button_new("", cid);
     if(image)
     {
         [button setImage:image];
@@ -2708,7 +2707,7 @@ HWND API dw_bitmapbutton_new_from_data(char *text, unsigned long cid, char *data
     }
     [button setToolTip:[NSString stringWithUTF8String:text]];
     [image release];
-	return button;
+    return button;
 }
 
 /*
