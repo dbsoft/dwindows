@@ -5783,22 +5783,30 @@ int API dw_window_hide(HWND handle)
  */
 int API dw_window_set_color(HWND handle, ULONG fore, ULONG back)
 {
-	id object = handle;
-	unsigned long _fore = _get_color(fore);
-	unsigned long _back = _get_color(back);
+    id object = handle;
+    unsigned long _fore = _get_color(fore);
+    unsigned long _back = _get_color(back);
+    NSColor *fg = [NSColor colorWithDeviceRed: DW_RED_VALUE(_fore)/255.0 green: DW_GREEN_VALUE(_fore)/255.0 blue: DW_BLUE_VALUE(_fore)/255.0 alpha: 1];
+    NSColor *bg = [NSColor colorWithDeviceRed: DW_RED_VALUE(_back)/255.0 green: DW_GREEN_VALUE(_back)/255.0 blue: DW_BLUE_VALUE(_back)/255.0 alpha: 1];
 	
-	if([object isMemberOfClass:[NSTextFieldCell class]])
-	{
-		NSTextFieldCell *text = object;
-		[text setTextColor:[NSColor colorWithDeviceRed: DW_RED_VALUE(_fore)/255.0 green: DW_GREEN_VALUE(_fore)/255.0 blue: DW_BLUE_VALUE(_fore)/255.0 alpha: 1]];
-	}
-	else if([object isMemberOfClass:[DWBox class]])
-	{
+    if([object isMemberOfClass:[NSTextFieldCell class]])
+    {
+        NSTextFieldCell *text = object;
+        [text setTextColor:fg];
+    }
+    else if([object isMemberOfClass:[DWBox class]])
+    {
 		DWBox *box = object;
 		
 		[box setColor:_back];
-	}
-	return 0;
+    }
+    else if([object isMemberOfClass:[DWButton class]])
+    {
+        DWButton *button = object;
+        
+        [[button cell] setBackgroundColor:bg];
+    }
+    return 0;
 }
 
 /*
@@ -5973,7 +5981,7 @@ int API dw_window_set_font(HWND handle, char *fontname)
                 [font set];
                 [object unlockFocus];
             }
-            if([object isMemberOfClass:[NSControl class]])
+            if([object isKindOfClass:[NSControl class]])
             {
                 [object setFont:font];
             }
@@ -5990,8 +5998,17 @@ int API dw_window_set_font(HWND handle, char *fontname)
  */
 char * API dw_window_get_font(HWND handle)
 {
-   NSLog(@"dw_window_get_font() unimplemented\n");
-   return "8.Monaco";
+    id object = handle;
+    
+    if([object isKindOfClass:[NSControl class]])
+    {
+        NSControl *control = object;
+        NSFont *font = [control font];
+        NSString *fontname = [font fontName];
+        NSString *output = [NSString stringWithFormat:@"%d.%s", (int)[font pointSize], [fontname UTF8String]];
+        return strdup([output UTF8String]);
+    }
+    return NULL;
 }
 
 /*
