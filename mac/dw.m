@@ -184,7 +184,7 @@ int _event_handler(id object, NSEvent *event, int message)
                 NSString *nchar = [event charactersIgnoringModifiers];
                 int special = (int)[event modifierFlags];
                 unichar vk = [nchar characterAtIndex:0];
-                char ch;
+                char ch = '\0';
 
                 /* Handle a valid key */
                 if([nchar length] == 1)
@@ -511,7 +511,6 @@ DWObject *DWObj;
 	}
 	else
 	{
-        NSLog(@"R: %d G: %d B: %d", (int)DW_RED_VALUE(input), (int)DW_GREEN_VALUE(input), (int)DW_BLUE_VALUE(input));
 		bgcolor = [NSColor colorWithDeviceRed: DW_RED_VALUE(input)/255.0 green: DW_GREEN_VALUE(input)/255.0 blue: DW_BLUE_VALUE(input)/255.0 alpha: 1];
 	}
 }
@@ -831,7 +830,7 @@ DWObject *DWObj;
             break;
 
         default:
-            ; // do nothing
+            ; /* do nothing */
     }
     if(newpos != result)
     {
@@ -847,9 +846,12 @@ DWObject *DWObj;
 @interface DWRender : NSView
 {
 	void *userdata;
+    NSFont *font;
 }
 -(void *)userdata;
 -(void)setUserdata:(void *)input;
+-(void)setFont:(NSFont *)input;
+-(NSFont *)font;
 -(void)mouseDown:(NSEvent *)theEvent;
 -(void)mouseUp:(NSEvent *)theEvent;
 -(NSMenu *)menuForEvent:(NSEvent *)theEvent;
@@ -864,6 +866,8 @@ DWObject *DWObj;
 @implementation DWRender
 -(void *)userdata { return userdata; }
 -(void)setUserdata:(void *)input { userdata = input; }
+-(void)setFont:(NSFont *)input { [font release]; font = input; [font retain]; }
+-(NSFont *)font { return font; }
 -(void)mouseDown:(NSEvent *)theEvent { _event_handler(self, (void *)1, 3); }
 -(void)mouseUp:(NSEvent *)theEvent { _event_handler(self, (void *)1, 4); }
 -(NSMenu *)menuForEvent:(NSEvent *)theEvent { _event_handler(self, (void *)2, 3); return nil; }
@@ -873,7 +877,7 @@ DWObject *DWObj;
 -(void)drawRect:(NSRect)rect { _event_handler(self, nil, 7); }
 -(void)keyDown:(NSEvent *)theEvent { _event_handler(self, theEvent, 2); _event_handler([self window], theEvent, 2); }
 -(BOOL)isFlipped { return NO; }
--(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); [super dealloc]; }
+-(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); [font release]; [super dealloc]; }
 @end
 
 /* Subclass for a MLE type */
@@ -2639,7 +2643,6 @@ HWND API dw_bitmapbutton_new(char *text, ULONG resid)
 	NSImage *image = [[NSImage alloc] initWithContentsOfFile:filepath];
 	DWButton *button = _button_new("", resid);
 	[button setImage:image];
-    //[button setBezelStyle:0];
     [button setButtonType:NSMomentaryLight];
     [button setBordered:NO];
     [image release];
@@ -3412,7 +3415,6 @@ HWND API dw_mle_new(ULONG cid)
 	DWMLE *mle = [[DWMLE alloc] init];
     NSScrollView *scrollview  = [[NSScrollView alloc] init];
 
-    //[mle setScrollview:scrollview];
     [scrollview setBorderType:NSBezelBorder];
     [scrollview setHasVerticalScroller:YES];
     [scrollview setAutohidesScrollers:YES];
@@ -3746,7 +3748,7 @@ void API dw_draw_point(HWND handle, HPIXMAP pixmap, int x, int y)
 	id image = handle;
 	if(pixmap)
 	{
-		image = (id)pixmap->handle;
+		image = (id)pixmap->image;
 		[image lockFocus];
 	}
 	else
@@ -3781,7 +3783,7 @@ void API dw_draw_line(HWND handle, HPIXMAP pixmap, int x1, int y1, int x2, int y
 	id image = handle;
 	if(pixmap)
 	{
-		image = (id)pixmap->handle;
+		image = (id)pixmap->image;
 		[image lockFocus];
 	}
 	else
@@ -3814,35 +3816,45 @@ void API dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
 {
     int _locked_by_me = FALSE;
     DW_MUTEX_LOCK;
-	id image = handle;
-	NSString *nstr = [ NSString stringWithUTF8String:text ];
-	if(image)
-	{
-		if([image isMemberOfClass:[NSView class]])
-		{
-			[image lockFocusIfCanDraw];
+    id image = handle;
+    NSString *nstr = [ NSString stringWithUTF8String:text ];
+    if(image)
+    {
+        if([image isMemberOfClass:[DWRender class]])
+        {
+            DWRender *render = handle;
+            NSFont *font = [render font];
+            [image lockFocusIfCanDraw];
             NSColor *color = [NSColor colorWithDeviceRed: DW_RED_VALUE(_foreground)/255.0 green: DW_GREEN_VALUE(_foreground)/255.0 blue: DW_BLUE_VALUE(_foreground)/255.0 alpha: 1];
-            NSDictionary *dict = [[NSDictionary alloc] initWithObjectsAndKeys:
-                                  /*[NSFont fontWithName:@"Helvetica" size:26], NSFontAttributeName,*/
-                                  color, NSForegroundColorAttributeName, nil];
-			[nstr drawAtPoint:NSMakePoint(x, y) withAttributes:dict];
-            [dict release];
-			[image unlockFocus];
-		}
-		_DWLastDrawable = handle;
-	}
-	if(pixmap)
-	{
-		image = (id)pixmap->handle;
-		[image lockFocus];
-		NSColor *color = [NSColor colorWithDeviceRed: DW_RED_VALUE(_foreground)/255.0 green: DW_GREEN_VALUE(_foreground)/255.0 blue: DW_BLUE_VALUE(_foreground)/255.0 alpha: 1];
-        NSDictionary *dict = [[NSDictionary alloc] initWithObjectsAndKeys:
-                                    /*[NSFont fontWithName:@"Helvetica" size:26], NSFontAttributeName,*/
-                                    color, NSForegroundColorAttributeName, nil];
-		[nstr drawAtPoint:NSMakePoint(x, y) withAttributes:dict];
-        [dict release];
-		[image unlockFocus];
-	}
+            NSMutableDictionary *dict = [[NSMutableDictionary alloc] initWithObjectsAndKeys:color, NSForegroundColorAttributeName, nil];
+            if(font)
+            {
+                [dict setValue:font forKey:NSFontAttributeName];
+            }
+            [nstr drawAtPoint:NSMakePoint(x, y) withAttributes:dict];
+            [image unlockFocus];
+        }
+        _DWLastDrawable = handle;
+    }
+    if(pixmap)
+    {
+        NSFont *font = nil;
+        DWRender *render = pixmap->handle;
+        if([render isMemberOfClass:[DWRender class]])
+        {
+            font = [render font];
+        }
+        image = (id)pixmap->image;
+        [image lockFocus];
+        NSColor *color = [NSColor colorWithDeviceRed: DW_RED_VALUE(_foreground)/255.0 green: DW_GREEN_VALUE(_foreground)/255.0 blue: DW_BLUE_VALUE(_foreground)/255.0 alpha: 1];
+        NSMutableDictionary *dict = [[NSMutableDictionary alloc] initWithObjectsAndKeys:color, NSForegroundColorAttributeName, nil];
+        if(font)
+        {
+            [dict setValue:font forKey:NSFontAttributeName];
+        }
+        [nstr drawAtPoint:NSMakePoint(x, y) withAttributes:dict];
+        [image unlockFocus];
+    }
     DW_MUTEX_UNLOCK;
 }
 
@@ -3856,32 +3868,34 @@ void API dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
  */
 void API dw_font_text_extents_get(HWND handle, HPIXMAP pixmap, char *text, int *width, int *height)
 {
-    int _locked_by_me = FALSE;
-    DW_MUTEX_LOCK;
-	id image = handle;
-	NSString *nstr = [NSString stringWithUTF8String:text];
-	if(pixmap)
-	{
-		image = (id)pixmap->handle;
-		[image lockFocus];
-	}
-	else
-	{
-		[image lockFocusIfCanDraw];
-	}
-	NSDictionary *dict = [[NSDictionary alloc] init];
-	NSSize size = [nstr sizeWithAttributes:dict];
+    id image = handle;
+    id object = handle;
+    NSString *nstr = [NSString stringWithUTF8String:text];
+    if(pixmap)
+    {
+        image = (id)pixmap->image;
+        object = pixmap->handle;
+    }
+    NSMutableDictionary *dict = [[NSMutableDictionary alloc] init];
+    if([object isMemberOfClass:[DWRender class]])
+    {
+        NSFont *font = [object font];
+        
+        if(font)
+        {
+            [dict setValue:font forKey:NSFontAttributeName];
+        }
+    }
+    NSSize size = [nstr sizeWithAttributes:dict];
     [dict release];
-	if(width)
-	{
-		*width = size.width;
-	}
-	if(height)
-	{
-		*height = size.height;
-	}
-	[image unlockFocus];
-    DW_MUTEX_UNLOCK;
+    if(width)
+    {
+        *width = size.width;
+    }
+    if(height)
+    {
+        *height = size.height;
+    }
 }
 
 /* Draw a polygon on a window (preferably a render window).
@@ -3902,7 +3916,7 @@ void API dw_draw_polygon( HWND handle, HPIXMAP pixmap, int fill, int npoints, in
 	int z;
 	if(pixmap)
 	{
-		image = (id)pixmap->handle;
+		image = (id)pixmap->image;
 		[image lockFocus];
 	}
 	else
@@ -3947,7 +3961,7 @@ void API dw_draw_rect(HWND handle, HPIXMAP pixmap, int fill, int x, int y, int w
 	id image = handle;
 	if(pixmap)
 	{
-		image = (id)pixmap->handle;
+		image = (id)pixmap->image;
 		[image lockFocus];
 	}
 	else
@@ -4959,16 +4973,17 @@ HWND API dw_bitmap_new(ULONG cid)
  */
 HPIXMAP API dw_pixmap_new(HWND handle, unsigned long width, unsigned long height, int depth)
 {
-	NSSize size = { (float)width, (float)height };
-	HPIXMAP pixmap;
+    NSSize size = { (float)width, (float)height };
+    HPIXMAP pixmap;
 	
-	if (!(pixmap = calloc(1,sizeof(struct _hpixmap))))
-		return NULL;
-	pixmap->width = width;
-	pixmap->height = height;
-	NSImage *image = pixmap->handle = [[NSImage alloc] initWithSize:size];
+    if(!(pixmap = calloc(1,sizeof(struct _hpixmap))))
+        return NULL;
+    pixmap->width = width;
+    pixmap->height = height;
+    pixmap->handle = handle;
+    NSImage *image = pixmap->image = [[NSImage alloc] initWithSize:size];
     [image setFlipped:YES];
-	return pixmap;
+    return pixmap;
 }
 
 /*
@@ -4983,10 +4998,10 @@ HPIXMAP API dw_pixmap_new(HWND handle, unsigned long width, unsigned long height
  */
 HPIXMAP API dw_pixmap_new_from_file(HWND handle, char *filename)
 {
-	HPIXMAP pixmap;
+    HPIXMAP pixmap;
 	
-	if (!(pixmap = calloc(1,sizeof(struct _hpixmap))))
-		return NULL;
+    if(!(pixmap = calloc(1,sizeof(struct _hpixmap))))
+        return NULL;
     NSString *nstr = [ NSString stringWithUTF8String:filename ];
     NSImage *image = [[NSImage alloc] initWithContentsOfFile:nstr];
     if(!image)
@@ -4994,11 +5009,13 @@ HPIXMAP API dw_pixmap_new_from_file(HWND handle, char *filename)
         nstr = [nstr stringByAppendingString:@".png"];
         image = [[NSImage alloc] initWithContentsOfFile:nstr];
     }
-	NSSize size = [image size];
-	pixmap->width = size.width;
-	pixmap->height = size.height;
-	pixmap->handle = image;
-	return pixmap;
+    NSSize size = [image size];
+    pixmap->width = size.width;
+    pixmap->height = size.height;
+    pixmap->image = image;
+    pixmap->handle = handle;
+    [image setFlipped:YES];
+    return pixmap;
 }
 
 /*
@@ -5013,17 +5030,19 @@ HPIXMAP API dw_pixmap_new_from_file(HWND handle, char *filename)
  */
 HPIXMAP API dw_pixmap_new_from_data(HWND handle, char *data, int len)
 {
-	HPIXMAP pixmap;
+    HPIXMAP pixmap;
 	
-	if (!(pixmap = calloc(1,sizeof(struct _hpixmap))))
-		return NULL;
-	NSData *thisdata = [[NSData alloc] dataWithBytes:data length:len];
-	NSImage *image = [[NSImage alloc] initWithData:thisdata];
-	NSSize size = [image size];
-	pixmap->width = size.width;
-	pixmap->height = size.height;
-	pixmap->handle = image;
-	return pixmap;
+    if(!(pixmap = calloc(1,sizeof(struct _hpixmap))))
+        return NULL;
+    NSData *thisdata = [[NSData alloc] dataWithBytes:data length:len];
+    NSImage *image = [[NSImage alloc] initWithData:thisdata];
+    NSSize size = [image size];
+    pixmap->width = size.width;
+    pixmap->height = size.height;
+    pixmap->image = image;
+    pixmap->handle = handle;
+    [image setFlipped:YES];
+    return pixmap;
 }
 
 /*
@@ -5044,21 +5063,22 @@ void API dw_pixmap_set_transparent_color( HPIXMAP pixmap, ULONG color )
  */
 HPIXMAP API dw_pixmap_grab(HWND handle, ULONG resid)
 {
-	HPIXMAP pixmap;
+    HPIXMAP pixmap;
 	
-	if (!(pixmap = calloc(1,sizeof(struct _hpixmap))))
-		return NULL;
+    if(!(pixmap = calloc(1,sizeof(struct _hpixmap))))
+        return NULL;
 
     NSBundle *bundle = [NSBundle mainBundle];
     NSString *respath = [bundle resourcePath];
     NSString *filepath = [respath stringByAppendingFormat:@"/%u.png", resid];
-	NSImage *image = [[NSImage alloc] initWithContentsOfFile:filepath];
-	NSSize size = [image size];
-	pixmap->width = size.width;
-	pixmap->height = size.height;
-	pixmap->handle = image;
-    [image release];
-	return pixmap;
+    NSImage *image = [[NSImage alloc] initWithContentsOfFile:filepath];
+    NSSize size = [image size];
+    pixmap->width = size.width;
+    pixmap->height = size.height;
+    pixmap->image = image;
+    pixmap->handle = handle;
+    [image setFlipped:YES];
+    return pixmap;
 }
 
 /*
@@ -5069,7 +5089,7 @@ HPIXMAP API dw_pixmap_grab(HWND handle, ULONG resid)
  */
 void API dw_pixmap_destroy(HPIXMAP pixmap)
 {
-	NSImage *image = (NSImage *)pixmap->handle;
+	NSImage *image = (NSImage *)pixmap->image;
 	[image dealloc];
 	free(pixmap);
 }
@@ -5105,11 +5125,11 @@ void API dw_pixmap_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest, int wi
 
     if(destp)
     {
-        bltinfo->dest = (id)destp->handle;
+        bltinfo->dest = (id)destp->image;
     }
     if(srcp)
     {
-        id object = bltinfo->src = (id)srcp->handle;
+        id object = bltinfo->src = (id)srcp->image;
         [object retain];
     }
     [DWObj performSelectorOnMainThread:@selector(doBitBlt:) withObject:bi waitUntilDone:YES];
@@ -6013,6 +6033,12 @@ int API dw_window_set_font(HWND handle, char *fontname)
             [object setFont:font];
             [[object cell] setFont:font];
         }
+        else if([object isMemberOfClass:[DWRender class]])
+        {
+            DWRender *render = object;
+            
+            [render setFont:font];
+        }
     }
     return 0;
 }
@@ -6026,10 +6052,9 @@ char * API dw_window_get_font(HWND handle)
 {
     id object = handle;
     
-    if([object isKindOfClass:[NSControl class]])
+    if([object isKindOfClass:[NSControl class]] || [object isMemberOfClass:[DWRender class]])
     {
-        NSControl *control = object;
-        NSFont *font = [control font];
+        NSFont *font = [object font];
         NSString *fontname = [font fontName];
         NSString *output = [NSString stringWithFormat:@"%d.%s", (int)[font pointSize], [fontname UTF8String]];
         return strdup([output UTF8String]);
@@ -6183,7 +6208,7 @@ void API dw_window_set_bitmap(HWND handle, unsigned long resid, char *filename)
 	if([ object isKindOfClass:[ NSImageView class ] ])
 	{
 		NSImageView *iv = handle;
-        NSImage *bitmap = NULL;
+        NSImage *bitmap = nil;
 
         if(filename)
         {
@@ -7487,7 +7512,7 @@ void _dwthreadstart(void *data)
     /* Release the pool when we are done so we don't leak */
 #if !defined(GARBAGE_COLLECT)
     pool = pthread_getspecific(_dw_pool_key);
-	[pool release];
+	[pool drain];
 #endif
    free(tmp);
 }
