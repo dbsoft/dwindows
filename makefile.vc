@@ -1,18 +1,43 @@
 #
-# Get our source directory
+# Visual C Makefile for Dynamic Windows
 #
 VER = 11
 VERDOT = 1.1
 
+#
+# Setup the source and destination directories
+#
 !if "$(DWINDOWS_SRCDIR)" == ""
 SRCDIR=.
 !else
 SRCDIR=$(DWINDOWS_SRCDIR)
 !endif
 
-FXLIBDIR=.\lib
-FXDLLDIR=.\dll
+!if "$(DWLIBDIR)" == ""
+DWLIBDIR=.\lib
+!endif
 
+!if "$(DWDLLDIR)" == ""
+DWDLLDIR=.\dll
+!endif
+
+#
+# Configure settings for the target platform
+#	Default to x86 if not specified
+#
+!if "$(TARGET_CPU)" == ""
+TARGET_CPU=x86
+!endif
+
+!if "$(TARGET_CPU)" == "x86"
+PLATFORM_DEF = -DWIN32
+!else
+PLATFORM_DEF = -DWIN64
+!endif
+
+#
+# Settings for either debug or release
+#
 !if "$(DEBUG)" == "Y"
 CFLAGS_DEBUG = -DDEBUG -Z7 -Od # was -Zi
 LINK_DEBUG = -debug
@@ -22,11 +47,11 @@ LINK_DEBUG = -release
 !endif
 
 CC = cl
-CFLAGS = -c -Zp1 -DWIN32 -D__WIN32__ -DMSVC -DBUILD_DLL -I$(SRCDIR)\platform -I$(SRCDIR)
+CFLAGS = -c -Zp1 $(PLATFORM_DEF) -D__WIN32__ -DMSVC -DBUILD_DLL -I$(SRCDIR)\platform -I$(SRCDIR)
 CFLAGS_COMPILE = -MTd # was -MD
 LIBS = wsock32.lib kernel32.lib user32.lib comctl32.lib gdi32.lib advapi32.lib shell32.lib comdlg32.lib ole32.lib oleaut32.lib
 RES =
-LINKFLAGS = -machine:i386 $(LINK_DEBUG)
+LINKFLAGS = -machine:$(TARGET_CPU) -manifest $(LINK_DEBUG)
 DLLLINKFLAGS = -dll
 LINK = link
 DEFFILE = $(SRCDIR)\dww.def
@@ -53,8 +78,8 @@ clean:
 dw: dw.dll
 
 dw.dll: $(OBJS) $(DEFFILE)
-	-mkdir $(FXLIBDIR)
-	-mkdir $(FXDLLDIR)
+	-mkdir $(DWLIBDIR)
+	-mkdir $(DWDLLDIR)
 	$(LINK) @<<
 -out:$(@) -def:$(DEFFILE)
 $(LINKFLAGS) $(DLLLINKFLAGS)
@@ -62,8 +87,9 @@ $(OBJS) $(RES)
 $(LIBS)
 <<
 	lib /def:$(DEFFILE) /out:dw.lib
-        copy dw.lib $(FXLIBDIR)\dw.lib
-        copy dw.dll $(FXDLLDIR)\dw.dll
+	mt.exe /manifest dw.dll.manifest /outputresource:dw.dll;2
+        copy dw.lib $(DWLIBDIR)\dw.lib
+        copy dw.dll $(DWDLLDIR)\dw.dll
 
 dwcompat: dwcompat.dll
 
@@ -75,8 +101,9 @@ $(OBJS2) $(RES)
 $(LIBS)
 <<
 	lib /def:$(DEFFILE2) /out:dwcompat.lib
-        copy dwcompat.lib $(FXLIBDIR)\dwcompat.lib
-        copy dwcompat.dll $(FXDLLDIR)\dwcompat.dll
+	mt.exe /manifest dwcompat.dll.manifest /outputresource:dwcompat.dll;2
+        copy dwcompat.lib $(DWLIBDIR)\dwcompat.lib
+        copy dwcompat.dll $(DWDLLDIR)\dwcompat.dll
 
 dw.obj: $(SRCDIR)\win\dw.c
 	$(CC) $(CFLAGS) $(CFLAGS_DEBUG) $(CFLAGS_COMPILE) $(SRCDIR)\win\dw.c
@@ -99,7 +126,8 @@ dwtest.obj: $(SRCDIR)\dwtest.c
 dwtest: dwtest.exe
 
 dwtest.exe: dwtest.obj winmain.obj
-	$(LINK) $(LINKFLAGS) /out:dwtest.exe dwtest.obj winmain.obj /subsystem:windows $(FXLIBDIR)\dwcompat.lib $(FXLIBDIR)\dw.lib $(LIBS)
+	$(LINK) $(LINKFLAGS) /out:dwtest.exe dwtest.obj winmain.obj /subsystem:windows $(DWLIBDIR)\dwcompat.lib $(DWLIBDIR)\dw.lib $(LIBS)
+	mt.exe /manifest dwtest.exe.manifest /outputresource:dwtest.exe;1
 
 zip: dw.dll
 	copy win\readme-win.txt .
