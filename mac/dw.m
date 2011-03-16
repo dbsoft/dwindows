@@ -390,7 +390,10 @@ typedef struct _bitbltinfo
     }
     else
     {
-        [bltdest lockFocusIfCanDraw];
+        if([bltdest lockFocusIfCanDraw] == NO)
+        {
+            return;
+        }
         _DWLastDrawable = bltinfo->dest;
     }
     if([bltsrc isMemberOfClass:[NSImage class]])
@@ -3753,7 +3756,11 @@ void API dw_draw_point(HWND handle, HPIXMAP pixmap, int x, int y)
 	}
 	else
 	{
-		[image lockFocusIfCanDraw];
+		if([image lockFocusIfCanDraw] == NO)
+        {
+            DW_MUTEX_UNLOCK;
+            return;
+        }
 		_DWLastDrawable = handle;
 	}
 	NSBezierPath* aPath = [NSBezierPath bezierPath];
@@ -3788,7 +3795,11 @@ void API dw_draw_line(HWND handle, HPIXMAP pixmap, int x1, int y1, int x2, int y
 	}
 	else
 	{
-		[image lockFocusIfCanDraw];
+		if([image lockFocusIfCanDraw] == NO)
+        {
+            DW_MUTEX_UNLOCK;
+            return;
+        }
 		_DWLastDrawable = handle;
 	}
 	NSBezierPath* aPath = [NSBezierPath bezierPath];
@@ -3824,7 +3835,11 @@ void API dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
         {
             DWRender *render = handle;
             NSFont *font = [render font];
-            [image lockFocusIfCanDraw];
+            if([image lockFocusIfCanDraw] == NO)
+            {
+                DW_MUTEX_UNLOCK;
+                return;
+            }
             NSColor *color = [NSColor colorWithDeviceRed: DW_RED_VALUE(_foreground)/255.0 green: DW_GREEN_VALUE(_foreground)/255.0 blue: DW_BLUE_VALUE(_foreground)/255.0 alpha: 1];
             NSMutableDictionary *dict = [[NSMutableDictionary alloc] initWithObjectsAndKeys:color, NSForegroundColorAttributeName, nil];
             if(font)
@@ -3921,7 +3936,11 @@ void API dw_draw_polygon( HWND handle, HPIXMAP pixmap, int fill, int npoints, in
 	}
 	else
 	{
-		[image lockFocusIfCanDraw];
+		if([image lockFocusIfCanDraw] == NO)
+        {
+            DW_MUTEX_UNLOCK;
+            return;
+        }
 		_DWLastDrawable = handle;
 	}
 	NSBezierPath* aPath = [NSBezierPath bezierPath];
@@ -3966,7 +3985,11 @@ void API dw_draw_rect(HWND handle, HPIXMAP pixmap, int fill, int x, int y, int w
 	}
 	else
 	{
-		[image lockFocusIfCanDraw];
+		if([image lockFocusIfCanDraw] == NO)
+        {
+            DW_MUTEX_UNLOCK;
+            return;
+        }
 		_DWLastDrawable = handle;
 	}
 	NSBezierPath* aPath = [NSBezierPath bezierPath];
