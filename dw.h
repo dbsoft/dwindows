@@ -317,7 +317,7 @@ void _dw_pool_drain(void);
 #define DW_DT_TEXTATTRS          0
 #define DW_DT_EXTERNALLEADING    0
 #define DW_DT_CENTER             2 /* NSCenterTextAlignment */
-#define DW_DT_RIGHT              1 /* NSCenterTextAlignment */
+#define DW_DT_RIGHT              1 /* NSRightTextAlignment */
 #define DW_DT_TOP                0
 #define DW_DT_VCENTER            0
 #define DW_DT_BOTTOM             0
