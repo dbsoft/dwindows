@@ -7663,14 +7663,15 @@ void API dw_container_set_item(HWND handle, void *pointer, int column, int row, 
       struct tm curtm;
       CDATE cdate = *((CDATE *)data);
 
-
+	  memset(&curtm, 0, sizeof(struct tm));
+	  
 	  /* Safety check... zero dates are crashing
 	   * Visual Studio 2008. -Brian
 	   */
-	  if(cdate.year > 1900)
+	  if(cdate.year > 1900 && cdate.year < 2100)
 	  {
-		  curtm.tm_mday = cdate.day;
-		  curtm.tm_mon = cdate.month > 0 ? cdate.month - 1 : 0;
+		  curtm.tm_mday = (cdate.day >= 0 && cdate.day < 32) ? cdate.day : 1;
+		  curtm.tm_mon = (cdate.month > 0 && cdate.month < 13) ? cdate.month - 1 : 0;
 		  curtm.tm_year = cdate.year - 1900;
 
 		  strftime(textbuffer, 100, "%x", &curtm);
@@ -7688,9 +7689,9 @@ void API dw_container_set_item(HWND handle, void *pointer, int column, int row, 
       struct tm curtm;
       CTIME ctime = *((CTIME *)data);
 
-      curtm.tm_hour = ctime.hours;
-      curtm.tm_min = ctime.minutes;
-      curtm.tm_sec = ctime.seconds;
+	  curtm.tm_hour = (ctime.hours >= 0 && ctime.hours < 24) ? ctime.hours : 0;
+      curtm.tm_min = (ctime.minutes >= 0 && ctime.minutes < 60) ? ctime.minutes : 0;
+      curtm.tm_sec = (ctime.seconds >= 0 && ctime.seconds < 60) ? ctime.seconds : 0;
 
       strftime(textbuffer, 100, "%X", &curtm);
 
