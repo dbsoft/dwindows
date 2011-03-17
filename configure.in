@@ -15,6 +15,8 @@ DW_SRC=dw.c
 DW_DEFINE=__UNIX__
 SHAREDFLAG=-shared
 SOSUFFIX=so
+LIBSUFFIX=a
+LIBPREFIX=lib
 AC_SUBST(DW_MAJOR_VERSION)
 AC_SUBST(DW_MINOR_VERSION)
 AC_SUBST(DW_SUB_VERSION)
@@ -33,12 +35,16 @@ AC_PROG_INSTALL
 
 AC_SUBST(MAKE)
 
+dnl Checks for system
+AC_CANONICAL_SYSTEM
+
 dnl ---------------------- check for '--with-compat' switch -----------------
 AC_ARG_WITH(compat,
    [  --with-compat           specify this to build the optional dwcompat library],
    [with_compat=$withval],
    [with_compat=no],
 )
+dnl ---------------------- default targets to build -----------------
 if test $with_compat = yes; then
    COMPAT_OBJECT="compat.o"
    INSTALL_COMPAT="installcompat"
@@ -49,14 +55,20 @@ else
    SYSCONF_LINK_TARGET_SHARED2=""
 fi
 SYSCONF_LINK_TARGET_SHARED="lib$TARGET.$SOSUFFIX.$DW_MAJOR_VERSION.$DW_MINOR_VERSION"
-AC_SUBST(SYSCONF_LINK_TARGET_SHARED)
-AC_SUBST(SYSCONF_LINK_TARGET_SHARED2)
+SYSCONF_LINK_TARGET_STATIC="lib$TARGET.a"
 
 dnl ---------------------- check for '--with-gtk+' switch -----------------
 AC_ARG_WITH(gtk,
    [  --with-gtk              specify this to build dwindows with GTK+ (only relevant for OSX)],
    [with_gtk=$withval],
    [with_gtk=no],
+)
+
+dnl ---------------------- check for '--with-gtkframework' switch -----------------
+AC_ARG_WITH(gtkframework,
+   [  --with-gtkframework     specify this to build dwindows with GTK+ Framework (only relevant for OSX)],
+   [with_gtkframework=$withval],
+   [with_gtkframework=no],
 )
 
 dnl ---------------------- check for '--with-gtkhtml' switch -----------------
@@ -107,49 +119,81 @@ AC_CHECK_LIB(sun, getpwnam, LIBS="$LIBS -lsun",)
 AC_CHECK_LIB(dgc, inet_addr, LIBS="$LIBS -ldgc",)
 AC_CHECK_LIB(resolv, gethostbyname, LIBS="$LIBS -lresolv",)
 
+build_gtk="yes"
+check_pthreads="yes"
+TARGETS="$SYSCONF_LINK_TARGET_SHARED $SYSCONF_LINK_TARGET_SHARED2"
+PLATLIBS=""
 SONAME=""
-OPSYSTEM=`uname -s`
-case "$OPSYSTEM" in
-   MINGW32*)
+PLATCCFLAGS="-g -O2 -fPIC -Wall"
+ARFLAGS="cqs"
+
+case "$target" in
+   *cygwin*)
+   ;;
+   *mingw32)
       AC_DEFINE(DW_USE_GTK)
    ;;
-   *Linux*)
+   *linux*)
       SONAME="-Wl,-soname,lib$TARGET.so.$DW_MAJOR_VERSION"
+   ;;
+   *nto-qnx*)
+      DW_DIR="photon"
+      DW_DEFINE=__PHOTON__
+      build_gtk="no"
+   ;;
+   *qnx*)
+      DW_DIR="photon"
+      DW_DEFINE=__PHOTON__
+      build_gtk="no"
+      check_pthreads="no"
+      LIBSUFFIX="lib"
+      LIBPREFIX=""
+      SYSCONF_LINK_TARGET_STATIC="$TARGET.lib"
+      TARGETS="$TARGET.lib"
+      PLATCCFLAGS=""
+      PLATLIBS="-lphoton_s -lphexlib3r"
+      ARFLAGS="r"
+   ;;
+   *apple-darwin*)
+      case "$with_arch" in
+         no)
+            ARCH=""
+            ;;
+         all)
+            ARCH="-arch ppc -arch ppc64 -arch x86_64 -arch i386"
+            ;;
+         32bit)
+            ARCH="-arch ppc -arch i386"
+            ;;
+         64bit)
+            ARCH="-arch ppc64 -arch x86_64"
+            ;;
+         *)
+            ARCH="-arch $with_arch"
+            ;;
+      esac
+      SHAREDFLAG="-dynamiclib -flat_namespace -undefined suppress"
+      SOSUFFIX=dylib
+      if test $with_gtkframework = yes; then
+         DW_DIR=gtk
+         LIBS="$LIBS -framework Gtk -framework Glib -framework Cairo"
+         GTK_CFLAGS="-I/Library/Frameworks/Gtk.framework/Headers -I/Library/Frameworks/Glib.framework/Headers -I/Library/Frameworks/Cairo.framework/Headers"
+         build_gtk="no"
+      elif test $with_gtk = yes; then
+         build_gtk="yes"
+      else
+         DW_DIR=mac
+         DW_SRC=dw.m
+         DW_DEFINE=__MAC__
+         LIBS="$LIBS -framework Cocoa -framework WebKit"
+         build_gtk="no"
+      fi
+   ;;
+   *)
    ;;
 esac
 
-if test $OPSYSTEM = "Darwin"; then
-   case "$with_arch" in
-      no)
-         ARCH=""
-         ;;
-      all)
-         ARCH="-arch ppc -arch ppc64 -arch x86_64 -arch i386"
-         ;;
-      32bit)
-         ARCH="-arch ppc -arch i386"
-         ;;
-      64bit)
-         ARCH="-arch ppc84 -arch x86_64"
-         ;;
-      *)
-         ARCH="-arch $with_arch"
-         ;;
-   esac
-   SHAREDFLAG="-dynamiclib -flat_namespace -undefined suppress"
-   SOSUFFIX=dylib
-   if test $with_gtk = yes; then
-      DW_DIR=gtk
-      DW_SRC=dw.c
-      LIBS="$LIBS -framework Gtk -framework Glib -framework Cairo"
-      GTK_CFLAGS="-I/Library/Frameworks/Gtk.framework/Headers -I/Library/Frameworks/Glib.framework/Headers -I/Library/Frameworks/Cairo.framework/Headers"
-   else
-      DW_DIR=mac
-      DW_SRC=dw.m
-      DW_DEFINE=__MAC__
-      LIBS="$LIBS -framework Cocoa -framework WebKit"
-   fi
-else
+if test $build_gtk = "yes"; then
    AC_CHECK_PROG(PKG_CFG, pkg-config, pkg-config)
    if test x"$PKG_CFG" != x; then
       GTK_LIBS=`$PKG_CFG --silence-errors --libs gtk+-2.0 gthread-2.0`
@@ -202,21 +246,26 @@ else
    fi
 fi
 
-AC_CHECK_HEADER(pthread.h,,AC_MSG_ERROR([pthread header not found. Dynamic Windows cannot build without it.]))
-AC_CHECK_LIB(pthread,
-             pthread_attr_init,
-             PTHREAD_LIBS="-lpthread",
-             AC_CHECK_LIB(pthreads,
-                          pthread_attr_init,
-                          PTHREAD_LIBS="-lpthreads",
-                          AC_CHECK_LIB(c_r,
-                                       pthread_attr_init,
-                                       PTHREAD_LIBS="-lc_r",
-                                       AC_MSG_ERROR(pthread library not found. dwindows cannot build without it.
-                                                   )
-                                      )
-                         )
-            )
+if test $check_pthreads = "yes"; then
+   AC_CHECK_HEADER(pthread.h,,AC_MSG_ERROR([pthread header not found. Dynamic Windows cannot build without it.]))
+   AC_CHECK_LIB(pthread,
+                pthread_attr_init,
+                PTHREAD_LIBS="-lpthread",
+                AC_CHECK_LIB(pthreads,
+                             pthread_attr_init,
+                             PTHREAD_LIBS="-lpthreads",
+                             AC_CHECK_LIB(c_r,
+                                          pthread_attr_init,
+                                          PTHREAD_LIBS="-lc_r",
+                                          AC_CHECK_LIB(c,
+                                                       pthread_attr_init,
+                                                       PTHREAD_LIBS="-lc",
+                                                       AC_MSG_ERROR(pthread library not found. dwindows cannot build without it.)
+                                                      )
+                                         )
+                            )
+               )
+fi
 
 CFLAGS="$CFLAGS $GTK_CFLAGS $GDK_IMLIB_FLAGS $MOZEMBED_CFLAGS"
 
@@ -236,7 +285,7 @@ if test x"$MOZEMBED_CFLAGS" != x; then
    LIBS="$SAVE_LIBS"
 fi
 
-LIBS="$RPATH $LIBS $GTK_LIBS $PTHREAD_LIBS $GDK_IMLIB_LIBS $MOZEMBED_LIBS"
+LIBS="$RPATH $LIBS $GTK_LIBS $PTHREAD_LIBS $GDK_IMLIB_LIBS $MOZEMBED_LIBS $PLATLIBS"
 
 RM="rm -f"
 LN="ln -s"
@@ -244,8 +293,13 @@ CP="cp"
 MV="mv"
 MKDIR="mkdir"
 
+AC_SUBST(SYSCONF_LINK_TARGET_SHARED)
+AC_SUBST(SYSCONF_LINK_TARGET_SHARED2)
+AC_SUBST(SYSCONF_LINK_TARGET_STATIC)
 
 AC_SUBST(INCLUDES)
+AC_SUBST(PLATCCFLAGS)
+AC_SUBST(ARFLAGS)
 AC_SUBST(RM)
 AC_SUBST(LN)
 AC_SUBST(CP)
@@ -253,7 +307,10 @@ AC_SUBST(MV)
 AC_SUBST(MKDIR)
 AC_SUBST(SHAREDFLAG)
 AC_SUBST(SOSUFFIX)
+AC_SUBST(LIBSUFFIX)
+AC_SUBST(LIBPREFIX)
 AC_SUBST(SONAME)
+AC_SUBST(TARGETS)
 
 AC_SUBST(DW_SRC)
 AC_SUBST(DW_DIR)

@@ -1,9 +1,15 @@
 srcdir=@srcdir@
 mandir=@mandir@
 CC	=	@CC@
+PLATCCFLAGS = @PLATCCFLAGS@
 MLFLAGS	=	-L.
-CCFLAGS	=	@CFLAGS@ -g -O2 @ARCH@ -fPIC -Wall -D@DW_DEFINE@ -DBUILD_DLL -DDW_RESOURCES
+#
+# Uncomment DEPRECATED line to force use of GTK 3.x support
+#
+#DEPRECATED = -DG_DISABLE_DEPRECATED -DG_DISABLE_SINGLE_INCLUDES -DGTK_DISABLE_DEPRECATED -DGTK_DISABLE_SINGLE_INCLUDES -DGDK_DISABLE_DEPRECATED -DGDK_DISABLE_SINGLE_INCLUDES
+CCFLAGS = $(DEPRECATED) @CFLAGS@ $(PLATCCFLAGS) @ARCH@ -D@DW_DEFINE@ -DBUILD_DLL -DDW_RESOURCES
 LFLAGS	=	@LIBS@ @ARCH@
+ARFLAGS = @ARFLAGS@
 INSTALL =	@INSTALL@
 DW_SRC  =	@DW_SRC@
 DW_DIR  =	@DW_DIR@
@@ -17,10 +23,13 @@ OBJECTS	=	dw.o rel2abs.o $(BROWSER_OBJECT)
 SRCS2	=	$(srcdir)compat.c
 OBJECTS2=	$(COMPAT_OBJECT)
 TARGET2=	@TARGET2@
+TARGETS = @TARGETS@
 VER_MAJ	=	@DW_MAJOR_VERSION@
 VER_MIN	=	@DW_MINOR_VERSION@
 SOSUFFIX=	@SOSUFFIX@
 SONAME=	@SONAME@
+LIBPREFIX = @LIBPREFIX@
+LIBSUFFIX = @LIBSUFFIX@
 prefix	=	$(DESTDIR)@prefix@
 SRCDIR=dwindows-$(VER_MAJ).$(VER_MIN)
 
@@ -58,8 +67,8 @@ SYSCONF_LINK_LIB_SHARED2 =  $(SYSCONF_LINK_SHLIB) $(SYSCONF_LFLAGS_SHOBJ) \
 # Linking static libraries
 #   - Build the $(TARGET) library, eg. lib$(TARGET).a
 #
-SYSCONF_AR		= ar cqs
-SYSCONF_LINK_TARGET_STATIC = lib$(TARGET).a
+SYSCONF_AR		= ar $(ARFLAGS)
+SYSCONF_LINK_TARGET_STATIC = @SYSCONF_LINK_TARGET_STATIC@
 SYSCONF_LINK_LIB_STATIC	= rm -f $(SYSCONF_LINK_TARGET_STATIC) ; \
 				 $(SYSCONF_AR) $(SYSCONF_LINK_TARGET_STATIC) $(OBJECTS)
 
@@ -73,7 +82,7 @@ SYSCONF_LINK_LIB = $(SYSCONF_LINK_LIB_SHARED)
 SYSCONF_LINK_TARGET2 = $(SYSCONF_LINK_TARGET_SHARED2)
 SYSCONF_LINK_LIB2 = $(SYSCONF_LINK_LIB_SHARED2)
 
-all: $(SYSCONF_LINK_TARGET) $(SYSCONF_LINK_TARGET2) dwtest
+all: $(TARGETS) dwtest
 
 install: installbase $(INSTALL_COMPAT)
 
@@ -84,7 +93,7 @@ installbase: $(SYSCONF_LINK_TARGET)
 	$(INSTALL) -d $(prefix)/share/man/man1; \
 	$(INSTALL) $(srcdir)/dw.h $(prefix)/include; \
 	$(INSTALL) dwindows-config $(prefix)/bin; \
-	$(INSTALL) dwindows-config.1 $(prefix)/share/man/man1; \
+	$(INSTALL) $(srcdir)/dwindows-config.1 $(prefix)/share/man/man1; \
 	cd $(prefix)/share/man/man1; gzip -f -9 dwindows-config.1
 	$(INSTALL) $(SYSCONF_LINK_TARGET)  $(prefix)/lib; \
 	cd $(prefix)/lib; \
@@ -124,10 +133,13 @@ $(SYSCONF_LINK_TARGET2): $(OBJECTS2)
 $(SYSCONF_LINK_TARGET): $(OBJECTS)
 	$(SYSCONF_LINK_LIB)
 
-dw.o: $(srcdir)/$(DW_DIR)/$(DW_SRC)
+$(SYSCONF_LINK_TARGET_STATIC): $(OBJECTS)
+	$(SYSCONF_LINK_LIB_STATIC)
+
+dw.o: $(srcdir)/$(DW_DIR)/$(DW_SRC) $(srcdir)/dw.h
 	$(CC) -c $(INCPATH) $(CCFLAGS) -o $@ $(srcdir)/$(DW_DIR)/$(DW_SRC)
 
-browser.o: $(srcdir)/$(DW_DIR)/browser.cpp
+browser.o: $(srcdir)/$(DW_DIR)/browser.cpp $(srcdir)/dw.h
 	$(CXX) -c $(INCPATH) $(CCFLAGS) -o $@ $(srcdir)/$(DW_DIR)/browser.cpp
 
 compat.o: $(srcdir)/compat.c
@@ -136,7 +148,7 @@ compat.o: $(srcdir)/compat.c
 rel2abs.o: $(srcdir)/gtk/rel2abs.c
 	$(CC) -c $(INCPATH) $(CCFLAGS) -o $@ $(srcdir)/gtk/rel2abs.c
 
-dwtest.o: $(srcdir)/dwtest.c
+dwtest.o: $(srcdir)/dwtest.c $(srcdir)/dw.h
 	$(CC) -c $(INCPATH) $(CCFLAGS) -o $@ $(srcdir)/dwtest.c
 
 dwtest: dwtest.o
@@ -150,7 +162,7 @@ zip:
 	$(srcdir)/ac*.m4 $(srcdir)/dwindows-config.1 \
 	$(srcdir)/gtk/*.c $(srcdir)/gtk/*.cpp $(srcdir)/win/*.c $(srcdir)/os2/*.c $(srcdir)/win/*.txt $(srcdir)/os2/*.txt \
 	$(srcdir)/gtk/*.xpm $(srcdir)/win/*.ico $(srcdir)/os2/*.ico \
-	$(srcdir)/mac/Info.plist $(srcdir)/mac/PkgInfo $(srcdir)/mac/*.c $(srcdir)/mac/dwtest.r $(srcdir)/mac/finishup.sh \
+	$(srcdir)/mac/Info.plist $(srcdir)/mac/PkgInfo $(srcdir)/mac/*.c $(srcdir)/mac/*.m $(srcdir)/mac/dwtest.r $(srcdir)/mac/finishup.sh \
 	$(srcdir)/platform/*.h \
 	$(srcdir)/debian/control $(srcdir)/debian/rules $(srcdir)/debian/copyright $(srcdir)/debian/compat $(srcdir)/debian/changelog
 
@@ -161,7 +173,7 @@ dist:
 	$(SRCDIR)/ac*.m4 $(SRCDIR)/dwindows-config.1 \
 	$(SRCDIR)/gtk/*.c $(SRCDIR)/gtk/*.cpp $(SRCDIR)/win/*.c $(SRCDIR)/os2/*.c  $(SRCDIR)/win/*.txt $(SRCDIR)/os2/*.txt \
 	$(SRCDIR)/gtk/*.xpm $(SRCDIR)/win/*.ico $(SRCDIR)/os2/*.ico \
-	$(SRCDIR)/mac/Info.plist $(SRCDIR)/mac/PkgInfo $(SRCDIR)/mac/*.c $(SRCDIR)/mac/dwtest.r $(SRCDIR)/mac/finishup.sh \
+	$(SRCDIR)/mac/Info.plist $(SRCDIR)/mac/PkgInfo $(SRCDIR)/mac/*.c $(SRCDIR)/mac/*.m $(SRCDIR)/mac/dwtest.r $(SRCDIR)/mac/finishup.sh \
 	$(SRCDIR)/debian/control $(SRCDIR)/debian/rules $(SRCDIR)/debian/copyright $(SRCDIR)/debian/compat $(SRCDIR)/debian/changelog \
 	$(SRCDIR)/platform/*.h | gzip > $(SRCDIR).tar.gz )
 	(cd $(srcdir)/..;rm -f $(SRCDIR))
