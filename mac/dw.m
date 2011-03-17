@@ -42,47 +42,47 @@
 
 unsigned long _colors[] =
 {
-	0x00000000,   /* 0  black */
-	0x000000bb,   /* 1  red */
-	0x0000bb00,   /* 2  green */
-	0x0000aaaa,   /* 3  yellow */
-	0x00cc0000,   /* 4  blue */
-	0x00bb00bb,   /* 5  magenta */
-	0x00bbbb00,   /* 6  cyan */
-	0x00bbbbbb,   /* 7  white */
-	0x00777777,   /* 8  grey */
-	0x000000ff,   /* 9  bright red */
-	0x0000ff00,   /* 10 bright green */
-	0x0000eeee,   /* 11 bright yellow */
-	0x00ff0000,   /* 12 bright blue */
-	0x00ff00ff,   /* 13 bright magenta */
-	0x00eeee00,   /* 14 bright cyan */
-	0x00ffffff,   /* 15 bright white */
-	0xff000000    /* 16 default color */
+    0x00000000,   /* 0  black */
+    0x000000bb,   /* 1  red */
+    0x0000bb00,   /* 2  green */
+    0x0000aaaa,   /* 3  yellow */
+    0x00cc0000,   /* 4  blue */
+    0x00bb00bb,   /* 5  magenta */
+    0x00bbbb00,   /* 6  cyan */
+    0x00bbbbbb,   /* 7  white */
+    0x00777777,   /* 8  grey */
+    0x000000ff,   /* 9  bright red */
+    0x0000ff00,   /* 10 bright green */
+    0x0000eeee,   /* 11 bright yellow */
+    0x00ff0000,   /* 12 bright blue */
+    0x00ff00ff,   /* 13 bright magenta */
+    0x00eeee00,   /* 14 bright cyan */
+    0x00ffffff,   /* 15 bright white */
+    0xff000000    /* 16 default color */
 };
 
 unsigned long _get_color(unsigned long thiscolor)
 {
-	if(thiscolor & DW_RGB_COLOR)
-	{
-		return thiscolor & ~DW_RGB_COLOR;
-	}
-	else if(thiscolor < 17)
-	{
-		return _colors[thiscolor];
-	}
-	return 0;
+    if(thiscolor & DW_RGB_COLOR)
+    {
+        return thiscolor & ~DW_RGB_COLOR;
+    }
+    else if(thiscolor < 17)
+    {
+        return _colors[thiscolor];
+    }
+    return 0;
 }
 
 typedef struct _sighandler
 {
-	struct _sighandler   *next;
-	ULONG message;
-	HWND window;
-	int id;
-	void *signalfunction;
-	void *data;
-	
+    struct _sighandler   *next;
+    ULONG message;
+    HWND window;
+    int id;
+    void *signalfunction;
+    void *data;
+    
 } SignalHandler;
 
 SignalHandler *Root = NULL;
@@ -94,90 +94,90 @@ int _dw_main_iteration(NSDate *date);
 
 SignalHandler *_get_handler(HWND window, int messageid)
 {
-	SignalHandler *tmp = Root;
-	
-	/* Find any callbacks for this function */
-	while(tmp)
-	{
-		if(tmp->message == messageid && window == tmp->window)
-		{
-			return tmp;
-		}
-		tmp = tmp->next;
-	}
-	return NULL;
+    SignalHandler *tmp = Root;
+    
+    /* Find any callbacks for this function */
+    while(tmp)
+    {
+        if(tmp->message == messageid && window == tmp->window)
+        {
+            return tmp;
+        }
+        tmp = tmp->next;
+    }
+    return NULL;
 }
 
 typedef struct
 {
-	ULONG message;
-	char name[30];
-	
+    ULONG message;
+    char name[30];
+    
 } SignalList;
 
 /* List of signals */
 #define SIGNALMAX 16
 
 SignalList SignalTranslate[SIGNALMAX] = {
-	{ 1,	DW_SIGNAL_CONFIGURE },
-	{ 2,	DW_SIGNAL_KEY_PRESS },
-	{ 3,	DW_SIGNAL_BUTTON_PRESS },
-	{ 4,	DW_SIGNAL_BUTTON_RELEASE },
-	{ 5,	DW_SIGNAL_MOTION_NOTIFY },
-	{ 6,	DW_SIGNAL_DELETE },
-	{ 7,	DW_SIGNAL_EXPOSE },
-	{ 8,	DW_SIGNAL_CLICKED },
-	{ 9,	DW_SIGNAL_ITEM_ENTER },
-	{ 10,	DW_SIGNAL_ITEM_CONTEXT },
-	{ 11,	DW_SIGNAL_LIST_SELECT },
-	{ 12,	DW_SIGNAL_ITEM_SELECT },
-	{ 13,	DW_SIGNAL_SET_FOCUS },
-	{ 14,	DW_SIGNAL_VALUE_CHANGED },
-	{ 15,	DW_SIGNAL_SWITCH_PAGE },
-	{ 16,	DW_SIGNAL_TREE_EXPAND }
+    { 1,    DW_SIGNAL_CONFIGURE },
+    { 2,    DW_SIGNAL_KEY_PRESS },
+    { 3,    DW_SIGNAL_BUTTON_PRESS },
+    { 4,    DW_SIGNAL_BUTTON_RELEASE },
+    { 5,    DW_SIGNAL_MOTION_NOTIFY },
+    { 6,    DW_SIGNAL_DELETE },
+    { 7,    DW_SIGNAL_EXPOSE },
+    { 8,    DW_SIGNAL_CLICKED },
+    { 9,    DW_SIGNAL_ITEM_ENTER },
+    { 10,   DW_SIGNAL_ITEM_CONTEXT },
+    { 11,   DW_SIGNAL_LIST_SELECT },
+    { 12,   DW_SIGNAL_ITEM_SELECT },
+    { 13,   DW_SIGNAL_SET_FOCUS },
+    { 14,   DW_SIGNAL_VALUE_CHANGED },
+    { 15,   DW_SIGNAL_SWITCH_PAGE },
+    { 16,   DW_SIGNAL_TREE_EXPAND }
 };
 
 int _event_handler(id object, NSEvent *event, int message)
 {
-	SignalHandler *handler = _get_handler(object, message);
-	/* NSLog(@"Event handler - type %d\n", message); */
-	
-	if(handler)
-	{
-		switch(message)
-		{
+    SignalHandler *handler = _get_handler(object, message);
+    /* NSLog(@"Event handler - type %d\n", message); */
+    
+    if(handler)
+    {
+        switch(message)
+        {
             /* Timer event */
-			case 0:
-			{
-				int (* API timerfunc)(void *) = (int (* API)(void *))handler->signalfunction;
-				
-				if(!timerfunc(handler->data))
-					dw_timer_disconnect(handler->id);
-				return 0;
-			}
+            case 0:
+            {
+                int (* API timerfunc)(void *) = (int (* API)(void *))handler->signalfunction;
+                
+                if(!timerfunc(handler->data))
+                    dw_timer_disconnect(handler->id);
+                return 0;
+            }
             /* Configure/Resize event */
-			case 1:
-			{
-				int (*sizefunc)(HWND, int, int, void *) = handler->signalfunction;
-				NSSize size;
-				
-				if([object isMemberOfClass:[NSWindow class]])
-				{
-					NSWindow *window = object;
-					size = [[window contentView] frame].size;
-				}
-				else
-				{
-					NSView *view = object;
-					size = [view frame].size;
-				}
-				
+            case 1:
+            {
+                int (*sizefunc)(HWND, int, int, void *) = handler->signalfunction;
+                NSSize size;
+                
+                if([object isMemberOfClass:[NSWindow class]])
+                {
+                    NSWindow *window = object;
+                    size = [[window contentView] frame].size;
+                }
+                else
+                {
+                    NSView *view = object;
+                    size = [view frame].size;
+                }
+                
                 if(size.width > 0 && size.height > 0)
                 {
                     return sizefunc(object, size.width, size.height, handler->data);
                 }
                 return 0;
-			}	
+            }   
             case 2:
             {
                 int (*keypressfunc)(HWND, char, int, int, void *) = handler->signalfunction;
@@ -199,45 +199,45 @@ int _event_handler(id object, NSEvent *event, int message)
                 return keypressfunc(handler->window, ch, (int)vk, special, handler->data);
             }
             /* Button press and release event */
-			case 3:
-			case 4:
-			{
-				int (* API buttonfunc)(HWND, int, int, int, void *) = (int (* API)(HWND, int, int, int, void *))handler->signalfunction;
-				int button = (int)event;
-				LONG x,y;
-				
-				dw_pointer_query_pos(&x, &y);
+            case 3:
+            case 4:
+            {
+                int (* API buttonfunc)(HWND, int, int, int, void *) = (int (* API)(HWND, int, int, int, void *))handler->signalfunction;
+                int button = (int)event;
+                LONG x,y;
+                
+                dw_pointer_query_pos(&x, &y);
 
-				return buttonfunc(object, (int)x, (int)y, button, handler->data);
-			}
+                return buttonfunc(object, (int)x, (int)y, button, handler->data);
+            }
             /* Window close event */
-			case 6:
-			{
-				int (* API closefunc)(HWND, void *) = (int (* API)(HWND, void *))handler->signalfunction;
-				return closefunc(object, handler->data);
-			}
+            case 6:
+            {
+                int (* API closefunc)(HWND, void *) = (int (* API)(HWND, void *))handler->signalfunction;
+                return closefunc(object, handler->data);
+            }
             /* Window expose/draw event */
-			case 7:
-			{
-				DWExpose exp;
-				int (* API exposefunc)(HWND, DWExpose *, void *) = (int (* API)(HWND, DWExpose *, void *))handler->signalfunction;
-				NSRect rect = [object frame];
-			
-				exp.x = rect.origin.x;
-				exp.y = rect.origin.y;
-				exp.width = rect.size.width;
-				exp.height = rect.size.height;
-				int result = exposefunc(object, &exp, handler->data);
-				[[object window] flushWindow];
-				return result;
-			}
+            case 7:
+            {
+                DWExpose exp;
+                int (* API exposefunc)(HWND, DWExpose *, void *) = (int (* API)(HWND, DWExpose *, void *))handler->signalfunction;
+                NSRect rect = [object frame];
+            
+                exp.x = rect.origin.x;
+                exp.y = rect.origin.y;
+                exp.width = rect.size.width;
+                exp.height = rect.size.height;
+                int result = exposefunc(object, &exp, handler->data);
+                [[object window] flushWindow];
+                return result;
+            }
             /* Clicked event for buttons and menu items */
-			case 8:
-			{
-				int (* API clickfunc)(HWND, void *) = (int (* API)(HWND, void *))handler->signalfunction;
+            case 8:
+            {
+                int (* API clickfunc)(HWND, void *) = (int (* API)(HWND, void *))handler->signalfunction;
 
-				return clickfunc(object, handler->data);
-			}
+                return clickfunc(object, handler->data);
+            }
             /* Container class selection event */
             case 9:
             {
@@ -246,17 +246,17 @@ int _event_handler(id object, NSEvent *event, int message)
                 return containerselectfunc(handler->window, (char *)event, handler->data);
             }
             /* Container context menu event */
-			case 10:
-			{
-				int (* API containercontextfunc)(HWND, char *, int, int, void *, void *) = (int (* API)(HWND, char *, int, int, void *, void *))handler->signalfunction;
-				char *text = (char *)event;
-				void *user = NULL;
-				LONG x,y;
-				
-				dw_pointer_query_pos(&x, &y);
-				
-				return containercontextfunc(handler->window, text, (int)x, (int)y, handler->data, user);
-			}
+            case 10:
+            {
+                int (* API containercontextfunc)(HWND, char *, int, int, void *, void *) = (int (* API)(HWND, char *, int, int, void *, void *))handler->signalfunction;
+                char *text = (char *)event;
+                void *user = NULL;
+                LONG x,y;
+                
+                dw_pointer_query_pos(&x, &y);
+                
+                return containercontextfunc(handler->window, text, (int)x, (int)y, handler->data, user);
+            }
             /* Generic selection changed event for several classes */
             case 11:
             case 14:
@@ -267,8 +267,8 @@ int _event_handler(id object, NSEvent *event, int message)
                 return valuechangedfunc(handler->window, selected, handler->data);;
             }
             /* Tree class selection event */
-			case 12:
-			{
+            case 12:
+            {
                 int (* API treeselectfunc)(HWND, HTREEITEM, char *, void *, void *) = (int (* API)(HWND, HTREEITEM, char *, void *, void *))handler->signalfunction;
                 char *text = (char *)event;
                 void *user = NULL;
@@ -295,9 +295,9 @@ int _event_handler(id object, NSEvent *event, int message)
                     }
                     return result;
                 }
-				
+                
                 return treeselectfunc(handler->window, item, text, handler->data, user);
- 			}
+            }
             /* Set Focus event */
             case 13:
             {
@@ -319,9 +319,9 @@ int _event_handler(id object, NSEvent *event, int message)
 
                 return treeexpandfunc(handler->window, (HTREEITEM)event, handler->data);
             }
-		}
-	}
-	return -1;
+        }
+    }
+    return -1;
 }
 
 /* Subclass for the Timer type */
@@ -409,19 +409,19 @@ typedef struct _bitbltinfo
 }
 -(void)doFlush:(id)param
 {
-	if(_DWLastDrawable)
-	{
-		id object = _DWLastDrawable;
-		NSWindow *window = [object window];
-		[window flushWindow];
-	}
+    if(_DWLastDrawable)
+    {
+        id object = _DWLastDrawable;
+        NSWindow *window = [object window];
+        [window flushWindow];
+    }
 }
 -(void)doWindowFunc:(id)param
 {
     NSValue *v = (NSValue *)param;
     void **params = (void **)[v pointerValue];
-	void (* windowfunc)(void *);
-	
+    void (* windowfunc)(void *);
+    
     if(params)
     {
         windowfunc = params[0];
@@ -429,7 +429,7 @@ typedef struct _bitbltinfo
         {
             windowfunc(params[1]);
         }
-    }	
+    }   
 }
 @end
 
@@ -449,9 +449,9 @@ DWObject *DWObj;
 <NSWindowDelegate>
 #endif
 {
-	Box *box;
-	void *userdata;
-	NSColor *bgcolor;
+    Box *box;
+    void *userdata;
+    NSColor *bgcolor;
 }
 -(id)init;
 -(void)dealloc;
@@ -493,11 +493,11 @@ DWObject *DWObj;
 -(void)setUserdata:(void *)input { userdata = input; }
 -(void)drawRect:(NSRect)rect
 {
-	if(bgcolor)
-	{
-		[bgcolor set];
-		NSRectFill( [self bounds] );
-	}
+    if(bgcolor)
+    {
+        [bgcolor set];
+        NSRectFill( [self bounds] );
+    }
 }
 -(BOOL)isFlipped { return YES; }
 -(void)mouseDown:(NSEvent *)theEvent { _event_handler(self, (void *)1, 3); }
@@ -509,21 +509,21 @@ DWObject *DWObj;
 -(void)keyDown:(NSEvent *)theEvent { _event_handler(self, theEvent, 2); _event_handler([self window], theEvent, 2); }
 -(void)setColor:(unsigned long)input
 {
-	if(input == _colors[DW_CLR_DEFAULT])
-	{
-		bgcolor = nil;
-	}
-	else
-	{
-		bgcolor = [NSColor colorWithDeviceRed: DW_RED_VALUE(input)/255.0 green: DW_GREEN_VALUE(input)/255.0 blue: DW_BLUE_VALUE(input)/255.0 alpha: 1];
-	}
+    if(input == _colors[DW_CLR_DEFAULT])
+    {
+        bgcolor = nil;
+    }
+    else
+    {
+        bgcolor = [NSColor colorWithDeviceRed: DW_RED_VALUE(input)/255.0 green: DW_GREEN_VALUE(input)/255.0 blue: DW_BLUE_VALUE(input)/255.0 alpha: 1];
+    }
 }
 @end
 
 /* Subclass for a top-level window */
 @interface DWView : DWBox
 {
-	NSMenu *windowmenu;
+    NSMenu *windowmenu;
 }
 -(BOOL)windowShouldClose:(id)sender;
 -(void)setMenu:(NSMenu *)input;
@@ -536,13 +536,13 @@ DWObject *DWObj;
 -(BOOL)windowShouldClose:(id)sender
 {
     if(_event_handler(self, nil, 6) == FALSE)
-		return NO;
-	return YES;
+        return NO;
+    return YES;
 }
 - (void)viewDidMoveToWindow
 {
-	[[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(windowResized:) name:NSWindowDidResizeNotification object:[self window]];
-	[[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(windowDidBecomeMain:) name:NSWindowDidBecomeMainNotification object:[self window]];
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(windowResized:) name:NSWindowDidResizeNotification object:[self window]];
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(windowDidBecomeMain:) name:NSWindowDidBecomeMainNotification object:[self window]];
 }
 - (void)dealloc
 {
@@ -555,20 +555,20 @@ DWObject *DWObj;
 }
 - (void)windowResized:(NSNotification *)notification;
 {
-	NSSize size = [self frame].size;
-	_do_resize(box, size.width, size.height);
-	_event_handler([self window], nil, 1);
+    NSSize size = [self frame].size;
+    _do_resize(box, size.width, size.height);
+    _event_handler([self window], nil, 1);
 }
 -(void)windowDidBecomeMain:(id)sender
 {
-	if(windowmenu)
-	{
-		[DWApp setMainMenu:windowmenu];
-	}
-	else
-	{
-		[DWApp setMainMenu:DWMainMenu];
-	}
+    if(windowmenu)
+    {
+        [DWApp setMainMenu:windowmenu];
+    }
+    else
+    {
+        [DWApp setMainMenu:DWMainMenu];
+    }
     _event_handler(self, nil, 13);
 }
 -(void)setMenu:(NSMenu *)input { windowmenu = input; [windowmenu retain]; }
@@ -579,7 +579,7 @@ DWObject *DWObj;
 /* Subclass for a button type */
 @interface DWButton : NSButton
 {
-	void *userdata;
+    void *userdata;
 }
 -(void *)userdata;
 -(void)setUserdata:(void *)input;
@@ -596,7 +596,7 @@ DWObject *DWObj;
 /* Subclass for a progress type */
 @interface DWPercent : NSProgressIndicator
 {
-	void *userdata;
+    void *userdata;
 }
 -(void *)userdata;
 -(void)setUserdata:(void *)input;
@@ -611,7 +611,7 @@ DWObject *DWObj;
 /* Subclass for a entryfield type */
 @interface DWEntryField : NSTextField
 {
-	void *userdata;
+    void *userdata;
 }
 -(void *)userdata;
 -(void)setUserdata:(void *)input;
@@ -626,7 +626,7 @@ DWObject *DWObj;
 /* Subclass for a entryfield password type */
 @interface DWEntryFieldPassword : NSSecureTextField
 {
-	void *userdata;
+    void *userdata;
 }
 -(void *)userdata;
 -(void)setUserdata:(void *)input;
@@ -644,8 +644,8 @@ DWObject *DWObj;
 <NSTabViewDelegate>
 #endif
 {
-	void *userdata;
-	int pageid;
+    void *userdata;
+    int pageid;
 }
 -(void *)userdata;
 -(void)setUserdata:(void *)input;
@@ -657,8 +657,8 @@ DWObject *DWObj;
 /* Subclass for a Notebook page type */
 @interface DWNotebookPage : NSTabViewItem
 {
-	void *userdata;
-	int pageid;
+    void *userdata;
+    int pageid;
 }
 -(void *)userdata;
 -(void)setUserdata:(void *)input;
@@ -673,18 +673,18 @@ DWObject *DWObj;
 -(void)setPageid:(int)input { pageid = input; }
 -(void)tabView:(NSTabView *)notebook didSelectTabViewItem:(NSTabViewItem *)notepage
 {
-	id object = [notepage view];
+    id object = [notepage view];
     DWNotebookPage *page = (DWNotebookPage *)notepage;
-	
-	if([object isMemberOfClass:[DWBox class]])
-	{
-		DWBox *view = object;
-		Box *box = [view box];
-		NSSize size = [view frame].size;
-		_do_resize(box, size.width, size.height);
-	}
+    
+    if([object isMemberOfClass:[DWBox class]])
+    {
+        DWBox *view = object;
+        Box *box = [view box];
+        NSSize size = [view frame].size;
+        _do_resize(box, size.width, size.height);
+    }
     _event_handler(self, (void *)[page pageid], 15);
-}	
+}   
 -(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); [super dealloc]; }
 @end
 
@@ -699,7 +699,7 @@ DWObject *DWObj;
 /* Subclass for a color chooser type */
 @interface DWColorChoose : NSColorPanel
 {
-	DWDialog *dialog;
+    DWDialog *dialog;
     NSColor *pickedcolor;
 }
 -(void)changeColor:(id)sender;
@@ -720,7 +720,7 @@ DWObject *DWObj;
 <NSSplitViewDelegate>
 #endif
 {
-	void *userdata;
+    void *userdata;
     float percent;
 }
 -(void)splitViewDidResizeSubviews:(NSNotification *)aNotification;
@@ -733,19 +733,19 @@ DWObject *DWObj;
 @implementation DWSplitBar
 -(void)splitViewDidResizeSubviews:(NSNotification *)aNotification
 {
-	NSArray *views = [self subviews];
-	id object;
-	
-	for(object in views)
-	{
-		if([object isMemberOfClass:[DWBox class]])
-		{
-			DWBox *view = object;
-			Box *box = [view box];
-			NSSize size = [view frame].size;
-			_do_resize(box, size.width, size.height);
-		}
-	}		
+    NSArray *views = [self subviews];
+    id object;
+    
+    for(object in views)
+    {
+        if([object isMemberOfClass:[DWBox class]])
+        {
+            DWBox *view = object;
+            Box *box = [view box];
+            NSSize size = [view frame].size;
+            _do_resize(box, size.width, size.height);
+        }
+    }       
 }
 -(void *)userdata { return userdata; }
 -(void)setUserdata:(void *)input { userdata = input; }
@@ -757,7 +757,7 @@ DWObject *DWObj;
 /* Subclass for a slider type */
 @interface DWSlider : NSSlider
 {
-	void *userdata;
+    void *userdata;
 }
 -(void *)userdata;
 -(void)setUserdata:(void *)input;
@@ -774,9 +774,9 @@ DWObject *DWObj;
 /* Subclass for a slider type */
 @interface DWScrollbar : NSScroller
 {
-	void *userdata;
-	float range;
-	float visible;
+    void *userdata;
+    float range;
+    float visible;
 }
 -(void *)userdata;
 -(void)setUserdata:(void *)input;
@@ -849,7 +849,7 @@ DWObject *DWObj;
 /* Subclass for a render area type */
 @interface DWRender : NSView
 {
-	void *userdata;
+    void *userdata;
     NSFont *font;
 }
 -(void *)userdata;
@@ -887,7 +887,7 @@ DWObject *DWObj;
 /* Subclass for a MLE type */
 @interface DWMLE : NSTextView
 {
-	void *userdata;
+    void *userdata;
 }
 -(void *)userdata;
 -(void)setUserdata:(void *)input;
@@ -905,12 +905,12 @@ DWObject *DWObj;
 <NSTableViewDataSource>
 #endif
 {
-	void *userdata;
-	NSMutableArray *tvcols;
-	NSMutableArray *data;
-	NSMutableArray *types;
-	NSPointerArray *titles;
-	int lastAddPoint, lastQueryPoint;
+    void *userdata;
+    NSMutableArray *tvcols;
+    NSMutableArray *data;
+    NSMutableArray *types;
+    NSPointerArray *titles;
+    int lastAddPoint, lastQueryPoint;
     id scrollview;
 }
 -(NSInteger)numberOfRowsInTableView:(NSTableView *)aTable;
@@ -943,39 +943,39 @@ DWObject *DWObj;
 @implementation DWContainer
 -(NSInteger)numberOfRowsInTableView:(NSTableView *)aTable
 {
-	if(tvcols && data)
-	{
-		int cols = (int)[tvcols count];
-		if(cols)
-		{
-			return [data count] / cols;
-		}
-	}
-	return 0;
+    if(tvcols && data)
+    {
+        int cols = (int)[tvcols count];
+        if(cols)
+        {
+            return [data count] / cols;
+        }
+    }
+    return 0;
 }
 -(id)tableView:(NSTableView *)aTable objectValueForTableColumn:(NSTableColumn *)aCol row:(NSInteger)aRow
 {
-	if(tvcols)
-	{
-		int z, col = -1;
-		int count = (int)[tvcols count];
-		
-		for(z=0;z<count;z++)
-		{
-			if([tvcols objectAtIndex:z] == aCol)
-			{
-				col = z;
-				break;
-			}
-		}
-		if(col != -1)
-		{
-			int index = (int)(aRow * count) + col;
-			id this = [data objectAtIndex:index];
-			return ([this isKindOfClass:[NSNull class]]) ? nil : this;
-		}
-	}
-	return nil;
+    if(tvcols)
+    {
+        int z, col = -1;
+        int count = (int)[tvcols count];
+        
+        for(z=0;z<count;z++)
+        {
+            if([tvcols objectAtIndex:z] == aCol)
+            {
+                col = z;
+                break;
+            }
+        }
+        if(col != -1)
+        {
+            int index = (int)(aRow * count) + col;
+            id this = [data objectAtIndex:index];
+            return ([this isKindOfClass:[NSNull class]]) ? nil : this;
+        }
+    }
+    return nil;
 }
 -(BOOL)tableView:(NSTableView *)aTableView shouldEditTableColumn:(NSTableColumn *)aTableColumn row:(int)rowIndex { return NO; }
 -(void *)userdata { return userdata; }
@@ -1014,53 +1014,53 @@ DWObject *DWObj;
 }
 -(int)addRows:(int)number
 {
-	if(tvcols)
-	{
-		int count = (int)(number * [tvcols count]);
-		int z;
-		
-		lastAddPoint = (int)[titles count];
-		
-		for(z=0;z<count;z++)
-		{
-			[data addObject:[NSNull null]];
-		}
-		for(z=0;z<number;z++)
-		{
-			[titles addPointer:NULL];
-		}
-		return (int)[titles count];
-	}
-	return 0;
-}		
+    if(tvcols)
+    {
+        int count = (int)(number * [tvcols count]);
+        int z;
+        
+        lastAddPoint = (int)[titles count];
+        
+        for(z=0;z<count;z++)
+        {
+            [data addObject:[NSNull null]];
+        }
+        for(z=0;z<number;z++)
+        {
+            [titles addPointer:NULL];
+        }
+        return (int)[titles count];
+    }
+    return 0;
+}       
 -(void)editCell:(id)input at:(int)row and:(int)col
 {
-	if(tvcols && input)
-	{
-		int index = (int)(row * [tvcols count]) + col;
-		[data replaceObjectAtIndex:index withObject:input];
-	}
+    if(tvcols && input)
+    {
+        int index = (int)(row * [tvcols count]) + col;
+        [data replaceObjectAtIndex:index withObject:input];
+    }
 }
 -(void)removeRow:(int)row
 {
-	if(tvcols)
-	{
-		int z, start, end;
-		int count = (int)[tvcols count];
-		
-		start = count * row;
-		end = start + count;
-		
-		for(z=start;z<end;z++)
-		{
-			[data removeObjectAtIndex:z];
-		}
-		[titles removePointerAtIndex:row];
-		if(lastAddPoint > 0 && lastAddPoint < row)
-		{
-			lastAddPoint--;
-		}
-	}
+    if(tvcols)
+    {
+        int z, start, end;
+        int count = (int)[tvcols count];
+        
+        start = count * row;
+        end = start + count;
+        
+        for(z=start;z<end;z++)
+        {
+            [data removeObjectAtIndex:z];
+        }
+        [titles removePointerAtIndex:row];
+        if(lastAddPoint > 0 && lastAddPoint < row)
+        {
+            lastAddPoint--;
+        }
+    }
 }
 -(void)setRow:(int)row title:(void *)input { if(titles && input) { [titles replacePointerAtIndex:row withPointer:input]; } }
 -(void *)getRowTitle:(int)row { if(titles && row > -1) { return [titles pointerAtIndex:row]; } return NULL; }
@@ -1072,23 +1072,23 @@ DWObject *DWObj;
 -(void)clear { if(data) { [data removeAllObjects]; while([titles count]) { [titles removePointerAtIndex:0]; } } lastAddPoint = 0; }
 -(void)setup
 {
-	tvcols = [[[NSMutableArray alloc] init] retain];
-	data = [[[NSMutableArray alloc] init] retain];
-	types = [[[NSMutableArray alloc] init] retain];
-	titles = [[NSPointerArray pointerArrayWithWeakObjects] retain];
-	[[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(selectionChanged:) name:NSTableViewSelectionDidChangeNotification object:self];
+    tvcols = [[[NSMutableArray alloc] init] retain];
+    data = [[[NSMutableArray alloc] init] retain];
+    types = [[[NSMutableArray alloc] init] retain];
+    titles = [[NSPointerArray pointerArrayWithWeakObjects] retain];
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(selectionChanged:) name:NSTableViewSelectionDidChangeNotification object:self];
 }
 -(void)doubleClicked:(id)sender
 {
     /* Handler for container class */
-	_event_handler(self, (NSEvent *)[self getRowTitle:(int)[self selectedRow]], 9);
+    _event_handler(self, (NSEvent *)[self getRowTitle:(int)[self selectedRow]], 9);
 }
 -(void)selectionChanged:(id)sender
 {
     /* Handler for container class */
-	_event_handler(self, (NSEvent *)[self getRowTitle:(int)[self selectedRow]], 12);
+    _event_handler(self, (NSEvent *)[self getRowTitle:(int)[self selectedRow]], 12);
     /* Handler for listbox class */
-	_event_handler(self, (NSEvent *)(int)[self selectedRow], 11);
+    _event_handler(self, (NSEvent *)(int)[self selectedRow], 11);
 }
 -(NSMenu *)menuForEvent:(NSEvent *)event
 {
@@ -1139,10 +1139,10 @@ void _free_tree_recurse(NSMutableArray *node, NSPointerArray *item)
 <NSOutlineViewDataSource>
 #endif
 {
-	void *userdata;
-	NSTableColumn *imagecol;
+    void *userdata;
+    NSTableColumn *imagecol;
     NSTableColumn *textcol;
-	NSMutableArray *data;
+    NSMutableArray *data;
     /* Each data item consists of a linked lists of tree item data.
      * NSImage *, NSString *, Item Data *, NSMutableArray * of Children
      */
@@ -1187,32 +1187,32 @@ void _free_tree_recurse(NSMutableArray *node, NSPointerArray *item)
 }
 -(id)outlineView:(NSOutlineView *)outlineView child:(int)index ofItem:(id)item
 {
-	if(item)
+    if(item)
     {
         NSMutableArray *array = [item pointerAtIndex:3];
-		return array ? [array objectAtIndex:index] : nil;
-	}
-	else
+        return array ? [array objectAtIndex:index] : nil;
+    }
+    else
     {
-		return [data objectAtIndex:index];
+        return [data objectAtIndex:index];
     }
 }
 -(BOOL)outlineView:(NSOutlineView *)outlineView isItemExpandable:(id)item
 {
-	return [self outlineView:outlineView numberOfChildrenOfItem:item] != 0;
+    return [self outlineView:outlineView numberOfChildrenOfItem:item] != 0;
 }
 -(int)outlineView:(NSOutlineView *)outlineView numberOfChildrenOfItem:(id)item
 {
-	if(item)
+    if(item)
     {
-		if([item isKindOfClass:[NSPointerArray class]])
+        if([item isKindOfClass:[NSPointerArray class]])
         {
             NSMutableArray *array = [item pointerAtIndex:3];
-			return array ? (int)[array count] : 0;
+            return array ? (int)[array count] : 0;
         }
-		else
+        else
         {
-			return 0;
+            return 0;
         }
     }
     else
@@ -1222,22 +1222,22 @@ void _free_tree_recurse(NSMutableArray *node, NSPointerArray *item)
 }
 -(id)outlineView:(NSOutlineView *)outlineView objectValueForTableColumn:(NSTableColumn *)tableColumn byItem:(id)item
 {
-	if(item)
+    if(item)
     {
-		if([item isKindOfClass:[NSPointerArray class]])
+        if([item isKindOfClass:[NSPointerArray class]])
         {
-			NSPointerArray *this = (NSPointerArray *)item;
+            NSPointerArray *this = (NSPointerArray *)item;
             if(tableColumn == imagecol)
             {
                 return [this pointerAtIndex:0];
             }
             return [this pointerAtIndex:1];
         }
-		else
+        else
         {
-			return nil;
+            return nil;
         }
-	}
+    }
     return @"List Root";
 }
 -(BOOL)outlineView:(NSOutlineView *)outlineView shouldEditTableColumn:(NSTableColumn *)tableColumn item:(id)item { return NO; }
@@ -1311,7 +1311,7 @@ void _free_tree_recurse(NSMutableArray *node, NSPointerArray *item)
 /* Subclass for a Calendar type */
 @interface DWCalendar : NSDatePicker
 {
-	void *userdata;
+    void *userdata;
 }
 -(void *)userdata;
 -(void)setUserdata:(void *)input;
@@ -1329,7 +1329,7 @@ void _free_tree_recurse(NSMutableArray *node, NSPointerArray *item)
 <NSComboBoxDelegate>
 #endif
 {
-	void *userdata;
+    void *userdata;
 }
 -(void *)userdata;
 -(void)setUserdata:(void *)input;
@@ -1385,7 +1385,7 @@ void _free_tree_recurse(NSMutableArray *node, NSPointerArray *item)
 <NSTextFieldDelegate>
 #endif
 {
-	void *userdata;
+    void *userdata;
     NSTextField *textfield;
     DWStepper *stepper;
 }
@@ -1442,52 +1442,52 @@ void _free_tree_recurse(NSMutableArray *node, NSPointerArray *item)
  */
 void _new_signal(ULONG message, HWND window, int msgid, void *signalfunction, void *data)
 {
-	SignalHandler *new = malloc(sizeof(SignalHandler));
-	
-	new->message = message;
-	new->window = window;
-	new->id = msgid;
-	new->signalfunction = signalfunction;
-	new->data = data;
-	new->next = NULL;
-	
-	if (!Root)
-		Root = new;
-	else
-	{
-		SignalHandler *prev = NULL, *tmp = Root;
-		while(tmp)
-		{
-			if(tmp->message == message &&
-			   tmp->window == window &&
-			   tmp->id == msgid &&
-			   tmp->signalfunction == signalfunction)
-			{
-				tmp->data = data;
-				free(new);
-				return;
-			}
-			prev = tmp;
-			tmp = tmp->next;
-		}
-		if(prev)
-			prev->next = new;
-		else
-			Root = new;
-	}
+    SignalHandler *new = malloc(sizeof(SignalHandler));
+    
+    new->message = message;
+    new->window = window;
+    new->id = msgid;
+    new->signalfunction = signalfunction;
+    new->data = data;
+    new->next = NULL;
+    
+    if (!Root)
+        Root = new;
+    else
+    {
+        SignalHandler *prev = NULL, *tmp = Root;
+        while(tmp)
+        {
+            if(tmp->message == message &&
+               tmp->window == window &&
+               tmp->id == msgid &&
+               tmp->signalfunction == signalfunction)
+            {
+                tmp->data = data;
+                free(new);
+                return;
+            }
+            prev = tmp;
+            tmp = tmp->next;
+        }
+        if(prev)
+            prev->next = new;
+        else
+            Root = new;
+    }
 }
 
 /* Finds the message number for a given signal name */
 ULONG _findsigmessage(char *signame)
 {
-	int z;
-	
-	for(z=0;z<SIGNALMAX;z++)
-	{
-		if(strcasecmp(signame, SignalTranslate[z].name) == 0)
-			return SignalTranslate[z].message;
-	}
-	return 0L;
+    int z;
+    
+    for(z=0;z<SIGNALMAX;z++)
+    {
+        if(strcasecmp(signame, SignalTranslate[z].name) == 0)
+            return SignalTranslate[z].message;
+    }
+    return 0L;
 }
 
 unsigned long _foreground = 0xAAAAAA, _background = 0;
@@ -1504,7 +1504,7 @@ static int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *
    /* Used for the SIZEEXPAND */
    int nux = *usedx, nuy = *usedy;
    int nupx = *usedpadx, nupy = *usedpady;
-	
+    
    (*usedx) += (thisbox->pad * 2);
    (*usedy) += (thisbox->pad * 2);
 
@@ -1512,9 +1512,9 @@ static int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *
    {
       if(thisbox->items[z].type == TYPEBOX)
       {
-		int initialx, initialy;
-		DWBox *box = thisbox->items[z].hwnd;
-		Box *tmp = [box box];
+        int initialx, initialy;
+        DWBox *box = thisbox->items[z].hwnd;
+        Box *tmp = [box box];
 
          initialx = x - (*usedx);
          initialy = y - (*usedy);
@@ -1625,8 +1625,8 @@ static int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *
 
          if(thisbox->items[z].type == TYPEBOX)
          {
-			DWBox *box = thisbox->items[z].hwnd;
-			Box *tmp = [box box];
+            DWBox *box = thisbox->items[z].hwnd;
+            Box *tmp = [box box];
 
             if(tmp)
             {
@@ -1726,8 +1726,8 @@ static int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *
          /* Run this code segment again to finalize the sized after setting uxmax/uymax values. */
          if(thisbox->items[z].type == TYPEBOX)
          {
-			DWBox *box = thisbox->items[z].hwnd;
-			Box *tmp = [box box];
+            DWBox *box = thisbox->items[z].hwnd;
+            Box *tmp = [box box];
 
             if(tmp)
             {
@@ -1771,8 +1771,8 @@ static int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *
          int width = thisbox->items[z].width;
          int pad = thisbox->items[z].pad;
          NSView *handle = thisbox->items[z].hwnd;
-		 NSPoint point;
-		 NSSize size;
+         NSPoint point;
+         NSSize size;
          int vectorx, vectory;
 
          /* When upxmax != pad*2 then ratios are incorrect. */
@@ -1794,27 +1794,27 @@ static int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *
             if(thisbox->items[z].hsize != SIZEEXPAND)
                vectorx = 0;
 
-			point.x = currentx + pad;
-			point.y = currenty + pad;
-			size.width = width + vectorx;
-			size.height = height + vectory;
-			[handle setFrameOrigin:point];
-			[handle setFrameSize:size];
+            point.x = currentx + pad;
+            point.y = currenty + pad;
+            size.width = width + vectorx;
+            size.height = height + vectory;
+            [handle setFrameOrigin:point];
+            [handle setFrameSize:size];
 
-			/* Special handling for notebook controls */
-			if([handle isMemberOfClass:[DWNotebook class]])
-			{
-				DWNotebook *notebook = (DWNotebook *)handle;
-				DWNotebookPage *notepage = (DWNotebookPage *)[notebook selectedTabViewItem];
-				DWBox *view = [notepage view];
-					
-				if(view != nil)
-				{
-					Box *box = [view box];
-					NSSize size = [view frame].size;
-					_do_resize(box, size.width, size.height);
-				}
-			}
+            /* Special handling for notebook controls */
+            if([handle isMemberOfClass:[DWNotebook class]])
+            {
+                DWNotebook *notebook = (DWNotebook *)handle;
+                DWNotebookPage *notepage = (DWNotebookPage *)[notebook selectedTabViewItem];
+                DWBox *view = [notepage view];
+                    
+                if(view != nil)
+                {
+                    Box *box = [view box];
+                    NSSize size = [view frame].size;
+                    _do_resize(box, size.width, size.height);
+                }
+            }
             /* Special handling for spinbutton controls */
             else if([handle isMemberOfClass:[DWSpinButton class]])
             {
@@ -1826,23 +1826,23 @@ static int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *
                 [stepper setFrameOrigin:NSMakePoint(size.width-20,0)];
                 [stepper setFrameSize:NSMakeSize(20,size.height)];
             }
-			else if([handle isMemberOfClass:[DWRender class]])
-			{
-				_event_handler(handle, nil, 1);
-			}
-			else if([handle isMemberOfClass:[DWSplitBar class]] && size.width > 20 && size.height > 20)
-			{
+            else if([handle isMemberOfClass:[DWRender class]])
+            {
+                _event_handler(handle, nil, 1);
+            }
+            else if([handle isMemberOfClass:[DWSplitBar class]] && size.width > 20 && size.height > 20)
+            {
                 DWSplitBar *split = (DWSplitBar *)handle;
-				float percent = [split percent];
-				
+                float percent = [split percent];
+                
                 if(percent > 0)
                 {
                     dw_splitbar_set(handle, percent);
                     [split setPercent:0];
                 }
-			}
-			
-			if(thisbox->type == DW_HORZ)
+            }
+            
+            if(thisbox->type == DW_HORZ)
                currentx += width + vectorx + (pad * 2);
             if(thisbox->type == DW_VERT)
                currenty += height + vectory + (pad * 2);
@@ -1878,7 +1878,7 @@ static void _do_resize(Box *thisbox, int x, int y)
 NSMenu *_generate_main_menu()
 {
     NSString *applicationName = nil;
-	
+    
     /* This only works on 10.6 so we have a backup method */
 #ifdef BUILDING_FOR_SNOW_LEOPARD
     applicationName = [[NSRunningApplication currentApplication] localizedName];
@@ -1887,58 +1887,58 @@ NSMenu *_generate_main_menu()
     {
         applicationName = [[NSProcessInfo processInfo] processName];
     }
-	
-	/* Create the main menu */
-	NSMenu * mainMenu = [[[NSMenu alloc] initWithTitle:@"MainMenu"] autorelease];
-	
-	NSMenuItem * mitem = [mainMenu addItemWithTitle:@"Apple" action:NULL keyEquivalent:@""];
-	NSMenu * menu = [[[NSMenu alloc] initWithTitle:@"Apple"] autorelease];
-	
-	[DWApp performSelector:@selector(setAppleMenu:) withObject:menu];
-	
-	/* Setup the Application menu */
-	NSMenuItem * item = [menu addItemWithTitle:[NSString stringWithFormat:@"%@ %@", NSLocalizedString(@"About", nil), applicationName]
-										action:@selector(orderFrontStandardAboutPanel:)
-								 keyEquivalent:@""];
-	[item setTarget:DWApp];
-	
-	[menu addItem:[NSMenuItem separatorItem]];
-	
-	item = [menu addItemWithTitle:NSLocalizedString(@"Services", nil)
-						   action:NULL
-					keyEquivalent:@""];
-	NSMenu * servicesMenu = [[[NSMenu alloc] initWithTitle:@"Services"] autorelease];
-	[menu setSubmenu:servicesMenu forItem:item];
-	[DWApp setServicesMenu:servicesMenu];
-	
-	[menu addItem:[NSMenuItem separatorItem]];
-	
-	item = [menu addItemWithTitle:[NSString stringWithFormat:@"%@ %@", NSLocalizedString(@"Hide", nil), applicationName]
-						   action:@selector(hide:)
-					keyEquivalent:@"h"];
-	[item setTarget:DWApp];
-	
-	item = [menu addItemWithTitle:NSLocalizedString(@"Hide Others", nil)
-						   action:@selector(hideOtherApplications:)
-					keyEquivalent:@"h"];
-	[item setKeyEquivalentModifierMask:NSCommandKeyMask | NSAlternateKeyMask];
-	[item setTarget:DWApp];
-	
-	item = [menu addItemWithTitle:NSLocalizedString(@"Show All", nil)
-						   action:@selector(unhideAllApplications:)
-					keyEquivalent:@""];
-	[item setTarget:DWApp];
-	
-	[menu addItem:[NSMenuItem separatorItem]];
-	
-	item = [menu addItemWithTitle:[NSString stringWithFormat:@"%@ %@", NSLocalizedString(@"Quit", nil), applicationName]
-						   action:@selector(terminate:)
-					keyEquivalent:@"q"];
-	[item setTarget:DWApp];
-	
-	[mainMenu setSubmenu:menu forItem:mitem];
-	
-	return mainMenu;
+    
+    /* Create the main menu */
+    NSMenu * mainMenu = [[[NSMenu alloc] initWithTitle:@"MainMenu"] autorelease];
+    
+    NSMenuItem * mitem = [mainMenu addItemWithTitle:@"Apple" action:NULL keyEquivalent:@""];
+    NSMenu * menu = [[[NSMenu alloc] initWithTitle:@"Apple"] autorelease];
+    
+    [DWApp performSelector:@selector(setAppleMenu:) withObject:menu];
+    
+    /* Setup the Application menu */
+    NSMenuItem * item = [menu addItemWithTitle:[NSString stringWithFormat:@"%@ %@", NSLocalizedString(@"About", nil), applicationName]
+                                        action:@selector(orderFrontStandardAboutPanel:)
+                                 keyEquivalent:@""];
+    [item setTarget:DWApp];
+    
+    [menu addItem:[NSMenuItem separatorItem]];
+    
+    item = [menu addItemWithTitle:NSLocalizedString(@"Services", nil)
+                           action:NULL
+                    keyEquivalent:@""];
+    NSMenu * servicesMenu = [[[NSMenu alloc] initWithTitle:@"Services"] autorelease];
+    [menu setSubmenu:servicesMenu forItem:item];
+    [DWApp setServicesMenu:servicesMenu];
+    
+    [menu addItem:[NSMenuItem separatorItem]];
+    
+    item = [menu addItemWithTitle:[NSString stringWithFormat:@"%@ %@", NSLocalizedString(@"Hide", nil), applicationName]
+                           action:@selector(hide:)
+                    keyEquivalent:@"h"];
+    [item setTarget:DWApp];
+    
+    item = [menu addItemWithTitle:NSLocalizedString(@"Hide Others", nil)
+                           action:@selector(hideOtherApplications:)
+                    keyEquivalent:@"h"];
+    [item setKeyEquivalentModifierMask:NSCommandKeyMask | NSAlternateKeyMask];
+    [item setTarget:DWApp];
+    
+    item = [menu addItemWithTitle:NSLocalizedString(@"Show All", nil)
+                           action:@selector(unhideAllApplications:)
+                    keyEquivalent:@""];
+    [item setTarget:DWApp];
+    
+    [menu addItem:[NSMenuItem separatorItem]];
+    
+    item = [menu addItemWithTitle:[NSString stringWithFormat:@"%@ %@", NSLocalizedString(@"Quit", nil), applicationName]
+                           action:@selector(terminate:)
+                    keyEquivalent:@"q"];
+    [item setTarget:DWApp];
+    
+    [mainMenu setSubmenu:menu forItem:mitem];
+    
+    return mainMenu;
 }
 
 /*
@@ -2033,7 +2033,7 @@ void API dw_main_iteration(void)
  */
 void API dw_exit(int exitcode)
 {
-	exit(exitcode);
+    exit(exitcode);
 }
 
 /*
@@ -2054,18 +2054,18 @@ void API dw_free(void *ptr)
  */
 char *dw_user_dir(void)
 {
-	static char _user_dir[1024] = "";
-	
-	if(!_user_dir[0])
-	{
-		char *home = getenv("HOME");
-		
-		if(home)
-			strcpy(_user_dir, home);
-		else
-			strcpy(_user_dir, "/");
-	}
-	return _user_dir;
+    static char _user_dir[1024] = "";
+    
+    if(!_user_dir[0])
+    {
+        char *home = getenv("HOME");
+        
+        if(home)
+            strcpy(_user_dir, home);
+        else
+            strcpy(_user_dir, "/");
+    }
+    return _user_dir;
 }
 
 /*
@@ -2078,67 +2078,67 @@ char *dw_user_dir(void)
  */
 int API dw_messagebox(char *title, int flags, char *format, ...)
 {
-	int iResponse;
-	NSString *button1 = @"OK";
-	NSString *button2 = nil;
-	NSString *button3 = nil;
-	va_list args;
-	char outbuf[1000];
+    int iResponse;
+    NSString *button1 = @"OK";
+    NSString *button2 = nil;
+    NSString *button3 = nil;
+    va_list args;
+    char outbuf[1000];
 
-	va_start(args, format);
-	vsprintf(outbuf, format, args);
-	va_end(args);
-	
-	if(flags & DW_MB_OKCANCEL)
-	{
-		button2 = @"Cancel";
-	}
-	else if(flags & DW_MB_YESNO)
-	{
-		button1 = @"Yes";
-		button2 = @"No";
-	}
-	else if(flags & DW_MB_YESNOCANCEL)
-	{
-		button1 = @"Yes";
-		button2 = @"No";
-		button3 = @"Cancel";
-	}
-	
-	if(flags & DW_MB_ERROR)
-	{
-		iResponse = (int)
-		NSRunCriticalAlertPanel([ NSString stringWithUTF8String:title ],
-								[ NSString stringWithUTF8String:outbuf ],
-								button1, button2, button3);	}
-	else
-	{
-		iResponse = (int)
-		NSRunAlertPanel([ NSString stringWithUTF8String:title ],
-						[ NSString stringWithUTF8String:outbuf ],
-						button1, button2, button3);
-	}
-	
-	switch(iResponse)
-	{
-		case NSAlertDefaultReturn:    /* user pressed OK */
-			if(flags & DW_MB_YESNO || flags & DW_MB_YESNOCANCEL)
-			{
-				return DW_MB_RETURN_YES;
-			}
-			return DW_MB_RETURN_OK;
-		case NSAlertAlternateReturn:  /* user pressed Cancel */
-			if(flags & DW_MB_OKCANCEL)
-			{
-				return DW_MB_RETURN_CANCEL;
-			}
-			return DW_MB_RETURN_NO;
-		case NSAlertOtherReturn:      /* user pressed the third button */
-			return DW_MB_RETURN_CANCEL;
-		case NSAlertErrorReturn:      /* an error occurred */
-			break;
-	}
-	return 0;
+    va_start(args, format);
+    vsprintf(outbuf, format, args);
+    va_end(args);
+    
+    if(flags & DW_MB_OKCANCEL)
+    {
+        button2 = @"Cancel";
+    }
+    else if(flags & DW_MB_YESNO)
+    {
+        button1 = @"Yes";
+        button2 = @"No";
+    }
+    else if(flags & DW_MB_YESNOCANCEL)
+    {
+        button1 = @"Yes";
+        button2 = @"No";
+        button3 = @"Cancel";
+    }
+    
+    if(flags & DW_MB_ERROR)
+    {
+        iResponse = (int)
+        NSRunCriticalAlertPanel([ NSString stringWithUTF8String:title ],
+                                [ NSString stringWithUTF8String:outbuf ],
+                                button1, button2, button3); }
+    else
+    {
+        iResponse = (int)
+        NSRunAlertPanel([ NSString stringWithUTF8String:title ],
+                        [ NSString stringWithUTF8String:outbuf ],
+                        button1, button2, button3);
+    }
+    
+    switch(iResponse)
+    {
+        case NSAlertDefaultReturn:    /* user pressed OK */
+            if(flags & DW_MB_YESNO || flags & DW_MB_YESNOCANCEL)
+            {
+                return DW_MB_RETURN_YES;
+            }
+            return DW_MB_RETURN_OK;
+        case NSAlertAlternateReturn:  /* user pressed Cancel */
+            if(flags & DW_MB_OKCANCEL)
+            {
+                return DW_MB_RETURN_CANCEL;
+            }
+            return DW_MB_RETURN_NO;
+        case NSAlertOtherReturn:      /* user pressed the third button */
+            return DW_MB_RETURN_CANCEL;
+        case NSAlertErrorReturn:      /* an error occurred */
+            break;
+    }
+    return 0;
 }
 
 /*
@@ -2155,53 +2155,53 @@ int API dw_messagebox(char *title, int flags, char *format, ...)
  */
 char * API dw_file_browse(char *title, char *defpath, char *ext, int flags)
 {
-	if(flags == DW_FILE_OPEN)
-	{
-		/* Create the File Open Dialog class. */
-		NSOpenPanel* openDlg = [NSOpenPanel openPanel];
-	
-		/* Enable the selection of files in the dialog. */
-		[openDlg setCanChooseFiles:YES];
-		[openDlg setCanChooseDirectories:NO];
-	
-		/* Disable multiple selection */
-		[openDlg setAllowsMultipleSelection:NO];
-	
-		/* Display the dialog.  If the OK button was pressed,
-		 * process the files.
-		 */
-		if([openDlg runModal] == NSOKButton)
-		{
-			/* Get an array containing the full filenames of all
-			 * files and directories selected.
-			 */
-			NSArray* files = [openDlg filenames];
-			NSString* fileName = [files objectAtIndex:0];
-			return strdup([ fileName UTF8String ]);		
-		}
-	}
-	else
-	{
-		/* Create the File Save Dialog class. */
-		NSSavePanel* saveDlg = [NSSavePanel savePanel];
-		
-		/* Enable the creation of directories in the dialog. */
-		[saveDlg setCanCreateDirectories:YES];
-		
-		/* Display the dialog.  If the OK button was pressed,
-		 * process the files.
-		 */
-		if([saveDlg runModal] == NSFileHandlingPanelOKButton)
-		{
-			/* Get an array containing the full filenames of all
-			 * files and directories selected.
-			 */
-			NSString* fileName = [saveDlg filename];
-			return strdup([ fileName UTF8String ]);		
-		}		
-	}
+    if(flags == DW_FILE_OPEN)
+    {
+        /* Create the File Open Dialog class. */
+        NSOpenPanel* openDlg = [NSOpenPanel openPanel];
+    
+        /* Enable the selection of files in the dialog. */
+        [openDlg setCanChooseFiles:YES];
+        [openDlg setCanChooseDirectories:NO];
+    
+        /* Disable multiple selection */
+        [openDlg setAllowsMultipleSelection:NO];
+    
+        /* Display the dialog.  If the OK button was pressed,
+         * process the files.
+         */
+        if([openDlg runModal] == NSOKButton)
+        {
+            /* Get an array containing the full filenames of all
+             * files and directories selected.
+             */
+            NSArray* files = [openDlg filenames];
+            NSString* fileName = [files objectAtIndex:0];
+            return strdup([ fileName UTF8String ]);     
+        }
+    }
+    else
+    {
+        /* Create the File Save Dialog class. */
+        NSSavePanel* saveDlg = [NSSavePanel savePanel];
+        
+        /* Enable the creation of directories in the dialog. */
+        [saveDlg setCanCreateDirectories:YES];
+        
+        /* Display the dialog.  If the OK button was pressed,
+         * process the files.
+         */
+        if([saveDlg runModal] == NSFileHandlingPanelOKButton)
+        {
+            /* Get an array containing the full filenames of all
+             * files and directories selected.
+             */
+            NSString* fileName = [saveDlg filename];
+            return strdup([ fileName UTF8String ]);     
+        }       
+    }
 
-	return NULL;
+    return NULL;
 }
 
 /*
@@ -2214,13 +2214,13 @@ char * API dw_file_browse(char *title, char *defpath, char *ext, int flags)
  */
 char *dw_clipboard_get_text()
 {
-	NSPasteboard *pasteboard = [NSPasteboard generalPasteboard];
-	NSString *str = [pasteboard stringForType:NSStringPboardType];
-	if(str != nil)
-	{
-		return strdup([ str UTF8String ]);
-	}
-	return NULL;
+    NSPasteboard *pasteboard = [NSPasteboard generalPasteboard];
+    NSString *str = [pasteboard stringForType:NSStringPboardType];
+    if(str != nil)
+    {
+        return strdup([ str UTF8String ]);
+    }
+    return NULL;
 }
 
 /*
@@ -2230,15 +2230,15 @@ char *dw_clipboard_get_text()
  */
 void dw_clipboard_set_text( char *str, int len)
 {
-	NSPasteboard *pasteboard = [NSPasteboard generalPasteboard];
-	
+    NSPasteboard *pasteboard = [NSPasteboard generalPasteboard];
+    
     /* Only in Snow Leopard */
     if(DWOSMinor > 5)
     {
         [pasteboard clearContents];
     }
-	
-	[pasteboard setString:[ NSString stringWithUTF8String:str ] forType:NSStringPboardType];
+    
+    [pasteboard setString:[ NSString stringWithUTF8String:str ] forType:NSStringPboardType];
 }
 
 
@@ -2249,17 +2249,17 @@ void dw_clipboard_set_text( char *str, int len)
  */
 DWDialog * API dw_dialog_new(void *data)
 {
-	DWDialog *tmp = malloc(sizeof(DWDialog));
-	
-	if(tmp)
-	{
-		tmp->eve = dw_event_new();
-		dw_event_reset(tmp->eve);
-		tmp->data = data;
-		tmp->done = FALSE;
-		tmp->result = NULL;
-	}
-	return tmp;	
+    DWDialog *tmp = malloc(sizeof(DWDialog));
+    
+    if(tmp)
+    {
+        tmp->eve = dw_event_new();
+        dw_event_reset(tmp->eve);
+        tmp->data = data;
+        tmp->done = FALSE;
+        tmp->result = NULL;
+    }
+    return tmp; 
 }
 
 /*
@@ -2271,10 +2271,10 @@ DWDialog * API dw_dialog_new(void *data)
  */
 int API dw_dialog_dismiss(DWDialog *dialog, void *result)
 {
-	dialog->result = result;
-	dw_event_post(dialog->eve);
-	dialog->done = TRUE;
-	return 0;
+    dialog->result = result;
+    dw_event_post(dialog->eve);
+    dialog->done = TRUE;
+    return 0;
 }
 
 /*
@@ -2285,16 +2285,16 @@ int API dw_dialog_dismiss(DWDialog *dialog, void *result)
  */
 void * API dw_dialog_wait(DWDialog *dialog)
 {
-	void *tmp;
-	
-	while(!dialog->done)
-	{
-		_dw_main_iteration([NSDate dateWithTimeIntervalSinceNow:0.01]);
-	}
-	dw_event_close(&dialog->eve);
-	tmp = dialog->result;
-	free(dialog);
-	return tmp;
+    void *tmp;
+    
+    while(!dialog->done)
+    {
+        _dw_main_iteration([NSDate dateWithTimeIntervalSinceNow:0.01]);
+    }
+    dw_event_close(&dialog->eve);
+    tmp = dialog->result;
+    free(dialog);
+    return tmp;
 }
 
 /*
@@ -2308,12 +2308,12 @@ HWND API dw_box_new(int type, int pad)
     int _locked_by_me = FALSE;
     DW_MUTEX_LOCK;
     DWBox *view = [[DWBox alloc] init];
-	Box *newbox = [view box];
-	memset(newbox, 0, sizeof(Box));
-   	newbox->pad = pad;
-   	newbox->type = type;
+    Box *newbox = [view box];
+    memset(newbox, 0, sizeof(Box));
+    newbox->pad = pad;
+    newbox->type = type;
     DW_MUTEX_UNLOCK;
-	return view;
+    return view;
 }
 
 /*
@@ -2325,9 +2325,9 @@ HWND API dw_box_new(int type, int pad)
  */
 HWND API dw_groupbox_new(int type, int pad, char *title)
 {
-	DWBox *box = dw_box_new(type, pad);
-	[box setFocusRingType:NSFocusRingTypeExterior];
-	return box;
+    DWBox *box = dw_box_new(type, pad);
+    [box setFocusRingType:NSFocusRingTypeExterior];
+    return box;
 }
 
 #ifndef INCOMPLETE
@@ -2388,37 +2388,37 @@ void API dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, 
 {
     int _locked_by_me = FALSE;
     DW_MUTEX_LOCK;
-	NSObject *object = box;
-	DWBox *view = box;
-	DWBox *this = item;
-	Box *thisbox;
+    NSObject *object = box;
+    DWBox *view = box;
+    DWBox *this = item;
+    Box *thisbox;
     int z;
     Item *tmpitem, *thisitem;
 
-	/* Query the objects */
-	if([ object isKindOfClass:[ NSWindow class ] ])
-	{
-		NSWindow *window = box;
-		view = [window contentView];
-	}
-	
-	thisbox = [view box];
-	thisitem = thisbox->items;
-	object = item;
+    /* Query the objects */
+    if([ object isKindOfClass:[ NSWindow class ] ])
+    {
+        NSWindow *window = box;
+        view = [window contentView];
+    }
+    
+    thisbox = [view box];
+    thisitem = thisbox->items;
+    object = item;
 
-	/* Query the objects */
-	if([ object isKindOfClass:[ DWContainer class ] ])
-	{
-		DWContainer *cont = item;
-		this = item = [cont scrollview];
-	}
-	else if([ object isKindOfClass:[ DWTree class ] ])
-	{
-		DWTree *tree = item;
-		this = item = [tree scrollview];
-	}
+    /* Query the objects */
+    if([ object isKindOfClass:[ DWContainer class ] ])
+    {
+        DWContainer *cont = item;
+        this = item = [cont scrollview];
+    }
+    else if([ object isKindOfClass:[ DWTree class ] ])
+    {
+        DWTree *tree = item;
+        this = item = [tree scrollview];
+    }
 
-	/* Duplicate the existing data */
+    /* Duplicate the existing data */
     tmpitem = malloc(sizeof(Item)*(thisbox->count+1));
 
     for(z=0;z<thisbox->count;z++)
@@ -2426,14 +2426,14 @@ void API dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, 
        tmpitem[z+1] = thisitem[z];
     }
 
-	/* Sanity checks */
+    /* Sanity checks */
     if(vsize && !height)
        height = 1;
     if(hsize && !width)
        width = 1;
 
-	/* Fill in the item data appropriately */
-	if([ object isKindOfClass:[ DWBox class ] ])
+    /* Fill in the item data appropriately */
+    if([ object isKindOfClass:[ DWBox class ] ])
        tmpitem[0].type = TYPEBOX;
     else
        tmpitem[0].type = TYPEITEM;
@@ -2454,13 +2454,13 @@ void API dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, 
 
     thisbox->items = tmpitem;
 
-	/* Update the item count */
+    /* Update the item count */
     thisbox->count++;
 
-	/* Add the item to the box */
-	[view addSubview:this];
-	
-	/* Free the old data */
+    /* Add the item to the box */
+    [view addSubview:this];
+    
+    /* Free the old data */
     if(thisbox->count)
        free(thisitem);
     DW_MUTEX_UNLOCK;
@@ -2481,37 +2481,37 @@ void API dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize
 {
     int _locked_by_me = FALSE;
     DW_MUTEX_LOCK;
-	NSObject *object = box;
-	DWBox *view = box;
-	DWBox *this = item;
-	Box *thisbox;
+    NSObject *object = box;
+    DWBox *view = box;
+    DWBox *this = item;
+    Box *thisbox;
     int z;
     Item *tmpitem, *thisitem;
 
-	/* Query the objects */
-	if([ object isKindOfClass:[ NSWindow class ] ])
-	{
-		NSWindow *window = box;
-		view = [window contentView];
-	}
-	
-	thisbox = [view box];
-	thisitem = thisbox->items;
-	object = item;
+    /* Query the objects */
+    if([ object isKindOfClass:[ NSWindow class ] ])
+    {
+        NSWindow *window = box;
+        view = [window contentView];
+    }
+    
+    thisbox = [view box];
+    thisitem = thisbox->items;
+    object = item;
 
-	/* Query the objects */
-	if([ object isKindOfClass:[ DWContainer class ] ])
-	{
-		DWContainer *cont = item;
-		this = item = [cont scrollview];
-	}
-	else if([ object isKindOfClass:[ DWTree class ] ])
-	{
-		DWTree *tree = item;
-		this = item = [tree scrollview];
-	}
+    /* Query the objects */
+    if([ object isKindOfClass:[ DWContainer class ] ])
+    {
+        DWContainer *cont = item;
+        this = item = [cont scrollview];
+    }
+    else if([ object isKindOfClass:[ DWTree class ] ])
+    {
+        DWTree *tree = item;
+        this = item = [tree scrollview];
+    }
 
-	/* Duplicate the existing data */
+    /* Duplicate the existing data */
     tmpitem = malloc(sizeof(Item)*(thisbox->count+1));
 
     for(z=0;z<thisbox->count;z++)
@@ -2519,14 +2519,14 @@ void API dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize
        tmpitem[z] = thisitem[z];
     }
 
-	/* Sanity checks */
+    /* Sanity checks */
     if(vsize && !height)
        height = 1;
     if(hsize && !width)
        width = 1;
 
-	/* Fill in the item data appropriately */
-	if([ object isKindOfClass:[ DWBox class ] ])
+    /* Fill in the item data appropriately */
+    if([ object isKindOfClass:[ DWBox class ] ])
        tmpitem[thisbox->count].type = TYPEBOX;
     else
        tmpitem[thisbox->count].type = TYPEITEM;
@@ -2545,15 +2545,15 @@ void API dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize
     else
        tmpitem[thisbox->count].vsize = SIZESTATIC;
 
-	thisbox->items = tmpitem;
+    thisbox->items = tmpitem;
 
-	/* Update the item count */
+    /* Update the item count */
     thisbox->count++;
 
-	/* Add the item to the box */
-	[view addSubview:this];
-	
-	/* Free the old data */
+    /* Add the item to the box */
+    [view addSubview:this];
+    
+    /* Free the old data */
     if(thisbox->count)
        free(thisitem);
     DW_MUTEX_UNLOCK;
@@ -2592,7 +2592,7 @@ HWND API dw_button_new(char *text, ULONG cid)
     [button setImagePosition:NSNoImage];
     [button setAlignment:NSCenterTextAlignment];
     [[button cell] setControlTint:NSBlueControlTint];
-	return button;
+    return button;
 }
 
 /*
@@ -2603,10 +2603,10 @@ HWND API dw_button_new(char *text, ULONG cid)
  */
 HWND API dw_entryfield_new(char *text, ULONG cid)
 {
-	DWEntryField *entry = [[DWEntryField alloc] init];
-	[entry setStringValue:[ NSString stringWithUTF8String:text ]];
-	[entry setTag:cid];
-	return entry;
+    DWEntryField *entry = [[DWEntryField alloc] init];
+    [entry setStringValue:[ NSString stringWithUTF8String:text ]];
+    [entry setTag:cid];
+    return entry;
 }
 
 /*
@@ -2617,10 +2617,10 @@ HWND API dw_entryfield_new(char *text, ULONG cid)
  */
 HWND API dw_entryfield_password_new(char *text, ULONG cid)
 {
-	DWEntryFieldPassword *entry = [[DWEntryFieldPassword alloc] init];
-	[entry setStringValue:[ NSString stringWithUTF8String:text ]];
-	[entry setTag:cid];
-	return entry;
+    DWEntryFieldPassword *entry = [[DWEntryFieldPassword alloc] init];
+    [entry setStringValue:[ NSString stringWithUTF8String:text ]];
+    [entry setTag:cid];
+    return entry;
 }
 
 /*
@@ -2631,7 +2631,7 @@ HWND API dw_entryfield_password_new(char *text, ULONG cid)
  */
 void API dw_entryfield_set_limit(HWND handle, ULONG limit)
 {
-	NSLog(@"dw_entryfield_set_limit() unimplemented\n");
+    NSLog(@"dw_entryfield_set_limit() unimplemented\n");
 }
 
 /*
@@ -2722,7 +2722,7 @@ HWND API dw_bitmapbutton_new_from_data(char *text, unsigned long cid, char *data
 HWND API dw_spinbutton_new(char *text, ULONG cid)
 {
     DWSpinButton *spinbutton = [[DWSpinButton alloc] init];
-	NSStepper *stepper = [spinbutton stepper];
+    NSStepper *stepper = [spinbutton stepper];
     [stepper setIncrement:1];
     [stepper setTag:cid];
     return spinbutton;
@@ -2737,7 +2737,7 @@ HWND API dw_spinbutton_new(char *text, ULONG cid)
 void API dw_spinbutton_set_pos(HWND handle, long position)
 {
     DWSpinButton *spinbutton = handle;
-	NSStepper *stepper = [spinbutton stepper];
+    NSStepper *stepper = [spinbutton stepper];
     NSTextField *textfield = [spinbutton textfield];
     [stepper setIntValue:(int)position];
     [textfield takeIntValueFrom:stepper];
@@ -2753,7 +2753,7 @@ void API dw_spinbutton_set_pos(HWND handle, long position)
 void API dw_spinbutton_set_limits(HWND handle, long upper, long lower)
 {
     DWSpinButton *spinbutton = handle;
-	NSStepper *stepper = [spinbutton stepper];
+    NSStepper *stepper = [spinbutton stepper];
     [stepper setMinValue:(double)lower];
     [stepper setMaxValue:(double)upper];
 }
@@ -2766,7 +2766,7 @@ void API dw_spinbutton_set_limits(HWND handle, long upper, long lower)
 long API dw_spinbutton_get_pos(HWND handle)
 {
     DWSpinButton *spinbutton = handle;
-	NSStepper *stepper = [spinbutton stepper];
+    NSStepper *stepper = [spinbutton stepper];
     return (long)[stepper integerValue];
 }
 
@@ -2778,9 +2778,9 @@ long API dw_spinbutton_get_pos(HWND handle)
  */
 HWND API dw_radiobutton_new(char *text, ULONG cid)
 {
-	DWButton *button = _button_new(text, cid);
-	[button setButtonType:NSRadioButton];
-	return button;
+    DWButton *button = _button_new(text, cid);
+    [button setButtonType:NSRadioButton];
+    return button;
 }
 
 /*
@@ -2809,9 +2809,9 @@ HWND API dw_slider_new(int vertical, int increments, ULONG cid)
  */
 unsigned int API dw_slider_get_pos(HWND handle)
 {
-	DWSlider *slider = handle;
-	double val = [slider doubleValue];
-	return (int)val;
+    DWSlider *slider = handle;
+    double val = [slider doubleValue];
+    return (int)val;
 }
 
 /*
@@ -2822,8 +2822,8 @@ unsigned int API dw_slider_get_pos(HWND handle)
  */
 void API dw_slider_set_pos(HWND handle, unsigned int position)
 {
-	DWSlider *slider = handle;
-	[slider setDoubleValue:(double)position];
+    DWSlider *slider = handle;
+    [slider setDoubleValue:(double)position];
 }
 
 /*
@@ -2863,10 +2863,10 @@ HWND API dw_scrollbar_new(int vertical, ULONG cid)
  */
 unsigned int API dw_scrollbar_get_pos(HWND handle)
 {
-	DWScrollbar *scrollbar = handle;
-	float range = [scrollbar range];
-	float fresult = [scrollbar doubleValue] * range;
-	return (int)fresult;
+    DWScrollbar *scrollbar = handle;
+    float range = [scrollbar range];
+    float fresult = [scrollbar doubleValue] * range;
+    return (int)fresult;
 }
 
 /*
@@ -2877,10 +2877,10 @@ unsigned int API dw_scrollbar_get_pos(HWND handle)
  */
 void API dw_scrollbar_set_pos(HWND handle, unsigned int position)
 {
-	DWScrollbar *scrollbar = handle;
-	double range = (double)[scrollbar range];
-	double newpos = (double)position/range;
-	[scrollbar setDoubleValue:newpos];
+    DWScrollbar *scrollbar = handle;
+    double range = (double)[scrollbar range];
+    double newpos = (double)position/range;
+    [scrollbar setDoubleValue:newpos];
 }
 
 /*
@@ -2892,10 +2892,10 @@ void API dw_scrollbar_set_pos(HWND handle, unsigned int position)
  */
 void API dw_scrollbar_set_range(HWND handle, unsigned int range, unsigned int visible)
 {
-	DWScrollbar *scrollbar = handle;
-	float knob = (float)visible/(float)range;
-	[scrollbar setRange:(float)range andVisible:(float)visible];
-	[scrollbar setKnobProportion:knob];
+    DWScrollbar *scrollbar = handle;
+    float knob = (float)visible/(float)range;
+    [scrollbar setRange:(float)range andVisible:(float)visible];
+    [scrollbar setKnobProportion:knob];
 }
 
 /*
@@ -2905,15 +2905,15 @@ void API dw_scrollbar_set_range(HWND handle, unsigned int range, unsigned int vi
  */
 HWND API dw_percent_new(ULONG cid)
 {
-	DWPercent *percent = [[DWPercent alloc] init];
+    DWPercent *percent = [[DWPercent alloc] init];
     [percent setStyle:NSProgressIndicatorBarStyle];
-	[percent setBezeled:YES];
-	[percent setMaxValue:100];
-	[percent setMinValue:0];
+    [percent setBezeled:YES];
+    [percent setMaxValue:100];
+    [percent setMinValue:0];
     [percent incrementBy:1];
     [percent setIndeterminate:NO];
-	/*[percent setTag:cid]; Why doesn't this work? */
-	return percent;
+    /*[percent setTag:cid]; Why doesn't this work? */
+    return percent;
 }
 
 /*
@@ -2924,8 +2924,8 @@ HWND API dw_percent_new(ULONG cid)
  */
 void API dw_percent_set_pos(HWND handle, unsigned int position)
 {
-	DWPercent *percent = handle;
-	[percent setDoubleValue:(double)position];
+    DWPercent *percent = handle;
+    [percent setDoubleValue:(double)position];
 }
 
 /*
@@ -2936,10 +2936,10 @@ void API dw_percent_set_pos(HWND handle, unsigned int position)
  */
 HWND API dw_checkbox_new(char *text, ULONG cid)
 {
-	DWButton *button = _button_new(text, cid);
-	[button setButtonType:NSSwitchButton];
-	[button setBezelStyle:NSRegularSquareBezelStyle];
-	return button;
+    DWButton *button = _button_new(text, cid);
+    [button setButtonType:NSSwitchButton];
+    [button setBezelStyle:NSRegularSquareBezelStyle];
+    return button;
 }
 
 /*
@@ -2949,12 +2949,12 @@ HWND API dw_checkbox_new(char *text, ULONG cid)
  */
 int API dw_checkbox_get(HWND handle)
 {
-	DWButton *button = handle;
-	if([button state])
-	{
-		return TRUE;
-	}
-	return FALSE;
+    DWButton *button = handle;
+    if([button state])
+    {
+        return TRUE;
+    }
+    return FALSE;
 }
 
 /*
@@ -2965,15 +2965,15 @@ int API dw_checkbox_get(HWND handle)
  */
 void API dw_checkbox_set(HWND handle, int value)
 {
-	DWButton *button = handle;
-	if(value)
-	{
-		[button setState:NSOnState];
-	}
-	else
-	{
-		[button setState:NSOffState];
-	}
+    DWButton *button = handle;
+    if(value)
+    {
+        [button setState:NSOnState];
+    }
+    else
+    {
+        [button setState:NSOffState];
+    }
 
 }
 
@@ -2981,26 +2981,26 @@ void API dw_checkbox_set(HWND handle, int value)
 HWND _cont_new(ULONG cid, int multi)
 {
     NSScrollView *scrollview  = [[NSScrollView alloc] init];
-	DWContainer *cont = [[DWContainer alloc] init];
+    DWContainer *cont = [[DWContainer alloc] init];
 
     [cont setScrollview:scrollview];
     [scrollview setBorderType:NSBezelBorder];
     [scrollview setHasVerticalScroller:YES];
     [scrollview setAutohidesScrollers:YES];
 
-	if(multi)
-	{
-		[cont setAllowsMultipleSelection:YES];
-	}
-	else
-	{
-		[cont setAllowsMultipleSelection:NO];
-	}
-	[cont setDataSource:cont];
+    if(multi)
+    {
+        [cont setAllowsMultipleSelection:YES];
+    }
+    else
+    {
+        [cont setAllowsMultipleSelection:NO];
+    }
+    [cont setDataSource:cont];
     [scrollview setDocumentView:cont];
     [cont setTag:cid];
     [scrollview release];
-	return cont;
+    return cont;
 }
 
 /*
@@ -3013,16 +3013,16 @@ HWND API dw_listbox_new(ULONG cid, int multi)
 {
     int _locked_by_me = FALSE;
     DW_MUTEX_LOCK;
-	DWContainer *cont = _cont_new(cid, multi);
-	[cont setHeaderView:nil];
-	int type = DW_CFA_STRING;
-	[cont setup];
-	NSTableColumn *column = [[NSTableColumn alloc] init];
-	[cont addTableColumn:column];
-	[cont addColumn:column andType:type];
+    DWContainer *cont = _cont_new(cid, multi);
+    [cont setHeaderView:nil];
+    int type = DW_CFA_STRING;
+    [cont setup];
+    NSTableColumn *column = [[NSTableColumn alloc] init];
+    [cont addTableColumn:column];
+    [cont addColumn:column andType:type];
     [column release];
     DW_MUTEX_UNLOCK;
-	return cont;
+    return cont;
 }
 
 /*
@@ -3035,14 +3035,14 @@ void API dw_listbox_append(HWND handle, char *text)
 {
     int _locked_by_me = FALSE;
     DW_MUTEX_LOCK;
-	id object = handle;
-	
-	if([object isMemberOfClass:[DWComboBox class]])
-	{
-		DWComboBox *combo = handle;
-		
-		[combo addItemWithObjectValue:[ NSString stringWithUTF8String:text ]];
-	}
+    id object = handle;
+    
+    if([object isMemberOfClass:[DWComboBox class]])
+    {
+        DWComboBox *combo = handle;
+        
+        [combo addItemWithObjectValue:[ NSString stringWithUTF8String:text ]];
+    }
     else if([object isMemberOfClass:[DWContainer class]])
     {
         DWContainer *cont = handle;
@@ -3069,14 +3069,14 @@ void API dw_listbox_insert(HWND handle, char *text, int pos)
 {
     int _locked_by_me = FALSE;
     DW_MUTEX_LOCK;
-	id object = handle;
-	
-	if([object isMemberOfClass:[DWComboBox class]])
-	{
-		DWComboBox *combo = handle;
-		
-		[combo insertItemWithObjectValue:[ NSString stringWithUTF8String:text ] atIndex:pos];
-	}
+    id object = handle;
+    
+    if([object isMemberOfClass:[DWComboBox class]])
+    {
+        DWComboBox *combo = handle;
+        
+        [combo insertItemWithObjectValue:[ NSString stringWithUTF8String:text ] atIndex:pos];
+    }
     else if([object isMemberOfClass:[DWContainer class]])
     {
         DWContainer *cont = handle;
@@ -3100,25 +3100,25 @@ void API dw_listbox_list_append(HWND handle, char **text, int count)
 {
     int _locked_by_me = FALSE;
     DW_MUTEX_LOCK;
-	id object = handle;
-	
-	if([object isMemberOfClass:[DWComboBox class]])
-	{
-		DWComboBox *combo = handle;
-		int z;
-		
-		for(z=0;z<count;z++)
-		{		
-			[combo addItemWithObjectValue:[ NSString stringWithUTF8String:text[z] ]];
-		}
-	}
+    id object = handle;
+    
+    if([object isMemberOfClass:[DWComboBox class]])
+    {
+        DWComboBox *combo = handle;
+        int z;
+        
+        for(z=0;z<count;z++)
+        {       
+            [combo addItemWithObjectValue:[ NSString stringWithUTF8String:text[z] ]];
+        }
+    }
     else if([object isMemberOfClass:[DWContainer class]])
     {
         DWContainer *cont = handle;
-		int z;
-		
-		for(z=0;z<count;z++)
-		{		
+        int z;
+        
+        for(z=0;z<count;z++)
+        {       
             NSString *nstr = [ NSString stringWithUTF8String:text[z] ];
             NSArray *newrow = [[NSArray alloc] arrayWithObject:nstr];
 
@@ -3138,14 +3138,14 @@ void API dw_listbox_clear(HWND handle)
 {
     int _locked_by_me = FALSE;
     DW_MUTEX_LOCK;
-	id object = handle;
-	
-	if([object isMemberOfClass:[DWComboBox class]])
-	{
-		DWComboBox *combo = handle;
-		
-		[combo removeAllItems];
-	}
+    id object = handle;
+    
+    if([object isMemberOfClass:[DWComboBox class]])
+    {
+        DWComboBox *combo = handle;
+        
+        [combo removeAllItems];
+    }
     else if([object isMemberOfClass:[DWContainer class]])
     {
         DWContainer *cont = handle;
@@ -3163,14 +3163,14 @@ void API dw_listbox_clear(HWND handle)
  */
 int API dw_listbox_count(HWND handle)
 {
-	id object = handle;
-	
-	if([object isMemberOfClass:[DWComboBox class]])
-	{
-		DWComboBox *combo = handle;
-		
-		return (int)[combo numberOfItems];
-	}
+    id object = handle;
+    
+    if([object isMemberOfClass:[DWComboBox class]])
+    {
+        DWComboBox *combo = handle;
+        
+        return (int)[combo numberOfItems];
+    }
     else if([object isMemberOfClass:[DWContainer class]])
     {
         int _locked_by_me = FALSE;
@@ -3180,7 +3180,7 @@ int API dw_listbox_count(HWND handle)
         DW_MUTEX_UNLOCK;
         return result;
     }
-	return 0;
+    return 0;
 }
 
 /*
@@ -3193,14 +3193,14 @@ void API dw_listbox_set_top(HWND handle, int top)
 {
     int _locked_by_me = FALSE;
     DW_MUTEX_LOCK;
-	id object = handle;
-	
-	if([object isMemberOfClass:[DWComboBox class]])
-	{
-		DWComboBox *combo = handle;
-		
-		[combo scrollItemAtIndexToTop:top];
-	}
+    id object = handle;
+    
+    if([object isMemberOfClass:[DWComboBox class]])
+    {
+        DWComboBox *combo = handle;
+        
+        [combo scrollItemAtIndexToTop:top];
+    }
     else if([object isMemberOfClass:[DWContainer class]])
     {
         DWContainer *cont = handle;
@@ -3222,11 +3222,11 @@ void API dw_listbox_get_text(HWND handle, unsigned int index, char *buffer, unsi
 {
     int _locked_by_me = FALSE;
     DW_MUTEX_LOCK;
-	id object = handle;
-	
-	if([object isMemberOfClass:[DWComboBox class]])
-	{
-		DWComboBox *combo = handle;
+    id object = handle;
+    
+    if([object isMemberOfClass:[DWComboBox class]])
+    {
+        DWComboBox *combo = handle;
         int count = (int)[combo numberOfItems];
 
         if(index > count)
@@ -3238,7 +3238,7 @@ void API dw_listbox_get_text(HWND handle, unsigned int index, char *buffer, unsi
             NSString *nstr = [combo itemObjectValueAtIndex:index];
             strncpy(buffer, [ nstr UTF8String ], length - 1);
         }
-	}
+    }
     else if([object isMemberOfClass:[DWContainer class]])
     {
         DWContainer *cont = handle;
@@ -3269,19 +3269,19 @@ void API dw_listbox_set_text(HWND handle, unsigned int index, char *buffer)
 {
     int _locked_by_me = FALSE;
     DW_MUTEX_LOCK;
-	id object = handle;
-	
-	if([object isMemberOfClass:[DWComboBox class]])
-	{
-		DWComboBox *combo = handle;
+    id object = handle;
+    
+    if([object isMemberOfClass:[DWComboBox class]])
+    {
+        DWComboBox *combo = handle;
         int count = (int)[combo numberOfItems];
-		
+        
         if(index <= count)
         {
             [combo removeItemAtIndex:index];
             [combo insertItemWithObjectValue:[ NSString stringWithUTF8String:buffer ] atIndex:index];
         }
-	}
+    }
     else if([object isMemberOfClass:[DWContainer class]])
     {
         DWContainer *cont = handle;
@@ -3305,13 +3305,13 @@ void API dw_listbox_set_text(HWND handle, unsigned int index, char *buffer)
  */
 unsigned int API dw_listbox_selected(HWND handle)
 {
-	id object = handle;
-	
-	if([object isMemberOfClass:[DWComboBox class]])
-	{
-		DWComboBox *combo = handle;
-		return (int)[combo indexOfSelectedItem];
-	}
+    id object = handle;
+    
+    if([object isMemberOfClass:[DWComboBox class]])
+    {
+        DWComboBox *combo = handle;
+        return (int)[combo indexOfSelectedItem];
+    }
     else if([object isMemberOfClass:[DWContainer class]])
     {
         int _locked_by_me = FALSE;
@@ -3321,7 +3321,7 @@ unsigned int API dw_listbox_selected(HWND handle)
         DW_MUTEX_UNLOCK;
         return result;
     }
-	return -1;
+    return -1;
 }
 
 /*
@@ -3334,7 +3334,7 @@ int API dw_listbox_selected_multi(HWND handle, int where)
 {
     int _locked_by_me = FALSE;
     DW_MUTEX_LOCK;
-	id object = handle;
+    id object = handle;
     int retval = -1;
 
     if([object isMemberOfClass:[DWContainer class]])
@@ -3349,7 +3349,7 @@ int API dw_listbox_selected_multi(HWND handle, int where)
         }
     }
     DW_MUTEX_UNLOCK;
-	return retval;
+    return retval;
 }
 
 /*
@@ -3363,16 +3363,16 @@ void API dw_listbox_select(HWND handle, int index, int state)
 {
     int _locked_by_me = FALSE;
     DW_MUTEX_LOCK;
-	id object = handle;
-	
-	if([object isMemberOfClass:[DWComboBox class]])
-	{
-		DWComboBox *combo = handle;
-		if(state)
-			[combo selectItemAtIndex:index];
-		else
-			[combo deselectItemAtIndex:index];
-	}
+    id object = handle;
+    
+    if([object isMemberOfClass:[DWComboBox class]])
+    {
+        DWComboBox *combo = handle;
+        if(state)
+            [combo selectItemAtIndex:index];
+        else
+            [combo deselectItemAtIndex:index];
+    }
     else if([object isMemberOfClass:[DWContainer class]])
     {
         DWContainer *cont = handle;
@@ -3394,14 +3394,14 @@ void API dw_listbox_delete(HWND handle, int index)
 {
     int _locked_by_me = FALSE;
     DW_MUTEX_LOCK;
-	id object = handle;
-	
-	if([object isMemberOfClass:[DWComboBox class]])
-	{
-		DWComboBox *combo = handle;
-		
-		[combo removeItemAtIndex:index];
-	}
+    id object = handle;
+    
+    if([object isMemberOfClass:[DWComboBox class]])
+    {
+        DWComboBox *combo = handle;
+        
+        [combo removeItemAtIndex:index];
+    }
     else if([object isMemberOfClass:[DWContainer class]])
     {
         DWContainer *cont = handle;
@@ -3420,10 +3420,10 @@ void API dw_listbox_delete(HWND handle, int index)
  */
 HWND API dw_combobox_new(char *text, ULONG cid)
 {
-	DWComboBox *combo = [[DWComboBox alloc] init];
+    DWComboBox *combo = [[DWComboBox alloc] init];
     [combo setDelegate:combo];
     [combo setTag:cid];
-	return combo;
+    return combo;
 }
 
 /*
@@ -3433,7 +3433,7 @@ HWND API dw_combobox_new(char *text, ULONG cid)
  */
 HWND API dw_mle_new(ULONG cid)
 {
-	DWMLE *mle = [[DWMLE alloc] init];
+    DWMLE *mle = [[DWMLE alloc] init];
     NSScrollView *scrollview  = [[NSScrollView alloc] init];
 
     [scrollview setBorderType:NSBezelBorder];
@@ -3444,8 +3444,8 @@ HWND API dw_mle_new(ULONG cid)
     [mle setAutoresizingMask:NSViewWidthSizable];
     /* [mle setTag:cid]; Why doesn't this work? */
     [mle release];
-	return scrollview;
-}	
+    return scrollview;
+}   
 
 /*
  * Adds text to an MLE box and returns the current point.
@@ -3457,12 +3457,12 @@ HWND API dw_mle_new(ULONG cid)
 unsigned int API dw_mle_import(HWND handle, char *buffer, int startpoint)
 {
     NSScrollView *sv = handle;
-	DWMLE *mle = [sv documentView];
+    DWMLE *mle = [sv documentView];
     NSTextStorage *ts = [mle textStorage];
     NSString *nstr = [NSString stringWithUTF8String:buffer];
     NSMutableString *ms = [ts mutableString];
     [ms insertString:nstr atIndex:(startpoint+1)];
-	return (unsigned int)strlen(buffer) + startpoint;
+    return (unsigned int)strlen(buffer) + startpoint;
 }
 
 /*
@@ -3476,7 +3476,7 @@ unsigned int API dw_mle_import(HWND handle, char *buffer, int startpoint)
 void API dw_mle_export(HWND handle, char *buffer, int startpoint, int length)
 {
     NSScrollView *sv = handle;
-	DWMLE *mle = [sv documentView];
+    DWMLE *mle = [sv documentView];
     NSTextStorage *ts = [mle textStorage];
     NSMutableString *ms = [ts mutableString];
     strncpy(buffer, [ms UTF8String], length);
@@ -3492,7 +3492,7 @@ void API dw_mle_export(HWND handle, char *buffer, int startpoint, int length)
 void API dw_mle_get_size(HWND handle, unsigned long *bytes, unsigned long *lines)
 {
     NSScrollView *sv = handle;
-	DWMLE *mle = [sv documentView];
+    DWMLE *mle = [sv documentView];
     NSTextStorage *ts = [mle textStorage];
     NSMutableString *ms = [ts mutableString];
 
@@ -3510,7 +3510,7 @@ void API dw_mle_get_size(HWND handle, unsigned long *bytes, unsigned long *lines
 void API dw_mle_delete(HWND handle, int startpoint, int length)
 {
     NSScrollView *sv = handle;
-	DWMLE *mle = [sv documentView];
+    DWMLE *mle = [sv documentView];
     NSTextStorage *ts = [mle textStorage];
     NSMutableString *ms = [ts mutableString];
     [ms deleteCharactersInRange:NSMakeRange(startpoint+1, length)];
@@ -3524,7 +3524,7 @@ void API dw_mle_delete(HWND handle, int startpoint, int length)
 void API dw_mle_clear(HWND handle)
 {
     NSScrollView *sv = handle;
-	DWMLE *mle = [sv documentView];
+    DWMLE *mle = [sv documentView];
     NSTextStorage *ts = [mle textStorage];
     NSMutableString *ms = [ts mutableString];
     NSUInteger length = [ms length];
@@ -3540,9 +3540,9 @@ void API dw_mle_clear(HWND handle)
 void API dw_mle_set_visible(HWND handle, int line)
 {
     /*NSScrollView *sv = handle;
-	DWMLE *mle = [sv documentView];
+    DWMLE *mle = [sv documentView];
     [mle scrollrangeToVisible:NSMakeRange(0,13)];*/
-	NSLog(@"dw_mle_set_visible() unimplemented\n");
+    NSLog(@"dw_mle_set_visible() unimplemented\n");
 }
 
 /*
@@ -3554,15 +3554,15 @@ void API dw_mle_set_visible(HWND handle, int line)
 void API dw_mle_set_editable(HWND handle, int state)
 {
     NSScrollView *sv = handle;
-	DWMLE *mle = [sv documentView];
-	if(state)
-	{
-		[mle setEditable:YES];
-	}
-	else
-	{
-		[mle setEditable:NO];
-	}
+    DWMLE *mle = [sv documentView];
+    if(state)
+    {
+        [mle setEditable:YES];
+    }
+    else
+    {
+        [mle setEditable:NO];
+    }
 }
 
 /*
@@ -3574,7 +3574,7 @@ void API dw_mle_set_editable(HWND handle, int state)
 void API dw_mle_set_word_wrap(HWND handle, int state)
 {
     NSScrollView *sv = handle;
-	DWMLE *mle = [sv documentView];
+    DWMLE *mle = [sv documentView];
     if(state)
     {
         [mle setHorizontallyResizable:NO];
@@ -3594,7 +3594,7 @@ void API dw_mle_set_word_wrap(HWND handle, int state)
 void API dw_mle_set_cursor(HWND handle, int point)
 {
     NSScrollView *sv = handle;
-	DWMLE *mle = [sv documentView];
+    DWMLE *mle = [sv documentView];
     [mle setSelectedRange: NSMakeRange(point,point)];
 }
 
@@ -3608,8 +3608,8 @@ void API dw_mle_set_cursor(HWND handle, int point)
  */
 int API dw_mle_search(HWND handle, char *text, int point, unsigned long flags)
 {
-	NSLog(@"dw_mle_search() unimplemented\n");
-	return 0;
+    NSLog(@"dw_mle_search() unimplemented\n");
+    return 0;
 }
 
 /*
@@ -3619,7 +3619,7 @@ int API dw_mle_search(HWND handle, char *text, int point, unsigned long flags)
  */
 void API dw_mle_freeze(HWND handle)
 {
-	/* Don't think this is necessary */
+    /* Don't think this is necessary */
 }
 
 /*
@@ -3629,7 +3629,7 @@ void API dw_mle_freeze(HWND handle)
  */
 void API dw_mle_thaw(HWND handle)
 {
-	/* Don't think this is necessary */
+    /* Don't think this is necessary */
 }
 
 /*
@@ -3643,7 +3643,7 @@ HWND API dw_status_text_new(char *text, ULONG cid)
     NSTextField *textfield = dw_text_new(text, cid);
     [textfield setBordered:YES];
     if(DWOSMinor > 5)
-	{
+    {
         [textfield setBezeled:YES];
         [textfield setBezelStyle:NSTextFieldSquareBezel];
     }
@@ -3683,9 +3683,9 @@ HWND API dw_text_new(char *text, ULONG cid)
  */
 HWND API dw_render_new(unsigned long cid)
 {
-	DWRender *render = [[DWRender alloc] init];
+    DWRender *render = [[DWRender alloc] init];
     /* [render setTag:cid]; Why doesn't this work? */
-	return render;
+    return render;
 }
 
 /* Sets the current foreground drawing color.
@@ -3697,7 +3697,7 @@ HWND API dw_render_new(unsigned long cid)
 void API dw_color_foreground_set(unsigned long value)
 {
     /* This may need to be thread specific */
-	_foreground = _get_color(value);
+    _foreground = _get_color(value);
 }
 
 /* Sets the current background drawing color.
@@ -3709,7 +3709,7 @@ void API dw_color_foreground_set(unsigned long value)
 void API dw_color_background_set(unsigned long value)
 {
     /* This may need to be thread specific */
-	_background = _get_color(value);
+    _background = _get_color(value);
 }
 
 /* Allows the user to choose a color using the system's color chooser dialog.
@@ -3742,7 +3742,7 @@ unsigned long API dw_color_choose(unsigned long value)
         [colorDlg setTarget:colorDlg]; 
         [colorDlg setAction:@selector(changeColor:)]; 
     }
-	
+    
     dialog = dw_dialog_new(colorDlg);
     [colorDlg setColor:color];
     [colorDlg setDialog:dialog];
@@ -3769,29 +3769,29 @@ void API dw_draw_point(HWND handle, HPIXMAP pixmap, int x, int y)
 {
     int _locked_by_me = FALSE;
     DW_MUTEX_LOCK;
-	id image = handle;
-	if(pixmap)
-	{
-		image = (id)pixmap->image;
-		[image lockFocus];
-	}
-	else
-	{
-		if([image lockFocusIfCanDraw] == NO)
+    id image = handle;
+    if(pixmap)
+    {
+        image = (id)pixmap->image;
+        [image lockFocus];
+    }
+    else
+    {
+        if([image lockFocusIfCanDraw] == NO)
         {
             DW_MUTEX_UNLOCK;
             return;
         }
-		_DWLastDrawable = handle;
-	}
-	NSBezierPath* aPath = [NSBezierPath bezierPath];
-	[aPath setLineWidth: 0.5];
+        _DWLastDrawable = handle;
+    }
+    NSBezierPath* aPath = [NSBezierPath bezierPath];
+    [aPath setLineWidth: 0.5];
     NSColor *color = [NSColor colorWithDeviceRed: DW_RED_VALUE(_foreground)/255.0 green: DW_GREEN_VALUE(_foreground)/255.0 blue: DW_BLUE_VALUE(_foreground)/255.0 alpha: 1];
     [color set];
-	
-	[aPath moveToPoint:NSMakePoint(x, y)];	
-	[aPath stroke];
-	[image unlockFocus];
+    
+    [aPath moveToPoint:NSMakePoint(x, y)];  
+    [aPath stroke];
+    [image unlockFocus];
     DW_MUTEX_UNLOCK;
 }
 
@@ -3808,31 +3808,31 @@ void API dw_draw_line(HWND handle, HPIXMAP pixmap, int x1, int y1, int x2, int y
 {
     int _locked_by_me = FALSE;
     DW_MUTEX_LOCK;
-	id image = handle;
-	if(pixmap)
-	{
-		image = (id)pixmap->image;
-		[image lockFocus];
-	}
-	else
-	{
-		if([image lockFocusIfCanDraw] == NO)
+    id image = handle;
+    if(pixmap)
+    {
+        image = (id)pixmap->image;
+        [image lockFocus];
+    }
+    else
+    {
+        if([image lockFocusIfCanDraw] == NO)
         {
             DW_MUTEX_UNLOCK;
             return;
         }
-		_DWLastDrawable = handle;
-	}
-	NSBezierPath* aPath = [NSBezierPath bezierPath];
-	[aPath setLineWidth: 0.5];
+        _DWLastDrawable = handle;
+    }
+    NSBezierPath* aPath = [NSBezierPath bezierPath];
+    [aPath setLineWidth: 0.5];
     NSColor *color = [NSColor colorWithDeviceRed: DW_RED_VALUE(_foreground)/255.0 green: DW_GREEN_VALUE(_foreground)/255.0 blue: DW_BLUE_VALUE(_foreground)/255.0 alpha: 1];
     [color set];
-	
-	[aPath moveToPoint:NSMakePoint(x1, y1)];	
-	[aPath lineToPoint:NSMakePoint(x2, y2)];
-	[aPath stroke];
-	
-	[image unlockFocus];
+    
+    [aPath moveToPoint:NSMakePoint(x1, y1)];    
+    [aPath lineToPoint:NSMakePoint(x2, y2)];
+    [aPath stroke];
+    
+    [image unlockFocus];
     DW_MUTEX_UNLOCK;
 }
 
@@ -3948,39 +3948,39 @@ void API dw_draw_polygon( HWND handle, HPIXMAP pixmap, int fill, int npoints, in
 {
     int _locked_by_me = FALSE;
     DW_MUTEX_LOCK;
-	id image = handle;
-	int z;
-	if(pixmap)
-	{
-		image = (id)pixmap->image;
-		[image lockFocus];
-	}
-	else
-	{
-		if([image lockFocusIfCanDraw] == NO)
+    id image = handle;
+    int z;
+    if(pixmap)
+    {
+        image = (id)pixmap->image;
+        [image lockFocus];
+    }
+    else
+    {
+        if([image lockFocusIfCanDraw] == NO)
         {
             DW_MUTEX_UNLOCK;
             return;
         }
-		_DWLastDrawable = handle;
-	}
-	NSBezierPath* aPath = [NSBezierPath bezierPath];
-	[aPath setLineWidth: 0.5];
+        _DWLastDrawable = handle;
+    }
+    NSBezierPath* aPath = [NSBezierPath bezierPath];
+    [aPath setLineWidth: 0.5];
     NSColor *color = [NSColor colorWithDeviceRed: DW_RED_VALUE(_foreground)/255.0 green: DW_GREEN_VALUE(_foreground)/255.0 blue: DW_BLUE_VALUE(_foreground)/255.0 alpha: 1];
     [color set];
-	
-	[aPath moveToPoint:NSMakePoint(*x, *y)];
-	for(z=1;z<npoints;z++)
-	{
-		[aPath lineToPoint:NSMakePoint(x[z], y[z])];
-	}
-	[aPath closePath];
-	if(fill)
-	{
-		[aPath fill];
-	}
-	[aPath stroke];
-	[image unlockFocus];
+    
+    [aPath moveToPoint:NSMakePoint(*x, *y)];
+    for(z=1;z<npoints;z++)
+    {
+        [aPath lineToPoint:NSMakePoint(x[z], y[z])];
+    }
+    [aPath closePath];
+    if(fill)
+    {
+        [aPath fill];
+    }
+    [aPath stroke];
+    [image unlockFocus];
     DW_MUTEX_UNLOCK;
 }
 
@@ -3998,34 +3998,34 @@ void API dw_draw_rect(HWND handle, HPIXMAP pixmap, int fill, int x, int y, int w
 {
     int _locked_by_me = FALSE;
     DW_MUTEX_LOCK;
-	id image = handle;
-	if(pixmap)
-	{
-		image = (id)pixmap->image;
-		[image lockFocus];
-	}
-	else
-	{
-		if([image lockFocusIfCanDraw] == NO)
+    id image = handle;
+    if(pixmap)
+    {
+        image = (id)pixmap->image;
+        [image lockFocus];
+    }
+    else
+    {
+        if([image lockFocusIfCanDraw] == NO)
         {
             DW_MUTEX_UNLOCK;
             return;
         }
-		_DWLastDrawable = handle;
-	}
-	NSBezierPath* aPath = [NSBezierPath bezierPath];
-	[aPath setLineWidth: 0.5];
+        _DWLastDrawable = handle;
+    }
+    NSBezierPath* aPath = [NSBezierPath bezierPath];
+    [aPath setLineWidth: 0.5];
     NSColor *color = [NSColor colorWithDeviceRed: DW_RED_VALUE(_foreground)/255.0 green: DW_GREEN_VALUE(_foreground)/255.0 blue: DW_BLUE_VALUE(_foreground)/255.0 alpha: 1];
     [color set];
-	
-	[aPath moveToPoint:NSMakePoint(x, y)];	
-	[aPath lineToPoint:NSMakePoint(x, y + height)];
-	[aPath lineToPoint:NSMakePoint(x + width, y + height)];
-	[aPath lineToPoint:NSMakePoint(x + width, y)];
+    
+    [aPath moveToPoint:NSMakePoint(x, y)];  
+    [aPath lineToPoint:NSMakePoint(x, y + height)];
+    [aPath lineToPoint:NSMakePoint(x + width, y + height)];
+    [aPath lineToPoint:NSMakePoint(x + width, y)];
     [aPath closePath];
     [aPath fill];
-	[aPath stroke];
-	[image unlockFocus];
+    [aPath stroke];
+    [image unlockFocus];
     DW_MUTEX_UNLOCK;
 }
 
@@ -4040,7 +4040,7 @@ HWND API dw_tree_new(ULONG cid)
     int _locked_by_me = FALSE;
     DW_MUTEX_LOCK;
     NSScrollView *scrollview  = [[NSScrollView alloc] init];
-	DWTree *tree = [[DWTree alloc] init];
+    DWTree *tree = [[DWTree alloc] init];
 
     [tree setScrollview:scrollview];
     [scrollview setBorderType:NSBezelBorder];
@@ -4048,7 +4048,7 @@ HWND API dw_tree_new(ULONG cid)
     [scrollview setAutohidesScrollers:YES];
 
     [tree setAllowsMultipleSelection:NO];
-	[tree setDataSource:tree];
+    [tree setDataSource:tree];
     [scrollview setDocumentView:tree];
     [tree setHeaderView:nil];
     [tree setTag:cid];
@@ -4081,7 +4081,7 @@ HTREEITEM API dw_tree_insert_after(HWND handle, HTREEITEM item, char *title, HIC
     [tree addTree:treenode and:parent];
     [tree reloadData];
     DW_MUTEX_UNLOCK;
-	return treenode;
+    return treenode;
 }
 
 /*
@@ -4122,8 +4122,8 @@ char * API dw_tree_get_title(HWND handle, HTREEITEM item)
  */
 HTREEITEM API dw_tree_get_parent(HWND handle, HTREEITEM item)
 {
-	NSLog(@"dw_tree_get_parent() unimplemented\n");
-	return HWND_DESKTOP;
+    NSLog(@"dw_tree_get_parent() unimplemented\n");
+    return HWND_DESKTOP;
 }
 
 /*
@@ -4300,15 +4300,15 @@ int API dw_container_setup(HWND handle, unsigned long *flags, char **titles, int
 {
     int _locked_by_me = FALSE;
     DW_MUTEX_LOCK;
-	int z;
-	DWContainer *cont = handle;
-	
-	[cont setup];
-	
-	for(z=0;z<count;z++)
-	{
-		NSTableColumn *column = [[NSTableColumn alloc] init];
-		[[column headerCell] setStringValue:[ NSString stringWithUTF8String:titles[z] ]];
+    int z;
+    DWContainer *cont = handle;
+    
+    [cont setup];
+    
+    for(z=0;z<count;z++)
+    {
+        NSTableColumn *column = [[NSTableColumn alloc] init];
+        [[column headerCell] setStringValue:[ NSString stringWithUTF8String:titles[z] ]];
         if(flags[z] & DW_CFA_BITMAPORICON)
         {
             NSImageCell *imagecell = [[NSImageCell alloc] init];
@@ -4320,12 +4320,12 @@ int API dw_container_setup(HWND handle, unsigned long *flags, char **titles, int
             }
             [imagecell release];
         }
-		[cont addTableColumn:column];
-		[cont addColumn:column andType:(int)flags[z]];
+        [cont addTableColumn:column];
+        [cont addColumn:column andType:(int)flags[z]];
         [column release];
-	}	
+    }   
     DW_MUTEX_UNLOCK;
-	return TRUE;
+    return TRUE;
 }
 
 /*
@@ -4338,23 +4338,23 @@ int API dw_container_setup(HWND handle, unsigned long *flags, char **titles, int
  */
 int API dw_filesystem_setup(HWND handle, unsigned long *flags, char **titles, int count)
 {
-	char **newtitles = malloc(sizeof(char *) * (count + 2));
-	unsigned long *newflags = malloc(sizeof(unsigned long) * (count + 2));
-	
-	newtitles[0] = "Icon";
-	newtitles[1] = "Filename";
-	
-	newflags[0] = DW_CFA_BITMAPORICON | DW_CFA_LEFT | DW_CFA_HORZSEPARATOR;
-	newflags[1] = DW_CFA_STRING | DW_CFA_LEFT | DW_CFA_HORZSEPARATOR;	
-	
-	memcpy(&newtitles[2], titles, sizeof(char *) * count);
-	memcpy(&newflags[2], flags, sizeof(unsigned long) * count);
-	
-	dw_container_setup(handle, newflags, newtitles, count + 2, 0);
-	
-	free(newtitles);
-	free(newflags);
-	return TRUE;
+    char **newtitles = malloc(sizeof(char *) * (count + 2));
+    unsigned long *newflags = malloc(sizeof(unsigned long) * (count + 2));
+    
+    newtitles[0] = "Icon";
+    newtitles[1] = "Filename";
+    
+    newflags[0] = DW_CFA_BITMAPORICON | DW_CFA_LEFT | DW_CFA_HORZSEPARATOR;
+    newflags[1] = DW_CFA_STRING | DW_CFA_LEFT | DW_CFA_HORZSEPARATOR;   
+    
+    memcpy(&newtitles[2], titles, sizeof(char *) * count);
+    memcpy(&newflags[2], flags, sizeof(unsigned long) * count);
+    
+    dw_container_setup(handle, newflags, newtitles, count + 2, 0);
+    
+    free(newtitles);
+    free(newflags);
+    return TRUE;
 }
 
 /*
@@ -4367,10 +4367,10 @@ void * API dw_container_alloc(HWND handle, int rowcount)
 {
     int _locked_by_me = FALSE;
     DW_MUTEX_LOCK;
-	DWContainer *cont = handle;
-	[cont addRows:rowcount];
+    DWContainer *cont = handle;
+    [cont addRows:rowcount];
     DW_MUTEX_UNLOCK;
-	return cont;
+    return cont;
 }
 
 /*
@@ -4386,68 +4386,68 @@ void API dw_container_set_item(HWND handle, void *pointer, int column, int row, 
 {
     int _locked_by_me = FALSE;
     DW_MUTEX_LOCK;
-	DWContainer *cont = handle;
-	id object = nil;
-	int type = [cont cellType:column];
-	int lastadd = [cont lastAddPoint];
+    DWContainer *cont = handle;
+    id object = nil;
+    int type = [cont cellType:column];
+    int lastadd = [cont lastAddPoint];
 
     if(!data)
     {
         DW_MUTEX_UNLOCK;
         return;
     }
-	if(type & DW_CFA_BITMAPORICON)
-	{
-		object = *((NSImage **)data);
-	}
-	else if(type & DW_CFA_STRING)
-	{
+    if(type & DW_CFA_BITMAPORICON)
+    {
+        object = *((NSImage **)data);
+    }
+    else if(type & DW_CFA_STRING)
+    {
         char *str = *((char **)data);
-		object = [ NSString stringWithUTF8String:str ];
-	}
-	else
-	{
-		char textbuffer[100];
-		
-		if(type & DW_CFA_ULONG)
-		{
-			ULONG tmp = *((ULONG *)data);
-			
-			sprintf(textbuffer, "%lu", tmp);
-		}
-		else if(type & DW_CFA_DATE)
-		{
-			struct tm curtm;
-			CDATE cdate = *((CDATE *)data);
-			
-			memset( &curtm, 0, sizeof(curtm) );
-			curtm.tm_mday = cdate.day;
-			curtm.tm_mon = cdate.month - 1;
-			curtm.tm_year = cdate.year - 1900;
-			
-			strftime(textbuffer, 100, "%x", &curtm);
-		}
-		else if(type & DW_CFA_TIME)
-		{
-			struct tm curtm;
-			CTIME ctime = *((CTIME *)data);
-			
-			memset( &curtm, 0, sizeof(curtm) );
-			curtm.tm_hour = ctime.hours;
-			curtm.tm_min = ctime.minutes;
-			curtm.tm_sec = ctime.seconds;
-			
-			strftime(textbuffer, 100, "%X", &curtm);
-		}
-		else
-		{
+        object = [ NSString stringWithUTF8String:str ];
+    }
+    else
+    {
+        char textbuffer[100];
+        
+        if(type & DW_CFA_ULONG)
+        {
+            ULONG tmp = *((ULONG *)data);
+            
+            sprintf(textbuffer, "%lu", tmp);
+        }
+        else if(type & DW_CFA_DATE)
+        {
+            struct tm curtm;
+            CDATE cdate = *((CDATE *)data);
+            
+            memset( &curtm, 0, sizeof(curtm) );
+            curtm.tm_mday = cdate.day;
+            curtm.tm_mon = cdate.month - 1;
+            curtm.tm_year = cdate.year - 1900;
+            
+            strftime(textbuffer, 100, "%x", &curtm);
+        }
+        else if(type & DW_CFA_TIME)
+        {
+            struct tm curtm;
+            CTIME ctime = *((CTIME *)data);
+            
+            memset( &curtm, 0, sizeof(curtm) );
+            curtm.tm_hour = ctime.hours;
+            curtm.tm_min = ctime.minutes;
+            curtm.tm_sec = ctime.seconds;
+            
+            strftime(textbuffer, 100, "%X", &curtm);
+        }
+        else
+        {
             DW_MUTEX_UNLOCK;
-			return;
-		}
-		object = [ NSString stringWithUTF8String:textbuffer ];
-	}
-	
-	[cont editCell:object at:(row+lastadd) and:column];
+            return;
+        }
+        object = [ NSString stringWithUTF8String:textbuffer ];
+    }
+    
+    [cont editCell:object at:(row+lastadd) and:column];
     DW_MUTEX_UNLOCK;
 }
 
@@ -4461,7 +4461,7 @@ void API dw_container_set_item(HWND handle, void *pointer, int column, int row, 
  */
 void API dw_container_change_item(HWND handle, int column, int row, void *data)
 {
-	dw_container_set_item(handle, NULL, column, row, data);
+    dw_container_set_item(handle, NULL, column, row, data);
 }
 
 /*
@@ -4474,7 +4474,7 @@ void API dw_container_change_item(HWND handle, int column, int row, void *data)
  */
 void API dw_filesystem_change_item(HWND handle, int column, int row, void *data)
 {
-	dw_container_change_item(handle, column+2, row, data);
+    dw_container_change_item(handle, column+2, row, data);
 }
 
 /*
@@ -4489,7 +4489,7 @@ void API dw_filesystem_change_item(HWND handle, int column, int row, void *data)
 void API dw_filesystem_change_file(HWND handle, int row, char *filename, HICN icon)
 {
     dw_container_change_item(handle, 0, row, &icon);
-	dw_container_change_item(handle, 1, row, &filename);
+    dw_container_change_item(handle, 1, row, &filename);
 }
 
 /*
@@ -4504,7 +4504,7 @@ void API dw_filesystem_change_file(HWND handle, int row, char *filename, HICN ic
 void API dw_filesystem_set_file(HWND handle, void *pointer, int row, char *filename, HICN icon)
 {
     dw_container_set_item(handle, pointer, 0, row, &icon);
-	dw_container_set_item(handle, pointer, 1, row, &filename);
+    dw_container_set_item(handle, pointer, 1, row, &filename);
 }
 
 /*
@@ -4518,7 +4518,7 @@ void API dw_filesystem_set_file(HWND handle, void *pointer, int row, char *filen
  */
 void API dw_filesystem_set_item(HWND handle, void *pointer, int column, int row, void *data)
 {
-	dw_container_set_item(handle, pointer, column+2, row, data);
+    dw_container_set_item(handle, pointer, column+2, row, data);
 }
 
 /*
@@ -4590,8 +4590,8 @@ void API dw_container_set_row_title(void *pointer, int row, char *title)
 {
     int _locked_by_me = FALSE;
     DW_MUTEX_LOCK;
-	DWContainer *cont = pointer;
-	[cont setRow:row title:title];
+    DWContainer *cont = pointer;
+    [cont setRow:row title:title];
     DW_MUTEX_UNLOCK;
 }
 
@@ -4606,7 +4606,7 @@ void API dw_container_insert(HWND handle, void *pointer, int rowcount)
 {
     int _locked_by_me = FALSE;
     DW_MUTEX_LOCK;
-	DWContainer *cont = handle;
+    DWContainer *cont = handle;
     [cont reloadData];
     DW_MUTEX_UNLOCK;
 }
@@ -4621,8 +4621,8 @@ void API dw_container_clear(HWND handle, int redraw)
 {
     int _locked_by_me = FALSE;
     DW_MUTEX_LOCK;
-	DWContainer *cont = handle;
-	[cont clear];
+    DWContainer *cont = handle;
+    [cont clear];
     if(redraw)
     {
         [cont reloadData];
@@ -4660,7 +4660,7 @@ void API dw_container_delete(HWND handle, int rowcount)
  */
 void API dw_container_scroll(HWND handle, int direction, long rows)
 {
-	NSLog(@"dw_container_scroll() unimplemented\n");
+    NSLog(@"dw_container_scroll() unimplemented\n");
 }
 
 /*
@@ -4686,7 +4686,7 @@ char * API dw_container_query_start(HWND handle, unsigned long flags)
         [cont setLastQueryPoint:(int)result];
     }
     DW_MUTEX_UNLOCK;
-	return retval;
+    return retval;
 }
 
 /*
@@ -4713,7 +4713,7 @@ char * API dw_container_query_next(HWND handle, unsigned long flags)
         [cont setLastQueryPoint:(int)result];
     }
     DW_MUTEX_UNLOCK;
-	return retval;
+    return retval;
 }
 
 /*
@@ -4781,9 +4781,9 @@ void API dw_container_optimize(HWND handle)
 {
     int _locked_by_me = FALSE;
     DW_MUTEX_LOCK;
-	DWContainer *cont = handle;
-	/*[cont sizeToFit];*/
-	[cont setColumnAutoresizingStyle:NSTableViewUniformColumnAutoresizingStyle];
+    DWContainer *cont = handle;
+    /*[cont sizeToFit];*/
+    [cont setColumnAutoresizingStyle:NSTableViewUniformColumnAutoresizingStyle];
     DW_MUTEX_UNLOCK;
 }
 
@@ -4796,7 +4796,7 @@ void API dw_container_optimize(HWND handle)
  */
 void API dw_taskbar_insert(HWND handle, HICN icon, char *bubbletext)
 {
-	NSLog(@"dw_taskbar_insert() unimplemented\n");
+    NSLog(@"dw_taskbar_insert() unimplemented\n");
 }
 
 /*
@@ -4807,7 +4807,7 @@ void API dw_taskbar_insert(HWND handle, HICN icon, char *bubbletext)
  */
 void API dw_taskbar_delete(HWND handle, HICN icon)
 {
-	NSLog(@"dw_taskbar_delete() unimplemented\n");
+    NSLog(@"dw_taskbar_delete() unimplemented\n");
 }
 
 /*
@@ -4823,8 +4823,8 @@ HICN API dw_icon_load(unsigned long module, unsigned long resid)
     NSBundle *bundle = [NSBundle mainBundle];
     NSString *respath = [bundle resourcePath];
     NSString *filepath = [respath stringByAppendingFormat:@"/%u.png", resid];
-	NSImage *image = [[NSImage alloc] initWithContentsOfFile:filepath];
-	return image;
+    NSImage *image = [[NSImage alloc] initWithContentsOfFile:filepath];
+    return image;
 }
 
 /*
@@ -4843,7 +4843,7 @@ HICN API dw_icon_load_from_file(char *filename)
         nstr = [nstr stringByAppendingString:@".png"];
         image = [[NSImage alloc] initWithContentsOfFile:nstr];
     }
-	return image;
+    return image;
 }
 
 /*
@@ -4855,9 +4855,9 @@ HICN API dw_icon_load_from_file(char *filename)
  */
 HICN API dw_icon_load_from_data(char *data, int len)
 {
-	NSData *thisdata = [[NSData alloc] dataWithBytes:data length:len];
-	NSImage *image = [[NSImage alloc] initWithData:thisdata];
-	return image;
+    NSData *thisdata = [[NSData alloc] dataWithBytes:data length:len];
+    NSImage *image = [[NSImage alloc] initWithData:thisdata];
+    return image;
 }
 
 /*
@@ -4902,24 +4902,24 @@ HWND API dw_splitbar_new(int type, HWND topleft, HWND bottomright, unsigned long
     HWND tmpbox = dw_box_new(DW_VERT, 0);
     int _locked_by_me = FALSE;
     DW_MUTEX_LOCK;
-	DWSplitBar *split = [[DWSplitBar alloc] init];
+    DWSplitBar *split = [[DWSplitBar alloc] init];
     [split setDelegate:split];
     dw_box_pack_start(tmpbox, topleft, 0, 0, TRUE, TRUE, 0);
-	[split addSubview:tmpbox];
+    [split addSubview:tmpbox];
     tmpbox = dw_box_new(DW_VERT, 0);
     dw_box_pack_start(tmpbox, bottomright, 0, 0, TRUE, TRUE, 0);
-	[split addSubview:tmpbox];
-	if(type == DW_VERT)
-	{
-		[split setVertical:NO];
-	}
+    [split addSubview:tmpbox];
+    if(type == DW_VERT)
+    {
+        [split setVertical:NO];
+    }
     else
     {
         [split setVertical:YES];
     }
     /* [split setTag:cid]; Why doesn't this work? */
     DW_MUTEX_UNLOCK;
-	return split;
+    return split;
 }
 
 /*
@@ -4929,7 +4929,7 @@ HWND API dw_splitbar_new(int type, HWND topleft, HWND bottomright, unsigned long
  */
 void API dw_splitbar_set(HWND handle, float percent)
 {
-	DWSplitBar *split = handle;
+    DWSplitBar *split = handle;
     int _locked_by_me = FALSE;
     DW_MUTEX_LOCK;
     NSRect rect = [split frame];
@@ -4965,7 +4965,7 @@ void API dw_splitbar_set(HWND handle, float percent)
  */
 float API dw_splitbar_get(HWND handle)
 {
-	DWSplitBar *split = handle;
+    DWSplitBar *split = handle;
     NSRect rect1 = [split frame];
     NSArray *subviews = [split subviews];
     NSView *view = [subviews objectAtIndex:0];
@@ -4985,7 +4985,7 @@ float API dw_splitbar_get(HWND handle)
     {
         retval = pos / total;
     }
-	return retval;
+    return retval;
 }
 
 /*
@@ -4997,12 +4997,12 @@ HWND API dw_bitmap_new(ULONG cid)
 {
     int _locked_by_me = FALSE;
     DW_MUTEX_LOCK;
-	NSImageView *bitmap = [[NSImageView alloc] init];
-	[bitmap setImageFrameStyle:NSImageFrameNone];
-	[bitmap setEditable:NO];
+    NSImageView *bitmap = [[NSImageView alloc] init];
+    [bitmap setImageFrameStyle:NSImageFrameNone];
+    [bitmap setEditable:NO];
     [bitmap setTag:cid];
     DW_MUTEX_UNLOCK;
-	return bitmap;
+    return bitmap;
 }
 
 /*
@@ -5019,7 +5019,7 @@ HPIXMAP API dw_pixmap_new(HWND handle, unsigned long width, unsigned long height
 {
     NSSize size = { (float)width, (float)height };
     HPIXMAP pixmap;
-	
+    
     if(!(pixmap = calloc(1,sizeof(struct _hpixmap))))
         return NULL;
     pixmap->width = width;
@@ -5043,7 +5043,7 @@ HPIXMAP API dw_pixmap_new(HWND handle, unsigned long width, unsigned long height
 HPIXMAP API dw_pixmap_new_from_file(HWND handle, char *filename)
 {
     HPIXMAP pixmap;
-	
+    
     if(!(pixmap = calloc(1,sizeof(struct _hpixmap))))
         return NULL;
     NSString *nstr = [ NSString stringWithUTF8String:filename ];
@@ -5075,7 +5075,7 @@ HPIXMAP API dw_pixmap_new_from_file(HWND handle, char *filename)
 HPIXMAP API dw_pixmap_new_from_data(HWND handle, char *data, int len)
 {
     HPIXMAP pixmap;
-	
+    
     if(!(pixmap = calloc(1,sizeof(struct _hpixmap))))
         return NULL;
     NSData *thisdata = [[NSData alloc] dataWithBytes:data length:len];
@@ -5094,7 +5094,7 @@ HPIXMAP API dw_pixmap_new_from_data(HWND handle, char *data, int len)
  */
 void API dw_pixmap_set_transparent_color( HPIXMAP pixmap, ULONG color )
 {
-	NSLog(@"dw_pixmap_set_transparent_color() unimplemented\n");
+    NSLog(@"dw_pixmap_set_transparent_color() unimplemented\n");
 }
 
 /*
@@ -5108,7 +5108,7 @@ void API dw_pixmap_set_transparent_color( HPIXMAP pixmap, ULONG color )
 HPIXMAP API dw_pixmap_grab(HWND handle, ULONG resid)
 {
     HPIXMAP pixmap;
-	
+    
     if(!(pixmap = calloc(1,sizeof(struct _hpixmap))))
         return NULL;
 
@@ -5133,9 +5133,9 @@ HPIXMAP API dw_pixmap_grab(HWND handle, ULONG resid)
  */
 void API dw_pixmap_destroy(HPIXMAP pixmap)
 {
-	NSImage *image = (NSImage *)pixmap->image;
-	[image dealloc];
-	free(pixmap);
+    NSImage *image = (NSImage *)pixmap->image;
+    [image dealloc];
+    free(pixmap);
 }
 
 /*
@@ -5207,9 +5207,9 @@ void dw_calendar_set_date(HWND handle, unsigned int year, unsigned int month, un
     DWCalendar *calendar = handle;
     NSDate *date;
     char buffer[100];
-	
+    
     sprintf(buffer, "%04d-%02d-%02d 00:00:00 +0600", year, month, day);
-	
+    
     date = [[NSDate alloc] initWithString:[ NSString stringWithUTF8String:buffer ]];
     [calendar setDateValue:date];
     [date release];
@@ -5247,28 +5247,28 @@ void dw_calendar_get_date(HWND handle, unsigned int *year, unsigned int *month, 
  */
 void API dw_html_action(HWND handle, int action)
 {
-	WebView *html = handle;
-	switch(action)
-	{
-		case DW_HTML_GOBACK:
-			[html goBack];
-			break;
-		case DW_HTML_GOFORWARD:
-			[html goForward];
-			break;
-		case DW_HTML_GOHOME:
-			break;
-		case DW_HTML_SEARCH:
-			break;
-		case DW_HTML_RELOAD:
-			[html reload:html];
-			break;
-		case DW_HTML_STOP:
-			[html stopLoading:html];
-			break;
-		case DW_HTML_PRINT:
-			break;
-	}
+    WebView *html = handle;
+    switch(action)
+    {
+        case DW_HTML_GOBACK:
+            [html goBack];
+            break;
+        case DW_HTML_GOFORWARD:
+            [html goForward];
+            break;
+        case DW_HTML_GOHOME:
+            break;
+        case DW_HTML_SEARCH:
+            break;
+        case DW_HTML_RELOAD:
+            [html reload:html];
+            break;
+        case DW_HTML_STOP:
+            [html stopLoading:html];
+            break;
+        case DW_HTML_PRINT:
+            break;
+    }
 }
 
 /*
@@ -5282,9 +5282,9 @@ void API dw_html_action(HWND handle, int action)
  */
 int API dw_html_raw(HWND handle, char *string)
 {
-	WebView *html = handle;
-	[[html mainFrame] loadHTMLString:[ NSString stringWithUTF8String:string ] baseURL:nil];
-	return 0;
+    WebView *html = handle;
+    [[html mainFrame] loadHTMLString:[ NSString stringWithUTF8String:string ] baseURL:nil];
+    return 0;
 }
 
 /*
@@ -5298,9 +5298,9 @@ int API dw_html_raw(HWND handle, char *string)
  */
 int API dw_html_url(HWND handle, char *url)
 {
-	WebView *html = handle;
-	[[html mainFrame] loadRequest:[NSURLRequest requestWithURL:[NSURL URLWithString:[ NSString stringWithUTF8String:url ]]]];
-	return 0;
+    WebView *html = handle;
+    [[html mainFrame] loadRequest:[NSURLRequest requestWithURL:[NSURL URLWithString:[ NSString stringWithUTF8String:url ]]]];
+    return 0;
 }
 
 /*
@@ -5314,10 +5314,10 @@ HWND API dw_html_new(unsigned long cid)
 {
     int _locked_by_me = FALSE;
     DW_MUTEX_LOCK;
-	WebView *web = [[WebView alloc] init];
+    WebView *web = [[WebView alloc] init];
     /* [web setTag:cid]; Why doesn't this work? */
     DW_MUTEX_UNLOCK;
-	return web;
+    return web;
 }
 
 /*
@@ -5330,14 +5330,14 @@ void API dw_pointer_query_pos(long *x, long *y)
 {
     NSPoint mouseLoc;
     mouseLoc = [NSEvent mouseLocation];
-	if(x)
-	{
-		*x = mouseLoc.x;
-	}
-	if(y)
-	{
-		*y = mouseLoc.y;
-	}
+    if(x)
+    {
+        *x = mouseLoc.x;
+    }
+    if(y)
+    {
+        *y = mouseLoc.y;
+    }
 }
 
 /*
@@ -5348,7 +5348,7 @@ void API dw_pointer_query_pos(long *x, long *y)
  */
 void API dw_pointer_set_pos(long x, long y)
 {
-	/* From what I have read this isn't possible, agaist human interface rules */
+    /* From what I have read this isn't possible, agaist human interface rules */
 }
 
 /*
@@ -5359,10 +5359,10 @@ void API dw_pointer_set_pos(long x, long y)
  */
 HMENUI API dw_menu_new(ULONG cid)
 {
-	NSMenu *menu = [[[NSMenu alloc] init] autorelease];
-	[menu setAutoenablesItems:NO];
+    NSMenu *menu = [[[NSMenu alloc] init] autorelease];
+    [menu setAutoenablesItems:NO];
     /* [menu setTag:cid]; Why doesn't this work? */
-	return menu;
+    return menu;
 }
 
 /*
@@ -5372,10 +5372,10 @@ HMENUI API dw_menu_new(ULONG cid)
  */
 HMENUI API dw_menubar_new(HWND location)
 {
-	NSWindow *window = location;
-	NSMenu *windowmenu = _generate_main_menu();
-	[[window contentView] setMenu:windowmenu];
-	return (HMENUI)windowmenu;
+    NSWindow *window = location;
+    NSMenu *windowmenu = _generate_main_menu();
+    [[window contentView] setMenu:windowmenu];
+    return (HMENUI)windowmenu;
 }
 
 /*
@@ -5385,8 +5385,8 @@ HMENUI API dw_menubar_new(HWND location)
  */
 void API dw_menu_destroy(HMENUI *menu)
 {
-	NSMenu *thismenu = *menu;
-	[thismenu release];
+    NSMenu *thismenu = *menu;
+    [thismenu release];
 }
 
 /*
@@ -5418,23 +5418,23 @@ void API dw_menu_popup(HMENUI *menu, HWND parent, int x, int y)
 
 char _removetilde(char *dest, char *src)
 {
-	int z, cur=0;
-	char accel = '\0';
-	
-	for(z=0;z<strlen(src);z++)
-	{
-		if(src[z] != '~')
-		{
-			dest[cur] = src[z];
-			cur++;
-		}
-		else
-		{
-			accel = src[z+1];
-		}
-	}
-	dest[cur] = 0;
-	return accel;
+    int z, cur=0;
+    char accel = '\0';
+    
+    for(z=0;z<strlen(src);z++)
+    {
+        if(src[z] != '~')
+        {
+            dest[cur] = src[z];
+            cur++;
+        }
+        else
+        {
+            accel = src[z+1];
+        }
+    }
+    dest[cur] = 0;
+    return accel;
 }
 
 /*
@@ -5451,46 +5451,46 @@ char _removetilde(char *dest, char *src)
  */
 HWND API dw_menu_append_item(HMENUI menux, char *title, ULONG itemid, ULONG flags, int end, int check, HMENUI submenux)
 {
-	NSMenu *menu = menux;
-	NSMenu *submenu = submenux;
-	NSMenuItem *item = NULL;
-	if(strlen(title) == 0)
-	{
-		[menu addItem:[NSMenuItem separatorItem]];
-	}
-	else
-	{
-		char accel[2];
-		char *newtitle = malloc(strlen(title)+1);
-		NSString *nstr;
-	
-		accel[0] = _removetilde(newtitle, title);
-		accel[1] = 0;
-	
-		nstr = [ NSString stringWithUTF8String:newtitle ];
-		free(newtitle);
+    NSMenu *menu = menux;
+    NSMenu *submenu = submenux;
+    NSMenuItem *item = NULL;
+    if(strlen(title) == 0)
+    {
+        [menu addItem:[NSMenuItem separatorItem]];
+    }
+    else
+    {
+        char accel[2];
+        char *newtitle = malloc(strlen(title)+1);
+        NSString *nstr;
+    
+        accel[0] = _removetilde(newtitle, title);
+        accel[1] = 0;
+    
+        nstr = [ NSString stringWithUTF8String:newtitle ];
+        free(newtitle);
 
-		item = [menu addItemWithTitle:	nstr
-										action:@selector(menuHandler:)
-										keyEquivalent:[ NSString stringWithUTF8String:accel ]];
-		[item setTag:itemid];
-		if(flags & DW_MIS_CHECKED)
-		{
-			[item setState:NSOnState];
-		}
-		if(flags & DW_MIS_DISABLED)
-		{
-			[item setEnabled:NO];
-		}			
-		
-		if(submenux)
-		{
-			[submenu setTitle:nstr];
-			[menu setSubmenu:submenu forItem:item];
-		}
-		return item;
-	}
-	return item;
+        item = [menu addItemWithTitle:  nstr
+                                        action:@selector(menuHandler:)
+                                        keyEquivalent:[ NSString stringWithUTF8String:accel ]];
+        [item setTag:itemid];
+        if(flags & DW_MIS_CHECKED)
+        {
+            [item setState:NSOnState];
+        }
+        if(flags & DW_MIS_DISABLED)
+        {
+            [item setEnabled:NO];
+        }           
+        
+        if(submenux)
+        {
+            [submenu setTitle:nstr];
+            [menu setSubmenu:submenu forItem:item];
+        }
+        return item;
+    }
+    return item;
 }
 
 /*
@@ -5503,20 +5503,20 @@ HWND API dw_menu_append_item(HMENUI menux, char *title, ULONG itemid, ULONG flag
  */
 void API dw_menu_item_set_check(HMENUI menux, unsigned long itemid, int check)
 {
-	id menu = menux;
-	NSMenuItem *menuitem = (NSMenuItem *)[menu itemWithTag:itemid];
-	
-	if(menuitem != nil)
-	{
-		if(check)
-		{
-			[menuitem setState:NSOnState];
-		}
-		else
-		{	
-			[menuitem setState:NSOffState];
-		}
-	}
+    id menu = menux;
+    NSMenuItem *menuitem = (NSMenuItem *)[menu itemWithTag:itemid];
+    
+    if(menuitem != nil)
+    {
+        if(check)
+        {
+            [menuitem setState:NSOnState];
+        }
+        else
+        {   
+            [menuitem setState:NSOffState];
+        }
+    }
 }
 
 /*
@@ -5529,42 +5529,42 @@ void API dw_menu_item_set_check(HMENUI menux, unsigned long itemid, int check)
  */
 void API dw_menu_item_set_state(HMENUI menux, unsigned long itemid, unsigned long state)
 {
-	id menu = menux;
-	NSMenuItem *menuitem = (NSMenuItem *)[menu itemWithTag:itemid];
-	
-	if(menuitem != nil)
-	{
-		if(state & DW_MIS_CHECKED)
-		{
-			[menuitem setState:NSOnState];
-		}
-		else if(state & DW_MIS_UNCHECKED)
-		{	
-			[menuitem setState:NSOffState];
-		}
-		if(state & DW_MIS_ENABLED)
-		{
-			[menuitem setEnabled:YES];
-		}
-		else if(state & DW_MIS_DISABLED)
-		{
-			[menuitem setEnabled:NO];
-		}
-	}
+    id menu = menux;
+    NSMenuItem *menuitem = (NSMenuItem *)[menu itemWithTag:itemid];
+    
+    if(menuitem != nil)
+    {
+        if(state & DW_MIS_CHECKED)
+        {
+            [menuitem setState:NSOnState];
+        }
+        else if(state & DW_MIS_UNCHECKED)
+        {   
+            [menuitem setState:NSOffState];
+        }
+        if(state & DW_MIS_ENABLED)
+        {
+            [menuitem setEnabled:YES];
+        }
+        else if(state & DW_MIS_DISABLED)
+        {
+            [menuitem setEnabled:NO];
+        }
+    }
 }
 
 /* Gets the notebook page from associated ID */
 DWNotebookPage *_notepage_from_id(DWNotebook *notebook, unsigned long pageid)
 {
-	NSArray *pages = [notebook tabViewItems];
-	for(DWNotebookPage *notepage in pages)
-	{
-		if([notepage pageid] == pageid)
-		{
-			return notepage;
-		}
-	}
-	return nil;
+    NSArray *pages = [notebook tabViewItems];
+    for(DWNotebookPage *notepage in pages)
+    {
+        if([notepage pageid] == pageid)
+        {
+            return notepage;
+        }
+    }
+    return nil;
 }
 
 /*
@@ -5575,10 +5575,10 @@ DWNotebookPage *_notepage_from_id(DWNotebook *notebook, unsigned long pageid)
  */
 HWND API dw_notebook_new(ULONG cid, int top)
 {
-	DWNotebook *notebook = [[DWNotebook alloc] init];
-	[notebook setDelegate:notebook];
+    DWNotebook *notebook = [[DWNotebook alloc] init];
+    [notebook setDelegate:notebook];
     /* [notebook setTag:cid]; Why doesn't this work? */
-	return notebook;
+    return notebook;
 }
 
 /*
@@ -5590,21 +5590,21 @@ HWND API dw_notebook_new(ULONG cid, int top)
  */
 unsigned long API dw_notebook_page_new(HWND handle, ULONG flags, int front)
 {
-	DWNotebook *notebook = handle;
-	NSInteger page = [notebook pageid];
-	DWNotebookPage *notepage = [[DWNotebookPage alloc] initWithIdentifier:nil];
-	[notepage setPageid:(NSInteger)page];
-	if(front)
-	{
-		[notebook insertTabViewItem:notepage atIndex:(NSInteger)0];
-	}
-	else
-	{
-		[notebook addTabViewItem:notepage];
-	}
-	[notebook setPageid:(page+1)];
+    DWNotebook *notebook = handle;
+    NSInteger page = [notebook pageid];
+    DWNotebookPage *notepage = [[DWNotebookPage alloc] initWithIdentifier:nil];
+    [notepage setPageid:(NSInteger)page];
+    if(front)
+    {
+        [notebook insertTabViewItem:notepage atIndex:(NSInteger)0];
+    }
+    else
+    {
+        [notebook addTabViewItem:notepage];
+    }
+    [notebook setPageid:(page+1)];
     [notepage release];
-	return (unsigned long)page;
+    return (unsigned long)page;
 }
 
 /*
@@ -5615,14 +5615,14 @@ unsigned long API dw_notebook_page_new(HWND handle, ULONG flags, int front)
  */
 void API dw_notebook_page_destroy(HWND handle, unsigned int pageid)
 {
-	DWNotebook *notebook = handle;
-	DWNotebookPage *notepage = _notepage_from_id(notebook, pageid);
-	
-	if(notepage != nil)
-	{
-		[notebook removeTabViewItem:notepage];
-		[notepage release];
-	}
+    DWNotebook *notebook = handle;
+    DWNotebookPage *notepage = _notepage_from_id(notebook, pageid);
+    
+    if(notepage != nil)
+    {
+        [notebook removeTabViewItem:notepage];
+        [notepage release];
+    }
 }
 
 /*
@@ -5632,9 +5632,9 @@ void API dw_notebook_page_destroy(HWND handle, unsigned int pageid)
  */
 unsigned long API dw_notebook_page_get(HWND handle)
 {
-	DWNotebook *notebook = handle;
-	DWNotebookPage *notepage = (DWNotebookPage *)[notebook selectedTabViewItem];
-	return [notepage pageid];
+    DWNotebook *notebook = handle;
+    DWNotebookPage *notepage = (DWNotebookPage *)[notebook selectedTabViewItem];
+    return [notepage pageid];
 }
 
 /*
@@ -5645,13 +5645,13 @@ unsigned long API dw_notebook_page_get(HWND handle)
  */
 void API dw_notebook_page_set(HWND handle, unsigned int pageid)
 {
-	DWNotebook *notebook = handle;
-	DWNotebookPage *notepage = _notepage_from_id(notebook, pageid);
-	
-	if(notepage != nil)
-	{
-		[notebook selectTabViewItem:notepage];
-	}
+    DWNotebook *notebook = handle;
+    DWNotebookPage *notepage = _notepage_from_id(notebook, pageid);
+    
+    if(notepage != nil)
+    {
+        [notebook selectTabViewItem:notepage];
+    }
 }
 
 /*
@@ -5663,13 +5663,13 @@ void API dw_notebook_page_set(HWND handle, unsigned int pageid)
  */
 void API dw_notebook_page_set_text(HWND handle, ULONG pageid, char *text)
 {
-	DWNotebook *notebook = handle;
-	DWNotebookPage *notepage = _notepage_from_id(notebook, pageid);
-	
-	if(notepage != nil)
-	{
-		[notepage setLabel:[ NSString stringWithUTF8String:text ]];
-	}
+    DWNotebook *notebook = handle;
+    DWNotebookPage *notepage = _notepage_from_id(notebook, pageid);
+    
+    if(notepage != nil)
+    {
+        [notepage setLabel:[ NSString stringWithUTF8String:text ]];
+    }
 }
 
 /*
@@ -5681,7 +5681,7 @@ void API dw_notebook_page_set_text(HWND handle, ULONG pageid, char *text)
  */
 void API dw_notebook_page_set_status_text(HWND handle, ULONG pageid, char *text)
 {
-	/* Note supported here... do nothing */
+    /* Note supported here... do nothing */
 }
 
 /*
@@ -5693,17 +5693,17 @@ void API dw_notebook_page_set_status_text(HWND handle, ULONG pageid, char *text)
  */
 void API dw_notebook_pack(HWND handle, ULONG pageid, HWND page)
 {
-	DWNotebook *notebook = handle;
-	DWNotebookPage *notepage = _notepage_from_id(notebook, pageid);
-	
-	if(notepage != nil)
-	{
+    DWNotebook *notebook = handle;
+    DWNotebookPage *notepage = _notepage_from_id(notebook, pageid);
+    
+    if(notepage != nil)
+    {
         HWND tmpbox = dw_box_new(DW_VERT, 0);
         DWBox *box = tmpbox;
 
         dw_box_pack_start(tmpbox, page, 0, 0, TRUE, TRUE, 0);
-		[notepage setView:box];
-	}
+        [notepage setView:box];
+    }
 }
 
 /*
@@ -5725,9 +5725,9 @@ HWND API dw_window_new(HWND hwndOwner, char *title, ULONG flStyle)
                         defer:false];
 
     [window setTitle:[ NSString stringWithUTF8String:title ]];
-	
+    
     DWView *view = [[DWView alloc] init];
-	
+    
     [window setContentView:view];
     [window setDelegate:view];
     [view release];
@@ -5777,9 +5777,9 @@ void API dw_window_set_pointer(HWND handle, int pointertype)
 {
     id object = handle;
 
-	if([ object isKindOfClass:[ NSView class ] ])
-	{
-		NSView *view = handle;
+    if([ object isKindOfClass:[ NSView class ] ])
+    {
+        NSView *view = handle;
 
         if(pointertype == DW_POINTER_DEFAULT)
         {
@@ -5804,7 +5804,7 @@ void API dw_window_set_pointer(HWND handle, int pointertype)
 int API dw_window_show(HWND handle)
 {
     NSObject *object = handle;
-	
+    
     if([ object isKindOfClass:[ NSWindow class ] ])
     {
         NSWindow *window = handle;
@@ -5833,15 +5833,15 @@ int API dw_window_show(HWND handle)
  */
 int API dw_window_hide(HWND handle)
 {
-	NSObject *object = handle;
-	
-	if([ object isKindOfClass:[ NSWindow class ] ])
-	{
-		NSWindow *window = handle;
+    NSObject *object = handle;
+    
+    if([ object isKindOfClass:[ NSWindow class ] ])
+    {
+        NSWindow *window = handle;
         
         [window orderOut:nil];
     }
-	return 0;
+    return 0;
 }
 
 /*
@@ -5858,7 +5858,7 @@ int API dw_window_set_color(HWND handle, ULONG fore, ULONG back)
     unsigned long _back = _get_color(back);
     NSColor *fg = [NSColor colorWithDeviceRed: DW_RED_VALUE(_fore)/255.0 green: DW_GREEN_VALUE(_fore)/255.0 blue: DW_BLUE_VALUE(_fore)/255.0 alpha: 1];
     NSColor *bg = [NSColor colorWithDeviceRed: DW_RED_VALUE(_back)/255.0 green: DW_GREEN_VALUE(_back)/255.0 blue: DW_BLUE_VALUE(_back)/255.0 alpha: 1];
-	
+    
     if([object isMemberOfClass:[NSTextFieldCell class]])
     {
         NSTextFieldCell *text = object;
@@ -5866,9 +5866,9 @@ int API dw_window_set_color(HWND handle, ULONG fore, ULONG back)
     }
     else if([object isMemberOfClass:[DWBox class]])
     {
-		DWBox *box = object;
-		
-		[box setColor:_back];
+        DWBox *box = object;
+        
+        [box setColor:_back];
     }
     else if([object isMemberOfClass:[DWButton class]])
     {
@@ -5887,7 +5887,7 @@ int API dw_window_set_color(HWND handle, ULONG fore, ULONG back)
  */
 int API dw_window_set_border(HWND handle, int border)
 {
-	return 0;
+    return 0;
 }
 
 /*
@@ -5899,18 +5899,18 @@ int API dw_window_set_border(HWND handle, int border)
  */
 void API dw_window_set_style(HWND handle, ULONG style, ULONG mask)
 {
-	id object = handle;
-	
+    id object = handle;
+    
     if(DWOSMinor > 5 && [object isMemberOfClass:[NSWindow class]])
     {
         NSWindow *window = object;
         int currentstyle = (int)[window styleMask];
         int tmp;
-		
+        
         tmp = currentstyle | (int)mask;
         tmp ^= mask;
         tmp |= style;
-		
+        
         [window setStyleMask:tmp];
     }
     else if([object isKindOfClass:[NSTextField class]])
@@ -5935,7 +5935,7 @@ void API dw_window_set_style(HWND handle, ULONG style, ULONG mask)
  */
 void API dw_window_default(HWND window, HWND defaultitem)
 {
-	NSLog(@"dw_window_default() unimplemented\n");
+    NSLog(@"dw_window_default() unimplemented\n");
 }
 
 /*
@@ -5946,7 +5946,7 @@ void API dw_window_default(HWND window, HWND defaultitem)
  */
 void API dw_window_click_default(HWND window, HWND next)
 {
-	NSLog(@"dw_window_click_default() unimplemented\n");
+    NSLog(@"dw_window_click_default() unimplemented\n");
 }
 
 static id _DWCapture;
@@ -5990,7 +5990,7 @@ void API dw_window_release(void)
  */
 void API dw_window_track(HWND handle)
 {
-	NSLog(@"dw_window_track() unimplemented\n");
+    NSLog(@"dw_window_track() unimplemented\n");
 }
 
 /*
@@ -6110,15 +6110,15 @@ int API dw_window_destroy(HWND handle)
 {
     int _locked_by_me = FALSE;
     DW_MUTEX_LOCK;
-	NSObject *object = handle;
-	
-	if([ object isKindOfClass:[ NSWindow class ] ])
-	{
-		NSWindow *window = handle;
-		[window close];
-	}
+    NSObject *object = handle;
+    
+    if([ object isKindOfClass:[ NSWindow class ] ])
+    {
+        NSWindow *window = handle;
+        [window close];
+    }
     DW_MUTEX_UNLOCK;
-	return 0;
+    return 0;
 }
 
 /*
@@ -6130,23 +6130,23 @@ int API dw_window_destroy(HWND handle)
  */
 char * API dw_window_get_text(HWND handle)
 {
-	NSObject *object = handle;
-	
-	if([ object isKindOfClass:[ NSControl class ] ])
-	{
-		NSControl *control = handle;
-		NSString *nsstr = [ control stringValue];
-		
-		return strdup([ nsstr UTF8String ]);
-	}
-	else if([ object isKindOfClass:[ NSWindow class ] ])
-	{
-		NSWindow *window = handle;
-		NSString *nsstr = [ window title];
-	
-		return strdup([ nsstr UTF8String ]);
-	}
-	return NULL;
+    NSObject *object = handle;
+    
+    if([ object isKindOfClass:[ NSControl class ] ])
+    {
+        NSControl *control = handle;
+        NSString *nsstr = [ control stringValue];
+        
+        return strdup([ nsstr UTF8String ]);
+    }
+    else if([ object isKindOfClass:[ NSWindow class ] ])
+    {
+        NSWindow *window = handle;
+        NSString *nsstr = [ window title];
+    
+        return strdup([ nsstr UTF8String ]);
+    }
+    return NULL;
 }
 
 /*
@@ -6159,18 +6159,18 @@ void API dw_window_set_text(HWND handle, char *text)
 {
     int _locked_by_me = FALSE;
     DW_MUTEX_LOCK;
-	NSObject *object = handle;
-	
-	if([ object isKindOfClass:[ NSControl class ] ])
-	{
-		NSControl *control = handle;
-		[control setStringValue:[ NSString stringWithUTF8String:text ]];
-	}
-	else if([ object isKindOfClass:[ NSWindow class ] ])
-	{
-		NSWindow *window = handle;
-		[window setTitle:[ NSString stringWithUTF8String:text ]];
-	}
+    NSObject *object = handle;
+    
+    if([ object isKindOfClass:[ NSControl class ] ])
+    {
+        NSControl *control = handle;
+        [control setStringValue:[ NSString stringWithUTF8String:text ]];
+    }
+    else if([ object isKindOfClass:[ NSWindow class ] ])
+    {
+        NSWindow *window = handle;
+        [window setTitle:[ NSString stringWithUTF8String:text ]];
+    }
     DW_MUTEX_UNLOCK;
 }
 
@@ -6181,12 +6181,12 @@ void API dw_window_set_text(HWND handle, char *text)
  */
 void API dw_window_disable(HWND handle)
 {
-	NSObject *object = handle;
-	if([ object isKindOfClass:[ NSControl class ] ])
-	{
-		NSControl *control = handle;
-		[control setEnabled:NO];
-	}
+    NSObject *object = handle;
+    if([ object isKindOfClass:[ NSControl class ] ])
+    {
+        NSControl *control = handle;
+        [control setEnabled:NO];
+    }
 }
 
 /*
@@ -6196,12 +6196,12 @@ void API dw_window_disable(HWND handle)
  */
 void API dw_window_enable(HWND handle)
 {
-	NSObject *object = handle;
-	if([ object isKindOfClass:[ NSControl class ] ])
-	{
-		NSControl *control = handle;
-		[control setEnabled:YES];
-	}
+    NSObject *object = handle;
+    if([ object isKindOfClass:[ NSControl class ] ])
+    {
+        NSControl *control = handle;
+        [control setEnabled:YES];
+    }
 }
 
 /*
@@ -6216,19 +6216,19 @@ void API dw_window_enable(HWND handle)
  */
 void API dw_window_set_bitmap_from_data(HWND handle, unsigned long cid, char *data, int len)
 {
-	NSObject *object = handle;
-	if([ object isKindOfClass:[ NSImageView class ] ])
-	{
-		NSImageView *iv = handle;
-		NSData *thisdata = [[NSData alloc] dataWithBytes:data length:len];
-		NSImage *pixmap = [[NSImage alloc] initWithData:thisdata];
-		
+    NSObject *object = handle;
+    if([ object isKindOfClass:[ NSImageView class ] ])
+    {
+        NSImageView *iv = handle;
+        NSData *thisdata = [[NSData alloc] dataWithBytes:data length:len];
+        NSImage *pixmap = [[NSImage alloc] initWithData:thisdata];
+        
         if(pixmap)
         {
             [iv setImage:pixmap];
         }
         [pixmap release];
-	}
+    }
 }
 
 /*
@@ -6243,10 +6243,10 @@ void API dw_window_set_bitmap_from_data(HWND handle, unsigned long cid, char *da
  */
 void API dw_window_set_bitmap(HWND handle, unsigned long resid, char *filename)
 {
-	NSObject *object = handle;
-	if([ object isKindOfClass:[ NSImageView class ] ])
-	{
-		NSImageView *iv = handle;
+    NSObject *object = handle;
+    if([ object isKindOfClass:[ NSImageView class ] ])
+    {
+        NSImageView *iv = handle;
         NSImage *bitmap = nil;
 
         if(filename)
@@ -6257,12 +6257,12 @@ void API dw_window_set_bitmap(HWND handle, unsigned long resid, char *filename)
         {
             bitmap = dw_icon_load(0, resid);
         }
-		
+        
         if(bitmap)
         {
             [iv setImage:bitmap];
         }
-	}
+    }
 }
 
 /*
@@ -6273,7 +6273,7 @@ void API dw_window_set_bitmap(HWND handle, unsigned long resid, char *filename)
  */
 void API dw_window_set_icon(HWND handle, HICN icon)
 {
-	/* This isn't needed, it is loaded from the bundle */
+    /* This isn't needed, it is loaded from the bundle */
 }
 
 /*
@@ -6284,14 +6284,14 @@ void API dw_window_set_icon(HWND handle, HICN icon)
  */
 HWND API dw_window_from_id(HWND handle, int cid)
 {
-	NSObject *object = handle;
-	NSView *view = handle;
-	if([ object isKindOfClass:[ NSWindow class ] ])
-	{
-		NSWindow *window = handle;
-		view = [window contentView];
-	}
-	return [view viewWithTag:cid];
+    NSObject *object = handle;
+    NSView *view = handle;
+    if([ object isKindOfClass:[ NSWindow class ] ])
+    {
+        NSWindow *window = handle;
+        view = [window contentView];
+    }
+    return [view viewWithTag:cid];
 }
 
 /*
@@ -6301,9 +6301,9 @@ HWND API dw_window_from_id(HWND handle, int cid)
  */
 int API dw_window_minimize(HWND handle)
 {
-	NSWindow *window = handle;
-	[window miniaturize:nil];
-	return 0;
+    NSWindow *window = handle;
+    [window miniaturize:nil];
+    return 0;
 }
 
 /* Causes entire window to be invalidated and redrawn.
@@ -6312,8 +6312,8 @@ int API dw_window_minimize(HWND handle)
  */
 void API dw_window_redraw(HWND handle)
 {
-	NSWindow *window = handle;
-	[window flushWindow];
+    NSWindow *window = handle;
+    [window flushWindow];
 }
 
 /*
@@ -6323,9 +6323,9 @@ void API dw_window_redraw(HWND handle)
  */
 int API dw_window_raise(HWND handle)
 {
-	NSWindow *window = handle;
-	[window orderFront:nil];
-	return 0;
+    NSWindow *window = handle;
+    [window orderFront:nil];
+    return 0;
 }
 
 /*
@@ -6335,9 +6335,9 @@ int API dw_window_raise(HWND handle)
  */
 int API dw_window_lower(HWND handle)
 {
-	NSWindow *window = handle;
-	[window orderBack:nil];
-	return 0;
+    NSWindow *window = handle;
+    [window orderBack:nil];
+    return 0;
 }
 
 /*
@@ -6351,16 +6351,16 @@ void API dw_window_set_size(HWND handle, ULONG width, ULONG height)
 {
     int _locked_by_me = FALSE;
     DW_MUTEX_LOCK;
-	NSObject *object = handle;
-	NSSize size;
-	size.width = width;
-	size.height = height;
-	
-	if([ object isKindOfClass:[ NSWindow class ] ])
-	{
-		NSWindow *window = handle;
-		[window setContentSize:size];
-	}
+    NSObject *object = handle;
+    NSSize size;
+    size.width = width;
+    size.height = height;
+    
+    if([ object isKindOfClass:[ NSWindow class ] ])
+    {
+        NSWindow *window = handle;
+        [window setContentSize:size];
+    }
     DW_MUTEX_UNLOCK;
 }
 
@@ -6375,16 +6375,16 @@ void API dw_window_set_pos(HWND handle, LONG x, LONG y)
 {
     int _locked_by_me = FALSE;
     DW_MUTEX_LOCK;
-	NSObject *object = handle;
-	NSPoint point;
-	point.x = x;
-	point.y = y;
-	
-	if([ object isKindOfClass:[ NSWindow class ] ])
-	{
-		NSWindow *window = handle;
-		[window setFrameOrigin:point];
-	}
+    NSObject *object = handle;
+    NSPoint point;
+    point.x = x;
+    point.y = y;
+    
+    if([ object isKindOfClass:[ NSWindow class ] ])
+    {
+        NSWindow *window = handle;
+        [window setFrameOrigin:point];
+    }
     DW_MUTEX_UNLOCK;
 }
 
@@ -6399,8 +6399,8 @@ void API dw_window_set_pos(HWND handle, LONG x, LONG y)
  */
 void API dw_window_set_pos_size(HWND handle, LONG x, LONG y, ULONG width, ULONG height)
 {
-	dw_window_set_pos(handle, x, y);
-	dw_window_set_size(handle, width, height);
+    dw_window_set_pos(handle, x, y);
+    dw_window_set_size(handle, width, height);
 }
 
 /*
@@ -6414,22 +6414,22 @@ void API dw_window_set_pos_size(HWND handle, LONG x, LONG y, ULONG width, ULONG 
  */
 void API dw_window_get_pos_size(HWND handle, LONG *x, LONG *y, ULONG *width, ULONG *height)
 {
-	NSObject *object = handle;
-	
-	if([ object isKindOfClass:[ NSWindow class ] ])
-	{
-		NSWindow *window = handle;
-		NSRect rect = [window frame];
-		if(x)
-			*x = rect.origin.x;
-		if(y)
-			*y = rect.origin.y;
-		if(width)
-			*width = rect.size.width;
-		if(height)
-			*height = rect.size.height;
-		return;
-	}
+    NSObject *object = handle;
+    
+    if([ object isKindOfClass:[ NSWindow class ] ])
+    {
+        NSWindow *window = handle;
+        NSRect rect = [window frame];
+        if(x)
+            *x = rect.origin.x;
+        if(y)
+            *y = rect.origin.y;
+        if(width)
+            *width = rect.size.width;
+        if(height)
+            *height = rect.size.height;
+        return;
+    }
 }
 
 /*
@@ -6437,8 +6437,8 @@ void API dw_window_get_pos_size(HWND handle, LONG *x, LONG *y, ULONG *width, ULO
  */
 int API dw_screen_width(void)
 {
-	NSRect screenRect = [[NSScreen mainScreen] frame];
-	return screenRect.size.width;
+    NSRect screenRect = [[NSScreen mainScreen] frame];
+    return screenRect.size.width;
 }
 
 /*
@@ -6446,15 +6446,15 @@ int API dw_screen_width(void)
  */
 int API dw_screen_height(void)
 {
-	NSRect screenRect = [[NSScreen mainScreen] frame];
-	return screenRect.size.height;
+    NSRect screenRect = [[NSScreen mainScreen] frame];
+    return screenRect.size.height;
 }
 
 /* This should return the current color depth */
 unsigned long API dw_color_depth_get(void)
 {
-	NSWindowDepth screenDepth = [[NSScreen mainScreen] depth];
-	return NSBitsPerPixelFromDepth(screenDepth);
+    NSWindowDepth screenDepth = [[NSScreen mainScreen] depth];
+    return NSBitsPerPixelFromDepth(screenDepth);
 }
 
 /*
@@ -6464,17 +6464,17 @@ unsigned long API dw_color_depth_get(void)
  */
 void dw_environment_query(DWEnv *env)
 {
-	struct utsname name;
-	
-	uname(&name);
-	strcpy(env->osName, "MacOS");
-	
-	strcpy(env->buildDate, __DATE__);
-	strcpy(env->buildTime, __TIME__);
-	env->DWMajorVersion = DW_MAJOR_VERSION;
-	env->DWMinorVersion = DW_MINOR_VERSION;
-	env->DWSubVersion = DW_SUB_VERSION;
-	
+    struct utsname name;
+    
+    uname(&name);
+    strcpy(env->osName, "MacOS");
+    
+    strcpy(env->buildDate, __DATE__);
+    strcpy(env->buildTime, __TIME__);
+    env->DWMajorVersion = DW_MAJOR_VERSION;
+    env->DWMinorVersion = DW_MINOR_VERSION;
+    env->DWSubVersion = DW_SUB_VERSION;
+    
     env->MajorVersion = DWOSMajor;
     env->MinorVersion = DWOSMinor;
     env->MajorBuild = DWOSBuild;
@@ -6488,7 +6488,7 @@ void dw_environment_query(DWEnv *env)
  */
 void API dw_beep(int freq, int dur)
 {
-	NSBeep();
+    NSBeep();
 }
 
 /* Call this after drawing to the screen to make sure
@@ -6506,92 +6506,92 @@ void API dw_flush(void)
  */
 UserData *_find_userdata(UserData **root, char *varname)
 {
-	UserData *tmp = *root;
-	
-	while(tmp)
-	{
-		if(strcasecmp(tmp->varname, varname) == 0)
-			return tmp;
-		tmp = tmp->next;
-	}
-	return NULL;
+    UserData *tmp = *root;
+    
+    while(tmp)
+    {
+        if(strcasecmp(tmp->varname, varname) == 0)
+            return tmp;
+        tmp = tmp->next;
+    }
+    return NULL;
 }
 
 int _new_userdata(UserData **root, char *varname, void *data)
 {
-	UserData *new = _find_userdata(root, varname);
-	
-	if(new)
-	{
-		new->data = data;
-		return TRUE;
-	}
-	else
-	{
-		new = malloc(sizeof(UserData));
-		if(new)
-		{
-			new->varname = strdup(varname);
-			new->data = data;
-			
-			new->next = NULL;
-			
-			if (!*root)
-				*root = new;
-			else
-			{
-				UserData *prev = NULL, *tmp = *root;
-				while(tmp)
-				{
-					prev = tmp;
-					tmp = tmp->next;
-				}
-				if(prev)
-					prev->next = new;
-				else
-					*root = new;
-			}
-			return TRUE;
-		}
-	}
-	return FALSE;
+    UserData *new = _find_userdata(root, varname);
+    
+    if(new)
+    {
+        new->data = data;
+        return TRUE;
+    }
+    else
+    {
+        new = malloc(sizeof(UserData));
+        if(new)
+        {
+            new->varname = strdup(varname);
+            new->data = data;
+            
+            new->next = NULL;
+            
+            if (!*root)
+                *root = new;
+            else
+            {
+                UserData *prev = NULL, *tmp = *root;
+                while(tmp)
+                {
+                    prev = tmp;
+                    tmp = tmp->next;
+                }
+                if(prev)
+                    prev->next = new;
+                else
+                    *root = new;
+            }
+            return TRUE;
+        }
+    }
+    return FALSE;
 }
 
 int _remove_userdata(UserData **root, char *varname, int all)
 {
-	UserData *prev = NULL, *tmp = *root;
-	
-	while(tmp)
-	{
-		if(all || strcasecmp(tmp->varname, varname) == 0)
-		{
-			if(!prev)
-			{
-				*root = tmp->next;
-				free(tmp->varname);
-				free(tmp);
-				if(!all)
-					return 0;
-				tmp = *root;
-			}
-			else
-			{
-				/* If all is true we should
-				 * never get here.
-				 */
-				prev->next = tmp->next;
-				free(tmp->varname);
-				free(tmp);
-				return 0;
-			}
-		}
-		else
-		{
-			prev = tmp;
-			tmp = tmp->next;
-		}
-	}
-	return 0;
+    UserData *prev = NULL, *tmp = *root;
+    
+    while(tmp)
+    {
+        if(all || strcasecmp(tmp->varname, varname) == 0)
+        {
+            if(!prev)
+            {
+                *root = tmp->next;
+                free(tmp->varname);
+                free(tmp);
+                if(!all)
+                    return 0;
+                tmp = *root;
+            }
+            else
+            {
+                /* If all is true we should
+                 * never get here.
+                 */
+                prev->next = tmp->next;
+                free(tmp->varname);
+                free(tmp);
+                return 0;
+            }
+        }
+        else
+        {
+            prev = tmp;
+            tmp = tmp->next;
+        }
+    }
+    return 0;
 }
 
 /*
@@ -6603,7 +6603,7 @@ int _remove_userdata(UserData **root, char *varname, int all)
  */
 void dw_window_set_data(HWND window, char *dataname, void *data)
 {
-	id object = window;
+    id object = window;
     if([object isMemberOfClass:[NSWindow class]])
     {
         NSWindow *win = window;
@@ -6614,26 +6614,26 @@ void dw_window_set_data(HWND window, char *dataname, void *data)
         NSScrollView *sv = window;
         object = [sv documentView];
     }
-	WindowData *blah = (WindowData *)[object userdata];
-	
-	if(!blah)
-	{
-		if(!dataname)
-			return;
-		
-		blah = calloc(1, sizeof(WindowData));
-		[object setUserdata:blah];
-	}
-	
-	if(data)
-		_new_userdata(&(blah->root), dataname, data);
-	else
-	{
-		if(dataname)
-			_remove_userdata(&(blah->root), dataname, FALSE);
-		else
-			_remove_userdata(&(blah->root), NULL, TRUE);
-	}
+    WindowData *blah = (WindowData *)[object userdata];
+    
+    if(!blah)
+    {
+        if(!dataname)
+            return;
+        
+        blah = calloc(1, sizeof(WindowData));
+        [object setUserdata:blah];
+    }
+    
+    if(data)
+        _new_userdata(&(blah->root), dataname, data);
+    else
+    {
+        if(dataname)
+            _remove_userdata(&(blah->root), dataname, FALSE);
+        else
+            _remove_userdata(&(blah->root), NULL, TRUE);
+    }
 }
 
 /*
@@ -6645,7 +6645,7 @@ void dw_window_set_data(HWND window, char *dataname, void *data)
  */
 void *dw_window_get_data(HWND window, char *dataname)
 {
-	id object = window;
+    id object = window;
     if([object isMemberOfClass:[NSWindow class]])
     {
         NSWindow *win = window;
@@ -6656,15 +6656,15 @@ void *dw_window_get_data(HWND window, char *dataname)
         NSScrollView *sv = window;
         object = [sv documentView];
     }
-	WindowData *blah = (WindowData *)[object userdata];
-	
-	if(blah && blah->root && dataname)
-	{
-		UserData *ud = _find_userdata(&(blah->root), dataname);
-		if(ud)
-			return ud->data;
-	}
-	return NULL;
+    WindowData *blah = (WindowData *)[object userdata];
+    
+    if(blah && blah->root && dataname)
+    {
+        UserData *ud = _find_userdata(&(blah->root), dataname);
+        if(ud)
+            return ud->data;
+    }
+    return NULL;
 }
 
 #define DW_TIMER_MAX 64
@@ -6681,24 +6681,24 @@ NSTimer *DWTimers[DW_TIMER_MAX];
  */
 int API dw_timer_connect(int interval, void *sigfunc, void *data)
 {
-	int z;
-	
-	for(z=0;z<DW_TIMER_MAX;z++)
-	{
-		if(!DWTimers[z])
-		{
-			break;
-		}
-	}
-	
-	if(sigfunc && !DWTimers[z])
-	{
-		NSTimeInterval seconds = (double)interval / 1000.0;
-		NSTimer *thistimer = DWTimers[z] = [NSTimer scheduledTimerWithTimeInterval:seconds target:DWHandler selector:@selector(runTimer:) userInfo:nil repeats:YES];
-		_new_signal(0, thistimer, z+1, sigfunc, data);
-		return z+1;
-	}
-	return 0;
+    int z;
+    
+    for(z=0;z<DW_TIMER_MAX;z++)
+    {
+        if(!DWTimers[z])
+        {
+            break;
+        }
+    }
+    
+    if(sigfunc && !DWTimers[z])
+    {
+        NSTimeInterval seconds = (double)interval / 1000.0;
+        NSTimer *thistimer = DWTimers[z] = [NSTimer scheduledTimerWithTimeInterval:seconds target:DWHandler selector:@selector(runTimer:) userInfo:nil repeats:YES];
+        _new_signal(0, thistimer, z+1, sigfunc, data);
+        return z+1;
+    }
+    return 0;
 }
 
 /*
@@ -6708,41 +6708,41 @@ int API dw_timer_connect(int interval, void *sigfunc, void *data)
  */
 void API dw_timer_disconnect(int timerid)
 {
-	SignalHandler *prev = NULL, *tmp = Root;
-	NSTimer *thistimer;
-	
-	/* 0 is an invalid timer ID */
-	if(timerid < 1 || !DWTimers[timerid-1])
-		return;
-	
-	thistimer = DWTimers[timerid-1];
-	DWTimers[timerid-1] = nil;
-	
-	[thistimer invalidate];
-	
-	while(tmp)
-	{
-		if(tmp->id == timerid && tmp->window == thistimer)
-		{
-			if(prev)
-			{
-				prev->next = tmp->next;
-				free(tmp);
-				tmp = prev->next;
-			}
-			else
-			{
-				Root = tmp->next;
-				free(tmp);
-				tmp = Root;
-			}
-		}
-		else
-		{
-			prev = tmp;
-			tmp = tmp->next;
-		}
-	}
+    SignalHandler *prev = NULL, *tmp = Root;
+    NSTimer *thistimer;
+    
+    /* 0 is an invalid timer ID */
+    if(timerid < 1 || !DWTimers[timerid-1])
+        return;
+    
+    thistimer = DWTimers[timerid-1];
+    DWTimers[timerid-1] = nil;
+    
+    [thistimer invalidate];
+    
+    while(tmp)
+    {
+        if(tmp->id == timerid && tmp->window == thistimer)
+        {
+            if(prev)
+            {
+                prev->next = tmp->next;
+                free(tmp);
+                tmp = prev->next;
+            }
+            else
+            {
+                Root = tmp->next;
+                free(tmp);
+                tmp = Root;
+            }
+        }
+        else
+        {
+            prev = tmp;
+            tmp = tmp->next;
+        }
+    }
 }
 
 /*
@@ -6755,15 +6755,15 @@ void API dw_timer_disconnect(int timerid)
  */
 void API dw_signal_connect(HWND window, char *signame, void *sigfunc, void *data)
 {
-	ULONG message = 0, msgid = 0;
+    ULONG message = 0, msgid = 0;
 
-	if(window && signame && sigfunc)
-	{
-		if((message = _findsigmessage(signame)) != 0)
-		{
-			_new_signal(message, window, (int)msgid, sigfunc, data);
-		}
-	}
+    if(window && signame && sigfunc)
+    {
+        if((message = _findsigmessage(signame)) != 0)
+        {
+            _new_signal(message, window, (int)msgid, sigfunc, data);
+        }
+    }
 }
 
 /*
@@ -6773,35 +6773,35 @@ void API dw_signal_connect(HWND window, char *signame, void *sigfunc, void *data
  */
 void API dw_signal_disconnect_by_name(HWND window, char *signame)
 {
-	SignalHandler *prev = NULL, *tmp = Root;
-	ULONG message;
-	
-	if(!window || !signame || (message = _findsigmessage(signame)) == 0)
-		return;
-	
-	while(tmp)
-	{
-		if(tmp->window == window && tmp->message == message)
-		{
-			if(prev)
-			{
-				prev->next = tmp->next;
-				free(tmp);
-				tmp = prev->next;
-			}
-			else
-			{
-				Root = tmp->next;
-				free(tmp);
-				tmp = Root;
-			}
-		}
-		else
-		{
-			prev = tmp;
-			tmp = tmp->next;
-		}
-	}
+    SignalHandler *prev = NULL, *tmp = Root;
+    ULONG message;
+    
+    if(!window || !signame || (message = _findsigmessage(signame)) == 0)
+        return;
+    
+    while(tmp)
+    {
+        if(tmp->window == window && tmp->message == message)
+        {
+            if(prev)
+            {
+                prev->next = tmp->next;
+                free(tmp);
+                tmp = prev->next;
+            }
+            else
+            {
+                Root = tmp->next;
+                free(tmp);
+                tmp = Root;
+            }
+        }
+        else
+        {
+            prev = tmp;
+            tmp = tmp->next;
+        }
+    }
 }
 
 /*
@@ -6811,31 +6811,31 @@ void API dw_signal_disconnect_by_name(HWND window, char *signame)
  */
 void API dw_signal_disconnect_by_window(HWND window)
 {
-	SignalHandler *prev = NULL, *tmp = Root;
-	
-	while(tmp)
-	{
-		if(tmp->window == window)
-		{
-			if(prev)
-			{
-				prev->next = tmp->next;
-				free(tmp);
-				tmp = prev->next;
-			}
-			else
-			{
-				Root = tmp->next;
-				free(tmp);
-				tmp = Root;
-			}
-		}
-		else
-		{
-			prev = tmp;
-			tmp = tmp->next;
-		}
-	}
+    SignalHandler *prev = NULL, *tmp = Root;
+    
+    while(tmp)
+    {
+        if(tmp->window == window)
+        {
+            if(prev)
+            {
+                prev->next = tmp->next;
+                free(tmp);
+                tmp = prev->next;
+            }
+            else
+            {
+                Root = tmp->next;
+                free(tmp);
+                tmp = Root;
+            }
+        }
+        else
+        {
+            prev = tmp;
+            tmp = tmp->next;
+        }
+    }
 }
 
 /*
@@ -6846,31 +6846,31 @@ void API dw_signal_disconnect_by_window(HWND window)
  */
 void API dw_signal_disconnect_by_data(HWND window, void *data)
 {
-	SignalHandler *prev = NULL, *tmp = Root;
-	
-	while(tmp)
-	{
-		if(tmp->window == window && tmp->data == data)
-		{
-			if(prev)
-			{
-				prev->next = tmp->next;
-				free(tmp);
-				tmp = prev->next;
-			}
-			else
-			{
-				Root = tmp->next;
-				free(tmp);
-				tmp = Root;
-			}
-		}
-		else
-		{
-			prev = tmp;
-			tmp = tmp->next;
-		}
-	}
+    SignalHandler *prev = NULL, *tmp = Root;
+    
+    while(tmp)
+    {
+        if(tmp->window == window && tmp->data == data)
+        {
+            if(prev)
+            {
+                prev->next = tmp->next;
+                free(tmp);
+                tmp = prev->next;
+            }
+            else
+            {
+                Root = tmp->next;
+                free(tmp);
+                tmp = Root;
+            }
+        }
+        else
+        {
+            prev = tmp;
+            tmp = tmp->next;
+        }
+    }
 }
 
 void _my_strlwr(char *buf)
@@ -7294,57 +7294,57 @@ static void _handle_sem(int *tmpsock)
  */
 HEV dw_named_event_new(char *name)
 {
-	struct sockaddr_un un;
-	int ev, *tmpsock = (int *)malloc(sizeof(int)*2);
-	HEV eve;
-	DWTID dwthread;
+    struct sockaddr_un un;
+    int ev, *tmpsock = (int *)malloc(sizeof(int)*2);
+    HEV eve;
+    DWTID dwthread;
 
-	if(!tmpsock)
-		return NULL;
+    if(!tmpsock)
+        return NULL;
 
-	eve = (HEV)malloc(sizeof(struct _dw_unix_event));
+    eve = (HEV)malloc(sizeof(struct _dw_unix_event));
 
-	if(!eve)
-	{
-		free(tmpsock);
-     	return NULL;
-	}
-	
-	tmpsock[0] = socket(AF_UNIX, SOCK_STREAM, 0);
-	ev = socket(AF_UNIX, SOCK_STREAM, 0);
-	memset(&un, 0, sizeof(un));
-	un.sun_family=AF_UNIX;
-	mkdir("/tmp/.dw", S_IWGRP|S_IWOTH);
-	strcpy(un.sun_path, "/tmp/.dw/");
-	strcat(un.sun_path, name);
+    if(!eve)
+    {
+        free(tmpsock);
+        return NULL;
+    }
+    
+    tmpsock[0] = socket(AF_UNIX, SOCK_STREAM, 0);
+    ev = socket(AF_UNIX, SOCK_STREAM, 0);
+    memset(&un, 0, sizeof(un));
+    un.sun_family=AF_UNIX;
+    mkdir("/tmp/.dw", S_IWGRP|S_IWOTH);
+    strcpy(un.sun_path, "/tmp/.dw/");
+    strcat(un.sun_path, name);
 
-	/* just to be safe, this should be changed
-	 * to support multiple instances.
-	 */
-	remove(un.sun_path);
+    /* just to be safe, this should be changed
+     * to support multiple instances.
+     */
+    remove(un.sun_path);
 
-	bind(tmpsock[0], (struct sockaddr *)&un, sizeof(un));
-	listen(tmpsock[0], 0);
-	connect(ev, (struct sockaddr *)&un, sizeof(un));
-	tmpsock[1] = accept(tmpsock[0], 0, 0);
+    bind(tmpsock[0], (struct sockaddr *)&un, sizeof(un));
+    listen(tmpsock[0], 0);
+    connect(ev, (struct sockaddr *)&un, sizeof(un));
+    tmpsock[1] = accept(tmpsock[0], 0, 0);
 
-	if(tmpsock[0] < 0 || tmpsock[1] < 0 || ev < 0)
-	{
-		if(tmpsock[0] > -1)
-			close(tmpsock[0]);
-		if(tmpsock[1] > -1)
-			close(tmpsock[1]);
-		if(ev > -1)
-			close(ev);
-		free(tmpsock);
-		free(eve);
-		return NULL;
-	}
+    if(tmpsock[0] < 0 || tmpsock[1] < 0 || ev < 0)
+    {
+        if(tmpsock[0] > -1)
+            close(tmpsock[0]);
+        if(tmpsock[1] > -1)
+            close(tmpsock[1]);
+        if(ev > -1)
+            close(ev);
+        free(tmpsock);
+        free(eve);
+        return NULL;
+    }
 
-	/* Create a thread to handle this event semaphore */
-	pthread_create(&dwthread, NULL, (void *)_handle_sem, (void *)tmpsock);
-	eve->alive = ev;
-	return eve;
+    /* Create a thread to handle this event semaphore */
+    pthread_create(&dwthread, NULL, (void *)_handle_sem, (void *)tmpsock);
+    eve->alive = ev;
+    return eve;
 }
 
 /* Open an already existing named event semaphore.
@@ -7355,27 +7355,27 @@ HEV dw_named_event_new(char *name)
  */
 HEV dw_named_event_get(char *name)
 {
-	struct sockaddr_un un;
-	HEV eve;
-	int ev = socket(AF_UNIX, SOCK_STREAM, 0);
-	if(ev < 0)
-		return NULL;
+    struct sockaddr_un un;
+    HEV eve;
+    int ev = socket(AF_UNIX, SOCK_STREAM, 0);
+    if(ev < 0)
+        return NULL;
 
-	eve = (HEV)malloc(sizeof(struct _dw_unix_event));
+    eve = (HEV)malloc(sizeof(struct _dw_unix_event));
 
-	if(!eve)
-	{
-		close(ev);
-     	return NULL;
-	}
+    if(!eve)
+    {
+        close(ev);
+        return NULL;
+    }
 
-	un.sun_family=AF_UNIX;
-	mkdir("/tmp/.dw", S_IWGRP|S_IWOTH);
-	strcpy(un.sun_path, "/tmp/.dw/");
-	strcat(un.sun_path, name);
-	connect(ev, (struct sockaddr *)&un, sizeof(un));
-	eve->alive = ev;
-	return eve;
+    un.sun_family=AF_UNIX;
+    mkdir("/tmp/.dw", S_IWGRP|S_IWOTH);
+    strcpy(un.sun_path, "/tmp/.dw/");
+    strcat(un.sun_path, name);
+    connect(ev, (struct sockaddr *)&un, sizeof(un));
+    eve->alive = ev;
+    return eve;
 }
 
 /* Resets the event semaphore so threads who call wait
@@ -7482,12 +7482,12 @@ int dw_named_event_close(HEV eve)
    /* Finally close the domain socket,
     * cleanup will continue in _handle_sem.
     */
-	if(eve)
-	{
-		close(eve->alive);
-		free(eve);
-	}
-	return 0;
+    if(eve)
+    {
+        close(eve->alive);
+        free(eve);
+    }
+    return 0;
 }
 
 #if !defined(GARBAGE_COLLECT)
@@ -7514,17 +7514,17 @@ void _dwthreadstart(void *data)
    void **tmp = (void **)data;
     /* If we aren't using garbage collection we need autorelease pools */
 #if !defined(GARBAGE_COLLECT)
-	NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+    NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
     pthread_setspecific(_dw_pool_key, pool);
 #endif
-	
+    
    threadfunc = (void (*)(void *))tmp[0];
 
    threadfunc(tmp[1]);
     /* Release the pool when we are done so we don't leak */
 #if !defined(GARBAGE_COLLECT)
     pool = pthread_getspecific(_dw_pool_key);
-	[pool drain];
+    [pool drain];
 #endif
    free(tmp);
 }
@@ -7692,9 +7692,9 @@ int dw_named_memory_free(HSHM handle, void *ptr)
  */
 DWTID dw_thread_new(void *func, void *data, int stack)
 {
-	DWTID thread;
-	void **tmp = malloc(sizeof(void *) * 2);
-	int rc;
+    DWTID thread;
+    void **tmp = malloc(sizeof(void *) * 2);
+    int rc;
 
    tmp[0] = func;
    tmp[1] = data;
@@ -7732,8 +7732,8 @@ DWTID dw_thread_id(void)
  */
 int dw_exec(char *program, int type, char **params)
 {
-	int ret = -1;
-	
+    int ret = -1;
+    
     if(type == DW_EXEC_GUI)
     {
         if(params && params[0] && params[1])
@@ -7748,49 +7748,49 @@ int dw_exec(char *program, int type, char **params)
         return 0;
     }
     
-	if((ret = fork()) == 0)
-	{
-		int i;
-		
-		for (i = 3; i < 256; i++)
-			close(i);
-		setsid();
+    if((ret = fork()) == 0)
+    {
+        int i;
         
-		if(type == DW_EXEC_CON)
-		{
-			char **tmpargs;
-			
-			if(!params)
-			{
-				tmpargs = malloc(sizeof(char *));
-				tmpargs[0] = NULL;
-			}
-			else
-			{
-				int z = 0;
-				
-				while(params[z])
-				{
-					z++;
-				}
-				tmpargs = malloc(sizeof(char *)*(z+3));
-				z=0;
-				tmpargs[0] = "xterm";
-				tmpargs[1] = "-e";
-				while(params[z])
-				{
-					tmpargs[z+2] = params[z];
-					z++;
-				}
-				tmpargs[z+2] = NULL;
-			}
-			execvp("xterm", tmpargs);
-			free(tmpargs);
-		}
-		/* If we got here exec failed */
-		_exit(-1);
-	}
-	return ret;
+        for (i = 3; i < 256; i++)
+            close(i);
+        setsid();
+        
+        if(type == DW_EXEC_CON)
+        {
+            char **tmpargs;
+            
+            if(!params)
+            {
+                tmpargs = malloc(sizeof(char *));
+                tmpargs[0] = NULL;
+            }
+            else
+            {
+                int z = 0;
+                
+                while(params[z])
+                {
+                    z++;
+                }
+                tmpargs = malloc(sizeof(char *)*(z+3));
+                z=0;
+                tmpargs[0] = "xterm";
+                tmpargs[1] = "-e";
+                while(params[z])
+                {
+                    tmpargs[z+2] = params[z];
+                    z++;
+                }
+                tmpargs[z+2] = NULL;
+            }
+            execvp("xterm", tmpargs);
+            free(tmpargs);
+        }
+        /* If we got here exec failed */
+        _exit(-1);
+    }
+    return ret;
 }
 
 /*
