@@ -346,6 +346,7 @@ HMTX DWThreadMutex;
 HMTX DWThreadMutex2;
 DWTID DWThread = (DWTID)-1;
 DWTID _dw_mutex_locked = (DWTID)-1;
+long DWOSMajor, DWOSMinor, DWOSBuild;
 
 /* Used for doing bitblts from the main thread */
 typedef struct _bitbltinfo
@@ -1833,7 +1834,7 @@ static int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *
 			{
                 DWSplitBar *split = (DWSplitBar *)handle;
 				float percent = [split percent];
-
+				
                 if(percent > 0)
                 {
                     dw_splitbar_set(handle, percent);
@@ -1876,16 +1877,16 @@ static void _do_resize(Box *thisbox, int x, int y)
 
 NSMenu *_generate_main_menu()
 {
-	NSString *applicationName = nil;
+    NSString *applicationName = nil;
 	
-	/* This only works on 10.6 so we have a backup method */
+    /* This only works on 10.6 so we have a backup method */
 #ifdef BUILDING_FOR_SNOW_LEOPARD
-	applicationName = [[NSRunningApplication currentApplication] localizedName];
+    applicationName = [[NSRunningApplication currentApplication] localizedName];
 #endif
-	if(applicationName == nil)
-	{
-		applicationName = [[NSProcessInfo processInfo] processName];
-	}
+    if(applicationName == nil)
+    {
+        applicationName = [[NSProcessInfo processInfo] processName];
+    }
 	
 	/* Create the main menu */
 	NSMenu * mainMenu = [[[NSMenu alloc] initWithTitle:@"MainMenu"] autorelease];
@@ -2231,9 +2232,11 @@ void dw_clipboard_set_text( char *str, int len)
 {
 	NSPasteboard *pasteboard = [NSPasteboard generalPasteboard];
 	
-#ifdef BUILDING_FOR_SNOW_LEOPARD
-	[pasteboard clearContents];
-#endif
+    /* Only in Snow Leopard */
+    if(DWOSMinor > 5)
+    {
+        [pasteboard clearContents];
+    }
 	
 	[pasteboard setString:[ NSString stringWithUTF8String:str ] forType:NSStringPboardType];
 }
@@ -3637,13 +3640,16 @@ void API dw_mle_thaw(HWND handle)
  */
 HWND API dw_status_text_new(char *text, ULONG cid)
 {
-	NSTextField *textfield = dw_text_new(text, cid);
-	[textfield setBordered:YES];
-	[textfield setBezeled:YES];
-	[textfield setBezelStyle:NSTextFieldSquareBezel];
-    [textfield setBackgroundColor:[NSColor colorWithDeviceRed:1 green:1 blue:1 alpha: 0]];
+    NSTextField *textfield = dw_text_new(text, cid);
+    [textfield setBordered:YES];
+    if(DWOSMinor > 5)
+	{
+        [textfield setBezeled:YES];
+        [textfield setBezelStyle:NSTextFieldSquareBezel];
+    }
+    [textfield setBackgroundColor:[NSColor clearColor]];
     [textfield setDrawsBackground:NO];
-	return textfield;
+    return textfield;
 }
 
 /*
@@ -5724,9 +5730,6 @@ HWND API dw_window_new(HWND hwndOwner, char *title, ULONG flStyle)
 	
     [window setContentView:view];
     [window setDelegate:view];
-#ifdef BUILDING_FOR_SNOW_LEOPARD
-    [window setAllowsConcurrentViewDrawing:NO];
-#endif
     [view release];
 
     /* If it isn't a toplevel window... */
@@ -5898,20 +5901,18 @@ void API dw_window_set_style(HWND handle, ULONG style, ULONG mask)
 {
 	id object = handle;
 	
-	if([object isMemberOfClass:[NSWindow class]])
-	{
-#ifdef BUILDING_FOR_SNOW_LEOPARD
-		NSWindow *window = object;
-		int currentstyle = (int)[window styleMask];
-		int tmp;
+    if(DWOSMinor > 5 && [object isMemberOfClass:[NSWindow class]])
+    {
+        NSWindow *window = object;
+        int currentstyle = (int)[window styleMask];
+        int tmp;
 		
-		tmp = currentstyle | (int)mask;
-		tmp ^= mask;
-		tmp |= style;
+        tmp = currentstyle | (int)mask;
+        tmp ^= mask;
+        tmp |= style;
 		
-		[window setStyleMask:tmp];
-#endif
-	}
+        [window setStyleMask:tmp];
+    }
     else if([object isKindOfClass:[NSTextField class]])
     {
         NSTextField *tf = object;
@@ -6464,16 +6465,9 @@ unsigned long API dw_color_depth_get(void)
 void dw_environment_query(DWEnv *env)
 {
 	struct utsname name;
-	char tempbuf[100];
-	int len, z;
 	
 	uname(&name);
 	strcpy(env->osName, "MacOS");
-	strcpy(tempbuf, name.release);
-	
-	env->MajorBuild = env->MinorBuild = 0;
-	
-	len = (int)strlen(tempbuf);
 	
 	strcpy(env->buildDate, __DATE__);
 	strcpy(env->buildTime, __TIME__);
@@ -6481,29 +6475,9 @@ void dw_environment_query(DWEnv *env)
 	env->DWMinorVersion = DW_MINOR_VERSION;
 	env->DWSubVersion = DW_SUB_VERSION;
 	
-	for(z=1;z<len;z++)
-	{
-		if(tempbuf[z] == '.')
-		{
-			int ver = atoi(tempbuf);
-			tempbuf[z] = '\0';
-			if(ver > 4)
-			{
-				env->MajorVersion = 10;
-				env->MinorVersion = ver - 4;
-				env->MajorBuild = atoi(&tempbuf[z+1]);
-			}
-			else
-			{
-				env->MajorVersion = ver;
-				env->MinorVersion = atoi(&tempbuf[z+1]);
-			}
-
-			return;
-		}
-	}
-	env->MajorVersion = atoi(tempbuf);
-	env->MinorVersion = 0;
+    env->MajorVersion = DWOSMajor;
+    env->MinorVersion = DWOSMinor;
+    env->MajorBuild = DWOSBuild;
 }
 
 /*
@@ -7573,6 +7547,10 @@ void _dw_default_font(char *fontname)
  */
 int API dw_init(int newthread, int argc, char *argv[])
 {
+    /* Get the operating system version */
+    Gestalt(gestaltSystemVersionMajor, &DWOSMajor);
+    Gestalt(gestaltSystemVersionMinor, &DWOSMinor);
+    Gestalt(gestaltSystemVersionBugFix, &DWOSBuild);
     /* Create the application object */
     DWApp = [NSApplication sharedApplication];
     /* Create object for handling timers */
