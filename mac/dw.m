@@ -2702,7 +2702,7 @@ HWND API dw_bitmapbutton_new_from_file(char *text, unsigned long cid, char *file
  */
 HWND API dw_bitmapbutton_new_from_data(char *text, unsigned long cid, char *data, int len)
 {
-    NSData *thisdata = [[NSData alloc] dataWithBytes:data length:len];
+    NSData *thisdata = [NSData dataWithBytes:data length:len];
     NSImage *image = [[NSImage alloc] initWithData:thisdata];
     DWButton *button = _button_new("", cid);
     if(image)
