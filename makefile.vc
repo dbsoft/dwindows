@@ -47,7 +47,7 @@ LINK_DEBUG = -release
 !endif
 
 CC = cl
-CFLAGS = -c -Zp1 $(PLATFORM_DEF) -D__WIN32__ -DMSVC -DBUILD_DLL -I$(SRCDIR)\platform -I$(SRCDIR)
+CFLAGS = -c $(PLATFORM_DEF) -D__WIN32__ -DMSVC -DBUILD_DLL -I$(SRCDIR)\platform -I$(SRCDIR)
 CFLAGS_COMPILE = -MTd # was -MD
 LIBS = wsock32.lib kernel32.lib user32.lib comctl32.lib gdi32.lib advapi32.lib shell32.lib comdlg32.lib ole32.lib oleaut32.lib
 RES =
