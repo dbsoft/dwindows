@@ -496,7 +496,7 @@ DWObject *DWObj;
     if(bgcolor)
     {
         [bgcolor set];
-        NSRectFill( [self bounds] );
+        NSRectFill([self bounds]);
     }
 }
 -(BOOL)isFlipped { return YES; }
@@ -509,14 +509,17 @@ DWObject *DWObj;
 -(void)keyDown:(NSEvent *)theEvent { _event_handler(self, theEvent, 2); _event_handler([self window], theEvent, 2); }
 -(void)setColor:(unsigned long)input
 {
+    id orig = bgcolor;
+    
     if(input == _colors[DW_CLR_DEFAULT])
     {
         bgcolor = nil;
     }
     else
     {
-        bgcolor = [NSColor colorWithDeviceRed: DW_RED_VALUE(input)/255.0 green: DW_GREEN_VALUE(input)/255.0 blue: DW_BLUE_VALUE(input)/255.0 alpha: 1];
+        bgcolor = [[NSColor colorWithDeviceRed: DW_RED_VALUE(input)/255.0 green: DW_GREEN_VALUE(input)/255.0 blue: DW_BLUE_VALUE(input)/255.0 alpha: 1] retain];
     }
+    [orig release];
 }
 @end
 
