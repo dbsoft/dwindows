@@ -30,7 +30,7 @@
 # define MIM_MENUDATA 0x00000008
 #endif
 
-HWND popup = (HWND)NULL, hwndBubble = (HWND)NULL, DW_HWND_OBJECT = (HWND)NULL;
+HWND popup = (HWND)NULL, DW_HWND_OBJECT = (HWND)NULL;
 
 HINSTANCE DWInstance = NULL;
 
@@ -3261,29 +3261,11 @@ BOOL CALLBACK _statuswndproc(HWND hwnd, UINT msg, WPARAM mp1, LPARAM mp2)
 BOOL CALLBACK _BtProc(HWND hwnd, ULONG msg, WPARAM mp1, LPARAM mp2)
 {
    BubbleButton *bubble;
-   static int bMouseOver = 0;
-   static BubbleButton *this_bubble = NULL;
    POINT point;
    RECT rect;
    WNDPROC pOldProc;
 
    bubble = (BubbleButton *)GetWindowLongPtr(hwnd, GWLP_USERDATA);
-   if ( bubble != this_bubble )
-   {
-      /*
-       * If we missed the release capture, then if the bubble details
-       * from this window are different from the last we must be in a
-       * different button, so delete the last bubble text
-       */
-      bMouseOver = 0;
-      this_bubble = bubble;
-      if ( hwndBubble )
-      {
-         _free_window_memory(hwndBubble, 0);
-         DestroyWindow(hwndBubble);
-         hwndBubble = 0;
-      }
-   }
 
    if ( !bubble )
       return DefWindowProc(hwnd, msg, mp1, mp2);
@@ -3312,16 +3294,6 @@ BOOL CALLBACK _BtProc(HWND hwnd, ULONG msg, WPARAM mp1, LPARAM mp2)
    case WM_LBUTTONUP:
       {
          SignalHandler *tmp = Root;
-         /*
-          * If we have bubbletext displaying when we
-          * release the mouse, get rid of the bubbletext window
-          */
-         if ( hwndBubble )
-         {
-            _free_window_memory(hwndBubble, 0);
-            DestroyWindow(hwndBubble);
-            hwndBubble = 0;
-         }
 
          /* Find any callbacks for this function */
          while(tmp)
@@ -3391,113 +3363,6 @@ BOOL CALLBACK _BtProc(HWND hwnd, ULONG msg, WPARAM mp1, LPARAM mp2)
       if(mp1 == VK_RIGHT || mp1 == VK_DOWN)
          _shift_focus(hwnd);
       break;
-   case WM_MOUSEMOVE:
-      GetCursorPos(&point);
-      GetWindowRect(hwnd, &rect);
-
-      if ( PtInRect(&rect, point) )
-      {
-         if ( hwnd != GetCapture() )
-         {
-            SetCapture(hwnd);
-         }
-         if ( !bMouseOver )
-         {
-            bMouseOver = 1;
-            if(!*bubble->bubbletext)
-               break;
-
-            if(hwndBubble)
-            {
-               _free_window_memory(hwndBubble, 0);
-               DestroyWindow(hwndBubble);
-               hwndBubble = 0;
-            }
-
-            if(!hwndBubble)
-            {
-               POINTL ptlWork = {0,0};
-               SIZE size;
-               HFONT hFont, oldFont = (HFONT)0;
-               HDC hdc;
-               RECT rect;
-
-               /* Use the WS_EX_TOOLWINDOW extended style
-                * so the window doesn't get listed in the
-                * taskbar.
-                */
-               hwndBubble = CreateWindowEx(WS_EX_TOOLWINDOW,
-                                    STATICCLASSNAME,
-                                    bubble->bubbletext,
-                                    BS_TEXT | WS_POPUP |
-                                    WS_BORDER |
-                                    SS_CENTER,
-                                    0,0,50,20,
-                                    HWND_DESKTOP,
-                                    NULL,
-                                    DWInstance,
-                                    NULL);
-
-               dw_window_set_font(hwndBubble, DefaultFont);
-               dw_window_set_color(hwndBubble, DW_CLR_BLACK, DW_CLR_YELLOW);
-
-               hFont = (HFONT)SendMessage(hwndBubble, WM_GETFONT, 0, 0);
-
-               hdc = GetDC(hwndBubble);
-
-               if(hFont)
-                  oldFont = (HFONT)SelectObject(hdc, hFont);
-
-               GetTextExtentPoint32(hdc, bubble->bubbletext, strlen(bubble->bubbletext), &size);
-
-               if(hFont)
-                  SelectObject(hdc, oldFont);
-
-               MapWindowPoints(hwnd, HWND_DESKTOP, (LPPOINT)&ptlWork, 1);
-
-               GetWindowRect(hwnd, &rect);
-
-               SetWindowPos(hwndBubble,
-                         HWND_TOP,
-                         ptlWork.x,
-                         ptlWork.y + (rect.bottom-rect.top) + 1,
-                         size.cx + 8,
-                         size.cy + 2,
-                         SWP_NOACTIVATE | SWP_SHOWWINDOW);
-
-               ReleaseDC(hwndBubble, hdc);
-            }
-         }
-      }
-      else{
-         /* Calling ReleaseCapture in Win95 also causes WM_CAPTURECHANGED
-          * to be sent.  Be sure to account for that.
-          */
-         ReleaseCapture();
-
-         if(bMouseOver && hwndBubble)
-         {
-            bMouseOver = 0;
-            _free_window_memory(hwndBubble, 0);
-            DestroyWindow(hwndBubble);
-            hwndBubble = 0;
-         }
-      }
-      _wndproc(hwnd, msg, mp1, mp2);
-      break;
-   case WM_CAPTURECHANGED:
-      /* This message means we are losing the capture for some reason
-       * Either because we intentionally lost it or another window
-       * stole it
-       */
-      if ( bMouseOver && hwndBubble )
-      {
-         bMouseOver = 0;
-         _free_window_memory(hwndBubble, 0);
-         DestroyWindow(hwndBubble);
-         hwndBubble = 0;
-      }
-      break;
    }
 
    if ( !pOldProc )
@@ -3531,6 +3396,34 @@ void _resize_notebook_page(HWND handle, int pageid)
       ShowWindow(array[pageid]->hwnd, SW_SHOWNORMAL);
    }
 }
+
+void _create_tooltip(HWND handle, char *text)
+{
+    /* Create a tooltip. */
+    HWND hwndTT = CreateWindowEx(WS_EX_TOPMOST,
+        TOOLTIPS_CLASS, NULL,
+        WS_POPUP | TTS_NOPREFIX | TTS_ALWAYSTIP,		
+        CW_USEDEFAULT, CW_USEDEFAULT,
+        CW_USEDEFAULT, CW_USEDEFAULT,
+        handle, NULL, DWInstance,NULL);
+    TOOLINFO ti = { 0 };
+
+    SetWindowPos(hwndTT, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+
+    /* Set up "tool" information.
+     * In this case, the "tool" is the entire parent window.
+	 */
+    ti.cbSize = sizeof(TOOLINFO);
+    ti.uFlags = TTF_SUBCLASS;
+    ti.hwnd = handle;
+    ti.hinst = DWInstance;
+    ti.lpszText = text;
+    GetClientRect(handle, &ti.rect);
+
+    /* Associate the tooltip with the "tool" window. */
+    SendMessage(hwndTT, TTM_ADDTOOL, 0, (LPARAM) (LPTOOLINFO) &ti);	
+} 
+
 
 /* This function determines the handle for a supplied image filename
  */
@@ -5202,8 +5095,10 @@ HWND API dw_bitmapbutton_new(char *text, ULONG id)
    strncpy(bubble->bubbletext, text, BUBBLE_HELP_MAX - 1);
    bubble->bubbletext[BUBBLE_HELP_MAX - 1] = '\0';
    bubble->pOldProc = (WNDPROC)SubclassWindow(tmp, _BtProc);
-
+   
    SetWindowLongPtr(tmp, GWLP_USERDATA, (LONG_PTR)bubble);
+
+   _create_tooltip(tmp, text);
 
    if(icon)
    {
@@ -5253,6 +5148,8 @@ HWND API dw_bitmapbutton_new_from_file(char *text, unsigned long id, char *filen
    bubble->pOldProc = (WNDPROC)SubclassWindow(tmp, _BtProc);
 
    SetWindowLongPtr(tmp, GWLP_USERDATA, (LONG_PTR)bubble);
+
+   _create_tooltip(tmp, text);
 
    if (icon)
    {
@@ -5330,6 +5227,8 @@ HWND API dw_bitmapbutton_new_from_data(char *text, unsigned long id, char *data,
    bubble->pOldProc = (WNDPROC)SubclassWindow( tmp, _BtProc );
 
    SetWindowLongPtr( tmp, GWLP_USERDATA, (LONG_PTR)bubble );
+
+   _create_tooltip(tmp, text);
 
    if ( icon )
    {
