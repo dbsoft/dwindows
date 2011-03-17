@@ -4917,6 +4917,8 @@ HWND API dw_splitbar_new(int type, HWND topleft, HWND bottomright, unsigned long
     {
         [split setVertical:YES];
     }
+    /* Set the default percent to 50% split */
+    [split setPercent:50.0];
     /* [split setTag:cid]; Why doesn't this work? */
     DW_MUTEX_UNLOCK;
     return split;
