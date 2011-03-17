@@ -346,7 +346,7 @@ HMTX DWThreadMutex;
 HMTX DWThreadMutex2;
 DWTID DWThread = (DWTID)-1;
 DWTID _dw_mutex_locked = (DWTID)-1;
-long DWOSMajor, DWOSMinor, DWOSBuild;
+SInt32 DWOSMajor, DWOSMinor, DWOSBuild;
 
 /* Used for doing bitblts from the main thread */
 typedef struct _bitbltinfo
