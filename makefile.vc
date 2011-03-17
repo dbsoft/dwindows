@@ -87,7 +87,7 @@ $(OBJS) $(RES)
 $(LIBS)
 <<
 	lib /def:$(DEFFILE) /out:dw.lib
-	mt.exe /manifest dw.dll.manifest /outputresource:dw.dll;2
+	mt.exe /manifest dw.dll.manifest win\dw.dll.$(TARGET_CPU).manifest /outputresource:dw.dll;2
         copy dw.lib $(DWLIBDIR)\dw.lib
         copy dw.dll $(DWDLLDIR)\dw.dll
 
@@ -127,7 +127,7 @@ dwtest: dwtest.exe
 
 dwtest.exe: dwtest.obj winmain.obj
 	$(LINK) $(LINKFLAGS) /out:dwtest.exe dwtest.obj winmain.obj /subsystem:windows $(DWLIBDIR)\dwcompat.lib $(DWLIBDIR)\dw.lib $(LIBS)
-	mt.exe /manifest dwtest.exe.manifest /outputresource:dwtest.exe;1
+	mt.exe /manifest dwtest.exe.manifest win\dwtest.exe.$(TARGET_CPU).manifest /outputresource:dwtest.exe;1
 
 zip: dw.dll
 	copy win\readme-win.txt .
