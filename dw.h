@@ -401,7 +401,7 @@ void _dw_default_font(char *fontname);
 #define VK_BACK                  0x7F
 #define VK_TAB                   0x09
 #define VK_CLEAR                 71
-#define VK_RETURN                3
+#define VK_RETURN                13
 #define VK_MENU                  0xF735 /* NSMenuFunctionKey */
 #define VK_PAUSE                 0xF730 /* NSPauseFunctionKey */
 #define VK_CAPITAL               57
