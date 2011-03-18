@@ -695,9 +695,9 @@ typedef struct _bubblebutton {
 #if defined(__OS2__) || defined(__EMX__)
    PFNWP pOldProc;
    UserData *root;
-#endif
    unsigned long id;
    char bubbletext[BUBBLE_HELP_MAX];
+#endif
 } BubbleButton;
 
 #elif defined(__PHOTON__)

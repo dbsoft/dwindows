@@ -5058,8 +5058,6 @@ HWND API dw_button_new(char *text, ULONG id)
                      DWInstance,
                      NULL);
 
-   bubble->id = id;
-   bubble->bubbletext[0] = '\0';
    bubble->pOldProc = (WNDPROC)SubclassWindow(tmp, _BtProc);
 
    SetWindowLongPtr(tmp, GWLP_USERDATA, (LONG_PTR)bubble);
@@ -5091,9 +5089,6 @@ HWND API dw_bitmapbutton_new(char *text, ULONG id)
                   DWInstance,
                   NULL);
 
-   bubble->id = id;
-   strncpy(bubble->bubbletext, text, BUBBLE_HELP_MAX - 1);
-   bubble->bubbletext[BUBBLE_HELP_MAX - 1] = '\0';
    bubble->pOldProc = (WNDPROC)SubclassWindow(tmp, _BtProc);
    
    SetWindowLongPtr(tmp, GWLP_USERDATA, (LONG_PTR)bubble);
@@ -5142,9 +5137,6 @@ HWND API dw_bitmapbutton_new_from_file(char *text, unsigned long id, char *filen
                        DWInstance,
                        NULL);
 
-   bubble->id = id;
-   strncpy(bubble->bubbletext, text, BUBBLE_HELP_MAX - 1);
-   bubble->bubbletext[BUBBLE_HELP_MAX - 1] = '\0';
    bubble->pOldProc = (WNDPROC)SubclassWindow(tmp, _BtProc);
 
    SetWindowLongPtr(tmp, GWLP_USERDATA, (LONG_PTR)bubble);
@@ -5221,9 +5213,6 @@ HWND API dw_bitmapbutton_new_from_data(char *text, unsigned long id, char *data,
                        DWInstance,
                        NULL );
 
-   bubble->id = id;
-   strncpy( bubble->bubbletext, text, BUBBLE_HELP_MAX - 1 );
-   bubble->bubbletext[BUBBLE_HELP_MAX - 1] = '\0';
    bubble->pOldProc = (WNDPROC)SubclassWindow( tmp, _BtProc );
 
    SetWindowLongPtr( tmp, GWLP_USERDATA, (LONG_PTR)bubble );
@@ -5306,7 +5295,6 @@ HWND API dw_radiobutton_new(char *text, ULONG id)
                      DWInstance,
                      NULL);
    BubbleButton *bubble = calloc(1, sizeof(BubbleButton));
-   bubble->id = id;
    bubble->pOldProc = (WNDPROC)SubclassWindow(tmp, _BtProc);
    bubble->cinfo.fore = -1;
    bubble->cinfo.back = -1;
@@ -5407,7 +5395,6 @@ HWND API dw_checkbox_new(char *text, ULONG id)
                      (HMENU)id,
                      DWInstance,
                      NULL);
-   bubble->id = id;
    bubble->checkbox = 1;
    bubble->pOldProc = (WNDPROC)SubclassWindow(tmp, _BtProc);
    bubble->cinfo.fore = -1;
