@@ -4020,7 +4020,8 @@ void API dw_draw_rect(HWND handle, HPIXMAP pixmap, int fill, int x, int y, int w
     [aPath lineToPoint:NSMakePoint(x + width, y + height)];
     [aPath lineToPoint:NSMakePoint(x + width, y)];
     [aPath closePath];
-    [aPath fill];
+    if(fill)
+       [aPath fill];
     [aPath stroke];
     [image unlockFocus];
     DW_MUTEX_UNLOCK;
