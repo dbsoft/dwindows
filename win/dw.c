@@ -5057,7 +5057,7 @@ HWND API dw_button_new(char *text, ULONG id)
                      (HMENU)id,
                      DWInstance,
                      NULL);
-
+   bubble->cinfo.fore = bubble->cinfo.back = -1;
    bubble->pOldProc = (WNDPROC)SubclassWindow(tmp, _BtProc);
 
    SetWindowLongPtr(tmp, GWLP_USERDATA, (LONG_PTR)bubble);
@@ -5089,6 +5089,7 @@ HWND API dw_bitmapbutton_new(char *text, ULONG id)
                   DWInstance,
                   NULL);
 
+   bubble->cinfo.fore = bubble->cinfo.back = -1;
    bubble->pOldProc = (WNDPROC)SubclassWindow(tmp, _BtProc);
    
    SetWindowLongPtr(tmp, GWLP_USERDATA, (LONG_PTR)bubble);
@@ -5137,6 +5138,7 @@ HWND API dw_bitmapbutton_new_from_file(char *text, unsigned long id, char *filen
                        DWInstance,
                        NULL);
 
+   bubble->cinfo.fore = bubble->cinfo.back = -1;
    bubble->pOldProc = (WNDPROC)SubclassWindow(tmp, _BtProc);
 
    SetWindowLongPtr(tmp, GWLP_USERDATA, (LONG_PTR)bubble);
@@ -5213,6 +5215,7 @@ HWND API dw_bitmapbutton_new_from_data(char *text, unsigned long id, char *data,
                        DWInstance,
                        NULL );
 
+   bubble->cinfo.fore = bubble->cinfo.back = -1;
    bubble->pOldProc = (WNDPROC)SubclassWindow( tmp, _BtProc );
 
    SetWindowLongPtr( tmp, GWLP_USERDATA, (LONG_PTR)bubble );
@@ -5295,6 +5298,7 @@ HWND API dw_radiobutton_new(char *text, ULONG id)
                      DWInstance,
                      NULL);
    BubbleButton *bubble = calloc(1, sizeof(BubbleButton));
+   bubble->cinfo.fore = bubble->cinfo.back = -1;
    bubble->pOldProc = (WNDPROC)SubclassWindow(tmp, _BtProc);
    bubble->cinfo.fore = -1;
    bubble->cinfo.back = -1;
@@ -5396,9 +5400,8 @@ HWND API dw_checkbox_new(char *text, ULONG id)
                      DWInstance,
                      NULL);
    bubble->checkbox = 1;
+   bubble->cinfo.fore = bubble->cinfo.back = -1;
    bubble->pOldProc = (WNDPROC)SubclassWindow(tmp, _BtProc);
-   bubble->cinfo.fore = -1;
-   bubble->cinfo.back = -1;
    SetWindowLongPtr(tmp, GWLP_USERDATA, (LONG_PTR)bubble);
    dw_window_set_font(tmp, DefaultFont);
    return tmp;
