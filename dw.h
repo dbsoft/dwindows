@@ -165,6 +165,8 @@ typedef struct _user_data
 #define DW_POINTER_CLOCK         SPTR_WAIT
 #define DW_POINTER_QUESTION      SPTR_ICONQUESICON
 
+#define DW_BS_NOBORDER           BS_NOBORDER
+
 #define DW_OS2_NEW_WINDOW        1
 
 /* flag values for dw_messagebox() */
@@ -370,11 +372,9 @@ void _dw_default_font(char *fontname);
 
 #define DW_LIT_NONE              -1
 
-#ifdef MLFSEARCH_CASESENSITIVE
-# define DW_MLE_CASESENSITIVE    MLFSEARCH_CASESENSITIVE
-#else
-# define DW_MLE_CASESENSITIVE    0
-#endif
+#define DW_MLE_CASESENSITIVE     0
+
+#define DW_BS_NOBORDER           1
 
 #define DW_POINTER_DEFAULT       0
 #define DW_POINTER_ARROW         1
@@ -555,6 +555,8 @@ void _dw_default_font(char *fontname);
 #define DW_LIT_NONE              -1
 
 #define DW_MLE_CASESENSITIVE     1
+
+#define DW_BS_NOBORDER           BS_FLAT
 
 #define DW_POINTER_DEFAULT       0
 #define DW_POINTER_ARROW         32512
@@ -853,6 +855,8 @@ typedef struct _hpixmap {
 # define DW_MLE_CASESENSITIVE    0
 #endif
 
+#define DW_BS_NOBORDER           1
+
 #define DW_POINTER_DEFAULT       0
 #define DW_POINTER_ARROW         0
 #define DW_POINTER_CLOCK         0
@@ -1032,6 +1036,8 @@ typedef struct _hpixmap {
 #define DW_LIT_NONE              -1
 
 #define DW_MLE_CASESENSITIVE     1
+
+#define DW_BS_NOBORDER           1
 
 #define DW_POINTER_DEFAULT       0
 #define DW_POINTER_ARROW         GDK_TOP_LEFT_ARROW

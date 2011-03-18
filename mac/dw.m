@@ -2653,8 +2653,6 @@ HWND API dw_bitmapbutton_new(char *text, ULONG resid)
     if(image)
     {
         [button setImage:image];
-        [button setButtonType:NSMomentaryLight];
-        [button setBordered:NO];
     }
     [button setToolTip:[NSString stringWithUTF8String:text]];
     [image release];
@@ -2683,8 +2681,6 @@ HWND API dw_bitmapbutton_new_from_file(char *text, unsigned long cid, char *file
     if(image)
     {
         [button setImage:image];
-        [button setButtonType:NSMomentaryLight];
-        [button setBordered:NO];
     }
     [button setToolTip:[NSString stringWithUTF8String:text]];
     [image release];
@@ -2708,8 +2704,6 @@ HWND API dw_bitmapbutton_new_from_data(char *text, unsigned long cid, char *data
     if(image)
     {
         [button setImage:image];
-        [button setButtonType:NSMomentaryLight];
-        [button setBordered:NO];
     }
     [button setToolTip:[NSString stringWithUTF8String:text]];
     [image release];
@@ -5929,6 +5923,24 @@ void API dw_window_set_style(HWND handle, ULONG style, ULONG mask)
     {
         NSTextView *tv = handle;
         [tv setAlignment:(style & mask)];
+    }
+    else if([object isMemberOfClass:[DWButton class]])
+    {
+        DWButton *button = handle;
+        
+        if(mask & DW_BS_NOBORDER)
+        {
+            if(style & DW_BS_NOBORDER)
+            {
+                [button setButtonType:NSMomentaryLight];
+                [button setBordered:NO];
+            }
+            else
+            {
+                [button setButtonType:NSMomentaryPushInButton];
+                [button setBordered:YES];
+            }
+        }
     }
 }
 
