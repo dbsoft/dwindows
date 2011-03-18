@@ -4028,7 +4028,7 @@ HWND dw_bitmapbutton_new(char *text, unsigned long id)
 {
    GtkWidget *tmp;
    GtkWidget *bitmap;
-    GtkTooltips *tooltips;
+   GtkTooltips *tooltips;
    int _locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
@@ -9268,6 +9268,20 @@ void dw_window_set_style(HWND handle, unsigned long style, unsigned long mask)
       GtkWidget *tmp = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(handle), "_dw_label");
       if(tmp && GTK_IS_LABEL(tmp))
          handle2 = tmp;
+   }
+   else if(GTK_IS_BUTTON(handle))
+   {
+        if(mask & DW_BS_NOBORDER)
+        {
+            if(style & DW_BS_NOBORDER)
+            {
+                gtk_button_set_relief((GtkButton *)handle, GTK_RELIEF_NONE);
+            }
+            else
+            {
+                gtk_button_set_relief((GtkButton *)handle, GTK_RELIEF_NORMAL);
+            }
+        }
    }
    if ( GTK_IS_LABEL(handle2) )
    {
