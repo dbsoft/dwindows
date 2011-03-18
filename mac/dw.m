@@ -615,14 +615,28 @@ DWObject *DWObj;
 @interface DWEntryField : NSTextField
 {
     void *userdata;
+    id clickDefault;
 }
 -(void *)userdata;
 -(void)setUserdata:(void *)input;
+-(void)setClickDefault:(id)input;
 @end
 
 @implementation DWEntryField
 -(void *)userdata { return userdata; }
 -(void)setUserdata:(void *)input { userdata = input; }
+-(void)setClickDefault:(id)input { clickDefault = input; }
+-(void)keyUp:(NSEvent *)theEvent 
+{ 
+    unichar vk = [[theEvent charactersIgnoringModifiers] characterAtIndex:0];
+    if(clickDefault && vk == VK_RETURN)
+    { 
+        [[self window] makeFirstResponder:clickDefault]; 
+    } else 
+    { 
+        [super keyUp:theEvent]; 
+    } 
+}
 -(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); [super dealloc]; }
 @end
 
@@ -630,14 +644,27 @@ DWObject *DWObj;
 @interface DWEntryFieldPassword : NSSecureTextField
 {
     void *userdata;
+    id clickDefault;
 }
 -(void *)userdata;
 -(void)setUserdata:(void *)input;
+-(void)setClickDefault:(id)input;
 @end
 
 @implementation DWEntryFieldPassword
 -(void *)userdata { return userdata; }
 -(void)setUserdata:(void *)input { userdata = input; }
+-(void)setClickDefault:(id)input { clickDefault = input; }
+-(void)keyUp:(NSEvent *)theEvent 
+{ 
+    if(clickDefault && [[theEvent charactersIgnoringModifiers] characterAtIndex:0] == VK_RETURN)
+    { 
+        [[self window] makeFirstResponder:clickDefault]; 
+    } else 
+    { 
+        [super keyUp:theEvent]; 
+    } 
+}
 -(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); [super dealloc]; }
 @end
 
@@ -1333,16 +1360,29 @@ void _free_tree_recurse(NSMutableArray *node, NSPointerArray *item)
 #endif
 {
     void *userdata;
+    id clickDefault;
 }
 -(void *)userdata;
 -(void)setUserdata:(void *)input;
 -(void)comboBoxSelectionDidChange:(NSNotification *)not;
+-(void)setClickDefault:(id)input;
 @end
 
 @implementation DWComboBox
 -(void *)userdata { return userdata; }
 -(void)setUserdata:(void *)input { userdata = input; }
 -(void)comboBoxSelectionDidChange:(NSNotification *)not { _event_handler(self, (void *)[self indexOfSelectedItem], 11); }
+-(void)setClickDefault:(id)input { clickDefault = input; }
+-(void)keyUp:(NSEvent *)theEvent 
+{ 
+    if(clickDefault && [[theEvent charactersIgnoringModifiers] characterAtIndex:0] == VK_RETURN)
+    { 
+        [[self window] makeFirstResponder:clickDefault]; 
+    } else 
+    { 
+        [super keyUp:theEvent]; 
+    } 
+}
 -(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); [super dealloc]; }
 @end
 
@@ -1391,6 +1431,7 @@ void _free_tree_recurse(NSMutableArray *node, NSPointerArray *item)
     void *userdata;
     NSTextField *textfield;
     DWStepper *stepper;
+    id clickDefault;
 }
 -(id)init;
 -(void *)userdata;
@@ -1398,6 +1439,7 @@ void _free_tree_recurse(NSMutableArray *node, NSPointerArray *item)
 -(NSTextField *)textfield;
 -(NSStepper *)stepper;
 -(void)controlTextDidChange:(NSNotification *)aNotification;
+-(void)setClickDefault:(id)input;
 @end
 
 @implementation DWSpinButton
@@ -1428,6 +1470,19 @@ void _free_tree_recurse(NSMutableArray *node, NSPointerArray *item)
     [textfield takeIntValueFrom:stepper];
     _event_handler(self, (void *)[stepper integerValue], 14);
 }
+-(void)setClickDefault:(id)input { clickDefault = input; }
+-(void)keyUp:(NSEvent *)theEvent 
+{ 
+    if(clickDefault && [[theEvent charactersIgnoringModifiers] characterAtIndex:0] == VK_RETURN)
+    { 
+        [[self window] makeFirstResponder:clickDefault]; 
+    } 
+    else 
+    { 
+        [super keyUp:theEvent]; 
+    } 
+}
+-(void)performClick:(id)sender { [textfield performClick:sender]; }
 -(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); [super dealloc]; }
 @end
 
@@ -5965,9 +6020,32 @@ void API dw_window_default(HWND handle, HWND defaultitem)
  *         window: Window (widget) to look for the ENTER press.
  *         next: Window (widget) to move to next (or click)
  */
-void API dw_window_click_default(HWND window, HWND next)
+void API dw_window_click_default(HWND handle, HWND next)
 {
-    NSLog(@"dw_window_click_default() unimplemented\n");
+    id object = handle;
+    id control = next;
+    
+    if([object isMemberOfClass:[NSWindow class]] && [control isMemberOfClass:[DWButton class]])
+    {
+        NSWindow *window = object;
+        
+        [window setDefaultButtonCell:control];
+    }
+    else
+    {
+        if([control isMemberOfClass:[DWSpinButton class]])
+        {
+            control = [control textfield];
+        }
+        else if([control isMemberOfClass:[DWComboBox class]])
+        {
+            /* TODO: Figure out why the combobox can't be
+             * focused using makeFirstResponder method.
+             */
+            control = [control textfield];
+        }
+        [object setClickDefault:control];
+    }
 }
 
 static id _DWCapture;
