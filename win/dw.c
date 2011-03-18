@@ -5300,8 +5300,6 @@ HWND API dw_radiobutton_new(char *text, ULONG id)
    BubbleButton *bubble = calloc(1, sizeof(BubbleButton));
    bubble->cinfo.fore = bubble->cinfo.back = -1;
    bubble->pOldProc = (WNDPROC)SubclassWindow(tmp, _BtProc);
-   bubble->cinfo.fore = -1;
-   bubble->cinfo.back = -1;
    SetWindowLongPtr(tmp, GWLP_USERDATA, (LONG_PTR)bubble);
    dw_window_set_font(tmp, DefaultFont);
    return tmp;
