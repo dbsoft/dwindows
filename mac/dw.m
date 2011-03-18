@@ -5729,6 +5729,7 @@ HWND API dw_window_new(HWND hwndOwner, char *title, ULONG flStyle)
 
     [window setContentView:view];
     [window setDelegate:view];
+    [window setAutorecalculatesKeyViewLoop:YES];
     [view release];
 
     /* If it isn't a toplevel window... */
@@ -5950,9 +5951,11 @@ void API dw_window_set_style(HWND handle, ULONG style, ULONG mask)
  *         window: Toplevel window or dialog.
  *         defaultitem: Handle to the dialog item to be default.
  */
-void API dw_window_default(HWND window, HWND defaultitem)
+void API dw_window_default(HWND handle, HWND defaultitem)
 {
-    NSLog(@"dw_window_default() unimplemented\n");
+    NSWindow *window = handle;
+    
+    [window setInitialFirstResponder:defaultitem];
 }
 
 /*
