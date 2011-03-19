@@ -27,6 +27,7 @@
 #endif
 
 #define SCROLLBARWIDTH 14
+#define MAX_WIDGETS 20
 
 unsigned long flStyle = DW_FCF_SYSMENU | DW_FCF_TITLEBAR |
    DW_FCF_SHELLPOSITION | DW_FCF_TASKLIST | DW_FCF_DLGBORDER;
@@ -34,7 +35,7 @@ unsigned long flStyle = DW_FCF_SYSMENU | DW_FCF_TITLEBAR |
 unsigned long current_color = DW_RGB(100,100,100);
 
 int iteration = 0;
-   void create_button( int);
+void create_button( int);
 
 HWND mainwindow,
    entryfield,
@@ -58,6 +59,7 @@ HWND mainwindow,
    notebookbox5,
    notebookbox6,
    notebookbox7,
+   notebookbox8,
    html,
    rawhtml,
    notebook,
@@ -79,6 +81,9 @@ HWND mainwindow,
    buttonsbox,
    buttonboxperm,
    cal,
+   scrollbox,
+   labelarray[MAX_WIDGETS],
+   entryarray[MAX_WIDGETS],
    filetoolbarbox;
 
 HMENUI mainmenubar,changeable_menu;
@@ -227,8 +232,8 @@ int DWSIGNAL text_expose(HWND hwnd, DWExpose *exp, void *data)
    else
       return TRUE;
 
-   width = DW_PIXMAP_WIDTH(hpm);
-   height = DW_PIXMAP_HEIGHT(hpm);
+   width = (int)DW_PIXMAP_WIDTH(hpm);
+   height = (int)DW_PIXMAP_HEIGHT(hpm);
 
    dw_pixmap_bitblt(hwnd, NULL, 0, 0, (int)width, (int)height, 0, hpm, 0, 0 );
    dw_flush();
@@ -1059,6 +1064,43 @@ void menu_add(void)
    dw_menu_append_item( mainmenubar, "~Help", 1090, 0, TRUE, FALSE, menu );
 }
 
+int DWSIGNAL scrollbox_button_callback(HWND window, void *data)
+{
+   int pos, range;
+
+   pos = dw_scrollbox_get_pos( scrollbox, DW_VERT );
+   range = dw_scrollbox_get_range( scrollbox, DW_VERT );
+   fprintf( stderr, "Pos %d Range %d\n", pos, range );
+   return 0;
+}
+
+void scrollbox_add(void)
+{
+   HWND tmpbox,abutton1;
+   char buf[100];
+   int i;
+
+   /* create a box to pack into the notebook page */
+   scrollbox = dw_scrollbox_new(DW_VERT, 0);
+   dw_box_pack_start(notebookbox8, scrollbox, 0, 0, TRUE, TRUE, 1);
+
+   abutton1 = dw_button_new( "Show Adjustments", 0 );
+   dw_box_pack_start( scrollbox, abutton1, 100, 30, FALSE, FALSE, 0 );
+   dw_signal_connect( abutton1, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(scrollbox_button_callback), NULL );
+
+   for ( i = 0; i < MAX_WIDGETS; i++ )
+   {
+      tmpbox = dw_box_new( DW_HORZ, 0 );
+      dw_box_pack_start( scrollbox, tmpbox, 0, 24, TRUE, FALSE, 2);
+      sprintf( buf, "Label %d", i );
+      labelarray[i] = dw_text_new( buf , 0 );
+      dw_box_pack_start( tmpbox, labelarray[i], 0, 20, TRUE, FALSE, 0);
+      sprintf( buf, "Entry %d", i );
+      entryarray[i] = dw_entryfield_new( buf , i );
+      dw_box_pack_start( tmpbox, entryarray[i], 0, 20, TRUE, FALSE, 0);
+   }
+}
+
 /*
  * Let's demonstrate the functionality of this library. :)
  */
@@ -1071,6 +1113,7 @@ int main(int argc, char *argv[])
    ULONG notebookpage5;
    ULONG notebookpage6;
    ULONG notebookpage7;
+   ULONG notebookpage8;
 
    dw_init(TRUE, argc, argv);
 
@@ -1141,6 +1184,13 @@ int main(int argc, char *argv[])
     */
    dw_html_url(html, "http://www.rexx.org");
 #endif
+
+   notebookbox8 = dw_box_new( BOXVERT, 7 );
+   notebookpage8 = dw_notebook_page_new( notebook, 1, FALSE );
+   dw_notebook_pack( notebook, notebookpage8, notebookbox8 );
+   dw_notebook_page_set_text( notebook, notebookpage8, "scrollbox");
+   scrollbox_add();
+
    dw_signal_connect(mainwindow, DW_SIGNAL_DELETE, DW_SIGNAL_FUNC(exit_callback), (void *)mainwindow);
    timerid = dw_timer_connect(2000, DW_SIGNAL_FUNC(timer_callback), 0);
    dw_window_set_size(mainwindow, 640, 520);
