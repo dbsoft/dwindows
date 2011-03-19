@@ -57,9 +57,9 @@ EXPORTS
   dw_window_lower                        @77
   dw_window_click_default                @78
   dw_window_redraw                       @79
-
   dw_bitmap_new                          @80
   dw_window_set_bitmap_from_data         @81
+  dw_window_get_font                     @82
 
   dw_button_new                          @90
   dw_bitmapbutton_new                    @91
@@ -280,3 +280,6 @@ EXPORTS
   dw_clipboard_get_text                  @490
   dw_clipboard_set_text                  @491
 
+  dw_scrollbox_new                       @500
+  dw_scrollbox_get_pos                   @501
+  dw_scrollbox_get_range                 @502
