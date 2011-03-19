@@ -2393,7 +2393,7 @@ int dw_messagebox(char *title, int flags, char *format, ...)
    int width,height;
 
    va_start(args, format);
-   vsprintf(outbuf, format, args);
+   vsnprintf(outbuf, 999, format, args);
    va_end(args);
 
    entrywindow = dw_window_new(HWND_DESKTOP, title, flStyle);
@@ -3221,7 +3221,7 @@ HWND dw_box_new(int type, int pad)
    return tmp;
 }
 
-#ifdef INCOMPLETE
+#ifndef INCOMPLETE
 /*
  * Create a new scrollable Box to be packed.
  * Parameters:
@@ -3255,6 +3255,58 @@ HWND dw_scrollbox_new( int type, int pad )
    DW_MUTEX_UNLOCK;
    return tmp;
 }
+
+/*
+ * Returns the position of the scrollbar in the scrollbox
+ * Parameters:
+ *          handle: Handle to the scrollbox to be queried.
+ *          orient: The vertical or horizontal scrollbar.
+ */
+int dw_scrollbox_get_pos(HWND handle, int orient)
+{
+   int val = -1, _locked_by_me = FALSE;
+   GtkAdjustment *adjustment;
+
+   if (!handle)
+      return -1;
+
+   DW_MUTEX_LOCK;
+   if ( orient == DW_HORZ )
+      adjustment = gtk_scrolled_window_get_hadjustment( handle );
+   else
+      adjustment = gtk_scrolled_window_get_vadjustment( handle );
+   if (adjustment)
+      val = _round_value(adjustment->value);
+   DW_MUTEX_UNLOCK;
+   return val;
+}
+
+/*
+ * Gets the range for the scrollbar in the scrollbox.
+ * Parameters:
+ *          handle: Handle to the scrollbox to be queried.
+ *          orient: The vertical or horizontal scrollbar.
+ */
+int API dw_scrollbox_get_range(HWND handle, int orient)
+{
+   int range = -1, _locked_by_me = FALSE;
+   GtkAdjustment *adjustment;
+
+   if (!handle)
+      return -1;
+
+   DW_MUTEX_LOCK;
+   if ( orient == DW_HORZ )
+      adjustment = gtk_scrolled_window_get_hadjustment( handle );
+   else
+      adjustment = gtk_scrolled_window_get_vadjustment( handle );
+   if (adjustment)
+   {
+      range = _round_value(adjustment->upper);
+   }
+   DW_MUTEX_UNLOCK;
+   return range;
+}
 #endif
 
 /*
@@ -3266,13 +3318,30 @@ HWND dw_scrollbox_new( int type, int pad )
  */
 HWND dw_groupbox_new(int type, int pad, char *title)
 {
-   GtkWidget *tmp, *frame;
+   GtkWidget *tmp, *frame, *label;
+   PangoFontDescription *pfont;
+   PangoContext *pcontext;
    int _locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
    frame = gtk_frame_new(NULL);
    gtk_frame_set_shadow_type(GTK_FRAME(frame), GTK_SHADOW_ETCHED_IN);
    gtk_frame_set_label(GTK_FRAME(frame), title && *title ? title : NULL);
+   /*
+    * Get the current font for the frame's label and make it bold
+    */
+   label = gtk_frame_get_label_widget(GTK_FRAME(frame));
+   pcontext = gtk_widget_get_pango_context( label );
+   if ( pcontext )
+   {
+      pfont = pango_context_get_font_description( pcontext );
+      if ( pfont )
+      {
+         pango_font_description_set_weight( pfont, PANGO_WEIGHT_BOLD );
+         gtk_widget_modify_font( label, pfont );
+      }
+   }
+
    tmp = gtk_table_new(1, 1, FALSE);
    gtk_container_border_width(GTK_CONTAINER(tmp), pad);
    gtk_object_set_data(GTK_OBJECT(tmp), "_dw_boxtype", GINT_TO_POINTER(type));
@@ -3283,6 +3352,7 @@ HWND dw_groupbox_new(int type, int pad, char *title)
    gtk_widget_show(frame);
    DW_MUTEX_UNLOCK;
    return frame;
+
 }
 
 /*
@@ -4417,13 +4487,26 @@ void dw_window_set_bitmap(HWND handle, unsigned long id, char *filename)
 #endif
    }
 
-   if(tmp)
+   if (tmp)
    {
-#if GTK_MAJOR_VERSION > 1
-      gtk_image_set_from_pixmap(GTK_IMAGE(handle), tmp, bitmap);
+      if ( GTK_IS_BUTTON(handle) )
+      {
+#if GTK_MAJOR_VERSION < 2
+         GtkWidget *pixmap = GTK_BUTTON(handle)->child;
+         gtk_pixmap_set(GTK_PIXMAP(pixmap), tmp, bitmap);
 #else
-      gtk_pixmap_set(GTK_PIXMAP(handle), tmp, bitmap);
+         GtkWidget *pixmap = gtk_button_get_image( GTK_BUTTON(handle) );
+         gtk_image_set_from_pixmap(GTK_IMAGE(pixmap), tmp, bitmap);
 #endif
+      }
+      else
+      {
+#if GTK_MAJOR_VERSION > 1
+         gtk_image_set_from_pixmap(GTK_IMAGE(handle), tmp, bitmap);
+#else
+         gtk_pixmap_set(GTK_PIXMAP(handle), tmp, bitmap);
+#endif
+      }
    }
    DW_MUTEX_UNLOCK;
 }
@@ -6342,8 +6425,8 @@ int dw_filesystem_setup(HWND handle, unsigned long *flags, char **titles, int co
 
    _dw_container_setup(handle, newflags, newtitles, count + 1, 1, 1);
 
-   free(newtitles);
-   free(newflags);
+   if ( newtitles) free(newtitles);
+   if ( newflags ) free(newflags);
    return TRUE;
 }
 
@@ -8099,7 +8182,7 @@ void dw_pixmap_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest, int width,
       /*
        * If we have a bitmap (mask) in the source pixmap, then set the clipping region
        */
-      if ( srcp->bitmap )
+      if ( srcp && srcp->bitmap )
       {
          gdk_gc_set_clip_mask( gc, srcp->bitmap );
          gdk_gc_set_clip_origin( gc, xdest, ydest );
@@ -8108,7 +8191,7 @@ void dw_pixmap_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest, int width,
       /*
        * Reset the clipping region
        */
-      if ( srcp->bitmap )
+      if ( srcp && srcp->bitmap )
       {
          gdk_gc_set_clip_mask( gc, NULL );
          gdk_gc_set_clip_origin( gc, 0, 0 );
