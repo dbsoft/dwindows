@@ -38,6 +38,9 @@ DWORD dwVersion = 0, dwComctlVer = 0;
 DWTID _dwtid = -1;
 SECURITY_DESCRIPTOR _dwsd;
 
+static HFONT DefaultBoldFont;
+static LOGFONT lfDefaultBoldFont = { 0 };
+
 #define PACKVERSION(major,minor) MAKELONG(minor,major)
 
 #define IS_IE5PLUS (dwComctlVer >= PACKVERSION(5,80))
@@ -532,6 +535,14 @@ BOOL CALLBACK _free_window_memory(HWND handle, LPARAM lParam)
          }
          free(array);
       }
+   }
+   else if(strnicmp(tmpbuf, UPDOWN_CLASS, strlen(UPDOWN_CLASS)+1)==0)
+   {
+      /* for spinbuttons, we need to get the spinbutton's "buddy", the text window associated and destroy it */
+      ColorInfo *cinfo = (ColorInfo *)GetWindowLongPtr(handle, GWLP_USERDATA);
+
+      if(cinfo && cinfo->buddy)
+         DestroyWindow( cinfo->buddy );
    }
 
    dw_signal_disconnect_by_window(handle);
@@ -1463,14 +1474,30 @@ void _do_resize(Box *thisbox, int x, int y)
    }
 }
 
-int _HandleScroller(HWND handle, int pos, int which)
+int _HandleScroller(HWND handle, int bar, int pos, int which)
 {
    SCROLLINFO si;
+#ifndef SCROLLBOX_DEBUG
+char lasterror[257];
+#endif
 
+   ZeroMemory( &si, sizeof(si) );
    si.cbSize = sizeof(SCROLLINFO);
    si.fMask = SIF_ALL;
 
    SendMessage(handle, SBM_GETSCROLLINFO, 0, (LPARAM)&si);
+#ifndef SCROLLBOX_DEBUG
+FormatMessage( FORMAT_MESSAGE_FROM_SYSTEM, NULL, GetLastError(), MAKELANGID( LANG_NEUTRAL, SUBLANG_DEFAULT), lasterror, 256, NULL);
+_dw_log( "Error from SendMessage in _HandleScroller: Handle %x Bar %s(%d) Which %d: %s", handle, (bar==SB_HORZ)?"HORZ" : "VERT", bar, which,lasterror );
+#endif
+
+   ZeroMemory( &si, sizeof(si) );
+   si.cbSize = sizeof(SCROLLINFO);
+   si.fMask = SIF_ALL;
+#ifndef SCROLLBOX_DEBUG
+GetScrollInfo( handle, bar, &si );
+_dw_log( "Error from GetScrollInfo in _HandleScroller: Handle %x Bar %s(%d) Which %d: %s", handle, (bar==SB_HORZ)?"HORZ" : "VERT", bar, which,lasterror );
+#endif
 
    switch(which)
    {
@@ -2061,7 +2088,9 @@ dw_messagebox("NM_CUSTOMDRAW for WC_LISTVIEW(mp2) from _wndproc (WM_NOTIFY)", DW
                      int (*valuechangefunc)(HWND, int, void *) = tmp->signalfunction;
 
                      GetClassName(handle, tmpbuf, 99);
-
+#ifndef SCROLLBOX_DEBUG
+dw_messagebox("Scrollbar", DW_MB_OK, "%s %d: %s",__FILE__,__LINE__,tmpbuf);
+#endif
                      if (strnicmp(tmpbuf, TRACKBAR_CLASS, strlen(TRACKBAR_CLASS)+1)==0)
                      {
 
@@ -2080,9 +2109,13 @@ dw_messagebox("NM_CUSTOMDRAW for WC_LISTVIEW(mp2) from _wndproc (WM_NOTIFY)", DW
                      }
                      else if(strnicmp(tmpbuf, SCROLLBARCLASSNAME, strlen(SCROLLBARCLASSNAME)+1)==0)
                      {
+#ifndef SCROLLBOX_DEBUG
+dw_messagebox("Scrollbar", DW_MB_OK, "%s %d",__FILE__,__LINE__);
+#endif
                         if(handle == tmp->window)
                         {
-                           int value = _HandleScroller(handle, (int)HIWORD(mp1), (int)LOWORD(mp1));
+                           int bar = (origmsg == WM_HSCROLL) ? SB_HORZ : SB_VERT;
+                           int value = _HandleScroller(handle, bar, (int)HIWORD(mp1), (int)LOWORD(mp1));
 
                            if(value > -1)
                            {
@@ -2189,6 +2222,7 @@ dw_messagebox("NM_CUSTOMDRAW for WC_LISTVIEW(mp2) from _wndproc (WM_NOTIFY)", DW
             _resize_notebook_page(tem->hwndFrom, num);
          }
 #ifdef DWDEBUG
+// code to attempt to support containers with different colours for each row - incomplete
          else
          {
             /*
@@ -2214,19 +2248,39 @@ dw_messagebox("NM_CUSTOMDRAW for WC_LISTVIEW(mp2) from _wndproc (WM_NOTIFY) - no
       {
          HWND handle = (HWND)mp2;
          char tmpbuf[100];
+         int bar = (origmsg == WM_HSCROLL) ? SB_HORZ : SB_VERT;
 
          if(dw_window_get_data(handle, "_dw_scrollbar"))
          {
-            int value = _HandleScroller(handle, (int)HIWORD(mp1), (int)LOWORD(mp1));
+            int value = _HandleScroller(handle, bar, (int)HIWORD(mp1), (int)LOWORD(mp1));
 
             if(value > -1)
                dw_scrollbar_set_pos(handle, value);
          }
-         GetClassName( hWnd, tmpbuf, 99 );
-         if ( strnicmp(tmpbuf, FRAMECLASSNAME, strlen(FRAMECLASSNAME)+1 ) == 0 )
+         else
          {
-            int value = _HandleScroller(hWnd, (int)HIWORD(mp1), (int)LOWORD(mp1));
-      }  }
+            GetClassName( hWnd, tmpbuf, 99 );
+            if ( strnicmp(tmpbuf, FRAMECLASSNAME, strlen(FRAMECLASSNAME)+1 ) == 0 )
+            {
+               int value = _HandleScroller(hWnd, bar, (int)HIWORD(mp1), (int)LOWORD(mp1));
+#ifndef SCROLLBOX_DEBUG
+               /*
+                * now we have the position we need to scroll the client window
+                * and set the scrollbar to the specified position
+                */
+               _dw_log( "After _HandleScroller: Got scroll for scrollbox: %d Handle %x hWnd %x\n", value,handle, hWnd );
+               if(value > -1)
+               {
+      char lasterror[257];
+                  SetScrollPos(hWnd, bar, value, TRUE);
+      FormatMessage( FORMAT_MESSAGE_FROM_SYSTEM, NULL, GetLastError(), MAKELANGID( LANG_NEUTRAL, SUBLANG_DEFAULT), lasterror, 256, NULL);
+                  _dw_log( "Error from setscrollpos: %s", lasterror );
+//                  dw_scrollbar_set_pos(handle, value);
+               }
+#endif
+            }
+         }
+      }
       break;
    case WM_GETMINMAXINFO:
       {
@@ -2445,7 +2499,7 @@ BOOL CALLBACK _rendwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
    POINTS points;
    POINT point;
    int threadid = dw_thread_id();
-
+   BOOL rcode = TRUE;
 
    switch( msg )
    {
@@ -2453,7 +2507,10 @@ BOOL CALLBACK _rendwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
    case WM_MBUTTONDOWN:
    case WM_RBUTTONDOWN:
       SetFocus(hWnd);
-      _wndproc(hWnd, msg, mp1, mp2);
+      rcode = _wndproc(hWnd, msg, mp1, mp2);
+#ifndef SCROLLBOX_DEBUG
+_dw_log( "_renderproc: button down: %d\n", rcode );
+#endif
       break;
    case WM_MOUSEMOVE:
       if ( threadid < 0 || threadid >= THREAD_LIMIT )
@@ -2485,20 +2542,31 @@ BOOL CALLBACK _rendwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
          _PointerOnWnd[threadid] = 0;
       }
       /* call our standard Windows procedure */
-      _wndproc(hWnd, msg, mp1, mp2);
+      rcode = _wndproc(hWnd, msg, mp1, mp2);
       break;
    case WM_LBUTTONUP:
    case WM_MBUTTONUP:
    case WM_RBUTTONUP:
+      rcode = _wndproc(hWnd, msg, mp1, mp2);
+#ifndef SCROLLBOX_DEBUG
+_dw_log( "_renderproc: button up: %d\n", rcode );
+#endif
+      break;
    case WM_PAINT:
    case WM_SIZE:
    case WM_COMMAND:
    case WM_CHAR:
    case WM_KEYDOWN:
-      _wndproc(hWnd, msg, mp1, mp2);
+      rcode = _wndproc(hWnd, msg, mp1, mp2);
+      break;
+   default:
+//    rcode = DefWindowProc(hWnd, msg, mp1, mp2);
       break;
    }
-   return DefWindowProc(hWnd, msg, mp1, mp2);
+   /* only call the default Windows process if the user hasn't handled the message themselves */
+   if ( rcode != 0 )
+      rcode = DefWindowProc(hWnd, msg, mp1, mp2);
+   return rcode;
 }
 
 BOOL CALLBACK _spinnerwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
@@ -3402,7 +3470,7 @@ void _create_tooltip(HWND handle, char *text)
     /* Create a tooltip. */
     HWND hwndTT = CreateWindowEx(WS_EX_TOPMOST,
         TOOLTIPS_CLASS, NULL,
-        WS_POPUP | TTS_NOPREFIX | TTS_ALWAYSTIP,		
+        WS_POPUP | TTS_NOPREFIX | TTS_ALWAYSTIP,
         CW_USEDEFAULT, CW_USEDEFAULT,
         CW_USEDEFAULT, CW_USEDEFAULT,
         handle, NULL, DWInstance,NULL);
@@ -3412,7 +3480,7 @@ void _create_tooltip(HWND handle, char *text)
 
     /* Set up "tool" information.
      * In this case, the "tool" is the entire parent window.
-	 */
+     */
     ti.cbSize = sizeof(TOOLINFO);
     ti.uFlags = TTF_SUBCLASS;
     ti.hwnd = handle;
@@ -3421,8 +3489,8 @@ void _create_tooltip(HWND handle, char *text)
     GetClientRect(handle, &ti.rect);
 
     /* Associate the tooltip with the "tool" window. */
-    SendMessage(hwndTT, TTM_ADDTOOL, 0, (LPARAM) (LPTOOLINFO) &ti);	
-} 
+    SendMessage(hwndTT, TTM_ADDTOOL, 0, (LPARAM) (LPTOOLINFO) &ti);
+}
 
 
 /* This function determines the handle for a supplied image filename
@@ -3504,6 +3572,7 @@ int API dw_init(int newthread, int argc, char *argv[])
    int z;
    INITCOMMONCONTROLSEX icc;
    char *fname;
+   HFONT oldfont;
 
    icc.dwSize = sizeof(INITCOMMONCONTROLSEX);
    icc.dwICC = ICC_WIN95_CLASSES|ICC_DATE_CLASSES;
@@ -3635,6 +3704,13 @@ int API dw_init(int newthread, int argc, char *argv[])
     */
    screenx = GetSystemMetrics(SM_CXSCREEN);
    screeny = GetSystemMetrics(SM_CYSCREEN);
+   /*
+    * Create a default bold font
+    */
+   oldfont = GetStockObject(DEFAULT_GUI_FONT);
+   GetObject( oldfont, sizeof(lfDefaultBoldFont), &lfDefaultBoldFont );
+   lfDefaultBoldFont.lfWeight = FW_BOLD;
+   DefaultBoldFont = CreateFontIndirect(&lfDefaultBoldFont);
    return 0;
 }
 
@@ -3981,7 +4057,7 @@ HFONT _acquire_font(HWND handle, char *fontname)
          if(fontname[z]=='.')
             break;
       }
-      size = atoi(fontname) + 5;
+      size = atoi(fontname) + 5; /* no idea why this 5 needs to be added */
       Italic = instring(" Italic", &fontname[z+1]);
       Bold = instring(" Bold", &fontname[z+1]);
 #if 0
@@ -4032,11 +4108,23 @@ int API dw_window_set_font(HWND handle, char *fontname)
    HFONT oldfont = (HFONT)SendMessage(handle, WM_GETFONT, 0, 0);
    HFONT hfont = _acquire_font(handle, fontname);
    ColorInfo *cinfo;
+   Box *thisbox;
+   char tmpbuf[100];
 
    cinfo = (ColorInfo *)GetWindowLongPtr(handle, GWLP_USERDATA);
 
-   if(fontname)
+   if (fontname)
    {
+      GetClassName(handle, tmpbuf, 99);
+      if ( strnicmp( tmpbuf, FRAMECLASSNAME, strlen(FRAMECLASSNAME)) == 0 )
+      {
+         /* groupbox */
+         thisbox = (Box *)GetWindowLongPtr( handle, GWLP_USERDATA );
+         if ( thisbox && thisbox->grouphwnd != (HWND)NULL )
+         {
+            handle = thisbox->grouphwnd;
+         }
+      }
       if(cinfo)
       {
          strcpy(cinfo->fontname, fontname);
@@ -4062,6 +4150,72 @@ int API dw_window_set_font(HWND handle, char *fontname)
 }
 
 /*
+ * Gets the font used by a specified window (widget) handle.
+ * Parameters:
+ *          handle: The window (widget) handle.
+ *          fontname: Name and size of the font in the form "size.fontname"
+ */
+char * API dw_window_get_font(HWND handle)
+{
+   HFONT oldfont = (HFONT)SendMessage(handle, WM_GETFONT, 0, 0);
+   char *str = NULL;
+   char *bold = "";
+   char *italic = "";
+   LOGFONT lf = { 0 };
+
+   if ( GetObject( oldfont, sizeof(lf), &lf ) )
+   {
+      str = (char *)malloc( 100 );
+      if ( str )
+      {
+         int height;
+         if ( lf.lfWeight > FW_MEDIUM )
+            bold = " Bold";
+         if ( lf.lfItalic )
+            italic = " Italic";
+         if ( lf.lfHeight <= 0 )
+            height = abs (lf.lfHeight );
+         else
+            /*
+             * we subtract 5 from a positive font height, because we (presumably)
+             * added 5 (in _acquire_font() above - don't know why )
+             */
+            height = lf.lfHeight - 5;
+         sprintf( str, "%d.%s%s%s", height, lf.lfFaceName, bold, italic );
+      }
+      else
+         str = "";
+   }
+   else
+      str = "";
+   if ( oldfont )
+      DeleteObject( oldfont );
+#if 0
+{
+HWND hwnd=NULL;                // owner window
+HDC hdc;                  // display device context of owner window
+
+CHOOSEFONT cf;            // common dialog box structure
+LOGFONT lf;        // logical font structure
+HFONT hfont, hfontPrev;
+
+// Initialize CHOOSEFONT
+ZeroMemory(&cf, sizeof(cf));
+cf.lStructSize = sizeof (cf);
+cf.hwndOwner = hwnd;
+cf.lpLogFont = &lf;
+cf.Flags = CF_SCREENFONTS | CF_EFFECTS;
+
+if (ChooseFont(&cf)==TRUE)
+{
+    hfont = CreateFontIndirect(cf.lpLogFont);
+}
+}
+#endif
+   return str;
+}
+
+/*
  * Sets the colors used by a specified window (widget) handle.
  * Parameters:
  *          handle: The window (widget) handle.
@@ -4071,11 +4225,10 @@ int API dw_window_set_font(HWND handle, char *fontname)
 int API dw_window_set_color(HWND handle, ULONG fore, ULONG back)
 {
    ColorInfo *cinfo;
-   Box *newbox;
+   Box *thisbox;
    char tmpbuf[100];
 
    cinfo = (ColorInfo *)GetWindowLongPtr(handle, GWLP_USERDATA);
-   newbox = (Box *)GetWindowLongPtr(handle, GWLP_USERDATA);
 
    GetClassName(handle, tmpbuf, 99);
 
@@ -4095,6 +4248,16 @@ int API dw_window_set_color(HWND handle, ULONG fore, ULONG back)
                               DW_BLUE_VALUE(back)));
       InvalidateRgn(handle, NULL, TRUE);
       return TRUE;
+   }
+   else if ( strnicmp( tmpbuf, FRAMECLASSNAME, strlen(FRAMECLASSNAME)) == 0 )
+   {
+      /* groupbox */
+      thisbox = (Box *)GetWindowLongPtr( handle, GWLP_USERDATA );
+      if ( thisbox && thisbox->grouphwnd != (HWND)NULL )
+      {
+         thisbox->cinfo.fore = fore;
+         thisbox->cinfo.back = back;
+      }
    }
 
    if(cinfo)
@@ -4270,7 +4433,7 @@ HWND API dw_scrollbox_new(int type, int pad)
 
    hwndframe = CreateWindow(FRAMECLASSNAME,
                       "",
-                      WS_VISIBLE | WS_CHILD | WS_CLIPCHILDREN | WS_VSCROLL | WS_HSCROLL,
+                      WS_VISIBLE | WS_CHILD | WS_CLIPCHILDREN | WS_VSCROLL | WS_HSCROLL | WS_THICKFRAME,
                       0,0,2000,1000,
                       DW_HWND_OBJECT,
                       NULL,
@@ -4281,9 +4444,19 @@ HWND API dw_scrollbox_new(int type, int pad)
    newbox->cinfo.fore = newbox->cinfo.back = -1;
 
    SetWindowLongPtr(hwndframe, GWLP_USERDATA, (LONG_PTR)newbox);
+_dw_log( "Handle for scrollbox %x\n", hwndframe);
    return hwndframe;
 }
 
+int dw_scrollbox_get_pos( HWND handle, int orient )
+{
+   return 0;
+}
+
+int dw_scrollbox_get_range( HWND handle, int orient )
+{
+   return 0;
+}
 /*
  * Create a new Group Box to be packed.
  * Parameters:
@@ -4321,7 +4494,10 @@ HWND API dw_groupbox_new(int type, int pad, char *title)
                             NULL);
 
    SetWindowLongPtr(hwndframe, GWLP_USERDATA, (LONG_PTR)newbox);
-   dw_window_set_font(newbox->grouphwnd, DefaultFont);
+   /*
+    * Set the text on the frame to our default bold font
+    */
+   SendMessage(newbox->grouphwnd, WM_SETFONT, (WPARAM)DefaultBoldFont, (LPARAM)TRUE);
    return hwndframe;
 }
 
@@ -4857,6 +5033,7 @@ HWND API dw_text_new(char *text, ULONG id)
 {
    HWND tmp = CreateWindow(STATICCLASSNAME,
                      text,
+                     SS_NOPREFIX |
                      BS_TEXT | WS_VISIBLE |
                      WS_CHILD | WS_CLIPCHILDREN,
                      0,0,2000,1000,
@@ -5091,7 +5268,7 @@ HWND API dw_bitmapbutton_new(char *text, ULONG id)
 
    bubble->cinfo.fore = bubble->cinfo.back = -1;
    bubble->pOldProc = (WNDPROC)SubclassWindow(tmp, _BtProc);
-   
+
    SetWindowLongPtr(tmp, GWLP_USERDATA, (LONG_PTR)bubble);
 
    _create_tooltip(tmp, text);
@@ -7550,23 +7727,22 @@ void API dw_container_set_item(HWND handle, void *pointer, int column, int row, 
       struct tm curtm;
       CDATE cdate = *((CDATE *)data);
 
-	  memset(&curtm, 0, sizeof(struct tm));
-	  
-	  /* Safety check... zero dates are crashing
-	   * Visual Studio 2008. -Brian
-	   */
-	  if(cdate.year > 1900 && cdate.year < 2100)
-	  {
-		  curtm.tm_mday = (cdate.day >= 0 && cdate.day < 32) ? cdate.day : 1;
-		  curtm.tm_mon = (cdate.month > 0 && cdate.month < 13) ? cdate.month - 1 : 0;
-		  curtm.tm_year = cdate.year - 1900;
+      memset(&curtm, 0, sizeof(struct tm));
 
-		  strftime(textbuffer, 100, "%x", &curtm);
-	  }
-	  else
-	  {
-		  textbuffer[0] = 0;
-	  }
+      /* Safety check... zero dates are crashing
+       * Visual Studio 2008. -Brian
+       */
+      if(cdate.year > 1900 && cdate.year < 2100)
+      {
+          curtm.tm_mday = (cdate.day >= 0 && cdate.day < 32) ? cdate.day : 1;
+          curtm.tm_mon = (cdate.month > 0 && cdate.month < 13) ? cdate.month - 1 : 0;
+          curtm.tm_year = cdate.year - 1900;
+          strftime(textbuffer, 100, "%x", &curtm);
+      }
+      else
+      {
+          textbuffer[0] = 0;
+      }
 
       lvi.pszText = textbuffer;
       lvi.cchTextMax = strlen(textbuffer);
@@ -7576,7 +7752,7 @@ void API dw_container_set_item(HWND handle, void *pointer, int column, int row, 
       struct tm curtm;
       CTIME ctime = *((CTIME *)data);
 
-	  curtm.tm_hour = (ctime.hours >= 0 && ctime.hours < 24) ? ctime.hours : 0;
+      curtm.tm_hour = (ctime.hours >= 0 && ctime.hours < 24) ? ctime.hours : 0;
       curtm.tm_min = (ctime.minutes >= 0 && ctime.minutes < 60) ? ctime.minutes : 0;
       curtm.tm_sec = (ctime.seconds >= 0 && ctime.seconds < 60) ? ctime.seconds : 0;
 
@@ -9100,6 +9276,7 @@ DWTID API dw_thread_id(void)
  */
 void API dw_exit(int exitcode)
 {
+   DeleteObject( DefaultBoldFont );
    OleUninitialize();
    if ( dbgfp != NULL )
    {
