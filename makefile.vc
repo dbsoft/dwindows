@@ -39,16 +39,15 @@ PLATFORM_DEF = -DWIN64
 # Settings for either debug or release
 #
 !if "$(DEBUG)" == "Y"
-CFLAGS_DEBUG = -DDEBUG -Z7 -Od # was -Zi
+CFLAGS_DEBUG = -DDEBUG -Z7 -Od -MTd # was -Zi
 LINK_DEBUG = -debug
 !else
-CFLAGS_DEBUG = -Ox
+CFLAGS_DEBUG = -Ox -MT
 LINK_DEBUG = -release
 !endif
 
 CC = cl
 CFLAGS = -c $(PLATFORM_DEF) -D__WIN32__ -DMSVC -DBUILD_DLL -I$(SRCDIR)\platform -I$(SRCDIR)
-CFLAGS_COMPILE = -MTd # was -MD
 LIBS = wsock32.lib kernel32.lib user32.lib comctl32.lib gdi32.lib advapi32.lib shell32.lib comdlg32.lib ole32.lib oleaut32.lib
 RES =
 LINKFLAGS = -machine:$(TARGET_CPU) -manifest $(LINK_DEBUG)
@@ -106,22 +105,22 @@ $(LIBS)
         copy dwcompat.dll $(DWDLLDIR)\dwcompat.dll
 
 dw.obj: $(SRCDIR)\win\dw.c
-	$(CC) $(CFLAGS) $(CFLAGS_DEBUG) $(CFLAGS_COMPILE) $(SRCDIR)\win\dw.c
+	$(CC) $(CFLAGS) $(CFLAGS_DEBUG) $(SRCDIR)\win\dw.c
 
 browser.obj: $(SRCDIR)\win\browser.c
-	$(CC) $(CFLAGS) $(CFLAGS_DEBUG) $(CFLAGS_COMPILE) $(SRCDIR)\win\browser.c
+	$(CC) $(CFLAGS) $(CFLAGS_DEBUG) $(SRCDIR)\win\browser.c
 
 XBrowseForFolder.obj: $(SRCDIR)\win\XBrowseForFolder.cpp
-	$(CC) $(CFLAGS) $(CFLAGS_DEBUG) $(CFLAGS_COMPILE) $(SRCDIR)\win\XBrowseForFolder.cpp
+	$(CC) $(CFLAGS) $(CFLAGS_DEBUG) $(SRCDIR)\win\XBrowseForFolder.cpp
 
 dirent.obj: $(SRCDIR)\win\dirent.c
-	$(CC) $(CFLAGS) $(CFLAGS_DEBUG) $(CFLAGS_COMPILE) $(SRCDIR)\win\dirent.c
+	$(CC) $(CFLAGS) $(CFLAGS_DEBUG) $(SRCDIR)\win\dirent.c
 
 compat.obj: $(SRCDIR)\compat.c
-	$(CC) $(CFLAGS) $(CFLAGS_DEBUG) $(CFLAGS_COMPILE) $(SRCDIR)\compat.c
+	$(CC) $(CFLAGS) $(CFLAGS_DEBUG) $(SRCDIR)\compat.c
 
 dwtest.obj: $(SRCDIR)\dwtest.c
-	$(CC) $(CFLAGS) $(CFLAGS_DEBUG) $(CFLAGS_COMPILE) $(SRCDIR)\dwtest.c
+	$(CC) $(CFLAGS) $(CFLAGS_DEBUG) $(SRCDIR)\dwtest.c
 
 dwtest: dwtest.exe
 
