@@ -1058,6 +1058,87 @@ typedef struct _hpixmap {
 #define DW_MB_QUESTION           (1 << 13)
 
 /* Virtual Key Codes */
+#if GTK_MAJOR_VERSION > 2
+#define VK_LBUTTON           GDK_KEY_Pointer_Button1
+#define VK_RBUTTON           GDK_KEY_Pointer_Button3
+#define VK_CANCEL            GDK_KEY_Cancel
+#define VK_MBUTTON           GDK_KEY_Pointer_Button2
+#define VK_BACK              GDK_KEY_BackSpace
+#define VK_TAB               GDK_KEY_Tab
+#define VK_CLEAR             GDK_KEY_Clear
+#define VK_RETURN            GDK_KEY_Return
+#define VK_MENU              GDK_KEY_Menu
+#define VK_PAUSE             GDK_KEY_Pause
+#define VK_CAPITAL           GDK_KEY_Caps_Lock
+#define VK_ESCAPE            GDK_KEY_Escape
+#define VK_SPACE             GDK_KEY_space
+#define VK_PRIOR             GDK_KEY_Page_Up
+#define VK_NEXT              GDK_KEY_Page_Down
+#define VK_END               GDK_KEY_End
+#define VK_HOME              GDK_KEY_Home
+#define VK_LEFT              GDK_KEY_Left
+#define VK_UP                GDK_KEY_Up
+#define VK_RIGHT             GDK_KEY_Right
+#define VK_DOWN              GDK_KEY_Down
+#define VK_SELECT            GDK_KEY_Select
+#define VK_PRINT             GDK_KEY_Sys_Req
+#define VK_EXECUTE           GDK_KEY_Execute
+#define VK_SNAPSHOT          GDK_KEY_Print
+#define VK_INSERT            GDK_KEY_Insert
+#define VK_DELETE            GDK_KEY_Delete
+#define VK_HELP              GDK_KEY_Help
+#define VK_LWIN              GDK_KEY_Super_L
+#define VK_RWIN              GDK_KEY_Super_R
+#define VK_NUMPAD0           GDK_KEY_KP_0
+#define VK_NUMPAD1           GDK_KEY_KP_1
+#define VK_NUMPAD2           GDK_KEY_KP_2
+#define VK_NUMPAD3           GDK_KEY_KP_3
+#define VK_NUMPAD4           GDK_KEY_KP_4
+#define VK_NUMPAD5           GDK_KEY_KP_5
+#define VK_NUMPAD6           GDK_KEY_KP_6
+#define VK_NUMPAD7           GDK_KEY_KP_7
+#define VK_NUMPAD8           GDK_KEY_KP_8
+#define VK_NUMPAD9           GDK_KEY_KP_9
+#define VK_MULTIPLY          GDK_KEY_KP_Multiply
+#define VK_ADD               GDK_KEY_KP_Add
+#define VK_SEPARATOR         GDK_KEY_KP_Separator
+#define VK_SUBTRACT          GDK_KEY_KP_Subtract
+#define VK_DECIMAL           GDK_KEY_KP_Decimal
+#define VK_DIVIDE            GDK_KEY_KP_Divide
+#define VK_F1                GDK_KEY_F1
+#define VK_F2                GDK_KEY_F2
+#define VK_F3                GDK_KEY_F3
+#define VK_F4                GDK_KEY_F4
+#define VK_F5                GDK_KEY_F5
+#define VK_F6                GDK_KEY_F6
+#define VK_F7                GDK_KEY_F7
+#define VK_F8                GDK_KEY_F8
+#define VK_F9                GDK_KEY_F9
+#define VK_F10               GDK_KEY_F10
+#define VK_F11               GDK_KEY_F11
+#define VK_F12               GDK_KEY_F12
+#define VK_F13               GDK_KEY_F13
+#define VK_F14               GDK_KEY_F14
+#define VK_F15               GDK_KEY_F15
+#define VK_F16               GDK_KEY_F16
+#define VK_F17               GDK_KEY_F17
+#define VK_F18               GDK_KEY_F18
+#define VK_F19               GDK_KEY_F19
+#define VK_F20               GDK_KEY_F20
+#define VK_F21               GDK_KEY_F21
+#define VK_F22               GDK_KEY_F22
+#define VK_F23               GDK_KEY_F23
+#define VK_F24               GDK_KEY_F24
+#define VK_NUMLOCK           GDK_KEY_Num_Lock
+#define VK_SCROLL            GDK_KEY_Scroll_Lock
+#define VK_LSHIFT            GDK_KEY_Shift_L
+#define VK_RSHIFT            GDK_KEY_Shift_R
+#define VK_LCONTROL          GDK_KEY_Control_L
+#define VK_RCONTROL          GDK_KEY_Control_R
+#define VK_LMENU             GDK_KEY_Menu
+#define VK_RMENU             GDK_KEY_Menu
+
+#else
 #define VK_LBUTTON           GDK_Pointer_Button1
 #define VK_RBUTTON           GDK_Pointer_Button3
 #define VK_CANCEL            GDK_Cancel
@@ -1136,6 +1217,7 @@ typedef struct _hpixmap {
 #define VK_RCONTROL          GDK_Control_R
 #define VK_LMENU             GDK_Menu
 #define VK_RMENU             GDK_Menu
+#endif
 
 /* Key Modifiers */
 #define KC_CTRL              GDK_CONTROL_MASK
@@ -1174,8 +1256,7 @@ struct _dw_unix_shm {
 
 typedef struct _hpixmap {
    unsigned long width, height;
-   GdkPixmap *pixmap;  /* the actual image */
-   GdkBitmap *bitmap;  /* if not null, the image mask representing the transparency mask */
+   GdkPixbuf *pixbuf;  /* the actual image */
    HWND handle;
 } *HPIXMAP;
 

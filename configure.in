@@ -196,7 +196,14 @@ esac
 if test $build_gtk = "yes"; then
    AC_CHECK_PROG(PKG_CFG, pkg-config, pkg-config)
    if test x"$PKG_CFG" != x; then
-      GTK_LIBS=`$PKG_CFG --silence-errors --libs gtk+-2.0 gthread-2.0`
+      GTK_PACKAGES="gtk+-3.0"
+      GTK_LIBS=`$PKG_CFG --silence-errors --libs $GTK_PACKAGES`
+      if test x"$GTK_LIBS" = x; then
+         GTK_PACKAGES="gtk+-2.0 gthread-2.0"
+         GTK_LIBS=`$PKG_CFG --silence-errors --libs $GTK_PACKAGES`
+      else
+         DW_DIR=gtk3
+      fi
       if test $with_gtkmozembed = yes; then
          MOZEMBED_LIBS=`$PKG_CFG --silence-errors --libs firefox-gtkmozembed`
          MOZEMBED_CFLAGS=`$PKG_CFG --silence-errors --cflags firefox-gtkmozembed`
@@ -241,8 +248,8 @@ if test $build_gtk = "yes"; then
       AM_PATH_GTK(1.2.0,,AC_MSG_ERROR(AC_MSG_ERROR(Cannot find GTK: Is gtk-config in path?)), gthread)
       AM_PATH_GDK_IMLIB(1.9.4, AC_DEFINE(USE_IMLIB), AC_MSG_ERROR(IMLIB not found or too old. Dynamic Windows cannot build without it.))
    else
-      GTK_CFLAGS=`$PKG_CFG --cflags gtk+-2.0 gthread-2.0`
-      GTK_LIBS=`$PKG_CFG --libs gtk+-2.0 gthread-2.0`
+      GTK_CFLAGS=`$PKG_CFG --cflags $GTK_PACKAGES`
+      GTK_LIBS=`$PKG_CFG --libs $GTK_PACKAGES`
    fi
 fi
 
