@@ -142,8 +142,6 @@ static int _dw_border_width = 12, _dw_border_height = 28;
 #define DEFAULT_SIZE_HEIGHT 6
 #define DEFAULT_TITLEBAR_HEIGHT 22
 
-static GdkVisual *_dw_cmap = NULL;
-
 /* Signal forwarder prototypes */
 static gint _button_press_event(GtkWidget *widget, GdkEventButton *event, gpointer data);
 static gint _button_release_event(GtkWidget *widget, GdkEventButton *event, gpointer data);
@@ -154,9 +152,8 @@ static gint _generic_event(GtkWidget *widget, gpointer data);
 static gint _configure_event(GtkWidget *widget, GdkEventConfigure *event, gpointer data);
 static gint _activate_event(GtkWidget *widget, gpointer data);
 static gint _container_select_event(GtkWidget *widget, GdkEventButton *event, gpointer data);
-static gint _container_context_event(GtkWidget *widget, GdkEventButton *event, gpointer data);
 static gint _item_select_event(GtkWidget *widget, GtkWidget *child, gpointer data);
-static gint _expose_event(GtkWidget *widget, GdkEventExpose *event, gpointer data);
+static gint _expose_event(GtkWidget *widget, cairo_t *cr, gpointer data);
 static gint _set_focus_event(GtkWindow *window, GtkWidget *widget, gpointer data);
 static gint _tree_context_event(GtkWidget *widget, GdkEventButton *event, gpointer data);
 static gint _value_changed_event(GtkAdjustment *adjustment, gpointer user_data);
@@ -252,8 +249,7 @@ static SignalList SignalTranslate[SIGNALMAX] = {
    { _activate_event,          "activate" },
    { _generic_event,           DW_SIGNAL_CLICKED },
    { _container_select_event,  DW_SIGNAL_ITEM_ENTER },
-   { _container_context_event, DW_SIGNAL_ITEM_CONTEXT },
-   { _tree_context_event,      "tree-context" },
+   { _tree_context_event,      DW_SIGNAL_ITEM_CONTEXT },
    { _item_select_event,       DW_SIGNAL_LIST_SELECT },
    { _tree_select_event,       DW_SIGNAL_ITEM_SELECT },
    { _set_focus_event,         DW_SIGNAL_SET_FOCUS },
@@ -336,9 +332,11 @@ static void gtk_mdi_class_init(GtkMdiClass *klass);
 static void gtk_mdi_init(GtkMdi *mdi);
 
 static void gtk_mdi_realize(GtkWidget *widget);
-static void gtk_mdi_size_request(GtkWidget *widget, GtkRequisition *requisition);
 static void gtk_mdi_size_allocate(GtkWidget *widget, GtkAllocation *allocation);
+#if 0
+static void gtk_mdi_size_request(GtkWidget *widget, GtkRequisition *requisition);
 static gint gtk_mdi_expose(GtkWidget *widget, GdkEventExpose *event);
+#endif
 
 /* Callbacks */
 static gboolean move_child_callback(GtkWidget *widget, GdkEvent *event, gpointer data);
@@ -747,6 +745,7 @@ static void gtk_mdi_realize(GtkWidget *widget)
    gtk_style_set_background (gtk_widget_get_style(widget), gtk_widget_get_window(widget), GTK_STATE_NORMAL);
 }
 
+#if 0
 static void gtk_mdi_size_request (GtkWidget *widget, GtkRequisition *requisition)
 {
    GtkMdi *mdi;
@@ -770,6 +769,7 @@ static void gtk_mdi_size_request (GtkWidget *widget, GtkRequisition *requisition
       }
    }
 }
+#endif
 
 static void gtk_mdi_size_allocate(GtkWidget *widget, GtkAllocation *allocation)
 {
@@ -852,9 +852,9 @@ static void gtk_mdi_size_allocate(GtkWidget *widget, GtkAllocation *allocation)
    }
 }
 
+#if 0 /* TODO: Is this needed... propogate expose is no longer supported */
 static gint gtk_mdi_expose(GtkWidget *widget, GdkEventExpose *event)
 {
-#if 0 /* TODO: Is this needed... propogate expose is no longer supported */
    GtkMdiChild *child;
    GList *children;
    GtkMdi *mdi;
@@ -871,9 +871,9 @@ static gint gtk_mdi_expose(GtkWidget *widget, GdkEventExpose *event)
                               child->widget,
                               event);
    }
-#endif
    return FALSE;
 }
+#endif
 
 static void gtk_mdi_add(GtkContainer *container, GtkWidget *widget)
 {
@@ -1435,7 +1435,7 @@ static gint _configure_event(GtkWidget *widget, GdkEventConfigure *event, gpoint
    return retval;
 }
 
-static gint _expose_event(GtkWidget *widget, GdkEventExpose *event, gpointer data)
+static gint _expose_event(GtkWidget *widget, cairo_t *cr, gpointer data)
 {
    SignalHandler work = _get_signal_handler(widget, data);
    int retval = FALSE;
@@ -1446,10 +1446,9 @@ static gint _expose_event(GtkWidget *widget, GdkEventExpose *event, gpointer dat
       DWExpose exp;
       int (*exposefunc)(HWND, DWExpose *, void *) = work.func;
 
-      exp.x = event->area.x;
-      exp.y = event->area.y;
-      exp.width = event->area.width;
-      exp.height = event->area.height;
+      exp.x = exp.y = 0;
+      exp.width = egtk_widget_get_allocated_width(widget);
+      exp.height = gtk_widget_get_allocated_height(widget);
       retval = exposefunc(work.window, &exp, work.data);
    }
    return retval;
@@ -1497,31 +1496,6 @@ static gint _item_select_event(GtkWidget *widget, GtkWidget *child, gpointer dat
          list = list->next;
       }
       _dw_recursing = 0;
-   }
-#endif
-   return retval;
-}
-
-static gint _container_context_event(GtkWidget *widget, GdkEventButton *event, gpointer data)
-{
-   SignalHandler work = _get_signal_handler(widget, data);
-   int retval = FALSE;
-
-#if 0
-   if ( dbgfp != NULL ) _dw_log("%s %d: %s\n",__FILE__,__LINE__,__func__);
-   if(work.window)
-   {
-      if(event->button == 3)
-      {
-         int (*contextfunc)(HWND, char *, int, int, void *, void *) = work.func;
-         char *text;
-         int row, col;
-
-         gtk_clist_get_selection_info(GTK_CLIST(widget), event->x, event->y, &row, &col);
-
-         text = (char *)gtk_clist_get_row_data(GTK_CLIST(widget), row);
-         retval = contextfunc(work.window, text, event->x, event->y, work.data, NULL);
-      }
    }
 #endif
    return retval;
@@ -3566,7 +3540,6 @@ HWND dw_container_new(unsigned long id, int multi)
    }
    g_object_set_data(G_OBJECT(tmp), "_dw_tree_type", (gpointer)_DW_TREE_TYPE_CONTAINER);
    g_object_set_data(G_OBJECT(tmp), "_dw_multi_sel", GINT_TO_POINTER(multi));
-   g_object_set_data(G_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(id));
    DW_MUTEX_UNLOCK;
    return tmp;
 }
@@ -3595,7 +3568,6 @@ HWND dw_tree_new(ULONG id)
    store = gtk_tree_store_new(4, G_TYPE_STRING, GDK_TYPE_PIXBUF, G_TYPE_POINTER, G_TYPE_POINTER);
    tree = _tree_setup(tmp, GTK_TREE_MODEL(store));
    g_object_set_data(G_OBJECT(tmp), "_dw_tree_type", (gpointer)_DW_TREE_TYPE_TREE);
-   g_object_set_data(G_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(id));
    col = gtk_tree_view_column_new();
 
    rend = gtk_cell_renderer_pixbuf_new();
@@ -3760,10 +3732,7 @@ HWND dw_combobox_new(char *text, unsigned long id)
    DW_MUTEX_LOCK;
    store = gtk_list_store_new(1, G_TYPE_STRING);
    tmp = gtk_combo_box_new_with_model_and_entry(GTK_TREE_MODEL(store));
-   renderer = gtk_cell_renderer_text_new ();
-   gtk_cell_layout_pack_start (GTK_CELL_LAYOUT(tmp), renderer, TRUE);
-   gtk_cell_layout_set_attributes (GTK_CELL_LAYOUT(tmp), renderer, "text", 0, NULL);
-   gtk_combo_box_set_id_column(GTK_COMBO_BOX(tmp), 0);
+   gtk_combo_box_set_entry_text_column(GTK_COMBO_BOX(tmp), 0);
    gtk_widget_show(tmp);
    g_object_set_data(G_OBJECT(tmp), "_dw_tree_type", (gpointer)_DW_TREE_TYPE_COMBOBOX);
    g_object_set_data(G_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(id));
@@ -4077,7 +4046,6 @@ HWND dw_listbox_new(unsigned long id, int multi)
    store = gtk_list_store_new(1, G_TYPE_STRING);
    tree = _tree_setup(tmp, GTK_TREE_MODEL(store));
    g_object_set_data(G_OBJECT(tmp), "_dw_tree_type", (gpointer)_DW_TREE_TYPE_LISTBOX);
-   g_object_set_data(G_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(id));
    
    col = gtk_tree_view_column_new();
    rend = gtk_cell_renderer_text_new();
@@ -4212,7 +4180,7 @@ void dw_window_set_bitmap(HWND handle, unsigned long id, char *filename)
  */
 void dw_window_set_bitmap_from_data(HWND handle, unsigned long id, char *data, int len)
 {
-   GdkPixbuf *tmp;
+   GdkPixbuf *tmp = NULL;
    int _locked_by_me = FALSE;
    char *file;
    FILE *fp;
@@ -5909,7 +5877,7 @@ void dw_filesystem_set_item(HWND handle, void *pointer, int column, int row, voi
 int dw_container_get_column_type(HWND handle, int column)
 {
    char numbuf[10];
-   int flag, rc;
+   int flag, rc = 0;
 #if 0
    GtkWidget *clist;
    int _locked_by_me = FALSE;
@@ -6219,7 +6187,7 @@ static gint _gtk_color_cancel(GtkWidget *widget, DWDialog *dwwait)
  */
 unsigned long API dw_color_choose(unsigned long value)
 {
-   GtkWidget *colorw;
+   GtkWidget *colorw, *ok_button, *cancel_button;
    int _locked_by_me = FALSE;
    DWDialog *dwwait;
    GtkColorSelection *colorsel;
@@ -6245,11 +6213,9 @@ unsigned long API dw_color_choose(unsigned long value)
    dwwait = dw_dialog_new((void *)colorw);
 
    colorsel = (GtkColorSelection *)gtk_color_selection_dialog_get_color_selection(GTK_COLOR_SELECTION_DIALOG(colorw));
-#if 0 /* TODO */  
-   part = gtk_buildable_get_internal_child(GTK_BUILDABLE(colorsel, 
-   g_signal_connect(G_OBJECT(colorsel->ok_button), "clicked", G_CALLBACK(_gtk_color_ok), dwwait);
-   g_signal_connect(G_OBJECT(colorsel->cancel_button), "clicked", G_CALLBACK(_gtk_color_cancel), dwwait);
-#endif
+   g_object_get(G_OBJECT(colorw), "ok-button", &ok_button, "cancel-button", &cancel_button, NULL);
+   g_signal_connect(G_OBJECT(ok_button), "clicked", G_CALLBACK(_gtk_color_ok), dwwait);
+   g_signal_connect(G_OBJECT(cancel_button), "clicked", G_CALLBACK(_gtk_color_cancel), dwwait);
 
    gtk_color_selection_set_previous_color(colorsel,&color);
    gtk_color_selection_set_current_color(colorsel,&color);
@@ -8249,10 +8215,10 @@ void dw_listbox_insert(HWND handle, char *text, int pos)
       GtkTreeIter iter;
       
       /* Make sure it is the correct tree type */
-      if(GTK_IS_TREE_VIEW(handle2) && g_object_get_data(G_OBJECT(handle2), "_dw_tree_type") == _DW_TREE_TYPE_LISTBOX)
-         store = (GtkTreeStore *)gtk_tree_view_get_model(GTK_TREE_VIEW(handle2));
+      if(GTK_IS_TREE_VIEW(handle2) && g_object_get_data(G_OBJECT(handle2), "_dw_tree_type") == GINT_TO_POINTER(_DW_TREE_TYPE_LISTBOX))
+         store = (GtkListStore *)gtk_tree_view_get_model(GTK_TREE_VIEW(handle2));
       else if(GTK_IS_COMBO_BOX(handle2))
-         store = (GtkTreeStore *)gtk_combo_box_get_model(GTK_COMBO_BOX(handle2));
+         store = (GtkListStore *)gtk_combo_box_get_model(GTK_COMBO_BOX(handle2));
       
       if(!store)
       {
@@ -8302,10 +8268,10 @@ void dw_listbox_list_append(HWND handle, char **text, int count)
       GtkTreeIter iter;
       
       /* Make sure it is the correct tree type */
-      if(GTK_IS_TREE_VIEW(handle2) && g_object_get_data(G_OBJECT(handle2), "_dw_tree_type") == _DW_TREE_TYPE_LISTBOX)
-         store = (GtkTreeStore *)gtk_tree_view_get_model(GTK_TREE_VIEW(handle2));
+      if(GTK_IS_TREE_VIEW(handle2) && g_object_get_data(G_OBJECT(handle2), "_dw_tree_type") == GINT_TO_POINTER(_DW_TREE_TYPE_LISTBOX))
+         store = (GtkListStore *)gtk_tree_view_get_model(GTK_TREE_VIEW(handle2));
       else if(GTK_IS_COMBO_BOX(handle2))
-         store = (GtkTreeStore *)gtk_combo_box_get_model(GTK_COMBO_BOX(handle2));
+         store = (GtkListStore *)gtk_combo_box_get_model(GTK_COMBO_BOX(handle2));
       
       if(!store)
       {
@@ -8345,10 +8311,10 @@ void dw_listbox_clear(HWND handle)
    if(handle2)
    {
       /* Make sure it is the correct tree type */
-      if(GTK_IS_TREE_VIEW(handle2) && g_object_get_data(G_OBJECT(handle2), "_dw_tree_type") == _DW_TREE_TYPE_LISTBOX)
-         store = (GtkTreeStore *)gtk_tree_view_get_model(GTK_TREE_VIEW(handle2));
+      if(GTK_IS_TREE_VIEW(handle2) && g_object_get_data(G_OBJECT(handle2), "_dw_tree_type") == GINT_TO_POINTER(_DW_TREE_TYPE_LISTBOX))
+         store = (GtkListStore *)gtk_tree_view_get_model(GTK_TREE_VIEW(handle2));
       else if(GTK_IS_COMBO_BOX(handle2))
-         store = (GtkTreeStore *)gtk_combo_box_get_model(GTK_COMBO_BOX(handle2));
+         store = (GtkListStore *)gtk_combo_box_get_model(GTK_COMBO_BOX(handle2));
       
       if(!store)
       {
@@ -8384,10 +8350,10 @@ int dw_listbox_count(HWND handle)
    if(handle2)
    {
       /* Make sure it is the correct tree type */
-      if(GTK_IS_TREE_VIEW(handle2) && g_object_get_data(G_OBJECT(handle2), "_dw_tree_type") == _DW_TREE_TYPE_LISTBOX)
-         store = (GtkTreeStore *)gtk_tree_view_get_model(GTK_TREE_VIEW(handle2));
+      if(GTK_IS_TREE_VIEW(handle2) && g_object_get_data(G_OBJECT(handle2), "_dw_tree_type") == GINT_TO_POINTER(_DW_TREE_TYPE_LISTBOX))
+         store = (GtkListStore *)gtk_tree_view_get_model(GTK_TREE_VIEW(handle2));
       else if(GTK_IS_COMBO_BOX(handle2))
-         store = (GtkTreeStore *)gtk_combo_box_get_model(GTK_COMBO_BOX(handle2));
+         store = (GtkListStore *)gtk_combo_box_get_model(GTK_COMBO_BOX(handle2));
       
       if(store)
       {
@@ -8462,26 +8428,28 @@ void dw_listbox_get_text(HWND handle, unsigned int index, char *buffer, unsigned
    if(handle2)
    {
       /* Make sure it is the correct tree type */
-      if(GTK_IS_TREE_VIEW(handle2) && g_object_get_data(G_OBJECT(handle2), "_dw_tree_type") == _DW_TREE_TYPE_LISTBOX)
-         store = (GtkTreeStore *)gtk_tree_view_get_model(GTK_TREE_VIEW(handle2));
+      if(GTK_IS_TREE_VIEW(handle2) && g_object_get_data(G_OBJECT(handle2), "_dw_tree_type") == GINT_TO_POINTER(_DW_TREE_TYPE_LISTBOX))
+         store = (GtkListStore *)gtk_tree_view_get_model(GTK_TREE_VIEW(handle2));
       else if(GTK_IS_COMBO_BOX(handle2))
-         store = (GtkTreeStore *)gtk_combo_box_get_model(GTK_COMBO_BOX(handle2));
+         store = (GtkListStore *)gtk_combo_box_get_model(GTK_COMBO_BOX(handle2));
       
-      if(store)
+      if(store && index < gtk_tree_model_iter_n_children(GTK_TREE_MODEL(store), NULL))
       {
-         GtkTreePath *path = gtk_tree_path_new_from_indices(index);
          GtkTreeIter iter;
-         GValue value;
-         char *out;
          
-         /* Get the number of children at the top level */
-         gtk_tree_model_get_iter(GTK_TREE_MODEL(store), &iter, path);
-         gtk_tree_model_get_value(GTK_TREE_MODEL(store), &iter, 0, &value);
-         out = g_value_get_string(&value);
-         strncpy(buffer, out, length);
-         g_object_unref(G_OBJECT(path));
+         /* Get the nth child at the top level */
+         if(gtk_tree_model_iter_nth_child(GTK_TREE_MODEL(store), &iter, NULL, index))
+         {
+            /* Get the text */
+            gchar *text;
+            gtk_tree_model_get(GTK_TREE_MODEL(store), &iter, 0, &text, -1);
+            strncpy(buffer, text, length);
+            DW_MUTEX_UNLOCK;
+            return;
+         }
       }
    }
+   buffer[0] = '\0';
    DW_MUTEX_UNLOCK;
 }
 
@@ -8509,22 +8477,21 @@ void dw_listbox_set_text(HWND handle, unsigned int index, char *buffer)
    if(handle2)
    {
       /* Make sure it is the correct tree type */
-      if(GTK_IS_TREE_VIEW(handle2) && g_object_get_data(G_OBJECT(handle2), "_dw_tree_type") == _DW_TREE_TYPE_LISTBOX)
-         store = (GtkTreeStore *)gtk_tree_view_get_model(GTK_TREE_VIEW(handle2));
+      if(GTK_IS_TREE_VIEW(handle2) && g_object_get_data(G_OBJECT(handle2), "_dw_tree_type") == GINT_TO_POINTER(_DW_TREE_TYPE_LISTBOX))
+         store = (GtkListStore *)gtk_tree_view_get_model(GTK_TREE_VIEW(handle2));
       else if(GTK_IS_COMBO_BOX(handle2))
-         store = (GtkTreeStore *)gtk_combo_box_get_model(GTK_COMBO_BOX(handle2));
+         store = (GtkListStore *)gtk_combo_box_get_model(GTK_COMBO_BOX(handle2));
       
-      if(store)
+      if(store && index < gtk_tree_model_iter_n_children(GTK_TREE_MODEL(store), NULL))
       {
-         GtkTreePath *path = gtk_tree_path_new_from_indices(index);
          GtkTreeIter iter;
-         GValue value;
-         char *out;
          
-         /* Get the number of children at the top level */
-         gtk_tree_model_get_iter(GTK_TREE_MODEL(store), &iter, path);
-         gtk_list_store_set(store, &iter, buffer);
-         g_object_unref(G_OBJECT(path));
+         /* Get the nth child at the top level */
+         if (gtk_tree_model_iter_nth_child(GTK_TREE_MODEL(store), &iter, NULL, index))
+         {
+            /* Update the text */
+            gtk_list_store_set(store, &iter, buffer);
+         }
       }
    }
    DW_MUTEX_UNLOCK;
@@ -8585,43 +8552,45 @@ int dw_listbox_selected_multi(HWND handle, int where)
 unsigned int dw_listbox_selected(HWND handle)
 {
    GtkWidget *handle2 = handle;
-   int retval = DW_LIT_NONE;
+   GtkListStore *store = NULL;
    int _locked_by_me = FALSE;
+   unsigned int retval = 0;
 
    DW_MUTEX_LOCK;
+   /* Get the inner handle for scrolled controls */
    if(GTK_IS_SCROLLED_WINDOW(handle))
    {
       GtkWidget *tmp = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user");
       if(tmp)
          handle2 = tmp;
    }
-#if 0
-   else if(GTK_IS_COMBO_BOX(handle))
+   if(handle2)
    {
-      retval = (unsigned int)g_object_get_data(G_OBJECT(handle), "_dw_item");
-      DW_MUTEX_UNLOCK;
-      return retval;
-   }
-   if(GTK_IS_LIST(handle2))
-   {
-      int counter = 0;
-      GList *list = GTK_LIST(handle2)->children;
-
-      while(list)
+      /* Make sure it is the correct tree type */
+      if(GTK_IS_TREE_VIEW(handle2) && g_object_get_data(G_OBJECT(handle2), "_dw_tree_type") == GINT_TO_POINTER(_DW_TREE_TYPE_LISTBOX))
+         store = (GtkListStore *)gtk_tree_view_get_model(GTK_TREE_VIEW(handle2));
+      else if(GTK_IS_COMBO_BOX(handle2))
+         store = (GtkListStore *)gtk_combo_box_get_model(GTK_COMBO_BOX(handle2));
+      
+      if(store)
       {
-         GtkItem *item = (GtkItem *)list->data;
-
-         if(item && item->bin.container.widget.state == GTK_STATE_SELECTED)
+         GtkTreeSelection *sel = gtk_tree_view_get_selection(GTK_TREE_VIEW(handle2));
+         GList *list = gtk_tree_selection_get_selected_rows(sel, NULL);
+         if(list)
          {
-            retval = counter;
-            break;
+            GtkTreePath *path = g_list_nth_data(list, 0);
+            gint *indices = gtk_tree_path_get_indices(path);
+            
+            if(indices)
+            {
+               retval = indices[0];
+            }
+            
+            g_list_foreach(list, (GFunc) gtk_tree_path_free, NULL);
+            g_list_free(list);
          }
-
-         list = list->next;
-         counter++;
       }
    }
-#endif
    DW_MUTEX_UNLOCK;
    return retval;
 }
@@ -8636,28 +8605,46 @@ unsigned int dw_listbox_selected(HWND handle)
 void dw_listbox_select(HWND handle, int index, int state)
 {
    GtkWidget *handle2 = handle;
+   GtkListStore *store = NULL;
    int _locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
+   /* Get the inner handle for scrolled controls */
    if(GTK_IS_SCROLLED_WINDOW(handle))
    {
       GtkWidget *tmp = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user");
       if(tmp)
          handle2 = tmp;
    }
-#if 0
-   else if(GTK_IS_COMBO_BOX(handle))
+   if(handle2)
    {
-      handle2 = GTK_COMBO_BOX(handle)->list;
+      /* Make sure it is the correct tree type */
+      if(GTK_IS_TREE_VIEW(handle2) && g_object_get_data(G_OBJECT(handle2), "_dw_tree_type") == GINT_TO_POINTER(_DW_TREE_TYPE_LISTBOX))
+         store = (GtkListStore *)gtk_tree_view_get_model(GTK_TREE_VIEW(handle2));
+      else if(GTK_IS_COMBO_BOX(handle2))
+         store = (GtkListStore *)gtk_combo_box_get_model(GTK_COMBO_BOX(handle2));
+      
+      if(store && index < gtk_tree_model_iter_n_children(GTK_TREE_MODEL(store), NULL))
+      {
+         GtkTreeIter iter;
+         
+         /* Get the nth child at the top level */
+         if (gtk_tree_model_iter_nth_child(GTK_TREE_MODEL(store), &iter, NULL, index))
+         {
+            GtkTreeSelection *sel = gtk_tree_view_get_selection(GTK_TREE_VIEW(handle2));
+            if(state)
+            {
+               /* Select the item */
+               gtk_tree_selection_select_iter(sel, &iter);
+            }
+            else
+            {
+               /* Deselect the item */
+               gtk_tree_selection_deselect_iter(sel, &iter);
+            }
+         }
+      }
    }
-   if(GTK_IS_LIST(handle2))
-   {
-      if(state)
-         gtk_list_select_item(GTK_LIST(handle2), index);
-      else
-         gtk_list_unselect_item(GTK_LIST(handle2), index);
-   }
-#endif
    DW_MUTEX_UNLOCK;
 }
 
@@ -8691,15 +8678,13 @@ void dw_listbox_delete(HWND handle, int index)
       
       if(store)
       {
-         GtkTreePath *path = gtk_tree_path_new_from_indices(index);
          GtkTreeIter iter;
-         GValue value;
-         char *out;
          
-         /* Get the number of children at the top level */
-         gtk_tree_model_get_iter(GTK_TREE_MODEL(store), &iter, path);
-         gtk_list_store_remove(store, &iter);
-         g_object_unref(G_OBJECT(path));
+         /* Get the nth child at the top level */
+         if (gtk_tree_model_iter_nth_child(GTK_TREE_MODEL(store), &iter, NULL, index))
+         {
+            gtk_list_store_remove(store, &iter);
+         }
       }
    }
    DW_MUTEX_UNLOCK;
@@ -9940,38 +9925,39 @@ void dw_signal_connect(HWND window, char *signame, void *sigfunc, void *data)
       thiswindow = (HWND)g_object_get_data(G_OBJECT(window), "_dw_user");
    }
 
-   if (GTK_IS_MENU_ITEM(thiswindow) && strcmp(signame, DW_SIGNAL_CLICKED) == 0)
+   if (strcmp(signame, DW_SIGNAL_EXPOSE) == 0)
+   {
+      thisname = "draw";
+   }
+   else if (GTK_IS_MENU_ITEM(thiswindow) && strcmp(signame, DW_SIGNAL_CLICKED) == 0)
    {
       thisname = "activate";
       thisfunc = _findsigfunc(thisname);
    }
    else if (GTK_IS_TREE_VIEW(thiswindow)  && strcmp(signame, DW_SIGNAL_ITEM_CONTEXT) == 0)
    {
-      thisfunc = _findsigfunc("tree-context");
-
       sigid = _set_signal_handler(thiswindow, window, sigfunc, data, thisfunc);
       cid = g_signal_connect(G_OBJECT(thiswindow), "button_press_event", G_CALLBACK(thisfunc), (gpointer)sigid);
       _set_signal_handler_id(thiswindow, sigid, cid);
 
-#if 0
-      sigid = _set_signal_handler(window, window, sigfunc, data, thisfunc);
-      cid = g_signal_connect(G_OBJECT(window), "button_press_event", GTK_SIGNAL_FUNC(thisfunc), (gpointer)sigid);
-      _set_signal_handler_id(window, sigid, cid);
-#endif
-
       DW_MUTEX_UNLOCK;
       return;
    }
-   else if (GTK_IS_TREE_VIEW(thiswindow) && strcmp(signame, DW_SIGNAL_ITEM_SELECT) == 0)
+   else if ((GTK_IS_TREE_VIEW(thiswindow) || GTK_IS_COMBO_BOX(thiswindow))
+             && (strcmp(signame, DW_SIGNAL_ITEM_SELECT) == 0 || strcmp(signame, DW_SIGNAL_LIST_SELECT) == 0))
    {
-      GtkWidget *treeview = thiswindow;
+      GtkWidget *widget = thiswindow;
 
-      thiswindow = (GtkWidget *)gtk_tree_view_get_selection(GTK_TREE_VIEW(thiswindow));
       thisname = "changed";
+      
+      sigid = _set_signal_handler(widget, window, sigfunc, data, thisfunc);
+      if(GTK_IS_TREE_VIEW(thiswindow))
+      {
+         thiswindow = (GtkWidget *)gtk_tree_view_get_selection(GTK_TREE_VIEW(thiswindow));
+         cid = g_signal_connect(G_OBJECT(thiswindow), thisname, G_CALLBACK(thisfunc), (gpointer)sigid);
+         _set_signal_handler_id(widget, sigid, cid);
+      }
 
-      sigid = _set_signal_handler(treeview, window, sigfunc, data, thisfunc);
-      cid = g_signal_connect(G_OBJECT(thiswindow), thisname, (GCallback)thisfunc, (gpointer)sigid);
-      _set_signal_handler_id(treeview, sigid, cid);
       DW_MUTEX_UNLOCK;
       return;
    }
