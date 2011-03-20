@@ -1256,7 +1256,12 @@ struct _dw_unix_shm {
 
 typedef struct _hpixmap {
    unsigned long width, height;
+#if GTK_MAJOR_VERSION > 2
    GdkPixbuf *pixbuf;  /* the actual image */
+#else
+   GdkPixmap *pixmap;  /* the actual image */ 
+   GdkBitmap *bitmap;  /* if not null, the image mask representing the transparency mask */ 
+#endif
    HWND handle;
 } *HPIXMAP;
 
