@@ -3567,7 +3567,6 @@ HWND dw_container_new(unsigned long id, int multi)
    g_object_set_data(G_OBJECT(tmp), "_dw_tree_type", (gpointer)_DW_TREE_TYPE_CONTAINER);
    g_object_set_data(G_OBJECT(tmp), "_dw_multi_sel", GINT_TO_POINTER(multi));
    g_object_set_data(G_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(id));
-   gtk_widget_show(tmp);   
    DW_MUTEX_UNLOCK;
    return tmp;
 }
@@ -4098,7 +4097,7 @@ HWND dw_listbox_new(unsigned long id, int multi)
    {
       gtk_tree_selection_set_mode(sel, GTK_SELECTION_SINGLE);
    }
-   gtk_widget_show(tmp);   
+   gtk_widget_show(tree);   
    DW_MUTEX_UNLOCK;
    return tmp;
 }
@@ -5453,7 +5452,7 @@ static int _dw_container_setup(HWND handle, unsigned long *flags, char **titles,
    {
       gtk_tree_selection_set_mode(sel, GTK_SELECTION_SINGLE);
    }
-   gtk_widget_show(handle);
+   gtk_widget_show(tree);
    free(array);
    DW_MUTEX_UNLOCK;
    return TRUE;
@@ -8220,56 +8219,7 @@ void dw_notebook_pack(HWND handle, unsigned long pageid, HWND page)
  */
 void dw_listbox_append(HWND handle, char *text)
 {
-   GtkWidget *handle2 = handle;
-   int _locked_by_me = FALSE;
-
-   DW_MUTEX_LOCK;
-   if(GTK_IS_SCROLLED_WINDOW(handle))
-   {
-      GtkWidget *tmp = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user");
-      if(tmp)
-         handle2 = tmp;
-   }
-#if 0
-   g_object_set_data(G_OBJECT(handle), "_dw_appending", GINT_TO_POINTER(1));
-   if(GTK_IS_LIST(handle2))
-   {
-      GtkWidget *list_item;
-      GList *tmp;
-      char *font = (char *)g_object_get_data(G_OBJECT(handle), "_dw_font");
-      GdkColor *fore = (GdkColor *)g_object_get_data(G_OBJECT(handle2), "_dw_foregdk");
-      GdkColor *back = (GdkColor *)g_object_get_data(G_OBJECT(handle2), "_dw_backgdk");
-
-      list_item=gtk_list_item_new_with_label(text);
-
-      if(font)
-         _set_font(GTK_LIST_ITEM(list_item)->item.bin.child, font);
-      if(fore && back)
-         _set_color(GTK_LIST_ITEM(list_item)->item.bin.child,
-                  DW_RGB(fore->red, fore->green, fore->blue),
-                  DW_RGB(back->red, back->green, back->blue));
-
-      tmp  = g_list_append(NULL, list_item);
-      gtk_widget_show(list_item);
-      gtk_list_append_items(GTK_LIST(handle2),tmp);
-   }
-   else if(GTK_IS_COMBO_BOX(handle2))
-   {
-      GList *tmp = (GList *)gtk_object_get_user_data(GTK_OBJECT(handle2));
-      char *addtext = strdup(text);
-
-      if(addtext)
-      {
-         char *defstr = gtk_entry_get_text(GTK_ENTRY(GTK_COMBO_BOX(handle2)->entry));
-         tmp = g_list_append(tmp, addtext);
-         g_object_set_data(G_OBJECT(handle2), "_dw_user", tmp);
-         gtk_combo_set_popdown_strings(GTK_COMBO_BOX(handle2), tmp);
-         gtk_entry_set_text(GTK_ENTRY(GTK_COMBO_BOX(handle2)->entry), defstr);
-      }
-   }
-   g_object_set_data(G_OBJECT(handle), "_dw_appending", NULL);
-#endif
-   DW_MUTEX_UNLOCK;
+   dw_listbox_insert(handle, text, -1);
 }
 
 /*
@@ -8283,7 +8233,6 @@ void dw_listbox_append(HWND handle, char *text)
 void dw_listbox_insert(HWND handle, char *text, int pos)
 {
    GtkWidget *handle2 = handle;
-   GtkTreeIter *iter;
    GtkListStore *store = NULL;
    int _locked_by_me = FALSE;
 
@@ -8297,6 +8246,8 @@ void dw_listbox_insert(HWND handle, char *text, int pos)
    }
    if(handle2)
    {
+      GtkTreeIter iter;
+      
       /* Make sure it is the correct tree type */
       if(GTK_IS_TREE_VIEW(handle2) && g_object_get_data(G_OBJECT(handle2), "_dw_tree_type") == _DW_TREE_TYPE_LISTBOX)
          store = (GtkTreeStore *)gtk_tree_view_get_model(GTK_TREE_VIEW(handle2));
@@ -8309,11 +8260,17 @@ void dw_listbox_insert(HWND handle, char *text, int pos)
          return;
       }
       
-      /* Insert an entry at the end */
-      iter = (GtkTreeIter *)malloc(sizeof(GtkTreeIter));
-
-      gtk_list_store_append(store, iter);
-      gtk_list_store_set (store, iter, 0, text, -1);
+      if(pos < 0)
+      {
+         /* Insert an entry at the end */
+         gtk_list_store_append(store, &iter);
+      }
+      else
+      {
+         /* Insert at position */
+         gtk_list_store_insert(store, &iter, pos);
+      }
+      gtk_list_store_set (store, &iter, 0, text, -1);
    }
    DW_MUTEX_UNLOCK;
 }
@@ -8328,7 +8285,6 @@ void dw_listbox_insert(HWND handle, char *text, int pos)
 void dw_listbox_list_append(HWND handle, char **text, int count)
 {
    GtkWidget *handle2 = handle;
-   GtkTreeIter *iter;
    GtkListStore *store = NULL;
    int _locked_by_me = FALSE;
 
@@ -8343,6 +8299,7 @@ void dw_listbox_list_append(HWND handle, char **text, int count)
    if(handle2)
    {
       int z;
+      GtkTreeIter iter;
       
       /* Make sure it is the correct tree type */
       if(GTK_IS_TREE_VIEW(handle2) && g_object_get_data(G_OBJECT(handle2), "_dw_tree_type") == _DW_TREE_TYPE_LISTBOX)
@@ -8359,10 +8316,8 @@ void dw_listbox_list_append(HWND handle, char **text, int count)
       /* Insert entries at the end */
       for(z=0;z<count;z++)
       {
-         iter = (GtkTreeIter *)malloc(sizeof(GtkTreeIter));
-
-         gtk_list_store_append(store, iter);
-         gtk_list_store_set (store, iter, 0, text[z], -1);
+         gtk_list_store_append(store, &iter);
+         gtk_list_store_set (store, &iter, 0, text[z], -1);
       }
    }
    DW_MUTEX_UNLOCK;
@@ -8376,40 +8331,33 @@ void dw_listbox_list_append(HWND handle, char **text, int count)
 void dw_listbox_clear(HWND handle)
 {
    GtkWidget *handle2 = handle;
+   GtkListStore *store = NULL;
    int _locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
+   /* Get the inner handle for scrolled controls */
    if(GTK_IS_SCROLLED_WINDOW(handle))
    {
       GtkWidget *tmp = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user");
       if(tmp)
          handle2 = tmp;
    }
-#if 0
-   if(GTK_IS_COMBO_BOX(handle2))
+   if(handle2)
    {
-      GList *list, *tmp = (GList *)g_object_get_data(G_OBJECT(handle2));
-
-      if(tmp)
+      /* Make sure it is the correct tree type */
+      if(GTK_IS_TREE_VIEW(handle2) && g_object_get_data(G_OBJECT(handle2), "_dw_tree_type") == _DW_TREE_TYPE_LISTBOX)
+         store = (GtkTreeStore *)gtk_tree_view_get_model(GTK_TREE_VIEW(handle2));
+      else if(GTK_IS_COMBO_BOX(handle2))
+         store = (GtkTreeStore *)gtk_combo_box_get_model(GTK_COMBO_BOX(handle2));
+      
+      if(!store)
       {
-         list = tmp;
-         while(list)
-         {
-            if(list->data)
-               free(list->data);
-            list=list->next;
-         }
-         g_list_free(tmp);
+         DW_MUTEX_UNLOCK;
+         return;
       }
-      g_object_set_data(G_OBJECT(handle2), "_dw_user", NULL);
+      /* Clear the list */
+      gtk_list_store_clear(store);    
    }
-   else if(GTK_IS_LIST(handle2))
-   {
-      int count = dw_listbox_count(handle);
-
-      gtk_list_clear_items(GTK_LIST(handle2), 0, count);
-   }
-#endif
    DW_MUTEX_UNLOCK;
 }
 
@@ -8421,31 +8369,32 @@ void dw_listbox_clear(HWND handle)
 int dw_listbox_count(HWND handle)
 {
    GtkWidget *handle2 = handle;
-    int retval = 0;
+   GtkListStore *store = NULL;
    int _locked_by_me = FALSE;
+   int retval = 0;
 
    DW_MUTEX_LOCK;
+   /* Get the inner handle for scrolled controls */
    if(GTK_IS_SCROLLED_WINDOW(handle))
    {
       GtkWidget *tmp = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user");
       if(tmp)
          handle2 = tmp;
    }
-#if 0
-   else if(GTK_IS_COMBO_BOX(handle))
+   if(handle2)
    {
-      handle2 = GTK_COMBO_BOX(handle)->list;
-   }
-   if(GTK_IS_LIST(handle2))
-   {
-      GList *list = GTK_LIST(handle2)->children;
-      while(list)
+      /* Make sure it is the correct tree type */
+      if(GTK_IS_TREE_VIEW(handle2) && g_object_get_data(G_OBJECT(handle2), "_dw_tree_type") == _DW_TREE_TYPE_LISTBOX)
+         store = (GtkTreeStore *)gtk_tree_view_get_model(GTK_TREE_VIEW(handle2));
+      else if(GTK_IS_COMBO_BOX(handle2))
+         store = (GtkTreeStore *)gtk_combo_box_get_model(GTK_COMBO_BOX(handle2));
+      
+      if(store)
       {
-         list = list->next;
-         retval++;
+         /* Get the number of children at the top level */
+         retval = gtk_tree_model_iter_n_children(GTK_TREE_MODEL(store), NULL);
       }
    }
-#endif
    DW_MUTEX_UNLOCK;
    return retval;
 }
@@ -8499,59 +8448,40 @@ void dw_listbox_set_top(HWND handle, int top)
 void dw_listbox_get_text(HWND handle, unsigned int index, char *buffer, unsigned int length)
 {
    GtkWidget *handle2 = handle;
+   GtkListStore *store = NULL;
    int _locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
+   /* Get the inner handle for scrolled controls */
    if(GTK_IS_SCROLLED_WINDOW(handle))
    {
       GtkWidget *tmp = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user");
       if(tmp)
          handle2 = tmp;
    }
-#if 0
-   else if(GTK_IS_COMBO_BOX(handle))
+   if(handle2)
    {
-      handle2 = GTK_COMBO_BOX(handle)->list;
-   }
-   if(GTK_IS_LIST(handle2))
-   {
-      int counter = 0;
-      GList *list = GTK_LIST(handle2)->children;
-
-      while(list)
+      /* Make sure it is the correct tree type */
+      if(GTK_IS_TREE_VIEW(handle2) && g_object_get_data(G_OBJECT(handle2), "_dw_tree_type") == _DW_TREE_TYPE_LISTBOX)
+         store = (GtkTreeStore *)gtk_tree_view_get_model(GTK_TREE_VIEW(handle2));
+      else if(GTK_IS_COMBO_BOX(handle2))
+         store = (GtkTreeStore *)gtk_combo_box_get_model(GTK_COMBO_BOX(handle2));
+      
+      if(store)
       {
-         if(counter == index)
-         {
-            gchar *text = "";
-
-            if(GTK_IS_LIST_ITEM(list->data))
-            {
-               GtkListItem *li = GTK_LIST_ITEM(list->data);
-
-               if(GTK_IS_ITEM(&(li->item)))
-               {
-                  GtkItem *i = &(li->item);
-
-                  if(GTK_IS_BIN(&(i->bin)))
-                  {
-                     GtkBin *b = &(i->bin);
-
-                     if(GTK_IS_LABEL(b->child))
-                        gtk_label_get(GTK_LABEL(b->child), &text);
-                  }
-               }
-            }
-            else if(GTK_IS_COMBO_BOX(handle) && list->data)
-               text = (gchar *)list->data;
-
-            strncpy(buffer, (char *)text, length);
-            break;
-         }
-         list = list->next;
-         counter++;
+         GtkTreePath *path = gtk_tree_path_new_from_indices(index);
+         GtkTreeIter iter;
+         GValue value;
+         char *out;
+         
+         /* Get the number of children at the top level */
+         gtk_tree_model_get_iter(GTK_TREE_MODEL(store), &iter, path);
+         gtk_tree_model_get_value(GTK_TREE_MODEL(store), &iter, 0, &value);
+         out = g_value_get_string(&value);
+         strncpy(buffer, out, length);
+         g_object_unref(G_OBJECT(path));
       }
    }
-#endif
    DW_MUTEX_UNLOCK;
 }
 
@@ -8565,60 +8495,38 @@ void dw_listbox_get_text(HWND handle, unsigned int index, char *buffer, unsigned
 void dw_listbox_set_text(HWND handle, unsigned int index, char *buffer)
 {
    GtkWidget *handle2 = handle;
+   GtkListStore *store = NULL;
    int _locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
+   /* Get the inner handle for scrolled controls */
    if(GTK_IS_SCROLLED_WINDOW(handle))
    {
       GtkWidget *tmp = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user");
       if(tmp)
          handle2 = tmp;
    }
-#if 0
-   else if(GTK_IS_COMBO_BOX(handle))
+   if(handle2)
    {
-      handle2 = GTK_COMBO_BOX(handle)->list;
-   }
-   if(GTK_IS_LIST(handle2))
-   {
-      int counter = 0;
-      GList *list = GTK_LIST(handle2)->children;
-
-      while(list)
+      /* Make sure it is the correct tree type */
+      if(GTK_IS_TREE_VIEW(handle2) && g_object_get_data(G_OBJECT(handle2), "_dw_tree_type") == _DW_TREE_TYPE_LISTBOX)
+         store = (GtkTreeStore *)gtk_tree_view_get_model(GTK_TREE_VIEW(handle2));
+      else if(GTK_IS_COMBO_BOX(handle2))
+         store = (GtkTreeStore *)gtk_combo_box_get_model(GTK_COMBO_BOX(handle2));
+      
+      if(store)
       {
-         if(counter == index)
-         {
-
-            if(GTK_IS_LIST_ITEM(list->data))
-            {
-               GtkListItem *li = GTK_LIST_ITEM(list->data);
-
-               if(GTK_IS_ITEM(&(li->item)))
-               {
-                  GtkItem *i = &(li->item);
-
-                  if(GTK_IS_BIN(&(i->bin)))
-                  {
-                     GtkBin *b = &(i->bin);
-
-                     if(GTK_IS_LABEL(b->child))
-                        gtk_label_set_text(GTK_LABEL(b->child), buffer);
-                  }
-               }
-            }
-            else if(GTK_IS_COMBO_BOX(handle))
-            {
-               if(list->data)
-                  g_free(list->data);
-               list->data = g_strdup(buffer);
-            }
-            break;
-         }
-         list = list->next;
-         counter++;
+         GtkTreePath *path = gtk_tree_path_new_from_indices(index);
+         GtkTreeIter iter;
+         GValue value;
+         char *out;
+         
+         /* Get the number of children at the top level */
+         gtk_tree_model_get_iter(GTK_TREE_MODEL(store), &iter, path);
+         gtk_list_store_set(store, &iter, buffer);
+         g_object_unref(G_OBJECT(path));
       }
    }
-#endif
    DW_MUTEX_UNLOCK;
 }
 
@@ -8762,25 +8670,38 @@ void dw_listbox_select(HWND handle, int index, int state)
 void dw_listbox_delete(HWND handle, int index)
 {
    GtkWidget *handle2 = handle;
+   GtkListStore *store = NULL;
    int _locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
+   /* Get the inner handle for scrolled controls */
    if(GTK_IS_SCROLLED_WINDOW(handle))
    {
       GtkWidget *tmp = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user");
       if(tmp)
          handle2 = tmp;
    }
-#if 0
-   else if(GTK_IS_COMBO_BOX(handle))
+   if(handle2)
    {
-      handle2 = GTK_COMBO_BOX(handle)->list;
+      /* Make sure it is the correct tree type */
+      if(GTK_IS_TREE_VIEW(handle2) && g_object_get_data(G_OBJECT(handle2), "_dw_tree_type") == _DW_TREE_TYPE_LISTBOX)
+         store = (GtkTreeStore *)gtk_tree_view_get_model(GTK_TREE_VIEW(handle2));
+      else if(GTK_IS_COMBO_BOX(handle2))
+         store = (GtkTreeStore *)gtk_combo_box_get_model(GTK_COMBO_BOX(handle2));
+      
+      if(store)
+      {
+         GtkTreePath *path = gtk_tree_path_new_from_indices(index);
+         GtkTreeIter iter;
+         GValue value;
+         char *out;
+         
+         /* Get the number of children at the top level */
+         gtk_tree_model_get_iter(GTK_TREE_MODEL(store), &iter, path);
+         gtk_list_store_remove(store, &iter);
+         g_object_unref(G_OBJECT(path));
+      }
    }
-   if(GTK_IS_LIST(handle2))
-   {
-      gtk_list_clear_items(GTK_LIST(handle2), index, index+1);
-   }
-#endif
    DW_MUTEX_UNLOCK;
 }
 
