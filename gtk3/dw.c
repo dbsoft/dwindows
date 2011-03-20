@@ -3542,6 +3542,11 @@ GtkWidget *_tree_setup(GtkWidget *tmp, GtkTreeModel *store)
    return tree;
 }
 
+#define _DW_TREE_TYPE_CONTAINER  1
+#define _DW_TREE_TYPE_TREE       2
+#define _DW_TREE_TYPE_LISTBOX    3
+#define _DW_TREE_TYPE_COMBOBOX   4
+
 /*
  * Create a container object to be packed.
  * Parameters:
@@ -3559,7 +3564,7 @@ HWND dw_container_new(unsigned long id, int multi)
       DW_MUTEX_UNLOCK;
       return 0;
    }
-   g_object_set_data(G_OBJECT(tmp), "_dw_tree_type", (gpointer)1);
+   g_object_set_data(G_OBJECT(tmp), "_dw_tree_type", (gpointer)_DW_TREE_TYPE_CONTAINER);
    g_object_set_data(G_OBJECT(tmp), "_dw_multi_sel", GINT_TO_POINTER(multi));
    g_object_set_data(G_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(id));
    gtk_widget_show(tmp);   
@@ -3590,7 +3595,7 @@ HWND dw_tree_new(ULONG id)
    }
    store = gtk_tree_store_new(4, G_TYPE_STRING, GDK_TYPE_PIXBUF, G_TYPE_POINTER, G_TYPE_POINTER);
    tree = _tree_setup(tmp, GTK_TREE_MODEL(store));
-   g_object_set_data(G_OBJECT(tmp), "_dw_tree_type", (gpointer)2);
+   g_object_set_data(G_OBJECT(tmp), "_dw_tree_type", (gpointer)_DW_TREE_TYPE_TREE);
    g_object_set_data(G_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(id));
    col = gtk_tree_view_column_new();
 
@@ -3749,14 +3754,19 @@ HWND dw_combobox_new(char *text, unsigned long id)
 {
    GtkWidget *tmp;
    GtkListStore *store;
+   GtkCellRenderer *renderer;
    int sigid, _locked_by_me = FALSE;
    gint cid;
 
    DW_MUTEX_LOCK;
    store = gtk_list_store_new(1, G_TYPE_STRING);
    tmp = gtk_combo_box_new_with_model_and_entry(GTK_TREE_MODEL(store));
+   renderer = gtk_cell_renderer_text_new ();
+   gtk_cell_layout_pack_start (GTK_CELL_LAYOUT(tmp), renderer, TRUE);
+   gtk_cell_layout_set_attributes (GTK_CELL_LAYOUT(tmp), renderer, "text", 0, NULL);
+   gtk_combo_box_set_id_column(GTK_COMBO_BOX(tmp), 0);
    gtk_widget_show(tmp);
-   g_object_set_data(G_OBJECT(tmp), "_dw_tree_type", (gpointer)3);
+   g_object_set_data(G_OBJECT(tmp), "_dw_tree_type", (gpointer)_DW_TREE_TYPE_COMBOBOX);
    g_object_set_data(G_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(id));
    DW_MUTEX_UNLOCK;
    return tmp;
@@ -4067,7 +4077,7 @@ HWND dw_listbox_new(unsigned long id, int multi)
    }
    store = gtk_list_store_new(1, G_TYPE_STRING);
    tree = _tree_setup(tmp, GTK_TREE_MODEL(store));
-   g_object_set_data(G_OBJECT(tmp), "_dw_tree_type", (gpointer)3);
+   g_object_set_data(G_OBJECT(tmp), "_dw_tree_type", (gpointer)_DW_TREE_TYPE_LISTBOX);
    g_object_set_data(G_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(id));
    
    col = gtk_tree_view_column_new();
@@ -7703,26 +7713,6 @@ void dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, int 
    }
 }
 
-#ifdef GDK_WINDOWING_X11
-static void _size_allocate(GtkWindow *window)
-{
-  XSizeHints sizehints;
-
-  sizehints.base_width = 1;
-  sizehints.base_height = 1;
-  sizehints.width_inc = 1;
-  sizehints.height_inc = 1;
-  sizehints.min_width = 8;
-  sizehints.min_height = 8;
-
-  sizehints.flags = (PBaseSize|PMinSize|PResizeInc);
-  
-  XSetWMNormalHints (gdk_x11_display_get_xdisplay(gdk_display_get_default()),
-                     GDK_WINDOW_XID(gtk_widget_get_window(GTK_WIDGET(window))),&sizehints);
-  gdk_flush ();
-}
-#endif
-
 /*
  * Sets the size of a given window (widget).
  * Parameters:
@@ -7742,15 +7732,19 @@ void dw_window_set_size(HWND handle, unsigned long width, unsigned long height)
    DW_MUTEX_LOCK;
    if(GTK_IS_WINDOW(handle))
    {
+      GdkGeometry hints;
+      
       if ( width == 0 )
          default_width = -1;
       if ( height == 0 )
          default_height = -1;
          
-#ifdef GDK_WINDOWING_X11
-      _size_allocate(GTK_WINDOW(handle));
-#endif
+      hints.base_width = hints.base_height = 1;
+      hints.min_width = hints.min_height = 8;
+      hints.width_inc = hints.height_inc = 1;
 
+      gtk_window_set_geometry_hints(GTK_WINDOW(handle), NULL, &hints, GDK_HINT_RESIZE_INC|GDK_HINT_MIN_SIZE|GDK_HINT_BASE_SIZE);
+                                
       if(gtk_widget_get_window(handle) && default_width > 0 && default_height > 0)
          gdk_window_resize(gtk_widget_get_window(handle), default_width , default_height );
 
@@ -8289,52 +8283,38 @@ void dw_listbox_append(HWND handle, char *text)
 void dw_listbox_insert(HWND handle, char *text, int pos)
 {
    GtkWidget *handle2 = handle;
+   GtkTreeIter *iter;
+   GtkListStore *store = NULL;
    int _locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
+   /* Get the inner handle for scrolled controls */
    if(GTK_IS_SCROLLED_WINDOW(handle))
    {
       GtkWidget *tmp = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user");
       if(tmp)
          handle2 = tmp;
    }
-#if 0
-   g_object_set_data(G_OBJECT(handle), "_dw_appending", GINT_TO_POINTER(1));
-   if(GTK_IS_LIST(handle2))
+   if(handle2)
    {
-      GtkWidget *list_item;
-      GList *tmp;
-      char *font = (char *)g_object_get_data(G_OBJECT(handle), "_dw_font");
-      GdkColor *fore = (GdkColor *)g_object_get_data(G_OBJECT(handle2), "_dw_foregdk");
-      GdkColor *back = (GdkColor *)g_object_get_data(G_OBJECT(handle2), "_dw_backgdk");
-
-      list_item=gtk_list_item_new_with_label(text);
-
-      if(font)
-         _set_font(GTK_LIST_ITEM(list_item)->item.bin.child, font);
-      if(fore && back)
-         _set_color(GTK_LIST_ITEM(list_item)->item.bin.child,
-                  DW_RGB(fore->red, fore->green, fore->blue),
-                  DW_RGB(back->red, back->green, back->blue));
-
-      tmp  = g_list_insert(NULL, list_item, pos);
-      gtk_widget_show(list_item);
-      gtk_list_append_items(GTK_LIST(handle2),tmp);
-   }
-   else if(GTK_IS_COMBO_BOX(handle2))
-   {
-      GList *tmp = (GList *)gtk_object_get_user_data(GTK_OBJECT(handle2));
-      char *addtext = strdup(text);
-
-      if(addtext)
+      /* Make sure it is the correct tree type */
+      if(GTK_IS_TREE_VIEW(handle2) && g_object_get_data(G_OBJECT(handle2), "_dw_tree_type") == _DW_TREE_TYPE_LISTBOX)
+         store = (GtkTreeStore *)gtk_tree_view_get_model(GTK_TREE_VIEW(handle2));
+      else if(GTK_IS_COMBO_BOX(handle2))
+         store = (GtkTreeStore *)gtk_combo_box_get_model(GTK_COMBO_BOX(handle2));
+      
+      if(!store)
       {
-         tmp = g_list_insert(tmp, addtext, pos);
-         g_object_set_data(GTK_OBJECT(handle2), "_dw_user", tmp);
-         gtk_combo_set_popdown_strings(GTK_COMBO_BOX(handle2), tmp);
+         DW_MUTEX_UNLOCK;
+         return;
       }
+      
+      /* Insert an entry at the end */
+      iter = (GtkTreeIter *)malloc(sizeof(GtkTreeIter));
+
+      gtk_list_store_append(store, iter);
+      gtk_list_store_set (store, iter, 0, text, -1);
    }
-   g_object_set_data(G_OBJECT(handle), "_dw_appending", NULL);
-#endif
    DW_MUTEX_UNLOCK;
 }
 
@@ -8348,57 +8328,43 @@ void dw_listbox_insert(HWND handle, char *text, int pos)
 void dw_listbox_list_append(HWND handle, char **text, int count)
 {
    GtkWidget *handle2 = handle;
+   GtkTreeIter *iter;
+   GtkListStore *store = NULL;
    int _locked_by_me = FALSE;
 
-   if ( count == 0 )
-      return;
-
    DW_MUTEX_LOCK;
+   /* Get the inner handle for scrolled controls */
    if(GTK_IS_SCROLLED_WINDOW(handle))
    {
       GtkWidget *tmp = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user");
       if(tmp)
          handle2 = tmp;
    }
-#if 0
-   g_object_set_data(G_OBJECT(handle), "_dw_appending", GINT_TO_POINTER(1));
-   if(GTK_IS_LIST(handle2))
+   if(handle2)
    {
-      GtkWidget *list_item;
-      GList *tmp;
-      char *font = (char *)g_object_get_data(G_OBJECT(handle), "_dw_font");
-      GdkColor *fore = (GdkColor *)g_object_get_data(G_OBJECT(handle2), "_dw_foregdk");
-      GdkColor *back = (GdkColor *)g_object_get_data(G_OBJECT(handle2), "_dw_backgdk");
-
-      list_item=gtk_list_item_new_with_label(*text);
-
-      if(font)
-         _set_font(GTK_LIST_ITEM(list_item)->item.bin.child, font);
-      if(fore && back)
-         _set_color(GTK_LIST_ITEM(list_item)->item.bin.child,
-                  DW_RGB(fore->red, fore->green, fore->blue),
-                  DW_RGB(back->red, back->green, back->blue));
-
-      tmp  = g_list_append(NULL, list_item);
-      gtk_widget_show(list_item);
-      gtk_list_append_items(GTK_LIST(handle2),tmp);
-   }
-   else if(GTK_IS_COMBO_BOX(handle2))
-   {
-      GList *tmp = (GList *)gtk_object_get_user_data(GTK_OBJECT(handle2));
-      char *addtext;
-      int i;
-
-      for (i=0;i<count;i++)
+      int z;
+      
+      /* Make sure it is the correct tree type */
+      if(GTK_IS_TREE_VIEW(handle2) && g_object_get_data(G_OBJECT(handle2), "_dw_tree_type") == _DW_TREE_TYPE_LISTBOX)
+         store = (GtkTreeStore *)gtk_tree_view_get_model(GTK_TREE_VIEW(handle2));
+      else if(GTK_IS_COMBO_BOX(handle2))
+         store = (GtkTreeStore *)gtk_combo_box_get_model(GTK_COMBO_BOX(handle2));
+      
+      if(!store)
       {
-         addtext = strdup(text[i]);
-         tmp = g_list_append(tmp, addtext);
+         DW_MUTEX_UNLOCK;
+         return;
       }
-      g_object_set_data(GTK_OBJECT(handle2), "_dw_user", tmp);
-      gtk_combo_set_popdown_strings(GTK_COMBO_BOX(handle2), tmp);
+      
+      /* Insert entries at the end */
+      for(z=0;z<count;z++)
+      {
+         iter = (GtkTreeIter *)malloc(sizeof(GtkTreeIter));
+
+         gtk_list_store_append(store, iter);
+         gtk_list_store_set (store, iter, 0, text[z], -1);
+      }
    }
-   g_object_set_data(G_OBJECT(handle), "_dw_appending", NULL);
-#endif
    DW_MUTEX_UNLOCK;
 }
 
