@@ -5345,6 +5345,7 @@ void dw_tree_item_delete(HWND handle, HTREEITEM item)
 static int _dw_container_setup(HWND handle, unsigned long *flags, char **titles, int count, int separator, int extra)
 {
    int z;
+   char numbuf[20];
    GtkWidget *tree;
    GtkListStore *store;
    GtkTreeViewColumn *col, *expander = NULL;
@@ -5352,14 +5353,11 @@ static int _dw_container_setup(HWND handle, unsigned long *flags, char **titles,
    GtkTreeSelection *sel;
    int _locked_by_me = FALSE;
    GType *array = calloc(count + 2, sizeof(gint));
-   unsigned long *newflags = calloc(count, sizeof(unsigned long));
-   
-   memcpy(newflags, flags, count * sizeof(unsigned long));
 
    DW_MUTEX_LOCK;
    /* Save some of the info so it is easily accessible */
-   g_object_set_data(G_OBJECT(handle), "_dw_cont_col_flags", (gpointer)newflags);
    g_object_set_data(G_OBJECT(handle), "_dw_cont_columns", GINT_TO_POINTER(count));
+   g_object_set_data(G_OBJECT(handle), "_dw_cont_extra", GINT_TO_POINTER(extra));
    
    /* First param is row title/data */
    array[0] = G_TYPE_POINTER;
@@ -5394,6 +5392,8 @@ static int _dw_container_setup(HWND handle, unsigned long *flags, char **titles,
    /* Second loop... create the columns */
    for(z=0;z<count;z++)
    {
+      sprintf(numbuf, "_dw_cont_col%d", z);
+      g_object_set_data(G_OBJECT(tree), numbuf, GINT_TO_POINTER(flags[z]));
       col = gtk_tree_view_column_new();
       if(flags[z] & DW_CFA_BITMAPORICON)
       {
@@ -5486,7 +5486,7 @@ int dw_filesystem_setup(HWND handle, unsigned long *flags, char **titles, int co
    memcpy(&newtitles[2], titles, sizeof(char *) * count);
    memcpy(&newflags[2], flags, sizeof(unsigned long) * count);
 
-   _dw_container_setup(handle, newflags, newtitles, count + 1, 1, 1);
+   _dw_container_setup(handle, newflags, newtitles, count + 2, 1, 2);
 
    if ( newtitles) free(newtitles);
    if ( newflags ) free(newflags);
@@ -5678,138 +5678,117 @@ void dw_icon_free(HICN handle)
  */
 void *dw_container_alloc(HWND handle, int rowcount)
 {
-#if 0
-   int z, count = 0, prevrowcount = 0;
-   GtkWidget *clist;
-   GdkColor *fore, *back;
-   char **blah;
+   int z, prevrowcount = 0;
+   GtkWidget *cont;
+   GtkListStore *store = NULL;
    int _locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
-   clist = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user");
-   if(!clist)
+   cont = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user");
+   
+   /* Make sure it is the correct tree type */
+   if(cont && GTK_IS_TREE_VIEW(cont) && g_object_get_data(G_OBJECT(cont), "_dw_tree_type") == GINT_TO_POINTER(_DW_TREE_TYPE_CONTAINER))
+         store = (GtkListStore *)gtk_tree_view_get_model(GTK_TREE_VIEW(cont));
+
+   if(store)
    {
-      DW_MUTEX_UNLOCK;
-      return NULL;
+      GtkTreeIter iter;
+      
+      prevrowcount = (int)g_object_get_data(G_OBJECT(cont), "_dw_rowcount");
+
+      for(z=0;z<rowcount;z++)
+      {
+         gtk_list_store_append(store, &iter);
+      }
+      g_object_set_data(G_OBJECT(cont), "_dw_insertpos", GINT_TO_POINTER(prevrowcount));
+      g_object_set_data(G_OBJECT(cont), "_dw_rowcount", GINT_TO_POINTER(rowcount + prevrowcount));
    }
-
-   count = (int)g_object_get_data(G_OBJECT(clist), "_dw_colcount");
-   prevrowcount = (int)g_object_get_data(G_OBJECT(clist), "_dw_rowcount");
-
-   if(!count)
-   {
-      DW_MUTEX_UNLOCK;
-      return NULL;
-   }
-
-   blah = malloc(sizeof(char *) * count);
-   memset(blah, 0, sizeof(char *) * count);
-
-   fore = (GdkColor *)g_object_get_data(G_OBJECT(clist), "_dw_foregdk");
-   back = (GdkColor *)g_object_get_data(G_OBJECT(clist), "_dw_backgdk");
-   gtk_clist_freeze(GTK_CLIST(clist));
-   for(z=0;z<rowcount;z++)
-   {
-      gtk_clist_append(GTK_CLIST(clist), blah);
-      if(fore)
-         gtk_clist_set_foreground(GTK_CLIST(clist), z + prevrowcount, fore);
-      if(back)
-         gtk_clist_set_background(GTK_CLIST(clist), z + prevrowcount, back);
-   }
-   g_object_set_data(G_OBJECT(clist), "_dw_insertpos", GINT_TO_POINTER(prevrowcount));
-   g_object_set_data(G_OBJECT(clist), "_dw_rowcount", GINT_TO_POINTER(rowcount + prevrowcount));
-   free(blah);
    DW_MUTEX_UNLOCK;
-   return (void *)handle;
-#endif
-   return NULL;
+   return (void *)cont;
 }
 
 /*
  * Internal representation of dw_container_set_item() extracted so we can pass
  * two data pointers; icon and text for dw_filesystem_set_item().
  */
-void _dw_container_set_item(HWND handle, void *pointer, int column, int row, void *data, char *text)
+void _dw_container_set_item(HWND handle, void *pointer, int column, int row, void *data)
 {
-#if 0
-   char numbuf[10], textbuffer[100];
+   char numbuf[20], textbuffer[100];
    int flag = 0;
-   GtkWidget *clist;
+   GtkWidget *cont;
+   GtkListStore *store = NULL;
    int _locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
-   clist = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user");
-   if(!clist)
+   cont = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user");
+   
+   /* Make sure it is the correct tree type */
+   if(cont && GTK_IS_TREE_VIEW(cont) && g_object_get_data(G_OBJECT(cont), "_dw_tree_type") == GINT_TO_POINTER(_DW_TREE_TYPE_CONTAINER))
+         store = (GtkListStore *)gtk_tree_view_get_model(GTK_TREE_VIEW(cont));
+
+   if(store)
    {
-      DW_MUTEX_UNLOCK;
-      return;
-   }
+      GtkTreeIter iter;
+      
+      sprintf(numbuf, "_dw_cont_col%d", column);
+      flag = (int)g_object_get_data(G_OBJECT(cont), numbuf);
+      if(pointer)
+      {
+         row += (int)g_object_get_data(G_OBJECT(cont), "_dw_insertpos");
+      }
 
-   sprintf(numbuf, "%d", column);
-   flag = (int)g_object_get_data(G_OBJECT(clist), numbuf);
-   row += (int)g_object_get_data(G_OBJECT(clist), "_dw_insertpos");
+      if(gtk_tree_model_iter_nth_child(GTK_TREE_MODEL(store), &iter, NULL, row))
+      {
+         if(flag & DW_CFA_BITMAPORICON)
+         {
+            long hicon = *((long *)data);
+            GdkPixbuf *pixbuf = _find_pixbuf(hicon, NULL, NULL);
 
-   if(flag & DW_CFA_BITMAPORICON)
-   {
-      long hicon = *((long *)data);
-      GdkBitmap *bitmap = NULL;
-      GdkPixmap *pixmap = _find_pixmap(&bitmap, hicon, clist, NULL, NULL);
+            if(pixbuf)
+               gtk_list_store_set(store, &iter, column + 1, pixbuf, -1);
+         }
+         else if(flag & DW_CFA_STRING)
+         {
+            char *tmp = *((char **)data);
+            gtk_list_store_set(store, &iter, column + 1, tmp, -1);
+         }
+         else if(flag & DW_CFA_ULONG)
+         {
+            ULONG tmp = *((ULONG *)data);
 
-      if(pixmap)
-         gtk_clist_set_pixmap(GTK_CLIST(clist), row, column, pixmap, bitmap);
-   }
-   else if(flag & DW_CFA_STRINGANDICON)
-   {
-      long hicon = *((long *)data);
-      GdkBitmap *bitmap = NULL;
-      GdkPixmap *pixmap = _find_pixmap(&bitmap, hicon, clist, NULL, NULL);
+            gtk_list_store_set(store, &iter, column + 1, tmp, -1);
+         }
+         else if(flag & DW_CFA_DATE)
+         {
+            struct tm curtm;
+            CDATE cdate = *((CDATE *)data);
 
-      if(pixmap)
-         gtk_clist_set_pixtext(GTK_CLIST(clist), row, column, text, 2, pixmap, bitmap);
-   }
-   else if(flag & DW_CFA_STRING)
-   {
-      char *tmp = *((char **)data);
-      gtk_clist_set_text(GTK_CLIST(clist), row, column, tmp);
-   }
-   else if(flag & DW_CFA_ULONG)
-   {
-      ULONG tmp = *((ULONG *)data);
+            memset( &curtm, 0, sizeof(curtm) );
+            curtm.tm_mday = cdate.day;
+            curtm.tm_mon = cdate.month - 1;
+            curtm.tm_year = cdate.year - 1900;
 
-      sprintf(textbuffer, "%lu", tmp);
+            strftime(textbuffer, 100, "%x", &curtm);
 
-      gtk_clist_set_text(GTK_CLIST(clist), row, column, textbuffer);
-   }
-   else if(flag & DW_CFA_DATE)
-   {
-      struct tm curtm;
-      CDATE cdate = *((CDATE *)data);
+            gtk_list_store_set(store, &iter, column + 1, textbuffer, -1);
+         }
+         else if(flag & DW_CFA_TIME)
+         {
+            struct tm curtm;
+            CTIME ctime = *((CTIME *)data);
 
-      memset( &curtm, 0, sizeof(curtm) );
-      curtm.tm_mday = cdate.day;
-      curtm.tm_mon = cdate.month - 1;
-      curtm.tm_year = cdate.year - 1900;
+            memset( &curtm, 0, sizeof(curtm) );
+            curtm.tm_hour = ctime.hours;
+            curtm.tm_min = ctime.minutes;
+            curtm.tm_sec = ctime.seconds;
 
-      strftime(textbuffer, 100, "%x", &curtm);
+            strftime(textbuffer, 100, "%X", &curtm);
 
-      gtk_clist_set_text(GTK_CLIST(clist), row, column, textbuffer);
-   }
-   else if(flag & DW_CFA_TIME)
-   {
-      struct tm curtm;
-      CTIME ctime = *((CTIME *)data);
-
-      memset( &curtm, 0, sizeof(curtm) );
-      curtm.tm_hour = ctime.hours;
-      curtm.tm_min = ctime.minutes;
-      curtm.tm_sec = ctime.seconds;
-
-      strftime(textbuffer, 100, "%X", &curtm);
-
-      gtk_clist_set_text(GTK_CLIST(clist), row, column, textbuffer);
+            gtk_list_store_set(store, &iter, column + 1, textbuffer, -1);
+         }
+      }
    }
    DW_MUTEX_UNLOCK;
-#endif
 }
 
 /*
@@ -5823,7 +5802,12 @@ void _dw_container_set_item(HWND handle, void *pointer, int column, int row, voi
  */
 void dw_container_set_item(HWND handle, void *pointer, int column, int row, void *data)
 {
-   _dw_container_set_item(handle, NULL, column, row, data, NULL);
+   GtkTreeView *tree = pointer;
+   
+   if(GTK_IS_TREE_VIEW(tree))
+   {
+      _dw_container_set_item(handle, NULL, column, row, data);
+   }
 }
 
 /*
@@ -5836,7 +5820,7 @@ void dw_container_set_item(HWND handle, void *pointer, int column, int row, void
  */
 void dw_container_change_item(HWND handle, int column, int row, void *data)
 {
-   _dw_container_set_item(handle, NULL, column, row, data, NULL);
+   _dw_container_set_item(handle, NULL, column, row, data);
 }
 
 /*
@@ -5877,7 +5861,13 @@ void API dw_filesystem_change_file(HWND handle, int row, char *filename, HICN ic
  */
 void dw_filesystem_set_file(HWND handle, void *pointer, int row, char *filename, HICN icon)
 {
-   _dw_container_set_item(handle, pointer, 0, row, (void *)&icon, filename);
+   GtkTreeView *tree = pointer;
+   
+   if(GTK_IS_TREE_VIEW(tree))
+   {
+      _dw_container_set_item(handle, pointer, 0, row, (void *)&icon);
+      _dw_container_set_item(handle, pointer, 1, row, (void *)&filename);
+   }
 }
 
 /*
@@ -5891,7 +5881,12 @@ void dw_filesystem_set_file(HWND handle, void *pointer, int row, char *filename,
  */
 void dw_filesystem_set_item(HWND handle, void *pointer, int column, int row, void *data)
 {
-   _dw_container_set_item(handle, pointer, column + 1, row, data, NULL);
+   GtkTreeView *tree = pointer;
+   
+   if(GTK_IS_TREE_VIEW(tree))
+   {
+      _dw_container_set_item(handle, pointer, column + 2, row, data);
+   }
 }
 
 /*
@@ -5902,22 +5897,21 @@ void dw_filesystem_set_item(HWND handle, void *pointer, int column, int row, voi
  */
 int dw_container_get_column_type(HWND handle, int column)
 {
-   char numbuf[10];
+   char numbuf[20];
    int flag, rc = 0;
-#if 0
-   GtkWidget *clist;
+   GtkWidget *cont;
    int _locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
-   clist = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user");
-   if(!clist)
+   cont = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user");
+   if(!cont)
    {
       DW_MUTEX_UNLOCK;
       return 0;
    }
 
-   sprintf(numbuf, "%d", column);
-   flag = (int)g_object_get_data(G_OBJECT(clist), numbuf);
+   sprintf(numbuf, "_dw_cont_col%d", column);
+   flag = (int)g_object_get_data(G_OBJECT(cont), numbuf);
 
    if(flag & DW_CFA_BITMAPORICON)
       rc = DW_CFA_BITMAPORICON;
@@ -5932,7 +5926,6 @@ int dw_container_get_column_type(HWND handle, int column)
    else
       rc = 0;
    DW_MUTEX_UNLOCK;
-#endif
    return rc;
 }
 
@@ -5944,7 +5937,7 @@ int dw_container_get_column_type(HWND handle, int column)
  */
 int API dw_filesystem_get_column_type(HWND handle, int column)
 {
-   return dw_container_get_column_type( handle, column + 1 );
+   return dw_container_get_column_type( handle, column + 2 );
 }
 
 /*
