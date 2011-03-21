@@ -2336,23 +2336,10 @@ int dw_messagebox(char *title, int flags, char *format, ...)
    stext = dw_text_new(outbuf, 0);
    dw_window_set_style(stext, DW_DT_WORDBREAK, DW_DT_WORDBREAK);
    dw_font_text_extents_get(stext, NULL, outbuf, &width, &height);
-#if 0
-   height = height+3;
-   if(width < text_width)
-      text_height = height*2;
-   else if(width < text_width*2)
-      text_height = height*3;
-   else if(width < text_width*3)
-      text_height = height*4;
-   else /* width > (3*text_width) */
-   {
-      text_width = (width / 3) + 60;
-      text_height = height*4;
-   }
-#else
-text_width = min( width, dw_screen_width() - extra_width - 100 );
-text_height = min( height, dw_screen_height() );
-#endif
+   
+   text_width = min( width, dw_screen_width() - extra_width - 100 );
+   text_height = min( height, dw_screen_height() );
+   
    dw_box_pack_start(texttargetbox, stext, text_width, text_height, TRUE, TRUE, 2);
 
    /* Buttons */
@@ -2431,13 +2418,7 @@ int dw_window_minimize(HWND handle)
    }
    else
    {
-#if 0
-      XIconifyWindow(GDK_WINDOW_XDISPLAY(GTK_WIDGET(handle)->window),
-                  GDK_WINDOW_XWINDOW(GTK_WIDGET(handle)->window),
-                  DefaultScreen (GDK_DISPLAY ()));
-#else
       gtk_window_iconify( GTK_WINDOW(handle) );
-#endif
    }
    DW_MUTEX_UNLOCK;
    return 0;
@@ -3159,9 +3140,6 @@ HWND dw_notebook_new(unsigned long id, int top)
    else
       gtk_notebook_set_tab_pos(GTK_NOTEBOOK(tmp), GTK_POS_BOTTOM);
    gtk_notebook_set_scrollable(GTK_NOTEBOOK(tmp), TRUE);
-#if 0
-   gtk_notebook_popup_enable(GTK_NOTEBOOK(tmp));
-#endif
    gtk_widget_show(tmp);
    g_object_set_data(G_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(id));
    g_object_set_data(G_OBJECT(tmp), "_dw_pagearray", (gpointer)pagearray);
@@ -5378,7 +5356,7 @@ static int _dw_container_setup(HWND handle, unsigned long *flags, char **titles,
    char numbuf[20];
    GtkWidget *tree;
    GtkListStore *store;
-   GtkTreeViewColumn *col, *expander = NULL;
+   GtkTreeViewColumn *col;
    GtkCellRenderer *rend;
    GtkTreeSelection *sel;
    int _locked_by_me = FALSE;
@@ -5433,35 +5411,34 @@ static int _dw_container_setup(HWND handle, unsigned long *flags, char **titles,
       }
       else if(flags[z] & DW_CFA_STRING)
       {
-         if(!expander)
-         {
-            expander = col;
-         }
          rend = gtk_cell_renderer_text_new();
          gtk_tree_view_column_pack_start(col, rend, TRUE);
          gtk_tree_view_column_add_attribute(col, rend, "text", z+1);
+         gtk_tree_view_column_set_resizable(col, TRUE);
       }
       else if(flags[z] & DW_CFA_ULONG)
       {
          rend = gtk_cell_renderer_text_new();
          gtk_tree_view_column_pack_start(col, rend, TRUE);
          gtk_tree_view_column_add_attribute(col, rend, "text", z+1);
+         gtk_tree_view_column_set_resizable(col, TRUE);
       }
       else if(flags[z] & DW_CFA_TIME)
       {
          rend = gtk_cell_renderer_text_new();
          gtk_tree_view_column_pack_start(col, rend, TRUE);
          gtk_tree_view_column_add_attribute(col, rend, "text", z+1);
+         gtk_tree_view_column_set_resizable(col, TRUE);
       }
       else if(flags[z] & DW_CFA_DATE)
       {
          rend = gtk_cell_renderer_text_new();
          gtk_tree_view_column_pack_start(col, rend, TRUE);
          gtk_tree_view_column_add_attribute(col, rend, "text", z+1);
+         gtk_tree_view_column_set_resizable(col, TRUE);
       }
       gtk_tree_view_column_set_title(col, titles[z]);
       gtk_tree_view_append_column(GTK_TREE_VIEW (tree), col);
-      gtk_tree_view_set_expander_column(GTK_TREE_VIEW(tree), col);
    }
    /* Finish up */
    gtk_tree_view_set_headers_visible(GTK_TREE_VIEW(tree), TRUE);
@@ -10151,6 +10128,7 @@ void dw_window_function(HWND handle, void *function, void *data)
  */
 void dw_window_set_data(HWND window, char *dataname, void *data)
 {
+   HWND thiswindow = window;
    int _locked_by_me = FALSE;
 
    if(!window)
@@ -10159,16 +10137,10 @@ void dw_window_set_data(HWND window, char *dataname, void *data)
    DW_MUTEX_LOCK;
    if(GTK_IS_SCROLLED_WINDOW(window))
    {
-      HWND thiswindow = (HWND)g_object_get_data(G_OBJECT(window), "_dw_user");
-
-      if(thiswindow && G_IS_OBJECT(thiswindow))
-         g_object_set_data(G_OBJECT(thiswindow), dataname, (gpointer)data);
-#if 0
-      if(GTK_IS_COMBO_BOX(window))
-         g_object_set_data(G_OBJECT(GTK_COMBO_BOX(window)->entry), dataname, (gpointer)data);
-#endif
-      g_object_set_data(G_OBJECT(window), dataname, (gpointer)data);
+      thiswindow = (HWND)g_object_get_data(G_OBJECT(window), "_dw_user");
    }
+   if(thiswindow && G_IS_OBJECT(thiswindow))
+      g_object_set_data(G_OBJECT(thiswindow), dataname, (gpointer)data);
    DW_MUTEX_UNLOCK;
 }
 
@@ -10181,6 +10153,7 @@ void dw_window_set_data(HWND window, char *dataname, void *data)
  */
 void *dw_window_get_data(HWND window, char *dataname)
 {
+   HWND thiswindow = window;
    int _locked_by_me = FALSE;
    void *ret = NULL;
 
@@ -10188,8 +10161,12 @@ void *dw_window_get_data(HWND window, char *dataname)
       return NULL;
 
    DW_MUTEX_LOCK;
-    if(G_IS_OBJECT(window))
-      ret = (void *)g_object_get_data(G_OBJECT(window), dataname);
+   if(GTK_IS_SCROLLED_WINDOW(window))
+   {
+      thiswindow = (HWND)g_object_get_data(G_OBJECT(window), "_dw_user");
+   }
+   if(G_IS_OBJECT(thiswindow))
+      ret = (void *)g_object_get_data(G_OBJECT(thiswindow), dataname);
    DW_MUTEX_UNLOCK;
    return ret;
 }
