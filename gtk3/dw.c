@@ -156,7 +156,7 @@ static gint _key_press_event(GtkWidget *widget, GdkEventKey *event, gpointer dat
 static gint _generic_event(GtkWidget *widget, gpointer data);
 static gint _configure_event(GtkWidget *widget, GdkEventConfigure *event, gpointer data);
 static gint _activate_event(GtkWidget *widget, gpointer data);
-static gint _container_select_event(GtkWidget *widget, GdkEventButton *event, gpointer data);
+static gint _container_enter_event(GtkWidget *widget, GdkEventAny *event, gpointer data);
 static gint _item_select_event(GtkWidget *widget, GtkWidget *child, gpointer data);
 static gint _expose_event(GtkWidget *widget, cairo_t *cr, gpointer data);
 static gint _set_focus_event(GtkWindow *window, GtkWidget *widget, gpointer data);
@@ -253,7 +253,7 @@ static SignalList SignalTranslate[SIGNALMAX] = {
    { _expose_event,            DW_SIGNAL_EXPOSE },
    { _activate_event,          "activate" },
    { _generic_event,           DW_SIGNAL_CLICKED },
-   { _container_select_event,  DW_SIGNAL_ITEM_ENTER },
+   { _container_enter_event,   DW_SIGNAL_ITEM_ENTER },
    { _tree_context_event,      DW_SIGNAL_ITEM_CONTEXT },
    { _item_select_event,       DW_SIGNAL_LIST_SELECT },
    { _tree_select_event,       DW_SIGNAL_ITEM_SELECT },
@@ -1523,13 +1523,12 @@ static gint _tree_context_event(GtkWidget *widget, GdkEventButton *event, gpoint
          if(widget && GTK_IS_TREE_VIEW(widget))
          {
             GtkTreeSelection *sel = gtk_tree_view_get_selection(GTK_TREE_VIEW(widget));
+            GtkTreeModel *store = (GtkTreeModel *)gtk_tree_view_get_model(GTK_TREE_VIEW(widget));
             GtkTreeIter iter;
 
             if(sel && gtk_tree_selection_get_mode(sel) != GTK_SELECTION_MULTIPLE &&
                gtk_tree_selection_get_selected(sel, NULL, &iter))
             {
-               GtkTreeModel *store = (GtkTreeModel *)gtk_tree_view_get_model(GTK_TREE_VIEW(widget));
-               
                if(g_object_get_data(G_OBJECT(widget), "_dw_tree_type") == GINT_TO_POINTER(_DW_TREE_TYPE_TREE))
                {
                   gtk_tree_model_get(store, &iter, 0, &text, 2, &itemdata, -1);
@@ -1537,6 +1536,29 @@ static gint _tree_context_event(GtkWidget *widget, GdkEventButton *event, gpoint
                else
                {
                   gtk_tree_model_get(store, &iter, 0, &text, -1);
+               }
+            }
+            else
+            {
+               GtkTreePath *path;
+               
+               gtk_tree_view_get_cursor(GTK_TREE_VIEW(widget), &path, NULL);
+               if(path)
+               {
+                  GtkTreeIter iter;
+                  
+                  if(gtk_tree_model_get_iter(GTK_TREE_MODEL(store), &iter, path))
+                  {
+                     if(g_object_get_data(G_OBJECT(widget), "_dw_tree_type") == GINT_TO_POINTER(_DW_TREE_TYPE_TREE))
+                     {
+                        gtk_tree_model_get(store, &iter, 0, &text, 2, &itemdata, -1);
+                     }
+                     else
+                     {
+                        gtk_tree_model_get(store, &iter, 0, &text, -1);
+                     }
+                  }
+                  gtk_tree_path_free(path);
                }
             }
          }
@@ -1563,12 +1585,17 @@ static gint _tree_select_event(GtkTreeSelection *sel, gpointer data)
          GtkTreeIter iter;
          char *text = NULL;
          void *itemdata = NULL;
+         GtkTreeModel *store = (GtkTreeModel *)gtk_tree_view_get_model(GTK_TREE_VIEW(widget));
+
+         if(g_object_get_data(G_OBJECT(widget), "_dw_double_click"))
+         {
+            g_object_set_data(G_OBJECT(widget), "_dw_double_click", GINT_TO_POINTER(0));
+            return TRUE;
+         }
 
          if(gtk_tree_selection_get_mode(sel) != GTK_SELECTION_MULTIPLE &&
             gtk_tree_selection_get_selected(sel, NULL, &iter))
          {
-            GtkTreeModel *store = (GtkTreeModel *)gtk_tree_view_get_model(GTK_TREE_VIEW(widget));
-
             if(g_object_get_data(G_OBJECT(widget), "_dw_tree_type") == GINT_TO_POINTER(_DW_TREE_TYPE_TREE))
             {
                gtk_tree_model_get(store, &iter, 0, &text, 2, &itemdata, 3, &item, -1);
@@ -1578,6 +1605,30 @@ static gint _tree_select_event(GtkTreeSelection *sel, gpointer data)
                gtk_tree_model_get(store, &iter, 0, &text, -1);
             }
             retval = treeselectfunc(work.window, (HTREEITEM)item, text, work.data, itemdata);
+         }
+         else
+         {
+            GtkTreePath *path;
+            
+            gtk_tree_view_get_cursor(GTK_TREE_VIEW(widget), &path, NULL);
+            if(path)
+            {
+               GtkTreeIter iter;
+               
+               if(gtk_tree_model_get_iter(GTK_TREE_MODEL(store), &iter, path))
+               {
+                  if(g_object_get_data(G_OBJECT(widget), "_dw_tree_type") == GINT_TO_POINTER(_DW_TREE_TYPE_TREE))
+                  {
+                     gtk_tree_model_get(store, &iter, 0, &text, 2, &itemdata, 3, &item, -1);
+                  }
+                  else
+                  {
+                     gtk_tree_model_get(store, &iter, 0, &text, -1);
+                  }
+                  retval = treeselectfunc(work.window, (HTREEITEM)item, text, work.data, itemdata);
+               }
+               gtk_tree_path_free(path);
+            }
          }
       }
    }
@@ -1598,48 +1649,53 @@ static gint _tree_expand_event(GtkTreeView *widget, GtkTreeIter *iter, GtkTreePa
    return retval;
 }
 
-static gint _container_select_event(GtkWidget *widget, GdkEventButton *event, gpointer data)
+static gint _container_enter_event(GtkWidget *widget, GdkEventAny *event, gpointer data)
 {
    SignalHandler work = _get_signal_handler(widget, data);
+   GdkEventKey *keyevent = (GdkEventKey *)event;
+   GdkEventButton *buttonevent = (GdkEventButton *)event;
    int retval = FALSE;
 
-#if 0
    if ( dbgfp != NULL ) _dw_log("%s %d: %s\n",__FILE__,__LINE__,__func__);
    if(work.window)
    {
-      if(event->button == 1 && event->type == GDK_2BUTTON_PRESS)
+      /* Handle both key and button events together */
+      if((event->type == GDK_2BUTTON_PRESS && buttonevent->button == 1) ||
+         (event->type == GDK_KEY_PRESS && keyevent->keyval == VK_RETURN))
       {
          int (*contextfunc)(HWND, char *, void *) = work.func;
-         char *text;
-         int row, col;
+         char *text = NULL;
 
-         gtk_clist_get_selection_info(GTK_CLIST(widget), event->x, event->y, &row, &col);
+         /* Prevent some double events from happening */         
+         if(event->type == GDK_2BUTTON_PRESS)
+         {
+            g_object_set_data(G_OBJECT(widget), "_dw_double_click", GINT_TO_POINTER(1));
+         }
 
-         text = (char *)gtk_clist_get_row_data(GTK_CLIST(widget), row);
-         retval = contextfunc(work.window, text, work.data);
-         g_object_set_data(G_OBJECT(widget), "_dw_double_click", GINT_TO_POINTER(1));
+         /* Sanity check */
+         if(GTK_IS_TREE_VIEW(widget))
+         {
+            GtkTreePath *path;
+            GtkTreeModel *store = (GtkTreeModel *)gtk_tree_view_get_model(GTK_TREE_VIEW(widget));
+            
+            gtk_tree_view_get_cursor(GTK_TREE_VIEW(widget), &path, NULL);
+            if(path)
+            {
+               GtkTreeIter iter;
+               
+               if(gtk_tree_model_get_iter(GTK_TREE_MODEL(store), &iter, path))
+               {
+                  if(g_object_get_data(G_OBJECT(widget), "_dw_tree_type") == GINT_TO_POINTER(_DW_TREE_TYPE_CONTAINER))
+                  {
+                     gtk_tree_model_get(store, &iter, 0, &text, -1);
+                     retval = contextfunc(work.window, text, work.data);
+                  }
+               }
+               gtk_tree_path_free(path);
+            }
+         }
       }
    }
-#endif
-   return retval;
-}
-
-static gint _container_enter_event(GtkWidget *widget, GdkEventKey *event, gpointer data)
-{
-   SignalHandler work = _get_signal_handler(widget, data);
-   int retval = FALSE;
-
-#if 0
-   if ( dbgfp != NULL ) _dw_log("%s %d: %s\n",__FILE__,__LINE__,__func__);
-   if(work.window && event->keyval == VK_RETURN)
-   {
-      int (*contextfunc)(HWND, char *, void *) = work.func;
-      char *text;
-
-      text = (char *)gtk_clist_get_row_data(GTK_CLIST(widget), GTK_CLIST(widget)->focus_row);
-      retval = contextfunc(work.window, text, work.data);
-   }
-#endif
    return retval;
 }
 
@@ -1688,27 +1744,6 @@ static gint _column_click_event(GtkWidget *widget, gint column_num, gpointer dat
       retval = clickcolumnfunc(work.window, column_num, work.data);
    }
    return retval;
-}
-
-static gint _container_select_row(GtkWidget *widget, gint row, gint column, GdkEventButton *event, gpointer data)
-{
-#if 0
-   SignalHandler work = _get_signal_handler(widget, data);
-   char *rowdata = gtk_clist_get_row_data(GTK_CLIST(widget), row);
-   int (*contextfunc)(HWND, HWND, char *, void *, void *) = work.func;
-
-   if ( dbgfp != NULL ) _dw_log("%s %d: %s\n",__FILE__,__LINE__,__func__);
-   if(!work.window)
-      return TRUE;
-
-   if(g_object_get_data(G_OBJECT(widget), "_dw_double_click"))
-   {
-      g_object_set_data(G_OBJECT(widget), "_dw_double_click", GINT_TO_POINTER(0));
-      return TRUE;
-   }
-   return contextfunc(work.window, 0, rowdata, work.data, 0);;
-#endif
-   return TRUE;
 }
 
 static int _round_value(gfloat val)
@@ -3739,6 +3774,7 @@ HWND dw_combobox_new(char *text, unsigned long id)
    store = gtk_list_store_new(1, G_TYPE_STRING);
    tmp = gtk_combo_box_new_with_model_and_entry(GTK_TREE_MODEL(store));
    gtk_combo_box_set_entry_text_column(GTK_COMBO_BOX(tmp), 0);
+   gtk_entry_set_text(GTK_ENTRY(gtk_bin_get_child(GTK_BIN(tmp))), text);
    gtk_widget_show(tmp);
    g_object_set_data(G_OBJECT(tmp), "_dw_tree_type", (gpointer)_DW_TREE_TYPE_COMBOBOX);
    g_object_set_data(G_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(id));
@@ -4250,10 +4286,8 @@ void dw_window_set_text(HWND handle, char *text)
       handle = tmp;
    if(GTK_IS_ENTRY(handle))
       gtk_entry_set_text(GTK_ENTRY(handle), text);
-#if 0
    else if(GTK_IS_COMBO_BOX(handle))
-      gtk_entry_set_text(GTK_ENTRY(GTK_COMBO_BOX(handle)->entry), text);
-#endif
+      gtk_entry_set_text(GTK_ENTRY(gtk_bin_get_child(GTK_BIN(handle))), text);
    else if(GTK_IS_LABEL(handle))
       gtk_label_set_text(GTK_LABEL(handle), text);
    else if(GTK_IS_BUTTON(handle))
@@ -4291,10 +4325,8 @@ char *dw_window_get_text(HWND handle)
    DW_MUTEX_LOCK;
    if(GTK_IS_ENTRY(handle))
       possible = gtk_entry_get_text(GTK_ENTRY(handle));
-#if 0
    else if(GTK_IS_COMBO_BOX(handle))
-      possible = gtk_entry_get_text(GTK_ENTRY(GTK_COMBO_BOX(handle)->entry));
-#endif
+      possible = gtk_entry_get_text(GTK_ENTRY(gtk_bin_get_child(GTK_BIN(handle))));
 
    DW_MUTEX_UNLOCK;
    return strdup(possible);
@@ -10289,26 +10321,16 @@ void dw_signal_connect(HWND window, char *signame, void *sigfunc, void *data)
    {
       thisname = "row-expanded";
    }
-#if 0
-   else if (GTK_IS_CLIST(thiswindow) && strcmp(signame, DW_SIGNAL_ITEM_ENTER) == 0)
+   else if (GTK_IS_TREE_VIEW(thiswindow) && strcmp(signame, DW_SIGNAL_ITEM_ENTER) == 0)
    {
       sigid = _set_signal_handler(thiswindow, window, sigfunc, data, _container_enter_event);
-      cid = g_signal_connect(G_OBJECT(thiswindow), "key_press_event", GTK_SIGNAL_FUNC(_container_enter_event), (gpointer)sigid);
+      cid = g_signal_connect(G_OBJECT(thiswindow), "key_press_event", G_CALLBACK(_container_enter_event), (gpointer)sigid);
       _set_signal_handler_id(thiswindow, sigid, cid);
 
       thisname = "button_press_event";
       thisfunc = _findsigfunc(DW_SIGNAL_ITEM_ENTER);
    }
-   else if (GTK_IS_CLIST(thiswindow) && strcmp(signame, DW_SIGNAL_ITEM_SELECT) == 0)
-   {
-      thisname = "select_row";
-      thisfunc = (void *)_container_select_row;
-   }
-   else if (GTK_IS_CLIST(thiswindow) && strcmp(signame, DW_SIGNAL_ITEM_CONTEXT) == 0)
-   {
-      thisname = "button_press_event";
-      thisfunc = _findsigfunc(DW_SIGNAL_ITEM_CONTEXT);
-   }
+#if 0
    else if (GTK_IS_CLIST(thiswindow) && strcmp(signame, DW_SIGNAL_COLUMN_CLICK) == 0)
    {
       thisname = "click-column";
