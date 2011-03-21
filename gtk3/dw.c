@@ -142,6 +142,11 @@ static int _dw_border_width = 12, _dw_border_height = 28;
 #define DEFAULT_SIZE_HEIGHT 6
 #define DEFAULT_TITLEBAR_HEIGHT 22
 
+#define _DW_TREE_TYPE_CONTAINER  1
+#define _DW_TREE_TYPE_TREE       2
+#define _DW_TREE_TYPE_LISTBOX    3
+#define _DW_TREE_TYPE_COMBOBOX   4
+
 /* Signal forwarder prototypes */
 static gint _button_press_event(GtkWidget *widget, GdkEventButton *event, gpointer data);
 static gint _button_release_event(GtkWidget *widget, GdkEventButton *event, gpointer data);
@@ -1447,7 +1452,7 @@ static gint _expose_event(GtkWidget *widget, cairo_t *cr, gpointer data)
       int (*exposefunc)(HWND, DWExpose *, void *) = work.func;
 
       exp.x = exp.y = 0;
-      exp.width = egtk_widget_get_allocated_width(widget);
+      exp.width = gtk_widget_get_allocated_width(widget);
       exp.height = gtk_widget_get_allocated_height(widget);
       retval = exposefunc(work.window, &exp, work.data);
    }
@@ -1520,10 +1525,19 @@ static gint _tree_context_event(GtkWidget *widget, GdkEventButton *event, gpoint
             GtkTreeSelection *sel = gtk_tree_view_get_selection(GTK_TREE_VIEW(widget));
             GtkTreeIter iter;
 
-            if(sel && gtk_tree_selection_get_selected(sel, NULL, &iter))
+            if(sel && gtk_tree_selection_get_mode(sel) != GTK_SELECTION_MULTIPLE &&
+               gtk_tree_selection_get_selected(sel, NULL, &iter))
             {
                GtkTreeModel *store = (GtkTreeModel *)gtk_tree_view_get_model(GTK_TREE_VIEW(widget));
-               gtk_tree_model_get(store, &iter, 0, &text, 2, &itemdata, -1);
+               
+               if(g_object_get_data(G_OBJECT(widget), "_dw_tree_type") == GINT_TO_POINTER(_DW_TREE_TYPE_TREE))
+               {
+                  gtk_tree_model_get(store, &iter, 0, &text, 2, &itemdata, -1);
+               }
+               else
+               {
+                  gtk_tree_model_get(store, &iter, 0, &text, -1);
+               }
             }
          }
 
@@ -3516,11 +3530,6 @@ GtkWidget *_tree_setup(GtkWidget *tmp, GtkTreeModel *store)
    return tree;
 }
 
-#define _DW_TREE_TYPE_CONTAINER  1
-#define _DW_TREE_TYPE_TREE       2
-#define _DW_TREE_TYPE_LISTBOX    3
-#define _DW_TREE_TYPE_COMBOBOX   4
-
 /*
  * Create a container object to be packed.
  * Parameters:
@@ -3568,6 +3577,7 @@ HWND dw_tree_new(ULONG id)
    store = gtk_tree_store_new(4, G_TYPE_STRING, GDK_TYPE_PIXBUF, G_TYPE_POINTER, G_TYPE_POINTER);
    tree = _tree_setup(tmp, GTK_TREE_MODEL(store));
    g_object_set_data(G_OBJECT(tmp), "_dw_tree_type", (gpointer)_DW_TREE_TYPE_TREE);
+   g_object_set_data(G_OBJECT(tree), "_dw_tree_type", (gpointer)_DW_TREE_TYPE_TREE);
    col = gtk_tree_view_column_new();
 
    rend = gtk_cell_renderer_pixbuf_new();
@@ -3725,9 +3735,7 @@ HWND dw_combobox_new(char *text, unsigned long id)
 {
    GtkWidget *tmp;
    GtkListStore *store;
-   GtkCellRenderer *renderer;
-   int sigid, _locked_by_me = FALSE;
-   gint cid;
+   int _locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
    store = gtk_list_store_new(1, G_TYPE_STRING);
@@ -4046,6 +4054,7 @@ HWND dw_listbox_new(unsigned long id, int multi)
    store = gtk_list_store_new(1, G_TYPE_STRING);
    tree = _tree_setup(tmp, GTK_TREE_MODEL(store));
    g_object_set_data(G_OBJECT(tmp), "_dw_tree_type", (gpointer)_DW_TREE_TYPE_LISTBOX);
+   g_object_set_data(G_OBJECT(tree), "_dw_tree_type", (gpointer)_DW_TREE_TYPE_LISTBOX);
    
    col = gtk_tree_view_column_new();
    rend = gtk_cell_renderer_text_new();
@@ -5338,40 +5347,50 @@ static int _dw_container_setup(HWND handle, unsigned long *flags, char **titles,
    int z;
    GtkWidget *tree;
    GtkListStore *store;
-   GtkTreeViewColumn *col;
+   GtkTreeViewColumn *col, *expander = NULL;
    GtkCellRenderer *rend;
    GtkTreeSelection *sel;
    int _locked_by_me = FALSE;
-   GType *array = calloc(count, sizeof(gint));
+   GType *array = calloc(count + 2, sizeof(gint));
+   unsigned long *newflags = calloc(count, sizeof(unsigned long));
+   
+   memcpy(newflags, flags, count * sizeof(unsigned long));
 
    DW_MUTEX_LOCK;
+   /* Save some of the info so it is easily accessible */
+   g_object_set_data(G_OBJECT(handle), "_dw_cont_col_flags", (gpointer)newflags);
+   g_object_set_data(G_OBJECT(handle), "_dw_cont_columns", GINT_TO_POINTER(count));
+   
+   /* First param is row title/data */
+   array[0] = G_TYPE_POINTER;
    /* First loop... create array to create the store */
    for(z=0;z<count;z++)
    {
       if(flags[z] & DW_CFA_BITMAPORICON)
       {
-         array[z] = GDK_TYPE_PIXBUF;
+         array[z+1] = GDK_TYPE_PIXBUF;
       }
       else if(flags[z] & DW_CFA_STRING)
       {
-         array[z] = G_TYPE_STRING;
+         array[z+1] = G_TYPE_STRING;
       }
       else if(flags[z] & DW_CFA_ULONG)
       {
-         array[z] = G_TYPE_ULONG;
+         array[z+1] = G_TYPE_ULONG;
       }
       else if(flags[z] & DW_CFA_TIME)
       {
-         array[z] = G_TYPE_STRING;
+         array[z+1] = G_TYPE_STRING;
       }
       else if(flags[z] & DW_CFA_DATE)
       {
-         array[z] = G_TYPE_STRING;
+         array[z+1] = G_TYPE_STRING;
       }
    }
    /* Create the store and then the tree */
-   store = gtk_list_store_newv(count, array);
+   store = gtk_list_store_newv(count+1, array);
    tree = _tree_setup(handle, GTK_TREE_MODEL(store));
+   g_object_set_data(G_OBJECT(tree), "_dw_tree_type", (gpointer)_DW_TREE_TYPE_CONTAINER);
    /* Second loop... create the columns */
    for(z=0;z<count;z++)
    {
@@ -5380,32 +5399,37 @@ static int _dw_container_setup(HWND handle, unsigned long *flags, char **titles,
       {
          rend = gtk_cell_renderer_pixbuf_new();
          gtk_tree_view_column_pack_start(col, rend, FALSE);
-         gtk_tree_view_column_add_attribute(col, rend, "pixbuf", z);
+         gtk_tree_view_column_add_attribute(col, rend, "pixbuf", z+1);
       }
       else if(flags[z] & DW_CFA_STRING)
       {
+         if(!expander)
+         {
+            expander = col;
+         }
          rend = gtk_cell_renderer_text_new();
          gtk_tree_view_column_pack_start(col, rend, TRUE);
-         gtk_tree_view_column_add_attribute(col, rend, "text", z);
+         gtk_tree_view_column_add_attribute(col, rend, "text", z+1);
       }
       else if(flags[z] & DW_CFA_ULONG)
       {
          rend = gtk_cell_renderer_text_new();
          gtk_tree_view_column_pack_start(col, rend, TRUE);
-         gtk_tree_view_column_add_attribute(col, rend, "text", z);
+         gtk_tree_view_column_add_attribute(col, rend, "text", z+1);
       }
       else if(flags[z] & DW_CFA_TIME)
       {
          rend = gtk_cell_renderer_text_new();
          gtk_tree_view_column_pack_start(col, rend, TRUE);
-         gtk_tree_view_column_add_attribute(col, rend, "text", z);
+         gtk_tree_view_column_add_attribute(col, rend, "text", z+1);
       }
       else if(flags[z] & DW_CFA_DATE)
       {
          rend = gtk_cell_renderer_text_new();
          gtk_tree_view_column_pack_start(col, rend, TRUE);
-         gtk_tree_view_column_add_attribute(col, rend, "text", z);
+         gtk_tree_view_column_add_attribute(col, rend, "text", z+1);
       }
+      gtk_tree_view_column_set_title(col, titles[z]);
       gtk_tree_view_append_column(GTK_TREE_VIEW (tree), col);
       gtk_tree_view_set_expander_column(GTK_TREE_VIEW(tree), col);
    }
@@ -5454,8 +5478,10 @@ int dw_filesystem_setup(HWND handle, unsigned long *flags, char **titles, int co
    char **newtitles = malloc(sizeof(char *) * (count + 2));
    unsigned long *newflags = malloc(sizeof(unsigned long) * (count + 2));
 
-   newtitles[0] = "Filename";
-   newflags[0] = DW_CFA_STRINGANDICON | DW_CFA_LEFT | DW_CFA_HORZSEPARATOR;
+   newtitles[0] = "Icon";
+   newflags[0] = DW_CFA_BITMAPORICON | DW_CFA_LEFT | DW_CFA_HORZSEPARATOR;
+   newtitles[1] = "Filename";
+   newflags[1] = DW_CFA_STRING | DW_CFA_LEFT | DW_CFA_HORZSEPARATOR;
 
    memcpy(&newtitles[2], titles, sizeof(char *) * count);
    memcpy(&newflags[2], flags, sizeof(unsigned long) * count);
@@ -6192,7 +6218,6 @@ unsigned long API dw_color_choose(unsigned long value)
    DWDialog *dwwait;
    GtkColorSelection *colorsel;
    GdkColor color = _internal_color(value);
-   GObject *part;
    unsigned long dw_color;
 
    DW_MUTEX_LOCK;
@@ -8574,20 +8599,39 @@ unsigned int dw_listbox_selected(HWND handle)
       
       if(store)
       {
-         GtkTreeSelection *sel = gtk_tree_view_get_selection(GTK_TREE_VIEW(handle2));
-         GList *list = gtk_tree_selection_get_selected_rows(sel, NULL);
-         if(list)
+         if(GTK_IS_TREE_VIEW(handle2))
          {
-            GtkTreePath *path = g_list_nth_data(list, 0);
-            gint *indices = gtk_tree_path_get_indices(path);
+            GtkTreeSelection *sel = gtk_tree_view_get_selection(GTK_TREE_VIEW(handle2));
+            GList *list = gtk_tree_selection_get_selected_rows(sel, NULL);
+            if(list)
+            {
+               GtkTreePath *path = g_list_nth_data(list, 0);
+               gint *indices = gtk_tree_path_get_indices(path);
+               
+               if(indices)
+               {
+                  retval = indices[0];
+               }
+               
+               g_list_foreach(list, (GFunc) gtk_tree_path_free, NULL);
+               g_list_free(list);
+            }
+         }
+         else
+         {
+            GtkTreeIter iter;
+            GtkTreePath *path;
+            gint *indices;
             
+            gtk_combo_box_get_active_iter(GTK_COMBO_BOX(handle2), &iter);
+            path = gtk_tree_model_get_path(GTK_TREE_MODEL(store), &iter);
+            indices = gtk_tree_path_get_indices(path);
+               
             if(indices)
             {
                retval = indices[0];
             }
-            
-            g_list_foreach(list, (GFunc) gtk_tree_path_free, NULL);
-            g_list_free(list);
+            gtk_tree_path_free(path);
          }
       }
    }
@@ -8640,7 +8684,7 @@ void dw_listbox_select(HWND handle, int index, int state)
             else
             {
                /* Deselect the item */
-               gtk_tree_selection_deselect_iter(sel, &iter);
+               gtk_tree_selection_unselect_iter(sel, &iter);
             }
          }
       }
@@ -8671,10 +8715,10 @@ void dw_listbox_delete(HWND handle, int index)
    if(handle2)
    {
       /* Make sure it is the correct tree type */
-      if(GTK_IS_TREE_VIEW(handle2) && g_object_get_data(G_OBJECT(handle2), "_dw_tree_type") == _DW_TREE_TYPE_LISTBOX)
-         store = (GtkTreeStore *)gtk_tree_view_get_model(GTK_TREE_VIEW(handle2));
+      if(GTK_IS_TREE_VIEW(handle2) && g_object_get_data(G_OBJECT(handle2), "_dw_tree_type") == GINT_TO_POINTER(_DW_TREE_TYPE_LISTBOX))
+         store = (GtkListStore *)gtk_tree_view_get_model(GTK_TREE_VIEW(handle2));
       else if(GTK_IS_COMBO_BOX(handle2))
-         store = (GtkTreeStore *)gtk_combo_box_get_model(GTK_COMBO_BOX(handle2));
+         store = (GtkListStore *)gtk_combo_box_get_model(GTK_COMBO_BOX(handle2));
       
       if(store)
       {
