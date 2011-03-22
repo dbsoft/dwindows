@@ -602,16 +602,53 @@ DWObject *DWObj;
 @interface DWButton : NSButton
 {
     void *userdata;
+    NSButtonType buttonType;
+    DWBox *parent;
 }
 -(void *)userdata;
 -(void)setUserdata:(void *)input;
 -(void)buttonClicked:(id)sender;
+-(void)setButtonType:(NSButtonType)input;
+-(NSButtonType)buttonType;
+-(void)setParent:(DWBox *)input;
+-(DWBox *)parent;
 @end
 
 @implementation DWButton
 -(void *)userdata { return userdata; }
 -(void)setUserdata:(void *)input { userdata = input; }
--(void)buttonClicked:(id)sender { _event_handler(self, nil, 8); }
+-(void)buttonClicked:(id)sender 
+{ 
+    _event_handler(self, nil, 8);
+    if([self buttonType] == NSRadioButton)
+    {
+        DWBox *viewbox = [self parent];
+        Box *thisbox = [viewbox box];
+        int z;
+        
+        for(z=0;z<thisbox->count;z++)
+        {
+            if(thisbox->items[z].type != TYPEBOX)
+            {
+                id object = thisbox->items[z].hwnd;
+                
+                if([object isMemberOfClass:[DWButton class]])
+                {
+                    DWButton *button = object;
+                    
+                    if(button != self && [button buttonType] == NSRadioButton)
+                    {
+                        [button setState:NSOffState];
+                    }
+                }
+            }
+        }
+    }
+}
+-(void)setButtonType:(NSButtonType)input { buttonType = input; [super setButtonType:input]; }
+-(NSButtonType)buttonType { return buttonType; }
+-(void)setParent:(DWBox *)input { parent = input; }
+-(DWBox *)parent { return parent; }
 -(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); [super dealloc]; }
 @end
 
@@ -1903,11 +1940,6 @@ static int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *
                 [stepper setFrameOrigin:NSMakePoint(size.width-20,0)];
                 [stepper setFrameSize:NSMakeSize(20,size.height)];
             }
-            else if([handle isMemberOfClass:[DWGroupBox class]])
-            {
-                DWGroupBox *groupbox = thisbox->items[z].hwnd;
-                [groupbox sizeToFit];
-            }
             else if([handle isMemberOfClass:[DWRender class]])
             {
                 _event_handler(handle, nil, 1);
@@ -2544,6 +2576,16 @@ void API dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, 
 
     /* Add the item to the box */
     [view addSubview:this];
+    /* If we are packing a button... */
+    if([this isMemberOfClass:[DWButton class]])
+    {
+        DWButton *button = (DWButton *)this;
+        
+        /* Save the parent box so radio
+         * buttons can use it later.
+         */
+        [button setParent:view];
+    }
 
     /* Free the old data */
     if(thisbox->count)
@@ -2637,6 +2679,16 @@ void API dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize
 
     /* Add the item to the box */
     [view addSubview:this];
+    /* If we are packing a button... */
+    if([this isMemberOfClass:[DWButton class]])
+    {
+        DWButton *button = (DWButton *)this;
+        
+        /* Save the parent box so radio
+         * buttons can use it later.
+         */
+        [button setParent:view];
+    }
 
     /* Free the old data */
     if(thisbox->count)
