@@ -8498,10 +8498,8 @@ void dw_notebook_pack(HWND handle, unsigned long pageid, HWND page)
          if(child == pagearray[pageid])
          {
             oldlabel = gtk_notebook_get_tab_label(GTK_NOTEBOOK(handle), child);
-#if 0 /* TODO: gtk_label_get is deprecated with no replacement */            
             if(oldlabel)
-               gtk_label_get(GTK_LABEL(oldlabel), &text);
-#endif
+               text = gtk_label_get_text(GTK_LABEL(oldlabel));
             gtk_notebook_remove_page(GTK_NOTEBOOK(handle), z);
             realpage = z;
             break;
@@ -10369,13 +10367,13 @@ void dw_signal_connect(HWND window, char *signame, void *sigfunc, void *data)
       DW_MUTEX_UNLOCK;
       return;
    }
-#if 0
    else if (strcmp(signame, DW_SIGNAL_SET_FOCUS) == 0)
    {
       thisname = "focus-in-event";
       if (GTK_IS_COMBO_BOX(thiswindow))
-         thiswindow = GTK_COMBO_BOX(thiswindow)->entry;
+         thiswindow = gtk_bin_get_child(GTK_BIN(thiswindow));
    }
+#if 0
    else if (strcmp(signame, DW_SIGNAL_LOSE_FOCUS) == 0)
    {
       thisname = "focus-out-event";
