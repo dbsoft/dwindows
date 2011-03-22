@@ -1763,16 +1763,21 @@ static gint _switch_page_event(GtkNotebook *notebook, GtkWidget *page, guint pag
 static gint _column_click_event(GtkWidget *widget, gpointer data)
 {
    GtkWidget *tree = data;
-   gpointer handlerdata = g_object_get_data(G_OBJECT(tree), "_dw_column_click_id");
-   SignalHandler work = _get_signal_handler(tree, handlerdata);
+   gint handlerdata = (gint)g_object_get_data(G_OBJECT(tree), "_dw_column_click_id");
+   SignalHandler work;
    int retval = FALSE;
-
-   if ( dbgfp != NULL ) _dw_log("%s %d: %s\n",__FILE__,__LINE__,__func__);
-   if(work.window)
+   
+   if(handlerdata)
    {
-      int column_num = (int)g_object_get_data(G_OBJECT(widget), "_dw_column");
-      int (*clickcolumnfunc)(HWND, int, void *) = work.func;
-      retval = clickcolumnfunc(work.window, column_num, work.data);
+      work = _get_signal_handler(tree, GINT_TO_POINTER(handlerdata-1));
+
+      if ( dbgfp != NULL ) _dw_log("%s %d: %s\n",__FILE__,__LINE__,__func__);
+      if(work.window)
+      {
+         int column_num = (int)g_object_get_data(G_OBJECT(widget), "_dw_column");
+         int (*clickcolumnfunc)(HWND, int, void *) = work.func;
+         retval = clickcolumnfunc(work.window, column_num, work.data);
+      }
    }
    return retval;
 }
@@ -8851,42 +8856,46 @@ void dw_listbox_set_text(HWND handle, unsigned int index, char *buffer)
  */
 int dw_listbox_selected_multi(HWND handle, int where)
 {
-   GtkWidget *handle2 = handle;
+   GtkWidget *handle2;
+   GtkListStore *store = NULL;
    int retval = DW_LIT_NONE;
    int _locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
-   if(GTK_IS_SCROLLED_WINDOW(handle))
-   {
-      GtkWidget *tmp = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user");
-      if(tmp)
-         handle2 = tmp;
-   }
-#if 0
-   if(GTK_IS_LIST(handle2))
-   {
-      int counter = 0;
-      GList *list = GTK_LIST(handle2)->children;
+   handle2 = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user");
 
-      while(list)
+   /* Make sure it is the correct tree type */
+   if(handle2 && GTK_IS_TREE_VIEW(handle2) && g_object_get_data(G_OBJECT(handle2), "_dw_tree_type") == GINT_TO_POINTER(_DW_TREE_TYPE_LISTBOX))
+         store = (GtkListStore *)gtk_tree_view_get_model(GTK_TREE_VIEW(handle2));
+
+   if(store)
+   {
+      GtkTreeSelection *sel = gtk_tree_view_get_selection(GTK_TREE_VIEW(handle2));
+      GList *list = gtk_tree_selection_get_selected_rows(sel, NULL);
+      
+      if(list)
       {
-         GtkItem *item = (GtkItem *)list->data;
-
-         if(item &&
-            item->bin.container.widget.state == GTK_STATE_SELECTED
-            && counter > where)
+         int counter = 0;
+         GtkTreePath *path = g_list_nth_data(list, 0);
+         
+         while(path)
          {
-            retval = counter;
-            break;
+            gint *indices = gtk_tree_path_get_indices(path);
+            
+            if(indices && indices[0] > where)
+            {
+               retval = indices[0];
+               break;
+            }
+            
+            counter++;
+            path = g_list_nth_data(list, counter);
          }
-
-
-         list = list->next;
-         counter++;
+         
+         g_list_foreach(list, (GFunc) gtk_tree_path_free, NULL);
+         g_list_free(list);
       }
    }
-#endif
-   DW_MUTEX_UNLOCK;
    return retval;
 }
 
@@ -10356,7 +10365,7 @@ void dw_signal_connect(HWND window, char *signame, void *sigfunc, void *data)
        * Since the handlers for the columns were already created in _dw_container_setup()
        */
       sigid = _set_signal_handler(thiswindow, window, sigfunc, data, _column_click_event);
-      g_object_set_data(G_OBJECT(thiswindow), "_dw_column_click_id", GINT_TO_POINTER(sigid));
+      g_object_set_data(G_OBJECT(thiswindow), "_dw_column_click_id", GINT_TO_POINTER(sigid+1));
       DW_MUTEX_UNLOCK;
       return;
    }
