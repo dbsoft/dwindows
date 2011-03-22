@@ -1480,20 +1480,22 @@ static gint _combobox_select_event(GtkWidget *widget, gpointer data)
       
          _dw_recursing = 1;
 
-         gtk_combo_box_get_active_iter(GTK_COMBO_BOX(widget), &iter);       
-         path = gtk_tree_model_get_path(GTK_TREE_MODEL(store), &iter);
-        
-         if(path)
+         if(gtk_combo_box_get_active_iter(GTK_COMBO_BOX(widget), &iter))
          {
-            gint *indices = gtk_tree_path_get_indices(path);
-            
-            if(indices)
+            path = gtk_tree_model_get_path(GTK_TREE_MODEL(store), &iter);
+           
+            if(path)
             {
-               int (*selectfunc)(HWND, int, void *) = work.func;
+               gint *indices = gtk_tree_path_get_indices(path);
                
-               retval = selectfunc(work.window, indices[0], work.data);
+               if(indices)
+               {
+                  int (*selectfunc)(HWND, int, void *) = work.func;
+                  
+                  retval = selectfunc(work.window, indices[0], work.data);
+               }
+               gtk_tree_path_free(path);
             }
-            gtk_tree_path_free(path);
          }
          
          _dw_recursing = 0;
@@ -4136,10 +4138,9 @@ void dw_window_set_icon(HWND handle, HICN icon)
 
    if(gtk_widget_get_window(handle) && icon_pixbuf)
    {
-      GList *list = g_list_alloc();
-      list = g_list_append(list, icon_pixbuf);
+      GList *list = g_list_append(NULL, icon_pixbuf);
       gdk_window_set_icon_list(gtk_widget_get_window(handle), list);
-      g_object_unref(G_OBJECT(list));
+      g_list_free(list);
    }
    DW_MUTEX_UNLOCK;
 }
@@ -8995,16 +8996,23 @@ void dw_listbox_select(HWND handle, int index, int state)
          /* Get the nth child at the top level */
          if (gtk_tree_model_iter_nth_child(GTK_TREE_MODEL(store), &iter, NULL, index))
          {
-            GtkTreeSelection *sel = gtk_tree_view_get_selection(GTK_TREE_VIEW(handle2));
-            if(state)
+            if(GTK_IS_COMBO_BOX(handle2))
             {
-               /* Select the item */
-               gtk_tree_selection_select_iter(sel, &iter);
+               gtk_combo_box_set_active_iter(GTK_COMBO_BOX(handle2), &iter);
             }
             else
             {
-               /* Deselect the item */
-               gtk_tree_selection_unselect_iter(sel, &iter);
+               GtkTreeSelection *sel = gtk_tree_view_get_selection(GTK_TREE_VIEW(handle2));
+               if(state)
+               {
+                  /* Select the item */
+                  gtk_tree_selection_select_iter(sel, &iter);
+               }
+               else
+               {
+                  /* Deselect the item */
+                  gtk_tree_selection_unselect_iter(sel, &iter);
+               }
             }
          }
       }
