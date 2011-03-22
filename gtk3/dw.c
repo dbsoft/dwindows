@@ -3529,12 +3529,7 @@ void dw_pointer_set_pos(long x, long y)
 
    DW_MUTEX_LOCK;
 #ifdef GDK_WINDOWING_X11
-# if GTK_CHECK_VERSION(2,8,0)
    gdk_display_warp_pointer( gdk_display_get_default(), gdk_screen_get_default(), x, y );
-//   gdk_display_warp_pointer( GDK_DISPLAY(), gdk_screen_get_default(), x, y );
-# else
-   XWarpPointer(GDK_DISPLAY(), None, GDK_ROOT_WINDOW(), 0,0,0,0, x, y);
-# endif
 #endif
    DW_MUTEX_UNLOCK;
 }
