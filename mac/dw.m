@@ -456,6 +456,7 @@ DWObject *DWObj;
 -(id)init;
 -(void)dealloc;
 -(Box *)box;
+-(id)contentView;
 -(void *)userdata;
 -(void)setUserdata:(void *)input;
 -(void)drawRect:(NSRect)rect;
@@ -489,6 +490,7 @@ DWObject *DWObj;
     [super dealloc];
 }
 -(Box *)box { return box; }
+-(id)contentView { return self; }
 -(void *)userdata { return userdata; }
 -(void)setUserdata:(void *)input { userdata = input; }
 -(void)drawRect:(NSRect)rect
@@ -521,6 +523,23 @@ DWObject *DWObj;
     }
     [orig release];
 }
+@end
+
+/* Subclass for a group box type */
+@interface DWGroupBox : NSBox 
+{
+    void *userdata;
+    NSColor *bgcolor;
+}
+-(Box *)box;
+-(void *)userdata;
+-(void)setUserdata:(void *)input;
+@end
+
+@implementation DWGroupBox
+-(Box *)box { return [[self contentView] box]; }
+-(void *)userdata { return userdata; }
+-(void)setUserdata:(void *)input { userdata = input; }
 @end
 
 /* Subclass for a top-level window */
@@ -1571,7 +1590,7 @@ static int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *
       if(thisbox->items[z].type == TYPEBOX)
       {
         int initialx, initialy;
-        DWBox *box = thisbox->items[z].hwnd;
+        id box = thisbox->items[z].hwnd;
         Box *tmp = [box box];
 
          initialx = x - (*usedx);
@@ -1683,7 +1702,7 @@ static int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *
 
          if(thisbox->items[z].type == TYPEBOX)
          {
-            DWBox *box = thisbox->items[z].hwnd;
+            id box = thisbox->items[z].hwnd;
             Box *tmp = [box box];
 
             if(tmp)
@@ -1784,7 +1803,7 @@ static int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *
          /* Run this code segment again to finalize the sized after setting uxmax/uymax values. */
          if(thisbox->items[z].type == TYPEBOX)
          {
-            DWBox *box = thisbox->items[z].hwnd;
+            id box = thisbox->items[z].hwnd;
             Box *tmp = [box box];
 
             if(tmp)
@@ -1864,7 +1883,7 @@ static int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *
             {
                 DWNotebook *notebook = (DWNotebook *)handle;
                 DWNotebookPage *notepage = (DWNotebookPage *)[notebook selectedTabViewItem];
-                DWBox *view = [notepage view];
+                id view = [notepage view];
 
                 if(view != nil)
                 {
@@ -1883,6 +1902,11 @@ static int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *
                 [textfield setFrameSize:NSMakeSize(size.width-20,size.height)];
                 [stepper setFrameOrigin:NSMakePoint(size.width-20,0)];
                 [stepper setFrameSize:NSMakeSize(20,size.height)];
+            }
+            else if([handle isMemberOfClass:[DWGroupBox class]])
+            {
+                DWGroupBox *groupbox = thisbox->items[z].hwnd;
+                [groupbox sizeToFit];
             }
             else if([handle isMemberOfClass:[DWRender class]])
             {
@@ -2383,9 +2407,12 @@ HWND API dw_box_new(int type, int pad)
  */
 HWND API dw_groupbox_new(int type, int pad, char *title)
 {
+    NSBox *groupbox = [[DWGroupBox alloc] init];
     DWBox *box = dw_box_new(type, pad);
-    [box setFocusRingType:NSFocusRingTypeExterior];
-    return box;
+    [groupbox setBorderType:NSBezelBorder];
+    [groupbox setTitle:[NSString stringWithUTF8String:title]];
+    [groupbox setContentView:box];
+    return groupbox;
 }
 
 #ifndef INCOMPLETE
@@ -2491,7 +2518,7 @@ void API dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, 
        width = 1;
 
     /* Fill in the item data appropriately */
-    if([ object isKindOfClass:[ DWBox class ] ])
+    if([object isKindOfClass:[DWBox class]] || [object isMemberOfClass:[DWGroupBox class]])
        tmpitem[0].type = TYPEBOX;
     else
        tmpitem[0].type = TYPEITEM;
@@ -2584,7 +2611,7 @@ void API dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize
        width = 1;
 
     /* Fill in the item data appropriately */
-    if([ object isKindOfClass:[ DWBox class ] ])
+    if([object isKindOfClass:[DWBox class]] || [object isMemberOfClass:[DWGroupBox class]])
        tmpitem[thisbox->count].type = TYPEBOX;
     else
        tmpitem[thisbox->count].type = TYPEITEM;
@@ -6025,11 +6052,14 @@ void API dw_window_click_default(HWND handle, HWND next)
     id object = handle;
     id control = next;
     
-    if([object isMemberOfClass:[NSWindow class]] && [control isMemberOfClass:[DWButton class]])
+    if([object isMemberOfClass:[NSWindow class]])
     {
-        NSWindow *window = object;
+        if([control isMemberOfClass:[DWButton class]])
+        {
+            NSWindow *window = object;
         
-        [window setDefaultButtonCell:control];
+            [window setDefaultButtonCell:control];
+        }
     }
     else
     {
