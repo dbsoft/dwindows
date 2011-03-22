@@ -165,7 +165,7 @@ static gint _value_changed_event(GtkAdjustment *adjustment, gpointer user_data);
 static gint _tree_select_event(GtkTreeSelection *sel, gpointer data);
 static gint _tree_expand_event(GtkTreeView *treeview, GtkTreeIter *arg1, GtkTreePath *arg2, gpointer data);
 static gint _switch_page_event(GtkNotebook *notebook, GtkWidget *page, guint page_num, gpointer data);
-static gint _column_click_event(GtkWidget *widget, gint column_num, gpointer data);
+static gint _column_click_event(GtkWidget *widget, gpointer data);
 
 /* Embedable Mozilla functions*/
 #ifdef USE_GTKMOZEMBED
@@ -1758,14 +1758,17 @@ static gint _switch_page_event(GtkNotebook *notebook, GtkWidget *page, guint pag
    return retval;
 }
 
-static gint _column_click_event(GtkWidget *widget, gint column_num, gpointer data)
+static gint _column_click_event(GtkWidget *widget, gpointer data)
 {
-   SignalHandler work = _get_signal_handler(widget, data);
+   GtkWidget *tree = data;
+   gpointer handlerdata = g_object_get_data(G_OBJECT(tree), "_dw_column_click_id");
+   SignalHandler work = _get_signal_handler(tree, handlerdata);
    int retval = FALSE;
 
    if ( dbgfp != NULL ) _dw_log("%s %d: %s\n",__FILE__,__LINE__,__func__);
    if(work.window)
    {
+      int column_num = (int)g_object_get_data(G_OBJECT(widget), "_dw_column");
       int (*clickcolumnfunc)(HWND, int, void *) = work.func;
       retval = clickcolumnfunc(work.window, column_num, work.data);
    }
@@ -5463,6 +5466,8 @@ static int _dw_container_setup(HWND handle, unsigned long *flags, char **titles,
          gtk_tree_view_column_add_attribute(col, rend, "text", z+1);
          gtk_tree_view_column_set_resizable(col, TRUE);
       }
+      g_object_set_data(G_OBJECT(col), "_dw_column", GINT_TO_POINTER(z));
+      g_signal_connect(G_OBJECT(col), "clicked", G_CALLBACK(_column_click_event), (gpointer)tree);
       gtk_tree_view_column_set_title(col, titles[z]);
       gtk_tree_view_append_column(GTK_TREE_VIEW (tree), col);
    }
@@ -5934,7 +5939,7 @@ int dw_container_get_column_type(HWND handle, int column)
 {
    char numbuf[20];
    int flag, rc = 0;
-   GtkWidget *cont;
+   GtkWidget *cont = handle;
    int _locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
@@ -10337,19 +10342,23 @@ void dw_signal_connect(HWND window, char *signame, void *sigfunc, void *data)
       thisname = "button_press_event";
       thisfunc = _findsigfunc(DW_SIGNAL_ITEM_ENTER);
    }
-#if 0
-   else if (GTK_IS_CLIST(thiswindow) && strcmp(signame, DW_SIGNAL_COLUMN_CLICK) == 0)
+   else if (GTK_IS_TREE_VIEW(thiswindow) && strcmp(signame, DW_SIGNAL_COLUMN_CLICK) == 0)
    {
-      thisname = "click-column";
+      /* We don't actually need a signal handler here... just need to assign the handler ID
+       * Since the handlers for the columns were already created in _dw_container_setup()
+       */
+      sigid = _set_signal_handler(thiswindow, window, sigfunc, data, _column_click_event);
+      g_object_set_data(G_OBJECT(thiswindow), "_dw_column_click_id", GINT_TO_POINTER(sigid));
+      DW_MUTEX_UNLOCK;
+      return;
    }
+#if 0
    else if (strcmp(signame, DW_SIGNAL_SET_FOCUS) == 0)
    {
       thisname = "focus-in-event";
       if (GTK_IS_COMBO_BOX(thiswindow))
          thiswindow = GTK_COMBO_BOX(thiswindow)->entry;
    }
-#endif
-#if 0
    else if (strcmp(signame, DW_SIGNAL_LOSE_FOCUS) == 0)
    {
       thisname = "focus-out-event";
