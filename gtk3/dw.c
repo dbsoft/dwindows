@@ -2621,19 +2621,6 @@ void dw_window_reparent(HWND handle, HWND newparent)
    DW_MUTEX_UNLOCK;
 }
 
-static int _set_font(HWND handle, char *fontname)
-{
-   int retval = FALSE;
-   PangoFontDescription *font = pango_font_description_from_string(fontname);
-
-   if(font)
-   {
-      gtk_widget_modify_font(handle, font);
-      pango_font_description_free(font);
-   }
-   return retval;
-}
-
 /*
  * Sets the font used by a specified window (widget) handle.
  * Parameters:
@@ -8473,7 +8460,7 @@ void dw_notebook_page_set_status_text(HWND handle, unsigned long pageid, char *t
 void dw_notebook_pack(HWND handle, unsigned long pageid, HWND page)
 {
    GtkWidget *label, *child, *oldlabel, **pagearray;
-   gchar *text = NULL;
+   const gchar *text = NULL;
    int num, z, realpage = -1, pad, _locked_by_me = FALSE;
    char ptext[100];
 
