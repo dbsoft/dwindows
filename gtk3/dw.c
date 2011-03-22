@@ -157,7 +157,7 @@ static gint _generic_event(GtkWidget *widget, gpointer data);
 static gint _configure_event(GtkWidget *widget, GdkEventConfigure *event, gpointer data);
 static gint _activate_event(GtkWidget *widget, gpointer data);
 static gint _container_enter_event(GtkWidget *widget, GdkEventAny *event, gpointer data);
-static gint _item_select_event(GtkWidget *widget, GtkWidget *child, gpointer data);
+static gint _combobox_select_event(GtkWidget *widget, gpointer data);
 static gint _expose_event(GtkWidget *widget, cairo_t *cr, gpointer data);
 static gint _set_focus_event(GtkWindow *window, GtkWidget *widget, gpointer data);
 static gint _tree_context_event(GtkWidget *widget, GdkEventButton *event, gpointer data);
@@ -255,7 +255,7 @@ static SignalList SignalTranslate[SIGNALMAX] = {
    { _generic_event,           DW_SIGNAL_CLICKED },
    { _container_enter_event,   DW_SIGNAL_ITEM_ENTER },
    { _tree_context_event,      DW_SIGNAL_ITEM_CONTEXT },
-   { _item_select_event,       DW_SIGNAL_LIST_SELECT },
+   { _combobox_select_event,   DW_SIGNAL_LIST_SELECT },
    { _tree_select_event,       DW_SIGNAL_ITEM_SELECT },
    { _set_focus_event,         DW_SIGNAL_SET_FOCUS },
    { _value_changed_event,     DW_SIGNAL_VALUE_CHANGED },
@@ -1459,50 +1459,46 @@ static gint _expose_event(GtkWidget *widget, cairo_t *cr, gpointer data)
    return retval;
 }
 
-static gint _item_select_event(GtkWidget *widget, GtkWidget *child, gpointer data)
+static gint _combobox_select_event(GtkWidget *widget, gpointer data)
 {
    SignalHandler work = _get_signal_handler(widget, data);
    static int _dw_recursing = 0;
    int retval = FALSE;
 
-#if 0
    if ( dbgfp != NULL ) _dw_log("%s %d: %s\n",__FILE__,__LINE__,__func__);
    if(_dw_recursing)
       return FALSE;
 
-   if(work.window)
+   if(work.window && GTK_IS_COMBO_BOX(widget))
    {
-      int (*selectfunc)(HWND, int, void *) = work.func;
-      GList *list;
-      int item = 0;
+      GtkTreeModel *store = gtk_combo_box_get_model(GTK_COMBO_BOX(widget));
 
-      _dw_recursing = 1;
-
-      if(GTK_IS_COMBO_BOX(work.window))
-         list = GTK_LIST(GTK_COMBO_BOX(work.window)->list)->children;
-      else if(GTK_IS_LIST(widget))
-         list = GTK_LIST(widget)->children;
-      else
-         return FALSE;
-
-      while(list)
+      if(store)
       {
-         if(list->data == (gpointer)child)
+         GtkTreeIter iter;
+         GtkTreePath *path;
+      
+         _dw_recursing = 1;
+
+         gtk_combo_box_get_active_iter(GTK_COMBO_BOX(widget), &iter);       
+         path = gtk_tree_model_get_path(GTK_TREE_MODEL(store), &iter);
+        
+         if(path)
          {
-            if(!g_object_get_data(G_OBJECT(work.window), "_dw_appending"))
+            gint *indices = gtk_tree_path_get_indices(path);
+            
+            if(indices)
             {
-               g_object_set_data(G_OBJECT(work.window), "_dw_item", GINT_TO_POINTER(item));
-               if(selectfunc)
-                  retval = selectfunc(work.window, item, work.data);
+               int (*selectfunc)(HWND, int, void *) = work.func;
+               
+               retval = selectfunc(work.window, indices[0], work.data);
             }
-            break;
+            gtk_tree_path_free(path);
          }
-         item++;
-         list = list->next;
+         
+         _dw_recursing = 0;
       }
-      _dw_recursing = 0;
    }
-#endif
    return retval;
 }
 
@@ -1599,12 +1595,30 @@ static gint _tree_select_event(GtkTreeSelection *sel, gpointer data)
             if(g_object_get_data(G_OBJECT(widget), "_dw_tree_type") == GINT_TO_POINTER(_DW_TREE_TYPE_TREE))
             {
                gtk_tree_model_get(store, &iter, 0, &text, 2, &itemdata, 3, &item, -1);
+               retval = treeselectfunc(work.window, (HTREEITEM)item, text, work.data, itemdata);
+            }
+            else if(g_object_get_data(G_OBJECT(widget), "_dw_tree_type") == GINT_TO_POINTER(_DW_TREE_TYPE_CONTAINER))
+            {
+               gtk_tree_model_get(store, &iter, 0, &text, -1);
+               retval = treeselectfunc(work.window, (HTREEITEM)item, text, work.data, itemdata);
             }
             else
             {
-               gtk_tree_model_get(store, &iter, 0, &text, -1);
+               GtkTreePath *path = gtk_tree_model_get_path(GTK_TREE_MODEL(store), &iter);
+              
+               if(path)
+               {
+                  gint *indices = gtk_tree_path_get_indices(path);
+                  
+                  if(indices)
+                  {
+                     int (*selectfunc)(HWND, int, void *) = work.func;
+                     
+                     retval = selectfunc(work.window, indices[0], work.data);
+                  }
+                  gtk_tree_path_free(path);
+               }
             }
-            retval = treeselectfunc(work.window, (HTREEITEM)item, text, work.data, itemdata);
          }
          else
          {
@@ -1620,12 +1634,24 @@ static gint _tree_select_event(GtkTreeSelection *sel, gpointer data)
                   if(g_object_get_data(G_OBJECT(widget), "_dw_tree_type") == GINT_TO_POINTER(_DW_TREE_TYPE_TREE))
                   {
                      gtk_tree_model_get(store, &iter, 0, &text, 2, &itemdata, 3, &item, -1);
+                     retval = treeselectfunc(work.window, (HTREEITEM)item, text, work.data, itemdata);
+                  }
+                  else if(g_object_get_data(G_OBJECT(widget), "_dw_tree_type") == GINT_TO_POINTER(_DW_TREE_TYPE_CONTAINER))
+                  {
+                     gtk_tree_model_get(store, &iter, 0, &text, -1);
+                     retval = treeselectfunc(work.window, (HTREEITEM)item, text, work.data, itemdata);
                   }
                   else
                   {
-                     gtk_tree_model_get(store, &iter, 0, &text, -1);
+                     gint *indices = gtk_tree_path_get_indices(path);
+                     
+                     if(indices)
+                     {
+                        int (*selectfunc)(HWND, int, void *) = work.func;
+                        
+                        retval = selectfunc(work.window, indices[0], work.data);
+                     }
                   }
-                  retval = treeselectfunc(work.window, (HTREEITEM)item, text, work.data, itemdata);
                }
                gtk_tree_path_free(path);
             }
@@ -10276,8 +10302,8 @@ void dw_signal_connect(HWND window, char *signame, void *sigfunc, void *data)
       DW_MUTEX_UNLOCK;
       return;
    }
-   else if ((GTK_IS_TREE_VIEW(thiswindow) || GTK_IS_COMBO_BOX(thiswindow))
-             && (strcmp(signame, DW_SIGNAL_ITEM_SELECT) == 0 || strcmp(signame, DW_SIGNAL_LIST_SELECT) == 0))
+   else if ((GTK_IS_TREE_VIEW(thiswindow) && strcmp(signame, DW_SIGNAL_ITEM_SELECT) == 0) ||
+            (GTK_IS_COMBO_BOX(thiswindow) && strcmp(signame, DW_SIGNAL_LIST_SELECT) == 0))
    {
       GtkWidget *widget = thiswindow;
 
@@ -10288,8 +10314,12 @@ void dw_signal_connect(HWND window, char *signame, void *sigfunc, void *data)
       {
          thiswindow = (GtkWidget *)gtk_tree_view_get_selection(GTK_TREE_VIEW(thiswindow));
          cid = g_signal_connect(G_OBJECT(thiswindow), thisname, G_CALLBACK(thisfunc), (gpointer)sigid);
-         _set_signal_handler_id(widget, sigid, cid);
       }
+      else
+      {
+         cid = g_signal_connect(G_OBJECT(thiswindow), thisname, G_CALLBACK(_combobox_select_event), (gpointer)sigid);
+      }
+      _set_signal_handler_id(widget, sigid, cid);
 
       DW_MUTEX_UNLOCK;
       return;
@@ -10311,15 +10341,6 @@ void dw_signal_connect(HWND window, char *signame, void *sigfunc, void *data)
    else if (GTK_IS_CLIST(thiswindow) && strcmp(signame, DW_SIGNAL_COLUMN_CLICK) == 0)
    {
       thisname = "click-column";
-   }
-   else if (GTK_IS_COMBO_BOX(thiswindow) && strcmp(signame, DW_SIGNAL_LIST_SELECT) == 0)
-   {
-      thisname = "select_child";
-      thiswindow = GTK_COMBO_BOX(thiswindow)->list;
-   }
-   else if (GTK_IS_LIST(thiswindow) && strcmp(signame, DW_SIGNAL_LIST_SELECT) == 0)
-   {
-      thisname = "select_child";
    }
    else if (strcmp(signame, DW_SIGNAL_SET_FOCUS) == 0)
    {
