@@ -6398,11 +6398,23 @@ void API dw_window_set_text(HWND handle, char *text)
  */
 void API dw_window_disable(HWND handle)
 {
-    NSObject *object = handle;
-    if([ object isKindOfClass:[ NSControl class ] ])
+    id object = handle;
+    
+    if([object isMemberOfClass:[NSScrollView class]])
     {
-        NSControl *control = handle;
+        NSScrollView *sv = handle;
+        object = [sv documentView];
+    }
+    if([object isKindOfClass:[NSControl class]])
+    {
+        NSControl *control = object;
         [control setEnabled:NO];
+    }
+    if([object isKindOfClass:[NSTextView class]])
+    {
+        NSTextView *mle = object;
+        
+        [mle setEditable:NO];
     }
 }
 
@@ -6413,11 +6425,23 @@ void API dw_window_disable(HWND handle)
  */
 void API dw_window_enable(HWND handle)
 {
-    NSObject *object = handle;
-    if([ object isKindOfClass:[ NSControl class ] ])
+    id object = handle;
+    
+    if([object isMemberOfClass:[NSScrollView class]])
     {
-        NSControl *control = handle;
+        NSScrollView *sv = handle;
+        object = [sv documentView];
+    }
+    if([object isKindOfClass:[NSControl class]])
+    {
+        NSControl *control = object;
         [control setEnabled:YES];
+    }
+    if([object isKindOfClass:[NSTextView class]])
+    {
+        NSTextView *mle = object;
+        
+        [mle setEditable:YES];
     }
 }
 
