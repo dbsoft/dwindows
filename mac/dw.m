@@ -4556,7 +4556,13 @@ void API dw_container_set_item(HWND handle, void *pointer, int column, int row, 
     DWContainer *cont = handle;
     id object = nil;
     int type = [cont cellType:column];
-    int lastadd = [cont lastAddPoint];
+    int lastadd = 0;
+    
+    /* If pointer is NULL we are getting a change request instead of set */
+    if(pointer)
+    {
+        lastadd = [cont lastAddPoint];
+    }
 
     if(!data)
     {
