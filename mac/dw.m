@@ -3185,6 +3185,7 @@ void API dw_listbox_append(HWND handle, char *text)
                                withObject:newrow
                             waitUntilDone:YES];*/
         [cont reloadData];
+        [cont setNeedsDisplay:YES];
     }
     DW_MUTEX_UNLOCK;
 }
@@ -3216,6 +3217,7 @@ void API dw_listbox_insert(HWND handle, char *text, int pos)
 
         [cont insertRow:newrow at:pos];
         [cont reloadData];
+        [cont setNeedsDisplay:YES];
     }
     DW_MUTEX_UNLOCK;
 }
@@ -3256,6 +3258,7 @@ void API dw_listbox_list_append(HWND handle, char **text, int count)
             [cont addRow:newrow];
         }
         [cont reloadData];
+        [cont setNeedsDisplay:YES];
     }
     DW_MUTEX_UNLOCK;
 }
@@ -3283,6 +3286,7 @@ void API dw_listbox_clear(HWND handle)
 
         [cont clear];
         [cont reloadData];
+        [cont setNeedsDisplay:YES];
     }
     DW_MUTEX_UNLOCK;
 }
@@ -3424,6 +3428,7 @@ void API dw_listbox_set_text(HWND handle, unsigned int index, char *buffer)
 
             [cont editCell:nstr at:index and:0];
             [cont reloadData];
+            [cont setNeedsDisplay:YES];
         }
     }
     DW_MUTEX_UNLOCK;
@@ -3539,6 +3544,7 @@ void API dw_listbox_delete(HWND handle, int index)
 
         [cont removeRow:index];
         [cont reloadData];
+        [cont setNeedsDisplay:YES];
     }
     DW_MUTEX_UNLOCK;
 }
@@ -4580,6 +4586,7 @@ void API dw_container_set_item(HWND handle, void *pointer, int column, int row, 
     }
 
     [cont editCell:object at:(row+lastadd) and:column];
+    [cont setNeedsDisplay:YES];
     DW_MUTEX_UNLOCK;
 }
 
