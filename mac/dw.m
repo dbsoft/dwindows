@@ -3600,6 +3600,7 @@ void API dw_listbox_delete(HWND handle, int index)
 HWND API dw_combobox_new(char *text, ULONG cid)
 {
     DWComboBox *combo = [[DWComboBox alloc] init];
+    [combo setStringValue:[NSString stringWithUTF8String:text]];
     [combo setDelegate:combo];
     [combo setTag:cid];
     return combo;
