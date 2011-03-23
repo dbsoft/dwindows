@@ -1630,14 +1630,13 @@ static int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *
     /* Handle special groupbox case */
     if(thisbox->grouphwnd)
     {
-        if(thispadx < _DW_GROUPBOX_BORDER_X)
-        {
-            thispadx = _DW_GROUPBOX_BORDER_X;
-        }
-        if(thispady < _DW_GROUPBOX_BORDER_Y)
-        {
-            thispady = _DW_GROUPBOX_BORDER_Y;
-        }
+        thisbox->grouppadx = _DW_GROUPBOX_BORDER_X;
+        thisbox->grouppady = _DW_GROUPBOX_BORDER_Y;
+        
+        (*usedx) += thisbox->grouppadx;
+        (*usedpadx) += thisbox->grouppadx;
+        (*usedy) += thisbox->grouppady;
+        (*usedpady) += thisbox->grouppady;
     }
     
    (*usedx) += thispadx;
@@ -1662,19 +1661,6 @@ static int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *
             int tmppady = tmp->pad*2;
             int upx, upy;
             
-            /* Handle special groupbox case */
-            if(tmp->grouphwnd)
-            {
-                if(tmppadx < _DW_GROUPBOX_BORDER_X)
-                {
-                    tmppadx = _DW_GROUPBOX_BORDER_X;
-                }
-                if(tmppady < _DW_GROUPBOX_BORDER_Y)
-                {
-                    tmppady = _DW_GROUPBOX_BORDER_Y;
-                }
-            }
-             
             upx = *usedpadx + tmppadx;
             upy = *usedpady + tmppady;
 
@@ -1863,22 +1849,8 @@ static int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *
    (*usedpadx) += upxmax;
    (*usedpady) += upymax;
 
-   if(thisbox->grouphwnd)
-   {
-       if(thisbox->pad > _DW_GROUPBOX_BORDER)
-       {
-           currentx += thisbox->pad - _DW_GROUPBOX_BORDER;
-       }
-       if(thisbox->pad > _DW_GROUPBOX_BORDER_X)
-       {
-           currenty += thisbox->pad - _DW_GROUPBOX_BORDER_X;
-       }
-   }
-   else
-   {
-       currentx += thisbox->pad;
-       currenty += thisbox->pad;
-   }
+    currentx += thisbox->pad;
+    currenty += thisbox->pad;
 
    /* The second pass is for expansion and actual placement. */
    if(pass > 1)
