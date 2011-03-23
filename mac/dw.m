@@ -1624,9 +1624,24 @@ static int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *
    /* Used for the SIZEEXPAND */
    int nux = *usedx, nuy = *usedy;
    int nupx = *usedpadx, nupy = *usedpady;
+   int thispadx = thisbox->pad * 2;
+   int thispady = thisbox->pad * 2;
 
-   (*usedx) += (thisbox->pad * 2);
-   (*usedy) += (thisbox->pad * 2);
+    /* Handle special groupbox case */
+    if(thisbox->grouphwnd)
+    {
+        if(thispadx < _DW_GROUPBOX_BORDER_X)
+        {
+            thispadx = _DW_GROUPBOX_BORDER_X;
+        }
+        if(thispady < _DW_GROUPBOX_BORDER_Y)
+        {
+            thispady = _DW_GROUPBOX_BORDER_Y;
+        }
+    }
+    
+   (*usedx) += thispadx;
+   (*usedy) += thispady;
 
    for(z=0;z<thisbox->count;z++)
    {
@@ -1643,25 +1658,25 @@ static int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *
          {
             int newx, newy;
             int nux = *usedx, nuy = *usedy;
-            int thispadx = tmp->pad*2;
-            int thispady = tmp->pad*2;
+            int tmppadx = tmp->pad*2;
+            int tmppady = tmp->pad*2;
             int upx, upy;
             
             /* Handle special groupbox case */
             if(tmp->grouphwnd)
             {
-                if(thispadx < _DW_GROUPBOX_BORDER_X)
+                if(tmppadx < _DW_GROUPBOX_BORDER_X)
                 {
-                    thispadx = _DW_GROUPBOX_BORDER_X;
+                    tmppadx = _DW_GROUPBOX_BORDER_X;
                 }
-                if(thispady < _DW_GROUPBOX_BORDER_Y)
+                if(tmppady < _DW_GROUPBOX_BORDER_Y)
                 {
-                    thispady = _DW_GROUPBOX_BORDER_Y;
+                    tmppady = _DW_GROUPBOX_BORDER_Y;
                 }
             }
              
-            upx = *usedpadx + thispadx;
-            upy = *usedpady + thispady;
+            upx = *usedpadx + tmppadx;
+            upy = *usedpady + tmppady;
 
             /* On the second pass we know how big the box needs to be and how
              * much space we have, so we can calculate a ratio for the new box.
@@ -1712,7 +1727,7 @@ static int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *
                }
 
                nux = *usedx; nuy = *usedy;
-               upx = *usedpadx + thispadx; upy = *usedpady + thispady;
+               upx = *usedpadx + tmppadx; upy = *usedpady + tmppady;
             }
 
             (*depth)++;
@@ -1889,20 +1904,20 @@ static int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *
 
                   if(thisbox->type == DW_VERT)
                   {
-                     calcval = (float)(tmp->minwidth-((thisbox->items[z].pad*2)+(thisbox->pad*2)));
+                     calcval = (float)(tmp->minwidth-((thisbox->items[z].pad*2)+thispadx));
                      if(calcval == 0.0)
                         tmp->xratio = thisbox->xratio;
                      else
-                        tmp->xratio = ((float)((thisbox->items[z].width * thisbox->xratio)-((thisbox->items[z].pad*2)+(thisbox->pad*2))))/calcval;
+                        tmp->xratio = ((float)((thisbox->items[z].width * thisbox->xratio)-((thisbox->items[z].pad*2)+thispadx)))/calcval;
                      tmp->width = thisbox->items[z].width;
                   }
                   if(thisbox->type == DW_HORZ)
                   {
-                     calcval = (float)(tmp->minheight-((thisbox->items[z].pad*2)+(thisbox->pad*2)));
+                     calcval = (float)(tmp->minheight-((thisbox->items[z].pad*2)+thispady));
                      if(calcval == 0.0)
                         tmp->yratio = thisbox->yratio;
                      else
-                        tmp->yratio = ((float)((thisbox->items[z].height * thisbox->yratio)-((thisbox->items[z].pad*2)+(thisbox->pad*2))))/calcval;
+                        tmp->yratio = ((float)((thisbox->items[z].height * thisbox->yratio)-((thisbox->items[z].pad*2)+thispady)))/calcval;
                      tmp->height = thisbox->items[z].height;
                   }
                }
