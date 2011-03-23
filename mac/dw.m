@@ -1607,6 +1607,11 @@ ULONG _findsigmessage(char *signame)
 
 unsigned long _foreground = 0xAAAAAA, _background = 0;
 
+/* TODO: Figure out how to calculate these on the fly */
+#define _DW_GROUPBOX_BORDER_Y   12
+#define _DW_GROUPBOX_BORDER_X   8
+#define _DW_GROUPBOX_BORDER     4
+
 /* This function calculates how much space the widgets and boxes require
  * and does expansion as necessary.
  */
@@ -1638,7 +1643,25 @@ static int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *
          {
             int newx, newy;
             int nux = *usedx, nuy = *usedy;
-            int upx = *usedpadx + (tmp->pad*2), upy = *usedpady + (tmp->pad*2);
+            int thispadx = tmp->pad*2;
+            int thispady = tmp->pad*2;
+            int upx, upy;
+            
+            /* Handle special groupbox case */
+            if(tmp->grouphwnd)
+            {
+                if(thispadx < _DW_GROUPBOX_BORDER_X)
+                {
+                    thispadx = _DW_GROUPBOX_BORDER_X;
+                }
+                if(thispady < _DW_GROUPBOX_BORDER_Y)
+                {
+                    thispady = _DW_GROUPBOX_BORDER_Y;
+                }
+            }
+             
+            upx = *usedpadx + thispadx;
+            upy = *usedpady + thispady;
 
             /* On the second pass we know how big the box needs to be and how
              * much space we have, so we can calculate a ratio for the new box.
@@ -1689,7 +1712,7 @@ static int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *
                }
 
                nux = *usedx; nuy = *usedy;
-               upx = *usedpadx + (tmp->pad*2); upy = *usedpady + (tmp->pad*2);
+               upx = *usedpadx + thispadx; upy = *usedpady + thispady;
             }
 
             (*depth)++;
@@ -1825,8 +1848,22 @@ static int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *
    (*usedpadx) += upxmax;
    (*usedpady) += upymax;
 
-   currentx += thisbox->pad;
-   currenty += thisbox->pad;
+   if(thisbox->grouphwnd)
+   {
+       if(thisbox->pad > _DW_GROUPBOX_BORDER_Y)
+       {
+           currentx += thisbox->pad - _DW_GROUPBOX_BORDER;
+       }
+       if(thisbox->pad > _DW_GROUPBOX_BORDER)
+       {
+           currenty += thisbox->pad - _DW_GROUPBOX_BORDER_X;
+       }
+   }
+   else
+   {
+       currentx += thisbox->pad;
+       currenty += thisbox->pad;
+   }
 
    /* The second pass is for expansion and actual placement. */
    if(pass > 1)
@@ -2441,10 +2478,12 @@ HWND API dw_box_new(int type, int pad)
 HWND API dw_groupbox_new(int type, int pad, char *title)
 {
     NSBox *groupbox = [[DWGroupBox alloc] init];
-    DWBox *box = dw_box_new(type, pad);
+    DWBox *thisbox = dw_box_new(type, pad);
+    Box *box = [thisbox box];
+    box->grouphwnd = groupbox;
     [groupbox setBorderType:NSBezelBorder];
     [groupbox setTitle:[NSString stringWithUTF8String:title]];
-    [groupbox setContentView:box];
+    [groupbox setContentView:thisbox];
     return groupbox;
 }
 
@@ -2456,7 +2495,7 @@ HWND API dw_groupbox_new(int type, int pad, char *title)
  *       pad: Number of pixels to pad around the box.
  * This works fine under GTK+, but is incomplete on other platforms
  */
-HWND dw_scrollbox_new( int type, int pad )
+HWND API dw_scrollbox_new( int type, int pad )
 {
    DWBox *box = dw_box_new(type, pad);
    [box setFocusRingType:NSFocusRingTypeExterior];
@@ -2470,7 +2509,7 @@ HWND dw_scrollbox_new( int type, int pad )
  *          handle: Handle to the scrollbox to be queried.
  *          orient: The vertical or horizontal scrollbar.
  */
-int dw_scrollbox_get_pos(HWND handle, int orient)
+int API dw_scrollbox_get_pos(HWND handle, int orient)
 {
    int val = -1;
    NSLog(@"dw_scrollbox_get_pos() unimplemented\n");
