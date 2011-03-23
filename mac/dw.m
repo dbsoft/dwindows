@@ -116,7 +116,7 @@ typedef struct
 } SignalList;
 
 /* List of signals */
-#define SIGNALMAX 16
+#define SIGNALMAX 17
 
 SignalList SignalTranslate[SIGNALMAX] = {
     { 1,    DW_SIGNAL_CONFIGURE },
@@ -134,7 +134,8 @@ SignalList SignalTranslate[SIGNALMAX] = {
     { 13,   DW_SIGNAL_SET_FOCUS },
     { 14,   DW_SIGNAL_VALUE_CHANGED },
     { 15,   DW_SIGNAL_SWITCH_PAGE },
-    { 16,   DW_SIGNAL_TREE_EXPAND }
+    { 16,   DW_SIGNAL_TREE_EXPAND },
+    { 17,   DW_SIGNAL_COLUMN_CLICK }
 };
 
 int _event_handler(id object, NSEvent *event, int message)
@@ -318,6 +319,13 @@ int _event_handler(id object, NSEvent *event, int message)
                 int (* API treeexpandfunc)(HWND, HTREEITEM, void *) = (int (* API)(HWND, HTREEITEM, void *))handler->signalfunction;
 
                 return treeexpandfunc(handler->window, (HTREEITEM)event, handler->data);
+            }
+            case 17:
+            {
+                int (*clickcolumnfunc)(HWND, int, void *) = handler->signalfunction;
+                int column_num = (int)event;
+                
+                return clickcolumnfunc(handler->window, column_num, handler->data);
             }
         }
     }
@@ -1022,6 +1030,7 @@ DWObject *DWObj;
 -(void)clear;
 -(void)setup;
 -(void)doubleClicked:(id)sender;
+-(void)tableView:(NSTableView*)tableView mouseDownInHeaderOfTableColumn:(NSTableColumn *)tableColumn;
 -(void)selectionChanged:(id)sender;
 -(NSMenu *)menuForEvent:(NSEvent *)event;
 @end
@@ -1168,6 +1177,11 @@ DWObject *DWObj;
 {
     /* Handler for container class */
     _event_handler(self, (NSEvent *)[self getRowTitle:(int)[self selectedRow]], 9);
+}
+-(void)tableView:(NSTableView*)tableView mouseDownInHeaderOfTableColumn:(NSTableColumn *)tableColumn
+{
+    /* Handler for column click class */
+    _event_handler(self, (NSEvent *)[tvcols indexOfObject:tableColumn], 17);
 }
 -(void)selectionChanged:(id)sender
 {
