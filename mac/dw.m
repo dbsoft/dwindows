@@ -1264,6 +1264,7 @@ void _free_tree_recurse(NSMutableArray *node, NSPointerArray *item)
         [imagecol setWidth:20];
         [self addTableColumn:imagecol];
         textcol = [[NSTableColumn alloc] init];
+        [textcol setEditable:NO];
         [self addTableColumn:textcol];
         [self setOutlineTableColumn:textcol];
         [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(treeSelectionChanged:) name:NSOutlineViewSelectionDidChangeNotification object:self];
@@ -3149,6 +3150,7 @@ HWND API dw_listbox_new(ULONG cid, int multi)
     int type = DW_CFA_STRING;
     [cont setup];
     NSTableColumn *column = [[NSTableColumn alloc] init];
+    [column setEditable:NO];
     [cont addTableColumn:column];
     [cont addColumn:column andType:type];
     [column release];
@@ -4458,6 +4460,7 @@ int API dw_container_setup(HWND handle, unsigned long *flags, char **titles, int
             }
             [imagecell release];
         }
+        [column setEditable:NO];
         [cont addTableColumn:column];
         [cont addColumn:column andType:(int)flags[z]];
         [column release];
