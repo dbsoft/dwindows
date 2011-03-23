@@ -3704,10 +3704,19 @@ void API dw_mle_clear(HWND handle)
  */
 void API dw_mle_set_visible(HWND handle, int line)
 {
-    /*NSScrollView *sv = handle;
+    NSScrollView *sv = handle;
     DWMLE *mle = [sv documentView];
-    [mle scrollrangeToVisible:NSMakeRange(0,13)];*/
-    NSLog(@"dw_mle_set_visible() unimplemented\n");
+    NSTextStorage *ts = [mle textStorage];
+    NSMutableString *ms = [ts mutableString];
+    NSUInteger numberOfLines, index, stringLength = [ms length];
+    
+    for(index=0, numberOfLines=0; index < stringLength && numberOfLines < line; numberOfLines++)
+        index = NSMaxRange([ms lineRangeForRange:NSMakeRange(index, 0)]);
+    
+    if(line == numberOfLines)
+    {
+        [mle scrollRangeToVisible:[ms lineRangeForRange:NSMakeRange(index, 0)]];
+    }
 }
 
 /*
