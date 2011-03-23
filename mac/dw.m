@@ -1850,11 +1850,11 @@ static int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *
 
    if(thisbox->grouphwnd)
    {
-       if(thisbox->pad > _DW_GROUPBOX_BORDER_Y)
+       if(thisbox->pad > _DW_GROUPBOX_BORDER)
        {
            currentx += thisbox->pad - _DW_GROUPBOX_BORDER;
        }
-       if(thisbox->pad > _DW_GROUPBOX_BORDER)
+       if(thisbox->pad > _DW_GROUPBOX_BORDER_X)
        {
            currenty += thisbox->pad - _DW_GROUPBOX_BORDER_X;
        }
