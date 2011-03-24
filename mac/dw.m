@@ -1621,10 +1621,8 @@ ULONG _findsigmessage(char *signame)
 
 unsigned long _foreground = 0xAAAAAA, _background = 0;
 
-/* TODO: Figure out how to calculate these on the fly */
-#define _DW_GROUPBOX_BORDER_Y   12
-#define _DW_GROUPBOX_BORDER_X   8
-#define _DW_GROUPBOX_BORDER     4
+/* Default border is 5.0 according to the documentation */
+#define _DW_GROUPBOX_BORDER     5
 
 /* This function calculates how much space the widgets and boxes require
  * and does expansion as necessary.
@@ -1644,8 +1642,13 @@ static int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *
     /* Handle special groupbox case */
     if(thisbox->grouphwnd)
     {
-        thisbox->grouppadx = _DW_GROUPBOX_BORDER_X;
-        thisbox->grouppady = _DW_GROUPBOX_BORDER_Y;
+        DWGroupBox *groupbox = thisbox->grouphwnd;
+        NSRect titleRect;
+        
+        /* Get the title size for a more accurate groupbox padding size */
+        titleRect = [groupbox titleRect];
+        thisbox->grouppadx = _DW_GROUPBOX_BORDER * 2;
+        thisbox->grouppady = (_DW_GROUPBOX_BORDER * 2) + titleRect.size.height;
         
         (*usedx) += thisbox->grouppadx;
         (*usedpadx) += thisbox->grouppadx;
@@ -2481,9 +2484,10 @@ HWND API dw_groupbox_new(int type, int pad, char *title)
     NSBox *groupbox = [[DWGroupBox alloc] init];
     DWBox *thisbox = dw_box_new(type, pad);
     Box *box = [thisbox box];
-    box->grouphwnd = groupbox;
+    
     [groupbox setBorderType:NSBezelBorder];
     [groupbox setTitle:[NSString stringWithUTF8String:title]];
+    box->grouphwnd = groupbox;
     [groupbox setContentView:thisbox];
     return groupbox;
 }
