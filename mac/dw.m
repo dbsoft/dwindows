@@ -3679,9 +3679,13 @@ void API dw_mle_get_size(HWND handle, unsigned long *bytes, unsigned long *lines
     DWMLE *mle = [sv documentView];
     NSTextStorage *ts = [mle textStorage];
     NSMutableString *ms = [ts mutableString];
+    NSUInteger numberOfLines, index, stringLength = [ms length];
+    
+    for(index=0, numberOfLines=0; index < stringLength; numberOfLines++)
+        index = NSMaxRange([ms lineRangeForRange:NSMakeRange(index, 0)]);
 
-    *bytes = [ms length];
-    *lines = 0; /* TODO: Line count */
+    *bytes = stringLength;
+    *lines = numberOfLines;
 }
 
 /*
@@ -6413,15 +6417,15 @@ void API dw_window_set_text(HWND handle, char *text)
     DW_MUTEX_LOCK;
     NSObject *object = handle;
 
-    if([ object isKindOfClass:[ NSControl class ] ])
+    if([ object isKindOfClass:[ NSWindow class ] ] || [ object isKindOfClass:[ NSButton class ] ])
+    {
+        id window = handle;
+        [window setTitle:[ NSString stringWithUTF8String:text ]];
+    }
+    else if([ object isKindOfClass:[ NSControl class ] ])
     {
         NSControl *control = handle;
         [control setStringValue:[ NSString stringWithUTF8String:text ]];
-    }
-    else if([ object isKindOfClass:[ NSWindow class ] ])
-    {
-        NSWindow *window = handle;
-        [window setTitle:[ NSString stringWithUTF8String:text ]];
     }
     DW_MUTEX_UNLOCK;
 }
