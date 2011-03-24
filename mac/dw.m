@@ -6388,17 +6388,17 @@ char * API dw_window_get_text(HWND handle)
 {
     NSObject *object = handle;
 
-    if([ object isKindOfClass:[ NSControl class ] ])
+    if([ object isKindOfClass:[ NSWindow class ] ] || [ object isKindOfClass:[ NSButton class ] ])
+    {
+        id window = handle;
+        NSString *nsstr = [ window title];
+        
+        return strdup([ nsstr UTF8String ]);
+    }
+    else if([ object isKindOfClass:[ NSControl class ] ])
     {
         NSControl *control = handle;
         NSString *nsstr = [ control stringValue];
-
-        return strdup([ nsstr UTF8String ]);
-    }
-    else if([ object isKindOfClass:[ NSWindow class ] ])
-    {
-        NSWindow *window = handle;
-        NSString *nsstr = [ window title];
 
         return strdup([ nsstr UTF8String ]);
     }
