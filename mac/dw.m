@@ -1004,6 +1004,7 @@ DWObject *DWObj;
     NSMutableArray *data;
     NSMutableArray *types;
     NSPointerArray *titles;
+    NSColor *fgcolor;
     int lastAddPoint, lastQueryPoint;
     id scrollview;
 }
@@ -1029,6 +1030,7 @@ DWObject *DWObj;
 -(void)setLastQueryPoint:(int)input;
 -(void)clear;
 -(void)setup;
+-(void)setForegroundColor:(NSColor *)input;
 -(void)doubleClicked:(id)sender;
 -(void)tableView:(NSTableView*)tableView mouseDownInHeaderOfTableColumn:(NSTableColumn *)tableColumn;
 -(void)selectionChanged:(id)sender;
@@ -1173,6 +1175,20 @@ DWObject *DWObj;
     titles = [[NSPointerArray pointerArrayWithWeakObjects] retain];
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(selectionChanged:) name:NSTableViewSelectionDidChangeNotification object:self];
 }
+-(void)setForegroundColor:(NSColor *)input 
+{
+    int z, count = (int)[tvcols count];
+    
+    fgcolor = input; 
+    [fgcolor retain]; 
+    
+    for(z=0;z<count;z++)
+    {
+        NSTableColumn *tableColumn = [tvcols objectAtIndex:z];
+        NSTextFieldCell *cell = [tableColumn dataCell];
+        [cell setTextColor:fgcolor];
+    }
+}
 -(void)doubleClicked:(id)sender
 {
     /* Handler for container class */
@@ -1247,6 +1263,7 @@ void _free_tree_recurse(NSMutableArray *node, NSPointerArray *item)
      * NSImage *, NSString *, Item Data *, NSMutableArray * of Children
      */
     id scrollview;
+    NSColor *fgcolor;
 }
 -(id)outlineView:(NSOutlineView *)outlineView child:(int)index ofItem:(id)item;
 -(BOOL)outlineView:(NSOutlineView *)outlineView isItemExpandable:(id)item;
@@ -1261,6 +1278,7 @@ void _free_tree_recurse(NSMutableArray *node, NSPointerArray *item)
 -(NSScrollView *)scrollview;
 -(void)setScrollview:(NSScrollView *)input;
 -(void)deleteNode:(NSPointerArray *)item;
+-(void)setForegroundColor:(NSColor *)input;
 -(void)clear;
 @end
 
@@ -1397,6 +1415,13 @@ void _free_tree_recurse(NSMutableArray *node, NSPointerArray *item)
 -(NSScrollView *)scrollview { return scrollview; }
 -(void)setScrollview:(NSScrollView *)input { scrollview = input; }
 -(void)deleteNode:(NSPointerArray *)item { _free_tree_recurse(data, item); }
+-(void)setForegroundColor:(NSColor *)input 
+{ 
+    NSTextFieldCell *cell = [textcol dataCell];
+    fgcolor = input; 
+    [fgcolor retain]; 
+    [cell setTextColor:fgcolor];
+}
 -(void)clear { NSMutableArray *toclear = data; data = nil; _free_tree_recurse(toclear, NULL); [self reloadData]; }
 -(void)dealloc
 {
@@ -6085,6 +6110,13 @@ int API dw_window_set_color(HWND handle, ULONG fore, ULONG back)
         DWButton *button = object;
 
         [[button cell] setBackgroundColor:bg];
+    }
+    else if([object isKindOfClass:[NSTableView class]])
+    {
+        DWContainer *cont = handle;
+        
+        [cont setBackgroundColor:bg];
+        [cont setForegroundColor:fg];
     }
     return 0;
 }
