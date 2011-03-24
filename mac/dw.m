@@ -6758,6 +6758,7 @@ void dw_environment_query(DWEnv *env)
     env->MajorVersion = DWOSMajor;
     env->MinorVersion = DWOSMinor;
     env->MajorBuild = DWOSBuild;
+    env->MinorBuild = 0;
 }
 
 /*
