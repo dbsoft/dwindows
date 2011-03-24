@@ -5924,6 +5924,7 @@ HWND API dw_window_new(HWND hwndOwner, char *title, ULONG flStyle)
                         backing:NSBackingStoreBuffered
                         defer:false];
 
+    [window setPreferredBackingLocation:NSWindowBackingLocationVideoMemory];
     [window setTitle:[ NSString stringWithUTF8String:title ]];
 
     DWView *view = [[DWView alloc] init];
