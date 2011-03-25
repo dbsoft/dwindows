@@ -6091,32 +6091,64 @@ int API dw_window_set_color(HWND handle, ULONG fore, ULONG back)
     id object = handle;
     unsigned long _fore = _get_color(fore);
     unsigned long _back = _get_color(back);
-    NSColor *fg = [NSColor colorWithDeviceRed: DW_RED_VALUE(_fore)/255.0 green: DW_GREEN_VALUE(_fore)/255.0 blue: DW_BLUE_VALUE(_fore)/255.0 alpha: 1];
-    NSColor *bg = [NSColor colorWithDeviceRed: DW_RED_VALUE(_back)/255.0 green: DW_GREEN_VALUE(_back)/255.0 blue: DW_BLUE_VALUE(_back)/255.0 alpha: 1];
-
-    if([object isMemberOfClass:[NSTextFieldCell class]])
+    NSColor *fg = NULL;
+    NSColor *bg = NULL;
+    
+    /* Get the NSColor for non-default colors */
+    if(fore != DW_CLR_DEFAULT)
     {
-        NSTextFieldCell *text = object;
-        [text setTextColor:fg];
+        fg = [NSColor colorWithDeviceRed: DW_RED_VALUE(_fore)/255.0 green: DW_GREEN_VALUE(_fore)/255.0 blue: DW_BLUE_VALUE(_fore)/255.0 alpha: 1];
+    }
+    if(back != DW_CLR_DEFAULT)
+    {
+        bg = [NSColor colorWithDeviceRed: DW_RED_VALUE(_back)/255.0 green: DW_GREEN_VALUE(_back)/255.0 blue: DW_BLUE_VALUE(_back)/255.0 alpha: 1];
+    }
+
+    /* Get the textfield from the spinbutton */
+    if([object isMemberOfClass:[DWSpinButton class]])
+    {
+        object = [object textfield];
+    }
+    /* Get the cell on classes using NSCell */
+    if([object isKindOfClass:[NSTextField class]])
+    {
+        id cell = [object cell];
+        
+        if(fg)
+        {
+            [cell setTextColor:fg];
+        }
+    }
+    if([object isKindOfClass:[NSTextField class]] || [object isKindOfClass:[NSButton class]])
+    {
+        id cell = [object cell];
+        
+        if(bg)
+        {
+            [cell setBackgroundColor:bg];
+        }
     }
     else if([object isMemberOfClass:[DWBox class]])
     {
         DWBox *box = object;
 
-        [box setColor:_back];
-    }
-    else if([object isMemberOfClass:[DWButton class]])
-    {
-        DWButton *button = object;
-
-        [[button cell] setBackgroundColor:bg];
+        if(bg)
+        {
+            [box setColor:_back];
+        }
     }
     else if([object isKindOfClass:[NSTableView class]])
     {
         DWContainer *cont = handle;
         
-        [cont setBackgroundColor:bg];
-        [cont setForegroundColor:fg];
+        if(bg)
+        {
+            [cont setBackgroundColor:bg];
+        }
+        if(fg)
+        {
+            [cont setForegroundColor:fg];
+        }
     }
     return 0;
 }
