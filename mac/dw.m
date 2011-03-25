@@ -999,7 +999,7 @@ DWObject *DWObj;
 /* Subclass for a Container/List type */
 @interface DWContainer : NSTableView
 #ifdef BUILDING_FOR_SNOW_LEOPARD
-<NSTableViewDataSource>
+<NSTableViewDataSource,NSTableViewDelegate>
 #endif
 {
     void *userdata;
@@ -1010,12 +1010,14 @@ DWObject *DWObj;
     NSColor *fgcolor;
     int lastAddPoint, lastQueryPoint;
     id scrollview;
+    int filesystem;
 }
 -(NSInteger)numberOfRowsInTableView:(NSTableView *)aTable;
 -(id)tableView:(NSTableView *)aTable objectValueForTableColumn:(NSTableColumn *)aCol row:(NSInteger)aRow;
 -(BOOL)tableView:(NSTableView *)aTableView shouldEditTableColumn:(NSTableColumn *)aTableColumn row:(int)rowIndex;
 -(void *)userdata;
 -(void)setUserdata:(void *)input;
+-(void)setFilesystem:(int)input;
 -(id)scrollview;
 -(void)setScrollview:(id)input;
 -(void)addColumn:(NSTableColumn *)input andType:(int)type;
@@ -1080,6 +1082,7 @@ DWObject *DWObj;
 -(BOOL)tableView:(NSTableView *)aTableView shouldEditTableColumn:(NSTableColumn *)aTableColumn row:(int)rowIndex { return NO; }
 -(void *)userdata { return userdata; }
 -(void)setUserdata:(void *)input { userdata = input; }
+-(void)setFilesystem:(int)input { filesystem = input; }
 -(id)scrollview { return scrollview; }
 -(void)setScrollview:(id)input { scrollview = input; }
 -(void)addColumn:(NSTableColumn *)input andType:(int)type { if(tvcols) { [tvcols addObject:input]; [types addObject:[NSNumber numberWithInt:type]]; } }
@@ -1197,10 +1200,16 @@ DWObject *DWObj;
     /* Handler for container class */
     _event_handler(self, (NSEvent *)[self getRowTitle:(int)[self selectedRow]], 9);
 }
--(void)tableView:(NSTableView*)tableView mouseDownInHeaderOfTableColumn:(NSTableColumn *)tableColumn
+-(void)tableView:(NSTableView *)tableView mouseDownInHeaderOfTableColumn:(NSTableColumn *)tableColumn;
 {
+    NSUInteger index = [tvcols indexOfObject:tableColumn];
+    
+    if(filesystem && index > 0)
+    {
+        index--;
+    }
     /* Handler for column click class */
-    _event_handler(self, (NSEvent *)[tvcols indexOfObject:tableColumn], 17);
+    _event_handler(self, (NSEvent *)index, 17);
 }
 -(void)selectionChanged:(id)sender
 {
@@ -1255,7 +1264,7 @@ void _free_tree_recurse(NSMutableArray *node, NSPointerArray *item)
 /* Subclass for a Tree type */
 @interface DWTree : NSOutlineView
 #ifdef BUILDING_FOR_SNOW_LEOPARD
-<NSOutlineViewDataSource>
+<NSOutlineViewDataSource,NSOutlineViewDelegate>
 #endif
 {
     void *userdata;
@@ -3201,6 +3210,7 @@ HWND _cont_new(ULONG cid, int multi)
         [cont setAllowsMultipleSelection:NO];
     }
     [cont setDataSource:cont];
+    [cont setDelegate:cont];
     [scrollview setDocumentView:cont];
     [cont setTag:cid];
     [scrollview release];
@@ -4567,6 +4577,7 @@ int API dw_filesystem_setup(HWND handle, unsigned long *flags, char **titles, in
 {
     char **newtitles = malloc(sizeof(char *) * (count + 2));
     unsigned long *newflags = malloc(sizeof(unsigned long) * (count + 2));
+    DWContainer *cont = handle;
 
     newtitles[0] = "Icon";
     newtitles[1] = "Filename";
@@ -4578,6 +4589,7 @@ int API dw_filesystem_setup(HWND handle, unsigned long *flags, char **titles, in
     memcpy(&newflags[2], flags, sizeof(unsigned long) * count);
 
     dw_container_setup(handle, newflags, newtitles, count + 2, 0);
+    [cont setFilesystem:YES];
 
     free(newtitles);
     free(newflags);
