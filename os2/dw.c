@@ -9169,7 +9169,6 @@ void API dw_window_click_default(HWND window, HWND next)
 
 /*
  * Gets the contents of the default clipboard as text.
- * INCOMPLETE
  * Parameters:
  *       None.
  * Returns:
@@ -9196,7 +9195,6 @@ char *dw_clipboard_get_text()
 
 /*
  * Sets the contents of the default clipboard to the supplied text.
- * INCOMPLETE
  * Parameters:
  *       Text.
  */
