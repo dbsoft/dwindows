@@ -9178,7 +9178,20 @@ void API dw_window_click_default(HWND window, HWND next)
  */
 char *dw_clipboard_get_text()
 {
-    return NULL;
+    APIRET rc;
+    char *retbuf = NULL;
+    ULONG fmtInfo;
+
+    WinOpenClipbrd(dwhab);
+
+    rc = WinQueryClipbrdFmtInfo(dwhab, CF_TEXT, &fmtInfo);
+    if (rc) /* Text data in clipboard */
+    {
+        PSZ pszClipText = (PSZ)WinQueryClipbrdData(dwhab, CF_TEXT); /* Query data handle */
+        retbuf = strdup(pszClipText);
+    }
+    WinCloseClipbrd(dwhab);
+    return retbuf;
 }
 
 /*
@@ -9189,8 +9202,25 @@ char *dw_clipboard_get_text()
  */
 void dw_clipboard_set_text( char *str, int len )
 {
-    str = str;
-    len = len;
+    APIRET rc;
+    static PVOID shared;
+
+    WinOpenClipbrd(dwhab); /* Open clipboard */
+    WinEmptyClipbrd(dwhab); /* Empty clipboard */
+
+    /* Ok, clipboard wants giveable unnamed shared memory */
+
+    shared = NULL;
+    rc = DosAllocSharedMem(&shared, NULL, len, OBJ_GIVEABLE | PAG_COMMIT | PAG_READ | PAG_WRITE);
+
+    if (rc == 0)
+    {
+        memcpy(shared, str, len);
+
+        WinSetClipbrdData(dwhab, (ULONG)shared, CF_TEXT, CFI_POINTER);
+    }
+
+    WinCloseClipbrd(dwhab); /* Close clipboard */
     return;
 }
 
@@ -10050,9 +10080,9 @@ void API dw_signal_disconnect_by_data(HWND window, void *data)
  */
 HWND API dw_calendar_new(ULONG id)
 {
-char *text = "dummy calendar";
-   WindowData *blah = calloc(sizeof(WindowData), 1);
-   HWND tmp = WinCreateWindow(HWND_OBJECT,
+    char *text = "dummy calendar";
+    WindowData *blah = calloc(sizeof(WindowData), 1);
+    HWND tmp = WinCreateWindow(HWND_OBJECT,
                         WC_STATIC,
                         text,
                         WS_VISIBLE | SS_TEXT,
@@ -10062,12 +10092,12 @@ char *text = "dummy calendar";
                         id,
                         NULL,
                         NULL);
-   blah->oldproc = WinSubclassWindow(tmp, _textproc);
-   WinSetWindowPtr(tmp, QWP_USER, blah);
-   dw_window_set_font(tmp, DefaultFont);
-   dw_window_set_color(tmp, DW_CLR_BLACK, DW_CLR_PALEGRAY);
-   WinSetWindowText(tmp, text);
-   return tmp;
+    blah->oldproc = WinSubclassWindow(tmp, _textproc);
+    WinSetWindowPtr(tmp, QWP_USER, blah);
+    dw_window_set_font(tmp, DefaultFont);
+    dw_window_set_color(tmp, DW_CLR_BLACK, DW_CLR_PALEGRAY);
+    WinSetWindowText(tmp, text);
+    return tmp;
 }
 
 /*
@@ -10075,12 +10105,13 @@ char *text = "dummy calendar";
  */
 void API dw_calendar_set_date( HWND window, unsigned int year, unsigned int month, unsigned int day )
 {
-   char tmp[30];
-   sprintf( tmp, "%4.4d-%2.2d-%2.2d", year, month, day);
-   WinSetWindowText(window, tmp);
+    char tmp[30];
+    sprintf( tmp, "%4.4d-%2.2d-%2.2d", year, month, day);
+    WinSetWindowText(window, tmp);
 }
 
 void API dw_calendar_get_date( HWND window, unsigned int *year, unsigned int *month, unsigned int *day )
 {
-*year = *month = *day = 0;
+    window = window;
+    *year = *month = *day = 0;
 }
