@@ -4145,6 +4145,7 @@ void API dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
             }
             [nstr drawAtPoint:NSMakePoint(x, y) withAttributes:dict];
             [image unlockFocus];
+            [dict release];
         }
         _DWLastDrawable = handle;
     }
@@ -4166,6 +4167,7 @@ void API dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
         }
         [nstr drawAtPoint:NSMakePoint(x, y) withAttributes:dict];
         [image unlockFocus];
+        [dict release];
     }
     DW_MUTEX_UNLOCK;
 }
@@ -4180,12 +4182,10 @@ void API dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
  */
 void API dw_font_text_extents_get(HWND handle, HPIXMAP pixmap, char *text, int *width, int *height)
 {
-    id image = handle;
     id object = handle;
     NSString *nstr = [NSString stringWithUTF8String:text];
     if(pixmap)
     {
-        image = (id)pixmap->image;
         object = pixmap->handle;
     }
     NSMutableDictionary *dict = [[NSMutableDictionary alloc] init];
