@@ -4837,6 +4837,24 @@ void API dw_container_set_row_title(void *pointer, int row, char *title)
     int _locked_by_me = FALSE;
     DW_MUTEX_LOCK;
     DWContainer *cont = pointer;
+    int lastadd = [cont lastAddPoint];
+    [cont setRow:(row+lastadd) title:title];
+    DW_MUTEX_UNLOCK;
+}
+
+
+/*
+ * Sets the title of a row in the container.
+ * Parameters:
+ *          handle: Handle to window (widget) of container.
+ *          row: Zero based row of data being set.
+ *          title: String title of the item.
+ */
+void API dw_container_change_row_title(HWND handle, int row, char *title)
+{
+    int _locked_by_me = FALSE;
+    DW_MUTEX_LOCK;
+    DWContainer *cont = handle;
     [cont setRow:row title:title];
     DW_MUTEX_UNLOCK;
 }
