@@ -909,7 +909,8 @@ void _check_resize_notebook(HWND hwnd)
    /* If we have a notebook we resize the page again. */
    if(strncmp(tmpbuf, "#40", 4)==0)
    {
-      unsigned long x, y, width, height;
+      long x, y;
+      unsigned long width, height;
       ULONG page = (ULONG)WinSendMsg(hwnd, BKM_QUERYPAGEID, 0, MPFROM2SHORT(BKA_FIRST, BKA_MAJOR));
 
       while(page)
@@ -2752,7 +2753,8 @@ MRESULT EXPENTRY _wndproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
             PAGESELECTNOTIFY *psn = (PAGESELECTNOTIFY *)mp2;
             HWND pagehwnd = (HWND)WinSendMsg(psn->hwndBook, BKM_QUERYPAGEWINDOWHWND, MPFROMLONG(psn->ulPageIdNew), 0);
             Box *pagebox = (Box *)WinQueryWindowPtr(pagehwnd, QWP_USER);
-            unsigned long x, y, width, height;
+            long x, y;
+            unsigned long width, height;
             RECTL rc;
 
             if(pagebox && psn->ulPageIdNew != psn->ulPageIdCur)
@@ -9176,7 +9178,7 @@ void API dw_window_click_default(HWND window, HWND next)
  */
 char *dw_clipboard_get_text()
 {
-   return "";
+    return NULL;
 }
 
 /*
@@ -9187,7 +9189,9 @@ char *dw_clipboard_get_text()
  */
 void dw_clipboard_set_text( char *str, int len )
 {
-   return;
+    str = str;
+    len = len;
+    return;
 }
 
 /*
