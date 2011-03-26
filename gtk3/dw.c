@@ -5844,7 +5844,7 @@ void dw_container_set_item(HWND handle, void *pointer, int column, int row, void
    
    if(GTK_IS_TREE_VIEW(tree))
    {
-      _dw_container_set_item(handle, NULL, column, row, data);
+      _dw_container_set_item(handle, pointer, column, row, data);
    }
 }
 
@@ -5989,16 +5989,10 @@ void dw_container_set_column_width(HWND handle, int column, int width)
 {
 }
 
-/*
- * Sets the title of a row in the container.
- * Parameters:
- *          pointer: Pointer to the allocated memory in dw_container_alloc().
- *          row: Zero based row of data being set.
- *          title: String title of the item.
- */
-void dw_container_set_row_title(void *pointer, int row, char *title)
+/* Internal version for both */
+void _dw_container_set_row_title(HWND handle, void *pointer, int row, char *title)
 {
-   GtkWidget *cont = pointer;
+   GtkWidget *cont = handle;
    GtkListStore *store = NULL;
    int _locked_by_me = FALSE;
 
@@ -6022,6 +6016,30 @@ void dw_container_set_row_title(void *pointer, int row, char *title)
       }
    }
    DW_MUTEX_UNLOCK;
+}
+
+/*
+ * Sets the title of a row in the container.
+ * Parameters:
+ *          pointer: Pointer to the allocated memory in dw_container_alloc().
+ *          row: Zero based row of data being set.
+ *          title: String title of the item.
+ */
+void dw_container_set_row_title(void *pointer, int row, char *title)
+{
+   _dw_container_set_row_title(pointer, pointer, row, title);
+}
+
+/*
+ * Changes the title of a row already inserted in the container.
+ * Parameters:
+ *          handle: Handle to window (widget) of container.
+ *          row: Zero based row of data being set.
+ *          title: String title of the item.
+ */
+void dw_container_change_row_title(HWND handle, int row, char *title)
+{
+   _dw_container_set_row_title(handle, NULL, row, title);
 }
 
 /*
