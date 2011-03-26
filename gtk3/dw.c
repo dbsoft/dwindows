@@ -6592,10 +6592,8 @@ void dw_draw_point(HWND handle, HPIXMAP pixmap, int x, int y)
    DW_MUTEX_LOCK;
    if(handle)
       cr = gdk_cairo_create(gtk_widget_get_window(handle));
-#if 0 /* TODO */
    else if(pixmap)
-      gc = _set_colors(pixmap->pixbuf);
-#endif
+      cr = cairo_create(pixmap->image);
    if(cr)
    {
       int index = _find_thread_index(dw_thread_id());
@@ -6626,10 +6624,8 @@ void dw_draw_line(HWND handle, HPIXMAP pixmap, int x1, int y1, int x2, int y2)
    DW_MUTEX_LOCK;
    if(handle)
       cr = gdk_cairo_create(gtk_widget_get_window(handle));
-#if 0 /* TODO */
    else if(pixmap)
-      gc = _set_colors(pixmap->pixbuf);
-#endif
+      cr = cairo_create(pixmap->image);
    if(cr)
    {
       int index = _find_thread_index(dw_thread_id());
@@ -6662,10 +6658,8 @@ void dw_draw_polygon(HWND handle, HPIXMAP pixmap, int fill, int npoints, int *x,
    DW_MUTEX_LOCK;
    if(handle)
       cr = gdk_cairo_create(gtk_widget_get_window(handle));
-#if 0 /* TODO */
    else if(pixmap)
-      gc = _set_colors(pixmap->pixbuf);
-#endif
+      cr = cairo_create(pixmap->image);
    if(cr)
    {
       int index = _find_thread_index(dw_thread_id());
@@ -6703,10 +6697,8 @@ void dw_draw_rect(HWND handle, HPIXMAP pixmap, int fill, int x, int y, int width
    DW_MUTEX_LOCK;
    if(handle)
       cr = gdk_cairo_create(gtk_widget_get_window(handle));
-#if 0 /* TODO */
    else if(pixmap)
-      gc = _set_colors(pixmap->pixbuf);
-#endif
+      cr = cairo_create(pixmap->image);
    if(cr)
    {
       int index = _find_thread_index(dw_thread_id());
@@ -6749,13 +6741,11 @@ void dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
       cr = gdk_cairo_create(gtk_widget_get_window(handle));
       fontname = (char *)g_object_get_data(G_OBJECT(handle), "_dw_fontname");
    }
-#if 0 /* TODO */
    else if(pixmap)
    {
       fontname = (char *)g_object_get_data(G_OBJECT(pixmap->handle), "_dw_fontname");
-      gc = _set_colors(pixmap->pixbuf);
+      cr = cairo_create(pixmap->image);
    }
-#endif
    if(cr)
    {
       font = pango_font_description_from_string(fontname);
@@ -6884,10 +6874,8 @@ HPIXMAP dw_pixmap_new(HWND handle, unsigned long width, unsigned long height, in
    /* Depth needs to be divided by 3... but for the RGB colorspace...
     * only 8 bits per sample is allowed, so to avoid issues just pass 8 for now.
     */
-   if ( handle )
-      pixmap->pixbuf = gdk_pixbuf_new( GDK_COLORSPACE_RGB, FALSE, 8, width, height );
-   else
-      pixmap->pixbuf = gdk_pixbuf_new( GDK_COLORSPACE_RGB, FALSE, 8, width, height );
+   pixmap->pixbuf = gdk_pixbuf_new( GDK_COLORSPACE_RGB, FALSE, 8, width, height );
+   pixmap->image = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, width, height);
    DW_MUTEX_UNLOCK;
    return pixmap;
 }
@@ -6938,6 +6926,7 @@ HPIXMAP dw_pixmap_new_from_file(HWND handle, char *filename)
 
    DW_MUTEX_LOCK;
    pixmap->pixbuf = gdk_pixbuf_new_from_file(file, NULL);
+   pixmap->image = cairo_image_surface_create_from_png(file);
    pixmap->width = gdk_pixbuf_get_width(pixmap->pixbuf);
    pixmap->height = gdk_pixbuf_get_height(pixmap->pixbuf);
    pixmap->handle = handle;
@@ -6983,6 +6972,7 @@ HPIXMAP dw_pixmap_new_from_data(HWND handle, char *data, int len)
       return 0;
    }
    pixmap->pixbuf = gdk_pixbuf_new_from_file(file, NULL);
+   pixmap->image = cairo_image_surface_create_from_png(file);
    pixmap->width = gdk_pixbuf_get_width(pixmap->pixbuf);
    pixmap->height = gdk_pixbuf_get_height(pixmap->pixbuf);
    /* remove our temporary file */
