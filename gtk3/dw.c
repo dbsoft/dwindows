@@ -7077,17 +7077,18 @@ void dw_pixmap_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest, int width,
    DW_MUTEX_LOCK;
    if(dest)
       cr = gdk_cairo_create(gtk_widget_get_window(dest));
-#if 0 /* TODO */
    else if(destp)
-      gc = gdk_gc_new(destp->pixbuf);
-#endif
+      cr = cairo_create(destp->image);
       
    if(cr)
    {
       if(src)
          gdk_cairo_set_source_window (cr, gtk_widget_get_window(src), xsrc, ysrc);
       else if(srcp)
+         cairo_set_source_surface (cr, srcp->image, xsrc, ysrc);
+#if 0      
          gdk_cairo_set_source_pixbuf (cr, srcp->pixbuf, xsrc, ysrc);
+#endif         
 
       cairo_paint(cr);
       cairo_destroy(cr);
