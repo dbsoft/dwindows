@@ -74,6 +74,23 @@ unsigned long _get_color(unsigned long thiscolor)
     return 0;
 }
 
+/* Thread specific storage */
+#if !defined(GARBAGE_COLLECT)
+pthread_key_t _dw_pool_key;
+#endif
+pthread_key_t _dw_fg_color_key;
+pthread_key_t _dw_bg_color_key;
+
+/* Create a default colors for a thread */
+void _init_colors(void)
+{
+    NSColor *fgcolor = [[NSColor grayColor] retain];
+    NSColor *bgcolor = [[NSColor blackColor] retain];
+    
+    pthread_setspecific(_dw_fg_color_key, fgcolor);
+    pthread_setspecific(_dw_bg_color_key, bgcolor);
+}
+
 typedef struct _sighandler
 {
     struct _sighandler   *next;
@@ -3939,8 +3956,16 @@ HWND API dw_render_new(unsigned long cid)
  */
 void API dw_color_foreground_set(unsigned long value)
 {
-    /* This may need to be thread specific */
+    NSColor *oldcolor = pthread_getspecific(_dw_fg_color_key);
+    NSColor *newcolor;
+    
     _foreground = _get_color(value);
+    
+    newcolor = [[NSColor colorWithDeviceRed:    DW_RED_VALUE(_foreground)/255.0 green: 
+                                                DW_GREEN_VALUE(_foreground)/255.0 blue: 
+                                                DW_BLUE_VALUE(_foreground)/255.0 alpha: 1] retain];
+    pthread_setspecific(_dw_fg_color_key, newcolor);
+    [oldcolor release];
 }
 
 /* Sets the current background drawing color.
@@ -3951,8 +3976,16 @@ void API dw_color_foreground_set(unsigned long value)
  */
 void API dw_color_background_set(unsigned long value)
 {
-    /* This may need to be thread specific */
+    NSColor *oldcolor = pthread_getspecific(_dw_bg_color_key);
+    NSColor *newcolor;
+    
     _background = _get_color(value);
+    
+    newcolor = [[NSColor colorWithDeviceRed:    DW_RED_VALUE(_background)/255.0 green: 
+                                                DW_GREEN_VALUE(_background)/255.0 blue: 
+                                                DW_BLUE_VALUE(_background)/255.0 alpha: 1] retain];
+    pthread_setspecific(_dw_bg_color_key, newcolor);
+    [oldcolor release];
 }
 
 /* Allows the user to choose a color using the system's color chooser dialog.
@@ -4029,7 +4062,7 @@ void API dw_draw_point(HWND handle, HPIXMAP pixmap, int x, int y)
     }
     NSBezierPath* aPath = [NSBezierPath bezierPath];
     [aPath setLineWidth: 0.5];
-    NSColor *color = [NSColor colorWithDeviceRed: DW_RED_VALUE(_foreground)/255.0 green: DW_GREEN_VALUE(_foreground)/255.0 blue: DW_BLUE_VALUE(_foreground)/255.0 alpha: 1];
+    NSColor *color = pthread_getspecific(_dw_fg_color_key);
     [color set];
 
     [aPath moveToPoint:NSMakePoint(x, y)];
@@ -4068,7 +4101,7 @@ void API dw_draw_line(HWND handle, HPIXMAP pixmap, int x1, int y1, int x2, int y
     }
     NSBezierPath* aPath = [NSBezierPath bezierPath];
     [aPath setLineWidth: 0.5];
-    NSColor *color = [NSColor colorWithDeviceRed: DW_RED_VALUE(_foreground)/255.0 green: DW_GREEN_VALUE(_foreground)/255.0 blue: DW_BLUE_VALUE(_foreground)/255.0 alpha: 1];
+    NSColor *color = pthread_getspecific(_dw_fg_color_key);
     [color set];
 
     [aPath moveToPoint:NSMakePoint(x1, y1)];
@@ -4104,7 +4137,7 @@ void API dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
                 DW_MUTEX_UNLOCK;
                 return;
             }
-            NSColor *color = [NSColor colorWithDeviceRed: DW_RED_VALUE(_foreground)/255.0 green: DW_GREEN_VALUE(_foreground)/255.0 blue: DW_BLUE_VALUE(_foreground)/255.0 alpha: 1];
+            NSColor *color = pthread_getspecific(_dw_fg_color_key);
             NSMutableDictionary *dict = [[NSMutableDictionary alloc] initWithObjectsAndKeys:color, NSForegroundColorAttributeName, nil];
             if(font)
             {
@@ -4125,7 +4158,7 @@ void API dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
         }
         image = (id)pixmap->image;
         [image lockFocus];
-        NSColor *color = [NSColor colorWithDeviceRed: DW_RED_VALUE(_foreground)/255.0 green: DW_GREEN_VALUE(_foreground)/255.0 blue: DW_BLUE_VALUE(_foreground)/255.0 alpha: 1];
+        NSColor *color = pthread_getspecific(_dw_fg_color_key);
         NSMutableDictionary *dict = [[NSMutableDictionary alloc] initWithObjectsAndKeys:color, NSForegroundColorAttributeName, nil];
         if(font)
         {
@@ -4209,7 +4242,7 @@ void API dw_draw_polygon( HWND handle, HPIXMAP pixmap, int fill, int npoints, in
     }
     NSBezierPath* aPath = [NSBezierPath bezierPath];
     [aPath setLineWidth: 0.5];
-    NSColor *color = [NSColor colorWithDeviceRed: DW_RED_VALUE(_foreground)/255.0 green: DW_GREEN_VALUE(_foreground)/255.0 blue: DW_BLUE_VALUE(_foreground)/255.0 alpha: 1];
+    NSColor *color = pthread_getspecific(_dw_fg_color_key);
     [color set];
 
     [aPath moveToPoint:NSMakePoint(*x, *y)];
@@ -4258,7 +4291,7 @@ void API dw_draw_rect(HWND handle, HPIXMAP pixmap, int fill, int x, int y, int w
     }
     NSBezierPath* aPath = [NSBezierPath bezierPath];
     [aPath setLineWidth: 0.5];
-    NSColor *color = [NSColor colorWithDeviceRed: DW_RED_VALUE(_foreground)/255.0 green: DW_GREEN_VALUE(_foreground)/255.0 blue: DW_BLUE_VALUE(_foreground)/255.0 alpha: 1];
+    NSColor *color = pthread_getspecific(_dw_fg_color_key);
     [color set];
 
     [aPath moveToPoint:NSMakePoint(x, y)];
@@ -7876,10 +7909,6 @@ int dw_named_event_close(HEV eve)
     return 0;
 }
 
-#if !defined(GARBAGE_COLLECT)
-pthread_key_t _dw_pool_key;
-#endif
-
 /* Mac specific function to cause garbage collection */
 void _dw_pool_drain(void)
 {
@@ -7896,23 +7925,32 @@ void _dw_pool_drain(void)
  */
 void _dwthreadstart(void *data)
 {
-   void (*threadfunc)(void *) = NULL;
-   void **tmp = (void **)data;
+    void (*threadfunc)(void *) = NULL;
+    void **tmp = (void **)data;
+    NSColor *color;
+    
     /* If we aren't using garbage collection we need autorelease pools */
 #if !defined(GARBAGE_COLLECT)
     NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
     pthread_setspecific(_dw_pool_key, pool);
 #endif
+    _init_colors();
 
-   threadfunc = (void (*)(void *))tmp[0];
+    threadfunc = (void (*)(void *))tmp[0];
 
-   threadfunc(tmp[1]);
+    /* Start our thread function */
+    threadfunc(tmp[1]);
+    
     /* Release the pool when we are done so we don't leak */
+    color = pthread_getspecific(_dw_fg_color_key);
+    [color release];
+    color = pthread_getspecific(_dw_bg_color_key);
+    [color release];
 #if !defined(GARBAGE_COLLECT)
     pool = pthread_getspecific(_dw_pool_key);
     [pool drain];
 #endif
-   free(tmp);
+    free(tmp);
 }
 
 void _dw_default_font(char *fontname)
@@ -7947,6 +7985,9 @@ int API dw_init(int newthread, int argc, char *argv[])
     pool = [[NSAutoreleasePool alloc] init];
     pthread_setspecific(_dw_pool_key, pool);
 #endif
+    pthread_key_create(&_dw_fg_color_key, NULL);
+    pthread_key_create(&_dw_bg_color_key, NULL);
+    _init_colors();
     /* Create a default main menu, with just the application menu */
     DWMainMenu = _generate_main_menu();
     [DWMainMenu retain];
