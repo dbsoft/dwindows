@@ -5454,7 +5454,17 @@ static int _dw_container_setup(HWND handle, unsigned long *flags, char **titles,
          gtk_tree_view_column_add_attribute(col, rend, "text", z+1);
          gtk_tree_view_column_set_resizable(col, TRUE);
       }
-      g_object_set_data(G_OBJECT(col), "_dw_column", GINT_TO_POINTER(z));
+      if(extra)
+      {
+         if(extra > 1 && z > 1)
+         {
+            g_object_set_data(G_OBJECT(col), "_dw_column", GINT_TO_POINTER(z-1));
+         }
+      }
+      else
+      {
+         g_object_set_data(G_OBJECT(col), "_dw_column", GINT_TO_POINTER(z));
+      }
       g_signal_connect(G_OBJECT(col), "clicked", G_CALLBACK(_column_click_event), (gpointer)tree);
       gtk_tree_view_column_set_title(col, titles[z]);
       gtk_tree_view_append_column(GTK_TREE_VIEW (tree), col);
