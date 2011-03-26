@@ -7681,7 +7681,12 @@ void API dw_container_set_item(HWND handle, void *pointer, int column, int row, 
    ULONG *flags;
    LV_ITEM lvi;
    char textbuffer[100], *destptr = textbuffer;
-   int item = (int)dw_window_get_data(handle, "_dw_insertitem");
+   int item = 0;
+   
+   if(pointer)
+   {
+	   item = (int)dw_window_get_data(handle, "_dw_insertitem");
+   }
 
    if(!cinfo || !cinfo->flags || !data)
       return;
@@ -7860,6 +7865,27 @@ void API dw_container_set_column_width(HWND handle, int column, int width)
    ListView_SetColumnWidth(handle, column, width);
 }
 
+/* Internal version that handles both types */
+void _dw_container_set_row_title(HWND handle, void *pointer, int row, char *title)
+{
+   LV_ITEM lvi;
+   int item = 0;
+   
+   if(pointer)
+   {
+	   item = (int)dw_window_get_data(handle, "_dw_insertitem");
+   }
+
+   lvi.iItem = row + item;
+   lvi.iSubItem = 0;
+   lvi.mask = LVIF_PARAM;
+   lvi.lParam = (LPARAM)title;
+
+   if(!ListView_SetItem(handle, &lvi) && lvi.lParam)
+      lvi.lParam = 0;
+
+}
+
 /*
  * Sets the title of a row in the container.
  * Parameters:
@@ -7869,18 +7895,19 @@ void API dw_container_set_column_width(HWND handle, int column, int width)
  */
 void API dw_container_set_row_title(void *pointer, int row, char *title)
 {
-   LV_ITEM lvi;
-   HWND container = (HWND)pointer;
-   int item = (int)dw_window_get_data(container, "_dw_insertitem");
+	_dw_container_set_row_title(pointer, pointer, row, title);
+}
 
-   lvi.iItem = row + item;
-   lvi.iSubItem = 0;
-   lvi.mask = LVIF_PARAM;
-   lvi.lParam = (LPARAM)title;
-
-   if(!ListView_SetItem(container, &lvi) && lvi.lParam)
-      lvi.lParam = 0;
-
+/*
+ * Changes the title of a row already inserted in the container.
+ * Parameters:
+ *          handle: Handle to the container window (widget).
+ *          row: Zero based row of data being set.
+ *          title: String title of the item.
+ */
+void API dw_container_change_row_title(HWND handle, int row, char *title)
+{
+	_dw_container_set_row_title(handle, NULL, row, title);
 }
 
 /*

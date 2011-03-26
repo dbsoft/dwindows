@@ -7275,6 +7275,34 @@ void API dw_container_set_row_title(void *pointer, int row, char *title)
 }
 
 /*
+ * Changes the title of a row already inserted in the container.
+ * Parameters:
+ *          handle: Handle to the container window (widget).
+ *          row: Zero based row of data being set.
+ *          title: String title of the item.
+ */
+void API dw_container_change_row_title(HWND handle, int row, char *title)
+{
+   PRECORDCORE pCore = WinSendMsg(handle, CM_QUERYRECORD, (MPARAM)0L, MPFROM2SHORT(CMA_FIRST, CMA_ITEMORDER));
+   int count = 0;
+
+   while(pCore)
+   {
+      if(count == row)
+      {
+         pCore->pszIcon = title;
+         pCore->pszName = title;
+         pCore->pszText = title;
+
+         WinSendMsg(handle, CM_INVALIDATERECORD, (MPARAM)&pCore, MPFROM2SHORT(1, CMA_NOREPOSITION | CMA_TEXTCHANGED));
+         return;
+      }
+      pCore = WinSendMsg(handle, CM_QUERYRECORD, (MPARAM)pCore, MPFROM2SHORT(CMA_NEXT, CMA_ITEMORDER));
+      count++;
+   }
+}
+
+/*
  * Sets the title of a row in the container.
  * Parameters:
  *          handle: Handle to the container window (widget).

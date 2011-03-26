@@ -142,6 +142,7 @@ EXPORTS
   dw_container_delete_row                @235
   dw_container_change_item               @236
   dw_container_get_column_type           @237
+  dw_container_change_row_title          @238
 
   dw_filesystem_setup                    @240
   dw_filesystem_set_item                 @241
