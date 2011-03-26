@@ -2348,14 +2348,22 @@ int API dw_messagebox(char *title, int flags, char *format, ...)
  */
 char * API dw_file_browse(char *title, char *defpath, char *ext, int flags)
 {
-    if(flags == DW_FILE_OPEN)
+    if(flags == DW_FILE_OPEN || flags == DW_DIRECTORY_OPEN)
     {
         /* Create the File Open Dialog class. */
         NSOpenPanel* openDlg = [NSOpenPanel openPanel];
 
         /* Enable the selection of files in the dialog. */
-        [openDlg setCanChooseFiles:YES];
-        [openDlg setCanChooseDirectories:NO];
+        if(flags == DW_FILE_OPEN)
+        {
+            [openDlg setCanChooseFiles:YES];
+            [openDlg setCanChooseDirectories:NO];
+        }
+        else
+        {
+            [openDlg setCanChooseFiles:NO];
+            [openDlg setCanChooseDirectories:YES];
+        }
 
         /* Disable multiple selection */
         [openDlg setAllowsMultipleSelection:NO];
