@@ -6591,7 +6591,16 @@ void dw_draw_point(HWND handle, HPIXMAP pixmap, int x, int y)
 
    DW_MUTEX_LOCK;
    if(handle)
-      cr = gdk_cairo_create(gtk_widget_get_window(handle));
+   {
+      GdkWindow *window = gtk_widget_get_window(handle);
+      /* Safety check for non-existant windows */
+      if(!window || !GDK_IS_WINDOW(window))
+      {
+         DW_MUTEX_UNLOCK;
+         return;
+      }
+      cr = gdk_cairo_create(window);
+   }
    else if(pixmap)
       cr = cairo_create(pixmap->image);
    if(cr)
@@ -6623,7 +6632,16 @@ void dw_draw_line(HWND handle, HPIXMAP pixmap, int x1, int y1, int x2, int y2)
 
    DW_MUTEX_LOCK;
    if(handle)
-      cr = gdk_cairo_create(gtk_widget_get_window(handle));
+   {
+      GdkWindow *window = gtk_widget_get_window(handle);
+      /* Safety check for non-existant windows */
+      if(!window || !GDK_IS_WINDOW(window))
+      {
+         DW_MUTEX_UNLOCK;
+         return;
+      }
+      cr = gdk_cairo_create(window);
+   }
    else if(pixmap)
       cr = cairo_create(pixmap->image);
    if(cr)
@@ -6657,7 +6675,16 @@ void dw_draw_polygon(HWND handle, HPIXMAP pixmap, int fill, int npoints, int *x,
 
    DW_MUTEX_LOCK;
    if(handle)
-      cr = gdk_cairo_create(gtk_widget_get_window(handle));
+   {
+      GdkWindow *window = gtk_widget_get_window(handle);
+      /* Safety check for non-existant windows */
+      if(!window || !GDK_IS_WINDOW(window))
+      {
+         DW_MUTEX_UNLOCK;
+         return;
+      }
+      cr = gdk_cairo_create(window);
+   }
    else if(pixmap)
       cr = cairo_create(pixmap->image);
    if(cr)
@@ -6696,7 +6723,16 @@ void dw_draw_rect(HWND handle, HPIXMAP pixmap, int fill, int x, int y, int width
 
    DW_MUTEX_LOCK;
    if(handle)
-      cr = gdk_cairo_create(gtk_widget_get_window(handle));
+   {
+      GdkWindow *window = gtk_widget_get_window(handle);
+      /* Safety check for non-existant windows */
+      if(!window || !GDK_IS_WINDOW(window))
+      {
+         DW_MUTEX_UNLOCK;
+         return;
+      }
+      cr = gdk_cairo_create(window);
+   }
    else if(pixmap)
       cr = cairo_create(pixmap->image);
    if(cr)
@@ -6738,7 +6774,14 @@ void dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
    DW_MUTEX_LOCK;
    if(handle)
    {
-      cr = gdk_cairo_create(gtk_widget_get_window(handle));
+      GdkWindow *window = gtk_widget_get_window(handle);
+      /* Safety check for non-existant windows */
+      if(!window || !GDK_IS_WINDOW(window))
+      {
+         DW_MUTEX_UNLOCK;
+         return;
+      }
+      cr = gdk_cairo_create(window);
       fontname = (char *)g_object_get_data(G_OBJECT(handle), "_dw_fontname");
    }
    else if(pixmap)
@@ -7043,6 +7086,7 @@ void dw_pixmap_destroy(HPIXMAP pixmap)
 
    DW_MUTEX_LOCK;
    g_object_unref(G_OBJECT(pixmap->pixbuf));
+   cairo_surface_destroy(pixmap->image);
    free(pixmap);
    DW_MUTEX_UNLOCK;
 }
@@ -7076,7 +7120,16 @@ void dw_pixmap_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest, int width,
 
    DW_MUTEX_LOCK;
    if(dest)
-      cr = gdk_cairo_create(gtk_widget_get_window(dest));
+   {
+      GdkWindow *window = gtk_widget_get_window(dest);
+      /* Safety check for non-existant windows */
+      if(!window || !GDK_IS_WINDOW(window))
+      {
+         DW_MUTEX_UNLOCK;
+         return;
+      }
+      cr = gdk_cairo_create(window);
+   }
    else if(destp)
       cr = cairo_create(destp->image);
       
