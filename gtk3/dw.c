@@ -6598,7 +6598,7 @@ void dw_draw_point(HWND handle, HPIXMAP pixmap, int x, int y)
    {
       int index = _find_thread_index(dw_thread_id());
       
-      cairo_set_source_rgb(cr, _foreground[index].red, _foreground[index].green, _foreground[index].blue); 
+      gdk_cairo_set_source_color (cr, &_foreground[index]);
       cairo_set_line_width(cr, 1);
       cairo_move_to(cr, x, y);
       cairo_stroke(cr);
@@ -6630,7 +6630,7 @@ void dw_draw_line(HWND handle, HPIXMAP pixmap, int x1, int y1, int x2, int y2)
    {
       int index = _find_thread_index(dw_thread_id());
       
-      cairo_set_source_rgb(cr, _foreground[index].red, _foreground[index].green, _foreground[index].blue); 
+      gdk_cairo_set_source_color (cr, &_foreground[index]);
       cairo_set_line_width(cr, 1);
       cairo_move_to(cr, x1, y1);
       cairo_line_to(cr, x2, y2);
@@ -6664,7 +6664,7 @@ void dw_draw_polygon(HWND handle, HPIXMAP pixmap, int fill, int npoints, int *x,
    {
       int index = _find_thread_index(dw_thread_id());
       
-      cairo_set_source_rgb(cr, _foreground[index].red, _foreground[index].green, _foreground[index].blue); 
+      gdk_cairo_set_source_color (cr, &_foreground[index]);
       cairo_set_line_width(cr, 1);
       cairo_move_to(cr, x[0], y[0]);
       for(z=1;z<npoints;z++)
@@ -6703,7 +6703,7 @@ void dw_draw_rect(HWND handle, HPIXMAP pixmap, int fill, int x, int y, int width
    {
       int index = _find_thread_index(dw_thread_id());
       
-      cairo_set_source_rgb(cr, _foreground[index].red, _foreground[index].green, _foreground[index].blue); 
+      gdk_cairo_set_source_color (cr, &_foreground[index]);
       cairo_set_line_width(cr, 1);
       cairo_move_to(cr, x, y);
       cairo_line_to(cr, x, y + height);
@@ -6764,7 +6764,7 @@ void dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
                pango_layout_set_font_description(layout, font);
                pango_layout_set_text(layout, text, strlen(text));
 
-               cairo_set_source_rgb(cr, _foreground[index].red, _foreground[index].green, _foreground[index].blue); 
+               gdk_cairo_set_source_color (cr, &_foreground[index]);
                cairo_move_to(cr, x, y);
                pango_cairo_show_layout (cr, layout);
                
