@@ -5840,12 +5840,7 @@ void _dw_container_set_item(HWND handle, void *pointer, int column, int row, voi
  */
 void dw_container_set_item(HWND handle, void *pointer, int column, int row, void *data)
 {
-   GtkTreeView *tree = pointer;
-   
-   if(GTK_IS_TREE_VIEW(tree))
-   {
-      _dw_container_set_item(handle, pointer, column, row, data);
-   }
+   _dw_container_set_item(handle, pointer, column, row, data);
 }
 
 /*
@@ -5899,13 +5894,8 @@ void API dw_filesystem_change_file(HWND handle, int row, char *filename, HICN ic
  */
 void dw_filesystem_set_file(HWND handle, void *pointer, int row, char *filename, HICN icon)
 {
-   GtkTreeView *tree = pointer;
-   
-   if(GTK_IS_TREE_VIEW(tree))
-   {
-      _dw_container_set_item(handle, pointer, 0, row, (void *)&icon);
-      _dw_container_set_item(handle, pointer, 1, row, (void *)&filename);
-   }
+   _dw_container_set_item(handle, pointer, 0, row, (void *)&icon);
+   _dw_container_set_item(handle, pointer, 1, row, (void *)&filename);
 }
 
 /*
@@ -5919,12 +5909,7 @@ void dw_filesystem_set_file(HWND handle, void *pointer, int row, char *filename,
  */
 void dw_filesystem_set_item(HWND handle, void *pointer, int column, int row, void *data)
 {
-   GtkTreeView *tree = pointer;
-   
-   if(GTK_IS_TREE_VIEW(tree))
-   {
-      _dw_container_set_item(handle, pointer, column + 2, row, data);
-   }
+   _dw_container_set_item(handle, pointer, column + 2, row, data);
 }
 
 /*
