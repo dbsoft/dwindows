@@ -5987,6 +5987,29 @@ int API dw_filesystem_get_column_type(HWND handle, int column)
  */
 void dw_container_set_column_width(HWND handle, int column, int width)
 {
+   GtkWidget *cont;
+   int _locked_by_me = FALSE;
+
+   DW_MUTEX_LOCK;
+   cont = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user");
+   
+   /* Handle filesystem */
+   if(g_object_get_data(G_OBJECT(handle), "_dw_cont_extra"))
+   {
+      column++;
+   }
+   
+   /* Make sure it is the correct tree type */
+   if(cont && GTK_IS_TREE_VIEW(cont) && g_object_get_data(G_OBJECT(cont), "_dw_tree_type") == GINT_TO_POINTER(_DW_TREE_TYPE_CONTAINER))
+   {
+      GtkTreeViewColumn *col = gtk_tree_view_get_column(GTK_TREE_VIEW(cont), column);
+      
+      if(col && GTK_IS_TREE_VIEW_COLUMN(col))
+      {
+         gtk_tree_view_column_set_fixed_width(GTK_TREE_VIEW_COLUMN(col), width);
+      }
+   }
+   DW_MUTEX_UNLOCK;
 }
 
 /* Internal version for both */
@@ -6406,7 +6429,6 @@ void dw_container_optimize(HWND handle)
    if(cont && GTK_IS_TREE_VIEW(cont) && g_object_get_data(G_OBJECT(cont), "_dw_tree_type") == GINT_TO_POINTER(_DW_TREE_TYPE_CONTAINER))
          gtk_tree_view_columns_autosize(GTK_TREE_VIEW(cont));
    DW_MUTEX_UNLOCK;
-
 }
 
 /*
