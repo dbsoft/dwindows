@@ -277,7 +277,6 @@ EXPORTS
   dw_calendar_set_date                   @481
   dw_calendar_get_date                   @482
 
-
   dw_clipboard_get_text                  @490
   dw_clipboard_set_text                  @491
 

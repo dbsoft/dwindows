@@ -4448,12 +4448,12 @@ _dw_log( "Handle for scrollbox %x\n", hwndframe);
    return hwndframe;
 }
 
-int dw_scrollbox_get_pos( HWND handle, int orient )
+int API dw_scrollbox_get_pos( HWND handle, int orient )
 {
    return 0;
 }
 
-int dw_scrollbox_get_range( HWND handle, int orient )
+int API dw_scrollbox_get_range( HWND handle, int orient )
 {
    return 0;
 }
