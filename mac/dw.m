@@ -4189,7 +4189,7 @@ void API dw_font_text_extents_get(HWND handle, HPIXMAP pixmap, char *text, int *
         object = pixmap->handle;
     }
     NSMutableDictionary *dict = [[NSMutableDictionary alloc] init];
-    if([object isMemberOfClass:[DWRender class]])
+    if([object isMemberOfClass:[DWRender class]] || [object isKindOfClass:[NSControl class]])
     {
         NSFont *font = [object font];
 
