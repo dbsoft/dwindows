@@ -4106,6 +4106,27 @@ HWND API dw_box_new(int type, int pad)
 }
 
 /*
+ * INCOMPLETE
+ * Create a new scroll Box to be packed.
+ * Parameters:
+ *       type: Either DW_VERT (vertical) or DW_HORZ (horizontal).
+ *       pad: Number of pixels to pad around the box.
+ */
+HWND API dw_scrollbox_new(int type, int pad)
+{
+    return dw_box_new(type, pad);
+}
+
+int API dw_scrollbox_get_pos( HWND handle, int orient )
+{
+   return 0;
+}
+
+int API dw_scrollbox_get_range( HWND handle, int orient )
+{
+   return 0;
+}
+/*
  * Create a new Group Box to be packed.
  * Parameters:
  *       type: Either DW_VERT (vertical) or DW_HORZ (horizontal).
