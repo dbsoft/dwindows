@@ -854,6 +854,16 @@ fprintf(stderr,"Initial: container: %x containerinfo: %x icon: %x\n", (int)conta
    }
 
    dw_container_insert(container, containerinfo, 3);
+   
+   containerinfo = dw_container_alloc(container, 1);
+   dw_filesystem_set_file(container, containerinfo, 0, strdup("Yikes"), foldericon);
+   size = 324;
+   dw_filesystem_set_item(container, containerinfo, 0, 0, &size);
+   dw_filesystem_set_item(container, containerinfo, 1, 0, &time);
+   dw_filesystem_set_item(container, containerinfo, 2, 0, &date);
+   dw_container_set_row_title(containerinfo, 0, strdup("Extra"));
+   
+   dw_container_insert(container, containerinfo, 1);
    dw_container_optimize(container);
 
    container_mle = dw_mle_new( 111 );
