@@ -1054,6 +1054,7 @@ DWObject *DWObj;
 -(void)setup;
 -(void)setForegroundColor:(NSColor *)input;
 -(void)doubleClicked:(id)sender;
+-(void)keyUp:(NSEvent *)theEvent;
 -(void)tableView:(NSTableView*)tableView mouseDownInHeaderOfTableColumn:(NSTableColumn *)tableColumn;
 -(void)selectionChanged:(id)sender;
 -(NSMenu *)menuForEvent:(NSEvent *)event;
@@ -1217,6 +1218,15 @@ DWObject *DWObj;
     /* Handler for container class */
     _event_handler(self, (NSEvent *)[self getRowTitle:(int)[self selectedRow]], 9);
 }
+-(void)keyUp:(NSEvent *)theEvent 
+{ 
+    if([[theEvent charactersIgnoringModifiers] characterAtIndex:0] == VK_RETURN)
+    { 
+        _event_handler(self, (NSEvent *)[self getRowTitle:(int)[self selectedRow]], 9);
+    } 
+    [super keyUp:theEvent];
+}
+
 -(void)tableView:(NSTableView *)tableView mouseDownInHeaderOfTableColumn:(NSTableColumn *)tableColumn;
 {
     NSUInteger index = [tvcols indexOfObject:tableColumn];
