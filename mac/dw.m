@@ -1035,6 +1035,7 @@ DWObject *DWObj;
 -(void *)userdata;
 -(void)setUserdata:(void *)input;
 -(void)setFilesystem:(int)input;
+-(int)filesystem;
 -(id)scrollview;
 -(void)setScrollview:(id)input;
 -(void)addColumn:(NSTableColumn *)input andType:(int)type;
@@ -1101,6 +1102,7 @@ DWObject *DWObj;
 -(void *)userdata { return userdata; }
 -(void)setUserdata:(void *)input { userdata = input; }
 -(void)setFilesystem:(int)input { filesystem = input; }
+-(int)filesystem { return filesystem; }
 -(id)scrollview { return scrollview; }
 -(void)setScrollview:(id)input { scrollview = input; }
 -(void)addColumn:(NSTableColumn *)input andType:(int)type { if(tvcols) { [tvcols addObject:input]; [types addObject:[NSNumber numberWithInt:type]]; } }
@@ -4870,6 +4872,10 @@ void API dw_container_set_column_width(HWND handle, int column, int width)
     int _locked_by_me = FALSE;
     DW_MUTEX_LOCK;
     DWContainer *cont = handle;
+    if([cont filesystem])
+    {
+        column++;
+    }
     NSTableColumn *col = [cont getColumn:column];
 
     [col setWidth:width];
