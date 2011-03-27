@@ -7641,8 +7641,14 @@ int _lookup_icon(HWND handle, HICON hicon, int type)
 void API dw_filesystem_set_file(HWND handle, void *pointer, int row, char *filename, HICN icon)
 {
    LV_ITEM lvi;
+   int item = 0;
+   
+   if(pointer)
+   {
+	   item = (int)dw_window_get_data(handle, "_dw_insertitem");
+   }
 
-   lvi.iItem = row;
+   lvi.iItem = row + item;
    lvi.iSubItem = 0;
    lvi.mask = LVIF_DI_SETITEM | LVIF_IMAGE | LVIF_TEXT;
    lvi.pszText = filename;
