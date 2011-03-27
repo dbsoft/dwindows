@@ -240,7 +240,7 @@ typedef struct
 
 } SignalHandler;
 
-#define SIGNALMAX 19
+#define SIGNALMAX 18
 
 /* A list of signal forwarders, to account for paramater differences. */
 static SignalList SignalTranslate[SIGNALMAX] = {
@@ -338,10 +338,9 @@ static void gtk_mdi_init(GtkMdi *mdi);
 
 static void gtk_mdi_realize(GtkWidget *widget);
 static void gtk_mdi_size_allocate(GtkWidget *widget, GtkAllocation *allocation);
-#if 0
-static void gtk_mdi_size_request(GtkWidget *widget, GtkRequisition *requisition);
-static gint gtk_mdi_expose(GtkWidget *widget, GdkEventExpose *event);
-#endif
+static gint gtk_mdi_expose(GtkWidget *widget, cairo_t *cr, gpointer data);
+static void gtk_mdi_get_preferred_width (GtkWidget *widget, gint *minimum_width, gint *natural_width);
+static void gtk_mdi_get_preferred_height (GtkWidget *widget, gint *minimum_height, gint *natural_height);
 
 /* Callbacks */
 static gboolean move_child_callback(GtkWidget *widget, GdkEvent *event, gpointer data);
@@ -410,10 +409,9 @@ static void gtk_mdi_class_init(GtkMdiClass *class)
    parent_class = g_type_class_ref (GTK_TYPE_CONTAINER);
 
    widget_class->realize = gtk_mdi_realize;
-#if 0 /* TODO */
-   widget_class->expose_event = gtk_mdi_expose;
-   widget_class->size_request = gtk_mdi_size_request;
-#endif
+   widget_class->draw = gtk_mdi_expose;
+   widget_class->get_preferred_height = gtk_mdi_get_preferred_height;
+   widget_class->get_preferred_width = gtk_mdi_get_preferred_width;
    widget_class->size_allocate = gtk_mdi_size_allocate;
 
    container_class->add = gtk_mdi_add;
@@ -750,17 +748,15 @@ static void gtk_mdi_realize(GtkWidget *widget)
    gtk_style_set_background (gtk_widget_get_style(widget), gtk_widget_get_window(widget), GTK_STATE_NORMAL);
 }
 
-#if 0
-static void gtk_mdi_size_request (GtkWidget *widget, GtkRequisition *requisition)
+static void gtk_mdi_get_preferred_width (GtkWidget *widget, gint *minimum_width, gint *natural_width)
 {
    GtkMdi *mdi;
    GtkMdiChild *child;
    GList *children;
-   GtkRequisition child_requisition;
+   gint child_minimum_width, child_natural_width;
 
    mdi = GTK_MDI (widget);
-   requisition->width = GTK_MDI_DEFAULT_WIDTH;
-   requisition->height = GTK_MDI_DEFAULT_HEIGHT;
+   *natural_width = *minimum_width = GTK_MDI_DEFAULT_WIDTH;
 
    children = mdi->children;
    while(children)
@@ -770,11 +766,33 @@ static void gtk_mdi_size_request (GtkWidget *widget, GtkRequisition *requisition
 
       if(gtk_widget_get_visible(child->widget))
       {
-         gtk_widget_size_request(child->widget, &child_requisition);
+         gtk_widget_get_preferred_width(child->widget, &child_minimum_width, &child_natural_width);
       }
    }
 }
-#endif
+
+static void gtk_mdi_get_preferred_height (GtkWidget *widget, gint *minimum_height, gint *natural_height)
+{
+   GtkMdi *mdi;
+   GtkMdiChild *child;
+   GList *children;
+   gint child_minimum_height, child_natural_height;
+
+   mdi = GTK_MDI (widget);
+   *natural_height = *minimum_height = GTK_MDI_DEFAULT_HEIGHT;
+
+   children = mdi->children;
+   while(children)
+   {
+      child = children->data;
+      children = children->next;
+
+      if(gtk_widget_get_visible(child->widget))
+      {
+         gtk_widget_get_preferred_height(child->widget, &child_minimum_height, &child_natural_height);
+      }
+   }
+}
 
 static void gtk_mdi_size_allocate(GtkWidget *widget, GtkAllocation *allocation)
 {
@@ -857,8 +875,7 @@ static void gtk_mdi_size_allocate(GtkWidget *widget, GtkAllocation *allocation)
    }
 }
 
-#if 0 /* TODO: Is this needed... propogate expose is no longer supported */
-static gint gtk_mdi_expose(GtkWidget *widget, GdkEventExpose *event)
+static gint gtk_mdi_expose(GtkWidget *widget, cairo_t *cr, gpointer data)
 {
    GtkMdiChild *child;
    GList *children;
@@ -866,19 +883,18 @@ static gint gtk_mdi_expose(GtkWidget *widget, GdkEventExpose *event)
 
    g_return_val_if_fail (widget != NULL, FALSE);
    g_return_val_if_fail (GTK_IS_MDI (widget), FALSE);
-   g_return_val_if_fail (event != NULL, FALSE);
+   g_return_val_if_fail (cr != NULL, FALSE);
 
    mdi = GTK_MDI (widget);
    for (children = mdi->children; children; children = children->next)
    {
       child = (GtkMdiChild *) children->data;
-      gtk_container_propagate_expose (GTK_CONTAINER (mdi),
+      gtk_container_propagate_draw (GTK_CONTAINER (mdi),
                               child->widget,
-                              event);
+                              cr);
    }
    return FALSE;
 }
-#endif
 
 static void gtk_mdi_add(GtkContainer *container, GtkWidget *widget)
 {
