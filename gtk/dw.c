@@ -6777,7 +6777,10 @@ void _dw_container_set_item(HWND handle, void *pointer, int column, int row, voi
 
    sprintf(numbuf, "%d", column);
    flag = (int)gtk_object_get_data(GTK_OBJECT(clist), numbuf);
-   row += (int)gtk_object_get_data(GTK_OBJECT(clist), "_dw_insertpos");
+   if(pointer)
+   {
+      row += (int)gtk_object_get_data(GTK_OBJECT(clist), "_dw_insertpos");
+   }
 
    if(flag & DW_CFA_BITMAPORICON)
    {
