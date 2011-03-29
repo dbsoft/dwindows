@@ -695,6 +695,21 @@ DWObject *DWObj;
 -(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); [super dealloc]; }
 @end
 
+/* Subclass for a scrollbox type */
+@interface DWScrollBox : NSScrollView
+{
+    void *userdata;
+}
+-(void *)userdata;
+-(void)setUserdata:(void *)input;
+@end
+
+@implementation DWScrollBox
+-(void *)userdata { return userdata; }
+-(void)setUserdata:(void *)input { userdata = input; }
+-(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); [super dealloc]; }
+@end
+
 /* Subclass for a entryfield type */
 @interface DWEntryField : NSTextField
 {
@@ -2037,6 +2052,33 @@ static int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *
                     _do_resize(box, size.width, size.height);
                 }
             }
+            /* Handle laying out scrollviews... if required space is less
+             * than available space, then expand.  Otherwise use required space.
+             */
+            else if([handle isMemberOfClass:[DWScrollBox class]])
+            {
+                int usedx = 0, usedy = 0, usedpadx = 0, usedpady = 0, depth = 0;
+                DWScrollBox *scrollbox = (DWScrollBox *)handle;
+                DWBox *contentbox = [scrollbox documentView];
+                Box *thisbox = [contentbox box];
+                NSSize contentsize = [scrollbox contentSize];
+                
+                /* Get the required space for the box */
+                _resize_box(thisbox, &depth, x, y, &usedx, &usedy, 1, &usedpadx, &usedpady);
+                
+                if(contentsize.width < usedx)
+                {
+                    contentsize.width = usedx;
+                }
+                if(contentsize.height < usedy)
+                {
+                    contentsize.height = usedy;
+                }
+                [contentbox setFrameSize:contentsize];
+
+                /* Layout the content of the scrollbox */
+                _do_resize(thisbox, contentsize.width, contentsize.height);
+            }
             /* Special handling for spinbutton controls */
             else if([handle isMemberOfClass:[DWSpinButton class]])
             {
@@ -2576,10 +2618,13 @@ HWND API dw_groupbox_new(int type, int pad, char *title)
  */
 HWND API dw_scrollbox_new( int type, int pad )
 {
-   DWBox *box = dw_box_new(type, pad);
-   [box setFocusRingType:NSFocusRingTypeExterior];
-   NSLog(@"dw_scrollbox_new() unimplemented\n");
-   return box;
+    DWScrollBox *scrollbox = [[DWScrollBox alloc] init];
+    DWBox *box = dw_box_new(type, pad);
+    [scrollbox setHasVerticalScroller:YES];
+    [scrollbox setHasHorizontalScroller:YES];
+    [scrollbox setBorderType:NSNoBorder];
+    [scrollbox setDocumentView:box];
+    return scrollbox;
 }
 
 /*
@@ -2636,6 +2681,11 @@ void API dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, 
     {
         NSWindow *window = box;
         view = [window contentView];
+    }
+    else if([ object isMemberOfClass:[ DWScrollBox class ] ])
+    {
+        DWScrollBox *scrollbox = box;
+        view = [scrollbox documentView];
     }
 
     thisbox = [view box];
@@ -2739,6 +2789,11 @@ void API dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize
     {
         NSWindow *window = box;
         view = [window contentView];
+    }
+    else if([ object isMemberOfClass:[ DWScrollBox class ] ])
+    {
+        DWScrollBox *scrollbox = box;
+        view = [scrollbox documentView];
     }
 
     thisbox = [view box];
@@ -4981,6 +5036,10 @@ void API dw_container_delete(HWND handle, int rowcount)
  */
 void API dw_container_scroll(HWND handle, int direction, long rows)
 {
+#if 0
+    DWContainer *cont = handle;
+    NSScrollView *sv = [cont scrollview];
+#endif
     NSLog(@"dw_container_scroll() unimplemented\n");
 }
 
