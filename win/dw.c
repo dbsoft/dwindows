@@ -89,6 +89,7 @@ void _handle_splitbar_resize(HWND hwnd, float percent, int type, int x, int y);
 int _lookup_icon(HWND handle, HICON hicon, int type);
 HFONT _acquire_font(HWND handle, char *fontname);
 void _click_default(HWND handle);
+void _do_resize(Box *thisbox, int x, int y);
 
 typedef struct _sighandler
 {
@@ -1366,6 +1367,42 @@ int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *usedy,
                            (width + vectorx) - 20, height + vectory, FALSE);
                }
             }
+            else if(strncmp(tmpbuf, ScrollClassName, strlen(ScrollClassName)+1)==0)
+            {
+                /* Then try the bottom or right box */
+                ColorInfo *cinfo = (ColorInfo *)GetWindowLongPtr(handle, GWLP_USERDATA);
+                int cx = width + vectorx;
+                int cy = height + vectory;
+                int usedx = 0, usedy = 0, usedpadx = 0, usedpady = 0, depth = 0;
+                Box *thisbox = (Box *)GetWindowLongPtr(cinfo->combo, GWLP_USERDATA);
+                RECT rect;
+                
+                /* Position the scrollbox */
+                MoveWindow(handle, currentx + pad, currenty + pad, cx, cy, FALSE);
+
+                GetClientRect(handle, &rect);
+                cx = rect.right;
+                cy = rect.bottom;
+
+
+                /* Get the required space for the box */
+                _resize_box(thisbox, &depth, cx, cy, &usedx, &usedy, 1, &usedpadx, &usedpady);
+                
+                if(cx < usedx)
+                {
+                    cx = usedx;
+                }
+                if(cy < usedy)
+                {
+                    cy = usedy;
+                }
+
+                /* Position the scrolled box */
+                MoveWindow(cinfo->combo, 0, 0, cx, cy, FALSE);
+
+                /* Layout the content of the scrollbox */
+                _do_resize(thisbox, cx, cy);
+            }
             else if(strncmp(tmpbuf, SplitbarClassName, strlen(SplitbarClassName)+1)==0)
             {
                /* Then try the bottom or right box */
@@ -2083,14 +2120,15 @@ dw_messagebox("NM_CUSTOMDRAW for WC_LISTVIEW(mp2) from _wndproc (WM_NOTIFY)", DW
                case WM_HSCROLL:
                case WM_VSCROLL:
                   {
-                     char tmpbuf[100];
+                     char tmpbuf[100] = "";
                      HWND handle = (HWND)mp2;
                      int (*valuechangefunc)(HWND, int, void *) = tmp->signalfunction;
 
-                     GetClassName(handle, tmpbuf, 99);
-#ifndef SCROLLBOX_DEBUG
-dw_messagebox("Scrollbar", DW_MB_OK, "%s %d: %s",__FILE__,__LINE__,tmpbuf);
-#endif
+                     if(!GetClassName(handle, tmpbuf, 99))
+                     {
+                         GetClassName(hWnd, tmpbuf, 99);
+                     }
+
                      if (strnicmp(tmpbuf, TRACKBAR_CLASS, strlen(TRACKBAR_CLASS)+1)==0)
                      {
 
@@ -2109,9 +2147,6 @@ dw_messagebox("Scrollbar", DW_MB_OK, "%s %d: %s",__FILE__,__LINE__,tmpbuf);
                      }
                      else if(strnicmp(tmpbuf, SCROLLBARCLASSNAME, strlen(SCROLLBARCLASSNAME)+1)==0)
                      {
-#ifndef SCROLLBOX_DEBUG
-dw_messagebox("Scrollbar", DW_MB_OK, "%s %d",__FILE__,__LINE__);
-#endif
                         if(handle == tmp->window)
                         {
                            int bar = (origmsg == WM_HSCROLL) ? SB_HORZ : SB_VERT;
@@ -3175,6 +3210,21 @@ void _handle_splitbar_resize(HWND hwnd, float percent, int type, int x, int y)
    ShowWindow(handle2, SW_SHOW);
 }
 
+/* This handles any activity on the scrollbox */
+BOOL CALLBACK _scrollwndproc(HWND hwnd, UINT msg, WPARAM mp1, LPARAM mp2)
+{
+   switch (msg)
+   {
+   case WM_HSCROLL:
+   case WM_VSCROLL:
+      {
+         HWND handle = (HWND)mp2;
+      }
+      break;
+   }
+   return DefWindowProc(hwnd, msg, mp1, mp2);
+}
+
 /* This handles any activity on the splitbars (sizers) */
 BOOL CALLBACK _splitwndproc(HWND hwnd, UINT msg, WPARAM mp1, LPARAM mp2)
 {
@@ -3602,6 +3652,18 @@ int API dw_init(int newthread, int argc, char *argv[])
    wc.hbrBackground = NULL;
    wc.lpszMenuName = NULL;
    wc.lpszClassName = SplitbarClassName;
+
+   RegisterClass(&wc);
+
+   /* Register the scroller control */
+   memset(&wc, 0, sizeof(WNDCLASS));
+   wc.style = CS_DBLCLKS;
+   wc.lpfnWndProc = (WNDPROC)_scrollwndproc;
+   wc.cbClsExtra = 0;
+   wc.cbWndExtra = 32;
+   wc.hbrBackground = NULL;
+   wc.lpszMenuName = NULL;
+   wc.lpszClassName = ScrollClassName;
 
    RegisterClass(&wc);
 
@@ -4422,30 +4484,27 @@ HWND API dw_box_new(int type, int pad)
  */
 HWND API dw_scrollbox_new(int type, int pad)
 {
-   Box *newbox = calloc(sizeof(Box), 1);
-   HWND hwndframe;
+    ColorInfo *cinfo = calloc(sizeof(ColorInfo), 1);
+    HWND hwndframe, box = dw_box_new(type, pad);
+    HWND tmpbox = dw_box_new(DW_VERT, 0);
+    dw_box_pack_start(tmpbox, box, 1, 1, TRUE, TRUE, 0);
 
-   newbox->pad = pad;
-   newbox->type = type;
-   newbox->count = 0;
-   newbox->grouphwnd = (HWND)NULL;
-   newbox->cinfo.fore = newbox->cinfo.back = -1;
+    cinfo->fore = cinfo->back = -1;
 
-   hwndframe = CreateWindow(FRAMECLASSNAME,
+    hwndframe = CreateWindow(ScrollClassName,
                       "",
-                      WS_VISIBLE | WS_CHILD | WS_CLIPCHILDREN | WS_VSCROLL | WS_HSCROLL | WS_THICKFRAME,
+                      WS_VISIBLE | WS_CHILD | WS_CLIPCHILDREN | WS_VSCROLL | WS_HSCROLL,
                       0,0,2000,1000,
                       DW_HWND_OBJECT,
                       NULL,
                       DWInstance,
                       NULL);
 
-   newbox->cinfo.pOldProc = SubclassWindow(hwndframe, _colorwndproc);
-   newbox->cinfo.fore = newbox->cinfo.back = -1;
-
-   SetWindowLongPtr(hwndframe, GWLP_USERDATA, (LONG_PTR)newbox);
-_dw_log( "Handle for scrollbox %x\n", hwndframe);
-   return hwndframe;
+    cinfo->buddy = box;
+    cinfo->combo = tmpbox;
+    SetParent(tmpbox, hwndframe);
+    SetWindowLongPtr(hwndframe, GWLP_USERDATA, (LONG_PTR)cinfo);
+    return hwndframe;
 }
 
 int API dw_scrollbox_get_pos( HWND handle, int orient )
@@ -5867,7 +5926,8 @@ HWND API dw_window_from_id(HWND handle, int id)
  */
 void API dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize, int vsize, int pad)
 {
-   Box *thisbox;
+   Box *thisbox = NULL;
+   char tmpbuf[100];
 
       /*
        * If you try and pack an item into itself VERY bad things can happen; like at least an
@@ -5879,12 +5939,24 @@ void API dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize
       return;
    }
 
-   thisbox = (Box *)GetWindowLongPtr(box, GWLP_USERDATA);
+   GetClassName(box, tmpbuf, 99);
+
+   /* If we are in a scrolled box... extract the interal box */
+   if(strnicmp(tmpbuf, ScrollClassName, strlen(ScrollClassName)+1)==0)
+   {
+        ColorInfo *cinfo = (ColorInfo *)GetWindowLongPtr(box, GWLP_USERDATA);
+        if(cinfo)
+        {
+            box = cinfo->buddy;
+            thisbox = (Box *)GetWindowLongPtr(box, GWLP_USERDATA);
+        }
+   }
+   else //if(strnicmp(tmpbuf, FRAMECLASSNAME, strlen(FRAMECLASSNAME)+1)==0)
+       thisbox = (Box *)GetWindowLongPtr(box, GWLP_USERDATA);
    if(thisbox)
    {
       int z;
       Item *tmpitem, *thisitem = thisbox->items;
-      char tmpbuf[100];
 
       tmpitem = malloc(sizeof(Item)*(thisbox->count+1));
 
@@ -9491,7 +9563,8 @@ void API dw_calendar_get_date(HWND handle, unsigned int *year, unsigned int *mon
  */
 void API dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, int vsize, int pad)
 {
-   Box *thisbox;
+   Box *thisbox = NULL;
+   char tmpbuf[100];
 
       /*
        * If you try and pack an item into itself VERY bad things can happen; like at least an
@@ -9503,12 +9576,24 @@ void API dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, 
       return;
    }
 
-   thisbox = (Box *)GetWindowLongPtr(box, GWLP_USERDATA);
+   GetClassName(box, tmpbuf, 99);
+
+   /* If we are in a scrolled box... extract the interal box */
+   if(strnicmp(tmpbuf, ScrollClassName, strlen(ScrollClassName)+1)==0)
+   {
+        ColorInfo *cinfo = (ColorInfo *)GetWindowLongPtr(box, GWLP_USERDATA);
+        if(cinfo)
+        {
+            box = cinfo->buddy;
+            thisbox = (Box *)GetWindowLongPtr(box, GWLP_USERDATA);
+        }
+   }
+   else //if(strnicmp(tmpbuf, FRAMECLASSNAME, strlen(FRAMECLASSNAME)+1)==0)
+       thisbox = (Box *)GetWindowLongPtr(box, GWLP_USERDATA);
    if(thisbox)
    {
       int z;
       Item *tmpitem, *thisitem = thisbox->items;
-      char tmpbuf[100];
 
       tmpitem = malloc(sizeof(Item)*(thisbox->count+1));
 

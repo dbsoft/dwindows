@@ -592,6 +592,7 @@ void _dw_default_font(char *fontname);
 #define SplitbarClassName "dwsplitbar"
 #define ObjectClassName "dwobjectclass"
 #define BrowserClassName "dwbrowserclass"
+#define ScrollClassName "dwscrollclass"
 #define DefaultFont NULL
 
 typedef struct _color {
