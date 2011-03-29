@@ -699,14 +699,19 @@ DWObject *DWObj;
 @interface DWScrollBox : NSScrollView
 {
     void *userdata;
+    id box;
 }
 -(void *)userdata;
 -(void)setUserdata:(void *)input;
+-(void)setBox:(void *)input;
+-(id)box;
 @end
 
 @implementation DWScrollBox
 -(void *)userdata { return userdata; }
 -(void)setUserdata:(void *)input { userdata = input; }
+-(void)setBox:(void *)input { box = input; }
+-(id)box { return box; }
 -(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); [super dealloc]; }
 @end
 
@@ -2620,11 +2625,14 @@ HWND API dw_scrollbox_new( int type, int pad )
 {
     DWScrollBox *scrollbox = [[DWScrollBox alloc] init];
     DWBox *box = dw_box_new(type, pad);
+    DWBox *tmpbox = dw_box_new(DW_VERT, 0);
+    dw_box_pack_start(tmpbox, box, 1, 1, TRUE, TRUE, 0);
     [scrollbox setHasVerticalScroller:YES];
     [scrollbox setHasHorizontalScroller:YES];
     [scrollbox setBorderType:NSNoBorder];
     [scrollbox setDrawsBackground:NO];
-    [scrollbox setDocumentView:box];
+    [scrollbox setBox:box];
+    [scrollbox setDocumentView:tmpbox];
     return scrollbox;
 }
 
@@ -2686,7 +2694,7 @@ void API dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, 
     else if([ object isMemberOfClass:[ DWScrollBox class ] ])
     {
         DWScrollBox *scrollbox = box;
-        view = [scrollbox documentView];
+        view = [scrollbox box];
     }
 
     thisbox = [view box];
@@ -2794,7 +2802,7 @@ void API dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize
     else if([ object isMemberOfClass:[ DWScrollBox class ] ])
     {
         DWScrollBox *scrollbox = box;
-        view = [scrollbox documentView];
+        view = [scrollbox box];
     }
 
     thisbox = [view box];
