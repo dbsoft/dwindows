@@ -763,6 +763,16 @@ void text_add(void)
 void tree_add(void)
 {
    HTREEITEM t1,t2,t3,t4,t5,t6;
+   HWND listbox;
+
+   /* create a box to pack into the notebook page */
+   listbox = dw_listbox_new(1024, TRUE);
+   dw_box_pack_start( notebookbox3, listbox, 500, 200, TRUE, TRUE, 0);
+   dw_listbox_append(listbox, "Test 1");
+   dw_listbox_append(listbox, "Test 2");
+   dw_listbox_append(listbox, "Test 3");
+   dw_listbox_append(listbox, "Test 4");
+   dw_listbox_append(listbox, "Test 5");
 
    /* create a box to pack into the notebook page */
    treebox = dw_box_new(BOXHORZ, 2);
