@@ -2613,13 +2613,11 @@ HWND API dw_groupbox_new(int type, int pad, char *title)
     return groupbox;
 }
 
-#ifndef INCOMPLETE
 /*
  * Create a new scrollable Box to be packed.
  * Parameters:
  *       type: Either DW_VERT (vertical) or DW_HORZ (horizontal).
  *       pad: Number of pixels to pad around the box.
- * This works fine under GTK+, but is incomplete on other platforms
  */
 HWND API dw_scrollbox_new( int type, int pad )
 {
@@ -2644,9 +2642,27 @@ HWND API dw_scrollbox_new( int type, int pad )
  */
 int API dw_scrollbox_get_pos(HWND handle, int orient)
 {
-   int val = -1;
-   NSLog(@"dw_scrollbox_get_pos() unimplemented\n");
-   return val;
+    DWScrollBox *scrollbox = handle;
+    NSView *view = [scrollbox documentView];
+    NSSize contentsize = [scrollbox contentSize];
+    NSScroller *scrollbar;
+    int range = 0;
+    int val = 0;
+    if(orient == DW_VERT)
+    {
+        scrollbar = [scrollbox verticalScroller];
+        range = [view bounds].size.height - contentsize.height;
+    }
+    else
+    {
+        scrollbar = [scrollbox horizontalScroller];
+        range = [view bounds].size.width - contentsize.width;
+    }
+    if(range > 0)
+    {
+        val = [scrollbar floatValue] * range;
+    }
+    return val;
 }
 
 /*
@@ -2657,11 +2673,19 @@ int API dw_scrollbox_get_pos(HWND handle, int orient)
  */
 int API dw_scrollbox_get_range(HWND handle, int orient)
 {
-   int val = -1;
-   NSLog(@"dw_scrollbox_get_range() unimplemented\n");
-   return val;
+    DWScrollBox *scrollbox = handle;
+    NSView *view = [scrollbox documentView];
+    int range = 0;
+    if(orient == DW_VERT)
+    {
+        range = [view bounds].size.height;
+    }
+    else
+    {
+        range = [view bounds].size.width;
+    }
+    return range;
 }
-#endif
 
 /*
  * Pack windows (widgets) into a box from the end (or bottom).
