@@ -4580,12 +4580,44 @@ HWND API dw_scrollbox_new(int type, int pad)
 
 int API dw_scrollbox_get_pos( HWND handle, int orient )
 {
-   return 0;
+    SCROLLINFO si;
+    int bar = SB_HORZ;
+
+    if(orient == DW_VERT)
+    {
+        bar = SB_VERT;
+    }
+
+    si.cbSize = sizeof(SCROLLINFO);
+    si.fMask = SIF_POS;
+
+    /* Save the current scroll positions */
+    if(!GetScrollInfo(handle, bar, &si))
+    {
+        return -1;
+    }
+    return si.nPos;
 }
 
 int API dw_scrollbox_get_range( HWND handle, int orient )
 {
-   return 0;
+    SCROLLINFO si;
+    int bar = SB_HORZ;
+
+    if(orient == DW_VERT)
+    {
+        bar = SB_VERT;
+    }
+
+    si.cbSize = sizeof(SCROLLINFO);
+    si.fMask = SIF_RANGE;
+
+    /* Save the current scroll positions */
+    if(!GetScrollInfo(handle, bar, &si))
+    {
+        return -1;
+    }
+    return si.nMax;
 }
 /*
  * Create a new Group Box to be packed.
