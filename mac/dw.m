@@ -2623,6 +2623,7 @@ HWND API dw_scrollbox_new( int type, int pad )
     [scrollbox setHasVerticalScroller:YES];
     [scrollbox setHasHorizontalScroller:YES];
     [scrollbox setBorderType:NSNoBorder];
+    [scrollbox setDrawsBackground:NO];
     [scrollbox setDocumentView:box];
     return scrollbox;
 }
@@ -2669,7 +2670,7 @@ void API dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, 
 {
     int _locked_by_me = FALSE;
     DW_MUTEX_LOCK;
-    NSObject *object = box;
+    id object = box;
     DWBox *view = box;
     DWBox *this = item;
     Box *thisbox;
@@ -2777,7 +2778,7 @@ void API dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize
 {
     int _locked_by_me = FALSE;
     DW_MUTEX_LOCK;
-    NSObject *object = box;
+    id object = box;
     DWBox *view = box;
     DWBox *this = item;
     Box *thisbox;
