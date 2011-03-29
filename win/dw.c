@@ -1369,14 +1369,22 @@ int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *usedy,
             }
             else if(strncmp(tmpbuf, ScrollClassName, strlen(ScrollClassName)+1)==0)
             {
-                /* Then try the bottom or right box */
+                /* Handle special case of scrollbox */
                 ColorInfo *cinfo = (ColorInfo *)GetWindowLongPtr(handle, GWLP_USERDATA);
                 int cx = width + vectorx;
                 int cy = height + vectory;
                 int usedx = 0, usedy = 0, usedpadx = 0, usedpady = 0, depth = 0;
                 Box *thisbox = (Box *)GetWindowLongPtr(cinfo->combo, GWLP_USERDATA);
+                SCROLLINFO hsi, vsi;
                 RECT rect;
                 
+                vsi.cbSize = hsi.cbSize = sizeof(SCROLLINFO);
+                vsi.fMask = hsi.fMask = SIF_POS;
+
+                /* Save the current scroll positions */
+                GetScrollInfo(handle, SB_HORZ, &hsi);
+                GetScrollInfo(handle, SB_VERT, &vsi);
+
                 /* Position the scrollbox */
                 MoveWindow(handle, currentx + pad, currenty + pad, cx, cy, FALSE);
 
@@ -1398,7 +1406,29 @@ int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *usedy,
                 }
 
                 /* Position the scrolled box */
-                MoveWindow(cinfo->combo, 0, 0, cx, cy, FALSE);
+                vsi.fMask = hsi.fMask = SIF_POS | SIF_RANGE | SIF_PAGE | SIF_DISABLENOSCROLL;
+                vsi.nMin = hsi.nMin = vsi.nMax = hsi.nMax = 0;
+                if(rect.bottom < usedy)
+                {
+                    vsi.nMax = usedy;
+                    vsi.nPage = rect.bottom;
+                    if(vsi.nPos > vsi.nMax)
+                    {
+                        vsi.nPos = vsi.nMax;
+                    }
+                }
+                if(rect.right < usedx)
+                {
+                    hsi.nMax = usedx;
+                    hsi.nPage = rect.right;
+                    if(hsi.nPos > hsi.nMax)
+                    {
+                        hsi.nPos = hsi.nMax;
+                    }
+                }
+                MoveWindow(cinfo->combo, -hsi.nPos, -vsi.nPos, cx, cy, FALSE);
+                SetScrollInfo(handle, SB_HORZ, &hsi, TRUE);
+                SetScrollInfo(handle, SB_VERT, &vsi, TRUE);
 
                 /* Layout the content of the scrollbox */
                 _do_resize(thisbox, cx, cy);
@@ -1514,27 +1544,16 @@ void _do_resize(Box *thisbox, int x, int y)
 int _HandleScroller(HWND handle, int bar, int pos, int which)
 {
    SCROLLINFO si;
-#ifndef SCROLLBOX_DEBUG
-char lasterror[257];
-#endif
 
    ZeroMemory( &si, sizeof(si) );
    si.cbSize = sizeof(SCROLLINFO);
    si.fMask = SIF_ALL;
 
    SendMessage(handle, SBM_GETSCROLLINFO, 0, (LPARAM)&si);
-#ifndef SCROLLBOX_DEBUG
-FormatMessage( FORMAT_MESSAGE_FROM_SYSTEM, NULL, GetLastError(), MAKELANGID( LANG_NEUTRAL, SUBLANG_DEFAULT), lasterror, 256, NULL);
-_dw_log( "Error from SendMessage in _HandleScroller: Handle %x Bar %s(%d) Which %d: %s", handle, (bar==SB_HORZ)?"HORZ" : "VERT", bar, which,lasterror );
-#endif
 
    ZeroMemory( &si, sizeof(si) );
    si.cbSize = sizeof(SCROLLINFO);
    si.fMask = SIF_ALL;
-#ifndef SCROLLBOX_DEBUG
-GetScrollInfo( handle, bar, &si );
-_dw_log( "Error from GetScrollInfo in _HandleScroller: Handle %x Bar %s(%d) Which %d: %s", handle, (bar==SB_HORZ)?"HORZ" : "VERT", bar, which,lasterror );
-#endif
 
    switch(which)
    {
@@ -3215,12 +3234,64 @@ BOOL CALLBACK _scrollwndproc(HWND hwnd, UINT msg, WPARAM mp1, LPARAM mp2)
 {
    switch (msg)
    {
-   case WM_HSCROLL:
-   case WM_VSCROLL:
-      {
-         HWND handle = (HWND)mp2;
-      }
-      break;
+       case WM_HSCROLL:
+       case WM_VSCROLL:
+       {
+            ColorInfo *cinfo = (ColorInfo *)GetWindowLongPtr(hwnd, GWLP_USERDATA);
+            SCROLLINFO hsi, vsi, *si = &hsi;
+            int bar = SB_HORZ;
+            int which = LOWORD(mp1);
+
+            vsi.cbSize = hsi.cbSize = sizeof(SCROLLINFO);
+            vsi.fMask = hsi.fMask = SIF_POS | SIF_RANGE;
+
+            /* Save the current scroll positions */
+            GetScrollInfo(hwnd, SB_HORZ, &hsi);
+            GetScrollInfo(hwnd, SB_VERT, &vsi);
+
+            if(msg == WM_VSCROLL)
+            {
+                bar = SB_VERT;
+                si = &vsi;
+            }
+
+            switch(which)
+            {
+            case SB_THUMBTRACK:
+                si->nPos = HIWORD(mp1);
+                break;
+            /*case SB_PAGEDOWN:*/
+            case SB_PAGELEFT:
+                si->nPos = si->nPos - si->nPage;
+                if(si->nPos < 0)
+                    si->nPos = 0;
+                break;
+            /*case SB_PAGEUP:*/
+            case SB_PAGERIGHT:
+                si->nPos = si->nPos + si->nPage;
+                if(si->nPos > (si->nMax - si->nPage) + 1)
+                    si->nPos = (si->nMax - si->nPage) + 1;
+                break;
+            /*case SB_LINEDOWN:*/
+            case SB_LINELEFT:
+                si->nPos = si->nPos - 1;
+                if(si->nPos < si->nMin)
+                    si->nPos = si->nMin;
+                break;
+            /*case SB_LINEUP:*/
+            case SB_LINERIGHT:
+                si->nPos = si->nPos + 1;
+                if(si->nPos > (si->nMax - si->nPage) + 1)
+                    si->nPos = (si->nMax - si->nPage) + 1;
+                break;
+            }
+
+            /* Position the scrolled box */
+            vsi.fMask = hsi.fMask = SIF_POS | SIF_DISABLENOSCROLL;
+            SetWindowPos(cinfo->combo, 0, -hsi.nPos, -vsi.nPos, 0, 0, SWP_NOACTIVATE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
+            SetScrollInfo(hwnd, bar, si, TRUE);
+       }
+       break;
    }
    return DefWindowProc(hwnd, msg, mp1, mp2);
 }
