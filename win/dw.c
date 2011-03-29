@@ -4578,6 +4578,12 @@ HWND API dw_scrollbox_new(int type, int pad)
     return hwndframe;
 }
 
+/*
+ * Returns the position of the scrollbar in the scrollbox
+ * Parameters:
+ *          handle: Handle to the scrollbox to be queried.
+ *          orient: The vertical or horizontal scrollbar.
+ */
 int API dw_scrollbox_get_pos( HWND handle, int orient )
 {
     SCROLLINFO si;
@@ -4591,7 +4597,7 @@ int API dw_scrollbox_get_pos( HWND handle, int orient )
     si.cbSize = sizeof(SCROLLINFO);
     si.fMask = SIF_POS;
 
-    /* Save the current scroll positions */
+    /* Get the current scroll positions */
     if(!GetScrollInfo(handle, bar, &si))
     {
         return -1;
@@ -4599,6 +4605,12 @@ int API dw_scrollbox_get_pos( HWND handle, int orient )
     return si.nPos;
 }
 
+/*
+ * Gets the range for the scrollbar in the scrollbox.
+ * Parameters:
+ *          handle: Handle to the scrollbox to be queried.
+ *          orient: The vertical or horizontal scrollbar.
+ */
 int API dw_scrollbox_get_range( HWND handle, int orient )
 {
     SCROLLINFO si;
@@ -4612,7 +4624,7 @@ int API dw_scrollbox_get_range( HWND handle, int orient )
     si.cbSize = sizeof(SCROLLINFO);
     si.fMask = SIF_RANGE;
 
-    /* Save the current scroll positions */
+    /* Get the current scroll positions */
     if(!GetScrollInfo(handle, bar, &si))
     {
         return -1;

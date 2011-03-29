@@ -2993,13 +2993,11 @@ HWND dw_box_new(int type, int pad)
    return tmp;
 }
 
-#ifndef INCOMPLETE
 /*
  * Create a new scrollable Box to be packed.
  * Parameters:
  *       type: Either DW_VERT (vertical) or DW_HORZ (horizontal).
  *       pad: Number of pixels to pad around the box.
- * This works fine under GTK+, but is incomplete on other platforms
  */
 HWND dw_scrollbox_new( int type, int pad )
 {
@@ -3079,7 +3077,6 @@ int API dw_scrollbox_get_range(HWND handle, int orient)
    DW_MUTEX_UNLOCK;
    return range;
 }
-#endif
 
 /*
  * Create a new Group Box to be packed.
