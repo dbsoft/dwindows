@@ -985,11 +985,14 @@ DWObject *DWObj;
 {
     void *userdata;
     NSFont *font;
+    NSSize size;
 }
 -(void *)userdata;
 -(void)setUserdata:(void *)input;
 -(void)setFont:(NSFont *)input;
 -(NSFont *)font;
+-(void)setSize:(NSSize)input;
+-(NSSize)size;
 -(void)mouseDown:(NSEvent *)theEvent;
 -(void)mouseUp:(NSEvent *)theEvent;
 -(NSMenu *)menuForEvent:(NSEvent *)theEvent;
@@ -1006,6 +1009,8 @@ DWObject *DWObj;
 -(void)setUserdata:(void *)input { userdata = input; }
 -(void)setFont:(NSFont *)input { [font release]; font = input; [font retain]; }
 -(NSFont *)font { return font; }
+-(void)setSize:(NSSize)input { size = input; }
+-(NSSize)size { return size; }
 -(void)mouseDown:(NSEvent *)theEvent { _event_handler(self, (void *)1, 3); }
 -(void)mouseUp:(NSEvent *)theEvent { _event_handler(self, (void *)1, 4); }
 -(NSMenu *)menuForEvent:(NSEvent *)theEvent { _event_handler(self, (void *)2, 3); return nil; }
@@ -2097,7 +2102,16 @@ static int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *
             }
             else if([handle isMemberOfClass:[DWRender class]])
             {
-                _event_handler(handle, nil, 1);
+                DWRender *render = (DWRender *)handle;
+                NSSize oldsize = [render size];
+                NSSize newsize = [render frame].size;
+                
+                /* Eliminate duplicate configure requests */
+                if(oldsize.width != newsize.width || oldsize.height != newsize.height)
+                {
+                    [render setSize:newsize];
+                    _event_handler(handle, nil, 1);
+                }
             }
             else if([handle isMemberOfClass:[DWSplitBar class]] && size.width > 20 && size.height > 20)
             {
