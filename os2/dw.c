@@ -37,6 +37,7 @@ BOOL APIENTRY WinStretchPointer(HPS hps, LONG x, LONG y, LONG cx, LONG cy, HPOIN
 
 MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2);
 MRESULT EXPENTRY _wndproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2);
+MRESULT EXPENTRY _scrollwndproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2);
 void _do_resize(Box *thisbox, int x, int y);
 void _handle_splitbar_resize(HWND hwnd, float percent, int type, int x, int y);
 int _load_bitmap_file(char *file, HWND handle, HBITMAP *hbm, HDC *hdc, HPS *hps, unsigned long *width, unsigned long *height);
@@ -46,6 +47,7 @@ void _free_menu_data(HWND menu);
 
 char ClassName[] = "dynamicwindows";
 char SplitbarClassName[] = "dwsplitbar";
+char ScrollClassName[] = "dwscroll";
 char *DefaultFont = "9.WarpSans";
 
 HAB dwhab = 0;
@@ -958,6 +960,8 @@ BOOL _MySetWindowPos(HWND hwnd, HWND parent, HWND behind, LONG x, LONG y, LONG c
    return WinSetWindowPos(hwnd, behind, x, height - y - cy, cx, cy, fl);
 }
 
+#define _DW_DEFAULT_SCROLLBAR_WIDTH 16
+
 /* This function calculates how much space the widgets and boxes require
  * and does expansion as necessary.
  */
@@ -1322,6 +1326,66 @@ int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *usedy,
                            width + vectorx, height + vectory, SWP_MOVE | SWP_SIZE | SWP_ZORDER);
                _check_resize_notebook(handle);
             }
+            else if(strncmp(tmpbuf, ScrollClassName, strlen(ScrollClassName)+1)==0)
+            {
+                /* Handle special case of scrollbox */
+                int cx = width + vectorx;
+                int cy = height + vectory;
+				int usedx = 0, usedy = 0, usedpadx = 0, usedpady = 0, depth = 0;
+				HWND box = (HWND)dw_window_get_data(handle, "_dw_resizebox");
+				HWND client = WinWindowFromID(handle, FID_CLIENT);
+				HWND vscroll = WinWindowFromID(handle, FID_VERTSCROLL);
+                HWND hscroll = WinWindowFromID(handle, FID_HORZSCROLL);
+				Box *thisbox = (Box *)WinQueryWindowPtr(box, QWP_USER);
+				int origx, origy;
+                unsigned int hpos = (unsigned int)WinSendMsg(hscroll, SBM_QUERYPOS, 0, 0);
+                unsigned int vpos = (unsigned int)WinSendMsg(vscroll, SBM_QUERYPOS, 0, 0);
+
+                /* Position the scrollbox parts */
+                WinSetWindowPos(handle, HWND_TOP, currentx + pad, currenty + pad, cx, cy, SWP_MOVE | SWP_SIZE | SWP_ZORDER);
+                WinSetWindowPos(client, HWND_TOP, 0, _DW_DEFAULT_SCROLLBAR_WIDTH, cx - _DW_DEFAULT_SCROLLBAR_WIDTH, cy - _DW_DEFAULT_SCROLLBAR_WIDTH, SWP_MOVE | SWP_SIZE | SWP_ZORDER);
+                WinSetWindowPos(hscroll, HWND_TOP, 0, 0, cx - _DW_DEFAULT_SCROLLBAR_WIDTH, _DW_DEFAULT_SCROLLBAR_WIDTH, SWP_MOVE | SWP_SIZE | SWP_ZORDER);
+                WinSetWindowPos(vscroll, HWND_TOP, cx - _DW_DEFAULT_SCROLLBAR_WIDTH, _DW_DEFAULT_SCROLLBAR_WIDTH, _DW_DEFAULT_SCROLLBAR_WIDTH, cy - _DW_DEFAULT_SCROLLBAR_WIDTH, SWP_MOVE | SWP_SIZE | SWP_ZORDER);
+
+				origx = cx = cx - _DW_DEFAULT_SCROLLBAR_WIDTH;
+				origy = cy = cy - _DW_DEFAULT_SCROLLBAR_WIDTH;
+
+                /* Get the required space for the box */
+				_resize_box(thisbox, &depth, cx, cy, &usedx, &usedy, 1, &usedpadx, &usedpady);
+                
+                if(cx < usedx)
+                {
+                    cx = usedx;
+                }
+                if(cy < usedy)
+                {
+                    cy = usedy;
+                }
+
+                /* Setup vertical scroller */
+				WinSendMsg(vscroll, SBM_SETSCROLLBAR, (MPARAM)vpos, MPFROM2SHORT(0, (unsigned short)usedy - origy));
+				WinSendMsg(vscroll, SBM_SETTHUMBSIZE, MPFROM2SHORT((unsigned short)origy, usedy), 0);
+                if(vpos > usedy)
+                {
+					vpos = usedy;
+					WinSendMsg(vscroll, SBM_SETPOS, (MPARAM)vpos, 0);
+				}
+                
+                /* Setup horizontal scroller */
+				WinSendMsg(hscroll, SBM_SETSCROLLBAR, (MPARAM)hpos, MPFROM2SHORT(0, (unsigned short)usedx - origx));
+				WinSendMsg(hscroll, SBM_SETTHUMBSIZE, MPFROM2SHORT((unsigned short)origx, usedx), 0);
+                if(hpos > usedx)
+                {
+					hpos = usedx;
+					WinSendMsg(hscroll, SBM_SETPOS, (MPARAM)hpos, 0);
+				}
+                
+                /* Position the scrolled box */
+                WinSetWindowPos(box, HWND_TOP, 0, -(cy - origy), cx, cy, SWP_MOVE | SWP_SIZE | SWP_ZORDER);
+
+                /* Layout the content of the scrollbox */
+                _do_resize(thisbox, cx, cy);
+            }
             else if(strncmp(tmpbuf, SplitbarClassName, strlen(SplitbarClassName)+1)==0)
             {
                /* Then try the bottom or right box */
@@ -1542,6 +1606,18 @@ MRESULT EXPENTRY _textproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
    }
 
    return WinDefWindowProc(hWnd, msg, mp1, mp2);
+}
+
+/* This procedure handles scrollbox */
+MRESULT EXPENTRY _scrollwndproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
+{
+	switch(msg)
+	{
+	case WM_HSCROLL:
+	case WM_VSCROLL:
+        break;
+	}
+	return WinDefWindowProc(hWnd, msg, mp1, mp2);
 }
 
 void _click_default(HWND handle)
@@ -3484,6 +3560,7 @@ int API dw_init(int newthread, int argc, char *argv[])
 
    rc = WinRegisterClass(dwhab, ClassName, _wndproc, CS_SIZEREDRAW | CS_CLIPCHILDREN, 32);
    rc = WinRegisterClass(dwhab, SplitbarClassName, _splitwndproc, 0L, 32);
+   rc = WinRegisterClass(dwhab, ScrollClassName, _scrollwndproc, 0L, 32);
 
    /* Get the OS/2 version. */
    DosQuerySysInfo(QSV_VERSION_MAJOR, QSV_MS_COUNT,(void *)aulBuffer, 4*sizeof(ULONG));
@@ -4085,7 +4162,7 @@ HWND API dw_box_new(int type, int pad)
    newbox->pad = pad;
    newbox->type = type;
    newbox->count = 0;
-    newbox->grouphwnd = NULLHANDLE;
+   newbox->grouphwnd = NULLHANDLE;
 
    newbox->hwnd = WinCreateWindow(HWND_OBJECT,
                            WC_FRAME,
@@ -4114,7 +4191,25 @@ HWND API dw_box_new(int type, int pad)
  */
 HWND API dw_scrollbox_new(int type, int pad)
 {
-    return dw_box_new(type, pad);
+	HWND hwndframe, box = dw_box_new(type, pad);
+	HWND client, tmpbox = dw_box_new(DW_VERT, 0);
+	WindowData *blah = calloc(sizeof(WindowData), 1);
+	dw_box_pack_start(tmpbox, box, 1, 1, TRUE, TRUE, 0);
+	hwndframe = WinCreateWindow(HWND_OBJECT, ScrollClassName, "", WS_VISIBLE | WS_CLIPCHILDREN,
+								0, 0, 2000, 1000, NULLHANDLE, HWND_TOP, 0, NULL, NULL);
+	WinCreateWindow(hwndframe, WC_SCROLLBAR, "", WS_VISIBLE | SBS_AUTOTRACK | SBS_VERT,
+					0,0,2000,1000, hwndframe, HWND_TOP, FID_VERTSCROLL, NULL, NULL);
+    WinCreateWindow(hwndframe, WC_SCROLLBAR, "", WS_VISIBLE | SBS_AUTOTRACK | SBS_HORZ,
+					0,0,2000,1000, hwndframe, HWND_TOP, FID_HORZSCROLL, NULL, NULL);
+    client = WinCreateWindow(hwndframe, WC_FRAME, "", WS_VISIBLE | WS_CLIPCHILDREN,
+							 0,0,2000,1000, NULLHANDLE, HWND_TOP, FID_CLIENT, NULL, NULL);
+	WinSetParent(tmpbox, client, FALSE);
+	WinSetWindowPtr(hwndframe, QWP_USER, blah);
+	dw_window_set_data(hwndframe, "_dw_resizebox", (void *)tmpbox);
+    dw_window_set_data(hwndframe, "_dw_box", (void *)box);
+	dw_window_set_color(hwndframe, DW_CLR_PALEGRAY, DW_CLR_PALEGRAY);
+	dw_window_set_color(client, DW_CLR_PALEGRAY, DW_CLR_PALEGRAY);
+	return hwndframe;
 }
 
 int API dw_scrollbox_get_pos( HWND handle, int orient )
@@ -5673,9 +5768,16 @@ void API dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, 
 
    if(WinWindowFromID(box, FID_CLIENT))
    {
-      box = WinWindowFromID(box, FID_CLIENT);
-      hsize = TRUE;
-      vsize = TRUE;
+	   HWND intbox = (HWND)dw_window_get_data(box, "_dw_box");
+	   if(intbox)
+	   {
+		   box = intbox;
+	   }
+	   else
+	   {
+		   box = WinWindowFromID(box, FID_CLIENT);
+		   hsize = vsize = TRUE;
+	   }
    }
    _dw_box_pack_end(box, item, width, height, hsize, vsize, pad, funcname);
 }
@@ -8996,9 +9098,16 @@ void API dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize
 
    if(WinWindowFromID(box, FID_CLIENT))
    {
-      box = WinWindowFromID(box, FID_CLIENT);
-      hsize = TRUE;
-      vsize = TRUE;
+ 	   HWND intbox = (HWND)dw_window_get_data(box, "_dw_box");
+	   if(intbox)
+	   {
+		   box = intbox;
+	   }
+	   else
+	   {
+		   box = WinWindowFromID(box, FID_CLIENT);
+		   hsize = vsize = TRUE;
+	   }
    }
    _dw_box_pack_start(box, item, width, height, hsize, vsize, pad, funcname);
 }
