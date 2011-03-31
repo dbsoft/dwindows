@@ -1076,7 +1076,6 @@ DWObject *DWObj;
 -(int)lastAddPoint;
 -(int)lastQueryPoint;
 -(void)setLastQueryPoint:(int)input;
--(int)rowCount;
 -(void)clear;
 -(void)setup;
 -(void)setForegroundColor:(NSColor *)input;
@@ -1218,7 +1217,6 @@ DWObject *DWObj;
 -(int)lastAddPoint { return lastAddPoint; }
 -(int)lastQueryPoint { return lastQueryPoint; }
 -(void)setLastQueryPoint:(int)input { lastQueryPoint = input; }
--(int)rowCount { return (int)[titles count]; }
 -(void)clear { if(data) { [data removeAllObjects]; while([titles count]) { [titles removePointerAtIndex:0]; } } lastAddPoint = 0; }
 -(void)setup
 {
@@ -4713,6 +4711,14 @@ int API dw_container_setup(HWND handle, unsigned long *flags, char **titles, int
             }
             [imagecell release];
         }
+        else if(flags[z] & DW_CFA_RIGHT)
+        {
+            [(NSCell *)[column dataCell] setAlignment:NSRightTextAlignment]; 
+        }
+        else if(flags[z] & DW_CFA_CENTER)
+        {
+            [(NSCell *)[column dataCell] setAlignment:NSCenterTextAlignment]; 
+        }
         [column setEditable:NO];
         [cont addTableColumn:column];
         [cont addColumn:column andType:(int)flags[z]];
@@ -5088,7 +5094,7 @@ void API dw_container_scroll(HWND handle, int direction, long rows)
     DWContainer *cont = handle;
     NSScrollView *sv = [cont scrollview];
     NSScroller *scrollbar = [sv verticalScroller];
-    int rowcount = [cont rowCount];
+    int rowcount = (int)[cont numberOfRowsInTableView:cont];
     float currpos = [scrollbar floatValue];
     float change; 
     
