@@ -1076,6 +1076,7 @@ DWObject *DWObj;
 -(int)lastAddPoint;
 -(int)lastQueryPoint;
 -(void)setLastQueryPoint:(int)input;
+-(int)rowCount;
 -(void)clear;
 -(void)setup;
 -(void)setForegroundColor:(NSColor *)input;
@@ -1217,6 +1218,7 @@ DWObject *DWObj;
 -(int)lastAddPoint { return lastAddPoint; }
 -(int)lastQueryPoint { return lastQueryPoint; }
 -(void)setLastQueryPoint:(int)input { lastQueryPoint = input; }
+-(int)rowCount { return (int)[titles count]; }
 -(void)clear { if(data) { [data removeAllObjects]; while([titles count]) { [titles removePointerAtIndex:0]; } } lastAddPoint = 0; }
 -(void)setup
 {
@@ -5083,11 +5085,46 @@ void API dw_container_delete(HWND handle, int rowcount)
  */
 void API dw_container_scroll(HWND handle, int direction, long rows)
 {
-#if 0
     DWContainer *cont = handle;
     NSScrollView *sv = [cont scrollview];
-#endif
-    NSLog(@"dw_container_scroll() unimplemented\n");
+    NSScroller *scrollbar = [sv verticalScroller];
+    int rowcount = [cont rowCount];
+    float currpos = [scrollbar floatValue];
+    float change = (float)rows/(float)rowcount;
+    
+    switch(direction)
+    {
+        case DW_SCROLL_TOP:
+        {
+            [scrollbar setFloatValue:0];
+            break;
+        }
+        case DW_SCROLL_BOTTOM:
+        {
+            [scrollbar setFloatValue:1];
+            break;
+        }
+        case DW_SCROLL_UP:
+        {
+            float newpos = currpos - change;
+            if(newpos < 0)
+            {
+                newpos = 0;
+            }
+            [scrollbar setFloatValue:newpos];
+            break;
+        }
+        case DW_SCROLL_DOWN:
+        {
+            float newpos = currpos + change;
+            if(newpos > 1)
+            {
+                newpos = 1;
+            }
+            [scrollbar setFloatValue:newpos];
+            break;
+        }
+    }
 }
 
 /*
