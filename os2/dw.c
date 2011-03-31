@@ -1644,11 +1644,7 @@ MRESULT EXPENTRY _scrollwndproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
                 pos = &hpos;
 			}
 
-			if(msg == SB_SLIDERTRACK)
-				return pos;
-
-			res = WinSendMsg(handle, SBM_QUERYRANGE, 0, 0);
-
+    		res = WinSendMsg(handle, SBM_QUERYRANGE, 0, 0);
 			min = SHORT1FROMMP(res);
 			max = SHORT2FROMMP(res);
  
@@ -1658,22 +1654,22 @@ MRESULT EXPENTRY _scrollwndproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
                 *pos = SHORT1FROMMP(mp2);
                 break;
 			case SB_LINEUP:
-				*pos--;
+				(*pos)--;
 				if(*pos < min)
 					*pos = min;
                 break;
 			case SB_LINEDOWN:
-				*pos++;
+				(*pos)++;
 				if(*pos > max)
 					*pos = max;
                 break;
 			case SB_PAGEUP:
-				*pos -= page;
+				(*pos) -= page;
 				if(*pos < min)
 					*pos = min;
                 break;
 			case SB_PAGEDOWN:
-				*pos += page;
+				(*pos) += page;
 				if(*pos > max)
 					*pos = max;
 				break;
@@ -4250,7 +4246,6 @@ HWND API dw_box_new(int type, int pad)
 }
 
 /*
- * INCOMPLETE
  * Create a new scroll Box to be packed.
  * Parameters:
  *       type: Either DW_VERT (vertical) or DW_HORZ (horizontal).
@@ -4279,15 +4274,48 @@ HWND API dw_scrollbox_new(int type, int pad)
 	return hwndframe;
 }
 
+/*
+ * Returns the position of the scrollbar in the scrollbox
+ * Parameters:
+ *          handle: Handle to the scrollbox to be queried.
+ *          orient: The vertical or horizontal scrollbar.
+ */
 int API dw_scrollbox_get_pos( HWND handle, int orient )
 {
-   return 0;
+	HWND scroll;
+
+	if(orient == DW_VERT)
+	{
+		scroll = WinWindowFromID(handle, FID_VERTSCROLL);
+	}
+	else
+	{
+		scroll = WinWindowFromID(handle, FID_HORZSCROLL);
+	}
+	return (int)WinSendMsg(scroll, SBM_QUERYPOS, 0, 0);
 }
 
+/*
+ * Gets the range for the scrollbar in the scrollbox.
+ * Parameters:
+ *          handle: Handle to the scrollbox to be queried.
+ *          orient: The vertical or horizontal scrollbar.
+ */
 int API dw_scrollbox_get_range( HWND handle, int orient )
 {
-   return 0;
+	HWND scroll;
+
+	if(orient == DW_VERT)
+	{
+		scroll = WinWindowFromID(handle, FID_VERTSCROLL);
+	}
+	else
+	{
+		scroll = WinWindowFromID(handle, FID_HORZSCROLL);
+	}
+	return SHORT2FROMMP(WinSendMsg(scroll, SLM_QUERYSLIDERINFO, MPFROM2SHORT(SMA_SLIDERARMPOSITION,SMA_RANGEVALUE), 0));
 }
+
 /*
  * Create a new Group Box to be packed.
  * Parameters:
