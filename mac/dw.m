@@ -5090,7 +5090,15 @@ void API dw_container_scroll(HWND handle, int direction, long rows)
     NSScroller *scrollbar = [sv verticalScroller];
     int rowcount = [cont rowCount];
     float currpos = [scrollbar floatValue];
-    float change = (float)rows/(float)rowcount;
+    float change; 
+    
+    /* Safety check */
+    if(rowcount < 1)
+    {
+        return;
+    }
+    
+    change = (float)rows/(float)rowcount;
     
     switch(direction)
     {
