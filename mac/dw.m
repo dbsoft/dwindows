@@ -5300,8 +5300,10 @@ void API dw_container_optimize(HWND handle)
     DW_MUTEX_LOCK;
     DWContainer *cont = handle;
     [cont optimize];
+#if 0
     /* All resizable columns should expand */
     [cont setColumnAutoresizingStyle:NSTableViewUniformColumnAutoresizingStyle];
+#endif
     DW_MUTEX_UNLOCK;
 }
 
