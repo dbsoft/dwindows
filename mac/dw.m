@@ -4753,10 +4753,12 @@ int API dw_container_setup(HWND handle, unsigned long *flags, char **titles, int
         else if(flags[z] & DW_CFA_RIGHT)
         {
             [(NSCell *)[column dataCell] setAlignment:NSRightTextAlignment]; 
+            [(NSCell *)[column headerCell] setAlignment:NSRightTextAlignment]; 
         }
         else if(flags[z] & DW_CFA_CENTER)
         {
             [(NSCell *)[column dataCell] setAlignment:NSCenterTextAlignment]; 
+            [(NSCell *)[column headerCell] setAlignment:NSCenterTextAlignment]; 
         }
         [column setEditable:NO];
         [cont addTableColumn:column];
