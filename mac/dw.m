@@ -1078,6 +1078,7 @@ DWObject *DWObj;
 -(void)setLastQueryPoint:(int)input;
 -(void)clear;
 -(void)setup;
+-(void)optimize;
 -(void)setForegroundColor:(NSColor *)input;
 -(void)doubleClicked:(id)sender;
 -(void)keyUp:(NSEvent *)theEvent;
@@ -1225,6 +1226,44 @@ DWObject *DWObj;
     types = [[[NSMutableArray alloc] init] retain];
     titles = [[NSPointerArray pointerArrayWithWeakObjects] retain];
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(selectionChanged:) name:NSTableViewSelectionDidChangeNotification object:self];
+}
+-(void)optimize
+{
+    if(tvcols)
+    {
+        int z;
+        int colcount = (int)[tvcols count];
+        int rowcount = (int)[self numberOfRowsInTableView:self];
+        
+        for(z=0;z<colcount;z++)
+        {
+            NSTableColumn *column = [tvcols objectAtIndex:z];
+            if([column resizingMask] != NSTableColumnNoResizing)
+            {
+                if(rowcount > 0)
+                {
+                    int x;
+                    int width = 0;
+                
+                    for(x=0;x<rowcount;x++)
+                    {
+                        NSCell *cell = [self preparedCellAtColumn:z row:x];
+                        int thiswidth = [cell cellSize].width;
+                    
+                        if(thiswidth > width)
+                        {
+                            width = thiswidth;
+                        }
+                    }
+                    [column setWidth:width];
+                }
+                else
+                {
+                    [column sizeToFit];
+                }
+            }
+        }
+    }
 }
 -(void)setForegroundColor:(NSColor *)input 
 {
@@ -5260,7 +5299,8 @@ void API dw_container_optimize(HWND handle)
     int _locked_by_me = FALSE;
     DW_MUTEX_LOCK;
     DWContainer *cont = handle;
-    /*[cont sizeToFit];*/
+    [cont optimize];
+    /* All resizable columns should expand */
     [cont setColumnAutoresizingStyle:NSTableViewUniformColumnAutoresizingStyle];
     DW_MUTEX_UNLOCK;
 }
