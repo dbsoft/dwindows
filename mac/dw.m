@@ -470,9 +470,6 @@ DWObject *DWObj;
 
 /* Subclass for a box type */
 @interface DWBox : NSView
-#ifdef BUILDING_FOR_SNOW_LEOPARD
-<NSWindowDelegate>
-#endif
 {
     Box *box;
     void *userdata;
@@ -572,6 +569,9 @@ DWObject *DWObj;
 
 /* Subclass for a top-level window */
 @interface DWView : DWBox
+#ifdef BUILDING_FOR_SNOW_LEOPARD
+<NSWindowDelegate>
+#endif
 {
     NSMenu *windowmenu;
 }
@@ -585,9 +585,9 @@ DWObject *DWObj;
 @implementation DWView
 -(BOOL)windowShouldClose:(id)sender
 {
-    if(_event_handler(self, nil, 6) == FALSE)
-        return NO;
-    return YES;
+    if(_event_handler(sender, nil, 6) == FALSE)
+        return YES;
+    return NO;
 }
 - (void)viewDidMoveToWindow
 {
