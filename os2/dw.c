@@ -1615,6 +1615,18 @@ MRESULT EXPENTRY _scrollwndproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 {
 	switch(msg)
 	{
+      case WM_PAINT:
+         {
+            HPS hpsPaint;
+            RECTL rclPaint;
+
+            hpsPaint = WinBeginPaint(hWnd, 0, 0);
+            WinQueryWindowRect(hWnd, &rclPaint);
+            WinFillRect(hpsPaint, &rclPaint, CLR_PALEGRAY);
+            WinEndPaint(hpsPaint);
+
+            break;
+         }
 	case WM_HSCROLL:
 	case WM_VSCROLL:
 		{
