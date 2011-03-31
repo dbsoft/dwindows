@@ -981,7 +981,7 @@ DWObject *DWObj;
 @end
 
 /* Subclass for a render area type */
-@interface DWRender : NSView
+@interface DWRender : NSControl
 {
     void *userdata;
     NSFont *font;
