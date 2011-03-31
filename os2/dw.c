@@ -1381,7 +1381,9 @@ int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *usedy,
 				}
                 
                 /* Position the scrolled box */
-                WinSetWindowPos(box, HWND_TOP, 0, -(cy - origy), cx, cy, SWP_MOVE | SWP_SIZE | SWP_ZORDER);
+				WinSetWindowPos(box, HWND_TOP, 0, -(cy - origy), cx, cy, SWP_MOVE | SWP_SIZE | SWP_ZORDER);
+
+                dw_window_set_data(handle, "_dw_cy", (void *)(cy - origy));
 
                 /* Layout the content of the scrollbox */
                 _do_resize(thisbox, cx, cy);
@@ -1615,7 +1617,72 @@ MRESULT EXPENTRY _scrollwndproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 	{
 	case WM_HSCROLL:
 	case WM_VSCROLL:
-        break;
+		{
+			MPARAM res;
+			int *pos, min, max, page, which = SHORT2FROMMP(mp2);
+			HWND handle, client = WinWindowFromID(hWnd, FID_CLIENT);
+			HWND box = (HWND)dw_window_get_data(hWnd, "_dw_resizebox");
+			HWND hscroll = WinWindowFromID(hWnd, FID_HORZSCROLL);
+			HWND vscroll = WinWindowFromID(hWnd, FID_VERTSCROLL);
+            int hpos = dw_scrollbar_get_pos(hscroll);
+            int vpos = dw_scrollbar_get_pos(vscroll);
+			int cy = (int)dw_window_get_data(hWnd, "_dw_cy");
+            RECTL rect;
+
+			WinQueryWindowRect(client, &rect);
+
+			if(msg == WM_VSCROLL)
+			{
+				page = rect.yTop - rect.yBottom;
+				handle = vscroll;
+                pos = &vpos;
+			}
+			else
+			{
+				page = rect.xRight - rect.xLeft;
+				handle = hscroll;
+                pos = &hpos;
+			}
+
+			if(msg == SB_SLIDERTRACK)
+				return pos;
+
+			res = WinSendMsg(handle, SBM_QUERYRANGE, 0, 0);
+
+			min = SHORT1FROMMP(res);
+			max = SHORT2FROMMP(res);
+ 
+			switch(which)
+			{
+			case SB_SLIDERTRACK:
+                *pos = SHORT1FROMMP(mp2);
+                break;
+			case SB_LINEUP:
+				*pos--;
+				if(*pos < min)
+					*pos = min;
+                break;
+			case SB_LINEDOWN:
+				*pos++;
+				if(*pos > max)
+					*pos = max;
+                break;
+			case SB_PAGEUP:
+				*pos -= page;
+				if(*pos < min)
+					*pos = min;
+                break;
+			case SB_PAGEDOWN:
+				*pos += page;
+				if(*pos > max)
+					*pos = max;
+				break;
+			}
+            WinSendMsg(handle, SBM_SETPOS, (MPARAM)*pos, 0);
+            /* Position the scrolled box */
+            WinSetWindowPos(box, HWND_TOP, -hpos, -(cy - vpos), 0, 0, SWP_MOVE);
+			break;
+		}
 	}
 	return WinDefWindowProc(hWnd, msg, mp1, mp2);
 }
