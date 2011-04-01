@@ -718,7 +718,7 @@ DWObject *DWObj;
 /* Subclass for a textfield that supports vertical centering */
 @interface DWTextFieldCell : NSTextFieldCell
 {
-	BOOL vcenter;
+    BOOL vcenter;
 }
 -(NSRect)drawingRectForBounds:(NSRect)theRect;
 -(void)setVCenter:(BOOL)input;
@@ -727,8 +727,8 @@ DWObject *DWObj;
 @implementation DWTextFieldCell
 -(NSRect)drawingRectForBounds:(NSRect)theRect
 {
-	/* Get the parent's idea of where we should draw */
-	NSRect newRect = [super drawingRectForBounds:theRect];
+    /* Get the parent's idea of where we should draw */
+    NSRect newRect = [super drawingRectForBounds:theRect];
     
     /* If we are being vertically centered */
     if(vcenter)
@@ -736,16 +736,16 @@ DWObject *DWObj;
         /* Get our ideal size for current text */
         NSSize textSize = [self cellSizeForBounds:theRect];
         
-		/* Center that in the proposed rect */
-		float heightDelta = newRect.size.height - textSize.height;	
-		if (heightDelta > 0)
-		{
-			newRect.size.height -= heightDelta;
-			newRect.origin.y += (heightDelta / 2);
-		}
-	}
+        /* Center that in the proposed rect */
+        float heightDelta = newRect.size.height - textSize.height;	
+        if (heightDelta > 0)
+        {
+            newRect.size.height -= heightDelta;
+            newRect.origin.y += (heightDelta / 2);
+        }
+    }
 	
-	return newRect;
+    return newRect;
 }
 -(void)setVCenter:(BOOL)input { vcenter = input; }
 @end
