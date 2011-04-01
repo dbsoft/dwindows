@@ -6156,6 +6156,70 @@ void dw_container_clear(HWND handle, int redraw)
  */
 void dw_container_scroll(HWND handle, int direction, long rows)
 {
+   GtkWidget *cont;
+   int _locked_by_me = FALSE;
+
+   DW_MUTEX_LOCK;
+   cont = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user");
+   
+   /* Make sure it is the correct tree type */
+   if(cont && GTK_IS_TREE_VIEW(cont) && g_object_get_data(G_OBJECT(cont), "_dw_tree_type") == GINT_TO_POINTER(_DW_TREE_TYPE_CONTAINER))
+   {
+      GtkAdjustment *adjust = gtk_tree_view_get_vadjustment(GTK_TREE_VIEW(cont));
+      
+      if(adjust)
+      {
+         gint rowcount = (gint)g_object_get_data(G_OBJECT(cont), "_dw_rowcount");
+         gdouble currpos = gtk_adjustment_get_value(adjust);
+         gdouble upper = gtk_adjustment_get_upper(adjust);
+         gdouble lower = gtk_adjustment_get_lower(adjust);
+         gdouble change; 
+       
+         /* Safety check */
+         if(rowcount < 1)
+         {
+            DW_MUTEX_UNLOCK;
+            return;
+         }
+
+         change = ((gdouble)rows/(gdouble)rowcount) * (upper - lower);
+
+         switch(direction)
+         {
+           case DW_SCROLL_TOP:
+           {
+               gtk_adjustment_set_value(adjust, lower);
+               break;
+           }
+           case DW_SCROLL_BOTTOM:
+           {
+               gtk_adjustment_set_value(adjust, upper);
+               break;
+           }
+           case DW_SCROLL_UP:
+           {
+               gdouble newpos = currpos - change;
+               if(newpos < lower)
+               {
+                   newpos = lower;
+               }
+               gtk_adjustment_set_value(adjust, newpos);
+               break;
+           }
+           case DW_SCROLL_DOWN:
+           {
+               gdouble newpos = currpos + change;
+               if(newpos > upper)
+               {
+                   newpos = upper;
+               }
+               gtk_adjustment_set_value(adjust, newpos);
+               break;
+           }
+         }
+      }
+   }
+   DW_MUTEX_UNLOCK;
 }
 
 /*
