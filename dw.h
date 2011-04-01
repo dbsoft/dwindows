@@ -323,7 +323,7 @@ void _dw_default_font(char *fontname);
 #define DW_DT_CENTER             2 /* NSCenterTextAlignment */
 #define DW_DT_RIGHT              1 /* NSRightTextAlignment */
 #define DW_DT_TOP                0
-#define DW_DT_VCENTER            0
+#define DW_DT_VCENTER            (1 << 10)
 #define DW_DT_BOTTOM             0
 #define DW_DT_HALFTONE           0
 #define DW_DT_MNEMONIC           0
