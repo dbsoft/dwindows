@@ -715,6 +715,41 @@ DWObject *DWObj;
 -(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); [super dealloc]; }
 @end
 
+/* Subclass for a textfield that supports vertical centering */
+@interface DWTextFieldCell : NSTextFieldCell
+{
+	BOOL vcenter;
+}
+-(NSRect)drawingRectForBounds:(NSRect)theRect;
+-(void)setVCenter:(BOOL)input;
+@end
+
+@implementation DWTextFieldCell
+-(NSRect)drawingRectForBounds:(NSRect)theRect
+{
+	/* Get the parent's idea of where we should draw */
+	NSRect newRect = [super drawingRectForBounds:theRect];
+    
+    /* If we are being vertically centered */
+    if(vcenter)
+    {
+        /* Get our ideal size for current text */
+        NSSize textSize = [self cellSizeForBounds:theRect];
+        
+		/* Center that in the proposed rect */
+		float heightDelta = newRect.size.height - textSize.height;	
+		if (heightDelta > 0)
+		{
+			newRect.size.height -= heightDelta;
+			newRect.origin.y += (heightDelta / 2);
+		}
+	}
+	
+	return newRect;
+}
+-(void)setVCenter:(BOOL)input { vcenter = input; }
+@end
+
 /* Subclass for a entryfield type */
 @interface DWEntryField : NSTextField
 {
@@ -6482,8 +6517,11 @@ void API dw_window_set_style(HWND handle, ULONG style, ULONG mask)
     {
         NSTextField *tf = object;
 
-        /* TODO: See if we need to switch to a bitmask */
-        [[tf cell] setAlignment:style];
+        [[tf cell] setAlignment:(style & 0xF)];
+        if(style & DW_DT_VCENTER)
+        {
+            [[tf cell] setVCenter:YES];
+        }
     }
     else if([object isMemberOfClass:[NSTextView class]])
     {
@@ -8219,6 +8257,7 @@ int API dw_init(int newthread, int argc, char *argv[])
     NSThread *thread = [[ NSThread alloc] initWithTarget:DWObj selector:@selector(uselessThread:) object:nil];
     [thread start];
     [thread release];
+    [NSTextField setCellClass:[DWTextFieldCell class]];
     return 0;
 }
 
