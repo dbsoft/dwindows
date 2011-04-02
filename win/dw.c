@@ -5827,7 +5827,7 @@ void API dw_window_set_bitmap(HWND handle, unsigned long id, char *filename)
 
    if(id)
    {
-      hbitmap = LoadBitmap(DWInstance, MAKEINTRESOURCE(id));
+      hbitmap = LoadImage(DWInstance, MAKEINTRESOURCE(id), IMAGE_BITMAP, 0, 0, LR_LOADMAP3DCOLORS | LR_SHARED);
       icon = LoadImage(DWInstance, MAKEINTRESOURCE(id), IMAGE_ICON, 0, 0, LR_SHARED);
    }
    else if(filename)
