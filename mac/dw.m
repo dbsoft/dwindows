@@ -1284,15 +1284,24 @@ DWObject *DWObj;
                     {
                         NSCell *cell = [self preparedCellAtColumn:z row:x];
                         int thiswidth = [cell cellSize].width;
+                        
+                        /* Check the image inside the cell to get its width */
+                        if([cell isMemberOfClass:[NSImageCell class]])
+                        {
+                            int index = (int)(x * [tvcols count]) + z;
+                            NSImage *image = [data objectAtIndex:index];
+                            if([image isMemberOfClass:[NSImage class]])
+                            {
+                                thiswidth = [image size].width;
+                            }
+                        }
                     
                         if(thiswidth > width)
                         {
                             width = thiswidth;
                         }
                     }
-                    /* TODO: Figure out why calculating the cell width does not work for
-                     * image cell types.  In the meantime default the optimized width to 16.
-                     */
+                    /* If the image is missing default the optimized width to 16. */
                     if(!width && [[types objectAtIndex:z] intValue] & DW_CFA_BITMAPORICON)
                     {
                         width = 16;
