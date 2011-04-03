@@ -1290,7 +1290,18 @@ DWObject *DWObj;
                             width = thiswidth;
                         }
                     }
-                    [column setWidth:width];
+                    /* TODO: Figure out why calculating the cell width does not work for
+                     * image cell types.  In the meantime default the optimized width to 16.
+                     */
+                    if(!width && [[types objectAtIndex:z] intValue] & DW_CFA_BITMAPORICON)
+                    {
+                        width = 16;
+                    }
+                    /* Sanity check... don't set the width to 0 */
+                    if(width)
+                    {
+                        [column setWidth:width];
+                    }
                 }
                 else
                 {
@@ -6558,7 +6569,10 @@ void API dw_window_default(HWND handle, HWND defaultitem)
 {
     NSWindow *window = handle;
     
-    [window setInitialFirstResponder:defaultitem];
+    if([window isKindOfClass:[NSWindow class]] && defaultitem)
+    {
+        [window setInitialFirstResponder:defaultitem];
+    }
 }
 
 /*

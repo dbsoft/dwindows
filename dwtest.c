@@ -587,7 +587,7 @@ fprintf(stderr,"In cb: container: %x containerinfo: %x icon: %x\n", (int)contain
    dw_filesystem_change_file(container, 0, "new data", fileicon);
    size = 999;
 fprintf(stderr,"In cb: container: %x containerinfo: %x icon: %x\n", (int)container, (int)containerinfo, (int)fileicon);
-   dw_filesystem_change_item(container, 0, 0, &size);
+   dw_filesystem_change_item(container, 1, 0, &size);
    return 0;
 }
 
@@ -806,12 +806,13 @@ void tree_add(void)
 
 void container_add(void)
 {
-   char *titles[3];
+   char *titles[4];
    char *names[3];
    char buffer[100];
-   unsigned long flags[3] = {  DW_CFA_ULONG | DW_CFA_RIGHT | DW_CFA_HORZSEPARATOR | DW_CFA_SEPARATOR,
-   DW_CFA_TIME | DW_CFA_CENTER | DW_CFA_HORZSEPARATOR | DW_CFA_SEPARATOR,
-   DW_CFA_DATE | DW_CFA_LEFT | DW_CFA_HORZSEPARATOR | DW_CFA_SEPARATOR };
+   unsigned long flags[4] = {   DW_CFA_BITMAPORICON | DW_CFA_LEFT | DW_CFA_HORZSEPARATOR | DW_CFA_SEPARATOR,
+                                DW_CFA_ULONG | DW_CFA_RIGHT | DW_CFA_HORZSEPARATOR | DW_CFA_SEPARATOR,
+                                DW_CFA_TIME | DW_CFA_CENTER | DW_CFA_HORZSEPARATOR | DW_CFA_SEPARATOR,
+                                DW_CFA_DATE | DW_CFA_LEFT | DW_CFA_HORZSEPARATOR | DW_CFA_SEPARATOR };
    int z;
    CTIME time;
    CDATE date;
@@ -830,11 +831,12 @@ void container_add(void)
    container_status = dw_status_text_new("", 0);
    dw_box_pack_start( notebookbox4, container_status, 100, 20, TRUE, FALSE, 1);
 
-   titles[0] = "Size";
-   titles[1] = "Time";
-   titles[2] = "Date";
+   titles[0] = "Type";
+   titles[1] = "Size";
+   titles[2] = "Time";
+   titles[3] = "Date";
 
-   dw_filesystem_setup(container, flags, titles, 3);
+   dw_filesystem_setup(container, flags, titles, 4);
    containerinfo = dw_container_alloc(container, 3);
 
    for(z=0;z<3;z++)
@@ -848,17 +850,18 @@ void container_add(void)
       else thisicon = fileicon;
 fprintf(stderr,"Initial: container: %x containerinfo: %x icon: %x\n", (int)container, (int)containerinfo, (int)thisicon);
       dw_filesystem_set_file(container, containerinfo, z, buffer, thisicon);
-      dw_filesystem_set_item(container, containerinfo, 0, z, &size);
+      dw_filesystem_set_item(container, containerinfo, 0, z, &thisicon);      
+      dw_filesystem_set_item(container, containerinfo, 1, z, &size);
 
       time.seconds = z+10;
       time.minutes = z+10;
       time.hours = z+10;
-      dw_filesystem_set_item(container, containerinfo, 1, z, &time);
+      dw_filesystem_set_item(container, containerinfo, 2, z, &time);
 
       date.day = z+10;
       date.month = z+10;
       date.year = z+2000;
-      dw_filesystem_set_item(container, containerinfo, 2, z, &date);
+      dw_filesystem_set_item(container, containerinfo, 3, z, &date);
 
       dw_container_set_row_title(containerinfo, z, names[z]);
    }
@@ -868,9 +871,10 @@ fprintf(stderr,"Initial: container: %x containerinfo: %x icon: %x\n", (int)conta
    containerinfo = dw_container_alloc(container, 1);
    dw_filesystem_set_file(container, containerinfo, 0, strdup("Yikes"), foldericon);
    size = 324;
-   dw_filesystem_set_item(container, containerinfo, 0, 0, &size);
-   dw_filesystem_set_item(container, containerinfo, 1, 0, &time);
-   dw_filesystem_set_item(container, containerinfo, 2, 0, &date);
+   dw_filesystem_set_item(container, containerinfo, 0, 0, &foldericon);
+   dw_filesystem_set_item(container, containerinfo, 1, 0, &size);
+   dw_filesystem_set_item(container, containerinfo, 2, 0, &time);
+   dw_filesystem_set_item(container, containerinfo, 3, 0, &date);
    dw_container_set_row_title(containerinfo, 0, strdup("Extra"));
    
    dw_container_insert(container, containerinfo, 1);
