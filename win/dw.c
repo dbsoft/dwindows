@@ -4543,7 +4543,6 @@ HWND API dw_box_new(int type, int pad)
 }
 
 /*
- * INCOMPLETE
  * Create a new scroll Box to be packed.
  * Parameters:
  *       type: Either DW_VERT (vertical) or DW_HORZ (horizontal).
