@@ -1377,7 +1377,7 @@ int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *usedy,
                 Box *thisbox = (Box *)GetWindowLongPtr(cinfo->combo, GWLP_USERDATA);
                 SCROLLINFO hsi, vsi;
                 RECT rect;
-                
+
                 vsi.cbSize = hsi.cbSize = sizeof(SCROLLINFO);
                 vsi.fMask = hsi.fMask = SIF_POS;
 
@@ -1395,7 +1395,7 @@ int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *usedy,
 
                 /* Get the required space for the box */
                 _resize_box(thisbox, &depth, cx, cy, &usedx, &usedy, 1, &usedpadx, &usedpady);
-                
+
                 if(cx < usedx)
                 {
                     cx = usedx;
@@ -1551,33 +1551,29 @@ int _HandleScroller(HWND handle, int bar, int pos, int which)
 
    SendMessage(handle, SBM_GETSCROLLINFO, 0, (LPARAM)&si);
 
-   ZeroMemory( &si, sizeof(si) );
-   si.cbSize = sizeof(SCROLLINFO);
-   si.fMask = SIF_ALL;
-
    switch(which)
    {
    case SB_THUMBTRACK:
       return pos;
-   /*case SB_PAGEDOWN:*/
+   /*case SB_PAGEUP:*/
    case SB_PAGELEFT:
       pos = si.nPos - si.nPage;
       if(pos < si.nMin)
          pos = si.nMin;
       return pos;
-   /*case SB_PAGEUP:*/
+   /*case SB_PAGEDOWN:*/
    case SB_PAGERIGHT:
       pos = si.nPos + si.nPage;
       if(pos > (si.nMax - si.nPage) + 1)
          pos = (si.nMax - si.nPage) + 1;
       return pos;
-   /*case SB_LINEDOWN:*/
+   /*case SB_LINEUP:*/
    case SB_LINELEFT:
       pos = si.nPos - 1;
       if(pos < si.nMin)
          pos = si.nMin;
       return pos;
-   /*case SB_LINEUP:*/
+   /*case SB_LINEDOWN:*/
    case SB_LINERIGHT:
       pos = si.nPos + 1;
       if(pos > (si.nMax - si.nPage) + 1)
@@ -7829,10 +7825,10 @@ void API dw_filesystem_set_file(HWND handle, void *pointer, int row, char *filen
 {
    LV_ITEM lvi;
    int item = 0;
-   
+
    if(pointer)
    {
-	   item = (int)dw_window_get_data(handle, "_dw_insertitem");
+      item = (int)dw_window_get_data(handle, "_dw_insertitem");
    }
 
    lvi.iItem = row + item;
@@ -7875,10 +7871,10 @@ void API dw_container_set_item(HWND handle, void *pointer, int column, int row, 
    LV_ITEM lvi;
    char textbuffer[100], *destptr = textbuffer;
    int item = 0;
-   
+
    if(pointer)
    {
-	   item = (int)dw_window_get_data(handle, "_dw_insertitem");
+      item = (int)dw_window_get_data(handle, "_dw_insertitem");
    }
 
    if(!cinfo || !cinfo->flags || !data)
@@ -8063,10 +8059,10 @@ void _dw_container_set_row_title(HWND handle, void *pointer, int row, char *titl
 {
    LV_ITEM lvi;
    int item = 0;
-   
+
    if(pointer)
    {
-	   item = (int)dw_window_get_data(handle, "_dw_insertitem");
+      item = (int)dw_window_get_data(handle, "_dw_insertitem");
    }
 
    lvi.iItem = row + item;
@@ -8088,7 +8084,7 @@ void _dw_container_set_row_title(HWND handle, void *pointer, int row, char *titl
  */
 void API dw_container_set_row_title(void *pointer, int row, char *title)
 {
-	_dw_container_set_row_title(pointer, pointer, row, title);
+   _dw_container_set_row_title(pointer, pointer, row, title);
 }
 
 /*
@@ -8100,7 +8096,7 @@ void API dw_container_set_row_title(void *pointer, int row, char *title)
  */
 void API dw_container_change_row_title(HWND handle, int row, char *title)
 {
-	_dw_container_set_row_title(handle, NULL, row, title);
+   _dw_container_set_row_title(handle, NULL, row, title);
 }
 
 /*
