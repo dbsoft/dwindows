@@ -1117,7 +1117,7 @@ DWObject *DWObj;
 -(void)setForegroundColor:(NSColor *)input;
 -(void)doubleClicked:(id)sender;
 -(void)keyUp:(NSEvent *)theEvent;
--(void)tableView:(NSTableView*)tableView mouseDownInHeaderOfTableColumn:(NSTableColumn *)tableColumn;
+-(void)tableView:(NSTableView *)tableView didClickTableColumn:(NSTableColumn *)tableColumn;
 -(void)selectionChanged:(id)sender;
 -(NSMenu *)menuForEvent:(NSEvent *)event;
 @end
@@ -1348,7 +1348,7 @@ DWObject *DWObj;
     [super keyUp:theEvent];
 }
 
--(void)tableView:(NSTableView *)tableView mouseDownInHeaderOfTableColumn:(NSTableColumn *)tableColumn;
+-(void)tableView:(NSTableView *)tableView didClickTableColumn:(NSTableColumn *)tableColumn
 {
     NSUInteger index = [tvcols indexOfObject:tableColumn];
     
