@@ -15,7 +15,7 @@
 #include <sys/mnttab.h>
 #include <sys/param.h>
 #include <sys/mount.h>
-#include <sys/statfs.h>
+#include <sys/statvfs.h>
 #else
 #include <mntent.h>
 #include <sys/vfs.h>
@@ -117,7 +117,7 @@ long double API drivefree(int drive)
 #elif defined(__sun__)
 	FILE *fp = fopen("/etc/mnttab", "r");
 	struct mnttab mnt;
-	struct statfs sfs;
+	struct statvfs sfs;
 	int index = 1;
 
 	if(fp)
@@ -130,9 +130,9 @@ long double API drivefree(int drive)
 
 				if(mnt.mnt_mountp)
 				{
-					if(!statfs(mnt.mnt_mountp, &sfs, sizeof(struct statfs), 0))
+					if(!statvfs(mnt.mnt_mountp, &sfs))
 					{
-						size = (long double)((double)sfs.f_bsize * (double)sfs.f_bfree);
+						size = (long double)((double)sfs.f_bsize * (double)sfs.f_bavail);
 					}
 				}
 				fclose(fp);
@@ -219,7 +219,7 @@ long double API drivesize(int drive)
 #elif defined(__sun__)
 	FILE *fp = fopen("/etc/mnttab", "r");
 	struct mnttab mnt;
-	struct statfs sfs;
+	struct statvfs sfs;
 	int index = 1;
 
 	if(fp)
@@ -232,7 +232,7 @@ long double API drivesize(int drive)
 
 				if(mnt.mnt_mountp)
 				{
-					if(!statfs(mnt.mnt_mountp, &sfs, sizeof(struct statfs), 0))
+					if(!statvfs(mnt.mnt_mountp, &sfs))
 					{
 						size = (long double)((double)sfs.f_bsize * (double)sfs.f_blocks);
 					}
@@ -318,7 +318,7 @@ int API isdrive(int drive)
 #elif defined(__sun__)
 	FILE *fp = fopen("/etc/mnttab", "r");
 	struct mnttab mnt;
-	struct statfs sfs;
+	struct statvfs sfs;
 	int index = 1;
 
 	if(fp)
@@ -330,7 +330,7 @@ int API isdrive(int drive)
 				fclose(fp);
 				if(mnt.mnt_mountp)
 				{
-					if(!statfs(mnt.mnt_mountp, &sfs, sizeof(struct statfs), 0) && sfs.f_blocks)
+					if(!statvfs(mnt.mnt_mountp, &sfs) && sfs.f_blocks)
 						return 1;
 				}
 				return 0;
