@@ -22,6 +22,7 @@
 #endif
 #endif
 #include <time.h>
+#include <errno.h>
 
 #if defined(__UNIX__) || defined(__MAC__)
 void msleep(long period)
@@ -31,8 +32,13 @@ void msleep(long period)
 	struct timespec req;
 
 	req.tv_sec = 0;
+	if(period >= 1000)
+	{
+		req.tv_sec = (int)(period / 1000);
+		period -= (req.tv_sec * 1000);
+	}
 	req.tv_nsec = period * 10000000;
-
+	
 	nanosleep(&req, NULL);
 #else
 	usleep(period * 1000);
