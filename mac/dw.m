@@ -6577,8 +6577,9 @@ void API dw_window_set_style(HWND handle, ULONG style, ULONG mask)
 void API dw_window_default(HWND handle, HWND defaultitem)
 {
     NSWindow *window = handle;
+    id object = defaultitem;
     
-    if([window isKindOfClass:[NSWindow class]] && defaultitem)
+    if([window isKindOfClass:[NSWindow class]] && [object isKindOfClass:[NSControl class]])
     {
         [window setInitialFirstResponder:defaultitem];
     }
