@@ -2199,6 +2199,12 @@ static int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *
                 DWRender *render = (DWRender *)handle;
                 NSSize oldsize = [render size];
                 NSSize newsize = [render frame].size;
+                NSWindow *window = [render window];
+                
+                if([window preferredBackingLocation] != NSWindowBackingLocationVideoMemory)
+                {
+                    [window setPreferredBackingLocation:NSWindowBackingLocationVideoMemory];
+                }
                 
                 /* Eliminate duplicate configure requests */
                 if(oldsize.width != newsize.width || oldsize.height != newsize.height)
@@ -6303,7 +6309,6 @@ HWND API dw_window_new(HWND hwndOwner, char *title, ULONG flStyle)
                         backing:NSBackingStoreBuffered
                         defer:false];
 
-    [window setPreferredBackingLocation:NSWindowBackingLocationVideoMemory];
     [window setTitle:[ NSString stringWithUTF8String:title ]];
 
     DWView *view = [[DWView alloc] init];
