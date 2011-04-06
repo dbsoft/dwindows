@@ -222,6 +222,7 @@ typedef struct
 
 static DWPrivatePixmap *_PixmapArray = NULL;
 static int _PixmapCount = 0;
+GObject *_DWObject = NULL;
 
 typedef struct
 {
@@ -2088,6 +2089,9 @@ int dw_int_init(DWResources *res, int newthread, int *argc, char **argv[])
 
    for(z=0;z<DW_THREAD_LIMIT;z++)
       _dw_thread_list[z] = (DWTID)-1;
+    
+   /* Create a global object for glib activities */
+   _DWObject = g_object_new(G_TYPE_OBJECT, NULL);
 
    gtk_rc_parse_string("style \"gtk-tooltips-style\" { bg[NORMAL] = \"#eeee00\" } widget \"gtk-tooltips\" style \"gtk-tooltips-style\"");
 
@@ -10355,6 +10359,31 @@ void *dw_window_get_data(HWND window, char *dataname)
    return ret;
 }
 
+/* Internal function to get the state of the timer before firing */
+gboolean _dw_timer_func(gpointer data)
+{
+   void (*sigfunc)(void *data) = NULL;
+   void *sdata;
+   char tmpbuf[30];
+   int *tag = data;
+   
+   if(tag)
+   {
+      snprintf(tmpbuf, 30, "_dw_timer%d", *tag);
+      sigfunc = g_object_get_data(G_OBJECT(_DWObject), tmpbuf);
+      snprintf(tmpbuf, 30, "_dw_timerdata%d", *tag);
+      sdata = g_object_get_data(G_OBJECT(_DWObject), tmpbuf);
+   }
+   if(!sigfunc)
+   {
+      if(tag)
+         free(tag);
+      return FALSE;
+   }
+   sigfunc(sdata);
+   return TRUE;
+}
+
 /*
  * Add a callback to a timer event.
  * Parameters:
@@ -10366,12 +10395,19 @@ void *dw_window_get_data(HWND window, char *dataname)
  */
 int API dw_timer_connect(int interval, void *sigfunc, void *data)
 {
-   int tag, _locked_by_me = FALSE;
-
+   int *tag, _locked_by_me = FALSE;
+   char tmpbuf[30];
+   
+   tag = calloc(1, sizeof(int));
+   
    DW_MUTEX_LOCK;
-   tag = g_timeout_add(interval, (GSourceFunc)sigfunc, data);
+   *tag = g_timeout_add(interval, (GSourceFunc)_dw_timer_func, (gpointer)tag);
+   snprintf(tmpbuf, 30, "_dw_timer%d", *tag);
+   g_object_set_data(G_OBJECT(_DWObject), tmpbuf, sigfunc);
+   snprintf(tmpbuf, 30, "_dw_timerdata%d", *tag);
+   g_object_set_data(G_OBJECT(_DWObject), tmpbuf, data);
    DW_MUTEX_UNLOCK;
-   return tag;
+   return *tag;
 }
 
 /*
@@ -10381,15 +10417,13 @@ int API dw_timer_connect(int interval, void *sigfunc, void *data)
  */
 void API dw_timer_disconnect(int id)
 {
-#if 0 /* TODO: Can't remove by ID anymore apparently...
-       * need to rewrite it to return FALSE from the signal handler to stop.
-       */
    int _locked_by_me = FALSE;
+   char tmpbuf[20];
 
+   snprintf(tmpbuf, 20, "_dw_timer%d", id);
    DW_MUTEX_LOCK;
-   g_timeout_remove(id);
+   g_object_set_data(G_OBJECT(_DWObject), tmpbuf, NULL);
    DW_MUTEX_UNLOCK;
-#endif
 }
 
 /* Get the actual signal window handle not the user window handle
