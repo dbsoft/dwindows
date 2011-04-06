@@ -10418,12 +10418,12 @@ int API dw_timer_connect(int interval, void *sigfunc, void *data)
 void API dw_timer_disconnect(int id)
 {
    int _locked_by_me = FALSE;
-   char tmpbuf[20];
+   char tmpbuf[30];
 
-   snprintf(tmpbuf, 20, "_dw_timer%d", id);
+   snprintf(tmpbuf, 30, "_dw_timer%d", id);
    DW_MUTEX_LOCK;
    g_object_set_data(G_OBJECT(_DWObject), tmpbuf, NULL);
-   snprintf(tmpbuf, 20, "_dw_timerdata%d", id);
+   snprintf(tmpbuf, 30, "_dw_timerdata%d", id);
    g_object_set_data(G_OBJECT(_DWObject), tmpbuf, NULL);
    DW_MUTEX_UNLOCK;
 }
