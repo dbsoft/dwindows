@@ -4569,6 +4569,7 @@ HTREEITEM API dw_tree_insert_after(HWND handle, HTREEITEM item, char *title, HIC
     [treenode addPointer:nstr];
     [treenode addPointer:itemdata];
     [treenode addPointer:NULL];
+    [treenode addPointer:parent];
     [tree addTree:treenode and:parent];
     [tree reloadData];
     DW_MUTEX_UNLOCK;
@@ -4613,8 +4614,14 @@ char * API dw_tree_get_title(HWND handle, HTREEITEM item)
  */
 HTREEITEM API dw_tree_get_parent(HWND handle, HTREEITEM item)
 {
-    NSLog(@"dw_tree_get_parent() unimplemented\n");
-    return HWND_DESKTOP;
+    int _locked_by_me = FALSE;
+    HTREEITEM parent;
+    
+    DW_MUTEX_LOCK;
+    NSPointerArray *array = (NSPointerArray *)item;
+    parent = (HTREEITEM)[array pointerAtIndex:4];
+    DW_MUTEX_UNLOCK;
+    return parent;
 }
 
 /*
