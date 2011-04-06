@@ -198,11 +198,13 @@ if test $build_gtk = "yes"; then
    if test x"$PKG_CFG" != x; then
       GTK_PACKAGES="gtk+-3.0"
       GTK_LIBS=`$PKG_CFG --silence-errors --libs $GTK_PACKAGES`
+      WEBKIT_LIB="webkit-1.1"
       if test x"$GTK_LIBS" = x; then
          GTK_PACKAGES="gtk+-2.0 gthread-2.0"
          GTK_LIBS=`$PKG_CFG --silence-errors --libs $GTK_PACKAGES`
       else
          DW_DIR=gtk3
+         WEBKIT_LIB="webkitgtk-3.0"
       fi
       if test $with_gtkmozembed = yes; then
          MOZEMBED_LIBS=`$PKG_CFG --silence-errors --libs firefox-gtkmozembed`
@@ -218,7 +220,6 @@ if test $build_gtk = "yes"; then
          MOZEMBED_CFLAGS=`$PKG_CFG --silence-errors --cflags libgtkhtml-2.0`
          RPATH=`$PKG_CFG --silence-errors --libs-only-L libgtkhtml-2.0 | cut -b 3-`
       else
-         WEBKIT_LIB="webkit-1.1"
          MOZEMBED_CFLAGS=`$PKG_CFG --silence-errors --cflags $WEBKIT_LIB`
          RPATH=`$PKG_CFG --silence-errors --libs-only-L $WEBKIT_LIB | cut -b 3-`
          if test x"$MOZEMBED_CFLAGS" = x; then
