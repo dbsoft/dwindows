@@ -10423,6 +10423,8 @@ void API dw_timer_disconnect(int id)
    snprintf(tmpbuf, 20, "_dw_timer%d", id);
    DW_MUTEX_LOCK;
    g_object_set_data(G_OBJECT(_DWObject), tmpbuf, NULL);
+   snprintf(tmpbuf, 20, "_dw_timerdata%d", id);
+   g_object_set_data(G_OBJECT(_DWObject), tmpbuf, NULL);
    DW_MUTEX_UNLOCK;
 }
 
