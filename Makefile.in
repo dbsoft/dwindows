@@ -15,11 +15,11 @@ DW_SRC  =	@DW_SRC@
 DW_DIR  =	@DW_DIR@
 INCPATH	=	-I.. -I. -I$(srcdir)
 TARGET	=	@TARGET@
-SRCS	=	$(srcdir)/$(DW_DIR)/$(DW_SRC) $(DW_DIR)rel2abs.c
+SRCS	=	$(srcdir)/$(DW_DIR)/$(DW_SRC)
 BROWSER_OBJECT=@BROWSER_OBJECT@
 COMPAT_OBJECT=@COMPAT_OBJECT@
 INSTALL_COMPAT=@INSTALL_COMPAT@
-OBJECTS	=	dw.o rel2abs.o $(BROWSER_OBJECT)
+OBJECTS	=	dw.o $(BROWSER_OBJECT)
 SRCS2	=	$(srcdir)compat.c
 OBJECTS2=	$(COMPAT_OBJECT)
 TARGET2=	@TARGET2@
@@ -144,9 +144,6 @@ browser.o: $(srcdir)/$(DW_DIR)/browser.cpp $(srcdir)/dw.h
 
 compat.o: $(srcdir)/compat.c
 	$(CC) -c $(INCPATH) $(CCFLAGS) -o $@ $(srcdir)/compat.c
-
-rel2abs.o: $(srcdir)/gtk/rel2abs.c
-	$(CC) -c $(INCPATH) $(CCFLAGS) -o $@ $(srcdir)/gtk/rel2abs.c
 
 dwtest.o: $(srcdir)/dwtest.c $(srcdir)/dw.h
 	$(CC) -c $(INCPATH) $(CCFLAGS) -o $@ $(srcdir)/dwtest.c
