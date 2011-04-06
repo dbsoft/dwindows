@@ -10920,21 +10920,9 @@ char *dw_file_browse(char *title, char *defpath, char *ext, int flags)
 
    if ( defpath )
    {
-      if ( g_path_is_absolute( defpath ) )
+      if ( g_path_is_absolute( defpath ) || !realpath(defpath, mypath))
       {
          strcpy( mypath, defpath );
-      }
-      else
-      {
-         if ( !getcwd(cwd, PATH_MAX ) )
-         {
-         }
-         else
-         {
-            if ( rel2abs( defpath, cwd, mypath, PATH_MAX ) )
-            {
-            }
-         }
       }
       gtk_file_chooser_set_current_folder( GTK_FILE_CHOOSER( filew ), mypath );
    }
