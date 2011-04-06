@@ -339,7 +339,7 @@ static void gtk_mdi_init(GtkMdi *mdi);
 
 static void gtk_mdi_realize(GtkWidget *widget);
 static void gtk_mdi_size_allocate(GtkWidget *widget, GtkAllocation *allocation);
-static gint gtk_mdi_expose(GtkWidget *widget, cairo_t *cr, gpointer data);
+static gboolean gtk_mdi_draw(GtkWidget *widget, cairo_t *cr);
 static void gtk_mdi_get_preferred_width (GtkWidget *widget, gint *minimum_width, gint *natural_width);
 static void gtk_mdi_get_preferred_height (GtkWidget *widget, gint *minimum_height, gint *natural_height);
 
@@ -410,7 +410,7 @@ static void gtk_mdi_class_init(GtkMdiClass *class)
    parent_class = g_type_class_ref (GTK_TYPE_CONTAINER);
 
    widget_class->realize = gtk_mdi_realize;
-   widget_class->draw = gtk_mdi_expose;
+   widget_class->draw = gtk_mdi_draw;
    widget_class->get_preferred_height = gtk_mdi_get_preferred_height;
    widget_class->get_preferred_width = gtk_mdi_get_preferred_width;
    widget_class->size_allocate = gtk_mdi_size_allocate;
@@ -615,78 +615,6 @@ static void gtk_mdi_get_pos(GtkMdi *mdi, GtkWidget *widget, gint *x, gint *y)
    *y = child->y;
 }
 
-static void gtk_mdi_tile(GtkMdi *mdi)
-{
-   int i, n;
-   int width, height;
-   GList *children;
-   GtkMdiChild *child;
-
-   g_return_if_fail(GTK_IS_MDI(mdi));
-
-   children = mdi->children;
-   n = g_list_length (children);
-   width = gtk_widget_get_allocated_width(GTK_WIDGET (mdi));
-   height = gtk_widget_get_allocated_height(GTK_WIDGET (mdi)) / n;
-   for(i=0;i<n;i++)
-   {
-      child = (GtkMdiChild *) children->data;
-      children = children->next;
-      child->x = 0;
-      child->y = i * height;
-      gtk_widget_set_size_request (child->widget, width, height);
-      child->state = CHILD_NORMAL;
-      child->width = -1;
-      child->height = -1;
-   }
-   if (gtk_widget_get_visible(GTK_WIDGET (mdi)))
-      gtk_widget_queue_resize (GTK_WIDGET (mdi));
-   return;
-}
-static void gtk_mdi_cascade(GtkMdi *mdi)
-{
-   int i, n;
-   int width, height;
-   GList *children;
-   GtkMdiChild *child;
-
-   g_return_if_fail(GTK_IS_MDI(mdi));
-   if(!gtk_widget_get_visible(GTK_WIDGET(mdi)))
-      return;
-
-   children = mdi->children;
-   n = g_list_length (children);
-   width = gtk_widget_get_allocated_width(GTK_WIDGET (mdi)) / (2 * n - 1);
-   height = gtk_widget_get_allocated_height(GTK_WIDGET (mdi)) / (2 * n - 1);
-   for (i = 0; i < n; i++)
-   {
-      child = (GtkMdiChild *) children->data;
-      children = children->next;
-      child->x = i * width;
-      child->y = i * height;
-      gtk_widget_set_size_request (child->widget, width * n, height * n);
-      child->state = CHILD_NORMAL;
-      child->width = -1;
-      child->height = -1;
-   }
-   if (gtk_widget_get_visible(GTK_WIDGET(mdi)))
-      gtk_widget_queue_resize(GTK_WIDGET(mdi));
-   return;
-}
-
-static GtkMdiChildState gtk_mdi_get_state(GtkMdi *mdi, GtkWidget *widget)
-{
-   GtkMdiChild *child;
-
-   g_return_val_if_fail (GTK_IS_MDI (mdi), CHILD_NORMAL);
-   g_return_val_if_fail (GTK_IS_WIDGET (widget), CHILD_NORMAL);
-
-   child = get_child (mdi, widget);
-   g_return_val_if_fail (child, CHILD_NORMAL);
-
-   return child->state;
-}
-
 static void gtk_mdi_set_state(GtkMdi *mdi, GtkWidget *widget, GtkMdiChildState state)
 {
    GtkMdiChild *child;
@@ -876,7 +804,7 @@ static void gtk_mdi_size_allocate(GtkWidget *widget, GtkAllocation *allocation)
    }
 }
 
-static gint gtk_mdi_expose(GtkWidget *widget, cairo_t *cr, gpointer data)
+static gboolean gtk_mdi_draw(GtkWidget *widget, cairo_t *cr)
 {
    GtkMdiChild *child;
    GList *children;
@@ -8874,23 +8802,33 @@ void dw_listbox_set_top(HWND handle, int top)
       if(tmp)
          handle2 = tmp;
    }
-#if 0
-   if(GTK_IS_LIST(handle2))
+   
+   /* Make sure it is the correct tree type */
+   if(handle2 && GTK_IS_TREE_VIEW(handle2) && g_object_get_data(G_OBJECT(handle2), "_dw_tree_type") == GINT_TO_POINTER(_DW_TREE_TYPE_LISTBOX))
    {
-      int count = dw_listbox_count(handle);
-      GtkAdjustment *adj = gtk_scrolled_window_get_vadjustment(GTK_SCROLLED_WINDOW(handle));
-      float pos, ratio;
-
-      if(count)
+      GtkAdjustment *adjust = gtk_tree_view_get_vadjustment(GTK_TREE_VIEW(handle2));
+      GtkListStore *store = (GtkListStore *)gtk_tree_view_get_model(GTK_TREE_VIEW(handle2));
+     
+      if(store && adjust)
       {
-         ratio = (float)top/(float)count;
+         /* Get the number of children at the top level */
+         gint rowcount = gtk_tree_model_iter_n_children(GTK_TREE_MODEL(store), NULL);
+         gdouble upper = gtk_adjustment_get_upper(adjust);
+         gdouble lower = gtk_adjustment_get_lower(adjust);
+         gdouble change; 
+       
+         /* Safety check */
+         if(rowcount < 1)
+         {
+            DW_MUTEX_UNLOCK;
+            return;
+         }
 
-         pos = (ratio * (float)(adj->upper - adj->lower)) + adj->lower;
+         change = ((gdouble)top/(gdouble)rowcount) * (upper - lower);
 
-         gtk_adjustment_set_value(adj, pos);
+         gtk_adjustment_set_value(adjust, change + lower);
       }
    }
-#endif
    DW_MUTEX_UNLOCK;
 }
 
@@ -9649,7 +9587,6 @@ char *dw_file_browse(char *title, char *defpath, char *ext, int flags)
    char *filename = NULL;
    char buf[1000];
    char mypath[PATH_MAX+1];
-   char cwd[PATH_MAX+1];
 
    switch (flags )
    {
@@ -9697,21 +9634,9 @@ char *dw_file_browse(char *title, char *defpath, char *ext, int flags)
 
    if ( defpath )
    {
-      if ( g_path_is_absolute( defpath ) )
+      if ( g_path_is_absolute( defpath ) || !realpath(defpath, mypath))
       {
          strcpy( mypath, defpath );
-      }
-      else
-      {
-         if ( !getcwd(cwd, PATH_MAX ) )
-         {
-         }
-         else
-         {
-            if ( rel2abs( defpath, cwd, mypath, PATH_MAX ) )
-            {
-            }
-         }
       }
       gtk_file_chooser_set_current_folder( GTK_FILE_CHOOSER( filew ), mypath );
    }
