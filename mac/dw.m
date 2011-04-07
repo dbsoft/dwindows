@@ -228,6 +228,15 @@ int _event_handler(id object, NSEvent *event, int message)
 
                 return buttonfunc(object, (int)x, (int)y, button, handler->data);
             }
+            /* Motion notify event */
+            case 5:
+            {
+                int (* API motionfunc)(HWND, int, int, int, void *) = (int (* API)(HWND, int, int, int, void *))handler->signalfunction;
+                int buttonmask = (int)[NSEvent pressedMouseButtons];
+                NSPoint point = [NSEvent mouseLocation];
+                
+                return motionfunc(object, (int)point.x, (int)point.y, buttonmask, handler->data);
+            }
             /* Window close event */
             case 6:
             {
@@ -580,6 +589,7 @@ DWObject *DWObj;
 -(void)windowDidBecomeMain:(id)sender;
 -(void)menuHandler:(id)sender;
 -(void)keyDown:(NSEvent *)theEvent;
+-(void)mouseMoved:(NSEvent *)theEvent;
 @end
 
 @implementation DWView
@@ -624,6 +634,7 @@ DWObject *DWObj;
 -(void)setMenu:(NSMenu *)input { windowmenu = input; [windowmenu retain]; }
 -(void)menuHandler:(id)sender { _event_handler(sender, nil, 8); }
 -(void)keyDown:(NSEvent *)theEvent { _event_handler(self, theEvent, 2); _event_handler([self window], theEvent, 2); }
+-(void)mouseMoved:(NSEvent *)theEvent { _event_handler(self, theEvent, 5); }
 @end
 
 /* Subclass for a button type */
@@ -6691,16 +6702,6 @@ void API dw_window_release(void)
         [_DWCapture setAcceptsMouseMovedEvents:NO];
         _DWCapture = nil;
     }
-}
-
-/*
- * Tracks this window movement.
- * Parameters:
- *       handle: Handle to frame to be tracked.
- */
-void API dw_window_track(HWND handle)
-{
-    NSLog(@"dw_window_track() unimplemented\n");
 }
 
 /*
