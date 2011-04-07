@@ -4141,8 +4141,25 @@ void API dw_mle_set_cursor(HWND handle, int point)
  */
 int API dw_mle_search(HWND handle, char *text, int point, unsigned long flags)
 {
-    NSLog(@"dw_mle_search() unimplemented\n");
-    return 0;
+    NSScrollView *sv = handle;
+    DWMLE *mle = [sv documentView];
+    NSTextStorage *ts = [mle textStorage];
+    NSMutableString *ms = [ts mutableString];
+    NSString *searchForMe = [NSString stringWithUTF8String:text];
+    NSRange searchRange = NSMakeRange(point, [ms length] - point);
+    NSRange range = NSMakeRange(NSNotFound, 0);
+    NSUInteger options = flags ? flags : NSCaseInsensitiveSearch;
+    
+    if(ms)
+    {
+        range = [ms rangeOfString:searchForMe options:options range:searchRange];
+    }
+    
+    if(range.location != NSNotFound) 
+    {
+        return -1;
+    }
+    return (int)range.location;
 }
 
 /*
