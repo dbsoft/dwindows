@@ -372,7 +372,7 @@ void _dw_default_font(char *fontname);
 
 #define DW_LIT_NONE              -1
 
-#define DW_MLE_CASESENSITIVE     0
+#define DW_MLE_CASESENSITIVE     2 /* NSLiteralSearch */
 
 #define DW_BS_NOBORDER           1
 
