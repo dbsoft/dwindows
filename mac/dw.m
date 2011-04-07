@@ -5776,11 +5776,17 @@ HPIXMAP API dw_pixmap_new_from_data(HWND handle, char *data, int len)
 }
 
 /*
- * Creates a bitmap mask for rendering bitmaps with transparent backgrounds
+ * Sets the transparent color for a pixmap
+ * Parameters:
+ *       pixmap: Handle to a pixmap returned by
+ *               dw_pixmap_new..
+ *       color:  transparent color
+ * Note: This does nothing on Mac as transparency
+ *       is handled automatically
  */
 void API dw_pixmap_set_transparent_color( HPIXMAP pixmap, ULONG color )
 {
-    NSLog(@"dw_pixmap_set_transparent_color() unimplemented\n");
+    /* Don't do anything */
 }
 
 /*
