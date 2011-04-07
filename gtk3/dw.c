@@ -5371,6 +5371,8 @@ static int _dw_container_setup(HWND handle, unsigned long *flags, char **titles,
       sprintf(numbuf, "_dw_cont_col%d", z);
       g_object_set_data(G_OBJECT(tree), numbuf, GINT_TO_POINTER(flags[z]));
       col = gtk_tree_view_column_new();
+      rend = NULL;
+      
       if(z == 0 && flags[z] & DW_CFA_STRINGANDICON)
       {
          rend = gtk_cell_renderer_pixbuf_new();
@@ -5417,6 +5419,18 @@ static int _dw_container_setup(HWND handle, unsigned long *flags, char **titles,
       g_object_set_data(G_OBJECT(col), "_dw_column", GINT_TO_POINTER(z));
       g_signal_connect(G_OBJECT(col), "clicked", G_CALLBACK(_column_click_event), (gpointer)tree);
       gtk_tree_view_column_set_title(col, titles[z]);
+      if(flags[z] & DW_CFA_RIGHT)
+      {
+         gtk_tree_view_column_set_alignment(col, 1.0);
+         if(rend)
+            gtk_cell_renderer_set_alignment(rend, 1.0, 0.5);
+      }
+      else if(flags[z] & DW_CFA_CENTER)
+      {
+         gtk_tree_view_column_set_alignment(col, 0.5);
+         if(rend)
+            gtk_cell_renderer_set_alignment(rend, 0.5, 0.5);
+      }
       gtk_tree_view_append_column(GTK_TREE_VIEW (tree), col);
    }
    /* Finish up */
