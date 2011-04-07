@@ -5331,32 +5331,38 @@ static int _dw_container_setup(HWND handle, unsigned long *flags, char **titles,
    
    /* First param is row title/data */
    array[0] = G_TYPE_POINTER;
+   array[1] = G_TYPE_POINTER;
    /* First loop... create array to create the store */
    for(z=0;z<count;z++)
    {
-      if(flags[z] & DW_CFA_BITMAPORICON)
+      if(z == 0 && flags[z] & DW_CFA_STRINGANDICON)
       {
-         array[z+1] = GDK_TYPE_PIXBUF;
+         array[1] = GDK_TYPE_PIXBUF;
+         array[2] = G_TYPE_STRING;
+      }
+      else if(flags[z] & DW_CFA_BITMAPORICON)
+      {
+         array[z+2] = GDK_TYPE_PIXBUF;
       }
       else if(flags[z] & DW_CFA_STRING)
       {
-         array[z+1] = G_TYPE_STRING;
+         array[z+2] = G_TYPE_STRING;
       }
       else if(flags[z] & DW_CFA_ULONG)
       {
-         array[z+1] = G_TYPE_ULONG;
+         array[z+2] = G_TYPE_ULONG;
       }
       else if(flags[z] & DW_CFA_TIME)
       {
-         array[z+1] = G_TYPE_STRING;
+         array[z+2] = G_TYPE_STRING;
       }
       else if(flags[z] & DW_CFA_DATE)
       {
-         array[z+1] = G_TYPE_STRING;
+         array[z+2] = G_TYPE_STRING;
       }
    }
    /* Create the store and then the tree */
-   store = gtk_list_store_newv(count+1, array);
+   store = gtk_list_store_newv(count+2, array);
    tree = _tree_setup(handle, GTK_TREE_MODEL(store));
    g_object_set_data(G_OBJECT(tree), "_dw_tree_type", (gpointer)_DW_TREE_TYPE_CONTAINER);
    /* Second loop... create the columns */
@@ -5365,51 +5371,50 @@ static int _dw_container_setup(HWND handle, unsigned long *flags, char **titles,
       sprintf(numbuf, "_dw_cont_col%d", z);
       g_object_set_data(G_OBJECT(tree), numbuf, GINT_TO_POINTER(flags[z]));
       col = gtk_tree_view_column_new();
-      if(flags[z] & DW_CFA_BITMAPORICON)
+      if(z == 0 && flags[z] & DW_CFA_STRINGANDICON)
       {
          rend = gtk_cell_renderer_pixbuf_new();
          gtk_tree_view_column_pack_start(col, rend, FALSE);
-         gtk_tree_view_column_add_attribute(col, rend, "pixbuf", z+1);
+         gtk_tree_view_column_add_attribute(col, rend, "pixbuf", 1);
+         rend = gtk_cell_renderer_text_new();
+         gtk_tree_view_column_pack_start(col, rend, TRUE);
+         gtk_tree_view_column_add_attribute(col, rend, "text", 2);
+      }
+      else if(flags[z] & DW_CFA_BITMAPORICON)
+      {
+         rend = gtk_cell_renderer_pixbuf_new();
+         gtk_tree_view_column_pack_start(col, rend, FALSE);
+         gtk_tree_view_column_add_attribute(col, rend, "pixbuf", z+2);
       }
       else if(flags[z] & DW_CFA_STRING)
       {
          rend = gtk_cell_renderer_text_new();
          gtk_tree_view_column_pack_start(col, rend, TRUE);
-         gtk_tree_view_column_add_attribute(col, rend, "text", z+1);
+         gtk_tree_view_column_add_attribute(col, rend, "text", z+2);
          gtk_tree_view_column_set_resizable(col, TRUE);
       }
       else if(flags[z] & DW_CFA_ULONG)
       {
          rend = gtk_cell_renderer_text_new();
          gtk_tree_view_column_pack_start(col, rend, TRUE);
-         gtk_tree_view_column_add_attribute(col, rend, "text", z+1);
+         gtk_tree_view_column_add_attribute(col, rend, "text", z+2);
          gtk_tree_view_column_set_resizable(col, TRUE);
       }
       else if(flags[z] & DW_CFA_TIME)
       {
          rend = gtk_cell_renderer_text_new();
          gtk_tree_view_column_pack_start(col, rend, TRUE);
-         gtk_tree_view_column_add_attribute(col, rend, "text", z+1);
+         gtk_tree_view_column_add_attribute(col, rend, "text", z+2);
          gtk_tree_view_column_set_resizable(col, TRUE);
       }
       else if(flags[z] & DW_CFA_DATE)
       {
          rend = gtk_cell_renderer_text_new();
          gtk_tree_view_column_pack_start(col, rend, TRUE);
-         gtk_tree_view_column_add_attribute(col, rend, "text", z+1);
+         gtk_tree_view_column_add_attribute(col, rend, "text", z+2);
          gtk_tree_view_column_set_resizable(col, TRUE);
       }
-      if(extra)
-      {
-         if(extra > 1 && z > 1)
-         {
-            g_object_set_data(G_OBJECT(col), "_dw_column", GINT_TO_POINTER(z-1));
-         }
-      }
-      else
-      {
-         g_object_set_data(G_OBJECT(col), "_dw_column", GINT_TO_POINTER(z));
-      }
+      g_object_set_data(G_OBJECT(col), "_dw_column", GINT_TO_POINTER(z));
       g_signal_connect(G_OBJECT(col), "clicked", G_CALLBACK(_column_click_event), (gpointer)tree);
       gtk_tree_view_column_set_title(col, titles[z]);
       gtk_tree_view_append_column(GTK_TREE_VIEW (tree), col);
@@ -5458,18 +5463,16 @@ int dw_container_setup(HWND handle, unsigned long *flags, char **titles, int cou
  */
 int dw_filesystem_setup(HWND handle, unsigned long *flags, char **titles, int count)
 {
-   char **newtitles = malloc(sizeof(char *) * (count + 2));
-   unsigned long *newflags = malloc(sizeof(unsigned long) * (count + 2));
+   char **newtitles = malloc(sizeof(char *) * (count + 1));
+   unsigned long *newflags = malloc(sizeof(unsigned long) * (count + 1));
 
-   newtitles[0] = "Icon";
-   newflags[0] = DW_CFA_BITMAPORICON | DW_CFA_LEFT | DW_CFA_HORZSEPARATOR;
-   newtitles[1] = "Filename";
-   newflags[1] = DW_CFA_STRING | DW_CFA_LEFT | DW_CFA_HORZSEPARATOR;
+   newtitles[0] = "Filename";
+   newflags[0] = DW_CFA_STRINGANDICON | DW_CFA_LEFT | DW_CFA_HORZSEPARATOR;
 
-   memcpy(&newtitles[2], titles, sizeof(char *) * count);
-   memcpy(&newflags[2], flags, sizeof(unsigned long) * count);
+   memcpy(&newtitles[1], titles, sizeof(char *) * count);
+   memcpy(&newflags[1], flags, sizeof(unsigned long) * count);
 
-   _dw_container_setup(handle, newflags, newtitles, count + 2, 1, 2);
+   _dw_container_setup(handle, newflags, newtitles, count + 1, 1, 1);
 
    if ( newtitles) free(newtitles);
    if ( newflags ) free(newflags);
@@ -5722,24 +5725,36 @@ void _dw_container_set_item(HWND handle, void *pointer, int column, int row, voi
 
       if(gtk_tree_model_iter_nth_child(GTK_TREE_MODEL(store), &iter, NULL, row))
       {
-         if(flag & DW_CFA_BITMAPORICON)
+         if(flag & DW_CFA_STRINGANDICON)
+         {
+            void **thisdata = (void **)data;
+            long hicon = *((long *)thisdata[0]);
+            char *tmp = (char *)thisdata[1];
+            GdkPixbuf *pixbuf = _find_pixbuf(hicon, NULL, NULL);
+
+            if(pixbuf)
+               gtk_list_store_set(store, &iter, 1, pixbuf, -1);
+            
+            gtk_list_store_set(store, &iter, 2, tmp, -1);
+         }
+         else if(flag & DW_CFA_BITMAPORICON)
          {
             long hicon = *((long *)data);
             GdkPixbuf *pixbuf = _find_pixbuf(hicon, NULL, NULL);
 
             if(pixbuf)
-               gtk_list_store_set(store, &iter, column + 1, pixbuf, -1);
+               gtk_list_store_set(store, &iter, column + 2, pixbuf, -1);
          }
          else if(flag & DW_CFA_STRING)
          {
             char *tmp = *((char **)data);
-            gtk_list_store_set(store, &iter, column + 1, tmp, -1);
+            gtk_list_store_set(store, &iter, column + 2, tmp, -1);
          }
          else if(flag & DW_CFA_ULONG)
          {
             ULONG tmp = *((ULONG *)data);
 
-            gtk_list_store_set(store, &iter, column + 1, tmp, -1);
+            gtk_list_store_set(store, &iter, column + 2, tmp, -1);
          }
          else if(flag & DW_CFA_DATE)
          {
@@ -5753,7 +5768,7 @@ void _dw_container_set_item(HWND handle, void *pointer, int column, int row, voi
 
             strftime(textbuffer, 100, "%x", &curtm);
 
-            gtk_list_store_set(store, &iter, column + 1, textbuffer, -1);
+            gtk_list_store_set(store, &iter, column + 2, textbuffer, -1);
          }
          else if(flag & DW_CFA_TIME)
          {
@@ -5767,7 +5782,7 @@ void _dw_container_set_item(HWND handle, void *pointer, int column, int row, voi
 
             strftime(textbuffer, 100, "%X", &curtm);
 
-            gtk_list_store_set(store, &iter, column + 1, textbuffer, -1);
+            gtk_list_store_set(store, &iter, column + 2, textbuffer, -1);
          }
       }
    }
@@ -5839,8 +5854,9 @@ void API dw_filesystem_change_file(HWND handle, int row, char *filename, HICN ic
  */
 void dw_filesystem_set_file(HWND handle, void *pointer, int row, char *filename, HICN icon)
 {
-   _dw_container_set_item(handle, pointer, 0, row, (void *)&icon);
-   _dw_container_set_item(handle, pointer, 1, row, (void *)&filename);
+   void *data[2] = { (void *)&icon, (void *)filename };
+   
+   _dw_container_set_item(handle, pointer, 0, row, (void *)data);
 }
 
 /*
@@ -5854,7 +5870,7 @@ void dw_filesystem_set_file(HWND handle, void *pointer, int row, char *filename,
  */
 void dw_filesystem_set_item(HWND handle, void *pointer, int column, int row, void *data)
 {
-   _dw_container_set_item(handle, pointer, column + 2, row, data);
+   _dw_container_set_item(handle, pointer, column + 1, row, data);
 }
 
 /*
@@ -5905,7 +5921,7 @@ int dw_container_get_column_type(HWND handle, int column)
  */
 int API dw_filesystem_get_column_type(HWND handle, int column)
 {
-   return dw_container_get_column_type( handle, column + 2 );
+   return dw_container_get_column_type( handle, column + 1 );
 }
 
 /*
@@ -5922,12 +5938,6 @@ void dw_container_set_column_width(HWND handle, int column, int width)
 
    DW_MUTEX_LOCK;
    cont = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user");
-   
-   /* Handle filesystem */
-   if(g_object_get_data(G_OBJECT(handle), "_dw_cont_extra"))
-   {
-      column++;
-   }
    
    /* Make sure it is the correct tree type */
    if(cont && GTK_IS_TREE_VIEW(cont) && g_object_get_data(G_OBJECT(cont), "_dw_tree_type") == GINT_TO_POINTER(_DW_TREE_TYPE_CONTAINER))
@@ -9029,17 +9039,21 @@ unsigned int dw_listbox_selected(HWND handle)
          {
             GtkTreeIter iter;
             GtkTreePath *path;
-            gint *indices;
             
-            gtk_combo_box_get_active_iter(GTK_COMBO_BOX(handle2), &iter);
-            path = gtk_tree_model_get_path(GTK_TREE_MODEL(store), &iter);
-            indices = gtk_tree_path_get_indices(path);
-               
-            if(indices)
+            if(gtk_combo_box_get_active_iter(GTK_COMBO_BOX(handle2), &iter))
             {
-               retval = indices[0];
+               path = gtk_tree_model_get_path(GTK_TREE_MODEL(store), &iter);
+               if(path)
+               {
+                  gint *indices = gtk_tree_path_get_indices(path);
+                  
+                  if(indices)
+                  {
+                     retval = indices[0];
+                  }
+                  gtk_tree_path_free(path);
+               }
             }
-            gtk_tree_path_free(path);
          }
       }
    }
