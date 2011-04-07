@@ -1102,6 +1102,7 @@ DWObject *DWObj;
 -(NSTableColumn *)getColumn:(int)col;
 -(int)addRow:(NSArray *)input;
 -(int)addRows:(int)number;
+-(void)tableView:(NSTableView *)tableView willDisplayCell:(id)cell forTableColumn:(NSTableColumn *)tableColumn row:(NSInteger)row;
 -(void)editCell:(id)input at:(int)row and:(int)col;
 -(void)removeRow:(int)row;
 -(void)setRow:(int)row title:(void *)input;
@@ -1216,6 +1217,16 @@ DWObject *DWObj;
         return (int)[titles count];
     }
     return 0;
+}
+-(void)tableView:(NSTableView *)tableView willDisplayCell:(id)cell forTableColumn:(NSTableColumn *)tableColumn row:(NSInteger)row
+{
+    if([cell isMemberOfClass:[NSBrowserCell class]])
+    {
+        int index = (int)(row * [tvcols count]);
+        NSBrowserCell *browsercell = [data objectAtIndex:index];
+        NSImage *img = [browsercell image];
+        [(NSBrowserCell*)cell setImage:img];
+    }
 }
 -(void)editCell:(id)input at:(int)row and:(int)col
 {
@@ -1352,10 +1363,6 @@ DWObject *DWObj;
 {
     NSUInteger index = [tvcols indexOfObject:tableColumn];
     
-    if(filesystem && index > 0)
-    {
-        index--;
-    }
     /* Handler for column click class */
     _event_handler(self, (NSEvent *)index, 17);
 }
@@ -1416,8 +1423,7 @@ void _free_tree_recurse(NSMutableArray *node, NSPointerArray *item)
 #endif
 {
     void *userdata;
-    NSTableColumn *imagecol;
-    NSTableColumn *textcol;
+    NSTableColumn *treecol;
     NSMutableArray *data;
     /* Each data item consists of a linked lists of tree item data.
      * NSImage *, NSString *, Item Data *, NSMutableArray * of Children
@@ -1429,6 +1435,7 @@ void _free_tree_recurse(NSMutableArray *node, NSPointerArray *item)
 -(BOOL)outlineView:(NSOutlineView *)outlineView isItemExpandable:(id)item;
 -(int)outlineView:(NSOutlineView *)outlineView numberOfChildrenOfItem:(id)item;
 -(id)outlineView:(NSOutlineView *)outlineView objectValueForTableColumn:(NSTableColumn *)tableColumn byItem:(id)item;
+-(void)outlineView:(NSOutlineView *)outlineView willDisplayCell:(id)cell forTableColumn:(NSTableColumn *)tableColumn item:(id)item;
 -(BOOL)outlineView:(NSOutlineView *)outlineView shouldEditTableColumn:(NSTableColumn *)tableColumn item:(id)item;
 -(void)addTree:(NSPointerArray *)item and:(NSPointerArray *)parent;
 -(void *)userdata;
@@ -1449,16 +1456,12 @@ void _free_tree_recurse(NSMutableArray *node, NSPointerArray *item)
 
     if (self)
     {
-        imagecol = [[NSTableColumn alloc] init];
-        NSImageCell *imagecell = [[[NSImageCell alloc] init] autorelease];
-        [imagecol setDataCell:imagecell];
-        [imagecol setResizingMask:NSTableColumnNoResizing];
-        [imagecol setWidth:20];
-        [self addTableColumn:imagecol];
-        textcol = [[NSTableColumn alloc] init];
-        [textcol setEditable:NO];
-        [self addTableColumn:textcol];
-        [self setOutlineTableColumn:textcol];
+        treecol = [[NSTableColumn alloc] init];
+        NSBrowserCell *browsercell = [[[NSBrowserCell alloc] init] autorelease];
+        [browsercell setLeaf:YES];
+        [treecol setDataCell:browsercell];
+        [self addTableColumn:treecol];
+        [self setOutlineTableColumn:treecol];
         [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(treeSelectionChanged:) name:NSOutlineViewSelectionDidChangeNotification object:self];
         [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(treeItemExpanded:) name:NSOutlineViewItemDidExpandNotification object:self];
     }
@@ -1506,10 +1509,6 @@ void _free_tree_recurse(NSMutableArray *node, NSPointerArray *item)
         if([item isKindOfClass:[NSPointerArray class]])
         {
             NSPointerArray *this = (NSPointerArray *)item;
-            if(tableColumn == imagecol)
-            {
-                return [this pointerAtIndex:0];
-            }
             return [this pointerAtIndex:1];
         }
         else
@@ -1518,6 +1517,15 @@ void _free_tree_recurse(NSMutableArray *node, NSPointerArray *item)
         }
     }
     return @"List Root";
+}
+-(void)outlineView:(NSOutlineView *)outlineView willDisplayCell:(id)cell forTableColumn:(NSTableColumn *)tableColumn item:(id)item
+{
+    if([cell isMemberOfClass:[NSBrowserCell class]])
+    {
+        NSPointerArray *this = (NSPointerArray *)item;
+        NSImage *img = [this pointerAtIndex:0];
+        [(NSBrowserCell*)cell setImage:img];
+    }
 }
 -(BOOL)outlineView:(NSOutlineView *)outlineView shouldEditTableColumn:(NSTableColumn *)tableColumn item:(id)item { return NO; }
 -(void)addTree:(NSPointerArray *)item and:(NSPointerArray *)parent;
@@ -1577,7 +1585,7 @@ void _free_tree_recurse(NSMutableArray *node, NSPointerArray *item)
 -(void)deleteNode:(NSPointerArray *)item { _free_tree_recurse(data, item); }
 -(void)setForegroundColor:(NSColor *)input 
 { 
-    NSTextFieldCell *cell = [textcol dataCell];
+    NSTextFieldCell *cell = [treecol dataCell];
     fgcolor = input; 
     [fgcolor retain]; 
     [cell setTextColor:fgcolor];
@@ -1588,8 +1596,7 @@ void _free_tree_recurse(NSMutableArray *node, NSPointerArray *item)
     UserData *root = userdata;
     _remove_userdata(&root, NULL, TRUE);
     _free_tree_recurse(data, NULL);
-    [imagecol release];
-    [textcol release];
+    [treecol release];
     [super dealloc];
 }
 @end
@@ -4540,6 +4547,7 @@ HWND API dw_tree_new(ULONG cid)
 
     [tree setAllowsMultipleSelection:NO];
     [tree setDataSource:tree];
+    [tree setDelegate:tree];
     [scrollview setDocumentView:tree];
     [tree setHeaderView:nil];
     [tree setTag:cid];
@@ -4811,14 +4819,17 @@ int API dw_container_setup(HWND handle, unsigned long *flags, char **titles, int
         {
             NSImageCell *imagecell = [[NSImageCell alloc] init];
             [column setDataCell:imagecell];
-            if(z == 0 && titles[z] && strcmp(titles[z], "Icon") == 0)
-            {
-                [column setResizingMask:NSTableColumnNoResizing];
-                [column setWidth:20];
-            }
             [imagecell release];
         }
-        else if(flags[z] & DW_CFA_RIGHT)
+        else if(flags[z] & DW_CFA_STRINGANDICON)
+        {
+            NSBrowserCell *browsercell = [[NSBrowserCell alloc] init];
+            [browsercell setLeaf:YES];
+            [column setDataCell:browsercell];
+            [browsercell release];
+        }
+        /* Defaults to left justified so just handle right and center */
+        if(flags[z] & DW_CFA_RIGHT)
         {
             [(NSCell *)[column dataCell] setAlignment:NSRightTextAlignment]; 
             [(NSCell *)[column headerCell] setAlignment:NSRightTextAlignment]; 
@@ -4847,20 +4858,18 @@ int API dw_container_setup(HWND handle, unsigned long *flags, char **titles, int
  */
 int API dw_filesystem_setup(HWND handle, unsigned long *flags, char **titles, int count)
 {
-    char **newtitles = malloc(sizeof(char *) * (count + 2));
-    unsigned long *newflags = malloc(sizeof(unsigned long) * (count + 2));
+    char **newtitles = malloc(sizeof(char *) * (count + 1));
+    unsigned long *newflags = malloc(sizeof(unsigned long) * (count + 1));
     DWContainer *cont = handle;
 
-    newtitles[0] = "Icon";
-    newtitles[1] = "Filename";
+    newtitles[0] = "Filename";
 
-    newflags[0] = DW_CFA_BITMAPORICON | DW_CFA_LEFT | DW_CFA_HORZSEPARATOR;
-    newflags[1] = DW_CFA_STRING | DW_CFA_LEFT | DW_CFA_HORZSEPARATOR;
+    newflags[0] = DW_CFA_STRINGANDICON | DW_CFA_LEFT | DW_CFA_HORZSEPARATOR;
 
-    memcpy(&newtitles[2], titles, sizeof(char *) * count);
-    memcpy(&newflags[2], flags, sizeof(unsigned long) * count);
+    memcpy(&newtitles[1], titles, sizeof(char *) * count);
+    memcpy(&newflags[1], flags, sizeof(unsigned long) * count);
 
-    dw_container_setup(handle, newflags, newtitles, count + 2, 0);
+    dw_container_setup(handle, newflags, newtitles, count + 1, 0);
     [cont setFilesystem:YES];
 
     free(newtitles);
@@ -4992,7 +5001,7 @@ void API dw_container_change_item(HWND handle, int column, int row, void *data)
  */
 void API dw_filesystem_change_item(HWND handle, int column, int row, void *data)
 {
-    dw_container_change_item(handle, column+2, row, data);
+    dw_container_change_item(handle, column+1, row, data);
 }
 
 /*
@@ -5006,8 +5015,7 @@ void API dw_filesystem_change_item(HWND handle, int column, int row, void *data)
  */
 void API dw_filesystem_change_file(HWND handle, int row, char *filename, HICN icon)
 {
-    dw_container_change_item(handle, 0, row, &icon);
-    dw_container_change_item(handle, 1, row, &filename);
+    dw_filesystem_set_file(handle, NULL, row, filename, icon);
 }
 
 /*
@@ -5021,8 +5029,25 @@ void API dw_filesystem_change_file(HWND handle, int row, char *filename, HICN ic
  */
 void API dw_filesystem_set_file(HWND handle, void *pointer, int row, char *filename, HICN icon)
 {
-    dw_container_set_item(handle, pointer, 0, row, &icon);
-    dw_container_set_item(handle, pointer, 1, row, &filename);
+    int _locked_by_me = FALSE;
+    DW_MUTEX_LOCK;
+    DWContainer *cont = handle;
+    NSBrowserCell *browsercell;
+    int lastadd = 0;
+    
+    /* If pointer is NULL we are getting a change request instead of set */
+    if(pointer)
+    {
+        lastadd = [cont lastAddPoint];
+    }
+    
+    browsercell = [[NSBrowserCell alloc] init];
+    [browsercell setLeaf:YES];
+    [browsercell setImage:icon];
+    [browsercell setStringValue:[ NSString stringWithUTF8String:filename ]];
+    [cont editCell:browsercell at:(row+lastadd) and:0];
+    [cont setNeedsDisplay:YES];
+    DW_MUTEX_UNLOCK;
 }
 
 /*
@@ -5036,7 +5061,7 @@ void API dw_filesystem_set_file(HWND handle, void *pointer, int row, char *filen
  */
 void API dw_filesystem_set_item(HWND handle, void *pointer, int column, int row, void *data)
 {
-    dw_container_set_item(handle, pointer, column+2, row, data);
+    dw_container_set_item(handle, pointer, column+1, row, data);
 }
 
 /*
@@ -5076,7 +5101,7 @@ int API dw_container_get_column_type(HWND handle, int column)
  */
 int API dw_filesystem_get_column_type(HWND handle, int column)
 {
-    return dw_container_get_column_type(handle, column+2);
+    return dw_container_get_column_type(handle, column+1);
 }
 
 /*
