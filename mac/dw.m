@@ -761,6 +761,43 @@ DWObject *DWObj;
 -(void)setVCenter:(BOOL)input { vcenter = input; }
 @end
 
+@interface DWEntryFieldFormatter : NSFormatter 
+{
+    int maxLength;
+}
+- (void)setMaximumLength:(int)len;
+- (int)maximumLength;
+@end
+
+/* This formatter subclass will allow us to limit 
+ * the text length in an entryfield.
+ */
+@implementation DWEntryFieldFormatter
+-(id)init 
+{
+    [super init];
+    maxLength = INT_MAX;
+    return self;
+}
+-(void)setMaximumLength:(int)len { maxLength = len; }
+-(int)maximumLength { return maxLength; }
+-(NSString *)stringForObjectValue:(id)object { return (NSString *)object; }
+-(BOOL)getObjectValue:(id *)object forString:(NSString *)string errorDescription:(NSString **)error { *object = string; return YES; }
+-(BOOL)isPartialStringValid:(NSString **)partialStringPtr
+       proposedSelectedRange:(NSRangePointer)proposedSelRangePtr
+              originalString:(NSString *)origString
+       originalSelectedRange:(NSRange)origSelRange
+            errorDescription:(NSString **)error 
+{
+    if([*partialStringPtr length] > maxLength) 
+    {
+        return NO;
+    }
+    return YES;
+}
+-(NSAttributedString *)attributedStringForObjectValue:(id)anObject withDefaultAttributes:(NSDictionary *)attributes { return nil; }
+@end
+
 /* Subclass for a entryfield type */
 @interface DWEntryField : NSTextField
 {
@@ -3107,7 +3144,11 @@ HWND API dw_entryfield_password_new(char *text, ULONG cid)
  */
 void API dw_entryfield_set_limit(HWND handle, ULONG limit)
 {
-    NSLog(@"dw_entryfield_set_limit() unimplemented\n");
+    DWEntryField *entry = handle;
+    DWEntryFieldFormatter *formatter = [[DWEntryFieldFormatter alloc] init];
+    
+    [formatter setMaximumLength:(int)limit];
+    [[entry cell] setFormatter:formatter];
 }
 
 /*
