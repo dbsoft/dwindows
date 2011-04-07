@@ -10390,12 +10390,6 @@ static HWND _find_signal_window(HWND window, char *signame)
 
    if(GTK_IS_SCROLLED_WINDOW(thiswindow))
       thiswindow = (HWND)g_object_get_data(G_OBJECT(window), "_dw_user");
-#if 0     
-   else if(GTK_IS_COMBO_BOX(thiswindow) && signame && strcmp(signame, DW_SIGNAL_LIST_SELECT) == 0)
-      thiswindow = GTK_COMBO_BOX(thiswindow)->list;
-   else if(GTK_IS_COMBO_BOX(thiswindow) && signame && strcmp(signame, DW_SIGNAL_SET_FOCUS) == 0)
-      thiswindow = GTK_COMBO_BOX(thiswindow)->entry;
-#endif
    else if(GTK_IS_VSCALE(thiswindow) || GTK_IS_HSCALE(thiswindow) ||
          GTK_IS_VSCROLLBAR(thiswindow) || GTK_IS_HSCROLLBAR(thiswindow) ||
          GTK_IS_SPIN_BUTTON(thiswindow))
