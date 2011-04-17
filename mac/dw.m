@@ -85,10 +85,9 @@ pthread_key_t _dw_bg_color_key;
 void _init_colors(void)
 {
     NSColor *fgcolor = [[NSColor grayColor] retain];
-    NSColor *bgcolor = [[NSColor blackColor] retain];
     
     pthread_setspecific(_dw_fg_color_key, fgcolor);
-    pthread_setspecific(_dw_bg_color_key, bgcolor);
+    pthread_setspecific(_dw_bg_color_key, NULL);
 }
 
 typedef struct _sighandler
@@ -4269,12 +4268,19 @@ void API dw_color_background_set(unsigned long value)
     NSColor *oldcolor = pthread_getspecific(_dw_bg_color_key);
     NSColor *newcolor;
     
-    _background = _get_color(value);
+    if(value == DW_CLR_DEFAULT)
+    {
+        pthread_setspecific(_dw_bg_color_key, NULL);
+    }
+    else
+    {
+        _background = _get_color(value);
     
-    newcolor = [[NSColor colorWithDeviceRed:    DW_RED_VALUE(_background)/255.0 green: 
-                                                DW_GREEN_VALUE(_background)/255.0 blue: 
-                                                DW_BLUE_VALUE(_background)/255.0 alpha: 1] retain];
-    pthread_setspecific(_dw_bg_color_key, newcolor);
+        newcolor = [[NSColor colorWithDeviceRed:    DW_RED_VALUE(_background)/255.0 green: 
+                                                    DW_GREEN_VALUE(_background)/255.0 blue: 
+                                                    DW_BLUE_VALUE(_background)/255.0 alpha: 1] retain];
+        pthread_setspecific(_dw_bg_color_key, newcolor);
+    }
     [oldcolor release];
 }
 
@@ -4427,8 +4433,13 @@ void API dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
                 DW_MUTEX_UNLOCK;
                 return;
             }
-            NSColor *color = pthread_getspecific(_dw_fg_color_key);
-            NSMutableDictionary *dict = [[NSMutableDictionary alloc] initWithObjectsAndKeys:color, NSForegroundColorAttributeName, nil];
+            NSColor *fgcolor = pthread_getspecific(_dw_fg_color_key);
+            NSColor *bgcolor = pthread_getspecific(_dw_bg_color_key);
+            NSMutableDictionary *dict = [[NSMutableDictionary alloc] initWithObjectsAndKeys:fgcolor, NSForegroundColorAttributeName, nil];
+            if(bgcolor)
+            {
+                [dict setValue:bgcolor forKey:NSBackgroundColorAttributeName];
+            }
             if(font)
             {
                 [dict setValue:font forKey:NSFontAttributeName];
@@ -4449,8 +4460,13 @@ void API dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
         }
         image = (id)pixmap->image;
         [image lockFocus];
-        NSColor *color = pthread_getspecific(_dw_fg_color_key);
-        NSMutableDictionary *dict = [[NSMutableDictionary alloc] initWithObjectsAndKeys:color, NSForegroundColorAttributeName, nil];
+        NSColor *fgcolor = pthread_getspecific(_dw_fg_color_key);
+        NSColor *bgcolor = pthread_getspecific(_dw_bg_color_key);
+        NSMutableDictionary *dict = [[NSMutableDictionary alloc] initWithObjectsAndKeys:fgcolor, NSForegroundColorAttributeName, nil];
+        if(bgcolor)
+        {
+            [dict setValue:bgcolor forKey:NSBackgroundColorAttributeName];
+        }
         if(font)
         {
             [dict setValue:font forKey:NSFontAttributeName];
