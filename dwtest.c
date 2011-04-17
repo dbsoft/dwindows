@@ -283,7 +283,7 @@ void draw_file( int row, int col )
          fileline = i + row - 1;
          y = i*font_height;
          dw_color_background_set( 1 + (fileline % 15) );
-         dw_color_foreground_set( fileline % 16 );
+         dw_color_foreground_set( fileline < 0 ? DW_CLR_WHITE : fileline % 16 );
          sprintf( buf, "%6.6d", i+row );
          dw_draw_text( 0, text1pm, 0, y, buf);
          pLine = lp[i+row];
