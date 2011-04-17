@@ -6866,6 +6866,21 @@ void dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
                pango_layout_set_text(layout, text, strlen(text));
 
                gdk_cairo_set_source_color (cr, &_foreground[index]);
+               /* Create a background color attribute if required */
+               if(!_transparent[index])
+               {
+                  PangoAttrList *list = pango_layout_get_attributes(layout);
+                  PangoAttribute *attr = pango_attr_background_new(_background[index].red,
+                                                                   _background[index].green,
+                                                                   _background[index].blue);
+                  if(!list)
+                  {
+                     list = pango_attr_list_new();
+                  }
+                  pango_attr_list_change(list, attr);
+                  pango_layout_set_attributes(layout, list);
+               }
+               /* Do the drawing */
                cairo_move_to(cr, x, y);
                pango_cairo_show_layout (cr, layout);
                
