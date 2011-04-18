@@ -111,7 +111,6 @@ int _dw_main_iteration(NSDate *date);
 SignalHandler *_get_handler(HWND window, int messageid)
 {
     SignalHandler *tmp = Root;
-    id object = window;
     
     /* Find any callbacks for this function */
     while(tmp)
