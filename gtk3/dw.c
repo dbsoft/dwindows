@@ -3499,6 +3499,7 @@ GtkWidget *_tree_create(unsigned long id)
 GtkWidget *_tree_setup(GtkWidget *tmp, GtkTreeModel *store)
 {
    GtkWidget *tree = gtk_tree_view_new_with_model(store);
+   gtk_tree_view_set_enable_search(GTK_TREE_VIEW(tree), FALSE);
    gtk_scrolled_window_add_with_viewport(GTK_SCROLLED_WINDOW(tmp), tree);
    g_object_set_data(G_OBJECT(tmp), "_dw_user", (gpointer)tree);
    return tree;
