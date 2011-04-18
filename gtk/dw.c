@@ -3862,6 +3862,7 @@ HWND dw_tree_new(ULONG id)
 #if GTK_MAJOR_VERSION > 1
    store = gtk_tree_store_new(4, G_TYPE_STRING, GDK_TYPE_PIXBUF, G_TYPE_POINTER, G_TYPE_POINTER);
    tree = gtk_tree_view_new_with_model(GTK_TREE_MODEL(store));
+   gtk_tree_view_set_enable_search(GTK_TREE_VIEW(tree), FALSE);
    gtk_object_set_data(GTK_OBJECT(tree), "_dw_tree_store", (gpointer)store);
    col = gtk_tree_view_column_new();
 
