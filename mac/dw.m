@@ -111,7 +111,8 @@ int _dw_main_iteration(NSDate *date);
 SignalHandler *_get_handler(HWND window, int messageid)
 {
     SignalHandler *tmp = Root;
-
+    id object = window;
+    
     /* Find any callbacks for this function */
     while(tmp)
     {
@@ -178,7 +179,7 @@ int _event_handler(id object, NSEvent *event, int message)
                 int (*sizefunc)(HWND, int, int, void *) = handler->signalfunction;
                 NSSize size;
 
-                if([object isMemberOfClass:[NSWindow class]])
+                if([object isKindOfClass:[NSWindow class]])
                 {
                     NSWindow *window = object;
                     size = [[window contentView] frame].size;
@@ -538,7 +539,7 @@ DWObject *DWObj;
 -(void)rightMouseUp:(NSEvent *)theEvent { _event_handler(self, (void *)2, 4); }
 -(void)otherMouseDown:(NSEvent *)theEvent { _event_handler(self, (void *)3, 3); }
 -(void)otherMouseUp:(NSEvent *)theEvent { _event_handler(self, (void *)3, 4); }
--(void)keyDown:(NSEvent *)theEvent { _event_handler(self, theEvent, 2); _event_handler([self window], theEvent, 2); }
+-(void)keyDown:(NSEvent *)theEvent { _event_handler(self, theEvent, 2); }
 -(void)setColor:(unsigned long)input
 {
     id orig = bgcolor;
@@ -575,6 +576,14 @@ DWObject *DWObj;
 -(void)setUserdata:(void *)input { userdata = input; }
 @end
 
+@interface DWWindow : NSWindow
+-(void)keyDown:(NSEvent *)theEvent;
+@end
+
+@implementation DWWindow
+-(void)keyDown:(NSEvent *)theEvent { _event_handler(self, theEvent, 2); }
+@end
+
 /* Subclass for a top-level window */
 @interface DWView : DWBox
 #ifdef BUILDING_FOR_SNOW_LEOPARD
@@ -587,7 +596,6 @@ DWObject *DWObj;
 -(void)setMenu:(NSMenu *)input;
 -(void)windowDidBecomeMain:(id)sender;
 -(void)menuHandler:(id)sender;
--(void)keyDown:(NSEvent *)theEvent;
 -(void)mouseMoved:(NSEvent *)theEvent;
 @end
 
@@ -632,7 +640,6 @@ DWObject *DWObj;
 }
 -(void)setMenu:(NSMenu *)input { windowmenu = input; [windowmenu retain]; }
 -(void)menuHandler:(id)sender { _event_handler(sender, nil, 8); }
--(void)keyDown:(NSEvent *)theEvent { _event_handler(self, theEvent, 2); _event_handler([self window], theEvent, 2); }
 -(void)mouseMoved:(NSEvent *)theEvent { _event_handler(self, theEvent, 5); }
 @end
 
@@ -1100,7 +1107,7 @@ DWObject *DWObj;
 -(void)otherMouseDown:(NSEvent *)theEvent { _event_handler(self, (void *)3, 3); }
 -(void)otherMouseUp:(NSEvent *)theEvent { _event_handler(self, (void *)3, 4); }
 -(void)drawRect:(NSRect)rect { _event_handler(self, nil, 7); }
--(void)keyDown:(NSEvent *)theEvent { _event_handler(self, theEvent, 2); _event_handler([self window], theEvent, 2); }
+-(void)keyDown:(NSEvent *)theEvent { _event_handler(self, theEvent, 2); }
 -(BOOL)isFlipped { return NO; }
 -(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); [font release]; [super dealloc]; }
 @end
@@ -6426,7 +6433,7 @@ HWND API dw_window_new(HWND hwndOwner, char *title, ULONG flStyle)
     int _locked_by_me = FALSE;
     DW_MUTEX_LOCK;
     NSRect frame = NSMakeRect(1,1,1,1);
-    NSWindow *window = [[NSWindow alloc]
+    DWWindow *window = [[DWWindow alloc]
                         initWithContentRect:frame
                         styleMask:(flStyle | NSTexturedBackgroundWindowMask)
                         backing:NSBackingStoreBuffered
@@ -6649,9 +6656,9 @@ void API dw_window_set_style(HWND handle, ULONG style, ULONG mask)
 {
     id object = handle;
 
-    if(DWOSMinor > 5 && [object isMemberOfClass:[NSWindow class]])
+    if(DWOSMinor > 5 && [object isMemberOfClass:[DWWindow class]])
     {
-        NSWindow *window = object;
+        DWWindow *window = object;
         int currentstyle = (int)[window styleMask];
         int tmp;
 
@@ -6704,7 +6711,7 @@ void API dw_window_set_style(HWND handle, ULONG style, ULONG mask)
  */
 void API dw_window_default(HWND handle, HWND defaultitem)
 {
-    NSWindow *window = handle;
+    DWWindow *window = handle;
     id object = defaultitem;
     
     if([window isKindOfClass:[NSWindow class]] && [object isKindOfClass:[NSControl class]])
@@ -6724,7 +6731,7 @@ void API dw_window_click_default(HWND handle, HWND next)
     id object = handle;
     id control = next;
     
-    if([object isMemberOfClass:[NSWindow class]])
+    if([object isMemberOfClass:[DWWindow class]])
     {
         if([control isMemberOfClass:[DWButton class]])
         {
@@ -6761,7 +6768,7 @@ void API dw_window_capture(HWND handle)
 {
     id object = handle;
 
-    if(![object isMemberOfClass:[NSWindow class]])
+    if(![object isMemberOfClass:[DWWindow class]])
     {
         object = [object window];
     }
@@ -6794,7 +6801,7 @@ void API dw_window_reparent(HWND handle, HWND newparent)
 {
     id object = handle;
 
-    if([object isMemberOfClass:[NSWindow class]])
+    if([object isMemberOfClass:[DWWindow class]])
     {
         /* We can't actually reparent on MacOS but if the
          * new parent is an MDI window, change to be a
@@ -7420,7 +7427,7 @@ int _remove_userdata(UserData **root, char *varname, int all)
 void dw_window_set_data(HWND window, char *dataname, void *data)
 {
     id object = window;
-    if([object isMemberOfClass:[NSWindow class]])
+    if([object isMemberOfClass:[DWWindow class]])
     {
         NSWindow *win = window;
         object = [win contentView];
@@ -7462,7 +7469,7 @@ void dw_window_set_data(HWND window, char *dataname, void *data)
 void *dw_window_get_data(HWND window, char *dataname)
 {
     id object = window;
-    if([object isMemberOfClass:[NSWindow class]])
+    if([object isMemberOfClass:[DWWindow class]])
     {
         NSWindow *win = window;
         object = [win contentView];
