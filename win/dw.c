@@ -3238,8 +3238,9 @@ BOOL CALLBACK _scrollwndproc(HWND hwnd, UINT msg, WPARAM mp1, LPARAM mp2)
             int bar = SB_HORZ;
             int which = LOWORD(mp1);
 
+            /* Initialize the scroll info structs */
             vsi.cbSize = hsi.cbSize = sizeof(SCROLLINFO);
-            vsi.fMask = hsi.fMask = SIF_POS | SIF_RANGE;
+            vsi.fMask = hsi.fMask = SIF_POS | SIF_RANGE | SIF_PAGE;
 
             /* Save the current scroll positions */
             GetScrollInfo(hwnd, SB_HORZ, &hsi);
