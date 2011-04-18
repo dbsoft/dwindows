@@ -576,11 +576,13 @@ DWObject *DWObj;
 @end
 
 @interface DWWindow : NSWindow
+-(void)sendEvent:(NSEvent *)theEvent;
 -(void)keyDown:(NSEvent *)theEvent;
 @end
 
 @implementation DWWindow
--(void)keyDown:(NSEvent *)theEvent { _event_handler(self, theEvent, 2); }
+-(void)sendEvent:(NSEvent *)theEvent { if([theEvent type] == NSKeyDown) { _event_handler(self, theEvent, 2); } [super sendEvent:theEvent]; }
+-(void)keyDown:(NSEvent *)theEvent { }
 @end
 
 /* Subclass for a top-level window */
