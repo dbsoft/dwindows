@@ -207,7 +207,7 @@ int _event_handler(id object, NSEvent *event, int message)
                 if([nchar length] == 1)
                 {
                     const char *tmp = [nchar UTF8String];
-                    if(tmp)
+                    if(tmp && strlen(tmp) == 1)
                     {
                         ch = tmp[0];
                     }
