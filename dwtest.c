@@ -65,7 +65,7 @@ HWND mainwindow,
    notebook,
    vscrollbar,
    hscrollbar,
-   status, status1,
+   status,
    container_status,
    tree_status,
    stext,
@@ -331,7 +331,7 @@ int DWSIGNAL keypress_callback(HWND window, char ch, int vk, int state, void *da
       sprintf( tmpbuf, "Key: %c(%d) Modifiers: %s(%d)", ch, ch, resolve_keymodifiers(state), state );
    else
       sprintf( tmpbuf, "Key: %s(%d) Modifiers: %s(%d)", resolve_keyname(vk), vk, resolve_keymodifiers(state), state );
-   dw_window_set_text( status1, tmpbuf);
+   dw_window_set_text( status, tmpbuf);
    return 0;
 }
 
@@ -700,7 +700,7 @@ void archive_add(void)
 void text_add(void)
 {
    unsigned long depth = dw_color_depth_get();
-   HWND vscrollbox;
+   HWND vscrollbox,hbox,spin1,button1;
 
    /* create a box to pack into the notebook page */
    pagebox = dw_box_new(BOXHORZ, 2);
@@ -708,9 +708,15 @@ void text_add(void)
    /* now a status area under this box */
    status = dw_status_text_new("", 0);
    dw_box_pack_start( notebookbox2, status, 100, 20, TRUE, FALSE, 1);
-   /* and another one */
-   status1 = dw_status_text_new("", 0);
-   dw_box_pack_start( notebookbox2, status1, 100, 20, TRUE, FALSE, 1);
+   /* a box with combobox and button */
+   hbox = dw_box_new(BOXHORZ, 1 );
+   dw_box_pack_start( notebookbox2, hbox, 100, 20, TRUE, FALSE, 1);
+   button1 = dw_button_new( "Does nothing", 1223L );
+   dw_box_pack_start( hbox, button1, 100, 20, TRUE, FALSE, 0);
+   spin1 = dw_spinbutton_new( "", 0 );
+   dw_box_pack_start( hbox, spin1, 100, 20, TRUE, FALSE, 0);
+   dw_spinbutton_set_limits( spin1, 100, 1 );
+   dw_spinbutton_set_pos( spin1, 1 );
 
    /* create render box for number pixmap */
    textbox1 = dw_render_new( 100 );
@@ -850,7 +856,7 @@ void container_add(void)
       else thisicon = fileicon;
 fprintf(stderr,"Initial: container: %x containerinfo: %x icon: %x\n", (int)container, (int)containerinfo, (int)thisicon);
       dw_filesystem_set_file(container, containerinfo, z, buffer, thisicon);
-      dw_filesystem_set_item(container, containerinfo, 0, z, &thisicon);      
+      dw_filesystem_set_item(container, containerinfo, 0, z, &thisicon);
       dw_filesystem_set_item(container, containerinfo, 1, z, &size);
 
       time.seconds = z+10;
@@ -867,7 +873,7 @@ fprintf(stderr,"Initial: container: %x containerinfo: %x icon: %x\n", (int)conta
    }
 
    dw_container_insert(container, containerinfo, 3);
-   
+
    containerinfo = dw_container_alloc(container, 1);
    dw_filesystem_set_file(container, containerinfo, 0, strdup("Yikes"), foldericon);
    size = 324;
@@ -876,7 +882,7 @@ fprintf(stderr,"Initial: container: %x containerinfo: %x icon: %x\n", (int)conta
    dw_filesystem_set_item(container, containerinfo, 2, 0, &time);
    dw_filesystem_set_item(container, containerinfo, 3, 0, &date);
    dw_container_set_row_title(containerinfo, 0, strdup("Extra"));
-   
+
    dw_container_insert(container, containerinfo, 1);
    dw_container_optimize(container);
 
