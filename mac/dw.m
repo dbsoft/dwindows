@@ -625,6 +625,7 @@ DWObject *DWObj;
 {
     NSSize size = [self frame].size;
     _do_resize(box, size.width, size.height);
+    _do_resize(box, size.width, size.height);
     _event_handler([self window], nil, 1);
 }
 -(void)windowDidBecomeMain:(id)sender
