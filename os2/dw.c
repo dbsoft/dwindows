@@ -591,6 +591,19 @@ int _focus_check_box(Box *box, HWND handle, int start, HWND defaultitem)
                      return 1;
                }
             }
+            else if(strncmp(tmpbuf, ScrollClassName, strlen(ScrollClassName)+1)==0) /* Scrollbox */
+            {
+                /* Get the box window handle */
+                HWND mybox = (HWND)dw_window_get_data(box->items[z].hwnd, "_dw_box");
+
+                if(mybox)
+                {
+                    Box *scrollbox = (Box *)WinQueryWindowPtr(mybox, QWP_USER);
+
+                    if(scrollbox && _focus_check_box(scrollbox, handle, start == 3 ? 3 : 0, defaultitem))
+                        return 1;
+                }
+            }
          }
       }
    }
@@ -712,6 +725,19 @@ int _focus_check_box_back(Box *box, HWND handle, int start, HWND defaultitem)
                   if(notebox && _focus_check_box_back(notebox, handle, start == 3 ? 3 : 0, defaultitem))
                      return 1;
                }
+            }
+            else if(strncmp(tmpbuf, ScrollClassName, strlen(ScrollClassName)+1)==0) /* Scrollbox */
+            {
+                /* Get the box window handle */
+                HWND mybox = (HWND)dw_window_get_data(box->items[z].hwnd, "_dw_box");
+
+                if(mybox)
+                {
+                    Box *scrollbox = (Box *)WinQueryWindowPtr(mybox, QWP_USER);
+
+                    if(scrollbox && _focus_check_box_back(scrollbox, handle, start == 3 ? 3 : 0, defaultitem))
+                        return 1;
+                }
             }
          }
       }
