@@ -43,13 +43,12 @@ void msleep(long period);
 #include <process.h>
 
 #define DIRSEP "\\"
-#define INIDIR "."
 #define TYPDIR "."
 #else
 #define DIRSEP "/"
-#define INIDIR "~/." __TARGET__
 #define TYPDIR "/usr/local/" __TARGET__
 #endif
+#define INIDIR "~/." __TARGET__
 
 /* OS/2 */
 #if defined(__EMX__) || defined(__OS2__)
