@@ -9556,7 +9556,7 @@ void _populate_directory(HWND tree, HTREEITEM parent, char *path)
    }
 }
 
-void _populate_tree_thread(void *data)
+void API _populate_tree_thread(void *data)
 {
    HWND window = (HWND)data, tree = (HWND)dw_window_get_data(window, "_dw_tree");
    HMTX mtx = (HMTX)dw_window_get_data(window, "_dw_mutex");
