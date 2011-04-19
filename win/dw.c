@@ -13,6 +13,7 @@
 #include <commctrl.h>
 #include <shlwapi.h>
 #include <shlobj.h>
+#include <userenv.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
@@ -10145,19 +10146,27 @@ int API dw_browse(char *url)
  */
 char * API dw_user_dir(void)
 {
-   static char _user_dir[1024] = "";
+    static char _user_dir[1024] = "";
 
-   if(!_user_dir[0])
-   {
-      /* Figure out how to do this the "Windows way" */
-      char *home = getenv("HOME");
-
-      if(home)
-         strcpy(_user_dir, home);
-      else
-         strcpy(_user_dir, "C:\\");
-   }
-   return _user_dir;
+    if(!_user_dir[0])
+    {
+        HANDLE hToken = 0;
+        
+        /* Use the Windows API to get the user's profile directory */
+        if(OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &hToken))
+        {
+            DWORD BufSize = 1024;
+        
+            GetUserProfileDirectory(hToken, _user_dir, &BufSize);
+            CloseHandle(hToken);
+        }
+        /* If it fails set it to the root directory */
+        if(!_user_dir[0])
+        {
+            strcpy(_user_dir, "C:\\");
+        }
+    }
+    return _user_dir;
 }
 
 /*
