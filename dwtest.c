@@ -391,10 +391,10 @@ int DWSIGNAL test_callback(HWND window, void *data)
    return -1;
 }
 
-int DWSIGNAL browse_callback(HWND window, void *data)
+int DWSIGNAL browse_file_callback(HWND window, void *data)
 {
    char *tmp;
-   tmp = dw_file_browse("test string", ".", "c", DW_FILE_OPEN );
+   tmp = dw_file_browse("Pick a file", ".", "c", DW_FILE_OPEN );
    if ( tmp )
    {
       if ( current_file )
@@ -406,6 +406,13 @@ int DWSIGNAL browse_callback(HWND window, void *data)
       read_file();
       draw_file(0,0);
    }
+   return 0;
+}
+
+int DWSIGNAL browse_folder_callback(HWND window, void *data)
+{
+   char *tmp = dw_file_browse("Pick a folder", ".", "c", DW_DIRECTORY_OPEN );
+   printf("Folder picked: %s\n", tmp ? tmp : "None");
    return 0;
 }
 
@@ -636,7 +643,7 @@ int DWSIGNAL combobox_select_event_callback(HWND window, int index)
 
 void archive_add(void)
 {
-   HWND browsebutton, browsebox;
+   HWND browsefilebutton, browsefolderbutton, browsebox;
 
    lbbox = dw_box_new(BOXVERT, 10);
 
@@ -659,9 +666,13 @@ void archive_add(void)
 
    dw_box_pack_start(browsebox, entryfield, 100, 15, TRUE, TRUE, 4);
 
-   browsebutton = dw_button_new("Browse", 1001L);
+   browsefilebutton = dw_button_new("Browse File", 1001L);
 
-   dw_box_pack_start(browsebox, browsebutton, 30, 15, TRUE, TRUE, 0);
+   dw_box_pack_start(browsebox, browsefilebutton, 40, 15, TRUE, TRUE, 0);
+
+   browsefolderbutton = dw_button_new("Browse Folder", 1001L);
+
+   dw_box_pack_start(browsebox, browsefolderbutton, 40, 15, TRUE, TRUE, 0);
 
    dw_window_set_color(browsebox, DW_CLR_PALEGRAY, DW_CLR_PALEGRAY);
    dw_window_set_color(stext, DW_CLR_BLACK, DW_CLR_PALEGRAY);
@@ -689,7 +700,8 @@ void archive_add(void)
    dw_window_set_color(buttonbox, DW_CLR_DARKCYAN, DW_CLR_PALEGRAY);
    dw_window_set_color(okbutton, DW_CLR_PALEGRAY, DW_CLR_DARKCYAN);
 
-   dw_signal_connect(browsebutton, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(browse_callback), (void *)notebookbox1);
+   dw_signal_connect(browsefilebutton, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(browse_file_callback), (void *)notebookbox1);
+   dw_signal_connect(browsefolderbutton, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(browse_folder_callback), (void *)notebookbox1);
    dw_signal_connect(okbutton, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(beep_callback), (void *)notebookbox1);
    dw_signal_connect(cancelbutton, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(exit_callback), (void *)mainwindow);
    dw_signal_connect(cursortogglebutton, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(cursortoggle_callback), (void *)mainwindow);
