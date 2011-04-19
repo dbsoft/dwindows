@@ -770,6 +770,14 @@ int _focus_check_box(Box *box, HWND handle, int start, HWND defaultitem)
                   }
                }
             }
+            else if(strnicmp(tmpbuf, ScrollClassName, strlen(ScrollClassName))==0) /* Scroll Box */
+            {
+                ColorInfo *cinfo = (ColorInfo *)GetWindowLongPtr(box->items[z].hwnd, GWLP_USERDATA);
+                Box *scrollbox = (Box *)GetWindowLongPtr(cinfo->combo, GWLP_USERDATA);
+
+                if(scrollbox && _focus_check_box(scrollbox, handle, start == 3 ? 3 : 0, defaultitem))
+                   return 1;
+            }
          }
       }
    }
@@ -896,6 +904,14 @@ int _focus_check_box_back(Box *box, HWND handle, int start, HWND defaultitem)
                         return 1;
                   }
                }
+            }
+            else if(strnicmp(tmpbuf, ScrollClassName, strlen(ScrollClassName))==0) /* Scroll Box */
+            {
+                ColorInfo *cinfo = (ColorInfo *)GetWindowLongPtr(box->items[z].hwnd, GWLP_USERDATA);
+                Box *scrollbox = (Box *)GetWindowLongPtr(cinfo->combo, GWLP_USERDATA);
+
+                if(scrollbox && _focus_check_box_back(scrollbox, handle, start == 3 ? 3 : 0, defaultitem))
+                   return 1;
             }
          }
       }
