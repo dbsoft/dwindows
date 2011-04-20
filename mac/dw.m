@@ -418,9 +418,14 @@ typedef struct _bitbltinfo
     id bltdest = bltinfo->dest;
     id bltsrc = bltinfo->src;
 
-    if([bltdest isMemberOfClass:[NSImage class]])
+    if([bltdest isMemberOfClass:[NSBitmapImageRep class]])
     {
-        [bltdest lockFocus];
+        [NSGraphicsContext saveGraphicsState];
+        [NSGraphicsContext setCurrentContext:[NSGraphicsContext
+                                              graphicsContextWithBitmapImageRep:bltdest]];  
+        [NSGraphicsContext setCurrentContext:[NSGraphicsContext
+                                              graphicsContextWithGraphicsPort:[[NSGraphicsContext currentContext] graphicsPort] flipped:YES]];    
+        [[NSDictionary alloc] initWithObjectsAndKeys:bltdest, NSGraphicsContextDestinationAttributeName, nil];
     }
     else
     {
@@ -430,14 +435,33 @@ typedef struct _bitbltinfo
         }
         _DWLastDrawable = bltinfo->dest;
     }
-    if([bltsrc isMemberOfClass:[NSImage class]])
+    if([bltsrc isMemberOfClass:[NSBitmapImageRep class]])
     {
-        NSImage *image = bltsrc;
+        NSImage *image = [[NSImage alloc] initWithCGImage:[(NSBitmapImageRep *)bltsrc CGImage] size:NSZeroSize];
+        // make a new transform:
+        NSAffineTransform *t = [NSAffineTransform transform];
+        
+        // by scaling Y negatively, we effectively flip the image:
+        [t scaleXBy:1.0 yBy:-1.0];
+        
+        // but we also have to translate it back by its height:
+        [t translateXBy:0.0 yBy:-bltinfo->height];
+        
+        // apply the transform:
+        [t concat];        
         [image drawAtPoint:NSMakePoint(bltinfo->xdest, bltinfo->ydest) fromRect:NSMakeRect(bltinfo->xsrc, bltinfo->ysrc, bltinfo->width, bltinfo->height)
                         operation:NSCompositeCopy fraction:1.0];
         [bltsrc release];
+        [image release];
     }
-    [bltdest unlockFocus];
+    if([bltdest isMemberOfClass:[NSBitmapImageRep class]])
+    {
+        [NSGraphicsContext restoreGraphicsState];
+    }
+    else
+    {
+        [bltdest unlockFocus];
+    }
     free(bltinfo);
 }
 -(void)doFlush:(id)param
@@ -4354,7 +4378,11 @@ void API dw_draw_point(HWND handle, HPIXMAP pixmap, int x, int y)
     if(pixmap)
     {
         image = (id)pixmap->image;
-        [image lockFocus];
+        [NSGraphicsContext saveGraphicsState];
+        [NSGraphicsContext setCurrentContext:[NSGraphicsContext
+                                              graphicsContextWithBitmapImageRep:image]];    
+        [NSGraphicsContext setCurrentContext:[NSGraphicsContext
+                                              graphicsContextWithGraphicsPort:[[NSGraphicsContext currentContext] graphicsPort] flipped:YES]];    
     }
     else
     {
@@ -4372,7 +4400,14 @@ void API dw_draw_point(HWND handle, HPIXMAP pixmap, int x, int y)
 
     [aPath moveToPoint:NSMakePoint(x, y)];
     [aPath stroke];
-    [image unlockFocus];
+    if(pixmap)
+    {
+        [NSGraphicsContext restoreGraphicsState];
+    }
+    else
+    {
+        [image unlockFocus];
+    }
     DW_MUTEX_UNLOCK;
 }
 
@@ -4393,7 +4428,11 @@ void API dw_draw_line(HWND handle, HPIXMAP pixmap, int x1, int y1, int x2, int y
     if(pixmap)
     {
         image = (id)pixmap->image;
-        [image lockFocus];
+        [NSGraphicsContext saveGraphicsState];
+        [NSGraphicsContext setCurrentContext:[NSGraphicsContext
+                                              graphicsContextWithBitmapImageRep:image]];    
+        [NSGraphicsContext setCurrentContext:[NSGraphicsContext
+                                              graphicsContextWithGraphicsPort:[[NSGraphicsContext currentContext] graphicsPort] flipped:YES]];    
     }
     else
     {
@@ -4413,7 +4452,14 @@ void API dw_draw_line(HWND handle, HPIXMAP pixmap, int x1, int y1, int x2, int y
     [aPath lineToPoint:NSMakePoint(x2, y2)];
     [aPath stroke];
 
-    [image unlockFocus];
+    if(pixmap)
+    {
+        [NSGraphicsContext restoreGraphicsState];
+    }
+    else
+    {
+        [image unlockFocus];
+    }
     DW_MUTEX_UNLOCK;
 }
 
@@ -4468,7 +4514,11 @@ void API dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
             font = [render font];
         }
         image = (id)pixmap->image;
-        [image lockFocus];
+        [NSGraphicsContext saveGraphicsState];
+        [NSGraphicsContext setCurrentContext:[NSGraphicsContext
+                                              graphicsContextWithBitmapImageRep:image]];    
+        [NSGraphicsContext setCurrentContext:[NSGraphicsContext
+                                              graphicsContextWithGraphicsPort:[[NSGraphicsContext currentContext] graphicsPort] flipped:YES]];    
         NSColor *fgcolor = pthread_getspecific(_dw_fg_color_key);
         NSColor *bgcolor = pthread_getspecific(_dw_bg_color_key);
         NSMutableDictionary *dict = [[NSMutableDictionary alloc] initWithObjectsAndKeys:fgcolor, NSForegroundColorAttributeName, nil];
@@ -4481,7 +4531,7 @@ void API dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
             [dict setValue:font forKey:NSFontAttributeName];
         }
         [nstr drawAtPoint:NSMakePoint(x, y) withAttributes:dict];
-        [image unlockFocus];
+        [NSGraphicsContext restoreGraphicsState];
         [dict release];
     }
     DW_MUTEX_UNLOCK;
@@ -4544,7 +4594,11 @@ void API dw_draw_polygon( HWND handle, HPIXMAP pixmap, int fill, int npoints, in
     if(pixmap)
     {
         image = (id)pixmap->image;
-        [image lockFocus];
+        [NSGraphicsContext saveGraphicsState];
+        [NSGraphicsContext setCurrentContext:[NSGraphicsContext
+                                              graphicsContextWithBitmapImageRep:image]];    
+        [NSGraphicsContext setCurrentContext:[NSGraphicsContext
+                                              graphicsContextWithGraphicsPort:[[NSGraphicsContext currentContext] graphicsPort] flipped:YES]];    
     }
     else
     {
@@ -4571,7 +4625,14 @@ void API dw_draw_polygon( HWND handle, HPIXMAP pixmap, int fill, int npoints, in
         [aPath fill];
     }
     [aPath stroke];
-    [image unlockFocus];
+    if(pixmap)
+    {
+        [NSGraphicsContext restoreGraphicsState];
+    }
+    else
+    {
+        [image unlockFocus];
+    }
     DW_MUTEX_UNLOCK;
 }
 
@@ -4593,7 +4654,11 @@ void API dw_draw_rect(HWND handle, HPIXMAP pixmap, int fill, int x, int y, int w
     if(pixmap)
     {
         image = (id)pixmap->image;
-        [image lockFocus];
+        [NSGraphicsContext saveGraphicsState];
+        [NSGraphicsContext setCurrentContext:[NSGraphicsContext
+                                              graphicsContextWithBitmapImageRep:image]];    
+        [NSGraphicsContext setCurrentContext:[NSGraphicsContext
+                                              graphicsContextWithGraphicsPort:[[NSGraphicsContext currentContext] graphicsPort] flipped:YES]];    
     }
     else
     {
@@ -4617,7 +4682,14 @@ void API dw_draw_rect(HWND handle, HPIXMAP pixmap, int fill, int x, int y, int w
     if(fill)
        [aPath fill];
     [aPath stroke];
-    [image unlockFocus];
+    if(pixmap)
+    {
+        [NSGraphicsContext restoreGraphicsState];
+    }
+    else
+    {
+        [image unlockFocus];
+    }
     DW_MUTEX_UNLOCK;
 }
 
@@ -5728,7 +5800,6 @@ HWND API dw_bitmap_new(ULONG cid)
  */
 HPIXMAP API dw_pixmap_new(HWND handle, unsigned long width, unsigned long height, int depth)
 {
-    NSSize size = { (float)width, (float)height };
     HPIXMAP pixmap;
 
     if(!(pixmap = calloc(1,sizeof(struct _hpixmap))))
@@ -5736,8 +5807,18 @@ HPIXMAP API dw_pixmap_new(HWND handle, unsigned long width, unsigned long height
     pixmap->width = width;
     pixmap->height = height;
     pixmap->handle = handle;
-    NSImage *image = pixmap->image = [[NSImage alloc] initWithSize:size];
-    [image setFlipped:YES];
+    id image = pixmap->image = [[NSBitmapImageRep alloc] 
+                                    initWithBitmapDataPlanes:NULL 
+                                    pixelsWide:width 
+                                    pixelsHigh:height 
+                                    bitsPerSample:8 
+                                    samplesPerPixel:4 
+                                    hasAlpha:YES 
+                                    isPlanar:NO 
+                                    colorSpaceName:@"NSCalibratedRGBColorSpace" 
+                                    bytesPerRow:0 
+                                    bitsPerPixel:0];
+    [image retain];
     return pixmap;
 }
 
@@ -5758,18 +5839,17 @@ HPIXMAP API dw_pixmap_new_from_file(HWND handle, char *filename)
     if(!(pixmap = calloc(1,sizeof(struct _hpixmap))))
         return NULL;
     NSString *nstr = [ NSString stringWithUTF8String:filename ];
-    NSImage *image = [[NSImage alloc] initWithContentsOfFile:nstr];
+    NSBitmapImageRep *image = [[NSBitmapImageRep alloc] initWithContentsOfFile:nstr];
     if(!image)
     {
         nstr = [nstr stringByAppendingString:@".png"];
-        image = [[NSImage alloc] initWithContentsOfFile:nstr];
+        image = [[NSBitmapImageRep alloc] initWithContentsOfFile:nstr];
     }
     NSSize size = [image size];
     pixmap->width = size.width;
     pixmap->height = size.height;
     pixmap->image = image;
     pixmap->handle = handle;
-    [image setFlipped:YES];
     return pixmap;
 }
 
@@ -5790,13 +5870,12 @@ HPIXMAP API dw_pixmap_new_from_data(HWND handle, char *data, int len)
     if(!(pixmap = calloc(1,sizeof(struct _hpixmap))))
         return NULL;
     NSData *thisdata = [NSData dataWithBytes:data length:len];
-    NSImage *image = [[NSImage alloc] initWithData:thisdata];
+    NSBitmapImageRep *image = [[NSBitmapImageRep alloc] initWithData:thisdata];
     NSSize size = [image size];
     pixmap->width = size.width;
     pixmap->height = size.height;
     pixmap->image = image;
     pixmap->handle = handle;
-    [image setFlipped:YES];
     return pixmap;
 }
 
@@ -5832,13 +5911,12 @@ HPIXMAP API dw_pixmap_grab(HWND handle, ULONG resid)
     NSBundle *bundle = [NSBundle mainBundle];
     NSString *respath = [bundle resourcePath];
     NSString *filepath = [respath stringByAppendingFormat:@"/%u.png", resid];
-    NSImage *image = [[NSImage alloc] initWithContentsOfFile:filepath];
+    NSBitmapImageRep *image = [[NSBitmapImageRep alloc] initWithContentsOfFile:filepath];
     NSSize size = [image size];
     pixmap->width = size.width;
     pixmap->height = size.height;
     pixmap->image = image;
     pixmap->handle = handle;
-    [image setFlipped:YES];
     return pixmap;
 }
 
@@ -5850,8 +5928,8 @@ HPIXMAP API dw_pixmap_grab(HWND handle, ULONG resid)
  */
 void API dw_pixmap_destroy(HPIXMAP pixmap)
 {
-    NSImage *image = (NSImage *)pixmap->image;
-    [image dealloc];
+    NSBitmapImageRep *image = (NSBitmapImageRep *)pixmap->image;
+    [image release];
     free(pixmap);
 }
 
