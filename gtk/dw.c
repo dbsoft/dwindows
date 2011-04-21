@@ -635,6 +635,8 @@ static void gtk_mdi_get_pos(GtkMdi *mdi, GtkWidget *widget, gint *x, gint *y)
    *y = child->y;
 }
 
+/* These aren't used... but leaving them here for completeness */
+#if 0
 static void gtk_mdi_tile(GtkMdi *mdi)
 {
    int i, n;
@@ -706,6 +708,7 @@ static GtkMdiChildState gtk_mdi_get_state(GtkMdi *mdi, GtkWidget *widget)
 
    return child->state;
 }
+#endif
 
 static void gtk_mdi_set_state(GtkMdi *mdi, GtkWidget *widget, GtkMdiChildState state)
 {
@@ -2842,7 +2845,6 @@ char *dw_window_get_font(HWND handle)
    char *font;
    char *retfont=NULL;
    int _locked_by_me = FALSE;
-   gpointer data;
 
    DW_MUTEX_LOCK;
    if(GTK_IS_SCROLLED_WINDOW(handle))
@@ -2853,7 +2855,6 @@ char *dw_window_get_font(HWND handle)
    }
 
 #if GTK_MAJOR_VERSION < 2
-????
    /* Free old font if it exists */
    gdkfont = (GdkFont *)gtk_object_get_data(GTK_OBJECT(handle2), "_dw_gdkfont");
    if(gdkfont)
@@ -2862,15 +2863,6 @@ char *dw_window_get_font(HWND handle)
    if(!gdkfont)
       gdkfont = gdk_font_load("fixed");
    gtk_object_set_data(GTK_OBJECT(handle2), "_dw_gdkfont", (gpointer)gdkfont);
-#endif
-
-#if 0
-   /* Free old font name if one is allocated */
-   data = gtk_object_get_data(GTK_OBJECT(handle2), "_dw_fontname");
-   if(data)
-      free(data);
-
-   gtk_object_set_data(GTK_OBJECT(handle2), "_dw_fontname", (gpointer)font);
 #endif
 
 #if GTK_MAJOR_VERSION > 1
@@ -3270,9 +3262,9 @@ int dw_scrollbox_get_pos(HWND handle, int orient)
 
    DW_MUTEX_LOCK;
    if ( orient == DW_HORZ )
-      adjustment = gtk_scrolled_window_get_hadjustment( handle );
+      adjustment = gtk_scrolled_window_get_hadjustment( GTK_SCROLLED_WINDOW(handle) );
    else
-      adjustment = gtk_scrolled_window_get_vadjustment( handle );
+      adjustment = gtk_scrolled_window_get_vadjustment( GTK_SCROLLED_WINDOW(handle) );
    if (adjustment)
       val = _round_value(adjustment->value);
    DW_MUTEX_UNLOCK;
@@ -3295,9 +3287,9 @@ int API dw_scrollbox_get_range(HWND handle, int orient)
 
    DW_MUTEX_LOCK;
    if ( orient == DW_HORZ )
-      adjustment = gtk_scrolled_window_get_hadjustment( handle );
+      adjustment = gtk_scrolled_window_get_hadjustment( GTK_SCROLLED_WINDOW(handle) );
    else
-      adjustment = gtk_scrolled_window_get_vadjustment( handle );
+      adjustment = gtk_scrolled_window_get_vadjustment( GTK_SCROLLED_WINDOW(handle) );
    if (adjustment)
    {
       range = _round_value(adjustment->upper);
@@ -8961,7 +8953,7 @@ DWTID dw_thread_new(void *func, void *data, int stack)
    if ( rc == 0 )
       return gtkthread;
    else
-      return rc;
+      return (DWTID)rc;
 }
 
 /*
@@ -9686,7 +9678,7 @@ void dw_listbox_append(HWND handle, char *text)
 
       if(addtext)
       {
-         char *defstr = gtk_entry_get_text(GTK_ENTRY(GTK_COMBO(handle2)->entry));
+         const char *defstr = gtk_entry_get_text(GTK_ENTRY(GTK_COMBO(handle2)->entry));
          tmp = g_list_append(tmp, addtext);
          gtk_object_set_user_data(GTK_OBJECT(handle2), tmp);
          gtk_combo_set_popdown_strings(GTK_COMBO(handle2), tmp);
@@ -10873,8 +10865,7 @@ char *dw_file_browse(char *title, char *defpath, char *ext, int flags)
    char *filename = NULL;
    char buf[1000];
    char mypath[PATH_MAX+1];
-   char cwd[PATH_MAX+1];
-
+ 
    switch (flags )
    {
       case DW_DIRECTORY_OPEN:
@@ -10931,7 +10922,6 @@ char *dw_file_browse(char *title, char *defpath, char *ext, int flags)
    if ( gtk_dialog_run( GTK_DIALOG( filew ) ) == GTK_RESPONSE_ACCEPT )
    {
       filename = gtk_file_chooser_get_filename( GTK_FILE_CHOOSER( filew ) );
-//      g_free (filename);
    }
 
    gtk_widget_destroy( filew );
