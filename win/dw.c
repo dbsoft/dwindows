@@ -4691,6 +4691,7 @@ HWND API dw_mdi_new(unsigned long id)
  */
 HWND API dw_html_new(unsigned long id)
 {
+#if defined(BUILD_DLL) || defined(BUILD_HTML)
    return CreateWindow(BrowserClassName,
                   "",
                   WS_VISIBLE | WS_CHILD | WS_CLIPSIBLINGS,
@@ -4699,6 +4700,9 @@ HWND API dw_html_new(unsigned long id)
                   (HMENU)id,
                   DWInstance,
                   NULL);
+#else
+   return 0;
+#endif
 }
 
 /*
@@ -6441,6 +6445,7 @@ void API dw_notebook_pack(HWND handle, ULONG pageidx, HWND page)
       array[pageid]->hwnd = tmpbox;
       if(pageidx == dw_notebook_page_get(handle))
       {
+         ShowWindow(tmpbox, SW_HIDE);
          SetParent(tmpbox, handle);
          _resize_notebook_page(handle, pageid);
       }
@@ -9937,7 +9942,8 @@ char * API dw_file_browse(char *title, char *defpath, char *ext, int flags)
 
    if ( flags == DW_DIRECTORY_OPEN )
    {
-#if 0
+   /* If we aren't building a DLL, use the more simple browser */
+#ifndef BUILD_DLL
       if (SUCCEEDED(SHGetMalloc(&pMalloc)))
       {
          ZeroMemory(&bi,sizeof(bi));
