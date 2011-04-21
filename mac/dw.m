@@ -437,7 +437,18 @@ typedef struct _bitbltinfo
     }
     if([bltsrc isMemberOfClass:[NSBitmapImageRep class]])
     {
-        NSImage *image = [[NSImage alloc] initWithCGImage:[(NSBitmapImageRep *)bltsrc CGImage] size:NSZeroSize];
+        NSBitmapImageRep *rep = bltsrc;
+        NSImage *image;
+        
+        if(DWOSMinor > 5)
+        {
+            image = [[NSImage alloc] initWithCGImage:[rep CGImage] size:NSZeroSize];
+        }
+        else
+        {
+            image = [[NSImage alloc] initWithSize:[rep size]];
+            [image addRepresentation:rep];
+        }
         // make a new transform:
         NSAffineTransform *t = [NSAffineTransform transform];
         
