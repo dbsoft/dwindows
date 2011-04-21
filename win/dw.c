@@ -44,15 +44,11 @@ static LOGFONT lfDefaultBoldFont = { 0 };
 
 #define PACKVERSION(major,minor) MAKELONG(minor,major)
 
-#define IS_IE5PLUS (dwComctlVer >= PACKVERSION(5,80))
-#define IS_WINNTOR95 (((LOBYTE(LOWORD(dwVersion))) < 5) && (HIBYTE(LOWORD(dwVersion)) < 10))
+#define IS_XPPLUS (dwComctlVer >= PACKVERSION(5,82))
 
 #ifndef MIN
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))
 #endif
-
-static BOOL (WINAPI* MyGetMenuInfo)(HMENU, LPCMENUINFO) = 0;
-static BOOL (WINAPI* MySetMenuInfo)(HMENU, LPCMENUINFO) = 0;
 
 FILE *dbgfp = NULL;
 
@@ -569,23 +565,19 @@ BOOL CALLBACK _free_window_memory(HWND handle, LPARAM lParam)
 
 void _free_menu_data(HMENU menu)
 {
-   if (!IS_WINNTOR95 )
-   {
-      int i, count = GetMenuItemCount(menu);
+    int i, count = GetMenuItemCount(menu);
 
-      for(i=0;i<count;i++)
-      {
-         MENUITEMINFO mii;
+    for(i=0;i<count;i++)
+    {
+        MENUITEMINFO mii;
 
-         mii.cbSize = sizeof(MENUITEMINFO);
-         mii.fMask = MIIM_SUBMENU;
+        mii.cbSize = sizeof(MENUITEMINFO);
+        mii.fMask = MIIM_SUBMENU;
 
-         if ( GetMenuItemInfo( menu, i, TRUE, &mii )
-         && mii.hSubMenu )
+        if ( GetMenuItemInfo( menu, i, TRUE, &mii ) && mii.hSubMenu )
             _free_menu_data(mii.hSubMenu);
-      }
-   }
-   dw_signal_disconnect_by_name((HWND)menu, DW_SIGNAL_CLICKED);
+    }
+    dw_signal_disconnect_by_name((HWND)menu, DW_SIGNAL_CLICKED);
 }
 
 /* Convert to our internal color scheme */
@@ -1607,7 +1599,7 @@ HMENU _get_owner(HMENU menu)
    mi.cbSize = sizeof(MENUINFO);
    mi.fMask = MIM_MENUDATA;
 
-   if ( MyGetMenuInfo( menu, &mi ) )
+   if ( GetMenuInfo( menu, &mi ) )
       return (HMENU)mi.dwMenuData;
    return (HMENU)0;
 }
@@ -2127,7 +2119,7 @@ dw_messagebox("NM_CUSTOMDRAW for WC_LISTVIEW(mp2) from _wndproc (WM_NOTIFY)", DW
                            tmp = NULL;
                         }
                      }
-                     else if (!IS_WINNTOR95 && tmp->id && passthru == tmp->id)
+                     else if (tmp->id && passthru == tmp->id)
                      {
                         HMENU hwndmenu = GetMenu(hWnd), menuowner = _menu_owner((HMENU)tmp->window);
 
@@ -2728,10 +2720,7 @@ BOOL CALLBACK _spinnerwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 
                position = atol(tempbuf);
 
-               if(IS_IE5PLUS)
-                  SendMessage(hWnd, UDM_SETPOS32, 0, (LPARAM)position);
-               else
-                  SendMessage(hWnd, UDM_SETPOS, 0, (LPARAM)MAKELONG((short)position, 0));
+               SendMessage(hWnd, UDM_SETPOS32, 0, (LPARAM)position);
             }
          }
          break;
@@ -2918,10 +2907,7 @@ BOOL CALLBACK _colorwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
             {
                long val;
 
-               if(IS_IE5PLUS)
-                  val = (long)SendMessage(cinfo->buddy, UDM_GETPOS32, 0, 0);
-               else
-                  val = (long)SendMessage(cinfo->buddy, UDM_GETPOS, 0, 0);
+               val = (long)SendMessage(cinfo->buddy, UDM_GETPOS32, 0, 0);
 
                sprintf(tmpbuf, "%ld", val);
                SetWindowText(hWnd, tmpbuf);
@@ -3822,16 +3808,6 @@ int API dw_init(int newthread, int argc, char *argv[])
       _PointerOnWnd[z] = 0;
    }
 
-   if ( !IS_WINNTOR95 )
-   {
-      /* Get function pointers for the Win2k/98 menu functions */
-      HANDLE huser = LoadLibrary("user32");
-
-      MyGetMenuInfo = (void*)GetProcAddress(huser, "GetMenuInfo");
-      MySetMenuInfo = (void*)GetProcAddress(huser, "SetMenuInfo");
-      FreeLibrary(huser);
-   }
-
    /* Initialize Security for named events and memory */
    InitializeSecurityDescriptor(&_dwsd, SECURITY_DESCRIPTOR_REVISION);
    SetSecurityDescriptorDacl(&_dwsd, TRUE, (PACL) NULL, FALSE);
@@ -4095,14 +4071,10 @@ int API dw_window_destroy(HWND handle)
 {
    HWND parent = GetParent(handle);
    Box *thisbox = (Box *)GetWindowLongPtr(parent, GWLP_USERDATA);
+   HMENU menu = GetMenu(handle);
 
-   if(!IS_WINNTOR95)
-   {
-      HMENU menu = GetMenu(handle);
-
-      if(menu)
-         _free_menu_data(menu);
-   }
+   if(menu)
+      _free_menu_data(menu);
 
    if(parent != HWND_DESKTOP && thisbox && thisbox->count)
    {
@@ -4794,19 +4766,15 @@ HMENUI API dw_menu_new(ULONG id)
 HMENUI API dw_menubar_new(HWND location)
 {
    HMENUI tmp;
+   MENUINFO mi;
 
    tmp = (HMENUI)CreateMenu();
 
-   if (!IS_WINNTOR95)
-   {
-      MENUINFO mi;
+   mi.cbSize = sizeof(MENUINFO);
+   mi.fMask = MIM_MENUDATA;
+   mi.dwMenuData = (ULONG_PTR)1;
 
-      mi.cbSize = sizeof(MENUINFO);
-      mi.fMask = MIM_MENUDATA;
-      mi.dwMenuData = (ULONG_PTR)1;
-
-      MySetMenuInfo( (HMENU)tmp, &mi );
-   }
+   SetMenuInfo( (HMENU)tmp, &mi );
 
    dw_window_set_data(location, "_dw_menu", (void *)tmp);
 
@@ -4912,19 +4880,15 @@ HWND API dw_menu_append_item(HMENUI menux, char *title, ULONG id, ULONG flags, i
    sprintf(buffer, "_dw_isdisabled%ld", id);
    dw_window_set_data( DW_HWND_OBJECT, buffer, (void *)is_disabled );
 
-   if (!IS_WINNTOR95)
+   if (submenu)
    {
-      /* According to the docs this will only work on Win2k/98 and above */
-      if (submenu)
-      {
-         MENUINFO mi;
+      MENUINFO mi;
 
-         mi.cbSize = sizeof(MENUINFO);
-         mi.fMask = MIM_MENUDATA;
-         mi.dwMenuData = (ULONG_PTR)mymenu;
+      mi.cbSize = sizeof(MENUINFO);
+      mi.fMask = MIM_MENUDATA;
+      mi.dwMenuData = (ULONG_PTR)mymenu;
 
-         MySetMenuInfo( (HMENU)submenu, &mi );
-      }
+      SetMenuInfo( (HMENU)submenu, &mi );
    }
 
    if (IsWindow(menux) && !IsMenu((HMENU)menux))
@@ -5142,6 +5106,12 @@ HWND API dw_container_new(ULONG id, int multi)
 
    SetWindowLongPtr(tmp, GWLP_USERDATA, (LONG_PTR)cinfo);
    dw_window_set_font(tmp, DefaultFont);
+   /* If we are running XP or higher... */
+   if(IS_XPPLUS)
+   {
+      /* Enable double buffering to prevent flicker */
+      ListView_SetExtendedListViewStyleEx(tmp, LVS_EX_DOUBLEBUFFER, LVS_EX_DOUBLEBUFFER);
+   }
    return tmp;
 }
 
@@ -7214,10 +7184,7 @@ void API dw_spinbutton_set_pos(HWND handle, long position)
    if(cinfo && cinfo->buddy)
       SetWindowText(cinfo->buddy, tmpbuf);
 
-   if(IS_IE5PLUS)
-      SendMessage(handle, UDM_SETPOS32, 0, (LPARAM)position);
-   else
-      SendMessage(handle, UDM_SETPOS, 0, (LPARAM)MAKELONG((short)position, 0));
+   SendMessage(handle, UDM_SETPOS32, 0, (LPARAM)position);
 }
 
 /*
@@ -7229,11 +7196,7 @@ void API dw_spinbutton_set_pos(HWND handle, long position)
  */
 void API dw_spinbutton_set_limits(HWND handle, long upper, long lower)
 {
-   if(IS_IE5PLUS)
-      SendMessage(handle, UDM_SETRANGE32, (WPARAM)lower,(LPARAM)upper);
-   else
-      SendMessage(handle, UDM_SETRANGE32, (WPARAM)((short)lower),
-               (LPARAM)((short)upper));
+   SendMessage(handle, UDM_SETRANGE32, (WPARAM)lower,(LPARAM)upper);
 }
 
 /*
@@ -7254,10 +7217,7 @@ void API dw_entryfield_set_limit(HWND handle, ULONG limit)
  */
 long API dw_spinbutton_get_pos(HWND handle)
 {
-   if(IS_IE5PLUS)
-      return (long)SendMessage(handle, UDM_GETPOS32, 0, 0);
-   else
-      return (long)SendMessage(handle, UDM_GETPOS, 0, 0);
+   return (long)SendMessage(handle, UDM_GETPOS32, 0, 0);
 }
 
 /*
