@@ -221,12 +221,20 @@ int _event_handler(id object, NSEvent *event, int message)
             case 4:
             {
                 int (* API buttonfunc)(HWND, int, int, int, void *) = (int (* API)(HWND, int, int, int, void *))handler->signalfunction;
-                int button = (int)event;
-                LONG x,y;
+                NSPoint p = [object convertPoint:[event locationInWindow] fromView:nil];
+                NSEventType type = [event type];
+                int button = 1;
+                
+                if(type == NSRightMouseDown || type == NSRightMouseUp)
+                {
+                    button = 2;
+                }
+                else if(type == NSOtherMouseDown || type == NSOtherMouseUp)
+                {
+                    button = 3;
+                }
 
-                dw_pointer_query_pos(&x, &y);
-
-                return buttonfunc(object, (int)x, (int)y, button, handler->data);
+                return buttonfunc(object, (int)p.x, (int)[object frame].size.height - p.y, button, handler->data);
             }
             /* Motion notify event */
             case 5:
@@ -1147,12 +1155,12 @@ DWObject *DWObj;
 -(NSFont *)font { return font; }
 -(void)setSize:(NSSize)input { size = input; }
 -(NSSize)size { return size; }
--(void)mouseDown:(NSEvent *)theEvent { _event_handler(self, (void *)1, 3); }
--(void)mouseUp:(NSEvent *)theEvent { _event_handler(self, (void *)1, 4); }
--(NSMenu *)menuForEvent:(NSEvent *)theEvent { _event_handler(self, (void *)2, 3); return nil; }
--(void)rightMouseUp:(NSEvent *)theEvent { _event_handler(self, (void *)2, 4); }
--(void)otherMouseDown:(NSEvent *)theEvent { _event_handler(self, (void *)3, 3); }
--(void)otherMouseUp:(NSEvent *)theEvent { _event_handler(self, (void *)3, 4); }
+-(void)mouseDown:(NSEvent *)theEvent { _event_handler(self, theEvent, 3); }
+-(void)mouseUp:(NSEvent *)theEvent { _event_handler(self, theEvent, 4); }
+-(NSMenu *)menuForEvent:(NSEvent *)theEvent { _event_handler(self, theEvent, 3); return nil; }
+-(void)rightMouseUp:(NSEvent *)theEvent { _event_handler(self, theEvent, 4); }
+-(void)otherMouseDown:(NSEvent *)theEvent { _event_handler(self, theEvent, 3); }
+-(void)otherMouseUp:(NSEvent *)theEvent { _event_handler(self, theEvent, 4); }
 -(void)drawRect:(NSRect)rect { _event_handler(self, nil, 7); }
 -(void)keyDown:(NSEvent *)theEvent { _event_handler(self, theEvent, 2); }
 -(BOOL)isFlipped { return NO; }
@@ -4362,7 +4370,7 @@ HWND API dw_text_new(char *text, ULONG cid)
 HWND API dw_render_new(unsigned long cid)
 {
     DWRender *render = [[DWRender alloc] init];
-    /* [render setTag:cid]; Why doesn't this work? */
+    [render setTag:cid];
     return render;
 }
 
