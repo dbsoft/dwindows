@@ -5881,7 +5881,6 @@ HPIXMAP API dw_pixmap_new(HWND handle, unsigned long width, unsigned long height
                                     colorSpaceName:NSDeviceRGBColorSpace 
                                     bytesPerRow:0 
                                     bitsPerPixel:0];
-    [image retain];
     return pixmap;
 }
 
@@ -5913,7 +5912,6 @@ HPIXMAP API dw_pixmap_new_from_file(HWND handle, char *filename)
     pixmap->height = size.height;
     pixmap->image = image;
     pixmap->handle = handle;
-    [image retain];
     return pixmap;
 }
 
@@ -5940,7 +5938,6 @@ HPIXMAP API dw_pixmap_new_from_data(HWND handle, char *data, int len)
     pixmap->height = size.height;
     pixmap->image = image;
     pixmap->handle = handle;
-    [image retain];
     return pixmap;
 }
 
@@ -5982,7 +5979,6 @@ HPIXMAP API dw_pixmap_grab(HWND handle, ULONG resid)
     pixmap->height = size.height;
     pixmap->image = image;
     pixmap->handle = handle;
-    [image retain];
     return pixmap;
 }
 
