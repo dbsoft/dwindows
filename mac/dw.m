@@ -1984,9 +1984,6 @@ void _handle_resize_events(Box *thisbox)
     }
 }
 
-/* Default border is 5.0 according to the documentation */
-#define _DW_GROUPBOX_BORDER     5
-
 /* This function calculates how much space the widgets and boxes require
  * and does expansion as necessary.
  */
@@ -2010,8 +2007,8 @@ static int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *
         
         /* Get the title size for a more accurate groupbox padding size */
         titleRect = [groupbox titleRect];
-        thisbox->grouppadx = _DW_GROUPBOX_BORDER * 2;
-        thisbox->grouppady = (_DW_GROUPBOX_BORDER * 2) + titleRect.size.height;
+        thisbox->grouppadx = 16;
+        thisbox->grouppady = 9 + titleRect.size.height;
         
         (*usedx) += thisbox->grouppadx;
         (*usedpadx) += thisbox->grouppadx;
@@ -2073,8 +2070,10 @@ static int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *
 
                if(thisbox->type == DW_VERT)
                {
-                  if((thisbox->items[z].width-((thisbox->items[z].pad*2)+(tmp->pad*2)))!=0)
-                     tmp->xratio = ((float)((thisbox->items[z].width * thisbox->xratio)-((thisbox->items[z].pad*2)+(tmp->pad*2))))/((float)(thisbox->items[z].width-((thisbox->items[z].pad*2)+(tmp->pad*2))));
+                   int tmppad = (thisbox->items[z].pad*2)+(tmp->pad*2)+tmp->grouppady;
+                   
+                   if((thisbox->items[z].width - tmppad)!=0)
+                       tmp->xratio = ((float)((thisbox->items[z].width * thisbox->xratio)-tmppad))/((float)(thisbox->items[z].width-tmppad));
                }
                else
                {
@@ -2083,8 +2082,10 @@ static int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *
                }
                if(thisbox->type == DW_HORZ)
                {
-                  if((thisbox->items[z].height-((thisbox->items[z].pad*2)+(tmp->pad*2)))!=0)
-                     tmp->yratio = ((float)((thisbox->items[z].height * thisbox->yratio)-((thisbox->items[z].pad*2)+(tmp->pad*2))))/((float)(thisbox->items[z].height-((thisbox->items[z].pad*2)+(tmp->pad*2))));
+                   int tmppad = (thisbox->items[z].pad*2)+(tmp->pad*2)+tmp->grouppadx;
+                   
+                   if((thisbox->items[z].height-tmppad)!=0)
+                       tmp->yratio = ((float)((thisbox->items[z].height * thisbox->yratio)-tmppad))/((float)(thisbox->items[z].height-tmppad));
                }
                else
                {
@@ -2114,10 +2115,12 @@ static int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *
       {
          if(thisbox->type == DW_VERT)
          {
-            if((thisbox->minwidth-((thisbox->items[z].pad*2)+(thisbox->parentpad*2))) == 0)
-               thisbox->items[z].xratio = 1.0;
-            else
-               thisbox->items[z].xratio = ((float)((thisbox->width * thisbox->parentxratio)-((thisbox->items[z].pad*2)+(thisbox->parentpad*2))))/((float)(thisbox->minwidth-((thisbox->items[z].pad*2)+(thisbox->parentpad*2))));
+             int tmppad = (thisbox->items[z].pad*2)+(thisbox->parentpad*2)+thisbox->grouppadx;
+             
+             if((thisbox->minwidth-tmppad) == 0)
+                 thisbox->items[z].xratio = 1.0;
+             else
+                 thisbox->items[z].xratio = ((float)((thisbox->width * thisbox->parentxratio)-tmppad))/((float)(thisbox->minwidth-tmppad));
          }
          else
          {
@@ -2129,10 +2132,12 @@ static int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *
 
          if(thisbox->type == DW_HORZ)
          {
-            if((thisbox->minheight-((thisbox->items[z].pad*2)+(thisbox->parentpad*2))) == 0)
-               thisbox->items[z].yratio = 1.0;
-            else
-               thisbox->items[z].yratio = ((float)((thisbox->height * thisbox->parentyratio)-((thisbox->items[z].pad*2)+(thisbox->parentpad*2))))/((float)(thisbox->minheight-((thisbox->items[z].pad*2)+(thisbox->parentpad*2))));
+             int tmppad = (thisbox->items[z].pad*2)+(thisbox->parentpad*2)+thisbox->grouppady;
+             
+             if((thisbox->minheight-tmppad) == 0)
+                 thisbox->items[z].yratio = 1.0;
+             else
+                 thisbox->items[z].yratio = ((float)((thisbox->height * thisbox->parentyratio)-tmppad))/((float)(thisbox->minheight-tmppad));
          }
          else
          {
@@ -2384,7 +2389,25 @@ static int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *
                     [split setPercent:0];
                 }
             }
+#if 0 
+             /* Used this to figure out the groupbox border size...
+              * Groupbox size 520x607 content 504x584 title 280x14 border 520x600 diff 16x9
+              */
+            else if([handle isMemberOfClass:[DWGroupBox class]])
+            {
+                DWGroupBox *groupbox = thisbox->items[z].hwnd;
+                NSSize contentSize = [[groupbox contentView] frame].size;
+                NSSize titleSize = [groupbox titleRect].size;
+                NSSize borderSize = [groupbox borderRect].size;
 
+                NSLog(@"Groupbox size %dx%d content %dx%d title %dx%d border %dx%d diff %dx%d", 
+                      (int)size.width, (int)size.height,
+                      (int)contentSize.width, (int)contentSize.height,
+                      (int)titleSize.width, (int)titleSize.height,
+                      (int)borderSize.width, (int)borderSize.height,
+                      (int)(size.width-contentSize.width), (int)((size.height-contentSize.height)-titleSize.height));
+            }
+#endif             
             if(thisbox->type == DW_HORZ)
                currentx += width + vectorx + (pad * 2);
             if(thisbox->type == DW_VERT)
