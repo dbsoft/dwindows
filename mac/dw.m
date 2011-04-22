@@ -430,6 +430,7 @@ typedef struct _bitbltinfo
     {
         if([bltdest lockFocusIfCanDraw] == NO)
         {
+            free(bltinfo);
             return;
         }
         _DWLastDrawable = bltinfo->dest;
@@ -5912,6 +5913,7 @@ HPIXMAP API dw_pixmap_new_from_file(HWND handle, char *filename)
     pixmap->height = size.height;
     pixmap->image = image;
     pixmap->handle = handle;
+    [image retain];
     return pixmap;
 }
 
@@ -5938,6 +5940,7 @@ HPIXMAP API dw_pixmap_new_from_data(HWND handle, char *data, int len)
     pixmap->height = size.height;
     pixmap->image = image;
     pixmap->handle = handle;
+    [image retain];
     return pixmap;
 }
 
@@ -5979,6 +5982,7 @@ HPIXMAP API dw_pixmap_grab(HWND handle, ULONG resid)
     pixmap->height = size.height;
     pixmap->image = image;
     pixmap->handle = handle;
+    [image retain];
     return pixmap;
 }
 
@@ -5991,7 +5995,7 @@ HPIXMAP API dw_pixmap_grab(HWND handle, ULONG resid)
 void API dw_pixmap_destroy(HPIXMAP pixmap)
 {
     NSBitmapImageRep *image = (NSBitmapImageRep *)pixmap->image;
-    [image release];
+    [image dealloc];
     free(pixmap);
 }
 
