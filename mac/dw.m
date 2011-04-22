@@ -422,9 +422,7 @@ typedef struct _bitbltinfo
     {
         [NSGraphicsContext saveGraphicsState];
         [NSGraphicsContext setCurrentContext:[NSGraphicsContext
-                                              graphicsContextWithBitmapImageRep:bltdest]];  
-        [NSGraphicsContext setCurrentContext:[NSGraphicsContext
-                                              graphicsContextWithGraphicsPort:[[NSGraphicsContext currentContext] graphicsPort] flipped:YES]];    
+                                              graphicsContextWithGraphicsPort:[[NSGraphicsContext graphicsContextWithBitmapImageRep:bltdest] graphicsPort] flipped:YES]];    
         [[NSDictionary alloc] initWithObjectsAndKeys:bltdest, NSGraphicsContextDestinationAttributeName, nil];
     }
     else
@@ -456,7 +454,7 @@ typedef struct _bitbltinfo
         [t scaleXBy:1.0 yBy:-1.0];
         
         // but we also have to translate it back by its height:
-        [t translateXBy:0.0 yBy:-bltinfo->height];
+        [t translateXBy:0.0 yBy:-[rep size].height];
         
         // apply the transform:
         [t concat];        
@@ -4391,9 +4389,7 @@ void API dw_draw_point(HWND handle, HPIXMAP pixmap, int x, int y)
         image = (id)pixmap->image;
         [NSGraphicsContext saveGraphicsState];
         [NSGraphicsContext setCurrentContext:[NSGraphicsContext
-                                              graphicsContextWithBitmapImageRep:image]];    
-        [NSGraphicsContext setCurrentContext:[NSGraphicsContext
-                                              graphicsContextWithGraphicsPort:[[NSGraphicsContext currentContext] graphicsPort] flipped:YES]];    
+                                              graphicsContextWithGraphicsPort:[[NSGraphicsContext graphicsContextWithBitmapImageRep:image] graphicsPort] flipped:YES]];    
     }
     else
     {
@@ -4441,9 +4437,7 @@ void API dw_draw_line(HWND handle, HPIXMAP pixmap, int x1, int y1, int x2, int y
         image = (id)pixmap->image;
         [NSGraphicsContext saveGraphicsState];
         [NSGraphicsContext setCurrentContext:[NSGraphicsContext
-                                              graphicsContextWithBitmapImageRep:image]];    
-        [NSGraphicsContext setCurrentContext:[NSGraphicsContext
-                                              graphicsContextWithGraphicsPort:[[NSGraphicsContext currentContext] graphicsPort] flipped:YES]];    
+                                              graphicsContextWithGraphicsPort:[[NSGraphicsContext graphicsContextWithBitmapImageRep:image] graphicsPort] flipped:YES]];    
     }
     else
     {
@@ -4527,9 +4521,7 @@ void API dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
         image = (id)pixmap->image;
         [NSGraphicsContext saveGraphicsState];
         [NSGraphicsContext setCurrentContext:[NSGraphicsContext
-                                              graphicsContextWithBitmapImageRep:image]];    
-        [NSGraphicsContext setCurrentContext:[NSGraphicsContext
-                                              graphicsContextWithGraphicsPort:[[NSGraphicsContext currentContext] graphicsPort] flipped:YES]];    
+                                              graphicsContextWithGraphicsPort:[[NSGraphicsContext graphicsContextWithBitmapImageRep:image] graphicsPort] flipped:YES]];    
         NSColor *fgcolor = pthread_getspecific(_dw_fg_color_key);
         NSColor *bgcolor = pthread_getspecific(_dw_bg_color_key);
         NSMutableDictionary *dict = [[NSMutableDictionary alloc] initWithObjectsAndKeys:fgcolor, NSForegroundColorAttributeName, nil];
@@ -4607,9 +4599,7 @@ void API dw_draw_polygon( HWND handle, HPIXMAP pixmap, int fill, int npoints, in
         image = (id)pixmap->image;
         [NSGraphicsContext saveGraphicsState];
         [NSGraphicsContext setCurrentContext:[NSGraphicsContext
-                                              graphicsContextWithBitmapImageRep:image]];    
-        [NSGraphicsContext setCurrentContext:[NSGraphicsContext
-                                              graphicsContextWithGraphicsPort:[[NSGraphicsContext currentContext] graphicsPort] flipped:YES]];    
+                                              graphicsContextWithGraphicsPort:[[NSGraphicsContext graphicsContextWithBitmapImageRep:image] graphicsPort] flipped:YES]];    
     }
     else
     {
@@ -4667,9 +4657,7 @@ void API dw_draw_rect(HWND handle, HPIXMAP pixmap, int fill, int x, int y, int w
         image = (id)pixmap->image;
         [NSGraphicsContext saveGraphicsState];
         [NSGraphicsContext setCurrentContext:[NSGraphicsContext
-                                              graphicsContextWithBitmapImageRep:image]];    
-        [NSGraphicsContext setCurrentContext:[NSGraphicsContext
-                                              graphicsContextWithGraphicsPort:[[NSGraphicsContext currentContext] graphicsPort] flipped:YES]];    
+                                              graphicsContextWithGraphicsPort:[[NSGraphicsContext graphicsContextWithBitmapImageRep:image] graphicsPort] flipped:YES]];    
     }
     else
     {
