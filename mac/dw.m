@@ -1073,10 +1073,10 @@ DWObject *DWObj;
 -(void)scrollerChanged:(id)sender
 {
     double proportion = [self knobProportion];
-    int page = (int)(proportion * range);
-    int max = (int)(range - page);
-    int result = (int)([self doubleValue] * max);
-    int newpos = result;
+    double page = (proportion * range);
+    double max = (range - page);
+    double result = ([self doubleValue] * max);
+    double newpos = result;
 
     switch ([sender hitPart])
     {
@@ -1116,10 +1116,9 @@ DWObject *DWObj;
     }
     if(newpos != result)
     {
-        double newposd = (double)newpos/max;
-        [self setDoubleValue:newposd];
+        [self setDoubleValue:(newpos/max)];
     }
-    _event_handler(self, (void *)newpos, 14);
+    _event_handler(self, (void *)(int)newpos, 14);
 }
 -(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); [super dealloc]; }
 @end
