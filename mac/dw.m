@@ -958,6 +958,7 @@ DWObject *DWObj;
         Box *box = [view box];
         NSSize size = [view frame].size;
         _do_resize(box, size.width, size.height);
+        _do_resize(box, size.width, size.height);
         _handle_resize_events(box);
     }
     _event_handler(self, (void *)[page pageid], 15);
@@ -1020,6 +1021,7 @@ DWObject *DWObj;
             DWBox *view = object;
             Box *box = [view box];
             NSSize size = [view frame].size;
+            _do_resize(box, size.width, size.height);
             _do_resize(box, size.width, size.height);
             _handle_resize_events(box);
         }
@@ -2343,6 +2345,7 @@ static int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *
                 {
                     Box *box = [view box];
                     NSSize size = [view frame].size;
+                    _do_resize(box, size.width, size.height);
                     _do_resize(box, size.width, size.height);
                     _handle_resize_events(box);
                 }
