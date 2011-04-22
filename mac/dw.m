@@ -105,6 +105,7 @@ SignalHandler *Root = NULL;
 
 /* Some internal prototypes */
 static void _do_resize(Box *thisbox, int x, int y);
+void _handle_resize_events(Box *thisbox);
 int _remove_userdata(UserData **root, char *varname, int all);
 int _dw_main_iteration(NSDate *date);
 
@@ -625,6 +626,7 @@ DWObject *DWObj;
 #endif
 {
     NSMenu *windowmenu;
+    NSSize oldsize;
 }
 -(BOOL)windowShouldClose:(id)sender;
 -(void)setMenu:(NSMenu *)input;
@@ -657,9 +659,16 @@ DWObject *DWObj;
 - (void)windowResized:(NSNotification *)notification;
 {
     NSSize size = [self frame].size;
-    _do_resize(box, size.width, size.height);
-    _do_resize(box, size.width, size.height);
-    _event_handler([self window], nil, 1);
+    
+    if(oldsize.width != size.width || oldsize.height != size.height)
+    {
+        _do_resize(box, size.width, size.height);
+        _do_resize(box, size.width, size.height);
+        _event_handler([self window], nil, 1);
+        oldsize.width = size.width;
+        oldsize.height = size.height;
+        _handle_resize_events(box);
+    }
 }
 -(void)windowDidBecomeMain:(id)sender
 {
@@ -940,6 +949,7 @@ DWObject *DWObj;
         Box *box = [view box];
         NSSize size = [view frame].size;
         _do_resize(box, size.width, size.height);
+        _handle_resize_events(box);
     }
     _event_handler(self, (void *)[page pageid], 15);
 }
@@ -1002,6 +1012,7 @@ DWObject *DWObj;
             Box *box = [view box];
             NSSize size = [view frame].size;
             _do_resize(box, size.width, size.height);
+            _handle_resize_events(box);
         }
     }
 }
@@ -1902,6 +1913,76 @@ ULONG _findsigmessage(char *signame)
 
 unsigned long _foreground = 0xAAAAAA, _background = 0;
 
+void _handle_resize_events(Box *thisbox)
+{
+    int z;
+    
+    for(z=0;z<thisbox->count;z++)
+    {
+        id handle = thisbox->items[z].hwnd;
+        
+        if(thisbox->items[z].type == TYPEBOX)
+        {
+            Box *tmp = [handle box];
+            
+            if(tmp)
+            {
+                _handle_resize_events(tmp);
+            }
+        }
+        else
+        {
+            if([handle isMemberOfClass:[DWRender class]])
+            {
+                DWRender *render = (DWRender *)handle;
+                NSSize oldsize = [render size];
+                NSSize newsize = [render frame].size;
+                NSWindow *window = [render window];
+                
+                if([window preferredBackingLocation] != NSWindowBackingLocationVideoMemory)
+                {
+                    [window setPreferredBackingLocation:NSWindowBackingLocationVideoMemory];
+                }
+                
+                /* Eliminate duplicate configure requests */
+                if(oldsize.width != newsize.width || oldsize.height != newsize.height)
+                {
+                    if(newsize.width > 0 && newsize.height > 0)
+                    {
+                        [render setSize:newsize];
+                        _event_handler(handle, nil, 1);
+                    }
+                }
+            }
+            /* Special handling for notebook controls */
+            else if([handle isMemberOfClass:[DWNotebook class]])
+            {
+                DWNotebook *notebook = (DWNotebook *)handle;
+                DWNotebookPage *notepage = (DWNotebookPage *)[notebook selectedTabViewItem];
+                id view = [notepage view];
+                
+                if(view != nil)
+                {
+                    Box *box = [view box];
+                    _handle_resize_events(box);
+                }
+            }
+            /* Handle laying out scrollviews... if required space is less
+             * than available space, then expand.  Otherwise use required space.
+             */
+            else if([handle isMemberOfClass:[DWScrollBox class]])
+            {
+                DWScrollBox *scrollbox = (DWScrollBox *)handle;
+                DWBox *contentbox = [scrollbox documentView];
+                Box *thisbox = [contentbox box];
+                
+                /* Get the required space for the box */
+                _handle_resize_events(thisbox);
+            }
+        }
+    }
+}
+
 /* Default border is 5.0 according to the documentation */
 #define _DW_GROUPBOX_BORDER     5
 
@@ -2250,6 +2331,7 @@ static int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *
                     Box *box = [view box];
                     NSSize size = [view frame].size;
                     _do_resize(box, size.width, size.height);
+                    _handle_resize_events(box);
                 }
             }
             /* Handle laying out scrollviews... if required space is less
@@ -2289,25 +2371,6 @@ static int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *
                 [textfield setFrameSize:NSMakeSize(size.width-20,size.height)];
                 [stepper setFrameOrigin:NSMakePoint(size.width-20,0)];
                 [stepper setFrameSize:NSMakeSize(20,size.height)];
-            }
-            else if([handle isMemberOfClass:[DWRender class]])
-            {
-                DWRender *render = (DWRender *)handle;
-                NSSize oldsize = [render size];
-                NSSize newsize = [render frame].size;
-                NSWindow *window = [render window];
-                
-                if([window preferredBackingLocation] != NSWindowBackingLocationVideoMemory)
-                {
-                    [window setPreferredBackingLocation:NSWindowBackingLocationVideoMemory];
-                }
-                
-                /* Eliminate duplicate configure requests */
-                if(oldsize.width != newsize.width || oldsize.height != newsize.height)
-                {
-                    [render setSize:newsize];
-                    _event_handler(handle, nil, 1);
-                }
             }
             else if([handle isMemberOfClass:[DWSplitBar class]] && size.width > 20 && size.height > 20)
             {
