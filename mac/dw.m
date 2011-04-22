@@ -5870,7 +5870,7 @@ HPIXMAP API dw_pixmap_new(HWND handle, unsigned long width, unsigned long height
     pixmap->width = width;
     pixmap->height = height;
     pixmap->handle = handle;
-    id image = pixmap->image = [[NSBitmapImageRep alloc] 
+    pixmap->image = [[NSBitmapImageRep alloc] 
                                     initWithBitmapDataPlanes:NULL 
                                     pixelsWide:width 
                                     pixelsHigh:height 
