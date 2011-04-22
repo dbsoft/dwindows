@@ -5995,7 +5995,7 @@ HPIXMAP API dw_pixmap_grab(HWND handle, ULONG resid)
 void API dw_pixmap_destroy(HPIXMAP pixmap)
 {
     NSBitmapImageRep *image = (NSBitmapImageRep *)pixmap->image;
-    [image dealloc];
+    [image release];
     free(pixmap);
 }
 
