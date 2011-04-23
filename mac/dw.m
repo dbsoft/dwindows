@@ -2022,10 +2022,6 @@ static int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *
     int nupx = *usedpadx, nupy = *usedpady;
     int thispadx = thisbox->pad * 2;
     int thispady = thisbox->pad * 2;
-    char tmpbuf[20], tabbuf[] = "\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t";
-    strcpy(tmpbuf, tabbuf);
-    
-    tmpbuf[*depth] = '\0';
     
     /* Handle special groupbox case */
     if(thisbox->grouphwnd)
@@ -2418,6 +2414,7 @@ static int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *
                     
                     /* Layout the content of the scrollbox */
                     _do_resize(thisbox, contentsize.width, contentsize.height);
+                    _handle_resize_events(thisbox);
                 }
                 /* Special handling for spinbutton controls */
                 else if([handle isMemberOfClass:[DWSpinButton class]])
