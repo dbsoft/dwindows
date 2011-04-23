@@ -4457,7 +4457,7 @@ HWND API dw_window_new(HWND hwndOwner, char *title, ULONG flStyle)
 {
    HWND hwndframe;
    Box *newbox = calloc(sizeof(Box), 1);
-   ULONG flStyleEx = IS_XPPLUS ? WS_EX_COMPOSITED : 0;
+   ULONG flStyleEx = 0;
 
    newbox->pad = 0;
    newbox->type = DW_VERT;
