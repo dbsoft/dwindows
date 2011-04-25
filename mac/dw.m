@@ -696,6 +696,17 @@ DWObject *DWObj;
         _handle_resize_events(box);
     }
 }
+-(void)showWindow
+{
+    NSSize size = [self frame].size;
+    
+    if(oldsize.width == size.width && oldsize.height == size.height)
+    {
+        _do_resize(box, size.width, size.height);
+        _handle_resize_events(box);
+    }
+    
+}
 -(void)windowDidBecomeMain:(id)sender
 {
     if(windowmenu)
@@ -6740,6 +6751,7 @@ int API dw_window_show(HWND handle)
             /* Make a sane default size because MacOS won't automatically */
             [window setContentSize:NSMakeSize(200,150)];
         }
+        [[window contentView] showWindow];
         [window makeKeyAndOrderFront:nil];
     }
     return 0;
