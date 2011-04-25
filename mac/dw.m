@@ -4378,6 +4378,7 @@ HWND API dw_status_text_new(char *text, ULONG cid)
     }
     [textfield setBackgroundColor:[NSColor clearColor]];
     [textfield setDrawsBackground:NO];
+    [[textfield cell] setVCenter:YES];
     return textfield;
 }
 
@@ -6888,9 +6889,9 @@ void API dw_window_set_style(HWND handle, ULONG style, ULONG mask)
         NSTextField *tf = object;
 
         [[tf cell] setAlignment:(style & 0xF)];
-        if(style & DW_DT_VCENTER)
+        if(mask & DW_DT_VCENTER)
         {
-            [[tf cell] setVCenter:YES];
+            [[tf cell] setVCenter:(style & DW_DT_VCENTER ? YES : NO)];
         }
     }
     else if([object isMemberOfClass:[NSTextView class]])
