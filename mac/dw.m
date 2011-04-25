@@ -241,7 +241,7 @@ int _event_handler(id object, NSEvent *event, int message)
             {
                 int (* API motionfunc)(HWND, int, int, int, void *) = (int (* API)(HWND, int, int, int, void *))handler->signalfunction;
                 int buttonmask = (int)[NSEvent pressedMouseButtons];
-                NSPoint point = [NSEvent mouseLocation];
+                NSPoint point = [object convertPoint:[event locationInWindow] fromView:nil];
                 
                 return motionfunc(object, (int)point.x, (int)point.y, buttonmask, handler->data);
             }
@@ -383,6 +383,7 @@ DWTimerHandler *DWHandler;
 NSAutoreleasePool *pool;
 #endif
 HWND _DWLastDrawable;
+id _DWCapture;
 HMTX DWRunMutex;
 HMTX DWThreadMutex;
 HMTX DWThreadMutex2;
@@ -639,11 +640,13 @@ DWObject *DWObj;
 @interface DWWindow : NSWindow
 -(void)sendEvent:(NSEvent *)theEvent;
 -(void)keyDown:(NSEvent *)theEvent;
+-(void)mouseDragged:(NSEvent *)theEvent;
 @end
 
 @implementation DWWindow
 -(void)sendEvent:(NSEvent *)theEvent { if([theEvent type] == NSKeyDown) { _event_handler(self, theEvent, 2); } [super sendEvent:theEvent]; }
 -(void)keyDown:(NSEvent *)theEvent { }
+-(void)mouseDragged:(NSEvent *)theEvent { if(_DWCapture == self) { _event_handler(self, theEvent, 5); } }
 @end
 
 /* Subclass for a top-level window */
@@ -659,7 +662,7 @@ DWObject *DWObj;
 -(void)setMenu:(NSMenu *)input;
 -(void)windowDidBecomeMain:(id)sender;
 -(void)menuHandler:(id)sender;
--(void)mouseMoved:(NSEvent *)theEvent;
+-(void)mouseDragged:(NSEvent *)theEvent;
 @end
 
 @implementation DWView
@@ -721,7 +724,7 @@ DWObject *DWObj;
 }
 -(void)setMenu:(NSMenu *)input { windowmenu = input; [windowmenu retain]; }
 -(void)menuHandler:(id)sender { _event_handler(sender, nil, 8); }
--(void)mouseMoved:(NSEvent *)theEvent { _event_handler(self, theEvent, 5); }
+-(void)mouseDragged:(NSEvent *)theEvent { if(_DWCapture == self) { _event_handler(self, theEvent, 5); } }
 @end
 
 /* Subclass for a button type */
@@ -1188,10 +1191,12 @@ DWObject *DWObj;
 -(void)rightMouseUp:(NSEvent *)theEvent { _event_handler(self, theEvent, 4); }
 -(void)otherMouseDown:(NSEvent *)theEvent { _event_handler(self, theEvent, 3); }
 -(void)otherMouseUp:(NSEvent *)theEvent { _event_handler(self, theEvent, 4); }
+-(void)mouseDragged:(NSEvent *)theEvent { if(_DWCapture == self) { _event_handler(self, theEvent, 5); } }
 -(void)drawRect:(NSRect)rect { _event_handler(self, nil, 7); }
 -(void)keyDown:(NSEvent *)theEvent { _event_handler(self, theEvent, 2); }
 -(BOOL)isFlipped { return NO; }
 -(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); [font release]; [super dealloc]; }
+-(BOOL)acceptsFirstResponder { return YES; }
 @end
 
 /* Subclass for a MLE type */
@@ -6973,8 +6978,6 @@ void API dw_window_click_default(HWND handle, HWND next)
     }
 }
 
-static id _DWCapture;
-
 /*
  * Captures the mouse input to this window.
  * Parameters:
@@ -6983,14 +6986,14 @@ static id _DWCapture;
 void API dw_window_capture(HWND handle)
 {
     id object = handle;
+    id window = handle;
 
     if(![object isMemberOfClass:[DWWindow class]])
     {
-        object = [object window];
+        window = [object window];
     }
-    if(object)
+    if(window)
     {
-        [object setAcceptsMouseMovedEvents:YES];
         _DWCapture = object;
     }
 }
@@ -7002,7 +7005,6 @@ void API dw_window_release(void)
 {
     if(_DWCapture)
     {
-        [_DWCapture setAcceptsMouseMovedEvents:NO];
         _DWCapture = nil;
     }
 }
