@@ -1545,10 +1545,17 @@ void _free_tree_recurse(NSMutableArray *node, NSPointerArray *item)
             {
                 if(item == pnt)
                 {
+                    NSString *oldstr = [item pointerAtIndex:1];
+                    [oldstr release];
                     _free_tree_recurse(children, NULL);
+                    [node removeObjectAtIndex:z];
+                    count = (int)[node count];
+                    z--;
                 }
-                else
+                else if(item == NULL)
                 {
+                    NSString *oldstr = [pnt pointerAtIndex:1];
+                    [oldstr release];
                     _free_tree_recurse(children, item);
                 }
             }
@@ -4884,7 +4891,7 @@ HTREEITEM API dw_tree_insert_after(HWND handle, HTREEITEM item, char *title, HIC
     int _locked_by_me = FALSE;
     DW_MUTEX_LOCK;
     DWTree *tree = handle;
-    NSString *nstr = [NSString stringWithUTF8String:title];
+    NSString *nstr = [[NSString stringWithUTF8String:title] retain];
     NSPointerArray *treenode = [NSPointerArray pointerArrayWithWeakObjects];
     [treenode addPointer:icon];
     [treenode addPointer:nstr];
@@ -4961,8 +4968,10 @@ void API dw_tree_item_change(HWND handle, HTREEITEM item, char *title, HICN icon
     NSPointerArray *array = (NSPointerArray *)item;
     if(title)
     {
-        NSString *nstr = [NSString stringWithUTF8String:title];
+        NSString *oldstr = [array pointerAtIndex:1];
+        NSString *nstr = [[NSString stringWithUTF8String:title] retain];
         [array replacePointerAtIndex:1 withPointer:nstr];
+        [oldstr release];
     }
     if(icon)
     {
