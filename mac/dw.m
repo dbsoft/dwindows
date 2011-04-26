@@ -1374,7 +1374,10 @@ DWObject *DWObj;
     if(tvcols && input)
     {
         int index = (int)(row * [tvcols count]) + col;
-        [data replaceObjectAtIndex:index withObject:input];
+        if(index < [data count])
+        {
+            [data replaceObjectAtIndex:index withObject:input];
+        }
     }
 }
 -(void)removeRow:(int)row
