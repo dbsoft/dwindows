@@ -2742,7 +2742,15 @@ int API dw_messagebox(char *title, int flags, char *format, ...)
         iResponse = (int)
         NSRunCriticalAlertPanel([ NSString stringWithUTF8String:title ],
                                 [ NSString stringWithUTF8String:outbuf ],
-                                button1, button2, button3); }
+                                button1, button2, button3); 
+    }
+    else if(flags & DW_MB_INFORMATION)
+    {
+        iResponse = (int)
+        NSRunInformationalAlertPanel([ NSString stringWithUTF8String:title ],
+                                [ NSString stringWithUTF8String:outbuf ],
+                                button1, button2, button3); 
+    }
     else
     {
         iResponse = (int)
