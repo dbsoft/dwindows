@@ -1084,14 +1084,14 @@ DWObject *DWObj;
 @interface DWScrollbar : NSScroller
 {
     void *userdata;
-    float range;
-    float visible;
+    double range;
+    double visible;
 }
 -(void *)userdata;
 -(void)setUserdata:(void *)input;
 -(float)range;
 -(float)visible;
--(void)setRange:(float)input1 andVisible:(float)input2;
+-(void)setRange:(double)input1 andVisible:(double)input2;
 -(void)scrollerChanged:(id)sender;
 @end
 
@@ -1100,15 +1100,13 @@ DWObject *DWObj;
 -(void)setUserdata:(void *)input { userdata = input; }
 -(float)range { return range; }
 -(float)visible { return visible; }
--(void)setRange:(float)input1 andVisible:(float)input2 { range = input1; visible = input2; }
+-(void)setRange:(double)input1 andVisible:(double)input2 { range = input1; visible = input2; }
 -(void)scrollerChanged:(id)sender
 {
-    double proportion = [self knobProportion];
-    double page = (proportion * range);
-    double max = (range - page);
+    double max = (range - visible);
     double result = ([self doubleValue] * max);
     double newpos = result;
-
+    
     switch ([sender hitPart])
     {
 
@@ -1127,7 +1125,7 @@ DWObject *DWObj;
             break;
 
         case NSScrollerDecrementPage:
-            newpos -= page;
+            newpos -= visible;
             if(newpos < 0)
             {
                 newpos = 0;
@@ -1135,7 +1133,7 @@ DWObject *DWObj;
             break;
 
         case NSScrollerIncrementPage:
-            newpos += page;
+            newpos += visible;
             if(newpos > max)
             {
                 newpos = max;
@@ -1145,6 +1143,8 @@ DWObject *DWObj;
         default:
             ; /* do nothing */
     }
+    int newposi = (int)newpos;
+    newpos = (newpos - (double)newposi) > 0.5 ? (double)(newposi + 1) : (double)newposi;
     if(newpos != result)
     {
         [self setDoubleValue:(newpos/max)];
@@ -3573,8 +3573,9 @@ unsigned int API dw_scrollbar_get_pos(HWND handle)
 void API dw_scrollbar_set_pos(HWND handle, unsigned int position)
 {
     DWScrollbar *scrollbar = handle;
-    double range = (double)[scrollbar range];
-    double newpos = (double)position/range;
+    double range = [scrollbar range];
+    double visible = [scrollbar visible];
+    double newpos = (double)position/(range-visible);
     [scrollbar setDoubleValue:newpos];
 }
 
@@ -3588,8 +3589,8 @@ void API dw_scrollbar_set_pos(HWND handle, unsigned int position)
 void API dw_scrollbar_set_range(HWND handle, unsigned int range, unsigned int visible)
 {
     DWScrollbar *scrollbar = handle;
-    float knob = (float)visible/(float)range;
-    [scrollbar setRange:(float)range andVisible:(float)visible];
+    double knob = (double)visible/(double)range;
+    [scrollbar setRange:(double)range andVisible:(double)visible];
     [scrollbar setKnobProportion:knob];
 }
 
