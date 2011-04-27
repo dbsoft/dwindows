@@ -6551,7 +6551,7 @@ unsigned long API dw_notebook_page_new(HWND handle, ULONG flags, int front)
     DWNotebook *notebook = handle;
     NSInteger page = [notebook pageid];
     DWNotebookPage *notepage = [[DWNotebookPage alloc] initWithIdentifier:nil];
-    [notepage setPageid:(NSInteger)page];
+    [notepage setPageid:(int)page];
     if(front)
     {
         [notebook insertTabViewItem:notepage atIndex:(NSInteger)0];
@@ -6560,7 +6560,7 @@ unsigned long API dw_notebook_page_new(HWND handle, ULONG flags, int front)
     {
         [notebook addTabViewItem:notepage];
     }
-    [notebook setPageid:(page+1)];
+    [notebook setPageid:(int)(page+1)];
     [notepage release];
     return (unsigned long)page;
 }
@@ -6578,6 +6578,17 @@ void API dw_notebook_page_destroy(HWND handle, unsigned int pageid)
 
     if(notepage != nil)
     {
+        DWBox *page = [notepage view];
+        Box *thisbox = [page box];
+        if(thisbox)
+        {
+            id object = thisbox->items[0].hwnd;
+            [object removeFromSuperview];
+            [object retain];
+            free(thisbox->items);
+            thisbox->count = 0;
+            thisbox->items = NULL;
+        }
         [notebook removeTabViewItem:notepage];
         [notepage release];
     }
@@ -7147,12 +7158,58 @@ int API dw_window_destroy(HWND handle)
 {
     int _locked_by_me = FALSE;
     DW_MUTEX_LOCK;
-    NSObject *object = handle;
+    id object = handle;
 
+    /* Handle destroying a top-levle window */
     if([ object isKindOfClass:[ NSWindow class ] ])
     {
         NSWindow *window = handle;
         [window close];
+    }
+    /* Handle destroying a control or box */
+    else if([object isKindOfClass:[DWBox class]] || [object isKindOfClass:[NSControl class]])
+    {
+        DWBox *parent = (DWBox *)[object superview];
+        
+        if([parent isKindOfClass:[DWBox class]])
+        {
+            Box *thisbox = [parent box];
+            int z, index = -1;
+            Item *tmpitem, *thisitem = thisbox->items;
+            
+            [object removeFromSuperview];
+            /* Do we need to release?
+             * [object release];
+             */
+            
+            for(z=0;z<thisbox->count;z++)
+            {
+                if(thisitem[z].hwnd == handle)
+                    index = z;
+            }
+            
+            if(index == -1)
+            {
+                DW_MUTEX_UNLOCK;
+                return 0;
+            }
+            
+            tmpitem = malloc(sizeof(Item)*(thisbox->count-1));
+            
+            /* Copy all but the current entry to the new list */
+            for(z=0;z<index;z++)
+            {
+                tmpitem[z] = thisitem[z];
+            }
+            for(z=index+1;z<thisbox->count;z++)
+            {
+                tmpitem[z-1] = thisitem[z];
+            }
+            
+            thisbox->items = tmpitem;
+            free(thisitem);
+            thisbox->count--;   
+        }
     }
     DW_MUTEX_UNLOCK;
     return 0;
