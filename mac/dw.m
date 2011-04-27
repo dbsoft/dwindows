@@ -6606,7 +6606,6 @@ unsigned long API dw_notebook_page_new(HWND handle, ULONG flags, int front)
         [notebook addTabViewItem:notepage];
     }
     [notebook setPageid:(int)(page+1)];
-    [notepage release];
     return (unsigned long)page;
 }
 
@@ -6623,19 +6622,7 @@ void API dw_notebook_page_destroy(HWND handle, unsigned int pageid)
 
     if(notepage != nil)
     {
-        DWBox *page = [notepage view];
-        Box *thisbox = [page box];
-        if(thisbox)
-        {
-            id object = thisbox->items[0].hwnd;
-            [object removeFromSuperview];
-            [object retain];
-            free(thisbox->items);
-            thisbox->count = 0;
-            thisbox->items = NULL;
-        }
         [notebook removeTabViewItem:notepage];
-        [notepage release];
     }
 }
 
