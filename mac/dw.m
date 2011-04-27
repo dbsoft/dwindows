@@ -95,7 +95,7 @@ char *_dw_get_image_extension( char *filename )
    }
    if ( found_ext == 1 )
    {
-      return image_exts[found_ext];
+      return image_exts[i];
    }
    return NULL;
 }
@@ -7202,32 +7202,32 @@ int API dw_window_destroy(HWND handle)
     else if([object isKindOfClass:[DWBox class]] || [object isKindOfClass:[NSControl class]])
     {
         DWBox *parent = (DWBox *)[object superview];
-        
+
         if([parent isKindOfClass:[DWBox class]])
         {
             Box *thisbox = [parent box];
             int z, index = -1;
             Item *tmpitem, *thisitem = thisbox->items;
-            
+
             [object removeFromSuperview];
             /* Do we need to release?
              * [object release];
              */
-            
+
             for(z=0;z<thisbox->count;z++)
             {
                 if(thisitem[z].hwnd == handle)
                     index = z;
             }
-            
+
             if(index == -1)
             {
                 DW_MUTEX_UNLOCK;
                 return 0;
             }
-            
+
             tmpitem = malloc(sizeof(Item)*(thisbox->count-1));
-            
+
             /* Copy all but the current entry to the new list */
             for(z=0;z<index;z++)
             {
@@ -7237,10 +7237,10 @@ int API dw_window_destroy(HWND handle)
             {
                 tmpitem[z-1] = thisitem[z];
             }
-            
+
             thisbox->items = tmpitem;
             free(thisitem);
-            thisbox->count--;   
+            thisbox->count--;
         }
     }
     DW_MUTEX_UNLOCK;
