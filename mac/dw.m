@@ -5,8 +5,8 @@
  * (C) 2011 Brian Smith <brian@dbsoft.org>
  * (C) 2011 Mark Hessling <mark@rexx.org>
  *
- * Using garbage collection so requires 10.5 or later.
- * clang -std=c99 -g -o dwtest -D__MAC__ -I. dwtest.c mac/dw.m -framework Cocoa -framework WebKit -fobjc-gc-only
+ * Requires 10.5 or later.
+ * clang -std=c99 -g -o dwtest -D__MAC__ -I. dwtest.c mac/dw.m -framework Cocoa -framework WebKit
  */
 #import <Cocoa/Cocoa.h>
 #import <WebKit/WebKit.h>
