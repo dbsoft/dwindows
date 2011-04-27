@@ -7463,6 +7463,7 @@ int API dw_window_minimize(HWND handle)
 void API dw_window_redraw(HWND handle)
 {
     NSWindow *window = handle;
+    [[window contentView] showWindow];
     [window flushWindow];
 }
 
