@@ -2515,7 +2515,7 @@ static int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *
 
 static void _do_resize(Box *thisbox, int x, int y)
 {
-    if(x != 0 && y != 0)
+    if(x > 0 && y > 0)
     {
         if(thisbox)
         {
