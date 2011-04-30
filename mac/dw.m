@@ -7539,6 +7539,9 @@ void API dw_window_set_pos(HWND handle, LONG x, LONG y)
     if([ object isKindOfClass:[ NSWindow class ] ])
     {
         NSWindow *window = handle;
+        point.y -= [window frame].size.height;
+        NSLog(@"Setting position %dx%d screen height %d frame height %d new y %d", 
+              (int)x, (int)y, (int)[[NSScreen mainScreen] frame].size.height, (int)[window frame].size.height, (int)point.y);
         [window setFrameOrigin:point];
     }
     DW_MUTEX_UNLOCK;
@@ -7555,8 +7558,8 @@ void API dw_window_set_pos(HWND handle, LONG x, LONG y)
  */
 void API dw_window_set_pos_size(HWND handle, LONG x, LONG y, ULONG width, ULONG height)
 {
-    dw_window_set_pos(handle, x, y);
     dw_window_set_size(handle, width, height);
+    dw_window_set_pos(handle, x, y);
 }
 
 /*
@@ -7579,7 +7582,7 @@ void API dw_window_get_pos_size(HWND handle, LONG *x, LONG *y, ULONG *width, ULO
         if(x)
             *x = rect.origin.x;
         if(y)
-            *y = [[NSScreen mainScreen] frame].size.height - rect.origin.y;
+            *y = [[NSScreen mainScreen] frame].size.height - rect.origin.y - rect.size.height;
         if(width)
             *width = rect.size.width;
         if(height)
