@@ -6350,7 +6350,7 @@ void API dw_pointer_query_pos(long *x, long *y)
     }
     if(y)
     {
-        *y = mouseLoc.y;
+        *y = [[NSScreen mainScreen] frame].size.height - mouseLoc.y;
     }
 }
 
@@ -6418,8 +6418,9 @@ void API dw_menu_popup(HMENUI *menu, HWND parent, int x, int y)
     NSView *view = [object isKindOfClass:[NSWindow class]] ? [object contentView] : parent;
     NSWindow *window = [view window];
     NSEvent *event = [DWApp currentEvent];
+    NSPoint p = NSMakePoint(x, [[NSScreen mainScreen] frame].size.height - y);
     NSEvent* fake = [NSEvent mouseEventWithType:NSRightMouseDown
-                                       location:[window convertScreenToBase:NSMakePoint(x, y)]
+                                       location:[window convertScreenToBase:p]
                                   modifierFlags:0
                                       timestamp:[event timestamp]
                                    windowNumber:[window windowNumber]
@@ -7533,7 +7534,7 @@ void API dw_window_set_pos(HWND handle, LONG x, LONG y)
     NSObject *object = handle;
     NSPoint point;
     point.x = x;
-    point.y = y;
+    point.y = [[NSScreen mainScreen] frame].size.height - y;
 
     if([ object isKindOfClass:[ NSWindow class ] ])
     {
@@ -7578,7 +7579,7 @@ void API dw_window_get_pos_size(HWND handle, LONG *x, LONG *y, ULONG *width, ULO
         if(x)
             *x = rect.origin.x;
         if(y)
-            *y = rect.origin.y;
+            *y = [[NSScreen mainScreen] frame].size.height - rect.origin.y;
         if(width)
             *width = rect.size.width;
         if(height)
