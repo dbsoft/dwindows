@@ -260,7 +260,8 @@ int _event_handler(id object, NSEvent *event, int message)
             case 4:
             {
                 int (* API buttonfunc)(HWND, int, int, int, void *) = (int (* API)(HWND, int, int, int, void *))handler->signalfunction;
-                NSPoint p = [object convertPoint:[event locationInWindow] fromView:nil];
+                id view = [[[event window] contentView] superview];
+                NSPoint p = [view convertPoint:[event locationInWindow] toView:object];
                 NSEventType type = [event type];
                 int button = 1;
 
@@ -280,9 +281,10 @@ int _event_handler(id object, NSEvent *event, int message)
             {
                 int (* API motionfunc)(HWND, int, int, int, void *) = (int (* API)(HWND, int, int, int, void *))handler->signalfunction;
                 int buttonmask = (int)[NSEvent pressedMouseButtons];
-                NSPoint point = [object convertPoint:[event locationInWindow] fromView:nil];
+                id view = [[[event window] contentView] superview];
+                NSPoint p = [view convertPoint:[event locationInWindow] toView:object];
 
-                return motionfunc(object, (int)point.x, (int)point.y, buttonmask, handler->data);
+                return motionfunc(object, (int)p.x, (int)[object frame].size.height - p.y, buttonmask, handler->data);
             }
             /* Window close event */
             case 6:
