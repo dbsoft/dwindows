@@ -7540,8 +7540,6 @@ void API dw_window_set_pos(HWND handle, LONG x, LONG y)
     {
         NSWindow *window = handle;
         point.y -= [window frame].size.height;
-        NSLog(@"Setting position %dx%d screen height %d frame height %d new y %d", 
-              (int)x, (int)y, (int)[[NSScreen mainScreen] frame].size.height, (int)[window frame].size.height, (int)point.y);
         [window setFrameOrigin:point];
     }
     DW_MUTEX_UNLOCK;
