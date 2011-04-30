@@ -764,6 +764,15 @@ DWObject *DWObj;
 -(void)setMenu:(NSMenu *)input { windowmenu = input; [windowmenu retain]; }
 -(void)menuHandler:(id)sender { _event_handler(sender, nil, 8); }
 -(void)mouseDragged:(NSEvent *)theEvent { if(_DWCapture == self) { _event_handler(self, theEvent, 5); } }
+-(void)mouseMoved:(NSEvent *)theEvent 
+{ 
+    id hit = [self hitTest:[theEvent locationInWindow]];
+    
+    if(_DWCapture == hit) 
+    { 
+        _event_handler(hit, theEvent, 5); 
+    } 
+}
 @end
 
 /* Subclass for a button type */
@@ -6732,6 +6741,7 @@ HWND API dw_window_new(HWND hwndOwner, char *title, ULONG flStyle)
     [window setContentView:view];
     [window setDelegate:view];
     [window setAutorecalculatesKeyViewLoop:YES];
+    [window setAcceptsMouseMovedEvents:YES];
     [view release];
 
     /* If it isn't a toplevel window... */
@@ -7050,16 +7060,8 @@ void API dw_window_click_default(HWND handle, HWND next)
 void API dw_window_capture(HWND handle)
 {
     id object = handle;
-    id window = handle;
-
-    if(![object isMemberOfClass:[DWWindow class]])
-    {
-        window = [object window];
-    }
-    if(window)
-    {
-        _DWCapture = object;
-    }
+    
+    _DWCapture = object;
 }
 
 /*
