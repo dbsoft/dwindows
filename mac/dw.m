@@ -424,7 +424,6 @@ DWTimerHandler *DWHandler;
 NSAutoreleasePool *pool;
 #endif
 HWND _DWLastDrawable;
-id _DWCapture;
 HMTX DWRunMutex;
 HMTX DWThreadMutex;
 HMTX DWThreadMutex2;
@@ -687,7 +686,52 @@ DWObject *DWObj;
 @implementation DWWindow
 -(void)sendEvent:(NSEvent *)theEvent { if([theEvent type] == NSKeyDown) { _event_handler(self, theEvent, 2); } [super sendEvent:theEvent]; }
 -(void)keyDown:(NSEvent *)theEvent { }
--(void)mouseDragged:(NSEvent *)theEvent { if(_DWCapture == self) { _event_handler(self, theEvent, 5); } }
+-(void)mouseDragged:(NSEvent *)theEvent { _event_handler(self, theEvent, 5); }
+@end
+
+/* Subclass for a render area type */
+@interface DWRender : NSControl
+{
+    void *userdata;
+    NSFont *font;
+    NSSize size;
+}
+-(void *)userdata;
+-(void)setUserdata:(void *)input;
+-(void)setFont:(NSFont *)input;
+-(NSFont *)font;
+-(void)setSize:(NSSize)input;
+-(NSSize)size;
+-(void)mouseDown:(NSEvent *)theEvent;
+-(void)mouseUp:(NSEvent *)theEvent;
+-(NSMenu *)menuForEvent:(NSEvent *)theEvent;
+-(void)rightMouseUp:(NSEvent *)theEvent;
+-(void)otherMouseDown:(NSEvent *)theEvent;
+-(void)otherMouseUp:(NSEvent *)theEvent;
+-(void)drawRect:(NSRect)rect;
+-(void)keyDown:(NSEvent *)theEvent;
+-(BOOL)isFlipped;
+@end
+
+@implementation DWRender
+-(void *)userdata { return userdata; }
+-(void)setUserdata:(void *)input { userdata = input; }
+-(void)setFont:(NSFont *)input { [font release]; font = input; [font retain]; }
+-(NSFont *)font { return font; }
+-(void)setSize:(NSSize)input { size = input; }
+-(NSSize)size { return size; }
+-(void)mouseDown:(NSEvent *)theEvent { _event_handler(self, theEvent, 3); }
+-(void)mouseUp:(NSEvent *)theEvent { _event_handler(self, theEvent, 4); }
+-(NSMenu *)menuForEvent:(NSEvent *)theEvent { _event_handler(self, theEvent, 3); return nil; }
+-(void)rightMouseUp:(NSEvent *)theEvent { _event_handler(self, theEvent, 4); }
+-(void)otherMouseDown:(NSEvent *)theEvent { _event_handler(self, theEvent, 3); }
+-(void)otherMouseUp:(NSEvent *)theEvent { _event_handler(self, theEvent, 4); }
+-(void)mouseDragged:(NSEvent *)theEvent { _event_handler(self, theEvent, 5); }
+-(void)drawRect:(NSRect)rect { _event_handler(self, nil, 7); }
+-(void)keyDown:(NSEvent *)theEvent { _event_handler(self, theEvent, 2); }
+-(BOOL)isFlipped { return NO; }
+-(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); [font release]; [super dealloc]; }
+-(BOOL)acceptsFirstResponder { return YES; }
 @end
 
 /* Subclass for a top-level window */
@@ -765,15 +809,15 @@ DWObject *DWObj;
 }
 -(void)setMenu:(NSMenu *)input { windowmenu = input; [windowmenu retain]; }
 -(void)menuHandler:(id)sender { _event_handler(sender, nil, 8); }
--(void)mouseDragged:(NSEvent *)theEvent { if(_DWCapture == self) { _event_handler(self, theEvent, 5); } }
+-(void)mouseDragged:(NSEvent *)theEvent { _event_handler(self, theEvent, 5); }
 -(void)mouseMoved:(NSEvent *)theEvent 
 { 
     id hit = [self hitTest:[theEvent locationInWindow]];
     
-    if(_DWCapture == hit) 
-    { 
+    if([hit isMemberOfClass:[DWRender class]])
+    {    
         _event_handler(hit, theEvent, 5); 
-    } 
+    }
 }
 @end
 
@@ -1202,51 +1246,6 @@ DWObject *DWObj;
     _event_handler(self, (void *)(int)newpos, 14);
 }
 -(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); [super dealloc]; }
-@end
-
-/* Subclass for a render area type */
-@interface DWRender : NSControl
-{
-    void *userdata;
-    NSFont *font;
-    NSSize size;
-}
--(void *)userdata;
--(void)setUserdata:(void *)input;
--(void)setFont:(NSFont *)input;
--(NSFont *)font;
--(void)setSize:(NSSize)input;
--(NSSize)size;
--(void)mouseDown:(NSEvent *)theEvent;
--(void)mouseUp:(NSEvent *)theEvent;
--(NSMenu *)menuForEvent:(NSEvent *)theEvent;
--(void)rightMouseUp:(NSEvent *)theEvent;
--(void)otherMouseDown:(NSEvent *)theEvent;
--(void)otherMouseUp:(NSEvent *)theEvent;
--(void)drawRect:(NSRect)rect;
--(void)keyDown:(NSEvent *)theEvent;
--(BOOL)isFlipped;
-@end
-
-@implementation DWRender
--(void *)userdata { return userdata; }
--(void)setUserdata:(void *)input { userdata = input; }
--(void)setFont:(NSFont *)input { [font release]; font = input; [font retain]; }
--(NSFont *)font { return font; }
--(void)setSize:(NSSize)input { size = input; }
--(NSSize)size { return size; }
--(void)mouseDown:(NSEvent *)theEvent { _event_handler(self, theEvent, 3); }
--(void)mouseUp:(NSEvent *)theEvent { _event_handler(self, theEvent, 4); }
--(NSMenu *)menuForEvent:(NSEvent *)theEvent { _event_handler(self, theEvent, 3); return nil; }
--(void)rightMouseUp:(NSEvent *)theEvent { _event_handler(self, theEvent, 4); }
--(void)otherMouseDown:(NSEvent *)theEvent { _event_handler(self, theEvent, 3); }
--(void)otherMouseUp:(NSEvent *)theEvent { _event_handler(self, theEvent, 4); }
--(void)mouseDragged:(NSEvent *)theEvent { if(_DWCapture == self) { _event_handler(self, theEvent, 5); } }
--(void)drawRect:(NSRect)rect { _event_handler(self, nil, 7); }
--(void)keyDown:(NSEvent *)theEvent { _event_handler(self, theEvent, 2); }
--(BOOL)isFlipped { return NO; }
--(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); [font release]; [super dealloc]; }
--(BOOL)acceptsFirstResponder { return YES; }
 @end
 
 /* Subclass for a MLE type */
@@ -7062,9 +7061,7 @@ void API dw_window_click_default(HWND handle, HWND next)
  */
 void API dw_window_capture(HWND handle)
 {
-    id object = handle;
-    
-    _DWCapture = object;
+    /* Don't do anything for now */
 }
 
 /*
@@ -7072,10 +7069,7 @@ void API dw_window_capture(HWND handle)
  */
 void API dw_window_release(void)
 {
-    if(_DWCapture)
-    {
-        _DWCapture = nil;
-    }
+    /* Don't do anything for now */
 }
 
 /*
