@@ -515,7 +515,7 @@ typedef struct _bitbltinfo
         // apply the transform:
         [t concat];
         [image drawAtPoint:NSMakePoint(bltinfo->xdest, bltinfo->ydest) fromRect:NSMakeRect(bltinfo->xsrc, bltinfo->ysrc, bltinfo->width, bltinfo->height)
-                        operation:NSCompositeCopy fraction:1.0];
+                        operation:NSCompositeSourceOver fraction:1.0];
         [bltsrc release];
         [image release];
     }
@@ -815,13 +815,13 @@ DWObject *DWObj;
 -(void)setMenu:(NSMenu *)input { windowmenu = input; [windowmenu retain]; }
 -(void)menuHandler:(id)sender { _event_handler(sender, nil, 8); }
 -(void)mouseDragged:(NSEvent *)theEvent { _event_handler(self, theEvent, 5); }
--(void)mouseMoved:(NSEvent *)theEvent 
-{ 
+-(void)mouseMoved:(NSEvent *)theEvent
+{
     id hit = [self hitTest:[theEvent locationInWindow]];
-    
+
     if([hit isMemberOfClass:[DWRender class]])
-    {    
-        _event_handler(hit, theEvent, 5); 
+    {
+        _event_handler(hit, theEvent, 5);
     }
 }
 @end
