@@ -284,7 +284,7 @@ int _event_handler(id object, NSEvent *event, int message)
                 int buttonmask = DWOSMinor > 5 ? (int)[NSEvent pressedMouseButtons] : 0;
                 id view = [[[event window] contentView] superview];
                 NSPoint p = [view convertPoint:[event locationInWindow] toView:object];
-                
+
                 if(DWOSMinor < 6)
                 {
                     buttonmask = (1 << [event buttonNumber]);
@@ -7300,6 +7300,11 @@ void API dw_window_set_text(HWND handle, char *text)
     {
         NSControl *control = handle;
         [control setStringValue:[ NSString stringWithUTF8String:text ]];
+    }
+    else if([object isMemberOfClass:[DWGroupBox class]])
+    {
+       DWGroupBox *groupbox = handle;
+       [groupbox setTitle:[NSString stringWithUTF8String:text]];
     }
     DW_MUTEX_UNLOCK;
 }
