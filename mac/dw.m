@@ -119,6 +119,7 @@ pthread_key_t _dw_pool_key;
 #endif
 pthread_key_t _dw_fg_color_key;
 pthread_key_t _dw_bg_color_key;
+SInt32 DWOSMajor, DWOSMinor, DWOSBuild;
 
 /* Create a default colors for a thread */
 void _init_colors(void)
@@ -280,9 +281,14 @@ int _event_handler(id object, NSEvent *event, int message)
             case 5:
             {
                 int (* API motionfunc)(HWND, int, int, int, void *) = (int (* API)(HWND, int, int, int, void *))handler->signalfunction;
-                int buttonmask = (int)[NSEvent pressedMouseButtons];
+                int buttonmask = DWOSMinor > 5 ? (int)[NSEvent pressedMouseButtons] : 0;
                 id view = [[[event window] contentView] superview];
                 NSPoint p = [view convertPoint:[event locationInWindow] toView:object];
+                
+                if(DWOSMinor < 6)
+                {
+                    buttonmask = (1 << [event buttonNumber]);
+                }
 
                 return motionfunc(object, (int)p.x, (int)[object frame].size.height - p.y, buttonmask, handler->data);
             }
@@ -429,7 +435,6 @@ HMTX DWThreadMutex;
 HMTX DWThreadMutex2;
 DWTID DWThread = (DWTID)-1;
 DWTID _dw_mutex_locked = (DWTID)-1;
-SInt32 DWOSMajor, DWOSMinor, DWOSBuild;
 
 /* Used for doing bitblts from the main thread */
 typedef struct _bitbltinfo
