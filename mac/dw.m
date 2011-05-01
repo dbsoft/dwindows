@@ -7586,6 +7586,20 @@ void API dw_window_get_pos_size(HWND handle, LONG *x, LONG *y, ULONG *width, ULO
             *height = rect.size.height;
         return;
     }
+    else if([ object isKindOfClass:[ NSControl class ] ])
+    {
+        NSControl *control = handle;
+        NSRect rect = [control frame];
+        if(x)
+            *x = rect.origin.x;
+        if(y)
+            *y = rect.origin.y;
+        if(width)
+            *width = rect.size.width;
+        if(height)
+            *height = rect.size.height;
+        return;
+    }
 }
 
 /*
