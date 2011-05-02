@@ -1332,7 +1332,6 @@ int main(int argc, char *argv[])
     timerid = dw_timer_connect(2000, DW_SIGNAL_FUNC(timer_callback), 0);
     dw_window_set_size(mainwindow, 640, 520);
     dw_window_show(mainwindow);
-    dw_window_capture(textbox2);
     
     dw_main();
     
