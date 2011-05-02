@@ -8965,7 +8965,7 @@ HPIXMAP API dw_pixmap_new_from_data(HWND handle, char *data, int len)
  */
 void API dw_pixmap_set_transparent_color( HPIXMAP pixmap, ULONG color )
 {
-   if ( pixmap )
+   if ( pixmap && pixmap->depth == 8)
    {
       pixmap->transcolor = _internal_color(color);
    }
