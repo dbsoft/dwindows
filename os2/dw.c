@@ -3574,7 +3574,7 @@ MRESULT EXPENTRY _RendProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
    case WM_BUTTON2DOWN:
    case WM_BUTTON3DOWN:
       if(res == -1)
-         WinSetFocus(HWND_DESKTOP, hwnd);
+		  WinSetFocus(HWND_DESKTOP, hwnd);
       else if(res)
          return (MPARAM)TRUE;
    }
@@ -8434,6 +8434,7 @@ HPIXMAP API dw_pixmap_new(HWND handle, unsigned long width, unsigned long height
    bmih.cBitCount = (SHORT)depth;
 
    pixmap->width = width; pixmap->height = height;
+   pixmap->transcolor = DW_CLR_DEFAULT;
 
    pixmap->hbm = GpiCreateBitmap(pixmap->hps, (PBITMAPINFOHEADER2)&bmih, 0L, NULL, NULL);
 
@@ -8488,6 +8489,7 @@ HPIXMAP API dw_pixmap_new_from_file(HWND handle, char *filename)
 
    /* Success fill in other values */
    pixmap->handle = handle;
+   pixmap->transcolor = DW_CLR_DEFAULT;
 
    return pixmap;
 }
@@ -8545,6 +8547,7 @@ HPIXMAP API dw_pixmap_new_from_data(HWND handle, char *data, int len)
 
    /* Success fill in other values */
    pixmap->handle = handle;
+   pixmap->transcolor = DW_CLR_DEFAULT;
 
    return pixmap;
 }
@@ -8595,6 +8598,7 @@ HPIXMAP API dw_pixmap_grab(HWND handle, ULONG id)
    GpiSetBitmap(pixmap->hps, pixmap->hbm);
 
    pixmap->width = bmih.cx; pixmap->height = bmih.cy;
+   pixmap->transcolor = DW_CLR_DEFAULT;
 
    WinReleasePS(hps);
 
@@ -8677,7 +8681,23 @@ void API dw_pixmap_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest, int wi
    ptl[3].x = ptl[2].x + width;
    ptl[3].y = ptl[2].y + height;
 
-   GpiBitBlt(hpsdest, hpssrc, 4, ptl, ROP_SRCCOPY, BBO_IGNORE);
+   /* Handle transparency if requested */
+   if(srcp && srcp->transcolor != DW_CLR_DEFAULT)
+   {
+       IMAGEBUNDLE newIb, oldIb;
+       /* Transparent color is put into the background color */
+	   GpiSetBackColor(hpsdest, srcp->transcolor);
+	   GpiQueryAttrs(hpsdest, PRIM_IMAGE, IBB_BACK_MIX_MODE, (PBUNDLE)&oldIb);
+	   newIb.usBackMixMode = BM_SRCTRANSPARENT;
+	   GpiSetAttrs(hpsdest, PRIM_IMAGE, IBB_BACK_MIX_MODE, 0, (PBUNDLE)&newIb);
+	   GpiBitBlt(hpsdest, hpssrc, 4, ptl, ROP_SRCCOPY, BBO_IGNORE);
+       GpiSetAttrs(hpsdest, PRIM_IMAGE, IBB_BACK_MIX_MODE, 0, (PBUNDLE)&oldIb);
+   }
+   else
+   {
+       /* Otherwise use the regular BitBlt call */
+	   GpiBitBlt(hpsdest, hpssrc, 4, ptl, ROP_SRCCOPY, BBO_IGNORE);
+   }
 
    if(!destp)
       WinReleasePS(hpsdest);
