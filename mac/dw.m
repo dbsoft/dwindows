@@ -6033,6 +6033,30 @@ HPIXMAP API dw_pixmap_new(HWND handle, unsigned long width, unsigned long height
     return pixmap;
 }
 
+/* Function takes an NSImage and copies it into a flipped NSBitmapImageRep */
+void _flip_image(NSImage *tmpimage, NSBitmapImageRep *image, NSSize size)
+{
+    [NSGraphicsContext saveGraphicsState];
+    [NSGraphicsContext setCurrentContext:[NSGraphicsContext
+                                          graphicsContextWithGraphicsPort:[[NSGraphicsContext graphicsContextWithBitmapImageRep:image] graphicsPort] 
+                                          flipped:YES]];
+    [[NSDictionary alloc] initWithObjectsAndKeys:image, NSGraphicsContextDestinationAttributeName, nil];
+    // make a new transform: 
+    NSAffineTransform *t = [NSAffineTransform transform]; 
+    
+    // by scaling Y negatively, we effectively flip the image: 
+    [t scaleXBy:1.0 yBy:-1.0]; 
+    
+    // but we also have to translate it back by its height: 
+    [t translateXBy:0.0 yBy:-size.height]; 
+    
+    // apply the transform: 
+    [t concat]; 
+    [tmpimage drawAtPoint:NSMakePoint(0, 0) fromRect:NSMakeRect(0, 0, size.width, size.height) 
+                operation:NSCompositeSourceOver fraction:1.0];     
+    [NSGraphicsContext restoreGraphicsState];
+}
+
 /*
  * Creates a pixmap from a file.
  * Parameters:
@@ -6051,13 +6075,27 @@ HPIXMAP API dw_pixmap_new_from_file(HWND handle, char *filename)
     if(!(pixmap = calloc(1,sizeof(struct _hpixmap))))
         return NULL;
     NSString *nstr = [ NSString stringWithUTF8String:filename ];
-    NSBitmapImageRep *image = [[NSBitmapImageRep alloc] initWithContentsOfFile:nstr];
-    if(!image && ext)
+    NSImage *tmpimage = [[NSImage alloc] initWithContentsOfFile:nstr];
+    if(!tmpimage && ext)
     {
         nstr = [nstr stringByAppendingString: [NSString stringWithUTF8String:ext]];
-        image = [[NSBitmapImageRep alloc] initWithContentsOfFile:nstr];
+        tmpimage = [[NSImage alloc] initWithContentsOfFile:nstr];
     }
-    NSSize size = [image size];
+    if(!tmpimage)
+        return NULL;
+    NSSize size = [tmpimage size];
+    NSBitmapImageRep *image = [[NSBitmapImageRep alloc]
+                               initWithBitmapDataPlanes:NULL
+                               pixelsWide:size.width
+                               pixelsHigh:size.height
+                               bitsPerSample:8
+                               samplesPerPixel:4
+                               hasAlpha:YES
+                               isPlanar:NO
+                               colorSpaceName:NSDeviceRGBColorSpace
+                               bytesPerRow:0
+                               bitsPerPixel:0];
+    _flip_image(tmpimage, image, size);
     pixmap->width = size.width;
     pixmap->height = size.height;
     pixmap->image = image;
@@ -6082,8 +6120,22 @@ HPIXMAP API dw_pixmap_new_from_data(HWND handle, char *data, int len)
     if(!(pixmap = calloc(1,sizeof(struct _hpixmap))))
         return NULL;
     NSData *thisdata = [NSData dataWithBytes:data length:len];
-    NSBitmapImageRep *image = [[NSBitmapImageRep alloc] initWithData:thisdata];
-    NSSize size = [image size];
+    NSImage *tmpimage = [[NSImage alloc] initWithData:thisdata];
+    if(!tmpimage)
+        return NULL;
+    NSSize size = [tmpimage size];
+    NSBitmapImageRep *image = [[NSBitmapImageRep alloc]
+                               initWithBitmapDataPlanes:NULL
+                               pixelsWide:size.width
+                               pixelsHigh:size.height
+                               bitsPerSample:8
+                               samplesPerPixel:4
+                               hasAlpha:YES
+                               isPlanar:NO
+                               colorSpaceName:NSDeviceRGBColorSpace
+                               bytesPerRow:0
+                               bitsPerPixel:0];
+    _flip_image(tmpimage, image, size);
     pixmap->width = size.width;
     pixmap->height = size.height;
     pixmap->image = image;
