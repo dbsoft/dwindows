@@ -275,7 +275,7 @@ int _event_handler(id object, NSEvent *event, int message)
                     button = 3;
                 }
 
-                return buttonfunc(object, (int)p.x, (int)[object frame].size.height - p.y, button, handler->data);
+                return buttonfunc(object, (int)p.x, (int)p.y, button, handler->data);
             }
             /* Motion notify event */
             case 5:
@@ -290,7 +290,7 @@ int _event_handler(id object, NSEvent *event, int message)
                     buttonmask = (1 << [event buttonNumber]);
                 }
 
-                return motionfunc(object, (int)p.x, (int)[object frame].size.height - p.y, buttonmask, handler->data);
+                return motionfunc(object, (int)p.x, (int)p.y, buttonmask, handler->data);
             }
             /* Window close event */
             case 6:
@@ -503,17 +503,6 @@ typedef struct _bitbltinfo
             image = [[NSImage alloc] initWithSize:[rep size]];
             [image addRepresentation:rep];
         }
-        // make a new transform:
-        NSAffineTransform *t = [NSAffineTransform transform];
-
-        // by scaling Y negatively, we effectively flip the image:
-        [t scaleXBy:1.0 yBy:-1.0];
-
-        // but we also have to translate it back by its height:
-        [t translateXBy:0.0 yBy:-[rep size].height];
-
-        // apply the transform:
-        [t concat];
         [image drawAtPoint:NSMakePoint(bltinfo->xdest, bltinfo->ydest) fromRect:NSMakeRect(bltinfo->xsrc, bltinfo->ysrc, bltinfo->width, bltinfo->height)
                         operation:NSCompositeSourceOver fraction:1.0];
         [bltsrc release];
@@ -734,7 +723,7 @@ DWObject *DWObj;
 -(void)mouseDragged:(NSEvent *)theEvent { _event_handler(self, theEvent, 5); }
 -(void)drawRect:(NSRect)rect { _event_handler(self, nil, 7); }
 -(void)keyDown:(NSEvent *)theEvent { _event_handler(self, theEvent, 2); }
--(BOOL)isFlipped { return NO; }
+-(BOOL)isFlipped { return YES; }
 -(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); [font release]; [super dealloc]; }
 -(BOOL)acceptsFirstResponder { return YES; }
 @end
