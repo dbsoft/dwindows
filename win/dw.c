@@ -8871,6 +8871,7 @@ HPIXMAP API dw_pixmap_new_from_file(HWND handle, char *filename)
    pixmap->hdc = CreateCompatibleDC( hdc );
    GetObject( pixmap->hbm, sizeof(bm), &bm );
    pixmap->width = bm.bmWidth; pixmap->height = bm.bmHeight;
+   pixmap->depth = bm.bmBitsPixel;
    SelectObject( pixmap->hdc, pixmap->hbm );
    ReleaseDC( handle, hdc );
    free( file );
@@ -8943,6 +8944,7 @@ HPIXMAP API dw_pixmap_new_from_data(HWND handle, char *data, int len)
    GetObject( pixmap->hbm, sizeof(bm), &bm );
 
    pixmap->width = bm.bmWidth; pixmap->height = bm.bmHeight;
+   pixmap->depth = bm.bmBitsPixel;
 
    SelectObject( pixmap->hdc, pixmap->hbm );
 
@@ -8988,17 +8990,18 @@ HPIXMAP API dw_pixmap_grab(HWND handle, ULONG id)
 
    hdc = GetDC(handle);
 
-
    pixmap->hbm = LoadBitmap(DWInstance, MAKEINTRESOURCE(id));
    pixmap->hdc = CreateCompatibleDC(hdc);
 
    GetObject(pixmap->hbm, sizeof(BITMAP), (void *)&bm);
 
    pixmap->width = bm.bmWidth; pixmap->height = bm.bmHeight;
+   pixmap->depth = bm.bmBitsPixel;
 
    SelectObject(pixmap->hdc, pixmap->hbm);
 
    ReleaseDC(handle, hdc);
+   pixmap->transcolor = DW_RGB_TRANSPARENT;
 
    return pixmap;
 }
@@ -9038,6 +9041,7 @@ void API dw_pixmap_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest, int wi
    HDC hdcdest;
    HDC hdcsrc;
    HDC hdcMem;
+   static BLENDFUNCTION bf = { AC_SRC_OVER, 0, 0xFF, AC_SRC_ALPHA };
 
    if ( dest )
       hdcdest = GetDC( dest );
@@ -9052,12 +9056,20 @@ void API dw_pixmap_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest, int wi
       hdcsrc = srcp->hdc;
    else
       return;
-   if ( srcp && srcp->transcolor != DW_RGB_TRANSPARENT )
+
+   /* If it is a 32bpp bitmap (with alpha) use AlphaBlend unless it fails */
+   if ( srcp && srcp->depth == 32 && AlphaBlend( hdcdest, xdest, ydest, width, height, hdcsrc, xsrc, ysrc, width, height, bf ) )
+   {
+        /* Don't do anything */
+   }
+   /* Otherwise perform special bitblt with manual transparency */
+   else if ( srcp && srcp->transcolor != DW_RGB_TRANSPARENT )
    {
       DrawTransparentBitmap( hdcdest, srcp->hdc, srcp->hbm, xdest, ydest, RGB( DW_RED_VALUE(srcp->transcolor), DW_GREEN_VALUE(srcp->transcolor), DW_BLUE_VALUE(srcp->transcolor)) );
    }
    else
    {
+      /* Finally fall back to the classic BitBlt */
       BitBlt( hdcdest, xdest, ydest, width, height, hdcsrc, xsrc, ysrc, SRCCOPY );
    }
    if ( !destp )

@@ -636,6 +636,7 @@ typedef struct _hpixmap {
    unsigned long transcolor;
    HWND handle;
    void *bits;
+   unsigned long depth;
 } *HPIXMAP;
 
 typedef HWND HMENUI;
