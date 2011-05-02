@@ -30,7 +30,7 @@
 #define MAX_WIDGETS 20
 
 unsigned long flStyle = DW_FCF_SYSMENU | DW_FCF_TITLEBAR |
-DW_FCF_SHELLPOSITION | DW_FCF_TASKLIST | DW_FCF_DLGBORDER;
+                        DW_FCF_SHELLPOSITION | DW_FCF_TASKLIST | DW_FCF_DLGBORDER;
 
 unsigned long current_color = DW_RGB(100,100,100);
 
@@ -68,6 +68,8 @@ HWND mainwindow,
     status1,
     status2,
     rendcombo,
+    imagexspin,
+    imageyspin,
     container_status,
     tree_status,
     stext,
@@ -97,9 +99,10 @@ void *containerinfo;
 
 int menu_enabled = 1;
 
-HPIXMAP text1pm,text2pm;
+HPIXMAP text1pm,text2pm,image;
 HICN fileicon,foldericon;
 int mle_point=-1;
+int image_x = 20, image_y = 20;
 
 int font_width = 8;
 int font_height=12;
@@ -312,6 +315,9 @@ void draw_shapes(int direct)
     HPIXMAP pixmap = direct ? NULL : text2pm;
     HWND window = direct ? textbox2 : 0;
     
+    image_x = (int)dw_spinbutton_get_pos(imagexspin);
+    image_y = (int)dw_spinbutton_get_pos(imageyspin);
+    
     dw_color_foreground_set(DW_CLR_WHITE);
     dw_draw_rect(window, pixmap, TRUE, 0, 0, width, height);
     dw_color_foreground_set(DW_CLR_DARKPINK);
@@ -319,6 +325,10 @@ void draw_shapes(int direct)
     dw_color_foreground_set(DW_CLR_GREEN);
     dw_color_background_set(DW_CLR_DARKRED);
     dw_draw_text(window, pixmap, 10, 10, "This should be aligned with the edges.");
+    if(image)
+    {
+        dw_pixmap_bitblt(window, pixmap, image_x, image_y, DW_PIXMAP_WIDTH(image), DW_PIXMAP_HEIGHT(image), 0, image, 0, 0);
+    }
     
     /* If we aren't drawing direct do a bitblt */
     if(!direct)
@@ -799,7 +809,7 @@ int API motion_notify_event(HWND window, int x, int y, int buttonmask, void *dat
 void text_add(void)
 {
     unsigned long depth = dw_color_depth_get();
-    HWND vscrollbox, hbox, button1;
+    HWND vscrollbox, hbox, button1, label;
     
     /* create a box to pack into the notebook page */
     pagebox = dw_box_new(BOXHORZ, 2);
@@ -819,6 +829,21 @@ void text_add(void)
     dw_listbox_append(rendcombo, "Shapes Double Buffered");
     dw_listbox_append(rendcombo, "Shapes Direct");
     dw_listbox_append(rendcombo, "File Display");
+    label = dw_text_new("Image X:", 100);
+    dw_window_set_style(label, DW_DT_VCENTER, DW_DT_VCENTER);
+    dw_box_pack_start( hbox, label, 55, 25, FALSE, FALSE, 0);
+    imagexspin = dw_spinbutton_new("20", 1021);
+    dw_box_pack_start( hbox, imagexspin, 20, 25, TRUE, FALSE, 0);
+    label = dw_text_new("Y:", 100);
+    dw_window_set_style(label, DW_DT_VCENTER, DW_DT_VCENTER);
+    dw_box_pack_start( hbox, label, 20, 25, FALSE, FALSE, 0);
+    imageyspin = dw_spinbutton_new("20", 1021);
+    dw_box_pack_start( hbox, imageyspin, 20, 25, TRUE, FALSE, 0);
+    dw_spinbutton_set_limits(imagexspin, 2000, 0);
+    dw_spinbutton_set_limits(imageyspin, 2000, 0);
+    dw_spinbutton_set_pos(imagexspin, 20);
+    dw_spinbutton_set_pos(imageyspin, 20);
+
     button1 = dw_button_new( "Refresh", 1223L );
     dw_box_pack_start( hbox, button1, 50, 25, TRUE, FALSE, 0);
     
@@ -857,6 +882,10 @@ void text_add(void)
     
     text1pm = dw_pixmap_new( textbox1, font_width*width1, font_height*rows, (int)depth );
     text2pm = dw_pixmap_new( textbox2, font_width*cols, font_height*rows, (int)depth );
+    image = dw_pixmap_new_from_file(textbox2, "mac/folder.png");
+    if(!image)
+        image = dw_pixmap_new_from_file(textbox2, "~/folder.png");
+    
     
     dw_messagebox("DWTest", DW_MB_OK|DW_MB_INFORMATION, "Width: %d Height: %d\n", font_width, font_height);
     dw_draw_rect(0, text1pm, TRUE, 0, 0, font_width*width1, font_height*rows);
