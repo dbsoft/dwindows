@@ -2367,7 +2367,7 @@ MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
                   if (WinGetKeyState(HWND_DESKTOP, VK_BUTTON3) & 0x8000)
                      keys |= DW_BUTTON3_MASK;
 
-                  result = motionfunc(tmp->window, x, _get_frame_height(tmp->window) - y, keys, tmp->data);
+                  result = motionfunc(tmp->window, x, _get_height(hWnd) - y, keys, tmp->data);
                   tmp = NULL;
                }
             }
