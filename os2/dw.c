@@ -4303,6 +4303,7 @@ HWND API dw_scrollbox_new(int type, int pad)
                     0,0,2000,1000, hwndframe, HWND_TOP, FID_HORZSCROLL, NULL, NULL);
     client = WinCreateWindow(hwndframe, WC_FRAME, "", WS_VISIBLE | WS_CLIPCHILDREN,
                              0,0,2000,1000, NULLHANDLE, HWND_TOP, FID_CLIENT, NULL, NULL);
+    WinSetWindowPtr(client, QWP_USER, calloc(sizeof(Box), 1));
     WinSetParent(tmpbox, client, FALSE);
     WinSetWindowPtr(hwndframe, QWP_USER, blah);
     dw_window_set_data(hwndframe, "_dw_resizebox", (void *)tmpbox);
