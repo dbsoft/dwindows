@@ -882,10 +882,11 @@ void text_add(void)
     
     text1pm = dw_pixmap_new( textbox1, font_width*width1, font_height*rows, (int)depth );
     text2pm = dw_pixmap_new( textbox2, font_width*cols, font_height*rows, (int)depth );
-    image = dw_pixmap_new_from_file(textbox2, "mac/folder.png");
+    image = dw_pixmap_new_from_file(textbox2, "image/test");
     if(!image)
-        image = dw_pixmap_new_from_file(textbox2, "~/folder.png");
-    
+        image = dw_pixmap_new_from_file(textbox2, "~/test");
+    if(image)
+        dw_pixmap_set_transparent_color(image, DW_CLR_WHITE);
     
     dw_messagebox("DWTest", DW_MB_OK|DW_MB_INFORMATION, "Width: %d Height: %d\n", font_width, font_height);
     dw_draw_rect(0, text1pm, TRUE, 0, 0, font_width*width1, font_height*rows);
