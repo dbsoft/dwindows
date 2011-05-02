@@ -361,7 +361,7 @@ void _free_window_memory(HWND handle)
    {
       Box *box = (Box *)WinQueryWindowPtr(child, QWP_USER);
 
-      if(box)
+      if(box && !dw_window_get_data(handle, "_dw_box"))
       {
          if(box->count && box->items)
             free(box->items);
@@ -2319,7 +2319,7 @@ MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
                      break;
                   }
 
-                  result = buttonfunc(tmp->window, pts.x, _get_frame_height(tmp->window) - pts.y, button, tmp->data);
+                  result = buttonfunc(tmp->window, pts.x, WinQueryWindow(tmp->window, QW_PARENT) == HWND_DESKTOP ? dw_screen_height() - pts.y : _get_height(tmp->window) - pts.y, button, tmp->data);
                   tmp = NULL;
                }
             }
@@ -3574,7 +3574,7 @@ MRESULT EXPENTRY _RendProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
    case WM_BUTTON2DOWN:
    case WM_BUTTON3DOWN:
       if(res == -1)
-		  WinSetFocus(HWND_DESKTOP, hwnd);
+          WinSetFocus(HWND_DESKTOP, hwnd);
       else if(res)
          return (MPARAM)TRUE;
    }
@@ -8686,17 +8686,17 @@ void API dw_pixmap_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest, int wi
    {
        IMAGEBUNDLE newIb, oldIb;
        /* Transparent color is put into the background color */
-	   GpiSetBackColor(hpsdest, srcp->transcolor);
-	   GpiQueryAttrs(hpsdest, PRIM_IMAGE, IBB_BACK_MIX_MODE, (PBUNDLE)&oldIb);
-	   newIb.usBackMixMode = BM_SRCTRANSPARENT;
-	   GpiSetAttrs(hpsdest, PRIM_IMAGE, IBB_BACK_MIX_MODE, 0, (PBUNDLE)&newIb);
-	   GpiBitBlt(hpsdest, hpssrc, 4, ptl, ROP_SRCCOPY, BBO_IGNORE);
+       GpiSetBackColor(hpsdest, srcp->transcolor);
+       GpiQueryAttrs(hpsdest, PRIM_IMAGE, IBB_BACK_MIX_MODE, (PBUNDLE)&oldIb);
+       newIb.usBackMixMode = BM_SRCTRANSPARENT;
+       GpiSetAttrs(hpsdest, PRIM_IMAGE, IBB_BACK_MIX_MODE, 0, (PBUNDLE)&newIb);
+       GpiBitBlt(hpsdest, hpssrc, 4, ptl, ROP_SRCCOPY, BBO_IGNORE);
        GpiSetAttrs(hpsdest, PRIM_IMAGE, IBB_BACK_MIX_MODE, 0, (PBUNDLE)&oldIb);
    }
    else
    {
        /* Otherwise use the regular BitBlt call */
-	   GpiBitBlt(hpsdest, hpssrc, 4, ptl, ROP_SRCCOPY, BBO_IGNORE);
+       GpiBitBlt(hpsdest, hpssrc, 4, ptl, ROP_SRCCOPY, BBO_IGNORE);
    }
 
    if(!destp)
