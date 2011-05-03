@@ -8806,13 +8806,56 @@ HPIXMAP API dw_pixmap_new(HWND handle, unsigned long width, unsigned long height
 
    ReleaseDC(handle, hdc);
 
-#if 0
-   /* force a CONFIGURE event on the underlying renderbox */
-   dw_window_get_pos_size( handle, NULL, NULL, &cx, &cy );
-   SendMessage( handle, WM_SIZE, 0, MAKELPARAM(cx, cy) );
-#endif
-
    return pixmap;
+}
+
+/* Read the file bitmap header ourselves...
+ * apparently we can't check the depth once loaded...
+ * since it seems to normalize it to our screen depth.
+ */
+unsigned long _read_bitmap_header(char *file)
+{
+    BITMAPFILEHEADER header;
+    BITMAPINFO *info;
+    FILE *fp;
+    int infosize;
+    int depth = 0;
+
+    /* Try opening the file; use "rb" mode to read this *binary* file. */
+    if((fp = fopen(file, "rb")) == NULL)
+        return 0;
+
+    /* Read the file header and any following bitmap information... */
+    if(fread(&header, sizeof(BITMAPFILEHEADER), 1, fp) < 1)
+    {
+        /* Couldn't read the file header */
+	    fclose(fp);
+        return 0;
+    }
+
+    if(header.bfType != 'MB')	/* Check for BM reversed... */
+    {
+        /* Not a bitmap file */
+        fclose(fp);
+        return 0;
+    }
+
+    infosize = header.bfOffBits - sizeof(BITMAPFILEHEADER);
+    if((info = (BITMAPINFO *)calloc(infosize, 1)) == NULL)
+    {
+        /* Couldn't allocate memory for bitmap info */
+        fclose(fp);
+        return 0;
+    }
+
+    if(fread(info, 1, infosize, fp) == infosize)
+    {
+        /* Read the bitmap header */
+        depth = info->bmiHeader.biBitCount;
+    }
+    free(info);
+    fclose(fp);
+    return depth;
 }
 
 /*
@@ -8832,6 +8875,7 @@ HPIXMAP API dw_pixmap_new_from_file(HWND handle, char *filename)
    HDC hdc;
    ULONG cx, cy;
    char *file = malloc(strlen(filename) + 5);
+   BITMAPINFO *info;
 
    if (!file || !(pixmap = calloc(1,sizeof(struct _hpixmap))))
    {
@@ -8859,6 +8903,7 @@ HPIXMAP API dw_pixmap_new_from_file(HWND handle, char *filename)
 
    pixmap->handle = handle;
    pixmap->hbm = (HBITMAP)LoadImage(NULL, file, IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
+   pixmap->depth = _read_bitmap_header(file);
 
    if ( !pixmap->hbm )
    {
@@ -8871,17 +8916,11 @@ HPIXMAP API dw_pixmap_new_from_file(HWND handle, char *filename)
    pixmap->hdc = CreateCompatibleDC( hdc );
    GetObject( pixmap->hbm, sizeof(bm), &bm );
    pixmap->width = bm.bmWidth; pixmap->height = bm.bmHeight;
-   pixmap->depth = bm.bmBitsPixel;
    SelectObject( pixmap->hdc, pixmap->hbm );
    ReleaseDC( handle, hdc );
    free( file );
    pixmap->transcolor = DW_RGB_TRANSPARENT;
 
-#if 0
-   /* force a CONFIGURE event on the underlying renderbox */
-   dw_window_get_pos_size( handle, NULL, NULL, &cx, &cy );
-   SendMessage( handle, WM_SIZE, 0, MAKELPARAM(cx, cy) );
-#endif
    return pixmap;
 }
 
@@ -8922,6 +8961,7 @@ HPIXMAP API dw_pixmap_new_from_data(HWND handle, char *data, int len)
          fwrite( data, 1, len, fp );
          fclose( fp );
          pixmap->hbm = (HBITMAP)LoadImage( NULL, file, IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE );
+         pixmap->depth = _read_bitmap_header(file);
       }
       else
       {
@@ -8944,18 +8984,11 @@ HPIXMAP API dw_pixmap_new_from_data(HWND handle, char *data, int len)
    GetObject( pixmap->hbm, sizeof(bm), &bm );
 
    pixmap->width = bm.bmWidth; pixmap->height = bm.bmHeight;
-   pixmap->depth = bm.bmBitsPixel;
 
    SelectObject( pixmap->hdc, pixmap->hbm );
 
    ReleaseDC( handle, hdc );
    pixmap->transcolor = DW_RGB_TRANSPARENT;
-
-#if 0
-   /* force a CONFIGURE event on the underlying renderbox */
-   dw_window_get_pos_size( handle, NULL, NULL, &cx, &cy );
-   SendMessage( handle, WM_SIZE, 0, MAKELPARAM(cx, cy) );
-#endif
 
    return pixmap;
 }
