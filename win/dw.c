@@ -8829,7 +8829,7 @@ unsigned long _read_bitmap_header(char *file)
     if(fread(&header, sizeof(BITMAPFILEHEADER), 1, fp) < 1)
     {
         /* Couldn't read the file header */
-	    fclose(fp);
+        fclose(fp);
         return 0;
     }
 
