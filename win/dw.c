@@ -67,7 +67,6 @@ COLORREF _background[THREAD_LIMIT];
 HPEN _hPen[THREAD_LIMIT];
 HBRUSH _hBrush[THREAD_LIMIT];
 char *_clipboard_contents[THREAD_LIMIT];
-int _PointerOnWnd[THREAD_LIMIT];
 
 BYTE _red[] = {   0x00, 0xbb, 0x00, 0xaa, 0x00, 0xbb, 0x00, 0xaa, 0x77,
            0xff, 0x00, 0xee, 0x00, 0xff, 0x00, 0xff, 0xaa, 0x00 };
@@ -2554,10 +2553,6 @@ BOOL CALLBACK _framewndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 
 BOOL CALLBACK _rendwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 {
-   RECT wndRect;
-   POINTS points;
-   POINT point;
-   int threadid = dw_thread_id();
    BOOL rcode = TRUE;
 
    switch( msg )
@@ -2567,39 +2562,8 @@ BOOL CALLBACK _rendwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
    case WM_RBUTTONDOWN:
       SetFocus(hWnd);
       rcode = _wndproc(hWnd, msg, mp1, mp2);
-#ifndef SCROLLBOX_DEBUG
-_dw_log( "_renderproc: button down: %d\n", rcode );
-#endif
       break;
    case WM_MOUSEMOVE:
-      if ( threadid < 0 || threadid >= THREAD_LIMIT )
-         threadid = 0;
-      /*
-       * Set the mouse capture and focus on the renderbox
-       * when the mouse moves into the window.
-       */
-      points = MAKEPOINTS(mp2); /* get the mouse point */
-      point.x = points.x;
-      point.y = points.y;
-      SetCapture( hWnd ); /*  Capture the mouse input */
-
-      GetWindowRect( hWnd, &wndRect );
-      ClientToScreen( hWnd, &point );
-
-      if ( PtInRect( &wndRect, point ) )
-      {  // Test if the pointer is on the window
-
-         if ( _PointerOnWnd[threadid] == 0 )
-         {
-            SetFocus(hWnd);
-            _PointerOnWnd[threadid] = 1;
-         }
-      }
-      else
-      {
-         ReleaseCapture();
-         _PointerOnWnd[threadid] = 0;
-      }
       /* call our standard Windows procedure */
       rcode = _wndproc(hWnd, msg, mp1, mp2);
       break;
@@ -2607,9 +2571,6 @@ _dw_log( "_renderproc: button down: %d\n", rcode );
    case WM_MBUTTONUP:
    case WM_RBUTTONUP:
       rcode = _wndproc(hWnd, msg, mp1, mp2);
-#ifndef SCROLLBOX_DEBUG
-_dw_log( "_renderproc: button up: %d\n", rcode );
-#endif
       break;
    case WM_PAINT:
    case WM_SIZE:
@@ -2619,7 +2580,6 @@ _dw_log( "_renderproc: button up: %d\n", rcode );
       rcode = _wndproc(hWnd, msg, mp1, mp2);
       break;
    default:
-//    rcode = DefWindowProc(hWnd, msg, mp1, mp2);
       break;
    }
    /* only call the default Windows process if the user hasn't handled the message themselves */
@@ -3805,7 +3765,6 @@ int API dw_init(int newthread, int argc, char *argv[])
       _hPen[z] = CreatePen(PS_SOLID, 1, _foreground[z]);
       _hBrush[z] = CreateSolidBrush(_foreground[z]);
       _clipboard_contents[z] = NULL;
-      _PointerOnWnd[z] = 0;
    }
 
    /* Initialize Security for named events and memory */
