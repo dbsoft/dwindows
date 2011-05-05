@@ -61,12 +61,10 @@ HIMAGELIST hSmall  = 0, hLarge = 0;
 /* Special flag used for internal tracking */
 #define DW_CFA_RESERVED (1 << 30)
 
-#define THREAD_LIMIT 128
-COLORREF _foreground[THREAD_LIMIT];
-COLORREF _background[THREAD_LIMIT];
-HPEN _hPen[THREAD_LIMIT];
-HBRUSH _hBrush[THREAD_LIMIT];
-char *_clipboard_contents[THREAD_LIMIT];
+DWORD _foreground;
+DWORD _background;
+DWORD _hPen;
+DWORD _hBrush;
 
 BYTE _red[] = {   0x00, 0xbb, 0x00, 0xaa, 0x00, 0xbb, 0x00, 0xaa, 0x77,
            0xff, 0x00, 0xee, 0x00, 0xff, 0x00, 0xff, 0xaa, 0x00 };
@@ -247,21 +245,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
    return main(argc, argv);
 }
 #endif
-
-/* This should return true for WinNT/2K/XP and false on Win9x */
-int IsWinNT(void)
-{
-   static int isnt = -1;
-
-   if(isnt == -1)
-   {
-      if (GetVersion() < 0x80000000)
-         isnt = 1;
-      else
-         isnt = 0;
-   }
-   return isnt;
-}
 
 void DrawTransparentBitmap(HDC hdc, HDC hdcSrc, HBITMAP hBitmap, int xStart, int yStart, COLORREF cTransparentColor)
 {
@@ -2855,10 +2838,7 @@ BOOL CALLBACK _colorwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
           */
          if (cinfo->buddy && !cinfo->combo)
          {
-            if (IsWinNT())
-               PostMessage(cinfo->buddy, WM_USER+10, 0, 0);
-            else
-               SendMessage(cinfo->buddy, WM_USER+10, 0, 0);
+            PostMessage(cinfo->buddy, WM_USER+10, 0, 0);
          }
          break;
       case WM_USER+10:
@@ -3641,6 +3621,17 @@ int _dw_get_image_handle(char *filename, HANDLE *icon, HBITMAP *hbitmap)
    return windowtype;
 }
 
+/* Initialize thread local values to the defaults */
+void _init_thread(void)
+{
+    COLORREF foreground = RGB(128,128,128);
+    COLORREF background = DW_RGB_TRANSPARENT;
+    TlsSetValue(_foreground, (LPVOID)foreground);
+    TlsSetValue(_background, (LPVOID)background);
+    TlsSetValue(_hPen, CreatePen(PS_SOLID, 1, foreground));
+    TlsSetValue(_hBrush, CreateSolidBrush(foreground));
+}
+
 /*
  * Initializes the Dynamic Windows engine.
  * Parameters:
@@ -3654,6 +3645,13 @@ int API dw_init(int newthread, int argc, char *argv[])
    INITCOMMONCONTROLSEX icc;
    char *fname;
    HFONT oldfont;
+
+   /* Initialize our thread local storage */
+   _foreground = TlsAlloc();
+   _background = TlsAlloc();
+   _hPen = TlsAlloc();
+   _hBrush = TlsAlloc();
+   _init_thread();
 
    icc.dwSize = sizeof(INITCOMMONCONTROLSEX);
    icc.dwICC = ICC_WIN95_CLASSES|ICC_DATE_CLASSES;
@@ -3757,15 +3755,6 @@ int API dw_init(int newthread, int argc, char *argv[])
    /* We need the version to check capability like up-down controls */
    dwVersion = GetVersion();
    dwComctlVer = GetDllVersion(TEXT("comctl32.dll"));
-
-   for ( z = 0; z < THREAD_LIMIT; z++ )
-   {
-      _foreground[z] = RGB(128,128,128);
-      _background[z] = DW_RGB_TRANSPARENT;
-      _hPen[z] = CreatePen(PS_SOLID, 1, _foreground[z]);
-      _hBrush[z] = CreateSolidBrush(_foreground[z]);
-      _clipboard_contents[z] = NULL;
-   }
 
    /* Initialize Security for named events and memory */
    InitializeSecurityDescriptor(&_dwsd, SECURITY_DESCRIPTOR_REVISION);
@@ -8388,18 +8377,18 @@ HWND API dw_render_new(unsigned long id)
  */
 void API dw_color_foreground_set(unsigned long value)
 {
-   int threadid = dw_thread_id();
-
-   if(threadid < 0 || threadid >= THREAD_LIMIT)
-      threadid = 0;
+   HPEN hPen = TlsGetValue(_hPen);
+   HBRUSH hBrush = TlsGetValue(_hBrush);
+   COLORREF foreground;
 
    value = _internal_color(value);
-
-   DeleteObject(_hPen[threadid]);
-   DeleteObject(_hBrush[threadid]);
-   _foreground[threadid] = RGB(DW_RED_VALUE(value), DW_GREEN_VALUE(value), DW_BLUE_VALUE(value));
-   _hPen[threadid] = CreatePen(PS_SOLID, 1, _foreground[threadid]);
-   _hBrush[threadid] = CreateSolidBrush(_foreground[threadid]);
+   foreground = RGB(DW_RED_VALUE(value), DW_GREEN_VALUE(value), DW_BLUE_VALUE(value));
+   
+   DeleteObject(hPen);
+   DeleteObject(hBrush);
+   TlsSetValue(_foreground, (LPVOID)foreground);
+   TlsSetValue(_hPen, CreatePen(PS_SOLID, 1, foreground));
+   TlsSetValue(_hBrush, CreateSolidBrush(foreground));
 }
 
 /* Sets the current background drawing color.
@@ -8410,17 +8399,15 @@ void API dw_color_foreground_set(unsigned long value)
  */
 void API dw_color_background_set(unsigned long value)
 {
-   int threadid = dw_thread_id();
-
-   if(threadid < 0 || threadid >= THREAD_LIMIT)
-      threadid = 0;
+   COLORREF background;
 
    value = _internal_color(value);
+   background = RGB(DW_RED_VALUE(value), DW_GREEN_VALUE(value), DW_BLUE_VALUE(value));
 
    if(value == DW_RGB_TRANSPARENT)
-      _background[threadid] = DW_RGB_TRANSPARENT;
+      TlsSetValue(_background, (LPVOID)DW_RGB_TRANSPARENT);
    else
-      _background[threadid] = RGB(DW_RED_VALUE(value), DW_GREEN_VALUE(value), DW_BLUE_VALUE(value));
+      TlsSetValue(_background, (LPVOID)background);
 }
 
 /* Allows the user to choose a color using the system's color chooser dialog.
@@ -8461,10 +8448,6 @@ unsigned long API dw_color_choose(unsigned long value)
 void API dw_draw_point(HWND handle, HPIXMAP pixmap, int x, int y)
 {
    HDC hdcPaint;
-   int threadid = dw_thread_id();
-
-   if(threadid < 0 || threadid >= THREAD_LIMIT)
-      threadid = 0;
 
    if(handle)
       hdcPaint = GetDC(handle);
@@ -8473,7 +8456,7 @@ void API dw_draw_point(HWND handle, HPIXMAP pixmap, int x, int y)
    else
       return;
 
-   SetPixel(hdcPaint, x, y, _foreground[threadid]);
+   SetPixel(hdcPaint, x, y, (COLORREF)TlsGetValue(_foreground));
    if(!pixmap)
       ReleaseDC(handle, hdcPaint);
 }
@@ -8491,10 +8474,6 @@ void API dw_draw_line(HWND handle, HPIXMAP pixmap, int x1, int y1, int x2, int y
 {
    HDC hdcPaint;
    HPEN oldPen;
-   int threadid = dw_thread_id();
-
-   if(threadid < 0 || threadid >= THREAD_LIMIT)
-      threadid = 0;
 
    if(handle)
       hdcPaint = GetDC(handle);
@@ -8503,14 +8482,14 @@ void API dw_draw_line(HWND handle, HPIXMAP pixmap, int x1, int y1, int x2, int y
    else
       return;
 
-   oldPen = SelectObject(hdcPaint, _hPen[threadid]);
+   oldPen = SelectObject(hdcPaint, TlsGetValue(_hPen));
    MoveToEx(hdcPaint, x1, y1, NULL);
    LineTo(hdcPaint, x2, y2);
    SelectObject(hdcPaint, oldPen);
    /* For some reason Win98 (at least) fails
     * to draw the last pixel.  So I do it myself.
     */
-   SetPixel(hdcPaint, x2, y2, _foreground[threadid]);
+   SetPixel(hdcPaint, x2, y2, (COLORREF)TlsGetValue(_foreground));
    if(!pixmap)
       ReleaseDC(handle, hdcPaint);
 }
@@ -8531,10 +8510,6 @@ void API dw_draw_polygon(HWND handle, HPIXMAP pixmap, int fill, int npoints, int
    HPEN oldPen;
    POINT *points;
    int i;
-   int threadid = dw_thread_id();
-
-   if(threadid < 0 || threadid >= THREAD_LIMIT)
-      threadid = 0;
 
    if ( handle )
       hdcPaint = GetDC( handle );
@@ -8569,8 +8544,8 @@ void API dw_draw_polygon(HWND handle, HPIXMAP pixmap, int fill, int npoints, int
       }
    }
 
-   oldBrush = SelectObject( hdcPaint, _hBrush[threadid] );
-   oldPen = SelectObject( hdcPaint, _hPen[threadid] );
+   oldBrush = SelectObject( hdcPaint, TlsGetValue(_hBrush) );
+   oldPen = SelectObject( hdcPaint, TlsGetValue(_hPen) );
    if ( fill )
       Polygon( hdcPaint, points, npoints );
    else
@@ -8595,10 +8570,6 @@ void API dw_draw_rect(HWND handle, HPIXMAP pixmap, int fill, int x, int y, int w
 {
    HDC hdcPaint;
    RECT Rect;
-   int threadid = dw_thread_id();
-
-   if(threadid < 0 || threadid >= THREAD_LIMIT)
-      threadid = 0;
 
    if(handle)
       hdcPaint = GetDC(handle);
@@ -8609,9 +8580,9 @@ void API dw_draw_rect(HWND handle, HPIXMAP pixmap, int fill, int x, int y, int w
 
    SetRect(&Rect, x, y, x + width , y + height );
    if(fill)
-      FillRect(hdcPaint, &Rect, _hBrush[threadid]);
+      FillRect(hdcPaint, &Rect, TlsGetValue(_hBrush));
    else
-      FrameRect(hdcPaint, &Rect, _hBrush[threadid]);
+      FrameRect(hdcPaint, &Rect, TlsGetValue(_hBrush));
    if(!pixmap)
       ReleaseDC(handle, hdcPaint);
 }
@@ -8629,11 +8600,8 @@ void API dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
    HDC hdc;
    int mustdelete = 0;
    HFONT hFont = 0, oldFont = 0;
-   int threadid = dw_thread_id();
    ColorInfo *cinfo;
-
-   if(threadid < 0 || threadid >= THREAD_LIMIT)
-      threadid = 0;
+   COLORREF background;
 
    if(handle)
       hdc = GetDC(handle);
@@ -8653,15 +8621,16 @@ void API dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
       mustdelete = 1;
    }
 
+   background = (COLORREF)TlsGetValue(_background);
    if(hFont)
       oldFont = SelectObject(hdc, hFont);
-   SetTextColor(hdc, _foreground[threadid]);
-   if(_background[threadid] == DW_RGB_TRANSPARENT)
+   SetTextColor(hdc, (COLORREF)TlsGetValue(_foreground));
+   if(background == DW_RGB_TRANSPARENT)
       SetBkMode(hdc, TRANSPARENT);
    else
    {
       SetBkMode(hdc, OPAQUE);
-      SetBkColor(hdc, _background[threadid]);
+      SetBkColor(hdc, background);
    }
    TextOut(hdc, x, y, text, strlen(text));
    if(oldFont)
@@ -9434,6 +9403,22 @@ int API dw_named_memory_free(HSHM handle, void *ptr)
 }
 
 /*
+ * Encapsulate thread creation on Win32.
+ */
+void _dwthreadstart(void *data)
+{
+   void (* threadfunc)(void *) = NULL;
+   void **tmp = (void **)data;
+
+   _init_thread();
+
+   threadfunc = (void (*)(void *))tmp[0];
+   threadfunc(tmp[1]);
+
+   free(tmp);
+}
+
+/*
  * Creates a new thread with a starting point of func.
  * Parameters:
  *       func: Function which will be run in the new thread.
@@ -9445,7 +9430,12 @@ DWTID API dw_thread_new(void *func, void *data, int stack)
 #if defined(__CYGWIN__)
    return 0;
 #else
-   return (DWTID)_beginthread((void(*)(void *))func, stack, data);
+   void **tmp = malloc(sizeof(void *) * 2);
+
+   tmp[0] = func;
+   tmp[1] = data;
+
+   return (DWTID)_beginthread((void(*)(void *))_dwthreadstart, stack, tmp);
 #endif
 }
 
@@ -9803,38 +9793,24 @@ void API dw_window_click_default(HWND window, HWND next)
 char *dw_clipboard_get_text()
 {
    HANDLE handle;
-   int threadid = dw_thread_id();
-   long len;
+   char *tmp, *ret = NULL;
 
    if ( !OpenClipboard( NULL ) )
-      return NULL;
+      return ret;
 
    if ( ( handle = GetClipboardData( CF_TEXT) ) == NULL )
    {
       CloseClipboard();
-      return NULL;
+      return ret;
    }
 
-   len = strlen( (char *)handle );
-
-   if ( threadid < 0 || threadid >= THREAD_LIMIT )
-      threadid = 0;
-
-   if ( _clipboard_contents[threadid] != NULL )
+   if ( (tmp = GlobalLock(handle)) && strlen(tmp) )
    {
-      GlobalFree( _clipboard_contents[threadid] );
+        ret = strdup(tmp);
+        GlobalUnlock(handle);
    }
-   _clipboard_contents[threadid] = (char *)GlobalAlloc(GMEM_FIXED, len + 1);
-   if ( !_clipboard_contents[threadid] )
-   {
-      CloseClipboard();
-      return NULL;
-   }
-
-   strcpy( (char *)_clipboard_contents[threadid], (char *)handle );
    CloseClipboard();
-
-   return _clipboard_contents[threadid];
+   return ret;
 }
 
 /*
@@ -9861,11 +9837,7 @@ void dw_clipboard_set_text( char *str, int len )
    GlobalUnlock( ptr1 );
    EmptyClipboard();
 
-   if ( !SetClipboardData( CF_TEXT, ptr1 ) )
-   {
-      GlobalFree( ptr1 );
-      return;
-   }
+   SetClipboardData( CF_TEXT, ptr1 );
 
    CloseClipboard();
    GlobalFree( ptr1 );
