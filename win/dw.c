@@ -9409,6 +9409,8 @@ void _dwthreadstart(void *data)
 {
    void (* threadfunc)(void *) = NULL;
    void **tmp = (void **)data;
+   HPEN hPen;
+   HBRUSH hBrush;
 
    _init_thread();
 
@@ -9416,6 +9418,10 @@ void _dwthreadstart(void *data)
    threadfunc(tmp[1]);
 
    free(tmp);
+   if((hPen = TlsGetValue(_hPen)))
+       DeleteObject(hPen);
+   if((hBrush = TlsGetValue(_hBrush)))
+       DeleteObject(hBrush);
 }
 
 /*
