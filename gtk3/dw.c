@@ -6499,6 +6499,7 @@ void dw_color_background_set(unsigned long value)
       if(!background)
       {
          background = malloc(sizeof(GdkColor));
+         pthread_setspecific(_dw_bg_color_key, background);
       }
       *background = color;
    }
