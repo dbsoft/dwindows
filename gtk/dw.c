@@ -110,8 +110,6 @@ char *image_exts[NUM_EXTS] =
    ".bmp",
 };
 
-#define DW_THREAD_LIMIT 50
-
 #ifndef max
 # define max(a,b)        (((a) > (b)) ? (a) : (b))
 #endif
@@ -122,12 +120,9 @@ char *image_exts[NUM_EXTS] =
 
 FILE *dbgfp = NULL;
 
-DWTID _dw_thread_list[DW_THREAD_LIMIT];
-GdkColor _foreground[DW_THREAD_LIMIT];
-GdkColor _background[DW_THREAD_LIMIT];
-int _transparent[DW_THREAD_LIMIT];
-GtkClipboard *_clipboard_object[DW_THREAD_LIMIT];
-gchar *_clipboard_contents[DW_THREAD_LIMIT];
+pthread_key_t _dw_fg_color_key;
+pthread_key_t _dw_bg_color_key;
+pthread_key_t _dw_mutex_key;
 
 GtkWidget *last_window = NULL, *popup = NULL;
 
@@ -136,12 +131,11 @@ static int _dw_file_active = 0;
 #endif
 static int _dw_ignore_click = 0, _dw_ignore_expand = 0, _dw_color_active = 0;
 static pthread_t _dw_thread = (pthread_t)-1;
-static int _dw_mutex_locked[DW_THREAD_LIMIT];
 /* Use default border size for the default enlightenment theme */
 static int _dw_border_width = 12, _dw_border_height = 28;
 
-#define  DW_MUTEX_LOCK { int index = _find_thread_index(dw_thread_id()); if(pthread_self() != _dw_thread && _dw_mutex_locked[index] == FALSE) { gdk_threads_enter(); _dw_mutex_locked[index] = TRUE; _locked_by_me = TRUE; } }
-#define  DW_MUTEX_UNLOCK { if(pthread_self() != _dw_thread && _locked_by_me == TRUE) { gdk_threads_leave(); _dw_mutex_locked[_find_thread_index(dw_thread_id())] = FALSE; _locked_by_me = FALSE; } }
+#define  DW_MUTEX_LOCK { if(pthread_self() != _dw_thread && !pthread_getspecific(_dw_mutex_key)) { gdk_threads_enter(); pthread_setspecific(_dw_mutex_key, (void *)1); _locked_by_me = TRUE; } }
+#define  DW_MUTEX_UNLOCK { if(pthread_self() != _dw_thread && _locked_by_me == TRUE) { gdk_threads_leave(); pthread_setspecific(_dw_mutex_key, NULL); _locked_by_me = FALSE; } }
 
 #define DEFAULT_SIZE_WIDTH 12
 #define DEFAULT_SIZE_HEIGHT 6
@@ -1953,61 +1947,13 @@ static void _size_allocate(GtkWindow *window)
 }
 #endif
 
-/* Find the index of a given thread */
-static int _find_thread_index(DWTID tid)
+void _init_thread(void)
 {
-   int z;
-
-   for(z=0;z<DW_THREAD_LIMIT;z++)
-   {
-      if(_dw_thread_list[z] == tid)
-         return z;
-   }
-   return 0;
-}
-
-/* Add a thread id to the thread list */
-static void _dw_thread_add(DWTID tid)
-{
-   int z;
-
-   for(z=0;z<DW_THREAD_LIMIT;z++)
-   {
-      if(_dw_thread_list[z] == tid)
-         return;
-
-      if(_dw_thread_list[z] == (DWTID)-1)
-      {
-         _dw_thread_list[z] = tid;
-         _foreground[z].pixel = _foreground[z].red =_foreground[z].green = _foreground[z].blue = 0;
-         _background[z].pixel = 1;
-         _background[z].red = _background[z].green = _background[z].blue = 0;
-         _transparent[z] = 1;
-         _clipboard_contents[z] = NULL;
-         _clipboard_object[z] = NULL;
-         return;
-      }
-   }
-}
-
-/* Remove a thread id to the thread list */
-static void _dw_thread_remove(DWTID tid)
-{
-   int z;
-
-   for(z=0;z<DW_THREAD_LIMIT;z++)
-   {
-      if(_dw_thread_list[z] == (DWTID)tid)
-      {
-         _dw_thread_list[z] = (DWTID)-1;
-         if ( _clipboard_contents[z] != NULL )
-         {
-            g_free( _clipboard_contents[z] );
-            _clipboard_contents[z] = NULL;;
-         }
-         _clipboard_object[z] = NULL;;
-      }
-   }
+   GdkColor *foreground = malloc(sizeof(GdkColor));
+   
+   foreground->pixel = foreground->red = foreground->green = foreground->blue = 0;
+   pthread_setspecific(_dw_fg_color_key, foreground);
+   pthread_setspecific(_dw_bg_color_key, NULL);
 }
 
 /* Try to load the mozilla embed shared libary */
@@ -2142,8 +2088,11 @@ int dw_int_init(DWResources *res, int newthread, int *argc, char **argv[])
    if(tmp)
       _dw_border_height = atoi(tmp);
 
-   for(z=0;z<DW_THREAD_LIMIT;z++)
-      _dw_thread_list[z] = (DWTID)-1;
+   pthread_key_create(&_dw_fg_color_key, NULL);
+   pthread_key_create(&_dw_bg_color_key, NULL);
+   pthread_key_create(&_dw_mutex_key, NULL);
+  
+   _init_thread();
 
    gtk_rc_parse_string("style \"gtk-tooltips-style\" { bg[NORMAL] = \"#eeee00\" } widget \"gtk-tooltips\" style \"gtk-tooltips-style\"");
 
@@ -2176,7 +2125,6 @@ void dw_main(void)
 {
    gdk_threads_enter();
    _dw_thread = pthread_self();
-   _dw_thread_add(_dw_thread);
    gtk_main();
    _dw_thread = (pthread_t)-1;
    gdk_threads_leave();
@@ -2230,7 +2178,6 @@ void dw_main_iteration(void)
 {
    gdk_threads_enter();
    _dw_thread = pthread_self();
-   _dw_thread_add(_dw_thread);
    gtk_main_iteration();
    _dw_thread = (pthread_t)-1;
    gdk_threads_leave();
@@ -7439,12 +7386,13 @@ static GdkColor _internal_color(unsigned long value)
  */
 void dw_color_foreground_set(unsigned long value)
 {
-   int _locked_by_me = FALSE, index = _find_thread_index(dw_thread_id());
+   int _locked_by_me = FALSE;
    GdkColor color = _internal_color(value);
+   GdkColor *foreground = pthread_getspecific(_dw_fg_color_key);
 
    DW_MUTEX_LOCK;
    gdk_color_alloc(_dw_cmap, &color);
-   _foreground[index] = color;
+   *foreground = color;
    DW_MUTEX_UNLOCK;
 }
 
@@ -7456,18 +7404,31 @@ void dw_color_foreground_set(unsigned long value)
  */
 void dw_color_background_set(unsigned long value)
 {
-   int _locked_by_me = FALSE, index = _find_thread_index(dw_thread_id());
-   GdkColor color = _internal_color(value);
-
-   DW_MUTEX_LOCK;
-   gdk_color_alloc(_dw_cmap, &color);
+   int _locked_by_me = FALSE;
+   GdkColor *background = pthread_getspecific(_dw_bg_color_key);
+   
    if(value == DW_CLR_DEFAULT)
-      _transparent[index] = 1;
+   {
+      if(background)
+      {
+         pthread_setspecific(_dw_bg_color_key, NULL);
+         free(background);
+      }
+   }
    else
-      _transparent[index] = 0;
-
-   _background[index] = color;
-   DW_MUTEX_UNLOCK;
+   {
+      GdkColor color = _internal_color(value);
+       
+      DW_MUTEX_LOCK;
+   	  gdk_color_alloc(_dw_cmap, &color);
+      DW_MUTEX_UNLOCK;
+      if(!background)
+      {
+         background = malloc(sizeof(GdkColor));
+         pthread_setspecific(_dw_bg_color_key, background);
+      }
+      *background = color;
+   }
 }
 
 /* Internal function to handle the color OK press */
@@ -7580,15 +7541,17 @@ unsigned long API dw_color_choose(unsigned long value)
 GdkGC *_set_colors(GdkWindow *window)
 {
    GdkGC *gc = NULL;
-   int index = _find_thread_index(dw_thread_id());
+   GdkColor *foreground = pthread_getspecific(_dw_fg_color_key);
+   GdkColor *background = pthread_getspecific(_dw_bg_color_key);
 
    if(!window)
       return NULL;
    gc = gdk_gc_new(window);
    if(gc)
    {
-      gdk_gc_set_foreground(gc, &_foreground[index]);
-      gdk_gc_set_background(gc, &_background[index]);
+      gdk_gc_set_foreground(gc, foreground);
+      if(background)
+         gdk_gc_set_background(gc, background);
    }
    return gc;
 }
@@ -7762,15 +7725,17 @@ void dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
             if(layout)
             {
                int index = _find_thread_index(dw_thread_id());
+               GdkColor *foreground = pthread_getspecific(_dw_fg_color_key);
+               GdkColor *background = pthread_getspecific(_dw_bg_color_key);
 
                gdk_pango_context_set_colormap(context, _dw_cmap);
                pango_layout_set_font_description(layout, font);
                pango_layout_set_text(layout, text, strlen(text));
 
-               if(_transparent[index])
-                  gdk_draw_layout(handle ? handle->window : pixmap->pixmap, gc, x, y, layout);
+               if(background)
+                  gdk_draw_layout_with_colors(handle ? handle->window : pixmap->pixmap, gc, x, y, layout, foreground, background);
                else
-                  gdk_draw_layout_with_colors(handle ? handle->window : pixmap->pixmap, gc, x, y, layout, &_foreground[index], &_background[index]);
+                  gdk_draw_layout(handle ? handle->window : pixmap->pixmap, gc, x, y, layout);
 
                g_object_unref(layout);
             }
@@ -7785,7 +7750,8 @@ void dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
       if(font)
       {
          gint ascent, descent, width, junk_ascent, junk_descent, junk_width;
-         int index = _find_thread_index(dw_thread_id());
+         GdkColor *foreground = pthread_getspecific(_dw_fg_color_key);
+         GdkColor *background = pthread_getspecific(_dw_bg_color_key);
 
          /* gdk_text_extents() calculates ascent and descent based on the string, so
           * a string without a character with a descent or without an ascent will have
@@ -7794,15 +7760,15 @@ void dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
          gdk_text_extents(font, text, strlen(text), NULL, NULL, &width, &junk_ascent, &junk_descent);
          /* force ascent/descent to be maximum values */
          gdk_text_extents(font, "(g", 2, NULL, NULL, &junk_width, &ascent, &descent);
-         if(!_transparent[index])
+         if(background)
          {
             GdkGC *gc2 = NULL;
 
             gc2 = gdk_gc_new(handle ? handle->window : pixmap->pixmap);
             if(gc2)
             {
-               gdk_gc_set_foreground(gc2, &_background[index]);
-               gdk_gc_set_background(gc2, &_background[index]);
+               gdk_gc_set_foreground(gc2, background);
+               gdk_gc_set_background(gc2, background);
             }
             gdk_draw_rectangle(handle ? handle->window : pixmap->pixmap, gc2, TRUE, x, y, width, ascent + descent + 1);
             gdk_gc_unref(gc2);
@@ -11511,20 +11477,23 @@ HWND dw_html_new(unsigned long id)
  */
 char *dw_clipboard_get_text()
 {
-   int _locked_by_me = FALSE, index = _find_thread_index(dw_thread_id());
+   int _locked_by_me = FALSE;
+   GtkClipboard *clipboard_object;
+   char *ret = NULL;
 
    DW_MUTEX_LOCK;
-   if ( _clipboard_object[index] == NULL )
+   if((clipboard_object = gtk_clipboard_get( GDK_SELECTION_CLIPBOARD )))
    {
-      _clipboard_object[index] = gtk_clipboard_get( GDK_SELECTION_CLIPBOARD );
+      gchar *clipboard_contents;
+
+      if((clipboard_contents = gtk_clipboard_wait_for_text( clipboard_object )))
+      {
+         ret = strdup((char *)clipboard_contents);
+         g_free(clipboard_contents);
+      }
    }
-   if ( _clipboard_contents[index] != NULL )
-   {
-      g_free( _clipboard_contents[index] );
-   }
-   _clipboard_contents[index] = gtk_clipboard_wait_for_text( _clipboard_object[index] );
    DW_MUTEX_UNLOCK;
-   return (char *)_clipboard_contents[index];
+   return ret;
 }
 
 /*
@@ -11534,14 +11503,14 @@ char *dw_clipboard_get_text()
  */
 void  dw_clipboard_set_text( char *str, int len )
 {
-   int _locked_by_me = FALSE, index = _find_thread_index(dw_thread_id());
+   int _locked_by_me = FALSE;
+   GtkClipboard *clipboard_object;
 
    DW_MUTEX_LOCK;
-   if ( _clipboard_object[index] == NULL )
+   if((clipboard_object = gtk_clipboard_get( GDK_SELECTION_CLIPBOARD )))
    {
-      _clipboard_object[index] = gtk_clipboard_get( GDK_SELECTION_CLIPBOARD );
+      gtk_clipboard_set_text( clipboard_object, str, len );
    }
-   gtk_clipboard_set_text( _clipboard_object[index], str, len );
    DW_MUTEX_UNLOCK;
 }
 
