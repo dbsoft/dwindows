@@ -7724,7 +7724,6 @@ void dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
 
             if(layout)
             {
-               int index = _find_thread_index(dw_thread_id());
                GdkColor *foreground = pthread_getspecific(_dw_fg_color_key);
                GdkColor *background = pthread_getspecific(_dw_bg_color_key);
 
@@ -8786,13 +8785,21 @@ void _dwthreadstart(void *data)
 {
    void (*threadfunc)(void *) = NULL;
    void **tmp = (void **)data;
+   GdkColor *foreground, *background;
 
    threadfunc = (void (*)(void *))tmp[0];
 
-   _dw_thread_add(dw_thread_id());
+   /* Initialize colors */
+   _init_thread();
+   
    threadfunc(tmp[1]);
-   _dw_thread_remove(dw_thread_id());
    free(tmp);
+   
+   /* Free colors */
+   if((foreground = pthread_getspecific(_dw_fg_color_key)))
+      free(foreground);
+   if((background = pthread_getspecific(_dw_bg_color_key)))
+      free(background);
 }
 
 /*
