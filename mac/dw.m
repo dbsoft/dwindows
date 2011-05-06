@@ -7247,6 +7247,14 @@ int API dw_window_destroy(HWND handle)
     else if([object isKindOfClass:[DWBox class]] || [object isKindOfClass:[NSControl class]])
     {
         DWBox *parent = (DWBox *)[object superview];
+        
+        /* Some controls are embedded in scrollviews... 
+         * so get the parent of the scrollview in that case.
+         */
+        if([parent isMemberOfClass:[NSScrollView class]])
+        {
+            parent = (DWBox *)[parent superview];
+        }
 
         if([parent isKindOfClass:[DWBox class]])
         {
