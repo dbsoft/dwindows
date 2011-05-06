@@ -4106,9 +4106,13 @@ int API dw_listbox_selected_multi(HWND handle, int where)
 
     if([object isMemberOfClass:[DWContainer class]])
     {
+        NSUInteger result;
         DWContainer *cont = handle;
         NSIndexSet *selected = [cont selectedRowIndexes];
-        NSUInteger result = [selected indexGreaterThanIndex:where];
+        if( where == -1 )
+           result = [selected indexGreaterThanOrEqualToIndex:0];
+        else
+           result = [selected indexGreaterThanIndex:where];
 
         if(result != NSNotFound)
         {
@@ -6038,22 +6042,22 @@ void _flip_image(NSImage *tmpimage, NSBitmapImageRep *image, NSSize size)
 {
     [NSGraphicsContext saveGraphicsState];
     [NSGraphicsContext setCurrentContext:[NSGraphicsContext
-                                          graphicsContextWithGraphicsPort:[[NSGraphicsContext graphicsContextWithBitmapImageRep:image] graphicsPort] 
+                                          graphicsContextWithGraphicsPort:[[NSGraphicsContext graphicsContextWithBitmapImageRep:image] graphicsPort]
                                           flipped:YES]];
     [[NSDictionary alloc] initWithObjectsAndKeys:image, NSGraphicsContextDestinationAttributeName, nil];
-    // make a new transform: 
-    NSAffineTransform *t = [NSAffineTransform transform]; 
-    
-    // by scaling Y negatively, we effectively flip the image: 
-    [t scaleXBy:1.0 yBy:-1.0]; 
-    
-    // but we also have to translate it back by its height: 
-    [t translateXBy:0.0 yBy:-size.height]; 
-    
-    // apply the transform: 
-    [t concat]; 
-    [tmpimage drawAtPoint:NSMakePoint(0, 0) fromRect:NSMakeRect(0, 0, size.width, size.height) 
-                operation:NSCompositeSourceOver fraction:1.0];     
+    // make a new transform:
+    NSAffineTransform *t = [NSAffineTransform transform];
+
+    // by scaling Y negatively, we effectively flip the image:
+    [t scaleXBy:1.0 yBy:-1.0];
+
+    // but we also have to translate it back by its height:
+    [t translateXBy:0.0 yBy:-size.height];
+
+    // apply the transform:
+    [t concat];
+    [tmpimage drawAtPoint:NSMakePoint(0, 0) fromRect:NSMakeRect(0, 0, size.width, size.height)
+                operation:NSCompositeSourceOver fraction:1.0];
     [NSGraphicsContext restoreGraphicsState];
 }
 
@@ -6192,9 +6196,12 @@ HPIXMAP API dw_pixmap_grab(HWND handle, ULONG resid)
  */
 void API dw_pixmap_destroy(HPIXMAP pixmap)
 {
-    NSBitmapImageRep *image = (NSBitmapImageRep *)pixmap->image;
-    [image release];
-    free(pixmap);
+    if ( pixmap )
+    {
+       NSBitmapImageRep *image = (NSBitmapImageRep *)pixmap->image;
+       [image release];
+       free(pixmap);
+    }
 }
 
 /*
