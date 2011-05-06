@@ -620,7 +620,7 @@ typedef HANDLE HMTX;
 typedef HANDLE HEV;
 typedef HANDLE HMOD;
 typedef HANDLE HSHM;
-typedef unsigned long HICN;
+typedef HANDLE HICN;
 
 typedef struct _container {
    ColorInfo cinfo;
