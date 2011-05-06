@@ -7251,9 +7251,10 @@ int API dw_window_destroy(HWND handle)
         /* Some controls are embedded in scrollviews... 
          * so get the parent of the scrollview in that case.
          */
-        if([parent isMemberOfClass:[NSScrollView class]])
+        if([object isKindOfClass:[NSTableView class]] && [parent isMemberOfClass:[NSScrollView class]])
         {
-            parent = (DWBox *)[parent superview];
+            object = parent;
+            parent = (DWBox *)[object superview];
         }
 
         if([parent isKindOfClass:[DWBox class]])
@@ -7263,9 +7264,6 @@ int API dw_window_destroy(HWND handle)
             Item *tmpitem, *thisitem = thisbox->items;
 
             [object removeFromSuperview];
-            /* Do we need to release?
-             * [object release];
-             */
 
             for(z=0;z<thisbox->count;z++)
             {
