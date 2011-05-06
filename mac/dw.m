@@ -7258,9 +7258,9 @@ int API dw_window_destroy(HWND handle)
         /* Some controls are embedded in scrollviews... 
          * so get the parent of the scrollview in that case.
          */
-        if([object isKindOfClass:[NSTableView class]] && [parent isMemberOfClass:[NSScrollView class]])
+        if([object isKindOfClass:[NSTableView class]] && [parent isMemberOfClass:[NSClipView class]])
         {
-            object = parent;
+            object = [parent superview];
             parent = (DWBox *)[object superview];
         }
 
@@ -7270,11 +7270,9 @@ int API dw_window_destroy(HWND handle)
             int z, index = -1;
             Item *tmpitem, *thisitem = thisbox->items;
 
-            [object removeFromSuperview];
-
             for(z=0;z<thisbox->count;z++)
             {
-                if(thisitem[z].hwnd == handle)
+                if(thisitem[z].hwnd == object)
                     index = z;
             }
 
@@ -7284,6 +7282,8 @@ int API dw_window_destroy(HWND handle)
                 return 0;
             }
 
+            [object removeFromSuperview];
+            
             tmpitem = malloc(sizeof(Item)*(thisbox->count-1));
 
             /* Copy all but the current entry to the new list */
