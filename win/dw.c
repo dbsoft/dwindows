@@ -5736,7 +5736,8 @@ HWND API dw_listbox_new(ULONG id, int multi)
  */
 void API dw_window_set_icon(HWND handle, HICN icon)
 {
-   HICON hicon = icon < 65536 ? LoadIcon(DWInstance, MAKEINTRESOURCE(icon)) : (HICON)icon;
+   int iicon = (int)icon;
+   HICON hicon = iicon < 65536 ? LoadIcon(DWInstance, MAKEINTRESOURCE(iicon)) : (HICON)icon;
 
    SendMessage(handle, WM_SETICON,
             (WPARAM) IMAGE_ICON,
@@ -8312,7 +8313,7 @@ void API dw_taskbar_insert(HWND handle, HICN icon, char *bubbletext)
 
    tnid.cbSize = sizeof(NOTIFYICONDATA);
    tnid.hWnd = handle;
-   tnid.uID = icon;
+   tnid.uID = (UINT)icon;
    tnid.uFlags = NIF_MESSAGE | NIF_ICON | NIF_TIP;
    tnid.uCallbackMessage = WM_USER+2;
    tnid.hIcon = (HICON)icon;
@@ -8336,7 +8337,7 @@ void API dw_taskbar_delete(HWND handle, HICN icon)
 
    tnid.cbSize = sizeof(NOTIFYICONDATA);
    tnid.hWnd = handle;
-   tnid.uID = icon;
+   tnid.uID = (UINT)icon;
 
    Shell_NotifyIcon(NIM_DELETE, &tnid);
 }
