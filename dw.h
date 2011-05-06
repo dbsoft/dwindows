@@ -1271,7 +1271,7 @@ typedef struct _hpixmap {
 typedef GtkWidget *HMENUI;
 typedef void *HTREEITEM;
 typedef void *HSHM;
-typedef unsigned long HICN;
+typedef void *HICN;
 
 typedef struct _resource_struct {
    long resource_max, *resource_id;
