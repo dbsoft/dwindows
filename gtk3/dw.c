@@ -28,9 +28,6 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <gdk/gdkkeysyms.h>
-#ifdef USE_IMLIB
-#include <gdk_imlib.h>
-#endif
 
 #ifdef USE_GTKMOZEMBED
 # include <gtkmozembed.h>
@@ -207,15 +204,6 @@ WEBKIT_API WebKitWebFrame *(*_webkit_web_view_get_focused_frame)(WebKitWebView *
 # endif
 #endif
 
-typedef struct
-{
-   GdkPixbuf *pixbuf;
-   int used;
-   unsigned long width, height;
-} DWPrivatePixmap;
-
-static DWPrivatePixmap *_PixmapArray = NULL;
-static int _PixmapCount = 0;
 GObject *_DWObject = NULL;
 
 typedef struct
@@ -1786,26 +1774,22 @@ static gint _default_key_press_event(GtkWidget *widget, GdkEventKey *event, gpoi
    return FALSE;
 }
 
-static GdkPixbuf *_find_private_pixbuf(long id, unsigned long *userwidth, unsigned long *userheight)
-{
-   if(id < _PixmapCount && _PixmapArray[id].used)
-   {
-      if(userwidth)
-         *userwidth = _PixmapArray[id].width;
-      if(userheight)
-         *userheight = _PixmapArray[id].height;
-      return _PixmapArray[id].pixbuf;
-   }
-   return NULL;
-}
-
-static GdkPixbuf *_find_pixbuf(long id, unsigned long *userwidth, unsigned long *userheight)
+static GdkPixbuf *_find_pixbuf(HICN icon, unsigned long *userwidth, unsigned long *userheight)
 {
    char *data = NULL;
-   int z;
+   int z, id = (int)icon;
 
-   if(id & (1 << 31))
-      return _find_private_pixbuf((id & 0xFFFFFF), userwidth, userheight);
+   if(id > 65535)
+   {
+      GdkPixbuf *icon_pixbuf = icon;
+      
+      if(userwidth)
+         *userwidth = gdk_pixbuf_get_width(icon_pixbuf);
+      if(userheight)
+         *userheight = gdk_pixbuf_get_height(icon_pixbuf);
+         
+      return icon;
+   }
 
    for(z=0;z<_resources.resource_max;z++)
    {
@@ -2745,9 +2729,9 @@ void dw_window_set_pointer(HWND handle, int pointertype)
    GdkCursor *cursor;
 
    DW_MUTEX_LOCK;
-   if(pointertype & (1 << 31))
+   if(pointertype > 65535)
    {
-      GdkPixbuf  *pixbuf = _find_private_pixbuf((pointertype & 0xFFFFFF), NULL, NULL);
+      GdkPixbuf  *pixbuf = _find_pixbuf((HICN)pointertype, NULL, NULL);
       cursor = gdk_cursor_new_from_pixbuf(gdk_display_get_default(), pixbuf, 8, 8);
    }
    else if(!pointertype)
@@ -4046,7 +4030,7 @@ void dw_window_set_bitmap(HWND handle, unsigned long id, char *filename)
 
    DW_MUTEX_LOCK;
    if(id)
-      tmp = _find_pixbuf(id, NULL, NULL);
+      tmp = _find_pixbuf((HICN)id, NULL, NULL);
    else
    {
       char *file = alloca(strlen(filename) + 5);
@@ -4120,7 +4104,7 @@ void dw_window_set_bitmap_from_data(HWND handle, unsigned long id, char *data, i
 
    DW_MUTEX_LOCK;
    if (id)
-      tmp = _find_pixbuf(id, NULL, NULL);
+      tmp = _find_pixbuf((HICN)id, NULL, NULL);
    else
    {
       GdkPixbuf *pixbuf;
@@ -4909,8 +4893,6 @@ HTREEITEM dw_tree_insert_after(HWND handle, HTREEITEM item, char *title, HICN ic
 
       gtk_tree_store_insert_after(store, iter, (GtkTreeIter *)parent, (GtkTreeIter *)item);
       gtk_tree_store_set (store, iter, 0, title, 1, pixbuf, 2, itemdata, 3, iter, -1);
-      if(pixbuf && !(icon & (1 << 31)))
-         g_object_unref(pixbuf);
       retval = (HTREEITEM)iter;
    }
    DW_MUTEX_UNLOCK;
@@ -4950,8 +4932,6 @@ HTREEITEM dw_tree_insert(HWND handle, char *title, HICN icon, HTREEITEM parent, 
 
       gtk_tree_store_append (store, iter, (GtkTreeIter *)parent);
       gtk_tree_store_set (store, iter, 0, title, 1, pixbuf, 2, itemdata, 3, iter, -1);
-      if(pixbuf && !(icon & (1 << 31)))
-         g_object_unref(pixbuf);
       retval = (HTREEITEM)iter;
    }
    DW_MUTEX_UNLOCK;
@@ -4985,8 +4965,6 @@ void dw_tree_item_change(HWND handle, HTREEITEM item, char *title, HICN icon)
       pixbuf = _find_pixbuf(icon, NULL, NULL);
 
       gtk_tree_store_set(store, (GtkTreeIter *)item, 0, title, 1, pixbuf, -1);
-      if(pixbuf && !(icon & (1 << 31)))
-         g_object_unref(pixbuf);
    }
    DW_MUTEX_UNLOCK;
 }
@@ -5450,55 +5428,7 @@ int dw_filesystem_setup(HWND handle, unsigned long *flags, char **titles, int co
  */
 HICN dw_icon_load(unsigned long module, unsigned long id)
 {
-   return id;
-}
-
-HICN _dw_icon_load_internal(GdkPixbuf *pixbuf)
-{
-   unsigned long z, ret = 0;
-   int found = -1;
-   
-   /* Find a free entry in the array */
-   for (z=0;z<_PixmapCount;z++)
-   {
-      if (!_PixmapArray[z].used)
-      {
-         ret = found = z;
-         break;
-      }
-   }
-
-   /* If there are no free entries, expand the
-    * array.
-    */
-   if (found == -1)
-   {
-      DWPrivatePixmap *old = _PixmapArray;
-
-      ret = found = _PixmapCount;
-      _PixmapCount++;
-
-      _PixmapArray = malloc(sizeof(DWPrivatePixmap) * _PixmapCount);
-
-      if (found)
-         memcpy(_PixmapArray, old, sizeof(DWPrivatePixmap) * found);
-      if (old)
-         free(old);
-      _PixmapArray[found].used = 1;
-      _PixmapArray[found].pixbuf = NULL;
-   }
-
-   _PixmapArray[found].pixbuf = pixbuf;
-   _PixmapArray[found].width = gdk_pixbuf_get_width(pixbuf);
-   _PixmapArray[found].height = gdk_pixbuf_get_height(pixbuf);
-   
-   if (!_PixmapArray[found].pixbuf)
-   {
-      _PixmapArray[found].used = 0;
-      _PixmapArray[found].pixbuf = NULL;
-      return 0;
-   }
-   return (HICN)ret | (1 << 31);
+   return (HICN)id;
 }
 
 /*
@@ -5511,10 +5441,9 @@ HICN _dw_icon_load_internal(GdkPixbuf *pixbuf)
 HICN API dw_icon_load_from_file(char *filename)
 {
    int _locked_by_me = FALSE;
-   GdkPixbuf *pixbuf;
    char *file = alloca(strlen(filename) + 5);
-   int found_ext = 0;
-   int i, ret = 0;
+   int i, found_ext = 0;
+   HICN ret = 0;
 
    if (!file)
       return 0;
@@ -5542,11 +5471,7 @@ HICN API dw_icon_load_from_file(char *filename)
    }
 
    DW_MUTEX_LOCK;
-   pixbuf = gdk_pixbuf_new_from_file(file, NULL);
-   if (pixbuf)
-   {
-      ret = _dw_icon_load_internal(pixbuf);
-   }
+   ret = gdk_pixbuf_new_from_file(file, NULL);
    DW_MUTEX_UNLOCK;
    return ret;
 }
@@ -5562,8 +5487,7 @@ HICN API dw_icon_load_from_data(char *data, int len)
    int _locked_by_me = FALSE;
    char *file;
    FILE *fp;
-   GdkPixbuf *pixbuf;
-   unsigned long ret = 0;
+   HICN ret = 0;
 
    /*
     * A real hack; create a temporary file and write the contents
@@ -5581,11 +5505,7 @@ HICN API dw_icon_load_from_data(char *data, int len)
       return 0;
    }
    DW_MUTEX_LOCK;
-   pixbuf = gdk_pixbuf_new_from_file(file, NULL);
-   if (pixbuf)
-   {
-      ret = _dw_icon_load_internal(pixbuf);
-   }
+   ret = gdk_pixbuf_new_from_file(file, NULL);
    DW_MUTEX_UNLOCK;
    return ret;
 }
@@ -5597,23 +5517,11 @@ HICN API dw_icon_load_from_data(char *data, int len)
  */
 void dw_icon_free(HICN handle)
 {
-   /* If it is a private icon, find the item
-    * free the associated structures and set
-    * the entry to unused.
-    */
-   if(handle & (1 << 31))
+   int iicon = (int)handle;
+   
+   if(iicon > 65535)
    {
-      unsigned long id = handle & 0xFFFFFF;
-
-      if(id < _PixmapCount && _PixmapArray[id].used)
-      {
-         if(_PixmapArray[id].pixbuf)
-         {
-            g_object_unref(_PixmapArray[id].pixbuf);
-            _PixmapArray[id].pixbuf = NULL;
-         }
-         _PixmapArray[id].used = 0;
-      }
+      g_object_unref(handle);
    }
 }
 
@@ -5689,7 +5597,7 @@ void _dw_container_set_item(HWND handle, void *pointer, int column, int row, voi
          if(flag & DW_CFA_STRINGANDICON)
          {
             void **thisdata = (void **)data;
-            long hicon = *((long *)thisdata[0]);
+            HICN hicon = *((HICN *)thisdata[0]);
             char *tmp = (char *)thisdata[1];
             GdkPixbuf *pixbuf = _find_pixbuf(hicon, NULL, NULL);
 
@@ -5700,7 +5608,7 @@ void _dw_container_set_item(HWND handle, void *pointer, int column, int row, voi
          }
          else if(flag & DW_CFA_BITMAPORICON)
          {
-            long hicon = *((long *)data);
+            HICN hicon = *((HICN *)data);
             GdkPixbuf *pixbuf = _find_pixbuf(hicon, NULL, NULL);
 
             if(pixbuf)
@@ -7087,7 +6995,7 @@ HPIXMAP dw_pixmap_grab(HWND handle, ULONG id)
 
 
    DW_MUTEX_LOCK;
-   pixmap->pixbuf = gdk_pixbuf_copy(_find_pixbuf(id, &pixmap->width, &pixmap->height));
+   pixmap->pixbuf = gdk_pixbuf_copy(_find_pixbuf((HICN)id, &pixmap->width, &pixmap->height));
    DW_MUTEX_UNLOCK;
    return pixmap;
 }
