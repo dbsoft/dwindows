@@ -1843,8 +1843,10 @@ static gint _default_key_press_event(GtkWidget *widget, GdkEventKey *event, gpoi
    return FALSE;
 }
 
-static GdkPixmap *_find_private_pixmap(GdkBitmap **bitmap, long id, unsigned long *userwidth, unsigned long *userheight)
+static GdkPixmap *_find_private_pixmap(GdkBitmap **bitmap, HICN icon, unsigned long *userwidth, unsigned long *userheight)
 {
+   int id = (int)icon;
+
    if(id < _PixmapCount && _PixmapArray[id].used)
    {
       *bitmap = _PixmapArray[id].mask;
@@ -1857,13 +1859,13 @@ static GdkPixmap *_find_private_pixmap(GdkBitmap **bitmap, long id, unsigned lon
    return NULL;
 }
 
-static GdkPixmap *_find_pixmap(GdkBitmap **bitmap, long id, HWND handle, unsigned long *userwidth, unsigned long *userheight)
+static GdkPixmap *_find_pixmap(GdkBitmap **bitmap, HICN icon, HWND handle, unsigned long *userwidth, unsigned long *userheight)
 {
    char *data = NULL;
-   int z;
+   int z, id = (int)icon;
 
    if(id & (1 << 31))
-      return _find_private_pixmap(bitmap, (id & 0xFFFFFF), userwidth, userheight);
+      return _find_private_pixmap(bitmap, (HICN)(id & 0xFFFFFF), userwidth, userheight);
 
    for(z=0;z<_resources.resource_max;z++)
    {
@@ -1898,20 +1900,22 @@ static GdkPixmap *_find_pixmap(GdkBitmap **bitmap, long id, HWND handle, unsigne
 }
 
 #if GTK_MAJOR_VERSION > 1
-static GdkPixbuf *_find_private_pixbuf(long id)
+static GdkPixbuf *_find_private_pixbuf(HICN icon)
 {
+   int id = (int)icon;
+
    if(id < _PixmapCount && _PixmapArray[id].used)
       return _PixmapArray[id].pixbuf;
    return NULL;
 }
 
-static GdkPixbuf *_find_pixbuf(long id)
+static GdkPixbuf *_find_pixbuf(HICN icon)
 {
    char *data = NULL;
-   int z;
+   int z, id = (int)icon;
 
    if(id & (1 << 31))
-      return _find_private_pixbuf((id & 0xFFFFFF));
+      return _find_private_pixbuf((HICN)(id & 0xFFFFFF));
 
    for(z=0;z<_resources.resource_max;z++)
    {
@@ -3030,7 +3034,7 @@ void dw_window_set_pointer(HWND handle, int pointertype)
    if(pointertype & (1 << 31))
    {
       GdkBitmap *bitmap = NULL;
-      GdkPixmap  *pixmap = _find_private_pixmap(&bitmap, (pointertype & 0xFFFFFF), NULL, NULL);
+      GdkPixmap  *pixmap = _find_private_pixmap(&bitmap, (HICN)(pointertype & 0xFFFFFF), NULL, NULL);
       cursor = gdk_cursor_new_from_pixmap(pixmap, (GdkPixmap *)bitmap, &_colors[DW_CLR_WHITE], &_colors[DW_CLR_BLACK], 8, 8);
    }
    else if(!pointertype)
@@ -4371,7 +4375,7 @@ void dw_window_set_bitmap(HWND handle, unsigned long id, char *filename)
 
    DW_MUTEX_LOCK;
    if(id)
-      tmp = _find_pixmap(&bitmap, id, handle, NULL, NULL);
+      tmp = _find_pixmap(&bitmap, (HICN)id, handle, NULL, NULL);
    else
    {
       char *file = alloca(strlen(filename) + 5);
@@ -4472,7 +4476,7 @@ void dw_window_set_bitmap_from_data(HWND handle, unsigned long id, char *data, i
 
    DW_MUTEX_LOCK;
    if (id)
-      tmp = _find_pixmap(&bitmap, id, handle, NULL, NULL);
+      tmp = _find_pixmap(&bitmap, (HICN)id, handle, NULL, NULL);
    else
    {
 #if GTK_MAJOR_VERSION > 1
@@ -5547,7 +5551,7 @@ HTREEITEM dw_tree_insert_after(HWND handle, HTREEITEM item, char *title, HICN ic
 
       gtk_tree_store_insert_after(store, iter, (GtkTreeIter *)parent, (GtkTreeIter *)item);
       gtk_tree_store_set (store, iter, 0, title, 1, pixbuf, 2, itemdata, 3, iter, -1);
-      if(pixbuf && !(icon & (1 << 31)))
+      if(pixbuf && !((int)icon & (1 << 31)))
          g_object_unref(pixbuf);
       retval = (HTREEITEM)iter;
    }
@@ -5700,7 +5704,7 @@ HTREEITEM dw_tree_insert(HWND handle, char *title, HICN icon, HTREEITEM parent, 
 
       gtk_tree_store_append (store, iter, (GtkTreeIter *)parent);
       gtk_tree_store_set (store, iter, 0, title, 1, pixbuf, 2, itemdata, 3, iter, -1);
-      if(pixbuf && !(icon & (1 << 31)))
+      if(pixbuf && !((int)icon & (1 << 31)))
          g_object_unref(pixbuf);
       retval = (HTREEITEM)iter;
    }
@@ -5840,7 +5844,7 @@ void dw_tree_item_change(HWND handle, HTREEITEM item, char *title, HICN icon)
       pixbuf = _find_pixbuf(icon);
 
       gtk_tree_store_set(store, (GtkTreeIter *)item, 0, title, 1, pixbuf, -1);
-      if(pixbuf && !(icon & (1 << 31)))
+      if(pixbuf && !((int)icon & (1 << 31)))
          g_object_unref(pixbuf);
    }
    DW_MUTEX_UNLOCK;
@@ -6377,7 +6381,7 @@ int dw_filesystem_setup(HWND handle, unsigned long *flags, char **titles, int co
  */
 HICN dw_icon_load(unsigned long module, unsigned long id)
 {
-   return id;
+   return (HICN)id;
 }
 
 /*
@@ -6489,7 +6493,7 @@ HICN API dw_icon_load_from_file(char *filename)
       _PixmapArray[found].pixmap = _PixmapArray[found].mask = NULL;
       return 0;
    }
-   return (HICN)ret | (1 << 31);
+   return (HICN)(ret | (1 << 31));
 }
 
 /*
@@ -6593,7 +6597,7 @@ HICN API dw_icon_load_from_data(char *data, int len)
       _PixmapArray[found].pixmap = _PixmapArray[found].mask = NULL;
       return 0;
    }
-   return (HICN)ret | (1 << 31);
+   return (HICN)(ret | (1 << 31));
 }
 
 /*
@@ -6607,9 +6611,9 @@ void dw_icon_free(HICN handle)
     * free the associated structures and set
     * the entry to unused.
     */
-   if(handle & (1 << 31))
+   if((int)handle & (1 << 31))
    {
-      unsigned long id = handle & 0xFFFFFF;
+      unsigned long id = (int)handle & 0xFFFFFF;
 
       if(id < _PixmapCount && _PixmapArray[id].used)
       {
@@ -6721,7 +6725,7 @@ void _dw_container_set_item(HWND handle, void *pointer, int column, int row, voi
 
    if(flag & DW_CFA_BITMAPORICON)
    {
-      long hicon = *((long *)data);
+      HICN hicon = *((HICN *)data);
       GdkBitmap *bitmap = NULL;
       GdkPixmap *pixmap = _find_pixmap(&bitmap, hicon, clist, NULL, NULL);
 
@@ -6730,7 +6734,7 @@ void _dw_container_set_item(HWND handle, void *pointer, int column, int row, voi
    }
    else if(flag & DW_CFA_STRINGANDICON)
    {
-      long hicon = *((long *)data);
+      HICN hicon = *((HICN *)data);
       GdkBitmap *bitmap = NULL;
       GdkPixmap *pixmap = _find_pixmap(&bitmap, hicon, clist, NULL, NULL);
 
@@ -8077,7 +8081,7 @@ HPIXMAP dw_pixmap_grab(HWND handle, ULONG id)
 
 
    DW_MUTEX_LOCK;
-   pixmap->pixmap = _find_pixmap(&pixmap->bitmap, id, handle, &pixmap->width, &pixmap->height);
+   pixmap->pixmap = _find_pixmap(&pixmap->bitmap, (HICN)id, handle, &pixmap->width, &pixmap->height);
    if(pixmap->pixmap)
    {
 #if GTK_MAJOR_VERSION < 2
