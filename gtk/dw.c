@@ -4674,6 +4674,7 @@ HWND API dw_window_from_id(HWND handle, int id)
     return 0L;
 }
 
+#if GTK_MAJOR_VERSION < 2
 void _strip_cr(char *dest, char *src)
 {
    int z, x = 0;
@@ -4688,6 +4689,7 @@ void _strip_cr(char *dest, char *src)
    }
    dest[x] = 0;
 }
+#endif
 
 /*
  * Adds text to an MLE box and returns the current point.
@@ -4713,18 +4715,14 @@ unsigned int dw_mle_import(HWND handle, char *buffer, int startpoint)
 #if GTK_MAJOR_VERSION > 1
       if(tmp && GTK_IS_TEXT_VIEW(tmp))
       {
-         char *impbuf = malloc(strlen(buffer)+1);
          GtkTextBuffer *tbuffer;
          GtkTextIter iter;
-
-         _strip_cr(impbuf, buffer);
 
          tbuffer = gtk_text_view_get_buffer (GTK_TEXT_VIEW (tmp));
          gtk_text_buffer_get_iter_at_offset(tbuffer, &iter, startpoint);
          gtk_text_buffer_place_cursor(tbuffer, &iter);
-         gtk_text_buffer_insert_at_cursor(tbuffer, impbuf, -1);
-         tmppoint = (startpoint > -1 ? startpoint : 0) + strlen(impbuf);
-         free(impbuf);
+         gtk_text_buffer_insert_at_cursor(tbuffer, buffer, -1);
+         tmppoint = (startpoint > -1 ? startpoint : 0) + strlen(buffer);
       }
 #else
       GdkFont *font = (GdkFont *)gtk_object_get_data(GTK_OBJECT(handle), "_dw_gdkfont");
