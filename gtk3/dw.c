@@ -4366,9 +4366,9 @@ void dw_mle_get_size(HWND handle, unsigned long *bytes, unsigned long *lines)
          GtkTextBuffer *buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(tmp));
 
          if(bytes)
-            *bytes = gtk_text_buffer_get_char_count(buffer) + 1;
+            *bytes = gtk_text_buffer_get_char_count(buffer);
          if(lines)
-            *lines = gtk_text_buffer_get_line_count(buffer) + 1;
+            *lines = gtk_text_buffer_get_line_count(buffer);
       }
    }
    DW_MUTEX_UNLOCK;
