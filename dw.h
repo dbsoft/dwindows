@@ -1402,6 +1402,9 @@ typedef struct _dwdialog {
 #define DW_HTML_STOP       5
 #define DW_HTML_PRINT      6
 
+/* Macro for casting resource IDs to HICN */
+#define DW_RESOURCE(a) (a < 65536 ? (HICN)a : (HICN)0)
+
 #ifndef API
 #define API
 #endif

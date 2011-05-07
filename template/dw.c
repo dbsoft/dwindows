@@ -3170,7 +3170,7 @@ int dw_event_post (HEV eve)
  */
 int dw_event_wait(HEV eve, unsigned long timeout)
 {
-   return DW_ERROR_GENERAL
+   return DW_ERROR_GENERAL;
 }
 
 /*
