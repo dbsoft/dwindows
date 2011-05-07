@@ -371,12 +371,12 @@ int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *usedy,
             /* Here you put your platform specific placement widget placement code */
             PlaceWidget(handle, currentx + pad, currenty + pad,
                         width + vectorx, height + vectory);
-                        
-            /* If any special handling needs to be done... like diving into 
+
+            /* If any special handling needs to be done... like diving into
              * controls that have sub-layouts... like notebooks or splitbars...
              * do that here. Figure out the sub-layout size and call _do_resize().
              */
-#endif 
+#endif
 
             if(thisbox->type == DW_HORZ)
                currentx += width + vectorx + (pad * 2);
@@ -389,7 +389,7 @@ int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *usedy,
 }
 
 /* This is a convenience function used in the window's resize event
- * to relayout the controls in the window. 
+ * to relayout the controls in the window.
  */
 void _do_resize(Box *thisbox, int x, int y)
 {
@@ -732,7 +732,7 @@ void API dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, 
 #if 0
     /* Platform specific code to add item to box */
     BoxAdd(box, item);
-#endif 
+#endif
 
     /* Free the old data */
     if(thisbox->count)
@@ -802,7 +802,7 @@ void API dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize
 #if 0
     /* Platform specific code to add item to box */
     BoxAdd(box, item);
-#endif 
+#endif
 
     /* Free the old data */
     if(thisbox->count)
@@ -1654,7 +1654,7 @@ void API dw_tree_item_set_data(HWND handle, HTREEITEM item, void *itemdata)
  */
 void * API dw_tree_item_get_data(HWND handle, HTREEITEM item)
 {
-	return NULL;
+   return NULL;
 }
 
 /*
@@ -2183,7 +2183,7 @@ HPIXMAP API dw_pixmap_new_from_data(HWND handle, char *data, int len)
  *       pixmap: Handle to a pixmap returned by
  *               dw_pixmap_new..
  *       color:  transparent color
- * Note: This is only necessary on platforms that 
+ * Note: This is only necessary on platforms that
  *       don't handle transparency automatically
  */
 void API dw_pixmap_set_transparent_color( HPIXMAP pixmap, ULONG color )
