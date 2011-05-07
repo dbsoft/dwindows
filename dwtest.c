@@ -1026,7 +1026,17 @@ void container_add(void)
     container_mle = dw_mle_new( 111 );
     dw_box_pack_start( containerbox, container_mle, 500, 200, TRUE, TRUE, 0);
     
-    /* connect our event trappers... */
+	mle_point = dw_mle_import(container_mle, "", -1);
+    sprintf(buffer, "[%d]", mle_point);
+	mle_point = dw_mle_import(container_mle, buffer, mle_point);
+    sprintf(buffer, "[%d]abczxydefijkl", mle_point);
+	mle_point = dw_mle_import(container_mle, buffer, mle_point);
+    dw_mle_delete(container_mle, 11, 3);
+	mle_point = dw_mle_import(container_mle, "gh", 14);
+    dw_mle_get_size(container_mle, (unsigned long*)&mle_point, NULL);
+	mle_point = dw_mle_import(container_mle, "\r\n\r\n", mle_point);
+    dw_mle_set_cursor(container_mle, mle_point);
+   /* connect our event trappers... */
     dw_signal_connect(container, DW_SIGNAL_ITEM_ENTER, DW_SIGNAL_FUNC(item_enter_cb), (void *)container_status);
     dw_signal_connect(container, DW_SIGNAL_ITEM_CONTEXT, DW_SIGNAL_FUNC(item_context_cb), (void *)container_status);
     dw_signal_connect(container, DW_SIGNAL_ITEM_SELECT, DW_SIGNAL_FUNC(container_select_cb), (void *)container_status);
