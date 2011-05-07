@@ -6814,14 +6814,13 @@ unsigned int API dw_mle_import(HWND handle, char *buffer, int startpoint)
    int textlen, len = GetWindowTextLength(handle);
    char *tmpbuf;
 
-   if((textlen = strlen(buffer)) < 1)
-      return startpoint;
-
-   startpoint++;
-   tmpbuf = calloc(1, len + textlen + startpoint + 2);
-
    if(startpoint < 0)
       startpoint = 0;
+
+   if(!buffer || (textlen = strlen(buffer)) < 1)
+      return startpoint;
+
+   tmpbuf = calloc(1, len + textlen + startpoint + 2);
 
    if(len)
    {
@@ -6830,7 +6829,7 @@ unsigned int API dw_mle_import(HWND handle, char *buffer, int startpoint)
 
       GetWindowText(handle, tmpbuf, len+1);
 
-      dest = &tmpbuf[startpoint+textlen-1];
+      dest = &tmpbuf[startpoint+textlen];
       start = &tmpbuf[startpoint];
 
       if(copylen > 0)
@@ -6841,7 +6840,7 @@ unsigned int API dw_mle_import(HWND handle, char *buffer, int startpoint)
    SetWindowText(handle, tmpbuf);
 
    free(tmpbuf);
-   return (startpoint + textlen - 1);
+   return (startpoint + textlen);
 }
 
 /*
