@@ -4381,6 +4381,13 @@ void API dw_mle_set_cursor(HWND handle, int point)
 {
     NSScrollView *sv = handle;
     DWMLE *mle = [sv documentView];
+    NSTextStorage *ts = [mle textStorage];
+    NSMutableString *ms = [ts mutableString];
+    NSUInteger length = [ms length];
+    if(point < 0)
+        point = 0;
+    if(point > length)
+        point = (int)length;
     [mle setSelectedRange: NSMakeRange(point,point)];
 }
 
