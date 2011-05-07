@@ -5374,7 +5374,7 @@ static int _dw_container_setup(HWND handle, unsigned long *flags, char **titles,
    gtk_widget_show(tree);
    free(array);
    DW_MUTEX_UNLOCK;
-   return TRUE;
+   return DW_ERROR_NONE;
 }
 
 /*
@@ -5415,7 +5415,7 @@ int dw_filesystem_setup(HWND handle, unsigned long *flags, char **titles, int co
 
    if ( newtitles) free(newtitles);
    if ( newflags ) free(newflags);
-   return TRUE;
+   return DW_ERROR_NONE;
 }
 
 /*
@@ -7266,14 +7266,14 @@ HEV dw_event_new(void)
 int dw_event_reset (HEV eve)
 {
    if(!eve)
-      return FALSE;
+      return DW_ERROR_NON_INIT;
 
    pthread_mutex_lock (&(eve->mutex));
    pthread_cond_broadcast (&(eve->event));
    pthread_cond_init (&(eve->event), NULL);
    eve->posted = 0;
    pthread_mutex_unlock (&(eve->mutex));
-   return 0;
+   return DW_ERROR_NONE;
 }
 
 /*
@@ -7285,13 +7285,13 @@ int dw_event_reset (HEV eve)
 int dw_event_post (HEV eve)
 {
    if(!eve)
-      return FALSE;
+      return DW_ERROR_NON_INIT;
 
    pthread_mutex_lock (&(eve->mutex));
    pthread_cond_broadcast (&(eve->event));
    eve->posted = 1;
    pthread_mutex_unlock (&(eve->mutex));
-   return 0;
+   return DW_ERROR_NONE;
 }
 
 /*
@@ -7307,10 +7307,10 @@ int dw_event_wait(HEV eve, unsigned long timeout)
    struct timespec timeo;
 
    if(!eve)
-      return FALSE;
+      return DW_ERROR_NON_INIT;
 
    if(eve->posted)
-      return 0;
+      return DW_ERROR_GENERAL;
 
    pthread_mutex_lock (&(eve->mutex));
    gettimeofday(&now, 0);
@@ -7319,10 +7319,10 @@ int dw_event_wait(HEV eve, unsigned long timeout)
    rc = pthread_cond_timedwait (&(eve->event), &(eve->mutex), &timeo);
    pthread_mutex_unlock (&(eve->mutex));
    if(!rc)
-      return 1;
+      return DW_ERROR_NONE;
    if(rc == ETIMEDOUT)
-      return -1;
-   return 0;
+      return DW_ERROR_TIMEOUT;
+   return DW_ERROR_GENERAL;
 }
 
 /*
@@ -7333,7 +7333,7 @@ int dw_event_wait(HEV eve, unsigned long timeout)
 int dw_event_close(HEV *eve)
 {
    if(!eve || !(*eve))
-      return FALSE;
+      return DW_ERROR_NON_INIT;
 
    pthread_mutex_lock (&((*eve)->mutex));
    pthread_cond_destroy (&((*eve)->event));
@@ -7342,7 +7342,7 @@ int dw_event_close(HEV *eve)
    free(*eve);
    *eve = NULL;
 
-   return TRUE;
+   return DW_ERROR_NONE;
 }
 
 struct _seminfo {
@@ -8887,7 +8887,7 @@ int dw_listbox_selected_multi(HWND handle, int where)
  * Parameters:
  *          handle: Handle to the listbox to be queried.
  */
-unsigned int dw_listbox_selected(HWND handle)
+int dw_listbox_selected(HWND handle)
 {
    GtkWidget *handle2 = handle;
    GtkListStore *store = NULL;

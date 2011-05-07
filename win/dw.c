@@ -6664,7 +6664,7 @@ void API dw_listbox_get_text(HWND handle, unsigned int index, char *buffer, unsi
  * Parameters:
  *          handle: Handle to the listbox to be queried.
  */
-unsigned int API dw_listbox_selected(HWND handle)
+int API dw_listbox_selected(HWND handle)
 {
    char tmpbuf[100];
 
@@ -7542,7 +7542,7 @@ int API dw_container_setup(HWND handle, unsigned long *flags, char **titles, int
       }
    }
    ListView_SetExtendedListViewStyle(handle, LVS_EX_FULLROWSELECT | LVS_EX_SUBITEMIMAGES);
-   return TRUE;
+   return DW_ERROR_NONE;
 }
 
 /*
@@ -7568,7 +7568,7 @@ int API dw_filesystem_setup(HWND handle, unsigned long *flags, char **titles, in
    lvc.iSubItem = count;
    SendMessage(handle, LVM_INSERTCOLUMN, (WPARAM)0, (LPARAM)&lvc);
    dw_container_setup(handle, flags, titles, count, -1);
-   return TRUE;
+   return DW_ERROR_NONE;
 }
 
 /*
@@ -9080,7 +9080,7 @@ void API dw_beep(int freq, int dur)
 int API dw_module_load(char *name, HMOD *handle)
 {
    if(!handle)
-      return   -1;
+      return DW_ERROR_UNKNOWN;
 
    *handle = LoadLibrary(name);
    return (NULL == *handle);
@@ -9096,10 +9096,10 @@ int API dw_module_load(char *name, HMOD *handle)
 int API dw_module_symbol(HMOD handle, char *name, void**func)
 {
    if(!func || !name)
-      return   -1;
+      return DW_ERROR_UNKNOWN;
 
    if(0 == strlen(name))
-      return   -1;
+      return DW_ERROR_UNKNOWN;
 
    *func = (void*)GetProcAddress(handle, name);
    return   (NULL == *func);
@@ -9189,7 +9189,7 @@ int API dw_event_reset(HEV eve)
  */
 int API dw_event_post(HEV eve)
 {
-   return SetEvent(eve);
+   return (SetEvent(eve) == 0);
 }
 
 /*
@@ -9204,10 +9204,10 @@ int API dw_event_wait(HEV eve, unsigned long timeout)
 
    rc = WaitForSingleObject(eve, timeout);
    if(rc == WAIT_OBJECT_0)
-      return 1;
+      return DW_ERROR_NONE;
    if(rc == WAIT_ABANDONED)
-      return -1;
-   return 0;
+      return DW_ERROR_TIMEOUT;
+   return DW_ERROR_GENERAL;
 }
 
 /*
@@ -9218,8 +9218,8 @@ int API dw_event_wait(HEV eve, unsigned long timeout)
 int API dw_event_close(HEV *eve)
 {
    if(eve)
-      return CloseHandle(*eve);
-   return 0;
+      return (CloseHandle(*eve) == 0);
+   return DW_ERROR_NONE;
 }
 
 /* Create a named event semaphore which can be
@@ -9262,9 +9262,9 @@ int API dw_named_event_reset(HEV eve)
 
    rc = ResetEvent(eve);
    if(!rc)
-      return 1;
+      return DW_ERROR_GENERAL;
 
-   return 0;
+   return DW_ERROR_NONE;
 }
 
 /* Sets the posted state of an event semaphore, any threads
