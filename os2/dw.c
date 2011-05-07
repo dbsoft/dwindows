@@ -4881,7 +4881,7 @@ HWND API dw_mle_new(ULONG id)
                         HWND_TOP,
                         id,
                         NULL,
-                              NULL);
+                        NULL);
    WinSendMsg(tmp, MLM_FORMAT, MLFIE_NOTRANS, 0);
    blah->oldproc = WinSubclassWindow(tmp, _mleproc);
    WinSetWindowPtr(tmp, QWP_USER, blah);
@@ -6347,21 +6347,6 @@ void API dw_listbox_select(HWND handle, int index, int state)
 void API dw_listbox_delete(HWND handle, int index)
 {
    WinSendMsg(handle, LM_DELETEITEM, MPFROMSHORT(index), 0);
-}
-
-void _strip_cr(char *dest, char *src)
-{
-   int z, x = 0;
-
-   for(z=0;z<strlen(src);z++)
-   {
-      if(src[z] != '\r')
-      {
-         dest[x] = src[z];
-         x++;
-      }
-   }
-   dest[x] = 0;
 }
 
 /*
