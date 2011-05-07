@@ -4881,7 +4881,8 @@ HWND API dw_mle_new(ULONG id)
                         HWND_TOP,
                         id,
                         NULL,
-                        NULL);
+                              NULL);
+   WinSendMsg(tmp, MLM_FORMAT, MLFIE_NOTRANS, 0);
    blah->oldproc = WinSubclassWindow(tmp, _mleproc);
    WinSetWindowPtr(tmp, QWP_USER, blah);
    dw_window_set_font(tmp, DefaultFont);
@@ -6348,6 +6349,21 @@ void API dw_listbox_delete(HWND handle, int index)
    WinSendMsg(handle, LM_DELETEITEM, MPFROMSHORT(index), 0);
 }
 
+void _strip_cr(char *dest, char *src)
+{
+   int z, x = 0;
+
+   for(z=0;z<strlen(src);z++)
+   {
+      if(src[z] != '\r')
+      {
+         dest[x] = src[z];
+         x++;
+      }
+   }
+   dest[x] = 0;
+}
+
 /*
  * Adds text to an MLE box and returns the current point.
  * Parameters:
@@ -6367,23 +6383,34 @@ unsigned int API dw_mle_import(HWND handle, char *buffer, int startpoint)
 
       while(written < len)
       {
+         int z, x = 0;
+         char buf[1024];
+
          if((len - written) > 65535)
             amount = 65535;
          else
             amount = len - written;
 
-         memcpy(mlebuf, &buffer[written], amount);
-         mlebuf[amount] = '\0';
+         /* Remove Carriage Returns \r */
+         for(z=0;z<amount;z++)
+         {
+             if(buffer[z] != '\r')
+             {
+                 mlebuf[x] = buffer[z];
+                 x++;
+             }
+         }
 
-         WinSendMsg(handle, MLM_SETIMPORTEXPORT, MPFROMP(mlebuf), MPFROMLONG(amount + 1));
-         WinSendMsg(handle, MLM_IMPORT, MPFROMP(&point), MPFROMLONG(amount + 1));
-         dw_mle_delete(handle, point, 1);
+         if(point < 0)
+             point = 0;
+         WinSendMsg(handle, MLM_SETIMPORTEXPORT, MPFROMP(mlebuf), MPFROMLONG(x));
+         WinSendMsg(handle, MLM_IMPORT, MPFROMP(&point), MPFROMLONG(x));
 
          written += amount;
       }
       DosFreeMem(mlebuf);
    }
-   return point - 1;
+   return point;
 }
 
 /*
@@ -6396,7 +6423,7 @@ unsigned int API dw_mle_import(HWND handle, char *buffer, int startpoint)
  */
 void API dw_mle_export(HWND handle, char *buffer, int startpoint, int length)
 {
-   PBYTE mlebuf;
+    PBYTE mlebuf;
 
    /* Work around 64K limit */
    if(!DosAllocMem((PPVOID) &mlebuf, 65535, PAG_COMMIT | PAG_READ | PAG_WRITE | OBJ_TILE))
@@ -6450,18 +6477,7 @@ void API dw_mle_get_size(HWND handle, unsigned long *bytes, unsigned long *lines
  */
 void API dw_mle_delete(HWND handle, int startpoint, int length)
 {
-   char *buf = malloc(length+1);
-   int z, dellen = length;
-
-   dw_mle_export(handle, buf, startpoint, length);
-
-   for(z=0;z<length-1;z++)
-   {
-      if(strncmp(&buf[z], "\r\n", 2) == 0)
-         dellen--;
-   }
-   WinSendMsg(handle, MLM_DELETE, MPFROMLONG(startpoint), MPFROMLONG(dellen));
-   free(buf);
+   WinSendMsg(handle, MLM_DELETE, MPFROMLONG(startpoint), MPFROMLONG(length));
 }
 
 /*
@@ -6520,6 +6536,7 @@ void API dw_mle_set_word_wrap(HWND handle, int state)
  */
 void API dw_mle_set_cursor(HWND handle, int point)
 {
+   point--;
    WinSendMsg(handle, MLM_SETSEL, MPFROMLONG(point), MPFROMLONG(point));
 }
 
