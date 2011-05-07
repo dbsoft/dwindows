@@ -4267,21 +4267,6 @@ HWND API dw_window_from_id(HWND handle, int id)
     return 0L;
 }
 
-void _strip_cr(char *dest, char *src)
-{
-   int z, x = 0;
-
-   for(z=0;z<strlen(src);z++)
-   {
-      if(src[z] != '\r')
-      {
-         dest[x] = src[z];
-         x++;
-      }
-   }
-   dest[x] = 0;
-}
-
 /*
  * Adds text to an MLE box and returns the current point.
  * Parameters:
@@ -4301,18 +4286,14 @@ unsigned int dw_mle_import(HWND handle, char *buffer, int startpoint)
 
       if(tmp && GTK_IS_TEXT_VIEW(tmp))
       {
-         char *impbuf = malloc(strlen(buffer)+1);
          GtkTextBuffer *tbuffer;
          GtkTextIter iter;
-
-         _strip_cr(impbuf, buffer);
 
          tbuffer = gtk_text_view_get_buffer (GTK_TEXT_VIEW (tmp));
          gtk_text_buffer_get_iter_at_offset(tbuffer, &iter, startpoint);
          gtk_text_buffer_place_cursor(tbuffer, &iter);
-         gtk_text_buffer_insert_at_cursor(tbuffer, impbuf, -1);
-         tmppoint = (startpoint > -1 ? startpoint : 0) + strlen(impbuf);
-         free(impbuf);
+         gtk_text_buffer_insert_at_cursor(tbuffer, buffer, -1);
+         tmppoint = (startpoint > -1 ? startpoint : 0) + strlen(buffer);
       }
    }
    DW_MUTEX_UNLOCK;
