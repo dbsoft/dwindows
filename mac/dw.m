@@ -3320,7 +3320,7 @@ void API dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize
 HWND _button_new(char *text, ULONG cid)
 {
     DWButton *button = [[DWButton alloc] init];
-    if(text && *text)
+    if(text)
     {
         [button setTitle:[ NSString stringWithUTF8String:text ]];
     }
@@ -7254,8 +7254,8 @@ int API dw_window_destroy(HWND handle)
     else if([object isKindOfClass:[DWBox class]] || [object isKindOfClass:[NSControl class]])
     {
         DWBox *parent = (DWBox *)[object superview];
-        
-        /* Some controls are embedded in scrollviews... 
+
+        /* Some controls are embedded in scrollviews...
          * so get the parent of the scrollview in that case.
          */
         if([object isKindOfClass:[NSTableView class]] && [parent isMemberOfClass:[NSClipView class]])
