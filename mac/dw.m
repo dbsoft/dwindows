@@ -4234,7 +4234,12 @@ unsigned int API dw_mle_import(HWND handle, char *buffer, int startpoint)
     NSTextStorage *ts = [mle textStorage];
     NSString *nstr = [NSString stringWithUTF8String:buffer];
     NSMutableString *ms = [ts mutableString];
-    [ms insertString:nstr atIndex:(startpoint+1)];
+    NSUInteger length = [ms length];
+    if(startpoint < 0)
+        startpoint = 0;
+    if(startpoint > length)
+        startpoint = (int)length;
+    [ms insertString:nstr atIndex:startpoint];
     return (unsigned int)strlen(buffer) + startpoint;
 }
 
@@ -4270,11 +4275,15 @@ void API dw_mle_get_size(HWND handle, unsigned long *bytes, unsigned long *lines
     NSMutableString *ms = [ts mutableString];
     NSUInteger numberOfLines, index, stringLength = [ms length];
 
-    for(index=0, numberOfLines=0; index < stringLength; numberOfLines++)
-        index = NSMaxRange([ms lineRangeForRange:NSMakeRange(index, 0)]);
-
-    *bytes = stringLength;
-    *lines = numberOfLines;
+    if(bytes)
+        *bytes = stringLength;
+    if(lines)
+    {
+        for(index=0, numberOfLines=0; index < stringLength; numberOfLines++)
+            index = NSMaxRange([ms lineRangeForRange:NSMakeRange(index, 0)]);
+        
+        *lines = numberOfLines;
+    }
 }
 
 /*
@@ -4290,7 +4299,14 @@ void API dw_mle_delete(HWND handle, int startpoint, int length)
     DWMLE *mle = [sv documentView];
     NSTextStorage *ts = [mle textStorage];
     NSMutableString *ms = [ts mutableString];
-    [ms deleteCharactersInRange:NSMakeRange(startpoint+1, length)];
+    NSUInteger mslength = [ms length];
+    if(startpoint < 0)
+        startpoint = 0;
+    if(startpoint > mslength)
+        startpoint = (int)mslength;
+    if(startpoint + length > mslength)
+        length = (int)mslength - startpoint;
+    [ms deleteCharactersInRange:NSMakeRange(startpoint, length)];
 }
 
 /*

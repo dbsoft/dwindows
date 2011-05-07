@@ -1031,10 +1031,11 @@ void container_add(void)
 	mle_point = dw_mle_import(container_mle, buffer, mle_point);
     sprintf(buffer, "[%d]abczxydefijkl", mle_point);
 	mle_point = dw_mle_import(container_mle, buffer, mle_point);
-    dw_mle_delete(container_mle, 11, 3);
-	mle_point = dw_mle_import(container_mle, "gh", 14);
+    dw_mle_delete(container_mle, 9, 3);
+	mle_point = dw_mle_import(container_mle, "gh", 12);
     dw_mle_get_size(container_mle, (unsigned long*)&mle_point, NULL);
-	mle_point = dw_mle_import(container_mle, "\r\n\r\n", mle_point);
+    sprintf(buffer, "[%d]\r\n\r\n", mle_point);
+	mle_point = dw_mle_import(container_mle, buffer, mle_point);
     dw_mle_set_cursor(container_mle, mle_point);
    /* connect our event trappers... */
     dw_signal_connect(container, DW_SIGNAL_ITEM_ENTER, DW_SIGNAL_FUNC(item_enter_cb), (void *)container_status);
