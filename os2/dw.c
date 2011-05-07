@@ -2634,7 +2634,7 @@ MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
                         if(_recursing == 0 && (tmp->window == conthwnd || (!id && tmp->window == (HWND)mp2)))
                         {
                            char buf1[500];
-                           unsigned int index = dw_listbox_selected(tmp->window);
+                           int index = dw_listbox_selected(tmp->window);
 
                            dw_listbox_get_text(tmp->window, index, buf1, 500);
 
@@ -6288,7 +6288,7 @@ void API dw_listbox_set_text(HWND handle, unsigned int index, char *buffer)
  * Parameters:
  *          handle: Handle to the listbox to be queried.
  */
-unsigned int API dw_listbox_selected(HWND handle)
+int API dw_listbox_selected(HWND handle)
 {
       return (unsigned int)WinSendMsg(handle,
                               LM_QUERYSELECTION,
@@ -7062,7 +7062,7 @@ int API dw_container_setup(HWND handle, unsigned long *flags, char **titles, int
    WinSendMsg(handle, CM_SETCNRINFO, &cnri, MPFROMLONG(CMA_FLWINDOWATTR | CMA_SLBITMAPORICON));
 
    free(offStruct);
-   return TRUE;
+   return DW_ERROR_NONE;
 }
 
 /*
@@ -7091,7 +7091,7 @@ int API dw_filesystem_setup(HWND handle, unsigned long *flags, char **titles, in
 
    free(newtitles);
    free(newflags);
-   return TRUE;
+   return DW_ERROR_NONE;
 }
 
 /*
@@ -8849,8 +8849,8 @@ int API dw_event_reset(HEV eve)
    ULONG count;
 
    if(DosResetEventSem(eve, &count))
-      return FALSE;
-   return TRUE;
+      return DW_ERROR_GENERAL;
+   return DW_ERROR_NONE;
 }
 
 /*
@@ -8862,8 +8862,8 @@ int API dw_event_reset(HEV eve)
 int API dw_event_post(HEV eve)
 {
    if(DosPostEventSem(eve))
-      return FALSE;
-   return TRUE;
+      return DW_ERROR_GENERAL;
+   return DW_ERROR_NONE;
 }
 
 
@@ -8877,10 +8877,10 @@ int API dw_event_wait(HEV eve, unsigned long timeout)
 {
    int rc = DosWaitEventSem(eve, timeout);
    if(!rc)
-      return 1;
+      return DW_ERROR_NONE;
    if(rc == ERROR_TIMEOUT)
-      return -1;
-   return 0;
+      return DW_ERROR_TIMEOUT;
+   return DW_ERROR_GENERAL;
 }
 
 /*
@@ -8891,8 +8891,8 @@ int API dw_event_wait(HEV eve, unsigned long timeout)
 int API dw_event_close(HEV *eve)
 {
    if(!eve || ~DosCloseEventSem(*eve))
-      return FALSE;
-   return TRUE;
+      return DW_ERROR_GENERAL;
+   return DW_ERROR_NONE;
 }
 
 /* Create a named event semaphore which can be

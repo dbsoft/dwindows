@@ -4070,7 +4070,7 @@ void API dw_listbox_set_text(HWND handle, unsigned int index, char *buffer)
  * Parameters:
  *          handle: Handle to the listbox to be queried.
  */
-unsigned int API dw_listbox_selected(HWND handle)
+int API dw_listbox_selected(HWND handle)
 {
     id object = handle;
 
@@ -5225,7 +5225,7 @@ int API dw_container_setup(HWND handle, unsigned long *flags, char **titles, int
         [column release];
     }
     DW_MUTEX_UNLOCK;
-    return TRUE;
+    return DW_ERROR_NONE;
 }
 
 /*
@@ -5254,7 +5254,7 @@ int API dw_filesystem_setup(HWND handle, unsigned long *flags, char **titles, in
 
     free(newtitles);
     free(newflags);
-    return TRUE;
+    return DW_ERROR_NONE;
 }
 
 /*
@@ -8283,14 +8283,14 @@ HEV dw_event_new(void)
 int dw_event_reset (HEV eve)
 {
    if(!eve)
-      return FALSE;
+      return DW_ERROR_NON_INIT;
 
    pthread_mutex_lock (&(eve->mutex));
    pthread_cond_broadcast (&(eve->event));
    pthread_cond_init (&(eve->event), NULL);
    eve->posted = 0;
    pthread_mutex_unlock (&(eve->mutex));
-   return 0;
+   return DW_ERROR_NONE;
 }
 
 /*
@@ -8324,10 +8324,10 @@ int dw_event_wait(HEV eve, unsigned long timeout)
    struct timespec timeo;
 
    if(!eve)
-      return FALSE;
+      return DW_ERROR_NON_INIT;
 
    if(eve->posted)
-      return 0;
+      return DW_ERROR_GENERAL;
 
    pthread_mutex_lock (&(eve->mutex));
    gettimeofday(&now, 0);
@@ -8336,10 +8336,10 @@ int dw_event_wait(HEV eve, unsigned long timeout)
    rc = pthread_cond_timedwait (&(eve->event), &(eve->mutex), &timeo);
    pthread_mutex_unlock (&(eve->mutex));
    if(!rc)
-      return 1;
+      return DW_ERROR_NONE;
    if(rc == ETIMEDOUT)
-      return -1;
-   return 0;
+      return DW_ERROR_TIMEOUT;
+   return DW_ERROR_GENERAL;
 }
 
 /*
@@ -8350,7 +8350,7 @@ int dw_event_wait(HEV eve, unsigned long timeout)
 int dw_event_close(HEV *eve)
 {
    if(!eve || !(*eve))
-      return FALSE;
+      return DW_ERROR_NON_INIT;
 
    pthread_mutex_lock (&((*eve)->mutex));
    pthread_cond_destroy (&((*eve)->event));
@@ -8359,7 +8359,7 @@ int dw_event_close(HEV *eve)
    free(*eve);
    *eve = NULL;
 
-   return TRUE;
+   return DW_ERROR_NONE;
 }
 
 struct _seminfo {

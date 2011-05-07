@@ -1208,7 +1208,7 @@ void API dw_listbox_set_text(HWND handle, unsigned int index, char *buffer)
  * Returns:
  *       The selected item index or DW_ERROR_UNKNOWN (-1) on error.
  */
-unsigned int API dw_listbox_selected(HWND handle)
+int API dw_listbox_selected(HWND handle)
 {
     return DW_ERROR_UNKNOWN;
 }
@@ -3165,10 +3165,12 @@ int dw_event_post (HEV eve)
  *       eve: The handle to the event returned by dw_event_new().
  * Returns:
  *       DW_ERROR_NONE (0) on success.
+ *       DW_ERROR_TIMEOUT (2) if the timeout has expired.
+ *       Other values on other error.
  */
 int dw_event_wait(HEV eve, unsigned long timeout)
 {
-   return DW_ERROR_GENERAL;
+   return DW_ERROR_GENERAL
 }
 
 /*
