@@ -1391,6 +1391,7 @@ typedef struct _dwdialog {
 #define DW_ERROR_NON_INIT  3
 #define DW_ERROR_NO_MEM    4
 #define DW_ERROR_INTERRUPT 5
+#define DW_ERROR_UNKNOWN   -1
 
 /* Embedded HTML actions */
 #define DW_HTML_GOBACK     0
