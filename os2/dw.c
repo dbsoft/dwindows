@@ -6357,7 +6357,7 @@ void API dw_listbox_delete(HWND handle, int index)
  */
 unsigned int API dw_mle_import(HWND handle, char *buffer, int startpoint)
 {
-   unsigned long point = startpoint;
+   long point = startpoint < 0 ? 0 : startpoint;
    PBYTE mlebuf;
 
    /* Work around 64K limit */
@@ -6375,7 +6375,7 @@ unsigned int API dw_mle_import(HWND handle, char *buffer, int startpoint)
          memcpy(mlebuf, &buffer[written], amount);
          mlebuf[amount] = '\0';
 
-         WinSendMsg(handle, MLM_SETIMPORTEXPORT, MPFROMP(mlebuf), MPFROMLONG(amount+1));
+         WinSendMsg(handle, MLM_SETIMPORTEXPORT, MPFROMP(mlebuf), MPFROMLONG(amount + 1));
          WinSendMsg(handle, MLM_IMPORT, MPFROMP(&point), MPFROMLONG(amount + 1));
          dw_mle_delete(handle, point, 1);
 
