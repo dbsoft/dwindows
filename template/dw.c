@@ -7,13 +7,17 @@
  *
  */
 
+#include "dw.h"
+#include <stdlib.h>
+#include <string.h>
+
 /* Implement these to get and set the Box* pointer on the widget handle */
 void *_dw_get_window_pointer(HWND handle)
 {
     return NULL;
 }
 
-void _dw_set_window_pointer(HWND handle, Box *)
+void _dw_set_window_pointer(HWND handle, Box *box)
 {
 }
 
@@ -1085,11 +1089,6 @@ HWND API dw_checkbox_new(char *text, ULONG cid)
  */
 int API dw_checkbox_get(HWND handle)
 {
-    DWButton *button = handle;
-    if([button state])
-    {
-        return TRUE;
-    }
     return FALSE;
 }
 
@@ -1650,9 +1649,12 @@ void API dw_tree_item_set_data(HWND handle, HTREEITEM item, void *itemdata)
  * Parameters:
  *          handle: Handle to the tree containing the item.
  *          item: Handle of the item to be modified.
+ * Returns:
+ *       A pointer to tree item data or NULL on failure.
  */
 void * API dw_tree_item_get_data(HWND handle, HTREEITEM item)
 {
+	return NULL;
 }
 
 /*
@@ -2930,7 +2932,6 @@ void dw_environment_query(DWEnv *env)
  */
 void API dw_beep(int freq, int dur)
 {
-    NSBeep();
 }
 
 /* Call this after drawing to the screen to make sure
@@ -3008,35 +3009,6 @@ void API dw_signal_connect(HWND window, char *signame, void *sigfunc, void *data
  */
 void API dw_signal_disconnect_by_name(HWND window, char *signame)
 {
-    SignalHandler *prev = NULL, *tmp = Root;
-    ULONG message;
-
-    if(!window || !signame || (message = _findsigmessage(signame)) == 0)
-        return;
-
-    while(tmp)
-    {
-        if(tmp->window == window && tmp->message == message)
-        {
-            if(prev)
-            {
-                prev->next = tmp->next;
-                free(tmp);
-                tmp = prev->next;
-            }
-            else
-            {
-                Root = tmp->next;
-                free(tmp);
-                tmp = Root;
-            }
-        }
-        else
-        {
-            prev = tmp;
-            tmp = tmp->next;
-        }
-    }
 }
 
 /*
