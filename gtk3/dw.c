@@ -20,6 +20,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <ctype.h>
 #include <errno.h>
 #include <sys/time.h>
 #include <dirent.h>
@@ -2509,7 +2510,8 @@ int dw_window_set_font(HWND handle, char *fontname)
 {
    PangoFontDescription *pfont;
    GtkWidget *handle2 = handle;
-   char *font;
+   char *font = strdup(fontname);
+   char *name = strchr(font, '.');
    int _locked_by_me = FALSE;
    gpointer data;
 
@@ -2520,7 +2522,18 @@ int dw_window_set_font(HWND handle, char *fontname)
       if(tmp)
          handle2 = tmp;
    }
-   font = strdup(fontname);
+   
+   /* Detect Dynamic Windows style font name... 
+    * Format: ##.Fontname
+    * and convert to a Pango name
+    */
+   if(name && isdigit(*font))
+   {
+       int size = atoi(font);
+       *name = 0;
+       name++;
+       sprintf(font, "%s %d", name, size);
+   }
 
    /* Free old font name if one is allocated */
    data = g_object_get_data(G_OBJECT(handle2), "_dw_fontname");
