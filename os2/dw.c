@@ -6369,7 +6369,6 @@ unsigned int API dw_mle_import(HWND handle, char *buffer, int startpoint)
       while(written < len)
       {
          int z, x = 0;
-         char buf[1024];
 
          if((len - written) > 65535)
             amount = 65535;
@@ -6408,7 +6407,7 @@ unsigned int API dw_mle_import(HWND handle, char *buffer, int startpoint)
  */
 void API dw_mle_export(HWND handle, char *buffer, int startpoint, int length)
 {
-    PBYTE mlebuf;
+   PBYTE mlebuf;
 
    /* Work around 64K limit */
    if(!DosAllocMem((PPVOID) &mlebuf, 65535, PAG_COMMIT | PAG_READ | PAG_WRITE | OBJ_TILE))
@@ -6521,7 +6520,6 @@ void API dw_mle_set_word_wrap(HWND handle, int state)
  */
 void API dw_mle_set_cursor(HWND handle, int point)
 {
-   point--;
    WinSendMsg(handle, MLM_SETSEL, MPFROMLONG(point), MPFROMLONG(point));
 }
 
