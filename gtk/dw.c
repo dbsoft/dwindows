@@ -20,6 +20,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <ctype.h>
 #include <errno.h>
 #include <sys/time.h>
 #include <dirent.h>
@@ -2736,7 +2737,8 @@ int dw_window_set_font(HWND handle, char *fontname)
    GdkFont *gdkfont;
 #endif
    GtkWidget *handle2 = handle;
-   char *font;
+   char *font = strdup(fontname);
+   char *name = strchr(font, '.');
    int _locked_by_me = FALSE;
    gpointer data;
 
@@ -2747,7 +2749,6 @@ int dw_window_set_font(HWND handle, char *fontname)
       if(tmp)
          handle2 = tmp;
    }
-   font = strdup(fontname);
 
 #if GTK_MAJOR_VERSION < 2
    /* Free old font if it exists */
@@ -2758,6 +2759,19 @@ int dw_window_set_font(HWND handle, char *fontname)
    if(!gdkfont)
       gdkfont = gdk_font_load("fixed");
    gtk_object_set_data(GTK_OBJECT(handle2), "_dw_gdkfont", (gpointer)gdkfont);
+#else
+
+   /* Detect Dynamic Windows style font name... 
+    * Format: ##.Fontname
+    * and convert to a Pango name
+    */
+   if(name && isdigit(*font))
+   {
+       int size = atoi(font);
+       *name = 0;
+       name++;
+       sprintf(font, "%s %d", name, size);
+   }
 #endif
 
    /* Free old font name if one is allocated */
