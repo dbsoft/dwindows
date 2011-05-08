@@ -17,7 +17,7 @@
 #define FOLDER_ICON_NAME "mac/folder"
 #define FILE_ICON_NAME "mac/file"
 #elif GTK_MAJOR_VERSION > 1
-#define FIXEDFONT "monospace 10"
+#define FIXEDFONT "10.monospace"
 #define FOLDER_ICON_NAME "gtk/folder"
 #define FILE_ICON_NAME "gtk/file"
 #else
@@ -106,7 +106,7 @@ int image_x = 20, image_y = 20;
 
 int font_width = 8;
 int font_height=12;
-int rows=100,width1=6,cols=80;
+int rows=10,width1=6,cols=80;
 char *current_file = NULL;
 int timerid;
 int num_lines=0;
@@ -1348,7 +1348,6 @@ int main(int argc, char *argv[])
     dw_notebook_pack( notebook, notebookpage7, notebookbox7 );
     dw_notebook_page_set_text( notebook, notebookpage7, "html");
     
-#if 1
     rawhtml = dw_html_new(1001);
     dw_box_pack_start( notebookbox7, rawhtml, 0, 100, TRUE, FALSE, 0);
     dw_html_raw(rawhtml, "<html><body><center><h1>dwtest</h1></center></body></html>");
@@ -1361,7 +1360,6 @@ int main(int argc, char *argv[])
      * Instead a pure HTML based web page is displayed. MHES 5/4/2008
      */
     dw_html_url(html, "http://www.rexx.org");
-#endif
     
     notebookbox8 = dw_box_new( BOXVERT, 7 );
     notebookpage8 = dw_notebook_page_new( notebook, 1, FALSE );
