@@ -6316,11 +6316,6 @@ unsigned long API dw_notebook_page_new(HWND handle, ULONG flags, int front)
             array[z]->item.iImage = -1;
             array[z]->item.pszText = "";
             TabCtrl_InsertItem(handle, z, &(array[z]->item));
-
-            if(oldpage > -1 && array[oldpage])
-               SetParent(array[oldpage]->hwnd, DW_HWND_OBJECT);
-
-            TabCtrl_SetCurSel(handle, z);
             return refid;
          }
       }
