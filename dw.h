@@ -163,7 +163,7 @@ typedef struct _user_data
 #define DW_POINTER_DEFAULT       0
 #define DW_POINTER_ARROW         SPTR_ARROW
 #define DW_POINTER_CLOCK         SPTR_WAIT
-#define DW_POINTER_QUESTION      SPTR_ICONQUESICON
+#define DW_POINTER_QUESTION      SPTR_ICONQUESTION
 
 #define DW_BS_NOBORDER           BS_NOBORDER
 
@@ -379,6 +379,7 @@ void _dw_default_font(char *fontname);
 #define DW_POINTER_DEFAULT       0
 #define DW_POINTER_ARROW         1
 #define DW_POINTER_CLOCK         2
+#define DW_POINTER_QUESTION      3
 
 #define HWND_DESKTOP     ((HWND)0)
 
@@ -1262,8 +1263,8 @@ typedef struct _hpixmap {
    GdkPixbuf *pixbuf;  /* the actual image */
    cairo_surface_t *image; /* Going to have dual storage for now */
 #else
-   GdkPixmap *pixmap;  /* the actual image */ 
-   GdkBitmap *bitmap;  /* if not null, the image mask representing the transparency mask */ 
+   GdkPixmap *pixmap;  /* the actual image */
+   GdkBitmap *bitmap;  /* if not null, the image mask representing the transparency mask */
 #endif
    HWND handle;
 } *HPIXMAP;
