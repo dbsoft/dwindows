@@ -4,8 +4,8 @@
 #define _H_DW
 
 /* Dynamic Windows version numbers */
-#define DW_MAJOR_VERSION 1
-#define DW_MINOR_VERSION 1
+#define DW_MAJOR_VERSION 2
+#define DW_MINOR_VERSION 0
 #define DW_SUB_VERSION 0
 
 #if !defined(__PHOTON__)
