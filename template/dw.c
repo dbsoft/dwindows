@@ -459,7 +459,7 @@ void API dw_free(void *ptr)
 }
 
 /*
- * Returns a pointer to a static buffer which containes the
+ * Returns a pointer to a static buffer which contains the
  * current user directory.  Or the root directory if it could
  * not be determined.
  */
@@ -528,9 +528,10 @@ char *dw_clipboard_get_text()
 /*
  * Sets the contents of the default clipboard to the supplied text.
  * Parameters:
- *       Text.
+ *       str: Text to put on the clipboard.
+ *       len: Length of the text.
  */
-void dw_clipboard_set_text( char *str, int len)
+void dw_clipboard_set_text(char *str, int len)
 {
 }
 
@@ -539,9 +540,9 @@ void dw_clipboard_set_text( char *str, int len)
  * Allocates and initializes a dialog struct.
  * Parameters:
  *           data: User defined data to be passed to functions.
-  * Returns:
+ * Returns:
  *       A handle to a dialog or NULL on failure.
-*/
+ */
 DWDialog * API dw_dialog_new(void *data)
 {
 #if 0
@@ -566,9 +567,9 @@ DWDialog * API dw_dialog_new(void *data)
  * Parameters:
  *           dialog: Pointer to a dialog struct aquired by dw_dialog_new).
  *           result: Data to be returned by dw_dialog_wait().
-  * Returns:
+ * Returns:
  *       DW_ERROR_NONE (0) on success.
-*/
+ */
 int API dw_dialog_dismiss(DWDialog *dialog, void *result)
 {
 #if 0
