@@ -664,7 +664,7 @@ int API dw_scrollbox_get_pos(HWND handle, int orient)
  *          orient: The vertical or horizontal scrollbar.
  * Returns:
  *       The vertical or horizontal range of the scrollbox.
-*/
+ */
 int API dw_scrollbox_get_range(HWND handle, int orient)
 {
     return 0;
@@ -830,7 +830,7 @@ HWND API dw_button_new(char *text, ULONG cid)
  *       id: An ID to be used with dw_window_from_id() or 0L.
  * Returns:
  *       A handle to an entryfield window or NULL on failure.
-*/
+ */
 HWND API dw_entryfield_new(char *text, ULONG cid)
 {
     return 0;
@@ -909,9 +909,9 @@ HWND API dw_bitmapbutton_new_from_data(char *text, unsigned long cid, char *data
  * Parameters:
  *       text: The text to be display by the static text widget.
  *       id: An ID to be used with dw_window_from_id() or 0L.
-  * Returns:
+ * Returns:
  *       A handle to a spinbutton window or NULL on failure.
-*/
+ */
 HWND API dw_spinbutton_new(char *text, ULONG cid)
 {
     return 0;
@@ -944,7 +944,7 @@ void API dw_spinbutton_set_limits(HWND handle, long upper, long lower)
  *          handle: Handle to the spinbutton to be queried.
  * Returns:
  *       Number value displayed in the spinbutton.
-*/
+ */
 long API dw_spinbutton_get_pos(HWND handle)
 {
     return 0;
@@ -1160,9 +1160,9 @@ void API dw_listbox_clear(HWND handle)
  * Returns the listbox's item count.
  * Parameters:
  *          handle: Handle to the listbox to be counted.
-  * Returns:
+ * Returns:
  *       The number of items in the listbox.
-*/
+ */
 int API dw_listbox_count(HWND handle)
 {
     return 0;
@@ -1252,9 +1252,9 @@ void API dw_listbox_delete(HWND handle, int index)
  * Parameters:
  *       text: The default text to be in the combpbox widget.
  *       id: An ID to be used with dw_window_from_id() or 0L.
-  * Returns:
+ * Returns:
  *       A handle to a combobox window or NULL on failure.
-*/
+ */
 HWND API dw_combobox_new(char *text, ULONG cid)
 {
     return 0;
@@ -1264,9 +1264,9 @@ HWND API dw_combobox_new(char *text, ULONG cid)
  * Create a new Multiline Editbox window (widget) to be packed.
  * Parameters:
  *       id: An ID to be used with dw_window_from_id() or 0L.
-  * Returns:
+ * Returns:
  *       A handle to a MLE window or NULL on failure.
-*/
+ */
 HWND API dw_mle_new(ULONG cid)
 {
    return 0;
@@ -1378,9 +1378,9 @@ void API dw_mle_set_cursor(HWND handle, int point)
  *          text: Text to search for.
  *          point: Start point of search.
  *          flags: Search specific flags.
-  * Returns:
+ * Returns:
  *       Position in buffer or DW_ERROR_UNKNOWN (-1) on error.
-*/
+ */
 int API dw_mle_search(HWND handle, char *text, int point, unsigned long flags)
 {
     return DW_ERROR_UNKNOWN;
@@ -1409,9 +1409,9 @@ void API dw_mle_thaw(HWND handle)
  * Parameters:
  *       text: The text to be display by the static text widget.
  *       id: An ID to be used with dw_window_from_id() or 0L.
-  * Returns:
+ * Returns:
  *       A handle to a status text window or NULL on failure.
-*/
+ */
 HWND API dw_status_text_new(char *text, ULONG cid)
 {
     return 0;
@@ -1553,9 +1553,9 @@ void API dw_draw_rect(HWND handle, HPIXMAP pixmap, int fill, int x, int y, int w
  * Parameters:
  *       id: An ID to be used for getting the resource from the
  *           resource file.
-  * Returns:
+ * Returns:
  *       A handle to a tree window or NULL on failure.
-*/
+ */
 HWND API dw_tree_new(ULONG cid)
 {
     return 0;
@@ -1951,7 +1951,7 @@ void API dw_container_scroll(HWND handle, int direction, long rows)
  *              it will return all records in the container.
  * Returns:
  *       Pointer to data associated with first entry or NULL on error.
-*/
+ */
 char * API dw_container_query_start(HWND handle, unsigned long flags)
 {
     return NULL;
@@ -1966,7 +1966,7 @@ char * API dw_container_query_start(HWND handle, unsigned long flags)
  *              it will return all records in the container.
  * Returns:
  *       Pointer to data associated with next entry or NULL on error or completion.
-*/
+ */
 char * API dw_container_query_next(HWND handle, unsigned long flags)
 {
     return NULL;
@@ -2043,9 +2043,9 @@ HICN API dw_icon_load(unsigned long module, unsigned long resid)
  *       filename: Name of the file, omit extention to have
  *                 DW pick the appropriate file extension.
  *                 (ICO on OS/2 or Windows, XPM on Unix)
-  * Returns:
+ * Returns:
  *       Handle to the created icon or NULL on error.
-*/
+ */
 HICN API dw_icon_load_from_file(char *filename)
 {
     return 0;
@@ -2058,7 +2058,7 @@ HICN API dw_icon_load_from_file(char *filename)
  *       len: Length of the passed in data.
  * Returns:
  *       Handle to the created icon or NULL on error.
-*/
+ */
 HICN API dw_icon_load_from_data(char *data, int len)
 {
     return 0;
@@ -2339,9 +2339,9 @@ void API dw_pointer_set_pos(long x, long y)
  * Create a menu object to be popped up.
  * Parameters:
  *       id: An ID to be used associated with this menu.
-  * Returns:
+ * Returns:
  *       Handle to the created menu or NULL on error.
-*/
+ */
 HMENUI API dw_menu_new(ULONG cid)
 {
     return 0;
@@ -2351,9 +2351,9 @@ HMENUI API dw_menu_new(ULONG cid)
  * Create a menubar on a window.
  * Parameters:
  *       location: Handle of a window frame to be attached to.
-  * Returns:
+ * Returns:
  *       Handle to the created menu bar or NULL on error.
-*/
+ */
 HMENUI API dw_menubar_new(HWND location)
 {
     return 0;
@@ -2522,7 +2522,7 @@ void API dw_notebook_pack(HWND handle, ULONG pageid, HWND page)
  *       flStyle: Style flags.
  * Returns:
  *       Handle to the created window or NULL on error.
-*/
+ */
 HWND API dw_window_new(HWND hwndOwner, char *title, ULONG flStyle)
 {
     return 0;
@@ -2580,9 +2580,9 @@ int API dw_window_hide(HWND handle)
  *          handle: The window (widget) handle.
  *          fore: Foreground color in DW_RGB format or a default color index.
  *          back: Background color in DW_RGB format or a default color index.
-  * Returns:
+ * Returns:
  *       DW_ERROR_NONE (0) on success.
-*/
+ */
 int API dw_window_set_color(HWND handle, ULONG fore, ULONG back)
 {
     return DW_ERROR_GENERAL;
@@ -2687,9 +2687,9 @@ char * API dw_window_get_font(HWND handle)
  * Destroys a window and all of it's children.
  * Parameters:
  *           handle: The window handle to destroy.
-  * Returns:
+ * Returns:
  *       DW_ERROR_NONE (0) on success.
-*/
+ */
 int API dw_window_destroy(HWND handle)
 {
     return DW_ERROR_GENERAL;
@@ -3032,7 +3032,7 @@ void API dw_signal_disconnect_by_data(HWND window, void *data)
  *         name: Base name of the shared library.
  *         handle: Pointer to a module handle,
  *                 will be filled in with the handle.
-  * Returns:
+ * Returns:
  *       DW_ERROR_NONE (0) on success.
 */
 int dw_module_load(char *name, HMOD *handle)
@@ -3214,9 +3214,9 @@ HEV dw_named_event_get(char *name)
  * Parameters:
  *         eve: Handle to the semaphore obtained by
  *              an get or new call.
-  * Returns:
+ * Returns:
  *       DW_ERROR_NONE (0) on success.
-*/
+ */
 int dw_named_event_reset(HEV eve)
 {
    return DW_ERROR_GENERAL;
@@ -3229,7 +3229,7 @@ int dw_named_event_reset(HEV eve)
  *              an get or new call.
  * Returns:
  *       DW_ERROR_NONE (0) on success.
-*/
+ */
 int dw_named_event_post(HEV eve)
 {
    return DW_ERROR_GENERAL;
@@ -3255,9 +3255,9 @@ int dw_named_event_wait(HEV eve, unsigned long timeout)
  * Parameters:
  *         eve: Handle to the semaphore obtained by
  *              an get or new call.
-  * Returns:
+ * Returns:
  *       DW_ERROR_NONE (0) on success.
-*/
+ */
 int dw_named_event_close(HEV eve)
 {
     return DW_ERROR_UNKNOWN;
@@ -3286,7 +3286,7 @@ int API dw_init(int newthread, int argc, char *argv[])
  *         name: A string pointer to a unique memory name.
  * Returns:
  *       Handle to shared memory or NULL on error.
-*/
+ */
 HSHM dw_named_memory_new(void **dest, int size, char *name)
 {
    return NULL;
@@ -3300,7 +3300,7 @@ HSHM dw_named_memory_new(void **dest, int size, char *name)
  *       name: A string pointer to a unique memory name.
  * Returns:
  *       Handle to shared memory or NULL on error.
-*/
+ */
 HSHM dw_named_memory_get(void **dest, int size, char *name)
 {
    return NULL;
@@ -3313,7 +3313,7 @@ HSHM dw_named_memory_get(void **dest, int size, char *name)
  *       ptr: The memory address aquired with dw_named_memory_new().
  * Returns:
  *       DW_ERROR_NONE (0) on success or DW_ERROR_UNKNOWN (-1) on error.
-*/
+ */
 int dw_named_memory_free(HSHM handle, void *ptr)
 {
    int rc = DW_ERROR_UNKNOWN;
@@ -3327,9 +3327,9 @@ int dw_named_memory_free(HSHM handle, void *ptr)
  *       func: Function which will be run in the new thread.
  *       data: Parameter(s) passed to the function.
  *       stack: Stack size of new thread (OS/2 and Windows only).
-  * Returns:
+ * Returns:
  *       Thread ID on success or DW_ERROR_UNKNOWN (-1) on error.
-*/
+ */
 DWTID dw_thread_new(void *func, void *data, int stack)
 {
    return (DWTID)DW_ERROR_UNKNOWN;
@@ -3372,7 +3372,7 @@ int dw_exec(char *program, int type, char **params)
  *       url: Uniform resource locator.
  * Returns:
  *       DW_ERROR_NONE (0) on success.
-*/
+ */
 int dw_browse(char *url)
 {
     return DW_ERROR_GENERAL;
