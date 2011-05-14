@@ -645,13 +645,13 @@ HWND API dw_scrollbox_new( int type, int pad )
 }
 
 /*
- * Returns the position of the scrollbar in the scrollbox
+ * Returns the position of the scrollbar in the scrollbox.
  * Parameters:
  *          handle: Handle to the scrollbox to be queried.
  *          orient: The vertical or horizontal scrollbar.
-  * Returns:
+ * Returns:
  *       The vertical or horizontal position in the scrollbox.
-*/
+ */
 int API dw_scrollbox_get_pos(HWND handle, int orient)
 {
     return 0;
@@ -1003,7 +1003,6 @@ void API dw_slider_set_pos(HWND handle, unsigned int position)
  * Create a new scrollbar window (widget) to be packed.
  * Parameters:
  *       vertical: TRUE or FALSE if scrollbar is vertical.
- *       increments: Number of increments available.
  *       id: An ID to be used with dw_window_from_id() or 0L.
  * Returns:
  *       A handle to a scrollbar window or NULL on failure.
@@ -1516,7 +1515,7 @@ void API dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
  *       pixmap: Handle to the pixmap. (choose only one of these)
  *       text: Text to be queried.
  *       width: Pointer to a variable to be filled in with the width.
- *       height Pointer to a variable to be filled in with the height.
+ *       height: Pointer to a variable to be filled in with the height.
  */
 void API dw_font_text_extents_get(HWND handle, HPIXMAP pixmap, char *text, int *width, int *height)
 {
@@ -1527,10 +1526,9 @@ void API dw_font_text_extents_get(HWND handle, HPIXMAP pixmap, char *text, int *
  *       handle: Handle to the window.
  *       pixmap: Handle to the pixmap. (choose only one of these)
  *       fill: Fill box TRUE or FALSE.
- *       x: X coordinate.
- *       y: Y coordinate.
- *       width: Width of rectangle.
- *       height: Height of rectangle.
+ *       npoints: Number of points passed in.
+ *       x: Pointer to array of X coordinates.
+ *       y: Pointer to array of Y coordinates.
  */
 void API dw_draw_polygon( HWND handle, HPIXMAP pixmap, int fill, int npoints, int *x, int *y )
 {
@@ -1842,26 +1840,26 @@ void API dw_filesystem_set_item(HWND handle, void *pointer, int column, int row,
 }
 
 /*
- * Gets column type for a container column
+ * Gets column type for a container column.
  * Parameters:
  *          handle: Handle to the container window (widget).
  *          column: Zero based column.
-  * Returns:
+ * Returns:
  *       Constant identifying the the column type.
-*/
+ */
 int API dw_container_get_column_type(HWND handle, int column)
 {
     return 0;
 }
 
 /*
- * Gets column type for a filesystem container column
+ * Gets column type for a filesystem container column.
  * Parameters:
  *          handle: Handle to the container window (widget).
  *          column: Zero based column.
  * Returns:
  *       Constant identifying the the column type.
-*/
+ */
 int API dw_filesystem_get_column_type(HWND handle, int column)
 {
     return 0;
@@ -2054,11 +2052,10 @@ HICN API dw_icon_load_from_file(char *filename)
 }
 
 /*
- * Obtains an icon from data
+ * Obtains an icon from data.
  * Parameters:
- *       filename: Name of the file, omit extention to have
- *                 DW pick the appropriate file extension.
- *                 (ICO on OS/2 or Windows, XPM on Unix)
+ *       data: Data for the icon (ICO on OS/2 or Windows, XPM on Unix, PNG on Mac)
+ *       len: Length of the passed in data.
  * Returns:
  *       Handle to the created icon or NULL on error.
 */
@@ -2068,7 +2065,7 @@ HICN API dw_icon_load_from_data(char *data, int len)
 }
 
 /*
- * Frees a loaded resource in OS/2 and Windows.
+ * Frees a loaded icon resource.
  * Parameters:
  *          handle: Handle to icon returned by dw_icon_load().
  */
@@ -2115,6 +2112,8 @@ void API dw_splitbar_set(HWND handle, float percent)
  * Gets the position of a splitbar (pecentage).
  * Parameters:
  *       handle: The handle to the splitbar returned by dw_splitbar_new().
+ * Returns:
+ *       Position of the splitbar (percentage).
  */
 float API dw_splitbar_get(HWND handle)
 {
@@ -2164,12 +2163,12 @@ HPIXMAP API dw_pixmap_new_from_file(HWND handle, char *filename)
 }
 
 /*
- * Creates a pixmap from memory.
+ * Creates a pixmap from data in memory.
  * Parameters:
  *       handle: Window handle the pixmap is associated with.
  *       data: Source of the image data
  *                 (BMP on OS/2 or Windows, XPM on Unix)
- *       le: length of data
+ *       len: Length of data
  * Returns:
  *       A handle to a pixmap or NULL on failure.
  */
@@ -2179,11 +2178,11 @@ HPIXMAP API dw_pixmap_new_from_data(HWND handle, char *data, int len)
 }
 
 /*
- * Sets the transparent color for a pixmap
+ * Sets the transparent color for a pixmap.
  * Parameters:
  *       pixmap: Handle to a pixmap returned by
  *               dw_pixmap_new..
- *       color:  transparent color
+ *       color:  Transparent RGB color
  * Note: This is only necessary on platforms that
  *       don't handle transparency automatically
  */
@@ -2235,7 +2234,6 @@ void API dw_pixmap_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest, int wi
 /*
  * Create a new calendar window (widget) to be packed.
  * Parameters:
- *       text: The text to be display by the static text widget.
  *       id: An ID to be used with dw_window_from_id() or 0L.
  * Returns:
  *       Handle to the created calendar or NULL on error.
@@ -2308,7 +2306,6 @@ int API dw_html_url(HWND handle, char *url)
 /*
  * Create a new HTML window (widget) to be packed.
  * Parameters:
- *       text: The default text to be in the entryfield widget.
  *       id: An ID to be used with dw_window_from_id() or 0L.
  * Returns:
  *       Handle to the created html widget or NULL on error.
@@ -2392,7 +2389,6 @@ void API dw_menu_popup(HMENUI *menu, HWND parent, int x, int y)
  *       flags: Extended attributes to set on the menu.
  *       end: If TRUE memu is positioned at the end of the menu.
  *       check: If TRUE menu is "check"able.
- *       flags: Extended attributes to set on the menu.
  *       submenu: Handle to an existing menu to be a submenu or NULL.
  * Returns:
  *       Handle to the created menu item or NULL on error.
@@ -2476,7 +2472,7 @@ unsigned long API dw_notebook_page_get(HWND handle)
 }
 
 /*
- * Sets the currently visibale page ID.
+ * Sets the currently visible page ID.
  * Parameters:
  *          handle: Handle to the notebook widget.
  *          pageid: ID of the page to be made visible.
@@ -2523,7 +2519,7 @@ void API dw_notebook_pack(HWND handle, ULONG pageid, HWND page)
  * Parameters:
  *       owner: The Owner's window handle or HWND_DESKTOP.
  *       title: The Window title.
- *       flStyle: Style flags, see the PM reference.
+ *       flStyle: Style flags.
  * Returns:
  *       Handle to the created window or NULL on error.
 */
@@ -2569,7 +2565,7 @@ int API dw_window_show(HWND handle)
 /*
  * Makes the window invisible.
  * Parameters:
- *           handle: The window handle to make visible.
+ *           handle: The window handle to hide.
  * Returns:
  *       DW_ERROR_NONE (0) on success.
  */
@@ -2593,7 +2589,7 @@ int API dw_window_set_color(HWND handle, ULONG fore, ULONG back)
 }
 
 /*
- * Sets the font used by a specified window (widget) handle.
+ * Sets the border size of a specified window (widget) handle.
  * Parameters:
  *          handle: The window (widget) handle.
  *          border: Size of the window border in pixels.
@@ -2676,7 +2672,7 @@ int API dw_window_set_font(HWND handle, char *fontname)
 }
 
 /*
- * Returns the current font for the specified window
+ * Returns the current font for the specified window.
  * Parameters:
  *           handle: The window handle from which to obtain the font.
  * Returns:
@@ -2704,7 +2700,7 @@ int API dw_window_destroy(HWND handle)
  * Parameters:
  *       handle: Handle to the window.
  * Returns:
- *       text: The text associsated with a given window or NULL on error.
+ *       The text associsated with a given window or NULL on error.
  */
 char * API dw_window_get_text(HWND handle)
 {
@@ -2745,9 +2741,10 @@ void API dw_window_enable(HWND handle)
  *       handle: Handle to the window.
  *       id: An ID to be used to specify the icon,
  *           (pass 0 if you use the filename param)
- *       filename: a path to a file (Bitmap on OS/2 or
+ *       data: memory buffer containing image (Bitmap on OS/2 or
  *                 Windows and a pixmap on Unix, pass
  *                 NULL if you use the id param)
+ *       len: Length of data passed
  */
 void API dw_window_set_bitmap_from_data(HWND handle, unsigned long cid, char *data, int len)
 {
@@ -2771,7 +2768,7 @@ void API dw_window_set_bitmap(HWND handle, unsigned long resid, char *filename)
  * Sets the icon used for a given window.
  * Parameters:
  *       handle: Handle to the window.
- *       id: An ID to be used to specify the icon.
+ *       icon: Handle to icon to be used.
  */
 void API dw_window_set_icon(HWND handle, HICN icon)
 {
@@ -2898,7 +2895,7 @@ int API dw_screen_height(void)
     return 0;
 }
 
-/* This should return the current color depth */
+/* This should return the current color depth. */
 unsigned long API dw_color_depth_get(void)
 {
    return 0;
@@ -2945,23 +2942,22 @@ void API dw_flush(void)
 /*
  * Add a named user data item to a window handle.
  * Parameters:
- *       window: Window handle of signal to be called back.
- *       dataname: A string pointer identifying which signal to be hooked.
- *       data: User data to be passed to the handler function.
+ *       window: Window handle to save data to.
+ *       dataname: A string pointer identifying which data to be saved.
+ *       data: User data to be saved to the window handle.
  */
 void dw_window_set_data(HWND window, char *dataname, void *data)
 {
 }
 
 /*
- * Gets a named user data item to a window handle.
+ * Gets a named user data item from a window handle.
  * Parameters:
- *       window: Window handle of signal to be called back.
- *       dataname: A string pointer identifying which signal to be hooked.
- *       data: User data to be passed to the handler function.
-  * Returns:
+ *       window: Window handle to get data from.
+ *       dataname: A string pointer identifying which data to get.
+ * Returns:
  *       Pointer to data or NULL if no data is available.
-*/
+ */
 void *dw_window_get_data(HWND window, char *dataname)
 {
     return NULL;
@@ -3164,6 +3160,8 @@ int dw_event_post (HEV eve)
  * event gets posted or until the timeout expires.
  * Parameters:
  *       eve: The handle to the event returned by dw_event_new().
+ *   timeout: Number of milliseconds before timing out
+ *                  or -1 if indefinite.
  * Returns:
  *       DW_ERROR_NONE (0) on success.
  *       DW_ERROR_TIMEOUT (2) if the timeout has expired.
@@ -3186,11 +3184,9 @@ int dw_event_close(HEV *eve)
    return DW_ERROR_GENERAL;
 }
 
-/* Using domain sockets on unix for IPC */
 /* Create a named event semaphore which can be
  * opened from other processes.
  * Parameters:
- *         eve: Pointer to an event handle to receive handle.
  *         name: Name given to semaphore which can be opened
  *               by other processes.
  * Returns:
@@ -3203,7 +3199,6 @@ HEV dw_named_event_new(char *name)
 
 /* Open an already existing named event semaphore.
  * Parameters:
- *         eve: Pointer to an event handle to receive handle.
  *         name: Name given to semaphore which can be opened
  *               by other processes.
  * Returns:
@@ -3218,7 +3213,7 @@ HEV dw_named_event_get(char *name)
  * on this semaphore will block.
  * Parameters:
  *         eve: Handle to the semaphore obtained by
- *              an open or create call.
+ *              an get or new call.
   * Returns:
  *       DW_ERROR_NONE (0) on success.
 */
@@ -3231,7 +3226,7 @@ int dw_named_event_reset(HEV eve)
  * waiting on the semaphore will no longer block.
  * Parameters:
  *         eve: Handle to the semaphore obtained by
- *              an open or create call.
+ *              an get or new call.
  * Returns:
  *       DW_ERROR_NONE (0) on success.
 */
@@ -3244,7 +3239,7 @@ int dw_named_event_post(HEV eve)
  * posted, or returns immediately if it already is posted.
  * Parameters:
  *         eve: Handle to the semaphore obtained by
- *              an open or create call.
+ *              an get or new call.
  *         timeout: Number of milliseconds before timing out
  *                  or -1 if indefinite.
  * Returns:
@@ -3259,7 +3254,7 @@ int dw_named_event_wait(HEV eve, unsigned long timeout)
  * handles on this semaphore the semaphore will be destroyed.
  * Parameters:
  *         eve: Handle to the semaphore obtained by
- *              an open or create call.
+ *              an get or new call.
   * Returns:
  *       DW_ERROR_NONE (0) on success.
 */
@@ -3286,7 +3281,6 @@ int API dw_init(int newthread, int argc, char *argv[])
 /*
  * Allocates a shared memory region with a name.
  * Parameters:
- *         handle: A pointer to receive a SHM identifier.
  *         dest: A pointer to a pointer to receive the memory address.
  *         size: Size in bytes of the shared memory region to allocate.
  *         name: A string pointer to a unique memory name.
@@ -3315,8 +3309,8 @@ HSHM dw_named_memory_get(void **dest, int size, char *name)
 /*
  * Frees a shared memory region previously allocated.
  * Parameters:
- *       handle: Handle obtained from DB_named_memory_allocate.
- *       ptr: The memory address aquired with DB_named_memory_allocate.
+ *       handle: Handle obtained from dw_named_memory_new().
+ *       ptr: The memory address aquired with dw_named_memory_new().
  * Returns:
  *       DW_ERROR_NONE (0) on success or DW_ERROR_UNKNOWN (-1) on error.
 */
