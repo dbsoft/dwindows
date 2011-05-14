@@ -4089,7 +4089,10 @@ int API dw_window_set_font(HWND handle, char *fontname)
  */
 char * API dw_window_get_font(HWND handle)
 {
-   return "not implemented";
+   char *str = (char *)alloca(50);
+   if(str && WinQueryPresParam(handle, PP_FONTNAMESIZE, 0, NULL, 50, str, QPF_NOINHERIT))
+      return strdup(str);
+   return NULL;
 }
 
 /* Internal version */
