@@ -1357,13 +1357,13 @@ int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *usedy,
                 /* Handle special case of scrollbox */
                 int cx = width + vectorx;
                 int cy = height + vectory;
-                int usedx = 0, usedy = 0, usedpadx = 0, usedpady = 0, depth = 0;
-                HWND box = (HWND)dw_window_get_data(handle, "_dw_resizebox");
-                HWND client = WinWindowFromID(handle, FID_CLIENT);
-                HWND vscroll = WinWindowFromID(handle, FID_VERTSCROLL);
+            int usedx = 0, usedy = 0, usedpadx = 0, usedpady = 0, depth = 0;
+            HWND box = (HWND)dw_window_get_data(handle, "_dw_resizebox");
+            HWND client = WinWindowFromID(handle, FID_CLIENT);
+            HWND vscroll = WinWindowFromID(handle, FID_VERTSCROLL);
                 HWND hscroll = WinWindowFromID(handle, FID_HORZSCROLL);
-                Box *thisbox = (Box *)WinQueryWindowPtr(box, QWP_USER);
-                int origx, origy;
+            Box *thisbox = (Box *)WinQueryWindowPtr(box, QWP_USER);
+            int origx, origy;
                 unsigned int hpos = (unsigned int)WinSendMsg(hscroll, SBM_QUERYPOS, 0, 0);
                 unsigned int vpos = (unsigned int)WinSendMsg(vscroll, SBM_QUERYPOS, 0, 0);
 
@@ -1373,12 +1373,12 @@ int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *usedy,
                 WinSetWindowPos(hscroll, HWND_TOP, 0, 0, cx - _DW_DEFAULT_SCROLLBAR_WIDTH, _DW_DEFAULT_SCROLLBAR_WIDTH, SWP_MOVE | SWP_SIZE | SWP_ZORDER);
                 WinSetWindowPos(vscroll, HWND_TOP, cx - _DW_DEFAULT_SCROLLBAR_WIDTH, _DW_DEFAULT_SCROLLBAR_WIDTH, _DW_DEFAULT_SCROLLBAR_WIDTH, cy - _DW_DEFAULT_SCROLLBAR_WIDTH, SWP_MOVE | SWP_SIZE | SWP_ZORDER);
 
-                origx = cx = cx - _DW_DEFAULT_SCROLLBAR_WIDTH;
-                origy = cy = cy - _DW_DEFAULT_SCROLLBAR_WIDTH;
+            origx = cx = cx - _DW_DEFAULT_SCROLLBAR_WIDTH;
+            origy = cy = cy - _DW_DEFAULT_SCROLLBAR_WIDTH;
 
                 /* Get the required space for the box */
-                _resize_box(thisbox, &depth, cx, cy, &usedx, &usedy, 1, &usedpadx, &usedpady);
-                
+            _resize_box(thisbox, &depth, cx, cy, &usedx, &usedy, 1, &usedpadx, &usedpady);
+
                 if(cx < usedx)
                 {
                     cx = usedx;
@@ -1389,25 +1389,25 @@ int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *usedy,
                 }
 
                 /* Setup vertical scroller */
-                WinSendMsg(vscroll, SBM_SETSCROLLBAR, (MPARAM)vpos, MPFROM2SHORT(0, (unsigned short)usedy - origy));
-                WinSendMsg(vscroll, SBM_SETTHUMBSIZE, MPFROM2SHORT((unsigned short)origy, usedy), 0);
+            WinSendMsg(vscroll, SBM_SETSCROLLBAR, (MPARAM)vpos, MPFROM2SHORT(0, (unsigned short)usedy - origy));
+            WinSendMsg(vscroll, SBM_SETTHUMBSIZE, MPFROM2SHORT((unsigned short)origy, usedy), 0);
                 if(vpos > usedy)
                 {
-                    vpos = usedy;
-                    WinSendMsg(vscroll, SBM_SETPOS, (MPARAM)vpos, 0);
-                }
+               vpos = usedy;
+               WinSendMsg(vscroll, SBM_SETPOS, (MPARAM)vpos, 0);
+            }
 
                 /* Setup horizontal scroller */
-                WinSendMsg(hscroll, SBM_SETSCROLLBAR, (MPARAM)hpos, MPFROM2SHORT(0, (unsigned short)usedx - origx));
-                WinSendMsg(hscroll, SBM_SETTHUMBSIZE, MPFROM2SHORT((unsigned short)origx, usedx), 0);
+            WinSendMsg(hscroll, SBM_SETSCROLLBAR, (MPARAM)hpos, MPFROM2SHORT(0, (unsigned short)usedx - origx));
+            WinSendMsg(hscroll, SBM_SETTHUMBSIZE, MPFROM2SHORT((unsigned short)origx, usedx), 0);
                 if(hpos > usedx)
                 {
-                    hpos = usedx;
-                    WinSendMsg(hscroll, SBM_SETPOS, (MPARAM)hpos, 0);
-                }
+               hpos = usedx;
+               WinSendMsg(hscroll, SBM_SETPOS, (MPARAM)hpos, 0);
+            }
 
                 /* Position the scrolled box */
-                WinSetWindowPos(box, HWND_TOP, 0, -(cy - origy), cx, cy, SWP_MOVE | SWP_SIZE | SWP_ZORDER);
+            WinSetWindowPos(box, HWND_TOP, 0, -(cy - origy), cx, cy, SWP_MOVE | SWP_SIZE | SWP_ZORDER);
 
                 dw_window_set_data(handle, "_dw_cy", (void *)(cy - origy));
 
@@ -1639,8 +1639,8 @@ MRESULT EXPENTRY _textproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 /* This procedure handles scrollbox */
 MRESULT EXPENTRY _scrollwndproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 {
-	switch(msg)
-	{
+   switch(msg)
+   {
       case WM_PAINT:
          {
             HPS hpsPaint;
@@ -1653,72 +1653,72 @@ MRESULT EXPENTRY _scrollwndproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 
             break;
          }
-	case WM_HSCROLL:
-	case WM_VSCROLL:
-		{
-			MPARAM res;
-			int *pos, min, max, page, which = SHORT2FROMMP(mp2);
-			HWND handle, client = WinWindowFromID(hWnd, FID_CLIENT);
-			HWND box = (HWND)dw_window_get_data(hWnd, "_dw_resizebox");
-			HWND hscroll = WinWindowFromID(hWnd, FID_HORZSCROLL);
-			HWND vscroll = WinWindowFromID(hWnd, FID_VERTSCROLL);
+   case WM_HSCROLL:
+   case WM_VSCROLL:
+      {
+         MPARAM res;
+         int *pos, min, max, page, which = SHORT2FROMMP(mp2);
+         HWND handle, client = WinWindowFromID(hWnd, FID_CLIENT);
+         HWND box = (HWND)dw_window_get_data(hWnd, "_dw_resizebox");
+         HWND hscroll = WinWindowFromID(hWnd, FID_HORZSCROLL);
+         HWND vscroll = WinWindowFromID(hWnd, FID_VERTSCROLL);
             int hpos = dw_scrollbar_get_pos(hscroll);
             int vpos = dw_scrollbar_get_pos(vscroll);
-			int cy = (int)dw_window_get_data(hWnd, "_dw_cy");
+         int cy = (int)dw_window_get_data(hWnd, "_dw_cy");
             RECTL rect;
 
-			WinQueryWindowRect(client, &rect);
+         WinQueryWindowRect(client, &rect);
 
-			if(msg == WM_VSCROLL)
-			{
-				page = rect.yTop - rect.yBottom;
-				handle = vscroll;
+         if(msg == WM_VSCROLL)
+         {
+            page = rect.yTop - rect.yBottom;
+            handle = vscroll;
                 pos = &vpos;
-			}
-			else
-			{
-				page = rect.xRight - rect.xLeft;
-				handle = hscroll;
+         }
+         else
+         {
+            page = rect.xRight - rect.xLeft;
+            handle = hscroll;
                 pos = &hpos;
-			}
+         }
 
-    		res = WinSendMsg(handle, SBM_QUERYRANGE, 0, 0);
-			min = SHORT1FROMMP(res);
-			max = SHORT2FROMMP(res);
- 
-			switch(which)
-			{
-			case SB_SLIDERTRACK:
+         res = WinSendMsg(handle, SBM_QUERYRANGE, 0, 0);
+         min = SHORT1FROMMP(res);
+         max = SHORT2FROMMP(res);
+
+         switch(which)
+         {
+         case SB_SLIDERTRACK:
                 *pos = SHORT1FROMMP(mp2);
                 break;
-			case SB_LINEUP:
-				(*pos)--;
-				if(*pos < min)
-					*pos = min;
+         case SB_LINEUP:
+            (*pos)--;
+            if(*pos < min)
+               *pos = min;
                 break;
-			case SB_LINEDOWN:
-				(*pos)++;
-				if(*pos > max)
-					*pos = max;
+         case SB_LINEDOWN:
+            (*pos)++;
+            if(*pos > max)
+               *pos = max;
                 break;
-			case SB_PAGEUP:
-				(*pos) -= page;
-				if(*pos < min)
-					*pos = min;
+         case SB_PAGEUP:
+            (*pos) -= page;
+            if(*pos < min)
+               *pos = min;
                 break;
-			case SB_PAGEDOWN:
-				(*pos) += page;
-				if(*pos > max)
-					*pos = max;
-				break;
-			}
+         case SB_PAGEDOWN:
+            (*pos) += page;
+            if(*pos > max)
+               *pos = max;
+            break;
+         }
             WinSendMsg(handle, SBM_SETPOS, (MPARAM)*pos, 0);
             /* Position the scrolled box */
             WinSetWindowPos(box, HWND_TOP, -hpos, -(cy - vpos), 0, 0, SWP_MOVE);
-			break;
-		}
-	}
-	return WinDefWindowProc(hWnd, msg, mp1, mp2);
+         break;
+      }
+   }
+   return WinDefWindowProc(hWnd, msg, mp1, mp2);
 }
 
 void _click_default(HWND handle)
@@ -4081,6 +4081,17 @@ int API dw_window_set_font(HWND handle, char *fontname)
    return WinSetPresParam(handle, PP_FONTNAMESIZE, strlen(fontname)+1, fontname);
 }
 
+/*
+ * Gets the font used by a specified window (widget) handle.
+ * Parameters:
+ *          handle: The window (widget) handle.
+ *          fontname: Name and size of the font in the form "size.fontname"
+ */
+char * API dw_window_get_font(HWND handle)
+{
+   return "not implemented";
+}
+
 /* Internal version */
 int _dw_window_set_color(HWND handle, ULONG fore, ULONG back)
 {
@@ -4291,26 +4302,25 @@ HWND API dw_box_new(int type, int pad)
  */
 HWND API dw_scrollbox_new(int type, int pad)
 {
-    HWND hwndframe, box = dw_box_new(type, pad);
-    HWND client, tmpbox = dw_box_new(DW_VERT, 0);
-    WindowData *blah = calloc(sizeof(WindowData), 1);
-    dw_box_pack_start(tmpbox, box, 1, 1, TRUE, TRUE, 0);
-    hwndframe = WinCreateWindow(HWND_OBJECT, ScrollClassName, "", WS_VISIBLE | WS_CLIPCHILDREN,
-                                0, 0, 2000, 1000, NULLHANDLE, HWND_TOP, 0, NULL, NULL);
-    WinCreateWindow(hwndframe, WC_SCROLLBAR, "", WS_VISIBLE | SBS_AUTOTRACK | SBS_VERT,
-                    0,0,2000,1000, hwndframe, HWND_TOP, FID_VERTSCROLL, NULL, NULL);
+   HWND hwndframe, box = dw_box_new(type, pad);
+   HWND client, tmpbox = dw_box_new(DW_VERT, 0);
+   WindowData *blah = calloc(sizeof(WindowData), 1);
+   dw_box_pack_start(tmpbox, box, 1, 1, TRUE, TRUE, 0);
+   hwndframe = WinCreateWindow(HWND_OBJECT, ScrollClassName, "", WS_VISIBLE | WS_CLIPCHILDREN,
+                        0, 0, 2000, 1000, NULLHANDLE, HWND_TOP, 0, NULL, NULL);
+   WinCreateWindow(hwndframe, WC_SCROLLBAR, "", WS_VISIBLE | SBS_AUTOTRACK | SBS_VERT,
+               0,0,2000,1000, hwndframe, HWND_TOP, FID_VERTSCROLL, NULL, NULL);
     WinCreateWindow(hwndframe, WC_SCROLLBAR, "", WS_VISIBLE | SBS_AUTOTRACK | SBS_HORZ,
-                    0,0,2000,1000, hwndframe, HWND_TOP, FID_HORZSCROLL, NULL, NULL);
+               0,0,2000,1000, hwndframe, HWND_TOP, FID_HORZSCROLL, NULL, NULL);
     client = WinCreateWindow(hwndframe, WC_FRAME, "", WS_VISIBLE | WS_CLIPCHILDREN,
-                             0,0,2000,1000, NULLHANDLE, HWND_TOP, FID_CLIENT, NULL, NULL);
-    WinSetWindowPtr(client, QWP_USER, calloc(sizeof(Box), 1));
-    WinSetParent(tmpbox, client, FALSE);
-    WinSetWindowPtr(hwndframe, QWP_USER, blah);
-    dw_window_set_data(hwndframe, "_dw_resizebox", (void *)tmpbox);
+                      0,0,2000,1000, NULLHANDLE, HWND_TOP, FID_CLIENT, NULL, NULL);
+   WinSetParent(tmpbox, client, FALSE);
+   WinSetWindowPtr(hwndframe, QWP_USER, blah);
+   dw_window_set_data(hwndframe, "_dw_resizebox", (void *)tmpbox);
     dw_window_set_data(hwndframe, "_dw_box", (void *)box);
-    dw_window_set_color(hwndframe, DW_CLR_PALEGRAY, DW_CLR_PALEGRAY);
-    dw_window_set_color(client, DW_CLR_PALEGRAY, DW_CLR_PALEGRAY);
-    return hwndframe;
+   dw_window_set_color(hwndframe, DW_CLR_PALEGRAY, DW_CLR_PALEGRAY);
+   dw_window_set_color(client, DW_CLR_PALEGRAY, DW_CLR_PALEGRAY);
+   return hwndframe;
 }
 
 /*
@@ -4321,17 +4331,17 @@ HWND API dw_scrollbox_new(int type, int pad)
  */
 int API dw_scrollbox_get_pos( HWND handle, int orient )
 {
-    HWND scroll;
+   HWND scroll;
 
-    if(orient == DW_VERT)
-    {
-        scroll = WinWindowFromID(handle, FID_VERTSCROLL);
-    }
-    else
-    {
-        scroll = WinWindowFromID(handle, FID_HORZSCROLL);
-    }
-    return (int)WinSendMsg(scroll, SBM_QUERYPOS, 0, 0);
+   if(orient == DW_VERT)
+   {
+      scroll = WinWindowFromID(handle, FID_VERTSCROLL);
+   }
+   else
+   {
+      scroll = WinWindowFromID(handle, FID_HORZSCROLL);
+   }
+   return (int)WinSendMsg(scroll, SBM_QUERYPOS, 0, 0);
 }
 
 /*
@@ -4342,17 +4352,17 @@ int API dw_scrollbox_get_pos( HWND handle, int orient )
  */
 int API dw_scrollbox_get_range( HWND handle, int orient )
 {
-    HWND scroll;
+   HWND scroll;
 
-    if(orient == DW_VERT)
-    {
-        scroll = WinWindowFromID(handle, FID_VERTSCROLL);
-    }
-    else
-    {
-        scroll = WinWindowFromID(handle, FID_HORZSCROLL);
-    }
-    return SHORT2FROMMP(WinSendMsg(scroll, SLM_QUERYSLIDERINFO, MPFROM2SHORT(SMA_SLIDERARMPOSITION,SMA_RANGEVALUE), 0));
+   if(orient == DW_VERT)
+   {
+      scroll = WinWindowFromID(handle, FID_VERTSCROLL);
+   }
+   else
+   {
+      scroll = WinWindowFromID(handle, FID_HORZSCROLL);
+   }
+   return SHORT2FROMMP(WinSendMsg(scroll, SLM_QUERYSLIDERINFO, MPFROM2SHORT(SMA_SLIDERARMPOSITION,SMA_RANGEVALUE), 0));
 }
 
 /*
@@ -5903,16 +5913,16 @@ void API dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, 
 
    if(WinWindowFromID(box, FID_CLIENT))
    {
-	   HWND intbox = (HWND)dw_window_get_data(box, "_dw_box");
-	   if(intbox)
-	   {
-		   box = intbox;
-	   }
-	   else
-	   {
-		   box = WinWindowFromID(box, FID_CLIENT);
-		   hsize = vsize = TRUE;
-	   }
+      HWND intbox = (HWND)dw_window_get_data(box, "_dw_box");
+      if(intbox)
+      {
+         box = intbox;
+      }
+      else
+      {
+         box = WinWindowFromID(box, FID_CLIENT);
+         hsize = vsize = TRUE;
+      }
    }
    _dw_box_pack_end(box, item, width, height, hsize, vsize, pad, funcname);
 }
@@ -9252,16 +9262,16 @@ void API dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize
 
    if(WinWindowFromID(box, FID_CLIENT))
    {
- 	   HWND intbox = (HWND)dw_window_get_data(box, "_dw_box");
-	   if(intbox)
-	   {
-		   box = intbox;
-	   }
-	   else
-	   {
-		   box = WinWindowFromID(box, FID_CLIENT);
-		   hsize = vsize = TRUE;
-	   }
+      HWND intbox = (HWND)dw_window_get_data(box, "_dw_box");
+      if(intbox)
+      {
+         box = intbox;
+      }
+      else
+      {
+         box = WinWindowFromID(box, FID_CLIENT);
+         hsize = vsize = TRUE;
+      }
    }
    _dw_box_pack_start(box, item, width, height, hsize, vsize, pad, funcname);
 }
