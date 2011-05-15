@@ -35,6 +35,17 @@ OS/2 is currently missing the Calendar and HTML widgets because
 the system does not support them by default. Looking into writing
 custom ones or importing functionality from available libraries.
 
+Changes from version 1.1:
+Added support for MacOS 10.5 and higher Intel and PPC via Cocoa.
+Added support for Windows themes on XP and higher.
+Added scrollbox widgets, which function like boxes but...
+    scrollbars allow you to pack more into them than the available area.
+Added dw_window_get_font() for checking the font used on a widget.
+Added dw_container_change_row_title() for changing a row pointer after insert.
+Changed the return codes of dw_container_setup, dw_filesystem_setup and
+    dw_event_wait().  Please check any code that use these functions.
+Changed GTK2+ now supports font name styles like the other platforms.
+
 Dynamic Windows Documentation is available at:
 
 http://dbsoft.org/help_functions.php
