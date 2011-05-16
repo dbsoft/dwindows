@@ -7,18 +7,19 @@ version appears stable but has not undergone harsh testing.
 Known problems:
 
 Boxes don't adhere to ratios on Unix.
+MDI does not work on GTK3 and is not implemented the same on Mac.
+	At this time we cannot recommend using MDI in new code,
+	but it will be supported for existing code on OS/2, Win and GTK2.
+	If support for MDI improves on GTK3/Mac this status may change.
 
 Known limitations:
 
 It is not safe on all platforms to operate on widgets before they
-are packed.  For portablity pack widgets before operating on them.
+are packed.  For portability pack widgets before operating on them.
 
 On Windows a slider control will only work properly if it is the
 only slider in a box.  If there is more than one slider control 
 in a box then signals may get misdirected to the wrong control.
-
-On OS/2 and Windows MLE controls scrolled position may get 
-corrupted when resizing.
 
 On Unix (GTK) the window manager border is not a constant value
 so environment variables DW_BORDER_WIDTH and DW_BORDER_HEIGHT
@@ -37,7 +38,7 @@ custom ones or importing functionality from available libraries.
 
 Changes from version 1.1:
 Added support for MacOS 10.5 and higher Intel and PPC via Cocoa.
-Added initial support for GTK version 3.
+Added initial (unstable) support for GTK version 3.
 Added support for Windows themes on XP and higher.
 Added scrollbox widgets, which function like boxes but...
     scrollbars allow you to pack more into them than the visible area.
