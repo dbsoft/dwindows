@@ -8,9 +8,9 @@ Known problems:
 
 Boxes don't adhere to ratios on Unix.
 MDI does not work on GTK3 and is not implemented the same on Mac.
-	At this time we cannot recommend using MDI in new code,
-	but it will be supported for existing code on OS/2, Win and GTK2.
-	If support for MDI improves on GTK3/Mac this status may change.
+    At this time we cannot recommend using MDI in new code,
+    but it will be supported for existing code on OS/2, Win and GTK2.
+    If support for MDI improves on GTK3/Mac this status may change.
 
 Known limitations:
 
@@ -57,7 +57,7 @@ Removed thread limits on Windows and GTK using thread local storage.
 
 Dynamic Windows Documentation is available at:
 
-http://dbsoft.org/help_functions.php
+http://dbsoft.org/dw_help.php
 
 If you have any questions or suggestions feel free to email me at:
 

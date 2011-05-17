@@ -1451,11 +1451,9 @@ char * API dw_window_get_font(HWND handle);
 int API dw_window_set_color(HWND handle, unsigned long fore, unsigned long back);
 HWND API dw_window_new(HWND hwndOwner, char *title, unsigned long flStyle);
 HWND API dw_box_new(int type, int pad);
-#ifndef INCOMPLETE
 HWND API dw_scrollbox_new(int type, int pad);
 int API dw_scrollbox_get_pos( HWND handle, int orient );
 int API dw_scrollbox_get_range( HWND handle, int orient );
-#endif
 HWND API dw_groupbox_new(int type, int pad, char *title);
 HWND API dw_mdi_new(unsigned long id);
 HWND API dw_bitmap_new(unsigned long id);
