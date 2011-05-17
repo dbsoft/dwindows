@@ -4307,20 +4307,20 @@ HWND API dw_scrollbox_new(int type, int pad)
 {
    HWND hwndframe, box = dw_box_new(type, pad);
    HWND client, tmpbox = dw_box_new(DW_VERT, 0);
-   WindowData *blah = calloc(sizeof(WindowData), 1);
+   Box *blah = calloc(sizeof(Box), 1);
    dw_box_pack_start(tmpbox, box, 1, 1, TRUE, TRUE, 0);
    hwndframe = WinCreateWindow(HWND_OBJECT, ScrollClassName, "", WS_VISIBLE | WS_CLIPCHILDREN,
-                        0, 0, 2000, 1000, NULLHANDLE, HWND_TOP, 0, NULL, NULL);
+                               0, 0, 2000, 1000, NULLHANDLE, HWND_TOP, 0, NULL, NULL);
    WinCreateWindow(hwndframe, WC_SCROLLBAR, "", WS_VISIBLE | SBS_AUTOTRACK | SBS_VERT,
-               0,0,2000,1000, hwndframe, HWND_TOP, FID_VERTSCROLL, NULL, NULL);
-    WinCreateWindow(hwndframe, WC_SCROLLBAR, "", WS_VISIBLE | SBS_AUTOTRACK | SBS_HORZ,
-               0,0,2000,1000, hwndframe, HWND_TOP, FID_HORZSCROLL, NULL, NULL);
-    client = WinCreateWindow(hwndframe, WC_FRAME, "", WS_VISIBLE | WS_CLIPCHILDREN,
+                   0,0,2000,1000, hwndframe, HWND_TOP, FID_VERTSCROLL, NULL, NULL);
+   WinCreateWindow(hwndframe, WC_SCROLLBAR, "", WS_VISIBLE | SBS_AUTOTRACK | SBS_HORZ,
+                   0,0,2000,1000, hwndframe, HWND_TOP, FID_HORZSCROLL, NULL, NULL);
+   client = WinCreateWindow(hwndframe, WC_FRAME, "", WS_VISIBLE | WS_CLIPCHILDREN,
                       0,0,2000,1000, NULLHANDLE, HWND_TOP, FID_CLIENT, NULL, NULL);
    WinSetParent(tmpbox, client, FALSE);
-   WinSetWindowPtr(hwndframe, QWP_USER, blah);
+   WinSetWindowPtr(client, QWP_USER, blah);
    dw_window_set_data(hwndframe, "_dw_resizebox", (void *)tmpbox);
-    dw_window_set_data(hwndframe, "_dw_box", (void *)box);
+   dw_window_set_data(hwndframe, "_dw_box", (void *)box);
    dw_window_set_color(hwndframe, DW_CLR_PALEGRAY, DW_CLR_PALEGRAY);
    dw_window_set_color(client, DW_CLR_PALEGRAY, DW_CLR_PALEGRAY);
    return hwndframe;
