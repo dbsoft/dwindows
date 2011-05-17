@@ -330,7 +330,7 @@ void _dw_default_font(char *fontname);
 #define DW_DT_WORDBREAK          0
 #define DW_DT_ERASERECT          0
 
-#define DW_FCF_CLOSEBUTTON       0
+#define DW_FCF_CLOSEBUTTON       (1 << 1) /* NSClosableWindowMask */
 #define DW_FCF_TITLEBAR          (1 << 0) /* NSTitledWindowMask */
 #define DW_FCF_SYSMENU           (1 << 1) /* NSClosableWindowMask */
 #define DW_FCF_MENU              0
