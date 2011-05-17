@@ -747,9 +747,9 @@ DWObject *DWObj;
 @implementation DWView
 -(BOOL)windowShouldClose:(id)sender
 {
-    if(_event_handler(sender, nil, 6) == FALSE)
-        return YES;
-    return NO;
+    if(_event_handler(sender, nil, 6) > 0)
+        return NO;
+    return YES;
 }
 - (void)viewDidMoveToWindow
 {
