@@ -5335,6 +5335,8 @@ HWND API dw_spinbutton_new(char *text, ULONG id)
                         NULL,
                         NULL);
    HWND entry = _find_entryfield(tmp);
+   WinSendMsg(tmp, SPBM_SETLIMITS, MPFROMLONG(65536), MPFROMLONG(-65536));
+   WinSendMsg(tmp, SPBM_SETCURRENTVALUE, MPFROMLONG(atoi(text)), 0L);
    blah->oldproc = WinSubclassWindow(tmp, _entryproc);
    WinSetWindowPtr(tmp, QWP_USER, blah);
    blah = calloc(sizeof(WindowData), 1);
@@ -6709,7 +6711,7 @@ long API dw_spinbutton_get_pos(HWND handle)
    long tmpval = 0L;
 
    WinSendMsg(handle, SPBM_QUERYVALUE, (MPARAM)&tmpval,0L);
-    return tmpval;
+   return tmpval;
 }
 
 /*
