@@ -4766,7 +4766,7 @@ HWND API dw_container_new(ULONG id, int multi)
                         WC_CONTAINER,
                         NULL,
                         WS_VISIBLE | CCS_READONLY |
-                        (multi ? CCS_EXTENDSEL : CCS_SINGLESEL) |
+                        (multi ? CCS_MULTIPLESEL : CCS_SINGLESEL) |
                         CCS_AUTOPOSITION,
                         0,0,2000,1000,
                         NULLHANDLE,
@@ -7574,6 +7574,25 @@ void API dw_container_change_row_title(HWND handle, int row, char *title)
    }
 }
 
+/* Internal function to get the first item with given flags */
+PRECORDCORE _dw_container_start(HWND handle, unsigned long flags)
+{
+   PRECORDCORE pCore = WinSendMsg(handle, CM_QUERYRECORD, (MPARAM)0L, MPFROM2SHORT(CMA_FIRST, CMA_ITEMORDER));
+
+   if(pCore)
+   {
+       while(pCore)
+       {
+           if(pCore->flRecordAttr & flags)
+           {
+               return pCore;
+           }
+           pCore = WinSendMsg(handle, CM_QUERYRECORD, (MPARAM)pCore, MPFROM2SHORT(CMA_NEXT, CMA_ITEMORDER));
+       }
+   }
+   return NULL;
+}
+
 /*
  * Sets the title of a row in the container.
  * Parameters:
@@ -7585,6 +7604,7 @@ void API dw_container_insert(HWND handle, void *pointer, int rowcount)
 {
    RECORDINSERT recin;
    ContainerInfo *ci = (ContainerInfo *)pointer;
+   PRECORDCORE pCore;
 
    if(!ci)
       return;
@@ -7599,6 +7619,17 @@ void API dw_container_insert(HWND handle, void *pointer, int rowcount)
    _dw_send_msg(handle, CM_INSERTRECORD, MPFROMP(ci->data), MPFROMP(&recin), 0);
 
    free(ci);
+
+   if((pCore = _dw_container_start(handle, CRA_CURSORED)))
+   {
+       NOTIFYRECORDEMPHASIS pre;
+
+       pre.pRecord = pCore;
+       pre.fEmphasisMask = CRA_CURSORED;
+       pre.hwndCnr = handle;
+       _run_event(handle, WM_CONTROL, MPFROM2SHORT(0, CN_EMPHASIS), (MPARAM)&pre);
+       pre.pRecord->flRecordAttr |= CRA_CURSORED;
+   }
 }
 
 /*
@@ -7714,7 +7745,7 @@ char * API dw_container_query_start(HWND handle, unsigned long flags)
          return pCore->pszIcon;
       }
    }
-    return NULL;
+   return NULL;
 }
 
 /*
