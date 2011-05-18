@@ -5449,6 +5449,7 @@ HWND API dw_spinbutton_new(char *text, ULONG id)
                        NULL);
    ColorInfo *cinfo = calloc(1, sizeof(ColorInfo));
 
+   SendMessage(tmp, UDM_SETRANGE32, (WPARAM)-65536,(LPARAM)65536);
    SendMessage(tmp, UDM_SETBUDDY, (WPARAM)buddy, 0);
    cinfo->back = cinfo->fore = -1;
    cinfo->buddy = tmp;
