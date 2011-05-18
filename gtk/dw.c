@@ -9077,7 +9077,17 @@ void dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, int 
    }
    else
    {
-      GtkWidget *vbox = gtk_vbox_new(FALSE, 0);
+      GtkWidget *vbox = g_object_get_data(G_OBJECT(box), "_dw_vbox");
+      
+      if(!vbox)
+      {
+         vbox = gtk_vbox_new(FALSE, 0);
+         g_object_set_data(G_OBJECT(box), "_dw_vbox", vbox);
+         gtk_container_add(GTK_CONTAINER(box), vbox);
+         gtk_widget_show(vbox);
+      }
+      
+      gtk_container_set_border_width(GTK_CONTAINER(box), pad);
 
       if(GTK_IS_TABLE(item) || (tmpitem && GTK_IS_TABLE(tmpitem)))
       {
@@ -9102,10 +9112,7 @@ void dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, int 
          warn = TRUE;
       }
 
-      gtk_container_border_width(GTK_CONTAINER(box), pad);
-      gtk_container_add(GTK_CONTAINER(box), vbox);
       gtk_box_pack_end(GTK_BOX(vbox), item, TRUE, TRUE, 0);
-      gtk_widget_show(vbox);
 
       gtk_widget_set_usize(item, width, height);
       gtk_object_set_user_data(GTK_OBJECT(box), vbox);
@@ -10550,7 +10557,17 @@ void dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize, in
    }
    else
    {
-      GtkWidget *vbox = gtk_vbox_new(FALSE, 0);
+      GtkWidget *vbox = g_object_get_data(G_OBJECT(box), "_dw_vbox");
+      
+      if(!vbox)
+      {
+         vbox = gtk_vbox_new(FALSE, 0);
+         g_object_set_data(G_OBJECT(box), "_dw_vbox", vbox);
+         gtk_container_add(GTK_CONTAINER(box), vbox);
+         gtk_widget_show(vbox);
+      }
+      
+      gtk_container_set_border_width(GTK_CONTAINER(box), pad);
 
       if (GTK_IS_TABLE(item) || (tmpitem && GTK_IS_TABLE(tmpitem)))
       {
@@ -10575,10 +10592,7 @@ void dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize, in
          warn = TRUE;
       }
 
-      gtk_container_border_width(GTK_CONTAINER(box), pad);
-      gtk_container_add(GTK_CONTAINER(box), vbox);
-      gtk_box_pack_end(GTK_BOX(vbox), item, TRUE, TRUE, 0);
-      gtk_widget_show(vbox);
+      gtk_box_pack_start(GTK_BOX(vbox), item, TRUE, TRUE, 0);
 
       gtk_widget_set_usize(item, width, height);
       gtk_object_set_user_data(GTK_OBJECT(box), vbox);
