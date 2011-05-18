@@ -1357,27 +1357,27 @@ int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *usedy,
                 /* Handle special case of scrollbox */
                 int cx = width + vectorx;
                 int cy = height + vectory;
-            int usedx = 0, usedy = 0, usedpadx = 0, usedpady = 0, depth = 0;
-            HWND box = (HWND)dw_window_get_data(handle, "_dw_resizebox");
-            HWND client = WinWindowFromID(handle, FID_CLIENT);
-            HWND vscroll = WinWindowFromID(handle, FID_VERTSCROLL);
+                int usedx = 0, usedy = 0, usedpadx = 0, usedpady = 0, depth = 0;
+                HWND box = (HWND)dw_window_get_data(handle, "_dw_resizebox");
+                HWND client = WinWindowFromID(handle, FID_CLIENT);
+                HWND vscroll = WinWindowFromID(handle, FID_VERTSCROLL);
                 HWND hscroll = WinWindowFromID(handle, FID_HORZSCROLL);
-            Box *thisbox = (Box *)WinQueryWindowPtr(box, QWP_USER);
-            int origx, origy;
+                Box *contentbox = (Box *)WinQueryWindowPtr(box, QWP_USER);
+                int origx, origy;
                 unsigned int hpos = (unsigned int)WinSendMsg(hscroll, SBM_QUERYPOS, 0, 0);
                 unsigned int vpos = (unsigned int)WinSendMsg(vscroll, SBM_QUERYPOS, 0, 0);
 
                 /* Position the scrollbox parts */
-                WinSetWindowPos(handle, HWND_TOP, currentx + pad, currenty + pad, cx, cy, SWP_MOVE | SWP_SIZE | SWP_ZORDER);
+                _MySetWindowPos(handle, thisbox->hwnd, HWND_TOP, currentx + pad, currenty + pad, cx, cy, SWP_MOVE | SWP_SIZE | SWP_ZORDER);
                 WinSetWindowPos(client, HWND_TOP, 0, _DW_DEFAULT_SCROLLBAR_WIDTH, cx - _DW_DEFAULT_SCROLLBAR_WIDTH, cy - _DW_DEFAULT_SCROLLBAR_WIDTH, SWP_MOVE | SWP_SIZE | SWP_ZORDER);
                 WinSetWindowPos(hscroll, HWND_TOP, 0, 0, cx - _DW_DEFAULT_SCROLLBAR_WIDTH, _DW_DEFAULT_SCROLLBAR_WIDTH, SWP_MOVE | SWP_SIZE | SWP_ZORDER);
                 WinSetWindowPos(vscroll, HWND_TOP, cx - _DW_DEFAULT_SCROLLBAR_WIDTH, _DW_DEFAULT_SCROLLBAR_WIDTH, _DW_DEFAULT_SCROLLBAR_WIDTH, cy - _DW_DEFAULT_SCROLLBAR_WIDTH, SWP_MOVE | SWP_SIZE | SWP_ZORDER);
 
-            origx = cx = cx - _DW_DEFAULT_SCROLLBAR_WIDTH;
-            origy = cy = cy - _DW_DEFAULT_SCROLLBAR_WIDTH;
+                origx = cx = cx - _DW_DEFAULT_SCROLLBAR_WIDTH;
+                origy = cy = cy - _DW_DEFAULT_SCROLLBAR_WIDTH;
 
                 /* Get the required space for the box */
-            _resize_box(thisbox, &depth, cx, cy, &usedx, &usedy, 1, &usedpadx, &usedpady);
+                _resize_box(contentbox, &depth, cx, cy, &usedx, &usedy, 1, &usedpadx, &usedpady);
 
                 if(cx < usedx)
                 {
@@ -1389,30 +1389,30 @@ int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *usedy,
                 }
 
                 /* Setup vertical scroller */
-            WinSendMsg(vscroll, SBM_SETSCROLLBAR, (MPARAM)vpos, MPFROM2SHORT(0, (unsigned short)usedy - origy));
-            WinSendMsg(vscroll, SBM_SETTHUMBSIZE, MPFROM2SHORT((unsigned short)origy, usedy), 0);
+                WinSendMsg(vscroll, SBM_SETSCROLLBAR, (MPARAM)vpos, MPFROM2SHORT(0, (unsigned short)usedy - origy));
+                WinSendMsg(vscroll, SBM_SETTHUMBSIZE, MPFROM2SHORT((unsigned short)origy, usedy), 0);
                 if(vpos > usedy)
                 {
-               vpos = usedy;
-               WinSendMsg(vscroll, SBM_SETPOS, (MPARAM)vpos, 0);
-            }
+                    vpos = usedy;
+                    WinSendMsg(vscroll, SBM_SETPOS, (MPARAM)vpos, 0);
+                }
 
                 /* Setup horizontal scroller */
-            WinSendMsg(hscroll, SBM_SETSCROLLBAR, (MPARAM)hpos, MPFROM2SHORT(0, (unsigned short)usedx - origx));
-            WinSendMsg(hscroll, SBM_SETTHUMBSIZE, MPFROM2SHORT((unsigned short)origx, usedx), 0);
+                WinSendMsg(hscroll, SBM_SETSCROLLBAR, (MPARAM)hpos, MPFROM2SHORT(0, (unsigned short)usedx - origx));
+                WinSendMsg(hscroll, SBM_SETTHUMBSIZE, MPFROM2SHORT((unsigned short)origx, usedx), 0);
                 if(hpos > usedx)
                 {
-               hpos = usedx;
-               WinSendMsg(hscroll, SBM_SETPOS, (MPARAM)hpos, 0);
-            }
+                    hpos = usedx;
+                    WinSendMsg(hscroll, SBM_SETPOS, (MPARAM)hpos, 0);
+                }
 
                 /* Position the scrolled box */
-            WinSetWindowPos(box, HWND_TOP, 0, -(cy - origy), cx, cy, SWP_MOVE | SWP_SIZE | SWP_ZORDER);
+                WinSetWindowPos(box, HWND_TOP, 0, -(cy - origy), cx, cy, SWP_MOVE | SWP_SIZE | SWP_ZORDER);
 
                 dw_window_set_data(handle, "_dw_cy", (void *)(cy - origy));
 
                 /* Layout the content of the scrollbox */
-                _do_resize(thisbox, cx, cy);
+                _do_resize(contentbox, cx, cy);
             }
             else if(strncmp(tmpbuf, SplitbarClassName, strlen(SplitbarClassName)+1)==0)
             {
@@ -2866,8 +2866,8 @@ MRESULT EXPENTRY _wndproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
              */
             WinShowWindow(hWnd, FALSE);
 
-                if(mybox->items)
-               WinSetWindowPos(mybox->items[0].hwnd, HWND_TOP, 0, 0, SHORT1FROMMP(mp2), SHORT2FROMMP(mp2), SWP_MOVE | SWP_SIZE);
+            if(mybox->items)
+                WinSetWindowPos(mybox->items[0].hwnd, HWND_TOP, 0, 0, SHORT1FROMMP(mp2), SHORT2FROMMP(mp2), SWP_MOVE | SWP_SIZE);
 
             _do_resize(mybox, SHORT1FROMMP(mp2), SHORT2FROMMP(mp2));
 
@@ -4052,9 +4052,12 @@ void API dw_window_redraw(HWND handle)
 
       dw_window_get_pos_size(window, NULL, NULL, &width, &height);
 
-      WinShowWindow(client ? mybox->items[0].hwnd : handle, FALSE);
+      if(mybox->items)
+          WinSetWindowPos(mybox->items[0].hwnd, HWND_TOP, 0, 0, width, height, SWP_MOVE | SWP_SIZE);
+
+      WinShowWindow(client && mybox->items ? mybox->items[0].hwnd : handle, FALSE);
       _do_resize(mybox, width, height);
-      WinShowWindow(client ? mybox->items[0].hwnd : handle, TRUE);
+      WinShowWindow(client && mybox->items ? mybox->items[0].hwnd : handle, TRUE);
    }
 }
 
