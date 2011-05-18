@@ -3482,8 +3482,13 @@ HWND API dw_spinbutton_new(char *text, ULONG cid)
 {
     DWSpinButton *spinbutton = [[DWSpinButton alloc] init];
     NSStepper *stepper = [spinbutton stepper];
+    NSTextField *textfield = [spinbutton textfield];
     [stepper setIncrement:1];
     [stepper setTag:cid];
+    [stepper setMinValue:-65536];
+    [stepper setMaxValue:65536];
+    [stepper setIntValue:atoi(text)];
+    [textfield takeIntValueFrom:stepper];
     return spinbutton;
 }
 
