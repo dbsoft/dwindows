@@ -3822,7 +3822,7 @@ HWND dw_spinbutton_new(char *text, unsigned long id)
    int _locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
-   adj = (GtkAdjustment *)gtk_adjustment_new (1.0, 0.0, 100.0, 1.0, 5.0, 0.0);
+   adj = (GtkAdjustment *)gtk_adjustment_new ((float)atoi(text), -65536.0, 65536.0, 1.0, 5.0, 0.0);
    tmp = gtk_spin_button_new (adj, 0, 0);
    gtk_spin_button_set_numeric(GTK_SPIN_BUTTON(tmp), TRUE);
    gtk_spin_button_set_wrap(GTK_SPIN_BUTTON(tmp), TRUE);
