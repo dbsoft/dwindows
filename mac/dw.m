@@ -799,7 +799,7 @@ DWObject *DWObj;
     {
         [DWApp setMainMenu:DWMainMenu];
     }
-    _event_handler(self, nil, 13);
+    _event_handler([self window], nil, 13);
 }
 -(void)setMenu:(NSMenu *)input { windowmenu = input; [windowmenu retain]; }
 -(void)menuHandler:(id)sender { _event_handler(sender, nil, 8); }
