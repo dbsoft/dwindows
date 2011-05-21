@@ -7344,6 +7344,11 @@ char * API dw_window_get_text(HWND handle)
 {
     NSObject *object = handle;
 
+    if([object isMemberOfClass:[ DWSpinButton class]])
+    {
+        DWSpinButton *spinbutton = handle;
+        handle = object = [spinbutton textfield];
+    }
     if([ object isKindOfClass:[ NSWindow class ] ] || [ object isKindOfClass:[ NSButton class ] ])
     {
         id window = handle;
@@ -7373,6 +7378,11 @@ void API dw_window_set_text(HWND handle, char *text)
     DW_MUTEX_LOCK;
     NSObject *object = handle;
 
+    if([object isMemberOfClass:[ DWSpinButton class]])
+    {
+        DWSpinButton *spinbutton = handle;
+        handle = object = [spinbutton textfield];
+    }
     if([ object isKindOfClass:[ NSWindow class ] ] || [ object isKindOfClass:[ NSButton class ] ])
     {
         id window = handle;
