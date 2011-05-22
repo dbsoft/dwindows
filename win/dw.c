@@ -5793,6 +5793,12 @@ void API dw_window_set_text(HWND handle, char *text)
    /* Combobox */
    if ( strnicmp( tmpbuf, COMBOBOXCLASSNAME, strlen(COMBOBOXCLASSNAME)+1) == 0 )
       SendMessage(handle, CB_SETEDITSEL, 0, MAKELPARAM(-1, 0));
+   else if ( strnicmp( tmpbuf, UPDOWN_CLASS, strlen(UPDOWN_CLASS)+1) == 0 )
+   {
+      ColorInfo *cinfo = (ColorInfo *)GetWindowLongPtr(handle, GWLP_USERDATA);
+      if( cinfo && cinfo->buddy )
+         SetWindowText( cinfo->buddy, text );
+   }
    else if ( strnicmp( tmpbuf, FRAMECLASSNAME, strlen(FRAMECLASSNAME)+1) == 0 )
    {
       /* groupbox */
@@ -5811,8 +5817,23 @@ void API dw_window_set_text(HWND handle, char *text)
  */
 char * API dw_window_get_text(HWND handle)
 {
-   int len = GetWindowTextLength(handle);
-   char *tempbuf = calloc(1, len + 2);
+   char tmpbuf[100], *tempbuf;
+   int len;
+
+   GetClassName(handle, tmpbuf, 99);
+   
+   if ( strnicmp( tmpbuf, UPDOWN_CLASS, strlen(UPDOWN_CLASS)+1) == 0 )
+   {
+      ColorInfo *cinfo = (ColorInfo *)GetWindowLongPtr(handle, GWLP_USERDATA);
+      
+      if( cinfo && cinfo->buddy )
+        handle = cinfo->buddy;
+      else
+        return NULL;
+   }
+   
+   len = GetWindowTextLength(handle);
+   tempbuf = calloc(1, len + 2);
 
    GetWindowText(handle, tempbuf, len + 1);
 
