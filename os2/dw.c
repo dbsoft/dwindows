@@ -4769,7 +4769,7 @@ HWND API dw_container_new(ULONG id, int multi)
                         WC_CONTAINER,
                         NULL,
                         WS_VISIBLE | CCS_READONLY |
-                        (multi ? CCS_MULTIPLESEL : CCS_SINGLESEL) |
+                        (multi ? CCS_EXTENDSEL : CCS_SINGLESEL) |
                         CCS_AUTOPOSITION,
                         0,0,2000,1000,
                         NULLHANDLE,
