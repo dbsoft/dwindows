@@ -1,8 +1,8 @@
 #
 # Visual C Makefile for Dynamic Windows
 #
-VER = 11
-VERDOT = 1.1
+VER = 20
+VERDOT = 2.0
 
 #
 # Setup the source and destination directories
@@ -130,4 +130,4 @@ dwtest.exe: dwtest.obj winmain.obj
 
 zip: dw.dll
 	copy win\readme-win.txt .
-	zip dwindows-win32-$(VERDOT).zip readme-win.txt dw.dll dwcompat.dll dw.lib dwcompat.lib dw.h
+	zip dwindows-win32-$(VERDOT).zip readme-win.txt readme dw.dll dwcompat.dll dw.lib dwcompat.lib dw.h
