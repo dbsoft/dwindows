@@ -169,7 +169,7 @@ dist:
 	$(SRCDIR)/*.def $(SRCDIR)/install.sh $(SRCDIR)/*.in $(SRCDIR)/configure \
 	$(SRCDIR)/ac*.m4 $(SRCDIR)/dwindows-config.1 \
 	$(SRCDIR)/gtk/*.c $(SRCDIR)/gtk/*.cpp $(SRCDIR)/win/*.c $(SRCDIR)/os2/*.c  $(SRCDIR)/win/*.txt $(SRCDIR)/os2/*.txt \
-	$(SRCDIR)/gtk/*.xpm $(SRCDIR)/win/*.ico $(SRCDIR)/os2/*.ico \
+	$(SRCDIR)/gtk/*.xpm $(SRCDIR)/gtk3/*.c $(SRCDIR)/image/test.* $(SRCDIR)/win/*.ico $(SRCDIR)/os2/*.ico \
 	$(SRCDIR)/mac/Info.plist $(SRCDIR)/mac/PkgInfo $(SRCDIR)/mac/*.c $(SRCDIR)/mac/*.m $(SRCDIR)/mac/dwtest.r $(SRCDIR)/mac/finishup.sh \
 	$(SRCDIR)/debian/control $(SRCDIR)/debian/rules $(SRCDIR)/debian/copyright $(SRCDIR)/debian/compat $(SRCDIR)/debian/changelog \
 	$(SRCDIR)/platform/*.h | gzip > $(SRCDIR).tar.gz )
