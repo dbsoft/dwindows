@@ -2749,6 +2749,13 @@ int dw_window_set_font(HWND handle, char *fontname)
       if(tmp)
          handle2 = tmp;
    }
+   /* If it is a groupox we want to operate on the frame label */
+   else if(GTK_IS_FRAME(handle))
+   {
+      GtkWidget *tmp = gtk_frame_get_label_widget(GTK_FRAME(handle));
+      if(tmp)
+         handle2 = tmp;
+   }
 
 #if GTK_MAJOR_VERSION < 2
    /* Free old font if it exists */
@@ -2818,6 +2825,13 @@ char *dw_window_get_font(HWND handle)
       if(tmp)
          handle2 = tmp;
    }
+   /* If it is a groupox we want to operate on the frame label */
+   else if(GTK_IS_FRAME(handle))
+   {
+      GtkWidget *tmp = gtk_frame_get_label_widget(GTK_FRAME(handle));
+      if(tmp)
+         handle2 = tmp;
+   }
 
 #if GTK_MAJOR_VERSION < 2
    /* Free old font if it exists */
@@ -2837,8 +2851,32 @@ char *dw_window_get_font(HWND handle)
       pfont = pango_context_get_font_description( pcontext );
       if ( pfont )
       {
+         int len, x;
+         
          font = pango_font_description_to_string( pfont );
          retfont = strdup(font);
+         len = strlen(font);
+         /* Convert to Dynamic Windows format if we can... */
+         if(len > 0 && isdigit(font[len-1]))
+         {
+            int size;
+            
+            x=len-1;
+            while(x > 0 && font[x] != ' ')
+            {
+               x--;
+            }
+            size = atoi(&font[x]);
+            /* If we were able to find a valid size... */
+            if(size > 0)
+            {
+               /* Null terminate after the name...
+                * and create the Dynamic Windows style font.
+                */
+               font[x] = 0;
+               snprintf(retfont, len+1, "%d.%s", size, font);
+            }
+         }
          g_free( font );
       }
    }
@@ -3272,30 +3310,13 @@ int API dw_scrollbox_get_range(HWND handle, int orient)
  */
 HWND dw_groupbox_new(int type, int pad, char *title)
 {
-   GtkWidget *tmp, *frame, *label;
-   PangoFontDescription *pfont;
-   PangoContext *pcontext;
+   GtkWidget *tmp, *frame;
    int _locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
    frame = gtk_frame_new(NULL);
    gtk_frame_set_shadow_type(GTK_FRAME(frame), GTK_SHADOW_ETCHED_IN);
    gtk_frame_set_label(GTK_FRAME(frame), title && *title ? title : NULL);
-   /*
-    * Get the current font for the frame's label and make it bold
-    */
-   label = gtk_frame_get_label_widget(GTK_FRAME(frame));
-   pcontext = gtk_widget_get_pango_context( label );
-   if ( pcontext )
-   {
-      pfont = pango_context_get_font_description( pcontext );
-      if ( pfont )
-      {
-         pango_font_description_set_weight( pfont, PANGO_WEIGHT_BOLD );
-         gtk_widget_modify_font( label, pfont );
-      }
-   }
-
    tmp = gtk_table_new(1, 1, FALSE);
    gtk_container_border_width(GTK_CONTAINER(tmp), pad);
    gtk_object_set_data(GTK_OBJECT(tmp), "_dw_boxtype", GINT_TO_POINTER(type));
