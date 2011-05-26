@@ -5767,7 +5767,8 @@ void API dw_window_set_bitmap_from_data(HWND handle, unsigned long id, char *dat
  */
 void API dw_window_set_text(HWND handle, char *text)
 {
-   WinSetWindowText(handle, text);
+   HWND entryfield = WinWindowFromID(handle, 1703);
+   WinSetWindowText(entryfield ? entryfield : handle, text);
 }
 
 /*
@@ -5779,10 +5780,11 @@ void API dw_window_set_text(HWND handle, char *text)
  */
 char * API dw_window_get_text(HWND handle)
 {
-   int len = WinQueryWindowTextLength(handle);
+   HWND entryfield = WinWindowFromID(handle, 1703);
+   int len = WinQueryWindowTextLength(entryfield ? entryfield : handle);
    char *tempbuf = calloc(1, len + 2);
 
-   WinQueryWindowText(handle, len + 1, tempbuf);
+   WinQueryWindowText(entryfield ? entryfield : handle, len + 1, tempbuf);
 
    return tempbuf;
 }
