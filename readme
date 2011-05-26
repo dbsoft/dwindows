@@ -6,7 +6,8 @@ version appears stable but has not undergone harsh testing.
 
 Known problems:
 
-Boxes don't adhere to ratios on Unix.
+Boxes with no expandable items will have their contents centered on 
+    GTK instead of top or left justified on the other platforms.
 MDI does not work on GTK3 and is not implemented the same on Mac.
     At this time we cannot recommend using MDI in new code,
     but it will be supported for existing code on OS/2, Win and GTK2.
@@ -45,7 +46,7 @@ Added scrollbox widgets, which function like boxes but...
 Added dw_window_get_font() for checking the font used on a widget.
 Added dw_container_change_row_title() for changing a row pointer after insert.
 Added clipboard support on OS/2.
-Added HICN data type for icon handles an changed icon functions to use it.
+Added HICN data type for icon handles and changed icon functions to use it.
 Added DW_RESOURCE() macro for casting to HICN when using resource IDs.
 Added support for borderless buttons except on Windows (DW_BS_NOBORDER).
 Changed the return codes of dw_container_setup, dw_filesystem_setup and
