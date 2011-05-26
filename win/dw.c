@@ -4506,6 +4506,7 @@ HWND API dw_groupbox_new(int type, int pad, char *title)
                             NULL);
 
    SetWindowLongPtr(hwndframe, GWLP_USERDATA, (LONG_PTR)newbox);
+   dw_window_set_font(hwndframe, DefaultFont);
    return hwndframe;
 }
 
