@@ -4061,47 +4061,50 @@ HFONT _acquire_font(HWND handle, char *fontname)
  */
 int API dw_window_set_font(HWND handle, char *fontname)
 {
-   HFONT oldfont = (HFONT)SendMessage(handle, WM_GETFONT, 0, 0);
-   HFONT hfont = _acquire_font(handle, fontname);
-   ColorInfo *cinfo;
-   Box *thisbox;
-   char tmpbuf[100];
+    HFONT hfont, oldfont;
+    ColorInfo *cinfo;
+    char tmpbuf[100];
 
-   cinfo = (ColorInfo *)GetWindowLongPtr(handle, GWLP_USERDATA);
+    cinfo = (ColorInfo *)GetWindowLongPtr(handle, GWLP_USERDATA);
 
-   if (fontname)
-   {
-      GetClassName(handle, tmpbuf, 99);
-      if ( strnicmp( tmpbuf, FRAMECLASSNAME, strlen(FRAMECLASSNAME)) == 0 )
-      {
-         /* groupbox */
-         thisbox = (Box *)GetWindowLongPtr( handle, GWLP_USERDATA );
-         if ( thisbox && thisbox->grouphwnd != (HWND)NULL )
-         {
+    GetClassName(handle, tmpbuf, 99);
+    if ( strnicmp( tmpbuf, FRAMECLASSNAME, strlen(FRAMECLASSNAME)+1) == 0 )
+    {
+        /* groupbox */
+        Box *thisbox = (Box *)GetWindowLongPtr( handle, GWLP_USERDATA );
+        if ( thisbox && thisbox->grouphwnd != (HWND)NULL )
+        {
             handle = thisbox->grouphwnd;
-         }
-      }
-      if(cinfo)
-      {
-         strcpy(cinfo->fontname, fontname);
-         if(!oldfont)
-            oldfont = cinfo->hfont;
-         cinfo->hfont = hfont;
-      }
-      else
-      {
-         cinfo = calloc(1, sizeof(ColorInfo));
-         cinfo->fore = cinfo->back = -1;
+        }
+    }
+        
+    /* This needs to be after we get the correct handle */
+    oldfont = (HFONT)SendMessage(handle, WM_GETFONT, 0, 0);
+    hfont = _acquire_font(handle, fontname);
+    
+    if (fontname)
+    {
+        if(cinfo)
+        {
+            strcpy(cinfo->fontname, fontname);
+            if(!oldfont)
+                oldfont = cinfo->hfont;
+            cinfo->hfont = hfont;
+        }
+        else
+        {
+            cinfo = calloc(1, sizeof(ColorInfo));
+            cinfo->fore = cinfo->back = -1;
 
-         strcpy(cinfo->fontname, fontname);
+            strcpy(cinfo->fontname, fontname);
 
-         cinfo->pOldProc = SubclassWindow(handle, _colorwndproc);
-         SetWindowLongPtr(handle, GWLP_USERDATA, (LONG_PTR)cinfo);
-      }
-   }
-   SendMessage(handle, WM_SETFONT, (WPARAM)hfont, (LPARAM)TRUE);
-   if(oldfont)
-      DeleteObject(oldfont);
+            cinfo->pOldProc = SubclassWindow(handle, _colorwndproc);
+            SetWindowLongPtr(handle, GWLP_USERDATA, (LONG_PTR)cinfo);
+        }
+    }
+    SendMessage(handle, WM_SETFONT, (WPARAM)hfont, (LPARAM)TRUE);
+    if(oldfont)
+        DeleteObject(oldfont);
    return 0;
 }
 
@@ -4122,7 +4125,7 @@ char * API dw_window_get_font(HWND handle)
    char tmpbuf[100];
 
    GetClassName(handle, tmpbuf, 99);
-   if ( strnicmp( tmpbuf, FRAMECLASSNAME, strlen(FRAMECLASSNAME)) == 0 )
+   if ( strnicmp( tmpbuf, FRAMECLASSNAME, strlen(FRAMECLASSNAME)+1) == 0 )
    {
       /* groupbox */
       thisbox = (Box *)GetWindowLongPtr( handle, GWLP_USERDATA );
@@ -4503,7 +4506,6 @@ HWND API dw_groupbox_new(int type, int pad, char *title)
                             NULL);
 
    SetWindowLongPtr(hwndframe, GWLP_USERDATA, (LONG_PTR)newbox);
-fprintf(stderr,"in groupbox\n");
    return hwndframe;
 }
 
