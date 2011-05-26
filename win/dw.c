@@ -39,9 +39,6 @@ DWORD dwVersion = 0, dwComctlVer = 0;
 DWTID _dwtid = -1;
 SECURITY_DESCRIPTOR _dwsd;
 
-static HFONT DefaultBoldFont;
-static LOGFONT lfDefaultBoldFont = { 0 };
-
 #define PACKVERSION(major,minor) MAKELONG(minor,major)
 
 #define IS_XPPLUS (dwComctlVer >= PACKVERSION(5,82))
@@ -3674,13 +3671,6 @@ int API dw_init(int newthread, int argc, char *argv[])
     */
    screenx = GetSystemMetrics(SM_CXSCREEN);
    screeny = GetSystemMetrics(SM_CYSCREEN);
-   /*
-    * Create a default bold font
-    */
-   oldfont = GetStockObject(DEFAULT_GUI_FONT);
-   GetObject( oldfont, sizeof(lfDefaultBoldFont), &lfDefaultBoldFont );
-   lfDefaultBoldFont.lfWeight = FW_BOLD;
-   DefaultBoldFont = CreateFontIndirect(&lfDefaultBoldFont);
    return 0;
 }
 
@@ -4123,12 +4113,25 @@ int API dw_window_set_font(HWND handle, char *fontname)
  */
 char * API dw_window_get_font(HWND handle)
 {
-   HFONT oldfont = (HFONT)SendMessage(handle, WM_GETFONT, 0, 0);
+   HFONT oldfont = NULL;
    char *str = NULL;
    char *bold = "";
    char *italic = "";
    LOGFONT lf = { 0 };
+   Box *thisbox;
+   char tmpbuf[100];
 
+   GetClassName(handle, tmpbuf, 99);
+   if ( strnicmp( tmpbuf, FRAMECLASSNAME, strlen(FRAMECLASSNAME)) == 0 )
+   {
+      /* groupbox */
+      thisbox = (Box *)GetWindowLongPtr( handle, GWLP_USERDATA );
+      if ( thisbox && thisbox->grouphwnd != (HWND)NULL )
+      {
+         handle = thisbox->grouphwnd;
+      }
+   }
+   oldfont = (HFONT)SendMessage(handle, WM_GETFONT, 0, 0);
    if ( GetObject( oldfont, sizeof(lf), &lf ) )
    {
       str = (char *)malloc( 100 );
@@ -4500,10 +4503,7 @@ HWND API dw_groupbox_new(int type, int pad, char *title)
                             NULL);
 
    SetWindowLongPtr(hwndframe, GWLP_USERDATA, (LONG_PTR)newbox);
-   /*
-    * Set the text on the frame to our default bold font
-    */
-   SendMessage(newbox->grouphwnd, WM_SETFONT, (WPARAM)DefaultBoldFont, (LPARAM)TRUE);
+fprintf(stderr,"in groupbox\n");
    return hwndframe;
 }
 
@@ -5821,17 +5821,17 @@ char * API dw_window_get_text(HWND handle)
    int len;
 
    GetClassName(handle, tmpbuf, 99);
-   
+
    if ( strnicmp( tmpbuf, UPDOWN_CLASS, strlen(UPDOWN_CLASS)+1) == 0 )
    {
       ColorInfo *cinfo = (ColorInfo *)GetWindowLongPtr(handle, GWLP_USERDATA);
-      
+
       if( cinfo && cinfo->buddy )
         handle = cinfo->buddy;
       else
         return NULL;
    }
-   
+
    len = GetWindowTextLength(handle);
    tempbuf = calloc(1, len + 2);
 
@@ -8299,7 +8299,7 @@ void API dw_color_foreground_set(unsigned long value)
 
    value = _internal_color(value);
    foreground = RGB(DW_RED_VALUE(value), DW_GREEN_VALUE(value), DW_BLUE_VALUE(value));
-   
+
    DeleteObject(hPen);
    DeleteObject(hBrush);
    TlsSetValue(_foreground, (LPVOID)foreground);
@@ -8677,7 +8677,7 @@ unsigned long _read_bitmap_header(char *file)
         return 0;
     }
 
-    if(header.bfType != 'MB')	/* Check for BM reversed... */
+    if(header.bfType != 'MB') /* Check for BM reversed... */
     {
         /* Not a bitmap file */
         fclose(fp);
@@ -9389,7 +9389,6 @@ DWTID API dw_thread_id(void)
  */
 void API dw_exit(int exitcode)
 {
-   DeleteObject( DefaultBoldFont );
    OleUninitialize();
    if ( dbgfp != NULL )
    {
@@ -10014,12 +10013,12 @@ char * API dw_user_dir(void)
     if(!_user_dir[0])
     {
         HANDLE hToken = 0;
-        
+
         /* Use the Windows API to get the user's profile directory */
         if(OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &hToken))
         {
             DWORD BufSize = 1024;
-        
+
             GetUserProfileDirectory(hToken, _user_dir, &BufSize);
             CloseHandle(hToken);
         }
