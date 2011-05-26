@@ -5344,6 +5344,7 @@ HWND API dw_spinbutton_new(char *text, ULONG id)
    WinSetWindowPtr(entry, QWP_USER, blah);
    dw_window_set_font(tmp, DefaultFont);
    dw_window_set_color(entry, DW_CLR_BLACK, DW_CLR_WHITE);
+   dw_window_set_data(tmp, "_dw_entry", (void *)entry);
    return tmp;
 }
 
@@ -5767,7 +5768,7 @@ void API dw_window_set_bitmap_from_data(HWND handle, unsigned long id, char *dat
  */
 void API dw_window_set_text(HWND handle, char *text)
 {
-   HWND entryfield = WinWindowFromID(handle, 1703);
+   HWND entryfield = (HWND)dw_window_get_data(handle, "_dw_entry");
    WinSetWindowText(entryfield ? entryfield : handle, text);
 }
 
@@ -5780,7 +5781,7 @@ void API dw_window_set_text(HWND handle, char *text)
  */
 char * API dw_window_get_text(HWND handle)
 {
-   HWND entryfield = WinWindowFromID(handle, 1703);
+   HWND entryfield = (HWND)dw_window_get_data(handle, "_dw_entry");
    int len = WinQueryWindowTextLength(entryfield ? entryfield : handle);
    char *tempbuf = calloc(1, len + 2);
 
