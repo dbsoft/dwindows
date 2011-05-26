@@ -7227,7 +7227,11 @@ int API dw_window_set_font(HWND handle, char *fontname)
             [font set];
             [object unlockFocus];
         }
-        if([object isKindOfClass:[NSControl class]])
+        if([object isMemberOfClass:[DWGroupBox class]])
+        {
+            [object setTitleFont:font];
+        }
+        else if([object isKindOfClass:[NSControl class]])
         {
             [object setFont:font];
             [[object cell] setFont:font];
@@ -7250,10 +7254,18 @@ int API dw_window_set_font(HWND handle, char *fontname)
 char * API dw_window_get_font(HWND handle)
 {
     id object = handle;
+    NSFont *font = nil;
 
-    if([object isKindOfClass:[NSControl class]] || [object isMemberOfClass:[DWRender class]])
+    if([object isMemberOfClass:[DWGroupBox class]])
     {
-        NSFont *font = [object font];
+        font = [object titleFont];
+    }
+    else if([object isKindOfClass:[NSControl class]] || [object isMemberOfClass:[DWRender class]])
+    {
+         font = [object font];
+    }
+    if(font)
+    {
         NSString *fontname = [font fontName];
         NSString *output = [NSString stringWithFormat:@"%d.%s", (int)[font pointSize], [fontname UTF8String]];
         return strdup([output UTF8String]);
