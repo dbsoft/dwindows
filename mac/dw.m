@@ -4286,7 +4286,7 @@ void API dw_mle_get_size(HWND handle, unsigned long *bytes, unsigned long *lines
     {
         for(index=0, numberOfLines=0; index < stringLength; numberOfLines++)
             index = NSMaxRange([ms lineRangeForRange:NSMakeRange(index, 0)]);
-        
+
         *lines = numberOfLines;
     }
 }
@@ -7266,7 +7266,7 @@ char * API dw_window_get_font(HWND handle)
     }
     if(font)
     {
-        NSString *fontname = [font fontName];
+        NSString *fontname = [font displayName];
         NSString *output = [NSString stringWithFormat:@"%d.%s", (int)[font pointSize], [fontname UTF8String]];
         return strdup([output UTF8String]);
     }
@@ -7323,7 +7323,7 @@ int API dw_window_destroy(HWND handle)
             }
 
             [object removeFromSuperview];
-            
+
             tmpitem = malloc(sizeof(Item)*(thisbox->count-1));
 
             /* Copy all but the current entry to the new list */
