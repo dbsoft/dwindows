@@ -1,3 +1,25 @@
+dwindows (2.0-1) unstable; urgency=low
+
+  * Added support for MacOS 10.5 and higher Intel and PPC via Cocoa.
+  * Added initial (unstable) support for GTK version 3.
+  * Added support for Windows themes on XP and higher.
+  * Added scrollbox widgets, which function like boxes but...
+    scrollbars allow you to pack more into them than the visible area.
+  * Added dw_window_get_font() for checking the font used on a widget.
+  * Added dw_container_change_row_title() for changing a row pointer after insert.
+  * Added clipboard support on OS/2.
+  * Added HICN data type for icon handles an changed icon functions to use it.
+  * Added DW_RESOURCE() macro for casting to HICN when using resource IDs.
+  * Added support for borderless buttons except on Windows (DW_BS_NOBORDER).
+  * Changed the return codes of dw_container_setup, dw_filesystem_setup and
+    dw_event_wait().  Please check any code that use these functions.
+  * Changed GTK2+ now supports font name styles like the other platforms.
+  * Enhanced transparent bitblt on OS/2 and Windows.  OS/2 now supports
+    transparent color and Windows now supports 32bit alpha bitblt.
+  * Removed thread limits on Windows and GTK using thread local storage.
+
+ -- Mark Hessling <mark@rexx.org>  Wed, 1 Jun 2011 08:00:00 +1000
+
 dwindows (1.1-1) unstable; urgency=low
 
   * Initial debian release

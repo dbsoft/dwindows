@@ -12,8 +12,8 @@ Upstream Authors:
 
 Copyright:
 
-    Copyright (c) 2000-2009, Brian Smith
-    Copyright (c) 2003-2010, Mark Hessling
+    Copyright (c) 2000-2011, Brian Smith
+    Copyright (c) 2003-2011, Mark Hessling
     Copyright (c) 2002, Nickolay V. Shmyrev
     Copyright (c) 2000, Achim Hasenmueller
     Copyright (c) 2000, Peter Nielsen
@@ -43,6 +43,6 @@ License:
     OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
     SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-The Debian packaging is (C) 2009, Mark Hessling <mark@rexx.org> and
+The Debian packaging is (C) 2009-2011, Mark Hessling <mark@rexx.org> and
 is licensed under the GPL, see `/usr/share/common-licenses/GPL'.
 

@@ -11,4 +11,4 @@ Depends: ${shlibs:Depends}
 Description: Dynamic Windows is a lightweight GUI API for C.
  dwindows provides a high-level wrapper over GTK+ to provide
  a simple, lightweight GUI hiding some of the complexity of GTK+.
- It provides the same API for GTK+, native Windows and OS/2.
+ It provides the same API for GTK+, native Windows, MacOS X and OS/2.
