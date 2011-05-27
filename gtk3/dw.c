@@ -9385,7 +9385,7 @@ void dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize, in
          warn = TRUE;
       }
 
-      gtk_box_pack_start(GTK_BOX(vbox), item, TRUE, TRUE, 0);
+      gtk_box_pack_end(GTK_BOX(vbox), item, TRUE, TRUE, 0);
 
       gtk_widget_set_size_request(item, width, height);
       g_object_set_data(G_OBJECT(box), "_dw_user", vbox);
