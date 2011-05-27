@@ -4081,7 +4081,8 @@ void API dw_window_reparent(HWND handle, HWND newparent)
  */
 int API dw_window_set_font(HWND handle, char *fontname)
 {
-   return WinSetPresParam(handle, PP_FONTNAMESIZE, strlen(fontname)+1, fontname);
+   HWND group = (HWND)dw_window_get_data(handle, "_dw_group");
+   return WinSetPresParam(group ? group : handle, PP_FONTNAMESIZE, strlen(fontname)+1, fontname);
 }
 
 /*
@@ -4093,7 +4094,8 @@ int API dw_window_set_font(HWND handle, char *fontname)
 char * API dw_window_get_font(HWND handle)
 {
    char *str = (char *)alloca(50);
-   if(str && WinQueryPresParam(handle, PP_FONTNAMESIZE, 0, NULL, 50, str, QPF_NOINHERIT))
+   HWND group = (HWND)dw_window_get_data(handle, "_dw_group");
+   if(str && WinQueryPresParam(group ? group : handle, PP_FONTNAMESIZE, 0, NULL, 50, str, QPF_NOINHERIT))
       return strdup(str);
    return NULL;
 }
@@ -4413,6 +4415,7 @@ HWND API dw_groupbox_new(int type, int pad, char *title)
    dw_window_set_color(newbox->hwnd, DW_CLR_PALEGRAY, DW_CLR_PALEGRAY);
    dw_window_set_color(newbox->grouphwnd, DW_CLR_BLACK, DW_CLR_PALEGRAY);
    dw_window_set_font(newbox->grouphwnd, DefaultFont);
+   dw_window_set_data(newbox->hwnd, "_dw_group", newbox->grouphwnd);
    return newbox->hwnd;
 }
 
