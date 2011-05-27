@@ -1588,8 +1588,6 @@ void _free_tree_recurse(NSMutableArray *node, NSPointerArray *item)
             {
                 if(item == pnt)
                 {
-                    NSString *oldstr = [item pointerAtIndex:1];
-                    [oldstr release];
                     _free_tree_recurse(children, NULL);
                     [node removeObjectAtIndex:z];
                     count = (int)[node count];
@@ -1601,6 +1599,8 @@ void _free_tree_recurse(NSMutableArray *node, NSPointerArray *item)
                     [oldstr release];
                     _free_tree_recurse(children, item);
                 }
+                else
+                    _free_tree_recurse(children, item);
             }
         }
     }
