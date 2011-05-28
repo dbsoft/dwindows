@@ -4081,7 +4081,7 @@ void API dw_window_reparent(HWND handle, HWND newparent)
  */
 int API dw_window_set_font(HWND handle, char *fontname)
 {
-   HWND group = (HWND)dw_window_get_data(handle, "_dw_group");
+   HWND group = (HWND)dw_window_get_data(handle, "_dw_buddy");
    return WinSetPresParam(group ? group : handle, PP_FONTNAMESIZE, strlen(fontname)+1, fontname);
 }
 
@@ -4094,7 +4094,7 @@ int API dw_window_set_font(HWND handle, char *fontname)
 char * API dw_window_get_font(HWND handle)
 {
    char *str = (char *)alloca(50);
-   HWND group = (HWND)dw_window_get_data(handle, "_dw_group");
+   HWND group = (HWND)dw_window_get_data(handle, "_dw_buddy");
    if(str && WinQueryPresParam(group ? group : handle, PP_FONTNAMESIZE, 0, NULL, 50, str, QPF_NOINHERIT))
       return strdup(str);
    return NULL;
@@ -4415,7 +4415,7 @@ HWND API dw_groupbox_new(int type, int pad, char *title)
    dw_window_set_color(newbox->hwnd, DW_CLR_PALEGRAY, DW_CLR_PALEGRAY);
    dw_window_set_color(newbox->grouphwnd, DW_CLR_BLACK, DW_CLR_PALEGRAY);
    dw_window_set_font(newbox->grouphwnd, DefaultFont);
-   dw_window_set_data(newbox->hwnd, "_dw_group", newbox->grouphwnd);
+   dw_window_set_data(newbox->hwnd, "_dw_buddy", newbox->grouphwnd);
    return newbox->hwnd;
 }
 
@@ -5347,7 +5347,7 @@ HWND API dw_spinbutton_new(char *text, ULONG id)
    WinSetWindowPtr(entry, QWP_USER, blah);
    dw_window_set_font(tmp, DefaultFont);
    dw_window_set_color(entry, DW_CLR_BLACK, DW_CLR_WHITE);
-   dw_window_set_data(tmp, "_dw_entry", (void *)entry);
+   dw_window_set_data(tmp, "_dw_buddy", (void *)entry);
    return tmp;
 }
 
@@ -5771,7 +5771,7 @@ void API dw_window_set_bitmap_from_data(HWND handle, unsigned long id, char *dat
  */
 void API dw_window_set_text(HWND handle, char *text)
 {
-   HWND entryfield = (HWND)dw_window_get_data(handle, "_dw_entry");
+   HWND entryfield = (HWND)dw_window_get_data(handle, "_dw_buddy");
    WinSetWindowText(entryfield ? entryfield : handle, text);
 }
 
@@ -5784,7 +5784,7 @@ void API dw_window_set_text(HWND handle, char *text)
  */
 char * API dw_window_get_text(HWND handle)
 {
-   HWND entryfield = (HWND)dw_window_get_data(handle, "_dw_entry");
+   HWND entryfield = (HWND)dw_window_get_data(handle, "_dw_buddy");
    int len = WinQueryWindowTextLength(entryfield ? entryfield : handle);
    char *tempbuf = calloc(1, len + 2);
 
