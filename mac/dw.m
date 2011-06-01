@@ -1584,24 +1584,21 @@ void _free_tree_recurse(NSMutableArray *node, NSPointerArray *item)
             NSPointerArray *pnt = [node objectAtIndex:z];
             NSMutableArray *children = (NSMutableArray *)[pnt pointerAtIndex:3];
 
-            if(children)
+            if(item == pnt)
             {
-                if(item == pnt)
-                {
-                    _free_tree_recurse(children, NULL);
-                    [node removeObjectAtIndex:z];
-                    count = (int)[node count];
-                    z--;
-                }
-                else if(item == NULL)
-                {
-                    NSString *oldstr = [pnt pointerAtIndex:1];
-                    [oldstr release];
-                    _free_tree_recurse(children, item);
-                }
-                else
-                    _free_tree_recurse(children, item);
+                _free_tree_recurse(children, NULL);
+                [node removeObjectAtIndex:z];
+                count = (int)[node count];
+                z--;
             }
+            else if(item == NULL)
+            {
+                NSString *oldstr = [pnt pointerAtIndex:1];
+                [oldstr release];
+                _free_tree_recurse(children, item);
+            }
+            else
+                _free_tree_recurse(children, item);
         }
     }
     if(!item)
