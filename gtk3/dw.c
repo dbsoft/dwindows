@@ -2559,49 +2559,23 @@ int dw_window_set_font(HWND handle, char *fontname)
    return TRUE;
 }
 
-/* Allows the user to choose a font using the system's font chooser dialog.
- * Parameters:
- *       currfont: current font
- * Returns:
- *       A malloced buffer with the selected font or NULL on error.
- */
-char * API dw_font_choose(char *currfont)
+static int _dw_font_active = 0;
+
+/* Internal function to handle the color OK press */
+static gint _gtk_font_ok(GtkWidget *widget, DWDialog *dwwait)
 {
    GtkFontSelectionDialog *fd;
-   char *font = currfont ? strdup(currfont) : NULL;
-   char *name = font ? strchr(font, '.') : NULL;
-   int _locked_by_me = FALSE;
-   GtkResponseType result;
    char *retfont = NULL;
-     
-   /* Detect Dynamic Windows style font name... 
-    * Format: ##.Fontname
-    * and convert to a Pango name
-    */
-   if(name && isdigit(*font))
-   {
-       int size = atoi(font);
-       *name = 0;
-       name++;
-       sprintf(font, "%s %d", name, size);
-   }
+   gchar *fontname;
+   int len, x;
 
-   DW_MUTEX_LOCK;
-   fd = (GtkFontSelectionDialog *)gtk_font_selection_dialog_new("Choose font");
-   if(name)
-   {
-      gtk_font_selection_dialog_set_font_name(fd, name);
-      free(name);
-   }
-   
-   result = gtk_dialog_run(GTK_DIALOG(fd));
+   if(!dwwait)
+      return FALSE;
 
-   if(result == GTK_RESPONSE_OK || result == GTK_RESPONSE_APPLY)
-   {
-      gchar *fontname = gtk_font_selection_dialog_get_font_name(fd);
-      int len, x;
-         
-      retfont = strdup(fontname);
+   fd = dwwait->data;
+   fontname = gtk_font_selection_dialog_get_font_name(fd);
+   if(fontname && (retfont = strdup(fontname)))
+   {         
       len = strlen(fontname);
       /* Convert to Dynamic Windows format if we can... */
       if(len > 0 && isdigit(fontname[len-1]))
@@ -2627,6 +2601,70 @@ char * API dw_font_choose(char *currfont)
       dw_free(fontname);
    }
    gtk_widget_destroy(GTK_WIDGET(fd));
+   dw_dialog_dismiss(dwwait, (void *)retfont);
+   return FALSE;
+}
+
+/* Internal function to handle the color Cancel press */
+static gint _gtk_font_cancel(GtkWidget *widget, DWDialog *dwwait)
+{
+   if(!dwwait)
+      return FALSE;
+
+   gtk_widget_destroy(GTK_WIDGET(dwwait->data));
+   _dw_font_active = 0;
+   dw_dialog_dismiss(dwwait, NULL);
+   return FALSE;
+}
+
+/* Allows the user to choose a font using the system's font chooser dialog.
+ * Parameters:
+ *       currfont: current font
+ * Returns:
+ *       A malloced buffer with the selected font or NULL on error.
+ */
+char * API dw_font_choose(char *currfont)
+{
+   GtkFontSelectionDialog *fd;
+   GtkWidget *ok_button, *cancel_button;
+   char *font = currfont ? strdup(currfont) : NULL;
+   char *name = font ? strchr(font, '.') : NULL;
+   int _locked_by_me = FALSE;
+   char *retfont = NULL;
+   DWDialog *dwwait;
+     
+   /* Detect Dynamic Windows style font name... 
+    * Format: ##.Fontname
+    * and convert to a Pango name
+    */
+   if(name && isdigit(*font))
+   {
+       int size = atoi(font);
+       *name = 0;
+       name++;
+       sprintf(font, "%s %d", name, size);
+   }
+
+   DW_MUTEX_LOCK;
+   fd = (GtkFontSelectionDialog *)gtk_font_selection_dialog_new("Choose font");
+   if(name)
+   {
+      gtk_font_selection_dialog_set_font_name(fd, name);
+      free(name);
+   }
+   
+   _dw_font_active = 1;
+
+   dwwait = dw_dialog_new((void *)fd);
+
+   ok_button = gtk_font_selection_dialog_get_ok_button(fd);
+   cancel_button = gtk_font_selection_dialog_get_cancel_button(fd);
+   g_signal_connect(G_OBJECT(ok_button), "clicked", G_CALLBACK(_gtk_font_ok), dwwait);
+   g_signal_connect(G_OBJECT(cancel_button), "clicked", G_CALLBACK(_gtk_font_cancel), dwwait);
+
+   gtk_widget_show(GTK_WIDGET(fd));
+
+   retfont = (char *)dw_dialog_wait(dwwait);
    DW_MUTEX_UNLOCK;
    return retfont;
 }
