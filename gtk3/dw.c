@@ -2561,7 +2561,7 @@ int dw_window_set_font(HWND handle, char *fontname)
 
 static int _dw_font_active = 0;
 
-/* Internal function to handle the color OK press */
+/* Internal function to handle the font OK press */
 static gint _gtk_font_ok(GtkWidget *widget, DWDialog *dwwait)
 {
    GtkFontSelectionDialog *fd;
@@ -2601,11 +2601,12 @@ static gint _gtk_font_ok(GtkWidget *widget, DWDialog *dwwait)
       dw_free(fontname);
    }
    gtk_widget_destroy(GTK_WIDGET(fd));
+   _dw_font_active = 0;
    dw_dialog_dismiss(dwwait, (void *)retfont);
    return FALSE;
 }
 
-/* Internal function to handle the color Cancel press */
+/* Internal function to handle the font Cancel press */
 static gint _gtk_font_cancel(GtkWidget *widget, DWDialog *dwwait)
 {
    if(!dwwait)
@@ -2646,6 +2647,16 @@ char * API dw_font_choose(char *currfont)
    }
 
    DW_MUTEX_LOCK;
+   /* The DW mutex should be sufficient for
+    * insuring no thread changes this unknowingly.
+    */
+   if(_dw_font_active)
+   {
+      DW_MUTEX_UNLOCK;
+      if(name)
+         free(name);
+      return NULL;
+   }
    fd = (GtkFontSelectionDialog *)gtk_font_selection_dialog_new("Choose font");
    if(name)
    {
