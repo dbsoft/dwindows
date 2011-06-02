@@ -3995,58 +3995,54 @@ void API dw_window_reparent(HWND handle, HWND newparent)
    SetParent(handle, newparent);
 }
 
+LOGFONT _get_logfont(char *fontname)
+{
+   int Italic, Bold;
+   char *myFontName;
+   int z, size = 9;
+   LOGFONT lf;
+   for(z=0;z<strlen(fontname);z++)
+   {
+      if(fontname[z]=='.')
+         break;
+   }
+   size = atoi(fontname) + 5; /* no idea why this 5 needs to be added */
+   Italic = instring(" Italic", &fontname[z+1]);
+   Bold = instring(" Bold", &fontname[z+1]);
+   lf.lfHeight = size;
+   lf.lfWidth = 0;
+   lf.lfEscapement = 0;
+   lf.lfOrientation = 0;
+   lf.lfItalic = Italic ? TRUE : FALSE;
+   lf.lfUnderline = 0;
+   lf.lfStrikeOut = 0;
+   lf.lfWeight = Bold ? FW_BOLD : FW_NORMAL;
+   lf.lfCharSet = DEFAULT_CHARSET;
+   lf.lfOutPrecision = 0;
+   lf.lfClipPrecision = 0;
+   lf.lfQuality = DEFAULT_QUALITY;
+   lf.lfPitchAndFamily = DEFAULT_PITCH | FW_DONTCARE;
+   /*
+    * remove any font modifiers
+    */
+   myFontName = strdup(&fontname[z+1]);
+   if(Italic)
+      myFontName[Italic] = 0;
+   if(Bold)
+      myFontName[Bold] = 0;
+   strcpy(lf.lfFaceName, myFontName);
+   free(myFontName);
+   return lf;
+}
+
 HFONT _acquire_font(HWND handle, char *fontname)
 {
    HFONT hfont = 0;
 
    if(fontname != DefaultFont && fontname[0])
    {
-        int Italic, Bold;
-      char *myFontName;
-      int z, size = 9;
-      LOGFONT lf;
-#if 0
-      HDC hDC = GetDC(handle);
-#endif
-      for(z=0;z<strlen(fontname);z++)
-      {
-         if(fontname[z]=='.')
-            break;
-      }
-      size = atoi(fontname) + 5; /* no idea why this 5 needs to be added */
-      Italic = instring(" Italic", &fontname[z+1]);
-      Bold = instring(" Bold", &fontname[z+1]);
-#if 0
-      lf.lfHeight = -MulDiv(size, GetDeviceCaps(hDC, LOGPIXELSY), 72);
-#endif
-      lf.lfHeight = size;
-      lf.lfWidth = 0;
-      lf.lfEscapement = 0;
-      lf.lfOrientation = 0;
-      lf.lfItalic = Italic ? TRUE : FALSE;
-      lf.lfUnderline = 0;
-      lf.lfStrikeOut = 0;
-      lf.lfWeight = Bold ? FW_BOLD : FW_NORMAL;
-      lf.lfCharSet = DEFAULT_CHARSET;
-      lf.lfOutPrecision = 0;
-      lf.lfClipPrecision = 0;
-      lf.lfQuality = DEFAULT_QUALITY;
-      lf.lfPitchAndFamily = DEFAULT_PITCH | FW_DONTCARE;
-      /*
-       * remove any font modifiers
-       */
-      myFontName = strdup(&fontname[z+1]);
-      if(Italic)
-         myFontName[Italic] = 0;
-      if(Bold)
-         myFontName[Bold] = 0;
-      strcpy(lf.lfFaceName, myFontName);
-      free(myFontName);
-
+      LOGFONT lf = _get_logfont(fontname);
       hfont = CreateFontIndirect(&lf);
-#if 0
-      ReleaseDC(handle, hDC);
-#endif
    }
    if(!hfont)
       hfont = GetStockObject(DEFAULT_GUI_FONT);
@@ -4108,6 +4104,51 @@ int API dw_window_set_font(HWND handle, char *fontname)
    return 0;
 }
 
+/* Allows the user to choose a font using the system's font chooser dialog.
+ * Parameters:
+ *       currfont: current font
+ * Returns:
+ *       A malloced buffer with the selected font or NULL on error.
+ */
+char * API dw_font_choose(char *currfont)
+{
+   CHOOSEFONT cf = { 0 };
+   LOGFONT lf = { 0 };
+   char *str = NULL;
+   char *bold = "";
+   char *italic = "";
+    
+   if(currfont && *currfont)
+      lf = _get_logfont(currfont);
+      
+   cf.lStructSize = sizeof(cf);
+   cf.Flags = CF_SCREENFONTS;
+   cf.lpLogFont = &lf;    
+    
+   if(ChooseFont(&cf))
+   {
+      str = (char *)malloc( 100 );
+      if ( str )
+      {
+         int height;
+         if ( lf.lfWeight > FW_MEDIUM )
+            bold = " Bold";
+         if ( lf.lfItalic )
+            italic = " Italic";
+         if ( lf.lfHeight <= 0 )
+            height = abs (lf.lfHeight );
+         else
+            /*
+             * we subtract 5 from a positive font height, because we (presumably)
+             * added 5 (in _acquire_font() above - don't know why )
+             */
+            height = lf.lfHeight - 5;
+         sprintf( str, "%d.%s%s%s", height, lf.lfFaceName, bold, italic );
+      }
+   }
+   return str;
+}
+
 /*
  * Gets the font used by a specified window (widget) handle.
  * Parameters:
@@ -4155,35 +4196,9 @@ char * API dw_window_get_font(HWND handle)
             height = lf.lfHeight - 5;
          sprintf( str, "%d.%s%s%s", height, lf.lfFaceName, bold, italic );
       }
-      else
-         str = "";
    }
-   else
-      str = "";
    if ( oldfont )
       DeleteObject( oldfont );
-#if 0
-{
-HWND hwnd=NULL;                // owner window
-HDC hdc;                  // display device context of owner window
-
-CHOOSEFONT cf;            // common dialog box structure
-LOGFONT lf;        // logical font structure
-HFONT hfont, hfontPrev;
-
-// Initialize CHOOSEFONT
-ZeroMemory(&cf, sizeof(cf));
-cf.lStructSize = sizeof (cf);
-cf.hwndOwner = hwnd;
-cf.lpLogFont = &lf;
-cf.Flags = CF_SCREENFONTS | CF_EFFECTS;
-
-if (ChooseFont(&cf)==TRUE)
-{
-    hfont = CreateFontIndirect(cf.lpLogFont);
-}
-}
-#endif
    return str;
 }
 
