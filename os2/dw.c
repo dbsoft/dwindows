@@ -4081,52 +4081,52 @@ void API dw_window_reparent(HWND handle, HWND newparent)
  */
 char * API dw_font_choose(char *currfont)
 {
-	FONTDLG fd = { 0 };
-	char *buf = calloc(1,100);
+    FONTDLG fd = { 0 };
+    char *buf = calloc(1,100);
     int size = 9;
 
     /* Fill in the family name if possible */
-	if(currfont)
-	{
-		char *name = strchr(currfont, ".");
-		if(name)
-		{
-			int newsize = atoi(currfont);
-			if(newsize > 0)
+    if(currfont)
+    {
+        char *name = strchr(currfont, ".");
+        if(name)
+        {
+            int newsize = atoi(currfont);
+            if(newsize > 0)
                 size = newsize;
-			name++;
-			strcpy(buf, name);
+            name++;
+            strcpy(buf, name);
             strcpy(fd.fAttrs.szFacename, name);
-		}
-		else
-		{
-			strcpy(buf, currfont);
+        }
+        else
+        {
+            strcpy(buf, currfont);
             strcpy(fd.fAttrs.szFacename, currfont);
-		}
-	}
+        }
+    }
 
     /* Fill in the font dialog struct */
     fd.cbSize = sizeof(fd);
-	fd.hpsScreen = WinGetScreenPS(HWND_DESKTOP);
-	fd.pszTitle = "Choose Font";
-	fd.clrFore = CLR_BLACK;
-	fd.clrBack = CLR_WHITE;
-	fd.pszFamilyname = buf;
-	fd.usFamilyBufLen = 100;
-	fd.fxPointSize = MAKEFIXED(size,0);
+    fd.hpsScreen = WinGetScreenPS(HWND_DESKTOP);
+    fd.pszTitle = "Choose Font";
+    fd.clrFore = CLR_BLACK;
+    fd.clrBack = CLR_WHITE;
+    fd.pszFamilyname = buf;
+    fd.usFamilyBufLen = 100;
+    fd.fxPointSize = MAKEFIXED(size,0);
     fd.fl = FNTS_INITFROMFATTRS;
 
     /* Show the dialog and wait for a response */
-	if(!WinFontDlg(HWND_DESKTOP, HWND_OBJECT, &fd) || fd.lReturn != DID_OK)
-	{
-		WinReleasePS(fd.hpsScreen);
+    if(!WinFontDlg(HWND_DESKTOP, HWND_OBJECT, &fd) || fd.lReturn != DID_OK)
+    {
+        WinReleasePS(fd.hpsScreen);
         free(buf);
-		return NULL;
-	}
-	WinReleasePS(fd.hpsScreen);
+        return NULL;
+    }
+    WinReleasePS(fd.hpsScreen);
     /* Figure out what the user selected and return that */
-	size = FIXEDINT(fd.fxPointSize);
-	sprintf(buf, "%d.%s", size, fd.fAttrs.szFacename);
+    size = FIXEDINT(fd.fxPointSize);
+    sprintf(buf, "%d.%s", size, fd.fAttrs.szFacename);
     return buf;
 }
 
