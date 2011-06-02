@@ -2816,15 +2816,15 @@ char * API dw_font_choose(char *currfont)
    if(_dw_font_active)
    {
       DW_MUTEX_UNLOCK;
-      if(name)
-         free(name);
+      if(font)
+         free(font);
       return NULL;
    }
    fd = (GtkFontSelectionDialog *)gtk_font_selection_dialog_new("Choose font");
-   if(name)
+   if(font)
    {
-      gtk_font_selection_dialog_set_font_name(fd, name);
-      free(name);
+      gtk_font_selection_dialog_set_font_name(fd, font);
+      free(font);
    }
    
    _dw_font_active = 1;
