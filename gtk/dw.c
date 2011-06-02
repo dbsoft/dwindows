@@ -2723,6 +2723,124 @@ static int _set_font(HWND handle, char *fontname)
    return retval;
 }
 
+static int _dw_font_active = 0;
+
+/* Internal function to handle the font OK press */
+static gint _gtk_font_ok(GtkWidget *widget, DWDialog *dwwait)
+{
+   GtkFontSelectionDialog *fd;
+   char *retfont = NULL;
+   gchar *fontname;
+   int len, x;
+
+   if(!dwwait)
+      return FALSE;
+
+   fd = dwwait->data;
+   fontname = gtk_font_selection_dialog_get_font_name(fd);
+   if(fontname && (retfont = strdup(fontname)))
+   {         
+      len = strlen(fontname);
+      /* Convert to Dynamic Windows format if we can... */
+      if(len > 0 && isdigit(fontname[len-1]))
+      {
+         int size;
+            
+         x=len-1;
+         while(x > 0 && fontname[x] != ' ')
+         {
+            x--;
+         }
+         size = atoi(&fontname[x]);
+         /* If we were able to find a valid size... */
+         if(size > 0)
+         {
+            /* Null terminate after the name...
+             * and create the Dynamic Windows style font.
+             */
+            fontname[x] = 0;
+            snprintf(retfont, len+1, "%d.%s", size, fontname);
+         }
+      }
+      dw_free(fontname);
+   }
+   gtk_widget_destroy(GTK_WIDGET(fd));
+   _dw_font_active = 0;
+   dw_dialog_dismiss(dwwait, (void *)retfont);
+   return FALSE;
+}
+
+/* Internal function to handle the font Cancel press */
+static gint _gtk_font_cancel(GtkWidget *widget, DWDialog *dwwait)
+{
+   if(!dwwait)
+      return FALSE;
+
+   gtk_widget_destroy(GTK_WIDGET(dwwait->data));
+   _dw_font_active = 0;
+   dw_dialog_dismiss(dwwait, NULL);
+   return FALSE;
+}
+
+/* Allows the user to choose a font using the system's font chooser dialog.
+ * Parameters:
+ *       currfont: current font
+ * Returns:
+ *       A malloced buffer with the selected font or NULL on error.
+ */
+char * API dw_font_choose(char *currfont)
+{
+   GtkFontSelectionDialog *fd;
+   char *font = currfont ? strdup(currfont) : NULL;
+   char *name = font ? strchr(font, '.') : NULL;
+   int _locked_by_me = FALSE;
+   char *retfont = NULL;
+   DWDialog *dwwait;
+     
+   /* Detect Dynamic Windows style font name... 
+    * Format: ##.Fontname
+    * and convert to a Pango name
+    */
+   if(name && isdigit(*font))
+   {
+       int size = atoi(font);
+       *name = 0;
+       name++;
+       sprintf(font, "%s %d", name, size);
+   }
+
+   DW_MUTEX_LOCK;
+   /* The DW mutex should be sufficient for
+    * insuring no thread changes this unknowingly.
+    */
+   if(_dw_font_active)
+   {
+      DW_MUTEX_UNLOCK;
+      if(name)
+         free(name);
+      return NULL;
+   }
+   fd = (GtkFontSelectionDialog *)gtk_font_selection_dialog_new("Choose font");
+   if(name)
+   {
+      gtk_font_selection_dialog_set_font_name(fd, name);
+      free(name);
+   }
+   
+   _dw_font_active = 1;
+
+   dwwait = dw_dialog_new((void *)fd);
+
+   g_signal_connect(G_OBJECT(fd->ok_button), "clicked", G_CALLBACK(_gtk_font_ok), dwwait);
+   g_signal_connect(G_OBJECT(fd->cancel_button), "clicked", G_CALLBACK(_gtk_font_cancel), dwwait);
+
+   gtk_widget_show(GTK_WIDGET(fd));
+
+   retfont = (char *)dw_dialog_wait(dwwait);
+   DW_MUTEX_UNLOCK;
+   return retfont;
+}
+
 /*
  * Sets the font used by a specified window (widget) handle.
  * Parameters:
