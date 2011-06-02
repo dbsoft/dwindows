@@ -7230,11 +7230,11 @@ NSFont *_dw_font_by_name(char *fontname)
     return font;
 }
 
-/* Allows the user to choose a color using the system's color chooser dialog.
+/* Allows the user to choose a font using the system's font chooser dialog.
  * Parameters:
- *       value: current color
+ *       currfont: current font
  * Returns:
- *       The selected color or the current color if cancelled.
+ *       A malloced buffer with the selected font or NULL on error.
  */
 char * API dw_font_choose(char *currfont)
 {

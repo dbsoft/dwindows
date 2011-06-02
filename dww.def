@@ -233,6 +233,7 @@ EXPORTS
   dw_tree_get_parent                     @382
 
   dw_font_text_extents_get               @385
+  dw_font_choose                         @386
 
   dw_slider_new                          @390
   dw_slider_get_pos                      @391
