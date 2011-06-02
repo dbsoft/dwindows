@@ -3995,21 +3995,24 @@ void API dw_window_reparent(HWND handle, HWND newparent)
    SetParent(handle, newparent);
 }
 
-LOGFONT _get_logfont(char *fontname)
+LOGFONT _get_logfont(HWND handle, char *fontname)
 {
    int Italic, Bold;
    char *myFontName;
    int z, size = 9;
    LOGFONT lf;
+   HDC hdc = GetDC(handle);
+   
    for(z=0;z<strlen(fontname);z++)
    {
       if(fontname[z]=='.')
          break;
    }
-   size = atoi(fontname) + 5; /* no idea why this 5 needs to be added */
+   size = atoi(fontname);
+   lf.lfHeight = -MulDiv(size, GetDeviceCaps(hdc, LOGPIXELSY), 72);
+   ReleaseDC(handle, hdc);
    Italic = instring(" Italic", &fontname[z+1]);
    Bold = instring(" Bold", &fontname[z+1]);
-   lf.lfHeight = size;
    lf.lfWidth = 0;
    lf.lfEscapement = 0;
    lf.lfOrientation = 0;
@@ -4041,7 +4044,7 @@ HFONT _acquire_font(HWND handle, char *fontname)
 
    if(fontname != DefaultFont && fontname[0])
    {
-      LOGFONT lf = _get_logfont(fontname);
+      LOGFONT lf = _get_logfont(handle, fontname);
       hfont = CreateFontIndirect(&lf);
    }
    if(!hfont)
@@ -4119,7 +4122,7 @@ char * API dw_font_choose(char *currfont)
    char *italic = "";
     
    if(currfont && *currfont)
-      lf = _get_logfont(currfont);
+      lf = _get_logfont(NULL, currfont);
       
    cf.lStructSize = sizeof(cf);
    cf.Flags = CF_SCREENFONTS | CF_INITTOLOGFONTSTRUCT;
@@ -4131,18 +4134,14 @@ char * API dw_font_choose(char *currfont)
       if ( str )
       {
          int height;
+         HDC hdc = GetDC(NULL);
+         
          if ( lf.lfWeight > FW_MEDIUM )
             bold = " Bold";
          if ( lf.lfItalic )
             italic = " Italic";
-         if ( lf.lfHeight <= 0 )
-            height = abs (lf.lfHeight );
-         else
-            /*
-             * we subtract 5 from a positive font height, because we (presumably)
-             * added 5 (in _acquire_font() above - don't know why )
-             */
-            height = lf.lfHeight - 5;
+         height = MulDiv(abs(lf.lfHeight), 72,  GetDeviceCaps (hdc, LOGPIXELSY));
+         ReleaseDC(NULL, hdc);
          sprintf( str, "%d.%s%s%s", height, lf.lfFaceName, bold, italic );
       }
    }
@@ -4182,18 +4181,14 @@ char * API dw_window_get_font(HWND handle)
       if ( str )
       {
          int height;
+         HDC hdc = GetDC(handle);
+         
          if ( lf.lfWeight > FW_MEDIUM )
             bold = " Bold";
          if ( lf.lfItalic )
             italic = " Italic";
-         if ( lf.lfHeight <= 0 )
-            height = abs (lf.lfHeight );
-         else
-            /*
-             * we subtract 5 from a positive font height, because we (presumably)
-             * added 5 (in _acquire_font() above - don't know why )
-             */
-            height = lf.lfHeight - 5;
+         height = MulDiv(abs(lf.lfHeight), 72,  GetDeviceCaps (hdc, LOGPIXELSY));
+         ReleaseDC(handle, hdc);
          sprintf( str, "%d.%s%s%s", height, lf.lfFaceName, bold, italic );
       }
    }
