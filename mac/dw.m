@@ -1110,6 +1110,31 @@ DWObject *DWObj;
 -(DWDialog *)dialog { return dialog; }
 @end
 
+/* Subclass for a font chooser type */
+@interface DWFontChoose : NSFontPanel
+{
+    DWDialog *dialog;
+    NSFontManager *fontManager;
+}
+-(void)setDialog:(DWDialog *)input;
+-(void)setFontManager:(NSFontManager *)input;
+-(DWDialog *)dialog;
+@end
+
+@implementation DWFontChoose
+-(BOOL)windowShouldClose:(id)window 
+{ 
+    DWDialog *d = dialog; dialog = nil;
+    NSFont *pickedfont = [fontManager selectedFont];
+    dw_dialog_dismiss(d, pickedfont); 
+    [window orderOut:nil]; 
+    return NO; 
+}
+-(void)setDialog:(DWDialog *)input { dialog = input; }
+-(void)setFontManager:(NSFontManager *)input { fontManager = input; }
+-(DWDialog *)dialog { return dialog; }
+@end
+
 /* Subclass for a splitbar type */
 @interface DWSplitBar : NSSplitView
 #ifdef BUILDING_FOR_SNOW_LEOPARD
@@ -7203,6 +7228,60 @@ NSFont *_dw_font_by_name(char *fontname)
     }
     free(fontcopy);
     return font;
+}
+
+/* Allows the user to choose a color using the system's color chooser dialog.
+ * Parameters:
+ *       value: current color
+ * Returns:
+ *       The selected color or the current color if cancelled.
+ */
+char * API dw_font_choose(char *currfont)
+{
+    /* Create the Color Chooser Dialog class. */
+    static DWFontChoose *fontDlg = nil;
+    static NSFontManager *fontManager = nil;
+    DWDialog *dialog;
+    NSFont *font = nil;
+    
+    if(currfont)
+        font = _dw_font_by_name(currfont);
+    
+    if(fontDlg)
+    {
+        dialog = [fontDlg dialog];
+        /* If someone is already waiting just return */
+        if(dialog)
+        {
+            return NULL;
+        }
+    }
+    else
+    {
+        [NSFontManager setFontPanelFactory:[DWFontChoose class]];
+        fontManager = [NSFontManager sharedFontManager];
+        fontDlg = (DWFontChoose *)[fontManager fontPanel:YES];
+    }
+    
+    dialog = dw_dialog_new(fontDlg);
+    if(font)
+        [fontManager setSelectedFont:font isMultiple:NO];
+    else
+        [fontManager setSelectedFont:[NSFont fontWithName:@"Helvetica" size:9.0] isMultiple:NO];
+    [fontDlg setDialog:dialog];
+    [fontDlg setFontManager:fontManager];
+    [fontManager orderFrontFontPanel:fontManager];
+
+    
+    /* Wait for them to pick a color */
+    font = (NSFont *)dw_dialog_wait(dialog);
+    if(font)
+    {
+        NSString *fontname = [font displayName];
+        NSString *output = [NSString stringWithFormat:@"%d.%s", (int)[font pointSize], [fontname UTF8String]];
+        return strdup([output UTF8String]);        
+    }
+    return NULL;
 }
 
 /*
