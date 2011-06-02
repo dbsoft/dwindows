@@ -2559,6 +2559,78 @@ int dw_window_set_font(HWND handle, char *fontname)
    return TRUE;
 }
 
+/* Allows the user to choose a font using the system's font chooser dialog.
+ * Parameters:
+ *       currfont: current font
+ * Returns:
+ *       A malloced buffer with the selected font or NULL on error.
+ */
+char * API dw_font_choose(char *currfont)
+{
+   GtkFontSelectionDialog *fd;
+   char *font = currfont ? strdup(currfont) : NULL;
+   char *name = font ? strchr(font, '.') : NULL;
+   int _locked_by_me = FALSE;
+   GtkResponseType result;
+   char *retfont = NULL;
+     
+   /* Detect Dynamic Windows style font name... 
+    * Format: ##.Fontname
+    * and convert to a Pango name
+    */
+   if(name && isdigit(*font))
+   {
+       int size = atoi(font);
+       *name = 0;
+       name++;
+       sprintf(font, "%s %d", name, size);
+   }
+
+   DW_MUTEX_LOCK;
+   fd = (GtkFontSelectionDialog *)gtk_font_selection_dialog_new("Choose font");
+   if(name)
+   {
+      gtk_font_selection_dialog_set_font_name(fd, name);
+      free(name);
+   }
+   
+   result = gtk_dialog_run(GTK_DIALOG(fd));
+
+   if(result == GTK_RESPONSE_OK || result == GTK_RESPONSE_APPLY)
+   {
+      gchar *fontname = gtk_font_selection_dialog_get_font_name(fd);
+      int len, x;
+         
+      retfont = strdup(fontname);
+      len = strlen(fontname);
+      /* Convert to Dynamic Windows format if we can... */
+      if(len > 0 && isdigit(fontname[len-1]))
+      {
+         int size;
+            
+         x=len-1;
+         while(x > 0 && fontname[x] != ' ')
+         {
+            x--;
+         }
+         size = atoi(&fontname[x]);
+         /* If we were able to find a valid size... */
+         if(size > 0)
+         {
+            /* Null terminate after the name...
+             * and create the Dynamic Windows style font.
+             */
+            fontname[x] = 0;
+            snprintf(retfont, len+1, "%d.%s", size, fontname);
+         }
+      }
+      dw_free(fontname);
+   }
+   gtk_widget_destroy(GTK_WIDGET(fd));
+   DW_MUTEX_UNLOCK;
+   return retfont;
+}
+
 /*
  * Gets the font used by a specified window (widget) handle.
  * Parameters:
