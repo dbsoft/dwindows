@@ -4122,7 +4122,7 @@ char * API dw_font_choose(char *currfont)
       lf = _get_logfont(currfont);
       
    cf.lStructSize = sizeof(cf);
-   cf.Flags = CF_SCREENFONTS;
+   cf.Flags = CF_SCREENFONTS | CF_INITTOLOGFONTSTRUCT;
    cf.lpLogFont = &lf;    
     
    if(ChooseFont(&cf))
