@@ -334,6 +334,15 @@ int _event_handler(id object, NSEvent *event, int message)
                 char *text = (char *)event;
                 void *user = NULL;
                 LONG x,y;
+                
+                /* Fill in both items for the tree */
+                if([object isKindOfClass:[NSOutlineView class]])
+                {
+                    id item = event;
+                    NSString *nstr = [item pointerAtIndex:1];
+                    text = (char *)[nstr UTF8String];
+                    user = [item pointerAtIndex:2];                   
+                }
 
                 dw_pointer_query_pos(&x, &y);
 
@@ -1792,8 +1801,7 @@ void _free_tree_recurse(NSMutableArray *node, NSPointerArray *item)
     NSPoint where = [self convertPoint:[event locationInWindow] fromView:nil];
     row = (int)[self rowAtPoint:where];
     id item = [self itemAtRow:row];
-    NSString *nstr = [item pointerAtIndex:1];
-    _event_handler(self, (NSEvent *)[nstr UTF8String], 10);
+    _event_handler(self, (NSEvent *)item, 10);
     return nil;
 }
 -(NSScrollView *)scrollview { return scrollview; }
