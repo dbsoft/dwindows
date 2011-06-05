@@ -1842,7 +1842,7 @@ dw_messagebox("NM_CUSTOMDRAW for (WM_NOTIFY)", DW_MB_OK|DW_MB_ERROR, "%s %d: Cla
                                  TVITEM tvi;
                                  void **ptrs;
 
-                                 tvi.mask = TVIF_HANDLE;
+                                 tvi.mask = TVIF_HANDLE | TVIF_PARAM;
                                  tvi.hItem = tem->itemNew.hItem;
 
                                  TreeView_GetItem(tmp->window, &tvi);
@@ -1887,7 +1887,7 @@ dw_messagebox("NM_CUSTOMDRAW for (WM_NOTIFY)", DW_MB_OK|DW_MB_ERROR, "%s %d: Cla
 
                                  if(hti)
                                  {
-                                    tvi.mask = TVIF_HANDLE;
+                                    tvi.mask = TVIF_HANDLE | TVIF_PARAM;
                                     tvi.hItem = hti;
 
                                     TreeView_GetItem(tmp->window, &tvi);
@@ -7284,7 +7284,7 @@ void * API dw_tree_item_get_data(HWND handle, HTREEITEM item)
    TVITEM tvi;
    void **ptrs;
 
-   tvi.mask = TVIF_HANDLE;
+   tvi.mask = TVIF_HANDLE | TVIF_PARAM;
    tvi.hItem = item;
 
    if(TreeView_GetItem(handle, &tvi))
