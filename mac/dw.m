@@ -962,7 +962,7 @@ DWObject *DWObj;
 @implementation DWEntryFieldFormatter
 -(id)init
 {
-    [super init];
+    self = [super init];
     maxLength = INT_MAX;
     return self;
 }
@@ -3795,7 +3795,6 @@ HWND _cont_new(ULONG cid, int multi)
     [cont setDelegate:cont];
     [scrollview setDocumentView:cont];
     [cont setTag:cid];
-    [scrollview release];
     return cont;
 }
 
@@ -3817,7 +3816,6 @@ HWND API dw_listbox_new(ULONG cid, int multi)
     [column setEditable:NO];
     [cont addTableColumn:column];
     [cont addColumn:column andType:type];
-    [column release];
     DW_MUTEX_UNLOCK;
     return cont;
 }
@@ -4987,7 +4985,6 @@ HWND API dw_tree_new(ULONG cid)
     [scrollview setDocumentView:tree];
     [tree setHeaderView:nil];
     [tree setTag:cid];
-    [scrollview release];
     DW_MUTEX_UNLOCK;
     return tree;
 }
@@ -5015,7 +5012,10 @@ HTREEITEM API dw_tree_insert_after(HWND handle, HTREEITEM item, char *title, HIC
     [treenode addPointer:NULL];
     [treenode addPointer:parent];
     [tree addTree:treenode and:parent];
-    [tree reloadData];
+    if(parent)
+        [tree reloadItem:parent reloadChildren:YES];
+    else
+        [tree reloadData];
     DW_MUTEX_UNLOCK;
     return treenode;
 }
@@ -5225,7 +5225,6 @@ HWND API dw_container_new(ULONG cid, int multi)
     [cont setHeaderView:header];
     [cont setTarget:cont];
     [cont setDoubleAction:@selector(doubleClicked:)];
-    [header release];
     DW_MUTEX_UNLOCK;
     return cont;
 }
