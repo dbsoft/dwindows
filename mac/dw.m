@@ -1662,7 +1662,7 @@ void _free_tree_recurse(NSMutableArray *node, NSPointerArray *item)
 -(id)outlineView:(NSOutlineView *)outlineView objectValueForTableColumn:(NSTableColumn *)tableColumn byItem:(id)item;
 -(void)outlineView:(NSOutlineView *)outlineView willDisplayCell:(id)cell forTableColumn:(NSTableColumn *)tableColumn item:(id)item;
 -(BOOL)outlineView:(NSOutlineView *)outlineView shouldEditTableColumn:(NSTableColumn *)tableColumn item:(id)item;
--(void)addTree:(NSPointerArray *)item and:(NSPointerArray *)parent;
+-(void)addTree:(NSPointerArray *)item and:(NSPointerArray *)parent after:(NSPointerArray *)after;
 -(void *)userdata;
 -(void)setUserdata:(void *)input;
 -(void)treeSelectionChanged:(id)sender;
@@ -1753,7 +1753,7 @@ void _free_tree_recurse(NSMutableArray *node, NSPointerArray *item)
     }
 }
 -(BOOL)outlineView:(NSOutlineView *)outlineView shouldEditTableColumn:(NSTableColumn *)tableColumn item:(id)item { return NO; }
--(void)addTree:(NSPointerArray *)item and:(NSPointerArray *)parent;
+-(void)addTree:(NSPointerArray *)item and:(NSPointerArray *)parent after:(NSPointerArray *)after
 {
     NSMutableArray *children = data;
     if(parent)
@@ -1772,7 +1772,15 @@ void _free_tree_recurse(NSMutableArray *node, NSPointerArray *item)
             children = data = [[[NSMutableArray alloc] init] retain];
         }
     }
-    [children addObject:item];
+    if(after)
+    {
+        NSInteger index = [children indexOfObject:after];
+        [children insertObject:item atIndex:index];
+    }
+    else
+    {
+        [children addObject:item];
+    }
 }
 -(void *)userdata { return userdata; }
 -(void)setUserdata:(void *)input { userdata = input; }
@@ -5010,8 +5018,7 @@ HTREEITEM API dw_tree_insert_after(HWND handle, HTREEITEM item, char *title, HIC
     [treenode addPointer:nstr];
     [treenode addPointer:itemdata];
     [treenode addPointer:NULL];
-    [treenode addPointer:parent];
-    [tree addTree:treenode and:parent];
+    [tree addTree:treenode and:parent after:item];
     if(parent)
         [tree reloadItem:parent reloadChildren:YES];
     else
@@ -5060,10 +5067,10 @@ HTREEITEM API dw_tree_get_parent(HWND handle, HTREEITEM item)
 {
     int _locked_by_me = FALSE;
     HTREEITEM parent;
+    DWTree *tree = handle;
 
     DW_MUTEX_LOCK;
-    NSPointerArray *array = (NSPointerArray *)item;
-    parent = (HTREEITEM)[array pointerAtIndex:4];
+    parent = [tree parentForItem:item];
     DW_MUTEX_UNLOCK;
     return parent;
 }
