@@ -339,9 +339,13 @@ int _event_handler(id object, NSEvent *event, int message)
                 if([object isKindOfClass:[NSOutlineView class]])
                 {
                     id item = event;
-                    NSString *nstr = [item pointerAtIndex:1];
+                    NSString *nstr = [item objectAtIndex:1];
                     text = (char *)[nstr UTF8String];
-                    user = [item pointerAtIndex:2];                   
+                    NSValue *value = [item objectAtIndex:2];
+                    if(value && [value isKindOfClass:[NSValue class]])
+                    {
+                        user = [value pointerValue];
+                    }
                 }
 
                 dw_pointer_query_pos(&x, &y);
@@ -368,7 +372,7 @@ int _event_handler(id object, NSEvent *event, int message)
                 if([object isKindOfClass:[NSOutlineView class]])
                 {
                     item = (id)event;
-                    NSString *nstr = [item pointerAtIndex:1];
+                    NSString *nstr = [item objectAtIndex:1];
 
                     if(nstr)
                     {
@@ -378,7 +382,12 @@ int _event_handler(id object, NSEvent *event, int message)
                     {
                         text = NULL;
                     }
-                    user = [item pointerAtIndex:2];
+                    
+                    NSValue *value = [item objectAtIndex:2];
+                    if(value && [value isKindOfClass:[NSValue class]])
+                    {
+                        user = [value pointerValue];
+                    }
                     int result = treeselectfunc(handler->window, item, text, handler->data, user);
                     if(text)
                     {
@@ -1606,17 +1615,22 @@ DWObject *DWObj;
 @end
 
 /* Dive into the tree showing all nodes */
-void _free_tree_recurse(NSMutableArray *node, NSPointerArray *item)
+void _free_tree_recurse(NSMutableArray *node, NSMutableArray *item)
 {
-    if(node)
+    if(node && ([node isMemberOfClass:[NSMutableArray class]]))
     {
         int count = (int)[node count];
         int z;
 
         for(z=0;z<count;z++)
         {
-            NSPointerArray *pnt = [node objectAtIndex:z];
-            NSMutableArray *children = (NSMutableArray *)[pnt pointerAtIndex:3];
+            NSMutableArray *pnt = [node objectAtIndex:z];
+            NSMutableArray *children = nil;
+            
+            if(pnt && [pnt isMemberOfClass:[NSMutableArray class]])
+            {
+                children = (NSMutableArray *)[pnt objectAtIndex:3];
+            }
 
             if(item == pnt)
             {
@@ -1627,7 +1641,7 @@ void _free_tree_recurse(NSMutableArray *node, NSPointerArray *item)
             }
             else if(item == NULL)
             {
-                NSString *oldstr = [pnt pointerAtIndex:1];
+                NSString *oldstr = [pnt objectAtIndex:1];
                 [oldstr release];
                 _free_tree_recurse(children, item);
             }
@@ -1662,14 +1676,14 @@ void _free_tree_recurse(NSMutableArray *node, NSPointerArray *item)
 -(id)outlineView:(NSOutlineView *)outlineView objectValueForTableColumn:(NSTableColumn *)tableColumn byItem:(id)item;
 -(void)outlineView:(NSOutlineView *)outlineView willDisplayCell:(id)cell forTableColumn:(NSTableColumn *)tableColumn item:(id)item;
 -(BOOL)outlineView:(NSOutlineView *)outlineView shouldEditTableColumn:(NSTableColumn *)tableColumn item:(id)item;
--(void)addTree:(NSPointerArray *)item and:(NSPointerArray *)parent after:(NSPointerArray *)after;
+-(void)addTree:(NSMutableArray *)item and:(NSMutableArray *)parent after:(NSMutableArray *)after;
 -(void *)userdata;
 -(void)setUserdata:(void *)input;
 -(void)treeSelectionChanged:(id)sender;
 -(void)treeItemExpanded:(NSNotification *)notification;
 -(NSScrollView *)scrollview;
 -(void)setScrollview:(NSScrollView *)input;
--(void)deleteNode:(NSPointerArray *)item;
+-(void)deleteNode:(NSMutableArray *)item;
 -(void)setForegroundColor:(NSColor *)input;
 -(void)clear;
 @end
@@ -1696,8 +1710,8 @@ void _free_tree_recurse(NSMutableArray *node, NSPointerArray *item)
 {
     if(item)
     {
-        NSMutableArray *array = [item pointerAtIndex:3];
-        return array ? [array objectAtIndex:index] : nil;
+        NSMutableArray *array = [item objectAtIndex:3];
+        return ([array isKindOfClass:[NSNull class]]) ? nil : [array objectAtIndex:index];
     }
     else
     {
@@ -1712,10 +1726,10 @@ void _free_tree_recurse(NSMutableArray *node, NSPointerArray *item)
 {
     if(item)
     {
-        if([item isKindOfClass:[NSPointerArray class]])
+        if([item isKindOfClass:[NSMutableArray class]])
         {
-            NSMutableArray *array = [item pointerAtIndex:3];
-            return array ? (int)[array count] : 0;
+            NSMutableArray *array = [item objectAtIndex:3];
+            return ([array isKindOfClass:[NSNull class]]) ? 0 : (int)[array count];
         }
         else
         {
@@ -1731,10 +1745,10 @@ void _free_tree_recurse(NSMutableArray *node, NSPointerArray *item)
 {
     if(item)
     {
-        if([item isKindOfClass:[NSPointerArray class]])
+        if([item isKindOfClass:[NSMutableArray class]])
         {
-            NSPointerArray *this = (NSPointerArray *)item;
-            return [this pointerAtIndex:1];
+            NSMutableArray *this = (NSMutableArray *)item;
+            return [this objectAtIndex:1];
         }
         else
         {
@@ -1747,22 +1761,22 @@ void _free_tree_recurse(NSMutableArray *node, NSPointerArray *item)
 {
     if([cell isMemberOfClass:[NSBrowserCell class]])
     {
-        NSPointerArray *this = (NSPointerArray *)item;
-        NSImage *img = [this pointerAtIndex:0];
+        NSMutableArray *this = (NSMutableArray *)item;
+        NSImage *img = [this objectAtIndex:0];
         [(NSBrowserCell*)cell setImage:img];
     }
 }
 -(BOOL)outlineView:(NSOutlineView *)outlineView shouldEditTableColumn:(NSTableColumn *)tableColumn item:(id)item { return NO; }
--(void)addTree:(NSPointerArray *)item and:(NSPointerArray *)parent after:(NSPointerArray *)after
+-(void)addTree:(NSMutableArray *)item and:(NSMutableArray *)parent after:(NSMutableArray *)after
 {
     NSMutableArray *children = data;
     if(parent)
     {
-        children = [parent pointerAtIndex:3];
-        if(!children)
+        children = [parent objectAtIndex:3];
+        if([children isKindOfClass:[NSNull class]])
         {
             children = [[[NSMutableArray alloc] init] retain];
-            [parent replacePointerAtIndex:3 withPointer:children];
+            [parent replaceObjectAtIndex:3 withObject:children];
         }
     }
     else
@@ -1814,7 +1828,7 @@ void _free_tree_recurse(NSMutableArray *node, NSPointerArray *item)
 }
 -(NSScrollView *)scrollview { return scrollview; }
 -(void)setScrollview:(NSScrollView *)input { scrollview = input; }
--(void)deleteNode:(NSPointerArray *)item { _free_tree_recurse(data, item); }
+-(void)deleteNode:(NSMutableArray *)item { _free_tree_recurse(data, item); }
 -(void)setForegroundColor:(NSColor *)input
 {
     NSTextFieldCell *cell = [treecol dataCell];
@@ -5013,11 +5027,11 @@ HTREEITEM API dw_tree_insert_after(HWND handle, HTREEITEM item, char *title, HIC
     DW_MUTEX_LOCK;
     DWTree *tree = handle;
     NSString *nstr = [[NSString stringWithUTF8String:title] retain];
-    NSPointerArray *treenode = [NSPointerArray pointerArrayWithWeakObjects];
-    [treenode addPointer:icon];
-    [treenode addPointer:nstr];
-    [treenode addPointer:itemdata];
-    [treenode addPointer:NULL];
+    NSMutableArray *treenode = [[[NSMutableArray alloc] init] retain];
+    [treenode addObject:icon];
+    [treenode addObject:nstr];
+    [treenode addObject:[NSValue valueWithPointer:itemdata]];
+    [treenode addObject:[NSNull null]];
     [tree addTree:treenode and:parent after:item];
     if(parent)
         [tree reloadItem:parent reloadChildren:YES];
@@ -5051,8 +5065,8 @@ char * API dw_tree_get_title(HWND handle, HTREEITEM item)
 {
     int _locked_by_me = FALSE;
     DW_MUTEX_LOCK;
-    NSPointerArray *array = (NSPointerArray *)item;
-    NSString *nstr = (NSString *)[array pointerAtIndex:1];
+    NSMutableArray *array = (NSMutableArray *)item;
+    NSString *nstr = (NSString *)[array objectAtIndex:1];
     DW_MUTEX_UNLOCK;
     return strdup([nstr UTF8String]);
 }
@@ -5088,17 +5102,17 @@ void API dw_tree_item_change(HWND handle, HTREEITEM item, char *title, HICN icon
     int _locked_by_me = FALSE;
     DW_MUTEX_LOCK;
     DWTree *tree = handle;
-    NSPointerArray *array = (NSPointerArray *)item;
+    NSMutableArray *array = (NSMutableArray *)item;
     if(title)
     {
-        NSString *oldstr = [array pointerAtIndex:1];
+        NSString *oldstr = [array objectAtIndex:1];
         NSString *nstr = [[NSString stringWithUTF8String:title] retain];
-        [array replacePointerAtIndex:1 withPointer:nstr];
+        [array replaceObjectAtIndex:1 withObject:nstr];
         [oldstr release];
     }
     if(icon)
     {
-        [array replacePointerAtIndex:0 withPointer:icon];
+        [array replaceObjectAtIndex:0 withObject:icon];
     }
     [tree reloadData];
     DW_MUTEX_UNLOCK;
@@ -5115,8 +5129,8 @@ void API dw_tree_item_set_data(HWND handle, HTREEITEM item, void *itemdata)
 {
     int _locked_by_me = FALSE;
     DW_MUTEX_LOCK;
-    NSPointerArray *array = (NSPointerArray *)item;
-    [array replacePointerAtIndex:2 withPointer:itemdata];
+    NSMutableArray *array = (NSMutableArray *)item;
+    [array replaceObjectAtIndex:2 withObject:[NSValue valueWithPointer:itemdata]];
     DW_MUTEX_UNLOCK;
 }
 
@@ -5129,9 +5143,14 @@ void API dw_tree_item_set_data(HWND handle, HTREEITEM item, void *itemdata)
 void * API dw_tree_item_get_data(HWND handle, HTREEITEM item)
 {
     int _locked_by_me = FALSE;
+    void *result = NULL;
     DW_MUTEX_LOCK;
-    NSPointerArray *array = (NSPointerArray *)item;
-    void *result = [array pointerAtIndex:2];
+    NSMutableArray *array = (NSMutableArray *)item;
+    NSValue *value = [array objectAtIndex:2];
+    if(value && [value isMemberOfClass:[NSValue class]])
+    {
+        result = [value pointerValue];
+    }
     DW_MUTEX_UNLOCK;
     return result;
 }
