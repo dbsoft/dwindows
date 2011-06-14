@@ -8080,7 +8080,13 @@ void dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, int 
 
       gtk_table_attach(GTK_TABLE(box), item, 0, 1, 0, 1, hsize ? DW_EXPAND : 0, vsize ? DW_EXPAND : 0, pad, pad);
       g_object_set_data(G_OBJECT(box), "_dw_boxcount", GINT_TO_POINTER(boxcount + 1));
-      gtk_widget_set_size_request(item, width, height);
+      if(GTK_IS_SCROLLED_WINDOW(item))
+      {
+         gtk_scrolled_window_set_min_content_width(GTK_SCROLLED_WINDOW(item), width);
+         gtk_scrolled_window_set_min_content_height(GTK_SCROLLED_WINDOW(item), height);
+      }
+      else
+         gtk_widget_set_size_request(item, width, height);
       if(GTK_IS_RADIO_BUTTON(item))
       {
          GSList *group;
@@ -9452,7 +9458,13 @@ void dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize, in
 
       gtk_table_attach(GTK_TABLE(box), item, x, x + 1, y, y + 1, hsize ? DW_EXPAND : 0, vsize ? DW_EXPAND : 0, pad, pad);
       g_object_set_data(G_OBJECT(box), "_dw_boxcount", GINT_TO_POINTER(boxcount + 1));
-      gtk_widget_set_size_request(item, width, height);
+      if(GTK_IS_SCROLLED_WINDOW(item))
+      {
+         gtk_scrolled_window_set_min_content_width(GTK_SCROLLED_WINDOW(item), width);
+         gtk_scrolled_window_set_min_content_height(GTK_SCROLLED_WINDOW(item), height);
+      }
+      else
+         gtk_widget_set_size_request(item, width, height);
       if (GTK_IS_RADIO_BUTTON(item))
       {
          GSList *group;
