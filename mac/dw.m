@@ -1763,7 +1763,8 @@ void _free_tree_recurse(NSMutableArray *node, NSMutableArray *item)
     {
         NSMutableArray *this = (NSMutableArray *)item;
         NSImage *img = [this objectAtIndex:0];
-        [(NSBrowserCell*)cell setImage:img];
+        if([img isKindOfClass:[NSImage class]])
+            [(NSBrowserCell*)cell setImage:img];
     }
 }
 -(BOOL)outlineView:(NSOutlineView *)outlineView shouldEditTableColumn:(NSTableColumn *)tableColumn item:(id)item { return NO; }
@@ -5028,7 +5029,10 @@ HTREEITEM API dw_tree_insert_after(HWND handle, HTREEITEM item, char *title, HIC
     DWTree *tree = handle;
     NSString *nstr = [[NSString stringWithUTF8String:title] retain];
     NSMutableArray *treenode = [[[NSMutableArray alloc] init] retain];
-    [treenode addObject:icon];
+    if(icon)
+        [treenode addObject:icon];
+    else
+        [treenode addObject:[NSNull null]];
     [treenode addObject:nstr];
     [treenode addObject:[NSValue valueWithPointer:itemdata]];
     [treenode addObject:[NSNull null]];
