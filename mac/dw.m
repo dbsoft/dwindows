@@ -334,7 +334,7 @@ int _event_handler(id object, NSEvent *event, int message)
                 char *text = (char *)event;
                 void *user = NULL;
                 LONG x,y;
-                
+
                 /* Fill in both items for the tree */
                 if([object isKindOfClass:[NSOutlineView class]])
                 {
@@ -382,7 +382,7 @@ int _event_handler(id object, NSEvent *event, int message)
                     {
                         text = NULL;
                     }
-                    
+
                     NSValue *value = [item objectAtIndex:2];
                     if(value && [value isKindOfClass:[NSValue class]])
                     {
@@ -1140,13 +1140,13 @@ DWObject *DWObj;
 @end
 
 @implementation DWFontChoose
--(BOOL)windowShouldClose:(id)window 
-{ 
+-(BOOL)windowShouldClose:(id)window
+{
     DWDialog *d = dialog; dialog = nil;
     NSFont *pickedfont = [fontManager selectedFont];
-    dw_dialog_dismiss(d, pickedfont); 
-    [window orderOut:nil]; 
-    return NO; 
+    dw_dialog_dismiss(d, pickedfont);
+    [window orderOut:nil];
+    return NO;
 }
 -(void)setDialog:(DWDialog *)input { dialog = input; }
 -(void)setFontManager:(NSFontManager *)input { fontManager = input; }
@@ -1626,7 +1626,7 @@ void _free_tree_recurse(NSMutableArray *node, NSMutableArray *item)
         {
             NSMutableArray *pnt = [node objectAtIndex:z];
             NSMutableArray *children = nil;
-            
+
             if(pnt && [pnt isMemberOfClass:[NSMutableArray class]])
             {
                 children = (NSMutableArray *)[pnt objectAtIndex:3];
@@ -5151,7 +5151,7 @@ void * API dw_tree_item_get_data(HWND handle, HTREEITEM item)
     DW_MUTEX_LOCK;
     NSMutableArray *array = (NSMutableArray *)item;
     NSValue *value = [array objectAtIndex:2];
-    if(value && [value isMemberOfClass:[NSValue class]])
+    if(value)
     {
         result = [value pointerValue];
     }
@@ -7280,10 +7280,10 @@ char * API dw_font_choose(char *currfont)
     static NSFontManager *fontManager = nil;
     DWDialog *dialog;
     NSFont *font = nil;
-    
+
     if(currfont)
         font = _dw_font_by_name(currfont);
-    
+
     if(fontDlg)
     {
         dialog = [fontDlg dialog];
@@ -7299,7 +7299,7 @@ char * API dw_font_choose(char *currfont)
         fontManager = [NSFontManager sharedFontManager];
         fontDlg = (DWFontChoose *)[fontManager fontPanel:YES];
     }
-    
+
     dialog = dw_dialog_new(fontDlg);
     if(font)
         [fontManager setSelectedFont:font isMultiple:NO];
@@ -7309,14 +7309,14 @@ char * API dw_font_choose(char *currfont)
     [fontDlg setFontManager:fontManager];
     [fontManager orderFrontFontPanel:fontManager];
 
-    
+
     /* Wait for them to pick a color */
     font = (NSFont *)dw_dialog_wait(dialog);
     if(font)
     {
         NSString *fontname = [font displayName];
         NSString *output = [NSString stringWithFormat:@"%d.%s", (int)[font pointSize], [fontname UTF8String]];
-        return strdup([output UTF8String]);        
+        return strdup([output UTF8String]);
     }
     return NULL;
 }
