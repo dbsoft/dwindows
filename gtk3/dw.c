@@ -9401,7 +9401,7 @@ void dw_calendar_get_date(HWND handle, unsigned int *year, unsigned int *month, 
 void dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize, int vsize, int pad)
 {
    int warn = FALSE, _locked_by_me = FALSE;
-   GtkWidget *tmp, *tmpitem;
+   GtkWidget *tmp, *tmpitem, *image = NULL;
 
    if ( !box )
       return;
