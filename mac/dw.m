@@ -6086,6 +6086,7 @@ HWND API dw_bitmap_new(ULONG cid)
     DW_MUTEX_LOCK;
     NSImageView *bitmap = [[NSImageView alloc] init];
     [bitmap setImageFrameStyle:NSImageFrameNone];
+    [bitmap setImageScaling:NSScaleNone];
     [bitmap setEditable:NO];
     [bitmap setTag:cid];
     DW_MUTEX_UNLOCK;
