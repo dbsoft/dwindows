@@ -4574,7 +4574,7 @@ HWND API dw_bitmap_new(ULONG id)
 {
    return CreateWindow(STATICCLASSNAME,
                   "",
-                  SS_BITMAP | WS_VISIBLE |
+                  SS_BITMAP | SS_CENTERIMAGE | WS_VISIBLE |
                   WS_CHILD | WS_CLIPCHILDREN,
                   0,0,2000,1000,
                   DW_HWND_OBJECT,
