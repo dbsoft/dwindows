@@ -3172,7 +3172,6 @@ HWND dw_bitmap_new(unsigned long id)
    tmp = gtk_image_new();
    gtk_widget_show(tmp);
    g_object_set_data(G_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(id));
-   g_object_set_data(G_OBJECT(tmp), "_dw_bitmap", tmp);
    DW_MUTEX_UNLOCK;
    return tmp;
 }
