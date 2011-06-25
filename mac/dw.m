@@ -3382,6 +3382,7 @@ HWND _button_new(char *text, ULONG cid)
     [button setTag:cid];
     [button setButtonType:NSMomentaryPushInButton];
     [button setBezelStyle:NSThickerSquareBezelStyle];
+    [[button cell] setImageScaling:NSImageScaleProportionallyDown];
     if(DWDefaultFont)
     {
         [[button cell] setFont:DWDefaultFont];
