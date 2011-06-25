@@ -3172,6 +3172,7 @@ HWND dw_bitmap_new(unsigned long id)
    tmp = gtk_image_new();
    gtk_widget_show(tmp);
    g_object_set_data(G_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(id));
+   g_object_set_data(G_OBJECT(tmp), "_dw_bitmap", tmp);
    DW_MUTEX_UNLOCK;
    return tmp;
 }
@@ -3849,6 +3850,7 @@ HWND dw_bitmapbutton_new(char *text, unsigned long id)
    {
       dw_window_set_bitmap(bitmap, id, NULL);
       gtk_container_add (GTK_CONTAINER(tmp), bitmap);
+      g_object_set_data(G_OBJECT(tmp), "_dw_bitmap", bitmap);
    }
    gtk_widget_show(tmp);
    if(text)
@@ -3885,6 +3887,8 @@ HWND dw_bitmapbutton_new_from_file(char *text, unsigned long id, char *filename)
    box = gtk_hbox_new (FALSE, 0);
    gtk_container_set_border_width (GTK_CONTAINER (box), 2);
 
+   /* Create a new button */
+   button = gtk_button_new();
    /* Now on to the image stuff */
    bitmap = dw_bitmap_new(id);
    if(bitmap)
@@ -3893,6 +3897,7 @@ HWND dw_bitmapbutton_new_from_file(char *text, unsigned long id, char *filename)
       /* Pack the image into the box */
       gtk_box_pack_start( GTK_BOX(box), bitmap, TRUE, FALSE, 3 );
       gtk_widget_show( bitmap );
+      g_object_set_data(G_OBJECT(button), "_dw_bitmap", bitmap);
    }
    if(label_text)
    {
@@ -3902,8 +3907,6 @@ HWND dw_bitmapbutton_new_from_file(char *text, unsigned long id, char *filename)
       gtk_box_pack_start( GTK_BOX(box), label, TRUE, FALSE, 3 );
       gtk_widget_show( label );
    }
-   /* Create a new button */
-   button = gtk_button_new();
 
    /* Pack and show all our widgets */
    gtk_widget_show( box );
@@ -3941,6 +3944,7 @@ HWND dw_bitmapbutton_new_from_data(char *text, unsigned long id, char *data, int
    {
       dw_window_set_bitmap_from_data(bitmap, 0, data, len);
       gtk_container_add (GTK_CONTAINER(tmp), bitmap);
+      g_object_set_data(G_OBJECT(tmp), "_dw_bitmap", bitmap);
    }
    gtk_widget_show(tmp);
    if(text)
@@ -8012,7 +8016,7 @@ void dw_exit(int exitcode)
 void dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, int vsize, int pad)
 {
    int warn = FALSE, _locked_by_me = FALSE;
-   GtkWidget *tmp, *tmpitem;
+   GtkWidget *tmp, *tmpitem, *image = NULL;
 
    if(!box)
       return;
@@ -8036,6 +8040,22 @@ void dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, int 
    {
       item = gtk_label_new("");
       gtk_widget_show_all(item);
+   }
+   else if((image = g_object_get_data(G_OBJECT(item), "_dw_bitmap")))
+   {
+      GdkPixbuf *pixbuf = gtk_image_get_pixbuf(GTK_IMAGE(image)); 
+		  
+      if(pixbuf)
+      {
+         int pwidth = gdk_pixbuf_get_width(pixbuf);
+         int pheight = gdk_pixbuf_get_height(pixbuf);
+
+         if(pwidth > width || pheight > height)
+         {
+            pixbuf = gdk_pixbuf_scale_simple(pixbuf, pwidth > width ? width : pwidth, pheight > height ? height : pheight, GDK_INTERP_BILINEAR);
+            gtk_image_set_from_pixbuf(GTK_IMAGE(image), pixbuf);
+         }
+      }
    }
 
    tmpitem = (GtkWidget *)g_object_get_data(G_OBJECT(item), "_dw_boxhandle");
@@ -9405,6 +9425,22 @@ void dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize, in
    {
       item = gtk_label_new("");
       gtk_widget_show_all(item);
+   }
+   else if((image = g_object_get_data(G_OBJECT(item), "_dw_bitmap")))
+   {
+      GdkPixbuf *pixbuf = gtk_image_get_pixbuf(GTK_IMAGE(image)); 
+		  
+      if(pixbuf)
+      {
+         int pwidth = gdk_pixbuf_get_width(pixbuf);
+         int pheight = gdk_pixbuf_get_height(pixbuf);
+
+         if(pwidth > width || pheight > height)
+         {
+            pixbuf = gdk_pixbuf_scale_simple(pixbuf, pwidth > width ? width : pwidth, pheight > height ? height : pheight, GDK_INTERP_BILINEAR);
+            gtk_image_set_from_pixbuf(GTK_IMAGE(image), pixbuf);
+         }
+      }
    }
 
    tmpitem = (GtkWidget *)g_object_get_data(G_OBJECT(item), "_dw_boxhandle");
