@@ -8929,7 +8929,12 @@ void _dwthreadstart(void *data)
     free(tmp);
 }
 
-void _dw_default_font(char *fontname)
+/*
+ * Sets the default font used on text based widgets.
+ * Parameters:
+ *           fontname: Font name in Dynamic Windows format.
+ */
+void API dw_font_set_default(char *fontname)
 {
     if(DWDefaultFont)
     {
