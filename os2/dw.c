@@ -3669,7 +3669,9 @@ int API dw_init(int newthread, int argc, char *argv[])
    desktop = WinQueryDesktopWindow(dwhab, NULLHANDLE);
 
    if(!IS_WARP4())
-      DefaultFont = "8.Helv";
+      DefaultFont = strdup("8.Helv");
+   else
+      DefaultFont = strdup(DefaultFont);
 
    /* This is a window that hangs around as long as the
     * application does and handles menu messages.
@@ -4128,6 +4130,19 @@ char * API dw_font_choose(char *currfont)
     size = FIXEDINT(fd.fxPointSize);
     sprintf(buf, "%d.%s", size, fd.fAttrs.szFacename);
     return buf;
+}
+
+/*
+ * Sets the default font used on text based widgets.
+ * Parameters:
+ *           fontname: Font name in Dynamic Windows format.
+ */
+void API dw_font_set_default(char *fontname)
+{
+    char *oldfont = DefaultFont;
+    
+    DefaultFont = strdup(fontname);
+    free(oldfont);
 }
 
 /*

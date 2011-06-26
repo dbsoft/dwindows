@@ -311,8 +311,6 @@ typedef struct _hpixmap {
 } *HPIXMAP;
 
 void _dw_pool_drain(void);
-void _dw_default_font(char *fontname);
-
 
 #define DW_DT_LEFT               0 /* NSLeftTextAlignment */
 #define DW_DT_QUERYEXTENT        0
@@ -1624,6 +1622,7 @@ void API dw_draw_rect(HWND handle, HPIXMAP pixmap, int fill, int x, int y, int w
 void API dw_draw_polygon(HWND handle, HPIXMAP pixmap, int fill, int npoints, int *x, int *y);
 void API dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text);
 void API dw_font_text_extents_get(HWND handle, HPIXMAP pixmap, char *text, int *width, int *height);
+void API dw_font_set_default(char *fontname);
 void API dw_flush(void);
 void API dw_pixmap_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest, int width, int height, HWND src, HPIXMAP srcp, int xsrc, int ysrc);
 HPIXMAP API dw_pixmap_new(HWND handle, unsigned long width, unsigned long height, int depth);

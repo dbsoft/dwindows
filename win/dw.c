@@ -73,6 +73,7 @@ BYTE _blue[] = {  0x00, 0x00, 0x00, 0x00, 0xcc, 0xbb, 0xbb, 0xaa, 0x77,
 HBRUSH _colors[18];
 
 static int screenx, screeny;
+HFONT _DefaultFont = NULL;
 
 LRESULT CALLBACK _browserWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 void _resize_notebook_page(HWND handle, int pageid);
@@ -4038,6 +4039,18 @@ LOGFONT _get_logfont(HWND handle, char *fontname)
    return lf;
 }
 
+/* Create a duplicate of an existing font handle
+ * that is safe to call DeleteObject() on.
+ */
+HFONT _DupFontHandle(HFONT hfont)
+{
+    LOGFONT lf = {0};
+    return GetObject(hfont, sizeof(lf), &lf) ? CreateFontIndirect(&lf) : NULL;
+}
+
+/* Create a font handle from specified font name..
+ * or return a handle to the default font.
+ */
 HFONT _acquire_font(HWND handle, char *fontname)
 {
    HFONT hfont = 0;
@@ -4047,9 +4060,27 @@ HFONT _acquire_font(HWND handle, char *fontname)
       LOGFONT lf = _get_logfont(handle, fontname);
       hfont = CreateFontIndirect(&lf);
    }
+   if(!hfont && _DefaultFont)
+      hfont = _DupFontHandle(_DefaultFont);
    if(!hfont)
       hfont = GetStockObject(DEFAULT_GUI_FONT);
    return hfont;
+}
+
+/*
+ * Sets the default font used on text based widgets.
+ * Parameters:
+ *           fontname: Font name in Dynamic Windows format.
+ */
+void API dw_font_set_default(char *fontname)
+{
+    HFONT oldfont = _DefaultFont;
+    
+    _DefaultFont = _acquire_font(HWND_DESKTOP, fontname);
+    if(oldfont)
+    {
+        DeleteObject(oldfont);
+    }
 }
 
 /*

@@ -234,6 +234,7 @@ EXPORTS
 
   dw_font_text_extents_get               @385
   dw_font_choose                         @386
+  dw_font_set_default                    @387
 
   dw_slider_new                          @390
   dw_slider_get_pos                      @391
