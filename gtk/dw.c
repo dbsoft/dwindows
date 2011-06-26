@@ -2842,6 +2842,15 @@ char * API dw_font_choose(char *currfont)
 }
 
 /*
+ * Sets the default font used on text based widgets.
+ * Parameters:
+ *           fontname: Font name in Dynamic Windows format.
+ */
+void API dw_font_set_default(char *fontname)
+{
+}
+
+/*
  * Sets the font used by a specified window (widget) handle.
  * Parameters:
  *          handle: The window (widget) handle.
