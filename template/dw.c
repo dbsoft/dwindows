@@ -670,32 +670,31 @@ int API dw_scrollbox_get_range(HWND handle, int orient)
     return 0;
 }
 
-/*
- * Pack windows (widgets) into a box from the end (or bottom).
- * Parameters:
- *       box: Window handle of the box to be packed into.
- *       item: Window handle of the item to be back.
- *       width: Width in pixels of the item or -1 to be self determined.
- *       height: Height in pixels of the item or -1 to be self determined.
- *       hsize: TRUE if the window (widget) should expand horizontally to fill space given.
- *       vsize: TRUE if the window (widget) should expand vertically to fill space given.
- *       pad: Number of pixels of padding around the item.
- */
-void API dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, int vsize, int pad)
+/* Internal box packing function called by the other 3 functions */
+void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsize, int vsize, int pad, char *funcname)
 {
     Box *thisbox;
-    int z;
+    int z, x = 0;
     Item *tmpitem, *thisitem;
 
     thisbox = _dw_get_window_pointer(box);
     thisitem = thisbox->items;
 
+    /* Do some sanity bounds checking */
+    if(index < 0)
+       index = 0;
+    if(index > thisbox->count)
+       index = thisbox->count;
+        
     /* Duplicate the existing data */
     tmpitem = malloc(sizeof(Item)*(thisbox->count+1));
 
     for(z=0;z<thisbox->count;z++)
     {
-       tmpitem[z+1] = thisitem[z];
+       if(z == index)
+          x++;
+       tmpitem[x] = thisitem[z];
+       x++;
     }
 
     /* Sanity checks */
@@ -706,23 +705,23 @@ void API dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, 
 
     /* Fill in the item data appropriately */
     if(0 /* Test to see if "item" is a box */)
-       tmpitem[0].type = TYPEBOX;
+       tmpitem[index].type = TYPEBOX;
     else
-       tmpitem[0].type = TYPEITEM;
+       tmpitem[index].type = TYPEITEM;
 
-    tmpitem[0].hwnd = item;
-    tmpitem[0].origwidth = tmpitem[0].width = width;
-    tmpitem[0].origheight = tmpitem[0].height = height;
-    tmpitem[0].pad = pad;
+    tmpitem[index].hwnd = item;
+    tmpitem[index].origwidth = tmpitem[index].width = width;
+    tmpitem[index].origheight = tmpitem[index].height = height;
+    tmpitem[index].pad = pad;
     if(hsize)
-       tmpitem[0].hsize = SIZEEXPAND;
+       tmpitem[index].hsize = SIZEEXPAND;
     else
-       tmpitem[0].hsize = SIZESTATIC;
+       tmpitem[index].hsize = SIZESTATIC;
 
     if(vsize)
-       tmpitem[0].vsize = SIZEEXPAND;
+       tmpitem[index].vsize = SIZEEXPAND;
     else
-       tmpitem[0].vsize = SIZESTATIC;
+       tmpitem[index].vsize = SIZESTATIC;
 
     thisbox->items = tmpitem;
 
@@ -741,6 +740,23 @@ void API dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, 
 }
 
 /*
+ * Pack windows (widgets) into a box at an arbitrary location.
+ * Parameters:
+ *       box: Window handle of the box to be packed into.
+ *       item: Window handle of the item to be back.
+ *       index: 0 based index of packed items. 
+ *       width: Width in pixels of the item or -1 to be self determined.
+ *       height: Height in pixels of the item or -1 to be self determined.
+ *       hsize: TRUE if the window (widget) should expand horizontally to fill space given.
+ *       vsize: TRUE if the window (widget) should expand vertically to fill space given.
+ *       pad: Number of pixels of padding around the item.
+ */
+void API dw_box_pack_at_index(HWND box, HWND item, int index, int width, int height, int hsize, int vsize, int pad)
+{
+    _dw_box_pack(box, item, index, width, height, hsize, vsize, pad, "dw_box_pack_at_index()");
+}
+
+/*
  * Pack windows (widgets) into a box from the start (or top).
  * Parameters:
  *       box: Window handle of the box to be packed into.
@@ -753,61 +769,26 @@ void API dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, 
  */
 void API dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize, int vsize, int pad)
 {
-    Box *thisbox;
-    int z;
-    Item *tmpitem, *thisitem;
+    /* 65536 is the table limit on GTK... 
+     * seems like a high enough value we will never hit it here either.
+     */
+    _dw_box_pack(box, item, 65536, width, height, hsize, vsize, pad, "dw_box_pack_start()");
+}
 
-    thisbox = _dw_get_window_pointer(box);
-    thisitem = thisbox->items;
-
-    /* Duplicate the existing data */
-    tmpitem = malloc(sizeof(Item)*(thisbox->count+1));
-
-    for(z=0;z<thisbox->count;z++)
-    {
-       tmpitem[z] = thisitem[z];
-    }
-
-    /* Sanity checks */
-    if(vsize && !height)
-       height = 1;
-    if(hsize && !width)
-       width = 1;
-
-    /* Fill in the item data appropriately */
-    if(0 /* Test to see if "item" is a box */)
-       tmpitem[thisbox->count].type = TYPEBOX;
-    else
-       tmpitem[thisbox->count].type = TYPEITEM;
-
-    tmpitem[thisbox->count].hwnd = item;
-    tmpitem[thisbox->count].origwidth = tmpitem[thisbox->count].width = width;
-    tmpitem[thisbox->count].origheight = tmpitem[thisbox->count].height = height;
-    tmpitem[thisbox->count].pad = pad;
-    if(hsize)
-       tmpitem[thisbox->count].hsize = SIZEEXPAND;
-    else
-       tmpitem[thisbox->count].hsize = SIZESTATIC;
-
-    if(vsize)
-       tmpitem[thisbox->count].vsize = SIZEEXPAND;
-    else
-       tmpitem[thisbox->count].vsize = SIZESTATIC;
-
-    thisbox->items = tmpitem;
-
-    /* Update the item count */
-    thisbox->count++;
-
-    /* Add the item to the box */
-#if 0
-    /* Platform specific code to add item to box */
-    BoxAdd(box, item);
-#endif
-
-    /* Free the old data */
-    if(thisbox->count)
-       free(thisitem);
+/*
+ * Pack windows (widgets) into a box from the end (or bottom).
+ * Parameters:
+ *       box: Window handle of the box to be packed into.
+ *       item: Window handle of the item to be back.
+ *       width: Width in pixels of the item or -1 to be self determined.
+ *       height: Height in pixels of the item or -1 to be self determined.
+ *       hsize: TRUE if the window (widget) should expand horizontally to fill space given.
+ *       vsize: TRUE if the window (widget) should expand vertically to fill space given.
+ *       pad: Number of pixels of padding around the item.
+ */
+void API dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, int vsize, int pad)
+{
+    _dw_box_pack(box, item, 0, width, height, hsize, vsize, pad, "dw_box_pack_end()");
 }
 
 /*
@@ -2681,6 +2662,26 @@ int API dw_window_set_font(HWND handle, char *fontname)
 char * API dw_window_get_font(HWND handle)
 {
     return NULL;
+}
+
+/* Allows the user to choose a font using the system's font chooser dialog.
+ * Parameters:
+ *       currfont: current font
+ * Returns:
+ *       A malloced buffer with the selected font or NULL on error.
+ */
+char * API dw_font_choose(char *currfont)
+{
+    return NULL;
+}
+
+/*
+ * Sets the default font used on text based widgets.
+ * Parameters:
+ *           fontname: Font name in Dynamic Windows format.
+ */
+void API dw_font_set_default(char *fontname)
+{
 }
 
 /*
