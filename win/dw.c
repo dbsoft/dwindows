@@ -47,6 +47,15 @@ SECURITY_DESCRIPTOR _dwsd;
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))
 #endif
 
+/*
+ * For the dw*from_data() functions, a temporary file is required to write
+ * the contents of the image to so it can be loaded by the Win32 API
+ * We use _tempnam() which uses TMP env variable by default. It can be passed
+ * an alternate temporary directory if TMP is not set, so we get the value
+ * of TEMP and store it here.
+ */
+static char _dw_alternate_temp_dir[MAX_PATH];
+
 FILE *dbgfp = NULL;
 
 int main(int argc, char *argv[]);
@@ -3540,7 +3549,7 @@ int API dw_init(int newthread, int argc, char *argv[])
    WNDCLASS wc;
    int z;
    INITCOMMONCONTROLSEX icc;
-   char *fname;
+   char *fname, *alttmpdir;
    HFONT oldfont;
 
    /* Initialize our thread local storage */
@@ -3664,6 +3673,17 @@ int API dw_init(int newthread, int argc, char *argv[])
    if ( (fname = getenv( "DWINDOWS_DEBUGFILE" ) ) != NULL )
    {
       dbgfp = fopen( fname, "w" );
+   }
+   /*
+    * Get an alternate temporary directory in case TMP doesn't exist
+    */
+   if ( (alttmpdir = getenv( "TEMP" ) ) == NULL )
+   {
+      strcpy( _dw_alternate_temp_dir, "c:\\tmp" );
+   }
+   else
+   {
+      strcpy( _dw_alternate_temp_dir, alttmpdir );
    }
    /*
     * Get screen size. Used to make calls to dw_screen_width()
@@ -4003,7 +4023,7 @@ LOGFONT _get_logfont(HWND handle, char *fontname)
    int z, size = 9;
    LOGFONT lf;
    HDC hdc = GetDC(handle);
-   
+
    for(z=0;z<strlen(fontname);z++)
    {
       if(fontname[z]=='.')
@@ -4075,7 +4095,7 @@ HFONT _acquire_font(HWND handle, char *fontname)
 void API dw_font_set_default(char *fontname)
 {
     HFONT oldfont = _DefaultFont;
-    
+
     _DefaultFont = _acquire_font(HWND_DESKTOP, fontname);
     if(oldfont)
     {
@@ -4107,11 +4127,11 @@ int API dw_window_set_font(HWND handle, char *fontname)
             handle = thisbox->grouphwnd;
         }
     }
-        
+
     /* This needs to be after we get the correct handle */
     oldfont = (HFONT)SendMessage(handle, WM_GETFONT, 0, 0);
     hfont = _acquire_font(handle, fontname);
-    
+
     if (fontname)
     {
         if(cinfo)
@@ -4151,14 +4171,14 @@ char * API dw_font_choose(char *currfont)
    char *str = NULL;
    char *bold = "";
    char *italic = "";
-    
+
    if(currfont && *currfont)
       lf = _get_logfont(NULL, currfont);
-      
+
    cf.lStructSize = sizeof(cf);
    cf.Flags = CF_SCREENFONTS | CF_INITTOLOGFONTSTRUCT;
-   cf.lpLogFont = &lf;    
-    
+   cf.lpLogFont = &lf;
+
    if(ChooseFont(&cf))
    {
       str = (char *)malloc( 100 );
@@ -4166,7 +4186,7 @@ char * API dw_font_choose(char *currfont)
       {
          int height;
          HDC hdc = GetDC(NULL);
-         
+
          if ( lf.lfWeight > FW_MEDIUM )
             bold = " Bold";
          if ( lf.lfItalic )
@@ -4213,7 +4233,7 @@ char * API dw_window_get_font(HWND handle)
       {
          int height;
          HDC hdc = GetDC(handle);
-         
+
          if ( lf.lfWeight > FW_MEDIUM )
             bold = " Bold";
          if ( lf.lfItalic )
@@ -5406,7 +5426,7 @@ HWND API dw_bitmapbutton_new_from_data(char *text, unsigned long id, char *data,
 
    if ( !(bubble = calloc(1, sizeof(BubbleButton))) )
       return 0;
-   file = tmpnam( NULL );
+   file = _tempnam( _dw_alternate_temp_dir, "dw" );
    if ( file != NULL )
    {
       fp = fopen( file, "wb" );
@@ -5428,9 +5448,11 @@ HWND API dw_bitmapbutton_new_from_data(char *text, unsigned long id, char *data,
       else
       {
          unlink( file );
+         free( file );
          return 0;
       }
       unlink( file );
+      free( file );
    }
 
    tmp = CreateWindow( BUTTONCLASSNAME,
@@ -5769,7 +5791,7 @@ void API dw_window_set_bitmap_from_data(HWND handle, unsigned long id, char *dat
    }
    else if (data)
    {
-      file = tmpnam( NULL );
+      file = _tempnam( _dw_alternate_temp_dir, "dw" );
       if ( file != NULL )
       {
          fp = fopen( file, "wb" );
@@ -5785,9 +5807,11 @@ void API dw_window_set_bitmap_from_data(HWND handle, unsigned long id, char *dat
          else
          {
             unlink( file );
+            free( file );
             return;
          }
          unlink( file );
+         free( file );
       }
       if (icon == 0 && hbitmap == 0)
          return;
@@ -5963,7 +5987,7 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
    {
       int z, x = 0;
       Item *tmpitem, *thisitem = thisbox->items;
-      
+
       /* Do some sanity bounds checking */
       if(index < 0)
         index = 0;
@@ -6048,7 +6072,7 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
  * Parameters:
  *       box: Window handle of the box to be packed into.
  *       item: Window handle of the item to be back.
- *       index: 0 based index of packed items. 
+ *       index: 0 based index of packed items.
  *       width: Width in pixels of the item or -1 to be self determined.
  *       height: Height in pixels of the item or -1 to be self determined.
  *       hsize: TRUE if the window (widget) should expand horizontally to fill space given.
@@ -6073,7 +6097,7 @@ void API dw_box_pack_at_index(HWND box, HWND item, int index, int width, int hei
  */
 void API dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize, int vsize, int pad)
 {
-    /* 65536 is the table limit on GTK... 
+    /* 65536 is the table limit on GTK...
      * seems like a high enough value we will never hit it here either.
      */
     _dw_box_pack(box, item, 65536, width, height, hsize, vsize, pad, "dw_box_pack_start()");
@@ -7638,7 +7662,7 @@ HICN API dw_icon_load_from_data(char *data, int len)
 
    if ( !data )
       return 0;
-   file = tmpnam( NULL );
+   file = _tempnam( _dw_alternate_temp_dir, "dw" );
    if ( file != NULL )
    {
       fp = fopen( file, "wb" );
@@ -7651,9 +7675,11 @@ HICN API dw_icon_load_from_data(char *data, int len)
       else
       {
          unlink( file );
+         free( file );
          return 0;
       }
       unlink( file );
+      free( file );
    }
    return (HICN)icon;
 }
@@ -8887,7 +8913,7 @@ HPIXMAP API dw_pixmap_new_from_data(HWND handle, char *data, int len)
 
    pixmap->handle = handle;
 
-   file = tmpnam( NULL );
+   file = _tempnam( _dw_alternate_temp_dir, "dw" );
    if ( file != NULL )
    {
       fp = fopen( file, "wb" );
@@ -8901,10 +8927,12 @@ HPIXMAP API dw_pixmap_new_from_data(HWND handle, char *data, int len)
       else
       {
          unlink( file );
+         free( file );
          free( pixmap );
          return NULL;
       }
       unlink( file );
+      free( file );
    }
 
    if ( !pixmap->hbm )
