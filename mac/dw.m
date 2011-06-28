@@ -3207,19 +3207,19 @@ void API dw_box_pack_at_index(HWND box, HWND item, int index, int width, int hei
 
     /* Do some sanity bounds checking */
     if(index < 0)
-       index = 0;
+        index = 0;
     if(index > thisbox->count)
-       index = thisbox->count;
-        
+        index = thisbox->count;
+    
     /* Duplicate the existing data */
     tmpitem = malloc(sizeof(Item)*(thisbox->count+1));
 
     for(z=0;z<thisbox->count;z++)
     {
-       if(z == index)
-           x++;
-       tmpitem[z+1] = thisitem[z];
-       x++;
+        if(z == index)
+            x++;
+        tmpitem[x] = thisitem[z];
+        x++;
     }
 
     /* Sanity checks */
