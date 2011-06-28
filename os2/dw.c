@@ -5972,21 +5972,9 @@ HWND API dw_window_from_id(HWND handle, int id)
    return NULLHANDLE;
 }
 
-/*
- * Pack windows (widgets) into a box at an arbitrary location.
- * Parameters:
- *       box: Window handle of the box to be packed into.
- *       item: Window handle of the item to be back.
- *       index: 0 based index of packed items. 
- *       width: Width in pixels of the item or -1 to be self determined.
- *       height: Height in pixels of the item or -1 to be self determined.
- *       hsize: TRUE if the window (widget) should expand horizontally to fill space given.
- *       vsize: TRUE if the window (widget) should expand vertically to fill space given.
- *       pad: Number of pixels of padding around the item.
- */
-void API dw_box_pack_at_index(HWND box, HWND item, int index, int width, int height, int hsize, int vsize, int pad)
+/* Internal box packing function called by the other 3 functions */
+void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsize, int vsize, int pad, char *funcname)
 {
-   char *funcname = "dw_box_pack_at_index()";
    Box *thisbox;
    
       /*
@@ -6088,6 +6076,42 @@ void API dw_box_pack_at_index(HWND box, HWND item, int index, int width, int hei
 }
 
 /*
+ * Pack windows (widgets) into a box at an arbitrary location.
+ * Parameters:
+ *       box: Window handle of the box to be packed into.
+ *       item: Window handle of the item to be back.
+ *       index: 0 based index of packed items. 
+ *       width: Width in pixels of the item or -1 to be self determined.
+ *       height: Height in pixels of the item or -1 to be self determined.
+ *       hsize: TRUE if the window (widget) should expand horizontally to fill space given.
+ *       vsize: TRUE if the window (widget) should expand vertically to fill space given.
+ *       pad: Number of pixels of padding around the item.
+ */
+void API dw_box_pack_at_index(HWND box, HWND item, int index, int width, int height, int hsize, int vsize, int pad)
+{
+    _dw_box_pack(box, item, index, width, height, hsize, vsize, pad, "dw_box_pack_at_index()");
+}
+
+/*
+ * Pack windows (widgets) into a box from the start (or top).
+ * Parameters:
+ *       box: Window handle of the box to be packed into.
+ *       item: Window handle of the item to be back.
+ *       width: Width in pixels of the item or -1 to be self determined.
+ *       height: Height in pixels of the item or -1 to be self determined.
+ *       hsize: TRUE if the window (widget) should expand horizontally to fill space given.
+ *       vsize: TRUE if the window (widget) should expand vertically to fill space given.
+ *       pad: Number of pixels of padding around the item.
+ */
+void API dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize, int vsize, int pad)
+{
+    /* 65536 is the table limit on GTK... 
+     * seems like a high enough value we will never hit it here either.
+     */
+    _dw_box_pack(box, item, 65536, width, height, hsize, vsize, pad, "dw_box_pack_start()");
+}
+
+/*
  * Pack windows (widgets) into a box from the end (or bottom).
  * Parameters:
  *       box: Window handle of the box to be packed into.
@@ -6100,98 +6124,7 @@ void API dw_box_pack_at_index(HWND box, HWND item, int index, int width, int hei
  */
 void API dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, int vsize, int pad)
 {
-   char *funcname = "dw_box_pack_end()";
-
-      /*
-       * If you try and pack an item into itself VERY bad things can happen; like at least an
-       * infinite loop on GTK! Lets be safe!
-       */
-   if(box == item)
-   {
-      dw_messagebox(funcname, DW_MB_OK|DW_MB_ERROR, "Danger! Danger! Will Robinson; box and item are the same!");
-      return;
-   }
-
-   if(WinWindowFromID(box, FID_CLIENT))
-   {
-      HWND intbox = (HWND)dw_window_get_data(box, "_dw_box");
-      if(intbox)
-      {
-         box = intbox;
-      }
-      else
-      {
-         box = WinWindowFromID(box, FID_CLIENT);
-         hsize = vsize = TRUE;
-      }
-   }
-   _dw_box_pack_end(box, item, width, height, hsize, vsize, pad, funcname);
-}
-
-void _dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, int vsize, int pad, char *functionname)
-{
-   Box *thisbox = WinQueryWindowPtr(box, QWP_USER);
-
-   if(thisbox)
-   {
-      int z;
-      Item *tmpitem, *thisitem = thisbox->items;
-      char tmpbuf[100];
-      HWND frame = (HWND)dw_window_get_data(item, "_dw_combo_box");
-
-      tmpitem = malloc(sizeof(Item)*(thisbox->count+1));
-
-      for(z=0;z<thisbox->count;z++)
-      {
-         tmpitem[z+1] = thisitem[z];
-      }
-
-      WinQueryClassName(item, 99, tmpbuf);
-
-      if(vsize && !height)
-         height = 1;
-      if(hsize && !width)
-         width = 1;
-
-      if(strncmp(tmpbuf, "#1", 3)==0)
-         tmpitem[0].type = TYPEBOX;
-      else
-      {
-         if ( width == 0 && hsize == FALSE )
-            dw_messagebox(functionname, DW_MB_OK|DW_MB_ERROR, "Width and expand Horizonal both unset for box: %x item: %x",box,item);
-         if ( height == 0 && vsize == FALSE )
-            dw_messagebox(functionname, DW_MB_OK|DW_MB_ERROR, "Height and expand Vertical both unset for box: %x item: %x",box,item);
-
-         tmpitem[0].type = TYPEITEM;
-      }
-
-      tmpitem[0].hwnd = item;
-      tmpitem[0].origwidth = tmpitem[0].width = width;
-      tmpitem[0].origheight = tmpitem[0].height = height;
-      tmpitem[0].pad = pad;
-      if(hsize)
-         tmpitem[0].hsize = SIZEEXPAND;
-      else
-         tmpitem[0].hsize = SIZESTATIC;
-
-      if(vsize)
-         tmpitem[0].vsize = SIZEEXPAND;
-      else
-         tmpitem[0].vsize = SIZESTATIC;
-
-      thisbox->items = tmpitem;
-
-      if(thisbox->count)
-         free(thisitem);
-
-      thisbox->count++;
-
-      WinQueryClassName(item, 99, tmpbuf);
-      /* Don't set the ownership if it's an entryfield or spinbutton */
-      if(strncmp(tmpbuf, "#6", 3)!=0 && strncmp(tmpbuf, "#32", 4)!=0 && strncmp(tmpbuf, "#2", 3)!=0)
-         WinSetOwner(item, box);
-      WinSetParent(frame ? frame : item, box, FALSE);
-   }
+    _dw_box_pack(box, item, 0, width, height, hsize, vsize, pad, "dw_box_pack_end()");
 }
 
 /*
@@ -9465,113 +9398,6 @@ float API dw_splitbar_get(HWND handle)
    if(percent)
       return *percent;
    return 0.0;
-}
-
-/*
- * Pack windows (widgets) into a box from the start (or top).
- * Parameters:
- *       box: Window handle of the box to be packed into.
- *       item: Window handle of the item to be back.
- *       width: Width in pixels of the item or -1 to be self determined.
- *       height: Height in pixels of the item or -1 to be self determined.
- *       hsize: TRUE if the window (widget) should expand horizontally to fill space given.
- *       vsize: TRUE if the window (widget) should expand vertically to fill space given.
- *       pad: Number of pixels of padding around the item.
- */
-void API dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize, int vsize, int pad)
-{
-   char *funcname = "dw_box_pack_start()";
-
-   /*
-    * If you try and pack an item into itself VERY bad things can happen; like at least an
-    * infinite loop on GTK! Lets be safe!
-    */
-   if(box == item)
-   {
-      dw_messagebox(funcname, DW_MB_OK|DW_MB_ERROR, "Danger! Danger! Will Robinson; box and item are the same!");
-      return;
-   }
-
-   if(WinWindowFromID(box, FID_CLIENT))
-   {
-      HWND intbox = (HWND)dw_window_get_data(box, "_dw_box");
-      if(intbox)
-      {
-         box = intbox;
-      }
-      else
-      {
-         box = WinWindowFromID(box, FID_CLIENT);
-         hsize = vsize = TRUE;
-      }
-   }
-   _dw_box_pack_start(box, item, width, height, hsize, vsize, pad, funcname);
-}
-
-void _dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize, int vsize, int pad, char *functionname)
-{
-   Box *thisbox = WinQueryWindowPtr(box, QWP_USER);
-
-   if(thisbox)
-   {
-      int z;
-      Item *tmpitem, *thisitem = thisbox->items;
-      char tmpbuf[100];
-      HWND frame = (HWND)dw_window_get_data(item, "_dw_combo_box");
-
-      tmpitem = malloc(sizeof(Item)*(thisbox->count+1));
-
-      for(z=0;z<thisbox->count;z++)
-      {
-         tmpitem[z] = thisitem[z];
-      }
-
-      WinQueryClassName(item, 99, tmpbuf);
-
-      if(vsize && !height)
-         height = 1;
-      if(hsize && !width)
-         width = 1;
-
-      if(strncmp(tmpbuf, "#1", 3)==0)
-         tmpitem[thisbox->count].type = TYPEBOX;
-      else
-      {
-         if ( width == 0 && hsize == FALSE )
-            dw_messagebox(functionname, DW_MB_OK|DW_MB_ERROR, "Width and expand Horizonal both unset for box: %x item: %x",box,item);
-         if ( height == 0 && vsize == FALSE )
-            dw_messagebox(functionname, DW_MB_OK|DW_MB_ERROR, "Height and expand Vertical both unset for box: %x item: %x",box,item);
-
-         tmpitem[thisbox->count].type = TYPEITEM;
-      }
-
-      tmpitem[thisbox->count].hwnd = item;
-      tmpitem[thisbox->count].origwidth = tmpitem[thisbox->count].width = width;
-      tmpitem[thisbox->count].origheight = tmpitem[thisbox->count].height = height;
-      tmpitem[thisbox->count].pad = pad;
-      if(hsize)
-         tmpitem[thisbox->count].hsize = SIZEEXPAND;
-      else
-         tmpitem[thisbox->count].hsize = SIZESTATIC;
-
-      if(vsize)
-         tmpitem[thisbox->count].vsize = SIZEEXPAND;
-      else
-         tmpitem[thisbox->count].vsize = SIZESTATIC;
-
-      thisbox->items = tmpitem;
-
-      if(thisbox->count)
-         free(thisitem);
-
-      thisbox->count++;
-
-        /* Don't set the ownership if it's an entryfield  or spinbutton */
-      WinQueryClassName(item, 99, tmpbuf);
-      if(strncmp(tmpbuf, "#6", 3)!=0 && strncmp(tmpbuf, "#32", 4)!=0 && strncmp(tmpbuf, "#2", 3)!=0)
-         WinSetOwner(item, box);
-      WinSetParent(frame ? frame : item, box, FALSE);
-   }
 }
 
 /* The following two functions graciously contributed by Peter Nielsen. */
