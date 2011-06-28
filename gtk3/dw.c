@@ -8010,6 +8010,39 @@ void dw_exit(int exitcode)
 
 #define DW_EXPAND (GTK_EXPAND | GTK_SHRINK | GTK_FILL)
 
+/* Internal function that changes the attachment properties in a table. */
+void _rearrange_table(GtkWidget *widget, gpointer data)
+{
+   gint pos = GPOINTER_TO_INT(data);
+   GtkContainer *cont = g_object_get_data(G_OBJECT(widget), "_dw_table");
+   guint oldpos;
+
+   /* Drop out if missing table */
+   if(!cont)
+      return;
+      
+   /* Check orientation */   
+   if(pos < 0)
+   {
+      /* Horz */
+      pos = -(pos + 1);
+      gtk_container_child_get(cont, widget, "left-attach", &oldpos, NULL);
+      if(oldpos >= pos)
+      {
+         gtk_container_child_set(cont, widget, "left-attach", (oldpos + 1), "right-attach", (oldpos+2), NULL);
+      }
+   }
+   else
+   {
+      /* Vert */
+      gtk_container_child_get(cont, widget, "top-attach", &oldpos, NULL);
+      if(oldpos >= pos)
+      {
+         gtk_container_child_set(cont, widget, "top-attach", (oldpos + 1), "bottom-attach", (oldpos+2), NULL);
+      }
+   }
+}
+
 /*
  * Pack windows (widgets) into a box at an arbitrary location.
  * Parameters:
@@ -8123,6 +8156,8 @@ void dw_box_pack_at_index(HWND box, HWND item, int index, int width, int height,
          gtk_table_resize(GTK_TABLE(box), 1, boxcount + 1);
       }
 
+      g_object_set_data(G_OBJECT(item), "_dw_table", box);
+      gtk_container_forall(GTK_CONTAINER(box),_rearrange_table, GINT_TO_POINTER(boxtype == DW_VERT ? index : -(index+1)));
       gtk_table_attach(GTK_TABLE(box), item, x, x + 1, y, y + 1, hsize ? DW_EXPAND : 0, vsize ? DW_EXPAND : 0, pad, pad);
       g_object_set_data(G_OBJECT(box), "_dw_boxcount", GINT_TO_POINTER(boxcount + 1));
       if(GTK_IS_SCROLLED_WINDOW(item))
@@ -8296,6 +8331,7 @@ void dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, int 
       else
          gtk_table_resize(GTK_TABLE(box), 1, boxcount + 1);
 
+      g_object_set_data(G_OBJECT(item), "_dw_table", box);
       gtk_table_attach(GTK_TABLE(box), item, 0, 1, 0, 1, hsize ? DW_EXPAND : 0, vsize ? DW_EXPAND : 0, pad, pad);
       g_object_set_data(G_OBJECT(box), "_dw_boxcount", GINT_TO_POINTER(boxcount + 1));
       if(GTK_IS_SCROLLED_WINDOW(item))
@@ -9691,6 +9727,7 @@ void dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize, in
          gtk_table_resize(GTK_TABLE(box), 1, boxcount + 1);
       }
 
+      g_object_set_data(G_OBJECT(item), "_dw_table", box);
       gtk_table_attach(GTK_TABLE(box), item, x, x + 1, y, y + 1, hsize ? DW_EXPAND : 0, vsize ? DW_EXPAND : 0, pad, pad);
       g_object_set_data(G_OBJECT(box), "_dw_boxcount", GINT_TO_POINTER(boxcount + 1));
       if(GTK_IS_SCROLLED_WINDOW(item))
