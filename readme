@@ -1,8 +1,7 @@
-This is a stable release of Dynamic Windows version 2.0.0.
+This is a pre-release of Dynamic Windows version 2.1.0.
 
 The current Dynamic Windows source base is stable on
-OS/2, Windows, Linux, FreeBSD and Solaris.  The Mac (Cocoa)
-version appears stable but has not undergone harsh testing.
+OS/2, Mac, Windows, Linux, FreeBSD and Solaris.
 
 Known problems:
 
@@ -12,6 +11,9 @@ MDI does not work on GTK3 and is not implemented the same on Mac.
     At this time we cannot recommend using MDI in new code,
     but it will be supported for existing code on OS/2, Win and GTK2.
     If support for MDI improves on GTK3/Mac this status may change.
+GTK3 due to changes in the core architecture does not support
+    widgets that are smaller than what is contained within them
+    unless they use scrolled windows. GTK2 and other platforms do.
 
 Known limitations:
 
@@ -37,24 +39,13 @@ OS/2 is currently missing the Calendar and HTML widgets because
 the system does not support them by default. Looking into writing
 custom ones or importing functionality from available libraries.
 
-Changes from version 1.1:
-Added support for MacOS 10.5 and higher Intel and PPC via Cocoa.
-Added initial (unstable) support for GTK version 3.
-Added support for Windows themes on XP and higher.
-Added scrollbox widgets, which function like boxes but...
-    scrollbars allow you to pack more into them than the visible area.
-Added dw_window_get_font() for checking the font used on a widget.
-Added dw_container_change_row_title() for changing a row pointer after insert.
-Added clipboard support on OS/2.
-Added HICN data type for icon handles and changed icon functions to use it.
-Added DW_RESOURCE() macro for casting to HICN when using resource IDs.
-Added support for borderless buttons except on Windows (DW_BS_NOBORDER).
-Changed the return codes of dw_container_setup, dw_filesystem_setup and
-    dw_event_wait().  Please check any code that use these functions.
-Changed GTK2+ now supports font name styles like the other platforms.
-Enhanced transparent bitblt on OS/2 and Windows.  OS/2 now supports
-	transparent color and Windows now supports 32bit alpha bitblt.
-Removed thread limits on Windows and GTK using thread local storage.
+Changes from version 2.0:
+Added support for MacOS 10.7 Lion, version 2.0 had some issues.
+Fixed issues with the tree widget on Mac.
+Added dw_font_set_default() to set the default text widget font.
+Added dw_font_choose() to display a dialog to pick a font.
+Added dw_box_pack_at_index() like the other dw_box_pack_*() 
+   functions except packing at arbitrary locations is possible.
 
 Dynamic Windows Documentation is available at:
 
