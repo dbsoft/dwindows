@@ -3154,19 +3154,8 @@ int API dw_scrollbox_get_range(HWND handle, int orient)
     return range;
 }
 
-/*
- * Pack windows (widgets) into a box at an arbitrary location.
- * Parameters:
- *       box: Window handle of the box to be packed into.
- *       item: Window handle of the item to be back.
- *       index: 0 based index of packed items. 
- *       width: Width in pixels of the item or -1 to be self determined.
- *       height: Height in pixels of the item or -1 to be self determined.
- *       hsize: TRUE if the window (widget) should expand horizontally to fill space given.
- *       vsize: TRUE if the window (widget) should expand vertically to fill space given.
- *       pad: Number of pixels of padding around the item.
- */
-void API dw_box_pack_at_index(HWND box, HWND item, int index, int width, int height, int hsize, int vsize, int pad)
+/* Internal box packing function called by the other 3 functions */
+void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsize, int vsize, int pad, char *funcname)
 {
     int _locked_by_me = FALSE;
     DW_MUTEX_LOCK;
@@ -3177,6 +3166,16 @@ void API dw_box_pack_at_index(HWND box, HWND item, int index, int width, int hei
     int z, x = 0;
     Item *tmpitem, *thisitem;
 
+    /*
+     * If you try and pack an item into itself VERY bad things can happen; like at least an
+     * infinite loop on GTK! Lets be safe!
+     */
+    if(box == item)
+    {
+        dw_messagebox(funcname, DW_MB_OK|DW_MB_ERROR, "Danger! Danger! Will Robinson; box and item are the same!");
+        return;
+    }
+    
     /* Query the objects */
     if([ object isKindOfClass:[ NSWindow class ] ])
     {
@@ -3232,7 +3231,14 @@ void API dw_box_pack_at_index(HWND box, HWND item, int index, int width, int hei
     if([object isKindOfClass:[DWBox class]] || [object isMemberOfClass:[DWGroupBox class]])
        tmpitem[index].type = TYPEBOX;
     else
-       tmpitem[index].type = TYPEITEM;
+    {
+        if ( width == 0 && hsize == FALSE )
+            dw_messagebox(funcname, DW_MB_OK|DW_MB_ERROR, "Width and expand Horizonal both unset for box: %x item: %x",box,item);
+        if ( height == 0 && vsize == FALSE )
+            dw_messagebox(funcname, DW_MB_OK|DW_MB_ERROR, "Height and expand Vertical both unset for box: %x item: %x",box,item);
+        
+        tmpitem[index].type = TYPEITEM;
+    }
 
     tmpitem[index].hwnd = item;
     tmpitem[index].origwidth = tmpitem[index].width = width;
@@ -3273,111 +3279,20 @@ void API dw_box_pack_at_index(HWND box, HWND item, int index, int width, int hei
 }
 
 /*
- * Pack windows (widgets) into a box from the end (or bottom).
+ * Pack windows (widgets) into a box at an arbitrary location.
  * Parameters:
  *       box: Window handle of the box to be packed into.
  *       item: Window handle of the item to be back.
+ *       index: 0 based index of packed items. 
  *       width: Width in pixels of the item or -1 to be self determined.
  *       height: Height in pixels of the item or -1 to be self determined.
  *       hsize: TRUE if the window (widget) should expand horizontally to fill space given.
  *       vsize: TRUE if the window (widget) should expand vertically to fill space given.
  *       pad: Number of pixels of padding around the item.
  */
-void API dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, int vsize, int pad)
+void API dw_box_pack_at_index(HWND box, HWND item, int index, int width, int height, int hsize, int vsize, int pad)
 {
-    int _locked_by_me = FALSE;
-    DW_MUTEX_LOCK;
-    id object = box;
-    DWBox *view = box;
-    DWBox *this = item;
-    Box *thisbox;
-    int z;
-    Item *tmpitem, *thisitem;
-
-    /* Query the objects */
-    if([ object isKindOfClass:[ NSWindow class ] ])
-    {
-        NSWindow *window = box;
-        view = [window contentView];
-    }
-    else if([ object isMemberOfClass:[ DWScrollBox class ] ])
-    {
-        DWScrollBox *scrollbox = box;
-        view = [scrollbox box];
-    }
-
-    thisbox = [view box];
-    thisitem = thisbox->items;
-    object = item;
-
-    /* Query the objects */
-    if([ object isKindOfClass:[ DWContainer class ] ])
-    {
-        DWContainer *cont = item;
-        this = item = [cont scrollview];
-    }
-    else if([ object isKindOfClass:[ DWTree class ] ])
-    {
-        DWTree *tree = item;
-        this = item = [tree scrollview];
-    }
-
-    /* Duplicate the existing data */
-    tmpitem = malloc(sizeof(Item)*(thisbox->count+1));
-
-    for(z=0;z<thisbox->count;z++)
-    {
-       tmpitem[z+1] = thisitem[z];
-    }
-
-    /* Sanity checks */
-    if(vsize && !height)
-       height = 1;
-    if(hsize && !width)
-       width = 1;
-
-    /* Fill in the item data appropriately */
-    if([object isKindOfClass:[DWBox class]] || [object isMemberOfClass:[DWGroupBox class]])
-       tmpitem[0].type = TYPEBOX;
-    else
-       tmpitem[0].type = TYPEITEM;
-
-    tmpitem[0].hwnd = item;
-    tmpitem[0].origwidth = tmpitem[0].width = width;
-    tmpitem[0].origheight = tmpitem[0].height = height;
-    tmpitem[0].pad = pad;
-    if(hsize)
-       tmpitem[0].hsize = SIZEEXPAND;
-    else
-       tmpitem[0].hsize = SIZESTATIC;
-
-    if(vsize)
-       tmpitem[0].vsize = SIZEEXPAND;
-    else
-       tmpitem[0].vsize = SIZESTATIC;
-
-    thisbox->items = tmpitem;
-
-    /* Update the item count */
-    thisbox->count++;
-
-    /* Add the item to the box */
-    [view addSubview:this];
-    /* If we are packing a button... */
-    if([this isMemberOfClass:[DWButton class]])
-    {
-        DWButton *button = (DWButton *)this;
-
-        /* Save the parent box so radio
-         * buttons can use it later.
-         */
-        [button setParent:view];
-    }
-
-    /* Free the old data */
-    if(thisbox->count)
-       free(thisitem);
-    DW_MUTEX_UNLOCK;
+    _dw_box_pack(box, item, index, width, height, hsize, vsize, pad, "dw_box_pack_at_index()");
 }
 
 /*
@@ -3393,99 +3308,26 @@ void API dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, 
  */
 void API dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize, int vsize, int pad)
 {
-    int _locked_by_me = FALSE;
-    DW_MUTEX_LOCK;
-    id object = box;
-    DWBox *view = box;
-    DWBox *this = item;
-    Box *thisbox;
-    int z;
-    Item *tmpitem, *thisitem;
+    /* 65536 is the table limit on GTK... 
+     * seems like a high enough value we will never hit it here either.
+     */
+    _dw_box_pack(box, item, 65536, width, height, hsize, vsize, pad, "dw_box_pack_start()");
+}
 
-    /* Query the objects */
-    if([ object isKindOfClass:[ NSWindow class ] ])
-    {
-        NSWindow *window = box;
-        view = [window contentView];
-    }
-    else if([ object isMemberOfClass:[ DWScrollBox class ] ])
-    {
-        DWScrollBox *scrollbox = box;
-        view = [scrollbox box];
-    }
-
-    thisbox = [view box];
-    thisitem = thisbox->items;
-    object = item;
-
-    /* Query the objects */
-    if([ object isKindOfClass:[ DWContainer class ] ])
-    {
-        DWContainer *cont = item;
-        this = item = [cont scrollview];
-    }
-    else if([ object isKindOfClass:[ DWTree class ] ])
-    {
-        DWTree *tree = item;
-        this = item = [tree scrollview];
-    }
-
-    /* Duplicate the existing data */
-    tmpitem = malloc(sizeof(Item)*(thisbox->count+1));
-
-    for(z=0;z<thisbox->count;z++)
-    {
-       tmpitem[z] = thisitem[z];
-    }
-
-    /* Sanity checks */
-    if(vsize && !height)
-       height = 1;
-    if(hsize && !width)
-       width = 1;
-
-    /* Fill in the item data appropriately */
-    if([object isKindOfClass:[DWBox class]] || [object isMemberOfClass:[DWGroupBox class]])
-       tmpitem[thisbox->count].type = TYPEBOX;
-    else
-       tmpitem[thisbox->count].type = TYPEITEM;
-
-    tmpitem[thisbox->count].hwnd = item;
-    tmpitem[thisbox->count].origwidth = tmpitem[thisbox->count].width = width;
-    tmpitem[thisbox->count].origheight = tmpitem[thisbox->count].height = height;
-    tmpitem[thisbox->count].pad = pad;
-    if(hsize)
-       tmpitem[thisbox->count].hsize = SIZEEXPAND;
-    else
-       tmpitem[thisbox->count].hsize = SIZESTATIC;
-
-    if(vsize)
-       tmpitem[thisbox->count].vsize = SIZEEXPAND;
-    else
-       tmpitem[thisbox->count].vsize = SIZESTATIC;
-
-    thisbox->items = tmpitem;
-
-    /* Update the item count */
-    thisbox->count++;
-
-    /* Add the item to the box */
-    [view addSubview:this];
-    /* If we are packing a button... */
-    if([this isMemberOfClass:[DWButton class]])
-    {
-        DWButton *button = (DWButton *)this;
-
-        /* Save the parent box so radio
-         * buttons can use it later.
-         */
-        [button setParent:view];
-    }
-
-    /* Free the old data */
-    if(thisbox->count)
-       free(thisitem);
-    DW_MUTEX_UNLOCK;
+/*
+ * Pack windows (widgets) into a box from the end (or bottom).
+ * Parameters:
+ *       box: Window handle of the box to be packed into.
+ *       item: Window handle of the item to be back.
+ *       width: Width in pixels of the item or -1 to be self determined.
+ *       height: Height in pixels of the item or -1 to be self determined.
+ *       hsize: TRUE if the window (widget) should expand horizontally to fill space given.
+ *       vsize: TRUE if the window (widget) should expand vertically to fill space given.
+ *       pad: Number of pixels of padding around the item.
+ */
+void API dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, int vsize, int pad)
+{
+    _dw_box_pack(box, item, 0, width, height, hsize, vsize, pad, "dw_box_pack_end()");
 }
 
 HWND _button_new(char *text, ULONG cid)
