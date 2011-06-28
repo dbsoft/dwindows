@@ -775,15 +775,15 @@ void archive_add(void)
     cursortogglebutton = dw_button_new("Set Cursor pointer - CLOCK", 1003L);
     dw_box_pack_start(buttonbox, cursortogglebutton, 130, 30, TRUE, TRUE, 2);
 
-    colorchoosebutton = dw_button_new("Color Chooser Dialog", 1004L);
-    dw_box_pack_start(buttonbox, colorchoosebutton, 130, 30, TRUE, TRUE, 2);
-
     okbutton = dw_button_new("Turn Off Annoying Beep!", 1001L);
     dw_box_pack_start(buttonbox, okbutton, 130, 30, TRUE, TRUE, 2);
 
     cancelbutton = dw_button_new("Exit", 1002L);
     dw_box_pack_start(buttonbox, cancelbutton, 130, 30, TRUE, TRUE, 2);
     dw_window_click_default( mainwindow, cancelbutton );
+
+    colorchoosebutton = dw_button_new("Color Chooser Dialog", 1004L);
+    dw_box_pack_at_index(buttonbox, colorchoosebutton, 1, 130, 30, TRUE, TRUE, 2);
 
     /* Set some nice fonts and colors */
     dw_window_set_color(lbbox, DW_CLR_DARKCYAN, DW_CLR_PALEGRAY);

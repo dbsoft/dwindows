@@ -5973,6 +5973,121 @@ HWND API dw_window_from_id(HWND handle, int id)
 }
 
 /*
+ * Pack windows (widgets) into a box at an arbitrary location.
+ * Parameters:
+ *       box: Window handle of the box to be packed into.
+ *       item: Window handle of the item to be back.
+ *       index: 0 based index of packed items. 
+ *       width: Width in pixels of the item or -1 to be self determined.
+ *       height: Height in pixels of the item or -1 to be self determined.
+ *       hsize: TRUE if the window (widget) should expand horizontally to fill space given.
+ *       vsize: TRUE if the window (widget) should expand vertically to fill space given.
+ *       pad: Number of pixels of padding around the item.
+ */
+void API dw_box_pack_at_index(HWND box, HWND item, int index, int width, int height, int hsize, int vsize, int pad)
+{
+   char *funcname = "dw_box_pack_at_index()";
+   Box *thisbox;
+   
+      /*
+       * If you try and pack an item into itself VERY bad things can happen; like at least an
+       * infinite loop on GTK! Lets be safe!
+       */
+   if(box == item)
+   {
+      dw_messagebox(funcname, DW_MB_OK|DW_MB_ERROR, "Danger! Danger! Will Robinson; box and item are the same!");
+      return;
+   }
+
+   if(WinWindowFromID(box, FID_CLIENT))
+   {
+      HWND intbox = (HWND)dw_window_get_data(box, "_dw_box");
+      if(intbox)
+      {
+         box = intbox;
+      }
+      else
+      {
+         box = WinWindowFromID(box, FID_CLIENT);
+         hsize = vsize = TRUE;
+      }
+   }
+   
+   thisbox = WinQueryWindowPtr(box, QWP_USER);
+
+   if(thisbox)
+   {
+      int z, x = 0;
+      Item *tmpitem, *thisitem = thisbox->items;
+      char tmpbuf[100];
+      HWND frame = (HWND)dw_window_get_data(item, "_dw_combo_box");
+
+      /* Do some sanity bounds checking */
+      if(index < 0)
+        index = 0;
+      if(index > thisbox->count)
+        index = thisbox->count;
+        
+      tmpitem = malloc(sizeof(Item)*(thisbox->count+1));
+
+      for(z=0;z<thisbox->count;z++)
+      {
+         if(z == index)
+            x++;
+         tmpitem[x] = thisitem[z];
+         x++;
+      }
+
+
+      WinQueryClassName(item, 99, tmpbuf);
+
+      if(vsize && !height)
+         height = 1;
+      if(hsize && !width)
+         width = 1;
+
+      if(strncmp(tmpbuf, "#1", 3)==0)
+         tmpitem[index].type = TYPEBOX;
+      else
+      {
+         if ( width == 0 && hsize == FALSE )
+            dw_messagebox(functionname, DW_MB_OK|DW_MB_ERROR, "Width and expand Horizonal both unset for box: %x item: %x",box,item);
+         if ( height == 0 && vsize == FALSE )
+            dw_messagebox(functionname, DW_MB_OK|DW_MB_ERROR, "Height and expand Vertical both unset for box: %x item: %x",box,item);
+
+         tmpitem[index].type = TYPEITEM;
+      }
+
+      tmpitem[index].hwnd = item;
+      tmpitem[index].origwidth = tmpitem[index].width = width;
+      tmpitem[index].origheight = tmpitem[index].height = height;
+      tmpitem[index].pad = pad;
+      if(hsize)
+         tmpitem[index].hsize = SIZEEXPAND;
+      else
+         tmpitem[index].hsize = SIZESTATIC;
+
+      if(vsize)
+         tmpitem[index].vsize = SIZEEXPAND;
+      else
+         tmpitem[index].vsize = SIZESTATIC;
+
+      thisbox->items = tmpitem;
+
+      if(thisbox->count)
+         free(thisitem);
+
+      thisbox->count++;
+
+      WinQueryClassName(item, 99, tmpbuf);
+      /* Don't set the ownership if it's an entryfield or spinbutton */
+      if(strncmp(tmpbuf, "#6", 3)!=0 && strncmp(tmpbuf, "#32", 4)!=0 && strncmp(tmpbuf, "#2", 3)!=0)
+         WinSetOwner(item, box);
+      WinSetParent(frame ? frame : item, box, FALSE);
+   }
+}
+
+/*
  * Pack windows (widgets) into a box from the end (or bottom).
  * Parameters:
  *       box: Window handle of the box to be packed into.
