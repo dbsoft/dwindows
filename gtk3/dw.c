@@ -8043,23 +8043,11 @@ void _rearrange_table(GtkWidget *widget, gpointer data)
    }
 }
 
-/*
- * Pack windows (widgets) into a box at an arbitrary location.
- * Parameters:
- *       box: Window handle of the box to be packed into.
- *       item: Window handle of the item to be back.
- *       index: 0 based index of packed items. 
- *       width: Width in pixels of the item or -1 to be self determined.
- *       height: Height in pixels of the item or -1 to be self determined.
- *       hsize: TRUE if the window (widget) should expand horizontally to fill space given.
- *       vsize: TRUE if the window (widget) should expand vertically to fill space given.
- *       pad: Number of pixels of padding around the item.
- */
-void dw_box_pack_at_index(HWND box, HWND item, int index, int width, int height, int hsize, int vsize, int pad)
+/* Internal box packing function called by the other 3 functions */
+void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsize, int vsize, int pad, char *funcname)
 {
    int warn = FALSE, _locked_by_me = FALSE;
    GtkWidget *tmp, *tmpitem, *image = NULL;
-   char *funcname = "dw_box_pack_at_index()";
 
    if(!box)
       return;
@@ -8157,7 +8145,8 @@ void dw_box_pack_at_index(HWND box, HWND item, int index, int width, int height,
       }
 
       g_object_set_data(G_OBJECT(item), "_dw_table", box);
-      gtk_container_forall(GTK_CONTAINER(box),_rearrange_table, GINT_TO_POINTER(boxtype == DW_VERT ? index : -(index+1)));
+      if(index < boxcount)
+         gtk_container_forall(GTK_CONTAINER(box),_rearrange_table, GINT_TO_POINTER(boxtype == DW_VERT ? index : -(index+1)));
       gtk_table_attach(GTK_TABLE(box), item, x, x + 1, y, y + 1, hsize ? DW_EXPAND : 0, vsize ? DW_EXPAND : 0, pad, pad);
       g_object_set_data(G_OBJECT(box), "_dw_boxcount", GINT_TO_POINTER(boxcount + 1));
       if(GTK_IS_SCROLLED_WINDOW(item))
@@ -8235,6 +8224,42 @@ void dw_box_pack_at_index(HWND box, HWND item, int index, int width, int height,
 }
 
 /*
+ * Pack windows (widgets) into a box at an arbitrary location.
+ * Parameters:
+ *       box: Window handle of the box to be packed into.
+ *       item: Window handle of the item to be back.
+ *       index: 0 based index of packed items. 
+ *       width: Width in pixels of the item or -1 to be self determined.
+ *       height: Height in pixels of the item or -1 to be self determined.
+ *       hsize: TRUE if the window (widget) should expand horizontally to fill space given.
+ *       vsize: TRUE if the window (widget) should expand vertically to fill space given.
+ *       pad: Number of pixels of padding around the item.
+ */
+void API dw_box_pack_at_index(HWND box, HWND item, int index, int width, int height, int hsize, int vsize, int pad)
+{
+    _dw_box_pack(box, item, index, width, height, hsize, vsize, pad, "dw_box_pack_at_index()");
+}
+
+/*
+ * Pack windows (widgets) into a box from the start (or top).
+ * Parameters:
+ *       box: Window handle of the box to be packed into.
+ *       item: Window handle of the item to be back.
+ *       width: Width in pixels of the item or -1 to be self determined.
+ *       height: Height in pixels of the item or -1 to be self determined.
+ *       hsize: TRUE if the window (widget) should expand horizontally to fill space given.
+ *       vsize: TRUE if the window (widget) should expand vertically to fill space given.
+ *       pad: Number of pixels of padding around the item.
+ */
+void API dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize, int vsize, int pad)
+{
+    /* 65536 is the table limit on GTK... 
+     * seems like a high enough value we will never hit it here either.
+     */
+    _dw_box_pack(box, item, 65536, width, height, hsize, vsize, pad, "dw_box_pack_start()");
+}
+
+/*
  * Pack windows (widgets) into a box from the end (or bottom).
  * Parameters:
  *       box: Window handle of the box to be packed into.
@@ -8245,167 +8270,9 @@ void dw_box_pack_at_index(HWND box, HWND item, int index, int width, int height,
  *       vsize: TRUE if the window (widget) should expand vertically to fill space given.
  *       pad: Number of pixels of padding around the item.
  */
-void dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, int vsize, int pad)
+void API dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, int vsize, int pad)
 {
-   int warn = FALSE, _locked_by_me = FALSE;
-   GtkWidget *tmp, *tmpitem, *image = NULL;
-   char *funcname = "dw_box_pack_end()";
-
-   if(!box)
-      return;
-
-      /*
-       * If you try and pack an item into itself VERY bad things can happen; like at least an
-       * infinite loop on GTK! Lets be safe!
-       */
-   if(box == item)
-   {
-      dw_messagebox(funcname, DW_MB_OK|DW_MB_ERROR, "Danger! Danger! Will Robinson; box and item are the same!");
-      return;
-   }
-
-   DW_MUTEX_LOCK;
-
-   if((tmp  = g_object_get_data(G_OBJECT(box), "_dw_boxhandle")))
-      box = tmp;
-
-   if(!item)
-   {
-      item = gtk_label_new("");
-      gtk_widget_show_all(item);
-   }
-   else if((image = g_object_get_data(G_OBJECT(item), "_dw_bitmap")))
-   {
-      GdkPixbuf *pixbuf = gtk_image_get_pixbuf(GTK_IMAGE(image)); 
-		  
-      if(pixbuf)
-      {
-         int pwidth = gdk_pixbuf_get_width(pixbuf);
-         int pheight = gdk_pixbuf_get_height(pixbuf);
-
-         if(pwidth > width || pheight > height)
-         {
-            pixbuf = gdk_pixbuf_scale_simple(pixbuf, pwidth > width ? width : pwidth, pheight > height ? height : pheight, GDK_INTERP_BILINEAR);
-            gtk_image_set_from_pixbuf(GTK_IMAGE(image), pixbuf);
-         }
-      }
-   }
-
-   tmpitem = (GtkWidget *)g_object_get_data(G_OBJECT(item), "_dw_boxhandle");
-
-   if(GTK_IS_TABLE(box))
-   {
-      int boxcount = (int)g_object_get_data(G_OBJECT(box), "_dw_boxcount");
-      int boxtype = (int)g_object_get_data(G_OBJECT(box), "_dw_boxtype");
-
-      /* If the item being packed is a box, then we use it's padding
-       * instead of the padding specified on the pack line, this is
-       * due to a bug in the OS/2 and Win32 renderer and a limitation
-       * of the GtkTable class.
-       */
-      if(GTK_IS_TABLE(item) || (tmpitem && GTK_IS_TABLE(tmpitem)))
-      {
-         GtkWidget *eventbox = (GtkWidget *)g_object_get_data(G_OBJECT(item), "_dw_eventbox");
-
-         /* NOTE: I left in the ability to pack boxes with a size,
-          *       this eliminates that by forcing the size to 0.
-          */
-         height = width = 0;
-
-         if(eventbox)
-         {
-            int boxpad = (int)g_object_get_data(G_OBJECT(item), "_dw_boxpad");
-            gtk_container_add(GTK_CONTAINER(eventbox), item);
-            gtk_container_set_border_width(GTK_CONTAINER(eventbox), boxpad);
-            item = eventbox;
-         }
-      }
-      else
-      {
-         /* Only show warning if item is not a box */
-         warn = TRUE;
-      }
-
-      if(boxtype == DW_VERT)
-         gtk_table_resize(GTK_TABLE(box), boxcount + 1, 1);
-      else
-         gtk_table_resize(GTK_TABLE(box), 1, boxcount + 1);
-
-      g_object_set_data(G_OBJECT(item), "_dw_table", box);
-      gtk_table_attach(GTK_TABLE(box), item, 0, 1, 0, 1, hsize ? DW_EXPAND : 0, vsize ? DW_EXPAND : 0, pad, pad);
-      g_object_set_data(G_OBJECT(box), "_dw_boxcount", GINT_TO_POINTER(boxcount + 1));
-      if(GTK_IS_SCROLLED_WINDOW(item))
-      {
-         gtk_scrolled_window_set_min_content_width(GTK_SCROLLED_WINDOW(item), width);
-         gtk_scrolled_window_set_min_content_height(GTK_SCROLLED_WINDOW(item), height);
-      }
-      else
-         gtk_widget_set_size_request(item, width, height);
-      if(GTK_IS_RADIO_BUTTON(item))
-      {
-         GSList *group;
-         GtkWidget *groupstart = (GtkWidget *)g_object_get_data(G_OBJECT(box), "_dw_group");
-
-         if(groupstart)
-         {
-            group = gtk_radio_button_get_group(GTK_RADIO_BUTTON(groupstart));
-            gtk_radio_button_set_group(GTK_RADIO_BUTTON(item), group);
-         }
-         else
-            g_object_set_data(G_OBJECT(box), "_dw_group", (gpointer)item);
-      }
-   }
-   else
-   {
-      GtkWidget *vbox = g_object_get_data(G_OBJECT(box), "_dw_vbox");
-      
-      if(!vbox)
-      {
-         vbox = gtk_vbox_new(FALSE, 0);
-         g_object_set_data(G_OBJECT(box), "_dw_vbox", vbox);
-         gtk_container_add(GTK_CONTAINER(box), vbox);
-         gtk_widget_show(vbox);
-      }
-      
-      gtk_container_set_border_width(GTK_CONTAINER(box), pad);
-
-      if(GTK_IS_TABLE(item) || (tmpitem && GTK_IS_TABLE(tmpitem)))
-      {
-         GtkWidget *eventbox = (GtkWidget *)g_object_get_data(G_OBJECT(item), "_dw_eventbox");
-
-         /* NOTE: I left in the ability to pack boxes with a size,
-          *       this eliminates that by forcing the size to 0.
-          */
-         height = width = 0;
-
-         if(eventbox)
-         {
-            int boxpad = (int)g_object_get_data(G_OBJECT(item), "_dw_boxpad");
-            gtk_container_add(GTK_CONTAINER(eventbox), item);
-            gtk_container_set_border_width(GTK_CONTAINER(eventbox), boxpad);
-            item = eventbox;
-         }
-      }
-      else
-      {
-         /* Only show warning if item is not a box */
-         warn = TRUE;
-      }
-
-      gtk_box_pack_end(GTK_BOX(vbox), item, TRUE, TRUE, 0);
-
-      gtk_widget_set_size_request(item, width, height);
-      g_object_set_data(G_OBJECT(box), "_dw_user", vbox);
-   }
-   DW_MUTEX_UNLOCK;
-
-   if(warn)
-   {
-      if ( width == 0 && hsize == FALSE )
-         dw_messagebox(funcname, DW_MB_OK|DW_MB_ERROR, "Width and expand Horizonal both unset for box: %x item: %x",box,item);
-      if ( height == 0 && vsize == FALSE )
-         dw_messagebox(funcname, DW_MB_OK|DW_MB_ERROR, "Height and expand Vertical both unset for box: %x item: %x",box,item);
-   }
+    _dw_box_pack(box, item, 0, width, height, hsize, vsize, pad, "dw_box_pack_end()");
 }
 
 /*
@@ -9619,191 +9486,6 @@ void dw_calendar_get_date(HWND handle, unsigned int *year, unsigned int *month, 
    }
    DW_MUTEX_UNLOCK;
    return;
-}
-
-/*
- * Pack windows (widgets) into a box from the start (or top).
- * Parameters:
- *       box: Window handle of the box to be packed into.
- *       item: Window handle of the item to be back.
- *       width: Width in pixels of the item or -1 to be self determined.
- *       height: Height in pixels of the item or -1 to be self determined.
- *       hsize: TRUE if the window (widget) should expand horizontally to fill space given.
- *       vsize: TRUE if the window (widget) should expand vertically to fill space given.
- *       pad: Number of pixels of padding around the item.
- */
-void dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize, int vsize, int pad)
-{
-   int warn = FALSE, _locked_by_me = FALSE;
-   GtkWidget *tmp, *tmpitem, *image = NULL;
-   char *funcname = "dw_box_pack_start()";
-
-   if ( !box )
-      return;
-
-      /*
-       * If you try and pack an item into itself VERY bad things can happen; like at least an
-       * infinite loop on GTK! Lets be safe!
-       */
-   if ( box == item )
-   {
-      dw_messagebox(funcname, DW_MB_OK|DW_MB_ERROR, "Danger! Danger! Will Robinson; box and item are the same!" );
-      return;
-   }
-
-   DW_MUTEX_LOCK;
-
-   if ((tmp  = g_object_get_data(G_OBJECT(box), "_dw_boxhandle")))
-      box = tmp;
-
-   if (!item)
-   {
-      item = gtk_label_new("");
-      gtk_widget_show_all(item);
-   }
-   else if((image = g_object_get_data(G_OBJECT(item), "_dw_bitmap")))
-   {
-      GdkPixbuf *pixbuf = gtk_image_get_pixbuf(GTK_IMAGE(image)); 
-		  
-      if(pixbuf)
-      {
-         int pwidth = gdk_pixbuf_get_width(pixbuf);
-         int pheight = gdk_pixbuf_get_height(pixbuf);
-
-         if(pwidth > width || pheight > height)
-         {
-            pixbuf = gdk_pixbuf_scale_simple(pixbuf, pwidth > width ? width : pwidth, pheight > height ? height : pheight, GDK_INTERP_BILINEAR);
-            gtk_image_set_from_pixbuf(GTK_IMAGE(image), pixbuf);
-         }
-      }
-   }
-
-   tmpitem = (GtkWidget *)g_object_get_data(G_OBJECT(item), "_dw_boxhandle");
-
-   if (GTK_IS_TABLE(box))
-   {
-      int boxcount = (int)g_object_get_data(G_OBJECT(box), "_dw_boxcount");
-      int boxtype = (int)g_object_get_data(G_OBJECT(box), "_dw_boxtype");
-      int x, y;
-
-      /* If the item being packed is a box, then we use it's padding
-       * instead of the padding specified on the pack line, this is
-       * due to a bug in the OS/2 and Win32 renderer and a limitation
-       * of the GtkTable class.
-       */
-      if (GTK_IS_TABLE(item) || (tmpitem && GTK_IS_TABLE(tmpitem)))
-      {
-         GtkWidget *eventbox = (GtkWidget *)g_object_get_data(G_OBJECT(item), "_dw_eventbox");
-
-         /* NOTE: I left in the ability to pack boxes with a size,
-          *       this eliminates that by forcing the size to 0.
-          */
-         height = width = 0;
-
-         if (eventbox)
-         {
-            int boxpad = (int)g_object_get_data(G_OBJECT(item), "_dw_boxpad");
-            gtk_container_add(GTK_CONTAINER(eventbox), item);
-            gtk_container_set_border_width(GTK_CONTAINER(eventbox), boxpad);
-            item = eventbox;
-         }
-      }
-      else
-      {
-         /* Only show warning if item is not a box */
-         warn = TRUE;
-      }
-
-      if (boxtype == DW_VERT)
-      {
-         x = 0;
-         y = boxcount;
-         gtk_table_resize(GTK_TABLE(box), boxcount + 1, 1);
-      }
-      else
-      {
-         x = boxcount;
-         y = 0;
-         gtk_table_resize(GTK_TABLE(box), 1, boxcount + 1);
-      }
-
-      g_object_set_data(G_OBJECT(item), "_dw_table", box);
-      gtk_table_attach(GTK_TABLE(box), item, x, x + 1, y, y + 1, hsize ? DW_EXPAND : 0, vsize ? DW_EXPAND : 0, pad, pad);
-      g_object_set_data(G_OBJECT(box), "_dw_boxcount", GINT_TO_POINTER(boxcount + 1));
-      if(GTK_IS_SCROLLED_WINDOW(item))
-      {
-         gtk_scrolled_window_set_min_content_width(GTK_SCROLLED_WINDOW(item), width);
-         gtk_scrolled_window_set_min_content_height(GTK_SCROLLED_WINDOW(item), height);
-      }
-      else
-         gtk_widget_set_size_request(item, width, height);
-      if (GTK_IS_RADIO_BUTTON(item))
-      {
-         GSList *group;
-         GtkWidget *groupstart = (GtkWidget *)g_object_get_data(G_OBJECT(box), "_dw_group");
-
-         if (groupstart)
-         {
-            group = gtk_radio_button_get_group(GTK_RADIO_BUTTON(groupstart));
-            gtk_radio_button_set_group(GTK_RADIO_BUTTON(item), group);
-         }
-         else
-         {
-            g_object_set_data(G_OBJECT(box), "_dw_group", (gpointer)item);
-         }
-      }
-   }
-   else
-   {
-      GtkWidget *vbox = g_object_get_data(G_OBJECT(box), "_dw_vbox");
-      
-      if(!vbox)
-      {
-         vbox = gtk_vbox_new(FALSE, 0);
-         g_object_set_data(G_OBJECT(box), "_dw_vbox", vbox);
-         gtk_container_add(GTK_CONTAINER(box), vbox);
-         gtk_widget_show(vbox);
-      }
-      
-      gtk_container_set_border_width(GTK_CONTAINER(box), pad);
-
-      if (GTK_IS_TABLE(item) || (tmpitem && GTK_IS_TABLE(tmpitem)))
-      {
-         GtkWidget *eventbox = (GtkWidget *)g_object_get_data(G_OBJECT(item), "_dw_eventbox");
-
-         /* NOTE: I left in the ability to pack boxes with a size,
-          *       this eliminates that by forcing the size to 0.
-          */
-         height = width = 0;
-
-         if (eventbox)
-         {
-            int boxpad = (int)g_object_get_data(G_OBJECT(item), "_dw_boxpad");
-            gtk_container_add(GTK_CONTAINER(eventbox), item);
-            gtk_container_set_border_width(GTK_CONTAINER(eventbox), boxpad);
-            item = eventbox;
-         }
-      }
-      else
-      {
-         /* Only show warning if item is not a box */
-         warn = TRUE;
-      }
-
-      gtk_box_pack_end(GTK_BOX(vbox), item, TRUE, TRUE, 0);
-
-      gtk_widget_set_size_request(item, width, height);
-      g_object_set_data(G_OBJECT(box), "_dw_user", vbox);
-   }
-   DW_MUTEX_UNLOCK;
-
-   if (warn)
-   {
-      if ( width == 0 && hsize == FALSE )
-         dw_messagebox(funcname, DW_MB_OK|DW_MB_ERROR, "Width and expand Horizonal both unset for box: %x item: %x",box,item);
-      if ( height == 0 && vsize == FALSE )
-         dw_messagebox(funcname, DW_MB_OK|DW_MB_ERROR, "Height and expand Vertical both unset for box: %x item: %x",box,item);
-   }
 }
 
 /*
