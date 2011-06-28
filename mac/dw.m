@@ -3155,6 +3155,124 @@ int API dw_scrollbox_get_range(HWND handle, int orient)
 }
 
 /*
+ * Pack windows (widgets) into a box at an arbitrary location.
+ * Parameters:
+ *       box: Window handle of the box to be packed into.
+ *       item: Window handle of the item to be back.
+ *       index: 0 based index of packed items. 
+ *       width: Width in pixels of the item or -1 to be self determined.
+ *       height: Height in pixels of the item or -1 to be self determined.
+ *       hsize: TRUE if the window (widget) should expand horizontally to fill space given.
+ *       vsize: TRUE if the window (widget) should expand vertically to fill space given.
+ *       pad: Number of pixels of padding around the item.
+ */
+void API dw_box_pack_at_index(HWND box, HWND item, int index, int width, int height, int hsize, int vsize, int pad)
+{
+    int _locked_by_me = FALSE;
+    DW_MUTEX_LOCK;
+    id object = box;
+    DWBox *view = box;
+    DWBox *this = item;
+    Box *thisbox;
+    int z, x = 0;
+    Item *tmpitem, *thisitem;
+
+    /* Query the objects */
+    if([ object isKindOfClass:[ NSWindow class ] ])
+    {
+        NSWindow *window = box;
+        view = [window contentView];
+    }
+    else if([ object isMemberOfClass:[ DWScrollBox class ] ])
+    {
+        DWScrollBox *scrollbox = box;
+        view = [scrollbox box];
+    }
+
+    thisbox = [view box];
+    thisitem = thisbox->items;
+    object = item;
+
+    /* Query the objects */
+    if([ object isKindOfClass:[ DWContainer class ] ])
+    {
+        DWContainer *cont = item;
+        this = item = [cont scrollview];
+    }
+    else if([ object isKindOfClass:[ DWTree class ] ])
+    {
+        DWTree *tree = item;
+        this = item = [tree scrollview];
+    }
+
+    /* Do some sanity bounds checking */
+    if(index < 0)
+       index = 0;
+    if(index > thisbox->count)
+       index = thisbox->count;
+        
+    /* Duplicate the existing data */
+    tmpitem = malloc(sizeof(Item)*(thisbox->count+1));
+
+    for(z=0;z<thisbox->count;z++)
+    {
+       if(z == index)
+           x++;
+       tmpitem[z+1] = thisitem[z];
+       x++;
+    }
+
+    /* Sanity checks */
+    if(vsize && !height)
+       height = 1;
+    if(hsize && !width)
+       width = 1;
+
+    /* Fill in the item data appropriately */
+    if([object isKindOfClass:[DWBox class]] || [object isMemberOfClass:[DWGroupBox class]])
+       tmpitem[index].type = TYPEBOX;
+    else
+       tmpitem[index].type = TYPEITEM;
+
+    tmpitem[index].hwnd = item;
+    tmpitem[index].origwidth = tmpitem[index].width = width;
+    tmpitem[index].origheight = tmpitem[index].height = height;
+    tmpitem[index].pad = pad;
+    if(hsize)
+       tmpitem[index].hsize = SIZEEXPAND;
+    else
+       tmpitem[index].hsize = SIZESTATIC;
+
+    if(vsize)
+       tmpitem[index].vsize = SIZEEXPAND;
+    else
+       tmpitem[index].vsize = SIZESTATIC;
+
+    thisbox->items = tmpitem;
+
+    /* Update the item count */
+    thisbox->count++;
+
+    /* Add the item to the box */
+    [view addSubview:this];
+    /* If we are packing a button... */
+    if([this isMemberOfClass:[DWButton class]])
+    {
+        DWButton *button = (DWButton *)this;
+
+        /* Save the parent box so radio
+         * buttons can use it later.
+         */
+        [button setParent:view];
+    }
+
+    /* Free the old data */
+    if(thisbox->count)
+       free(thisitem);
+    DW_MUTEX_UNLOCK;
+}
+
+/*
  * Pack windows (widgets) into a box from the end (or bottom).
  * Parameters:
  *       box: Window handle of the box to be packed into.

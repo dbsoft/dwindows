@@ -5930,6 +5930,131 @@ HWND API dw_window_from_id(HWND handle, int id)
 }
 
 /*
+ * Pack windows (widgets) into a box at an arbitrary location.
+ * Parameters:
+ *       box: Window handle of the box to be packed into.
+ *       item: Window handle of the item to be back.
+ *       index: 0 based index of packed items. 
+ *       width: Width in pixels of the item or -1 to be self determined.
+ *       height: Height in pixels of the item or -1 to be self determined.
+ *       hsize: TRUE if the window (widget) should expand horizontally to fill space given.
+ *       vsize: TRUE if the window (widget) should expand vertically to fill space given.
+ *       pad: Number of pixels of padding around the item.
+ */
+void API dw_box_pack_at_index(HWND box, HWND item, int index, int width, int height, int hsize, int vsize, int pad)
+{
+   Box *thisbox = NULL;
+   char tmpbuf[100];
+
+      /*
+       * If you try and pack an item into itself VERY bad things can happen; like at least an
+       * infinite loop on GTK! Lets be safe!
+       */
+   if(box == item)
+   {
+      dw_messagebox("dw_box_pack_start()", DW_MB_OK|DW_MB_ERROR, "Danger! Danger! Will Robinson; box and item are the same!");
+      return;
+   }
+
+   GetClassName(box, tmpbuf, 99);
+
+   /* If we are in a scrolled box... extract the interal box */
+   if(strnicmp(tmpbuf, ScrollClassName, strlen(ScrollClassName)+1)==0)
+   {
+        ColorInfo *cinfo = (ColorInfo *)GetWindowLongPtr(box, GWLP_USERDATA);
+        if(cinfo)
+        {
+            box = cinfo->buddy;
+            thisbox = (Box *)GetWindowLongPtr(box, GWLP_USERDATA);
+        }
+   }
+   else //if(strnicmp(tmpbuf, FRAMECLASSNAME, strlen(FRAMECLASSNAME)+1)==0)
+       thisbox = (Box *)GetWindowLongPtr(box, GWLP_USERDATA);
+   if(thisbox)
+   {
+      int z, x = 0;
+      Item *tmpitem, *thisitem = thisbox->items;
+      
+      /* Do some sanity bounds checking */
+      if(index < 0)
+        index = 0;
+      if(index > thisbox->count)
+        index = thisbox->count;
+
+      tmpitem = malloc(sizeof(Item)*(thisbox->count+1));
+
+      for(z=0;z<thisbox->count;z++)
+      {
+         if(z == index)
+            x++;
+         tmpitem[x] = thisitem[z];
+         x++;
+      }
+
+      GetClassName(item, tmpbuf, 99);
+
+      if(vsize && !height)
+         height = 1;
+      if(hsize && !width)
+         width = 1;
+
+      if(strnicmp(tmpbuf, FRAMECLASSNAME, strlen(FRAMECLASSNAME)+1)==0)
+         tmpitem[index].type = TYPEBOX;
+      else if(strnicmp(tmpbuf, "SysMonthCal32", 13)==0)
+      {
+         RECT rc;
+         MonthCal_GetMinReqRect(item, &rc);
+         width = 1 + rc.right - rc.left;
+         height = 1 + rc.bottom - rc.top;
+         tmpitem[index].type = TYPEITEM;
+      }
+      else
+      {
+         if ( width == 0 && hsize == FALSE )
+            dw_messagebox("dw_box_pack_start()", DW_MB_OK|DW_MB_ERROR, "Width and expand Horizonal both unset for box: %x item: %x",box,item);
+         if ( height == 0 && vsize == FALSE )
+            dw_messagebox("dw_box_pack_start()", DW_MB_OK|DW_MB_ERROR, "Height and expand Vertical both unset for box: %x item: %x",box,item);
+
+         tmpitem[index].type = TYPEITEM;
+      }
+
+      tmpitem[index].hwnd = item;
+      tmpitem[index].origwidth = tmpitem[index].width = width;
+      tmpitem[index].origheight = tmpitem[index].height = height;
+      tmpitem[index].pad = pad;
+      if(hsize)
+         tmpitem[index].hsize = SIZEEXPAND;
+      else
+         tmpitem[index].hsize = SIZESTATIC;
+
+      if(vsize)
+         tmpitem[index].vsize = SIZEEXPAND;
+      else
+         tmpitem[index].vsize = SIZESTATIC;
+
+      thisbox->items = tmpitem;
+
+      if(thisbox->count)
+         free(thisitem);
+
+      thisbox->count++;
+
+      SetParent(item, box);
+      if(strncmp(tmpbuf, UPDOWN_CLASS, strlen(UPDOWN_CLASS)+1)==0)
+      {
+         ColorInfo *cinfo = (ColorInfo *)GetWindowLongPtr(item, GWLP_USERDATA);
+
+         if(cinfo)
+         {
+            SetParent(cinfo->buddy, box);
+            ShowWindow(cinfo->buddy, SW_SHOW);
+            SendMessage(item, UDM_SETBUDDY, (WPARAM)cinfo->buddy, 0);
+         }
+      }
+   }
+}
+
+/*
  * Pack windows (widgets) into a box from the start (or top).
  * Parameters:
  *       box: Window handle of the box to be packed into.

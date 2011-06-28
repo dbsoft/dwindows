@@ -28,6 +28,8 @@ EXPORTS
   dw_groupbox_new                        @41
   dw_box_pack_start                      @42
   dw_box_pack_end                        @43
+  dw_box_pack_at_index                   @44
+  
   dw_mdi_new                             @46
 
   dw_window_new                          @50
