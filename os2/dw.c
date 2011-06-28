@@ -6051,9 +6051,9 @@ void API dw_box_pack_at_index(HWND box, HWND item, int index, int width, int hei
       else
       {
          if ( width == 0 && hsize == FALSE )
-            dw_messagebox(functionname, DW_MB_OK|DW_MB_ERROR, "Width and expand Horizonal both unset for box: %x item: %x",box,item);
+            dw_messagebox(funcname, DW_MB_OK|DW_MB_ERROR, "Width and expand Horizonal both unset for box: %x item: %x",box,item);
          if ( height == 0 && vsize == FALSE )
-            dw_messagebox(functionname, DW_MB_OK|DW_MB_ERROR, "Height and expand Vertical both unset for box: %x item: %x",box,item);
+            dw_messagebox(funcname, DW_MB_OK|DW_MB_ERROR, "Height and expand Vertical both unset for box: %x item: %x",box,item);
 
          tmpitem[index].type = TYPEITEM;
       }
