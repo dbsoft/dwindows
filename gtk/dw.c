@@ -1214,7 +1214,7 @@ static void *_findsigfunc(char *signame)
 
 static SignalHandler _get_signal_handler(GtkWidget *widget, gpointer data)
 {
-   int counter = (int)data;
+   int counter = GPOINTER_TO_INT(data);
    SignalHandler sh;
    char text[100];
 
@@ -1227,7 +1227,7 @@ static SignalHandler _get_signal_handler(GtkWidget *widget, gpointer data)
    sprintf(text, "_dw_sigdata%d", counter);
    sh.data = gtk_object_get_data(GTK_OBJECT(widget), text);
    sprintf(text, "_dw_sigcid%d", counter);
-   sh.cid = (gint)gtk_object_get_data(GTK_OBJECT(widget), text);
+   sh.cid = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(widget), text));
 
    return sh;
 }
@@ -1238,7 +1238,7 @@ static void _remove_signal_handler(GtkWidget *widget, int counter)
    gint cid;
 
    sprintf(text, "_dw_sigcid%d", counter);
-   cid = (gint)gtk_object_get_data(GTK_OBJECT(widget), text);
+   cid = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(widget), text));
    gtk_signal_disconnect(GTK_OBJECT(widget), cid);
    gtk_object_set_data(GTK_OBJECT(widget), text, NULL);
    sprintf(text, "_dw_sigwindow%d", counter);
@@ -1253,7 +1253,7 @@ static void _remove_signal_handler(GtkWidget *widget, int counter)
 
 static int _set_signal_handler(GtkWidget *widget, HWND window, void *func, gpointer data, void *intfunc)
 {
-   int counter = (int)gtk_object_get_data(GTK_OBJECT(widget), "_dw_sigcounter");
+   int counter = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(widget), "_dw_sigcounter"));
    char text[100];
 
    sprintf(text, "_dw_sigwindow%d", counter);
@@ -1846,7 +1846,7 @@ static gint _default_key_press_event(GtkWidget *widget, GdkEventKey *event, gpoi
 
 static GdkPixmap *_find_private_pixmap(GdkBitmap **bitmap, HICN icon, unsigned long *userwidth, unsigned long *userheight)
 {
-   int id = (int)icon;
+   int id = GPOINTER_TO_INT(icon);
 
    if(id < _PixmapCount && _PixmapArray[id].used)
    {
@@ -1863,7 +1863,7 @@ static GdkPixmap *_find_private_pixmap(GdkBitmap **bitmap, HICN icon, unsigned l
 static GdkPixmap *_find_pixmap(GdkBitmap **bitmap, HICN icon, HWND handle, unsigned long *userwidth, unsigned long *userheight)
 {
    char *data = NULL;
-   int z, id = (int)icon;
+   int z, id = GPOINTER_TO_INT(icon);
 
    if(id & (1 << 31))
       return _find_private_pixmap(bitmap, (HICN)(id & 0xFFFFFF), userwidth, userheight);
@@ -1903,7 +1903,7 @@ static GdkPixmap *_find_pixmap(GdkBitmap **bitmap, HICN icon, HWND handle, unsig
 #if GTK_MAJOR_VERSION > 1
 static GdkPixbuf *_find_private_pixbuf(HICN icon)
 {
-   int id = (int)icon;
+   int id = GPOINTER_TO_INT(icon);
 
    if(id < _PixmapCount && _PixmapArray[id].used)
       return _PixmapArray[id].pixbuf;
@@ -1913,7 +1913,7 @@ static GdkPixbuf *_find_private_pixbuf(HICN icon)
 static GdkPixbuf *_find_pixbuf(HICN icon)
 {
    char *data = NULL;
-   int z, id = (int)icon;
+   int z, id = GPOINTER_TO_INT(icon);
 
    if(id & (1 << 31))
       return _find_private_pixbuf((HICN)(id & 0xFFFFFF));
@@ -2483,7 +2483,7 @@ text_height = min( height, dw_screen_height() );
 
    dw_window_show(entrywindow);
 
-   return (int)dw_dialog_wait(dwwait);
+   return GPOINTER_TO_INT(dw_dialog_wait(dwwait));
 }
 
 /*
@@ -2586,8 +2586,8 @@ int dw_window_show(HWND handle)
    {
       if (GTK_WIDGET(handle)->window)
       {
-         int width = (int)gtk_object_get_data(GTK_OBJECT(handle), "_dw_width");
-         int height = (int)gtk_object_get_data(GTK_OBJECT(handle), "_dw_height");
+         int width = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(handle), "_dw_width"));
+         int height = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(handle), "_dw_height"));
 
          if (width && height)
          {
@@ -3121,7 +3121,7 @@ static int _set_color(HWND handle, unsigned long fore, unsigned long back)
 
    if(GTK_IS_CLIST(handle))
    {
-      int z, rowcount = (int)gtk_object_get_data(GTK_OBJECT(handle), "_dw_rowcount");
+      int z, rowcount = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(handle), "_dw_rowcount"));
 
       for(z=0;z<rowcount;z++)
       {
@@ -3667,7 +3667,7 @@ HWND dw_menu_append_item(HMENUI menu, char *title, unsigned long id, unsigned lo
    accel = _removetilde(tempbuf, title);
 
    accel_group = (GtkAccelGroup *)gtk_object_get_data(GTK_OBJECT(menu), "_dw_accel");
-   submenucount = (int)gtk_object_get_data(GTK_OBJECT(menu), "_dw_submenucount");
+   submenucount = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(menu), "_dw_submenucount"));
 
    if (strlen(tempbuf) == 0)
       tmphandle=gtk_menu_item_new();
@@ -3718,7 +3718,7 @@ HWND dw_menu_append_item(HMENUI menu, char *title, unsigned long id, unsigned lo
       submenucount++;
       gtk_menu_item_set_submenu(GTK_MENU_ITEM(tmphandle), submenu);
       gtk_object_set_data(GTK_OBJECT(menu), tempbuf, (gpointer)submenu);
-      gtk_object_set_data(GTK_OBJECT(menu), "_dw_submenucount", (gpointer)submenucount);
+      gtk_object_set_data(GTK_OBJECT(menu), "_dw_submenucount", GINT_TO_POINTER(submenucount));
    }
 
    if (GTK_IS_MENU_BAR(menu))
@@ -3748,7 +3748,7 @@ HWND dw_menu_append_item(HMENUI menu, char *title, unsigned long id, unsigned lo
 GtkWidget *_find_submenu_id(GtkWidget *start, char *name)
 {
    GtkWidget *tmp;
-   int z, submenucount = (int)gtk_object_get_data(GTK_OBJECT(start), "_dw_submenucount");
+   int z, submenucount = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(start), "_dw_submenucount"));
 
    if((tmp = gtk_object_get_data(GTK_OBJECT(start), name)))
       return tmp;
@@ -4166,7 +4166,7 @@ HWND dw_combobox_new(char *text, unsigned long id)
    gtk_object_set_data(GTK_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(id));
 
    sigid = _set_signal_handler(GTK_COMBO(tmp)->list, tmp, NULL, NULL, NULL);
-   cid = gtk_signal_connect(GTK_OBJECT(GTK_COMBO(tmp)->list), "select_child", GTK_SIGNAL_FUNC(_item_select_event), (gpointer)sigid);
+   cid = gtk_signal_connect(GTK_OBJECT(GTK_COMBO(tmp)->list), "select_child", GTK_SIGNAL_FUNC(_item_select_event), GINT_TO_POINTER(sigid));
    _set_signal_handler_id(GTK_COMBO(tmp)->list, sigid, cid);
    DW_MUTEX_UNLOCK;
    return tmp;
@@ -4820,7 +4820,7 @@ HWND API dw_window_from_id(HWND handle, int id)
    {
       if(GTK_IS_WIDGET(list->data))
       {
-         if(id == (int)gtk_object_get_data(GTK_OBJECT(list->data), "_dw_id"))
+         if(id == GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(list->data), "_dw_id")))
          {
             HWND ret = (HWND)list->data;
             g_list_free(orig);
@@ -6454,7 +6454,7 @@ static int _dw_container_setup(HWND handle, unsigned long *flags, char **titles,
       DW_MUTEX_UNLOCK;
       return DW_ERROR_GENERAL;
    }
-   multi = (int)gtk_object_get_data(GTK_OBJECT(handle), "_dw_multi");
+   multi = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(handle), "_dw_multi"));
    gtk_object_set_data(GTK_OBJECT(handle), "_dw_multi", GINT_TO_POINTER(multi));
 
    gtk_clist_set_column_auto_resize(GTK_CLIST(clist), 0, TRUE);
@@ -6828,8 +6828,8 @@ void *dw_container_alloc(HWND handle, int rowcount)
       return NULL;
    }
 
-   count = (int)gtk_object_get_data(GTK_OBJECT(clist), "_dw_colcount");
-   prevrowcount = (int)gtk_object_get_data(GTK_OBJECT(clist), "_dw_rowcount");
+   count = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(clist), "_dw_colcount"));
+   prevrowcount = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(clist), "_dw_rowcount"));
 
    if(!count)
    {
@@ -6878,10 +6878,10 @@ void _dw_container_set_item(HWND handle, void *pointer, int column, int row, voi
    }
 
    sprintf(numbuf, "%d", column);
-   flag = (int)gtk_object_get_data(GTK_OBJECT(clist), numbuf);
+   flag = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(clist), numbuf));
    if(pointer)
    {
-      row += (int)gtk_object_get_data(GTK_OBJECT(clist), "_dw_insertpos");
+      row += GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(clist), "_dw_insertpos"));
    }
 
    if(flag & DW_CFA_BITMAPORICON)
@@ -7050,7 +7050,7 @@ int dw_container_get_column_type(HWND handle, int column)
    }
 
    sprintf(numbuf, "%d", column);
-   flag = (int)gtk_object_get_data(GTK_OBJECT(clist), numbuf);
+   flag = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(clist), numbuf));
 
    if(flag & DW_CFA_BITMAPORICON)
       rc = DW_CFA_BITMAPORICON;
@@ -7109,7 +7109,7 @@ void _dw_container_set_row_title(HWND handle, void *pointer, int row, char *titl
    clist = (GtkWidget *)gtk_object_get_user_data(GTK_OBJECT(handle));
    if(pointer)
    {
-      row += (int)gtk_object_get_data(GTK_OBJECT(clist), "_dw_insertpos");
+      row += GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(clist), "_dw_insertpos"));
    }
 
    if(clist)
@@ -7178,7 +7178,7 @@ void dw_container_delete(HWND handle, int rowcount)
    {
       int rows, z;
 
-      rows = (int)gtk_object_get_data(GTK_OBJECT(clist), "_dw_rowcount");
+      rows = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(clist), "_dw_rowcount"));
 
       _dw_unselect(clist);
 
@@ -7332,7 +7332,7 @@ char *dw_container_query_next(HWND handle, unsigned long flags)
 
       if(list)
       {
-         int counter = 0, pos = (int)gtk_object_get_data(GTK_OBJECT(clist), "_dw_querypos");
+         int counter = 0, pos = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(clist), "_dw_querypos"));
          gtk_object_set_data(GTK_OBJECT(clist), "_dw_querypos", GINT_TO_POINTER(pos+1));
 
          while(list && counter < pos)
@@ -7354,7 +7354,7 @@ char *dw_container_query_next(HWND handle, unsigned long flags)
    }
    else
    {
-      int pos = (int)gtk_object_get_data(GTK_OBJECT(clist), "_dw_querypos");
+      int pos = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(clist), "_dw_querypos"));
 
       retval = (char *)gtk_clist_get_row_data(GTK_CLIST(clist), pos);
       gtk_object_set_data(GTK_OBJECT(clist), "_dw_querypos", GINT_TO_POINTER(pos+1));
@@ -7384,7 +7384,7 @@ void dw_container_cursor(HWND handle, char *text)
       DW_MUTEX_UNLOCK;
       return;
    }
-   rowcount = (int)gtk_object_get_data(GTK_OBJECT(clist), "_dw_rowcount");
+   rowcount = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(clist), "_dw_rowcount"));
 
    for(z=0;z<rowcount;z++)
    {
@@ -7429,7 +7429,7 @@ void dw_container_delete_row(HWND handle, char *text)
       DW_MUTEX_UNLOCK;
       return;
    }
-   rowcount = (int)gtk_object_get_data(GTK_OBJECT(clist), "_dw_rowcount");
+   rowcount = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(clist), "_dw_rowcount"));
 
    for(z=0;z<rowcount;z++)
    {
@@ -7470,7 +7470,7 @@ void dw_container_optimize(HWND handle)
       DW_MUTEX_UNLOCK;
       return;
    }
-   colcount = (int)gtk_object_get_data(GTK_OBJECT(clist), "_dw_colcount");
+   colcount = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(clist), "_dw_colcount"));
    for(z=0;z<colcount;z++)
    {
       int width = gtk_clist_optimal_column_width(GTK_CLIST(clist), z);
@@ -9163,7 +9163,7 @@ void _rearrange_table(GtkWidget *widget, gpointer data)
 void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsize, int vsize, int pad, char *funcname)
 {
    int warn = FALSE, _locked_by_me = FALSE;
-   GtkWidget *tmp, *tmpitem, *image = NULL;
+   GtkWidget *tmp, *tmpitem;
 
    if(!box)
       return;
@@ -9180,7 +9180,7 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
 
    DW_MUTEX_LOCK;
 
-   if((tmp  = g_object_get_data(G_OBJECT(box), "_dw_boxhandle")))
+   if((tmp  = gtk_object_get_data(GTK_OBJECT(box), "_dw_boxhandle")))
       box = tmp;
 
    if(!item)
@@ -9188,29 +9188,13 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
       item = gtk_label_new("");
       gtk_widget_show_all(item);
    }
-   else if((image = g_object_get_data(G_OBJECT(item), "_dw_bitmap")))
-   {
-      GdkPixbuf *pixbuf = gtk_image_get_pixbuf(GTK_IMAGE(image)); 
-		  
-      if(pixbuf)
-      {
-         int pwidth = gdk_pixbuf_get_width(pixbuf);
-         int pheight = gdk_pixbuf_get_height(pixbuf);
 
-         if(pwidth > width || pheight > height)
-         {
-            pixbuf = gdk_pixbuf_scale_simple(pixbuf, pwidth > width ? width : pwidth, pheight > height ? height : pheight, GDK_INTERP_BILINEAR);
-            gtk_image_set_from_pixbuf(GTK_IMAGE(image), pixbuf);
-         }
-      }
-   }
-
-   tmpitem = (GtkWidget *)g_object_get_data(G_OBJECT(item), "_dw_boxhandle");
+   tmpitem = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(item), "_dw_boxhandle");
 
    if(GTK_IS_TABLE(box))
    {
-      int boxcount = (int)g_object_get_data(G_OBJECT(box), "_dw_boxcount");
-      int boxtype = (int)g_object_get_data(G_OBJECT(box), "_dw_boxtype");
+      int boxcount = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(box), "_dw_boxcount"));
+      int boxtype = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(box), "_dw_boxtype"));
       int x, y;
 
       /* If the item being packed is a box, then we use it's padding
@@ -9220,7 +9204,7 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
        */
       if(GTK_IS_TABLE(item) || (tmpitem && GTK_IS_TABLE(tmpitem)))
       {
-         GtkWidget *eventbox = (GtkWidget *)g_object_get_data(G_OBJECT(item), "_dw_eventbox");
+         GtkWidget *eventbox = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(item), "_dw_eventbox");
 
          /* NOTE: I left in the ability to pack boxes with a size,
           *       this eliminates that by forcing the size to 0.
@@ -9229,7 +9213,7 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
 
          if(eventbox)
          {
-            int boxpad = (int)g_object_get_data(G_OBJECT(item), "_dw_boxpad");
+            int boxpad = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(item), "_dw_boxpad"));
             gtk_container_add(GTK_CONTAINER(eventbox), item);
             gtk_container_set_border_width(GTK_CONTAINER(eventbox), boxpad);
             item = eventbox;
@@ -9269,7 +9253,7 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
       if(GTK_IS_RADIO_BUTTON(item))
       {
          GSList *group;
-         GtkWidget *groupstart = (GtkWidget *)g_object_get_data(G_OBJECT(box), "_dw_group");
+         GtkWidget *groupstart = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(box), "_dw_group");
 
          if(groupstart)
          {
@@ -9277,17 +9261,17 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
             gtk_radio_button_set_group(GTK_RADIO_BUTTON(item), group);
          }
          else
-            g_object_set_data(G_OBJECT(box), "_dw_group", (gpointer)item);
+            gtk_object_set_data(GTK_OBJECT(box), "_dw_group", (gpointer)item);
       }
    }
    else
    {
-      GtkWidget *vbox = g_object_get_data(G_OBJECT(box), "_dw_vbox");
+      GtkWidget *vbox = gtk_object_get_data(GTK_OBJECT(box), "_dw_vbox");
       
       if(!vbox)
       {
          vbox = gtk_vbox_new(FALSE, 0);
-         g_object_set_data(G_OBJECT(box), "_dw_vbox", vbox);
+         gtk_object_set_data(GTK_OBJECT(box), "_dw_vbox", vbox);
          gtk_container_add(GTK_CONTAINER(box), vbox);
          gtk_widget_show(vbox);
       }
@@ -9296,7 +9280,7 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
 
       if(GTK_IS_TABLE(item) || (tmpitem && GTK_IS_TABLE(tmpitem)))
       {
-         GtkWidget *eventbox = (GtkWidget *)g_object_get_data(G_OBJECT(item), "_dw_eventbox");
+         GtkWidget *eventbox = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(item), "_dw_eventbox");
 
          /* NOTE: I left in the ability to pack boxes with a size,
           *       this eliminates that by forcing the size to 0.
@@ -9305,7 +9289,7 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
 
          if(eventbox)
          {
-            int boxpad = (int)g_object_get_data(G_OBJECT(item), "_dw_boxpad");
+            int boxpad = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(item), "_dw_boxpad"));
             gtk_container_add(GTK_CONTAINER(eventbox), item);
             gtk_container_set_border_width(GTK_CONTAINER(eventbox), boxpad);
             item = eventbox;
@@ -9320,7 +9304,7 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
       gtk_box_pack_end(GTK_BOX(vbox), item, TRUE, TRUE, 0);
 
       gtk_widget_set_usize(item, width, height);
-      g_object_set_data(G_OBJECT(box), "_dw_user", vbox);
+      gtk_object_set_user_data(GTK_OBJECT(box), vbox);
    }
    DW_MUTEX_UNLOCK;
 
@@ -9797,7 +9781,7 @@ void dw_notebook_page_set_text(HWND handle, unsigned long pageid, char *text)
       int num;
 
       sprintf(ptext, "_dw_page%d", (int)pageid);
-      num = (int)gtk_object_get_data(GTK_OBJECT(handle), ptext);
+      num = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(handle), ptext));
       realpage = 0xFF & num;
    }
 
@@ -9838,7 +9822,7 @@ void dw_notebook_pack(HWND handle, unsigned long pageid, HWND page)
 
    DW_MUTEX_LOCK;
    sprintf(ptext, "_dw_page%d", (int)pageid);
-   num = (int)gtk_object_get_data(GTK_OBJECT(handle), ptext);
+   num = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(handle), ptext));
    gtk_object_set_data(GTK_OBJECT(handle), ptext, NULL);
    pagearray = (GtkWidget **)gtk_object_get_data(GTK_OBJECT(handle), "_dw_pagearray");
 
@@ -9872,7 +9856,7 @@ void dw_notebook_pack(HWND handle, unsigned long pageid, HWND page)
 
    if(GTK_IS_TABLE(page))
    {
-      pad = (int)gtk_object_get_data(GTK_OBJECT(page), "_dw_boxpad");
+      pad = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(page), "_dw_boxpad"));
       gtk_container_border_width(GTK_CONTAINER(page), pad);
    }
 
@@ -10404,7 +10388,7 @@ int dw_listbox_selected(HWND handle)
    }
    else if(GTK_IS_COMBO(handle))
    {
-      retval = (unsigned int)gtk_object_get_data(GTK_OBJECT(handle), "_dw_item");
+      retval = GPOINTER_TO_UINT(gtk_object_get_data(GTK_OBJECT(handle), "_dw_item"));
       DW_MUTEX_UNLOCK;
       return retval;
    }
@@ -10516,8 +10500,8 @@ void dw_listbox_delete(HWND handle, int index)
 static gint _splitbar_size_allocate(GtkWidget *widget, GtkAllocation *event, gpointer data)
 {
    float *percent = (float *)gtk_object_get_data(GTK_OBJECT(widget), "_dw_percent");
-   int lastwidth = (int)gtk_object_get_data(GTK_OBJECT(widget), "_dw_lastwidth");
-   int lastheight = (int)gtk_object_get_data(GTK_OBJECT(widget), "_dw_lastheight");
+   int lastwidth = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(widget), "_dw_lastwidth"));
+   int lastheight = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(widget), "_dw_lastheight"));
 
    /* Prevent infinite recursion ;) */
    if(!percent || (lastwidth == event->width && lastheight == event->height))
@@ -11838,7 +11822,7 @@ void dw_signal_connect(HWND window, char *signame, void *sigfunc, void *data)
       thisfunc = _findsigfunc("tree-context");
 
       sigid = _set_signal_handler(thiswindow, window, sigfunc, data, thisfunc);
-      cid = gtk_signal_connect(GTK_OBJECT(thiswindow), "button_press_event", GTK_SIGNAL_FUNC(thisfunc), (gpointer)sigid);
+      cid = gtk_signal_connect(GTK_OBJECT(thiswindow), "button_press_event", GTK_SIGNAL_FUNC(thisfunc), GINT_TO_POINTER(sigid));
       _set_signal_handler_id(thiswindow, sigid, cid);
 
 #if 0
@@ -11858,7 +11842,7 @@ void dw_signal_connect(HWND window, char *signame, void *sigfunc, void *data)
       thisname = "changed";
 
       sigid = _set_signal_handler(treeview, window, sigfunc, data, thisfunc);
-      cid = g_signal_connect(G_OBJECT(thiswindow), thisname, (GCallback)thisfunc, (gpointer)sigid);
+      cid = g_signal_connect(G_OBJECT(thiswindow), thisname, (GCallback)thisfunc, GINT_TO_POINTER(sigid));
       _set_signal_handler_id(treeview, sigid, cid);
       DW_MUTEX_UNLOCK;
       return;
@@ -11875,10 +11859,10 @@ void dw_signal_connect(HWND window, char *signame, void *sigfunc, void *data)
 
       gtk_object_set_data(GTK_OBJECT(thiswindow), "_dw_container_context_func", (gpointer)thisfunc);
       gtk_object_set_data(GTK_OBJECT(thiswindow), "_dw_container_context_data", GINT_TO_POINTER(sigid));
-      cid = gtk_signal_connect(GTK_OBJECT(thiswindow), "button_press_event", GTK_SIGNAL_FUNC(thisfunc), (gpointer)sigid);
+      cid = gtk_signal_connect(GTK_OBJECT(thiswindow), "button_press_event", GTK_SIGNAL_FUNC(thisfunc), GINT_TO_POINTER(sigid));
       _set_signal_handler_id(thiswindow, sigid, cid);
       sigid = _set_signal_handler(window, window, sigfunc, data, thisfunc);
-      cid = gtk_signal_connect(GTK_OBJECT(window), "button_press_event", GTK_SIGNAL_FUNC(thisfunc), (gpointer)sigid);
+      cid = gtk_signal_connect(GTK_OBJECT(window), "button_press_event", GTK_SIGNAL_FUNC(thisfunc), GINT_TO_POINTER(sigid));
       _set_signal_handler_id(window, sigid, cid);
       DW_MUTEX_UNLOCK;
       return;
@@ -11908,7 +11892,7 @@ void dw_signal_connect(HWND window, char *signame, void *sigfunc, void *data)
    else if (GTK_IS_CLIST(thiswindow) && strcmp(signame, DW_SIGNAL_ITEM_ENTER) == 0)
    {
       sigid = _set_signal_handler(thiswindow, window, sigfunc, data, _container_enter_event);
-      cid = gtk_signal_connect(GTK_OBJECT(thiswindow), "key_press_event", GTK_SIGNAL_FUNC(_container_enter_event), (gpointer)sigid);
+      cid = gtk_signal_connect(GTK_OBJECT(thiswindow), "key_press_event", GTK_SIGNAL_FUNC(_container_enter_event), GINT_TO_POINTER(sigid));
       _set_signal_handler_id(thiswindow, sigid, cid);
 
       thisname = "button_press_event";
@@ -11964,7 +11948,7 @@ void dw_signal_connect(HWND window, char *signame, void *sigfunc, void *data)
    }
 
    sigid = _set_signal_handler(thiswindow, window, sigfunc, data, thisfunc);
-   cid = gtk_signal_connect(GTK_OBJECT(thiswindow), thisname, GTK_SIGNAL_FUNC(thisfunc),(gpointer)sigid);
+   cid = gtk_signal_connect(GTK_OBJECT(thiswindow), thisname, GTK_SIGNAL_FUNC(thisfunc),GINT_TO_POINTER(sigid));
    _set_signal_handler_id(thiswindow, sigid, cid);
    DW_MUTEX_UNLOCK;
 }
@@ -11983,12 +11967,12 @@ void dw_signal_disconnect_by_name(HWND window, char *signame)
 
    DW_MUTEX_LOCK;
    thiswindow = _find_signal_window(window, signame);
-   count = (int)gtk_object_get_data(GTK_OBJECT(thiswindow), "_dw_sigcounter");
+   count = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(thiswindow), "_dw_sigcounter"));
    thisfunc  = _findsigfunc(signame);
 
    for(z=0;z<count;z++)
    {
-      SignalHandler sh = _get_signal_handler(thiswindow, (gpointer)z);
+      SignalHandler sh = _get_signal_handler(thiswindow, GINT_TO_POINTER(z));
 
       if(sh.intfunc == thisfunc)
          _remove_signal_handler(thiswindow, z);
@@ -12009,7 +11993,7 @@ void dw_signal_disconnect_by_window(HWND window)
 
    DW_MUTEX_LOCK;
    thiswindow = _find_signal_window(window, NULL);
-   count = (int)gtk_object_get_data(GTK_OBJECT(thiswindow), "_dw_sigcounter");
+   count = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(thiswindow), "_dw_sigcounter"));
 
    for(z=0;z<count;z++)
       _remove_signal_handler(thiswindow, z);
@@ -12031,11 +12015,11 @@ void dw_signal_disconnect_by_data(HWND window, void *data)
 
    DW_MUTEX_LOCK;
    thiswindow = _find_signal_window(window, NULL);
-   count = (int)gtk_object_get_data(GTK_OBJECT(thiswindow), "_dw_sigcounter");
+   count = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(thiswindow), "_dw_sigcounter"));
 
    for(z=0;z<count;z++)
    {
-      SignalHandler sh = _get_signal_handler(thiswindow, (gpointer)z);
+      SignalHandler sh = _get_signal_handler(thiswindow, GINT_TO_POINTER(z));
 
       if(sh.data == data)
          _remove_signal_handler(thiswindow, z);
