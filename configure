@@ -4612,7 +4612,16 @@ fi
 
 
    if test x"$PKG_CFG" != x; then
-      GTK_LIBS=`$PKG_CFG --silence-errors --libs gtk+-2.0 gthread-2.0`
+      GTK_PACKAGES="gtk+-3.0"
+      GTK_LIBS=`$PKG_CFG --silence-errors --libs $GTK_PACKAGES`
+      WEBKIT_PKG="webkit-1.1"
+      if test x"$GTK_LIBS" = x; then
+         GTK_PACKAGES="gtk+-2.0 gthread-2.0"
+         GTK_LIBS=`$PKG_CFG --silence-errors --libs $GTK_PACKAGES`
+      else
+         DW_DIR=gtk3
+         WEBKIT_PKG="webkitgtk-3.0"
+      fi
       if test $with_gtkmozembed = yes; then
          MOZEMBED_LIBS=`$PKG_CFG --silence-errors --libs firefox-gtkmozembed`
          MOZEMBED_CFLAGS=`$PKG_CFG --silence-errors --cflags firefox-gtkmozembed`
@@ -4627,25 +4636,85 @@ fi
          MOZEMBED_CFLAGS=`$PKG_CFG --silence-errors --cflags libgtkhtml-2.0`
          RPATH=`$PKG_CFG --silence-errors --libs-only-L libgtkhtml-2.0 | cut -b 3-`
       else
-         WEBKIT_LIB="webkit-1.1"
-         MOZEMBED_CFLAGS=`$PKG_CFG --silence-errors --cflags $WEBKIT_LIB`
-         RPATH=`$PKG_CFG --silence-errors --libs-only-L $WEBKIT_LIB | cut -b 3-`
+         # test for webkit-1.1 or webkitgtk-3.0 packages
+         MOZEMBED_CFLAGS=`$PKG_CFG --silence-errors --cflags $WEBKIT_PKG`
+         RPATH=`$PKG_CFG --silence-errors --libs-only-L $WEBKIT_PKG | cut -b 3-`
          if test x"$MOZEMBED_CFLAGS" = x; then
-            WEBKIT_LIB="webkit-1.0"
-            MOZEMBED_CFLAGS=`$PKG_CFG --silence-errors --cflags $WEBKIT_LIB`
-            RPATH=`$PKG_CFG --silence-errors --libs-only-L $WEBKIT_LIB | cut -b 3-`
+            # no webkit-1.1 or webkitgtk-3.0, look for webkit-1.0
+            WEBKIT_PKG="webkit-1.0"
+            MOZEMBED_CFLAGS=`$PKG_CFG --silence-errors --cflags $WEBKIT_PKG`
+            RPATH=`$PKG_CFG --silence-errors --libs-only-L $WEBKIT_PKG | cut -b 3-`
             if test x"$MOZEMBED_CFLAGS" = x; then
-               WEBKIT_LIB="WebKitGtk"
-#               MOZEMBED_LIBS=`$PKG_CFG --silence-errors --libs $WEBKIT_LIB`
-               MOZEMBED_CFLAGS=`$PKG_CFG --silence-errors --cflags $WEBKIT_LIB`
-               RPATH=`$PKG_CFG --silence-errors --libs-only-L $WEBKIT_LIB | cut -b 3-`
+               WEBKIT_PKG="WebKitGtk"
+#               MOZEMBED_LIBS=`$PKG_CFG --silence-errors --libs $WEBKIT_PKG`
+               MOZEMBED_CFLAGS=`$PKG_CFG --silence-errors --cflags $WEBKIT_PKG`
+               RPATH=`$PKG_CFG --silence-errors --libs-only-L $WEBKIT_PKG | cut -b 3-`
             else
                $as_echo "#define USE_WEBKIT10 1" >>confdefs.h
+
+               { $as_echo "$as_me:${as_lineno-$LINENO}: checking for library containing webkit_web_view_new" >&5
+$as_echo_n "checking for library containing webkit_web_view_new... " >&6; }
+if test "${ac_cv_search_webkit_web_view_new+set}" = set; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_func_search_save_LIBS=$LIBS
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char webkit_web_view_new ();
+int
+main ()
+{
+return webkit_web_view_new ();
+  ;
+  return 0;
+}
+_ACEOF
+for ac_lib in '' webkit-1.0 webkitgtk-1.0; do
+  if test -z "$ac_lib"; then
+    ac_res="none required"
+  else
+    ac_res=-l$ac_lib
+    LIBS="-l$ac_lib  $ac_func_search_save_LIBS"
+  fi
+  if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_search_webkit_web_view_new=$ac_res
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext
+  if test "${ac_cv_search_webkit_web_view_new+set}" = set; then :
+  break
+fi
+done
+if test "${ac_cv_search_webkit_web_view_new+set}" = set; then :
+
+else
+  ac_cv_search_webkit_web_view_new=no
+fi
+rm conftest.$ac_ext
+LIBS=$ac_func_search_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_search_webkit_web_view_new" >&5
+$as_echo "$ac_cv_search_webkit_web_view_new" >&6; }
+ac_res=$ac_cv_search_webkit_web_view_new
+if test "$ac_res" != no; then :
+  test "$ac_res" = "none required" || LIBS="$ac_res $LIBS"
+  WEBKIT_LIB=`echo $ac_res | cut -b 3-`
+else
+  WEBKIT_LIB=""
+fi
 
             fi
          else
             $as_echo "#define USE_WEBKIT11 1" >>confdefs.h
 
+            WEBKIT_LIB=$WEBKIT_PKG
          fi
          cat >>confdefs.h <<_ACEOF
 #define WEBKIT_LIB "$WEBKIT_LIB"
@@ -5412,8 +5481,8 @@ rm -f core conftest.err conftest.$ac_objext \
   rm -f conf.gdkimlibtest
 
    else
-      GTK_CFLAGS=`$PKG_CFG --cflags gtk+-2.0 gthread-2.0`
-      GTK_LIBS=`$PKG_CFG --libs gtk+-2.0 gthread-2.0`
+      GTK_CFLAGS=`$PKG_CFG --cflags $GTK_PACKAGES`
+      GTK_LIBS=`$PKG_CFG --libs $GTK_PACKAGES`
    fi
 fi
 
@@ -6538,7 +6607,7 @@ _ACEOF
   echo "_ACEOF"
 } >conf$$subs.sh ||
   as_fn_error "could not make $CONFIG_STATUS" "$LINENO" 5
-ac_delim_num=`echo "$ac_subst_vars" | grep -c '$'`
+ac_delim_num=`echo "$ac_subst_vars" | grep -c '^'`
 ac_delim='%!_!# '
 for ac_last_try in false false false false false :; do
   . ./conf$$subs.sh ||
