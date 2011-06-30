@@ -649,7 +649,7 @@ static void gtk_mdi_realize(GtkWidget *widget)
       GDK_BUTTON_RELEASE_MASK | GDK_POINTER_MOTION_MASK |
       GDK_POINTER_MOTION_HINT_MASK;
    attributes.visual = gtk_widget_get_visual (widget);
- 
+
    attributes_mask = GDK_WA_X | GDK_WA_Y | GDK_WA_VISUAL;
    gtk_widget_set_parent_window(widget, gdk_window_new (gtk_widget_get_parent_window(widget), &attributes, attributes_mask));
 
@@ -973,7 +973,7 @@ static gboolean resize_child_callback(GtkWidget *widget, GdkEvent *event, gpoint
          if ((child->state == CHILD_MAXIMIZED) || (child->state == CHILD_ICONIFIED))
          {
             GtkAllocation allocation;
-            
+
             child->state = CHILD_NORMAL;
             gtk_widget_get_allocation(child->widget, &allocation);
             child->x = allocation.x;
@@ -1405,27 +1405,27 @@ static gint _combobox_select_event(GtkWidget *widget, gpointer data)
       {
          GtkTreeIter iter;
          GtkTreePath *path;
-      
+
          _dw_recursing = 1;
 
          if(gtk_combo_box_get_active_iter(GTK_COMBO_BOX(widget), &iter))
          {
             path = gtk_tree_model_get_path(GTK_TREE_MODEL(store), &iter);
-           
+
             if(path)
             {
                gint *indices = gtk_tree_path_get_indices(path);
-               
+
                if(indices)
                {
                   int (*selectfunc)(HWND, int, void *) = work.func;
-                  
+
                   retval = selectfunc(work.window, indices[0], work.data);
                }
                gtk_tree_path_free(path);
             }
          }
-         
+
          _dw_recursing = 0;
       }
    }
@@ -1467,12 +1467,12 @@ static gint _tree_context_event(GtkWidget *widget, GdkEventButton *event, gpoint
             else
             {
                GtkTreePath *path;
-               
+
                gtk_tree_view_get_cursor(GTK_TREE_VIEW(widget), &path, NULL);
                if(path)
                {
                   GtkTreeIter iter;
-                  
+
                   if(gtk_tree_model_get_iter(GTK_TREE_MODEL(store), &iter, path))
                   {
                      if(g_object_get_data(G_OBJECT(widget), "_dw_tree_type") == GINT_TO_POINTER(_DW_TREE_TYPE_TREE))
@@ -1535,15 +1535,15 @@ static gint _tree_select_event(GtkTreeSelection *sel, gpointer data)
             else
             {
                GtkTreePath *path = gtk_tree_model_get_path(GTK_TREE_MODEL(store), &iter);
-              
+
                if(path)
                {
                   gint *indices = gtk_tree_path_get_indices(path);
-                  
+
                   if(indices)
                   {
                      int (*selectfunc)(HWND, int, void *) = work.func;
-                     
+
                      retval = selectfunc(work.window, indices[0], work.data);
                   }
                   gtk_tree_path_free(path);
@@ -1553,12 +1553,12 @@ static gint _tree_select_event(GtkTreeSelection *sel, gpointer data)
          else
          {
             GtkTreePath *path;
-            
+
             gtk_tree_view_get_cursor(GTK_TREE_VIEW(widget), &path, NULL);
             if(path)
             {
                GtkTreeIter iter;
-               
+
                if(gtk_tree_model_get_iter(GTK_TREE_MODEL(store), &iter, path))
                {
                   if(g_object_get_data(G_OBJECT(widget), "_dw_tree_type") == GINT_TO_POINTER(_DW_TREE_TYPE_TREE))
@@ -1574,11 +1574,11 @@ static gint _tree_select_event(GtkTreeSelection *sel, gpointer data)
                   else
                   {
                      gint *indices = gtk_tree_path_get_indices(path);
-                     
+
                      if(indices)
                      {
                         int (*selectfunc)(HWND, int, void *) = work.func;
-                        
+
                         retval = selectfunc(work.window, indices[0], work.data);
                      }
                   }
@@ -1622,7 +1622,7 @@ static gint _container_enter_event(GtkWidget *widget, GdkEventAny *event, gpoint
          int (*contextfunc)(HWND, char *, void *) = work.func;
          char *text = NULL;
 
-         /* Prevent some double events from happening */         
+         /* Prevent some double events from happening */
          if(event->type == GDK_2BUTTON_PRESS)
          {
             g_object_set_data(G_OBJECT(widget), "_dw_double_click", GINT_TO_POINTER(1));
@@ -1633,12 +1633,12 @@ static gint _container_enter_event(GtkWidget *widget, GdkEventAny *event, gpoint
          {
             GtkTreePath *path;
             GtkTreeModel *store = (GtkTreeModel *)gtk_tree_view_get_model(GTK_TREE_VIEW(widget));
-            
+
             gtk_tree_view_get_cursor(GTK_TREE_VIEW(widget), &path, NULL);
             if(path)
             {
                GtkTreeIter iter;
-               
+
                if(gtk_tree_model_get_iter(GTK_TREE_MODEL(store), &iter, path))
                {
                   if(g_object_get_data(G_OBJECT(widget), "_dw_tree_type") == GINT_TO_POINTER(_DW_TREE_TYPE_CONTAINER))
@@ -1694,7 +1694,7 @@ static gint _column_click_event(GtkWidget *widget, gpointer data)
    gint handlerdata = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(tree), "_dw_column_click_id"));
    SignalHandler work;
    int retval = FALSE;
-   
+
    if(handlerdata)
    {
       work = _get_signal_handler(tree, GINT_TO_POINTER(handlerdata-1));
@@ -1783,12 +1783,12 @@ static GdkPixbuf *_find_pixbuf(HICN icon, unsigned long *userwidth, unsigned lon
    if(id > 65535)
    {
       GdkPixbuf *icon_pixbuf = icon;
-      
+
       if(userwidth)
          *userwidth = gdk_pixbuf_get_width(icon_pixbuf);
       if(userheight)
          *userheight = gdk_pixbuf_get_height(icon_pixbuf);
-         
+
       return icon;
    }
 
@@ -1818,7 +1818,7 @@ static GdkPixbuf *_find_pixbuf(HICN icon, unsigned long *userwidth, unsigned lon
 void _init_thread(void)
 {
    GdkColor *foreground = malloc(sizeof(GdkColor));
-   
+
    foreground->pixel = foreground->red = foreground->green = foreground->blue = 0;
    pthread_setspecific(_dw_fg_color_key, foreground);
    pthread_setspecific(_dw_bg_color_key, NULL);
@@ -1948,9 +1948,9 @@ int dw_int_init(DWResources *res, int newthread, int *argc, char **argv[])
    pthread_key_create(&_dw_fg_color_key, NULL);
    pthread_key_create(&_dw_bg_color_key, NULL);
    pthread_key_create(&_dw_mutex_key, NULL);
-   
+
    _init_thread();
-    
+
    /* Create a global object for glib activities */
    _DWObject = g_object_new(G_TYPE_OBJECT, NULL);
 
@@ -2203,7 +2203,7 @@ int dw_messagebox(char *title, int flags, char *format, ...)
    int width,height;
 
    va_start(args, format);
-   vsnprintf(outbuf, 999, format, args); 
+   vsnprintf(outbuf, 999, format, args);
    va_end(args);
 
    entrywindow = dw_window_new(HWND_DESKTOP, title, flStyle);
@@ -2251,10 +2251,10 @@ int dw_messagebox(char *title, int flags, char *format, ...)
    stext = dw_text_new(outbuf, 0);
    dw_window_set_style(stext, DW_DT_WORDBREAK, DW_DT_WORDBREAK);
    dw_font_text_extents_get(stext, NULL, outbuf, &width, &height);
-   
+
    text_width = min( width, dw_screen_width() - extra_width - 100 );
    text_height = min( height, dw_screen_height() );
-   
+
    dw_box_pack_start(texttargetbox, stext, text_width, text_height, TRUE, TRUE, 2);
 
    /* Buttons */
@@ -2538,8 +2538,8 @@ int dw_window_set_font(HWND handle, char *fontname)
       if(tmp)
          handle2 = tmp;
    }
-   
-   /* Detect Dynamic Windows style font name... 
+
+   /* Detect Dynamic Windows style font name...
     * Format: ##.Fontname
     * and convert to a Pango name
     */
@@ -2584,13 +2584,13 @@ static gint _gtk_font_ok(GtkWidget *widget, DWDialog *dwwait)
    fd = dwwait->data;
    fontname = gtk_font_selection_dialog_get_font_name(fd);
    if(fontname && (retfont = strdup(fontname)))
-   {         
+   {
       len = strlen(fontname);
       /* Convert to Dynamic Windows format if we can... */
       if(len > 0 && isdigit(fontname[len-1]))
       {
          int size;
-            
+
          x=len-1;
          while(x > 0 && fontname[x] != ' ')
          {
@@ -2642,8 +2642,8 @@ char * API dw_font_choose(char *currfont)
    int _locked_by_me = FALSE;
    char *retfont = NULL;
    DWDialog *dwwait;
-     
-   /* Detect Dynamic Windows style font name... 
+
+   /* Detect Dynamic Windows style font name...
     * Format: ##.Fontname
     * and convert to a Pango name
     */
@@ -2672,7 +2672,7 @@ char * API dw_font_choose(char *currfont)
       gtk_font_selection_dialog_set_font_name(fd, font);
       free(font);
    }
-   
+
    _dw_font_active = 1;
 
    dwwait = dw_dialog_new((void *)fd);
@@ -2725,7 +2725,7 @@ char *dw_window_get_font(HWND handle)
       if ( pfont )
       {
          int len, x;
-         
+
          font = pango_font_description_to_string( pfont );
          retfont = strdup(font);
          len = strlen(font);
@@ -2733,7 +2733,7 @@ char *dw_window_get_font(HWND handle)
          if(len > 0 && isdigit(font[len-1]))
          {
             int size;
-            
+
             x=len-1;
             while(x > 0 && font[x] != ' ')
             {
@@ -3340,7 +3340,7 @@ HWND dw_menu_append_item(HMENUI menu, char *title, unsigned long id, unsigned lo
       if (check)
       {
          char numbuf[10];
-         
+
          tmphandle = gtk_check_menu_item_new_with_label(tempbuf);
          if (accel && accel_group)
          {
@@ -3355,7 +3355,7 @@ HWND dw_menu_append_item(HMENUI menu, char *title, unsigned long id, unsigned lo
       else
       {
          char numbuf[10];
-         
+
          tmphandle=gtk_menu_item_new_with_label(tempbuf);
          if (accel && accel_group)
          {
@@ -4129,7 +4129,7 @@ HWND dw_listbox_new(unsigned long id, int multi)
    tree = _tree_setup(tmp, GTK_TREE_MODEL(store));
    g_object_set_data(G_OBJECT(tmp), "_dw_tree_type", GINT_TO_POINTER(_DW_TREE_TYPE_LISTBOX));
    g_object_set_data(G_OBJECT(tree), "_dw_tree_type", GINT_TO_POINTER(_DW_TREE_TYPE_LISTBOX));
-   
+
    col = gtk_tree_view_column_new();
    rend = gtk_cell_renderer_text_new();
    gtk_tree_view_column_pack_start(col, rend, TRUE);
@@ -4138,7 +4138,7 @@ HWND dw_listbox_new(unsigned long id, int multi)
    gtk_tree_view_append_column(GTK_TREE_VIEW (tree), col);
    gtk_tree_view_set_expander_column(GTK_TREE_VIEW(tree), col);
    gtk_tree_view_set_headers_visible(GTK_TREE_VIEW(tree), FALSE);
-   
+
    sel = gtk_tree_view_get_selection(GTK_TREE_VIEW(tree));
    if(multi)
    {
@@ -4148,7 +4148,7 @@ HWND dw_listbox_new(unsigned long id, int multi)
    {
       gtk_tree_selection_set_mode(sel, GTK_SELECTION_SINGLE);
    }
-   gtk_widget_show(tree);   
+   gtk_widget_show(tree);
    DW_MUTEX_UNLOCK;
    return tmp;
 }
@@ -5396,13 +5396,13 @@ static int _dw_container_setup(HWND handle, unsigned long *flags, char **titles,
    GtkCellRenderer *rend;
    GtkTreeSelection *sel;
    int _locked_by_me = FALSE;
-   GType *array = calloc(count + 2, sizeof(gint));
+   GType *array = calloc(count + 2, sizeof(GType));
 
    DW_MUTEX_LOCK;
    /* Save some of the info so it is easily accessible */
    g_object_set_data(G_OBJECT(handle), "_dw_cont_columns", GINT_TO_POINTER(count));
    g_object_set_data(G_OBJECT(handle), "_dw_cont_extra", GINT_TO_POINTER(extra));
-   
+
    /* First param is row title/data */
    array[0] = G_TYPE_POINTER;
    array[1] = G_TYPE_POINTER;
@@ -5446,7 +5446,7 @@ static int _dw_container_setup(HWND handle, unsigned long *flags, char **titles,
       g_object_set_data(G_OBJECT(tree), numbuf, GINT_TO_POINTER(flags[z]));
       col = gtk_tree_view_column_new();
       rend = NULL;
-      
+
       if(z == 0 && flags[z] & DW_CFA_STRINGANDICON)
       {
          rend = gtk_cell_renderer_pixbuf_new();
@@ -5667,7 +5667,7 @@ HICN API dw_icon_load_from_data(char *data, int len)
 void dw_icon_free(HICN handle)
 {
    int iicon = (int)handle;
-   
+
    if(iicon > 65535)
    {
       g_object_unref(handle);
@@ -5689,7 +5689,7 @@ void *dw_container_alloc(HWND handle, int rowcount)
 
    DW_MUTEX_LOCK;
    cont = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user");
-   
+
    /* Make sure it is the correct tree type */
    if(cont && GTK_IS_TREE_VIEW(cont) && g_object_get_data(G_OBJECT(cont), "_dw_tree_type") == GINT_TO_POINTER(_DW_TREE_TYPE_CONTAINER))
          store = (GtkListStore *)gtk_tree_view_get_model(GTK_TREE_VIEW(cont));
@@ -5697,7 +5697,7 @@ void *dw_container_alloc(HWND handle, int rowcount)
    if(store)
    {
       GtkTreeIter iter;
-      
+
       prevrowcount = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(cont), "_dw_rowcount"));
 
       for(z=0;z<rowcount;z++)
@@ -5725,7 +5725,7 @@ void _dw_container_set_item(HWND handle, void *pointer, int column, int row, voi
 
    DW_MUTEX_LOCK;
    cont = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user");
-   
+
    /* Make sure it is the correct tree type */
    if(cont && GTK_IS_TREE_VIEW(cont) && g_object_get_data(G_OBJECT(cont), "_dw_tree_type") == GINT_TO_POINTER(_DW_TREE_TYPE_CONTAINER))
          store = (GtkListStore *)gtk_tree_view_get_model(GTK_TREE_VIEW(cont));
@@ -5733,7 +5733,7 @@ void _dw_container_set_item(HWND handle, void *pointer, int column, int row, voi
    if(store)
    {
       GtkTreeIter iter;
-      
+
       sprintf(numbuf, "_dw_cont_col%d", column);
       flag = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(cont), numbuf));
       if(pointer)
@@ -5752,7 +5752,7 @@ void _dw_container_set_item(HWND handle, void *pointer, int column, int row, voi
 
             if(pixbuf)
                gtk_list_store_set(store, &iter, 1, pixbuf, -1);
-            
+
             gtk_list_store_set(store, &iter, 2, tmp, -1);
          }
          else if(flag & DW_CFA_BITMAPORICON)
@@ -5873,7 +5873,7 @@ void API dw_filesystem_change_file(HWND handle, int row, char *filename, HICN ic
 void dw_filesystem_set_file(HWND handle, void *pointer, int row, char *filename, HICN icon)
 {
    void *data[2] = { (void *)&icon, (void *)filename };
-   
+
    _dw_container_set_item(handle, pointer, 0, row, (void *)data);
 }
 
@@ -5956,12 +5956,12 @@ void dw_container_set_column_width(HWND handle, int column, int width)
 
    DW_MUTEX_LOCK;
    cont = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user");
-   
+
    /* Make sure it is the correct tree type */
    if(cont && GTK_IS_TREE_VIEW(cont) && g_object_get_data(G_OBJECT(cont), "_dw_tree_type") == GINT_TO_POINTER(_DW_TREE_TYPE_CONTAINER))
    {
       GtkTreeViewColumn *col = gtk_tree_view_get_column(GTK_TREE_VIEW(cont), column);
-      
+
       if(col && GTK_IS_TREE_VIEW_COLUMN(col))
       {
          gtk_tree_view_column_set_fixed_width(GTK_TREE_VIEW_COLUMN(col), width);
@@ -5985,7 +5985,7 @@ void _dw_container_set_row_title(HWND handle, void *pointer, int row, char *titl
    if(store)
    {
       GtkTreeIter iter;
-      
+
       if(pointer)
       {
          row += GPOINTER_TO_INT(g_object_get_data(G_OBJECT(cont), "_dw_insertpos"));
@@ -6049,7 +6049,7 @@ void dw_container_delete(HWND handle, int rowcount)
 
    DW_MUTEX_LOCK;
    cont = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user");
-   
+
    /* Make sure it is the correct tree type */
    if(cont && GTK_IS_TREE_VIEW(cont) && g_object_get_data(G_OBJECT(cont), "_dw_tree_type") == GINT_TO_POINTER(_DW_TREE_TYPE_CONTAINER))
          store = (GtkListStore *)gtk_tree_view_get_model(GTK_TREE_VIEW(cont));
@@ -6091,7 +6091,7 @@ void dw_container_clear(HWND handle, int redraw)
 
    DW_MUTEX_LOCK;
    cont = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user");
-   
+
    /* Make sure it is the correct tree type */
    if(cont && GTK_IS_TREE_VIEW(cont) && g_object_get_data(G_OBJECT(cont), "_dw_tree_type") == GINT_TO_POINTER(_DW_TREE_TYPE_CONTAINER))
          store = (GtkListStore *)gtk_tree_view_get_model(GTK_TREE_VIEW(cont));
@@ -6121,20 +6121,20 @@ void dw_container_scroll(HWND handle, int direction, long rows)
 
    DW_MUTEX_LOCK;
    cont = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user");
-   
+
    /* Make sure it is the correct tree type */
    if(cont && GTK_IS_TREE_VIEW(cont) && g_object_get_data(G_OBJECT(cont), "_dw_tree_type") == GINT_TO_POINTER(_DW_TREE_TYPE_CONTAINER))
    {
       GtkAdjustment *adjust = gtk_tree_view_get_vadjustment(GTK_TREE_VIEW(cont));
-      
+
       if(adjust)
       {
          gint rowcount = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(cont), "_dw_rowcount"));
          gdouble currpos = gtk_adjustment_get_value(adjust);
          gdouble upper = gtk_adjustment_get_upper(adjust);
          gdouble lower = gtk_adjustment_get_lower(adjust);
-         gdouble change; 
-       
+         gdouble change;
+
          /* Safety check */
          if(rowcount < 1)
          {
@@ -6214,15 +6214,15 @@ char *dw_container_query_start(HWND handle, unsigned long flags)
          if(list)
          {
             GtkTreePath *path = g_list_nth_data(list, 0);
-            
+
             if(path)
             {
                gint *indices = gtk_tree_path_get_indices(path);
-               
+
                if(indices)
                {
                   GtkTreeIter iter;
-                  
+
                   if(gtk_tree_model_iter_nth_child(GTK_TREE_MODEL(store), &iter, NULL, indices[0]))
                   {
                      gtk_tree_model_get(GTK_TREE_MODEL(store), &iter, 0, &retval, -1);
@@ -6237,12 +6237,12 @@ char *dw_container_query_start(HWND handle, unsigned long flags)
       else if(flags & DW_CRA_CURSORED)
       {
          GtkTreePath *path;
-         
+
          gtk_tree_view_get_cursor(GTK_TREE_VIEW(cont), &path, NULL);
          if(path)
          {
             GtkTreeIter iter;
-            
+
             if(gtk_tree_model_get_iter(GTK_TREE_MODEL(store), &iter, path))
             {
                gtk_tree_model_get(GTK_TREE_MODEL(store), &iter, 0, &retval, -1);
@@ -6253,7 +6253,7 @@ char *dw_container_query_start(HWND handle, unsigned long flags)
       else
       {
          GtkTreeIter iter;
-         
+
          if(gtk_tree_model_iter_nth_child(GTK_TREE_MODEL(store), &iter, NULL, 0))
          {
             gtk_tree_model_get(GTK_TREE_MODEL(store), &iter, 0, &retval, -1);
@@ -6291,25 +6291,25 @@ char *dw_container_query_next(HWND handle, unsigned long flags)
    {
       int pos = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(cont), "_dw_querypos"));
       int count = gtk_tree_model_iter_n_children(GTK_TREE_MODEL(store), NULL);
-           
+
       /* These should be separate but right now this will work */
       if(flags & DW_CRA_SELECTED)
       {
          GtkTreeSelection *sel = gtk_tree_view_get_selection(GTK_TREE_VIEW(cont));
          GList *list = gtk_tree_selection_get_selected_rows(sel, NULL);
-         
+
          if(list)
          {
             GtkTreePath *path = g_list_nth_data(list, pos);
-            
+
             if(path)
             {
                gint *indices = gtk_tree_path_get_indices(path);
-                  
+
                if(indices)
                {
                   GtkTreeIter iter;
-                  
+
                   if(gtk_tree_model_iter_nth_child(GTK_TREE_MODEL(store), &iter, NULL, indices[0]))
                   {
                      gtk_tree_model_get(GTK_TREE_MODEL(store), &iter, 0, &retval, -1);
@@ -6331,7 +6331,7 @@ char *dw_container_query_next(HWND handle, unsigned long flags)
       else
       {
          GtkTreeIter iter;
-         
+
          if(pos < count && gtk_tree_model_iter_nth_child(GTK_TREE_MODEL(store), &iter, NULL, pos))
          {
             gtk_tree_model_get(GTK_TREE_MODEL(store), &iter, 0, &retval, -1);
@@ -6347,7 +6347,7 @@ int _find_iter(GtkListStore *store, GtkTreeIter *iter, char *text)
 {
    int z, rows = gtk_tree_model_iter_n_children(GTK_TREE_MODEL(store), NULL);
    char *thistext;
-   
+
    for(z=0;z<rows;z++)
    {
       if(gtk_tree_model_iter_nth_child(GTK_TREE_MODEL(store), iter, NULL, z))
@@ -6376,7 +6376,7 @@ void dw_container_cursor(HWND handle, char *text)
 
    DW_MUTEX_LOCK;
    cont = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user");
-   
+
    /* Make sure it is the correct tree type */
    if(cont && GTK_IS_TREE_VIEW(cont) && g_object_get_data(G_OBJECT(cont), "_dw_tree_type") == GINT_TO_POINTER(_DW_TREE_TYPE_CONTAINER))
          store = (GtkListStore *)gtk_tree_view_get_model(GTK_TREE_VIEW(cont));
@@ -6388,7 +6388,7 @@ void dw_container_cursor(HWND handle, char *text)
       if(_find_iter(store, &iter, text))
       {
          GtkTreePath *path = gtk_tree_model_get_path(GTK_TREE_MODEL(store), &iter);
-         
+
          if(path)
          {
             gtk_tree_view_row_activated(GTK_TREE_VIEW(cont), path, NULL);
@@ -6413,7 +6413,7 @@ void dw_container_delete_row(HWND handle, char *text)
 
    DW_MUTEX_LOCK;
    cont = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user");
-   
+
    /* Make sure it is the correct tree type */
    if(cont && GTK_IS_TREE_VIEW(cont) && g_object_get_data(G_OBJECT(cont), "_dw_tree_type") == GINT_TO_POINTER(_DW_TREE_TYPE_CONTAINER))
          store = (GtkListStore *)gtk_tree_view_get_model(GTK_TREE_VIEW(cont));
@@ -6446,7 +6446,7 @@ void dw_container_optimize(HWND handle)
 
    DW_MUTEX_LOCK;
    cont = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user");
-   
+
    /* Make sure it is the correct tree type */
    if(cont && GTK_IS_TREE_VIEW(cont) && g_object_get_data(G_OBJECT(cont), "_dw_tree_type") == GINT_TO_POINTER(_DW_TREE_TYPE_CONTAINER))
          gtk_tree_view_columns_autosize(GTK_TREE_VIEW(cont));
@@ -6540,7 +6540,7 @@ void dw_color_foreground_set(unsigned long value)
 void dw_color_background_set(unsigned long value)
 {
    GdkColor *background = pthread_getspecific(_dw_bg_color_key);
-   
+
    if(value == DW_CLR_DEFAULT)
    {
       if(background)
@@ -6676,7 +6676,7 @@ void dw_draw_point(HWND handle, HPIXMAP pixmap, int x, int y)
    if(cr)
    {
       GdkColor *foreground = pthread_getspecific(_dw_fg_color_key);
-      
+
       gdk_cairo_set_source_color (cr, foreground);
       cairo_set_line_width(cr, 1);
       cairo_move_to(cr, x, y);
@@ -6717,7 +6717,7 @@ void dw_draw_line(HWND handle, HPIXMAP pixmap, int x1, int y1, int x2, int y2)
    if(cr)
    {
       GdkColor *foreground = pthread_getspecific(_dw_fg_color_key);
-      
+
       gdk_cairo_set_source_color (cr, foreground);
       cairo_set_line_width(cr, 1);
       cairo_move_to(cr, x1, y1);
@@ -6760,7 +6760,7 @@ void dw_draw_polygon(HWND handle, HPIXMAP pixmap, int fill, int npoints, int *x,
    if(cr)
    {
        GdkColor *foreground = pthread_getspecific(_dw_fg_color_key);
-      
+
       gdk_cairo_set_source_color (cr, foreground);
       cairo_set_line_width(cr, 1);
       cairo_move_to(cr, x[0], y[0]);
@@ -6808,7 +6808,7 @@ void dw_draw_rect(HWND handle, HPIXMAP pixmap, int fill, int x, int y, int width
    if(cr)
    {
       GdkColor *foreground = pthread_getspecific(_dw_fg_color_key);
-      
+
       gdk_cairo_set_source_color (cr, foreground);
       cairo_set_line_width(cr, 1);
       cairo_move_to(cr, x, y);
@@ -6840,7 +6840,7 @@ void dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
 
    if(!text)
       return;
-      
+
    DW_MUTEX_LOCK;
    if(handle)
    {
@@ -6896,7 +6896,7 @@ void dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
                /* Do the drawing */
                cairo_move_to(cr, x, y);
                pango_cairo_show_layout (cr, layout);
-               
+
                g_object_unref(layout);
             }
             g_object_unref(context);
@@ -7214,14 +7214,14 @@ void dw_pixmap_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest, int width,
    }
    else if(destp)
       cr = cairo_create(destp->image);
-      
+
    if(cr)
    {
       if(src)
          gdk_cairo_set_source_window (cr, gtk_widget_get_window(src), xdest -xsrc, ydest - ysrc);
       else if(srcp)
          cairo_set_source_surface (cr, srcp->image, xdest - xsrc, ydest - ysrc);
-         
+
       cairo_rectangle(cr, xdest, ydest, width, height);
       cairo_fill(cr);
       cairo_destroy(cr);
@@ -7837,13 +7837,13 @@ void _dwthreadstart(void *data)
    GdkColor *foreground, *background;
 
    threadfunc = (void (*)(void *))tmp[0];
-   
+
    /* Initialize colors */
    _init_thread();
-   
+
    threadfunc(tmp[1]);
    free(tmp);
-   
+
    /* Free colors */
    if((foreground = pthread_getspecific(_dw_fg_color_key)))
       free(foreground);
@@ -8020,8 +8020,8 @@ void _rearrange_table(GtkWidget *widget, gpointer data)
    /* Drop out if missing table */
    if(!cont)
       return;
-      
-   /* Check orientation */   
+
+   /* Check orientation */
    if(pos < 0)
    {
       /* Horz */
@@ -8074,8 +8074,8 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
    }
    else if((image = g_object_get_data(G_OBJECT(item), "_dw_bitmap")))
    {
-      GdkPixbuf *pixbuf = gtk_image_get_pixbuf(GTK_IMAGE(image)); 
-		  
+      GdkPixbuf *pixbuf = gtk_image_get_pixbuf(GTK_IMAGE(image));
+
       if(pixbuf)
       {
          int pwidth = gdk_pixbuf_get_width(pixbuf);
@@ -8130,7 +8130,7 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
          index = 0;
       if(index > boxcount)
          index = boxcount;
-    
+
       if(boxtype == DW_VERT)
       {
          x = 0;
@@ -8173,7 +8173,7 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
    else
    {
       GtkWidget *vbox = g_object_get_data(G_OBJECT(box), "_dw_vbox");
-      
+
       if(!vbox)
       {
          vbox = gtk_vbox_new(FALSE, 0);
@@ -8181,7 +8181,7 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
          gtk_container_add(GTK_CONTAINER(box), vbox);
          gtk_widget_show(vbox);
       }
-      
+
       gtk_container_set_border_width(GTK_CONTAINER(box), pad);
 
       if(GTK_IS_TABLE(item) || (tmpitem && GTK_IS_TABLE(tmpitem)))
@@ -8228,7 +8228,7 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
  * Parameters:
  *       box: Window handle of the box to be packed into.
  *       item: Window handle of the item to be back.
- *       index: 0 based index of packed items. 
+ *       index: 0 based index of packed items.
  *       width: Width in pixels of the item or -1 to be self determined.
  *       height: Height in pixels of the item or -1 to be self determined.
  *       hsize: TRUE if the window (widget) should expand horizontally to fill space given.
@@ -8253,7 +8253,7 @@ void API dw_box_pack_at_index(HWND box, HWND item, int index, int width, int hei
  */
 void API dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize, int vsize, int pad)
 {
-    /* 65536 is the table limit on GTK... 
+    /* 65536 is the table limit on GTK...
      * seems like a high enough value we will never hit it here either.
      */
     _dw_box_pack(box, item, 65536, width, height, hsize, vsize, pad, "dw_box_pack_start()");
@@ -8295,18 +8295,18 @@ void dw_window_set_size(HWND handle, unsigned long width, unsigned long height)
    if(GTK_IS_WINDOW(handle))
    {
       GdkGeometry hints;
-      
+
       if ( width == 0 )
          default_width = -1;
       if ( height == 0 )
          default_height = -1;
-         
+
       hints.base_width = hints.base_height = 1;
       hints.min_width = hints.min_height = 8;
       hints.width_inc = hints.height_inc = 1;
 
       gtk_window_set_geometry_hints(GTK_WINDOW(handle), NULL, &hints, GDK_HINT_RESIZE_INC|GDK_HINT_MIN_SIZE|GDK_HINT_BASE_SIZE);
-                                
+
       if(gtk_widget_get_window(handle) && default_width > 0 && default_height > 0)
          gdk_window_resize(gtk_widget_get_window(handle), default_width , default_height );
 
@@ -8808,19 +8808,19 @@ void dw_listbox_insert(HWND handle, char *text, int pos)
    if(handle2)
    {
       GtkTreeIter iter;
-      
+
       /* Make sure it is the correct tree type */
       if(GTK_IS_TREE_VIEW(handle2) && g_object_get_data(G_OBJECT(handle2), "_dw_tree_type") == GINT_TO_POINTER(_DW_TREE_TYPE_LISTBOX))
          store = (GtkListStore *)gtk_tree_view_get_model(GTK_TREE_VIEW(handle2));
       else if(GTK_IS_COMBO_BOX(handle2))
          store = (GtkListStore *)gtk_combo_box_get_model(GTK_COMBO_BOX(handle2));
-      
+
       if(!store)
       {
          DW_MUTEX_UNLOCK;
          return;
       }
-      
+
       if(pos < 0)
       {
          /* Insert an entry at the end */
@@ -8861,19 +8861,19 @@ void dw_listbox_list_append(HWND handle, char **text, int count)
    {
       int z;
       GtkTreeIter iter;
-      
+
       /* Make sure it is the correct tree type */
       if(GTK_IS_TREE_VIEW(handle2) && g_object_get_data(G_OBJECT(handle2), "_dw_tree_type") == GINT_TO_POINTER(_DW_TREE_TYPE_LISTBOX))
          store = (GtkListStore *)gtk_tree_view_get_model(GTK_TREE_VIEW(handle2));
       else if(GTK_IS_COMBO_BOX(handle2))
          store = (GtkListStore *)gtk_combo_box_get_model(GTK_COMBO_BOX(handle2));
-      
+
       if(!store)
       {
          DW_MUTEX_UNLOCK;
          return;
       }
-      
+
       /* Insert entries at the end */
       for(z=0;z<count;z++)
       {
@@ -8910,14 +8910,14 @@ void dw_listbox_clear(HWND handle)
          store = (GtkListStore *)gtk_tree_view_get_model(GTK_TREE_VIEW(handle2));
       else if(GTK_IS_COMBO_BOX(handle2))
          store = (GtkListStore *)gtk_combo_box_get_model(GTK_COMBO_BOX(handle2));
-      
+
       if(!store)
       {
          DW_MUTEX_UNLOCK;
          return;
       }
       /* Clear the list */
-      gtk_list_store_clear(store);    
+      gtk_list_store_clear(store);
    }
    DW_MUTEX_UNLOCK;
 }
@@ -8949,7 +8949,7 @@ int dw_listbox_count(HWND handle)
          store = (GtkListStore *)gtk_tree_view_get_model(GTK_TREE_VIEW(handle2));
       else if(GTK_IS_COMBO_BOX(handle2))
          store = (GtkListStore *)gtk_combo_box_get_model(GTK_COMBO_BOX(handle2));
-      
+
       if(store)
       {
          /* Get the number of children at the top level */
@@ -8978,21 +8978,21 @@ void dw_listbox_set_top(HWND handle, int top)
       if(tmp)
          handle2 = tmp;
    }
-   
+
    /* Make sure it is the correct tree type */
    if(handle2 && GTK_IS_TREE_VIEW(handle2) && g_object_get_data(G_OBJECT(handle2), "_dw_tree_type") == GINT_TO_POINTER(_DW_TREE_TYPE_LISTBOX))
    {
       GtkAdjustment *adjust = gtk_tree_view_get_vadjustment(GTK_TREE_VIEW(handle2));
       GtkListStore *store = (GtkListStore *)gtk_tree_view_get_model(GTK_TREE_VIEW(handle2));
-     
+
       if(store && adjust)
       {
          /* Get the number of children at the top level */
          gint rowcount = gtk_tree_model_iter_n_children(GTK_TREE_MODEL(store), NULL);
          gdouble upper = gtk_adjustment_get_upper(adjust);
          gdouble lower = gtk_adjustment_get_lower(adjust);
-         gdouble change; 
-       
+         gdouble change;
+
          /* Safety check */
          if(rowcount < 1)
          {
@@ -9037,11 +9037,11 @@ void dw_listbox_get_text(HWND handle, unsigned int index, char *buffer, unsigned
          store = (GtkListStore *)gtk_tree_view_get_model(GTK_TREE_VIEW(handle2));
       else if(GTK_IS_COMBO_BOX(handle2))
          store = (GtkListStore *)gtk_combo_box_get_model(GTK_COMBO_BOX(handle2));
-      
+
       if(store && index < gtk_tree_model_iter_n_children(GTK_TREE_MODEL(store), NULL))
       {
          GtkTreeIter iter;
-         
+
          /* Get the nth child at the top level */
          if(gtk_tree_model_iter_nth_child(GTK_TREE_MODEL(store), &iter, NULL, index))
          {
@@ -9086,11 +9086,11 @@ void dw_listbox_set_text(HWND handle, unsigned int index, char *buffer)
          store = (GtkListStore *)gtk_tree_view_get_model(GTK_TREE_VIEW(handle2));
       else if(GTK_IS_COMBO_BOX(handle2))
          store = (GtkListStore *)gtk_combo_box_get_model(GTK_COMBO_BOX(handle2));
-      
+
       if(store && index < gtk_tree_model_iter_n_children(GTK_TREE_MODEL(store), NULL))
       {
          GtkTreeIter iter;
-         
+
          /* Get the nth child at the top level */
          if (gtk_tree_model_iter_nth_child(GTK_TREE_MODEL(store), &iter, NULL, index))
          {
@@ -9126,26 +9126,26 @@ int dw_listbox_selected_multi(HWND handle, int where)
    {
       GtkTreeSelection *sel = gtk_tree_view_get_selection(GTK_TREE_VIEW(handle2));
       GList *list = gtk_tree_selection_get_selected_rows(sel, NULL);
-      
+
       if(list)
       {
          int counter = 0;
          GtkTreePath *path = g_list_nth_data(list, 0);
-         
+
          while(path)
          {
             gint *indices = gtk_tree_path_get_indices(path);
-            
+
             if(indices && indices[0] > where)
             {
                retval = indices[0];
                break;
             }
-            
+
             counter++;
             path = g_list_nth_data(list, counter);
          }
-         
+
          g_list_foreach(list, (GFunc) gtk_tree_path_free, NULL);
          g_list_free(list);
       }
@@ -9180,7 +9180,7 @@ int dw_listbox_selected(HWND handle)
          store = (GtkListStore *)gtk_tree_view_get_model(GTK_TREE_VIEW(handle2));
       else if(GTK_IS_COMBO_BOX(handle2))
          store = (GtkListStore *)gtk_combo_box_get_model(GTK_COMBO_BOX(handle2));
-      
+
       if(store)
       {
          if(GTK_IS_TREE_VIEW(handle2))
@@ -9191,12 +9191,12 @@ int dw_listbox_selected(HWND handle)
             {
                GtkTreePath *path = g_list_nth_data(list, 0);
                gint *indices = gtk_tree_path_get_indices(path);
-               
+
                if(indices)
                {
                   retval = indices[0];
                }
-               
+
                g_list_foreach(list, (GFunc) gtk_tree_path_free, NULL);
                g_list_free(list);
             }
@@ -9205,14 +9205,14 @@ int dw_listbox_selected(HWND handle)
          {
             GtkTreeIter iter;
             GtkTreePath *path;
-            
+
             if(gtk_combo_box_get_active_iter(GTK_COMBO_BOX(handle2), &iter))
             {
                path = gtk_tree_model_get_path(GTK_TREE_MODEL(store), &iter);
                if(path)
                {
                   gint *indices = gtk_tree_path_get_indices(path);
-                  
+
                   if(indices)
                   {
                      retval = indices[0];
@@ -9255,11 +9255,11 @@ void dw_listbox_select(HWND handle, int index, int state)
          store = (GtkListStore *)gtk_tree_view_get_model(GTK_TREE_VIEW(handle2));
       else if(GTK_IS_COMBO_BOX(handle2))
          store = (GtkListStore *)gtk_combo_box_get_model(GTK_COMBO_BOX(handle2));
-      
+
       if(store && index < gtk_tree_model_iter_n_children(GTK_TREE_MODEL(store), NULL))
       {
          GtkTreeIter iter;
-         
+
          /* Get the nth child at the top level */
          if (gtk_tree_model_iter_nth_child(GTK_TREE_MODEL(store), &iter, NULL, index))
          {
@@ -9314,11 +9314,11 @@ void dw_listbox_delete(HWND handle, int index)
          store = (GtkListStore *)gtk_tree_view_get_model(GTK_TREE_VIEW(handle2));
       else if(GTK_IS_COMBO_BOX(handle2))
          store = (GtkListStore *)gtk_combo_box_get_model(GTK_COMBO_BOX(handle2));
-      
+
       if(store)
       {
          GtkTreeIter iter;
-         
+
          /* Get the nth child at the top level */
          if (gtk_tree_model_iter_nth_child(GTK_TREE_MODEL(store), &iter, NULL, index))
          {
@@ -10162,12 +10162,12 @@ char *dw_clipboard_get_text()
    int _locked_by_me = FALSE;
    GtkClipboard *clipboard_object;
    char *ret = NULL;
-   
+
    DW_MUTEX_LOCK;
    if((clipboard_object = gtk_clipboard_get( GDK_SELECTION_CLIPBOARD )))
    {
       gchar *clipboard_contents;
-      
+
       if((clipboard_contents = gtk_clipboard_wait_for_text( clipboard_object )))
       {
          ret = strdup((char *)clipboard_contents);
@@ -10293,7 +10293,7 @@ gboolean _dw_timer_func(gpointer data)
    void *sdata;
    char tmpbuf[30];
    int *tag = data;
-   
+
    if(tag)
    {
       snprintf(tmpbuf, 30, "_dw_timer%d", *tag);
@@ -10324,9 +10324,9 @@ int API dw_timer_connect(int interval, void *sigfunc, void *data)
 {
    int *tag, _locked_by_me = FALSE;
    char tmpbuf[30];
-   
+
    tag = calloc(1, sizeof(int));
-   
+
    DW_MUTEX_LOCK;
    *tag = g_timeout_add(interval, (GSourceFunc)_dw_timer_func, (gpointer)tag);
    snprintf(tmpbuf, 30, "_dw_timer%d", *tag);
@@ -10423,7 +10423,7 @@ void dw_signal_connect(HWND window, char *signame, void *sigfunc, void *data)
       GtkWidget *widget = thiswindow;
 
       thisname = "changed";
-      
+
       sigid = _set_signal_handler(widget, window, sigfunc, data, thisfunc);
       if(GTK_IS_TREE_VIEW(thiswindow))
       {
