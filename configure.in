@@ -44,6 +44,14 @@ AC_ARG_WITH(compat,
    [with_compat=$withval],
    [with_compat=no],
 )
+
+dnl ---------------------- check for '--with-gtk3' switch -----------------
+AC_ARG_WITH(gtk3,
+   [  --with-gtk3             specify this to build with GTK+ 3.x if available],
+   [with_gtk3=$withval],
+   [with_gtk3=no],
+)
+
 dnl ---------------------- default targets to build -----------------
 if test $with_compat = yes; then
    COMPAT_OBJECT="compat.o"
@@ -196,8 +204,11 @@ esac
 if test $build_gtk = "yes"; then
    AC_CHECK_PROG(PKG_CFG, pkg-config, pkg-config)
    if test x"$PKG_CFG" != x; then
-      GTK_PACKAGES="gtk+-3.0"
-      GTK_LIBS=`$PKG_CFG --silence-errors --libs $GTK_PACKAGES`
+      GTK_LIBS=""
+      if test $with_gtk3 = "yes"; then
+         GTK_PACKAGES="gtk+-3.0"
+         GTK_LIBS=`$PKG_CFG --silence-errors --libs $GTK_PACKAGES`
+      fi
       WEBKIT_PKG="webkit-1.1"
       if test x"$GTK_LIBS" = x; then
          GTK_PACKAGES="gtk+-2.0 gthread-2.0"

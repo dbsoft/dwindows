@@ -703,6 +703,7 @@ ac_subst_files=''
 ac_user_opts='
 enable_option_checking
 with_compat
+with_gtk3
 with_gtk
 with_gtkframework
 with_gtkhtml
@@ -1351,6 +1352,7 @@ Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
   --without-PACKAGE       do not use PACKAGE (same as --with-PACKAGE=no)
   --with-compat           specify this to build the optional dwcompat library
+  --with-gtk3             specify this to build with GTK+ 3.x if available
   --with-gtk              specify this to build dwindows with GTK+ (only relevant for OSX)
   --with-gtkframework     specify this to build dwindows with GTK+ Framework (only relevant for OSX)
   --with-gtkhtml          specify this to build dwindows with libgtkhtml-2
@@ -3581,6 +3583,16 @@ else
   with_compat=no
 fi
 
+
+
+# Check whether --with-gtk3 was given.
+if test "${with_gtk3+set}" = set; then :
+  withval=$with_gtk3; with_gtk3=$withval
+else
+  with_gtk3=no
+fi
+
+
 if test $with_compat = yes; then
    COMPAT_OBJECT="compat.o"
    INSTALL_COMPAT="installcompat"
@@ -4612,8 +4624,11 @@ fi
 
 
    if test x"$PKG_CFG" != x; then
-      GTK_PACKAGES="gtk+-3.0"
-      GTK_LIBS=`$PKG_CFG --silence-errors --libs $GTK_PACKAGES`
+      GTK_LIBS=""
+      if test $with_gtk3 = "yes"; then
+         GTK_PACKAGES="gtk+-3.0"
+         GTK_LIBS=`$PKG_CFG --silence-errors --libs $GTK_PACKAGES`
+      fi
       WEBKIT_PKG="webkit-1.1"
       if test x"$GTK_LIBS" = x; then
          GTK_PACKAGES="gtk+-2.0 gthread-2.0"
