@@ -198,13 +198,13 @@ if test $build_gtk = "yes"; then
    if test x"$PKG_CFG" != x; then
       GTK_PACKAGES="gtk+-3.0"
       GTK_LIBS=`$PKG_CFG --silence-errors --libs $GTK_PACKAGES`
-      WEBKIT_LIB="webkit-1.1"
+      WEBKIT_PKG="webkit-1.1"
       if test x"$GTK_LIBS" = x; then
          GTK_PACKAGES="gtk+-2.0 gthread-2.0"
          GTK_LIBS=`$PKG_CFG --silence-errors --libs $GTK_PACKAGES`
       else
          DW_DIR=gtk3
-         WEBKIT_LIB="webkitgtk-3.0"
+         WEBKIT_PKG="webkitgtk-3.0"
       fi
       if test $with_gtkmozembed = yes; then
          MOZEMBED_LIBS=`$PKG_CFG --silence-errors --libs firefox-gtkmozembed`
@@ -220,22 +220,26 @@ if test $build_gtk = "yes"; then
          MOZEMBED_CFLAGS=`$PKG_CFG --silence-errors --cflags libgtkhtml-2.0`
          RPATH=`$PKG_CFG --silence-errors --libs-only-L libgtkhtml-2.0 | cut -b 3-`
       else
-         MOZEMBED_CFLAGS=`$PKG_CFG --silence-errors --cflags $WEBKIT_LIB`
-         RPATH=`$PKG_CFG --silence-errors --libs-only-L $WEBKIT_LIB | cut -b 3-`
+         # test for webkit-1.1 or webkitgtk-3.0 packages
+         MOZEMBED_CFLAGS=`$PKG_CFG --silence-errors --cflags $WEBKIT_PKG`
+         RPATH=`$PKG_CFG --silence-errors --libs-only-L $WEBKIT_PKG | cut -b 3-`
          if test x"$MOZEMBED_CFLAGS" = x; then
-            WEBKIT_LIB="webkit-1.0"
-            MOZEMBED_CFLAGS=`$PKG_CFG --silence-errors --cflags $WEBKIT_LIB`
-            RPATH=`$PKG_CFG --silence-errors --libs-only-L $WEBKIT_LIB | cut -b 3-`
+            # no webkit-1.1 or webkitgtk-3.0, look for webkit-1.0
+            WEBKIT_PKG="webkit-1.0"
+            MOZEMBED_CFLAGS=`$PKG_CFG --silence-errors --cflags $WEBKIT_PKG`
+            RPATH=`$PKG_CFG --silence-errors --libs-only-L $WEBKIT_PKG | cut -b 3-`
             if test x"$MOZEMBED_CFLAGS" = x; then
-               WEBKIT_LIB="WebKitGtk"
-#               MOZEMBED_LIBS=`$PKG_CFG --silence-errors --libs $WEBKIT_LIB`
-               MOZEMBED_CFLAGS=`$PKG_CFG --silence-errors --cflags $WEBKIT_LIB`
-               RPATH=`$PKG_CFG --silence-errors --libs-only-L $WEBKIT_LIB | cut -b 3-`
+               WEBKIT_PKG="WebKitGtk"
+#               MOZEMBED_LIBS=`$PKG_CFG --silence-errors --libs $WEBKIT_PKG`
+               MOZEMBED_CFLAGS=`$PKG_CFG --silence-errors --cflags $WEBKIT_PKG`
+               RPATH=`$PKG_CFG --silence-errors --libs-only-L $WEBKIT_PKG | cut -b 3-`
             else
                AC_DEFINE(USE_WEBKIT10)
+               AC_SEARCH_LIBS(webkit_web_view_new,webkit-1.0 webkitgtk-1.0,WEBKIT_LIB=`echo $ac_res | cut -b 3-`,WEBKIT_LIB="")
             fi
          else
             AC_DEFINE(USE_WEBKIT11)
+            WEBKIT_LIB=$WEBKIT_PKG
          fi
          AC_DEFINE_UNQUOTED(WEBKIT_LIB, "$WEBKIT_LIB")
       fi
