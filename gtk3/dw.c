@@ -4275,7 +4275,6 @@ void dw_window_set_bitmap_from_data(HWND handle, unsigned long id, char *data, i
       tmp = _find_pixbuf((HICN)id, NULL, NULL);
    else
    {
-      GdkPixbuf *pixbuf;
       if (!data)
       {
          DW_MUTEX_UNLOCK;
@@ -4297,7 +4296,7 @@ void dw_window_set_bitmap_from_data(HWND handle, unsigned long id, char *data, i
          DW_MUTEX_UNLOCK;
          return;
       }
-      pixbuf = gdk_pixbuf_new_from_file(file, NULL );
+      tmp = gdk_pixbuf_new_from_file(file, NULL );
       /* remove our temporary file */
       unlink (file );
    }
