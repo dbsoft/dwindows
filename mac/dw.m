@@ -8913,6 +8913,39 @@ void API dw_font_set_default(char *fontname)
  */
 int API dw_init(int newthread, int argc, char *argv[])
 {
+    /* Correct the startup path if run from a bundle */
+    if(argc > 0 && argv[0])
+    {
+        char *pathcopy = strdup(argv[0]);
+        char *app = strstr(pathcopy, ".app/");
+        
+        if(app)
+        {
+            char pathbuf[PATH_MAX];
+            
+            *app = 0;
+            
+            getcwd(pathbuf, PATH_MAX);
+            
+            /* If run from a bundle the path seems to be / */
+            if(strcmp(pathbuf, "/") == 0)
+            {
+                size_t len;
+                
+                strncpy(pathbuf, pathcopy, PATH_MAX);
+                
+                len = strlen(pathbuf);
+                
+                while(len > 0 && pathbuf[len] != '/')
+                {
+                    len--;
+                }
+                pathbuf[len] = '\0';
+                chdir(pathbuf);
+            }
+        }
+        free(pathcopy);
+    }
     /* Get the operating system version */
     Gestalt(gestaltSystemVersionMajor, &DWOSMajor);
     Gestalt(gestaltSystemVersionMinor, &DWOSMinor);
