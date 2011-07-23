@@ -7367,7 +7367,7 @@ int API dw_window_destroy(HWND handle)
         [window close];
     }
     /* Handle destroying a control or box */
-    else if([object isKindOfClass:[DWBox class]] || [object isKindOfClass:[NSControl class]])
+    else if([object isKindOfClass:[DWBox class]] || [object isKindOfClass:[DWGroupBox class]] || [object isKindOfClass:[NSControl class]])
     {
         DWBox *parent = (DWBox *)[object superview];
 
@@ -7380,7 +7380,7 @@ int API dw_window_destroy(HWND handle)
             parent = (DWBox *)[object superview];
         }
 
-        if([parent isKindOfClass:[DWBox class]])
+        if([parent isKindOfClass:[DWBox class]] || [parent isKindOfClass:[DWGroupBox class]])
         {
             Box *thisbox = [parent box];
             int z, index = -1;
