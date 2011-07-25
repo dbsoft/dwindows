@@ -1614,29 +1614,34 @@ DWObject *DWObj;
 -(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); [super dealloc]; }
 @end
 
-/* Dive into the tree showing all nodes */
+/* Dive into the tree freeing all desired child nodes */
 void _free_tree_recurse(NSMutableArray *node, NSMutableArray *item)
 {
-    if(node && ([node isMemberOfClass:[NSMutableArray class]]))
+    if(node && ([node isKindOfClass:[NSArray class]]))
     {
         int count = (int)[node count];
+        NSInteger index = -1;
         int z;
+        
+        if(item)
+            index = [node indexOfObject:item];
 
         for(z=0;z<count;z++)
         {
             NSMutableArray *pnt = [node objectAtIndex:z];
             NSMutableArray *children = nil;
 
-            if(pnt && [pnt isMemberOfClass:[NSMutableArray class]])
+            if(pnt && [pnt isKindOfClass:[NSArray class]])
             {
                 children = (NSMutableArray *)[pnt objectAtIndex:3];
             }
 
-            if(item == pnt)
+            if(z == index)
             {
                 _free_tree_recurse(children, NULL);
                 [node removeObjectAtIndex:z];
                 count = (int)[node count];
+                index = -1;
                 z--;
             }
             else if(item == NULL)
@@ -1790,7 +1795,11 @@ void _free_tree_recurse(NSMutableArray *node, NSMutableArray *item)
     if(after)
     {
         NSInteger index = [children indexOfObject:after];
-        [children insertObject:item atIndex:index];
+        int count = (int)[children count];
+        if(index != NSNotFound && (index+1) < count)
+            [children insertObject:item atIndex:(index+1)];
+        else
+            [children addObject:item];
     }
     else
     {
