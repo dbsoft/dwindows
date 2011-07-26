@@ -357,7 +357,7 @@ int _event_handler(id object, NSEvent *event, int message)
             case 14:
             {
                 int (* API valuechangedfunc)(HWND, int, void *) = (int (* API)(HWND, int, void *))handler->signalfunction;
-                int selected = (int)event;
+                int selected = DW_POINTER_TO_INT(event);
 
                 return valuechangedfunc(handler->window, selected, handler->data);;
             }
@@ -409,7 +409,7 @@ int _event_handler(id object, NSEvent *event, int message)
             case 15:
             {
                 int (* API switchpagefunc)(HWND, unsigned long, void *) = (int (* API)(HWND, unsigned long, void *))handler->signalfunction;
-                int pageid = (int)event;
+                int pageid = DW_POINTER_TO_INT(event);
 
                 return switchpagefunc(handler->window, pageid, handler->data);
             }
@@ -422,7 +422,7 @@ int _event_handler(id object, NSEvent *event, int message)
             case 17:
             {
                 int (*clickcolumnfunc)(HWND, int, void *) = handler->signalfunction;
-                int column_num = (int)event;
+                int column_num = DW_POINTER_TO_INT(event);
 
                 return clickcolumnfunc(handler->window, column_num, handler->data);
             }
@@ -1104,7 +1104,7 @@ DWObject *DWObj;
         _do_resize(box, size.width, size.height);
         _handle_resize_events(box);
     }
-    _event_handler(self, (void *)[page pageid], 15);
+    _event_handler(self, DW_INT_TO_POINTER([page pageid]), 15);
 }
 -(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); [super dealloc]; }
 @end
@@ -1287,7 +1287,7 @@ DWObject *DWObj;
     {
         [self setDoubleValue:(newpos/max)];
     }
-    _event_handler(self, (void *)(int)newpos, 14);
+    _event_handler(self, DW_INT_TO_POINTER((int)newpos), 14);
 }
 -(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); [super dealloc]; }
 @end
@@ -1608,7 +1608,7 @@ DWObject *DWObj;
     /* Handler for container class */
     _event_handler(self, (NSEvent *)[self getRowTitle:(int)[self selectedRow]], 12);
     /* Handler for listbox class */
-    _event_handler(self, (NSEvent *)(int)[self selectedRow], 11);
+    _event_handler(self, DW_INT_TO_POINTER((int)[self selectedRow]), 11);
 }
 -(NSMenu *)menuForEvent:(NSEvent *)event
 {
