@@ -8644,6 +8644,7 @@ static void _handle_sem(int *tmpsock)
    {
       FD_ZERO(&rd);
       FD_SET(listenfd, &rd);
+      int result;
 
       maxfd = listenfd;
 
@@ -8731,7 +8732,7 @@ static void _handle_sem(int *tmpsock)
                          * continue.
                          */
                         if(array[s].waiting)
-                           write(array[s].fd, &tmp, 1);
+                           result = write(array[s].fd, &tmp, 1);
                      }
                   }
                   break;
@@ -8744,7 +8745,7 @@ static void _handle_sem(int *tmpsock)
 
                      /* If we are posted exit immeditately */
                      if(posted)
-                        write(array[z].fd, &tmp, 1);
+                        result = write(array[z].fd, &tmp, 1);
                   }
                   break;
                case 3:
@@ -8847,11 +8848,11 @@ int dw_named_event_reset(HEV eve)
    char tmp = (char)0;
 
    if(GPOINTER_TO_INT(eve) < 0)
-      return 0;
+      return DW_ERROR_NONE;
 
    if(write(GPOINTER_TO_INT(eve), &tmp, 1) == 1)
-      return 0;
-   return 1;
+      return DW_ERROR_NONE;
+   return DW_ERROR_GENERAL;
 }
 
 /* Sets the posted state of an event semaphore, any threads
@@ -8867,11 +8868,11 @@ int dw_named_event_post(HEV eve)
    char tmp = (char)1;
 
    if(GPOINTER_TO_INT(eve) < 0)
-      return 0;
+      return DW_ERROR_NONE;
 
    if(write(GPOINTER_TO_INT(eve), &tmp, 1) == 1)
-      return 0;
-   return 1;
+      return DW_ERROR_NONE;
+   return DW_ERROR_GENERAL;
 }
 
 /* Waits on the specified semaphore until it becomes
@@ -8908,13 +8909,15 @@ int dw_named_event_wait(HEV eve, unsigned long timeout)
 
    /* Signal wait */
    tmp = (char)2;
-   write(GPOINTER_TO_INT(eve), &tmp, 1);
+   retval = write(GPOINTER_TO_INT(eve), &tmp, 1);
 
-   retval = select(GPOINTER_TO_INT(eve)+1, &rd, NULL, NULL, useme);
+   if(retval == 1)
+      retval = select(GPOINTER_TO_INT(eve)+1, &rd, NULL, NULL, useme);
 
    /* Signal done waiting. */
    tmp = (char)3;
-   write(GPOINTER_TO_INT(eve), &tmp, 1);
+   if(retval == 1)
+      retval = write(GPOINTER_TO_INT(eve), &tmp, 1);
 
    if(retval == 0)
       return DW_ERROR_TIMEOUT;
@@ -8924,8 +8927,9 @@ int dw_named_event_wait(HEV eve, unsigned long timeout)
    /* Clear the entry from the pipe so
     * we don't loop endlessly. :)
     */
-   read(GPOINTER_TO_INT(eve), &tmp, 1);
-   return 0;
+   if(read(GPOINTER_TO_INT(eve), &tmp, 1) == 1)
+	return DW_ERROR_NONE;
+   return DW_ERROR_GENERAL;
 }
 
 /* Release this semaphore, if there are no more open
@@ -8940,7 +8944,7 @@ int dw_named_event_close(HEV eve)
     * cleanup will continue in _handle_sem.
     */
    close(GPOINTER_TO_INT(eve));
-   return 0;
+   return DW_ERROR_NONE;
 }
 
 /*
@@ -8989,7 +8993,12 @@ HSHM dw_named_memory_new(void **dest, int size, char *name)
       return NULL;
    }
 
-   ftruncate(handle->fd, size);
+   if(ftruncate(handle->fd, size))
+   {
+       close(handle->fd);
+       free(handle);
+       return NULL;
+   }
 
    /* attach the shared memory segment to our process's address space. */
    *dest = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED, handle->fd, 0);
