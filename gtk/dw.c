@@ -1866,7 +1866,7 @@ static GdkPixmap *_find_pixmap(GdkBitmap **bitmap, HICN icon, HWND handle, unsig
    int z, id = GPOINTER_TO_INT(icon);
 
    if(id & (1 << 31))
-      return _find_private_pixmap(bitmap, (HICN)(id & 0xFFFFFF), userwidth, userheight);
+      return _find_private_pixmap(bitmap, GINT_TO_POINTER((id & 0xFFFFFF)), userwidth, userheight);
 
    for(z=0;z<_resources.resource_max;z++)
    {
@@ -1916,7 +1916,7 @@ static GdkPixbuf *_find_pixbuf(HICN icon)
    int z, id = GPOINTER_TO_INT(icon);
 
    if(id & (1 << 31))
-      return _find_private_pixbuf((HICN)(id & 0xFFFFFF));
+      return _find_private_pixbuf(GINT_TO_POINTER((id & 0xFFFFFF)));
 
    for(z=0;z<_resources.resource_max;z++)
    {
@@ -3213,7 +3213,7 @@ void dw_window_set_pointer(HWND handle, int pointertype)
    if(pointertype & (1 << 31))
    {
       GdkBitmap *bitmap = NULL;
-      GdkPixmap  *pixmap = _find_private_pixmap(&bitmap, (HICN)(pointertype & 0xFFFFFF), NULL, NULL);
+      GdkPixmap  *pixmap = _find_private_pixmap(&bitmap, GINT_TO_POINTER((pointertype & 0xFFFFFF)), NULL, NULL);
       cursor = gdk_cursor_new_from_pixmap(pixmap, (GdkPixmap *)bitmap, &_colors[DW_CLR_WHITE], &_colors[DW_CLR_BLACK], 8, 8);
    }
    else if(!pointertype)
@@ -5711,7 +5711,7 @@ HTREEITEM dw_tree_insert_after(HWND handle, HTREEITEM item, char *title, HICN ic
 
       gtk_tree_store_insert_after(store, iter, (GtkTreeIter *)parent, (GtkTreeIter *)item);
       gtk_tree_store_set (store, iter, 0, title, 1, pixbuf, 2, itemdata, 3, iter, -1);
-      if(pixbuf && !((int)icon & (1 << 31)))
+      if(pixbuf && !(GPOINTER_TO_INT(icon) & (1 << 31)))
          g_object_unref(pixbuf);
       retval = (HTREEITEM)iter;
    }
@@ -5864,7 +5864,7 @@ HTREEITEM dw_tree_insert(HWND handle, char *title, HICN icon, HTREEITEM parent, 
 
       gtk_tree_store_append (store, iter, (GtkTreeIter *)parent);
       gtk_tree_store_set (store, iter, 0, title, 1, pixbuf, 2, itemdata, 3, iter, -1);
-      if(pixbuf && !((int)icon & (1 << 31)))
+      if(pixbuf && !(GPOINTER_TO_INT(icon) & (1 << 31)))
          g_object_unref(pixbuf);
       retval = (HTREEITEM)iter;
    }
@@ -6004,7 +6004,7 @@ void dw_tree_item_change(HWND handle, HTREEITEM item, char *title, HICN icon)
       pixbuf = _find_pixbuf(icon);
 
       gtk_tree_store_set(store, (GtkTreeIter *)item, 0, title, 1, pixbuf, -1);
-      if(pixbuf && !((int)icon & (1 << 31)))
+      if(pixbuf && !(GPOINTER_TO_INT(icon) & (1 << 31)))
          g_object_unref(pixbuf);
    }
    DW_MUTEX_UNLOCK;
@@ -6772,9 +6772,9 @@ void dw_icon_free(HICN handle)
     * free the associated structures and set
     * the entry to unused.
     */
-   if((int)handle & (1 << 31))
+   if(GPOINTER_TO_INT(handle) & (1 << 31))
    {
-      unsigned long id = (int)handle & 0xFFFFFF;
+      unsigned long id = GPOINTER_TO_INT(handle) & 0xFFFFFF;
 
       if(id < _PixmapCount && _PixmapArray[id].used)
       {
@@ -8811,7 +8811,7 @@ HEV dw_named_event_new(char *name)
 
    /* Create a thread to handle this event semaphore */
    pthread_create(&dwthread, NULL, (void *)_handle_sem, (void *)tmpsock);
-   return (HEV)ev;
+   return GINT_TO_POINTER(ev);
 }
 
 /* Open an already existing named event semaphore.
@@ -8832,7 +8832,7 @@ HEV dw_named_event_get(char *name)
    strcpy(un.sun_path, "/tmp/.dw/");
    strcat(un.sun_path, name);
    connect(ev, (struct sockaddr *)&un, sizeof(un));
-   return (HEV)ev;
+   return GINT_TO_POINTER(ev);
 }
 
 /* Resets the event semaphore so threads who call wait
@@ -8846,10 +8846,10 @@ int dw_named_event_reset(HEV eve)
    /* signal reset */
    char tmp = (char)0;
 
-   if((int)eve < 0)
+   if(GPOINTER_TO_INT(eve) < 0)
       return 0;
 
-   if(write((int)eve, &tmp, 1) == 1)
+   if(write(GPOINTER_TO_INT(eve), &tmp, 1) == 1)
       return 0;
    return 1;
 }
@@ -8866,10 +8866,10 @@ int dw_named_event_post(HEV eve)
    /* signal post */
    char tmp = (char)1;
 
-   if((int)eve < 0)
+   if(GPOINTER_TO_INT(eve) < 0)
       return 0;
 
-   if(write((int)eve, &tmp, 1) == 1)
+   if(write(GPOINTER_TO_INT(eve), &tmp, 1) == 1)
       return 0;
    return 1;
 }
@@ -8889,7 +8889,7 @@ int dw_named_event_wait(HEV eve, unsigned long timeout)
    int retval = 0;
    char tmp;
 
-   if((int)eve < 0)
+   if(GPOINTER_TO_INT(eve) < 0)
       return DW_ERROR_NON_INIT;
 
    /* Set the timout or infinite */
@@ -8904,17 +8904,17 @@ int dw_named_event_wait(HEV eve, unsigned long timeout)
    }
 
    FD_ZERO(&rd);
-   FD_SET((int)eve, &rd);
+   FD_SET(GPOINTER_TO_INT(eve), &rd);
 
    /* Signal wait */
    tmp = (char)2;
-   write((int)eve, &tmp, 1);
+   write(GPOINTER_TO_INT(eve), &tmp, 1);
 
-   retval = select((int)eve+1, &rd, NULL, NULL, useme);
+   retval = select(GPOINTER_TO_INT(eve)+1, &rd, NULL, NULL, useme);
 
    /* Signal done waiting. */
    tmp = (char)3;
-   write((int)eve, &tmp, 1);
+   write(GPOINTER_TO_INT(eve), &tmp, 1);
 
    if(retval == 0)
       return DW_ERROR_TIMEOUT;
@@ -8924,7 +8924,7 @@ int dw_named_event_wait(HEV eve, unsigned long timeout)
    /* Clear the entry from the pipe so
     * we don't loop endlessly. :)
     */
-   read((int)eve, &tmp, 1);
+   read(GPOINTER_TO_INT(eve), &tmp, 1);
    return 0;
 }
 
@@ -8939,7 +8939,7 @@ int dw_named_event_close(HEV eve)
    /* Finally close the domain socket,
     * cleanup will continue in _handle_sem.
     */
-   close((int)eve);
+   close(GPOINTER_TO_INT(eve));
    return 0;
 }
 
@@ -9090,8 +9090,7 @@ DWTID dw_thread_new(void *func, void *data, int stack)
    rc = pthread_create(&gtkthread, NULL, (void *)_dwthreadstart, (void *)tmp);
    if ( rc == 0 )
       return gtkthread;
-   else
-      return (DWTID)rc;
+   return (DWTID)DW_ERROR_UNKNOWN;
 }
 
 /*
