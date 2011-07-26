@@ -689,7 +689,7 @@ void _compat_free_locale(void)
 	}
 }
 
-void _stripcrlf(char *buf)
+int _stripcrlf(char *buf)
 {
 	int z, len = strlen(buf);
 
@@ -698,9 +698,10 @@ void _stripcrlf(char *buf)
 		if(buf[z] == '\r' || buf[z] == '\n')
 		{
 			buf[z] = 0;
-			return;
+			return 1;
 		}
 	}
+	return 1;
 }
 
 #ifdef __WIN32__
@@ -746,9 +747,7 @@ int API locale_init(char *filename, int my_locale)
 
 	if(fp)
 	{
-
-		fgets(text, 1024, fp);
-		if(strncasecmp(text, "MESSAGES=", 9) == 0 && (count = atoi(&text[9])) > 0)
+		if(fgets(text, 1024, fp) && strncasecmp(text, "MESSAGES=", 9) == 0 && (count = atoi(&text[9])) > 0)
 		{
 			int current = -1;
 
@@ -756,10 +755,8 @@ int API locale_init(char *filename, int my_locale)
 
 			while(!feof(fp))
 			{
-				fgets(text, 1024, fp);
-				_stripcrlf(text);
-
-				if(strncasecmp(text, "LOCALE=", 7) == 0)
+				if(fgets(text, 1024, fp) && _stripcrlf(text) &&
+				   strncasecmp(text, "LOCALE=", 7) == 0)
 				{
 					if(current > -1)
 					{
