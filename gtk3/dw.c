@@ -2912,7 +2912,7 @@ void dw_window_set_pointer(HWND handle, int pointertype)
    DW_MUTEX_LOCK;
    if(pointertype > 65535)
    {
-      GdkPixbuf  *pixbuf = _find_pixbuf((HICN)pointertype, NULL, NULL);
+      GdkPixbuf  *pixbuf = _find_pixbuf(GINT_TO_POINTER(pointertype), NULL, NULL);
       cursor = gdk_cursor_new_from_pixbuf(gdk_display_get_default(), pixbuf, 8, 8);
    }
    else if(!pointertype)
@@ -5665,7 +5665,7 @@ HICN API dw_icon_load_from_data(char *data, int len)
  */
 void dw_icon_free(HICN handle)
 {
-   int iicon = (int)handle;
+   int iicon = GPOINTER_TO_INT(handle);
 
    if(iicon > 65535)
    {
@@ -7527,6 +7527,7 @@ static void _handle_sem(int *tmpsock)
    {
       FD_ZERO(&rd);
       FD_SET(listenfd, &rd);
+      int result;
 
       maxfd = listenfd;
 
@@ -7614,7 +7615,7 @@ static void _handle_sem(int *tmpsock)
                          * continue.
                          */
                         if(array[s].waiting)
-                           write(array[s].fd, &tmp, 1);
+                           result = write(array[s].fd, &tmp, 1);
                      }
                   }
                   break;
@@ -7627,7 +7628,7 @@ static void _handle_sem(int *tmpsock)
 
                      /* If we are posted exit immeditately */
                      if(posted)
-                        write(array[z].fd, &tmp, 1);
+                        result = write(array[z].fd, &tmp, 1);
                   }
                   break;
                case 3:
@@ -7694,7 +7695,7 @@ HEV dw_named_event_new(char *name)
 
    /* Create a thread to handle this event semaphore */
    pthread_create(&dwthread, NULL, (void *)_handle_sem, (void *)tmpsock);
-   return (HEV)ev;
+   return GINT_TO_POINTER(ev);
 }
 
 /* Open an already existing named event semaphore.
@@ -7715,7 +7716,7 @@ HEV dw_named_event_get(char *name)
    strcpy(un.sun_path, "/tmp/.dw/");
    strcat(un.sun_path, name);
    connect(ev, (struct sockaddr *)&un, sizeof(un));
-   return (HEV)ev;
+   return GINT_TO_POINTER(ev);
 }
 
 /* Resets the event semaphore so threads who call wait
@@ -7729,12 +7730,12 @@ int dw_named_event_reset(HEV eve)
    /* signal reset */
    char tmp = (char)0;
 
-   if((int)eve < 0)
-      return 0;
+   if(GPOINTER_TO_INT(eve) < 0)
+      return DW_ERROR_NONE;
 
-   if(write((int)eve, &tmp, 1) == 1)
-      return 0;
-   return 1;
+   if(write(GPOINTER_TO_INT(eve), &tmp, 1) == 1)
+      return DW_ERROR_NONE;
+   return DW_ERROR_GENERAL;
 }
 
 /* Sets the posted state of an event semaphore, any threads
@@ -7749,12 +7750,12 @@ int dw_named_event_post(HEV eve)
    /* signal post */
    char tmp = (char)1;
 
-   if((int)eve < 0)
-      return 0;
+   if(GPOINTER_TO_INT(eve) < 0)
+      return DW_ERROR_NONE;
 
-   if(write((int)eve, &tmp, 1) == 1)
-      return 0;
-   return 1;
+   if(write(GPOINTER_TO_INT(eve), &tmp, 1) == 1)
+      return DW_ERROR_NONE;
+   return DW_ERROR_GENERAL;
 }
 
 /* Waits on the specified semaphore until it becomes
@@ -7772,7 +7773,7 @@ int dw_named_event_wait(HEV eve, unsigned long timeout)
    int retval = 0;
    char tmp;
 
-   if((int)eve < 0)
+   if(GPOINTER_TO_INT(eve) < 0)
       return DW_ERROR_NON_INIT;
 
    /* Set the timout or infinite */
@@ -7787,17 +7788,19 @@ int dw_named_event_wait(HEV eve, unsigned long timeout)
    }
 
    FD_ZERO(&rd);
-   FD_SET((int)eve, &rd);
+   FD_SET(GPOINTER_TO_INT(eve), &rd);
 
    /* Signal wait */
    tmp = (char)2;
-   write((int)eve, &tmp, 1);
+   retval = write(GPOINTER_TO_INT(eve), &tmp, 1);
 
-   retval = select((int)eve+1, &rd, NULL, NULL, useme);
+   if(retval == 1)
+      retval = select(GPOINTER_TO_INT(eve)+1, &rd, NULL, NULL, useme);
 
    /* Signal done waiting. */
    tmp = (char)3;
-   write((int)eve, &tmp, 1);
+   if(retval == 1)
+      retval = write(GPOINTER_TO_INT(eve), &tmp, 1);
 
    if(retval == 0)
       return DW_ERROR_TIMEOUT;
@@ -7807,8 +7810,9 @@ int dw_named_event_wait(HEV eve, unsigned long timeout)
    /* Clear the entry from the pipe so
     * we don't loop endlessly. :)
     */
-   read((int)eve, &tmp, 1);
-   return 0;
+   if(read(GPOINTER_TO_INT(eve), &tmp, 1) == 1)
+	return DW_ERROR_NONE;
+   return DW_ERROR_GENERAL;
 }
 
 /* Release this semaphore, if there are no more open
@@ -7822,8 +7826,8 @@ int dw_named_event_close(HEV eve)
    /* Finally close the domain socket,
     * cleanup will continue in _handle_sem.
     */
-   close((int)eve);
-   return 0;
+   close(GPOINTER_TO_INT(eve));
+   return DW_ERROR_NONE;
 }
 
 /*
@@ -7872,7 +7876,12 @@ HSHM dw_named_memory_new(void **dest, int size, char *name)
       return NULL;
    }
 
-   ftruncate(handle->fd, size);
+   if(ftruncate(handle->fd, size))
+   {
+       close(handle->fd);
+       free(handle);
+       return NULL;
+   }
 
    /* attach the shared memory segment to our process's address space. */
    *dest = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED, handle->fd, 0);
