@@ -1,4 +1,4 @@
-This is a pre-release of Dynamic Windows version 2.1.0.
+This is a stable release of Dynamic Windows version 2.1.0.
 
 The current Dynamic Windows source base is stable on
 OS/2, Mac, Windows, Linux, FreeBSD and Solaris.
@@ -46,6 +46,9 @@ Added dw_font_set_default() to set the default text widget font.
 Added dw_font_choose() to display a dialog to pick a font.
 Added dw_box_pack_at_index() like the other dw_box_pack_*() 
    functions except packing at arbitrary locations is possible.
+Added DW_INT_TO_POINTER/DW_POINTER_TO_INT/etc macros.
+Fixed gcc warnings on 64bit systems and others.
+Fixes for loading images from files on Windows and GTK3.
 
 Dynamic Windows Documentation is available at:
 
