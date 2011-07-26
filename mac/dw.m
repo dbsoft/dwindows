@@ -690,15 +690,22 @@ DWObject *DWObj;
 @end
 
 @interface DWWindow : NSWindow
+{
+    int redraw;
+}
 -(void)sendEvent:(NSEvent *)theEvent;
 -(void)keyDown:(NSEvent *)theEvent;
 -(void)mouseDragged:(NSEvent *)theEvent;
+-(int)redraw;
+-(void)setRedraw:(int)val;
 @end
 
 @implementation DWWindow
 -(void)sendEvent:(NSEvent *)theEvent { if([theEvent type] == NSKeyDown) { _event_handler(self, theEvent, 2); } [super sendEvent:theEvent]; }
 -(void)keyDown:(NSEvent *)theEvent { }
 -(void)mouseDragged:(NSEvent *)theEvent { _event_handler(self, theEvent, 5); }
+-(int)redraw { return redraw; }
+-(void)setRedraw:(int)val { redraw = val; }
 @end
 
 /* Subclass for a render area type */
@@ -2558,15 +2565,20 @@ static int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *
                     [stepper setFrameOrigin:NSMakePoint(size.width-20,0)];
                     [stepper setFrameSize:NSMakeSize(20,size.height)];
                 }
-                else if([handle isMemberOfClass:[DWSplitBar class]] && size.width > 20 && size.height > 20)
+                else if([handle isMemberOfClass:[DWSplitBar class]])
                 {
                     DWSplitBar *split = (DWSplitBar *)handle;
+                    DWWindow *window = (DWWindow *)[split window];
                     float percent = [split percent];
 
-                    if(percent > 0)
+                    if(percent > 0 && size.width > 20 && size.height > 20)
                     {
                         dw_splitbar_set(handle, percent);
                         [split setPercent:0];
+                    }
+                    else if([window redraw])
+                    {
+                        [split splitViewDidResizeSubviews:nil];                        
                     }
                 }
                 if(thisbox->type == DW_HORZ)
@@ -7660,9 +7672,11 @@ int API dw_window_minimize(HWND handle)
  */
 void API dw_window_redraw(HWND handle)
 {
-    NSWindow *window = handle;
+    DWWindow *window = handle;
+    [window setRedraw:YES];
     [[window contentView] showWindow];
     [window flushWindow];
+    [window setRedraw:NO];
 }
 
 /*
