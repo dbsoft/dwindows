@@ -1404,6 +1404,20 @@ typedef struct _dwdialog {
 /* Macro for casting resource IDs to HICN */
 #define DW_RESOURCE(a) (a < 65536 ? (HICN)a : (HICN)0)
 
+#include <limits.h>
+/* Macros for converting from INT/UINT to and from POINTER without compiler warnings */
+#if LONG_MAX > INT_MAX
+#define DW_INT_TO_POINTER(a) ((void *)(long)a)
+#define DW_POINTER_TO_INT(a) ((int)(long)a)
+#define DW_UINT_TO_POINTER(a) ((void *)(unsigned long)a)
+#define DW_POINTER_TO_UINT(a) ((unsigned int)(unsigned long)a)
+#else
+#define DW_INT_TO_POINTER(a) ((void *)a)
+#define DW_POINTER_TO_INT(a) ((int)a)
+#define DW_UINT_TO_POINTER(a) ((void *)a)
+#define DW_POINTER_TO_UINT(a) ((unsigned int)a)
+#endif
+
 #ifndef API
 #define API
 #endif

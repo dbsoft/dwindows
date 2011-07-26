@@ -648,7 +648,7 @@ int DWSIGNAL item_enter_cb( HWND window, char *text, void *data )
     char buf[200];
     HWND statline = (HWND)data;
 
-    sprintf(buf,"DW_SIGNAL_ITEM_ENTER: Window: %x Text: %s", (unsigned int)window, text );
+    sprintf(buf,"DW_SIGNAL_ITEM_ENTER: Window: %x Text: %s", DW_POINTER_TO_UINT(window), text );
     dw_window_set_text( statline, buf);
     return 0;
 }
@@ -658,7 +658,7 @@ int DWSIGNAL item_context_cb( HWND window, char *text, int x, int y, void *data,
     char buf[200];
     HWND statline = (HWND)data;
 
-    sprintf(buf,"DW_SIGNAL_ITEM_CONTEXT: Window: %x Text: %s x: %d y: %d Itemdata: %x", (unsigned int)window, text, x, y, (unsigned int)itemdata );
+    sprintf(buf,"DW_SIGNAL_ITEM_CONTEXT: Window: %x Text: %s x: %d y: %d Itemdata: %x", DW_POINTER_TO_UINT(window), text, x, y, DW_POINTER_TO_UINT(itemdata) );
     dw_window_set_text( statline, buf);
     return 0;
 }
@@ -668,7 +668,7 @@ int DWSIGNAL list_select_cb( HWND window, int item, void *data )
     char buf[200];
     HWND statline = (HWND)data;
 
-    sprintf(buf,"DW_SIGNAL_LIST_SELECT: Window: %d Item: %d", (unsigned int)window, item );
+    sprintf(buf,"DW_SIGNAL_LIST_SELECT: Window: %d Item: %d", DW_POINTER_TO_UINT(window), item );
     dw_window_set_text( statline, buf);
     return 0;
 }
@@ -678,7 +678,8 @@ int DWSIGNAL item_select_cb( HWND window, HTREEITEM item, char *text, void *data
     char buf[200];
     HWND statline = (HWND)data;
 
-    sprintf(buf,"DW_SIGNAL_ITEM_SELECT: Window: %x Item: %x Text: %s Itemdata: %x", (unsigned int)window, (unsigned int)item, text, (unsigned int)itemdata );
+    sprintf(buf,"DW_SIGNAL_ITEM_SELECT: Window: %x Item: %x Text: %s Itemdata: %x", DW_POINTER_TO_UINT(window), 
+            DW_POINTER_TO_UINT(item), text, DW_POINTER_TO_UINT(itemdata) );
     dw_window_set_text( statline, buf);
     return 0;
 }
@@ -690,9 +691,11 @@ int DWSIGNAL container_select_cb( HWND window, HTREEITEM item, char *text, void 
     HWND statline = (HWND)data;
     unsigned long size;
 
-    sprintf(buf,"DW_SIGNAL_ITEM_SELECT: Window: %x Item: %x Text: %s Itemdata: %x", (unsigned int)window, (unsigned int)item, text, (unsigned int)itemdata );
+    sprintf(buf,"DW_SIGNAL_ITEM_SELECT: Window: %x Item: %x Text: %s Itemdata: %x", DW_POINTER_TO_UINT(window), 
+            DW_POINTER_TO_UINT(item), text, DW_POINTER_TO_UINT(itemdata) );
     dw_window_set_text( statline, buf);
-    sprintf(buf,"\r\nDW_SIGNAL_ITEM_SELECT: Window: %x Item: %x Text: %s Itemdata: %x\r\n", (unsigned int)window, (unsigned int)item, text, (unsigned int)itemdata );
+    sprintf(buf,"\r\nDW_SIGNAL_ITEM_SELECT: Window: %x Item: %x Text: %s Itemdata: %x\r\n", DW_POINTER_TO_UINT(window), 
+            DW_POINTER_TO_UINT(item), text, DW_POINTER_TO_UINT(itemdata) );
     mle_point = dw_mle_import( container_mle, buf, mle_point);
     str = dw_container_query_start(container, DW_CRA_SELECTED);
     while(str)
@@ -704,10 +707,12 @@ int DWSIGNAL container_select_cb( HWND window, HTREEITEM item, char *text, void 
     /* Make the last inserted point the cursor location */
     dw_mle_set_cursor(container_mle, mle_point);
     /* set the details of item 0 to new data */
-    fprintf(stderr,"In cb: container: %x containerinfo: %x icon: %x\n", (int)container, (int)containerinfo, (int)fileicon);
+    fprintf(stderr,"In cb: container: %x containerinfo: %x icon: %x\n", DW_POINTER_TO_INT(container), 
+            DW_POINTER_TO_INT(containerinfo), DW_POINTER_TO_INT(fileicon));
     dw_filesystem_change_file(container, 0, "new data", fileicon);
     size = 999;
-    fprintf(stderr,"In cb: container: %x containerinfo: %x icon: %x\n", (int)container, (int)containerinfo, (int)fileicon);
+    fprintf(stderr,"In cb: container: %x containerinfo: %x icon: %x\n", DW_POINTER_TO_INT(container), 
+            DW_POINTER_TO_INT(containerinfo), DW_POINTER_TO_INT(fileicon));
     dw_filesystem_change_item(container, 1, 0, &size);
     return 0;
 }
@@ -717,7 +722,8 @@ int DWSIGNAL switch_page_cb( HWND window, unsigned long page_num, void *itemdata
     FILE *fp=fopen("log","a");
     if ( fp )
     {
-       fprintf(fp,"DW_SIGNAL_SWITCH_PAGE: Window: %x PageNum: %u Itemdata: %x\n", (unsigned int)window, (unsigned int)page_num, (unsigned int)itemdata );
+       fprintf(fp,"DW_SIGNAL_SWITCH_PAGE: Window: %x PageNum: %u Itemdata: %x\n", DW_POINTER_TO_UINT(window), 
+               DW_POINTER_TO_UINT(page_num), DW_POINTER_TO_UINT(itemdata) );
        fclose(fp);
     }
     return 0;
@@ -747,7 +753,8 @@ int DWSIGNAL column_click_cb( HWND window, int column_num, void *data )
         else
             strcpy(buf1,"Unknown");
     }
-    sprintf(buf,"DW_SIGNAL_COLUMN_CLICK: Window: %x Column: %d Type: %s Itemdata: %x", (unsigned int)window, column_num, buf1, (unsigned int)data );
+    sprintf(buf,"DW_SIGNAL_COLUMN_CLICK: Window: %x Column: %d Type: %s Itemdata: %x", DW_POINTER_TO_UINT(window), 
+            column_num, buf1, DW_POINTER_TO_UINT(data) );
     dw_window_set_text( statline, buf);
     return 0;
 }
@@ -1018,7 +1025,8 @@ void container_add(void)
         sprintf(buffer, "Filename %d",z+1);
         if (z == 0 ) thisicon = foldericon;
         else thisicon = fileicon;
-        fprintf(stderr,"Initial: container: %x containerinfo: %x icon: %x\n", (int)container, (int)containerinfo, (int)thisicon);
+        fprintf(stderr,"Initial: container: %x containerinfo: %x icon: %x\n", DW_POINTER_TO_INT(container),
+                DW_POINTER_TO_INT(containerinfo), DW_POINTER_TO_INT(thisicon));
         dw_filesystem_set_file(container, containerinfo, z, buffer, thisicon);
         dw_filesystem_set_item(container, containerinfo, 0, z, &thisicon);
         dw_filesystem_set_item(container, containerinfo, 1, z, &size);
