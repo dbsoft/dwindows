@@ -351,7 +351,7 @@ void draw_shapes(int direct)
     dw_draw_text(window, pixmap, 10, 10, "This should be aligned with the edges.");
     if(image)
     {
-        dw_pixmap_bitblt(window, pixmap, image_x, image_y, DW_PIXMAP_WIDTH(image), DW_PIXMAP_HEIGHT(image), 0, image, 0, 0);
+        dw_pixmap_bitblt(window, pixmap, image_x, image_y, (int)DW_PIXMAP_WIDTH(image), (int)DW_PIXMAP_HEIGHT(image), 0, image, 0, 0);
     }
 
     /* If we aren't drawing direct do a bitblt */
