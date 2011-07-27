@@ -41,7 +41,7 @@ void msleep(long period)
 	
 	nanosleep(&req, NULL);
 #else
-	usleep(period * 1000);
+	usleep((int)(period * 1000));
 #if defined(__MAC__) && !defined(GARBAGE_COLLECT)
     _dw_pool_drain();
 #endif
@@ -632,7 +632,7 @@ void API initdir(int argc, char *argv[])
 	if(argc > 0)
 	{
 		char *tmpdir = strdup(argv[0]);
-		int z, len = strlen(argv[0]);
+		int z, len = (int)strlen(argv[0]);
 
 		for(z=len;z > -1;z--)
 		{
@@ -691,7 +691,7 @@ void _compat_free_locale(void)
 
 int _stripcrlf(char *buf)
 {
-	int z, len = strlen(buf);
+	int z, len = (int)strlen(buf);
 
 	for(z=0;z<len;z++)
 	{
@@ -773,7 +773,7 @@ int API locale_init(char *filename, int my_locale)
 					/* Use defaults on blank lines */
 					if(text[0])
 					{
-						int x = 0, z, len = strlen(text);
+						int x = 0, z, len = (int)strlen(text);
 
 						locale_text[current] = calloc(1, len + 1);
 

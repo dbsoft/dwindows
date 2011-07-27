@@ -8254,7 +8254,7 @@ void API dw_signal_disconnect_by_data(HWND window, void *data)
 
 void _my_strlwr(char *buf)
 {
-   int z, len = strlen(buf);
+   int z, len = (int)strlen(buf);
 
    for(z=0;z<len;z++)
    {
@@ -8279,7 +8279,7 @@ int dw_module_load(char *name, HMOD *handle)
    if(!handle)
       return -1;
 
-   if((len = strlen(name)) == 0)
+   if((len = (int)strlen(name)) == 0)
       return   -1;
 
    /* Lenth + "lib" + ".dylib" + NULL */
@@ -8587,7 +8587,7 @@ static void _handle_sem(int *tmpsock)
       {
          if(FD_ISSET(array[z].fd, &rd))
          {
-            if((bytesread = read(array[z].fd, &command, 1)) < 1)
+            if((bytesread = (int)read(array[z].fd, &command, 1)) < 1)
             {
                struct _seminfo *newarray;
 
@@ -8820,7 +8820,7 @@ int dw_named_event_wait(HEV eve, unsigned long timeout)
    else
    {
       tv.tv_sec = timeout / 1000;
-      tv.tv_usec = timeout % 1000;
+      tv.tv_usec = (int)timeout % 1000;
 
       useme = &tv;
    }
