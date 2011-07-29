@@ -1,6 +1,6 @@
 This is a stable release of Dynamic Windows version 2.1.0.
 
-The current Dynamic Windows source base is stable on
+The current Dynamic Windows source base is considered stable on:
 OS/2, Mac, Windows, Linux, FreeBSD and Solaris.
 
 Known problems:
@@ -14,6 +14,9 @@ MDI does not work on GTK3 and is not implemented the same on Mac.
 GTK3 due to changes in the core architecture does not support
     widgets that are smaller than what is contained within them
     unless they use scrolled windows. GTK2 and other platforms do.
+Mac version built on Lion with Xcode 4.1 in 64bit mode will encounter
+    a compiler optimization problem with the default gcc compiler.
+    The workaround is to disable optimization or use clang instead.
 
 Known limitations:
 
@@ -41,7 +44,12 @@ custom ones or importing functionality from available libraries.
 
 Changes from version 2.0:
 Added support for MacOS 10.7 Lion, version 2.0 had some issues.
-Fixed issues with the tree widget on Mac.
+Changed the font point size on Windows to be system consistent.
+    Applications setting Windows fonts may need to be adjusted
+    after upgrading to version 2.1. This eliminates an old
+    workaround, but causes old fonts to potentially be wrong.
+Fixed issues with the tree widget on Mac not being able to add
+    nodes at the same level with the same name.
 Added dw_font_set_default() to set the default text widget font.
 Added dw_font_choose() to display a dialog to pick a font.
 Added dw_box_pack_at_index() like the other dw_box_pack_*() 
