@@ -7,8 +7,8 @@ RM = rm -f
 RC = rc
 MAKE = make
 COMPRESS = lxlite
-VER = 11
-VERDOT = 2.0
+VER = 21
+VERDOT = 2.1
 
 DEFS =
 LIBS =
