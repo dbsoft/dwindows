@@ -9228,5 +9228,5 @@ int dw_browse(char *url)
 {
     NSURL *myurl = [NSURL URLWithString:[NSString stringWithUTF8String:url]];
     [[NSWorkspace sharedWorkspace] openURL:myurl];
-    return 0;
+    return DW_ERROR_NONE;
 }

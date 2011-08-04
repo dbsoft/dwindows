@@ -10001,8 +10001,8 @@ int API dw_browse(char *url)
 
    retcode = (int)ShellExecute(NULL, "open", browseurl, NULL, NULL, SW_SHOWNORMAL);
    if(retcode<33 && retcode != 2)
-      return -1;
-   return 1;
+      return DW_ERROR_UNKNOWN;
+   return DW_ERROR_NONE;
 }
 
 /*

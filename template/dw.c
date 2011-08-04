@@ -3372,9 +3372,9 @@ int dw_exec(char *program, int type, char **params)
  * Parameters:
  *       url: Uniform resource locator.
  * Returns:
- *       DW_ERROR_NONE (0) on success.
+ *       DW_ERROR_UNKNOWN (-1) on error; DW_ERROR_NONE (0) or a positive Process ID on success.
  */
 int dw_browse(char *url)
 {
-    return DW_ERROR_GENERAL;
+    return DW_ERROR_UNKNOWN;
 }
