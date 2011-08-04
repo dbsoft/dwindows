@@ -11164,7 +11164,7 @@ int dw_exec(char *program, int type, char **params)
 int dw_browse(char *url)
 {
    /* Is there a way to find the webbrowser in Unix? */
-   char *execargs[3], *browser = "netscape", *tmp;
+   char *execargs[3], *browser = "firefox", *tmp;
 
    tmp = getenv( "DW_BROWSER" );
    if(tmp) browser = tmp;
