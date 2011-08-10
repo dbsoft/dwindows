@@ -5995,6 +5995,7 @@ HWND API dw_splitbar_new(int type, HWND topleft, HWND bottomright, unsigned long
  * Sets the position of a splitbar (pecentage).
  * Parameters:
  *       handle: The handle to the splitbar returned by dw_splitbar_new().
+ *       percent: The position of the splitbar.
  */
 void API dw_splitbar_set(HWND handle, float percent)
 {
