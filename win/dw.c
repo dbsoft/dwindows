@@ -42,6 +42,7 @@ SECURITY_DESCRIPTOR _dwsd;
 #define PACKVERSION(major,minor) MAKELONG(minor,major)
 
 #define IS_XPPLUS (dwComctlVer >= PACKVERSION(5,82))
+#define IS_VISTAPLUS (dwComctlVer >= PACKVERSION(6,10))
 
 #ifndef MIN
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))
@@ -884,21 +885,6 @@ void _shift_focus_back(HWND handle)
       if(_focus_check_box_back(thisbox, handle, 1, 0)  == 0)
          _focus_check_box_back(thisbox, handle, 2, 0);
    }
-}
-
-/* ResetWindow:
- *         Resizes window to the exact same size to trigger
- *         recalculation of frame.
- */
-void _ResetWindow(HWND hwndFrame)
-{
-   RECT rcl;
-
-   GetWindowRect(hwndFrame, &rcl);
-   SetWindowPos(hwndFrame, HWND_TOP, 0, 0, rcl.right - rcl.left,
-             rcl.bottom - rcl.top - 1, SWP_NOMOVE | SWP_NOZORDER);
-   SetWindowPos(hwndFrame, HWND_TOP, 0, 0, rcl.right - rcl.left,
-             rcl.bottom - rcl.top, SWP_NOMOVE | SWP_NOZORDER);
 }
 
 /* This function calculates how much space the widgets and boxes require
@@ -5525,7 +5511,14 @@ HWND API dw_spinbutton_new(char *text, ULONG id)
 
    cinfo = calloc(1, sizeof(ColorInfo));
    cinfo->buddy = buddy;
-   cinfo->pOldProc = SubclassWindow(tmp, _spinnerwndproc);
+   /* The horrible spinbutton workaround isn't necessary 
+    * any more on Vista or 7... but still seems necessary
+    * for XP, so only enable it if on XP or lower. 
+    */
+   if(!IS_VISTAPLUS)
+   {
+      cinfo->pOldProc = SubclassWindow(tmp, _spinnerwndproc);
+   }
 
    SetWindowLongPtr(tmp, GWLP_USERDATA, (LONG_PTR)cinfo);
    dw_window_set_font(buddy, DefaultFont);
