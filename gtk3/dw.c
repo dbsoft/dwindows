@@ -9727,16 +9727,26 @@ int dw_exec(char *program, int type, char **params)
  */
 int dw_browse(char *url)
 {
-   /* Is there a way to find the webbrowser in Unix? */
-   char *execargs[3], *browser = "firefox", *tmp;
+   /* If possible load the URL/URI using gvfs... */
+   if(gtk_show_uri(gdk_screen_get_default(), url, GDK_CURRENT_TIME, NULL))
+   {
+      return DW_ERROR_NONE;
+   }
+   else
+   {
+      /* Otherwise just fall back to executing firefox...
+       * or the browser defined by the DW_BROWSER variable.
+       */
+      char *execargs[3], *browser = "firefox", *tmp;
 
-   tmp = getenv( "DW_BROWSER" );
-   if(tmp) browser = tmp;
-   execargs[0] = browser;
-   execargs[1] = url;
-   execargs[2] = NULL;
+      tmp = getenv( "DW_BROWSER" );
+      if(tmp) browser = tmp;
+      execargs[0] = browser;
+      execargs[1] = url;
+      execargs[2] = NULL;
 
-   return dw_exec(browser, DW_EXEC_GUI, execargs);
+      return dw_exec(browser, DW_EXEC_GUI, execargs);
+   }
 }
 
 /*
