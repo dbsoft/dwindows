@@ -3893,7 +3893,6 @@ void dw_pointer_query_pos(long *x, long *y)
       *x = gx;
    if(y)
       *y = gy;
-   printf("x %d y %d\n", gx, gy);
    DW_MUTEX_UNLOCK;
 }
 
