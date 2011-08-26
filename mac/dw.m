@@ -6331,6 +6331,7 @@ HWND API dw_calendar_new(ULONG cid)
     [calendar setDatePickerStyle:NSClockAndCalendarDatePickerStyle];
     [calendar setDatePickerElements:NSYearMonthDayDatePickerElementFlag];
     [calendar setTag:cid];
+    [calendar setDateValue:[NSDate date]];
     return calendar;
 }
 
