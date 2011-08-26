@@ -2476,7 +2476,7 @@ text_height = min( height, dw_screen_height() );
    }
 
    height = max(50,text_height)+100;
-   x = ( - (text_width+60+extra_width))/2;
+   x = (dw_screen_width() - (text_width+60+extra_width))/2;
    y = (dw_screen_height() - height)/2;
 
    dw_window_set_pos_size(entrywindow, x, y, (text_width+60+extra_width), height);
@@ -9473,6 +9473,9 @@ void dw_window_set_pos(HWND handle, long x, long y)
    GtkWidget *mdi;
 #endif
 
+   if(!handle)
+      return;
+      
    DW_MUTEX_LOCK;
 #if GTK_MAJOR_VERSION > 1
    if((mdi = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(handle), "_dw_mdi")) && GTK_IS_MDI(mdi))
@@ -9482,8 +9485,18 @@ void dw_window_set_pos(HWND handle, long x, long y)
    else
 #endif
    {
-      if(handle && handle->window)
-         gdk_window_move(handle->window, x, y);
+      GdkWindow *window = NULL;
+      
+      if(GTK_IS_WINDOW(handle))
+      {
+#if GTK_MAJOR_VERSION > 1
+         gtk_window_move(GTK_WINDOW(handle), x, y);
+#else
+         gtk_widget_set_uposition(handle, x, y);
+#endif                
+      }
+      else if((window = gtk_widget_get_window(handle)))
+         gdk_window_move(window, x, y);
    }
    DW_MUTEX_UNLOCK;
 }
@@ -9506,6 +9519,7 @@ void dw_window_set_pos_size(HWND handle, long x, long y, unsigned long width, un
 
    if(!handle)
       return;
+      
    DW_MUTEX_LOCK;
 #if GTK_MAJOR_VERSION > 1
    if((mdi = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(handle), "_dw_mdi")) && GTK_IS_MDI(mdi))
@@ -9518,7 +9532,11 @@ void dw_window_set_pos_size(HWND handle, long x, long y, unsigned long width, un
       if(GTK_IS_WINDOW(handle))
       {
          dw_window_set_size(handle, width, height);
+#if GTK_MAJOR_VERSION > 1
+         gtk_window_move(GTK_WINDOW(handle), x, y);
+#else
          gtk_widget_set_uposition(handle, x, y);
+#endif                
       }
       else if(handle->window)
       {
