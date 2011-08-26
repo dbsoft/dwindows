@@ -3889,8 +3889,11 @@ void dw_pointer_query_pos(long *x, long *y)
 
    DW_MUTEX_LOCK;
    gdk_window_get_pointer (GDK_ROOT_PARENT(), &gx, &gy, &state);
-   *x = gx;
-   *y = gy;
+   if(x)
+      *x = gx;
+   if(y)
+      *y = gy;
+   printf("x %d y %d\n", gx, gy);
    DW_MUTEX_UNLOCK;
 }
 

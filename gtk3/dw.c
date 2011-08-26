@@ -3552,8 +3552,10 @@ void dw_pointer_query_pos(long *x, long *y)
 #ifdef GDK_WINDOWING_X11
    gdk_window_get_pointer (gdk_x11_window_lookup_for_display(gdk_display_get_default(), GDK_ROOT_WINDOW()), &gx, &gy, &state);
 #endif
-   *x = gx;
-   *y = gy;
+   if(x)
+      *x = gx;
+   if(y)
+      *y = gy;
    DW_MUTEX_UNLOCK;
 }
 
