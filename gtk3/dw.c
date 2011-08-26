@@ -2303,7 +2303,7 @@ int dw_messagebox(char *title, int flags, char *format, ...)
    }
 
    height = max(50,text_height)+100;
-   x = ( - (text_width+60+extra_width))/2;
+   x = (dw_screen_width() - (text_width+60+extra_width))/2;
    y = (dw_screen_height() - height)/2;
 
    dw_window_set_pos_size(entrywindow, x, y, (text_width+60+extra_width), height);
@@ -8384,6 +8384,9 @@ void dw_window_set_pos(HWND handle, long x, long y)
    int _locked_by_me = FALSE;
    GtkWidget *mdi;
 
+   if(!handle)
+      return;
+      
    DW_MUTEX_LOCK;
    if((mdi = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_mdi")) && GTK_IS_MDI(mdi))
    {
@@ -8391,8 +8394,12 @@ void dw_window_set_pos(HWND handle, long x, long y)
    }
    else
    {
-      if(handle && gtk_widget_get_window(handle))
-         gdk_window_move(gtk_widget_get_window(handle), x, y);
+      GdkWindow *window = NULL;
+      
+      if(GTK_IS_WINDOW(handle))
+         gtk_window_move(GTK_WINDOW(handle), x, y);
+      else if((window = gtk_widget_get_window(handle)))
+         gdk_window_move(window, x, y);
    }
    DW_MUTEX_UNLOCK;
 }
@@ -8413,6 +8420,7 @@ void dw_window_set_pos_size(HWND handle, long x, long y, unsigned long width, un
 
    if(!handle)
       return;
+      
    DW_MUTEX_LOCK;
    if((mdi = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_mdi")) && GTK_IS_MDI(mdi))
    {
@@ -8420,17 +8428,17 @@ void dw_window_set_pos_size(HWND handle, long x, long y, unsigned long width, un
    }
    else
    {
+      GdkWindow *window = NULL;
+      
       if(GTK_IS_WINDOW(handle))
       {
          dw_window_set_size(handle, width, height);
-#if 0 /* TODO: Deprecated with no replaced... what to do here? */
-         gtk_widget_set_uposition(handle, x, y);
-#endif
+         gtk_window_move(GTK_WINDOW(handle), x, y);
       }
-      else if(gtk_widget_get_window(handle))
+      else if((window = gtk_widget_get_window(handle)))
       {
-         gdk_window_resize(gtk_widget_get_window(handle), width, height);
-         gdk_window_move(gtk_widget_get_window(handle), x, y);
+         gdk_window_resize(window, width, height);
+         gdk_window_move(window, x, y);
       }
    }
    DW_MUTEX_UNLOCK;
