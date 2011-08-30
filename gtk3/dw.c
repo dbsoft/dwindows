@@ -9348,8 +9348,8 @@ HWND dw_splitbar_new(int type, HWND topleft, HWND bottomright, unsigned long id)
       tmp = gtk_hpaned_new();
    else
       tmp = gtk_vpaned_new();
-   gtk_paned_pack1(GTK_PANED(tmp), topleft, TRUE, TRUE);
-   gtk_paned_pack2(GTK_PANED(tmp), bottomright, TRUE, TRUE);
+   gtk_paned_pack1(GTK_PANED(tmp), topleft, TRUE, FALSE);
+   gtk_paned_pack2(GTK_PANED(tmp), bottomright, TRUE, FALSE);
    g_object_set_data(G_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(id));
    *percent = 50.0;
    g_object_set_data(G_OBJECT(tmp), "_dw_percent", (gpointer)percent);
