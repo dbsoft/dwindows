@@ -8111,12 +8111,18 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
        */
       if(boxtype == DW_VERT)
       {
+#if GTK_CHECK_VERSION(3,1,0)
          gtk_grid_insert_row(GTK_GRID(box), index);
+#else
+         #warning Dynamic Windows GTK3 support requires 3.1 or higher for full support.
+#endif
          gtk_grid_attach(GTK_GRID(box), item, 0, index, 1, 1);
       }
       else
       {
+#if GTK_CHECK_VERSION(3,1,0)
          gtk_grid_insert_column(GTK_GRID(box), index);
+#endif         
          gtk_grid_attach(GTK_GRID(box), item, index, 0, 1, 1);
       }
       g_object_set_data(G_OBJECT(box), "_dw_boxcount", GINT_TO_POINTER(boxcount + 1));
