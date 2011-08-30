@@ -382,11 +382,9 @@ static GtkWidgetClass *parent_class = NULL;
 
 static void gtk_mdi_class_init(GtkMdiClass *class)
 {
-   GObjectClass *object_class;
    GtkWidgetClass *widget_class;
    GtkContainerClass *container_class;
 
-   object_class = (GObjectClass *) class;
    widget_class = (GtkWidgetClass *) class;
    container_class = (GtkContainerClass *) class;
 
@@ -439,7 +437,6 @@ static void gtk_mdi_put(GtkMdi *mdi, GtkWidget *child_widget, gint x, gint y, Gt
    gint i, j;
    GdkCursor *cursor;
    GdkPixbuf *pixbuf;
-   GtkStyle *style;
 
    child_box = gtk_event_box_new ();
    child_widget_box = gtk_event_box_new ();
@@ -480,7 +477,6 @@ static void gtk_mdi_put(GtkMdi *mdi, GtkWidget *child_widget, gint x, gint y, Gt
    gtk_widget_set_size_request (bottom_event_box, 2, 2);
 
 
-   style = gtk_widget_get_default_style ();
    pixbuf =  gdk_pixbuf_new_from_xpm_data((const gchar **)minimize_xpm);
    image = gtk_image_new_from_pixbuf(pixbuf);
    gtk_widget_show(image);
@@ -2496,7 +2492,7 @@ void dw_window_reparent(HWND handle, HWND newparent)
    int _locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
-   gdk_window_reparent(gtk_widget_get_window(GTK_WIDGET(handle)), newparent ? gtk_widget_get_window(GTK_WIDGET(newparent)) : GDK_ROOT_WINDOW(), 0, 0);
+   gdk_window_reparent(gtk_widget_get_window(GTK_WIDGET(handle)), newparent ? gtk_widget_get_window(GTK_WIDGET(newparent)) : gdk_get_default_root_window(), 0, 0);
    DW_MUTEX_UNLOCK;
 }
 
@@ -2859,7 +2855,7 @@ int dw_window_set_color(HWND handle, unsigned long fore, unsigned long back)
       if(tmp)
          handle2 = tmp;
    }
-   else if(GTK_IS_TABLE(handle))
+   else if(GTK_IS_GRID(handle))
    {
       GtkWidget *tmp = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_eventbox");
       if(tmp)
@@ -3024,7 +3020,7 @@ HWND dw_box_new(int type, int pad)
    int _locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
-   tmp = gtk_table_new(1, 1, FALSE);
+   tmp = gtk_grid_new();
    eventbox = gtk_event_box_new();
 
    gtk_widget_show(eventbox);
@@ -3051,7 +3047,7 @@ HWND dw_scrollbox_new( int type, int pad )
    tmp = gtk_scrolled_window_new(NULL, NULL);
    gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW (tmp), GTK_POLICY_AUTOMATIC, GTK_POLICY_ALWAYS);
 
-   box = gtk_table_new(1, 1, FALSE);
+   box = gtk_grid_new();
    eventbox = gtk_event_box_new();
 
    gtk_widget_show(eventbox);
@@ -3138,7 +3134,7 @@ HWND dw_groupbox_new(int type, int pad, char *title)
    gtk_frame_set_shadow_type(GTK_FRAME(frame), GTK_SHADOW_ETCHED_IN);
    gtk_frame_set_label(GTK_FRAME(frame), title && *title ? title : NULL);
 
-   tmp = gtk_table_new(1, 1, FALSE);
+   tmp = gtk_grid_new();
    gtk_container_set_border_width(GTK_CONTAINER(tmp), pad);
    g_object_set_data(G_OBJECT(tmp), "_dw_boxtype", GINT_TO_POINTER(type));
    g_object_set_data(G_OBJECT(tmp), "_dw_boxpad", GINT_TO_POINTER(pad));
@@ -3729,7 +3725,7 @@ HWND dw_status_text_new(char *text, ULONG id)
  */
 HWND dw_mle_new(unsigned long id)
 {
-   GtkWidget *tmp, *tmpbox, *scroller;
+   GtkWidget *tmp, *tmpbox;
    int _locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
@@ -3741,7 +3737,6 @@ HWND dw_mle_new(unsigned long id)
    gtk_container_add (GTK_CONTAINER(tmpbox), tmp);
    gtk_text_view_set_wrap_mode(GTK_TEXT_VIEW(tmp), GTK_WRAP_NONE);
 
-   scroller = NULL;
    g_object_set_data(G_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(id));
    g_object_set_data(G_OBJECT(tmpbox), "_dw_user", (gpointer)tmp);
    gtk_widget_show(tmp);
@@ -7643,9 +7638,7 @@ static void _handle_sem(int *tmpsock)
             }
          }
       }
-
    }
-
 }
 
 /* Using domain sockets on unix for IPC */
@@ -8020,39 +8013,6 @@ void dw_exit(int exitcode)
 
 #define DW_EXPAND (GTK_EXPAND | GTK_SHRINK | GTK_FILL)
 
-/* Internal function that changes the attachment properties in a table. */
-void _rearrange_table(GtkWidget *widget, gpointer data)
-{
-   gint pos = GPOINTER_TO_INT(data);
-   GtkContainer *cont = g_object_get_data(G_OBJECT(widget), "_dw_table");
-   guint oldpos;
-
-   /* Drop out if missing table */
-   if(!cont)
-      return;
-
-   /* Check orientation */
-   if(pos < 0)
-   {
-      /* Horz */
-      pos = -(pos + 1);
-      gtk_container_child_get(cont, widget, "left-attach", &oldpos, NULL);
-      if(oldpos >= pos)
-      {
-         gtk_container_child_set(cont, widget, "left-attach", (oldpos + 1), "right-attach", (oldpos+2), NULL);
-      }
-   }
-   else
-   {
-      /* Vert */
-      gtk_container_child_get(cont, widget, "top-attach", &oldpos, NULL);
-      if(oldpos >= pos)
-      {
-         gtk_container_child_set(cont, widget, "top-attach", (oldpos + 1), "bottom-attach", (oldpos+2), NULL);
-      }
-   }
-}
-
 /* Internal box packing function called by the other 3 functions */
 void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsize, int vsize, int pad, char *funcname)
 {
@@ -8101,18 +8061,17 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
 
    tmpitem = (GtkWidget *)g_object_get_data(G_OBJECT(item), "_dw_boxhandle");
 
-   if(GTK_IS_TABLE(box))
+   if(GTK_IS_GRID(box))
    {
       int boxcount = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(box), "_dw_boxcount"));
       int boxtype = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(box), "_dw_boxtype"));
-      int x, y;
 
       /* If the item being packed is a box, then we use it's padding
        * instead of the padding specified on the pack line, this is
        * due to a bug in the OS/2 and Win32 renderer and a limitation
        * of the GtkTable class.
        */
-      if(GTK_IS_TABLE(item) || (tmpitem && GTK_IS_TABLE(tmpitem)))
+      if(GTK_IS_GRID(item) || (tmpitem && GTK_IS_GRID(tmpitem)))
       {
          GtkWidget *eventbox = (GtkWidget *)g_object_get_data(G_OBJECT(item), "_dw_eventbox");
 
@@ -8141,24 +8100,27 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
       if(index > boxcount)
          index = boxcount;
 
+      g_object_set_data(G_OBJECT(item), "_dw_table", box);
+      /* Set the expand attribute on the widgets now instead of the container */
+      gtk_widget_set_vexpand(item, vsize);
+      gtk_widget_set_hexpand(item, hsize);
+      /* Use the margin property as padding */
+      g_object_set(G_OBJECT(item), "margin", pad, NULL);
+      /* Add to the grid using insert... 
+       * rows for vertical boxes and columns for horizontal.
+       */
       if(boxtype == DW_VERT)
       {
-         x = 0;
-         y = index;
-         gtk_table_resize(GTK_TABLE(box), boxcount + 1, 1);
+         gtk_grid_insert_row(GTK_GRID(box), index);
+         gtk_grid_attach(GTK_GRID(box), item, 0, index, 1, 1);
       }
       else
       {
-         x = index;
-         y = 0;
-         gtk_table_resize(GTK_TABLE(box), 1, boxcount + 1);
+         gtk_grid_insert_column(GTK_GRID(box), index);
+         gtk_grid_attach(GTK_GRID(box), item, index, 0, 1, 1);
       }
-
-      g_object_set_data(G_OBJECT(item), "_dw_table", box);
-      if(index < boxcount)
-         gtk_container_forall(GTK_CONTAINER(box),_rearrange_table, GINT_TO_POINTER(boxtype == DW_VERT ? index : -(index+1)));
-      gtk_table_attach(GTK_TABLE(box), item, x, x + 1, y, y + 1, hsize ? DW_EXPAND : 0, vsize ? DW_EXPAND : 0, pad, pad);
       g_object_set_data(G_OBJECT(box), "_dw_boxcount", GINT_TO_POINTER(boxcount + 1));
+      /* Set the requested size of the widget */
       if(GTK_IS_SCROLLED_WINDOW(item))
       {
          gtk_scrolled_window_set_min_content_width(GTK_SCROLLED_WINDOW(item), width);
@@ -8194,7 +8156,7 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
 
       gtk_container_set_border_width(GTK_CONTAINER(box), pad);
 
-      if(GTK_IS_TABLE(item) || (tmpitem && GTK_IS_TABLE(tmpitem)))
+      if(GTK_IS_GRID(item) || (tmpitem && GTK_IS_GRID(tmpitem)))
       {
          GtkWidget *eventbox = (GtkWidget *)g_object_get_data(G_OBJECT(item), "_dw_eventbox");
 
@@ -8775,7 +8737,7 @@ void dw_notebook_pack(HWND handle, unsigned long pageid, HWND page)
 
    label = gtk_label_new(text ? text : "");
 
-   if(GTK_IS_TABLE(page))
+   if(GTK_IS_GRID(page))
    {
       pad = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(page), "_dw_boxpad"));
       gtk_container_set_border_width(GTK_CONTAINER(page), pad);
@@ -9168,6 +9130,7 @@ int dw_listbox_selected_multi(HWND handle, int where)
          g_list_free(list);
       }
    }
+   DW_MUTEX_UNLOCK;
    return retval;
 }
 
