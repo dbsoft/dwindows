@@ -8011,8 +8011,6 @@ void dw_exit(int exitcode)
    exit(exitcode);
 }
 
-#define DW_EXPAND (GTK_EXPAND | GTK_SHRINK | GTK_FILL)
-
 /* Internal box packing function called by the other 3 functions */
 void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsize, int vsize, int pad, char *funcname)
 {
@@ -8103,7 +8101,9 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
       g_object_set_data(G_OBJECT(item), "_dw_table", box);
       /* Set the expand attribute on the widgets now instead of the container */
       gtk_widget_set_vexpand(item, vsize);
+      gtk_widget_set_valign(item, vsize ? GTK_ALIGN_FILL : GTK_ALIGN_START);
       gtk_widget_set_hexpand(item, hsize);
+      gtk_widget_set_halign(item, hsize ? GTK_ALIGN_FILL : GTK_ALIGN_START);
       /* Use the margin property as padding */
       g_object_set(G_OBJECT(item), "margin", pad, NULL);
       /* Add to the grid using insert... 
