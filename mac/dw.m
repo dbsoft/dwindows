@@ -1629,7 +1629,7 @@ void _free_tree_recurse(NSMutableArray *node, NSMutableArray *item)
         int count = (int)[node count];
         NSInteger index = -1;
         int z;
-        
+
         if(item)
             index = [node indexOfObject:item];
 
@@ -2578,7 +2578,7 @@ static int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *
                     }
                     else if([window redraw])
                     {
-                        [split splitViewDidResizeSubviews:nil];                        
+                        [split splitViewDidResizeSubviews:nil];
                     }
                 }
                 if(thisbox->type == DW_HORZ)
@@ -3196,7 +3196,7 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
         dw_messagebox(funcname, DW_MB_OK|DW_MB_ERROR, "Danger! Danger! Will Robinson; box and item are the same!");
         return;
     }
-    
+
     /* Query the objects */
     if([ object isKindOfClass:[ NSWindow class ] ])
     {
@@ -3230,7 +3230,7 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
         index = 0;
     if(index > thisbox->count)
         index = thisbox->count;
-    
+
     /* Duplicate the existing data */
     tmpitem = malloc(sizeof(Item)*(thisbox->count+1));
 
@@ -3257,7 +3257,7 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
             dw_messagebox(funcname, DW_MB_OK|DW_MB_ERROR, "Width and expand Horizonal both unset for box: %x item: %x",box,item);
         if ( height == 0 && vsize == FALSE )
             dw_messagebox(funcname, DW_MB_OK|DW_MB_ERROR, "Height and expand Vertical both unset for box: %x item: %x",box,item);
-        
+
         tmpitem[index].type = TYPEITEM;
     }
 
@@ -3304,7 +3304,7 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
  * Parameters:
  *       box: Window handle of the box to be packed into.
  *       item: Window handle of the item to be back.
- *       index: 0 based index of packed items. 
+ *       index: 0 based index of packed items.
  *       width: Width in pixels of the item or -1 to be self determined.
  *       height: Height in pixels of the item or -1 to be self determined.
  *       hsize: TRUE if the window (widget) should expand horizontally to fill space given.
@@ -3329,7 +3329,7 @@ void API dw_box_pack_at_index(HWND box, HWND item, int index, int width, int hei
  */
 void API dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize, int vsize, int pad)
 {
-    /* 65536 is the table limit on GTK... 
+    /* 65536 is the table limit on GTK...
      * seems like a high enough value we will never hit it here either.
      */
     _dw_box_pack(box, item, 65536, width, height, hsize, vsize, pad, "dw_box_pack_start()");
@@ -4296,7 +4296,8 @@ void API dw_mle_export(HWND handle, char *buffer, int startpoint, int length)
     DWMLE *mle = [sv documentView];
     NSTextStorage *ts = [mle textStorage];
     NSMutableString *ms = [ts mutableString];
-    strncpy(buffer, [ms UTF8String], length);
+    const char *tmp = [ms UTF8String];
+    strncpy(buffer, tmp+startpoint, length);
 }
 
 /*
@@ -7054,6 +7055,16 @@ int API dw_window_set_color(HWND handle, ULONG fore, ULONG back)
             [cont setForegroundColor:fg];
         }
     }
+    else if([object isKindOfClass:[NSScrollView class]])
+    {
+        NSScrollView *sv = handle;
+        id dv = [sv documentView];
+        if(bg)
+        {
+            [dv setBackgroundColor:bg];
+        }
+        // TODO don't know how to set foreground colour of documentview
+    }
     return 0;
 }
 
@@ -8943,24 +8954,24 @@ int API dw_init(int newthread, int argc, char *argv[])
     {
         char *pathcopy = strdup(argv[0]);
         char *app = strstr(pathcopy, ".app/");
-        
+
         if(app)
         {
             char pathbuf[PATH_MAX];
-            
+
             *app = 0;
-            
+
             getcwd(pathbuf, PATH_MAX);
-            
+
             /* If run from a bundle the path seems to be / */
             if(strcmp(pathbuf, "/") == 0)
             {
                 size_t len;
-                
+
                 strncpy(pathbuf, pathcopy, PATH_MAX);
-                
+
                 len = strlen(pathbuf);
-                
+
                 while(len > 0 && pathbuf[len] != '/')
                 {
                     len--;
