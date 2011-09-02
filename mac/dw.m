@@ -7068,12 +7068,16 @@ int API dw_window_set_color(HWND handle, ULONG fore, ULONG back)
     else if([object isKindOfClass:[NSScrollView class]])
     {
         NSScrollView *sv = handle;
-        id dv = [sv documentView];
+        DWMLE *mle = [sv documentView];
         if(bg)
         {
-            [dv setBackgroundColor:bg];
+            [mle setBackgroundColor:bg];
         }
-        // TODO don't know how to set foreground colour of documentview
+        if(fg)
+        {
+            NSTextStorage *ts = [mle textStorage];
+            [ts setForegroundColor:fg];
+        }
     }
     return 0;
 }
