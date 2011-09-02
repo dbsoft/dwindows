@@ -701,7 +701,16 @@ DWObject *DWObj;
 @end
 
 @implementation DWWindow
--(void)sendEvent:(NSEvent *)theEvent { if([theEvent type] == NSKeyDown) { _event_handler(self, theEvent, 2); } [super sendEvent:theEvent]; }
+-(void)sendEvent:(NSEvent *)theEvent
+{
+   int rcode = 0;
+   if([theEvent type] == NSKeyDown)
+   {
+      rcode = _event_handler(self, theEvent, 2);
+   }
+   if ( rcode == 0 )
+      [super sendEvent:theEvent];
+}
 -(void)keyDown:(NSEvent *)theEvent { }
 -(void)mouseDragged:(NSEvent *)theEvent { _event_handler(self, theEvent, 5); }
 -(int)redraw { return redraw; }
@@ -4298,6 +4307,7 @@ void API dw_mle_export(HWND handle, char *buffer, int startpoint, int length)
     NSMutableString *ms = [ts mutableString];
     const char *tmp = [ms UTF8String];
     strncpy(buffer, tmp+startpoint, length);
+    buffer[length] = '\0';
 }
 
 /*
