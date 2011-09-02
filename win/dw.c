@@ -2607,6 +2607,7 @@ BOOL CALLBACK _colorwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
    ColorInfo *cinfo;
    char tmpbuf[100];
    WNDPROC pOldProc = 0;
+   int ret = -1;
 
    cinfo = (ColorInfo *)GetWindowLongPtr(hWnd, GWLP_USERDATA);
 
@@ -2615,7 +2616,7 @@ BOOL CALLBACK _colorwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
       cinfo = &(((Box *)cinfo)->cinfo);
 
    if ( msg == WM_MOUSEMOVE )
-      _wndproc(hWnd, msg, mp1, mp2);
+      ret = _wndproc(hWnd, msg, mp1, mp2);
 
    if (cinfo)
    {
@@ -2624,22 +2625,20 @@ BOOL CALLBACK _colorwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
       switch( msg )
       {
       case WM_SETFOCUS:
-            if(cinfo->combo)
-            _wndproc(cinfo->combo, msg, mp1, mp2);
+         if(cinfo->combo)
+            ret = _wndproc(cinfo->combo, msg, mp1, mp2);
          else
-            _wndproc(hWnd, msg, mp1, mp2);
+            ret = _wndproc(hWnd, msg, mp1, mp2);
          break;
       case WM_VSCROLL:
       case WM_HSCROLL:
-         _wndproc(hWnd, msg, mp1, mp2);
+            ret = _wndproc(hWnd, msg, mp1, mp2);
          break;
       case WM_KEYDOWN:
       case WM_KEYUP:
          {
             if (hWnd && (mp1 == VK_UP || mp1 == VK_DOWN))
             {
-               BOOL ret;
-
                if (!cinfo || !cinfo->pOldProc)
                   ret = DefWindowProc(hWnd, msg, mp1, mp2);
                ret = CallWindowProc(cinfo->pOldProc, hWnd, msg, mp1, mp2);
@@ -2663,8 +2662,6 @@ BOOL CALLBACK _colorwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
          {
             if(mp1 == 101)
             {
-               BOOL ret;
-
                if(!cinfo || !cinfo->pOldProc)
                   ret = DefWindowProc(hWnd, msg, mp1, mp2);
                ret = CallWindowProc(cinfo->pOldProc, hWnd, msg, mp1, mp2);
@@ -2680,8 +2677,8 @@ BOOL CALLBACK _colorwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
          }
          break;
       case WM_CHAR:
-         _wndproc(hWnd, msg, mp1, mp2);
-         if (LOWORD(mp1) == '\t')
+         ret = _wndproc(hWnd, msg, mp1, mp2);
+         if (ret != TRUE && LOWORD(mp1) == '\t')
          {
             if (GetAsyncKeyState(VK_SHIFT) & 0x8000)
             {
@@ -2820,9 +2817,13 @@ BOOL CALLBACK _colorwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
       }
    }
 
-   if(!pOldProc)
-      return DefWindowProc(hWnd, msg, mp1, mp2);
-   return CallWindowProc(pOldProc, hWnd, msg, mp1, mp2);
+   if(ret == -1)
+   {
+       if(!pOldProc)
+          return DefWindowProc(hWnd, msg, mp1, mp2);
+       return CallWindowProc(pOldProc, hWnd, msg, mp1, mp2);
+   }
+   return ret;
 }
 
 BOOL CALLBACK _containerwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
@@ -2946,16 +2947,18 @@ BOOL CALLBACK _containerwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 BOOL CALLBACK _treewndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 {
    ContainerInfo *cinfo;
+   int ret = -1;
 
    cinfo = (ContainerInfo *)GetWindowLongPtr(hWnd, GWLP_USERDATA);
 
    switch( msg )
    {
    case WM_MOUSEMOVE:
-      _wndproc(hWnd, msg, mp1, mp2);
+      ret = _wndproc(hWnd, msg, mp1, mp2);
       break;
    case WM_CHAR:
-      if(LOWORD(mp1) == '\t')
+      ret = _wndproc(hWnd, msg, mp1, mp2);
+      if(ret != TRUE && LOWORD(mp1) == '\t')
       {
          if(GetAsyncKeyState(VK_SHIFT) & 0x8000)
             _shift_focus_back(hWnd);
@@ -2966,9 +2969,13 @@ BOOL CALLBACK _treewndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
       break;
    }
 
-   if(!cinfo || !cinfo->pOldProc)
-      return DefWindowProc(hWnd, msg, mp1, mp2);
-   return CallWindowProc(cinfo->pOldProc, hWnd, msg, mp1, mp2);
+   if(ret != TRUE)
+   {
+       if(!cinfo || !cinfo->pOldProc)
+          return DefWindowProc(hWnd, msg, mp1, mp2);
+       return CallWindowProc(cinfo->pOldProc, hWnd, msg, mp1, mp2);
+   }
+   return ret;
 }
 
 void _changebox(Box *thisbox, int percent, int type)
