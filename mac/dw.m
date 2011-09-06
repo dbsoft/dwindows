@@ -703,12 +703,12 @@ DWObject *DWObj;
 @implementation DWWindow
 -(void)sendEvent:(NSEvent *)theEvent
 {
-   int rcode = 0;
+   int rcode = -1;
    if([theEvent type] == NSKeyDown)
    {
       rcode = _event_handler(self, theEvent, 2);
    }
-   if ( rcode == 0 )
+   if ( rcode != TRUE )
       [super sendEvent:theEvent];
 }
 -(void)keyDown:(NSEvent *)theEvent { }
