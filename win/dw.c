@@ -2196,21 +2196,6 @@ dw_messagebox("NM_CUSTOMDRAW for WC_LISTVIEW(mp2) from _wndproc (WM_NOTIFY) - no
             if ( strnicmp(tmpbuf, FRAMECLASSNAME, strlen(FRAMECLASSNAME)+1 ) == 0 )
             {
                int value = _HandleScroller(hWnd, bar, (int)HIWORD(mp1), (int)LOWORD(mp1));
-#ifndef SCROLLBOX_DEBUG
-               /*
-                * now we have the position we need to scroll the client window
-                * and set the scrollbar to the specified position
-                */
-               _dw_log( "After _HandleScroller: Got scroll for scrollbox: %d Handle %x hWnd %x\n", value,handle, hWnd );
-               if(value > -1)
-               {
-      char lasterror[257];
-                  SetScrollPos(hWnd, bar, value, TRUE);
-      FormatMessage( FORMAT_MESSAGE_FROM_SYSTEM, NULL, GetLastError(), MAKELANGID( LANG_NEUTRAL, SUBLANG_DEFAULT), lasterror, 256, NULL);
-                  _dw_log( "Error from setscrollpos: %s", lasterror );
-//                  dw_scrollbar_set_pos(handle, value);
-               }
-#endif
             }
          }
       }
@@ -2817,7 +2802,7 @@ BOOL CALLBACK _colorwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
       }
    }
 
-   if(ret == -1)
+   if(ret != TRUE)
    {
        if(!pOldProc)
           return DefWindowProc(hWnd, msg, mp1, mp2);
