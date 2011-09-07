@@ -1372,16 +1372,17 @@ DWObject *DWObj;
     if(tvcols && data)
     {
         int cols = (int)[tvcols count];
-        if(cols)
+        int total = (int)[data count];
+        if(cols && total)
         {
-            return [data count] / cols;
+            return total / cols;
         }
     }
     return 0;
 }
 -(id)tableView:(NSTableView *)aTable objectValueForTableColumn:(NSTableColumn *)aCol row:(NSInteger)aRow
 {
-    if(tvcols)
+    if(tvcols && data)
     {
         int z, col = -1;
         int count = (int)[tvcols count];
@@ -1397,8 +1398,11 @@ DWObject *DWObj;
         if(col != -1)
         {
             int index = (int)(aRow * count) + col;
-            id this = [data objectAtIndex:index];
-            return ([this isKindOfClass:[NSNull class]]) ? nil : this;
+            if(index < [data count])
+            {
+                id this = [data objectAtIndex:index];
+                return ([this isKindOfClass:[NSNull class]]) ? nil : this;
+            }
         }
     }
     return nil;
