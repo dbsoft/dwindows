@@ -1539,7 +1539,8 @@ DWObject *DWObj;
                 if(rowcount > 0)
                 {
                     int x;
-                    int width = 0;
+                    NSCell *colcell = [column headerCell];
+                    int width = [colcell cellSize].width;
 
                     for(x=0;x<rowcount;x++)
                     {
