@@ -9990,6 +9990,15 @@ int API dw_browse(char *url)
    return DW_ERROR_NONE;
 }
 
+typedef struct _dwprint 
+{
+    PRINTDLG pd;
+    DOCINFO di;
+    int (*drawfunc)(HPRINT, HPIXMAP, int, void *);
+    void *drawdata;
+    unsigned long flags;
+} DWPrint;
+
 /*
  * Creates a new print object.
  * Parameters:
@@ -10002,7 +10011,31 @@ int API dw_browse(char *url)
  */
 HPRINT API dw_print_new(unsigned long flags, unsigned int pages, void *drawfunc, void *drawdata)
 {
-   return NULL;
+    DWPrint *print;
+    
+    if(!drawfunc || !(print = calloc(1, sizeof(DWPrint))))
+        return NULL;
+    
+    print->drawfunc = drawfunc;
+    print->drawdata = drawdata;
+	print->pd.lStructSize = sizeof(PRINTDLG);
+	print->pd.hwndOwner = HWND_DESKTOP;
+	print->pd.Flags = PD_USEDEVMODECOPIESANDCOLLATE | PD_RETURNDC;
+	print->pd.nCopies = 1;
+	print->pd.nFromPage = 0xFFFF;
+	print->pd.nToPage = 0xFFFF;
+	print->pd.nMinPage	= 1;
+	print->pd.nMaxPage	= pages;
+
+	if(!PrintDlg(&(print->pd)))
+    {
+        free(print);
+        return NULL;
+    }
+
+    print->di.cbSize = sizeof(DOCINFO);
+    print->di.lpszDocName = "Dynamic Windows Print Job";
+    return print;
 }
 
 /*
@@ -10015,7 +10048,41 @@ HPRINT API dw_print_new(unsigned long flags, unsigned int pages, void *drawfunc,
  */
 int API dw_print_run(HPRINT print, unsigned long flags)
 {
-   return DW_ERROR_UNKNOWN;
+    DWPrint *p = print;
+    HPIXMAP pixmap;
+    int x;
+    
+    if(!p)
+        return DW_ERROR_UNKNOWN;
+        
+    if (!(pixmap = calloc(1,sizeof(struct _hpixmap))))
+        return DW_ERROR_UNKNOWN;
+
+    pixmap->width = GetDeviceCaps(p->pd.hDC, PHYSICALWIDTH); 
+    pixmap->height = GetDeviceCaps(p->pd.hDC, PHYSICALHEIGHT);
+
+    /*pixmap->handle = handle;*/
+    pixmap->hbm = CreateCompatibleBitmap(p->pd.hDC, pixmap->width, pixmap->height);
+    pixmap->hdc = CreateCompatibleDC(p->pd.hDC);
+    pixmap->transcolor = DW_RGB_TRANSPARENT;
+
+    SelectObject(pixmap->hdc, pixmap->hbm);
+
+    /* Start the job */
+	StartDoc(p->pd.hDC, &(p->di));
+    
+    /* Cycle through each page */
+    for(x=p->pd.nFromPage; x<p->pd.nToPage && p->drawfunc; x++)
+    {
+        StartPage(p->pd.hDC);
+        p->drawfunc(print, pixmap, x-1, p->drawdata);
+        EndPage(p->pd.hDC);
+    }
+    EndDoc(p->pd.hDC);
+    /* Free memory */
+    dw_pixmap_destroy(pixmap);
+    free(p);
+    return p->drawfunc ? DW_ERROR_NONE : DW_ERROR_UNKNOWN;
 }
 
 /*
@@ -10025,6 +10092,10 @@ int API dw_print_run(HPRINT print, unsigned long flags)
  */
 void API dw_print_cancel(HPRINT print)
 {
+    DWPrint *p = print;
+    
+    if(p)
+        p->drawfunc = NULL;
 }
 
 /*
