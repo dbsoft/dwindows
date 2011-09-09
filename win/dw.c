@@ -10018,16 +10018,16 @@ HPRINT API dw_print_new(unsigned long flags, unsigned int pages, void *drawfunc,
     
     print->drawfunc = drawfunc;
     print->drawdata = drawdata;
-	print->pd.lStructSize = sizeof(PRINTDLG);
-	print->pd.hwndOwner = HWND_DESKTOP;
-	print->pd.Flags = PD_USEDEVMODECOPIESANDCOLLATE | PD_RETURNDC;
-	print->pd.nCopies = 1;
-	print->pd.nFromPage = 0xFFFF;
-	print->pd.nToPage = 0xFFFF;
-	print->pd.nMinPage	= 1;
-	print->pd.nMaxPage	= pages;
+    print->pd.lStructSize = sizeof(PRINTDLG);
+    print->pd.hwndOwner = HWND_DESKTOP;
+    print->pd.Flags = PD_USEDEVMODECOPIESANDCOLLATE | PD_RETURNDC;
+    print->pd.nCopies = 1;
+    print->pd.nFromPage = 0xFFFF;
+    print->pd.nToPage = 0xFFFF;
+    print->pd.nMinPage = 1;
+    print->pd.nMaxPage = pages;
 
-	if(!PrintDlg(&(print->pd)))
+    if(!PrintDlg(&(print->pd)))
     {
         free(print);
         return NULL;
@@ -10069,7 +10069,7 @@ int API dw_print_run(HPRINT print, unsigned long flags)
     SelectObject(pixmap->hdc, pixmap->hbm);
 
     /* Start the job */
-	StartDoc(p->pd.hDC, &(p->di));
+    StartDoc(p->pd.hDC, &(p->di));
     
     /* Cycle through each page */
     for(x=p->pd.nFromPage; x<p->pd.nToPage && p->drawfunc; x++)
