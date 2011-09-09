@@ -10193,8 +10193,95 @@ void  dw_clipboard_set_text( char *str, int len )
    DW_MUTEX_UNLOCK;
 }
 
+/* Internal function to create the drawable pixmap and call the function */
+static void _dw_draw_page(GtkPrintOperation *operation, GtkPrintContext *context, int page_nr)
+{
+   cairo_t *cr = gtk_print_context_get_cairo_context(context);
+   void *drawdata = g_object_get_data(G_OBJECT(operation), "_dw_drawdata");
+   int (*drawfunc)(HPRINT, HPIXMAP, int, void *) = g_object_get_data(G_OBJECT(operation), "_dw_drawfunc");
+   int result = 0;
+   HPIXMAP pixmap;
+
+   if(cr && drawfunc && (pixmap = calloc(1,sizeof(struct _hpixmap))))
+   {
+      pixmap->image = cairo_get_group_target(cr);
+      pixmap->handle = (HWND)operation;
+      pixmap->width = gtk_print_context_get_width(context);
+      pixmap->height = gtk_print_context_get_height(context);
+      result = drawfunc((HPRINT)operation, pixmap, page_nr, drawdata);
+      if(result)
+         gtk_print_operation_draw_page_finish(operation);
+      free(pixmap);
+   }
+}
+
 /*
- * Returns a pointer to a static buffer which containes the
+ * Creates a new print object.
+ * Parameters:
+ *       flags: Flags to initially configure the print object.
+ *       pages: Number of pages to print.
+ *       drawfunc: The pointer to the function to be used as the callback.
+ *       drawdata: User data to be passed to the handler function.
+ * Returns:
+ *       A handle to the print object.
+ */
+HPRINT API dw_print_new(unsigned long flags, unsigned int pages, void *drawfunc, void *drawdata)
+{
+   GtkPrintOperation *op;
+   int _locked_by_me = FALSE;
+   
+   if(!drawfunc)
+      return NULL;
+
+   DW_MUTEX_LOCK;   
+   if((op = gtk_print_operation_new()))
+   {
+      gtk_print_operation_set_n_pages(op, pages);
+      g_object_set_data(G_OBJECT(op), "_dw_drawfunc", drawfunc);
+      g_object_set_data(G_OBJECT(op), "_dw_drawdata", drawdata);
+      g_signal_connect(op, "draw_page", G_CALLBACK(_dw_draw_page), NULL);
+   }
+   DW_MUTEX_UNLOCK;
+   return (HPRINT)op;
+}
+
+/*
+ * Runs the print job, causing the draw page callbacks to fire.
+ * Parameters:
+ *       print: Handle to the print object returned by dw_print_new().
+ *       flags: Flags to run the print job.
+ * Returns:
+ *       DW_ERROR_UNKNOWN on error or DW_ERROR_NONE on success.
+ */
+int API dw_print_run(HPRINT print, unsigned long flags)
+{
+   GtkPrintOperationResult res;
+   GtkPrintOperation *op = (GtkPrintOperation *)print;
+   int _locked_by_me = FALSE;
+   
+   DW_MUTEX_LOCK;
+   res = gtk_print_operation_run(op, GTK_PRINT_OPERATION_ACTION_PRINT_DIALOG, NULL, NULL);
+   DW_MUTEX_UNLOCK;
+   return (res == GTK_PRINT_OPERATION_RESULT_ERROR ? DW_ERROR_UNKNOWN : DW_ERROR_NONE);
+}
+
+/*
+ * Cancels the print job, typically called from a draw page callback.
+ * Parameters:
+ *       print: Handle to the print object returned by dw_print_new().
+ */
+void API dw_print_cancel(HPRINT print)
+{
+   int _locked_by_me = FALSE;
+   GtkPrintOperation *op = (GtkPrintOperation *)print;
+   
+   DW_MUTEX_LOCK;
+   gtk_print_operation_cancel(op);
+   DW_MUTEX_UNLOCK;
+}
+
+/*
+ * Returns a pointer to a static buffer which contains the
  * current user directory.  Or the root directory (C:\ on
  * OS/2 and Windows).
  */
