@@ -10223,7 +10223,7 @@ static void _dw_draw_page(GtkPrintOperation *operation, GtkPrintContext *context
  *       drawfunc: The pointer to the function to be used as the callback.
  *       drawdata: User data to be passed to the handler function.
  * Returns:
- *       A handle to the print object.
+ *       A handle to the print object or NULL on failure.
  */
 HPRINT API dw_print_new(unsigned long flags, unsigned int pages, void *drawfunc, void *drawdata)
 {
