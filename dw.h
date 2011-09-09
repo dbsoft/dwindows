@@ -1330,6 +1330,8 @@ typedef struct _dwdialog {
    void *data, *result;
 } DWDialog;
 
+typedef void *HPRINT;
+
 #define DW_SIGNAL_FUNC(a) ((void *)a)
 
 #define DW_DESKTOP               HWND_DESKTOP
@@ -1685,5 +1687,8 @@ void API dw_clipboard_set_text( char *str, int len );
 HWND API dw_calendar_new(unsigned long id);
 void API dw_calendar_set_date( HWND window, unsigned int year, unsigned int month, unsigned int day );
 void API dw_calendar_get_date( HWND window, unsigned int *year, unsigned int *month, unsigned int *day );
+HPRINT API dw_print_new(unsigned long flags, unsigned int pages, void *drawfunc, void *drawdata);
+int API dw_print_run(HPRINT print, unsigned long flags);
+void API dw_print_cancel(HPRINT print);
 
 #endif
