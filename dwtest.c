@@ -333,10 +333,11 @@ void draw_file( int row, int col )
     }
 }
 
-void draw_shapes(int direct)
+void draw_shapes(int direct, HPIXMAP hpma)
 {
-    int width = (int)DW_PIXMAP_WIDTH(text2pm), height = (int)DW_PIXMAP_HEIGHT(text2pm);
-    HPIXMAP pixmap = direct ? NULL : text2pm;
+    HPIXMAP hpm = hpma ? hpma : text2pm;
+    int width = (int)DW_PIXMAP_WIDTH(hpm), height = (int)DW_PIXMAP_HEIGHT(hpm);
+    HPIXMAP pixmap = direct ? NULL : hpm;
     HWND window = direct ? textbox2 : 0;
 
     image_x = (int)dw_spinbutton_get_pos(imagexspin);
@@ -355,7 +356,7 @@ void draw_shapes(int direct)
     }
 
     /* If we aren't drawing direct do a bitblt */
-    if(!direct)
+    if(!direct && !hpma)
     {
         text_expose( textbox2, NULL, NULL);
     }
@@ -366,15 +367,28 @@ void update_render(void)
     switch(render_type)
     {
         case 0:
-            draw_shapes(FALSE);
+            draw_shapes(FALSE, NULL);
             break;
         case 1:
-            draw_shapes(TRUE);
+            draw_shapes(TRUE, NULL);
             break;
         case 2:
             draw_file(current_row, current_col);
             break;
     }
+}
+
+int DWSIGNAL draw_page(HPRINT print, HPIXMAP pixmap, int page_num, void *data)
+{
+   draw_shapes(FALSE, pixmap);
+   return TRUE;
+}
+
+int DWSIGNAL print_callback(HWND window, void *data)
+{
+   HPRINT print = dw_print_new(0, 1, DW_SIGNAL_FUNC(draw_page), NULL);
+   dw_print_run(print, 0);
+   return FALSE;
 }
 
 int DWSIGNAL refresh_callback(HWND window, void *data)
@@ -843,7 +857,7 @@ int API motion_notify_event(HWND window, int x, int y, int buttonmask, void *dat
 void text_add(void)
 {
     unsigned long depth = dw_color_depth_get();
-    HWND vscrollbox, hbox, button1, label;
+    HWND vscrollbox, hbox, button1, button2, label;
 
     /* create a box to pack into the notebook page */
     pagebox = dw_box_new(BOXHORZ, 2);
@@ -880,6 +894,8 @@ void text_add(void)
 
     button1 = dw_button_new( "Refresh", 1223L );
     dw_box_pack_start( hbox, button1, 50, 25, TRUE, FALSE, 0);
+    button2 = dw_button_new( "Print", 1224L );
+    dw_box_pack_start( hbox, button2, 50, 25, TRUE, FALSE, 0);
 
     /* create render box for number pixmap */
     textbox1 = dw_render_new( 100 );
@@ -933,6 +949,7 @@ void text_add(void)
     dw_signal_connect(hscrollbar, DW_SIGNAL_VALUE_CHANGED, DW_SIGNAL_FUNC(scrollbar_valuechanged_callback), (void *)status1);
     dw_signal_connect(vscrollbar, DW_SIGNAL_VALUE_CHANGED, DW_SIGNAL_FUNC(scrollbar_valuechanged_callback), (void *)status1);
     dw_signal_connect(button1, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(refresh_callback), NULL);
+    dw_signal_connect(button2, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(print_callback), NULL);
     dw_signal_connect(rendcombo, DW_SIGNAL_LIST_SELECT, DW_SIGNAL_FUNC(render_select_event_callback), NULL );
     dw_signal_connect(mainwindow, DW_SIGNAL_KEY_PRESS, DW_SIGNAL_FUNC(keypress_callback), NULL);
 }

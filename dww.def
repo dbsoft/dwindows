@@ -287,3 +287,8 @@ EXPORTS
   dw_scrollbox_new                       @500
   dw_scrollbox_get_pos                   @501
   dw_scrollbox_get_range                 @502
+
+  dw_print_new                           @510
+  dw_print_run                           @511
+  dw_print_cancel                        @512
+  

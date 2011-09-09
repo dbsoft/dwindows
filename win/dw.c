@@ -9991,6 +9991,43 @@ int API dw_browse(char *url)
 }
 
 /*
+ * Creates a new print object.
+ * Parameters:
+ *       flags: Flags to initially configure the print object.
+ *       pages: Number of pages to print.
+ *       drawfunc: The pointer to the function to be used as the callback.
+ *       drawdata: User data to be passed to the handler function.
+ * Returns:
+ *       A handle to the print object or NULL on failure.
+ */
+HPRINT API dw_print_new(unsigned long flags, unsigned int pages, void *drawfunc, void *drawdata)
+{
+   return NULL;
+}
+
+/*
+ * Runs the print job, causing the draw page callbacks to fire.
+ * Parameters:
+ *       print: Handle to the print object returned by dw_print_new().
+ *       flags: Flags to run the print job.
+ * Returns:
+ *       DW_ERROR_UNKNOWN on error or DW_ERROR_NONE on success.
+ */
+int API dw_print_run(HPRINT print, unsigned long flags)
+{
+   return DW_ERROR_UNKNOWN;
+}
+
+/*
+ * Cancels the print job, typically called from a draw page callback.
+ * Parameters:
+ *       print: Handle to the print object returned by dw_print_new().
+ */
+void API dw_print_cancel(HPRINT print)
+{
+}
+
+/*
  * Returns a pointer to a static buffer which containes the
  * current user directory.  Or the root directory (C:\ on
  * OS/2 and Windows).
