@@ -10022,8 +10022,8 @@ HPRINT API dw_print_new(unsigned long flags, unsigned int pages, void *drawfunc,
     print->pd.hwndOwner = HWND_DESKTOP;
     print->pd.Flags = PD_USEDEVMODECOPIESANDCOLLATE | PD_RETURNDC;
     print->pd.nCopies = 1;
-    print->pd.nFromPage = 0xFFFF;
-    print->pd.nToPage = 0xFFFF;
+    print->pd.nFromPage = 1;
+    print->pd.nToPage = pages;
     print->pd.nMinPage = 1;
     print->pd.nMaxPage = pages;
 
@@ -10063,7 +10063,7 @@ int API dw_print_run(HPRINT print, unsigned long flags)
 
     /*pixmap->handle = handle;*/
     pixmap->hbm = CreateCompatibleBitmap(p->pd.hDC, pixmap->width, pixmap->height);
-    pixmap->hdc = CreateCompatibleDC(p->pd.hDC);
+    pixmap->hdc = p->pd.hDC;
     pixmap->transcolor = DW_RGB_TRANSPARENT;
 
     SelectObject(pixmap->hdc, pixmap->hbm);
@@ -10072,10 +10072,10 @@ int API dw_print_run(HPRINT print, unsigned long flags)
     StartDoc(p->pd.hDC, &(p->di));
     
     /* Cycle through each page */
-    for(x=p->pd.nFromPage; x<p->pd.nToPage && p->drawfunc; x++)
+    for(x=p->pd.nFromPage-1; x<p->pd.nToPage && p->drawfunc; x++)
     {
         StartPage(p->pd.hDC);
-        p->drawfunc(print, pixmap, x-1, p->drawdata);
+        p->drawfunc(print, pixmap, x, p->drawdata);
         EndPage(p->pd.hDC);
     }
     EndDoc(p->pd.hDC);
