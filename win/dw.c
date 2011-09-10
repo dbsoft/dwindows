@@ -10050,13 +10050,13 @@ int API dw_print_run(HPRINT print, unsigned long flags)
 {
     DWPrint *p = print;
     HPIXMAP pixmap;
-    int x;
+    int x, result = DW_ERROR_UNKNOWN;
     
     if(!p)
-        return DW_ERROR_UNKNOWN;
+        return result;
         
     if (!(pixmap = calloc(1,sizeof(struct _hpixmap))))
-        return DW_ERROR_UNKNOWN;
+        return result;
 
     pixmap->width = GetDeviceCaps(p->pd.hDC, PHYSICALWIDTH); 
     pixmap->height = GetDeviceCaps(p->pd.hDC, PHYSICALHEIGHT);
@@ -10079,10 +10079,12 @@ int API dw_print_run(HPRINT print, unsigned long flags)
         EndPage(p->pd.hDC);
     }
     EndDoc(p->pd.hDC);
+    if(p->drawfunc)
+        result = DW_ERROR_NONE;
     /* Free memory */
     dw_pixmap_destroy(pixmap);
     free(p);
-    return p->drawfunc ? DW_ERROR_NONE : DW_ERROR_UNKNOWN;
+    return result;
 }
 
 /*
