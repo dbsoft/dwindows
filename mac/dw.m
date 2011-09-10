@@ -9263,6 +9263,14 @@ int dw_browse(char *url)
     return DW_ERROR_NONE;
 }
 
+typedef struct _dwprint 
+{
+    NSPrintInfo *pi;
+    int (*drawfunc)(HPRINT, HPIXMAP, int, void *);
+    void *drawdata;
+    unsigned long flags;
+} DWPrint;
+
 /*
  * Creates a new print object.
  * Parameters:
@@ -9275,10 +9283,42 @@ int dw_browse(char *url)
  */
 HPRINT API dw_print_new(unsigned long flags, unsigned int pages, void *drawfunc, void *drawdata)
 {
-   return NULL;
+    DWPrint *print;
+    NSPrintPanel *panel;
+    PMPrintSettings settings;
+    NSPrintInfo *pi;
+    
+    if(!drawfunc || !(print = calloc(1, sizeof(DWPrint))))
+    {
+        return NULL;
+    }
+    
+    print->drawfunc = drawfunc;
+    print->drawdata = drawdata;
+    print->flags = flags;
+    
+    /* Get the page range */
+    pi = [NSPrintInfo sharedPrintInfo];
+    settings = [pi PMPrintSettings];
+    PMSetPageRange(settings, 1, pages);
+    PMSetFirstPage(settings, 1, true);
+    PMSetLastPage(settings, pages, true);
+    [pi updateFromPMPrintSettings];
+    
+    /* Create and show the print panel */
+    panel = [NSPrintPanel printPanel];
+    if(!panel || [panel runModalWithPrintInfo:pi] == NSCancelButton)
+    {
+        free(print);
+        return NULL;
+    }
+    /* Put the print info from the panel into the operation */
+    print->pi = pi;
+    
+    return print;
 }
 
-/*
+/* 
  * Runs the print job, causing the draw page callbacks to fire.
  * Parameters:
  *       print: Handle to the print object returned by dw_print_new().
@@ -9288,7 +9328,68 @@ HPRINT API dw_print_new(unsigned long flags, unsigned int pages, void *drawfunc,
  */
 int API dw_print_run(HPRINT print, unsigned long flags)
 {
-   return DW_ERROR_UNKNOWN;
+    DWPrint *p = print;
+    NSBitmapImageRep *rep;
+    NSPrintInfo *pi;
+    NSPrintOperation *po;
+    HPIXMAP pixmap;
+    NSImage *image;
+    NSImageView *iv;
+    NSSize size;
+    PMPrintSettings settings;
+    int x;
+    UInt32 start, end;
+    
+    if(!p)
+        return DW_ERROR_UNKNOWN;
+    
+    /* Figure out the printer/paper size */
+    pi = p->pi;
+    size = [pi paperSize];
+    /* Create an image view to print and a pixmap to draw into */
+    iv = [[NSImageView alloc] init];
+    pixmap = dw_pixmap_new(iv, size.width, size.height, 8);
+    rep = pixmap->image;
+    
+    /* Create an image with the data from the pixmap 
+     * to go into the image view.
+     */
+    image = [[NSImage alloc] initWithSize:[rep size]];
+    [image addRepresentation:rep];
+    [iv setImage:image];
+    
+    /* Create the print operation using the image view and
+     * print info obtained from the panel in the last call.
+     */
+    po = [NSPrintOperation printOperationWithView:iv printInfo:pi];
+    [po setShowsPrintPanel:NO];
+    
+    /* Get the page range */
+    settings = [pi PMPrintSettings];
+    PMGetFirstPage(settings, &start);
+    if(start)
+        start--;
+    PMGetLastPage(settings, &end);
+    PMSetPageRange(settings, 1, 1);
+    PMSetFirstPage(settings, 1, true);
+    PMSetLastPage(settings, 1, true);
+    [pi updateFromPMPrintSettings];
+    
+    /* Cycle through each page */
+    for(x=start; x<end && p->drawfunc; x++)
+    {
+        /* Call the application's draw function */
+        p->drawfunc(print, pixmap, x, p->drawdata);
+        /* Print the image view */
+        [po runOperation];
+        /* Fill the pixmap with white in case we are printing more pages */
+        dw_color_foreground_set(DW_CLR_WHITE);
+        dw_draw_rect(0, pixmap, TRUE, 0, 0, (int)size.width, (int)size.height);
+    }
+    /* Free memory */
+    dw_pixmap_destroy(pixmap);
+    free(p);
+    return p->drawfunc ? DW_ERROR_NONE : DW_ERROR_UNKNOWN;
 }
 
 /*
@@ -9298,5 +9399,9 @@ int API dw_print_run(HPRINT print, unsigned long flags)
  */
 void API dw_print_cancel(HPRINT print)
 {
+    DWPrint *p = print;
+    
+    if(p)
+        p->drawfunc = NULL;
 }
 
