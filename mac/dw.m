@@ -9337,18 +9337,18 @@ int API dw_print_run(HPRINT print, unsigned long flags)
     NSImageView *iv;
     NSSize size;
     PMPrintSettings settings;
-    int x;
+    int x, result = DW_ERROR_UNKNOWN;
     UInt32 start, end;
     
     if(!p)
-        return DW_ERROR_UNKNOWN;
+        return result;
     
     /* Figure out the printer/paper size */
     pi = p->pi;
     size = [pi paperSize];
     /* Create an image view to print and a pixmap to draw into */
     iv = [[NSImageView alloc] init];
-    pixmap = dw_pixmap_new(iv, size.width, size.height, 8);
+    pixmap = dw_pixmap_new(iv, (int)size.width, (int)size.height, 8);
     rep = pixmap->image;
     
     /* Create an image with the data from the pixmap 
@@ -9367,7 +9367,7 @@ int API dw_print_run(HPRINT print, unsigned long flags)
     /* Get the page range */
     settings = [pi PMPrintSettings];
     PMGetFirstPage(settings, &start);
-    if(start)
+    if(start > 0)
         start--;
     PMGetLastPage(settings, &end);
     PMSetPageRange(settings, 1, 1);
@@ -9386,10 +9386,12 @@ int API dw_print_run(HPRINT print, unsigned long flags)
         dw_color_foreground_set(DW_CLR_WHITE);
         dw_draw_rect(0, pixmap, TRUE, 0, 0, (int)size.width, (int)size.height);
     }
+    if(p->drawfunc)
+        result = DW_ERROR_NONE;
     /* Free memory */
     dw_pixmap_destroy(pixmap);
     free(p);
-    return p->drawfunc ? DW_ERROR_NONE : DW_ERROR_UNKNOWN;
+    return result;
 }
 
 /*
