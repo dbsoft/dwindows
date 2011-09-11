@@ -380,6 +380,7 @@ void update_render(void)
 
 int DWSIGNAL draw_page(HPRINT print, HPIXMAP pixmap, int page_num, void *data)
 {
+   dw_pixmap_set_font(pixmap, FIXEDFONT);
    draw_shapes(FALSE, pixmap);
    return TRUE;
 }

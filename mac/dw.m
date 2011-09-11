@@ -4803,9 +4803,9 @@ void API dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
     }
     if(pixmap)
     {
-        NSFont *font = nil;
+        NSFont *font = pixmap->font;
         DWRender *render = pixmap->handle;
-        if([render isMemberOfClass:[DWRender class]])
+        if(!font && [render isMemberOfClass:[DWRender class]])
         {
             font = [render font];
         }
@@ -6074,6 +6074,24 @@ float API dw_splitbar_get(HWND handle)
     return retval;
 }
 
+/* Internal function to convert fontname to NSFont */
+NSFont *_dw_font_by_name(char *fontname)
+{
+    char *fontcopy = strdup(fontname);
+    char *name = strchr(fontcopy, '.');
+    NSFont *font = nil;
+    
+    if(name)
+    {
+        int size = atoi(fontcopy);
+        *name = 0;
+        name++;
+        font = [NSFont fontWithName:[ NSString stringWithUTF8String:name ] size:(float)size];
+    }
+    free(fontcopy);
+    return font;
+}
+
 /*
  * Create a bitmap object to be packed.
  * Parameters:
@@ -6276,6 +6294,35 @@ HPIXMAP API dw_pixmap_grab(HWND handle, ULONG resid)
     return pixmap;
 }
 
+
+/*
+ * Sets the font used by a specified pixmap.
+ * Normally the pixmap font is obtained from the associated window handle.
+ * However this can be used to override that, or for pixmaps with no window.
+ * Parameters:
+ *          pixmap: Handle to a pixmap returned by dw_pixmap_new() or
+ *                  passed to the application via a callback.
+ *          fontname: Name and size of the font in the form "size.fontname"
+ */
+int API dw_pixmap_set_font(HPIXMAP pixmap, char *fontname)
+{
+    if(pixmap)
+    {
+        NSFont *font = _dw_font_by_name(fontname);
+        
+        if(font)
+        {
+            NSFont *oldfont = pixmap->font;
+            [font retain];
+            pixmap->font = font;
+            if(oldfont)
+                [oldfont release];
+            return DW_ERROR_NONE;
+        }
+    }
+    return DW_ERROR_GENERAL;
+}
+
 /*
  * Destroys an allocated pixmap.
  * Parameters:
@@ -6284,11 +6331,13 @@ HPIXMAP API dw_pixmap_grab(HWND handle, ULONG resid)
  */
 void API dw_pixmap_destroy(HPIXMAP pixmap)
 {
-    if ( pixmap )
+    if(pixmap)
     {
-       NSBitmapImageRep *image = (NSBitmapImageRep *)pixmap->image;
-       [image release];
-       free(pixmap);
+        NSBitmapImageRep *image = (NSBitmapImageRep *)pixmap->image;
+        NSFont *font = pixmap->font;
+        [image release];
+        [font release];
+        free(pixmap);
     }
 }
 
@@ -7264,23 +7313,6 @@ void API dw_window_reparent(HWND handle, HWND newparent)
         [window setLevel:NSNormalWindowLevel];
         [window setHidesOnDeactivate:NO];
     }
-}
-
-NSFont *_dw_font_by_name(char *fontname)
-{
-    char *fontcopy = strdup(fontname);
-    char *name = strchr(fontcopy, '.');
-    NSFont *font = nil;
-
-    if(name)
-    {
-        int size = atoi(fontcopy);
-        *name = 0;
-        name++;
-        font = [NSFont fontWithName:[ NSString stringWithUTF8String:name ] size:(float)size];
-    }
-    free(fontcopy);
-    return font;
 }
 
 /* Allows the user to choose a font using the system's font chooser dialog.

@@ -306,7 +306,7 @@ typedef struct _window_data {
 
 typedef struct _hpixmap {
     unsigned long width, height;
-    void *image;
+    void *image, *font;
     HWND handle;
 } *HPIXMAP;
 
@@ -636,6 +636,7 @@ typedef struct _hpixmap {
    HWND handle;
    void *bits;
    unsigned long depth;
+   HFONT font;
 } *HPIXMAP;
 
 typedef HWND HMENUI;
@@ -1257,6 +1258,8 @@ struct _dw_unix_shm {
 
 typedef struct _hpixmap {
    unsigned long width, height;
+   HWND handle;
+   void *font;
 #if GTK_MAJOR_VERSION > 2
    GdkPixbuf *pixbuf;  /* the actual image */
    cairo_surface_t *image; /* Going to have dual storage for now */
@@ -1264,7 +1267,6 @@ typedef struct _hpixmap {
    GdkPixmap *pixmap;  /* the actual image */
    GdkBitmap *bitmap;  /* if not null, the image mask representing the transparency mask */
 #endif
-   HWND handle;
 } *HPIXMAP;
 
 typedef GtkWidget *HMENUI;
@@ -1647,6 +1649,7 @@ HPIXMAP API dw_pixmap_new_from_file(HWND handle, char *filename);
 HPIXMAP API dw_pixmap_new_from_data(HWND handle, char *data, int len);
 HPIXMAP API dw_pixmap_grab(HWND handle, ULONG id);
 void API dw_pixmap_set_transparent_color( HPIXMAP pixmap, ULONG color );
+int API dw_pixmap_set_font(HPIXMAP pixmap, char *fontname);
 void API dw_pixmap_destroy(HPIXMAP pixmap);
 void API dw_beep(int freq, int dur);
 int API dw_messagebox(char *title, int flags, char *format, ...);
