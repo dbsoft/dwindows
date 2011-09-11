@@ -1259,7 +1259,7 @@ struct _dw_unix_shm {
 typedef struct _hpixmap {
    unsigned long width, height;
    HWND handle;
-   void *font;
+   char *font;
 #if GTK_MAJOR_VERSION > 2
    GdkPixbuf *pixbuf;  /* the actual image */
    cairo_surface_t *image; /* Going to have dual storage for now */
