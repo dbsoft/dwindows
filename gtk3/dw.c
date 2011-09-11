@@ -6832,7 +6832,7 @@ void dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
    int _locked_by_me = FALSE;
    cairo_t *cr = NULL;
    PangoFontDescription *font;
-   char *fontname = "fixed";
+   char *tmpname, *fontname = "fixed";
 
    if(!text)
       return;
@@ -6848,16 +6848,22 @@ void dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
          return;
       }
       cr = gdk_cairo_create(window);
-      fontname = (char *)g_object_get_data(G_OBJECT(handle), "_dw_fontname");
+      if((tmpname = (char *)g_object_get_data(G_OBJECT(handle), "_dw_fontname")))
+         fontname = tmpname;
    }
    else if(pixmap)
    {
-      fontname = (char *)g_object_get_data(G_OBJECT(pixmap->handle), "_dw_fontname");
+      char *tmpname;
+      
+      if(pixmap->font)
+         fontname = pixmap->font;
+      else if(pixmap->handle && (tmpname = (char *)g_object_get_data(G_OBJECT(pixmap->handle), "_dw_fontname")))
+         fontname = tmpname;
       cr = cairo_create(pixmap->image);
    }
    if(cr)
    {
-      font = pango_font_description_from_string(fontname ? fontname : "Sans");
+      font = pango_font_description_from_string(fontname);
       if(font)
       {
          PangoContext *context = pango_cairo_create_context(cr);
@@ -7153,6 +7159,30 @@ void dw_flush(void)
 }
 
 /*
+ * Sets the font used by a specified pixmap.
+ * Normally the pixmap font is obtained from the associated window handle.
+ * However this can be used to override that, or for pixmaps with no window.
+ * Parameters:
+ *          pixmap: Handle to a pixmap returned by dw_pixmap_new() or
+ *                  passed to the application via a callback.
+ *          fontname: Name and size of the font in the form "size.fontname"
+ * Returns:
+ *       DW_ERROR_NONE on success and DW_ERROR_GENERAL on failure.
+ */
+int API dw_pixmap_set_font(HPIXMAP pixmap, char *fontname)
+{
+    if(pixmap && fontname && *fontname)
+    {
+         char *oldfont = pixmap->font;
+         pixmap->font = strdup(fontname);
+         if(oldfont)
+             free(oldfont);
+         return DW_ERROR_NONE;
+    }
+    return DW_ERROR_GENERAL;
+}
+
+/*
  * Destroys an allocated pixmap.
  * Parameters:
  *       pixmap: Handle to a pixmap returned by
@@ -7165,6 +7195,8 @@ void dw_pixmap_destroy(HPIXMAP pixmap)
    DW_MUTEX_LOCK;
    g_object_unref(G_OBJECT(pixmap->pixbuf));
    cairo_surface_destroy(pixmap->image);
+   if(pixmap->font)
+      free(pixmap->font);
    free(pixmap);
    DW_MUTEX_UNLOCK;
 }
