@@ -6853,8 +6853,6 @@ void dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
    }
    else if(pixmap)
    {
-      char *tmpname;
-      
       if(pixmap->font)
          fontname = pixmap->font;
       else if(pixmap->handle && (tmpname = (char *)g_object_get_data(G_OBJECT(pixmap->handle), "_dw_fontname")))
