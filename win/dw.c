@@ -8618,7 +8618,7 @@ void API dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
    HDC hdc;
    int mustdelete = 0;
    HFONT hFont = 0, oldFont = 0;
-   ColorInfo *cinfo;
+   ColorInfo *cinfo = NULL;
    COLORREF background;
 
    if(handle)
@@ -8630,7 +8630,9 @@ void API dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
 
    if(handle)
       cinfo = (ColorInfo *)GetWindowLongPtr(handle, GWLP_USERDATA);
-   else
+   else if(pixmap->font)
+      hFont = pixmap->font;
+   else if(pixmap->handle)
       cinfo = (ColorInfo *)GetWindowLongPtr(pixmap->handle, GWLP_USERDATA);
 
    if(cinfo)
@@ -8988,6 +8990,35 @@ HPIXMAP API dw_pixmap_grab(HWND handle, ULONG id)
 }
 
 /*
+ * Sets the font used by a specified pixmap.
+ * Normally the pixmap font is obtained from the associated window handle.
+ * However this can be used to override that, or for pixmaps with no window.
+ * Parameters:
+ *          pixmap: Handle to a pixmap returned by dw_pixmap_new() or
+ *                  passed to the application via a callback.
+ *          fontname: Name and size of the font in the form "size.fontname"
+ * Returns:
+ *       DW_ERROR_NONE on success and DW_ERROR_GENERAL on failure.
+ */
+int API dw_pixmap_set_font(HPIXMAP pixmap, char *fontname)
+{
+    if(pixmap)
+    {
+        HFONT hfont = _acquire_font(pixmap->handle, fontname);
+        
+        if(hfont)
+        {
+            HFONT oldfont = pixmap->font;
+            pixmap->font = hfont;
+            if(oldfont)
+                DeleteObject(oldfont);
+            return DW_ERROR_NONE;
+        }
+    }
+    return DW_ERROR_GENERAL;
+}
+
+/*
  * Destroys an allocated pixmap.
  * Parameters:
  *       pixmap: Handle to a pixmap returned by
@@ -8997,9 +9028,11 @@ void API dw_pixmap_destroy(HPIXMAP pixmap)
 {
    if(pixmap)
    {
-      DeleteDC( pixmap->hdc );
-      DeleteObject( pixmap->hbm );
-      free( pixmap );
+      DeleteDC(pixmap->hdc);
+      DeleteObject(pixmap->hbm);
+      if(pixmap->font)
+        DeleteObject(pixmap->font);
+      free(pixmap);
    }
 }
 
@@ -10058,8 +10091,8 @@ int API dw_print_run(HPRINT print, unsigned long flags)
     if (!(pixmap = calloc(1,sizeof(struct _hpixmap))))
         return result;
 
-    pixmap->width = GetDeviceCaps(p->pd.hDC, PHYSICALWIDTH); 
-    pixmap->height = GetDeviceCaps(p->pd.hDC, PHYSICALHEIGHT);
+    pixmap->width = GetDeviceCaps(p->pd.hDC, HORZRES); 
+    pixmap->height = GetDeviceCaps(p->pd.hDC, VERTRES);
 
     /*pixmap->handle = handle;*/
     pixmap->hbm = CreateCompatibleBitmap(p->pd.hDC, pixmap->width, pixmap->height);

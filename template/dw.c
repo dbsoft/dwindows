@@ -2186,6 +2186,22 @@ HPIXMAP API dw_pixmap_grab(HWND handle, ULONG resid)
 }
 
 /*
+ * Sets the font used by a specified pixmap.
+ * Normally the pixmap font is obtained from the associated window handle.
+ * However this can be used to override that, or for pixmaps with no window.
+ * Parameters:
+ *          pixmap: Handle to a pixmap returned by dw_pixmap_new() or
+ *                  passed to the application via a callback.
+ *          fontname: Name and size of the font in the form "size.fontname"
+ * Returns:
+ *       DW_ERROR_NONE on success and DW_ERROR_GENERAL on failure.
+*/
+int API dw_pixmap_set_font(HPIXMAP pixmap, char *fontname)
+{
+    return DW_ERROR_GENERAL;
+}
+
+/*
  * Destroys an allocated pixmap.
  * Parameters:
  *       pixmap: Handle to a pixmap returned by
