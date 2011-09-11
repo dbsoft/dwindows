@@ -9357,6 +9357,9 @@ int API dw_print_run(HPRINT print, unsigned long flags)
     image = [[NSImage alloc] initWithSize:[rep size]];
     [image addRepresentation:rep];
     [iv setImage:image];
+    [iv setImageScaling:NSScaleProportionally];
+    [iv setFrameOrigin:NSMakePoint(0,0)];
+    [iv setFrameSize:size];
     
     /* Create the print operation using the image view and
      * print info obtained from the panel in the last call.
@@ -9389,8 +9392,10 @@ int API dw_print_run(HPRINT print, unsigned long flags)
     if(p->drawfunc)
         result = DW_ERROR_NONE;
     /* Free memory */
+    [image release];
     dw_pixmap_destroy(pixmap);
     free(p);
+    [iv release];
     return result;
 }
 
