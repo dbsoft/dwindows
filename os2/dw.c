@@ -8338,7 +8338,7 @@ void _CopyFontSettings(HPS hpsSrc, HPS hpsDst)
 
    GpiQueryFontMetrics(hpsSrc, sizeof(FONTMETRICS), &fm);
 
-    memset(&fat, 0, sizeof(fat));
+   memset(&fat, 0, sizeof(fat));
 
    fat.usRecordLength  = sizeof(FATTRS);
    fat.lMatch          = fm.lMatch;
@@ -8779,6 +8779,40 @@ HPIXMAP API dw_pixmap_grab(HWND handle, ULONG id)
    WinReleasePS(hps);
 
    return pixmap;
+}
+
+/*
+ * Sets the font used by a specified pixmap.
+ * Normally the pixmap font is obtained from the associated window handle.
+ * However this can be used to override that, or for pixmaps with no window.
+ * Parameters:
+ *          pixmap: Handle to a pixmap returned by dw_pixmap_new() or
+ *                  passed to the application via a callback.
+ *          fontname: Name and size of the font in the form "size.fontname"
+ * Returns:
+ *       DW_ERROR_NONE on success and DW_ERROR_GENERAL on failure.
+ */
+int API dw_pixmap_set_font(HPIXMAP pixmap, char *fontname)
+{
+    if(pixmap && fontname && *fontname)
+    {
+		char *name = strchr(fontname, '.');
+
+		if(name)
+		{
+			FATTRS fat;
+
+			memset(&fat, 0, sizeof(fat));
+
+			fat.usRecordLength  = sizeof(FATTRS);
+			strcpy(fat.szFacename, name);
+
+			GpiCreateLogFont(pixmap->hps, 0, 1L, &fat);
+			GpiSetCharSet(pixmap->hps, 1L);
+			return DW_ERROR_NONE;
+		}
+	}
+    return DW_ERROR_GENERAL;
 }
 
 /*
