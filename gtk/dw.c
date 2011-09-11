@@ -7861,7 +7861,7 @@ void dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
 #else
    GdkFont *font;
 #endif
-   char *fontname = "fixed";
+   char *tmpname, *fontname = "fixed";
 
    if(!text)
       return;
@@ -7869,12 +7869,16 @@ void dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
    DW_MUTEX_LOCK;
    if(handle)
    {
-      fontname = (char *)gtk_object_get_data(GTK_OBJECT(handle), "_dw_fontname");
+      if((tmpname = (char *)gtk_object_get_data(GTK_OBJECT(handle), "_dw_fontname")))
+         fontname = tmpname;
       gc = _set_colors(handle->window);
    }
    else if(pixmap)
    {
-      fontname = (char *)gtk_object_get_data(GTK_OBJECT(pixmap->handle), "_dw_fontname");
+      if(pixmap->font)
+         fontname = pixmap->font;
+      else if((tmpname = (char *)gtk_object_get_data(GTK_OBJECT(pixmap->handle), "_dw_fontname")))
+         fontname = tmpname;
       gc = _set_colors(pixmap->pixmap);
    }
    if(gc)
@@ -8271,6 +8275,30 @@ void dw_flush(void)
 }
 
 /*
+ * Sets the font used by a specified pixmap.
+ * Normally the pixmap font is obtained from the associated window handle.
+ * However this can be used to override that, or for pixmaps with no window.
+ * Parameters:
+ *          pixmap: Handle to a pixmap returned by dw_pixmap_new() or
+ *                  passed to the application via a callback.
+ *          fontname: Name and size of the font in the form "size.fontname"
+ * Returns:
+ *       DW_ERROR_NONE on success and DW_ERROR_GENERAL on failure.
+ */
+int API dw_pixmap_set_font(HPIXMAP pixmap, char *fontname)
+{
+    if(pixmap && fontname && *fontname)
+    {
+         char *oldfont = pixmap->font;
+         pixmap->font = strdup(fontname);
+         if(oldfont)
+             free(oldfont);
+         return DW_ERROR_NONE;
+    }
+    return DW_ERROR_GENERAL;
+}
+
+/*
  * Destroys an allocated pixmap.
  * Parameters:
  *       pixmap: Handle to a pixmap returned by
@@ -8282,6 +8310,8 @@ void dw_pixmap_destroy(HPIXMAP pixmap)
 
    DW_MUTEX_LOCK;
    gdk_pixmap_unref(pixmap->pixmap);
+   if(pixmap->font)
+      free(pixmap->font);
    free(pixmap);
    DW_MUTEX_UNLOCK;
 }
