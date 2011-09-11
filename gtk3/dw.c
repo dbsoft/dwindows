@@ -6857,7 +6857,7 @@ void dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
    }
    if(cr)
    {
-      font = pango_font_description_from_string(fontname);
+      font = pango_font_description_from_string(fontname ? fontname : "Sans");
       if(font)
       {
          PangoContext *context = pango_cairo_create_context(cr);
