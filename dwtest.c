@@ -387,7 +387,7 @@ int DWSIGNAL draw_page(HPRINT print, HPIXMAP pixmap, int page_num, void *data)
 
 int DWSIGNAL print_callback(HWND window, void *data)
 {
-   HPRINT print = dw_print_new(0, 1, DW_SIGNAL_FUNC(draw_page), NULL);
+   HPRINT print = dw_print_new("DWTest Job", 0, 1, DW_SIGNAL_FUNC(draw_page), NULL);
    dw_print_run(print, 0);
    return FALSE;
 }

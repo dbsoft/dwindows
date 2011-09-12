@@ -9307,6 +9307,7 @@ typedef struct _dwprint
 /*
  * Creates a new print object.
  * Parameters:
+ *       jobname: Name of the print job to show in the queue.
  *       flags: Flags to initially configure the print object.
  *       pages: Number of pages to print.
  *       drawfunc: The pointer to the function to be used as the callback.
@@ -9314,7 +9315,7 @@ typedef struct _dwprint
  * Returns:
  *       A handle to the print object or NULL on failure.
  */
-HPRINT API dw_print_new(unsigned long flags, unsigned int pages, void *drawfunc, void *drawdata)
+HPRINT API dw_print_new(char *jobname, unsigned long flags, unsigned int pages, void *drawfunc, void *drawdata)
 {
     DWPrint *print;
     NSPrintPanel *panel;
@@ -9326,6 +9327,9 @@ HPRINT API dw_print_new(unsigned long flags, unsigned int pages, void *drawfunc,
         return NULL;
     }
     
+    if(!jobname)
+        jobname = "Dynamic Windows Print Job";
+    
     print->drawfunc = drawfunc;
     print->drawdata = drawdata;
     print->flags = flags;
@@ -9336,6 +9340,7 @@ HPRINT API dw_print_new(unsigned long flags, unsigned int pages, void *drawfunc,
     PMSetPageRange(settings, 1, pages);
     PMSetFirstPage(settings, 1, true);
     PMSetLastPage(settings, pages, true);
+    PMPrintSettingsSetJobName(settings, (CFStringRef)[NSString stringWithUTF8String:jobname]);
     [pi updateFromPMPrintSettings];
     
     /* Create and show the print panel */

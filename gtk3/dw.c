@@ -10248,6 +10248,7 @@ static void _dw_draw_page(GtkPrintOperation *operation, GtkPrintContext *context
 /*
  * Creates a new print object.
  * Parameters:
+ *       jobname: Name of the print job to show in the queue.
  *       flags: Flags to initially configure the print object.
  *       pages: Number of pages to print.
  *       drawfunc: The pointer to the function to be used as the callback.
@@ -10255,7 +10256,7 @@ static void _dw_draw_page(GtkPrintOperation *operation, GtkPrintContext *context
  * Returns:
  *       A handle to the print object or NULL on failure.
  */
-HPRINT API dw_print_new(unsigned long flags, unsigned int pages, void *drawfunc, void *drawdata)
+HPRINT API dw_print_new(char *jobname, unsigned long flags, unsigned int pages, void *drawfunc, void *drawdata)
 {
    GtkPrintOperation *op;
    int _locked_by_me = FALSE;
@@ -10267,6 +10268,7 @@ HPRINT API dw_print_new(unsigned long flags, unsigned int pages, void *drawfunc,
    if((op = gtk_print_operation_new()))
    {
       gtk_print_operation_set_n_pages(op, pages);
+      gtk_print_operation_set_job_name(op, jobname ? jobname : "Dynamic Windows Print Job");
       g_object_set_data(G_OBJECT(op), "_dw_drawfunc", drawfunc);
       g_object_set_data(G_OBJECT(op), "_dw_drawdata", drawdata);
       g_signal_connect(op, "draw_page", G_CALLBACK(_dw_draw_page), NULL);
