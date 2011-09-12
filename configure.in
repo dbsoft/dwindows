@@ -108,6 +108,7 @@ AC_CHECK_HEADERS(unistd.h)
 AC_CHECK_HEADERS(sys/stat.h)
 
 AC_CHECK_FUNCS(pipe, AC_DEFINE(HAVE_PIPE,1,Determine whether we have the pipe function))
+AC_CHECK_FUNCS(vsnprintf, AC_DEFINE(HAVE_VSNPRINTF,1,Determine whether we have the vsnprintf function))
 
 AC_CHECK_FUNCS(connect)
 if test x"$ac_cv_func_connect" = x"no"; then

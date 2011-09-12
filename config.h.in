@@ -6,9 +6,6 @@
 /* Define if you have the connect function.  */
 #undef HAVE_CONNECT
 
-/* Define if you have the pipe function.  */
-#undef HAVE_PIPE
-
 /* Define if you have the <dirent.h> header file.  */
 #undef HAVE_DIRENT_H
 
@@ -29,6 +26,9 @@
 
 /* Determine whether we have the pipe function */
 #undef HAVE_PIPE
+
+/* Determine whether we have the vsnprintf function */
+#undef HAVE_VSNPRINTF
 
 /* Define if GtkMozEmbed is available */
 #undef USE_GTKMOZEMBED
