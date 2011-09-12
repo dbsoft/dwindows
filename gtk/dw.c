@@ -11705,6 +11705,7 @@ void  dw_clipboard_set_text( char *str, int len )
 /*
  * Creates a new print object.
  * Parameters:
+ *       jobname: Name of the print job to show in the queue.
  *       flags: Flags to initially configure the print object.
  *       pages: Number of pages to print.
  *       drawfunc: The pointer to the function to be used as the callback.
@@ -11712,7 +11713,7 @@ void  dw_clipboard_set_text( char *str, int len )
  * Returns:
  *       A handle to the print object or NULL on failure.
  */
-HPRINT API dw_print_new(unsigned long flags, unsigned int pages, void *drawfunc, void *drawdata)
+HPRINT API dw_print_new(char *jobname, unsigned long flags, unsigned int pages, void *drawfunc, void *drawdata)
 {
    return NULL;
 }

@@ -10065,6 +10065,7 @@ HWND API dw_html_new(unsigned long id)
 /*
  * Creates a new print object.
  * Parameters:
+ *       jobname: Name of the print job to show in the queue.
  *       flags: Flags to initially configure the print object.
  *       pages: Number of pages to print.
  *       drawfunc: The pointer to the function to be used as the callback.
@@ -10072,7 +10073,7 @@ HWND API dw_html_new(unsigned long id)
  * Returns:
  *       A handle to the print object or NULL on failure.
  */
-HPRINT API dw_print_new(unsigned long flags, unsigned int pages, void *drawfunc, void *drawdata)
+HPRINT API dw_print_new(char *jobname, unsigned long flags, unsigned int pages, void *drawfunc, void *drawdata)
 {
    return NULL;
 }
