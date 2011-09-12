@@ -1,4 +1,4 @@
-This is a stable release of Dynamic Windows version 2.1.0.
+This is a preview release of Dynamic Windows version 2.2.0.
 
 The current Dynamic Windows source base is considered stable on:
 OS/2, Mac, Windows, Linux, FreeBSD and Solaris.
@@ -6,7 +6,8 @@ OS/2, Mac, Windows, Linux, FreeBSD and Solaris.
 Known problems:
 
 Boxes with no expandable items will have their contents centered on 
-    GTK instead of top or left justified on the other platforms.
+    GTK2 instead of top or left justified on the other platforms.
+    This has been rectified in the GTK3 version via GtkGrid.
 MDI does not work on GTK3 and is not implemented the same on Mac.
     At this time we cannot recommend using MDI in new code,
     but it will be supported for existing code on OS/2, Win and GTK2.
@@ -14,6 +15,8 @@ MDI does not work on GTK3 and is not implemented the same on Mac.
 GTK3 due to changes in the core architecture does not support
     widgets that are smaller than what is contained within them
     unless they use scrolled windows. GTK2 and other platforms do.
+GTK 3.0 is not fully supported due to missing GtkGrid functions and
+    severe layout bugs that can't be worked around.  Use 3.1 or higher.
 Mac version built on Lion with Xcode 4.1 in 64bit mode will encounter
     a compiler optimization problem with the default gcc compiler.
     The workaround is to disable optimization or use clang instead.
@@ -42,21 +45,16 @@ OS/2 is currently missing the Calendar and HTML widgets because
 the system does not support them by default. Looking into writing
 custom ones or importing functionality from available libraries.
 
-Changes from version 2.0:
-Added support for MacOS 10.7 Lion, version 2.0 had some issues.
-Changed the font point size on Windows to be system consistent.
-    Applications setting Windows fonts may need to be adjusted
-    after upgrading to version 2.1. This eliminates an old
-    workaround, but causes old fonts to potentially be wrong.
-Fixed issues with the tree widget on Mac not being able to add
-    nodes at the same level with the same name.
-Added dw_font_set_default() to set the default text widget font.
-Added dw_font_choose() to display a dialog to pick a font.
-Added dw_box_pack_at_index() like the other dw_box_pack_*() 
-   functions except packing at arbitrary locations is possible.
-Added DW_INT_TO_POINTER/DW_POINTER_TO_INT/etc macros.
-Fixed gcc warnings on 64bit systems and others.
-Fixes for loading images from files on Windows and GTK3.
+Changes from version 2.1:
+Added printing support via dw_print_new, dw_print_run and dw_print_cancel.
+Added pixmap font override support. In prior versions when drawing
+   text to pixmaps the font set on the associated window handle is used.
+   dw_pixmap_set_font() can now override that font setting, and now
+   pixmaps without associated windows are supported and used in printing.
+Improved container optimization on Mac, header width now taken into account.
+Fixes for incorrect behavior on key_press callbacks on Mac and Windows.
+Fixes for lots of GTK3 layout and window positioning issues... 
+   although minimum size issues are still present.
 
 Dynamic Windows Documentation is available at:
 
