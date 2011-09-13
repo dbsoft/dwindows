@@ -9256,8 +9256,10 @@ int API dw_event_wait(HEV eve, unsigned long timeout)
    rc = WaitForSingleObject(eve, timeout);
    if(rc == WAIT_OBJECT_0)
       return DW_ERROR_NONE;
-   if(rc == WAIT_ABANDONED)
+   if(rc == WAIT_TIMEOUT)
       return DW_ERROR_TIMEOUT;
+   if(rc == WAIT_ABANDONED)
+      return DW_ERROR_NON_INIT;
    return DW_ERROR_GENERAL;
 }
 
