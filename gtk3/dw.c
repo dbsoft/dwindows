@@ -7486,7 +7486,7 @@ int dw_event_wait(HEV eve, unsigned long timeout)
       return DW_ERROR_GENERAL;
 
    pthread_mutex_lock (&(eve->mutex));
-   if(time != -1)
+   if(timeout != -1)
    {
       struct timeval now;
       struct timespec timeo;
