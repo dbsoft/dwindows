@@ -51,7 +51,11 @@ Added pixmap font override support. In prior versions when drawing
    text to pixmaps the font set on the associated window handle is used.
    dw_pixmap_set_font() can now override that font setting, and now
    pixmaps without associated windows are supported and used in printing.
+Added dw_mutex_trylock() function to try to obtain a mutex without blocking.
+Added DW_TIMEOUT_INFINITE which can now be used with dw_event_wait() in 
+   addition to dw_named_event_wait(), to block until the event is posted.
 Improved container optimization on Mac, header width now taken into account.
+Fixes for incorrect return codes from the dw_event_* functions on Windows.
 Fixes for incorrect behavior on key_press callbacks on Mac and Windows.
 Fixes for lots of GTK3 layout and window positioning issues... 
    although minimum size issues are still present.
