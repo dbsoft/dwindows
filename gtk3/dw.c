@@ -7478,8 +7478,6 @@ int dw_event_post (HEV eve)
 int dw_event_wait(HEV eve, unsigned long timeout)
 {
    int rc;
-   struct timeval now;
-   struct timespec timeo;
 
    if(!eve)
       return DW_ERROR_NON_INIT;
@@ -7488,10 +7486,19 @@ int dw_event_wait(HEV eve, unsigned long timeout)
       return DW_ERROR_GENERAL;
 
    pthread_mutex_lock (&(eve->mutex));
-   gettimeofday(&now, 0);
-   timeo.tv_sec = now.tv_sec + (timeout / 1000);
-   timeo.tv_nsec = now.tv_usec * 1000;
-   rc = pthread_cond_timedwait (&(eve->event), &(eve->mutex), &timeo);
+   if(time != -1)
+   {
+      struct timeval now;
+      struct timespec timeo;
+   
+      gettimeofday(&now, 0);
+      timeo.tv_sec = now.tv_sec + (timeout / 1000);
+      timeo.tv_nsec = now.tv_usec * 1000;
+      rc = pthread_cond_timedwait(&(eve->event), &(eve->mutex), &timeo);
+   }
+   else
+      rc = pthread_cond_wait(&(eve->event), &(eve->mutex));
+      
    pthread_mutex_unlock (&(eve->mutex));
    if(!rc)
       return DW_ERROR_NONE;
@@ -7794,7 +7801,7 @@ int dw_named_event_post(HEV eve)
 int dw_named_event_wait(HEV eve, unsigned long timeout)
 {
    fd_set rd;
-   struct timeval tv, *useme;
+   struct timeval tv, *useme = NULL;
    int retval = 0;
    char tmp;
 
@@ -7802,9 +7809,7 @@ int dw_named_event_wait(HEV eve, unsigned long timeout)
       return DW_ERROR_NON_INIT;
 
    /* Set the timout or infinite */
-   if(timeout == -1)
-      useme = NULL;
-   else
+   if(timeout != -1)
    {
       tv.tv_sec = timeout / 1000;
       tv.tv_usec = timeout % 1000;
