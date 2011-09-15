@@ -1353,6 +1353,8 @@ typedef void *HPRINT;
 #define DW_HORZ 0
 #define DW_VERT 1
 
+#define DW_TIMEOUT_INFINITE ((unsigned long)-1)
+
 /* Obsolete, should disappear sometime */
 #define BOXHORZ DW_HORZ
 #define BOXVERT DW_VERT
