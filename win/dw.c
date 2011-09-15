@@ -9229,7 +9229,9 @@ HEV API dw_event_new(void)
  */
 int API dw_event_reset(HEV eve)
 {
-   return ResetEvent(eve);
+   if(ResetEvent(eve))
+      return DW_ERROR_NONE;
+   return DW_ERROR_GENERAL;
 }
 
 /*
@@ -9240,7 +9242,9 @@ int API dw_event_reset(HEV eve)
  */
 int API dw_event_post(HEV eve)
 {
-   return (SetEvent(eve) == 0);
+   if(SetEvent(eve))
+      return DW_ERROR_NONE;
+   return DW_ERROR_GENERAL;
 }
 
 /*
@@ -9253,13 +9257,13 @@ int API dw_event_wait(HEV eve, unsigned long timeout)
 {
    int rc;
 
-   rc = WaitForSingleObject(eve, timeout);
+   rc = WaitForSingleObject(eve, timeout != -1 ? timeout : INFINITE);
    if(rc == WAIT_OBJECT_0)
       return DW_ERROR_NONE;
    if(rc == WAIT_TIMEOUT)
       return DW_ERROR_TIMEOUT;
    if(rc == WAIT_ABANDONED)
-      return DW_ERROR_NON_INIT;
+      return DW_ERROR_INTERRUPT;
    return DW_ERROR_GENERAL;
 }
 
@@ -9270,9 +9274,9 @@ int API dw_event_wait(HEV eve, unsigned long timeout)
  */
 int API dw_event_close(HEV *eve)
 {
-   if(eve)
-      return (CloseHandle(*eve) == 0);
-   return DW_ERROR_NONE;
+   if(eve && CloseHandle(*eve))
+      return DW_ERROR_NONE;
+   return DW_ERROR_GENERAL;
 }
 
 /* Create a named event semaphore which can be
@@ -9311,13 +9315,9 @@ HEV API dw_named_event_get(char *name)
  */
 int API dw_named_event_reset(HEV eve)
 {
-   int rc;
-
-   rc = ResetEvent(eve);
-   if(!rc)
-      return DW_ERROR_GENERAL;
-
-   return DW_ERROR_NONE;
+   if(ResetEvent(eve))
+      return DW_ERROR_NONE;
+   return DW_ERROR_GENERAL;
 }
 
 /* Sets the posted state of an event semaphore, any threads
@@ -9328,13 +9328,9 @@ int API dw_named_event_reset(HEV eve)
  */
 int API dw_named_event_post(HEV eve)
 {
-   int rc;
-
-   rc = SetEvent(eve);
-   if(!rc)
-      return 1;
-
-   return 0;
+   if(SetEvent(eve))
+      DW_ERROR_NONE;
+   return DW_ERROR_GENERAL;
 }
 
 /* Waits on the specified semaphore until it becomes
@@ -9349,23 +9345,14 @@ int API dw_named_event_wait(HEV eve, unsigned long timeout)
 {
    int rc;
 
-   rc = WaitForSingleObject(eve, timeout);
-   switch (rc)
-   {
-   case WAIT_FAILED:
-      rc = DW_ERROR_TIMEOUT;
-      break;
-
-   case WAIT_ABANDONED:
-      rc = DW_ERROR_INTERRUPT;
-      break;
-
-   case WAIT_OBJECT_0:
-      rc = 0;
-      break;
-   }
-
-   return rc;
+   rc = WaitForSingleObject(eve, timeout != -1 ? timeout : INFINITE);
+   if(rc == WAIT_OBJECT_0)
+      return DW_ERROR_NONE;
+   if(rc == WAIT_TIMEOUT)
+      return DW_ERROR_TIMEOUT;
+   if(rc == WAIT_ABANDONED)
+      return DW_ERROR_INTERRUPT;
+   return DW_ERROR_GENERAL;
 }
 
 /* Release this semaphore, if there are no more open
@@ -9376,13 +9363,9 @@ int API dw_named_event_wait(HEV eve, unsigned long timeout)
  */
 int API dw_named_event_close(HEV eve)
 {
-   int rc;
-
-   rc = CloseHandle(eve);
-   if(!rc)
-      return 1;
-
-   return 0;
+   if(CloseHandle(eve))
+      return DW_ERROR_NONE;
+   return DW_ERROR_GENERAL;
 }
 
 /*
