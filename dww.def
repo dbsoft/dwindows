@@ -182,6 +182,7 @@ EXPORTS
   dw_mutex_close                         @301
   dw_mutex_lock                          @302
   dw_mutex_unlock                        @303
+  dw_mutex_trylock                       @304
 
   dw_event_new                           @310
   dw_event_reset                         @311

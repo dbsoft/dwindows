@@ -9205,6 +9205,20 @@ void API dw_mutex_lock(HMTX mutex)
 }
 
 /*
+ * Tries to gain access to the semaphore.
+ * Parameters:
+ *       mutex: The handle to the mutex returned by dw_mutex_new().
+ * Returns:
+ *       DW_ERROR_NONE on success, DW_ERROR_TIMEOUT if it is already locked.
+ */
+int API dw_mutex_trylock(HMTX mutex)
+{
+    if(WaitForSingleObject((HANDLE)mutex, 0) == WAIT_OBJECT_0)
+        return DW_ERROR_NONE;
+    return DW_ERROR_TIMEOUT;
+}
+
+/*
  * Reliquishes the access to the semaphore.
  * Parameters:
  *       mutex: The handle to the mutex returned by dw_mutex_new().
