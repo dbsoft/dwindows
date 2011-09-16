@@ -9659,7 +9659,11 @@ void API dw_environment_query(DWEnv *env)
    strcpy(env->buildTime, __TIME__);
    env->DWMajorVersion = DW_MAJOR_VERSION;
    env->DWMinorVersion = DW_MINOR_VERSION;
+#ifdef VER_REV
+   env->DWSubVersion = VER_REV;
+#else
    env->DWSubVersion = DW_SUB_VERSION;
+#endif
 }
 
 /* The next few functions are support functions for the OS/2 folder browser */

@@ -32,6 +32,12 @@ AC_CHECK_PROG(MAKE, gmake, gmake)
 if test x"$MAKE" = x; then
    AC_CHECK_PROG(MAKE, make, make)
 fi
+AC_CHECK_PROG(SVNVERSION, svnversion, svnversion)
+if test x"$SVNVERSION" = x; then
+   SVNVERSION=0
+else
+   SVNVERSION="\` $SVNVERSION -n . | tr -d M \`"
+fi
 
 AC_PROG_INSTALL
 
