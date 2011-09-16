@@ -1266,6 +1266,7 @@ typedef struct _hpixmap {
 #else
    GdkPixmap *pixmap;  /* the actual image */
    GdkBitmap *bitmap;  /* if not null, the image mask representing the transparency mask */
+   void *image;        /* Opaque handle to a cairo_surface_t for printing */
 #endif
 } *HPIXMAP;
 
