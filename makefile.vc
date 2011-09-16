@@ -3,6 +3,7 @@
 #
 VER = 21
 VERDOT = 2.1
+VERREV = 0
 
 #
 # Setup the source and destination directories
@@ -48,8 +49,15 @@ CFLAGS_DEBUG = -Ox -MT
 LINK_DEBUG = -release
 !endif
 
+# Check the SVN revision number if possible
+!if ![subwcrev . win\__SVN__.REV SVN.REV > NUL]
+!include SVN.REV
+!message Revision is [$(VERREV)]
+SVNVERSION=-DVER_REV=$(VERREV)
+!endif
+
 CC = cl
-CFLAGS = -c $(PLATFORM_DEF) -D__WIN32__ -DMSVC -DBUILD_DLL -I$(SRCDIR)\platform -I$(SRCDIR)
+CFLAGS = -c $(PLATFORM_DEF) -D__WIN32__ -DMSVC -DBUILD_DLL -I$(SRCDIR)\platform -I$(SRCDIR) $(SVNVERSION)
 LIBS = wsock32.lib kernel32.lib user32.lib comctl32.lib gdi32.lib advapi32.lib shell32.lib comdlg32.lib ole32.lib oleaut32.lib userenv.lib msimg32.lib
 RES =
 LINKFLAGS = -machine:$(TARGET_CPU) -manifest $(LINK_DEBUG)
@@ -63,6 +71,8 @@ OBJS = dw.obj browser.obj XBrowseForFolder.obj
 OBJS2 = compat.obj dirent.obj
 
 all: dw dwcompat dwtest
+
+
 
 clean:
 	-erase *.dll
@@ -79,8 +89,8 @@ clean:
 dw: dw.dll
 
 dw.dll: $(OBJS) $(DEFFILE)
-	-mkdir $(DWLIBDIR)
-	-mkdir $(DWDLLDIR)
+	-md $(DWLIBDIR)
+	-md $(DWDLLDIR)
 	$(LINK) @<<
 -out:$(@) -def:$(DEFFILE)
 $(LINKFLAGS) $(DLLLINKFLAGS)
