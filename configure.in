@@ -36,7 +36,7 @@ AC_CHECK_PROG(SVNVERSION, svnversion, svnversion)
 if test x"$SVNVERSION" = x; then
    SVNVERSION=0
 else
-   SVNVERSION="\` $SVNVERSION -n . | tr -d M \`"
+   SVNVERSION="\` $SVNVERSION -n . | cut -d \":\" -f 1 | tr -d MS \`"
 fi
 
 AC_PROG_INSTALL
