@@ -84,6 +84,7 @@ clean:
         -erase *.pdb
         -erase *.ilk
         -erase *.exp
+        -erase *.REV
         -erase *~
 
 dw: dw.dll

@@ -57,4 +57,5 @@ clean :
         @if exist *.lib del *.lib
         @if exist *.dll del *.dll
         @if exist *.exe del *.exe
+        @if exist *.REV del *.REV
 
