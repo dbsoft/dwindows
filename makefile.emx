@@ -9,11 +9,12 @@ MAKE = make
 COMPRESS = lxlite
 VER = 21
 VERDOT = 2.1
+VERREV = $(shell svnversion -n . | cut -d ":" -f 1 | tr -d MS)
 
 DEFS =
 LIBS =
 
-CFLAGS = -O -g -Zomf -Zmt -D__OS2__ -D__ST_MT_ERRNO__ -I. -Wall -o $(@)
+CFLAGS = -O -g -Zomf -Zmt -D__OS2__ -D__ST_MT_ERRNO__ -DVER_REV=$(VERREV) -I. -Wall -o $(@)
 LDFLAGS = -Zdll -Zcrtdll
 RCFLAGS = -r
 
@@ -43,7 +44,7 @@ dwtest.exe: dwtest.o dw.lib dwcompat.lib
 	$(CC) $(CFLAGS) -Zcrtdll -Zomf -Zmt -o dwtest.exe dwtest.o -Llib -ldw -ldwcompat dwtest.def
 
 clean:
-	$(RM) $(OBJECTS) dwtest.exe
+	$(RM) $(OBJECTS) dwtest.exe dw.dll dwcompat.dll
 
 dw.obj: dw.c
 	$(CC) $(CFLAGS) -c $<	
