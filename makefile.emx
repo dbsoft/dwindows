@@ -15,7 +15,7 @@ DEFS =
 LIBS =
 
 CFLAGS = -O -g -Zomf -Zmt -D__OS2__ -D__ST_MT_ERRNO__ -DVER_REV=$(VERREV) -I. -Wall -o $(@)
-LDFLAGS = -Zdll -Zcrtdll
+LDFLAGS = -Zdll -static-libgcc
 RCFLAGS = -r
 
 
@@ -41,7 +41,7 @@ dwcompat.lib: dwcompat.def
 	copy dwcompat.lib lib
 
 dwtest.exe: dwtest.o dw.lib dwcompat.lib
-	$(CC) $(CFLAGS) -Zcrtdll -Zomf -Zmt -o dwtest.exe dwtest.o -Llib -ldw -ldwcompat dwtest.def
+	$(CC) $(CFLAGS) -Zomf -Zmt -static-libgcc -o dwtest.exe dwtest.o -Llib -ldw -ldwcompat dwtest.def
 
 clean:
 	$(RM) $(OBJECTS) dwtest.exe dw.dll dwcompat.dll
