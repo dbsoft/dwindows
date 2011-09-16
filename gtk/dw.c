@@ -7734,12 +7734,29 @@ void dw_draw_point(HWND handle, HPIXMAP pixmap, int x, int y)
 {
    int _locked_by_me = FALSE;
    GdkGC *gc = NULL;
+#if GTK_CHECK_VERSION(2,10,0)
+   cairo_t *cr = NULL;
+#endif
 
    DW_MUTEX_LOCK;
    if(handle)
       gc = _set_colors(handle->window);
-   else if(pixmap)
+   else if(pixmap && pixmap->pixmap)
       gc = _set_colors(pixmap->pixmap);
+#if GTK_CHECK_VERSION(2,10,0)
+   else if(pixmap && pixmap->image)
+      cr = cairo_create(pixmap->image);
+   if(cr)
+   {
+      GdkColor *foreground = pthread_getspecific(_dw_fg_color_key);
+
+      gdk_cairo_set_source_color (cr, foreground);
+      cairo_set_line_width(cr, 1);
+      cairo_move_to(cr, x, y);
+      cairo_stroke(cr);
+      cairo_destroy(cr);
+   }
+#endif   
    if(gc)
    {
       gdk_draw_point(handle ? handle->window : pixmap->pixmap, gc, x, y);
@@ -7761,12 +7778,30 @@ void dw_draw_line(HWND handle, HPIXMAP pixmap, int x1, int y1, int x2, int y2)
 {
    int _locked_by_me = FALSE;
    GdkGC *gc = NULL;
+#if GTK_CHECK_VERSION(2,10,0)
+   cairo_t *cr = NULL;
+#endif
 
    DW_MUTEX_LOCK;
    if(handle)
       gc = _set_colors(handle->window);
-   else if(pixmap)
+   else if(pixmap && pixmap->pixmap)
       gc = _set_colors(pixmap->pixmap);
+#if GTK_CHECK_VERSION(2,10,0)
+   else if(pixmap && pixmap->image)
+      cr = cairo_create(pixmap->image);
+   if(cr)
+   {
+      GdkColor *foreground = pthread_getspecific(_dw_fg_color_key);
+
+      gdk_cairo_set_source_color (cr, foreground);
+      cairo_set_line_width(cr, 1);
+      cairo_move_to(cr, x1, y1);
+      cairo_line_to(cr, x2, y2);
+      cairo_stroke(cr);
+      cairo_destroy(cr);
+   }
+#endif
    if(gc)
    {
       gdk_draw_line(handle ? handle->window : pixmap->pixmap, gc, x1, y1, x2, y2);
@@ -7790,28 +7825,49 @@ void dw_draw_polygon(HWND handle, HPIXMAP pixmap, int fill, int npoints, int *x,
    int i;
    GdkGC *gc = NULL;
    GdkPoint *points = NULL;
+#if GTK_CHECK_VERSION(2,10,0)
+   cairo_t *cr = NULL;
+#endif
 
    DW_MUTEX_LOCK;
-   if ( handle )
-      gc = _set_colors( handle->window );
-   else if ( pixmap )
-      gc = _set_colors( pixmap->pixmap );
-   if ( npoints )
+   if(handle)
+      gc = _set_colors(handle->window);
+   else if(pixmap && pixmap->pixmap)
+      gc = _set_colors(pixmap->pixmap);
+#if GTK_CHECK_VERSION(2,10,0)
+   else if(pixmap && pixmap->image)
+      cr = cairo_create(pixmap->image);
+   if(cr)
    {
-      points = alloca( npoints * sizeof(GdkPoint) );
+       GdkColor *foreground = pthread_getspecific(_dw_fg_color_key);
+
+      gdk_cairo_set_source_color (cr, foreground);
+      cairo_set_line_width(cr, 1);
+      cairo_move_to(cr, x[0], y[0]);
+      for(i=1;i<npoints;i++)
+      {
+         cairo_line_to(cr, x[i], y[i]);
+      }
+      if(fill)
+         cairo_fill(cr);
+      cairo_stroke(cr);
+      cairo_destroy(cr);
+   }
+#endif   
+   if(gc && npoints)
+   {
+      points = alloca(npoints * sizeof(GdkPoint));
       /*
        * should check for NULL pointer return!
        */
-      for ( i = 0 ; i < npoints ; i++ )
+      for(i = 0; i < npoints; i++)
       {
          points[i].x = x[i];
          points[i].y = y[i];
       }
-   }
-   if ( gc )
-   {
+      
       gdk_draw_polygon(handle ? handle->window : pixmap->pixmap, gc, fill, points, npoints );
-      gdk_gc_unref( gc );
+      gdk_gc_unref(gc);
    }
    DW_MUTEX_UNLOCK;
 }
@@ -7830,12 +7886,34 @@ void dw_draw_rect(HWND handle, HPIXMAP pixmap, int fill, int x, int y, int width
 {
    int _locked_by_me = FALSE;
    GdkGC *gc = NULL;
+#if GTK_CHECK_VERSION(2,10,0)
+   cairo_t *cr = NULL;
+#endif
 
    DW_MUTEX_LOCK;
    if(handle)
       gc = _set_colors(handle->window);
-   else if(pixmap)
+   else if(pixmap && pixmap->pixmap)
       gc = _set_colors(pixmap->pixmap);
+#if GTK_CHECK_VERSION(2,10,0)
+   else if(pixmap && pixmap->image)
+      cr = cairo_create(pixmap->image);
+   if(cr)
+   {
+      GdkColor *foreground = pthread_getspecific(_dw_fg_color_key);
+
+      gdk_cairo_set_source_color (cr, foreground);
+      cairo_set_line_width(cr, 1);
+      cairo_move_to(cr, x, y);
+      cairo_line_to(cr, x, y + height);
+      cairo_line_to(cr, x + width, y + height);
+      cairo_line_to(cr, x + width, y);
+      if(fill)
+         cairo_fill(cr);
+      cairo_stroke(cr);
+      cairo_destroy(cr);
+   }
+#endif   
    if(gc)
    {
       gdk_draw_rectangle(handle ? handle->window : pixmap->pixmap, gc, fill, x, y, width, height);
@@ -7862,6 +7940,9 @@ void dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
    GdkFont *font;
 #endif
    char *tmpname, *fontname = "fixed";
+#if GTK_CHECK_VERSION(2,10,0)
+   cairo_t *cr = NULL;
+#endif
 
    if(!text)
       return;
@@ -7873,7 +7954,7 @@ void dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
          fontname = tmpname;
       gc = _set_colors(handle->window);
    }
-   else if(pixmap)
+   else if(pixmap && pixmap->pixmap)
    {
       if(pixmap->font)
          fontname = pixmap->font;
@@ -7881,6 +7962,62 @@ void dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
          fontname = tmpname;
       gc = _set_colors(pixmap->pixmap);
    }
+#if GTK_CHECK_VERSION(2,10,0)
+   else if(pixmap && pixmap->image)
+   {
+      if(pixmap->font)
+         fontname = pixmap->font;
+      else if(pixmap->handle && (tmpname = (char *)g_object_get_data(G_OBJECT(pixmap->handle), "_dw_fontname")))
+         fontname = tmpname;
+      cr = cairo_create(pixmap->image);
+   }
+   if(cr)
+   {
+      font = pango_font_description_from_string(fontname);
+      if(font)
+      {
+         PangoContext *context = pango_cairo_create_context(cr);
+
+         if(context)
+         {
+            PangoLayout *layout = pango_layout_new(context);
+
+            if(layout)
+            {
+               GdkColor *foreground = pthread_getspecific(_dw_fg_color_key);
+               GdkColor *background = pthread_getspecific(_dw_bg_color_key);
+
+               pango_layout_set_font_description(layout, font);
+               pango_layout_set_text(layout, text, strlen(text));
+
+               gdk_cairo_set_source_color (cr, foreground);
+               /* Create a background color attribute if required */
+               if(background)
+               {
+                  PangoAttrList *list = pango_layout_get_attributes(layout);
+                  PangoAttribute *attr = pango_attr_background_new(background->red,
+                                                                   background->green,
+                                                                   background->blue);
+                  if(!list)
+                  {
+                     list = pango_attr_list_new();
+                  }
+                  pango_attr_list_change(list, attr);
+                  pango_layout_set_attributes(layout, list);
+               }
+               /* Do the drawing */
+               cairo_move_to(cr, x, y);
+               pango_cairo_show_layout (cr, layout);
+
+               g_object_unref(layout);
+            }
+            g_object_unref(context);
+         }
+         pango_font_description_free(font);
+      }
+      cairo_destroy(cr);
+   }
+#endif
    if(gc)
    {
 #if GTK_MAJOR_VERSION > 1
@@ -11725,6 +11862,30 @@ void  dw_clipboard_set_text( char *str, int len )
    DW_MUTEX_UNLOCK;
 }
 
+#if GTK_CHECK_VERSION(2,10,0)
+/* Internal function to create the drawable pixmap and call the function */
+static void _dw_draw_page(GtkPrintOperation *operation, GtkPrintContext *context, int page_nr)
+{
+   cairo_t *cr = gtk_print_context_get_cairo_context(context);
+   void *drawdata = g_object_get_data(G_OBJECT(operation), "_dw_drawdata");
+   int (*drawfunc)(HPRINT, HPIXMAP, int, void *) = g_object_get_data(G_OBJECT(operation), "_dw_drawfunc");
+   int result = 0;
+   HPIXMAP pixmap;
+
+   if(cr && drawfunc && (pixmap = calloc(1,sizeof(struct _hpixmap))))
+   {
+      pixmap->image = cairo_get_group_target(cr);
+      pixmap->handle = (HWND)operation;
+      pixmap->width = gtk_print_context_get_width(context);
+      pixmap->height = gtk_print_context_get_height(context);
+      result = drawfunc((HPRINT)operation, pixmap, page_nr, drawdata);
+      if(result)
+         gtk_print_operation_draw_page_finish(operation);
+      free(pixmap);
+   }
+}
+#endif
+
 /*
  * Creates a new print object.
  * Parameters:
@@ -11738,7 +11899,27 @@ void  dw_clipboard_set_text( char *str, int len )
  */
 HPRINT API dw_print_new(char *jobname, unsigned long flags, unsigned int pages, void *drawfunc, void *drawdata)
 {
+#if GTK_CHECK_VERSION(2,10,0)
+   GtkPrintOperation *op;
+   int _locked_by_me = FALSE;
+   
+   if(!drawfunc)
+      return NULL;
+
+   DW_MUTEX_LOCK;   
+   if((op = gtk_print_operation_new()))
+   {
+      gtk_print_operation_set_n_pages(op, pages);
+      gtk_print_operation_set_job_name(op, jobname ? jobname : "Dynamic Windows Print Job");
+      g_object_set_data(G_OBJECT(op), "_dw_drawfunc", drawfunc);
+      g_object_set_data(G_OBJECT(op), "_dw_drawdata", drawdata);
+      g_signal_connect(op, "draw_page", G_CALLBACK(_dw_draw_page), NULL);
+   }
+   DW_MUTEX_UNLOCK;
+   return (HPRINT)op;
+#else
    return NULL;
+#endif
 }
 
 /*
@@ -11751,7 +11932,18 @@ HPRINT API dw_print_new(char *jobname, unsigned long flags, unsigned int pages, 
  */
 int API dw_print_run(HPRINT print, unsigned long flags)
 {
+#if GTK_CHECK_VERSION(2,10,0)
+   GtkPrintOperationResult res;
+   GtkPrintOperation *op = (GtkPrintOperation *)print;
+   int _locked_by_me = FALSE;
+   
+   DW_MUTEX_LOCK;
+   res = gtk_print_operation_run(op, GTK_PRINT_OPERATION_ACTION_PRINT_DIALOG, NULL, NULL);
+   DW_MUTEX_UNLOCK;
+   return (res == GTK_PRINT_OPERATION_RESULT_ERROR ? DW_ERROR_UNKNOWN : DW_ERROR_NONE);
+#else   
    return DW_ERROR_UNKNOWN;
+#endif
 }
 
 /*
@@ -11761,6 +11953,14 @@ int API dw_print_run(HPRINT print, unsigned long flags)
  */
 void API dw_print_cancel(HPRINT print)
 {
+#if GTK_CHECK_VERSION(2,10,0)
+   int _locked_by_me = FALSE;
+   GtkPrintOperation *op = (GtkPrintOperation *)print;
+   
+   DW_MUTEX_LOCK;
+   gtk_print_operation_cancel(op);
+   DW_MUTEX_UNLOCK;
+#endif
 }
 
 /*
