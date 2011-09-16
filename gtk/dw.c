@@ -406,11 +406,9 @@ static GtkWidgetClass *parent_class = NULL;
 
 static void gtk_mdi_class_init(GtkMdiClass *class)
 {
-   GObjectClass *object_class;
    GtkWidgetClass *widget_class;
    GtkContainerClass *container_class;
 
-   object_class = (GObjectClass *) class;
    widget_class = (GtkWidgetClass *) class;
    container_class = (GtkContainerClass *) class;
 
@@ -4067,7 +4065,10 @@ HWND dw_status_text_new(char *text, ULONG id)
  */
 HWND dw_mle_new(unsigned long id)
 {
-   GtkWidget *tmp, *tmpbox, *scroller;
+   GtkWidget *tmp, *tmpbox;
+#if GTK_MAJOR_VERSION < 2   
+   GtkWidget *scroller;
+#endif
    int _locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
@@ -4079,8 +4080,6 @@ HWND dw_mle_new(unsigned long id)
    tmp = gtk_text_view_new();
    gtk_container_add (GTK_CONTAINER(tmpbox), tmp);
    gtk_text_view_set_wrap_mode(GTK_TEXT_VIEW(tmp), GTK_WRAP_NONE);
-
-   scroller = NULL;
 #else
    tmpbox = gtk_hbox_new(FALSE, 0);
    tmp = gtk_text_new(NULL, NULL);
