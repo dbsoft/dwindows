@@ -9343,7 +9343,7 @@ int API dw_named_event_reset(HEV eve)
 int API dw_named_event_post(HEV eve)
 {
    if(SetEvent(eve))
-      DW_ERROR_NONE;
+      return DW_ERROR_NONE;
    return DW_ERROR_GENERAL;
 }
 
