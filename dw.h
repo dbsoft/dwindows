@@ -1623,6 +1623,7 @@ HWND API dw_window_from_id(HWND handle, int id);
 HMTX API dw_mutex_new(void);
 void API dw_mutex_close(HMTX mutex);
 void API dw_mutex_lock(HMTX mutex);
+int API dw_mutex_trylock(HMTX mutex);
 void API dw_mutex_unlock(HMTX mutex);
 HEV API dw_event_new(void);
 int API dw_event_reset(HEV eve);
