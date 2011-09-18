@@ -9,7 +9,7 @@ MAKE = make
 COMPRESS = lxlite
 VER = 21
 VERDOT = 2.1
-VERREV = $(shell svnversion -n . | cut -d ":" -f 1 | tr -d MS)
+VERREV = $(shell os2\svnrev.cmd)
 
 DEFS =
 LIBS =
