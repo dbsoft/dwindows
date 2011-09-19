@@ -9389,11 +9389,11 @@ HPRINT API dw_print_new(char *jobname, unsigned long flags, unsigned int pages, 
 int API dw_print_run(HPRINT print, unsigned long flags)
 {
     DWPrint *p = print;
-    NSBitmapImageRep *rep;
+    NSBitmapImageRep *rep, *rep2;
     NSPrintInfo *pi;
     NSPrintOperation *po;
-    HPIXMAP pixmap;
-    NSImage *image;
+    HPIXMAP pixmap, pixmap2;
+    NSImage *image, *flipped;
     NSImageView *iv;
     NSSize size;
     PMPrintSettings settings;
@@ -9410,13 +9410,17 @@ int API dw_print_run(HPRINT print, unsigned long flags)
     iv = [[NSImageView alloc] init];
     pixmap = dw_pixmap_new(iv, (int)size.width, (int)size.height, 8);
     rep = pixmap->image;
+    pixmap2 = dw_pixmap_new(iv, (int)size.width, (int)size.height, 8);
+    rep2 = pixmap2->image;
     
     /* Create an image with the data from the pixmap 
      * to go into the image view.
      */
     image = [[NSImage alloc] initWithSize:[rep size]];
+    flipped = [[NSImage alloc] initWithSize:[rep size]];
     [image addRepresentation:rep];
-    [iv setImage:image];
+    [flipped addRepresentation:pixmap->image];
+    [iv setImage:flipped];
     [iv setImageScaling:NSScaleProportionally];
     [iv setFrameOrigin:NSMakePoint(0,0)];
     [iv setFrameSize:size];
@@ -9443,6 +9447,11 @@ int API dw_print_run(HPRINT print, unsigned long flags)
     {
         /* Call the application's draw function */
         p->drawfunc(print, pixmap, x, p->drawdata);
+        /* Internal representation is flipped... so flip again so we can print */
+        _flip_image(image, rep2, size);
+        /* Save it to file to see what we have */
+        NSData *data = [rep2 representationUsingType: NSPNGFileType properties: nil];
+        [data writeToFile: @"print.png" atomically: NO];
         /* Print the image view */
         [po runOperation];
         /* Fill the pixmap with white in case we are printing more pages */
@@ -9453,7 +9462,9 @@ int API dw_print_run(HPRINT print, unsigned long flags)
         result = DW_ERROR_NONE;
     /* Free memory */
     [image release];
+    [flipped release];
     dw_pixmap_destroy(pixmap);
+    dw_pixmap_destroy(pixmap2);
     free(p);
     [iv release];
     return result;
