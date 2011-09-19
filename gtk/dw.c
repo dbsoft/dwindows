@@ -8486,14 +8486,14 @@ void _cairo_pixmap_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest, int wi
 #endif
       if(srcp && srcp->image)
          cairo_set_source_surface (cr, srcp->image, xdest - xsrc, ydest - ysrc);
-      else if(srcp && srcp->pixmap && !srcp->mask)
+      else if(srcp && srcp->pixmap && !srcp->bitmap)
          gdk_cairo_set_source_pixmap (cr, srcp->pixmap, xdest - xsrc, ydest - ysrc);
-      else if(srcp && srcp->pixmap && srcp->mask)
+      else if(srcp && srcp->pixmap && srcp->bitmap)
       {
          cairo_pattern_t *mask_pattern;
          
          /* hack to get the mask pattern */
-         gdk_cairo_set_source_pixmap(cr, srcp->mask, xdest, ydest);
+         gdk_cairo_set_source_pixmap(cr, srcp->bitmap, xdest, ydest);
          mask_pattern = cairo_get_source(cr);
          cairo_pattern_reference(mask_pattern);
 
@@ -8503,6 +8503,7 @@ void _cairo_pixmap_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest, int wi
          cairo_mask(cr, mask_pattern);
          cairo_destroy(cr);
          DW_MUTEX_UNLOCK;
+         return;
       }
 
       cairo_rectangle(cr, xdest, ydest, width, height);
