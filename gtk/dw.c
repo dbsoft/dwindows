@@ -8459,7 +8459,7 @@ void _cairo_pixmap_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest, int wi
    int _locked_by_me = FALSE;
    cairo_t *cr = NULL;
 
-   if((!dest && (!destp || !destp->image)) || (!src && (!srcp || !srcp->image)))
+   if((!dest && (!destp || !destp->image)) || (!src && (!srcp || (!srcp->image && !srcp->pixmap))))
       return;
 
    DW_MUTEX_LOCK;
@@ -8474,15 +8474,20 @@ void _cairo_pixmap_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest, int wi
       }
       cr = gdk_cairo_create(window);
    }
-   else if(destp)
+   else if(destp && destp->image)
       cr = cairo_create(destp->image);
 
    if(cr)
    {
+#if GTK_CHECK_VERSION(2,24,0)
       if(src)
          gdk_cairo_set_source_window (cr, gtk_widget_get_window(src), xdest -xsrc, ydest - ysrc);
-      else if(srcp)
+      else
+#endif
+      if(srcp && srcp->image)
          cairo_set_source_surface (cr, srcp->image, xdest - xsrc, ydest - ysrc);
+      else if(srcp && srcp->pixmap)
+         gdk_cairo_set_source_pixmap (cr, srcp->pixmap, xdest - xsrc, ydest - ysrc);
 
       cairo_rectangle(cr, xdest, ydest, width, height);
       cairo_fill(cr);
