@@ -9406,6 +9406,12 @@ int API dw_print_run(HPRINT print, unsigned long flags)
     /* Figure out the printer/paper size */
     pi = p->pi;
     size = [pi paperSize];
+    /* Okay the size reported is really small... and everything
+     * in Cocoa is scaled so ... multiply by 2 to get a better
+     * resolution but maintain the right aspect ratio.
+     */
+    size.width *= 2;
+    size.height *= 2;
     /* Create an image view to print and a pixmap to draw into */
     iv = [[NSImageView alloc] init];
     pixmap = dw_pixmap_new(iv, (int)size.width, (int)size.height, 8);
@@ -9419,7 +9425,7 @@ int API dw_print_run(HPRINT print, unsigned long flags)
     image = [[NSImage alloc] initWithSize:[rep size]];
     flipped = [[NSImage alloc] initWithSize:[rep size]];
     [image addRepresentation:rep];
-    [flipped addRepresentation:pixmap->image];
+    [flipped addRepresentation:rep2];
     [iv setImage:flipped];
     [iv setImageScaling:NSScaleProportionally];
     [iv setFrameOrigin:NSMakePoint(0,0)];
@@ -9449,9 +9455,11 @@ int API dw_print_run(HPRINT print, unsigned long flags)
         p->drawfunc(print, pixmap, x, p->drawdata);
         /* Internal representation is flipped... so flip again so we can print */
         _flip_image(image, rep2, size);
+#ifdef DEBUG_PRINT
         /* Save it to file to see what we have */
         NSData *data = [rep2 representationUsingType: NSPNGFileType properties: nil];
         [data writeToFile: @"print.png" atomically: NO];
+#endif
         /* Print the image view */
         [po runOperation];
         /* Fill the pixmap with white in case we are printing more pages */
