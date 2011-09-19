@@ -8452,6 +8452,46 @@ void dw_pixmap_destroy(HPIXMAP pixmap)
    DW_MUTEX_UNLOCK;
 }
 
+#if GTK_CHECK_VERSION(2,10,0)
+/* Cairo version of dw_pixmap_bitblt() from GTK3, use if either pixmap is a cairo surface */
+void _cairo_pixmap_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest, int width, int height, HWND src, HPIXMAP srcp, int xsrc, int ysrc)
+{
+   int _locked_by_me = FALSE;
+   cairo_t *cr = NULL;
+
+   if((!dest && (!destp || !destp->image)) || (!src && (!srcp || !srcp->image)))
+      return;
+
+   DW_MUTEX_LOCK;
+   if(dest)
+   {
+      GdkWindow *window = gtk_widget_get_window(dest);
+      /* Safety check for non-existant windows */
+      if(!window || !GDK_IS_WINDOW(window))
+      {
+         DW_MUTEX_UNLOCK;
+         return;
+      }
+      cr = gdk_cairo_create(window);
+   }
+   else if(destp)
+      cr = cairo_create(destp->image);
+
+   if(cr)
+   {
+      if(src)
+         gdk_cairo_set_source_window (cr, gtk_widget_get_window(src), xdest -xsrc, ydest - ysrc);
+      else if(srcp)
+         cairo_set_source_surface (cr, srcp->image, xdest - xsrc, ydest - ysrc);
+
+      cairo_rectangle(cr, xdest, ydest, width, height);
+      cairo_fill(cr);
+      cairo_destroy(cr);
+   }
+   DW_MUTEX_UNLOCK;
+}
+#endif
+
 /*
  * Copies from one item to another.
  * Parameters:
@@ -8476,6 +8516,14 @@ void dw_pixmap_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest, int width,
    int _locked_by_me = FALSE;
    GdkGC *gc = NULL;
 
+#if GTK_CHECK_VERSION(2,10,0)
+   if((destp && destp->image) || (srcp && srcp->image))
+   {
+      _cairo_pixmap_bitblt(dest, destp, xdest, ydest, width, height, src, srcp, xsrc, ysrc);
+      return;
+   }
+#endif
+   
    if((!dest && (!destp || !destp->pixmap)) || (!src && (!srcp || !srcp->pixmap)))
       return;
 

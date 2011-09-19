@@ -7223,7 +7223,7 @@ void dw_pixmap_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest, int width,
    int _locked_by_me = FALSE;
    cairo_t *cr = NULL;
 
-   if((!dest && (!destp || !destp->pixbuf)) || (!src && (!srcp || !srcp->pixbuf)))
+   if((!dest && (!destp || !destp->image)) || (!src && (!srcp || !srcp->image)))
       return;
 
    DW_MUTEX_LOCK;
