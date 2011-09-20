@@ -235,7 +235,7 @@ typedef struct _hpixmap {
    HDC hdc;
    HPS hps;
    HBITMAP hbm;
-   HWND handle;
+   HWND handle, font;
    unsigned long transcolor;
 } *HPIXMAP;
 
