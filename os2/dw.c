@@ -13,6 +13,7 @@
 #define INCL_DOSERRORS
 #define INCL_WIN
 #define INCL_GPI
+#define INCL_DEV
 
 #include <os2.h>
 #include <stdlib.h>
@@ -8796,22 +8797,22 @@ int API dw_pixmap_set_font(HPIXMAP pixmap, char *fontname)
 {
     if(pixmap && fontname && *fontname)
     {
-		char *name = strchr(fontname, '.');
+        char *name = strchr(fontname, '.');
 
-		if(name)
-		{
-			FATTRS fat;
+        if(name)
+        {
+            FATTRS fat;
 
-			memset(&fat, 0, sizeof(fat));
+            memset(&fat, 0, sizeof(fat));
 
-			fat.usRecordLength  = sizeof(FATTRS);
-			strcpy(fat.szFacename, name);
+            fat.usRecordLength  = sizeof(FATTRS);
+            strcpy(fat.szFacename, name);
 
-			GpiCreateLogFont(pixmap->hps, 0, 1L, &fat);
-			GpiSetCharSet(pixmap->hps, 1L);
-			return DW_ERROR_NONE;
-		}
-	}
+            GpiCreateLogFont(pixmap->hps, 0, 1L, &fat);
+            GpiSetCharSet(pixmap->hps, 1L);
+            return DW_ERROR_NONE;
+        }
+    }
     return DW_ERROR_GENERAL;
 }
 
@@ -10080,6 +10081,95 @@ HWND API dw_html_new(unsigned long id)
    return dw_box_new(DW_HORZ, 0);
 }
 
+typedef struct _dwprint 
+{
+    HDC hdc;
+    char *printername;
+    int (*drawfunc)(HPRINT, HPIXMAP, int, void *);
+    void *drawdata;
+    unsigned long flags;
+    unsigned int startpage, endpage;
+    char *jobname;
+} DWPrint;
+
+/* Internal functions to handle the print dialog */
+int DWSIGNAL _dw_printer_cancel_func(HWND window, void *data)
+{
+    DWPrint *print = (DWPrint *)data;
+    DWDialog *dwwait = (DWDialog *)print->printername;
+
+    window = (HWND)dwwait->data;
+
+    dw_window_destroy(window);
+    dw_dialog_dismiss(dwwait, NULL);
+    return FALSE;
+}
+
+int DWSIGNAL _dw_printer_ok_func(HWND window, void *data)
+{
+    DWPrint *print = (DWPrint *)data;
+    DWDialog *dwwait = (DWDialog *)print->printername;
+    HWND printerlist, startspin, endspin;
+    char *result = NULL;
+
+    window = (HWND)dwwait->data;
+    printerlist = (HWND)dw_window_get_data(window, "_dw_list");
+    startspin = (HWND)dw_window_get_data(window, "_dw_start_spin");
+    endspin = (HWND)dw_window_get_data(window, "_dw_end_spin");
+    if(printerlist)
+    {
+        char printername[32] = "";
+        int selected = dw_listbox_selected(printerlist);
+
+        /* Get the name of the selected printer */
+        if(selected != DW_ERROR_UNKNOWN)
+        {
+            dw_listbox_get_text(printerlist, selected, printername, 32);
+            if(printername[0])
+                print->printername = result = strdup(printername);
+        }
+        /* Get the start and end positions */
+        print->startpage = (unsigned int)dw_spinbutton_get_pos(startspin);
+        print->endpage = (unsigned int)dw_spinbutton_get_pos(endspin);
+
+        /* If the start is bigger than end... swap them */
+        if(print->startpage > print->endpage)
+        {
+            print->endpage = print->startpage;
+            print->startpage = (unsigned int)dw_spinbutton_get_pos(endspin);
+        }
+    }
+
+    dw_window_destroy(window);
+    dw_dialog_dismiss(dwwait, (void *)result);
+    return FALSE;
+}
+
+/* Borrowed functions which should probably be rewritten */
+BOOL _ExtractLogAddress(char * LogAddress, char * DetailStr)
+{
+    char *p;
+
+    p = DetailStr;
+    while(*p++ != ';'); /* Gets to first ';' and one char beyond */
+    while(*p++ != ';'); /* Gets to second ';' and one char beyond */
+    while(*p != ';') *LogAddress++ = *p++;
+    *LogAddress = '\0';
+    return TRUE;
+}
+
+BOOL _ExtractDriverName(char * DriverName, char * DetailStr)
+{
+    char *p;
+
+    p = DetailStr;
+    while(*p++ != ';'); /* Gets to first ';' and one char beyond */
+    while(*p != '.' && *p != ';' && *p != ',')
+        *DriverName++ = *p++;
+    *DriverName = '\0';
+    return TRUE;
+}
+
 /*
  * Creates a new print object.
  * Parameters:
@@ -10093,7 +10183,130 @@ HWND API dw_html_new(unsigned long id)
  */
 HPRINT API dw_print_new(char *jobname, unsigned long flags, unsigned int pages, void *drawfunc, void *drawdata)
 {
-   return NULL;
+    char printername[32], tmpbuf[20];
+    HWND window, hbox, vbox, printerlist, button, text;
+    DWDialog *dwwait;
+    DWPrint *print;
+    /* Check the default printer for now... want a printer list in the future */
+    int cb = PrfQueryProfileString(HINI_PROFILE, "PM_SPOOLER", "PRINTER", "", printername, 32);
+
+    if(!drawfunc || !(print = calloc(1, sizeof(DWPrint))))
+        return NULL;
+    
+    print->drawfunc = drawfunc;
+    print->drawdata = drawdata;
+    print->jobname = jobname ? jobname : "Dynamic Windows Print Job";
+    print->startpage = 1;
+    print->endpage = pages;
+    print->flags = flags;
+
+    /* Make sure we got a valid result */
+    if(cb > 2)
+        printername[cb-2] = '\0';
+    else
+    {
+        /* Show an error and return failure */
+        dw_messagebox("Printing", DW_MB_ERROR | DW_MB_OK, "No printers detected.");
+        free(print);
+        return NULL;
+    }
+
+    /* Create the print dialog */
+    window = dw_window_new(HWND_DESKTOP, "Choose Printer", FCF_SHELLPOSITION | FCF_TITLEBAR | FCF_DLGBORDER | FCF_CLOSEBUTTON | FCF_SYSMENU);
+
+    vbox = dw_box_new(DW_VERT, 5);
+
+    dw_box_pack_start(window, vbox, 0, 0, TRUE, TRUE, 0);
+
+    printerlist = dw_listbox_new(0, FALSE);
+    dw_box_pack_start(vbox, printerlist, 1, 1, TRUE, TRUE, 0);
+    dw_listbox_append(printerlist, printername);
+    dw_listbox_select(printerlist, 0, TRUE);
+
+    dw_window_set_data(window, "_dw_list", (void *)printerlist);
+
+    /* Start spinbutton */
+    hbox = dw_box_new(DW_HORZ, 0);
+
+    dw_box_pack_start(vbox, hbox, 0, 0, TRUE, FALSE, 0);
+
+    text = dw_text_new("Start page:", 0);
+    dw_window_set_style(text, DW_DT_VCENTER, DW_DT_VCENTER);
+    dw_box_pack_start(hbox, text, 70, 20, FALSE, FALSE, 3);
+
+    button = dw_spinbutton_new("1", 0);
+    dw_spinbutton_set_limits(button, 1, pages);
+    dw_box_pack_start(hbox, button, 20, 20, TRUE, FALSE, 3);
+    dw_window_set_data(window, "_dw_start_spin", (void *)button);
+
+    /* End spinbutton */
+    hbox = dw_box_new(DW_HORZ, 0);
+
+    dw_box_pack_start(vbox, hbox, 0, 0, TRUE, FALSE, 0);
+
+    text = dw_text_new("End page:", 0);
+    dw_window_set_style(text, DW_DT_VCENTER, DW_DT_VCENTER);
+    dw_box_pack_start(hbox, text, 70, 20, FALSE, FALSE, 3);
+
+    sprintf(tmpbuf, "%d", pages);
+    button = dw_spinbutton_new(tmpbuf, 0);
+    dw_spinbutton_set_limits(button, 1, pages);
+    dw_box_pack_start(hbox, button, 20, 20, TRUE, FALSE, 3);
+    dw_window_set_data(window, "_dw_end_spin", (void *)button);
+
+    /* Ok and Cancel buttons */
+    hbox = dw_box_new(DW_HORZ, 0);
+
+    dw_box_pack_start(vbox, hbox, 0, 0, TRUE, FALSE, 0);
+    dw_box_pack_start(hbox, 0, 100, 1, TRUE, FALSE, 0);
+
+    button = dw_button_new("Ok", 0);
+    dw_box_pack_start(hbox, button, 50, 30, TRUE, FALSE, 3);
+
+    dwwait = dw_dialog_new((void *)window);
+    /* Save it temporarily there until we need it */
+    print->printername = (char *)dwwait;
+
+    dw_signal_connect(button, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(_dw_printer_ok_func), (void *)print);
+
+    button = dw_button_new("Cancel", 0);
+    dw_box_pack_start(hbox, button, 50, 30, TRUE, FALSE, 3);
+
+    dw_signal_connect(button, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(_dw_printer_cancel_func), (void *)print);
+    dw_signal_connect(window, DW_SIGNAL_DELETE, DW_SIGNAL_FUNC(_dw_printer_cancel_func), (void *)print);
+
+    dw_window_set_size(window, 300, 400);
+
+    dw_window_show(window);
+
+    print->printername = dw_dialog_wait(dwwait);
+
+    /* The user picked a printer */
+    if(print->printername)
+    {
+        char PrintDetails[256];
+        char DriverName[32];
+        char LogAddress[32];
+        DEVOPENSTRUC dop;
+
+        /* Get the printer information string */
+        cb = PrfQueryProfileString(HINI_PROFILE, "PM_SPOOLER_PRINTER", print->printername, "", PrintDetails, 256);
+        _ExtractLogAddress(LogAddress, PrintDetails);
+        _ExtractDriverName(DriverName, PrintDetails);
+        dop.pszDriverName = DriverName;
+        dop.pszLogAddress = LogAddress;
+        dop.pdriv = NULL;
+        dop.pszDataType = "PM_Q_STD";
+        /* Attempt to open a device context and return a handle to it */
+        print->hdc = DevOpenDC(dwhab, OD_QUEUED, "*", 4L, (PDEVOPENDATA) &dop, (HDC)NULL);
+        if(print->hdc)
+            return print;
+    }
+    /* The user canceled */
+    if(print->printername)
+        free(print->printername);
+    free(print);
+    return NULL;
 }
 
 /*
@@ -10106,7 +10319,42 @@ HPRINT API dw_print_new(char *jobname, unsigned long flags, unsigned int pages, 
  */
 int API dw_print_run(HPRINT print, unsigned long flags)
 {
-   return DW_ERROR_UNKNOWN;
+    DWPrint *p = print;
+    HPIXMAP pixmap;
+    int x, result = DW_ERROR_UNKNOWN;
+    SIZEL sizl = { 0, 0 };
+    
+    if(!p)
+        return result;
+        
+    if (!(pixmap = calloc(1,sizeof(struct _hpixmap))))
+        return result;
+
+    /* Start the job */
+    DevEscape(p->hdc, DEVESC_STARTDOC, strlen(p->jobname), p->jobname, NULL, NULL);
+
+    /*pixmap->handle = handle;*/
+    pixmap->hdc = p->hdc;
+    pixmap->hps = GpiCreatePS(dwhab, p->hdc, &sizl, PU_PELS | GPIF_DEFAULT | GPIT_NORMAL | GPIA_ASSOC);
+    pixmap->transcolor = DW_RGB_TRANSPARENT;
+    pixmap->width = sizl.cx;
+    pixmap->height = sizl.cy;
+
+    /* Cycle through each page */
+    for(x=p->startpage-1; x<p->endpage && p->drawfunc; x++)
+    {
+        p->drawfunc(print, pixmap, x, p->drawdata);
+        /* Next page */
+        DevEscape(p->hdc, DEVESC_NEWFRAME, 0, NULL, NULL, NULL);
+    }
+    if(p->drawfunc)
+        result = DW_ERROR_NONE;
+    /* Free memory */
+    dw_pixmap_destroy(pixmap);
+    if(p->printername)
+        free(p->printername);
+    free(p);
+    return result;
 }
 
 /*
@@ -10116,6 +10364,10 @@ int API dw_print_run(HPRINT print, unsigned long flags)
  */
 void API dw_print_cancel(HPRINT print)
 {
+    DWPrint *p = print;
+    
+    if(p)
+        p->drawfunc = NULL;
 }
 
 /*
