@@ -8363,51 +8363,51 @@ void _CopyFontSettings(HPS hpsSrc, HPS hpsDst)
  */
 void API dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
 {
-   HPS hps;
-   int z, height;
-   RECTL rcl;
-   char fontname[128];
-   POINTL aptl[TXTBOX_COUNT];
+    HPS hps;
+    int z, height;
+    RECTL rcl;
+    char fontname[128];
+    POINTL aptl[TXTBOX_COUNT];
 
-   if(handle)
-   {
-      hps = _set_colors(handle);
-      height = _get_height(handle);
-      _GetPPFont(handle, fontname);
-   }
-   else if(pixmap)
-   {
-      HPS pixmaphps = WinGetPS(pixmap->handle);
+    if(handle)
+    {
+        hps = _set_colors(handle);
+        height = _get_height(handle);
+        _GetPPFont(handle, fontname);
+    }
+    else if(pixmap)
+    {
+        HPS pixmaphps = WinGetPS(pixmap->font ? pixmap->font : pixmap->handle);
 
-      hps = _set_hps(pixmap->hps);
-      height = pixmap->height;
-      _GetPPFont(pixmap->handle, fontname);
-      _CopyFontSettings(pixmaphps, hps);
-      WinReleasePS(pixmaphps);
-   }
-   else
-      return;
+        hps = _set_hps(pixmap->hps);
+        height = pixmap->height;
+        _GetPPFont(pixmap->font ? pixmap->font : pixmap->handle, fontname);
+        _CopyFontSettings(pixmaphps, hps);
+        WinReleasePS(pixmaphps);
+    }
+    else
+        return;
 
-   for(z=0;z<strlen(fontname);z++)
-   {
-      if(fontname[z]=='.')
-         break;
-   }
+    for(z=0;z<strlen(fontname);z++)
+    {
+        if(fontname[z]=='.')
+            break;
+    }
 
-   GpiQueryTextBox(hps, strlen(text), text, TXTBOX_COUNT, aptl);
+    GpiQueryTextBox(hps, strlen(text), text, TXTBOX_COUNT, aptl);
 
-   rcl.xLeft = x;
-   rcl.yTop = height - y;
-   rcl.yBottom = rcl.yTop - (aptl[TXTBOX_TOPLEFT].y - aptl[TXTBOX_BOTTOMLEFT].y);
-   rcl.xRight = rcl.xLeft + (aptl[TXTBOX_TOPRIGHT].x - aptl[TXTBOX_TOPLEFT].x);
+    rcl.xLeft = x;
+    rcl.yTop = height - y;
+    rcl.yBottom = rcl.yTop - (aptl[TXTBOX_TOPLEFT].y - aptl[TXTBOX_BOTTOMLEFT].y);
+    rcl.xRight = rcl.xLeft + (aptl[TXTBOX_TOPRIGHT].x - aptl[TXTBOX_TOPLEFT].x);
 
-   if(_background == DW_CLR_DEFAULT)
-      WinDrawText(hps, -1, text, &rcl, DT_TEXTATTRS, DT_TEXTATTRS, DT_VCENTER | DT_LEFT | DT_TEXTATTRS);
-   else
-      WinDrawText(hps, -1, text, &rcl, _internal_color(_foreground), _internal_color(_background), DT_VCENTER | DT_LEFT | DT_ERASERECT);
+    if(_background == DW_CLR_DEFAULT)
+        WinDrawText(hps, -1, text, &rcl, DT_TEXTATTRS, DT_TEXTATTRS, DT_VCENTER | DT_LEFT | DT_TEXTATTRS);
+    else
+        WinDrawText(hps, -1, text, &rcl, _internal_color(_foreground), _internal_color(_background), DT_VCENTER | DT_LEFT | DT_ERASERECT);
 
-   if(!pixmap)
-      WinReleasePS(hps);
+    if(!pixmap)
+        WinReleasePS(hps);
 }
 
 /* Query the width and height of a text string.
@@ -8797,21 +8797,10 @@ int API dw_pixmap_set_font(HPIXMAP pixmap, char *fontname)
 {
     if(pixmap && fontname && *fontname)
     {
-        char *name = strchr(fontname, '.');
-
-        if(name)
-        {
-            FATTRS fat;
-
-            memset(&fat, 0, sizeof(fat));
-
-            fat.usRecordLength  = sizeof(FATTRS);
-            strcpy(fat.szFacename, name);
-
-            GpiCreateLogFont(pixmap->hps, 0, 1L, &fat);
-            GpiSetCharSet(pixmap->hps, 1L);
-            return DW_ERROR_NONE;
-        }
+        if(!pixmap->font)
+            pixmap->font = WinCreateWindow(HWND_OBJECT, WC_FRAME, NULL, 0,0,0,1,1, NULLHANDLE, HWND_TOP,0, NULL, NULL);
+        WinSetPresParam(pixmap->font, PP_FONTNAMESIZE, strlen(fontname)+1, fontname);
+        return DW_ERROR_NONE;
     }
     return DW_ERROR_GENERAL;
 }
@@ -8824,12 +8813,14 @@ int API dw_pixmap_set_font(HPIXMAP pixmap, char *fontname)
  */
 void API dw_pixmap_destroy(HPIXMAP pixmap)
 {
-   GpiSetBitmap(pixmap->hps, NULLHANDLE);
-   GpiDeleteBitmap(pixmap->hbm);
-   GpiAssociate(pixmap->hps, NULLHANDLE);
-   GpiDestroyPS(pixmap->hps);
-   DevCloseDC(pixmap->hdc);
-   free(pixmap);
+    if(pixmap->font)
+        WinDestroyWindow(pixmap->font);
+    GpiSetBitmap(pixmap->hps, NULLHANDLE);
+    GpiDeleteBitmap(pixmap->hbm);
+    GpiAssociate(pixmap->hps, NULLHANDLE);
+    GpiDestroyPS(pixmap->hps);
+    DevCloseDC(pixmap->hdc);
+    free(pixmap);
 }
 
 /*
@@ -8851,7 +8842,7 @@ void API dw_pixmap_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest, int wi
    HPS hpsdest;
    HPS hpssrc;
    POINTL ptl[4];
-    int destheight, srcheight;
+   int destheight, srcheight;
 
    if(dest)
    {
@@ -10333,12 +10324,13 @@ int API dw_print_run(HPRINT print, unsigned long flags)
     /* Start the job */
     DevEscape(p->hdc, DEVESC_STARTDOC, strlen(p->jobname), p->jobname, NULL, NULL);
 
-    /*pixmap->handle = handle;*/
+    pixmap->font = WinCreateWindow(HWND_OBJECT, WC_FRAME, NULL, 0,0,0,1,1, NULLHANDLE, HWND_TOP,0, NULL, NULL);
     pixmap->hdc = p->hdc;
     pixmap->hps = GpiCreatePS(dwhab, p->hdc, &sizl, PU_PELS | GPIF_DEFAULT | GPIT_NORMAL | GPIA_ASSOC);
     pixmap->transcolor = DW_RGB_TRANSPARENT;
     pixmap->width = sizl.cx;
     pixmap->height = sizl.cy;
+    dw_pixmap_set_font(pixmap, DefaultFont);
 
     /* Cycle through each page */
     for(x=p->startpage-1; x<p->endpage && p->drawfunc; x++)
