@@ -1,7 +1,7 @@
 /* REXX script to get the svn revision and display it. */
 Trace o
 fn = 'SVN.REV'
-Address System 'svnversion . | rxqueue > nul:'
+'svnversion . | rxqueue > nul:'
 /* default version to 0, if svnversion doesn't exist or no .svn here */
 ver = 0
 If Queued() \= 0 Then
@@ -17,3 +17,4 @@ Call Stream fn, 'C', 'OPEN'
 Call Lineout fn,'VERREV='ver
 Call Stream fn, 'C', 'CLOSE'
 Exit 0
+
