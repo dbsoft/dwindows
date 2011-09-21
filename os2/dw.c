@@ -10076,7 +10076,7 @@ typedef struct _dwprint
 {
     HDC hdc;
     char *printername;
-    int (*drawfunc)(HPRINT, HPIXMAP, int, void *);
+    int (* API drawfunc)(HPRINT, HPIXMAP, int, void *);
     void *drawdata;
     unsigned long flags;
     unsigned int startpage, endpage;
@@ -10339,6 +10339,9 @@ int API dw_print_run(HPRINT print, unsigned long flags)
         /* Next page */
         DevEscape(p->hdc, DEVESC_NEWFRAME, 0, NULL, NULL, NULL);
     }
+    /* Signal that we are done */
+    DevEscape(p->hdc, DEVESC_ENDDOC, 0, NULL, NULL, NULL);
+    /* Determine the completion code */
     if(p->drawfunc)
         result = DW_ERROR_NONE;
     /* Free memory */
