@@ -252,12 +252,13 @@ if test $build_gtk = "yes"; then
             RPATH=`$PKG_CFG --silence-errors --libs-only-L $WEBKIT_PKG | cut -b 3-`
             if test x"$MOZEMBED_CFLAGS" = x; then
                WEBKIT_PKG="WebKitGtk"
-#               MOZEMBED_LIBS=`$PKG_CFG --silence-errors --libs $WEBKIT_PKG`
+               MOZEMBED_LIBS=`$PKG_CFG --silence-errors --libs $WEBKIT_PKG`
                MOZEMBED_CFLAGS=`$PKG_CFG --silence-errors --cflags $WEBKIT_PKG`
                RPATH=`$PKG_CFG --silence-errors --libs-only-L $WEBKIT_PKG | cut -b 3-`
             else
                AC_DEFINE(USE_WEBKIT10)
-               AC_SEARCH_LIBS(webkit_web_view_new,webkit-1.0 webkitgtk-1.0,WEBKIT_LIB=`echo $ac_res | cut -b 3-`,WEBKIT_LIB="")
+               WEBKIT_LIB=$WEBKIT_PKG
+               MOZEMBED_LIBS=`$PKG_CFG --silence-errors --libs $WEBKIT_PKG`
             fi
          else
             AC_DEFINE(USE_WEBKIT11)
