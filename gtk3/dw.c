@@ -373,7 +373,6 @@ static GType gtk_mdi_get_type(void)
 
       mdi_type = g_type_register_static (GTK_TYPE_CONTAINER, "GtkMdi", &mdi_info, 0);
    }
-
    return mdi_type;
 }
 
@@ -624,6 +623,7 @@ static void gtk_mdi_realize(GtkWidget *widget)
    GtkMdi *mdi;
    GdkWindowAttr attributes;
    gint attributes_mask;
+   GdkWindow *thiswindow;
 
    mdi = GTK_MDI (widget);
 
@@ -647,9 +647,10 @@ static void gtk_mdi_realize(GtkWidget *widget)
    attributes.visual = gtk_widget_get_visual (widget);
 
    attributes_mask = GDK_WA_X | GDK_WA_Y | GDK_WA_VISUAL;
-   gtk_widget_set_parent_window(widget, gdk_window_new (gtk_widget_get_parent_window(widget), &attributes, attributes_mask));
-
-   gtk_widget_set_style(widget, gtk_style_attach (gtk_widget_get_style(widget), gtk_widget_get_window(widget)));
+   thiswindow = gdk_window_new (gtk_widget_get_parent_window(widget), &attributes, attributes_mask);
+   gtk_widget_set_window(widget, thiswindow);
+   
+   gtk_widget_set_style(widget, gtk_style_attach (gtk_widget_get_style(widget), thiswindow));
 
    gdk_window_set_user_data (gtk_widget_get_window(widget), widget);
 
