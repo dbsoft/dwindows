@@ -259,6 +259,10 @@ if test $build_gtk = "yes"; then
                AC_DEFINE(USE_WEBKIT10)
                WEBKIT_LIB=$WEBKIT_PKG
                MOZEMBED_LIBS=`$PKG_CFG --silence-errors --libs $WEBKIT_PKG`
+               RESULT=`echo $MOZEMBED_LIBS | grep lwebkitgtk-1.0`
+               if test x"$RESULT" != x; then
+                   WEBKIT_LIB=webkitgtk-1.0
+               fi
             fi
          else
             AC_DEFINE(USE_WEBKIT11)
