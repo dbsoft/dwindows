@@ -4767,12 +4767,12 @@ void dw_mle_thaw(HWND handle)
  */
 gboolean _dw_update_progress_bar(gpointer data)
 {
-   if(g_object_get_data(G_OBJECT(data, "_dw_alive")))
+   if(g_object_get_data(G_OBJECT(data), "_dw_alive"))
    {
       gtk_progress_bar_pulse(GTK_PROGRESS_BAR(data));
-      return FALSE;
+      return TRUE;
    }
-   return TRUE;
+   return FALSE;
 }
 
 /*
