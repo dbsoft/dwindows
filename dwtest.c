@@ -72,6 +72,7 @@ HWND mainwindow,
     combobox2,
     spinbutton,
     slider,
+	percent,
     notebookbox,
     notebookbox1,
     notebookbox2,
@@ -570,19 +571,9 @@ int DWSIGNAL button_callback(HWND window, void *data)
     return 0;
 }
 
-int DWSIGNAL redraw_button_box_callback(HWND window, void *data)
+int DWSIGNAL percent_button_box_callback(HWND window, void *data)
 {
-#if 0
-
-    long x, y, width, height;
-    dw_window_get_pos_size(filetoolbarbox , &x, &y, &width, &height);
-    dw_window_destroy( filetoolbarbox );
-    create_button(1);
-    dw_window_set_pos_size(filetoolbarbox, x, y, width, height);
-#else
-    dw_window_enable( window);
-    dw_window_destroy( noncheckable_menuitem );
-#endif
+    dw_percent_set_pos(percent, DW_PERCENT_INDETERMINATE);
     return 0;
 }
 
@@ -629,7 +620,7 @@ void DWSIGNAL spinbutton_valuechanged_callback(HWND hwnd, int value, void *data)
 /* Callback to handle user selection of the slider position */
 void DWSIGNAL slider_valuechanged_callback(HWND hwnd, int value, void *data)
 {
-    dw_messagebox("DWTest", DW_MB_OK, "New value from slider: %d\n", value);
+    dw_percent_set_pos(percent, value * 10);
 }
 
 /* Handle size change of the main render window */
@@ -1193,9 +1184,12 @@ void buttons_add(void)
     dw_spinbutton_set_pos( spinbutton, 30 );
     dw_signal_connect( spinbutton, DW_SIGNAL_VALUE_CHANGED, DW_SIGNAL_FUNC(spinbutton_valuechanged_callback), NULL );
     /* make a slider */
-    slider = dw_slider_new( FALSE, 10, 0 ); /* no point in specifying text */
+    slider = dw_slider_new( FALSE, 11, 0 ); /* no point in specifying text */
     dw_box_pack_start( combox, slider, 200, 20, TRUE, FALSE, 0);
     dw_signal_connect( slider, DW_SIGNAL_VALUE_CHANGED, DW_SIGNAL_FUNC(slider_valuechanged_callback), NULL );
+    /* make a percent */
+    percent = dw_percent_new( 0 );
+    dw_box_pack_start( combox, percent, 200, 20, TRUE, FALSE, 0);
 }
 
 void create_button( int redraw)
@@ -1216,7 +1210,7 @@ void create_button( int redraw)
 
     abutton1 = dw_bitmapbutton_new_from_data( "A button from data", 0, folder_ico, 1718 );
     dw_box_pack_start( filetoolbarbox, abutton1, 25, 25, FALSE, FALSE, 0);
-    dw_signal_connect( abutton1, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(redraw_button_box_callback), NULL );
+    dw_signal_connect( abutton1, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(percent_button_box_callback), NULL );
     dw_box_pack_start( filetoolbarbox, 0, 25, 5, FALSE, FALSE, 0 );
     if ( redraw )
     {

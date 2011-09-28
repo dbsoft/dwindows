@@ -7061,7 +7061,36 @@ void API dw_mle_thaw(HWND handle)
  */
 void API dw_percent_set_pos(HWND handle, unsigned int position)
 {
-   SendMessage(handle, PBM_SETPOS, (WPARAM)position, 0);
+   if(position == DW_PERCENT_INDETERMINATE)
+   {
+      /* If our common controls supports it... */
+      if((dwComctlVer >= PACKVERSION(6,0)))
+      {
+          /* Enable the style on the control */
+          SetWindowLong(handle, GWL_STYLE, GetWindowLong(handle, GWL_STYLE) | PBS_MARQUEE);
+          /* Start the bar going */
+          SendMessage(handle, PBM_SETMARQUEE, 1, 100);
+      }
+      else
+         SendMessage(handle, PBM_SETPOS, 0, 0);
+   }
+   else
+   {
+      if((dwComctlVer >= PACKVERSION(6,0)))
+      {
+          unsigned long style = GetWindowLong(handle, GWL_STYLE);
+  
+          if(style & PBS_MARQUEE)
+          {
+             /* Stop the bar */
+             SendMessage(handle, PBM_SETMARQUEE, 0, 0);
+             /* Disable the style on the control */
+             SetWindowLong(handle, GWL_STYLE, style & ~PBS_MARQUEE);
+          }
+      }
+      /* Otherwise just set the position */
+      SendMessage(handle, PBM_SETPOS, (WPARAM)position, 0);
+   }
 }
 
 /*
