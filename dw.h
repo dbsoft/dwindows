@@ -1390,6 +1390,8 @@ typedef void *HPRINT;
 #define DW_MENU_SEPARATOR ""
 #define DW_NOMENU 0
 
+#define DW_PERCENT_INDETERMINATE ((unsigned int)-1)
+
 /* Return value error codes */
 #define DW_ERROR_NONE      0
 #define DW_ERROR_GENERAL   1

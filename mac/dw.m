@@ -3740,7 +3740,17 @@ HWND API dw_percent_new(ULONG cid)
 void API dw_percent_set_pos(HWND handle, unsigned int position)
 {
     DWPercent *percent = handle;
-    [percent setDoubleValue:(double)position];
+
+    /* Handle indeterminate */
+    if(position == DW_PERCENT_INDETERMINATE)
+        [percent setIndeterminate:YES];
+    else
+    {
+        /* Handle normal */
+        if([percent isIndeterminate])
+            [percent setIndeterminate:NO];
+        [percent setDoubleValue:(double)position];
+    }
 }
 
 /*

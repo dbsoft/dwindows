@@ -6725,10 +6725,18 @@ void API dw_mle_thaw(HWND handle)
 void API dw_percent_set_pos(HWND handle, unsigned int position)
 {
    int range = _dw_percent_get_range(handle);
-   int mypos = ((float)position/100)*range;
 
-   if(range)
+   /* OS/2 doesn't really support indeterminate... */
+   if(position == DW_PERCENT_INDETERMINATE)
    {
+      /* So set the position to 0 */
+      WinSendMsg(handle, SLM_SETSLIDERINFO, MPFROM2SHORT(SMA_SLIDERARMPOSITION,SMA_RANGEVALUE), (MPARAM)0);
+   }
+   else if(range)
+   {
+      /* Otherwise set the position as usual */
+      int mypos = ((float)position/100)*range;
+  
       _dw_int_set(handle, mypos);
       WinSendMsg(handle, SLM_SETSLIDERINFO, MPFROM2SHORT(SMA_SLIDERARMPOSITION,SMA_RANGEVALUE), (MPARAM)mypos);
    }

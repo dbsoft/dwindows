@@ -4762,6 +4762,19 @@ void dw_mle_thaw(HWND handle)
 {
 }
 
+/* Internal function to update the progress bar
+ * while in an indeterminate state. 
+ */
+gboolean _dw_update_progress_bar(gpointer data)
+{
+   if(g_object_get_data(G_OBJECT(data, "_dw_alive")))
+   {
+      gtk_progress_bar_pulse(GTK_PROGRESS_BAR(data));
+      return FALSE;
+   }
+   return TRUE;
+}
+
 /*
  * Sets the percent bar position.
  * Parameters:
@@ -4773,7 +4786,24 @@ void dw_percent_set_pos(HWND handle, unsigned int position)
    int _locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
-   gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(handle), (gfloat)position/100);
+   if(position == DW_PERCENT_INDETERMINATE)
+   {
+      /* Check if we are indeterminate already */
+      if(!g_object_get_data(G_OBJECT(handle), "_dw_alive"))
+      {
+         /* If not become indeterminate... and start a timer to continue */
+         gtk_progress_bar_pulse(GTK_PROGRESS_BAR(handle));
+         g_object_set_data(G_OBJECT(handle), "_dw_alive", GINT_TO_POINTER(1));
+         g_timeout_add(100, (GSourceFunc)_dw_update_progress_bar, (gpointer)handle);
+      }
+   }
+   else
+   {
+      /* Cancel the existing timer if one is there */
+      g_object_set_data(G_OBJECT(handle), "_dw_alive", NULL);
+      /* Set the position like normal */
+      gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(handle), (gfloat)position/100);
+   }
    DW_MUTEX_UNLOCK;
 }
 
