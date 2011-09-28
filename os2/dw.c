@@ -6735,7 +6735,10 @@ void API dw_percent_set_pos(HWND handle, unsigned int position)
    else if(range)
    {
       /* Otherwise set the position as usual */
-      int mypos = ((float)position/100)*range;
+      int mypos = (((float)position)/100)*range;
+
+      if(mypos >= range)
+          mypos = range - 1;
   
       _dw_int_set(handle, mypos);
       WinSendMsg(handle, SLM_SETSLIDERINFO, MPFROM2SHORT(SMA_SLIDERARMPOSITION,SMA_RANGEVALUE), (MPARAM)mypos);
