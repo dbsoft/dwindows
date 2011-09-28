@@ -3743,12 +3743,18 @@ void API dw_percent_set_pos(HWND handle, unsigned int position)
 
     /* Handle indeterminate */
     if(position == DW_PERCENT_INDETERMINATE)
+    {
         [percent setIndeterminate:YES];
+        [percent startAnimation:percent];
+    }
     else
     {
         /* Handle normal */
         if([percent isIndeterminate])
+        {
+            [percent stopAnimation:percent];
             [percent setIndeterminate:NO];
+        }
         [percent setDoubleValue:(double)position];
     }
 }
