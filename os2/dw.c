@@ -58,7 +58,7 @@ LONG _foreground = 0xAAAAAA, _background = DW_CLR_DEFAULT;
 
 HWND hwndApp = NULLHANDLE, hwndBubble = NULLHANDLE, hwndBubbleLast = NULLHANDLE, hwndEmph = NULLHANDLE;
 PRECORDCORE pCoreEmph = NULL;
-ULONG aulBuffer[4], GlobalID = 10000;
+ULONG aulBuffer[4];
 HWND lasthcnr = 0, lastitem = 0, popup = 0, desktop;
 HMOD wpconfig = 0;
 
@@ -128,6 +128,19 @@ SignalList SignalTranslate[SIGNALMAX] = {
    { BKN_PAGESELECTED,DW_SIGNAL_SWITCH_PAGE },
    { CN_EXPANDTREE,   DW_SIGNAL_TREE_EXPAND }
 };
+
+/* Internal function to keep a semi-unique ID within valid range */
+USHORT _GlobalID(void)
+{
+    static USHORT GlobalID = 9999;
+
+    GlobalID++;
+    if(GlobalID == 65535)
+    {
+        GlobalID = 10000;
+    }
+    return GlobalID;
+}
 
 /* This function adds a signal handler callback into the linked list.
  */
@@ -2465,6 +2478,9 @@ MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
                (tmp->message == SLN_SLIDERTRACK && SHORT2FROMMP(mp1) == SLN_CHANGE))
             {
                int svar = SLN_SLIDERTRACK;
+               int id = SHORT1FROMMP(mp1);
+               HWND notifyhwnd = dw_window_from_id(hWnd, id);
+
                if(origmsg == WM_CONTROL)
                   svar = SHORT2FROMMP(mp1);
 
@@ -2473,8 +2489,6 @@ MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
                case CN_ENTER:
                   {
                      int (* API containerselectfunc)(HWND, char *, void *) = (int (* API)(HWND, char *, void *))tmp->signalfunction;
-                     int id = SHORT1FROMMP(mp1);
-                     HWND conthwnd = dw_window_from_id(hWnd, id);
                      char *text = NULL;
 
                      if(mp2)
@@ -2486,7 +2500,7 @@ MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
                            text = pre->pszIcon;
                      }
 
-                     if(tmp->window == conthwnd)
+                     if(tmp->window == notifyhwnd)
                      {
                         result = containerselectfunc(tmp->window, text, tmp->data);
                         tmp = NULL;
@@ -2496,10 +2510,8 @@ MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
                case CN_EXPANDTREE:
                   {
                      int (* API treeexpandfunc)(HWND, HTREEITEM, void *) = (int (* API)(HWND, HTREEITEM, void *))tmp->signalfunction;
-                     int id = SHORT1FROMMP(mp1);
-                     HWND conthwnd = dw_window_from_id(hWnd, id);
 
-                     if(tmp->window == conthwnd)
+                     if(tmp->window == notifyhwnd)
                      {
                         result = treeexpandfunc(tmp->window, (HTREEITEM)mp2, tmp->data);
                         tmp = NULL;
@@ -2509,8 +2521,6 @@ MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
                case CN_CONTEXTMENU:
                   {
                      int (* API containercontextfunc)(HWND, char *, int, int, void *, void *) = (int (* API)(HWND, char *, int, int, void *, void *))tmp->signalfunction;
-                     int id = SHORT1FROMMP(mp1);
-                     HWND conthwnd = dw_window_from_id(hWnd, id);
                      char *text = NULL;
                      void *user = NULL;
                      LONG x,y;
@@ -2527,7 +2537,7 @@ MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 
                      dw_pointer_query_pos(&x, &y);
 
-                     if(tmp->window == conthwnd)
+                     if(tmp->window == notifyhwnd)
                      {
                         int container = (int)dw_window_get_data(tmp->window, "_dw_container");
 
@@ -2611,7 +2621,7 @@ MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
                      {
                         int (* API valuechangedfunc)(HWND, int, void *) = (int (* API)(HWND, int, void *))tmp->signalfunction;
 
-                        if(tmp->window == hWnd || WinQueryWindow(tmp->window, QW_PARENT) == hWnd)
+                        if(tmp->window == hWnd || notifyhwnd == hWnd)
                         {
                            static int lastvalue = -1;
                            static HWND lasthwnd = NULLHANDLE;
@@ -2628,11 +2638,9 @@ MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
                      else
                      {
                         int (* API listboxselectfunc)(HWND, int, void *) = (int (* API )(HWND, int, void *))tmp->signalfunction;
-                        int id = SHORT1FROMMP(mp1);
-                        HWND conthwnd = dw_window_from_id(hWnd, id);
                         static int _recursing = 0;
 
-                        if(_recursing == 0 && (tmp->window == conthwnd || (!id && tmp->window == (HWND)mp2)))
+                        if(_recursing == 0 && (tmp->window == notifyhwnd || (!id && tmp->window == (HWND)mp2)))
                         {
                            char buf1[500];
                            int index = dw_listbox_selected(tmp->window);
@@ -2672,7 +2680,7 @@ MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
                      if(origmsg == WM_CONTROL)
                      {
                         /* Handle Slider control */
-                        if(tmp->window == hWnd || WinQueryWindow(tmp->window, QW_PARENT) == hWnd)
+                        if(tmp->window == hWnd || tmp->window == notifyhwnd)
                         {
                            static int lastvalue = -1;
                            static HWND lasthwnd = NULLHANDLE;
@@ -2690,7 +2698,7 @@ MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
                      else
                      {
                         /* Handle scrollbar control */
-                        if(tmp->window > 65535 && tmp->window == WinWindowFromID(hWnd, (ULONG)mp1))
+                        if(tmp->window > 65535 && tmp->window == notifyhwnd)
                         {
                            int pos = _HandleScroller(tmp->window, (int)SHORT1FROMMP(mp2), (int)SHORT2FROMMP(mp2));;
 
@@ -4850,7 +4858,7 @@ HWND API dw_container_new(ULONG id, int multi)
                         0,0,2000,1000,
                         NULLHANDLE,
                         HWND_TOP,
-                        id ? id : (GlobalID++),
+                        id ? id : _GlobalID(),
                         NULL,
                         NULL);
    blah->oldproc = WinSubclassWindow(tmp, _TreeProc);
@@ -4878,7 +4886,7 @@ HWND API dw_tree_new(ULONG id)
                         0,0,2000,1000,
                         NULLHANDLE,
                         HWND_TOP,
-                        id ? id : (GlobalID++),
+                        id ? id : _GlobalID(),
                         NULL,
                         NULL);
 
@@ -5053,7 +5061,7 @@ HWND API dw_combobox_new(char *text, ULONG id)
                         0,0,2000,1000,
                         NULLHANDLE,
                         HWND_TOP,
-                        id,
+                        id ? id : _GlobalID(),
                         NULL,
                         NULL);
    HENUM henum = WinBeginEnumWindows(tmp);
@@ -5476,7 +5484,7 @@ HWND API dw_slider_new(int vertical, int increments, ULONG id)
                     0,0,2000,1000,
                     NULLHANDLE,
                     HWND_TOP,
-                    id,
+                    id ? id : _GlobalID(),
                     &sldcData,
                     NULL);
 
@@ -5502,7 +5510,7 @@ HWND API dw_scrollbar_new(int vertical, ULONG id)
                      0,0,2000,1000,
                      NULLHANDLE,
                      HWND_TOP,
-                     id ? id : (GlobalID++),
+                     id ? id : _GlobalID(),
                      NULL,
                      NULL);
 }
@@ -5523,7 +5531,7 @@ HWND API dw_percent_new(ULONG id)
                         0,0,2000,1000,
                         NULLHANDLE,
                         HWND_TOP,
-                        id,
+                        id ? id : _GlobalID(),
                         NULL,
                         NULL);
    blah->oldproc = WinSubclassWindow(tmp, _percentproc);
@@ -5577,7 +5585,7 @@ HWND API dw_listbox_new(ULONG id, int multi)
                         0,0,2000,1000,
                         NULLHANDLE,
                         HWND_TOP,
-                        id ? id : (GlobalID++),
+                        id ? id : _GlobalID(),
                         NULL,
                         NULL);
    blah->oldproc = WinSubclassWindow(tmp, _entryproc);
