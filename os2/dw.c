@@ -135,7 +135,7 @@ USHORT _GlobalID(void)
     static USHORT GlobalID = 9999;
 
     GlobalID++;
-    if(GlobalID >= 65535)
+    if(GlobalID >= 65534)
     {
         GlobalID = 10000;
     }
@@ -6724,6 +6724,50 @@ void API dw_mle_thaw(HWND handle)
    WinSendMsg(handle, MLM_ENABLEREFRESH, 0, 0);
 }
 
+/* Internal version that can be called from _percentthread */
+void _dw_percent_set_pos(HWND handle, unsigned int position)
+{
+   int range = _dw_percent_get_range(handle);
+
+   if(range)
+   {
+      int mypos = (((float)position)/100)*range;
+
+      if(mypos >= range)
+          mypos = range - 1;
+  
+      _dw_int_set(handle, mypos);
+      WinSendMsg(handle, SLM_SETSLIDERINFO, MPFROM2SHORT(SMA_SLIDERARMPOSITION,SMA_RANGEVALUE), (MPARAM)mypos);
+   }
+}
+
+/* Move the percentage bar backwards to simulate indeterminate */
+void _percentthread(void *data)
+{
+   HWND percent = (HWND)data;
+
+   if(percent)
+   {
+       HAB thishab = WinInitialize(0);
+       HMQ thishmq = WinCreateMsgQueue(dwhab, 0);
+
+       int pos = 100;
+
+       do
+       {
+           pos--;
+           if(pos < 1)
+               pos = 100;
+           _dw_percent_set_pos(percent, pos);
+           DosSleep(100);
+       }
+       while(dw_window_get_data(percent, "_dw_ind"));
+
+       WinDestroyMsgQueue(thishmq);
+       WinTerminate(thishab);
+   }
+}
+
 /*
  * Sets the percent bar position.
  * Parameters:
@@ -6732,24 +6776,22 @@ void API dw_mle_thaw(HWND handle)
  */
 void API dw_percent_set_pos(HWND handle, unsigned int position)
 {
-   int range = _dw_percent_get_range(handle);
-
    /* OS/2 doesn't really support indeterminate... */
    if(position == DW_PERCENT_INDETERMINATE)
    {
-      /* So set the position to 0 */
-      WinSendMsg(handle, SLM_SETSLIDERINFO, MPFROM2SHORT(SMA_SLIDERARMPOSITION,SMA_RANGEVALUE), (MPARAM)0);
+       if(!dw_window_get_data(handle, "_dw_ind"))
+       {
+           /* So we fake it with a thread */
+           dw_window_set_data(handle, "_dw_ind", (void *)1);
+           _beginthread(_percentthread, NULL, 100, (void *)handle);
+       }
    }
-   else if(range)
+   else
    {
+       /* Make sure we are no longer indeterminate */
+       dw_window_set_data(handle, "_dw_ind", NULL);
       /* Otherwise set the position as usual */
-      int mypos = (((float)position)/100)*range;
-
-      if(mypos >= range)
-          mypos = range - 1;
-  
-      _dw_int_set(handle, mypos);
-      WinSendMsg(handle, SLM_SETSLIDERINFO, MPFROM2SHORT(SMA_SLIDERARMPOSITION,SMA_RANGEVALUE), (MPARAM)mypos);
+       _dw_percent_set_pos(handle, position);
    }
 }
 

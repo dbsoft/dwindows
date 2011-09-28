@@ -47,13 +47,14 @@ Added dw_mutex_trylock() function to try to obtain a mutex without blocking.
 Added DW_TIMEOUT_INFINITE which can now be used with dw_event_wait() in 
    addition to dw_named_event_wait(), to block until the event is posted.
 Added DW_PERCENT_INDETERMINATE which can be passed to dw_percent_set_pos().
-   This should work on all platforms except old versions of Windows and OS/2. 
+   This should work on all platforms except old versions of Windows. 
 Added the subversion revision number as the third Dynamic Windows version 
-   number when building from a subversion source tree.   
+   number when building from a subversion source tree.
 Improved container optimization on Mac, header width now taken into account.
 Fixes for incorrect return codes from the dw_event_* functions on Windows.
 Fixes for incorrect behavior on key_press callbacks on Mac and Windows.
 Fixes for MDI support in GTK3. 
+Fixes for problems with multiple sliders/percent windows in a box on OS/2.
 Fixes for lots of GTK3 layout and window positioning issues... 
    although minimum size issues are still present.
 
