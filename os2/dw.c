@@ -135,7 +135,7 @@ USHORT _GlobalID(void)
     static USHORT GlobalID = 9999;
 
     GlobalID++;
-    if(GlobalID == 65535)
+    if(GlobalID >= 65535)
     {
         GlobalID = 10000;
     }
@@ -2621,7 +2621,7 @@ MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
                      {
                         int (* API valuechangedfunc)(HWND, int, void *) = (int (* API)(HWND, int, void *))tmp->signalfunction;
 
-                        if(tmp->window == hWnd || notifyhwnd == hWnd)
+                        if(tmp->window == hWnd || tmp->window == notifyhwnd)
                         {
                            static int lastvalue = -1;
                            static HWND lasthwnd = NULLHANDLE;
