@@ -14,6 +14,9 @@
 #define INCL_WIN
 #define INCL_GPI
 #define INCL_DEV
+#define INCL_SPL
+#define INCL_SPLDOSPRINT
+#define INCL_SPLERRORS
 
 #include <os2.h>
 #include <stdlib.h>
@@ -10239,7 +10242,11 @@ HPRINT API dw_print_new(char *jobname, unsigned long flags, unsigned int pages, 
     HWND window, hbox, vbox, printerlist, button, text;
     DWDialog *dwwait;
     DWPrint *print;
-    /* Check the default printer for now... want a printer list in the future */
+    PVOID pBuf = NULL;
+    ULONG fsType = SPL_PR_QUEUE;
+    ULONG cbBuf, cRes, cTotal, cbNeeded;
+    SPLERR splerr = 0 ;
+    PPRINTERINFO pRes ;    /* Check the default printer for now... want a printer list in the future */
     int cb = PrfQueryProfileString(HINI_PROFILE, "PM_SPOOLER", "PRINTER", "", printername, 32);
 
     if(!drawfunc || !(print = calloc(1, sizeof(DWPrint))))
@@ -10252,10 +10259,29 @@ HPRINT API dw_print_new(char *jobname, unsigned long flags, unsigned int pages, 
     print->endpage = pages;
     print->flags = flags;
 
+    /* Check to see how much space we need for the printer list */
+    splerr = SplEnumPrinter(NULL, 0, fsType, NULL, NULL, &cRes, &cTotal, &cbNeeded ,NULL);
+
+    if(splerr == ERROR_MORE_DATA || splerr == NERR_BufTooSmall)
+    {
+        /* Allocate memory for the buffer using the count of bytes that were returned in cbNeeded. */
+        DosAllocMem(&pBuf, cbNeeded, PAG_READ|PAG_WRITE|PAG_COMMIT);
+
+        /* Set count of bytes in buffer to value used to allocate buffer. */
+        cbBuf = cbNeeded;
+
+        /* Call function again with the correct buffer size. */
+        splerr = SplEnumPrinter(NULL, 0, fsType, pBuf, cbBuf, &cRes, &cTotal, &cbNeeded, NULL);
+    }
+
     /* Make sure we got a valid result */
     if(cb > 2)
         printername[cb-2] = '\0';
     else
+        printername[0] = '\0';
+
+    /* If we didnt' get a printer list or default printer abort */
+    if(!cRes && !printername[0])
     {
         /* Show an error and return failure */
         dw_messagebox("Printing", DW_MB_ERROR | DW_MB_OK, "No printers detected.");
@@ -10272,8 +10298,32 @@ HPRINT API dw_print_new(char *jobname, unsigned long flags, unsigned int pages, 
 
     printerlist = dw_listbox_new(0, FALSE);
     dw_box_pack_start(vbox, printerlist, 1, 1, TRUE, TRUE, 0);
-    dw_listbox_append(printerlist, printername);
-    dw_listbox_select(printerlist, 0, TRUE);
+
+    /* If there are any returned structures in the buffer... */
+    if(pBuf && cRes)
+    {
+        int count = 0;
+
+        pRes = (PPRINTERINFO)pBuf ;
+        while(cRes--)
+        {
+            dw_listbox_append(printerlist, pRes[cRes].pszPrintDestinationName);
+            /* If this is the default printer... select it by default */
+            if(strcmp(pRes[cRes].pszPrintDestinationName, printername) == 0)
+                dw_listbox_select(printerlist, count, TRUE);
+            count++;
+        }
+    }
+    else
+    {
+        /* Otherwise just add the default */
+        dw_listbox_append(printerlist, printername);
+        dw_listbox_select(printerlist, 0, TRUE);
+    }
+
+    /* Free any unneeded memory */
+    if(pBuf)
+        DosFreeMem(pBuf);
 
     dw_window_set_data(window, "_dw_list", (void *)printerlist);
 
