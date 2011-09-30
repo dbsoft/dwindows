@@ -82,6 +82,7 @@ HWND mainwindow,
     notebookbox6,
     notebookbox7,
     notebookbox8,
+    notebookbox9,
     html,
     rawhtml,
     notebook,
@@ -1326,6 +1327,177 @@ void scrollbox_add(void)
     }
 }
 
+/* Section for thread/event test */
+HWND threadmle, startbutton;
+HMTX mutex;
+HEV workevent, controlevent;
+int finished = FALSE;
+int ready = 0;
+#define BUF_SIZE 1024
+void DWSIGNAL run_thread(void *data);
+void DWSIGNAL control_thread(void *data);
+
+void update_mle(char *text, int lock)
+{
+    static unsigned int pos = 0;
+
+    /* Protect pos from being changed by different threads */
+    if(lock)
+        dw_mutex_lock(mutex);
+    pos = dw_mle_import(threadmle, text, pos);
+    dw_mle_set_cursor(threadmle, pos);
+    if(lock)
+        dw_mutex_unlock(mutex);
+}
+
+int DWSIGNAL start_threads_button_callback(HWND window, void *data)
+{
+    dw_window_disable(startbutton);
+    dw_mutex_lock(mutex);
+    controlevent = dw_event_new();
+    dw_event_reset(workevent);
+    finished = FALSE;
+    ready = 0;
+    update_mle("Starting thread 1\r\n", FALSE);
+    dw_thread_new(DW_SIGNAL_FUNC(run_thread), DW_INT_TO_POINTER(1), 10000);
+    update_mle("Starting thread 2\r\n", FALSE);
+    dw_thread_new(DW_SIGNAL_FUNC(run_thread), DW_INT_TO_POINTER(2), 10000);
+    update_mle("Starting thread 3\r\n", FALSE);
+    dw_thread_new(DW_SIGNAL_FUNC(run_thread), DW_INT_TO_POINTER(3), 10000);
+    update_mle("Starting thread 4\r\n", FALSE);
+    dw_thread_new(DW_SIGNAL_FUNC(run_thread), DW_INT_TO_POINTER(4), 10000);
+    update_mle("Starting control thread\r\n", FALSE);
+    dw_thread_new(DW_SIGNAL_FUNC(control_thread), DW_INT_TO_POINTER(0), 10000);
+    dw_mutex_unlock(mutex);
+    return 0;
+}
+
+void thread_add(void)
+{
+    HWND tmpbox;
+    char buf[100];
+    int i;
+
+    /* create a box to pack into the notebook page */
+    tmpbox = dw_box_new(DW_VERT, 0);
+    dw_box_pack_start(notebookbox9, tmpbox, 0, 0, TRUE, TRUE, 1);
+
+    startbutton = dw_button_new( "Start Threads", 0 );
+    dw_box_pack_start( tmpbox, startbutton, 100, 30, FALSE, FALSE, 0 );
+    dw_signal_connect( startbutton, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(start_threads_button_callback), NULL );
+    
+    /* Create the base threading components */
+    threadmle = dw_mle_new(0);
+    dw_box_pack_start(tmpbox, threadmle, 1, 1, TRUE, TRUE, 0);
+    mutex = dw_mutex_new();
+    workevent = dw_event_new();
+}
+
+void DWSIGNAL run_thread(void *data)
+{
+    int threadnum = DW_POINTER_TO_INT(data);
+    char buf[BUF_SIZE];
+
+    sprintf(buf, "Thread %d started.\r\n", threadnum);
+    update_mle(buf, TRUE);
+
+    /* Increment the ready count while protected by mutex */
+    dw_mutex_lock(mutex);
+    ready++;
+    /* If all 4 threads have incrememted the ready count... 
+     * Post the control event semaphore so things will get started.
+     */
+    if(ready == 4)
+        dw_event_post(controlevent);
+    dw_mutex_unlock(mutex);
+
+    while(!finished)
+    {
+        int result = dw_event_wait(workevent, 2000);
+
+        if(result == DW_ERROR_TIMEOUT)
+        {
+            sprintf(buf, "Thread %d timeout waiting for event.\r\n", threadnum);
+            update_mle(buf, TRUE);
+        }
+        else if(result == DW_ERROR_NONE)
+        {
+            sprintf(buf, "Thread %d doing some work.\r\n", threadnum);
+            update_mle(buf, TRUE);
+            /* Pretend to do some work */
+            dw_main_sleep(1000 * threadnum);
+
+            /* Increment the ready count while protected by mutex */
+            dw_mutex_lock(mutex);
+            ready++;
+            sprintf(buf, "Thread %d work done. ready=%d", threadnum, ready);
+            /* If all 4 threads have incrememted the ready count... 
+            * Post the control event semaphore so things will get started.
+            */
+            if(ready == 4)
+            {
+                dw_event_post(controlevent);
+                strcat(buf, " Control posted.");
+            }
+            dw_mutex_unlock(mutex);
+            strcat(buf, "\r\n");
+            update_mle(buf, TRUE);
+        }
+        else
+        {
+            sprintf(buf, "Thread %d error %d.\r\n", threadnum, result);
+            update_mle(buf, TRUE);
+            dw_main_sleep(10000);
+        }
+    }
+    sprintf(buf, "Thread %d finished.\r\n", threadnum);
+    update_mle(buf, TRUE);
+}
+
+void DWSIGNAL control_thread(void *data)
+{
+    int inprogress = 5;
+    char buf[BUF_SIZE];
+
+    while(inprogress)
+    {
+        int result = dw_event_wait(controlevent, 2000);
+
+        if(result == DW_ERROR_TIMEOUT)
+        {
+            update_mle("Control thread timeout waiting for event.\r\n", TRUE);
+        }
+        else if(result == DW_ERROR_NONE)
+        {
+            /* Reset the control event */
+            dw_event_reset(controlevent);
+            ready = 0;
+            sprintf(buf,"Control thread starting worker threads. Inprogress=%d\r\n", inprogress);
+            update_mle(buf, TRUE);
+            /* Start the work threads */
+            dw_event_post(workevent);
+            dw_main_sleep(100);
+            /* Reset the work event */
+            dw_event_reset(workevent);
+            inprogress--;
+        }
+        else
+        {
+            sprintf(buf, "Control thread error %d.\r\n", result);
+            update_mle(buf, TRUE);
+            dw_main_sleep(10000);
+        }
+    }
+    /* Tell the other threads we are done */
+    finished = TRUE;
+    dw_event_post(workevent);
+    /* Close the control event */
+    dw_event_close(&controlevent);
+    update_mle("Control thread finished.\r\n", TRUE);
+    dw_window_enable(startbutton);
+}
+
+
 /*
  * Let's demonstrate the functionality of this library. :)
  */
@@ -1339,6 +1511,7 @@ int main(int argc, char *argv[])
     ULONG notebookpage6;
     ULONG notebookpage7;
     ULONG notebookpage8;
+    ULONG notebookpage9;
 
     dw_init(TRUE, argc, argv);
 
@@ -1407,6 +1580,12 @@ int main(int argc, char *argv[])
     dw_notebook_pack( notebook, notebookpage8, notebookbox8 );
     dw_notebook_page_set_text( notebook, notebookpage8, "scrollbox");
     scrollbox_add();
+
+    notebookbox9 = dw_box_new( BOXVERT, 8 );
+    notebookpage9 = dw_notebook_page_new( notebook, 1, FALSE );
+    dw_notebook_pack( notebook, notebookpage9, notebookbox9 );
+    dw_notebook_page_set_text( notebook, notebookpage9, "thread/event");
+    thread_add();
 
     dw_signal_connect(mainwindow, DW_SIGNAL_DELETE, DW_SIGNAL_FUNC(exit_callback), (void *)mainwindow);
     timerid = dw_timer_connect(2000, DW_SIGNAL_FUNC(timer_callback), 0);
