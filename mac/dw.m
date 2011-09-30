@@ -4299,6 +4299,8 @@ HWND API dw_mle_new(ULONG cid)
 unsigned int API dw_mle_import(HWND handle, char *buffer, int startpoint)
 {
     NSScrollView *sv = handle;
+    int _locked_by_me = FALSE;
+    DW_MUTEX_LOCK;
     DWMLE *mle = [sv documentView];
     NSTextStorage *ts = [mle textStorage];
     NSString *nstr = [NSString stringWithUTF8String:buffer];
@@ -4309,6 +4311,7 @@ unsigned int API dw_mle_import(HWND handle, char *buffer, int startpoint)
     if(startpoint > length)
         startpoint = (int)length;
     [ms insertString:nstr atIndex:startpoint];
+    DW_MUTEX_UNLOCK;
     return (unsigned int)strlen(buffer) + startpoint;
 }
 
@@ -4323,12 +4326,15 @@ unsigned int API dw_mle_import(HWND handle, char *buffer, int startpoint)
 void API dw_mle_export(HWND handle, char *buffer, int startpoint, int length)
 {
     NSScrollView *sv = handle;
+    int _locked_by_me = FALSE;
+    DW_MUTEX_LOCK;
     DWMLE *mle = [sv documentView];
     NSTextStorage *ts = [mle textStorage];
     NSMutableString *ms = [ts mutableString];
     const char *tmp = [ms UTF8String];
     strncpy(buffer, tmp+startpoint, length);
     buffer[length] = '\0';
+    DW_MUTEX_UNLOCK;
 }
 
 /*
@@ -4341,6 +4347,8 @@ void API dw_mle_export(HWND handle, char *buffer, int startpoint, int length)
 void API dw_mle_get_size(HWND handle, unsigned long *bytes, unsigned long *lines)
 {
     NSScrollView *sv = handle;
+    int _locked_by_me = FALSE;
+    DW_MUTEX_LOCK;
     DWMLE *mle = [sv documentView];
     NSTextStorage *ts = [mle textStorage];
     NSMutableString *ms = [ts mutableString];
@@ -4355,6 +4363,7 @@ void API dw_mle_get_size(HWND handle, unsigned long *bytes, unsigned long *lines
 
         *lines = numberOfLines;
     }
+    DW_MUTEX_LOCK;
 }
 
 /*
@@ -4367,6 +4376,8 @@ void API dw_mle_get_size(HWND handle, unsigned long *bytes, unsigned long *lines
 void API dw_mle_delete(HWND handle, int startpoint, int length)
 {
     NSScrollView *sv = handle;
+    int _locked_by_me = FALSE;
+    DW_MUTEX_LOCK;
     DWMLE *mle = [sv documentView];
     NSTextStorage *ts = [mle textStorage];
     NSMutableString *ms = [ts mutableString];
@@ -4378,6 +4389,7 @@ void API dw_mle_delete(HWND handle, int startpoint, int length)
     if(startpoint + length > mslength)
         length = (int)mslength - startpoint;
     [ms deleteCharactersInRange:NSMakeRange(startpoint, length)];
+    DW_MUTEX_UNLOCK;
 }
 
 /*
@@ -4388,11 +4400,14 @@ void API dw_mle_delete(HWND handle, int startpoint, int length)
 void API dw_mle_clear(HWND handle)
 {
     NSScrollView *sv = handle;
+    int _locked_by_me = FALSE;
+    DW_MUTEX_LOCK;
     DWMLE *mle = [sv documentView];
     NSTextStorage *ts = [mle textStorage];
     NSMutableString *ms = [ts mutableString];
     NSUInteger length = [ms length];
     [ms deleteCharactersInRange:NSMakeRange(0, length)];
+    DW_MUTEX_UNLOCK;
 }
 
 /*
@@ -4404,6 +4419,8 @@ void API dw_mle_clear(HWND handle)
 void API dw_mle_set_visible(HWND handle, int line)
 {
     NSScrollView *sv = handle;
+    int _locked_by_me = FALSE;
+    DW_MUTEX_LOCK;
     DWMLE *mle = [sv documentView];
     NSTextStorage *ts = [mle textStorage];
     NSMutableString *ms = [ts mutableString];
@@ -4416,6 +4433,7 @@ void API dw_mle_set_visible(HWND handle, int line)
     {
         [mle scrollRangeToVisible:[ms lineRangeForRange:NSMakeRange(index, 0)]];
     }
+    DW_MUTEX_UNLOCK;
 }
 
 /*
@@ -4467,6 +4485,8 @@ void API dw_mle_set_word_wrap(HWND handle, int state)
 void API dw_mle_set_cursor(HWND handle, int point)
 {
     NSScrollView *sv = handle;
+    int _locked_by_me = FALSE;
+    DW_MUTEX_LOCK;
     DWMLE *mle = [sv documentView];
     NSTextStorage *ts = [mle textStorage];
     NSMutableString *ms = [ts mutableString];
@@ -4477,6 +4497,7 @@ void API dw_mle_set_cursor(HWND handle, int point)
         point = (int)length;
     [mle setSelectedRange: NSMakeRange(point,point)];
     [mle scrollRangeToVisible:NSMakeRange(point,point)];
+    DW_MUTEX_UNLOCK;
 }
 
 /*
@@ -4490,6 +4511,8 @@ void API dw_mle_set_cursor(HWND handle, int point)
 int API dw_mle_search(HWND handle, char *text, int point, unsigned long flags)
 {
     NSScrollView *sv = handle;
+    int _locked_by_me = FALSE;
+    DW_MUTEX_LOCK;
     DWMLE *mle = [sv documentView];
     NSTextStorage *ts = [mle textStorage];
     NSMutableString *ms = [ts mutableString];
@@ -4502,7 +4525,7 @@ int API dw_mle_search(HWND handle, char *text, int point, unsigned long flags)
     {
         range = [ms rangeOfString:searchForMe options:options range:searchRange];
     }
-
+    DW_MUTEX_UNLOCK;
     if(range.location != NSNotFound)
     {
         return -1;
