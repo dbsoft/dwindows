@@ -8573,10 +8573,14 @@ int dw_event_wait(HEV eve, unsigned long timeout)
     if(!eve)
         return DW_ERROR_NON_INIT;
     
-    if(eve->posted)
-        return DW_ERROR_GENERAL;
-    
     pthread_mutex_lock (&(eve->mutex));
+    
+    if(eve->posted)
+    {
+        pthread_mutex_unlock (&(eve->mutex));
+        return DW_ERROR_NONE;
+    }
+    
     if(timeout != -1)
     {
         struct timeval now;
