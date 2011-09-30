@@ -4476,6 +4476,7 @@ void API dw_mle_set_cursor(HWND handle, int point)
     if(point > length)
         point = (int)length;
     [mle setSelectedRange: NSMakeRange(point,point)];
+    [mle scrollRangeToVisible:NSMakeRange(point,point)];
 }
 
 /*
