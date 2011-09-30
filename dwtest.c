@@ -1375,8 +1375,6 @@ int DWSIGNAL start_threads_button_callback(HWND window, void *data)
 void thread_add(void)
 {
     HWND tmpbox;
-    char buf[100];
-    int i;
 
     /* create a box to pack into the notebook page */
     tmpbox = dw_box_new(DW_VERT, 0);
