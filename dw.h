@@ -1576,6 +1576,8 @@ void API dw_container_change_item(HWND handle, int column, int row, void *data);
 void API dw_container_set_column_width(HWND handle, int column, int width);
 void API dw_container_set_row_title(void *pointer, int row, char *title);
 void API dw_container_change_row_title(HWND handle, int row, char *title);
+#define dw_container_set_row_data(a, b, c) dw_container_set_row_title(a, b, (char *)c)
+#define dw_container_change_row_data(a, b, c) dw_container_change_row_title(a, b, (char *)c)
 void API dw_container_insert(HWND handle, void *pointer, int rowcount);
 void API dw_container_clear(HWND handle, int redraw);
 void API dw_container_delete(HWND handle, int rowcount);
