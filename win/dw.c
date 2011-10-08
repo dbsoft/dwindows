@@ -8020,6 +8020,19 @@ int API dw_filesystem_get_column_type(HWND handle, int column)
 }
 
 /*
+ * Sets the alternating row colors for container window (widget) handle.
+ * Parameters:
+ *          handle: The window (widget) handle.
+ *          oddcolor: Odd row background color in DW_RGB format or a default color index.
+ *                    DW_CLR_DEFAULT will disable coloring odd rows.
+ *          evencolor: Even row background color in DW_RGB format or a default color index.
+ *                    DW_CLR_DEFAULT will disable coloring even rows.
+ */
+void API dw_container_set_row_bg(HWND handle, unsigned long oddcolor, unsigned long evencolor)
+{
+}
+
+/*
  * Sets the width of a column in the container.
  * Parameters:
  *          handle: Handle to window (widget) of container.
