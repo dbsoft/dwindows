@@ -5970,6 +5970,33 @@ int API dw_filesystem_get_column_type(HWND handle, int column)
 }
 
 /*
+ * Sets the alternating row colors for container window (widget) handle.
+ * Parameters:
+ *          handle: The window (widget) handle.
+ *          oddcolor: Odd row background color in DW_RGB format or a default color index.
+ *                    DW_CLR_DEFAULT will disable coloring odd rows.
+ *          evencolor: Even row background color in DW_RGB format or a default color index.
+ *                    DW_CLR_DEFAULT will disable coloring even rows.
+ */
+void API dw_container_set_row_bg(HWND handle, unsigned long oddcolor, unsigned long evencolor)
+{
+   GtkWidget *cont;
+   int _locked_by_me = FALSE;
+   DW_MUTEX_LOCK;
+   cont = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user");
+
+   /* Make sure it is the correct tree type */
+   if(cont && GTK_IS_TREE_VIEW(cont) && g_object_get_data(G_OBJECT(cont), "_dw_tree_type") == GINT_TO_POINTER(_DW_TREE_TYPE_CONTAINER))
+   {
+      if(oddcolor == DW_CLR_DEFAULT && evencolor == DW_CLR_DEFAULT)
+         gtk_tree_view_set_rules_hint(GTK_TREE_VIEW(cont), FALSE);
+      else  
+         gtk_tree_view_set_rules_hint(GTK_TREE_VIEW(cont), TRUE);
+   }
+   DW_MUTEX_UNLOCK;
+}
+
+/*
  * Sets the width of a column in the container.
  * Parameters:
  *          handle: Handle to window (widget) of container.
@@ -5983,7 +6010,7 @@ void dw_container_set_column_width(HWND handle, int column, int width)
 
    DW_MUTEX_LOCK;
    cont = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user");
-
+   
    /* Make sure it is the correct tree type */
    if(cont && GTK_IS_TREE_VIEW(cont) && g_object_get_data(G_OBJECT(cont), "_dw_tree_type") == GINT_TO_POINTER(_DW_TREE_TYPE_CONTAINER))
    {
