@@ -5974,9 +5974,9 @@ int API dw_filesystem_get_column_type(HWND handle, int column)
  * Parameters:
  *          handle: The window (widget) handle.
  *          oddcolor: Odd row background color in DW_RGB format or a default color index.
- *                    DW_CLR_DEFAULT will disable coloring odd rows.
  *          evencolor: Even row background color in DW_RGB format or a default color index.
- *                    DW_CLR_DEFAULT will disable coloring even rows.
+ *                    DW_RGB_TRANSPARENT will disable coloring rows.
+ *                    DW_CLR_DEFAULT will use the system default alternating row colors.
  */
 void API dw_container_set_row_bg(HWND handle, unsigned long oddcolor, unsigned long evencolor)
 {
@@ -5988,7 +5988,7 @@ void API dw_container_set_row_bg(HWND handle, unsigned long oddcolor, unsigned l
    /* Make sure it is the correct tree type */
    if(cont && GTK_IS_TREE_VIEW(cont) && g_object_get_data(G_OBJECT(cont), "_dw_tree_type") == GINT_TO_POINTER(_DW_TREE_TYPE_CONTAINER))
    {
-      if(oddcolor == DW_CLR_DEFAULT && evencolor == DW_CLR_DEFAULT)
+      if(oddcolor == DW_RGB_TRANSPARENT && evencolor == DW_RGB_TRANSPARENT)
          gtk_tree_view_set_rules_hint(GTK_TREE_VIEW(cont), FALSE);
       else  
          gtk_tree_view_set_rules_hint(GTK_TREE_VIEW(cont), TRUE);
