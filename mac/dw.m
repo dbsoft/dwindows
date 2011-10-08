@@ -1316,6 +1316,101 @@ DWObject *DWObj;
 -(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); [super dealloc]; }
 @end
 
+/* Subclass NSTextFieldCell for displaying image and text */
+@interface DWImageAndTextCell : NSTextFieldCell 
+{
+@private
+    NSImage	*image;
+}
+-(void)setImage:(NSImage *)anImage;
+-(NSImage *)image;
+-(void)drawWithFrame:(NSRect)cellFrame inView:(NSView *)controlView;
+-(NSSize)cellSize;
+@end
+
+@implementation DWImageAndTextCell
+- (void)dealloc 
+{
+    [image release];
+    image = nil;
+    [super dealloc];
+}
+-copyWithZone:(NSZone *)zone 
+{
+    DWImageAndTextCell *cell = (DWImageAndTextCell *)[super copyWithZone:zone];
+    cell->image = [image retain];
+    return cell;
+}
+-(void)setImage:(NSImage *)anImage 
+{
+    if (anImage != image) 
+    {
+        [image release];
+        image = [anImage retain];
+    }
+}
+-(NSImage *)image 
+{
+    return [[image retain] autorelease];
+}
+-(NSRect)imageFrameForCellFrame:(NSRect)cellFrame 
+{
+    if (image != nil) 
+    {
+        NSRect imageFrame;
+        imageFrame.size = [image size];
+        imageFrame.origin = cellFrame.origin;
+        imageFrame.origin.x += 3;
+        imageFrame.origin.y += ceil((cellFrame.size.height - imageFrame.size.height) / 2);
+        return imageFrame;
+    }
+    else
+        return NSZeroRect;
+}
+-(void)editWithFrame:(NSRect)aRect inView:(NSView *)controlView editor:(NSText *)textObj delegate:(id)anObject event:(NSEvent *)theEvent 
+{
+    NSRect textFrame, imageFrame;
+    NSDivideRect (aRect, &imageFrame, &textFrame, 3 + [image size].width, NSMinXEdge);
+    [super editWithFrame: textFrame inView: controlView editor:textObj delegate:anObject event: theEvent];
+}
+-(void)selectWithFrame:(NSRect)aRect inView:(NSView *)controlView editor:(NSText *)textObj delegate:(id)anObject start:(NSInteger)selStart length:(NSInteger)selLength 
+{
+    NSRect textFrame, imageFrame;
+    NSDivideRect (aRect, &imageFrame, &textFrame, 3 + [image size].width, NSMinXEdge);
+    [super selectWithFrame: textFrame inView: controlView editor:textObj delegate:anObject start:selStart length:selLength];
+}
+-(void)drawWithFrame:(NSRect)cellFrame inView:(NSView *)controlView 
+{
+    if (image != nil) {
+        NSSize	imageSize;
+        NSRect	imageFrame;
+        
+        imageSize = [image size];
+        NSDivideRect(cellFrame, &imageFrame, &cellFrame, 3 + imageSize.width, NSMinXEdge);
+        if ([self drawsBackground]) {
+            [[self backgroundColor] set];
+            NSRectFill(imageFrame);
+        }
+        imageFrame.origin.x += 3;
+        imageFrame.size = imageSize;
+        
+        if ([controlView isFlipped])
+            imageFrame.origin.y += ceil((cellFrame.size.height + imageFrame.size.height) / 2);
+        else
+            imageFrame.origin.y += ceil((cellFrame.size.height - imageFrame.size.height) / 2);
+        
+        [image compositeToPoint:imageFrame.origin operation:NSCompositeSourceOver];
+    }
+    [super drawWithFrame:cellFrame inView:controlView];
+}
+-(NSSize)cellSize 
+{
+    NSSize cellSize = [super cellSize];
+    cellSize.width += (image ? [image size].width : 0) + 3;
+    return cellSize;
+}
+@end
+
 /* Subclass for a Container/List type */
 @interface DWContainer : NSTableView
 #ifdef BUILDING_FOR_SNOW_LEOPARD
@@ -1327,7 +1422,7 @@ DWObject *DWObj;
     NSMutableArray *data;
     NSMutableArray *types;
     NSPointerArray *titles;
-    NSColor *fgcolor;
+    NSColor *fgcolor, *oddcolor, *evencolor;
     int lastAddPoint, lastQueryPoint;
     id scrollview;
     int filesystem;
@@ -1416,6 +1511,25 @@ DWObject *DWObj;
 -(void)setScrollview:(id)input { scrollview = input; }
 -(void)addColumn:(NSTableColumn *)input andType:(int)type { if(tvcols) { [tvcols addObject:input]; [types addObject:[NSNumber numberWithInt:type]]; } }
 -(NSTableColumn *)getColumn:(int)col { if(tvcols) { return [tvcols objectAtIndex:col]; } return nil; }
+-(void)setRowBgOdd:(unsigned long)oddcol andEven:(unsigned long)evencol
+{
+    NSColor *oldodd = oddcolor;
+    NSColor *oldeven = evencolor;
+    unsigned long _odd = _get_color(oddcol);
+    unsigned long _even = _get_color(evencol);
+    
+    /* Get the NSColor for non-default colors */
+    if(oddcol != DW_CLR_DEFAULT)
+        oddcolor = [[NSColor colorWithDeviceRed: DW_RED_VALUE(_odd)/255.0 green: DW_GREEN_VALUE(_odd)/255.0 blue: DW_BLUE_VALUE(_odd)/255.0 alpha: 1] retain];
+    else
+        oddcolor = NULL;
+    if(evencol != DW_CLR_DEFAULT)
+        evencolor = [[NSColor colorWithDeviceRed: DW_RED_VALUE(_even)/255.0 green: DW_GREEN_VALUE(_even)/255.0 blue: DW_BLUE_VALUE(_even)/255.0 alpha: 1] retain];
+    else
+        evencolor = NULL;
+    [oldodd release];
+    [oldeven release];
+}
 -(int)insertRow:(NSArray *)input at:(int)index
 {
     if(data)
@@ -1467,12 +1581,36 @@ DWObject *DWObj;
 }
 -(void)tableView:(NSTableView *)tableView willDisplayCell:(id)cell forTableColumn:(NSTableColumn *)tableColumn row:(NSInteger)row
 {
-    if([cell isMemberOfClass:[NSBrowserCell class]])
+    DWImageAndTextCell *bcell = cell;
+    
+    /* Handle drawing image and text if necessary */
+    if([cell isMemberOfClass:[DWImageAndTextCell class]])
     {
         int index = (int)(row * [tvcols count]);
-        NSBrowserCell *browsercell = [data objectAtIndex:index];
+        DWImageAndTextCell *browsercell = [data objectAtIndex:index];
         NSImage *img = [browsercell image];
-        [(NSBrowserCell*)cell setImage:img];
+        [bcell setImage:img];
+    }
+    /* Handle drawing alternating row colors if enabled */
+    if ((row % 2) == 0)
+    {
+        if(evencolor)
+        {
+            [bcell setDrawsBackground:YES];
+            [bcell setBackgroundColor:evencolor];
+        }
+        else
+            [bcell setDrawsBackground:NO];
+    }
+    else
+    {
+        if(oddcolor)
+        {
+            [bcell setDrawsBackground:YES];
+            [bcell setBackgroundColor:oddcolor];
+        }
+        else
+            [bcell setDrawsBackground:NO];
     }
 }
 -(void)editCell:(id)input at:(int)row and:(int)col
@@ -1722,8 +1860,7 @@ void _free_tree_recurse(NSMutableArray *node, NSMutableArray *item)
     if (self)
     {
         treecol = [[NSTableColumn alloc] init];
-        NSBrowserCell *browsercell = [[[NSBrowserCell alloc] init] autorelease];
-        [browsercell setLeaf:YES];
+        DWImageAndTextCell *browsercell = [[[DWImageAndTextCell alloc] init] autorelease];
         [treecol setDataCell:browsercell];
         [self addTableColumn:treecol];
         [self setOutlineTableColumn:treecol];
@@ -1785,12 +1922,12 @@ void _free_tree_recurse(NSMutableArray *node, NSMutableArray *item)
 }
 -(void)outlineView:(NSOutlineView *)outlineView willDisplayCell:(id)cell forTableColumn:(NSTableColumn *)tableColumn item:(id)item
 {
-    if([cell isMemberOfClass:[NSBrowserCell class]])
+    if([cell isMemberOfClass:[DWImageAndTextCell class]])
     {
         NSMutableArray *this = (NSMutableArray *)item;
         NSImage *img = [this objectAtIndex:0];
         if([img isKindOfClass:[NSImage class]])
-            [(NSBrowserCell*)cell setImage:img];
+            [(DWImageAndTextCell*)cell setImage:img];
     }
 }
 -(BOOL)outlineView:(NSOutlineView *)outlineView shouldEditTableColumn:(NSTableColumn *)tableColumn item:(id)item { return NO; }
@@ -5329,8 +5466,7 @@ int API dw_container_setup(HWND handle, unsigned long *flags, char **titles, int
         }
         else if(flags[z] & DW_CFA_STRINGANDICON)
         {
-            NSBrowserCell *browsercell = [[NSBrowserCell alloc] init];
-            [browsercell setLeaf:YES];
+            DWImageAndTextCell *browsercell = [[DWImageAndTextCell alloc] init];
             [column setDataCell:browsercell];
             [browsercell release];
         }
@@ -5538,7 +5674,7 @@ void API dw_filesystem_set_file(HWND handle, void *pointer, int row, char *filen
     int _locked_by_me = FALSE;
     DW_MUTEX_LOCK;
     DWContainer *cont = handle;
-    NSBrowserCell *browsercell;
+    DWImageAndTextCell *browsercell;
     int lastadd = 0;
 
     /* If pointer is NULL we are getting a change request instead of set */
@@ -5547,8 +5683,7 @@ void API dw_filesystem_set_file(HWND handle, void *pointer, int row, char *filen
         lastadd = [cont lastAddPoint];
     }
 
-    browsercell = [[NSBrowserCell alloc] init];
-    [browsercell setLeaf:YES];
+    browsercell = [[DWImageAndTextCell alloc] init];
     [browsercell setImage:icon];
     [browsercell setStringValue:[ NSString stringWithUTF8String:filename ]];
     [cont editCell:browsercell at:(row+lastadd) and:0];
@@ -5608,6 +5743,24 @@ int API dw_container_get_column_type(HWND handle, int column)
 int API dw_filesystem_get_column_type(HWND handle, int column)
 {
     return dw_container_get_column_type(handle, column+1);
+}
+
+/*
+ * Sets the alternating row colors for container window (widget) handle.
+ * Parameters:
+ *          handle: The window (widget) handle.
+ *          oddcolor: Odd row background color in DW_RGB format or a default color index.
+ *                    DW_CLR_DEFAULT will disable coloring odd rows.
+ *          evencolor: Even row background color in DW_RGB format or a default color index.
+ *                    DW_CLR_DEFAULT will disable coloring even rows.
+ */
+void API dw_container_set_row_bg(HWND handle, unsigned long oddcolor, unsigned long evencolor)
+{
+    int _locked_by_me = FALSE;
+    DW_MUTEX_LOCK;
+    DWContainer *cont = handle;
+    [cont setRowBgOdd:oddcolor andEven:evencolor];
+    DW_MUTEX_UNLOCK;
 }
 
 /*
