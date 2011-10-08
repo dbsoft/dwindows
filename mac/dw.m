@@ -1329,7 +1329,7 @@ DWObject *DWObj;
 @end
 
 @implementation DWImageAndTextCell
-- (void)dealloc 
+-(void)dealloc 
 {
     [image release];
     image = nil;
@@ -1343,7 +1343,7 @@ DWObject *DWObj;
 }
 -(void)setImage:(NSImage *)anImage 
 {
-    if (anImage != image) 
+    if(anImage != image) 
     {
         [image release];
         image = [anImage retain];
@@ -1355,7 +1355,7 @@ DWObject *DWObj;
 }
 -(NSRect)imageFrameForCellFrame:(NSRect)cellFrame 
 {
-    if (image != nil) 
+    if(image != nil) 
     {
         NSRect imageFrame;
         imageFrame.size = [image size];
@@ -1381,13 +1381,15 @@ DWObject *DWObj;
 }
 -(void)drawWithFrame:(NSRect)cellFrame inView:(NSView *)controlView 
 {
-    if (image != nil) {
+    if(image != nil) 
+    {
         NSSize	imageSize;
         NSRect	imageFrame;
         
         imageSize = [image size];
         NSDivideRect(cellFrame, &imageFrame, &cellFrame, 3 + imageSize.width, NSMinXEdge);
-        if ([self drawsBackground]) {
+        if ([self drawsBackground]) 
+        {
             [[self backgroundColor] set];
             NSRectFill(imageFrame);
         }
@@ -1519,11 +1521,11 @@ DWObject *DWObj;
     unsigned long _even = _get_color(evencol);
     
     /* Get the NSColor for non-default colors */
-    if(oddcol != DW_CLR_DEFAULT)
+    if(oddcol != DW_RGB_TRANSPARENT)
         oddcolor = [[NSColor colorWithDeviceRed: DW_RED_VALUE(_odd)/255.0 green: DW_GREEN_VALUE(_odd)/255.0 blue: DW_BLUE_VALUE(_odd)/255.0 alpha: 1] retain];
     else
         oddcolor = NULL;
-    if(evencol != DW_CLR_DEFAULT)
+    if(evencol != DW_RGB_TRANSPARENT)
         evencolor = [[NSColor colorWithDeviceRed: DW_RED_VALUE(_even)/255.0 green: DW_GREEN_VALUE(_even)/255.0 blue: DW_BLUE_VALUE(_even)/255.0 alpha: 1] retain];
     else
         evencolor = NULL;
@@ -5750,16 +5752,17 @@ int API dw_filesystem_get_column_type(HWND handle, int column)
  * Parameters:
  *          handle: The window (widget) handle.
  *          oddcolor: Odd row background color in DW_RGB format or a default color index.
- *                    DW_CLR_DEFAULT will disable coloring odd rows.
  *          evencolor: Even row background color in DW_RGB format or a default color index.
- *                    DW_CLR_DEFAULT will disable coloring even rows.
+ *                    DW_RGB_TRANSPARENT will disable coloring rows.
+ *                    DW_CLR_DEFAULT will use the system default alternating row colors.
  */
 void API dw_container_set_row_bg(HWND handle, unsigned long oddcolor, unsigned long evencolor)
 {
     int _locked_by_me = FALSE;
     DW_MUTEX_LOCK;
     DWContainer *cont = handle;
-    [cont setRowBgOdd:oddcolor andEven:evencolor];
+    [cont setRowBgOdd:(oddcolor == DW_CLR_DEFAULT ? DW_RGB_TRANSPARENT : oddcolor) 
+              andEven:(evencolor == DW_CLR_DEFAULT ? DW_RGB(230,230,230) : evencolor)];
     DW_MUTEX_UNLOCK;
 }
 
