@@ -1513,87 +1513,6 @@ static void _dw_toggle_checkable_menu_item( HWND window, int id )
    }
 }
 
-#ifdef DWDEBUG
-long ProcessCustomDraw (LPARAM lParam)
-{
-    LPNMLVCUSTOMDRAW lplvcd = (LPNMLVCUSTOMDRAW)lParam;
-
-    switch(lplvcd->nmcd.dwDrawStage)
-    {
-        case CDDS_PREPAINT : //Before the paint cycle begins
-            //request notifications for individual listview items
-dw_messagebox("LISTVIEW", DW_MB_OK|DW_MB_ERROR, "PREPAINT");
-//            return CDRF_NOTIFYITEMDRAW;
-            return (CDRF_NOTIFYPOSTPAINT | CDRF_NOTIFYITEMDRAW);
-
-        case CDDS_ITEMPREPAINT: //Before an item is drawn
-            {
-dw_messagebox("LISTVIEW", DW_MB_OK|DW_MB_ERROR, "ITEMPREPAINT");
-                return CDRF_NOTIFYSUBITEMDRAW;
-            }
-            break;
-
-        case CDDS_SUBITEM | CDDS_ITEMPREPAINT: //Before a subitem is drawn
-            {
-dw_messagebox("LISTVIEW", DW_MB_OK|DW_MB_ERROR, "SUBITEM ITEMPREPAINT %d",lplvcd->iSubItem);
-                switch(lplvcd->iSubItem)
-                {
-                    case 0:
-                    {
-                      lplvcd->clrText   = RGB(255,255,255);
-                      lplvcd->clrTextBk = RGB(240,55,23);
-                      return CDRF_NEWFONT;
-                    }
-                    break;
-
-                    case 1:
-                    {
-                      lplvcd->clrText   = RGB(255,255,0);
-                      lplvcd->clrTextBk = RGB(0,0,0);
-                      return CDRF_NEWFONT;
-                    }
-                    break;
-
-                    case 2:
-                    {
-                      lplvcd->clrText   = RGB(20,26,158);
-                      lplvcd->clrTextBk = RGB(200,200,10);
-                      return CDRF_NEWFONT;
-                    }
-                    break;
-
-                    case 3:
-                    {
-                      lplvcd->clrText   = RGB(12,15,46);
-                      lplvcd->clrTextBk = RGB(200,200,200);
-                      return CDRF_NEWFONT;
-                    }
-                    break;
-
-                    case 4:
-                    {
-                      lplvcd->clrText   = RGB(120,0,128);
-                      lplvcd->clrTextBk = RGB(20,200,200);
-                      return CDRF_NEWFONT;
-                    }
-                    break;
-
-                    case 5:
-                    {
-                      lplvcd->clrText   = RGB(255,255,255);
-                      lplvcd->clrTextBk = RGB(0,0,150);
-                      return CDRF_NEWFONT;
-                    }
-                    break;
-
-                }
-
-            }
-    }
-    return CDRF_DODEFAULT;
-}
-#endif
-
 /* The main window procedure for Dynamic Windows, all the resizing code is done here. */
 BOOL CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 {
@@ -1823,10 +1742,6 @@ BOOL CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
                         char tmpbuf[100];
 
                         GetClassName(tem->hdr.hwndFrom, tmpbuf, 99);
-#ifdef DEBUG_NOTUSED
-if ( lem->hdr.code == NM_CUSTOMDRAW )
-dw_messagebox("NM_CUSTOMDRAW for (WM_NOTIFY)", DW_MB_OK|DW_MB_ERROR, "%s %d: Classname:%s",__FILE__,__LINE__,tmpbuf);
-#endif
 
                         if(strnicmp(tmpbuf, WC_TREEVIEW, strlen(WC_TREEVIEW))==0)
                         {
@@ -1927,14 +1842,6 @@ dw_messagebox("NM_CUSTOMDRAW for (WM_NOTIFY)", DW_MB_OK|DW_MB_ERROR, "%s %d: Cla
                                  }
                               }
                            }
-#ifdef DWDEBUG
-                           else if ( lem->hdr.code == NM_CUSTOMDRAW )
-                           {
-dw_messagebox("NM_CUSTOMDRAW for WC_LISTVIEW from _wndproc (WM_NOTIFY)", DW_MB_OK|DW_MB_ERROR, "Hello");
-                              SetWindowLong( hWnd, DWL_MSGRESULT, (LONG)ProcessCustomDraw(mp2) );
-                              return TRUE;
-                           }
-#endif
                         }
                      }
                      else if(tmp->message == TCN_SELCHANGE)
@@ -1958,20 +1865,6 @@ dw_messagebox("NM_CUSTOMDRAW for WC_LISTVIEW from _wndproc (WM_NOTIFY)", DW_MB_O
                            tmp = NULL;
                         }
                      }
-#ifdef DEBUG_NOTUSED
-                     else
-                     {
-                        NMLISTVIEW FAR *lem=(NMLISTVIEW FAR *)mp2;
-                        char tmpbuf[100];
-                        GetClassName(lem->hdr.hwndFrom, tmpbuf, 99);
-                        if ( strnicmp( tmpbuf, WC_LISTVIEW, strlen(WC_LISTVIEW)+1 ) == 0 && lem->hdr.code == NM_CUSTOMDRAW )
-                        {
-dw_messagebox("NM_CUSTOMDRAW for WC_LISTVIEW(mp2) from _wndproc (WM_NOTIFY)", DW_MB_OK|DW_MB_ERROR, "Hello");
-                           SetWindowLong( hWnd, DWL_MSGRESULT, (LONG)ProcessCustomDraw(mp2) );
-                           tmp = NULL; //return TRUE;
-                        }
-                     }
-#endif
                   }
                   break;
                case WM_COMMAND:
@@ -2154,26 +2047,6 @@ dw_messagebox("NM_CUSTOMDRAW for WC_LISTVIEW(mp2) from _wndproc (WM_NOTIFY)", DW
 
             _resize_notebook_page(tem->hwndFrom, num);
          }
-#ifdef DWDEBUG
-// code to attempt to support containers with different colours for each row - incomplete
-         else
-         {
-            /*
-             * Check if we have a click_default for this window
-             */
-            NMLISTVIEW FAR *lem=(NMLISTVIEW FAR *)mp2;
-            char tmpbuf[100];
-            GetClassName(lem->hdr.hwndFrom, tmpbuf, 99);
-if ( lem->hdr.code == NM_CUSTOMDRAW )
-dw_messagebox("NM_CUSTOMDRAW for (WM_NOTIFY)", DW_MB_OK|DW_MB_ERROR, "%s %d: Classname:%s is it %s",__FILE__,__LINE__,tmpbuf,WC_LISTVIEW);
-            if ( strnicmp( tmpbuf, WC_LISTVIEW, strlen(WC_LISTVIEW)+1 ) == 0 && lem->hdr.code == NM_CUSTOMDRAW )
-            {
-dw_messagebox("NM_CUSTOMDRAW for WC_LISTVIEW(mp2) from _wndproc (WM_NOTIFY) - normal processing", DW_MB_OK|DW_MB_ERROR, "Hello");
-               SetWindowLong( hWnd, DWL_MSGRESULT, (long)ProcessCustomDraw(mp2) );
-               return TRUE;
-            }
-         }
-#endif
       }
       break;
    case WM_HSCROLL:
@@ -2811,6 +2684,7 @@ BOOL CALLBACK _colorwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
    return ret;
 }
 
+/* Window procedure for container/listview */
 BOOL CALLBACK _containerwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 {
    ContainerInfo *cinfo;
@@ -2824,6 +2698,52 @@ BOOL CALLBACK _containerwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
    case WM_MOUSEMOVE:
       _wndproc(hWnd, msg, mp1, mp2);
       break;
+   case WM_PAINT:
+       if(cinfo->cinfo.pOldProc && (cinfo->even != DW_RGB_TRANSPARENT || cinfo->odd != DW_RGB_TRANSPARENT))
+       {
+            RECT rectUpd, rectDestin, rect;
+            POINT pt;
+            int iItems, iTop, i;
+            COLORREF c;
+
+            /* Load the default background color for the first pass */
+            ListView_SetTextBkColor(hWnd, cinfo->cinfo.back != -1 ? cinfo->cinfo.back : ListView_GetBkColor(hWnd));
+            /* get the rectangle to be updated */
+            GetUpdateRect(hWnd, &rectUpd, FALSE);
+            /* allow default processing first */
+            CallWindowProc(cinfo->cinfo.pOldProc, hWnd, msg, 0, 0);
+            /* set the row horizontal dimensions */
+            SetRect(&rect, rectUpd.left, 0, rectUpd.right, 0);
+            /* number of displayed rows */
+            iItems = ListView_GetCountPerPage(hWnd);
+            /* first visible row */
+            iTop = ListView_GetTopIndex(hWnd);
+
+            ListView_GetItemPosition(hWnd, iTop, &pt);
+            for(i=iTop; i<=(iTop+iItems)+1; i++) 
+            {
+                /* set row vertical dimensions */
+                rect.top = pt.y;
+                ListView_GetItemPosition(hWnd, i, &pt);
+                rect.bottom = pt.y;
+                /* if row rectangle intersects update rectangle then it requires re-drawing */
+                if(IntersectRect(&rectDestin, &rectUpd, &rect)) 
+                {
+                    /* change text background colour accordingly */
+                    c = (i % 2) ? cinfo->even : cinfo->odd;
+
+                    if(c != DW_RGB_TRANSPARENT)
+                    {
+                        ListView_SetTextBkColor(hWnd, c);
+                        /* invalidate the row rectangle then... */
+                        InvalidateRect(hWnd, &rect, FALSE);
+                        /* ...force default processing */
+                        CallWindowProc(cinfo->cinfo.pOldProc, hWnd, msg, 0, 0);
+                    }
+                }
+            }            
+       }
+       break;
    case WM_LBUTTONDBLCLK:
    case WM_CHAR:
       {
@@ -2924,9 +2844,9 @@ BOOL CALLBACK _containerwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
       break;
    }
 
-   if(!cinfo || !cinfo->pOldProc)
+   if(!cinfo || !cinfo->cinfo.pOldProc)
       return DefWindowProc(hWnd, msg, mp1, mp2);
-   return CallWindowProc(cinfo->pOldProc, hWnd, msg, mp1, mp2);
+   return CallWindowProc(cinfo->cinfo.pOldProc, hWnd, msg, mp1, mp2);
 }
 
 BOOL CALLBACK _treewndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
@@ -2956,9 +2876,9 @@ BOOL CALLBACK _treewndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 
    if(ret != TRUE)
    {
-       if(!cinfo || !cinfo->pOldProc)
+       if(!cinfo || !cinfo->cinfo.pOldProc)
           return DefWindowProc(hWnd, msg, mp1, mp2);
-       return CallWindowProc(cinfo->pOldProc, hWnd, msg, mp1, mp2);
+       return CallWindowProc(cinfo->cinfo.pOldProc, hWnd, msg, mp1, mp2);
    }
    return ret;
 }
@@ -4245,8 +4165,8 @@ int API dw_window_set_color(HWND handle, ULONG fore, ULONG back)
 
    if(strnicmp(tmpbuf, WC_LISTVIEW, strlen(WC_LISTVIEW))==0)
    {
-      fore = _internal_color(fore);
-      back = _internal_color(back);
+      cinfo->fore = fore = _internal_color(fore);
+      cinfo->back = back = _internal_color(back);
 
       ListView_SetTextColor(handle, RGB(DW_RED_VALUE(fore),
                                 DW_GREEN_VALUE(fore),
@@ -4994,8 +4914,9 @@ HWND API dw_container_new(ULONG id, int multi)
       return NULL;
    }
 
-   cinfo->pOldProc = (WNDPROC)SubclassWindow(tmp, _containerwndproc);
+   cinfo->cinfo.pOldProc = (WNDPROC)SubclassWindow(tmp, _containerwndproc);
    cinfo->cinfo.fore = cinfo->cinfo.back = -1;
+   cinfo->odd = cinfo->even = DW_RGB_TRANSPARENT;
 
    SetWindowLongPtr(tmp, GWLP_USERDATA, (LONG_PTR)cinfo);
    dw_window_set_font(tmp, DefaultFont);
@@ -5036,8 +4957,9 @@ HWND API dw_tree_new(ULONG id)
       return NULL;
    }
 
-   cinfo->pOldProc = (WNDPROC)SubclassWindow(tmp, _treewndproc);
+   cinfo->cinfo.pOldProc = (WNDPROC)SubclassWindow(tmp, _treewndproc);
    cinfo->cinfo.fore = cinfo->cinfo.back = -1;
+   cinfo->odd = cinfo->even = DW_RGB_TRANSPARENT;
 
    SetWindowLongPtr(tmp, GWLP_USERDATA, (LONG_PTR)cinfo);
    dw_window_set_font(tmp, DefaultFont);
@@ -5145,8 +5067,9 @@ HWND API dw_mle_new(ULONG id)
       return NULL;
    }
 
-   cinfo->pOldProc = (WNDPROC)SubclassWindow(tmp, _treewndproc);
+   cinfo->cinfo.pOldProc = (WNDPROC)SubclassWindow(tmp, _treewndproc);
    cinfo->cinfo.fore = cinfo->cinfo.back = -1;
+   cinfo->odd = cinfo->even = DW_RGB_TRANSPARENT;
 
    SetWindowLongPtr(tmp, GWLP_USERDATA, (LONG_PTR)cinfo);
    dw_window_set_font(tmp, DefaultFont);
@@ -5670,9 +5593,9 @@ HWND API dw_listbox_new(ULONG id, int multi)
       return NULL;
    }
 
-   cinfo->cinfo.fore = -1;
-   cinfo->cinfo.back = -1;
-   cinfo->pOldProc = (WNDPROC)SubclassWindow(tmp, _containerwndproc);
+   cinfo->cinfo.fore = cinfo->cinfo.back = -1;
+   cinfo->odd = cinfo->even = DW_RGB_TRANSPARENT;
+   cinfo->cinfo.pOldProc = (WNDPROC)SubclassWindow(tmp, _containerwndproc);
 
    SetWindowLongPtr(tmp, GWLP_USERDATA, (LONG_PTR)cinfo);
    dw_window_set_font(tmp, DefaultFont);
@@ -8030,6 +7953,24 @@ int API dw_filesystem_get_column_type(HWND handle, int column)
  */
 void API dw_container_set_row_bg(HWND handle, unsigned long oddcolor, unsigned long evencolor)
 {
+    ContainerInfo *cinfo = (ContainerInfo *)GetWindowLongPtr(handle, GWLP_USERDATA);
+    COLORREF odd = _internal_color(oddcolor);
+    COLORREF even = _internal_color(evencolor);
+
+    /* Drop out on error */
+    if(!cinfo)
+        return;
+
+    /* Create new brushes or remove if transparent */
+    if(oddcolor != DW_RGB_TRANSPARENT)
+        cinfo->odd = (oddcolor == DW_CLR_DEFAULT ? RGB(230, 230, 230) : odd);
+    else 
+        cinfo->odd = oddcolor;
+
+    if(evencolor != DW_RGB_TRANSPARENT)
+        cinfo->even = (evencolor == DW_CLR_DEFAULT ? DW_RGB_TRANSPARENT : even);
+    else 
+        cinfo->even = evencolor;
 }
 
 /*
