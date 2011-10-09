@@ -1593,26 +1593,29 @@ DWObject *DWObj;
         NSImage *img = [browsercell image];
         [bcell setImage:img];
     }
-    /* Handle drawing alternating row colors if enabled */
-    if ((row % 2) == 0)
+    if([cell isKindOfClass:[NSTextFieldCell class]])
     {
-        if(evencolor)
+        /* Handle drawing alternating row colors if enabled */
+        if ((row % 2) == 0)
         {
-            [bcell setDrawsBackground:YES];
-            [bcell setBackgroundColor:evencolor];
+            if(evencolor)
+            {
+                [bcell setDrawsBackground:YES];
+                [bcell setBackgroundColor:evencolor];
+            }
+            else
+                [bcell setDrawsBackground:NO];
         }
         else
-            [bcell setDrawsBackground:NO];
-    }
-    else
-    {
-        if(oddcolor)
         {
-            [bcell setDrawsBackground:YES];
-            [bcell setBackgroundColor:oddcolor];
+            if(oddcolor)
+            {
+                [bcell setDrawsBackground:YES];
+                [bcell setBackgroundColor:oddcolor];
+            }
+            else
+                [bcell setDrawsBackground:NO];
         }
-        else
-            [bcell setDrawsBackground:NO];
     }
 }
 -(void)editCell:(id)input at:(int)row and:(int)col
