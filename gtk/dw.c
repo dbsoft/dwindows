@@ -6513,6 +6513,8 @@ static int _dw_container_setup(HWND handle, unsigned long *flags, char **titles,
    gtk_object_set_user_data(GTK_OBJECT(handle), (gpointer)clist);
    gtk_widget_show(clist);
    gtk_object_set_data(GTK_OBJECT(clist), "_dw_colcount", GINT_TO_POINTER(count));
+   gtk_object_set_data(GTK_OBJECT(clist), "_dw_oddcol", GINT_TO_POINTER(DW_RGB_TRANSPARENT));
+   gtk_object_set_data(GTK_OBJECT(clist), "_dw_evencol", GINT_TO_POINTER(DW_RGB_TRANSPARENT));
 
     if(extra)
       gtk_clist_set_column_width(GTK_CLIST(clist), 1, 120);
