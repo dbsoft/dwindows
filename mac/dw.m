@@ -5761,8 +5761,8 @@ void API dw_container_set_row_bg(HWND handle, unsigned long oddcolor, unsigned l
     int _locked_by_me = FALSE;
     DW_MUTEX_LOCK;
     DWContainer *cont = handle;
-    [cont setRowBgOdd:(oddcolor == DW_CLR_DEFAULT ? DW_RGB_TRANSPARENT : oddcolor) 
-              andEven:(evencolor == DW_CLR_DEFAULT ? DW_RGB(230,230,230) : evencolor)];
+    [cont setRowBgOdd:(oddcolor == DW_CLR_DEFAULT ? DW_RGB(230,230,230) : oddcolor) 
+              andEven:(evencolor == DW_CLR_DEFAULT ? DW_RGB_TRANSPARENT : evencolor)];
     DW_MUTEX_UNLOCK;
 }
 

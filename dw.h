@@ -624,8 +624,8 @@ typedef HANDLE HICN;
 typedef struct _container {
    ColorInfo cinfo;
    ULONG *flags;
-   WNDPROC pOldProc;
    ULONG columns;
+   COLORREF odd, even;
 } ContainerInfo;
 
 typedef struct _hpixmap {
