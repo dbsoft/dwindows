@@ -3038,39 +3038,39 @@ static void _save_gdk_colors(HWND handle, GdkColor fore, GdkColor back)
    gtk_object_set_data(GTK_OBJECT(handle), "_dw_backgdk", (gpointer)backgdk);
 }
 
+GdkColor _get_gdkcolor(unsigned long color)
+{
+    GdkColor temp = _colors[0];
+    
+    if(color & DW_RGB_COLOR)
+    {    
+        temp.pixel = 0;
+        temp.red = DW_RED_VALUE(color) << 8;
+        temp.green = DW_GREEN_VALUE(color) << 8;
+        temp.blue = DW_BLUE_VALUE(color) << 8;
+
+        gdk_color_alloc(_dw_cmap, &temp);
+    }
+    else if(color != DW_CLR_DEFAULT)
+    {
+        temp = _colors[color];
+    }
+    return temp;
+}
+
 static int _set_color(HWND handle, unsigned long fore, unsigned long back)
 {
    /* Remember that each color component in X11 use 16 bit no matter
     * what the destination display supports. (and thus GDK)
     */
-   GdkColor forecolor, backcolor;
+   GdkColor forecolor = _get_gdkcolor(fore);
+   GdkColor backcolor = _get_gdkcolor(back);
 #if GTK_MAJOR_VERSION < 2
    GtkStyle *style = gtk_style_copy(gtk_widget_get_style(handle));
 #endif
 
-   if(fore & DW_RGB_COLOR)
+   if(fore != DW_CLR_DEFAULT)
    {
-      forecolor.pixel = 0;
-      forecolor.red = DW_RED_VALUE(fore) << 8;
-      forecolor.green = DW_GREEN_VALUE(fore) << 8;
-      forecolor.blue = DW_BLUE_VALUE(fore) << 8;
-
-      gdk_color_alloc(_dw_cmap, &forecolor);
-
-#if GTK_MAJOR_VERSION > 1
-      gtk_widget_modify_text(handle, 0, &forecolor);
-      gtk_widget_modify_text(handle, 1, &forecolor);
-      gtk_widget_modify_fg(handle, 0, &forecolor);
-      gtk_widget_modify_fg(handle, 1, &forecolor);
-#else
-      if(style)
-         style->text[0] = style->text[1] = style->fg[0] = style->fg[1] = forecolor;
-#endif
-   }
-   else if(fore != DW_CLR_DEFAULT)
-   {
-      forecolor = _colors[fore];
-
 #if GTK_MAJOR_VERSION > 1
       gtk_widget_modify_text(handle, 0, &_colors[fore]);
       gtk_widget_modify_text(handle, 1, &_colors[fore]);
@@ -3081,29 +3081,8 @@ static int _set_color(HWND handle, unsigned long fore, unsigned long back)
          style->text[0] = style->text[1] = style->fg[0] = style->fg[1] = _colors[fore];
 #endif
    }
-   if(back & DW_RGB_COLOR)
+   if(back != DW_CLR_DEFAULT)
    {
-      backcolor.pixel = 0;
-      backcolor.red = DW_RED_VALUE(back) << 8;
-      backcolor.green = DW_GREEN_VALUE(back) << 8;
-      backcolor.blue = DW_BLUE_VALUE(back) << 8;
-
-      gdk_color_alloc(_dw_cmap, &backcolor);
-
-#if GTK_MAJOR_VERSION > 1
-      gtk_widget_modify_base(handle, 0, &backcolor);
-      gtk_widget_modify_base(handle, 1, &backcolor);
-      gtk_widget_modify_bg(handle, 0, &backcolor);
-      gtk_widget_modify_bg(handle, 1, &backcolor);
-#else
-      if(style)
-         style->base[0] = style->base[1] = style->bg[0] = style->bg[1] = backcolor;
-#endif
-   }
-   else if(back != DW_CLR_DEFAULT)
-   {
-      backcolor = _colors[back];
-
 #if GTK_MAJOR_VERSION > 1
       gtk_widget_modify_base(handle, 0, &_colors[back]);
       gtk_widget_modify_base(handle, 1, &_colors[back]);
@@ -3137,6 +3116,37 @@ static int _set_color(HWND handle, unsigned long fore, unsigned long back)
 #endif
    return TRUE;
 }
+
+void _update_clist_rows(HWND handle)
+{
+   if(GTK_IS_CLIST(handle))
+   {
+        int z, rowcount = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(handle), "_dw_rowcount"));
+        unsigned long odd = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(handle), "_dw_oddcol"));
+        unsigned long even = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(handle), "_dw_evencol"));
+        GdkColor *backcol = (GdkColor *)gtk_object_get_data(GTK_OBJECT(handle), "_dw_backgdk");
+        
+        if(!backcol)
+            backcol = &_colors[DW_CLR_WHITE];
+      
+        if(odd != DW_RGB_TRANSPARENT && even != DW_RGB_TRANSPARENT)
+        {
+            GdkColor oddcol = _get_gdkcolor(odd);
+            GdkColor evencol = _get_gdkcolor(even);
+
+            for(z=0;z<rowcount;z++)
+            {
+                int which = z % 2;
+                
+                if(which)
+                    gtk_clist_set_background(GTK_CLIST(handle), z, odd != DW_RGB_TRANSPARENT ? &oddcol : backcol);
+                else if(!which)
+                    gtk_clist_set_background(GTK_CLIST(handle), z, even != DW_RGB_TRANSPARENT ? &evencol : backcol);
+            }
+        }
+   }
+}
+
 /*
  * Sets the colors used by a specified window (widget) handle.
  * Parameters:
@@ -6980,6 +6990,7 @@ void _dw_container_set_item(HWND handle, void *pointer, int column, int row, voi
 
       gtk_clist_set_text(GTK_CLIST(clist), row, column, textbuffer);
    }
+   _update_clist_rows(handle);
    DW_MUTEX_UNLOCK;
 }
 
@@ -7127,6 +7138,19 @@ int API dw_filesystem_get_column_type(HWND handle, int column)
  */
 void API dw_container_set_row_bg(HWND handle, unsigned long oddcolor, unsigned long evencolor)
 {
+   GtkWidget *clist;
+   int _locked_by_me = FALSE;
+
+   DW_MUTEX_LOCK;
+   clist = gtk_object_get_user_data(GTK_OBJECT(handle));
+
+   if(clist && GTK_IS_CLIST(clist))
+   {
+        gtk_object_set_data(GTK_OBJECT(handle), "_dw_oddcol", GINT_TO_POINTER(oddcolor));
+        gtk_object_set_data(GTK_OBJECT(handle), "_dw_evencol", GINT_TO_POINTER(evencolor));
+        _update_clist_rows(handle);
+   }
+   DW_MUTEX_UNLOCK;
 }
 
 /*
@@ -7241,6 +7265,7 @@ void dw_container_delete(HWND handle, int rowcount)
          rows -= rowcount;
 
       gtk_object_set_data(GTK_OBJECT(clist), "_dw_rowcount", GINT_TO_POINTER(rows));
+      _update_clist_rows(handle);
    }
    DW_MUTEX_UNLOCK;
 }
@@ -7493,6 +7518,7 @@ void dw_container_delete_row(HWND handle, char *text)
          rowcount--;
 
          gtk_object_set_data(GTK_OBJECT(clist), "_dw_rowcount", GINT_TO_POINTER(rowcount));
+        _update_clist_rows(handle);
          DW_MUTEX_UNLOCK;
          return;
       }
