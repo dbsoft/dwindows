@@ -53,7 +53,7 @@ Added the subversion revision number as the third Dynamic Windows version
 Added dw_container_set_row_data() and dw_container_change_row_data() macros
    which just call dw_container_set/change_row_title() but with (void *).
 Added dw_container_set_row_bg() to set alternating row colors.
-   Currently Mac, Win and GTK3 are supported. GTK2 in progress.   
+   Currently Mac, Win and GTK2 and GTK3 are supported.
 Improved container optimization on Mac, header width now taken into account.
 Fixes for incorrect return codes from the dw_event_* functions on Windows.
 Fixes for incorrect behavior on key_press callbacks on Mac and Windows.
