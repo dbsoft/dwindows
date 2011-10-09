@@ -3051,7 +3051,7 @@ GdkColor _get_gdkcolor(unsigned long color)
 
         gdk_color_alloc(_dw_cmap, &temp);
     }
-    else if(color != DW_CLR_DEFAULT)
+    else if(color < DW_CLR_DEFAULT)
     {
         temp = _colors[color];
     }
@@ -3072,25 +3072,25 @@ static int _set_color(HWND handle, unsigned long fore, unsigned long back)
    if(fore != DW_CLR_DEFAULT)
    {
 #if GTK_MAJOR_VERSION > 1
-      gtk_widget_modify_text(handle, 0, &_colors[fore]);
-      gtk_widget_modify_text(handle, 1, &_colors[fore]);
-      gtk_widget_modify_fg(handle, 0, &_colors[fore]);
-      gtk_widget_modify_fg(handle, 1, &_colors[fore]);
+      gtk_widget_modify_text(handle, 0, &forecolor);
+      gtk_widget_modify_text(handle, 1, &forecolor);
+      gtk_widget_modify_fg(handle, 0, &forecolor);
+      gtk_widget_modify_fg(handle, 1, &forecolor);
 #else
       if(style)
-         style->text[0] = style->text[1] = style->fg[0] = style->fg[1] = _colors[fore];
+         style->text[0] = style->text[1] = style->fg[0] = style->fg[1] = forecolor;
 #endif
    }
    if(back != DW_CLR_DEFAULT)
    {
 #if GTK_MAJOR_VERSION > 1
-      gtk_widget_modify_base(handle, 0, &_colors[back]);
-      gtk_widget_modify_base(handle, 1, &_colors[back]);
-      gtk_widget_modify_bg(handle, 0, &_colors[back]);
-      gtk_widget_modify_bg(handle, 1, &_colors[back]);
+      gtk_widget_modify_base(handle, 0, &backcolor);
+      gtk_widget_modify_base(handle, 1, &backcolor);
+      gtk_widget_modify_bg(handle, 0, &backcolor);
+      gtk_widget_modify_bg(handle, 1, &backcolor);
 #else
       if(style)
-         style->base[0] = style->base[1] = style->bg[0] = style->bg[1] = _colors[back];
+         style->base[0] = style->base[1] = style->bg[0] = style->bg[1] = backcolor;
 #endif
    }
 
@@ -3129,7 +3129,7 @@ void _update_clist_rows(HWND handle)
         if(!backcol)
             backcol = &_colors[DW_CLR_WHITE];
       
-        if(odd != DW_RGB_TRANSPARENT && even != DW_RGB_TRANSPARENT)
+        if(odd != DW_RGB_TRANSPARENT || even != DW_RGB_TRANSPARENT)
         {
             GdkColor oddcol = _get_gdkcolor(odd);
             GdkColor evencol = _get_gdkcolor(even);
@@ -6990,7 +6990,8 @@ void _dw_container_set_item(HWND handle, void *pointer, int column, int row, voi
 
       gtk_clist_set_text(GTK_CLIST(clist), row, column, textbuffer);
    }
-   _update_clist_rows(handle);
+   if(!pointer)
+      _update_clist_rows(clist);
    DW_MUTEX_UNLOCK;
 }
 
@@ -7146,9 +7147,9 @@ void API dw_container_set_row_bg(HWND handle, unsigned long oddcolor, unsigned l
 
    if(clist && GTK_IS_CLIST(clist))
    {
-        gtk_object_set_data(GTK_OBJECT(handle), "_dw_oddcol", GINT_TO_POINTER(oddcolor));
-        gtk_object_set_data(GTK_OBJECT(handle), "_dw_evencol", GINT_TO_POINTER(evencolor));
-        _update_clist_rows(handle);
+        gtk_object_set_data(GTK_OBJECT(clist), "_dw_oddcol", GINT_TO_POINTER(oddcolor == DW_CLR_DEFAULT ? DW_RGB(230, 230, 230) : oddcolor));
+        gtk_object_set_data(GTK_OBJECT(clist), "_dw_evencol", GINT_TO_POINTER(evencolor == DW_CLR_DEFAULT ? DW_RGB_TRANSPARENT : evencolor));
+        _update_clist_rows(clist);
    }
    DW_MUTEX_UNLOCK;
 }
@@ -7231,7 +7232,10 @@ void dw_container_insert(HWND handle, void *pointer, int rowcount)
    clist = gtk_object_get_user_data(GTK_OBJECT(handle));
 
    if(clist && GTK_IS_CLIST(clist))
+   {
+      _update_clist_rows(clist);
       gtk_clist_thaw(GTK_CLIST(clist));
+   }
    DW_MUTEX_UNLOCK;
 }
 
@@ -7265,7 +7269,7 @@ void dw_container_delete(HWND handle, int rowcount)
          rows -= rowcount;
 
       gtk_object_set_data(GTK_OBJECT(clist), "_dw_rowcount", GINT_TO_POINTER(rows));
-      _update_clist_rows(handle);
+      _update_clist_rows(clist);
    }
    DW_MUTEX_UNLOCK;
 }
@@ -7518,7 +7522,7 @@ void dw_container_delete_row(HWND handle, char *text)
          rowcount--;
 
          gtk_object_set_data(GTK_OBJECT(clist), "_dw_rowcount", GINT_TO_POINTER(rowcount));
-        _update_clist_rows(handle);
+        _update_clist_rows(clist);
          DW_MUTEX_UNLOCK;
          return;
       }
