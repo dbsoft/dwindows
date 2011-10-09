@@ -2702,7 +2702,6 @@ BOOL CALLBACK _containerwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
        if(cinfo->cinfo.pOldProc && (cinfo->even != DW_RGB_TRANSPARENT || cinfo->odd != DW_RGB_TRANSPARENT))
        {
             RECT rectUpd, rectDestin, rect;
-            POINT pt;
             int iItems, iTop, i;
             COLORREF c;
 
@@ -2719,18 +2718,15 @@ BOOL CALLBACK _containerwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
             /* first visible row */
             iTop = ListView_GetTopIndex(hWnd);
 
-            ListView_GetItemPosition(hWnd, iTop, &pt);
-            for(i=iTop; i<=(iTop+iItems)+1; i++) 
+            for(i=iTop; i<=iTop+iItems; i++) 
             {
-                /* set row vertical dimensions */
-                rect.top = pt.y;
-                ListView_GetItemPosition(hWnd, i, &pt);
-                rect.bottom = pt.y;
+                /* Get the row's rect */
+                ListView_GetItemRect(hWnd, i, &rect, LVIR_BOUNDS);
                 /* if row rectangle intersects update rectangle then it requires re-drawing */
                 if(IntersectRect(&rectDestin, &rectUpd, &rect)) 
                 {
                     /* change text background colour accordingly */
-                    c = (i % 2) ? cinfo->even : cinfo->odd;
+                    c = (i % 2) ? cinfo->odd : cinfo->even;
 
                     if(c != DW_RGB_TRANSPARENT)
                     {

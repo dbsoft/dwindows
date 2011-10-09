@@ -1024,6 +1024,7 @@ void container_add(void)
     titles[3] = "Date";
 
     dw_filesystem_setup(container, flags, titles, 4);
+    dw_container_set_row_bg(container, DW_CLR_DEFAULT, DW_CLR_DEFAULT);
     containerinfo = dw_container_alloc(container, 3);
 
     for(z=0;z<3;z++)
