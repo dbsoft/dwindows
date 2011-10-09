@@ -2711,19 +2711,15 @@ BOOL CALLBACK _containerwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
             GetUpdateRect(hWnd, &rectUpd, FALSE);
             /* allow default processing first */
             CallWindowProc(cinfo->cinfo.pOldProc, hWnd, msg, 0, 0);
-            /* set the row horizontal dimensions */
-            SetRect(&rect, rectUpd.left, 0, rectUpd.right, 0);
             /* number of displayed rows */
             iItems = ListView_GetCountPerPage(hWnd);
             /* first visible row */
             iTop = ListView_GetTopIndex(hWnd);
 
-            for(i=iTop; i<=iTop+iItems; i++) 
+            for(i=iTop; i<=(iTop+iItems+1); i++) 
             {
-                /* Get the row's rect */
-                ListView_GetItemRect(hWnd, i, &rect, LVIR_BOUNDS);
                 /* if row rectangle intersects update rectangle then it requires re-drawing */
-                if(IntersectRect(&rectDestin, &rectUpd, &rect)) 
+                if(ListView_GetItemRect(hWnd, i, &rect, LVIR_BOUNDS) && IntersectRect(&rectDestin, &rectUpd, &rect)) 
                 {
                     /* change text background colour accordingly */
                     c = (i % 2) ? cinfo->odd : cinfo->even;
@@ -2732,7 +2728,7 @@ BOOL CALLBACK _containerwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
                     {
                         ListView_SetTextBkColor(hWnd, c);
                         /* invalidate the row rectangle then... */
-                        InvalidateRect(hWnd, &rect, FALSE);
+                        InvalidateRect(hWnd, &rectDestin, FALSE);
                         /* ...force default processing */
                         CallWindowProc(cinfo->cinfo.pOldProc, hWnd, msg, 0, 0);
                     }
