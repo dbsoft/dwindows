@@ -2300,6 +2300,7 @@ BOOL CALLBACK _rendwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
       /* call our standard Windows procedure */
       rcode = _wndproc(hWnd, msg, mp1, mp2);
       break;
+   case WM_USER+2:
    case WM_LBUTTONUP:
    case WM_MBUTTONUP:
    case WM_RBUTTONUP:
@@ -2473,7 +2474,7 @@ BOOL CALLBACK _colorwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
    if(strcmp(tmpbuf, FRAMECLASSNAME) == 0)
       cinfo = &(((Box *)cinfo)->cinfo);
 
-   if ( msg == WM_MOUSEMOVE )
+   if ( msg == WM_MOUSEMOVE || msg == WM_USER+2 )
       ret = _wndproc(hWnd, msg, mp1, mp2);
 
    if (cinfo)
