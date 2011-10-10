@@ -261,18 +261,24 @@ int _event_handler(id object, NSEvent *event, int message)
             case 4:
             {
                 int (* API buttonfunc)(HWND, int, int, int, void *) = (int (* API)(HWND, int, int, int, void *))handler->signalfunction;
-                id view = [[[event window] contentView] superview];
-                NSPoint p = [view convertPoint:[event locationInWindow] toView:object];
-                NSEventType type = [event type];
+                NSPoint p = [NSEvent mouseLocation]; 
                 int button = 1;
+                
+                if([event isMemberOfClass:[NSEvent class]])
+                {
+                    id view = [[[event window] contentView] superview];
+                    NSEventType type = [event type];
+                    
+                    p = [view convertPoint:[event locationInWindow] toView:object];
 
-                if(type == NSRightMouseDown || type == NSRightMouseUp)
-                {
-                    button = 2;
-                }
-                else if(type == NSOtherMouseDown || type == NSOtherMouseUp)
-                {
-                    button = 3;
+                    if(type == NSRightMouseDown || type == NSRightMouseUp)
+                    {
+                        button = 2;
+                    }
+                    else if(type == NSOtherMouseDown || type == NSOtherMouseUp)
+                    {
+                        button = 3;
+                    }
                 }
 
                 return buttonfunc(object, (int)p.x, (int)p.y, button, handler->data);
@@ -6085,6 +6091,7 @@ void API dw_taskbar_insert(HWND handle, HICN icon, char *bubbletext)
     [item setEnabled:YES];
     [item setHighlightMode:YES];
     [item sendActionOn:(NSLeftMouseUpMask|NSLeftMouseDownMask|NSRightMouseUpMask|NSRightMouseDownMask)];
+    [item setAction:@selector(mouseDown:)];
     dw_window_set_data(handle, "_dw_taskbar", item);
 }
 
