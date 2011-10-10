@@ -7561,6 +7561,24 @@ void dw_container_optimize(HWND handle)
    DW_MUTEX_UNLOCK;
 }
 
+#if GTK_CHECK_VERSION(2,10,0)
+/* Translate the status message into a message on our buddy window */
+static void _status_translate(GtkStatusIcon *status_icon, guint button, guint activate_time, gpointer user_data)
+{
+   GdkEventButton event = { 0 };
+   long x, y;
+   gboolean retval;
+      
+   dw_pointer_query_pos(&x, &y);
+   
+   event.button = button;
+   event.x = x;
+   event.y = y;
+   
+   g_signal_emit_by_name(G_OBJECT(user_data), "button_press_event", &event, &retval);
+}
+#endif
+
 /*
  * Inserts an icon into the taskbar.
  * Parameters:
@@ -7570,7 +7588,21 @@ void dw_container_optimize(HWND handle)
  */
 void dw_taskbar_insert(HWND handle, HICN icon, char *bubbletext)
 {
-   /* TODO */
+#if GTK_CHECK_VERSION(2,10,0)
+   GtkStatusIcon *status;
+   GdkPixbuf *pixbuf;
+   int _locked_by_me = FALSE;
+
+   DW_MUTEX_LOCK;
+   pixbuf = _find_pixbuf(icon);
+   status = gtk_status_icon_new_from_pixbuf(pixbuf);
+   if(bubbletext)
+      gtk_status_icon_set_tooltip_text(status, bubbletext);
+   g_object_set_data(G_OBJECT(handle), "_dw_taskbar", status);
+   g_signal_connect(G_OBJECT (status), "popup-menu", G_CALLBACK (_status_translate), handle);
+   gtk_status_icon_set_visible(status, TRUE); 
+   DW_MUTEX_UNLOCK;   
+#endif
 }
 
 /*
@@ -7581,7 +7613,15 @@ void dw_taskbar_insert(HWND handle, HICN icon, char *bubbletext)
  */
 void dw_taskbar_delete(HWND handle, HICN icon)
 {
-   /* TODO */
+#if GTK_CHECK_VERSION(2,10,0)
+   GtkStatusIcon *status;
+   int _locked_by_me = FALSE;
+
+   DW_MUTEX_LOCK;
+   status = g_object_get_data(G_OBJECT(handle), "_dw_taskbar");
+   g_object_unref(G_OBJECT(status));
+   DW_MUTEX_UNLOCK;
+#endif
 }
 
 /*
