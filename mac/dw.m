@@ -6825,6 +6825,8 @@ void API dw_menu_popup(HMENUI *menu, HWND parent, int x, int y)
     NSView *view = [object isKindOfClass:[NSWindow class]] ? [object contentView] : parent;
     NSWindow *window = [view window];
     NSEvent *event = [DWApp currentEvent];
+    if(!window)
+        window = [event window];
     NSPoint p = NSMakePoint(x, [[NSScreen mainScreen] frame].size.height - y);
     NSEvent* fake = [NSEvent mouseEventWithType:NSRightMouseDown
                                        location:[window convertScreenToBase:p]
