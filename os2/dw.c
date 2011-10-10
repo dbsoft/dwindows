@@ -60,6 +60,8 @@ DWTID _dwtid = 0;
 LONG _foreground = 0xAAAAAA, _background = DW_CLR_DEFAULT;
 
 HWND hwndApp = NULLHANDLE, hwndBubble = NULLHANDLE, hwndBubbleLast = NULLHANDLE, hwndEmph = NULLHANDLE;
+HWND hwndTrayServer = NULLHANDLE, hwndTaskBar = NULLHANDLE;
+;
 PRECORDCORE pCoreEmph = NULL;
 ULONG aulBuffer[4];
 HWND lasthcnr = 0, lastitem = 0, popup = 0, desktop;
@@ -3015,6 +3017,19 @@ MRESULT EXPENTRY _wndproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
        */
       WinPostMsg(hWnd, WM_USER+2, mp1, mp2);
       break;
+   case WM_DDE_INITIATEACK:
+       /* aswer dde server */
+       hwndTrayServer = (HWND)mp1;
+       break;
+   case WM_BUTTON1DOWN | 0x2000:
+   case WM_BUTTON2DOWN | 0x2000:
+   case WM_BUTTON3DOWN | 0x2000:
+   case WM_BUTTON1UP | 0x2000:
+   case WM_BUTTON2UP | 0x2000:
+   case WM_BUTTON3UP | 0x2000:
+       if(hwndTaskBar)
+           result = _run_event(hwndTaskBar, msg & ~0x2000, mp1, mp2);
+       break;
    case WM_USER+2:
       _clear_emphasis();
       if(dw_window_get_data((HWND)mp2, "_dw_popup"))
@@ -3689,6 +3704,9 @@ int API dw_init(int newthread, int argc, char *argv[])
     * application does and handles menu messages.
     */
    hwndApp = dw_window_new(HWND_OBJECT, "", 0);
+   /* Attempt to locate a tray server */
+   WinDdeInitiate(hwndApp, "SystrayServer", "TRAY", NULL);
+
    DosLoadModule(objnamebuf, sizeof(objnamebuf), "WPCONFIG", &wpconfig);
 
    return rc;
@@ -8111,10 +8129,13 @@ void API dw_container_optimize(HWND handle)
  */
 void API dw_taskbar_insert(HWND handle, HICN icon, char *bubbletext)
 {
-   handle = handle;
-   icon = icon;
-   bubbletext = bubbletext;
-   /* TODO */
+    /* Make sure we have our server */
+    if(!hwndTrayServer)
+        return;
+
+    WinSendMsg(hwndApp, WM_SETICON, (MPARAM)icon, 0);
+    hwndTaskBar = handle;
+    WinPostMsg(hwndTrayServer, WM_USER+1, (MPARAM)hwndApp, (MPARAM)icon);
 }
 
 /*
@@ -8125,9 +8146,12 @@ void API dw_taskbar_insert(HWND handle, HICN icon, char *bubbletext)
  */
 void API dw_taskbar_delete(HWND handle, HICN icon)
 {
-   handle = handle;
-   icon = icon;
-   /* TODO */
+    /* Make sure we have our server */
+    if(!hwndTrayServer)
+        return;
+
+    WinPostMsg(hwndTrayServer, WM_USER+2, (MPARAM)hwndApp, (MPARAM)0);
+    hwndTaskBar = NULLHANDLE;
 }
 
 /*
