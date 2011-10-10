@@ -856,7 +856,12 @@ int API context_menu_event(HWND window, int x, int y, int buttonmask, void *data
     
     dw_signal_connect(menuitem, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(exit_callback), (void *)mainwindow);    
     dw_pointer_query_pos(&px, &py);
-    dw_menu_popup(&hwndMenu, window, (int)px, (int)py);
+    /* Use the toplevel window handle here.... because on the Mac..
+     * using the control itself, when a different tab is active
+     * the control is removed from the window and can no longer
+     * handle the messages.
+     */
+    dw_menu_popup(&hwndMenu, mainwindow, (int)px, (int)py);
     return TRUE;
 }
 
