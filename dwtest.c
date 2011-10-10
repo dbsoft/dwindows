@@ -857,7 +857,7 @@ int API context_menu_event(HWND window, int x, int y, int buttonmask, void *data
     dw_signal_connect(menuitem, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(exit_callback), (void *)mainwindow);    
     dw_pointer_query_pos(&px, &py);
     dw_menu_popup(&hwndMenu, window, (int)px, (int)py);
-    return 0;
+    return TRUE;
 }
 
 void text_add(void)
