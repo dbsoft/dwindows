@@ -850,8 +850,8 @@ int API motion_notify_event(HWND window, int x, int y, int buttonmask, void *dat
 
 int API context_menu_event(HWND window, int x, int y, int buttonmask, void *data)
 {
-	HMENUI hwndMenu = dw_menu_new(0L);
-	HWND menuitem = dw_menu_append_item(hwndMenu, "~Quit", 1019, 0L, TRUE, FALSE, DW_NOMENU);
+    HMENUI hwndMenu = dw_menu_new(0L);
+    HWND menuitem = dw_menu_append_item(hwndMenu, "~Quit", 1019, 0L, TRUE, FALSE, DW_NOMENU);
     long px, py;
     
     dw_signal_connect(menuitem, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(exit_callback), (void *)mainwindow);    
