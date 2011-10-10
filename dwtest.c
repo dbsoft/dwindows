@@ -507,6 +507,7 @@ int DWSIGNAL helpabout_callback(HWND window, void *data)
 
 int DWSIGNAL exit_callback(HWND window, void *data)
 {
+    dw_taskbar_delete(textbox1, fileicon);
     dw_window_destroy((HWND)data);
     exit(0);
     return -1;
@@ -847,6 +848,18 @@ int API motion_notify_event(HWND window, int x, int y, int buttonmask, void *dat
     return 0;
 }
 
+int API context_menu_event(HWND window, int x, int y, int buttonmask, void *data)
+{
+	HMENUI hwndMenu = dw_menu_new(0L);
+	HWND menuitem = dw_menu_append_item(hwndMenu, "~Quit", 1019, 0L, TRUE, FALSE, DW_NOMENU);
+    long px, py;
+    
+    dw_signal_connect(menuitem, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(exit_callback), (void *)mainwindow);    
+    dw_pointer_query_pos(&px, &py);
+    dw_menu_popup(&hwndMenu, window, (int)px, (int)py);
+    return 0;
+}
+
 void text_add(void)
 {
     unsigned long depth = dw_color_depth_get();
@@ -934,6 +947,7 @@ void text_add(void)
     dw_messagebox("DWTest", DW_MB_OK|DW_MB_INFORMATION, "Width: %d Height: %d\n", font_width, font_height);
     dw_draw_rect(0, text1pm, TRUE, 0, 0, font_width*width1, font_height*rows);
     dw_draw_rect(0, text2pm, TRUE, 0, 0, font_width*cols, font_height*rows);
+    dw_signal_connect(textbox1, DW_SIGNAL_BUTTON_PRESS, DW_SIGNAL_FUNC(context_menu_event), NULL);
     dw_signal_connect(textbox1, DW_SIGNAL_EXPOSE, DW_SIGNAL_FUNC(text_expose), NULL);
     dw_signal_connect(textbox2, DW_SIGNAL_EXPOSE, DW_SIGNAL_FUNC(text_expose), NULL);
     dw_signal_connect(textbox2, DW_SIGNAL_CONFIGURE, DW_SIGNAL_FUNC(configure_event), text2pm);
@@ -945,6 +959,8 @@ void text_add(void)
     dw_signal_connect(button2, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(print_callback), NULL);
     dw_signal_connect(rendcombo, DW_SIGNAL_LIST_SELECT, DW_SIGNAL_FUNC(render_select_event_callback), NULL );
     dw_signal_connect(mainwindow, DW_SIGNAL_KEY_PRESS, DW_SIGNAL_FUNC(keypress_callback), NULL);
+    
+    dw_taskbar_insert(textbox1, fileicon, "DWTest");
 }
 
 void tree_add(void)
@@ -972,9 +988,6 @@ void tree_add(void)
     /* and a status area to see whats going on */
     tree_status = dw_status_text_new("", 0);
     dw_box_pack_start( notebookbox3, tree_status, 100, 20, TRUE, FALSE, 1);
-
-    foldericon = dw_icon_load_from_file( FOLDER_ICON_NAME );
-    fileicon = dw_icon_load_from_file( FILE_ICON_NAME  );
 
     /* set up our signal trappers... */
     dw_signal_connect(tree, DW_SIGNAL_ITEM_CONTEXT, DW_SIGNAL_FUNC(item_context_cb), (void *)tree_status);
@@ -1519,6 +1532,10 @@ int main(int argc, char *argv[])
 
     notebookbox = dw_box_new( BOXVERT, 5 );
     dw_box_pack_start( mainwindow, notebookbox, 0, 0, TRUE, TRUE, 0);
+    
+    foldericon = dw_icon_load_from_file( FOLDER_ICON_NAME );
+    fileicon = dw_icon_load_from_file( FILE_ICON_NAME  );
+    
     /* MUST pack a box into the mainwindow BEFORE adding menus */
     menu_add();
 

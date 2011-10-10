@@ -6076,7 +6076,16 @@ void API dw_container_optimize(HWND handle)
  */
 void API dw_taskbar_insert(HWND handle, HICN icon, char *bubbletext)
 {
-    NSLog(@"dw_taskbar_insert() unimplemented\n");
+    NSStatusItem *item = [[[NSStatusBar systemStatusBar] statusItemWithLength:NSSquareStatusItemLength] retain];
+    NSImage *image = icon;
+    [item setImage:image];
+    if(bubbletext)
+        [item setToolTip:[NSString stringWithUTF8String:bubbletext]];
+    [item setTarget:handle];
+    [item setEnabled:YES];
+    [item setHighlightMode:YES];
+    [item sendActionOn:(NSLeftMouseUpMask|NSLeftMouseDownMask|NSRightMouseUpMask|NSRightMouseDownMask)];
+    dw_window_set_data(handle, "_dw_taskbar", item);
 }
 
 /*
@@ -6087,7 +6096,8 @@ void API dw_taskbar_insert(HWND handle, HICN icon, char *bubbletext)
  */
 void API dw_taskbar_delete(HWND handle, HICN icon)
 {
-    NSLog(@"dw_taskbar_delete() unimplemented\n");
+    NSStatusItem *item = dw_window_get_data(handle, "_dw_taskbar");
+    [item release];
 }
 
 /*
