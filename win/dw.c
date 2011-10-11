@@ -1996,24 +1996,6 @@ BOOL CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
          }
       }
       break;
-   case WM_CHAR:
-      if ( LOWORD( mp1 ) == '\t' )
-      {
-         if ( GetAsyncKeyState( VK_SHIFT ) & 0x8000 )
-            _shift_focus_back( hWnd );
-         else
-            _shift_focus( hWnd );
-         return TRUE;
-      }
-      else if( LOWORD( mp1 ) == '\r' )
-      {
-         ColorInfo *cinfo = (ColorInfo *)GetWindowLongPtr( hWnd, GWLP_USERDATA );
-         if ( cinfo && cinfo->clickdefault )
-         {
-            _click_default( cinfo->clickdefault );
-         }
-      }
-      break;
    case WM_USER:
       windowfunc = (void *)mp1;
 
