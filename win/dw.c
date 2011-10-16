@@ -8641,6 +8641,11 @@ void API dw_font_text_extents_get(HWND handle, HPIXMAP pixmap, char *text, int *
    else
       return;
 
+   if(pixmap && pixmap->font)
+   {
+       hFont = pixmap->font;
+   }
+   else
    {
       ColorInfo *cinfo;
 
