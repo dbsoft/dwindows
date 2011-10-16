@@ -3028,7 +3028,7 @@ MRESULT EXPENTRY _wndproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
    case WM_BUTTON2UP | 0x2000:
    case WM_BUTTON3UP | 0x2000:
        if(hwndTaskBar)
-           result = _run_event(hwndTaskBar, msg & ~0x2000, mp1, mp2);
+           result = (int)_run_event(hwndTaskBar, msg & ~0x2000, mp1, mp2);
        break;
    case WM_USER+2:
       _clear_emphasis();
@@ -4120,7 +4120,7 @@ char * API dw_font_choose(char *currfont)
     /* Fill in the family name if possible */
     if(currfont)
     {
-        char *name = strchr(currfont, ".");
+        char *name = strchr(currfont, '.');
         if(name)
         {
             int newsize = atoi(currfont);
@@ -4517,7 +4517,7 @@ HWND API dw_groupbox_new(int type, int pad, char *title)
    dw_window_set_color(newbox->hwnd, DW_CLR_PALEGRAY, DW_CLR_PALEGRAY);
    dw_window_set_color(newbox->grouphwnd, DW_CLR_BLACK, DW_CLR_PALEGRAY);
    dw_window_set_font(newbox->grouphwnd, DefaultFont);
-   dw_window_set_data(newbox->hwnd, "_dw_buddy", newbox->grouphwnd);
+   dw_window_set_data(newbox->hwnd, "_dw_buddy", (void *)newbox->grouphwnd);
    return newbox->hwnd;
 }
 
@@ -5003,7 +5003,7 @@ HWND API dw_mle_new(ULONG id)
                         id,
                         NULL,
                         NULL);
-   WinSendMsg(tmp, MLM_FORMAT, MLFIE_NOTRANS, 0);
+   WinSendMsg(tmp, MLM_FORMAT, (MPARAM)MLFIE_NOTRANS, 0);
    blah->oldproc = WinSubclassWindow(tmp, _mleproc);
    WinSetWindowPtr(tmp, QWP_USER, blah);
    dw_window_set_font(tmp, DefaultFont);
@@ -8531,7 +8531,7 @@ void API dw_font_text_extents_get(HWND handle, HPIXMAP pixmap, char *text, int *
    }
    else if(pixmap)
    {
-      HPS pixmaphps = WinGetPS(pixmap->handle);
+      HPS pixmaphps = WinGetPS(pixmap->font ? pixmap->font : pixmap->handle);
 
       hps = _set_hps(pixmap->hps);
       _CopyFontSettings(pixmaphps, hps);
@@ -10053,7 +10053,7 @@ int _SetPath(char *path)
 int API dw_exec(char *program, int type, char **params)
 {
    type = type; /* keep compiler happy */
-   return spawnvp(P_NOWAIT, program, (const char **)params);
+   return spawnvp(P_NOWAIT, program, params);
 }
 
 /*
@@ -10298,7 +10298,7 @@ HPRINT API dw_print_new(char *jobname, unsigned long flags, unsigned int pages, 
     print->flags = flags;
 
     /* Check to see how much space we need for the printer list */
-    splerr = SplEnumPrinter(NULL, 0, fsType, NULL, NULL, &cRes, &cTotal, &cbNeeded ,NULL);
+    splerr = SplEnumPrinter(NULL, 0, fsType, NULL, 0, &cRes, &cTotal, &cbNeeded ,NULL);
 
     if(splerr == ERROR_MORE_DATA || splerr == NERR_BufTooSmall)
     {
