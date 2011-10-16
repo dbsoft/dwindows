@@ -6924,7 +6924,7 @@ void dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
    int _locked_by_me = FALSE;
    cairo_t *cr = NULL;
    PangoFontDescription *font;
-   char *tmpname, *fontname = "fixed";
+   char *tmpname, *fontname = "monospace 10";
 
    if(!text)
       return;
@@ -7029,7 +7029,12 @@ void dw_font_text_extents_get(HWND handle, HPIXMAP pixmap, char *text, int *widt
       }
    }
    else if(pixmap)
-      fontname = (char *)g_object_get_data(G_OBJECT(pixmap->handle), "_dw_fontname");
+   {
+      if(pixmap->font)
+         fontname = pixmap->font;
+      else if(pixmap->handle)
+         fontname = (char *)g_object_get_data(G_OBJECT(pixmap->handle), "_dw_fontname");
+   }
 
    font = pango_font_description_from_string(fontname ? fontname : "monospace 10");
    if(font)
