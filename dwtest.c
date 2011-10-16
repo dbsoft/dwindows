@@ -307,8 +307,10 @@ void read_file( void )
     }
 }
 
-void draw_file( int row, int col )
+/* When hpma is not NULL we are printing.. so handle things differently */
+void draw_file( int row, int col, int nrows, int fheight, HPIXMAP hpma )
 {
+    HPIXMAP hpm = hpma ? hpma : text2pm;
     char buf[10];
     int i,y,fileline;
     char *pLine;
@@ -316,25 +318,33 @@ void draw_file( int row, int col )
     if ( current_file )
     {
         dw_color_foreground_set(DW_CLR_WHITE);
-        dw_draw_rect(0, text1pm, TRUE, 0, 0, (int)DW_PIXMAP_WIDTH(text1pm), (int)DW_PIXMAP_HEIGHT(text1pm));
-        dw_draw_rect(0, text2pm, TRUE, 0, 0, (int)DW_PIXMAP_WIDTH(text2pm), (int)DW_PIXMAP_HEIGHT(text2pm));
+        if(!hpma)
+            dw_draw_rect(0, text1pm, TRUE, 0, 0, (int)DW_PIXMAP_WIDTH(text1pm), (int)DW_PIXMAP_HEIGHT(text1pm));
+        dw_draw_rect(0, hpm, TRUE, 0, 0, (int)DW_PIXMAP_WIDTH(hpm), (int)DW_PIXMAP_HEIGHT(hpm));
 
-        for ( i = 0;(i < rows) && (i+row < num_lines); i++)
+        for ( i = 0;(i < nrows) && (i+row < num_lines); i++)
         {
             fileline = i + row - 1;
-            y = i*font_height;
+            y = i*fheight;
             dw_color_background_set( 1 + (fileline % 15) );
             dw_color_foreground_set( fileline < 0 ? DW_CLR_WHITE : fileline % 16 );
-            sprintf( buf, "%6.6d", i+row );
-            dw_draw_text( 0, text1pm, 0, y, buf);
+            if(!hpma)
+            {
+                sprintf( buf, "%6.6d", i+row );
+                dw_draw_text( 0, text1pm, 0, y, buf);
+            }
             pLine = lp[i+row];
-            dw_draw_text( 0, text2pm, 0, y, pLine+col );
+            dw_draw_text( 0, hpm, 0, y, pLine+col );
         }
-        text_expose( textbox1, NULL, NULL);
-        text_expose( textbox2, NULL, NULL);
+        if(!hpma)
+        {
+            text_expose( textbox1, NULL, NULL);
+            text_expose( textbox2, NULL, NULL);
+        }
     }
 }
 
+/* When hpma is not NULL we are printing.. so handle things differently */
 void draw_shapes(int direct, HPIXMAP hpma)
 {
     HPIXMAP hpm = hpma ? hpma : text2pm;
@@ -375,7 +385,7 @@ void update_render(void)
             draw_shapes(TRUE, NULL);
             break;
         case 2:
-            draw_file(current_row, current_col);
+            draw_file(current_row, current_col, rows, font_height, NULL);
             break;
     }
 }
@@ -383,13 +393,49 @@ void update_render(void)
 int DWSIGNAL draw_page(HPRINT print, HPIXMAP pixmap, int page_num, void *data)
 {
    dw_pixmap_set_font(pixmap, FIXEDFONT);
-   draw_shapes(FALSE, pixmap);
+   if(page_num == 0)
+   {
+       draw_shapes(FALSE, pixmap);
+   }
+   else if(page_num == 1)
+   {
+       /* Get the font size for this printer context... */
+       int fheight, fwidth;
+       
+       /* If we have a file to display... */
+       if(current_file)
+       {
+           int nrows;
+           
+           /* Calculate new dimensions */
+           dw_font_text_extents_get(NULL, pixmap, "(g", NULL, &fheight);
+           nrows = (int)(DW_PIXMAP_HEIGHT(pixmap) / fheight);
+       
+           /* Do the actual drawing */
+           draw_file(0, 0, nrows, fheight, pixmap);
+       }
+       else
+       {
+           /* We don't have a file so center an error message on the page */
+           char *text = "No file currently selected!";
+           int posx, posy;
+           
+           dw_font_text_extents_get(NULL, pixmap, text, &fwidth, &fheight);
+           
+           posx = (int)(DW_PIXMAP_WIDTH(pixmap) - fwidth)/2;
+           posy = (int)(DW_PIXMAP_HEIGHT(pixmap) - fheight)/2;
+           
+           dw_color_foreground_set(DW_CLR_BLACK);
+           dw_color_background_set(DW_CLR_WHITE);
+           dw_draw_text(NULL, pixmap, posx, posy, text);
+       }
+   }
    return TRUE;
 }
 
 int DWSIGNAL print_callback(HWND window, void *data)
 {
-   HPRINT print = dw_print_new("DWTest Job", 0, 1, DW_SIGNAL_FUNC(draw_page), NULL);
+   HPRINT print = dw_print_new("DWTest Job", 0, 2, DW_SIGNAL_FUNC(draw_page), NULL);
    dw_print_run(print, 0);
    return FALSE;
 }

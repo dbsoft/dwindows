@@ -5031,22 +5031,28 @@ void API dw_font_text_extents_get(HWND handle, HPIXMAP pixmap, char *text, int *
 {
     id object = handle;
     NSString *nstr = [NSString stringWithUTF8String:text];
+    NSFont *font = nil;
+    /* Check the pixmap for associated object or font */
     if(pixmap)
     {
         object = pixmap->handle;
+        font = pixmap->font;
     }
     NSMutableDictionary *dict = [[NSMutableDictionary alloc] init];
-    if([object isMemberOfClass:[DWRender class]] || [object isKindOfClass:[NSControl class]])
+    /* If we didn't get a font from the pixmap... try the associated object */
+    if(!font && ([object isMemberOfClass:[DWRender class]] || [object isKindOfClass:[NSControl class]]))
     {
-        NSFont *font = [object font];
-
-        if(font)
-        {
-            [dict setValue:font forKey:NSFontAttributeName];
-        }
+        font = [object font];
     }
+    /* If we got a font... add it to the dictionary */
+    if(font)
+    {
+        [dict setValue:font forKey:NSFontAttributeName];
+    }
+    /* Calculate the size of the string */
     NSSize size = [nstr sizeWithAttributes:dict];
     [dict release];
+    /* Return whatever information we can */
     if(width)
     {
         *width = size.width;
