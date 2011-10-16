@@ -8056,10 +8056,11 @@ void dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
    GdkGC *gc = NULL;
 #if GTK_MAJOR_VERSION > 1
    PangoFontDescription *font;
+   char *tmpname, *fontname = "monospace 10";
 #else
    GdkFont *font;
-#endif
    char *tmpname, *fontname = "fixed";
+#endif
 #if GTK_CHECK_VERSION(2,10,0)
    cairo_t *cr = NULL;
 #endif
@@ -8242,7 +8243,12 @@ void dw_font_text_extents_get(HWND handle, HPIXMAP pixmap, char *text, int *widt
       }
    }
    else if(pixmap)
-      fontname = (char *)gtk_object_get_data(GTK_OBJECT(pixmap->handle), "_dw_fontname");
+   {
+      if(pixmap->font)
+         fontname = pixmap->font;
+      else if(pixmap->handle)
+         fontname = (char *)gtk_object_get_data(GTK_OBJECT(pixmap->handle), "_dw_fontname");
+   }
 
 #if GTK_MAJOR_VERSION > 1
    font = pango_font_description_from_string(fontname ? fontname : "monospace 10");
