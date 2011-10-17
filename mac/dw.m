@@ -1042,6 +1042,21 @@ DWObject *DWObj;
         [super keyUp:theEvent];
     }
 }
+-(BOOL)performKeyEquivalent:(NSEvent *)theEvent 
+{
+    if(([theEvent modifierFlags] & NSDeviceIndependentModifierFlagsMask) == NSCommandKeyMask) 
+    {
+        if ([[theEvent charactersIgnoringModifiers] isEqualToString:@"x"])
+            return [NSApp sendAction:@selector(cut:) to:[[self window] firstResponder] from:self];
+        else if ([[theEvent charactersIgnoringModifiers] isEqualToString:@"c"])
+            return [NSApp sendAction:@selector(copy:) to:[[self window] firstResponder] from:self];
+        else if ([[theEvent charactersIgnoringModifiers] isEqualToString:@"v"])
+            return [NSApp sendAction:@selector(paste:) to:[[self window] firstResponder] from:self];
+        else if ([[theEvent charactersIgnoringModifiers] isEqualToString:@"a"])
+            return [NSApp sendAction:@selector(selectAll:) to:[[self window] firstResponder] from:self];
+    }
+    return [super performKeyEquivalent:theEvent];
+}
 -(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); [super dealloc]; }
 @end
 
@@ -1065,10 +1080,26 @@ DWObject *DWObj;
     if(clickDefault && [[theEvent charactersIgnoringModifiers] characterAtIndex:0] == VK_RETURN)
     {
         [[self window] makeFirstResponder:clickDefault];
-    } else
+    }
+    else
     {
         [super keyUp:theEvent];
     }
+}
+-(BOOL)performKeyEquivalent:(NSEvent *)theEvent 
+{
+    if(([theEvent modifierFlags] & NSDeviceIndependentModifierFlagsMask) == NSCommandKeyMask) 
+    {
+        if ([[theEvent charactersIgnoringModifiers] isEqualToString:@"x"])
+            return [NSApp sendAction:@selector(cut:) to:[[self window] firstResponder] from:self];
+        else if ([[theEvent charactersIgnoringModifiers] isEqualToString:@"c"])
+            return [NSApp sendAction:@selector(copy:) to:[[self window] firstResponder] from:self];
+        else if ([[theEvent charactersIgnoringModifiers] isEqualToString:@"v"])
+            return [NSApp sendAction:@selector(paste:) to:[[self window] firstResponder] from:self];
+        else if ([[theEvent charactersIgnoringModifiers] isEqualToString:@"a"])
+            return [NSApp sendAction:@selector(selectAll:) to:[[self window] firstResponder] from:self];
+    }
+    return [super performKeyEquivalent:theEvent];
 }
 -(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); [super dealloc]; }
 @end
