@@ -3889,13 +3889,12 @@ void API dw_window_reparent(HWND handle, HWND newparent)
    SetParent(handle, newparent);
 }
 
-LOGFONT _get_logfont(HWND handle, char *fontname)
+LOGFONT _get_logfont(HDC hdc, char *fontname)
 {
    int Italic, Bold;
    char *myFontName;
    int z, size = 9;
    LOGFONT lf;
-   HDC hdc = GetDC(handle);
 
    for(z=0;z<strlen(fontname);z++)
    {
@@ -3904,7 +3903,6 @@ LOGFONT _get_logfont(HWND handle, char *fontname)
    }
    size = atoi(fontname);
    lf.lfHeight = -MulDiv(size, GetDeviceCaps(hdc, LOGPIXELSY), 72);
-   ReleaseDC(handle, hdc);
    Italic = instring(" Italic", &fontname[z+1]);
    Bold = instring(" Bold", &fontname[z+1]);
    lf.lfWidth = 0;
@@ -3944,19 +3942,30 @@ HFONT _DupFontHandle(HFONT hfont)
 /* Create a font handle from specified font name..
  * or return a handle to the default font.
  */
-HFONT _acquire_font(HWND handle, char *fontname)
+HFONT _acquire_font2(HDC hdc, char *fontname)
 {
    HFONT hfont = 0;
 
    if(fontname != DefaultFont && fontname[0])
    {
-      LOGFONT lf = _get_logfont(handle, fontname);
+      LOGFONT lf = _get_logfont(hdc, fontname);
       hfont = CreateFontIndirect(&lf);
    }
    if(!hfont && _DefaultFont)
       hfont = _DupFontHandle(_DefaultFont);
    if(!hfont)
       hfont = GetStockObject(DEFAULT_GUI_FONT);
+   return hfont;
+}
+
+/* Create a font handle from specified font name..
+ * or return a handle to the default font.
+ */
+HFONT _acquire_font(HWND handle, char *fontname)
+{
+   HDC hdc = GetDC(handle);
+   HFONT hfont = _acquire_font2(hdc, fontname);
+   ReleaseDC(handle, hdc);
    return hfont;
 }
 
@@ -8967,7 +8976,7 @@ int API dw_pixmap_set_font(HPIXMAP pixmap, char *fontname)
 {
     if(pixmap)
     {
-        HFONT hfont = _acquire_font(pixmap->handle, fontname);
+        HFONT hfont = _acquire_font2(pixmap->hdc, fontname);
         
         if(hfont)
         {
@@ -10061,7 +10070,6 @@ int API dw_print_run(HPRINT print, unsigned long flags)
     pixmap->width = GetDeviceCaps(p->pd.hDC, HORZRES); 
     pixmap->height = GetDeviceCaps(p->pd.hDC, VERTRES);
 
-    /*pixmap->handle = handle;*/
     pixmap->hbm = CreateCompatibleBitmap(p->pd.hDC, pixmap->width, pixmap->height);
     pixmap->hdc = p->pd.hDC;
     pixmap->transcolor = DW_RGB_TRANSPARENT;
