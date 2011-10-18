@@ -9623,6 +9623,16 @@ HPRINT API dw_print_new(char *jobname, unsigned long flags, unsigned int pages, 
     
     /* Get the page range */
     pi = [NSPrintInfo sharedPrintInfo];
+    [pi setHorizontalPagination:NSFitPagination];
+    [pi setHorizontallyCentered:YES];
+    [pi setVerticalPagination:NSFitPagination];
+    [pi setVerticallyCentered:YES];
+    [pi setOrientation:NSLandscapeOrientation];
+    [pi setLeftMargin:0.0];
+    [pi setRightMargin:0.0];
+    [pi setTopMargin:0.0];
+    [pi setBottomMargin:0.0]; 
+    
     settings = [pi PMPrintSettings];
     PMSetPageRange(settings, 1, pages);
     PMSetFirstPage(settings, 1, true);
@@ -9672,13 +9682,6 @@ int API dw_print_run(HPRINT print, unsigned long flags)
     pi = p->pi;
     size = [pi paperSize];
 
-    /* Okay the size reported is really small... and everything
-     * in Cocoa is scaled so ... multiply by 2 to get a better
-     * resolution but maintain the right aspect ratio.
-     */
-    size.width *= 2;
-    size.height *= 2;
-    
     /* Get the page range */
     settings = [pi PMPrintSettings];
     PMGetFirstPage(settings, &start);
@@ -9689,12 +9692,6 @@ int API dw_print_run(HPRINT print, unsigned long flags)
     PMSetFirstPage(settings, 1, true);
     PMSetLastPage(settings, 1, true);
     [pi updateFromPMPrintSettings];
-    
-    /* Adjust the image size according to
-     * the number of pages to be printed.
-     */
-    if((end - start) > 1)
-        size.height /= (end - start);
     
     /* Create an image view to print and a pixmap to draw into */
     iv = [[NSImageView alloc] init];
