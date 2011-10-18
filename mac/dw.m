@@ -1036,7 +1036,10 @@ DWObject *DWObj;
     unichar vk = [[theEvent charactersIgnoringModifiers] characterAtIndex:0];
     if(clickDefault && vk == VK_RETURN)
     {
-        [[self window] makeFirstResponder:clickDefault];
+        if([clickDefault isKindOfClass:[NSButton class]])
+            [clickDefault buttonClicked:self];
+        else
+            [[self window] makeFirstResponder:clickDefault];
     } else
     {
         [super keyUp:theEvent];
@@ -1079,7 +1082,10 @@ DWObject *DWObj;
 {
     if(clickDefault && [[theEvent charactersIgnoringModifiers] characterAtIndex:0] == VK_RETURN)
     {
-        [[self window] makeFirstResponder:clickDefault];
+        if([clickDefault isKindOfClass:[NSButton class]])
+            [clickDefault buttonClicked:self];
+        else
+            [[self window] makeFirstResponder:clickDefault];
     }
     else
     {
