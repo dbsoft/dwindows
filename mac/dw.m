@@ -9627,7 +9627,7 @@ HPRINT API dw_print_new(char *jobname, unsigned long flags, unsigned int pages, 
     [pi setHorizontallyCentered:YES];
     [pi setVerticalPagination:NSFitPagination];
     [pi setVerticallyCentered:YES];
-    [pi setOrientation:NSLandscapeOrientation];
+    [pi setOrientation:NSPortraitOrientation];
     [pi setLeftMargin:0.0];
     [pi setRightMargin:0.0];
     [pi setTopMargin:0.0];
