@@ -9,7 +9,7 @@
 #define FOLDER_ICON_NAME "os2\\folder"
 #define FILE_ICON_NAME "os2\\file"
 #elif defined(__WIN32__)
-#define FIXEDFONT "10.Terminal"
+#define FIXEDFONT "10.Lucida Console"
 #define FOLDER_ICON_NAME "win\\folder"
 #define FILE_ICON_NAME "win\\file"
 #elif defined(__MAC__)
