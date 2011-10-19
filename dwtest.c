@@ -93,6 +93,7 @@ HWND mainwindow,
     rendcombo,
     imagexspin,
     imageyspin,
+    imagestretchcheck,
     container_status,
     tree_status,
     stext,
@@ -125,7 +126,7 @@ int menu_enabled = 1;
 HPIXMAP text1pm,text2pm,image;
 HICN fileicon,foldericon;
 int mle_point=-1;
-int image_x = 20, image_y = 20;
+int image_x = 20, image_y = 20, image_stretch = 0;
 
 int font_width = 8;
 int font_height=12;
@@ -354,6 +355,7 @@ void draw_shapes(int direct, HPIXMAP hpma)
 
     image_x = (int)dw_spinbutton_get_pos(imagexspin);
     image_y = (int)dw_spinbutton_get_pos(imageyspin);
+    image_stretch = dw_checkbox_get(imagestretchcheck);
 
     dw_color_foreground_set(DW_CLR_WHITE);
     dw_draw_rect(window, pixmap, TRUE, 0, 0, width, height);
@@ -364,7 +366,10 @@ void draw_shapes(int direct, HPIXMAP hpma)
     dw_draw_text(window, pixmap, 10, 10, "This should be aligned with the edges.");
     if(image)
     {
-        dw_pixmap_bitblt(window, pixmap, image_x, image_y, (int)DW_PIXMAP_WIDTH(image), (int)DW_PIXMAP_HEIGHT(image), 0, image, 0, 0);
+        if(image_stretch)
+            dw_pixmap_stretch_bitblt(window, pixmap, 10, 10, width - 20, height - 20, 0, image, 0, 0, (int)DW_PIXMAP_WIDTH(image), (int)DW_PIXMAP_HEIGHT(image));
+        else
+            dw_pixmap_bitblt(window, pixmap, image_x, image_y, (int)DW_PIXMAP_WIDTH(image), (int)DW_PIXMAP_HEIGHT(image), 0, image, 0, 0);
     }
 
     /* If we aren't drawing direct do a bitblt */
@@ -948,6 +953,8 @@ void text_add(void)
     dw_spinbutton_set_limits(imageyspin, 2000, 0);
     dw_spinbutton_set_pos(imagexspin, 20);
     dw_spinbutton_set_pos(imageyspin, 20);
+    imagestretchcheck = dw_checkbox_new("Stretch", 1021);
+    dw_box_pack_start( hbox, imagestretchcheck, 25, 25, TRUE, FALSE, 0);
 
     button1 = dw_button_new( "Refresh", 1223L );
     dw_box_pack_start( hbox, button1, 100, 25, FALSE, FALSE, 0);
@@ -1006,6 +1013,7 @@ void text_add(void)
     dw_signal_connect(textbox2, DW_SIGNAL_BUTTON_PRESS, DW_SIGNAL_FUNC(motion_notify_event), (void *)0);
     dw_signal_connect(hscrollbar, DW_SIGNAL_VALUE_CHANGED, DW_SIGNAL_FUNC(scrollbar_valuechanged_callback), (void *)status1);
     dw_signal_connect(vscrollbar, DW_SIGNAL_VALUE_CHANGED, DW_SIGNAL_FUNC(scrollbar_valuechanged_callback), (void *)status1);
+    dw_signal_connect(imagestretchcheck, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(refresh_callback), NULL);
     dw_signal_connect(button1, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(refresh_callback), NULL);
     dw_signal_connect(button2, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(print_callback), NULL);
     dw_signal_connect(rendcombo, DW_SIGNAL_LIST_SELECT, DW_SIGNAL_FUNC(render_select_event_callback), NULL );

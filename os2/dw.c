@@ -8941,49 +8941,77 @@ void API dw_pixmap_destroy(HPIXMAP pixmap)
  */
 void API dw_pixmap_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest, int width, int height, HWND src, HPIXMAP srcp, int xsrc, int ysrc)
 {
+    dw_pixmap_stretch_bitblt(dest, destp, xdest, ydest, width, height, src, srcp, xsrc, ysrc, -1, -1);
+}
+
+/*
+ * Copies from one surface to another allowing for stretching.
+ * Parameters:
+ *       dest: Destination window handle.
+ *       destp: Destination pixmap. (choose only one).
+ *       xdest: X coordinate of destination.
+ *       ydest: Y coordinate of destination.
+ *       width: Width of the target area.
+ *       height: Height of the target area.
+ *       src: Source window handle.
+ *       srcp: Source pixmap. (choose only one).
+ *       xsrc: X coordinate of source.
+ *       ysrc: Y coordinate of source.
+ *       srcwidth: Width of area to copy.
+ *       srcheight: Height of area to copy.
+ * Returns:
+ *       DW_ERROR_NONE on success and DW_ERROR_GENERAL on failure.
+ */
+int API dw_pixmap_stretch_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest, int width, int height, HWND src, HPIXMAP srcp, int xsrc, int ysrc, int srcwidth, int srcheight)
+{
    HPS hpsdest;
    HPS hpssrc;
    POINTL ptl[4];
-   int destheight, srcheight;
-
+   int dheight, sheight;
+   int count = 3;
+   
    if(dest)
    {
       hpsdest = WinGetPS(dest);
-      destheight = _get_height(dest);
+      dheight = _get_height(dest);
    }
    else if(destp)
    {
       hpsdest = destp->hps;
-      destheight = destp->height;
+      dheight = destp->height;
    }
    else
-      return;
+      return DW_ERROR_GENERAL;
 
    if(src)
    {
       hpssrc = WinGetPS(src);
-      srcheight = _get_height(src);
+      sheight = _get_height(src);
    }
    else if(srcp)
    {
       hpssrc = srcp->hps;
-      srcheight = srcp->height;
+      sheight = srcp->height;
    }
    else
    {
       if(!destp)
          WinReleasePS(hpsdest);
-      return;
+      return DW_ERROR_GENERAL;
    }
 
    ptl[0].x = xdest;
-   ptl[0].y = (destheight - ydest) - height;
+   ptl[0].y = (dheight - ydest) - height;
    ptl[1].x = ptl[0].x + width;
-   ptl[1].y = destheight - ydest;
+   ptl[1].y = dheight - ydest;
    ptl[2].x = xsrc;
-   ptl[2].y = srcheight - (ysrc + height);
-   ptl[3].x = ptl[2].x + width;
-   ptl[3].y = ptl[2].y + height;
+   ptl[2].y = sheight - (ysrc + height);
+   if(srcwidth != -1 && srcheigth != -1)
+   {
+      count = 4;
+      ptl[3].x = ptl[2].x + srcwidth;
+      ptl[3].y = ptl[2].y + srcheight;
+   }
 
    /* Handle transparency if requested */
    if(srcp && srcp->transcolor != DW_CLR_DEFAULT)
@@ -8994,19 +9022,20 @@ void API dw_pixmap_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest, int wi
        GpiQueryAttrs(hpsdest, PRIM_IMAGE, IBB_BACK_MIX_MODE, (PBUNDLE)&oldIb);
        newIb.usBackMixMode = BM_SRCTRANSPARENT;
        GpiSetAttrs(hpsdest, PRIM_IMAGE, IBB_BACK_MIX_MODE, 0, (PBUNDLE)&newIb);
-       GpiBitBlt(hpsdest, hpssrc, 4, ptl, ROP_SRCCOPY, BBO_IGNORE);
+       GpiBitBlt(hpsdest, hpssrc, count, ptl, ROP_SRCCOPY, BBO_IGNORE);
        GpiSetAttrs(hpsdest, PRIM_IMAGE, IBB_BACK_MIX_MODE, 0, (PBUNDLE)&oldIb);
    }
    else
    {
        /* Otherwise use the regular BitBlt call */
-       GpiBitBlt(hpsdest, hpssrc, 4, ptl, ROP_SRCCOPY, BBO_IGNORE);
+       GpiBitBlt(hpsdest, hpssrc, count, ptl, ROP_SRCCOPY, BBO_IGNORE);
    }
 
    if(!destp)
       WinReleasePS(hpsdest);
    if(!srcp)
       WinReleasePS(hpssrc);
+   return DW_ERROR_NONE;
 }
 
 /* Run DosBeep() in a separate thread so it doesn't block */
