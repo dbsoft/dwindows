@@ -9024,43 +9024,82 @@ void API dw_pixmap_destroy(HPIXMAP pixmap)
  */
 void API dw_pixmap_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest, int width, int height, HWND src, HPIXMAP srcp, int xsrc, int ysrc)
 {
+    dw_pixmap_stretch_bitblt(dest, destp, xdest, ydest, width, height, src, srcp, xsrc, ysrc, -1, -1);
+}
+
+/*
+ * Copies from one surface to another allowing for stretching.
+ * Parameters:
+ *       dest: Destination window handle.
+ *       destp: Destination pixmap. (choose only one).
+ *       xdest: X coordinate of destination.
+ *       ydest: Y coordinate of destination.
+ *       width: Width of the target area.
+ *       height: Height of the target area.
+ *       src: Source window handle.
+ *       srcp: Source pixmap. (choose only one).
+ *       xsrc: X coordinate of source.
+ *       ysrc: Y coordinate of source.
+ *       srcwidth: Width of area to copy.
+ *       srcheight: Height of area to copy.
+ * Returns:
+ *       DW_ERROR_NONE on success and DW_ERROR_GENERAL on failure.
+ */
+int API dw_pixmap_stretch_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest, int width, int height, HWND src, HPIXMAP srcp, int xsrc, int ysrc, int srcwidth, int srcheight)
+{
    HDC hdcdest;
    HDC hdcsrc;
    static BLENDFUNCTION bf = { AC_SRC_OVER, 0, 0xFF, AC_SRC_ALPHA };
+   int swidth = srcwidth, sheight = srcheight;
 
+   /* Do some sanity checks */
    if ( dest )
       hdcdest = GetDC( dest );
    else if ( destp )
       hdcdest = destp->hdc;
    else
-      return;
+      return DW_ERROR_GENERAL;
 
    if ( src )
       hdcsrc = GetDC( src );
    else if ( srcp )
       hdcsrc = srcp->hdc;
    else
-      return;
+      return DW_ERROR_GENERAL;
+
+   if((srcheight == -1 || srcwidth == -1) && srcheight != srcwidth)
+      return DW_ERROR_GENERAL;
+
+   if(srcheight == -1 && srcwidth == -1)
+   {
+       swidth = width;
+       sheight = height;
+   }
 
    /* If it is a 32bpp bitmap (with alpha) use AlphaBlend unless it fails */
-   if ( srcp && srcp->depth == 32 && AlphaBlend( hdcdest, xdest, ydest, width, height, hdcsrc, xsrc, ysrc, width, height, bf ) )
+   if ( srcp && srcp->depth == 32 && AlphaBlend( hdcdest, xdest, ydest, width, height, hdcsrc, xsrc, ysrc, swidth, sheight, bf ) )
    {
         /* Don't do anything */
    }
    /* Otherwise perform special bitblt with manual transparency */
    else if ( srcp && srcp->transcolor != DW_RGB_TRANSPARENT )
    {
-      TransparentBlt( hdcdest, xdest, ydest, width, height, hdcsrc, xsrc, ysrc, width, height, RGB( DW_RED_VALUE(srcp->transcolor), DW_GREEN_VALUE(srcp->transcolor), DW_BLUE_VALUE(srcp->transcolor)) );
+      TransparentBlt( hdcdest, xdest, ydest, width, height, hdcsrc, xsrc, ysrc, swidth, sheight, RGB( DW_RED_VALUE(srcp->transcolor), DW_GREEN_VALUE(srcp->transcolor), DW_BLUE_VALUE(srcp->transcolor)) );
    }
    else
    {
       /* Finally fall back to the classic BitBlt */
-      BitBlt( hdcdest, xdest, ydest, width, height, hdcsrc, xsrc, ysrc, SRCCOPY );
+      if( srcwidth == -1 && srcheight == -1)
+         BitBlt( hdcdest, xdest, ydest, width, height, hdcsrc, xsrc, ysrc, SRCCOPY );
+      else
+         StretchBlt( hdcdest, xdest, ydest, width, height, hdcsrc, xsrc, ysrc, swidth, sheight, SRCCOPY );
    }
    if ( !destp )
       ReleaseDC( dest, hdcdest );
    if ( !srcp )
       ReleaseDC( src, hdcsrc );
+
+   return DW_ERROR_NONE;
 }
 
 /* Run Beep() in a separate thread so it doesn't block */

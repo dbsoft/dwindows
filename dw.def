@@ -213,6 +213,7 @@ EXPORTS
   dw_pixmap_new_from_data                @345
   dw_pixmap_set_transparent_color        @346
   dw_pixmap_set_font                     @347
+  dw_pixmap_stretch_bitblt               @348
 
   dw_dialog_new                          @350
   dw_dialog_dismiss                      @351
