@@ -7318,18 +7318,37 @@ void dw_pixmap_destroy(HPIXMAP pixmap)
  *       xsrc: X coordinate of source.
  *       ysrc: Y coordinate of source.
  */
-void dw_pixmap_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest, int width, int height, HWND src, HPIXMAP srcp, int xsrc, int ysrc)
+void API dw_pixmap_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest, int width, int height, HWND src, HPIXMAP srcp, int xsrc, int ysrc)
 {
-   /* Ok, these #ifdefs are going to get a bit confusing because
-    * when using gdk-pixbuf, pixmaps are really pixbufs, so we
-    * have to use the pixbuf functions on them, and thus convoluting
-    * the code here a bit. -Brian
-    */
+    dw_pixmap_stretch_bitblt(dest, destp, xdest, ydest, width, height, src, srcp, xsrc, ysrc, -1, -1);
+}
+
+/*
+ * Copies from one surface to another allowing for stretching.
+ * Parameters:
+ *       dest: Destination window handle.
+ *       destp: Destination pixmap. (choose only one).
+ *       xdest: X coordinate of destination.
+ *       ydest: Y coordinate of destination.
+ *       width: Width of the target area.
+ *       height: Height of the target area.
+ *       src: Source window handle.
+ *       srcp: Source pixmap. (choose only one).
+ *       xsrc: X coordinate of source.
+ *       ysrc: Y coordinate of source.
+ *       srcwidth: Width of area to copy.
+ *       srcheight: Height of area to copy.
+ * Returns:
+ *       DW_ERROR_NONE on success and DW_ERROR_GENERAL on failure.
+ */
+int API dw_pixmap_stretch_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest, int width, int height, HWND src, HPIXMAP srcp, int xsrc, int ysrc, int srcwidth, int srcheight)
+{
    int _locked_by_me = FALSE;
    cairo_t *cr = NULL;
+   int retval = DW_ERROR_GENERAL;
 
    if((!dest && (!destp || !destp->image)) || (!src && (!srcp || !srcp->image)))
-      return;
+      return retval;
 
    DW_MUTEX_LOCK;
    if(dest)
@@ -7339,7 +7358,7 @@ void dw_pixmap_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest, int width,
       if(!window || !GDK_IS_WINDOW(window))
       {
          DW_MUTEX_UNLOCK;
-         return;
+         return retval;
       }
       cr = gdk_cairo_create(window);
    }
@@ -7348,16 +7367,27 @@ void dw_pixmap_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest, int width,
 
    if(cr)
    {
+      double xscale = 1, yscale = 1;
+      
+      if(srcwidth != -1 && srcheight != -1)
+      {
+         xscale = (double)width / (double)srcwidth;
+         yscale = (double)height / (double)srcheight;
+         cairo_scale(cr, xscale, yscale);
+      }
+      
       if(src)
-         gdk_cairo_set_source_window (cr, gtk_widget_get_window(src), xdest -xsrc, ydest - ysrc);
+         gdk_cairo_set_source_window (cr, gtk_widget_get_window(src), (xdest + xsrc) / xscale, (ydest + ysrc) / yscale);
       else if(srcp)
-         cairo_set_source_surface (cr, srcp->image, xdest - xsrc, ydest - ysrc);
-
-      cairo_rectangle(cr, xdest, ydest, width, height);
+         cairo_set_source_surface (cr, srcp->image, (xdest + xsrc) / xscale, (ydest + ysrc) / yscale);
+         
+      cairo_rectangle(cr, xdest / xscale, ydest / yscale, width, height);
       cairo_fill(cr);
       cairo_destroy(cr);
+      retval = DW_ERROR_NONE;
    }
    DW_MUTEX_UNLOCK;
+   return retval;
 }
 
 /*
