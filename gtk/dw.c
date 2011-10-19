@@ -8588,7 +8588,7 @@ void dw_pixmap_destroy(HPIXMAP pixmap)
 
 #if GTK_CHECK_VERSION(2,10,0)
 /* Cairo version of dw_pixmap_bitblt() from GTK3, use if either pixmap is a cairo surface */
-void _cairo_pixmap_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest, int width, int height, HWND src, HPIXMAP srcp, int xsrc, int ysrc, int srcwidth, int srcheight)
+int _cairo_pixmap_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest, int width, int height, HWND src, HPIXMAP srcp, int xsrc, int ysrc, int srcwidth, int srcheight)
 {
    int _locked_by_me = FALSE;
    cairo_t *cr = NULL;
@@ -8699,11 +8699,6 @@ void API dw_pixmap_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest, int wi
  */
 int API dw_pixmap_stretch_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest, int width, int height, HWND src, HPIXMAP srcp, int xsrc, int ysrc, int srcwidth, int srcheight)
 {
-   /* Ok, these #ifdefs are going to get a bit confusing because
-    * when using gdk-pixbuf, pixmaps are really pixbufs, so we
-    * have to use the pixbuf functions on them, and thus convoluting
-    * the code here a bit. -Brian
-    */
    int _locked_by_me = FALSE;
    GdkGC *gc = NULL;
    int retval = DW_ERROR_GENERAL;
@@ -8714,6 +8709,9 @@ int API dw_pixmap_stretch_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest,
 #endif
    
    if((!dest && (!destp || !destp->pixmap)) || (!src && (!srcp || !srcp->pixmap)))
+      return retval;
+
+   if((srcwidth == -1 || srcheight == -1) && srcwidth != srcheight)
       return retval;
 
    DW_MUTEX_LOCK;
@@ -8736,7 +8734,23 @@ int API dw_pixmap_stretch_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest,
          gdk_gc_set_clip_mask( gc, srcp->bitmap );
          gdk_gc_set_clip_origin( gc, xdest, ydest );
       }
-      gdk_draw_pixmap( dest ? dest->window : destp->pixmap, gc, src ? src->window : srcp->pixmap, xsrc, ysrc, xdest, ydest, width, height );
+
+#if GTK_MAJOR_VERSION > 1
+      if(srcwidth != -1)
+      {
+         GdkPixbuf *pbdst, *pbsrc = gdk_pixbuf_get_from_drawable(NULL, src ? src->window : srcp->pixmap, NULL, xsrc, ysrc, 0, 0, srcwidth, srcheight);
+         
+         if( srcp && srcp->bitmap )
+            gdk_pixbuf_render_threshold_alpha(pbsrc, srcp->bitmap, xsrc, ysrc, 0, 0, srcwidth, srcheight, 255); 
+         pbdst = gdk_pixbuf_scale_simple(pbsrc, width, height, GDK_INTERP_BILINEAR);
+         gdk_draw_pixbuf(dest ? dest->window : destp->pixmap, gc, pbdst, 0, 0, xdest, ydest, width, height, GDK_RGB_DITHER_NONE, 0, 0);
+         gdk_pixbuf_unref(pbsrc);
+         gdk_pixbuf_unref(pbdst);
+      }
+      else
+#endif
+         gdk_draw_pixmap( dest ? dest->window : destp->pixmap, gc, src ? src->window : srcp->pixmap, xsrc, ysrc, xdest, ydest, width, height );
+
       /*
        * Reset the clipping region
        */
