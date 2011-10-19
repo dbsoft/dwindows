@@ -9272,12 +9272,10 @@ void _dwthreadstart(void *data)
  */
 void API dw_font_set_default(char *fontname)
 {
-    if(DWDefaultFont)
-    {
-        [DWDefaultFont release];
-    }
+    NSFont *oldfont = DWDefaultFont;
     DWDefaultFont = _dw_font_by_name(fontname);
     [DWDefaultFont retain];
+    [oldfont release];
 }
 
 /*
