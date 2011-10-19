@@ -8726,30 +8726,51 @@ int API dw_pixmap_stretch_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest,
 
    if ( gc )
    {
-      /*
-       * If we have a bitmap (mask) in the source pixmap, then set the clipping region
-       */
-      if ( srcp && srcp->bitmap )
-      {
-         gdk_gc_set_clip_mask( gc, srcp->bitmap );
-         gdk_gc_set_clip_origin( gc, xdest, ydest );
-      }
-
 #if GTK_MAJOR_VERSION > 1
       if(srcwidth != -1)
       {
-         GdkPixbuf *pbdst, *pbsrc = gdk_pixbuf_get_from_drawable(NULL, src ? src->window : srcp->pixmap, NULL, xsrc, ysrc, 0, 0, srcwidth, srcheight);
+         /* There are no scaling functions for pixmaps/bitmaps so we need to convert
+          * the drawable to a pixbuf, scale it to the correct size for the bitblt then
+          * draw the resulting scaled copy and free the left over pixbufs.
+          */
+         GdkPixbuf *pbdst, *pbsrc = gdk_pixbuf_new(GDK_COLORSPACE_RGB, TRUE, 8, srcwidth, srcheight);
+         /* Now that with have a pixbuf with alpha, copy from the drawable to create the source */
+         gdk_pixbuf_get_from_drawable(pbsrc, src ? src->window : srcp->pixmap, NULL, xsrc, ysrc, 0, 0, srcwidth, srcheight);
          
-         if( srcp && srcp->bitmap )
-            gdk_pixbuf_render_threshold_alpha(pbsrc, srcp->bitmap, xsrc, ysrc, 0, 0, srcwidth, srcheight, 255); 
+         /* If the pixmap has an associated alpha mask, include that in the pixbuf */
+         //if( srcp && srcp->bitmap )
+            // Need to apply the mask to the pixmap if possible here
+         /* Scale the pixbuf to the desired size */
          pbdst = gdk_pixbuf_scale_simple(pbsrc, width, height, GDK_INTERP_BILINEAR);
+         /* Create a new clipping mask from the scaled pixbuf */
+         if( srcp && srcp->bitmap )
+         {
+            GdkBitmap *bitmap = gdk_pixmap_new(NULL, width, height, 1);
+            gdk_pixbuf_render_threshold_alpha(pbdst, bitmap, 0, 0, 0, 0, width, height, 1); 
+            gdk_gc_set_clip_mask( gc, bitmap );
+            gdk_gc_set_clip_origin( gc, xdest, ydest );
+            gdk_bitmap_unref(bitmap);
+         }
+         /* Draw the final pixbuf onto the destination drawable */
          gdk_draw_pixbuf(dest ? dest->window : destp->pixmap, gc, pbdst, 0, 0, xdest, ydest, width, height, GDK_RGB_DITHER_NONE, 0, 0);
+         /* Cleanup so we don't leak */
          gdk_pixbuf_unref(pbsrc);
          gdk_pixbuf_unref(pbdst);
       }
       else
 #endif
+      {
+         /*
+          * If we have a bitmap (mask) in the source pixmap, then set the clipping region
+          */
+         if ( srcp && srcp->bitmap )
+         {
+            gdk_gc_set_clip_mask( gc, srcp->bitmap );
+            gdk_gc_set_clip_origin( gc, xdest, ydest );
+         }
          gdk_draw_pixmap( dest ? dest->window : destp->pixmap, gc, src ? src->window : srcp->pixmap, xsrc, ysrc, xdest, ydest, width, height );
+
+      }
 
       /*
        * Reset the clipping region
@@ -8759,6 +8780,7 @@ int API dw_pixmap_stretch_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest,
          gdk_gc_set_clip_mask( gc, NULL );
          gdk_gc_set_clip_origin( gc, 0, 0 );
       }
+
       gdk_gc_unref( gc );
       retval = DW_ERROR_NONE;
    }
