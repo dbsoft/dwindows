@@ -2506,6 +2506,24 @@ void API dw_font_set_default(char *fontname)
 {
 }
 
+/* Convert DW style font to pango style */
+void _convert_font(char *font)
+{
+   char *name = strchr(font, '.');
+
+   /* Detect Dynamic Windows style font name...
+    * Format: ##.Fontname
+    * and convert to a Pango name
+    */
+   if(name && isdigit(*font))
+   {
+       int size = atoi(font);
+       *name = 0;
+       name++;
+       sprintf(font, "%s %d", name, size);
+   }
+}
+
 /*
  * Sets the font used by a specified window (widget) handle.
  * Parameters:
@@ -2517,7 +2535,6 @@ int dw_window_set_font(HWND handle, char *fontname)
    PangoFontDescription *pfont;
    GtkWidget *handle2 = handle;
    char *font = strdup(fontname);
-   char *name = strchr(font, '.');
    int _locked_by_me = FALSE;
    gpointer data;
 
@@ -2536,24 +2553,14 @@ int dw_window_set_font(HWND handle, char *fontname)
          handle2 = tmp;
    }
 
-   /* Detect Dynamic Windows style font name...
-    * Format: ##.Fontname
-    * and convert to a Pango name
-    */
-   if(name && isdigit(*font))
-   {
-       int size = atoi(font);
-       *name = 0;
-       name++;
-       sprintf(font, "%s %d", name, size);
-   }
+   _convert_font(font);
 
    /* Free old font name if one is allocated */
    data = g_object_get_data(G_OBJECT(handle2), "_dw_fontname");
+   g_object_set_data(G_OBJECT(handle2), "_dw_fontname", (gpointer)font);
    if(data)
       free(data);
 
-   g_object_set_data(G_OBJECT(handle2), "_dw_fontname", (gpointer)font);
    pfont = pango_font_description_from_string(fontname);
 
    if(pfont)
@@ -7270,6 +7277,7 @@ int API dw_pixmap_set_font(HPIXMAP pixmap, char *fontname)
     {
          char *oldfont = pixmap->font;
          pixmap->font = strdup(fontname);
+         _convert_font(pixmap->font);
          if(oldfont)
              free(oldfont);
          return DW_ERROR_NONE;
