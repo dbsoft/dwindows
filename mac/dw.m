@@ -471,6 +471,8 @@ typedef struct _bitbltinfo
     int height;
     int xsrc;
     int ysrc;
+    int srcwidth;
+    int srcheight;
 } DWBitBlt;
 
 /* Subclass for a test object type */
@@ -527,8 +529,18 @@ typedef struct _bitbltinfo
             image = [[NSImage alloc] initWithSize:[rep size]];
             [image addRepresentation:rep];
         }
-        [image drawAtPoint:NSMakePoint(bltinfo->xdest, bltinfo->ydest) fromRect:NSMakeRect(bltinfo->xsrc, bltinfo->ysrc, bltinfo->width, bltinfo->height)
-                        operation:NSCompositeSourceOver fraction:1.0];
+        if(bltinfo->srcwidth != -1)
+        {
+            [image drawInRect:NSMakeRect(bltinfo->xdest, bltinfo->ydest, bltinfo->width, bltinfo->height) 
+                     fromRect:NSMakeRect(bltinfo->xsrc, bltinfo->ysrc, bltinfo->srcwidth, bltinfo->srcheight)
+                     operation:NSCompositeSourceOver fraction:1.0];
+        }
+        else
+        {
+            [image drawAtPoint:NSMakePoint(bltinfo->xdest, bltinfo->ydest) 
+                      fromRect:NSMakeRect(bltinfo->xsrc, bltinfo->ysrc, bltinfo->width, bltinfo->height)
+                     operation:NSCompositeSourceOver fraction:1.0];
+        }
         [bltsrc release];
         [image release];
     }
@@ -6617,9 +6629,37 @@ void API dw_pixmap_destroy(HPIXMAP pixmap)
  */
 void API dw_pixmap_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest, int width, int height, HWND src, HPIXMAP srcp, int xsrc, int ysrc)
 {
+    dw_pixmap_stretch_bitblt(dest, destp, xdest, ydest, width, height, src, srcp, xsrc, ysrc, -1, -1);
+}
+
+/*
+ * Copies from one surface to another allowing for stretching.
+ * Parameters:
+ *       dest: Destination window handle.
+ *       destp: Destination pixmap. (choose only one).
+ *       xdest: X coordinate of destination.
+ *       ydest: Y coordinate of destination.
+ *       width: Width of the target area.
+ *       height: Height of the target area.
+ *       src: Source window handle.
+ *       srcp: Source pixmap. (choose only one).
+ *       xsrc: X coordinate of source.
+ *       ysrc: Y coordinate of source.
+ *       srcwidth: Width of area to copy.
+ *       srcheight: Height of area to copy.
+ * Returns:
+ *       DW_ERROR_NONE on success and DW_ERROR_GENERAL on failure.
+ */
+int API dw_pixmap_stretch_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest, int width, int height, HWND src, HPIXMAP srcp, int xsrc, int ysrc, int srcwidth, int srcheight)
+{
     DWBitBlt *bltinfo = calloc(1, sizeof(DWBitBlt));
     NSValue* bi = [NSValue valueWithPointer:bltinfo];
 
+    /* Sanity checks */
+    if((!dest && !destp) || (!src && !srcp) || 
+       ((srcwidth == -1 || srcheight == -1) && srcwidth != srcheight))
+        return DW_ERROR_GENERAL;
+    
     /* Fill in the information */
     bltinfo->dest = dest;
     bltinfo->src = src;
@@ -6629,6 +6669,8 @@ void API dw_pixmap_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest, int wi
     bltinfo->height = height;
     bltinfo->xsrc = xsrc;
     bltinfo->ysrc = ysrc;
+    bltinfo->srcwidth = srcwidth;
+    bltinfo->srcheight = srcheight;
 
     if(destp)
     {
@@ -6640,6 +6682,7 @@ void API dw_pixmap_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest, int wi
         [object retain];
     }
     [DWObj performSelectorOnMainThread:@selector(doBitBlt:) withObject:bi waitUntilDone:YES];
+    return DW_ERROR_NONE;
 }
 
 /*
