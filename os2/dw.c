@@ -8970,6 +8970,10 @@ int API dw_pixmap_stretch_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest,
    int dheight, sheight;
    int count = 3;
    
+   /* Do some sanity checks */
+   if((srcheight == -1 || srcwidth == -1) && srcheight != srcwidth)
+      return DW_ERROR_GENERAL;
+
    if(dest)
    {
       hpsdest = WinGetPS(dest);
@@ -9001,16 +9005,16 @@ int API dw_pixmap_stretch_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest,
    }
 
    ptl[0].x = xdest;
-   ptl[0].y = (dheight - ydest) - height;
-   ptl[1].x = ptl[0].x + width;
+   ptl[0].y = dheight - (ydest + height);
+   ptl[1].x = xdest + width;
    ptl[1].y = dheight - ydest;
    ptl[2].x = xsrc;
-   ptl[2].y = sheight - (ysrc + height);
-   if(srcwidth != -1 && srcheigth != -1)
+   ptl[2].y = sheight - (ysrc + (srcheight != -1 ? srcheight : height));
+   if(srcwidth != -1 && srcheight != -1)
    {
       count = 4;
-      ptl[3].x = ptl[2].x + srcwidth;
-      ptl[3].y = ptl[2].y + srcheight;
+      ptl[3].x = xsrc + srcwidth;
+      ptl[3].y = sheight - ysrc;
    }
 
    /* Handle transparency if requested */
