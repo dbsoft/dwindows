@@ -19,6 +19,10 @@
 #include <stdio.h>
 #include <process.h>
 #include <time.h>
+#ifdef GDIPLUS
+#include <gdiplustypes.h>
+#include <gdiplusflat.h>
+#endif
 #include "dw.h"
 #include "XBrowseForFolder.h"
 
@@ -293,6 +297,84 @@ DWORD GetDllVersion(LPCTSTR lpszDllName)
    }
     return dwVersion;
 }
+
+#ifdef GDIPLUS
+/*
+ * List those icons that have transparency first
+ * GDI+ List of supported formats: BMP, ICON, GIF, JPEG, Exif, PNG, TIFF, WMF, and EMF.
+ * Not sure if we should include all these or not... maybe we should add TIFF and GIF?
+ */
+#define NUM_EXTS 7
+char *image_exts[NUM_EXTS] =
+{
+   ".png",
+   ".ico",
+   ".gif",
+   ".jpg",
+   ".jpeg",
+   ".tiff",
+   ".bmp"
+};
+
+/* Section for loading files of types besides BMP and ICO and return HBITMAP or HICON */
+GpBitmap *_dw_load_gpbitmap( char *filename )
+{
+   int found_ext = 0,i, wclen = (strlen(filename) + 6) * sizeof(wchar_t);
+   char *file = _alloca(strlen(filename) + 6);
+   wchar_t *wfile = _alloca(wclen);
+   GpBitmap *image;
+
+   /* Try various extentions */
+   for ( i = 0; i < NUM_EXTS; i++ )
+   {
+      strcpy( file, filename );
+      strcat( file, image_exts[i] );
+      if ( access( file, 04 ) == 0 )
+      {
+         /* Convert to wide format */
+         MultiByteToWideChar(CP_ACP, 0, file, strlen(file), wfile, wclen);
+         if(GdipCreateBitmapFromFile(wfile, &image))
+             return image;
+      }
+   }
+   return NULL;
+}
+
+/* Try to load the appropriate image and return the HBITMAP handle */
+HBITMAP _dw_load_bitmap(char *filename, unsigned long *depth)
+{
+    GpBitmap *bitmap = _dw_load_gpbitmap(filename);
+    if(bitmap)
+    {
+        HBITMAP hbm;
+
+        if(GdipCreateHBITMAPFromBitmap(bitmap, &hbm, 0))
+        {
+            if(depth)
+            {
+                /* TODO: Actually query the color depth here */
+                *depth = 32;
+            }
+            return hbm;
+        }
+    }
+    return NULL;
+}
+
+/* Try to load the appropriate image and return the HICON handle */
+HICON _dw_load_icon(char *filename)
+{
+    GpBitmap *bitmap = _dw_load_gpbitmap(filename);
+    if(bitmap)
+    {
+        HICON hicon;
+
+        if(GdipCreateHICONFromBitmap(bitmap, &hicon))
+            return hicon;
+    }
+    return NULL;
+}
+#endif
 
 /* This function adds a signal handler callback into the linked list.
  */
@@ -3332,7 +3414,7 @@ void _create_tooltip(HWND handle, char *text)
     SendMessage(hwndTT, TTM_ADDTOOL, 0, (LPARAM) (LPTOOLINFO) &ti);
 }
 
-
+#ifndef GDIPLUS
 /* This function determines the handle for a supplied image filename
  */
 int _dw_get_image_handle(char *filename, HANDLE *icon, HBITMAP *hbitmap)
@@ -3399,6 +3481,7 @@ int _dw_get_image_handle(char *filename, HANDLE *icon, HBITMAP *hbitmap)
    }
    return windowtype;
 }
+#endif
 
 /* Initialize thread local values to the defaults */
 void _init_thread(void)
@@ -5261,7 +5344,12 @@ HWND API dw_bitmapbutton_new_from_file(char *text, unsigned long id, char *filen
    if (!(bubble = calloc(1, sizeof(BubbleButton))))
       return 0;
 
+#ifdef GDIPLUS
+   windowtype = BS_BITMAP;
+   hbitmap = _dw_load_bitmap(filename, NULL);
+#else
    windowtype = _dw_get_image_handle(filename, &icon, &hbitmap);
+#endif
 
    tmp = CreateWindow( BUTTONCLASSNAME,
                        "",
@@ -5279,11 +5367,14 @@ HWND API dw_bitmapbutton_new_from_file(char *text, unsigned long id, char *filen
 
    _create_tooltip(tmp, text);
 
+#ifndef GDIPLUS
    if (icon)
    {
       SendMessage(tmp, BM_SETIMAGE,(WPARAM) IMAGE_ICON,(LPARAM) icon);
    }
-   else if (hbitmap)
+   else 
+#endif
+   if (hbitmap)
    {
       SendMessage(tmp, BM_SETIMAGE,(WPARAM) IMAGE_BITMAP, (LPARAM) hbitmap);
    }
@@ -5319,6 +5410,10 @@ HWND API dw_bitmapbutton_new_from_data(char *text, unsigned long id, char *data,
       {
          fwrite( data, 1, len, fp );
          fclose( fp );
+#ifdef GDIPLUS
+         windowtype = BS_BITMAP;
+         hbitmap = _dw_load_bitmap(file, NULL);
+#else
          if ( len > 1 && data[0] == 'B' && data[1] == 'M' ) /* first 2 chars of data is BM, then its a BMP */
          {
             hbitmap = (HBITMAP)LoadImage( NULL, file, IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE );
@@ -5329,6 +5424,7 @@ HWND API dw_bitmapbutton_new_from_data(char *text, unsigned long id, char *data,
             icon = LoadImage( NULL, file, IMAGE_ICON, 0, 0, LR_LOADFROMFILE );
             windowtype = BS_ICON;
          }
+#endif
       }
       else
       {
@@ -5626,7 +5722,11 @@ void API dw_window_set_bitmap(HWND handle, unsigned long id, char *filename)
    }
    else if(filename)
    {
+#ifdef GDIPLUS
+      hbitmap = _dw_load_bitmap(filename, NULL);
+#else
       _dw_get_image_handle(filename, &icon, &hbitmap);
+#endif
       if (icon == 0 && hbitmap == 0)
          return;
    }
@@ -5691,10 +5791,14 @@ void API dw_window_set_bitmap_from_data(HWND handle, unsigned long id, char *dat
          {
             fwrite( data, 1, len, fp );
             fclose( fp );
+#ifdef GDIPLUS
+            hbitmap = _dw_load_bitmap(file, NULL);
+#else
             if ( len > 1 && data[0] == 'B' && data[1] == 'M' ) /* first 2 chars of data is BM, then its a BMP */
                hbitmap = (HBITMAP)LoadImage( NULL, file, IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE );
             else /* otherwise its assumed to be an ico */
                icon = LoadImage( NULL, file, IMAGE_ICON, 0, 0, LR_LOADFROMFILE );
+#endif
          }
          else
          {
@@ -7544,6 +7648,9 @@ HICN API dw_icon_load(unsigned long module, unsigned long id)
  */
 HICN API dw_icon_load_from_file(char *filename)
 {
+#ifdef GDIPLUS
+    return _dw_load_icon(filename);
+#else
    char *file = malloc(strlen(filename) + 5);
    HANDLE icon;
 
@@ -7566,6 +7673,7 @@ HICN API dw_icon_load_from_file(char *filename)
    icon = LoadImage(NULL, file, IMAGE_ICON, 0, 0, LR_LOADFROMFILE);
    free(file);
    return (HICN)icon;
+#endif
 }
 
 /*
@@ -7591,7 +7699,11 @@ HICN API dw_icon_load_from_data(char *data, int len)
       {
          fwrite( data, 1, len, fp );
          fclose( fp );
+#ifdef GDIPLUS
+         icon = _dw_load_icon(file);
+#else
          icon = LoadImage( NULL, file, IMAGE_ICON, 0, 0, LR_LOADFROMFILE );
+#endif
       }
       else
       {
@@ -8729,6 +8841,7 @@ HPIXMAP API dw_pixmap_new(HWND handle, unsigned long width, unsigned long height
    return pixmap;
 }
 
+#ifndef GDIPLUS
 /* Read the file bitmap header ourselves...
  * apparently we can't check the depth once loaded...
  * since it seems to normalize it to our screen depth.
@@ -8777,6 +8890,7 @@ unsigned long _read_bitmap_header(char *file)
     fclose(fp);
     return depth;
 }
+#endif
 
 /*
  * Creates a pixmap from a file.
@@ -8794,16 +8908,18 @@ HPIXMAP API dw_pixmap_new_from_file(HWND handle, char *filename)
    BITMAP bm;
    HDC hdc;
    ULONG cx, cy;
-   char *file = malloc(strlen(filename) + 5);
    BITMAPINFO *info;
+#ifndef GDIPLUS
+   char *file;
+#endif
 
-   if (!file || !(pixmap = calloc(1,sizeof(struct _hpixmap))))
-   {
-      if(file)
-         free(file);
+   if (!filename || !(pixmap = calloc(1,sizeof(struct _hpixmap))))
       return NULL;
-   }
 
+#ifdef GDIPLUS
+   pixmap->hbm = _dw_load_bitmap(filename, &pixmap->depth);
+#else
+   file = _alloca(strlen(filename) + 5);
    strcpy(file, filename);
 
    /* check if we can read from this file (it exists and read permission) */
@@ -8819,26 +8935,25 @@ HPIXMAP API dw_pixmap_new_from_file(HWND handle, char *filename)
       }
    }
 
-   hdc = GetDC(handle);
-
-   pixmap->handle = handle;
    pixmap->hbm = (HBITMAP)LoadImage(NULL, file, IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
    pixmap->depth = _read_bitmap_header(file);
+#endif
+
+   pixmap->handle = handle;
 
    if ( !pixmap->hbm )
    {
-      free(file);
       free(pixmap);
-      ReleaseDC(handle, hdc);
       return NULL;
    }
+
+   hdc = GetDC(handle);
 
    pixmap->hdc = CreateCompatibleDC( hdc );
    GetObject( pixmap->hbm, sizeof(bm), &bm );
    pixmap->width = bm.bmWidth; pixmap->height = bm.bmHeight;
    SelectObject( pixmap->hdc, pixmap->hbm );
    ReleaseDC( handle, hdc );
-   free( file );
    pixmap->transcolor = DW_RGB_TRANSPARENT;
 
    return pixmap;
@@ -8880,8 +8995,12 @@ HPIXMAP API dw_pixmap_new_from_data(HWND handle, char *data, int len)
       {
          fwrite( data, 1, len, fp );
          fclose( fp );
+#ifdef GDIPLUS
+         pixmap->hbm = _dw_load_bitmap(file);
+#else
          pixmap->hbm = (HBITMAP)LoadImage( NULL, file, IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE );
          pixmap->depth = _read_bitmap_header(file);
+#endif
       }
       else
       {
