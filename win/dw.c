@@ -5521,7 +5521,7 @@ HWND API dw_bitmapbutton_new_from_data(char *text, unsigned long id, char *data,
    HWND tmp;
    BubbleButton *bubble;
    HBITMAP hbitmap = 0;
-   HANDLE icon = 0;
+   HANDLE hicon = 0;
    char *file;
    FILE *fp;
    int windowtype;
@@ -5537,8 +5537,13 @@ HWND API dw_bitmapbutton_new_from_data(char *text, unsigned long id, char *data,
          fwrite( data, 1, len, fp );
          fclose( fp );
 #ifdef GDIPLUS
-         windowtype = BS_BITMAP;
-         hbitmap = _dw_load_bitmap(file, NULL);
+         if((hicon = _dw_load_icon(file)))
+            windowtype = BS_ICON;
+         else
+         {
+            hbitmap = _dw_load_bitmap(file, NULL);
+            windowtype = BS_BITMAP;
+         }
 #else
          if ( len > 1 && data[0] == 'B' && data[1] == 'M' ) /* first 2 chars of data is BM, then its a BMP */
          {
@@ -5547,7 +5552,7 @@ HWND API dw_bitmapbutton_new_from_data(char *text, unsigned long id, char *data,
          }
          else /* otherwise its assumed to be an ico */
          {
-            icon = LoadImage( NULL, file, IMAGE_ICON, 0, 0, LR_LOADFROMFILE );
+            hicon = LoadImage( NULL, file, IMAGE_ICON, 0, 0, LR_LOADFROMFILE );
             windowtype = BS_ICON;
          }
 #endif
@@ -5580,9 +5585,9 @@ HWND API dw_bitmapbutton_new_from_data(char *text, unsigned long id, char *data,
 
    _create_tooltip(tmp, text);
 
-   if ( icon )
+   if ( hicon )
    {
-      SendMessage( tmp, BM_SETIMAGE, (WPARAM) IMAGE_ICON, (LPARAM) icon);
+      SendMessage( tmp, BM_SETIMAGE, (WPARAM) IMAGE_ICON, (LPARAM) hicon);
    }
    else if( hbitmap )
    {
