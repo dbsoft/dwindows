@@ -1260,8 +1260,10 @@ typedef struct _hpixmap {
    unsigned long width, height;
    HWND handle;
    char *font;
-#if GTK_MAJOR_VERSION > 2
+#if GTK_MAJOR_VERSION > 1
    GdkPixbuf *pixbuf;  /* the actual image */
+#endif
+#if GTK_MAJOR_VERSION > 2
    cairo_surface_t *image; /* Going to have dual storage for now */
 #else
    GdkPixmap *pixmap;  /* the actual image */
