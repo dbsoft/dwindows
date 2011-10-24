@@ -374,9 +374,10 @@ DWORD GetDllVersion(LPCTSTR lpszDllName)
  * GDI+ List of supported formats: BMP, ICON, GIF, JPEG, Exif, PNG, TIFF, WMF, and EMF.
  * Not sure if we should include all these or not... maybe we should add TIFF and GIF?
  */
-#define NUM_EXTS 7
+#define NUM_EXTS 8
 char *image_exts[NUM_EXTS] =
 {
+   "",
    ".png",
    ".ico",
    ".gif",
