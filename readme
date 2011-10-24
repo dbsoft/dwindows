@@ -54,6 +54,7 @@ Added dw_container_set_row_data() and dw_container_change_row_data() macros
 Added dw_container_set_row_bg() to set alternating row colors.
    Currently Mac, Win and GTK are supported.
 Added taskbar support on the Mac, GTK (Gnome) and OS/2 (e/XCenter+Systray).
+Added PNG/JPG/GIF/TIFF support on Windows via GDI+.
 Improved container optimization on Mac, header width now taken into account.
 Fixes for incorrect return codes from the dw_event_* functions on Windows.
 Fixes for incorrect behavior on key_press callbacks on Mac and Windows.
