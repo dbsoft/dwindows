@@ -8354,9 +8354,7 @@ HPIXMAP dw_pixmap_new_from_file(HWND handle, char *filename)
 {
    int _locked_by_me = FALSE;
    HPIXMAP pixmap;
-#if GTK_MAJOR_VERSION > 1
-   GdkPixbuf *pixbuf;
-#elif defined(USE_IMLIB)
+#ifdef USE_IMLIB
    GdkImlibImage *image;
 #endif
    char *file = alloca(strlen(filename) + 5);
@@ -8391,11 +8389,10 @@ HPIXMAP dw_pixmap_new_from_file(HWND handle, char *filename)
 
    DW_MUTEX_LOCK;
 #if GTK_MAJOR_VERSION > 1
-   pixbuf = gdk_pixbuf_new_from_file(file, NULL);
-   pixmap->width = gdk_pixbuf_get_width(pixbuf);
-   pixmap->height = gdk_pixbuf_get_height(pixbuf);
-   gdk_pixbuf_render_pixmap_and_mask(pixbuf, &pixmap->pixmap, &pixmap->bitmap, 1);
-   g_object_unref(pixbuf);
+   pixmap->pixbuf = gdk_pixbuf_new_from_file(file, NULL);
+   pixmap->width = gdk_pixbuf_get_width(pixmap->pixbuf);
+   pixmap->height = gdk_pixbuf_get_height(pixmap->pixbuf);
+   gdk_pixbuf_render_pixmap_and_mask(pixmap->pixbuf, &pixmap->pixmap, &pixmap->bitmap, 1);
 #elif defined(USE_IMLIB)
    image = gdk_imlib_load_image(file);
 
@@ -8582,6 +8579,8 @@ void dw_pixmap_destroy(HPIXMAP pixmap)
    gdk_pixmap_unref(pixmap->pixmap);
    if(pixmap->font)
       free(pixmap->font);
+   if(pixmap->pixbuf)
+      g_object_unref(pixmap->pixbuf);
    free(pixmap);
    DW_MUTEX_UNLOCK;
 }
@@ -8737,19 +8736,18 @@ int API dw_pixmap_stretch_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest,
          /* Now that with have a pixbuf with alpha, copy from the drawable to create the source */
          gdk_pixbuf_get_from_drawable(pbsrc, src ? src->window : srcp->pixmap, NULL, xsrc, ysrc, 0, 0, srcwidth, srcheight);
          
-         /* If the pixmap has an associated alpha mask, include that in the pixbuf */
-         //if( srcp && srcp->bitmap )
-            // Need to apply the mask to the pixmap if possible here
          /* Scale the pixbuf to the desired size */
          pbdst = gdk_pixbuf_scale_simple(pbsrc, width, height, GDK_INTERP_BILINEAR);
          /* Create a new clipping mask from the scaled pixbuf */
-         if( srcp && srcp->bitmap )
+         if( srcp && srcp->bitmap && srcp->pixbuf )
          {
             GdkBitmap *bitmap = gdk_pixmap_new(NULL, width, height, 1);
-            gdk_pixbuf_render_threshold_alpha(pbdst, bitmap, 0, 0, 0, 0, width, height, 1); 
+            GdkPixbuf *pborig = gdk_pixbuf_scale_simple(srcp->pixbuf, width, height, GDK_INTERP_BILINEAR);
+            gdk_pixbuf_render_threshold_alpha(pborig, bitmap, 0, 0, 0, 0, width, height, 1); 
             gdk_gc_set_clip_mask( gc, bitmap );
             gdk_gc_set_clip_origin( gc, xdest, ydest );
             gdk_bitmap_unref(bitmap);
+            gdk_pixbuf_unref(pborig);
          }
          /* Draw the final pixbuf onto the destination drawable */
          gdk_draw_pixbuf(dest ? dest->window : destp->pixmap, gc, pbdst, 0, 0, xdest, ydest, width, height, GDK_RGB_DITHER_NONE, 0, 0);
