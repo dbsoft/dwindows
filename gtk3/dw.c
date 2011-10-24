@@ -96,14 +96,18 @@ GdkColor _colors[] =
 /*
  * List those icons that have transparency first
  */
-#define NUM_EXTS 5
+#define NUM_EXTS 9
 char *image_exts[NUM_EXTS] =
 {
    ".xpm",
    ".png",
    ".ico",
+   ".icns",
+   ".gif",
    ".jpg",
-   ".bmp",
+   ".jpeg",
+   ".tiff",
+   ".bmp"
 };
 
 #ifndef max
@@ -4206,7 +4210,7 @@ void dw_window_set_bitmap(HWND handle, unsigned long id, char *filename)
       tmp = _find_pixbuf((HICN)id, NULL, NULL);
    else
    {
-      char *file = alloca(strlen(filename) + 5);
+      char *file = alloca(strlen(filename) + 6);
 
       if (!file)
       {
@@ -5624,7 +5628,7 @@ HICN dw_icon_load(unsigned long module, unsigned long id)
 HICN API dw_icon_load_from_file(char *filename)
 {
    int _locked_by_me = FALSE;
-   char *file = alloca(strlen(filename) + 5);
+   char *file = alloca(strlen(filename) + 6);
    int i, found_ext = 0;
    HICN ret = 0;
 
@@ -7127,7 +7131,7 @@ HPIXMAP dw_pixmap_new_from_file(HWND handle, char *filename)
 {
    int _locked_by_me = FALSE;
    HPIXMAP pixmap;
-   char *file = alloca(strlen(filename) + 5);
+   char *file = alloca(strlen(filename) + 6);
    int found_ext = 0;
    int i;
 

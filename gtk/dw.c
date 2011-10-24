@@ -101,14 +101,18 @@ GdkColor _colors[] =
 /*
  * List those icons that have transparency first
  */
-#define NUM_EXTS 5
+#define NUM_EXTS 9
 char *image_exts[NUM_EXTS] =
 {
    ".xpm",
    ".png",
    ".ico",
+   ".icns",
+   ".gif",
    ".jpg",
-   ".bmp",
+   ".jpeg",
+   ".tiff",
+   ".bmp"
 };
 
 #ifndef max
@@ -4557,7 +4561,7 @@ void dw_window_set_bitmap(HWND handle, unsigned long id, char *filename)
       tmp = _find_pixmap(&bitmap, (HICN)id, handle, NULL, NULL);
    else
    {
-      char *file = alloca(strlen(filename) + 5);
+      char *file = alloca(strlen(filename) + 6);
 #if GTK_MAJOR_VERSION > 1
       GdkPixbuf *pixbuf;
 #elif defined(USE_IMLIB)
@@ -6615,7 +6619,7 @@ HICN API dw_icon_load_from_file(char *filename)
 #elif defined(USE_IMLIB)
    GdkImlibImage *image;
 #endif
-   char *file = alloca(strlen(filename) + 5);
+   char *file = alloca(strlen(filename) + 6);
    unsigned long z, ret = 0;
    int found_ext = 0;
    int i;
@@ -8357,7 +8361,7 @@ HPIXMAP dw_pixmap_new_from_file(HWND handle, char *filename)
 #ifdef USE_IMLIB
    GdkImlibImage *image;
 #endif
-   char *file = alloca(strlen(filename) + 5);
+   char *file = alloca(strlen(filename) + 6);
    int found_ext = 0;
    int i;
 
