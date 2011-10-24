@@ -402,7 +402,7 @@ void *_dw_load_gpbitmap( char *filename )
       if ( access( file, 04 ) == 0 )
       {
          /* Convert to wide format */
-         MultiByteToWideChar(CP_ACP, 0, file, strlen(file), wfile, wclen);
+         MultiByteToWideChar(CP_ACP, 0, file, strlen(file)+1, wfile, wclen);
          if(!GdipCreateBitmapFromFile(wfile, &image))
              return image;
       }
@@ -5835,7 +5835,7 @@ void API dw_window_set_bitmap(HWND handle, unsigned long id, char *filename)
 {
    HBITMAP hbitmap;
    HBITMAP oldbitmap = (HBITMAP)SendMessage(handle, STM_GETIMAGE, IMAGE_BITMAP, 0);
-   HICON icon;
+   HICON icon = 0;
    HICON oldicon = (HICON)SendMessage(handle, STM_GETIMAGE, IMAGE_ICON, 0);
 
    if(id)
