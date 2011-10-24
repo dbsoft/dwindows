@@ -19,12 +19,82 @@
 #include <stdio.h>
 #include <process.h>
 #include <time.h>
-#ifdef GDIPLUS
-#include <gdiplustypes.h>
-#include <gdiplusflat.h>
-#endif
 #include "dw.h"
 #include "XBrowseForFolder.h"
+
+#ifdef GDIPLUS
+/* GDI+ Headers are not C compatible... so define what we need here instead */
+struct GdiplusStartupInput
+{
+    UINT32 GdiplusVersion;
+    void *DebugEventCallback;
+    BOOL SuppressBackgroundThread;
+    BOOL SuppressExternalCodecs;       
+};
+
+typedef enum  {
+  Ok                          = 0,
+  GenericError                = 1,
+  InvalidParameter            = 2,
+  OutOfMemory                 = 3,
+  ObjectBusy                  = 4,
+  InsufficientBuffer          = 5,
+  NotImplemented              = 6,
+  Win32Error                  = 7,
+  WrongState                  = 8,
+  Aborted                     = 9,
+  FileNotFound                = 10,
+  ValueOverflow               = 11,
+  AccessDenied                = 12,
+  UnknownImageFormat          = 13,
+  FontFamilyNotFound          = 14,
+  FontStyleNotFound           = 15,
+  NotTrueTypeFont             = 16,
+  UnsupportedGdiplusVersion   = 17,
+  GdiplusNotInitialized       = 18,
+  PropertyNotFound            = 19,
+  PropertyNotSupported        = 20,
+  ProfileNotFound             = 21 
+} Status;
+
+Status WINAPI GdipCreateBitmapFromFile(const WCHAR* filename, void **bitmap);
+Status WINAPI GdipCreateHBITMAPFromBitmap(void *bitmap, HBITMAP* hbmReturn, DWORD background);
+Status WINAPI GdipCreateHICONFromBitmap(void *bitmap, HICON *hbmReturn);
+Status WINAPI GdipDisposeImage(void *image);
+Status WINAPI GdipGetImagePixelFormat(void *image, INT *format);
+Status WINAPI GdiplusStartup(ULONG_PTR *token, const struct GdiplusStartupInput *input, void *output);
+VOID WINAPI GdiplusShutdown(ULONG_PTR token);
+
+/* Pixel format information */
+#define    PixelFormatIndexed      0x00010000 
+#define    PixelFormatGDI          0x00020000
+#define    PixelFormatAlpha        0x00040000
+#define    PixelFormatPAlpha       0x00080000
+#define    PixelFormatExtended     0x00100000
+#define    PixelFormatCanonical    0x00200000 
+
+#define    PixelFormatUndefined       0
+#define    PixelFormatDontCare        0
+
+#define    PixelFormat1bppIndexed     (1 | ( 1 << 8) | PixelFormatIndexed | PixelFormatGDI)
+#define    PixelFormat4bppIndexed     (2 | ( 4 << 8) | PixelFormatIndexed | PixelFormatGDI)
+#define    PixelFormat8bppIndexed     (3 | ( 8 << 8) | PixelFormatIndexed | PixelFormatGDI)
+#define    PixelFormat16bppGrayScale  (4 | (16 << 8) | PixelFormatExtended)
+#define    PixelFormat16bppRGB555     (5 | (16 << 8) | PixelFormatGDI)
+#define    PixelFormat16bppRGB565     (6 | (16 << 8) | PixelFormatGDI)
+#define    PixelFormat16bppARGB1555   (7 | (16 << 8) | PixelFormatAlpha | PixelFormatGDI)
+#define    PixelFormat24bppRGB        (8 | (24 << 8) | PixelFormatGDI)
+#define    PixelFormat32bppRGB        (9 | (32 << 8) | PixelFormatGDI)
+#define    PixelFormat32bppARGB       (10 | (32 << 8) | PixelFormatAlpha | PixelFormatGDI | PixelFormatCanonical)
+#define    PixelFormat32bppPARGB      (11 | (32 << 8) | PixelFormatAlpha | PixelFormatPAlpha | PixelFormatGDI)
+#define    PixelFormat48bppRGB        (12 | (48 << 8) | PixelFormatExtended)
+#define    PixelFormat64bppARGB       (13 | (64 << 8) | PixelFormatAlpha  | PixelFormatCanonical | PixelFormatExtended)
+#define    PixelFormat64bppPARGB      (14 | (64 << 8) | PixelFormatAlpha  | PixelFormatPAlpha | PixelFormatExtended)
+#define    PixelFormat32bppCMYK       (15 | (32 << 8))
+
+/* Token to the GDI+ Instance */
+ULONG_PTR gdiplusToken; 
+#endif
 
 /*
  * MinGW (as at 3.2.3) doesn't have MIM_MENUDATA
@@ -317,12 +387,12 @@ char *image_exts[NUM_EXTS] =
 };
 
 /* Section for loading files of types besides BMP and ICO and return HBITMAP or HICON */
-GpBitmap *_dw_load_gpbitmap( char *filename )
+void *_dw_load_gpbitmap( char *filename )
 {
    int found_ext = 0,i, wclen = (strlen(filename) + 6) * sizeof(wchar_t);
    char *file = _alloca(strlen(filename) + 6);
    wchar_t *wfile = _alloca(wclen);
-   GpBitmap *image;
+   void *image;
 
    /* Try various extentions */
    for ( i = 0; i < NUM_EXTS; i++ )
@@ -333,7 +403,7 @@ GpBitmap *_dw_load_gpbitmap( char *filename )
       {
          /* Convert to wide format */
          MultiByteToWideChar(CP_ACP, 0, file, strlen(file), wfile, wclen);
-         if(GdipCreateBitmapFromFile(wfile, &image))
+         if(!GdipCreateBitmapFromFile(wfile, &image))
              return image;
       }
    }
@@ -343,20 +413,62 @@ GpBitmap *_dw_load_gpbitmap( char *filename )
 /* Try to load the appropriate image and return the HBITMAP handle */
 HBITMAP _dw_load_bitmap(char *filename, unsigned long *depth)
 {
-    GpBitmap *bitmap = _dw_load_gpbitmap(filename);
+    void *bitmap = _dw_load_gpbitmap(filename);
     if(bitmap)
     {
-        HBITMAP hbm;
+        HBITMAP hbm = NULL;
 
-        if(GdipCreateHBITMAPFromBitmap(bitmap, &hbm, 0))
+        if(!GdipCreateHBITMAPFromBitmap(bitmap, &hbm, 0))
         {
             if(depth)
             {
-                /* TODO: Actually query the color depth here */
-                *depth = 32;
+                INT pf;
+
+                /* Default to 0 */
+                *depth = 0;
+
+                /* Query the pixel format so we can determine the depth */
+                if(!GdipGetImagePixelFormat(bitmap, &pf))
+                {
+                    switch(pf)
+                    {
+                    case PixelFormat1bppIndexed:
+                        *depth = 1;
+                        break;
+                    case PixelFormat4bppIndexed:
+                        *depth = 4;
+                        break;
+                    case PixelFormat8bppIndexed:
+                        *depth = 8;
+                        break;
+                    case PixelFormat16bppGrayScale:
+                    case PixelFormat16bppRGB555:
+                    case PixelFormat16bppRGB565:
+                    case PixelFormat16bppARGB1555:
+                        *depth = 16;
+                        break;
+                    case PixelFormat24bppRGB:
+                        *depth = 24;
+                        break;
+                    case PixelFormat32bppRGB:
+                    case PixelFormat32bppARGB:
+                    case PixelFormat32bppPARGB:
+                    case PixelFormat32bppCMYK:
+                        *depth = 32;
+                        break;
+                    case PixelFormat48bppRGB:
+                        *depth = 48;
+                        break;
+                    case PixelFormat64bppARGB:
+                    case PixelFormat64bppPARGB:
+                        *depth = 64;
+                        break;
+                    }
+                }
             }
-            return hbm;
         }
+        GdipDisposeImage(bitmap);
+        return hbm;
     }
     return NULL;
 }
@@ -364,13 +476,14 @@ HBITMAP _dw_load_bitmap(char *filename, unsigned long *depth)
 /* Try to load the appropriate image and return the HICON handle */
 HICON _dw_load_icon(char *filename)
 {
-    GpBitmap *bitmap = _dw_load_gpbitmap(filename);
+    void *bitmap = _dw_load_gpbitmap(filename);
     if(bitmap)
     {
-        HICON hicon;
+        HICON hicon = NULL;
 
-        if(GdipCreateHICONFromBitmap(bitmap, &hicon))
-            return hicon;
+        GdipCreateHICONFromBitmap(bitmap, &hicon);
+        GdipDisposeImage(bitmap);
+        return hicon;
     }
     return NULL;
 }
@@ -3507,6 +3620,7 @@ int API dw_init(int newthread, int argc, char *argv[])
    INITCOMMONCONTROLSEX icc;
    char *fname, *alttmpdir;
    HFONT oldfont;
+   struct GdiplusStartupInput si; 
 
    /* Initialize our thread local storage */
    _foreground = TlsAlloc();
@@ -3648,6 +3762,15 @@ int API dw_init(int newthread, int argc, char *argv[])
     */
    screenx = GetSystemMetrics(SM_CXSCREEN);
    screeny = GetSystemMetrics(SM_CYSCREEN);
+
+#ifdef GDIPLUS
+   /* Setup GDI+ */
+   si.GdiplusVersion = 1;
+   si.DebugEventCallback = NULL;
+   si.SuppressBackgroundThread = FALSE;
+   si.SuppressExternalCodecs = FALSE;
+   GdiplusStartup(&gdiplusToken, &si, NULL);
+#endif
    return 0;
 }
 
@@ -8996,7 +9119,7 @@ HPIXMAP API dw_pixmap_new_from_data(HWND handle, char *data, int len)
          fwrite( data, 1, len, fp );
          fclose( fp );
 #ifdef GDIPLUS
-         pixmap->hbm = _dw_load_bitmap(file);
+         pixmap->hbm = _dw_load_bitmap(file, NULL);
 #else
          pixmap->hbm = (HBITMAP)LoadImage( NULL, file, IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE );
          pixmap->depth = _read_bitmap_header(file);
