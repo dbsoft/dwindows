@@ -5462,17 +5462,22 @@ HWND API dw_bitmapbutton_new_from_file(char *text, unsigned long id, char *filen
    HWND tmp;
    BubbleButton *bubble;
    HBITMAP hbitmap = 0;
-   HANDLE icon = 0;
+   HANDLE hicon = 0;
    int windowtype = 0, len;
 
    if (!(bubble = calloc(1, sizeof(BubbleButton))))
       return 0;
 
 #ifdef GDIPLUS
-   windowtype = BS_BITMAP;
-   hbitmap = _dw_load_bitmap(filename, NULL);
+   if((hicon = _dw_load_icon(filename)))
+      windowtype = BS_ICON;
+   else
+   {
+      hbitmap = _dw_load_bitmap(filename, NULL);
+      windowtype = BS_BITMAP;
+   }
 #else
-   windowtype = _dw_get_image_handle(filename, &icon, &hbitmap);
+   windowtype = _dw_get_image_handle(filename, &hicon, &hbitmap);
 #endif
 
    tmp = CreateWindow( BUTTONCLASSNAME,
@@ -5491,14 +5496,11 @@ HWND API dw_bitmapbutton_new_from_file(char *text, unsigned long id, char *filen
 
    _create_tooltip(tmp, text);
 
-#ifndef GDIPLUS
-   if (icon)
+   if (hicon)
    {
-      SendMessage(tmp, BM_SETIMAGE,(WPARAM) IMAGE_ICON,(LPARAM) icon);
+      SendMessage(tmp, BM_SETIMAGE,(WPARAM) IMAGE_ICON,(LPARAM) hicon);
    }
-   else 
-#endif
-   if (hbitmap)
+   else if (hbitmap)
    {
       SendMessage(tmp, BM_SETIMAGE,(WPARAM) IMAGE_BITMAP, (LPARAM) hbitmap);
    }
