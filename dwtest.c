@@ -369,7 +369,7 @@ void draw_shapes(int direct, HPIXMAP hpma)
     dw_color_foreground_set(DW_CLR_BLUE);
     dw_draw_polygon(window, pixmap, TRUE, 7, x, y);
     dw_color_foreground_set(DW_CLR_CYAN);
-    dw_draw_arc(window, pixmap, 0, width - 40, height - 40, width - 40, height - 20, width - 20, height - 40);
+    dw_draw_arc(window, pixmap, 0, width - 30, height - 30, width - 10, height - 30, width - 30, height - 10);
     if(image)
     {
         if(image_stretch)
