@@ -8087,8 +8087,8 @@ void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yo
    if(cr)
    {
       GdkColor *foreground = pthread_getspecific(_dw_fg_color_key);
-      double a1 = 180/M_PI * arctan((y1-yorigin)/(x1-xorigin));
-      double a2 = 180/M_PI * arctan((y2-yorigin)/(x2-xorigin));
+      double a1 = 180/M_PI * atan2((y1-yorigin), (x1-xorigin));
+      double a2 = 180/M_PI * atan2((y2-yorigin), (x2-xorigin));
       
       gdk_cairo_set_source_color (cr, foreground);
       cairo_set_line_width(cr, 1);
