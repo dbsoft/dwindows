@@ -8109,8 +8109,8 @@ void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yo
       }
       else
       {
-         radius1 = (x1 - xorigin == 0) ? (y1 - yorigin < 0) ? 90.0 : -90.0 : -atan2((double)y1-yorigin, (double)x1-xorigin) * (180/M_PI);
-         radius2 = (x2 - xorigin == 0) ? (y2 - yorigin < 0) ? 90.0 : -90.0 : -atan2((double)y2-yorigin, (double)x2-xorigin) * (180/M_PI);
+         radius2 = (x1 - xorigin == 0) ? (y1 - yorigin < 0) ? 90.0 : -90.0 : -atan2((double)y1-yorigin, (double)x1-xorigin) * (180/M_PI);
+         radius1 = (x2 - xorigin == 0) ? (y2 - yorigin < 0) ? 90.0 : -90.0 : -atan2((double)y2-yorigin, (double)x2-xorigin) * (180/M_PI);
       }
       alpha1 = (int)(radius1 * 64.0);
       alpha2 = (int)((radius2 - radius1) * 64.0);
