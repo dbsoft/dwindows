@@ -8109,15 +8109,15 @@ void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yo
       }
       else
       {
-         radius1 = (x1 - xorigin == 0) ? (y1 - yc < 0) ? 90.0 : -90.0 : -atan2((double)y1-yc, (double)x1-xc) * RAD2DEG;
-         radius2 = (x2 - xorigin == 0) ? (y2 - yc < 0) ? 90.0 : -90.0 : -atan2((double)y2-yc, (double)x2-xc) * RAD2DEG;
+         radius1 = (x1 - xorigin == 0) ? (y1 - yorigin < 0) ? 90.0 : -90.0 : -atan2((double)y1-yorigin, (double)x1-xorigin) * (180/M_PI);
+         radius2 = (x2 - xorigin == 0) ? (y2 - yorigin < 0) ? 90.0 : -90.0 : -atan2((double)y2-yorigin, (double)x2-xorigin) * (180/M_PI);
       }
       alpha1 = (int)(radius1 * 64.0);
       alpha2 = (int)((radius2 - radius1) * 64.0);
       while (alpha2 <= 0) alpha2 += 360*64;
       while (alpha1 > 360*64) alpha1 -= 360*64;
      
-      gdk_draw_arc(handle ? handle->window : pixmap->pixmap, gc, TRUE, xorigin-r, yorigin-r, 2*r,2*r, alpha1, alpha2);
+      gdk_draw_arc(handle ? handle->window : pixmap->pixmap, gc, FALSE, xorigin-r, yorigin-r, 2*r,2*r, alpha1, alpha2);
       gdk_gc_unref(gc);
    }
    DW_MUTEX_UNLOCK;
