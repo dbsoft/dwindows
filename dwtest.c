@@ -352,7 +352,9 @@ void draw_shapes(int direct, HPIXMAP hpma)
     int width = (int)DW_PIXMAP_WIDTH(hpm), height = (int)DW_PIXMAP_HEIGHT(hpm);
     HPIXMAP pixmap = direct ? NULL : hpm;
     HWND window = direct ? textbox2 : 0;
-
+    int x[7] = { 20, 180, 180, 230, 180, 180, 20 };
+    int y[7] = { 50, 50, 20, 70, 120, 90, 90 };
+    
     image_x = (int)dw_spinbutton_get_pos(imagexspin);
     image_y = (int)dw_spinbutton_get_pos(imageyspin);
     image_stretch = dw_checkbox_get(imagestretchcheck);
@@ -364,6 +366,8 @@ void draw_shapes(int direct, HPIXMAP hpma)
     dw_color_foreground_set(DW_CLR_GREEN);
     dw_color_background_set(DW_CLR_DARKRED);
     dw_draw_text(window, pixmap, 10, 10, "This should be aligned with the edges.");
+    dw_color_foreground_set(DW_CLR_BLUE);
+    dw_draw_polygon(window, pixmap, TRUE, 7, x, y);
     if(image)
     {
         if(image_stretch)
