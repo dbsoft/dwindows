@@ -5245,7 +5245,6 @@ void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yo
     DW_MUTEX_LOCK;
     id image = handle;
     double r, a1, a2, a;
-    int x3, y3;
     
     if(pixmap)
     {
