@@ -8660,6 +8660,11 @@ void API dw_draw_rect(HWND handle, HPIXMAP pixmap, int fill, int x, int y, int w
       WinReleasePS(hps);
 }
 
+/* VisualAge doesn't seem to have this */
+#ifndef M_PI
+#define M_PI            3.14159265358979323846
+#endif
+
 /* Draw an arc on a window (preferably a render window).
  * Parameters:
  *       handle: Handle to the window.
