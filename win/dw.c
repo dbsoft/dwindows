@@ -19,6 +19,7 @@
 #include <stdio.h>
 #include <process.h>
 #include <time.h>
+#include <math.h>
 #include "dw.h"
 #include "XBrowseForFolder.h"
 
@@ -8845,7 +8846,7 @@ void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yo
       
    oldBrush = SelectObject( hdcPaint, TlsGetValue(_hBrush) );
    oldPen = SelectObject( hdcPaint, TlsGetValue(_hPen) );
-   Arc(hdcPaint, xorigin-r, yorigin-r, xorigin+r, yorigin+r, x1, y1, x2, y2);
+   Arc(hdcPaint, xorigin-r, yorigin-r, xorigin+r, yorigin+r, x2, y2, x1, y1);
    SelectObject( hdcPaint, oldBrush );
    SelectObject( hdcPaint, oldPen );
 
