@@ -28,6 +28,7 @@
 #include <signal.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <math.h>
 #include <gdk/gdkkeysyms.h>
 #ifdef USE_IMLIB
 #include <gdk_imlib.h>
@@ -8047,6 +8048,76 @@ void dw_draw_rect(HWND handle, HPIXMAP pixmap, int fill, int x, int y, int width
    if(gc)
    {
       gdk_draw_rectangle(handle ? handle->window : pixmap->pixmap, gc, fill, x, y, width, height);
+      gdk_gc_unref(gc);
+   }
+   DW_MUTEX_UNLOCK;
+}
+
+/* Draw an arc on a window (preferably a render window).
+ * Parameters:
+ *       handle: Handle to the window.
+ *       pixmap: Handle to the pixmap. (choose only one of these)
+ *       flags: For future use.
+ *       xorigin: X coordinate of center of arc.
+ *       yorigin: Y coordinate of center of arc.
+ *       x1: X coordinate of first segment of arc.
+ *       y1: Y coordinate of first segment of arc.
+ *       x2: X coordinate of second segment of arc.
+ *       y2: Y coordinate of second segment of arc.
+ */
+void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yorigin, int x1, int y1, int x2, int y2)
+{
+   int _locked_by_me = FALSE;
+   GdkGC *gc = NULL;
+#if GTK_CHECK_VERSION(2,10,0)
+   cairo_t *cr = NULL;
+#endif
+   double dx = xorigin - x1;
+   double dy = yorigin - y1;
+   double r = sqrt(dx*dx + dy*dy);
+
+   DW_MUTEX_LOCK;
+   if(handle)
+      gc = _set_colors(handle->window);
+   else if(pixmap && pixmap->pixmap)
+      gc = _set_colors(pixmap->pixmap);
+#if GTK_CHECK_VERSION(2,10,0)
+   else if(pixmap && pixmap->image)
+      cr = cairo_create(pixmap->image);
+   if(cr)
+   {
+      GdkColor *foreground = pthread_getspecific(_dw_fg_color_key);
+      double a1 = 180/M_PI * arctan((y1-yorigin)/(x1-xorigin));
+      double a2 = 180/M_PI * arctan((y2-yorigin)/(x2-xorigin));
+      
+      gdk_cairo_set_source_color (cr, foreground);
+      cairo_set_line_width(cr, 1);
+      cairo_arc(cr, xorigin, yorigin, r, a1, a2);
+      cairo_stroke(cr);
+      cairo_destroy(cr);
+   }
+#endif   
+   if(gc)
+   {
+      double radius1 = 0, radius2 = 0;
+      int alpha1, alpha2;
+
+      if(x1 == x2 && y1 == y2)
+      {
+         radius1 = 0.0;
+         radius2 = 360.0;
+      }
+      else
+      {
+         radius1 = (x1 - xorigin == 0) ? (y1 - yc < 0) ? 90.0 : -90.0 : -atan2((double)y1-yc, (double)x1-xc) * RAD2DEG;
+         radius2 = (x2 - xorigin == 0) ? (y2 - yc < 0) ? 90.0 : -90.0 : -atan2((double)y2-yc, (double)x2-xc) * RAD2DEG;
+      }
+      alpha1 = (int)(radius1 * 64.0);
+      alpha2 = (int)((radius2 - radius1) * 64.0);
+      while (alpha2 <= 0) alpha2 += 360*64;
+      while (alpha1 > 360*64) alpha1 -= 360*64;
+     
+      gdk_draw_arc(handle ? handle->window : pixmap->pixmap, gc, TRUE, xorigin-r, yorigin-r, 2*r,2*r, alpha1, alpha2);
       gdk_gc_unref(gc);
    }
    DW_MUTEX_UNLOCK;

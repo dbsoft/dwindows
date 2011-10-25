@@ -17,6 +17,7 @@
 #include <sys/mman.h>
 #include <sys/time.h>
 #include <sys/stat.h>
+#include <math.h>
 
 /* Create a define to let us know to include Snow Leopard specific features */
 #if defined(MAC_OS_X_VERSION_10_6) && ((defined(MAC_OS_X_VERSION_MIN_REQUIRED) && MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_6) || !defined(MAC_OS_X_VERSION_MIN_REQUIRED))
@@ -5214,6 +5215,71 @@ void API dw_draw_rect(HWND handle, HPIXMAP pixmap, int fill, int x, int y, int w
     [aPath closePath];
     if(fill)
        [aPath fill];
+    [aPath stroke];
+    if(pixmap)
+    {
+        [NSGraphicsContext restoreGraphicsState];
+    }
+    else
+    {
+        [image unlockFocus];
+    }
+    DW_MUTEX_UNLOCK;
+}
+
+/* Draw an arc on a window (preferably a render window).
+ * Parameters:
+ *       handle: Handle to the window.
+ *       pixmap: Handle to the pixmap. (choose only one of these)
+ *       flags: For future use.
+ *       xorigin: X coordinate of center of arc.
+ *       yorigin: Y coordinate of center of arc.
+ *       x1: X coordinate of first segment of arc.
+ *       y1: Y coordinate of first segment of arc.
+ *       x2: X coordinate of second segment of arc.
+ *       y2: Y coordinate of second segment of arc.
+ */
+void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yorigin, int x1, int y1, int x2, int y2)
+{
+    int _locked_by_me = FALSE;
+    DW_MUTEX_LOCK;
+    id image = handle;
+    double r, a1, a2, a;
+    int x3, y3;
+    
+    if(pixmap)
+    {
+        image = (id)pixmap->image;
+        [NSGraphicsContext saveGraphicsState];
+        [NSGraphicsContext setCurrentContext:[NSGraphicsContext
+                                              graphicsContextWithGraphicsPort:[[NSGraphicsContext graphicsContextWithBitmapImageRep:image] graphicsPort] flipped:YES]];
+    }
+    else
+    {
+        if([image lockFocusIfCanDraw] == NO)
+        {
+            DW_MUTEX_UNLOCK;
+            return;
+        }
+        _DWLastDrawable = handle;
+    }
+    NSBezierPath* aPath = [NSBezierPath bezierPath];
+    [aPath setLineWidth: 0.5];
+    NSColor *color = pthread_getspecific(_dw_fg_color_key);
+    [color set];
+
+    [aPath moveToPoint:NSMakePoint(x1, y1)];
+    /* Calculate the midpoint */
+    r = 0.5 * (hypot((double)(y1 - yorigin), (double)(x1 - xorigin)) +
+               hypot((double)(y2 - yorigin), (double)(x2 - xorigin)));
+    a1 = atan2((double)(y1 - yorigin), (double)(x1 - xorigin));
+    a2 = atan2((double)(y2 - yorigin), (double)(x2 - xorigin));
+    if(a2 < a1)
+        a2 += M_PI * 2;
+    a = (a1 + a2) / 2.;
+    /* Prepare to draw */
+    [aPath appendBezierPathWithArcFromPoint:NSMakePoint((xorigin + r * cos(a)), (yorigin + r * sin(a)))
+           toPoint:NSMakePoint(x2, y2) radius:r];
     [aPath stroke];
     if(pixmap)
     {

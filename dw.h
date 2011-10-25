@@ -1650,6 +1650,7 @@ void API dw_draw_point(HWND handle, HPIXMAP pixmap, int x, int y);
 void API dw_draw_line(HWND handle, HPIXMAP pixmap, int x1, int y1, int x2, int y2);
 void API dw_draw_rect(HWND handle, HPIXMAP pixmap, int fill, int x, int y, int width, int height);
 void API dw_draw_polygon(HWND handle, HPIXMAP pixmap, int fill, int npoints, int *x, int *y);
+void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yorigin, int x1, int y1, int x2, int y2);
 void API dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text);
 void API dw_font_text_extents_get(HWND handle, HPIXMAP pixmap, char *text, int *width, int *height);
 void API dw_font_set_default(char *fontname);

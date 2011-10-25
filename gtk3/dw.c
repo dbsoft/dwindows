@@ -28,6 +28,7 @@
 #include <signal.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <math.h>
 #include <gdk/gdkkeysyms.h>
 
 #ifdef USE_GTKMOZEMBED
@@ -6916,6 +6917,55 @@ void dw_draw_rect(HWND handle, HPIXMAP pixmap, int fill, int x, int y, int width
       cairo_line_to(cr, x + width, y);
       if(fill)
          cairo_fill(cr);
+      cairo_stroke(cr);
+      cairo_destroy(cr);
+   }
+   DW_MUTEX_UNLOCK;
+}
+
+/* Draw an arc on a window (preferably a render window).
+ * Parameters:
+ *       handle: Handle to the window.
+ *       pixmap: Handle to the pixmap. (choose only one of these)
+ *       flags: For future use.
+ *       xorigin: X coordinate of center of arc.
+ *       yorigin: Y coordinate of center of arc.
+ *       x1: X coordinate of first segment of arc.
+ *       y1: Y coordinate of first segment of arc.
+ *       x2: X coordinate of second segment of arc.
+ *       y2: Y coordinate of second segment of arc.
+ */
+void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yorigin, int x1, int y1, int x2, int y2)
+{
+   int _locked_by_me = FALSE;
+   cairo_t *cr = NULL;
+
+   DW_MUTEX_LOCK;
+   if(handle)
+   {
+      GdkWindow *window = gtk_widget_get_window(handle);
+      /* Safety check for non-existant windows */
+      if(!window || !GDK_IS_WINDOW(window))
+      {
+         DW_MUTEX_UNLOCK;
+         return;
+      }
+      cr = gdk_cairo_create(window);
+   }
+   else if(pixmap)
+      cr = cairo_create(pixmap->image);
+   if(cr)
+   {
+      GdkColor *foreground = pthread_getspecific(_dw_fg_color_key);
+      double dx = xorigin - x1;
+      double dy = yorigin - y1;
+      double r = sqrt(dx*dx + dy*dy);
+      double a1 = 180/M_PI * arctan((y1-yorigin)/(x1-xorigin));
+      double a2 = 180/M_PI * arctan((y2-yorigin)/(x2-xorigin));
+
+      gdk_cairo_set_source_color (cr, foreground);
+      cairo_set_line_width(cr, 1);
+      cairo_arc(cr, xorigin, yorigin, r, a1, a2);
       cairo_stroke(cr);
       cairo_destroy(cr);
    }

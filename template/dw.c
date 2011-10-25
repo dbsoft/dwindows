@@ -1529,6 +1529,22 @@ void API dw_draw_rect(HWND handle, HPIXMAP pixmap, int fill, int x, int y, int w
 {
 }
 
+/* Draw an arc on a window (preferably a render window).
+ * Parameters:
+ *       handle: Handle to the window.
+ *       pixmap: Handle to the pixmap. (choose only one of these)
+ *       flags: For future use.
+ *       xorigin: X coordinate of center of arc.
+ *       yorigin: Y coordinate of center of arc.
+ *       x1: X coordinate of first segment of arc.
+ *       y1: Y coordinate of first segment of arc.
+ *       x2: X coordinate of second segment of arc.
+ *       y2: Y coordinate of second segment of arc.
+ */
+void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yorigin, int x1, int y1, int x2, int y2)
+{
+}
+
 /*
  * Create a tree object to be packed.
  * Parameters:
