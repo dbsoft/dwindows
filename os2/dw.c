@@ -28,6 +28,7 @@
 #include <process.h>
 #include <time.h>
 #include <io.h>
+#include <math.h>
 #ifndef __EMX__
 #include <direct.h>
 #endif
@@ -8654,6 +8655,66 @@ void API dw_draw_rect(HWND handle, HPIXMAP pixmap, int fill, int x, int y, int w
 
    GpiMove(hps, &ptl[0]);
    GpiBox(hps, fill ? DRO_OUTLINEFILL : DRO_OUTLINE, &ptl[1], 0, 0);
+
+   if(!pixmap)
+      WinReleasePS(hps);
+}
+
+/* Draw an arc on a window (preferably a render window).
+ * Parameters:
+ *       handle: Handle to the window.
+ *       pixmap: Handle to the pixmap. (choose only one of these)
+ *       flags: For future use.
+ *       xorigin: X coordinate of center of arc.
+ *       yorigin: Y coordinate of center of arc.
+ *       x1: X coordinate of first segment of arc.
+ *       y1: Y coordinate of first segment of arc.
+ *       x2: X coordinate of second segment of arc.
+ *       y2: Y coordinate of second segment of arc.
+ */
+void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yorigin, int x1, int y1, int x2, int y2)
+{
+   HPS hps;
+   int thisheight;
+   ARCPARAMS ap = { 1, 1, 0, 0 };
+   POINTL pts[2];
+   double r, a1, a2, a;
+   int x3, y3;
+   
+   if(handle)
+   {
+      hps = _set_colors(handle);
+      thisheight = _get_height(handle);
+   }
+   else if(pixmap)
+   {
+      hps = _set_hps(pixmap->hps);
+      thisheight = pixmap->height;
+   }
+   else
+      return;
+   
+   /* Setup the arc info on the presentation space */
+   GpiSetArcParams(hps, &ap);
+   pts[0].x = x1;
+   pts[0].y = thisheight - y1 - 1;
+   /* Move to the initial position */
+   GpiMove(hps, pts);
+   /* Calculate the midpoint */
+   r = 0.5 * (hypot((double)(y1 - yorigin), (double)(x1 - xorigin)) +
+              hypot((double)(y2 - yorigin), (double)(x2 - xorigin)));
+   a1 = atan2((double)(y1 - yorigin), (double)(x1 - xorigin));
+   a2 = atan2((double)(y2 - yorigin), (double)(x2 - xorigin));
+   if(a2 < a1)
+      a2 += M_PI * 2;
+   a = (a1 + a2) / 2.;
+   /* Prepare to draw */
+   pts[0].x = (int)(xorigin + r * cos(a));
+   pts[0].y = thisheight - (int)(yorigin + r * sin(a)) - 1;
+   pts[1].x = x2;
+   pts[1].y = thisheight - y2 - 1;
+   /* Actually draw the arc */
+   GpiPointArc(hps, pts);
 
    if(!pixmap)
       WinReleasePS(hps);
