@@ -8598,7 +8598,7 @@ void API dw_draw_polygon( HWND handle, HPIXMAP pixmap, int fill, int npoints, in
        * Move to the first point of the polygon
        */
       start.x = x[0];
-      start.y = y[0];
+      start.y = thisheight - y[0] - 1;
       GpiMove( hps, &start );
       /*
        * Convert the remainder of the x and y points
@@ -8606,7 +8606,7 @@ void API dw_draw_polygon( HWND handle, HPIXMAP pixmap, int fill, int npoints, in
       for ( i = 1; i < npoints; i++ )
       {
          pptl[i-1].x = x[i];
-         pptl[i-1].y = y[i];
+         pptl[i-1].y = thisheight - y[i] - 1;
       }
       GpiPolyLine( hps, npoints-1, pptl );
 
