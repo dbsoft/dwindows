@@ -5271,7 +5271,7 @@ void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yo
     /* Special case of a full circle/oval */
     if(flags & DW_DRAW_FULL)
     {
-        [aPath appendBezierPathWithOvalInRect:NSMakeRect(x1, y1, x2, y2)];
+        [aPath appendBezierPathWithOvalInRect:NSMakeRect(x1, y1, x2 - x1, y2 - y1)];
     }
     else
     {
