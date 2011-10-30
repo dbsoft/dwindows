@@ -8685,7 +8685,15 @@ void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yo
    POINTL pts[2];
    double r, a1, a2, a;
    int x3, y3;
-   
+
+   /* Handle full circle/ellipse */
+   if(flags & DW_DRAW_FULL)
+   {
+       /* Draw one half... */
+	   dw_draw_arc(handle, pixmap, flags & ~DW_DRAW_FULL, xorigin, yorigin, x2, y2, x1, y1);
+       /* ... then continue to draw the other half */
+   }
+
    if(handle)
    {
       hps = _set_colors(handle);
@@ -8698,7 +8706,10 @@ void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yo
    }
    else
       return;
-   
+
+   /* For a filled polygon we need to start an area */
+   if(flags & DW_DRAW_FILL)
+       GpiBeginArea(hps, 0L);
    /* Setup the arc info on the presentation space */
    GpiSetArcParams(hps, &ap);
    pts[0].x = x1;
@@ -8720,6 +8731,8 @@ void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yo
    pts[1].y = thisheight - y2 - 1;
    /* Actually draw the arc */
    GpiPointArc(hps, pts);
+   if(flags & DW_DRAW_FILL)
+       GpiEndArea(hps);
 
    if(!pixmap)
       WinReleasePS(hps);
