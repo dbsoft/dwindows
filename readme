@@ -55,6 +55,11 @@ Added dw_container_set_row_bg() to set alternating row colors.
    Currently Mac, Win and GTK are supported.
 Added taskbar support on the Mac, GTK (Gnome) and OS/2 (e/XCenter+Systray).
 Added PNG/JPG/GIF/TIFF support on Windows via GDI+.
+Added dw_draw_arc() function for drawing arcs, ellipses and circles.
+Added DW_DRAW_DEFAULT, DW_DRAW_FILL and DW_DRAW_FULL flags which can be passed
+   to dw_draw_arc(), dw_draw_rect() and dw_draw_polygon().  The fill parameter
+   in the latter two has been replaced with flags where DW_DRAW_FILL is the
+   same as TRUE so code using the old scheme should still work unchanged.
 Improved container optimization on Mac, header width now taken into account.
 Fixes for incorrect return codes from the dw_event_* functions on Windows.
 Fixes for incorrect behavior on key_press callbacks on Mac and Windows.

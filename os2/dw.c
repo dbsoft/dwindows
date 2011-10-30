@@ -8557,13 +8557,13 @@ void API dw_font_text_extents_get(HWND handle, HPIXMAP pixmap, char *text, int *
  * Parameters:
  *       handle: Handle to the window.
  *       pixmap: Handle to the pixmap. (choose only one of these)
- *       fill: Fill box TRUE or FALSE.
+ *       flags: DW_DRAW_FILL (1) to fill the polygon or DW_DRAW_DEFAULT (0).
  *       x: X coordinate.
  *       y: Y coordinate.
  *       width: Width of rectangle.
  *       height: Height of rectangle.
  */
-void API dw_draw_polygon( HWND handle, HPIXMAP pixmap, int fill, int npoints, int *x, int *y )
+void API dw_draw_polygon( HWND handle, HPIXMAP pixmap, int flags, int npoints, int *x, int *y )
 {
    HPS hps;
    int thisheight;
@@ -8591,7 +8591,7 @@ void API dw_draw_polygon( HWND handle, HPIXMAP pixmap, int fill, int npoints, in
    /*
     * For a filled polygon we need to start an area
     */
-   if ( fill )
+   if ( flags & DW_DRAW_FILL )
       GpiBeginArea( hps, 0L );
    if ( npoints )
    {
@@ -8611,7 +8611,7 @@ void API dw_draw_polygon( HWND handle, HPIXMAP pixmap, int fill, int npoints, in
       }
       GpiPolyLine( hps, npoints-1, pptl );
 
-      if ( fill )
+      if ( flags & DW_DRAW_FILL )
          GpiEndArea( hps );
    }
    if ( !pixmap )
@@ -8623,7 +8623,7 @@ void API dw_draw_polygon( HWND handle, HPIXMAP pixmap, int fill, int npoints, in
  * Parameters:
  *       handle: Handle to the window.
  *       pixmap: Handle to the pixmap. (choose only one of these)
- *       fill: Fill box TRUE or FALSE.
+ *       flags: DW_DRAW_FILL (1) to fill the box or DW_DRAW_DEFAULT (0).
  *       x: X coordinate.
  *       y: Y coordinate.
  *       width: Width of rectangle.
@@ -8653,8 +8653,13 @@ void API dw_draw_rect(HWND handle, HPIXMAP pixmap, int fill, int x, int y, int w
    ptl[1].x = x + width - 1;
    ptl[1].y = thisheight - y - height;
 
+   /* For a filled arc we need to start an area */
+   if(flags & DW_DRAW_FILL)
+       GpiBeginArea(hps, 0L);
    GpiMove(hps, &ptl[0]);
    GpiBox(hps, fill ? DRO_OUTLINEFILL : DRO_OUTLINE, &ptl[1], 0, 0);
+   if(flags & DW_DRAW_FILL)
+       GpiEndArea(hps);
 
    if(!pixmap)
       WinReleasePS(hps);
@@ -8669,7 +8674,8 @@ void API dw_draw_rect(HWND handle, HPIXMAP pixmap, int fill, int x, int y, int w
  * Parameters:
  *       handle: Handle to the window.
  *       pixmap: Handle to the pixmap. (choose only one of these)
- *       flags: For future use.
+ *       flags: DW_DRAW_FILL (1) to fill the arc or DW_DRAW_DEFAULT (0).
+ *              DW_DRAW_FULL will draw a complete circle/elipse.
  *       xorigin: X coordinate of center of arc.
  *       yorigin: Y coordinate of center of arc.
  *       x1: X coordinate of first segment of arc.
@@ -8690,7 +8696,7 @@ void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yo
    if(flags & DW_DRAW_FULL)
    {
        /* Draw one half... */
-	   dw_draw_arc(handle, pixmap, flags & ~DW_DRAW_FULL, xorigin, yorigin, x2, y2, x1, y1);
+    dw_draw_arc(handle, pixmap, flags & ~DW_DRAW_FULL, xorigin, yorigin, x2, y2, x1, y1);
        /* ... then continue to draw the other half */
    }
 
@@ -8707,7 +8713,7 @@ void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yo
    else
       return;
 
-   /* For a filled polygon we need to start an area */
+   /* For a filled arc we need to start an area */
    if(flags & DW_DRAW_FILL)
        GpiBeginArea(hps, 0L);
    /* Setup the arc info on the presentation space */

@@ -1506,12 +1506,12 @@ void API dw_font_text_extents_get(HWND handle, HPIXMAP pixmap, char *text, int *
  * Parameters:
  *       handle: Handle to the window.
  *       pixmap: Handle to the pixmap. (choose only one of these)
- *       fill: Fill box TRUE or FALSE.
+ *       flags: DW_DRAW_FILL (1) to fill the polygon or DW_DRAW_DEFAULT (0).
  *       npoints: Number of points passed in.
  *       x: Pointer to array of X coordinates.
  *       y: Pointer to array of Y coordinates.
  */
-void API dw_draw_polygon( HWND handle, HPIXMAP pixmap, int fill, int npoints, int *x, int *y )
+void API dw_draw_polygon( HWND handle, HPIXMAP pixmap, int flags, int npoints, int *x, int *y )
 {
 }
 
@@ -1519,13 +1519,13 @@ void API dw_draw_polygon( HWND handle, HPIXMAP pixmap, int fill, int npoints, in
  * Parameters:
  *       handle: Handle to the window.
  *       pixmap: Handle to the pixmap. (choose only one of these)
- *       fill: Fill box TRUE or FALSE.
+ *       flags: DW_DRAW_FILL (1) to fill the box or DW_DRAW_DEFAULT (0).
  *       x: X coordinate.
  *       y: Y coordinate.
  *       width: Width of rectangle.
  *       height: Height of rectangle.
  */
-void API dw_draw_rect(HWND handle, HPIXMAP pixmap, int fill, int x, int y, int width, int height)
+void API dw_draw_rect(HWND handle, HPIXMAP pixmap, int flags, int x, int y, int width, int height)
 {
 }
 
@@ -1533,7 +1533,8 @@ void API dw_draw_rect(HWND handle, HPIXMAP pixmap, int fill, int x, int y, int w
  * Parameters:
  *       handle: Handle to the window.
  *       pixmap: Handle to the pixmap. (choose only one of these)
- *       flags: For future use.
+ *       flags: DW_DRAW_FILL (1) to fill the arc or DW_DRAW_DEFAULT (0).
+ *              DW_DRAW_FULL will draw a complete circle/elipse.
  *       xorigin: X coordinate of center of arc.
  *       yorigin: Y coordinate of center of arc.
  *       x1: X coordinate of first segment of arc.

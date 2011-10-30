@@ -5117,13 +5117,13 @@ void API dw_font_text_extents_get(HWND handle, HPIXMAP pixmap, char *text, int *
  * Parameters:
  *       handle: Handle to the window.
  *       pixmap: Handle to the pixmap. (choose only one of these)
- *       fill: Fill box TRUE or FALSE.
+ *       flags: DW_DRAW_FILL (1) to fill the polygon or DW_DRAW_DEFAULT (0).
  *       x: X coordinate.
  *       y: Y coordinate.
  *       width: Width of rectangle.
  *       height: Height of rectangle.
  */
-void API dw_draw_polygon( HWND handle, HPIXMAP pixmap, int fill, int npoints, int *x, int *y )
+void API dw_draw_polygon( HWND handle, HPIXMAP pixmap, int flags, int npoints, int *x, int *y )
 {
     int _locked_by_me = FALSE;
     DW_MUTEX_LOCK;
@@ -5156,7 +5156,7 @@ void API dw_draw_polygon( HWND handle, HPIXMAP pixmap, int fill, int npoints, in
         [aPath lineToPoint:NSMakePoint(x[z], y[z])];
     }
     [aPath closePath];
-    if(fill)
+    if(flags & DW_DRAW_FILL)
     {
         [aPath fill];
     }
@@ -5176,13 +5176,13 @@ void API dw_draw_polygon( HWND handle, HPIXMAP pixmap, int fill, int npoints, in
  * Parameters:
  *       handle: Handle to the window.
  *       pixmap: Handle to the pixmap. (choose only one of these)
- *       fill: Fill box TRUE or FALSE.
+ *       flags: DW_DRAW_FILL (1) to fill the box or DW_DRAW_DEFAULT (0).
  *       x: X coordinate.
  *       y: Y coordinate.
  *       width: Width of rectangle.
  *       height: Height of rectangle.
  */
-void API dw_draw_rect(HWND handle, HPIXMAP pixmap, int fill, int x, int y, int width, int height)
+void API dw_draw_rect(HWND handle, HPIXMAP pixmap, int flags, int x, int y, int width, int height)
 {
     int _locked_by_me = FALSE;
     DW_MUTEX_LOCK;
@@ -5213,7 +5213,7 @@ void API dw_draw_rect(HWND handle, HPIXMAP pixmap, int fill, int x, int y, int w
     [aPath lineToPoint:NSMakePoint(x + width, y + height)];
     [aPath lineToPoint:NSMakePoint(x + width, y)];
     [aPath closePath];
-    if(fill)
+    if(flags & DW_DRAW_FILL)
        [aPath fill];
     [aPath stroke];
     if(pixmap)
@@ -5231,7 +5231,8 @@ void API dw_draw_rect(HWND handle, HPIXMAP pixmap, int fill, int x, int y, int w
  * Parameters:
  *       handle: Handle to the window.
  *       pixmap: Handle to the pixmap. (choose only one of these)
- *       flags: For future use.
+ *       flags: DW_DRAW_FILL (1) to fill the arc or DW_DRAW_DEFAULT (0).
+ *              DW_DRAW_FULL will draw a complete circle/elipse.
  *       xorigin: X coordinate of center of arc.
  *       yorigin: Y coordinate of center of arc.
  *       x1: X coordinate of first segment of arc.
@@ -5267,7 +5268,7 @@ void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yo
     NSColor *color = pthread_getspecific(_dw_fg_color_key);
     [color set];
 
-    /* Special state of a full circle/oval */
+    /* Special case of a full circle/oval */
     if(flags & DW_DRAW_FULL)
     {
         [aPath appendBezierPathWithOvalInRect:NSMakeRect(x1, y1, x2, y2)];

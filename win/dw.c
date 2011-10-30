@@ -8727,12 +8727,12 @@ void API dw_draw_line(HWND handle, HPIXMAP pixmap, int x1, int y1, int x2, int y
  * Parameters:
  *       handle: Handle to the window.
  *       pixmap: Handle to the pixmap. (choose only one of these)
- *       fill: if true filled
+ *       flags: DW_DRAW_FILL (1) to fill the polygon or DW_DRAW_DEFAULT (0).
  *       number of points
  *       x[]: X coordinates.
  *       y[]: Y coordinates.
  */
-void API dw_draw_polygon(HWND handle, HPIXMAP pixmap, int fill, int npoints, int *x, int *y)
+void API dw_draw_polygon(HWND handle, HPIXMAP pixmap, int flags, int npoints, int *x, int *y)
 {
    HDC hdcPaint;
    HBRUSH oldBrush;
@@ -8775,7 +8775,7 @@ void API dw_draw_polygon(HWND handle, HPIXMAP pixmap, int fill, int npoints, int
 
    oldBrush = SelectObject( hdcPaint, TlsGetValue(_hBrush) );
    oldPen = SelectObject( hdcPaint, TlsGetValue(_hPen) );
-   if ( fill )
+   if ( flags & DW_DRAW_FILL )
       Polygon( hdcPaint, points, npoints );
    else
       Polyline( hdcPaint, points, npoints );
@@ -8790,12 +8790,13 @@ void API dw_draw_polygon(HWND handle, HPIXMAP pixmap, int fill, int npoints, int
  * Parameters:
  *       handle: Handle to the window.
  *       pixmap: Handle to the pixmap. (choose only one of these)
+ *       flags: DW_DRAW_FILL (1) to fill the box or DW_DRAW_DEFAULT (0).
  *       x: X coordinate.
  *       y: Y coordinate.
  *       width: Width of rectangle.
  *       height: Height of rectangle.
  */
-void API dw_draw_rect(HWND handle, HPIXMAP pixmap, int fill, int x, int y, int width, int height)
+void API dw_draw_rect(HWND handle, HPIXMAP pixmap, int flags, int x, int y, int width, int height)
 {
    HDC hdcPaint;
    RECT Rect;
@@ -8808,7 +8809,7 @@ void API dw_draw_rect(HWND handle, HPIXMAP pixmap, int fill, int x, int y, int w
       return;
 
    SetRect(&Rect, x, y, x + width , y + height );
-   if(fill)
+   if(flags & DW_DRAW_FILL)
       FillRect(hdcPaint, &Rect, TlsGetValue(_hBrush));
    else
       FrameRect(hdcPaint, &Rect, TlsGetValue(_hBrush));
@@ -8820,7 +8821,8 @@ void API dw_draw_rect(HWND handle, HPIXMAP pixmap, int fill, int x, int y, int w
  * Parameters:
  *       handle: Handle to the window.
  *       pixmap: Handle to the pixmap. (choose only one of these)
- *       flags: For future use.
+ *       flags: DW_DRAW_FILL (1) to fill the arc or DW_DRAW_DEFAULT (0).
+ *              DW_DRAW_FULL will draw a complete circle/elipse.
  *       xorigin: X coordinate of center of arc.
  *       yorigin: Y coordinate of center of arc.
  *       x1: X coordinate of first segment of arc.
