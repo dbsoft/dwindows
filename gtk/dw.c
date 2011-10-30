@@ -8108,7 +8108,7 @@ void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yo
       double radius1 = 0, radius2 = 0;
       int alpha1, alpha2;
 
-      if(x1 == x2 && y1 == y2)
+      if(flags & DW_DRAW_FULL)
       {
          radius1 = 0.0;
          radius2 = 360.0;
