@@ -1958,7 +1958,7 @@ static void _size_allocate(GtkWindow *window)
 void _init_thread(void)
 {
    GdkColor *foreground = malloc(sizeof(GdkColor));
-   
+
    foreground->pixel = foreground->red = foreground->green = foreground->blue = 0;
    pthread_setspecific(_dw_fg_color_key, foreground);
    pthread_setspecific(_dw_bg_color_key, NULL);
@@ -2099,7 +2099,7 @@ int dw_int_init(DWResources *res, int newthread, int *argc, char **argv[])
    pthread_key_create(&_dw_fg_color_key, NULL);
    pthread_key_create(&_dw_bg_color_key, NULL);
    pthread_key_create(&_dw_mutex_key, NULL);
-  
+
    _init_thread();
 
    gtk_rc_parse_string("style \"gtk-tooltips-style\" { bg[NORMAL] = \"#eeee00\" } widget \"gtk-tooltips\" style \"gtk-tooltips-style\"");
@@ -2742,13 +2742,13 @@ static gint _gtk_font_ok(GtkWidget *widget, DWDialog *dwwait)
    fd = dwwait->data;
    fontname = gtk_font_selection_dialog_get_font_name(fd);
    if(fontname && (retfont = strdup(fontname)))
-   {         
+   {
       len = strlen(fontname);
       /* Convert to Dynamic Windows format if we can... */
       if(len > 0 && isdigit(fontname[len-1]))
       {
          int size;
-            
+
          x=len-1;
          while(x > 0 && fontname[x] != ' ')
          {
@@ -2799,8 +2799,8 @@ char * API dw_font_choose(char *currfont)
    int _locked_by_me = FALSE;
    char *retfont = NULL;
    DWDialog *dwwait;
-     
-   /* Detect Dynamic Windows style font name... 
+
+   /* Detect Dynamic Windows style font name...
     * Format: ##.Fontname
     * and convert to a Pango name
     */
@@ -2829,7 +2829,7 @@ char * API dw_font_choose(char *currfont)
       gtk_font_selection_dialog_set_font_name(fd, font);
       free(font);
    }
-   
+
    _dw_font_active = 1;
 
    dwwait = dw_dialog_new((void *)fd);
@@ -2988,7 +2988,7 @@ char *dw_window_get_font(HWND handle)
       if ( pfont )
       {
          int len, x;
-         
+
          font = pango_font_description_to_string( pfont );
          retfont = strdup(font);
          len = strlen(font);
@@ -2996,7 +2996,7 @@ char *dw_window_get_font(HWND handle)
          if(len > 0 && isdigit(font[len-1]))
          {
             int size;
-            
+
             x=len-1;
             while(x > 0 && font[x] != ' ')
             {
@@ -3052,9 +3052,9 @@ static void _save_gdk_colors(HWND handle, GdkColor fore, GdkColor back)
 GdkColor _get_gdkcolor(unsigned long color)
 {
     GdkColor temp = _colors[0];
-    
+
     if(color & DW_RGB_COLOR)
-    {    
+    {
         temp.pixel = 0;
         temp.red = DW_RED_VALUE(color) << 8;
         temp.green = DW_GREEN_VALUE(color) << 8;
@@ -3136,10 +3136,10 @@ void _update_clist_rows(HWND handle)
         unsigned long odd = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(handle), "_dw_oddcol"));
         unsigned long even = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(handle), "_dw_evencol"));
         GdkColor *backcol = (GdkColor *)gtk_object_get_data(GTK_OBJECT(handle), "_dw_backgdk");
-        
+
         if(!backcol)
             backcol = &_colors[DW_CLR_WHITE];
-      
+
         if(odd != DW_RGB_TRANSPARENT || even != DW_RGB_TRANSPARENT)
         {
             GdkColor oddcol = _get_gdkcolor(odd);
@@ -3148,7 +3148,7 @@ void _update_clist_rows(HWND handle)
             for(z=0;z<rowcount;z++)
             {
                 int which = z % 2;
-                
+
                 if(which)
                     gtk_clist_set_background(GTK_CLIST(handle), z, odd != DW_RGB_TRANSPARENT ? &oddcol : backcol);
                 else if(!which)
@@ -4087,7 +4087,7 @@ HWND dw_status_text_new(char *text, ULONG id)
 HWND dw_mle_new(unsigned long id)
 {
    GtkWidget *tmp, *tmpbox;
-#if GTK_MAJOR_VERSION < 2   
+#if GTK_MAJOR_VERSION < 2
    GtkWidget *scroller;
 #endif
    int _locked_by_me = FALSE;
@@ -5457,7 +5457,7 @@ void dw_mle_thaw(HWND handle)
 }
 
 /* Internal function to update the progress bar
- * while in an indeterminate state. 
+ * while in an indeterminate state.
  */
 gboolean _dw_update_progress_bar(gpointer data)
 {
@@ -5487,18 +5487,18 @@ void dw_percent_set_pos(HWND handle, unsigned int position)
       {
          /* If not become indeterminate... and start a timer to continue */
          gtk_progress_bar_pulse(GTK_PROGRESS_BAR(handle));
-         gtk_object_set_data(GTK_OBJECT(handle), "_dw_alive", 
+         gtk_object_set_data(GTK_OBJECT(handle), "_dw_alive",
              GINT_TO_POINTER(gtk_timeout_add(100, (GtkFunction)_dw_update_progress_bar, (gpointer)handle)));
       }
    }
    else
    {
       int tag = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(handle), "_dw_alive"));
-  
+
       if(tag)
       {
          /* Cancel the existing timer if one is there */
-         gtk_timeout_remove(tag); 
+         gtk_timeout_remove(tag);
          gtk_object_set_data(GTK_OBJECT(handle), "_dw_alive", NULL);
       }
       /* Set the position like normal */
@@ -7481,7 +7481,7 @@ void dw_container_cursor(HWND handle, char *text)
    for(z=0;z<rowcount;z++)
    {
       rowdata = gtk_clist_get_row_data(GTK_CLIST(clist), z);
-      if(rowdata == text)
+      if ( strcmp(rowdata, text) == 0 )
       {
          gfloat pos;
          GtkAdjustment *adj = gtk_clist_get_vadjustment(GTK_CLIST(clist));
@@ -7526,7 +7526,7 @@ void dw_container_delete_row(HWND handle, char *text)
    for(z=0;z<rowcount;z++)
    {
       rowdata = gtk_clist_get_row_data(GTK_CLIST(clist), z);
-      if(rowdata == text)
+      if ( strcmp(rowdata, text) == 0 )
       {
          _dw_unselect(clist);
 
@@ -7579,13 +7579,13 @@ static void _status_translate(GtkStatusIcon *status_icon, guint button, guint ac
    GdkEventButton event = { 0 };
    long x, y;
    gboolean retval;
-      
+
    dw_pointer_query_pos(&x, &y);
-   
+
    event.button = button;
    event.x = x;
    event.y = y;
-   
+
    g_signal_emit_by_name(G_OBJECT(user_data), "button_press_event", &event, &retval);
 }
 #endif
@@ -7611,8 +7611,8 @@ void dw_taskbar_insert(HWND handle, HICN icon, char *bubbletext)
       gtk_status_icon_set_tooltip_text(status, bubbletext);
    g_object_set_data(G_OBJECT(handle), "_dw_taskbar", status);
    g_signal_connect(G_OBJECT (status), "popup-menu", G_CALLBACK (_status_translate), handle);
-   gtk_status_icon_set_visible(status, TRUE); 
-   DW_MUTEX_UNLOCK;   
+   gtk_status_icon_set_visible(status, TRUE);
+   DW_MUTEX_UNLOCK;
 #endif
 }
 
@@ -7704,7 +7704,7 @@ void dw_color_background_set(unsigned long value)
 {
    int _locked_by_me = FALSE;
    GdkColor *background = pthread_getspecific(_dw_bg_color_key);
-   
+
    if(value == DW_CLR_DEFAULT)
    {
       if(background)
@@ -7716,7 +7716,7 @@ void dw_color_background_set(unsigned long value)
    else
    {
       GdkColor color = _internal_color(value);
-       
+
       DW_MUTEX_LOCK;
    	  gdk_color_alloc(_dw_cmap, &color);
       DW_MUTEX_UNLOCK;
@@ -7887,7 +7887,7 @@ void dw_draw_point(HWND handle, HPIXMAP pixmap, int x, int y)
       cairo_stroke(cr);
       cairo_destroy(cr);
    }
-#endif   
+#endif
    if(gc)
    {
       gdk_draw_point(handle ? handle->window : pixmap->pixmap, gc, x, y);
@@ -7984,7 +7984,7 @@ void dw_draw_polygon(HWND handle, HPIXMAP pixmap, int fill, int npoints, int *x,
       cairo_stroke(cr);
       cairo_destroy(cr);
    }
-#endif   
+#endif
    if(gc && npoints)
    {
       points = alloca(npoints * sizeof(GdkPoint));
@@ -7996,7 +7996,7 @@ void dw_draw_polygon(HWND handle, HPIXMAP pixmap, int fill, int npoints, int *x,
          points[i].x = x[i];
          points[i].y = y[i];
       }
-      
+
       gdk_draw_polygon(handle ? handle->window : pixmap->pixmap, gc, fill, points, npoints );
       gdk_gc_unref(gc);
    }
@@ -8044,7 +8044,7 @@ void dw_draw_rect(HWND handle, HPIXMAP pixmap, int fill, int x, int y, int width
       cairo_stroke(cr);
       cairo_destroy(cr);
    }
-#endif   
+#endif
    if(gc)
    {
       gdk_draw_rectangle(handle ? handle->window : pixmap->pixmap, gc, fill, x, y, width, height);
@@ -8089,7 +8089,7 @@ void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yo
       GdkColor *foreground = pthread_getspecific(_dw_fg_color_key);
       double a1 = atan2((y1-yorigin), (x1-xorigin));
       double a2 = atan2((y2-yorigin), (x2-xorigin));
-      
+
       gdk_cairo_set_source_color (cr, foreground);
       cairo_set_line_width(cr, 1);
       /* TODO: Handle ellipses */
@@ -8102,7 +8102,7 @@ void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yo
       cairo_stroke(cr);
       cairo_destroy(cr);
    }
-#endif   
+#endif
    if(gc)
    {
       double radius1 = 0, radius2 = 0;
@@ -8122,7 +8122,7 @@ void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yo
       alpha2 = (int)((radius2 - radius1) * 64.0);
       while (alpha2 <= 0) alpha2 += 360*64;
       while (alpha1 > 360*64) alpha1 -= 360*64;
-     
+
       gdk_draw_arc(handle ? handle->window : pixmap->pixmap, gc, FALSE, xorigin-r, yorigin-r, 2*r,2*r, alpha1, alpha2);
       gdk_gc_unref(gc);
    }
@@ -8695,14 +8695,14 @@ int _cairo_pixmap_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest, int wid
    if(cr)
    {
       double xscale = 1, yscale = 1;
-      
+
       if(srcwidth != -1 && srcheight != -1)
       {
          xscale = (double)width / (double)srcwidth;
          yscale = (double)height / (double)srcheight;
          cairo_scale(cr, xscale, yscale);
       }
-      
+
 #if GTK_CHECK_VERSION(2,24,0)
       if(src)
          gdk_cairo_set_source_window (cr, gtk_widget_get_window(src), xdest -xsrc, ydest - ysrc);
@@ -8715,7 +8715,7 @@ int _cairo_pixmap_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest, int wid
       else if(srcp && srcp->pixmap && srcp->bitmap)
       {
          cairo_pattern_t *mask_pattern;
-         
+
          /* hack to get the mask pattern */
          gdk_cairo_set_source_pixmap(cr, srcp->bitmap, xdest / xscale, ydest / yscale);
          mask_pattern = cairo_get_source(cr);
@@ -8787,7 +8787,7 @@ int API dw_pixmap_stretch_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest,
    if((destp && destp->image) || (srcp && srcp->image))
       return _cairo_pixmap_bitblt(dest, destp, xdest, ydest, width, height, src, srcp, xsrc, ysrc, srcwidth, srcheight);
 #endif
-   
+
    if((!dest && (!destp || !destp->pixmap)) || (!src && (!srcp || !srcp->pixmap)))
       return retval;
 
@@ -8816,7 +8816,7 @@ int API dw_pixmap_stretch_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest,
          GdkPixbuf *pbdst, *pbsrc = gdk_pixbuf_new(GDK_COLORSPACE_RGB, TRUE, 8, srcwidth, srcheight);
          /* Now that with have a pixbuf with alpha, copy from the drawable to create the source */
          gdk_pixbuf_get_from_drawable(pbsrc, src ? src->window : srcp->pixmap, NULL, xsrc, ysrc, 0, 0, srcwidth, srcheight);
-         
+
          /* Scale the pixbuf to the desired size */
          pbdst = gdk_pixbuf_scale_simple(pbsrc, width, height, GDK_INTERP_BILINEAR);
          /* Create a new clipping mask from the scaled pixbuf */
@@ -8824,7 +8824,7 @@ int API dw_pixmap_stretch_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest,
          {
             GdkBitmap *bitmap = gdk_pixmap_new(NULL, width, height, 1);
             GdkPixbuf *pborig = gdk_pixbuf_scale_simple(srcp->pixbuf, width, height, GDK_INTERP_BILINEAR);
-            gdk_pixbuf_render_threshold_alpha(pborig, bitmap, 0, 0, 0, 0, width, height, 1); 
+            gdk_pixbuf_render_threshold_alpha(pborig, bitmap, 0, 0, 0, 0, width, height, 1);
             gdk_gc_set_clip_mask( gc, bitmap );
             gdk_gc_set_clip_origin( gc, xdest, ydest );
             gdk_bitmap_unref(bitmap);
@@ -9109,7 +9109,7 @@ int dw_event_wait(HEV eve, unsigned long timeout)
       return DW_ERROR_NON_INIT;
 
    pthread_mutex_lock (&(eve->mutex));
-    
+
    if(eve->posted)
    {
       pthread_mutex_unlock (&(eve->mutex));
@@ -9120,7 +9120,7 @@ int dw_event_wait(HEV eve, unsigned long timeout)
    {
       struct timeval now;
       struct timespec timeo;
-   
+
       gettimeofday(&now, 0);
       timeo.tv_sec = now.tv_sec + (timeout / 1000);
       timeo.tv_nsec = now.tv_usec * 1000;
@@ -9128,7 +9128,7 @@ int dw_event_wait(HEV eve, unsigned long timeout)
    }
    else
       rc = pthread_cond_wait(&(eve->event), &(eve->mutex));
-      
+
    pthread_mutex_unlock (&(eve->mutex));
    if(!rc)
       return DW_ERROR_NONE;
@@ -9505,10 +9505,10 @@ void _dwthreadstart(void *data)
 
    /* Initialize colors */
    _init_thread();
-   
+
    threadfunc(tmp[1]);
    free(tmp);
-   
+
    /* Free colors */
    if((foreground = pthread_getspecific(_dw_fg_color_key)))
       free(foreground);
@@ -9689,8 +9689,8 @@ void _rearrange_table(GtkWidget *widget, gpointer data)
    /* Drop out if missing table */
    if(!cont)
       return;
-      
-   /* Check orientation */   
+
+   /* Check orientation */
    if(pos < 0)
    {
       /* Horz */
@@ -9783,7 +9783,7 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
          index = 0;
       if(index > boxcount)
          index = boxcount;
-    
+
       if(boxtype == DW_VERT)
       {
          x = 0;
@@ -9820,7 +9820,7 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
    else
    {
       GtkWidget *vbox = gtk_object_get_data(GTK_OBJECT(box), "_dw_vbox");
-      
+
       if(!vbox)
       {
          vbox = gtk_vbox_new(FALSE, 0);
@@ -9828,7 +9828,7 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
          gtk_container_add(GTK_CONTAINER(box), vbox);
          gtk_widget_show(vbox);
       }
-      
+
       gtk_container_set_border_width(GTK_CONTAINER(box), pad);
 
       if(GTK_IS_TABLE(item) || (tmpitem && GTK_IS_TABLE(tmpitem)))
@@ -9875,7 +9875,7 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
  * Parameters:
  *       box: Window handle of the box to be packed into.
  *       item: Window handle of the item to be back.
- *       index: 0 based index of packed items. 
+ *       index: 0 based index of packed items.
  *       width: Width in pixels of the item or -1 to be self determined.
  *       height: Height in pixels of the item or -1 to be self determined.
  *       hsize: TRUE if the window (widget) should expand horizontally to fill space given.
@@ -9900,7 +9900,7 @@ void API dw_box_pack_at_index(HWND box, HWND item, int index, int width, int hei
  */
 void API dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize, int vsize, int pad)
 {
-    /* 65536 is the table limit on GTK... 
+    /* 65536 is the table limit on GTK...
      * seems like a high enough value we will never hit it here either.
      */
     _dw_box_pack(box, item, 65536, width, height, hsize, vsize, pad, "dw_box_pack_start()");
@@ -10020,7 +10020,7 @@ void dw_window_set_pos(HWND handle, long x, long y)
 
    if(!handle)
       return;
-      
+
    DW_MUTEX_LOCK;
 #if GTK_MAJOR_VERSION > 1
    if((mdi = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(handle), "_dw_mdi")) && GTK_IS_MDI(mdi))
@@ -10031,14 +10031,14 @@ void dw_window_set_pos(HWND handle, long x, long y)
 #endif
    {
       GdkWindow *window = NULL;
-      
+
       if(GTK_IS_WINDOW(handle))
       {
 #if GTK_MAJOR_VERSION > 1
          gtk_window_move(GTK_WINDOW(handle), x, y);
 #else
          gtk_widget_set_uposition(handle, x, y);
-#endif                
+#endif
       }
       else if((window = gtk_widget_get_window(handle)))
          gdk_window_move(window, x, y);
@@ -10064,7 +10064,7 @@ void dw_window_set_pos_size(HWND handle, long x, long y, unsigned long width, un
 
    if(!handle)
       return;
-      
+
    DW_MUTEX_LOCK;
 #if GTK_MAJOR_VERSION > 1
    if((mdi = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(handle), "_dw_mdi")) && GTK_IS_MDI(mdi))
@@ -10081,7 +10081,7 @@ void dw_window_set_pos_size(HWND handle, long x, long y, unsigned long width, un
          gtk_window_move(GTK_WINDOW(handle), x, y);
 #else
          gtk_widget_set_uposition(handle, x, y);
-#endif                
+#endif
       }
       else if(handle->window)
       {
@@ -11524,7 +11524,7 @@ char *dw_file_browse(char *title, char *defpath, char *ext, int flags)
    char *filename = NULL;
    char buf[1000];
    char mypath[PATH_MAX+1];
- 
+
    switch (flags )
    {
       case DW_DIRECTORY_OPEN:
@@ -12259,11 +12259,11 @@ HPRINT API dw_print_new(char *jobname, unsigned long flags, unsigned int pages, 
 #if GTK_CHECK_VERSION(2,10,0)
    GtkPrintOperation *op;
    int _locked_by_me = FALSE;
-   
+
    if(!drawfunc)
       return NULL;
 
-   DW_MUTEX_LOCK;   
+   DW_MUTEX_LOCK;
    if((op = gtk_print_operation_new()))
    {
       gtk_print_operation_set_n_pages(op, pages);
@@ -12293,12 +12293,12 @@ int API dw_print_run(HPRINT print, unsigned long flags)
    GtkPrintOperationResult res;
    GtkPrintOperation *op = (GtkPrintOperation *)print;
    int _locked_by_me = FALSE;
-   
+
    DW_MUTEX_LOCK;
    res = gtk_print_operation_run(op, GTK_PRINT_OPERATION_ACTION_PRINT_DIALOG, NULL, NULL);
    DW_MUTEX_UNLOCK;
    return (res == GTK_PRINT_OPERATION_RESULT_ERROR ? DW_ERROR_UNKNOWN : DW_ERROR_NONE);
-#else   
+#else
    return DW_ERROR_UNKNOWN;
 #endif
 }
@@ -12313,7 +12313,7 @@ void API dw_print_cancel(HPRINT print)
 #if GTK_CHECK_VERSION(2,10,0)
    int _locked_by_me = FALSE;
    GtkPrintOperation *op = (GtkPrintOperation *)print;
-   
+
    DW_MUTEX_LOCK;
    gtk_print_operation_cancel(op);
    DW_MUTEX_UNLOCK;
