@@ -33,6 +33,7 @@
 #include <direct.h>
 #endif
 #include <sys/time.h>
+#include <sys/stat.h>
 #include "dw.h"
 
 #define QWP_USER 0
@@ -10091,31 +10092,49 @@ char * API dw_file_browse(char *title, char *defpath, char *ext, int flags)
    }
    else
    {
-      FILEDLG fild;
+      FILEDLG fild = { 0 };
       HWND hwndFile;
       int len;
+      struct stat buf;
 
       if(defpath)
          strcpy(fild.szFullFile, defpath);
-      else
-         strcpy(fild.szFullFile, "");
 
       len = strlen(fild.szFullFile);
 
+      /* If we have a defpath */
       if(len)
       {
-         if(fild.szFullFile[len-1] != '\\')
-            strcat(fild.szFullFile, "\\");
+          /* Check to see if it exists */
+          if(stat(defpath, &buf) == 0)
+          {
+              /* If it is a directory... make sure there is a trailing \ */
+              if(buf.st_mode & S_IFDIR)
+              {
+                  if(fild.szFullFile[len-1] != '\\')
+                      strcat(fild.szFullFile, "\\");
+                  /* Set len to 0 so the wildcard gets added below */
+                  len = 0;
+              }
+          }
       }
-      strcat(fild.szFullFile, "*");
 
-      if(ext)
+      /* If we need a wildcard (defpath isn't a file) */
+      if(!len)
       {
-         strcat(fild.szFullFile, ".");
-         strcat(fild.szFullFile, ext);
+          /* Add a * to get all files... */
+          strcat(fild.szFullFile, "*");
+
+          /* If an extension was requested... */
+          if(ext)
+          {
+              /* Limit the results further */
+              strcat(fild.szFullFile, ".");
+              strcat(fild.szFullFile, ext);
+          }
       }
 
-      memset(&fild, 0, sizeof(FILEDLG));
+      /* Setup the structure */
       fild.cbSize = sizeof(FILEDLG);
       fild.fl = FDS_CENTER | FDS_OPEN_DIALOG;
       fild.pszTitle = title;
