@@ -8843,10 +8843,16 @@ void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yo
       hdcPaint = pixmap->hdc;
    else
       return;
-      
-   oldBrush = SelectObject( hdcPaint, TlsGetValue(_hBrush) );
+     
+   if(flags & DW_DRAW_FILL)     
+      oldBrush = SelectObject( hdcPaint, TlsGetValue(_hBrush) );
+   else
+      oldBrush = SelectObject( hdcPaint, GetStockObject(HOLLOW_BRUSH) );
    oldPen = SelectObject( hdcPaint, TlsGetValue(_hPen) );
-   Arc(hdcPaint, xorigin-r, yorigin-r, xorigin+r, yorigin+r, x2, y2, x1, y1);
+   if(flags & DW_DRAW_FULL)
+      Ellipse(hdcPaint, x1, y1, x2, y2);
+   else
+      Arc(hdcPaint, xorigin-r, yorigin-r, xorigin+r, yorigin+r, x2, y2, x1, y1);
    SelectObject( hdcPaint, oldBrush );
    SelectObject( hdcPaint, oldPen );
 
