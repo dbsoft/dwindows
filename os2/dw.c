@@ -8629,7 +8629,7 @@ void API dw_draw_polygon( HWND handle, HPIXMAP pixmap, int flags, int npoints, i
  *       width: Width of rectangle.
  *       height: Height of rectangle.
  */
-void API dw_draw_rect(HWND handle, HPIXMAP pixmap, int fill, int x, int y, int width, int height)
+void API dw_draw_rect(HWND handle, HPIXMAP pixmap, int flags, int x, int y, int width, int height)
 {
    HPS hps;
    int thisheight;
@@ -8653,13 +8653,8 @@ void API dw_draw_rect(HWND handle, HPIXMAP pixmap, int fill, int x, int y, int w
    ptl[1].x = x + width - 1;
    ptl[1].y = thisheight - y - height;
 
-   /* For a filled arc we need to start an area */
-   if(flags & DW_DRAW_FILL)
-       GpiBeginArea(hps, 0L);
    GpiMove(hps, &ptl[0]);
-   GpiBox(hps, fill ? DRO_OUTLINEFILL : DRO_OUTLINE, &ptl[1], 0, 0);
-   if(flags & DW_DRAW_FILL)
-       GpiEndArea(hps);
+   GpiBox(hps, (flags & DW_DRAW_FILL) ? DRO_OUTLINEFILL : DRO_OUTLINE, &ptl[1], 0, 0);
 
    if(!pixmap)
       WinReleasePS(hps);
@@ -8690,7 +8685,6 @@ void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yo
    ARCPARAMS ap = { 1, 1, 0, 0 };
    POINTL pts[2];
    double r, a1, a2, a;
-   int x3, y3;
 
    /* Handle full circle/ellipse */
    if(flags & DW_DRAW_FULL)
