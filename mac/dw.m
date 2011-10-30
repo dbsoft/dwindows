@@ -7973,10 +7973,9 @@ void API dw_window_disable(HWND handle)
         NSScrollView *sv = handle;
         object = [sv documentView];
     }
-    if([object isKindOfClass:[NSControl class]])
+    if([object isKindOfClass:[NSControl class]] || [object isKindOfClass:[NSMenuItem class]])
     {
-        NSControl *control = object;
-        [control setEnabled:NO];
+        [object setEnabled:NO];
     }
     if([object isKindOfClass:[NSTextView class]])
     {
@@ -8000,10 +7999,9 @@ void API dw_window_enable(HWND handle)
         NSScrollView *sv = handle;
         object = [sv documentView];
     }
-    if([object isKindOfClass:[NSControl class]])
+    if([object isKindOfClass:[NSControl class]] || [object isKindOfClass:[NSMenuItem class]])
     {
-        NSControl *control = object;
-        [control setEnabled:YES];
+        [object setEnabled:YES];
     }
     if([object isKindOfClass:[NSTextView class]])
     {
