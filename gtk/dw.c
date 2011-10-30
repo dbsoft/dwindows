@@ -7945,12 +7945,12 @@ void dw_draw_line(HWND handle, HPIXMAP pixmap, int x1, int y1, int x2, int y2)
  * Parameters:
  *       handle: Handle to the window.
  *       pixmap: Handle to the pixmap. (choose only one of these)
- *       fill: if true filled
+ *       flags: DW_DRAW_FILL (1) to fill the polygon or DW_DRAW_DEFAULT (0).
  *       number of points
  *       x[]: X coordinates.
  *       y[]: Y coordinates.
  */
-void dw_draw_polygon(HWND handle, HPIXMAP pixmap, int fill, int npoints, int *x, int *y)
+void dw_draw_polygon(HWND handle, HPIXMAP pixmap, int flags, int npoints, int *x, int *y)
 {
    int _locked_by_me = FALSE;
    int i;
@@ -7979,7 +7979,7 @@ void dw_draw_polygon(HWND handle, HPIXMAP pixmap, int fill, int npoints, int *x,
       {
          cairo_line_to(cr, x[i], y[i]);
       }
-      if(fill)
+      if(flags & DW_DRAW_FILL)
          cairo_fill(cr);
       cairo_stroke(cr);
       cairo_destroy(cr);
@@ -7997,7 +7997,7 @@ void dw_draw_polygon(HWND handle, HPIXMAP pixmap, int fill, int npoints, int *x,
          points[i].y = y[i];
       }
 
-      gdk_draw_polygon(handle ? handle->window : pixmap->pixmap, gc, fill, points, npoints );
+      gdk_draw_polygon(handle ? handle->window : pixmap->pixmap, gc, (flags & DW_DRAW_FILL), points, npoints );
       gdk_gc_unref(gc);
    }
    DW_MUTEX_UNLOCK;
@@ -8007,13 +8007,13 @@ void dw_draw_polygon(HWND handle, HPIXMAP pixmap, int fill, int npoints, int *x,
  * Parameters:
  *       handle: Handle to the window.
  *       pixmap: Handle to the pixmap. (choose only one of these)
- *       fill: if true filled
+ *       flags: DW_DRAW_FILL (1) to fill the box or DW_DRAW_DEFAULT (0).
  *       x: X coordinate.
  *       y: Y coordinate.
  *       width: Width of rectangle.
  *       height: Height of rectangle.
  */
-void dw_draw_rect(HWND handle, HPIXMAP pixmap, int fill, int x, int y, int width, int height)
+void dw_draw_rect(HWND handle, HPIXMAP pixmap, int flags, int x, int y, int width, int height)
 {
    int _locked_by_me = FALSE;
    GdkGC *gc = NULL;
@@ -8039,7 +8039,7 @@ void dw_draw_rect(HWND handle, HPIXMAP pixmap, int fill, int x, int y, int width
       cairo_line_to(cr, x, y + height);
       cairo_line_to(cr, x + width, y + height);
       cairo_line_to(cr, x + width, y);
-      if(fill)
+      if(flags & DW_DRAW_FILL)
          cairo_fill(cr);
       cairo_stroke(cr);
       cairo_destroy(cr);
@@ -8047,7 +8047,7 @@ void dw_draw_rect(HWND handle, HPIXMAP pixmap, int fill, int x, int y, int width
 #endif
    if(gc)
    {
-      gdk_draw_rectangle(handle ? handle->window : pixmap->pixmap, gc, fill, x, y, width, height);
+      gdk_draw_rectangle(handle ? handle->window : pixmap->pixmap, gc, (flags & DW_DRAW_FILL), x, y, width, height);
       gdk_gc_unref(gc);
    }
    DW_MUTEX_UNLOCK;
@@ -8057,7 +8057,8 @@ void dw_draw_rect(HWND handle, HPIXMAP pixmap, int fill, int x, int y, int width
  * Parameters:
  *       handle: Handle to the window.
  *       pixmap: Handle to the pixmap. (choose only one of these)
- *       flags: For future use.
+ *       flags: DW_DRAW_FILL (1) to fill the arc or DW_DRAW_DEFAULT (0).
+ *              DW_DRAW_FULL will draw a complete circle/elipse.
  *       xorigin: X coordinate of center of arc.
  *       yorigin: Y coordinate of center of arc.
  *       x1: X coordinate of first segment of arc.
