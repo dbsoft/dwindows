@@ -376,7 +376,7 @@ void draw_shapes(int direct, HPIXMAP hpma)
     /* Bottom left corner */
     dw_draw_arc(window, pixmap, 0, 30, height - 30, 30, height - 10, 10, height - 30);
     /* Full circle in the left top area */
-    dw_draw_arc(window, pixmap, 0, 100, 100, 80, 80, 120, 120);
+    dw_draw_arc(window, pixmap, DW_DRAW_FULL, 100, 100, 80, 80, 120, 120);
     if(image)
     {
         if(image_stretch)
