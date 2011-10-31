@@ -368,6 +368,8 @@ void draw_shapes(int direct, HPIXMAP hpma)
     dw_draw_text(window, pixmap, 10, 10, "This should be aligned with the edges.");
     dw_color_foreground_set(DW_CLR_BLUE);
     dw_draw_polygon(window, pixmap, TRUE, 7, x, y);
+    dw_color_foreground_set(DW_CLR_BLACK);
+    dw_draw_rect(window, pixmap, DW_DRAW_FILL, 80, 80, 40, 40);
     dw_color_foreground_set(DW_CLR_CYAN);
     /* Bottom right corner */
     dw_draw_arc(window, pixmap, 0, width - 30, height - 30, width - 10, height - 30, width - 30, height - 10);
