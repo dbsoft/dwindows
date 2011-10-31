@@ -131,6 +131,8 @@ pthread_key_t _dw_bg_color_key;
 pthread_key_t _dw_mutex_key;
 
 GtkWidget *last_window = NULL, *popup = NULL;
+GdkPixmap *_dw_tmppixmap = NULL;
+GdkBitmap *_dw_tmpbitmap = NULL;
 
 #if GTK_MAJOR_VERSION < 2
 static int _dw_file_active = 0;
@@ -1868,6 +1870,10 @@ static GdkPixmap *_find_pixmap(GdkBitmap **bitmap, HICN icon, HWND handle, unsig
    char *data = NULL;
    int z, id = GPOINTER_TO_INT(icon);
 
+   /* Quick dropout for non-handle */
+   if(!icon)
+      return NULL;
+
    if(id & (1 << 31))
       return _find_private_pixmap(bitmap, GINT_TO_POINTER((id & 0xFFFFFF)), userwidth, userheight);
 
@@ -1917,6 +1923,10 @@ static GdkPixbuf *_find_pixbuf(HICN icon)
 {
    char *data = NULL;
    int z, id = GPOINTER_TO_INT(icon);
+
+   /* Quick dropout for non-handle */
+   if(!icon)
+      return NULL;
 
    if(id & (1 << 31))
       return _find_private_pixbuf(GINT_TO_POINTER((id & 0xFFFFFF)));
@@ -2067,6 +2077,10 @@ int dw_int_init(DWResources *res, int newthread, int *argc, char **argv[])
    int z;
    char *tmp;
    char *fname;
+   static char * test_xpm[] = {
+      "1 1 1 1",
+      " 	c None",
+      " "};
 
    if(res)
    {
@@ -2115,6 +2129,28 @@ int dw_int_init(DWResources *res, int newthread, int *argc, char **argv[])
 #ifdef USE_WEBKIT
    init_webkit();
 #endif
+
+   /* Create place holder pixmap/bitmap when one is needed by the API...
+    * but we don't really want to display anything.
+    */
+#if GTK_MAJOR_VERSION > 1
+   {
+      GdkPixbuf *pixbuf = gdk_pixbuf_new_from_xpm_data((const char **)test_xpm);
+
+      gdk_pixbuf_render_pixmap_and_mask(pixbuf, &_dw_tmppixmap, &_dw_tmpbitmap, 1);
+      g_object_unref(pixbuf);
+   }
+#elif defined(USE_IMLIB)
+   gdk_imlib_data_to_pixmap((char **)test_xpm, &_dw_tmppixmap, &_dw_tmpbitmap);
+#else
+   {
+      GtkWidget *handle = gtk_label_new("");
+      gtk_widget_realize(handle);
+      _dw_tmppixmap = gdk_pixmap_create_from_xpm_d(handle->window, &_dw_tmpbitmap, &_colors[DW_CLR_PALEGRAY], (char **)test_xpm);
+      gtk_widget_destroy(handle);
+   }
+#endif
+
    /*
     * Setup logging/debugging
     */
@@ -3504,31 +3540,14 @@ HWND dw_mdi_new(unsigned long id)
  */
 HWND dw_bitmap_new(unsigned long id)
 {
-#if GTK_MAJOR_VERSION < 2
-   GdkPixmap *pixmap = NULL;
-   GdkBitmap *bitmap = NULL;
-   static char * test_xpm[] = {
-      "1 1 2 1",
-      "  c None",
-      ". c #FFFFFF",
-      "."};
-#endif
    GtkWidget *tmp;
    int _locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
 #if GTK_MAJOR_VERSION > 1
    tmp = gtk_image_new();
-#elif defined(USE_IMLIB)
-   gdk_imlib_data_to_pixmap(test_xpm, &pixmap, &bitmap);
 #else
-   gtk_widget_realize(last_window);
-
-   if(last_window)
-      pixmap = gdk_pixmap_create_from_xpm_d(last_window->window, &bitmap, &_colors[DW_CLR_PALEGRAY], test_xpm);
-#endif
-#if GTK_MAJOR_VERSION < 2
-   tmp = gtk_pixmap_new(pixmap, bitmap);
+   tmp = gtk_pixmap_new(_dw_tmppixmap, _dw_tmpbitmap);
 #endif
    gtk_widget_show(tmp);
    gtk_object_set_data(GTK_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(id));
@@ -6950,8 +6969,7 @@ void _dw_container_set_item(HWND handle, void *pointer, int column, int row, voi
       GdkBitmap *bitmap = NULL;
       GdkPixmap *pixmap = _find_pixmap(&bitmap, hicon, clist, NULL, NULL);
 
-      if(pixmap)
-         gtk_clist_set_pixmap(GTK_CLIST(clist), row, column, pixmap, bitmap);
+      gtk_clist_set_pixmap(GTK_CLIST(clist), row, column, pixmap ? pixmap : _dw_tmppixmap, pixmap ? bitmap : _dw_tmpbitmap);
    }
    else if(flag & DW_CFA_STRINGANDICON)
    {
@@ -6959,8 +6977,7 @@ void _dw_container_set_item(HWND handle, void *pointer, int column, int row, voi
       GdkBitmap *bitmap = NULL;
       GdkPixmap *pixmap = _find_pixmap(&bitmap, hicon, clist, NULL, NULL);
 
-      if(pixmap)
-         gtk_clist_set_pixtext(GTK_CLIST(clist), row, column, text, 2, pixmap, bitmap);
+      gtk_clist_set_pixtext(GTK_CLIST(clist), row, column, text, 2, pixmap ? pixmap : _dw_tmppixmap, pixmap ? bitmap : _dw_tmpbitmap);
    }
    else if(flag & DW_CFA_STRING)
    {

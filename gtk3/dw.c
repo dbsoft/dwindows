@@ -1782,6 +1782,10 @@ static GdkPixbuf *_find_pixbuf(HICN icon, unsigned long *userwidth, unsigned lon
    char *data = NULL;
    int z, id = GPOINTER_TO_INT(icon);
 
+   /* Quick dropout for non-handle */
+   if(!icon)
+      return NULL;
+
    if(id > 65535)
    {
       GdkPixbuf *icon_pixbuf = icon;
