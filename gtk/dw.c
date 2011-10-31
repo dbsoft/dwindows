@@ -8090,12 +8090,15 @@ void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yo
       GdkColor *foreground = pthread_getspecific(_dw_fg_color_key);
       double a1 = atan2((y1-yorigin), (x1-xorigin));
       double a2 = atan2((y2-yorigin), (x2-xorigin));
+      int width = x2-x1;
+      float scale = (float)(y2-y1)/(float)width;
 
       gdk_cairo_set_source_color (cr, foreground);
       cairo_set_line_width(cr, 1);
-      /* TODO: Handle ellipses */
+      if(scale != 1.0)
+         cairo_scale(cr, 1.0, scale);
       if(flags & DW_DRAW_FULL)
-         cairo_arc(cr, xorigin, yorigin, (x2-x1)/2, 0, M_PI*2);
+         cairo_arc(cr, xorigin, yorigin / scale, (x2-x1)/2, 0, M_PI*2);
       else
          cairo_arc(cr, xorigin, yorigin, r, a1, a2);
       if(flags & DW_DRAW_FILL)
