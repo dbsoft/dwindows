@@ -8687,14 +8687,6 @@ void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yo
    POINTL pts[2];
    double r, a1, a2, a;
 
-   /* Handle full circle/ellipse */
-   if(flags & DW_DRAW_FULL)
-   {
-       /* Draw one half... */
-    dw_draw_arc(handle, pixmap, flags & ~DW_DRAW_FULL, xorigin, yorigin, x2, y2, x1, y1);
-       /* ... then continue to draw the other half */
-   }
-
    if(handle)
    {
       hps = _set_colors(handle);
@@ -8713,25 +8705,52 @@ void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yo
        GpiBeginArea(hps, 0L);
    /* Setup the arc info on the presentation space */
    GpiSetArcParams(hps, &ap);
-   pts[0].x = x1;
-   pts[0].y = thisheight - y1 - 1;
-   /* Move to the initial position */
-   GpiMove(hps, pts);
-   /* Calculate the midpoint */
-   r = 0.5 * (hypot((double)(y1 - yorigin), (double)(x1 - xorigin)) +
-              hypot((double)(y2 - yorigin), (double)(x2 - xorigin)));
-   a1 = atan2((double)(y1 - yorigin), (double)(x1 - xorigin));
-   a2 = atan2((double)(y2 - yorigin), (double)(x2 - xorigin));
-   if(a2 < a1)
-      a2 += M_PI * 2;
-   a = (a1 + a2) / 2.;
-   /* Prepare to draw */
-   pts[0].x = (int)(xorigin + r * cos(a));
-   pts[0].y = thisheight - (int)(yorigin + r * sin(a)) - 1;
-   pts[1].x = x2;
-   pts[1].y = thisheight - y2 - 1;
-   /* Actually draw the arc */
-   GpiPointArc(hps, pts);
+
+   /* Handle full circle/ellipse */
+   if(flags & DW_DRAW_FULL)
+   {
+       int xmid = ((x2 - x1)/2) + x1;
+       int ymid = ((y2 - y1)/2) + y1;
+
+       /* Draw one half... */
+       pts[0].x = x1;
+       pts[0].y = thisheight - ymid - 1;
+       GpiMove(hps, pts);
+       pts[0].x = xmid;
+       pts[0].y = thisheight - y1 - 1;
+       pts[1].x = x2;
+       pts[1].y = thisheight - ymid - 1;
+       GpiPointArc(hps, pts);
+       /* ... then continue to draw the other half */
+       GpiMove(hps, &pts[1]);
+       pts[0].x = xmid;
+       pts[0].y = thisheight - y2 - 1;
+       pts[1].x = x1;
+       pts[1].y = thisheight - ymid - 1;
+       GpiPointArc(hps, pts);
+      }
+   else
+   {
+       pts[0].x = x1;
+       pts[0].y = thisheight - y1 - 1;
+       /* Move to the initial position */
+       GpiMove(hps, pts);
+       /* Calculate the midpoint */
+       r = 0.5 * (hypot((double)(y1 - yorigin), (double)(x1 - xorigin)) +
+                  hypot((double)(y2 - yorigin), (double)(x2 - xorigin)));
+       a1 = atan2((double)(y1 - yorigin), (double)(x1 - xorigin));
+       a2 = atan2((double)(y2 - yorigin), (double)(x2 - xorigin));
+       if(a2 < a1)
+           a2 += M_PI * 2;
+       a = (a1 + a2) / 2.;
+       /* Prepare to draw */
+       pts[0].x = (int)(xorigin + r * cos(a));
+       pts[0].y = thisheight - (int)(yorigin + r * sin(a)) - 1;
+       pts[1].x = x2;
+       pts[1].y = thisheight - y2 - 1;
+       /* Actually draw the arc */
+       GpiPointArc(hps, pts);
+   }
    if(flags & DW_DRAW_FILL)
        GpiEndArea(hps);
 
