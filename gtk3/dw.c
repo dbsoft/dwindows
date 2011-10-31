@@ -5789,9 +5789,7 @@ void _dw_container_set_item(HWND handle, void *pointer, int column, int row, voi
             char *tmp = (char *)thisdata[1];
             GdkPixbuf *pixbuf = _find_pixbuf(hicon, NULL, NULL);
 
-            if(pixbuf)
-               gtk_list_store_set(store, &iter, 1, pixbuf, -1);
-
+            gtk_list_store_set(store, &iter, 1, pixbuf, -1);
             gtk_list_store_set(store, &iter, 2, tmp, -1);
          }
          else if(flag & DW_CFA_BITMAPORICON)
@@ -5799,8 +5797,7 @@ void _dw_container_set_item(HWND handle, void *pointer, int column, int row, voi
             HICN hicon = *((HICN *)data);
             GdkPixbuf *pixbuf = _find_pixbuf(hicon, NULL, NULL);
 
-            if(pixbuf)
-               gtk_list_store_set(store, &iter, column + 2, pixbuf, -1);
+            gtk_list_store_set(store, &iter, column + 2, pixbuf, -1);
          }
          else if(flag & DW_CFA_STRING)
          {
