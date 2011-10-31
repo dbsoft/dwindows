@@ -1676,11 +1676,13 @@ DWObject *DWObj;
 }
 -(void)editCell:(id)input at:(int)row and:(int)col
 {
-    if(tvcols && input)
+    if(tvcols)
     {
         int index = (int)(row * [tvcols count]) + col;
         if(index < [data count])
         {
+            if(!input)
+                input = [NSNull null];
             [data replaceObjectAtIndex:index withObject:input];
         }
     }
