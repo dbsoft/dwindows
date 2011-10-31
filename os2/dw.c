@@ -8703,34 +8703,23 @@ void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yo
    /* For a filled arc we need to start an area */
    if(flags & DW_DRAW_FILL)
        GpiBeginArea(hps, 0L);
-   /* Setup the arc info on the presentation space */
-   GpiSetArcParams(hps, &ap);
 
    /* Handle full circle/ellipse */
    if(flags & DW_DRAW_FULL)
    {
-       int xmid = ((x2 - x1)/2) + x1;
-       int ymid = ((y2 - y1)/2) + y1;
-
-       /* Draw one half... */
-       pts[0].x = x1;
-       pts[0].y = thisheight - ymid - 1;
+       pts[0].x = xorigin;
+	   pts[0].y = thisheight - yorigin - 1;
        GpiMove(hps, pts);
-       pts[0].x = xmid;
-       pts[0].y = thisheight - y1 - 1;
-       pts[1].x = x2;
-       pts[1].y = thisheight - ymid - 1;
-       GpiPointArc(hps, pts);
-       /* ... then continue to draw the other half */
-       GpiMove(hps, &pts[1]);
-       pts[0].x = xmid;
-       pts[0].y = thisheight - y2 - 1;
-       pts[1].x = x1;
-       pts[1].y = thisheight - ymid - 1;
-       GpiPointArc(hps, pts);
-      }
+	   ap.lP = (x2 - x1)/2;
+	   ap.lQ = (y2 - y1)/2;
+	   /* Setup the arc info on the presentation space */
+	   GpiSetArcParams(hps, &ap);
+       GpiFullArc(hps, DRO_OUTLINE, MAKEFIXED(1, 1));
+   }
    else
    {
+	   /* Setup the default arc info on the presentation space */
+	   GpiSetArcParams(hps, &ap);
        pts[0].x = x1;
        pts[0].y = thisheight - y1 - 1;
        /* Move to the initial position */
