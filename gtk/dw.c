@@ -8076,6 +8076,8 @@ void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yo
    double dx = xorigin - x1;
    double dy = yorigin - y1;
    double r = sqrt(dx*dx + dy*dy);
+   int width = (int)(r*2);
+   int height = width;
 
    DW_MUTEX_LOCK;
    if(handle)
@@ -8116,6 +8118,8 @@ void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yo
       {
          radius1 = 0.0;
          radius2 = 360.0;
+         width = x2-x1;
+         height = y2-y1;
       }
       else
       {
@@ -8127,7 +8131,7 @@ void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yo
       while (alpha2 <= 0) alpha2 += 360*64;
       while (alpha1 > 360*64) alpha1 -= 360*64;
 
-      gdk_draw_arc(handle ? handle->window : pixmap->pixmap, gc, FALSE, xorigin-r, yorigin-r, 2*r,2*r, alpha1, alpha2);
+      gdk_draw_arc(handle ? handle->window : pixmap->pixmap, gc, FALSE, xorigin-(width/2), yorigin-(height/2), width, height, alpha1, alpha2);
       gdk_gc_unref(gc);
    }
    DW_MUTEX_UNLOCK;
