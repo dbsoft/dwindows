@@ -8708,18 +8708,18 @@ void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yo
    if(flags & DW_DRAW_FULL)
    {
        pts[0].x = xorigin;
-	   pts[0].y = thisheight - yorigin - 1;
+       pts[0].y = thisheight - yorigin - 1;
        GpiMove(hps, pts);
-	   ap.lP = (x2 - x1)/2;
-	   ap.lQ = (y2 - y1)/2;
-	   /* Setup the arc info on the presentation space */
-	   GpiSetArcParams(hps, &ap);
+       ap.lP = (x2 - x1)/2;
+       ap.lQ = (y2 - y1)/2;
+       /* Setup the arc info on the presentation space */
+       GpiSetArcParams(hps, &ap);
        GpiFullArc(hps, DRO_OUTLINE, MAKEFIXED(1, 1));
    }
    else
    {
-	   /* Setup the default arc info on the presentation space */
-	   GpiSetArcParams(hps, &ap);
+       /* Setup the default arc info on the presentation space */
+       GpiSetArcParams(hps, &ap);
        pts[0].x = x1;
        pts[0].y = thisheight - y1 - 1;
        /* Move to the initial position */
