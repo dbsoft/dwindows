@@ -8700,10 +8700,6 @@ void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yo
    else
       return;
 
-   /* For a filled arc we need to start an area */
-   if(flags & DW_DRAW_FILL)
-       GpiBeginArea(hps, 0L);
-
    /* Handle full circle/ellipse */
    if(flags & DW_DRAW_FULL)
    {
@@ -8714,10 +8710,14 @@ void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yo
        ap.lQ = (y2 - y1)/2;
        /* Setup the arc info on the presentation space */
        GpiSetArcParams(hps, &ap);
-       GpiFullArc(hps, DRO_OUTLINE, MAKEFIXED(1, 1));
+       GpiFullArc(hps, (flags & DW_DRAW_FILL) ? DRO_OUTLINEFILL : DRO_OUTLINE, MAKEFIXED(1, 1));
    }
    else
    {
+       /* For a filled arc we need to start an area */
+       if(flags & DW_DRAW_FILL)
+           GpiBeginArea(hps, 0L);
+
        /* Setup the default arc info on the presentation space */
        GpiSetArcParams(hps, &ap);
        pts[0].x = x1;
@@ -8739,9 +8739,9 @@ void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yo
        pts[1].y = thisheight - y2 - 1;
        /* Actually draw the arc */
        GpiPointArc(hps, pts);
+       if(flags & DW_DRAW_FILL)
+           GpiEndArea(hps);
    }
-   if(flags & DW_DRAW_FILL)
-       GpiEndArea(hps);
 
    if(!pixmap)
       WinReleasePS(hps);
