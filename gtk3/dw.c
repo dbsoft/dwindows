@@ -6968,7 +6968,7 @@ void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yo
       cairo_set_line_width(cr, 1);
       /* TODO: Handle ellipses */
       if(flags & DW_DRAW_FULL)
-         cairo_arc(cr, xorigin, yorigin, r, 0, M_PI*2);
+         cairo_arc(cr, xorigin, yorigin, (x2-x1)/2, 0, M_PI*2);
       else
          cairo_arc(cr, xorigin, yorigin, r, a1, a2);
       if(flags & DW_DRAW_FILL)
