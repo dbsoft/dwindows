@@ -3126,17 +3126,61 @@ int API dw_messagebox(char *title, int flags, char *format, ...)
  */
 char * API dw_file_browse(char *title, char *defpath, char *ext, int flags)
 {
+    char temp[PATH_MAX+1];
+    char *file = NULL, *path = NULL;
+    
+    /* Figure out path information */
+    if(defpath)
+    {
+        struct stat buf;
+        
+        /* Get an absolute path */
+        if(!realpath(defpath, temp))
+            strcpy(temp, defpath);
+        
+        /* Check if the defpath exists */
+        if(stat(temp, &buf) == 0)
+        {
+            /* Can be a directory or file */
+            if(buf.st_mode & S_IFDIR)
+                path = temp;
+            else
+                file = temp;
+        }
+        /* If it wasn't a directory... check if there is a path */
+        if(!path && strchr(temp, '/'))
+        {
+            unsigned long x = strlen(temp) - 1;
+            
+            /* Trim off the filename */
+            while(x > 0 && temp[x] != '/')
+            {
+                x--;
+            }
+            if(temp[x] == '/')
+            {
+                temp[x] = 0;
+                /* Check to make sure the trimmed piece is a directory */
+                if(stat(temp, &buf) == 0)
+                {
+                    if(buf.st_mode & S_IFDIR)
+                    {
+                        /* We now have it split */
+                        path = temp;
+                        file = &temp[x+1];
+                    }
+                }
+            }
+        }
+    }
+    
     if(flags == DW_FILE_OPEN || flags == DW_DIRECTORY_OPEN)
     {
         /* Create the File Open Dialog class. */
         NSOpenPanel* openDlg = [NSOpenPanel openPanel];
-        struct stat buf;
         
-        if(defpath && stat(defpath, &buf) == 0)
-        {
-            if(buf.st_mode & S_IFDIR)
-                [openDlg setDirectoryURL:[NSURL URLWithString:[NSString stringWithUTF8String:defpath]]];
-        }
+        if(path)
+            [openDlg setDirectoryURL:[NSURL fileURLWithPath:[NSString stringWithUTF8String:path]]];
 
         /* Enable the selection of files in the dialog. */
         if(flags == DW_FILE_OPEN)
@@ -3178,15 +3222,11 @@ char * API dw_file_browse(char *title, char *defpath, char *ext, int flags)
     {
         /* Create the File Save Dialog class. */
         NSSavePanel* saveDlg = [NSSavePanel savePanel];
-        struct stat buf;
         
-        if(defpath && stat(defpath, &buf) == 0)
-        {
-            if(buf.st_mode & S_IFDIR)
-                [saveDlg setDirectoryURL:[NSURL URLWithString:[NSString stringWithUTF8String:defpath]]];
-            else
-                [saveDlg setNameFieldStringValue:[NSString stringWithUTF8String:defpath]];
-        }
+        if(path)
+            [saveDlg setDirectoryURL:[NSURL fileURLWithPath:[NSString stringWithUTF8String:path]]];
+        if(file)
+            [saveDlg setNameFieldStringValue:[NSString stringWithUTF8String:file]];
 
         /* Enable the creation of directories in the dialog. */
         [saveDlg setCanCreateDirectories:YES];
