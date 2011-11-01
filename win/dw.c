@@ -10256,6 +10256,7 @@ char * API dw_file_browse(char *title, char *defpath, char *ext, int flags)
       of.hwndOwner = HWND_DESKTOP;
       of.hInstance = DWInstance;
       of.lpstrTitle = title;
+      of.lpstrInitialDir = ".";
       if(att != INVALID_FILE_ATTRIBUTES && (att & FILE_ATTRIBUTE_DIRECTORY))
         of.lpstrInitialDir = defpath;
       else if(defpath)
