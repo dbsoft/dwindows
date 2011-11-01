@@ -11596,11 +11596,31 @@ char *dw_file_browse(char *title, char *defpath, char *ext, int flags)
 
    if ( defpath )
    {
+      struct stat buf;
+      
       if ( g_path_is_absolute( defpath ) || !realpath(defpath, mypath))
       {
          strcpy( mypath, defpath );
       }
-      gtk_file_chooser_set_current_folder( GTK_FILE_CHOOSER( filew ), mypath );
+
+      /* See if the path exists */      
+      if(stat(mypath, &buf) == 0)
+      {
+         /* If the path is a directory... set the current folder */
+         if(buf.st_mode & S_IFDIR)
+            gtk_file_chooser_set_current_folder( GTK_FILE_CHOOSER( filew ), mypath );
+         else if(flags == DW_FILE_SAVE) /* Otherwise set the filename */
+            gtk_file_chooser_set_filename( GTK_FILE_CHOOSER( filew ), mypath );
+         else if(flags == DW_FILE_OPEN)
+            gtk_file_chooser_select_filename( GTK_FILE_CHOOSER( filew), mypath );
+      }
+      else if(flags == DW_FILE_SAVE)
+      {
+         /* If it doesn't exist... Try it as a file for now... 
+          * May need to separate it into folder and file.
+          */
+         gtk_file_chooser_set_filename( GTK_FILE_CHOOSER( filew ), mypath );
+      }
    }
 
    if ( gtk_dialog_run( GTK_DIALOG( filew ) ) == GTK_RESPONSE_ACCEPT )
