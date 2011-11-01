@@ -591,7 +591,7 @@ int DWSIGNAL test_callback(HWND window, void *data)
 int DWSIGNAL browse_file_callback(HWND window, void *data)
 {
     char *tmp;
-    tmp = dw_file_browse("Pick a file", ".", "c", DW_FILE_OPEN );
+    tmp = dw_file_browse("Pick a file", "dwtest.c", "c", DW_FILE_OPEN );
     if ( tmp )
     {
         if ( current_file )
