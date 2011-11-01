@@ -8182,8 +8182,10 @@ int API dw_filesystem_get_column_type(HWND handle, int column)
 void API dw_container_set_stripe(HWND handle, unsigned long oddcolor, unsigned long evencolor)
 {
     ContainerInfo *cinfo = (ContainerInfo *)GetWindowLongPtr(handle, GWLP_USERDATA);
-    COLORREF odd = _internal_color(oddcolor);
-    COLORREF even = _internal_color(evencolor);
+    unsigned long temp = _internal_color(oddcolor);
+    COLORREF even, odd = RGB(DW_RED_VALUE(temp), DW_GREEN_VALUE(temp), DW_BLUE_VALUE(temp));
+	temp = _internal_color(evencolor);
+	even = RGB(DW_RED_VALUE(temp), DW_GREEN_VALUE(temp), DW_BLUE_VALUE(temp));
 
     /* Drop out on error */
     if(!cinfo)
