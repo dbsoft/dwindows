@@ -9897,10 +9897,41 @@ char *dw_file_browse(char *title, char *defpath, char *ext, int flags)
       }
       else if(flags == DW_FILE_SAVE)
       {
-         /* If it doesn't exist... Try it as a file for now... 
-          * May need to separate it into folder and file.
-          */
-         gtk_file_chooser_set_filename( GTK_FILE_CHOOSER( filew ), mypath );
+         if(strchr(mypath, '/'))
+         {
+            unsigned long x = strlen(mypath) - 1;
+            
+            /* Trim off the filename */
+            while(x > 0 && mypath[x] != '/')
+            {
+                x--;
+            }
+            if(mypath[x] == '/')
+            {
+                char *file = NULL;
+                char temp[PATH_MAX+1];
+             
+                /* Save the original path in temp */
+                strcpy(temp, mypath);
+                mypath[x] = 0;
+                
+                /* Check to make sure the trimmed piece is a directory */
+                if(realpath(mypath, temp) && stat(temp, &buf) == 0)
+                {
+                   if(buf.st_mode & S_IFDIR)
+                   {
+                      /* We now have it split */
+                      file = &mypath[x+1];
+                   }
+                }
+                
+                /* Select folder... */
+                gtk_file_chooser_set_current_folder( GTK_FILE_CHOOSER(filew), temp );
+                /* ... and file separately */
+                if(file)
+                   gtk_file_chooser_set_current_name( GTK_FILE_CHOOSER(filew), file );
+            }
+         }
       }
    }
 
