@@ -10147,6 +10147,22 @@ void API dw_environment_query(DWEnv *env)
 #endif
 }
 
+/* Helper to make sure all /s are \s */
+void _to_dos(char *dst, char *src)
+{
+   int x = 0;
+   
+   while(src[x])
+   {
+      if(src[x] == '/')
+         dst[x] = '\\';
+      else
+         dst[x] = src[x];
+      x++;
+   }
+   dst[x] = 0;
+}
+
 /*
  * Opens a file dialog and queries user selection.
  * Parameters:
@@ -10214,6 +10230,8 @@ char * API dw_file_browse(char *title, char *defpath, char *ext, int flags)
    }
    else
    {
+      DWORD att = defpath ? GetFileAttributes(defpath) : INVALID_FILE_ATTRIBUTES;
+      
       if (ext)
       {
          /*
@@ -10237,13 +10255,16 @@ char * API dw_file_browse(char *title, char *defpath, char *ext, int flags)
       of.lStructSize = sizeof(OPENFILENAME);
       of.hwndOwner = HWND_DESKTOP;
       of.hInstance = DWInstance;
-      of.lpstrInitialDir = defpath;
       of.lpstrTitle = title;
+      if(att != INVALID_FILE_ATTRIBUTES && (att & FILE_ATTRIBUTE_DIRECTORY))
+        of.lpstrInitialDir = defpath;
+      else if(defpath)
+        _to_dos(filenamebuf, defpath);
       of.lpstrFile = filenamebuf;
       of.lpstrFilter = filterbuf;
       of.nFilterIndex = 1;
       of.nMaxFile = 1000;
-      //of.lpstrDefExt = ext;
+      /*of.lpstrDefExt = ext;*/
       of.Flags = OFN_NOCHANGEDIR;
 
       if (flags & DW_FILE_SAVE)
