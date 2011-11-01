@@ -1595,7 +1595,7 @@ void API dw_container_scroll(HWND handle, int direction, long rows);
 void API dw_container_cursor(HWND handle, char *text);
 void API dw_container_delete_row(HWND handle, char *text);
 void API dw_container_optimize(HWND handle);
-void API dw_container_set_row_bg(HWND handle, unsigned long oddcolor, unsigned long evencolor);
+void API dw_container_set_stripe(HWND handle, unsigned long oddcolor, unsigned long evencolor);
 int API dw_filesystem_setup(HWND handle, unsigned long *flags, char **titles, int count);
 void API dw_filesystem_set_item(HWND handle, void *pointer, int column, int row, void *data);
 void API dw_filesystem_set_file(HWND handle, void *pointer, int row, char *filename, HICN icon);

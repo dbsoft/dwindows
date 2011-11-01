@@ -142,7 +142,7 @@ EXPORTS
   dw_container_change_item               @236
   dw_container_get_column_type           @237
   dw_container_change_row_title          @238
-  dw_container_set_row_bg                @239
+  dw_container_set_stripe                @239
 
   dw_filesystem_setup                    @240
   dw_filesystem_set_item                 @241
