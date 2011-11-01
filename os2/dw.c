@@ -10106,7 +10106,10 @@ char * API dw_file_browse(char *title, char *defpath, char *ext, int flags)
       struct stat buf;
 
       if(defpath)
-         strcpy(fild.szFullFile, defpath);
+      {
+          if(DosQueryPathInfo(defpath, FIL_QUERYFULLNAME, fild.szFullFile, sizeof(fild.szFullFile)))
+              strcpy(fild.szFullFile, defpath);
+      };
 
       len = strlen(fild.szFullFile);
 
@@ -10114,7 +10117,7 @@ char * API dw_file_browse(char *title, char *defpath, char *ext, int flags)
       if(len)
       {
           /* Check to see if it exists */
-          if(stat(defpath, &buf) == 0)
+          if(stat(fild.szFullFile, &buf) == 0)
           {
               /* If it is a directory... make sure there is a trailing \ */
               if(buf.st_mode & S_IFDIR)
