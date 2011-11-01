@@ -7723,7 +7723,7 @@ int API dw_filesystem_get_column_type(HWND handle, int column)
  *                    DW_RGB_TRANSPARENT will disable coloring rows.
  *                    DW_CLR_DEFAULT will use the system default alternating row colors.
  */
-void API dw_container_set_row_bg(HWND handle, unsigned long oddcolor, unsigned long evencolor)
+void API dw_container_set_stripe(HWND handle, unsigned long oddcolor, unsigned long evencolor)
 {
     /* Don't think this is possible on OS/2 */
 }
