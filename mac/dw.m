@@ -3130,6 +3130,13 @@ char * API dw_file_browse(char *title, char *defpath, char *ext, int flags)
     {
         /* Create the File Open Dialog class. */
         NSOpenPanel* openDlg = [NSOpenPanel openPanel];
+        struct stat buf;
+        
+        if(defpath && stat(defpath, &buf) == 0)
+        {
+            if(buf.st_mode & S_IFDIR)
+                [openDlg setDirectoryURL:[NSURL URLWithString:[NSString stringWithUTF8String:defpath]]];
+        }
 
         /* Enable the selection of files in the dialog. */
         if(flags == DW_FILE_OPEN)
@@ -3141,6 +3148,13 @@ char * API dw_file_browse(char *title, char *defpath, char *ext, int flags)
         {
             [openDlg setCanChooseFiles:NO];
             [openDlg setCanChooseDirectories:YES];
+        }
+        
+        /* Handle file types */
+        if(ext)
+        {
+            NSArray* fileTypes = [[NSArray alloc] initWithObjects:[NSString stringWithUTF8String:ext], nil];
+            [openDlg setAllowedFileTypes:fileTypes];
         }
 
         /* Disable multiple selection */
@@ -3154,19 +3168,36 @@ char * API dw_file_browse(char *title, char *defpath, char *ext, int flags)
             /* Get an array containing the full filenames of all
              * files and directories selected.
              */
-            NSArray* files = [openDlg filenames];
-            NSString* fileName = [files objectAtIndex:0];
-            return strdup([ fileName UTF8String ]);
+            NSArray *files = [openDlg URLs];
+            NSString *fileName = [[files objectAtIndex:0] path];
+            if(fileName)
+                return strdup([ fileName UTF8String ]);
         }
     }
     else
     {
         /* Create the File Save Dialog class. */
         NSSavePanel* saveDlg = [NSSavePanel savePanel];
+        struct stat buf;
+        
+        if(defpath && stat(defpath, &buf) == 0)
+        {
+            if(buf.st_mode & S_IFDIR)
+                [saveDlg setDirectoryURL:[NSURL URLWithString:[NSString stringWithUTF8String:defpath]]];
+            else
+                [saveDlg setNameFieldStringValue:[NSString stringWithUTF8String:defpath]];
+        }
 
         /* Enable the creation of directories in the dialog. */
         [saveDlg setCanCreateDirectories:YES];
 
+        /* Handle file types */
+        if(ext)
+        {
+            NSArray* fileTypes = [[NSArray alloc] initWithObjects:[NSString stringWithUTF8String:ext], nil];
+            [saveDlg setAllowedFileTypes:fileTypes];
+        }
+        
         /* Display the dialog.  If the OK button was pressed,
          * process the files.
          */
@@ -3175,8 +3206,9 @@ char * API dw_file_browse(char *title, char *defpath, char *ext, int flags)
             /* Get an array containing the full filenames of all
              * files and directories selected.
              */
-            NSString* fileName = [saveDlg filename];
-            return strdup([ fileName UTF8String ]);
+            NSString* fileName = [[saveDlg URL] path];
+            if(fileName)
+                return strdup([ fileName UTF8String ]);
         }
     }
 
