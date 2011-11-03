@@ -8443,16 +8443,14 @@ int _new_userdata(UserData **root, char *varname, void *data)
                 *root = new;
             else
             {
-                UserData *prev = NULL, *tmp = *root;
+                UserData *prev = *root, *tmp = prev->next;
+                
                 while(tmp)
                 {
                     prev = tmp;
                     tmp = tmp->next;
                 }
-                if(prev)
-                    prev->next = new;
-                else
-                    *root = new;
+                prev->next = new;
             }
             return TRUE;
         }
