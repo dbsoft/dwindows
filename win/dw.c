@@ -6043,7 +6043,20 @@ char * API dw_window_get_text(HWND handle)
  */
 void API dw_window_disable(HWND handle)
 {
-   EnableWindow(handle, FALSE);
+   if(handle < (HWND)65536)
+   {
+      char buffer[30];
+      HMENU mymenu;
+      ULONG id = (ULONG)handle;
+      
+      sprintf(buffer, "_dw_id%ld", id);
+      mymenu = (HMENU)dw_window_get_data(DW_HWND_OBJECT, buffer);
+      
+      if(mymenu && IsMenu(mymenu))
+         dw_menu_item_set_state((HMENUI)mymenu, id, DW_MIS_DISABLED);
+   }
+   else
+      EnableWindow(handle, FALSE);
 }
 
 /*
@@ -6053,6 +6066,19 @@ void API dw_window_disable(HWND handle)
  */
 void API dw_window_enable(HWND handle)
 {
+   if(handle < (HWND)65536)
+   {
+      char buffer[30];
+      HMENU mymenu;
+      ULONG id = (ULONG)handle;
+      
+      sprintf(buffer, "_dw_id%ld", id);
+      mymenu = (HMENU)dw_window_get_data(DW_HWND_OBJECT, buffer);
+      
+      if(mymenu && IsMenu(mymenu))
+         dw_menu_item_set_state((HMENUI)mymenu, id, DW_MIS_ENABLED);
+   }
+   else
    EnableWindow(handle, TRUE);
 }
 
@@ -10550,16 +10576,14 @@ int _new_userdata(UserData **root, char *varname, void *data)
             *root = new;
          else
          {
-            UserData *prev = NULL, *tmp = *root;
+            UserData *prev = *root, *tmp = prev->next;
+
             while(tmp)
             {
                prev = tmp;
                tmp = tmp->next;
             }
-            if(prev)
-               prev->next = new;
-            else
-               *root = new;
+            prev->next = new;
          }
          return TRUE;
       }
@@ -10751,16 +10775,13 @@ void API dw_signal_connect(HWND window, char *signame, void *sigfunc, void *data
             sprintf(buffer, "_dw_id%d", (int)window);
             owner = (HWND)dw_window_get_data(DW_HWND_OBJECT, buffer);
 
+            /* Make sure there are no dupes from popups */
+            dw_signal_disconnect_by_window(window);
+
             if (owner)
             {
                id = (ULONG)window;
                window = owner;
-               dw_window_set_data(DW_HWND_OBJECT, buffer, 0);
-            }
-            else
-            {
-               /* If it is a popup menu clear all entries */
-               dw_signal_disconnect_by_window(window);
             }
          }
          _new_signal(message, window, id, sigfunc, data);
