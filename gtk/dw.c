@@ -1246,13 +1246,13 @@ static void _remove_signal_handler(GtkWidget *widget, int counter)
    cid = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(widget), text));
    gtk_signal_disconnect(GTK_OBJECT(widget), cid);
    gtk_object_set_data(GTK_OBJECT(widget), text, NULL);
-   sbprintf(text, 100, "_dw_sigwindow%d", counter);
+   snprintf(text, 100, "_dw_sigwindow%d", counter);
    gtk_object_set_data(GTK_OBJECT(widget), text, NULL);
-   sbprintf(text, 100, "_dw_sigfunc%d", counter);
+   snprintf(text, 100, "_dw_sigfunc%d", counter);
    gtk_object_set_data(GTK_OBJECT(widget), text, NULL);
-   sbprintf(text, 100, "_dw_intfunc%d", counter);
+   snprintf(text, 100, "_dw_intfunc%d", counter);
    gtk_object_set_data(GTK_OBJECT(widget), text, NULL);
-   sbprintf(text, 100, "_dw_sigdata%d", counter);
+   snprintf(text, 100, "_dw_sigdata%d", counter);
    gtk_object_set_data(GTK_OBJECT(widget), text, NULL);
 }
 
