@@ -1898,7 +1898,6 @@ void init_webkit(void)
 int dw_int_init(DWResources *res, int newthread, int *argc, char **argv[])
 {
    char *tmp;
-   char *fname;
 
    if(res)
    {
