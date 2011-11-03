@@ -1673,6 +1673,7 @@ void API dw_pixmap_set_transparent_color( HPIXMAP pixmap, ULONG color );
 int API dw_pixmap_set_font(HPIXMAP pixmap, char *fontname);
 void API dw_pixmap_destroy(HPIXMAP pixmap);
 void API dw_beep(int freq, int dur);
+void API dw_debug(char *format, ...);
 int API dw_messagebox(char *title, int flags, char *format, ...);
 void API dw_environment_query(DWEnv *env);
 int API dw_exec(char *program, int type, char **params);

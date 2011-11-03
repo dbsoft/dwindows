@@ -13,6 +13,7 @@ EXPORTS
   dw_exit                                @12
   dw_beep                                @13
   dw_messagebox                          @14
+  dw_debug                               @15
 
   dw_environment_query                   @16
   dw_exec                                @17
