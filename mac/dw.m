@@ -2150,10 +2150,7 @@ void _free_tree_recurse(NSMutableArray *node, NSMutableArray *item)
 {
     [super mouseDown:event];
     if([[NSApp currentEvent] type] == NSLeftMouseUp)
-    {
-        [textfield takeIntValueFrom:self];
-        _event_handler(parent, (void *)[self integerValue], 14);
-    }
+        [self mouseUp:event];
 }
 -(void)mouseUp:(NSEvent *)event
 {
