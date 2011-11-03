@@ -4848,7 +4848,33 @@ HWND API dw_menu_append_item(HMENUI menux, char *title, ULONG id, ULONG flags, i
    }
 
    if (title && *title)
+   {
+      /* Code to autogenerate a menu ID if not specified or invalid
+       * First pool is smaller for transient popup menus 
+       */
+      if(id == (ULONG)-1)
+      {
+         static ULONG tempid = 61000;
+         
+         tempid++;
+         id = tempid;
+         
+         if(tempid > 65500)
+            tempid = 61000;
+      }
+      /* Second pool is larger for more static windows */
+      else if(!id || id >= 30000)
+      {
+         static ULONG menuid = 30000;
+         
+         menuid++;
+         id = menuid;
+         
+         if(menuid > 60000)
+            menuid = 30000;
+      }
       mii.fType = MFT_STRING;
+   }
    else
       mii.fType = MFT_SEPARATOR;
 
