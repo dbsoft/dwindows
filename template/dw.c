@@ -480,6 +480,24 @@ char *dw_user_dir(void)
 }
 
 /*
+ * Displays a debug message on the console...
+ * Parameters:
+ *           format: printf style format string.
+ *           ...: Additional variables for use in the format.
+ */
+void API dw_debug(char *format, ...)
+{
+   va_list args;
+   char outbuf[1025] = {0};
+
+   va_start(args, format);
+   vsnprintf(outbuf, 1024, format, args);
+   va_end(args);
+   
+   fprintf(stderr, "%s", outbuf);
+}
+
+/*
  * Displays a Message Box with given text and title..
  * Parameters:
  *           title: The title of the message box.

@@ -1221,17 +1221,17 @@ static SignalHandler _get_signal_handler(GtkWidget *widget, gpointer data)
 {
    int counter = GPOINTER_TO_INT(data);
    SignalHandler sh;
-   char text[100];
+   char text[101] = {0};
 
-   sprintf(text, "_dw_sigwindow%d", counter);
+   snprintf(text, 100, "_dw_sigwindow%d", counter);
    sh.window = (HWND)gtk_object_get_data(GTK_OBJECT(widget), text);
-   sprintf(text, "_dw_sigfunc%d", counter);
+   snprintf(text, 100, "_dw_sigfunc%d", counter);
    sh.func = (void *)gtk_object_get_data(GTK_OBJECT(widget), text);
-   sprintf(text, "_dw_intfunc%d", counter);
+   snprintf(text, 100, "_dw_intfunc%d", counter);
    sh.intfunc = (void *)gtk_object_get_data(GTK_OBJECT(widget), text);
-   sprintf(text, "_dw_sigdata%d", counter);
+   snprintf(text, 100, "_dw_sigdata%d", counter);
    sh.data = gtk_object_get_data(GTK_OBJECT(widget), text);
-   sprintf(text, "_dw_sigcid%d", counter);
+   snprintf(text, 100, "_dw_sigcid%d", counter);
    sh.cid = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(widget), text));
 
    return sh;
@@ -1239,35 +1239,35 @@ static SignalHandler _get_signal_handler(GtkWidget *widget, gpointer data)
 
 static void _remove_signal_handler(GtkWidget *widget, int counter)
 {
-   char text[100];
+   char text[101] = {0};
    gint cid;
 
-   sprintf(text, "_dw_sigcid%d", counter);
+   snprintf(text, 100, "_dw_sigcid%d", counter);
    cid = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(widget), text));
    gtk_signal_disconnect(GTK_OBJECT(widget), cid);
    gtk_object_set_data(GTK_OBJECT(widget), text, NULL);
-   sprintf(text, "_dw_sigwindow%d", counter);
+   sbprintf(text, 100, "_dw_sigwindow%d", counter);
    gtk_object_set_data(GTK_OBJECT(widget), text, NULL);
-   sprintf(text, "_dw_sigfunc%d", counter);
+   sbprintf(text, 100, "_dw_sigfunc%d", counter);
    gtk_object_set_data(GTK_OBJECT(widget), text, NULL);
-   sprintf(text, "_dw_intfunc%d", counter);
+   sbprintf(text, 100, "_dw_intfunc%d", counter);
    gtk_object_set_data(GTK_OBJECT(widget), text, NULL);
-   sprintf(text, "_dw_sigdata%d", counter);
+   sbprintf(text, 100, "_dw_sigdata%d", counter);
    gtk_object_set_data(GTK_OBJECT(widget), text, NULL);
 }
 
 static int _set_signal_handler(GtkWidget *widget, HWND window, void *func, gpointer data, void *intfunc)
 {
    int counter = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(widget), "_dw_sigcounter"));
-   char text[100];
+   char text[101] = {0};
 
-   sprintf(text, "_dw_sigwindow%d", counter);
+   snprintf(text, 100, "_dw_sigwindow%d", counter);
    gtk_object_set_data(GTK_OBJECT(widget), text, (gpointer)window);
-   sprintf(text, "_dw_sigfunc%d", counter);
+   snprintf(text, 100, "_dw_sigfunc%d", counter);
    gtk_object_set_data(GTK_OBJECT(widget), text, (gpointer)func);
-   sprintf(text, "_dw_intfunc%d", counter);
+   snprintf(text, 100, "_dw_intfunc%d", counter);
    gtk_object_set_data(GTK_OBJECT(widget), text, (gpointer)intfunc);
-   sprintf(text, "_dw_sigdata%d", counter);
+   snprintf(text, 100, "_dw_sigdata%d", counter);
    gtk_object_set_data(GTK_OBJECT(widget), text, (gpointer)data);
 
    counter++;
@@ -1278,9 +1278,9 @@ static int _set_signal_handler(GtkWidget *widget, HWND window, void *func, gpoin
 
 static void _set_signal_handler_id(GtkWidget *widget, int counter, gint cid)
 {
-   char text[100];
+   char text[101] = {0};
 
-   sprintf(text, "_dw_sigcid%d", counter);
+   snprintf(text, 100, "_dw_sigcid%d", counter);
    gtk_object_set_data(GTK_OBJECT(widget), text, GINT_TO_POINTER(cid));
 }
 
@@ -2039,10 +2039,10 @@ void init_libgtkhtml2 (void)
 #ifdef USE_WEBKIT
 void init_webkit(void)
 {
-   char libname[100];
+   char libname[101] = {0};
    void *handle = NULL;
 
-   sprintf( libname, "lib%s.so", WEBKIT_LIB);
+   snprintf( libname, 100, "lib%s.so", WEBKIT_LIB);
    handle = dlopen( libname, RTLD_LAZY );
 
    /* If we loaded it, grab the symbols we want */
@@ -2368,6 +2368,24 @@ int _dw_cancel_func(HWND window, void *data)
 }
 
 /*
+ * Displays a debug message on the console...
+ * Parameters:
+ *           format: printf style format string.
+ *           ...: Additional variables for use in the format.
+ */
+void API dw_debug(char *format, ...)
+{
+   va_list args;
+   char outbuf[1025] = {0};
+
+   va_start(args, format);
+   vsnprintf(outbuf, 1024, format, args);
+   va_end(args);
+   
+   fprintf(stderr, "%s", outbuf);
+}
+
+/*
  * Displays a Message Box with given text and title..
  * Parameters:
  *           title: The title of the message box.
@@ -2381,13 +2399,13 @@ int dw_messagebox(char *title, int flags, char *format, ...)
    ULONG flStyle = DW_FCF_TITLEBAR | DW_FCF_SHELLPOSITION | DW_FCF_DLGBORDER;
    DWDialog *dwwait;
    va_list args;
-   char outbuf[1000];
+   char outbuf[1025] = {0};
    char **xpm_data = NULL;
    int x, y, extra_width=0,text_width,text_height;
    int width,height;
 
    va_start(args, format);
-   vsnprintf(outbuf, 999, format, args);
+   vsnprintf(outbuf, 1024, format, args);
    va_end(args);
 
    entrywindow = dw_window_new(HWND_DESKTOP, title, flStyle);
@@ -3711,9 +3729,10 @@ HWND dw_menu_append_item(HMENUI menu, char *title, unsigned long id, unsigned lo
       tmphandle=gtk_menu_item_new();
    else
    {
+      char numbuf[11] = {0};
+      
       if (check)
       {
-         char numbuf[10];
          if (accel && accel_group)
          {
             tmphandle = gtk_check_menu_item_new_with_label("");
@@ -3725,12 +3744,11 @@ HWND dw_menu_append_item(HMENUI menu, char *title, unsigned long id, unsigned lo
          else
             tmphandle = gtk_check_menu_item_new_with_label(tempbuf);
          gtk_check_menu_item_set_show_toggle(GTK_CHECK_MENU_ITEM(tmphandle), TRUE);
-         sprintf(numbuf, "%lu", id);
+         snprintf(numbuf, 10, "%lu", id);
          gtk_object_set_data(GTK_OBJECT(menu), numbuf, (gpointer)tmphandle);
       }
       else
       {
-         char numbuf[10];
          if (accel && accel_group)
          {
             tmphandle=gtk_menu_item_new_with_label("");
@@ -3741,7 +3759,7 @@ HWND dw_menu_append_item(HMENUI menu, char *title, unsigned long id, unsigned lo
          }
          else
             tmphandle=gtk_menu_item_new_with_label(tempbuf);
-         sprintf(numbuf, "%lu", id);
+         snprintf(numbuf, 10, "%lu", id);
          gtk_object_set_data(GTK_OBJECT(menu), numbuf, (gpointer)tmphandle);
       }
    }
@@ -3750,9 +3768,9 @@ HWND dw_menu_append_item(HMENUI menu, char *title, unsigned long id, unsigned lo
 
    if (submenu)
    {
-      char tempbuf[100];
+      char tempbuf[101] = {0};
 
-      sprintf(tempbuf, "_dw_submenu%d", submenucount);
+      snprintf(tempbuf, 100, "_dw_submenu%d", submenucount);
       submenucount++;
       gtk_menu_item_set_submenu(GTK_MENU_ITEM(tmphandle), submenu);
       gtk_object_set_data(GTK_OBJECT(menu), tempbuf, (gpointer)submenu);
@@ -3793,10 +3811,10 @@ GtkWidget *_find_submenu_id(GtkWidget *start, char *name)
 
    for(z=0;z<submenucount;z++)
    {
-      char tempbuf[100];
+      char tempbuf[101] = {0};
       GtkWidget *submenu, *menuitem;
 
-      sprintf(tempbuf, "_dw_submenu%d", z);
+      snprintf(tempbuf, 100, "_dw_submenu%d", z);
 
       if((submenu = gtk_object_get_data(GTK_OBJECT(start), tempbuf)))
       {
@@ -3817,7 +3835,7 @@ GtkWidget *_find_submenu_id(GtkWidget *start, char *name)
  */
 void dw_menu_item_set_check(HMENUI menu, unsigned long id, int check)
 {
-   char numbuf[10];
+   char numbuf[11] = {0};
    GtkWidget *tmphandle;
    int _locked_by_me = FALSE;
 
@@ -3825,7 +3843,7 @@ void dw_menu_item_set_check(HMENUI menu, unsigned long id, int check)
       return;
 
    DW_MUTEX_LOCK;
-   sprintf(numbuf, "%lu", id);
+   snprintf(numbuf, 10, "%lu", id);
    tmphandle = _find_submenu_id(menu, numbuf);
 
    if(tmphandle)
@@ -3847,7 +3865,7 @@ void dw_menu_item_set_check(HMENUI menu, unsigned long id, int check)
  */
 void dw_menu_item_set_state(HMENUI menu, unsigned long id, unsigned long state)
 {
-   char numbuf[10];
+   char numbuf[11] = {0};
    GtkWidget *tmphandle;
    int check;
    int _locked_by_me = FALSE;
@@ -3856,7 +3874,7 @@ void dw_menu_item_set_state(HMENUI menu, unsigned long id, unsigned long state)
       return;
 
    DW_MUTEX_LOCK;
-   sprintf(numbuf, "%lu", id);
+   snprintf(numbuf, 10, "%lu", id);
    tmphandle = _find_submenu_id(menu, numbuf);
 
    if ( (state & DW_MIS_CHECKED) || (state & DW_MIS_UNCHECKED) )
@@ -6519,7 +6537,7 @@ void dw_tree_item_delete(HWND handle, HTREEITEM item)
 static int _dw_container_setup(HWND handle, unsigned long *flags, char **titles, int count, int separator, int extra)
 {
    GtkWidget *clist;
-   char numbuf[10];
+   char numbuf[11] = {0};
    int z, multi;
    int _locked_by_me = FALSE;
    GtkJustification justification;
@@ -6553,7 +6571,7 @@ static int _dw_container_setup(HWND handle, unsigned long *flags, char **titles,
    {
       if(!extra || z > 1)
          gtk_clist_set_column_width(GTK_CLIST(clist), z, 50);
-      sprintf(numbuf, "%d", z);
+      snprintf(numbuf, 10, "%d", z);
       gtk_object_set_data(GTK_OBJECT(clist), numbuf, GINT_TO_POINTER(flags[z]));
       if(flags[z]&DW_CFA_RIGHT)
          justification = GTK_JUSTIFY_RIGHT;
@@ -6943,7 +6961,7 @@ void *dw_container_alloc(HWND handle, int rowcount)
  */
 void _dw_container_set_item(HWND handle, void *pointer, int column, int row, void *data, char *text)
 {
-   char numbuf[10], textbuffer[100];
+   char numbuf[11], textbuffer[101];
    int flag = 0;
    GtkWidget *clist;
    int _locked_by_me = FALSE;
@@ -6956,7 +6974,7 @@ void _dw_container_set_item(HWND handle, void *pointer, int column, int row, voi
       return;
    }
 
-   sprintf(numbuf, "%d", column);
+   snprintf(numbuf, 10, "%d", column);
    flag = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(clist), numbuf));
    if(pointer)
    {
@@ -6988,7 +7006,7 @@ void _dw_container_set_item(HWND handle, void *pointer, int column, int row, voi
    {
       ULONG tmp = *((ULONG *)data);
 
-      sprintf(textbuffer, "%lu", tmp);
+      snprintf(textbuffer, 100, "%lu", tmp);
 
       gtk_clist_set_text(GTK_CLIST(clist), row, column, textbuffer);
    }
@@ -7115,7 +7133,7 @@ void dw_filesystem_set_item(HWND handle, void *pointer, int column, int row, voi
  */
 int dw_container_get_column_type(HWND handle, int column)
 {
-   char numbuf[10];
+   char numbuf[11] = {0};
    int flag, rc;
    GtkWidget *clist;
    int _locked_by_me = FALSE;
@@ -7128,7 +7146,7 @@ int dw_container_get_column_type(HWND handle, int column)
       return 0;
    }
 
-   sprintf(numbuf, "%d", column);
+   snprintf(numbuf, 10, "%d", column);
    flag = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(clist), numbuf));
 
    if(flag & DW_CFA_BITMAPORICON)
@@ -8928,7 +8946,7 @@ int dw_module_load(char *name, HMOD *handle)
 {
    int len;
    char *newname;
-   char errorbuf[1024];
+   char errorbuf[1025] = {0};
 
 
    if(!handle)
@@ -9551,11 +9569,11 @@ void _dwthreadstart(void *data)
  */
 HSHM dw_named_memory_new(void **dest, int size, char *name)
 {
-   char namebuf[1024];
+   char namebuf[1025] = {0};
    struct _dw_unix_shm *handle = malloc(sizeof(struct _dw_unix_shm));
 
    mkdir("/tmp/.dw", S_IWGRP|S_IWOTH);
-   sprintf(namebuf, "/tmp/.dw/%s", name);
+   snprintf(namebuf, 1024, "/tmp/.dw/%s", name);
 
    if((handle->fd = open(namebuf, O_CREAT | O_RDWR, S_IRUSR | S_IWUSR)) < 0)
    {
@@ -9597,11 +9615,11 @@ HSHM dw_named_memory_new(void **dest, int size, char *name)
  */
 HSHM dw_named_memory_get(void **dest, int size, char *name)
 {
-   char namebuf[1024];
+   char namebuf[1025] = {0};
    struct _dw_unix_shm *handle = malloc(sizeof(struct _dw_unix_shm));
 
    mkdir("/tmp/.dw", S_IWGRP|S_IWOTH);
-   sprintf(namebuf, "/tmp/.dw/%s", name);
+   snprintf(namebuf, 1024, "/tmp/.dw/%s", name);
 
    if((handle->fd = open(namebuf, O_RDWR)) < 0)
    {
@@ -10260,13 +10278,13 @@ unsigned long dw_notebook_page_new(HWND handle, unsigned long flags, int front)
       {
          if(!pagearray[z])
          {
-            char text[100];
+            char text[101] = {0};
             int num = z;
 
             if(front)
                num |= 1 << 16;
 
-            sprintf(text, "_dw_page%d", z);
+            snprintf(text, 100, "_dw_page%d", z);
             /* Save the real id and the creation flags */
             gtk_object_set_data(GTK_OBJECT(handle), text, GINT_TO_POINTER(num));
             DW_MUTEX_UNLOCK;
@@ -10373,10 +10391,10 @@ void dw_notebook_page_set_text(HWND handle, unsigned long pageid, char *text)
    realpage = _get_physical_page(handle, pageid);
    if(realpage < 0 || realpage > 255)
    {
-      char ptext[100];
+      char ptext[101] = {0};
       int num;
 
-      sprintf(ptext, "_dw_page%d", (int)pageid);
+      snprintf(ptext, 100, "_dw_page%d", (int)pageid);
       num = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(handle), ptext));
       realpage = 0xFF & num;
    }
@@ -10414,10 +10432,10 @@ void dw_notebook_pack(HWND handle, unsigned long pageid, HWND page)
    GtkWidget *label, *child, *oldlabel, **pagearray;
    gchar *text = NULL;
    int num, z, realpage = -1, pad, _locked_by_me = FALSE;
-   char ptext[100];
+   char ptext[101] = {0};
 
    DW_MUTEX_LOCK;
-   sprintf(ptext, "_dw_page%d", (int)pageid);
+   snprintf(ptext, 100, "_dw_page%d", (int)pageid);
    num = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(handle), ptext));
    gtk_object_set_data(GTK_OBJECT(handle), ptext, NULL);
    pagearray = (GtkWidget **)gtk_object_get_data(GTK_OBJECT(handle), "_dw_pagearray");

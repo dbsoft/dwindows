@@ -119,8 +119,6 @@ char *image_exts[NUM_EXTS] =
 # define min(a,b)        (((a) < (b)) ? (a) : (b))
 #endif
 
-FILE *dbgfp = NULL;
-
 pthread_key_t _dw_fg_color_key;
 pthread_key_t _dw_bg_color_key;
 pthread_key_t _dw_mutex_key;
@@ -343,18 +341,6 @@ static void gtk_mdi_remove_true(GtkContainer *container, GtkWidget *widget);
 static void gtk_mdi_forall(GtkContainer *container, gboolean include_internals, GtkCallback callback, gpointer callback_data);
 
 static GtkMdiChild *get_child(GtkMdi *mdi, GtkWidget * widget);
-
-static void _dw_log( char *format, ... )
-{
-   va_list args;
-   va_start(args, format);
-   if ( dbgfp != NULL )
-   {
-      vfprintf( dbgfp, format, args );
-      fflush( dbgfp );
-   }
-   va_end(args);
-}
 
 static GType gtk_mdi_get_type(void)
 {
@@ -1208,7 +1194,6 @@ static gint _set_focus_event(GtkWindow *window, GtkWidget *widget, gpointer data
    SignalHandler work = _get_signal_handler((GtkWidget *)window, data);
    int retval = FALSE;
 
-   if ( dbgfp != NULL ) _dw_log("%s %d: %s\n",__FILE__,__LINE__,__func__);
    if(work.window)
    {
       int (*setfocusfunc)(HWND, void *) = work.func;
@@ -1223,7 +1208,6 @@ static gint _button_press_event(GtkWidget *widget, GdkEventButton *event, gpoint
    SignalHandler work = _get_signal_handler(widget, data);
    int retval = FALSE;
 
-   if ( dbgfp != NULL ) _dw_log("%s %d: %s\n",__FILE__,__LINE__,__func__);
    if(work.window)
    {
       int (*buttonfunc)(HWND, int, int, int, void *) = work.func;
@@ -1244,7 +1228,6 @@ static gint _button_release_event(GtkWidget *widget, GdkEventButton *event, gpoi
    SignalHandler work = _get_signal_handler(widget, data);
    int retval = FALSE;
 
-   if ( dbgfp != NULL ) _dw_log("%s %d: %s\n",__FILE__,__LINE__,__func__);
    if(work.window)
    {
       int (*buttonfunc)(HWND, int, int, int, void *) = work.func;
@@ -1265,7 +1248,6 @@ static gint _motion_notify_event(GtkWidget *widget, GdkEventMotion *event, gpoin
    SignalHandler work = _get_signal_handler(widget, data);
    int retval = FALSE;
 
-   if ( dbgfp != NULL ) _dw_log("%s %d: %s\n",__FILE__,__LINE__,__func__);
    if(work.window)
    {
       int (*motionfunc)(HWND, int, int, int, void *) = work.func;
@@ -1298,7 +1280,6 @@ static gint _delete_event(GtkWidget *widget, GdkEvent *event, gpointer data)
    SignalHandler work = _get_signal_handler(widget, data);
    int retval = FALSE;
 
-   if ( dbgfp != NULL ) _dw_log("%s %d: %s\n",__FILE__,__LINE__,__func__);
    if(work.window)
    {
       int (*closefunc)(HWND, void *) = work.func;
@@ -1313,7 +1294,6 @@ static gint _key_press_event(GtkWidget *widget, GdkEventKey *event, gpointer dat
    SignalHandler work = _get_signal_handler(widget, data);
    int retval = FALSE;
 
-   if ( dbgfp != NULL ) _dw_log("%s %d: %s\n",__FILE__,__LINE__,__func__);
    if(work.window)
    {
       int (*keypressfunc)(HWND, char, int, int, void *) = work.func;
@@ -1329,7 +1309,6 @@ static gint _generic_event(GtkWidget *widget, gpointer data)
    SignalHandler work = _get_signal_handler(widget, data);
    int retval = FALSE;
 
-   if ( dbgfp != NULL ) _dw_log("%s %d: %s\n",__FILE__,__LINE__,__func__);
    if(work.window)
    {
       int (*genericfunc)(HWND, void *) = work.func;
@@ -1344,7 +1323,6 @@ static gint _activate_event(GtkWidget *widget, gpointer data)
    SignalHandler work = _get_signal_handler(widget, data);
    int retval = FALSE;
 
-   if ( dbgfp != NULL ) _dw_log("%s %d: %s\n",__FILE__,__LINE__,__func__);
    if(work.window && !_dw_ignore_click)
    {
       int (*activatefunc)(HWND, void *) = work.func;
@@ -1360,7 +1338,6 @@ static gint _configure_event(GtkWidget *widget, GdkEventConfigure *event, gpoint
    SignalHandler work = _get_signal_handler(widget, data);
    int retval = FALSE;
 
-   if ( dbgfp != NULL ) _dw_log("%s %d: %s\n",__FILE__,__LINE__,__func__);
    if(work.window)
    {
       int (*sizefunc)(HWND, int, int, void *) = work.func;
@@ -1375,7 +1352,6 @@ static gint _expose_event(GtkWidget *widget, cairo_t *cr, gpointer data)
    SignalHandler work = _get_signal_handler(widget, data);
    int retval = FALSE;
 
-   if ( dbgfp != NULL ) _dw_log("%s %d: %s\n",__FILE__,__LINE__,__func__);
    if(work.window)
    {
       DWExpose exp;
@@ -1395,7 +1371,6 @@ static gint _combobox_select_event(GtkWidget *widget, gpointer data)
    static int _dw_recursing = 0;
    int retval = FALSE;
 
-   if ( dbgfp != NULL ) _dw_log("%s %d: %s\n",__FILE__,__LINE__,__func__);
    if(_dw_recursing)
       return FALSE;
 
@@ -1439,7 +1414,6 @@ static gint _tree_context_event(GtkWidget *widget, GdkEventButton *event, gpoint
    SignalHandler work = _get_signal_handler(widget, data);
    int retval = FALSE;
 
-   if ( dbgfp != NULL ) _dw_log("%s %d: %s\n",__FILE__,__LINE__,__func__);
    if(work.window)
    {
       if(event->button == 3)
@@ -1502,7 +1476,6 @@ static gint _tree_select_event(GtkTreeSelection *sel, gpointer data)
    GtkWidget *item = NULL, *widget = (GtkWidget *)gtk_tree_selection_get_tree_view(sel);
    int retval = FALSE;
 
-   if ( dbgfp != NULL ) _dw_log("%s %d: %s\n",__FILE__,__LINE__,__func__);
    if(widget)
    {
       SignalHandler work = _get_signal_handler(widget, data);
@@ -1598,7 +1571,6 @@ static gint _tree_expand_event(GtkTreeView *widget, GtkTreeIter *iter, GtkTreePa
    SignalHandler work = _get_signal_handler((GtkWidget *)widget, data);
    int retval = FALSE;
 
-   if ( dbgfp != NULL ) _dw_log("%s %d: %s\n",__FILE__,__LINE__,__func__);
    if(!_dw_ignore_expand && work.window)
    {
       int (*treeexpandfunc)(HWND, HTREEITEM, void *) = work.func;
@@ -1614,7 +1586,6 @@ static gint _container_enter_event(GtkWidget *widget, GdkEventAny *event, gpoint
    GdkEventButton *buttonevent = (GdkEventButton *)event;
    int retval = FALSE;
 
-   if ( dbgfp != NULL ) _dw_log("%s %d: %s\n",__FILE__,__LINE__,__func__);
    if(work.window)
    {
       /* Handle both key and button events together */
@@ -1681,7 +1652,6 @@ static gint _switch_page_event(GtkNotebook *notebook, GtkWidget *page, guint pag
    SignalHandler work = _get_signal_handler((GtkWidget *)notebook, data);
    int retval = FALSE;
 
-   if ( dbgfp != NULL ) _dw_log("%s %d: %s\n",__FILE__,__LINE__,__func__);
    if(work.window)
    {
       int (*switchpagefunc)(HWND, unsigned long, void *) = work.func;
@@ -1701,7 +1671,6 @@ static gint _column_click_event(GtkWidget *widget, gpointer data)
    {
       work = _get_signal_handler(tree, GINT_TO_POINTER(handlerdata-1));
 
-      if ( dbgfp != NULL ) _dw_log("%s %d: %s\n",__FILE__,__LINE__,__func__);
       if(work.window)
       {
          int column_num = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(widget), "_dw_column"));
@@ -1730,7 +1699,6 @@ static gint _value_changed_event(GtkAdjustment *adjustment, gpointer data)
    GtkWidget *spinbutton = (GtkWidget *)g_object_get_data(G_OBJECT(adjustment), "_dw_spinbutton");
    GtkWidget *scrollbar = (GtkWidget *)g_object_get_data(G_OBJECT(adjustment), "_dw_scrollbar");
 
-   if ( dbgfp != NULL ) _dw_log("%s %d: %s\n",__FILE__,__LINE__,__func__);
    if (slider)
    {
       SignalHandler work = _get_signal_handler((GtkWidget *)adjustment, data);
@@ -1763,7 +1731,6 @@ static gint _default_key_press_event(GtkWidget *widget, GdkEventKey *event, gpoi
 {
    GtkWidget *next = (GtkWidget *)data;
 
-   if ( dbgfp != NULL ) _dw_log("%s %d: %s\n",__FILE__,__LINE__,__func__);
    if(next)
    {
       if(event->keyval == GDK_KEY_Return)
@@ -1973,13 +1940,6 @@ int dw_int_init(DWResources *res, int newthread, int *argc, char **argv[])
 #ifdef USE_WEBKIT
    init_webkit();
 #endif
-   /*
-    * Setup logging/debugging
-    */
-   if ( (fname = getenv( "DWINDOWS_DEBUGFILE" ) ) != NULL )
-   {
-      dbgfp = fopen( fname, "w" );
-   }
 
    return TRUE;
 }
@@ -2190,6 +2150,24 @@ int _dw_cancel_func(HWND window, void *data)
 }
 
 /*
+ * Displays a debug message on the console...
+ * Parameters:
+ *           format: printf style format string.
+ *           ...: Additional variables for use in the format.
+ */
+void API dw_debug(char *format, ...)
+{
+   va_list args;
+   char outbuf[1025] = {0};
+
+   va_start(args, format);
+   vsnprintf(outbuf, 1024, format, args);
+   va_end(args);
+   
+   fprintf(stderr, "%s", outbuf);
+}
+
+/*
  * Displays a Message Box with given text and title..
  * Parameters:
  *           title: The title of the message box.
@@ -2203,13 +2181,13 @@ int dw_messagebox(char *title, int flags, char *format, ...)
    ULONG flStyle = DW_FCF_TITLEBAR | DW_FCF_SHELLPOSITION | DW_FCF_SIZEBORDER;
    DWDialog *dwwait;
    va_list args;
-   char outbuf[1000];
+   char outbuf[1025] = {0};
    char **xpm_data = NULL;
    int x, y, extra_width=0,text_width,text_height;
    int width,height;
 
    va_start(args, format);
-   vsnprintf(outbuf, 999, format, args);
+   vsnprintf(outbuf, 1024, format, args);
    va_end(args);
 
    entrywindow = dw_window_new(HWND_DESKTOP, title, flStyle);
@@ -3350,10 +3328,10 @@ HWND dw_menu_append_item(HMENUI menu, char *title, unsigned long id, unsigned lo
       tmphandle=gtk_menu_item_new();
    else
    {
+      char numbuf[11] = {0};
+
       if (check)
       {
-         char numbuf[10];
-
          tmphandle = gtk_check_menu_item_new_with_label(tempbuf);
          if (accel && accel_group)
          {
@@ -3362,13 +3340,11 @@ HWND dw_menu_append_item(HMENUI menu, char *title, unsigned long id, unsigned lo
             gtk_widget_add_accelerator(tmphandle, "activate", accel_group, tmp_key, GDK_MOD1_MASK, 0);
 #endif
          }
-         sprintf(numbuf, "%lu", id);
+         snprintf(numbuf, 10, "%lu", id);
          g_object_set_data(G_OBJECT(menu), numbuf, (gpointer)tmphandle);
       }
       else
       {
-         char numbuf[10];
-
          tmphandle=gtk_menu_item_new_with_label(tempbuf);
          if (accel && accel_group)
          {
@@ -3377,7 +3353,7 @@ HWND dw_menu_append_item(HMENUI menu, char *title, unsigned long id, unsigned lo
             gtk_widget_add_accelerator(tmphandle, "activate", accel_group, tmp_key, GDK_MOD1_MASK, 0);
 #endif
          }
-         sprintf(numbuf, "%lu", id);
+         snprintf(numbuf, 10, "%lu", id);
          g_object_set_data(G_OBJECT(menu), numbuf, (gpointer)tmphandle);
       }
    }
@@ -3386,9 +3362,9 @@ HWND dw_menu_append_item(HMENUI menu, char *title, unsigned long id, unsigned lo
 
    if (submenu)
    {
-      char tempbuf[100];
+      char tempbuf[101] = {0};
 
-      sprintf(tempbuf, "_dw_submenu%d", submenucount);
+      snprintf(tempbuf, 100, "_dw_submenu%d", submenucount);
       submenucount++;
       gtk_menu_item_set_submenu(GTK_MENU_ITEM(tmphandle), submenu);
       g_object_set_data(G_OBJECT(menu), tempbuf, (gpointer)submenu);
@@ -3429,10 +3405,10 @@ GtkWidget *_find_submenu_id(GtkWidget *start, char *name)
 
    for(z=0;z<submenucount;z++)
    {
-      char tempbuf[100];
+      char tempbuf[101] = {0};
       GtkWidget *submenu, *menuitem;
 
-      sprintf(tempbuf, "_dw_submenu%d", z);
+      snprintf(tempbuf, 100, "_dw_submenu%d", z);
 
       if((submenu = g_object_get_data(G_OBJECT(start), tempbuf)))
       {
@@ -3453,7 +3429,7 @@ GtkWidget *_find_submenu_id(GtkWidget *start, char *name)
  */
 void dw_menu_item_set_check(HMENUI menu, unsigned long id, int check)
 {
-   char numbuf[10];
+   char numbuf[11];
    GtkWidget *tmphandle;
    int _locked_by_me = FALSE;
 
@@ -3461,7 +3437,7 @@ void dw_menu_item_set_check(HMENUI menu, unsigned long id, int check)
       return;
 
    DW_MUTEX_LOCK;
-   sprintf(numbuf, "%lu", id);
+   snprintf(numbuf, 10, "%lu", id);
    tmphandle = _find_submenu_id(menu, numbuf);
 
    if(tmphandle)
@@ -3483,7 +3459,7 @@ void dw_menu_item_set_check(HMENUI menu, unsigned long id, int check)
  */
 void dw_menu_item_set_state(HMENUI menu, unsigned long id, unsigned long state)
 {
-   char numbuf[10];
+   char numbuf[11] = {0};
    GtkWidget *tmphandle;
    int check;
    int _locked_by_me = FALSE;
@@ -3492,7 +3468,7 @@ void dw_menu_item_set_state(HMENUI menu, unsigned long id, unsigned long state)
       return;
 
    DW_MUTEX_LOCK;
-   sprintf(numbuf, "%lu", id);
+   snprintf(numbuf, 10, "%lu", id);
    tmphandle = _find_submenu_id(menu, numbuf);
 
    if ( (state & DW_MIS_CHECKED) || (state & DW_MIS_UNCHECKED) )
@@ -5432,7 +5408,7 @@ void dw_tree_item_delete(HWND handle, HTREEITEM item)
 static int _dw_container_setup(HWND handle, unsigned long *flags, char **titles, int count, int separator, int extra)
 {
    int z;
-   char numbuf[20];
+   char numbuf[21];
    GtkWidget *tree;
    GtkListStore *store;
    GtkTreeViewColumn *col;
@@ -5485,7 +5461,7 @@ static int _dw_container_setup(HWND handle, unsigned long *flags, char **titles,
    /* Second loop... create the columns */
    for(z=0;z<count;z++)
    {
-      sprintf(numbuf, "_dw_cont_col%d", z);
+      snprintf(numbuf, 20, "_dw_cont_col%d", z);
       g_object_set_data(G_OBJECT(tree), numbuf, GINT_TO_POINTER(flags[z]));
       col = gtk_tree_view_column_new();
       rend = NULL;
@@ -5760,7 +5736,7 @@ void *dw_container_alloc(HWND handle, int rowcount)
  */
 void _dw_container_set_item(HWND handle, void *pointer, int column, int row, void *data)
 {
-   char numbuf[20], textbuffer[100];
+   char numbuf[21], textbuffer[101];
    int flag = 0;
    GtkWidget *cont;
    GtkListStore *store = NULL;
@@ -5777,7 +5753,7 @@ void _dw_container_set_item(HWND handle, void *pointer, int column, int row, voi
    {
       GtkTreeIter iter;
 
-      sprintf(numbuf, "_dw_cont_col%d", column);
+      snprintf(numbuf, 20, "_dw_cont_col%d", column);
       flag = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(cont), numbuf));
       if(pointer)
       {
@@ -5952,7 +5928,7 @@ int dw_container_get_column_type(HWND handle, int column)
       return 0;
    }
 
-   sprintf(numbuf, "_dw_cont_col%d", column);
+   snprintf(numbuf, 20, "_dw_cont_col%d", column);
    flag = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(cont), numbuf));
 
    if(flag & DW_CFA_BITMAPORICON)
@@ -7491,7 +7467,7 @@ int dw_module_load(char *name, HMOD *handle)
 {
    int len;
    char *newname;
-   char errorbuf[1024];
+   char errorbuf[1025] = {0};
 
 
    if(!handle)
@@ -8112,11 +8088,11 @@ void _dwthreadstart(void *data)
  */
 HSHM dw_named_memory_new(void **dest, int size, char *name)
 {
-   char namebuf[1024];
+   char namebuf[1025];
    struct _dw_unix_shm *handle = malloc(sizeof(struct _dw_unix_shm));
 
    mkdir("/tmp/.dw", S_IWGRP|S_IWOTH);
-   sprintf(namebuf, "/tmp/.dw/%s", name);
+   snprintf(namebuf, 1024, "/tmp/.dw/%s", name);
 
    if((handle->fd = open(namebuf, O_CREAT | O_RDWR, S_IRUSR | S_IWUSR)) < 0)
    {
@@ -8158,11 +8134,11 @@ HSHM dw_named_memory_new(void **dest, int size, char *name)
  */
 HSHM dw_named_memory_get(void **dest, int size, char *name)
 {
-   char namebuf[1024];
+   char namebuf[1025];
    struct _dw_unix_shm *handle = malloc(sizeof(struct _dw_unix_shm));
 
    mkdir("/tmp/.dw", S_IWGRP|S_IWOTH);
-   sprintf(namebuf, "/tmp/.dw/%s", name);
+   snprintf(namebuf, 1024, "/tmp/.dw/%s", name);
 
    if((handle->fd = open(namebuf, O_RDWR)) < 0)
    {
@@ -8257,10 +8233,6 @@ DWTID dw_thread_id(void)
  */
 void dw_exit(int exitcode)
 {
-   if ( dbgfp != NULL )
-   {
-      fclose( dbgfp );
-   }
    exit(exitcode);
 }
 
@@ -8806,13 +8778,13 @@ unsigned long dw_notebook_page_new(HWND handle, unsigned long flags, int front)
       {
          if(!pagearray[z])
          {
-            char text[100];
+            char text[101] = {0};
             int num = z;
 
             if(front)
                num |= 1 << 16;
 
-            sprintf(text, "_dw_page%d", z);
+            snprintf(text, 100, "_dw_page%d", z);
             /* Save the real id and the creation flags */
             g_object_set_data(G_OBJECT(handle), text, GINT_TO_POINTER(num));
             DW_MUTEX_UNLOCK;
@@ -8919,10 +8891,10 @@ void dw_notebook_page_set_text(HWND handle, unsigned long pageid, char *text)
    realpage = _get_physical_page(handle, pageid);
    if(realpage < 0 || realpage > 255)
    {
-      char ptext[100];
+      char ptext[101] = {0};
       int num;
 
-      sprintf(ptext, "_dw_page%d", (int)pageid);
+      snprintf(ptext, 100, "_dw_page%d", (int)pageid);
       num = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(handle), ptext));
       realpage = 0xFF & num;
    }
@@ -8960,10 +8932,10 @@ void dw_notebook_pack(HWND handle, unsigned long pageid, HWND page)
    GtkWidget *label, *child, *oldlabel, **pagearray;
    const gchar *text = NULL;
    int num, z, realpage = -1, pad, _locked_by_me = FALSE;
-   char ptext[100];
+   char ptext[101] = {0};
 
    DW_MUTEX_LOCK;
-   sprintf(ptext, "_dw_page%d", (int)pageid);
+   snprintf(ptext, 100, "_dw_page%d", (int)pageid);
    num = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(handle), ptext));
    g_object_set_data(G_OBJECT(handle), ptext, NULL);
    pagearray = (GtkWidget **)g_object_get_data(G_OBJECT(handle), "_dw_pagearray");
@@ -10685,7 +10657,7 @@ gboolean _dw_timer_func(gpointer data)
 {
    void (*sigfunc)(void *data) = NULL;
    void *sdata;
-   char tmpbuf[30];
+   char tmpbuf[31] = {0};
    int *tag = data;
 
    if(tag)
@@ -10717,7 +10689,7 @@ gboolean _dw_timer_func(gpointer data)
 int API dw_timer_connect(int interval, void *sigfunc, void *data)
 {
    int *tag, _locked_by_me = FALSE;
-   char tmpbuf[30];
+   char tmpbuf[31] = {0};
 
    tag = calloc(1, sizeof(int));
 
@@ -10739,7 +10711,7 @@ int API dw_timer_connect(int interval, void *sigfunc, void *data)
 void API dw_timer_disconnect(int id)
 {
    int _locked_by_me = FALSE;
-   char tmpbuf[30];
+   char tmpbuf[31] = {0};
 
    snprintf(tmpbuf, 30, "_dw_timer%d", id);
    DW_MUTEX_LOCK;

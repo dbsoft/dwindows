@@ -3865,6 +3865,23 @@ void * API dw_dialog_wait(DWDialog *dialog)
    return tmp;
 }
 
+/*
+ * Displays a debug message on the console...
+ * Parameters:
+ *           format: printf style format string.
+ *           ...: Additional variables for use in the format.
+ */
+void API dw_debug(char *format, ...)
+{
+   va_list args;
+   char outbuf[1024];
+
+   va_start(args, format);
+   vsprintf(outbuf, format, args);
+   va_end(args);
+   
+   fprintf(stderr, "%s", outbuf);
+}
 
 /*
  * Displays a Message Box with given text and title..

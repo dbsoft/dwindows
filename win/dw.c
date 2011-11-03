@@ -130,9 +130,7 @@ SECURITY_DESCRIPTOR _dwsd;
  * an alternate temporary directory if TMP is not set, so we get the value
  * of TEMP and store it here.
  */
-static char _dw_alternate_temp_dir[MAX_PATH];
-
-FILE *dbgfp = NULL;
+static char _dw_alternate_temp_dir[MAX_PATH+1];
 
 int main(int argc, char *argv[]);
 
@@ -212,18 +210,6 @@ SignalList SignalTranslate[SIGNALMAX] = {
    { LVN_COLUMNCLICK, DW_SIGNAL_COLUMN_CLICK },
    { TVN_ITEMEXPANDED,DW_SIGNAL_TREE_EXPAND }
 };
-
-static void _dw_log( char *format, ... )
-{
-   va_list args;
-   va_start(args, format);
-   if ( dbgfp != NULL )
-   {
-      vfprintf( dbgfp, format, args );
-      fflush( dbgfp );
-   }
-   va_end(args);
-}
 
 #ifdef BUILD_DLL
 void Win32_Set_Instance(HINSTANCE hInstance)
@@ -3739,13 +3725,7 @@ int API dw_init(int newthread, int argc, char *argv[])
    SetSecurityDescriptorDacl(&_dwsd, TRUE, (PACL) NULL, FALSE);
 
    OleInitialize(NULL);
-   /*
-    * Setup logging/debugging
-    */
-   if ( (fname = getenv( "DWINDOWS_DEBUGFILE" ) ) != NULL )
-   {
-      dbgfp = fopen( fname, "w" );
-   }
+   
    /*
     * Get an alternate temporary directory in case TMP doesn't exist
     */
@@ -3755,7 +3735,7 @@ int API dw_init(int newthread, int argc, char *argv[])
    }
    else
    {
-      strcpy( _dw_alternate_temp_dir, alttmpdir );
+      strncpy( _dw_alternate_temp_dir, alttmpdir, MAX_PATH );
    }
    /*
     * Get screen size. Used to make calls to dw_screen_width()
@@ -3920,6 +3900,24 @@ void * API dw_dialog_wait(DWDialog *dialog)
 }
 
 /*
+ * Displays a debug message on the console...
+ * Parameters:
+ *           format: printf style format string.
+ *           ...: Additional variables for use in the format.
+ */
+void API dw_debug(char *format, ...)
+{
+   va_list args;
+   char outbuf[1025] = {0};
+
+   va_start(args, format);
+   vsnprintf(outbuf, 1024, format, args);
+   va_end(args);
+   
+   OutputDebugString(outbuf);
+}
+
+/*
  * Displays a Message Box with given text and title..
  * Parameters:
  *           title: The title of the message box.
@@ -3933,7 +3931,7 @@ int API dw_messagebox(char *title, int flags, char *format, ...)
    int rc;
 
    va_start(args, format);
-   vsprintf(outbuf, format, args);
+   vsnprintf(outbuf, 1024, format, args);
    va_end(args);
 
    rc = MessageBox(HWND_DESKTOP, outbuf, title, flags);
@@ -4102,7 +4100,7 @@ LOGFONT _get_logfont(HDC hdc, char *fontname)
    int Italic, Bold;
    char *myFontName;
    int z, size = 9;
-   LOGFONT lf;
+   LOGFONT lf = {0};
 
    for(z=0;z<strlen(fontname);z++)
    {
@@ -4133,7 +4131,7 @@ LOGFONT _get_logfont(HDC hdc, char *fontname)
       myFontName[Italic] = 0;
    if(Bold)
       myFontName[Bold] = 0;
-   strcpy(lf.lfFaceName, myFontName);
+   strncpy(lf.lfFaceName, myFontName, sizeof(lf.lfFaceName)-1);
    free(myFontName);
    return lf;
 }
@@ -4236,7 +4234,7 @@ int API dw_window_set_font(HWND handle, char *fontname)
             cinfo = calloc(1, sizeof(ColorInfo));
             cinfo->fore = cinfo->back = -1;
 
-            strcpy(cinfo->fontname, fontname);
+            strncpy(cinfo->fontname, fontname, 127);
 
             cinfo->pOldProc = SubclassWindow(handle, _colorwndproc);
             SetWindowLongPtr(handle, GWLP_USERDATA, (LONG_PTR)cinfo);
@@ -4271,7 +4269,7 @@ char * API dw_font_choose(char *currfont)
 
    if(ChooseFont(&cf))
    {
-      str = (char *)malloc( 100 );
+      str = (char *)calloc( 101, 1 );
       if ( str )
       {
          int height;
@@ -4283,7 +4281,7 @@ char * API dw_font_choose(char *currfont)
             italic = " Italic";
          height = MulDiv(abs(lf.lfHeight), 72,  GetDeviceCaps (hdc, LOGPIXELSY));
          ReleaseDC(NULL, hdc);
-         sprintf( str, "%d.%s%s%s", height, lf.lfFaceName, bold, italic );
+         _snprintf( str, 100, "%d.%s%s%s", height, lf.lfFaceName, bold, italic );
       }
    }
    return str;
@@ -4318,7 +4316,7 @@ char * API dw_window_get_font(HWND handle)
    oldfont = (HFONT)SendMessage(handle, WM_GETFONT, 0, 0);
    if ( GetObject( oldfont, sizeof(lf), &lf ) )
    {
-      str = (char *)malloc( 100 );
+      str = (char *)calloc( 100, 1 );
       if ( str )
       {
          int height;
@@ -4330,7 +4328,7 @@ char * API dw_window_get_font(HWND handle)
             italic = " Italic";
          height = MulDiv(abs(lf.lfHeight), 72,  GetDeviceCaps (hdc, LOGPIXELSY));
          ReleaseDC(handle, hdc);
-         sprintf( str, "%d.%s%s%s", height, lf.lfFaceName, bold, italic );
+         _snprintf( str, 100, "%d.%s%s%s", height, lf.lfFaceName, bold, italic );
       }
    }
    if ( oldfont )
@@ -4820,7 +4818,7 @@ HWND API dw_menu_append_item(HMENUI menux, char *title, ULONG id, ULONG flags, i
 {
    MENUITEMINFO mii;
    HMENU mymenu = (HMENU)menux;
-   char buffer[30];
+   char buffer[31] = {0};
    int is_checked, is_disabled;
 
    /*
@@ -4902,13 +4900,13 @@ HWND API dw_menu_append_item(HMENUI menux, char *title, ULONG id, ULONG flags, i
 
    InsertMenuItem(mymenu, 65535, TRUE, &mii);
 
-   sprintf(buffer, "_dw_id%ld", id);
+   _snprintf(buffer, 30, "_dw_id%ld", id);
    dw_window_set_data( DW_HWND_OBJECT, buffer, (void *)mymenu );
-   sprintf(buffer, "_dw_checkable%ld", id);
+   _snprintf(buffer, 30, "_dw_checkable%ld", id);
    dw_window_set_data( DW_HWND_OBJECT, buffer, (void *)check );
-   sprintf(buffer, "_dw_ischecked%ld", id);
+   _snprintf(buffer, 30, "_dw_ischecked%ld", id);
    dw_window_set_data( DW_HWND_OBJECT, buffer, (void *)is_checked );
-   sprintf(buffer, "_dw_isdisabled%ld", id);
+   _snprintf(buffer, 30, "_dw_isdisabled%ld", id);
    dw_window_set_data( DW_HWND_OBJECT, buffer, (void *)is_disabled );
 
    if (submenu)
@@ -4960,7 +4958,7 @@ void API dw_menu_item_set_check(HMENUI menux, unsigned long id, int check)
    /*
     * Keep our internal state consistent
     */
-   sprintf( buffer, "_dw_ischecked%ld", id );
+   _snprintf( buffer, 30, "_dw_ischecked%ld", id );
    dw_window_set_data( DW_HWND_OBJECT, buffer, (void *)check );
 }
 
@@ -4976,16 +4974,16 @@ void API dw_menu_item_set_state( HMENUI menux, unsigned long id, unsigned long s
 {
    MENUITEMINFO mii;
    HMENU mymenu = (HMENU)menux;
-   char buffer1[30],buffer2[30];
+   char buffer1[31] = {0},buffer2[31] = {0};
    int check;
    int disabled;
 
    if (IsWindow(menux) && !IsMenu(mymenu))
       mymenu = (HMENU)dw_window_get_data(menux, "_dw_menu");
 
-   sprintf( buffer1, "_dw_ischecked%ld", id );
+   _snprintf( buffer1, 30, "_dw_ischecked%ld", id );
    check = (int)dw_window_get_data( DW_HWND_OBJECT, buffer1 );
-   sprintf( buffer2, "_dw_isdisabled%ld", id );
+   _snprintf( buffer2, 30, "_dw_isdisabled%ld", id );
    disabled = (int)dw_window_get_data( DW_HWND_OBJECT, buffer2 );
 
    memset( &mii, 0, sizeof(mii) );
@@ -6071,11 +6069,11 @@ void API dw_window_disable(HWND handle)
 {
    if(handle < (HWND)65536)
    {
-      char buffer[30];
+      char buffer[31] = {0};
       HMENU mymenu;
       ULONG id = (ULONG)handle;
       
-      sprintf(buffer, "_dw_id%ld", id);
+      _snprintf(buffer, 30, "_dw_id%ld", id);
       mymenu = (HMENU)dw_window_get_data(DW_HWND_OBJECT, buffer);
       
       if(mymenu && IsMenu(mymenu))
@@ -6094,11 +6092,11 @@ void API dw_window_enable(HWND handle)
 {
    if(handle < (HWND)65536)
    {
-      char buffer[30];
+      char buffer[31] = {0};
       HMENU mymenu;
       ULONG id = (ULONG)handle;
       
-      sprintf(buffer, "_dw_id%ld", id);
+      _snprintf(buffer, 30, "_dw_id%ld", id);
       mymenu = (HMENU)dw_window_get_data(DW_HWND_OBJECT, buffer);
       
       if(mymenu && IsMenu(mymenu))
@@ -7369,10 +7367,10 @@ void API dw_scrollbar_set_range(HWND handle, unsigned int range, unsigned int vi
  */
 void API dw_spinbutton_set_pos(HWND handle, long position)
 {
-   char tmpbuf[100];
+   char tmpbuf[101] = {0};
    ColorInfo *cinfo = (ColorInfo *)GetWindowLongPtr(handle, GWLP_USERDATA);
 
-   sprintf(tmpbuf, "%ld", position);
+   _snprintf(tmpbuf, 100, "%ld", position);
 
    if(cinfo && cinfo->buddy)
       SetWindowText(cinfo->buddy, tmpbuf);
@@ -8049,7 +8047,7 @@ void API dw_container_set_item(HWND handle, void *pointer, int column, int row, 
    ContainerInfo *cinfo = (ContainerInfo *)GetWindowLongPtr(handle, GWLP_USERDATA);
    ULONG *flags;
    LV_ITEM lvi;
-   char textbuffer[100], *destptr = textbuffer;
+   char textbuffer[101] = {0}, *destptr = textbuffer;
    int item = 0;
 
    if(pointer)
@@ -8091,7 +8089,7 @@ void API dw_container_set_item(HWND handle, void *pointer, int column, int row, 
    {
       ULONG tmp = *((ULONG *)data);
 
-      sprintf(textbuffer, "%lu", tmp);
+      _snprintf(textbuffer, 100, "%lu", tmp);
 
       lvi.pszText = textbuffer;
       lvi.cchTextMax = strlen(textbuffer);
@@ -9888,10 +9886,6 @@ DWTID API dw_thread_id(void)
 void API dw_exit(int exitcode)
 {
    OleUninitialize();
-   if ( dbgfp != NULL )
-   {
-      fclose( dbgfp );
-   }
    exit(exitcode);
 }
 
@@ -10230,8 +10224,8 @@ void _to_dos(char *dst, char *src)
 char * API dw_file_browse(char *title, char *defpath, char *ext, int flags)
 {
    OPENFILENAME of;
-   char filenamebuf[1001] = "";
-   char filterbuf[1000] = "";
+   char filenamebuf[1001] = {0};
+   char filterbuf[1001] = {0};
    int rc;
 
    BROWSEINFO bi;
@@ -10258,7 +10252,7 @@ char * API dw_file_browse(char *title, char *defpath, char *ext, int flags)
          {
             if (SHGetPathFromIDList(pidl,szDir))
             {
-               strcpy(filenamebuf,szDir);
+               strncpy(filenamebuf,szDir,1000);
             }
 
             // In C++: pMalloc->Free(pidl); pMalloc->Release();
@@ -10795,10 +10789,10 @@ void API dw_signal_connect(HWND window, char *signame, void *sigfunc, void *data
          /* Handle special case of the menu item */
          if (message == WM_COMMAND && window < (HWND)65536)
          {
-            char buffer[15];
+            char buffer[16];
             HWND owner;
 
-            sprintf(buffer, "_dw_id%d", (int)window);
+            _snprintf(buffer, 15, "_dw_id%d", (int)window);
             owner = (HWND)dw_window_get_data(DW_HWND_OBJECT, buffer);
 
             /* Make sure there are no dupes from popups */

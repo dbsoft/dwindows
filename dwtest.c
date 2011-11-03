@@ -610,7 +610,7 @@ int DWSIGNAL browse_file_callback(HWND window, void *data)
 int DWSIGNAL browse_folder_callback(HWND window, void *data)
 {
     char *tmp = dw_file_browse("Pick a folder", ".", "c", DW_DIRECTORY_OPEN );
-    printf("Folder picked: %s\n", tmp ? tmp : "None");
+    dw_debug("Folder picked: %s\n", tmp ? tmp : "None");
     return 0;
 }
 
@@ -781,11 +781,11 @@ int DWSIGNAL container_select_cb( HWND window, HTREEITEM item, char *text, void 
     /* Make the last inserted point the cursor location */
     dw_mle_set_cursor(container_mle, mle_point);
     /* set the details of item 0 to new data */
-    fprintf(stderr,"In cb: container: %x containerinfo: %x icon: %x\n", DW_POINTER_TO_INT(container), 
+    dw_debug("In cb: container: %x containerinfo: %x icon: %x\n", DW_POINTER_TO_INT(container), 
             DW_POINTER_TO_INT(containerinfo), DW_POINTER_TO_INT(fileicon));
     dw_filesystem_change_file(container, 0, "new data", fileicon);
     size = 999;
-    fprintf(stderr,"In cb: container: %x containerinfo: %x icon: %x\n", DW_POINTER_TO_INT(container), 
+    dw_debug("In cb: container: %x containerinfo: %x icon: %x\n", DW_POINTER_TO_INT(container), 
             DW_POINTER_TO_INT(containerinfo), DW_POINTER_TO_INT(fileicon));
     dw_filesystem_change_item(container, 1, 0, &size);
     return 0;
@@ -793,13 +793,8 @@ int DWSIGNAL container_select_cb( HWND window, HTREEITEM item, char *text, void 
 
 int DWSIGNAL switch_page_cb( HWND window, unsigned long page_num, void *itemdata )
 {
-    FILE *fp=fopen("log","a");
-    if ( fp )
-    {
-       fprintf(fp,"DW_SIGNAL_SWITCH_PAGE: Window: %x PageNum: %u Itemdata: %x\n", DW_POINTER_TO_UINT(window), 
-               DW_POINTER_TO_UINT(page_num), DW_POINTER_TO_UINT(itemdata) );
-       fclose(fp);
-    }
+    dw_debug("DW_SIGNAL_SWITCH_PAGE: Window: %x PageNum: %u Itemdata: %x\n", DW_POINTER_TO_UINT(window), 
+              DW_POINTER_TO_UINT(page_num), DW_POINTER_TO_UINT(itemdata) );
     return 0;
 }
 
@@ -835,7 +830,7 @@ int DWSIGNAL column_click_cb( HWND window, int column_num, void *data )
 
 int DWSIGNAL combobox_select_event_callback(HWND window, int index)
 {
-    fprintf(stderr,"got combobox_select_event for index: %d, iteration: %d\n", index, iteration++);
+    dw_debug("got combobox_select_event for index: %d, iteration: %d\n", index, iteration++);
     return FALSE;
 }
 
@@ -1123,8 +1118,8 @@ void container_add(void)
         sprintf(buffer, "Filename %d",z+1);
         if (z == 0 ) thisicon = foldericon;
         else thisicon = fileicon;
-        fprintf(stderr,"Initial: container: %x containerinfo: %x icon: %x\n", DW_POINTER_TO_INT(container),
-                DW_POINTER_TO_INT(containerinfo), DW_POINTER_TO_INT(thisicon));
+        dw_debug("Initial: container: %x containerinfo: %x icon: %x\n", DW_POINTER_TO_INT(container),
+                  DW_POINTER_TO_INT(containerinfo), DW_POINTER_TO_INT(thisicon));
         dw_filesystem_set_file(container, containerinfo, z, buffer, thisicon);
         dw_filesystem_set_item(container, containerinfo, 0, z, &thisicon);
         dw_filesystem_set_item(container, containerinfo, 1, z, &size);
@@ -1233,13 +1228,13 @@ void buttons_add(void)
     dw_signal_connect( combobox1, DW_SIGNAL_LIST_SELECT, DW_SIGNAL_FUNC(combobox_select_event_callback), NULL );
 #if 0
     /* add LOTS of items */
-    fprintf(stderr,"before appending 100 items to combobox using dw_listbox_append()\n");
+    dw_debug("before appending 100 items to combobox using dw_listbox_append()\n");
     for( i = 0; i < 100; i++ )
     {
         sprintf( buf, "item %d", i);
         dw_listbox_append( combobox1, buf );
     }
-    fprintf(stderr,"after appending 100 items to combobox\n");
+    dw_debug("after appending 100 items to combobox\n");
 #endif
 
     combobox2 = dw_combobox_new( "joe", 0 ); /* no point in specifying an initial value */
@@ -1249,7 +1244,7 @@ void buttons_add(void)
      */
     dw_signal_connect( combobox2, DW_SIGNAL_LIST_SELECT, DW_SIGNAL_FUNC(combobox_select_event_callback), NULL );
     /* add LOTS of items */
-    fprintf(stderr,"before appending 500 items to combobox using dw_listbox_list_append()\n");
+    dw_debug("before appending 500 items to combobox using dw_listbox_list_append()\n");
     text = (char **)malloc(500*sizeof(char *));
     for( i = 0; i < 500; i++ )
     {
@@ -1257,7 +1252,7 @@ void buttons_add(void)
         sprintf( text[i], "item %d", i);
     }
     dw_listbox_list_append( combobox2, text, 500 );
-    fprintf(stderr,"after appending 500 items to combobox\n");
+    dw_debug("after appending 500 items to combobox\n");
     for( i = 0; i < 500; i++ )
     {
         free(text[i]);
@@ -1384,7 +1379,7 @@ int DWSIGNAL scrollbox_button_callback(HWND window, void *data)
 
     pos = dw_scrollbox_get_pos( scrollbox, DW_VERT );
     range = dw_scrollbox_get_range( scrollbox, DW_VERT );
-    fprintf( stderr, "Pos %d Range %d\n", pos, range );
+    dw_debug("Pos %d Range %d\n", pos, range );
     return 0;
 }
 

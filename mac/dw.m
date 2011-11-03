@@ -3029,6 +3029,24 @@ char *dw_user_dir(void)
 }
 
 /*
+ * Displays a debug message on the console...
+ * Parameters:
+ *           format: printf style format string.
+ *           ...: Additional variables for use in the format.
+ */
+void API dw_debug(char *format, ...)
+{
+   va_list args;
+   char outbuf[1025] = {0};
+
+   va_start(args, format);
+   vsnprintf(outbuf, 1024, format, args);
+   va_end(args);
+   
+   NSLog(@"%s", outbuf);
+}
+   
+/*
  * Displays a Message Box with given text and title..
  * Parameters:
  *           title: The title of the message box.
@@ -3043,10 +3061,10 @@ int API dw_messagebox(char *title, int flags, char *format, ...)
     NSString *button2 = nil;
     NSString *button3 = nil;
     va_list args;
-    char outbuf[1000];
+    char outbuf[1025] = {0};
 
     va_start(args, format);
-    vsprintf(outbuf, format, args);
+    vsnprintf(outbuf, 1024, format, args);
     va_end(args);
 
     if(flags & DW_MB_OKCANCEL)
@@ -5794,13 +5812,13 @@ void API dw_container_set_item(HWND handle, void *pointer, int column, int row, 
     }
     else
     {
-        char textbuffer[100];
+        char textbuffer[101] = {0};
 
         if(type & DW_CFA_ULONG)
         {
             ULONG tmp = *((ULONG *)data);
 
-            sprintf(textbuffer, "%lu", tmp);
+            snprintf(textbuffer, 100, "%lu", tmp);
         }
         else if(type & DW_CFA_DATE)
         {
@@ -6866,9 +6884,9 @@ void dw_calendar_set_date(HWND handle, unsigned int year, unsigned int month, un
 {
     DWCalendar *calendar = handle;
     NSDate *date;
-    char buffer[100];
+    char buffer[101];
 
-    sprintf(buffer, "%04d-%02d-%02d 00:00:00 +0600", year, month, day);
+    snprintf(buffer, 100, "%04d-%02d-%02d 00:00:00 +0600", year, month, day);
 
     date = [[NSDate alloc] initWithString:[ NSString stringWithUTF8String:buffer ]];
     [calendar setDateValue:date];
@@ -8795,7 +8813,7 @@ int dw_module_load(char *name, HMOD *handle)
 {
    int len;
    char *newname;
-   char errorbuf[1024];
+   char errorbuf[1025];
 
 
    if(!handle)
@@ -9556,11 +9574,11 @@ int API dw_init(int newthread, int argc, char *argv[])
  */
 HSHM dw_named_memory_new(void **dest, int size, char *name)
 {
-   char namebuf[1024];
+   char namebuf[1025] = {0};
    struct _dw_unix_shm *handle = malloc(sizeof(struct _dw_unix_shm));
 
    mkdir("/tmp/.dw", S_IWGRP|S_IWOTH);
-   sprintf(namebuf, "/tmp/.dw/%s", name);
+   snprintf(namebuf, 1024, "/tmp/.dw/%s", name);
 
    if((handle->fd = open(namebuf, O_CREAT | O_RDWR, S_IRUSR | S_IWUSR)) < 0)
    {
@@ -9597,11 +9615,11 @@ HSHM dw_named_memory_new(void **dest, int size, char *name)
  */
 HSHM dw_named_memory_get(void **dest, int size, char *name)
 {
-   char namebuf[1024];
+   char namebuf[1025];
    struct _dw_unix_shm *handle = malloc(sizeof(struct _dw_unix_shm));
 
    mkdir("/tmp/.dw", S_IWGRP|S_IWOTH);
-   sprintf(namebuf, "/tmp/.dw/%s", name);
+   snprintf(namebuf, 1024, "/tmp/.dw/%s", name);
 
    if((handle->fd = open(namebuf, O_RDWR)) < 0)
    {
