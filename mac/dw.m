@@ -3129,8 +3129,10 @@ char * API dw_file_browse(char *title, char *defpath, char *ext, int flags)
     char temp[PATH_MAX+1];
     char *file = NULL, *path = NULL;
     
-    /* Figure out path information */
-    if(defpath)
+    /* Figure out path information...
+     * These functions are only support in Snow Leopard and later...
+     */
+    if(defpath && DWOSMinor > 5)
     {
         struct stat buf;
         
