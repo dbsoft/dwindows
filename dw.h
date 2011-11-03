@@ -1391,6 +1391,8 @@ typedef void *HPRINT;
 
 #define DW_MENU_SEPARATOR ""
 #define DW_NOMENU 0
+#define DW_MENU_AUTO 0
+#define DW_MENU_POPUP (unsigned long)-1
 
 #define DW_PERCENT_INDETERMINATE ((unsigned int)-1)
 
