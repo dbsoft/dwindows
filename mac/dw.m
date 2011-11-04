@@ -632,6 +632,7 @@ DWObject *DWObj;
     UserData *root = userdata;
     free(box);
     _remove_userdata(&root, NULL, TRUE);
+    dw_signal_disconnect_by_window(self);
     [super dealloc];
 }
 -(Box *)box { return box; }
@@ -777,7 +778,7 @@ DWObject *DWObj;
 -(void)drawRect:(NSRect)rect { _event_handler(self, nil, 7); }
 -(void)keyDown:(NSEvent *)theEvent { _event_handler(self, theEvent, 2); }
 -(BOOL)isFlipped { return YES; }
--(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); [font release]; [super dealloc]; }
+-(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); [font release]; dw_signal_disconnect_by_window(self); [super dealloc]; }
 -(BOOL)acceptsFirstResponder { return YES; }
 @end
 
@@ -816,6 +817,7 @@ DWObject *DWObj;
         [windowmenu release];
     }
     [[NSNotificationCenter defaultCenter] removeObserver:self];
+    dw_signal_disconnect_by_window(self);
     [super dealloc];
 }
 - (void)windowResized:(NSNotification *)notification;
@@ -919,7 +921,7 @@ DWObject *DWObj;
 -(NSButtonType)buttonType { return buttonType; }
 -(void)setParent:(DWBox *)input { parent = input; }
 -(DWBox *)parent { return parent; }
--(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); [super dealloc]; }
+-(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); dw_signal_disconnect_by_window(self); [super dealloc]; }
 @end
 
 /* Subclass for a progress type */
@@ -934,7 +936,16 @@ DWObject *DWObj;
 @implementation DWPercent
 -(void *)userdata { return userdata; }
 -(void)setUserdata:(void *)input { userdata = input; }
--(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); [super dealloc]; }
+-(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); dw_signal_disconnect_by_window(self); [super dealloc]; }
+@end
+
+/* Subclass for a menu item type */
+@interface DWMenuItem : NSMenuItem { }
+-(void)dealloc;
+@end
+
+@implementation DWMenuItem
+-(void)dealloc { dw_signal_disconnect_by_window(self); [super dealloc]; }
 @end
 
 /* Subclass for a scrollbox type */
@@ -954,7 +965,7 @@ DWObject *DWObj;
 -(void)setUserdata:(void *)input { userdata = input; }
 -(void)setBox:(void *)input { box = input; }
 -(id)box { return box; }
--(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); [super dealloc]; }
+-(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); dw_signal_disconnect_by_window(self); [super dealloc]; }
 @end
 
 /* Subclass for a textfield that supports vertical centering */
@@ -1073,7 +1084,7 @@ DWObject *DWObj;
     }
     return [super performKeyEquivalent:theEvent];
 }
--(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); [super dealloc]; }
+-(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); dw_signal_disconnect_by_window(self); [super dealloc]; }
 @end
 
 /* Subclass for a entryfield password type */
@@ -1120,7 +1131,7 @@ DWObject *DWObj;
     }
     return [super performKeyEquivalent:theEvent];
 }
--(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); [super dealloc]; }
+-(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); dw_signal_disconnect_by_window(self); [super dealloc]; }
 @end
 
 /* Subclass for a Notebook control type */
@@ -1171,7 +1182,7 @@ DWObject *DWObj;
     }
     _event_handler(self, DW_INT_TO_POINTER([page pageid]), 15);
 }
--(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); [super dealloc]; }
+-(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); dw_signal_disconnect_by_window(self); [super dealloc]; }
 @end
 
 @implementation DWNotebookPage
@@ -1179,7 +1190,7 @@ DWObject *DWObj;
 -(void)setUserdata:(void *)input { userdata = input; }
 -(int)pageid { return pageid; }
 -(void)setPageid:(int)input { pageid = input; }
--(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); [super dealloc]; }
+-(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); dw_signal_disconnect_by_window(self); [super dealloc]; }
 @end
 
 /* Subclass for a color chooser type */
@@ -1263,7 +1274,7 @@ DWObject *DWObj;
 -(void)setUserdata:(void *)input { userdata = input; }
 -(float)percent { return percent; }
 -(void)setPercent:(float)input { percent = input; }
--(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); [super dealloc]; }
+-(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); dw_signal_disconnect_by_window(self); [super dealloc]; }
 @end
 
 /* Subclass for a slider type */
@@ -1280,7 +1291,7 @@ DWObject *DWObj;
 -(void *)userdata { return userdata; }
 -(void)setUserdata:(void *)input { userdata = input; }
 -(void)sliderChanged:(id)sender { _event_handler(self, (void *)[self integerValue], 14); }
--(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); [super dealloc]; }
+-(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); dw_signal_disconnect_by_window(self); [super dealloc]; }
 @end
 
 /* Subclass for a slider type */
@@ -1354,7 +1365,7 @@ DWObject *DWObj;
     }
     _event_handler(self, DW_INT_TO_POINTER((int)newpos), 14);
 }
--(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); [super dealloc]; }
+-(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); dw_signal_disconnect_by_window(self); [super dealloc]; }
 @end
 
 /* Subclass for a MLE type */
@@ -1369,7 +1380,7 @@ DWObject *DWObj;
 @implementation DWMLE
 -(void *)userdata { return userdata; }
 -(void)setUserdata:(void *)input { userdata = input; }
--(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); [super dealloc]; }
+-(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); dw_signal_disconnect_by_window(self); [super dealloc]; }
 @end
 
 /* Subclass NSTextFieldCell for displaying image and text */
@@ -1833,7 +1844,7 @@ DWObject *DWObj;
     _event_handler(self, (NSEvent *)[self getRowTitle:row], 10);
     return nil;
 }
--(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); [super dealloc]; }
+-(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); dw_signal_disconnect_by_window(self); [super dealloc]; }
 @end
 
 /* Dive into the tree freeing all desired child nodes */
@@ -2074,6 +2085,7 @@ void _free_tree_recurse(NSMutableArray *node, NSMutableArray *item)
     _remove_userdata(&root, NULL, TRUE);
     _free_tree_recurse(data, NULL);
     [treecol release];
+    dw_signal_disconnect_by_window(self);
     [super dealloc];
 }
 @end
@@ -2090,7 +2102,7 @@ void _free_tree_recurse(NSMutableArray *node, NSMutableArray *item)
 @implementation DWCalendar
 -(void *)userdata { return userdata; }
 -(void)setUserdata:(void *)input { userdata = input; }
--(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); [super dealloc]; }
+-(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); dw_signal_disconnect_by_window(self); [super dealloc]; }
 @end
 
 /* Subclass for a Combobox type */
@@ -2123,7 +2135,7 @@ void _free_tree_recurse(NSMutableArray *node, NSMutableArray *item)
         [super keyUp:theEvent];
     }
 }
--(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); [super dealloc]; }
+-(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); dw_signal_disconnect_by_window(self); [super dealloc]; }
 @end
 
 /* Subclass for a stepper component of the spinbutton type */
@@ -2220,7 +2232,7 @@ void _free_tree_recurse(NSMutableArray *node, NSMutableArray *item)
     }
 }
 -(void)performClick:(id)sender { [textfield performClick:sender]; }
--(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); [super dealloc]; }
+-(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); dw_signal_disconnect_by_window(self); [super dealloc]; }
 @end
 
 /* Subclass for a MDI type
@@ -7134,10 +7146,10 @@ HWND API dw_menu_append_item(HMENUI menux, char *title, ULONG itemid, ULONG flag
 {
     NSMenu *menu = menux;
     NSMenu *submenu = submenux;
-    NSMenuItem *item = NULL;
+    DWMenuItem *item = NULL;
     if(strlen(title) == 0)
     {
-        [menu addItem:[NSMenuItem separatorItem]];
+        [menu addItem:[DWMenuItem separatorItem]];
     }
     else
     {
@@ -7151,9 +7163,11 @@ HWND API dw_menu_append_item(HMENUI menux, char *title, ULONG itemid, ULONG flag
         nstr = [ NSString stringWithUTF8String:newtitle ];
         free(newtitle);
 
-        item = [menu addItemWithTitle:  nstr
-                                        action:@selector(menuHandler:)
-                                        keyEquivalent:[ NSString stringWithUTF8String:accel ]];
+        item = [[DWMenuItem alloc] initWithTitle:nstr
+                            action:@selector(menuHandler:)
+                            keyEquivalent:[ NSString stringWithUTF8String:accel ]];
+        [menu addItem:item];
+        
         [item setTag:itemid];
         if(flags & DW_MIS_CHECKED)
         {
