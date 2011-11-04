@@ -4761,12 +4761,12 @@ HWND API dw_menu_append_item(HMENUI menux, char *title, ULONG id, ULONG flags, i
          
          if(tempid > 65500)
             tempid = 61000;
-	  }
+      }
       /* Special internal case */
-	  else if(id > 60000 && check == -1)
-	  {
+      else if(id > 60000 && check == -1)
+      {
           check = 0;
-	  }
+      }
       /* Second pool is larger for more static windows */
       else if(!id || id >= 30000)
       {
