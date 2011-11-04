@@ -3005,6 +3005,7 @@ void API dw_main_iteration(void)
  */
 void API dw_exit(int exitcode)
 {
+    _dw_pool_drain();
     exit(exitcode);
 }
 
@@ -3413,6 +3414,7 @@ HWND API dw_groupbox_new(int type, int pad, char *title)
     [groupbox setTitle:[NSString stringWithUTF8String:title]];
     box->grouphwnd = groupbox;
     [groupbox setContentView:thisbox];
+    [thisbox autorelease];
     return groupbox;
 }
 
@@ -3434,6 +3436,7 @@ HWND API dw_scrollbox_new( int type, int pad )
     [scrollbox setDrawsBackground:NO];
     [scrollbox setBox:box];
     [scrollbox setDocumentView:tmpbox];
+    [tmpbox autorelease];
     return scrollbox;
 }
 
@@ -3597,6 +3600,10 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
 
     /* Add the item to the box */
     [view addSubview:this];
+    /* Enable autorelease on the item...
+     * so it will get destroyed when the parent is.
+     */
+    [this autorelease];
     /* If we are packing a button... */
     if([this isMemberOfClass:[DWButton class]])
     {
@@ -3840,6 +3847,8 @@ HWND API dw_spinbutton_new(char *text, ULONG cid)
     [stepper setMaxValue:65536];
     [stepper setIntValue:atoi(text)];
     [textfield takeIntValueFrom:stepper];
+    [stepper autorelease];
+    [textfield autorelease];
     return spinbutton;
 }
 
@@ -4132,6 +4141,7 @@ HWND _cont_new(ULONG cid, int multi)
     [cont setDelegate:cont];
     [scrollview setDocumentView:cont];
     [cont setTag:cid];
+    [cont autorelease];
     return cont;
 }
 
@@ -4586,7 +4596,7 @@ HWND API dw_mle_new(ULONG cid)
     [scrollview setDocumentView:mle];
     [mle setAutoresizingMask:NSViewWidthSizable];
     /* [mle setTag:cid]; Why doesn't this work? */
-    [mle release];
+    [mle autorelease];
     return scrollview;
 }
 
@@ -5433,6 +5443,7 @@ HWND API dw_tree_new(ULONG cid)
     [scrollview setDocumentView:tree];
     [tree setHeaderView:nil];
     [tree setTag:cid];
+    [tree autorelease];
     DW_MUTEX_UNLOCK;
     return tree;
 }
@@ -6436,16 +6447,18 @@ HWND API dw_mdi_new(unsigned long cid)
  */
 HWND API dw_splitbar_new(int type, HWND topleft, HWND bottomright, unsigned long cid)
 {
-    HWND tmpbox = dw_box_new(DW_VERT, 0);
+    id tmpbox = dw_box_new(DW_VERT, 0);
     int _locked_by_me = FALSE;
     DW_MUTEX_LOCK;
     DWSplitBar *split = [[DWSplitBar alloc] init];
     [split setDelegate:split];
     dw_box_pack_start(tmpbox, topleft, 0, 0, TRUE, TRUE, 0);
     [split addSubview:tmpbox];
+    [tmpbox autorelease];
     tmpbox = dw_box_new(DW_VERT, 0);
     dw_box_pack_start(tmpbox, bottomright, 0, 0, TRUE, TRUE, 0);
     [split addSubview:tmpbox];
+    [tmpbox autorelease];
     if(type == DW_VERT)
     {
         [split setVertical:NO];
@@ -7049,7 +7062,7 @@ void API dw_pointer_set_pos(long x, long y)
  */
 HMENUI API dw_menu_new(ULONG cid)
 {
-    NSMenu *menu = [[[NSMenu alloc] init] autorelease];
+    NSMenu *menu = [[NSMenu alloc] init];
     [menu setAutoenablesItems:NO];
     /* [menu setTag:cid]; Why doesn't this work? */
     return menu;
@@ -7096,6 +7109,7 @@ void API dw_menu_popup(HMENUI *menu, HWND parent, int x, int y)
     NSEvent *event = [DWApp currentEvent];
     if(!window)
         window = [event window];
+    [thismenu autorelease];
     NSPoint p = NSMakePoint(x, [[NSScreen mainScreen] frame].size.height - y);
     NSEvent* fake = [NSEvent mouseEventWithType:NSRightMouseDown
                                        location:[window convertScreenToBase:p]
@@ -7163,9 +7177,9 @@ HWND API dw_menu_append_item(HMENUI menux, char *title, ULONG itemid, ULONG flag
         nstr = [ NSString stringWithUTF8String:newtitle ];
         free(newtitle);
 
-        item = [[DWMenuItem alloc] initWithTitle:nstr
+        item = [[[DWMenuItem alloc] initWithTitle:nstr
                             action:@selector(menuHandler:)
-                            keyEquivalent:[ NSString stringWithUTF8String:accel ]];
+                            keyEquivalent:[ NSString stringWithUTF8String:accel ]] autorelease];
         [menu addItem:item];
         
         [item setTag:itemid];
@@ -7297,6 +7311,7 @@ unsigned long API dw_notebook_page_new(HWND handle, ULONG flags, int front)
     {
         [notebook addTabViewItem:notepage];
     }
+    [notepage autorelease];
     [notebook setPageid:(int)(page+1)];
     return (unsigned long)page;
 }
@@ -7938,7 +7953,7 @@ int API dw_window_destroy(HWND handle)
     /* Handle destroying a top-levle window */
     if([ object isKindOfClass:[ NSWindow class ] ])
     {
-        NSWindow *window = handle;
+        DWWindow *window = handle;
         [window close];
     }
     /* Handle destroying a control or box */
