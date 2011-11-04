@@ -6363,7 +6363,19 @@ void API dw_window_get_pos_size(HWND handle, LONG *x, LONG *y, ULONG *width, ULO
  */
 void API dw_window_set_style(HWND handle, ULONG style, ULONG mask)
 {
-   WinSetWindowBits(handle, QWL_STYLE, style, mask);
+   if(handle < 65536)
+   {
+      char buffer[30];
+      HMENUI mymenu;
+      
+      sprintf(buffer, "_dw_id%ld", handle);
+      mymenu = (HMENUI)dw_window_get_data(hwndApp, buffer);
+      
+      if(mymenu && WinIsWindow(dwhab, mymenu))
+          dw_menu_item_set_state(mymenu, handle, style & mask);
+   }
+   else
+      WinSetWindowBits(handle, QWL_STYLE, style, mask);
 }
 
 /*

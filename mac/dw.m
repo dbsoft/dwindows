@@ -7708,6 +7708,23 @@ void API dw_window_set_style(HWND handle, ULONG style, ULONG mask)
             }
         }
     }
+    else if([object isMemberOfClass:[DWMenuItem class]])
+    {
+        if(mask & (DW_MIS_CHECKED | DW_MIS_UNCHECKED))
+        {
+            if(style & DW_MIS_CHECKED)
+                [object setState:NSOnState];
+            else if(style & DW_MIS_UNCHECKED)
+                [object setState:NSOffState];
+        }
+        if(mask & (DW_MIS_ENABLED | DW_MIS_DISABLED))
+        {
+            if(style & DW_MIS_ENABLED)
+                [object setEnabled:YES];
+            else if(style & DW_MIS_DISABLED)
+                [object setEnabled:NO];
+        }
+    }
 }
 
 /*
