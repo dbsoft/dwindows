@@ -4729,7 +4729,7 @@ HWND API dw_menu_append_item(HMENUI menux, char *title, ULONG id, ULONG flags, i
    char buffer[30];
    int is_checked, is_disabled;
 
-   if ( !menux || id > 65536 )
+   if ( !menux || !WinIsWindow(dwhab, menux) )
       return NULLHANDLE;
 
    if ( end )
