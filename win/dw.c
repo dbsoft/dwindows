@@ -4825,7 +4825,7 @@ void API dw_menu_destroy(HMENUI *menu)
 /* Internal function to make sure menu ID isn't in use */
 int _menuid_allocated(int id)
 {
-   SignalHandler *prev = NULL, *tmp = Root;
+   SignalHandler *tmp = Root;
 
    while(tmp)
    {
