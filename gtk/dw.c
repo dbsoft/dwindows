@@ -10253,6 +10253,27 @@ void dw_window_set_style(HWND handle, unsigned long style, unsigned long mask)
       if ( style & DW_DT_WORDBREAK )
          gtk_label_set_line_wrap( GTK_LABEL(handle), TRUE );
    }
+   if ( GTK_IS_CHECK_MENU_ITEM(handle2) && (mask & (DW_MIS_CHECKED | DW_MIS_UNCHECKED)) )
+   {
+      int check = 0;
+      
+      if ( style & DW_MIS_CHECKED )
+         check = 1;
+
+      _dw_ignore_click = 1;
+      if(gtk_check_menu_item_get_active(GTK_CHECK_MENU_ITEM(handle2)) != check)
+         gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(handle2), check);
+      _dw_ignore_click = 0;
+   }
+   if ( (GTK_IS_CHECK_MENU_ITEM(handle2) || GTK_IS_MENU_ITEM(handle2)) && (mask & (DW_MIS_ENABLED | DW_MIS_DISABLED) ))
+   {
+      _dw_ignore_click = 1;
+      if ( style & DW_MIS_ENABLED )
+         gtk_widget_set_sensitive( handle2, TRUE );
+      else
+         gtk_widget_set_sensitive( handle2, FALSE );
+      _dw_ignore_click = 0;
+   }
    DW_MUTEX_UNLOCK;
 }
 

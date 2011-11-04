@@ -6484,13 +6484,29 @@ void API dw_window_get_pos_size(HWND handle, long *x, long *y, ULONG *width, ULO
  */
 void API dw_window_set_style(HWND handle, ULONG style, ULONG mask)
 {
-   ULONG tmp, currentstyle = GetWindowLong(handle, GWL_STYLE);
-   ColorInfo *cinfo = (ColorInfo *)GetWindowLongPtr(handle, GWLP_USERDATA);
+   ULONG tmp, currentstyle;
+   ColorInfo *cinfo;
+   
+   if(handle < (HWND)65536)
+   {
+      char buffer[31] = {0};
+      HMENU mymenu;
+      ULONG id = (ULONG)handle;
+      
+      _snprintf(buffer, 30, "_dw_id%ld", id);
+      mymenu = (HMENU)dw_window_get_data(DW_HWND_OBJECT, buffer);
+      
+      if(mymenu && IsMenu(mymenu))
+         dw_menu_item_set_state((HMENUI)mymenu, id, style & mask);
+      return;
+   }
+   
+   currentstyle = GetWindowLong(handle, GWL_STYLE);
+   cinfo = (ColorInfo *)GetWindowLongPtr(handle, GWLP_USERDATA);
 
    tmp = currentstyle | mask;
    tmp ^= mask;
    tmp |= style;
-
 
    /* We are using SS_NOPREFIX as a VCENTER flag */
    if(tmp & SS_NOPREFIX)
