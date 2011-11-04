@@ -1794,11 +1794,11 @@ void _click_default(HWND handle)
       WinSetFocus(HWND_DESKTOP, handle);
 }
 
-#define ENTRY_CUT   1001
-#define ENTRY_COPY  1002
-#define ENTRY_PASTE 1003
-#define ENTRY_UNDO  1004
-#define ENTRY_SALL  1005
+#define ENTRY_CUT   60901
+#define ENTRY_COPY  60902
+#define ENTRY_PASTE 60903
+#define ENTRY_UNDO  60904
+#define ENTRY_SALL  60905
 
 /* Originally just intended for entryfields, it now serves as a generic
  * procedure for handling TAB presses to change input focus on controls.
@@ -1829,17 +1829,17 @@ MRESULT EXPENTRY _entryproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 
             if(strncmp(tmpbuf, "#10", 4)==0 && !WinSendMsg(hWnd, MLM_QUERYREADONLY, 0, 0))
             {
-               dw_menu_append_item(hwndMenu, "Undo", ENTRY_UNDO, 0L, TRUE, FALSE, 0L);
-               dw_menu_append_item(hwndMenu, "", 0L, 0L, TRUE, FALSE, 0L);
+               dw_menu_append_item(hwndMenu, "Undo", ENTRY_UNDO, 0L, TRUE, -1, 0L);
+               dw_menu_append_item(hwndMenu, "", 0L, 0L, TRUE, -1, 0L);
             }
-            dw_menu_append_item(hwndMenu, "Copy", ENTRY_COPY, 0L, TRUE, FALSE, 0L);
+            dw_menu_append_item(hwndMenu, "Copy", ENTRY_COPY, 0L, TRUE, -1, 0L);
             if((strncmp(tmpbuf, "#10", 4)!=0  && !dw_window_get_data(hWnd, "_dw_disabled")) || (strncmp(tmpbuf, "#10", 4)==0 && !WinSendMsg(hWnd, MLM_QUERYREADONLY, 0, 0)))
             {
-               dw_menu_append_item(hwndMenu, "Cut", ENTRY_CUT, 0L, TRUE, FALSE, 0L);
-               dw_menu_append_item(hwndMenu, "Paste", ENTRY_PASTE, 0L, TRUE, FALSE, 0L);
+               dw_menu_append_item(hwndMenu, "Cut", ENTRY_CUT, 0L, TRUE, -1, 0L);
+               dw_menu_append_item(hwndMenu, "Paste", ENTRY_PASTE, 0L, TRUE, -1, 0L);
             }
-            dw_menu_append_item(hwndMenu, "", 0L, 0L, TRUE, FALSE, 0L);
-            dw_menu_append_item(hwndMenu, "Select All", ENTRY_SALL, 0L, TRUE, FALSE, 0L);
+            dw_menu_append_item(hwndMenu, "", 0L, 0L, TRUE, -1, 0L);
+            dw_menu_append_item(hwndMenu, "Select All", ENTRY_SALL, 0L, TRUE, -1, 0L);
 
             WinSetFocus(HWND_DESKTOP, hWnd);
             dw_pointer_query_pos(&x, &y);
@@ -4761,7 +4761,12 @@ HWND API dw_menu_append_item(HMENUI menux, char *title, ULONG id, ULONG flags, i
          
          if(tempid > 65500)
             tempid = 61000;
-      }
+	  }
+      /* Special internal case */
+	  else if(id > 60000 && check == -1)
+	  {
+          check = 0;
+	  }
       /* Second pool is larger for more static windows */
       else if(!id || id >= 30000)
       {
