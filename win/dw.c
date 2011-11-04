@@ -644,10 +644,29 @@ void _free_menu_data(HMENU menu)
         MENUITEMINFO mii;
 
         mii.cbSize = sizeof(MENUITEMINFO);
-        mii.fMask = MIIM_SUBMENU;
+        mii.fMask = MIIM_SUBMENU | MIIM_ID;
 
-        if ( GetMenuItemInfo( menu, i, TRUE, &mii ) && mii.hSubMenu )
-            _free_menu_data(mii.hSubMenu);
+        if ( GetMenuItemInfo( menu, i, TRUE, &mii ) )
+        {  
+           /* Free the data associated with the ID */
+           if(mii.wID >= 30000)
+           {
+              char buffer[31] = {0};
+           
+              _snprintf(buffer, 30, "_dw_id%ld", mii.wID);
+              dw_window_set_data( DW_HWND_OBJECT, buffer, NULL );
+              _snprintf(buffer, 30, "_dw_checkable%ld", mii.wID);
+              dw_window_set_data( DW_HWND_OBJECT, buffer, NULL );
+              _snprintf(buffer, 30, "_dw_ischecked%ld", mii.wID);
+              dw_window_set_data( DW_HWND_OBJECT, buffer, NULL );
+              _snprintf(buffer, 30, "_dw_isdisabled%ld", mii.wID);
+              dw_window_set_data( DW_HWND_OBJECT, buffer, NULL );
+           }
+           
+           /* Check any submenus */
+           if( mii.hSubMenu )
+              _free_menu_data(mii.hSubMenu);
+        }
     }
     dw_signal_disconnect_by_name((HWND)menu, DW_SIGNAL_CLICKED);
 }
@@ -4803,6 +4822,20 @@ void API dw_menu_destroy(HMENUI *menu)
    }
 }
 
+/* Internal function to make sure menu ID isn't in use */
+int _menuid_allocated(int id)
+{
+   SignalHandler *prev = NULL, *tmp = Root;
+
+   while(tmp)
+   {
+     if(tmp->id == id)
+        return TRUE;   
+     tmp = tmp->next;
+   }
+   return FALSE;
+}
+
 /*
  * Adds a menuitem or submenu to an existing menu.
  * Parameters:
@@ -4864,12 +4897,15 @@ HWND API dw_menu_append_item(HMENUI menux, char *title, ULONG id, ULONG flags, i
       else if(!id || id >= 30000)
       {
          static ULONG menuid = 30000;
-         
-         menuid++;
+
+         do
+         {
+            menuid++;
+            if(menuid > 60000)
+               menuid = 30000;
+         }
+         while(_menuid_allocated(menuid));
          id = menuid;
-         
-         if(menuid > 60000)
-            menuid = 30000;
       }
       mii.fType = MFT_STRING;
    }
@@ -10824,9 +10860,9 @@ void API dw_signal_disconnect_by_name(HWND window, char *signame)
 
    while(tmp)
    {
-      if(tmp->window == window && tmp->message == message)
+      if(((window < (HWND)65536 && (int)window == tmp->id) || tmp->window == window) && tmp->message == message)
       {
-         if(prev)
+        if(prev)
          {
             prev->next = tmp->next;
             free(tmp);
@@ -10858,7 +10894,7 @@ void API dw_signal_disconnect_by_window(HWND window)
 
    while(tmp)
    {
-      if(tmp->window == window)
+      if((window < (HWND)65536 && (int)window == tmp->id) || tmp->window == window)
       {
          if(prev)
          {
@@ -10893,9 +10929,9 @@ void API dw_signal_disconnect_by_data(HWND window, void *data)
 
    while(tmp)
    {
-      if(tmp->window == window && tmp->data == data)
+      if(((window < (HWND)65536 && (int)window == tmp->id) || tmp->window == window) && tmp->data == data)
       {
-         if(prev)
+        if(prev)
          {
             prev->next = tmp->next;
             free(tmp);

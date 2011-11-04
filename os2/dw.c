@@ -459,6 +459,22 @@ void _free_menu_data(HWND menu)
       SHORT menuid = (SHORT)WinSendMsg(menu, MM_ITEMIDFROMPOSITION, MPFROMSHORT(i), 0);
       MENUITEM mi;
 
+      /* Free the data associated with the ID */
+      if(menuid >= 30000)
+      {
+         char buffer[31] = {0};
+       
+         sprintf(buffer, "_dw_id%ld", menuid);
+         dw_window_set_data( hwndApp, buffer, NULL );
+         sprintf(buffer, "_dw_checkable%ld", menuid);
+         dw_window_set_data( hwndApp, buffer, NULL );
+         sprintf(buffer, "_dw_ischecked%ld", menuid);
+         dw_window_set_data( hwndApp, buffer, NULL );
+         sprintf(buffer, "_dw_isdisabled%ld", menuid);
+         dw_window_set_data( hwndApp, buffer, NULL );
+      }
+      
+      /* Check any submenus */
       if(WinSendMsg(menu, MM_QUERYITEM, MPFROMSHORT(menuid), MPFROMP(&mi))
          && mi.hwndSubMenu)
          _free_menu_data(mi.hwndSubMenu);
@@ -4681,6 +4697,20 @@ void API dw_menu_destroy(HMENUI *menu)
       WinDestroyWindow(*menu);
 }
 
+/* Internal function to make sure menu ID isn't in use */
+int _menuid_allocated(int id)
+{
+   SignalHandler *prev = NULL, *tmp = Root;
+
+   while(tmp)
+   {
+     if(tmp->id == id)
+        return TRUE;   
+     tmp = tmp->next;
+   }
+   return FALSE;
+}
+
 /*
  * Adds a menuitem or submenu to an existing menu.
  * Parameters:
@@ -4737,11 +4767,14 @@ HWND API dw_menu_append_item(HMENUI menux, char *title, ULONG id, ULONG flags, i
       {
          static ULONG menuid = 30000;
          
-         menuid++;
+         do
+         {
+            menuid++;
+            if(menuid > 60000)
+               menuid = 30000;
+         }
+         while(_menuid_allocated(menuid));
          id = menuid;
-         
-         if(menuid > 60000)
-            menuid = 30000;
       }
       miSubMenu.afStyle = MIS_TEXT;
    }
@@ -11019,7 +11052,7 @@ void API dw_signal_disconnect_by_name(HWND window, char *signame)
 
    while(tmp)
    {
-      if(tmp->window == window && tmp->message == message)
+      if(((window < 65536 && tmp->id == window) || tmp->window == window) && tmp->message == message)
       {
          if(prev)
          {
@@ -11053,7 +11086,7 @@ void API dw_signal_disconnect_by_window(HWND window)
 
    while(tmp)
    {
-      if(tmp->window == window)
+      if((window < 65536 && tmp->id == window) || tmp->window == window)
       {
          if(prev)
          {
@@ -11088,7 +11121,7 @@ void API dw_signal_disconnect_by_data(HWND window, void *data)
 
    while(tmp)
    {
-      if(tmp->window == window && tmp->data == data)
+      if(((window < 65536 && tmp->id == window) || tmp->window == window) && tmp->data == data)
       {
          if(prev)
          {
