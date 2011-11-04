@@ -4700,7 +4700,7 @@ void API dw_menu_destroy(HMENUI *menu)
 /* Internal function to make sure menu ID isn't in use */
 int _menuid_allocated(int id)
 {
-   SignalHandler *prev = NULL, *tmp = Root;
+   SignalHandler *tmp = Root;
 
    while(tmp)
    {
@@ -10506,6 +10506,11 @@ BOOL _ExtractDriverName(char * DriverName, char * DetailStr)
     *DriverName = '\0';
     return TRUE;
 }
+
+/* EMX Doesn't seem to define this? */
+#ifndef NERR_BufTooSmall
+#define NERR_BufTooSmall 2123
+#endif
 
 /*
  * Creates a new print object.
