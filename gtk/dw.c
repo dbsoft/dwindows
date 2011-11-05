@@ -7516,7 +7516,7 @@ void dw_container_cursor(HWND handle, char *text)
    for(z=0;z<rowcount;z++)
    {
       rowdata = gtk_clist_get_row_data(GTK_CLIST(clist), z);
-      if ( strcmp(rowdata, text) == 0 )
+      if ( rowdata == text )
       {
          gfloat pos;
          GtkAdjustment *adj = gtk_clist_get_vadjustment(GTK_CLIST(clist));
@@ -7561,7 +7561,7 @@ void dw_container_delete_row(HWND handle, char *text)
    for(z=0;z<rowcount;z++)
    {
       rowdata = gtk_clist_get_row_data(GTK_CLIST(clist), z);
-      if ( strcmp(rowdata, text) == 0 )
+      if ( rowdata == text )
       {
          _dw_unselect(clist);
 
