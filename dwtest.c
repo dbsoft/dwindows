@@ -1085,7 +1085,7 @@ void container_add(void)
     int z;
     CTIME time;
     CDATE date;
-    unsigned long size;
+    unsigned long size, newpoint;
     HICN thisicon;
 
     /* create a box to pack into the notebook page */
@@ -1161,7 +1161,8 @@ void container_add(void)
     mle_point = dw_mle_import(container_mle, buffer, mle_point);
     dw_mle_delete(container_mle, 9, 3);
     mle_point = dw_mle_import(container_mle, "gh", 12);
-    dw_mle_get_size(container_mle, (unsigned long*)&mle_point, NULL);
+    dw_mle_get_size(container_mle, &newpoint, NULL);
+    mle_point = (int)newpoint;
     sprintf(buffer, "[%d]\r\n\r\n", mle_point);
     mle_point = dw_mle_import(container_mle, buffer, mle_point);
     dw_mle_set_cursor(container_mle, mle_point);
