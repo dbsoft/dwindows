@@ -4263,8 +4263,8 @@ void API dw_listbox_list_append(HWND handle, char **text, int count)
 
         for(z=0;z<count;z++)
         {
-            NSString *nstr = [ NSString stringWithUTF8String:text[z] ];
-            NSArray *newrow = [[NSArray alloc] arrayWithObject:nstr];
+            NSString *nstr = [NSString stringWithUTF8String:text[z]];
+            NSArray *newrow = [NSArray arrayWithObjects:nstr,nil];
 
             [cont addRow:newrow];
         }
@@ -6752,13 +6752,32 @@ HPIXMAP API dw_pixmap_grab(HWND handle, ULONG resid)
     NSBundle *bundle = [NSBundle mainBundle];
     NSString *respath = [bundle resourcePath];
     NSString *filepath = [respath stringByAppendingFormat:@"/%u.png", resid];
-    NSBitmapImageRep *image = [[NSBitmapImageRep alloc] initWithContentsOfFile:filepath];
-    NSSize size = [image size];
-    pixmap->width = size.width;
-    pixmap->height = size.height;
-    pixmap->image = image;
-    pixmap->handle = handle;
-    return pixmap;
+    NSImage *temp = [[NSImage alloc] initWithContentsOfFile:filepath];
+    
+    if(temp)
+    {
+        NSSize size = [temp size];
+        NSBitmapImageRep *image = [[NSBitmapImageRep alloc]
+                                   initWithBitmapDataPlanes:NULL
+                                   pixelsWide:size.width
+                                   pixelsHigh:size.height
+                                   bitsPerSample:8
+                                   samplesPerPixel:4
+                                   hasAlpha:YES
+                                   isPlanar:NO
+                                   colorSpaceName:NSDeviceRGBColorSpace
+                                   bytesPerRow:0
+                                   bitsPerPixel:0];
+        _flip_image(temp, image, size);
+        pixmap->width = size.width;
+        pixmap->height = size.height;
+        pixmap->image = image;
+        pixmap->handle = handle;
+        [temp release];
+        return pixmap;
+    }
+    free(pixmap);
+    return NULL;
 }
 
 /*
