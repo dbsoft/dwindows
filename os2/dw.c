@@ -8145,10 +8145,11 @@ void API dw_container_cursor(HWND handle, char *text)
 {
    RECTL viewport, item;
    PRECORDCORE pCore = WinSendMsg(handle, CM_QUERYRECORD, (MPARAM)0L, MPFROM2SHORT(CMA_FIRST, CMA_ITEMORDER));
+   int textcomp = DW_POINTER_TO_INT(dw_window_get_data(handle, "_dw_textcomp"));
 
    while(pCore)
    {
-      if((char *)pCore->pszIcon == text)
+      if((textcomp && pCore->pszIcon && strcmp(pCore->pszIcon, text) == 0) || (!textcomp && (char *)pCore->pszIcon == text))
       {
          QUERYRECORDRECT qrr;
          int scrollpixels = 0, midway;
@@ -8182,10 +8183,11 @@ void API dw_container_cursor(HWND handle, char *text)
 void API dw_container_delete_row(HWND handle, char *text)
 {
    PRECORDCORE pCore = WinSendMsg(handle, CM_QUERYRECORD, (MPARAM)0L, MPFROM2SHORT(CMA_FIRST, CMA_ITEMORDER));
+   int textcomp = DW_POINTER_TO_INT(dw_window_get_data(handle, "_dw_textcomp"));
 
    while(pCore)
    {
-      if((char *)pCore->pszIcon == text)
+      if((textcomp && pCore->pszIcon && strcmp(pCore->pszIcon, text) == 0) || (!textcomp && (char *)pCore->pszIcon == text))
       {
          WinSendMsg(handle, CM_REMOVERECORD, (MPARAM)&pCore, MPFROM2SHORT(1, CMA_FREE | CMA_INVALIDATE));
          return;

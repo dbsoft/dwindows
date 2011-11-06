@@ -6261,12 +6261,13 @@ void API dw_container_cursor(HWND handle, char *text)
     DWContainer *cont = handle;
     char *thistext;
     int x, count = (int)[cont numberOfRowsInTableView:cont];
+    int textcomp = DW_POINTER_TO_INT(dw_window_get_data(handle, "_dw_textcomp"));
 
     for(x=0;x<count;x++)
     {
         thistext = [cont getRowTitle:x];
 
-        if(thistext == text)
+        if((textcomp && thistext && strcmp(thistext, text) == 0) || (!textcomp && thistext == text))
         {
             NSIndexSet *selected = [[NSIndexSet alloc] initWithIndex:(NSUInteger)x];
 
@@ -6290,12 +6291,13 @@ void API dw_container_delete_row(HWND handle, char *text)
     DWContainer *cont = handle;
     char *thistext;
     int x, count = (int)[cont numberOfRowsInTableView:cont];
+    int textcomp = DW_POINTER_TO_INT(dw_window_get_data(handle, "_dw_textcomp"));
 
     for(x=0;x<count;x++)
     {
         thistext = [cont getRowTitle:x];
 
-        if(thistext == text)
+        if((textcomp && thistext && strcmp(thistext, text) == 0) || (!textcomp && thistext == text))
         {
             [cont removeRow:x];
             return;
