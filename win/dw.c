@@ -8491,6 +8491,7 @@ char * API dw_container_query_next(HWND handle, unsigned long flags)
 void API dw_container_cursor(HWND handle, char *text)
 {
    int index = ListView_GetNextItem(handle, -1, LVNI_ALL);
+   int textcomp = DW_POINTER_TO_INT(dw_window_get_data(handle, "_dw_textcomp"));
 
    while ( index != -1 )
    {
@@ -8503,7 +8504,7 @@ void API dw_container_cursor(HWND handle, char *text)
 
       ListView_GetItem( handle, &lvi );
 
-      if ( strcmp( (char *)lvi.lParam, text ) == 0 )
+      if ( (textcomp && lvi.lParam && strcmp( (char *)lvi.lParam, text ) == 0) || (!textcomp && (char *)lvi.lParam == text) )
       {
 
          ListView_SetItemState( handle, index, LVIS_FOCUSED | LVIS_SELECTED, LVIS_FOCUSED | LVIS_SELECTED );
@@ -8524,6 +8525,7 @@ void API dw_container_cursor(HWND handle, char *text)
 void API dw_container_delete_row(HWND handle, char *text)
 {
    int index = ListView_GetNextItem(handle, -1, LVNI_ALL);
+   int textcomp = DW_POINTER_TO_INT(dw_window_get_data(handle, "_dw_textcomp"));
 
    while(index != -1)
    {
@@ -8536,7 +8538,7 @@ void API dw_container_delete_row(HWND handle, char *text)
 
       ListView_GetItem(handle, &lvi);
 
-      if ( strcmp( (char *)lvi.lParam, text ) == 0 )
+      if ( (textcomp && lvi.lParam && strcmp( (char *)lvi.lParam, text ) == 0) || (!textcomp && (char *)lvi.lParam == text) )
       {
          int _index = (int)dw_window_get_data(handle, "_dw_index");
 

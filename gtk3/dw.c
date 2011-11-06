@@ -6307,7 +6307,7 @@ char *dw_container_query_next(HWND handle, unsigned long flags)
    return retval;
 }
 
-int _find_iter(GtkListStore *store, GtkTreeIter *iter, char *text)
+int _find_iter(GtkListStore *store, GtkTreeIter *iter, char *text, int textcomp)
 {
    int z, rows = gtk_tree_model_iter_n_children(GTK_TREE_MODEL(store), NULL);
    char *thistext;
@@ -6317,7 +6317,7 @@ int _find_iter(GtkListStore *store, GtkTreeIter *iter, char *text)
       if(gtk_tree_model_iter_nth_child(GTK_TREE_MODEL(store), iter, NULL, z))
       {
          gtk_tree_model_get(GTK_TREE_MODEL(store), iter, 0, &thistext, -1);
-         if(thistext == text)
+         if((textcomp && thistext && strcmp(thistext, text) == 0) || (!textcomp && thistext == text))
          {
             return TRUE;
          }
@@ -6336,10 +6336,11 @@ void dw_container_cursor(HWND handle, char *text)
 {
    GtkWidget *cont;
    GtkListStore *store = NULL;
-   int _locked_by_me = FALSE;
+   int textcomp, _locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
    cont = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user");
+   textcomp = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(handle), "_dw_textcomp"));
 
    /* Make sure it is the correct tree type */
    if(cont && GTK_IS_TREE_VIEW(cont) && g_object_get_data(G_OBJECT(cont), "_dw_tree_type") == GINT_TO_POINTER(_DW_TREE_TYPE_CONTAINER))
@@ -6349,7 +6350,7 @@ void dw_container_cursor(HWND handle, char *text)
    {
       GtkTreeIter iter;
 
-      if(_find_iter(store, &iter, text))
+      if(_find_iter(store, &iter, text, textcomp))
       {
          GtkTreePath *path = gtk_tree_model_get_path(GTK_TREE_MODEL(store), &iter);
 
@@ -6373,10 +6374,11 @@ void dw_container_delete_row(HWND handle, char *text)
 {
    GtkWidget *cont;
    GtkListStore *store = NULL;
-   int _locked_by_me = FALSE;
+   int textcomp, _locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
    cont = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user");
+   textcomp = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(handle), "_dw_textcomp"));
 
    /* Make sure it is the correct tree type */
    if(cont && GTK_IS_TREE_VIEW(cont) && g_object_get_data(G_OBJECT(cont), "_dw_tree_type") == GINT_TO_POINTER(_DW_TREE_TYPE_CONTAINER))
@@ -6387,7 +6389,7 @@ void dw_container_delete_row(HWND handle, char *text)
       GtkTreeIter iter;
       int rows = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(cont), "_dw_rowcount"));
 
-      if(_find_iter(store, &iter, text))
+      if(_find_iter(store, &iter, text, textcomp))
       {
          gtk_list_store_remove(store, &iter);
          rows--;
