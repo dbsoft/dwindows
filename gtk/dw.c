@@ -2965,12 +2965,19 @@ int dw_window_set_font(HWND handle, char *fontname)
       if(tmp)
          handle2 = tmp;
    }
-   else if(GTK_IS_COMBO_BOX(handle) || GTK_IS_BUTTON(handle))
+   else if(GTK_IS_BUTTON(handle))
    {
       GtkWidget *tmp = gtk_bin_get_child(GTK_BIN(handle));
       if(tmp)
          handle2 = tmp;
    }
+   else if(GTK_IS_COMBO(handle))
+   {
+      GtkWidget *tmp = GTK_COMBO(handle)->entry;
+      if(tmp)
+         handle2 = tmp;
+   }
+
 
 #if GTK_MAJOR_VERSION < 2
    /* Free old font if it exists */
@@ -7540,7 +7547,7 @@ void dw_container_cursor(HWND handle, char *text)
 {
    int _locked_by_me = FALSE;
    GtkWidget *clist;
-   int rowcount, z;
+   int rowcount, z, textcomp;
    char *rowdata;
 
    DW_MUTEX_LOCK;
@@ -7551,12 +7558,13 @@ void dw_container_cursor(HWND handle, char *text)
       DW_MUTEX_UNLOCK;
       return;
    }
+   textcomp = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(handle), "_dw_textcomp"));
    rowcount = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(clist), "_dw_rowcount"));
 
    for(z=0;z<rowcount;z++)
    {
       rowdata = gtk_clist_get_row_data(GTK_CLIST(clist), z);
-      if ( rowdata == text )
+      if ( (textcomp && rowdata && strcmp(rowdata, text) == 0) || rowdata == text )
       {
          gfloat pos;
          GtkAdjustment *adj = gtk_clist_get_vadjustment(GTK_CLIST(clist));
@@ -7585,7 +7593,7 @@ void dw_container_delete_row(HWND handle, char *text)
 {
    int _locked_by_me = FALSE;
    GtkWidget *clist;
-   int rowcount, z;
+   int rowcount, z, textcomp;
    char *rowdata;
 
    DW_MUTEX_LOCK;
@@ -7596,12 +7604,13 @@ void dw_container_delete_row(HWND handle, char *text)
       DW_MUTEX_UNLOCK;
       return;
    }
+   textcomp = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(handle), "_dw_textcomp"));
    rowcount = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(clist), "_dw_rowcount"));
 
    for(z=0;z<rowcount;z++)
    {
       rowdata = gtk_clist_get_row_data(GTK_CLIST(clist), z);
-      if ( rowdata == text )
+      if ( (textcomp && rowdata && strcmp(rowdata, text) == 0) || rowdata == text )
       {
          _dw_unselect(clist);
 
