@@ -134,6 +134,8 @@ GtkWidget *last_window = NULL, *popup = NULL;
 GdkPixmap *_dw_tmppixmap = NULL;
 GdkBitmap *_dw_tmpbitmap = NULL;
 
+char *_DWDefaultFont = NULL;
+
 #if GTK_MAJOR_VERSION < 2
 static int _dw_file_active = 0;
 #endif
@@ -2905,6 +2907,12 @@ char * API dw_font_choose(char *currfont)
  */
 void API dw_font_set_default(char *fontname)
 {
+   char *oldfont = _DWDefaultFont;
+   
+   _DWDefaultFont = strdup(fontname);
+   
+   if(oldfont)
+      free(oldfont);
 }
 
 /* Convert DW style font to pango style */
@@ -2954,6 +2962,12 @@ int dw_window_set_font(HWND handle, char *fontname)
    else if(GTK_IS_FRAME(handle))
    {
       GtkWidget *tmp = gtk_frame_get_label_widget(GTK_FRAME(handle));
+      if(tmp)
+         handle2 = tmp;
+   }
+   else if(GTK_IS_COMBO_BOX(handle) || GTK_IS_BUTTON(handle))
+   {
+      GtkWidget *tmp = gtk_bin_get_child(GTK_BIN(handle));
       if(tmp)
          handle2 = tmp;
    }
@@ -3525,6 +3539,8 @@ HWND dw_groupbox_new(int type, int pad, char *title)
    gtk_container_add(GTK_CONTAINER(frame), tmp);
    gtk_widget_show(tmp);
    gtk_widget_show(frame);
+   if(_DWDefaultFont)
+      dw_window_set_font(frame, _DWDefaultFont);
    DW_MUTEX_UNLOCK;
    return frame;
 
@@ -4061,6 +4077,8 @@ HWND dw_tree_new(ULONG id)
    gtk_object_set_user_data(GTK_OBJECT(tmp), (gpointer)tree);
    gtk_widget_show(tree);
 
+   if(_DWDefaultFont)
+      dw_window_set_font(tmp, _DWDefaultFont);
    DW_MUTEX_UNLOCK;
    return tmp;
 }
@@ -4085,6 +4103,8 @@ HWND dw_text_new(char *text, unsigned long id)
    gtk_widget_show(tmp);
    gtk_object_set_data(GTK_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(id));
    gtk_misc_set_alignment(GTK_MISC(tmp), DW_LEFT, DW_LEFT);
+   if(_DWDefaultFont)
+      dw_window_set_font(tmp, _DWDefaultFont);
    DW_MUTEX_UNLOCK;
    return tmp;
 }
@@ -4112,6 +4132,8 @@ HWND dw_status_text_new(char *text, ULONG id)
    gtk_misc_set_alignment(GTK_MISC(tmp), 0.0f, 0.5f);
    gtk_object_set_data(GTK_OBJECT(frame), "_dw_id", GINT_TO_POINTER(id));
    gtk_object_set_data(GTK_OBJECT(frame), "_dw_label", (gpointer)tmp);
+   if(_DWDefaultFont)
+      dw_window_set_font(tmp, _DWDefaultFont);
    DW_MUTEX_UNLOCK;
    return frame;
 }
@@ -4153,6 +4175,8 @@ HWND dw_mle_new(unsigned long id)
    gtk_object_set_user_data(GTK_OBJECT(tmpbox), (gpointer)tmp);
    gtk_widget_show(tmp);
    gtk_widget_show(tmpbox);
+   if(_DWDefaultFont)
+      dw_window_set_font(tmpbox, _DWDefaultFont);
    DW_MUTEX_UNLOCK;
    return tmpbox;
 }
@@ -4176,6 +4200,8 @@ HWND dw_entryfield_new(char *text, unsigned long id)
    gtk_widget_show(tmp);
    gtk_object_set_data(GTK_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(id));
 
+   if(_DWDefaultFont)
+      dw_window_set_font(tmp, _DWDefaultFont);
    DW_MUTEX_UNLOCK;
    return tmp;
 }
@@ -4200,6 +4226,8 @@ HWND dw_entryfield_password_new(char *text, ULONG id)
    gtk_widget_show(tmp);
    gtk_object_set_data(GTK_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(id));
 
+   if(_DWDefaultFont)
+      dw_window_set_font(tmp, _DWDefaultFont);
    DW_MUTEX_UNLOCK;
    return tmp;
 }
@@ -4227,6 +4255,8 @@ HWND dw_combobox_new(char *text, unsigned long id)
    sigid = _set_signal_handler(GTK_COMBO(tmp)->list, tmp, NULL, NULL, NULL);
    cid = gtk_signal_connect(GTK_OBJECT(GTK_COMBO(tmp)->list), "select_child", GTK_SIGNAL_FUNC(_item_select_event), GINT_TO_POINTER(sigid));
    _set_signal_handler_id(GTK_COMBO(tmp)->list, sigid, cid);
+   if(_DWDefaultFont)
+      dw_window_set_font(tmp, _DWDefaultFont);
    DW_MUTEX_UNLOCK;
    return tmp;
 }
@@ -4246,6 +4276,8 @@ HWND dw_button_new(char *text, unsigned long id)
    tmp = gtk_button_new_with_label(text);
    gtk_widget_show(tmp);
    gtk_object_set_data(GTK_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(id));
+   if(_DWDefaultFont)
+      dw_window_set_font(tmp, _DWDefaultFont);
    DW_MUTEX_UNLOCK;
    return tmp;
 }
@@ -4424,6 +4456,8 @@ HWND dw_radiobutton_new(char *text, ULONG id)
    gtk_object_set_data(GTK_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(id));
    gtk_widget_show(tmp);
 
+   if(_DWDefaultFont)
+      dw_window_set_font(tmp, _DWDefaultFont);
    DW_MUTEX_UNLOCK;
    return tmp;
 }
@@ -4518,6 +4552,8 @@ HWND dw_checkbox_new(char *text, unsigned long id)
    tmp = gtk_check_button_new_with_label(text);
    gtk_widget_show(tmp);
    gtk_object_set_data(GTK_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(id));
+   if(_DWDefaultFont)
+      dw_window_set_font(tmp, _DWDefaultFont);
    DW_MUTEX_UNLOCK;
    return tmp;
 }
@@ -4548,6 +4584,8 @@ HWND dw_listbox_new(unsigned long id, int multi)
    gtk_widget_show(tmp);
    gtk_object_set_data(GTK_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(id));
 
+   if(_DWDefaultFont)
+      dw_window_set_font(tmp, _DWDefaultFont);
    DW_MUTEX_UNLOCK;
    return tmp;
 }
@@ -6582,6 +6620,8 @@ static int _dw_container_setup(HWND handle, unsigned long *flags, char **titles,
       gtk_clist_set_column_justification(GTK_CLIST(clist),z,justification);
    }
 
+   if(_DWDefaultFont)
+      dw_window_set_font(handle, _DWDefaultFont);
    DW_MUTEX_UNLOCK;
    return DW_ERROR_NONE;
 }
@@ -7694,6 +7734,8 @@ HWND dw_render_new(unsigned long id)
    gtk_object_set_data(GTK_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(id));
    GTK_WIDGET_SET_FLAGS(tmp, GTK_CAN_FOCUS);
    gtk_widget_show(tmp);
+   if(_DWDefaultFont)
+      dw_window_set_font(tmp, _DWDefaultFont);
    DW_MUTEX_UNLOCK;
    return tmp;
 }
