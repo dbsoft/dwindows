@@ -186,7 +186,9 @@ void msleep(long period);
 #include <sys/un.h>
 #include <netinet/in.h>
 #include <netdb.h>
+#ifndef __IBMC__
 #include <arpa/inet.h>
+#endif
 #if defined(__OS2__) && defined(RES_DEFAULT)
 #undef RES_DEFAULT
 #endif
