@@ -5078,7 +5078,7 @@ HWND API dw_mle_new(ULONG id)
                         "",
                         WS_VISIBLE |
                         MLS_BORDER | MLS_IGNORETAB |
-                        MLS_READONLY | MLS_VSCROLL |
+                        MLS_VSCROLL |
                         MLS_LIMITVSCROLL,
                         0,0,2000,1000,
                         NULLHANDLE,
