@@ -320,6 +320,11 @@ void msleep(long period);
 }
 #endif
 
+/* Visual Studio doesn't define this... so just in case */
+#ifndef socklen_t
+typedef int socklen_t;
+#endif
+
 #define socksprint(a, b) sockwrite(a, b, strlen(b), 0)
 
 char * API vargs(char *buf, int len, char *format, ...);
