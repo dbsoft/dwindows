@@ -6672,6 +6672,7 @@ void API dw_notebook_page_destroy(HWND handle, unsigned int pageidx)
 {
    NotebookPage **array = (NotebookPage **)dw_window_get_data(handle, "_dw_array");
    int newid = -1, z, pageid;
+   HWND pagehwnd = 0;
 
    if(!array)
       return;
@@ -6684,6 +6685,7 @@ void API dw_notebook_page_destroy(HWND handle, unsigned int pageidx)
    if(array[pageid])
    {
       SetParent(array[pageid]->hwnd, DW_HWND_OBJECT);
+      pagehwnd = array[pageid]->hwnd;
       free(array[pageid]);
       array[pageid] = NULL;
    }
@@ -6709,6 +6711,8 @@ void API dw_notebook_page_destroy(HWND handle, unsigned int pageidx)
       _resize_notebook_page(handle, newid);
       dw_notebook_page_set(handle, array[newid]->realid);
    }
+   if(pagehwnd)
+      dw_window_destroy(pagehwnd);
 }
 
 /*

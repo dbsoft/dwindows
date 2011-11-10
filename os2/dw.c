@@ -6404,8 +6404,12 @@ unsigned long API dw_notebook_page_new(HWND handle, ULONG flags, int front)
  */
 void API dw_notebook_page_destroy(HWND handle, unsigned int pageid)
 {
+   HWND pagehwnd = (HWND)WinSendMsg(handle, BKM_QUERYPAGEWINDOWHWND,
+                                    MPFROMLONG(pageid), 0L);
    WinSendMsg(handle, BKM_DELETEPAGE,
             MPFROMLONG(pageid),  (MPARAM)BKA_SINGLE);
+   if(pagehwnd)
+      dw_window_destroy(pagehwnd);
 }
 
 /*
