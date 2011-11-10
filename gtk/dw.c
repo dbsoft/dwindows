@@ -1892,7 +1892,12 @@ static GdkPixmap *_find_pixmap(GdkBitmap **bitmap, HICN icon, HWND handle, unsig
    {
       GdkPixmap *icon_pixmap = NULL;
 #if GTK_MAJOR_VERSION > 1
-      GdkPixbuf *icon_pixbuf = gdk_pixbuf_new_from_xpm_data((const char **)data);
+      GdkPixbuf *icon_pixbuf;
+      
+      if(data[0] == 'G' && data[1] == 'd' && data[2] == 'k' && data[3] == 'P')
+         icon_pixbuf = gdk_pixbuf_new_from_inline(-1, (const guint8 *)data, FALSE, NULL);
+      else
+         icon_pixbuf = gdk_pixbuf_new_from_xpm_data((const char **)data);
 
       if(userwidth)
          *userwidth = gdk_pixbuf_get_width(icon_pixbuf);
