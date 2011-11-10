@@ -3734,6 +3734,9 @@ int API dw_init(int newthread, int argc, char *argv[])
       dw_messagebox("Dynamic Windows", DW_MB_OK|DW_MB_ERROR, "Could not initialize the object window. error code %d", GetLastError());
       exit(1);
    }
+   
+   /* Create empty box data */
+   SetWindowLongPtr(DW_HWND_OBJECT, GWLP_USERDATA, (LONG_PTR)calloc(sizeof(Box), 1));
 
    /* We need the version to check capability like up-down controls */
    dwVersion = GetVersion();
@@ -4032,35 +4035,42 @@ int API dw_window_destroy(HWND handle)
    if(menu)
       _free_menu_data(menu);
 
-   if(parent != HWND_DESKTOP && thisbox && thisbox->count)
+   /* If it is a desktop window let WM_DESTROY handle it */
+   if(parent != HWND_DESKTOP)
    {
-      int z, index = -1;
-      Item *tmpitem, *thisitem = thisbox->items;
-
-      for(z=0;z<thisbox->count;z++)
+      /* If the parent box has items... 
+       * try to remove it from the layout 
+       */
+      if(thisbox && thisbox->count)
       {
-         if(thisitem[z].hwnd == handle)
-            index = z;
+         int z, index = -1;
+         Item *tmpitem, *thisitem = thisbox->items;
+
+         for(z=0;z<thisbox->count;z++)
+         {
+            if(thisitem[z].hwnd == handle)
+               index = z;
+         }
+
+         if(index == -1)
+            return 0;
+
+         tmpitem = malloc(sizeof(Item)*(thisbox->count-1));
+
+         /* Copy all but the current entry to the new list */
+         for(z=0;z<index;z++)
+         {
+            tmpitem[z] = thisitem[z];
+         }
+         for(z=index+1;z<thisbox->count;z++)
+         {
+            tmpitem[z-1] = thisitem[z];
+         }
+
+         thisbox->items = tmpitem;
+         free(thisitem);
+         thisbox->count--;
       }
-
-      if(index == -1)
-         return 0;
-
-      tmpitem = malloc(sizeof(Item)*(thisbox->count-1));
-
-      /* Copy all but the current entry to the new list */
-      for(z=0;z<index;z++)
-      {
-         tmpitem[z] = thisitem[z];
-      }
-      for(z=index+1;z<thisbox->count;z++)
-      {
-         tmpitem[z-1] = thisitem[z];
-      }
-
-      thisbox->items = tmpitem;
-      free(thisitem);
-      thisbox->count--;
       _free_window_memory(handle, 0);
       EnumChildWindows(handle, _free_window_memory, 0);
    }
