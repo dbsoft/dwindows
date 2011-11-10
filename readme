@@ -52,6 +52,7 @@ Added dw_container_set_stripe() to set alternating row colors.
    Currently Mac, Win and GTK are supported.
 Added taskbar support on the Mac, GTK (Gnome) and OS/2 (e/XCenter+Systray).
 Added PNG/JPG/GIF/TIFF support on Windows via GDI+.
+Added support for GdkPixbuf inline images in GTK 2 and 3.
 Added dw_draw_arc() function for drawing arcs, ellipses and circles.
 Added DW_DRAW_DEFAULT, DW_DRAW_FILL and DW_DRAW_FULL flags which can be passed
    to dw_draw_arc(), dw_draw_rect() and dw_draw_polygon().  The fill parameter
