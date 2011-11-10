@@ -320,8 +320,8 @@ void msleep(long period);
 }
 #endif
 
-/* Visual Studio doesn't define this... so just in case */
-#ifdef MSVC
+/* Ok Windows and OS/2 both seem to be missing this */
+#if defined(__WIN32__) || defined(__OS2__)
 typedef int socklen_t;
 #endif
 
