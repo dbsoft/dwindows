@@ -321,7 +321,7 @@ void msleep(long period);
 #endif
 
 /* Visual Studio doesn't define this... so just in case */
-#ifndef socklen_t
+#ifdef MSVC
 typedef int socklen_t;
 #endif
 
