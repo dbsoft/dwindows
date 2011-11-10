@@ -9140,27 +9140,32 @@ void dw_listbox_set_top(HWND handle, int top)
       if(tmp)
          handle2 = tmp;
    }
-
    /* Make sure it is the correct tree type */
    if(handle2 && GTK_IS_TREE_VIEW(handle2) && g_object_get_data(G_OBJECT(handle2), "_dw_tree_type") == GINT_TO_POINTER(_DW_TREE_TYPE_LISTBOX))
    {
-      GtkAdjustment *adjust = gtk_tree_view_get_vadjustment(GTK_TREE_VIEW(handle2));
+      GtkAdjustment *adjust = gtk_scrolled_window_get_vadjustment(GTK_SCROLLED_WINDOW(handle));
       GtkListStore *store = (GtkListStore *)gtk_tree_view_get_model(GTK_TREE_VIEW(handle2));
 
       if(store && adjust)
       {
          /* Get the number of children at the top level */
          gint rowcount = gtk_tree_model_iter_n_children(GTK_TREE_MODEL(store), NULL);
-         gdouble upper = gtk_adjustment_get_upper(adjust);
+         gdouble pagesize = gtk_adjustment_get_page_size(adjust);
+         gdouble upper = gtk_adjustment_get_upper(adjust) - pagesize;
          gdouble lower = gtk_adjustment_get_lower(adjust);
          gdouble change;
-
+         
          /* Safety check */
-         if(rowcount < 1)
+         if(rowcount < 2)
          {
             DW_MUTEX_UNLOCK;
             return;
          }
+         
+         /* Verify the range */
+         rowcount--;
+         if(top > rowcount)
+            top = rowcount;
 
          change = ((gdouble)top/(gdouble)rowcount) * (upper - lower);
 
