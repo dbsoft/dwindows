@@ -10568,9 +10568,13 @@ int API dw_print_run(HPRINT print, unsigned long flags)
         p->drawfunc(print, pixmap, x, p->drawdata);
         EndPage(p->pd.hDC);
     }
-    EndDoc(p->pd.hDC);
     if(p->drawfunc)
+    {
         result = DW_ERROR_NONE;
+        EndDoc(p->pd.hDC);
+    }
+    else
+        AbortDoc(p->pd.hDC);
     /* Free memory */
     dw_pixmap_destroy(pixmap);
     free(p);
