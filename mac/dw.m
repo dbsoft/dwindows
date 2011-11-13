@@ -6274,6 +6274,8 @@ void API dw_container_cursor(HWND handle, char *text)
             [cont selectRowIndexes:selected byExtendingSelection:YES];
             [selected release];
             [cont scrollRowToVisible:x];
+            DW_MUTEX_UNLOCK;
+            return;
         }
     }
     DW_MUTEX_UNLOCK;
@@ -6301,6 +6303,7 @@ void API dw_container_delete_row(HWND handle, char *text)
         if((textcomp && thistext && strcmp(thistext, text) == 0) || (!textcomp && thistext == text))
         {
             [cont removeRow:x];
+            DW_MUTEX_UNLOCK;
             return;
         }
     }
@@ -6318,10 +6321,6 @@ void API dw_container_optimize(HWND handle)
     DW_MUTEX_LOCK;
     DWContainer *cont = handle;
     [cont optimize];
-#if 0
-    /* All resizable columns should expand */
-    [cont setColumnAutoresizingStyle:NSTableViewUniformColumnAutoresizingStyle];
-#endif
     DW_MUTEX_UNLOCK;
 }
 
