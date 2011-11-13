@@ -6273,6 +6273,7 @@ void API dw_container_cursor(HWND handle, char *text)
 
             [cont selectRowIndexes:selected byExtendingSelection:YES];
             [selected release];
+            [cont scrollRowToVisible:x];
         }
     }
     DW_MUTEX_UNLOCK;
