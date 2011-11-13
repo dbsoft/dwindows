@@ -21,7 +21,9 @@
 #include <time.h>
 #include <math.h>
 #include "dw.h"
+#ifdef BUILD_DLL
 #include "XBrowseForFolder.h"
+#endif
 
 #ifdef GDIPLUS
 /* GDI+ Headers are not C compatible... so define what we need here instead */
@@ -158,7 +160,9 @@ HBRUSH _colors[18];
 static int screenx, screeny;
 HFONT _DefaultFont = NULL;
 
+#ifdef BUILD_DLL
 LRESULT CALLBACK _browserWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+#endif
 void _resize_notebook_page(HWND handle, int pageid);
 void _handle_splitbar_resize(HWND hwnd, float percent, int type, int x, int y);
 int _lookup_icon(HWND handle, HICON hicon, int type);
@@ -3627,7 +3631,9 @@ int API dw_init(int newthread, int argc, char *argv[])
    INITCOMMONCONTROLSEX icc;
    char *fname, *alttmpdir;
    HFONT oldfont;
+#ifdef GDIPLUS
    struct GdiplusStartupInput si; 
+#endif
 
    /* Initialize our thread local storage */
    _foreground = TlsAlloc();
@@ -3692,12 +3698,14 @@ int API dw_init(int newthread, int argc, char *argv[])
 
    RegisterClass(&wc);
 
+#ifdef BUILD_DLL
    /* Register HTML renderer class */
    memset(&wc, 0, sizeof(WNDCLASS));
    wc.lpfnWndProc = (WNDPROC)_browserWindowProc;
    wc.lpszClassName = BrowserClassName;
    wc.style = CS_HREDRAW|CS_VREDRAW;
    RegisterClass(&wc);
+#endif
 
    /* Create a set of brushes using the default OS/2 and DOS colors */
    for(z=0;z<18;z++)
