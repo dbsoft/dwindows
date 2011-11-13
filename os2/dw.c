@@ -516,7 +516,7 @@ int _focus_check_box(Box *box, HWND handle, int start, HWND defaultitem)
 {
    int z;
    static HWND lasthwnd, firsthwnd;
-    static int finish_searching;
+   static int finish_searching;
 
    /* Start is 2 when we have cycled completely and
     * need to set the focus to the last widget we found
@@ -3409,7 +3409,17 @@ MRESULT EXPENTRY _BtProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
       if(mp2)
          _run_event(hwnd, msg, mp1, mp2);
       else
-         WinSendMsg(hwnd, BM_SETDEFAULT, 0, 0);
+          WinSendMsg(hwnd, BM_SETDEFAULT, 0, 0);
+      /*  FIX: Borderless buttons not displaying properly after gaining focus */
+      if((WinQueryWindowULong(hwnd, QWL_STYLE) & BS_NOBORDER))
+      {
+          RECTL rcl;
+
+          WinQueryWindowRect(hwnd, &rcl);
+
+          WinInvalidateRect(hwnd, &rcl, FALSE);
+          WinPostMsg(hwnd, WM_PAINT, 0, 0);
+      }
       break;
    case WM_BUTTON1DOWN:
    case WM_BUTTON2DOWN:
