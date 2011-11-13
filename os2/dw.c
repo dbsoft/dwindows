@@ -10777,11 +10777,15 @@ int API dw_print_run(HPRINT print, unsigned long flags)
         /* Next page */
         DevEscape(p->hdc, DEVESC_NEWFRAME, 0, NULL, NULL, NULL);
     }
-    /* Signal that we are done */
-    DevEscape(p->hdc, DEVESC_ENDDOC, 0, NULL, NULL, NULL);
     /* Determine the completion code */
     if(p->drawfunc)
+    {
         result = DW_ERROR_NONE;
+        /* Signal that we are done */
+        DevEscape(p->hdc, DEVESC_ENDDOC, 0, NULL, NULL, NULL);
+    }
+    else
+        DevEscape(p->hdc, DEVESC_ABORTDOC, 0, NULL, NULL, NULL);
     /* Free memory */
     dw_pixmap_destroy(pixmap);
     if(p->printername)
