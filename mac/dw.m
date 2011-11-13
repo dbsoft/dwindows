@@ -9998,18 +9998,21 @@ int API dw_print_run(HPRINT print, unsigned long flags)
     {
         /* Call the application's draw function */
         p->drawfunc(print, pixmap, x, p->drawdata);
-        /* Internal representation is flipped... so flip again so we can print */
-        _flip_image(image, rep2, size);
-#ifdef DEBUG_PRINT
-        /* Save it to file to see what we have */
-        NSData *data = [rep2 representationUsingType: NSPNGFileType properties: nil];
-        [data writeToFile: @"print.png" atomically: NO];
-#endif
-        /* Print the image view */
-        [po runOperation];
-        /* Fill the pixmap with white in case we are printing more pages */
-        dw_color_foreground_set(DW_CLR_WHITE);
-        dw_draw_rect(0, pixmap, TRUE, 0, 0, (int)size.width, (int)size.height);
+        if(p->drawfunc)
+        {
+           /* Internal representation is flipped... so flip again so we can print */
+           _flip_image(image, rep2, size);
+   #ifdef DEBUG_PRINT
+           /* Save it to file to see what we have */
+           NSData *data = [rep2 representationUsingType: NSPNGFileType properties: nil];
+           [data writeToFile: @"print.png" atomically: NO];
+   #endif
+           /* Print the image view */
+           [po runOperation];
+           /* Fill the pixmap with white in case we are printing more pages */
+           dw_color_foreground_set(DW_CLR_WHITE);
+           dw_draw_rect(0, pixmap, TRUE, 0, 0, (int)size.width, (int)size.height);
+        }
     }
     if(p->drawfunc)
         result = DW_ERROR_NONE;
