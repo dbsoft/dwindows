@@ -105,7 +105,7 @@ AC_ARG_WITH(gtkmozembed,
 
 dnl ---------------------- check for '--with-arch' switch -----------------
 AC_ARG_WITH(arch,
-   [  --with-arch             specify architecture: one of all, 32bit, 64bit, ppc, ppc64, x86_64, i386],
+   [  --with-arch             specify architecture: one of all, 32bit, 64bit, intel, ppc, ppc64, x86_64, i386],
    [with_arch=$withval],
    [with_arch=no],
 )
@@ -187,11 +187,14 @@ case "$target" in
          64bit)
             ARCH="-arch ppc64 -arch x86_64"
             ;;
+         intel)
+            ARCH="-arch i386 -arch x86_64"
+            ;;
          *)
             ARCH="-arch $with_arch"
             ;;
       esac
-      SHAREDFLAG="-dynamiclib -flat_namespace -undefined suppress"
+      SHAREDFLAG="-dynamiclib -flat_namespace -undefined suppress -headerpad_max_install_names"
       SOSUFFIX=dylib
       if test $with_gtkframework = yes; then
          DW_DIR=gtk
