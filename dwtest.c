@@ -428,7 +428,7 @@ int DWSIGNAL draw_page(HPRINT print, HPIXMAP pixmap, int page_num, void *data)
            int nrows;
            
            /* Calculate new dimensions */
-           dw_font_text_extents_get(NULL, pixmap, "(g", NULL, &fheight);
+           dw_font_text_extents_get(0, pixmap, "(g", NULL, &fheight);
            nrows = (int)(DW_PIXMAP_HEIGHT(pixmap) / fheight);
        
            /* Do the actual drawing */
@@ -440,14 +440,14 @@ int DWSIGNAL draw_page(HPRINT print, HPIXMAP pixmap, int page_num, void *data)
            char *text = "No file currently selected!";
            int posx, posy;
            
-           dw_font_text_extents_get(NULL, pixmap, text, &fwidth, &fheight);
+           dw_font_text_extents_get(0, pixmap, text, &fwidth, &fheight);
            
            posx = (int)(DW_PIXMAP_WIDTH(pixmap) - fwidth)/2;
            posy = (int)(DW_PIXMAP_HEIGHT(pixmap) - fheight)/2;
            
            dw_color_foreground_set(DW_CLR_BLACK);
            dw_color_background_set(DW_CLR_WHITE);
-           dw_draw_text(NULL, pixmap, posx, posy, text);
+           dw_draw_text(0, pixmap, posx, posy, text);
        }
    }
    return TRUE;
