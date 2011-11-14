@@ -9,7 +9,7 @@ MAKE = make
 COMPRESS = lxlite
 VER = 21
 VERDOT = 2.1
-AVERREV = $(shell os2\svnrev.cmd)
+AVERREV := $(shell os2\svnrev.cmd)
 include SVN.REV
 
 DEFS =
@@ -45,7 +45,7 @@ dwtest.exe: dwtest.o dw.lib dwcompat.lib
 	$(CC) $(CFLAGS) -Zomf -Zmt -static-libgcc -o dwtest.exe dwtest.o -Llib -ldw -ldwcompat dwtest.def
 
 clean:
-	$(RM) $(OBJECTS) dwtest.exe dw.dll dwcompat.dll
+	$(RM) *.obj *.o *.lib *.res *~ dwtest.exe dw.dll dwcompat.dll SVN.REV
 
 dw.obj: dw.c
 	$(CC) $(CFLAGS) -c $<	
