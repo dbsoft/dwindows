@@ -80,7 +80,7 @@ static char API getFSType(const char *path)
 	drive[1] = ':';
 	drive[2] = '\0';
 	infolen = sizeof info;
-	if (DosQueryFSAttach(drive, 0, FSAIL_QUERYNAME, (PVOID)info, &infolen))
+	if (DosQueryFSAttach((PSZ)drive, 0, FSAIL_QUERYNAME, (PVOID)info, &infolen))
 		return 0;
 	if (infolen >= sizeof(FSQBUFFER2)) {
 		FSQBUFFER2 *p = (FSQBUFFER2 *)info;
@@ -143,7 +143,7 @@ DIR * API _openxdir(const char *path, unsigned att_mask)
 
 	dir->handle = HDIR_CREATE;
 	dir->count = 100;
-	rc = DosFindFirst(dir->name, &dir->handle, dir->attrmask,
+	rc = DosFindFirst((PSZ)dir->name, &dir->handle, dir->attrmask,
 		dir->ffbuf, sizeof dir->ffbuf, &dir->count, FIL_STANDARD);
 	switch (rc) {
 	default:
@@ -232,7 +232,7 @@ void API _seekdir(DIR *dir, long off)
 
 		dir->handle = HDIR_CREATE;
 		dir->count = 32767;
-		rc = DosFindFirst(name, &dir->handle, dir->attrmask,
+		rc = DosFindFirst((PSZ)name, &dir->handle, dir->attrmask,
 			dir->ffbuf, sizeof dir->ffbuf, &dir->count, FIL_STANDARD);
 		switch (rc) {
 		default:

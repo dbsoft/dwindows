@@ -480,7 +480,7 @@ void API setfileinfo(char *filename, char *url, char *logfile)
 	eaop2.fpFEA2List->cbList = ((PCHAR)pData+2*sizeof(USHORT)+
 									 pFEA2->cbValue)-((PCHAR)eaop2.fpFEA2List);
 
-	DosSetPathInfo(filename,
+	DosSetPathInfo((PSZ)filename,
 						FIL_QUERYEASIZE,
 						&eaop2,
 						sizeof(eaop2),
