@@ -3739,7 +3739,7 @@ int API dw_init(int newthread, int argc, char *argv[])
    /* Load DLLs for providing extra functionality if available */
    DosLoadModule((PSZ)objnamebuf, sizeof(objnamebuf), (PSZ)"WPCONFIG", &wpconfig);
    if(!DosLoadModule((PSZ)objnamebuf, sizeof(objnamebuf), (PSZ)"PMPRINTF", &pmprintf))
-	   DosQueryProcAddr(pmprintf, 0, (PSZ)"PmPrintfString", (PFN*)&_PmPrintfString);
+       DosQueryProcAddr(pmprintf, 0, (PSZ)"PmPrintfString", (PFN*)&_PmPrintfString);
    return rc;
 }
 
@@ -3910,9 +3910,9 @@ void API dw_debug(char *format, ...)
    va_end(args);
 
    if(_PmPrintfString)
-	   _PmPrintfString(outbuf);
+       _PmPrintfString(outbuf);
    else
-	   fprintf(stderr, "%s", outbuf);
+       fprintf(stderr, "%s", outbuf);
 }
 
 /*
