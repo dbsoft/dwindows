@@ -1618,16 +1618,15 @@ RECTL _CalendarDayRect(int position, RECTL rclPaint)
      */
     int row = position / 7;
     int col = position % 7;
-    int cellwidth = height / 7;
-    int cellheight = width / 7;
+    int cellwidth = width / 7;
+    int cellheight = height / 7;
 
     /* Create a new box */
-    rclPaint.xLeft = cellwidth * col;
+    rclPaint.xLeft = (cellwidth * col) + CALENDAR_BORDER;
     rclPaint.xRight = rclPaint.xLeft + cellwidth;
     /* We only handle 6 of the 7 rows */
-    rclPaint.yBottom = cellheight * (6-row);
+    rclPaint.yBottom = (cellheight * (5-row)) + CALENDAR_BORDER;
     rclPaint.yTop = rclPaint.yBottom + cellheight;
-    dw_debug("Cell height %d width %d position %d row %d, col %d (%d,%d)-(%d,%d)\n", cellheight, cellwidth, position, row, col, rclPaint.xLeft, rclPaint.yBottom, rclPaint.xRight, rclPaint.yTop);
     return rclPaint;
 }
 
@@ -1655,13 +1654,12 @@ MRESULT EXPENTRY _calendarproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
             int day = DW_POINTER_TO_INT(dw_window_get_data(hWnd, "_dw_day"));
             int month = DW_POINTER_TO_INT(dw_window_get_data(hWnd, "_dw_month"));
             int year = DW_POINTER_TO_INT(dw_window_get_data(hWnd, "_dw_year"));
-            int dayofweek = 1, x, lastmonth = 11;
+            int dayofweek = 1, x, lastmonth = 11, height;
+            POINTL pptl[3];
 
             /* Figure out the previous month for later use */
             if(month > 0)
                 lastmonth = month - 1;
-
-            dw_debug("day %d month %d year %d lastmonth %d\n", day, month, year, lastmonth);
 
 #if 0
             /* Check the current font and create a bold one to draw the month and selected */
@@ -1673,8 +1671,6 @@ MRESULT EXPENTRY _calendarproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
                     strcat(buf, " Bold");
                 WinSetPresParam(hWnd, PP_FONTNAMESIZE, strlen(buf)+1, buf);
             }
-
-            dw_debug("Original font %s bold font %s\n", font, buf);
 #endif
 
             /* Make the title */
@@ -1686,27 +1682,49 @@ MRESULT EXPENTRY _calendarproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
             dayofweek += (year/4) + year - 1;
             dayofweek = dayofweek % 7;
 
-            dw_debug("Title %s dayofweek %d\n", buf, dayofweek);
-
             /* Actually draw the control */
             hpsPaint = WinBeginPaint(hWnd, 0, 0);
             WinQueryWindowRect(hWnd, &rclPaint);
             WinFillRect(hpsPaint, &rclPaint, CLR_PALEGRAY);
+            height = ((rclPaint.yTop - (CALENDAR_BORDER*2))/7);
 
             /* Draw the Month and Year at the top */
             GpiSetColor(hpsPaint, CLR_BLACK);
             rclDraw = rclPaint;
-            rclDraw.yBottom = ((rclDraw.yTop - (CALENDAR_BORDER*2))/7) * 6;
+            rclDraw.yBottom = height * 6;
             WinDrawText(hpsPaint, -1, (PCH)buf, &rclDraw, DT_TEXTATTRS, DT_TEXTATTRS, DT_VCENTER | DT_CENTER | DT_TEXTATTRS);
 
+            /* Draw the left arrow */
+            GpiSetColor(hpsPaint, CLR_DARKGRAY);
+            GpiBeginArea(hpsPaint, 0);
+            pptl[2].x = rclDraw.xLeft + CALENDAR_BORDER + 5;
+            pptl[2].y = rclDraw.yTop - CALENDAR_BORDER;
+            GpiMove(hpsPaint, &pptl[2]);
+            pptl[0].x = rclDraw.xLeft + CALENDAR_BORDER;
+            pptl[0].y = rclDraw.yTop - (CALENDAR_BORDER+ (height/2));
+            pptl[1].x = rclDraw.xLeft + CALENDAR_BORDER + 5;
+            pptl[1].y = rclDraw.yTop - CALENDAR_BORDER - height;
+            GpiPolyLine(hpsPaint, 3, pptl);
+            GpiEndArea(hpsPaint);
+
+            /* Draw the left arrow */
+            GpiBeginArea(hpsPaint, 0);
+            pptl[2].x = rclDraw.xRight - CALENDAR_BORDER - 5;
+            pptl[2].y = rclDraw.yTop - CALENDAR_BORDER;
+            GpiMove(hpsPaint, &pptl[2]);
+            pptl[0].x = rclDraw.xRight - CALENDAR_BORDER;
+            pptl[0].y = rclDraw.yTop - (CALENDAR_BORDER + (height/2));
+            pptl[1].x = rclDraw.xRight - CALENDAR_BORDER - 5;
+            pptl[1].y = rclDraw.yTop - CALENDAR_BORDER - height;
+            GpiPolyLine(hpsPaint, 3, pptl);
+            GpiEndArea(hpsPaint);
+
 #if 0
-            dw_debug("Restoring font\n");
             /* Restore the original font */
             WinSetPresParam(hWnd, PP_FONTNAMESIZE, strlen(font)+1, font);
 #endif
 
             /* Draw a border around control */
-            GpiSetColor(hpsPaint, CLR_DARKGRAY);
             _Top(hpsPaint, rclPaint);
             _Left(hpsPaint, rclPaint);
             /* With shadow */
@@ -1718,9 +1736,16 @@ MRESULT EXPENTRY _calendarproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
             GpiSetColor(hpsPaint, CLR_DARKBLUE);
             for(x=0;x<7;x++)
             {
+                char *title = daysofweek[x];
+
                 rclDraw = _CalendarDayRect(x, rclPaint);
-                dw_debug("Pos %d day of week %s\n", x, daysofweek[x]);
-                WinDrawText(hpsPaint, -1, (PCH)daysofweek[x], &rclDraw, DT_TEXTATTRS, DT_TEXTATTRS, DT_VCENTER | DT_CENTER | DT_TEXTATTRS);
+
+                if(rclDraw.xRight - rclDraw.xLeft < 60)
+                {
+                    buf[0] = daysofweek[x][0]; buf[1] = daysofweek[x][1]; buf[2] = 0;
+                    title = buf;
+                }
+                WinDrawText(hpsPaint, -1, (PCH)title, &rclDraw, DT_TEXTATTRS, DT_TEXTATTRS, DT_VCENTER | DT_CENTER | DT_TEXTATTRS);
             }
 
             /* Go through all the days */
@@ -1733,12 +1758,11 @@ MRESULT EXPENTRY _calendarproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
                     sprintf(buf, "%d", x - dayofweek - days[month] + 1);
                 else
                     sprintf(buf, "%d", x - dayofweek + 1);
-                dw_debug("Pos %d day %s\n", x, buf);
                 WinDrawText(hpsPaint, -1, (PCH)buf, &rclDraw, DT_TEXTATTRS, DT_TEXTATTRS, DT_VCENTER | DT_CENTER | DT_TEXTATTRS);
             }
 
             /* Draw a border around selected day */
-            rclPaint = _CalendarDayRect(day + dayofweek + 8, rclPaint);
+            rclPaint = _CalendarDayRect(day + dayofweek + 7, rclPaint);
             GpiSetColor(hpsPaint, CLR_DARKGRAY);
             _Top(hpsPaint, rclPaint);
             _Left(hpsPaint, rclPaint);
@@ -1746,7 +1770,6 @@ MRESULT EXPENTRY _calendarproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
             GpiSetColor(hpsPaint, CLR_WHITE);
             _Right(hpsPaint, rclPaint);
             _Bottom(hpsPaint, rclPaint);
-            dw_debug("Done\n");
 
             WinEndPaint(hpsPaint);
 
