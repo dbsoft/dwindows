@@ -1605,6 +1605,162 @@ void _Right(HPS hpsPaint, RECTL rclPaint)
    GpiLine(hpsPaint, &ptl2);
 }
 
+
+#define CALENDAR_BORDER 3
+
+/* Returns a rectangle for a single day on the calendar */
+RECTL _CalendarDayRect(int position, RECTL rclPaint)
+{
+    int height = rclPaint.yTop - rclPaint.yBottom - (CALENDAR_BORDER*2);
+    int width = rclPaint.xRight - rclPaint.xLeft - (CALENDAR_BORDER*2);
+    /* There are 7 rows... 5 for the day numbers...
+     * 1 for the Month/Year and 1 for the day names.
+     */
+    int row = position / 7;
+    int col = position % 7;
+    int cellwidth = height / 7;
+    int cellheight = width / 7;
+
+    /* Create a new box */
+    rclPaint.xLeft = cellwidth * col;
+    rclPaint.xRight = rclPaint.xLeft + cellwidth;
+    /* We only handle 6 of the 7 rows */
+    rclPaint.yBottom = cellheight * (6-row);
+    rclPaint.yTop = rclPaint.yBottom + cellheight;
+    dw_debug("Cell height %d width %d position %d row %d, col %d (%d,%d)-(%d,%d)\n", cellheight, cellwidth, position, row, col, rclPaint.xLeft, rclPaint.yBottom, rclPaint.xRight, rclPaint.yTop);
+    return rclPaint;
+}
+
+/* This procedure handles drawing of a status border */
+MRESULT EXPENTRY _calendarproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
+{
+   WindowData *blah = (WindowData *)WinQueryWindowPtr(hWnd, QWP_USER);
+   PFNWP oldproc = 0;
+
+   if(blah)
+   {
+      oldproc = blah->oldproc;
+
+      switch(msg)
+      {
+      case WM_PAINT:
+         {
+            HPS hpsPaint;
+            RECTL rclPaint, rclDraw;
+            char buf[100], font[50] = { 0 };
+            /* How many days are in each month usually (not including leap years) */
+            static int days[] = { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
+            static char *months[] = { "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December" };
+            static char *daysofweek[] = { "Sunday", "Monday", "Tuesday","Wednesday", "Thursday", "Friday", "Saturday" };
+            int day = DW_POINTER_TO_INT(dw_window_get_data(hWnd, "_dw_day"));
+            int month = DW_POINTER_TO_INT(dw_window_get_data(hWnd, "_dw_month"));
+            int year = DW_POINTER_TO_INT(dw_window_get_data(hWnd, "_dw_year"));
+            int dayofweek = 1, x, lastmonth = 11;
+
+            /* Figure out the previous month for later use */
+            if(month > 0)
+                lastmonth = month - 1;
+
+            dw_debug("day %d month %d year %d lastmonth %d\n", day, month, year, lastmonth);
+
+#if 0
+            /* Check the current font and create a bold one to draw the month and selected */
+            if(WinQueryPresParam(hWnd, PP_FONTNAMESIZE, 0, NULL, 50, font, QPF_NOINHERIT))
+            {
+                strcpy(buf, font);
+                /* Check to make sure it isn't already bold */
+                if(!strstr(buf, " Bold"))
+                    strcat(buf, " Bold");
+                WinSetPresParam(hWnd, PP_FONTNAMESIZE, strlen(buf)+1, buf);
+            }
+
+            dw_debug("Original font %s bold font %s\n", font, buf);
+#endif
+
+            /* Make the title */
+            sprintf(buf, "%s, %d", months[month], year + 1);
+
+            /* Figure out what day of the week the first day of the month falls on */
+            for(x=0;x<month;x++)
+                dayofweek += days[x];
+            dayofweek += (year/4) + year - 1;
+            dayofweek = dayofweek % 7;
+
+            dw_debug("Title %s dayofweek %d\n", buf, dayofweek);
+
+            /* Actually draw the control */
+            hpsPaint = WinBeginPaint(hWnd, 0, 0);
+            WinQueryWindowRect(hWnd, &rclPaint);
+            WinFillRect(hpsPaint, &rclPaint, CLR_PALEGRAY);
+
+            /* Draw the Month and Year at the top */
+            GpiSetColor(hpsPaint, CLR_BLACK);
+            rclDraw = rclPaint;
+            rclDraw.yBottom = ((rclDraw.yTop - (CALENDAR_BORDER*2))/7) * 6;
+            WinDrawText(hpsPaint, -1, (PCH)buf, &rclDraw, DT_TEXTATTRS, DT_TEXTATTRS, DT_VCENTER | DT_CENTER | DT_TEXTATTRS);
+
+#if 0
+            dw_debug("Restoring font\n");
+            /* Restore the original font */
+            WinSetPresParam(hWnd, PP_FONTNAMESIZE, strlen(font)+1, font);
+#endif
+
+            /* Draw a border around control */
+            GpiSetColor(hpsPaint, CLR_DARKGRAY);
+            _Top(hpsPaint, rclPaint);
+            _Left(hpsPaint, rclPaint);
+            /* With shadow */
+            GpiSetColor(hpsPaint, CLR_WHITE);
+            _Right(hpsPaint, rclPaint);
+            _Bottom(hpsPaint, rclPaint);
+
+            /* Draw the days of the week */
+            GpiSetColor(hpsPaint, CLR_DARKBLUE);
+            for(x=0;x<7;x++)
+            {
+                rclDraw = _CalendarDayRect(x, rclPaint);
+                dw_debug("Pos %d day of week %s\n", x, daysofweek[x]);
+                WinDrawText(hpsPaint, -1, (PCH)daysofweek[x], &rclDraw, DT_TEXTATTRS, DT_TEXTATTRS, DT_VCENTER | DT_CENTER | DT_TEXTATTRS);
+            }
+
+            /* Go through all the days */
+            for(x=0;x<35;x++)
+            {
+                rclDraw = _CalendarDayRect(x+7, rclPaint);
+                if(x < dayofweek)
+                    sprintf(buf, "%d", days[lastmonth] - (dayofweek - x - 1));
+                else if(x - dayofweek + 1 > days[month])
+                    sprintf(buf, "%d", x - dayofweek - days[month] + 1);
+                else
+                    sprintf(buf, "%d", x - dayofweek + 1);
+                dw_debug("Pos %d day %s\n", x, buf);
+                WinDrawText(hpsPaint, -1, (PCH)buf, &rclDraw, DT_TEXTATTRS, DT_TEXTATTRS, DT_VCENTER | DT_CENTER | DT_TEXTATTRS);
+            }
+
+            /* Draw a border around selected day */
+            rclPaint = _CalendarDayRect(day + dayofweek + 8, rclPaint);
+            GpiSetColor(hpsPaint, CLR_DARKGRAY);
+            _Top(hpsPaint, rclPaint);
+            _Left(hpsPaint, rclPaint);
+            /* With shadow */
+            GpiSetColor(hpsPaint, CLR_WHITE);
+            _Right(hpsPaint, rclPaint);
+            _Bottom(hpsPaint, rclPaint);
+            dw_debug("Done\n");
+
+            WinEndPaint(hpsPaint);
+
+            return (MRESULT)TRUE;
+         }
+      }
+      if(oldproc)
+          return oldproc(hWnd, msg, mp1, mp2);
+   }
+
+   return WinDefWindowProc(hWnd, msg, mp1, mp2);
+}
+
+
 /* This procedure handles drawing of a status border */
 MRESULT EXPENTRY _statusproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 {
@@ -11210,11 +11366,11 @@ void API dw_signal_disconnect_by_data(HWND window, void *data)
  */
 HWND API dw_calendar_new(ULONG id)
 {
-    char *text = "dummy calendar";
     WindowData *blah = calloc(sizeof(WindowData), 1);
+    DATETIME dt;
     HWND tmp = WinCreateWindow(HWND_OBJECT,
                         WC_STATIC,
-                        (PSZ)text,
+                        NULL,
                         WS_VISIBLE | SS_TEXT,
                         0,0,2000,1000,
                         NULLHANDLE,
@@ -11222,11 +11378,11 @@ HWND API dw_calendar_new(ULONG id)
                         id,
                         NULL,
                         NULL);
-    blah->oldproc = WinSubclassWindow(tmp, _textproc);
+    blah->oldproc = WinSubclassWindow(tmp, _calendarproc);
     WinSetWindowPtr(tmp, QWP_USER, blah);
     dw_window_set_font(tmp, DefaultFont);
-    dw_window_set_color(tmp, DW_CLR_BLACK, DW_CLR_PALEGRAY);
-    WinSetWindowText(tmp, (PSZ)text);
+    if(!DosGetDateTime(&dt))
+        dw_calendar_set_date(tmp, dt.year, dt.month, dt.day);
     return tmp;
 }
 
@@ -11235,13 +11391,27 @@ HWND API dw_calendar_new(ULONG id)
  */
 void API dw_calendar_set_date( HWND window, unsigned int year, unsigned int month, unsigned int day )
 {
-    char tmp[30];
-    sprintf( tmp, "%4.4d-%2.2d-%2.2d", year, month, day);
-    WinSetWindowText(window, (PSZ)tmp);
+    /* Need to be 0 based */
+    if(year > 0)
+        year--;
+    if(month > 0)
+        month--;
+    if(day > 0)
+        day--;
+
+    dw_window_set_data(window, "_dw_year", DW_INT_TO_POINTER(year));
+    dw_window_set_data(window, "_dw_month", DW_INT_TO_POINTER(month));
+    dw_window_set_data(window, "_dw_day", DW_INT_TO_POINTER(day));
+    /* Make it redraw */
+    WinPostMsg(window, WM_PAINT, 0, 0);
 }
 
 void API dw_calendar_get_date( HWND window, unsigned int *year, unsigned int *month, unsigned int *day )
 {
-    window = window;
-    *year = *month = *day = 0;
+    if(year)
+        *year = DW_POINTER_TO_UINT(dw_window_get_data(window, "_dw_year")) + 1;
+    if(month)
+        *month = DW_POINTER_TO_UINT(dw_window_get_data(window, "_dw_month")) + 1;
+    if(day)
+        *day = DW_POINTER_TO_UINT(dw_window_get_data(window, "_dw_day")) + 1;
 }
