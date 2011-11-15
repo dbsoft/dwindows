@@ -1654,7 +1654,8 @@ MRESULT EXPENTRY _calendarproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
               POINTS pts = (*((POINTS*)&mp1));
               int month = DW_POINTER_TO_INT(dw_window_get_data(hWnd, "_dw_month"));
               int year = DW_POINTER_TO_INT(dw_window_get_data(hWnd, "_dw_year"));
-              int dayofweek = 1, x, height;
+              int dayofweek = 1, x, height, isleapyear = ((year+1) % 4 == 0);
+              int daysthismonth = days[month] + (isleapyear && month == 1);
               RECTL rclArea;
 
               /* Figure out what day of the week the first day of the month falls on */
@@ -1707,7 +1708,7 @@ MRESULT EXPENTRY _calendarproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
               }
 
               /* Check all the valid days of the month */
-              for(x=dayofweek+7;x<(days[month]+dayofweek+7);x++)
+              for(x=dayofweek+7;x<(daysthismonth+dayofweek+7);x++)
               {
                   RECTL rclThis = _CalendarDayRect(x, rclArea);
                   if(pts.x < rclThis.xRight && pts.x > rclThis.xLeft && pts.y < rclThis.yTop && pts.y > rclThis.yBottom)
@@ -1728,7 +1729,7 @@ MRESULT EXPENTRY _calendarproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
             int day = DW_POINTER_TO_INT(dw_window_get_data(hWnd, "_dw_day"));
             int month = DW_POINTER_TO_INT(dw_window_get_data(hWnd, "_dw_month"));
             int year = DW_POINTER_TO_INT(dw_window_get_data(hWnd, "_dw_year"));
-            int dayofweek = 1, x, lastmonth = 11, height;
+            int dayofweek = 1, x, lastmonth = 11, height, isleapyear = ((year+1) % 4 == 0);
             POINTL pptl[3];
 
             /* Figure out the previous month for later use */
@@ -1740,7 +1741,7 @@ MRESULT EXPENTRY _calendarproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 
             /* Figure out what day of the week the first day of the month falls on */
             for(x=0;x<month;x++)
-                dayofweek += days[x];
+                dayofweek += days[x] + (isleapyear && x == 1);
             dayofweek += (year/4) + year - 1;
             dayofweek = dayofweek % 7;
 
@@ -1808,16 +1809,19 @@ MRESULT EXPENTRY _calendarproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
             /* Go through all the days */
             for(x=0;x<42;x++)
             {
+                int daysthismonth = days[month] + (isleapyear && month == 1);
+                int dayslastmonth = days[lastmonth] + (isleapyear && lastmonth == 1);
+
                 rclDraw = _CalendarDayRect(x+7, rclPaint);
                 if(x < dayofweek)
                 {
                     GpiSetColor(hpsPaint, CLR_DARKGRAY);
-                    sprintf(buf, "%d", days[lastmonth] - (dayofweek - x - 1));
+                    sprintf(buf, "%d", dayslastmonth - (dayofweek - x - 1));
                 }
-                else if(x - dayofweek + 1 > days[month])
+                else if(x - dayofweek + 1 > daysthismonth)
                 {
                     GpiSetColor(hpsPaint, CLR_DARKGRAY);
-                    sprintf(buf, "%d", x - dayofweek - days[month] + 1);
+                    sprintf(buf, "%d", x - dayofweek - daysthismonth + 1);
                 }
                 else
                 {
