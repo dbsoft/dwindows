@@ -7,8 +7,9 @@ RM = rm -f
 RC = rc
 MAKE = make
 COMPRESS = lxlite
-VER = 21
-VERDOT = 2.1
+include Version
+VER = $(DW_MAJOR_VERSION)$(DW_MINOR_VERSION)
+VERDOT = $(DW_MAJOR_VERSION).$(DW_MINOR_VERSION)
 AVERREV := $(shell os2\svnrev.cmd)
 include SVN.REV
 
