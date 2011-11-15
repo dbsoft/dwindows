@@ -1607,6 +1607,7 @@ void _Right(HPS hpsPaint, RECTL rclPaint)
 
 
 #define CALENDAR_BORDER 3
+#define CALENDAR_ARROW 8
 
 /* Returns a rectangle for a single day on the calendar */
 RECTL _CalendarDayRect(int position, RECTL rclPaint)
@@ -1619,13 +1620,13 @@ RECTL _CalendarDayRect(int position, RECTL rclPaint)
     int row = position / 7;
     int col = position % 7;
     int cellwidth = width / 7;
-    int cellheight = height / 7;
+    int cellheight = height / 8;
 
     /* Create a new box */
     rclPaint.xLeft = (cellwidth * col) + CALENDAR_BORDER;
     rclPaint.xRight = rclPaint.xLeft + cellwidth;
     /* We only handle 6 of the 7 rows */
-    rclPaint.yBottom = (cellheight * (5-row)) + CALENDAR_BORDER;
+    rclPaint.yBottom = (cellheight * (6-row)) + CALENDAR_BORDER;
     rclPaint.yTop = rclPaint.yBottom + cellheight;
     return rclPaint;
 }
@@ -1633,6 +1634,10 @@ RECTL _CalendarDayRect(int position, RECTL rclPaint)
 /* This procedure handles drawing of a status border */
 MRESULT EXPENTRY _calendarproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 {
+   /* How many days are in each month usually (not including leap years) */
+   static int days[] = { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
+   static char *months[] = { "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December" };
+   static char *daysofweek[] = { "Sunday", "Monday", "Tuesday","Wednesday", "Thursday", "Friday", "Saturday" };
    WindowData *blah = (WindowData *)WinQueryWindowPtr(hWnd, QWP_USER);
    PFNWP oldproc = 0;
 
@@ -1642,15 +1647,85 @@ MRESULT EXPENTRY _calendarproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 
       switch(msg)
       {
+      case WM_BUTTON1DOWN:
+      case WM_BUTTON2DOWN:
+      case WM_BUTTON3DOWN:
+          {
+              POINTS pts = (*((POINTS*)&mp1));
+              int day = DW_POINTER_TO_INT(dw_window_get_data(hWnd, "_dw_day"));
+              int month = DW_POINTER_TO_INT(dw_window_get_data(hWnd, "_dw_month"));
+              int year = DW_POINTER_TO_INT(dw_window_get_data(hWnd, "_dw_year"));
+              int dayofweek = 1, x, height;
+              RECTL rclArea;
+
+              /* Figure out what day of the week the first day of the month falls on */
+              for(x=0;x<month;x++)
+                  dayofweek += days[x];
+              dayofweek += (year/4) + year - 1;
+              dayofweek = dayofweek % 7;
+
+              WinQueryWindowRect(hWnd, &rclArea);
+              height = ((rclArea.yTop - (CALENDAR_BORDER*2))/7);
+
+              /* Check for the left arrow */
+              if(pts.x > rclArea.xLeft + CALENDAR_BORDER && pts.x < rclArea.xLeft + CALENDAR_BORDER + CALENDAR_ARROW &&
+                 pts.y > rclArea.yTop - (CALENDAR_BORDER + height) && pts.y < rclArea.yTop - CALENDAR_BORDER)
+              {
+                  if(month == 0)
+                  {
+                      month = 11;
+                      year--;
+                      dw_window_set_data(hWnd, "_dw_year", DW_INT_TO_POINTER(year));
+                  }
+                  else if(month > 0)
+                  {
+                      month--;
+                  }
+                  dw_window_set_data(hWnd, "_dw_month", DW_INT_TO_POINTER(month));
+                  WinInvalidateRect(hWnd, &rclArea, FALSE);
+                  WinPostMsg(hWnd, WM_PAINT, 0, 0);
+                  return (MRESULT)TRUE;
+              }
+
+              /* Check for the right arrow */
+              if(pts.x < rclArea.xRight - CALENDAR_BORDER && pts.x > rclArea.xRight - CALENDAR_BORDER - CALENDAR_ARROW &&
+                 pts.y > rclArea.yTop - (CALENDAR_BORDER + height) && pts.y < rclArea.yTop - CALENDAR_BORDER)
+              {
+                  if(month == 11)
+                  {
+                      month = 0;
+                      year++;
+                      dw_window_set_data(hWnd, "_dw_year", DW_INT_TO_POINTER(year));
+                  }
+                  else if(month < 11)
+                  {
+                      month++;
+                  }
+                  dw_window_set_data(hWnd, "_dw_month", DW_INT_TO_POINTER(month));
+                  WinInvalidateRect(hWnd, &rclArea, FALSE);
+                  WinPostMsg(hWnd, WM_PAINT, 0, 0);
+                  return (MRESULT)TRUE;
+              }
+
+              /* Check all the valid days of the month */
+              for(x=dayofweek+7;x<(days[month]+dayofweek+7);x++)
+              {
+                  RECTL rclThis = _CalendarDayRect(x, rclArea);
+                  if(pts.x < rclThis.xRight && pts.x > rclThis.xLeft && pts.y < rclThis.yTop && pts.y > rclThis.yBottom)
+                  {
+                      dw_window_set_data(hWnd, "_dw_day", DW_INT_TO_POINTER((x-(dayofweek+7))));
+                      WinInvalidateRect(hWnd, &rclArea, FALSE);
+                      WinPostMsg(hWnd, WM_PAINT, 0, 0);
+                      return (MRESULT)TRUE;
+                  }
+              }
+          }
+          break;
       case WM_PAINT:
          {
             HPS hpsPaint;
             RECTL rclPaint, rclDraw;
             char buf[100], font[50] = { 0 };
-            /* How many days are in each month usually (not including leap years) */
-            static int days[] = { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
-            static char *months[] = { "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December" };
-            static char *daysofweek[] = { "Sunday", "Monday", "Tuesday","Wednesday", "Thursday", "Friday", "Saturday" };
             int day = DW_POINTER_TO_INT(dw_window_get_data(hWnd, "_dw_day"));
             int month = DW_POINTER_TO_INT(dw_window_get_data(hWnd, "_dw_month"));
             int year = DW_POINTER_TO_INT(dw_window_get_data(hWnd, "_dw_year"));
@@ -1660,18 +1735,6 @@ MRESULT EXPENTRY _calendarproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
             /* Figure out the previous month for later use */
             if(month > 0)
                 lastmonth = month - 1;
-
-#if 0
-            /* Check the current font and create a bold one to draw the month and selected */
-            if(WinQueryPresParam(hWnd, PP_FONTNAMESIZE, 0, NULL, 50, font, QPF_NOINHERIT))
-            {
-                strcpy(buf, font);
-                /* Check to make sure it isn't already bold */
-                if(!strstr(buf, " Bold"))
-                    strcat(buf, " Bold");
-                WinSetPresParam(hWnd, PP_FONTNAMESIZE, strlen(buf)+1, buf);
-            }
-#endif
 
             /* Make the title */
             sprintf(buf, "%s, %d", months[month], year + 1);
@@ -1697,32 +1760,27 @@ MRESULT EXPENTRY _calendarproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
             /* Draw the left arrow */
             GpiSetColor(hpsPaint, CLR_DARKGRAY);
             GpiBeginArea(hpsPaint, 0);
-            pptl[2].x = rclDraw.xLeft + CALENDAR_BORDER + 5;
+            pptl[2].x = rclDraw.xLeft + CALENDAR_BORDER + CALENDAR_ARROW;
             pptl[2].y = rclDraw.yTop - CALENDAR_BORDER;
             GpiMove(hpsPaint, &pptl[2]);
             pptl[0].x = rclDraw.xLeft + CALENDAR_BORDER;
             pptl[0].y = rclDraw.yTop - (CALENDAR_BORDER+ (height/2));
-            pptl[1].x = rclDraw.xLeft + CALENDAR_BORDER + 5;
+            pptl[1].x = rclDraw.xLeft + CALENDAR_BORDER + CALENDAR_ARROW;
             pptl[1].y = rclDraw.yTop - CALENDAR_BORDER - height;
             GpiPolyLine(hpsPaint, 3, pptl);
             GpiEndArea(hpsPaint);
 
             /* Draw the left arrow */
             GpiBeginArea(hpsPaint, 0);
-            pptl[2].x = rclDraw.xRight - CALENDAR_BORDER - 5;
+            pptl[2].x = rclDraw.xRight - CALENDAR_BORDER - CALENDAR_ARROW;
             pptl[2].y = rclDraw.yTop - CALENDAR_BORDER;
             GpiMove(hpsPaint, &pptl[2]);
             pptl[0].x = rclDraw.xRight - CALENDAR_BORDER;
             pptl[0].y = rclDraw.yTop - (CALENDAR_BORDER + (height/2));
-            pptl[1].x = rclDraw.xRight - CALENDAR_BORDER - 5;
+            pptl[1].x = rclDraw.xRight - CALENDAR_BORDER - CALENDAR_ARROW;
             pptl[1].y = rclDraw.yTop - CALENDAR_BORDER - height;
             GpiPolyLine(hpsPaint, 3, pptl);
             GpiEndArea(hpsPaint);
-
-#if 0
-            /* Restore the original font */
-            WinSetPresParam(hWnd, PP_FONTNAMESIZE, strlen(font)+1, font);
-#endif
 
             /* Draw a border around control */
             _Top(hpsPaint, rclPaint);
@@ -1733,7 +1791,7 @@ MRESULT EXPENTRY _calendarproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
             _Bottom(hpsPaint, rclPaint);
 
             /* Draw the days of the week */
-            GpiSetColor(hpsPaint, CLR_DARKBLUE);
+            GpiSetColor(hpsPaint, CLR_BLACK);
             for(x=0;x<7;x++)
             {
                 char *title = daysofweek[x];
@@ -1749,15 +1807,24 @@ MRESULT EXPENTRY _calendarproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
             }
 
             /* Go through all the days */
-            for(x=0;x<35;x++)
+            for(x=0;x<42;x++)
             {
                 rclDraw = _CalendarDayRect(x+7, rclPaint);
                 if(x < dayofweek)
+                {
+                    GpiSetColor(hpsPaint, CLR_DARKGRAY);
                     sprintf(buf, "%d", days[lastmonth] - (dayofweek - x - 1));
+                }
                 else if(x - dayofweek + 1 > days[month])
+                {
+                    GpiSetColor(hpsPaint, CLR_DARKGRAY);
                     sprintf(buf, "%d", x - dayofweek - days[month] + 1);
+                }
                 else
+                {
+                    GpiSetColor(hpsPaint, CLR_DARKBLUE);
                     sprintf(buf, "%d", x - dayofweek + 1);
+                }
                 WinDrawText(hpsPaint, -1, (PCH)buf, &rclDraw, DT_TEXTATTRS, DT_TEXTATTRS, DT_VCENTER | DT_CENTER | DT_TEXTATTRS);
             }
 
