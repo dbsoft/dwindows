@@ -1652,7 +1652,6 @@ MRESULT EXPENTRY _calendarproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
       case WM_BUTTON3DOWN:
           {
               POINTS pts = (*((POINTS*)&mp1));
-              int day = DW_POINTER_TO_INT(dw_window_get_data(hWnd, "_dw_day"));
               int month = DW_POINTER_TO_INT(dw_window_get_data(hWnd, "_dw_month"));
               int year = DW_POINTER_TO_INT(dw_window_get_data(hWnd, "_dw_year"));
               int dayofweek = 1, x, height;
@@ -1725,7 +1724,7 @@ MRESULT EXPENTRY _calendarproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
          {
             HPS hpsPaint;
             RECTL rclPaint, rclDraw;
-            char buf[100], font[50] = { 0 };
+            char buf[100];
             int day = DW_POINTER_TO_INT(dw_window_get_data(hWnd, "_dw_day"));
             int month = DW_POINTER_TO_INT(dw_window_get_data(hWnd, "_dw_month"));
             int year = DW_POINTER_TO_INT(dw_window_get_data(hWnd, "_dw_year"));
