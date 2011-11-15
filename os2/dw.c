@@ -1652,6 +1652,7 @@ MRESULT EXPENTRY _calendarproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
       case WM_BUTTON3DOWN:
           {
               POINTS pts = (*((POINTS*)&mp1));
+              int day = DW_POINTER_TO_INT(dw_window_get_data(hWnd, "_dw_day"));
               int month = DW_POINTER_TO_INT(dw_window_get_data(hWnd, "_dw_month"));
               int year = DW_POINTER_TO_INT(dw_window_get_data(hWnd, "_dw_year"));
               int dayofweek = 1, x, height, isleapyear = ((year+1) % 4 == 0);
@@ -1660,7 +1661,7 @@ MRESULT EXPENTRY _calendarproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 
               /* Figure out what day of the week the first day of the month falls on */
               for(x=0;x<month;x++)
-                  dayofweek += days[x];
+                  dayofweek += days[x] + (isleapyear && x == 1);
               dayofweek += (year/4) + year - 1;
               dayofweek = dayofweek % 7;
 
@@ -1671,6 +1672,8 @@ MRESULT EXPENTRY _calendarproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
               if(pts.x > rclArea.xLeft + CALENDAR_BORDER && pts.x < rclArea.xLeft + CALENDAR_BORDER + CALENDAR_ARROW &&
                  pts.y > rclArea.yTop - (CALENDAR_BORDER + height) && pts.y < rclArea.yTop - CALENDAR_BORDER)
               {
+                  int daysthismonth;
+
                   if(month == 0)
                   {
                       month = 11;
@@ -1682,6 +1685,15 @@ MRESULT EXPENTRY _calendarproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
                       month--;
                   }
                   dw_window_set_data(hWnd, "_dw_month", DW_INT_TO_POINTER(month));
+                  /* Make sure we aren't higher than the number of days
+                   * in our new month... keeping track of leap years.
+                   */
+                  daysthismonth = days[month] + (isleapyear && month == 1);
+                  if(day >= daysthismonth)
+                  {
+                      day = daysthismonth - 1;
+                      dw_window_set_data(hWnd, "_dw_day", DW_INT_TO_POINTER(day));
+                  }
                   WinInvalidateRect(hWnd, &rclArea, FALSE);
                   WinPostMsg(hWnd, WM_PAINT, 0, 0);
                   return (MRESULT)TRUE;
@@ -1691,6 +1703,8 @@ MRESULT EXPENTRY _calendarproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
               if(pts.x < rclArea.xRight - CALENDAR_BORDER && pts.x > rclArea.xRight - CALENDAR_BORDER - CALENDAR_ARROW &&
                  pts.y > rclArea.yTop - (CALENDAR_BORDER + height) && pts.y < rclArea.yTop - CALENDAR_BORDER)
               {
+                  int daysthismonth;
+
                   if(month == 11)
                   {
                       month = 0;
@@ -1702,6 +1716,15 @@ MRESULT EXPENTRY _calendarproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
                       month++;
                   }
                   dw_window_set_data(hWnd, "_dw_month", DW_INT_TO_POINTER(month));
+                  /* Make sure we aren't higher than the number of days
+                   * in our new month... keeping track of leap years.
+                   */
+                  daysthismonth = days[month] + (isleapyear && month == 1);
+                  if(day >= daysthismonth)
+                  {
+                      day = daysthismonth - 1;
+                      dw_window_set_data(hWnd, "_dw_day", DW_INT_TO_POINTER(day));
+                  }
                   WinInvalidateRect(hWnd, &rclArea, FALSE);
                   WinPostMsg(hWnd, WM_PAINT, 0, 0);
                   return (MRESULT)TRUE;
