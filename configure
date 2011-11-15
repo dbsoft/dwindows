@@ -665,9 +665,6 @@ CPPFLAGS
 LDFLAGS
 CFLAGS
 CC
-DW_SUB_VERSION
-DW_MINOR_VERSION
-DW_MAJOR_VERSION
 TARGET2
 TARGET
 target_alias
@@ -1367,7 +1364,7 @@ Optional Packages:
   --with-gtkframework     specify this to build dwindows with GTK+ Framework (only relevant for OSX)
   --with-gtkhtml          specify this to build dwindows with libgtkhtml-2
   --with-gtkmozembed      specify this to build dwindows with Mozilla gtkmozembed
-  --with-arch             specify architecture: one of all, 32bit, 64bit, ppc, ppc64, x86_64, i386
+  --with-arch             specify architecture: one of all, 32bit, 64bit, intel, ppc, ppc64, x86_64, i386
   --with-glib-prefix=PFX  Prefix where GLIB is installed (optional)
   --with-glib-exec-prefix=PFX Exec prefix where GLIB is installed (optional)
   --with-gtk-prefix=PFX   Prefix where GTK is installed (optional)
@@ -2207,10 +2204,6 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 ac_config_headers="$ac_config_headers config.h"
 
 
-DW_MAJOR_VERSION=2
-DW_MINOR_VERSION=1
-DW_SUB_VERSION=0
-
 TARGET="dwindows"
 TARGET2="dwcompat"
 
@@ -2225,9 +2218,6 @@ SHAREDFLAG=-shared
 SOSUFFIX=so
 LIBSUFFIX=a
 LIBPREFIX=lib
-
-
-
 
 INCLUDES="-I."
 
@@ -3658,13 +3648,13 @@ fi
 if test $with_compat = yes; then
    COMPAT_OBJECT="compat.o"
    INSTALL_COMPAT="installcompat"
-   SYSCONF_LINK_TARGET_SHARED2="lib$TARGET2.$SOSUFFIX.$DW_MAJOR_VERSION.$DW_MINOR_VERSION"
+   SYSCONF_LINK_TARGET_SHARED2="lib$TARGET2.$SOSUFFIX.\$(DW_MAJOR_VERSION).\$(DW_MINOR_VERSION)"
 else
    COMPAT_OBJECT=""
    INSTALL_COMPAT=""
    SYSCONF_LINK_TARGET_SHARED2=""
 fi
-SYSCONF_LINK_TARGET_SHARED="lib$TARGET.$SOSUFFIX.$DW_MAJOR_VERSION.$DW_MINOR_VERSION"
+SYSCONF_LINK_TARGET_SHARED="lib$TARGET.$SOSUFFIX.\$(DW_MAJOR_VERSION).\$(DW_MINOR_VERSION)"
 SYSCONF_LINK_TARGET_STATIC="lib$TARGET.a"
 
 
@@ -4599,7 +4589,7 @@ case "$target" in
 
    ;;
    *linux*)
-      SONAME="-Wl,-soname,lib$TARGET.so.$DW_MAJOR_VERSION"
+      SONAME="-Wl,-soname,lib$TARGET.so.\$(DW_MAJOR_VERSION)"
    ;;
    *nto-qnx*)
       DW_DIR="photon"
@@ -4633,11 +4623,14 @@ case "$target" in
          64bit)
             ARCH="-arch ppc64 -arch x86_64"
             ;;
+         intel)
+            ARCH="-arch i386 -arch x86_64"
+            ;;
          *)
             ARCH="-arch $with_arch"
             ;;
       esac
-      SHAREDFLAG="-dynamiclib -flat_namespace -undefined suppress"
+      SHAREDFLAG="-dynamiclib -flat_namespace -undefined suppress -headerpad_max_install_names"
       SOSUFFIX=dylib
       if test $with_gtkframework = yes; then
          DW_DIR=gtk

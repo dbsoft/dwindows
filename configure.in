@@ -1,10 +1,6 @@
 AC_INIT(winmain.c)
 AC_CONFIG_HEADER(config.h)
 
-DW_MAJOR_VERSION=2
-DW_MINOR_VERSION=1
-DW_SUB_VERSION=0
-
 TARGET="dwindows"
 TARGET2="dwcompat"
 AC_SUBST(TARGET)
@@ -19,9 +15,6 @@ SHAREDFLAG=-shared
 SOSUFFIX=so
 LIBSUFFIX=a
 LIBPREFIX=lib
-AC_SUBST(DW_MAJOR_VERSION)
-AC_SUBST(DW_MINOR_VERSION)
-AC_SUBST(DW_SUB_VERSION)
 
 INCLUDES="-I."
 
@@ -66,13 +59,13 @@ dnl ---------------------- default targets to build -----------------
 if test $with_compat = yes; then
    COMPAT_OBJECT="compat.o"
    INSTALL_COMPAT="installcompat"
-   SYSCONF_LINK_TARGET_SHARED2="lib$TARGET2.$SOSUFFIX.$DW_MAJOR_VERSION.$DW_MINOR_VERSION"
+   SYSCONF_LINK_TARGET_SHARED2="lib$TARGET2.$SOSUFFIX.\$(DW_MAJOR_VERSION).\$(DW_MINOR_VERSION)"
 else
    COMPAT_OBJECT=""
    INSTALL_COMPAT=""
    SYSCONF_LINK_TARGET_SHARED2=""
 fi
-SYSCONF_LINK_TARGET_SHARED="lib$TARGET.$SOSUFFIX.$DW_MAJOR_VERSION.$DW_MINOR_VERSION"
+SYSCONF_LINK_TARGET_SHARED="lib$TARGET.$SOSUFFIX.\$(DW_MAJOR_VERSION).\$(DW_MINOR_VERSION)"
 SYSCONF_LINK_TARGET_STATIC="lib$TARGET.a"
 
 dnl ---------------------- check for '--with-gtk+' switch -----------------
@@ -153,7 +146,7 @@ case "$target" in
       AC_DEFINE(DW_USE_GTK)
    ;;
    *linux*)
-      SONAME="-Wl,-soname,lib$TARGET.so.$DW_MAJOR_VERSION"
+      SONAME="-Wl,-soname,lib$TARGET.so.\$(DW_MAJOR_VERSION)"
    ;;
    *nto-qnx*)
       DW_DIR="photon"
