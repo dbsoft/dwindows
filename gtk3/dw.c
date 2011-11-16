@@ -9500,6 +9500,28 @@ void dw_listbox_delete(HWND handle, int index)
    DW_MUTEX_UNLOCK;
 }
 
+/* Function to do delayed positioning */
+gboolean _splitbar_set_percent(gpointer data)
+{
+   GtkWidget *widget = data;
+   float *percent = (float *)g_object_get_data(G_OBJECT(widget), "_dw_percent");
+
+   if(percent)
+   {
+      GtkAllocation alloc;
+      
+      gtk_widget_get_allocation(widget, &alloc);
+      
+      if(GTK_IS_HPANED(widget))
+         gtk_paned_set_position(GTK_PANED(widget), (int)(alloc.width * (*percent / 100.0)));
+      if(GTK_IS_VPANED(widget))
+         gtk_paned_set_position(GTK_PANED(widget), (int)(alloc.height * (*percent / 100.0)));
+      g_object_set_data(G_OBJECT(widget), "_dw_percent", NULL);
+      free(percent);
+   }
+   return FALSE;
+}
+
 /* Reposition the bar according to the percentage */
 static gint _splitbar_size_allocate(GtkWidget *widget, GtkAllocation *event, gpointer data)
 {
@@ -9509,12 +9531,7 @@ static gint _splitbar_size_allocate(GtkWidget *widget, GtkAllocation *event, gpo
    if(!percent || event->width < 20 || event->height < 20)
       return FALSE;
 
-   if(GTK_IS_HPANED(widget))
-      gtk_paned_set_position(GTK_PANED(widget), (int)(event->width * (*percent / 100.0)));
-   if(GTK_IS_VPANED(widget))
-      gtk_paned_set_position(GTK_PANED(widget), (int)(event->height * (*percent / 100.0)));
-   g_object_set_data(G_OBJECT(widget), "_dw_percent", NULL);
-   free(percent);
+   g_idle_add(_splitbar_set_percent, widget);
    return FALSE;
 }
 
