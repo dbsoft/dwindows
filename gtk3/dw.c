@@ -3661,6 +3661,7 @@ HWND dw_entryfield_new(char *text, unsigned long id)
    tmp = gtk_entry_new();
 
    gtk_entry_set_text(GTK_ENTRY(tmp), text);
+   gtk_entry_set_width_chars(GTK_ENTRY(tmp), 0);
 
    gtk_widget_show(tmp);
    g_object_set_data(G_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(id));
@@ -3687,6 +3688,7 @@ HWND dw_entryfield_password_new(char *text, ULONG id)
 
    gtk_entry_set_visibility(GTK_ENTRY(tmp), FALSE);
    gtk_entry_set_text(GTK_ENTRY(tmp), text);
+   gtk_entry_set_width_chars(GTK_ENTRY(tmp), 0);
 
    gtk_widget_show(tmp);
    g_object_set_data(G_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(id));
@@ -3714,6 +3716,7 @@ HWND dw_combobox_new(char *text, unsigned long id)
    tmp = gtk_combo_box_new_with_model_and_entry(GTK_TREE_MODEL(store));
    gtk_combo_box_set_entry_text_column(GTK_COMBO_BOX(tmp), 0);
    gtk_entry_set_text(GTK_ENTRY(gtk_bin_get_child(GTK_BIN(tmp))), text);
+   gtk_entry_set_width_chars(GTK_ENTRY(gtk_bin_get_child(GTK_BIN(tmp))), 0);
    gtk_widget_show(tmp);
    g_object_set_data(G_OBJECT(tmp), "_dw_tree_type", GINT_TO_POINTER(_DW_TREE_TYPE_COMBOBOX));
    g_object_set_data(G_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(id));
