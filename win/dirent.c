@@ -7,6 +7,7 @@
 
 #include "compat.h"
 #include <errno.h>
+#include <direct.h>
 
 #define error(rc) errno = 255
 
@@ -136,7 +137,6 @@ struct dirent * API readdir(DIR *dir)
 
 	if (dir->number)
 	{
-		ULONG rc;
 		dir->count = 100;
 		if(!FindNextFile(dir->handle, &(dir->data)))
 		{
@@ -172,7 +172,6 @@ void API seekdir(DIR *dir, long off)
 {
 	if (dir->number > off) {
 		char name[MAXPATHLEN+2];
-		ULONG rc;
 
 		FindClose(dir->handle);
 

@@ -18,6 +18,8 @@
 #include <string.h>
 #include <stdio.h>
 #include <process.h>
+#include <malloc.h>
+#include <io.h>
 #include <time.h>
 #include <math.h>
 #include "dw.h"
@@ -100,12 +102,21 @@ ULONG_PTR gdiplusToken;
 #endif
 
 /*
- * MinGW (as at 3.2.3) doesn't have MIM_MENUDATA
- * so #define it here
+ * MinGW Is missing a bunch of definitions
+ * so #define them here...
  */
 
 #if !defined( MIM_MENUDATA )
 # define MIM_MENUDATA 0x00000008
+#endif
+#if !defined(PBS_MARQUEE)
+# define PBS_MARQUEE 0x08
+#endif
+#if !defined(PBM_SETMARQUEE)
+# define PBM_SETMARQUEE (WM_USER+10)
+#endif
+#if !defined(LVS_EX_DOUBLEBUFFER)
+# define LVS_EX_DOUBLEBUFFER 0x10000
 #endif
 
 HWND popup = (HWND)NULL, DW_HWND_OBJECT = (HWND)NULL;
@@ -160,7 +171,7 @@ HBRUSH _colors[18];
 static int screenx, screeny;
 HFONT _DefaultFont = NULL;
 
-#ifdef BUILD_DLL
+#if (defined(BUILD_DLL) || defined(BUILD_HTML)) && !defined(__MINGW32__)
 LRESULT CALLBACK _browserWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 #endif
 void _resize_notebook_page(HWND handle, int pageid);
@@ -391,7 +402,7 @@ void *_dw_load_gpbitmap( char *filename )
    {
       strcpy( file, filename );
       strcat( file, image_exts[i] );
-      if ( access( file, 04 ) == 0 )
+      if ( _access( file, 04 ) == 0 )
       {
          /* Convert to wide format */
          MultiByteToWideChar(CP_ACP, 0, file, strlen(file)+1, wfile, wclen);
@@ -1707,12 +1718,12 @@ static void _dw_toggle_checkable_menu_item( HWND window, int id )
 {
    char buffer[40];
    int checkable;
-   sprintf( buffer, "_dw_checkable%ld", id );
+   sprintf( buffer, "_dw_checkable%d", id );
    checkable = (int)dw_window_get_data(DW_HWND_OBJECT, buffer);
    if ( checkable )
    {
       int is_checked;
-      sprintf( buffer, "_dw_ischecked%ld", id );
+      sprintf( buffer, "_dw_ischecked%d", id );
       is_checked = (int)dw_window_get_data(DW_HWND_OBJECT, buffer);
       is_checked = (is_checked) ? 0 : 1;
       dw_menu_item_set_check( window, id, is_checked );
@@ -2256,7 +2267,7 @@ BOOL CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
             GetClassName( hWnd, tmpbuf, 99 );
             if ( strnicmp(tmpbuf, FRAMECLASSNAME, strlen(FRAMECLASSNAME)+1 ) == 0 )
             {
-               int value = _HandleScroller(hWnd, bar, (int)HIWORD(mp1), (int)LOWORD(mp1));
+               _HandleScroller(hWnd, bar, (int)HIWORD(mp1), (int)LOWORD(mp1));
             }
          }
       }
@@ -2876,9 +2887,7 @@ BOOL CALLBACK _colorwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 /* Window procedure for container/listview */
 BOOL CALLBACK _containerwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 {
-   ContainerInfo *cinfo;
-
-   cinfo = (ContainerInfo *)GetWindowLongPtr(hWnd, GWLP_USERDATA);
+   ContainerInfo *continfo = (ContainerInfo *)GetWindowLongPtr(hWnd, GWLP_USERDATA);
 
    switch( msg )
    {
@@ -2888,18 +2897,18 @@ BOOL CALLBACK _containerwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
       _wndproc(hWnd, msg, mp1, mp2);
       break;
    case WM_PAINT:
-       if(cinfo->cinfo.pOldProc && (cinfo->even != DW_RGB_TRANSPARENT || cinfo->odd != DW_RGB_TRANSPARENT))
+       if(continfo->cinfo.pOldProc && (continfo->even != DW_RGB_TRANSPARENT || continfo->odd != DW_RGB_TRANSPARENT))
        {
             RECT rectUpd, rectDestin, rect;
             int iItems, iTop, i;
             COLORREF c;
 
             /* Load the default background color for the first pass */
-            ListView_SetTextBkColor(hWnd, cinfo->cinfo.back != -1 ? cinfo->cinfo.back : ListView_GetBkColor(hWnd));
+            ListView_SetTextBkColor(hWnd, continfo->cinfo.back != -1 ? continfo->cinfo.back : ListView_GetBkColor(hWnd));
             /* get the rectangle to be updated */
             GetUpdateRect(hWnd, &rectUpd, FALSE);
             /* allow default processing first */
-            CallWindowProc(cinfo->cinfo.pOldProc, hWnd, msg, 0, 0);
+            CallWindowProc(continfo->cinfo.pOldProc, hWnd, msg, 0, 0);
             /* number of displayed rows */
             iItems = ListView_GetCountPerPage(hWnd);
             /* first visible row */
@@ -2911,7 +2920,7 @@ BOOL CALLBACK _containerwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
                 if(ListView_GetItemRect(hWnd, i, &rect, LVIR_BOUNDS) && IntersectRect(&rectDestin, &rectUpd, &rect)) 
                 {
                     /* change text background colour accordingly */
-                    c = (i % 2) ? cinfo->odd : cinfo->even;
+                    c = (i % 2) ? continfo->odd : continfo->even;
 
                     if(c != DW_RGB_TRANSPARENT)
                     {
@@ -2919,7 +2928,7 @@ BOOL CALLBACK _containerwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
                         /* invalidate the row rectangle then... */
                         InvalidateRect(hWnd, &rectDestin, FALSE);
                         /* ...force default processing */
-                        CallWindowProc(cinfo->cinfo.pOldProc, hWnd, msg, 0, 0);
+                        CallWindowProc(continfo->cinfo.pOldProc, hWnd, msg, 0, 0);
                     }
                 }
             }            
@@ -3025,9 +3034,9 @@ BOOL CALLBACK _containerwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
       break;
    }
 
-   if(!cinfo || !cinfo->cinfo.pOldProc)
+   if(!continfo || !continfo->cinfo.pOldProc)
       return DefWindowProc(hWnd, msg, mp1, mp2);
-   return CallWindowProc(cinfo->cinfo.pOldProc, hWnd, msg, mp1, mp2);
+   return CallWindowProc(continfo->cinfo.pOldProc, hWnd, msg, mp1, mp2);
 }
 
 BOOL CALLBACK _treewndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
@@ -3375,8 +3384,6 @@ BOOL CALLBACK _statuswndproc(HWND hwnd, UINT msg, WPARAM mp1, LPARAM mp2)
 BOOL CALLBACK _BtProc(HWND hwnd, ULONG msg, WPARAM mp1, LPARAM mp2)
 {
    BubbleButton *bubble;
-   POINT point;
-   RECT rect;
    WNDPROC pOldProc;
 
    bubble = (BubbleButton *)GetWindowLongPtr(hwnd, GWLP_USERDATA);
@@ -3629,8 +3636,7 @@ int API dw_init(int newthread, int argc, char *argv[])
    WNDCLASS wc;
    int z;
    INITCOMMONCONTROLSEX icc;
-   char *fname, *alttmpdir;
-   HFONT oldfont;
+   char *alttmpdir;
 #ifdef GDIPLUS
    struct GdiplusStartupInput si; 
 #endif
@@ -3698,7 +3704,7 @@ int API dw_init(int newthread, int argc, char *argv[])
 
    RegisterClass(&wc);
 
-#ifdef BUILD_DLL
+#if (defined(BUILD_DLL) || defined(BUILD_HTML)) && !defined(__MINGW32__)
    /* Register HTML renderer class */
    memset(&wc, 0, sizeof(WNDCLASS));
    wc.lpfnWndProc = (WNDPROC)_browserWindowProc;
@@ -4727,7 +4733,7 @@ HWND API dw_mdi_new(unsigned long id)
  */
 HWND API dw_html_new(unsigned long id)
 {
-#if defined(BUILD_DLL) || defined(BUILD_HTML)
+#if (defined(BUILD_DLL) || defined(BUILD_HTML)) && !defined(__MINGW32__)
    return CreateWindow(BrowserClassName,
                   "",
                   WS_VISIBLE | WS_CHILD | WS_CLIPSIBLINGS,
@@ -4740,6 +4746,61 @@ HWND API dw_html_new(unsigned long id)
    dw_debug("HTML widget not available; Support not enabled in this build.\n");
    return 0;
 #endif
+}
+
+#if (defined(BUILD_DLL) || defined(BUILD_HTML)) && !defined(__MINGW32__)
+void _dw_html_action(HWND hwnd, int action);
+int _dw_html_raw(HWND hwnd, char *string);
+int _dw_html_url(HWND hwnd, char *url);
+#endif
+
+/*
+ * Causes the embedded HTML widget to take action.
+ * Parameters:
+ *       handle: Handle to the window.
+ *       action: One of the DW_HTML_* constants.
+ */
+void API dw_html_action(HWND handle, int action)
+{
+#if (defined(BUILD_DLL) || defined(BUILD_HTML)) && !defined(__MINGW32__)
+   _dw_html_action(handle, action);
+#endif
+}
+
+/*
+ * Render raw HTML code in the embedded HTML widget..
+ * Parameters:
+ *       handle: Handle to the window.
+ *       string: String buffer containt HTML code to
+ *               be rendered.
+ * Returns:
+ *       DW_ERROR_NONE (0) on success.
+ */
+int API dw_html_raw(HWND handle, char *string)
+{
+#if (defined(BUILD_DLL) || defined(BUILD_HTML)) && !defined(__MINGW32__)
+   return _dw_html_raw(handle, string);
+#else
+   return DW_ERROR_GENERAL;
+#endif
+}
+
+/*
+ * Render file or web page in the embedded HTML widget..
+ * Parameters:
+ *       handle: Handle to the window.
+ *       url: Universal Resource Locator of the web or
+ *               file object to be rendered.
+ * Returns:
+ *       DW_ERROR_NONE (0) on success.
+ */
+int API dw_html_url(HWND handle, char *url)
+{
+#if (defined(BUILD_DLL) || defined(BUILD_HTML)) && !defined(__MINGW32__)
+   return _dw_html_url(handle, url);
+#else
+   return DW_ERROR_GENERAL;
+#endif    
 }
 
 /*
@@ -5543,7 +5604,7 @@ HWND API dw_bitmapbutton_new_from_file(char *text, unsigned long id, char *filen
    BubbleButton *bubble;
    HBITMAP hbitmap = 0;
    HANDLE hicon = 0;
-   int windowtype = 0, len;
+   int windowtype = 0;
 
    if (!(bubble = calloc(1, sizeof(BubbleButton))))
       return 0;
@@ -5604,7 +5665,7 @@ HWND API dw_bitmapbutton_new_from_data(char *text, unsigned long id, char *data,
    HANDLE hicon = 0;
    char *file;
    FILE *fp;
-   int windowtype;
+   int windowtype = BS_BITMAP;
 
    if ( !(bubble = calloc(1, sizeof(BubbleButton))) )
       return 0;
@@ -5620,16 +5681,10 @@ HWND API dw_bitmapbutton_new_from_data(char *text, unsigned long id, char *data,
          if((hicon = _dw_load_icon(file)))
             windowtype = BS_ICON;
          else
-         {
             hbitmap = _dw_load_bitmap(file, NULL);
-            windowtype = BS_BITMAP;
-         }
 #else
          if ( len > 1 && data[0] == 'B' && data[1] == 'M' ) /* first 2 chars of data is BM, then its a BMP */
-         {
             hbitmap = (HBITMAP)LoadImage( NULL, file, IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE );
-            windowtype = BS_BITMAP;
-         }
          else /* otherwise its assumed to be an ico */
          {
             hicon = LoadImage( NULL, file, IMAGE_ICON, 0, 0, LR_LOADFROMFILE );
@@ -5921,10 +5976,10 @@ void API dw_window_set_icon(HWND handle, HICN icon)
  */
 void API dw_window_set_bitmap(HWND handle, unsigned long id, char *filename)
 {
-   HBITMAP hbitmap;
+   HBITMAP hbitmap = 0;
    HBITMAP oldbitmap = (HBITMAP)SendMessage(handle, STM_GETIMAGE, IMAGE_BITMAP, 0);
-   HICON icon = 0;
-   HICON oldicon = (HICON)SendMessage(handle, STM_GETIMAGE, IMAGE_ICON, 0);
+   HANDLE icon = 0;
+   HANDLE oldicon = (HICON)SendMessage(handle, STM_GETIMAGE, IMAGE_ICON, 0);
 
    if(id)
    {
@@ -6593,8 +6648,6 @@ unsigned long API dw_notebook_page_new(HWND handle, ULONG flags, int front)
       {
          if(!array[z])
          {
-            int oldpage = TabCtrl_GetCurSel(handle);
-
             array[z] = calloc(1, sizeof(NotebookPage));
             array[z]->realid = refid;
             array[z]->item.mask = TCIF_TEXT;
@@ -7942,7 +7995,7 @@ HICN API dw_icon_load_from_file(char *filename)
  */
 HICN API dw_icon_load_from_data(char *data, int len)
 {
-   HANDLE icon;
+   HANDLE icon = 0;
    char *file;
    FILE *fp;
 
@@ -8866,7 +8919,7 @@ void API dw_draw_polygon(HWND handle, HPIXMAP pixmap, int flags, int npoints, in
    HDC hdcPaint;
    HBRUSH oldBrush;
    HPEN oldPen;
-   POINT *points;
+   POINT *points = NULL;
    int i;
 
    if ( handle )
@@ -8901,6 +8954,8 @@ void API dw_draw_polygon(HWND handle, HPIXMAP pixmap, int flags, int npoints, in
          npoints++;
       }
    }
+   else
+      return;
 
    oldBrush = SelectObject( hdcPaint, TlsGetValue(_hBrush) );
    oldPen = SelectObject( hdcPaint, TlsGetValue(_hPen) );
@@ -9126,8 +9181,6 @@ HPIXMAP API dw_pixmap_new(HWND handle, unsigned long width, unsigned long height
 {
    HPIXMAP pixmap;
    HDC hdc;
-   COLORREF bkcolor;
-   ULONG cx, cy;
 
    if (!(pixmap = calloc(1,sizeof(struct _hpixmap))))
       return NULL;
@@ -9214,8 +9267,6 @@ HPIXMAP API dw_pixmap_new_from_file(HWND handle, char *filename)
    HPIXMAP pixmap;
    BITMAP bm;
    HDC hdc;
-   ULONG cx, cy;
-   BITMAPINFO *info;
 #ifndef GDIPLUS
    char *file;
 #endif
@@ -9283,7 +9334,6 @@ HPIXMAP API dw_pixmap_new_from_data(HWND handle, char *data, int len)
    HDC hdc;
    char *file;
    FILE *fp;
-   ULONG cx, cy;
 
    if ( !(pixmap = calloc(1,sizeof(struct _hpixmap))) )
    {
@@ -10164,7 +10214,7 @@ void API dw_window_click_default(HWND window, HWND next)
  *       Pointer to an allocated string of text or NULL if clipboard empty or contents could not
  *       be converted to text.
  */
-char *dw_clipboard_get_text()
+char * API dw_clipboard_get_text(void)
 {
    HANDLE handle;
    char *tmp, *ret = NULL;
@@ -10192,7 +10242,7 @@ char *dw_clipboard_get_text()
  * Parameters:
  *       Text.
  */
-void dw_clipboard_set_text( char *str, int len )
+void API dw_clipboard_set_text( char *str, int len )
 {
    HGLOBAL ptr1;
    LPTSTR ptr2;
@@ -10305,15 +10355,15 @@ char * API dw_file_browse(char *title, char *defpath, char *ext, int flags)
    char filterbuf[1001] = {0};
    int rc;
 
-   BROWSEINFO bi;
-   TCHAR szDir[MAX_PATH];
-   LPITEMIDLIST pidl;
-   LPMALLOC pMalloc;
-
    if ( flags == DW_DIRECTORY_OPEN )
    {
    /* If we aren't building a DLL, use the more simple browser */
 #ifndef BUILD_DLL
+      BROWSEINFO bi;
+      TCHAR szDir[MAX_PATH];
+      LPITEMIDLIST pidl;
+      LPMALLOC pMalloc;
+
       if (SUCCEEDED(SHGetMalloc(&pMalloc)))
       {
          ZeroMemory(&bi,sizeof(bi));
@@ -10438,7 +10488,7 @@ int API dw_exec(char *program, int type, char **params)
    }
    newparams[count] = NULL;
 
-   retcode = spawnvp(P_NOWAIT, program, newparams);
+   retcode = _spawnvp(P_NOWAIT, program, (const char * const *)newparams);
 
    for(z=0;z<count;z++)
    {

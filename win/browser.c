@@ -1138,7 +1138,7 @@ void _UnEmbedBrowserObject(HWND hwnd)
  * this function to display numerous pages in the specified window.
  */
 
-void API dw_html_action(HWND hwnd, int action)
+void _dw_html_action(HWND hwnd, int action)
 {	
 	IWebBrowser2	*webBrowser2;
 	IOleObject		*browserObject;
@@ -1225,7 +1225,7 @@ void API dw_html_action(HWND hwnd, int action)
  * this function to display numerous pages in the specified window.
  */
 
-int API dw_html_raw(HWND hwnd, char *string)
+int _dw_html_raw(HWND hwnd, char *string)
 {	
 	IWebBrowser2	*webBrowser2;
 	LPDISPATCH		lpDispatch;
@@ -1354,7 +1354,7 @@ bad:			htmlDoc2->lpVtbl->Release(htmlDoc2);
  * this function to display numerous pages in the specified window.
  */
 
-int API dw_html_url(HWND hwnd, char *url)
+int _dw_html_url(HWND hwnd, char *url)
 {
 	IWebBrowser2	*webBrowser2;
 	VARIANT			myURL;
