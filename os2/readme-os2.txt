@@ -1,4 +1,4 @@
-This package contains Dynamic Windows (dwindows) v 2.1 for OS/2 and eCS.
+This package contains Dynamic Windows (dwindows) v 2.2 for OS/2 and eCS.
 
 It contains:
 
