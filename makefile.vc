@@ -64,8 +64,8 @@ RES =
 LINKFLAGS = -machine:$(TARGET_CPU) -manifest $(LINK_DEBUG)
 DLLLINKFLAGS = -dll
 LINK = link
-DEFFILE = $(SRCDIR)\dww.def
-DEFFILE2 = $(SRCDIR)\dwcompatw.def
+DEFFILE = $(SRCDIR)\win\dw.def
+DEFFILE2 = $(SRCDIR)\win\dwcompat.def
 
 OBJS = dw.obj browser.obj XBrowseForFolder.obj
 

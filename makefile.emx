@@ -27,23 +27,23 @@ COMPATSOURCES = compat.c dirent.c
 all: dw.dll dwcompat.dll dwtest.exe
 
 dw.dll:  os2\dw.c dw.def
-	$(CC) $(CFLAGS) $(DEFS) -o dw.dll os2/dw.c $(LDFLAGS) dw.def
+	$(CC) $(CFLAGS) $(DEFS) -o dw.dll os2/dw.c $(LDFLAGS) os2/dw.def
 
-dw.lib: dw.def
-	emximp -o dw.lib dw.def
+dw.lib: os2\dw.def
+	emximp -o dw.lib os2\dw.def
 	copy dw.dll dll
 	copy dw.lib lib
 
-dwcompat.dll:  $(COMPATOBJECTS) dwcompat.def
-	$(CC) $(CFLAGS) $(DEFS) -o dwcompat.dll $(COMPATOBJECTS) $(LDFLAGS) -lsocket dwcompat.def
+dwcompat.dll:  $(COMPATOBJECTS) os2\dwcompat.def
+	$(CC) $(CFLAGS) $(DEFS) -o dwcompat.dll $(COMPATOBJECTS) $(LDFLAGS) -lsocket os2/dwcompat.def
 
-dwcompat.lib: dwcompat.def
-	emximp -o dwcompat.lib dwcompat.def
+dwcompat.lib: os2\dwcompat.def
+	emximp -o dwcompat.lib os2\dwcompat.def
 	copy dwcompat.dll dll
 	copy dwcompat.lib lib
 
 dwtest.exe: dwtest.o dw.lib dwcompat.lib
-	$(CC) $(CFLAGS) -Zomf -Zmt -static-libgcc -o dwtest.exe dwtest.o -Llib -ldw -ldwcompat dwtest.def
+	$(CC) $(CFLAGS) -Zomf -Zmt -static-libgcc -o dwtest.exe dwtest.o -Llib -ldw -ldwcompat os2/dwtest.def
 
 clean:
 	$(RM) *.obj *.o *.lib *.res *~ dwtest.exe dw.dll dwcompat.dll SVN.REV

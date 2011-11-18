@@ -1,0 +1,35 @@
+LIBRARY DWCOMPAT INITINSTANCE TERMINSTANCE
+
+PROTMODE
+
+DESCRIPTION 'Dynamic Windows Compatibility Module for OS/2'
+
+CODE LOADONCALL
+DATA NONSHARED LOADONCALL
+
+EXPORTS
+  makedir            @20
+  vargs              @21
+  setfileinfo        @22
+  drivefree          @23
+  isdrive            @24
+  drivesize          @25
+  getfsname          @26
+
+  _opendir           @30
+  _openxdir          @31
+  _readdir           @32
+  _seekdir           @33
+  _telldir           @34
+  _closedir          @35
+
+  fsopen             @40
+  fsclose            @41
+  fsgets             @42
+  fsseek             @43
+
+  locale_init        @50
+  locale_string      @51
+  
+  nice_strformat     @60
+  initdir            @61
