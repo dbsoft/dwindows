@@ -1800,7 +1800,9 @@ int dw_int_init(DWResources *res, int newthread, int *argc, char **argv[])
       _resources.resource_id = res->resource_id;
       _resources.resource_data = res->resource_data;
    }
+#if !GLIB_CHECK_VERSION(2,32,0)
    g_thread_init(NULL);
+#endif
    gdk_threads_init();
 
    gtk_init(argc, argv);
@@ -10129,7 +10131,7 @@ static void _dw_html_populate_popup_cb( WebKitWebView *web_view, GtkMenu *menu, 
  */
 HWND dw_html_new(unsigned long id)
 {
-   GtkWidget *widget = NULL,*stext;
+   GtkWidget *widget = NULL;
    int _locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;

@@ -12271,7 +12271,7 @@ static void _dw_html_populate_popup_cb( WebKitWebView *web_view, GtkMenu *menu, 
  */
 HWND dw_html_new(unsigned long id)
 {
-   GtkWidget *widget = NULL,*stext;
+   GtkWidget *widget = NULL;
    int _locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
