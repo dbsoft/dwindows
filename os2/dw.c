@@ -10736,7 +10736,7 @@ int API dw_html_url(HWND handle, char *url)
 HWND API dw_html_new(unsigned long id)
 {
    id = id;
-   dw_debug("HTML widget not available; OS/2 currently does not support it.");
+   dw_debug("HTML widget not available; OS/2 currently does not support it.\n");
    return 0;
 }
 

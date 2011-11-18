@@ -12281,7 +12281,7 @@ HWND dw_html_new(unsigned long id)
 #ifdef USE_GTKMOZEMBED
    if (!_gtk_moz_embed_new)
    {
-      dw_debug( "HTML widget not available; you do not have access to gtkmozembed." );
+      dw_debug( "HTML widget not available; you do not have access to gtkmozembed.\n" );
    }
    else
    {
@@ -12296,7 +12296,7 @@ HWND dw_html_new(unsigned long id)
 #elif defined(USE_LIBGTKHTML2)
    if ( !_html_document_new )
    {
-      dw_debug( "HTML widget not available; you do not have access to libgtkhtml-2." );
+      dw_debug( "HTML widget not available; you do not have access to libgtkhtml-2.\n" );
    }
    else
    {
@@ -12314,7 +12314,7 @@ HWND dw_html_new(unsigned long id)
 #elif defined(USE_WEBKIT)
    if (!_webkit_web_view_open)
    {
-      dw_debug( "HTML widget not available; you do not have access to webkit." );
+      dw_debug( "HTML widget not available; you do not have access to webkit.\n" );
    }
    else
    {
@@ -12333,7 +12333,7 @@ HWND dw_html_new(unsigned long id)
       gtk_widget_show(widget);
    }
 #else
-   dw_debug( "HTML widget not available; you do not have access to gtkmozembed, webkit nor libgtkhtml-2.", 0);
+   dw_debug( "HTML widget not available; you do not have access to gtkmozembed, webkit nor libgtkhtml-2.\n" );
 #endif
    DW_MUTEX_UNLOCK;
    return widget;
