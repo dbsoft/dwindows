@@ -12271,16 +12271,14 @@ static void _dw_html_populate_popup_cb( WebKitWebView *web_view, GtkMenu *menu, 
  */
 HWND dw_html_new(unsigned long id)
 {
-   GtkWidget *widget,*stext;
+   GtkWidget *widget = NULL,*stext;
    int _locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
 #ifdef USE_GTKMOZEMBED
    if (!_gtk_moz_embed_new)
    {
-      widget = dw_box_new(DW_HORZ, 0);
-      stext = dw_text_new( "HTML widget not available; you do not have access to gtkmozembed.", 0);
-      dw_box_pack_start(widget, stext, 0, 0, TRUE, TRUE, 10);
+      dw_debug( "HTML widget not available; you do not have access to gtkmozembed." );
    }
    else
    {
@@ -12290,13 +12288,12 @@ HWND dw_html_new(unsigned long id)
        */
       gtk_signal_connect( GTK_OBJECT(widget), "net-stop", GTK_SIGNAL_FUNC(_dw_html_net_stop_cb), widget );
       gtk_signal_connect( GTK_OBJECT(widget), "dom_mouse_click", GTK_SIGNAL_FUNC(_dw_dom_mouse_click_cb), widget );
+      gtk_widget_show(widget);
    }
 #elif defined(USE_LIBGTKHTML2)
    if ( !_html_document_new )
    {
-      widget = dw_box_new(DW_HORZ, 0);
-      stext = dw_text_new( "HTML widget not available; you do not have access to libgtkhtml-2.", 0);
-      dw_box_pack_start(widget, stext, 0, 0, TRUE, TRUE, 10);
+      dw_debug( "HTML widget not available; you do not have access to libgtkhtml-2." );
    }
    else
    {
@@ -12309,13 +12306,12 @@ HWND dw_html_new(unsigned long id)
       g_signal_connect (G_OBJECT (document), "link_clicked", G_CALLBACK (link_clicked), NULL);
       widget = _html_view_new();
       gtk_object_set_data(GTK_OBJECT(widget), "_dw_html_document", (gpointer)document);
+      gtk_widget_show(widget);
    }
 #elif defined(USE_WEBKIT)
    if (!_webkit_web_view_open)
    {
-      widget = dw_box_new(DW_HORZ, 0);
-      stext = dw_text_new( "HTML widget not available; you do not have access to webkit.", 0);
-      dw_box_pack_start(widget, stext, 0, 0, TRUE, TRUE, 10);
+      dw_debug( "HTML widget not available; you do not have access to webkit." );
    }
    else
    {
@@ -12323,7 +12319,6 @@ HWND dw_html_new(unsigned long id)
       widget = gtk_scrolled_window_new (NULL, NULL);
       gtk_scrolled_window_set_policy( GTK_SCROLLED_WINDOW (widget), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC );
       web_view = (WebKitWebView *)_webkit_web_view_new();
-/*      web_view = WEBKIT_WEB_VIEW(_webkit_web_view_new() ); */
       gtk_container_add( GTK_CONTAINER (widget), GTK_WIDGET(web_view) );
       gtk_widget_show( GTK_WIDGET(web_view) );
       gtk_object_set_data( GTK_OBJECT(widget), "_dw_web_view", (gpointer)web_view );
@@ -12332,13 +12327,11 @@ HWND dw_html_new(unsigned long id)
       g_signal_connect( web_view, "populate-popup", G_CALLBACK(_dw_html_populate_popup_cb), NULL );
 #  endif
 # endif
+      gtk_widget_show(widget);
    }
 #else
-   widget = dw_box_new(DW_HORZ, 0);
-   stext = dw_text_new( "HTML widget not available; you do not have access to gtkmozembed.", 0);
-   dw_box_pack_start(widget, stext, 0, 0, TRUE, TRUE, 10);
+   dw_debug( "HTML widget not available; you do not have access to gtkmozembed, webkit nor libgtkhtml-2.", 0);
 #endif
-   gtk_widget_show(widget);
    DW_MUTEX_UNLOCK;
    return widget;
 }

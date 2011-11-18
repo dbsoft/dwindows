@@ -10733,7 +10733,8 @@ int API dw_html_url(HWND handle, char *url)
 HWND API dw_html_new(unsigned long id)
 {
    id = id;
-   return dw_box_new(DW_HORZ, 0);
+   dw_debug("HTML widget not available; OS/2 currently does not support it.");
+   return 0;
 }
 
 typedef struct _dwprint 
@@ -11471,14 +11472,12 @@ void API dw_signal_disconnect_by_data(HWND window, void *data)
    }
 }
 
-
-
 /*
- * Create a new static text window (widget) to be packed.
- * Not available under OS/2, eCS
+ * Create a new calendar window (widget) to be packed.
  * Parameters:
- *       text: The text to be display by the static text widget.
  *       id: An ID to be used with dw_window_from_id() or 0L.
+ * Returns:
+ *       Handle to the created calendar or NULL on error.
  */
 HWND API dw_calendar_new(ULONG id)
 {
@@ -11503,7 +11502,10 @@ HWND API dw_calendar_new(ULONG id)
 }
 
 /*
- * The following are stubs
+ * Sets the current date of a calendar.
+ * Parameters:
+ *       handle: The handle to the calendar returned by dw_calendar_new().
+ *       year, month, day: To set the calendar to display.
  */
 void API dw_calendar_set_date( HWND window, unsigned int year, unsigned int month, unsigned int day )
 {
@@ -11522,6 +11524,14 @@ void API dw_calendar_set_date( HWND window, unsigned int year, unsigned int mont
     WinPostMsg(window, WM_PAINT, 0, 0);
 }
 
+/*
+ * Gets the year, month and day set in the calendar widget.
+ * Parameters:
+ *       handle: The handle to the calendar returned by dw_calendar_new().
+ *       year: Variable to store the year or NULL.
+ *       month: Variable to store the month or NULL.
+ *       day: Variable to store the day or NULL.
+ */
 void API dw_calendar_get_date( HWND window, unsigned int *year, unsigned int *month, unsigned int *day )
 {
     if(year)
