@@ -4933,6 +4933,7 @@ HWND API dw_menu_append_item(HMENUI menux, char *title, ULONG id, ULONG flags, i
    HMENU mymenu = (HMENU)menux;
    char buffer[31] = {0};
    int is_checked, is_disabled;
+   char *menutitle = title;
 
    /*
     * Check if this is a menubar; if so get the menu object
@@ -4948,7 +4949,9 @@ HWND API dw_menu_append_item(HMENUI menux, char *title, ULONG id, ULONG flags, i
    /* Convert from OS/2 style accellerators to Win32 style */
    if (title)
    {
-      char *tmp = title;
+      char *tmp = menutitle = _alloca(strlen(title)+1);
+      
+      strcpy(tmp, title);
 
       while(*tmp)
       {
@@ -4958,7 +4961,7 @@ HWND API dw_menu_append_item(HMENUI menux, char *title, ULONG id, ULONG flags, i
       }
    }
 
-   if (title && *title)
+   if (menutitle && *menutitle)
    {
       /* Code to autogenerate a menu ID if not specified or invalid
        * First pool is smaller for transient popup menus 
@@ -5011,8 +5014,8 @@ HWND API dw_menu_append_item(HMENUI menux, char *title, ULONG id, ULONG flags, i
       mii.hSubMenu = (HMENU)submenu;
    else
       mii.hSubMenu = 0;
-   mii.dwTypeData = title;
-   mii.cch = strlen(title);
+   mii.dwTypeData = menutitle;
+   mii.cch = strlen(menutitle);
 
    InsertMenuItem(mymenu, 65535, TRUE, &mii);
 
