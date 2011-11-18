@@ -16,7 +16,7 @@
     @echo " Link::Linker "
     icc.exe @<<
     /B" /NOE /de /ST:32768 /nologo /li"
-    /Fe"dw.dll" dw.def
+    /Fe"dw.dll" os2\dw.def
     .\dw.obj
    so32dll.lib
    tcp32dll.lib
@@ -31,7 +31,7 @@
     @echo " Link::Linker "
     icc.exe @<<
     /B" /NOE /de /ST:32768 /nologo /li"
-    /Fe"dwcompat.dll" dwcompat.def
+    /Fe"dwcompat.dll" os2\dwcompat.def
     .\dirent.obj
     .\compat.obj
    so32dll.lib
@@ -49,7 +49,7 @@ dwtest.exe:  dwtest.obj
 	 /Fedwtest.exe
 	 lib\dw.lib lib\dwcompat.lib
 	 dwtest.obj
-	 dwtest.def
+	 os2\dwtest.def
 <<
 clean :
         @if exist *.obj del *.obj

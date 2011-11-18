@@ -18,13 +18,13 @@ VPATH=../ ../win
 
 all: dw.dll dwcompat.dll dwtest.exe
 
-dw.dll:  dw.o ../dww.def
+dw.dll:  dw.o ../win/dww.def
 	$(CC) $(CFLAGS) $(DEFS) -o dw.dll dw.o $(LDFLAGS) \
-	-Wl,--out-implib,dw.a -Wl,-Map,dw.dll.map -Wl,--cref ../dww-mingw.def
+	-Wl,--out-implib,dw.a -Wl,-Map,dw.dll.map -Wl,--cref ../win/dw-mingw.def
 
 dwcompat.dll:  $(COMPATOBJECTS)
 	$(CC) $(CFLAGS) $(DEFS) -o dwcompat.dll $(COMPATOBJECTS) $(LDFLAGS) -lwsock32 \
-  -Wl,--out-implib,dwcompat.a -Wl,-Map,dwcompat.dll.map -Wl,--cref ../dwcompatw-mingw.def
+  -Wl,--out-implib,dwcompat.a -Wl,-Map,dwcompat.dll.map -Wl,--cref ../win/dwcompat-mingw.def
 
 dwtest.exe: dwtest.o dw.a dwcompat.a
 	$(CC) $(CFLAGS) -o dwtest.exe dwtest.o dw.a dwcompat.a
