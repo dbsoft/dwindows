@@ -2761,7 +2761,7 @@ MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 
                   if(menuowner == hWnd || menuowner == NULLHANDLE)
                   {
-                     result = clickfunc(tmp->window, tmp->data);
+                     result = clickfunc((HWND)tmp->id, tmp->data);
                      tmp = NULL;
                   }
                }

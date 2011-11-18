@@ -2113,7 +2113,7 @@ BOOL CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
                            /*
                             * Call the user supplied callback
                             */
-                           result = clickfunc(tmp->window, tmp->data);
+                           result = clickfunc((HWND)tmp->id, tmp->data);
                            tmp = NULL;
                         }
                      } /* this fires for checkable menu items */
