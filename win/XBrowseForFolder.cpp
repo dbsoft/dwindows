@@ -29,12 +29,11 @@
 //
 ///////////////////////////////////////////////////////////////////////////////
 
-// if you don't want to use MFC, comment out the following line:
-//#include "stdafx.h"
+/* Make sure we get the right version */
+#define _WIN32_IE 0x0500
 
 #ifndef __AFX_H__
 #include "windows.h"
-#include "crtdbg.h"
 #include "tchar.h"
 #endif
 
@@ -42,22 +41,15 @@
 #include "io.h"
 #include "XBrowseForFolder.h"
 
+#ifndef __MINGW32__
 #pragma warning(disable: 4127)	// conditional expression is constant (_ASSERTE)
 #pragma warning(disable : 4996)	// disable bogus deprecation warning
-
-#ifndef __noop
-#if _MSC_VER < 1300
-#define __noop ((void)0)
-#endif
 #endif
 
-#undef TRACE
-#define TRACE __noop
-
-//=============================================================================
-// if you want to see the TRACE output, uncomment this line:
-//#include "XTrace.h"
-//=============================================================================
+/* MingW does not have this */
+#if !defined(BIF_NONEWFOLDERBUTTON)
+# define BIF_NONEWFOLDERBUTTON 0x200
+#endif
 
 //=============================================================================
 // struct to pass to callback function
@@ -99,7 +91,6 @@ public:
 // ScreenToClientX - helper function in case non-MFC
 static void ScreenToClientX(HWND hWnd, LPRECT lpRect)
 {
-	_ASSERTE(::IsWindow(hWnd));
 	::ScreenToClient(hWnd, (LPPOINT)lpRect);
 	::ScreenToClient(hWnd, ((LPPOINT)lpRect)+1);
 }
@@ -108,7 +99,6 @@ static void ScreenToClientX(HWND hWnd, LPRECT lpRect)
 // MoveWindowX - helper function in case non-MFC
 static void MoveWindowX(HWND hWnd, CRect& rect, BOOL bRepaint)
 {
-	_ASSERTE(::IsWindow(hWnd));
 	::MoveWindow(hWnd, rect.left, rect.top,
 		rect.Width(), rect.Height(), bRepaint);
 }
@@ -117,8 +107,6 @@ static void MoveWindowX(HWND hWnd, CRect& rect, BOOL bRepaint)
 // SizeBrowseDialog - resize dialog, move controls
 static void SizeBrowseDialog(HWND hWnd, FOLDER_PROPS *fp)
 {
-	TRACE(_T("in void SizeBrowseDialog\n"));
-
 	// find the folder tree and make dialog larger
 	HWND hwndTree = FindWindowEx(hWnd, NULL, _T("SysTreeView32"), NULL);
 
@@ -127,19 +115,15 @@ static void SizeBrowseDialog(HWND hWnd, FOLDER_PROPS *fp)
 		// ... this usually means that BIF_NEWDIALOGSTYLE is enabled.
 		// Then the class name is as used in the code below.
 		hwndTree = FindWindowEx(hWnd, NULL, _T("SHBrowseForFolder ShellNameSpace Control"), NULL);
-		TRACE(_T("SHBrowseForFolder ShellNameSpace Control: hwndTree=%X\n"), hwndTree);
 	}
 
 	CRect rectDlg;
-
-	_ASSERTE(IsWindow(hwndTree));
 
 	if (hwndTree)
 	{
 		// check if edit box
 		int nEditHeight = 0;
 		HWND hwndEdit = FindWindowEx(hWnd, NULL, _T("Edit"), NULL);
-		TRACE(_T("hwndEdit=%x\n"), hwndEdit);
 		CRect rectEdit;
 		if (hwndEdit && (fp->ulFlags & BIF_EDITBOX))
 		{
@@ -185,7 +169,6 @@ static void SizeBrowseDialog(HWND hWnd, FOLDER_PROPS *fp)
 		rectCancel.left = rectCancel.right - w;
 		if (hwndCancel)
 		{
-			//TRACERECT(rectCancel);
 			MoveWindowX(hwndCancel, rectCancel, FALSE);
 		}
 
@@ -224,13 +207,7 @@ static void SizeBrowseDialog(HWND hWnd, FOLDER_PROPS *fp)
 		rectTree.left = hMargin;
 		rectTree.bottom = rectOK.top - 10;//nMargin;
 		rectTree.right = rectDlg.right - hMargin;
-		//TRACERECT(rectTree);
 		MoveWindowX(hwndTree, rectTree, FALSE);
-	}
-	else
-	{
-		TRACE(_T("ERROR - tree control not found.\n"));
-		//_ASSERTE(hwndTree);
 	}
 }
 
@@ -247,8 +224,6 @@ static int CALLBACK BrowseCallbackProc(HWND hWnd,		// Window handle to the brows
 	{
 		case BFFM_INITIALIZED:		// sent when the browse dialog box has finished initializing.
 		{
-			TRACE(_T("hWnd=%X\n"), hWnd);
-
 			// remove context help button from dialog caption
 			LONG lStyle = ::GetWindowLong(hWnd, GWL_STYLE);
 			lStyle &= ~DS_CONTEXTHELP;
@@ -295,12 +270,10 @@ static int CALLBACK BrowseCallbackProc(HWND hWnd,		// Window handle to the brows
 					SHFILEINFO sfi;
 					::SHGetFileInfo((LPCTSTR)lParam, 0, &sfi, sizeof(sfi),
 							SHGFI_PIDL | SHGFI_ATTRIBUTES);
-					TRACE(_T("dwAttributes=0x%08X\n"), sfi.dwAttributes);
 
 					// fail if pidl is a link
 					if (sfi.dwAttributes & SFGAO_LINK)
 					{
-						TRACE(_T("SFGAO_LINK\n"));
 						bRet = FALSE;
 					}
 				}
@@ -311,8 +284,6 @@ static int CALLBACK BrowseCallbackProc(HWND hWnd,		// Window handle to the brows
 			{
 				::EnableWindow(GetDlgItem(hWnd, IDOK), FALSE);
 			}
-
-			TRACE(_T("szDir=%s\n"), szDir);
 		}
 		break;
 	}
@@ -351,9 +322,6 @@ BOOL _cdecl XBrowseForFolder(HWND hWnd,
 					  DWORD dwBufSize,
 					  BOOL bEditBox /*= FALSE*/)
 {
-	_ASSERTE(lpszBuf);
-	_ASSERTE(dwBufSize >= MAX_PATH);
-
 	if (lpszBuf == NULL || dwBufSize < MAX_PATH)
 		return FALSE;
 
@@ -377,7 +345,6 @@ BOOL _cdecl XBrowseForFolder(HWND hWnd,
 		{
 			// csidl
 			int nFolder = LOWORD((UINT)(UINT_PTR)lpszInitialFolder);
-			TRACE(_T("csidl:  nFolder=0x%X\n"), nFolder);
 			SHGetSpecialFolderPath(hWnd, szInitialPath, nFolder, FALSE);
 		}
 		else
@@ -386,7 +353,6 @@ BOOL _cdecl XBrowseForFolder(HWND hWnd,
 			_tcsncpy(szInitialPath, lpszInitialFolder,
 						sizeof(szInitialPath)/sizeof(TCHAR)-2);
 		}
-		TRACE(_T("szInitialPath=<%s>\n"), szInitialPath);
 	}
 
 	if ((szInitialPath[0] == _T('\0')) && (bi.pidlRoot == NULL))
@@ -423,10 +389,6 @@ BOOL _cdecl XBrowseForFolder(HWND hWnd,
 		{
 			_tcsncpy(lpszBuf, szBuffer, dwBufSize-1);
 			bRet = TRUE;
-		}
-		else
-		{
-			TRACE(_T("SHGetPathFromIDList failed\n"));
 		}
 	}
 

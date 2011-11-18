@@ -9,36 +9,40 @@ CC = gcc
 DEFS =
 LIBS =
 
-CFLAGS = -O -g -DMSVC -DBUILD_DLL -I../ -I../platform -Wall -mthreads -o $(@)
-LDFLAGS = -shared -mwindows -mthreads -lcomctl32
+CFLAGS = -O -g -DMSVC -DWIN32 -D__WIN32__ -DGDIPLUS -DBUILD_DLL -I./win -I. -I./platform -Wall -mthreads -o $(@)
+LDFLAGS = -shared -mwindows -mthreads -lcomctl32 -lole32 -loleaut32 -luserenv -lmsimg32 -lgdiplus
 
 COMPATOBJECTS = compat.o dirent.o
+OBJECTS = dw.o XBrowseForFolder.o
 
 VPATH=../ ../win
 
 all: dw.dll dwcompat.dll dwtest.exe
 
-dw.dll:  dw.o ../win/dww.def
-	$(CC) $(CFLAGS) $(DEFS) -o dw.dll dw.o $(LDFLAGS) \
-	-Wl,--out-implib,dw.a -Wl,-Map,dw.dll.map -Wl,--cref ../win/dw-mingw.def
+dw.dll:  $(OBJECTS) win/dw-mingw.def
+	$(CC) $(CFLAGS) $(DEFS) -o dw.dll $(OBJECTS) $(LDFLAGS) \
+	-Wl,--out-implib,dw.a -Wl,-Map,dw.dll.map -Wl,--cref  -Wl,--enable-stdcall-fixup win/dw-mingw.def 
 
-dwcompat.dll:  $(COMPATOBJECTS)
+dwcompat.dll:  $(COMPATOBJECTS) win/dwcompat-mingw.def
 	$(CC) $(CFLAGS) $(DEFS) -o dwcompat.dll $(COMPATOBJECTS) $(LDFLAGS) -lwsock32 \
-  -Wl,--out-implib,dwcompat.a -Wl,-Map,dwcompat.dll.map -Wl,--cref ../win/dwcompat-mingw.def
+  -Wl,--out-implib,dwcompat.a -Wl,-Map,dwcompat.dll.map -Wl,--cref  -Wl,--enable-stdcall-fixup win/dwcompat-mingw.def 
 
 dwtest.exe: dwtest.o dw.a dwcompat.a
 	$(CC) $(CFLAGS) -o dwtest.exe dwtest.o dw.a dwcompat.a
 
-dw.obj: dw.c
+dw.o: win/dw.c
 	$(CC) $(CFLAGS) -c $<	
 
-compat.obj: compat.c
+XBrowseForFolder.o: win/XBrowseForFolder.cpp
 	$(CC) $(CFLAGS) -c $<	
 
-dirent.obj: os2/dirent.c
+compat.o: compat.c
 	$(CC) $(CFLAGS) -c $<	
 
-dwtest.obj: dwtest.c
+dirent.o: win/dirent.c
+	$(CC) $(CFLAGS) -c $<	
+
+dwtest.o: dwtest.c
 	$(CC) $(CFLAGS) -c $<	
 
 DEPS := $(wildcard *.d)
