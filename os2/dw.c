@@ -34,6 +34,9 @@
 #endif
 #include <sys/time.h>
 #include <sys/stat.h>
+#ifdef __WATCOMC__
+#include <alloca.h>
+#endif
 #include "dw.h"
 
 #define QWP_USER 0
@@ -10618,7 +10621,7 @@ int _SetPath(char *path)
 int API dw_exec(char *program, int type, char **params)
 {
    type = type; /* keep compiler happy */
-   return spawnvp(P_NOWAIT, program, params);
+   return spawnvp(P_NOWAIT, program, (char * const *)params);
 }
 
 /*
