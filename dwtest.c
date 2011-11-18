@@ -1655,11 +1655,19 @@ int main(int argc, char *argv[])
     dw_notebook_page_set_text( notebook, notebookpage7, "html");
 
     rawhtml = dw_html_new(1001);
-    dw_box_pack_start( notebookbox7, rawhtml, 0, 100, TRUE, FALSE, 0);
-    dw_html_raw(rawhtml, "<html><body><center><h1>dwtest</h1></center></body></html>");
-    html = dw_html_new(1002);
-    dw_box_pack_start( notebookbox7, html, 0, 100, TRUE, TRUE, 0);
-    dw_html_url(html, "http://dwindows.netlabs.org");
+    if(rawhtml)
+    {
+        dw_box_pack_start( notebookbox7, rawhtml, 0, 100, TRUE, FALSE, 0);
+        dw_html_raw(rawhtml, "<html><body><center><h1>dwtest</h1></center></body></html>");
+        html = dw_html_new(1002);
+        dw_box_pack_start( notebookbox7, html, 0, 100, TRUE, TRUE, 0);
+        dw_html_url(html, "http://dwindows.netlabs.org");
+    }
+    else
+    {
+        html = dw_text_new("HTML widget not available.", 0);
+        dw_box_pack_start( notebookbox7, html, 0, 100, TRUE, TRUE, 0);
+    }
 
     notebookbox8 = dw_box_new( BOXVERT, 7 );
     notebookpage8 = dw_notebook_page_new( notebook, 1, FALSE );

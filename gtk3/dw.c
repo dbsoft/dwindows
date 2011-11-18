@@ -10129,16 +10129,14 @@ static void _dw_html_populate_popup_cb( WebKitWebView *web_view, GtkMenu *menu, 
  */
 HWND dw_html_new(unsigned long id)
 {
-   GtkWidget *widget,*stext;
+   GtkWidget *widget = NULL,*stext;
    int _locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
 #ifdef USE_WEBKIT
    if (!_webkit_web_view_open)
    {
-      widget = dw_box_new(DW_HORZ, 0);
-      stext = dw_text_new( "HTML widget not available; you do not have access to webkit.", 0);
-      dw_box_pack_start(widget, stext, 0, 0, TRUE, TRUE, 10);
+      dw_debug( "HTML widget not available; you do not have access to webkit." );
    }
    else
    {
@@ -10152,12 +10150,10 @@ HWND dw_html_new(unsigned long id)
       g_object_set_data(G_OBJECT(widget), "_dw_web_view", (gpointer)web_view);
       g_signal_connect( web_view, "populate-popup", G_CALLBACK(_dw_html_populate_popup_cb), NULL );
    }
-#else
-   widget = dw_box_new(DW_HORZ, 0);
-   stext = dw_text_new( "HTML widget not available; you do not have access to webkit.", 0);
-   dw_box_pack_start(widget, stext, 0, 0, TRUE, TRUE, 10);
-#endif
    gtk_widget_show(widget);
+#else
+   dw_debug( "HTML widget not available; you do not have access to webkit." );
+#endif
    DW_MUTEX_UNLOCK;
    return widget;
 }
