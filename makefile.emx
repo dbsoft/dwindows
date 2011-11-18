@@ -26,7 +26,7 @@ COMPATSOURCES = compat.c dirent.c
 
 all: dw.dll dwcompat.dll dwtest.exe
 
-dw.dll:  os2\dw.c dw.def
+dw.dll:  os2\dw.c os2\dw.def
 	$(CC) $(CFLAGS) $(DEFS) -o dw.dll os2/dw.c $(LDFLAGS) os2/dw.def
 
 dw.lib: os2\dw.def
