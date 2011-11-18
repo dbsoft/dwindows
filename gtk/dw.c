@@ -2096,7 +2096,9 @@ int dw_int_init(DWResources *res, int newthread, int *argc, char **argv[])
       _resources.resource_data = res->resource_data;
    }
    gtk_set_locale();
+#if !GLIB_CHECK_VERSION(2,32,0)
    g_thread_init(NULL);
+#endif
 #if GTK_MAJOR_VERSION > 1
    gdk_threads_init();
 #endif
@@ -3738,7 +3740,6 @@ HWND dw_menu_append_item(HMENUI menu, char *title, unsigned long id, unsigned lo
    GtkWidget *tmphandle;
    char accel, *tempbuf = malloc(strlen(title)+1);
    int _locked_by_me = FALSE, submenucount;
-   guint tmp_key;
    GtkAccelGroup *accel_group;
 
    if (!menu)
@@ -3764,8 +3765,9 @@ HWND dw_menu_append_item(HMENUI menu, char *title, unsigned long id, unsigned lo
          if (accel && accel_group)
          {
             tmphandle = gtk_check_menu_item_new_with_label("");
+            gtk_label_parse_uline(GTK_LABEL(GTK_BIN(tmphandle)->child), tempbuf);
+#if 0 /* TODO: This isn't working right */
             tmp_key = gtk_label_parse_uline(GTK_LABEL(GTK_BIN(tmphandle)->child), tempbuf);
-#if 0 /* This isn't working right */
             gtk_widget_add_accelerator(tmphandle, "activate", accel_group, tmp_key, GDK_MOD1_MASK, 0);
 #endif
          }
@@ -3780,8 +3782,9 @@ HWND dw_menu_append_item(HMENUI menu, char *title, unsigned long id, unsigned lo
          if (accel && accel_group)
          {
             tmphandle=gtk_menu_item_new_with_label("");
+            gtk_label_parse_uline(GTK_LABEL(GTK_BIN(tmphandle)->child), tempbuf);
+#if 0 /* TODO: This isn't working right */
             tmp_key = gtk_label_parse_uline(GTK_LABEL(GTK_BIN(tmphandle)->child), tempbuf);
-#if 0 /* This isn't working right */
             gtk_widget_add_accelerator(tmphandle, "activate", accel_group, tmp_key, GDK_MOD1_MASK, 0);
 #endif
          }
