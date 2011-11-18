@@ -4737,7 +4737,7 @@ HWND API dw_html_new(unsigned long id)
                   DWInstance,
                   NULL);
 #else
-   dw_debug("HTML widget not available; Support not enabled in this build.");
+   dw_debug("HTML widget not available; Support not enabled in this build.\n");
    return 0;
 #endif
 }
