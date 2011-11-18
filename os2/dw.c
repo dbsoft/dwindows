@@ -3137,7 +3137,7 @@ MRESULT EXPENTRY _wndproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
       command_active = 1;
 
       if(msg == WM_ACTIVATE)
-          result = (int)_run_event(mp2, WM_SETFOCUS, 0, mp1);
+          result = (int)_run_event((HWND)mp2, WM_SETFOCUS, 0, mp1);
       else
           result = (int)_run_event(hWnd, msg, mp1, mp2);
 

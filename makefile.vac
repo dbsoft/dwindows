@@ -21,7 +21,7 @@
    so32dll.lib
    tcp32dll.lib
 <<
-  IMPLIB DW.LIB DW.DEF
+  IMPLIB DW.LIB OS2\DW.DEF
   copy dw.lib lib\dw.lib
   copy dw.dll dll\dw.dll
 
@@ -37,7 +37,7 @@
    so32dll.lib
    tcp32dll.lib
 <<
-  IMPLIB DWCOMPAT.LIB DWCOMPAT.DEF
+  IMPLIB DWCOMPAT.LIB OS2\DWCOMPAT.DEF
   copy dwcompat.lib lib\dwcompat.lib
   copy dwcompat.dll dll\dwcompat.dll
 
