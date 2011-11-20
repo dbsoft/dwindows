@@ -3,7 +3,7 @@
  *          A GTK like implementation of the Win32 GUI
  *
  * (C) 2000-2011 Brian Smith <brian@dbsoft.org>
- * (C) 2003-2005 Mark Hessling <m.hessling@qut.edu.au>
+ * (C) 2003-2011 Mark Hessling <m.hessling@qut.edu.au>
  *
  */
 #define _WIN32_IE 0x0500
@@ -1606,6 +1606,14 @@ int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *usedy,
                   MoveWindow(array[pageid]->hwnd, rect.left, rect.top,
                            rect.right - rect.left, rect.bottom-rect.top, FALSE);
                }
+            }
+            /* So does the List View... handle delayed cursoring */
+            if(strnicmp(tmpbuf, WC_LISTVIEW, strlen(WC_LISTVIEW)+1)==0 && width + vectorx > 10 && height + vectory > 10)
+            {            
+                int index = DW_POINTER_TO_INT(dw_window_get_data(handle, "_dw_cursor"));
+                
+                if(index > 0)
+                    ListView_EnsureVisible(handle, index, TRUE);
             }
 
             if(thisbox->type == DW_HORZ)
@@ -4564,7 +4572,7 @@ HWND API dw_box_new(int type, int pad)
    hwndframe = CreateWindow(FRAMECLASSNAME,
                       "",
                       WS_VISIBLE | WS_CHILD | WS_CLIPCHILDREN,
-                      0,0,2000,1000,
+                      0,0,0,0,
                       DW_HWND_OBJECT,
                       NULL,
                       DWInstance,
@@ -4595,7 +4603,7 @@ HWND API dw_scrollbox_new(int type, int pad)
     hwndframe = CreateWindow(ScrollClassName,
                       "",
                       WS_VISIBLE | WS_CHILD | WS_CLIPCHILDREN | WS_VSCROLL | WS_HSCROLL,
-                      0,0,2000,1000,
+                      0,0,0,0,
                       DW_HWND_OBJECT,
                       NULL,
                       DWInstance,
@@ -4681,7 +4689,7 @@ HWND API dw_groupbox_new(int type, int pad, char *title)
    hwndframe = CreateWindow(FRAMECLASSNAME,
                       "",
                       WS_VISIBLE | WS_CHILD,
-                      0,0,2000,1000,
+                      0,0,0,0,
                       DW_HWND_OBJECT,
                       NULL,
                       DWInstance,
@@ -4691,7 +4699,7 @@ HWND API dw_groupbox_new(int type, int pad, char *title)
                             title,
                             WS_CHILD | BS_GROUPBOX |
                             WS_VISIBLE | WS_CLIPCHILDREN,
-                            0,0,2000,1000,
+                            0,0,0,0,
                             hwndframe,
                             NULL,
                             DWInstance,
@@ -4718,7 +4726,7 @@ HWND API dw_mdi_new(unsigned long id)
    hwndframe = CreateWindow("MDICLIENT",
                       "",
                       WS_VISIBLE | WS_CHILD | WS_CLIPSIBLINGS,
-                      0,0,2000,1000,
+                      0,0,0,0,
                       DW_HWND_OBJECT,
                       (HMENU)id,
                       DWInstance,
@@ -4737,7 +4745,7 @@ HWND API dw_html_new(unsigned long id)
    return CreateWindow(BrowserClassName,
                   "",
                   WS_VISIBLE | WS_CHILD | WS_CLIPSIBLINGS,
-                  0,0,2000,1000,
+                  0,0,0,0,
                   DW_HWND_OBJECT,
                   (HMENU)id,
                   DWInstance,
@@ -4814,7 +4822,7 @@ HWND API dw_bitmap_new(ULONG id)
                   "",
                   SS_BITMAP | SS_CENTERIMAGE | WS_VISIBLE |
                   WS_CHILD | WS_CLIPCHILDREN,
-                  0,0,2000,1000,
+                  0,0,0,0,
                   DW_HWND_OBJECT,
                   (HMENU)id,
                   DWInstance,
@@ -4839,7 +4847,7 @@ HWND API dw_notebook_new(ULONG id, int top)
    tmp = CreateWindow(WC_TABCONTROL,
                   "",
                   WS_VISIBLE | WS_CHILD | WS_CLIPCHILDREN | flags,
-                  0,0,2000,1000,
+                  0,0,0,0,
                   DW_HWND_OBJECT,
                   (HMENU)id,
                   DWInstance,
@@ -5236,7 +5244,7 @@ HWND API dw_container_new(ULONG id, int multi)
                      LVS_REPORT | LVS_SHOWSELALWAYS |
                      LVS_SHAREIMAGELISTS | WS_BORDER |
                      WS_CLIPCHILDREN,
-                     0,0,2000,1000,
+                     0,0,0,0,
                      DW_HWND_OBJECT,
                      (HMENU)id,
                      DWInstance,
@@ -5278,7 +5286,7 @@ HWND API dw_tree_new(ULONG id)
                      TVS_HASLINES | TVS_SHOWSELALWAYS |
                      TVS_HASBUTTONS | TVS_LINESATROOT |
                      WS_BORDER | WS_CLIPCHILDREN,
-                     0,0,2000,1000,
+                     0,0,0,0,
                      DW_HWND_OBJECT,
                      (HMENU)id,
                      DWInstance,
@@ -5343,7 +5351,7 @@ HWND API dw_text_new(char *text, ULONG id)
                      SS_NOPREFIX |
                      BS_TEXT | WS_VISIBLE |
                      WS_CHILD | WS_CLIPCHILDREN,
-                     0,0,2000,1000,
+                     0,0,0,0,
                      DW_HWND_OBJECT,
                      (HMENU)id,
                      DWInstance,
@@ -5364,7 +5372,7 @@ HWND API dw_status_text_new(char *text, ULONG id)
                      text,
                      BS_TEXT | WS_VISIBLE |
                      WS_CHILD | WS_CLIPCHILDREN,
-                     0,0,2000,1000,
+                     0,0,0,0,
                      DW_HWND_OBJECT,
                      (HMENU)id,
                      DWInstance,
@@ -5389,7 +5397,7 @@ HWND API dw_mle_new(ULONG id)
                        WS_VSCROLL | ES_MULTILINE |
                        ES_WANTRETURN | WS_CHILD |
                        WS_CLIPCHILDREN,
-                       0,0,2000,1000,
+                       0,0,0,0,
                        DW_HWND_OBJECT,
                        (HMENU)id,
                        DWInstance,
@@ -5425,7 +5433,7 @@ HWND API dw_entryfield_new(char *text, ULONG id)
                        ES_WANTRETURN | WS_CHILD |
                        WS_BORDER | ES_AUTOHSCROLL |
                        WS_VISIBLE | WS_CLIPCHILDREN,
-                       0,0,2000,1000,
+                       0,0,0,0,
                        DW_HWND_OBJECT,
                        (HMENU)id,
                        DWInstance,
@@ -5454,7 +5462,7 @@ HWND API dw_entryfield_password_new(char *text, ULONG id)
                        ES_WANTRETURN | WS_CHILD |
                        ES_PASSWORD | WS_BORDER | WS_VISIBLE |
                        ES_AUTOHSCROLL | WS_CLIPCHILDREN,
-                       0,0,2000,1000,
+                       0,0,0,0,
                        DW_HWND_OBJECT,
                        (HMENU)id,
                        DWInstance,
@@ -5494,7 +5502,7 @@ HWND API dw_combobox_new(char *text, ULONG id)
                      text,
                      WS_CHILD | CBS_DROPDOWN | WS_VSCROLL |
                      WS_CLIPCHILDREN | CBS_AUTOHSCROLL | WS_VISIBLE,
-                     0,0,2000,1000,
+                     0,0,0,0,
                      DW_HWND_OBJECT,
                      (HMENU)id,
                      DWInstance,
@@ -5537,7 +5545,7 @@ HWND API dw_button_new(char *text, ULONG id)
                      text,
                      WS_CHILD | BS_PUSHBUTTON |
                      WS_VISIBLE | WS_CLIPCHILDREN,
-                     0,0,2000,1000,
+                     0,0,0,0,
                      DW_HWND_OBJECT,
                      (HMENU)id,
                      DWInstance,
@@ -5568,7 +5576,7 @@ HWND API dw_bitmapbutton_new(char *text, ULONG id)
                   WS_CHILD | BS_PUSHBUTTON |
                   WS_VISIBLE | WS_CLIPCHILDREN |
                   (icon ? BS_ICON : BS_BITMAP),
-                  0,0,2000,1000,
+                  0,0,0,0,
                   DW_HWND_OBJECT,
                   (HMENU)id,
                   DWInstance,
@@ -5627,7 +5635,7 @@ HWND API dw_bitmapbutton_new_from_file(char *text, unsigned long id, char *filen
    tmp = CreateWindow( BUTTONCLASSNAME,
                        "",
                        windowtype | WS_CHILD | BS_PUSHBUTTON | WS_CLIPCHILDREN | WS_VISIBLE,
-                       0,0,2000,1000,
+                       0,0,0,0,
                        DW_HWND_OBJECT,
                        (HMENU)id,
                        DWInstance,
@@ -5710,7 +5718,7 @@ HWND API dw_bitmapbutton_new_from_data(char *text, unsigned long id, char *data,
                        WS_CHILD | BS_PUSHBUTTON |
                        windowtype | WS_CLIPCHILDREN |
                        WS_VISIBLE,
-                       0,0,2000,1000,
+                       0,0,0,0,
                        DW_HWND_OBJECT,
                        (HMENU)id,
                        DWInstance,
@@ -5747,7 +5755,7 @@ HWND API dw_spinbutton_new(char *text, ULONG id)
                         text,
                         WS_CHILD | WS_BORDER | WS_VISIBLE |
                         ES_NUMBER | WS_CLIPCHILDREN,
-                        0,0,2000,1000,
+                        0,0,0,0,
                         DW_HWND_OBJECT,
                         NULL,
                         DWInstance,
@@ -5758,7 +5766,7 @@ HWND API dw_spinbutton_new(char *text, ULONG id)
                        WS_CHILD | UDS_ALIGNRIGHT | WS_BORDER |
                        UDS_ARROWKEYS | UDS_SETBUDDYINT |
                        UDS_WRAP | UDS_NOTHOUSANDS | WS_VISIBLE,
-                       0,0,2000,1000,
+                       0,0,0,0,
                        DW_HWND_OBJECT,
                        (HMENU)id,
                        DWInstance,
@@ -5801,7 +5809,7 @@ HWND API dw_radiobutton_new(char *text, ULONG id)
                      text,
                      WS_CHILD | BS_AUTORADIOBUTTON |
                      WS_CLIPCHILDREN | WS_VISIBLE,
-                     0,0,2000,1000,
+                     0,0,0,0,
                      DW_HWND_OBJECT,
                      (HMENU)id,
                      DWInstance,
@@ -5828,7 +5836,7 @@ HWND API dw_slider_new(int vertical, int increments, ULONG id)
                      "",
                      WS_CHILD | WS_CLIPCHILDREN | WS_VISIBLE |
                      (vertical ? TBS_VERT : TBS_HORZ),
-                     0,0,2000,1000,
+                     0,0,0,0,
                      DW_HWND_OBJECT,
                      (HMENU)id,
                      DWInstance,
@@ -5856,7 +5864,7 @@ HWND API dw_scrollbar_new(int vertical, ULONG id)
                      "",
                      WS_CHILD | WS_CLIPCHILDREN | WS_VISIBLE |
                      (vertical ? SBS_VERT : SBS_HORZ),
-                     0,0,2000,1000,
+                     0,0,0,0,
                      DW_HWND_OBJECT,
                      (HMENU)id,
                      DWInstance,
@@ -5881,7 +5889,7 @@ HWND API dw_percent_new(ULONG id)
    return CreateWindow(PROGRESS_CLASS,
                   "",
                   WS_VISIBLE | WS_CHILD | WS_CLIPCHILDREN,
-                  0,0,2000,1000,
+                  0,0,0,0,
                   DW_HWND_OBJECT,
                   (HMENU)id,
                   DWInstance,
@@ -5901,7 +5909,7 @@ HWND API dw_checkbox_new(char *text, ULONG id)
                      text,
                      WS_CHILD | BS_AUTOCHECKBOX |
                      BS_TEXT | WS_CLIPCHILDREN | WS_VISIBLE,
-                     0,0,2000,1000,
+                     0,0,0,0,
                      DW_HWND_OBJECT,
                      (HMENU)id,
                      DWInstance,
@@ -5929,7 +5937,7 @@ HWND API dw_listbox_new(ULONG id, int multi)
                        WS_CHILD | LBS_HASSTRINGS |
                        LBS_NOTIFY | WS_BORDER  | WS_CLIPCHILDREN |
                        WS_VSCROLL | (multi ? LBS_MULTIPLESEL : 0) ,
-                       0,0,2000,1000,
+                       0,0,0,0,
                        DW_HWND_OBJECT,
                        (HMENU)id,
                        DWInstance,
@@ -8585,8 +8593,12 @@ void API dw_container_cursor(HWND handle, char *text)
 
       if ( (textcomp && lvi.lParam && strcmp( (char *)lvi.lParam, text ) == 0) || (!textcomp && (char *)lvi.lParam == text) )
       {
-
+         unsigned long width, height;
+         
          ListView_SetItemState( handle, index, LVIS_FOCUSED | LVIS_SELECTED, LVIS_FOCUSED | LVIS_SELECTED );
+         dw_window_get_pos_size( handle, NULL, NULL, &width, &height);
+         if(width < 10 || height < 10)
+            dw_window_set_data( handle, "_dw_cursor", DW_INT_TO_POINTER(index) );
          ListView_EnsureVisible( handle, index, TRUE );
          return;
       }
@@ -10033,7 +10045,7 @@ HWND API dw_splitbar_new(int type, HWND topleft, HWND bottomright, unsigned long
    HWND tmp = CreateWindow(SplitbarClassName,
                      "",
                      WS_VISIBLE | WS_CHILD | WS_CLIPCHILDREN,
-                     0,0,2000,1000,
+                     0,0,0,0,
                      DW_HWND_OBJECT,
                      (HMENU)id,
                      DWInstance,
@@ -10110,7 +10122,7 @@ HWND API dw_calendar_new(unsigned long id)
                            MONTHCAL_CLASS,
                            "",
                            WS_VISIBLE | WS_CHILD | WS_CLIPCHILDREN | MCS_DAYSTATE,
-                           0,0,2000,1000, // resize it later
+                           0,0,0,0,
                            DW_HWND_OBJECT,
                            (HMENU)id,
                            DWInstance,
