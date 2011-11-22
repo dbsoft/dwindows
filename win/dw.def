@@ -176,6 +176,7 @@ EXPORTS
   dw_menu_popup                          @284
   dw_menu_destroy                        @285
   dw_menu_item_set_state                 @286
+  dw_menu_delete_item                    @287
 
   dw_pointer_query_pos                   @290
   dw_pointer_set_pos                     @291

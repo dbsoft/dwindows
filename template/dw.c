@@ -2415,6 +2415,19 @@ void API dw_menu_destroy(HMENUI *menu)
 }
 
 /*
+ * Deletes the menu item specified.
+ * Parameters:
+ *       menu: The handle to the  menu in which the item was appended.
+ *       id: Menuitem id.
+ * Returns: 
+ *       DW_ERROR_NONE (0) on success or DW_ERROR_UNKNOWN on failure.
+ */
+int API dw_menu_delete_item(HMENUI menux, unsigned long id)
+{
+   return DW_ERROR_UNKNOWN;
+}
+
+/*
  * Pops up a context menu at given x and y coordinates.
  * Parameters:
  *       menu: The handle the the existing menu.

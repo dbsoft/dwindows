@@ -4050,10 +4050,28 @@ int API dw_window_hide(HWND handle)
  */
 int API dw_window_destroy(HWND handle)
 {
-   HWND parent = GetParent(handle);
-   Box *thisbox = (Box *)GetWindowLongPtr(parent, GWLP_USERDATA);
-   HMENU menu = GetMenu(handle);
+   HWND parent;
+   Box *thisbox;
+   HMENU menu;
 
+   /* Handle special case for menu handle */
+   if(handle < (HWND)65536)
+   {
+      char buffer[31] = {0};
+      ULONG id = (ULONG)handle;
+      
+      _snprintf(buffer, 30, "_dw_id%ld", id);
+      menu = (HMENU)dw_window_get_data(DW_HWND_OBJECT, buffer);
+      
+      if(menu && IsMenu(menu))
+         return dw_menu_delete_item((HMENUI)menu, id);
+      return DW_ERROR_UNKNOWN;
+   }
+   
+   parent = GetParent(handle);
+   thisbox = (Box *)GetWindowLongPtr(parent, GWLP_USERDATA);
+   menu = GetMenu(handle);
+   
    if(menu)
       _free_menu_data(menu);
 
@@ -5183,13 +5201,14 @@ void API dw_menu_item_set_state( HMENUI menux, unsigned long id, unsigned long s
 }
 
 /*
- * INCOMPLETE
  * Deletes the menu item specified
  * Parameters:
  *       menu: The handle to the  menu in which the item was appended.
  *       id: Menuitem id.
+ * Returns: 
+ *       DW_ERROR_NONE (0) on success or DW_ERROR_UNKNOWN on failure.
  */
-void API dw_menu_delete_item(HMENUI menux, unsigned long id)
+int API dw_menu_delete_item(HMENUI menux, unsigned long id)
 {
    HMENU mymenu = (HMENU)menux;
 
@@ -5197,12 +5216,11 @@ void API dw_menu_delete_item(HMENUI menux, unsigned long id)
       mymenu = (HMENU)dw_window_get_data(menux, "_dw_menu");
 
    if ( DeleteMenu(mymenu, id, MF_BYCOMMAND) == 0 )
-   {
-      char lasterror[257];
-      FormatMessage( FORMAT_MESSAGE_FROM_SYSTEM, NULL, GetLastError(), MAKELANGID( LANG_NEUTRAL, SUBLANG_DEFAULT), lasterror, 256, NULL);
-      fprintf(stderr, "Error deleting menu: %s", lasterror);
-   }
-   DrawMenuBar(menux);
+      return DW_ERROR_UNKNOWN;
+   
+   if( (HMENU)menux != mymenu )
+      DrawMenuBar(menux);
+   return DW_ERROR_NONE;
 }
 
 /*

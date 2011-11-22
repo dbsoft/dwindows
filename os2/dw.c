@@ -4351,12 +4351,27 @@ int API dw_window_hide(HWND handle)
  */
 int API dw_window_destroy(HWND handle)
 {
-   HWND frame, menu, parent = WinQueryWindow(handle, QW_PARENT);
-   Box *thisbox = WinQueryWindowPtr(parent, QWP_USER);
+   HWND frame, menu, parent;
+   Box *thisbox;
 
    if(!handle)
-      return -1;
+      return DW_ERROR_UNKNOWN;
 
+   /* Handle special case for menu handle */
+   if(handle < 65536)
+   {
+      char buffer[30];
+      
+      sprintf(buffer, "_dw_id%ld", handle);
+      menu = dw_window_get_data(hwndApp, buffer);
+      
+      if(menu && WinIsWindow(dwhab, menu))
+          return dw_menu_delete_item((HEMNUI)menu, handle);
+      return DW_ERROR_UNKNOWN;
+   }
+   
+   parent = WinQueryWindow(handle, QW_PARENT);
+   thisbox = WinQueryWindowPtr(parent, QWP_USER);
    frame = (HWND)dw_window_get_data(handle, "_dw_combo_box");
 
    if((menu = WinWindowFromID(handle, FID_MENU)) != NULLHANDLE)
@@ -5195,6 +5210,24 @@ void API dw_menu_item_set_state( HMENUI menux, unsigned long id, unsigned long s
     */
    dw_window_set_data( hwndApp, buffer1, (void *)check );
    dw_window_set_data( hwndApp, buffer2, (void *)disabled );
+}
+
+/*
+ * Deletes the menu item specified
+ * Parameters:
+ *       menu: The handle to the  menu in which the item was appended.
+ *       id: Menuitem id.
+ * Returns: 
+ *       DW_ERROR_NONE (0) on success or DW_ERROR_UNKNOWN on failure.
+ */
+int API dw_menu_delete_item(HMENUI menux, unsigned long id)
+{
+   if(id < 65536)
+   {
+      WinSendMsg(menux, MM_DELETEITEM, MPFROM2SHORT(id, FALSE), 0);
+      return DW_ERROR_NONE;
+   }
+   return DW_ERROR_UNKNOWN;
 }
 
 /*
