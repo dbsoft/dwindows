@@ -3963,7 +3963,7 @@ int API dw_menu_delete_item(HMENUI menu, unsigned long id)
    if(tmphandle)
    {
       gtk_widget_destroy(tmphandle);
-      gtk_object_set_data(GTK_OBJECT(menu), numbuf, NULL)
+      gtk_object_set_data(GTK_OBJECT(menu), numbuf, NULL);
       ret = DW_ERROR_NONE;
    }
    DW_MUTEX_UNLOCK;
