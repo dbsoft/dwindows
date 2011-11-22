@@ -7250,6 +7250,28 @@ void API dw_menu_item_set_check(HMENUI menux, unsigned long itemid, int check)
 }
 
 /*
+ * Deletes the menu item specified.
+ * Parameters:
+ *       menu: The handle to the  menu in which the item was appended.
+ *       id: Menuitem id.
+ * Returns: 
+ *       DW_ERROR_NONE (0) on success or DW_ERROR_UNKNOWN on failure.
+ */
+int API dw_menu_delete_item(HMENUI menux, unsigned long itemid)
+{
+    id menu = menux;
+    NSMenuItem *menuitem = (NSMenuItem *)[menu itemWithTag:itemid];
+    
+    if(menuitem != nil)
+    {
+        [menu removeItem:menuitem];
+        [menuitem release];
+        return DW_ERROR_NONE;
+    }
+    return DW_ERROR_UNKNOWN;
+}
+
+/*
  * Sets the state of a menu item.
  * Parameters:
  *       menu: The handle to the existing menu.
@@ -7988,11 +8010,22 @@ int API dw_window_destroy(HWND handle)
     DW_MUTEX_LOCK;
     id object = handle;
 
-    /* Handle destroying a top-levle window */
+    /* Handle destroying a top-level window */
     if([ object isKindOfClass:[ NSWindow class ] ])
     {
         DWWindow *window = handle;
         [window close];
+    }
+    /* Handle removing menu items from menus */
+    else if([ object isKindOfClass:[NSMenuItem class]])
+    {
+        NSMenu *menu = [object menu];
+        
+        if(menu)
+        {
+            [menu removeItem:object];
+            [object release];
+        }
     }
     /* Handle destroying a control or box */
     else if([object isKindOfClass:[DWBox class]] || [object isKindOfClass:[DWGroupBox class]] || [object isKindOfClass:[NSControl class]])
