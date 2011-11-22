@@ -1,4 +1,4 @@
-This is a stable release of Dynamic Windows version 2.2.0.
+This is a preview release of Dynamic Windows version 2.3.
 
 The current Dynamic Windows source base is considered stable on:
 OS/2, Mac, Windows, Linux, FreeBSD and Solaris.
@@ -31,45 +31,9 @@ OS/2 is currently missing the HTML widget because the system does
 not support it by default. Looking into importing functionality 
 from available libraries (Firefox, Webkit, Qt, etc).
 
-Changes from version 2.1:
-Added printing support via dw_print_new, dw_print_run and dw_print_cancel.
-Added pixmap font override support. In prior versions when drawing
-   text to pixmaps the font set on the associated window handle is used.
-   dw_pixmap_set_font() can now override that font setting, and now
-   pixmaps without associated windows are supported and used in printing.
-Added dw_pixmap_stretch_bitblt() which allows for scaling during bitblt.
-   This function is necessary largely for very hi-res printer contexts.   
-Added dw_mutex_trylock() function to try to obtain a mutex without blocking.
-Added DW_TIMEOUT_INFINITE which can now be used with dw_event_wait() in 
-   addition to dw_named_event_wait(), to block until the event is posted.
-Added DW_PERCENT_INDETERMINATE which can be passed to dw_percent_set_pos().
-   This should work on all platforms except old versions of Windows. 
-Added the subversion revision number as the third Dynamic Windows version 
-   number when building from a subversion source tree.
-Added dw_container_set_row_data() and dw_container_change_row_data() macros
-   which just call dw_container_set/change_row_title() but with (void *).
-Added dw_container_set_stripe() to set alternating row colors.
-   Currently Mac, Win and GTK are supported.
-Added taskbar support on the Mac, GTK (Gnome) and OS/2 (e/XCenter+Systray).
-Added PNG/JPG/GIF/TIFF support on Windows via GDI+.
-Added support for GdkPixbuf inline images in GTK 2 and 3.
-Added dw_draw_arc() function for drawing arcs, ellipses and circles.
-Added DW_DRAW_DEFAULT, DW_DRAW_FILL and DW_DRAW_FULL flags which can be passed
-   to dw_draw_arc(), dw_draw_rect() and dw_draw_polygon().  The fill parameter
-   in the latter two has been replaced with flags where DW_DRAW_FILL is the
-   same as TRUE so code using the old scheme should still work unchanged.
-Added DW_MENU_AUTO and DW_MENU_POPUP constants for autogenerating menu IDs.
-Added dw_debug() function for sending debug messages to the console.
-Added path and/or filename support to dw_file_browse() on OS/2, Windows,
-   GTK2, GTK3 and Mac 10.6 or higher.
-Added custom calendar widget for OS/2, leaving only the HTML widget missing.
-Improved container optimization on Mac, header width now taken into account.
-Fixes for incorrect return codes from the dw_event_* functions on Windows.
-Fixes for incorrect behavior on key_press callbacks on Mac and Windows.
-Fixes for MDI support in GTK3. 
-Fixes for problems with multiple sliders/percent widgets in a box on OS/2.
-Fixes for lots of GTK3 layout and window positioning issues... 
-   although minimum size issues are still present.
+Changes from version 2.2:
+Added dw_menu_delete_item() for removing menu items.
+    Now you can use dw_window_destroy() on menu items handles also.
 
 Dynamic Windows Documentation is available at:
 

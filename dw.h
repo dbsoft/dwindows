@@ -1624,9 +1624,7 @@ float API dw_splitbar_get(HWND handle);
 HMENUI API dw_menu_new(unsigned long id);
 HMENUI API dw_menubar_new(HWND location);
 HWND API dw_menu_append_item(HMENUI menu, char *title, unsigned long id, unsigned long flags, int end, int check, HMENUI submenu);
-#ifdef INCOMPLETE
-void API dw_menu_delete_item(HMENUI menu, unsigned long id);
-#endif
+int API dw_menu_delete_item(HMENUI menu, unsigned long id);
 void API dw_menu_item_set_check(HMENUI menu, unsigned long id, int check);
 void API dw_menu_item_set_state( HMENUI menux, unsigned long id, unsigned long state);
 void API dw_menu_popup(HMENUI *menu, HWND parent, int x, int y);
