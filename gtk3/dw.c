@@ -3404,6 +3404,38 @@ void dw_menu_item_set_state(HMENUI menu, unsigned long id, unsigned long state)
 }
 
 /*
+ * Deletes the menu item specified.
+ * Parameters:
+ *       menu: The handle to the  menu in which the item was appended.
+ *       id: Menuitem id.
+ * Returns: 
+ *       DW_ERROR_NONE (0) on success or DW_ERROR_UNKNOWN on failure.
+ */
+int API dw_menu_delete_item(HMENUI menu, unsigned long id)
+{
+   char numbuf[11];
+   GtkWidget *tmphandle;
+   int _locked_by_me = FALSE;
+   int ret = DW_ERROR_UNKNOWN;
+
+   if(!menu)
+      return ret;
+
+   DW_MUTEX_LOCK;
+   snprintf(numbuf, 10, "%lu", id);
+   tmphandle = _find_submenu_id(menu, numbuf);
+
+   if(tmphandle)
+   {
+      gtk_widget_destroy(tmphandle);
+      g_object_set_data(G_OBJECT(menu), numbuf, NULL);
+      ret = DW_ERROR_NONE;
+   }
+   DW_MUTEX_UNLOCK;
+   return ret;
+}
+
+/*
  * Pops up a context menu at given x and y coordinates.
  * Parameters:
  *       menu: The handle the the existing menu.
