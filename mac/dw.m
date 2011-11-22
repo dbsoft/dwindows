@@ -7265,7 +7265,6 @@ int API dw_menu_delete_item(HMENUI menux, unsigned long itemid)
     if(menuitem != nil)
     {
         [menu removeItem:menuitem];
-        [menuitem release];
         return DW_ERROR_NONE;
     }
     return DW_ERROR_UNKNOWN;
@@ -8021,11 +8020,7 @@ int API dw_window_destroy(HWND handle)
     {
         NSMenu *menu = [object menu];
         
-        if(menu)
-        {
-            [menu removeItem:object];
-            [object release];
-        }
+        [menu removeItem:object];
     }
     /* Handle destroying a control or box */
     else if([object isKindOfClass:[DWBox class]] || [object isKindOfClass:[DWGroupBox class]] || [object isKindOfClass:[NSControl class]])
