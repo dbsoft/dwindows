@@ -4361,12 +4361,12 @@ int API dw_window_destroy(HWND handle)
    if(handle < 65536)
    {
       char buffer[30];
-      
+
       sprintf(buffer, "_dw_id%ld", handle);
-      menu = dw_window_get_data(hwndApp, buffer);
-      
+      menu = (HWND)dw_window_get_data(hwndApp, buffer);
+
       if(menu && WinIsWindow(dwhab, menu))
-          return dw_menu_delete_item((HEMNUI)menu, handle);
+          return dw_menu_delete_item((HMENUI)menu, handle);
       return DW_ERROR_UNKNOWN;
    }
    
