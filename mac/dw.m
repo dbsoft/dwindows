@@ -480,6 +480,7 @@ typedef struct _bitbltinfo
 @interface DWObject : NSObject {}
 -(void)uselessThread:(id)sender;
 -(void)synchronizeThread:(id)param;
+-(void)menuHandler:(id)param;
 -(void)doBitBlt:(id)param;
 -(void)doFlush:(id)param;
 @end
@@ -492,6 +493,10 @@ typedef struct _bitbltinfo
     pthread_mutex_lock(DWThreadMutex2);
     pthread_mutex_unlock(DWThreadMutex2);
     pthread_mutex_lock(DWRunMutex);
+}
+-(void)menuHandler:(id)param
+{
+    _event_handler(param, nil, 8);
 }
 -(void)doBitBlt:(id)param
 {
@@ -857,7 +862,7 @@ DWObject *DWObj;
     _event_handler([self window], nil, 13);
 }
 -(void)setMenu:(NSMenu *)input { windowmenu = input; [windowmenu retain]; }
--(void)menuHandler:(id)sender { _event_handler(sender, nil, 8); }
+-(void)menuHandler:(id)sender { [DWObj performSelector:@selector(menuHandler:) withObject:sender afterDelay:0]; }
 -(void)mouseDragged:(NSEvent *)theEvent { _event_handler(self, theEvent, 5); }
 -(void)mouseMoved:(NSEvent *)theEvent
 {
