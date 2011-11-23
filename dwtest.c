@@ -554,7 +554,6 @@ int DWSIGNAL menutoggle_callback(HWND window, void *data)
         dw_menu_item_set_state( changeable_menu, NONCHECKABLE_MENUITEMID, DW_MIS_ENABLED );
         menu_enabled = 1;
     }
-    dw_menu_delete_item( changeable_menu, 2003 );
     return 0;
 }
 
