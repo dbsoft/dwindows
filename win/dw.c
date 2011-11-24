@@ -3547,7 +3547,7 @@ void _create_tooltip(HWND handle, char *text)
     ti.hwnd = handle;
     ti.hinst = DWInstance;
     ti.lpszText = text;
-    GetClientRect(handle, &ti.rect);
+    ti.rect.right = ti.rect.bottom = 500;
 
     /* Associate the tooltip with the "tool" window. */
     SendMessage(hwndTT, TTM_ADDTOOL, 0, (LPARAM) (LPTOOLINFO) &ti);
