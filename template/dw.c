@@ -463,7 +463,7 @@ void API dw_free(void *ptr)
  * current user directory.  Or the root directory if it could
  * not be determined.
  */
-char *dw_user_dir(void)
+char * API dw_app_dir(void)
 {
     static char _user_dir[1024] = "";
 
@@ -477,6 +477,16 @@ char *dw_user_dir(void)
             strcpy(_user_dir, "/");
     }
     return _user_dir;
+}
+
+/*
+ * Returns a pointer to a static buffer which containes the
+ * private application data directory. 
+ */
+char *dw_app_dir(void)
+{
+    static _dw_app_dir[MAX_PATH+1] = "/";
+    return _dw_app_dir;
 }
 
 /*

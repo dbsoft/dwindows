@@ -3051,7 +3051,7 @@ char *dw_user_dir(void)
  * Returns a pointer to a static buffer which containes the
  * private application data directory. 
  */
-char *dw_app_dir(void)
+char * API dw_app_dir(void)
 {
     return _dw_bundle_path;
 }
