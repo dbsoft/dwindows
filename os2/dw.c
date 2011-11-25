@@ -3,7 +3,7 @@
  *          A GTK like implementation of the PM GUI
  *
  * (C) 2000-2011 Brian Smith <brian@dbsoft.org>
- * (C) 2003-2008 Mark Hessling <m.hessling@qut.edu.au>
+ * (C) 2003-2011 Mark Hessling <mark@rexx.org>
  * (C) 2000 Achim Hasenmueller <achimha@innotek.de>
  * (C) 2000 Peter Nielsen <peter@pmview.com>
  * (C) 1998 Sergey I. Yevtushenko (some code borrowed from cell toolkit)

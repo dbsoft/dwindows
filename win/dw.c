@@ -3,7 +3,7 @@
  *          A GTK like implementation of the Win32 GUI
  *
  * (C) 2000-2011 Brian Smith <brian@dbsoft.org>
- * (C) 2003-2011 Mark Hessling <m.hessling@qut.edu.au>
+ * (C) 2003-2011 Mark Hessling <mark@rexx.org>
  *
  */
 #define _WIN32_IE 0x0500
