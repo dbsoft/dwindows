@@ -164,6 +164,7 @@ WEBKIT_API WebKitWebFrame *(*_webkit_web_view_get_focused_frame)(WebKitWebView *
 
 GObject *_DWObject = NULL;
 char *_DWDefaultFont = NULL;
+static char _dw_share_path[PATH_MAX+1] = { 0 };
 
 typedef struct
 {
@@ -1800,6 +1801,37 @@ int dw_int_init(DWResources *res, int newthread, int *argc, char **argv[])
       _resources.resource_id = res->resource_id;
       _resources.resource_data = res->resource_data;
    }
+   
+   /* Setup the private data directory */
+   if(argc && argv && *argc > 0 && (*argv)[0])
+   {
+      char *pathcopy = strdup((*argv)[0]);
+      char *pos = strrchr(pathcopy, '/');
+      
+      if(pos)
+      {
+         char *binname = pos + 1;
+         
+         *pos = 0;
+         if(*binname)
+         {
+            char *binpos = strstr(pathcopy, "/bin");
+            
+            if(binpos)
+               strncpy(_dw_share_path, pathcopy, (size_t)(binpos - pathcopy));
+            else
+               strcpy(_dw_share_path, "/usr/local");
+            strcat(_dw_share_path, "/share/");
+            strcat(_dw_share_path, binname);
+         }
+      }
+      if(pathcopy)
+         free(pathcopy);
+   }
+   /* If that failed... just get the current directory */
+   if(!_dw_share_path[0] && !getcwd(_dw_share_path, PATH_MAX))
+      _dw_share_path[0] = '/';
+   
 #if !GLIB_CHECK_VERSION(2,32,0)
    g_thread_init(NULL);
 #endif
@@ -10347,6 +10379,15 @@ char *dw_user_dir(void)
          strcpy(_user_dir, "/");
    }
    return _user_dir;
+}
+
+/*
+ * Returns a pointer to a static buffer which containes the
+ * private application data directory. 
+ */
+char * API dw_app_dir(void)
+{
+    return _dw_share_path;
 }
 
 /*
