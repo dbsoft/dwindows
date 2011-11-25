@@ -121,6 +121,7 @@ pthread_key_t _dw_pool_key;
 pthread_key_t _dw_fg_color_key;
 pthread_key_t _dw_bg_color_key;
 SInt32 DWOSMajor, DWOSMinor, DWOSBuild;
+static char _dw_bundle_path[PATH_MAX+1] = { 0 };
 
 /* Create a default colors for a thread */
 void _init_colors(void)
@@ -3032,18 +3033,27 @@ void API dw_free(void *ptr)
  */
 char *dw_user_dir(void)
 {
-    static char _user_dir[1024] = "";
+    static char _user_dir[PATH_MAX+1] = { 0 };
 
     if(!_user_dir[0])
     {
         char *home = getenv("HOME");
 
         if(home)
-            strcpy(_user_dir, home);
+            strncpy(_user_dir, home, PATH_MAX);
         else
             strcpy(_user_dir, "/");
     }
     return _user_dir;
+}
+
+/*
+ * Returns a pointer to a static buffer which containes the
+ * private application data directory. 
+ */
+char *dw_app_dir(void)
+{
+    return _dw_bundle_path;
 }
 
 /*
@@ -9604,8 +9614,11 @@ int API dw_init(int newthread, int argc, char *argv[])
 
         if(app)
         {
-            char pathbuf[PATH_MAX];
-
+            char pathbuf[PATH_MAX+1] = { 0 };
+            size_t len = (size_t)(app - pathcopy);
+            
+            if(len > 0)
+                strncpy(_dw_bundle_path, pathcopy, len + 5);
             *app = 0;
 
             getcwd(pathbuf, PATH_MAX);
@@ -9613,22 +9626,23 @@ int API dw_init(int newthread, int argc, char *argv[])
             /* If run from a bundle the path seems to be / */
             if(strcmp(pathbuf, "/") == 0)
             {
-                size_t len;
+                char *pos = strrchr(pathcopy, '/');
 
-                strncpy(pathbuf, pathcopy, PATH_MAX);
-
-                len = strlen(pathbuf);
-
-                while(len > 0 && pathbuf[len] != '/')
+                if(pos)
                 {
-                    len--;
+                    strncpy(pathbuf, pathcopy, (size_t)(pos - pathcopy));
+                    chdir(pathbuf);
                 }
-                pathbuf[len] = '\0';
-                chdir(pathbuf);
             }
         }
-        free(pathcopy);
     }
+    if(pathcopy)
+        free(pathcopy);
+        
+    /* Just in case we can't obtain a path */
+    if(!_dw_bundle_path[0])
+        getcwd(_dw_bundle_path, PATH_MAX);
+    
     /* Get the operating system version */
     Gestalt(gestaltSystemVersionMajor, &DWOSMajor);
     Gestalt(gestaltSystemVersionMinor, &DWOSMinor);
