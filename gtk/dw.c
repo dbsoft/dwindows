@@ -1,10 +1,10 @@
 /*
  * Dynamic Windows:
- *          A GTK like implementation of the PM GUI
+ *          A GTK like cross-platform GUI
  *          GTK forwarder module for portabilty.
  *
  * (C) 2000-2011 Brian Smith <brian@dbsoft.org>
- * (C) 2003-2004 Mark Hessling <m.hessling@qut.edu.au>
+ * (C) 2003-2011 Mark Hessling <mark@rexx.org>
  * (C) 2002 Nickolay V. Shmyrev <shmyrev@yandex.ru>
  */
 #include "config.h"
