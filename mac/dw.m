@@ -9635,9 +9635,9 @@ int API dw_init(int newthread, int argc, char *argv[])
                 }
             }
         }
+        if(pathcopy)
+            free(pathcopy);
     }
-    if(pathcopy)
-        free(pathcopy);
         
     /* Just in case we can't obtain a path */
     if(!_dw_bundle_path[0])
