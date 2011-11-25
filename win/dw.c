@@ -143,7 +143,8 @@ SECURITY_DESCRIPTOR _dwsd;
  * an alternate temporary directory if TMP is not set, so we get the value
  * of TEMP and store it here.
  */
-static char _dw_alternate_temp_dir[MAX_PATH+1];
+static char _dw_alternate_temp_dir[MAX_PATH+1] = {0};
+static char _dw_exec_dir[MAX_PATH+1] = {0};
 
 int main(int argc, char *argv[]);
 
@@ -3649,6 +3650,22 @@ int API dw_init(int newthread, int argc, char *argv[])
    struct GdiplusStartupInput si; 
 #endif
 
+   /* Setup the private data directory */
+   if(argc > 0 && argv[0])
+   {
+      char *pos = strrchr(argv[0], '\\');
+      
+      /* Just to be safe try the unix style */
+      if(!pos)
+         pos = strrchr(argv[0], '/');
+         
+      if(pos)
+         strncpy(_dw_exec_dir, argv[0], (size_t)(pos - argv[0]));
+   }
+   /* If that failed... just get the current directory */
+   if(!_dw_exec_dir[0])
+      GetCurrentDirectory(MAX_PATH, _dw_exec_dir);
+      
    /* Initialize our thread local storage */
    _foreground = TlsAlloc();
    _background = TlsAlloc();
@@ -10711,6 +10728,15 @@ char * API dw_user_dir(void)
         }
     }
     return _user_dir;
+}
+
+/*
+ * Returns a pointer to a static buffer which containes the
+ * private application data directory. 
+ */
+char *dw_app_dir(void)
+{
+    return _dw_exec_dir;
 }
 
 /*

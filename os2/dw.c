@@ -67,11 +67,12 @@ LONG _foreground = 0xAAAAAA, _background = DW_CLR_DEFAULT;
 
 HWND hwndApp = NULLHANDLE, hwndBubble = NULLHANDLE, hwndBubbleLast = NULLHANDLE, hwndEmph = NULLHANDLE;
 HWND hwndTrayServer = NULLHANDLE, hwndTaskBar = NULLHANDLE;
-;
+
 PRECORDCORE pCoreEmph = NULL;
 ULONG aulBuffer[4];
 HWND lasthcnr = 0, lastitem = 0, popup = 0, desktop;
 HMOD wpconfig = 0, pmprintf = 0;
+static char _dw_exec_dir[MAX_PATH+1] = {0};
 
 unsigned long _colors[] = {
    CLR_BLACK,
@@ -3985,8 +3986,22 @@ int API dw_init(int newthread, int argc, char *argv[])
    APIRET rc;
    char objnamebuf[300] = "";
 
-   argc = argc; /* keep compiler happy */
-   argv = argv; /* keep compiler happy */
+   /* Setup the private data directory */
+   if(argc > 0 && argv[0])
+   {
+      char *pos = strrchr(argv[0], '\\');
+      
+      /* Just to be safe try the unix style */
+      if(!pos)
+         pos = strrchr(argv[0], '/');
+         
+      if(pos)
+         strncpy(_dw_exec_dir, argv[0], (size_t)(pos - argv[0]));
+   }
+   /* If that failed... just get the current directory */
+   if(!_dw_exec_dir[0])
+      _getcwd(_dw_exec_dir, MAX_PATH);
+      
    if(newthread)
    {
       dwhab = WinInitialize(0);
@@ -11135,7 +11150,7 @@ void API dw_print_cancel(HPRINT print)
  */
 char * API dw_user_dir(void)
 {
-   static char _user_dir[1024] = "";
+   static char _user_dir[MAX_PATH+1] = {0};
 
    if(!_user_dir[0])
    {
@@ -11147,6 +11162,15 @@ char * API dw_user_dir(void)
          strcpy(_user_dir, "C:\\");
    }
    return _user_dir;
+}
+
+/*
+ * Returns a pointer to a static buffer which containes the
+ * private application data directory. 
+ */
+char *dw_app_dir(void)
+{
+    return _dw_exec_dir;
 }
 
 /*
