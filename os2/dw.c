@@ -44,6 +44,10 @@
 /* The toolkit headers don't seem to have this */
 BOOL APIENTRY WinStretchPointer(HPS hps, LONG x, LONG y, LONG cx, LONG cy, HPOINTER hptr, ULONG fs);
 
+#ifndef MAX_PATH
+#define MAX_PATH 260
+#endif
+
 MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2);
 MRESULT EXPENTRY _wndproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2);
 MRESULT EXPENTRY _scrollwndproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2);
