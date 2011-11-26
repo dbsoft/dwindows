@@ -3669,15 +3669,13 @@ MRESULT EXPENTRY _button_draw(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2, PFNW
 
 MRESULT EXPENTRY _BtProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 {
-   BubbleButton *bubble;
+   WindowData *blah = WinQueryWindowPtr(hwnd, QWL_USER);
    PFNWP oldproc;
 
-   bubble = (BubbleButton *)WinQueryWindowPtr(hwnd, QWL_USER);
-
-   if(!bubble)
+   if(!blah)
       return WinDefWindowProc(hwnd, msg, mp1, mp2);
 
-   oldproc = bubble->pOldProc;
+   oldproc = blah->oldproc;
 
    switch(msg)
    {
@@ -3813,7 +3811,7 @@ MRESULT EXPENTRY _BtProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 
    case 0x041e:
 
-      if(!*bubble->bubbletext)
+      if(!*blah->bubbletext)
          break;
 
       if(hwndBubble)
@@ -3858,14 +3856,14 @@ MRESULT EXPENTRY _BtProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
                      &ulColor);
 
          WinSetWindowText(hwndBubble,
-                      (PSZ)bubble->bubbletext);
+                      (PSZ)blah->bubbletext);
 
          WinMapWindowPoints(hwnd, HWND_DESKTOP, &ptlWork, 1);
 
          hpsTemp = WinGetPS(hwndBubble);
          GpiQueryTextBox(hpsTemp,
-                     strlen(bubble->bubbletext),
-                     (PCH)bubble->bubbletext,
+                     strlen(blah->bubbletext),
+                     (PCH)blah->bubbletext,
                      TXTBOX_COUNT,
                      txtPointl);
          WinReleasePS(hpsTemp);
@@ -5554,8 +5552,7 @@ HWND API dw_combobox_new(char *text, ULONG id)
  */
 HWND API dw_button_new(char *text, ULONG id)
 {
-   BubbleButton *bubble = calloc(sizeof(BubbleButton), 1);
-
+   WindowData *blah = calloc(1, sizeof(WindowData));
    HWND tmp = WinCreateWindow(HWND_OBJECT,
                         WC_BUTTON,
                         (PSZ)text,
@@ -5567,11 +5564,9 @@ HWND API dw_button_new(char *text, ULONG id)
                         NULL,
                         NULL);
 
-   bubble->id = id;
-   bubble->bubbletext[0] = '\0';
-   bubble->pOldProc = WinSubclassWindow(tmp, _BtProc);
+   blah->oldproc = WinSubclassWindow(tmp, _BtProc);
 
-   WinSetWindowPtr(tmp, QWP_USER, bubble);
+   WinSetWindowPtr(tmp, QWP_USER, blah);
    dw_window_set_font(tmp, DefaultFont);
    dw_window_set_color(tmp, DW_CLR_BLACK, DW_CLR_PALEGRAY);
    return tmp;
@@ -5620,7 +5615,7 @@ HWND API dw_bitmapbutton_new(char *text, ULONG id)
 {
    char idbuf[256], *name = NULL;
    HWND tmp;
-   BubbleButton *bubble = calloc(sizeof(BubbleButton), 1);
+   WindowData *blah = calloc(1, sizeof(WindowData));
    HPOINTER icon = WinLoadPointer(HWND_DESKTOP, 0L, id);
 
    if(!icon)
@@ -5642,12 +5637,11 @@ HWND API dw_bitmapbutton_new(char *text, ULONG id)
                     NULL,
                     NULL);
 
-   bubble->id = id;
-   strncpy(bubble->bubbletext, text, BUBBLE_HELP_MAX - 1);
-   bubble->bubbletext[BUBBLE_HELP_MAX - 1] = '\0';
-   bubble->pOldProc = WinSubclassWindow(tmp, _BtProc);
+   strncpy(blah->bubbletext, text, BUBBLE_HELP_MAX - 1);
+   blah->bubbletext[BUBBLE_HELP_MAX - 1] = '\0';
+   blah->old = WinSubclassWindow(tmp, _BtProc);
 
-   WinSetWindowPtr(tmp, QWP_USER, bubble);
+   WinSetWindowPtr(tmp, QWP_USER, blah);
 
    if(icon)
       dw_window_set_data(tmp, "_dw_button_icon", (void *)icon);
@@ -5666,7 +5660,7 @@ HWND API dw_bitmapbutton_new(char *text, ULONG id)
  */
 HWND API dw_bitmapbutton_new_from_file(char *text, unsigned long id, char *filename)
 {
-   BubbleButton *bubble = calloc(sizeof(BubbleButton), 1);
+   WindowData *blah = calloc(1, sizeof(WindowData));
    HWND tmp = WinCreateWindow(HWND_OBJECT,
                         WC_BUTTON,
                         NULL,
@@ -5741,12 +5735,11 @@ HWND API dw_bitmapbutton_new_from_file(char *text, unsigned long id, char *filen
       }
    }
 
-   bubble->id = id;
-   strncpy(bubble->bubbletext, text, BUBBLE_HELP_MAX - 1);
-   bubble->bubbletext[BUBBLE_HELP_MAX - 1] = '\0';
-   bubble->pOldProc = WinSubclassWindow(tmp, _BtProc);
+   strncpy(blah->bubbletext, text, BUBBLE_HELP_MAX - 1);
+   blah->bubbletext[BUBBLE_HELP_MAX - 1] = '\0';
+   blah->oldproc = WinSubclassWindow(tmp, _BtProc);
 
-   WinSetWindowPtr(tmp, QWP_USER, bubble);
+   WinSetWindowPtr(tmp, QWP_USER, blah);
 
    if(icon)
       dw_window_set_data(tmp, "_dw_button_icon", (void *)icon);
@@ -5771,7 +5764,7 @@ HWND API dw_bitmapbutton_new_from_file(char *text, unsigned long id, char *filen
 HWND API dw_bitmapbutton_new_from_data(char *text, unsigned long id, char *data, int len)
 {
    FILE *fp;
-   BubbleButton *bubble = calloc(sizeof(BubbleButton), 1);
+   WindowData *blah = calloc(1, sizeof(WindowData));
    HWND tmp = WinCreateWindow(HWND_OBJECT,
                         WC_BUTTON,
                         NULL,
@@ -5841,12 +5834,11 @@ HWND API dw_bitmapbutton_new_from_data(char *text, unsigned long id, char *data,
       }
    }
 
-   bubble->id = id;
-   strncpy(bubble->bubbletext, text, BUBBLE_HELP_MAX - 1);
-   bubble->bubbletext[BUBBLE_HELP_MAX - 1] = '\0';
-   bubble->pOldProc = WinSubclassWindow(tmp, _BtProc);
+   strncpy(blah->bubbletext, text, BUBBLE_HELP_MAX - 1);
+   blah->bubbletext[BUBBLE_HELP_MAX - 1] = '\0';
+   blah->oldproc = WinSubclassWindow(tmp, _BtProc);
 
-   WinSetWindowPtr(tmp, QWP_USER, bubble);
+   WinSetWindowPtr(tmp, QWP_USER, blah);
 
    if(icon)
       dw_window_set_data(tmp, "_dw_button_icon", (void *)icon);
@@ -6008,7 +6000,7 @@ HWND API dw_percent_new(ULONG id)
  */
 HWND API dw_checkbox_new(char *text, ULONG id)
 {
-   BubbleButton *bubble = calloc(sizeof(BubbleButton), 1);
+   WindowData *blah = calloc(1, sizeof(WindowData));
    HWND tmp = WinCreateWindow(HWND_OBJECT,
                         WC_BUTTON,
                         (PSZ)text,
@@ -6019,10 +6011,9 @@ HWND API dw_checkbox_new(char *text, ULONG id)
                         id,
                         NULL,
                         NULL);
-   bubble->id = id;
-   bubble->bubbletext[0] = '\0';
-   bubble->pOldProc = WinSubclassWindow(tmp, _BtProc);
-   WinSetWindowPtr(tmp, QWP_USER, bubble);
+   blah->bubbletext[0] = '\0';
+   blah->oldproc = WinSubclassWindow(tmp, _BtProc);
+   WinSetWindowPtr(tmp, QWP_USER, blah);
    dw_window_set_font(tmp, DefaultFont);
    dw_window_set_color(tmp, DW_CLR_BLACK, DW_CLR_PALEGRAY);
    return tmp;

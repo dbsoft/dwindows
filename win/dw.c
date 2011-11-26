@@ -3392,12 +3392,10 @@ BOOL CALLBACK _statuswndproc(HWND hwnd, UINT msg, WPARAM mp1, LPARAM mp2)
 
 BOOL CALLBACK _BtProc(HWND hwnd, ULONG msg, WPARAM mp1, LPARAM mp2)
 {
-   BubbleButton *bubble;
+   ColorInfo *cinfo = (ColorInfo *)GetWindowLongPtr(hwnd, GWLP_USERDATA);
    WNDPROC pOldProc;
 
-   bubble = (BubbleButton *)GetWindowLongPtr(hwnd, GWLP_USERDATA);
-
-   if ( !bubble )
+   if ( !cinfo )
       return DefWindowProc(hwnd, msg, mp1, mp2);
 
    /* We must save a pointer to the old
@@ -3405,7 +3403,7 @@ BOOL CALLBACK _BtProc(HWND hwnd, ULONG msg, WPARAM mp1, LPARAM mp2)
     * handler attached here destroys this
     * window it will then be invalid.
     */
-   pOldProc = bubble->pOldProc;
+   pOldProc = cinfo->pOldProc;
 
    switch(msg)
    {
@@ -3435,12 +3433,14 @@ BOOL CALLBACK _BtProc(HWND hwnd, ULONG msg, WPARAM mp1, LPARAM mp2)
                /* Make sure it's the right window, and the right ID */
                if(tmp->window == hwnd)
                {
-                  if(bubble->checkbox)
+                  int checkbox = DW_POINTER_TO_INT(dw_window_get_data(hwnd, "_dw_checkbox"));
+                  
+                  if(checkbox)
                      in_checkbox_handler = 1;
 
                   clickfunc(tmp->window, tmp->data);
 
-                  if(bubble->checkbox)
+                  if(checkbox)
                      in_checkbox_handler = 0;
                   tmp = NULL;
                }
@@ -5579,7 +5579,7 @@ HWND API dw_combobox_new(char *text, ULONG id)
  */
 HWND API dw_button_new(char *text, ULONG id)
 {
-   BubbleButton *bubble = calloc(1, sizeof(BubbleButton));
+   ColorInfo *cinfo = calloc(1, sizeof(ColorInfo));
 
    HWND tmp = CreateWindow(BUTTONCLASSNAME,
                      text,
@@ -5590,10 +5590,10 @@ HWND API dw_button_new(char *text, ULONG id)
                      (HMENU)id,
                      DWInstance,
                      NULL);
-   bubble->cinfo.fore = bubble->cinfo.back = -1;
-   bubble->pOldProc = (WNDPROC)SubclassWindow(tmp, _BtProc);
+   cinfo->fore = cinfo->back = -1;
+   cinfo->pOldProc = (WNDPROC)SubclassWindow(tmp, _BtProc);
 
-   SetWindowLongPtr(tmp, GWLP_USERDATA, (LONG_PTR)bubble);
+   SetWindowLongPtr(tmp, GWLP_USERDATA, (LONG_PTR)cinfo);
    dw_window_set_font(tmp, DefaultFont);
    return tmp;
 }
@@ -5607,7 +5607,7 @@ HWND API dw_button_new(char *text, ULONG id)
 HWND API dw_bitmapbutton_new(char *text, ULONG id)
 {
    HWND tmp;
-   BubbleButton *bubble = calloc(1, sizeof(BubbleButton));
+   ColorInfo *cinfo = calloc(1, sizeof(ColorInfo));
    HBITMAP hbitmap = LoadBitmap(DWInstance, MAKEINTRESOURCE(id));
    HICON icon = LoadImage(DWInstance, MAKEINTRESOURCE(id), IMAGE_ICON, 0, 0, LR_SHARED);
 
@@ -5622,10 +5622,10 @@ HWND API dw_bitmapbutton_new(char *text, ULONG id)
                   DWInstance,
                   NULL);
 
-   bubble->cinfo.fore = bubble->cinfo.back = -1;
-   bubble->pOldProc = (WNDPROC)SubclassWindow(tmp, _BtProc);
+   cinfo->fore = cinfo->back = -1;
+   cinfo->pOldProc = (WNDPROC)SubclassWindow(tmp, _BtProc);
 
-   SetWindowLongPtr(tmp, GWLP_USERDATA, (LONG_PTR)bubble);
+   SetWindowLongPtr(tmp, GWLP_USERDATA, (LONG_PTR)cinfo);
 
    _create_tooltip(tmp, text);
 
@@ -5652,12 +5652,12 @@ HWND API dw_bitmapbutton_new(char *text, ULONG id)
 HWND API dw_bitmapbutton_new_from_file(char *text, unsigned long id, char *filename)
 {
    HWND tmp;
-   BubbleButton *bubble;
+   ColorInfo *cinfo = calloc(1, sizeof(ColorInfo));
    HBITMAP hbitmap = 0;
    HANDLE hicon = 0;
    int windowtype = 0;
 
-   if (!(bubble = calloc(1, sizeof(BubbleButton))))
+   if (!cinfo)
       return 0;
 
 #ifdef GDIPLUS
@@ -5681,10 +5681,10 @@ HWND API dw_bitmapbutton_new_from_file(char *text, unsigned long id, char *filen
                        DWInstance,
                        NULL);
 
-   bubble->cinfo.fore = bubble->cinfo.back = -1;
-   bubble->pOldProc = (WNDPROC)SubclassWindow(tmp, _BtProc);
+   cinfo->fore = cinfo->back = -1;
+   cinfo->pOldProc = (WNDPROC)SubclassWindow(tmp, _BtProc);
 
-   SetWindowLongPtr(tmp, GWLP_USERDATA, (LONG_PTR)bubble);
+   SetWindowLongPtr(tmp, GWLP_USERDATA, (LONG_PTR)cinfo);
 
    _create_tooltip(tmp, text);
 
@@ -5711,15 +5711,16 @@ HWND API dw_bitmapbutton_new_from_file(char *text, unsigned long id, char *filen
 HWND API dw_bitmapbutton_new_from_data(char *text, unsigned long id, char *data, int len)
 {
    HWND tmp;
-   BubbleButton *bubble;
+   ColorInfo *cinfo = calloc(1, sizeof(ColorInfo));
    HBITMAP hbitmap = 0;
    HANDLE hicon = 0;
    char *file;
    FILE *fp;
    int windowtype = BS_BITMAP;
 
-   if ( !(bubble = calloc(1, sizeof(BubbleButton))) )
+   if (!cinfo)
       return 0;
+
    file = _tempnam( _dw_alternate_temp_dir, "dw" );
    if ( file != NULL )
    {
@@ -5764,10 +5765,10 @@ HWND API dw_bitmapbutton_new_from_data(char *text, unsigned long id, char *data,
                        DWInstance,
                        NULL );
 
-   bubble->cinfo.fore = bubble->cinfo.back = -1;
-   bubble->pOldProc = (WNDPROC)SubclassWindow( tmp, _BtProc );
+   cinfo->fore = cinfo->back = -1;
+   cinfo->pOldProc = (WNDPROC)SubclassWindow( tmp, _BtProc );
 
-   SetWindowLongPtr( tmp, GWLP_USERDATA, (LONG_PTR)bubble );
+   SetWindowLongPtr( tmp, GWLP_USERDATA, (LONG_PTR)cinfo );
 
    _create_tooltip(tmp, text);
 
@@ -5854,10 +5855,10 @@ HWND API dw_radiobutton_new(char *text, ULONG id)
                      (HMENU)id,
                      DWInstance,
                      NULL);
-   BubbleButton *bubble = calloc(1, sizeof(BubbleButton));
-   bubble->cinfo.fore = bubble->cinfo.back = -1;
-   bubble->pOldProc = (WNDPROC)SubclassWindow(tmp, _BtProc);
-   SetWindowLongPtr(tmp, GWLP_USERDATA, (LONG_PTR)bubble);
+   ColorInfo *cinfo = calloc(1, sizeof(ColorInfo));
+   cinfo->fore = cinfo->back = -1;
+   cinfo->pOldProc = (WNDPROC)SubclassWindow(tmp, _BtProc);
+   SetWindowLongPtr(tmp, GWLP_USERDATA, (LONG_PTR)cinfo);
    dw_window_set_font(tmp, DefaultFont);
    return tmp;
 }
@@ -5944,7 +5945,7 @@ HWND API dw_percent_new(ULONG id)
  */
 HWND API dw_checkbox_new(char *text, ULONG id)
 {
-   BubbleButton *bubble = calloc(1, sizeof(BubbleButton));
+   ColorInfo *cinfo = calloc(1, sizeof(ColorInfo));
    HWND tmp = CreateWindow(BUTTONCLASSNAME,
                      text,
                      WS_CHILD | BS_AUTOCHECKBOX |
@@ -5954,10 +5955,10 @@ HWND API dw_checkbox_new(char *text, ULONG id)
                      (HMENU)id,
                      DWInstance,
                      NULL);
-   bubble->checkbox = 1;
-   bubble->cinfo.fore = bubble->cinfo.back = -1;
-   bubble->pOldProc = (WNDPROC)SubclassWindow(tmp, _BtProc);
-   SetWindowLongPtr(tmp, GWLP_USERDATA, (LONG_PTR)bubble);
+   cinfo->fore = cinfo->back = -1;
+   cinfo->pOldProc = (WNDPROC)SubclassWindow(tmp, _BtProc);
+   SetWindowLongPtr(tmp, GWLP_USERDATA, (LONG_PTR)cinfo);
+   dw_window_set_data(tmp, "_dw_checkbox", DW_INT_TO_POINTER(1));
    dw_window_set_font(tmp, DefaultFont);
    return tmp;
 }
@@ -7622,9 +7623,7 @@ BOOL CALLBACK _uncheck_radios(HWND handle, LPARAM lParam)
 
    if(strnicmp(tmpbuf, BUTTONCLASSNAME, strlen(BUTTONCLASSNAME)+1)==0)
    {
-      BubbleButton *bubble= (BubbleButton *)GetWindowLongPtr(handle, GWLP_USERDATA);
-
-      if(bubble && !bubble->checkbox)
+      if(!dw_window_get_data(handle, "_dw_checkbox"))
          SendMessage(handle, BM_SETCHECK, 0, 0);
    }
    return TRUE;
@@ -7637,9 +7636,7 @@ BOOL CALLBACK _uncheck_radios(HWND handle, LPARAM lParam)
  */
 void API dw_checkbox_set(HWND handle, int value)
 {
-   BubbleButton *bubble= (BubbleButton *)GetWindowLongPtr(handle, GWLP_USERDATA);
-
-   if(bubble && !bubble->checkbox)
+   if(!dw_window_get_data(handle, "_dw_checkbox"))
    {
       HWND parent = GetParent(handle);
 
