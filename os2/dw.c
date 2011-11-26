@@ -3828,7 +3828,7 @@ MRESULT EXPENTRY _BtProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
          POINTL txtPointl[TXTBOX_COUNT];
          POINTL ptlWork = {0,0};
          ULONG ulColor = CLR_YELLOW;
-         void *blah;
+         void *bubbleproc;
 
          hwndBubbleLast   = hwnd;
          hwndBubble = WinCreateWindow(HWND_DESKTOP,
@@ -3876,10 +3876,10 @@ MRESULT EXPENTRY _BtProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 
          ptlWork.y -= lHight;
 
-         blah = (void *)WinSubclassWindow(hwndBubble, _BubbleProc);
+         bubbleproc = (void *)WinSubclassWindow(hwndBubble, _BubbleProc);
 
-         if(blah)
-            WinSetWindowPtr(hwndBubble, QWP_USER, blah);
+         if(bubbleproc)
+            WinSetWindowPtr(hwndBubble, QWP_USER, bubbleproc);
 
          WinSetWindowPos(hwndBubble,
                      HWND_TOP,
@@ -5639,7 +5639,7 @@ HWND API dw_bitmapbutton_new(char *text, ULONG id)
 
    strncpy(blah->bubbletext, text, BUBBLE_HELP_MAX - 1);
    blah->bubbletext[BUBBLE_HELP_MAX - 1] = '\0';
-   blah->old = WinSubclassWindow(tmp, _BtProc);
+   blah->oldproc = WinSubclassWindow(tmp, _BtProc);
 
    WinSetWindowPtr(tmp, QWP_USER, blah);
 
