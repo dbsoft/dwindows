@@ -4345,7 +4345,7 @@ void API dw_window_set_tooltip(HWND handle, char *bubbletext)
    int _locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
-   gtk_widget_set_tooltip_text(tmp, bubbletext);
+   gtk_widget_set_tooltip_text(handle, bubbletext);
    DW_MUTEX_UNLOCK;
 }
 
