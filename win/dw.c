@@ -8730,33 +8730,26 @@ void API dw_container_optimize(HWND handle)
       {
          for(z=0;z<cinfo->columns;z++)
          {
-            LV_ITEM lvi;
+            int width;
+            
+            ListView_GetItemText(handle, index, z, text, 1023);
+            width = ListView_GetStringWidth(handle, text);
 
-            memset(&lvi, 0, sizeof(LV_ITEM));
+            /* Figure extra space for the icon for the first column */
+            if(z == 0)
+               width += 20;
 
-            lvi.iItem = index;
-            lvi.iSubItem = z;
-            lvi.mask = LVIF_TEXT;
-            lvi.cchTextMax = 1023;
-            lvi.pszText = text;
-
-            if(ListView_GetItem(handle, &lvi))
-            {
-               int width = ListView_GetStringWidth(handle, lvi.pszText);
-               if(width > columns[z])
-               {
-                  if(z == 0)
-                     columns[z] = width + 20;
-                  else
-                     columns[z] = width;
-               }
-            }
+            if(width > columns[z])
+               columns[z] = width;
          }
 
          index = ListView_GetNextItem(handle, index, LVNI_ALL);
       }
 
-      /* Set the new sizes */
+      /* Set the new sizes... Microsoft says we need to add
+       * padding to the calculated sized but does not give 
+       * a value.  Trial and error shows that 16 works for us.
+       */
       for(z=0;z<cinfo->columns;z++)
          ListView_SetColumnWidth(handle, z, columns[z] + 16);
 
