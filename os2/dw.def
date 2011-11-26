@@ -67,6 +67,7 @@ EXPORTS
   dw_bitmap_new                          @80
   dw_window_set_bitmap_from_data         @81
   dw_window_get_font                     @82
+  dw_window_set_tooltip                  @83
 
   dw_button_new                          @90
   dw_bitmapbutton_new                    @91

@@ -1536,6 +1536,7 @@ void API dw_window_set_bitmap(HWND handle, unsigned long id, char *filename);
 void API dw_window_set_bitmap_from_data(HWND handle, unsigned long id, char *data, int len);
 char * API dw_window_get_text(HWND handle);
 void API dw_window_set_text(HWND handle, char *text);
+void API dw_window_set_tooltip(HWND handle, char *bubbletext);
 int API dw_window_set_border(HWND handle, int border);
 void API dw_window_disable(HWND handle);
 void API dw_window_enable(HWND handle);

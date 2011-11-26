@@ -6190,6 +6190,17 @@ void API dw_window_set_text(HWND handle, char *text)
 }
 
 /*
+ * Sets the text used for a given window's floating bubble help.
+ * Parameters:
+ *       handle: Handle to the window (widget).
+ *       bubbletext: The text in the floating bubble tooltip.
+ */
+void API dw_window_set_tooltip(HWND handle, char *bubbletext)
+{
+    _create_tooltip(handle, bubbletext);
+}
+
+/*
  * Gets the text used for a given window.
  * Parameters:
  *       handle: Handle to the window.

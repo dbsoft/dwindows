@@ -4335,6 +4335,21 @@ void dw_window_set_text(HWND handle, char *text)
 }
 
 /*
+ * Sets the text used for a given window's floating bubble help.
+ * Parameters:
+ *       handle: Handle to the window (widget).
+ *       bubbletext: The text in the floating bubble tooltip.
+ */
+void API dw_window_set_tooltip(HWND handle, char *bubbletext)
+{
+   int _locked_by_me = FALSE;
+
+   DW_MUTEX_LOCK;
+   gtk_widget_set_tooltip_text(tmp, bubbletext);
+   DW_MUTEX_UNLOCK;
+}
+
+/*
  * Gets the text used for a given window.
  * Parameters:
  *       handle: Handle to the window.
