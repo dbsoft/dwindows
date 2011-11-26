@@ -79,7 +79,6 @@
 #define SIZEEXPAND 1
 
 #define SPLITBAR_WIDTH 4
-#define BUBBLE_HELP_MAX 256
 
 typedef struct _user_data
 {
@@ -222,12 +221,15 @@ typedef struct _user_data
 #define VK_LMENU             VK_MENU
 #define VK_RMENU             VK_MENU
 
+#define BUBBLE_HELP_MAX 256
+
 typedef struct _window_data {
    PFNWP oldproc;
    UserData *root;
    HWND clickdefault;
    ULONG flags;
    void *data;
+   char bubbletext[BUBBLE_HELP_MAX];
 } WindowData;
 
 typedef struct _hpixmap {
@@ -687,20 +689,6 @@ typedef struct _box {
    /* Array of item structures */
    struct _item *items;
 } Box;
-
-typedef struct _bubblebutton {
-#if defined(__WIN32__) || defined(WINNT)
-   ColorInfo cinfo;
-   int checkbox;
-   WNDPROC pOldProc;
-#endif
-#if defined(__OS2__) || defined(__EMX__)
-   PFNWP pOldProc;
-   UserData *root;
-   unsigned long id;
-   char bubbletext[BUBBLE_HELP_MAX];
-#endif
-} BubbleButton;
 
 #elif defined(__PHOTON__)
 #include <stdio.h>
