@@ -4393,7 +4393,7 @@ HWND dw_bitmapbutton_new(char *text, unsigned long id)
    {
       tooltips = gtk_tooltips_new();
       gtk_tooltips_set_tip(tooltips, tmp, text, NULL);
-      gtk_object_set_data(GTK_OBJECT(tmp), "tooltip", (gpointer)tooltips);
+      gtk_object_set_data(GTK_OBJECT(tmp), "_dw_tooltip", (gpointer)tooltips);
    }
    gtk_object_set_data(GTK_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(id));
    DW_MUTEX_UNLOCK;
@@ -4454,7 +4454,7 @@ HWND dw_bitmapbutton_new_from_file(char *text, unsigned long id, char *filename)
    {
       tooltips = gtk_tooltips_new();
       gtk_tooltips_set_tip( tooltips, button, text, NULL );
-      gtk_object_set_data( GTK_OBJECT(button), "tooltip", (gpointer)tooltips );
+      gtk_object_set_data( GTK_OBJECT(button), "_dw_tooltip", (gpointer)tooltips );
    }
    gtk_object_set_data( GTK_OBJECT(button), "_dw_id", GINT_TO_POINTER(id) );
    DW_MUTEX_UNLOCK;
@@ -4491,7 +4491,7 @@ HWND dw_bitmapbutton_new_from_data(char *text, unsigned long id, char *data, int
    {
       tooltips = gtk_tooltips_new();
       gtk_tooltips_set_tip(tooltips, tmp, text, NULL);
-      gtk_object_set_data(GTK_OBJECT(tmp), "tooltip", (gpointer)tooltips);
+      gtk_object_set_data(GTK_OBJECT(tmp), "_dw_tooltip", (gpointer)tooltips);
    }
    gtk_object_set_data(GTK_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(id));
    DW_MUTEX_UNLOCK;
@@ -4920,6 +4920,24 @@ void dw_window_set_text(HWND handle, char *text)
       else /* assume groupbox */
          gtk_frame_set_label(GTK_FRAME(handle), text && *text ? text : NULL);
    }
+   DW_MUTEX_UNLOCK;
+}
+
+/*
+ * Sets the text used for a given window's floating bubble help.
+ * Parameters:
+ *       handle: Handle to the window (widget).
+ *       bubbletext: The text in the floating bubble tooltip.
+ */
+void API dw_window_set_tooltip(HWND handle, char *bubbletext)
+{
+   int _locked_by_me = FALSE;
+   GtkTooltips *tooltips;
+
+   DW_MUTEX_LOCK;
+   tooltips = gtk_tooltips_new();
+   gtk_tooltips_set_tip(tooltips, handle, bubbletext ? bubbletext : "", NULL);
+   gtk_object_set_data(GTK_OBJECT(tmp), "_dw_tooltip", (gpointer)tooltips);
    DW_MUTEX_UNLOCK;
 }
 
