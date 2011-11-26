@@ -2921,6 +2921,9 @@ HWND dw_window_new(HWND hwndOwner, char *title, unsigned long flStyle)
          flags &= ~DW_FCF_MINIMIZE;
          gtk_window_iconify(GTK_WINDOW(tmp));
       }
+      /* Either the CLOSEBUTTON or SYSMENU flags should make it deletable */
+      if(!(flStyle & (DW_FCF_CLOSEBUTTON | DW_FCF_SYSMENU)))
+         gtk_window_set_deletable(GTK_WINDOW(tmp), FALSE);
 
       gdk_window_set_decorations(gtk_widget_get_window(tmp), flags);
 

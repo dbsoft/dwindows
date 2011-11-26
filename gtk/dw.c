@@ -3438,6 +3438,11 @@ HWND dw_window_new(HWND hwndOwner, char *title, unsigned long flStyle)
          gtk_window_iconify(GTK_WINDOW(tmp));
 #endif
       }
+#if GTK_CHECK_VERSION(2,10,0)
+      /* Either the CLOSEBUTTON or SYSMENU flags should make it deletable */
+      if(!(flStyle & (DW_FCF_CLOSEBUTTON | DW_FCF_SYSMENU)))
+         gtk_window_set_deletable(GTK_WINDOW(tmp), FALSE);
+#endif
 
       gdk_window_set_decorations(tmp->window, flags);
 
