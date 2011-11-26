@@ -4937,7 +4937,7 @@ void API dw_window_set_tooltip(HWND handle, char *bubbletext)
    DW_MUTEX_LOCK;
    tooltips = gtk_tooltips_new();
    gtk_tooltips_set_tip(tooltips, handle, bubbletext ? bubbletext : "", NULL);
-   gtk_object_set_data(GTK_OBJECT(tmp), "_dw_tooltip", (gpointer)tooltips);
+   gtk_object_set_data(GTK_OBJECT(handle), "_dw_tooltip", (gpointer)tooltips);
    DW_MUTEX_UNLOCK;
 }
 
