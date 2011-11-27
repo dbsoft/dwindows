@@ -4381,7 +4381,10 @@ void _create_tooltip(HWND handle, char *text)
       gtk_tooltips_enable(tooltips);
    }
    else
+   {
+      gtk_tooltips_set_tip(tooltips, handle, "", NULL);
       gtk_tooltips_disable(tooltips);
+   }
 }
 
 /*
