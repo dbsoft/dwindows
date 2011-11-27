@@ -3786,7 +3786,8 @@ HWND API dw_bitmapbutton_new(char *text, ULONG resid)
     {
         [button setImage:image];
     }
-    [button setToolTip:[NSString stringWithUTF8String:text]];
+    if(text)
+        [button setToolTip:[NSString stringWithUTF8String:text]];
     [image release];
     return button;
 }
@@ -3817,7 +3818,8 @@ HWND API dw_bitmapbutton_new_from_file(char *text, unsigned long cid, char *file
     {
         [button setImage:image];
     }
-    [button setToolTip:[NSString stringWithUTF8String:text]];
+    if(text)
+        [button setToolTip:[NSString stringWithUTF8String:text]];
     [image release];
     return button;
 }
@@ -3840,7 +3842,8 @@ HWND API dw_bitmapbutton_new_from_data(char *text, unsigned long cid, char *data
     {
         [button setImage:image];
     }
-    [button setToolTip:[NSString stringWithUTF8String:text]];
+    if(text)
+        [button setToolTip:[NSString stringWithUTF8String:text]];
     [image release];
     return button;
 }
