@@ -1614,6 +1614,157 @@ void _Right(HPS hpsPaint, RECTL rclPaint)
 }
 
 
+/* Function: BubbleProc
+ * Abstract: Subclass procedure for bubble help
+ */
+MRESULT EXPENTRY _BubbleProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
+{
+   MRESULT res;
+   PFNWP proc = (PFNWP)WinQueryWindowPtr(hwnd, QWL_USER);
+
+   if(proc)
+      res = proc(hwnd, msg, mp1, mp2);
+   else
+      res = WinDefWindowProc(hwnd, msg, mp1, mp2);
+
+   if(msg == WM_PAINT)
+   {
+      POINTL ptl;
+      HPS hpsTemp;
+      RECTL rcl;
+      int height, width;
+
+      WinQueryWindowRect(hwnd, &rcl);
+      height = rcl.yTop - rcl.yBottom - 1;
+      width = rcl.xRight - rcl.xLeft - 1;
+
+      /* Draw a border around the bubble help */
+      hpsTemp = WinGetPS(hwnd);
+      GpiSetColor(hpsTemp, CLR_BLACK);
+      ptl.x = ptl.y = 0;
+      GpiMove(hpsTemp, &ptl);
+      ptl.x = 0;
+      ptl.y = height;
+      GpiLine(hpsTemp, &ptl);
+      ptl.x = ptl.y = 0;
+      GpiMove(hpsTemp, &ptl);
+      ptl.y = 0;
+      ptl.x = width;
+      GpiLine(hpsTemp, &ptl);
+      ptl.x = width;
+      ptl.y = height;
+      GpiMove(hpsTemp, &ptl);
+      ptl.x = 0;
+      ptl.y = height;
+      GpiLine(hpsTemp, &ptl);
+      ptl.x = width;
+      ptl.y = height;
+      GpiMove(hpsTemp, &ptl);
+      ptl.y = 0;
+      ptl.x = width;
+      GpiLine(hpsTemp, &ptl);
+      WinReleasePS(hpsTemp);
+   }
+   return res;
+}
+
+/* Function to handle tooltip messages from a variety of procedures */
+MRESULT EXPENTRY _TooltipProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2, WindowData *blah)
+{
+   switch(msg)
+   {
+   case 0x041f:
+      if (hwndBubble)
+      {
+         WinDestroyWindow(hwndBubble);
+         hwndBubble = 0;
+      }
+      break;
+
+   case 0x041e:
+
+      if(!*blah->bubbletext)
+         break;
+
+      if(hwndBubble)
+      {
+         WinDestroyWindow(hwndBubble);
+         hwndBubble = 0;
+      }
+
+      if(!hwndBubble)
+      {
+         HPS   hpsTemp = 0;
+         LONG  lHight;
+         LONG  lWidth;
+         POINTL txtPointl[TXTBOX_COUNT];
+         POINTL ptlWork = {0,0};
+         ULONG ulColor = CLR_YELLOW;
+         void *bubbleproc;
+
+         hwndBubbleLast   = hwnd;
+         hwndBubble = WinCreateWindow(HWND_DESKTOP,
+                               WC_STATIC,
+                               NULL,
+                               SS_TEXT |
+                               DT_CENTER |
+                               DT_VCENTER,
+                                         0,0,0,0,
+                               HWND_DESKTOP,
+                               HWND_TOP,
+                               0,
+                               NULL,
+                               NULL);
+
+         WinSetPresParam(hwndBubble,
+                     PP_FONTNAMESIZE,
+                     strlen(DefaultFont)+1,
+                     DefaultFont);
+
+
+         WinSetPresParam(hwndBubble,
+                     PP_BACKGROUNDCOLORINDEX,
+                     sizeof(ulColor),
+                     &ulColor);
+
+         WinSetWindowText(hwndBubble,
+                      (PSZ)blah->bubbletext);
+
+         WinMapWindowPoints(hwnd, HWND_DESKTOP, &ptlWork, 1);
+
+         hpsTemp = WinGetPS(hwndBubble);
+         GpiQueryTextBox(hpsTemp,
+                     strlen(blah->bubbletext),
+                     (PCH)blah->bubbletext,
+                     TXTBOX_COUNT,
+                     txtPointl);
+         WinReleasePS(hpsTemp);
+
+         lWidth = txtPointl[TXTBOX_TOPRIGHT].x -
+            txtPointl[TXTBOX_TOPLEFT ].x + 8;
+
+         lHight = txtPointl[TXTBOX_TOPLEFT].y -
+            txtPointl[TXTBOX_BOTTOMLEFT].y + 8;
+
+         ptlWork.y -= lHight;
+
+         bubbleproc = (void *)WinSubclassWindow(hwndBubble, _BubbleProc);
+
+         if(bubbleproc)
+            WinSetWindowPtr(hwndBubble, QWP_USER, bubbleproc);
+
+         WinSetWindowPos(hwndBubble,
+                     HWND_TOP,
+                     ptlWork.x,
+                     ptlWork.y,
+                     lWidth,
+                     lHight,
+                     SWP_SIZE | SWP_MOVE | SWP_SHOW);
+      }
+      break;
+   }
+}
+
 #define CALENDAR_BORDER 3
 #define CALENDAR_ARROW 8
 
@@ -1652,6 +1803,9 @@ MRESULT EXPENTRY _calendarproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
    if(blah)
    {
       oldproc = blah->oldproc;
+
+      if(blah->bubbletext[0])
+          _TooltipProc(hWnd, msg, mp1, mp2, blah);
 
       switch(msg)
       {
@@ -1888,14 +2042,21 @@ MRESULT EXPENTRY _calendarproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 /* This procedure handles drawing of a status border */
 MRESULT EXPENTRY _statusproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 {
-   PFNWP *blah = WinQueryWindowPtr(hWnd, QWP_USER);
+   WindowData *blah = (WindowData *)WinQueryWindowPtr(hWnd, QWP_USER);
+   PFNWP oldproc = 0;
 
    if(msg == WM_MOUSEMOVE && _wndproc(hWnd, msg, mp1, mp2))
       return MPFROMSHORT(FALSE);
 
-   if(blah && *blah)
+   if(blah)
    {
-      PFNWP myfunc = *blah;
+      oldproc = blah->oldproc;
+
+      if(blah->bubbletext[0])
+          _TooltipProc(hWnd, msg, mp1, mp2, blah);
+
+      if(blah->bubbletext[0])
+          _TooltipProc(hWnd, msg, mp1, mp2, blah);
 
       switch(msg)
       {
@@ -1930,7 +2091,8 @@ MRESULT EXPENTRY _statusproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
             return (MRESULT)TRUE;
          }
       }
-      return myfunc(hWnd, msg, mp1, mp2);
+      if(oldproc)
+          return oldproc(hWnd, msg, mp1, mp2);
    }
 
    return WinDefWindowProc(hWnd, msg, mp1, mp2);
@@ -2095,6 +2257,9 @@ MRESULT EXPENTRY _entryproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 
    WinQueryClassName(hWnd, 99, (PCH)tmpbuf);
 
+   if(blah && blah->bubbletext[0])
+       _TooltipProc(hWnd, msg, mp1, mp2, blah);
+
    /* These are the window classes which should get a menu */
    if(strncmp(tmpbuf, "#2", 3)==0 ||  /* Combobox */
       strncmp(tmpbuf, "#6", 3)==0 ||  /* Entryfield */
@@ -2251,6 +2416,9 @@ MRESULT EXPENTRY _comboentryproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 {
    WindowData *blah = (WindowData *)WinQueryWindowPtr(hWnd, QWP_USER);
 
+   if(blah && blah->bubbletext[0])
+       _TooltipProc(hWnd, msg, mp1, mp2, blah);
+
    switch(msg)
    {
    case WM_MOUSEMOVE:
@@ -2304,6 +2472,9 @@ MRESULT EXPENTRY _spinentryproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
    if(blah)
       oldproc = blah->oldproc;
 
+   if(blah && blah->bubbletext[0])
+       _TooltipProc(hWnd, msg, mp1, mp2, blah);
+
    switch(msg)
    {
    case WM_MOUSEMOVE:
@@ -2353,6 +2524,9 @@ MRESULT EXPENTRY _percentproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
    if(blah)
       oldproc = blah->oldproc;
 
+   if(blah && blah->bubbletext[0])
+       _TooltipProc(hWnd, msg, mp1, mp2, blah);
+
    switch(msg)
    {
    case WM_MOUSEMOVE:
@@ -2383,6 +2557,9 @@ MRESULT EXPENTRY _comboproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 
    if(blah)
       oldproc = blah->oldproc;
+
+   if(blah && blah->bubbletext[0])
+       _TooltipProc(hWnd, msg, mp1, mp2, blah);
 
    switch(msg)
    {
@@ -3538,60 +3715,6 @@ MRESULT EXPENTRY _splitwndproc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
    return WinDefWindowProc(hwnd, msg, mp1, mp2);
 }
 
-/* Function: BubbleProc
- * Abstract: Subclass procedure for bubble help
- */
-MRESULT EXPENTRY _BubbleProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
-{
-   MRESULT res;
-   PFNWP proc = (PFNWP)WinQueryWindowPtr(hwnd, QWL_USER);
-
-   if(proc)
-      res = proc(hwnd, msg, mp1, mp2);
-   else
-      res = WinDefWindowProc(hwnd, msg, mp1, mp2);
-
-   if(msg == WM_PAINT)
-   {
-      POINTL ptl;
-      HPS hpsTemp;
-      RECTL rcl;
-      int height, width;
-
-      WinQueryWindowRect(hwnd, &rcl);
-      height = rcl.yTop - rcl.yBottom - 1;
-      width = rcl.xRight - rcl.xLeft - 1;
-
-      /* Draw a border around the bubble help */
-      hpsTemp = WinGetPS(hwnd);
-      GpiSetColor(hpsTemp, CLR_BLACK);
-      ptl.x = ptl.y = 0;
-      GpiMove(hpsTemp, &ptl);
-      ptl.x = 0;
-      ptl.y = height;
-      GpiLine(hpsTemp, &ptl);
-      ptl.x = ptl.y = 0;
-      GpiMove(hpsTemp, &ptl);
-      ptl.y = 0;
-      ptl.x = width;
-      GpiLine(hpsTemp, &ptl);
-      ptl.x = width;
-      ptl.y = height;
-      GpiMove(hpsTemp, &ptl);
-      ptl.x = 0;
-      ptl.y = height;
-      GpiLine(hpsTemp, &ptl);
-      ptl.x = width;
-      ptl.y = height;
-      GpiMove(hpsTemp, &ptl);
-      ptl.y = 0;
-      ptl.x = width;
-      GpiLine(hpsTemp, &ptl);
-      WinReleasePS(hpsTemp);
-   }
-   return res;
-}
-
 MRESULT EXPENTRY _button_draw(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2, PFNWP oldproc, int indent)
 {
    HPIXMAP pixmap = (HPIXMAP)dw_window_get_data(hwnd, "_dw_hpixmap");
@@ -3676,6 +3799,9 @@ MRESULT EXPENTRY _BtProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
       return WinDefWindowProc(hwnd, msg, mp1, mp2);
 
    oldproc = blah->oldproc;
+
+   if(blah->bubbletext[0])
+       _TooltipProc(hwnd, msg, mp1, mp2, blah);
 
    switch(msg)
    {
@@ -3801,97 +3927,7 @@ MRESULT EXPENTRY _BtProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
          }
       }
       break;
-   case 0x041f:
-      if (hwndBubble)
-      {
-         WinDestroyWindow(hwndBubble);
-         hwndBubble = 0;
-      }
-      break;
-
-   case 0x041e:
-
-      if(!*blah->bubbletext)
-         break;
-
-      if(hwndBubble)
-      {
-         WinDestroyWindow(hwndBubble);
-         hwndBubble = 0;
-      }
-
-      if(!hwndBubble)
-      {
-         HPS   hpsTemp = 0;
-         LONG  lHight;
-         LONG  lWidth;
-         POINTL txtPointl[TXTBOX_COUNT];
-         POINTL ptlWork = {0,0};
-         ULONG ulColor = CLR_YELLOW;
-         void *bubbleproc;
-
-         hwndBubbleLast   = hwnd;
-         hwndBubble = WinCreateWindow(HWND_DESKTOP,
-                               WC_STATIC,
-                               NULL,
-                               SS_TEXT |
-                               DT_CENTER |
-                               DT_VCENTER,
-                                         0,0,0,0,
-                               HWND_DESKTOP,
-                               HWND_TOP,
-                               0,
-                               NULL,
-                               NULL);
-
-         WinSetPresParam(hwndBubble,
-                     PP_FONTNAMESIZE,
-                     strlen(DefaultFont)+1,
-                     DefaultFont);
-
-
-         WinSetPresParam(hwndBubble,
-                     PP_BACKGROUNDCOLORINDEX,
-                     sizeof(ulColor),
-                     &ulColor);
-
-         WinSetWindowText(hwndBubble,
-                      (PSZ)blah->bubbletext);
-
-         WinMapWindowPoints(hwnd, HWND_DESKTOP, &ptlWork, 1);
-
-         hpsTemp = WinGetPS(hwndBubble);
-         GpiQueryTextBox(hpsTemp,
-                     strlen(blah->bubbletext),
-                     (PCH)blah->bubbletext,
-                     TXTBOX_COUNT,
-                     txtPointl);
-         WinReleasePS(hpsTemp);
-
-         lWidth = txtPointl[TXTBOX_TOPRIGHT].x -
-            txtPointl[TXTBOX_TOPLEFT ].x + 8;
-
-         lHight = txtPointl[TXTBOX_TOPLEFT].y -
-            txtPointl[TXTBOX_BOTTOMLEFT].y + 8;
-
-         ptlWork.y -= lHight;
-
-         bubbleproc = (void *)WinSubclassWindow(hwndBubble, _BubbleProc);
-
-         if(bubbleproc)
-            WinSetWindowPtr(hwndBubble, QWP_USER, bubbleproc);
-
-         WinSetWindowPos(hwndBubble,
-                     HWND_TOP,
-                     ptlWork.x,
-                     ptlWork.y,
-                     lWidth,
-                     lHight,
-                     SWP_SIZE | SWP_MOVE | SWP_SHOW);
-      }
-      break;
    }
-
    if(!oldproc)
       return WinDefWindowProc(hwnd, msg, mp1, mp2);
    return oldproc(hwnd, msg, mp1, mp2);
@@ -3899,8 +3935,12 @@ MRESULT EXPENTRY _BtProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 
 MRESULT EXPENTRY _RendProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 {
-   int res = 0;
-   res = (int)_run_event(hwnd, msg, mp1, mp2);
+   WindowData *blah = (WindowData *)WinQueryWindowPtr(hwnd, QWP_USER);
+   int res = (int)_run_event(hwnd, msg, mp1, mp2);
+
+   if(blah && blah->bubbletext[0])
+       _TooltipProc(hwnd, msg, mp1, mp2, blah);
+
    switch(msg)
    {
    case WM_MOUSEMOVE:
@@ -3925,6 +3965,9 @@ MRESULT EXPENTRY _TreeProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 
    if(blah)
       oldproc = blah->oldproc;
+
+   if(blah && blah->bubbletext[0])
+       _TooltipProc(hwnd, msg, mp1, mp2, blah);
 
    switch(msg)
    {
@@ -5638,7 +5681,6 @@ HWND API dw_bitmapbutton_new(char *text, ULONG id)
                     NULL);
 
    strncpy(blah->bubbletext, text, BUBBLE_HELP_MAX - 1);
-   blah->bubbletext[BUBBLE_HELP_MAX - 1] = '\0';
    blah->oldproc = WinSubclassWindow(tmp, _BtProc);
 
    WinSetWindowPtr(tmp, QWP_USER, blah);
@@ -5736,7 +5778,6 @@ HWND API dw_bitmapbutton_new_from_file(char *text, unsigned long id, char *filen
    }
 
    strncpy(blah->bubbletext, text, BUBBLE_HELP_MAX - 1);
-   blah->bubbletext[BUBBLE_HELP_MAX - 1] = '\0';
    blah->oldproc = WinSubclassWindow(tmp, _BtProc);
 
    WinSetWindowPtr(tmp, QWP_USER, blah);
@@ -5835,7 +5876,6 @@ HWND API dw_bitmapbutton_new_from_data(char *text, unsigned long id, char *data,
    }
 
    strncpy(blah->bubbletext, text, BUBBLE_HELP_MAX - 1);
-   blah->bubbletext[BUBBLE_HELP_MAX - 1] = '\0';
    blah->oldproc = WinSubclassWindow(tmp, _BtProc);
 
    WinSetWindowPtr(tmp, QWP_USER, blah);
@@ -5926,7 +5966,7 @@ HWND API dw_slider_new(int vertical, int increments, ULONG id)
    HWND tmp;
 
    sldcData.cbSize = sizeof(SLDCDATA);
-    sldcData.usScale1Increments = increments;
+   sldcData.usScale1Increments = increments;
 
    tmp = WinCreateWindow(HWND_OBJECT,
                     WC_SLIDER,
@@ -6011,7 +6051,6 @@ HWND API dw_checkbox_new(char *text, ULONG id)
                         id,
                         NULL,
                         NULL);
-   blah->bubbletext[0] = '\0';
    blah->oldproc = WinSubclassWindow(tmp, _BtProc);
    WinSetWindowPtr(tmp, QWP_USER, blah);
    dw_window_set_font(tmp, DefaultFont);
@@ -6315,9 +6354,13 @@ void API dw_window_set_text(HWND handle, char *text)
  */
 void API dw_window_set_tooltip(HWND handle, char *bubbletext)
 {
-    /* TODO: Fill this in with generic bubble help code...
-     * like we do for the bitmap buttons.
-     */
+   WindowData *blah = (WindowData *)WinQueryWindowPtr(handle, QWP_USER);
+   HWND buddy = (HWND)dw_window_get_data(handle, "_dw_buddy");
+
+   if(blah)
+       strncpy(blah->bubbletext, bubbletext, BUBBLE_HELP_MAX - 1);
+   if(buddy && (blah = (WindowData *)WinQueryWindowPtr(buddy, QWP_USER)))
+       strncpy(blah->bubbletext, bubbletext, BUBBLE_HELP_MAX - 1);
 }
 
 /*
