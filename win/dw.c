@@ -5567,7 +5567,8 @@ HWND API dw_combobox_new(char *text, ULONG id)
    cinfo2->back = cinfo->back = -1;
    cinfo2->combo = cinfo->combo = tmp;
    EnumChildWindows(tmp, _subclass_child, (LPARAM)cinfo2);
-
+   cinfo->buddy = cinfo2->buddy;
+   
    SetWindowLongPtr(tmp, GWLP_USERDATA, (LONG_PTR)cinfo);
    dw_window_set_font(tmp, DefaultFont);
    SetWindowText(tmp, text);
@@ -6201,6 +6202,10 @@ void API dw_window_set_text(HWND handle, char *text)
  */
 void API dw_window_set_tooltip(HWND handle, char *bubbletext)
 {
+    ColorInfo *cinfo = (ColorInfo *)GetWindowLongPtr(handle, GWLP_USERDATA);
+    
+    if(cinfo && cinfo->buddy)
+        _create_tooltip(cinfo->buddy, bubbletext);
     _create_tooltip(handle, bubbletext);
 }
 
