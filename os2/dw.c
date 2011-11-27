@@ -1671,98 +1671,125 @@ MRESULT EXPENTRY _BubbleProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 /* Function to handle tooltip messages from a variety of procedures */
 MRESULT EXPENTRY _TooltipProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2, WindowData *blah)
 {
-   switch(msg)
-   {
-   case 0x041f:
-      if (hwndBubble)
-      {
-         WinDestroyWindow(hwndBubble);
-         hwndBubble = 0;
-      }
-      break;
+    static HWND hstart, hend;
 
-   case 0x041e:
+    switch(msg)
+    {
+    case 0x041f:
+        /* Mouse has left the area.. remove tooltip and stop timer */
+        if(hwndBubble)
+        {
+            WinDestroyWindow(hwndBubble);
+            hwndBubble = 0;
+        }
+        if(hstart)
+            WinStopTimer(dwhab, hstart, 1);
+        if(hend)
+            WinStopTimer(dwhab, hend, 2);
+        hstart = hend = 0;
+        break;
 
-      if(!*blah->bubbletext)
-         break;
+    case 0x041e:
+        /* Mouse has entered... stop any pending timer...
+         * then start a new timer to creat the tooltip delayed.
+         */
+        if(hstart)
+            WinStopTimer(dwhab, hstart, 1);
+        /* Two seconds to create */
+        WinStartTimer(dwhab, hwnd, 1, 2000);
+        hstart = hwnd;
+        break;
+    case WM_TIMER:
+        if((int)mp1 == 1 || (int)mp1 == 2)
+        {
+            if(hwndBubble)
+            {
+                WinDestroyWindow(hwndBubble);
+                hwndBubble = 0;
+            }
+            /* Either starting or ending... remove tooltip and timers */
+            if(hstart)
+                WinStopTimer(dwhab, hstart, 1);
+            if(hend)
+                WinStopTimer(dwhab, hend, 2);
+            hstart = hend = 0;
+            /* If we are starting... create a new tooltip */
+            if((int)mp1 == 1)
+            {
+                HPS   hpsTemp = 0;
+                LONG  lHight;
+                LONG  lWidth;
+                POINTL txtPointl[TXTBOX_COUNT];
+                POINTL ptlWork = {0,0};
+                ULONG ulColor = CLR_YELLOW;
+                void *bubbleproc;
 
-      if(hwndBubble)
-      {
-         WinDestroyWindow(hwndBubble);
-         hwndBubble = 0;
-      }
+                hwndBubbleLast   = hwnd;
+                hwndBubble = WinCreateWindow(HWND_DESKTOP,
+                                             WC_STATIC,
+                                             NULL,
+                                             SS_TEXT |
+                                             DT_CENTER |
+                                             DT_VCENTER,
+                                             0,0,0,0,
+                                             HWND_DESKTOP,
+                                             HWND_TOP,
+                                             0,
+                                             NULL,
+                                             NULL);
 
-      if(!hwndBubble)
-      {
-         HPS   hpsTemp = 0;
-         LONG  lHight;
-         LONG  lWidth;
-         POINTL txtPointl[TXTBOX_COUNT];
-         POINTL ptlWork = {0,0};
-         ULONG ulColor = CLR_YELLOW;
-         void *bubbleproc;
-
-         hwndBubbleLast   = hwnd;
-         hwndBubble = WinCreateWindow(HWND_DESKTOP,
-                               WC_STATIC,
-                               NULL,
-                               SS_TEXT |
-                               DT_CENTER |
-                               DT_VCENTER,
-                                         0,0,0,0,
-                               HWND_DESKTOP,
-                               HWND_TOP,
-                               0,
-                               NULL,
-                               NULL);
-
-         WinSetPresParam(hwndBubble,
-                     PP_FONTNAMESIZE,
-                     strlen(DefaultFont)+1,
-                     DefaultFont);
+                WinSetPresParam(hwndBubble,
+                                PP_FONTNAMESIZE,
+                                strlen(DefaultFont)+1,
+                                DefaultFont);
 
 
-         WinSetPresParam(hwndBubble,
-                     PP_BACKGROUNDCOLORINDEX,
-                     sizeof(ulColor),
-                     &ulColor);
+                WinSetPresParam(hwndBubble,
+                                PP_BACKGROUNDCOLORINDEX,
+                                sizeof(ulColor),
+                                &ulColor);
 
-         WinSetWindowText(hwndBubble,
-                      (PSZ)blah->bubbletext);
+                WinSetWindowText(hwndBubble,
+                                 (PSZ)blah->bubbletext);
 
-         WinMapWindowPoints(hwnd, HWND_DESKTOP, &ptlWork, 1);
+                WinMapWindowPoints(hwnd, HWND_DESKTOP, &ptlWork, 1);
 
-         hpsTemp = WinGetPS(hwndBubble);
-         GpiQueryTextBox(hpsTemp,
-                     strlen(blah->bubbletext),
-                     (PCH)blah->bubbletext,
-                     TXTBOX_COUNT,
+                hpsTemp = WinGetPS(hwndBubble);
+                GpiQueryTextBox(hpsTemp,
+                                strlen(blah->bubbletext),
+                                (PCH)blah->bubbletext,
+                                TXTBOX_COUNT,
                      txtPointl);
-         WinReleasePS(hpsTemp);
+                WinReleasePS(hpsTemp);
 
-         lWidth = txtPointl[TXTBOX_TOPRIGHT].x -
-            txtPointl[TXTBOX_TOPLEFT ].x + 8;
+                lWidth = txtPointl[TXTBOX_TOPRIGHT].x -
+                    txtPointl[TXTBOX_TOPLEFT ].x + 8;
 
-         lHight = txtPointl[TXTBOX_TOPLEFT].y -
-            txtPointl[TXTBOX_BOTTOMLEFT].y + 8;
+                lHight = txtPointl[TXTBOX_TOPLEFT].y -
+                    txtPointl[TXTBOX_BOTTOMLEFT].y + 8;
 
-         ptlWork.y -= lHight;
+                ptlWork.y -= lHight;
 
-         bubbleproc = (void *)WinSubclassWindow(hwndBubble, _BubbleProc);
+                bubbleproc = (void *)WinSubclassWindow(hwndBubble, _BubbleProc);
 
-         if(bubbleproc)
-            WinSetWindowPtr(hwndBubble, QWP_USER, bubbleproc);
+                if(bubbleproc)
+                    WinSetWindowPtr(hwndBubble, QWP_USER, bubbleproc);
 
-         WinSetWindowPos(hwndBubble,
-                     HWND_TOP,
-                     ptlWork.x,
-                     ptlWork.y,
-                     lWidth,
-                     lHight,
-                     SWP_SIZE | SWP_MOVE | SWP_SHOW);
-      }
-      break;
-   }
+                WinSetWindowPos(hwndBubble,
+                                HWND_TOP,
+                                ptlWork.x,
+                                ptlWork.y,
+                                lWidth,
+                                lHight,
+                                SWP_SIZE | SWP_MOVE | SWP_SHOW);
+
+                /* Start a timer to remove it after 15 seconds */
+                WinStartTimer(dwhab, hwnd, 2, 15000);
+                hend = hwnd;
+            }
+        }
+        break;
+    }
 }
 
 #define CALENDAR_BORDER 3
@@ -4248,7 +4275,14 @@ void API dw_debug(char *format, ...)
    va_end(args);
 
    if(_PmPrintfString)
+   {
+       int len = strlen(outbuf);
+
+       /* Trim off trailing newline for PMPrintf */
+       if(len > 0 && outbuf[len-1] == '\n')
+           outbuf[len-1] = 0;
        _PmPrintfString(outbuf);
+   }
    else
        fprintf(stderr, "%s", outbuf);
 }
