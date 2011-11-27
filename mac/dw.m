@@ -8172,7 +8172,10 @@ void API dw_window_set_text(HWND handle, char *text)
 void API dw_window_set_tooltip(HWND handle, char *bubbletext)
 {
     id object = handle;
-    [object setToolTip:[NSString stringWithUTF8String:bubbletext]];
+    if(bubbletext && *bubbletext)
+        [object setToolTip:[NSString stringWithUTF8String:bubbletext]];
+    else
+        [object setToolTip:nil];
 }
 
 /*

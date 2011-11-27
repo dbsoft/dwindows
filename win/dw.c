@@ -3529,16 +3529,22 @@ void _resize_notebook_page(HWND handle, int pageid)
 
 void _create_tooltip(HWND handle, char *text)
 {
+    HWND hwndTT = 0;
+    HWND oldTT = (HWND)dw_window_get_data(handle, "_dw_tooltip");
+    
+    if(oldTT)
+        DestroyWindow(oldTT);
     if(text)
     {
+        TOOLINFO ti = { 0 };
+        
         /* Create a tooltip. */
-        HWND hwndTT = CreateWindowEx(WS_EX_TOPMOST,
+        hwndTT = CreateWindowEx(WS_EX_TOPMOST,
             TOOLTIPS_CLASS, NULL,
             WS_POPUP | TTS_NOPREFIX | TTS_ALWAYSTIP,
             CW_USEDEFAULT, CW_USEDEFAULT,
             CW_USEDEFAULT, CW_USEDEFAULT,
             handle, NULL, DWInstance,NULL);
-        TOOLINFO ti = { 0 };
 
         SetWindowPos(hwndTT, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
 
@@ -3555,6 +3561,7 @@ void _create_tooltip(HWND handle, char *text)
         /* Associate the tooltip with the "tool" window. */
         SendMessage(hwndTT, TTM_ADDTOOL, 0, (LPARAM) (LPTOOLINFO) &ti);
     }
+    dw_window_set_data(handle, "_dw_tooltip", (void *)hwndTT);
 }
 
 #ifndef GDIPLUS

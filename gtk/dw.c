@@ -4366,6 +4366,21 @@ HWND dw_button_new(char *text, unsigned long id)
    return tmp;
 }
 
+void _create_tooltip(HWND handle, char *text)
+{
+   GtkTooltips *tooltips = NULL;
+   GtkWidget *oldtooltips = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(handle), "_dw_tooltip");
+    
+   if(oldtooltips)
+      gtk_widget_destroy(oldtooltips);
+   if(text)
+   {
+      tooltips = gtk_tooltips_new();
+      gtk_tooltips_set_tip(tooltips, handle, text, NULL);
+   }
+   gtk_object_set_data(GTK_OBJECT(handle), "_dw_tooltip", (gpointer)tooltips);
+}
+
 /*
  * Create a new bitmap button window (widget) to be packed.
  * Parameters:
@@ -4376,7 +4391,6 @@ HWND dw_bitmapbutton_new(char *text, unsigned long id)
 {
    GtkWidget *tmp;
    GtkWidget *bitmap;
-   GtkTooltips *tooltips;
    int _locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
@@ -4389,12 +4403,7 @@ HWND dw_bitmapbutton_new(char *text, unsigned long id)
       gtk_container_add (GTK_CONTAINER(tmp), bitmap);
    }
    gtk_widget_show(tmp);
-   if(text)
-   {
-      tooltips = gtk_tooltips_new();
-      gtk_tooltips_set_tip(tooltips, tmp, text, NULL);
-      gtk_object_set_data(GTK_OBJECT(tmp), "_dw_tooltip", (gpointer)tooltips);
-   }
+   _create_tooltip(tmp, text);
    gtk_object_set_data(GTK_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(id));
    DW_MUTEX_UNLOCK;
    return tmp;
@@ -4416,7 +4425,6 @@ HWND dw_bitmapbutton_new_from_file(char *text, unsigned long id, char *filename)
    GtkWidget *box;
    GtkWidget *label;
    GtkWidget *button;
-   GtkTooltips *tooltips;
    char *label_text=NULL;
    int _locked_by_me = FALSE;
 
@@ -4450,12 +4458,7 @@ HWND dw_bitmapbutton_new_from_file(char *text, unsigned long id, char *filename)
    gtk_widget_show( box );
    gtk_container_add( GTK_CONTAINER(button), box );
    gtk_widget_show( button );
-   if ( text )
-   {
-      tooltips = gtk_tooltips_new();
-      gtk_tooltips_set_tip( tooltips, button, text, NULL );
-      gtk_object_set_data( GTK_OBJECT(button), "_dw_tooltip", (gpointer)tooltips );
-   }
+   _create_tooltip(tmp, text);
    gtk_object_set_data( GTK_OBJECT(button), "_dw_id", GINT_TO_POINTER(id) );
    DW_MUTEX_UNLOCK;
    return button;
@@ -4474,7 +4477,6 @@ HWND dw_bitmapbutton_new_from_data(char *text, unsigned long id, char *data, int
 {
    GtkWidget *tmp;
    GtkWidget *bitmap;
-   GtkTooltips *tooltips;
    int _locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
@@ -4487,12 +4489,7 @@ HWND dw_bitmapbutton_new_from_data(char *text, unsigned long id, char *data, int
       gtk_container_add (GTK_CONTAINER(tmp), bitmap);
    }
    gtk_widget_show(tmp);
-   if(text)
-   {
-      tooltips = gtk_tooltips_new();
-      gtk_tooltips_set_tip(tooltips, tmp, text, NULL);
-      gtk_object_set_data(GTK_OBJECT(tmp), "_dw_tooltip", (gpointer)tooltips);
-   }
+   _create_tooltip(tmp, text);
    gtk_object_set_data(GTK_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(id));
    DW_MUTEX_UNLOCK;
    return tmp;
@@ -4932,12 +4929,9 @@ void dw_window_set_text(HWND handle, char *text)
 void API dw_window_set_tooltip(HWND handle, char *bubbletext)
 {
    int _locked_by_me = FALSE;
-   GtkTooltips *tooltips;
 
    DW_MUTEX_LOCK;
-   tooltips = gtk_tooltips_new();
-   gtk_tooltips_set_tip(tooltips, handle, bubbletext ? bubbletext : "", NULL);
-   gtk_object_set_data(GTK_OBJECT(handle), "_dw_tooltip", (gpointer)tooltips);
+   _create_tooltip(handle, bubbletext);
    DW_MUTEX_UNLOCK;
 }
 
