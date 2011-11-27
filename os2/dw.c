@@ -5714,7 +5714,8 @@ HWND API dw_bitmapbutton_new(char *text, ULONG id)
                     NULL,
                     NULL);
 
-   strncpy(blah->bubbletext, text, BUBBLE_HELP_MAX - 1);
+   if(text)
+      strncpy(blah->bubbletext, text, BUBBLE_HELP_MAX - 1);
    blah->oldproc = WinSubclassWindow(tmp, _BtProc);
 
    WinSetWindowPtr(tmp, QWP_USER, blah);
@@ -5811,7 +5812,8 @@ HWND API dw_bitmapbutton_new_from_file(char *text, unsigned long id, char *filen
       }
    }
 
-   strncpy(blah->bubbletext, text, BUBBLE_HELP_MAX - 1);
+   if(text)
+      strncpy(blah->bubbletext, text, BUBBLE_HELP_MAX - 1);
    blah->oldproc = WinSubclassWindow(tmp, _BtProc);
 
    WinSetWindowPtr(tmp, QWP_USER, blah);
@@ -5909,7 +5911,8 @@ HWND API dw_bitmapbutton_new_from_data(char *text, unsigned long id, char *data,
       }
    }
 
-   strncpy(blah->bubbletext, text, BUBBLE_HELP_MAX - 1);
+   if(text)
+      strncpy(blah->bubbletext, text, BUBBLE_HELP_MAX - 1);
    blah->oldproc = WinSubclassWindow(tmp, _BtProc);
 
    WinSetWindowPtr(tmp, QWP_USER, blah);
