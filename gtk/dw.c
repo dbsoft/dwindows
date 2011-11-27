@@ -4368,17 +4368,20 @@ HWND dw_button_new(char *text, unsigned long id)
 
 void _create_tooltip(HWND handle, char *text)
 {
-   GtkTooltips *tooltips = NULL;
-   GtkWidget *oldtooltips = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(handle), "_dw_tooltip");
-    
-   if(oldtooltips)
-      gtk_widget_destroy(oldtooltips);
-   if(text)
+   GtkTooltips *tooltips = (GtkTooltips *)gtk_object_get_data(GTK_OBJECT(handle), "_dw_tooltip");
+   
+   if(!tooltips)
    {
       tooltips = gtk_tooltips_new();
-      gtk_tooltips_set_tip(tooltips, handle, text, NULL);
+      gtk_object_set_data(GTK_OBJECT(handle), "_dw_tooltip", (gpointer)tooltips);
    }
-   gtk_object_set_data(GTK_OBJECT(handle), "_dw_tooltip", (gpointer)tooltips);
+   if(text && *text)
+   {
+      gtk_tooltips_set_tip(tooltips, handle, text, NULL);
+      gtk_tooltips_enable(tooltips);
+   }
+   else
+      gtk_tooltips_disable(tooltips);
 }
 
 /*
@@ -4458,7 +4461,7 @@ HWND dw_bitmapbutton_new_from_file(char *text, unsigned long id, char *filename)
    gtk_widget_show( box );
    gtk_container_add( GTK_CONTAINER(button), box );
    gtk_widget_show( button );
-   _create_tooltip(tmp, text);
+   _create_tooltip(button, text);
    gtk_object_set_data( GTK_OBJECT(button), "_dw_id", GINT_TO_POINTER(id) );
    DW_MUTEX_UNLOCK;
    return button;
