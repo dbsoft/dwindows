@@ -3529,29 +3529,32 @@ void _resize_notebook_page(HWND handle, int pageid)
 
 void _create_tooltip(HWND handle, char *text)
 {
-    /* Create a tooltip. */
-    HWND hwndTT = CreateWindowEx(WS_EX_TOPMOST,
-        TOOLTIPS_CLASS, NULL,
-        WS_POPUP | TTS_NOPREFIX | TTS_ALWAYSTIP,
-        CW_USEDEFAULT, CW_USEDEFAULT,
-        CW_USEDEFAULT, CW_USEDEFAULT,
-        handle, NULL, DWInstance,NULL);
-    TOOLINFO ti = { 0 };
+    if(text)
+    {
+        /* Create a tooltip. */
+        HWND hwndTT = CreateWindowEx(WS_EX_TOPMOST,
+            TOOLTIPS_CLASS, NULL,
+            WS_POPUP | TTS_NOPREFIX | TTS_ALWAYSTIP,
+            CW_USEDEFAULT, CW_USEDEFAULT,
+            CW_USEDEFAULT, CW_USEDEFAULT,
+            handle, NULL, DWInstance,NULL);
+        TOOLINFO ti = { 0 };
 
-    SetWindowPos(hwndTT, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+        SetWindowPos(hwndTT, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
 
-    /* Set up "tool" information.
-     * In this case, the "tool" is the entire parent window.
-     */
-    ti.cbSize = sizeof(TOOLINFO);
-    ti.uFlags = TTF_SUBCLASS;
-    ti.hwnd = handle;
-    ti.hinst = DWInstance;
-    ti.lpszText = text;
-    ti.rect.right = ti.rect.bottom = 500;
+        /* Set up "tool" information.
+         * In this case, the "tool" is the entire parent window.
+         */
+        ti.cbSize = sizeof(TOOLINFO);
+        ti.uFlags = TTF_SUBCLASS;
+        ti.hwnd = handle;
+        ti.hinst = DWInstance;
+        ti.lpszText = text;
+        ti.rect.right = ti.rect.bottom = 500;
 
-    /* Associate the tooltip with the "tool" window. */
-    SendMessage(hwndTT, TTM_ADDTOOL, 0, (LPARAM) (LPTOOLINFO) &ti);
+        /* Associate the tooltip with the "tool" window. */
+        SendMessage(hwndTT, TTM_ADDTOOL, 0, (LPARAM) (LPTOOLINFO) &ti);
+    }
 }
 
 #ifndef GDIPLUS
