@@ -6391,8 +6391,10 @@ void API dw_window_set_text(HWND handle, char *text)
  */
 void API dw_window_set_tooltip(HWND handle, char *bubbletext)
 {
-   WindowData *blah = (WindowData *)WinQueryWindowPtr(handle, QWP_USER);
-   HWND buddy = (HWND)dw_window_get_data(handle, "_dw_buddy");
+   HWND buddy = (HWND)dw_window_get_data(handle, "_dw_comboentry");
+   WindowData *blah = (WindowData *)WinQueryWindowPtr(buddy ? buddy : handle, QWP_USER);
+
+   buddy = (HWND)dw_window_get_data(handle, "_dw_buddy");
 
    if(blah)
        strncpy(blah->bubbletext, bubbletext, BUBBLE_HELP_MAX - 1);
