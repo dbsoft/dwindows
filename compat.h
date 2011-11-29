@@ -60,8 +60,10 @@ void msleep(long period);
 #define INCL_DEV
 #define INCL_DOSERRORS
 
-#if (defined(__IBMC__) || defined(_System)) && !defined(API)
-#define API _System
+#ifdef __OS2__
+# if (defined(__IBMC__) || defined(__WATCOMC__) || defined(_System)) && !defined(API)
+# define API _System
+# endif
 #endif
 
 #ifndef API

@@ -1,0 +1,298 @@
+option DESCRIPTION 'Dynamic Windows for OS/2'
+segment type DATA NONSHARED LOADONCALL
+
+export dw_init.10=dw_init
+export dw_main.11=dw_main
+export dw_exit.12=dw_exit
+export dw_beep.13=dw_beep
+export dw_messagebox.14=dw_messagebox
+export dw_debug.15=dw_debug
+
+export dw_environment_query.16=dw_environment_query
+export dw_exec.17=dw_exec
+export dw_browse.18=dw_browse
+export dw_file_browse.19=dw_file_browse
+export dw_user_dir.20=dw_user_dir
+export dw_flush.21=dw_flush
+export dw_free.22=dw_free
+export dw_main_sleep.23=dw_main_sleep
+export dw_main_iteration.24=dw_main_iteration
+export dw_app_dir.25=dw_app_dir
+
+export dw_box_new.40=dw_box_new
+export dw_groupbox_new.41=dw_groupbox_new
+export dw_box_pack_start.42=dw_box_pack_start
+export dw_box_pack_end.43=dw_box_pack_end
+export dw_box_pack_at_index.44=dw_box_pack_at_index
+
+export dw_mdi_new.46=dw_mdi_new
+
+export dw_window_new.50=dw_window_new
+export dw_window_show.51=dw_window_show
+export dw_window_hide.52=dw_window_hide
+export dw_window_destroy.53=dw_window_destroy
+export dw_window_set_font.54=dw_window_set_font
+export dw_window_set_color.55=dw_window_set_color
+export dw_window_set_pos.56=dw_window_set_pos
+export dw_window_set_size.57=dw_window_set_size
+export dw_window_set_pos_size.58=dw_window_set_pos_size
+export dw_window_get_pos_size.59=dw_window_get_pos_size
+export dw_window_set_style.60=dw_window_set_style
+export dw_window_set_icon.61=dw_window_set_icon
+export dw_window_set_bitmap.62=dw_window_set_bitmap
+export dw_window_get_text.63=dw_window_get_text
+export dw_window_set_text.64=dw_window_set_text
+export dw_window_disable.65=dw_window_disable
+export dw_window_enable.66=dw_window_enable
+export dw_window_capture.67=dw_window_capture
+export dw_window_release.68=dw_window_release
+export dw_window_reparent.69=dw_window_reparent
+export dw_window_function.70=dw_window_function
+export dw_window_from_id.71=dw_window_from_id
+export dw_window_set_border.72=dw_window_set_border
+export dw_window_minimize.73=dw_window_minimize
+export dw_window_set_pointer.74=dw_window_set_pointer
+export dw_window_default.75=dw_window_default
+export dw_window_raise.76=dw_window_raise
+export dw_window_lower.77=dw_window_lower
+export dw_window_click_default.78=dw_window_click_default
+export dw_window_redraw.79=dw_window_redraw
+export dw_bitmap_new.80=dw_bitmap_new
+export dw_window_set_bitmap_from_data.81=dw_window_set_bitmap_from_data
+export dw_window_get_font.82=dw_window_get_font
+export dw_window_set_tooltip.83=dw_window_set_tooltip
+
+export dw_button_new.90=dw_button_new
+export dw_bitmapbutton_new.91=dw_bitmapbutton_new
+export dw_bitmapbutton_new_from_file.92=dw_bitmapbutton_new_from_file
+export dw_bitmapbutton_new_from_data.93=dw_bitmapbutton_new_from_data
+
+export dw_text_new.100=dw_text_new
+export dw_status_text_new.101=dw_status_text_new
+
+export dw_entryfield_new.110=dw_entryfield_new
+export dw_entryfield_password_new.111=dw_entryfield_password_new
+
+export dw_combobox_new.120=dw_combobox_new
+
+export dw_radiobutton_new.130=dw_radiobutton_new
+
+export dw_listbox_new.140=dw_listbox_new
+export dw_listbox_append.141=dw_listbox_append
+export dw_listbox_clear.142=dw_listbox_clear
+export dw_listbox_count.143=dw_listbox_count
+export dw_listbox_set_top.144=dw_listbox_set_top
+export dw_listbox_select.145=dw_listbox_select
+export dw_listbox_delete.146=dw_listbox_delete
+export dw_listbox_get_text.147=dw_listbox_get_text
+export dw_listbox_set_text.148=dw_listbox_set_text
+export dw_listbox_selected.149=dw_listbox_selected
+export dw_listbox_selected_multi.150=dw_listbox_selected_multi
+export dw_listbox_list_append.151=dw_listbox_list_append
+export dw_listbox_insert.152=dw_listbox_insert
+
+export dw_percent_new.160=dw_percent_new
+export dw_percent_set_pos.162=dw_percent_set_pos
+
+export dw_mle_new.170=dw_mle_new
+export dw_mle_import.171=dw_mle_import
+export dw_mle_export.172=dw_mle_export
+export dw_mle_get_size.173=dw_mle_get_size
+export dw_mle_delete.174=dw_mle_delete
+export dw_mle_clear.175=dw_mle_clear
+export dw_mle_freeze.176=dw_mle_freeze
+export dw_mle_thaw.177=dw_mle_thaw
+export dw_mle_set_cursor.178=dw_mle_set_cursor
+export dw_mle_set_visible.179=dw_mle_set_visible
+export dw_mle_search.180=dw_mle_search
+export dw_mle_set_editable.181=dw_mle_set_editable
+export dw_mle_set_word_wrap.182=dw_mle_set_word_wrap
+
+export dw_spinbutton_new.190=dw_spinbutton_new
+export dw_spinbutton_set_pos.191=dw_spinbutton_set_pos
+export dw_spinbutton_set_limits.192=dw_spinbutton_set_limits
+export dw_entryfield_set_limit.193=dw_entryfield_set_limit
+export dw_spinbutton_get_pos.194=dw_spinbutton_get_pos
+
+export dw_checkbox_new.200=dw_checkbox_new
+export dw_checkbox_get.201=dw_checkbox_get
+export dw_checkbox_set.202=dw_checkbox_set
+
+export dw_icon_load.210=dw_icon_load
+export dw_icon_free.211=dw_icon_free
+export dw_icon_load_from_file.212=dw_icon_load_from_file
+export dw_icon_load_from_data.213=dw_icon_load_from_data
+
+export dw_container_new.220=dw_container_new
+export dw_container_setup.221=dw_container_setup
+export dw_container_alloc.222=dw_container_alloc
+export dw_container_set_item.223=dw_container_set_item
+export dw_container_set_row_title.224=dw_container_set_row_title
+export dw_container_insert.225=dw_container_insert
+export dw_container_clear.226=dw_container_clear
+export dw_container_query_start.228=dw_container_query_start
+export dw_container_query_next.229=dw_container_query_next
+export dw_container_delete.230=dw_container_delete
+export dw_container_scroll.231=dw_container_scroll
+export dw_container_set_column_width.232=dw_container_set_column_width
+export dw_container_cursor.233=dw_container_cursor
+export dw_container_optimize.234=dw_container_optimize
+export dw_container_delete_row.235=dw_container_delete_row
+export dw_container_change_item.236=dw_container_change_item
+export dw_container_get_column_type.237=dw_container_get_column_type
+export dw_container_change_row_title.238=dw_container_change_row_title
+export dw_container_set_stripe.239=dw_container_set_stripe
+
+export dw_filesystem_setup.240=dw_filesystem_setup
+export dw_filesystem_set_item.241=dw_filesystem_set_item
+export dw_filesystem_set_file.242=dw_filesystem_set_file
+export dw_filesystem_change_item.243=dw_filesystem_change_item
+export dw_filesystem_change_file.244=dw_filesystem_change_file
+export dw_filesystem_get_column_type.245=dw_filesystem_get_column_type
+
+export dw_screen_width.250=dw_screen_width
+export dw_screen_height.251=dw_screen_height
+
+export dw_color_depth_get.260=dw_color_depth_get
+export dw_color_foreground_set.261=dw_color_foreground_set
+export dw_color_background_set.262=dw_color_background_set
+export dw_color_choose.263=dw_color_choose
+
+export dw_notebook_new.270=dw_notebook_new
+export dw_notebook_page_new.271=dw_notebook_page_new
+export dw_notebook_page_destroy.272=dw_notebook_page_destroy
+export dw_notebook_page_set_text.273=dw_notebook_page_set_text
+export dw_notebook_page_set_status_text.274=dw_notebook_page_set_status_text
+export dw_notebook_page_set.275=dw_notebook_page_set
+export dw_notebook_page_get.276=dw_notebook_page_get
+export dw_notebook_pack.277=dw_notebook_pack
+
+export dw_menu_new.280=dw_menu_new
+export dw_menubar_new.281=dw_menubar_new
+export dw_menu_append_item.282=dw_menu_append_item
+export dw_menu_item_set_check.283=dw_menu_item_set_check
+export dw_menu_popup.284=dw_menu_popup
+export dw_menu_destroy.285=dw_menu_destroy
+export dw_menu_item_set_state.286=dw_menu_item_set_state
+
+export dw_pointer_query_pos.290=dw_pointer_query_pos
+export dw_pointer_set_pos.291=dw_pointer_set_pos
+
+export dw_mutex_new.300=dw_mutex_new
+export dw_mutex_close.301=dw_mutex_close
+export dw_mutex_lock.302=dw_mutex_lock
+export dw_mutex_unlock.303=dw_mutex_unlock
+export dw_mutex_trylock.304=dw_mutex_trylock
+
+export dw_event_new.310=dw_event_new
+export dw_event_reset.311=dw_event_reset
+export dw_event_post.312=dw_event_post
+export dw_event_wait.313=dw_event_wait
+export dw_event_close.314=dw_event_close
+
+export dw_thread_new.320=dw_thread_new
+export dw_thread_end.321=dw_thread_end
+export dw_thread_id.322=dw_thread_id
+
+export dw_render_new.330=dw_render_new
+export dw_draw_point.331=dw_draw_point
+export dw_draw_line.332=dw_draw_line
+export dw_draw_rect.333=dw_draw_rect
+export dw_draw_text.334=dw_draw_text
+export dw_draw_polygon.335=dw_draw_polygon
+export dw_draw_arc.336=dw_draw_arc
+
+export dw_pixmap_bitblt.340=dw_pixmap_bitblt
+export dw_pixmap_new.341=dw_pixmap_new
+export dw_pixmap_grab.342=dw_pixmap_grab
+export dw_pixmap_destroy.343=dw_pixmap_destroy
+export dw_pixmap_new_from_file.344=dw_pixmap_new_from_file
+export dw_pixmap_new_from_data.345=dw_pixmap_new_from_data
+export dw_pixmap_set_transparent_color.346=dw_pixmap_set_transparent_color
+export dw_pixmap_set_font.347=dw_pixmap_set_font
+export dw_pixmap_stretch_bitblt.348=dw_pixmap_stretch_bitblt
+
+export dw_dialog_new.350=dw_dialog_new
+export dw_dialog_dismiss.351=dw_dialog_dismiss
+export dw_dialog_wait.352=dw_dialog_wait
+
+export dw_signal_connect.360=dw_signal_connect
+export dw_signal_disconnect_by_window.361=dw_signal_disconnect_by_window
+export dw_signal_disconnect_by_data.362=dw_signal_disconnect_by_data
+export dw_signal_disconnect_by_name.363=dw_signal_disconnect_by_name
+
+export dw_timer_connect.365=dw_timer_connect
+export dw_timer_disconnect.366=dw_timer_disconnect
+
+export dw_tree_new.370=dw_tree_new
+export dw_tree_insert.371=dw_tree_insert
+export dw_tree_clear.372=dw_tree_clear
+export dw_tree_item_delete.373=dw_tree_item_delete
+export dw_tree_item_change.374=dw_tree_item_change
+export dw_tree_item_expand.375=dw_tree_item_expand
+export dw_tree_item_collapse.376=dw_tree_item_collapse
+export dw_tree_item_select.377=dw_tree_item_select
+export dw_tree_item_set_data.378=dw_tree_item_set_data
+export dw_tree_insert_after.379=dw_tree_insert_after
+export dw_tree_item_get_data.380=dw_tree_item_get_data
+export dw_tree_get_title.381=dw_tree_get_title
+export dw_tree_get_parent.382=dw_tree_get_parent
+
+export dw_font_text_extents_get.385=dw_font_text_extents_get
+export dw_font_choose.386=dw_font_choose
+export dw_font_set_default.387=dw_font_set_default
+
+export dw_slider_new.390=dw_slider_new
+export dw_slider_get_pos.391=dw_slider_get_pos
+export dw_slider_set_pos.392=dw_slider_set_pos
+
+export dw_window_set_data.400=dw_window_set_data
+export dw_window_get_data.401=dw_window_get_data
+
+export dw_splitbar_new.410=dw_splitbar_new
+export dw_splitbar_set.411=dw_splitbar_set
+export dw_splitbar_get.412=dw_splitbar_get
+
+export dw_module_load.420=dw_module_load
+export dw_module_symbol.421=dw_module_symbol
+export dw_module_close.422=dw_module_close
+
+export dw_scrollbar_new.430=dw_scrollbar_new
+export dw_scrollbar_get_pos.431=dw_scrollbar_get_pos
+export dw_scrollbar_set_pos.432=dw_scrollbar_set_pos
+export dw_scrollbar_set_range.433=dw_scrollbar_set_range
+
+export dw_taskbar_insert.440=dw_taskbar_insert
+export dw_taskbar_delete.441=dw_taskbar_delete
+
+export dw_named_memory_new.450=dw_named_memory_new
+export dw_named_memory_get.451=dw_named_memory_get
+export dw_named_memory_free.452=dw_named_memory_free
+
+export dw_named_event_new.460=dw_named_event_new
+export dw_named_event_get.461=dw_named_event_get
+export dw_named_event_reset.462=dw_named_event_reset
+export dw_named_event_post.463=dw_named_event_post
+export dw_named_event_wait.464=dw_named_event_wait
+export dw_named_event_close.465=dw_named_event_close
+
+export dw_html_new.470=dw_html_new
+export dw_html_action.471=dw_html_action
+export dw_html_raw.472=dw_html_raw
+export dw_html_url.473=dw_html_url
+
+export dw_calendar_new.480=dw_calendar_new
+export dw_calendar_set_date.481=dw_calendar_set_date
+export dw_calendar_get_date.482=dw_calendar_get_date
+
+export dw_clipboard_get_text.490=dw_clipboard_get_text
+export dw_clipboard_set_text.491=dw_clipboard_set_text
+
+export dw_scrollbox_new.500=dw_scrollbox_new
+export dw_scrollbox_get_pos.501=dw_scrollbox_get_pos
+export dw_scrollbox_get_range.502=dw_scrollbox_get_range
+
+export dw_print_new.510=dw_print_new
+export dw_print_run.511=dw_print_run
+export dw_print_cancel.512=dw_print_cancel
+
