@@ -57,7 +57,7 @@ int _load_bitmap_file(char *file, HWND handle, HBITMAP *hbm, HDC *hdc, HPS *hps,
 void _dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize, int vsize, int pad, char *functionname);
 void _dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, int vsize, int pad, char *functionname);
 void _free_menu_data(HWND menu);
-ULONG (* _System _PmPrintfString)(char *String) = 0;
+ULONG (_System * _PmPrintfString)(char *String) = 0;
 
 char ClassName[] = "dynamicwindows";
 char SplitbarClassName[] = "dwsplitbar";
