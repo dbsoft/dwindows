@@ -5,20 +5,41 @@
 #===================================================================
 OS22_H = $(%WATCOM)\h\os2
 CFLAGS  = -i=os2 -i=$(OS22_H) -bt=OS2 -zq -d2 -bd
+TKPATH=C:\Toolkit
+TLKTLIB = $(TKPATH)\LIB
 
 .SUFFIXES:
 .SUFFIXES: .obj .c
 .c.obj: .AUTODEPEND
 	wcc386 $(CFLAGS) $*.c
 
-all:	dw.dll dwcompat.dll
+all:	dw.dll dwcompat.dll dwtest.exe
 
-dwcompat.dll: compat.obj
-	wlink name dwcompat.dll system os2v2_pm d a library so32dll,tcp32dll option symf f $[@
+dwcompat.dll: dirent.obj compat.obj
+	wlink @os2\dwcompat.lnk name dwcompat.dll system os2v2_dll d a library $(TLKTLIB)\so32dll,$(TLKTLIB)\tcp32dll option implib=dwcompat option symf f $[@ f compat
+	copy dwcompat.lib lib
+
+dirent.obj:
+	wcc386 $(CFLAGS) os2\dirent.c
 
 dw.dll: dw.obj
-	wlink name dw.dll system os2v2_pm d a option symf f $[@
+	wlink @os2\dw.lnk name dw.dll system os2v2_dll d a option implib=dw option symf f $[@
+	copy dw.lib lib
 
 dw.obj: os2\dw.c
 	wcc386 $(CFLAGS) os2\dw.c
+
+dwtest.exe: dwtest.obj
+	wlink name dwtest.exe system os2v2_pm d a library lib\dw.lib option symf f $[@
+
+dwtest.obj:
+	wcc386 /DOS2 -i=os2 -i=$(OS22_H) -bt=OS2 -zq -d2 dwtest.c
+
+clean:
+	@if exist *.obj del *.obj
+	@if exist *.sym del *.sym
+	@if exist *.lib del *.lib
+	@if exist *.dll del *.dll
+	@if exist *.exe del *.exe
+	@if exist lib\*.lib del lib\*.lib
 

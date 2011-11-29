@@ -26,6 +26,13 @@ extern "C" {
 # define A_ARCHIVE 0x20
 #endif
 
+#ifdef __WATCOMC__
+#undef DIR
+#undef direct
+#undef dirent
+#define DIR DIRW
+#endif
+
 struct dirent {
     int            d_ino;                 /* Dummy */
     int            d_reclen;		  /* Dummy, same as d_namlen */

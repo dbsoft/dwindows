@@ -67,8 +67,10 @@
 #if defined(__OS2__) || (defined(__WIN32__) && !defined(GDK_WINDOWING_WIN32)) || defined(__MAC__) || (defined(WINNT) && !defined(GDK_WINDOWING_WIN32)) || defined(__EMX__)
 /* OS/2, Windows or MacOS */
 
-#if (defined(__IBMC__) || defined(_System)) && !defined(API)
-#define API _System
+#ifdef __OS2__
+# if (defined(__IBMC__) || defined(__WATCOMC__) || defined(_System)) && !defined(API)
+# define API _System
+# endif
 #endif
 
 /* Used internally */

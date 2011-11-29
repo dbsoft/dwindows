@@ -3998,7 +3998,7 @@ void API dw_debug(char *format, ...)
 int API dw_messagebox(char *title, int flags, char *format, ...)
 {
    va_list args;
-   char outbuf[1024];
+   char outbuf[1025] = { 0 };
    int rc;
 
    va_start(args, format);

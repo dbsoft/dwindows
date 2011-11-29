@@ -8,6 +8,12 @@
 #include "compat.h"
 #include <errno.h>
 
+#ifdef __WATCOMC__
+#include "platform\dirent.h"
+typedef struct _dirdescr DIRW;
+#define DIR DIRW
+#endif
+
 # define FFBUF	FILEFINDBUF3
 # define Word	ULONG
   /*
