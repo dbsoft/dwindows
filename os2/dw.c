@@ -48,6 +48,12 @@ BOOL APIENTRY WinStretchPointer(HPS hps, LONG x, LONG y, LONG cx, LONG cy, HPOIN
 #define MAX_PATH 260
 #endif
 
+#ifdef __IBMC__
+#define API_FUNC * API
+#else
+#define API_FUNC API *
+#endif
+
 MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2);
 MRESULT EXPENTRY _wndproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2);
 MRESULT EXPENTRY _scrollwndproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2);
@@ -57,7 +63,7 @@ int _load_bitmap_file(char *file, HWND handle, HBITMAP *hbm, HDC *hdc, HPS *hps,
 void _dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize, int vsize, int pad, char *functionname);
 void _dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, int vsize, int pad, char *functionname);
 void _free_menu_data(HWND menu);
-ULONG (_System * _PmPrintfString)(char *String) = 0;
+ULONG (API_FUNC _PmPrintfString)(char *String) = 0;
 
 char ClassName[] = "dynamicwindows";
 char SplitbarClassName[] = "dwsplitbar";
@@ -2248,7 +2254,7 @@ void _click_default(HWND handle)
       {
          if(tmp->message == WM_COMMAND)
          {
-            int (API * clickfunc)(HWND, void *) = (int (API *)(HWND, void *))tmp->signalfunction;
+            int (API_FUNC clickfunc)(HWND, void *) = (int (API_FUNC)(HWND, void *))tmp->signalfunction;
 
             /* Make sure it's the right window, and the right ID */
             if(tmp->window == handle)
@@ -2787,7 +2793,7 @@ MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
             {
                if((mp2 && tmp->message == WM_SETFOCUS) || (!mp2 && tmp->message == WM_USER+1))
                {
-                  int (API * setfocusfunc)(HWND, void *) = (int (API *)(HWND, void *))tmp->signalfunction;
+                  int (API_FUNC setfocusfunc)(HWND, void *) = (int (API_FUNC)(HWND, void *))tmp->signalfunction;
 
                   if(hWnd == tmp->window || WinWindowFromID(tmp->window, FID_CLIENT) == hWnd)
                   {
@@ -2799,7 +2805,7 @@ MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
             break;
          case WM_TIMER:
             {
-               int (API * timerfunc)(void *) = (int (API *)(void *))tmp->signalfunction;
+               int (API_FUNC timerfunc)(void *) = (int (API_FUNC)(void *))tmp->signalfunction;
                if(tmp->id == (int)mp1)
                {
                   if(!timerfunc(tmp->data))
@@ -2811,7 +2817,7 @@ MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
             break;
          case WM_SIZE:
             {
-               int (API * sizefunc)(HWND, int, int, void *) = (int (API *)(HWND, int, int, void *))tmp->signalfunction;
+               int (API_FUNC sizefunc)(HWND, int, int, void *) = (int (API_FUNC)(HWND, int, int, void *))tmp->signalfunction;
 
                if((hWnd == tmp->window || WinWindowFromID(tmp->window, FID_CLIENT) == hWnd) && SHORT1FROMMP(mp2) && SHORT2FROMMP(mp2))
                {
@@ -2823,7 +2829,7 @@ MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
          case WM_BUTTON1DOWN:
             {
                POINTS pts = (*((POINTS*)&mp1));
-               int (API * buttonfunc)(HWND, int, int, int, void *) = (int (API *)(HWND, int, int, int, void *))tmp->signalfunction;
+               int (API_FUNC buttonfunc)(HWND, int, int, int, void *) = (int (API_FUNC)(HWND, int, int, int, void *))tmp->signalfunction;
 
                if(hWnd == tmp->window || WinWindowFromID(tmp->window, FID_CLIENT) == hWnd || WinQueryCapture(HWND_DESKTOP) == tmp->window)
                {
@@ -2850,7 +2856,7 @@ MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
          case WM_BUTTON1UP:
             {
                POINTS pts = (*((POINTS*)&mp1));
-               int (API * buttonfunc)(HWND, int, int, int, void *) = (int (API *)(HWND, int, int, int, void *))tmp->signalfunction;
+               int (API_FUNC buttonfunc)(HWND, int, int, int, void *) = (int (API_FUNC)(HWND, int, int, int, void *))tmp->signalfunction;
 
                if(hWnd == tmp->window || WinWindowFromID(tmp->window, FID_CLIENT) == hWnd || WinQueryCapture(HWND_DESKTOP) == tmp->window)
                {
@@ -2876,7 +2882,7 @@ MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
             break;
          case WM_MOUSEMOVE:
             {
-               int (API * motionfunc)(HWND, int, int, int, void *) = (int (API *)(HWND, int, int, int, void *))tmp->signalfunction;
+               int (API_FUNC motionfunc)(HWND, int, int, int, void *) = (int (API_FUNC)(HWND, int, int, int, void *))tmp->signalfunction;
 
                if(hWnd == tmp->window || WinWindowFromID(tmp->window, FID_CLIENT) == hWnd || WinQueryCapture(HWND_DESKTOP) == tmp->window)
                {
@@ -2897,7 +2903,7 @@ MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
             break;
          case WM_CHAR:
             {
-               int (API * keypressfunc)(HWND, char, int, int, void *) = (int (API *)(HWND, char, int, int, void *))tmp->signalfunction;
+               int (API_FUNC keypressfunc)(HWND, char, int, int, void *) = (int (API_FUNC)(HWND, char, int, int, void *))tmp->signalfunction;
 
                if((hWnd == tmp->window || _toplevel_window(hWnd) == tmp->window) && !(SHORT1FROMMP(mp1) & KC_KEYUP))
                {
@@ -2928,7 +2934,7 @@ MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
             break;
          case WM_CLOSE:
             {
-               int (API * closefunc)(HWND, void *) = (int (API *)(HWND, void *))tmp->signalfunction;
+               int (API_FUNC closefunc)(HWND, void *) = (int (API_FUNC)(HWND, void *))tmp->signalfunction;
 
                if(hWnd == tmp->window || hWnd == WinWindowFromID(tmp->window, FID_CLIENT))
                {
@@ -2943,7 +2949,7 @@ MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
             {
                HPS hps;
                DWExpose exp;
-               int (API * exposefunc)(HWND, DWExpose *, void *) = (int (API *)(HWND, DWExpose *, void *))tmp->signalfunction;
+               int (API_FUNC exposefunc)(HWND, DWExpose *, void *) = (int (API_FUNC)(HWND, DWExpose *, void *))tmp->signalfunction;
                RECTL  rc;
 
                if(hWnd == tmp->window)
@@ -2962,7 +2968,7 @@ MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
             break;
          case WM_COMMAND:
             {
-               int (API * clickfunc)(HWND, void *) = (int (API *)(HWND, void *))tmp->signalfunction;
+               int (API_FUNC clickfunc)(HWND, void *) = (int (API_FUNC)(HWND, void *))tmp->signalfunction;
                ULONG command = COMMANDMSG(&msg)->cmd;
 
                if(tmp->id && command == tmp->id)
@@ -2997,7 +3003,7 @@ MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
                {
                case CN_ENTER:
                   {
-                     int (API * containerselectfunc)(HWND, char *, void *) = (int (API *)(HWND, char *, void *))tmp->signalfunction;
+                     int (API_FUNC containerselectfunc)(HWND, char *, void *) = (int (API_FUNC)(HWND, char *, void *))tmp->signalfunction;
                      char *text = NULL;
 
                      if(mp2)
@@ -3018,7 +3024,7 @@ MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
                   break;
                case CN_EXPANDTREE:
                   {
-                     int (API * treeexpandfunc)(HWND, HTREEITEM, void *) = (int (API *)(HWND, HTREEITEM, void *))tmp->signalfunction;
+                     int (API_FUNC treeexpandfunc)(HWND, HTREEITEM, void *) = (int (API_FUNC)(HWND, HTREEITEM, void *))tmp->signalfunction;
 
                      if(tmp->window == notifyhwnd)
                      {
@@ -3029,7 +3035,7 @@ MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
                   break;
                case CN_CONTEXTMENU:
                   {
-                     int (API * containercontextfunc)(HWND, char *, int, int, void *, void *) = (int (API *)(HWND, char *, int, int, void *, void *))tmp->signalfunction;
+                     int (API_FUNC containercontextfunc)(HWND, char *, int, int, void *, void *) = (int (API_FUNC)(HWND, char *, int, int, void *, void *))tmp->signalfunction;
                      char *text = NULL;
                      void *user = NULL;
                      LONG x,y;
@@ -3094,7 +3100,7 @@ MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 
                               if(pci && pre->fEmphasisMask & CRA_CURSORED && (pci->rc.flRecordAttr & CRA_CURSORED))
                               {
-                                 int (API * treeselectfunc)(HWND, HTREEITEM, char *, void *, void *) = (int (API *)(HWND, HTREEITEM, char *, void *, void *))tmp->signalfunction;
+                                 int (API_FUNC treeselectfunc)(HWND, HTREEITEM, char *, void *, void *) = (int (API_FUNC)(HWND, HTREEITEM, char *, void *, void *))tmp->signalfunction;
 
                                  if(dw_window_get_data(tmp->window, "_dw_container"))
                                     result = treeselectfunc(tmp->window, 0, (char *)pci->rc.pszIcon, tmp->data, 0);
@@ -3128,7 +3134,7 @@ MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 
                      if(strncmp(classbuf, "#38", 4) == 0)
                      {
-                        int (API * valuechangedfunc)(HWND, int, void *) = (int (API *)(HWND, int, void *))tmp->signalfunction;
+                        int (API_FUNC valuechangedfunc)(HWND, int, void *) = (int (API_FUNC)(HWND, int, void *))tmp->signalfunction;
 
                         if(tmp->window == hWnd || tmp->window == notifyhwnd)
                         {
@@ -3146,7 +3152,7 @@ MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
                      }
                      else
                      {
-                        int (API * listboxselectfunc)(HWND, int, void *) = (int (API *)(HWND, int, void *))tmp->signalfunction;
+                        int (API_FUNC listboxselectfunc)(HWND, int, void *) = (int (API_FUNC)(HWND, int, void *))tmp->signalfunction;
                         static int _recursing = 0;
 
                         if(_recursing == 0 && (tmp->window == notifyhwnd || (!id && tmp->window == (HWND)mp2)))
@@ -3184,7 +3190,7 @@ MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
                   break;
                case SLN_SLIDERTRACK:
                   {
-                     int (API * valuechangedfunc)(HWND, int, void *) = (int (API *)(HWND, int, void *))tmp->signalfunction;
+                     int (API_FUNC valuechangedfunc)(HWND, int, void *) = (int (API_FUNC)(HWND, int, void *))tmp->signalfunction;
 
                      if(origmsg == WM_CONTROL)
                      {
@@ -3228,7 +3234,7 @@ MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 
                      if(psn && tmp->window == psn->hwndBook)
                      {
-                        int (API * switchpagefunc)(HWND, unsigned long, void *) = (int (API *)(HWND, unsigned long, void *))tmp->signalfunction;
+                        int (API_FUNC switchpagefunc)(HWND, unsigned long, void *) = (int (API_FUNC)(HWND, unsigned long, void *))tmp->signalfunction;
 
                         result = switchpagefunc(tmp->window, psn->ulPageIdNew, tmp->data);
                         tmp = NULL;
@@ -3342,7 +3348,7 @@ MRESULT EXPENTRY _wndproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 {
    int result = -1;
    static int command_active = 0;
-   void (API * windowfunc)(PVOID) = 0L;
+   void (API_FUNC windowfunc)(PVOID) = 0L;
 
    if(!command_active)
    {
@@ -3492,7 +3498,7 @@ MRESULT EXPENTRY _wndproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
       }
       return MRFROMSHORT(FALSE);
    case WM_USER:
-      windowfunc = (void (API *)(void *))mp1;
+      windowfunc = (void (API_FUNC)(void *))mp1;
 
       if(windowfunc)
          windowfunc((void *)mp2);
@@ -3899,11 +3905,11 @@ MRESULT EXPENTRY _BtProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
    case WM_USER:
       {
             SignalHandler *tmp = (SignalHandler *)mp1;
-         int (API * clickfunc)(HWND, void *) = NULL;
+         int (API_FUNC clickfunc)(HWND, void *) = NULL;
 
          if(tmp)
          {
-            clickfunc = (int (API *)(HWND, void *))tmp->signalfunction;
+            clickfunc = (int (API_FUNC)(HWND, void *))tmp->signalfunction;
 
             clickfunc(tmp->window, tmp->data);
          }
@@ -10101,10 +10107,10 @@ void _dwthreadstart(void *data)
 {
    HAB thishab = WinInitialize(0);
    HMQ thishmq = WinCreateMsgQueue(dwhab, 0);
-   void (API * threadfunc)(void *) = NULL;
+   void (API_FUNC threadfunc)(void *) = NULL;
    void **tmp = (void **)data;
 
-   threadfunc = (void (API *)(void *))tmp[0];
+   threadfunc = (void (API_FUNC)(void *))tmp[0];
    threadfunc(tmp[1]);
 
    free(tmp);
