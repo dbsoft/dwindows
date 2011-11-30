@@ -4,7 +4,7 @@
 #
 #===================================================================
 OS22_H = $(%WATCOM)\h\os2
-CFLAGS  = -i=os2 -i=$(OS22_H) -bt=OS2 -zq -d2 -bd
+CFLAGS  = -i=os2 -i=$(OS22_H) -bt=OS2 -zq -d2 -bd -sg
 TKPATH=C:\Toolkit
 TLKTLIB = $(TKPATH)\LIB
 
