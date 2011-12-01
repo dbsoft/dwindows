@@ -1144,7 +1144,6 @@ int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *usedy,
       else
          thisbox->grouppady = 6;
 
-      dw_debug("grouppady %d\n", thisbox->grouppady);
       thisbox->grouppadx = 6;
 
       (*usedx) += thisbox->grouppadx;
