@@ -1125,19 +1125,26 @@ int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *usedy,
    {
       char *text = dw_window_get_text(thisbox->grouphwnd);
 
-      thisbox->grouppady = 0;
+      thisbox->grouppady = 9;
 
       if(text)
       {
-         dw_font_text_extents_get(thisbox->grouphwnd, 0, text, NULL, &thisbox->grouppady);
+         if(*text)
+            dw_font_text_extents_get(thisbox->grouphwnd, 0, text, NULL, &thisbox->grouppady);
          dw_free(text);
       }
-
+      /* If the string height is less than 9...
+       * set it to 9 anyway since that is the minimum.
+       */
+      if(thisbox->grouppady < 9)
+         thisbox->grouppady = 9;
+         
       if(thisbox->grouppady)
          thisbox->grouppady += 3;
       else
          thisbox->grouppady = 6;
 
+      dw_debug("grouppady %d\n", thisbox->grouppady);
       thisbox->grouppadx = 6;
 
       (*usedx) += thisbox->grouppadx;
