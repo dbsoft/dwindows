@@ -3508,6 +3508,83 @@ int API dw_scrollbox_get_range(HWND handle, int orient)
     return range;
 }
 
+/* Internal function to calculate the widget's required size..
+ * These are the general rules for widget sizes:
+ * 
+ * Scrolled(Container,Tree,MLE)/Render/Unspecified: 1x1
+ * Entryfield/Combobox/Spinbutton: 150x(maxfontheight)
+ * Spinbutton: 50x(maxfontheight)
+ * Text/Status: (textwidth)x(textheight)
+ */
+void _control_size(id handle, int *width, int *height)
+{
+    int thiswidth = 1, thisheight = 1, extrawidth = 0, extraheight = 0;
+    NSString *nsstr = nil;
+    id object = handle;
+    
+    if([object isMemberOfClass:[ DWSpinButton class]])
+        object = [object textfield];
+    /* Handle all the different button types */
+    if([ object isKindOfClass:[ NSButton class ] ])
+    {
+        nsstr = [object title];
+        
+        switch([object buttonType])
+        {
+            case NSSwitchButton:
+            case NSRadioButton:
+                extrawidth = 24;
+                extraheight = 4;                
+                break;
+            default:
+                if([object isBordered])
+                {
+                    extrawidth = 30;
+                    extraheight = 8;
+                }
+                else
+                {
+                    extrawidth = 8;
+                    extraheight = 4;
+                }
+                break;
+        }
+    }
+    /* If the control is an entryfield set width to 150 */
+    else if([object isKindOfClass:[ NSTextField class ]] && [object isEditable])
+    {
+        NSFont *font = [object font];
+        /* Spinbuttons don't need to be as wide */
+        if([object isMemberOfClass:[ DWSpinButton class]])
+            thiswidth = 50;
+        else
+            thiswidth = 150;
+        if(font)
+            thisheight = (int)[font boundingRectForFont].size.height;
+        /* Spinbuttons don't need to be as wide */
+        if([object isMemberOfClass:[ DWComboBox class]])
+            extraheight = 4;
+    }
+    else if([ object isKindOfClass:[ NSControl class ] ])
+        nsstr = [object stringValue];
+    
+    if([object isKindOfClass:[ NSTextField class ]] && ![object isEditable])
+        extrawidth = 8;
+    
+    /* If we have a string... 
+     * calculate the size with the current font.
+     */
+    if(nsstr && [nsstr length])
+        dw_font_text_extents_get(object, NULL, (char *)[nsstr UTF8String], &thiswidth, &thisheight);
+
+    NSLog(@"Class %@ Width %d Height %d Extra Width %d Extra Height %d\n", [object className], thiswidth, thisheight, extrawidth, extraheight); 
+    /* Set the requested sizes */    
+    if(width)
+        *width = thiswidth + extrawidth;
+    if(height)
+        *height = thisheight + extraheight;
+}
+
 /* Internal box packing function called by the other 3 functions */
 void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsize, int vsize, int pad, char *funcname)
 {
@@ -3598,15 +3675,12 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
     tmpitem[index].origwidth = tmpitem[index].width = width;
     tmpitem[index].origheight = tmpitem[index].height = height;
     tmpitem[index].pad = pad;
-    if(hsize)
-       tmpitem[index].hsize = SIZEEXPAND;
-    else
-       tmpitem[index].hsize = SIZESTATIC;
-
-    if(vsize)
-       tmpitem[index].vsize = SIZEEXPAND;
-    else
-       tmpitem[index].vsize = SIZESTATIC;
+    tmpitem[index].hsize = hsize ? SIZEEXPAND : SIZESTATIC;
+    tmpitem[index].vsize = vsize ? SIZEEXPAND : SIZESTATIC;
+    
+    /* If either of the parameters are -1 ... calculate the size */
+    if(width == -1 || height == -1)
+        _control_size(object, width == -1 ? &tmpitem[index].width : NULL, height == -1 ? &tmpitem[index].height : NULL);
 
     thisbox->items = tmpitem;
 
@@ -7757,15 +7831,9 @@ void API dw_window_set_style(HWND handle, ULONG style, ULONG mask)
         if(mask & DW_BS_NOBORDER)
         {
             if(style & DW_BS_NOBORDER)
-            {
-                [button setButtonType:NSMomentaryLight];
                 [button setBordered:NO];
-            }
             else
-            {
-                [button setButtonType:NSMomentaryPushInButton];
                 [button setBordered:YES];
-            }
         }
     }
     else if([object isMemberOfClass:[DWMenuItem class]])
@@ -7951,6 +8019,41 @@ char * API dw_font_choose(char *currfont)
     return NULL;
 }
 
+/* Internal function to return a pointer to an item struct
+ * with information about the packing information regarding object.
+ */
+Item *_box_item(id object)
+{
+    /* Find the item within the box it is packed into */
+    if([object isKindOfClass:[DWBox class]] || [object isKindOfClass:[DWGroupBox class]] || [object isKindOfClass:[NSControl class]])
+    {
+        DWBox *parent = (DWBox *)[object superview];
+        
+        /* Some controls are embedded in scrollviews...
+         * so get the parent of the scrollview in that case.
+         */
+        if([object isKindOfClass:[NSTableView class]] && [parent isMemberOfClass:[NSClipView class]])
+        {
+            object = [parent superview];
+            parent = (DWBox *)[object superview];
+        }
+        
+        if([parent isKindOfClass:[DWBox class]] || [parent isKindOfClass:[DWGroupBox class]])
+        {
+            Box *thisbox = [parent box];
+            Item *thisitem = thisbox->items;
+            int z;
+            
+            for(z=0;z<thisbox->count;z++)
+            {
+                if(thisitem[z].hwnd == object)
+                    return &thisitem[z];
+            }
+        }
+    }
+    return NULL;
+}
+
 /*
  * Sets the font used by a specified window (widget) handle.
  * Parameters:
@@ -7985,8 +8088,17 @@ int API dw_window_set_font(HWND handle, char *fontname)
 
             [render setFont:font];
         }
+        else
+            return DW_ERROR_UNKNOWN;
+        /* If we changed the text... */
+        Item *item = _box_item(handle);
+        
+        /* Check to see if any of the sizes need to be recalculated */
+        if(item && (item->origwidth == -1 || item->origheight == -1))
+            _control_size(handle, item->origwidth == -1 ? &item->width : NULL, item->origheight == -1 ? &item->height : NULL); 
+        return DW_ERROR_NONE;
     }
-    return 0;
+    return DW_ERROR_UNKNOWN;
 }
 
 /*
@@ -8136,20 +8248,15 @@ char * API dw_window_get_text(HWND handle)
  */
 void API dw_window_set_text(HWND handle, char *text)
 {
-    int _locked_by_me = FALSE;
-    DW_MUTEX_LOCK;
-    NSObject *object = handle;
+    id object = handle;
 
     if([object isMemberOfClass:[ DWSpinButton class]])
     {
         DWSpinButton *spinbutton = handle;
-        handle = object = [spinbutton textfield];
+        object = [spinbutton textfield];
     }
     if([ object isKindOfClass:[ NSWindow class ] ] || [ object isKindOfClass:[ NSButton class ] ])
-    {
-        id window = handle;
-        [window setTitle:[ NSString stringWithUTF8String:text ]];
-    }
+        [object setTitle:[ NSString stringWithUTF8String:text ]];
     else if([ object isKindOfClass:[ NSControl class ] ])
     {
         NSControl *control = handle;
@@ -8160,7 +8267,14 @@ void API dw_window_set_text(HWND handle, char *text)
        DWGroupBox *groupbox = handle;
        [groupbox setTitle:[NSString stringWithUTF8String:text]];
     }
-    DW_MUTEX_UNLOCK;
+    else
+        return;
+    /* If we changed the text... */
+    Item *item = _box_item(handle);
+    
+    /* Check to see if any of the sizes need to be recalculated */
+    if(item && (item->origwidth == -1 || item->origheight == -1))
+        _control_size(handle, item->origwidth == -1 ? &item->width : NULL, item->origheight == -1 ? &item->height : NULL);        
 }
 
 /*
