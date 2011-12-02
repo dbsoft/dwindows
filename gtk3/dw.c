@@ -8374,8 +8374,10 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
       /* Set the requested size of the widget */
       if(GTK_IS_SCROLLED_WINDOW(item))
       {
-         gtk_scrolled_window_set_min_content_width(GTK_SCROLLED_WINDOW(item), width);
-         gtk_scrolled_window_set_min_content_height(GTK_SCROLLED_WINDOW(item), height);
+         if(width > 0)
+            gtk_scrolled_window_set_min_content_width(GTK_SCROLLED_WINDOW(item), width);
+         if(height > 0)
+            gtk_scrolled_window_set_min_content_height(GTK_SCROLLED_WINDOW(item), height);
       }
       else
          gtk_widget_set_size_request(item, width, height);

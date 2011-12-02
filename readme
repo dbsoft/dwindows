@@ -35,8 +35,10 @@ Changes from version 2.2:
 Added dw_menu_delete_item() for removing menu items.
     Now you can use dw_window_destroy() on menu items handles also.
 Added dw_app_dir() which attempts to locate private application data
-    for the current platform.  
+    for the current platform.
 Added dw_window_set_tooltip() for adding tooltips to most widgets.
+Added support for -1 size parameter to the dw_box_pack*() functions to 
+    automatically figure out a suggested size for many controls.
 Fixed bubble help not being displayed on Windows.
 Fixed menu bar items remaining highlighted on Mac.
 
