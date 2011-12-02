@@ -3568,8 +3568,15 @@ void _control_size(id handle, int *width, int *height)
     else if([ object isKindOfClass:[ NSControl class ] ])
         nsstr = [object stringValue];
     
+    /* Handle static text fields */
     if([object isKindOfClass:[ NSTextField class ]] && ![object isEditable])
-        extrawidth = 8;
+    {
+        /* Handle status bar field */
+        if([object isBordered] || (DWOSMinor > 5 && [object isBezeled]))
+            extrawidth = 12;
+        else
+            extrawidth = 8;
+    }
     
     /* If we have a string... 
      * calculate the size with the current font.
