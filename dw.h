@@ -596,6 +596,7 @@ void _dw_pool_drain(void);
 #define ObjectClassName "dwobjectclass"
 #define BrowserClassName "dwbrowserclass"
 #define ScrollClassName "dwscrollclass"
+#define StatusbarClassName "dwstatusbar"
 #define DefaultFont NULL
 
 typedef struct _color {

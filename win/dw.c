@@ -3745,6 +3745,19 @@ int API dw_init(int newthread, int argc, char *argv[])
 
    RegisterClass(&wc);
 
+   /* Register a status bar control */
+   memset(&wc, 0, sizeof(WNDCLASS));
+   wc.style = CS_DBLCLKS;
+   wc.lpfnWndProc = (WNDPROC)_statuswndproc;
+   wc.cbClsExtra = 0;
+   wc.cbWndExtra = 32;
+   wc.hbrBackground = (HBRUSH)GetSysColorBrush(COLOR_3DFACE);
+   wc.hCursor = LoadCursor(NULL, IDC_ARROW);
+   wc.lpszMenuName = NULL;
+   wc.lpszClassName = StatusbarClassName;
+
+   RegisterClass(&wc);
+
 #if (defined(BUILD_DLL) || defined(BUILD_HTML)) && !defined(__MINGW32__)
    /* Register HTML renderer class */
    memset(&wc, 0, sizeof(WNDCLASS));
@@ -4381,6 +4394,12 @@ void _control_size(HWND handle, int *width, int *height)
          extraheight = 4;
       }
    }
+   else if(strnicmp(tmpbuf, StatusbarClassName, strlen(StatusbarClassName)+1) == 0)
+   {
+      extrawidth = 4;
+      extraheight = 2;
+   }
+   
 
    /* Set the requested sizes */    
    if(width)
@@ -5531,7 +5550,7 @@ HWND API dw_text_new(char *text, ULONG id)
  */
 HWND API dw_status_text_new(char *text, ULONG id)
 {
-   HWND tmp = CreateWindow(ObjectClassName,
+   HWND tmp = CreateWindow(StatusbarClassName,
                      text,
                      BS_TEXT | WS_VISIBLE |
                      WS_CHILD | WS_CLIPCHILDREN,
@@ -5541,7 +5560,6 @@ HWND API dw_status_text_new(char *text, ULONG id)
                      DWInstance,
                      NULL);
    dw_window_set_font(tmp, DefaultFont);
-   SubclassWindow(tmp, _statuswndproc);
    return tmp;
 }
 
