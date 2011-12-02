@@ -151,6 +151,18 @@ void _handle_resize_events(Box *thisbox);
 int _remove_userdata(UserData **root, char *varname, int all);
 int _dw_main_iteration(NSDate *date);
 
+/* Internal function to queue a window redraw */
+void _dw_redraw(id window)
+{
+    static id lastwindow = nil;
+    
+    if(lastwindow != window && lastwindow != nil)
+    {
+        dw_window_redraw(lastwindow);
+    }
+    lastwindow = window;
+}
+
 SignalHandler *_get_handler(HWND window, int messageid)
 {
     SignalHandler *tmp = Root;
@@ -197,7 +209,7 @@ SignalList SignalTranslate[SIGNALMAX] = {
     { 17,   DW_SIGNAL_COLUMN_CLICK }
 };
 
-int _event_handler(id object, NSEvent *event, int message)
+int _event_handler1(id object, NSEvent *event, int message)
 {
     SignalHandler *handler = _get_handler(object, message);
     /* NSLog(@"Event handler - type %d\n", message); */
@@ -437,6 +449,14 @@ int _event_handler(id object, NSEvent *event, int message)
         }
     }
     return -1;
+}
+
+/* Sub function to handle redraws */
+int _event_handler(id object, NSEvent *event, int message)
+{
+    int ret = _event_handler1(object, event, message);
+    _dw_redraw(nil);
+    return ret;
 }
 
 /* Subclass for the Timer type */
@@ -1306,11 +1326,14 @@ DWObject *DWObj;
     void *userdata;
     double range;
     double visible;
+    int vertical;
 }
 -(void *)userdata;
 -(void)setUserdata:(void *)input;
 -(float)range;
 -(float)visible;
+-(int)vertical;
+-(void)setVertical:(int)value;
 -(void)setRange:(double)input1 andVisible:(double)input2;
 -(void)scrollerChanged:(id)sender;
 @end
@@ -1320,6 +1343,8 @@ DWObject *DWObj;
 -(void)setUserdata:(void *)input { userdata = input; }
 -(float)range { return range; }
 -(float)visible { return visible; }
+-(int)vertical { return vertical; }
+-(void)setVertical:(int)value { vertical = value; }
 -(void)setRange:(double)input1 andVisible:(double)input2 { range = input1; visible = input2; }
 -(void)scrollerChanged:(id)sender
 {
@@ -3527,27 +3552,40 @@ void _control_size(id handle, int *width, int *height)
     /* Handle all the different button types */
     if([ object isKindOfClass:[ NSButton class ] ])
     {
-        nsstr = [object title];
+        NSImage *image = [object image];
         
-        switch([object buttonType])
+        if(image)
         {
-            case NSSwitchButton:
-            case NSRadioButton:
-                extrawidth = 24;
-                extraheight = 4;
-                break;
-            default:
-                if([object isBordered])
-                {
-                    extrawidth = 30;
-                    extraheight = 8;
-                }
-                else
-                {
-                    extrawidth = 8;
+            /* Image button */
+            NSSize size = [image size];
+            thiswidth = (int)size.width;
+            thisheight = (int)size.height;
+        }
+        else
+        {
+            /* Text button */
+            nsstr = [object title];
+            
+            switch([object buttonType])
+            {
+                case NSSwitchButton:
+                case NSRadioButton:
+                    extrawidth = 24;
                     extraheight = 4;
-                }
-                break;
+                    break;
+                default:
+                    if([object isBordered])
+                    {
+                        extrawidth = 30;
+                        extraheight = 8;
+                    }
+                    else
+                    {
+                        extrawidth = 8;
+                        extraheight = 4;
+                    }
+                    break;
+            }
         }
     }
     /* If the control is an entryfield set width to 150 */
@@ -3564,6 +3602,22 @@ void _control_size(id handle, int *width, int *height)
         /* Spinbuttons don't need to be as wide */
         if([object isMemberOfClass:[ DWComboBox class]])
             extraheight = 4;
+    }
+    /* Handle the ranged widgets */
+    else if([ object isMemberOfClass:[DWScrollbar class] ] ||
+            [ object isMemberOfClass:[DWPercent class] ] ||
+            [ object isMemberOfClass:[DWSlider class] ])
+    {
+        if([ object isMemberOfClass:[DWScrollbar class] ] && [object vertical])
+        {
+            thiswidth = 14;
+            thisheight = 100;
+        }
+        else
+        {
+            thiswidth = 100;
+            thisheight = 14;
+        }
     }
     else if([ object isKindOfClass:[ NSControl class ] ])
         nsstr = [object stringValue];
@@ -3709,6 +3763,8 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
          */
         [button setParent:view];
     }
+    /* Queue a redraw on the top-level window */
+    _dw_redraw([object window]);
 
     /* Free the old data */
     if(thisbox->count)
@@ -4061,6 +4117,7 @@ HWND API dw_scrollbar_new(int vertical, ULONG cid)
     if(vertical)
     {
         scrollbar = [[DWScrollbar alloc] init];
+        [scrollbar setVertical:YES];
     }
     else
     {
@@ -8102,6 +8159,8 @@ int API dw_window_set_font(HWND handle, char *fontname)
         /* Check to see if any of the sizes need to be recalculated */
         if(item && (item->origwidth == -1 || item->origheight == -1))
             _control_size(handle, item->origwidth == -1 ? &item->width : NULL, item->origheight == -1 ? &item->height : NULL); 
+        /* Queue a redraw on the top-level window */
+        _dw_redraw([object window]);
         return DW_ERROR_NONE;
     }
     return DW_ERROR_UNKNOWN;
@@ -8281,6 +8340,8 @@ void API dw_window_set_text(HWND handle, char *text)
     /* Check to see if any of the sizes need to be recalculated */
     if(item && (item->origwidth == -1 || item->origheight == -1))
         _control_size(handle, item->origwidth == -1 ? &item->width : NULL, item->origheight == -1 ? &item->height : NULL);        
+    /* Queue a redraw on the top-level window */
+    _dw_redraw([object window]);
 }
 
 /*
