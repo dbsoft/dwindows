@@ -3552,28 +3552,30 @@ void _control_size(id handle, int *width, int *height)
     /* Handle all the different button types */
     if([ object isKindOfClass:[ NSButton class ] ])
     {
-        NSImage *image = [object image];
-        
-        if(image)
+        switch([object buttonType])
         {
-            /* Image button */
-            NSSize size = [image size];
-            thiswidth = (int)size.width;
-            thisheight = (int)size.height;
-        }
-        else
-        {
-            /* Text button */
-            nsstr = [object title];
-            
-            switch([object buttonType])
+            case NSSwitchButton:
+            case NSRadioButton:
+                extrawidth = 24;
+                extraheight = 4;
+                nsstr = [object title];
+                break;
+            default:
             {
-                case NSSwitchButton:
-                case NSRadioButton:
-                    extrawidth = 24;
-                    extraheight = 4;
-                    break;
-                default:
+                NSImage *image = [object image];
+                
+                if(image)
+                {
+                    /* Image button */
+                    NSSize size = [image size];
+                    thiswidth = (int)size.width;
+                    thisheight = (int)size.height;
+                }
+                else
+                {
+                    /* Text button */
+                    nsstr = [object title];
+                    
                     if([object isBordered])
                     {
                         extrawidth = 30;
@@ -3584,7 +3586,8 @@ void _control_size(id handle, int *width, int *height)
                         extrawidth = 8;
                         extraheight = 4;
                     }
-                    break;
+                }
+                break;
             }
         }
     }
