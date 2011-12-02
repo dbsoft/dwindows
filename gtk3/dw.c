@@ -8380,7 +8380,14 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
             gtk_scrolled_window_set_min_content_height(GTK_SCROLLED_WINDOW(item), height);
       }
       else
-         gtk_widget_set_size_request(item, width, height);
+      {
+         if(width == -1 && (GTK_IS_COMBO_BOX(item) || GTK_IS_ENTRY(item)))
+            gtk_widget_set_size_request(item, 150, height);
+         else if(width == -1 && GTK_IS_SPIN_BUTTON(item))
+            gtk_widget_set_size_request(item, 50, height);
+         else      	 
+            gtk_widget_set_size_request(item, width, height);
+      }
       if(GTK_IS_RADIO_BUTTON(item))
       {
          GSList *group;
