@@ -4694,7 +4694,7 @@ void _control_size(HWND handle, int *width, int *height)
     }
         
    /* Combobox */
-   if(strnicmp(tmpbuf, WC_COMBOBOX, strlen(WC_COMBOBOX)+1) == 0)
+   if(strncmp(tmpbuf, "#2", 3)==0)
    {
       dw_font_text_extents_get(handle, NULL, testtext, NULL, &thisheight);
       thiswidth = 150;
@@ -4702,18 +4702,21 @@ void _control_size(HWND handle, int *width, int *height)
       if(thisheight < 18)
         thisheight = 18;
    }
-   else if(strnicmp(tmpbuf, WC_SPINBUTTON, strlen(WC_SPINBUTTON)+1) == 0)
+   /* Spinbutton */
+   else if(strncmp(tmpbuf, "#32", 4)==0)
    {
       dw_font_text_extents_get(handle, NULL, testtext, NULL, &thisheight);
       thiswidth = 50;
    }
-   else if(strnicmp(tmpbuf, WC_ENTRYFIELD, strlen(WC_ENTRYFIELD)+1) == 0)
+   /* Entryfield */
+   else if(strncmp(tmpbuf, "#6", 3)==0)
    {
       dw_font_text_extents_get(handle, NULL, testtext, NULL, &thisheight);
       thiswidth = 150;
       extraheight = 6;
    }
-   else if(strnicmp(tmpbuf, WC_BUTTON, strlen(WC_BUTTON)+1) == 0)
+   /* Button */
+   else if(strncmp(tmpbuf, "#3", 3)==0)
    {
       ULONG style = WinQueryWindowULong(handle, QWL_STYLE);
       
