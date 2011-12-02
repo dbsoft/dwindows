@@ -3534,7 +3534,7 @@ void _control_size(id handle, int *width, int *height)
             case NSSwitchButton:
             case NSRadioButton:
                 extrawidth = 24;
-                extraheight = 4;                
+                extraheight = 4;
                 break;
             default:
                 if([object isBordered])
@@ -3577,7 +3577,6 @@ void _control_size(id handle, int *width, int *height)
     if(nsstr && [nsstr length])
         dw_font_text_extents_get(object, NULL, (char *)[nsstr UTF8String], &thiswidth, &thisheight);
 
-    NSLog(@"Class %@ Width %d Height %d Extra Width %d Extra Height %d\n", [object className], thiswidth, thisheight, extrawidth, extraheight); 
     /* Set the requested sizes */    
     if(width)
         *width = thiswidth + extrawidth;

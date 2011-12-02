@@ -4293,6 +4293,102 @@ void API dw_font_set_default(char *fontname)
     }
 }
 
+/* Internal function to return a pointer to an item struct
+ * with information about the packing information regarding object.
+ */
+Item *_box_item(HWND handle)
+{
+   HWND parent = GetParent(handle);
+   Box *thisbox = (Box *)GetWindowLongPtr(parent, GWLP_USERDATA);   
+   
+   /* If it is a desktop window let WM_DESTROY handle it */
+   if(parent != HWND_DESKTOP)
+   {
+      if(thisbox && thisbox->count)
+      {
+         int z;
+         Item *thisitem = thisbox->items;
+
+         for(z=0;z<thisbox->count;z++)
+         {
+            if(thisitem[z].hwnd == handle)
+               return &thisitem[z];
+         }
+      }
+   }
+   return NULL;
+}
+
+/* Internal function to calculate the widget's required size..
+ * These are the general rules for widget sizes:
+ * 
+ * Scrolled(Container,Tree,MLE)/Render/Unspecified: 1x1
+ * Entryfield/Combobox/Spinbutton: 150x(maxfontheight)
+ * Spinbutton: 50x(maxfontheight)
+ * Text/Status: (textwidth)x(textheight)
+ */
+void _control_size(HWND handle, int *width, int *height)
+{
+   int thiswidth = 1, thisheight = 1, extrawidth = 0, extraheight = 0;
+   char tmpbuf[100], *buf = dw_window_get_text(handle);
+   static char testtext[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+   GetClassName(handle, tmpbuf, 99);
+
+    /* If we have a string... 
+     * calculate the size with the current font.
+     */
+    if(buf)
+    {
+       if(*buf)
+          dw_font_text_extents_get(handle, NULL, buf, &thiswidth, &thisheight);
+       dw_free(buf);
+    }
+            
+   /* Combobox */
+   if(strnicmp(tmpbuf, COMBOBOXCLASSNAME, strlen(COMBOBOXCLASSNAME)+1) == 0)
+   {
+      dw_font_text_extents_get(handle, NULL, testtext, NULL, &thisheight);
+      thiswidth = 150;
+      extraheight = 4;
+      if(thisheight < 18)
+        thisheight = 18;
+   }
+   else if(strnicmp(tmpbuf, UPDOWN_CLASS, strlen(UPDOWN_CLASS)+1) == 0)
+   {
+      dw_font_text_extents_get(handle, NULL, testtext, NULL, &thisheight);
+      thiswidth = 50;
+   }
+   else if(strnicmp(tmpbuf, EDITCLASSNAME, strlen(EDITCLASSNAME)+1) == 0 &&
+           !(GetWindowLong(handle, GWL_STYLE) & ES_MULTILINE))
+   {
+      dw_font_text_extents_get(handle, NULL, testtext, NULL, &thisheight);
+      thiswidth = 150;
+      extraheight = 6;
+   }
+   else if(strnicmp(tmpbuf, BUTTONCLASSNAME, strlen(BUTTONCLASSNAME)+1) == 0)
+   {
+      ULONG style = GetWindowLong(handle, GWL_STYLE);
+      
+      if(style & BS_AUTOCHECKBOX || style & BS_AUTORADIOBUTTON)
+      {
+         extrawidth = 24;
+         extraheight = 4;
+      }
+      else
+      {
+         extrawidth = 8;
+         extraheight = 4;
+      }
+   }
+
+   /* Set the requested sizes */    
+   if(width)
+      *width = thiswidth + extrawidth;
+   if(height)
+      *height = thisheight + extraheight;
+}
+
 /*
  * Sets the font used by a specified window (widget) handle.
  * Parameters:
@@ -4322,7 +4418,7 @@ int API dw_window_set_font(HWND handle, char *fontname)
     oldfont = (HFONT)SendMessage(handle, WM_GETFONT, 0, 0);
     hfont = _acquire_font(handle, fontname);
 
-    if (fontname)
+    if(hfont && fontname)
     {
         if(cinfo)
         {
@@ -4342,10 +4438,21 @@ int API dw_window_set_font(HWND handle, char *fontname)
             SetWindowLongPtr(handle, GWLP_USERDATA, (LONG_PTR)cinfo);
         }
     }
-    SendMessage(handle, WM_SETFONT, (WPARAM)hfont, (LPARAM)TRUE);
-    if(oldfont)
-        DeleteObject(oldfont);
-   return 0;
+    /* If we changed the font... */
+    if(hfont)
+    {
+       Item *item = _box_item(handle);
+       
+       SendMessage(handle, WM_SETFONT, (WPARAM)hfont, (LPARAM)TRUE);
+       if(oldfont)
+          DeleteObject(oldfont);
+        
+       /* Check to see if any of the sizes need to be recalculated */
+       if(item && (item->origwidth == -1 || item->origheight == -1))
+          _control_size(handle, item->origwidth == -1 ? &item->width : NULL, item->origheight == -1 ? &item->height : NULL); 
+       return DW_ERROR_NONE;
+    }
+   return DW_ERROR_UNKNOWN;
 }
 
 /* Allows the user to choose a font using the system's font chooser dialog.
@@ -6205,6 +6312,14 @@ void API dw_window_set_text(HWND handle, char *text)
       if ( thisbox && thisbox->grouphwnd != (HWND)NULL )
          SetWindowText( thisbox->grouphwnd, text );
    }
+   /* If we changed the text... */
+   {
+      Item *item = _box_item(handle);
+       
+      /* Check to see if any of the sizes need to be recalculated */
+      if(item && (item->origwidth == -1 || item->origheight == -1))
+         _control_size(handle, item->origwidth == -1 ? &item->width : NULL, item->origheight == -1 ? &item->height : NULL); 
+   }
 }
 
 /*
@@ -6407,15 +6522,12 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
       tmpitem[index].origwidth = tmpitem[index].width = width;
       tmpitem[index].origheight = tmpitem[index].height = height;
       tmpitem[index].pad = pad;
-      if(hsize)
-         tmpitem[index].hsize = SIZEEXPAND;
-      else
-         tmpitem[index].hsize = SIZESTATIC;
-
-      if(vsize)
-         tmpitem[index].vsize = SIZEEXPAND;
-      else
-         tmpitem[index].vsize = SIZESTATIC;
+      tmpitem[index].hsize = hsize ? SIZEEXPAND : SIZESTATIC;
+      tmpitem[index].vsize = vsize ? SIZEEXPAND : SIZESTATIC;
+    
+      /* If either of the parameters are -1 ... calculate the size */
+      if(width == -1 || height == -1)
+         _control_size(item, width == -1 ? &tmpitem[index].width : NULL, height == -1 ? &tmpitem[index].height : NULL);
 
       thisbox->items = tmpitem;
 
