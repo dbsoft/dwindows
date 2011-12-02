@@ -9989,7 +9989,7 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
       gtk_object_set_data(GTK_OBJECT(item), "_dw_table", box);
       if(index < boxcount)
          gtk_container_forall(GTK_CONTAINER(box),_rearrange_table, GINT_TO_POINTER(boxtype == DW_VERT ? index : -(index+1)));
-      gtk_table_attach(GTK_TABLE(box), item, x, x + 1, y, y + 1, hsize ? DW_EXPAND : 0, vsize ? DW_EXPAND : 0, pad, pad);
+      gtk_table_attach(GTK_TABLE(box), item, x, x + 1, y, y + 1, hsize ? DW_EXPAND : GTK_FILL, vsize ? DW_EXPAND : GTK_FILL, pad, pad);
       gtk_object_set_data(GTK_OBJECT(box), "_dw_boxcount", GINT_TO_POINTER(boxcount + 1));
       gtk_widget_set_usize(item, width, height);
       if(GTK_IS_RADIO_BUTTON(item))
