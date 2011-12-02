@@ -4728,7 +4728,7 @@ void _control_size(HWND handle, int *width, int *height)
       else
       {
          extrawidth = 8;
-         extraheight = 4;
+         extraheight = 8;
       }
    }
 
