@@ -3622,6 +3622,18 @@ void _control_size(id handle, int *width, int *height)
             thisheight = 14;
         }
     }
+    /* Handle bitmap size */
+    else if([ object isMemberOfClass:[NSImageView class] ])
+    {
+        NSImage *image = [object image];
+        
+        if(image)
+        {
+            NSSize size = [image size];
+            thiswidth = (int)size.width;
+            thisheight = (int)size.height;
+        }
+    }
     else if([ object isKindOfClass:[ NSControl class ] ])
         nsstr = [object stringValue];
     
@@ -8438,6 +8450,8 @@ void API dw_window_set_bitmap_from_data(HWND handle, unsigned long cid, char *da
             [iv setImage:pixmap];
         }
         [pixmap release];
+        /* Queue a redraw on the top-level window */
+        _dw_redraw([iv window]);
     }
 }
 
@@ -8471,6 +8485,8 @@ void API dw_window_set_bitmap(HWND handle, unsigned long resid, char *filename)
         if(bitmap)
         {
             [iv setImage:bitmap];
+            /* Queue a redraw on the top-level window */
+            _dw_redraw([iv window]);
         }
     }
 }
