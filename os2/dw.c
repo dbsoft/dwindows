@@ -234,6 +234,21 @@ int _null_key(HWND window, int key, void *data)
    return TRUE;
 }
 
+/* Internal function to queue a window redraw */
+void _dw_redraw(HWND window, int skip)
+{
+    static HWND lastwindow = 0;
+    
+    if(skip && !window)
+      return;
+    
+    if(lastwindow != window && lastwindow)
+    {
+        dw_window_redraw(lastwindow);
+    }
+    lastwindow = window;
+}
+
 /* Find the desktop window handle */
 HWND _toplevel_window(HWND handle)
 {
@@ -3257,6 +3272,12 @@ MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
          tmp = tmp->next;
 
    }
+   if(result != -1)
+   {
+      /* Make sure any queued redraws are handled */
+      _dw_redraw(0, FALSE);
+      /* Then finally return */
+   }
    return (MRESULT)result;
 }
 
@@ -4702,6 +4723,35 @@ void _control_size(HWND handle, int *width, int *height)
       if(thisheight < 18)
         thisheight = 18;
    }
+   /* Bitmap/Static */
+   else if(strncmp(tmpbuf, "#5", 3)==0)
+   {
+      int bmwidth = DW_POINTER_TO_INT(dw_window_get_data(handle, "_dw_width"));
+      int bmheight = DW_POINTER_TO_INT(dw_window_get_data(handle, "_dw_height"));
+      
+      if(bmwidth > 0 && bmheight > 0)
+      {
+         thiswidth = bmwidth;
+         thisheight = bmheight;
+      }
+   }
+   /* Ranged: Slider/Percent/Scrollbar */
+   else if(strncmp(tmpbuf, "#38", 4)== 0 || 
+           strncmp(tmpbuf, "#8", 3)== 0)
+   {
+      /* Check for vertical scrollbar */
+      if(strncmp(tmpbuf, "#8", 3)== 0 &&
+         WinQueryWindowULong(handle, QWL_STYLE) & SBS_VERT)
+      {
+         thiswidth = 14;
+         thisheight = 100;
+      }
+      else
+      {
+         thiswidth = 100;
+         thisheight = 14;
+      }
+   }
    /* Spinbutton */
    else if(strncmp(tmpbuf, "#32", 4)==0)
    {
@@ -4720,7 +4770,30 @@ void _control_size(HWND handle, int *width, int *height)
    {
       ULONG style = WinQueryWindowULong(handle, QWL_STYLE);
       
-      if(style & BS_AUTOCHECKBOX || style & BS_AUTORADIOBUTTON)
+      /* Handle bitmap buttons */
+      if(dw_window_get_data(handle, "_dw_bitmapbutton"))
+      {
+         WNDPARAMS wp;
+         BTNCDATA bcd;
+
+         wp.fsStatus = WPM_CTLDATA;
+         wp.cbCtlData = sizeof(BTNCDATA);
+         wp.pCtlData = &bcd;
+
+         /* Query the button's bitmap */
+         if(WinSendMsg(handle, WM_QUERYWINDOWPARAMS, (MPARAM)&wp, MPVOID) && bcd.hImage)
+         {
+            BITMAPINFOHEADER2 bmp;
+            bmp.cbFix = sizeof(BITMAPINFOHEADER2);
+            /* Get the parameters of the bitmap */
+            if(GpiQueryBitmapInfoHeader(bcd.hImage, &bmp))
+            {
+               thiswidth = bmp.cx;
+               thisheight = bmp.cy;
+            }
+         }
+      }
+      else if(style & BS_AUTOCHECKBOX || style & BS_AUTORADIOBUTTON)
       {
          extrawidth = 24;
          extraheight = 4;
@@ -4755,7 +4828,11 @@ int API dw_window_set_font(HWND handle, char *fontname)
        
       /* Check to see if any of the sizes need to be recalculated */
       if(item && (item->origwidth == -1 || item->origheight == -1))
+      {
          _control_size(handle, item->origwidth == -1 ? &item->width : NULL, item->origheight == -1 ? &item->height : NULL); 
+          /* Queue a redraw on the top-level window */
+         _dw_redraw(_toplevel_window(handle), TRUE);
+      }
       return DW_ERROR_NONE;
    }
    return DW_ERROR_UNKNOWN;
@@ -6428,6 +6505,19 @@ void API dw_window_set_bitmap(HWND handle, unsigned long id, char *filename)
    if ( id )
       WinReleasePS(hps);
    dw_window_set_data(handle, "_dw_bitmap", (void *)hbm);
+   
+   /* If we changed the bitmap... */
+   {
+      Item *item = _box_item(handle);
+       
+      /* Check to see if any of the sizes need to be recalculated */
+      if(item && (item->origwidth == -1 || item->origheight == -1))
+      {
+         _control_size(handle, item->origwidth == -1 ? &item->width : NULL, item->origheight == -1 ? &item->height : NULL); 
+         /* Queue a redraw on the top-level window */
+         _dw_redraw(_toplevel_window(handle), TRUE);
+      }
+   }
 }
 
 /*
@@ -6516,7 +6606,11 @@ void API dw_window_set_text(HWND handle, char *text)
        
       /* Check to see if any of the sizes need to be recalculated */
       if(item && (item->origwidth == -1 || item->origheight == -1))
+      {
          _control_size(handle, item->origwidth == -1 ? &item->width : NULL, item->origheight == -1 ? &item->height : NULL); 
+          /* Queue a redraw on the top-level window */
+         _dw_redraw(_toplevel_window(handle), TRUE);
+      }
    }
 }
 
@@ -6788,6 +6882,8 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
       if(strncmp(tmpbuf, "#6", 3)!=0 && strncmp(tmpbuf, "#32", 4)!=0 && strncmp(tmpbuf, "#2", 3)!=0)
          WinSetOwner(item, box);
       WinSetParent(frame ? frame : item, box, FALSE);
+      /* Queue a redraw on the top-level window */
+      _dw_redraw(_toplevel_window(item), TRUE);
    }
 }
 
