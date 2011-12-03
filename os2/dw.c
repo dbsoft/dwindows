@@ -4726,14 +4726,19 @@ void _control_size(HWND handle, int *width, int *height)
    /* Bitmap/Static */
    else if(strncmp(tmpbuf, "#5", 3)==0)
    {
-      int bmwidth = DW_POINTER_TO_INT(dw_window_get_data(handle, "_dw_width"));
-      int bmheight = DW_POINTER_TO_INT(dw_window_get_data(handle, "_dw_height"));
-      
-      if(bmwidth > 0 && bmheight > 0)
-      {
-         thiswidth = bmwidth;
-         thisheight = bmheight;
-      }
+       HBITMAP hbm = (HBITMAP)WinSendMsg(handle, SM_QUERYHANDLE, MPVOID, MPVOID);
+
+       if(hbm)
+       {
+            BITMAPINFOHEADER2 bmp;
+            bmp.cbFix = sizeof(BITMAPINFOHEADER2);
+            /* Get the parameters of the bitmap */
+            if(GpiQueryBitmapInfoHeader(hbm, &bmp))
+            {
+               thiswidth = bmp.cx;
+               thisheight = bmp.cy;
+            }
+       }
    }
    /* Ranged: Slider/Percent/Scrollbar */
    else if(strncmp(tmpbuf, "#38", 4)== 0 || 
