@@ -2695,6 +2695,7 @@ void _click_default(HWND handle)
       SetFocus(handle);
 }
 
+/* Subclass function that will handle setting colors on controls */
 BOOL CALLBACK _colorwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 {
    ColorInfo *cinfo;
@@ -2847,64 +2848,50 @@ BOOL CALLBACK _colorwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
             ColorInfo *thiscinfo = (ColorInfo *)GetWindowLongPtr((HWND)mp2, GWLP_USERDATA);
             if(thiscinfo && thiscinfo->fore != -1 && thiscinfo->back != -1)
             {
+               int thisback = thiscinfo->back;
+               
                /* Handle foreground */
-               if(thiscinfo->fore > -1 && thiscinfo->fore < 18)
+               if(thiscinfo->fore != DW_CLR_DEFAULT)
                {
-                  if(thiscinfo->fore != DW_CLR_DEFAULT)
-                  {
-                     SetTextColor((HDC)mp1, RGB(_red[thiscinfo->fore],
-                                          _green[thiscinfo->fore],
-                                          _blue[thiscinfo->fore]));
-                  }
-               }
-               else if((thiscinfo->fore & DW_RGB_COLOR) == DW_RGB_COLOR)
-               {
-                  SetTextColor((HDC)mp1, RGB(DW_RED_VALUE(thiscinfo->fore),
-                                       DW_GREEN_VALUE(thiscinfo->fore),
-                                       DW_BLUE_VALUE(thiscinfo->fore)));
+                  int fore = _internal_color(thiscinfo->fore);
+               
+                  SetTextColor((HDC)mp1, RGB(DW_RED_VALUE(fore),
+                                       DW_GREEN_VALUE(fore),
+                                       DW_BLUE_VALUE(fore)));
                }
                /* Handle background */
-               if(thiscinfo->back > -1 && thiscinfo->back < 18)
+               if(thiscinfo->back == DW_RGB_TRANSPARENT)
                {
-                  if(thiscinfo->back == DW_CLR_DEFAULT)
-                  {
-                     HBRUSH hbr = GetSysColorBrush(COLOR_3DFACE);
-
-                     SetBkColor((HDC)mp1, GetSysColor(COLOR_3DFACE));
-
-
-                     SelectObject((HDC)mp1, hbr);
-                     return (LONG)hbr;
-                  }
-                  else
-                  {
-                     SetBkColor((HDC)mp1, RGB(_red[thiscinfo->back],
-                                        _green[thiscinfo->back],
-                                        _blue[thiscinfo->back]));
-                     if(thiscinfo->hbrush)
-                        DeleteObject(thiscinfo->hbrush);
-                     thiscinfo->hbrush = CreateSolidBrush(RGB(_red[thiscinfo->back],
-                                                    _green[thiscinfo->back],
-                                                    _blue[thiscinfo->back]));
-                     SelectObject((HDC)mp1, thiscinfo->hbrush);
-                  }
-                  return (LONG)thiscinfo->hbrush;
+                  ColorInfo *parentcinfo = (ColorInfo *)GetWindowLongPtr(hWnd, GWLP_USERDATA);
+                  
+                  if(parentcinfo && parentcinfo->back != -1)
+                     thisback = parentcinfo->back;
                }
-               else if((thiscinfo->back & DW_RGB_COLOR) == DW_RGB_COLOR)
+               if(thisback == DW_CLR_DEFAULT)
                {
-                  SetBkColor((HDC)mp1, RGB(DW_RED_VALUE(thiscinfo->back),
-                                     DW_GREEN_VALUE(thiscinfo->back),
-                                     DW_BLUE_VALUE(thiscinfo->back)));
+                  HBRUSH hbr = GetSysColorBrush(COLOR_3DFACE);
+
+                  SetBkColor((HDC)mp1, GetSysColor(COLOR_3DFACE));
+
+                  SelectObject((HDC)mp1, hbr);
+                  return (LONG)hbr;
+               }
+               else if(thisback != -1 && thisback != DW_RGB_TRANSPARENT)
+               {
+                  int back = _internal_color(thisback);
+                  
+                  SetBkColor((HDC)mp1, RGB(DW_RED_VALUE(back),
+                                     DW_GREEN_VALUE(back),
+                                     DW_BLUE_VALUE(back)));
                   if(thiscinfo->hbrush)
                      DeleteObject(thiscinfo->hbrush);
-                  thiscinfo->hbrush = CreateSolidBrush(RGB(DW_RED_VALUE(thiscinfo->back),
-                                                 DW_GREEN_VALUE(thiscinfo->back),
-                                                 DW_BLUE_VALUE(thiscinfo->back)));
+                  thiscinfo->hbrush = CreateSolidBrush(RGB(DW_RED_VALUE(back),
+                                                 DW_GREEN_VALUE(back),
+                                                 DW_BLUE_VALUE(back)));
                   SelectObject((HDC)mp1, thiscinfo->hbrush);
                   return (LONG)thiscinfo->hbrush;
                }
             }
-
          }
          break;
       }
@@ -5610,6 +5597,7 @@ HWND API dw_text_new(char *text, ULONG id)
                      DWInstance,
                      NULL);
    dw_window_set_font(tmp, DefaultFont);
+   dw_window_set_color(tmp, DW_CLR_DEFAULT, DW_RGB_TRANSPARENT);
    return tmp;
 }
 
@@ -6073,6 +6061,7 @@ HWND API dw_radiobutton_new(char *text, ULONG id)
    cinfo->pOldProc = (WNDPROC)SubclassWindow(tmp, _BtProc);
    SetWindowLongPtr(tmp, GWLP_USERDATA, (LONG_PTR)cinfo);
    dw_window_set_font(tmp, DefaultFont);
+   dw_window_set_color(tmp, DW_CLR_DEFAULT, DW_RGB_TRANSPARENT);
    return tmp;
 }
 
@@ -6173,6 +6162,7 @@ HWND API dw_checkbox_new(char *text, ULONG id)
    SetWindowLongPtr(tmp, GWLP_USERDATA, (LONG_PTR)cinfo);
    dw_window_set_data(tmp, "_dw_checkbox", DW_INT_TO_POINTER(1));
    dw_window_set_font(tmp, DefaultFont);
+   dw_window_set_color(tmp, DW_CLR_DEFAULT, DW_RGB_TRANSPARENT);
    return tmp;
 }
 
