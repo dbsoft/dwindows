@@ -152,10 +152,13 @@ int _remove_userdata(UserData **root, char *varname, int all);
 int _dw_main_iteration(NSDate *date);
 
 /* Internal function to queue a window redraw */
-void _dw_redraw(id window)
+void _dw_redraw(id window, int skip)
 {
     static id lastwindow = nil;
     
+    if(skip && window == nil)
+      return;
+
     if(lastwindow != window && lastwindow != nil)
     {
         dw_window_redraw(lastwindow);
@@ -455,7 +458,8 @@ int _event_handler1(id object, NSEvent *event, int message)
 int _event_handler(id object, NSEvent *event, int message)
 {
     int ret = _event_handler1(object, event, message);
-    _dw_redraw(nil);
+    if(ret != -1)
+        _dw_redraw(nil, FALSE);
     return ret;
 }
 
@@ -3540,7 +3544,9 @@ int API dw_scrollbox_get_range(HWND handle, int orient)
  * Entryfield/Combobox/Spinbutton: 150x(maxfontheight)
  * Spinbutton: 50x(maxfontheight)
  * Text/Status: (textwidth)x(textheight)
- */
+ * Ranged: 100x14 or 14x100 for vertical.
+ * Buttons/Bitmaps: Size of text or image and border.
+*/
 void _control_size(id handle, int *width, int *height)
 {
     int thiswidth = 1, thisheight = 1, extrawidth = 0, extraheight = 0;
@@ -3779,7 +3785,7 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
         [button setParent:view];
     }
     /* Queue a redraw on the top-level window */
-    _dw_redraw([object window]);
+    _dw_redraw([object window], TRUE);
 
     /* Free the old data */
     if(thisbox->count)
@@ -8173,9 +8179,11 @@ int API dw_window_set_font(HWND handle, char *fontname)
         
         /* Check to see if any of the sizes need to be recalculated */
         if(item && (item->origwidth == -1 || item->origheight == -1))
+        {
             _control_size(handle, item->origwidth == -1 ? &item->width : NULL, item->origheight == -1 ? &item->height : NULL); 
-        /* Queue a redraw on the top-level window */
-        _dw_redraw([object window]);
+            /* Queue a redraw on the top-level window */
+            _dw_redraw([object window], TRUE);
+        }
         return DW_ERROR_NONE;
     }
     return DW_ERROR_UNKNOWN;
@@ -8354,9 +8362,11 @@ void API dw_window_set_text(HWND handle, char *text)
     
     /* Check to see if any of the sizes need to be recalculated */
     if(item && (item->origwidth == -1 || item->origheight == -1))
+    {
         _control_size(handle, item->origwidth == -1 ? &item->width : NULL, item->origheight == -1 ? &item->height : NULL);        
-    /* Queue a redraw on the top-level window */
-    _dw_redraw([object window]);
+        /* Queue a redraw on the top-level window */
+        _dw_redraw([object window], TRUE);
+    }
 }
 
 /*
@@ -8450,8 +8460,16 @@ void API dw_window_set_bitmap_from_data(HWND handle, unsigned long cid, char *da
             [iv setImage:pixmap];
         }
         [pixmap release];
-        /* Queue a redraw on the top-level window */
-        _dw_redraw([iv window]);
+        /* If we changed the text... */
+        Item *item = _box_item(handle);
+       
+        /* Check to see if any of the sizes need to be recalculated */
+        if(item && (item->origwidth == -1 || item->origheight == -1))
+        {
+            _control_size(handle, item->origwidth == -1 ? &item->width : NULL, item->origheight == -1 ? &item->height : NULL);        
+            /* Queue a redraw on the top-level window */
+            _dw_redraw([iv window], TRUE);
+        }
     }
 }
 
@@ -8486,7 +8504,7 @@ void API dw_window_set_bitmap(HWND handle, unsigned long resid, char *filename)
         {
             [iv setImage:bitmap];
             /* Queue a redraw on the top-level window */
-            _dw_redraw([iv window]);
+            _dw_redraw([iv window], TRUE);
         }
     }
 }
