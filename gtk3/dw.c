@@ -8293,12 +8293,15 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
       {
          int pwidth = gdk_pixbuf_get_width(pixbuf);
          int pheight = gdk_pixbuf_get_height(pixbuf);
+         
+         if(width == -1)
+            width = pwidth;
+         if(height == -1)
+            height = pheight;
 
          if(pwidth > width || pheight > height)
-         {
             pixbuf = gdk_pixbuf_scale_simple(pixbuf, pwidth > width ? width : pwidth, pheight > height ? height : pheight, GDK_INTERP_BILINEAR);
-            gtk_image_set_from_pixbuf(GTK_IMAGE(image), pixbuf);
-         }
+         gtk_image_set_from_pixbuf(GTK_IMAGE(image), pixbuf);
       }
    }
 
