@@ -155,15 +155,16 @@ int _dw_main_iteration(NSDate *date);
 void _dw_redraw(id window, int skip)
 {
     static id lastwindow = nil;
+    id redraw = lastwindow;
     
     if(skip && window == nil)
-      return;
+        return;
 
-    if(lastwindow != window && lastwindow != nil)
-    {
-        dw_window_redraw(lastwindow);
-    }
     lastwindow = window;
+    if(redraw != lastwindow && redraw != nil)
+    {
+        dw_window_redraw(redraw);
+    }
 }
 
 SignalHandler *_get_handler(HWND window, int messageid)
