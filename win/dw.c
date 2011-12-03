@@ -186,15 +186,16 @@ void _do_resize(Box *thisbox, int x, int y);
 void _dw_redraw(HWND window, int skip)
 {
     static HWND lastwindow = 0;
+    HWND redraw = lastwindow;
     
     if(skip && !window)
-      return;
-    
-    if(lastwindow != window && lastwindow)
-    {
-        dw_window_redraw(lastwindow);
-    }
+        return;
+
     lastwindow = window;
+    if(redraw != lastwindow && redraw)
+    {
+        dw_window_redraw(redraw);
+    }
 }
 
 typedef struct _sighandler
