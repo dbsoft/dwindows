@@ -182,6 +182,21 @@ HFONT _acquire_font(HWND handle, char *fontname);
 void _click_default(HWND handle);
 void _do_resize(Box *thisbox, int x, int y);
 
+/* Internal function to queue a window redraw */
+void _dw_redraw(HWND window, int skip)
+{
+    static HWND lastwindow = 0;
+    
+    if(skip && !window)
+      return;
+    
+    if(lastwindow != window && lastwindow)
+    {
+        dw_window_redraw(lastwindow);
+    }
+    lastwindow = window;
+}
+
 typedef struct _sighandler
 {
    struct _sighandler   *next;
@@ -1052,6 +1067,8 @@ HWND _toplevel_window(HWND handle)
    /* Find the toplevel window */
    while((box = GetParent(lastbox)))
    {
+      if(box == DW_HWND_OBJECT)
+         return 0;
       lastbox = box;
    }
    if(lastbox)
@@ -2388,11 +2405,13 @@ BOOL CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
       break;
    }
    if(result != -1)
-      return result;
-   else
    {
-      return DefWindowProc(hWnd, msg, mp1, mp2);
+      /* Make sure any queued redraws are handled */
+      _dw_redraw(0, FALSE);
+      /* Then finally return */
+      return result;
    }
+   return DefWindowProc(hWnd, msg, mp1, mp2);
 }
 
 VOID CALLBACK _TimerProc(HWND hwnd, UINT msg, UINT_PTR idEvent, DWORD dwTime)
@@ -4339,25 +4358,44 @@ Item *_box_item(HWND handle)
  * Entryfield/Combobox/Spinbutton: 150x(maxfontheight)
  * Spinbutton: 50x(maxfontheight)
  * Text/Status: (textwidth)x(textheight)
+ * Ranged: 100x14 or 14x100 for vertical.
+ * Buttons/Bitmaps: Size of text or image and border.
  */
 void _control_size(HWND handle, int *width, int *height)
 {
    int thiswidth = 1, thisheight = 1, extrawidth = 0, extraheight = 0;
    char tmpbuf[100], *buf = dw_window_get_text(handle);
    static char testtext[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+   HBITMAP hbm = 0;
 
    GetClassName(handle, tmpbuf, 99);
 
-    /* If we have a string... 
-     * calculate the size with the current font.
-     */
-    if(buf)
-    {
-       if(*buf)
-          dw_font_text_extents_get(handle, NULL, buf, &thiswidth, &thisheight);
-       dw_free(buf);
-    }
-            
+   /* If we have a string... 
+    * calculate the size with the current font.
+    */
+   if(buf)
+   {
+      if(*buf)
+         dw_font_text_extents_get(handle, NULL, buf, &thiswidth, &thisheight);
+      dw_free(buf);
+   }
+   
+   /* Attempt to get bitmap from classes that can have them */
+   if(strnicmp(tmpbuf, STATICCLASSNAME, strlen(STATICCLASSNAME)+1) == 0)
+      hbm = (HBITMAP)SendMessage(handle, STM_GETIMAGE, IMAGE_BITMAP, 0);
+   if(strnicmp(tmpbuf, BUTTONCLASSNAME, strlen(BUTTONCLASSNAME)+1) == 0)
+      hbm = (HBITMAP)SendMessage(handle, BM_GETIMAGE, IMAGE_BITMAP, 0);
+      
+   /* If we got an image... set the sizes appropriately */
+   if(hbm)
+   {
+      BITMAP bmi;
+      
+      GetObject(hbm, sizeof(BITMAP), &bmi);
+      thiswidth = bmi.bmWidth;
+      thisheight = bmi.bmHeight;
+   }
+   
    /* Combobox */
    if(strnicmp(tmpbuf, COMBOBOXCLASSNAME, strlen(COMBOBOXCLASSNAME)+1) == 0)
    {
@@ -4367,11 +4405,32 @@ void _control_size(HWND handle, int *width, int *height)
       if(thisheight < 18)
         thisheight = 18;
    }
+   /* Ranged: Percent, Slider, Scrollbar */
+   else if(strnicmp(tmpbuf, PROGRESS_CLASS, strlen(PROGRESS_CLASS)+1) == 0 || 
+           strnicmp(tmpbuf, TRACKBAR_CLASS, strlen(TRACKBAR_CLASS)+1) == 0 ||
+           strnicmp(tmpbuf, SCROLLBARCLASSNAME, strlen(SCROLLBARCLASSNAME)+1) == 0)
+   {
+      if(strnicmp(tmpbuf, SCROLLBARCLASSNAME, strlen(SCROLLBARCLASSNAME)+1) == 0 &&
+        GetWindowLong(handle, GWL_STYLE) & SBS_VERT)
+      {
+         /* Vertical */
+         thiswidth = 14;
+         thisheight = 100;
+      }
+      else
+      {
+         /* Horizontal */
+         thiswidth = 100;
+         thisheight = 14;
+      }
+   }
+   /* Spinbuttons */
    else if(strnicmp(tmpbuf, UPDOWN_CLASS, strlen(UPDOWN_CLASS)+1) == 0)
    {
       dw_font_text_extents_get(handle, NULL, testtext, NULL, &thisheight);
       thiswidth = 50;
    }
+   /* Entryfields */
    else if(strnicmp(tmpbuf, EDITCLASSNAME, strlen(EDITCLASSNAME)+1) == 0 &&
            !(GetWindowLong(handle, GWL_STYLE) & ES_MULTILINE))
    {
@@ -4383,11 +4442,19 @@ void _control_size(HWND handle, int *width, int *height)
    {
       ULONG style = GetWindowLong(handle, GWL_STYLE);
       
-      if(style & BS_AUTOCHECKBOX || style & BS_AUTORADIOBUTTON)
+      /* Bitmap buttons */
+      if(hbm)
+      {
+         extrawidth = 2;
+         extraheight = 2;
+      }
+      /* Checkbox or radio button */
+      else if(style & BS_AUTOCHECKBOX || style & BS_AUTORADIOBUTTON)
       {
          extrawidth = 24;
          extraheight = 4;
       }
+      /* Text buttons */
       else
       {
          extrawidth = 8;
@@ -4399,7 +4466,6 @@ void _control_size(HWND handle, int *width, int *height)
       extrawidth = 4;
       extraheight = 2;
    }
-   
 
    /* Set the requested sizes */    
    if(width)
@@ -4468,7 +4534,11 @@ int API dw_window_set_font(HWND handle, char *fontname)
         
        /* Check to see if any of the sizes need to be recalculated */
        if(item && (item->origwidth == -1 || item->origheight == -1))
+       {
           _control_size(handle, item->origwidth == -1 ? &item->width : NULL, item->origheight == -1 ? &item->height : NULL); 
+          /* Queue a redraw on the top-level window */
+         _dw_redraw(_toplevel_window(handle), TRUE);
+       }
        return DW_ERROR_NONE;
     }
    return DW_ERROR_UNKNOWN;
@@ -6214,6 +6284,19 @@ void API dw_window_set_bitmap(HWND handle, unsigned long id, char *filename)
       DeleteObject(oldbitmap);
    else if(icon && oldicon)
       DeleteObject(oldicon);
+
+   /* If we changed the bitmap... */
+   {
+      Item *item = _box_item(handle);
+       
+      /* Check to see if any of the sizes need to be recalculated */
+      if(item && (item->origwidth == -1 || item->origheight == -1))
+      {
+         _control_size(handle, item->origwidth == -1 ? &item->width : NULL, item->origheight == -1 ? &item->height : NULL); 
+         /* Queue a redraw on the top-level window */
+         _dw_redraw(_toplevel_window(handle), TRUE);
+      }
+   }
 }
 
 /*
@@ -6336,7 +6419,11 @@ void API dw_window_set_text(HWND handle, char *text)
        
       /* Check to see if any of the sizes need to be recalculated */
       if(item && (item->origwidth == -1 || item->origheight == -1))
+      {
          _control_size(handle, item->origwidth == -1 ? &item->width : NULL, item->origheight == -1 ? &item->height : NULL); 
+         /* Queue a redraw on the top-level window */
+         _dw_redraw(_toplevel_window(handle), TRUE);
+      }
    }
 }
 
@@ -6566,6 +6653,8 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
             SendMessage(item, UDM_SETBUDDY, (WPARAM)cinfo->buddy, 0);
          }
       }
+      /* Queue a redraw on the top-level window */
+      _dw_redraw(_toplevel_window(item), TRUE);
    }
 }
 
