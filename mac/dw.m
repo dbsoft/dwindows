@@ -3577,6 +3577,11 @@ void _control_size(id handle, int *width, int *height)
                     NSSize size = [image size];
                     thiswidth = (int)size.width;
                     thisheight = (int)size.height;
+                    if([object isBordered])
+                    {
+                        extrawidth = 4;
+                        extraheight = 4;
+                    }
                 }
                 else
                 {
