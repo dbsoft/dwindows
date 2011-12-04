@@ -4859,9 +4859,36 @@ char * API dw_window_get_font(HWND handle)
    return NULL;
 }
 
+/* Internal function to handle transparent children */
+void _handle_transparent(HWND handle)
+{
+    ULONG pcolor, which = PP_BACKGROUNDCOLOR;;
+
+
+    if(!WinQueryPresParam(handle, which, 0, NULL, sizeof(pcolor), &pcolor, QPF_NOINHERIT))
+        which = PP_BACKGROUNDCOLORINDEX;
+
+    if(which == PP_BACKGROUNDCOLOR ||
+       WinQueryPresParam(handle, which, 0, NULL, sizeof(pcolor), &pcolor, QPF_NOINHERIT))
+    {
+        HWND child;
+        HENUM henum = WinBeginEnumWindows(handle);
+
+        while((child = WinGetNextWindow(henum)) != NULLHANDLE)
+        {
+            if(dw_window_get_data(child, "_dw_transparent"))
+            {
+                WinSetPresParam(child, which, sizeof(pcolor), &pcolor);
+            }
+        }
+        WinEndEnumWindows(henum);
+    }
+}
+
 /* Internal version */
 int _dw_window_set_color(HWND handle, ULONG fore, ULONG back)
 {
+    /* Handle foreground */
    if((fore & DW_RGB_COLOR) == DW_RGB_COLOR)
    {
       RGB2 rgb2;
@@ -4880,7 +4907,23 @@ int _dw_window_set_color(HWND handle, ULONG fore, ULONG back)
 
       WinSetPresParam(handle, PP_FOREGROUNDCOLORINDEX, sizeof(ULONG), &fore);
    }
-   if((back & DW_RGB_COLOR) == DW_RGB_COLOR)
+   /* Handle background */
+   if(back == DW_RGB_TRANSPARENT)
+   {
+       /* Special case for setting transparent */
+       ULONG pcolor;
+       HWND parent = WinQueryWindow(handle, QW_PARENT);
+
+       dw_window_set_data(handle, "_dw_transparent", DW_INT_TO_POINTER(1));
+
+       if(WinQueryPresParam(parent, PP_BACKGROUNDCOLOR, 0, NULL,
+                            sizeof(pcolor), &pcolor, QPF_NOINHERIT | QPF_PURERGBCOLOR))
+           WinSetPresParam(handle, PP_BACKGROUNDCOLOR, sizeof(pcolor), &pcolor);
+       else if(WinQueryPresParam(parent, PP_BACKGROUNDCOLORINDEX, 0, NULL,
+                            sizeof(pcolor), &pcolor, QPF_NOINHERIT))
+           WinSetPresParam(handle, PP_BACKGROUNDCOLORINDEX, sizeof(pcolor), &pcolor);
+   }
+   else if((back & DW_RGB_COLOR) == DW_RGB_COLOR)
    {
       RGB2 rgb2;
 
@@ -4890,7 +4933,6 @@ int _dw_window_set_color(HWND handle, ULONG fore, ULONG back)
       rgb2.fcOptions = 0;
 
       WinSetPresParam(handle, PP_BACKGROUNDCOLOR, sizeof(RGB2), &rgb2);
-      return 0;
    }
    else if(back != DW_CLR_DEFAULT)
    {
@@ -4898,7 +4940,9 @@ int _dw_window_set_color(HWND handle, ULONG fore, ULONG back)
 
       WinSetPresParam(handle, PP_BACKGROUNDCOLORINDEX, sizeof(ULONG), &back);
    }
-   return 0;
+   /* If this is a box... check if any of the children are transparent */
+   _handle_transparent(handle);
+   return DW_ERROR_NONE;
 }
 /*
  * Sets the colors used by a specified window (widget) handle.
@@ -5674,7 +5718,7 @@ HWND API dw_text_new(char *text, ULONG id)
    blah->oldproc = WinSubclassWindow(tmp, _textproc);
    WinSetWindowPtr(tmp, QWP_USER, blah);
    dw_window_set_font(tmp, DefaultFont);
-   dw_window_set_color(tmp, DW_CLR_BLACK, DW_CLR_PALEGRAY);
+   dw_window_set_color(tmp, DW_CLR_BLACK, DW_RGB_TRANSPARENT);
    return tmp;
 }
 
@@ -6196,7 +6240,7 @@ HWND API dw_radiobutton_new(char *text, ULONG id)
    blah->oldproc = WinSubclassWindow(tmp, _entryproc);
    WinSetWindowPtr(tmp, QWP_USER, blah);
    dw_window_set_font(tmp, DefaultFont);
-   dw_window_set_color(tmp, DW_CLR_BLACK, DW_CLR_PALEGRAY);
+   dw_window_set_color(tmp, DW_CLR_BLACK, DW_RGB_TRANSPARENT);
    return tmp;
 }
 
@@ -6303,7 +6347,7 @@ HWND API dw_checkbox_new(char *text, ULONG id)
    blah->oldproc = WinSubclassWindow(tmp, _BtProc);
    WinSetWindowPtr(tmp, QWP_USER, blah);
    dw_window_set_font(tmp, DefaultFont);
-   dw_window_set_color(tmp, DW_CLR_BLACK, DW_CLR_PALEGRAY);
+   dw_window_set_color(tmp, DW_CLR_BLACK, DW_RGB_TRANSPARENT);
    return tmp;
 }
 
@@ -6888,6 +6932,7 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
       if(strncmp(tmpbuf, "#6", 3)!=0 && strncmp(tmpbuf, "#32", 4)!=0 && strncmp(tmpbuf, "#2", 3)!=0)
          WinSetOwner(item, box);
       WinSetParent(frame ? frame : item, box, FALSE);
+      _handle_transparent(box);
       /* Queue a redraw on the top-level window */
       _dw_redraw(_toplevel_window(item), TRUE);
    }
