@@ -7003,6 +7003,18 @@ void API dw_window_set_size(HWND handle, ULONG width, ULONG height)
 }
 
 /*
+ * Gets the size the system thinks the widget should be.
+ * Parameters:
+ *       handle: Window handle of the item to be back.
+ *       width: Width in pixels of the item or NULL if not needed.
+ *       height: Height in pixels of the item or NULL if not needed.
+ */
+void API dw_window_get_preferred_size(HWND handle, int *width, int *height)
+{
+    _control_size(handle, width, height);
+}
+
+/*
  * Returns the width of the screen.
  */
 int API dw_screen_width(void)
