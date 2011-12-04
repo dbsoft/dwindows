@@ -4433,8 +4433,8 @@ void _control_size(HWND handle, int *width, int *height)
       /* Bitmap buttons */
       if(hbm)
       {
-         extrawidth = 2;
-         extraheight = 2;
+         extrawidth = 5;
+         extraheight = 5;
       }
       /* Checkbox or radio button */
       else if(style & BS_AUTOCHECKBOX || style & BS_AUTORADIOBUTTON)
