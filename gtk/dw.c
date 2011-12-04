@@ -10152,6 +10152,27 @@ void dw_window_set_size(HWND handle, unsigned long width, unsigned long height)
 }
 
 /*
+ * Gets the size the system thinks the widget should be.
+ * Parameters:
+ *       handle: Window handle of the item to be back.
+ *       width: Width in pixels of the item or NULL if not needed.
+ *       height: Height in pixels of the item or NULL if not needed.
+ */
+void API dw_window_get_preferred_size(HWND handle, int *width, int *height)
+{
+   GtkRequisition req;
+   int _locked_by_me = FALSE;
+
+   DW_MUTEX_LOCK;
+   gtk_widget_get_requisition(handle, &req);
+   if(width)
+      *width = req.width;
+   if(height)
+      *height = req.height;
+   DW_MUTEX_UNLOCK;
+}
+
+/*
  * Returns the width of the screen.
  */
 int dw_screen_width(void)

@@ -2942,6 +2942,17 @@ void API dw_window_set_size(HWND handle, ULONG width, ULONG height)
 }
 
 /*
+ * Gets the size the system thinks the widget should be.
+ * Parameters:
+ *       handle: Window (widget) handle of the item to query.
+ *       width: Width in pixels of the item or NULL if not needed.
+ *       height: Height in pixels of the item or NULL if not needed.
+ */
+void API dw_window_get_preferred_size(HWND handle, int *width, int *height)
+{
+}
+
+/*
  * Sets the position of a given window (widget).
  * Parameters:
  *          handle: Window (widget) handle.
