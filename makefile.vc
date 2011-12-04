@@ -113,7 +113,7 @@ $(LINKFLAGS) $(DLLLINKFLAGS)
 $(OBJS2) $(RES)
 $(LIBS)
 <<
-	lib /def:$(DEFFILE2) /out:dwcompat.lib
+	lib /def:$(DEFFILE2) /machine:$(TARGET_CPU) /out:dwcompat.lib
 	mt.exe /manifest dwcompat.dll.manifest /outputresource:dwcompat.dll;2
         copy dwcompat.lib $(DWLIBDIR)\dwcompat.lib
         copy dwcompat.dll $(DWDLLDIR)\dwcompat.dll
