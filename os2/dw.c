@@ -4740,6 +4740,11 @@ void _control_size(HWND handle, int *width, int *height)
                thisheight = bmp.cy;
             }
        }
+       else if(dw_window_get_data(handle, "_dw_status"))
+       {
+           extrawidth = 4;
+           extraheight = 4;
+       }
    }
    /* Ranged: Slider/Percent/Scrollbar */
    else if(strncmp(tmpbuf, "#38", 4)== 0 || 
@@ -4776,38 +4781,46 @@ void _control_size(HWND handle, int *width, int *height)
    {
       ULONG style = WinQueryWindowULong(handle, QWL_STYLE);
       
-      /* Handle bitmap buttons */
-      if(dw_window_get_data(handle, "_dw_bitmapbutton"))
-      {
-         WNDPARAMS wp;
-         BTNCDATA bcd;
-
-         wp.fsStatus = WPM_CTLDATA;
-         wp.cbCtlData = sizeof(BTNCDATA);
-         wp.pCtlData = &bcd;
-
-         /* Query the button's bitmap */
-         if(WinSendMsg(handle, WM_QUERYWINDOWPARAMS, (MPARAM)&wp, MPVOID) && bcd.hImage)
-         {
-            BITMAPINFOHEADER2 bmp;
-            bmp.cbFix = sizeof(BITMAPINFOHEADER2);
-            /* Get the parameters of the bitmap */
-            if(GpiQueryBitmapInfoHeader(bcd.hImage, &bmp))
-            {
-               thiswidth = bmp.cx;
-               thisheight = bmp.cy;
-            }
-         }
-      }
-      else if(style & BS_AUTOCHECKBOX || style & BS_AUTORADIOBUTTON)
+      if(style & BS_AUTOCHECKBOX || style & BS_AUTORADIOBUTTON)
       {
          extrawidth = 24;
          extraheight = 4;
       }
       else
       {
-         extrawidth = 8;
-         extraheight = 8;
+          /* Handle bitmap buttons */
+          if(dw_window_get_data(handle, "_dw_bitmapbutton"))
+          {
+              WNDPARAMS wp;
+              BTNCDATA bcd;
+
+              wp.fsStatus = WPM_CTLDATA;
+              wp.cbCtlData = sizeof(BTNCDATA);
+              wp.pCtlData = &bcd;
+
+              /* Query the button's bitmap */
+              if(WinSendMsg(handle, WM_QUERYWINDOWPARAMS, (MPARAM)&wp, MPVOID) && bcd.hImage)
+              {
+                  BITMAPINFOHEADER2 bmp;
+                  bmp.cbFix = sizeof(BITMAPINFOHEADER2);
+                  /* Get the parameters of the bitmap */
+                  if(GpiQueryBitmapInfoHeader(bcd.hImage, &bmp))
+                  {
+                      thiswidth = bmp.cx;
+                      thisheight = bmp.cy;
+                  }
+              }
+          }
+          else
+          {
+              extrawidth = 4;
+              extraheight = 4;
+          }
+          if(!(style & BS_NOBORDER))
+          {
+              extrawidth += 4;
+              extraheight += 4;
+          }
       }
    }
 
@@ -5745,6 +5758,7 @@ HWND API dw_status_text_new(char *text, ULONG id)
    WinSetWindowPtr(tmp, QWP_USER, blah);
    dw_window_set_font(tmp, DefaultFont);
    dw_window_set_color(tmp, DW_CLR_BLACK, DW_CLR_PALEGRAY);
+   dw_window_set_data(tmp, "_dw_status", DW_INT_TO_POINTER(1));
    return tmp;
 }
 
