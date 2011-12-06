@@ -3407,6 +3407,7 @@ BOOL CALLBACK _BtProc(HWND hwnd, ULONG msg, WPARAM mp1, LPARAM mp2)
 {
    ColorInfo *cinfo = (ColorInfo *)GetWindowLongPtr(hwnd, GWLP_USERDATA);
    WNDPROC pOldProc;
+   int retval = -1;
 
    if ( !cinfo )
       return DefWindowProc(hwnd, msg, mp1, mp2);
@@ -3451,7 +3452,7 @@ BOOL CALLBACK _BtProc(HWND hwnd, ULONG msg, WPARAM mp1, LPARAM mp2)
                   if(checkbox)
                      in_checkbox_handler = 1;
 
-                  clickfunc(tmp->window, tmp->data);
+                  retval = clickfunc(tmp->window, tmp->data);
 
                   if(checkbox)
                      in_checkbox_handler = 0;
@@ -3482,7 +3483,7 @@ BOOL CALLBACK _BtProc(HWND hwnd, ULONG msg, WPARAM mp1, LPARAM mp2)
                   /* Make sure it's the right window, and the right ID */
                   if(tmp->window == hwnd)
                   {
-                     clickfunc(tmp->window, tmp->data);
+                     retval = clickfunc(tmp->window, tmp->data);
                      tmp = NULL;
                   }
                }
@@ -3508,6 +3509,9 @@ BOOL CALLBACK _BtProc(HWND hwnd, ULONG msg, WPARAM mp1, LPARAM mp2)
       break;
    }
 
+   /* Make sure windows are up-to-date */
+   if(retval != -1)
+      _dw_redraw(0, FALSE);
    if ( !pOldProc )
       return DefWindowProc(hwnd, msg, mp1, mp2);
    return CallWindowProc(pOldProc, hwnd, msg, mp1, mp2);
