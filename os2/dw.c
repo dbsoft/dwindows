@@ -3856,6 +3856,7 @@ MRESULT EXPENTRY _BtProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 {
    WindowData *blah = WinQueryWindowPtr(hwnd, QWL_USER);
    PFNWP oldproc;
+   int retval = -1;
 
    if(!blah)
       return WinDefWindowProc(hwnd, msg, mp1, mp2);
@@ -3932,14 +3933,14 @@ MRESULT EXPENTRY _BtProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
       break;
    case WM_USER:
       {
-            SignalHandler *tmp = (SignalHandler *)mp1;
+         SignalHandler *tmp = (SignalHandler *)mp1;
          int (API_FUNC clickfunc)(HWND, void *) = NULL;
 
          if(tmp)
          {
             clickfunc = (int (API_FUNC)(HWND, void *))tmp->signalfunction;
 
-            clickfunc(tmp->window, tmp->data);
+            retval = clickfunc(tmp->window, tmp->data);
          }
       }
         break;
@@ -3990,6 +3991,10 @@ MRESULT EXPENTRY _BtProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
       }
       break;
    }
+   
+   /* Make sure windows are up-to-date */
+   if(retval != -1)
+      _dw_redraw(0, FALSE);
    if(!oldproc)
       return WinDefWindowProc(hwnd, msg, mp1, mp2);
    return oldproc(hwnd, msg, mp1, mp2);

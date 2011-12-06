@@ -43,7 +43,7 @@ Added support for -1 size parameter to the dw_box_pack*() functions to
     automatically figure out a suggested size for many controls.
 Added automatic window redraw support for OS/2, Windows and Mac.
 Added Open Watcom compiler support for OS/2.
-Added pseudo transparent background widget support on Windows.
+Added pseudo transparent background widget support on Windows and OS/2.
    If you set the background color of a widget to DW_RGB_TRANSPARENT...
    it will attempt to use the background color of the parent.
    Several types of widgets have this set by default now.
