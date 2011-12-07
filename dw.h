@@ -675,6 +675,8 @@ typedef struct _box {
    int count;
    /* Box type - horizontal or vertical */
    int type;
+   /* Keep track of how box is packed */
+   int hsize, vsize;
    /* Padding */
    int pad, parentpad, grouppadx, grouppady;
    /* Groupbox */
