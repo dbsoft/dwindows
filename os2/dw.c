@@ -1141,6 +1141,8 @@ int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *usedy,
                tmp->parentyratio = thisbox->yratio;
 
                tmp->parentpad = tmp->pad;
+               tmp->hsize = thisbox->items[z].hsize;
+               tmp->vsize = thisbox->items[z].vsize;
 
                /* Just in case */
                tmp->xratio = thisbox->xratio;
@@ -1261,19 +1263,11 @@ int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *usedy,
       }
       else
       {
-         if(thisbox->items[z].width == -1)
-         {
-            /* figure out how much space this item requires */
-            /* thisbox->items[z].width = */
-         }
+         (*usedx) += thisbox->items[z].width + (thisbox->items[z].pad*2);
+         if(thisbox->items[z].hsize != SIZEEXPAND)
+            (*usedpadx) += (thisbox->items[z].pad*2) + thisbox->items[z].width;
          else
-         {
-            (*usedx) += thisbox->items[z].width + (thisbox->items[z].pad*2);
-            if(thisbox->items[z].hsize != SIZEEXPAND)
-               (*usedpadx) += (thisbox->items[z].pad*2) + thisbox->items[z].width;
-            else
-               (*usedpadx) += thisbox->items[z].pad*2;
-         }
+            (*usedpadx) += thisbox->items[z].pad*2;
       }
       if(thisbox->type == DW_HORZ)
       {
@@ -1294,19 +1288,11 @@ int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *usedy,
       }
       else
       {
-         if(thisbox->items[z].height == -1)
-         {
-            /* figure out how much space this item requires */
-            /* thisbox->items[z].height = */
-         }
+         (*usedy) += thisbox->items[z].height + (thisbox->items[z].pad*2);
+         if(thisbox->items[z].vsize != SIZEEXPAND)
+            (*usedpady) += (thisbox->items[z].pad*2) + thisbox->items[z].height;
          else
-         {
-            (*usedy) += thisbox->items[z].height + (thisbox->items[z].pad*2);
-            if(thisbox->items[z].vsize != SIZEEXPAND)
-               (*usedpady) += (thisbox->items[z].pad*2) + thisbox->items[z].height;
-            else
-               (*usedpady) += thisbox->items[z].pad*2;
-         }
+            (*usedpady) += thisbox->items[z].pad*2;
       }
    }
 
@@ -1403,6 +1389,17 @@ int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *usedy,
             if(thisbox->items[z].hsize != SIZEEXPAND)
                vectorx = 0;
 
+            if(thisbox->type == DW_VERT && thisbox->hsize == SIZESTATIC && thisbox->items[z].hsize == SIZEEXPAND && thisbox->width)
+            {
+               width = thisbox->width;
+               vectorx = 0;
+            }
+            if(thisbox->type == DW_HORZ && thisbox->vsize == SIZESTATIC && thisbox->items[z].vsize == SIZEEXPAND && thisbox->height)
+            {
+               height = thisbox->height;
+               vectory = 0;
+            }
+           
             WinQueryClassName(handle, 99, (PCH)tmpbuf);
 
             if(strncmp(tmpbuf, "#2", 3)==0)
