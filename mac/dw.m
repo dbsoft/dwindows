@@ -2674,6 +2674,8 @@ static void _resize_box(Box *thisbox, int *depth, int x, int y, int pass)
                         [split splitViewDidResizeSubviews:nil];
                     }
                 }
+                
+                /* Advance the current position in the box */
                 if(thisbox->type == DW_HORZ)
                     currentx += width + (pad * 2);
                 if(thisbox->type == DW_VERT)
@@ -8422,13 +8424,32 @@ void API dw_window_set_size(HWND handle, ULONG width, ULONG height)
     int _locked_by_me = FALSE;
     DW_MUTEX_LOCK;
     NSObject *object = handle;
-    NSSize size;
-    size.width = width;
-    size.height = height;
 
     if([ object isKindOfClass:[ NSWindow class ] ])
     {
         NSWindow *window = handle;
+        Box *thisbox;
+        NSSize size;
+       
+        /*
+         * The following is an attempt to dynamically size a window based on the size of its
+         * children before realization. Only applicable when width or height is less than one.
+         */
+        if((width < 1 || height < 1) && (thisbox = [[window contentView] box]))
+        {
+            int depth = 0;
+                
+            /* Calculate space requirements */
+            _resize_box(thisbox, &depth, width, height, 1);
+          
+            /* Might need to take into account the window border here */
+            if(width < 1) width = thisbox->minwidth;
+            if(height < 1) height = thisbox->minheight;
+        }
+       
+        /* Finally set the size */
+        size.width = width;
+        size.height = height;
         [window setContentSize:size];
     }
     DW_MUTEX_UNLOCK;
