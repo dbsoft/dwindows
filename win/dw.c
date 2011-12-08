@@ -1142,28 +1142,34 @@ static void _resize_box(Box *thisbox, int *depth, int x, int y, int pass)
 
    if(thisbox->grouphwnd)
    {
-      char *text = dw_window_get_text(thisbox->grouphwnd);
-
-      thisbox->grouppady = 9;
-
-      if(text)
-      {
-         if(*text)
-            dw_font_text_extents_get(thisbox->grouphwnd, 0, text, NULL, &thisbox->grouppady);
-         dw_free(text);
-      }
-      /* If the string height is less than 9...
-       * set it to 9 anyway since that is the minimum.
+      /* Only calculate the size on the first pass...
+       * use the cached values on second.
        */
-      if(thisbox->grouppady < 9)
-         thisbox->grouppady = 9;
-         
-      if(thisbox->grouppady)
-         thisbox->grouppady += 3;
-      else
-         thisbox->grouppady = 6;
+      if(pass == 1)
+      {
+         char *text = dw_window_get_text(thisbox->grouphwnd);
 
-      thisbox->grouppadx = 6;
+         thisbox->grouppady = 9;
+
+         if(text)
+         {
+            if(*text)
+               dw_font_text_extents_get(thisbox->grouphwnd, 0, text, NULL, &thisbox->grouppady);
+            dw_free(text);
+         }
+         /* If the string height is less than 9...
+          * set it to 9 anyway since that is the minimum.
+          */
+         if(thisbox->grouppady < 9)
+            thisbox->grouppady = 9;
+         
+         if(thisbox->grouppady)
+            thisbox->grouppady += 3;
+         else
+            thisbox->grouppady = 6;
+
+         thisbox->grouppadx = 6;
+      }
 
       thisbox->minwidth += thisbox->grouppadx;
       thisbox->usedpadx += thisbox->grouppadx;
