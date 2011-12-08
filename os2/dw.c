@@ -6852,6 +6852,34 @@ void API dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, 
 }
 
 /*
+ * The following is an attempt to dynamically size a window based on the size of its
+ * children before realization. Only applicable when width or height is less than one.
+ */
+void _get_window_for_size(HWND handle, unsigned long *width, unsigned long *height)
+{
+   HWND box = WinWindowFromID(handle, FID_CLIENT);
+   Box *thisbox = WinQueryWindowPtr(box, QWP_USER);
+
+   if(thisbox)
+   {
+      int depth = 0;
+      RECTL rect = { 0 };
+
+      /* Calculate space requirements */
+      _resize_box(thisbox, &depth, *width, *height, 1);
+      
+      rect.xRight = thisbox->minwidth;
+      rect.yTop = thisbox->minheight;
+
+      /* Take into account the window border and menu here */
+      WinCalcFrameRect(handle, &rect, FALSE);
+      
+      if(*width < 1) *width = rect.xRight - rect.xLeft;
+      if(*height < 1) *height = rect.yTop - rect.yBottom;
+   }
+}
+
+/*
  * Sets the size of a given window (widget).
  * Parameters:
  *          handle: Window (widget) handle.
@@ -6860,21 +6888,9 @@ void API dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, 
  */
 void API dw_window_set_size(HWND handle, ULONG width, ULONG height)
 {
-   Box *thisbox;
-   HWND box;
-
-   if((width < 1 || height < 1) && (box = WinWindowFromID(handle, FID_CLIENT)) &&
-      (thisbox = WinQueryWindowPtr(box, QWP_USER)))
-   {
-      int depth = 0, border = WinQuerySysValue(HWND_DESKTOP, SV_CXSIZEBORDER) * 2;
-            
-      /* Calculate space requirements */
-      _resize_box(thisbox, &depth, width, height, 1);
-      
-      /* Might need to take into account the window border here */
-      if(width < 1) width = thisbox->minwidth + border;
-      if(height < 1) height = thisbox->minheight + WinQuerySysValue(HWND_DESKTOP, SV_CYTITLEBAR) + border;
-   }
+   /* Attempt to auto-size */
+   if ( width < 1 || height < 1 )
+      _get_window_for_size(handle, &width, &height);
    
    /* Finally set the size */
    WinSetWindowPos(handle, NULLHANDLE, 0, 0, width, height, SWP_SHOW | SWP_SIZE);
@@ -6946,21 +6962,10 @@ void API dw_window_set_pos(HWND handle, LONG x, LONG y)
 void API dw_window_set_pos_size(HWND handle, LONG x, LONG y, ULONG width, ULONG height)
 {
    int myy = _get_frame_height(handle) - (y + height);
-   Box *thisbox;
-   HWND box;
 
-   if((width < 1 || height < 1) && (box = WinWindowFromID(handle, FID_CLIENT)) &&
-      (thisbox = WinQueryWindowPtr(box, QWP_USER)))
-   {
-      int depth = 0, border = WinQuerySysValue(HWND_DESKTOP, SV_CXSIZEBORDER) * 2;
-            
-      /* Calculate space requirements */
-      _resize_box(thisbox, &depth, width, height, 1);
-      
-      /* Might need to take into account the window border here */
-      if(width < 1) width = thisbox->minwidth + border;
-      if(height < 1) height = thisbox->minheight + WinQuerySysValue(HWND_DESKTOP, SV_CYTITLEBAR) + border;
-   }
+   /* Attempt to auto-size */
+   if ( width < 1 || height < 1 )
+      _get_window_for_size(handle, &width, &height);
    
    /* Finally set the size */
    WinSetWindowPos(handle, NULLHANDLE, x, myy, width, height, SWP_MOVE | SWP_SIZE | SWP_SHOW);
