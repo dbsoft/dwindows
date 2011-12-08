@@ -1299,14 +1299,6 @@ static void _resize_box(Box *thisbox, int *depth, int x, int y, int pass)
                height = y - (itempad + thispad + thisbox->grouppady);
          }
             
-         if(width < 1 || height < 1)
-         {
-            char tmpbuf[100];
-               
-            GetClassName(thisbox->items[z].hwnd, tmpbuf, 99);
-            dw_debug("Class %s %dx%d width %d height %d\n", tmpbuf, currentx + thisbox->items[z].pad, currenty + thisbox->items[z].pad, width, height);
-         }
-         
          /* If the calculated size is valid... */
          if(width > 0 && height > 0)
          {
@@ -1315,7 +1307,6 @@ static void _resize_box(Box *thisbox, int *depth, int x, int y, int pass)
             char tmpbuf[100];
                
             GetClassName(handle, tmpbuf, 99);
-            dw_debug("Class %s %dx%d width %d height %d\n", tmpbuf, currentx + pad, currenty + pad, width, height);
 
             if(strnicmp(tmpbuf, COMBOBOXCLASSNAME, strlen(COMBOBOXCLASSNAME)+1)==0)
             {
