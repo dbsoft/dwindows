@@ -6555,14 +6555,14 @@ void API dw_window_set_size(HWND handle, ULONG width, ULONG height)
     */
    if ( (width < 1 || height < 1) && (thisbox = (Box *)GetWindowLongPtr(handle, GWLP_USERDATA)) )
    {
-      int depth = 0;
+      int depth = 0, border = GetSystemMetrics(SM_CXSIZEFRAME) * 2;
             
       /* Calculate space requirements */
       _resize_box(thisbox, &depth, width, height, 1);
       
       /* Might need to take into account the window border here */
-      if ( width < 1 ) width = thisbox->minwidth;
-      if ( height < 1 ) height = thisbox->minheight;
+      if ( width < 1 ) width = thisbox->minwidth + border;
+      if ( height < 1 ) height = thisbox->minheight + GetSystemMetrics(SM_CYCAPTION) + border;
    }
    
    /* Finally set the size */
@@ -6642,14 +6642,14 @@ void API dw_window_set_pos_size(HWND handle, long x, long y, ULONG width, ULONG 
     */
    if ( (width < 1 || height < 1) && (thisbox = (Box *)GetWindowLongPtr(handle, GWLP_USERDATA)) )
    {
-      int depth = 0;
+      int depth = 0, border = GetSystemMetrics(SM_CXSIZEFRAME) * 2;
             
       /* Calculate space requirements */
       _resize_box(thisbox, &depth, width, height, 1);
       
       /* Might need to take into account the window border here */
-      if ( width < 1 ) width = thisbox->minwidth;
-      if ( height < 1 ) height = thisbox->minheight;
+      if ( width < 1 ) width = thisbox->minwidth + border;
+      if ( height < 1 ) height = thisbox->minheight + GetSystemMetrics(SM_CYCAPTION) + border;
    }
    
    /* Finally set the size */

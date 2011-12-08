@@ -47,6 +47,8 @@ Added pseudo transparent background widget support on Windows and OS/2.
    If you set the background color of a widget to DW_RGB_TRANSPARENT...
    it will attempt to use the background color of the parent.
    Several types of widgets have this set by default now.
+Added faster and less buggy layout engine 2.0 for OS/2, Windows and Mac.
+Fixed auto-sizing top-level windows on Windows; added on OS/2 and Mac.
 Fixed bubble help not being displayed on Windows.
 Fixed menu bar items remaining highlighted on Mac.
 
