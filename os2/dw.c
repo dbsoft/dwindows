@@ -6857,17 +6857,17 @@ void API dw_window_set_size(HWND handle, ULONG width, ULONG height)
    Box *thisbox;
    HWND box;
 
-   if((width < 1 || height < 1) && (box = WinWindowFromID(window, FID_CLIENT)) &&
+   if((width < 1 || height < 1) && (box = WinWindowFromID(handle, FID_CLIENT)) &&
       (thisbox = WinQueryWindowPtr(box, QWP_USER)))
    {
-      int depth = 0;
+      int depth = 0, border = WinQuerySysValue(HWND_DESKTOP, SV_CXSIZEBORDER) * 2;
             
       /* Calculate space requirements */
       _resize_box(thisbox, &depth, width, height, 1);
       
       /* Might need to take into account the window border here */
-      if(width < 1) width = thisbox->minwidth;
-      if(height < 1) height = thisbox->minheight;
+      if(width < 1) width = thisbox->minwidth + border;
+      if(height < 1) height = thisbox->minheight + WinQuerySysValue(HWND_DESKTOP, SV_CYTITLEBAR) + border;
    }
    
    /* Finally set the size */
@@ -6943,17 +6943,17 @@ void API dw_window_set_pos_size(HWND handle, LONG x, LONG y, ULONG width, ULONG 
    Box *thisbox;
    HWND box;
 
-   if((width < 1 || height < 1) && (box = WinWindowFromID(window, FID_CLIENT)) &&
+   if((width < 1 || height < 1) && (box = WinWindowFromID(handle, FID_CLIENT)) &&
       (thisbox = WinQueryWindowPtr(box, QWP_USER)))
    {
-      int depth = 0;
+      int depth = 0, border = WinQuerySysValue(HWND_DESKTOP, SV_CXSIZEBORDER) * 2;
             
       /* Calculate space requirements */
       _resize_box(thisbox, &depth, width, height, 1);
       
       /* Might need to take into account the window border here */
-      if(width < 1) width = thisbox->minwidth;
-      if(height < 1) height = thisbox->minheight;
+      if(width < 1) width = thisbox->minwidth + border;
+      if(height < 1) height = thisbox->minheight + WinQuerySysValue(HWND_DESKTOP, SV_CYTITLEBAR) + border;
    }
    
    /* Finally set the size */
