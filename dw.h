@@ -658,8 +658,6 @@ typedef struct _item {
    int hsize, vsize;
    /* Padding */
    int pad;
-   /* Ratio of current item */
-   float xratio, yratio;
 } Item;
 
 typedef struct _box {
@@ -678,15 +676,13 @@ typedef struct _box {
    /* Keep track of how box is packed */
    int hsize, vsize;
    /* Padding */
-   int pad, parentpad, grouppadx, grouppady;
+   int pad, grouppadx, grouppady;
    /* Groupbox */
    HWND grouphwnd;
    /* Default item */
    HWND defaultitem;
    /* Used as temporary storage in the calculation stage */
-   int upx, upy, minheight, minwidth;
-   /* Ratio in this box */
-   float xratio, yratio, parentxratio, parentyratio;
+   int usedpadx, usedpady, minheight, minwidth;
    /* Used for calculating individual item ratios */
    int width, height;
    /* Any combinations of flags describing the box */

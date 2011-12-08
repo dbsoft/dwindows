@@ -655,6 +655,8 @@ DWObject *DWObj;
     if (self)
     {
         box = calloc(1, sizeof(Box));
+        box->vsize = box->hsize = SIZEEXPAND;
+        box->width = box->height = 1;
     }
     return self;
 }
@@ -2408,343 +2410,183 @@ void _handle_resize_events(Box *thisbox)
 /* This function calculates how much space the widgets and boxes require
  * and does expansion as necessary.
  */
-static int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *usedy,
-                       int pass, int *usedpadx, int *usedpady)
+static void _resize_box(Box *thisbox, int *depth, int x, int y, int pass)
 {
-    int z, currentx = 0, currenty = 0;
+    /* Current item position */
+    int z, currentx = thisbox->pad, currenty = thisbox->pad;
+    /* Used x, y and padding maximum values...
+     * These will be used to find the widest or
+     * tallest items in a box.
+     */
     int uymax = 0, uxmax = 0;
     int upymax = 0, upxmax = 0;
-    /* Used for the SIZEEXPAND */
-    int nux = *usedx, nuy = *usedy;
-    int nupx = *usedpadx, nupy = *usedpady;
-    int thispadx = thisbox->pad * 2;
-    int thispady = thisbox->pad * 2;
+    
+    /* Reset the box sizes */
+    thisbox->minwidth = thisbox->minheight = thisbox->usedpadx = thisbox->usedpady = thisbox->pad * 2;
 
     /* Handle special groupbox case */
     if(thisbox->grouphwnd)
     {
-        DWGroupBox *groupbox = thisbox->grouphwnd;
-        NSSize borderSize = [groupbox borderSize];
-        NSRect titleRect;
-
-        if(borderSize.width == 0 || borderSize.height == 0)
+        /* Only calculate the size on the first pass...
+         * used the cached values on second.
+         */
+        if(pass == 1)
         {
-            borderSize = [groupbox initBorder];
+            DWGroupBox *groupbox = thisbox->grouphwnd;
+            NSSize borderSize = [groupbox borderSize];
+            NSRect titleRect;
+
+            if(borderSize.width == 0 || borderSize.height == 0)
+            {
+                borderSize = [groupbox initBorder];
+            }
+            /* Get the title size for a more accurate groupbox padding size */
+            titleRect = [groupbox titleRect];
+
+            thisbox->grouppadx = borderSize.width;
+            thisbox->grouppady = borderSize.height + titleRect.size.height;
         }
-        /* Get the title size for a more accurate groupbox padding size */
-        titleRect = [groupbox titleRect];
-
-        thisbox->grouppadx = borderSize.width;
-        thisbox->grouppady = borderSize.height + titleRect.size.height;
-
-        (*usedx) += thisbox->grouppadx;
-        (*usedpadx) += thisbox->grouppadx;
-        (*usedy) += thisbox->grouppady;
-        (*usedpady) += thisbox->grouppady;
+        
+        thisbox->minwidth += thisbox->grouppadx;
+        thisbox->usedpadx += thisbox->grouppadx;
+        thisbox->minheight += thisbox->grouppady;
+        thisbox->usedpady += thisbox->grouppady;
     }
-
-    (*usedx) += thispadx;
-    (*usedy) += thispady;
-
+    
+    /* Count up all the space for all items in the box */
     for(z=0;z<thisbox->count;z++)
     {
+        int itempad, itemwidth, itemheight;
+        
         if(thisbox->items[z].type == TYPEBOX)
         {
-            int initialx, initialy;
             id box = thisbox->items[z].hwnd;
             Box *tmp = [box box];
 
-            initialx = x - (*usedx);
-            initialy = y - (*usedy);
-
             if(tmp)
             {
-                int newx, newy;
-                int nux = *usedx, nuy = *usedy;
-                int tmppadx = tmp->pad*2;
-                int tmppady = tmp->pad*2;
-                int upx, upy;
-
-                upx = *usedpadx + tmppadx;
-                upy = *usedpady + tmppady;
-
-                /* On the second pass we know how big the box needs to be and how
-                 * much space we have, so we can calculate a ratio for the new box.
-                 */
-                if(pass > 1)
+                /* On the first pass calculate the box contents */
+                if(pass == 1)
                 {
-                    int deep = *depth + 1;
-                    int tux = nux, tuy = nuy, tupx = upx, tupy = upy;
-
-                    _resize_box(tmp, &deep, x, y, &tux, &tuy, 1, &tupx, &tupy);
-
-                    tmp->upx = tupx - *usedpadx;
-                    tmp->upy = tupy - *usedpady;
-
-                    newx = x - tux;
-                    newy = y - tuy;
-
-                    tmp->width = thisbox->items[z].width = initialx - newx;
-                    tmp->height = thisbox->items[z].height = initialy - newy;
-
-                    tmp->parentxratio = thisbox->xratio;
-                    tmp->parentyratio = thisbox->yratio;
-
-                    tmp->parentpad = tmp->pad;
-                    tmp->hsize = thisbox->items[z].hsize;
-                    tmp->vsize = thisbox->items[z].vsize;
-
-                    /* Just in case */
-                    tmp->xratio = thisbox->xratio;
-                    tmp->yratio = thisbox->yratio;
-
-                    if(thisbox->type == DW_VERT)
-                    {
-                        int tmppad = (thisbox->items[z].pad*2)+(tmp->pad*2)+tmp->grouppady;
-
-                        if((thisbox->items[z].width - tmppad)!=0)
-                            tmp->xratio = ((float)((thisbox->items[z].width * thisbox->xratio)-tmppad))/((float)(thisbox->items[z].width-tmppad));
-                    }
-                    else
-                    {
-                        if((thisbox->items[z].width-tmp->upx)!=0)
-                            tmp->xratio = ((float)((thisbox->items[z].width * thisbox->xratio)-tmp->upx))/((float)(thisbox->items[z].width-tmp->upx));
-                    }
-                    if(thisbox->type == DW_HORZ)
-                    {
-                        int tmppad = (thisbox->items[z].pad*2)+(tmp->pad*2)+tmp->grouppadx;
-
-                        if((thisbox->items[z].height-tmppad)!=0)
-                            tmp->yratio = ((float)((thisbox->items[z].height * thisbox->yratio)-tmppad))/((float)(thisbox->items[z].height-tmppad));
-                    }
-                    else
-                    {
-                        if((thisbox->items[z].height-tmp->upy)!=0)
-                            tmp->yratio = ((float)((thisbox->items[z].height * thisbox->yratio)-tmp->upy))/((float)(thisbox->items[z].height-tmp->upy));
-                    }
-                }
-
-                (*depth)++;
-
-                _resize_box(tmp, depth, x, y, &nux, &nuy, pass, &upx, &upy);
-
-                (*depth)--;
-
-                newx = x - nux;
-                newy = y - nuy;
-
-                tmp->minwidth = thisbox->items[z].width = initialx - newx;
-                tmp->minheight = thisbox->items[z].height = initialy - newy;
-            }
-        }
-
-        if(pass > 1 && *depth > 0)
-        {
-            if(thisbox->type == DW_VERT)
-            {
-                int tmppad = (thisbox->items[z].pad*2)+(thisbox->parentpad*2)+thisbox->grouppadx;
-
-                if((thisbox->minwidth-tmppad) == 0)
-                    thisbox->items[z].xratio = 1.0;
-                else
-                    thisbox->items[z].xratio = ((float)((thisbox->width * thisbox->parentxratio)-tmppad))/((float)(thisbox->minwidth-tmppad));
-            }
-            else
-            {
-                if(thisbox->minwidth-thisbox->upx == 0)
-                    thisbox->items[z].xratio = 1.0;
-                else
-                    thisbox->items[z].xratio = ((float)((thisbox->width * thisbox->parentxratio)-thisbox->upx))/((float)(thisbox->minwidth-thisbox->upx));
-            }
-
-            if(thisbox->type == DW_HORZ)
-            {
-                int tmppad = (thisbox->items[z].pad*2)+(thisbox->parentpad*2)+thisbox->grouppady;
-
-                if((thisbox->minheight-tmppad) == 0)
-                    thisbox->items[z].yratio = 1.0;
-                else
-                    thisbox->items[z].yratio = ((float)((thisbox->height * thisbox->parentyratio)-tmppad))/((float)(thisbox->minheight-tmppad));
-            }
-            else
-            {
-                if(thisbox->minheight-thisbox->upy == 0)
-                    thisbox->items[z].yratio = 1.0;
-                else
-                    thisbox->items[z].yratio = ((float)((thisbox->height * thisbox->parentyratio)-thisbox->upy))/((float)(thisbox->minheight-thisbox->upy));
-            }
-
-            if(thisbox->items[z].type == TYPEBOX)
-            {
-                id box = thisbox->items[z].hwnd;
-                Box *tmp = [box box];
-
-                if(tmp)
-                {
-                    tmp->parentxratio = thisbox->items[z].xratio;
-                    tmp->parentyratio = thisbox->items[z].yratio;
+                    (*depth)++;
+                    
+                    /* Save the newly calculated values on the box */
+                    _resize_box(tmp, depth, x, y, pass);
+                    
+                    /* Duplicate the values in the item list for use below */
+                    thisbox->items[z].width = tmp->minwidth;
+                    thisbox->items[z].height = tmp->minheight;
+                
+                    (*depth)--;
                 }
             }
         }
-        else
-        {
-            thisbox->items[z].xratio = thisbox->xratio;
-            thisbox->items[z].yratio = thisbox->yratio;
-        }
-
+        
+        /* Precalculate these values, since they will
+         * be used used repeatedly in the next section.
+         */
+        itempad = thisbox->items[z].pad * 2;
+        itemwidth = thisbox->items[z].width + itempad;
+        itemheight = thisbox->items[z].height + itempad;
+        
+        /* Calculate the totals and maximums */
         if(thisbox->type == DW_VERT)
         {
-            if((thisbox->items[z].width + (thisbox->items[z].pad*2)) > uxmax)
-                uxmax = (thisbox->items[z].width + (thisbox->items[z].pad*2));
+            if(itemwidth > uxmax)
+                uxmax = itemwidth;
+            
             if(thisbox->items[z].hsize != SIZEEXPAND)
             {
-                if(((thisbox->items[z].pad*2) + thisbox->items[z].width) > upxmax)
-                    upxmax = (thisbox->items[z].pad*2) + thisbox->items[z].width;
+                if(itemwidth > upxmax)
+                    upxmax = itemwidth;
             }
             else
             {
-                if(thisbox->items[z].pad*2 > upxmax)
-                    upxmax = thisbox->items[z].pad*2;
+                if(itempad > upxmax)
+                    upxmax = itempad;
             }
+            thisbox->minheight += itemheight;
+            if(thisbox->items[z].vsize != SIZEEXPAND)
+                thisbox->usedpady += itemheight;
+            else
+                thisbox->usedpady += itempad;
         }
         else
         {
-            (*usedx) += thisbox->items[z].width + (thisbox->items[z].pad*2);
+            if(itemheight > uymax)
+                uymax = itemheight;
+            if(thisbox->items[z].vsize != SIZEEXPAND)
+            {
+                if(itemheight > upymax)
+                    upymax = itemheight;
+            }
+            else
+            {
+                if(itempad > upymax)
+                    upymax = itempad;
+            }
+            thisbox->minwidth += itemwidth;
             if(thisbox->items[z].hsize != SIZEEXPAND)
-                (*usedpadx) += (thisbox->items[z].pad*2) + thisbox->items[z].width;
+                thisbox->usedpadx += itemwidth;
             else
-                (*usedpadx) += thisbox->items[z].pad*2;
-        }
-        if(thisbox->type == DW_HORZ)
-        {
-            if((thisbox->items[z].height + (thisbox->items[z].pad*2)) > uymax)
-                uymax = (thisbox->items[z].height + (thisbox->items[z].pad*2));
-            if(thisbox->items[z].vsize != SIZEEXPAND)
-            {
-                if(((thisbox->items[z].pad*2) + thisbox->items[z].height) > upymax)
-                    upymax = (thisbox->items[z].pad*2) + thisbox->items[z].height;
-            }
-            else
-            {
-                if(thisbox->items[z].pad*2 > upymax)
-                    upymax = thisbox->items[z].pad*2;
-            }
-        }
-        else
-        {
-            (*usedy) += thisbox->items[z].height + (thisbox->items[z].pad*2);
-            if(thisbox->items[z].vsize != SIZEEXPAND)
-                (*usedpady) += (thisbox->items[z].pad*2) + thisbox->items[z].height;
-            else
-                (*usedpady) += thisbox->items[z].pad*2;
+                thisbox->usedpadx += itempad;
         }
     }
 
-    (*usedx) += uxmax;
-    (*usedy) += uymax;
-    (*usedpadx) += upxmax;
-    (*usedpady) += upymax;
+    /* Add the maximums which were calculated in the previous loop */
+    thisbox->minwidth += uxmax;
+    thisbox->minheight += uymax;
+    thisbox->usedpadx += upxmax;
+    thisbox->usedpady += upymax;
 
-    currentx += thisbox->pad;
-    currenty += thisbox->pad;
-
-    /* The second pass is for expansion. */
+    /* The second pass is for actual placement. */
     if(pass > 1)
-    {
-        /* Any SIZEEXPAND items should be set to uxmax/uymax */
-        for(z=0;z<thisbox->count;z++)
-        {
-            if(thisbox->items[z].hsize == SIZEEXPAND && thisbox->type == DW_VERT)
-                thisbox->items[z].width = uxmax-(thisbox->items[z].pad*2);
-            if(thisbox->items[z].vsize == SIZEEXPAND && thisbox->type == DW_HORZ)
-                thisbox->items[z].height = uymax-(thisbox->items[z].pad*2);
-            /* Run this code segment again to finalize the sized after setting uxmax/uymax values. */
-            if(thisbox->items[z].type == TYPEBOX)
-            {
-                int tux = nux, tuy = nuy, tupx = nupx, tupy = nupy;
-                id box = thisbox->items[z].hwnd;
-                Box *tmp = [box box];
-
-                if(tmp)
-                {
-                    if(*depth > 0)
-                    {
-                        float calcval;
-
-                        if(thisbox->type == DW_VERT)
-                        {
-                            calcval = (float)(tmp->minwidth-((thisbox->items[z].pad*2)+thispadx));
-                            if(calcval == 0.0)
-                                tmp->xratio = thisbox->xratio;
-                            else
-                                tmp->xratio = ((float)((thisbox->items[z].width * thisbox->xratio)-((thisbox->items[z].pad*2)+thispadx)))/calcval;
-                            tmp->width = thisbox->items[z].width;
-                        }
-                        if(thisbox->type == DW_HORZ)
-                        {
-                            calcval = (float)(tmp->minheight-((thisbox->items[z].pad*2)+thispady));
-                            if(calcval == 0.0)
-                                tmp->yratio = thisbox->yratio;
-                            else
-                                tmp->yratio = ((float)((thisbox->items[z].height * thisbox->yratio)-((thisbox->items[z].pad*2)+thispady)))/calcval;
-                            tmp->height = thisbox->items[z].height;
-                        }
-                    }
-
-
-                    (*depth)++;
-
-                    _resize_box(tmp, depth, x, y, &tux, &tuy, pass, &tupx, &tupy);
-
-                    (*depth)--;
-
-                }
-            }
-        }
-    }
-
-    /* The third pass is for actual placement. */
-    if(pass > 2)
     {
         for(z=0;z<(thisbox->count);z++)
         {
             int height = thisbox->items[z].height;
             int width = thisbox->items[z].width;
-            int pad = thisbox->items[z].pad;
-            NSView *handle = thisbox->items[z].hwnd;
-            NSPoint point;
-            NSSize size;
-            int vectorx, vectory;
+            int itempad = thisbox->items[z].pad * 2;
+            int thispad = thisbox->pad * 2;
 
-            /* When upxmax != pad*2 then ratios are incorrect. */
-            vectorx = (int)((width*thisbox->items[z].xratio)-width);
-            vectory = (int)((height*thisbox->items[z].yratio)-height);
-
-            if(width > 0 && height > 0)
+            /* Calculate the new sizes */
+            if(thisbox->items[z].hsize == SIZEEXPAND)
             {
-                /* This is a hack to fix rounding of the sizing */
-                if(*depth == 0)
+                if(thisbox->type == DW_HORZ)
                 {
-                    vectorx++;
-                    vectory++;
+                    int expandablex = thisbox->minwidth - thisbox->usedpadx;
+                
+                    if(expandablex)
+                        width = (int)(((float)width / (float)expandablex) * (float)(x - thisbox->usedpadx));
                 }
-
-                /* If this item isn't going to expand... reset the vectors to 0 */
-                if(thisbox->items[z].vsize != SIZEEXPAND)
-                    vectory = 0;
-                if(thisbox->items[z].hsize != SIZEEXPAND)
-                    vectorx = 0;
-
+                else
+                    width = x - (itempad + thispad + thisbox->grouppadx);
+            }
+            if(thisbox->items[z].vsize == SIZEEXPAND)
+            {
+                if(thisbox->type == DW_VERT)
+                {
+                    int expandabley = thisbox->minheight - thisbox->usedpady;
+                
+                    if(expandabley)
+                        height = (int)(((float)height / (float)expandabley) * (float)(y - thisbox->usedpady));
+                }
+                else
+                    height = y - (itempad + thispad + thisbox->grouppady);
+            }
+            
+            /* If the calculated size is valid... */
+            if(height > 0 && width > 0)
+            {
+                int pad = thisbox->items[z].pad;
+                NSView *handle = thisbox->items[z].hwnd;
+                NSPoint point;
+                NSSize size;
+                
                 point.x = currentx + pad;
                 point.y = currenty + pad;
-                if(thisbox->type == DW_VERT && thisbox->hsize == SIZESTATIC && thisbox->items[z].hsize == SIZEEXPAND && thisbox->width)
-                    size.width = thisbox->width;
-                else
-                    size.width = width + vectorx;
-                if(thisbox->type == DW_HORZ && thisbox->vsize == SIZESTATIC && thisbox->items[z].vsize == SIZEEXPAND && thisbox->height)
-                    size.height = thisbox->height;
-                else
-                    size.height = height + vectory;
+                size.width = width;
+                size.height = height;
                 [handle setFrameOrigin:point];
                 [handle setFrameSize:size];
 
@@ -2757,7 +2599,7 @@ static int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *
                     if(tmp)
                     {
                         (*depth)++;
-                        _resize_box(tmp, depth, x, y, &nux, &nuy, pass, &nupx, &nupy);
+                        _resize_box(tmp, depth, width, height, pass);
                         (*depth)--;
                     }
                 }
@@ -2782,22 +2624,22 @@ static int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *
                  */
                 else if([handle isMemberOfClass:[DWScrollBox class]])
                 {
-                    int usedx = 0, usedy = 0, usedpadx = 0, usedpady = 0, depth = 0;
+                    int depth = 0;
                     DWScrollBox *scrollbox = (DWScrollBox *)handle;
                     DWBox *contentbox = [scrollbox documentView];
                     Box *thisbox = [contentbox box];
                     NSSize contentsize = [scrollbox contentSize];
 
                     /* Get the required space for the box */
-                    _resize_box(thisbox, &depth, x, y, &usedx, &usedy, 1, &usedpadx, &usedpady);
+                    _resize_box(thisbox, &depth, x, y, 1);
 
-                    if(contentsize.width < usedx)
+                    if(contentsize.width < thisbox->minwidth)
                     {
-                        contentsize.width = usedx;
+                        contentsize.width = thisbox->minwidth;
                     }
-                    if(contentsize.height < usedy)
+                    if(contentsize.height < thisbox->minheight)
                     {
-                        contentsize.height = usedy;
+                        contentsize.height = thisbox->minheight;
                     }
                     [contentbox setFrameSize:contentsize];
 
@@ -2833,13 +2675,12 @@ static int _resize_box(Box *thisbox, int *depth, int x, int y, int *usedx, int *
                     }
                 }
                 if(thisbox->type == DW_HORZ)
-                    currentx += width + vectorx + (pad * 2);
+                    currentx += width + (pad * 2);
                 if(thisbox->type == DW_VERT)
-                    currenty += height + vectory + (pad * 2);
+                    currenty += height + (pad * 2);
             }
         }
     }
-    return 0;
 }
 
 static void _do_resize(Box *thisbox, int x, int y)
@@ -2848,29 +2689,13 @@ static void _do_resize(Box *thisbox, int x, int y)
     {
         if(thisbox)
         {
-            int usedx = 0, usedy = 0, usedpadx = 0, usedpady = 0, depth = 0;
-
+            int depth = 0;
+            
             /* Calculate space requirements */
-            _resize_box(thisbox, &depth, x, y, &usedx, &usedy, 1, &usedpadx, &usedpady);
-
-            if(usedx-usedpadx == 0 || usedy-usedpady == 0)
-                return;
-
-            thisbox->xratio = ((float)(x-usedpadx))/((float)(usedx-usedpadx));
-            thisbox->yratio = ((float)(y-usedpady))/((float)(usedy-usedpady));
-
-            usedx = usedy = usedpadx = usedpady = depth = 0;
-
-            /* Calculate sub-box ratios for expansion */
-            _resize_box(thisbox, &depth, x, y, &usedx, &usedy, 2, &usedpadx, &usedpady);
-
-            thisbox->xratio = ((float)(x-usedpadx))/((float)(usedx-usedpadx));
-            thisbox->yratio = ((float)(y-usedpady))/((float)(usedy-usedpady));
-
-            usedx = usedy = usedpadx = usedpady = depth = 0;
-
+            _resize_box(thisbox, &depth, x, y, 1);
+            
             /* Finally place all the boxes and controls */
-            _resize_box(thisbox, &depth, x, y, &usedx, &usedy, 3, &usedpadx, &usedpady);
+            _resize_box(thisbox, &depth, x, y, 2);
         }
     }
 }
