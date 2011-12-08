@@ -2428,7 +2428,7 @@ static void _resize_box(Box *thisbox, int *depth, int x, int y, int pass)
     if(thisbox->grouphwnd)
     {
         /* Only calculate the size on the first pass...
-         * used the cached values on second.
+         * use the cached values on second.
          */
         if(pass == 1)
         {
