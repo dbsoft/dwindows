@@ -6536,6 +6536,36 @@ void API dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, 
 }
 
 /*
+ * The following is an attempt to dynamically size a window based on the size of its
+ * children before realization. Only applicable when width or height is less than one.
+ */
+void _get_window_for_size(HWND handle, unsigned long *width, unsigned long *height)
+{
+   Box *thisbox = (Box *)GetWindowLongPtr(handle, GWLP_USERDATA);
+   
+   if(thisbox)
+   {
+      int depth = 0;
+      DWORD dwStyle = GetWindowLongPtr(handle, GWL_STYLE);
+      DWORD dwExStyle = GetWindowLongPtr(handle, GWL_EXSTYLE);
+      HMENU menu = GetMenu(handle) ;
+      RECT rc = { 0 } ;
+     
+      /* Calculate space requirements */
+      _resize_box(thisbox, &depth, *width, *height, 1);
+      
+      rc.right = thisbox->minwidth;
+      rc.bottom = thisbox->minheight;
+      
+      /* Take into account the window border and menu here */
+      AdjustWindowRectEx(&rc, dwStyle, menu ? TRUE : FALSE, dwExStyle);
+      
+      if ( *width < 1 ) *width = rc.right - rc.left;
+      if ( *height < 1 ) *height = rc.bottom - rc.top;
+   }
+}
+
+/*
  * Sets the size of a given window (widget).
  * Parameters:
  *          handle: Window (widget) handle.
@@ -6544,23 +6574,9 @@ void API dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, 
  */
 void API dw_window_set_size(HWND handle, ULONG width, ULONG height)
 {
-   Box *thisbox;
-   
-   /*
-    * The following is an attempt to dynamically size a window based on the size of its
-    * children before realization. Only applicable when width or height is less than one.
-    */
-   if ( (width < 1 || height < 1) && (thisbox = (Box *)GetWindowLongPtr(handle, GWLP_USERDATA)) )
-   {
-      int depth = 0, border = GetSystemMetrics(SM_CXSIZEFRAME) * 2;
-            
-      /* Calculate space requirements */
-      _resize_box(thisbox, &depth, width, height, 1);
-      
-      /* Might need to take into account the window border here */
-      if ( width < 1 ) width = thisbox->minwidth + border;
-      if ( height < 1 ) height = thisbox->minheight + GetSystemMetrics(SM_CYCAPTION) + border;
-   }
+   /* Attempt to auto-size */
+   if ( width < 1 || height < 1 )
+      _get_window_for_size(handle, &width, &height);
    
    /* Finally set the size */
    SetWindowPos(handle, (HWND)NULL, 0, 0, width, height, SWP_SHOWWINDOW | SWP_NOZORDER | SWP_NOMOVE);
@@ -6631,23 +6647,9 @@ void API dw_window_set_pos(HWND handle, long x, long y)
  */
 void API dw_window_set_pos_size(HWND handle, long x, long y, ULONG width, ULONG height)
 {
-   Box *thisbox;
-   
-   /*
-    * The following is an attempt to dynamically size a window based on the size of its
-    * children before realization. Only applicable when width or height is less than one.
-    */
-   if ( (width < 1 || height < 1) && (thisbox = (Box *)GetWindowLongPtr(handle, GWLP_USERDATA)) )
-   {
-      int depth = 0, border = GetSystemMetrics(SM_CXSIZEFRAME) * 2;
-            
-      /* Calculate space requirements */
-      _resize_box(thisbox, &depth, width, height, 1);
-      
-      /* Might need to take into account the window border here */
-      if ( width < 1 ) width = thisbox->minwidth + border;
-      if ( height < 1 ) height = thisbox->minheight + GetSystemMetrics(SM_CYCAPTION) + border;
-   }
+   /* Attempt to auto-size */
+   if ( width < 1 || height < 1 )
+      _get_window_for_size(handle, &width, &height);
    
    /* Finally set the size */
    SetWindowPos(handle, (HWND)NULL, x, y, width, height, SWP_NOZORDER | SWP_SHOWWINDOW | SWP_NOACTIVATE);
