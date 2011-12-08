@@ -1054,8 +1054,6 @@ BOOL _MySetWindowPos(HWND hwnd, HWND parent, HWND behind, LONG x, LONG y, LONG c
    return WinSetWindowPos(hwnd, behind, x, height - y - cy, cx, cy, fl);
 }
 
-#define _DW_DEFAULT_SCROLLBAR_WIDTH 14
-
 /* This function calculates how much space the widgets and boxes require
  * and does expansion as necessary.
  */
@@ -1283,12 +1281,12 @@ static void _resize_box(Box *thisbox, int *depth, int x, int y, int pass)
 
                 /* Position the scrollbox parts */
                 _MySetWindowPos(handle, thisbox->hwnd, HWND_TOP, currentx + pad, currenty + pad, width, height, SWP_MOVE | SWP_SIZE | SWP_ZORDER);
-                WinSetWindowPos(client, HWND_TOP, 0, _DW_DEFAULT_SCROLLBAR_WIDTH, width - _DW_DEFAULT_SCROLLBAR_WIDTH, height - _DW_DEFAULT_SCROLLBAR_WIDTH, SWP_MOVE | SWP_SIZE | SWP_ZORDER);
-                WinSetWindowPos(hscroll, HWND_TOP, 0, 0, width - _DW_DEFAULT_SCROLLBAR_WIDTH, _DW_DEFAULT_SCROLLBAR_WIDTH, SWP_MOVE | SWP_SIZE | SWP_ZORDER);
-                WinSetWindowPos(vscroll, HWND_TOP, width - _DW_DEFAULT_SCROLLBAR_WIDTH, _DW_DEFAULT_SCROLLBAR_WIDTH, _DW_DEFAULT_SCROLLBAR_WIDTH, height - _DW_DEFAULT_SCROLLBAR_WIDTH, SWP_MOVE | SWP_SIZE | SWP_ZORDER);
+                WinSetWindowPos(client, HWND_TOP, 0, WinQuerySysValue(HWND_DESKTOP, SV_CYHSCROLL), width - WinQuerySysValue(HWND_DESKTOP, SV_CXVSCROLL), height - WinQuerySysValue(HWND_DESKTOP, SV_CYHSCROLL), SWP_MOVE | SWP_SIZE | SWP_ZORDER);
+                WinSetWindowPos(hscroll, HWND_TOP, 0, 0, width - WinQuerySysValue(HWND_DESKTOP, SV_CXVSCROLL), WinQuerySysValue(HWND_DESKTOP, SV_CYHSCROLL), SWP_MOVE | SWP_SIZE | SWP_ZORDER);
+                WinSetWindowPos(vscroll, HWND_TOP, width - WinQuerySysValue(HWND_DESKTOP, SV_CXVSCROLL), WinQuerySysValue(HWND_DESKTOP, SV_CYHSCROLL), WinQuerySysValue(HWND_DESKTOP, SV_CXVSCROLL), height - WinQuerySysValue(HWND_DESKTOP, SV_CYHSCROLL), SWP_MOVE | SWP_SIZE | SWP_ZORDER);
 
-                origx = cx = width - _DW_DEFAULT_SCROLLBAR_WIDTH;
-                origy = cy = height - _DW_DEFAULT_SCROLLBAR_WIDTH;
+                origx = cx = width - WinQuerySysValue(HWND_DESKTOP, SV_CXVSCROLL);
+                origy = cy = height - WinQuerySysValue(HWND_DESKTOP, SV_CYHSCROLL);
 
                 /* Get the required space for the box */
                 _resize_box(contentbox, &depth, cx, cy, 1);
@@ -4602,13 +4600,13 @@ void _control_size(HWND handle, int *width, int *height)
       if(strncmp(tmpbuf, "#8", 3)== 0 &&
          WinQueryWindowULong(handle, QWL_STYLE) & SBS_VERT)
       {
-         thiswidth = _DW_DEFAULT_SCROLLBAR_WIDTH;
+         thiswidth = WinQuerySysValue(HWND_DESKTOP, SV_CXVSCROLL);
          thisheight = 100;
       }
       else
       {
          thiswidth = 100;
-         thisheight = _DW_DEFAULT_SCROLLBAR_WIDTH;
+         thisheight = WinQuerySysValue(HWND_DESKTOP, SV_CYHSCROLL);
       }
    }
    /* Spinbutton */
