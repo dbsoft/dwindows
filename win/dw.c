@@ -4247,14 +4247,14 @@ void _control_size(HWND handle, int *width, int *height)
         GetWindowLong(handle, GWL_STYLE) & SBS_VERT)
       {
          /* Vertical */
-         thiswidth = 14;
+         thiswidth = GetSystemMetrics(SM_CXVSCROLL);
          thisheight = 100;
       }
       else
       {
          /* Horizontal */
          thiswidth = 100;
-         thisheight = 14;
+         thisheight = GetSystemMetrics(SM_CYHSCROLL);
       }
    }
    /* Spinbuttons */
