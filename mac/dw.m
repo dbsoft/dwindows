@@ -8440,7 +8440,7 @@ void API dw_window_set_size(HWND handle, ULONG width, ULONG height)
             int depth = 0;
                 
             /* Calculate space requirements */
-            _resize_box(thisbox, &depth, width, height, 1);
+            _resize_box(thisbox, &depth, (int)width, (int)height, 1);
           
             /* Might need to take into account the window border here */
             if(width < 1) width = thisbox->minwidth;
