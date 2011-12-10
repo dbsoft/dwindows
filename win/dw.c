@@ -4222,7 +4222,7 @@ void _control_size(HWND handle, int *width, int *height)
    /* If we got an image... set the sizes appropriately */
    if(hbm)
    {
-      BITMAP bmi;
+      BITMAP bmi = { 0 };
       
       GetObject(hbm, sizeof(BITMAP), &bmi);
       thiswidth = bmi.bmWidth;
@@ -4291,7 +4291,7 @@ void _control_size(HWND handle, int *width, int *height)
       else
       {
          extrawidth = 8;
-         extraheight = 4;
+         extraheight = 8;
       }
    }
    else if(strnicmp(tmpbuf, StatusbarClassName, strlen(StatusbarClassName)+1) == 0)
