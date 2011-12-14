@@ -2892,7 +2892,10 @@ HWND dw_window_new(HWND hwndOwner, char *title, unsigned long flStyle)
    else
    {
       GtkWidget *box = dw_box_new(DW_VERT, 0);
+      GtkWidget *grid = gtk_grid_new();
 
+      gtk_widget_show_all(grid);
+            
       last_window = tmp = gtk_window_new(GTK_WINDOW_TOPLEVEL);
 
       gtk_window_set_title(GTK_WINDOW(tmp), title);
@@ -2935,8 +2938,10 @@ HWND dw_window_new(HWND hwndOwner, char *title, unsigned long flStyle)
       if(flStyle & DW_FCF_SIZEBORDER)
          g_object_set_data(G_OBJECT(tmp), "_dw_size", GINT_TO_POINTER(1));
          
-      gtk_container_add(GTK_CONTAINER(tmp), box);
+      gtk_grid_attach(GTK_GRID(grid), box, 0, 1, 1, 1);
+      gtk_container_add(GTK_CONTAINER(tmp), grid);
       g_object_set_data(G_OBJECT(tmp), "_dw_boxhandle", (gpointer)box);
+      g_object_set_data(G_OBJECT(tmp), "_dw_grid", (gpointer)grid);
    }
    g_object_set_data(G_OBJECT(tmp), "_dw_style", GINT_TO_POINTER(flStyle));
    DW_MUTEX_UNLOCK;
@@ -3181,7 +3186,7 @@ HMENUI dw_menubar_new(HWND location)
 
    DW_MUTEX_LOCK;
    if(GTK_IS_WINDOW(location) && 
-      (box = (GtkWidget *)g_object_get_data(G_OBJECT(location), "_dw_boxhandle")))
+      (box = (GtkWidget *)g_object_get_data(G_OBJECT(location), "_dw_grid")))
    {
       /* If there is an existing menu bar, remove it */
       GtkWidget *oldmenu = (GtkWidget *)g_object_get_data(G_OBJECT(location), "_dw_menubar");
@@ -3192,8 +3197,10 @@ HMENUI dw_menubar_new(HWND location)
       gtk_widget_show(tmp);
       accel_group = gtk_accel_group_new();
       g_object_set_data(G_OBJECT(tmp), "_dw_accel", (gpointer)accel_group);
+      /* Save pointers to each other */
       g_object_set_data(G_OBJECT(location), "_dw_menubar", (gpointer)tmp);
-      dw_box_pack_end(box, (HWND)tmp, -1, -1, TRUE, FALSE, 0);
+      g_object_set_data(G_OBJECT(tmp), "_dw_window", (gpointer)location);
+      gtk_grid_attach(GTK_GRID(box), tmp, 0, 0, 1, 1);
    }
    DW_MUTEX_UNLOCK;
    return tmp;
@@ -3209,8 +3216,14 @@ void dw_menu_destroy(HMENUI *menu)
    if(menu && *menu)
    {
       int _locked_by_me = FALSE;
+      GtkWidget *window;
 
       DW_MUTEX_LOCK;
+      /* If it is a menu bar, try to delete the reference to it */
+      if(GTK_IS_MENU_BAR(*menu) &&
+         (window = (GtkWidget *)g_object_get_data(G_OBJECT(*menu), "_dw_window")))
+            g_object_set_data(G_OBJECT(window), "_dw_menubar", NULL);
+      /* Actually destroy the menu */
       gtk_widget_destroy(*menu);
       *menu = NULL;
       DW_MUTEX_UNLOCK;
