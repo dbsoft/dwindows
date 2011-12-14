@@ -2973,7 +2973,6 @@ void _handle_splitbar_resize(HWND hwnd, float percent, int type, int x, int y)
 {
    HWND handle1 = (HWND)dw_window_get_data(hwnd, "_dw_topleft");
    HWND handle2 = (HWND)dw_window_get_data(hwnd, "_dw_bottomright");
-   Box *tmp = (Box *)GetWindowLongPtr(handle1, GWLP_USERDATA);
 
    ShowWindow(handle1, SW_HIDE);
    ShowWindow(handle2, SW_HIDE);
@@ -2982,6 +2981,7 @@ void _handle_splitbar_resize(HWND hwnd, float percent, int type, int x, int y)
    {
       int newx = x;
       float ratio = (float)percent/(float)100.0;
+      Box *tmp = (Box *)GetWindowLongPtr(handle1, GWLP_USERDATA);
 
       newx = (int)((float)newx * ratio) - (SPLITBAR_WIDTH/2);
 
@@ -3001,17 +3001,18 @@ void _handle_splitbar_resize(HWND hwnd, float percent, int type, int x, int y)
    {
       int newy = y;
       float ratio = (float)(100.0-percent)/(float)100.0;
+      Box *tmp = (Box *)GetWindowLongPtr(handle2, GWLP_USERDATA);
 
       newy = (int)((float)newy * ratio) - (SPLITBAR_WIDTH/2);
 
-      MoveWindow(handle1, 0, y - newy, x, newy, FALSE);
+      MoveWindow(handle2, 0, y - newy, x, newy, FALSE);
       _do_resize(tmp, x - 1, newy - 1);
 
-      tmp = (Box *)GetWindowLongPtr(handle2, GWLP_USERDATA);
+      tmp = (Box *)GetWindowLongPtr(handle1, GWLP_USERDATA);
 
       newy = y - newy - SPLITBAR_WIDTH;
 
-      MoveWindow(handle2, 0, 0, x, newy, FALSE);
+      MoveWindow(handle1, 0, 0, x, newy, FALSE);
       _do_resize(tmp, x - 1, newy - 1);
 
       dw_window_set_data(hwnd, "_dw_start", (void *)newy);
