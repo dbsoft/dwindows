@@ -1122,7 +1122,6 @@ void _shift_focus_back(HWND handle)
          _focus_check_box_back(thisbox, handle, 2, 0);
    }
 }
-
 /* This function calculates how much space the widgets and boxes require
  * and does expansion as necessary.
  */
@@ -1199,6 +1198,12 @@ static void _resize_box(Box *thisbox, int *depth, int x, int y, int pass)
                /* Duplicate the values in the item list for use below */
                thisbox->items[z].width = tmp->minwidth;
                thisbox->items[z].height = tmp->minheight;
+               
+               /* If the box has no contents but is expandable... default the size to 1 */
+               if(!thisbox->items[z].width && thisbox->items[z].hsize)
+                  thisbox->items[z].width = 1;
+               if(!thisbox->items[z].height && thisbox->items[z].vsize)
+                  thisbox->items[z].height = 1;
                
                (*depth)--;
             }
@@ -1407,7 +1412,7 @@ static void _resize_box(Box *thisbox, int *depth, int x, int y, int pass)
                MoveWindow(handle, currentx + pad, currenty + pad,
                         width, height, FALSE);
 
-               if(percent)
+               if(percent && width > 0 && height > 0)
                   _handle_splitbar_resize(handle, *percent, type, width, height);
             }
             else if(strnicmp(tmpbuf, STATICCLASSNAME, strlen(STATICCLASSNAME)+1)==0)
@@ -1477,6 +1482,7 @@ static void _resize_box(Box *thisbox, int *depth, int x, int y, int pass)
                   TabCtrl_AdjustRect(handle,FALSE,&rect);
                   MoveWindow(array[pageid]->hwnd, rect.left, rect.top,
                            rect.right - rect.left, rect.bottom-rect.top, FALSE);
+                  dw_window_redraw(array[pageid]->hwnd);
                }
             }
             /* So does the List View... handle delayed cursoring */
@@ -2965,22 +2971,19 @@ void _changebox(Box *thisbox, int percent, int type)
 
 void _handle_splitbar_resize(HWND hwnd, float percent, int type, int x, int y)
 {
-   HWND handle1, handle2;
-   Box *tmp;
+   HWND handle1 = (HWND)dw_window_get_data(hwnd, "_dw_topleft");
+   HWND handle2 = (HWND)dw_window_get_data(hwnd, "_dw_bottomright");
+   Box *tmp = (Box *)GetWindowLongPtr(handle1, GWLP_USERDATA);
+
+   ShowWindow(handle1, SW_HIDE);
+   ShowWindow(handle2, SW_HIDE);
 
    if(type == DW_HORZ)
    {
       int newx = x;
       float ratio = (float)percent/(float)100.0;
 
-      handle1 = (HWND)dw_window_get_data(hwnd, "_dw_topleft");
-      handle2 = (HWND)dw_window_get_data(hwnd, "_dw_bottomright");
-      tmp = (Box *)GetWindowLongPtr(handle1, GWLP_USERDATA);
-
       newx = (int)((float)newx * ratio) - (SPLITBAR_WIDTH/2);
-
-      ShowWindow(handle1, SW_HIDE);
-      ShowWindow(handle2, SW_HIDE);
 
       MoveWindow(handle1, 0, 0, newx, y, FALSE);
       _do_resize(tmp, newx - 1, y - 1);
@@ -2999,14 +3002,7 @@ void _handle_splitbar_resize(HWND hwnd, float percent, int type, int x, int y)
       int newy = y;
       float ratio = (float)(100.0-percent)/(float)100.0;
 
-      handle1 = (HWND)dw_window_get_data(hwnd, "_dw_bottomright");
-      handle2 = (HWND)dw_window_get_data(hwnd, "_dw_topleft");
-      tmp = (Box *)GetWindowLongPtr(handle1, GWLP_USERDATA);
-
       newy = (int)((float)newy * ratio) - (SPLITBAR_WIDTH/2);
-
-      ShowWindow(handle1, SW_HIDE);
-      ShowWindow(handle2, SW_HIDE);
 
       MoveWindow(handle1, 0, y - newy, x, newy, FALSE);
       _do_resize(tmp, x - 1, newy - 1);
@@ -3706,6 +3702,8 @@ void API dw_main(void)
    MSG msg;
 
    _dwtid = dw_thread_id();
+   /* Make sure any queued redraws are handled */
+   _dw_redraw(0, FALSE);
 
    while(GetMessage(&msg, NULL, 0, 0))
    {
@@ -6387,7 +6385,7 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
    }
 
    GetClassName(box, tmpbuf, 99);
-
+   
    /* If we are in a scrolled box... extract the interal box */
    if(strnicmp(tmpbuf, ScrollClassName, strlen(ScrollClassName)+1)==0)
    {
@@ -6867,7 +6865,6 @@ void API dw_notebook_pack(HWND handle, ULONG pageidx, HWND page)
       HWND tmpbox = dw_box_new(DW_VERT, 0);
 
       dw_box_pack_start(tmpbox, page, 0, 0, TRUE, TRUE, 0);
-      SubclassWindow(tmpbox, _wndproc);
       if(array[pageid]->hwnd)
          dw_window_destroy(array[pageid]->hwnd);
       array[pageid]->hwnd = tmpbox;
@@ -10211,7 +10208,8 @@ void API dw_splitbar_set(HWND handle, float percent)
 
    dw_window_get_pos_size(handle, NULL, NULL, &width, &height);
 
-   _handle_splitbar_resize(handle, percent, type, width, height);
+   if(width > 0 && height > 0)
+      _handle_splitbar_resize(handle, percent, type, width, height);
 }
 
 /*
