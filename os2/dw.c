@@ -1131,6 +1131,12 @@ static void _resize_box(Box *thisbox, int *depth, int x, int y, int pass)
                thisbox->items[z].width = tmp->minwidth;
                thisbox->items[z].height = tmp->minheight;
                
+               /* If the box has no contents but is expandable... default the size to 1 */
+               if(!thisbox->items[z].width && thisbox->items[z].hsize)
+                  thisbox->items[z].width = 1;
+               if(!thisbox->items[z].height && thisbox->items[z].vsize)
+                  thisbox->items[z].height = 1;
+               
                (*depth)--;
             }
          }
@@ -3997,6 +4003,8 @@ void API dw_main(void)
    QMSG qmsg;
 
    _dwtid = dw_thread_id();
+   /* Make sure any queued redraws are handled */
+   _dw_redraw(0, FALSE);
 
    while(WinGetMsg(dwhab, &qmsg, 0, 0, 0))
    {

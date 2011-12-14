@@ -2469,19 +2469,25 @@ static void _resize_box(Box *thisbox, int *depth, int x, int y, int pass)
                 if(pass == 1)
                 {
                     (*depth)++;
-                    
+
                     /* Save the newly calculated values on the box */
                     _resize_box(tmp, depth, x, y, pass);
-                    
+
                     /* Duplicate the values in the item list for use below */
                     thisbox->items[z].width = tmp->minwidth;
                     thisbox->items[z].height = tmp->minheight;
-                
+
+                    /* If the box has no contents but is expandable... default the size to 1 */
+                    if(!thisbox->items[z].width && thisbox->items[z].hsize)
+                       thisbox->items[z].width = 1;
+                    if(!thisbox->items[z].height && thisbox->items[z].vsize)
+                       thisbox->items[z].height = 1;
+
                     (*depth)--;
                 }
             }
         }
-        
+
         /* Precalculate these values, since they will
          * be used used repeatedly in the next section.
          */
@@ -2775,6 +2781,8 @@ void API dw_main(void)
 {
     dw_mutex_lock(DWRunMutex);
     DWThread = dw_thread_id();
+    /* Make sure any queued redraws are handled */
+    _dw_redraw(0, FALSE);
     [DWApp run];
     DWThread = (DWTID)-1;
     dw_mutex_unlock(DWRunMutex);
@@ -2799,7 +2807,7 @@ void API dw_main_sleep(int milliseconds)
             dw_mutex_lock(DWRunMutex);
             DWThread = curr;
         }
-        /* Process any pending events */
+       /* Process any pending events */
         while(_dw_main_iteration(until))
         {
             /* Just loop */
