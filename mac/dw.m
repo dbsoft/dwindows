@@ -655,6 +655,7 @@ DWObject *DWObj;
     if (self)
     {
         box = calloc(1, sizeof(Box));
+        box->type = DW_VERT;
         box->vsize = box->hsize = SIZEEXPAND;
         box->width = box->height = 1;
     }
