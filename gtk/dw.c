@@ -3404,6 +3404,8 @@ HWND dw_window_new(HWND hwndOwner, char *title, unsigned long flStyle)
    else
 #endif
    {
+      GtkWidget *box = dw_box_new(DW_VERT, 0);
+
       last_window = tmp = gtk_window_new(GTK_WINDOW_TOPLEVEL);
 
       gtk_window_set_title(GTK_WINDOW(tmp), title);
@@ -3451,6 +3453,9 @@ HWND dw_window_new(HWND hwndOwner, char *title, unsigned long flStyle)
 
       if(flStyle & DW_FCF_SIZEBORDER)
          gtk_object_set_data(GTK_OBJECT(tmp), "_dw_size", GINT_TO_POINTER(1));
+         
+      gtk_container_add(GTK_CONTAINER(tmp), box);
+      gtk_object_set_data(GTK_OBJECT(tmp), "_dw_boxhandle", (gpointer)box);
    }
    gtk_object_set_data(GTK_OBJECT(tmp), "_dw_style", GINT_TO_POINTER(flStyle));
    DW_MUTEX_UNLOCK;
@@ -3699,23 +3704,28 @@ HMENUI dw_menu_new(unsigned long id)
  */
 HMENUI dw_menubar_new(HWND location)
 {
-   GtkWidget *box;
    int _locked_by_me = FALSE;
    GtkAccelGroup *accel_group;
-   HMENUI tmp;
+   GtkWidget *box;
+   HMENUI tmp = 0;
 
    DW_MUTEX_LOCK;
-   tmp = gtk_menu_bar_new();
-   box = (GtkWidget *)gtk_object_get_user_data(GTK_OBJECT(location));
-   gtk_widget_show(tmp);
-   accel_group = gtk_accel_group_new();
-   gtk_object_set_data(GTK_OBJECT(tmp), "_dw_accel", (gpointer)accel_group);
-
-   if (box)
-      gtk_box_pack_end(GTK_BOX(box), tmp, FALSE, FALSE, 0);
-   else
-      fprintf(stderr,"dw_menubar_new(): Coding error: You MUST pack a box into the window in which this menubar is to be added BEFORE calling this function.\n");
-
+   if(GTK_IS_WINDOW(location) &&
+      (box = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(location), "_dw_boxhandle")))
+   {
+      /* If there is an existing menu bar, remove it */
+      GtkWidget *oldmenu = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(location), "_dw_menubar");
+      if(oldmenu)
+         gtk_widget_destroy(oldmenu);
+      /* Create a new menu bar */
+      tmp = gtk_menu_bar_new();
+      gtk_widget_show(tmp);
+      accel_group = gtk_accel_group_new();
+      gtk_object_set_data(GTK_OBJECT(tmp), "_dw_accel", (gpointer)accel_group);
+      gtk_object_set_data(GTK_OBJECT(location), "_dw_menubar", (gpointer)tmp);
+      dw_box_pack_end(box, (HWND)tmp, -1, -1, TRUE, FALSE, 0);
+      
+   }
    DW_MUTEX_UNLOCK;
    return tmp;
 }
@@ -9922,17 +9932,23 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
 
    DW_MUTEX_LOCK;
 
+   /* If this is a special box, like: Window, Groupbox, Scrollbox...
+    * get the internal box handle.
+    */
    if((tmp  = gtk_object_get_data(GTK_OBJECT(box), "_dw_boxhandle")))
       box = tmp;
 
+   /* Can't pack nothing with GTK, so create an empty label */
    if(!item)
    {
       item = gtk_label_new("");
       gtk_widget_show_all(item);
    }
 
+   /* Check if the item to be packed is a special box */
    tmpitem = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(item), "_dw_boxhandle");
 
+   /* Make sure our target box is valid */
    if(GTK_IS_TABLE(box))
    {
       int boxcount = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(box), "_dw_boxcount"));
@@ -10005,48 +10021,6 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
          else
             gtk_object_set_data(GTK_OBJECT(box), "_dw_group", (gpointer)item);
       }
-   }
-   else
-   {
-      GtkWidget *vbox = gtk_object_get_data(GTK_OBJECT(box), "_dw_vbox");
-
-      if(!vbox)
-      {
-         vbox = gtk_vbox_new(FALSE, 0);
-         gtk_object_set_data(GTK_OBJECT(box), "_dw_vbox", vbox);
-         gtk_container_add(GTK_CONTAINER(box), vbox);
-         gtk_widget_show(vbox);
-      }
-
-      gtk_container_set_border_width(GTK_CONTAINER(box), pad);
-
-      if(GTK_IS_TABLE(item) || (tmpitem && GTK_IS_TABLE(tmpitem)))
-      {
-         GtkWidget *eventbox = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(item), "_dw_eventbox");
-
-         /* NOTE: I left in the ability to pack boxes with a size,
-          *       this eliminates that by forcing the size to 0.
-          */
-         height = width = 0;
-
-         if(eventbox)
-         {
-            int boxpad = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(item), "_dw_boxpad"));
-            gtk_container_add(GTK_CONTAINER(eventbox), item);
-            gtk_container_set_border_width(GTK_CONTAINER(eventbox), boxpad);
-            item = eventbox;
-         }
-      }
-      else
-      {
-         /* Only show warning if item is not a box */
-         warn = TRUE;
-      }
-
-      gtk_box_pack_end(GTK_BOX(vbox), item, TRUE, TRUE, 0);
-
-      gtk_widget_set_usize(item, width, height);
-      gtk_object_set_user_data(GTK_OBJECT(box), vbox);
    }
    DW_MUTEX_UNLOCK;
 
