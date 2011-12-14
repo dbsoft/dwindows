@@ -3405,7 +3405,10 @@ HWND dw_window_new(HWND hwndOwner, char *title, unsigned long flStyle)
 #endif
    {
       GtkWidget *box = dw_box_new(DW_VERT, 0);
+      GtkWidget *table = gtk_table_new(2, 1, FALSE);
 
+      gtk_widget_show_all(table);
+      
       last_window = tmp = gtk_window_new(GTK_WINDOW_TOPLEVEL);
 
       gtk_window_set_title(GTK_WINDOW(tmp), title);
@@ -3454,8 +3457,10 @@ HWND dw_window_new(HWND hwndOwner, char *title, unsigned long flStyle)
       if(flStyle & DW_FCF_SIZEBORDER)
          gtk_object_set_data(GTK_OBJECT(tmp), "_dw_size", GINT_TO_POINTER(1));
          
-      gtk_container_add(GTK_CONTAINER(tmp), box);
+      gtk_table_attach(GTK_TABLE(table), box, 0, 1, 1, 2, GTK_EXPAND | GTK_FILL | GTK_SHRINK, GTK_EXPAND | GTK_FILL | GTK_SHRINK, 0, 0);
+      gtk_container_add(GTK_CONTAINER(tmp), table);
       gtk_object_set_data(GTK_OBJECT(tmp), "_dw_boxhandle", (gpointer)box);
+      gtk_object_set_data(GTK_OBJECT(tmp), "_dw_table", (gpointer)table);
    }
    gtk_object_set_data(GTK_OBJECT(tmp), "_dw_style", GINT_TO_POINTER(flStyle));
    DW_MUTEX_UNLOCK;
@@ -3711,7 +3716,7 @@ HMENUI dw_menubar_new(HWND location)
 
    DW_MUTEX_LOCK;
    if(GTK_IS_WINDOW(location) &&
-      (box = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(location), "_dw_boxhandle")))
+      (box = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(location), "_dw_table")))
    {
       /* If there is an existing menu bar, remove it */
       GtkWidget *oldmenu = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(location), "_dw_menubar");
@@ -3722,9 +3727,10 @@ HMENUI dw_menubar_new(HWND location)
       gtk_widget_show(tmp);
       accel_group = gtk_accel_group_new();
       gtk_object_set_data(GTK_OBJECT(tmp), "_dw_accel", (gpointer)accel_group);
+      /* Save pointers to each other */
       gtk_object_set_data(GTK_OBJECT(location), "_dw_menubar", (gpointer)tmp);
-      dw_box_pack_end(box, (HWND)tmp, -1, -1, TRUE, FALSE, 0);
-      
+      gtk_object_set_data(GTK_OBJECT(tmp), "_dw_window", (gpointer)location);
+      gtk_table_attach(GTK_TABLE(box), tmp, 0, 1, 0, 1, GTK_FILL, GTK_FILL, 0, 0);
    }
    DW_MUTEX_UNLOCK;
    return tmp;
@@ -3740,8 +3746,14 @@ void dw_menu_destroy(HMENUI *menu)
    if(menu && *menu)
    {
       int _locked_by_me = FALSE;
+      GtkWidget *window;
 
       DW_MUTEX_LOCK;
+      /* If it is a menu bar, try to delete the reference to it */
+      if(GTK_IS_MENU_BAR(*menu) &&
+         (window = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(*menu), "_dw_window")))
+            gtk_object_set_data(GTK_OBJECT(window), "_dw_menubar", NULL);
+      /* Actually destroy the menu */
       gtk_widget_destroy(*menu);
       *menu = NULL;
       DW_MUTEX_UNLOCK;
