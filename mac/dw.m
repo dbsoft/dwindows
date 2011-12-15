@@ -3447,11 +3447,16 @@ void _control_size(id handle, int *width, int *height)
             extraheight = 4;
     }
     /* Handle the ranged widgets */
-    else if([ object isMemberOfClass:[DWScrollbar class] ] ||
-            [ object isMemberOfClass:[DWPercent class] ] ||
+    else if([ object isMemberOfClass:[DWPercent class] ] ||
             [ object isMemberOfClass:[DWSlider class] ])
     {
-        if([ object isMemberOfClass:[DWScrollbar class] ] && [object vertical])
+        thiswidth = 100;
+        thisheight = 20;
+    }
+    /* Handle the ranged widgets */
+    else if([ object isMemberOfClass:[DWScrollbar class] ])
+    {
+        if([object vertical])
         {
             thiswidth = 14;
             thisheight = 100;
@@ -3484,7 +3489,7 @@ void _control_size(id handle, int *width, int *height)
         if([object isBordered] || (DWOSMinor > 5 && [object isBezeled]))
             extrawidth = 12;
         else
-            extrawidth = 8;
+            extrawidth = 10;
     }
     
     /* If we have a string... 
