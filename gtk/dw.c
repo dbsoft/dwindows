@@ -10150,7 +10150,7 @@ void API dw_window_get_preferred_size(HWND handle, int *width, int *height)
    int _locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
-   gtk_widget_get_requisition(handle, &req);
+   gtk_widget_size_request(handle, &req);
    if(width)
       *width = req.width;
    if(height)
