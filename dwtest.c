@@ -391,9 +391,6 @@ void draw_shapes(int direct, HPIXMAP hpma)
     {
         text_expose( textbox2, NULL, NULL);
     }
-    /* Make sure the side area is cleared too */
-    dw_color_foreground_set(DW_CLR_BLACK);
-    dw_draw_rect(textbox1, 0, DW_DRAW_FILL, 0, 0, DW_PIXMAP_WIDTH(text1pm), DW_PIXMAP_HEIGHT(text1pm));
 }
 
 void update_render(void)
@@ -706,7 +703,11 @@ int DWSIGNAL configure_event(HWND hwnd, int width, int height, void *data)
     text1pm = dw_pixmap_new(textbox1, (unsigned long)(font_width*(width1)), (unsigned long)height, (int)depth);
     text2pm = dw_pixmap_new(textbox2, (unsigned long)width, (unsigned long)height, (int)depth);
 
-    /* Destroy the old pixmaps */
+    /* Make sure the side area is cleared */
+    dw_color_foreground_set(DW_CLR_WHITE);
+    dw_draw_rect(0, text1pm, DW_DRAW_FILL, 0, 0, DW_PIXMAP_WIDTH(text1pm), DW_PIXMAP_HEIGHT(text1pm));
+    
+   /* Destroy the old pixmaps */
     dw_pixmap_destroy(old1);
     dw_pixmap_destroy(old2);
 
