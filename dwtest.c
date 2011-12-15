@@ -951,12 +951,12 @@ void text_add(void)
     dw_listbox_append(rendcombo, "File Display");
     label = dw_text_new("Image X:", 100);
     dw_window_set_style(label, DW_DT_VCENTER | DW_DT_CENTER, DW_DT_VCENTER | DW_DT_CENTER);
-    dw_box_pack_start( hbox, label, 60, 25, FALSE, FALSE, 0);
+    dw_box_pack_start( hbox, label, -1, 25, FALSE, FALSE, 0);
     imagexspin = dw_spinbutton_new("20", 1021);
     dw_box_pack_start( hbox, imagexspin, 25, 25, TRUE, FALSE, 0);
     label = dw_text_new("Y:", 100);
     dw_window_set_style(label, DW_DT_VCENTER | DW_DT_CENTER, DW_DT_VCENTER | DW_DT_CENTER);
-    dw_box_pack_start( hbox, label, 25, 25, FALSE, FALSE, 0);
+    dw_box_pack_start( hbox, label, -1, 25, FALSE, FALSE, 0);
     imageyspin = dw_spinbutton_new("20", 1021);
     dw_box_pack_start( hbox, imageyspin, 25, 25, TRUE, FALSE, 0);
     dw_spinbutton_set_limits(imagexspin, 2000, 0);
@@ -964,7 +964,7 @@ void text_add(void)
     dw_spinbutton_set_pos(imagexspin, 20);
     dw_spinbutton_set_pos(imageyspin, 20);
     imagestretchcheck = dw_checkbox_new("Stretch", 1021);
-    dw_box_pack_start( hbox, imagestretchcheck, 25, 25, TRUE, FALSE, 0);
+    dw_box_pack_start( hbox, imagestretchcheck, -1, 25, FALSE, FALSE, 0);
 
     button1 = dw_button_new( "Refresh", 1223L );
     dw_box_pack_start( hbox, button1, 100, 25, FALSE, FALSE, 0);
@@ -1219,10 +1219,10 @@ void buttons_add(void)
     create_button(0);
     /* make a combobox */
     combox = dw_box_new(BOXVERT, 2);
-    dw_box_pack_start( notebookbox5, combox, 25, 200, TRUE, TRUE, 0);
+    dw_box_pack_start( notebookbox5, combox, 25, 200, TRUE, FALSE, 0);
     combobox1 = dw_combobox_new( "fred", 0 ); /* no point in specifying an initial value */
     dw_listbox_append( combobox1, "fred" );
-    dw_box_pack_start( combox, combobox1, 200, 20, TRUE, FALSE, 0);
+    dw_box_pack_start( combox, combobox1, -1, -1, TRUE, FALSE, 0);
     /*
      dw_window_set_text( combobox, "initial value");
      */
@@ -1239,7 +1239,7 @@ void buttons_add(void)
 #endif
 
     combobox2 = dw_combobox_new( "joe", 0 ); /* no point in specifying an initial value */
-    dw_box_pack_start( combox, combobox2, 200, 20, TRUE, FALSE, 0);
+    dw_box_pack_start( combox, combobox2, -1, -1, TRUE, FALSE, 0);
     /*
      dw_window_set_text( combobox, "initial value");
      */
@@ -1264,17 +1264,17 @@ void buttons_add(void)
     dw_listbox_insert( combobox2, "inserted item 5", 5 );
     /* make a spinbutton */
     spinbutton = dw_spinbutton_new( "", 0 ); /* no point in specifying text */
-    dw_box_pack_start( combox, spinbutton, 200, 20, TRUE, FALSE, 0);
+    dw_box_pack_start( combox, spinbutton, -1, -1, TRUE, FALSE, 0);
     dw_spinbutton_set_limits( spinbutton, 100, 1 );
     dw_spinbutton_set_pos( spinbutton, 30 );
     dw_signal_connect( spinbutton, DW_SIGNAL_VALUE_CHANGED, DW_SIGNAL_FUNC(spinbutton_valuechanged_callback), NULL );
     /* make a slider */
     slider = dw_slider_new( FALSE, 11, 0 ); /* no point in specifying text */
-    dw_box_pack_start( combox, slider, 200, 20, TRUE, FALSE, 0);
+    dw_box_pack_start( combox, slider, -1, -1, TRUE, FALSE, 0);
     dw_signal_connect( slider, DW_SIGNAL_VALUE_CHANGED, DW_SIGNAL_FUNC(slider_valuechanged_callback), NULL );
     /* make a percent */
     percent = dw_percent_new( 0 );
-    dw_box_pack_start( combox, percent, 200, 20, TRUE, FALSE, 0);
+    dw_box_pack_start( combox, percent, -1, -1, TRUE, FALSE, 0);
 }
 
 void create_button( int redraw)
@@ -1395,7 +1395,7 @@ void scrollbox_add(void)
     dw_box_pack_start(notebookbox8, scrollbox, 0, 0, TRUE, TRUE, 1);
 
     abutton1 = dw_button_new( "Show Adjustments", 0 );
-    dw_box_pack_start( scrollbox, abutton1, 100, 30, FALSE, FALSE, 0 );
+    dw_box_pack_start( scrollbox, abutton1, -1, 30, FALSE, FALSE, 0 );
     dw_signal_connect( abutton1, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(scrollbox_button_callback), NULL );
 
     for ( i = 0; i < MAX_WIDGETS; i++ )
@@ -1465,7 +1465,7 @@ void thread_add(void)
     dw_box_pack_start(notebookbox9, tmpbox, 0, 0, TRUE, TRUE, 1);
 
     startbutton = dw_button_new( "Start Threads", 0 );
-    dw_box_pack_start( tmpbox, startbutton, 100, 30, FALSE, FALSE, 0 );
+    dw_box_pack_start( tmpbox, startbutton, -1, 30, FALSE, FALSE, 0 );
     dw_signal_connect( startbutton, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(start_threads_button_callback), NULL );
     
     /* Create the base threading components */

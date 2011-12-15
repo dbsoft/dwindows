@@ -4261,6 +4261,7 @@ void _control_size(HWND handle, int *width, int *height)
    {
       dw_font_text_extents_get(handle, NULL, testtext, NULL, &thisheight);
       thiswidth = 50;
+      extraheight = 6;
    }
    /* Entryfields */
    else if(strnicmp(tmpbuf, EDITCLASSNAME, strlen(EDITCLASSNAME)+1) == 0 &&
