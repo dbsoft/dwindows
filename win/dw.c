@@ -3211,7 +3211,7 @@ BOOL CALLBACK _statuswndproc(HWND hwnd, UINT msg, WPARAM mp1, LPARAM mp2)
          PAINTSTRUCT ps;
          RECT rc;
          unsigned long cx, cy;
-         char tempbuf[1024] = "";
+         char tempbuf[1025] = { 0 };
          ColorInfo *cinfo = (ColorInfo *)GetWindowLongPtr(hwnd, GWLP_USERDATA);
          HFONT hfont = _acquire_font(hwnd, cinfo ? cinfo->fontname : NULL);
          HFONT oldfont = (HFONT)SendMessage(hwnd, WM_GETFONT, 0, 0);
