@@ -26,7 +26,6 @@
 #define FILE_ICON_NAME "gtk/file"
 #endif
 
-#define SCROLLBARWIDTH 14
 #define MAX_WIDGETS 20
 
 unsigned long flStyle = DW_FCF_SYSMENU | DW_FCF_TITLEBAR |
@@ -392,6 +391,9 @@ void draw_shapes(int direct, HPIXMAP hpma)
     {
         text_expose( textbox2, NULL, NULL);
     }
+    /* Make sure the side area is cleared too */
+    dw_color_foreground_set(DW_CLR_BLACK);
+    dw_draw_rect(textbox1, 0, DW_DRAW_FILL, 0, 0, DW_PIXMAP_WIDTH(text1pm), DW_PIXMAP_HEIGHT(text1pm));
 }
 
 void update_render(void)
@@ -930,6 +932,7 @@ void text_add(void)
 {
     unsigned long depth = dw_color_depth_get();
     HWND vscrollbox, hbox, button1, button2, label;
+    int vscrollbarwidth, hscrollbarheight;
 
     /* create a box to pack into the notebook page */
     pagebox = dw_box_new(BOXHORZ, 2);
@@ -971,6 +974,12 @@ void text_add(void)
     button2 = dw_button_new( "Print", 1224L );
     dw_box_pack_start( hbox, button2, 100, 25, FALSE, FALSE, 0);
 
+    /* Pre-create the scrollbars so we can query their sizes */
+    vscrollbar = dw_scrollbar_new(DW_VERT, 50);
+    hscrollbar = dw_scrollbar_new(DW_HORZ, 50);
+    dw_window_get_preferred_size(vscrollbar, &vscrollbarwidth, NULL);
+    dw_window_get_preferred_size(hscrollbar, NULL, &hscrollbarheight);
+    
     /* create render box for number pixmap */
     textbox1 = dw_render_new( 100 );
     dw_window_set_font(textbox1, FIXEDFONT);
@@ -978,7 +987,7 @@ void text_add(void)
     font_width = font_width / 2;
     vscrollbox = dw_box_new(BOXVERT, 0);
     dw_box_pack_start(vscrollbox, textbox1, font_width*width1, font_height*rows, FALSE, TRUE, 0);
-    dw_box_pack_start(vscrollbox, 0, (font_width*(width1+1)), SCROLLBARWIDTH, FALSE, FALSE, 0);
+    dw_box_pack_start(vscrollbox, 0, (font_width*(width1+1)), hscrollbarheight, FALSE, FALSE, 0);
     dw_box_pack_start(pagebox, vscrollbox, 0, 0, FALSE, TRUE, 0);
 
     /* pack empty space 1 character wide */
@@ -993,15 +1002,13 @@ void text_add(void)
     dw_box_pack_start( textboxA, textbox2, 10, 10, TRUE, TRUE, 0);
     dw_window_set_font(textbox2, FIXEDFONT);
     /* create horizonal scrollbar */
-    hscrollbar = dw_scrollbar_new(FALSE, 50);
-    dw_box_pack_start( textboxA, hscrollbar, 100, SCROLLBARWIDTH, TRUE, FALSE, 0);
+    dw_box_pack_start( textboxA, hscrollbar, -1, -1, TRUE, FALSE, 0);
 
     /* create vertical scrollbar */
     vscrollbox = dw_box_new(BOXVERT, 0);
-    vscrollbar = dw_scrollbar_new(TRUE, 50);
-    dw_box_pack_start(vscrollbox, vscrollbar, SCROLLBARWIDTH, 100, FALSE, TRUE, 0);
+    dw_box_pack_start(vscrollbox, vscrollbar, -1, -1, FALSE, TRUE, 0);
     /* Pack an area of empty space 14x14 pixels */
-    dw_box_pack_start(vscrollbox, 0, SCROLLBARWIDTH, SCROLLBARWIDTH, FALSE, FALSE, 0);
+    dw_box_pack_start(vscrollbox, 0, vscrollbarwidth, hscrollbarheight, FALSE, FALSE, 0);
     dw_box_pack_start(pagebox, vscrollbox, 0, 0, FALSE, TRUE, 0);
 
     text1pm = dw_pixmap_new( textbox1, font_width*width1, font_height*rows, (int)depth );
