@@ -4598,13 +4598,17 @@ void _control_size(HWND handle, int *width, int *height)
            extraheight = 4;
        }
    }
-   /* Ranged: Slider/Percent/Scrollbar */
-   else if(strncmp(tmpbuf, "#38", 4)== 0 || 
-           strncmp(tmpbuf, "#8", 3)== 0)
+   /* Ranged: Slider/Percent */
+   else if(strncmp(tmpbuf, "#38", 4)== 0)
+   {
+       thiswidth = 100;
+       thisheight = 20;
+   }
+   /* Scrollbar */
+   else if(strncmp(tmpbuf, "#8", 3)== 0)
    {
       /* Check for vertical scrollbar */
-      if(strncmp(tmpbuf, "#8", 3)== 0 &&
-         WinQueryWindowULong(handle, QWL_STYLE) & SBS_VERT)
+      if(WinQueryWindowULong(handle, QWL_STYLE) & SBS_VERT)
       {
          thiswidth = WinQuerySysValue(HWND_DESKTOP, SV_CXVSCROLL);
          thisheight = 100;
