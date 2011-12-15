@@ -60,8 +60,6 @@ MRESULT EXPENTRY _scrollwndproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2);
 void _do_resize(Box *thisbox, int x, int y);
 void _handle_splitbar_resize(HWND hwnd, float percent, int type, int x, int y);
 int _load_bitmap_file(char *file, HWND handle, HBITMAP *hbm, HDC *hdc, HPS *hps, unsigned long *width, unsigned long *height);
-void _dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize, int vsize, int pad, char *functionname);
-void _dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, int vsize, int pad, char *functionname);
 void _free_menu_data(HWND menu);
 ULONG (API_FUNC _PmPrintfString)(char *String) = 0;
 
@@ -1241,7 +1239,7 @@ static void _resize_box(Box *thisbox, int *depth, int x, int y, int pass)
             else
                height = y - (itempad + thispad + thisbox->grouppady);
          }
-         
+
          /* If the calculated size is valid... */
          if(width > 0 && height > 0)
          {
@@ -6727,7 +6725,6 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
       else
       {
          box = WinWindowFromID(box, FID_CLIENT);
-         hsize = vsize = TRUE;
       }
    }
    
