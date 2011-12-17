@@ -1057,8 +1057,13 @@ static void _dw_msleep(long period)
    struct timespec req;
 
    req.tv_sec = 0;
+   if(period >= 1000)
+   {
+      req.tv_sec = (int)(period / 1000);
+      period -= (req.tv_sec * 1000);
+   }
    req.tv_nsec = period * 10000000;
-
+	
    nanosleep(&req, NULL);
 #else
    usleep(period * 1000);
