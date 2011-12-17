@@ -1445,8 +1445,10 @@ static void _resize_box(Box *thisbox, int *depth, int x, int y, int pass)
             else
             {
                /* Everything else */
-               MoveWindow(handle, currentx + pad, currenty + pad,
-                        width, height, FALSE);
+               if(*depth)
+                  MoveWindow(handle, currentx + pad, currenty + pad, width, height, FALSE);
+               else /* FIXME: This is a hack to generate WM_PAINT messages for items on the top-level */
+                  SetWindowPos(handle, HWND_TOP, currentx + pad, currenty + pad, width, height, 0);
 
                /* After placing a box... place its components */
                if(thisbox->items[z].type == TYPEBOX)
