@@ -100,7 +100,6 @@ HWND mainwindow,
     container,
     container_mle,
     pagebox,
-    treebox,
     containerbox,
     textbox1, textbox2, textboxA,
     gap_box,
@@ -1054,13 +1053,9 @@ void tree_add(void)
     dw_listbox_append(listbox, "Test 4");
     dw_listbox_append(listbox, "Test 5");
 
-    /* create a box to pack into the notebook page */
-    treebox = dw_box_new(BOXHORZ, 2);
-    dw_box_pack_start( notebookbox3, treebox, 500, 200, TRUE, TRUE, 0);
-
     /* now a tree area under this box */
     tree = dw_tree_new(101);
-    dw_box_pack_start( notebookbox3, tree, 500, 200, TRUE, FALSE, 1);
+    dw_box_pack_start( notebookbox3, tree, 500, 200, TRUE, TRUE, 1);
 
     /* and a status area to see whats going on */
     tree_status = dw_status_text_new("", 0);
