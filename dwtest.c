@@ -1603,15 +1603,14 @@ int main(int argc, char *argv[])
     mainwindow = dw_window_new( HWND_DESKTOP, "dwindows test", flStyle | DW_FCF_SIZEBORDER | DW_FCF_MINMAX);
     dw_window_set_icon(mainwindow, fileicon);
 
+    menu_add();
+
     notebookbox = dw_box_new( BOXVERT, 5 );
     dw_box_pack_start( mainwindow, notebookbox, 0, 0, TRUE, TRUE, 0);
     
     foldericon = dw_icon_load_from_file( FOLDER_ICON_NAME );
     fileicon = dw_icon_load_from_file( FILE_ICON_NAME  );
     
-    /* MUST pack a box into the mainwindow BEFORE adding menus */
-    menu_add();
-
     notebook = dw_notebook_new( 1, TRUE );
     dw_box_pack_start( notebookbox, notebook, 100, 100, TRUE, TRUE, 0);
     dw_signal_connect(notebook, DW_SIGNAL_SWITCH_PAGE, DW_SIGNAL_FUNC(switch_page_cb), NULL);
