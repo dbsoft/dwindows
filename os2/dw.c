@@ -254,13 +254,19 @@ HWND _toplevel_window(HWND handle)
    HWND box, lastbox = WinQueryWindow(handle, QW_PARENT);
 
    /* Find the toplevel window */
-   while((box = WinQueryWindow(lastbox, QW_PARENT)) != desktop && box > 0)
+   while((box = WinQueryWindow(lastbox, QW_PARENT)) != desktop && box)
    {
       lastbox = box;
    }
-   if(box > 0)
-      return lastbox;
-   return handle;
+   if(box)
+   {
+       char tmpbuf[100] = {0};
+
+       WinQueryClassName(lastbox, 99, (PCH)tmpbuf);
+       if(strncmp(tmpbuf, "#1", 3) == 0)
+           return lastbox;
+   }
+   return NULLHANDLE;
 }
 
 
