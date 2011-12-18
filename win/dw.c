@@ -1068,13 +1068,21 @@ HWND _toplevel_window(HWND handle)
    /* Find the toplevel window */
    while((box = GetParent(lastbox)))
    {
+      /* If it hasn't been packed yet.. */
       if(box == DW_HWND_OBJECT)
          return 0;
       lastbox = box;
    }
    if(lastbox)
-      return lastbox;
-   return handle;
+   {
+      char tmpbuf[100];
+      
+      GetClassName(lastbox, tmpbuf, 99);
+      
+      if(strncmp(tmpbuf, ClassName, strlen(ClassName)+1)==0)
+         return lastbox;
+   }
+   return 0;
 }
 
 /* This function finds the current widget in the
