@@ -57,6 +57,14 @@
 #define DW_MIS_CHECKED           (1 << 2)
 #define DW_MIS_UNCHECKED         (1 << 3)
 
+/* Gravity */
+#define DW_GRAV_TOP              0
+#define DW_GRAV_LEFT             0
+#define DW_GRAV_CENTER           1
+#define DW_GRAV_RIGHT            2
+#define DW_GRAV_BOTTOM           2
+#define DW_GRAV_OBSTACLES        (1 << 10)
+
 /* ensure we can build the Gtk port with MingW on Windows */
 #if defined(DW_USE_GTK) && defined(__MINGW32__)
 # ifndef GDK_WINDOWING_WIN32
@@ -1520,6 +1528,7 @@ void API dw_window_set_size(HWND handle, unsigned long width, unsigned long heig
 void API dw_window_set_pos_size(HWND handle, long x, long y, unsigned long width, unsigned long height);
 void API dw_window_get_pos_size(HWND handle, long *x, long *y, unsigned long *width, unsigned long *height);
 void API dw_window_get_preferred_size(HWND handle, int *width, int *height);
+void API dw_window_set_gravity(HWND handle, int horz, int vert);
 void API dw_window_set_style(HWND handle, unsigned long style, unsigned long mask);
 void API dw_window_set_icon(HWND handle, HICN icon);
 void API dw_window_set_bitmap(HWND handle, unsigned long id, char *filename);
