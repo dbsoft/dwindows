@@ -6907,7 +6907,7 @@ void API dw_window_set_size(HWND handle, ULONG width, ULONG height)
       _get_window_for_size(handle, &width, &height);
    
    /* Finally set the size */
-   WinSetWindowPos(handle, NULLHANDLE, 0, 0, width, height, SWP_SIZE);
+   WinSetWindowPos(handle, NULLHANDLE, 0, 0, width, height, SWP_SHOW | SWP_SIZE);
 }
 
 /*
@@ -6947,6 +6947,20 @@ unsigned long API dw_color_depth_get(void)
    DevQueryCaps(hdc, CAPS_COLOR_BITCOUNT, 1, &colors);
    DevCloseDC(hdc);
    return colors;
+}
+
+/*
+ * Sets the gravity of a given window (widget).
+ * Gravity controls which corner of the screen and window the position is relative to.
+ * Parameters:
+ *          handle: Window (widget) handle.
+ *          horz: DW_GRAV_LEFT (default), DW_GRAV_RIGHT or DW_GRAV_CENTER.
+ *          vert: DW_GRAV_TOP (default), DW_GRAV_BOTTOM or DW_GRAV_CENTER.
+ */
+void API dw_window_set_gravity(HWND handle, int horz, int vert)
+{
+   dw_window_set_data(handle, "_dw_grav_horz", DW_INT_TO_POINTER(horz));
+   dw_window_set_data(handle, "_dw_grav_vert", DW_INT_TO_POINTER(vert));
 }
 
 /* Convert the coordinates based on gravity */
@@ -7011,7 +7025,7 @@ void API dw_window_set_pos_size(HWND handle, LONG x, LONG y, ULONG width, ULONG 
    
    _handle_gravity(handle, &x, &y, width, height);
    /* Finally set the size */
-   WinSetWindowPos(handle, NULLHANDLE, x, y, width, height, SWP_MOVE | SWP_SIZE);
+   WinSetWindowPos(handle, NULLHANDLE, x, y, width, height, SWP_SHOW | SWP_MOVE | SWP_SIZE);
 }
 
 /*
