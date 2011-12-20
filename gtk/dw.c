@@ -10251,8 +10251,11 @@ void dw_window_set_size(HWND handle, unsigned long width, unsigned long height)
          gtk_object_set_data(GTK_OBJECT(handle), "_dw_height", GINT_TO_POINTER(height));
       }
       /* Resize minus the border size */
-      gdk_window_resize(handle->window, width - cx , height - cy );
-      gtk_window_set_default_size(GTK_WINDOW(handle), width - cx, height - cy );
+      if(width > cx && height > cy)
+      {
+         gdk_window_resize(handle->window, width - cx , height - cy );
+         gtk_window_set_default_size(GTK_WINDOW(handle), width - cx, height - cy );
+      }
    }
    else
       gtk_widget_set_usize(handle, width, height);
