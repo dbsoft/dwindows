@@ -169,7 +169,6 @@ BYTE _blue[] = {  0x00, 0x00, 0x00, 0x00, 0xcc, 0xbb, 0xbb, 0xaa, 0x77,
 
 HBRUSH _colors[18];
 
-static int screenx, screeny;
 HFONT _DefaultFont = NULL;
 
 #if (defined(BUILD_DLL) || defined(BUILD_HTML)) && !defined(__MINGW32__)
@@ -3686,13 +3685,6 @@ int API dw_init(int newthread, int argc, char *argv[])
    {
       strncpy( _dw_alternate_temp_dir, alttmpdir, MAX_PATH );
    }
-   /*
-    * Get screen size. Used to make calls to dw_screen_width()
-    * and dw_screen-height() quicker, but to alos limit the
-    * default size of windows.
-    */
-   screenx = GetSystemMetrics(SM_CXSCREEN);
-   screeny = GetSystemMetrics(SM_CYSCREEN);
 
 #ifdef GDIPLUS
    /* Setup GDI+ */
@@ -6589,7 +6581,7 @@ void API dw_window_set_size(HWND handle, ULONG width, ULONG height)
       _get_window_for_size(handle, &width, &height);
    
    /* Finally set the size */
-   SetWindowPos(handle, (HWND)NULL, 0, 0, width, height, SWP_SHOWWINDOW | SWP_NOZORDER | SWP_NOMOVE);
+   SetWindowPos(handle, (HWND)NULL, 0, 0, width, height, SWP_NOZORDER | SWP_NOMOVE);
 }
 
 /*
@@ -6609,7 +6601,7 @@ void API dw_window_get_preferred_size(HWND handle, int *width, int *height)
  */
 int API dw_screen_width(void)
 {
-   return screenx;
+   return GetSystemMetrics(SM_CXSCREEN);
 }
 
 /*
@@ -6617,7 +6609,7 @@ int API dw_screen_width(void)
  */
 int API dw_screen_height(void)
 {
-   return screeny;
+   return GetSystemMetrics(SM_CYSCREEN);
 }
 
 /* This should return the current color depth */
@@ -6633,6 +6625,48 @@ unsigned long API dw_color_depth_get(void)
    return bpp;
 }
 
+/*
+ * Sets the gravity of a given window (widget).
+ * Gravity controls which corner of the screen and window the position is relative to.
+ * Parameters:
+ *          handle: Window (widget) handle.
+ *          horz: DW_GRAV_LEFT (default), DW_GRAV_RIGHT or DW_GRAV_CENTER.
+ *          vert: DW_GRAV_TOP (default), DW_GRAV_BOTTOM or DW_GRAV_CENTER.
+ */
+void API dw_window_set_gravity(HWND handle, int horz, int vert)
+{
+   dw_window_set_data(handle, "_dw_grav_horz", DW_INT_TO_POINTER(horz));
+   dw_window_set_data(handle, "_dw_grav_vert", DW_INT_TO_POINTER(vert));
+}
+
+/* Convert the coordinates based on gravity */
+void _handle_gravity(HWND handle, long *x, long *y, unsigned long width, unsigned long height)
+{
+   int horz = DW_POINTER_TO_INT(dw_window_get_data(handle, "_dw_grav_horz"));
+   int vert = DW_POINTER_TO_INT(dw_window_get_data(handle, "_dw_grav_vert"));
+   
+   /* Do any gravity calculations */
+   if(horz || vert)
+   {
+      long newx = *x, newy = *y;
+   
+      /* Handle horizontal center gravity */
+      if((horz & 0xf) == DW_GRAV_CENTER)
+         newx += ((dw_screen_width() / 2) - (width / 2));
+      /* Handle right gravity */
+      else if((horz & 0xf) == DW_GRAV_RIGHT)
+         newx = dw_screen_width() - width - *x;
+      /* Handle vertical center gravity */
+      if((vert & 0xf) == DW_GRAV_CENTER)
+         newy += ((dw_screen_height() / 2) - (height / 2));
+      else if((vert & 0xf) == DW_GRAV_BOTTOM)
+         newy = dw_screen_height() - height - *y;
+        
+      /* Save the new values */
+      *x = newx;
+      *y = newy;
+   }            
+}
 
 /*
  * Sets the position of a given window (widget).
@@ -6643,6 +6677,10 @@ unsigned long API dw_color_depth_get(void)
  */
 void API dw_window_set_pos(HWND handle, long x, long y)
 {
+   unsigned long width, height;
+   
+   dw_window_get_pos_size(handle, NULL, NULL, &width, &height);
+   _handle_gravity(handle, &x, &y, width, height);
    SetWindowPos(handle, (HWND)NULL, x, y, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
 }
 
@@ -6661,8 +6699,9 @@ void API dw_window_set_pos_size(HWND handle, long x, long y, ULONG width, ULONG 
    if ( width < 1 || height < 1 )
       _get_window_for_size(handle, &width, &height);
    
+   _handle_gravity(handle, &x, &y, width, height);
    /* Finally set the size */
-   SetWindowPos(handle, (HWND)NULL, x, y, width, height, SWP_NOZORDER | SWP_SHOWWINDOW | SWP_NOACTIVATE);
+   SetWindowPos(handle, (HWND)NULL, x, y, width, height, SWP_NOZORDER | SWP_NOACTIVATE);
 }
 
 /*
@@ -8913,7 +8952,7 @@ HWND API dw_render_new(unsigned long id)
    HWND tmp = CreateWindow(ObjectClassName,
                      "",
                      WS_VISIBLE | WS_CHILD | WS_CLIPCHILDREN,
-                     0,0,screenx,screeny,
+                     0,0,0,0,
                      DW_HWND_OBJECT,
                      (HMENU)id,
                      DWInstance,

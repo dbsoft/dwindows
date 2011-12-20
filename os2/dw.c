@@ -6907,7 +6907,7 @@ void API dw_window_set_size(HWND handle, ULONG width, ULONG height)
       _get_window_for_size(handle, &width, &height);
    
    /* Finally set the size */
-   WinSetWindowPos(handle, NULLHANDLE, 0, 0, width, height, SWP_SHOW | SWP_SIZE);
+   WinSetWindowPos(handle, NULLHANDLE, 0, 0, width, height, SWP_SIZE);
 }
 
 /*
@@ -6949,6 +6949,34 @@ unsigned long API dw_color_depth_get(void)
    return colors;
 }
 
+/* Convert the coordinates based on gravity */
+void _handle_gravity(HWND handle, long *x, long *y, unsigned long width, unsigned long height)
+{
+   int horz = DW_POINTER_TO_INT(dw_window_get_data(handle, "_dw_grav_horz"));
+   int vert = DW_POINTER_TO_INT(dw_window_get_data(handle, "_dw_grav_vert"));
+   
+   /* Do any gravity calculations */
+   if(horz || (vert & 0xf) != DW_GRAV_BOTTOM)
+   {
+      long newx = *x, newy = *y;
+   
+      /* Handle horizontal center gravity */
+      if((horz & 0xf) == DW_GRAV_CENTER)
+         newx += ((dw_screen_width() / 2) - (width / 2));
+      /* Handle right gravity */
+      else if((horz & 0xf) == DW_GRAV_RIGHT)
+         newx = dw_screen_width() - width - *x;
+      /* Handle vertical center gravity */
+      if((vert & 0xf) == DW_GRAV_CENTER)
+         newy += ((dw_screen_height() / 2) - (height / 2));
+      else if((vert & 0xf) == DW_GRAV_TOP)
+         newy = dw_screen_height() - height - *y;
+        
+      /* Save the new values */
+      *x = newx;
+      *y = newy;
+   }            
+}
 
 /*
  * Sets the position of a given window (widget).
@@ -6959,9 +6987,11 @@ unsigned long API dw_color_depth_get(void)
  */
 void API dw_window_set_pos(HWND handle, LONG x, LONG y)
 {
-   int myy = _get_frame_height(handle) - (y + _get_height(handle));
-
-   WinSetWindowPos(handle, NULLHANDLE, x, myy, 0, 0, SWP_MOVE);
+   unsigned long width, height;
+   
+   dw_window_get_pos_size(handle, NULL, NULL, &width, &height);
+   _handle_gravity(handle, &x, &y, width, height);
+   WinSetWindowPos(handle, NULLHANDLE, x, y, 0, 0, SWP_MOVE);
 }
 
 /*
@@ -6975,14 +7005,13 @@ void API dw_window_set_pos(HWND handle, LONG x, LONG y)
  */
 void API dw_window_set_pos_size(HWND handle, LONG x, LONG y, ULONG width, ULONG height)
 {
-   int myy = _get_frame_height(handle) - (y + height);
-
    /* Attempt to auto-size */
    if ( width < 1 || height < 1 )
       _get_window_for_size(handle, &width, &height);
    
+   _handle_gravity(handle, &x, &y, width, height);
    /* Finally set the size */
-   WinSetWindowPos(handle, NULLHANDLE, x, myy, width, height, SWP_MOVE | SWP_SIZE | SWP_SHOW);
+   WinSetWindowPos(handle, NULLHANDLE, x, y, width, height, SWP_MOVE | SWP_SIZE);
 }
 
 /*

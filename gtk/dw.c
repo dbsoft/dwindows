@@ -10431,7 +10431,7 @@ void dw_window_set_pos(HWND handle, long x, long y)
             if((vert & 0xf) == DW_GRAV_CENTER)
                newy += ((gdk_screen_height() / 2) - (height / 2));
             else if((vert & 0xf) == DW_GRAV_BOTTOM)
-               newy = gdk_screen_height() - height - x;
+               newy = gdk_screen_height() - height - y;
          }            
          if(GTK_WIDGET_MAPPED(handle))
          {
