@@ -16,10 +16,6 @@ Known limitations:
 It is not safe on all platforms to operate on widgets before they
 are packed.  For portability pack widgets before operating on them.
 
-On Unix (GTK) the window manager border is not a constant value
-so environment variables DW_BORDER_WIDTH and DW_BORDER_HEIGHT
-are used for proper positioning.
-
 On Mac if performing Dynamic Windows operations on secondary 
 threads which do not terminate, it may be required to call
 a Mac specific DW function _dw_pool_drain() at the end of the

@@ -10105,6 +10105,73 @@ void API dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, 
     _dw_box_pack(box, item, 0, width, height, hsize, vsize, pad, "dw_box_pack_end()");
 }
 
+union extents_union { guchar **gu_extents; unsigned long **extents; };
+static Atom extents_atom = 0;
+
+static Bool property_notify_predicate(Display *xdisplay, XEvent *event, XPointer window_id)
+{
+   unsigned long *window = (unsigned long *)window_id;
+
+   if(event->xany.type == PropertyNotify && event->xany.window == *window && event->xproperty.atom == extents_atom)
+      return True;
+   return False;
+}
+
+/* Internal function to figure out the frame extents of an unmapped window */
+void _dw_get_frame_extents(GtkWidget *window, int *vert, int *horz)
+{
+   const char *request = "_NET_REQUEST_FRAME_EXTENTS";
+   unsigned long *extents = NULL;
+   union extents_union eu;
+   GdkAtom request_extents = gdk_atom_intern(request, FALSE);
+
+   /* Set some rational defaults.. just in case */
+   *vert = 28;
+   *horz = 12;
+
+   /* See if the current window manager supports _NET_REQUEST_FRAME_EXTENTS */
+   if(gdk_net_wm_supports(request_extents))
+   {
+      GdkDisplay *display = gtk_widget_get_display(window);
+      Display *xdisplay = GDK_DISPLAY_XDISPLAY(display);
+      GdkWindow *root_window = gdk_get_default_root_window();
+      Window xroot_window = GDK_WINDOW_XID(root_window);
+      Atom extents_request_atom = gdk_x11_get_xatom_by_name_for_display(display, request);
+      unsigned long window_id = GDK_WINDOW_XID(GDK_DRAWABLE(window->window));
+      XEvent notify_xevent, xevent = {0};
+
+      if(!extents_atom)
+	   {
+	      const char *extents_name = "_NET_FRAME_EXTENTS";
+	      extents_atom = gdk_x11_get_xatom_by_name_for_display(display, extents_name);
+	   }
+
+      xevent.xclient.type = ClientMessage;
+      xevent.xclient.message_type = extents_request_atom;
+      xevent.xclient.display = xdisplay;
+      xevent.xclient.window = window_id;
+      xevent.xclient.format = 32;
+
+      XSendEvent(xdisplay, xroot_window, False,
+		          (SubstructureRedirectMask | SubstructureNotifyMask),
+                &xevent);
+
+      XIfEvent(xdisplay, &notify_xevent, property_notify_predicate, (XPointer)&window_id);
+   }
+   
+   /* Attempt to retrieve window's frame extents. */
+   eu.extents = &extents;
+   if(gdk_property_get(window->window,
+                       gdk_atom_intern("_NET_FRAME_EXTENTS", FALSE),
+                       gdk_atom_intern("CARDINAL", FALSE),
+                       0, sizeof(unsigned long)*4, FALSE,
+                       NULL, NULL, NULL, eu.gu_extents))
+   {
+      *horz = extents[0] + extents[1];
+      *vert = extents[2] + extents[3];
+   }
+}
+
 /*
  * Sets the size of a given window (widget).
  * Parameters:
@@ -10115,7 +10182,6 @@ void API dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, 
 void dw_window_set_size(HWND handle, unsigned long width, unsigned long height)
 {
    int _locked_by_me = FALSE;
-   int cx = 0, cy = 0;
 
    if(!handle)
       return;
@@ -10123,11 +10189,13 @@ void dw_window_set_size(HWND handle, unsigned long width, unsigned long height)
    DW_MUTEX_LOCK;
    if(GTK_IS_WINDOW(handle))
    {
+      int cx = 0, cy = 0;
+      
 #ifdef GDK_WINDOWING_X11
       _size_allocate(GTK_WINDOW(handle));
 #endif
-      /* If the window is realized */
-      if(handle->window && gdk_window_is_visible(handle->window))
+      /* If the window is mapped */
+      if(handle->window && GTK_WIDGET_MAPPED(handle))
       {
 #if GTK_MAJOR_VERSION > 1
          GdkRectangle frame;
@@ -10144,15 +10212,27 @@ void dw_window_set_size(HWND handle, unsigned long width, unsigned long height)
          if(cy < 0)
             cy = 0;
 #endif
-         /* Resize minus the border size */
-         gdk_window_resize(handle->window, width - cx , height - cy );
       }
-      if(!cx && !cy)
+      else
       {
+         /* Check if we have cached frame size values */
+         if(!((cx = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(handle), "_dw_frame_width"))) |
+              (cy = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(handle), "_dw_frame_height")))))
+         {
+            /* If not try to ask the window manager for the estimated size...
+             * and finally if all else fails, guess.
+             */
+            _dw_get_frame_extents(handle, &cy, &cx);
+            /* Cache values for later use */
+            gtk_object_set_data(GTK_OBJECT(handle), "_dw_frame_width", GINT_TO_POINTER(cx));
+            gtk_object_set_data(GTK_OBJECT(handle), "_dw_frame_height", GINT_TO_POINTER(cy));
+         }
          /* Save the size for when it is shown */
          gtk_object_set_data(GTK_OBJECT(handle), "_dw_width", GINT_TO_POINTER(width));
          gtk_object_set_data(GTK_OBJECT(handle), "_dw_height", GINT_TO_POINTER(height));
       }
+      /* Resize minus the border size */
+      gdk_window_resize(handle->window, width - cx , height - cy );
       gtk_window_set_default_size(GTK_WINDOW(handle), width - cx, height - cy );
    }
    else
@@ -10263,52 +10343,82 @@ void dw_window_set_pos(HWND handle, long x, long y)
    else
 #endif
    {
-      GdkWindow *window = NULL;
-
       if(GTK_IS_WINDOW(handle))
       {
 #if GTK_MAJOR_VERSION > 1
-         /* If the window is visible */
-         if(handle->window && gdk_window_is_visible(handle->window))
-         {
-            int horz = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(handle), "_dw_grav_horz"));
-            int vert = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(handle), "_dw_grav_vert"));
-            int newx = x, newy = y;
+         int horz = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(handle), "_dw_grav_horz"));
+         int vert = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(handle), "_dw_grav_vert"));
+         int newx = x, newy = y, width = 0, height = 0;
 
+         /* If the window is mapped */
+         if(handle->window && GTK_WIDGET_MAPPED(handle))
+         {
+            /* If we need the width or height... */
             if(horz || vert)
             {
                GdkRectangle frame;
 
                /* Get the frame size */
                gdk_window_get_frame_extents(handle->window, &frame);
-
-               /* Handle horizontal center gravity */
-               if((horz & 0xf) == DW_GRAV_CENTER)
-                  newx += ((gdk_screen_width() / 2) - (frame.width / 2));
-               /* Handle right gravity */
-               else if((horz & 0xf) == DW_GRAV_RIGHT)
-                  newx = gdk_screen_width() - frame.width - x;
-               /* Handle vertical center gravity */
-               if((vert & 0xf) == DW_GRAV_CENTER)
-                  newy += ((gdk_screen_height() / 2) - (frame.height / 2));
-               else if((vert & 0xf) == DW_GRAV_BOTTOM)
-                  newy = gdk_screen_height() - frame.height - x;
-            }
-            gtk_window_move(GTK_WINDOW(handle), newx, newy);
+               width = frame.width;
+               height = frame.height;
+            }            
          }
          else
          {
+            int cx , cy;
+
+            /* Check if we have cached frame size values */
+            if(!((cx = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(handle), "_dw_frame_width"))) |
+                 (cy = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(handle), "_dw_frame_height")))))
+            {
+               /* If not try to ask the window manager for the estimated size...
+                * and finally if all else fails, guess.
+                */
+               _dw_get_frame_extents(handle, &cy, &cx);
+               /* Cache values for later use */
+               gtk_object_set_data(GTK_OBJECT(handle), "_dw_frame_width", GINT_TO_POINTER(cx));
+               gtk_object_set_data(GTK_OBJECT(handle), "_dw_frame_height", GINT_TO_POINTER(cy));
+            }
             /* Save the positions for when it is shown */
             gtk_object_set_data(GTK_OBJECT(handle), "_dw_x", GINT_TO_POINTER(x));
             gtk_object_set_data(GTK_OBJECT(handle), "_dw_y", GINT_TO_POINTER(y));
             gtk_object_set_data(GTK_OBJECT(handle), "_dw_pos", GINT_TO_POINTER(1));
+            /* Check to see if there is a pending size request too */
+            width = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(handle), "_dw_width"));
+            height = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(handle), "_dw_height"));
+            if(width | height)
+            {
+               /* Ask what GTK is planning on suggesting for the window size */
+               gtk_window_get_size(GTK_WINDOW(handle), !width ? &width : NULL, !height ? &height : NULL);
+            }
+            /* Add the frame size to it */
+            width += cx;
+            height += cy;
          }
+         /* Do any gravity calculations */
+         if(horz || vert)
+         {
+            /* Handle horizontal center gravity */
+            if((horz & 0xf) == DW_GRAV_CENTER)
+               newx += ((gdk_screen_width() / 2) - (width / 2));
+            /* Handle right gravity */
+            else if((horz & 0xf) == DW_GRAV_RIGHT)
+               newx = gdk_screen_width() - width - x;
+            /* Handle vertical center gravity */
+            if((vert & 0xf) == DW_GRAV_CENTER)
+               newy += ((gdk_screen_height() / 2) - (height / 2));
+            else if((vert & 0xf) == DW_GRAV_BOTTOM)
+               newy = gdk_screen_height() - height - x;
+         }            
+         /* Finally move the window into place */
+         gtk_window_move(GTK_WINDOW(handle), newx, newy);
 #else
          gtk_widget_set_uposition(handle, x, y);
 #endif
       }
-      else if((window = gtk_widget_get_window(handle)))
-         gdk_window_move(window, x, y);
+      else if(handle->window)
+         gdk_window_move(handle->window, x, y);
    }
    DW_MUTEX_UNLOCK;
 }
