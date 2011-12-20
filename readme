@@ -38,6 +38,9 @@ Added dw_window_get_preferred_size() for getting the size the system
 Added support for -1 size parameter to the dw_box_pack*() functions to 
     automatically figure out a suggested size for many controls.
 Added automatic window redraw support for OS/2, Windows and Mac.
+Added dw_window_set_gravity() for enhanced window placement.
+Added automatic window border detection on GTK.
+   This eliminates the need for the DW_BORDER_* environment variables.
 Added Open Watcom compiler support for OS/2.
 Added pseudo transparent background widget support on Windows and OS/2.
    If you set the background color of a widget to DW_RGB_TRANSPARENT...
