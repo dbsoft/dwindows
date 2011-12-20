@@ -8482,6 +8482,49 @@ void API dw_window_get_preferred_size(HWND handle, int *width, int *height)
 }
 
 /*
+ * Sets the gravity of a given window (widget).
+ * Gravity controls which corner of the screen and window the position is relative to.
+ * Parameters:
+ *          handle: Window (widget) handle.
+ *          horz: DW_GRAV_LEFT (default), DW_GRAV_RIGHT or DW_GRAV_CENTER.
+ *          vert: DW_GRAV_TOP (default), DW_GRAV_BOTTOM or DW_GRAV_CENTER.
+ */
+void API dw_window_set_gravity(HWND handle, int horz, int vert)
+{
+    dw_window_set_data(handle, "_dw_grav_horz", DW_INT_TO_POINTER(horz));
+    dw_window_set_data(handle, "_dw_grav_vert", DW_INT_TO_POINTER(vert));
+}
+
+/* Convert the coordinates based on gravity */
+void _handle_gravity(HWND handle, long *x, long *y, unsigned long width, unsigned long height)
+{
+    int horz = DW_POINTER_TO_INT(dw_window_get_data(handle, "_dw_grav_horz"));
+    int vert = DW_POINTER_TO_INT(dw_window_get_data(handle, "_dw_grav_vert"));
+    
+    /* Do any gravity calculations */
+    if(horz || (vert & 0xf) != DW_GRAV_BOTTOM)
+    {
+        long newx = *x, newy = *y;
+        
+        /* Handle horizontal center gravity */
+        if((horz & 0xf) == DW_GRAV_CENTER)
+            newx += ((dw_screen_width() / 2) - (width / 2));
+        /* Handle right gravity */
+        else if((horz & 0xf) == DW_GRAV_RIGHT)
+            newx = dw_screen_width() - width - *x;
+        /* Handle vertical center gravity */
+        if((vert & 0xf) == DW_GRAV_CENTER)
+            newy += ((dw_screen_height() / 2) - (height / 2));
+        else if((vert & 0xf) == DW_GRAV_TOP)
+            newy = dw_screen_height() - height - *y;
+        
+        /* Save the new values */
+        *x = newx;
+        *y = newy;
+    }            
+}
+
+/*
  * Sets the position of a given window (widget).
  * Parameters:
  *          handle: Window (widget) handle.
@@ -8493,14 +8536,18 @@ void API dw_window_set_pos(HWND handle, LONG x, LONG y)
     int _locked_by_me = FALSE;
     DW_MUTEX_LOCK;
     NSObject *object = handle;
-    NSPoint point;
-    point.x = x;
-    point.y = [[NSScreen mainScreen] frame].size.height - y;
-
+    
     if([ object isKindOfClass:[ NSWindow class ] ])
     {
         NSWindow *window = handle;
-        point.y -= [window frame].size.height;
+        NSPoint point;
+        NSSize size = [window frame].size;
+        
+        _handle_gravity(handle, &x, &y, (unsigned long)size.width, (unsigned long)size.height);
+        
+        point.x = x;
+        point.y = y;
+        
         [window setFrameOrigin:point];
     }
     DW_MUTEX_UNLOCK;
