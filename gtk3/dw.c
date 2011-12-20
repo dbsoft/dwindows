@@ -8618,7 +8618,7 @@ void dw_window_set_size(HWND handle, unsigned long width, unsigned long height)
       {
          /* Check if we have cached frame size values */
          if(!((cx = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(handle), "_dw_frame_width"))) |
-                   (cy = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(handle), "_dw_frame_height")))))
+              (cy = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(handle), "_dw_frame_height")))))
          {
             /* If not try to ask the window manager for the estimated size...
              * and finally if all else fails, guess.
@@ -8633,8 +8633,11 @@ void dw_window_set_size(HWND handle, unsigned long width, unsigned long height)
          g_object_set_data(G_OBJECT(handle), "_dw_height", GINT_TO_POINTER(height));
       }
       /* Resize minus the border size */
-      gtk_window_resize(GTK_WINDOW(handle), width - cx , height - cy );
-      gtk_window_set_default_size(GTK_WINDOW(handle), width - cx, height - cy);
+      if(width > cx && height > cy)
+      {
+         gtk_window_resize(GTK_WINDOW(handle), width - cx , height - cy );
+         gtk_window_set_default_size(GTK_WINDOW(handle), width - cx, height - cy);
+      }
    }
    else
       gtk_widget_set_size_request(handle, width, height);
