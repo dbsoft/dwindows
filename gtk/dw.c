@@ -2660,6 +2660,7 @@ int dw_window_show(HWND handle)
 {
    int _locked_by_me = FALSE;
    GtkWidget *defaultitem;
+   int x = 0, y = 0;
 #if GTK_MAJOR_VERSION > 1
    GtkWidget *mdi;
 #endif
@@ -2668,6 +2669,12 @@ int dw_window_show(HWND handle)
       return 0;
 
    DW_MUTEX_LOCK;
+   /* GTK 2 needs extra help moving the window after being mapped */
+   if(!GTK_WIDGET_MAPPED(handle))
+   {
+      x = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(handle), "_dw_absolutex"));
+      y = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(handle), "_dw_absolutey"));
+   }
    gtk_widget_show(handle);
 #if GTK_MAJOR_VERSION > 1
    if ((mdi = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(handle), "_dw_mdi")) && GTK_IS_MDI(mdi))
@@ -2676,7 +2683,19 @@ int dw_window_show(HWND handle)
    }
    else
 #endif
+   if(GTK_IS_WINDOW(handle))
    {
+      /* Move the window to where it should be so gdk_window_get_frame_extents()
+       * called from dw_window_set_pos() and dw_window_set_size() don't make the 
+       * window appear in a bad location on the screen.
+       */
+      if(x || y)
+      {
+         gtk_window_move(GTK_WINDOW(handle), x, y);
+         /* Clear out the data so we don't do it again */
+         gtk_object_set_data(GTK_OBJECT(handle), "_dw_absolutex", NULL);
+         gtk_object_set_data(GTK_OBJECT(handle), "_dw_absolutey", NULL);
+      }
       if (GTK_WIDGET(handle)->window)
       {
          int width = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(handle), "_dw_width"));
@@ -2695,8 +2714,8 @@ int dw_window_show(HWND handle)
          /* If we had a position request before shown */
          if (gtk_object_get_data(GTK_OBJECT(handle), "_dw_pos"))
          {
-            int x = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(handle), "_dw_x"));
-            int y = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(handle), "_dw_y"));
+            x = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(handle), "_dw_x"));
+            y = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(handle), "_dw_y"));
             
             /* Call the position function again now that we are realized */
             dw_window_set_pos(handle, x, y);
@@ -10387,7 +10406,7 @@ void dw_window_set_pos(HWND handle, long x, long y)
             /* Check to see if there is a pending size request too */
             width = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(handle), "_dw_width"));
             height = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(handle), "_dw_height"));
-            if(width | height)
+            if(!width || !height)
             {
                /* Ask what GTK is planning on suggesting for the window size */
                gtk_window_get_size(GTK_WINDOW(handle), !width ? &width : NULL, !height ? &height : NULL);
@@ -10411,8 +10430,16 @@ void dw_window_set_pos(HWND handle, long x, long y)
             else if((vert & 0xf) == DW_GRAV_BOTTOM)
                newy = gdk_screen_height() - height - x;
          }            
-         /* Finally move the window into place */
-         gtk_window_move(GTK_WINDOW(handle), newx, newy);
+         if(GTK_WIDGET_MAPPED(handle))
+         {
+            /* Finally move the window into place */
+            gtk_window_move(GTK_WINDOW(handle), newx, newy);
+         }
+         else
+         {
+            gtk_object_set_data(GTK_OBJECT(handle), "_dw_absolutex", GINT_TO_POINTER(newx));
+            gtk_object_set_data(GTK_OBJECT(handle), "_dw_absolutey", GINT_TO_POINTER(newy));
+         }
 #else
          gtk_widget_set_uposition(handle, x, y);
 #endif
@@ -10471,7 +10498,7 @@ void dw_window_get_pos_size(HWND handle, long *x, long *y, ULONG *width, ULONG *
          /* If it is a toplevel window */
          if(GTK_IS_WINDOW(handle))
          {
-            if(handle->window && gdk_window_is_visible(handle->window))
+            if(handle->window && GTK_WIDGET_MAPPED(handle))
             {
                GdkRectangle frame;
 
