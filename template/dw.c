@@ -2781,6 +2781,18 @@ void API dw_window_get_preferred_size(HWND handle, int *width, int *height)
 }
 
 /*
+ * Sets the gravity of a given window (widget).
+ * Gravity controls which corner of the screen and window the position is relative to.
+ * Parameters:
+ *          handle: Window (widget) handle.
+ *          horz: DW_GRAV_LEFT (default), DW_GRAV_RIGHT or DW_GRAV_CENTER.
+ *          vert: DW_GRAV_TOP (default), DW_GRAV_BOTTOM or DW_GRAV_CENTER.
+ */
+void API dw_window_set_gravity(HWND handle, int horz, int vert)
+{
+}
+
+/*
  * Sets the position of a given window (widget).
  * Parameters:
  *          handle: Window (widget) handle.
