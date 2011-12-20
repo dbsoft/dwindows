@@ -8759,7 +8759,7 @@ void dw_window_set_pos(HWND handle, long x, long y)
                gdk_window_get_frame_extents(window, &frame);
                width = frame.width;
                height = frame.height;
-            }            
+            }
          }
          else
          {
@@ -8784,7 +8784,7 @@ void dw_window_set_pos(HWND handle, long x, long y)
             /* Check to see if there is a pending size request too */
             width = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(handle), "_dw_width"));
             height = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(handle), "_dw_height"));
-            if(width | height)
+            if(!width || !height)
             {
                /* Ask what GTK is planning on suggesting for the window size */
                gtk_window_get_size(GTK_WINDOW(handle), !width ? &width : NULL, !height ? &height : NULL);
