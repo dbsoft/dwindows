@@ -8777,7 +8777,6 @@ void dw_window_set_pos(HWND handle, long x, long y)
                }
                width = frame.width;
                height = frame.height;
-               dw_debug("Frame %dx%d\n", width, height);
             }
          }
          else
@@ -8805,7 +8804,6 @@ void dw_window_set_pos(HWND handle, long x, long y)
                /* Ask what GTK is planning on suggesting for the window size */
                gtk_window_get_size(GTK_WINDOW(handle), !width ? &width : NULL, !height ? &height : NULL);
             }
-            dw_debug("Estimate %dx%d + %dx%d\n", width, height, cx, cy);
             /* Add the frame size to it */
             width += cx;
             height += cy;
