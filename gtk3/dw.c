@@ -8748,6 +8748,8 @@ void dw_window_set_pos(HWND handle, long x, long y)
          GdkWindow *window = gtk_widget_get_window(handle);
          int horz = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(handle), "_dw_grav_horz"));
          int vert = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(handle), "_dw_grav_vert"));
+         int cx = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(handle), "_dw_frame_width"));
+         int cy = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(handle), "_dw_frame_height"));
          int newx = x, newy = y, width = 0, height = 0;
          
          /* If the window is mapped */
@@ -8757,20 +8759,31 @@ void dw_window_set_pos(HWND handle, long x, long y)
             if(horz || vert)
             {
                GdkRectangle frame;
+               int count = 0;
 
                /* Get the frame size */
                gdk_window_get_frame_extents(window, &frame);
+               
+               /* FIXME: Sometimes we get returned an invalid 200x200
+                * result... so if we get this... try the call a second 
+                * time and hope for a better result.
+                */
+               while((frame.width == 200 || frame.width == (200 + cx)) && 
+                     (frame.height == 200 || frame.height == (200 + cy)) && count < 10)
+               {
+                  dw_main_sleep(1);
+                  count++;
+                  gdk_window_get_frame_extents(window, &frame);
+               }
                width = frame.width;
                height = frame.height;
+               dw_debug("Frame %dx%d\n", width, height);
             }
          }
          else
          {
-            int cx , cy;
-
             /* Check if we have cached frame size values */
-            if(!((cx = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(handle), "_dw_frame_width"))) |
-                 (cy = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(handle), "_dw_frame_height")))))
+            if(!(cx | cy))
             {
                /* If not try to ask the window manager for the estimated size...
                 * and finally if all else fails, guess.
@@ -8792,6 +8805,7 @@ void dw_window_set_pos(HWND handle, long x, long y)
                /* Ask what GTK is planning on suggesting for the window size */
                gtk_window_get_size(GTK_WINDOW(handle), !width ? &width : NULL, !height ? &height : NULL);
             }
+            dw_debug("Estimate %dx%d + %dx%d\n", width, height, cx, cy);
             /* Add the frame size to it */
             width += cx;
             height += cy;
