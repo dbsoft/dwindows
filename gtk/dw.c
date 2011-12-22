@@ -10164,10 +10164,10 @@ void _dw_get_frame_extents(GtkWidget *window, int *vert, int *horz)
       XEvent notify_xevent, xevent = {0};
 
       if(!extents_atom)
-	   {
-	      const char *extents_name = "_NET_FRAME_EXTENTS";
-	      extents_atom = gdk_x11_get_xatom_by_name_for_display(display, extents_name);
-	   }
+      {
+         const char *extents_name = "_NET_FRAME_EXTENTS";
+         extents_atom = gdk_x11_get_xatom_by_name_for_display(display, extents_name);
+      }
 
       xevent.xclient.type = ClientMessage;
       xevent.xclient.message_type = extents_request_atom;
@@ -10177,7 +10177,7 @@ void _dw_get_frame_extents(GtkWidget *window, int *vert, int *horz)
 
       /* Send the property request */
       XSendEvent(xdisplay, xroot_window, False,
-		          (SubstructureRedirectMask | SubstructureNotifyMask),
+                (SubstructureRedirectMask | SubstructureNotifyMask),
                 &xevent);
       
       /* Record the request time */
