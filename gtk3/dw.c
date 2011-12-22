@@ -2940,6 +2940,8 @@ HWND dw_window_new(HWND hwndOwner, char *title, unsigned long flStyle)
          gtk_window_set_deletable(GTK_WINDOW(tmp), FALSE);
 
       gdk_window_set_decorations(gtk_widget_get_window(tmp), flags);
+      if(!flags)
+         gtk_window_set_decorated(GTK_WINDOW(tmp), FALSE);
 
       if(hwndOwner)
          gdk_window_reparent(gtk_widget_get_window(GTK_WIDGET(tmp)), gtk_widget_get_window(GTK_WIDGET(hwndOwner)), 0, 0);
@@ -8528,67 +8530,72 @@ static Bool property_notify_predicate(Display *xdisplay, XEvent *event, XPointer
 /* Internal function to figure out the frame extents of an unmapped window */
 void _dw_get_frame_extents(GtkWidget *window, int *vert, int *horz)
 {
-   const char *request = "_NET_REQUEST_FRAME_EXTENTS";
-   unsigned long *extents = NULL;
-   union extents_union eu;
-   GdkAtom request_extents = gdk_atom_intern(request, FALSE);
-   GdkWindow *gdkwindow = gtk_widget_get_window(window);
-   GdkDisplay *display = gtk_widget_get_display(window);
-
-   /* Set some rational defaults.. just in case */
-   *vert = 28;
-   *horz = 12;
-
-   /* See if the current window manager supports _NET_REQUEST_FRAME_EXTENTS */
-   if(gdk_x11_screen_supports_net_wm_hint(gdk_screen_get_default(), request_extents))
+   if(gtk_window_get_decorated(GTK_WINDOW(window)))
    {
-      Display *xdisplay = GDK_DISPLAY_XDISPLAY(display);
-      GdkWindow *root_window = gdk_get_default_root_window();
-      Window xroot_window = GDK_WINDOW_XID(root_window);
-      Atom extents_request_atom = gdk_x11_get_xatom_by_name_for_display(display, request);
-      unsigned long window_id = GDK_WINDOW_XID(gdkwindow);
-      XEvent notify_xevent, xevent = {0};
+      const char *request = "_NET_REQUEST_FRAME_EXTENTS";
+      unsigned long *extents = NULL;
+      union extents_union eu;
+      GdkAtom request_extents = gdk_atom_intern(request, FALSE);
+      GdkWindow *gdkwindow = gtk_widget_get_window(window);
+      GdkDisplay *display = gtk_widget_get_display(window);
 
-      if(!extents_atom)
+      /* Set some rational defaults.. just in case */
+      *vert = 28;
+      *horz = 12;
+
+      /* See if the current window manager supports _NET_REQUEST_FRAME_EXTENTS */
+      if(gdk_x11_screen_supports_net_wm_hint(gdk_screen_get_default(), request_extents))
       {
-         const char *extents_name = "_NET_FRAME_EXTENTS";
-         extents_atom = gdk_x11_get_xatom_by_name_for_display(display, extents_name);
+         Display *xdisplay = GDK_DISPLAY_XDISPLAY(display);
+         GdkWindow *root_window = gdk_get_default_root_window();
+         Window xroot_window = GDK_WINDOW_XID(root_window);
+         Atom extents_request_atom = gdk_x11_get_xatom_by_name_for_display(display, request);
+         unsigned long window_id = GDK_WINDOW_XID(gdkwindow);
+         XEvent notify_xevent, xevent = {0};
+
+         if(!extents_atom)
+         {
+            const char *extents_name = "_NET_FRAME_EXTENTS";
+            extents_atom = gdk_x11_get_xatom_by_name_for_display(display, extents_name);
+         }
+
+         xevent.xclient.type = ClientMessage;
+         xevent.xclient.message_type = extents_request_atom;
+         xevent.xclient.display = xdisplay;
+         xevent.xclient.window = window_id;
+         xevent.xclient.format = 32;
+
+         /* Send the property request */
+         XSendEvent(xdisplay, xroot_window, False,
+                   (SubstructureRedirectMask | SubstructureNotifyMask),
+                   &xevent);
+
+         /* Record the request time */
+         time(&extents_time);
+         
+         /* Look for the property notify event */
+         XIfEvent(xdisplay, &notify_xevent, property_notify_predicate, (XPointer)&window_id);
+         
+         /* If we didn't get the notification... put the event back onto the stack */
+         if(notify_xevent.xany.type != PropertyNotify || notify_xevent.xany.window != window_id
+            || notify_xevent.xproperty.atom != extents_atom)
+               XPutBackEvent(xdisplay, &notify_xevent);
       }
-
-      xevent.xclient.type = ClientMessage;
-      xevent.xclient.message_type = extents_request_atom;
-      xevent.xclient.display = xdisplay;
-      xevent.xclient.window = window_id;
-      xevent.xclient.format = 32;
-
-      /* Send the property request */
-      XSendEvent(xdisplay, xroot_window, False,
-                (SubstructureRedirectMask | SubstructureNotifyMask),
-                &xevent);
-
-      /* Record the request time */
-      time(&extents_time);
       
-      /* Look for the property notify event */
-      XIfEvent(xdisplay, &notify_xevent, property_notify_predicate, (XPointer)&window_id);
-      
-      /* If we didn't get the notification... put the event back onto the stack */
-      if(notify_xevent.xany.type != PropertyNotify || notify_xevent.xany.window != window_id
-         || notify_xevent.xproperty.atom != extents_atom)
-            XPutBackEvent(xdisplay, &notify_xevent);
+      /* Attempt to retrieve window's frame extents. */
+      eu.extents = &extents;
+      if(gdk_property_get(gdkwindow,
+                          gdk_atom_intern("_NET_FRAME_EXTENTS", FALSE),
+                          gdk_atom_intern("CARDINAL", FALSE),
+                          0, sizeof(unsigned long)*4, FALSE,
+                          NULL, NULL, NULL, eu.gu_extents))
+      {
+         *horz = extents[0] + extents[1];
+         *vert = extents[2] + extents[3];
+      }
    }
-   
-   /* Attempt to retrieve window's frame extents. */
-   eu.extents = &extents;
-   if(gdk_property_get(gdkwindow,
-                       gdk_atom_intern("_NET_FRAME_EXTENTS", FALSE),
-                       gdk_atom_intern("CARDINAL", FALSE),
-                       0, sizeof(unsigned long)*4, FALSE,
-                       NULL, NULL, NULL, eu.gu_extents))
-   {
-      *horz = extents[0] + extents[1];
-      *vert = extents[2] + extents[3];
-   }
+   else
+      *horz = *vert = 0;
 }
 
 /*
