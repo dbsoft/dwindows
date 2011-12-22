@@ -10384,6 +10384,8 @@ void dw_window_set_pos(HWND handle, long x, long y)
 #if GTK_MAJOR_VERSION > 1
          int horz = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(handle), "_dw_grav_horz"));
          int vert = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(handle), "_dw_grav_vert"));
+         int cx = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(handle), "_dw_frame_width"));
+         int cy = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(handle), "_dw_frame_height"));
          int newx = x, newy = y, width = 0, height = 0;
 
          /* If the window is mapped */
@@ -10393,9 +10395,22 @@ void dw_window_set_pos(HWND handle, long x, long y)
             if(horz || vert)
             {
                GdkRectangle frame;
+               int count = 0;
 
                /* Get the frame size */
                gdk_window_get_frame_extents(handle->window, &frame);
+               
+               /* FIXME: Sometimes we get returned an invalid 200x200
+                * result... so if we get this... try the call a second 
+                * time and hope for a better result.
+                */
+               while((frame.width == 200 || frame.width == (200 + cx)) && 
+                     (frame.height == 200 || frame.height == (200 + cy)) && count < 10)
+               {
+                  dw_main_sleep(1);
+                  count++;
+                  gdk_window_get_frame_extents(handle->window, &frame);
+               }
                width = frame.width;
                height = frame.height;
             }            
@@ -10405,8 +10420,7 @@ void dw_window_set_pos(HWND handle, long x, long y)
             int cx , cy;
 
             /* Check if we have cached frame size values */
-            if(!((cx = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(handle), "_dw_frame_width"))) |
-                 (cy = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(handle), "_dw_frame_height")))))
+            if(!(cx | cy))
             {
                /* If not try to ask the window manager for the estimated size...
                 * and finally if all else fails, guess.
