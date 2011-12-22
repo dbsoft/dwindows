@@ -10126,12 +10126,16 @@ void API dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, 
 
 union extents_union { guchar **gu_extents; unsigned long **extents; };
 static Atom extents_atom = 0;
+static time_t extents_time = 0;
 
 static Bool property_notify_predicate(Display *xdisplay, XEvent *event, XPointer window_id)
 {
    unsigned long *window = (unsigned long *)window_id;
+   time_t currtime = time(NULL);
 
-   if(event->xany.type == PropertyNotify && event->xany.window == *window && event->xproperty.atom == extents_atom)
+   /* If it is the event we are looking for... or if the timeout has expired */
+   if((event->xany.type == PropertyNotify && event->xany.window == *window && event->xproperty.atom == extents_atom) ||
+      (currtime - extents_time) > 1)
       return True;
    return False;
 }
@@ -10171,11 +10175,21 @@ void _dw_get_frame_extents(GtkWidget *window, int *vert, int *horz)
       xevent.xclient.window = window_id;
       xevent.xclient.format = 32;
 
+      /* Send the property request */
       XSendEvent(xdisplay, xroot_window, False,
 		          (SubstructureRedirectMask | SubstructureNotifyMask),
                 &xevent);
-
+      
+      /* Record the request time */
+      time(&extents_time);
+      
+      /* Look for the property notify event */
       XIfEvent(xdisplay, &notify_xevent, property_notify_predicate, (XPointer)&window_id);
+      
+      /* If we didn't get the notification... put the event back onto the stack */
+      if(notify_xevent.xany.type != PropertyNotify || notify_xevent.xany.window != window_id
+         || notify_xevent.xproperty.atom != extents_atom)
+            XPutBackEvent(xdisplay, &notify_xevent);
    }
    
    /* Attempt to retrieve window's frame extents. */
