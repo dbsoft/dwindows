@@ -8443,8 +8443,11 @@ void API dw_window_set_size(HWND handle, ULONG width, ULONG height)
     {
         NSWindow *window = handle;
         Box *thisbox;
-        NSSize size;
+        NSRect content, frame = NSMakeRect(0, 0, width, height);
        
+        /* Convert the external frame size to internal content size */
+        content = [NSWindow contentRectForFrameRect:frame styleMask:[window styleMask]];
+        
         /*
          * The following is an attempt to dynamically size a window based on the size of its
          * children before realization. Only applicable when width or height is less than one.
@@ -8457,14 +8460,12 @@ void API dw_window_set_size(HWND handle, ULONG width, ULONG height)
             _resize_box(thisbox, &depth, (int)width, (int)height, 1);
           
             /* Might need to take into account the window border here */
-            if(width < 1) width = thisbox->minwidth;
-            if(height < 1) height = thisbox->minheight;
+            if(width < 1) content.size.width = thisbox->minwidth;
+            if(height < 1) content.size.height = thisbox->minheight;
         }
        
         /* Finally set the size */
-        size.width = width;
-        size.height = height;
-        [window setContentSize:size];
+        [window setContentSize:content.size];
     }
     DW_MUTEX_UNLOCK;
 }
