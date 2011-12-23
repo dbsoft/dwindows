@@ -29,7 +29,7 @@
 #define MAX_WIDGETS 20
 
 unsigned long flStyle = DW_FCF_SYSMENU | DW_FCF_TITLEBAR |
-                        DW_FCF_SHELLPOSITION | DW_FCF_TASKLIST | DW_FCF_DLGBORDER;
+                        DW_FCF_TASKLIST | DW_FCF_DLGBORDER;
 
 unsigned long current_color = DW_RGB(100,100,100);
 
