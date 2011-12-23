@@ -101,6 +101,8 @@ unsigned long _colors[] = {
    CLR_WHITE
 };
 
+#define DW_OS2_NEW_WINDOW        1
+
 #define IS_WARP4() (aulBuffer[0] == 20 && aulBuffer[1] >= 40)
 
 #ifndef min
@@ -4245,7 +4247,7 @@ int API dw_window_lower(HWND handle)
  */
 int API dw_window_show(HWND handle)
 {
-   int rc = WinSetWindowPos(handle, NULLHANDLE, 0, 0, 0, 0, SWP_SHOW);
+   int rc = WinShowWindow(handle, TRUE);
    HSWITCH hswitch;
    SWCNTRL swcntrl;
 
@@ -4267,6 +4269,9 @@ int API dw_window_show(HWND handle)
 
       if(blah && !(blah->flags & DW_OS2_NEW_WINDOW))
       {
+         /* Make sure windows shown for the first time are
+          * completely visible if possible.
+          */
          ULONG cx = dw_screen_width(), cy = dw_screen_height();
          int newx, newy, changed = 0;
          SWP swp;
@@ -4278,12 +4283,12 @@ int API dw_window_show(HWND handle)
          newx = swp.x;
          newy = swp.y;
 
-         if((swp.x+swp.cx) > cx)
+         if(swp.cx < cx && (swp.x+swp.cx) > cx)
          {
             newx = (cx - swp.cx)/2;
             changed = 1;
          }
-         if((swp.y+swp.cy) > cy)
+         if(swp.cy < cy && (swp.y+swp.cy) > cy)
          {
             newy = (cy - swp.cy)/2;
             changed = 1;
@@ -4922,9 +4927,6 @@ HWND API dw_window_new(HWND hwndOwner, char *title, ULONG flStyle)
    else
       flStyle |= FCF_TITLEBAR;
 
-   if(!(flStyle & FCF_SHELLPOSITION))
-      blah->flags |= DW_OS2_NEW_WINDOW;
-
    if(flStyle & WS_MAXIMIZED)
    {
       winStyle |= WS_MAXIMIZED;
@@ -4936,6 +4938,8 @@ HWND API dw_window_new(HWND hwndOwner, char *title, ULONG flStyle)
       flStyle &= ~WS_MINIMIZED;
    }
 
+   /* Then create the real window window without FCF_SHELLPOSITION */
+   flStyle &= ~FCF_SHELLPOSITION;
    hwndframe = WinCreateStdWindow(hwndOwner, winStyle, &flStyle, (PSZ)ClassName, (PSZ)title, 0L, NULLHANDLE, 0L, &newbox->hwnd);
    newbox->hwndtitle = WinWindowFromID(hwndframe, FID_TITLEBAR);
    if(!newbox->titlebar && newbox->hwndtitle)
@@ -4943,7 +4947,6 @@ HWND API dw_window_new(HWND hwndOwner, char *title, ULONG flStyle)
    blah->oldproc = WinSubclassWindow(hwndframe, _sizeproc);
    WinSetWindowPtr(hwndframe, QWP_USER, blah);
    WinSetWindowPtr(newbox->hwnd, QWP_USER, newbox);
-
    return hwndframe;
 }
 
@@ -6907,7 +6910,7 @@ void API dw_window_set_size(HWND handle, ULONG width, ULONG height)
       _get_window_for_size(handle, &width, &height);
    
    /* Finally set the size */
-   WinSetWindowPos(handle, NULLHANDLE, 0, 0, width, height, SWP_SHOW | SWP_SIZE);
+   WinSetWindowPos(handle, NULLHANDLE, 0, 0, width, height, SWP_SIZE);
 }
 
 /*
@@ -7025,7 +7028,7 @@ void API dw_window_set_pos_size(HWND handle, LONG x, LONG y, ULONG width, ULONG 
    
    _handle_gravity(handle, &x, &y, width, height);
    /* Finally set the size */
-   WinSetWindowPos(handle, NULLHANDLE, x, y, width, height, SWP_SHOW | SWP_MOVE | SWP_SIZE);
+   WinSetWindowPos(handle, NULLHANDLE, x, y, width, height, SWP_MOVE | SWP_SIZE);
 }
 
 /*
@@ -9063,7 +9066,7 @@ unsigned long API dw_color_choose(unsigned long value)
    DWDialog *dwwait;
    HMTX mtx = dw_mutex_new();
 
-   window = dw_window_new( HWND_DESKTOP, "Choose Color", FCF_SHELLPOSITION | FCF_TITLEBAR | FCF_DLGBORDER | FCF_CLOSEBUTTON | FCF_SYSMENU);
+   window = dw_window_new( HWND_DESKTOP, "Choose Color", FCF_TITLEBAR | FCF_DLGBORDER | FCF_CLOSEBUTTON | FCF_SYSMENU);
 
    vbox = dw_box_new(DW_VERT, 5);
 
@@ -10879,7 +10882,7 @@ char * API dw_file_browse(char *title, char *defpath, char *ext, int flags)
       DWDialog *dwwait;
       HMTX mtx = dw_mutex_new();
 
-      window = dw_window_new( HWND_DESKTOP, title, FCF_SHELLPOSITION | FCF_TITLEBAR | FCF_SIZEBORDER | FCF_MINMAX);
+      window = dw_window_new( HWND_DESKTOP, title, FCF_TITLEBAR | FCF_SIZEBORDER | FCF_MINMAX);
 
       vbox = dw_box_new(DW_VERT, 5);
 
@@ -11293,7 +11296,7 @@ HPRINT API dw_print_new(char *jobname, unsigned long flags, unsigned int pages, 
     }
 
     /* Create the print dialog */
-    window = dw_window_new(HWND_DESKTOP, "Choose Printer", FCF_SHELLPOSITION | FCF_TITLEBAR | FCF_DLGBORDER | FCF_CLOSEBUTTON | FCF_SYSMENU);
+    window = dw_window_new(HWND_DESKTOP, "Choose Printer", FCF_TITLEBAR | FCF_DLGBORDER | FCF_CLOSEBUTTON | FCF_SYSMENU);
 
     vbox = dw_box_new(DW_VERT, 5);
 
