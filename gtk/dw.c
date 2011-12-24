@@ -1823,7 +1823,7 @@ static gint _value_changed_event(GtkAdjustment *adjustment, gpointer data)
             valuechangedfunc(work.window, val,  work.data);
       }
    }
-   else if (scrollbar || spinbutton)
+   else if (spinbutton)
    {
       SignalHandler work = _get_signal_handler((GtkWidget *)adjustment, data);
 
@@ -1832,6 +1832,22 @@ static gint _value_changed_event(GtkAdjustment *adjustment, gpointer data)
          int (*valuechangedfunc)(HWND, int, void *) = work.func;
 
          valuechangedfunc(work.window, val,  work.data);
+      }
+   }
+   else if (scrollbar)
+   {
+      gint suppress;
+      suppress = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(adjustment), "_dw_suppress_value_changed_event"));
+      if (!suppress )
+      {
+         SignalHandler work = _get_signal_handler((GtkWidget *)adjustment, data);
+
+         if (work.window)
+         {
+            int (*valuechangedfunc)(HWND, int, void *) = work.func;
+
+            valuechangedfunc(work.window, val,  work.data);
+         }
       }
    }
    return FALSE;
@@ -1897,7 +1913,7 @@ static GdkPixmap *_find_pixmap(GdkBitmap **bitmap, HICN icon, HWND handle, unsig
       GdkPixmap *icon_pixmap = NULL;
 #if GTK_MAJOR_VERSION > 1
       GdkPixbuf *icon_pixbuf;
-      
+
       if(data[0] == 'G' && data[1] == 'd' && data[2] == 'k' && data[3] == 'P')
          icon_pixbuf = gdk_pixbuf_new_from_inline(-1, (const guint8 *)data, FALSE, NULL);
       else
@@ -2104,16 +2120,16 @@ int dw_int_init(DWResources *res, int newthread, int *argc, char **argv[])
    {
       char *pathcopy = strdup((*argv)[0]);
       char *pos = strrchr(pathcopy, '/');
-      
+
       if(pos)
       {
          char *binname = pos + 1;
-         
+
          *pos = 0;
          if(*binname)
          {
             char *binpos = strstr(pathcopy, "/bin");
-            
+
             if(binpos)
                strncpy(_dw_share_path, pathcopy, (size_t)(binpos - pathcopy));
             else
@@ -2128,7 +2144,7 @@ int dw_int_init(DWResources *res, int newthread, int *argc, char **argv[])
    /* If that failed... just get the current directory */
    if(!_dw_share_path[0] && !getcwd(_dw_share_path, PATH_MAX))
       _dw_share_path[0] = '/';
-   
+
    gtk_set_locale();
 #if !GLIB_CHECK_VERSION(2,32,0)
    g_thread_init(NULL);
@@ -2417,7 +2433,7 @@ void API dw_debug(char *format, ...)
    va_start(args, format);
    vsnprintf(outbuf, 1024, format, args);
    va_end(args);
-   
+
    fprintf(stderr, "%s", outbuf);
 }
 
@@ -2686,7 +2702,7 @@ int dw_window_show(HWND handle)
    if(GTK_IS_WINDOW(handle))
    {
       /* Move the window to where it should be so gdk_window_get_frame_extents()
-       * called from dw_window_set_pos() and dw_window_set_size() don't make the 
+       * called from dw_window_set_pos() and dw_window_set_size() don't make the
        * window appear in a bad location on the screen.
        */
       if(x || y)
@@ -2716,7 +2732,7 @@ int dw_window_show(HWND handle)
          {
             x = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(handle), "_dw_x"));
             y = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(handle), "_dw_y"));
-            
+
             /* Call the position function again now that we are realized */
             dw_window_set_pos(handle, x, y);
             /* Clear out the data so we don't do it again */
@@ -2978,9 +2994,9 @@ char * API dw_font_choose(char *currfont)
 void API dw_font_set_default(char *fontname)
 {
    char *oldfont = _DWDefaultFont;
-   
+
    _DWDefaultFont = strdup(fontname);
-   
+
    if(oldfont)
       free(oldfont);
 }
@@ -3439,7 +3455,7 @@ HWND dw_window_new(HWND hwndOwner, char *title, unsigned long flStyle)
       GtkWidget *table = gtk_table_new(2, 1, FALSE);
 
       gtk_widget_show_all(table);
-      
+
       last_window = tmp = gtk_window_new(GTK_WINDOW_TOPLEVEL);
 
       gtk_window_set_title(GTK_WINDOW(tmp), title);
@@ -3847,7 +3863,7 @@ HWND dw_menu_append_item(HMENUI menu, char *title, unsigned long id, unsigned lo
    else
    {
       char numbuf[11] = {0};
-      
+
       if (check)
       {
          if (accel && accel_group)
@@ -4031,7 +4047,7 @@ void dw_menu_item_set_state(HMENUI menu, unsigned long id, unsigned long state)
  * Parameters:
  *       menu: The handle to the  menu in which the item was appended.
  *       id: Menuitem id.
- * Returns: 
+ * Returns:
  *       DW_ERROR_NONE (0) on success or DW_ERROR_UNKNOWN on failure.
  */
 int API dw_menu_delete_item(HMENUI menu, unsigned long id)
@@ -4420,7 +4436,7 @@ HWND dw_button_new(char *text, unsigned long id)
 void _create_tooltip(HWND handle, char *text)
 {
    GtkTooltips *tooltips = (GtkTooltips *)gtk_object_get_data(GTK_OBJECT(handle), "_dw_tooltip");
-   
+
    if(!tooltips)
    {
       tooltips = gtk_tooltips_new();
@@ -4653,6 +4669,7 @@ HWND dw_scrollbar_new(int vertical, ULONG id)
    gtk_object_set_data(GTK_OBJECT(tmp), "_dw_adjustment", (gpointer)adjustment);
    gtk_object_set_data(GTK_OBJECT(adjustment), "_dw_scrollbar", (gpointer)tmp);
    gtk_object_set_data(GTK_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(id));
+   gtk_object_set_data(GTK_OBJECT(tmp), "_dw_suppress_value_changed_event", GINT_TO_POINTER(0));
    DW_MUTEX_UNLOCK;
    return tmp;
 }
@@ -5830,7 +5847,11 @@ void dw_scrollbar_set_pos(HWND handle, unsigned int position)
    DW_MUTEX_LOCK;
    adjustment = (GtkAdjustment *)gtk_object_get_data(GTK_OBJECT(handle), "_dw_adjustment");
    if(adjustment)
+   {
+      gtk_object_set_data(GTK_OBJECT(adjustment), "_dw_suppress_value_changed_event", GINT_TO_POINTER(1));
       gtk_adjustment_set_value(adjustment, (gfloat)position);
+      gtk_object_set_data(GTK_OBJECT(adjustment), "_dw_suppress_value_changed_event", GINT_TO_POINTER(0));
+   }
    DW_MUTEX_UNLOCK;
 }
 
@@ -10183,19 +10204,19 @@ void _dw_get_frame_extents(GtkWidget *window, int *vert, int *horz)
          XSendEvent(xdisplay, xroot_window, False,
                    (SubstructureRedirectMask | SubstructureNotifyMask),
                    &xevent);
-         
+
          /* Record the request time */
          time(&extents_time);
-         
+
          /* Look for the property notify event */
          XIfEvent(xdisplay, &notify_xevent, property_notify_predicate, (XPointer)&window_id);
-         
+
          /* If we didn't get the notification... put the event back onto the stack */
          if(notify_xevent.xany.type != PropertyNotify || notify_xevent.xany.window != window_id
             || notify_xevent.xproperty.atom != extents_atom)
                XPutBackEvent(xdisplay, &notify_xevent);
       }
-      
+
       /* Attempt to retrieve window's frame extents. */
       eu.extents = &extents;
       if(gdk_property_get(window->window,
@@ -10230,7 +10251,7 @@ void dw_window_set_size(HWND handle, unsigned long width, unsigned long height)
    if(GTK_IS_WINDOW(handle))
    {
       int cx = 0, cy = 0;
-      
+
 #ifdef GDK_WINDOWING_X11
       _size_allocate(GTK_WINDOW(handle));
 #endif
@@ -10244,7 +10265,7 @@ void dw_window_set_size(HWND handle, unsigned long width, unsigned long height)
          /* Calculate the border size */
          gdk_window_get_frame_extents(handle->window, &frame);
          gdk_window_get_geometry(handle->window, NULL, NULL, &gwidth, &gheight, NULL);
-         
+
          cx = frame.width - gwidth;
          if(cx < 0)
             cx = 0;
@@ -10406,12 +10427,12 @@ void dw_window_set_pos(HWND handle, long x, long y)
 
                /* Get the frame size */
                gdk_window_get_frame_extents(handle->window, &frame);
-               
+
                /* FIXME: Sometimes we get returned an invalid 200x200
-                * result... so if we get this... try the call a second 
+                * result... so if we get this... try the call a second
                 * time and hope for a better result.
                 */
-               while((frame.width == 200 || frame.width == (200 + cx)) && 
+               while((frame.width == 200 || frame.width == (200 + cx)) &&
                      (frame.height == 200 || frame.height == (200 + cy)) && count < 10)
                {
                   dw_main_sleep(1);
@@ -10420,7 +10441,7 @@ void dw_window_set_pos(HWND handle, long x, long y)
                }
                width = frame.width;
                height = frame.height;
-            }            
+            }
          }
          else
          {
@@ -10467,7 +10488,7 @@ void dw_window_set_pos(HWND handle, long x, long y)
                newy += ((gdk_screen_height() / 2) - (height / 2));
             else if((vert & 0xf) == DW_GRAV_BOTTOM)
                newy = gdk_screen_height() - height - y;
-         }            
+         }
          if(GTK_WIDGET_MAPPED(handle))
          {
             /* Finally move the window into place */
@@ -10631,7 +10652,7 @@ void dw_window_set_style(HWND handle, unsigned long style, unsigned long mask)
    if ( GTK_IS_CHECK_MENU_ITEM(handle2) && (mask & (DW_MIS_CHECKED | DW_MIS_UNCHECKED)) )
    {
       int check = 0;
-      
+
       if ( style & DW_MIS_CHECKED )
          check = 1;
 
@@ -12011,13 +12032,13 @@ char *dw_file_browse(char *title, char *defpath, char *ext, int flags)
    if ( defpath )
    {
       struct stat buf;
-      
+
       if ( g_path_is_absolute( defpath ) || !realpath(defpath, mypath))
       {
          strcpy( mypath, defpath );
       }
 
-      /* See if the path exists */      
+      /* See if the path exists */
       if(stat(mypath, &buf) == 0)
       {
          /* If the path is a directory... set the current folder */
@@ -12033,7 +12054,7 @@ char *dw_file_browse(char *title, char *defpath, char *ext, int flags)
          if(strchr(mypath, '/'))
          {
             unsigned long x = strlen(mypath) - 1;
-            
+
             /* Trim off the filename */
             while(x > 0 && mypath[x] != '/')
             {
@@ -12043,11 +12064,11 @@ char *dw_file_browse(char *title, char *defpath, char *ext, int flags)
             {
                 char *file = NULL;
                 char temp[PATH_MAX+1];
-             
+
                 /* Save the original path in temp */
                 strcpy(temp, mypath);
                 mypath[x] = 0;
-                
+
                 /* Check to make sure the trimmed piece is a directory */
                 if(realpath(mypath, temp) && stat(temp, &buf) == 0)
                 {
@@ -12057,7 +12078,7 @@ char *dw_file_browse(char *title, char *defpath, char *ext, int flags)
                       file = &mypath[x+1];
                    }
                 }
-                
+
                 /* Select folder... */
                 gtk_file_chooser_set_current_folder( GTK_FILE_CHOOSER(filew), temp );
                 /* ... and file separately */
@@ -12826,7 +12847,7 @@ char *dw_user_dir(void)
 
 /*
  * Returns a pointer to a static buffer which containes the
- * private application data directory. 
+ * private application data directory.
  */
 char * API dw_app_dir(void)
 {
