@@ -2914,22 +2914,17 @@ HWND dw_window_new(HWND hwndOwner, char *title, unsigned long flStyle)
       if(flStyle & DW_FCF_SIZEBORDER)
          flags |= GDK_DECOR_RESIZEH | GDK_DECOR_BORDER;
 
-      if(flStyle & DW_FCF_BORDER || flStyle & DW_FCF_DLGBORDER)
+      if(flStyle & (DW_FCF_BORDER | DW_FCF_DLGBORDER))
          flags |= GDK_DECOR_BORDER;
 
       if(flStyle & DW_FCF_MAXIMIZE)
-      {
-         flags &= ~DW_FCF_MAXIMIZE;
          gtk_window_maximize(GTK_WINDOW(tmp));
-      }
+         
       if(flStyle & DW_FCF_MINIMIZE)
-      {
-         flags &= ~DW_FCF_MINIMIZE;
          gtk_window_iconify(GTK_WINDOW(tmp));
-      }
+         
       /* Either the CLOSEBUTTON or SYSMENU flags should make it deletable */
-      if(!(flStyle & (DW_FCF_CLOSEBUTTON | DW_FCF_SYSMENU)))
-         gtk_window_set_deletable(GTK_WINDOW(tmp), FALSE);
+      gtk_window_set_deletable(GTK_WINDOW(tmp), (flStyle & (DW_FCF_CLOSEBUTTON | DW_FCF_SYSMENU)) ? TRUE : FALSE);
 
       gdk_window_set_decorations(gtk_widget_get_window(tmp), flags);
       if(!flags)
