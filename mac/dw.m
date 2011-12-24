@@ -7618,8 +7618,8 @@ int API dw_window_show(HWND handle)
                 point.y = cy - defaulty - (int)rect.size.height - 20;
                 
                 [window setFrameOrigin:point];
-                [window setShown:YES];
             }
+            [window setShown:YES];
         }
         [[window contentView] showWindow];
         [window makeKeyAndOrderFront:nil];
