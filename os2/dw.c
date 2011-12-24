@@ -4269,30 +4269,82 @@ int API dw_window_show(HWND handle)
 
       if(blah && !(blah->flags & DW_OS2_NEW_WINDOW))
       {
-         /* Make sure windows shown for the first time are
-          * completely visible if possible.
-          */
+         /* Handle auto-positioning and auto-sizing */
          ULONG cx = dw_screen_width(), cy = dw_screen_height();
+         HWND parent = WinQueryWindow(handle, QW_PARENT);
          int newx, newy, changed = 0;
          SWP swp;
+
+         /* If it is an MDI window...
+          * find the MDI area.
+          */
+         if(parent && parent != desktop)
+         {
+             WinQueryWindowPos(parent, &swp);
+             cx = swp.cx;
+             cy = swp.cy;
+             /* If the MDI parent isn't visible...
+              * we can't calculate. Drop out.
+              */
+             if(cx < 1 | cy < 1)
+             {
+                 WinSetWindowPos(handle, NULLHANDLE, 0, 0, 0, 0, SWP_MOVE);
+                 return rc;
+             }
+         }
 
          blah->flags |= DW_OS2_NEW_WINDOW;
 
          WinQueryWindowPos(handle, &swp);
 
-         newx = swp.x;
-         newy = swp.y;
+         /* If the size is 0 then auto-size */
+         if(swp.cx == 0 || swp.cy == 0)
+         {
+             dw_window_set_size(handle, 0, 0);
+             WinQueryWindowPos(handle, &swp);
+         }
 
-         if(swp.cx < cx && (swp.x+swp.cx) > cx)
+         /* If the position was not set... generate a default
+          * default one in a similar pattern to SHELLPOSITION.
+          */
+         if(swp.x == -2000 || swp.y == -2000)
+         {
+             static int defaultx = 0, defaulty = 0;
+             int maxx = cx / 4, maxy = cy / 4;
+
+             defaultx += 20;
+             defaulty += 20;
+
+             if(defaultx > maxx)
+                 defaultx = 20;
+             if(defaulty > maxy)
+                 defaulty = 20;
+
+             newx = defaultx;
+             /* Account for flipped Y */
+             newy = cy - defaulty - swp.cy;
+             changed = 1;
+         }
+         else
+         {
+             newx = swp.x;
+             newy = swp.y;
+         }
+
+         /* Make sure windows shown for the first time are
+          * completely visible if possible.
+          */
+         if(swp.cx < cx && (newx+swp.cx) > cx)
          {
             newx = (cx - swp.cx)/2;
             changed = 1;
          }
-         if(swp.cy < cy && (swp.y+swp.cy) > cy)
+         if(swp.cy < cy && (newy+swp.cy) > cy)
          {
             newy = (cy - swp.cy)/2;
             changed = 1;
          }
+
          if(changed)
             WinSetWindowPos(handle, NULLHANDLE, newx, newy, 0, 0, SWP_MOVE);
       }
@@ -4941,6 +4993,8 @@ HWND API dw_window_new(HWND hwndOwner, char *title, ULONG flStyle)
    /* Then create the real window window without FCF_SHELLPOSITION */
    flStyle &= ~FCF_SHELLPOSITION;
    hwndframe = WinCreateStdWindow(hwndOwner, winStyle, &flStyle, (PSZ)ClassName, (PSZ)title, 0L, NULLHANDLE, 0L, &newbox->hwnd);
+   /* Default the window to a ridiculus place so it can't possibly be intentional */
+   WinSetWindowPos(hwndframe, NULLHANDLE, -2000, -2000, 0, 0, SWP_MOVE);
    newbox->hwndtitle = WinWindowFromID(hwndframe, FID_TITLEBAR);
    if(!newbox->titlebar && newbox->hwndtitle)
       WinSetParent(newbox->hwndtitle, HWND_OBJECT, FALSE);
@@ -5115,7 +5169,7 @@ HWND API dw_mdi_new(unsigned long id)
                         NULL,
                         WS_VISIBLE | WS_CLIPCHILDREN |
                         FS_NOBYTEALIGN,
-                        0,0,2000,1000,
+                        0,0,0,0,
                         NULLHANDLE,
                         HWND_TOP,
                         id,
