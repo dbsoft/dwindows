@@ -746,12 +746,15 @@ DWObject *DWObj;
 @interface DWWindow : NSWindow
 {
     int redraw;
+    int shown;
 }
 -(void)sendEvent:(NSEvent *)theEvent;
 -(void)keyDown:(NSEvent *)theEvent;
 -(void)mouseDragged:(NSEvent *)theEvent;
 -(int)redraw;
 -(void)setRedraw:(int)val;
+-(int)shown;
+-(void)setShown:(int)val;
 @end
 
 @implementation DWWindow
@@ -769,6 +772,8 @@ DWObject *DWObj;
 -(void)mouseDragged:(NSEvent *)theEvent { _event_handler(self, theEvent, 5); }
 -(int)redraw { return redraw; }
 -(void)setRedraw:(int)val { redraw = val; }
+-(int)shown { return shown; }
+-(void)setShown:(int)val { shown = val; }
 @end
 
 /* Subclass for a render area type */
@@ -7572,19 +7577,49 @@ int API dw_window_show(HWND handle)
 {
     NSObject *object = handle;
 
-    if([ object isKindOfClass:[ NSWindow class ] ])
+    if([ object isMemberOfClass:[ DWWindow class ] ])
     {
-        NSWindow *window = handle;
-        NSRect rect = [window frame];
+        DWWindow *window = handle;
+        NSRect rect = [[window contentView] frame];
+
         if([window isMiniaturized])
         {
             [window deminiaturize:nil];
         }
         /* If we haven't been sized by a call.. */
-        if(rect.size.width < 5 || rect.size.height < 5)
+        if(rect.size.width <= 1 || rect.size.height <= 1)
         {
-            /* Make a sane default size because MacOS won't automatically */
-            [window setContentSize:NSMakeSize(200,150)];
+            /* Determine the contents size */
+            dw_window_set_size(handle, 0, 0);
+        }
+        if(![window shown])
+        {
+            rect = [window frame];
+            
+            /* If the position was not set... generate a default 
+             * default one in a similar pattern to SHELLPOSITION. 
+             */ 
+            if(rect.origin.x <= 1 || rect.origin.y <= 1)
+            {
+                static int defaultx = 0, defaulty; 
+                int cx = dw_screen_width(), cy = dw_screen_height();
+                int maxx = cx / 4, maxy = cy / 4; 
+                NSPoint point;
+                
+                defaultx += 20; 
+                defaulty += 20; 
+                if(defaultx > maxx) 
+                    defaultx = 20; 
+                if(defaulty > maxy) 
+                    defaulty = 20; 
+                
+                point.x = defaultx;
+                /* Take into account menu bar and inverted Y */
+                point.y = cy - defaulty - (int)rect.size.height - 20;
+                
+                [window setFrameOrigin:point];
+                [window setShown:YES];
+            }
         }
         [[window contentView] showWindow];
         [window makeKeyAndOrderFront:nil];
