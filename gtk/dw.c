@@ -1808,8 +1808,12 @@ static gint _value_changed_event(GtkAdjustment *adjustment, gpointer data)
    GtkWidget *spinbutton = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(adjustment), "_dw_spinbutton");
    GtkWidget *scrollbar = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(adjustment), "_dw_scrollbar");
 
+   if(gtk_object_get_data(GTK_OBJECT(adjustment), "_dw_suppress_value_changed_event"))
+      return FALSE;
+
    if ( dbgfp != NULL ) _dw_log("%s %d: %s\n",__FILE__,__LINE__,__func__);
-   if (slider)
+
+   if (slider || spinbutton || scrollbar)
    {
       SignalHandler work = _get_signal_handler((GtkWidget *)adjustment, data);
 
@@ -1817,37 +1821,10 @@ static gint _value_changed_event(GtkAdjustment *adjustment, gpointer data)
       {
          int (*valuechangedfunc)(HWND, int, void *) = work.func;
 
-         if(GTK_IS_VSCALE(slider))
+         if(slider && GTK_IS_VSCALE(slider))
             valuechangedfunc(work.window, (max - val) - 1,  work.data);
          else
             valuechangedfunc(work.window, val,  work.data);
-      }
-   }
-   else if (spinbutton)
-   {
-      SignalHandler work = _get_signal_handler((GtkWidget *)adjustment, data);
-
-      if (work.window)
-      {
-         int (*valuechangedfunc)(HWND, int, void *) = work.func;
-
-         valuechangedfunc(work.window, val,  work.data);
-      }
-   }
-   else if (scrollbar)
-   {
-      gint suppress;
-      suppress = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(adjustment), "_dw_suppress_value_changed_event"));
-      if (!suppress )
-      {
-         SignalHandler work = _get_signal_handler((GtkWidget *)adjustment, data);
-
-         if (work.window)
-         {
-            int (*valuechangedfunc)(HWND, int, void *) = work.func;
-
-            valuechangedfunc(work.window, val,  work.data);
-         }
       }
    }
    return FALSE;
