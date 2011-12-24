@@ -3926,7 +3926,16 @@ int API dw_window_lower(HWND handle)
  */
 int API dw_window_show(HWND handle)
 {
-   int rc = ShowWindow(handle, SW_SHOW);
+   int rc;
+   RECT rect;
+   
+   GetClientRect(handle, &rect);
+   
+   /* If the client area is 0x0 then call the autosize routine */
+   if((rect.bottom - rect.top) == 0 || (rect.right - rect.left) == 0)
+      dw_window_set_size(handle, 0, 0);
+      
+   rc = ShowWindow(handle, SW_SHOW);
    SetFocus(handle);
    _initial_focus(handle);
    return rc;
@@ -4606,14 +4615,14 @@ HWND API dw_window_new(HWND hwndOwner, char *title, ULONG flStyle)
       ULONG newflags = (flStyle | WS_CLIPCHILDREN) & ~DW_FCF_TASKLIST;
 
       hwndframe = CreateWindowEx(flStyleEx, ClassName, title, newflags, CW_USEDEFAULT, CW_USEDEFAULT,
-                           CW_USEDEFAULT, CW_USEDEFAULT, hwndOwner, NULL, DWInstance, NULL);
+                           0, 0, hwndOwner, NULL, DWInstance, NULL);
    }
    else
    {
       flStyleEx |= WS_EX_TOOLWINDOW;
 
       hwndframe = CreateWindowEx(flStyleEx, ClassName, title, flStyle | WS_CLIPCHILDREN, CW_USEDEFAULT, CW_USEDEFAULT,
-                           CW_USEDEFAULT, CW_USEDEFAULT, hwndOwner, NULL, DWInstance, NULL);
+                           0, 0, hwndOwner, NULL, DWInstance, NULL);
    }
    SetWindowLongPtr(hwndframe, GWLP_USERDATA, (LONG_PTR)newbox);
 
