@@ -8595,8 +8595,16 @@ void API dw_window_set_pos(HWND handle, LONG x, LONG y)
     {
         DWWindow *window = handle;
         NSPoint point;
-        NSSize size = [window frame].size;
-        
+        NSSize size = [[window contentView] frame].size;
+
+        /* Can't position an unsized window, so attempt to auto-size */
+        if(size.width <= 1 || size.height <= 1)
+        {
+            /* Determine the contents size */
+            dw_window_set_size(handle, 0, 0);
+        }
+
+        size = [window frame].size;
         _handle_gravity(handle, &x, &y, (unsigned long)size.width, (unsigned long)size.height);
         
         point.x = x;
