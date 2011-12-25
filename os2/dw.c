@@ -7084,8 +7084,14 @@ void _handle_gravity(HWND handle, long *x, long *y, unsigned long width, unsigne
 void API dw_window_set_pos(HWND handle, LONG x, LONG y)
 {
    unsigned long width, height;
-   
+
    dw_window_get_pos_size(handle, NULL, NULL, &width, &height);
+   /* Can't position an unsized window, so attempt to auto-size */
+   if(width == 0 || height == 0)
+   {
+      dw_window_set_size(handle, 0, 0);
+      dw_window_get_pos_size(handle, NULL, NULL, &width, &height);
+   }
    _handle_gravity(handle, &x, &y, width, height);
    WinSetWindowPos(handle, NULLHANDLE, x, y, 0, 0, SWP_MOVE);
 }
