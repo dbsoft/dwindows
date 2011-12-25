@@ -8834,6 +8834,32 @@ void dw_window_set_pos(HWND handle, long x, long y)
                newy += ((gdk_screen_height() / 2) - (height / 2));
             else if((vert & 0xf) == DW_GRAV_BOTTOM)
                newy = gdk_screen_height() - height - y;
+
+#if GTK_CHECK_VERSION(3,4,0)               
+            /* Adjust the values to avoid Gnome bar if requested */
+            if((horz | vert) & DW_GRAV_OBSTACLES)
+            {
+               GdkRectangle rect;
+               GdkScreen *screen = gdk_screen_get_default();
+               
+               gdk_screen_get_monitor_workarea(screen, 0, &rect);
+               
+               if(horz & DW_GRAV_OBSTACLES)
+               {
+                  if((horz & 0xf) == DW_GRAV_LEFT)
+                     newx += rect.x;
+                  else if((horz & 0xf) == DW_GRAV_RIGHT)
+                     newx -= dw_screen_width() - (rect.x + rect.width);
+               }
+               if(vert & DW_GRAV_OBSTACLES)
+               {
+                  if((vert & 0xf) == DW_GRAV_TOP)
+                     newy += rect.y;
+                  else if((vert & 0xf) == DW_GRAV_BOTTOM)
+                     newy -= dw_screen_height() - (rect.y + rect.height);
+               }
+            }
+#endif            
          }            
          /* Finally move the window into place */
          gtk_window_move(GTK_WINDOW(handle), newx, newy);
