@@ -7599,7 +7599,7 @@ int API dw_window_show(HWND handle)
             /* If the position was not set... generate a default 
              * default one in a similar pattern to SHELLPOSITION. 
              */ 
-            if(rect.origin.x <= 1 || rect.origin.y <= 1)
+            if(rect.origin.x <= 1 && rect.origin.y <= 1)
             {
                 static int defaultx = 0, defaulty; 
                 int cx = dw_screen_width(), cy = dw_screen_height();
@@ -8474,9 +8474,9 @@ void API dw_window_set_size(HWND handle, ULONG width, ULONG height)
     DW_MUTEX_LOCK;
     NSObject *object = handle;
 
-    if([ object isKindOfClass:[ NSWindow class ] ])
+    if([ object isMemberOfClass:[ DWWindow class ] ])
     {
-        NSWindow *window = handle;
+        DWWindow *window = handle;
         Box *thisbox;
         NSRect content, frame = NSMakeRect(0, 0, width, height);
        
@@ -8501,6 +8501,8 @@ void API dw_window_set_size(HWND handle, ULONG width, ULONG height)
        
         /* Finally set the size */
         [window setContentSize:content.size];
+        /* Size set manually... don't auto-position */
+        [window setShown:YES];
     }
     DW_MUTEX_UNLOCK;
 }
@@ -8536,8 +8538,6 @@ void _handle_gravity(HWND handle, long *x, long *y, unsigned long width, unsigne
 {
     int horz = DW_POINTER_TO_INT(dw_window_get_data(handle, "_dw_grav_horz"));
     int vert = DW_POINTER_TO_INT(dw_window_get_data(handle, "_dw_grav_vert"));
-    NSRect visiblerect = [[NSScreen mainScreen] visibleFrame];
-    NSRect totalrect = [[NSScreen mainScreen] frame];
     
     /* Do any gravity calculations */
     if(horz || (vert & 0xf) != DW_GRAV_BOTTOM)
@@ -8561,19 +8561,25 @@ void _handle_gravity(HWND handle, long *x, long *y, unsigned long width, unsigne
         *y = newy;
     }   
     /* Adjust the values to avoid Dock/Menubar if requested */
-    if(horz & DW_GRAV_OBSTACLES)
+    if((horz | vert) & DW_GRAV_OBSTACLES)
     {
-        if((horz & 0xf) == DW_GRAV_LEFT)
-            *x += visiblerect.origin.x;
-        else if((horz & 0xf) == DW_GRAV_RIGHT)
-            *x -= (totalrect.origin.x + totalrect.size.width) - (visiblerect.origin.x + visiblerect.size.width);
-    }
-    if(vert & DW_GRAV_OBSTACLES)
-    {
-        if((vert & 0xf) == DW_GRAV_BOTTOM)
-            *y += visiblerect.origin.y;
-        else if((vert & 0xf) == DW_GRAV_RIGHT)
-            *y -= (totalrect.origin.y + totalrect.size.height) - (visiblerect.origin.y + visiblerect.size.height);
+        NSRect visiblerect = [[NSScreen mainScreen] visibleFrame];
+        NSRect totalrect = [[NSScreen mainScreen] frame];
+        
+        if(horz & DW_GRAV_OBSTACLES)
+        {
+            if((horz & 0xf) == DW_GRAV_LEFT)
+                *x += visiblerect.origin.x;
+            else if((horz & 0xf) == DW_GRAV_RIGHT)
+                *x -= (totalrect.origin.x + totalrect.size.width) - (visiblerect.origin.x + visiblerect.size.width);
+        }
+        if(vert & DW_GRAV_OBSTACLES)
+        {
+            if((vert & 0xf) == DW_GRAV_BOTTOM)
+                *y += visiblerect.origin.y;
+            else if((vert & 0xf) == DW_GRAV_TOP)
+                *y -= (totalrect.origin.y + totalrect.size.height) - (visiblerect.origin.y + visiblerect.size.height);
+        }
     }
 }
 
