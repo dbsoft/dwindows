@@ -39,6 +39,8 @@ Added support for -1 size parameter to the dw_box_pack*() functions to
     automatically figure out a suggested size for many controls.
 Added automatic window redraw support for OS/2, Windows and Mac.
 Added dw_window_set_gravity() for enhanced window placement.
+Added DW_GRAV_OBSTACLES support for using system obstacles as gravity
+   anchor points on OS/2, Mac and Windows.
 Added automatic window border detection on GTK.
    This eliminates the need for the DW_BORDER_* environment variables.
 Added Open Watcom compiler support for OS/2.
@@ -47,6 +49,7 @@ Added pseudo transparent background widget support on Windows and OS/2.
    it will attempt to use the background color of the parent.
    Several types of widgets have this set by default now.
 Added faster and less buggy layout engine 2.0 for OS/2, Windows and Mac.
+Added auto-positioning on Mac; reimplemented auto-positioning on OS/2.
 Fixed auto-sizing top-level windows on Windows; added on OS/2 and Mac.
 Fixed bubble help not being displayed on Windows.
 Fixed menu bar items remaining highlighted on Mac.
