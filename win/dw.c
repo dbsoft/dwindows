@@ -6674,6 +6674,33 @@ void _handle_gravity(HWND handle, long *x, long *y, unsigned long width, unsigne
       /* Save the new values */
       *x = newx;
       *y = newy;
+      
+       /* Adjust the values to avoid Taskbar if requested */
+       if((horz | vert) & DW_GRAV_OBSTACLES)
+       {
+         POINT pt = { 0, 0 };
+         HMONITOR mon = MonitorFromPoint(pt, MONITOR_DEFAULTTOPRIMARY);
+         MONITORINFO mi;
+         
+         mi.cbSize = sizeof(MONITORINFO);
+         
+         GetMonitorInfo(mon, &mi);
+         
+         if(horz & DW_GRAV_OBSTACLES)
+         {
+            if((horz & 0xf) == DW_GRAV_LEFT)
+               *x += (mi.rcWork.left - mi.rcMonitor.left);
+            else if((horz & 0xf) == DW_GRAV_RIGHT)
+               *x -= (mi.rcMonitor.right - mi.rcWork.right);
+         }
+         if(vert & DW_GRAV_OBSTACLES)
+         {
+            if((vert & 0xf) == DW_GRAV_TOP)
+               *y += (mi.rcWork.top - mi.rcMonitor.top);
+            else if((vert & 0xf) == DW_GRAV_BOTTOM)
+               *y -= (mi.rcMonitor.bottom - mi.rcWork.bottom);
+         }
+      }
    }            
 }
 
