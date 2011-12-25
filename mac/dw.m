@@ -7592,33 +7592,30 @@ int API dw_window_show(HWND handle)
             /* Determine the contents size */
             dw_window_set_size(handle, 0, 0);
         }
+        /* If the position was not set... generate a default 
+         * default one in a similar pattern to SHELLPOSITION. 
+         */ 
         if(![window shown])
         {
+            static int defaultx = 0, defaulty = 0; 
+            int cx = dw_screen_width(), cy = dw_screen_height();
+            int maxx = cx / 4, maxy = cy / 4; 
+            NSPoint point;
+            
             rect = [window frame];
             
-            /* If the position was not set... generate a default 
-             * default one in a similar pattern to SHELLPOSITION. 
-             */ 
-            if(rect.origin.x <= 1 && rect.origin.y <= 1)
-            {
-                static int defaultx = 0, defaulty; 
-                int cx = dw_screen_width(), cy = dw_screen_height();
-                int maxx = cx / 4, maxy = cy / 4; 
-                NSPoint point;
-                
-                defaultx += 20; 
-                defaulty += 20; 
-                if(defaultx > maxx) 
-                    defaultx = 20; 
-                if(defaulty > maxy) 
-                    defaulty = 20; 
-                
-                point.x = defaultx;
-                /* Take into account menu bar and inverted Y */
-                point.y = cy - defaulty - (int)rect.size.height - 20;
-                
-                [window setFrameOrigin:point];
-            }
+            defaultx += 20; 
+            defaulty += 20; 
+            if(defaultx > maxx) 
+                defaultx = 20; 
+            if(defaulty > maxy) 
+                defaulty = 20; 
+            
+            point.x = defaultx;
+            /* Take into account menu bar and inverted Y */
+            point.y = cy - defaulty - (int)rect.size.height - 22;
+            
+            [window setFrameOrigin:point];
             [window setShown:YES];
         }
         [[window contentView] showWindow];
@@ -8501,8 +8498,6 @@ void API dw_window_set_size(HWND handle, ULONG width, ULONG height)
        
         /* Finally set the size */
         [window setContentSize:content.size];
-        /* Size set manually... don't auto-position */
-        [window setShown:YES];
     }
     DW_MUTEX_UNLOCK;
 }
@@ -8596,9 +8591,9 @@ void API dw_window_set_pos(HWND handle, LONG x, LONG y)
     DW_MUTEX_LOCK;
     NSObject *object = handle;
     
-    if([ object isKindOfClass:[ NSWindow class ] ])
+    if([ object isMemberOfClass:[ DWWindow class ] ])
     {
-        NSWindow *window = handle;
+        DWWindow *window = handle;
         NSPoint point;
         NSSize size = [window frame].size;
         
@@ -8608,6 +8603,8 @@ void API dw_window_set_pos(HWND handle, LONG x, LONG y)
         point.y = y;
         
         [window setFrameOrigin:point];
+        /* Position set manually... don't auto-position */
+        [window setShown:YES];
     }
     DW_MUTEX_UNLOCK;
 }
