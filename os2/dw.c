@@ -62,6 +62,7 @@ void _handle_splitbar_resize(HWND hwnd, float percent, int type, int x, int y);
 int _load_bitmap_file(char *file, HWND handle, HBITMAP *hbm, HDC *hdc, HPS *hps, unsigned long *width, unsigned long *height);
 void _free_menu_data(HWND menu);
 ULONG (API_FUNC _PmPrintfString)(char *String) = 0;
+BOOL (API_FUNC _WinQueryDesktopWorkArea)(HWND hwndDesktop, PWRECT pwrcWorkArea) = 0;
 
 char ClassName[] = "dynamicwindows";
 char SplitbarClassName[] = "dwsplitbar";
@@ -79,7 +80,7 @@ HWND hwndTrayServer = NULLHANDLE, hwndTaskBar = NULLHANDLE;
 PRECORDCORE pCoreEmph = NULL;
 ULONG aulBuffer[4];
 HWND lasthcnr = 0, lastitem = 0, popup = 0, desktop;
-HMOD wpconfig = 0, pmprintf = 0;
+HMOD wpconfig = 0, pmprintf = 0, pmmerge = 0;
 static char _dw_exec_dir[MAX_PATH+1] = {0};
 
 unsigned long _colors[] = {
@@ -3998,6 +3999,8 @@ int API dw_init(int newthread, int argc, char *argv[])
    DosLoadModule((PSZ)objnamebuf, sizeof(objnamebuf), (PSZ)"WPCONFIG", &wpconfig);
    if(!DosLoadModule((PSZ)objnamebuf, sizeof(objnamebuf), (PSZ)"PMPRINTF", &pmprintf))
        DosQueryProcAddr(pmprintf, 0, (PSZ)"PmPrintfString", (PFN*)&_PmPrintfString);
+   if(!DosLoadModule((PSZ)objnamebuf, sizeof(objnamebuf), (PSZ)"PMMERGE", &pmmerge))
+       DosQueryProcAddr(pmmerge, 5469, NULL, (PFN*)&_WinQueryDesktopWorkArea);
    return rc;
 }
 
@@ -4286,7 +4289,7 @@ int API dw_window_show(HWND handle)
              /* If the MDI parent isn't visible...
               * we can't calculate. Drop out.
               */
-             if(cx < 1 | cy < 1)
+             if(cx < 1 || cy < 1)
              {
                  WinSetWindowPos(handle, NULLHANDLE, 0, 0, 0, 0, SWP_MOVE);
                  return rc;
@@ -7047,6 +7050,28 @@ void _handle_gravity(HWND handle, long *x, long *y, unsigned long width, unsigne
       *x = newx;
       *y = newy;
    }            
+   /* Adjust the values to avoid WarpCenter/XCenter/eCenter if requested */
+   if(_WinQueryDesktopWorkArea && (horz | vert) & DW_GRAV_OBSTACLES)
+   {
+       RECTL rect;
+
+       _WinQueryDesktopWorkArea(HWND_DESKTOP, &rect);
+
+       if(horz & DW_GRAV_OBSTACLES)
+       {
+           if((horz & 0xf) == DW_GRAV_LEFT)
+               *x += rect.xLeft;
+           else if((horz & 0xf) == DW_GRAV_RIGHT)
+               *x -= dw_screen_width() - rect.xRight;
+       }
+       if(vert & DW_GRAV_OBSTACLES)
+       {
+           if((vert & 0xf) == DW_GRAV_BOTTOM)
+               *y += rect.yBottom;
+           else if((vert & 0xf) == DW_GRAV_TOP)
+               *y -= dw_screen_height() - rect.yTop;
+       }
+    }
 }
 
 /*
