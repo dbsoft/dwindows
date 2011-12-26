@@ -8408,7 +8408,7 @@ void API dw_container_set_item(HWND handle, void *pointer, int column, int row, 
    ContainerInfo *cinfo = (ContainerInfo *)GetWindowLongPtr(handle, GWLP_USERDATA);
    ULONG *flags;
    LV_ITEM lvi;
-   char textbuffer[101] = {0}, *destptr = textbuffer;
+   char textbuffer[101] = {0};
    int item = 0;
 
    if(pointer)
@@ -8416,7 +8416,7 @@ void API dw_container_set_item(HWND handle, void *pointer, int column, int row, 
       item = (int)dw_window_get_data(handle, "_dw_insertitem");
    }
 
-   if(!cinfo || !cinfo->flags || !data)
+   if(!cinfo || !cinfo->flags)
       return;
 
    flags = cinfo->flags;
@@ -8424,18 +8424,24 @@ void API dw_container_set_item(HWND handle, void *pointer, int column, int row, 
    lvi.mask = LVIF_DI_SETITEM | LVIF_TEXT;
    lvi.iItem = row + item;
    lvi.iSubItem = column;
+   lvi.pszText = textbuffer;
+   lvi.cchTextMax = 0;
 
    if(flags[column] & DW_CFA_BITMAPORICON)
    {
-      HICON hicon = *((HICON *)data);
-
       lvi.mask = LVIF_DI_SETITEM | LVIF_IMAGE;
       lvi.pszText = NULL;
-      lvi.cchTextMax = 0;
+      
+      if(data)
+      {
+         HICON hicon = *((HICON *)data);
 
-      lvi.iImage = _lookup_icon(handle, hicon, 0);
+         lvi.iImage = _lookup_icon(handle, hicon, 0);
+      }
+      else
+         lvi.iImage = -1;
    }
-   else if(flags[column] & DW_CFA_STRING)
+   else if(flags[column] & DW_CFA_STRING && data)
    {
       char *tmp = *((char **)data);
 
@@ -8444,18 +8450,16 @@ void API dw_container_set_item(HWND handle, void *pointer, int column, int row, 
 
       lvi.pszText = tmp;
       lvi.cchTextMax = strlen(tmp);
-      destptr = tmp;
    }
-   else if(flags[column] & DW_CFA_ULONG)
+   else if(flags[column] & DW_CFA_ULONG && data)
    {
       ULONG tmp = *((ULONG *)data);
 
       _snprintf(textbuffer, 100, "%lu", tmp);
 
-      lvi.pszText = textbuffer;
       lvi.cchTextMax = strlen(textbuffer);
    }
-   else if(flags[column] & DW_CFA_DATE)
+   else if(flags[column] & DW_CFA_DATE && data)
    {
       struct tm curtm;
       CDATE cdate = *((CDATE *)data);
@@ -8472,15 +8476,10 @@ void API dw_container_set_item(HWND handle, void *pointer, int column, int row, 
           curtm.tm_year = cdate.year - 1900;
           strftime(textbuffer, 100, "%x", &curtm);
       }
-      else
-      {
-          textbuffer[0] = 0;
-      }
 
-      lvi.pszText = textbuffer;
       lvi.cchTextMax = strlen(textbuffer);
    }
-   else if(flags[column] & DW_CFA_TIME)
+   else if(flags[column] & DW_CFA_TIME && data)
    {
       struct tm curtm;
       CTIME ctime = *((CTIME *)data);
@@ -8491,7 +8490,6 @@ void API dw_container_set_item(HWND handle, void *pointer, int column, int row, 
 
       strftime(textbuffer, 100, "%X", &curtm);
 
-      lvi.pszText = textbuffer;
       lvi.cchTextMax = strlen(textbuffer);
    }
 
