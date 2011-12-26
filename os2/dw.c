@@ -8378,7 +8378,7 @@ void _dw_container_set_item(HWND handle, PRECORDCORE temp, int column, int row, 
    ULONG totalsize, size = 0, *flags = blah ? blah->data : 0;
    int z, currentcount;
    CNRINFO cnr;
-    void *dest;
+   void *dest;
 
    if(!flags)
       return;
@@ -8411,7 +8411,12 @@ void _dw_container_set_item(HWND handle, PRECORDCORE temp, int column, int row, 
    dest = (void *)(((ULONG)temp)+((ULONG)totalsize));
 
    if(flags[column] & DW_CFA_BITMAPORICON)
-      memcpy(dest, data, sizeof(HPOINTER));
+   {
+       if(data)
+           memcpy(dest, data, sizeof(HPOINTER));
+       else
+           memset(dest, 0, sizeof(HPOINTER));
+   }
    else if(flags[column] & DW_CFA_STRING)
    {
       char **newstr = (char **)data, **str = dest;
@@ -8425,11 +8430,26 @@ void _dw_container_set_item(HWND handle, PRECORDCORE temp, int column, int row, 
          *str = NULL;
    }
    else if(flags[column] & DW_CFA_ULONG)
-      memcpy(dest, data, sizeof(ULONG));
+   {
+       if(data)
+           memcpy(dest, data, sizeof(ULONG));
+       else
+           memset(dest, 0, sizeof(ULONG));
+   }
    else if(flags[column] & DW_CFA_DATE)
-      memcpy(dest, data, sizeof(CDATE));
+   {
+       if(data)
+           memcpy(dest, data, sizeof(CDATE));
+       else
+           memset(dest, 0, sizeof(CDATE));
+   }
    else if(flags[column] & DW_CFA_TIME)
-      memcpy(dest, data, sizeof(CTIME));
+   {
+       if(data)
+           memcpy(dest, data, sizeof(CTIME));
+       else
+           memset(dest, 0, sizeof(CTIME));
+   }
 }
 
 /* Internal function that free()s any strings allocated for a container item */
