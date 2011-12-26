@@ -2097,23 +2097,27 @@ int dw_int_init(DWResources *res, int newthread, int *argc, char **argv[])
    {
       char *pathcopy = strdup((*argv)[0]);
       char *pos = strrchr(pathcopy, '/');
-
+      char *binname = pathcopy;
+      
+      /* If we have a / then... 
+       * the binary name should be at the end.
+       */
       if(pos)
       {
-         char *binname = pos + 1;
-
+         binname = pos + 1;
          *pos = 0;
-         if(*binname)
-         {
-            char *binpos = strstr(pathcopy, "/bin");
-
-            if(binpos)
-               strncpy(_dw_share_path, pathcopy, (size_t)(binpos - pathcopy));
-            else
-               strcpy(_dw_share_path, "/usr/local");
-            strcat(_dw_share_path, "/share/");
-            strcat(_dw_share_path, binname);
-         }
+      }
+      
+      if(*binname)
+      {
+         char *binpos = strstr(pathcopy, "/bin");
+         
+         if(binpos)
+            strncpy(_dw_share_path, pathcopy, (size_t)(binpos - pathcopy));
+         else
+            strcpy(_dw_share_path, "/usr/local");
+         strcat(_dw_share_path, "/share/");
+         strcat(_dw_share_path, binname);
       }
       if(pathcopy)
          free(pathcopy);
