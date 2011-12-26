@@ -7145,7 +7145,7 @@ void *dw_container_alloc(HWND handle, int rowcount)
  */
 void _dw_container_set_item(HWND handle, void *pointer, int column, int row, void *data, char *text)
 {
-   char numbuf[11], textbuffer[101];
+   char numbuf[11] = {0}, textbuffer[101] = {0};
    int flag = 0;
    GtkWidget *clist;
    int _locked_by_me = FALSE;
@@ -7167,59 +7167,73 @@ void _dw_container_set_item(HWND handle, void *pointer, int column, int row, voi
 
    if(flag & DW_CFA_BITMAPORICON)
    {
-      HICN hicon = *((HICN *)data);
       GdkBitmap *bitmap = NULL;
-      GdkPixmap *pixmap = _find_pixmap(&bitmap, hicon, clist, NULL, NULL);
-
+      GdkPixmap *pixmap = NULL;
+      
+      if(data)
+      {
+         HICN hicon = *((HICN *)data);
+         pixmap = _find_pixmap(&bitmap, hicon, clist, NULL, NULL);
+      }
       gtk_clist_set_pixmap(GTK_CLIST(clist), row, column, pixmap ? pixmap : _dw_tmppixmap, pixmap ? bitmap : _dw_tmpbitmap);
    }
    else if(flag & DW_CFA_STRINGANDICON)
    {
-      HICN hicon = *((HICN *)data);
       GdkBitmap *bitmap = NULL;
-      GdkPixmap *pixmap = _find_pixmap(&bitmap, hicon, clist, NULL, NULL);
-
-      gtk_clist_set_pixtext(GTK_CLIST(clist), row, column, text, 2, pixmap ? pixmap : _dw_tmppixmap, pixmap ? bitmap : _dw_tmpbitmap);
+      GdkPixmap *pixmap = NULL;
+      
+      if(data)
+      {
+         HICN hicon = *((HICN *)data);
+         pixmap = _find_pixmap(&bitmap, hicon, clist, NULL, NULL);
+      }
+      gtk_clist_set_pixtext(GTK_CLIST(clist), row, column, text ? text : textbuffer, 2, pixmap ? pixmap : _dw_tmppixmap, pixmap ? bitmap : _dw_tmpbitmap);
    }
    else if(flag & DW_CFA_STRING)
    {
-      char *tmp = *((char **)data);
+      char *tmp = data ? *((char **)data) : textbuffer;
       gtk_clist_set_text(GTK_CLIST(clist), row, column, tmp);
    }
    else if(flag & DW_CFA_ULONG)
    {
-      ULONG tmp = *((ULONG *)data);
+      if(data)
+      {
+         ULONG tmp = *((ULONG *)data);
 
-      snprintf(textbuffer, 100, "%lu", tmp);
-
+         snprintf(textbuffer, 100, "%lu", tmp);
+      }
       gtk_clist_set_text(GTK_CLIST(clist), row, column, textbuffer);
    }
    else if(flag & DW_CFA_DATE)
    {
-      struct tm curtm;
-      CDATE cdate = *((CDATE *)data);
+      if(data)
+      {
+         struct tm curtm;
+         CDATE cdate = *((CDATE *)data);
 
-      memset( &curtm, 0, sizeof(curtm) );
-      curtm.tm_mday = cdate.day;
-      curtm.tm_mon = cdate.month - 1;
-      curtm.tm_year = cdate.year - 1900;
+         memset( &curtm, 0, sizeof(curtm) );
+         curtm.tm_mday = cdate.day;
+         curtm.tm_mon = cdate.month - 1;
+         curtm.tm_year = cdate.year - 1900;
 
-      strftime(textbuffer, 100, "%x", &curtm);
-
+         strftime(textbuffer, 100, "%x", &curtm);
+      }
       gtk_clist_set_text(GTK_CLIST(clist), row, column, textbuffer);
    }
    else if(flag & DW_CFA_TIME)
    {
-      struct tm curtm;
-      CTIME ctime = *((CTIME *)data);
+      if(data)
+      {
+         struct tm curtm;
+         CTIME ctime = *((CTIME *)data);
 
-      memset( &curtm, 0, sizeof(curtm) );
-      curtm.tm_hour = ctime.hours;
-      curtm.tm_min = ctime.minutes;
-      curtm.tm_sec = ctime.seconds;
+         memset( &curtm, 0, sizeof(curtm) );
+         curtm.tm_hour = ctime.hours;
+         curtm.tm_min = ctime.minutes;
+         curtm.tm_sec = ctime.seconds;
 
-      strftime(textbuffer, 100, "%X", &curtm);
-
+         strftime(textbuffer, 100, "%X", &curtm);
+      }
       gtk_clist_set_text(GTK_CLIST(clist), row, column, textbuffer);
    }
    if(!pointer)
