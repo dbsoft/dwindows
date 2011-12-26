@@ -10419,7 +10419,7 @@ void dw_window_set_pos(HWND handle, long x, long y)
                while((frame.width == 200 || frame.width == (200 + cx)) &&
                      (frame.height == 200 || frame.height == (200 + cy)) && count < 10)
                {
-                  dw_main_sleep(1);
+                  _dw_msleep(1);
                   count++;
                   gdk_window_get_frame_extents(handle->window, &frame);
                }
