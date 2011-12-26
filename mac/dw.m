@@ -5839,60 +5839,54 @@ void API dw_container_set_item(HWND handle, void *pointer, int column, int row, 
         lastadd = [cont lastAddPoint];
     }
 
-    if(!data)
+    if(data)
     {
-        DW_MUTEX_UNLOCK;
-        return;
-    }
-    if(type & DW_CFA_BITMAPORICON)
-    {
-        object = *((NSImage **)data);
-    }
-    else if(type & DW_CFA_STRING)
-    {
-        char *str = *((char **)data);
-        object = [ NSString stringWithUTF8String:str ];
-    }
-    else
-    {
-        char textbuffer[101] = {0};
-
-        if(type & DW_CFA_ULONG)
+        if(type & DW_CFA_BITMAPORICON)
         {
-            ULONG tmp = *((ULONG *)data);
-
-            snprintf(textbuffer, 100, "%lu", tmp);
+            object = *((NSImage **)data);
         }
-        else if(type & DW_CFA_DATE)
+        else if(type & DW_CFA_STRING)
         {
-            struct tm curtm;
-            CDATE cdate = *((CDATE *)data);
-
-            memset( &curtm, 0, sizeof(curtm) );
-            curtm.tm_mday = cdate.day;
-            curtm.tm_mon = cdate.month - 1;
-            curtm.tm_year = cdate.year - 1900;
-
-            strftime(textbuffer, 100, "%x", &curtm);
-        }
-        else if(type & DW_CFA_TIME)
-        {
-            struct tm curtm;
-            CTIME ctime = *((CTIME *)data);
-
-            memset( &curtm, 0, sizeof(curtm) );
-            curtm.tm_hour = ctime.hours;
-            curtm.tm_min = ctime.minutes;
-            curtm.tm_sec = ctime.seconds;
-
-            strftime(textbuffer, 100, "%X", &curtm);
+            char *str = *((char **)data);
+            object = [ NSString stringWithUTF8String:str ];
         }
         else
         {
-            DW_MUTEX_UNLOCK;
-            return;
+            char textbuffer[101] = {0};
+            
+            if(type & DW_CFA_ULONG)
+            {
+                ULONG tmp = *((ULONG *)data);
+                
+                snprintf(textbuffer, 100, "%lu", tmp);
+            }
+            else if(type & DW_CFA_DATE)
+            {
+                struct tm curtm;
+                CDATE cdate = *((CDATE *)data);
+                
+                memset( &curtm, 0, sizeof(curtm) );
+                curtm.tm_mday = cdate.day;
+                curtm.tm_mon = cdate.month - 1;
+                curtm.tm_year = cdate.year - 1900;
+                
+                strftime(textbuffer, 100, "%x", &curtm);
+            }
+            else if(type & DW_CFA_TIME)
+            {
+                struct tm curtm;
+                CTIME ctime = *((CTIME *)data);
+                
+                memset( &curtm, 0, sizeof(curtm) );
+                curtm.tm_hour = ctime.hours;
+                curtm.tm_min = ctime.minutes;
+                curtm.tm_sec = ctime.seconds;
+                
+                strftime(textbuffer, 100, "%X", &curtm);
+            }
+            if(textbuffer[0])
+                object = [ NSString stringWithUTF8String:textbuffer ];
         }
-        object = [ NSString stringWithUTF8String:textbuffer ];
     }
 
     [cont editCell:object at:(row+lastadd) and:column];
