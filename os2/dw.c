@@ -1650,7 +1650,15 @@ MRESULT EXPENTRY _TooltipProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2, Wind
                 lHight = txtPointl[TXTBOX_TOPLEFT].y -
                     txtPointl[TXTBOX_BOTTOMLEFT].y + 8;
 
-                ptlWork.y -= lHight;
+                ptlWork.y -= lHight + 2;
+
+                /* Make sure it is visible on the screen */
+                if(ptlWork.x + lWidth > dw_screen_width())
+                {
+                    ptlWork.x = dw_screen_width() - lWidth;
+                    if(ptlWork.x < 0)
+                        ptlWork.x = 0;
+                }
 
                 bubbleproc = (void *)WinSubclassWindow(hwndBubble, _BubbleProc);
 
