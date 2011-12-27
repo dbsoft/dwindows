@@ -8305,6 +8305,10 @@ int _lookup_icon(HWND handle, HICON hicon, int type)
    int z;
    static HWND lasthwnd = NULL;
 
+   /* We can't add an invalid handle */
+   if(!hicon)
+      return -1;
+      
    if(!hSmall || !hLarge)
    {
       hSmall = ImageList_Create(16, 16, ILC_COLOR16 | ILC_MASK, ICON_INDEX_LIMIT, 0);
