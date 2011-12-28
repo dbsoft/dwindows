@@ -2227,19 +2227,30 @@ void dw_main_sleep(int milliseconds)
 
       while(((tv.tv_sec - start.tv_sec)*1000) + ((tv.tv_usec - start.tv_usec)/1000) <= milliseconds)
       {
+         int _locked_by_me = FALSE;
+         
          if(orig == (pthread_t)-1)
          {
-            gdk_threads_enter();
+            if(!pthread_getspecific(_dw_mutex_key))
+            {
+               gdk_threads_enter();
+               pthread_setspecific(_dw_mutex_key, (void *)1);
+               _locked_by_me = TRUE;
+            }
             _dw_thread = curr;
          }
-         if(gtk_events_pending())
+         if(curr == _dw_thread && gtk_events_pending())
             gtk_main_iteration();
          else
             _dw_msleep(1);
          if(orig == (pthread_t)-1)
          {
             _dw_thread = orig;
-            gdk_threads_leave();
+            if(_locked_by_me)
+            {
+               pthread_setspecific(_dw_mutex_key, NULL);
+               gdk_threads_leave();
+            }
          }
          gettimeofday(&tv, NULL);
       }
@@ -2255,24 +2266,30 @@ void dw_main_iteration(void)
 {
    pthread_t orig = _dw_thread;
    pthread_t curr = pthread_self();
+   int _locked_by_me = FALSE;
    
    if(_dw_thread == (pthread_t)-1)
    {
+      if(!pthread_getspecific(_dw_mutex_key))
+      {
+         gdk_threads_enter();
+         pthread_setspecific(_dw_mutex_key, (void *)1);
+         _locked_by_me = TRUE;
+      }
       _dw_thread = curr;
-      gdk_threads_enter();
    }
    if(curr == _dw_thread && gtk_events_pending())
       gtk_main_iteration();
    else
-#ifdef __sun__
       sched_yield();
-#else   
-      pthread_yield();
-#endif
    if(orig == (pthread_t)-1)
    {
-      _dw_thread = (pthread_t)-1;
-      gdk_threads_leave();
+      _dw_thread = orig;
+      if(_locked_by_me)
+      {
+         pthread_setspecific(_dw_mutex_key, NULL);
+         gdk_threads_leave();
+      }
    }
 }
 
@@ -10154,7 +10171,7 @@ void API dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, 
 
 union extents_union { guchar **gu_extents; unsigned long **extents; };
 static GdkAtom extents_atom = 0;
-static time_t extents_time;
+static time_t extents_time = 0;
 
 static gboolean _dw_property_notify(GtkWidget *window, GdkEventProperty* event, GdkWindow *gdkwindow)
 {

@@ -1886,19 +1886,30 @@ void dw_main_sleep(int milliseconds)
 
       while(((tv.tv_sec - start.tv_sec)*1000) + ((tv.tv_usec - start.tv_usec)/1000) <= milliseconds)
       {
+         int _locked_by_me = FALSE;
+         
          if(orig == (pthread_t)-1)
          {
-            gdk_threads_enter();
+            if(!pthread_getspecific(_dw_mutex_key))
+            {
+               gdk_threads_enter();
+               pthread_setspecific(_dw_mutex_key, (void *)1);
+               _locked_by_me = TRUE;
+            }
             _dw_thread = curr;
          }
-         if(gtk_events_pending())
+         if(curr == _dw_thread && gtk_events_pending())
             gtk_main_iteration();
          else
             _dw_msleep(1);
          if(orig == (pthread_t)-1)
          {
             _dw_thread = orig;
-            gdk_threads_leave();
+            if(_locked_by_me)
+            {
+               pthread_setspecific(_dw_mutex_key, NULL);
+               gdk_threads_leave();
+            }
          }
          gettimeofday(&tv, NULL);
       }
@@ -1912,11 +1923,33 @@ void dw_main_sleep(int milliseconds)
  */
 void dw_main_iteration(void)
 {
-   gdk_threads_enter();
-   _dw_thread = pthread_self();
-   gtk_main_iteration();
-   _dw_thread = (pthread_t)-1;
-   gdk_threads_leave();
+   pthread_t orig = _dw_thread;
+   pthread_t curr = pthread_self();
+   int _locked_by_me = FALSE;
+   
+   if(_dw_thread == (pthread_t)-1)
+   {
+      if(!pthread_getspecific(_dw_mutex_key))
+      {
+         gdk_threads_enter();
+         pthread_setspecific(_dw_mutex_key, (void *)1);
+         _locked_by_me = TRUE;
+      }
+      _dw_thread = curr;
+   }
+   if(curr == _dw_thread && gtk_events_pending())
+      gtk_main_iteration();
+   else
+      sched_yield();
+   if(orig == (pthread_t)-1)
+   {
+      _dw_thread = orig;
+      if(_locked_by_me)
+      {
+         pthread_setspecific(_dw_mutex_key, NULL);
+         gdk_threads_leave();
+      }
+   }
 }
 
 /*
@@ -2944,6 +2977,7 @@ HWND dw_window_new(HWND hwndOwner, char *title, unsigned long flStyle)
       gtk_container_add(GTK_CONTAINER(tmp), grid);
       g_object_set_data(G_OBJECT(tmp), "_dw_boxhandle", (gpointer)box);
       g_object_set_data(G_OBJECT(tmp), "_dw_grid", (gpointer)grid);
+      gtk_widget_add_events(GTK_WIDGET(tmp), GDK_PROPERTY_CHANGE_MASK);
    }
    g_object_set_data(G_OBJECT(tmp), "_dw_style", GINT_TO_POINTER(flStyle));
    DW_MUTEX_UNLOCK;
@@ -8511,19 +8545,15 @@ void API dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, 
 
 
 union extents_union { guchar **gu_extents; unsigned long **extents; };
-static Atom extents_atom = 0;
+static GdkAtom extents_atom = 0;
 static time_t extents_time = 0;
 
-static Bool property_notify_predicate(Display *xdisplay, XEvent *event, XPointer window_id)
+static gboolean _dw_property_notify(GtkWidget *window, GdkEventProperty* event, GdkWindow *gdkwindow)
 {
-   unsigned long *window = (unsigned long *)window_id;
-   time_t currtime = time(NULL);
-
-   /* If it is the event we are looking for... or if the timeout has expired */
-   if((event->xany.type == PropertyNotify && event->xany.window == *window && event->xproperty.atom == extents_atom) ||
-      (currtime - extents_time) > 1)
-      return True;
-   return False;
+   /* Check to see if we got a property change */
+   if(event->state == GDK_PROPERTY_NEW_VALUE && event->atom == extents_atom && event->window == gdkwindow)
+      extents_time = 0;
+   return FALSE;
 }
 
 /* Internal function to figure out the frame extents of an unmapped window */
@@ -8538,6 +8568,9 @@ void _dw_get_frame_extents(GtkWidget *window, int *vert, int *horz)
       GdkWindow *gdkwindow = gtk_widget_get_window(window);
       GdkDisplay *display = gtk_widget_get_display(window);
 
+      if(!extents_atom)
+         extents_atom = gdk_atom_intern("_NET_FRAME_EXTENTS", FALSE);
+
       /* Set some rational defaults.. just in case */
       *vert = 28;
       *horz = 12;
@@ -8550,13 +8583,9 @@ void _dw_get_frame_extents(GtkWidget *window, int *vert, int *horz)
          Window xroot_window = GDK_WINDOW_XID(root_window);
          Atom extents_request_atom = gdk_x11_get_xatom_by_name_for_display(display, request);
          unsigned long window_id = GDK_WINDOW_XID(gdkwindow);
-         XEvent notify_xevent, xevent = {0};
-
-         if(!extents_atom)
-         {
-            const char *extents_name = "_NET_FRAME_EXTENTS";
-            extents_atom = gdk_x11_get_xatom_by_name_for_display(display, extents_name);
-         }
+         XEvent xevent = {0};
+         time_t currtime;
+         gulong connid;
 
          xevent.xclient.type = ClientMessage;
          xevent.xclient.message_type = extents_request_atom;
@@ -8569,22 +8598,28 @@ void _dw_get_frame_extents(GtkWidget *window, int *vert, int *horz)
                    (SubstructureRedirectMask | SubstructureNotifyMask),
                    &xevent);
 
+         /* Connect a signal to look for the property change */
+         connid = g_signal_connect(G_OBJECT(window), "property_notify_event", G_CALLBACK(_dw_property_notify), gdkwindow);
+         
          /* Record the request time */
          time(&extents_time);
-         
+
          /* Look for the property notify event */
-         XIfEvent(xdisplay, &notify_xevent, property_notify_predicate, (XPointer)&window_id);
+         do
+         {
+            dw_main_iteration();
+            time(&currtime);
+         }
+         while(currtime - extents_time < 2);
          
-         /* If we didn't get the notification... put the event back onto the stack */
-         if(notify_xevent.xany.type != PropertyNotify || notify_xevent.xany.window != window_id
-            || notify_xevent.xproperty.atom != extents_atom)
-               XPutBackEvent(xdisplay, &notify_xevent);
+         /* Remove the signal handler now that we are done */
+         g_signal_handler_disconnect(G_OBJECT(window), connid);
       }
       
       /* Attempt to retrieve window's frame extents. */
       eu.extents = &extents;
       if(gdk_property_get(gdkwindow,
-                          gdk_atom_intern("_NET_FRAME_EXTENTS", FALSE),
+                          extents_atom,
                           gdk_atom_intern("CARDINAL", FALSE),
                           0, sizeof(unsigned long)*4, FALSE,
                           NULL, NULL, NULL, eu.gu_extents))
