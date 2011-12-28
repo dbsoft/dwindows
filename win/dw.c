@@ -26,6 +26,9 @@
 #ifdef BUILD_DLL
 #include "XBrowseForFolder.h"
 #endif
+#ifdef AEROGLASS
+#include <uxtheme.h>
+#endif
 
 #ifdef GDIPLUS
 /* GDI+ Headers are not C compatible... so define what we need here instead */
@@ -99,6 +102,10 @@ VOID WINAPI GdiplusShutdown(ULONG_PTR token);
 
 /* Token to the GDI+ Instance */
 ULONG_PTR gdiplusToken; 
+#endif
+
+#ifdef AEROGLASS
+HRESULT (WINAPI *_DwmExtendFrameIntoClientArea)(HWND hWnd, const MARGINS *pMarInset) = 0;
 #endif
 
 /*
@@ -3523,6 +3530,9 @@ int API dw_init(int newthread, int argc, char *argv[])
 #ifdef GDIPLUS
    struct GdiplusStartupInput si; 
 #endif
+#ifdef AEROGLASS
+   HANDLE hdwm;
+#endif
 
    /* Setup the private data directory */
    if(argc > 0 && argv[0])
@@ -3560,7 +3570,11 @@ int API dw_init(int newthread, int argc, char *argv[])
    wc.lpfnWndProc = (WNDPROC)_wndproc;
    wc.cbClsExtra = 0;
    wc.cbWndExtra = 32;
+#ifdef AEROGLASS
+   wc.hbrBackground = CreateSolidBrush(RGB(0,0,0));
+#else
    wc.hbrBackground = NULL;
+#endif
    wc.lpszMenuName = NULL;
    wc.lpszClassName = ClassName;
 
@@ -3596,7 +3610,11 @@ int API dw_init(int newthread, int argc, char *argv[])
    wc.lpfnWndProc = (WNDPROC)_framewndproc;
    wc.cbClsExtra = 0;
    wc.cbWndExtra = 32;
+#ifdef AEROGLASS
+   wc.hbrBackground = CreateSolidBrush(RGB(0,0,0));
+#else
    wc.hbrBackground = (HBRUSH)GetSysColorBrush(COLOR_3DFACE);
+#endif
    wc.hCursor = LoadCursor(NULL, IDC_ARROW);
    wc.lpszMenuName = NULL;
    wc.lpszClassName = FRAMECLASSNAME;
@@ -3693,6 +3711,13 @@ int API dw_init(int newthread, int argc, char *argv[])
    si.SuppressBackgroundThread = FALSE;
    si.SuppressExternalCodecs = FALSE;
    GdiplusStartup(&gdiplusToken, &si, NULL);
+#endif
+
+#ifdef AEROGLASS
+   /* Attempt to load the Desktop Window Manager library */
+   if((hdwm = LoadLibrary("dwmapi")))
+      _DwmExtendFrameIntoClientArea = (HRESULT (WINAPI *)(HWND, const MARGINS *))GetProcAddress(hdwm, "DwmExtendFrameIntoClientArea");
+      
 #endif
    return 0;
 }
@@ -4602,6 +4627,9 @@ HWND API dw_window_new(HWND hwndOwner, char *title, ULONG flStyle)
    HWND hwndframe;
    Box *newbox = calloc(sizeof(Box), 1);
    ULONG flStyleEx = 0;
+#ifdef AEROGLASS
+   MARGINS mar = {-1};
+#endif
 
    newbox->type = DW_VERT;
    newbox->vsize = newbox->hsize = SIZEEXPAND;
@@ -4628,6 +4656,12 @@ HWND API dw_window_new(HWND hwndOwner, char *title, ULONG flStyle)
 
    if(hwndOwner)
       SetParent(hwndframe, hwndOwner);
+
+#ifdef AEROGLASS
+   /* Attempt to enable Aero glass background on the entire window */
+   if(_DwmExtendFrameIntoClientArea)
+      _DwmExtendFrameIntoClientArea(hwndframe, &mar);
+#endif
 
    return hwndframe;
 }
