@@ -11554,46 +11554,19 @@ void dw_listbox_delete(HWND handle, int index)
 static gint _splitbar_size_allocate(GtkWidget *widget, GtkAllocation *event, gpointer data)
 {
    float *percent = (float *)gtk_object_get_data(GTK_OBJECT(widget), "_dw_percent");
-   int lastwidth = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(widget), "_dw_lastwidth"));
-   int lastheight = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(widget), "_dw_lastheight"));
 
    /* Prevent infinite recursion ;) */
-   if(!percent || (lastwidth == event->width && lastheight == event->height))
+   if(!percent || event->width < 20 || event->height < 20)
       return FALSE;
 
-   lastwidth = event->width; lastheight = event->height;
-
-   gtk_object_set_data(GTK_OBJECT(widget), "_dw_lastwidth", GINT_TO_POINTER(lastwidth));
-   gtk_object_set_data(GTK_OBJECT(widget), "_dw_lastheight", GINT_TO_POINTER(lastheight));
-
-   if(GTK_IS_HPANED(widget))
+  if(GTK_IS_HPANED(widget))
       gtk_paned_set_position(GTK_PANED(widget), (int)(event->width * (*percent / 100.0)));
    if(GTK_IS_VPANED(widget))
       gtk_paned_set_position(GTK_PANED(widget), (int)(event->height * (*percent / 100.0)));
-   gtk_object_set_data(GTK_OBJECT(widget), "_dw_waiting", NULL);
+   gtk_object_set_data(GTK_OBJECT(widget), "_dw_percent", NULL);
+   free(percent);
    return FALSE;
 }
-
-#if GTK_MAJOR_VERSION > 1
-/* Figure out the new percentage */
-static void _splitbar_accept_position(GObject *object, GParamSpec *pspec, gpointer data)
-{
-   GtkWidget *widget = (GtkWidget *)data;
-   float *percent = (float *)gtk_object_get_data(GTK_OBJECT(widget), "_dw_percent");
-   int size = 0, position = gtk_paned_get_position(GTK_PANED(widget));
-
-   if(!percent || gtk_object_get_data(GTK_OBJECT(widget), "_dw_waiting"))
-      return;
-
-   if(GTK_IS_VPANED(widget))
-      size = widget->allocation.height;
-   else if(GTK_IS_HPANED(widget))
-      size = widget->allocation.width;
-
-   if(size > 0)
-      *percent = ((float)(position * 100) / (float)size);
-}
-#endif
 
 /*
  * Creates a splitbar window (widget) with given parameters.
@@ -11615,16 +11588,13 @@ HWND dw_splitbar_new(int type, HWND topleft, HWND bottomright, unsigned long id)
       tmp = gtk_hpaned_new();
    else
       tmp = gtk_vpaned_new();
-   gtk_paned_add1(GTK_PANED(tmp), topleft);
-   gtk_paned_add2(GTK_PANED(tmp), bottomright);
+   gtk_paned_pack1(GTK_PANED(tmp), topleft, TRUE, TRUE);
+   gtk_paned_pack2(GTK_PANED(tmp), bottomright, TRUE, TRUE);
    gtk_object_set_data(GTK_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(id));
    *percent = 50.0;
    gtk_object_set_data(GTK_OBJECT(tmp), "_dw_percent", (gpointer)percent);
-   gtk_object_set_data(GTK_OBJECT(tmp), "_dw_waiting", GINT_TO_POINTER(1));
    gtk_signal_connect(GTK_OBJECT(tmp), "size-allocate", GTK_SIGNAL_FUNC(_splitbar_size_allocate), NULL);
-#if GTK_MAJOR_VERSION > 1
-   g_signal_connect(G_OBJECT(tmp), "notify::position", (GCallback)_splitbar_accept_position, (gpointer)tmp);
-#else
+#if GTK_MAJOR_VERSION < 2
    gtk_paned_set_handle_size(GTK_PANED(tmp), 3);
 #endif
    gtk_widget_show(tmp);
