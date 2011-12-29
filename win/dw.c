@@ -2732,13 +2732,15 @@ BOOL CALLBACK _colorwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
                      if(_dw_composition && (!thiscinfo || (thiscinfo && 
                         (thiscinfo->back == -1 || thiscinfo->back == DW_RGB_TRANSPARENT))))
                      {
-                        SetBkMode((HDC)mp1, TRANSPARENT);
-                        if(thiscinfo && thiscinfo->hbrush)
+                        if(!(msg == WM_CTLCOLORSTATIC && SendMessage((HWND)mp2, STM_GETIMAGE, IMAGE_BITMAP, 0)))
                         {
-                           DeleteObject(thiscinfo->hbrush);
-                           thiscinfo->hbrush = 0;
+                           SetBkColor((HDC)mp1, _dw_transparencykey);
+                           if(thiscinfo->hbrush)
+                              DeleteObject(thiscinfo->hbrush);
+                           thiscinfo->hbrush = CreateSolidBrush(_dw_transparencykey);
+                           SelectObject((HDC)mp1, thiscinfo->hbrush);
+                           return (LONG)thiscinfo->hbrush;
                         }
-                        return (LONG)GetStockObject(NULL_BRUSH);
                      }
                   }
             }
