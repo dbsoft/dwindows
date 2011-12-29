@@ -106,6 +106,8 @@ ULONG_PTR gdiplusToken;
 
 #ifdef AEROGLASS
 HRESULT (WINAPI *_DwmExtendFrameIntoClientArea)(HWND hWnd, const MARGINS *pMarInset) = 0;
+HRESULT (WINAPI *_DwmIsCompositionEnabled)(BOOL *pfEnabled) = 0;
+BOOL _dw_composition = FALSE;
 #endif
 
 /*
@@ -2078,6 +2080,25 @@ BOOL CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
    /* Now that any handlers are done... do normal processing */
    switch( msg )
    {
+#ifdef AEROGLASS   
+   case WM_DWMCOMPOSITIONCHANGED:
+      if(_DwmIsCompositionEnabled)
+         _DwmIsCompositionEnabled(&_dw_composition);
+      break;
+   case WM_ERASEBKGND: 
+      if(_dw_composition)
+      {
+         static HBRUSH hbrush = 0;
+         RECT rect;
+         
+         if(!hbrush)
+            hbrush = CreateSolidBrush(RGB(0,0,0));
+            
+         GetClientRect(hWnd, &rect);
+         FillRect((HDC)mp1, &rect, hbrush);
+      }
+      return TRUE;
+#endif      
    case WM_PAINT:
       {
          PAINTSTRUCT ps;
@@ -2297,6 +2318,21 @@ BOOL CALLBACK _framewndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
    case WM_MOUSEMOVE:
       _wndproc(hWnd, msg, mp1, mp2);
       break;
+#ifdef AEROGLASS   
+   case WM_ERASEBKGND: 
+      if(_dw_composition)
+      {
+         static HBRUSH hbrush = 0;
+         RECT rect;
+         
+         if(!hbrush)
+            hbrush = CreateSolidBrush(RGB(0,0,0));
+            
+         GetClientRect(hWnd, &rect);
+         FillRect((HDC)mp1, &rect, hbrush);
+      }
+      return TRUE;
+#endif      
    case WM_PAINT:
       {
          ColorInfo *thiscinfo = (ColorInfo *)GetWindowLongPtr(hWnd, GWLP_USERDATA);
@@ -3579,11 +3615,7 @@ int API dw_init(int newthread, int argc, char *argv[])
    wc.lpfnWndProc = (WNDPROC)_wndproc;
    wc.cbClsExtra = 0;
    wc.cbWndExtra = 32;
-#ifdef AEROGLASS
-   wc.hbrBackground = CreateSolidBrush(RGB(0,0,0));
-#else
    wc.hbrBackground = NULL;
-#endif
    wc.lpszMenuName = NULL;
    wc.lpszClassName = ClassName;
 
@@ -3619,11 +3651,7 @@ int API dw_init(int newthread, int argc, char *argv[])
    wc.lpfnWndProc = (WNDPROC)_framewndproc;
    wc.cbClsExtra = 0;
    wc.cbWndExtra = 32;
-#ifdef AEROGLASS
-   wc.hbrBackground = CreateSolidBrush(RGB(0,0,0));
-#else
    wc.hbrBackground = (HBRUSH)GetSysColorBrush(COLOR_3DFACE);
-#endif
    wc.hCursor = LoadCursor(NULL, IDC_ARROW);
    wc.lpszMenuName = NULL;
    wc.lpszClassName = FRAMECLASSNAME;
@@ -3725,7 +3753,12 @@ int API dw_init(int newthread, int argc, char *argv[])
 #ifdef AEROGLASS
    /* Attempt to load the Desktop Window Manager library */
    if((hdwm = LoadLibrary("dwmapi")))
+   {
       _DwmExtendFrameIntoClientArea = (HRESULT (WINAPI *)(HWND, const MARGINS *))GetProcAddress(hdwm, "DwmExtendFrameIntoClientArea");
+      if((_DwmIsCompositionEnabled = (HRESULT (WINAPI *)(BOOL *))GetProcAddress(hdwm, "DwmIsCompositionEnabled")))
+         _DwmIsCompositionEnabled(&_dw_composition);
+      
+   }
       
 #endif
    return 0;
@@ -6484,22 +6517,29 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
 
       if(strnicmp(tmpbuf, FRAMECLASSNAME, strlen(FRAMECLASSNAME)+1)==0)
          tmpitem[index].type = TYPEBOX;
-      else if(strnicmp(tmpbuf, "SysMonthCal32", 13)==0)
-      {
-         RECT rc;
-         MonthCal_GetMinReqRect(item, &rc);
-         width = 1 + rc.right - rc.left;
-         height = 1 + rc.bottom - rc.top;
-         tmpitem[index].type = TYPEITEM;
-      }
       else
       {
-         if ( width == 0 && hsize == FALSE )
-            dw_messagebox(funcname, DW_MB_OK|DW_MB_ERROR, "Width and expand Horizonal both unset for box: %x item: %x",box,item);
-         if ( height == 0 && vsize == FALSE )
-            dw_messagebox(funcname, DW_MB_OK|DW_MB_ERROR, "Height and expand Vertical both unset for box: %x item: %x",box,item);
+         if(strnicmp(tmpbuf, "SysMonthCal32", 13)==0)
+         {
+            RECT rc;
+            MonthCal_GetMinReqRect(item, &rc);
+            width = 1 + rc.right - rc.left;
+            height = 1 + rc.bottom - rc.top;
+            tmpitem[index].type = TYPEITEM;
+         }
+         else
+         {
+            if ( width == 0 && hsize == FALSE )
+               dw_messagebox(funcname, DW_MB_OK|DW_MB_ERROR, "Width and expand Horizonal both unset for box: %x item: %x",box,item);
+            if ( height == 0 && vsize == FALSE )
+               dw_messagebox(funcname, DW_MB_OK|DW_MB_ERROR, "Height and expand Vertical both unset for box: %x item: %x",box,item);
 
-         tmpitem[index].type = TYPEITEM;
+            tmpitem[index].type = TYPEITEM;
+         }
+#ifdef AEROGLASS
+         if(_dw_composition)
+            SetLayeredWindowAttributes(item, 0, 255, LWA_ALPHA);
+#endif            
       }
 
       tmpitem[index].hwnd = item;
