@@ -511,6 +511,15 @@ typedef struct _bitbltinfo
 -(void)doFlush:(id)param;
 @end
 
+@interface DWMenuItem : NSMenuItem 
+{ 
+    int check;
+}
+-(void)setCheck:(int)input;
+-(int)check;
+-(void)dealloc;
+@end
+
 @implementation DWObject
 -(void)uselessThread:(id)sender { /* Thread only to initialize threading */ }
 -(void)synchronizeThread:(id)param
@@ -522,6 +531,14 @@ typedef struct _bitbltinfo
 }
 -(void)menuHandler:(id)param
 {
+    DWMenuItem *item = param;
+    if([item check])
+    {
+        if([item state] == NSOnState)
+            [item setState:NSOffState];
+        else
+            [item setState:NSOnState];            
+    }
     _event_handler(param, nil, 8);
 }
 -(void)doBitBlt:(id)param
@@ -979,11 +996,9 @@ DWObject *DWObj;
 @end
 
 /* Subclass for a menu item type */
-@interface DWMenuItem : NSMenuItem { }
--(void)dealloc;
-@end
-
 @implementation DWMenuItem
+-(void)setCheck:(int)input { check = input; }
+-(int)check { return check; }
 -(void)dealloc { dw_signal_disconnect_by_window(self); [super dealloc]; }
 @end
 
@@ -7218,9 +7233,13 @@ HWND API dw_menu_append_item(HMENUI menux, char *title, ULONG itemid, ULONG flag
         [menu addItem:item];
         
         [item setTag:itemid];
-        if(flags & DW_MIS_CHECKED)
+        if(check)
         {
-            [item setState:NSOnState];
+            [item setCheck:YES];
+            if(flags & DW_MIS_CHECKED)
+            {
+                [item setState:NSOnState];
+            }
         }
         if(flags & DW_MIS_DISABLED)
         {
