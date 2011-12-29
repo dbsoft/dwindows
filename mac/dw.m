@@ -8527,6 +8527,7 @@ void _handle_gravity(HWND handle, long *x, long *y, unsigned long width, unsigne
 {
     int horz = DW_POINTER_TO_INT(dw_window_get_data(handle, "_dw_grav_horz"));
     int vert = DW_POINTER_TO_INT(dw_window_get_data(handle, "_dw_grav_vert"));
+    id object = handle;
     
     /* Do any gravity calculations */
     if(horz || (vert & 0xf) != DW_GRAV_BOTTOM)
@@ -8552,8 +8553,8 @@ void _handle_gravity(HWND handle, long *x, long *y, unsigned long width, unsigne
     /* Adjust the values to avoid Dock/Menubar if requested */
     if((horz | vert) & DW_GRAV_OBSTACLES)
     {
-        NSRect visiblerect = [[NSScreen mainScreen] visibleFrame];
-        NSRect totalrect = [[NSScreen mainScreen] frame];
+        NSRect visiblerect = [[object screen] visibleFrame];
+        NSRect totalrect = [[object screen] frame];
         
         if(horz & DW_GRAV_OBSTACLES)
         {
@@ -8646,7 +8647,7 @@ void API dw_window_get_pos_size(HWND handle, LONG *x, LONG *y, ULONG *width, ULO
         if(x)
             *x = rect.origin.x;
         if(y)
-            *y = [[NSScreen mainScreen] frame].size.height - rect.origin.y - rect.size.height;
+            *y = [[window screen] frame].size.height - rect.origin.y - rect.size.height;
         if(width)
             *width = rect.size.width;
         if(height)
