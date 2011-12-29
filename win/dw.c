@@ -5459,7 +5459,7 @@ HWND API dw_text_new(char *text, ULONG id)
 {
    HWND tmp = CreateWindow(STATICCLASSNAME,
                      text,
-                     SS_NOPREFIX |
+                     SS_NOPREFIX | SS_NOTIFY |
                      BS_TEXT | WS_VISIBLE |
                      WS_CHILD | WS_CLIPCHILDREN,
                      0,0,0,0,
