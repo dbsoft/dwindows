@@ -108,6 +108,7 @@ ULONG_PTR gdiplusToken;
 HRESULT (WINAPI *_DwmExtendFrameIntoClientArea)(HWND hWnd, const MARGINS *pMarInset) = 0;
 HRESULT (WINAPI *_DwmIsCompositionEnabled)(BOOL *pfEnabled) = 0;
 BOOL _dw_composition = FALSE;
+COLORREF _dw_transparencykey = RGB(200,201,202);
 #endif
 
 /*
@@ -2092,7 +2093,7 @@ BOOL CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
          RECT rect;
          
          if(!hbrush)
-            hbrush = CreateSolidBrush(RGB(0,0,0));
+            hbrush = CreateSolidBrush(_dw_transparencykey);
             
          GetClientRect(hWnd, &rect);
          FillRect((HDC)mp1, &rect, hbrush);
@@ -2227,66 +2228,7 @@ BOOL CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
    case WM_CTLCOLORMSGBOX:
    case WM_CTLCOLORSCROLLBAR:
    case WM_CTLCOLORDLG:
-      {
-         ColorInfo *thiscinfo = (ColorInfo *)GetWindowLongPtr((HWND)mp2, GWLP_USERDATA);
-         if(thiscinfo && thiscinfo->fore != -1 && thiscinfo->back != -1)
-         {
-            /* Handle foreground */
-            if(thiscinfo->fore > -1 && thiscinfo->fore < 18)
-            {
-               if(thiscinfo->fore != DW_CLR_DEFAULT)
-               {
-                  SetTextColor((HDC)mp1, RGB(_red[thiscinfo->fore],
-                                       _green[thiscinfo->fore],
-                                       _blue[thiscinfo->fore]));
-               }
-            }
-            else if((thiscinfo->fore & DW_RGB_COLOR) == DW_RGB_COLOR)
-            {
-               SetTextColor((HDC)mp1, RGB(DW_RED_VALUE(thiscinfo->fore),
-                                    DW_GREEN_VALUE(thiscinfo->fore),
-                                    DW_BLUE_VALUE(thiscinfo->fore)));
-            }
-            /* Handle background */
-            if(thiscinfo->back > -1 && thiscinfo->back < 18)
-            {
-               if(thiscinfo->back == DW_CLR_DEFAULT)
-               {
-                  HBRUSH hbr = GetSysColorBrush(COLOR_3DFACE);
-
-                  SelectObject((HDC)mp1, hbr);
-                  return (LONG)hbr;
-               }
-               else
-               {
-                  SetBkColor((HDC)mp1, RGB(_red[thiscinfo->back],
-                                     _green[thiscinfo->back],
-                                     _blue[thiscinfo->back]));
-                  if(thiscinfo->hbrush)
-                     DeleteObject(thiscinfo->hbrush);
-                  thiscinfo->hbrush = CreateSolidBrush(RGB(_red[thiscinfo->back],
-                                                 _green[thiscinfo->back],
-                                                 _blue[thiscinfo->back]));
-                  SelectObject((HDC)mp1, thiscinfo->hbrush);
-               }
-               return (LONG)thiscinfo->hbrush;
-            }
-            else if((thiscinfo->back & DW_RGB_COLOR) == DW_RGB_COLOR)
-            {
-               SetBkColor((HDC)mp1, RGB(DW_RED_VALUE(thiscinfo->back),
-                                     DW_GREEN_VALUE(thiscinfo->back),
-                                     DW_BLUE_VALUE(thiscinfo->back)));
-               if(thiscinfo->hbrush)
-                  DeleteObject(thiscinfo->hbrush);
-               thiscinfo->hbrush = CreateSolidBrush(RGB(DW_RED_VALUE(thiscinfo->back),
-                                              DW_GREEN_VALUE(thiscinfo->back),
-                                              DW_BLUE_VALUE(thiscinfo->back)));
-               SelectObject((HDC)mp1, thiscinfo->hbrush);
-               return (LONG)thiscinfo->hbrush;
-            }
-         }
-      }
-      break;
+      return _colorwndproc(hWnd, msg, mp1, mp2);
    }
    if(result != -1)
    {
@@ -2326,7 +2268,7 @@ BOOL CALLBACK _framewndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
          RECT rect;
          
          if(!hbrush)
-            hbrush = CreateSolidBrush(RGB(0,0,0));
+            hbrush = CreateSolidBrush(_dw_transparencykey);
             
          GetClientRect(hWnd, &rect);
          FillRect((HDC)mp1, &rect, hbrush);
@@ -2787,20 +2729,21 @@ BOOL CALLBACK _colorwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
                case WM_CTLCOLORBTN:
                case WM_CTLCOLORDLG:
                   {
-                     if(thiscinfo && (thiscinfo->fore == -1 || thiscinfo->fore == DW_CLR_DEFAULT))
-                        SetTextColor((HDC)mp1, RGB(128,128,128));
-                     if(thiscinfo && (thiscinfo->back == -1 || thiscinfo->back == DW_RGB_TRANSPARENT))
+                     if(_dw_composition && (!thiscinfo || (thiscinfo && 
+                        (thiscinfo->back == -1 || thiscinfo->back == DW_RGB_TRANSPARENT))))
                      {
                         SetBkMode((HDC)mp1, TRANSPARENT);
-                        if(thiscinfo->hbrush)
+                        if(thiscinfo && thiscinfo->hbrush)
+                        {
                            DeleteObject(thiscinfo->hbrush);
-                        thiscinfo->hbrush = 0;
+                           thiscinfo->hbrush = 0;
+                        }
                         return (LONG)GetStockObject(NULL_BRUSH);
                      }
                   }
             }
 #endif
-        }
+         }
          break;
       }
    }
@@ -3327,8 +3270,7 @@ BOOL CALLBACK _BtProc(HWND hwnd, ULONG msg, WPARAM mp1, LPARAM mp2)
    case WM_CTLCOLORMSGBOX:
    case WM_CTLCOLORSCROLLBAR:
    case WM_CTLCOLORDLG:
-      _wndproc(hwnd, msg, mp1, mp2);
-      break;
+      return _colorwndproc(hwnd, msg, mp1, mp2);
    case WM_SETFOCUS:
       _wndproc(hwnd, msg, mp1, mp2);
       break;
@@ -4671,6 +4613,9 @@ HWND API dw_window_new(HWND hwndOwner, char *title, ULONG flStyle)
    ULONG flStyleEx = 0;
 #ifdef AEROGLASS
    MARGINS mar = {-1};
+   
+   if(_dw_composition)
+      flStyleEx = WS_EX_LAYERED;
 #endif
 
    newbox->type = DW_VERT;
@@ -4701,8 +4646,11 @@ HWND API dw_window_new(HWND hwndOwner, char *title, ULONG flStyle)
 
 #ifdef AEROGLASS
    /* Attempt to enable Aero glass background on the entire window */
-   if(_DwmExtendFrameIntoClientArea)
+   if(_DwmExtendFrameIntoClientArea && _dw_composition)
+   {
+      SetLayeredWindowAttributes(hwndframe, _dw_transparencykey, 0, LWA_COLORKEY);
       _DwmExtendFrameIntoClientArea(hwndframe, &mar);
+   }
 #endif
 
    return hwndframe;
@@ -6078,7 +6026,6 @@ HWND API dw_checkbox_new(char *text, ULONG id)
                      (HMENU)id,
                      DWInstance,
                      NULL);
-   cinfo->fore = cinfo->back = -1;
    cinfo->pOldProc = (WNDPROC)SubclassWindow(tmp, _BtProc);
    SetWindowLongPtr(tmp, GWLP_USERDATA, (LONG_PTR)cinfo);
    dw_window_set_data(tmp, "_dw_checkbox", DW_INT_TO_POINTER(1));
@@ -6536,10 +6483,6 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
 
             tmpitem[index].type = TYPEITEM;
          }
-#ifdef AEROGLASS
-         if(_dw_composition)
-            SetLayeredWindowAttributes(item, 0, 255, LWA_ALPHA);
-#endif            
       }
 
       tmpitem[index].hwnd = item;
