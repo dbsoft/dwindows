@@ -2264,7 +2264,6 @@ BOOL CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
                return (LONG)thiscinfo->hbrush;
             }
          }
-
       }
       break;
    }
@@ -2298,16 +2297,6 @@ BOOL CALLBACK _framewndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
    case WM_MOUSEMOVE:
       _wndproc(hWnd, msg, mp1, mp2);
       break;
-#if 0
-   case WM_ERASEBKGND:
-      {
-         ColorInfo *thiscinfo = (ColorInfo *)GetWindowLongPtr(hWnd, GWLP_USERDATA);
-
-         if(thiscinfo && thiscinfo->fore != -1 && thiscinfo->back != -1)
-            return FALSE;
-      }
-      break;
-#endif
    case WM_PAINT:
       {
          ColorInfo *thiscinfo = (ColorInfo *)GetWindowLongPtr(hWnd, GWLP_USERDATA);
@@ -2755,7 +2744,27 @@ BOOL CALLBACK _colorwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
                   return (LONG)thiscinfo->hbrush;
                }
             }
-         }
+ #ifdef AEROGLASS
+            switch(msg)
+            {
+               case WM_CTLCOLORSTATIC:
+               case WM_CTLCOLORBTN:
+               case WM_CTLCOLORDLG:
+                  {
+                     if(thiscinfo && (thiscinfo->fore == -1 || thiscinfo->fore == DW_CLR_DEFAULT))
+                        SetTextColor((HDC)mp1, RGB(128,128,128));
+                     if(thiscinfo && (thiscinfo->back == -1 || thiscinfo->back == DW_RGB_TRANSPARENT))
+                     {
+                        SetBkMode((HDC)mp1, TRANSPARENT);
+                        if(thiscinfo->hbrush)
+                           DeleteObject(thiscinfo->hbrush);
+                        thiscinfo->hbrush = 0;
+                        return (LONG)GetStockObject(NULL_BRUSH);
+                     }
+                  }
+            }
+#endif
+        }
          break;
       }
    }
