@@ -2019,14 +2019,17 @@ MRESULT EXPENTRY _statusproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 /* This procedure handles pointer changes */
 MRESULT EXPENTRY _textproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 {
-   PFNWP *blah = WinQueryWindowPtr(hWnd, QWP_USER);
+   WindowData *blah = (WindowData *)WinQueryWindowPtr(hWnd, QWP_USER);
+
+   if(blah && blah->bubbletext[0])
+       _TooltipProc(hWnd, msg, mp1, mp2, blah);
 
    if(msg == WM_MOUSEMOVE &&_wndproc(hWnd, msg, mp1, mp2))
       return MPFROMSHORT(FALSE);
 
-   if(blah && *blah)
+   if(blah && blah->oldproc)
    {
-      PFNWP myfunc = *blah;
+      PFNWP myfunc = blah->oldproc;
 
       return myfunc(hWnd, msg, mp1, mp2);
    }
