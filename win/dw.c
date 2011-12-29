@@ -184,6 +184,7 @@ HFONT _DefaultFont = NULL;
 #if (defined(BUILD_DLL) || defined(BUILD_HTML)) && !defined(__MINGW32__)
 LRESULT CALLBACK _browserWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 #endif
+BOOL CALLBACK _colorwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2);
 void _resize_notebook_page(HWND handle, int pageid);
 void _handle_splitbar_resize(HWND hwnd, float percent, int type, int x, int y);
 int _lookup_icon(HWND handle, HICON hicon, int type);
