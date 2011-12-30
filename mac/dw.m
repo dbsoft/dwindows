@@ -913,7 +913,13 @@ DWObject *DWObj;
     _event_handler([self window], nil, 13);
 }
 -(void)setMenu:(NSMenu *)input { windowmenu = input; [windowmenu retain]; }
--(void)menuHandler:(id)sender { [DWObj performSelector:@selector(menuHandler:) withObject:sender afterDelay:0]; }
+-(void)menuHandler:(id)sender 
+{ 
+    if(DWOSMinor > 5)
+        [DWObj performSelector:@selector(menuHandler:) withObject:sender afterDelay:0]; 
+    else
+        [DWObj menuHandler:sender];
+}
 -(void)mouseDragged:(NSEvent *)theEvent { _event_handler(self, theEvent, 5); }
 -(void)mouseMoved:(NSEvent *)theEvent
 {
