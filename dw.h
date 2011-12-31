@@ -1402,11 +1402,11 @@ typedef void *HPRINT;
 #define DW_HTML_STOP       5
 #define DW_HTML_PRINT      6
 
-/* Drawing flags... used for Arc currently */
+/* Drawing flags  */
 #define DW_DRAW_DEFAULT    0
 #define DW_DRAW_FILL       1
 #define DW_DRAW_FULL       (1 << 1)
-
+#define DW_DRAW_NOAA       (1 << 2)
 
 /* Macro for casting resource IDs to HICN */
 #define DW_RESOURCE(a) (a < 65536 ? (HICN)a : (HICN)0)
