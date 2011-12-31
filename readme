@@ -50,6 +50,8 @@ Added pseudo transparent background widget support on Windows and OS/2.
    Several types of widgets have this set by default now.
 Added faster and less buggy layout engine 2.0 for OS/2, Windows and Mac.
 Added auto-positioning on Mac; reimplemented auto-positioning on OS/2.
+Added DW_DRAW_NOAA which can be passed to dw_draw_*() API functions
+   that accept the flags parameter to disable anti-aliasing.
 Fixed auto-sizing top-level windows on Windows; added on OS/2 and Mac.
 Fixed bubble help not being displayed on Windows.
 Fixed menu bar items remaining highlighted on Mac.

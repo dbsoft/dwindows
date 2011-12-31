@@ -5267,6 +5267,18 @@ void API dw_font_text_extents_get(HWND handle, HPIXMAP pixmap, char *text, int *
     }
 }
 
+/* Internal function to create an image graphics context...
+ * with or without antialiasing enabled.
+ */
+id _create_gc(id image, bool antialiased)
+{
+    CGContextRef  context = (CGContextRef)[[NSGraphicsContext graphicsContextWithBitmapImageRep:image] graphicsPort];
+    NSGraphicsContext *gc = [NSGraphicsContext graphicsContextWithGraphicsPort:context flipped:YES];
+    [gc setShouldAntialias:antialiased];
+    CGContextSetAllowsAntialiasing(context, antialiased);
+    return gc;
+}
+
 /* Draw a polygon on a window (preferably a render window).
  * Parameters:
  *       handle: Handle to the window.
@@ -5286,9 +5298,9 @@ void API dw_draw_polygon( HWND handle, HPIXMAP pixmap, int flags, int npoints, i
     if(pixmap)
     {
         image = (id)pixmap->image;
+        id gc = _create_gc(image, flags & DW_DRAW_NOAA ? NO : YES);
         [NSGraphicsContext saveGraphicsState];
-        [NSGraphicsContext setCurrentContext:[NSGraphicsContext
-                                              graphicsContextWithGraphicsPort:[[NSGraphicsContext graphicsContextWithBitmapImageRep:image] graphicsPort] flipped:YES]];
+        [NSGraphicsContext setCurrentContext:gc];
     }
     else
     {
@@ -5344,9 +5356,9 @@ void API dw_draw_rect(HWND handle, HPIXMAP pixmap, int flags, int x, int y, int 
     if(pixmap)
     {
         image = (id)pixmap->image;
+        id gc = _create_gc(image, flags & DW_DRAW_NOAA ? NO : YES);
         [NSGraphicsContext saveGraphicsState];
-        [NSGraphicsContext setCurrentContext:[NSGraphicsContext
-                                              graphicsContextWithGraphicsPort:[[NSGraphicsContext graphicsContextWithBitmapImageRep:image] graphicsPort] flipped:YES]];
+        [NSGraphicsContext setCurrentContext:gc];
     }
     else
     {
@@ -5404,9 +5416,9 @@ void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yo
     if(pixmap)
     {
         image = (id)pixmap->image;
+        id gc = _create_gc(image, flags & DW_DRAW_NOAA ? NO : YES);
         [NSGraphicsContext saveGraphicsState];
-        [NSGraphicsContext setCurrentContext:[NSGraphicsContext
-                                              graphicsContextWithGraphicsPort:[[NSGraphicsContext graphicsContextWithBitmapImageRep:image] graphicsPort] flipped:YES]];
+        [NSGraphicsContext setCurrentContext:gc];
     }
     else
     {
