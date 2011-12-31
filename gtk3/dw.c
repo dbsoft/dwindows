@@ -6922,8 +6922,11 @@ void dw_draw_polygon(HWND handle, HPIXMAP pixmap, int flags, int npoints, int *x
       cr = cairo_create(pixmap->image);
    if(cr)
    {
-       GdkColor *foreground = pthread_getspecific(_dw_fg_color_key);
-
+      GdkColor *foreground = pthread_getspecific(_dw_fg_color_key);
+      
+      if(flags & DW_DRAW_NOAA)
+         cairo_set_antialias(cr, CAIRO_ANTIALIAS_NONE);
+         
       gdk_cairo_set_source_color (cr, foreground);
       cairo_set_line_width(cr, 1);
       cairo_move_to(cr, x[0], y[0]);
@@ -6972,6 +6975,9 @@ void dw_draw_rect(HWND handle, HPIXMAP pixmap, int flags, int x, int y, int widt
    {
       GdkColor *foreground = pthread_getspecific(_dw_fg_color_key);
 
+      if(flags & DW_DRAW_NOAA)
+         cairo_set_antialias(cr, CAIRO_ANTIALIAS_NONE);
+         
       gdk_cairo_set_source_color (cr, foreground);
       cairo_set_line_width(cr, 1);
       cairo_move_to(cr, x, y);
@@ -7028,7 +7034,10 @@ void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yo
       double a2 = atan2((y2-yorigin), (x2-xorigin));
       int width = x2-x1;
       float scale = (float)(y2-y1)/(float)width;
-
+      
+      if(flags & DW_DRAW_NOAA)
+         cairo_set_antialias(cr, CAIRO_ANTIALIAS_NONE);
+         
       gdk_cairo_set_source_color (cr, foreground);
       cairo_set_line_width(cr, 1);
       if(scale != 1.0)
