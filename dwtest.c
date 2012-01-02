@@ -980,6 +980,14 @@ void text_add(void)
     dw_window_get_preferred_size(vscrollbar, &vscrollbarwidth, NULL);
     dw_window_get_preferred_size(hscrollbar, NULL, &hscrollbarheight);
     
+    /* On GTK with overlay scrollbars enabled this returns us 0... 
+     * so in that case we need to give it some real values.
+     */
+    if(!vscrollbarwidth)
+        vscrollbarwidth = 8;
+    if(!hscrollbarheight)
+        hscrollbarheight = 8;
+    
     /* create render box for number pixmap */
     textbox1 = dw_render_new( 100 );
     dw_window_set_font(textbox1, FIXEDFONT);
