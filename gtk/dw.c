@@ -2070,6 +2070,18 @@ void init_webkit(void)
 }
 #endif
 
+static GStaticRecMutex _dw_gdk_lock;
+
+static void _dw_gdk_lock_enter(void) 
+{
+    g_static_rec_mutex_lock(&_dw_gdk_lock);
+}
+
+static void _dw_gdk_lock_leave(void) 
+{
+    g_static_rec_mutex_unlock(&_dw_gdk_lock);
+}
+
 /*
  * Initializes the Dynamic Windows engine.
  * Parameters:
@@ -2131,6 +2143,10 @@ int dw_int_init(DWResources *res, int newthread, int *argc, char **argv[])
    g_thread_init(NULL);
 #endif
 #if GTK_MAJOR_VERSION > 1
+   g_static_rec_mutex_init(&_dw_gdk_lock);
+
+   gdk_threads_set_lock_functions(G_CALLBACK(_dw_gdk_lock_enter), G_CALLBACK(_dw_gdk_lock_leave));
+   
    gdk_threads_init();
 #endif
 
