@@ -5132,12 +5132,11 @@ void API dw_draw_line(HWND handle, HPIXMAP pixmap, int x1, int y1, int x2, int y
         _DWLastDrawable = handle;
     }
     NSBezierPath* aPath = [NSBezierPath bezierPath];
-    [aPath setLineWidth: 0.5];
     NSColor *color = pthread_getspecific(_dw_fg_color_key);
     [color set];
 
-    [aPath moveToPoint:NSMakePoint(x1, y1)];
-    [aPath lineToPoint:NSMakePoint(x2, y2)];
+    [aPath moveToPoint:NSMakePoint(x1 + 0.5, y1 + 0.5)];
+    [aPath lineToPoint:NSMakePoint(x2 + 0.5, y2 + 0.5)];
     [aPath stroke];
 
     if(pixmap)
@@ -5309,17 +5308,17 @@ void API dw_draw_polygon( HWND handle, HPIXMAP pixmap, int flags, int npoints, i
             DW_MUTEX_UNLOCK;
             return;
         }
+        [[NSGraphicsContext currentContext] setShouldAntialias:(flags & DW_DRAW_NOAA ? NO : YES)];
         _DWLastDrawable = handle;
     }
     NSBezierPath* aPath = [NSBezierPath bezierPath];
-    [aPath setLineWidth: 0.5];
     NSColor *color = pthread_getspecific(_dw_fg_color_key);
     [color set];
 
-    [aPath moveToPoint:NSMakePoint(*x, *y)];
+    [aPath moveToPoint:NSMakePoint(*x + 0.5, *y + 0.5)];
     for(z=1;z<npoints;z++)
     {
-        [aPath lineToPoint:NSMakePoint(x[z], y[z])];
+        [aPath lineToPoint:NSMakePoint(x[z] + 0.5, y[z] + 0.5)];
     }
     [aPath closePath];
     if(flags & DW_DRAW_FILL)
@@ -5367,21 +5366,16 @@ void API dw_draw_rect(HWND handle, HPIXMAP pixmap, int flags, int x, int y, int 
             DW_MUTEX_UNLOCK;
             return;
         }
+        [[NSGraphicsContext currentContext] setShouldAntialias:(flags & DW_DRAW_NOAA ? NO : YES)];
         _DWLastDrawable = handle;
     }
-    NSBezierPath* aPath = [NSBezierPath bezierPath];
-    [aPath setLineWidth: 0.5];
     NSColor *color = pthread_getspecific(_dw_fg_color_key);
     [color set];
 
-    [aPath moveToPoint:NSMakePoint(x, y)];
-    [aPath lineToPoint:NSMakePoint(x, y + height)];
-    [aPath lineToPoint:NSMakePoint(x + width, y + height)];
-    [aPath lineToPoint:NSMakePoint(x + width, y)];
-    [aPath closePath];
     if(flags & DW_DRAW_FILL)
-       [aPath fill];
-    [aPath stroke];
+        [NSBezierPath fillRect:NSMakeRect(x, y, width, height)];
+    else
+        [NSBezierPath strokeRect:NSMakeRect(x, y, width, height)];
     if(pixmap)
     {
         [NSGraphicsContext restoreGraphicsState];
@@ -5427,10 +5421,10 @@ void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yo
             DW_MUTEX_UNLOCK;
             return;
         }
+        [[NSGraphicsContext currentContext] setShouldAntialias:(flags & DW_DRAW_NOAA ? NO : YES)];
         _DWLastDrawable = handle;
     }
     NSBezierPath* aPath = [NSBezierPath bezierPath];
-    [aPath setLineWidth: 0.5];
     NSColor *color = pthread_getspecific(_dw_fg_color_key);
     [color set];
 
