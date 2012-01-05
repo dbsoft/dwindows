@@ -2820,7 +2820,7 @@ void API dw_main(void)
  */
 void API dw_main_quit(void)
 {
-    [DWApp stop];
+    [DWApp stop:nil];
 }
 
 /*
