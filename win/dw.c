@@ -109,6 +109,7 @@ HRESULT (WINAPI *_DwmExtendFrameIntoClientArea)(HWND hWnd, const MARGINS *pMarIn
 HRESULT (WINAPI *_DwmIsCompositionEnabled)(BOOL *pfEnabled) = 0;
 BOOL _dw_composition = FALSE;
 COLORREF _dw_transparencykey = RGB(200,201,202);
+HANDLE hdwm = 0;
 #endif
 
 /*
@@ -419,7 +420,7 @@ char *image_exts[NUM_EXTS] =
 /* Section for loading files of types besides BMP and ICO and return HBITMAP or HICON */
 void *_dw_load_gpbitmap( char *filename )
 {
-   int found_ext = 0,i, wclen = (strlen(filename) + 6) * sizeof(wchar_t);
+   int i, wclen = (strlen(filename) + 6) * sizeof(wchar_t);
    char *file = _alloca(strlen(filename) + 6);
    wchar_t *wfile = _alloca(wclen);
    void *image;
@@ -3520,9 +3521,6 @@ int API dw_init(int newthread, int argc, char *argv[])
 #ifdef GDIPLUS
    struct GdiplusStartupInput si; 
 #endif
-#ifdef AEROGLASS
-   HANDLE hdwm;
-#endif
 
    /* Setup the private data directory */
    if(argc > 0 && argv[0])
@@ -3709,6 +3707,8 @@ int API dw_init(int newthread, int argc, char *argv[])
    return 0;
 }
 
+static int _dw_main_running = FALSE;
+
 /*
  * Runs a message loop for Dynamic Windows.
  */
@@ -3720,7 +3720,11 @@ void API dw_main(void)
    /* Make sure any queued redraws are handled */
    _dw_redraw(0, FALSE);
 
-   while(GetMessage(&msg, NULL, 0, 0))
+   /* Set the running flag to TRUE */
+   _dw_main_running = TRUE;
+   
+   /* Run the loop until the flag is unset... or error */
+   while(_dw_main_running && GetMessage(&msg, NULL, 0, 0))
    {
       if(msg.hwnd == NULL && msg.message == WM_TIMER)
          _wndproc(msg.hwnd, msg.message, msg.wParam, msg.lParam);
@@ -3730,6 +3734,14 @@ void API dw_main(void)
          DispatchMessage(&msg);
       }
    }
+}
+
+/*
+ * Causes running dw_main() to return.
+ */
+void API dw_main_quit(void)
+{
+    _dw_main_running = FALSE;
 }
 
 /*
@@ -10274,6 +10286,10 @@ DWTID API dw_thread_id(void)
 void API dw_exit(int exitcode)
 {
    OleUninitialize();
+#ifdef AEROGLASS
+   /* Free any in use libraries */
+   FreeLibrary(hdwm);
+#endif   
    exit(exitcode);
 }
 

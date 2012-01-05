@@ -4015,6 +4015,8 @@ int API dw_init(int newthread, int argc, char *argv[])
    return rc;
 }
 
+static int _dw_main_running = FALSE;
+
 /*
  * Runs a message loop for Dynamic Windows.
  */
@@ -4026,15 +4028,24 @@ void API dw_main(void)
    /* Make sure any queued redraws are handled */
    _dw_redraw(0, FALSE);
 
-   while(WinGetMsg(dwhab, &qmsg, 0, 0, 0))
+   /* Set the running flag to TRUE */
+   _dw_main_running = TRUE;
+   
+   /* Run the loop until the flag is unset... or error */
+   while(_dw_main_running && WinGetMsg(dwhab, &qmsg, 0, 0, 0))
    {
       if(qmsg.msg == WM_TIMER && qmsg.hwnd == NULLHANDLE)
          _run_event(qmsg.hwnd, qmsg.msg, qmsg.mp1, qmsg.mp2);
       WinDispatchMsg(dwhab, &qmsg);
    }
+}
 
-   WinDestroyMsgQueue(dwhmq);
-   WinTerminate(dwhab);
+/*
+ * Causes running dw_main() to return.
+ */
+void API dw_main_quit(void)
+{
+    _dw_main_running = FALSE;
 }
 
 /*
@@ -10521,7 +10532,16 @@ void API dw_exit(int exitcode)
     */
    Root = NULL;
 
+   /* Destroy the main message queue and anchor block */
+   WinDestroyMsgQueue(dwhmq);
+   WinTerminate(dwhab);
+
+   /* Free any in use modules */
    DosFreeModule(wpconfig);
+   DosFreeModule(pmprintf);
+   DosFreeModule(pmmerge);
+   
+   /* And finally exit */
    exit(exitcode);
 }
 

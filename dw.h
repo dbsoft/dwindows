@@ -1456,6 +1456,7 @@ int API dw_int_init(DWResources *res, int newthread, int *argc, char **argv[]);
 int API dw_init(int newthread, int argc, char *argv[]);
 #endif
 void API dw_main(void);
+void API dw_main_quit(void);
 void API dw_main_sleep(int seconds);
 void API dw_main_iteration(void);
 void API dw_free(void *ptr);
