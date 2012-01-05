@@ -1857,7 +1857,7 @@ int dw_int_init(DWResources *res, int newthread, int *argc, char **argv[])
 /*
  * Runs a message loop for Dynamic Windows.
  */
-void dw_main(void)
+void API dw_main(void)
 {
    gdk_threads_enter();
    _dw_thread = pthread_self();
@@ -1867,11 +1867,19 @@ void dw_main(void)
 }
 
 /*
+ * Causes running dw_main() to return.
+ */
+void API dw_main_quit(void)
+{
+   gtk_main_quit();
+}
+
+/*
  * Runs a message loop for Dynamic Windows, for a period of milliseconds.
  * Parameters:
  *           milliseconds: Number of milliseconds to run the loop for.
  */
-void dw_main_sleep(int milliseconds)
+void API dw_main_sleep(int milliseconds)
 {
    struct timeval tv, start;
    pthread_t curr = pthread_self();
@@ -1921,7 +1929,7 @@ void dw_main_sleep(int milliseconds)
 /*
  * Processes a single message iteration and returns.
  */
-void dw_main_iteration(void)
+void API dw_main_iteration(void)
 {
    pthread_t orig = _dw_thread;
    pthread_t curr = pthread_self();

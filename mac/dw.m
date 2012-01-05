@@ -2816,6 +2816,14 @@ void API dw_main(void)
 }
 
 /*
+ * Causes running dw_main() to return.
+ */
+void API dw_main_quit(void)
+{
+    [DWApp stop];
+}
+
+/*
  * Runs a message loop for Dynamic Windows, for a period of milliseconds.
  * Parameters:
  *           milliseconds: Number of milliseconds to run the loop for.
