@@ -9,7 +9,7 @@ CC = gcc
 DEFS =
 LIBS =
 
-CFLAGS = -O -g -DMSVC -DWIN32 -D__WIN32__ -DGDIPLUS -DBUILD_DLL -I./win -I. -I./platform -Wall -mthreads -o $(@)
+CFLAGS = -O -g -DMSVC -DWIN32 -D__WIN32__ -DGDIPLUS -DISOLATION_AWARE_ENABLED=1 -DBUILD_DLL -I./win -I. -I./platform -Wall -mthreads -o $(@)
 LDFLAGS = -shared -mwindows -mthreads -lcomctl32 -lole32 -loleaut32 -luserenv -lmsimg32 -lgdiplus
 
 COMPATOBJECTS = compat.o dirent.o
