@@ -8544,7 +8544,45 @@ void API dw_window_set_size(HWND handle, ULONG width, ULONG height)
  */
 void API dw_window_get_preferred_size(HWND handle, int *width, int *height)
 {
-    _control_size(handle, width, height);
+    id object = handle;
+    
+    if([object isMemberOfClass:[DWWindow class]])
+    {
+        Box *thisbox;
+        
+        if((thisbox = [[object contentView] box]))
+        {
+            int depth = 0;
+            NSRect frame;
+            
+            /* Calculate space requirements */
+            _resize_box(thisbox, &depth, 0, 0, 1);
+            
+            frame = [NSWindow frameRectForContentRect:NSMakeRect(0, 0, thisbox->minwidth, thisbox->minheight) styleMask:[object styleMask]];
+            
+            /* Might need to take into account the window border here */
+            if(width) *width = frame.size.width;
+            if(height) *height = frame.size.height;
+        }
+    }
+    else if([object isMemberOfClass:[DWBox class]])
+    {
+        Box *thisbox;
+        
+        if((thisbox = [object box]))
+        {
+            int depth = 0;
+            
+            /* Calculate space requirements */
+            _resize_box(thisbox, &depth, 0, 0, 1);
+            
+            /* Might need to take into account the window border here */
+            if(width) *width = thisbox->minwidth;
+            if(height) *height = thisbox->minheight;
+        }
+    }
+    else
+        _control_size(handle, width, height);
 }
 
 /*
