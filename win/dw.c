@@ -582,7 +582,7 @@ BOOL CALLBACK _free_window_memory(HWND handle, LPARAM lParam)
    ColorInfo *thiscinfo = (ColorInfo *)GetWindowLongPtr(handle, GWLP_USERDATA);
    HFONT oldfont = (HFONT)SendMessage(handle, WM_GETFONT, 0, 0);
    HICON oldicon = (HICON)SendMessage(handle, WM_GETICON, 0, 0);
-   char tmpbuf[100];
+   char tmpbuf[100] = {0};
 
    GetClassName(handle, tmpbuf, 99);
 
@@ -729,7 +729,7 @@ ULONG _internal_color(ULONG color)
  */
 int _validate_focus(HWND handle)
 {
-   char tmpbuf[100];
+   char tmpbuf[100] = {0};
 
    if(!handle)
       return 0;
@@ -756,7 +756,7 @@ int _validate_focus(HWND handle)
 
 HWND _normalize_handle(HWND handle)
 {
-   char tmpbuf[100] = "";
+   char tmpbuf[100] = {0};
 
    GetClassName(handle, tmpbuf, 99);
    if(strnicmp(tmpbuf, UPDOWN_CLASS, strlen(UPDOWN_CLASS))==0) /* Spinner */
@@ -851,7 +851,7 @@ int _focus_check_box(Box *box, HWND handle, int start, HWND defaultitem)
          }
          else
          {
-            char tmpbuf[100] = "";
+            char tmpbuf[100] = {0};
 
             GetClassName(box->items[z].hwnd, tmpbuf, 99);
 
@@ -986,7 +986,7 @@ int _focus_check_box_back(Box *box, HWND handle, int start, HWND defaultitem)
          }
          else
          {
-            char tmpbuf[100] = "";
+            char tmpbuf[100] = {0};
 
             GetClassName(box->items[z].hwnd, tmpbuf, 99);
 
@@ -1052,7 +1052,7 @@ int _focus_check_box_back(Box *box, HWND handle, int start, HWND defaultitem)
 void _initial_focus(HWND handle)
 {
    Box *thisbox;
-   char tmpbuf[100];
+   char tmpbuf[100] = {0};
 
    if(!handle)
       return;
@@ -1086,7 +1086,7 @@ HWND _toplevel_window(HWND handle)
    }
    if(lastbox)
    {
-      char tmpbuf[100];
+      char tmpbuf[100] = {0};
       
       GetClassName(lastbox, tmpbuf, 99);
       
@@ -1334,7 +1334,7 @@ static void _resize_box(Box *thisbox, int *depth, int x, int y, int pass)
          {
             int pad = thisbox->items[z].pad;
             HWND handle = thisbox->items[z].hwnd;
-            char tmpbuf[100];
+            char tmpbuf[100] = {0};
                
             GetClassName(handle, tmpbuf, 99);
 
@@ -1442,7 +1442,7 @@ static void _resize_box(Box *thisbox, int *depth, int x, int y, int pass)
                if(cinfo && cinfo->vcenter)
                {
                   /* We are centered so calculate a new position */
-                  char tmpbuf[1024];
+                  char tmpbuf[1024] = {0};
                   int textheight, diff, total = height;
 
                   GetWindowText(handle, tmpbuf, 1023);
@@ -1857,7 +1857,7 @@ BOOL CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
                      {
                         NMTREEVIEW FAR *tem=(NMTREEVIEW FAR *)mp2;
                         NMLISTVIEW FAR *lem=(NMLISTVIEW FAR *)mp2;
-                        char tmpbuf[100];
+                        char tmpbuf[100] = {0};
 
                         GetClassName(tem->hdr.hwndFrom, tmpbuf, 99);
 
@@ -2029,7 +2029,7 @@ BOOL CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
                case WM_HSCROLL:
                case WM_VSCROLL:
                   {
-                     char tmpbuf[100] = "";
+                     char tmpbuf[100] = {0};
                      HWND handle = (HWND)mp2;
                      int (*valuechangefunc)(HWND, int, void *) = tmp->signalfunction;
 
@@ -2172,7 +2172,6 @@ BOOL CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
    case WM_VSCROLL:
       {
          HWND handle = (HWND)mp2;
-         char tmpbuf[100];
          int bar = (origmsg == WM_HSCROLL) ? SB_HORZ : SB_VERT;
 
          if(dw_window_get_data(handle, "_dw_scrollbar"))
@@ -2184,6 +2183,8 @@ BOOL CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
          }
          else
          {
+            char tmpbuf[100] = {0};
+            
             GetClassName( hWnd, tmpbuf, 99 );
             if ( strnicmp(tmpbuf, FRAMECLASSNAME, strlen(FRAMECLASSNAME)+1 ) == 0 )
             {
@@ -2494,7 +2495,7 @@ BOOL CALLBACK _spinnerwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 
 void _click_default(HWND handle)
 {
-   char tmpbuf[100];
+   char tmpbuf[100] = {0};
 
    GetClassName(handle, tmpbuf, 99);
 
@@ -2531,7 +2532,7 @@ void _click_default(HWND handle)
 BOOL CALLBACK _colorwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 {
    ColorInfo *cinfo;
-   char tmpbuf[100];
+   char tmpbuf[100] = {0};
    WNDPROC pOldProc = 0;
    int ret = -1;
 
@@ -4231,7 +4232,7 @@ Item *_box_item(HWND handle)
 void _control_size(HWND handle, int *width, int *height)
 {
    int thiswidth = 1, thisheight = 1, extrawidth = 0, extraheight = 0;
-   char tmpbuf[100], *buf = dw_window_get_text(handle);
+   char tmpbuf[100] = {0}, *buf = dw_window_get_text(handle);
    static char testtext[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
    HBITMAP hbm = 0;
 
@@ -4352,7 +4353,7 @@ int API dw_window_set_font(HWND handle, char *fontname)
 {
     HFONT hfont, oldfont;
     ColorInfo *cinfo;
-    char tmpbuf[100];
+    char tmpbuf[100] = {0};
 
     cinfo = (ColorInfo *)GetWindowLongPtr(handle, GWLP_USERDATA);
 
@@ -4467,7 +4468,7 @@ char * API dw_window_get_font(HWND handle)
    char *italic = "";
    LOGFONT lf = { 0 };
    Box *thisbox;
-   char tmpbuf[100];
+   char tmpbuf[100] = {0};
 
    GetClassName(handle, tmpbuf, 99);
    if ( strnicmp( tmpbuf, FRAMECLASSNAME, strlen(FRAMECLASSNAME)+1) == 0 )
@@ -4513,7 +4514,7 @@ int API dw_window_set_color(HWND handle, ULONG fore, ULONG back)
 {
    ColorInfo *cinfo;
    Box *thisbox;
-   char tmpbuf[100];
+   char tmpbuf[100] = {0};
 
    cinfo = (ColorInfo *)GetWindowLongPtr(handle, GWLP_USERDATA);
 
@@ -6265,7 +6266,7 @@ void API dw_window_set_bitmap_from_data(HWND handle, unsigned long id, char *dat
 void API dw_window_set_text(HWND handle, char *text)
 {
    Box *thisbox;
-   char tmpbuf[100];
+   char tmpbuf[100] = {0};
 
    GetClassName(handle, tmpbuf, 99);
 
@@ -6325,7 +6326,7 @@ void API dw_window_set_tooltip(HWND handle, char *bubbletext)
  */
 char * API dw_window_get_text(HWND handle)
 {
-   char tmpbuf[100], *tempbuf;
+   char tmpbuf[100] = {0}, *tempbuf;
    int len;
 
    GetClassName(handle, tmpbuf, 99);
@@ -6423,7 +6424,7 @@ HWND API dw_window_from_id(HWND handle, int id)
 void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsize, int vsize, int pad, char *funcname)
 {
    Box *thisbox = NULL;
-   char tmpbuf[100];
+   char tmpbuf[100] = {0};
 
       /*
        * If you try and pack an item into itself VERY bad things can happen; like at least an
@@ -6643,7 +6644,39 @@ void API dw_window_set_size(HWND handle, ULONG width, ULONG height)
  */
 void API dw_window_get_preferred_size(HWND handle, int *width, int *height)
 {
-    _control_size(handle, width, height);
+   char tmpbuf[100] = {0};
+
+   GetClassName(handle, tmpbuf, 99);
+   
+   if(strnicmp(tmpbuf, ClassName, strlen(ClassName)+1) == 0)
+   {
+      unsigned long thiswidth = 0, thisheight = 0;
+      
+      /* Get the size with the border */
+      _get_window_for_size(handle, &thiswidth, &thisheight);
+      
+      /* Return what was requested */
+      if(width) *width = (int)thiswidth;
+      if(height) *height = (int)thisheight;
+   }
+   else if(strnicmp(tmpbuf, FRAMECLASSNAME, strlen(FRAMECLASSNAME)+1) == 0)
+   {
+      Box *thisbox = (Box *)GetWindowLongPtr(handle, GWLP_USERDATA);
+      
+      if(thisbox)
+      {
+         int depth = 0;
+         
+         /* Calculate space requirements */
+         _resize_box(thisbox, &depth, 0, 0, 1);
+         
+         /* Return what was requested */
+         if(width) *width = thisbox->minwidth;
+         if(height) *height = thisbox->minheight;
+      }
+   }
+   else
+      _control_size(handle, width, height);
 }
 
 /*
@@ -7118,7 +7151,7 @@ void API dw_notebook_page_set(HWND handle, unsigned int pageidx)
  */
 void API dw_listbox_append(HWND handle, char *text)
 {
-   char tmpbuf[100];
+   char tmpbuf[100] = {0};
 
    GetClassName(handle, tmpbuf, 99);
 
@@ -7141,7 +7174,7 @@ void API dw_listbox_append(HWND handle, char *text)
  */
 void API dw_listbox_list_append(HWND handle, char **text, int count)
 {
-   char tmpbuf[100];
+   char tmpbuf[100] = {0};
    int listbox_type;
    int i;
 
@@ -7165,7 +7198,7 @@ void API dw_listbox_list_append(HWND handle, char **text, int count)
  */
 void API dw_listbox_insert(HWND handle, char *text, int pos)
 {
-   char tmpbuf[100];
+   char tmpbuf[100] = {0};
 
    GetClassName(handle, tmpbuf, 99);
 
@@ -7186,7 +7219,7 @@ void API dw_listbox_insert(HWND handle, char *text, int pos)
  */
 void API dw_listbox_clear(HWND handle)
 {
-   char tmpbuf[100];
+   char tmpbuf[100] = {0};
 
    GetClassName(handle, tmpbuf, 99);
 
@@ -7217,7 +7250,7 @@ void API dw_listbox_clear(HWND handle)
  */
 void API dw_listbox_set_text(HWND handle, unsigned int index, char *buffer)
 {
-   char tmpbuf[100];
+   char tmpbuf[100] = {0};
 
    GetClassName(handle, tmpbuf, 99);
 
@@ -7246,7 +7279,7 @@ void API dw_listbox_set_text(HWND handle, unsigned int index, char *buffer)
  */
 void API dw_listbox_get_text(HWND handle, unsigned int index, char *buffer, unsigned int length)
 {
-   char tmpbuf[100];
+   char tmpbuf[100] = {0};
    int len;
 
    if(!buffer || !length)
@@ -7281,7 +7314,7 @@ void API dw_listbox_get_text(HWND handle, unsigned int index, char *buffer, unsi
  */
 int API dw_listbox_selected(HWND handle)
 {
-   char tmpbuf[100];
+   char tmpbuf[100] = {0};
 
    GetClassName(handle, tmpbuf, 99);
 
@@ -7304,7 +7337,7 @@ int API dw_listbox_selected(HWND handle)
 int API dw_listbox_selected_multi(HWND handle, int where)
 {
    int *array, count, z;
-   char tmpbuf[100];
+   char tmpbuf[100] = {0};
 
    GetClassName(handle, tmpbuf, 99);
 
@@ -7347,7 +7380,7 @@ int API dw_listbox_selected_multi(HWND handle, int where)
  */
 void API dw_listbox_select(HWND handle, int index, int state)
 {
-   char tmpbuf[100];
+   char tmpbuf[100] = {0};
 
    GetClassName(handle, tmpbuf, 99);
 
@@ -7369,7 +7402,7 @@ void API dw_listbox_select(HWND handle, int index, int state)
  */
 void API dw_listbox_delete(HWND handle, int index)
 {
-   char tmpbuf[100];
+   char tmpbuf[100] = {0};
 
    GetClassName(handle, tmpbuf, 99);
 
@@ -7386,7 +7419,7 @@ void API dw_listbox_delete(HWND handle, int index)
  */
 int API dw_listbox_count(HWND handle)
 {
-   char tmpbuf[100];
+   char tmpbuf[100] = {0};
 
    GetClassName(handle, tmpbuf, 99);
 
@@ -7406,7 +7439,7 @@ int API dw_listbox_count(HWND handle)
  */
 void API dw_listbox_set_top(HWND handle, int top)
 {
-   char tmpbuf[100];
+   char tmpbuf[100] = {0};
 
    GetClassName(handle, tmpbuf, 99);
 
@@ -7832,7 +7865,7 @@ int API dw_checkbox_get(HWND handle)
 /* This function unchecks all radiobuttons on a box */
 BOOL CALLBACK _uncheck_radios(HWND handle, LPARAM lParam)
 {
-   char tmpbuf[100];
+   char tmpbuf[100] = {0};
 
    GetClassName(handle, tmpbuf, 99);
 

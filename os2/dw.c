@@ -329,7 +329,7 @@ HWND _find_entryfield(HWND handle)
    henum = WinBeginEnumWindows(handle);
    while((child = WinGetNextWindow(henum)) != NULLHANDLE)
    {
-      char tmpbuf[100];
+      char tmpbuf[100] = {0};
 
       WinQueryClassName(child, 99, (PCH)tmpbuf);
 
@@ -354,7 +354,7 @@ void _fix_button_owner(HWND handle, HWND dw)
    henum = WinBeginEnumWindows(handle);
    while((child = WinGetNextWindow(henum)) != NULLHANDLE)
    {
-      char tmpbuf[100];
+      char tmpbuf[100] = {0};
 
       WinQueryClassName(child, 99, (PCH)tmpbuf);
 
@@ -433,7 +433,7 @@ void _free_window_memory(HWND handle)
    if(ptr)
    {
       WindowData *wd = (WindowData *)ptr;
-      char tmpbuf[100];
+      char tmpbuf[100] = {0};
 
       WinQueryClassName(handle, 99, (PCH)tmpbuf);
 
@@ -524,7 +524,7 @@ void _free_menu_data(HWND menu)
  */
 int _validate_focus(HWND handle)
 {
-   char tmpbuf[100];
+   char tmpbuf[100] = {0};
 
    if(!handle)
       return 0;
@@ -625,7 +625,7 @@ int _focus_check_box(Box *box, HWND handle, int start, HWND defaultitem)
          }
          else
          {
-            char tmpbuf[100] = "";
+            char tmpbuf[100] = {0};
 
             WinQueryClassName(box->items[z].hwnd, 99, (PCH)tmpbuf);
             if(strncmp(tmpbuf, SplitbarClassName, strlen(SplitbarClassName)+1)==0)
@@ -760,7 +760,7 @@ int _focus_check_box_back(Box *box, HWND handle, int start, HWND defaultitem)
          }
          else
          {
-            char tmpbuf[100] = "";
+            char tmpbuf[100] = {0};
 
             WinQueryClassName(box->items[z].hwnd, 99, (PCH)tmpbuf);
             if(strncmp(tmpbuf, SplitbarClassName, strlen(SplitbarClassName)+1)==0)
@@ -1005,7 +1005,7 @@ BOOL _TrackRectangle(HWND hwndBase, RECTL* rclTrack, RECTL* rclBounds)
 
 void _check_resize_notebook(HWND hwnd)
 {
-   char tmpbuf[100];
+   char tmpbuf[100] = {0};
 
    WinQueryClassName(hwnd, 99, (PCH)tmpbuf);
 
@@ -1254,7 +1254,7 @@ static void _resize_box(Box *thisbox, int *depth, int x, int y, int pass)
          {
             int pad = thisbox->items[z].pad;
             HWND handle = thisbox->items[z].hwnd;
-            char tmpbuf[100];
+            char tmpbuf[100] = {0};
            
             WinQueryClassName(handle, 99, (PCH)tmpbuf);
 
@@ -2124,7 +2124,7 @@ MRESULT EXPENTRY _scrollwndproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 
 void _click_default(HWND handle)
 {
-   char tmpbuf[100];
+   char tmpbuf[100] = {0};
 
    WinQueryClassName(handle, 99, (PCH)tmpbuf);
 
@@ -2171,7 +2171,7 @@ MRESULT EXPENTRY _entryproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 {
    WindowData *blah = (WindowData *)WinQueryWindowPtr(hWnd, QWP_USER);
    PFNWP oldproc = 0;
-   char tmpbuf[100];
+   char tmpbuf[100] = {0};
 
    if(blah)
       oldproc = blah->oldproc;
@@ -4640,7 +4640,7 @@ Item *_box_item(HWND handle)
 void _control_size(HWND handle, int *width, int *height)
 {
    int thiswidth = 1, thisheight = 1, extrawidth = 0, extraheight = 0;
-   char tmpbuf[100], *buf = dw_window_get_text(handle);
+   char tmpbuf[100] = {0}, *buf = dw_window_get_text(handle);
    static char testtext[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
    WinQueryClassName(handle, 99, (PCH)tmpbuf);
@@ -6667,7 +6667,7 @@ char * API dw_window_get_text(HWND handle)
  */
 void API dw_window_disable(HWND handle)
 {
-   char tmpbuf[100];
+   char tmpbuf[100] = {0};
 
    if(handle < 65536)
    {
@@ -6768,7 +6768,7 @@ HWND API dw_window_from_id(HWND handle, int id)
 {
    HENUM henum;
    HWND child;
-   char tmpbuf[100];
+   char tmpbuf[100] = {0};
 
    henum = WinBeginEnumWindows(handle);
    while((child = WinGetNextWindow(henum)) != NULLHANDLE)
@@ -6827,7 +6827,7 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
    {
       int z, x = 0;
       Item *tmpitem, *thisitem = thisbox->items;
-      char tmpbuf[100];
+      char tmpbuf[100] = {0};
       HWND frame = (HWND)dw_window_get_data(item, "_dw_combo_box");
 
       /* Do some sanity bounds checking */
@@ -7001,7 +7001,44 @@ void API dw_window_set_size(HWND handle, ULONG width, ULONG height)
  */
 void API dw_window_get_preferred_size(HWND handle, int *width, int *height)
 {
-    _control_size(handle, width, height);
+   char tmpbuf[100] = {0};
+
+   WinQueryClassName(handle, 99, (PCH)tmpbuf);
+
+   if(strncmp(tmpbuf, "#1", 3)==0)
+   {
+      HWND box = WinWindowFromID(handle, FID_CLIENT);
+      
+      if(box)
+      {
+         unsigned long thiswidth = 0, thisheight = 0;
+         
+         /* Get the size with the border */
+         _get_window_for_size(handle, &thiswidth, &thisheight);
+         
+         /* Return what was requested */
+         if(width) *width = (int)thiswidth;
+         if(height) *height = (int)thisheight;
+      }
+      else
+      {
+         Box *thisbox = WinQueryWindowPtr(handle, QWP_USER);
+         
+         if(thisbox)
+         {
+            int depth = 0;
+            
+            /* Calculate space requirements */
+            _resize_box(thisbox, &depth, 0, 0, 1);
+            
+            /* Return what was requested */
+            if(width) *width = thisbox->minwidth;
+            if(height) *height = thisbox->minheight;
+         }
+      }
+   }
+   else
+      _control_size(handle, width, height);
 }
 
 /*
@@ -7428,7 +7465,7 @@ int API dw_listbox_selected_multi(HWND handle, int where)
  */
 void API dw_listbox_select(HWND handle, int index, int state)
 {
-   char tmpbuf[100];
+   char tmpbuf[100] = {0};
 
    WinSendMsg(handle, LM_SELECTITEM, MPFROMSHORT(index), (MPARAM)state);
 

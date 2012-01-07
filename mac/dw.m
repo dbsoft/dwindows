@@ -8524,7 +8524,7 @@ void API dw_window_set_size(HWND handle, ULONG width, ULONG height)
             /* Calculate space requirements */
             _resize_box(thisbox, &depth, (int)width, (int)height, 1);
           
-            /* Might need to take into account the window border here */
+            /* Update components that need auto-sizing */
             if(width < 1) content.size.width = thisbox->minwidth;
             if(height < 1) content.size.height = thisbox->minheight;
         }
@@ -8558,9 +8558,10 @@ void API dw_window_get_preferred_size(HWND handle, int *width, int *height)
             /* Calculate space requirements */
             _resize_box(thisbox, &depth, 0, 0, 1);
             
+            /* Figure out the border size */
             frame = [NSWindow frameRectForContentRect:NSMakeRect(0, 0, thisbox->minwidth, thisbox->minheight) styleMask:[object styleMask]];
             
-            /* Might need to take into account the window border here */
+            /* Return what was requested */
             if(width) *width = frame.size.width;
             if(height) *height = frame.size.height;
         }
@@ -8576,7 +8577,7 @@ void API dw_window_get_preferred_size(HWND handle, int *width, int *height)
             /* Calculate space requirements */
             _resize_box(thisbox, &depth, 0, 0, 1);
             
-            /* Might need to take into account the window border here */
+            /* Return what was requested */
             if(width) *width = thisbox->minwidth;
             if(height) *height = thisbox->minheight;
         }
