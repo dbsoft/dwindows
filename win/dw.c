@@ -662,7 +662,8 @@ BOOL CALLBACK _free_window_memory(HWND handle, LPARAM lParam)
 
    if(thiscinfo)
    {
-      SubclassWindow(handle, thiscinfo->pOldProc);
+      if(thiscinfo->pOldProc)
+         SetWindowLongPtr(handle, GWLP_WNDPROC, (LPARAM)(WNDPROC)thiscinfo->pOldProc);
 
       /* Delete the brush so as not to leak GDI objects */
       if(thiscinfo->hbrush)
@@ -780,7 +781,7 @@ int _focus_check_box(Box *box, HWND handle, int start, HWND defaultitem)
 {
    int z;
    static HWND lasthwnd, firsthwnd;
-    static int finish_searching;
+   static int finish_searching;
 
    /* Start is 2 when we have cycled completely and
     * need to set the focus to the last widget we found
@@ -915,7 +916,7 @@ int _focus_check_box_back(Box *box, HWND handle, int start, HWND defaultitem)
 {
    int z;
    static HWND lasthwnd, firsthwnd;
-    static int finish_searching;
+   static int finish_searching;
 
    /* Start is 2 when we have cycled completely and
     * need to set the focus to the last widget we found
@@ -5382,7 +5383,7 @@ HWND API dw_container_new(ULONG id, int multi)
       return NULL;
    }
 
-   cinfo->cinfo.pOldProc = (WNDPROC)SubclassWindow(tmp, _containerwndproc);
+   cinfo->cinfo.pOldProc = SubclassWindow(tmp, _containerwndproc);
    cinfo->cinfo.fore = cinfo->cinfo.back = -1;
    cinfo->odd = cinfo->even = DW_RGB_TRANSPARENT;
 
@@ -5425,7 +5426,7 @@ HWND API dw_tree_new(ULONG id)
       return NULL;
    }
 
-   cinfo->cinfo.pOldProc = (WNDPROC)SubclassWindow(tmp, _treewndproc);
+   cinfo->cinfo.pOldProc = SubclassWindow(tmp, _treewndproc);
    cinfo->cinfo.fore = cinfo->cinfo.back = -1;
    cinfo->odd = cinfo->even = DW_RGB_TRANSPARENT;
 
@@ -5535,7 +5536,7 @@ HWND API dw_mle_new(ULONG id)
       return NULL;
    }
 
-   cinfo->cinfo.pOldProc = (WNDPROC)SubclassWindow(tmp, _treewndproc);
+   cinfo->cinfo.pOldProc = SubclassWindow(tmp, _treewndproc);
    cinfo->cinfo.fore = cinfo->cinfo.back = -1;
    cinfo->odd = cinfo->even = DW_RGB_TRANSPARENT;
 
@@ -5609,7 +5610,7 @@ BOOL CALLBACK _subclass_child(HWND handle, LPARAM lp)
    if(cinfo)
    {
       cinfo->buddy = handle;
-      cinfo->pOldProc = (WNDPROC)SubclassWindow(handle, _colorwndproc);
+      cinfo->pOldProc = SubclassWindow(handle, _colorwndproc);
       SetWindowLongPtr(handle, GWLP_USERDATA, (LONG_PTR)cinfo);
    }
    return FALSE;
@@ -5677,7 +5678,7 @@ HWND API dw_button_new(char *text, ULONG id)
                      DWInstance,
                      NULL);
    cinfo->fore = cinfo->back = -1;
-   cinfo->pOldProc = (WNDPROC)SubclassWindow(tmp, _BtProc);
+   cinfo->pOldProc = SubclassWindow(tmp, _BtProc);
 
    SetWindowLongPtr(tmp, GWLP_USERDATA, (LONG_PTR)cinfo);
    dw_window_set_font(tmp, DefaultFont);
@@ -5709,7 +5710,7 @@ HWND API dw_bitmapbutton_new(char *text, ULONG id)
                   NULL);
 
    cinfo->fore = cinfo->back = -1;
-   cinfo->pOldProc = (WNDPROC)SubclassWindow(tmp, _BtProc);
+   cinfo->pOldProc = SubclassWindow(tmp, _BtProc);
 
    SetWindowLongPtr(tmp, GWLP_USERDATA, (LONG_PTR)cinfo);
 
@@ -5768,7 +5769,7 @@ HWND API dw_bitmapbutton_new_from_file(char *text, unsigned long id, char *filen
                        NULL);
 
    cinfo->fore = cinfo->back = -1;
-   cinfo->pOldProc = (WNDPROC)SubclassWindow(tmp, _BtProc);
+   cinfo->pOldProc = SubclassWindow(tmp, _BtProc);
 
    SetWindowLongPtr(tmp, GWLP_USERDATA, (LONG_PTR)cinfo);
 
@@ -5852,7 +5853,7 @@ HWND API dw_bitmapbutton_new_from_data(char *text, unsigned long id, char *data,
                        NULL );
 
    cinfo->fore = cinfo->back = -1;
-   cinfo->pOldProc = (WNDPROC)SubclassWindow( tmp, _BtProc );
+   cinfo->pOldProc = SubclassWindow( tmp, _BtProc );
 
    SetWindowLongPtr( tmp, GWLP_USERDATA, (LONG_PTR)cinfo );
 
@@ -5943,7 +5944,7 @@ HWND API dw_radiobutton_new(char *text, ULONG id)
                      NULL);
    ColorInfo *cinfo = calloc(1, sizeof(ColorInfo));
    cinfo->fore = cinfo->back = -1;
-   cinfo->pOldProc = (WNDPROC)SubclassWindow(tmp, _BtProc);
+   cinfo->pOldProc = SubclassWindow(tmp, _BtProc);
    SetWindowLongPtr(tmp, GWLP_USERDATA, (LONG_PTR)cinfo);
    dw_window_set_font(tmp, DefaultFont);
    dw_window_set_color(tmp, DW_CLR_DEFAULT, DW_RGB_TRANSPARENT);
@@ -6042,7 +6043,7 @@ HWND API dw_checkbox_new(char *text, ULONG id)
                      (HMENU)id,
                      DWInstance,
                      NULL);
-   cinfo->pOldProc = (WNDPROC)SubclassWindow(tmp, _BtProc);
+   cinfo->pOldProc = SubclassWindow(tmp, _BtProc);
    SetWindowLongPtr(tmp, GWLP_USERDATA, (LONG_PTR)cinfo);
    dw_window_set_data(tmp, "_dw_checkbox", DW_INT_TO_POINTER(1));
    dw_window_set_font(tmp, DefaultFont);
@@ -6080,7 +6081,7 @@ HWND API dw_listbox_new(ULONG id, int multi)
 
    cinfo->cinfo.fore = cinfo->cinfo.back = -1;
    cinfo->odd = cinfo->even = DW_RGB_TRANSPARENT;
-   cinfo->cinfo.pOldProc = (WNDPROC)SubclassWindow(tmp, _containerwndproc);
+   cinfo->cinfo.pOldProc = SubclassWindow(tmp, _containerwndproc);
 
    SetWindowLongPtr(tmp, GWLP_USERDATA, (LONG_PTR)cinfo);
    dw_window_set_font(tmp, DefaultFont);
@@ -8378,6 +8379,7 @@ int _lookup_icon(HWND handle, HICON hicon, int type)
 {
    int z;
    static HWND lasthwnd = NULL;
+   HIMAGELIST himl;
 
    /* We can't add an invalid handle */
    if(!hicon)
@@ -8397,12 +8399,12 @@ int _lookup_icon(HWND handle, HICON hicon, int type)
          ImageList_AddIcon(hLarge, hicon);
          if(type)
          {
-            TreeView_SetImageList(handle, hSmall, TVSIL_NORMAL);
+            himl = TreeView_SetImageList(handle, hSmall, TVSIL_NORMAL);
          }
          else
          {
-            ListView_SetImageList(handle, hSmall, LVSIL_SMALL);
-            ListView_SetImageList(handle, hLarge, LVSIL_NORMAL);
+            himl = ListView_SetImageList(handle, hSmall, LVSIL_SMALL);
+            himl = ListView_SetImageList(handle, hLarge, LVSIL_NORMAL);
          }
          lasthwnd = handle;
          return z;
@@ -8414,14 +8416,14 @@ int _lookup_icon(HWND handle, HICON hicon, int type)
          {
             if(type)
             {
-               TreeView_SetImageList(handle, hSmall, TVSIL_NORMAL);
+               himl = TreeView_SetImageList(handle, hSmall, TVSIL_NORMAL);
             }
             else
             {
-               ListView_SetImageList(handle, hSmall, LVSIL_SMALL);
-               ListView_SetImageList(handle, hLarge, LVSIL_NORMAL);
+               himl = ListView_SetImageList(handle, hSmall, LVSIL_SMALL);
+               himl = ListView_SetImageList(handle, hLarge, LVSIL_NORMAL);
             }
-                lasthwnd = handle;
+            lasthwnd = handle;
          }
          return z;
       }
