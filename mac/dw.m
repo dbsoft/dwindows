@@ -3513,6 +3513,20 @@ void _control_size(id handle, int *width, int *height)
             thisheight = (int)size.height;
         }
     }
+    /* Handle calendar */
+    else if([ object isMemberOfClass:[DWCalendar class] ])
+    {
+        NSCell *cell = [object cell];
+        
+        if(cell)
+        {
+            NSSize size = [cell cellSize];
+            
+            thiswidth = size.width;
+            thisheight = size.height;
+        }
+    }
+    /* Any other control type */
     else if([ object isKindOfClass:[ NSControl class ] ])
         nsstr = [object stringValue];
     
