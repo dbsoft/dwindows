@@ -67,6 +67,7 @@ BOOL (API_FUNC _WinQueryDesktopWorkArea)(HWND hwndDesktop, PWRECT pwrcWorkArea) 
 char ClassName[] = "dynamicwindows";
 char SplitbarClassName[] = "dwsplitbar";
 char ScrollClassName[] = "dwscroll";
+char CalendarClassName[] = "dwcalendar";
 char *DefaultFont = "9.WarpSans";
 
 HAB dwhab = 0;
@@ -3988,6 +3989,7 @@ int API dw_init(int newthread, int argc, char *argv[])
    rc = WinRegisterClass(dwhab, (PSZ)ClassName, _wndproc, CS_SIZEREDRAW | CS_CLIPCHILDREN, 32);
    rc = WinRegisterClass(dwhab, (PSZ)SplitbarClassName, _splitwndproc, 0L, 32);
    rc = WinRegisterClass(dwhab, (PSZ)ScrollClassName, _scrollwndproc, 0L, 32);
+   rc = WinRegisterClass(dwhab, (PSZ)CalendarClassName, _calendarproc, 0L, 32);
 
    /* Get the OS/2 version. */
    DosQuerySysInfo(QSV_VERSION_MAJOR, QSV_MS_COUNT,(void *)aulBuffer, 4*sizeof(ULONG));
@@ -4663,6 +4665,12 @@ void _control_size(HWND handle, int *width, int *height)
       extraheight = 4;
       if(thisheight < 18)
         thisheight = 18;
+   }
+   /* Calendar */
+   else if(strncmp(tmpbuf, CalendarClassName, strlen(CalendarClassName)+1)==0)
+   {
+       thiswidth = 200;
+       thisheight = 150;
    }
    /* Bitmap/Static */
    else if(strncmp(tmpbuf, "#5", 3)==0)
@@ -12066,16 +12074,15 @@ HWND API dw_calendar_new(ULONG id)
     WindowData *blah = calloc(sizeof(WindowData), 1);
     DATETIME dt;
     HWND tmp = WinCreateWindow(HWND_OBJECT,
-                        WC_STATIC,
+                        CalendarClassName,
                         NULL,
-                        WS_VISIBLE | SS_TEXT,
+                        WS_VISIBLE,
                         0,0,2000,1000,
                         NULLHANDLE,
                         HWND_TOP,
                         id,
                         NULL,
                         NULL);
-    blah->oldproc = WinSubclassWindow(tmp, _calendarproc);
     WinSetWindowPtr(tmp, QWP_USER, blah);
     dw_window_set_font(tmp, DefaultFont);
     if(!DosGetDateTime(&dt))
