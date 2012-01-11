@@ -1060,7 +1060,7 @@ void _initial_focus(HWND handle)
 
    GetClassName(handle, tmpbuf, 99);
 
-   if(strnicmp(tmpbuf, ClassName, strlen(ClassName))!=0)
+   if(strnicmp(tmpbuf, ClassName, strlen(ClassName)+1)!=0)
       return;
 
 
@@ -2086,11 +2086,27 @@ BOOL CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
    {
 #ifdef AEROGLASS   
    case WM_DWMCOMPOSITIONCHANGED:
-      if(_DwmIsCompositionEnabled)
-         _DwmIsCompositionEnabled(&_dw_composition);
+      {
+         DWORD styleex = GetWindowLongPtr(hWnd, GWL_EXSTYLE);
+         
+         if(_DwmIsCompositionEnabled)
+            _DwmIsCompositionEnabled(&_dw_composition);
+         
+         /* If we are no longer compositing... disable layered windows */
+         if(!_dw_composition && (styleex & WS_EX_LAYERED))
+         {
+            MARGINS mar = {0};
+            
+            SetWindowLongPtr(hWnd, GWL_EXSTYLE, styleex & ~WS_EX_LAYERED);
+            if(_DwmExtendFrameIntoClientArea)
+               _DwmExtendFrameIntoClientArea(hWnd, &mar);
+         }
+      }
       break;
+#endif
+#ifdef AEROGLASS1      
    case WM_ERASEBKGND: 
-      if(_dw_composition)
+      if(_dw_composition && (GetWindowLongPtr(hWnd, GWL_EXSTYLE) & WS_EX_LAYERED))
       {
          static HBRUSH hbrush = 0;
          RECT rect;
@@ -2100,8 +2116,9 @@ BOOL CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
             
          GetClientRect(hWnd, &rect);
          FillRect((HDC)mp1, &rect, hbrush);
+         return TRUE;
       }
-      return TRUE;
+      break;
 #endif      
    case WM_PAINT:
       {
@@ -2266,7 +2283,7 @@ BOOL CALLBACK _framewndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
       break;
 #ifdef AEROGLASS   
    case WM_ERASEBKGND: 
-      if(_dw_composition)
+      if(_dw_composition && (GetWindowLongPtr(_toplevel_window(hWnd), GWL_EXSTYLE) & WS_EX_LAYERED))
       {
          static HBRUSH hbrush = 0;
          RECT rect;
@@ -2276,8 +2293,9 @@ BOOL CALLBACK _framewndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
             
          GetClientRect(hWnd, &rect);
          FillRect((HDC)mp1, &rect, hbrush);
+         return TRUE;
       }
-      return TRUE;
+      break;
 #endif      
    case WM_PAINT:
       {
@@ -2733,8 +2751,9 @@ BOOL CALLBACK _colorwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
                case WM_CTLCOLORBTN:
                case WM_CTLCOLORDLG:
                   {
-                     if(_dw_composition && (!thiscinfo || (thiscinfo && 
-                        (thiscinfo->back == -1 || thiscinfo->back == DW_RGB_TRANSPARENT))))
+                     
+                     if((_dw_composition && GetWindowLongPtr(_toplevel_window(hWnd), GWL_EXSTYLE) & WS_EX_LAYERED) && 
+                        (!thiscinfo || (thiscinfo && (thiscinfo->back == -1 || thiscinfo->back == DW_RGB_TRANSPARENT))))
                      {
                         if(!(msg == WM_CTLCOLORSTATIC && SendMessage((HWND)mp2, STM_GETIMAGE, IMAGE_BITMAP, 0)))
                         {
@@ -4631,7 +4650,7 @@ HWND API dw_window_new(HWND hwndOwner, char *title, ULONG flStyle)
 #ifdef AEROGLASS
    MARGINS mar = {-1};
    
-   if(_dw_composition)
+   if(_dw_composition && (flStyle & DW_FCF_COMPOSITED))
       flStyleEx = WS_EX_LAYERED;
 #endif
 
@@ -4642,18 +4661,17 @@ HWND API dw_window_new(HWND hwndOwner, char *title, ULONG flStyle)
    if(!(flStyle & WS_CAPTION))
       flStyle |= WS_POPUPWINDOW;
 
-   if(flStyle & DW_FCF_TASKLIST)
+   if(flStyle & DW_FCF_TASKLIST ||
+      flStyle & WS_VSCROLL /* This is deprecated and should go away in version 3? */)
    {
-      ULONG newflags = (flStyle | WS_CLIPCHILDREN) & ~DW_FCF_TASKLIST;
-
-      hwndframe = CreateWindowEx(flStyleEx, ClassName, title, newflags, CW_USEDEFAULT, CW_USEDEFAULT,
+      hwndframe = CreateWindowEx(flStyleEx, ClassName, title, (flStyle | WS_CLIPCHILDREN) & 0xffdf0000, CW_USEDEFAULT, CW_USEDEFAULT,
                            0, 0, hwndOwner, NULL, DWInstance, NULL);
    }
    else
    {
       flStyleEx |= WS_EX_TOOLWINDOW;
 
-      hwndframe = CreateWindowEx(flStyleEx, ClassName, title, flStyle | WS_CLIPCHILDREN, CW_USEDEFAULT, CW_USEDEFAULT,
+      hwndframe = CreateWindowEx(flStyleEx, ClassName, title, (flStyle | WS_CLIPCHILDREN) & 0xffff0000, CW_USEDEFAULT, CW_USEDEFAULT,
                            0, 0, hwndOwner, NULL, DWInstance, NULL);
    }
    SetWindowLongPtr(hwndframe, GWLP_USERDATA, (LONG_PTR)newbox);
@@ -4663,7 +4681,7 @@ HWND API dw_window_new(HWND hwndOwner, char *title, ULONG flStyle)
 
 #ifdef AEROGLASS
    /* Attempt to enable Aero glass background on the entire window */
-   if(_DwmExtendFrameIntoClientArea && _dw_composition)
+   if(_DwmExtendFrameIntoClientArea && _dw_composition && (flStyle & DW_FCF_COMPOSITED))
    {
       SetLayeredWindowAttributes(hwndframe, _dw_transparencykey, 0, LWA_COLORKEY);
       _DwmExtendFrameIntoClientArea(hwndframe, &mar);
@@ -6873,7 +6891,11 @@ void API dw_window_set_style(HWND handle, ULONG style, ULONG mask)
 {
    ULONG tmp, currentstyle;
    ColorInfo *cinfo;
-   
+   char tmpbuf[100] = {0};
+
+   if(!handle)
+      return;
+
    if(handle < (HWND)65536)
    {
       char buffer[31] = {0};
@@ -6888,6 +6910,8 @@ void API dw_window_set_style(HWND handle, ULONG style, ULONG mask)
       return;
    }
    
+   GetClassName(handle, tmpbuf, 99);
+
    currentstyle = GetWindowLong(handle, GWL_STYLE);
    cinfo = (ColorInfo *)GetWindowLongPtr(handle, GWLP_USERDATA);
 
@@ -6895,24 +6919,55 @@ void API dw_window_set_style(HWND handle, ULONG style, ULONG mask)
    tmp ^= mask;
    tmp |= style;
 
-   /* We are using SS_NOPREFIX as a VCENTER flag */
-   if(tmp & SS_NOPREFIX)
+   if(strnicmp(tmpbuf, ClassName, strlen(ClassName)+1)==0)
    {
-
-      if(cinfo)
-         cinfo->vcenter = 1;
-      else
+      tmp = tmp & 0xffff0000;
+#ifdef AEROGLASS      
+      if(mask & DW_FCF_COMPOSITED && _DwmExtendFrameIntoClientArea && _dw_composition)
       {
-         cinfo = calloc(1, sizeof(ColorInfo));
-         cinfo->fore = cinfo->back = -1;
-         cinfo->vcenter = 1;
-
-         cinfo->pOldProc = SubclassWindow(handle, _colorwndproc);
-         SetWindowLongPtr(handle, GWLP_USERDATA, (LONG_PTR)cinfo);
+         DWORD styleex = GetWindowLongPtr(handle, GWL_EXSTYLE);
+         
+         if(style & DW_FCF_COMPOSITED)
+         {
+            MARGINS mar = {-1};
+            
+            /* Attempt to enable Aero glass background on the entire window */
+            SetWindowLongPtr(handle, GWL_EXSTYLE, styleex | WS_EX_LAYERED);
+            SetLayeredWindowAttributes(handle, _dw_transparencykey, 0, LWA_COLORKEY);
+            _DwmExtendFrameIntoClientArea(handle, &mar);
+         }
+         else
+         {
+            MARGINS mar = {0};
+            
+            /* Remove Aero Glass */
+            SetWindowLongPtr(handle, GWL_EXSTYLE, styleex & ~WS_EX_LAYERED);
+            _DwmExtendFrameIntoClientArea(handle, &mar);
+         }
       }
+#endif      
    }
-   else if(cinfo)
-      cinfo->vcenter = 0;
+   else
+   {
+      /* We are using SS_NOPREFIX as a VCENTER flag */
+      if(tmp & SS_NOPREFIX)
+      {
+
+         if(cinfo)
+            cinfo->vcenter = 1;
+         else
+         {
+            cinfo = calloc(1, sizeof(ColorInfo));
+            cinfo->fore = cinfo->back = -1;
+            cinfo->vcenter = 1;
+
+            cinfo->pOldProc = SubclassWindow(handle, _colorwndproc);
+            SetWindowLongPtr(handle, GWLP_USERDATA, (LONG_PTR)cinfo);
+         }
+      }
+      else if(cinfo)
+         cinfo->vcenter = 0;
+   }
 
    SetWindowLong(handle, GWL_STYLE, tmp);
 }

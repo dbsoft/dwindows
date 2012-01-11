@@ -53,11 +53,14 @@ Added auto-positioning on Mac; reimplemented auto-positioning on OS/2.
 Added DW_DRAW_NOAA which can be passed to dw_draw_*() API functions
    that accept the flags parameter to disable anti-aliasing.
 Added dw_main_quit() to cause the dw_main() message loop to return.
+Added DW_FCF_COMPOSITED to enable Aero Glass effects on Windows 7 and Vista.
 Fixed auto-sizing top-level windows on Windows; added on OS/2 and Mac.
 Fixed bubble help not being displayed on Windows.
 Fixed menu bar items remaining highlighted on Mac 10.6 and later.
 Fixed OS/2 and Windows showing windows during dw_window_set_pos/size().
-Deprecated DW_FCF_NOBYTEALIGN and DW_FCF_SHELLPOSITION flags.
+Deprecated DW_FCF_NOBYTEALIGN, DW_FCF_SHELLPOSITION, DW_FCF_HORZSCROLL and
+   DW_FCF_VERTSCROLL flags.
+
 
 Dynamic Windows Documentation is available at:
 
