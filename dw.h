@@ -133,8 +133,6 @@ typedef struct _user_data
 #define DW_FCF_MINBUTTON         FCF_MINBUTTON
 #define DW_FCF_MAXBUTTON         FCF_MAXBUTTON
 #define DW_FCF_MINMAX            FCF_MINMAX
-#define DW_FCF_VERTSCROLL        FCF_VERTSCROLL
-#define DW_FCF_HORZSCROLL        FCF_HORZSCROLL
 #define DW_FCF_DLGBORDER         FCF_DLGBORDER
 #define DW_FCF_BORDER            FCF_BORDER
 #define DW_FCF_TASKLIST          FCF_TASKLIST
@@ -344,8 +342,6 @@ void _dw_pool_drain(void);
 #define DW_FCF_MINBUTTON         (1 << 2) /* NSMiniaturizableWindowMask */
 #define DW_FCF_MAXBUTTON         0
 #define DW_FCF_MINMAX            (1 << 2) /* NSMiniaturizableWindowMask */
-#define DW_FCF_VERTSCROLL        0
-#define DW_FCF_HORZSCROLL        0
 #define DW_FCF_DLGBORDER         0
 #define DW_FCF_BORDER            0
 #define DW_FCF_TASKLIST          0
@@ -525,11 +521,9 @@ void _dw_pool_drain(void);
 #define DW_FCF_MINBUTTON         WS_MINIMIZEBOX
 #define DW_FCF_MAXBUTTON         WS_MAXIMIZEBOX
 #define DW_FCF_MINMAX            (WS_MINIMIZEBOX|WS_MAXIMIZEBOX)
-#define DW_FCF_VERTSCROLL        WS_VSCROLL
-#define DW_FCF_HORZSCROLL        WS_HSCROLL
 #define DW_FCF_DLGBORDER         WS_DLGFRAME
 #define DW_FCF_BORDER            WS_BORDER
-#define DW_FCF_TASKLIST          WS_VSCROLL
+#define DW_FCF_TASKLIST          (1 << 1)
 #define DW_FCF_NOMOVEWITHOWNER   0
 #define DW_FCF_SYSMODAL          0
 #define DW_FCF_HIDEBUTTON        WS_MINIMIZEBOX
@@ -537,6 +531,7 @@ void _dw_pool_drain(void);
 #define DW_FCF_AUTOICON          0
 #define DW_FCF_MAXIMIZE          WS_MAXIMIZE
 #define DW_FCF_MINIMIZE          WS_MINIMIZE
+#define DW_FCF_COMPOSITED        1
 
 #define DW_CFA_BITMAPORICON      1
 #define DW_CFA_STRING            (1 << 1)
@@ -806,8 +801,6 @@ typedef struct _hpixmap {
 #define DW_FCF_MINBUTTON         Ph_WM_RENDER_MIN
 #define DW_FCF_MAXBUTTON         Ph_WM_RENDER_MAX
 #define DW_FCF_MINMAX            (Ph_WM_RENDER_MIN|Ph_WM_RENDER_MAX)
-#define DW_FCF_VERTSCROLL        0
-#define DW_FCF_HORZSCROLL        0
 #define DW_FCF_DLGBORDER         0
 #define DW_FCF_BORDER            Ph_WM_RENDER_BORDER
 #define DW_FCF_TASKLIST          0
@@ -989,8 +982,6 @@ typedef struct _hpixmap {
 #define DW_FCF_MINBUTTON         (1 << 4)
 #define DW_FCF_MAXBUTTON         (1 << 5)
 #define DW_FCF_MINMAX            (1 << 6)
-#define DW_FCF_VERTSCROLL        (1 << 7)
-#define DW_FCF_HORZSCROLL        (1 << 8)
 #define DW_FCF_DLGBORDER         (1 << 9)
 #define DW_FCF_BORDER            (1 << 10)
 #define DW_FCF_TASKLIST          (1 << 12)
@@ -1348,6 +1339,8 @@ typedef void *HPRINT;
 #define BOXVERT DW_VERT
 #define DW_FCF_SHELLPOSITION     0
 #define DW_FCF_NOBYTEALIGN       0
+#define DW_FCF_VERTSCROLL        0
+#define DW_FCF_HORZSCROLL        0
 
 /* Scrolling constants */
 #define DW_SCROLL_UP 0
@@ -1423,6 +1416,10 @@ typedef void *HPRINT;
 #define DW_POINTER_TO_INT(a) ((int)a)
 #define DW_UINT_TO_POINTER(a) ((void *)a)
 #define DW_POINTER_TO_UINT(a) ((unsigned int)a)
+#endif
+
+#ifndef DW_FCF_COMPOSITED
+#define DW_FCF_COMPOSITED        0
 #endif
 
 #ifndef API
