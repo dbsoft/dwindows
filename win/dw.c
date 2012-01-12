@@ -107,9 +107,15 @@ ULONG_PTR gdiplusToken;
 #ifdef AEROGLASS
 HRESULT (WINAPI *_DwmExtendFrameIntoClientArea)(HWND hWnd, const MARGINS *pMarInset) = 0;
 HRESULT (WINAPI *_DwmIsCompositionEnabled)(BOOL *pfEnabled) = 0;
+HTHEME (WINAPI *_OpenThemeData)(HWND hwnd, LPCWSTR pszClassList);
+HPAINTBUFFER (WINAPI *_BeginBufferedPaint)(HDC hdcTarget, const RECT *prcTarget, BP_BUFFERFORMAT dwFormat, BP_PAINTPARAMS *pPaintParams, HDC *phdc);
+HRESULT (WINAPI *_BufferedPaintSetAlpha)(HPAINTBUFFER hBufferedPaint, const RECT *prc, BYTE alpha);
+HRESULT (WINAPI *_DrawThemeTextEx)(HTHEME hTheme, HDC hdc, int iPartId, int iStateId, LPCWSTR pszText, int iCharCount, DWORD dwFlags, LPRECT pRect, const DTTOPTS *pOptions);
+HRESULT (WINAPI *_EndBufferedPaint)(HPAINTBUFFER hBufferedPaint, BOOL fUpdateTarget);
+HRESULT (WINAPI *_CloseThemeData)(HTHEME hTheme);
 BOOL _dw_composition = FALSE;
 COLORREF _dw_transparencykey = RGB(200,201,202);
-HANDLE hdwm = 0;
+HANDLE hdwm = 0, huxtheme = 0;
 #endif
 
 /*
@@ -3266,6 +3272,144 @@ BOOL CALLBACK _statuswndproc(HWND hwnd, UINT msg, WPARAM mp1, LPARAM mp2)
    return DefWindowProc(hwnd, msg, mp1, mp2);
 }
 
+#ifdef AEROGLASS
+/* Window procedure to handle drawing themed text when in composited mode */
+BOOL CALLBACK _staticwndproc(HWND hwnd, ULONG msg, WPARAM mp1, LPARAM mp2)
+{
+   ColorInfo *cinfo = (ColorInfo *)GetWindowLongPtr(hwnd, GWLP_USERDATA);
+   WNDPROC pOldProc;
+
+   if (!cinfo)
+      return DefWindowProc(hwnd, msg, mp1, mp2);
+
+   /* If we don't require themed drawing */
+   if(cinfo->back != -1 && !_dw_composition || !(GetWindowLongPtr(_toplevel_window(hwnd), GWL_EXSTYLE) & WS_EX_LAYERED))
+      return _colorwndproc(hwnd, msg, mp1, mp2);
+      
+   pOldProc = cinfo->pOldProc;
+   
+   switch(msg)
+   {
+      case WM_PAINT:
+      {
+         PAINTSTRUCT ps;
+         HDC hdc = BeginPaint(hwnd, &ps);
+
+         if(hdc)
+         {
+            /* Figure out how to draw */
+            HDC hdcPaint = NULL;
+            RECT rcClient;
+            LONG_PTR dwStyle = GetWindowLongPtr(hwnd, GWL_STYLE);
+            LONG_PTR dwStyleEx = GetWindowLongPtr(hwnd, GWL_EXSTYLE);
+            HTHEME hTheme = _OpenThemeData(NULL, L"ControlPanelStyle"); 
+
+            GetClientRect(hwnd, &rcClient);
+            
+            if(hTheme)
+            {
+               /* Create an in memory image to draw to */
+               HPAINTBUFFER hBufferedPaint = _BeginBufferedPaint(hdc, &rcClient, BPBF_TOPDOWNDIB, NULL, &hdcPaint);
+               
+               if(hdcPaint)
+               {
+                  LONG_PTR dwStaticStyle = dwStyle & 0x1F;
+                  HFONT hFontOld = (HFONT)SendMessage(hwnd, WM_GETFONT, 0, 0);
+                  int iLen = GetWindowTextLength(hwnd), fore = _internal_color(cinfo->fore);
+                  DTTOPTS DttOpts = { sizeof(DTTOPTS) };
+                  static HBRUSH hbrush = 0;
+                   
+                  /* Make sure we have a transparency brush */
+                  if(!hbrush)
+                     hbrush = CreateSolidBrush(_dw_transparencykey);
+            
+                  /* Fill the background with the transparency color */
+                  FillRect(hdcPaint, &rcClient, hbrush);
+                  _BufferedPaintSetAlpha(hBufferedPaint, &ps.rcPaint, 0x00);
+                  
+                  /* Setup how we will draw the text */
+                  DttOpts.dwFlags = DTT_COMPOSITED | DTT_GLOWSIZE | DTT_TEXTCOLOR;
+                  DttOpts.crText = cinfo->fore == -1 ? RGB(255, 255, 255) : RGB(DW_RED_VALUE(fore), DW_GREEN_VALUE(fore), DW_BLUE_VALUE(fore));
+                  DttOpts.iGlowSize = 12;
+                  
+                  SetBkMode(hdcPaint, TRANSPARENT);
+
+                  if(hFontOld) 
+                     hFontOld = (HFONT)SelectObject(hdcPaint, hFontOld);
+
+                  /* Make sure there is text to draw */
+                  if(iLen)
+                  {
+                     LPWSTR szText = (LPWSTR)_alloca(sizeof(WCHAR)*(iLen+5));
+                     
+                     if(szText)
+                     {
+                        iLen = GetWindowTextW(hwnd, szText, iLen+5);
+                        if(iLen)
+                        {
+                           DWORD dwFlags = DT_WORDBREAK;
+                         
+                           switch (dwStaticStyle)
+                           {
+                              case SS_CENTER:
+                                 dwFlags |= DT_CENTER;
+                                 break;
+                              case SS_RIGHT:
+                                 dwFlags |= DT_RIGHT;
+                                 break;
+                              case SS_LEFTNOWORDWRAP:
+                                 dwFlags &= ~DT_WORDBREAK;
+                                 break;
+                           }
+
+                           if(dwStyle & SS_CENTERIMAGE)
+                           {
+                              dwFlags |= DT_VCENTER;
+                              dwFlags &= ~DT_WORDBREAK;
+                           }
+
+
+                           if(dwStyle & SS_ENDELLIPSIS)
+                              dwFlags |= DT_END_ELLIPSIS|DT_MODIFYSTRING;
+                           else if(dwStyle & SS_PATHELLIPSIS)
+                              dwFlags |= DT_PATH_ELLIPSIS|DT_MODIFYSTRING;
+                           else if(dwStyle & SS_WORDELLIPSIS)
+                              dwFlags |= DT_WORD_ELLIPSIS|DT_MODIFYSTRING;
+
+                           if (dwStyleEx&WS_EX_RIGHT)
+                              dwFlags |= DT_RIGHT;
+
+                           if(dwStyle & SS_NOPREFIX)
+                              dwFlags |= DT_NOPREFIX;
+                         
+                           /* Draw the text! */
+                           _DrawThemeTextEx(hTheme, hdcPaint, 0, 0, 
+                                            szText, -1, dwFlags, &rcClient, &DttOpts);
+                        }
+                     }
+                  }
+
+                  /* Cleanup */
+                  if (hFontOld)
+                     SelectObject(hdcPaint, hFontOld);
+                  _EndBufferedPaint(hBufferedPaint, TRUE);
+               }                
+               _CloseThemeData(hTheme);
+            }
+         }
+             
+         EndPaint(hwnd, &ps);
+         return TRUE;
+      }
+      break;
+   }
+    
+   if ( !pOldProc )
+      return DefWindowProc(hwnd, msg, mp1, mp2);
+   return CallWindowProc(pOldProc, hwnd, msg, mp1, mp2);
+}
+#endif
+
 /* Function: _BtProc
  * Abstract: Subclass procedure for buttons
  */
@@ -3715,15 +3859,25 @@ int API dw_init(int newthread, int argc, char *argv[])
 #endif
 
 #ifdef AEROGLASS
-   /* Attempt to load the Desktop Window Manager library */
-   if((hdwm = LoadLibrary("dwmapi")))
+   /* Attempt to load the Desktop Window Manager and Theme library */
+   if((hdwm = LoadLibrary("dwmapi")) && (huxtheme = LoadLibrary("uxtheme")))
    {
       _DwmExtendFrameIntoClientArea = (HRESULT (WINAPI *)(HWND, const MARGINS *))GetProcAddress(hdwm, "DwmExtendFrameIntoClientArea");
       if((_DwmIsCompositionEnabled = (HRESULT (WINAPI *)(BOOL *))GetProcAddress(hdwm, "DwmIsCompositionEnabled")))
          _DwmIsCompositionEnabled(&_dw_composition);
-      
+      _OpenThemeData = (HTHEME (WINAPI *)(HWND, LPCWSTR))GetProcAddress(huxtheme, "OpenThemeData");
+      _BeginBufferedPaint = (HPAINTBUFFER (WINAPI *)(HDC, const RECT *, BP_BUFFERFORMAT, BP_PAINTPARAMS *, HDC *))GetProcAddress(huxtheme, "BeginBufferedPaint");
+      _BufferedPaintSetAlpha = (HRESULT (WINAPI *)(HPAINTBUFFER, const RECT *, BYTE))GetProcAddress(huxtheme, "BufferedPaintSetAlpha");
+      _DrawThemeTextEx = (HRESULT (WINAPI *)(HTHEME, HDC, int, int, LPCWSTR, int, DWORD, LPRECT, const DTTOPTS *))GetProcAddress(huxtheme, "DrawThemeTextEx");
+      _EndBufferedPaint = (HRESULT (WINAPI *)(HPAINTBUFFER, BOOL))GetProcAddress(huxtheme, "EndBufferedPaint");
+      _CloseThemeData = (HRESULT (WINAPI *)(HTHEME))GetProcAddress(huxtheme, "CloseThemeData");
    }
-      
+   /* In case of error close the library if needed */
+   else if(hdwm)
+   {
+      FreeLibrary(hdwm);
+      hdwm = 0;
+   }
 #endif
    return 0;
 }
@@ -5492,14 +5646,21 @@ HWND API dw_text_new(char *text, ULONG id)
 {
    HWND tmp = CreateWindow(STATICCLASSNAME,
                      text,
-                     SS_NOPREFIX | SS_NOTIFY |
-                     BS_TEXT | WS_VISIBLE |
+                     SS_NOPREFIX | SS_NOTIFY | WS_VISIBLE |
                      WS_CHILD | WS_CLIPCHILDREN,
                      0,0,0,0,
                      DW_HWND_OBJECT,
                      (HMENU)id,
                      DWInstance,
                      NULL);
+#ifdef AEROGLASS
+   ColorInfo *cinfo = calloc(1, sizeof(ColorInfo));
+
+   cinfo->back = cinfo->fore = -1;
+
+   cinfo->pOldProc = SubclassWindow(tmp, _staticwndproc);
+   SetWindowLongPtr(tmp, GWLP_USERDATA, (LONG_PTR)cinfo);
+#endif                     
    dw_window_set_font(tmp, DefaultFont);
    dw_window_set_color(tmp, DW_CLR_DEFAULT, DW_RGB_TRANSPARENT);
    return tmp;
@@ -5515,8 +5676,7 @@ HWND API dw_status_text_new(char *text, ULONG id)
 {
    HWND tmp = CreateWindow(StatusbarClassName,
                      text,
-                     BS_TEXT | WS_VISIBLE |
-                     WS_CHILD | WS_CLIPCHILDREN,
+                     WS_VISIBLE | WS_CHILD | WS_CLIPCHILDREN,
                      0,0,0,0,
                      DW_HWND_OBJECT,
                      (HMENU)id,
@@ -10379,6 +10539,7 @@ void API dw_exit(int exitcode)
 #ifdef AEROGLASS
    /* Free any in use libraries */
    FreeLibrary(hdwm);
+   FreeLibrary(huxtheme);
 #endif   
    exit(exitcode);
 }
