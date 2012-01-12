@@ -10115,7 +10115,21 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
          gtk_container_forall(GTK_CONTAINER(box),_rearrange_table, GINT_TO_POINTER(boxtype == DW_VERT ? index : -(index+1)));
       gtk_table_attach(GTK_TABLE(box), item, x, x + 1, y, y + 1, hsize ? DW_EXPAND : 0, vsize ? DW_EXPAND : 0, pad, pad);
       gtk_object_set_data(GTK_OBJECT(box), "_dw_boxcount", GINT_TO_POINTER(boxcount + 1));
-      gtk_widget_set_usize(item, width, height);
+      {
+         int thiswidth = width, thisheight = height;
+
+         /* If it is a scrolled item and not expandable...
+          * set the default size to 500x200.
+          */         
+         if(GTK_IS_SCROLLED_WINDOW(item))
+         {
+            if(thiswidth < 1 && !hsize)
+               thiswidth = 500;
+            if(thisheight < 1 && !vsize)
+               thisheight = 200;
+         }
+         gtk_widget_set_usize(item, thiswidth, thisheight);
+      }
       if(GTK_IS_RADIO_BUTTON(item))
       {
          GSList *group;
