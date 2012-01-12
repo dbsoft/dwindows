@@ -8471,8 +8471,12 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
       {
          if(width > 0)
             gtk_scrolled_window_set_min_content_width(GTK_SCROLLED_WINDOW(item), width);
+         else if(!hsize)
+            gtk_scrolled_window_set_min_content_width(GTK_SCROLLED_WINDOW(item), 500);
          if(height > 0)
             gtk_scrolled_window_set_min_content_height(GTK_SCROLLED_WINDOW(item), height);
+         else if(!vsize)
+            gtk_scrolled_window_set_min_content_height(GTK_SCROLLED_WINDOW(item), 200);
       }
       else
       {
