@@ -4634,10 +4634,13 @@ Item *_box_item(HWND handle)
 /* Internal function to calculate the widget's required size..
  * These are the general rules for widget sizes:
  * 
- * Scrolled(Container,Tree,MLE)/Render/Unspecified: 1x1
+ * Render/Unspecified: 1x1
+ * Scrolled(Container,Tree,MLE): 500x200
  * Entryfield/Combobox/Spinbutton: 150x(maxfontheight)
  * Spinbutton: 50x(maxfontheight)
  * Text/Status: (textwidth)x(textheight)
+ * Ranged: 100x14 or 14x100 for vertical.
+ * Buttons/Bitmaps: Size of text or image and border.
  */
 void _control_size(HWND handle, int *width, int *height)
 {
@@ -4728,6 +4731,12 @@ void _control_size(HWND handle, int *width, int *height)
       dw_font_text_extents_get(handle, NULL, testtext, NULL, &thisheight);
       thiswidth = 150;
       extraheight = 6;
+   }
+   /* MLE, Container and Tree */
+   else if(strncmp(tmpbuf, "#10", 4)==0 || strncmp(tmpbuf, "#37", 4)==0)
+   {
+      thiswidth = 500;
+      thisheight = 200;
    }
    /* Button */
    else if(strncmp(tmpbuf, "#3", 3)==0)

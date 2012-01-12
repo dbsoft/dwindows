@@ -4396,7 +4396,8 @@ Item *_box_item(HWND handle)
 /* Internal function to calculate the widget's required size..
  * These are the general rules for widget sizes:
  * 
- * Scrolled(Container,Tree,MLE)/Render/Unspecified: 1x1
+ * Render/Unspecified: 1x1
+ * Scrolled(Container,Tree,MLE): 500x200
  * Entryfield/Combobox/Spinbutton: 150x(maxfontheight)
  * Spinbutton: 50x(maxfontheight)
  * Text/Status: (textwidth)x(textheight)
@@ -4473,14 +4474,31 @@ void _control_size(HWND handle, int *width, int *height)
       thiswidth = 50;
       extraheight = 6;
    }
-   /* Entryfields */
-   else if(strnicmp(tmpbuf, EDITCLASSNAME, strlen(EDITCLASSNAME)+1) == 0 &&
-           !(GetWindowLong(handle, GWL_STYLE) & ES_MULTILINE))
+   /* Entryfields and MLE */
+   else if(strnicmp(tmpbuf, EDITCLASSNAME, strlen(EDITCLASSNAME)+1) == 0)
    {
-      dw_font_text_extents_get(handle, NULL, testtext, NULL, &thisheight);
-      thiswidth = 150;
-      extraheight = 6;
+      if((GetWindowLong(handle, GWL_STYLE) & ES_MULTILINE))
+      {
+         /* MLE */
+         thiswidth = 500;
+         thisheight = 200;
+      }
+      else
+      {
+         /* Entryfield */
+         dw_font_text_extents_get(handle, NULL, testtext, NULL, &thisheight);
+         thiswidth = 150;
+         extraheight = 6;
+      }
    }
+   /* Container and Tree */
+   else if(strnicmp(tmpbuf, WC_LISTVIEW, strlen(WC_LISTVIEW)+1)== 0 ||
+           strnicmp(tmpbuf, WC_TREEVIEW, strlen(WC_TREEVIEW)+1)== 0)
+   {
+      thiswidth = 500;
+      thisheight = 200;
+   }
+   /* Buttons */
    else if(strnicmp(tmpbuf, BUTTONCLASSNAME, strlen(BUTTONCLASSNAME)+1) == 0)
    {
       ULONG style = GetWindowLong(handle, GWL_STYLE);

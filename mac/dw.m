@@ -3403,7 +3403,8 @@ int API dw_scrollbox_get_range(HWND handle, int orient)
 /* Internal function to calculate the widget's required size..
  * These are the general rules for widget sizes:
  * 
- * Scrolled(Container,Tree,MLE)/Render/Unspecified: 1x1
+ * Render/Unspecified: 1x1
+ * Scrolled(Container,Tree,MLE): 500x200
  * Entryfield/Combobox/Spinbutton: 150x(maxfontheight)
  * Spinbutton: 50x(maxfontheight)
  * Text/Status: (textwidth)x(textheight)
@@ -3525,6 +3526,14 @@ void _control_size(id handle, int *width, int *height)
             thiswidth = size.width;
             thisheight = size.height;
         }
+    }
+    /* MLE, Container and Tree */
+    else if([ object isMemberOfClass:[DWMLE class] ] ||
+            [ object isMemberOfClass:[DWContainer class] ] ||
+            [ object isMemberOfClass:[DWTree class] ])
+    {
+        thiswidth = 500;
+        thisheight = 200;
     }
     /* Any other control type */
     else if([ object isKindOfClass:[ NSControl class ] ])
