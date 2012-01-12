@@ -3528,7 +3528,7 @@ void _control_size(id handle, int *width, int *height)
         }
     }
     /* MLE, Container and Tree */
-    else if([ object isMemberOfClass:[DWMLE class] ] ||
+    else if([ object isMemberOfClass:[NSScrollView class] ] ||
             [ object isMemberOfClass:[DWContainer class] ] ||
             [ object isMemberOfClass:[DWTree class] ])
     {
