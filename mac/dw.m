@@ -1437,14 +1437,19 @@ DWObject *DWObj;
 @interface DWMLE : NSTextView
 {
     void *userdata;
+    id scrollview;
 }
 -(void *)userdata;
 -(void)setUserdata:(void *)input;
+-(id)scrollview;
+-(void)setScrollview:(id)input;
 @end
 
 @implementation DWMLE
 -(void *)userdata { return userdata; }
 -(void)setUserdata:(void *)input { userdata = input; }
+-(id)scrollview { return scrollview; }
+-(void)setScrollview:(id)input { scrollview = input; }
 -(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); dw_signal_disconnect_by_window(self); [super dealloc]; }
 @end
 
@@ -3528,12 +3533,12 @@ void _control_size(id handle, int *width, int *height)
         }
     }
     /* MLE, Container and Tree */
-    else if([ object isMemberOfClass:[NSScrollView class] ] ||
+    else if([ object isMemberOfClass:[DWMLE class] ] ||
             [ object isMemberOfClass:[DWContainer class] ] ||
             [ object isMemberOfClass:[DWTree class] ])
     {
-        thiswidth = 500;
-        thisheight = 200;
+        thiswidth = _DW_SCROLLED_MAX_WIDTH;
+        thisheight = _DW_SCROLLED_MAX_HEIGHT;
     }
     /* Any other control type */
     else if([ object isKindOfClass:[ NSControl class ] ])
@@ -3601,15 +3606,11 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
     object = item;
 
     /* Query the objects */
-    if([ object isKindOfClass:[ DWContainer class ] ])
+    if([ object isMemberOfClass:[ DWContainer class ] ] ||
+       [ object isMemberOfClass:[ DWTree class ] ] ||
+       [ object isMemberOfClass:[ DWMLE class ] ])
     {
-        DWContainer *cont = item;
-        this = item = [cont scrollview];
-    }
-    else if([ object isKindOfClass:[ DWTree class ] ])
-    {
-        DWTree *tree = item;
-        this = item = [tree scrollview];
+        this = item = [object scrollview];
     }
 
     /* Do some sanity bounds checking */
@@ -4667,9 +4668,10 @@ HWND API dw_mle_new(ULONG cid)
     [scrollview setAutoresizingMask:NSViewWidthSizable|NSViewHeightSizable];
     [scrollview setDocumentView:mle];
     [mle setAutoresizingMask:NSViewWidthSizable];
+    [mle setScrollview:scrollview];
     /* [mle setTag:cid]; Why doesn't this work? */
     [mle autorelease];
-    return scrollview;
+    return mle;
 }
 
 /*
@@ -4681,10 +4683,9 @@ HWND API dw_mle_new(ULONG cid)
  */
 unsigned int API dw_mle_import(HWND handle, char *buffer, int startpoint)
 {
-    NSScrollView *sv = handle;
+    DWMLE *mle = handle;
     int _locked_by_me = FALSE;
     DW_MUTEX_LOCK;
-    DWMLE *mle = [sv documentView];
     NSTextStorage *ts = [mle textStorage];
     NSString *nstr = [NSString stringWithUTF8String:buffer];
     NSMutableString *ms = [ts mutableString];
@@ -4708,10 +4709,9 @@ unsigned int API dw_mle_import(HWND handle, char *buffer, int startpoint)
  */
 void API dw_mle_export(HWND handle, char *buffer, int startpoint, int length)
 {
-    NSScrollView *sv = handle;
+    DWMLE *mle = handle;
     int _locked_by_me = FALSE;
     DW_MUTEX_LOCK;
-    DWMLE *mle = [sv documentView];
     NSTextStorage *ts = [mle textStorage];
     NSMutableString *ms = [ts mutableString];
     const char *tmp = [ms UTF8String];
@@ -4729,10 +4729,9 @@ void API dw_mle_export(HWND handle, char *buffer, int startpoint, int length)
  */
 void API dw_mle_get_size(HWND handle, unsigned long *bytes, unsigned long *lines)
 {
-    NSScrollView *sv = handle;
+    DWMLE *mle = handle;
     int _locked_by_me = FALSE;
     DW_MUTEX_LOCK;
-    DWMLE *mle = [sv documentView];
     NSTextStorage *ts = [mle textStorage];
     NSMutableString *ms = [ts mutableString];
     NSUInteger numberOfLines, index, stringLength = [ms length];
@@ -4758,10 +4757,9 @@ void API dw_mle_get_size(HWND handle, unsigned long *bytes, unsigned long *lines
  */
 void API dw_mle_delete(HWND handle, int startpoint, int length)
 {
-    NSScrollView *sv = handle;
+    DWMLE *mle = handle;
     int _locked_by_me = FALSE;
     DW_MUTEX_LOCK;
-    DWMLE *mle = [sv documentView];
     NSTextStorage *ts = [mle textStorage];
     NSMutableString *ms = [ts mutableString];
     NSUInteger mslength = [ms length];
@@ -4782,10 +4780,9 @@ void API dw_mle_delete(HWND handle, int startpoint, int length)
  */
 void API dw_mle_clear(HWND handle)
 {
-    NSScrollView *sv = handle;
+    DWMLE *mle = handle;
     int _locked_by_me = FALSE;
     DW_MUTEX_LOCK;
-    DWMLE *mle = [sv documentView];
     NSTextStorage *ts = [mle textStorage];
     NSMutableString *ms = [ts mutableString];
     NSUInteger length = [ms length];
@@ -4801,10 +4798,9 @@ void API dw_mle_clear(HWND handle)
  */
 void API dw_mle_set_visible(HWND handle, int line)
 {
-    NSScrollView *sv = handle;
+    DWMLE *mle = handle;
     int _locked_by_me = FALSE;
     DW_MUTEX_LOCK;
-    DWMLE *mle = [sv documentView];
     NSTextStorage *ts = [mle textStorage];
     NSMutableString *ms = [ts mutableString];
     NSUInteger numberOfLines, index, stringLength = [ms length];
@@ -4827,8 +4823,7 @@ void API dw_mle_set_visible(HWND handle, int line)
  */
 void API dw_mle_set_editable(HWND handle, int state)
 {
-    NSScrollView *sv = handle;
-    DWMLE *mle = [sv documentView];
+    DWMLE *mle = handle;
     if(state)
     {
         [mle setEditable:YES];
@@ -4847,8 +4842,7 @@ void API dw_mle_set_editable(HWND handle, int state)
  */
 void API dw_mle_set_word_wrap(HWND handle, int state)
 {
-    NSScrollView *sv = handle;
-    DWMLE *mle = [sv documentView];
+    DWMLE *mle = handle;
     if(state)
     {
         [mle setHorizontallyResizable:NO];
@@ -4867,10 +4861,9 @@ void API dw_mle_set_word_wrap(HWND handle, int state)
  */
 void API dw_mle_set_cursor(HWND handle, int point)
 {
-    NSScrollView *sv = handle;
+    DWMLE *mle = handle;
     int _locked_by_me = FALSE;
     DW_MUTEX_LOCK;
-    DWMLE *mle = [sv documentView];
     NSTextStorage *ts = [mle textStorage];
     NSMutableString *ms = [ts mutableString];
     NSUInteger length = [ms length];
@@ -4893,10 +4886,9 @@ void API dw_mle_set_cursor(HWND handle, int point)
  */
 int API dw_mle_search(HWND handle, char *text, int point, unsigned long flags)
 {
-    NSScrollView *sv = handle;
+    DWMLE *mle = handle;
     int _locked_by_me = FALSE;
     DW_MUTEX_LOCK;
-    DWMLE *mle = [sv documentView];
     NSTextStorage *ts = [mle textStorage];
     NSMutableString *ms = [ts mutableString];
     NSString *searchForMe = [NSString stringWithUTF8String:text];
@@ -7769,10 +7761,9 @@ int API dw_window_set_color(HWND handle, ULONG fore, ULONG back)
             [cont setForegroundColor:fg];
         }
     }
-    else if([object isKindOfClass:[NSScrollView class]])
+    else if([object isMemberOfClass:[DWMLE class]])
     {
-        NSScrollView *sv = handle;
-        DWMLE *mle = [sv documentView];
+        DWMLE *mle = handle;
         if(bg)
         {
             [mle setBackgroundColor:bg];
