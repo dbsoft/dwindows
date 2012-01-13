@@ -3532,9 +3532,25 @@ void _control_size(id handle, int *width, int *height)
             thisheight = size.height;
         }
     }
-    /* MLE, Container and Tree */
+    /* Container */
+    else if([ object isMemberOfClass:[DWContainer class] ])
+    {
+        NSRect rect = [object frame];
+        
+        thiswidth = rect.size.width;
+        thisheight = rect.size.height;
+        
+        if(thiswidth < _DW_SCROLLED_MIN_WIDTH)
+            thiswidth = _DW_SCROLLED_MIN_WIDTH;
+        if(thiswidth > _DW_SCROLLED_MAX_WIDTH)
+            thiswidth = _DW_SCROLLED_MAX_WIDTH;
+        if(thisheight < _DW_SCROLLED_MIN_HEIGHT)
+            thisheight = _DW_SCROLLED_MIN_HEIGHT;
+        if(thisheight > _DW_SCROLLED_MAX_HEIGHT)
+            thisheight = _DW_SCROLLED_MAX_HEIGHT;
+    }
+    /* MLE and Tree */
     else if([ object isMemberOfClass:[DWMLE class] ] ||
-            [ object isMemberOfClass:[DWContainer class] ] ||
             [ object isMemberOfClass:[DWTree class] ])
     {
         thiswidth = _DW_SCROLLED_MAX_WIDTH;
@@ -8166,7 +8182,8 @@ int API dw_window_destroy(HWND handle)
         /* Some controls are embedded in scrollviews...
          * so get the parent of the scrollview in that case.
          */
-        if([object isKindOfClass:[NSTableView class]] && [parent isMemberOfClass:[NSClipView class]])
+        if(([object isKindOfClass:[NSTableView class]] || [object isMemberOfClass:[DWMLE class]])
+            && [parent isMemberOfClass:[NSClipView class]])
         {
             object = [parent superview];
             parent = (DWBox *)[object superview];
