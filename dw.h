@@ -1428,6 +1428,12 @@ typedef void *HPRINT;
 
 #define DWSIGNAL API
 
+/* Constants for sizing scrolled widgets */
+#define _DW_SCROLLED_MIN_WIDTH   100
+#define _DW_SCROLLED_MIN_HEIGHT  75
+#define _DW_SCROLLED_MAX_WIDTH   500
+#define _DW_SCROLLED_MAX_HEIGHT  400
+
 /* Let other APIs know what types we've defined,
  * Regina REXX in particular, on Unix.
  */
