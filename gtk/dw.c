@@ -10119,14 +10119,44 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
          int thiswidth = width, thisheight = height;
 
          /* If it is a scrolled item and not expandable...
-          * set the default size to 500x200.
+          * Clamp to minumum or maximum.
           */         
          if(GTK_IS_SCROLLED_WINDOW(item))
          {
-            if(thiswidth < 1 && !hsize)
-               thiswidth = 500;
-            if(thisheight < 1 && !vsize)
-               thisheight = 200;
+            GtkWidget *widget = gtk_object_get_user_data(GTK_OBJECT(item));
+            
+            /* Try to figure out the contents for MLE and Container */
+            if(widget && (GTK_IS_TEXT_VIEW(widget) || GTK_IS_CLIST(widget)))
+            {
+               GtkRequisition req;
+               
+               gtk_widget_size_request(widget, &req);
+               
+               if(thiswidth < 1 && !hsize)
+               {
+                  thiswidth = req.width + 20;
+                  if(thiswidth < _DW_SCROLLED_MIN_WIDTH)
+                     thiswidth = _DW_SCROLLED_MIN_WIDTH;
+                  if(thiswidth > _DW_SCROLLED_MAX_WIDTH)
+                     thiswidth = _DW_SCROLLED_MAX_WIDTH;
+               }
+               if(thisheight < 1 && !vsize)
+               {
+                  thisheight = req.height + 20;
+                  if(thisheight < _DW_SCROLLED_MIN_HEIGHT)
+                     thisheight = _DW_SCROLLED_MIN_HEIGHT;
+                  if(thisheight > _DW_SCROLLED_MAX_HEIGHT)
+                     thisheight = _DW_SCROLLED_MAX_HEIGHT;
+               }
+            }
+            else
+            {
+               /* Set to max for others */
+               if(thiswidth < 1 && !hsize)
+                  thiswidth = _DW_SCROLLED_MAX_WIDTH;
+               if(thisheight < 1 && !vsize)
+                  thisheight = _DW_SCROLLED_MAX_HEIGHT;
+            }
          }
          gtk_widget_set_usize(item, thiswidth, thisheight);
       }
