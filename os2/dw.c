@@ -4739,20 +4739,20 @@ void _control_size(HWND handle, int *width, int *height)
        int height, width;
        char *buf, *ptr;
        int basicwidth;
-       int wrap = WinSendMsg(handle, MLM_QUERYWRAP, 0,0);
+       int wrap = (int)WinSendMsg(handle, MLM_QUERYWRAP, 0,0);
 
        thisheight = 8;
        basicwidth = thiswidth = WinQuerySysValue(HWND_DESKTOP, SV_CXVSCROLL) + 8;
 
        dw_mle_get_size(handle, &bytes, NULL);
 
-       ptr = buf = _alloca(bytes + 2);
+       ptr = buf = alloca(bytes + 2);
        dw_mle_export(handle, buf, 0, (int)bytes);
        buf[bytes] = 0;
        strcat(buf, "\n");
 
        /* MLE */
-       while(ptr = strstr(buf, "\n"))
+       while((ptr = strstr(buf, "\n")))
        {
            ptr[0] = 0;
            width = 0;
@@ -12135,7 +12135,7 @@ HWND API dw_calendar_new(ULONG id)
     WindowData *blah = calloc(sizeof(WindowData), 1);
     DATETIME dt;
     HWND tmp = WinCreateWindow(HWND_OBJECT,
-                        CalendarClassName,
+                        (PSZ)CalendarClassName,
                         NULL,
                         WS_VISIBLE,
                         0,0,2000,1000,
