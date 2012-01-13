@@ -5738,10 +5738,9 @@ HWND API dw_mle_new(ULONG id)
    HWND tmp = WinCreateWindow(HWND_OBJECT,
                         WC_MLE,
                         NULL,
-                        WS_VISIBLE |
+                        WS_VISIBLE | MLS_WORDWRAP |
                         MLS_BORDER | MLS_IGNORETAB |
-                        MLS_VSCROLL |
-                        MLS_LIMITVSCROLL,
+                        MLS_VSCROLL | MLS_LIMITVSCROLL,
                         0,0,2000,1000,
                         NULLHANDLE,
                         HWND_TOP,
@@ -7665,6 +7664,7 @@ void API dw_mle_set_editable(HWND handle, int state)
 void API dw_mle_set_word_wrap(HWND handle, int state)
 {
    WinSendMsg(handle, MLM_SETWRAP, MPFROMLONG(state), 0);
+   WinSetWindowBits(handle, QWL_STYLE, state ? MLS_HSCROLL : 0, MLS_HSCROLL);
 }
 
 /*
