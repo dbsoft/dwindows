@@ -4477,11 +4477,58 @@ void _control_size(HWND handle, int *width, int *height)
    /* Entryfields and MLE */
    else if(strnicmp(tmpbuf, EDITCLASSNAME, strlen(EDITCLASSNAME)+1) == 0)
    {
-      if((GetWindowLong(handle, GWL_STYLE) & ES_MULTILINE))
+      LONG style = GetWindowLong(handle, GWL_STYLE);
+      if((style & ES_MULTILINE))
       {
+         unsigned long bytes;
+         int height, width;
+         char *buf, *ptr;
+         int basicwidth;
+         
+         if(style & ES_AUTOHSCROLL)
+            thisheight = GetSystemMetrics(SM_CYHSCROLL) + 8;
+         else 
+            thisheight = 8;
+         basicwidth = thiswidth = GetSystemMetrics(SM_CXVSCROLL) + 8;
+         
+         dw_mle_get_size(handle, &bytes, NULL);
+         
+         ptr = buf = _alloca(bytes + 2);
+         dw_mle_export(handle, buf, 0, (int)bytes);
+         strcat(buf, "\n");
+         
          /* MLE */
-         thiswidth = 500;
-         thisheight = 200;
+         while(ptr = strstr(buf, "\n"))
+         {
+            ptr[0] = 0;
+            width = 0;
+            if(strlen(buf))
+               dw_font_text_extents_get(handle, NULL, buf, &width, &height);
+            else
+               dw_font_text_extents_get(handle, NULL, testtext, NULL, &height);
+            
+            width += basicwidth;
+            
+            if(!(style & ES_AUTOHSCROLL) && width > _DW_SCROLLED_MAX_WIDTH)
+            {
+               thiswidth = _DW_SCROLLED_MAX_WIDTH;
+               thisheight += height * (width / _DW_SCROLLED_MAX_WIDTH);
+            }
+            else
+            {
+               if(width > thiswidth)
+                  thiswidth = width > _DW_SCROLLED_MAX_WIDTH ? _DW_SCROLLED_MAX_WIDTH : width;
+            }
+            thisheight += height;
+            buf = &ptr[1];
+         }
+         
+         if(thiswidth < _DW_SCROLLED_MIN_WIDTH)
+            thiswidth = _DW_SCROLLED_MIN_WIDTH;
+         if(thisheight < _DW_SCROLLED_MIN_HEIGHT)
+            thisheight = _DW_SCROLLED_MIN_HEIGHT;
+         if(thisheight > _DW_SCROLLED_MAX_HEIGHT)
+            thisheight = _DW_SCROLLED_MAX_HEIGHT;
       }
       else
       {
@@ -4495,8 +4542,8 @@ void _control_size(HWND handle, int *width, int *height)
    else if(strnicmp(tmpbuf, WC_LISTVIEW, strlen(WC_LISTVIEW)+1)== 0 ||
            strnicmp(tmpbuf, WC_TREEVIEW, strlen(WC_TREEVIEW)+1)== 0)
    {
-      thiswidth = 500;
-      thisheight = 200;
+      thiswidth = _DW_SCROLLED_MAX_WIDTH;
+      thisheight = _DW_SCROLLED_MAX_HEIGHT;
    }
    /* Buttons */
    else if(strnicmp(tmpbuf, BUTTONCLASSNAME, strlen(BUTTONCLASSNAME)+1) == 0)
@@ -7834,7 +7881,7 @@ void API dw_mle_set_editable(HWND handle, int state)
  */
 void API dw_mle_set_word_wrap(HWND handle, int state)
 {
-   /* If ES_AUTOHSCROLL is not set and there is not
+   /* If ES_AUTOHSCROLL is not set and there is no
     * horizontal scrollbar it word wraps.
     */
    if(state)
