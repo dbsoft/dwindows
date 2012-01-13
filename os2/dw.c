@@ -4732,11 +4732,64 @@ void _control_size(HWND handle, int *width, int *height)
       thiswidth = 150;
       extraheight = 6;
    }
-   /* MLE, Container and Tree */
-   else if(strncmp(tmpbuf, "#10", 4)==0 || strncmp(tmpbuf, "#37", 4)==0)
+   /* MLE */
+   else if(strncmp(tmpbuf, "#10", 4)==0)
    {
-      thiswidth = 500;
-      thisheight = 200;
+       unsigned long bytes;
+       int height, width;
+       char *buf, *ptr;
+       int basicwidth;
+       int wrap = WinSendMsg(handle, MLM_QUERYWRAP, 0,0);
+
+       thisheight = 8;
+       basicwidth = thiswidth = WinQuerySysValue(HWND_DESKTOP, SV_CXVSCROLL) + 8;
+
+       dw_mle_get_size(handle, &bytes, NULL);
+
+       ptr = buf = _alloca(bytes + 2);
+       dw_mle_export(handle, buf, 0, (int)bytes);
+       buf[bytes] = 0;
+       strcat(buf, "\n");
+
+       /* MLE */
+       while(ptr = strstr(buf, "\n"))
+       {
+           ptr[0] = 0;
+           width = 0;
+           if(strlen(buf))
+               dw_font_text_extents_get(handle, NULL, buf, &width, &height);
+           else
+               dw_font_text_extents_get(handle, NULL, testtext, NULL, &height);
+
+           width += basicwidth;
+
+           if(wrap && width > _DW_SCROLLED_MAX_WIDTH)
+           {
+               thiswidth = _DW_SCROLLED_MAX_WIDTH;
+               thisheight += height * (width / _DW_SCROLLED_MAX_WIDTH);
+
+           }
+           else
+           {
+               if(width > thiswidth)
+                   thiswidth = width > _DW_SCROLLED_MAX_WIDTH ? _DW_SCROLLED_MAX_WIDTH : width;
+           }
+           thisheight += height;
+           buf = &ptr[1];
+       }
+
+       if(thiswidth < _DW_SCROLLED_MIN_WIDTH)
+           thiswidth = _DW_SCROLLED_MIN_WIDTH;
+       if(thisheight < _DW_SCROLLED_MIN_HEIGHT)
+           thisheight = _DW_SCROLLED_MIN_HEIGHT;
+       if(thisheight > _DW_SCROLLED_MAX_HEIGHT)
+           thisheight = _DW_SCROLLED_MAX_HEIGHT;
+   }
+   /* Container and Tree */
+   else if(strncmp(tmpbuf, "#37", 4)==0)
+   {
+       thiswidth = _DW_SCROLLED_MAX_WIDTH;
+       thisheight = _DW_SCROLLED_MAX_HEIGHT;
    }
    /* Button */
    else if(strncmp(tmpbuf, "#3", 3)==0)
@@ -5620,7 +5673,7 @@ HWND API dw_container_new(ULONG id, int multi)
                         WS_VISIBLE | CCS_READONLY |
                         (multi ? CCS_EXTENDSEL : CCS_SINGLESEL) |
                         CCS_AUTOPOSITION,
-                        0,0,2000,1000,
+                        0,0,0,0,
                         NULLHANDLE,
                         HWND_TOP,
                         id ? id : _GlobalID(),
@@ -7664,7 +7717,6 @@ void API dw_mle_set_editable(HWND handle, int state)
 void API dw_mle_set_word_wrap(HWND handle, int state)
 {
    WinSendMsg(handle, MLM_SETWRAP, MPFROMLONG(state), 0);
-   WinSetWindowBits(handle, QWL_STYLE, state ? MLS_HSCROLL : 0, MLS_HSCROLL);
 }
 
 /*
