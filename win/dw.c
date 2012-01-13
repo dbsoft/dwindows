@@ -4538,9 +4538,25 @@ void _control_size(HWND handle, int *width, int *height)
          extraheight = 6;
       }
    }
-   /* Container and Tree */
-   else if(strnicmp(tmpbuf, WC_LISTVIEW, strlen(WC_LISTVIEW)+1)== 0 ||
-           strnicmp(tmpbuf, WC_TREEVIEW, strlen(WC_TREEVIEW)+1)== 0)
+   /* Container */
+   else if(strnicmp(tmpbuf, WC_LISTVIEW, strlen(WC_LISTVIEW)+1)== 0)
+   {
+      DWORD result = ListView_ApproximateViewRect(handle, _DW_SCROLLED_MAX_WIDTH, _DW_SCROLLED_MAX_HEIGHT, -1);
+      
+      thiswidth = LOWORD(result);
+      thisheight = HIWORD(result);
+      
+      if(thiswidth > _DW_SCROLLED_MAX_WIDTH)
+         thiswidth = _DW_SCROLLED_MAX_WIDTH;
+      if(thiswidth < _DW_SCROLLED_MIN_WIDTH)
+         thiswidth = _DW_SCROLLED_MIN_WIDTH;
+      if(thisheight < _DW_SCROLLED_MIN_HEIGHT)
+         thisheight = _DW_SCROLLED_MIN_HEIGHT;
+      if(thisheight > _DW_SCROLLED_MAX_HEIGHT)
+         thisheight = _DW_SCROLLED_MAX_HEIGHT;
+   }
+   /* Tree */
+   else if(strnicmp(tmpbuf, WC_TREEVIEW, strlen(WC_TREEVIEW)+1)== 0)
    {
       thiswidth = _DW_SCROLLED_MAX_WIDTH;
       thisheight = _DW_SCROLLED_MAX_HEIGHT;
