@@ -1177,7 +1177,7 @@ void container_add(void)
     sprintf(buffer, "[%d]\r\n\r\n", mle_point);
     mle_point = dw_mle_import(container_mle, buffer, mle_point);
     dw_mle_set_cursor(container_mle, mle_point);
-   /* connect our event trappers... */
+    /* connect our event trappers... */
     dw_signal_connect(container, DW_SIGNAL_ITEM_ENTER, DW_SIGNAL_FUNC(item_enter_cb), (void *)container_status);
     dw_signal_connect(container, DW_SIGNAL_ITEM_CONTEXT, DW_SIGNAL_FUNC(item_context_cb), (void *)container_status);
     dw_signal_connect(container, DW_SIGNAL_ITEM_SELECT, DW_SIGNAL_FUNC(container_select_cb), (void *)container_status);
