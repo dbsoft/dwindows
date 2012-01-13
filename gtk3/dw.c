@@ -3769,7 +3769,7 @@ HWND dw_mle_new(unsigned long id)
    gtk_scrolled_window_set_shadow_type(GTK_SCROLLED_WINDOW(tmpbox), GTK_SHADOW_ETCHED_IN);
    tmp = gtk_text_view_new();
    gtk_container_add (GTK_CONTAINER(tmpbox), tmp);
-   gtk_text_view_set_wrap_mode(GTK_TEXT_VIEW(tmp), GTK_WRAP_NONE);
+   gtk_text_view_set_wrap_mode(GTK_TEXT_VIEW(tmp), GTK_WRAP_WORD);
 
    g_object_set_data(G_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(id));
    g_object_set_data(G_OBJECT(tmpbox), "_dw_user", (gpointer)tmp);
@@ -4741,7 +4741,7 @@ void dw_mle_set_word_wrap(HWND handle, int state)
       GtkWidget *tmp = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user");
 
       if(tmp && GTK_IS_TEXT_VIEW(tmp))
-         gtk_text_view_set_wrap_mode(GTK_TEXT_VIEW(tmp), GTK_WRAP_WORD);
+         gtk_text_view_set_wrap_mode(GTK_TEXT_VIEW(tmp), state ? GTK_WRAP_WORD : GTK_WRAP_NONE);
    }
    DW_MUTEX_UNLOCK;
 }
@@ -8466,20 +8466,55 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
          gtk_grid_attach(GTK_GRID(box), item, index, 0, 1, 1);
       }
       g_object_set_data(G_OBJECT(box), "_dw_boxcount", GINT_TO_POINTER(boxcount + 1));
-      /* Set the requested size of the widget */
+      /* Special case for scrolled windows */
       if(GTK_IS_SCROLLED_WINDOW(item))
       {
          if(width > 0)
             gtk_scrolled_window_set_min_content_width(GTK_SCROLLED_WINDOW(item), width);
          else if(!hsize)
-            gtk_scrolled_window_set_min_content_width(GTK_SCROLLED_WINDOW(item), 500);
+         {
+            /* If we aren't expandable set the minimum width */
+            gint thiswidth = 0;
+            GtkWidget *widget = g_object_get_data(G_OBJECT(item), "_dw_user");
+            
+            if(widget)
+            {
+               if(g_object_get_data(G_OBJECT(widget), "_dw_tree_type") == GINT_TO_POINTER(_DW_TREE_TYPE_TREE))
+                  thiswidth = _DW_SCROLLED_MAX_WIDTH;
+               else
+                  gtk_widget_get_preferred_width(GTK_WIDGET(widget), NULL, &thiswidth);
+            }
+            if(thiswidth < _DW_SCROLLED_MIN_WIDTH)
+               thiswidth = _DW_SCROLLED_MIN_WIDTH;
+            if(thiswidth > _DW_SCROLLED_MAX_WIDTH)
+               thiswidth = _DW_SCROLLED_MAX_WIDTH;
+            gtk_scrolled_window_set_min_content_width(GTK_SCROLLED_WINDOW(item), thiswidth);
+         }
          if(height > 0)
             gtk_scrolled_window_set_min_content_height(GTK_SCROLLED_WINDOW(item), height);
          else if(!vsize)
-            gtk_scrolled_window_set_min_content_height(GTK_SCROLLED_WINDOW(item), 200);
+         {
+            /* If we aren't expandable set the minimum height */
+            gint thisheight = 0;
+            GtkWidget *widget = g_object_get_data(G_OBJECT(item), "_dw_user");
+            
+            if(widget)
+            {
+               if(g_object_get_data(G_OBJECT(widget), "_dw_tree_type") == GINT_TO_POINTER(_DW_TREE_TYPE_TREE))
+                  thisheight = _DW_SCROLLED_MAX_HEIGHT;
+               else
+                 gtk_widget_get_preferred_height(GTK_WIDGET(widget), NULL, &thisheight);
+            }
+            if(thisheight < _DW_SCROLLED_MIN_HEIGHT)
+               thisheight = _DW_SCROLLED_MIN_HEIGHT;
+            if(thisheight > _DW_SCROLLED_MAX_HEIGHT)
+               thisheight = _DW_SCROLLED_MAX_HEIGHT;
+            gtk_scrolled_window_set_min_content_height(GTK_SCROLLED_WINDOW(item), thisheight);
+         }
       }
       else
       {
+         /* Set the requested size of the widget */
          if(width == -1 && (GTK_IS_COMBO_BOX(item) || GTK_IS_ENTRY(item)))
             gtk_widget_set_size_request(item, 150, height);
          else if(width == -1 && GTK_IS_SPIN_BUTTON(item))

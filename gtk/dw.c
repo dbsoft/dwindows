@@ -4342,7 +4342,7 @@ HWND dw_mle_new(unsigned long id)
    gtk_scrolled_window_set_shadow_type(GTK_SCROLLED_WINDOW(tmpbox), GTK_SHADOW_ETCHED_IN);
    tmp = gtk_text_view_new();
    gtk_container_add (GTK_CONTAINER(tmpbox), tmp);
-   gtk_text_view_set_wrap_mode(GTK_TEXT_VIEW(tmp), GTK_WRAP_NONE);
+   gtk_text_view_set_wrap_mode(GTK_TEXT_VIEW(tmp), GTK_WRAP_WORD);
 #else
    tmpbox = gtk_hbox_new(FALSE, 0);
    tmp = gtk_text_new(NULL, NULL);
