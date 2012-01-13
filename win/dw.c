@@ -29,6 +29,7 @@
 #ifdef AEROGLASS
 #include <uxtheme.h>
 #endif
+#include <richedit.h>
 
 #ifdef GDIPLUS
 /* GDI+ Headers are not C compatible... so define what we need here instead */
@@ -117,6 +118,9 @@ BOOL _dw_composition = FALSE;
 COLORREF _dw_transparencykey = RGB(200,201,202);
 HANDLE hdwm = 0, huxtheme = 0;
 #endif
+
+/* Needed for Rich Edit controls */
+HANDLE hrichedit = 0;
 
 /*
  * MinGW Is missing a bunch of definitions
@@ -3879,6 +3883,11 @@ int API dw_init(int newthread, int argc, char *argv[])
       hdwm = 0;
    }
 #endif
+#ifdef RICHEDIT
+   /* Attempt to load rich edit library */
+   if(!(hrichedit = LoadLibrary("riched20")))
+      hrichedit = LoadLibrary("riched32");
+#endif      
    return 0;
 }
 
@@ -4475,7 +4484,8 @@ void _control_size(HWND handle, int *width, int *height)
       extraheight = 6;
    }
    /* Entryfields and MLE */
-   else if(strnicmp(tmpbuf, EDITCLASSNAME, strlen(EDITCLASSNAME)+1) == 0)
+   else if(strnicmp(tmpbuf, EDITCLASSNAME, strlen(EDITCLASSNAME)+1) == 0 ||
+           strnicmp(tmpbuf, RICHEDIT_CLASS, strlen(RICHEDIT_CLASS)+1) == 0)
    {
       LONG style = GetWindowLong(handle, GWL_STYLE);
       if((style & ES_MULTILINE))
@@ -5776,7 +5786,7 @@ HWND API dw_mle_new(ULONG id)
 {
 
    HWND tmp = CreateWindowEx(WS_EX_CLIENTEDGE,
-                       EDITCLASSNAME,
+                       hrichedit ? RICHEDIT_CLASS : EDITCLASSNAME,
                        "",
                        WS_VISIBLE | WS_BORDER |
                        WS_VSCROLL | ES_MULTILINE |
@@ -7904,6 +7914,14 @@ void API dw_mle_set_word_wrap(HWND handle, int state)
       dw_window_set_style(handle, 0, ES_AUTOHSCROLL);
    else
       dw_window_set_style(handle, ES_AUTOHSCROLL, ES_AUTOHSCROLL);
+   /* If it is a rich edit control use the rich edit message */
+   if(hrichedit)
+   {
+      if(state)
+         SendMessage(handle, EM_SETOPTIONS, (WPARAM)ECOOP_AND, (LPARAM)~ECO_AUTOHSCROLL);
+      else
+         SendMessage(handle, EM_SETOPTIONS, (WPARAM)ECOOP_OR, (LPARAM)ECO_AUTOHSCROLL);
+   }
 }
 
 /*
