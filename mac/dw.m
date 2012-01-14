@@ -3543,7 +3543,9 @@ void _control_size(id handle, int *width, int *height)
             NSScrollView *sv = [object scrollview];
             NSSize frame = [sv frame].size;
             BOOL hscroll = [sv hasHorizontalScroller];
+            BOOL scrolled = FALSE;
            
+            /* Make sure word wrap is off for the first part */
             if(!hscroll)
             {
                 [[object textContainer] setWidthTracksTextView:NO];
@@ -3551,23 +3553,37 @@ void _control_size(id handle, int *width, int *height)
                 [object setHorizontallyResizable:YES];
                 [sv setHasHorizontalScroller:YES];
             }
+            /* Size the text view to fit */
             [object sizeToFit];
             size = [object bounds].size;
+            size.width += 2.0;
+            size.height += 2.0;
+            /* Re-enable word wrapping if it was on */
             if(!hscroll)
             {
                 [[object textContainer] setWidthTracksTextView:YES];
                 [sv setHasHorizontalScroller:NO];
             }
+            /* If the un wrapped it is beyond the bounds... */
             if(size.width > _DW_SCROLLED_MAX_WIDTH)
             {
                 NSSize max = [object maxSize];
                 
+                /* Set the flag for later */
+                scrolled = TRUE;
+                /* Set the max size to the limit */
                 [object setMaxSize:NSMakeSize(_DW_SCROLLED_MAX_WIDTH, max.height)];
+                /* Recalculate the size */
                 [object sizeToFit];
                 size = [object bounds].size;
+                size.width += 2.0;
+                size.height += 2.0;
                 [object setMaxSize:max];
             }
             [sv setFrameSize:frame];
+            /* Take into account the horizontal scrollbar */
+            if(hscroll && scrolled)
+                size.height += 16.0;
         }
         else
             size = [object frame].size;
