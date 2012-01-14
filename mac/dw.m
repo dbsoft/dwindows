@@ -3532,13 +3532,48 @@ void _control_size(id handle, int *width, int *height)
             thisheight = size.height;
         }
     }
-    /* Container */
-    else if([ object isMemberOfClass:[DWContainer class] ])
+    /* MLE and Container */
+    else if([ object isMemberOfClass:[DWMLE class] ] ||
+            [ object isMemberOfClass:[DWContainer class] ])
     {
-        NSRect rect = [object frame];
+        NSSize size;
         
-        thiswidth = rect.size.width;
-        thisheight = rect.size.height;
+        if([ object isMemberOfClass:[DWMLE class] ])
+        {
+            NSScrollView *sv = [object scrollview];
+            NSSize frame = [sv frame].size;
+            BOOL hscroll = [sv hasHorizontalScroller];
+           
+            if(!hscroll)
+            {
+                [[object textContainer] setWidthTracksTextView:NO];
+                [[object textContainer] setContainerSize:[object maxSize]];
+                [object setHorizontallyResizable:YES];
+                [sv setHasHorizontalScroller:YES];
+            }
+            [object sizeToFit];
+            size = [object bounds].size;
+            if(!hscroll)
+            {
+                [[object textContainer] setWidthTracksTextView:YES];
+                [sv setHasHorizontalScroller:NO];
+            }
+            if(size.width > _DW_SCROLLED_MAX_WIDTH)
+            {
+                NSSize max = [object maxSize];
+                
+                [object setMaxSize:NSMakeSize(_DW_SCROLLED_MAX_WIDTH, max.height)];
+                [object sizeToFit];
+                size = [object bounds].size;
+                [object setMaxSize:max];
+            }
+            [sv setFrameSize:frame];
+        }
+        else
+            size = [object frame].size;
+        
+        thiswidth = size.width;
+        thisheight = size.height;
         
         if(thiswidth < _DW_SCROLLED_MIN_WIDTH)
             thiswidth = _DW_SCROLLED_MIN_WIDTH;
@@ -3549,9 +3584,8 @@ void _control_size(id handle, int *width, int *height)
         if(thisheight > _DW_SCROLLED_MAX_HEIGHT)
             thisheight = _DW_SCROLLED_MAX_HEIGHT;
     }
-    /* MLE and Tree */
-    else if([ object isMemberOfClass:[DWMLE class] ] ||
-            [ object isMemberOfClass:[DWTree class] ])
+    /* Tree */
+    else if([ object isMemberOfClass:[DWTree class] ])
     {
         thiswidth = _DW_SCROLLED_MAX_WIDTH;
         thisheight = _DW_SCROLLED_MAX_HEIGHT;
@@ -4677,13 +4711,17 @@ HWND API dw_mle_new(ULONG cid)
 {
     DWMLE *mle = [[DWMLE alloc] init];
     NSScrollView *scrollview  = [[NSScrollView alloc] init];
+    NSSize size = [mle maxSize];
 
+    size.width = size.height;
+    [mle setMaxSize:size];
     [scrollview setBorderType:NSBezelBorder];
     [scrollview setHasVerticalScroller:YES];
     [scrollview setAutohidesScrollers:YES];
     [scrollview setAutoresizingMask:NSViewWidthSizable|NSViewHeightSizable];
     [scrollview setDocumentView:mle];
-    [mle setAutoresizingMask:NSViewWidthSizable];
+    [mle setVerticallyResizable:YES];
+    [mle setAutoresizingMask:NSViewWidthSizable|NSViewHeightSizable];
     [mle setScrollview:scrollview];
     /* [mle setTag:cid]; Why doesn't this work? */
     [mle autorelease];
@@ -4859,13 +4897,19 @@ void API dw_mle_set_editable(HWND handle, int state)
 void API dw_mle_set_word_wrap(HWND handle, int state)
 {
     DWMLE *mle = handle;
+    NSScrollView *sv = [mle scrollview];
+    
     if(state)
     {
-        [mle setHorizontallyResizable:NO];
+        [[mle textContainer] setWidthTracksTextView:YES];
+        [sv setHasHorizontalScroller:NO];
     }
     else
     {
+        [[mle textContainer] setWidthTracksTextView:NO];
+        [[mle textContainer] setContainerSize:[mle maxSize]];
         [mle setHorizontallyResizable:YES];
+        [sv setHasHorizontalScroller:YES];
     }
 }
 
