@@ -2,8 +2,8 @@
  * Dynamic Windows:
  *          A GTK like GUI implementation template.
  *
- * (C) 2011 Brian Smith <brian@dbsoft.org>
- * (C) 2011 Mark Hessling <mark@rexx.org>
+ * (C) 2011-2012 Brian Smith <brian@dbsoft.org>
+ * (C) 2011-2012 Mark Hessling <mark@rexx.org>
  *
  */
 

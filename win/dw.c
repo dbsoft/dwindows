@@ -2,7 +2,7 @@
  * Dynamic Windows:
  *          A GTK like implementation of the Win32 GUI
  *
- * (C) 2000-2011 Brian Smith <brian@dbsoft.org>
+ * (C) 2000-2012 Brian Smith <brian@dbsoft.org>
  * (C) 2003-2011 Mark Hessling <mark@rexx.org>
  *
  */
@@ -30,6 +30,23 @@
 #include <uxtheme.h>
 #endif
 #include <richedit.h>
+
+#define STATICCLASSNAME "STATIC"
+#define COMBOBOXCLASSNAME "COMBOBOX"
+#define LISTBOXCLASSNAME "LISTBOX"
+#define BUTTONCLASSNAME "BUTTON"
+#define POPUPMENUCLASSNAME "POPUPMENU"
+#define EDITCLASSNAME "EDIT"
+#define FRAMECLASSNAME "FRAME"
+#define SCROLLBARCLASSNAME "SCROLLBAR"
+
+#define ClassName "dynamicwindows"
+#define SplitbarClassName "dwsplitbar"
+#define ObjectClassName "dwobjectclass"
+#define BrowserClassName "dwbrowserclass"
+#define ScrollClassName "dwscrollclass"
+#define StatusbarClassName "dwstatusbar"
+#define DefaultFont NULL
 
 #ifdef GDIPLUS
 /* GDI+ Headers are not C compatible... so define what we need here instead */
@@ -1410,7 +1427,7 @@ static void _resize_box(Box *thisbox, int *depth, int x, int y, int pass)
                 vsi.nMin = hsi.nMin = vsi.nMax = hsi.nMax = 0;
                 if(rect.bottom < thisbox->minheight)
                 {
-                    vsi.nMax = thisbox->minheight;
+                    vsi.nMax = thisbox->minheight - 1;
                     vsi.nPage = rect.bottom;
                     if(vsi.nPos > vsi.nMax)
                     {
@@ -1419,7 +1436,7 @@ static void _resize_box(Box *thisbox, int *depth, int x, int y, int pass)
                 }
                 if(rect.right < thisbox->minwidth)
                 {
-                    hsi.nMax = thisbox->minwidth;
+                    hsi.nMax = thisbox->minwidth - 1;
                     hsi.nPage = rect.right;
                     if(hsi.nPos > hsi.nMax)
                     {
@@ -3280,16 +3297,22 @@ BOOL CALLBACK _statuswndproc(HWND hwnd, UINT msg, WPARAM mp1, LPARAM mp2)
 /* Window procedure to handle drawing themed text when in composited mode */
 BOOL CALLBACK _staticwndproc(HWND hwnd, ULONG msg, WPARAM mp1, LPARAM mp2)
 {
-   ColorInfo *cinfo = (ColorInfo *)GetWindowLongPtr(hwnd, GWLP_USERDATA);
+   ColorInfo *parentcinfo, *cinfo = (ColorInfo *)GetWindowLongPtr(hwnd, GWLP_USERDATA);
    WNDPROC pOldProc;
 
    if (!cinfo)
       return DefWindowProc(hwnd, msg, mp1, mp2);
 
+   /* Need the parent to do the check completely */
+   parentcinfo = (ColorInfo *)GetWindowLongPtr(GetParent(hwnd), GWLP_USERDATA);
+   
    /* If we don't require themed drawing */
-   if(cinfo->back != -1 && !_dw_composition || !(GetWindowLongPtr(_toplevel_window(hwnd), GWL_EXSTYLE) & WS_EX_LAYERED))
+   if(((cinfo->back != -1 && cinfo->back != DW_RGB_TRANSPARENT) || (parentcinfo && parentcinfo->back != -1)) 
+       || !_dw_composition || !(GetWindowLongPtr(_toplevel_window(hwnd), GWL_EXSTYLE) & WS_EX_LAYERED))
       return _colorwndproc(hwnd, msg, mp1, mp2);
-      
+   
+   dw_debug("Parentcinfo %x parentcinfo->back %d\n", (int)parentcinfo, parentcinfo->back);
+   
    pOldProc = cinfo->pOldProc;
    
    switch(msg)
@@ -4406,7 +4429,7 @@ Item *_box_item(HWND handle)
  * These are the general rules for widget sizes:
  * 
  * Render/Unspecified: 1x1
- * Scrolled(Container,Tree,MLE): 500x200
+ * Scrolled(Container,Tree,MLE): Guessed size clamped to min and max in dw.h
  * Entryfield/Combobox/Spinbutton: 150x(maxfontheight)
  * Spinbutton: 50x(maxfontheight)
  * Text/Status: (textwidth)x(textheight)
