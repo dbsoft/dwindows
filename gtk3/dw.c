@@ -55,24 +55,32 @@
 extern DWResources _resources;
 #endif
 
-GdkColor _colors[] =
+/* ff = 255 = 1.0000
+ * ee = 238 = 0.9333
+ * cc = 204 = 0.8000
+ * bb = 187 = 0.7333
+ * aa = 170 = 0.6667
+ * 77 = 119 = 0.4667
+ * 00 = 0   = 0.0000
+ */
+GdkRGBA _colors[] =
 {
-   { 0, 0x0000, 0x0000, 0x0000 },   /* 0  black */
-   { 0, 0xbbbb, 0x0000, 0x0000 },   /* 1  red */
-   { 0, 0x0000, 0xbbbb, 0x0000 },   /* 2  green */
-   { 0, 0xaaaa, 0xaaaa, 0x0000 },   /* 3  yellow */
-   { 0, 0x0000, 0x0000, 0xcccc },   /* 4  blue */
-   { 0, 0xbbbb, 0x0000, 0xbbbb },   /* 5  magenta */
-   { 0, 0x0000, 0xbbbb, 0xbbbb },   /* 6  cyan */
-   { 0, 0xbbbb, 0xbbbb, 0xbbbb },   /* 7  white */
-   { 0, 0x7777, 0x7777, 0x7777 },   /* 8  grey */
-   { 0, 0xffff, 0x0000, 0x0000 },   /* 9  bright red */
-   { 0, 0x0000, 0xffff, 0x0000 },   /* 10 bright green */
-   { 0, 0xeeee, 0xeeee, 0x0000 },   /* 11 bright yellow */
-   { 0, 0x0000, 0x0000, 0xffff },   /* 12 bright blue */
-   { 0, 0xffff, 0x0000, 0xffff },   /* 13 bright magenta */
-   { 0, 0x0000, 0xeeee, 0xeeee },   /* 14 bright cyan */
-   { 0, 0xffff, 0xffff, 0xffff },   /* 15 bright white */
+   { 0.0000, 0.0000, 0.0000, 1.0 },   /* 0  black */
+   { 0.7333, 0.0000, 0.0000, 1.0 },   /* 1  red */
+   { 0.0000, 0.7333, 0.0000, 1.0 },   /* 2  green */
+   { 0.6667, 0.6667, 0.0000, 1.0 },   /* 3  yellow */
+   { 0.0000, 0.0000, 0.8000, 1.0 },   /* 4  blue */
+   { 0.7333, 0.0000, 0.7333, 1.0 },   /* 5  magenta */
+   { 0.0000, 0.7333, 0.7333, 1.0 },   /* 6  cyan */
+   { 0.7333, 0.7333, 0.7333, 1.0 },   /* 7  white */
+   { 0.4667, 0.4667, 0.4667, 1.0 },   /* 8  grey */
+   { 1.0000, 0.0000, 0.0000, 1.0 },   /* 9  bright red */
+   { 0.0000, 1.0000, 0.0000, 1.0 },   /* 10 bright green */
+   { 0.9333, 0.9333, 0.0000, 1.0 },   /* 11 bright yellow */
+   { 0.0000, 0.0000, 1.0000, 1.0 },   /* 12 bright blue */
+   { 1.0000, 0.0000, 1.0000, 1.0 },   /* 13 bright magenta */
+   { 0.0000, 0.9333, 0.9333, 1.0 },   /* 14 bright cyan */
+   { 1.0000, 1.0000, 1.0000, 1.0 },   /* 15 bright white */
 };
 
 /*
@@ -355,11 +363,11 @@ static void gtk_mdi_init(GtkMdi *mdi)
 static GtkWidget *gtk_mdi_new(void)
 {
    GtkWidget *mdi;
-   GdkColor background;
+   GdkRGBA background;
 
    mdi = GTK_WIDGET (g_object_new (gtk_mdi_get_type (), NULL));
-   gdk_color_parse (GTK_MDI_BACKGROUND, &background);
-   gtk_widget_modify_bg (mdi, GTK_STATE_NORMAL, &background);
+   gdk_rgba_parse (&background, GTK_MDI_BACKGROUND);
+   gtk_widget_override_background_color (mdi, GTK_STATE_NORMAL, &background);
 
    return mdi;
 }
@@ -377,7 +385,7 @@ static void gtk_mdi_put(GtkMdi *mdi, GtkWidget *child_widget, gint x, gint y, Gt
    GtkWidget *child_widget_box;
    GtkWidget *image;
 
-   GdkColor color;
+   GdkRGBA color;
    gint i, j;
    GdkCursor *cursor;
    GdkPixbuf *pixbuf;
@@ -400,20 +408,20 @@ static void gtk_mdi_put(GtkMdi *mdi, GtkWidget *child_widget, gint x, gint y, Gt
       gtk_widget_set_events (button[0], GDK_BUTTON_PRESS_MASK);
    }
 
-   gdk_color_parse (GTK_MDI_LABEL_BACKGROUND, &color);
+   gdk_rgba_parse (&color, GTK_MDI_LABEL_BACKGROUND);
 
-   gtk_widget_modify_bg (top_event_box, GTK_STATE_NORMAL, &color);
-   gtk_widget_modify_bg (bottom_event_box, GTK_STATE_NORMAL, &color);
-   gtk_widget_modify_bg (child_box, GTK_STATE_NORMAL, &color);
+   gtk_widget_override_background_color (top_event_box, GTK_STATE_NORMAL, &color);
+   gtk_widget_override_background_color (bottom_event_box, GTK_STATE_NORMAL, &color);
+   gtk_widget_override_background_color (child_box, GTK_STATE_NORMAL, &color);
    for (i = GTK_STATE_NORMAL; i < GTK_STATE_ACTIVE; i++)
    {
       for (j = 0; j < 3; j++)
       {
-         gtk_widget_modify_bg (button[j], i, &color);
+         gtk_widget_override_background_color (button[j], i, &color);
       }
    }
-   gdk_color_parse (GTK_MDI_LABEL_FOREGROUND, &color);
-   gtk_widget_modify_fg (label, GTK_STATE_NORMAL, &color);
+   gdk_rgba_parse (&color, GTK_MDI_LABEL_FOREGROUND);
+   gtk_widget_override_color (label, GTK_STATE_NORMAL, &color);
    gtk_misc_set_alignment (GTK_MISC (label), 0.0, 0.5);
 
    gtk_container_add (GTK_CONTAINER (top_event_box), label);
@@ -1746,9 +1754,9 @@ static GdkPixbuf *_find_pixbuf(HICN icon, unsigned long *userwidth, unsigned lon
 
 void _init_thread(void)
 {
-   GdkColor *foreground = malloc(sizeof(GdkColor));
+   GdkRGBA *foreground = malloc(sizeof(GdkRGBA));
 
-   foreground->pixel = foreground->red = foreground->green = foreground->blue = 0;
+   foreground->alpha = foreground->red = foreground->green = foreground->blue = 0.0;
    pthread_setspecific(_dw_fg_color_key, foreground);
    pthread_setspecific(_dw_bg_color_key, NULL);
 }
@@ -2531,7 +2539,7 @@ int dw_window_set_font(HWND handle, char *fontname)
 
    if(pfont)
    {
-      gtk_widget_modify_font(handle2, pfont);
+      gtk_widget_override_font(handle2, pfont);
       pango_font_description_free(pfont);
    }
    DW_MUTEX_UNLOCK;
@@ -2729,22 +2737,22 @@ char *dw_window_get_font(HWND handle)
 
 void _free_gdk_colors(HWND handle)
 {
-   GdkColor *old = (GdkColor *)g_object_get_data(G_OBJECT(handle), "_dw_foregdk");
+   GdkRGBA *old = (GdkRGBA *)g_object_get_data(G_OBJECT(handle), "_dw_foregdk");
 
    if(old)
       free(old);
 
-   old = (GdkColor *)g_object_get_data(G_OBJECT(handle), "_dw_backgdk");
+   old = (GdkRGBA *)g_object_get_data(G_OBJECT(handle), "_dw_backgdk");
 
    if(old)
       free(old);
 }
 
 /* Free old color pointers and allocate new ones */
-static void _save_gdk_colors(HWND handle, GdkColor fore, GdkColor back)
+static void _save_gdk_colors(HWND handle, GdkRGBA fore, GdkRGBA back)
 {
-   GdkColor *foregdk = malloc(sizeof(GdkColor));
-   GdkColor *backgdk = malloc(sizeof(GdkColor));
+   GdkRGBA *foregdk = malloc(sizeof(GdkRGBA));
+   GdkRGBA *backgdk = malloc(sizeof(GdkRGBA));
 
    _free_gdk_colors(handle);
 
@@ -2760,49 +2768,41 @@ static int _set_color(HWND handle, unsigned long fore, unsigned long back)
    /* Remember that each color component in X11 use 16 bit no matter
     * what the destination display supports. (and thus GDK)
     */
-   GdkColor forecolor, backcolor;
+   GdkRGBA forecolor, backcolor;
 
    if(fore & DW_RGB_COLOR)
    {
-      forecolor.pixel = 0;
-      forecolor.red = DW_RED_VALUE(fore) << 8;
-      forecolor.green = DW_GREEN_VALUE(fore) << 8;
-      forecolor.blue = DW_BLUE_VALUE(fore) << 8;
+      forecolor.alpha = 1.0;
+      forecolor.red = (gdouble)DW_RED_VALUE(fore) / 255.0;
+      forecolor.green = (gdouble)DW_GREEN_VALUE(fore) / 255.0;
+      forecolor.blue = (gdouble)DW_BLUE_VALUE(fore) / 255.0;
 
-      gtk_widget_modify_text(handle, 0, &forecolor);
-      gtk_widget_modify_text(handle, 1, &forecolor);
-      gtk_widget_modify_fg(handle, 0, &forecolor);
-      gtk_widget_modify_fg(handle, 1, &forecolor);
+      gtk_widget_override_color(handle, GTK_STATE_NORMAL, &forecolor);
+      gtk_widget_override_color(handle, GTK_STATE_ACTIVE, &forecolor);
    }
    else if(fore != DW_CLR_DEFAULT)
    {
       forecolor = _colors[fore];
 
-      gtk_widget_modify_text(handle, 0, &_colors[fore]);
-      gtk_widget_modify_text(handle, 1, &_colors[fore]);
-      gtk_widget_modify_fg(handle, 0, &_colors[fore]);
-      gtk_widget_modify_fg(handle, 1, &_colors[fore]);
+      gtk_widget_override_color(handle, GTK_STATE_NORMAL, &forecolor);
+      gtk_widget_override_color(handle, GTK_STATE_ACTIVE, &forecolor);
    }
    if(back & DW_RGB_COLOR)
    {
-      backcolor.pixel = 0;
-      backcolor.red = DW_RED_VALUE(back) << 8;
-      backcolor.green = DW_GREEN_VALUE(back) << 8;
-      backcolor.blue = DW_BLUE_VALUE(back) << 8;
+      backcolor.alpha = 1.0;
+      backcolor.red = (gdouble)DW_RED_VALUE(back) / 255.0;
+      backcolor.green = (gdouble)DW_GREEN_VALUE(back) / 255.0;
+      backcolor.blue = (gdouble)DW_BLUE_VALUE(back) / 255.0;
 
-      gtk_widget_modify_base(handle, 0, &backcolor);
-      gtk_widget_modify_base(handle, 1, &backcolor);
-      gtk_widget_modify_bg(handle, 0, &backcolor);
-      gtk_widget_modify_bg(handle, 1, &backcolor);
+      gtk_widget_override_background_color(handle, GTK_STATE_NORMAL, &backcolor);
+      gtk_widget_override_background_color(handle, GTK_STATE_ACTIVE, &backcolor);
    }
    else if(back != DW_CLR_DEFAULT)
    {
       backcolor = _colors[back];
 
-      gtk_widget_modify_base(handle, 0, &_colors[back]);
-      gtk_widget_modify_base(handle, 1, &_colors[back]);
-      gtk_widget_modify_bg(handle, 0, &_colors[back]);
-      gtk_widget_modify_bg(handle, 1, &_colors[back]);
+      gtk_widget_override_background_color(handle, GTK_STATE_NORMAL, &backcolor);
+      gtk_widget_override_background_color(handle, GTK_STATE_ACTIVE, &backcolor);
    }
 
    _save_gdk_colors(handle, forecolor, backcolor);
@@ -6675,12 +6675,12 @@ HWND dw_render_new(unsigned long id)
    return tmp;
 }
 
-/* Returns a GdkColor from a DW color */
-static GdkColor _internal_color(unsigned long value)
+/* Returns a GdkRGBA from a DW color */
+static GdkRGBA _internal_color(unsigned long value)
 {
    if(DW_RGB_COLOR & value)
    {
-      GdkColor color = { 0, DW_RED_VALUE(value) << 8, DW_GREEN_VALUE(value) << 8, DW_BLUE_VALUE(value) << 8 };
+      GdkRGBA color = { (gfloat)DW_RED_VALUE(value) / 255.0, (gfloat)DW_GREEN_VALUE(value) / 255.0, (gfloat)DW_BLUE_VALUE(value) / 255.0, 1.0 };
       return color;
    }
    if (value < 16)
@@ -6696,8 +6696,8 @@ static GdkColor _internal_color(unsigned long value)
  */
 void dw_color_foreground_set(unsigned long value)
 {
-   GdkColor color = _internal_color(value);
-   GdkColor *foreground = pthread_getspecific(_dw_fg_color_key);
+   GdkRGBA color = _internal_color(value);
+   GdkRGBA *foreground = pthread_getspecific(_dw_fg_color_key);
 
    *foreground = color;
 }
@@ -6710,7 +6710,7 @@ void dw_color_foreground_set(unsigned long value)
  */
 void dw_color_background_set(unsigned long value)
 {
-   GdkColor *background = pthread_getspecific(_dw_bg_color_key);
+   GdkRGBA *background = pthread_getspecific(_dw_bg_color_key);
 
    if(value == DW_CLR_DEFAULT)
    {
@@ -6722,11 +6722,11 @@ void dw_color_background_set(unsigned long value)
    }
    else
    {
-      GdkColor color = _internal_color(value);
+      GdkRGBA color = _internal_color(value);
 
       if(!background)
       {
-         background = malloc(sizeof(GdkColor));
+         background = malloc(sizeof(GdkRGBA));
          pthread_setspecific(_dw_bg_color_key, background);
       }
       *background = color;
@@ -6736,7 +6736,7 @@ void dw_color_background_set(unsigned long value)
 /* Internal function to handle the color OK press */
 static gint _gtk_color_ok(GtkWidget *widget, DWDialog *dwwait)
 {
-   GdkColor color;
+   GdkRGBA color;
    unsigned long dw_color;
    GtkColorSelection *colorsel;
 
@@ -6744,10 +6744,10 @@ static gint _gtk_color_ok(GtkWidget *widget, DWDialog *dwwait)
       return FALSE;
 
    colorsel =  (GtkColorSelection *)gtk_color_selection_dialog_get_color_selection(GTK_COLOR_SELECTION_DIALOG(dwwait->data));
-   gtk_color_selection_get_current_color(colorsel, &color);
+   gtk_color_selection_get_current_rgba(colorsel, &color);
    gtk_widget_destroy(GTK_WIDGET(dwwait->data));
    _dw_color_active = 0;
-   dw_color = DW_RGB( (color.red & 0xFF), (color.green & 0xFF), (color.blue & 0xFF));
+   dw_color = DW_RGB((int)(color.red * 255), (int)(color.green * 255), (int)(color.blue * 255));
    dw_dialog_dismiss(dwwait, (void *)dw_color);
    return FALSE;
 }
@@ -6776,7 +6776,7 @@ unsigned long API dw_color_choose(unsigned long value)
    int _locked_by_me = FALSE;
    DWDialog *dwwait;
    GtkColorSelection *colorsel;
-   GdkColor color = _internal_color(value);
+   GdkRGBA color = _internal_color(value);
    unsigned long dw_color;
 
    DW_MUTEX_LOCK;
@@ -6801,8 +6801,8 @@ unsigned long API dw_color_choose(unsigned long value)
    g_signal_connect(G_OBJECT(ok_button), "clicked", G_CALLBACK(_gtk_color_ok), dwwait);
    g_signal_connect(G_OBJECT(cancel_button), "clicked", G_CALLBACK(_gtk_color_cancel), dwwait);
 
-   gtk_color_selection_set_previous_color(colorsel,&color);
-   gtk_color_selection_set_current_color(colorsel,&color);
+   gtk_color_selection_set_previous_rgba(colorsel,&color);
+   gtk_color_selection_set_current_rgba(colorsel,&color);
    gtk_color_selection_set_has_palette(colorsel,TRUE);
 
    gtk_widget_show(colorw);
@@ -6846,9 +6846,9 @@ void dw_draw_point(HWND handle, HPIXMAP pixmap, int x, int y)
       cr = cairo_create(pixmap->image);
    if(cr)
    {
-      GdkColor *foreground = pthread_getspecific(_dw_fg_color_key);
+      GdkRGBA *foreground = pthread_getspecific(_dw_fg_color_key);
 
-      gdk_cairo_set_source_color (cr, foreground);
+      gdk_cairo_set_source_rgba(cr, foreground);
       cairo_set_line_width(cr, 1);
       cairo_move_to(cr, x, y);
       cairo_stroke(cr);
@@ -6887,9 +6887,9 @@ void dw_draw_line(HWND handle, HPIXMAP pixmap, int x1, int y1, int x2, int y2)
       cr = cairo_create(pixmap->image);
    if(cr)
    {
-      GdkColor *foreground = pthread_getspecific(_dw_fg_color_key);
+      GdkRGBA *foreground = pthread_getspecific(_dw_fg_color_key);
 
-      gdk_cairo_set_source_color (cr, foreground);
+      gdk_cairo_set_source_rgba(cr, foreground);
       cairo_set_line_width(cr, 1);
       cairo_move_to(cr, x1, y1);
       cairo_line_to(cr, x2, y2);
@@ -6930,12 +6930,12 @@ void dw_draw_polygon(HWND handle, HPIXMAP pixmap, int flags, int npoints, int *x
       cr = cairo_create(pixmap->image);
    if(cr)
    {
-      GdkColor *foreground = pthread_getspecific(_dw_fg_color_key);
+      GdkRGBA *foreground = pthread_getspecific(_dw_fg_color_key);
       
       if(flags & DW_DRAW_NOAA)
          cairo_set_antialias(cr, CAIRO_ANTIALIAS_NONE);
          
-      gdk_cairo_set_source_color (cr, foreground);
+      gdk_cairo_set_source_rgba(cr, foreground);
       cairo_set_line_width(cr, 1);
       cairo_move_to(cr, x[0], y[0]);
       for(z=1;z<npoints;z++)
@@ -6981,12 +6981,12 @@ void dw_draw_rect(HWND handle, HPIXMAP pixmap, int flags, int x, int y, int widt
       cr = cairo_create(pixmap->image);
    if(cr)
    {
-      GdkColor *foreground = pthread_getspecific(_dw_fg_color_key);
+      GdkRGBA *foreground = pthread_getspecific(_dw_fg_color_key);
 
       if(flags & DW_DRAW_NOAA)
          cairo_set_antialias(cr, CAIRO_ANTIALIAS_NONE);
          
-      gdk_cairo_set_source_color (cr, foreground);
+      gdk_cairo_set_source_rgba(cr, foreground);
       cairo_set_line_width(cr, 1);
       cairo_move_to(cr, x, y);
       cairo_line_to(cr, x, y + height);
@@ -7034,7 +7034,7 @@ void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yo
       cr = cairo_create(pixmap->image);
    if(cr)
    {
-      GdkColor *foreground = pthread_getspecific(_dw_fg_color_key);
+      GdkRGBA *foreground = pthread_getspecific(_dw_fg_color_key);
       double dx = xorigin - x1;
       double dy = yorigin - y1;
       double r = sqrt(dx*dx + dy*dy);
@@ -7046,7 +7046,7 @@ void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yo
       if(flags & DW_DRAW_NOAA)
          cairo_set_antialias(cr, CAIRO_ANTIALIAS_NONE);
          
-      gdk_cairo_set_source_color (cr, foreground);
+      gdk_cairo_set_source_rgba(cr, foreground);
       cairo_set_line_width(cr, 1);
       if(scale != 1.0)
          cairo_scale(cr, 1.0, scale);
@@ -7115,20 +7115,20 @@ void dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
 
             if(layout)
             {
-               GdkColor *foreground = pthread_getspecific(_dw_fg_color_key);
-               GdkColor *background = pthread_getspecific(_dw_bg_color_key);
+               GdkRGBA *foreground = pthread_getspecific(_dw_fg_color_key);
+               GdkRGBA *background = pthread_getspecific(_dw_bg_color_key);
 
                pango_layout_set_font_description(layout, font);
                pango_layout_set_text(layout, text, strlen(text));
 
-               gdk_cairo_set_source_color (cr, foreground);
+               gdk_cairo_set_source_rgba(cr, foreground);
                /* Create a background color attribute if required */
                if(background)
                {
                   PangoAttrList *list = pango_layout_get_attributes(layout);
-                  PangoAttribute *attr = pango_attr_background_new(background->red,
-                                                                   background->green,
-                                                                   background->blue);
+                  PangoAttribute *attr = pango_attr_background_new((guint16)(background->red * 65535),
+                                                                   (guint16)(background->green * 65535),
+                                                                   (guint16)(background->blue* 65535));
                   if(!list)
                   {
                      list = pango_attr_list_new();
@@ -8164,7 +8164,7 @@ void _dwthreadstart(void *data)
 {
    void (*threadfunc)(void *) = NULL;
    void **tmp = (void **)data;
-   GdkColor *foreground, *background;
+   GdkRGBA *foreground, *background;
 
    threadfunc = (void (*)(void *))tmp[0];
 
