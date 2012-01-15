@@ -577,23 +577,6 @@ void _dw_pool_drain(void);
 #define KC_SHIFT                 (1 << 1)
 #define KC_ALT                   (1 << 2)
 
-#define STATICCLASSNAME "STATIC"
-#define COMBOBOXCLASSNAME "COMBOBOX"
-#define LISTBOXCLASSNAME "LISTBOX"
-#define BUTTONCLASSNAME "BUTTON"
-#define POPUPMENUCLASSNAME "POPUPMENU"
-#define EDITCLASSNAME "EDIT"
-#define FRAMECLASSNAME "FRAME"
-#define SCROLLBARCLASSNAME "SCROLLBAR"
-
-#define ClassName "dynamicwindows"
-#define SplitbarClassName "dwsplitbar"
-#define ObjectClassName "dwobjectclass"
-#define BrowserClassName "dwbrowserclass"
-#define ScrollClassName "dwscrollclass"
-#define StatusbarClassName "dwstatusbar"
-#define DefaultFont NULL
-
 typedef struct _color {
    int fore;
    int back;

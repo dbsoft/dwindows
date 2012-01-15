@@ -3,7 +3,7 @@
  *          A GTK like cross-platform GUI
  *          GTK3 forwarder module for portabilty.
  *
- * (C) 2000-2011 Brian Smith <brian@dbsoft.org>
+ * (C) 2000-2012 Brian Smith <brian@dbsoft.org>
  * (C) 2003-2011 Mark Hessling <mark@rexx.org>
  * (C) 2002 Nickolay V. Shmyrev <shmyrev@yandex.ru>
  */

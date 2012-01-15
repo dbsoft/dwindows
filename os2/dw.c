@@ -2,7 +2,7 @@
  * Dynamic Windows:
  *          A GTK like implementation of the PM GUI
  *
- * (C) 2000-2011 Brian Smith <brian@dbsoft.org>
+ * (C) 2000-2012 Brian Smith <brian@dbsoft.org>
  * (C) 2003-2011 Mark Hessling <mark@rexx.org>
  * (C) 2000 Achim Hasenmueller <achimha@innotek.de>
  * (C) 2000 Peter Nielsen <peter@pmview.com>
@@ -4635,7 +4635,7 @@ Item *_box_item(HWND handle)
  * These are the general rules for widget sizes:
  * 
  * Render/Unspecified: 1x1
- * Scrolled(Container,Tree,MLE): 500x200
+ * Scrolled(Container,Tree,MLE): Guessed size clamped to min and max in dw.h
  * Entryfield/Combobox/Spinbutton: 150x(maxfontheight)
  * Spinbutton: 50x(maxfontheight)
  * Text/Status: (textwidth)x(textheight)
