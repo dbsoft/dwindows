@@ -577,6 +577,7 @@ static void gtk_mdi_realize(GtkWidget *widget)
    GdkWindowAttr attributes;
    gint attributes_mask;
    GdkWindow *thiswindow;
+   GtkStyleContext *context;
 
    mdi = GTK_MDI (widget);
 
@@ -603,11 +604,10 @@ static void gtk_mdi_realize(GtkWidget *widget)
    thiswindow = gdk_window_new (gtk_widget_get_parent_window(widget), &attributes, attributes_mask);
    gtk_widget_set_window(widget, thiswindow);
    
-   gtk_widget_set_style(widget, gtk_style_attach (gtk_widget_get_style(widget), thiswindow));
-
    gdk_window_set_user_data (gtk_widget_get_window(widget), widget);
 
-   gtk_style_set_background (gtk_widget_get_style(widget), gtk_widget_get_window(widget), GTK_STATE_NORMAL);
+   if((context = gtk_widget_get_style_context(widget)))
+      gtk_style_context_set_background (context, gtk_widget_get_window(widget));
 }
 
 static void gtk_mdi_get_preferred_width (GtkWidget *widget, gint *minimum_width, gint *natural_width)
@@ -1852,8 +1852,6 @@ int dw_int_init(DWResources *res, int newthread, int *argc, char **argv[])
 
    /* Create a global object for glib activities */
    _DWObject = g_object_new(G_TYPE_OBJECT, NULL);
-
-   gtk_rc_parse_string("style \"gtk-tooltips-style\" { bg[NORMAL] = \"#eeee00\" } widget \"gtk-tooltips\" style \"gtk-tooltips-style\"");
 
 #ifdef USE_WEBKIT
    init_webkit();
