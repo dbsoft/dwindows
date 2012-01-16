@@ -553,7 +553,7 @@ typedef struct _bitbltinfo
         [NSGraphicsContext saveGraphicsState];
         [NSGraphicsContext setCurrentContext:[NSGraphicsContext
                                               graphicsContextWithGraphicsPort:[[NSGraphicsContext graphicsContextWithBitmapImageRep:bltdest] graphicsPort] flipped:YES]];
-        [[NSDictionary alloc] initWithObjectsAndKeys:bltdest, NSGraphicsContextDestinationAttributeName, nil];
+        [[[NSDictionary alloc] initWithObjectsAndKeys:bltdest, NSGraphicsContextDestinationAttributeName, nil] autorelease];
     }
     else
     {
@@ -2268,9 +2268,9 @@ void _free_tree_recurse(NSMutableArray *node, NSMutableArray *item)
 
     if(self)
     {
-        textfield = [[NSTextField alloc] init];
+        textfield = [[[NSTextField alloc] init] autorelease];
         [self addSubview:textfield];
-        stepper = [[DWStepper alloc] init];
+        stepper = [[[DWStepper alloc] init] autorelease];
         [self addSubview:stepper];
         [stepper setParent:self];
         [stepper setTextfield:textfield];
@@ -3139,7 +3139,7 @@ char * API dw_file_browse(char *title, char *defpath, char *ext, int flags)
         /* Handle file types */
         if(ext)
         {
-            NSArray* fileTypes = [[NSArray alloc] initWithObjects:[NSString stringWithUTF8String:ext], nil];
+            NSArray* fileTypes = [[[NSArray alloc] initWithObjects:[NSString stringWithUTF8String:ext], nil] autorelease];
             [openDlg setAllowedFileTypes:fileTypes];
         }
 
@@ -3176,7 +3176,7 @@ char * API dw_file_browse(char *title, char *defpath, char *ext, int flags)
         /* Handle file types */
         if(ext)
         {
-            NSArray* fileTypes = [[NSArray alloc] initWithObjects:[NSString stringWithUTF8String:ext], nil];
+            NSArray* fileTypes = [[[NSArray alloc] initWithObjects:[NSString stringWithUTF8String:ext], nil] autorelease];
             [saveDlg setAllowedFileTypes:fileTypes];
         }
         
@@ -3881,7 +3881,7 @@ HWND API dw_entryfield_password_new(char *text, ULONG cid)
 void API dw_entryfield_set_limit(HWND handle, ULONG limit)
 {
     DWEntryField *entry = handle;
-    DWEntryFieldFormatter *formatter = [[DWEntryFieldFormatter alloc] init];
+    DWEntryFieldFormatter *formatter = [[[DWEntryFieldFormatter alloc] init] autorelease];
 
     [formatter setMaximumLength:(int)limit];
     [[entry cell] setFormatter:formatter];
@@ -3983,8 +3983,6 @@ HWND API dw_spinbutton_new(char *text, ULONG cid)
     [stepper setMaxValue:65536];
     [stepper setIntValue:atoi(text)];
     [textfield takeIntValueFrom:stepper];
-    [stepper autorelease];
-    [textfield autorelease];
     return spinbutton;
 }
 
@@ -4296,7 +4294,7 @@ HWND API dw_listbox_new(ULONG cid, int multi)
     [cont setHeaderView:nil];
     int type = DW_CFA_STRING;
     [cont setup];
-    NSTableColumn *column = [[NSTableColumn alloc] init];
+    NSTableColumn *column = [[[NSTableColumn alloc] init] autorelease];
     [column setEditable:NO];
     [cont addTableColumn:column];
     [cont addColumn:column andType:type];
@@ -5148,6 +5146,7 @@ unsigned long API dw_color_choose(unsigned long value)
     /* Figure out the value of what they returned */
     CGFloat red, green, blue;
     [color getRed:&red green:&green blue:&blue alpha:NULL];
+    [color release];
     value = DW_RGB((int)(red * 255), (int)(green *255), (int)(blue *255));
     return value;
 }
@@ -5831,7 +5830,7 @@ HWND API dw_container_new(ULONG cid, int multi)
     DWContainer *cont = _cont_new(cid, multi);
     NSScrollView *scrollview = [cont scrollview];
     [scrollview setHasHorizontalScroller:YES];
-    NSTableHeaderView *header = [[NSTableHeaderView alloc] init];
+    NSTableHeaderView *header = [[[NSTableHeaderView alloc] init] autorelease];
     [cont setHeaderView:header];
     [cont setTarget:cont];
     [cont setDoubleAction:@selector(doubleClicked:)];
@@ -6081,7 +6080,7 @@ void API dw_filesystem_set_file(HWND handle, void *pointer, int row, char *filen
         lastadd = [cont lastAddPoint];
     }
 
-    browsercell = [[DWImageAndTextCell alloc] init];
+    browsercell = [[[DWImageAndTextCell alloc] init] autorelease];
     [browsercell setImage:icon];
     [browsercell setStringValue:[ NSString stringWithUTF8String:filename ]];
     [cont editCell:browsercell at:(row+lastadd) and:0];
@@ -6757,7 +6756,7 @@ void _flip_image(NSImage *tmpimage, NSBitmapImageRep *image, NSSize size)
     [NSGraphicsContext setCurrentContext:[NSGraphicsContext
                                           graphicsContextWithGraphicsPort:[[NSGraphicsContext graphicsContextWithBitmapImageRep:image] graphicsPort]
                                           flipped:YES]];
-    [[NSDictionary alloc] initWithObjectsAndKeys:image, NSGraphicsContextDestinationAttributeName, nil];
+    [[[NSDictionary alloc] initWithObjectsAndKeys:image, NSGraphicsContextDestinationAttributeName, nil] autorelease];
     // make a new transform:
     NSAffineTransform *t = [NSAffineTransform transform];
 
@@ -6792,11 +6791,11 @@ HPIXMAP API dw_pixmap_new_from_file(HWND handle, char *filename)
     if(!(pixmap = calloc(1,sizeof(struct _hpixmap))))
         return NULL;
     NSString *nstr = [ NSString stringWithUTF8String:filename ];
-    NSImage *tmpimage = [[NSImage alloc] initWithContentsOfFile:nstr];
+    NSImage *tmpimage = [[[NSImage alloc] initWithContentsOfFile:nstr] autorelease];
     if(!tmpimage && ext)
     {
         nstr = [nstr stringByAppendingString: [NSString stringWithUTF8String:ext]];
-        tmpimage = [[NSImage alloc] initWithContentsOfFile:nstr];
+        tmpimage = [[[NSImage alloc] initWithContentsOfFile:nstr] autorelease];
     }
     if(!tmpimage)
         return NULL;
@@ -6837,7 +6836,7 @@ HPIXMAP API dw_pixmap_new_from_data(HWND handle, char *data, int len)
     if(!(pixmap = calloc(1,sizeof(struct _hpixmap))))
         return NULL;
     NSData *thisdata = [NSData dataWithBytes:data length:len];
-    NSImage *tmpimage = [[NSImage alloc] initWithData:thisdata];
+    NSImage *tmpimage = [[[NSImage alloc] initWithData:thisdata] autorelease];
     if(!tmpimage)
         return NULL;
     NSSize size = [tmpimage size];
@@ -8486,7 +8485,7 @@ void API dw_window_set_bitmap(HWND handle, unsigned long resid, char *filename)
 
         if(filename)
         {
-             bitmap = [[NSImage alloc] initWithContentsOfFile:[ NSString stringWithUTF8String:filename ]];
+             bitmap = [[[NSImage alloc] initWithContentsOfFile:[ NSString stringWithUTF8String:filename ]] autorelease];
         }
         else if(resid > 0 && resid < 65536)
         {
