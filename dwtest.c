@@ -704,7 +704,7 @@ int DWSIGNAL configure_event(HWND hwnd, int width, int height, void *data)
 
     /* Make sure the side area is cleared */
     dw_color_foreground_set(DW_CLR_WHITE);
-    dw_draw_rect(0, text1pm, DW_DRAW_FILL, 0, 0, DW_PIXMAP_WIDTH(text1pm), DW_PIXMAP_HEIGHT(text1pm));
+    dw_draw_rect(0, text1pm, DW_DRAW_FILL, 0, 0, (int)DW_PIXMAP_WIDTH(text1pm), (int)DW_PIXMAP_HEIGHT(text1pm));
     
    /* Destroy the old pixmaps */
     dw_pixmap_destroy(old1);
@@ -1366,7 +1366,7 @@ void menu_add(void)
     dw_signal_connect( checkable_menuitem, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(menu_callback), (void *)"checkable");
     noncheckable_menuitem = dw_menu_append_item( changeable_menu, "~Non-checkable Menu Item", NONCHECKABLE_MENUITEMID, 0, TRUE, FALSE, 0 );
     dw_signal_connect( noncheckable_menuitem, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(menu_callback), (void *)"non-checkable");
-    menuitem = dw_menu_append_item( changeable_menu, "~Disabled menu Item", 2003, DW_MIS_DISABLED|DW_MIS_CHECKED, TRUE, TRUE, 0 );
+    dw_menu_append_item( changeable_menu, "~Disabled menu Item", 2003, DW_MIS_DISABLED|DW_MIS_CHECKED, TRUE, TRUE, 0 );
     /* seperator */
     dw_menu_append_item( changeable_menu, DW_MENU_SEPARATOR, 3999, 0, TRUE, FALSE, 0 );
     menuitem = dw_menu_append_item( changeable_menu, "~Menu Items Disabled", 2009, 0, TRUE, TRUE, 0 );
