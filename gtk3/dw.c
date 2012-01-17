@@ -8367,7 +8367,7 @@ void _get_scrolled_size(GtkWidget *item, gint *thiswidth, gint *thisheight)
          ptr = buf = alloca(bytes + 2);
          dw_mle_export(item, buf, 0, (int)bytes);
          buf[bytes] = 0;
-         strcat(buf, "\n");
+         strcat(buf, "\r");
          
          /* MLE */
          while((ptr = strstr(buf, "\r")))
