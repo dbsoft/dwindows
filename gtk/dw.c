@@ -10019,6 +10019,85 @@ void _rearrange_table(GtkWidget *widget, gpointer data)
    }
 }
 
+/* Internal function to get the recommended size of scrolled items */
+void _get_scrolled_size(GtkWidget *item, gint *thiswidth, gint *thisheight)
+{
+   GtkWidget *widget = gtk_object_get_user_data(GTK_OBJECT(item));
+
+   /* Try to figure out the contents for MLE and Container */
+   if(widget && (GTK_IS_TEXT_VIEW(widget) || GTK_IS_CLIST(widget)))
+   {
+      if(GTK_IS_CLIST(widget))
+      {
+         GtkRequisition req;
+         
+         gtk_widget_size_request(widget, &req);
+         
+         *thiswidth = req.width + 20;
+         *thisheight = req.height + 20;
+      }
+      else
+      {
+         unsigned long bytes;
+         int height, width;
+         char *buf, *ptr;
+         int basicwidth;
+         int wrap = (gtk_text_view_get_wrap_mode(GTK_TEXT_VIEW(widget)) == GTK_WRAP_WORD);
+         static char testtext[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+         
+         *thisheight = 20;
+         basicwidth = *thiswidth = 20;
+         
+         dw_mle_get_size(item, &bytes, NULL);
+         
+         ptr = buf = alloca(bytes + 2);
+         dw_mle_export(item, buf, 0, (int)bytes);
+         buf[bytes] = 0;
+         strcat(buf, "\n");
+         
+         /* MLE */
+         while((ptr = strstr(buf, "\n")))
+         {
+            ptr[0] = 0;
+            width = 0;
+            if(strlen(buf))
+               dw_font_text_extents_get(item, NULL, buf, &width, &height);
+            else
+               dw_font_text_extents_get(item, NULL, testtext, NULL, &height);
+            
+            width += basicwidth;
+            
+            if(wrap && width > _DW_SCROLLED_MAX_WIDTH)
+            {
+               *thiswidth = _DW_SCROLLED_MAX_WIDTH;
+               *thisheight += height * (width / _DW_SCROLLED_MAX_WIDTH);
+            }
+            else
+            {
+               if(width > *thiswidth)
+                  *thiswidth = width > _DW_SCROLLED_MAX_WIDTH ? _DW_SCROLLED_MAX_WIDTH : width;
+            }
+            *thisheight += height;
+            buf = &ptr[1];
+         }
+      }
+   }
+   else
+   {
+      /* Set to max for others */
+      *thiswidth = _DW_SCROLLED_MAX_WIDTH;
+      *thisheight = _DW_SCROLLED_MAX_HEIGHT;
+   }
+   if(*thiswidth < _DW_SCROLLED_MIN_WIDTH)
+      *thiswidth = _DW_SCROLLED_MIN_WIDTH;
+   if(*thiswidth > _DW_SCROLLED_MAX_WIDTH)
+      *thiswidth = _DW_SCROLLED_MAX_WIDTH;
+   if(*thisheight < _DW_SCROLLED_MIN_HEIGHT)
+      *thisheight = _DW_SCROLLED_MIN_HEIGHT;
+   if(*thisheight > _DW_SCROLLED_MAX_HEIGHT)
+      *thisheight = _DW_SCROLLED_MAX_HEIGHT;
+}
+
 /* Internal box packing function called by the other 3 functions */
 void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsize, int vsize, int pad, char *funcname)
 {
@@ -10121,42 +10200,16 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
          /* If it is a scrolled item and not expandable...
           * Clamp to minumum or maximum.
           */         
-         if(GTK_IS_SCROLLED_WINDOW(item))
+         if(GTK_IS_SCROLLED_WINDOW(item) && ((width < 1 && !hsize) || (height < 1 && !vsize)))
          {
-            GtkWidget *widget = gtk_object_get_user_data(GTK_OBJECT(item));
-            
-            /* Try to figure out the contents for MLE and Container */
-            if(widget && (GTK_IS_TEXT_VIEW(widget) || GTK_IS_CLIST(widget)))
-            {
-               GtkRequisition req;
-               
-               gtk_widget_size_request(widget, &req);
-               
-               if(thiswidth < 1 && !hsize)
-               {
-                  thiswidth = req.width + 20;
-                  if(thiswidth < _DW_SCROLLED_MIN_WIDTH)
-                     thiswidth = _DW_SCROLLED_MIN_WIDTH;
-                  if(thiswidth > _DW_SCROLLED_MAX_WIDTH)
-                     thiswidth = _DW_SCROLLED_MAX_WIDTH;
-               }
-               if(thisheight < 1 && !vsize)
-               {
-                  thisheight = req.height + 20;
-                  if(thisheight < _DW_SCROLLED_MIN_HEIGHT)
-                     thisheight = _DW_SCROLLED_MIN_HEIGHT;
-                  if(thisheight > _DW_SCROLLED_MAX_HEIGHT)
-                     thisheight = _DW_SCROLLED_MAX_HEIGHT;
-               }
-            }
-            else
-            {
-               /* Set to max for others */
-               if(thiswidth < 1 && !hsize)
-                  thiswidth = _DW_SCROLLED_MAX_WIDTH;
-               if(thisheight < 1 && !vsize)
-                  thisheight = _DW_SCROLLED_MAX_HEIGHT;
-            }
+            gint scrolledwidth = 0, scrolledheight = 0;
+         
+            _get_scrolled_size(item, &scrolledwidth, &scrolledheight);
+         
+            if(width < 1 && !hsize)
+               thiswidth = scrolledwidth;
+            if(height < 1 && !vsize)
+               thisheight = scrolledheight;
          }
          gtk_widget_set_usize(item, thiswidth, thisheight);
       }
@@ -10408,11 +10461,25 @@ void API dw_window_get_preferred_size(HWND handle, int *width, int *height)
    int _locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
-   gtk_widget_size_request(handle, &req);
-   if(width)
-      *width = req.width;
-   if(height)
-      *height = req.height;
+   if(GTK_IS_SCROLLED_WINDOW(handle))
+   {
+      gint scrolledwidth, scrolledheight;
+      
+      _get_scrolled_size(handle, &scrolledwidth, &scrolledheight);
+      
+      if(width)
+         *width = scrolledwidth;
+      if(height)
+         *height = scrolledheight;
+   }
+   else
+   {
+      gtk_widget_size_request(handle, &req);
+      if(width)
+         *width = req.width;
+      if(height)
+         *height = req.height;
+   }
    DW_MUTEX_UNLOCK;
 }
 

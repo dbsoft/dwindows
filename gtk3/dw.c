@@ -8337,6 +8337,94 @@ void dw_exit(int exitcode)
    exit(exitcode);
 }
 
+/* Internal function to get the recommended size of scrolled items */
+void _get_scrolled_size(GtkWidget *item, gint *thiswidth, gint *thisheight)
+{
+   GtkWidget *widget = g_object_get_data(G_OBJECT(item), "_dw_user");
+   
+   *thisheight = *thiswidth = 0;
+   
+   if(widget)
+   {
+      if(g_object_get_data(G_OBJECT(widget), "_dw_tree_type") == GINT_TO_POINTER(_DW_TREE_TYPE_TREE))
+      {
+         *thiswidth = _DW_SCROLLED_MAX_WIDTH;
+         *thisheight = _DW_SCROLLED_MAX_HEIGHT;
+      }
+      else if(GTK_IS_TEXT_VIEW(widget))
+      {
+         unsigned long bytes;
+         int height, width;
+         char *buf, *ptr;
+         int wrap = (gtk_text_view_get_wrap_mode(GTK_TEXT_VIEW(widget)) == GTK_WRAP_WORD);
+         static char testtext[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+         int hscrolled = FALSE;
+         
+         *thiswidth = *thisheight = 0;
+         
+         dw_mle_get_size(item, &bytes, NULL);
+         
+         ptr = buf = alloca(bytes + 2);
+         dw_mle_export(item, buf, 0, (int)bytes);
+         buf[bytes] = 0;
+         strcat(buf, "\n");
+         
+         /* MLE */
+         while((ptr = strstr(buf, "\r")))
+         {
+            ptr[0] = 0;
+            width = 0;
+            if(strlen(buf))
+               dw_font_text_extents_get(item, NULL, buf, &width, &height);
+            else
+               dw_font_text_extents_get(item, NULL, testtext, NULL, &height);
+            
+            if(wrap && width > _DW_SCROLLED_MAX_WIDTH)
+            {
+               *thiswidth = _DW_SCROLLED_MAX_WIDTH;
+               *thisheight += height * (width / _DW_SCROLLED_MAX_WIDTH);
+            }
+            else
+            {
+               if(width > *thiswidth)
+               {
+                  if(width > _DW_SCROLLED_MAX_WIDTH)
+                  {
+                     *thiswidth = _DW_SCROLLED_MAX_WIDTH;
+                     hscrolled = TRUE;
+                  }
+                  else
+                     *thiswidth = width;
+               }
+            }
+            *thisheight += height;
+            if(ptr[1] == '\n')
+               buf = &ptr[2];
+            else
+               buf = &ptr[1];
+         }
+         if(hscrolled)
+            *thisheight += 20;
+      }
+      else
+      {
+         gtk_widget_get_preferred_height(GTK_WIDGET(widget), NULL, thisheight);
+         gtk_widget_get_preferred_width(GTK_WIDGET(widget), NULL, thiswidth);
+         
+         *thisheight += 20;
+         *thiswidth += 20;
+      }
+   }
+   if(*thiswidth < _DW_SCROLLED_MIN_WIDTH)
+      *thiswidth = _DW_SCROLLED_MIN_WIDTH;
+   if(*thiswidth > _DW_SCROLLED_MAX_WIDTH)
+      *thiswidth = _DW_SCROLLED_MAX_WIDTH;
+   if(*thisheight < _DW_SCROLLED_MIN_HEIGHT)
+      *thisheight = _DW_SCROLLED_MIN_HEIGHT;
+   if(*thisheight > _DW_SCROLLED_MAX_HEIGHT)
+      *thisheight = _DW_SCROLLED_MAX_HEIGHT;
+}
+
 /* Internal box packing function called by the other 3 functions */
 void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsize, int vsize, int pad, char *funcname)
 {
@@ -8467,48 +8555,20 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
       /* Special case for scrolled windows */
       if(GTK_IS_SCROLLED_WINDOW(item))
       {
+         gint scrolledwidth = 0, scrolledheight = 0;
+         
+         /* Pre-run the calculation code for MLE/Container/Tree if needed */
+         if((width < 1 && !hsize) || (height < 1 && !vsize))
+            _get_scrolled_size(item, &scrolledwidth, &scrolledheight);
+         
          if(width > 0)
             gtk_scrolled_window_set_min_content_width(GTK_SCROLLED_WINDOW(item), width);
          else if(!hsize)
-         {
-            /* If we aren't expandable set the minimum width */
-            gint thiswidth = 0;
-            GtkWidget *widget = g_object_get_data(G_OBJECT(item), "_dw_user");
-            
-            if(widget)
-            {
-               if(g_object_get_data(G_OBJECT(widget), "_dw_tree_type") == GINT_TO_POINTER(_DW_TREE_TYPE_TREE))
-                  thiswidth = _DW_SCROLLED_MAX_WIDTH;
-               else
-                  gtk_widget_get_preferred_width(GTK_WIDGET(widget), NULL, &thiswidth);
-            }
-            if(thiswidth < _DW_SCROLLED_MIN_WIDTH)
-               thiswidth = _DW_SCROLLED_MIN_WIDTH;
-            if(thiswidth > _DW_SCROLLED_MAX_WIDTH)
-               thiswidth = _DW_SCROLLED_MAX_WIDTH;
-            gtk_scrolled_window_set_min_content_width(GTK_SCROLLED_WINDOW(item), thiswidth);
-         }
+            gtk_scrolled_window_set_min_content_width(GTK_SCROLLED_WINDOW(item), scrolledwidth);
          if(height > 0)
             gtk_scrolled_window_set_min_content_height(GTK_SCROLLED_WINDOW(item), height);
          else if(!vsize)
-         {
-            /* If we aren't expandable set the minimum height */
-            gint thisheight = 0;
-            GtkWidget *widget = g_object_get_data(G_OBJECT(item), "_dw_user");
-            
-            if(widget)
-            {
-               if(g_object_get_data(G_OBJECT(widget), "_dw_tree_type") == GINT_TO_POINTER(_DW_TREE_TYPE_TREE))
-                  thisheight = _DW_SCROLLED_MAX_HEIGHT;
-               else
-                 gtk_widget_get_preferred_height(GTK_WIDGET(widget), NULL, &thisheight);
-            }
-            if(thisheight < _DW_SCROLLED_MIN_HEIGHT)
-               thisheight = _DW_SCROLLED_MIN_HEIGHT;
-            if(thisheight > _DW_SCROLLED_MAX_HEIGHT)
-               thisheight = _DW_SCROLLED_MAX_HEIGHT;
-            gtk_scrolled_window_set_min_content_height(GTK_SCROLLED_WINDOW(item), thisheight);
-         }
+            gtk_scrolled_window_set_min_content_height(GTK_SCROLLED_WINDOW(item), scrolledheight);
       }
       else
       {
@@ -8765,10 +8825,24 @@ void API dw_window_get_preferred_size(HWND handle, int *width, int *height)
    int _locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
-   if(width)
-      gtk_widget_get_preferred_width(handle, NULL, width);
-   if(height)
-      gtk_widget_get_preferred_height(handle, NULL, height);
+   if(GTK_IS_SCROLLED_WINDOW(handle))
+   {
+      gint scrolledwidth, scrolledheight;
+      
+      _get_scrolled_size(handle, &scrolledwidth, &scrolledheight);
+      
+      if(width)
+         *width = scrolledwidth;
+      if(height)
+         *height = scrolledheight;
+   }
+   else
+   {
+      if(width)
+         gtk_widget_get_preferred_width(handle, NULL, width);
+      if(height)
+         gtk_widget_get_preferred_height(handle, NULL, height);
+   }
    DW_MUTEX_UNLOCK;
 }
 
