@@ -8404,7 +8404,7 @@ void _get_scrolled_size(GtkWidget *item, gint *thiswidth, gint *thisheight)
                buf = &ptr[1];
          }
          if(hscrolled)
-            *thisheight += 20;
+            *thisheight += 10;
       }
       else
       {
