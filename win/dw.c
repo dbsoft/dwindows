@@ -4528,6 +4528,7 @@ void _control_size(HWND handle, int *width, int *height)
          
          ptr = buf = _alloca(bytes + 2);
          dw_mle_export(handle, buf, 0, (int)bytes);
+         buf[bytes] = 0;
          strcat(buf, "\n");
          
          /* MLE */
