@@ -5529,7 +5529,7 @@ void dw_mle_set_word_wrap(HWND handle, int state)
       GtkWidget *tmp = (GtkWidget *)gtk_object_get_user_data(GTK_OBJECT(handle));
 
       if(tmp && GTK_IS_TEXT_VIEW(tmp))
-         gtk_text_view_set_wrap_mode(GTK_TEXT_VIEW(tmp), GTK_WRAP_WORD);
+         gtk_text_view_set_wrap_mode(GTK_TEXT_VIEW(tmp), state ? GTK_WRAP_WORD : GTK_WRAP_NONE);
    }
 #else
    if(GTK_IS_BOX(handle))
@@ -10053,10 +10053,10 @@ void _get_scrolled_size(GtkWidget *item, gint *thiswidth, gint *thisheight)
          ptr = buf = alloca(bytes + 2);
          dw_mle_export(item, buf, 0, (int)bytes);
          buf[bytes] = 0;
-         strcat(buf, "\n");
+         strcat(buf, "\r");
          
          /* MLE */
-         while((ptr = strstr(buf, "\n")))
+         while((ptr = strstr(buf, "\r")))
          {
             ptr[0] = 0;
             width = 0;
@@ -10078,7 +10078,10 @@ void _get_scrolled_size(GtkWidget *item, gint *thiswidth, gint *thisheight)
                   *thiswidth = width > _DW_SCROLLED_MAX_WIDTH ? _DW_SCROLLED_MAX_WIDTH : width;
             }
             *thisheight += height;
-            buf = &ptr[1];
+           if(ptr[1] == '\n')
+               buf = &ptr[2];
+            else
+               buf = &ptr[1];
          }
       }
    }
