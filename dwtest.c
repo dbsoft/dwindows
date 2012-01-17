@@ -571,19 +571,13 @@ int DWSIGNAL helpabout_callback(HWND window, void *data)
 
 int DWSIGNAL exit_callback(HWND window, void *data)
 {
-    dw_taskbar_delete(textbox1, fileicon);
-    dw_window_destroy((HWND)data);
-    exit(0);
-    return -1;
-}
-
-int DWSIGNAL test_callback(HWND window, void *data)
-{
-    dw_window_destroy((HWND)data);
-    if ( current_file )
-        dw_free( current_file );
-    exit(0);
-    return -1;
+    if(dw_messagebox("dwtest", DW_MB_YESNO | DW_MB_QUESTION, "Are you sure you want to exit?"))
+    {
+        dw_taskbar_delete(textbox1, fileicon);
+        dw_window_destroy((HWND)data);
+        dw_main_quit();
+    }
+    return TRUE;
 }
 
 int DWSIGNAL browse_file_callback(HWND window, void *data)
@@ -1698,5 +1692,7 @@ int main(int argc, char *argv[])
 
     dw_main();
 
+    dw_debug("dwtest exiting...");
+    dw_exit(0);
     return 0;
 }

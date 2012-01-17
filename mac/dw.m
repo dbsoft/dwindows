@@ -2,7 +2,7 @@
  * Dynamic Windows:
  *          A GTK like implementation of the MacOS GUI using Cocoa
  *
- * (C) 2012 Brian Smith <brian@dbsoft.org>
+ * (C) 2011-2012 Brian Smith <brian@dbsoft.org>
  * (C) 2011 Mark Hessling <mark@rexx.org>
  *
  * Requires 10.5 or later.
@@ -2922,7 +2922,10 @@ void API dw_main_iteration(void)
  */
 void API dw_exit(int exitcode)
 {
-    _dw_pool_drain();
+#if !defined(GARBAGE_COLLECT)
+    pool = pthread_getspecific(_dw_pool_key);
+    [pool drain];
+#endif
     exit(exitcode);
 }
 
