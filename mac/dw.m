@@ -487,6 +487,21 @@ HMTX DWThreadMutex2;
 DWTID DWThread = (DWTID)-1;
 DWTID _dw_mutex_locked = (DWTID)-1;
 
+/* Send fake event to make sure the loop isn't stuck */
+void _dw_wakeup_app()
+{
+    [DWApp postEvent:[NSEvent otherEventWithType:NSApplicationDefined
+                                        location:NSMakePoint(0, 0)
+                                   modifierFlags:0
+                                       timestamp:0
+                                    windowNumber:0
+                                         context:NULL
+                                         subtype:0
+                                           data1:0
+                                           data2:0]
+             atStart:NO];
+}
+
 /* Used for doing bitblts from the main thread */
 typedef struct _bitbltinfo
 {
@@ -915,10 +930,8 @@ DWObject *DWObj;
 -(void)setMenu:(NSMenu *)input { windowmenu = input; [windowmenu retain]; }
 -(void)menuHandler:(id)sender 
 { 
-    if(DWOSMinor > 5)
-        [DWObj performSelector:@selector(menuHandler:) withObject:sender afterDelay:0]; 
-    else
-        [DWObj menuHandler:sender];
+    [DWObj performSelector:@selector(menuHandler:) withObject:sender afterDelay:0];
+    _dw_wakeup_app();
 }
 -(void)mouseDragged:(NSEvent *)theEvent { _event_handler(self, theEvent, 5); }
 -(void)mouseMoved:(NSEvent *)theEvent
@@ -2826,6 +2839,7 @@ void API dw_main(void)
 void API dw_main_quit(void)
 {
     [DWApp stop:nil];
+    _dw_wakeup_app();
 }
 
 /*
@@ -9710,9 +9724,7 @@ static void _handle_sem(int *tmpsock)
             }
          }
       }
-
    }
-
 }
 
 /* Using domain sockets on unix for IPC */
