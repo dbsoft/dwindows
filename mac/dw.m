@@ -1160,6 +1160,23 @@ DWObject *DWObj;
 -(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); dw_signal_disconnect_by_window(self); [super dealloc]; }
 @end
 
+/* Subclass for a text and status text type */
+@interface DWText : NSTextField
+{
+    void *userdata;
+    id clickDefault;
+}
+-(void *)userdata;
+-(void)setUserdata:(void *)input;
+@end
+
+@implementation DWText
+-(void *)userdata { return userdata; }
+-(void)setUserdata:(void *)input { userdata = input; }
+-(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); [super dealloc]; }
+@end
+
+
 /* Subclass for a entryfield password type */
 @interface DWEntryFieldPassword : NSSecureTextField
 {
@@ -3625,22 +3642,25 @@ void _control_size(id handle, int *width, int *height)
     else if([ object isKindOfClass:[ NSControl class ] ])
         nsstr = [object stringValue];
     
-    /* Handle static text fields */
-    if([object isKindOfClass:[ NSTextField class ]] && ![object isEditable])
-    {
-        /* Handle status bar field */
-        if([object isBordered] || (DWOSMinor > 5 && [object isBezeled]))
-            extrawidth = 12;
-        else
-            extrawidth = 10;
-    }
-    
     /* If we have a string... 
      * calculate the size with the current font.
      */
     if(nsstr && [nsstr length])
         dw_font_text_extents_get(object, NULL, (char *)[nsstr UTF8String], &thiswidth, &thisheight);
-
+    
+    /* Handle static text fields */
+    if([object isKindOfClass:[ NSTextField class ]] && ![object isEditable])
+    {
+        /* Handle status bar field */
+        if([object isBordered] || (DWOSMinor > 5 && [object isBezeled]))
+        {
+            extrawidth = 12;
+            extraheight = 4;
+        }
+        else
+            extrawidth = 10;
+    }
+    
     /* Set the requested sizes */    
     if(width)
         *width = thiswidth + extrawidth;
@@ -5046,7 +5066,7 @@ HWND API dw_status_text_new(char *text, ULONG cid)
  */
 HWND API dw_text_new(char *text, ULONG cid)
 {
-    NSTextField *textfield = [[NSTextField alloc] init];
+    DWText *textfield = [[DWText alloc] init];
     [textfield setEditable:NO];
     [textfield setSelectable:NO];
     [textfield setBordered:NO];
