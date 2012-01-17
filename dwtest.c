@@ -1,3 +1,8 @@
+/*
+ * An example Dynamic Windows application and
+ * testing ground for Dynamic Windows features.
+ * By: Brian Smith and Mark Hessling
+ */
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
@@ -573,8 +578,6 @@ int DWSIGNAL exit_callback(HWND window, void *data)
 {
     if(dw_messagebox("dwtest", DW_MB_YESNO | DW_MB_QUESTION, "Are you sure you want to exit?"))
     {
-        dw_taskbar_delete(textbox1, fileicon);
-        dw_window_destroy((HWND)data);
         dw_main_quit();
     }
     return TRUE;
@@ -905,13 +908,27 @@ int API motion_notify_event(HWND window, int x, int y, int buttonmask, void *dat
     return 0;
 }
 
+int DWSIGNAL show_window_callback(HWND window, void *data)
+{
+    HWND thiswindow = (HWND)data;
+    if(thiswindow)
+    {
+        dw_window_show(thiswindow);
+        dw_window_raise(thiswindow);
+    }
+    return TRUE;
+}
+
 int API context_menu_event(HWND window, int x, int y, int buttonmask, void *data)
 {
     HMENUI hwndMenu = dw_menu_new(0L);
-    HWND menuitem = dw_menu_append_item(hwndMenu, "~Quit", 1019, 0L, TRUE, FALSE, DW_NOMENU);
+    HWND menuitem = dw_menu_append_item(hwndMenu, "~Quit", DW_MENU_POPUP, 0L, TRUE, FALSE, DW_NOMENU);
     long px, py;
     
-    dw_signal_connect(menuitem, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(exit_callback), (void *)mainwindow);    
+    dw_signal_connect(menuitem, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(exit_callback), (void *)mainwindow);
+    dw_menu_append_item(hwndMenu, DW_MENU_SEPARATOR, DW_MENU_POPUP, 0L, TRUE, FALSE, DW_NOMENU);
+    menuitem = dw_menu_append_item(hwndMenu, "~Show Window", DW_MENU_POPUP, 0L, TRUE, FALSE, DW_NOMENU);
+    dw_signal_connect(menuitem, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(show_window_callback), (void *)mainwindow);
     dw_pointer_query_pos(&px, &py);
     /* Use the toplevel window handle here.... because on the Mac..
      * using the control itself, when a different tab is active
@@ -1600,8 +1617,10 @@ int main(int argc, char *argv[])
     ULONG notebookpage8;
     ULONG notebookpage9;
 
+    /* Initialize the Dynamic Windows engine */
     dw_init(TRUE, argc, argv);
 
+    /* Create our window */
     mainwindow = dw_window_new( HWND_DESKTOP, "dwindows test", flStyle | DW_FCF_SIZEBORDER | DW_FCF_MINMAX);
     dw_window_set_icon(mainwindow, fileicon);
 
@@ -1690,9 +1709,17 @@ int main(int argc, char *argv[])
     dw_window_set_size(mainwindow, 640, 520);
     dw_window_show(mainwindow);
 
+    /* Now that the window is created and shown...
+     * run the main loop until we get dw_main_quit()
+     */
     dw_main();
 
-    dw_debug("dwtest exiting...");
+    /* Now that the loop is done we can cleanup */
+    dw_taskbar_delete(textbox1, fileicon);
+    dw_window_destroy(mainwindow);
+    
+    dw_debug("dwtest exiting...\n");
+    /* Call dw_exit() to shutdown the Dynamic Windows engine */
     dw_exit(0);
     return 0;
 }
