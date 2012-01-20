@@ -4592,8 +4592,8 @@ void _control_size(HWND handle, int *width, int *height)
    /* Tree */
    else if(strnicmp(tmpbuf, WC_TREEVIEW, strlen(WC_TREEVIEW)+1)== 0)
    {
-      thiswidth = _DW_SCROLLED_MAX_WIDTH;
-      thisheight = _DW_SCROLLED_MAX_HEIGHT;
+      thiswidth = (int)((_DW_SCROLLED_MAX_WIDTH + _DW_SCROLLED_MIN_WIDTH)/2);
+      thisheight = (int)((_DW_SCROLLED_MAX_HEIGHT + _DW_SCROLLED_MIN_HEIGHT)/2);
    }
    /* Buttons */
    else if(strnicmp(tmpbuf, BUTTONCLASSNAME, strlen(BUTTONCLASSNAME)+1) == 0)

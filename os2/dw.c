@@ -4788,8 +4788,8 @@ void _control_size(HWND handle, int *width, int *height)
    /* Container and Tree */
    else if(strncmp(tmpbuf, "#37", 4)==0)
    {
-       thiswidth = _DW_SCROLLED_MAX_WIDTH;
-       thisheight = _DW_SCROLLED_MAX_HEIGHT;
+      thiswidth = (int)((_DW_SCROLLED_MAX_WIDTH + _DW_SCROLLED_MIN_WIDTH)/2);
+      thisheight = (int)((_DW_SCROLLED_MAX_HEIGHT + _DW_SCROLLED_MIN_HEIGHT)/2);
    }
    /* Button */
    else if(strncmp(tmpbuf, "#3", 3)==0)

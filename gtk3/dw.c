@@ -8348,8 +8348,9 @@ void _get_scrolled_size(GtkWidget *item, gint *thiswidth, gint *thisheight)
    {
       if(g_object_get_data(G_OBJECT(widget), "_dw_tree_type") == GINT_TO_POINTER(_DW_TREE_TYPE_TREE))
       {
-         *thiswidth = _DW_SCROLLED_MAX_WIDTH;
-         *thisheight = _DW_SCROLLED_MAX_HEIGHT;
+         /* Set to half for tree */
+         *thiswidth = (int)((_DW_SCROLLED_MAX_WIDTH + _DW_SCROLLED_MIN_WIDTH)/2);
+         *thisheight = (int)((_DW_SCROLLED_MAX_HEIGHT + _DW_SCROLLED_MIN_HEIGHT)/2);
       }
       else if(GTK_IS_TEXT_VIEW(widget))
       {
