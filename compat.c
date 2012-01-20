@@ -42,9 +42,6 @@ void msleep(long period)
 	nanosleep(&req, NULL);
 #else
 	usleep((int)(period * 1000));
-#if defined(__MAC__) && !defined(GARBAGE_COLLECT)
-    _dw_pool_drain();
-#endif
 #endif
 }
 #endif
