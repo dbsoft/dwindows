@@ -3635,8 +3635,8 @@ void _control_size(id handle, int *width, int *height)
     /* Tree */
     else if([ object isMemberOfClass:[DWTree class] ])
     {
-        thiswidth = _DW_SCROLLED_MAX_WIDTH;
-        thisheight = _DW_SCROLLED_MAX_HEIGHT;
+        thiswidth = (int)((_DW_SCROLLED_MAX_WIDTH + _DW_SCROLLED_MIN_WIDTH)/2);
+        thisheight = (int)((_DW_SCROLLED_MAX_HEIGHT + _DW_SCROLLED_MIN_HEIGHT)/2);
     }
     /* Any other control type */
     else if([ object isKindOfClass:[ NSControl class ] ])

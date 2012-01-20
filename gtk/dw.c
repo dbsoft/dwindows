@@ -10087,9 +10087,9 @@ void _get_scrolled_size(GtkWidget *item, gint *thiswidth, gint *thisheight)
    }
    else
    {
-      /* Set to max for others */
-      *thiswidth = _DW_SCROLLED_MAX_WIDTH;
-      *thisheight = _DW_SCROLLED_MAX_HEIGHT;
+      /* Set to half for others */
+      *thiswidth = (int)((_DW_SCROLLED_MAX_WIDTH + _DW_SCROLLED_MIN_WIDTH)/2);
+      *thisheight = (int)((_DW_SCROLLED_MAX_HEIGHT + _DW_SCROLLED_MIN_HEIGHT)/2);
    }
    if(*thiswidth < _DW_SCROLLED_MIN_WIDTH)
       *thiswidth = _DW_SCROLLED_MIN_WIDTH;
