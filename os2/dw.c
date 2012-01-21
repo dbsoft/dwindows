@@ -4816,40 +4816,71 @@ void _control_size(HWND handle, int *width, int *height)
                /* If there are column titles ... */
                if(title)
                {
-                   int height = 0;
+                   unsigned long height = 0;
 
-                   dw_window_get_pos_size(handle, 0, 0, 0, &height);
-                   height += thisheight;
+                   dw_window_get_pos_size(title, 0, 0, 0, &height);
+                   if(height)
+                       thisheight += height;
+                   else
+                       thisheight += 28;
                }
 
                /* Cycle through all the records finding the maximums */
                pCore = WinSendMsg(handle, CM_QUERYRECORD, (MPARAM)0L, MPFROM2SHORT(CMA_FIRST, CMA_ITEMORDER));
-               while(pCore)
+
+               /* Method 1: With items in container */
+               if(pCore)
                {
-                   QUERYRECORDRECT qrr;
-                   int vector;
+                   while(pCore)
+                   {
+                       QUERYRECORDRECT qrr;
+                       int vector;
 
-                   qrr.cb = sizeof(QUERYRECORDRECT);
-                   qrr.pRecord = pCore;
-                   qrr.fRightSplitWindow = right;
-                   qrr.fsExtent = CMA_TEXT;
+                       qrr.cb = sizeof(QUERYRECORDRECT);
+                       qrr.pRecord = pCore;
+                       qrr.fRightSplitWindow = right;
+                       qrr.fsExtent = CMA_TEXT;
 
-                   WinSendMsg(handle, CM_QUERYRECORDRECT, (MPARAM)&item, (MPARAM)&qrr);
+                       WinSendMsg(handle, CM_QUERYRECORDRECT, (MPARAM)&item, (MPARAM)&qrr);
 
-                   vector = item.xRight - item.xLeft;
+                       vector = item.xRight - item.xLeft;
 
-                   if(vector > max)
-                       max = vector;
+                       if(vector > max)
+                           max = vector;
 
-                   thisheight += (item.yTop - item.yBottom);
+                       thisheight += (item.yTop - item.yBottom);
 
-                   pCore = WinSendMsg(handle, CM_QUERYRECORD, (MPARAM)pCore, MPFROM2SHORT(CMA_NEXT, CMA_ITEMORDER));
+                       pCore = WinSendMsg(handle, CM_QUERYRECORD, (MPARAM)pCore, MPFROM2SHORT(CMA_NEXT, CMA_ITEMORDER));
+                   }
+
+                   /* Add the widest item to the width */
+                   thiswidth += max;
+               }
+               else
+               {
+                   /* Method 2: No items */
+                   unsigned long width, height;
+                   HWND hscroll = WinWindowFromID(handle, right ? 32756 : 32755);
+                   MRESULT mr;
+
+                   /* Save the original size */
+                   dw_window_get_pos_size(handle, 0, 0, &width, &height);
+
+                   /* Set the size to the minimum */
+                   dw_window_set_size(handle, _DW_SCROLLED_MIN_WIDTH, _DW_SCROLLED_MIN_HEIGHT);
+
+                   /* With the minimum size check to see what the scrollbar says */
+                   mr = WinSendMsg(hscroll, SBM_QUERYRANGE, 0, 0);
+                   if(right)
+                       thiswidth += SHORT2FROMMP(mr);
+                   else if(SHORT2FROMMP(mr) != _DW_SCROLLED_MIN_HEIGHT)
+                       thiswidth += SHORT2FROMMP(mr) + _DW_SCROLLED_MIN_HEIGHT + WinQuerySysValue(HWND_DESKTOP, SV_CXVSCROLL);
+
+                   /* Reload the original size */
+                   dw_window_set_size(handle, width, height);
                }
 
-               /* Add the widest item to the width */
-               thiswidth += max;
-
-               /* Clampt to min and max */
+               /* Clamp to min and max */
                if(thiswidth > _DW_SCROLLED_MAX_WIDTH)
                    thiswidth = _DW_SCROLLED_MAX_WIDTH;
                if(thiswidth < _DW_SCROLLED_MIN_WIDTH)
