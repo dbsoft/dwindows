@@ -1333,7 +1333,7 @@ static void _resize_box(Box *thisbox, int *depth, int x, int y, int pass)
                 }
 
                 /* Position the scrolled box */
-                WinSetWindowPos(box, HWND_TOP, 0, -(cy - origy), cx, cy, SWP_MOVE | SWP_SIZE | SWP_ZORDER);
+                WinSetWindowPos(box, HWND_TOP, -hpos, -(cy - origy - vpos), cx, cy, SWP_MOVE | SWP_SIZE | SWP_ZORDER);
 
                 dw_window_set_data(handle, "_dw_cy", (void *)(cy - origy));
 
@@ -2064,10 +2064,10 @@ MRESULT EXPENTRY _scrollwndproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
          HWND box = (HWND)dw_window_get_data(hWnd, "_dw_resizebox");
          HWND hscroll = WinWindowFromID(hWnd, FID_HORZSCROLL);
          HWND vscroll = WinWindowFromID(hWnd, FID_VERTSCROLL);
-            int hpos = dw_scrollbar_get_pos(hscroll);
-            int vpos = dw_scrollbar_get_pos(vscroll);
+         int hpos = dw_scrollbar_get_pos(hscroll);
+         int vpos = dw_scrollbar_get_pos(vscroll);
          int cy = (int)dw_window_get_data(hWnd, "_dw_cy");
-            RECTL rect;
+         RECTL rect;
 
          WinQueryWindowRect(client, &rect);
 
@@ -2075,13 +2075,13 @@ MRESULT EXPENTRY _scrollwndproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
          {
             page = rect.yTop - rect.yBottom;
             handle = vscroll;
-                pos = &vpos;
+            pos = &vpos;
          }
          else
          {
             page = rect.xRight - rect.xLeft;
             handle = hscroll;
-                pos = &hpos;
+            pos = &hpos;
          }
 
          res = WinSendMsg(handle, SBM_QUERYRANGE, 0, 0);
@@ -2114,9 +2114,9 @@ MRESULT EXPENTRY _scrollwndproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
                *pos = max;
             break;
          }
-            WinSendMsg(handle, SBM_SETPOS, (MPARAM)*pos, 0);
-            /* Position the scrolled box */
-            WinSetWindowPos(box, HWND_TOP, -hpos, -(cy - vpos), 0, 0, SWP_MOVE);
+         WinSendMsg(handle, SBM_SETPOS, (MPARAM)*pos, 0);
+         /* Position the scrolled box */
+         WinSetWindowPos(box, HWND_TOP, -hpos, -(cy - vpos), 0, 0, SWP_MOVE);
          break;
       }
    }
