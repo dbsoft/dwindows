@@ -2041,10 +2041,10 @@ MRESULT EXPENTRY _textproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 /* This procedure handles scrollbox */
 MRESULT EXPENTRY _scrollwndproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 {
-   switch(msg)
-   {
-      case WM_PAINT:
-         {
+    switch(msg)
+    {
+    case WM_PAINT:
+        {
             HPS hpsPaint;
             RECTL rclPaint;
 
@@ -2052,75 +2052,74 @@ MRESULT EXPENTRY _scrollwndproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
             WinQueryWindowRect(hWnd, &rclPaint);
             WinFillRect(hpsPaint, &rclPaint, CLR_PALEGRAY);
             WinEndPaint(hpsPaint);
-
             break;
-         }
-   case WM_HSCROLL:
-   case WM_VSCROLL:
-      {
-         MPARAM res;
-         int *pos, min, max, page, which = SHORT2FROMMP(mp2);
-         HWND handle, client = WinWindowFromID(hWnd, FID_CLIENT);
-         HWND box = (HWND)dw_window_get_data(hWnd, "_dw_resizebox");
-         HWND hscroll = WinWindowFromID(hWnd, FID_HORZSCROLL);
-         HWND vscroll = WinWindowFromID(hWnd, FID_VERTSCROLL);
-         int hpos = dw_scrollbar_get_pos(hscroll);
-         int vpos = dw_scrollbar_get_pos(vscroll);
-         int cy = (int)dw_window_get_data(hWnd, "_dw_cy");
-         RECTL rect;
+        }
+    case WM_HSCROLL:
+    case WM_VSCROLL:
+        {
+            MPARAM res;
+            int *pos, min, max, page, which = SHORT2FROMMP(mp2);
+            HWND handle, client = WinWindowFromID(hWnd, FID_CLIENT);
+            HWND box = (HWND)dw_window_get_data(hWnd, "_dw_resizebox");
+            HWND hscroll = WinWindowFromID(hWnd, FID_HORZSCROLL);
+            HWND vscroll = WinWindowFromID(hWnd, FID_VERTSCROLL);
+            int hpos = dw_scrollbar_get_pos(hscroll);
+            int vpos = dw_scrollbar_get_pos(vscroll);
+            int cy = (int)dw_window_get_data(hWnd, "_dw_cy");
+            RECTL rect;
 
-         WinQueryWindowRect(client, &rect);
+            WinQueryWindowRect(client, &rect);
 
-         if(msg == WM_VSCROLL)
-         {
-            page = rect.yTop - rect.yBottom;
-            handle = vscroll;
-            pos = &vpos;
-         }
-         else
-         {
-            page = rect.xRight - rect.xLeft;
-            handle = hscroll;
-            pos = &hpos;
-         }
+            if(msg == WM_VSCROLL)
+            {
+                page = rect.yTop - rect.yBottom;
+                handle = vscroll;
+                pos = &vpos;
+            }
+            else
+            {
+                page = rect.xRight - rect.xLeft;
+                handle = hscroll;
+                pos = &hpos;
+            }
 
-         res = WinSendMsg(handle, SBM_QUERYRANGE, 0, 0);
-         min = SHORT1FROMMP(res);
-         max = SHORT2FROMMP(res);
+            res = WinSendMsg(handle, SBM_QUERYRANGE, 0, 0);
+            min = SHORT1FROMMP(res);
+            max = SHORT2FROMMP(res);
 
-         switch(which)
-         {
-         case SB_SLIDERTRACK:
+            switch(which)
+            {
+            case SB_SLIDERTRACK:
                 *pos = SHORT1FROMMP(mp2);
                 break;
-         case SB_LINEUP:
-            (*pos)--;
-            if(*pos < min)
-               *pos = min;
+            case SB_LINEUP:
+                (*pos)--;
+                if(*pos < min)
+                    *pos = min;
                 break;
-         case SB_LINEDOWN:
-            (*pos)++;
-            if(*pos > max)
-               *pos = max;
+            case SB_LINEDOWN:
+                (*pos)++;
+                if(*pos > max)
+                    *pos = max;
                 break;
-         case SB_PAGEUP:
-            (*pos) -= page;
-            if(*pos < min)
-               *pos = min;
+            case SB_PAGEUP:
+                (*pos) -= page;
+                if(*pos < min)
+                    *pos = min;
                 break;
-         case SB_PAGEDOWN:
-            (*pos) += page;
-            if(*pos > max)
-               *pos = max;
+            case SB_PAGEDOWN:
+                (*pos) += page;
+                if(*pos > max)
+                    *pos = max;
+                break;
+            }
+            WinSendMsg(handle, SBM_SETPOS, (MPARAM)*pos, 0);
+            /* Position the scrolled box */
+            WinSetWindowPos(box, HWND_TOP, -hpos, -(cy - vpos), 0, 0, SWP_MOVE);
             break;
-         }
-         WinSendMsg(handle, SBM_SETPOS, (MPARAM)*pos, 0);
-         /* Position the scrolled box */
-         WinSetWindowPos(box, HWND_TOP, -hpos, -(cy - vpos), 0, 0, SWP_MOVE);
-         break;
-      }
-   }
-   return WinDefWindowProc(hWnd, msg, mp1, mp2);
+        }
+    }
+    return WinDefWindowProc(hWnd, msg, mp1, mp2);
 }
 
 void _click_default(HWND handle)
@@ -4788,8 +4787,85 @@ void _control_size(HWND handle, int *width, int *height)
    /* Container and Tree */
    else if(strncmp(tmpbuf, "#37", 4)==0)
    {
-      thiswidth = (int)((_DW_SCROLLED_MAX_WIDTH + _DW_SCROLLED_MIN_WIDTH)/2);
-      thisheight = (int)((_DW_SCROLLED_MAX_HEIGHT + _DW_SCROLLED_MIN_HEIGHT)/2);
+       /* Container */
+       if(dw_window_get_data(handle, "_dw_container"))
+       {
+           CNRINFO ci;
+
+           if(WinSendMsg(handle, CM_QUERYCNRINFO, MPFROMP(&ci), MPFROMSHORT(sizeof(CNRINFO))))
+           {
+               RECTL item;
+               PRECORDCORE pCore = NULL;
+               int right = FALSE, max = 0;
+               /* Get the left title window */
+               HWND title = WinWindowFromID(handle, 32752);
+
+               thiswidth = WinQuerySysValue(HWND_DESKTOP, SV_CXVSCROLL);
+               thisheight = WinQuerySysValue(HWND_DESKTOP, SV_CYHSCROLL);
+
+               /* If the pFieldInfoList is filled in we want to look at the right side */
+               if(ci.pFieldInfoLast)
+               {
+                   right = TRUE;
+                   /* Left side include splitbar position */
+                   thiswidth += ci.xVertSplitbar + 4;
+                   /* If split... find the right side */
+                   title = WinWindowFromID(handle, 32753);
+               }
+
+               /* If there are column titles ... */
+               if(title)
+               {
+                   int height = 0;
+
+                   dw_window_get_pos_size(handle, 0, 0, 0, &height);
+                   height += thisheight;
+               }
+
+               /* Cycle through all the records finding the maximums */
+               pCore = WinSendMsg(handle, CM_QUERYRECORD, (MPARAM)0L, MPFROM2SHORT(CMA_FIRST, CMA_ITEMORDER));
+               while(pCore)
+               {
+                   QUERYRECORDRECT qrr;
+                   int vector;
+
+                   qrr.cb = sizeof(QUERYRECORDRECT);
+                   qrr.pRecord = pCore;
+                   qrr.fRightSplitWindow = right;
+                   qrr.fsExtent = CMA_TEXT;
+
+                   WinSendMsg(handle, CM_QUERYRECORDRECT, (MPARAM)&item, (MPARAM)&qrr);
+
+                   vector = item.xRight - item.xLeft;
+
+                   if(vector > max)
+                       max = vector;
+
+                   thisheight += (item.yTop - item.yBottom);
+
+                   pCore = WinSendMsg(handle, CM_QUERYRECORD, (MPARAM)pCore, MPFROM2SHORT(CMA_NEXT, CMA_ITEMORDER));
+               }
+
+               /* Add the widest item to the width */
+               thiswidth += max;
+
+               /* Clampt to min and max */
+               if(thiswidth > _DW_SCROLLED_MAX_WIDTH)
+                   thiswidth = _DW_SCROLLED_MAX_WIDTH;
+               if(thiswidth < _DW_SCROLLED_MIN_WIDTH)
+                   thiswidth = _DW_SCROLLED_MIN_WIDTH;
+               if(thisheight < _DW_SCROLLED_MIN_HEIGHT)
+                   thisheight = _DW_SCROLLED_MIN_HEIGHT;
+               if(thisheight > _DW_SCROLLED_MAX_HEIGHT)
+                   thisheight = _DW_SCROLLED_MAX_HEIGHT;
+           }
+       }
+       else
+       {
+           /* Tree */
+           thiswidth = (int)((_DW_SCROLLED_MAX_WIDTH + _DW_SCROLLED_MIN_WIDTH)/2);
+           thisheight = (int)((_DW_SCROLLED_MAX_HEIGHT + _DW_SCROLLED_MIN_HEIGHT)/2);
+       }
    }
    /* Button */
    else if(strncmp(tmpbuf, "#3", 3)==0)
