@@ -10023,6 +10023,7 @@ void _rearrange_table(GtkWidget *widget, gpointer data)
 void _get_scrolled_size(GtkWidget *item, gint *thiswidth, gint *thisheight)
 {
    GtkWidget *widget = gtk_object_get_user_data(GTK_OBJECT(item));
+   static char testtext[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
    /* Try to figure out the contents for Listbox and Container */
    if(widget && (GTK_IS_LIST(widget) || GTK_IS_CLIST(widget)))
@@ -10033,6 +10034,19 @@ void _get_scrolled_size(GtkWidget *item, gint *thiswidth, gint *thisheight)
       
       *thiswidth = req.width + 20;
       *thisheight = req.height + 20;
+      
+      if(GTK_IS_CLIST(widget))
+      {
+         gint rowcount = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(widget), "_dw_rowcount"));
+         
+         if(rowcount)
+         {
+            int height = 0;
+            
+            dw_font_text_extents_get(item, NULL, testtext, NULL, &height);
+            *thisheight += rowcount * height;
+         }
+      }
    }
    /* Try to figure out the contents for MLE */
    else if(widget && GTK_IS_TEXT_VIEW(widget))
@@ -10042,7 +10056,6 @@ void _get_scrolled_size(GtkWidget *item, gint *thiswidth, gint *thisheight)
       char *buf, *ptr;
       int basicwidth;
       int wrap = (gtk_text_view_get_wrap_mode(GTK_TEXT_VIEW(widget)) == GTK_WRAP_WORD);
-      static char testtext[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
       
       *thisheight = 20;
       basicwidth = *thiswidth = 20;
