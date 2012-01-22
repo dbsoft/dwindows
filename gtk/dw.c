@@ -10024,65 +10024,63 @@ void _get_scrolled_size(GtkWidget *item, gint *thiswidth, gint *thisheight)
 {
    GtkWidget *widget = gtk_object_get_user_data(GTK_OBJECT(item));
 
-   /* Try to figure out the contents for MLE and Container */
-   if(widget && (GTK_IS_TEXT_VIEW(widget) || GTK_IS_CLIST(widget)))
+   /* Try to figure out the contents for Listbox and Container */
+   if(widget && (GTK_IS_LIST(widget) || GTK_IS_CLIST(widget)))
    {
-      if(GTK_IS_CLIST(widget))
+      GtkRequisition req;
+      
+      gtk_widget_size_request(widget, &req);
+      
+      *thiswidth = req.width + 20;
+      *thisheight = req.height + 20;
+   }
+   /* Try to figure out the contents for MLE */
+   else if(widget && GTK_IS_TEXT_VIEW(widget))
+   {
+      unsigned long bytes;
+      int height, width;
+      char *buf, *ptr;
+      int basicwidth;
+      int wrap = (gtk_text_view_get_wrap_mode(GTK_TEXT_VIEW(widget)) == GTK_WRAP_WORD);
+      static char testtext[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+      
+      *thisheight = 20;
+      basicwidth = *thiswidth = 20;
+      
+      dw_mle_get_size(item, &bytes, NULL);
+      
+      ptr = buf = alloca(bytes + 2);
+      dw_mle_export(item, buf, 0, (int)bytes);
+      buf[bytes] = 0;
+      strcat(buf, "\r");
+      
+      /* MLE */
+      while((ptr = strstr(buf, "\r")))
       {
-         GtkRequisition req;
+         ptr[0] = 0;
+         width = 0;
+         if(strlen(buf))
+            dw_font_text_extents_get(item, NULL, buf, &width, &height);
+         else
+            dw_font_text_extents_get(item, NULL, testtext, NULL, &height);
          
-         gtk_widget_size_request(widget, &req);
+         width += basicwidth;
          
-         *thiswidth = req.width + 20;
-         *thisheight = req.height + 20;
-      }
-      else
-      {
-         unsigned long bytes;
-         int height, width;
-         char *buf, *ptr;
-         int basicwidth;
-         int wrap = (gtk_text_view_get_wrap_mode(GTK_TEXT_VIEW(widget)) == GTK_WRAP_WORD);
-         static char testtext[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
-         
-         *thisheight = 20;
-         basicwidth = *thiswidth = 20;
-         
-         dw_mle_get_size(item, &bytes, NULL);
-         
-         ptr = buf = alloca(bytes + 2);
-         dw_mle_export(item, buf, 0, (int)bytes);
-         buf[bytes] = 0;
-         strcat(buf, "\r");
-         
-         /* MLE */
-         while((ptr = strstr(buf, "\r")))
+         if(wrap && width > _DW_SCROLLED_MAX_WIDTH)
          {
-            ptr[0] = 0;
-            width = 0;
-            if(strlen(buf))
-               dw_font_text_extents_get(item, NULL, buf, &width, &height);
-            else
-               dw_font_text_extents_get(item, NULL, testtext, NULL, &height);
-            
-            width += basicwidth;
-            
-            if(wrap && width > _DW_SCROLLED_MAX_WIDTH)
-            {
-               *thiswidth = _DW_SCROLLED_MAX_WIDTH;
-               *thisheight += height * (width / _DW_SCROLLED_MAX_WIDTH);
-            }
-            else
-            {
-               if(width > *thiswidth)
-                  *thiswidth = width > _DW_SCROLLED_MAX_WIDTH ? _DW_SCROLLED_MAX_WIDTH : width;
-            }
-            *thisheight += height;
-           if(ptr[1] == '\n')
-               buf = &ptr[2];
-            else
-               buf = &ptr[1];
+            *thiswidth = _DW_SCROLLED_MAX_WIDTH;
+            *thisheight += height * (width / _DW_SCROLLED_MAX_WIDTH);
          }
+         else
+         {
+            if(width > *thiswidth)
+               *thiswidth = width > _DW_SCROLLED_MAX_WIDTH ? _DW_SCROLLED_MAX_WIDTH : width;
+         }
+         *thisheight += height;
+        if(ptr[1] == '\n')
+            buf = &ptr[2];
+         else
+            buf = &ptr[1];
       }
    }
    else
