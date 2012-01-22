@@ -1622,6 +1622,7 @@ DWObject *DWObj;
 -(void)clear;
 -(void)setup;
 -(void)optimize;
+-(NSSize)getsize;
 -(void)setForegroundColor:(NSColor *)input;
 -(void)doubleClicked:(id)sender;
 -(void)keyUp:(NSEvent *)theEvent;
@@ -1834,6 +1835,70 @@ DWObject *DWObj;
     types = [[[NSMutableArray alloc] init] retain];
     titles = [[NSPointerArray pointerArrayWithWeakObjects] retain];
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(selectionChanged:) name:NSTableViewSelectionDidChangeNotification object:self];
+}
+-(NSSize)getsize
+{
+    int cwidth = 0, cheight = 0;
+    NSSize size = [self frame].size;
+    
+    if(tvcols)
+    {
+        int z;
+        int colcount = (int)[tvcols count];
+        int rowcount = (int)[self numberOfRowsInTableView:self];
+        
+        for(z=0;z<colcount;z++)
+        {
+            NSTableColumn *column = [tvcols objectAtIndex:z];
+            NSCell *colcell = [column headerCell];
+            int width = [colcell cellSize].width;
+            
+            if(rowcount > 0)
+            {
+                int x;
+                
+                for(x=0;x<rowcount;x++)
+                {
+                    NSCell *cell = [self preparedCellAtColumn:z row:x];
+                    int thiswidth = [cell cellSize].width;
+                    
+                    /* If on the first column... add up the heights */
+                    if(z == 0)
+                        cheight += [cell cellSize].height;
+                    
+                    /* Check the image inside the cell to get its width */
+                    if([cell isMemberOfClass:[NSImageCell class]])
+                    {
+                        int index = (int)(x * [tvcols count]) + z;
+                        NSImage *image = [data objectAtIndex:index];
+                        if([image isMemberOfClass:[NSImage class]])
+                        {
+                            thiswidth = [image size].width;
+                        }
+                    }
+                    
+                    if(thiswidth > width)
+                    {
+                        width = thiswidth;
+                    }
+                }
+                /* If the image is missing default the optimized width to 16. */
+                if(!width && [[types objectAtIndex:z] intValue] & DW_CFA_BITMAPORICON)
+                {
+                    width = 16;
+                }
+            }
+            if(width)
+                cwidth += width;
+        }
+    }
+    cwidth += 16;
+    cheight += 16;
+    if(size.width > cwidth)
+        cwidth = size.width;
+    if(size.height > cheight)
+        cheight = size.height;
+    return NSMakeSize(cwidth, cheight);
 }
 -(void)optimize
 {
@@ -3618,7 +3683,7 @@ void _control_size(id handle, int *width, int *height)
                 size.height += 16.0;
         }
         else
-            size = [object frame].size;
+            size = [object getsize];
         
         thiswidth = size.width;
         thisheight = size.height;
