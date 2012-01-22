@@ -4784,6 +4784,40 @@ void _control_size(HWND handle, int *width, int *height)
        if(thisheight > _DW_SCROLLED_MAX_HEIGHT)
            thisheight = _DW_SCROLLED_MAX_HEIGHT;
    }
+   /* Listbox */
+   else if(strncmp(tmpbuf, "#7", 3)==0)
+   {
+      char buf[1025] = {0};
+      int x, count = dw_listbox_count(handle);
+      int basicwidth = thiswidth = WinQuerySysValue(HWND_DESKTOP, SV_CXVSCROLL) + 8;
+      
+      thisheight = 8;
+      
+      for(x=0;x<count;x++)
+      {
+         int height, width = 0;
+         
+         dw_listbox_get_text(handle, x, buf, 1024);
+         
+         if(strlen(buf))
+            dw_font_text_extents_get(handle, NULL, buf, &width, &height);
+         else
+            dw_font_text_extents_get(handle, NULL, testtext, NULL, &height);
+        
+         width += basicwidth;
+         
+         if(width > thiswidth)
+            thiswidth = width > _DW_SCROLLED_MAX_WIDTH ? _DW_SCROLLED_MAX_WIDTH : width;
+         thisheight += height;
+      }
+      
+      if(thiswidth < _DW_SCROLLED_MIN_WIDTH)
+         thiswidth = _DW_SCROLLED_MIN_WIDTH;
+      if(thisheight < _DW_SCROLLED_MIN_HEIGHT)
+         thisheight = _DW_SCROLLED_MIN_HEIGHT;
+      if(thisheight > _DW_SCROLLED_MAX_HEIGHT)
+         thisheight = _DW_SCROLLED_MAX_HEIGHT;
+   }
    /* Container and Tree */
    else if(strncmp(tmpbuf, "#37", 4)==0)
    {
