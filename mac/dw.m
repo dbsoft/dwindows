@@ -1839,7 +1839,6 @@ DWObject *DWObj;
 -(NSSize)getsize
 {
     int cwidth = 0, cheight = 0;
-    NSSize size = [self frame].size;
     
     if(tvcols)
     {
@@ -1850,8 +1849,7 @@ DWObject *DWObj;
         for(z=0;z<colcount;z++)
         {
             NSTableColumn *column = [tvcols objectAtIndex:z];
-            NSCell *colcell = [column headerCell];
-            int width = [colcell cellSize].width;
+            int width = [column width];
             
             if(rowcount > 0)
             {
@@ -1894,10 +1892,6 @@ DWObject *DWObj;
     }
     cwidth += 16;
     cheight += 16;
-    if(size.width > cwidth)
-        cwidth = size.width;
-    if(size.height > cheight)
-        cheight = size.height;
     return NSMakeSize(cwidth, cheight);
 }
 -(void)optimize
