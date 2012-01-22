@@ -4506,6 +4506,40 @@ void _control_size(HWND handle, int *width, int *height)
       thiswidth = 50;
       extraheight = 6;
    }
+   /* Listbox */
+   else if(strnicmp(tmpbuf, LISTBOXCLASSNAME, strlen(LISTBOXCLASSNAME)+1) == 0)
+   {
+      char buf[1025] = {0};
+      int x, count = dw_listbox_count(handle);
+      int basicwidth = thiswidth = GetSystemMetrics(SM_CXVSCROLL) + 8;
+      
+      thisheight = 8;
+      
+      for(x=0;x<count;x++)
+      {
+         int height, width = 0;
+         
+         dw_listbox_get_text(handle, x, buf, 1024);
+         
+         if(strlen(buf))
+            dw_font_text_extents_get(handle, NULL, buf, &width, &height);
+         else
+            dw_font_text_extents_get(handle, NULL, testtext, NULL, &height);
+        
+         width += basicwidth;
+         
+         if(width > thiswidth)
+            thiswidth = width > _DW_SCROLLED_MAX_WIDTH ? _DW_SCROLLED_MAX_WIDTH : width;
+         thisheight += height;
+      }
+      
+      if(thiswidth < _DW_SCROLLED_MIN_WIDTH)
+         thiswidth = _DW_SCROLLED_MIN_WIDTH;
+      if(thisheight < _DW_SCROLLED_MIN_HEIGHT)
+         thisheight = _DW_SCROLLED_MIN_HEIGHT;
+      if(thisheight > _DW_SCROLLED_MAX_HEIGHT)
+         thisheight = _DW_SCROLLED_MAX_HEIGHT;
+   }
    /* Entryfields and MLE */
    else if(strnicmp(tmpbuf, EDITCLASSNAME, strlen(EDITCLASSNAME)+1) == 0 ||
            strnicmp(tmpbuf, RICHEDIT_CLASS, strlen(RICHEDIT_CLASS)+1) == 0)
