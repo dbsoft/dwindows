@@ -684,7 +684,7 @@ static void gtk_mdi_size_allocate(GtkWidget *widget, GtkAllocation *allocation)
 
       if(gtk_widget_get_visible(child->widget))
       {
-         gtk_widget_get_child_requisition (child->widget, &child_requisition);
+         gtk_widget_get_preferred_size (child->widget, NULL, &child_requisition);
          child_allocation.x = 0;
          child_allocation.y = 0;
          switch (child->state)
@@ -835,11 +835,12 @@ static gboolean move_child_callback(GtkWidget *widget, GdkEvent *event, gpointer
          return FALSE;
       if (mdi->drag_button < 0)
       {
-         if (gdk_pointer_grab (event->button.window,
+         if (gdk_device_grab (gdk_event_get_device(event),
+                          event->button.window,
+                          GDK_OWNERSHIP_WINDOW,
                           FALSE,
                           GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK |
                           GDK_BUTTON_RELEASE_MASK,
-                          NULL,
                           NULL,
                           event->button.time) != GDK_GRAB_SUCCESS)
             return FALSE;
@@ -859,7 +860,7 @@ static gboolean move_child_callback(GtkWidget *widget, GdkEvent *event, gpointer
       {
          int x, y;
 
-         gdk_pointer_ungrab (event->button.time);
+         gdk_device_ungrab (gdk_event_get_device(event), event->button.time);
          mdi->drag_button = -1;
 
          x = event->button.x + child->x - mdi->drag_start.x;
@@ -876,7 +877,7 @@ static gboolean move_child_callback(GtkWidget *widget, GdkEvent *event, gpointer
          if (mdi->drag_button < 0)
             return FALSE;
 
-         gdk_window_get_pointer (gtk_widget_get_window(widget), &x, &y, NULL);
+         gdk_window_get_device_position (gtk_widget_get_window(widget), gdk_event_get_device(event), &x, &y, NULL);
 
 
          x = x - mdi->drag_start.x + child->x;
@@ -910,11 +911,12 @@ static gboolean resize_child_callback(GtkWidget *widget, GdkEvent *event, gpoint
    case GDK_BUTTON_PRESS:
       if (mdi->drag_button < 0)
       {
-         if (gdk_pointer_grab (event->button.window,
+         if (gdk_device_grab (gdk_event_get_device(event),
+                          event->button.window,
+                          GDK_OWNERSHIP_WINDOW,
                           FALSE,
                           GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK |
                           GDK_BUTTON_RELEASE_MASK,
-                          NULL,
                           NULL,
                           event->button.time) != GDK_GRAB_SUCCESS)
             return FALSE;
@@ -944,7 +946,7 @@ static gboolean resize_child_callback(GtkWidget *widget, GdkEvent *event, gpoint
          int width, height;
          GtkAllocation allocation;
 
-         gdk_pointer_ungrab (event->button.time);
+         gdk_device_ungrab (gdk_event_get_device(event), event->button.time);
          mdi->drag_button = -1;
 
          gtk_widget_get_allocation(widget, &allocation);
@@ -968,7 +970,7 @@ static gboolean resize_child_callback(GtkWidget *widget, GdkEvent *event, gpoint
          if (mdi->drag_button < 0)
             return FALSE;
 
-         gdk_window_get_pointer (gtk_widget_get_window(widget), &x, &y, NULL);
+         gdk_window_get_device_position (gtk_widget_get_window(widget), gdk_event_get_device(event), &x, &y, NULL);
 
          gtk_widget_get_allocation(widget, &allocation);
          width = x + allocation.x;
@@ -1219,10 +1221,10 @@ static gint _motion_notify_event(GtkWidget *widget, GdkEventMotion *event, gpoin
    {
       int (*motionfunc)(HWND, int, int, int, void *) = work.func;
       int keys = 0, x, y;
-      GdkModifierType state;
+      GdkModifierType state = 0;
 
       if (event->is_hint)
-         gdk_window_get_pointer (event->window, &x, &y, &state);
+         gdk_window_get_device_position (event->window, gdk_event_get_device((GdkEvent *)event), &x, &y, &state);
       else
       {
          x = event->x;
@@ -1837,7 +1839,7 @@ int dw_int_init(DWResources *res, int newthread, int *argc, char **argv[])
    if(!_dw_share_path[0] && !getcwd(_dw_share_path, PATH_MAX))
       _dw_share_path[0] = '/';
    
-#if !GLIB_CHECK_VERSION(2,32,0)
+#if !GLIB_CHECK_VERSION(2,31,0)
    g_thread_init(NULL);
 #endif
    gdk_threads_init();
@@ -2852,6 +2854,8 @@ int dw_window_set_border(HWND handle, int border)
    return 0;
 }
 
+static GdkDeviceManager *manager = NULL;
+
 /*
  * Captures the mouse input to this window.
  * Parameters:
@@ -2862,7 +2866,14 @@ void dw_window_capture(HWND handle)
    int _locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
-   gdk_pointer_grab(gtk_widget_get_window(handle), TRUE, GDK_BUTTON_RELEASE_MASK | GDK_BUTTON_PRESS_MASK | GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK, NULL, NULL, GDK_CURRENT_TIME);
+   manager = gdk_display_get_device_manager(gtk_widget_get_display(handle));
+   gdk_device_grab(gdk_device_manager_get_client_pointer(manager),
+                   gtk_widget_get_window(handle),
+                   GDK_OWNERSHIP_WINDOW,
+                   FALSE, 
+                   GDK_BUTTON_RELEASE_MASK | GDK_BUTTON_PRESS_MASK | GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK, 
+                   NULL, 
+                   GDK_CURRENT_TIME);
    DW_MUTEX_UNLOCK;
 }
 
@@ -2890,7 +2901,7 @@ void dw_window_set_pointer(HWND handle, int pointertype)
    if(handle && gtk_widget_get_window(handle))
       gdk_window_set_cursor(gtk_widget_get_window(handle), cursor);
    if(cursor)
-      gdk_cursor_unref(cursor);
+      g_object_unref(cursor);
    DW_MUTEX_UNLOCK;
 }
 
@@ -2902,7 +2913,8 @@ void dw_window_release(void)
    int _locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
-   gdk_pointer_ungrab(GDK_CURRENT_TIME);
+   gdk_device_ungrab(gdk_device_manager_get_client_pointer(manager), GDK_CURRENT_TIME);
+   manager = NULL;
    DW_MUTEX_UNLOCK;
 }
 
@@ -3566,13 +3578,18 @@ void dw_menu_popup(HMENUI *menu, HWND parent, int x, int y)
  */
 void dw_pointer_query_pos(long *x, long *y)
 {
-   GdkModifierType state;
+   GdkModifierType state = 0;
    int gx, gy;
    int _locked_by_me = FALSE;
+   GdkDisplay *display;
+   GdkDeviceManager *manager;
 
    DW_MUTEX_LOCK;
 #ifdef GDK_WINDOWING_X11
-   gdk_window_get_pointer (gdk_x11_window_lookup_for_display(gdk_display_get_default(), GDK_ROOT_WINDOW()), &gx, &gy, &state);
+   display = gdk_display_get_default();
+   manager = gdk_display_get_device_manager(display);
+   gdk_window_get_device_position (gdk_x11_window_lookup_for_display(display, GDK_ROOT_WINDOW()), 
+                                   gdk_device_manager_get_client_pointer(manager), &gx, &gy, &state);
 #endif
    if(x)
       *x = gx;
@@ -3590,10 +3607,14 @@ void dw_pointer_query_pos(long *x, long *y)
 void dw_pointer_set_pos(long x, long y)
 {
    int _locked_by_me = FALSE;
+   GdkDisplay *display;
+   GdkDeviceManager *manager;
 
    DW_MUTEX_LOCK;
 #ifdef GDK_WINDOWING_X11
-   gdk_display_warp_pointer( gdk_display_get_default(), gdk_screen_get_default(), x, y );
+   display = gdk_display_get_default();
+   manager = gdk_display_get_device_manager(display);
+   gdk_device_warp( gdk_device_manager_get_client_pointer(manager), gdk_screen_get_default(), x, y );
 #endif
    DW_MUTEX_UNLOCK;
 }
@@ -3934,7 +3955,7 @@ HWND dw_bitmapbutton_new_from_file(char *text, unsigned long id, char *filename)
    DW_MUTEX_LOCK;
 
    /* Create box for image and label */
-   box = gtk_hbox_new (FALSE, 0);
+   box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
    gtk_container_set_border_width (GTK_CONTAINER (box), 2);
 
    /* Create a new button */
@@ -4071,10 +4092,7 @@ HWND dw_slider_new(int vertical, int increments, ULONG id)
 
    DW_MUTEX_LOCK;
    adjustment = (GtkAdjustment *)gtk_adjustment_new(0, 0, (gfloat)increments, 1, 1, 1);
-   if(vertical)
-      tmp = gtk_vscale_new(adjustment);
-   else
-      tmp = gtk_hscale_new(adjustment);
+   tmp = gtk_scale_new(vertical ? GTK_ORIENTATION_VERTICAL : GTK_ORIENTATION_HORIZONTAL, adjustment);
    gtk_widget_show(tmp);
    gtk_scale_set_draw_value(GTK_SCALE(tmp), 0);
    gtk_scale_set_digits(GTK_SCALE(tmp), 0);
@@ -4100,10 +4118,7 @@ HWND dw_scrollbar_new(int vertical, ULONG id)
 
    DW_MUTEX_LOCK;
    adjustment = (GtkAdjustment *)gtk_adjustment_new(0, 0, 0, 1, 1, 1);
-   if(vertical)
-      tmp = gtk_vscrollbar_new(adjustment);
-   else
-      tmp = gtk_hscrollbar_new(adjustment);
+   tmp = gtk_scrollbar_new(vertical ? GTK_ORIENTATION_VERTICAL : GTK_ORIENTATION_HORIZONTAL, adjustment);
    gtk_widget_set_can_focus(tmp, FALSE);
    gtk_widget_show(tmp);
    g_object_set_data(G_OBJECT(tmp), "_dw_adjustment", (gpointer)adjustment);
@@ -6256,7 +6271,7 @@ void dw_container_scroll(HWND handle, int direction, long rows)
    /* Make sure it is the correct tree type */
    if(cont && GTK_IS_TREE_VIEW(cont) && g_object_get_data(G_OBJECT(cont), "_dw_tree_type") == GINT_TO_POINTER(_DW_TREE_TYPE_CONTAINER))
    {
-      GtkAdjustment *adjust = gtk_tree_view_get_vadjustment(GTK_TREE_VIEW(cont));
+      GtkAdjustment *adjust = gtk_scrollable_get_vadjustment(GTK_SCROLLABLE(cont));
 
       if(adjust)
       {
@@ -9007,7 +9022,7 @@ void dw_window_set_pos(HWND handle, long x, long y)
             else if((vert & 0xf) == DW_GRAV_BOTTOM)
                newy = gdk_screen_height() - height - y;
 
-#if GTK_CHECK_VERSION(3,4,0)               
+#if GTK_CHECK_VERSION(3,3,8)               
             /* Adjust the values to avoid Gnome bar if requested */
             if((horz | vert) & DW_GRAV_OBSTACLES)
             {
@@ -10045,10 +10060,7 @@ HWND dw_splitbar_new(int type, HWND topleft, HWND bottomright, unsigned long id)
    float *percent = malloc(sizeof(float));
 
    DW_MUTEX_LOCK;
-   if(type == DW_HORZ)
-      tmp = gtk_hpaned_new();
-   else
-      tmp = gtk_vpaned_new();
+   tmp = gtk_paned_new(type == DW_HORZ ? GTK_ORIENTATION_HORIZONTAL : GTK_ORIENTATION_VERTICAL);
    gtk_paned_pack1(GTK_PANED(tmp), topleft, TRUE, FALSE);
    gtk_paned_pack2(GTK_PANED(tmp), bottomright, TRUE, FALSE);
    g_object_set_data(G_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(id));
