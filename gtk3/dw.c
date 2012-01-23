@@ -147,7 +147,7 @@ static gint _combobox_select_event(GtkWidget *widget, gpointer data);
 static gint _expose_event(GtkWidget *widget, cairo_t *cr, gpointer data);
 static gint _set_focus_event(GtkWindow *window, GtkWidget *widget, gpointer data);
 static gint _tree_context_event(GtkWidget *widget, GdkEventButton *event, gpointer data);
-static gint _value_changed_event(GtkAdjustment *adjustment, gpointer user_data);
+static gint _value_changed_event(GtkWidget *widget, gpointer user_data);
 static gint _tree_select_event(GtkTreeSelection *sel, gpointer data);
 static gint _tree_expand_event(GtkTreeView *treeview, GtkTreeIter *arg1, GtkTreePath *arg2, gpointer data);
 static gint _switch_page_event(GtkNotebook *notebook, GtkWidget *page, guint page_num, gpointer data);
@@ -1649,20 +1649,28 @@ static int _round_value(gfloat val)
    return newval;
 }
 
-static gint _value_changed_event(GtkAdjustment *adjustment, gpointer data)
+static gint _value_changed_event(GtkWidget *widget, gpointer data)
 {
-   int max = _round_value(gtk_adjustment_get_upper(adjustment));
-   int val = _round_value(gtk_adjustment_get_value(adjustment));
-   GtkWidget *slider = (GtkWidget *)g_object_get_data(G_OBJECT(adjustment), "_dw_slider");
-   GtkWidget *spinbutton = (GtkWidget *)g_object_get_data(G_OBJECT(adjustment), "_dw_spinbutton");
-   GtkWidget *scrollbar = (GtkWidget *)g_object_get_data(G_OBJECT(adjustment), "_dw_scrollbar");
-
+   GtkWidget *slider, *spinbutton, *scrollbar;
+   GtkAdjustment *adjustment = (GtkAdjustment *)widget;
+   int max, val;
+   
+   if(!GTK_IS_ADJUSTMENT(adjustment))
+      adjustment = (GtkAdjustment *)g_object_get_data(G_OBJECT(widget), "_dw_adjustment");
+      
+   slider = (GtkWidget *)g_object_get_data(G_OBJECT(adjustment), "_dw_slider");
+   spinbutton = (GtkWidget *)g_object_get_data(G_OBJECT(adjustment), "_dw_spinbutton");
+   scrollbar = (GtkWidget *)g_object_get_data(G_OBJECT(adjustment), "_dw_scrollbar");
+   
+   max = _round_value(gtk_adjustment_get_upper(adjustment));
+   val = _round_value(gtk_adjustment_get_value(adjustment));
+   
    if(g_object_get_data(G_OBJECT(adjustment), "_dw_suppress_value_changed_event"))
       return FALSE;
 
    if (slider || spinbutton || scrollbar)
    {
-      SignalHandler work = _get_signal_handler((GtkWidget *)adjustment, data);
+      SignalHandler work = _get_signal_handler(widget, data);
 
       if (work.window)
       {
