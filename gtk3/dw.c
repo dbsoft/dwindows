@@ -38,7 +38,7 @@
 #include <gdk-pixbuf/gdk-pixbuf.h>
 
 #if !GTK_CHECK_VERSION(3,1,0)
-#error GTK 3.0 is no longer supported.
+#error GTK 3.0 is no longer supported, please use 3.2 or later.
 #endif
 
 #if __STDC_VERSION__ < 199901L
@@ -380,7 +380,7 @@ static void gtk_mdi_put(GtkMdi *mdi, GtkWidget *child_widget, gint x, gint y, Gt
 {
    GtkMdiChild *child;
 
-   GtkWidget *table;
+   GtkWidget *grid;
    GtkWidget *button[3];
 
    GtkWidget *child_box;
@@ -396,20 +396,17 @@ static void gtk_mdi_put(GtkMdi *mdi, GtkWidget *child_widget, gint x, gint y, Gt
 
    child_box = gtk_event_box_new ();
    child_widget_box = gtk_event_box_new ();
+   gtk_widget_set_margin_left(child_widget_box, 2);
    top_event_box = gtk_event_box_new ();
    bottom_event_box = gtk_event_box_new ();
-   table = gtk_table_new (4, 7, FALSE);
-   gtk_table_set_row_spacings (GTK_TABLE (table), 1);
-   gtk_table_set_col_spacings (GTK_TABLE (table), 1);
-   gtk_table_set_row_spacing (GTK_TABLE (table), 3, 0);
-   gtk_table_set_col_spacing (GTK_TABLE (table), 6, 0);
-   gtk_table_set_row_spacing (GTK_TABLE (table), 2, 0);
-   gtk_table_set_col_spacing (GTK_TABLE (table), 5, 0);
-
+   grid = gtk_grid_new ();
+   gtk_grid_set_row_spacing(GTK_GRID(grid), 1);
+   gtk_grid_set_column_spacing(GTK_GRID(grid), 1);
+   
    for (i = 0; i < 3; i++)
    {
       button[i] = gtk_event_box_new ();
-      gtk_widget_set_events (button[0], GDK_BUTTON_PRESS_MASK);
+      gtk_widget_set_events (button[i], GDK_BUTTON_PRESS_MASK);
    }
 
    gdk_rgba_parse (&color, GTK_MDI_LABEL_BACKGROUND);
@@ -446,32 +443,20 @@ static void gtk_mdi_put(GtkMdi *mdi, GtkWidget *child_widget, gint x, gint y, Gt
    gtk_widget_show(image);
    gtk_container_add (GTK_CONTAINER (button[2]), image);
 
-   gtk_table_attach (GTK_TABLE (table), child_widget_box, 1, 6, 2, 3,
-                 GTK_EXPAND | GTK_SHRINK | GTK_FILL,
-                 GTK_EXPAND | GTK_SHRINK | GTK_FILL,
-                 0, 0);
-   gtk_table_attach (GTK_TABLE (table), top_event_box, 1, 2, 1, 2,
-                 GTK_FILL | GTK_EXPAND | GTK_SHRINK,
-                 0,
-                 0, 0);
-   gtk_table_attach (GTK_TABLE (table), bottom_event_box, 6, 7, 3, 4,
-                 0,
-                 0,
-                 0, 0);
-   gtk_table_attach (GTK_TABLE (table), button[0], 2, 3, 1, 2,
-                 0,
-                 0,
-                 0, 0);
-   gtk_table_attach (GTK_TABLE (table), button[1], 3, 4, 1, 2,
-                 0,
-                 0,
-                 0, 0);
-   gtk_table_attach (GTK_TABLE (table), button[2], 4, 5, 1, 2,
-                 0,
-                 0,
-                 0, 0);
 
-   gtk_container_add (GTK_CONTAINER (child_box), table);
+   /* Titlebar and buttons - GTK_FILL | GTK_EXPAND | GTK_SHRINK, 0 */
+   gtk_grid_attach (GTK_GRID (grid), top_event_box, 0, 0, 1, 1);
+   gtk_grid_attach (GTK_GRID (grid), button[0], 1, 0, 1, 1);
+   gtk_grid_attach (GTK_GRID (grid), button[1], 2, 0, 1, 1);
+   gtk_grid_attach (GTK_GRID (grid), button[2], 3, 0, 1, 1);
+   
+   /* Window contents - GTK_EXPAND | GTK_SHRINK | GTK_FILL, GTK_EXPAND | GTK_SHRINK | GTK_FILL */
+   gtk_grid_attach (GTK_GRID (grid), child_widget_box, 0, 1, 4, 1);
+   
+   /* Bottom border */
+   gtk_grid_attach (GTK_GRID (grid), bottom_event_box, 4, 2, 1, 1);
+
+   gtk_container_add (GTK_CONTAINER (child_box), grid);
 
    child = g_new (GtkMdiChild, 1);
    child->widget = child_box;
@@ -487,7 +472,7 @@ static void gtk_mdi_put(GtkMdi *mdi, GtkWidget *child_widget, gint x, gint y, Gt
    mdi->children = g_list_append (mdi->children, child);
 
    gtk_widget_show (child_box);
-   gtk_widget_show (table);
+   gtk_widget_show (grid);
    gtk_widget_show (top_event_box);
    gtk_widget_show (bottom_event_box);
    gtk_widget_show (child_widget_box);
