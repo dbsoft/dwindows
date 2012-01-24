@@ -444,13 +444,16 @@ static void gtk_mdi_put(GtkMdi *mdi, GtkWidget *child_widget, gint x, gint y, Gt
    gtk_container_add (GTK_CONTAINER (button[2]), image);
 
 
-   /* Titlebar and buttons - GTK_FILL | GTK_EXPAND | GTK_SHRINK, 0 */
+   /* Titlebar and buttons */
+   gtk_widget_set_hexpand(top_event_box, TRUE);
    gtk_grid_attach (GTK_GRID (grid), top_event_box, 0, 0, 1, 1);
    gtk_grid_attach (GTK_GRID (grid), button[0], 1, 0, 1, 1);
    gtk_grid_attach (GTK_GRID (grid), button[1], 2, 0, 1, 1);
    gtk_grid_attach (GTK_GRID (grid), button[2], 3, 0, 1, 1);
    
-   /* Window contents - GTK_EXPAND | GTK_SHRINK | GTK_FILL, GTK_EXPAND | GTK_SHRINK | GTK_FILL */
+   /* Window contents */
+   gtk_widget_set_hexpand(child_widget_box, TRUE);
+   gtk_widget_set_vexpand(child_widget_box, TRUE);
    gtk_grid_attach (GTK_GRID (grid), child_widget_box, 0, 1, 4, 1);
    
    /* Bottom border */
