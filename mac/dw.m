@@ -41,6 +41,12 @@
         dw_mutex_unlock(DWThreadMutex); \
         _locked_by_me = FALSE; } }
 
+/* Macros to handle local auto-release pools */
+#define DW_LOCAL_POOL_IN NSAutoreleasePool *localpool = nil; \
+        if(DWThread != (DWTID)-1 && pthread_self() != DWThread) \
+            localpool = [[NSAutoreleasePool alloc] init];
+#define DW_LOCAL_POOL_OUT if(localpool) [localpool drain];
+
 unsigned long _colors[] =
 {
     0x00000000,   /* 0  black */
@@ -3161,6 +3167,7 @@ char * API dw_file_browse(char *title, char *defpath, char *ext, int flags)
 {
     char temp[PATH_MAX+1];
     char *file = NULL, *path = NULL;
+    DW_LOCAL_POOL_IN;
     
     /* Figure out path information...
      * These functions are only support in Snow Leopard and later...
@@ -3250,7 +3257,11 @@ char * API dw_file_browse(char *title, char *defpath, char *ext, int flags)
             NSArray *files = [openDlg URLs];
             NSString *fileName = [[files objectAtIndex:0] path];
             if(fileName)
-                return strdup([ fileName UTF8String ]);
+            {
+                char *ret = strdup([ fileName UTF8String ]);
+                DW_LOCAL_POOL_OUT;
+                return ret;
+            }
         }
     }
     else
@@ -3283,10 +3294,14 @@ char * API dw_file_browse(char *title, char *defpath, char *ext, int flags)
              */
             NSString* fileName = [[saveDlg URL] path];
             if(fileName)
-                return strdup([ fileName UTF8String ]);
+            {
+                char *ret = strdup([ fileName UTF8String ]);
+                DW_LOCAL_POOL_OUT;
+                return ret;
+            }
         }
     }
-
+    DW_LOCAL_POOL_OUT;
     return NULL;
 }
 
@@ -5163,6 +5178,7 @@ void API dw_color_foreground_set(unsigned long value)
 {
     NSColor *oldcolor = pthread_getspecific(_dw_fg_color_key);
     NSColor *newcolor;
+    DW_LOCAL_POOL_IN;
 
     _foreground = _get_color(value);
 
@@ -5171,6 +5187,7 @@ void API dw_color_foreground_set(unsigned long value)
                                                 DW_BLUE_VALUE(_foreground)/255.0 alpha: 1] retain];
     pthread_setspecific(_dw_fg_color_key, newcolor);
     [oldcolor release];
+    DW_LOCAL_POOL_OUT;
 }
 
 /* Sets the current background drawing color.
@@ -5183,6 +5200,7 @@ void API dw_color_background_set(unsigned long value)
 {
     NSColor *oldcolor = pthread_getspecific(_dw_bg_color_key);
     NSColor *newcolor;
+    DW_LOCAL_POOL_IN;
 
     if(value == DW_CLR_DEFAULT)
     {
@@ -5198,6 +5216,7 @@ void API dw_color_background_set(unsigned long value)
         pthread_setspecific(_dw_bg_color_key, newcolor);
     }
     [oldcolor release];
+    DW_LOCAL_POOL_OUT;
 }
 
 /* Allows the user to choose a color using the system's color chooser dialog.
@@ -5257,6 +5276,7 @@ unsigned long API dw_color_choose(unsigned long value)
 void API dw_draw_point(HWND handle, HPIXMAP pixmap, int x, int y)
 {
     int _locked_by_me = FALSE;
+    DW_LOCAL_POOL_IN;
     DW_MUTEX_LOCK;
     id image = handle;
     if(pixmap)
@@ -5271,6 +5291,7 @@ void API dw_draw_point(HWND handle, HPIXMAP pixmap, int x, int y)
         if([image lockFocusIfCanDraw] == NO)
         {
             DW_MUTEX_UNLOCK;
+            DW_LOCAL_POOL_OUT;
             return;
         }
         _DWLastDrawable = handle;
@@ -5291,6 +5312,7 @@ void API dw_draw_point(HWND handle, HPIXMAP pixmap, int x, int y)
         [image unlockFocus];
     }
     DW_MUTEX_UNLOCK;
+    DW_LOCAL_POOL_OUT;
 }
 
 /* Draw a line on a window (preferably a render window).
@@ -5305,6 +5327,7 @@ void API dw_draw_point(HWND handle, HPIXMAP pixmap, int x, int y)
 void API dw_draw_line(HWND handle, HPIXMAP pixmap, int x1, int y1, int x2, int y2)
 {
     int _locked_by_me = FALSE;
+    DW_LOCAL_POOL_IN;
     DW_MUTEX_LOCK;
     id image = handle;
     if(pixmap)
@@ -5319,6 +5342,7 @@ void API dw_draw_line(HWND handle, HPIXMAP pixmap, int x1, int y1, int x2, int y
         if([image lockFocusIfCanDraw] == NO)
         {
             DW_MUTEX_UNLOCK;
+            DW_LOCAL_POOL_OUT;
             return;
         }
         _DWLastDrawable = handle;
@@ -5340,6 +5364,7 @@ void API dw_draw_line(HWND handle, HPIXMAP pixmap, int x1, int y1, int x2, int y
         [image unlockFocus];
     }
     DW_MUTEX_UNLOCK;
+    DW_LOCAL_POOL_OUT;
 }
 
 /* Draw text on a window (preferably a render window).
@@ -5353,6 +5378,7 @@ void API dw_draw_line(HWND handle, HPIXMAP pixmap, int x1, int y1, int x2, int y
 void API dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
 {
     int _locked_by_me = FALSE;
+    DW_LOCAL_POOL_IN;
     DW_MUTEX_LOCK;
     id image = handle;
     NSString *nstr = [ NSString stringWithUTF8String:text ];
@@ -5365,6 +5391,7 @@ void API dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
             if([image lockFocusIfCanDraw] == NO)
             {
                 DW_MUTEX_UNLOCK;
+                DW_LOCAL_POOL_OUT;
                 return;
             }
             NSColor *fgcolor = pthread_getspecific(_dw_fg_color_key);
@@ -5412,6 +5439,7 @@ void API dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
         [dict release];
     }
     DW_MUTEX_UNLOCK;
+    DW_LOCAL_POOL_OUT;
 }
 
 /* Query the width and height of a text string.
@@ -5425,8 +5453,12 @@ void API dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
 void API dw_font_text_extents_get(HWND handle, HPIXMAP pixmap, char *text, int *width, int *height)
 {
     id object = handle;
-    NSString *nstr = [NSString stringWithUTF8String:text];
+    NSString *nstr;
     NSFont *font = nil;
+    DW_LOCAL_POOL_IN;
+    
+    nstr = [NSString stringWithUTF8String:text];
+    
     /* Check the pixmap for associated object or font */
     if(pixmap)
     {
@@ -5456,6 +5488,7 @@ void API dw_font_text_extents_get(HWND handle, HPIXMAP pixmap, char *text, int *
     {
         *height = size.height;
     }
+    DW_LOCAL_POOL_OUT;
 }
 
 /* Internal function to create an image graphics context...
@@ -5483,6 +5516,7 @@ id _create_gc(id image, bool antialiased)
 void API dw_draw_polygon( HWND handle, HPIXMAP pixmap, int flags, int npoints, int *x, int *y )
 {
     int _locked_by_me = FALSE;
+    DW_LOCAL_POOL_IN;
     DW_MUTEX_LOCK;
     id image = handle;
     int z;
@@ -5498,6 +5532,7 @@ void API dw_draw_polygon( HWND handle, HPIXMAP pixmap, int flags, int npoints, i
         if([image lockFocusIfCanDraw] == NO)
         {
             DW_MUTEX_UNLOCK;
+            DW_LOCAL_POOL_OUT;
             return;
         }
         [[NSGraphicsContext currentContext] setShouldAntialias:(flags & DW_DRAW_NOAA ? NO : YES)];
@@ -5527,6 +5562,7 @@ void API dw_draw_polygon( HWND handle, HPIXMAP pixmap, int flags, int npoints, i
         [image unlockFocus];
     }
     DW_MUTEX_UNLOCK;
+    DW_LOCAL_POOL_OUT;
 }
 
 /* Draw a rectangle on a window (preferably a render window).
@@ -5542,6 +5578,7 @@ void API dw_draw_polygon( HWND handle, HPIXMAP pixmap, int flags, int npoints, i
 void API dw_draw_rect(HWND handle, HPIXMAP pixmap, int flags, int x, int y, int width, int height)
 {
     int _locked_by_me = FALSE;
+    DW_LOCAL_POOL_IN;
     DW_MUTEX_LOCK;
     id image = handle;
     if(pixmap)
@@ -5556,6 +5593,7 @@ void API dw_draw_rect(HWND handle, HPIXMAP pixmap, int flags, int x, int y, int 
         if([image lockFocusIfCanDraw] == NO)
         {
             DW_MUTEX_UNLOCK;
+            DW_LOCAL_POOL_OUT;
             return;
         }
         [[NSGraphicsContext currentContext] setShouldAntialias:(flags & DW_DRAW_NOAA ? NO : YES)];
@@ -5577,6 +5615,7 @@ void API dw_draw_rect(HWND handle, HPIXMAP pixmap, int flags, int x, int y, int 
         [image unlockFocus];
     }
     DW_MUTEX_UNLOCK;
+    DW_LOCAL_POOL_OUT;
 }
 
 /* Draw an arc on a window (preferably a render window).
@@ -5595,6 +5634,7 @@ void API dw_draw_rect(HWND handle, HPIXMAP pixmap, int flags, int x, int y, int 
 void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yorigin, int x1, int y1, int x2, int y2)
 {
     int _locked_by_me = FALSE;
+    DW_LOCAL_POOL_IN;
     DW_MUTEX_LOCK;
     id image = handle;
     double r, a1, a2, a;
@@ -5611,6 +5651,7 @@ void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yo
         if([image lockFocusIfCanDraw] == NO)
         {
             DW_MUTEX_UNLOCK;
+            DW_LOCAL_POOL_OUT;
             return;
         }
         [[NSGraphicsContext currentContext] setShouldAntialias:(flags & DW_DRAW_NOAA ? NO : YES)];
@@ -5656,6 +5697,7 @@ void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yo
         [image unlockFocus];
     }
     DW_MUTEX_UNLOCK;
+    DW_LOCAL_POOL_OUT;
 }
 
 /*
@@ -6882,10 +6924,14 @@ void _flip_image(NSImage *tmpimage, NSBitmapImageRep *image, NSSize size)
 HPIXMAP API dw_pixmap_new_from_file(HWND handle, char *filename)
 {
     HPIXMAP pixmap;
+    DW_LOCAL_POOL_IN;
     char *ext = _dw_get_image_extension( filename );
 
     if(!(pixmap = calloc(1,sizeof(struct _hpixmap))))
+    {
+        DW_LOCAL_POOL_OUT;
         return NULL;
+    }
     NSString *nstr = [ NSString stringWithUTF8String:filename ];
     NSImage *tmpimage = [[[NSImage alloc] initWithContentsOfFile:nstr] autorelease];
     if(!tmpimage && ext)
@@ -6894,7 +6940,10 @@ HPIXMAP API dw_pixmap_new_from_file(HWND handle, char *filename)
         tmpimage = [[[NSImage alloc] initWithContentsOfFile:nstr] autorelease];
     }
     if(!tmpimage)
+    {
+        DW_LOCAL_POOL_OUT;
         return NULL;
+    }
     NSSize size = [tmpimage size];
     NSBitmapImageRep *image = [[NSBitmapImageRep alloc]
                                initWithBitmapDataPlanes:NULL
@@ -6912,6 +6961,7 @@ HPIXMAP API dw_pixmap_new_from_file(HWND handle, char *filename)
     pixmap->height = size.height;
     pixmap->image = image;
     pixmap->handle = handle;
+    DW_LOCAL_POOL_OUT;
     return pixmap;
 }
 
@@ -6928,13 +6978,20 @@ HPIXMAP API dw_pixmap_new_from_file(HWND handle, char *filename)
 HPIXMAP API dw_pixmap_new_from_data(HWND handle, char *data, int len)
 {
     HPIXMAP pixmap;
+    DW_LOCAL_POOL_IN;
 
     if(!(pixmap = calloc(1,sizeof(struct _hpixmap))))
+    {
+        DW_LOCAL_POOL_OUT;
         return NULL;
+    }
     NSData *thisdata = [NSData dataWithBytes:data length:len];
     NSImage *tmpimage = [[[NSImage alloc] initWithData:thisdata] autorelease];
     if(!tmpimage)
+    {
+        DW_LOCAL_POOL_OUT;
         return NULL;
+    }
     NSSize size = [tmpimage size];
     NSBitmapImageRep *image = [[NSBitmapImageRep alloc]
                                initWithBitmapDataPlanes:NULL
@@ -6952,6 +7009,7 @@ HPIXMAP API dw_pixmap_new_from_data(HWND handle, char *data, int len)
     pixmap->height = size.height;
     pixmap->image = image;
     pixmap->handle = handle;
+    DW_LOCAL_POOL_OUT;
     return pixmap;
 }
 
@@ -6980,9 +7038,13 @@ void API dw_pixmap_set_transparent_color( HPIXMAP pixmap, ULONG color )
 HPIXMAP API dw_pixmap_grab(HWND handle, ULONG resid)
 {
     HPIXMAP pixmap;
+    DW_LOCAL_POOL_IN;
 
     if(!(pixmap = calloc(1,sizeof(struct _hpixmap))))
+    {
+        DW_LOCAL_POOL_OUT;
         return NULL;
+    }
 
     NSBundle *bundle = [NSBundle mainBundle];
     NSString *respath = [bundle resourcePath];
@@ -7012,6 +7074,7 @@ HPIXMAP API dw_pixmap_grab(HWND handle, ULONG resid)
         return pixmap;
     }
     free(pixmap);
+    DW_LOCAL_POOL_OUT;
     return NULL;
 }
 
@@ -7103,12 +7166,18 @@ void API dw_pixmap_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest, int wi
 int API dw_pixmap_stretch_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest, int width, int height, HWND src, HPIXMAP srcp, int xsrc, int ysrc, int srcwidth, int srcheight)
 {
     DWBitBlt *bltinfo = calloc(1, sizeof(DWBitBlt));
-    NSValue* bi = [NSValue valueWithPointer:bltinfo];
+    NSValue* bi;
+    DW_LOCAL_POOL_IN;
+    
+    bi = [NSValue valueWithPointer:bltinfo];
 
     /* Sanity checks */
     if((!dest && !destp) || (!src && !srcp) || 
        ((srcwidth == -1 || srcheight == -1) && srcwidth != srcheight))
+    {
+        DW_LOCAL_POOL_OUT;
         return DW_ERROR_GENERAL;
+    }
     
     /* Fill in the information */
     bltinfo->dest = dest;
@@ -7131,7 +7200,11 @@ int API dw_pixmap_stretch_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest,
         id object = bltinfo->src = (id)srcp->image;
         [object retain];
     }
-    [DWObj performSelectorOnMainThread:@selector(doBitBlt:) withObject:bi waitUntilDone:YES];
+    if(DWThread == (DWTID)-1)
+        [DWObj doBitBlt:bi];
+    else
+        [DWObj performSelectorOnMainThread:@selector(doBitBlt:) withObject:bi waitUntilDone:YES];
+    DW_LOCAL_POOL_OUT;
     return DW_ERROR_NONE;
 }
 
@@ -7748,11 +7821,14 @@ HWND API dw_window_new(HWND hwndOwner, char *title, ULONG flStyle)
 void API dw_window_function(HWND handle, void *function, void *data)
 {
     void **params = calloc(2, sizeof(void *));
-    NSValue *v = [NSValue valueWithPointer:params];
+    NSValue *v;
+    DW_LOCAL_POOL_IN;
+    v = [NSValue valueWithPointer:params];
     params[0] = function;
     params[1] = data;
     [DWObj performSelectorOnMainThread:@selector(doWindowFunc:) withObject:v waitUntilDone:YES];
     free(params);
+    DW_LOCAL_POOL_OUT;
 }
 
 
@@ -8574,6 +8650,8 @@ void API dw_window_set_bitmap_from_data(HWND handle, unsigned long cid, char *da
 void API dw_window_set_bitmap(HWND handle, unsigned long resid, char *filename)
 {
     NSObject *object = handle;
+    DW_LOCAL_POOL_IN;
+    
     if([ object isKindOfClass:[ NSImageView class ] ])
     {
         NSImageView *iv = handle;
@@ -8595,6 +8673,7 @@ void API dw_window_set_bitmap(HWND handle, unsigned long resid, char *filename)
             _dw_redraw([iv window], TRUE);
         }
     }
+    DW_LOCAL_POOL_OUT;
 }
 
 /*
