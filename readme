@@ -16,11 +16,6 @@ Known limitations:
 It is not safe on all platforms to operate on widgets before they
 are packed.  For portability pack widgets before operating on them.
 
-On Mac if performing Dynamic Windows operations on secondary 
-threads which do not terminate, it may be required to call
-a Mac specific DW function _dw_pool_drain() at the end of the
-thread's loop to prevent memory leaks.
-
 Future features:
 
 OS/2 is currently missing the HTML widget because the system does 
@@ -54,10 +49,16 @@ Added DW_DRAW_NOAA which can be passed to dw_draw_*() API functions
    that accept the flags parameter to disable anti-aliasing.
 Added dw_main_quit() to cause the dw_main() message loop to return.
 Added DW_FCF_COMPOSITED to enable Aero Glass effects on Windows 7 and Vista.
+Added local autorelease pools on Mac making _dw_pool_drain() unnecessary.
 Fixed auto-sizing top-level windows on Windows; added on OS/2 and Mac.
 Fixed bubble help not being displayed on Windows.
 Fixed menu bar items remaining highlighted on Mac 10.6 and later.
 Fixed OS/2 and Windows showing windows during dw_window_set_pos/size().
+Fixed OS/2 scrollbox resizing problems when not in the initial position.
+Fixed Windows scrollbox maximum position is off by one.
+Fixed various GTK3 issues and removed all deprecated functions for 3.4.
+Fixed MLE issues on almost all platforms.
+Removed broken support for GTK 3.0, GTK 3.2 or later is required now.
 Deprecated DW_FCF_NOBYTEALIGN, DW_FCF_SHELLPOSITION, DW_FCF_HORZSCROLL and
    DW_FCF_VERTSCROLL flags.
 

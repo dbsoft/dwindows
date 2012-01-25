@@ -4566,7 +4566,7 @@ void _control_size(HWND handle, int *width, int *height)
          strcat(buf, "\n");
          
          /* MLE */
-         while(ptr = strstr(buf, "\n"))
+         while((ptr = strstr(buf, "\n")))
          {
             ptr[0] = 0;
             width = 0;
