@@ -5231,6 +5231,7 @@ unsigned long API dw_color_choose(unsigned long value)
     /* Create the Color Chooser Dialog class. */
     static DWColorChoose *colorDlg = nil;
     DWDialog *dialog;
+    DW_LOCAL_POOL_IN;
 
     if(colorDlg)
     {
@@ -5238,6 +5239,7 @@ unsigned long API dw_color_choose(unsigned long value)
         /* If someone is already waiting just return */
         if(dialog)
         {
+            DW_LOCAL_POOL_OUT;
             return value;
         }
     }
@@ -5263,6 +5265,7 @@ unsigned long API dw_color_choose(unsigned long value)
     [color getRed:&red green:&green blue:&blue alpha:NULL];
     [color release];
     value = DW_RGB((int)(red * 255), (int)(green *255), (int)(blue *255));
+    DW_LOCAL_POOL_OUT;
     return value;
 }
 
@@ -5824,6 +5827,8 @@ void API dw_tree_item_change(HWND handle, HTREEITEM item, char *title, HICN icon
     DW_MUTEX_LOCK;
     DWTree *tree = handle;
     NSMutableArray *array = (NSMutableArray *)item;
+    DW_LOCAL_POOL_IN;
+    
     if(title)
     {
         NSString *oldstr = [array objectAtIndex:1];
@@ -5836,6 +5841,7 @@ void API dw_tree_item_change(HWND handle, HTREEITEM item, char *title, HICN icon
         [array replaceObjectAtIndex:0 withObject:icon];
     }
     [tree reloadData];
+    DW_LOCAL_POOL_OUT;
     DW_MUTEX_UNLOCK;
 }
 
@@ -6532,6 +6538,7 @@ char * API dw_container_query_next(HWND handle, unsigned long flags)
 void API dw_container_cursor(HWND handle, char *text)
 {
     int _locked_by_me = FALSE;
+    DW_LOCAL_POOL_IN;
     DW_MUTEX_LOCK;
     DWContainer *cont = handle;
     char *thistext;
@@ -6550,10 +6557,12 @@ void API dw_container_cursor(HWND handle, char *text)
             [selected release];
             [cont scrollRowToVisible:x];
             DW_MUTEX_UNLOCK;
+            DW_LOCAL_POOL_OUT;
             return;
         }
     }
     DW_MUTEX_UNLOCK;
+    DW_LOCAL_POOL_OUT;
 }
 
 /*
@@ -6630,7 +6639,9 @@ void API dw_taskbar_insert(HWND handle, HICN icon, char *bubbletext)
 void API dw_taskbar_delete(HWND handle, HICN icon)
 {
     NSStatusItem *item = dw_window_get_data(handle, "_dw_taskbar");
+    DW_LOCAL_POOL_IN;
     [item release];
+    DW_LOCAL_POOL_OUT;
 }
 
 /*
@@ -6693,7 +6704,9 @@ HICN API dw_icon_load_from_data(char *data, int len)
 void API dw_icon_free(HICN handle)
 {
     NSImage *image = handle;
+    DW_LOCAL_POOL_IN;
     [image release];
+    DW_LOCAL_POOL_OUT;
 }
 
 /*
@@ -7097,11 +7110,13 @@ int API dw_pixmap_set_font(HPIXMAP pixmap, char *fontname)
         
         if(font)
         {
+            DW_LOCAL_POOL_IN;
             NSFont *oldfont = pixmap->font;
             [font retain];
             pixmap->font = font;
             if(oldfont)
                 [oldfont release];
+            DW_LOCAL_POOL_OUT;
             return DW_ERROR_NONE;
         }
     }
@@ -7120,9 +7135,11 @@ void API dw_pixmap_destroy(HPIXMAP pixmap)
     {
         NSBitmapImageRep *image = (NSBitmapImageRep *)pixmap->image;
         NSFont *font = pixmap->font;
+        DW_LOCAL_POOL_IN;
         [image release];
         [font release];
         free(pixmap);
+        DW_LOCAL_POOL_OUT;
     }
 }
 
@@ -7237,12 +7254,14 @@ void dw_calendar_set_date(HWND handle, unsigned int year, unsigned int month, un
     DWCalendar *calendar = handle;
     NSDate *date;
     char buffer[101];
+    DW_LOCAL_POOL_IN;
 
     snprintf(buffer, 100, "%04d-%02d-%02d 00:00:00 +0600", year, month, day);
 
     date = [[NSDate alloc] initWithString:[ NSString stringWithUTF8String:buffer ]];
     [calendar setDateValue:date];
     [date release];
+    DW_LOCAL_POOL_OUT;
 }
 
 /*
@@ -7253,6 +7272,7 @@ void dw_calendar_set_date(HWND handle, unsigned int year, unsigned int month, un
 void dw_calendar_get_date(HWND handle, unsigned int *year, unsigned int *month, unsigned int *day)
 {
     DWCalendar *calendar = handle;
+    DW_LOCAL_POOL_IN;
     NSDate *date = [calendar dateValue];
     NSDateFormatter *df = [[NSDateFormatter alloc] init];
     [df setDateStyle:NSDateFormatterShortStyle];
@@ -7267,6 +7287,7 @@ void dw_calendar_get_date(HWND handle, unsigned int *year, unsigned int *month, 
         *year += 1900;
     }
     [df release];
+    DW_LOCAL_POOL_OUT;
 }
 
 /*
@@ -7416,7 +7437,9 @@ HMENUI API dw_menubar_new(HWND location)
 void API dw_menu_destroy(HMENUI *menu)
 {
     NSMenu *thismenu = *menu;
+    DW_LOCAL_POOL_IN;
     [thismenu release];
+    DW_LOCAL_POOL_OUT;
 }
 
 /*
@@ -7678,11 +7701,13 @@ void API dw_notebook_page_destroy(HWND handle, unsigned int pageid)
 {
     DWNotebook *notebook = handle;
     DWNotebookPage *notepage = _notepage_from_id(notebook, pageid);
+    DW_LOCAL_POOL_IN;
 
     if(notepage != nil)
     {
         [notebook removeTabViewItem:notepage];
     }
+    DW_LOCAL_POOL_OUT;
 }
 
 /*
@@ -8387,6 +8412,7 @@ char * API dw_window_get_font(HWND handle)
 int API dw_window_destroy(HWND handle)
 {
     int _locked_by_me = FALSE;
+    DW_LOCAL_POOL_IN;
     DW_MUTEX_LOCK;
     id object = handle;
 
@@ -8433,6 +8459,7 @@ int API dw_window_destroy(HWND handle)
             if(index == -1)
             {
                 DW_MUTEX_UNLOCK;
+                DW_LOCAL_POOL_OUT;
                 return 0;
             }
 
@@ -8456,6 +8483,7 @@ int API dw_window_destroy(HWND handle)
         }
     }
     DW_MUTEX_UNLOCK;
+    DW_LOCAL_POOL_OUT;
     return 0;
 }
 
@@ -10551,6 +10579,8 @@ int API dw_print_run(HPRINT print, unsigned long flags)
     if(!p)
         return result;
     
+    DW_LOCAL_POOL_IN;
+    
     /* Figure out the printer/paper size */
     pi = p->pi;
     size = [pi paperSize];
@@ -10621,6 +10651,7 @@ int API dw_print_run(HPRINT print, unsigned long flags)
     dw_pixmap_destroy(pixmap2);
     free(p);
     [iv release];
+    DW_LOCAL_POOL_OUT;
     return result;
 }
 
