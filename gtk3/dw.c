@@ -1679,7 +1679,7 @@ static gint _value_changed_event(GtkWidget *widget, gpointer data)
       {
          int (*valuechangedfunc)(HWND, int, void *) = work.func;
 
-         if(slider && GTK_IS_VSCALE(slider))
+         if(slider && gtk_orientable_get_orientation(GTK_ORIENTABLE(slider)) == GTK_ORIENTATION_VERTICAL)
             valuechangedfunc(work.window, (max - val) - 1,  work.data);
          else
             valuechangedfunc(work.window, val,  work.data);
@@ -4861,7 +4861,7 @@ unsigned int dw_slider_get_pos(HWND handle)
       int max = _round_value(gtk_adjustment_get_upper(adjustment)) - 1;
       int thisval = _round_value(gtk_adjustment_get_value(adjustment));
 
-      if(GTK_IS_VSCALE(handle))
+      if(gtk_orientable_get_orientation(GTK_ORIENTABLE(handle)) == GTK_ORIENTATION_VERTICAL)
          val = max - thisval;
         else
          val = thisval;
@@ -4890,7 +4890,7 @@ void dw_slider_set_pos(HWND handle, unsigned int position)
    {
       int max = _round_value(gtk_adjustment_get_upper(adjustment)) - 1;
 
-      if(GTK_IS_VSCALE(handle))
+      if(gtk_orientable_get_orientation(GTK_ORIENTABLE(handle)) == GTK_ORIENTATION_VERTICAL)
          gtk_adjustment_set_value(adjustment, (gfloat)(max - position));
         else
          gtk_adjustment_set_value(adjustment, (gfloat)position);
@@ -9964,9 +9964,9 @@ gboolean _splitbar_set_percent(gpointer data)
       
       gtk_widget_get_allocation(widget, &alloc);
       
-      if(GTK_IS_HPANED(widget))
+      if(gtk_orientable_get_orientation(GTK_ORIENTABLE(widget)) == GTK_ORIENTATION_HORIZONTAL)
          gtk_paned_set_position(GTK_PANED(widget), (int)(alloc.width * (*percent / 100.0)));
-      if(GTK_IS_VPANED(widget))
+      else
          gtk_paned_set_position(GTK_PANED(widget), (int)(alloc.height * (*percent / 100.0)));
       g_object_set_data(G_OBJECT(widget), "_dw_percent", NULL);
       free(percent);
@@ -10025,10 +10025,10 @@ void dw_splitbar_set(HWND handle, float percent)
    float *mypercent = (float *)dw_window_get_data(handle, "_dw_percent");
    int size = 0, position;
 
-   if(GTK_IS_VPANED(handle))
-      size = gtk_widget_get_allocated_height(handle);
-   else if(GTK_IS_HPANED(handle))
+   if(gtk_orientable_get_orientation(GTK_ORIENTABLE(handle)) == GTK_ORIENTATION_HORIZONTAL)
       size = gtk_widget_get_allocated_width(handle);
+   else
+      size = gtk_widget_get_allocated_height(handle);
 
    if(mypercent)
       *mypercent = percent;
@@ -10920,9 +10920,7 @@ static HWND _find_signal_window(HWND window, char *signame)
 
    if(GTK_IS_SCROLLED_WINDOW(thiswindow))
       thiswindow = (HWND)g_object_get_data(G_OBJECT(window), "_dw_user");
-   else if(GTK_IS_VSCALE(thiswindow) || GTK_IS_HSCALE(thiswindow) ||
-         GTK_IS_VSCROLLBAR(thiswindow) || GTK_IS_HSCROLLBAR(thiswindow) ||
-         GTK_IS_SPIN_BUTTON(thiswindow))
+   else if(GTK_IS_SCALE(thiswindow) || GTK_IS_SCROLLBAR(thiswindow) || GTK_IS_SPIN_BUTTON(thiswindow))
       thiswindow = (GtkWidget *)g_object_get_data(G_OBJECT(thiswindow), "_dw_adjustment");
    else if(GTK_IS_TREE_VIEW(thiswindow) && strcmp(signame, DW_SIGNAL_ITEM_SELECT) == 0)
       thiswindow = (GtkWidget *)gtk_tree_view_get_selection(GTK_TREE_VIEW(thiswindow));
@@ -11032,9 +11030,7 @@ void dw_signal_connect(HWND window, char *signame, void *sigfunc, void *data)
          thiswindow = GTK_COMBO_BOX(thiswindow)->entry;
    }
 #endif
-   else if (GTK_IS_VSCALE(thiswindow) || GTK_IS_HSCALE(thiswindow) ||
-         GTK_IS_VSCROLLBAR(thiswindow) || GTK_IS_HSCROLLBAR(thiswindow) ||
-         GTK_IS_SPIN_BUTTON(thiswindow) )
+   else if (GTK_IS_SCALE(thiswindow) || GTK_IS_SCROLLBAR(thiswindow) || GTK_IS_SPIN_BUTTON(thiswindow) )
    {
       thiswindow = (GtkWidget *)g_object_get_data(G_OBJECT(thiswindow), "_dw_adjustment");
    }
