@@ -144,9 +144,15 @@ void msleep(long period);
 #ifdef MSVC
 #include "platform/dirent.h"
 #define alloca _alloca
+#ifdef __stat64
+#undef stat
+#define stat(a, b) _stat64(a, b)
+#define dwstat __stat64
+#endif
 #else
 #include <dir.h>
 #include <dirent.h>
+#define dwstat stat
 #endif
 
 #include <stdarg.h>
