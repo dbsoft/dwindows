@@ -152,7 +152,6 @@ void msleep(long period);
 #else
 #include <dir.h>
 #include <dirent.h>
-#define dwstat stat
 #endif
 
 #include <stdarg.h>
@@ -331,6 +330,11 @@ void msleep(long period);
 /* Ok Windows and OS/2 both seem to be missing this */
 #if defined(__WIN32__) || defined(__OS2__)
 typedef int socklen_t;
+#endif
+
+/* If dwstat didn't otherwise get defined */
+#ifndef dwstat
+#define dwstat stat
 #endif
 
 #define socksprint(a, b) sockwrite(a, b, strlen(b), 0)
