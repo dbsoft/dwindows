@@ -4283,6 +4283,7 @@ HWND API dw_percent_new(ULONG cid)
     [percent setMinValue:0];
     [percent incrementBy:1];
     [percent setIndeterminate:NO];
+    [percent setDoubleValue:0];
     /*[percent setTag:cid]; Why doesn't this work? */
     return percent;
 }
