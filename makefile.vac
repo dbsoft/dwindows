@@ -10,7 +10,7 @@
     .\dwtest.exe
 
 .c.obj:
-  icc.exe  /DOS2 /DTCPV40HDRS /DBUILD_DLL /DVER_REV=$(VERREV) /I. /Tm+ /Tdc /Ss /Wprorearet /Wpro+ /V"Dynamic Windows Compatibility" /Ti /Gm /Gd- /G5 /Ge- /C /W3 /Wini+ /Wpar+ /Wpro+ /Wuse+ %s
+  icc.exe  /DOS2 /DTCPV40HDRS /DBUILD_DLL /DVER_REV=$(VERREV) /I. /Tm+ /Tdc /Ss /V"Dynamic Windows Compatibility" /Ti /Gm /Gd- /G5 /Ge- /C /W3 %s
 
 .\dw.dll: \
     .\os2\dw.obj
