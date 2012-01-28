@@ -38,6 +38,19 @@ void msleep(long period);
 #undef DIRSEP
 #endif
 
+#ifdef __WATCOMC__
+#include <alloca.h>
+#include <sys/select.h>
+#include <sys/stat.h>
+#  ifdef _stati64
+#    ifdef stat
+#    undef stat
+#    endif
+#  define stat(a, b) _stati64(a, b)
+#  define dwstat _stati64
+#  endif
+#endif
+
 #if defined(__EMX__) || defined(__OS2__) || defined(__WIN32__) || defined(WINNT)
 #include <io.h>
 #include <process.h>
