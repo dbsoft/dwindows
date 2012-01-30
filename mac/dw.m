@@ -6909,16 +6909,16 @@ void _flip_image(NSImage *tmpimage, NSBitmapImageRep *image, NSSize size)
                                           graphicsContextWithGraphicsPort:[[NSGraphicsContext graphicsContextWithBitmapImageRep:image] graphicsPort]
                                           flipped:YES]];
     [[[NSDictionary alloc] initWithObjectsAndKeys:image, NSGraphicsContextDestinationAttributeName, nil] autorelease];
-    // make a new transform:
+    /* Make a new transform */
     NSAffineTransform *t = [NSAffineTransform transform];
 
-    // by scaling Y negatively, we effectively flip the image:
+    /* By scaling Y negatively, we effectively flip the image */
     [t scaleXBy:1.0 yBy:-1.0];
 
-    // but we also have to translate it back by its height:
+    /* But we also have to translate it back by its height */
     [t translateXBy:0.0 yBy:-size.height];
 
-    // apply the transform:
+    /* Apply the transform */
     [t concat];
     [tmpimage drawAtPoint:NSMakePoint(0, 0) fromRect:NSMakeRect(0, 0, size.width, size.height)
                 operation:NSCompositeSourceOver fraction:1.0];
