@@ -7,6 +7,23 @@
 #if defined(__UNIX__) || defined(__MAC__)
 #include "config.h"
 
+/* Attempt to include 64 bit file functions on various unix flavors */
+#ifndef _FILE_OFFSET_BITS
+#define _FILE_OFFSET_BITS 64
+#endif
+#ifndef _LARGEFILE_SOURCE
+#define _LARGEFILE_SOURCE 1
+#endif
+#ifndef _LARGEFILE64_SOURCE
+#define _LARGEFILE64_SOURCE 1
+#endif
+#ifndef _LARGE_FILES
+#define _LARGE_FILES 1
+#endif
+#ifndef _DARWIN_USE_64_BIT_INODE
+#define _DARWIN_USE_64_BIT_INODE 1
+#endif
+
 #include <sys/stat.h>
 #include <unistd.h>
 void msleep(long period);
