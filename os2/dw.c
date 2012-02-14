@@ -1709,13 +1709,15 @@ RECTL _CalendarDayRect(int position, RECTL rclPaint)
     return rclPaint;
 }
 
+/* These will be filled in during dw_init() */
+static char months[12][20];
+static char daysofweek[7][20];
+
 /* This procedure handles drawing of a status border */
 MRESULT EXPENTRY _calendarproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 {
    /* How many days are in each month usually (not including leap years) */
    static int days[] = { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
-   static char *months[] = { "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December" };
-   static char *daysofweek[] = { "Sunday", "Monday", "Tuesday","Wednesday", "Thursday", "Friday", "Saturday" };
    WindowData *blah = (WindowData *)WinQueryWindowPtr(hWnd, QWP_USER);
    PFNWP oldproc = 0;
 
@@ -3962,6 +3964,8 @@ int API dw_init(int newthread, int argc, char *argv[])
 {
    APIRET rc;
    char objnamebuf[300] = "";
+   int x;
+   struct tm thistm = { 0 };
 
    /* Setup the private data directory */
    if(argc > 0 && argv[0])
@@ -3989,6 +3993,18 @@ int API dw_init(int newthread, int argc, char *argv[])
    rc = WinRegisterClass(dwhab, (PSZ)SplitbarClassName, _splitwndproc, 0L, 32);
    rc = WinRegisterClass(dwhab, (PSZ)ScrollClassName, _scrollwndproc, 0L, 32);
    rc = WinRegisterClass(dwhab, (PSZ)CalendarClassName, _calendarproc, 0L, 32);
+
+   /* Fill in the the calendar fields */
+   for(x=0;x<7;x++)
+   {
+	   thistm.tm_wday = x;
+       strftime(daysofweek[x], 19, "%A", &thistm);
+   }
+   for(x=0;x<12;x++)
+   {
+	   thistm.tm_mon = x;
+       strftime(months[x], 19, "%B", &thistm);
+   }
 
    /* Get the OS/2 version. */
    DosQuerySysInfo(QSV_VERSION_MAJOR, QSV_MS_COUNT,(void *)aulBuffer, 4*sizeof(ULONG));
