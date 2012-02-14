@@ -3997,12 +3997,12 @@ int API dw_init(int newthread, int argc, char *argv[])
    /* Fill in the the calendar fields */
    for(x=0;x<7;x++)
    {
-	   thistm.tm_wday = x;
+       thistm.tm_wday = x;
        strftime(daysofweek[x], 19, "%A", &thistm);
    }
    for(x=0;x<12;x++)
    {
-	   thistm.tm_mon = x;
+       thistm.tm_mon = x;
        strftime(months[x], 19, "%B", &thistm);
    }
 
