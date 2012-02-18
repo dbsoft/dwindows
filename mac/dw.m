@@ -935,8 +935,20 @@ DWObject *DWObj;
 }
 -(void)setMenu:(NSMenu *)input { windowmenu = input; [windowmenu retain]; }
 -(void)menuHandler:(id)sender 
-{ 
-    [DWObj performSelector:@selector(menuHandler:) withObject:sender afterDelay:0];
+{
+    id menu = [sender menu];
+
+    /* Find the highest menu for this item */
+    while([menu supermenu])
+    {
+        menu = [menu supermenu];
+    }
+
+    /* Only perform the delay if this item is a child of the main menu */
+    if([DWApp mainMenu] == menu)
+        [DWObj performSelector:@selector(menuHandler:) withObject:sender afterDelay:0];
+    else
+        [DWObj menuHandler:sender];
     _dw_wakeup_app();
 }
 -(void)mouseDragged:(NSEvent *)theEvent { _event_handler(self, theEvent, 5); }
