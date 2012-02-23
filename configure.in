@@ -43,7 +43,7 @@ AC_CANONICAL_SYSTEM
 
 dnl ---------------------- check for '--with-dwcompat' switch -----------------
 AC_ARG_WITH(dwcompat,
-   [  --with-dwcompat           specify this to build the optional dwcompat library],
+   [  --with-dwcompat         specify this to build the optional dwcompat library],
    [with_dwcompat=$withval],
    [with_dwcompat=no],
 )
