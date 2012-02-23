@@ -1,4 +1,4 @@
-This is a preview release of Dynamic Windows version 2.3.
+This is a stable release of Dynamic Windows version 2.3.
 
 The current Dynamic Windows source base is considered stable on:
 OS/2, Mac, Windows, Linux, FreeBSD and Solaris.
@@ -61,7 +61,7 @@ Fixed MLE issues on almost all platforms.
 Removed broken support for GTK 3.0, GTK 3.2 or later is required now.
 Deprecated DW_FCF_NOBYTEALIGN, DW_FCF_SHELLPOSITION, DW_FCF_HORZSCROLL and
    DW_FCF_VERTSCROLL flags.
-
+Renamed compat.c and compat.h to dwcompat.c and dwcompat.h respectively.
 
 Dynamic Windows Documentation is available at:
 
