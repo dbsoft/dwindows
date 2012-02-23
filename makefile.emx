@@ -21,8 +21,8 @@ LDFLAGS = -Zdll -static-libgcc
 RCFLAGS = -r
 
 
-COMPATOBJECTS = compat.obj dirent.obj
-COMPATSOURCES = compat.c dirent.c
+COMPATOBJECTS = dwcompat.obj dirent.obj
+COMPATSOURCES = dwcompat.c dirent.c
 
 all: dw.dll dwcompat.dll dwtest.exe
 
@@ -51,7 +51,7 @@ clean:
 dw.obj: dw.c
 	$(CC) $(CFLAGS) -c $<	
 
-compat.obj: compat.c
+dwcompat.obj: dwcompat.c
 	$(CC) $(CFLAGS) -c $<	
 
 dirent.obj: os2/dirent.c

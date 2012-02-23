@@ -41,11 +41,11 @@ AC_SUBST(MAKE)
 dnl Checks for system
 AC_CANONICAL_SYSTEM
 
-dnl ---------------------- check for '--with-compat' switch -----------------
-AC_ARG_WITH(compat,
-   [  --with-compat           specify this to build the optional dwcompat library],
-   [with_compat=$withval],
-   [with_compat=no],
+dnl ---------------------- check for '--with-dwcompat' switch -----------------
+AC_ARG_WITH(dwcompat,
+   [  --with-dwcompat           specify this to build the optional dwcompat library],
+   [with_dwcompat=$withval],
+   [with_dwcompat=no],
 )
 
 dnl ---------------------- check for '--with-gtk3' switch -----------------
@@ -56,9 +56,9 @@ AC_ARG_WITH(gtk3,
 )
 
 dnl ---------------------- default targets to build -----------------
-if test $with_compat = yes; then
-   COMPAT_OBJECT="compat.o"
-   INSTALL_COMPAT="installcompat"
+if test $with_dwcompat = yes; then
+   COMPAT_OBJECT="dwcompat.o"
+   INSTALL_COMPAT="installdwcompat"
    SYSCONF_LINK_TARGET_SHARED2="lib$TARGET2.$SOSUFFIX.\$(DW_MAJOR_VERSION).\$(DW_MINOR_VERSION)"
 else
    COMPAT_OBJECT=""

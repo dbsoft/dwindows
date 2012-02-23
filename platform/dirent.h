@@ -4,7 +4,7 @@
 #ifndef __DIRENT_H__
 #define __DIRENT_H__
 
-#include "compat.h"
+#include "dwcompat.h"
 #include <stdio.h>
 #ifdef MAXPATHLEN
 	#undef MAXPATHLEN

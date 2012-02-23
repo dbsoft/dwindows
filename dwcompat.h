@@ -1,7 +1,7 @@
 /* $Id$ */
 
-#ifndef _COMPAT_H
-#define _COMPAT_H
+#ifndef _DWCOMPAT_H
+#define _DWCOMPAT_H
 
 /* This header includes and defines everything needed for a given OS/compiler */
 #if defined(__UNIX__) || defined(__MAC__)

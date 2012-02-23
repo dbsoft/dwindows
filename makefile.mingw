@@ -12,7 +12,7 @@ LIBS =
 CFLAGS = -O -g -DMSVC -DWIN32 -D__WIN32__ -DGDIPLUS -DISOLATION_AWARE_ENABLED=1 -DBUILD_DLL -I./win -I. -I./platform -Wall -mthreads -o $(@)
 LDFLAGS = -shared -mwindows -mthreads -lcomctl32 -lole32 -loleaut32 -luserenv -lmsimg32 -lgdiplus
 
-COMPATOBJECTS = compat.o dirent.o
+COMPATOBJECTS = dwcompat.o dirent.o
 OBJECTS = dw.o XBrowseForFolder.o
 
 VPATH=../ ../win
@@ -36,7 +36,7 @@ dw.o: win/dw.c
 XBrowseForFolder.o: win/XBrowseForFolder.cpp
 	$(CC) $(CFLAGS) -c $<	
 
-compat.o: compat.c
+dwcompat.o: dwcompat.c
 	$(CC) $(CFLAGS) -c $<	
 
 dirent.o: win/dirent.c

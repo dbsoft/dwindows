@@ -69,7 +69,7 @@ DEFFILE2 = $(SRCDIR)\win\dwcompat.def
 
 OBJS = dw.obj browser.obj XBrowseForFolder.obj
 
-OBJS2 = compat.obj dirent.obj
+OBJS2 = dwcompat.obj dirent.obj
 
 all: dw dwcompat dwtest
 
@@ -132,8 +132,8 @@ XBrowseForFolder.obj: $(SRCDIR)\win\XBrowseForFolder.cpp
 dirent.obj: $(SRCDIR)\win\dirent.c
 	$(CC) $(CFLAGS) $(CFLAGS_DEBUG) $(SRCDIR)\win\dirent.c
 
-compat.obj: $(SRCDIR)\compat.c
-	$(CC) $(CFLAGS) $(CFLAGS_DEBUG) $(SRCDIR)\compat.c
+dwcompat.obj: $(SRCDIR)\dwcompat.c
+	$(CC) $(CFLAGS) $(CFLAGS_DEBUG) $(SRCDIR)\dwcompat.c
 
 dwtest.obj: $(SRCDIR)\dwtest.c
 	$(CC) $(CFLAGS) $(CFLAGS_DEBUG) $(SRCDIR)\dwtest.c
