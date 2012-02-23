@@ -15,7 +15,7 @@ TLKTLIB = $(TKPATH)\LIB
 
 all:	dw.dll dwcompat.dll dwtest.exe
 
-dwcompat.dll: dirent.obj compat.obj
+dwcompat.dll: dirent.obj dwcompat.obj
 	wlink @os2\dwcompat.lnk name dwcompat.dll system os2v2_dll d a library $(TLKTLIB)\so32dll,$(TLKTLIB)\tcp32dll option implib=dwcompat option map option symf f $[@ f compat
 	copy dwcompat.lib lib
         copy dwcompat.dll dll

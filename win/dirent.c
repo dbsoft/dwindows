@@ -5,7 +5,7 @@
 
 #include <windows.h>
 
-#include "compat.h"
+#include "dwcompat.h"
 #include <errno.h>
 #include <direct.h>
 

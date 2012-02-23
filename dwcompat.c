@@ -1,6 +1,6 @@
 /* $Id$ */
 
-#include "compat.h"
+#include "dwcompat.h"
 #include "dw.h"
 #if defined(__OS2__) || defined(__WIN32__)
 #include <share.h>

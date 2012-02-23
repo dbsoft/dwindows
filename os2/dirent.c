@@ -5,7 +5,7 @@
 
 #define INCL_DOSFILEMGR
 #define INCL_DOSERRORS
-#include "compat.h"
+#include "dwcompat.h"
 #include <errno.h>
 
 #ifdef __WATCOMC__

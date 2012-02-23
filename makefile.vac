@@ -28,13 +28,13 @@
 
 .\dwcompat.dll: \
     .\os2\dirent.obj \
-    .\compat.obj
+    .\dwcompat.obj
     @echo " Link::Linker "
     icc.exe @<<
     /B" /NOE /de /ST:32768 /nologo /li"
     /Fe"dwcompat.dll" os2\dwcompat.def
     .\dirent.obj
-    .\compat.obj
+    .\dwcompat.obj
    so32dll.lib
    tcp32dll.lib
 <<
