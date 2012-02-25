@@ -118,7 +118,7 @@ pthread_key_t _dw_mutex_key;
 
 GtkWidget *last_window = NULL, *popup = NULL;
 
-static int _dw_ignore_click = 0, _dw_ignore_expand = 0, _dw_color_active = 0;
+static int _dw_ignore_click = 0, _dw_ignore_expand = 0;
 static pthread_t _dw_thread = (pthread_t)-1;
 
 #define  DW_MUTEX_LOCK { if(pthread_self() != _dw_thread && !pthread_getspecific(_dw_mutex_key)) { gdk_threads_enter(); pthread_setspecific(_dw_mutex_key, (void *)1); _locked_by_me = TRUE; } }
@@ -6695,6 +6695,39 @@ void dw_color_background_set(unsigned long value)
    }
 }
 
+#if GTK_CHECK_VERSION(3,3,11)  
+/* Allows the user to choose a color using the system's color chooser dialog.
+ * Parameters:
+ *       value: current color
+ * Returns:
+ *       The selected color or the current color if cancelled.
+ */
+unsigned long API dw_color_choose(unsigned long value)
+{
+   GtkColorChooser *cd;
+   GdkRGBA color = _internal_color(value);
+   int _locked_by_me = FALSE;
+   unsigned long retcolor = value;
+
+   DW_MUTEX_LOCK;
+   cd = (GtkColorChooser *)gtk_color_chooser_dialog_new("Choose color", NULL);
+   gtk_color_chooser_set_use_alpha(cd, FALSE);
+   gtk_color_chooser_set_rgba(cd, &color);
+   
+   gtk_widget_show(GTK_WIDGET(cd));
+   
+   if(gtk_dialog_run(GTK_DIALOG(cd)) == GTK_RESPONSE_OK)
+   {
+      gtk_color_chooser_get_rgba(cd, &color);
+      retcolor = DW_RGB((int)(color.red * 255), (int)(color.green * 255), (int)(color.blue * 255));
+   }
+   gtk_widget_destroy(GTK_WIDGET(cd));
+   DW_MUTEX_UNLOCK;
+   return retcolor;
+}
+#else    
+static int _dw_color_active = 0;
+
 /* Internal function to handle the color OK press */
 static gint _gtk_color_ok(GtkWidget *widget, DWDialog *dwwait)
 {
@@ -6774,11 +6807,8 @@ unsigned long API dw_color_choose(unsigned long value)
       dw_color = value;
    DW_MUTEX_UNLOCK;
    return (unsigned long)dw_color;
-/*
-   dw_messagebox("Not implemented", DW_MB_OK|DW_MB_INFORMATION, "This feature not yet supported.");
-   return value;
-*/
 }
+#endif
 
 /* Draw a point on a window (preferably a render window).
  * Parameters:
