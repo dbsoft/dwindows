@@ -1431,6 +1431,28 @@ typedef void *HPRINT;
 #define UINT_TYPEDEFED 1
 #define INT_TYPEDEFED 1
 
+/* Support for API deprecation in supported compilers */
+#if defined(__has_feature) && !defined(__has_extension)
+#define __has_extension __has_feature
+#endif
+
+/* Visual C */
+#if defined(_MSC_VER) 
+#define DW_DEPRECATED(func, message) __declspec(deprecated(message)) func
+/* Clang with message */
+#elif defined(__has_extension) && __has_extension(attribute_deprecated_with_message)) 
+#define DW_DEPRECATED(func, message) func __attribute__ ((deprecated (message)))
+/* GCC with message */
+#elif defined(__GNUC__) && (__GNUC__ * 10000 + __GNUC_MINOR__ * 100 + __GNUC_PATCHLEVEL__) >= 40500 
+#define DW_DEPRECATED(func, message) func __attribute__ ((deprecated (message)))
+/* Clang or GCC without message */
+#elif defined(__clang__) || defined(__GNUC__)
+#define DW_DEPRECATED(func, message) func __attribute__ ((deprecated))
+#else
+/* Compiler without deprecation support */
+#define DW_DEPRECATED(func) func
+#endif
+
 /* Public function prototypes */
 void API dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize, int vsize, int pad);
 void API dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, int vsize, int pad);
@@ -1462,7 +1484,7 @@ HWND API dw_scrollbox_new(int type, int pad);
 int API dw_scrollbox_get_pos( HWND handle, int orient );
 int API dw_scrollbox_get_range( HWND handle, int orient );
 HWND API dw_groupbox_new(int type, int pad, char *title);
-HWND API dw_mdi_new(unsigned long id);
+DW_DEPRECATED(HWND API dw_mdi_new(unsigned long id), "Due to lack of full Mac support consider avoiding this function.");
 HWND API dw_bitmap_new(unsigned long id);
 HWND API dw_bitmapbutton_new(char *text, unsigned long id);
 HWND API dw_bitmapbutton_new_from_file(char *text, unsigned long id, char *filename);
@@ -1603,7 +1625,7 @@ HMENUI API dw_menu_new(unsigned long id);
 HMENUI API dw_menubar_new(HWND location);
 HWND API dw_menu_append_item(HMENUI menu, char *title, unsigned long id, unsigned long flags, int end, int check, HMENUI submenu);
 int API dw_menu_delete_item(HMENUI menu, unsigned long id);
-void API dw_menu_item_set_check(HMENUI menu, unsigned long id, int check);
+DW_DEPRECATED(void API dw_menu_item_set_check(HMENUI menu, unsigned long id, int check), "Use dw_menu_item_set_state() for new code.");
 void API dw_menu_item_set_state( HMENUI menux, unsigned long id, unsigned long state);
 void API dw_menu_popup(HMENUI *menu, HWND parent, int x, int y);
 void API dw_menu_destroy(HMENUI *menu);
