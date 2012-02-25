@@ -1455,7 +1455,7 @@ typedef void *HPRINT;
 #	endif
 #else
 /* Compiler without deprecation support */
-#define DW_DEPRECATED(func) func
+#define DW_DEPRECATED(func, message) func
 #endif
 
 /* Public function prototypes */
