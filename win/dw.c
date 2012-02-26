@@ -4305,12 +4305,12 @@ void API dw_window_reparent(HWND handle, HWND newparent)
 
 LOGFONT _get_logfont(HDC hdc, char *fontname)
 {
+   int z, size = 9, len = (int)strlen(fontname);
    int Italic, Bold;
    char *myFontName;
-   int z, size = 9;
    LOGFONT lf = {0};
 
-   for(z=0;z<strlen(fontname);z++)
+   for(z=0;z<len;z++)
    {
       if(fontname[z]=='.')
          break;
