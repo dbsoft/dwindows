@@ -50,9 +50,11 @@ Added DW_DRAW_NOAA which can be passed to dw_draw_*() API functions
 Added dw_main_quit() to cause the dw_main() message loop to return.
 Added DW_FCF_COMPOSITED to enable Aero Glass effects on Windows 7 and Vista.
 Added local autorelease pools on Mac making _dw_pool_drain() unnecessary.
+Added deprecated API support for Clang, GCC and Visual C compilers.
+   dw_mdi_new() and dw_menu_item_set_check() have been deprecated.
 Fixed auto-sizing top-level windows on Windows; added on OS/2 and Mac.
 Fixed bubble help not being displayed on Windows.
-Fixed menu bar items remaining highlighted on Mac 10.6 and later.
+Fixed menu bar items remaining highlighted on Mac.
 Fixed OS/2 and Windows showing windows during dw_window_set_pos/size().
 Fixed OS/2 scrollbox resizing problems when not in the initial position.
 Fixed Windows scrollbox maximum position is off by one.
