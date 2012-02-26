@@ -1438,23 +1438,27 @@ typedef void *HPRINT;
 
 /* Visual C */
 #if defined(_MSC_VER) 
-#define DW_DEPRECATED(func, message) __declspec(deprecated(message)) func
+#  if _MSC_VER >= 1400
+#  define DW_DEPRECATED(func, message) __declspec(deprecated(message)) func
+#  endif
 /* Clang */
 #elif defined(__has_extension)
-#	if __has_extension(attribute_deprecated_with_message) 
-#	define DW_DEPRECATED(func, message) func __attribute__ ((deprecated (message)))
-#	else
-#	define DW_DEPRECATED(func, message) func __attribute__ ((deprecated))
-#	endif
+#  if __has_extension(attribute_deprecated_with_message) 
+#  define DW_DEPRECATED(func, message) func __attribute__ ((deprecated (message)))
+#  else
+#  define DW_DEPRECATED(func, message) func __attribute__ ((deprecated))
+#  endif
 /* GCC */
 #elif defined(__GNUC__)
-#	if (__GNUC__ * 10000 + __GNUC_MINOR__ * 100 + __GNUC_PATCHLEVEL__) >= 40500 
-#	define DW_DEPRECATED(func, message) func __attribute__ ((deprecated (message)))
-#	else
-#	define DW_DEPRECATED(func, message) func __attribute__ ((deprecated))
-#	endif
-#else
+#  if (__GNUC__ * 10000 + __GNUC_MINOR__ * 100 + __GNUC_PATCHLEVEL__) >= 40500 
+#  define DW_DEPRECATED(func, message) func __attribute__ ((deprecated (message)))
+#  else
+#  define DW_DEPRECATED(func, message) func __attribute__ ((deprecated))
+#  endif
+#endif
+
 /* Compiler without deprecation support */
+#ifndef DW_DEPRECATED
 #define DW_DEPRECATED(func, message) func
 #endif
 

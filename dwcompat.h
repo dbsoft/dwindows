@@ -198,9 +198,23 @@ void msleep(long period);
 #define P_NOWAIT _P_NOWAIT
 #endif
 
-#define strcasecmp stricmp
-#define strncasecmp strnicmp
-#define msleep Sleep
+#ifdef _MSC_VER
+/* Handle deprecated functions in Visual C */
+#  if _MSC_VER >= 1400
+#  define strcasecmp(a, b) _stricmp(a, b)
+#  define strncasecmp(a, b, c) _strnicmp(a, b, c)
+#  define strdup(a) _strdup(a)
+#  define unlink(a) _unlink(a)
+#  define close(a) _close(a)
+#  define mkdir(a) _mkdir(a)
+#  define fdopen(a, b) _fdopen(a, b)
+#  define chdir(a) _chdir(a)
+#  else
+#  define strcasecmp(a, b) stricmp(a, b)
+#  define strncasecmp(a, b, c) strnicmp(a, b, c)
+#  endif
+#endif
+#define msleep(a) Sleep(a)
 
 #endif /* WIN32 */
 

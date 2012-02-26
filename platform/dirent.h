@@ -34,14 +34,14 @@ extern "C" {
 #endif
 
 struct dirent {
-    int            d_ino;                 /* Dummy */
-    int            d_reclen;		  /* Dummy, same as d_namlen */
-    int            d_namlen;              /* length of name */
-    char           d_name[MAXNAMLEN + 1];
-    unsigned long  d_size;
-    unsigned short d_attribute;           /* attributes (see above) */
-    unsigned short d_time;                /* modification time */
-    unsigned short d_date;                /* modification date */
+    int                 d_ino;                 /* Dummy */
+    int                 d_reclen;		  /* Dummy, same as d_namlen */
+    int                 d_namlen;              /* length of name */
+    char                d_name[MAXNAMLEN + 1];
+    unsigned long long  d_size;
+    unsigned long       d_attribute;           /* attributes (see above) */
+    unsigned short      d_time;                /* modification time */
+    unsigned short      d_date;                /* modification date */
 };
 
 typedef struct _dirdescr DIR;

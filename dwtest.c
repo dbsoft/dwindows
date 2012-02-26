@@ -8,6 +8,12 @@
 #include <stdio.h>
 #include "dw.h"
 
+#ifdef _MSC_VER
+#  if _MSC_VER >= 1400
+#  define strdup(a) _strdup(a)
+#  endif
+#endif
+
 /* Select a fixed width font for our platform */
 #ifdef __OS2__
 #define FIXEDFONT "5.System VIO"

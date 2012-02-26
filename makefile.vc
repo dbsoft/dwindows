@@ -43,7 +43,9 @@ PLATFORM_NAME = win64
 # Settings for either debug or release
 #
 !if "$(DEBUG)" == "Y"
-CFLAGS_DEBUG = -DDEBUG -Z7 -Od -MTd # was -Zi
+# -D_CRT_SECURE_NO_WARNINGS disables unsafe string function warnings
+# These can be perfectly safe if used properly but get enabled by -W3
+CFLAGS_DEBUG = -DDEBUG -Z7 -W3 -Od -MTd -D_CRT_SECURE_NO_WARNINGS # was -Zi
 LINK_DEBUG = -debug
 !else
 CFLAGS_DEBUG = -Ox -MT

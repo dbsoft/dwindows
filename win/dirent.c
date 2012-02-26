@@ -30,7 +30,7 @@ static char API getFSType(const char *path)
 {
 	static char cache[1+26];
 	char drive[3];
-	ULONG unit;
+	UCHAR unit;
 	char r;
 
 	if (isalpha(path[0]) && path[1] == ':') {
@@ -67,7 +67,7 @@ char * API abs_path(const char *name, char *buffer, int len)
 
 		_chdrive((newdrive - 'A')+1);
 
-		if(getcwd(buffer, len))
+		if(_getcwd(buffer, len))
 		{
 			_chdrive(drive);
 			return buffer;
@@ -149,8 +149,8 @@ struct dirent * API readdir(DIR *dir)
 
 	strcpy(dir->entry.d_name, dir->data.cFileName);
 	dir->entry.d_ino = dummy_ino++;
-	dir->entry.d_reclen = strlen(dir->data.cFileName);
-	dir->entry.d_namlen = strlen(dir->data.cFileName);
+	dir->entry.d_reclen = (int)strlen(dir->data.cFileName);
+	dir->entry.d_namlen = (int)strlen(dir->data.cFileName);
 	dir->entry.d_size = dir->data.nFileSizeLow;
 	dir->entry.d_attribute = dir->data.dwFileAttributes;
 #if 0

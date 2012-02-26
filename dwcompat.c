@@ -1,10 +1,13 @@
 /* $Id$ */
 
-#include "dwcompat.h"
-#include "dw.h"
+#ifdef __WIN32__
+#include <direct.h>
+#endif
 #if defined(__OS2__) || defined(__WIN32__)
 #include <share.h>
 #endif
+#include "dwcompat.h"
+#include "dw.h"
 
 #if defined(__UNIX__) || defined(__MAC__)
 #if defined(__FreeBSD__) || defined(__MAC__)
