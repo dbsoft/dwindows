@@ -62,4 +62,4 @@ dwtest.obj: dwtest.c
 
 zip: dw.dll
 	copy os2\readme-os2.txt .
-	zip dwindows-os2-$(VERDOT).zip readme-os2.txt readme.txt dw.dll dwcompat.dll dw.lib dwcompat.lib dw.h
+	zip dwindows-os2-$(VERDOT).zip readme-os2.txt readme.txt dw.dll dwcompat.dll dw.lib dwcompat.lib dw.h dwcompat.h
