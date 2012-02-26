@@ -149,4 +149,4 @@ dwtest.exe: dwtest.obj winmain.obj
 
 zip: dw.dll
 	copy win\readme-win.txt .
-	zip dwindows-$(PLATFORM_NAME)-$(VERDOT).zip readme-win.txt readme.txt dw.dll dwcompat.dll dw.lib dwcompat.lib dw.h
+	zip dwindows-$(PLATFORM_NAME)-$(VERDOT).zip readme-win.txt readme.txt dw.dll dwcompat.dll dw.lib dwcompat.lib dw.h dwcompat.h
