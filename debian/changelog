@@ -1,3 +1,49 @@
+dwindows (2.3-1) unstable; urgency=low
+
+  * Added dw_menu_delete_item() for removing menu items.
+    Now you can use dw_window_destroy() on menu items handles also.
+  * Added dw_app_dir() which attempts to locate private application data
+    for the current platform.
+  * Added dw_window_set_tooltip() for adding tooltips to most widgets.
+  * Added dw_window_get_preferred_size() for getting the size the system
+    thinks the widget should be, to aid in creating layouts.
+  * Added support for -1 size parameter to the dw_box_pack*() functions to 
+    automatically figure out a suggested size for many controls.
+  * Added automatic window redraw support for OS/2, Windows and Mac.
+  * Added dw_window_set_gravity() for enhanced window placement.
+  * Added DW_GRAV_OBSTACLES support for using system obstacles as gravity
+    anchor points on OS/2, Mac, Windows and GTK3 (3.4 and later).
+  * Added automatic window border detection on GTK.
+    This eliminates the need for the DW_BORDER_* environment variables.
+  * Added Open Watcom compiler support for OS/2 (Thanks Andy Willis).
+  * Added pseudo transparent background widget support on Windows and OS/2.
+    If you set the background color of a widget to DW_RGB_TRANSPARENT...
+    it will attempt to use the background color of the parent.
+    Several types of widgets have this set by default now.
+  * Added faster and less buggy layout engine 2.0 for OS/2, Windows and Mac.
+  * Added auto-positioning on Mac; reimplemented auto-positioning on OS/2.
+  * Added DW_DRAW_NOAA which can be passed to dw_draw_*() API functions
+    that accept the flags parameter to disable anti-aliasing.
+  * Added dw_main_quit() to cause the dw_main() message loop to return.
+  * Added DW_FCF_COMPOSITED to enable Aero Glass effects on Windows 7 and Vista.
+  * Added local autorelease pools on Mac making _dw_pool_drain() unnecessary.
+  * Added deprecated API support for Clang, GCC and Visual C compilers.
+    dw_mdi_new() and dw_menu_item_set_check() have been deprecated.
+  * Fixed auto-sizing top-level windows on Windows; added on OS/2 and Mac.
+  * Fixed bubble help not being displayed on Windows.
+  * Fixed menu bar items remaining highlighted on Mac.
+  * Fixed OS/2 and Windows showing windows during dw_window_set_pos/size().
+  * Fixed OS/2 scrollbox resizing problems when not in the initial position.
+  * Fixed Windows scrollbox maximum position is off by one.
+  * Fixed various GTK3 issues and removed all deprecated functions for 3.4.
+  * Fixed MLE issues on almost all platforms.
+  * Removed broken support for GTK 3.0, GTK 3.2 or later is required now.
+  * Deprecated DW_FCF_NOBYTEALIGN, DW_FCF_SHELLPOSITION, DW_FCF_HORZSCROLL and
+    DW_FCF_VERTSCROLL flags.
+  * Renamed compat.c and compat.h to dwcompat.c and dwcompat.h respectively.
+
+ -- Brian Smith <brian@dbsoft.org>  Sun, 26 Feb 2012 08:00:00 +1000
+
 dwindows (2.2-1) unstable; urgency=low
 
   * Added printing support via dw_print_new, dw_print_run and dw_print_cancel.
