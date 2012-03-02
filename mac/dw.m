@@ -7831,6 +7831,12 @@ HWND API dw_window_new(HWND hwndOwner, char *title, ULONG flStyle)
     [window setAutorecalculatesKeyViewLoop:YES];
     [window setAcceptsMouseMovedEvents:YES];
     [view release];
+    
+    /* Enable full screen mode on resizeable windows */
+    if(flStyle & DW_FCF_SIZEBORDER)
+    {
+        [window setCollectionBehavior:NSWindowCollectionBehaviorFullScreenPrimary];
+    }
 
     /* If it isn't a toplevel window... */
     if(hwndOwner)
