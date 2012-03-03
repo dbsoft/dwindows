@@ -7804,6 +7804,10 @@ void API dw_notebook_pack(HWND handle, ULONG pageid, HWND page)
     }
 }
 
+#ifndef NSWindowCollectionBehaviorFullScreenPrimary
+#define NSWindowCollectionBehaviorFullScreenPrimary (1 << 7)
+#endif
+
 /*
  * Create a new Window Frame.
  * Parameters:
