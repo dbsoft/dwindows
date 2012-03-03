@@ -102,7 +102,7 @@ long double API drivefree(int drive)
 
 	return (long double)((double)spc*(double)bps*(double)fc);
 #elif defined(__FreeBSD__) || defined(__MAC__)
-	struct statfs *fsp;
+	struct statfs *fsp = NULL;
 	int entries, index = 1;
 
 	entries = getmntinfo (&fsp, MNT_NOWAIT);
@@ -204,7 +204,7 @@ long double API drivesize(int drive)
 
 	return (long double)((double)spc*(double)bps*(double)tc);
 #elif defined(__FreeBSD__) || defined(__MAC__)
-	struct statfs *fsp;
+	struct statfs *fsp = NULL;
 	int entries, index = 1;
 
 	entries = getmntinfo (&fsp, MNT_NOWAIT);
@@ -303,7 +303,7 @@ int API isdrive(int drive)
 	if(GetVolumeInformation(buffer, volname, 100, &spc, &bps, &fc, NULL, 0) != 0)
 		return 1;
 #elif defined(__FreeBSD__) || defined(__MAC__)
-	struct statfs *fsp;
+	struct statfs *fsp = NULL;
 	int entries, index = 1;
 
 	entries = getmntinfo (&fsp, MNT_NOWAIT);
@@ -374,7 +374,7 @@ void API getfsname(int drive, char *buf, int len)
 {
 #if defined(__UNIX__) || defined(__MAC__) 
 #if defined(__FreeBSD__) || defined(__MAC__)
-	struct statfs *fsp;
+	struct statfs *fsp = NULL;
 	int entries, index = 1;
 
 	strncpy(buf, "Unknown", len);
