@@ -74,6 +74,23 @@ char * API vargs(char *buf, int len, char *format, ...)
 	return buf;
 }
 
+/* Get around getmntinfo() not being thread safe */
+#if defined(__FreeBSD__) || defined(__MAC__)
+int _getmntinfo_r(struct statfs **mntbufp, int flags)
+{
+	static HMTX mutex = 0;
+	int result;
+
+	if(!mutex)
+		mutex = dw_mutex_new();
+
+	dw_mutex_lock(mutex);
+	result = getmntinfo(mntbufp, flags);
+	dw_mutex_unlock(mutex);
+	return result;
+}
+#endif
+
 long double API drivefree(int drive)
 {
 #if defined(__EMX__) || defined(__OS2__)
@@ -105,7 +122,7 @@ long double API drivefree(int drive)
 	struct statfs *fsp = NULL;
 	int entries, index = 1;
 
-	entries = getmntinfo (&fsp, MNT_NOWAIT);
+	entries = _getmntinfo_r(&fsp, MNT_NOWAIT);
 
 	for (; entries-- > 0; fsp++)
 	{
@@ -207,7 +224,7 @@ long double API drivesize(int drive)
 	struct statfs *fsp = NULL;
 	int entries, index = 1;
 
-	entries = getmntinfo (&fsp, MNT_NOWAIT);
+	entries = _getmntinfo_r(&fsp, MNT_NOWAIT);
 
 	for (; entries-- > 0; fsp++)
 	{
@@ -306,7 +323,7 @@ int API isdrive(int drive)
 	struct statfs *fsp = NULL;
 	int entries, index = 1;
 
-	entries = getmntinfo (&fsp, MNT_NOWAIT);
+	entries = _getmntinfo_r(&fsp, MNT_NOWAIT);
 
 	for (; entries-- > 0; fsp++)
 	{
@@ -379,7 +396,7 @@ void API getfsname(int drive, char *buf, int len)
 
 	strncpy(buf, "Unknown", len);
 
-	entries = getmntinfo (&fsp, MNT_NOWAIT);
+	entries = _getmntinfo_r(&fsp, MNT_NOWAIT);
 
 	for (; entries-- > 0; fsp++)
 	{
