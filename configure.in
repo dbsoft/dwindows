@@ -358,5 +358,5 @@ AC_SUBST(ARCH)
 
 AC_CONFIG_FILES([
 Makefile
-dwindows-config ])
+dwindows-config1 ])
 AC_OUTPUT
