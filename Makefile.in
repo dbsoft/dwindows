@@ -90,6 +90,7 @@ installbase: $(SYSCONF_LINK_TARGET)
 	$(INSTALL) -d $(prefix)/bin; \
 	$(INSTALL) -d $(prefix)/share/man/man1; \
 	$(INSTALL) $(srcdir)/dw.h $(prefix)/include; \
+	sed -e 's/@DW_MAJOR_VERSION@/$(VER_MAJ)/' -e 's/@DW_MINOR_VERSION@/$(VER_MIN)/' -e 's/@DW_SUB_VERSION@/$(VER_REV)/' < dwindows-config1 > dwindows-config
 	$(INSTALL) dwindows-config $(prefix)/bin; \
 	$(INSTALL) $(srcdir)/dwindows-config.1 $(prefix)/share/man/man1; \
 	cd $(prefix)/share/man/man1; gzip -f -9 dwindows-config.1
@@ -136,6 +137,7 @@ clean:
 	rm -f *.a
 	rm -f $(DW_DIR)/*.o
 	rm -f dwtest
+	rm -f dwindows-config dwindows-config1
 
 $(SYSCONF_LINK_TARGET2): $(OBJECTS2)
 	$(SYSCONF_LINK_LIB2)
