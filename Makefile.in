@@ -128,6 +128,7 @@ deb: dist
 
 distclean: clean
 	rm -f config.status
+	rm -f dwindows-config dwindows-config1
 
 clean:
 	rm -f *.$(SOSUFFIX)
@@ -137,7 +138,6 @@ clean:
 	rm -f *.a
 	rm -f $(DW_DIR)/*.o
 	rm -f dwtest
-	rm -f dwindows-config dwindows-config1
 
 $(SYSCONF_LINK_TARGET2): $(OBJECTS2)
 	$(SYSCONF_LINK_LIB2)
