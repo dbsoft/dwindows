@@ -497,13 +497,6 @@ void _dw_pool_drain(void);
 #endif
 #endif
 
-/* With Visual C we need to make sure we are in UTF8 space
- * to prevent compilation errors with UTF-8 encoded literals.
- */
-#ifdef MSVC
-#pragma execution_character_set("utf-8")
-#endif
-
 #define DW_DT_LEFT               SS_LEFT
 #define DW_DT_QUERYEXTENT        0
 #define DW_DT_UNDERSCORE         0
