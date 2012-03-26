@@ -434,6 +434,17 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 }
 #endif
 
+/* Macro and internal function to convert UTF8 to Unicode wide characters */
+#define UTF8toWide(a) _myUTF8toWide(a, a ? _alloca(MultiByteToWideChar(CP_UTF8, 0, a, -1, NULL, 0) * sizeof(WCHAR)) : NULL)
+LPWSTR _myUTF8toWide(char *utf8string, void *outbuf)
+{
+   LPWSTR retbuf = outbuf;
+   
+   if(retbuf)
+      MultiByteToWideChar(CP_UTF8, 0, utf8string, -1, retbuf, MultiByteToWideChar(CP_UTF8, 0, utf8string, -1, NULL, 0) * sizeof(WCHAR));
+   return retbuf;
+}
+
 DWORD GetDllVersion(LPCTSTR lpszDllName)
 {
 
@@ -3901,7 +3912,7 @@ int API dw_init(int newthread, int argc, char *argv[])
     * packed into their correct parent.
     */
 
-   DW_HWND_OBJECT = CreateWindow(ObjectClassName, "", 0, 0, 0,
+   DW_HWND_OBJECT = CreateWindow(ObjectClassName, NULL, 0, 0, 0,
                           0, 0, HWND_DESKTOP, NULL, DWInstance, NULL);
 
    if(!DW_HWND_OBJECT)
@@ -5026,14 +5037,14 @@ HWND API dw_window_new(HWND hwndOwner, char *title, ULONG flStyle)
    if(flStyle & DW_FCF_TASKLIST ||
       flStyle & WS_VSCROLL /* This is deprecated and should go away in version 3? */)
    {
-      hwndframe = CreateWindowEx(flStyleEx, ClassName, title, (flStyle | WS_CLIPCHILDREN) & 0xffdf0000, CW_USEDEFAULT, CW_USEDEFAULT,
+      hwndframe = CreateWindowExW(flStyleEx, UTF8toWide(ClassName), UTF8toWide(title), (flStyle | WS_CLIPCHILDREN) & 0xffdf0000, CW_USEDEFAULT, CW_USEDEFAULT,
                            0, 0, hwndOwner, NULL, DWInstance, NULL);
    }
    else
    {
       flStyleEx |= WS_EX_TOOLWINDOW;
 
-      hwndframe = CreateWindowEx(flStyleEx, ClassName, title, (flStyle | WS_CLIPCHILDREN) & 0xffff0000, CW_USEDEFAULT, CW_USEDEFAULT,
+      hwndframe = CreateWindowExW(flStyleEx, UTF8toWide(ClassName), UTF8toWide(title), (flStyle | WS_CLIPCHILDREN) & 0xffff0000, CW_USEDEFAULT, CW_USEDEFAULT,
                            0, 0, hwndOwner, NULL, DWInstance, NULL);
    }
    SetWindowLongPtr(hwndframe, GWLP_USERDATA, (LONG_PTR)newbox);
@@ -5071,7 +5082,7 @@ HWND API dw_box_new(int type, int pad)
    newbox->cinfo.fore = newbox->cinfo.back = -1;
 
    hwndframe = CreateWindow(FRAMECLASSNAME,
-                      "",
+                      NULL,
                       WS_VISIBLE | WS_CHILD | WS_CLIPCHILDREN,
                       0,0,0,0,
                       DW_HWND_OBJECT,
@@ -5102,7 +5113,7 @@ HWND API dw_scrollbox_new(int type, int pad)
     cinfo->fore = cinfo->back = -1;
 
     hwndframe = CreateWindow(ScrollClassName,
-                      "",
+                      NULL,
                       WS_VISIBLE | WS_CHILD | WS_CLIPCHILDREN | WS_VSCROLL | WS_HSCROLL,
                       0,0,0,0,
                       DW_HWND_OBJECT,
@@ -5188,7 +5199,7 @@ HWND API dw_groupbox_new(int type, int pad, char *title)
    newbox->cinfo.fore = newbox->cinfo.back = -1;
 
    hwndframe = CreateWindow(FRAMECLASSNAME,
-                      "",
+                      NULL,
                       WS_VISIBLE | WS_CHILD,
                       0,0,0,0,
                       DW_HWND_OBJECT,
@@ -5196,8 +5207,8 @@ HWND API dw_groupbox_new(int type, int pad, char *title)
                       DWInstance,
                       NULL);
 
-   newbox->grouphwnd = CreateWindow(BUTTONCLASSNAME,
-                            title,
+   newbox->grouphwnd = CreateWindowW(UTF8toWide(BUTTONCLASSNAME),
+                            UTF8toWide(title),
                             WS_CHILD | BS_GROUPBOX |
                             WS_VISIBLE | WS_CLIPCHILDREN,
                             0,0,0,0,
@@ -5225,7 +5236,7 @@ HWND API dw_mdi_new(unsigned long id)
    ccs.idFirstChild = 0;
 
    hwndframe = CreateWindow("MDICLIENT",
-                      "",
+                      NULL,
                       WS_VISIBLE | WS_CHILD | WS_CLIPSIBLINGS,
                       0,0,0,0,
                       DW_HWND_OBJECT,
@@ -5244,7 +5255,7 @@ HWND API dw_html_new(unsigned long id)
 {
 #if (defined(BUILD_DLL) || defined(BUILD_HTML)) && !defined(__MINGW32__)
    return CreateWindow(BrowserClassName,
-                  "",
+                  NULL,
                   WS_VISIBLE | WS_CHILD | WS_CLIPSIBLINGS,
                   0,0,0,0,
                   DW_HWND_OBJECT,
@@ -5320,7 +5331,7 @@ int API dw_html_url(HWND handle, char *url)
 HWND API dw_bitmap_new(ULONG id)
 {
    return CreateWindow(STATICCLASSNAME,
-                  "",
+                  NULL,
                   SS_BITMAP | SS_CENTERIMAGE | WS_VISIBLE |
                   WS_CHILD | WS_CLIPCHILDREN,
                   0,0,0,0,
@@ -5346,7 +5357,7 @@ HWND API dw_notebook_new(ULONG id, int top)
       flags = TCS_BOTTOM;
 
    tmp = CreateWindow(WC_TABCONTROL,
-                  "",
+                  NULL,
                   WS_VISIBLE | WS_CHILD | WS_CLIPCHILDREN | flags,
                   0,0,0,0,
                   DW_HWND_OBJECT,
@@ -5744,7 +5755,7 @@ void API dw_menu_popup(HMENUI *menu, HWND parent, int x, int y)
 HWND API dw_container_new(ULONG id, int multi)
 {
    HWND tmp = CreateWindow(WC_LISTVIEW,
-                     "",
+                     NULL,
                      WS_VISIBLE | WS_CHILD |
                      (multi ? 0 : LVS_SINGLESEL) |
                      LVS_REPORT | LVS_SHOWSELALWAYS |
@@ -5787,7 +5798,7 @@ HWND API dw_container_new(ULONG id, int multi)
 HWND API dw_tree_new(ULONG id)
 {
    HWND tmp = CreateWindow(WC_TREEVIEW,
-                     "",
+                     NULL,
                      WS_VISIBLE | WS_CHILD |
                      TVS_HASLINES | TVS_SHOWSELALWAYS |
                      TVS_HASBUTTONS | TVS_LINESATROOT |
@@ -5852,8 +5863,8 @@ void API dw_pointer_set_pos(long x, long y)
  */
 HWND API dw_text_new(char *text, ULONG id)
 {
-   HWND tmp = CreateWindow(STATICCLASSNAME,
-                     text,
+   HWND tmp = CreateWindowW(UTF8toWide(STATICCLASSNAME),
+                     UTF8toWide(text),
                      SS_NOPREFIX | SS_NOTIFY | WS_VISIBLE |
                      WS_CHILD | WS_CLIPCHILDREN,
                      0,0,0,0,
@@ -5882,8 +5893,8 @@ HWND API dw_text_new(char *text, ULONG id)
  */
 HWND API dw_status_text_new(char *text, ULONG id)
 {
-   HWND tmp = CreateWindow(StatusbarClassName,
-                     text,
+   HWND tmp = CreateWindowW(UTF8toWide(StatusbarClassName),
+                     UTF8toWide(text),
                      WS_VISIBLE | WS_CHILD | WS_CLIPCHILDREN,
                      0,0,0,0,
                      DW_HWND_OBJECT,
@@ -5904,7 +5915,7 @@ HWND API dw_mle_new(ULONG id)
 
    HWND tmp = CreateWindowEx(WS_EX_CLIENTEDGE,
                        hrichedit ? RICHEDIT_CLASS : EDITCLASSNAME,
-                       "",
+                       NULL,
                        WS_VISIBLE | WS_BORDER |
                        WS_VSCROLL | ES_MULTILINE |
                        ES_WANTRETURN | WS_CHILD |
@@ -5939,9 +5950,9 @@ HWND API dw_mle_new(ULONG id)
  */
 HWND API dw_entryfield_new(char *text, ULONG id)
 {
-   HWND tmp = CreateWindowEx(WS_EX_CLIENTEDGE,
-                       EDITCLASSNAME,
-                       text,
+   HWND tmp = CreateWindowExW(WS_EX_CLIENTEDGE,
+                       UTF8toWide(EDITCLASSNAME),
+                       UTF8toWide(text),
                        ES_WANTRETURN | WS_CHILD |
                        WS_BORDER | ES_AUTOHSCROLL |
                        WS_VISIBLE | WS_CLIPCHILDREN,
@@ -5968,9 +5979,9 @@ HWND API dw_entryfield_new(char *text, ULONG id)
  */
 HWND API dw_entryfield_password_new(char *text, ULONG id)
 {
-   HWND tmp = CreateWindowEx(WS_EX_CLIENTEDGE,
-                       EDITCLASSNAME,
-                       text,
+   HWND tmp = CreateWindowExW(WS_EX_CLIENTEDGE,
+                       UTF8toWide(EDITCLASSNAME),
+                       UTF8toWide(text),
                        ES_WANTRETURN | WS_CHILD |
                        ES_PASSWORD | WS_BORDER | WS_VISIBLE |
                        ES_AUTOHSCROLL | WS_CLIPCHILDREN,
@@ -6010,8 +6021,8 @@ BOOL CALLBACK _subclass_child(HWND handle, LPARAM lp)
  */
 HWND API dw_combobox_new(char *text, ULONG id)
 {
-   HWND tmp = CreateWindow(COMBOBOXCLASSNAME,
-                     text,
+   HWND tmp = CreateWindowW(UTF8toWide(COMBOBOXCLASSNAME),
+                     UTF8toWide(text),
                      WS_CHILD | CBS_DROPDOWN | WS_VSCROLL |
                      WS_CLIPCHILDREN | CBS_AUTOHSCROLL | WS_VISIBLE,
                      0,0,0,0,
@@ -6040,7 +6051,7 @@ HWND API dw_combobox_new(char *text, ULONG id)
    
    SetWindowLongPtr(tmp, GWLP_USERDATA, (LONG_PTR)cinfo);
    dw_window_set_font(tmp, DefaultFont);
-   SetWindowText(tmp, text);
+   SetWindowTextW(tmp, UTF8toWide(text));
    return tmp;
 }
 
@@ -6054,8 +6065,8 @@ HWND API dw_button_new(char *text, ULONG id)
 {
    ColorInfo *cinfo = calloc(1, sizeof(ColorInfo));
 
-   HWND tmp = CreateWindow(BUTTONCLASSNAME,
-                     text,
+   HWND tmp = CreateWindowW(UTF8toWide(BUTTONCLASSNAME),
+                     UTF8toWide(text),
                      WS_CHILD | BS_PUSHBUTTON |
                      WS_VISIBLE | WS_CLIPCHILDREN,
                      0,0,0,0,
@@ -6085,7 +6096,7 @@ HWND API dw_bitmapbutton_new(char *text, ULONG id)
    HICON icon = LoadImage(DWInstance, MAKEINTRESOURCE(id), IMAGE_ICON, 0, 0, LR_SHARED);
 
    tmp = CreateWindow(BUTTONCLASSNAME,
-                  "",
+                  NULL,
                   WS_CHILD | BS_PUSHBUTTON |
                   WS_VISIBLE | WS_CLIPCHILDREN |
                   (icon ? BS_ICON : BS_BITMAP),
@@ -6146,7 +6157,7 @@ HWND API dw_bitmapbutton_new_from_file(char *text, unsigned long id, char *filen
 #endif
 
    tmp = CreateWindow( BUTTONCLASSNAME,
-                       "",
+                       NULL,
                        windowtype | WS_CHILD | BS_PUSHBUTTON | WS_CLIPCHILDREN | WS_VISIBLE,
                        0,0,0,0,
                        DW_HWND_OBJECT,
@@ -6228,7 +6239,7 @@ HWND API dw_bitmapbutton_new_from_data(char *text, unsigned long id, char *data,
    }
 
    tmp = CreateWindow( BUTTONCLASSNAME,
-                       "",
+                       NULL,
                        WS_CHILD | BS_PUSHBUTTON |
                        windowtype | WS_CLIPCHILDREN |
                        WS_VISIBLE,
@@ -6264,9 +6275,9 @@ HWND API dw_bitmapbutton_new_from_data(char *text, unsigned long id, char *data,
  */
 HWND API dw_spinbutton_new(char *text, ULONG id)
 {
-   HWND buddy = CreateWindowEx(WS_EX_CLIENTEDGE,
-                        EDITCLASSNAME,
-                        text,
+   HWND buddy = CreateWindowExW(WS_EX_CLIENTEDGE,
+                        UTF8toWide(EDITCLASSNAME),
+                        UTF8toWide(text),
                         WS_CHILD | WS_BORDER | WS_VISIBLE |
                         ES_NUMBER | WS_CLIPCHILDREN,
                         0,0,0,0,
@@ -6319,8 +6330,8 @@ HWND API dw_spinbutton_new(char *text, ULONG id)
  */
 HWND API dw_radiobutton_new(char *text, ULONG id)
 {
-   HWND tmp = CreateWindow(BUTTONCLASSNAME,
-                     text,
+   HWND tmp = CreateWindowW(UTF8toWide(BUTTONCLASSNAME),
+                     UTF8toWide(text),
                      WS_CHILD | BS_AUTORADIOBUTTON |
                      WS_CLIPCHILDREN | WS_VISIBLE,
                      0,0,0,0,
@@ -6348,7 +6359,7 @@ HWND API dw_radiobutton_new(char *text, ULONG id)
 HWND API dw_slider_new(int vertical, int increments, ULONG id)
 {
    HWND tmp = CreateWindow(TRACKBAR_CLASS,
-                     "",
+                     NULL,
                      WS_CHILD | WS_CLIPCHILDREN | WS_VISIBLE |
                      (vertical ? TBS_VERT : TBS_HORZ),
                      0,0,0,0,
@@ -6376,7 +6387,7 @@ HWND API dw_slider_new(int vertical, int increments, ULONG id)
 HWND API dw_scrollbar_new(int vertical, ULONG id)
 {
    HWND tmp = CreateWindow(SCROLLBARCLASSNAME,
-                     "",
+                     NULL,
                      WS_CHILD | WS_CLIPCHILDREN | WS_VISIBLE |
                      (vertical ? SBS_VERT : SBS_HORZ),
                      0,0,0,0,
@@ -6402,7 +6413,7 @@ HWND API dw_scrollbar_new(int vertical, ULONG id)
 HWND API dw_percent_new(ULONG id)
 {
    return CreateWindow(PROGRESS_CLASS,
-                  "",
+                  NULL,
                   WS_VISIBLE | WS_CHILD | WS_CLIPCHILDREN,
                   0,0,0,0,
                   DW_HWND_OBJECT,
@@ -6420,8 +6431,8 @@ HWND API dw_percent_new(ULONG id)
 HWND API dw_checkbox_new(char *text, ULONG id)
 {
    ColorInfo *cinfo = calloc(1, sizeof(ColorInfo));
-   HWND tmp = CreateWindow(BUTTONCLASSNAME,
-                     text,
+   HWND tmp = CreateWindowW(UTF8toWide(BUTTONCLASSNAME),
+                     UTF8toWide(text),
                      WS_CHILD | BS_AUTOCHECKBOX |
                      BS_TEXT | WS_CLIPCHILDREN | WS_VISIBLE,
                      0,0,0,0,
@@ -6447,7 +6458,7 @@ HWND API dw_listbox_new(ULONG id, int multi)
 {
    HWND tmp = CreateWindowEx(WS_EX_CLIENTEDGE,
                        LISTBOXCLASSNAME,
-                       "",
+                       NULL,
                        WS_VISIBLE | LBS_NOINTEGRALHEIGHT |
                        WS_CHILD | LBS_HASSTRINGS |
                        LBS_NOTIFY | WS_BORDER  | WS_CLIPCHILDREN |
@@ -6654,10 +6665,11 @@ void API dw_window_set_text(HWND handle, char *text)
 {
    Box *thisbox;
    char tmpbuf[100] = {0};
+   LPWSTR wtext = UTF8toWide(text);
 
    GetClassName(handle, tmpbuf, 99);
 
-   SetWindowText(handle, text);
+   SetWindowTextW(handle, wtext);
 
    /* Combobox */
    if ( _strnicmp( tmpbuf, COMBOBOXCLASSNAME, strlen(COMBOBOXCLASSNAME)+1) == 0 )
@@ -6666,14 +6678,14 @@ void API dw_window_set_text(HWND handle, char *text)
    {
       ColorInfo *cinfo = (ColorInfo *)GetWindowLongPtr(handle, GWLP_USERDATA);
       if( cinfo && cinfo->buddy )
-         SetWindowText( cinfo->buddy, text );
+         SetWindowTextW( cinfo->buddy, wtext );
    }
    else if ( _strnicmp( tmpbuf, FRAMECLASSNAME, strlen(FRAMECLASSNAME)+1) == 0 )
    {
       /* groupbox */
       thisbox = (Box *)GetWindowLongPtr( handle, GWLP_USERDATA );
       if ( thisbox && thisbox->grouphwnd != (HWND)NULL )
-         SetWindowText( thisbox->grouphwnd, text );
+         SetWindowTextW( thisbox->grouphwnd, wtext );
    }
    /* If we changed the text... */
    {
@@ -6713,8 +6725,9 @@ void API dw_window_set_tooltip(HWND handle, char *bubbletext)
  */
 char * API dw_window_get_text(HWND handle)
 {
-   char tmpbuf[100] = {0}, *tempbuf;
-   int len;
+   char tmpbuf[100] = {0}, *retbuf;
+   LPWSTR tempbuf;
+   int wlen, len;
 
    GetClassName(handle, tmpbuf, 99);
 
@@ -6728,12 +6741,21 @@ char * API dw_window_get_text(HWND handle)
         return NULL;
    }
 
-   len = GetWindowTextLength(handle);
-   tempbuf = calloc(1, len + 2);
+   /* Figure out the wide length, allocate a temp buffer
+    * and fill it with the current text.
+    */
+   wlen = GetWindowTextLengthW(handle);
+   tempbuf = _alloca(wlen * sizeof(WCHAR));
+   GetWindowTextW(handle, tempbuf, wlen);
+   
+   /* Figure out the UTF8 length, allocate a return buffer
+    * and fill it with the UTF8 text and return it.
+    */
+   len = WideCharToMultiByte(CP_UTF8, 0, tempbuf, -1, NULL, 0, NULL, NULL);
+   retbuf = (char *)calloc(1, len);
+   WideCharToMultiByte(CP_UTF8, 0, tempbuf, -1, retbuf, len, NULL, NULL);
 
-   GetWindowText(handle, tempbuf, len + 1);
-
-   return tempbuf;
+   return retbuf;
 }
 
 /*
@@ -9503,7 +9525,7 @@ HWND API dw_render_new(unsigned long id)
 {
    Box *newbox = calloc(sizeof(Box), 1);
    HWND tmp = CreateWindow(ObjectClassName,
-                     "",
+                     NULL,
                      WS_VISIBLE | WS_CHILD | WS_CLIPCHILDREN,
                      0,0,0,0,
                      DW_HWND_OBJECT,
@@ -10807,7 +10829,7 @@ void API dw_exit(int exitcode)
 HWND API dw_splitbar_new(int type, HWND topleft, HWND bottomright, unsigned long id)
 {
    HWND tmp = CreateWindow(SplitbarClassName,
-                     "",
+                     NULL,
                      WS_VISIBLE | WS_CHILD | WS_CLIPCHILDREN,
                      0,0,0,0,
                      DW_HWND_OBJECT,
@@ -10885,7 +10907,7 @@ HWND API dw_calendar_new(unsigned long id)
    MONTHDAYSTATE mds[3];
    HWND tmp = CreateWindowEx(WS_EX_CLIENTEDGE,
                            MONTHCAL_CLASS,
-                           "",
+                           NULL,
                            WS_VISIBLE | WS_CHILD | WS_CLIPCHILDREN | MCS_DAYSTATE,
                            0,0,0,0,
                            DW_HWND_OBJECT,
