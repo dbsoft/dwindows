@@ -1629,7 +1629,7 @@ int main(int argc, char *argv[])
     dw_init(TRUE, argc, argv);
 
     /* Create our window */
-    mainwindow = dw_window_new( HWND_DESKTOP, "dwindows test", flStyle | DW_FCF_SIZEBORDER | DW_FCF_MINMAX);
+    mainwindow = dw_window_new( HWND_DESKTOP, "dwindows test UTF8 中国語 (繁体) cañón", flStyle | DW_FCF_SIZEBORDER | DW_FCF_MINMAX);
     dw_window_set_icon(mainwindow, fileicon);
 
     menu_add();
