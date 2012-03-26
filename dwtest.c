@@ -375,6 +375,8 @@ void draw_shapes(int direct, HPIXMAP hpma)
     dw_color_foreground_set(DW_CLR_GREEN);
     dw_color_background_set(DW_CLR_DARKRED);
     dw_draw_text(window, pixmap, 10, 10, "This should be aligned with the edges.");
+    dw_color_foreground_set(DW_CLR_YELLOW);
+    dw_draw_line(window, pixmap, width - 10, 10, 10, height - 10);
     dw_color_foreground_set(DW_CLR_BLUE);
     dw_draw_polygon(window, pixmap, TRUE, 7, x, y);
     dw_color_foreground_set(DW_CLR_BLACK);

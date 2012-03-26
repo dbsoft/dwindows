@@ -81,15 +81,61 @@ typedef enum  {
   PropertyNotFound            = 19,
   PropertyNotSupported        = 20,
   ProfileNotFound             = 21 
-} Status;
+} GpStatus;
 
-Status WINAPI GdipCreateBitmapFromFile(const WCHAR* filename, void **bitmap);
-Status WINAPI GdipCreateHBITMAPFromBitmap(void *bitmap, HBITMAP* hbmReturn, DWORD background);
-Status WINAPI GdipCreateHICONFromBitmap(void *bitmap, HICON *hbmReturn);
-Status WINAPI GdipDisposeImage(void *image);
-Status WINAPI GdipGetImagePixelFormat(void *image, INT *format);
-Status WINAPI GdiplusStartup(ULONG_PTR *token, const struct GdiplusStartupInput *input, void *output);
+typedef enum {
+  UnitWorld,
+  UnitDisplay,
+  UnitPixel,
+  UnitPoint,
+  UnitInch,
+  UnitDocument,
+  UnitMillimeter
+} GpUnit;
+
+typedef enum  {
+  FlushIntentionFlush   = 0,
+  FlushIntentionSync    = 1 
+} GpFlushIntention;
+
+typedef void GpGraphics;
+typedef void GpPen;
+typedef void GpBitmap;
+typedef void GpImage;
+typedef POINT GpPoint;
+typedef DWORD ARGB;
+typedef float REAL;
+
+#define ALPHA_SHIFT 24
+#define RED_SHIFT   16
+#define GREEN_SHIFT 8
+#define BLUE_SHIFT  0
+#define ALPHA_MASK  ((ARGB) 0xff << ALPHA_SHIFT)
+
+#define MAKEARGB(a, r, g, b) \
+                (((ARGB) ((a) & 0xff) << ALPHA_SHIFT)| \
+                 ((ARGB) ((r) & 0xff) << RED_SHIFT)  | \
+                 ((ARGB) ((g) & 0xff) << GREEN_SHIFT)| \
+                 ((ARGB) ((b) & 0xff) << BLUE_SHIFT))
+
+/* Graphic conversion functions */
+GpStatus WINAPI GdipCreateBitmapFromFile(const WCHAR* filename, GpBitmap **bitmap);
+GpStatus WINAPI GdipCreateHBITMAPFromBitmap(GpBitmap *bitmap, HBITMAP* hbmReturn, DWORD background);
+GpStatus WINAPI GdipCreateHICONFromBitmap(GpBitmap *bitmap, HICON *hbmReturn);
+GpStatus WINAPI GdipDisposeImage(GpImage *image);
+GpStatus WINAPI GdipGetImagePixelFormat(GpImage *image, INT *format);
+/* Startup and Shutdown */
+GpStatus WINAPI GdiplusStartup(ULONG_PTR *token, const struct GdiplusStartupInput *input, void *output);
 VOID WINAPI GdiplusShutdown(ULONG_PTR token);
+/* Drawing functions */
+GpStatus WINAPI GdipCreateFromHDC(HDC hdc, GpGraphics **graphics);
+GpStatus WINAPI GdipCreateFromHWND(HWND hwnd, GpGraphics **graphics);
+GpStatus WINAPI GdipDrawLineI(GpGraphics *graphics, GpPen *pen, INT x1, INT y1, INT x2, INT y2);
+GpStatus WINAPI GdipDrawLinesI(GpGraphics *graphics, GpPen *pen, const GpPoint *points, INT count);
+GpStatus WINAPI GdipDeleteGraphics(GpGraphics *graphics);
+GpStatus WINAPI GdipCreatePen1(ARGB color, REAL width, GpUnit unit, GpPen **pen);
+GpStatus WINAPI GdipDeletePen(GpPen *pen);
+GpStatus WINAPI GdipFlush(GpGraphics *graphics, GpFlushIntention intention);
 
 /* Pixel format information */
 #define    PixelFormatIndexed      0x00010000 
@@ -197,6 +243,9 @@ DWORD _foreground;
 DWORD _background;
 DWORD _hPen;
 DWORD _hBrush;
+#ifdef GDIPLUS
+DWORD _gpPen;
+#endif
 
 BYTE _red[] = {   0x00, 0xbb, 0x00, 0xaa, 0x00, 0xbb, 0x00, 0xaa, 0x77,
            0xff, 0x00, 0xee, 0x00, 0xff, 0x00, 0xff, 0xaa, 0x00 };
@@ -3692,6 +3741,13 @@ void _init_thread(void)
 {
     COLORREF foreground = RGB(128,128,128);
     COLORREF background = DW_RGB_TRANSPARENT;
+#ifdef GDIPLUS
+    ARGB gpfore = MAKEARGB(0, 128, 128, 128);
+    GpPen *pen;
+    
+    GdipCreatePen1(gpfore, 1.0, UnitPixel, &pen);
+    TlsSetValue(_gpPen, (LPVOID)pen);
+#endif    
     TlsSetValue(_foreground, (LPVOID)foreground);
     TlsSetValue(_background, (LPVOID)background);
     TlsSetValue(_hPen, CreatePen(PS_SOLID, 1, foreground));
@@ -3735,6 +3791,9 @@ int API dw_init(int newthread, int argc, char *argv[])
    _background = TlsAlloc();
    _hPen = TlsAlloc();
    _hBrush = TlsAlloc();
+#ifdef GDIPLUS
+   _gpPen = TlsAlloc();
+#endif   
    _init_thread();
 
    icc.dwSize = sizeof(INITCOMMONCONTROLSEX);
@@ -9472,9 +9531,20 @@ void API dw_color_foreground_set(unsigned long value)
    HPEN hPen = TlsGetValue(_hPen);
    HBRUSH hBrush = TlsGetValue(_hBrush);
    COLORREF foreground;
+#ifdef GDIPLUS
+   GpPen *pen = TlsGetValue(_gpPen);
+   ARGB gpfore;
+#endif
 
    value = _internal_color(value);
    foreground = RGB(DW_RED_VALUE(value), DW_GREEN_VALUE(value), DW_BLUE_VALUE(value));
+#ifdef GDIPLUS
+   gpfore = MAKEARGB(0, DW_RED_VALUE(value), DW_GREEN_VALUE(value), DW_BLUE_VALUE(value));
+   
+   GdipDeletePen(pen);
+   GdipCreatePen1(gpfore, 1.0, UnitPixel, &pen);
+   TlsSetValue(_gpPen, (LPVOID)pen);
+#endif    
 
    DeleteObject(hPen);
    DeleteObject(hBrush);
@@ -9564,6 +9634,21 @@ void API dw_draw_point(HWND handle, HPIXMAP pixmap, int x, int y)
  */
 void API dw_draw_line(HWND handle, HPIXMAP pixmap, int x1, int y1, int x2, int y2)
 {
+#ifdef GDIPLUS1
+   GpGraphics *graphics = NULL;
+   GpPen *pen = TlsGetValue(_gpPen);
+   
+   if(handle)
+      GdipCreateFromHWND(handle, &graphics);
+   else if(pixmap)
+      GdipCreateFromHDC(pixmap->hdc, &graphics);
+   else
+      return;
+   
+   GdipDrawLineI(graphics, pen, x1, y1, x2, y2);
+   GdipFlush(graphics, FlushIntentionSync);
+   GdipDeleteGraphics(graphics);
+#else
    HDC hdcPaint;
    HPEN oldPen;
 
@@ -9584,6 +9669,7 @@ void API dw_draw_line(HWND handle, HPIXMAP pixmap, int x1, int y1, int x2, int y
    SetPixel(hdcPaint, x2, y2, (COLORREF)TlsGetValue(_foreground));
    if(!pixmap)
       ReleaseDC(handle, hdcPaint);
+#endif
 }
 
 /* Draw a closed polygon on a window (preferably a render window).
@@ -10630,6 +10716,9 @@ void _dwthreadstart(void *data)
    void **tmp = (void **)data;
    HPEN hPen;
    HBRUSH hBrush;
+#ifdef GDIPLUS
+   GpPen *pen;
+#endif       
 
    _init_thread();
 
@@ -10641,6 +10730,10 @@ void _dwthreadstart(void *data)
        DeleteObject(hPen);
    if((hBrush = TlsGetValue(_hBrush)))
        DeleteObject(hBrush);
+#ifdef GDIPLUS
+   if((pen = TlsGetValue(_gpPen)))
+      GdipDeletePen(pen);
+#endif       
 }
 
 /*
