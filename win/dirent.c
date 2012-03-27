@@ -1,3 +1,6 @@
+#undef UNICODE
+#undef _UNICODE
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

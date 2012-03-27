@@ -33,12 +33,12 @@
 #define _WIN32_IE 0x0500
 
 #ifndef __AFX_H__
-#include "windows.h"
-#include "tchar.h"
+#include <windows.h>
+#include <tchar.h>
 #endif
 
-#include "Shlobj.h"
-#include "io.h"
+#include <Shlobj.h>
+#include <io.h>
 #include "XBrowseForFolder.h"
 
 #ifndef __MINGW32__
@@ -108,13 +108,13 @@ static void MoveWindowX(HWND hWnd, CRect& rect, BOOL bRepaint)
 static void SizeBrowseDialog(HWND hWnd, FOLDER_PROPS *fp)
 {
 	// find the folder tree and make dialog larger
-	HWND hwndTree = FindWindowEx(hWnd, NULL, _T("SysTreeView32"), NULL);
+	HWND hwndTree = FindWindowEx(hWnd, NULL, TEXT("SysTreeView32"), NULL);
 
 	if (!hwndTree)
 	{
 		// ... this usually means that BIF_NEWDIALOGSTYLE is enabled.
 		// Then the class name is as used in the code below.
-		hwndTree = FindWindowEx(hWnd, NULL, _T("SHBrowseForFolder ShellNameSpace Control"), NULL);
+		hwndTree = FindWindowEx(hWnd, NULL, TEXT("SHBrowseForFolder ShellNameSpace Control"), NULL);
 	}
 
 	CRect rectDlg;
@@ -123,7 +123,7 @@ static void SizeBrowseDialog(HWND hWnd, FOLDER_PROPS *fp)
 	{
 		// check if edit box
 		int nEditHeight = 0;
-		HWND hwndEdit = FindWindowEx(hWnd, NULL, _T("Edit"), NULL);
+		HWND hwndEdit = FindWindowEx(hWnd, NULL, TEXT("Edit"), NULL);
 		CRect rectEdit;
 		if (hwndEdit && (fp->ulFlags & BIF_EDITBOX))
 		{
@@ -235,13 +235,13 @@ static int CALLBACK BrowseCallbackProc(HWND hWnd,		// Window handle to the brows
 			FOLDER_PROPS *fp = (FOLDER_PROPS *) lpData;
 			if (fp)
 			{
-				if (fp->lpszInitialFolder && (fp->lpszInitialFolder[0] != _T('\0')))
+				if (fp->lpszInitialFolder && fp->lpszInitialFolder[0])
 				{
 					// set initial directory
 					::SendMessage(hWnd, BFFM_SETSELECTION, TRUE, (LPARAM)fp->lpszInitialFolder);
 				}
 
-				if (fp->lpszTitle && (fp->lpszTitle[0] != _T('\0')))
+				if (fp->lpszTitle && fp->lpszTitle[0])
 				{
 					// set window caption
 					::SetWindowText(hWnd, fp->lpszTitle);
@@ -337,7 +337,7 @@ BOOL _cdecl XBrowseForFolder(HWND hWnd,
 			bi.pidlRoot = pidlRoot;
 	}
 
-	TCHAR szInitialPath[MAX_PATH*2] = { _T('\0') };
+	TCHAR szInitialPath[MAX_PATH*2] = { 0 };
 	if (lpszInitialFolder)
 	{
 		// is this a folder path string or a csidl?
@@ -355,7 +355,7 @@ BOOL _cdecl XBrowseForFolder(HWND hWnd,
 		}
 	}
 
-	if ((szInitialPath[0] == _T('\0')) && (bi.pidlRoot == NULL))
+	if (!szInitialPath[0] && !bi.pidlRoot)
 	{
 		// no initial folder and no root, set to current directory
 		::GetCurrentDirectory(sizeof(szInitialPath)/sizeof(TCHAR)-2,
@@ -383,7 +383,7 @@ BOOL _cdecl XBrowseForFolder(HWND hWnd,
 
 	if (pidlFolder)
 	{
-		TCHAR szBuffer[MAX_PATH*2] = { _T('\0') };
+		TCHAR szBuffer[MAX_PATH*2] = { 0 };
 
 		if (SHGetPathFromIDList(pidlFolder, szBuffer))
 		{
