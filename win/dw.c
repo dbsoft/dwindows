@@ -2820,7 +2820,7 @@ LRESULT CALLBACK _colorwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 
                val = (long)SendMessage(cinfo->buddy, UDM_GETPOS32, 0, 0);
 
-               _stprintf(tmpbuf, TEXT("%ld"), val);
+               _sntprintf(tmpbuf, 99, TEXT("%ld"), val);
                SetWindowText(hWnd, tmpbuf);
             }
          }
@@ -4396,21 +4396,6 @@ void API dw_window_redraw(HWND handle)
    }
 }
 
-int instring(char *text, char *buffer)
-{
-   int z, len = (int)strlen(text), buflen = (int)strlen(buffer);
-
-   if(buflen > len)
-   {
-      for(z=0;z<=(buflen-len);z++)
-      {
-         if(memcmp(text, &buffer[z], len) == 0)
-            return z;
-      }
-   }
-   return 0;
-}
-
 /*
  * Changes a window's parent to newparent.
  * Parameters:
@@ -4424,20 +4409,19 @@ void API dw_window_reparent(HWND handle, HWND newparent)
 
 LOGFONT _get_logfont(HDC hdc, char *fontname)
 {
-   int z, size = 9, len = (int)strlen(fontname);
-   int Italic, Bold;
-   char *myFontName;
+   char  *Italic, *Bold, *myFontName = strchr(fontname, '.');
+   int size = atoi(fontname);
    LOGFONT lf = {0};
 
-   for(z=0;z<len;z++)
-   {
-      if(fontname[z]=='.')
-         break;
-   }
-   size = atoi(fontname);
-   lf.lfHeight = -MulDiv(size, GetDeviceCaps(hdc, LOGPIXELSY), 72);
-   Italic = instring(" Italic", &fontname[z+1]);
-   Bold = instring(" Bold", &fontname[z+1]);
+   /* If we found a '.' use the location after the . */
+   if(myFontName)
+       myFontName = _strdup(++myFontName);
+   else /* Otherwise use the whole fontname and default size of 9 */
+       myFontName = _strdup(fontname);
+
+   lf.lfHeight = -MulDiv(size ? size : 9, GetDeviceCaps(hdc, LOGPIXELSY), 72);
+   Italic = strstr(myFontName, " Italic");
+   Bold = strstr(myFontName, " Bold");
    lf.lfWidth = 0;
    lf.lfEscapement = 0;
    lf.lfOrientation = 0;
@@ -4450,15 +4434,11 @@ LOGFONT _get_logfont(HDC hdc, char *fontname)
    lf.lfClipPrecision = 0;
    lf.lfQuality = DEFAULT_QUALITY;
    lf.lfPitchAndFamily = DEFAULT_PITCH | FW_DONTCARE;
-   /*
-    * remove any font modifiers
-    */
-   myFontName = _strdup(&fontname[z+1]);
    if(Italic)
-      myFontName[Italic] = 0;
+      *Italic = 0;
    if(Bold)
-      myFontName[Bold] = 0;
-   _tcsncpy(lf.lfFaceName, UTF8toWide(myFontName), sizeof(lf.lfFaceName)-1);
+      *Bold = 0;
+   _tcsncpy(lf.lfFaceName, UTF8toWide(myFontName), (sizeof(lf.lfFaceName)/sizeof(TCHAR))-1);
    free(myFontName);
    return lf;
 }
@@ -6801,7 +6781,7 @@ char * API dw_window_get_text(HWND handle)
     * and fill it with the UTF8 text and return it.
     */
    if(tempbuf && (retbuf = WideToUTF8(tempbuf)))
-      retbuf = strdup(retbuf);
+      retbuf = _strdup(retbuf);
    return retbuf;
 }
 
@@ -8555,7 +8535,7 @@ char * API dw_tree_get_title(HWND handle, HTREEITEM item)
    tvi.hItem = item;
 
    if(TreeView_GetItem(handle, &tvi))
-      return strdup(WideToUTF8(tvi.pszText));
+      return _strdup(WideToUTF8(tvi.pszText));
     return NULL;
 }
 
