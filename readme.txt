@@ -23,6 +23,7 @@ not support it by default. Looking into importing functionality
 from available libraries (Firefox, Webkit, Qt, etc).
 
 Changes from version 2.3:
+Added fullscreen support on Mac for resizable windows.
 Added UNICODE build mode on Windows allowing UTF-8 encoded text.
    ANSI builds are supported by removing -DUNICODE -D_UNICODE and -DAEROGLASS
 Added some support for antialiased drawing on Windows via GDI+.
