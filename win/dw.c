@@ -2120,6 +2120,16 @@ LRESULT CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
                            tmp = NULL;
                         }
                      }
+                     else if(tmp->message == WM_VSCROLL)
+                     {
+                        NMUPDOWN FAR *tem=(NMUPDOWN FAR *)mp2;
+                        if(tmp->window == tem->hdr.hwndFrom && tem->hdr.code == UDN_DELTAPOS)
+                        {
+                           int (*valuechangefunc)(HWND, int, void *) = tmp->signalfunction;
+                           result = valuechangefunc(tmp->window, tem->iPos + tem->iDelta, tmp->data);
+                           tmp = NULL;
+                        }
+                     }
                   }
                   break;
                case WM_COMMAND:
@@ -2694,7 +2704,7 @@ LRESULT CALLBACK _colorwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
    cinfo = (ColorInfo *)GetWindowLongPtr(hWnd, GWLP_USERDATA);
 
    GetClassName(hWnd, tmpbuf, 99);
-   if(_tcsnicmp(tmpbuf, FRAMECLASSNAME, _tcslen(FRAMECLASSNAME)+1) == 0)
+   if(_tcsncmp(tmpbuf, FRAMECLASSNAME, _tcslen(FRAMECLASSNAME)+1) == 0)
       cinfo = &(((Box *)cinfo)->cinfo);
 
    if ( msg == WM_MOUSEMOVE || msg == WM_USER+2 )
