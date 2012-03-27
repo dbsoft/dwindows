@@ -374,7 +374,7 @@ char **_convertargs(int *count, char *start)
 
    argv = (char **)malloc(sizeof(char *) * ((*count)+1));
    argv[0] = malloc(260);
-   GetModuleFileName(DWInstance, argv[0], 260);
+   GetModuleFileNameA(DWInstance, argv[0], 260);
 
    argstart = tmp = start;
 

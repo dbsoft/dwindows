@@ -1281,20 +1281,16 @@ int _dw_html_raw(HWND hwnd, char *string)
 					if (!SafeArrayAccessData(sfArray, (void**)&pVar))
 					{
 						pVar->vt = VT_BSTR;
-#ifndef UNICODE
 						{
-						wchar_t		*buffer;
-						DWORD		size;
+							wchar_t		*buffer;
+							DWORD		size;
 
-						size = MultiByteToWideChar(CP_ACP, 0, string, -1, 0, 0);
-						if (!(buffer = (wchar_t *)GlobalAlloc(GMEM_FIXED, sizeof(wchar_t) * size))) goto bad;
-						MultiByteToWideChar(CP_ACP, 0, string, -1, buffer, size);
-						bstr = SysAllocString(buffer);
-						GlobalFree(buffer);
+							size = MultiByteToWideChar(CP_UTF8, 0, string, -1, 0, 0);
+							if (!(buffer = (wchar_t *)GlobalAlloc(GMEM_FIXED, sizeof(wchar_t) * size))) goto bad;
+							MultiByteToWideChar(CP_UTF8, 0, string, -1, buffer, size);
+							bstr = SysAllocString(buffer);
+							GlobalFree(buffer);
 						}
-#else
-						bstr = SysAllocString(string);
-#endif
 						// Store our BSTR pointer in the VARIENT.
 						if ((pVar->bstrVal = bstr))
 						{
