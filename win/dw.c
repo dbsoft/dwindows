@@ -7755,10 +7755,10 @@ void API dw_listbox_get_text(HWND handle, unsigned int index, char *buffer, unsi
    TCHAR tmpbuf[100] = {0}, *wbuffer;
    unsigned int len;
 
-   if(!buffer || !length || !(wbuffer = _alloca((length+1)*sizeof(TCHAR))))
-      return;
-
    buffer[0] = 0;
+
+   if(!buffer || !length)
+      return;
 
    GetClassName(handle, tmpbuf, 99);
 
@@ -7766,7 +7766,7 @@ void API dw_listbox_get_text(HWND handle, unsigned int index, char *buffer, unsi
    {
       len = (int)SendMessage(handle, CB_GETLBTEXTLEN, (WPARAM)index, 0);
 
-      if(len < length && len != CB_ERR)
+      if(len != CB_ERR && (wbuffer = _alloca((len+1)*sizeof(TCHAR))))
       {
          SendMessage(handle, CB_GETLBTEXT, (WPARAM)index, (LPARAM)wbuffer);
          strncpy(buffer, WideToUTF8(wbuffer), length);
@@ -7776,13 +7776,12 @@ void API dw_listbox_get_text(HWND handle, unsigned int index, char *buffer, unsi
    {
       len = (int)SendMessage(handle, LB_GETTEXTLEN, (WPARAM)index, 0);
 
-      if(len < length && len != LB_ERR)
+      if(len != LB_ERR && (wbuffer = _alloca((len+1)*sizeof(TCHAR))))
       {
          SendMessage(handle, LB_GETTEXT, (WPARAM)index, (LPARAM)wbuffer);
          strncpy(buffer, WideToUTF8(wbuffer), length);
       }
    }
-   
 }
 
 /*
