@@ -1,4 +1,6 @@
 /* $Id$ */
+#undef UNICODE
+#undef _UNICODE
 
 #ifdef __WIN32__
 #include <direct.h>
