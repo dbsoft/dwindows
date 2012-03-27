@@ -14,7 +14,7 @@
 #include <shlwapi.h>
 #include <shlobj.h>
 #include <userenv.h>
-#include <wchar.h>
+#include <tchar.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
@@ -6938,7 +6938,7 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
          tmpitem[index].type = TYPEBOX;
       else
       {
-         if(_tcsnicmp(tmpbuf, "SysMonthCal32", 13)==0)
+         if(_tcsnicmp(tmpbuf, TEXT("SysMonthCal32"), 13)==0)
          {
             RECT rc;
             MonthCal_GetMinReqRect(item, &rc);
