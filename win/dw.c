@@ -9864,7 +9864,7 @@ void API dw_draw_polygon(HWND handle, HPIXMAP pixmap, int flags, int npoints, in
  */
 void API dw_draw_rect(HWND handle, HPIXMAP pixmap, int flags, int x, int y, int width, int height)
 {
- #ifdef GDIPLUS
+ #ifdef GDIPLUS1
    if(!(flags & DW_DRAW_NOAA))
    {
       GpGraphics *graphics = NULL;
@@ -9929,11 +9929,6 @@ void API dw_draw_rect(HWND handle, HPIXMAP pixmap, int flags, int x, int y, int 
  */
 void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yorigin, int x1, int y1, int x2, int y2)
 {
-   double dx = xorigin - x1;
-   double dy = yorigin - y1;
-   double r = sqrt(dx*dx + dy*dy);
-   int ri = (int)r;
-
 #ifdef GDIPLUS
    if(!(flags & DW_DRAW_NOAA))
    {
@@ -9954,17 +9949,17 @@ void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yo
          {
             GpBrush *brush = TlsGetValue(_gpBrush);
          
-            GdipFillEllipseI(graphics, brush, xorigin-ri, yorigin-ri, xorigin+ri, yorigin+ri);
+            GdipFillEllipseI(graphics, brush, x1 < x2 ? x1 : x2, y1 < y2 ? y1 : y2, abs(x1-x2), abs(y1-y2));
          }
          else
-            GdipDrawEllipseI(graphics, pen, xorigin-ri, yorigin-ri, xorigin+ri, yorigin+ri);
+            GdipDrawEllipseI(graphics, pen, x1 < x2 ? x1 : x2, y1 < y2 ? y1 : y2, abs(x1-x2), abs(y1-y2));
       }
       else
       {
          double a1 = atan2((y1-yorigin), (x1-xorigin));
          double a2 = atan2((y2-yorigin), (x2-xorigin));
          
-         GdipDrawArcI(graphics, pen, xorigin-ri, yorigin-ri, xorigin+ri, yorigin+ri, (REAL)a1, (REAL)a2);
+         GdipDrawArcI(graphics, pen, x1 < x2 ? x1 : x2, y1 < y2 ? y1 : y2, abs(x1-x2), abs(y1-y2), (REAL)a1, (REAL)a2);
       }
       GdipDeleteGraphics(graphics);
    }
@@ -9974,7 +9969,11 @@ void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yo
       HDC hdcPaint;
       HBRUSH oldBrush;
       HPEN oldPen;
-      
+      double dx = xorigin - x1;
+      double dy = yorigin - y1;
+      double r = sqrt(dx*dx + dy*dy);
+      int ri = (int)r;
+
       if(handle)
          hdcPaint = GetDC(handle);
       else if(pixmap)
