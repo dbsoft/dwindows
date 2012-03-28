@@ -2281,11 +2281,11 @@ MRESULT EXPENTRY _entryproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
       }
       break;
    case WM_CONTROL:
-      {
-         if(strncmp(tmpbuf, "#38", 4)==0)
-            _run_event(hWnd, msg, mp1, mp2);
-      }
-      break;
+       {
+           if(strncmp(tmpbuf, "#38", 4)==0)
+               _run_event(hWnd, msg, mp1, mp2);
+       }
+       break;
    case WM_SETFOCUS:
       _run_event(hWnd, msg, mp1, mp2);
       break;
@@ -2406,7 +2406,7 @@ MRESULT EXPENTRY _spinentryproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
       break;
    case WM_CONTEXTMENU:
    case WM_COMMAND:
-      return _entryproc(hWnd, msg, mp1, mp2);
+       return _entryproc(hWnd, msg, mp1, mp2);
    }
 
    if(oldproc)
@@ -2879,14 +2879,18 @@ MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
             break;
          case WM_CONTROL:
             if(origmsg == WM_VSCROLL || origmsg == WM_HSCROLL || tmp->message == SHORT2FROMMP(mp1) ||
-               (tmp->message == SLN_SLIDERTRACK && SHORT2FROMMP(mp1) == SLN_CHANGE))
+               (tmp->message == SLN_SLIDERTRACK && (SHORT2FROMMP(mp1) == SLN_CHANGE || SHORT2FROMMP(mp1) == SPBN_CHANGE)))
             {
                int svar = SLN_SLIDERTRACK;
                int id = SHORT1FROMMP(mp1);
-               HWND notifyhwnd = dw_window_from_id(hWnd, id);
+			   HWND notifyhwnd = dw_window_from_id(hWnd, id);
 
-               if(origmsg == WM_CONTROL)
-                  svar = SHORT2FROMMP(mp1);
+			   if(origmsg == WM_CONTROL)
+			   {
+				   svar = SHORT2FROMMP(mp1);
+				   if(!notifyhwnd && WinIsWindow(dwhab, mp2))
+                       notifyhwnd = mp2;
+			   }
 
                switch(svar)
                {
@@ -3077,6 +3081,22 @@ MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
                      }
                   }
                   break;
+               case SPBN_CHANGE:
+                  {
+                     int (API_FUNC valuechangedfunc)(HWND, int, void *) = (int (API_FUNC)(HWND, int, void *))tmp->signalfunction;
+
+                     if(origmsg == WM_CONTROL && tmp->message == SLN_SLIDERTRACK)
+                     {
+                        /* Handle Spinbutton control */
+                        if(tmp->window == hWnd || tmp->window == notifyhwnd)
+                        {
+                            int position = dw_spinbutton_get_pos(tmp->window);
+                            result = valuechangedfunc(tmp->window, position, tmp->data);
+                            tmp = NULL;
+                        }
+                     }
+                  }
+                  break;
                case SLN_SLIDERTRACK:
                   {
                      int (API_FUNC valuechangedfunc)(HWND, int, void *) = (int (API_FUNC)(HWND, int, void *))tmp->signalfunction;
@@ -3215,20 +3235,35 @@ MRESULT EXPENTRY _controlproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
             _dw_color_spin_set(window, DW_RGB((val & 0xFF0000) >> 16, (val & 0xFF00) >> 8, val & 0xFF));
       }
       break;
+   case WM_USER:
+       _run_event(hWnd, WM_CONTROL, mp1, mp2);
+       break;
    case WM_CONTROL:
-      if((SHORT2FROMMP(mp1) == SPBN_CHANGE || SHORT2FROMMP(mp1) == SPBN_ENDSPIN))
-      {
-         HWND window = (HWND)dw_window_get_data(hWnd, "_dw_window");
+       {
+           char tmpbuf[100];
 
-         if(window && !dw_window_get_data(window, "_dw_updating"))
-         {
-            unsigned long val = _dw_color_spin_get(window);
-            HWND col = (HWND)dw_window_get_data(window, "_dw_col");
+           WinQueryClassName(mp2, 99, (PCH)tmpbuf);
+           /* Don't set the ownership if it's an entryfield or spinbutton  */
+           if(strncmp(tmpbuf, "#32", 4)==0)
+           {
+               if((SHORT2FROMMP(mp1) == SPBN_CHANGE || SHORT2FROMMP(mp1) == SPBN_ENDSPIN))
+               {
+                   HWND window = (HWND)dw_window_get_data(hWnd, "_dw_window");
 
-            _dw_col_set(col, val);
-         }
+                   if(window && !dw_window_get_data(window, "_dw_updating"))
+                   {
+                       unsigned long val = _dw_color_spin_get(window);
+                       HWND col = (HWND)dw_window_get_data(window, "_dw_col");
+
+                       _dw_col_set(col, val);
+                   }
+               }
+               if(!dw_window_get_data(mp2, "_dw_updating"))
+                   WinPostMsg(hWnd, WM_USER, mp1, mp2);
+           }
+		   else
+			   _run_event(hWnd, msg, mp1, mp2);
       }
-      _run_event(hWnd, msg, mp1, mp2);
       break;
    }
 
@@ -7111,9 +7146,12 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
       thisbox->count++;
 
       WinQueryClassName(item, 99, (PCH)tmpbuf);
-      /* Don't set the ownership if it's an entryfield or spinbutton */
-      if(strncmp(tmpbuf, "#6", 3)!=0 && strncmp(tmpbuf, "#32", 4)!=0 && strncmp(tmpbuf, "#2", 3)!=0)
-         WinSetOwner(item, box);
+      /* Don't set the ownership if it's an entryfield
+       * NOTE: spinbutton used to be in this list but it was preventing value change events
+       * from firing, so I removed it.  If spinbuttons cause problems revisit this.
+       */
+      if(strncmp(tmpbuf, "#6", 3)!=0 && /*strncmp(tmpbuf, "#32", 4)!=0 &&*/ strncmp(tmpbuf, "#2", 3)!=0)
+          WinSetOwner(item, box);
       WinSetParent(frame ? frame : item, box, FALSE);
       _handle_transparent(box);
       /* Queue a redraw on the top-level window */
@@ -8073,7 +8111,9 @@ void API dw_scrollbar_set_range(HWND handle, unsigned int range, unsigned int vi
  */
 void API dw_spinbutton_set_pos(HWND handle, long position)
 {
+   dw_window_set_data(handle, "_dw_updating", (void *)1);
    WinSendMsg(handle, SPBM_SETCURRENTVALUE, MPFROMLONG((long)position), 0L);
+   dw_window_set_data(handle, "_dw_updating", NULL);
 }
 
 /*
