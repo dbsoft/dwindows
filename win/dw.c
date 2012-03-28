@@ -455,43 +455,9 @@ char *_myWideToUTF8(LPWSTR widestring, void *outbuf)
       WideCharToMultiByte(CP_UTF8, 0, widestring, -1, retbuf, WideCharToMultiByte(CP_UTF8, 0, widestring, -1, NULL, 0, NULL, NULL), NULL, NULL);
    return retbuf;
 }
-/* FIXME: Not sure why this is needed */
-#ifndef _tstol
-#define _tstol _wtol
-#endif
-#ifndef _tcscpy
-#define _tcscpy wcscpy
-#endif
-#ifndef _sntprintf
-#define _sntprintf _snwprintf
-#endif
-#ifndef _stprintf
-#define _stprintf _swprintf
-#endif
-#ifndef _tcsftime
-#define _tcsftime wcsftime
-#endif
-
 #else
 #define UTF8toWide(a) a
 #define WideToUTF8(a) a
-/* FIXME: Not sure why this is needed */
-#ifndef _tstol
-#define _tstol atol
-#endif
-#ifndef _tcscpy
-#define _tcscpy strcpy
-#endif
-#ifndef _sntprintf
-#define _sntprintf _snprintf
-#endif
-#ifndef _stprintf
-#define _stprintf sprintf
-#endif
-#ifndef _tcsftime
-#define _tcsftime strftime
-#endif
-
 #endif
 
 DWORD GetDllVersion(LPCTSTR lpszDllName)
