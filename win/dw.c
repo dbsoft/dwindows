@@ -6783,7 +6783,7 @@ char * API dw_window_get_text(HWND handle)
    /* Figure out the wide length, allocate a temp buffer
     * and fill it with the current text.
     */
-   len = GetWindowTextLength(handle);
+   len = GetWindowTextLength(handle) + 1;
    if((tempbuf = _alloca(len * sizeof(TCHAR))))
       GetWindowText(handle, tempbuf, len);
    
