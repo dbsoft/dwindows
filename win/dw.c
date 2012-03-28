@@ -22,6 +22,7 @@
 #include <malloc.h>
 #include <io.h>
 #include <time.h>
+#define _USE_MATH_DEFINES
 #include <math.h>
 #include "dw.h"
 #ifdef BUILD_DLL
@@ -9958,8 +9959,18 @@ void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yo
       {
          double a1 = atan2((y1-yorigin), (x1-xorigin));
          double a2 = atan2((y2-yorigin), (x2-xorigin));
+         double dx = xorigin - x1;
+         double dy = yorigin - y1;
+         double r = sqrt(dx*dx + dy*dy);
+         double sweep;
+         int ri = (int)r;
          
-         GdipDrawArcI(graphics, pen, x1 < x2 ? x1 : x2, y1 < y2 ? y1 : y2, abs(x1-x2), abs(y1-y2), (REAL)a1, (REAL)a2);
+         /* Convert to degrees */
+         a1 *= (180.0 / M_PI);
+         a2 *= (180.0 / M_PI);
+         sweep = fabs(a1 - a2);
+         
+         GdipDrawArcI(graphics, pen, xorigin-ri, yorigin-ri, ri*2, ri*2, (REAL)a1, (REAL)sweep);
       }
       GdipDeleteGraphics(graphics);
    }
@@ -9989,7 +10000,7 @@ void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yo
       if(flags & DW_DRAW_FULL)
          Ellipse(hdcPaint, x1, y1, x2, y2);
       else
-         Arc(hdcPaint, xorigin-(int)r, yorigin-(int)r, xorigin+(int)r, yorigin+(int)r, x2, y2, x1, y1);
+         Arc(hdcPaint, xorigin-ri, yorigin-ri, xorigin+ri, yorigin+ri, x2, y2, x1, y1);
       SelectObject( hdcPaint, oldBrush );
       SelectObject( hdcPaint, oldPen );
 
