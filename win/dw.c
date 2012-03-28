@@ -11144,8 +11144,10 @@ void API dw_environment_query(DWEnv *env)
          strcpy(env->osName, "Windows XP");
       else if(env->MajorVersion == 6 && env->MinorVersion == 0)
          strcpy(env->osName, "Windows Vista");
-      else if(env->MajorVersion == 6 && env->MinorVersion > 0)
+      else if(env->MajorVersion == 6 && env->MinorVersion == 1)
          strcpy(env->osName, "Windows 7");
+      else if(env->MajorVersion == 6 && env->MinorVersion > 1)
+         strcpy(env->osName, "Windows 8");
       else
          strcpy(env->osName, "Windows NT");
 
