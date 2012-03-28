@@ -3864,7 +3864,6 @@ int API dw_init(int newthread, int argc, char *argv[])
 #ifdef GDIPLUS
    _gpPen = TlsAlloc();
 #endif   
-   _init_thread();
 
    icc.dwSize = sizeof(INITCOMMONCONTROLSEX);
    icc.dwICC = ICC_WIN95_CLASSES|ICC_DATE_CLASSES;
@@ -4013,6 +4012,9 @@ int API dw_init(int newthread, int argc, char *argv[])
    si.SuppressExternalCodecs = FALSE;
    GdiplusStartup(&gdiplusToken, &si, NULL);
 #endif
+   
+   /* GDI+ Needs to be initialized before calling _init_thread(); */
+   _init_thread();
 
 #ifdef AEROGLASS
    /* Attempt to load the Desktop Window Manager and Theme library */
