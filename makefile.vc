@@ -57,6 +57,15 @@ LINK_DEBUG = -release
 !include SVN.REV
 !message Revision is [$(VERREV)]
 SVNVERSION=-DVER_REV=$(VERREV)
+!else
+
+# Check the Mercurial revision number if possible
+!if ![hg log -r . --template="VER_REV={rev}" > HG.REV]
+!include HG.REV
+!message Revision is [$(VER_REV)]
+SVNVERSION=-DVER_REV=$(VER_REV)
+!endif
+
 !endif
 
 CC = cl
