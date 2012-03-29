@@ -8389,19 +8389,28 @@ void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yo
    if(cr)
    {
       GdkColor *foreground = pthread_getspecific(_dw_fg_color_key);
-      double a1 = atan2((y1-yorigin), (x1-xorigin));
-      double a2 = atan2((y2-yorigin), (x2-xorigin));
-      int width = x2-x1;
-      float scale = (float)(y2-y1)/(float)width;
+      int width = abs(x2-x1);
+      float scale = fabs((float)(y2-y1))/(float)width;
 
+      if(flags & DW_DRAW_NOAA)
+         cairo_set_antialias(cr, CAIRO_ANTIALIAS_NONE);
+         
       gdk_cairo_set_source_color (cr, foreground);
       cairo_set_line_width(cr, 1);
       if(scale != 1.0)
          cairo_scale(cr, 1.0, scale);
       if(flags & DW_DRAW_FULL)
-         cairo_arc(cr, xorigin, yorigin / scale, (x2-x1)/2, 0, M_PI*2);
+         cairo_arc(cr, xorigin, yorigin / scale, width/2, 0, M_PI*2);
       else
+      {
+         double dx = xorigin - x1;
+         double dy = yorigin - y1;
+         double r = sqrt(dx*dx + dy*dy);
+         double a1 = atan2((y1-yorigin), (x1-xorigin));
+         double a2 = atan2((y2-yorigin), (x2-xorigin));
+
          cairo_arc(cr, xorigin, yorigin, r, a1, a2);
+      }
       if(flags & DW_DRAW_FILL)
          cairo_fill(cr);
       cairo_stroke(cr);
