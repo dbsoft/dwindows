@@ -26,7 +26,9 @@ Changes from version 2.3:
 Added fullscreen support on Mac for resizable windows.
 Added UNICODE build mode on Windows allowing UTF-8 encoded text.
    ANSI builds are supported by removing -DUNICODE -D_UNICODE and -DAEROGLASS
-Added some support for antialiased drawing on Windows via GDI+.
+Added support for antialiased drawing on Windows via GDI+.
+Fixed value changed events not working for spinbuttons on OS/2 and Windows.
+Fixed an issue drawing arcs on GTK3 and GTK2 for printing.
 
 Dynamic Windows Documentation is available at:
 
