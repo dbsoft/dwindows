@@ -2888,8 +2888,8 @@ MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 			   if(origmsg == WM_CONTROL)
 			   {
 				   svar = SHORT2FROMMP(mp1);
-				   if(!notifyhwnd && WinIsWindow(dwhab, mp2))
-                       notifyhwnd = mp2;
+				   if(!notifyhwnd && WinIsWindow(dwhab, (HWND)mp2))
+                       notifyhwnd = (HWND)mp2;
 			   }
 
                switch(svar)
@@ -3242,7 +3242,7 @@ MRESULT EXPENTRY _controlproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
        {
            char tmpbuf[100];
 
-           WinQueryClassName(mp2, 99, (PCH)tmpbuf);
+           WinQueryClassName((HWND)mp2, 99, (PCH)tmpbuf);
            /* Don't set the ownership if it's an entryfield or spinbutton  */
            if(strncmp(tmpbuf, "#32", 4)==0)
            {
@@ -3258,7 +3258,7 @@ MRESULT EXPENTRY _controlproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
                        _dw_col_set(col, val);
                    }
                }
-               if(!dw_window_get_data(mp2, "_dw_updating"))
+               if(!dw_window_get_data((HWND)mp2, "_dw_updating"))
                    WinPostMsg(hWnd, WM_USER, mp1, mp2);
            }
 		   else
