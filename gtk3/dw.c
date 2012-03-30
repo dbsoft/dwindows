@@ -2782,7 +2782,10 @@ int dw_window_set_color(HWND handle, unsigned long fore, unsigned long back)
    {
       GtkWidget *tmp = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_eventbox");
       if(tmp)
+      {
          handle2 = tmp;
+         fore = DW_CLR_DEFAULT;
+      }
    }
 
    _set_color(handle2, fore, back);
