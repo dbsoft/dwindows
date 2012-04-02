@@ -10775,10 +10775,13 @@ int API dw_named_memory_free(HSHM handle, void *ptr)
 void _dwthreadstart(void *data)
 {
    HAB thishab = WinInitialize(0);
-   HMQ thishmq = WinCreateMsgQueue(dwhab, 0);
+   HMQ thishmq = WinCreateMsgQueue(thishab, 0);
    void (API_FUNC threadfunc)(void *) = NULL;
    void **tmp = (void **)data;
 
+   /* Set the codepage to 1208 (UTF-8) */
+   WinSetCp(thishmq, 1208);
+   
    threadfunc = (void (API_FUNC)(void *))tmp[0];
    threadfunc(tmp[1]);
 
