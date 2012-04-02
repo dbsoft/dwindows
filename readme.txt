@@ -27,6 +27,7 @@ Added fullscreen support on Mac for resizable windows.
 Added UNICODE build mode on Windows allowing UTF-8 encoded text.
    ANSI builds are supported by removing -DUNICODE -D_UNICODE and -DAEROGLASS
 Added support for antialiased drawing on Windows via GDI+.
+Added codepage 1208 (UTF-8) as the default codepage on OS/2.
 Fixed value changed events not working for spinbuttons on OS/2 and Windows.
 Fixed an issue drawing arcs on GTK3 and GTK2 for printing.
 

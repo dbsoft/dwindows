@@ -4022,6 +4022,8 @@ int API dw_init(int newthread, int argc, char *argv[])
    {
       dwhab = WinInitialize(0);
       dwhmq = WinCreateMsgQueue(dwhab, 0);
+      /* Set the codepage to 1208 (UTF-8) */
+      WinSetCp(dwhmq, 1208);
    }
 
    rc = WinRegisterClass(dwhab, (PSZ)ClassName, _wndproc, CS_SIZEREDRAW | CS_CLIPCHILDREN, 32);
