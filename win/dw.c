@@ -7949,12 +7949,12 @@ void API dw_listbox_set_top(HWND handle, int top)
 unsigned int API dw_mle_import(HWND handle, char *buffer, int startpoint)
 {
    int textlen, len = GetWindowTextLength(handle);
-   TCHAR *tmpbuf;
+   TCHAR *tmpbuf, *srcbuf = UTF8toWide(buffer);
 
    if(startpoint < 0)
       startpoint = 0;
 
-   if(!buffer || (textlen = (int)strlen(buffer)) < 1)
+   if(!buffer || (textlen = (int)_tcslen(srcbuf)) < 1)
       return startpoint;
 
    tmpbuf = calloc(sizeof(TCHAR), len + textlen + startpoint + 2);
@@ -7972,7 +7972,7 @@ unsigned int API dw_mle_import(HWND handle, char *buffer, int startpoint)
       if(copylen > 0)
          memcpy(dest, start, copylen*sizeof(TCHAR));
    }
-   memcpy(&tmpbuf[startpoint], UTF8toWide(buffer), textlen*sizeof(TCHAR));
+   memcpy(&tmpbuf[startpoint], srcbuf, textlen*sizeof(TCHAR));
 
    SetWindowText(handle, tmpbuf);
 
