@@ -4883,7 +4883,7 @@ char * API dw_font_choose(char *currfont)
             italic = " Italic";
          height = MulDiv(abs(lf.lfHeight), 72,  GetDeviceCaps (hdc, LOGPIXELSY));
          ReleaseDC(NULL, hdc);
-         _snprintf( str, 100, "%d.%s%s%s", height, lf.lfFaceName, bold, italic );
+         _snprintf( str, 100, "%d.%s%s%s", height, WideToUTF8(lf.lfFaceName), bold, italic );
       }
    }
    return str;
