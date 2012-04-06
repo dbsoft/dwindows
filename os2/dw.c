@@ -7117,7 +7117,7 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
       if(hsize && !width)
          width = 1;
 
-      if(strncmp(tmpbuf, "#1", 3)==0)
+      if(strncmp(tmpbuf, "#1", 3)==0 && !dw_window_get_data(item, "_dw_render"))
          tmpitem[index].type = TYPEBOX;
       else
       {
@@ -9429,6 +9429,7 @@ HWND API dw_render_new(unsigned long id)
                             NULL,
                             NULL);
    WinSubclassWindow(hwndframe, _RendProc);
+   dw_window_set_data(hwndframe, "_dw_render", DW_INT_TO_POINTER(1));
    return hwndframe;
 }
 
