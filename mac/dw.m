@@ -1313,8 +1313,24 @@ DWObject *DWObj;
 @end
 
 @implementation DWColorChoose
--(void)changeColor:(id)sender { pickedcolor = [self color]; }
--(BOOL)windowShouldClose:(id)window { DWDialog *d = dialog; dialog = nil; dw_dialog_dismiss(d, pickedcolor); [window orderOut:nil]; return NO; }
+-(void)changeColor:(id)sender 
+{ 
+    if(!dialog)
+        [self close];
+    else
+        pickedcolor = [self color]; 
+}
+-(BOOL)windowShouldClose:(id)window 
+{ 
+    if(dialog)
+    {
+        DWDialog *d = dialog; 
+        dialog = nil; 
+        dw_dialog_dismiss(d, pickedcolor);
+    }
+    [self close]; 
+    return NO; 
+}
 -(void)setDialog:(DWDialog *)input { dialog = input; }
 -(DWDialog *)dialog { return dialog; }
 @end
@@ -5240,23 +5256,12 @@ void API dw_color_background_set(unsigned long value)
  */
 unsigned long API dw_color_choose(unsigned long value)
 {
-    NSColor *color = [[NSColor colorWithDeviceRed: DW_RED_VALUE(value)/255.0 green: DW_GREEN_VALUE(value)/255.0 blue: DW_BLUE_VALUE(value)/255.0 alpha: 1] retain];
     /* Create the Color Chooser Dialog class. */
-    static DWColorChoose *colorDlg = nil;
+    DWColorChoose *colorDlg;
     DWDialog *dialog;
     DW_LOCAL_POOL_IN;
 
-    if(colorDlg)
-    {
-        dialog = [colorDlg dialog];
-        /* If someone is already waiting just return */
-        if(dialog)
-        {
-            DW_LOCAL_POOL_OUT;
-            return value;
-        }
-    }
-    else
+    if(![DWColorChoose sharedColorPanelExists])
     {
         colorDlg = (DWColorChoose *)[DWColorChoose sharedColorPanel];
         /* Set defaults for the dialog. */
@@ -5264,9 +5269,21 @@ unsigned long API dw_color_choose(unsigned long value)
         [colorDlg setTarget:colorDlg];
         [colorDlg setAction:@selector(changeColor:)];
     }
+    else
+        colorDlg = (DWColorChoose *)[DWColorChoose sharedColorPanel];
+    
+    /* If someone is already waiting just return */
+    if([colorDlg dialog])
+    {
+        DW_LOCAL_POOL_OUT;
+        return value;
+    }
 
-    dialog = dw_dialog_new(colorDlg);
+    unsigned long tempcol = _get_color(value);
+    NSColor *color = [[NSColor colorWithDeviceRed: DW_RED_VALUE(tempcol)/255.0 green: DW_GREEN_VALUE(tempcol)/255.0 blue: DW_BLUE_VALUE(tempcol)/255.0 alpha: 1] retain];
     [colorDlg setColor:color];
+    
+    dialog = dw_dialog_new(colorDlg);
     [colorDlg setDialog:dialog];
     [colorDlg makeKeyAndOrderFront:nil];
 
@@ -5276,7 +5293,6 @@ unsigned long API dw_color_choose(unsigned long value)
     /* Figure out the value of what they returned */
     CGFloat red, green, blue;
     [color getRed:&red green:&green blue:&blue alpha:NULL];
-    [color release];
     value = DW_RGB((int)(red * 255), (int)(green *255), (int)(blue *255));
     DW_LOCAL_POOL_OUT;
     return value;
