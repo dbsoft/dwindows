@@ -5677,7 +5677,6 @@ void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yo
     DW_LOCAL_POOL_IN;
     DW_MUTEX_LOCK;
     id image = handle;
-    double r, a1, a2, a;
     
     if(pixmap)
     {
@@ -5708,18 +5707,19 @@ void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yo
     }
     else
     {
-        [aPath moveToPoint:NSMakePoint(x1, y1)];
-        /* Calculate the midpoint */
-        r = 0.5 * (hypot((double)(y1 - yorigin), (double)(x1 - xorigin)) +
-                   hypot((double)(y2 - yorigin), (double)(x2 - xorigin)));
-        a1 = atan2((double)(y1 - yorigin), (double)(x1 - xorigin));
-        a2 = atan2((double)(y2 - yorigin), (double)(x2 - xorigin));
-        if(a2 < a1)
-            a2 += M_PI * 2;
-        a = (a1 + a2) / 2.;
+        double a1 = atan2((y1-yorigin), (x1-xorigin));
+        double a2 = atan2((y2-yorigin), (x2-xorigin));
+        double dx = xorigin - x1;
+        double dy = yorigin - y1;
+        double r = sqrt(dx*dx + dy*dy);
+        
+        /* Convert to degrees */
+        a1 *= (180.0 / M_PI);
+        a2 *= (180.0 / M_PI);
+        
         /* Prepare to draw */
-        [aPath appendBezierPathWithArcFromPoint:NSMakePoint((xorigin + r * cos(a)), (yorigin + r * sin(a)))
-                                        toPoint:NSMakePoint(x2, y2) radius:r];
+        [aPath appendBezierPathWithArcWithCenter:NSMakePoint(xorigin, yorigin)
+                                          radius:r startAngle:a1 endAngle:a2];
     }
     /* If the fill flag is passed */
     if(flags & DW_DRAW_FILL)
