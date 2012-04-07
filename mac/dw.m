@@ -849,7 +849,11 @@ DWObject *DWObj;
 -(NSFont *)font { return font; }
 -(void)setSize:(NSSize)input { size = input; }
 -(NSSize)size { return size; }
--(void)mouseDown:(NSEvent *)theEvent { _event_handler(self, theEvent, 3); }
+-(void)mouseDown:(NSEvent *)theEvent 
+{ 
+    if(![theEvent modifierFlags] & NSControlKeyMask)
+        _event_handler(self, theEvent, 3); 
+}
 -(void)mouseUp:(NSEvent *)theEvent { _event_handler(self, theEvent, 4); }
 -(NSMenu *)menuForEvent:(NSEvent *)theEvent { _event_handler(self, theEvent, 3); return nil; }
 -(void)rightMouseUp:(NSEvent *)theEvent { _event_handler(self, theEvent, 4); }
