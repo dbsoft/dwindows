@@ -2847,7 +2847,7 @@ MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 
                   hps = WinBeginPaint(hWnd, 0L, &rc);
                   exp.x = rc.xLeft;
-                  exp.y = height - rc.yTop - 1;
+                  exp.y = height - rc.yTop;
                   exp.width = rc.xRight - rc. xLeft;
                   exp.height = rc.yTop - rc.yBottom;
                   result = exposefunc(hWnd, &exp, tmp->data);
