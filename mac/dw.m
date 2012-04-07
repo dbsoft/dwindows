@@ -851,7 +851,7 @@ DWObject *DWObj;
 -(NSSize)size { return size; }
 -(void)mouseDown:(NSEvent *)theEvent 
 { 
-    if(![theEvent modifierFlags] & NSControlKeyMask)
+    if(!([theEvent modifierFlags] & NSControlKeyMask))
         _event_handler(self, theEvent, 3); 
 }
 -(void)mouseUp:(NSEvent *)theEvent { _event_handler(self, theEvent, 4); }
