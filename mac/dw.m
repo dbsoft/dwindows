@@ -303,6 +303,10 @@ int _event_handler1(id object, NSEvent *event, int message)
                     {
                         button = 3;
                     }
+                    else if([event modifierFlags] & NSControlKeyMask)
+                    {
+                        button = 2;
+                    }
                 }
 
                 return buttonfunc(object, (int)p.x, (int)p.y, button, handler->data);
