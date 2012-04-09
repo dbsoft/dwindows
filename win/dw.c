@@ -220,8 +220,8 @@ HANDLE hrichedit = 0;
  * so #define them here...
  */
 
-#if !defined( MIM_MENUDATA )
-# define MIM_MENUDATA 0x00000008
+#if !defined( _tstol )
+# define _tstol atol
 #endif
 #if !defined(PBS_MARQUEE)
 # define PBS_MARQUEE 0x08
@@ -1768,7 +1768,6 @@ static void _dw_toggle_checkable_menu_item( HWND window, int id )
 LRESULT CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 {
    int result = -1, taskbar = FALSE;
-   static int command_active = 0;
    SignalHandler *tmp = Root;
    void (*windowfunc)(PVOID);
    ULONG origmsg = msg;
@@ -1790,9 +1789,6 @@ LRESULT CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 
    if (result == -1)
    {
-      /* Avoid infinite recursion */
-      command_active = 1;
-
       /* Find any callbacks for this function */
       while (tmp)
       {
@@ -2031,7 +2027,7 @@ LRESULT CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
                               if(tmp->window == tem->hdr.hwndFrom)
                               {
                                  int (*containercontextfunc)(HWND, char *, int, int, void *, void *) = tmp->signalfunction;
-                                 HTREEITEM hti, last;
+                                 HTREEITEM hti;
                                  TVITEM tvi;
                                  TVHITTESTINFO thi;
                                  void **ptrs = NULL;
@@ -2044,7 +2040,6 @@ LRESULT CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 
                                  MapWindowPoints(HWND_DESKTOP, tmp->window, &thi.pt, 1);
 
-                                 last = TreeView_GetSelection(tmp->window);
                                  hti = TreeView_HitTest(tmp->window, &thi);
 
                                  if(hti)
@@ -2220,7 +2215,6 @@ LRESULT CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
          if(tmp)
             tmp = tmp->next;
       }
-      command_active = 0;
    }
 
    /* Now that any handlers are done... do normal processing */
