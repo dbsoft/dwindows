@@ -4543,6 +4543,8 @@ int API dw_window_destroy(HWND handle)
          thisbox->items = tmpitem;
          free(thisitem);
          thisbox->count--;
+         /* Queue a redraw on the top-level window */
+         _dw_redraw(_toplevel_window(handle), TRUE);
       }
       _free_window_memory(frame ? frame : handle);
    }
