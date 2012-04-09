@@ -8496,6 +8496,7 @@ int API dw_window_destroy(HWND handle)
             Box *thisbox = [parent box];
             int z, index = -1;
             Item *tmpitem, *thisitem = thisbox->items;
+            id window = [object window];
 
             for(z=0;z<thisbox->count;z++)
             {
@@ -8527,6 +8528,8 @@ int API dw_window_destroy(HWND handle)
             thisbox->items = tmpitem;
             free(thisitem);
             thisbox->count--;
+            /* Queue a redraw on the top-level window */
+            _dw_redraw(window, TRUE);
         }
     }
     DW_MUTEX_UNLOCK;
