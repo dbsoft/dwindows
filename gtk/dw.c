@@ -2820,6 +2820,39 @@ int dw_window_hide(HWND handle)
    return 0;
 }
 
+/* Internal function that changes the attachment properties in a table for destroying. */
+void _rearrange_table_destroy(GtkWidget *widget, gpointer data)
+{
+   gint pos = GPOINTER_TO_INT(data);
+   GtkContainer *cont = gtk_object_get_data(GTK_OBJECT(widget), "_dw_table");
+   guint oldpos;
+
+   /* Drop out if missing table */
+   if(!cont)
+      return;
+
+   /* Check orientation */
+   if(pos < 0)
+   {
+      /* Horz */
+      pos = -(pos + 1);
+      gtk_container_child_get(cont, widget, "left-attach", &oldpos, NULL);
+      if(oldpos >= pos)
+      {
+         gtk_container_child_set(cont, widget, "left-attach", (oldpos - 1), "right-attach", oldpos, NULL);
+      }
+   }
+   else
+   {
+      /* Vert */
+      gtk_container_child_get(cont, widget, "top-attach", &oldpos, NULL);
+      if(oldpos >= pos)
+      {
+         gtk_container_child_set(cont, widget, "top-attach", (oldpos - 1), "bottom-attach", oldpos, NULL);
+      }
+   }
+}
+
 /*
  * Destroys a window and all of it's children.
  * Parameters:
@@ -2844,12 +2877,50 @@ int dw_window_destroy(HWND handle)
 #endif
    if(GTK_IS_WIDGET(handle))
    {
+      GtkWidget *box, *handle2 = handle;
       GtkWidget *eventbox = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(handle), "_dw_eventbox");
 
+      /* Handle the invisible event box if it exists */
       if(eventbox && GTK_IS_WIDGET(eventbox))
-         gtk_widget_destroy(eventbox);
+         handle2 = eventbox;
+
+      /* Check if we are removing a widget from a box */	      
+      if((box = gtk_widget_get_parent(handle2)) && GTK_IS_TABLE(box))
+      {
+         /* Get the number of items in the box... */
+         int boxcount = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(box), "_dw_boxcount"));
+         int boxtype = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(box), "_dw_boxtype"));
+         gint pos;
+         
+         gtk_container_child_get(GTK_CONTAINER(box), handle2, boxtype == DW_VERT ? "top-attach" : "left-attach", &pos, NULL);
+         gtk_widget_destroy(handle2);
+         
+         /* If we are destroying the last item in the box this isn't necessary */
+         if((pos+1) < boxcount)
+         {
+            /* If we need to contract the table, reposition all the children */
+            gtk_container_forall(GTK_CONTAINER(box),_rearrange_table_destroy, GINT_TO_POINTER(boxtype == DW_VERT ? pos : -(pos+1)));
+         }
+         
+         if(boxcount > 0)
+         {
+            /* Decrease the count by 1 */
+            boxcount--;
+            gtk_object_set_data(GTK_OBJECT(box), "_dw_boxcount", GINT_TO_POINTER(boxcount));
+         }
+         
+         /* If we aren't trying to resize the table to 0... */
+         if(boxcount > 0)
+         {
+            /* Contract the table to the size we need */
+            gtk_table_resize(GTK_TABLE(box), boxtype == DW_VERT ? boxcount : 1, boxtype == DW_VERT ? 1 : boxcount);
+         }
+      }
       else
-         gtk_widget_destroy(handle);
+      {
+         /* Finally destroy the widget */      
+         gtk_widget_destroy(handle2);
+      }
    }
    DW_MUTEX_UNLOCK;
    return 0;
