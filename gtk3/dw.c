@@ -2425,12 +2425,28 @@ int dw_window_destroy(HWND handle)
    }
    if(GTK_IS_WIDGET(handle))
    {
+      GtkWidget *box, *handle2 = handle;
       GtkWidget *eventbox = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_eventbox");
 
+      /* Handle the invisible event box if it exists */
       if(eventbox && GTK_IS_WIDGET(eventbox))
-         gtk_widget_destroy(eventbox);
-      else
-         gtk_widget_destroy(handle);
+         handle2 = eventbox;
+
+      /* Check if we are removing a widget from a box */	      
+      if((box = gtk_widget_get_parent(handle2)) && GTK_IS_GRID(box))
+      {
+         /* Get the number of items in the box... */
+         int boxcount = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(box), "_dw_boxcount"));
+			
+         if(boxcount > 0)
+         {
+            /* Decrease the count by 1 */
+            boxcount--;
+            g_object_set_data(G_OBJECT(box), "_dw_boxcount", GINT_TO_POINTER(boxcount));
+         }
+      }
+      /* Finally destroy the widget */      
+      gtk_widget_destroy(handle2);
    }
    DW_MUTEX_UNLOCK;
    return 0;
@@ -8524,6 +8540,28 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
          index = 0;
       if(index > boxcount)
          index = boxcount;
+         
+      /* Fix the index by taking into account empty cells */
+      if(boxtype == DW_VERT)
+      {
+         int z;
+      	
+         for(z=0;z<index;z++)
+         {
+            if(!gtk_grid_get_child_at(GTK_GRID(box), 0, z))
+               index++;
+         }
+      }
+      else
+      {
+         int z;
+      	
+         for(z=0;z<index;z++)
+         {
+            if(!gtk_grid_get_child_at(GTK_GRID(box), z, 0))
+               index++;
+         }
+      }
 
       g_object_set_data(G_OBJECT(item), "_dw_table", box);
       /* Set the expand attribute on the widgets now instead of the container */
