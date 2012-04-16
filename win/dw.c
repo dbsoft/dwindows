@@ -4562,25 +4562,29 @@ void _control_size(HWND handle, int *width, int *height)
       dw_free(buf);
    }
    
-   /* Attempt to get bitmap from classes that can have them */
+   /* Attempt to get icon from classes that can have them */
    if(_tcsnicmp(tmpbuf, STATICCLASSNAME, _tcslen(STATICCLASSNAME)+1) == 0)
-   {
-      if(!(hic = (HICON)SendMessage(handle, STM_GETIMAGE, IMAGE_ICON, 0)))
-         hbm = (HBITMAP)SendMessage(handle, STM_GETIMAGE, IMAGE_BITMAP, 0);
-   }
-   if(_tcsnicmp(tmpbuf, BUTTONCLASSNAME, _tcslen(BUTTONCLASSNAME)+1) == 0)
-   {
-      if(!(hic = (HICON)SendMessage(handle, BM_GETIMAGE, IMAGE_ICON, 0)))
-         hbm = (HBITMAP)SendMessage(handle, BM_GETIMAGE, IMAGE_BITMAP, 0);
-   }
+      hic = (HICON)SendMessage(handle, STM_GETIMAGE, IMAGE_ICON, 0);
+   else if(_tcsnicmp(tmpbuf, BUTTONCLASSNAME, _tcslen(BUTTONCLASSNAME)+1) == 0)
+      hic = (HICON)SendMessage(handle, BM_GETIMAGE, IMAGE_ICON, 0);
       
    /* If we got an icon, pull out the internal bitmap */
-   if(hic && !hbm)
+   if(hic)
    {
       ICONINFO ii;
       
       if(GetIconInfo(hic, &ii))
          hbm = ii.hbmMask ? ii.hbmMask : ii.hbmColor;
+   }
+   
+   /* If we weren't able to get the bitmap from the icon... */
+   if(!hbm)
+   {
+       /* Attempt to get bitmap from classes that can have them */
+      if(_tcsnicmp(tmpbuf, STATICCLASSNAME, _tcslen(STATICCLASSNAME)+1) == 0)
+         hbm = (HBITMAP)SendMessage(handle, STM_GETIMAGE, IMAGE_BITMAP, 0);
+      else if(_tcsnicmp(tmpbuf, BUTTONCLASSNAME, _tcslen(BUTTONCLASSNAME)+1) == 0)
+         hbm = (HBITMAP)SendMessage(handle, BM_GETIMAGE, IMAGE_BITMAP, 0);
    }
    
    /* If we got an image... set the sizes appropriately */
