@@ -4565,13 +4565,13 @@ void _control_size(HWND handle, int *width, int *height)
    /* Attempt to get bitmap from classes that can have them */
    if(_tcsnicmp(tmpbuf, STATICCLASSNAME, _tcslen(STATICCLASSNAME)+1) == 0)
    {
-      if(!(hbm = (HBITMAP)SendMessage(handle, STM_GETIMAGE, IMAGE_BITMAP, 0)))
-         hic = (HICON)SendMessage(handle, STM_GETIMAGE, IMAGE_ICON, 0);
+      if(!(hic = (HICON)SendMessage(handle, STM_GETIMAGE, IMAGE_ICON, 0)))
+         hbm = (HBITMAP)SendMessage(handle, STM_GETIMAGE, IMAGE_BITMAP, 0);
    }
    if(_tcsnicmp(tmpbuf, BUTTONCLASSNAME, _tcslen(BUTTONCLASSNAME)+1) == 0)
    {
-      if(!(hbm = (HBITMAP)SendMessage(handle, BM_GETIMAGE, IMAGE_BITMAP, 0)))
-         hic = (HICON)SendMessage(handle, BM_GETIMAGE, IMAGE_ICON, 0);
+      if(!(hic = (HICON)SendMessage(handle, BM_GETIMAGE, IMAGE_ICON, 0)))
+         hbm = (HBITMAP)SendMessage(handle, BM_GETIMAGE, IMAGE_BITMAP, 0);
    }
       
    /* If we got an icon, pull out the internal bitmap */
