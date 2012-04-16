@@ -1400,6 +1400,7 @@ typedef void *HPRINT;
 #define DW_UINT_TO_POINTER(a) ((void *)a)
 #define DW_POINTER_TO_UINT(a) ((unsigned int)a)
 #endif
+#define DW_POINTER(a) ((void *)a)
 
 #ifndef DW_FCF_COMPOSITED
 #define DW_FCF_COMPOSITED        0

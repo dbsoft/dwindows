@@ -3420,8 +3420,6 @@ LRESULT CALLBACK _staticwndproc(HWND hwnd, ULONG msg, WPARAM mp1, LPARAM mp2)
        || !_dw_composition || !(GetWindowLongPtr(_toplevel_window(hwnd), GWL_EXSTYLE) & WS_EX_LAYERED))
       return _colorwndproc(hwnd, msg, mp1, mp2);
    
-   dw_debug("Parentcinfo %x parentcinfo->back %d\n", (int)parentcinfo, parentcinfo->back);
-   
    pOldProc = cinfo->pOldProc;
    
    switch(msg)
@@ -4550,6 +4548,7 @@ void _control_size(HWND handle, int *width, int *height)
    TCHAR tmpbuf[100] = {0};
    static char testtext[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
    HBITMAP hbm = 0;
+   HICON hic = 0;
 
    GetClassName(handle, tmpbuf, 99);
 
@@ -4565,10 +4564,25 @@ void _control_size(HWND handle, int *width, int *height)
    
    /* Attempt to get bitmap from classes that can have them */
    if(_tcsnicmp(tmpbuf, STATICCLASSNAME, _tcslen(STATICCLASSNAME)+1) == 0)
-      hbm = (HBITMAP)SendMessage(handle, STM_GETIMAGE, IMAGE_BITMAP, 0);
+   {
+      if(!(hbm = (HBITMAP)SendMessage(handle, STM_GETIMAGE, IMAGE_BITMAP, 0)))
+         hic = (HICON)SendMessage(handle, STM_GETIMAGE, IMAGE_ICON, 0);
+   }
    if(_tcsnicmp(tmpbuf, BUTTONCLASSNAME, _tcslen(BUTTONCLASSNAME)+1) == 0)
-      hbm = (HBITMAP)SendMessage(handle, BM_GETIMAGE, IMAGE_BITMAP, 0);
+   {
+      if(!(hbm = (HBITMAP)SendMessage(handle, BM_GETIMAGE, IMAGE_BITMAP, 0)))
+         hic = (HICON)SendMessage(handle, BM_GETIMAGE, IMAGE_ICON, 0);
+   }
       
+   /* If we got an icon, pull out the internal bitmap */
+   if(hic && !hbm)
+   {
+      ICONINFO ii;
+      
+      if(GetIconInfo(hic, &ii))
+         hbm = ii.hbmMask ? ii.hbmMask : ii.hbmColor;
+   }
+   
    /* If we got an image... set the sizes appropriately */
    if(hbm)
    {
@@ -6130,8 +6144,8 @@ HWND API dw_bitmapbutton_new(char *text, ULONG id)
 {
    HWND tmp;
    ColorInfo *cinfo = calloc(1, sizeof(ColorInfo));
-   HBITMAP hbitmap = LoadBitmap(DWInstance, MAKEINTRESOURCE(id));
-   HICON icon = LoadImage(DWInstance, MAKEINTRESOURCE(id), IMAGE_ICON, 0, 0, LR_SHARED);
+   HICON icon = LoadImage(DWInstance, MAKEINTRESOURCE(id), IMAGE_ICON, 0, 0, 0);
+   HBITMAP hbitmap = icon ? 0 : LoadBitmap(DWInstance, MAKEINTRESOURCE(id));
 
    tmp = CreateWindow(BUTTONCLASSNAME,
                   NULL,

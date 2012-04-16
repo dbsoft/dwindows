@@ -5002,20 +5002,41 @@ void _control_size(HWND handle, int *width, int *height)
           /* Handle bitmap buttons */
           if(dw_window_get_data(handle, "_dw_bitmapbutton"))
           {
-              WNDPARAMS wp;
-              BTNCDATA bcd;
+              HPOINTER hpr = (HPOINTER)dw_window_get_data(handle, "_dw_button_icon");
+              HBITMAP hbm = 0;
 
-              wp.fsStatus = WPM_CTLDATA;
-              wp.cbCtlData = sizeof(BTNCDATA);
-              wp.pCtlData = &bcd;
+              /* Handle case of icon resource */
+              if(hpr)
+              {
+                  POINTERINFO pi;
 
-              /* Query the button's bitmap */
-              if(WinSendMsg(handle, WM_QUERYWINDOWPARAMS, (MPARAM)&wp, MPVOID) && bcd.hImage)
+                  /* Get the internal HBITMAP handles */
+                  if(WinQueryPointerInfo(hpr, &pi))
+                      hbm = pi.hbmColor ? pi.hbmColor : pi.hbmPointer;
+              }
+
+              /* If we didn't load it from the icon... */
+              if(!hbm)
+              {
+                  WNDPARAMS wp;
+                  BTNCDATA bcd;
+
+                  wp.fsStatus = WPM_CTLDATA;
+                  wp.cbCtlData = sizeof(BTNCDATA);
+                  wp.pCtlData = &bcd;
+
+                  /* Query the button's bitmap */
+                  if(WinSendMsg(handle, WM_QUERYWINDOWPARAMS, (MPARAM)&wp, MPVOID) && bcd.hImage)
+                      hbm = bcd.hImage;
+              }
+
+              /* If we got a bitmap handle */
+              if(hbm)
               {
                   BITMAPINFOHEADER2 bmp;
                   bmp.cbFix = sizeof(BITMAPINFOHEADER2);
                   /* Get the parameters of the bitmap */
-                  if(GpiQueryBitmapInfoHeader(bcd.hImage, &bmp))
+                  if(GpiQueryBitmapInfoHeader(hbm, &bmp))
                   {
                       thiswidth = bmp.cx;
                       thisheight = bmp.cy;
