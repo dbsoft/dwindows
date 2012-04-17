@@ -3687,6 +3687,7 @@ MRESULT EXPENTRY _button_draw(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2, PFNW
    MRESULT res;
    unsigned long width, height;
    int x = 5, y = 5;
+   ULONG style = WinQueryWindowULong(hwnd, QWL_STYLE);
 
    dw_window_get_pos_size(hwnd, NULL, NULL, &width, &height);
 
@@ -3704,8 +3705,17 @@ MRESULT EXPENTRY _button_draw(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2, PFNW
       if(dw_window_get_data(hwnd, "_dw_disabled"))
          halftone = DP_HALFTONED;
 
-      cx = width - 10;
-      cy = height - 10;
+      /* If there is a border take that into account */
+      if(style & BS_NOBORDER)
+      {
+          cx = width;
+          cy = height;
+      }
+      else
+      {
+          cx = width - 8;
+          cy = height - 8;
+      }
 
       if(WinQueryPointerInfo(icon, &pi))
       {
@@ -5004,19 +5014,25 @@ void _control_size(HWND handle, int *width, int *height)
           {
               HPOINTER hpr = (HPOINTER)dw_window_get_data(handle, "_dw_button_icon");
               HBITMAP hbm = 0;
+              int iconwidth = DW_POINTER_TO_INT(dw_window_get_data(handle, "_dw_button_icon_width"));
 
               /* Handle case of icon resource */
               if(hpr)
               {
-                  POINTERINFO pi;
+                  if(iconwidth)
+                      thisheight = thiswidth = iconwidth;
+                  else
+                  {
+                      POINTERINFO pi;
 
-                  /* Get the internal HBITMAP handles */
-                  if(WinQueryPointerInfo(hpr, &pi))
-                      hbm = pi.hbmColor ? pi.hbmColor : pi.hbmPointer;
+                      /* Get the internal HBITMAP handles */
+                      if(WinQueryPointerInfo(hpr, &pi))
+                          hbm = pi.hbmColor ? pi.hbmColor : pi.hbmPointer;
+                  }
               }
 
               /* If we didn't load it from the icon... */
-              if(!hbm)
+              if(!hbm && !iconwidth)
               {
                   WNDPARAMS wp;
                   BTNCDATA bcd;
@@ -6221,8 +6237,38 @@ HWND API dw_bitmapbutton_new(char *text, ULONG id)
    WinSetWindowPtr(tmp, QWP_USER, blah);
 
    if(icon)
-      dw_window_set_data(tmp, "_dw_button_icon", (void *)icon);
-   dw_window_set_data(tmp, "_dw_bitmapbutton", (void *)1);
+   {
+       PVOID ResPtr;
+       ULONG ResSize;
+
+       /* Since WinLoadPointer() can change the size of the icon...
+        * We will query the resource directly and check the size ourselves.
+        */
+       if(DosQueryResourceSize(NULLHANDLE, RT_POINTER, id, &ResSize) == NO_ERROR && ResSize &&
+          DosGetResource(NULLHANDLE, RT_POINTER, id, &ResPtr) == NO_ERROR)
+       {
+           PBITMAPFILEHEADER2 header = ResPtr;
+
+           /* We can only check for icons and pointers */
+           if(header->usType == 0x4943 /* Icon 'CI' */ ||
+              header->usType == 0x5043 /* Pointer 'CP' */)
+           {
+               /* Check the new style header */
+               if(header->bmp2.cbFix == sizeof(BITMAPINFOHEADER2))
+                   dw_window_set_data(tmp, "_dw_button_icon_width", DW_INT_TO_POINTER(header->bmp2.cx));
+               else if(header->bmp2.cbFix == sizeof(BITMAPINFOHEADER))
+               {
+                   /* Check the old style header */
+                   PBITMAPINFOHEADER bi = (PBITMAPINFOHEADER)&(header->bmp2);
+
+                   dw_window_set_data(tmp, "_dw_button_icon_width", DW_INT_TO_POINTER(bi->cx));
+               }
+           }
+           DosFreeResource(ResPtr);
+       }
+       dw_window_set_data(tmp, "_dw_button_icon", DW_POINTER(icon));
+   }
+   dw_window_set_data(tmp, "_dw_bitmapbutton", DW_INT_TO_POINTER(1));
    return tmp;
 }
 
