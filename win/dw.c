@@ -11318,14 +11318,14 @@ void API dw_environment_query(DWEnv *env)
 }
 
 /* Helper to make sure all /s are \s */
-void _to_dos(char *dst, char *src)
+void _to_dos(TCHAR *dst, TCHAR *src)
 {
    int x = 0;
    
    while(src[x])
    {
-      if(src[x] == '/')
-         dst[x] = '\\';
+      if(src[x] == TEXT('/'))
+         dst[x] = TEXT('\\');
       else
          dst[x] = src[x];
       x++;
@@ -11347,23 +11347,24 @@ void _to_dos(char *dst, char *src)
  */
 char * API dw_file_browse(char *title, char *defpath, char *ext, int flags)
 {
-   OPENFILENAME of;
-   char filenamebuf[1001] = {0};
-   char filterbuf[1001] = {0};
+   OPENFILENAME of = {0};
+   TCHAR filenamebuf[1001] = {0};
+   TCHAR filterbuf[1001] = {0};
+   TCHAR *exten = UTF8toWide(ext);
+   TCHAR *dpath = UTF8toWide(defpath);
    int rc;
 
    if ( flags == DW_DIRECTORY_OPEN )
    {
    /* If we aren't building a DLL, use the more simple browser */
 #ifndef BUILD_DLL
-      BROWSEINFO bi;
+      BROWSEINFO bi = {0};
       TCHAR szDir[MAX_PATH];
       LPITEMIDLIST pidl;
       LPMALLOC pMalloc;
 
       if (SUCCEEDED(SHGetMalloc(&pMalloc)))
       {
-         ZeroMemory(&bi,sizeof(bi));
          bi.hwndOwner = NULL;
          bi.pszDisplayName = 0;
          bi.pidlRoot = 0;
@@ -11379,7 +11380,7 @@ char * API dw_file_browse(char *title, char *defpath, char *ext, int flags)
                strncpy(filenamebuf,szDir,1000);
             }
 
-            // In C++: pMalloc->Free(pidl); pMalloc->Release();
+            /* In C++: pMalloc->Free(pidl); pMalloc->Release(); */
             pMalloc->lpVtbl->Free(pMalloc,pidl);
             pMalloc->lpVtbl->Release(pMalloc);
             return _strdup(filenamebuf);
@@ -11394,7 +11395,7 @@ char * API dw_file_browse(char *title, char *defpath, char *ext, int flags)
                             1000,
                             FALSE ) )
      {
-        return _strdup( filenamebuf );
+        return _strdup( WideToUTF8(filenamebuf) );
      }
 #endif
    }
@@ -11409,15 +11410,14 @@ char * API dw_file_browse(char *title, char *defpath, char *ext, int flags)
           * and format of filter is eg: "c files (*.c)\0*.c\0All Files\0*.*\0\0"
           */
          int len;
-         char *ptr = filterbuf;
-         memset( filterbuf, 0, sizeof(filterbuf) );
-         len = sprintf( ptr, "%s Files (*.%s)", ext, ext );
-         ptr = ptr + len + 1; // past first \0
-         len = sprintf( ptr, "*.%s", ext );
-         ptr = ptr + len + 1; // past next \0
-         len = sprintf( ptr, "All Files" );
-         ptr = ptr + len + 1; // past next \0
-         len = sprintf( ptr, "*.*" );
+         TCHAR *ptr = filterbuf;
+         len = _stprintf( ptr, TEXT("%s Files (*.%s)"), exten, exten );
+         ptr = ptr + len + 1; /* past first \0 */
+         len = _stprintf( ptr, TEXT("*.%s"), exten );
+         ptr = ptr + len + 1; /* past next \0 */
+         len = _stprintf( ptr, TEXT("All Files") );
+         ptr = ptr + len + 1; /* past next \0 */
+         len = _stprintf( ptr, TEXT("*.*") );
       }
 
       memset( &of, 0, sizeof(OPENFILENAME) );
@@ -11428,11 +11428,11 @@ char * API dw_file_browse(char *title, char *defpath, char *ext, int flags)
       of.lpstrTitle = UTF8toWide(title);
       of.lpstrInitialDir = TEXT(".");
       if(att != INVALID_FILE_ATTRIBUTES && (att & FILE_ATTRIBUTE_DIRECTORY))
-        of.lpstrInitialDir = UTF8toWide(defpath);
+        of.lpstrInitialDir = dpath;
       else if(defpath)
-        _to_dos(filenamebuf, defpath);
-      of.lpstrFile = UTF8toWide(filenamebuf);
-      of.lpstrFilter = UTF8toWide(filterbuf);
+        _to_dos(filenamebuf, dpath);
+      of.lpstrFile = filenamebuf;
+      of.lpstrFilter = filterbuf;
       of.nFilterIndex = 1;
       of.nMaxFile = 1000;
       /*of.lpstrDefExt = ext;*/
