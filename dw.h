@@ -486,12 +486,8 @@ void _dw_pool_drain(void);
 #include <commctrl.h>
 
 #if defined(MSVC) && !defined(API)
-# ifdef __MINGW32__
-#  ifdef BUILD_DLL
-#   define API APIENTRY __declspec(dllexport)
-#  else
-#   define API APIENTRY __declspec(dllimport)
-#  endif
+# if defined(__MINGW32__) && defined(BUILD_DLL)
+#  define API _cdecl __declspec(dllexport)
 # else
 #  define API _cdecl
 #endif

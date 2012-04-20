@@ -6,8 +6,14 @@
  * (C) 2003-2011 Mark Hessling <mark@rexx.org>
  *
  */
+ 
+#ifdef AEROGLASS
+#define _WIN32_IE 0x0501
+#define WINVER 0x501
+#else
 #define _WIN32_IE 0x0500
 #define WINVER 0x500
+#endif
 #include <windows.h>
 #include <windowsx.h>
 #include <commctrl.h>
@@ -221,7 +227,11 @@ HANDLE hrichedit = 0;
  */
 
 #if !defined( _tstol )
+#if defined(UNICODE)
+# define _tstol _wtol
+#else
 # define _tstol atol
+#endif
 #endif
 #if !defined(PBS_MARQUEE)
 # define PBS_MARQUEE 0x08
@@ -1575,13 +1585,13 @@ static void _resize_box(Box *thisbox, int *depth, int x, int y, int pass)
                if(cinfo && cinfo->vcenter)
                {
                   /* We are centered so calculate a new position */
-                  TCHAR tmpbuf[1024] = {0};
+                  TCHAR tmpbuf[1024] = {0}, *thisbuf = tmpbuf;
                   int textheight, diff, total = height;
 
-                  GetWindowText(handle, tmpbuf, 1023);
+                  GetWindowText(handle, thisbuf, 1023);
 
                   /* Figure out how big the text is */
-                  dw_font_text_extents_get(handle, 0, WideToUTF8(tmpbuf), 0, &textheight);
+                  dw_font_text_extents_get(handle, 0, WideToUTF8(thisbuf), 0, &textheight);
 
                   diff = (total - textheight) / 2;
 
@@ -2933,7 +2943,7 @@ LRESULT CALLBACK _containerwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
    case WM_PAINT:
        if(continfo->cinfo.pOldProc && (continfo->even != DW_RGB_TRANSPARENT || continfo->odd != DW_RGB_TRANSPARENT))
        {
-            RECT rectUpd, rectDestin, rect;
+            RECT rectUpd, rectDestin, rectThis, *rect = &rectThis;
             int iItems, iTop, i;
             COLORREF c;
 
@@ -2951,7 +2961,7 @@ LRESULT CALLBACK _containerwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
             for(i=iTop; i<=(iTop+iItems+1); i++) 
             {
                 /* if row rectangle intersects update rectangle then it requires re-drawing */
-                if(ListView_GetItemRect(hWnd, i, &rect, LVIR_BOUNDS) && IntersectRect(&rectDestin, &rectUpd, &rect)) 
+                if(ListView_GetItemRect(hWnd, i, rect, LVIR_BOUNDS) && IntersectRect(&rectDestin, &rectUpd, rect)) 
                 {
                     /* change text background colour accordingly */
                     c = (i % 2) ? continfo->odd : continfo->even;
@@ -4205,13 +4215,13 @@ void * API dw_dialog_wait(DWDialog *dialog)
 void API dw_debug(char *format, ...)
 {
    va_list args;
-   char outbuf[1025] = {0};
+   char outbuf[1025] = {0}, *thisbuf = outbuf;
 
    va_start(args, format);
    vsnprintf(outbuf, 1024, format, args);
    va_end(args);
    
-   OutputDebugString(UTF8toWide(outbuf));
+   OutputDebugString(UTF8toWide(thisbuf));
 }
 
 /*
@@ -4224,14 +4234,14 @@ void API dw_debug(char *format, ...)
 int API dw_messagebox(char *title, int flags, char *format, ...)
 {
    va_list args;
-   char outbuf[1025] = { 0 };
+   char outbuf[1025] = { 0 }, *thisbuf = outbuf;
    int rc;
 
    va_start(args, format);
    vsnprintf(outbuf, 1024, format, args);
    va_end(args);
 
-   rc = MessageBox(HWND_DESKTOP, UTF8toWide(outbuf), UTF8toWide(title), flags);
+   rc = MessageBox(HWND_DESKTOP, UTF8toWide(thisbuf), UTF8toWide(title), flags);
    if(rc == IDOK)
       return DW_MB_RETURN_OK;
    else if(rc == IDYES)
@@ -11348,7 +11358,7 @@ void _to_dos(TCHAR *dst, TCHAR *src)
 char * API dw_file_browse(char *title, char *defpath, char *ext, int flags)
 {
    OPENFILENAME of = {0};
-   TCHAR filenamebuf[1001] = {0};
+   TCHAR filenamebuf[1001] = {0}, *fbuf = filenamebuf;
    TCHAR filterbuf[1001] = {0};
    TCHAR *exten = UTF8toWide(ext);
    TCHAR *dpath = UTF8toWide(defpath);
@@ -11395,7 +11405,7 @@ char * API dw_file_browse(char *title, char *defpath, char *ext, int flags)
                             1000,
                             FALSE ) )
      {
-        return _strdup( WideToUTF8(filenamebuf) );
+        return _strdup( WideToUTF8(fbuf) );
      }
 #endif
    }
@@ -11650,7 +11660,7 @@ void API dw_print_cancel(HPRINT print)
  */
 char * API dw_user_dir(void)
 {
-    static char _user_dir[1024] = "";
+    static char _user_dir[1024] = {0};
 
     if(!_user_dir[0])
     {
@@ -11660,7 +11670,7 @@ char * API dw_user_dir(void)
         if(OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &hToken))
         {
             DWORD BufSize = 1024;
-            TCHAR Buf[1024];
+            TCHAR TmpBuf[1024], *Buf = TmpBuf;
 
             GetUserProfileDirectory(hToken, Buf, &BufSize);
             CloseHandle(hToken);
