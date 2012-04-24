@@ -29,14 +29,16 @@ Added UNICODE build mode on Windows allowing UTF-8 encoded text.
 Added support for antialiased drawing on Windows via GDI+.
 Added codepage 1208 (UTF-8) as the default codepage on OS/2.
 Added support for Control-Click on Mac for button press events.
+Added DW_POINTER() macro for casting parameters to (void *).
 Fixed dwindows-config --version not returning the version at all.
 Fixed value changed events not working for spinbuttons on OS/2 and Windows.
-Fixed an issue drawing arcs on GTK3 and GTK2 for printing.
-Fixed an issue drawing arcs on Mac.
+Fixed issues drawing arcs on GTK2, GTK3 and Mac.
 Fixed a crash in the color chooser on Mac running Lion.
 Fixed a layout issue with render widgets on OS/2.
 Fixed an expose event issue on OS/2.
 Fixed an issue with GTK 3.4 due to properties being inherited from the parent.
+Fixed issues with bitmap buttons using icon/pointers on OS/2 and Windows.
+Fixed an issue with dw_window_destroy() on Mac.
 
 Dynamic Windows Documentation is available at:
 
