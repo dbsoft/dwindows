@@ -8477,7 +8477,7 @@ int API dw_window_destroy(HWND handle)
         [menu removeItem:object];
     }
     /* Handle destroying a control or box */
-    else if([object isKindOfClass:[DWBox class]] || [object isKindOfClass:[DWGroupBox class]] || [object isKindOfClass:[NSControl class]])
+    else if([object isKindOfClass:[NSView class]] || [object isKindOfClass:[NSControl class]])
     {
         DWBox *parent = (DWBox *)[object superview];
 
