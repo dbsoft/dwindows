@@ -8516,7 +8516,7 @@ void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yo
       while (alpha2 <= 0) alpha2 += 360*64;
       while (alpha1 > 360*64) alpha1 -= 360*64;
 
-      gdk_draw_arc(handle ? handle->window : pixmap->pixmap, gc, FALSE, xorigin-(width/2), yorigin-(height/2), width, height, alpha1, alpha2);
+      gdk_draw_arc(handle ? handle->window : pixmap->pixmap, gc, (flags & DW_DRAW_FILL), xorigin-(width/2), yorigin-(height/2), width, height, alpha1, alpha2);
       gdk_gc_unref(gc);
    }
    DW_MUTEX_UNLOCK;
