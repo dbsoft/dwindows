@@ -6225,7 +6225,7 @@ HWND API dw_bitmapbutton_new(char *text, ULONG id)
                    /* Check the old style header */
                    PBITMAPINFOHEADER bi = (PBITMAPINFOHEADER)&(header->bmp2);
 
-                   dw_window_set_data(tmp, "_dw_button_icon_width", DW_INT_TO_POINTER(bi->cx));
+                   dw_window_set_data(tmp, "_dw_button_icon_width", DW_INT_TO_POINTER(((int)bi->cx)));
                }
            }
            DosFreeResource(ResPtr);
