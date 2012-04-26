@@ -7066,10 +7066,10 @@ HWND API dw_box_remove_at_index(HWND box, int index)
       if(handle)
          SetParent(handle, DW_HWND_OBJECT);
       /* Queue a redraw on the top-level window */
-      _dw_redraw(_toplevel_window(handle), TRUE);
-      return DW_ERROR_NONE;
+      _dw_redraw(_toplevel_window(box), TRUE);
+      return handle;
    }
-   return DW_ERROR_GENERAL;
+   return 0;
 }
 
 /*
