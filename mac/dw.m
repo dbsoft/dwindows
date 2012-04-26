@@ -3902,6 +3902,136 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
 }
 
 /*
+ * Remove windows (widgets) from the box they are packed into.
+ * Parameters:
+ *       handle: Window handle of the item to be back.
+ * Returns:
+ *       DW_ERROR_NONE on success and DW_ERROR_GENERAL on failure.
+ */
+int API dw_box_remove(HWND handle)
+{
+    int _locked_by_me = FALSE;
+    DW_LOCAL_POOL_IN;
+    DW_MUTEX_LOCK;
+    id object = handle;
+    
+    if([object isKindOfClass:[NSView class]] || [object isKindOfClass:[NSControl class]])
+    {
+        DWBox *parent = (DWBox *)[object superview];
+        
+        /* Some controls are embedded in scrollviews...
+         * so get the parent of the scrollview in that case.
+         */
+        if(([object isKindOfClass:[NSTableView class]] || [object isMemberOfClass:[DWMLE class]])
+           && [parent isMemberOfClass:[NSClipView class]])
+        {
+            object = [parent superview];
+            parent = (DWBox *)[object superview];
+        }
+        
+        if([parent isKindOfClass:[DWBox class]] || [parent isKindOfClass:[DWGroupBox class]])
+        {
+            id window = [object window];
+            Box *thisbox = [parent box];
+            int z, index = -1;
+            Item *tmpitem, *thisitem = thisbox->items;
+            
+            for(z=0;z<thisbox->count;z++)
+            {
+                if(thisitem[z].hwnd == object)
+                    index = z;
+            }
+            
+            if(index == -1)
+            {
+                DW_MUTEX_UNLOCK;
+                DW_LOCAL_POOL_OUT;
+                return DW_ERROR_GENERAL;
+            }
+            
+            [object retain];
+            [object removeFromSuperview];
+            
+            tmpitem = malloc(sizeof(Item)*(thisbox->count-1));
+            
+            /* Copy all but the current entry to the new list */
+            for(z=0;z<index;z++)
+            {
+                tmpitem[z] = thisitem[z];
+            }
+            for(z=index+1;z<thisbox->count;z++)
+            {
+                tmpitem[z-1] = thisitem[z];
+            }
+            
+            thisbox->items = tmpitem;
+            free(thisitem);
+            thisbox->count--;
+            /* Queue a redraw on the top-level window */
+            _dw_redraw(window, TRUE);
+        }
+    }
+    DW_MUTEX_UNLOCK;
+    DW_LOCAL_POOL_OUT;
+    return DW_ERROR_NONE;
+}
+
+/*
+ * Remove windows (widgets) from a box at an arbitrary location.
+ * Parameters:
+ *       box: Window handle of the box to be removed from.
+ *       index: 0 based index of packed items.
+ * Returns:
+ *       Handle to the removed item on success, 0 on failure.
+ */
+HWND API dw_box_remove_at_index(HWND box, int index)
+{
+    int _locked_by_me = FALSE;
+    DW_LOCAL_POOL_IN;
+    DW_MUTEX_LOCK;
+    DWBox *parent = (DWBox *)box;
+    id object = nil;
+    
+    if([parent isKindOfClass:[DWBox class]] || [parent isKindOfClass:[DWGroupBox class]])
+    {
+        id window = [parent window];
+        Box *thisbox = [parent box];
+        
+        if(thisbox && index > -1 && index < thisbox->count)
+        {
+            int z;
+            Item *tmpitem, *thisitem = thisbox->items;
+            
+            object = thisitem[index].hwnd;
+            
+            [object retain];
+            [object removeFromSuperview];
+            
+            tmpitem = malloc(sizeof(Item)*(thisbox->count-1));
+            
+            /* Copy all but the current entry to the new list */
+            for(z=0;z<index;z++)
+            {
+                tmpitem[z] = thisitem[z];
+            }
+            for(z=index+1;z<thisbox->count;z++)
+            {
+                tmpitem[z-1] = thisitem[z];
+            }
+            
+            thisbox->items = tmpitem;
+            free(thisitem);
+            thisbox->count--;
+            /* Queue a redraw on the top-level window */
+            _dw_redraw(window, TRUE);
+        }
+    }
+    DW_MUTEX_UNLOCK;
+    DW_LOCAL_POOL_OUT;
+    return 0;
+}
+
+/*
  * Pack windows (widgets) into a box at an arbitrary location.
  * Parameters:
  *       box: Window handle of the box to be packed into.
@@ -8493,10 +8623,10 @@ int API dw_window_destroy(HWND handle)
 
         if([parent isKindOfClass:[DWBox class]] || [parent isKindOfClass:[DWGroupBox class]])
         {
+            id window = [object window];
             Box *thisbox = [parent box];
             int z, index = -1;
             Item *tmpitem, *thisitem = thisbox->items;
-            id window = [object window];
 
             for(z=0;z<thisbox->count;z++)
             {
