@@ -7243,7 +7243,7 @@ int API dw_box_remove(HWND handle)
          thisbox->count--;
          /* If it isn't padding, reset the parent */
          if(handle)
-            WinSetParent(handle, HWND_OBJECT);
+            WinSetParent(handle, HWND_OBJECT, FALSE);
          /* Queue a redraw on the top-level window */
          _dw_redraw(_toplevel_window(handle), TRUE);
          return DW_ERROR_NONE;
@@ -7288,7 +7288,7 @@ HWND API dw_box_remove_at_index(HWND box, int index)
       thisbox->count--;
       /* If it isn't padding, reset the parent */
       if(handle)
-         WinSetParent(handle, HWND_OBJECT);
+         WinSetParent(handle, HWND_OBJECT, FALSE);
       /* Queue a redraw on the top-level window */
       _dw_redraw(_toplevel_window(handle), TRUE);
       return DW_ERROR_NONE;
