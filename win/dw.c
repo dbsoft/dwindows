@@ -4323,7 +4323,6 @@ int API dw_window_hide(HWND handle)
 int API dw_window_destroy(HWND handle)
 {
    HWND parent;
-   Box *thisbox;
    HMENU menu;
 
    /* Handle special case for menu handle */
@@ -4341,7 +4340,6 @@ int API dw_window_destroy(HWND handle)
    }
    
    parent = GetParent(handle);
-   thisbox = (Box *)GetWindowLongPtr(parent, GWLP_USERDATA);
    menu = GetMenu(handle);
    
    if(menu)
@@ -4350,41 +4348,7 @@ int API dw_window_destroy(HWND handle)
    /* If it is a desktop window let WM_DESTROY handle it */
    if(parent != HWND_DESKTOP)
    {
-      /* If the parent box has items... 
-       * try to remove it from the layout 
-       */
-      if(thisbox && thisbox->count)
-      {
-         int z, index = -1;
-         Item *tmpitem, *thisitem = thisbox->items;
-
-         for(z=0;z<thisbox->count;z++)
-         {
-            if(thisitem[z].hwnd == handle)
-               index = z;
-         }
-
-         if(index == -1)
-            return 0;
-
-         tmpitem = malloc(sizeof(Item)*(thisbox->count-1));
-
-         /* Copy all but the current entry to the new list */
-         for(z=0;z<index;z++)
-         {
-            tmpitem[z] = thisitem[z];
-         }
-         for(z=index+1;z<thisbox->count;z++)
-         {
-            tmpitem[z-1] = thisitem[z];
-         }
-
-         thisbox->items = tmpitem;
-         free(thisitem);
-         thisbox->count--;
-         /* Queue a redraw on the top-level window */
-         _dw_redraw(_toplevel_window(handle), TRUE);
-      }
+      dw_box_remove(handle);
       _free_window_memory(handle, 0);
       EnumChildWindows(handle, _free_window_memory, 0);
    }
@@ -7009,10 +6973,110 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
 }
 
 /*
+ * Remove windows (widgets) from the box they are packed into.
+ * Parameters:
+ *       handle: Window handle of the item to be back.
+ * Returns:
+ *       DW_ERROR_NONE on success and DW_ERROR_GENERAL on failure.
+ */
+int API dw_box_remove(HWND handle)
+{
+   HWND parent = GetParent(handle);
+   
+   if(handle && parent != HWND_DESKTOP)
+   {
+      Box *thisbox = (Box *)GetWindowLongPtr(parent, GWLP_USERDATA);
+      
+      /* If the parent box has items... 
+       * try to remove it from the layout 
+       */
+      if(thisbox && thisbox->count)
+      {
+         int z, index = -1;
+         Item *tmpitem, *thisitem = thisbox->items;
+
+         for(z=0;z<thisbox->count;z++)
+         {
+            if(thisitem[z].hwnd == handle)
+               index = z;
+         }
+
+         if(index == -1)
+            return DW_ERROR_GENERAL;
+
+         tmpitem = malloc(sizeof(Item)*(thisbox->count-1));
+
+         /* Copy all but the current entry to the new list */
+         for(z=0;z<index;z++)
+         {
+            tmpitem[z] = thisitem[z];
+         }
+         for(z=index+1;z<thisbox->count;z++)
+         {
+            tmpitem[z-1] = thisitem[z];
+         }
+
+         thisbox->items = tmpitem;
+         free(thisitem);
+         thisbox->count--;
+         SetParent(handle, DW_HWND_OBJECT);
+         /* Queue a redraw on the top-level window */
+         _dw_redraw(_toplevel_window(handle), TRUE);
+         return DW_ERROR_NONE;
+      }
+   }
+   return DW_ERROR_GENERAL;
+}
+
+/*
+ * Remove windows (widgets) from a box at an arbitrary location.
+ * Parameters:
+ *       box: Window handle of the box to be removed from.
+ *       index: 0 based index of packed items.
+ * Returns:
+ *       Handle to the removed item on success, 0 on failure.
+ */
+HWND API dw_box_remove_at_index(HWND box, int index)
+{
+   Box *thisbox = (Box *)GetWindowLongPtr(box, GWLP_USERDATA);
+   
+   /* Try to remove it from the layout */
+   if(thisbox && index > -1 && index < thisbox->count)
+   {
+      int z;
+      Item *tmpitem, *thisitem = thisbox->items;
+      HWND handle = thisitem[index].hwnd;
+
+      tmpitem = malloc(sizeof(Item)*(thisbox->count-1));
+
+      /* Copy all but the current entry to the new list */
+      for(z=0;z<index;z++)
+      {
+         tmpitem[z] = thisitem[z];
+      }
+      for(z=index+1;z<thisbox->count;z++)
+      {
+         tmpitem[z-1] = thisitem[z];
+      }
+
+      thisbox->items = tmpitem;
+      free(thisitem);
+      thisbox->count--;
+      /* If it isn't padding, reset the parent */
+      if(handle)
+         SetParent(handle, DW_HWND_OBJECT);
+      /* Queue a redraw on the top-level window */
+      _dw_redraw(_toplevel_window(handle), TRUE);
+      return DW_ERROR_NONE;
+   }
+   return DW_ERROR_GENERAL;
+}
+
+/*
  * Pack windows (widgets) into a box at an arbitrary location.
  * Parameters:
  *       box: Window handle of the box to be packed into.
- *       item: Window handle of the item to be back.
+ *       item: Window handle of the item to pack.
  *       index: 0 based index of packed items.
  *       width: Width in pixels of the item or -1 to be self determined.
  *       height: Height in pixels of the item or -1 to be self determined.
@@ -7029,7 +7093,7 @@ void API dw_box_pack_at_index(HWND box, HWND item, int index, int width, int hei
  * Pack windows (widgets) into a box from the start (or top).
  * Parameters:
  *       box: Window handle of the box to be packed into.
- *       item: Window handle of the item to be back.
+ *       item: Window handle of the item to pack.
  *       width: Width in pixels of the item or -1 to be self determined.
  *       height: Height in pixels of the item or -1 to be self determined.
  *       hsize: TRUE if the window (widget) should expand horizontally to fill space given.
@@ -7048,7 +7112,7 @@ void API dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize
  * Pack windows (widgets) into a box from the end (or bottom).
  * Parameters:
  *       box: Window handle of the box to be packed into.
- *       item: Window handle of the item to be back.
+ *       item: Window handle of the item to pack.
  *       width: Width in pixels of the item or -1 to be self determined.
  *       height: Height in pixels of the item or -1 to be self determined.
  *       hsize: TRUE if the window (widget) should expand horizontally to fill space given.

@@ -35,6 +35,9 @@ EXPORTS
   
   dw_mdi_new                             @46
 
+  dw_box_remove                          @47
+  dw_box_remove_at_index                 @48
+
   dw_window_new                          @50
   dw_window_show                         @51
   dw_window_hide                         @52

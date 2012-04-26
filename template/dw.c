@@ -596,6 +596,31 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
 }
 
 /*
+ * Remove windows (widgets) from the box they are packed into.
+ * Parameters:
+ *       handle: Window handle of the item to be back.
+ * Returns:
+ *       DW_ERROR_NONE on success and DW_ERROR_GENERAL on failure.
+ */
+int API dw_box_remove(HWND handle)
+{
+   return DW_ERROR_GENERAL;
+}
+
+/*
+ * Remove windows (widgets) from a box at an arbitrary location.
+ * Parameters:
+ *       box: Window handle of the box to be removed from.
+ *       index: 0 based index of packed items.
+ * Returns:
+ *       Handle to the removed item on success, 0 on failure.
+ */
+HWND API dw_box_remove_at_index(HWND box, int index)
+{
+   return DW_ERROR_GENERAL;
+}
+
+/*
  * Pack windows (widgets) into a box at an arbitrary location.
  * Parameters:
  *       box: Window handle of the box to be packed into.
