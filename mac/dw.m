@@ -4004,8 +4004,11 @@ HWND API dw_box_remove_at_index(HWND box, int index)
             
             object = thisitem[index].hwnd;
             
-            [object retain];
-            [object removeFromSuperview];
+            if(object)
+            {
+                [object retain];
+                [object removeFromSuperview];
+            }
             
             tmpitem = malloc(sizeof(Item)*(thisbox->count-1));
             
@@ -4028,7 +4031,7 @@ HWND API dw_box_remove_at_index(HWND box, int index)
     }
     DW_MUTEX_UNLOCK;
     DW_LOCAL_POOL_OUT;
-    return 0;
+    return object;
 }
 
 /*
