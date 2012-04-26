@@ -1463,6 +1463,8 @@ typedef void *HPRINT;
 void API dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize, int vsize, int pad);
 void API dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, int vsize, int pad);
 void API dw_box_pack_at_index(HWND box, HWND item, int index, int width, int height, int hsize, int vsize, int pad);
+HWND API dw_box_remove_at_index(HWND box, int index);
+int API dw_box_remove(HWND handle);
 #if !defined(__OS2__) && !defined(__WIN32__) && !defined(__EMX__) && !defined(__MAC__)
 int API dw_int_init(DWResources *res, int newthread, int *argc, char **argv[]);
 #define dw_init(a, b, c) dw_int_init(&_resources, a, &b, &c)

@@ -4493,7 +4493,6 @@ int API dw_window_hide(HWND handle)
 int API dw_window_destroy(HWND handle)
 {
    HWND frame, menu, parent;
-   Box *thisbox;
 
    if(!handle)
       return DW_ERROR_UNKNOWN;
@@ -4512,7 +4511,6 @@ int API dw_window_destroy(HWND handle)
    }
    
    parent = WinQueryWindow(handle, QW_PARENT);
-   thisbox = WinQueryWindowPtr(parent, QWP_USER);
    frame = (HWND)dw_window_get_data(handle, "_dw_combo_box");
 
    if((menu = WinWindowFromID(handle, FID_MENU)) != NULLHANDLE)
@@ -4521,41 +4519,7 @@ int API dw_window_destroy(HWND handle)
    /* If it is a desktop window let WM_DESTROY handle it */
    if(parent != desktop)
    {
-      /* If the parent box has items... 
-       * try to remove it from the layout 
-       */
-     if(thisbox && thisbox->count)
-      {
-         int z, index = -1;
-         Item *tmpitem, *thisitem = thisbox->items;
-
-         for(z=0;z<thisbox->count;z++)
-         {
-            if(thisitem[z].hwnd == handle)
-               index = z;
-         }
-
-         if(index == -1)
-            return 0;
-
-         tmpitem = malloc(sizeof(Item)*(thisbox->count-1));
-
-         /* Copy all but the current entry to the new list */
-         for(z=0;z<index;z++)
-         {
-            tmpitem[z] = thisitem[z];
-         }
-         for(z=index+1;z<thisbox->count;z++)
-         {
-            tmpitem[z-1] = thisitem[z];
-         }
-
-         thisbox->items = tmpitem;
-         free(thisitem);
-         thisbox->count--;
-         /* Queue a redraw on the top-level window */
-         _dw_redraw(_toplevel_window(handle), TRUE);
-      }
+      dw_box_remove(handle);
       _free_window_memory(frame ? frame : handle);
    }
    return WinDestroyWindow(frame ? frame : handle);
@@ -7228,6 +7192,108 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
       /* Queue a redraw on the top-level window */
       _dw_redraw(_toplevel_window(item), TRUE);
    }
+}
+
+/*
+ * Remove windows (widgets) from the box they are packed into.
+ * Parameters:
+ *       handle: Window handle of the item to be back.
+ * Returns:
+ *       DW_ERROR_NONE on success and DW_ERROR_GENERAL on failure.
+ */
+int API dw_box_remove(HWND handle)
+{
+   HWND parent = WinQueryWindow(handle, QW_PARENT);
+   
+   if(parent != desktop)
+   {
+      Box *thisbox = WinQueryWindowPtr(parent, QWP_USER);
+      
+      /* If the parent box has items... 
+       * try to remove it from the layout 
+       */
+      if(thisbox && thisbox->count)
+      {
+         int z, index = -1;
+         Item *tmpitem, *thisitem = thisbox->items;
+
+         for(z=0;z<thisbox->count;z++)
+         {
+            if(thisitem[z].hwnd == handle)
+               index = z;
+         }
+
+         if(index == -1)
+            return DW_ERROR_GENERAL;
+
+         tmpitem = malloc(sizeof(Item)*(thisbox->count-1));
+
+         /* Copy all but the current entry to the new list */
+         for(z=0;z<index;z++)
+         {
+            tmpitem[z] = thisitem[z];
+         }
+         for(z=index+1;z<thisbox->count;z++)
+         {
+            tmpitem[z-1] = thisitem[z];
+         }
+
+         thisbox->items = tmpitem;
+         free(thisitem);
+         thisbox->count--;
+         /* If it isn't padding, reset the parent */
+         if(handle)
+            WinSetParent(handle, HWND_OBJECT);
+         /* Queue a redraw on the top-level window */
+         _dw_redraw(_toplevel_window(handle), TRUE);
+         return DW_ERROR_NONE;
+      }
+   }
+   return DW_ERROR_GENERAL;
+}
+
+/*
+ * Remove windows (widgets) from a box at an arbitrary location.
+ * Parameters:
+ *       box: Window handle of the box to be removed from.
+ *       index: 0 based index of packed items.
+ * Returns:
+ *       Handle to the removed item on success, 0 on failure.
+ */
+HWND API dw_box_remove_at_index(HWND box, int index)
+{
+   Box *thisbox = WinQueryWindowPtr(box, QWP_USER);
+   
+   /* Try to remove it from the layout */
+   if(thisbox && index > -1 && index < thisbox->count)
+   {
+      int z;
+      Item *tmpitem, *thisitem = thisbox->items;
+      HWND handle = thisitem[index].hwnd;
+
+      tmpitem = malloc(sizeof(Item)*(thisbox->count-1));
+
+      /* Copy all but the current entry to the new list */
+      for(z=0;z<index;z++)
+      {
+         tmpitem[z] = thisitem[z];
+      }
+      for(z=index+1;z<thisbox->count;z++)
+      {
+         tmpitem[z-1] = thisitem[z];
+      }
+
+      thisbox->items = tmpitem;
+      free(thisitem);
+      thisbox->count--;
+      /* If it isn't padding, reset the parent */
+      if(handle)
+         WinSetParent(handle, HWND_OBJECT);
+      /* Queue a redraw on the top-level window */
+      _dw_redraw(_toplevel_window(handle), TRUE);
+      return DW_ERROR_NONE;
+   }
+   return DW_ERROR_GENERAL;
 }
 
 /*

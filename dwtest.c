@@ -882,13 +882,16 @@ void archive_add(void)
 
     dw_box_pack_start(lbbox, buttonbox, 0, 0, TRUE, TRUE, 0);
 
+    cancelbutton = dw_button_new("Exit", 1002L);
+    dw_box_pack_start(buttonbox, cancelbutton, 130, 30, TRUE, TRUE, 2);
+    
     cursortogglebutton = dw_button_new("Set Cursor pointer - CLOCK", 1003L);
     dw_box_pack_start(buttonbox, cursortogglebutton, 130, 30, TRUE, TRUE, 2);
 
     okbutton = dw_button_new("Turn Off Annoying Beep!", 1001L);
     dw_box_pack_start(buttonbox, okbutton, 130, 30, TRUE, TRUE, 2);
 
-    cancelbutton = dw_button_new("Exit", 1002L);
+    dw_box_remove(cancelbutton);
     dw_box_pack_start(buttonbox, cancelbutton, 130, 30, TRUE, TRUE, 2);
     dw_window_click_default( mainwindow, cancelbutton );
 
