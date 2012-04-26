@@ -617,7 +617,7 @@ int API dw_box_remove(HWND handle)
  */
 HWND API dw_box_remove_at_index(HWND box, int index)
 {
-   return DW_ERROR_GENERAL;
+   return 0;
 }
 
 /*

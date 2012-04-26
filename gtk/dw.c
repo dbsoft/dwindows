@@ -10229,6 +10229,7 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
    if(!item)
    {
       item = gtk_label_new("");
+      gtk_object_set_data(GTK_OBJECT(item), "_dw_padding", GINT_TO_POINTER(1));
       gtk_widget_show_all(item);
    }
 
@@ -10326,6 +10327,12 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
          else
             gtk_object_set_data(GTK_OBJECT(box), "_dw_group", (gpointer)item);
       }
+      /* If we previously incremented the reference count... drop it now that it is packed */
+      if(gtk_object_get_data(GTK_OBJECT(item), "_dw_refed"))
+      {
+         g_object_unref(G_OBJECT(item));
+         gtk_object_set_data(GTK_OBJECT(item), "_dw_refed", NULL);
+      }
    }
    DW_MUTEX_UNLOCK;
 
@@ -10336,6 +10343,84 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
       if ( height == 0 && vsize == FALSE )
          dw_messagebox(funcname, DW_MB_OK|DW_MB_ERROR, "Height and expand Vertical both unset for box: %x item: %x",box,item);
    }
+}
+
+/*
+ * Remove windows (widgets) from the box they are packed into.
+ * Parameters:
+ *       handle: Window handle of the item to be back.
+ * Returns:
+ *       DW_ERROR_NONE on success and DW_ERROR_GENERAL on failure.
+ */
+int API dw_box_remove(HWND handle)
+{
+   int _locked_by_me = FALSE, retcode = DW_ERROR_GENERAL;
+   
+   DW_MUTEX_LOCK;
+   if(GTK_IS_WIDGET(handle))
+   {
+      GtkWidget *box, *handle2 = handle;
+      GtkWidget *eventbox = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(handle), "_dw_eventbox");
+
+      /* Handle the invisible event box if it exists */
+      if(eventbox && GTK_IS_WIDGET(eventbox))
+         handle2 = eventbox;
+
+      /* Check if we are removing a widget from a box */	      
+      if((box = gtk_widget_get_parent(handle2)) && GTK_IS_TABLE(box))
+      {
+         /* Get the number of items in the box... */
+         int boxcount = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(box), "_dw_boxcount"));
+         int boxtype = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(box), "_dw_boxtype"));
+         gint pos;
+         
+         gtk_container_child_get(GTK_CONTAINER(box), handle2, boxtype == DW_VERT ? "top-attach" : "left-attach", &pos, NULL);
+         /* If we haven't incremented the reference count... raised it before removal */
+         if(!gtk_object_get_data(GTK_OBJECT(handle2), "_dw_refed"))
+         {
+            g_object_ref(G_OBJECT(handle2));
+            gtk_object_set_data(GTK_OBJECT(handle2), "_dw_refed", GINT_TO_POINTER(1));
+         }
+         gtk_container_remove(GTK_CONTAINER(box), handle2);
+         retcode = DW_ERROR_NONE;
+         
+         /* If we are destroying the last item in the box this isn't necessary */
+         if((pos+1) < boxcount)
+         {
+            /* If we need to contract the table, reposition all the children */
+            gtk_container_forall(GTK_CONTAINER(box),_rearrange_table_destroy, GINT_TO_POINTER(boxtype == DW_VERT ? pos : -(pos+1)));
+         }
+         
+         if(boxcount > 0)
+         {
+            /* Decrease the count by 1 */
+            boxcount--;
+            gtk_object_set_data(GTK_OBJECT(box), "_dw_boxcount", GINT_TO_POINTER(boxcount));
+         }
+         
+         /* If we aren't trying to resize the table to 0... */
+         if(boxcount > 0)
+         {
+            /* Contract the table to the size we need */
+            gtk_table_resize(GTK_TABLE(box), boxtype == DW_VERT ? boxcount : 1, boxtype == DW_VERT ? 1 : boxcount);
+         }
+      }
+   }
+   DW_MUTEX_UNLOCK;
+   return retcode;
+}
+
+/*
+ * Remove windows (widgets) from a box at an arbitrary location.
+ * Parameters:
+ *       box: Window handle of the box to be removed from.
+ *       index: 0 based index of packed items.
+ * Returns:
+ *       Handle to the removed item on success, 0 on failure.
+ */
+HWND API dw_box_remove_at_index(HWND box, int index)
+{
+   return 0;
 }
 
 /*

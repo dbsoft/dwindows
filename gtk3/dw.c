@@ -8473,6 +8473,7 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
    if(!item)
    {
       item = gtk_label_new("");
+      g_object_set_data(G_OBJECT(item), "_dw_padding", GINT_TO_POINTER(1));
       gtk_widget_show_all(item);
    }
    /* Due to GTK3 minimum size limitations, if we are packing a widget
@@ -8626,6 +8627,12 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
          else
             g_object_set_data(G_OBJECT(box), "_dw_group", (gpointer)item);
       }
+      /* If we previously incremented the reference count... drop it now that it is packed */
+      if(g_object_get_data(G_OBJECT(item), "_dw_refed"))
+      {
+         g_object_unref(G_OBJECT(item));
+         g_object_set_data(G_OBJECT(item), "_dw_refed", NULL);
+      }
    }
    DW_MUTEX_UNLOCK;
 
@@ -8636,6 +8643,67 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
       if ( height == 0 && vsize == FALSE )
          dw_messagebox(funcname, DW_MB_OK|DW_MB_ERROR, "Height and expand Vertical both unset for box: %x item: %x",box,item);
    }
+}
+
+/*
+ * Remove windows (widgets) from the box they are packed into.
+ * Parameters:
+ *       handle: Window handle of the item to be back.
+ * Returns:
+ *       DW_ERROR_NONE on success and DW_ERROR_GENERAL on failure.
+ */
+int API dw_box_remove(HWND handle)
+{
+   int _locked_by_me = FALSE, retcode = DW_ERROR_GENERAL;
+   
+   DW_MUTEX_LOCK;
+   if(GTK_IS_WIDGET(handle))
+   {
+      GtkWidget *box, *handle2 = handle;
+      GtkWidget *eventbox = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_eventbox");
+
+      /* Handle the invisible event box if it exists */
+      if(eventbox && GTK_IS_WIDGET(eventbox))
+         handle2 = eventbox;
+
+      /* Check if we are removing a widget from a box */	      
+      if((box = gtk_widget_get_parent(handle2)) && GTK_IS_GRID(box))
+      {
+         /* Get the number of items in the box... */
+         int boxcount = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(box), "_dw_boxcount"));
+			
+         if(boxcount > 0)
+         {
+            /* Decrease the count by 1 */
+            boxcount--;
+            g_object_set_data(G_OBJECT(box), "_dw_boxcount", GINT_TO_POINTER(boxcount));
+         }
+         /* If we haven't incremented the reference count... raise it before removal */
+         if(!g_object_get_data(G_OBJECT(handle2), "_dw_refed"))
+         {
+            g_object_ref(G_OBJECT(handle2));
+            g_object_set_data(G_OBJECT(handle2), "_dw_refed", GINT_TO_POINTER(1));
+         }
+         /* Remove the widget from the box */      
+         gtk_container_remove(GTK_CONTAINER(box), handle2);
+         retcode = DW_ERROR_NONE;
+      }
+   }
+   DW_MUTEX_UNLOCK;
+   return retcode;
+}
+
+/*
+ * Remove windows (widgets) from a box at an arbitrary location.
+ * Parameters:
+ *       box: Window handle of the box to be removed from.
+ *       index: 0 based index of packed items.
+ * Returns:
+ *       Handle to the removed item on success, 0 on failure.
+ */
+HWND API dw_box_remove_at_index(HWND box, int index)
+{
+   return 0;
 }
 
 /*
