@@ -3893,7 +3893,7 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
         [button setParent:view];
     }
     /* Queue a redraw on the top-level window */
-    _dw_redraw([object window], TRUE);
+    _dw_redraw([view window], TRUE);
 
     /* Free the old data */
     if(thisbox->count)

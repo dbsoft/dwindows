@@ -6968,7 +6968,7 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
          }
       }
       /* Queue a redraw on the top-level window */
-      _dw_redraw(_toplevel_window(item), TRUE);
+      _dw_redraw(_toplevel_window(box), TRUE);
    }
 }
 
