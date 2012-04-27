@@ -30,6 +30,8 @@ Added support for antialiased drawing on Windows via GDI+.
 Added codepage 1208 (UTF-8) as the default codepage on OS/2.
 Added support for Control-Click on Mac for button press events.
 Added DW_POINTER() macro for casting parameters to (void *).
+Added dw_box_remove() and dw_box_remove_at_index() for removing items
+   from boxes without destroying them. Also allows removal of padding.
 Fixed dwindows-config --version not returning the version at all.
 Fixed value changed events not working for spinbuttons on OS/2 and Windows.
 Fixed issues drawing arcs on GTK2, GTK3 and Mac.

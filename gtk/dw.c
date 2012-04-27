@@ -10500,7 +10500,7 @@ HWND API dw_box_remove_at_index(HWND box, int index)
  * Pack windows (widgets) into a box at an arbitrary location.
  * Parameters:
  *       box: Window handle of the box to be packed into.
- *       item: Window handle of the item to be back.
+ *       item: Window handle of the item to pack.
  *       index: 0 based index of packed items.
  *       width: Width in pixels of the item or -1 to be self determined.
  *       height: Height in pixels of the item or -1 to be self determined.
@@ -10517,7 +10517,7 @@ void API dw_box_pack_at_index(HWND box, HWND item, int index, int width, int hei
  * Pack windows (widgets) into a box from the start (or top).
  * Parameters:
  *       box: Window handle of the box to be packed into.
- *       item: Window handle of the item to be back.
+ *       item: Window handle of the item to pack.
  *       width: Width in pixels of the item or -1 to be self determined.
  *       height: Height in pixels of the item or -1 to be self determined.
  *       hsize: TRUE if the window (widget) should expand horizontally to fill space given.
@@ -10536,7 +10536,7 @@ void API dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize
  * Pack windows (widgets) into a box from the end (or bottom).
  * Parameters:
  *       box: Window handle of the box to be packed into.
- *       item: Window handle of the item to be back.
+ *       item: Window handle of the item to pack.
  *       width: Width in pixels of the item or -1 to be self determined.
  *       height: Height in pixels of the item or -1 to be self determined.
  *       hsize: TRUE if the window (widget) should expand horizontally to fill space given.
