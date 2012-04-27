@@ -598,7 +598,7 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
 /*
  * Remove windows (widgets) from the box they are packed into.
  * Parameters:
- *       handle: Window handle of the item to be back.
+ *       handle: Window handle of the packed item to be removed.
  * Returns:
  *       DW_ERROR_NONE on success and DW_ERROR_GENERAL on failure.
  */
@@ -613,7 +613,7 @@ int API dw_box_remove(HWND handle)
  *       box: Window handle of the box to be removed from.
  *       index: 0 based index of packed items.
  * Returns:
- *       Handle to the removed item on success, 0 on failure.
+ *       Handle to the removed item on success, 0 on failure or padding.
  */
 HWND API dw_box_remove_at_index(HWND box, int index)
 {
@@ -624,7 +624,7 @@ HWND API dw_box_remove_at_index(HWND box, int index)
  * Pack windows (widgets) into a box at an arbitrary location.
  * Parameters:
  *       box: Window handle of the box to be packed into.
- *       item: Window handle of the item to be back.
+ *       item: Window handle of the item to pack.
  *       index: 0 based index of packed items. 
  *       width: Width in pixels of the item or -1 to be self determined.
  *       height: Height in pixels of the item or -1 to be self determined.
@@ -641,7 +641,7 @@ void API dw_box_pack_at_index(HWND box, HWND item, int index, int width, int hei
  * Pack windows (widgets) into a box from the start (or top).
  * Parameters:
  *       box: Window handle of the box to be packed into.
- *       item: Window handle of the item to be back.
+ *       item: Window handle of the item to pack.
  *       width: Width in pixels of the item or -1 to be self determined.
  *       height: Height in pixels of the item or -1 to be self determined.
  *       hsize: TRUE if the window (widget) should expand horizontally to fill space given.
@@ -660,7 +660,7 @@ void API dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize
  * Pack windows (widgets) into a box from the end (or bottom).
  * Parameters:
  *       box: Window handle of the box to be packed into.
- *       item: Window handle of the item to be back.
+ *       item: Window handle of the item to pack.
  *       width: Width in pixels of the item or -1 to be self determined.
  *       height: Height in pixels of the item or -1 to be self determined.
  *       hsize: TRUE if the window (widget) should expand horizontally to fill space given.
