@@ -8703,7 +8703,65 @@ int API dw_box_remove(HWND handle)
  */
 HWND API dw_box_remove_at_index(HWND box, int index)
 {
-   return 0;
+   int _locked_by_me = FALSE;
+   HWND retval = 0;
+   
+   DW_MUTEX_LOCK;
+   /* Check if we are removing a widget from a box */	      
+   if(GTK_IS_GRID(box))
+   {
+      /* Get the number of items in the box... */
+      int boxcount = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(box), "_dw_boxcount"));
+      int boxtype = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(box), "_dw_boxtype"));
+      GtkWidget *item;
+		
+      /* Fix the index by taking into account empty cells */
+      if(boxtype == DW_VERT)
+      {
+         int z;
+      	
+         for(z=0;z<index;z++)
+         {
+            if(!gtk_grid_get_child_at(GTK_GRID(box), 0, z))
+               index++;
+         }
+         item = gtk_grid_get_child_at(GTK_GRID(box), 0, index);
+      }
+      else
+      {
+         int z;
+      	
+         for(z=0;z<index;z++)
+         {
+            if(!gtk_grid_get_child_at(GTK_GRID(box), z, 0))
+               index++;
+         }
+         item = gtk_grid_get_child_at(GTK_GRID(box), index, 0);
+      }
+
+      if(boxcount > 0)
+      {
+         /* Decrease the count by 1 */
+         boxcount--;
+         g_object_set_data(G_OBJECT(box), "_dw_boxcount", GINT_TO_POINTER(boxcount));
+      }
+      /* If we haven't incremented the reference count... raise it before removal */
+      if(g_object_get_data(G_OBJECT(item), "_dw_padding"))
+         gtk_widget_destroy(item);
+      else
+      {
+         if(!g_object_get_data(G_OBJECT(item), "_dw_refed"))
+         {
+            g_object_ref(G_OBJECT(item));
+            g_object_set_data(G_OBJECT(item), "_dw_refed", GINT_TO_POINTER(1));
+         }
+         /* Remove the widget from the box */      
+         gtk_container_remove(GTK_CONTAINER(box), item);
+         retval = item;
+      }
+   }
+   DW_MUTEX_UNLOCK;
+   return retval;
 }
 
 /*
