@@ -4593,7 +4593,9 @@ char * API dw_font_choose(char *currfont)
             strcpy(buf, currfont);
             strcpy(fd.fAttrs.szFacename, currfont);
         }
-    }
+	}
+    fd.fAttrs.usCodePage = 1208;
+    fd.fAttrs.usRecordLength = sizeof(FATTRS);
 
     /* Fill in the font dialog struct */
     fd.cbSize = sizeof(fd);
@@ -9835,6 +9837,7 @@ void _CopyFontSettings(HPS hpsSrc, HPS hpsDst)
 
    fat.usRecordLength  = sizeof(FATTRS);
    fat.lMatch          = fm.lMatch;
+   fat.usCodePage      = 1208;
    strcpy(fat.szFacename, fm.szFacename);
 
    GpiCreateLogFont(hpsDst, 0, 1L, &fat);
