@@ -9221,13 +9221,13 @@ int API dw_pixmap_stretch_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest,
             gdk_gc_set_clip_mask( gc, bitmap );
             gdk_gc_set_clip_origin( gc, xdest, ydest );
             gdk_bitmap_unref(bitmap);
-            gdk_pixbuf_unref(pborig);
+            g_object_unref(G_OBJECT(pborig));
          }
          /* Draw the final pixbuf onto the destination drawable */
          gdk_draw_pixbuf(dest ? dest->window : destp->pixmap, gc, pbdst, 0, 0, xdest, ydest, width, height, GDK_RGB_DITHER_NONE, 0, 0);
          /* Cleanup so we don't leak */
-         gdk_pixbuf_unref(pbsrc);
-         gdk_pixbuf_unref(pbdst);
+         g_object_unref(G_OBJECT(pbsrc));
+         g_object_unref(G_OBJECT(pbdst));
       }
       else
 #endif
@@ -10421,7 +10421,6 @@ int API dw_box_remove(HWND handle)
 HWND API dw_box_remove_at_index(HWND box, int index)
 {
    HWND retval = 0;
-#if 0
    int _locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
@@ -10431,54 +10430,69 @@ HWND API dw_box_remove_at_index(HWND box, int index)
       /* Get the number of items in the box... */
       int boxcount = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(box), "_dw_boxcount"));
       int boxtype = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(box), "_dw_boxtype"));
+      GList *children, *child;
+      GtkWidget *item = NULL;
       gint pos;
       
-      gtk_container_child_get(GTK_CONTAINER(box), handle2, boxtype == DW_VERT ? "top-attach" : "left-attach", &pos, NULL);
-      gtk_widget_destroy(handle2);
-
-      /* If we haven't incremented the reference count... raise it before removal */
-      if(gtk_object_get_data(GTK_OBJECT(item), "_dw_padding"))
-         gtk_widget_destroy(item);
-      else
+      children = child = gtk_container_get_children(GTK_CONTAINER(box));  
+       
+      /* Locate the child with the correct attachment point in the table */
+      while(child)
       {
-         if(!gtk_object_get_data(GTK_OBJECT(item), "_dw_refed"))
+         gtk_container_child_get(GTK_CONTAINER(box), (GtkWidget *)child->data, boxtype == DW_VERT ? "top-attach" : "left-attach", &pos, NULL);
+         if(pos == index)
          {
-            g_object_ref(G_OBJECT(item));
-            gtk_object_set_data(GTK_OBJECT(item), "_dw_refed", GINT_TO_POINTER(1));
+            item = (GtkWidget *)child->data;
+            child = NULL;
          }
-         /* Remove the widget from the box */      
-         gtk_container_remove(GTK_CONTAINER(box), item);
-         retval = item;
-      }
+         else
+            child = child->next;
+      } 
+      
+      /* Free the returned list */
+      if(children)
+         g_list_free(children);
          
-      /* If we are destroying the last item in the box this isn't necessary */
-      if((pos+1) < boxcount)
-      {
-         /* If we need to contract the table, reposition all the children */
-         gtk_container_forall(GTK_CONTAINER(box),_rearrange_table_destroy, GINT_TO_POINTER(boxtype == DW_VERT ? pos : -(pos+1)));
+      if(item)
+      {      
+         /* If we haven't incremented the reference count... raise it before removal */
+         if(gtk_object_get_data(GTK_OBJECT(item), "_dw_padding"))
+            gtk_widget_destroy(item);
+         else
+         {
+            if(!gtk_object_get_data(GTK_OBJECT(item), "_dw_refed"))
+            {
+               g_object_ref(G_OBJECT(item));
+               gtk_object_set_data(GTK_OBJECT(item), "_dw_refed", GINT_TO_POINTER(1));
+            }
+            /* Remove the widget from the box */      
+            gtk_container_remove(GTK_CONTAINER(box), item);
+            retval = item;
+         }
+            
+         /* If we are destroying the last item in the box this isn't necessary */
+         if((pos+1) < boxcount)
+         {
+            /* If we need to contract the table, reposition all the children */
+            gtk_container_forall(GTK_CONTAINER(box),_rearrange_table_destroy, GINT_TO_POINTER(boxtype == DW_VERT ? pos : -(pos+1)));
+         }
+         
+         if(boxcount > 0)
+         {
+            /* Decrease the count by 1 */
+            boxcount--;
+            gtk_object_set_data(GTK_OBJECT(box), "_dw_boxcount", GINT_TO_POINTER(boxcount));
+         }
+         
+         /* If we aren't trying to resize the table to 0... */
+         if(boxcount > 0)
+         {
+            /* Contract the table to the size we need */
+            gtk_table_resize(GTK_TABLE(box), boxtype == DW_VERT ? boxcount : 1, boxtype == DW_VERT ? 1 : boxcount);
+         }
       }
-      
-      if(boxcount > 0)
-      {
-         /* Decrease the count by 1 */
-         boxcount--;
-         gtk_object_set_data(GTK_OBJECT(box), "_dw_boxcount", GINT_TO_POINTER(boxcount));
-      }
-      
-      /* If we aren't trying to resize the table to 0... */
-      if(boxcount > 0)
-      {
-         /* Contract the table to the size we need */
-         gtk_table_resize(GTK_TABLE(box), boxtype == DW_VERT ? boxcount : 1, boxtype == DW_VERT ? 1 : boxcount);
-      }
-   }
-   else
-   {
-      /* Finally destroy the widget */      
-      gtk_widget_destroy(handle2);
    }
    DW_MUTEX_UNLOCK;
-#endif
    return retval;
 }
 
