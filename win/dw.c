@@ -7021,7 +7021,7 @@ int API dw_box_remove(HWND handle)
          thisbox->count--;
          SetParent(handle, DW_HWND_OBJECT);
          /* Queue a redraw on the top-level window */
-         _dw_redraw(_toplevel_window(handle), TRUE);
+         _dw_redraw(_toplevel_window(parent), TRUE);
          return DW_ERROR_NONE;
       }
    }
