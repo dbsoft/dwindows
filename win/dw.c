@@ -9879,7 +9879,6 @@ void API dw_draw_polygon(HWND handle, HPIXMAP pixmap, int flags, int npoints, in
       return;
 
 #ifdef GDIPLUS
-   if(!(flags & DW_DRAW_NOAA))
    {
       GpGraphics *graphics = NULL;
       
@@ -9890,7 +9889,10 @@ void API dw_draw_polygon(HWND handle, HPIXMAP pixmap, int flags, int npoints, in
       else
          return;
       
-      GdipSetSmoothingMode(graphics, SmoothingModeAntiAlias);
+      /* Enable antialiasing if the DW_DRAW_NOAA flag isn't set */
+      if(!(flags & DW_DRAW_NOAA))
+        GdipSetSmoothingMode(graphics, SmoothingModeAntiAlias);
+  
       if((points = _makePoints(&npoints, x, y)))
       {
          if(flags & DW_DRAW_FILL)
@@ -9908,8 +9910,7 @@ void API dw_draw_polygon(HWND handle, HPIXMAP pixmap, int flags, int npoints, in
       }
       GdipDeleteGraphics(graphics);
    }
-   else
-#endif   
+#else
    {
       HDC hdcPaint;
       
@@ -9937,6 +9938,7 @@ void API dw_draw_polygon(HWND handle, HPIXMAP pixmap, int flags, int npoints, in
       if ( !pixmap )
          ReleaseDC( handle, hdcPaint );
    }
+#endif   
    if(points)
       free(points);
 }
@@ -9953,54 +9955,48 @@ void API dw_draw_polygon(HWND handle, HPIXMAP pixmap, int flags, int npoints, in
  */
 void API dw_draw_rect(HWND handle, HPIXMAP pixmap, int flags, int x, int y, int width, int height)
 {
- #ifdef GDIPLUS1
-   if(!(flags & DW_DRAW_NOAA))
+ #ifdef GDIPLUS
+   GpGraphics *graphics = NULL;
+   
+   if(handle)
+      GdipCreateFromHWND(handle, &graphics);
+   else if(pixmap)
+      GdipCreateFromHDC(pixmap->hdc, &graphics);
+   else
+      return;
+   
+   if(flags & DW_DRAW_FILL)
    {
-      GpGraphics *graphics = NULL;
-      
-      if(handle)
-         GdipCreateFromHWND(handle, &graphics);
-      else if(pixmap)
-         GdipCreateFromHDC(pixmap->hdc, &graphics);
-      else
-         return;
-      
-      GdipSetSmoothingMode(graphics, SmoothingModeAntiAlias);
-      if(flags & DW_DRAW_FILL)
-      {
-         GpBrush *brush = TlsGetValue(_gpBrush);
-      
-         GdipFillRectangleI(graphics, brush, x, y, width, height);
-      }
-      else
-      {
-         GpPen *pen = TlsGetValue(_gpPen);
-         
-         GdipDrawRectangleI(graphics, pen, x, y, width, height);
-      }
-      GdipDeleteGraphics(graphics);
+      GpBrush *brush = TlsGetValue(_gpBrush);
+   
+      GdipFillRectangleI(graphics, brush, x, y, width, height);
    }
    else
-#endif   
    {
-      HDC hdcPaint;
-      RECT Rect;
-
-      if(handle)
-         hdcPaint = GetDC(handle);
-      else if(pixmap)
-         hdcPaint = pixmap->hdc;
-      else
-         return;
-
-      SetRect(&Rect, x, y, x + width , y + height );
-      if(flags & DW_DRAW_FILL)
-         FillRect(hdcPaint, &Rect, TlsGetValue(_hBrush));
-      else
-         FrameRect(hdcPaint, &Rect, TlsGetValue(_hBrush));
-      if(!pixmap)
-         ReleaseDC(handle, hdcPaint);
+      GpPen *pen = TlsGetValue(_gpPen);
+      
+      GdipDrawRectangleI(graphics, pen, x, y, width, height);
    }
+   GdipDeleteGraphics(graphics);
+#else
+   HDC hdcPaint;
+   RECT Rect;
+
+   if(handle)
+      hdcPaint = GetDC(handle);
+   else if(pixmap)
+      hdcPaint = pixmap->hdc;
+   else
+      return;
+
+   SetRect(&Rect, x, y, x + width , y + height );
+   if(flags & DW_DRAW_FILL)
+      FillRect(hdcPaint, &Rect, TlsGetValue(_hBrush));
+   else
+      FrameRect(hdcPaint, &Rect, TlsGetValue(_hBrush));
+   if(!pixmap)
+      ReleaseDC(handle, hdcPaint);
+#endif   
 }
 
 /* Draw an arc on a window (preferably a render window).
@@ -10019,82 +10015,80 @@ void API dw_draw_rect(HWND handle, HPIXMAP pixmap, int flags, int x, int y, int 
 void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yorigin, int x1, int y1, int x2, int y2)
 {
 #ifdef GDIPLUS
+   GpGraphics *graphics = NULL;
+   GpPen *pen = TlsGetValue(_gpPen);
+   
+   if(handle)
+      GdipCreateFromHWND(handle, &graphics);
+   else if(pixmap)
+      GdipCreateFromHDC(pixmap->hdc, &graphics);
+   else
+      return;
+   
+   /* Enable antialiasing if the DW_DRAW_NOAA flag isn't set */
    if(!(flags & DW_DRAW_NOAA))
+     GdipSetSmoothingMode(graphics, SmoothingModeAntiAlias);
+  
+   if(flags & DW_DRAW_FULL)
    {
-      GpGraphics *graphics = NULL;
-      GpPen *pen = TlsGetValue(_gpPen);
-      
-      if(handle)
-         GdipCreateFromHWND(handle, &graphics);
-      else if(pixmap)
-         GdipCreateFromHDC(pixmap->hdc, &graphics);
-      else
-         return;
-      
-      GdipSetSmoothingMode(graphics, SmoothingModeAntiAlias);
-      if(flags & DW_DRAW_FULL)
+      if(flags & DW_DRAW_FILL)
       {
-         if(flags & DW_DRAW_FILL)
-         {
-            GpBrush *brush = TlsGetValue(_gpBrush);
-         
-            GdipFillEllipseI(graphics, brush, x1 < x2 ? x1 : x2, y1 < y2 ? y1 : y2, abs(x1-x2), abs(y1-y2));
-         }
-         else
-            GdipDrawEllipseI(graphics, pen, x1 < x2 ? x1 : x2, y1 < y2 ? y1 : y2, abs(x1-x2), abs(y1-y2));
+         GpBrush *brush = TlsGetValue(_gpBrush);
+      
+         GdipFillEllipseI(graphics, brush, x1 < x2 ? x1 : x2, y1 < y2 ? y1 : y2, abs(x1-x2), abs(y1-y2));
       }
       else
-      {
-         double a1 = atan2((y1-yorigin), (x1-xorigin));
-         double a2 = atan2((y2-yorigin), (x2-xorigin));
-         double dx = xorigin - x1;
-         double dy = yorigin - y1;
-         double r = sqrt(dx*dx + dy*dy);
-         double sweep;
-         int ri = (int)r;
-         
-         /* Convert to degrees */
-         a1 *= (180.0 / M_PI);
-         a2 *= (180.0 / M_PI);
-         sweep = fabs(a1 - a2);
-         
-         GdipDrawArcI(graphics, pen, xorigin-ri, yorigin-ri, ri*2, ri*2, (REAL)a1, (REAL)sweep);
-      }
-      GdipDeleteGraphics(graphics);
+         GdipDrawEllipseI(graphics, pen, x1 < x2 ? x1 : x2, y1 < y2 ? y1 : y2, abs(x1-x2), abs(y1-y2));
    }
    else
-#endif   
    {
-      HDC hdcPaint;
-      HBRUSH oldBrush;
-      HPEN oldPen;
+      double a1 = atan2((y1-yorigin), (x1-xorigin));
+      double a2 = atan2((y2-yorigin), (x2-xorigin));
       double dx = xorigin - x1;
       double dy = yorigin - y1;
       double r = sqrt(dx*dx + dy*dy);
+      double sweep;
       int ri = (int)r;
+      
+      /* Convert to degrees */
+      a1 *= (180.0 / M_PI);
+      a2 *= (180.0 / M_PI);
+      sweep = fabs(a1 - a2);
+      
+      GdipDrawArcI(graphics, pen, xorigin-ri, yorigin-ri, ri*2, ri*2, (REAL)a1, (REAL)sweep);
+   }
+   GdipDeleteGraphics(graphics);
+#else  
+   HDC hdcPaint;
+   HBRUSH oldBrush;
+   HPEN oldPen;
+   double dx = xorigin - x1;
+   double dy = yorigin - y1;
+   double r = sqrt(dx*dx + dy*dy);
+   int ri = (int)r;
 
-      if(handle)
-         hdcPaint = GetDC(handle);
-      else if(pixmap)
-         hdcPaint = pixmap->hdc;
-      else
-         return;
-        
-      if(flags & DW_DRAW_FILL)     
-         oldBrush = SelectObject( hdcPaint, TlsGetValue(_hBrush) );
-      else
-         oldBrush = SelectObject( hdcPaint, GetStockObject(HOLLOW_BRUSH) );
-      oldPen = SelectObject( hdcPaint, TlsGetValue(_hPen) );
-      if(flags & DW_DRAW_FULL)
-         Ellipse(hdcPaint, x1, y1, x2, y2);
-      else
-         Arc(hdcPaint, xorigin-ri, yorigin-ri, xorigin+ri, yorigin+ri, x2, y2, x1, y1);
-      SelectObject( hdcPaint, oldBrush );
-      SelectObject( hdcPaint, oldPen );
+   if(handle)
+      hdcPaint = GetDC(handle);
+   else if(pixmap)
+      hdcPaint = pixmap->hdc;
+   else
+      return;
+     
+   if(flags & DW_DRAW_FILL)     
+      oldBrush = SelectObject( hdcPaint, TlsGetValue(_hBrush) );
+   else
+      oldBrush = SelectObject( hdcPaint, GetStockObject(HOLLOW_BRUSH) );
+   oldPen = SelectObject( hdcPaint, TlsGetValue(_hPen) );
+   if(flags & DW_DRAW_FULL)
+      Ellipse(hdcPaint, x1, y1, x2, y2);
+   else
+      Arc(hdcPaint, xorigin-ri, yorigin-ri, xorigin+ri, yorigin+ri, x2, y2, x1, y1);
+   SelectObject( hdcPaint, oldBrush );
+   SelectObject( hdcPaint, oldPen );
 
-      if(!pixmap)
-         ReleaseDC(handle, hdcPaint);
-  }
+   if(!pixmap)
+      ReleaseDC(handle, hdcPaint);
+#endif   
 }
 
 /* Draw text on a window (preferably a render window).
