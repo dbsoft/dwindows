@@ -9765,6 +9765,12 @@ unsigned long API dw_color_choose(unsigned long value)
  */
 void API dw_draw_point(HWND handle, HPIXMAP pixmap, int x, int y)
 {
+#ifdef GDIPLUS
+   /* There doesn't seem to be an equivalent to SetPixel in GDI+ ... 
+    * so instead we call dw_draw_rect() with 1 for width and height.
+    */
+   dw_draw_rect(handle, pixmap, DW_DRAW_FILL | DW_DRAW_NOAA, x, y, 1, 1);
+#else   
    HDC hdcPaint;
 
    if(handle)
@@ -9777,6 +9783,7 @@ void API dw_draw_point(HWND handle, HPIXMAP pixmap, int x, int y)
    SetPixel(hdcPaint, x, y, (COLORREF)TlsGetValue(_foreground));
    if(!pixmap)
       ReleaseDC(handle, hdcPaint);
+#endif      
 }
 
 /* Draw a line on a window (preferably a render window).
@@ -9955,7 +9962,7 @@ void API dw_draw_polygon(HWND handle, HPIXMAP pixmap, int flags, int npoints, in
  */
 void API dw_draw_rect(HWND handle, HPIXMAP pixmap, int flags, int x, int y, int width, int height)
 {
- #ifdef GDIPLUS
+#ifdef GDIPLUS
    GpGraphics *graphics = NULL;
    
    if(handle)
@@ -9965,6 +9972,10 @@ void API dw_draw_rect(HWND handle, HPIXMAP pixmap, int flags, int x, int y, int 
    else
       return;
    
+   /* Enable antialiasing if the DW_DRAW_NOAA flag isn't set */
+   if(!(flags & DW_DRAW_NOAA))
+     GdipSetSmoothingMode(graphics, SmoothingModeAntiAlias);
+     
    if(flags & DW_DRAW_FILL)
    {
       GpBrush *brush = TlsGetValue(_gpBrush);
@@ -10107,6 +10118,7 @@ void API dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
    ColorInfo *cinfo = NULL;
    COLORREF background;
    TCHAR *wtext = UTF8toWide(text);
+   POINT pt;
 
    if(handle)
       hdc = GetDC(handle);
@@ -10139,7 +10151,12 @@ void API dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
       SetBkMode(hdc, OPAQUE);
       SetBkColor(hdc, background);
    }
-   TextOut(hdc, x, y, wtext, (int)_tcslen(wtext));
+   pt.x = x;
+   pt.y = y;
+#ifdef GDIPLUS1
+   LPtoDP(hdc, &pt, 1);
+#endif
+   TextOut(hdc, pt.x, pt.y, wtext, (int)_tcslen(wtext));
    if(oldFont)
       SelectObject(hdc, oldFont);
    if(mustdelete)
