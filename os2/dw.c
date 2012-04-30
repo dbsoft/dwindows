@@ -2046,9 +2046,9 @@ MRESULT EXPENTRY _textproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
               ULONG fcolor = DT_TEXTATTRS, bcolor = DT_TEXTATTRS;
 
               WinQueryWindowText(hWnd, len + 1, (PSZ)tempbuf);
+              WinQueryWindowRect(hWnd, &rclPaint);
 
               hpsPaint = WinBeginPaint(hWnd, 0, 0);
-              WinQueryWindowRect(hWnd, &rclPaint);
               if(WinQueryPresParam(hWnd, PP_BACKGROUNDCOLOR, 0, NULL, sizeof(bcolor), &bcolor, QPF_NOINHERIT) ||
                  WinQueryPresParam(hWnd, PP_BACKGROUNDCOLORINDEX, 0, NULL, sizeof(bcolor), &bcolor, QPF_NOINHERIT))
                   GpiSetBackColor(hpsPaint, bcolor);
@@ -5187,12 +5187,14 @@ int _dw_window_set_color(HWND handle, ULONG fore, ULONG back)
       rgb2.fcOptions = 0;
 
       WinSetPresParam(handle, PP_BACKGROUNDCOLOR, sizeof(RGB2), &rgb2);
+      dw_window_set_data(handle, "_dw_transparent", NULL);
    }
    else if(back != DW_CLR_DEFAULT)
    {
       back = _internal_color(back);
 
       WinSetPresParam(handle, PP_BACKGROUNDCOLORINDEX, sizeof(ULONG), &back);
+      dw_window_set_data(handle, "_dw_transparent", NULL);
    }
    /* If this is a box... check if any of the children are transparent */
    _handle_transparent(handle);
