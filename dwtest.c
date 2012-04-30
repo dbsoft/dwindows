@@ -329,8 +329,8 @@ void draw_file( int row, int col, int nrows, int fheight, HPIXMAP hpma )
     {
         dw_color_foreground_set(DW_CLR_WHITE);
         if(!hpma)
-            dw_draw_rect(0, text1pm, TRUE, 0, 0, (int)DW_PIXMAP_WIDTH(text1pm), (int)DW_PIXMAP_HEIGHT(text1pm));
-        dw_draw_rect(0, hpm, TRUE, 0, 0, (int)DW_PIXMAP_WIDTH(hpm), (int)DW_PIXMAP_HEIGHT(hpm));
+            dw_draw_rect(0, text1pm, DW_DRAW_FILL | DW_DRAW_NOAA, 0, 0, (int)DW_PIXMAP_WIDTH(text1pm), (int)DW_PIXMAP_HEIGHT(text1pm));
+        dw_draw_rect(0, hpm, DW_DRAW_FILL | DW_DRAW_NOAA, 0, 0, (int)DW_PIXMAP_WIDTH(hpm), (int)DW_PIXMAP_HEIGHT(hpm));
 
         for ( i = 0;(i < nrows) && (i+row < num_lines); i++)
         {
@@ -369,9 +369,9 @@ void draw_shapes(int direct, HPIXMAP hpma)
     image_stretch = dw_checkbox_get(imagestretchcheck);
 
     dw_color_foreground_set(DW_CLR_WHITE);
-    dw_draw_rect(window, pixmap, TRUE, 0, 0, width, height);
+    dw_draw_rect(window, pixmap, DW_DRAW_FILL | DW_DRAW_NOAA, 0, 0, width, height);
     dw_color_foreground_set(DW_CLR_DARKPINK);
-    dw_draw_rect(window, pixmap, TRUE, 10, 10, width - 20, height - 20);
+    dw_draw_rect(window, pixmap, DW_DRAW_FILL | DW_DRAW_NOAA, 10, 10, width - 20, height - 20);
     dw_color_foreground_set(DW_CLR_GREEN);
     dw_color_background_set(DW_CLR_DARKRED);
     dw_draw_text(window, pixmap, 10, 10, "This should be aligned with the edges.");
@@ -380,7 +380,7 @@ void draw_shapes(int direct, HPIXMAP hpma)
     dw_color_foreground_set(DW_CLR_BLUE);
     dw_draw_polygon(window, pixmap, TRUE, 7, x, y);
     dw_color_foreground_set(DW_CLR_BLACK);
-    dw_draw_rect(window, pixmap, DW_DRAW_FILL, 80, 80, 80, 40);
+    dw_draw_rect(window, pixmap, DW_DRAW_FILL | DW_DRAW_NOAA, 80, 80, 80, 40);
     dw_color_foreground_set(DW_CLR_CYAN);
     /* Bottom right corner */
     dw_draw_arc(window, pixmap, 0, width - 30, height - 30, width - 10, height - 30, width - 30, height - 10);
@@ -709,7 +709,7 @@ int DWSIGNAL configure_event(HWND hwnd, int width, int height, void *data)
 
     /* Make sure the side area is cleared */
     dw_color_foreground_set(DW_CLR_WHITE);
-    dw_draw_rect(0, text1pm, DW_DRAW_FILL, 0, 0, (int)DW_PIXMAP_WIDTH(text1pm), (int)DW_PIXMAP_HEIGHT(text1pm));
+    dw_draw_rect(0, text1pm, DW_DRAW_FILL | DW_DRAW_NOAA, 0, 0, (int)DW_PIXMAP_WIDTH(text1pm), (int)DW_PIXMAP_HEIGHT(text1pm));
     
    /* Destroy the old pixmaps */
     dw_pixmap_destroy(old1);
@@ -1050,8 +1050,8 @@ void text_add(void)
         dw_pixmap_set_transparent_color(image, DW_CLR_WHITE);
 
     dw_messagebox("DWTest", DW_MB_OK|DW_MB_INFORMATION, "Width: %d Height: %d\n", font_width, font_height);
-    dw_draw_rect(0, text1pm, TRUE, 0, 0, font_width*width1, font_height*rows);
-    dw_draw_rect(0, text2pm, TRUE, 0, 0, font_width*cols, font_height*rows);
+    dw_draw_rect(0, text1pm, DW_DRAW_FILL | DW_DRAW_NOAA, 0, 0, font_width*width1, font_height*rows);
+    dw_draw_rect(0, text2pm, DW_DRAW_FILL | DW_DRAW_NOAA, 0, 0, font_width*cols, font_height*rows);
     dw_signal_connect(textbox1, DW_SIGNAL_BUTTON_PRESS, DW_SIGNAL_FUNC(context_menu_event), NULL);
     dw_signal_connect(textbox1, DW_SIGNAL_EXPOSE, DW_SIGNAL_FUNC(text_expose), NULL);
     dw_signal_connect(textbox2, DW_SIGNAL_EXPOSE, DW_SIGNAL_FUNC(text_expose), NULL);
