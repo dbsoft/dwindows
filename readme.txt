@@ -41,6 +41,8 @@ Fixed an expose event issue on OS/2.
 Fixed an issue with GTK 3.4 due to properties being inherited from the parent.
 Fixed issues with bitmap buttons using icon/pointers on OS/2 and Windows.
 Fixed an issue with dw_window_destroy() on Mac.
+Fixed issues rendering to printer pixmaps on Windows with GDI+ enabled.
+Updated the test program removing deprecated flags and using new ones.
 
 Dynamic Windows Documentation is available at:
 
