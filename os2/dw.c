@@ -1496,19 +1496,32 @@ void _Right(HPS hpsPaint, RECTL rclPaint)
    GpiLine(hpsPaint, &ptl2);
 }
 
+void _drawtext(HWND hWnd, HPS hpsPaint)
+{
+    RECTL rclPaint;
+    int len = WinQueryWindowTextLength(hWnd);
+    ULONG style = WinQueryWindowULong(hWnd, QWL_STYLE) & (DT_TOP|DT_VCENTER|DT_BOTTOM|DT_LEFT|DT_CENTER|DT_RIGHT|DT_WORDBREAK);
+    char *tempbuf = alloca(len + 2);
+    ULONG fcolor = DT_TEXTATTRS, bcolor = DT_TEXTATTRS;
+
+    WinQueryWindowText(hWnd, len + 1, (PSZ)tempbuf);
+    WinQueryWindowRect(hWnd, &rclPaint);
+
+    if(WinQueryPresParam(hWnd, PP_BACKGROUNDCOLOR, 0, NULL, sizeof(bcolor), &bcolor, QPF_NOINHERIT) ||
+       WinQueryPresParam(hWnd, PP_BACKGROUNDCOLORINDEX, 0, NULL, sizeof(bcolor), &bcolor, QPF_NOINHERIT))
+        GpiSetBackColor(hpsPaint, bcolor);
+    if(WinQueryPresParam(hWnd, PP_FOREGROUNDCOLOR, 0, NULL, sizeof(fcolor), &fcolor, QPF_NOINHERIT) ||
+       WinQueryPresParam(hWnd, PP_FOREGROUNDCOLORINDEX, 0, NULL, sizeof(fcolor), &fcolor, QPF_NOINHERIT))
+        GpiSetColor(hpsPaint, fcolor);
+    WinDrawText(hpsPaint, -1, tempbuf, &rclPaint, DT_TEXTATTRS, DT_TEXTATTRS, style | DT_TEXTATTRS | DT_ERASERECT);
+}
 
 /* Function: BubbleProc
  * Abstract: Subclass procedure for bubble help
  */
 MRESULT EXPENTRY _BubbleProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 {
-   MRESULT res;
    PFNWP proc = (PFNWP)WinQueryWindowPtr(hwnd, QWL_USER);
-
-   if(proc)
-      res = proc(hwnd, msg, mp1, mp2);
-   else
-      res = WinDefWindowProc(hwnd, msg, mp1, mp2);
 
    if(msg == WM_PAINT)
    {
@@ -1522,7 +1535,9 @@ MRESULT EXPENTRY _BubbleProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
       width = rcl.xRight - rcl.xLeft - 1;
 
       /* Draw a border around the bubble help */
-      hpsTemp = WinGetPS(hwnd);
+      hpsTemp = WinBeginPaint(hwnd, 0, 0);
+
+      _drawtext(hwnd, hpsTemp);
       GpiSetColor(hpsTemp, CLR_BLACK);
       ptl.x = ptl.y = 0;
       GpiMove(hpsTemp, &ptl);
@@ -1546,9 +1561,12 @@ MRESULT EXPENTRY _BubbleProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
       ptl.y = 0;
       ptl.x = width;
       GpiLine(hpsTemp, &ptl);
-      WinReleasePS(hpsTemp);
+      WinEndPaint(hpsTemp);
+      return (MRESULT)TRUE;
    }
-   return res;
+   if(proc)
+      return proc(hwnd, msg, mp1, mp2);
+   return WinDefWindowProc(hwnd, msg, mp1, mp2);
 }
 
 /* Function to handle tooltip messages from a variety of procedures */
@@ -2038,24 +2056,9 @@ MRESULT EXPENTRY _textproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
       {
       case WM_PAINT:
           {
-              HPS hpsPaint;
-              RECTL rclPaint;
-              int len = WinQueryWindowTextLength(hWnd);
-              ULONG style = WinQueryWindowULong(hWnd, QWL_STYLE) & (DT_TOP|DT_VCENTER|DT_BOTTOM|DT_LEFT|DT_CENTER|DT_RIGHT|DT_WORDBREAK);
-              char *tempbuf = alloca(len + 2);
-              ULONG fcolor = DT_TEXTATTRS, bcolor = DT_TEXTATTRS;
+              HPS hpsPaint = WinBeginPaint(hWnd, 0, 0);
 
-              WinQueryWindowText(hWnd, len + 1, (PSZ)tempbuf);
-              WinQueryWindowRect(hWnd, &rclPaint);
-
-              hpsPaint = WinBeginPaint(hWnd, 0, 0);
-              if(WinQueryPresParam(hWnd, PP_BACKGROUNDCOLOR, 0, NULL, sizeof(bcolor), &bcolor, QPF_NOINHERIT) ||
-                 WinQueryPresParam(hWnd, PP_BACKGROUNDCOLORINDEX, 0, NULL, sizeof(bcolor), &bcolor, QPF_NOINHERIT))
-                  GpiSetBackColor(hpsPaint, bcolor);
-              if(WinQueryPresParam(hWnd, PP_FOREGROUNDCOLOR, 0, NULL, sizeof(fcolor), &fcolor, QPF_NOINHERIT) ||
-                 WinQueryPresParam(hWnd, PP_FOREGROUNDCOLORINDEX, 0, NULL, sizeof(fcolor), &fcolor, QPF_NOINHERIT))
-                  GpiSetColor(hpsPaint, fcolor);
-              WinDrawText(hpsPaint, -1, tempbuf, &rclPaint, DT_TEXTATTRS, DT_TEXTATTRS, style | DT_TEXTATTRS | DT_ERASERECT);
+              _drawtext(hWnd, hpsPaint);
               WinEndPaint(hpsPaint);
               return (MRESULT)TRUE;
           }
