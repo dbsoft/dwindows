@@ -16,7 +16,7 @@ include SVN.REV
 DEFS =
 LIBS =
 
-CFLAGS = -O -g -Zomf -Zmt -D__OS2__ -D__ST_MT_ERRNO__ -DVER_REV=$(VERREV) -I. -Wall -o $(@)
+CFLAGS = -O -g -Zomf -Zmt -D__OS2__ -D__ST_MT_ERRNO__ -DUNICODE -DVER_REV=$(VERREV) -I. -Wall -o $(@)
 LDFLAGS = -Zdll -static-libgcc
 RCFLAGS = -r
 
