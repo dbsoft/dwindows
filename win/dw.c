@@ -10102,6 +10102,27 @@ void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yo
 #endif   
 }
 
+#ifdef GDIPLUS
+/* Internal function to increase or decrease coordinates/sizes
+ * by the difference of the screen DPI (96) and the context DPI.
+ */
+void _convert_dpi(HDC hdc, int *x, int *y, int mult)
+{
+   float ratiox = (float)GetDeviceCaps(hdc, LOGPIXELSX)/96.0;
+   float ratioy = (float)GetDeviceCaps(hdc, LOGPIXELSY)/96.0;
+   if(mult)
+   {
+      *x *= ratiox;
+      *y *= ratioy;
+   }
+   else
+   {
+      *x /= ratiox;
+      *y /= ratioy;
+   }
+}
+#endif
+
 /* Draw text on a window (preferably a render window).
  * Parameters:
  *       handle: Handle to the window.
@@ -10118,7 +10139,6 @@ void API dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
    ColorInfo *cinfo = NULL;
    COLORREF background;
    TCHAR *wtext = UTF8toWide(text);
-   POINT pt;
 
    if(handle)
       hdc = GetDC(handle);
@@ -10151,12 +10171,10 @@ void API dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
       SetBkMode(hdc, OPAQUE);
       SetBkColor(hdc, background);
    }
-   pt.x = x;
-   pt.y = y;
-#ifdef GDIPLUS1
-   LPtoDP(hdc, &pt, 1);
+#ifdef GDIPLUS
+   _convert_dpi(hdc, &x, &y, TRUE);
 #endif
-   TextOut(hdc, pt.x, pt.y, wtext, (int)_tcslen(wtext));
+   TextOut(hdc, x, y, wtext, (int)_tcslen(wtext));
    if(oldFont)
       SelectObject(hdc, oldFont);
    if(mustdelete)
@@ -10210,6 +10228,10 @@ void API dw_font_text_extents_get(HWND handle, HPIXMAP pixmap, char *text, int *
    oldFont = SelectObject(hdc, hFont);
 
    GetTextExtentPoint32(hdc, wtext, (int)_tcslen(wtext), &sz);
+
+#ifdef GDIPLUS
+   _convert_dpi(hdc, &(sz.cx), &(sz.cy), FALSE);
+#endif
 
    if(width)
       *width = sz.cx;
@@ -10616,6 +10638,14 @@ int API dw_pixmap_stretch_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest,
        sheight = height;
    }
 
+#ifdef GDIPLUS
+   /* Do conversion on all the coordinates */
+   _convert_dpi(hdcdest, &xdest, &ydest, TRUE);
+   _convert_dpi(hdcdest, &width, &height, TRUE);
+   _convert_dpi(hdcsrc, &xsrc, &ysrc, TRUE);
+   _convert_dpi(hdcsrc, &swidth, &sheight, TRUE);
+#endif
+   
    /* If it is a 32bpp bitmap (with alpha) use AlphaBlend unless it fails */
    if ( srcp && srcp->depth == 32 && AlphaBlend( hdcdest, xdest, ydest, width, height, hdcsrc, xsrc, ysrc, swidth, sheight, bf ) )
    {
@@ -11689,6 +11719,11 @@ int API dw_print_run(HPRINT print, unsigned long flags)
     pixmap->hbm = CreateCompatibleBitmap(p->pd.hDC, pixmap->width, pixmap->height);
     pixmap->hdc = p->pd.hDC;
     pixmap->transcolor = DW_RGB_TRANSPARENT;
+
+#ifdef GDIPLUS
+   /* Convert the size based on the DPI */
+   _convert_dpi(pixmap->hdc, &(pixmap->width), &(pixmap->height), FALSE);
+#endif
 
     SelectObject(pixmap->hdc, pixmap->hbm);
 
