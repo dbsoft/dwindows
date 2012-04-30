@@ -4058,10 +4058,10 @@ int API dw_init(int newthread, int argc, char *argv[])
    if(newthread)
    {
       dwhab = WinInitialize(0);
-	  dwhmq = WinCreateMsgQueue(dwhab, 0);
+      dwhmq = WinCreateMsgQueue(dwhab, 0);
 #ifdef UNICODE
       /* Set the codepage to 1208 (UTF-8) */
-	  WinSetCp(dwhmq, 1208);
+      WinSetCp(dwhmq, 1208);
 #endif
    }
 
@@ -4622,9 +4622,9 @@ char * API dw_font_choose(char *currfont)
             strcpy(buf, currfont);
             strcpy(fd.fAttrs.szFacename, currfont);
         }
-	}
+    }
 #ifdef UNICODE
-	fd.fAttrs.usCodePage = 1208;
+    fd.fAttrs.usCodePage = 1208;
 #endif
     fd.fAttrs.usRecordLength = sizeof(FATTRS);
 
