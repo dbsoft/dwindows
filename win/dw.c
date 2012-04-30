@@ -10108,17 +10108,20 @@ void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yo
  */
 void _convert_dpi(HDC hdc, int *x, int *y, int mult)
 {
-   float ratiox = (float)GetDeviceCaps(hdc, LOGPIXELSX)/96.0;
-   float ratioy = (float)GetDeviceCaps(hdc, LOGPIXELSY)/96.0;
-   if(mult)
+   int ratiox = (int)GetDeviceCaps(hdc, LOGPIXELSX)/96;
+   int ratioy = (int)GetDeviceCaps(hdc, LOGPIXELSY)/96;
+   if(ratiox > 1 && ratioy > 1)
    {
-      *x *= ratiox;
-      *y *= ratioy;
-   }
-   else
-   {
-      *x /= ratiox;
-      *y /= ratioy;
+      if(mult)
+      {
+         *x *= ratiox;
+         *y *= ratioy;
+      }
+      else
+      {
+         *x /= ratiox;
+         *y /= ratioy;
+      }
    }
 }
 #endif
