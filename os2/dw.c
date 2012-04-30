@@ -2034,34 +2034,34 @@ MRESULT EXPENTRY _textproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
    {
       PFNWP myfunc = blah->oldproc;
 
-	  switch(msg)
-	  {
-	  case WM_PAINT:
-		  {
-			  HPS hpsPaint;
-			  RECTL rclPaint;
-			  int len = WinQueryWindowTextLength(hWnd);
-			  ULONG style = WinQueryWindowULong(hWnd, QWL_STYLE) & (DT_TOP|DT_VCENTER|DT_BOTTOM|DT_LEFT|DT_CENTER|DT_RIGHT|DT_WORDBREAK);
-			  char *tempbuf = alloca(len + 2);
-			  ULONG fcolor = DT_TEXTATTRS, bcolor = DT_TEXTATTRS;
+      switch(msg)
+      {
+      case WM_PAINT:
+          {
+              HPS hpsPaint;
+              RECTL rclPaint;
+              int len = WinQueryWindowTextLength(hWnd);
+              ULONG style = WinQueryWindowULong(hWnd, QWL_STYLE) & (DT_TOP|DT_VCENTER|DT_BOTTOM|DT_LEFT|DT_CENTER|DT_RIGHT|DT_WORDBREAK);
+              char *tempbuf = alloca(len + 2);
+              ULONG fcolor = DT_TEXTATTRS, bcolor = DT_TEXTATTRS;
 
-			  WinQueryWindowText(hWnd, len + 1, (PSZ)tempbuf);
+              WinQueryWindowText(hWnd, len + 1, (PSZ)tempbuf);
 
-			  hpsPaint = WinBeginPaint(hWnd, 0, 0);
-			  WinQueryWindowRect(hWnd, &rclPaint);
-			  if(WinQueryPresParam(hWnd, PP_BACKGROUNDCOLOR, 0, NULL, sizeof(bcolor), &bcolor, QPF_NOINHERIT) ||
+              hpsPaint = WinBeginPaint(hWnd, 0, 0);
+              WinQueryWindowRect(hWnd, &rclPaint);
+              if(WinQueryPresParam(hWnd, PP_BACKGROUNDCOLOR, 0, NULL, sizeof(bcolor), &bcolor, QPF_NOINHERIT) ||
                  WinQueryPresParam(hWnd, PP_BACKGROUNDCOLORINDEX, 0, NULL, sizeof(bcolor), &bcolor, QPF_NOINHERIT))
-				  GpiSetBackColor(hpsPaint, bcolor);
-			  if(WinQueryPresParam(hWnd, PP_FOREGROUNDCOLOR, 0, NULL, sizeof(fcolor), &fcolor, QPF_NOINHERIT) ||
-				 WinQueryPresParam(hWnd, PP_FOREGROUNDCOLORINDEX, 0, NULL, sizeof(fcolor), &fcolor, QPF_NOINHERIT))
-				  GpiSetColor(hpsPaint, fcolor);
+                  GpiSetBackColor(hpsPaint, bcolor);
+              if(WinQueryPresParam(hWnd, PP_FOREGROUNDCOLOR, 0, NULL, sizeof(fcolor), &fcolor, QPF_NOINHERIT) ||
+                 WinQueryPresParam(hWnd, PP_FOREGROUNDCOLORINDEX, 0, NULL, sizeof(fcolor), &fcolor, QPF_NOINHERIT))
+                  GpiSetColor(hpsPaint, fcolor);
               WinDrawText(hpsPaint, -1, tempbuf, &rclPaint, DT_TEXTATTRS, DT_TEXTATTRS, style | DT_TEXTATTRS | DT_ERASERECT);
-			  WinEndPaint(hpsPaint);
-			  return (MRESULT)TRUE;
-		  }
-	  default:
-		  return myfunc(hWnd, msg, mp1, mp2);
-	  }
+              WinEndPaint(hpsPaint);
+              return (MRESULT)TRUE;
+          }
+      default:
+          return myfunc(hWnd, msg, mp1, mp2);
+      }
    }
 
    return WinDefWindowProc(hWnd, msg, mp1, mp2);
