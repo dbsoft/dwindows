@@ -4058,9 +4058,11 @@ int API dw_init(int newthread, int argc, char *argv[])
    if(newthread)
    {
       dwhab = WinInitialize(0);
-      dwhmq = WinCreateMsgQueue(dwhab, 0);
+	  dwhmq = WinCreateMsgQueue(dwhab, 0);
+#ifdef UNICODE
       /* Set the codepage to 1208 (UTF-8) */
-      WinSetCp(dwhmq, 1208);
+	  WinSetCp(dwhmq, 1208);
+#endif
    }
 
    rc = WinRegisterClass(dwhab, (PSZ)ClassName, _wndproc, CS_SIZEREDRAW | CS_CLIPCHILDREN, 32);
@@ -4621,7 +4623,9 @@ char * API dw_font_choose(char *currfont)
             strcpy(fd.fAttrs.szFacename, currfont);
         }
 	}
-    fd.fAttrs.usCodePage = 1208;
+#ifdef UNICODE
+	fd.fAttrs.usCodePage = 1208;
+#endif
     fd.fAttrs.usRecordLength = sizeof(FATTRS);
 
     /* Fill in the font dialog struct */
@@ -9866,7 +9870,9 @@ void _CopyFontSettings(HPS hpsSrc, HPS hpsDst)
 
    fat.usRecordLength  = sizeof(FATTRS);
    fat.lMatch          = fm.lMatch;
+#ifdef UNICODE
    fat.usCodePage      = 1208;
+#endif
    strcpy(fat.szFacename, fm.szFacename);
 
    GpiCreateLogFont(hpsDst, 0, 1L, &fat);
@@ -10947,9 +10953,11 @@ void _dwthreadstart(void *data)
    void (API_FUNC threadfunc)(void *) = NULL;
    void **tmp = (void **)data;
 
+#ifdef UNICODE
    /* Set the codepage to 1208 (UTF-8) */
    WinSetCp(thishmq, 1208);
-   
+#endif
+
    threadfunc = (void (API_FUNC)(void *))tmp[0];
    threadfunc(tmp[1]);
 
