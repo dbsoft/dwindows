@@ -82,7 +82,7 @@ HWND mainwindow,
     combobox2,
     spinbutton,
     slider,
-	percent,
+    percent,
     notebookbox,
     notebookbox1,
     notebookbox2,
@@ -378,7 +378,7 @@ void draw_shapes(int direct, HPIXMAP hpma)
     dw_color_foreground_set(DW_CLR_YELLOW);
     dw_draw_line(window, pixmap, width - 10, 10, 10, height - 10);
     dw_color_foreground_set(DW_CLR_BLUE);
-    dw_draw_polygon(window, pixmap, TRUE, 7, x, y);
+    dw_draw_polygon(window, pixmap, DW_DRAW_FILL, 7, x, y);
     dw_color_foreground_set(DW_CLR_BLACK);
     dw_draw_rect(window, pixmap, DW_DRAW_FILL | DW_DRAW_NOAA, 80, 80, 80, 40);
     dw_color_foreground_set(DW_CLR_CYAN);
@@ -845,7 +845,7 @@ void archive_add(void)
 {
     HWND browsefilebutton, browsefolderbutton, browsebox;
 
-    lbbox = dw_box_new(BOXVERT, 10);
+    lbbox = dw_box_new(DW_VERT, 10);
 
     dw_box_pack_start(notebookbox1, lbbox, 150, 70, TRUE, TRUE, 0);
 
@@ -856,7 +856,7 @@ void archive_add(void)
 
     dw_box_pack_start(lbbox, stext, 130, 15, TRUE, TRUE, 2);
 
-    browsebox = dw_box_new(BOXHORZ, 0);
+    browsebox = dw_box_new(DW_HORZ, 0);
 
     dw_box_pack_start(lbbox, browsebox, 0, 0, TRUE, TRUE, 0);
 
@@ -878,7 +878,7 @@ void archive_add(void)
     dw_window_set_color(stext, DW_CLR_BLACK, DW_CLR_PALEGRAY);
 
     /* Buttons */
-    buttonbox = dw_box_new(BOXHORZ, 10);
+    buttonbox = dw_box_new(DW_HORZ, 10);
 
     dw_box_pack_start(lbbox, buttonbox, 0, 0, TRUE, TRUE, 0);
 
@@ -903,12 +903,12 @@ void archive_add(void)
     dw_window_set_color(buttonbox, DW_CLR_DARKCYAN, DW_CLR_PALEGRAY);
     dw_window_set_color(okbutton, DW_CLR_PALEGRAY, DW_CLR_DARKCYAN);
 
-    dw_signal_connect(browsefilebutton, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(browse_file_callback), (void *)notebookbox1);
-    dw_signal_connect(browsefolderbutton, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(browse_folder_callback), (void *)notebookbox1);
-    dw_signal_connect(okbutton, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(beep_callback), (void *)notebookbox1);
-    dw_signal_connect(cancelbutton, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(exit_callback), (void *)mainwindow);
-    dw_signal_connect(cursortogglebutton, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(cursortoggle_callback), (void *)mainwindow);
-    dw_signal_connect(colorchoosebutton, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(colorchoose_callback), (void *)mainwindow);
+    dw_signal_connect(browsefilebutton, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(browse_file_callback), DW_POINTER(notebookbox1));
+    dw_signal_connect(browsefolderbutton, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(browse_folder_callback), DW_POINTER(notebookbox1));
+    dw_signal_connect(okbutton, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(beep_callback), DW_POINTER(notebookbox1));
+    dw_signal_connect(cancelbutton, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(exit_callback), DW_POINTER(mainwindow));
+    dw_signal_connect(cursortogglebutton, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(cursortoggle_callback), DW_POINTER(mainwindow));
+    dw_signal_connect(colorchoosebutton, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(colorchoose_callback), DW_POINTER(mainwindow));
 }
 
 int API motion_notify_event(HWND window, int x, int y, int buttonmask, void *data)
@@ -936,10 +936,10 @@ int API context_menu_event(HWND window, int x, int y, int buttonmask, void *data
     HWND menuitem = dw_menu_append_item(hwndMenu, "~Quit", DW_MENU_POPUP, 0L, TRUE, FALSE, DW_NOMENU);
     long px, py;
     
-    dw_signal_connect(menuitem, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(exit_callback), (void *)mainwindow);
+    dw_signal_connect(menuitem, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(exit_callback), DW_POINTER(mainwindow));
     dw_menu_append_item(hwndMenu, DW_MENU_SEPARATOR, DW_MENU_POPUP, 0L, TRUE, FALSE, DW_NOMENU);
     menuitem = dw_menu_append_item(hwndMenu, "~Show Window", DW_MENU_POPUP, 0L, TRUE, FALSE, DW_NOMENU);
-    dw_signal_connect(menuitem, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(show_window_callback), (void *)mainwindow);
+    dw_signal_connect(menuitem, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(show_window_callback), DW_POINTER(mainwindow));
     dw_pointer_query_pos(&px, &py);
     /* Use the toplevel window handle here.... because on the Mac..
      * using the control itself, when a different tab is active
@@ -957,17 +957,17 @@ void text_add(void)
     int vscrollbarwidth, hscrollbarheight;
 
     /* create a box to pack into the notebook page */
-    pagebox = dw_box_new(BOXHORZ, 2);
+    pagebox = dw_box_new(DW_HORZ, 2);
     dw_box_pack_start( notebookbox2, pagebox, 0, 0, TRUE, TRUE, 0);
     /* now a status area under this box */
-    hbox = dw_box_new(BOXHORZ, 1 );
+    hbox = dw_box_new(DW_HORZ, 1 );
     dw_box_pack_start( notebookbox2, hbox, 100, 20, TRUE, FALSE, 1);
     status1 = dw_status_text_new("", 0);
     dw_box_pack_start( hbox, status1, 100, 20, TRUE, FALSE, 1);
     status2 = dw_status_text_new("", 0);
     dw_box_pack_start( hbox, status2, 100, 20, TRUE, FALSE, 1);
     /* a box with combobox and button */
-    hbox = dw_box_new(BOXHORZ, 1 );
+    hbox = dw_box_new(DW_HORZ, 1 );
     dw_box_pack_start( notebookbox2, hbox, 100, 25, TRUE, FALSE, 1);
     rendcombo = dw_combobox_new( "Shapes Double Buffered", 0 );
     dw_box_pack_start( hbox, rendcombo, 80, 25, TRUE, FALSE, 0);
@@ -1015,7 +1015,7 @@ void text_add(void)
     dw_window_set_font(textbox1, FIXEDFONT);
     dw_font_text_extents_get(textbox1, NULL, "(g", &font_width, &font_height);
     font_width = font_width / 2;
-    vscrollbox = dw_box_new(BOXVERT, 0);
+    vscrollbox = dw_box_new(DW_VERT, 0);
     dw_box_pack_start(vscrollbox, textbox1, font_width*width1, font_height*rows, FALSE, TRUE, 0);
     dw_box_pack_start(vscrollbox, 0, (font_width*(width1+1)), hscrollbarheight, FALSE, FALSE, 0);
     dw_box_pack_start(pagebox, vscrollbox, 0, 0, FALSE, TRUE, 0);
@@ -1024,7 +1024,7 @@ void text_add(void)
     dw_box_pack_start(pagebox, 0, font_width, 0, FALSE, TRUE, 0);
 
     /* create box for filecontents and horz scrollbar */
-    textboxA = dw_box_new( BOXVERT,0 );
+    textboxA = dw_box_new( DW_VERT,0 );
     dw_box_pack_start( pagebox, textboxA, 0, 0, TRUE, TRUE, 0);
 
     /* create render box for filecontents pixmap */
@@ -1035,7 +1035,7 @@ void text_add(void)
     dw_box_pack_start( textboxA, hscrollbar, -1, -1, TRUE, FALSE, 0);
 
     /* create vertical scrollbar */
-    vscrollbox = dw_box_new(BOXVERT, 0);
+    vscrollbox = dw_box_new(DW_VERT, 0);
     dw_box_pack_start(vscrollbox, vscrollbar, -1, -1, FALSE, TRUE, 0);
     /* Pack an area of empty space 14x14 pixels */
     dw_box_pack_start(vscrollbox, 0, vscrollbarwidth, hscrollbarheight, FALSE, FALSE, 0);
@@ -1056,10 +1056,10 @@ void text_add(void)
     dw_signal_connect(textbox1, DW_SIGNAL_EXPOSE, DW_SIGNAL_FUNC(text_expose), NULL);
     dw_signal_connect(textbox2, DW_SIGNAL_EXPOSE, DW_SIGNAL_FUNC(text_expose), NULL);
     dw_signal_connect(textbox2, DW_SIGNAL_CONFIGURE, DW_SIGNAL_FUNC(configure_event), text2pm);
-    dw_signal_connect(textbox2, DW_SIGNAL_MOTION_NOTIFY, DW_SIGNAL_FUNC(motion_notify_event), (void *)1);
-    dw_signal_connect(textbox2, DW_SIGNAL_BUTTON_PRESS, DW_SIGNAL_FUNC(motion_notify_event), (void *)0);
-    dw_signal_connect(hscrollbar, DW_SIGNAL_VALUE_CHANGED, DW_SIGNAL_FUNC(scrollbar_valuechanged_callback), (void *)status1);
-    dw_signal_connect(vscrollbar, DW_SIGNAL_VALUE_CHANGED, DW_SIGNAL_FUNC(scrollbar_valuechanged_callback), (void *)status1);
+    dw_signal_connect(textbox2, DW_SIGNAL_MOTION_NOTIFY, DW_SIGNAL_FUNC(motion_notify_event), DW_INT_TO_POINTER(1));
+    dw_signal_connect(textbox2, DW_SIGNAL_BUTTON_PRESS, DW_SIGNAL_FUNC(motion_notify_event), DW_INT_TO_POINTER(0));
+    dw_signal_connect(hscrollbar, DW_SIGNAL_VALUE_CHANGED, DW_SIGNAL_FUNC(scrollbar_valuechanged_callback), DW_POINTER(status1));
+    dw_signal_connect(vscrollbar, DW_SIGNAL_VALUE_CHANGED, DW_SIGNAL_FUNC(scrollbar_valuechanged_callback), DW_POINTER(status1));
     dw_signal_connect(imagestretchcheck, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(refresh_callback), NULL);
     dw_signal_connect(button1, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(refresh_callback), NULL);
     dw_signal_connect(button2, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(print_callback), NULL);
@@ -1092,16 +1092,15 @@ void tree_add(void)
     dw_box_pack_start( notebookbox3, tree_status, 100, 20, TRUE, FALSE, 1);
 
     /* set up our signal trappers... */
-    dw_signal_connect(tree, DW_SIGNAL_ITEM_CONTEXT, DW_SIGNAL_FUNC(item_context_cb), (void *)tree_status);
-    dw_signal_connect(tree, DW_SIGNAL_ITEM_SELECT, DW_SIGNAL_FUNC(item_select_cb), (void *)tree_status);
+    dw_signal_connect(tree, DW_SIGNAL_ITEM_CONTEXT, DW_SIGNAL_FUNC(item_context_cb), DW_POINTER(tree_status));
+    dw_signal_connect(tree, DW_SIGNAL_ITEM_SELECT, DW_SIGNAL_FUNC(item_select_cb), DW_POINTER(tree_status));
 
-    t1 = dw_tree_insert(tree, "tree folder 1", foldericon, NULL, (void *)1 );
-    t2 = dw_tree_insert(tree, "tree folder 2", foldericon, NULL, (void *)2 );
-    dw_tree_insert(tree, "tree file 1", fileicon, t1, (void *)3 );
-    dw_tree_insert(tree, "tree file 2", fileicon, t1, (void *)4 );
-    dw_tree_insert(tree, "tree file 3", fileicon, t2, (void *)5 );
-    dw_tree_insert(tree, "tree file 4", fileicon, t2, (void *)6 );
-    /* set the folder name and icon again to show error with dw_tree_item_change under GTK 2.0 */
+    t1 = dw_tree_insert(tree, "tree folder 1", foldericon, NULL, DW_INT_TO_POINTER(1) );
+    t2 = dw_tree_insert(tree, "tree folder 2", foldericon, NULL, DW_INT_TO_POINTER(2) );
+    dw_tree_insert(tree, "tree file 1", fileicon, t1, DW_INT_TO_POINTER(3) );
+    dw_tree_insert(tree, "tree file 2", fileicon, t1, DW_INT_TO_POINTER(4) );
+    dw_tree_insert(tree, "tree file 3", fileicon, t2, DW_INT_TO_POINTER(5) );
+    dw_tree_insert(tree, "tree file 4", fileicon, t2, DW_INT_TO_POINTER(6) );
     dw_tree_item_change(tree, t1, "tree folder 1", foldericon );
     dw_tree_item_change(tree, t2, "tree folder 2", foldericon );
 }
@@ -1122,7 +1121,7 @@ void container_add(void)
     HICN thisicon;
 
     /* create a box to pack into the notebook page */
-    containerbox = dw_box_new(BOXHORZ, 2);
+    containerbox = dw_box_new(DW_HORZ, 2);
     dw_box_pack_start( notebookbox4, containerbox, 500, 200, TRUE, TRUE, 0);
 
     /* now a container area under this box */
@@ -1200,10 +1199,10 @@ void container_add(void)
     mle_point = dw_mle_import(container_mle, buffer, mle_point);
     dw_mle_set_cursor(container_mle, mle_point);
     /* connect our event trappers... */
-    dw_signal_connect(container, DW_SIGNAL_ITEM_ENTER, DW_SIGNAL_FUNC(item_enter_cb), (void *)container_status);
-    dw_signal_connect(container, DW_SIGNAL_ITEM_CONTEXT, DW_SIGNAL_FUNC(item_context_cb), (void *)container_status);
-    dw_signal_connect(container, DW_SIGNAL_ITEM_SELECT, DW_SIGNAL_FUNC(container_select_cb), (void *)container_status);
-    dw_signal_connect(container, DW_SIGNAL_COLUMN_CLICK, DW_SIGNAL_FUNC(column_click_cb), (void *)container_status);
+    dw_signal_connect(container, DW_SIGNAL_ITEM_ENTER, DW_SIGNAL_FUNC(item_enter_cb), DW_POINTER(container_status));
+    dw_signal_connect(container, DW_SIGNAL_ITEM_CONTEXT, DW_SIGNAL_FUNC(item_context_cb), DW_POINTER(container_status));
+    dw_signal_connect(container, DW_SIGNAL_ITEM_SELECT, DW_SIGNAL_FUNC(container_select_cb), DW_POINTER(container_status));
+    dw_signal_connect(container, DW_SIGNAL_COLUMN_CLICK, DW_SIGNAL_FUNC(column_click_cb), DW_POINTER(container_status));
 }
 
 /* Beep every second */
@@ -1223,7 +1222,7 @@ void buttons_add(void)
     char **text;
 
     /* create a box to pack into the notebook page */
-    buttonsbox = dw_box_new(BOXVERT, 2);
+    buttonsbox = dw_box_new(DW_VERT, 2);
     dw_box_pack_start( notebookbox5, buttonsbox, 25, 200, TRUE, TRUE, 0);
     dw_window_set_color(buttonsbox, DW_CLR_RED, DW_CLR_RED);
 
@@ -1237,7 +1236,7 @@ void buttons_add(void)
     /*
      * Create our file toolbar boxes...
      */
-    buttonboxperm = dw_box_new( BOXVERT, 0 );
+    buttonboxperm = dw_box_new( DW_VERT, 0 );
     dw_box_pack_start( buttonsbox, buttonboxperm, 25, 0, FALSE, TRUE, 2 );
     dw_window_set_color(buttonboxperm, DW_CLR_WHITE, DW_CLR_WHITE);
     //   abutton1 = dw_bitmapbutton_new_from_file( "Top Button", 0, FILE_ICON_NAME );
@@ -1251,7 +1250,7 @@ void buttons_add(void)
 
     create_button(0);
     /* make a combobox */
-    combox = dw_box_new(BOXVERT, 2);
+    combox = dw_box_new(DW_VERT, 2);
     dw_box_pack_start( notebookbox5, combox, 25, 200, TRUE, FALSE, 0);
     combobox1 = dw_combobox_new( "fred", 0 ); /* no point in specifying an initial value */
     dw_listbox_append( combobox1, "fred" );
@@ -1313,7 +1312,7 @@ void buttons_add(void)
 void create_button( int redraw)
 {
     HWND abutton1;
-    filetoolbarbox = dw_box_new( BOXVERT, 0 );
+    filetoolbarbox = dw_box_new( DW_VERT, 0 );
     dw_box_pack_start( buttonboxperm, filetoolbarbox, 0, 0, TRUE, TRUE, 0 );
 
     abutton1 = dw_bitmapbutton_new_from_file( "Should be under Top button", 0, "junk" );
@@ -1377,7 +1376,7 @@ void menu_add(void)
     /* add menus to the menubar */
     menu = dw_menu_new( 0 );
     menuitem = dw_menu_append_item( menu, "~Quit", 1019, 0, TRUE, FALSE, 0 );
-    dw_signal_connect( menuitem, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(exit_callback), (void *)mainwindow);
+    dw_signal_connect( menuitem, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(exit_callback), DW_POINTER(mainwindow));
     /*
      * Add the "File" menu to the menubar...
      */
@@ -1385,14 +1384,14 @@ void menu_add(void)
 
     changeable_menu = dw_menu_new( 0 );
     checkable_menuitem = dw_menu_append_item( changeable_menu, "~Checkable Menu Item", CHECKABLE_MENUITEMID, 0, TRUE, TRUE, 0 );
-    dw_signal_connect( checkable_menuitem, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(menu_callback), (void *)"checkable");
+    dw_signal_connect( checkable_menuitem, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(menu_callback), DW_POINTER("checkable"));
     noncheckable_menuitem = dw_menu_append_item( changeable_menu, "~Non-checkable Menu Item", NONCHECKABLE_MENUITEMID, 0, TRUE, FALSE, 0 );
-    dw_signal_connect( noncheckable_menuitem, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(menu_callback), (void *)"non-checkable");
+    dw_signal_connect( noncheckable_menuitem, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(menu_callback), DW_POINTER("non-checkable"));
     dw_menu_append_item( changeable_menu, "~Disabled menu Item", 2003, DW_MIS_DISABLED|DW_MIS_CHECKED, TRUE, TRUE, 0 );
     /* seperator */
     dw_menu_append_item( changeable_menu, DW_MENU_SEPARATOR, 3999, 0, TRUE, FALSE, 0 );
     menuitem = dw_menu_append_item( changeable_menu, "~Menu Items Disabled", 2009, 0, TRUE, TRUE, 0 );
-    dw_signal_connect( menuitem, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(menutoggle_callback), (void *)NULL);
+    dw_signal_connect( menuitem, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(menutoggle_callback), NULL);
     /*
      * Add the "Menu" menu to the menubar...
      */
@@ -1400,7 +1399,7 @@ void menu_add(void)
 
     menu = dw_menu_new( 0 );
     menuitem = dw_menu_append_item( menu, "~About", 1091, 0, TRUE, FALSE, 0 );
-    dw_signal_connect( menuitem, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(helpabout_callback), (void *)mainwindow);
+    dw_signal_connect( menuitem, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(helpabout_callback), DW_POINTER(mainwindow));
     /*
      * Add the "Help" menu to the menubar...
      */
@@ -1637,7 +1636,7 @@ int main(int argc, char *argv[])
 
     menu_add();
 
-    notebookbox = dw_box_new( BOXVERT, 5 );
+    notebookbox = dw_box_new( DW_VERT, 5 );
     dw_box_pack_start( mainwindow, notebookbox, 0, 0, TRUE, TRUE, 0);
     
     foldericon = dw_icon_load_from_file( FOLDER_ICON_NAME );
@@ -1647,43 +1646,43 @@ int main(int argc, char *argv[])
     dw_box_pack_start( notebookbox, notebook, 100, 100, TRUE, TRUE, 0);
     dw_signal_connect(notebook, DW_SIGNAL_SWITCH_PAGE, DW_SIGNAL_FUNC(switch_page_cb), NULL);
 
-    notebookbox1 = dw_box_new( BOXVERT, 5 );
+    notebookbox1 = dw_box_new( DW_VERT, 5 );
     notebookpage1 = dw_notebook_page_new( notebook, 0, TRUE );
     dw_notebook_pack( notebook, notebookpage1, notebookbox1 );
     dw_notebook_page_set_text( notebook, notebookpage1, "buttons and entry");
     archive_add();
 
-    notebookbox2 = dw_box_new( BOXVERT, 5 );
+    notebookbox2 = dw_box_new( DW_VERT, 5 );
     notebookpage2 = dw_notebook_page_new( notebook, 1, FALSE );
     dw_notebook_pack( notebook, notebookpage2, notebookbox2 );
     dw_notebook_page_set_text( notebook, notebookpage2, "render");
     text_add();
 
-    notebookbox3 = dw_box_new( BOXVERT, 5 );
+    notebookbox3 = dw_box_new( DW_VERT, 5 );
     notebookpage3 = dw_notebook_page_new( notebook, 1, FALSE );
     dw_notebook_pack( notebook, notebookpage3, notebookbox3 );
     dw_notebook_page_set_text( notebook, notebookpage3, "tree");
     tree_add();
 
-    notebookbox4 = dw_box_new( BOXVERT, 5 );
+    notebookbox4 = dw_box_new( DW_VERT, 5 );
     notebookpage4 = dw_notebook_page_new( notebook, 1, FALSE );
     dw_notebook_pack( notebook, notebookpage4, notebookbox4 );
     dw_notebook_page_set_text( notebook, notebookpage4, "container");
     container_add();
 
-    notebookbox5 = dw_box_new( BOXVERT, 5 );
+    notebookbox5 = dw_box_new( DW_VERT, 5 );
     notebookpage5 = dw_notebook_page_new( notebook, 1, FALSE );
     dw_notebook_pack( notebook, notebookpage5, notebookbox5 );
     dw_notebook_page_set_text( notebook, notebookpage5, "buttons");
     buttons_add();
 
-    notebookbox6 = dw_box_new( BOXVERT, 5 );
+    notebookbox6 = dw_box_new( DW_VERT, 5 );
     notebookpage6 = dw_notebook_page_new( notebook, 1, FALSE );
     dw_notebook_pack( notebook, notebookpage6, notebookbox6 );
     dw_notebook_page_set_text( notebook, notebookpage6, "mdi");
     mdi_add();
 
-    notebookbox7 = dw_box_new( BOXVERT, 6 );
+    notebookbox7 = dw_box_new( DW_VERT, 6 );
     notebookpage7 = dw_notebook_page_new( notebook, 1, FALSE );
     dw_notebook_pack( notebook, notebookpage7, notebookbox7 );
     dw_notebook_page_set_text( notebook, notebookpage7, "html");
@@ -1703,19 +1702,19 @@ int main(int argc, char *argv[])
         dw_box_pack_start( notebookbox7, html, 0, 100, TRUE, TRUE, 0);
     }
 
-    notebookbox8 = dw_box_new( BOXVERT, 7 );
+    notebookbox8 = dw_box_new( DW_VERT, 7 );
     notebookpage8 = dw_notebook_page_new( notebook, 1, FALSE );
     dw_notebook_pack( notebook, notebookpage8, notebookbox8 );
     dw_notebook_page_set_text( notebook, notebookpage8, "scrollbox");
     scrollbox_add();
 
-    notebookbox9 = dw_box_new( BOXVERT, 8 );
+    notebookbox9 = dw_box_new( DW_VERT, 8 );
     notebookpage9 = dw_notebook_page_new( notebook, 1, FALSE );
     dw_notebook_pack( notebook, notebookpage9, notebookbox9 );
     dw_notebook_page_set_text( notebook, notebookpage9, "thread/event");
     thread_add();
 
-    dw_signal_connect(mainwindow, DW_SIGNAL_DELETE, DW_SIGNAL_FUNC(exit_callback), (void *)mainwindow);
+    dw_signal_connect(mainwindow, DW_SIGNAL_DELETE, DW_SIGNAL_FUNC(exit_callback), DW_POINTER(mainwindow));
     timerid = dw_timer_connect(2000, DW_SIGNAL_FUNC(timer_callback), 0);
     dw_window_set_size(mainwindow, 640, 520);
     dw_window_show(mainwindow);
