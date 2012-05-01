@@ -4816,7 +4816,7 @@ void _control_size(HWND handle, int *width, int *height)
        strcat(buf, "\n");
 
        /* MLE */
-       while((ptr = strstr(buf, "\n")))
+       while((ptr = strstr(buf, "\n")) != NULL)
        {
            ptr[0] = 0;
            width = 0;
@@ -6405,7 +6405,7 @@ HWND API dw_bitmapbutton_new_from_data(char *text, unsigned long id, char *data,
    HPIXMAP pixmap = NULL, disabled = NULL;
    HPOINTER icon = 0;
 
-   if ( ( pixmap = calloc( 1, sizeof(struct _hpixmap) ) ) )
+   if((pixmap = calloc(1, sizeof(struct _hpixmap))) != NULL)
    {
       int z, j, lim;
       LONG fore;
@@ -9273,7 +9273,7 @@ void API dw_container_insert(HWND handle, void *pointer, int rowcount)
 
    free(ci);
 
-   if((pCore = _dw_container_start(handle, CRA_CURSORED)))
+   if((pCore = _dw_container_start(handle, CRA_CURSORED)) != NULL)
    {
        NOTIFYRECORDEMPHASIS pre;
 
