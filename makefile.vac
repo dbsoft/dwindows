@@ -46,7 +46,7 @@ dwtest.obj:
 	icc /Ti /DOS2 /DTCPV40HDRS /Sp1 /I. /Sm /Ss /Q /Gm /Gt /C dwtest.c
 dwtest.exe:  dwtest.obj
 	icc @<<
-	 /B" /DE /optfunc"
+	 /B" /DE /optfunc /pm:pm"
 	 /Fedwtest.exe
 	 lib\dw.lib lib\dwcompat.lib
 	 dwtest.obj

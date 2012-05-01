@@ -43,7 +43,7 @@ dwcompat.lib: os2\dwcompat.def
 	copy dwcompat.lib lib
 
 dwtest.exe: dwtest.o dw.lib dwcompat.lib
-	$(CC) $(CFLAGS) -Zomf -Zmt -static-libgcc -o dwtest.exe dwtest.o -Llib -ldw -ldwcompat os2/dwtest.def
+	$(CC) $(CFLAGS) -Zomf -Zmt -static-libgcc -Zlinker /pm:pm -o dwtest.exe dwtest.o -Llib -ldw -ldwcompat os2/dwtest.def
 
 clean:
 	$(RM) *.obj *.o *.lib *.res *~ dwtest.exe dw.dll dwcompat.dll SVN.REV
