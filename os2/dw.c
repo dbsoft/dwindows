@@ -1513,7 +1513,7 @@ void _drawtext(HWND hWnd, HPS hpsPaint)
     if(WinQueryPresParam(hWnd, PP_FOREGROUNDCOLOR, 0, NULL, sizeof(fcolor), &fcolor, QPF_NOINHERIT) ||
        WinQueryPresParam(hWnd, PP_FOREGROUNDCOLORINDEX, 0, NULL, sizeof(fcolor), &fcolor, QPF_NOINHERIT))
         GpiSetColor(hpsPaint, fcolor);
-    WinDrawText(hpsPaint, -1, tempbuf, &rclPaint, DT_TEXTATTRS, DT_TEXTATTRS, style | DT_TEXTATTRS | DT_ERASERECT);
+    WinDrawText(hpsPaint, -1, (PCH)tempbuf, &rclPaint, DT_TEXTATTRS, DT_TEXTATTRS, style | DT_TEXTATTRS | DT_ERASERECT);
 }
 
 /* Function: BubbleProc
@@ -11638,7 +11638,11 @@ int _SetPath(char *path)
 int API dw_exec(char *program, int type, char **params)
 {
    type = type; /* keep compiler happy */
+#ifdef __EMX__
    return spawnvp(P_NOWAIT, program, (char * const *)params);
+#else
+   return spawnvp(P_NOWAIT, program, (const char * const *)params);
+#endif
 }
 
 /*
@@ -11764,7 +11768,7 @@ typedef struct _dwprint
 {
     HDC hdc;
     char *printername;
-    int (* API drawfunc)(HPRINT, HPIXMAP, int, void *);
+    int (API_FUNC drawfunc)(HPRINT, HPIXMAP, int, void *);
     void *drawdata;
     unsigned long flags;
     unsigned int startpage, endpage;
@@ -11881,7 +11885,7 @@ HPRINT API dw_print_new(char *jobname, unsigned long flags, unsigned int pages, 
     if(!drawfunc || !(print = calloc(1, sizeof(DWPrint))))
         return NULL;
     
-    print->drawfunc = drawfunc;
+    print->drawfunc = (int (API_FUNC)(HPRINT, HPIXMAP, int, void *))drawfunc;
     print->drawdata = drawdata;
     print->jobname = jobname ? jobname : "Dynamic Windows Print Job";
     print->startpage = 1;
