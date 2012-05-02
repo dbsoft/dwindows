@@ -37,6 +37,7 @@
 #ifdef __WATCOMC__
 #include <alloca.h>
 #endif
+#include <fcntl.h>
 #include "dw.h"
 
 #define QWP_USER 0
@@ -61,8 +62,26 @@ void _do_resize(Box *thisbox, int x, int y);
 void _handle_splitbar_resize(HWND hwnd, float percent, int type, int x, int y);
 int _load_bitmap_file(char *file, HWND handle, HBITMAP *hbm, HDC *hdc, HPS *hps, unsigned long *width, unsigned long *height);
 void _free_menu_data(HWND menu);
-ULONG (API_FUNC _PmPrintfString)(char *String) = 0;
 BOOL (API_FUNC _WinQueryDesktopWorkArea)(HWND hwndDesktop, PWRECT pwrcWorkArea) = 0;
+/* PMPrintf support for dw_debug() */
+ULONG (API_FUNC _PmPrintfString)(char *String) = 0;
+/* GBM (Generalize Bitmap Module) support for file loading */
+#pragma pack(4)
+typedef struct
+{
+    int w, h, bpp;
+    unsigned char priv[2000];
+} GBM;
+typedef struct { unsigned char r, g, b; } GBMRGB;
+#pragma pack()
+int (API_FUNC _gbm_init)(void) = 0;
+int (API_FUNC _gbm_deinit)(void) = 0;
+int (API_FUNC _gbm_guess_filetype)(const char *fn, int *type) = 0;
+int (API_FUNC _gbm_io_open)(const char *fn, int mode) = 0;
+int (API_FUNC _gbm_io_close)(int fd) = 0;
+int (API_FUNC _gbm_read_header)(const char *fn, int fd, int ft, GBM *gbm, const char *info) = 0;
+int (API_FUNC _gbm_read_palette)(int fd, int ft, GBM *gbm, GBMRGB *gbmrgb) = 0;
+int (API_FUNC _gbm_read_data)(int fd, int ft, GBM *gbm, unsigned char *data) = 0;
 
 char ClassName[] = "dynamicwindows";
 char SplitbarClassName[] = "dwsplitbar";
@@ -81,7 +100,7 @@ HWND hwndTrayServer = NULLHANDLE, hwndTaskBar = NULLHANDLE;
 PRECORDCORE pCoreEmph = NULL;
 ULONG aulBuffer[4];
 HWND lasthcnr = 0, lastitem = 0, popup = 0, desktop;
-HMOD wpconfig = 0, pmprintf = 0, pmmerge = 0;
+HMOD wpconfig = 0, pmprintf = 0, pmmerge = 0, gbm = 0;
 static char _dw_exec_dir[MAX_PATH+1] = {0};
 
 unsigned long _colors[] = {
@@ -4108,6 +4127,25 @@ int API dw_init(int newthread, int argc, char *argv[])
        DosQueryProcAddr(pmprintf, 0, (PSZ)"PmPrintfString", (PFN*)&_PmPrintfString);
    if(!DosLoadModule((PSZ)objnamebuf, sizeof(objnamebuf), (PSZ)"PMMERGE", &pmmerge))
        DosQueryProcAddr(pmmerge, 5469, NULL, (PFN*)&_WinQueryDesktopWorkArea);
+   if(!DosLoadModule((PSZ)objnamebuf, sizeof(objnamebuf), (PSZ)"GBM", &gbm))
+   {
+       /* Load the _System versions of the functions from the library */
+       DosQueryProcAddr(gbm, 0, (PSZ)"Gbm_init", (PFN*)&_gbm_init);
+       DosQueryProcAddr(gbm, 0, (PSZ)"Gbm_deinit", (PFN*)&_gbm_deinit);
+       DosQueryProcAddr(gbm, 0, (PSZ)"Gbm_io_open", (PFN*)&_gbm_io_open);
+       DosQueryProcAddr(gbm, 0, (PSZ)"Gbm_io_close", (PFN*)&_gbm_io_close);
+       DosQueryProcAddr(gbm, 0, (PSZ)"Gbm_read_data", (PFN*)&_gbm_read_data);
+       DosQueryProcAddr(gbm, 0, (PSZ)"Gbm_read_header", (PFN*)&_gbm_read_header);
+       DosQueryProcAddr(gbm, 0, (PSZ)"Gbm_read_palette", (PFN*)&_gbm_read_palette);
+       DosQueryProcAddr(gbm, 0, (PSZ)"Gbm_guess_filetype", (PFN*)&_gbm_guess_filetype);
+       /* If we got the functions, try to initialize the library */
+       if(!_gbm_init || _gbm_init())
+       {
+           /* Otherwise clear out the function pointers */
+           _gbm_init=0;_gbm_deinit=0;_gbm_io_open=0;_gbm_io_close=0;_gbm_guess_filetype=0;
+           _gbm_read_header=0;_gbm_read_palette=0;_gbm_read_data=0;
+       }
+   }
    return rc;
 }
 
@@ -6687,104 +6725,179 @@ void API dw_window_set_icon(HWND handle, HICN icon)
  */
 int _load_bitmap_file(char *file, HWND handle, HBITMAP *hbm, HDC *hdc, HPS *hps, unsigned long *width, unsigned long *height)
 {
-   HFILE BitmapFileHandle = NULLHANDLE; /* handle for the file */
-   ULONG OpenAction = 0;
-   PBYTE BitmapFileBegin; /* pointer to the first byte of bitmap data  */
-   FILESTATUS BitmapStatus;
-   ULONG cbRead;
-   PBITMAPFILEHEADER2 pBitmapFileHeader;
-   PBITMAPINFOHEADER2 pBitmapInfoHeader;
-   ULONG ScanLines, ulFlags;
-   HPS hps1;
-   HDC hdc1;
-   SIZEL sizl = { 0, 0 };
+    PBITMAPINFOHEADER2 pBitmapInfoHeader;
+    /* pointer to the first byte of bitmap data  */
+    PBYTE BitmapFileBegin, BitmapBits;
+    ULONG ulFlags;
+    SIZEL sizl = { 0 };
+    HPS hps1;
+    HDC hdc1;
 
-   /* open bitmap file */
-   DosOpen((PSZ)file, &BitmapFileHandle, &OpenAction, 0L,
-         FILE_ARCHIVED | FILE_NORMAL | FILE_READONLY,
-         OPEN_ACTION_FAIL_IF_NEW | OPEN_ACTION_OPEN_IF_EXISTS,
-         OPEN_SHARE_DENYNONE | OPEN_ACCESS_READONLY |
-         OPEN_FLAGS_NOINHERIT, 0L);
+    /* If we have GBM support open the file using GBM */
+    if(_gbm_init)
+    {
+        int fd, ft = 0;
+        GBM gbm;
+        GBMRGB *gbmrgb;
+        ULONG byteswidth;
 
-   if(!BitmapFileHandle)
-      return 0;
+        /* Try to open the file */
+        if((fd = _gbm_io_open(file, O_RDONLY|O_BINARY)) == -1)
+            return 0;
 
-   /* find out how big the file is  */
-   DosQueryFileInfo(BitmapFileHandle, 1, &BitmapStatus,
-                sizeof(BitmapStatus));
+        /* guess the source file type from the source filename */
+        _gbm_guess_filetype(file, &ft);
 
-   /* allocate memory to load the bitmap */
-   DosAllocMem((PPVOID)&BitmapFileBegin, (ULONG)BitmapStatus.cbFile,
-            PAG_READ | PAG_WRITE | PAG_COMMIT);
+        /* Read the file header */
+        if(_gbm_read_header(file, fd, ft, &gbm, ""))
+        {
+            _gbm_io_close(fd);
+            return 0;
+        }
 
-   /* read bitmap file into memory buffer */
-   DosRead(BitmapFileHandle, (PVOID)BitmapFileBegin,
-         BitmapStatus.cbFile, &cbRead);
+        /* if less than 24-bit, then have palette */
+        if(gbm.bpp < 24)
+        {
+            gbmrgb = alloca(sizeof(GBMRGB));
+            /* Read the palette from the file */
+            if(_gbm_read_palette(fd, ft, &gbm, gbmrgb))
+            {
+                _gbm_io_close(fd);
+                return 0;
+            }
+        }
+        else
+            gbmrgb = NULL;
 
-   /* access first bytes as bitmap header */
-   pBitmapFileHeader = (PBITMAPFILEHEADER2)BitmapFileBegin;
+        /* Save the dimension for return */
+        *width = gbm.w;
+        *height = gbm.h;
+        byteswidth = (((gbm.w*gbm.bpp + 31)/32)*4);
+        /* Allocate a buffer to store the image */
+        DosAllocMem((PPVOID)&BitmapFileBegin, (ULONG)byteswidth * gbm.h,
+                    PAG_READ | PAG_WRITE | PAG_COMMIT);
 
-   /* check if it's a valid bitmap data file */
-   if((pBitmapFileHeader->usType != BFT_BITMAPARRAY) &&
-      (pBitmapFileHeader->usType != BFT_BMAP))
-   {
-      /* free memory of bitmap file buffer */
-      DosFreeMem(BitmapFileBegin);
-      /* close the bitmap file */
-      DosClose(BitmapFileHandle);
-      return 0;
-   }
+        /* Read the data into our buffer */
+        if(_gbm_read_data(fd, ft, &gbm, BitmapFileBegin))
+        {
+            _gbm_io_close(fd);
+            return 0;
+        }
 
-   /* check if it's a file with multiple bitmaps */
-   if(pBitmapFileHeader->usType == BFT_BITMAPARRAY)
-   {
-      /* we'll just use the first bitmap and ignore the others */
-      pBitmapFileHeader = &(((PBITMAPARRAYFILEHEADER2)BitmapFileBegin)->bfh2);
-   }
+        /* Close the file */
+        _gbm_io_close(fd);
 
-   /* set pointer to bitmap information block */
-   pBitmapInfoHeader = &pBitmapFileHeader->bmp2;
+        pBitmapInfoHeader = alloca(sizeof(BITMAPINFOHEADER2));
+        memset(pBitmapInfoHeader, 0, sizeof(BITMAPINFOHEADER2));
+        pBitmapInfoHeader->cbFix     = sizeof(BITMAPINFOHEADER2);
+        pBitmapInfoHeader->cx        = (SHORT)gbm.w;
+        pBitmapInfoHeader->cy        = (SHORT)gbm.h;
+        pBitmapInfoHeader->cPlanes   = (SHORT)1;
+        pBitmapInfoHeader->cBitCount = (SHORT)gbm.bpp;
 
-   /* find out if it's the new 2.0 format or the old format */
-   /* and query number of lines */
-   if(pBitmapInfoHeader->cbFix == sizeof(BITMAPINFOHEADER))
-   {
-      *height = ScanLines = (ULONG)((PBITMAPINFOHEADER)pBitmapInfoHeader)->cy;
-      *width = (ULONG)((PBITMAPINFOHEADER)pBitmapInfoHeader)->cx;
-   }
-   else
-   {
-      *height = ScanLines = pBitmapInfoHeader->cy;
-      *width = pBitmapInfoHeader->cx;
-   }
+        /* Put the bitmap bits into the destination */
+        BitmapBits = BitmapFileBegin;
+    }
+    else
+    {
+        HFILE BitmapFileHandle = NULLHANDLE; /* handle for the file */
+        ULONG OpenAction = 0;
+        FILESTATUS BitmapStatus;
+        ULONG cbRead;
+        PBITMAPFILEHEADER2 pBitmapFileHeader;
 
-   /* now we need a presentation space, get it from static control */
-   hps1 = WinGetPS(handle);
+        /* open bitmap file */
+        DosOpen((PSZ)file, &BitmapFileHandle, &OpenAction, 0L,
+                FILE_ARCHIVED | FILE_NORMAL | FILE_READONLY,
+                OPEN_ACTION_FAIL_IF_NEW | OPEN_ACTION_OPEN_IF_EXISTS,
+                OPEN_SHARE_DENYNONE | OPEN_ACCESS_READONLY |
+                OPEN_FLAGS_NOINHERIT, 0L);
 
-   hdc1    = GpiQueryDevice(hps1);
-   ulFlags = GpiQueryPS(hps1, &sizl);
+        if(!BitmapFileHandle)
+            return 0;
 
-   *hdc = DevOpenDC(dwhab, OD_MEMORY, (PSZ)"*", 0L, NULL, hdc1);
-   *hps = GpiCreatePS (dwhab, *hdc, &sizl, ulFlags | GPIA_ASSOC);
+        /* find out how big the file is  */
+        DosQueryFileInfo(BitmapFileHandle, 1, &BitmapStatus,
+                         sizeof(BitmapStatus));
 
-   /* create bitmap now using the parameters from the info block */
-   *hbm = GpiCreateBitmap(*hps, pBitmapInfoHeader, 0L, NULL, NULL);
+        /* allocate memory to load the bitmap */
+        DosAllocMem((PPVOID)&BitmapFileBegin, (ULONG)BitmapStatus.cbFile,
+                    PAG_READ | PAG_WRITE | PAG_COMMIT);
 
-   /* select the new bitmap into presentation space */
-   GpiSetBitmap(*hps, *hbm);
+        /* read bitmap file into memory buffer */
+        DosRead(BitmapFileHandle, (PVOID)BitmapFileBegin,
+                BitmapStatus.cbFile, &cbRead);
 
-   /* now copy the bitmap data into the bitmap */
-   GpiSetBitmapBits(*hps, 0L, ScanLines,
-                BitmapFileBegin + pBitmapFileHeader->offBits,
-                (PBITMAPINFO2)pBitmapInfoHeader);
+        /* access first bytes as bitmap header */
+        pBitmapFileHeader = (PBITMAPFILEHEADER2)BitmapFileBegin;
 
-   WinReleasePS(hps1);
+        /* check if it's a valid bitmap data file */
+        if((pBitmapFileHeader->usType != BFT_BITMAPARRAY) &&
+           (pBitmapFileHeader->usType != BFT_BMAP))
+        {
+            /* free memory of bitmap file buffer */
+            DosFreeMem(BitmapFileBegin);
+            /* close the bitmap file */
+            DosClose(BitmapFileHandle);
+            return 0;
+        }
 
-   /* free memory of bitmap file buffer */
-   DosFreeMem(BitmapFileBegin);
-   /* close the bitmap file */
-   DosClose(BitmapFileHandle);
-   return 1;
+        /* check if it's a file with multiple bitmaps */
+        if(pBitmapFileHeader->usType == BFT_BITMAPARRAY)
+        {
+            /* we'll just use the first bitmap and ignore the others */
+            pBitmapFileHeader = &(((PBITMAPARRAYFILEHEADER2)BitmapFileBegin)->bfh2);
+        }
+
+        /* set pointer to bitmap information block */
+        pBitmapInfoHeader = &pBitmapFileHeader->bmp2;
+
+        /* find out if it's the new 2.0 format or the old format */
+        /* and query number of lines */
+        if(pBitmapInfoHeader->cbFix == sizeof(BITMAPINFOHEADER))
+        {
+            *height = (ULONG)((PBITMAPINFOHEADER)pBitmapInfoHeader)->cy;
+            *width = (ULONG)((PBITMAPINFOHEADER)pBitmapInfoHeader)->cx;
+        }
+        else
+        {
+            *height = pBitmapInfoHeader->cy;
+            *width = pBitmapInfoHeader->cx;
+        }
+
+        /* Put the bitmap bits into the destination */
+        BitmapBits = BitmapFileBegin + pBitmapFileHeader->offBits;
+
+        /* close the bitmap file */
+        DosClose(BitmapFileHandle);
+    }
+
+    /* now we need a presentation space, get it from static control */
+    hps1 = WinGetPS(handle);
+
+    hdc1    = GpiQueryDevice(hps1);
+    ulFlags = GpiQueryPS(hps1, &sizl);
+
+    *hdc = DevOpenDC(dwhab, OD_MEMORY, (PSZ)"*", 0L, NULL, hdc1);
+    *hps = GpiCreatePS (dwhab, *hdc, &sizl, ulFlags | GPIA_ASSOC);
+
+    /* create bitmap now using the parameters from the info block */
+    *hbm = GpiCreateBitmap(*hps, pBitmapInfoHeader, 0L, NULL, NULL);
+
+    /* select the new bitmap into presentation space */
+    GpiSetBitmap(*hps, *hbm);
+
+    /* now copy the bitmap data into the bitmap */
+    GpiSetBitmapBits(*hps, 0L, *height,
+                     BitmapBits,
+                     (PBITMAPINFO2)pBitmapInfoHeader);
+
+    WinReleasePS(hps1);
+
+    /* free memory of bitmap file buffer */
+    if(BitmapFileBegin)
+        DosFreeMem(BitmapFileBegin);
+    return 1;
 }
 
 /*
@@ -10201,7 +10314,7 @@ HPIXMAP API dw_pixmap_new(HWND handle, unsigned long width, unsigned long height
    HDC hdc;
    HPS hps;
    ULONG ulFlags;
-    LONG cPlanes, cBitCount;
+   LONG cPlanes, cBitCount;
 
    if (!(pixmap = calloc(1,sizeof(struct _hpixmap))))
       return NULL;
@@ -11019,6 +11132,10 @@ void API dw_exit(int exitcode)
     */
    Root = NULL;
 
+   /* Deinit the GBM */
+   if(_gbm_deinit)
+       _gbm_deinit();
+
    /* Destroy the main message queue and anchor block */
    WinDestroyMsgQueue(dwhmq);
    WinTerminate(dwhab);
@@ -11027,6 +11144,7 @@ void API dw_exit(int exitcode)
    DosFreeModule(wpconfig);
    DosFreeModule(pmprintf);
    DosFreeModule(pmmerge);
+   DosFreeModule(gbm);
    
    /* And finally exit */
    exit(exitcode);
