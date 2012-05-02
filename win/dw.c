@@ -10114,13 +10114,17 @@ void _convert_dpi(HDC hdc, int *x, int *y, int mult)
    {
       if(mult)
       {
-         *x *= ratiox;
-         *y *= ratioy;
+         if(x)
+            *x *= ratiox;
+         if(y)
+            *y *= ratioy;
       }
       else
       {
-         *x /= ratiox;
-         *y /= ratioy;
+         if(x)
+            *x /= ratiox;
+         if(y)
+            *y /= ratioy;
       }
    }
 }
@@ -10232,15 +10236,15 @@ void API dw_font_text_extents_get(HWND handle, HPIXMAP pixmap, char *text, int *
 
    GetTextExtentPoint32(hdc, wtext, (int)_tcslen(wtext), &sz);
 
-#ifdef GDIPLUS
-   _convert_dpi(hdc, &(sz.cx), &(sz.cy), FALSE);
-#endif
-
    if(width)
       *width = sz.cx;
 
    if(height)
       *height = sz.cy;
+
+#ifdef GDIPLUS
+   _convert_dpi(hdc, width, height, FALSE);
+#endif
 
    SelectObject(hdc, oldFont);
    if(mustdelete)
@@ -11708,7 +11712,7 @@ int API dw_print_run(HPRINT print, unsigned long flags)
 {
     DWPrint *p = print;
     HPIXMAP pixmap;
-    int x, result = DW_ERROR_UNKNOWN;
+    int x, width, height, result = DW_ERROR_UNKNOWN;
     
     if(!p)
         return result;
@@ -11716,17 +11720,20 @@ int API dw_print_run(HPRINT print, unsigned long flags)
     if (!(pixmap = calloc(1,sizeof(struct _hpixmap))))
         return result;
 
-    pixmap->width = GetDeviceCaps(p->pd.hDC, HORZRES); 
-    pixmap->height = GetDeviceCaps(p->pd.hDC, VERTRES);
+    width = GetDeviceCaps(p->pd.hDC, HORZRES); 
+    height = GetDeviceCaps(p->pd.hDC, VERTRES);
 
-    pixmap->hbm = CreateCompatibleBitmap(p->pd.hDC, pixmap->width, pixmap->height);
+    pixmap->hbm = CreateCompatibleBitmap(p->pd.hDC, width, height);
     pixmap->hdc = p->pd.hDC;
     pixmap->transcolor = DW_RGB_TRANSPARENT;
 
 #ifdef GDIPLUS
    /* Convert the size based on the DPI */
-   _convert_dpi(pixmap->hdc, &(pixmap->width), &(pixmap->height), FALSE);
+   _convert_dpi(pixmap->hdc, &width, &height, FALSE);
 #endif
+
+    pixmap->width = width;
+    pixmap->height = height;
 
     SelectObject(pixmap->hdc, pixmap->hbm);
 
