@@ -243,6 +243,7 @@ typedef struct _hpixmap {
    HBITMAP hbm;
    HWND handle, font;
    unsigned long transcolor;
+   int depth;
 } *HPIXMAP;
 
 typedef void *HTREEITEM;
