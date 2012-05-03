@@ -60,7 +60,7 @@ MRESULT EXPENTRY _wndproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2);
 MRESULT EXPENTRY _scrollwndproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2);
 void _do_resize(Box *thisbox, int x, int y);
 void _handle_splitbar_resize(HWND hwnd, float percent, int type, int x, int y);
-int _load_bitmap_file(char *file, HWND handle, HBITMAP *hbm, HDC *hdc, HPS *hps, unsigned long *width, unsigned long *height);
+int _load_bitmap_file(char *file, HWND handle, HBITMAP *hbm, HDC *hdc, HPS *hps, unsigned long *width, unsigned long *height, int *depth);
 void _free_menu_data(HWND menu);
 BOOL (API_FUNC _WinQueryDesktopWorkArea)(HWND hwndDesktop, PWRECT pwrcWorkArea) = 0;
 /* PMPrintf support for dw_debug() */
@@ -5072,6 +5072,7 @@ void _control_size(HWND handle, int *width, int *height)
               HPOINTER hpr = (HPOINTER)dw_window_get_data(handle, "_dw_button_icon");
               HBITMAP hbm = 0;
               int iconwidth = DW_POINTER_TO_INT(dw_window_get_data(handle, "_dw_button_icon_width"));
+              HPIXMAP pixmap = (HPIXMAP)dw_window_get_data(handle, "_dw_hpixmap");
 
               /* Handle case of icon resource */
               if(hpr)
@@ -5086,6 +5087,12 @@ void _control_size(HWND handle, int *width, int *height)
                       if(WinQueryPointerInfo(hpr, &pi))
                           hbm = pi.hbmColor ? pi.hbmColor : pi.hbmPointer;
                   }
+              }
+              /* Handle case of pixmap resource */
+              else if(pixmap)
+              {
+                  thiswidth = pixmap->width;
+                  thisheight = pixmap->height;
               }
 
               /* If we didn't load it from the icon... */
@@ -6374,7 +6381,7 @@ HWND API dw_bitmapbutton_new_from_file(char *text, unsigned long id, char *filen
             if(stricmp(file + len - 4, ".ico") == 0)
                icon = WinLoadFileIcon((PSZ)file, FALSE);
             else
-               _load_bitmap_file(file, tmp, &pixmap->hbm, &pixmap->hdc, &pixmap->hps, &pixmap->width, &pixmap->height);
+               _load_bitmap_file(file, tmp, &pixmap->hbm, &pixmap->hdc, &pixmap->hps, &pixmap->width, &pixmap->height, &pixmap->depth);
          }
       }
       else
@@ -6390,7 +6397,7 @@ HWND API dw_bitmapbutton_new_from_file(char *text, unsigned long id, char *filen
                 strcpy(file, filename);
                 strcat(file, image_exts[z]);
                 if(access(file, 04) == 0 &&
-                   _load_bitmap_file(file, tmp, &pixmap->hbm, &pixmap->hdc, &pixmap->hps, &pixmap->width, &pixmap->height))
+                   _load_bitmap_file(file, tmp, &pixmap->hbm, &pixmap->hdc, &pixmap->hps, &pixmap->width, &pixmap->height, &pixmap->depth))
                     break;
             }
          }
@@ -6478,7 +6485,7 @@ HWND API dw_bitmapbutton_new_from_data(char *text, unsigned long id, char *data,
          {
             fwrite( data, 1, len, fp );
             fclose( fp );
-            if(!_load_bitmap_file( file, tmp, &pixmap->hbm, &pixmap->hdc, &pixmap->hps, &pixmap->width, &pixmap->height));
+            if(!_load_bitmap_file( file, tmp, &pixmap->hbm, &pixmap->hdc, &pixmap->hps, &pixmap->width, &pixmap->height, &pixmap->depth));
             {
                icon = WinLoadFileIcon((PSZ)file, FALSE);
             }
@@ -6742,7 +6749,7 @@ void API dw_window_set_icon(HWND handle, HICN icon)
 /* Internal function to load a bitmap from a file and return handles
  * to the bitmap, presentation space etc.
  */
-int _load_bitmap_file(char *file, HWND handle, HBITMAP *hbm, HDC *hdc, HPS *hps, unsigned long *width, unsigned long *height)
+int _load_bitmap_file(char *file, HWND handle, HBITMAP *hbm, HDC *hdc, HPS *hps, unsigned long *width, unsigned long *height, int *depth)
 {
     PBITMAPINFOHEADER2 pBitmapInfoHeader;
     /* pointer to the first byte of bitmap data  */
@@ -6804,6 +6811,7 @@ int _load_bitmap_file(char *file, HWND handle, HBITMAP *hbm, HDC *hdc, HPS *hps,
         /* Save the dimension for return */
         *width = gbm.w;
         *height = gbm.h;
+        *depth = gbm.bpp;
         byteswidth = (((gbm.w*gbm.bpp + 31)/32)*4);
 
         /* Allocate a buffer to store the image */
@@ -6895,11 +6903,13 @@ int _load_bitmap_file(char *file, HWND handle, HBITMAP *hbm, HDC *hdc, HPS *hps,
         {
             *height = (ULONG)((PBITMAPINFOHEADER)pBitmapInfoHeader)->cy;
             *width = (ULONG)((PBITMAPINFOHEADER)pBitmapInfoHeader)->cx;
+            *depth = (int)((PBITMAPINFOHEADER)pBitmapInfoHeader)->cBitCount;
         }
         else
         {
             *height = pBitmapInfoHeader->cy;
             *width = pBitmapInfoHeader->cx;
+            *depth = pBitmapInfoHeader->cBitCount;
         }
 
         /* Put the bitmap bits into the destination */
@@ -6966,6 +6976,7 @@ void API dw_window_set_bitmap(HWND handle, unsigned long id, char *filename)
       HDC hdc = 0;
       unsigned long width, height;
       char *file = alloca(strlen(filename) + 6);
+      int depth;
 
       if(!file)
          return;
@@ -6983,7 +6994,7 @@ void API dw_window_set_bitmap(HWND handle, unsigned long id, char *filename)
               strcpy(file, filename);
               strcat(file, image_exts[z]);
               if(access(file, 04) == 0 &&
-                 _load_bitmap_file(file, handle, &hbm, &hdc, &hps, &width, &height))
+                 _load_bitmap_file(file, handle, &hbm, &hdc, &hps, &width, &height, &depth))
                   break;
           }
       }
@@ -7037,6 +7048,7 @@ void API dw_window_set_bitmap_from_data(HWND handle, unsigned long id, char *dat
    unsigned long width, height;
    char *file;
    FILE *fp;
+   int depth;
 
    /* Destroy any old bitmap data */
    _free_bitmap(handle);
@@ -7057,7 +7069,7 @@ void API dw_window_set_bitmap_from_data(HWND handle, unsigned long id, char *dat
          {
             fwrite( data, 1, len, fp );
             fclose( fp );
-            if(!_load_bitmap_file(file, handle, &hbm, &hdc, &hps, &width, &height))
+            if(!_load_bitmap_file(file, handle, &hbm, &hdc, &hps, &width, &height, &depth))
             {
                /* can't use ICO ? */
                unlink( file );
@@ -8894,6 +8906,43 @@ HICN API dw_icon_load(unsigned long module, unsigned long id)
    return WinLoadPointer(HWND_DESKTOP,module,id);
 }
 
+/* Internal function to create an icon from an existing pixmap */
+HICN _create_icon(char *file, HPIXMAP src)
+{
+    HPIXMAP pntr = dw_pixmap_new(hwndApp, WinQuerySysValue(HWND_DESKTOP, SV_CXICON), WinQuerySysValue(HWND_DESKTOP, SV_CYICON), src->depth);
+    HPIXMAP mask = dw_pixmap_new(hwndApp, pntr->width, pntr->height, 1);
+    HPIXMAP minipntr = dw_pixmap_new(hwndApp, pntr->width/2, pntr->height/2, src->depth);
+    HPIXMAP minimask = dw_pixmap_new(hwndApp, minipntr->width, minipntr->height, 1);
+    ULONG oldcol = _foreground;
+    POINTERINFO pi = {0};
+
+    /* Create the color pointers, stretching it to the necessary size */
+    dw_pixmap_stretch_bitblt(0, pntr, 0, 0, pntr->width, pntr->height, 0, src, 0, 0, src->width, src->height);
+    dw_pixmap_stretch_bitblt(0, minipntr, 0, 0, minipntr->width, minipntr->height, 0, src, 0, 0, src->width, src->height);
+
+    /* Create the masks, all in black */
+    dw_color_foreground_set(DW_CLR_BLACK);
+    dw_draw_rect(0, mask, DW_DRAW_FILL, 0, 0, mask->width, mask->height);
+    dw_draw_rect(0, minimask, DW_DRAW_FILL, 0, 0, minimask->width, minimask->height);
+    _foreground = oldcol;
+
+    /* Assemble the Pointer Info structure */
+    pi.hbmPointer = mask->hbm;
+    pi.hbmColor = pntr->hbm;
+    pi.hbmMiniPointer = minimask->hbm;
+    pi.hbmMiniColor = minipntr->hbm;
+
+    /* Destroy the pixmaps but not the bitmaps */
+    mask->hbm = pntr->hbm = minimask->hbm = minipntr->hbm = 0;
+    dw_pixmap_destroy(mask);
+    dw_pixmap_destroy(pntr);
+    dw_pixmap_destroy(minimask);
+    dw_pixmap_destroy(minipntr);
+
+    /* Generate the icon */
+    return WinCreatePointerIndirect(HWND_DESKTOP, &pi);
+}
+
 /*
  * Obtains an icon from a file.
  * Parameters:
@@ -8903,9 +8952,10 @@ HICN API dw_icon_load(unsigned long module, unsigned long id)
  */
 HICN API dw_icon_load_from_file(char *filename)
 {
-   char *file = alloca(strlen(filename) + 5);
+   char *file = alloca(strlen(filename) + 6);
+   HPIXMAP src = alloca(sizeof(struct _hpixmap));
 
-   if(!file)
+   if(!file || !src)
       return 0;
 
    strcpy(file, filename);
@@ -8913,11 +8963,27 @@ HICN API dw_icon_load_from_file(char *filename)
    /* check if we can read from this file (it exists and read permission) */
    if(access(file, 04) != 0)
    {
-      /* Try with .bmp extention */
-      strcat(file, ".ico");
-      if(access(file, 04) != 0)
-         return 0;
+       int z;
+
+       /* Try with .ico extention */
+       strcat(file, ".ico");
+       if(access(file, 04) == 0)
+           return WinLoadFileIcon((PSZ)file, FALSE);
+
+       /* Try with supported extensions */
+       for(z=0;z<(_gbm_init?NUM_EXTS:1);z++)
+       {
+           strcpy(file, filename);
+           strcat(file, image_exts[z]);
+           if(access(file, 04) == 0 &&
+              _load_bitmap_file(file, hwndApp, &src->hbm, &src->hdc, &src->hps, &src->width, &src->height, &src->depth))
+               return _create_icon(file, src);
+       }
+       return 0;
    }
+   else if(_load_bitmap_file(file, hwndApp, &src->hbm, &src->hdc, &src->hps, &src->width, &src->height, &src->depth))
+       return _create_icon(file, src);
+   /* Otherwise fall back to the classic method */
    return WinLoadFileIcon((PSZ)file, FALSE);
 }
 
@@ -8944,12 +9010,7 @@ HICN API dw_icon_load_from_data(char *data, int len)
       {
          fwrite( data, 1, len, fp );
          fclose( fp );
-         icon = WinLoadFileIcon( (PSZ)file, FALSE );
-      }
-      else
-      {
-         unlink( file );
-         return 0;
+         icon = dw_icon_load_from_file(file);
       }
       unlink( file );
    }
@@ -10386,6 +10447,7 @@ HPIXMAP API dw_pixmap_new(HWND handle, unsigned long width, unsigned long height
 
    pixmap->width = width; pixmap->height = height;
    pixmap->transcolor = DW_CLR_DEFAULT;
+   pixmap->depth = depth;
 
    pixmap->hbm = GpiCreateBitmap(pixmap->hps, (PBITMAPINFOHEADER2)&bmih, 0L, NULL, NULL);
 
@@ -10430,7 +10492,7 @@ HPIXMAP API dw_pixmap_new_from_file(HWND handle, char *filename)
            strcpy(file, filename);
            strcat(file, image_exts[z]);
            if(access(file, 04) == 0 &&
-              _load_bitmap_file(file, handle, &pixmap->hbm, &pixmap->hdc, &pixmap->hps, &pixmap->width, &pixmap->height))
+              _load_bitmap_file(file, handle, &pixmap->hbm, &pixmap->hdc, &pixmap->hps, &pixmap->width, &pixmap->height, &pixmap->depth))
                break;
        }
    }
@@ -10476,7 +10538,7 @@ HPIXMAP API dw_pixmap_new_from_data(HWND handle, char *data, int len)
       {
          fwrite( data, 1, len, fp );
          fclose( fp );
-         if(!_load_bitmap_file(file, handle, &pixmap->hbm, &pixmap->hdc, &pixmap->hps, &pixmap->width, &pixmap->height))
+         if(!_load_bitmap_file(file, handle, &pixmap->hbm, &pixmap->hdc, &pixmap->hps, &pixmap->width, &pixmap->height, &pixmap->depth))
          {
             /* can't use ICO ? */
             unlink( file );
