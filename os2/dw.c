@@ -76,17 +76,15 @@ typedef struct { unsigned char r, g, b; } GBMRGB;
 #pragma pack()
 int (API_FUNC _gbm_init)(void) = 0;
 int (API_FUNC _gbm_deinit)(void) = 0;
-int (API_FUNC _gbm_guess_filetype)(const char *fn, int *type) = 0;
+int (API_FUNC _gbm_query_n_filetypes)(int *count) = 0;
 int (API_FUNC _gbm_io_open)(const char *fn, int mode) = 0;
 int (API_FUNC _gbm_io_close)(int fd) = 0;
 int (API_FUNC _gbm_read_header)(const char *fn, int fd, int ft, GBM *gbm, const char *info) = 0;
 int (API_FUNC _gbm_read_palette)(int fd, int ft, GBM *gbm, GBMRGB *gbmrgb) = 0;
 int (API_FUNC _gbm_read_data)(int fd, int ft, GBM *gbm, unsigned char *data) = 0;
-
+const char * (API_FUNC _gbm_err)(int rc) = 0;
 /*
- * List those icons that have transparency first
- * GDI+ List of supported formats: BMP, ICON, GIF, JPEG, Exif, PNG, TIFF, WMF, and EMF.
- * Not sure if we should include all these or not... maybe we should add TIFF and GIF?
+ * GBM List of supported formats: BMP, PNG, JPEG, Targa, TIFF and XPM.
  */
 #define NUM_EXTS 8
 char *image_exts[NUM_EXTS] =
@@ -4149,6 +4147,7 @@ int API dw_init(int newthread, int argc, char *argv[])
    if(!DosLoadModule((PSZ)objnamebuf, sizeof(objnamebuf), (PSZ)"GBM", &gbm))
    {
        /* Load the _System versions of the functions from the library */
+       DosQueryProcAddr(gbm, 0, (PSZ)"Gbm_err", (PFN*)&_gbm_err);
        DosQueryProcAddr(gbm, 0, (PSZ)"Gbm_init", (PFN*)&_gbm_init);
        DosQueryProcAddr(gbm, 0, (PSZ)"Gbm_deinit", (PFN*)&_gbm_deinit);
        DosQueryProcAddr(gbm, 0, (PSZ)"Gbm_io_open", (PFN*)&_gbm_io_open);
@@ -4156,13 +4155,13 @@ int API dw_init(int newthread, int argc, char *argv[])
        DosQueryProcAddr(gbm, 0, (PSZ)"Gbm_read_data", (PFN*)&_gbm_read_data);
        DosQueryProcAddr(gbm, 0, (PSZ)"Gbm_read_header", (PFN*)&_gbm_read_header);
        DosQueryProcAddr(gbm, 0, (PSZ)"Gbm_read_palette", (PFN*)&_gbm_read_palette);
-       DosQueryProcAddr(gbm, 0, (PSZ)"Gbm_guess_filetype", (PFN*)&_gbm_guess_filetype);
+       DosQueryProcAddr(gbm, 0, (PSZ)"Gbm_query_n_filetypes", (PFN*)&_gbm_query_n_filetypes);
        /* If we got the functions, try to initialize the library */
        if(!_gbm_init || _gbm_init())
        {
            /* Otherwise clear out the function pointers */
-           _gbm_init=0;_gbm_deinit=0;_gbm_io_open=0;_gbm_io_close=0;_gbm_guess_filetype=0;
-           _gbm_read_header=0;_gbm_read_palette=0;_gbm_read_data=0;
+           _gbm_init=0;_gbm_deinit=0;_gbm_io_open=0;_gbm_io_close=0;_gbm_query_n_filetypes=0;
+           _gbm_read_header=0;_gbm_read_palette=0;_gbm_read_data=0;_gbm_err=0;
        }
    }
    return rc;
@@ -6756,7 +6755,7 @@ int _load_bitmap_file(char *file, HWND handle, HBITMAP *hbm, HDC *hdc, HPS *hps,
     /* If we have GBM support open the file using GBM */
     if(_gbm_init)
     {
-        int fd, ft = 0;
+        int fd, z, err = -1, ft = 0;
         GBM gbm;
         GBMRGB *gbmrgb;
         ULONG byteswidth;
@@ -6766,11 +6765,19 @@ int _load_bitmap_file(char *file, HWND handle, HBITMAP *hbm, HDC *hdc, HPS *hps,
             return 0;
 
         /* guess the source file type from the source filename */
-        _gbm_guess_filetype(file, &ft);
+        _gbm_query_n_filetypes(&ft);
 
-        /* Read the file header */
-        if(_gbm_read_header(file, fd, ft, &gbm, ""))
+        for(z=0;z<ft;z++)
         {
+            /* Read the file header */
+            if((err = _gbm_read_header(file, fd, z, &gbm, "")) == 0 && gbm.bpp > 1)
+                break;
+        }
+
+        /* If we failed to load the header */
+        if(err)
+        {
+            dw_debug("GBM: Read header type %d \"%s\" %d %s\n", z, file, err, _gbm_err(err));
             _gbm_io_close(fd);
             return 0;
         }
@@ -6780,8 +6787,9 @@ int _load_bitmap_file(char *file, HWND handle, HBITMAP *hbm, HDC *hdc, HPS *hps,
         {
             gbmrgb = alloca(sizeof(GBMRGB));
             /* Read the palette from the file */
-            if(_gbm_read_palette(fd, ft, &gbm, gbmrgb))
+            if((err = _gbm_read_palette(fd, z, &gbm, gbmrgb)) != 0)
             {
+                dw_debug("GBM: Read palette type %d \"%s\" %d %s\n", z, file, err, _gbm_err(err));
                 _gbm_io_close(fd);
                 return 0;
             }
@@ -6793,14 +6801,18 @@ int _load_bitmap_file(char *file, HWND handle, HBITMAP *hbm, HDC *hdc, HPS *hps,
         *width = gbm.w;
         *height = gbm.h;
         byteswidth = (((gbm.w*gbm.bpp + 31)/32)*4);
+        /*dw_debug("Read header %dx%d bpp %d bytes wide %d bytes total %d \"%s\"\n", *width, *height, gbm.bpp, byteswidth, byteswidth * gbm.h, file);*/
+
         /* Allocate a buffer to store the image */
         DosAllocMem((PPVOID)&BitmapFileBegin, (ULONG)byteswidth * gbm.h,
                     PAG_READ | PAG_WRITE | PAG_COMMIT);
 
         /* Read the data into our buffer */
-        if(_gbm_read_data(fd, ft, &gbm, BitmapFileBegin))
+        if((err = _gbm_read_data(fd, z, &gbm, BitmapFileBegin)) != 0)
         {
+            dw_debug("GBM: Read data type %d \"%s\" %d %s\n", z, file, err, _gbm_err(err));
             _gbm_io_close(fd);
+            DosFreeMem(BitmapFileBegin);
             return 0;
         }
 
@@ -6946,7 +6958,7 @@ void API dw_window_set_bitmap(HWND handle, unsigned long id, char *filename)
    }
    else if ( filename )
    {
-      HDC hdc;
+      HDC hdc = 0;
       unsigned long width, height;
       char *file = alloca(strlen(filename) + 6);
 
@@ -6965,12 +6977,13 @@ void API dw_window_set_bitmap(HWND handle, unsigned long id, char *filename)
           {
               strcpy(file, filename);
               strcat(file, image_exts[z]);
-              if(access(file, 04) == 0)
+              if(access(file, 04) == 0 &&
+                 _load_bitmap_file(file, handle, &hbm, &hdc, &hps, &width, &height))
                   break;
           }
       }
 
-      if(!_load_bitmap_file(file, handle, &hbm, &hdc, &hps, &width, &height))
+      if(!hdc)
          return;
 
       dw_window_set_data(handle, "_dw_hps", (void *)hps);
@@ -10411,13 +10424,14 @@ HPIXMAP API dw_pixmap_new_from_file(HWND handle, char *filename)
        {
            strcpy(file, filename);
            strcat(file, image_exts[z]);
-           if(access(file, 04) == 0)
+           if(access(file, 04) == 0 &&
+              _load_bitmap_file(file, handle, &pixmap->hbm, &pixmap->hdc, &pixmap->hps, &pixmap->width, &pixmap->height))
                break;
        }
    }
 
    /* Try to load the bitmap from file */
-   if ( !_load_bitmap_file(file, handle, &pixmap->hbm, &pixmap->hdc, &pixmap->hps, &pixmap->width, &pixmap->height) )
+   if(!pixmap->hbm)
    {
       free(pixmap);
       return NULL;
