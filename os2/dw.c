@@ -8910,9 +8910,9 @@ HICN API dw_icon_load(unsigned long module, unsigned long id)
 HICN _create_icon(char *file, HPIXMAP src)
 {
     HPIXMAP pntr = dw_pixmap_new(hwndApp, WinQuerySysValue(HWND_DESKTOP, SV_CXICON), WinQuerySysValue(HWND_DESKTOP, SV_CYICON), src->depth);
-    HPIXMAP mask = dw_pixmap_new(hwndApp, pntr->width, pntr->height, 1);
+    HPIXMAP mask = dw_pixmap_new(hwndApp, pntr->width, pntr->height*2, 1);
     HPIXMAP minipntr = dw_pixmap_new(hwndApp, pntr->width/2, pntr->height/2, src->depth);
-    HPIXMAP minimask = dw_pixmap_new(hwndApp, minipntr->width, minipntr->height, 1);
+    HPIXMAP minimask = dw_pixmap_new(hwndApp, minipntr->width, minipntr->height*2, 1);
     ULONG oldcol = _foreground;
     POINTERINFO pi = {0};
 
