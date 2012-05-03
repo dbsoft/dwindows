@@ -83,6 +83,25 @@ int (API_FUNC _gbm_read_header)(const char *fn, int fd, int ft, GBM *gbm, const 
 int (API_FUNC _gbm_read_palette)(int fd, int ft, GBM *gbm, GBMRGB *gbmrgb) = 0;
 int (API_FUNC _gbm_read_data)(int fd, int ft, GBM *gbm, unsigned char *data) = 0;
 
+/*
+ * List those icons that have transparency first
+ * GDI+ List of supported formats: BMP, ICON, GIF, JPEG, Exif, PNG, TIFF, WMF, and EMF.
+ * Not sure if we should include all these or not... maybe we should add TIFF and GIF?
+ */
+#define NUM_EXTS 8
+char *image_exts[NUM_EXTS] =
+{
+   ".bmp",
+   ".png",
+   ".jpg",
+   ".jpeg",
+   ".tga",
+   ".tif",
+   ".tiff",
+   ".xpm"
+};
+
+
 char ClassName[] = "dynamicwindows";
 char SplitbarClassName[] = "dwsplitbar";
 char ScrollClassName[] = "dwscroll";
@@ -4782,6 +4801,7 @@ void _control_size(HWND handle, int *width, int *height)
    {
        HBITMAP hbm = (HBITMAP)WinSendMsg(handle, SM_QUERYHANDLE, MPVOID, MPVOID);
 
+       /* If we got a bitmap handle */
        if(hbm)
        {
             BITMAPINFOHEADER2 bmp;
@@ -6335,7 +6355,7 @@ HWND API dw_bitmapbutton_new_from_file(char *text, unsigned long id, char *filen
                         id,
                         NULL,
                         NULL);
-   char *file = alloca(strlen(filename) + 5);
+   char *file = alloca(strlen(filename) + 6);
    HPIXMAP pixmap = NULL, disabled = NULL;
    HPOINTER icon = 0;
 
@@ -6366,10 +6386,14 @@ HWND API dw_bitmapbutton_new_from_file(char *text, unsigned long id, char *filen
             icon = WinLoadFileIcon((PSZ)file, FALSE);
          else
          {
-            strcpy(file, filename);
-            strcat(file, ".bmp");
-            if(access(file, 04) == 0)
-               _load_bitmap_file(file, tmp, &pixmap->hbm, &pixmap->hdc, &pixmap->hps, &pixmap->width, &pixmap->height);
+            for(z=0;z<(_gbm_init?NUM_EXTS:1);z++)
+            {
+                strcpy(file, filename);
+                strcat(file, image_exts[z]);
+                if(access(file, 04) == 0 &&
+                   _load_bitmap_file(file, tmp, &pixmap->hbm, &pixmap->hdc, &pixmap->hps, &pixmap->width, &pixmap->height))
+                    break;
+            }
          }
       }
 
@@ -6455,11 +6479,7 @@ HWND API dw_bitmapbutton_new_from_data(char *text, unsigned long id, char *data,
          {
             fwrite( data, 1, len, fp );
             fclose( fp );
-            if ( len > 1 && data[0] == 'B' && data[1] == 'M' ) /* first 2 chars of data is BM, then its a BMP */
-            {
-               _load_bitmap_file( file, tmp, &pixmap->hbm, &pixmap->hdc, &pixmap->hps, &pixmap->width, &pixmap->height );
-            }
-            else /* otherwise its assumed to be an ico */
+            if(!_load_bitmap_file( file, tmp, &pixmap->hbm, &pixmap->hdc, &pixmap->hps, &pixmap->width, &pixmap->height));
             {
                icon = WinLoadFileIcon((PSZ)file, FALSE);
             }
@@ -6928,7 +6948,7 @@ void API dw_window_set_bitmap(HWND handle, unsigned long id, char *filename)
    {
       HDC hdc;
       unsigned long width, height;
-      char *file = alloca(strlen(filename) + 5);
+      char *file = alloca(strlen(filename) + 6);
 
       if(!file)
          return;
@@ -6938,10 +6958,16 @@ void API dw_window_set_bitmap(HWND handle, unsigned long id, char *filename)
       /* check if we can read from this file (it exists and read permission) */
       if(access(file, 04) != 0)
       {
-         /* Try with .bmp extention */
-         strcat(file, ".bmp");
-         if(access(file, 04) != 0)
-            return;
+          int z;
+
+          /* Try with supported extensions */
+          for(z=0;z<(_gbm_init?NUM_EXTS:1);z++)
+          {
+              strcpy(file, filename);
+              strcat(file, image_exts[z]);
+              if(access(file, 04) == 0)
+                  break;
+          }
       }
 
       if(!_load_bitmap_file(file, handle, &hbm, &hdc, &hps, &width, &height))
@@ -7013,11 +7039,9 @@ void API dw_window_set_bitmap_from_data(HWND handle, unsigned long id, char *dat
          {
             fwrite( data, 1, len, fp );
             fclose( fp );
-            if ( len > 1 && data[0] == 'B' && data[1] == 'M' ) /* first 2 chars of data is BM, then its a BMP */
-               _load_bitmap_file(file, handle, &hbm, &hdc, &hps, &width, &height);
-            else /* otherwise its assumed to be an ico */
+            if(!_load_bitmap_file(file, handle, &hbm, &hdc, &hps, &width, &height))
             {
-               /* con't use ICO ? */
+               /* can't use ICO ? */
                unlink( file );
                return;
             }
@@ -10380,13 +10404,16 @@ HPIXMAP API dw_pixmap_new_from_file(HWND handle, char *filename)
    /* check if we can read from this file (it exists and read permission) */
    if ( access(file, 04) != 0 )
    {
-      /* Try with .bmp extention */
-      strcat(file, ".bmp");
-      if ( access(file, 04) != 0 )
-      {
-         free(pixmap);
-         return NULL;
-      }
+       int z;
+
+       /* Try with supported extensions */
+       for(z=0;z<(_gbm_init?NUM_EXTS:1);z++)
+       {
+           strcpy(file, filename);
+           strcat(file, image_exts[z]);
+           if(access(file, 04) == 0)
+               break;
+       }
    }
 
    /* Try to load the bitmap from file */
@@ -10430,18 +10457,9 @@ HPIXMAP API dw_pixmap_new_from_data(HWND handle, char *data, int len)
       {
          fwrite( data, 1, len, fp );
          fclose( fp );
-         if ( len > 1 && data[0] == 'B' && data[1] == 'M' ) /* first 2 chars of data is BM, then its a BMP */
+         if(!_load_bitmap_file(file, handle, &pixmap->hbm, &pixmap->hdc, &pixmap->hps, &pixmap->width, &pixmap->height))
          {
-            /* Try to load the bitmap from file */
-            if ( !_load_bitmap_file(file, handle, &pixmap->hbm, &pixmap->hdc, &pixmap->hps, &pixmap->width, &pixmap->height) )
-            {
-               free(pixmap);
-               return NULL;
-            }
-         }
-         else /* otherwise its assumed to be an ico */
-         {
-            /* con't use ICO ? */
+            /* can't use ICO ? */
             unlink( file );
             return NULL;
          }
@@ -11351,7 +11369,7 @@ void API dw_window_click_default(HWND window, HWND next)
  *       Pointer to an allocated string of text or NULL if clipboard empty or contents could not
  *       be converted to text.
  */
-char *dw_clipboard_get_text()
+char * API dw_clipboard_get_text(void)
 {
     APIRET rc;
     char *retbuf = NULL;
@@ -11374,7 +11392,7 @@ char *dw_clipboard_get_text()
  * Parameters:
  *       Text.
  */
-void dw_clipboard_set_text( char *str, int len )
+void API dw_clipboard_set_text( char *str, int len )
 {
     APIRET rc;
     static PVOID shared;
