@@ -8907,7 +8907,7 @@ HICN API dw_icon_load(unsigned long module, unsigned long id)
 }
 
 /* Internal function to create an icon from an existing pixmap */
-HICN _create_icon(char *file, HPIXMAP src)
+HICN _create_icon(HPIXMAP src)
 {
     HPIXMAP pntr = dw_pixmap_new(hwndApp, WinQuerySysValue(HWND_DESKTOP, SV_CXICON), WinQuerySysValue(HWND_DESKTOP, SV_CYICON), src->depth);
     HPIXMAP mask = dw_pixmap_new(hwndApp, pntr->width, pntr->height*2, 1);
@@ -8954,6 +8954,7 @@ HICN API dw_icon_load_from_file(char *filename)
 {
    char *file = alloca(strlen(filename) + 6);
    HPIXMAP src = alloca(sizeof(struct _hpixmap));
+   HICN icon = 0;
 
    if(!file || !src)
       return 0;
@@ -8977,14 +8978,25 @@ HICN API dw_icon_load_from_file(char *filename)
            strcat(file, image_exts[z]);
            if(access(file, 04) == 0 &&
               _load_bitmap_file(file, hwndApp, &src->hbm, &src->hdc, &src->hps, &src->width, &src->height, &src->depth))
-               return _create_icon(file, src);
+           {
+               icon = _create_icon(src);
+               break;
+           }
        }
-       return 0;
    }
    else if(_load_bitmap_file(file, hwndApp, &src->hbm, &src->hdc, &src->hps, &src->width, &src->height, &src->depth))
-       return _create_icon(file, src);
+       icon = _create_icon(src);
+   /* Free temporary resources if in use */
+   if(icon)
+   {
+       GpiSetBitmap(src->hps, NULLHANDLE);
+       GpiDeleteBitmap(src->hbm);
+       GpiAssociate(src->hps, NULLHANDLE);
+       GpiDestroyPS(src->hps);
+       DevCloseDC(src->hdc);
+   }
    /* Otherwise fall back to the classic method */
-   return WinLoadFileIcon((PSZ)file, FALSE);
+   return icon ? icon : WinLoadFileIcon((PSZ)file, FALSE);
 }
 
 /*
