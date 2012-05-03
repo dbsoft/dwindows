@@ -6770,14 +6770,16 @@ int _load_bitmap_file(char *file, HWND handle, HBITMAP *hbm, HDC *hdc, HPS *hps,
         for(z=0;z<ft;z++)
         {
             /* Read the file header */
-            if((err = _gbm_read_header(file, fd, z, &gbm, "")) == 0 && gbm.bpp > 1)
+            if((err = _gbm_read_header(file, fd, z, &gbm, "")) == 0)
                 break;
         }
 
         /* If we failed to load the header */
         if(err)
         {
+#ifdef DEBUG
             dw_debug("GBM: Read header type %d \"%s\" %d %s\n", z, file, err, _gbm_err(err));
+#endif
             _gbm_io_close(fd);
             return 0;
         }
@@ -6789,7 +6791,9 @@ int _load_bitmap_file(char *file, HWND handle, HBITMAP *hbm, HDC *hdc, HPS *hps,
             /* Read the palette from the file */
             if((err = _gbm_read_palette(fd, z, &gbm, gbmrgb)) != 0)
             {
+#ifdef DEBUG
                 dw_debug("GBM: Read palette type %d \"%s\" %d %s\n", z, file, err, _gbm_err(err));
+#endif
                 _gbm_io_close(fd);
                 return 0;
             }
@@ -6801,7 +6805,6 @@ int _load_bitmap_file(char *file, HWND handle, HBITMAP *hbm, HDC *hdc, HPS *hps,
         *width = gbm.w;
         *height = gbm.h;
         byteswidth = (((gbm.w*gbm.bpp + 31)/32)*4);
-        /*dw_debug("Read header %dx%d bpp %d bytes wide %d bytes total %d \"%s\"\n", *width, *height, gbm.bpp, byteswidth, byteswidth * gbm.h, file);*/
 
         /* Allocate a buffer to store the image */
         DosAllocMem((PPVOID)&BitmapFileBegin, (ULONG)byteswidth * gbm.h,
@@ -6810,7 +6813,9 @@ int _load_bitmap_file(char *file, HWND handle, HBITMAP *hbm, HDC *hdc, HPS *hps,
         /* Read the data into our buffer */
         if((err = _gbm_read_data(fd, z, &gbm, BitmapFileBegin)) != 0)
         {
+#ifdef DEBUG
             dw_debug("GBM: Read data type %d \"%s\" %d %s\n", z, file, err, _gbm_err(err));
+#endif
             _gbm_io_close(fd);
             DosFreeMem(BitmapFileBegin);
             return 0;
