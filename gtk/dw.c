@@ -6963,8 +6963,8 @@ HICN dw_icon_load(unsigned long module, unsigned long id)
 /* Internal function to keep HICNs from getting too big */
 GdkPixbuf *_icon_resize(GdkPixbuf *ret)
 {
-   pwidth = gdk_pixbuf_get_width(ret);
-   pheight = gdk_pixbuf_get_height(ret);
+   int pwidth = gdk_pixbuf_get_width(ret);
+   int pheight = gdk_pixbuf_get_height(ret);
    
    if(pwidth > 24 || pheight > 24)
    {
