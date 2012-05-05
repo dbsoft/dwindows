@@ -6816,6 +6816,20 @@ void API dw_taskbar_delete(HWND handle, HICN icon)
     DW_LOCAL_POOL_OUT;
 }
 
+/* Internal function to keep HICNs from getting too big */
+void _icon_resize(NSImage *image)
+{
+    NSSize size = [image size];
+    if(size.width > 24 || size.height > 24)
+    {
+        if(size.width > 24)
+            size.width = 24;
+        if(size.height > 24)
+            size.height = 24;
+        [image setSize:size];    
+    }
+}
+
 /*
  * Obtains an icon from a module (or header in GTK).
  * Parameters:
@@ -6830,6 +6844,7 @@ HICN API dw_icon_load(unsigned long module, unsigned long resid)
     NSString *respath = [bundle resourcePath];
     NSString *filepath = [respath stringByAppendingFormat:@"/%u.png", resid];
     NSImage *image = [[NSImage alloc] initWithContentsOfFile:filepath];
+    _icon_resize(image);
     return image;
 }
 
@@ -6851,6 +6866,7 @@ HICN API dw_icon_load_from_file(char *filename)
         nstr = [nstr stringByAppendingString: [NSString stringWithUTF8String:ext]];
         image = [[NSImage alloc] initWithContentsOfFile:nstr];
     }
+    _icon_resize(image);
     return image;
 }
 
@@ -6865,6 +6881,7 @@ HICN API dw_icon_load_from_data(char *data, int len)
 {
     NSData *thisdata = [NSData dataWithBytes:data length:len];
     NSImage *image = [[NSImage alloc] initWithData:thisdata];
+    _icon_resize(image);
     return image;
 }
 
