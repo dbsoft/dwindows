@@ -54,7 +54,7 @@ void msleep(long period)
 int API makedir(char *path)
 {
 #if defined(__IBMC__) || defined(__WATCOMC__) || (defined(__WIN32__) && !defined(__CYGWIN32__))
-	return mkdir(path);
+	return mkdir(path, 0);
 #else
 	return mkdir(path,S_IRWXU);
 #endif
