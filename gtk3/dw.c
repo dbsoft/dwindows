@@ -5666,6 +5666,21 @@ HICN dw_icon_load(unsigned long module, unsigned long id)
    return (HICN)id;
 }
 
+/* Internal function to keep HICNs from getting too big */
+GdkPixbuf *_icon_resize(GdkPixbuf *ret)
+{
+   int pwidth = gdk_pixbuf_get_width(ret);
+   int pheight = gdk_pixbuf_get_height(ret);
+   
+   if(pwidth > 24 || pheight > 24)
+   {
+      GdkPixbuf *orig = ret;
+      ret = gdk_pixbuf_scale_simple(ret, pwidth > 24 ? 24 : pwidth, pheight > 24 ? 24 : pheight, GDK_INTERP_BILINEAR);
+      g_object_unref(G_OBJECT(orig));
+   }
+   return ret;
+}
+
 /*
  * Obtains an icon from a file.
  * Parameters:
@@ -5706,7 +5721,7 @@ HICN API dw_icon_load_from_file(char *filename)
    }
 
    DW_MUTEX_LOCK;
-   ret = gdk_pixbuf_new_from_file(file, NULL);
+   ret = _icon_resize(gdk_pixbuf_new_from_file(file, NULL));
    DW_MUTEX_UNLOCK;
    return ret;
 }
@@ -5740,7 +5755,7 @@ HICN API dw_icon_load_from_data(char *data, int len)
       return 0;
    }
    DW_MUTEX_LOCK;
-   ret = gdk_pixbuf_new_from_file(file, NULL);
+   ret = _icon_resize(gdk_pixbuf_new_from_file(file, NULL));
    DW_MUTEX_UNLOCK;
    return ret;
 }
