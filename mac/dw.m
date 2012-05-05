@@ -6819,14 +6819,17 @@ void API dw_taskbar_delete(HWND handle, HICN icon)
 /* Internal function to keep HICNs from getting too big */
 void _icon_resize(NSImage *image)
 {
-    NSSize size = [image size];
-    if(size.width > 24 || size.height > 24)
+    if(image)
     {
-        if(size.width > 24)
-            size.width = 24;
-        if(size.height > 24)
-            size.height = 24;
-        [image setSize:size];    
+        NSSize size = [image size];
+        if(size.width > 24 || size.height > 24)
+        {
+            if(size.width > 24)
+                size.width = 24;
+            if(size.height > 24)
+                size.height = 24;
+            [image setSize:size];    
+        }
     }
 }
 
