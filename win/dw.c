@@ -11490,7 +11490,7 @@ char * API dw_file_browse(char *title, char *defpath, char *ext, int flags)
          bi.hwndOwner = NULL;
          bi.pszDisplayName = 0;
          bi.pidlRoot = 0;
-         bi.lpszTitle = title;
+         bi.lpszTitle = UTF8toWide(title);
          bi.ulFlags = BIF_RETURNONLYFSDIRS | BIF_STATUSTEXT;
          bi.lpfn = NULL; /*BrowseCallbackProc*/
 
@@ -11499,20 +11499,20 @@ char * API dw_file_browse(char *title, char *defpath, char *ext, int flags)
          {
             if (SHGetPathFromIDList(pidl,szDir))
             {
-               strncpy(filenamebuf,szDir,1000);
+               _tcsncpy(filenamebuf,szDir,1000);
             }
 
             /* In C++: pMalloc->Free(pidl); pMalloc->Release(); */
             pMalloc->lpVtbl->Free(pMalloc,pidl);
             pMalloc->lpVtbl->Release(pMalloc);
-            return _strdup(filenamebuf);
+            return _strdup(WideToUTF8(filenamebuf));
          }
       }
 #else
      if ( XBrowseForFolder( NULL,
-                            (LPCTSTR)defpath,
+                            (LPCTSTR)dpath,
                             -1,
-                            (LPCTSTR)title,
+                            (LPCTSTR)UTF8toWide(title),
                             (LPTSTR)filenamebuf,
                             1000,
                             FALSE ) )

@@ -3208,7 +3208,7 @@ char * API dw_file_browse(char *title, char *defpath, char *ext, int flags)
     /* Figure out path information...
      * These functions are only support in Snow Leopard and later...
      */
-    if(defpath && DWOSMinor > 5)
+    if(defpath && *defpath && DWOSMinor > 5)
     {
         struct stat buf;
         
@@ -3273,7 +3273,7 @@ char * API dw_file_browse(char *title, char *defpath, char *ext, int flags)
         }
         
         /* Handle file types */
-        if(ext)
+        if(ext && *ext)
         {
             NSArray* fileTypes = [[[NSArray alloc] initWithObjects:[NSString stringWithUTF8String:ext], nil] autorelease];
             [openDlg setAllowedFileTypes:fileTypes];
@@ -3314,7 +3314,7 @@ char * API dw_file_browse(char *title, char *defpath, char *ext, int flags)
         [saveDlg setCanCreateDirectories:YES];
 
         /* Handle file types */
-        if(ext)
+        if(ext && *ext)
         {
             NSArray* fileTypes = [[[NSArray alloc] initWithObjects:[NSString stringWithUTF8String:ext], nil] autorelease];
             [saveDlg setAllowedFileTypes:fileTypes];
