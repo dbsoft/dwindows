@@ -6959,6 +6959,23 @@ HICN dw_icon_load(unsigned long module, unsigned long id)
    return (HICN)id;
 }
 
+#if GTK_MAJOR_VERSION > 1
+/* Internal function to keep HICNs from getting too big */
+GdkPixbuf *_icon_resize(GdkPixbuf *ret)
+{
+   pwidth = gdk_pixbuf_get_width(ret);
+   pheight = gdk_pixbuf_get_height(ret);
+   
+   if(pwidth > 24 || pheight > 24)
+   {
+      GdkPixbuf *orig = ret;
+      ret = gdk_pixbuf_scale_simple(ret, pwidth > 24 ? 24 : pwidth, pheight > 24 ? 24 : pheight, GDK_INTERP_BILINEAR);
+      g_object_unref(G_OBJECT(orig));
+   }
+   return ret;
+}
+#endif
+
 /*
  * Obtains an icon from a file.
  * Parameters:
@@ -7036,7 +7053,7 @@ HICN API dw_icon_load_from_file(char *filename)
    }
 
 #if GTK_MAJOR_VERSION > 1
-   pixbuf = gdk_pixbuf_new_from_file(file, NULL);
+   pixbuf = _icon_resize(gdk_pixbuf_new_from_file(file, NULL));
    if (pixbuf)
    {
       _PixmapArray[found].pixbuf = pixbuf;
@@ -7137,7 +7154,7 @@ HICN API dw_icon_load_from_data(char *data, int len)
    }
 
 #if GTK_MAJOR_VERSION > 1
-   pixbuf = gdk_pixbuf_new_from_file(file, NULL);
+   pixbuf = _icon_resize(gdk_pixbuf_new_from_file(file, NULL));
    if (pixbuf)
    {
       _PixmapArray[found].pixbuf = pixbuf;
