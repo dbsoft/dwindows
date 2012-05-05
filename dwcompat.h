@@ -206,9 +206,10 @@ void msleep(long period);
 #  define strcasecmp(a, b) _stricmp(a, b)
 #  define strncasecmp(a, b, c) _strnicmp(a, b, c)
 #  define strdup(a) _strdup(a)
+#  define snprintf _snprintf
 #  define unlink(a) _unlink(a)
 #  define close(a) _close(a)
-#  define mkdir(a) _mkdir(a)
+#  define mkdir(a,b) _mkdir(a)
 #  define fdopen(a, b) _fdopen(a, b)
 #  define chdir(a) _chdir(a)
 #  else
@@ -381,6 +382,11 @@ typedef int socklen_t;
 /* If dwstat didn't otherwise get defined */
 #ifndef dwstat
 #define dwstat stat
+#endif
+
+#if defined(__IBMC__) || defined(__WATCOMC__) || (defined(__WIN32__) && !defined(__CYGWIN32__) && _MSC_VER < 1400)
+#undef mkdir
+#define mkdir(a,b) mkdir(a)
 #endif
 
 #define socksprint(a, b) sockwrite(a, b, strlen(b), 0)
