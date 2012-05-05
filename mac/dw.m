@@ -1848,15 +1848,15 @@ DWObject *DWObj;
         int z, start, end;
         int count = (int)[tvcols count];
 
-        start = count * row;
+        start = (count * row);
         end = start + count;
 
         for(z=start;z<end;z++)
         {
-            [data removeObjectAtIndex:z];
+            [data removeObjectAtIndex:start];
         }
         [titles removePointerAtIndex:row];
-        if(lastAddPoint > 0 && lastAddPoint < row)
+        if(lastAddPoint > 0 && lastAddPoint > row)
         {
             lastAddPoint--;
         }
@@ -6583,6 +6583,7 @@ void API dw_container_delete(HWND handle, int rowcount)
     {
         [cont removeRow:0];
     }
+    [cont reloadData];
     DW_MUTEX_UNLOCK;
 }
 
@@ -6757,6 +6758,7 @@ void API dw_container_delete_row(HWND handle, char *text)
         if((textcomp && thistext && strcmp(thistext, text) == 0) || (!textcomp && thistext == text))
         {
             [cont removeRow:x];
+            [cont reloadData];
             DW_MUTEX_UNLOCK;
             return;
         }
