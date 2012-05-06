@@ -6998,6 +6998,8 @@ void API dw_window_set_bitmap(HWND handle, unsigned long id, char *filename)
                   break;
           }
       }
+      else
+          _load_bitmap_file(file, handle, &hbm, &hdc, &hps, &width, &height, &depth);
 
       if(!hdc)
          return;
