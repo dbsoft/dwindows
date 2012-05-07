@@ -4135,6 +4135,8 @@ HWND API dw_entryfield_new(char *text, ULONG cid)
     DWEntryField *entry = [[DWEntryField alloc] init];
     [entry setStringValue:[ NSString stringWithUTF8String:text ]];
     [entry setTag:cid];
+    [[entry cell] setScrollable:YES];
+    [[entry cell] setWraps:NO];
     return entry;
 }
 
@@ -4149,6 +4151,8 @@ HWND API dw_entryfield_password_new(char *text, ULONG cid)
     DWEntryFieldPassword *entry = [[DWEntryFieldPassword alloc] init];
     [entry setStringValue:[ NSString stringWithUTF8String:text ]];
     [entry setTag:cid];
+    [[entry cell] setScrollable:YES];
+    [[entry cell] setWraps:NO];
     return entry;
 }
 
@@ -5321,6 +5325,7 @@ HWND API dw_text_new(char *text, ULONG cid)
     {
         [[textfield cell] setFont:DWDefaultFont];
     }
+    [[textfield cell] setWraps:NO];
     return textfield;
 }
 
