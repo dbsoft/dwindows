@@ -11383,11 +11383,12 @@ void dw_listbox_append(HWND handle, char *text)
 
       if(addtext)
       {
-         const char *defstr = gtk_entry_get_text(GTK_ENTRY(GTK_COMBO(handle2)->entry));
+         char *defstr = strdup(gtk_entry_get_text(GTK_ENTRY(GTK_COMBO(handle2)->entry)));
          tmp = g_list_append(tmp, addtext);
          gtk_object_set_user_data(GTK_OBJECT(handle2), tmp);
          gtk_combo_set_popdown_strings(GTK_COMBO(handle2), tmp);
          gtk_entry_set_text(GTK_ENTRY(GTK_COMBO(handle2)->entry), defstr);
+         free(defstr);
       }
    }
    gtk_object_set_data(GTK_OBJECT(handle), "_dw_appending", NULL);
