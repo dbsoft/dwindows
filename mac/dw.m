@@ -6838,6 +6838,16 @@ void _icon_resize(NSImage *image)
     }
 }
 
+/* Internal version that does not resize the image */
+HICN _dw_icon_load(unsigned long resid)
+{
+    NSBundle *bundle = [NSBundle mainBundle];
+    NSString *respath = [bundle resourcePath];
+    NSString *filepath = [respath stringByAppendingFormat:@"/%u.png", resid];
+    NSImage *image = [[NSImage alloc] initWithContentsOfFile:filepath];
+    return image;
+}
+
 /*
  * Obtains an icon from a module (or header in GTK).
  * Parameters:
@@ -6848,10 +6858,7 @@ void _icon_resize(NSImage *image)
  */
 HICN API dw_icon_load(unsigned long module, unsigned long resid)
 {
-    NSBundle *bundle = [NSBundle mainBundle];
-    NSString *respath = [bundle resourcePath];
-    NSString *filepath = [respath stringByAppendingFormat:@"/%u.png", resid];
-    NSImage *image = [[NSImage alloc] initWithContentsOfFile:filepath];
+    NSImage *image = _dw_icon_load(resid);
     _icon_resize(image);
     return image;
 }
@@ -8901,7 +8908,7 @@ void API dw_window_set_bitmap(HWND handle, unsigned long resid, char *filename)
         }
         else if(resid > 0 && resid < 65536)
         {
-            bitmap = dw_icon_load(0, resid);
+            bitmap = _dw_icon_load(resid);
         }
 
         if(bitmap)
