@@ -4304,15 +4304,8 @@ void dw_window_set_bitmap_from_data(HWND handle, unsigned long id, char *data, i
       return;
 
    DW_MUTEX_LOCK;
-   if (id)
-      tmp = _find_pixbuf((HICN)id, NULL, NULL);
-   else
+   if(data)
    {
-      if (!data)
-      {
-         DW_MUTEX_UNLOCK;
-         return;
-      }
       /*
        * A real hack; create a temporary file and write the contents
        * of the data to the file
@@ -4333,6 +4326,8 @@ void dw_window_set_bitmap_from_data(HWND handle, unsigned long id, char *data, i
       /* remove our temporary file */
       unlink (file );
    }
+   else if (id)
+      tmp = _find_pixbuf((HICN)id, NULL, NULL);
 
    if(tmp)
    {
