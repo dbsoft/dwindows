@@ -7055,13 +7055,7 @@ void API dw_window_set_bitmap_from_data(HWND handle, unsigned long id, char *dat
    /* Destroy any old bitmap data */
    _free_bitmap(handle);
 
-   /* If id is non-zero use the resource */
-   if ( id )
-   {
-      hps = WinGetPS( handle );
-      hbm = GpiLoadBitmap( hps, NULLHANDLE, id, 0, 0 );
-   }
-   else if ( data )
+   if ( data )
    {
       file = tmpnam( NULL );
       if ( file != NULL )
@@ -7090,6 +7084,12 @@ void API dw_window_set_bitmap_from_data(HWND handle, unsigned long id, char *dat
       dw_window_set_data(handle, "_dw_hdc", (void *)hdc);
       dw_window_set_data(handle, "_dw_width", (void *)width);
       dw_window_set_data(handle, "_dw_height", (void *)height);
+   }
+   /* If id is non-zero use the resource */
+   else if ( id )
+   {
+      hps = WinGetPS( handle );
+      hbm = GpiLoadBitmap( hps, NULLHANDLE, id, 0, 0 );
    }
    else
       return;
