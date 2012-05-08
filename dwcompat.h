@@ -384,6 +384,11 @@ typedef int socklen_t;
 #define dwstat stat
 #endif
 
+/* Make sure O_BINARY is defined */
+#ifndef O_BINARY
+#define O_BINARY 0
+#endif
+
 #if defined(__IBMC__) || defined(__WATCOMC__) || (defined(__WIN32__) && !defined(__CYGWIN32__) && _MSC_VER < 1400)
 #undef mkdir
 #define mkdir(a,b) mkdir(a)
