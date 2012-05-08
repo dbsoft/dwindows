@@ -6622,12 +6622,7 @@ void API dw_window_set_bitmap_from_data(HWND handle, unsigned long id, char *dat
    char *file;
    FILE *fp;
 
-   if ( id )
-   {
-      hbitmap = LoadBitmap( DWInstance, MAKEINTRESOURCE(id) );
-      icon = LoadImage( DWInstance, MAKEINTRESOURCE(id), IMAGE_ICON, 0, 0, LR_SHARED );
-   }
-   else if (data)
+   if (data)
    {
       file = _tempnam( _dw_alternate_temp_dir, "dw" );
       if ( file != NULL )
@@ -6657,6 +6652,11 @@ void API dw_window_set_bitmap_from_data(HWND handle, unsigned long id, char *dat
       }
       if (icon == 0 && hbitmap == 0)
          return;
+   }
+   else if ( id )
+   {
+      hbitmap = LoadBitmap( DWInstance, MAKEINTRESOURCE(id) );
+      icon = LoadImage( DWInstance, MAKEINTRESOURCE(id), IMAGE_ICON, 0, 0, LR_SHARED );
    }
 
    if ( icon )
