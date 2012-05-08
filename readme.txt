@@ -10,6 +10,8 @@ Boxes with no expandable items will have their contents centered on
 GTK3 due to changes in the core architecture does not support
     widgets that are smaller than what is contained within them
     unless they use scrolled windows. GTK2 and other platforms do.
+OS/2 Bitmap widget has the image anchored to the bottom left corner
+    of the widget instead of centered like other platforms.
 
 Known limitations:
 
@@ -32,6 +34,11 @@ Added support for Control-Click on Mac for button press events.
 Added DW_POINTER() macro for casting parameters to (void *).
 Added dw_box_remove() and dw_box_remove_at_index() for removing items
    from boxes without destroying them. Also allows removal of padding.
+Added GBM (Generalized Bitmap Module) support for OS/2 and eCS for loading
+   Non-OS/2 native file formats. GBM comes with eCS 1.2 and later.
+   It is also available at http://hobbes.nmsu.edu
+Added resizing HICNs to 24x24 max size on platforms which do not 
+   do it automatically (Mac and GTK). OS/2 and Windows limit the size.
 Fixed dwindows-config --version not returning the version at all.
 Fixed value changed events not working for spinbuttons on OS/2 and Windows.
 Fixed issues drawing arcs on GTK2, GTK3 and Mac.
@@ -42,6 +49,9 @@ Fixed an issue with GTK 3.4 due to properties being inherited from the parent.
 Fixed issues with bitmap buttons using icon/pointers on OS/2 and Windows.
 Fixed an issue with dw_window_destroy() on Mac.
 Fixed issues rendering to printer pixmaps on Windows with GDI+ enabled.
+Fixed dw_window_set_bitmap_from_data() prefering the resource ID 
+   over the data passed in on most platforms.
+Fixed dw_container_delete_row() failing and/or crashing on Mac.
 Updated the test program removing deprecated flags and using new ones.
 
 Dynamic Windows Documentation is available at:

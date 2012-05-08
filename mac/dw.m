@@ -8860,25 +8860,32 @@ void API dw_window_set_bitmap_from_data(HWND handle, unsigned long cid, char *da
     NSObject *object = handle;
     if([ object isKindOfClass:[ NSImageView class ] ])
     {
-        NSImageView *iv = handle;
-        NSData *thisdata = [NSData dataWithBytes:data length:len];
-        NSImage *pixmap = [[NSImage alloc] initWithData:thisdata];
-
-        if(pixmap)
+        if(data)
         {
-            [iv setImage:pixmap];
+            DW_LOCAL_POOL_IN;
+            NSImageView *iv = handle;
+            NSData *thisdata = [NSData dataWithBytes:data length:len];
+            NSImage *pixmap = [[NSImage alloc] initWithData:thisdata];
+            
+            if(pixmap)
+            {
+                [iv setImage:pixmap];
+            }
+            [pixmap release];
+            /* If we changed the text... */
+            Item *item = _box_item(handle);
+            
+            /* Check to see if any of the sizes need to be recalculated */
+            if(item && (item->origwidth == -1 || item->origheight == -1))
+            {
+                _control_size(handle, item->origwidth == -1 ? &item->width : NULL, item->origheight == -1 ? &item->height : NULL);        
+                /* Queue a redraw on the top-level window */
+                _dw_redraw([iv window], TRUE);
+            }
+            DW_LOCAL_POOL_OUT;
         }
-        [pixmap release];
-        /* If we changed the text... */
-        Item *item = _box_item(handle);
-       
-        /* Check to see if any of the sizes need to be recalculated */
-        if(item && (item->origwidth == -1 || item->origheight == -1))
-        {
-            _control_size(handle, item->origwidth == -1 ? &item->width : NULL, item->origheight == -1 ? &item->height : NULL);        
-            /* Queue a redraw on the top-level window */
-            _dw_redraw([iv window], TRUE);
-        }
+        else
+            dw_window_set_bitmap(handle, cid, NULL);
     }
 }
 
