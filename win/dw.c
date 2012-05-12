@@ -6123,6 +6123,39 @@ HWND API dw_bitmapbutton_new(char *text, ULONG id)
    HWND tmp;
    ColorInfo *cinfo = calloc(1, sizeof(ColorInfo));
    HICON icon = LoadImage(DWInstance, MAKEINTRESOURCE(id), IMAGE_ICON, 0, 0, 0);
+#ifdef GDIPLUS1
+   HBITMAP hbitmap;
+   TBADDBITMAP tbBitmaps = {0};
+   TBBUTTON tbButtons[] = {    
+   { 0, id, TBSTATE_ENABLED, TBSTYLE_BUTTON, 0L, 0}
+   };
+   
+   /* Get the bitmap from either the icon or bitmap itself */
+   if(!icon)
+      hbitmap = LoadBitmap(DWInstance, MAKEINTRESOURCE(id));
+   else
+   {
+      ICONINFO iconinfo;
+
+      GetIconInfo(icon, &iconinfo);
+      hbitmap = iconinfo.hbmColor;
+   }
+
+   /* Create the toolbar */
+   tmp = CreateWindowEx(0L, TOOLBARCLASSNAME, NULL, WS_CHILD | WS_VISIBLE | CCS_NORESIZE | CCS_NOPARENTALIGN,
+                         0, 0, 100, 30, DW_HWND_OBJECT, (HMENU)id, DWInstance, NULL);
+                         
+   cinfo->fore = cinfo->back = -1;
+   
+   /* Insert the single bitmap and button into the toolbar */
+   SendMessage(tmp, TB_BUTTONSTRUCTSIZE, sizeof(TBBUTTON), 0);
+   tbBitmaps.nID = (UINT_PTR)hbitmap;
+   SendMessage(tmp, TB_ADDBITMAP, 1, (LONG) &tbBitmaps);
+   SendMessage(tmp, TB_ADDBUTTONS, 1, (LONG) &tbButtons);
+   SetWindowLongPtr(tmp, GWLP_USERDATA, (LONG_PTR)cinfo);
+
+   _create_tooltip(tmp, text);
+#else
    HBITMAP hbitmap = icon ? 0 : LoadBitmap(DWInstance, MAKEINTRESOURCE(id));
 
    tmp = CreateWindow(BUTTONCLASSNAME,
@@ -6151,6 +6184,7 @@ HWND API dw_bitmapbutton_new(char *text, ULONG id)
    {
       SendMessage(tmp, BM_SETIMAGE, (WPARAM) IMAGE_BITMAP, (LPARAM) hbitmap);
    }
+#endif
    return tmp;
 }
 
