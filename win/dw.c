@@ -7122,6 +7122,16 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
             SendMessage(item, UDM_SETBUDDY, (WPARAM)cinfo->buddy, 0);
          }
       }
+#ifdef TOOLBAR      
+      else if(_tcsnicmp(tmpbuf, TOOLBARCLASSNAME, _tcslen(TOOLBARCLASSNAME)+1) == 0)
+      {
+         if(!(_dw_composition && (GetWindowLongPtr(_toplevel_window(box), GWL_EXSTYLE) & WS_EX_LAYERED)))
+         { 
+            /* Enable double buffering if our window isn't composited */
+            SendMessage(item, TB_SETEXTENDEDSTYLE, 0, (LPARAM)TBSTYLE_EX_DOUBLEBUFFER);
+         }
+      }
+#endif      
       /* Queue a redraw on the top-level window */
       _dw_redraw(_toplevel_window(box), TRUE);
    }
