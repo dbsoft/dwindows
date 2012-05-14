@@ -752,6 +752,16 @@ BOOL CALLBACK _free_window_memory(HWND handle, LPARAM lParam)
       if(oldbitmap)
          DeleteObject(oldbitmap);
    }
+#ifdef TOOLBAR   
+   /* Bitmap Buttons */
+   else if(_tcsnicmp(tmpbuf, TOOLBARCLASSNAME, _tcslen(TOOLBARCLASSNAME)+1) == 0)
+   {
+      HIMAGELIST imlist = (HIMAGELIST)SendMessage(handle, TB_GETIMAGELIST, 0, 0);
+      
+      if(imlist)
+         ImageList_Destroy(imlist);
+   }
+#endif   
    else if(_tcsnicmp(tmpbuf, FRAMECLASSNAME, _tcslen(FRAMECLASSNAME)+1)==0)
    {
       Box *box = (Box *)thiscinfo;
@@ -4606,6 +4616,16 @@ void _control_size(HWND handle, int *width, int *height)
       thiswidth = 50;
       extraheight = 6;
    }
+#ifdef TOOLBAR   
+   /* Bitmap Buttons */
+   else if(_tcsnicmp(tmpbuf, TOOLBARCLASSNAME, _tcslen(TOOLBARCLASSNAME)+1) == 0)
+   {
+      HIMAGELIST imlist = (HIMAGELIST)SendMessage(handle, TB_GETIMAGELIST, 0, 0);
+      
+      if(imlist)
+         ImageList_GetIconSize(imlist, &thiswidth, &thisheight);
+   }
+#endif   
    /* Listbox */
    else if(_tcsnicmp(tmpbuf, LISTBOXCLASSNAME, _tcslen(LISTBOXCLASSNAME)+1) == 0)
    {
@@ -6123,22 +6143,30 @@ HWND API dw_bitmapbutton_new(char *text, ULONG id)
    HWND tmp;
    ColorInfo *cinfo = calloc(1, sizeof(ColorInfo));
    HICON icon = LoadImage(DWInstance, MAKEINTRESOURCE(id), IMAGE_ICON, 0, 0, 0);
-#ifdef GDIPLUS1
-   HBITMAP hbitmap;
-   TBADDBITMAP tbBitmaps = {0};
+#ifdef TOOLBAR
+   HIMAGELIST imlist;
+   BITMAP bmi = { 0 };
    TBBUTTON tbButtons[] = {    
-   { 0, id, TBSTATE_ENABLED, TBSTYLE_BUTTON, 0L, 0}
+   { MAKELONG(0, 0), id, TBSTATE_ENABLED, TBSTYLE_BUTTON, 0L, 0}
    };
    
    /* Get the bitmap from either the icon or bitmap itself */
    if(!icon)
-      hbitmap = LoadBitmap(DWInstance, MAKEINTRESOURCE(id));
+   {
+      HBITMAP hbitmap = LoadBitmap(DWInstance, MAKEINTRESOURCE(id));
+      
+      GetObject(hbitmap, sizeof(BITMAP), &bmi);
+      imlist = ImageList_Create(bmi.bmWidth, bmi.bmHeight, ILC_COLORDDB | ILC_MASK, 1, 0);
+      ImageList_Add(imlist, hbitmap, NULL);
+   }
    else
    {
       ICONINFO iconinfo;
-
+      
       GetIconInfo(icon, &iconinfo);
-      hbitmap = iconinfo.hbmColor;
+      GetObject(iconinfo.hbmColor, sizeof(BITMAP), &bmi);
+      imlist = ImageList_Create(bmi.bmWidth, bmi.bmHeight, ILC_COLORDDB | ILC_MASK, 1, 0);
+      ImageList_AddIcon(imlist, icon);
    }
 
    /* Create the toolbar */
@@ -6149,11 +6177,10 @@ HWND API dw_bitmapbutton_new(char *text, ULONG id)
    
    /* Insert the single bitmap and button into the toolbar */
    SendMessage(tmp, TB_BUTTONSTRUCTSIZE, sizeof(TBBUTTON), 0);
-   tbBitmaps.nID = (UINT_PTR)hbitmap;
-   SendMessage(tmp, TB_ADDBITMAP, 1, (LONG) &tbBitmaps);
+   SendMessage(tmp, TB_SETIMAGELIST, 0, (LPARAM)imlist);
    SendMessage(tmp, TB_ADDBUTTONS, 1, (LONG) &tbButtons);
    SetWindowLongPtr(tmp, GWLP_USERDATA, (LONG_PTR)cinfo);
-
+   
    _create_tooltip(tmp, text);
 #else
    HBITMAP hbitmap = icon ? 0 : LoadBitmap(DWInstance, MAKEINTRESOURCE(id));
@@ -7466,6 +7493,20 @@ void API dw_window_set_style(HWND handle, ULONG style, ULONG mask)
    currentstyle = GetWindowLong(handle, GWL_STYLE);
    cinfo = (ColorInfo *)GetWindowLongPtr(handle, GWLP_USERDATA);
 
+#ifdef TOOLBAR
+   /* Bitmap Buttons */
+   if(_tcsnicmp(tmpbuf, TOOLBARCLASSNAME, _tcslen(TOOLBARCLASSNAME)+1) == 0)
+   {
+      ULONG thisstyle = (TBSTYLE_FLAT | TBSTYLE_TRANSPARENT);
+      
+      if(mask & DW_BS_NOBORDER)
+      {
+         SetWindowLong(handle, GWL_STYLE, (style & DW_BS_NOBORDER) ? (currentstyle | thisstyle) : (currentstyle & ~thisstyle));
+         return;
+      }
+   }
+#endif
+   
    tmp = currentstyle | mask;
    tmp ^= mask;
    tmp |= style;
