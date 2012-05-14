@@ -1499,6 +1499,21 @@ static void _resize_box(Box *thisbox, int *depth, int x, int y, int pass)
                MoveWindow(handle, currentx + pad, currenty + pad,
                         width, height + 400, FALSE);
             }
+#ifdef TOOLBAR
+            /* Bitmap Buttons */
+            else if(_tcsnicmp(tmpbuf, TOOLBARCLASSNAME, _tcslen(TOOLBARCLASSNAME)+1) == 0)
+            {
+               HIMAGELIST imlist = (HIMAGELIST)SendMessage(handle, TB_GETIMAGELIST, 0, 0);
+               int thiswidth = 16, thisheight = 16;
+               
+               if(imlist)
+                  ImageList_GetIconSize(imlist, &thiswidth, &thisheight);
+                  
+               MoveWindow(handle, thiswidth < width ? currentx + pad + ((width-thiswidth)/2) : currentx + pad, 
+                          thisheight < height ? currenty + pad + ((height-thisheight)/2) : currenty + pad, 
+                          thiswidth < width ? thiswidth : width, thisheight < height ? thisheight : height, FALSE);
+            }
+#endif
             else if(_tcsnicmp(tmpbuf, UPDOWN_CLASS, _tcslen(UPDOWN_CLASS)+1)==0)
             {
                /* Handle special case Spinbutton */
