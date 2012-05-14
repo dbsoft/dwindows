@@ -1504,10 +1504,15 @@ static void _resize_box(Box *thisbox, int *depth, int x, int y, int pass)
             else if(_tcsnicmp(tmpbuf, TOOLBARCLASSNAME, _tcslen(TOOLBARCLASSNAME)+1) == 0)
             {
                HIMAGELIST imlist = (HIMAGELIST)SendMessage(handle, TB_GETIMAGELIST, 0, 0);
-               int thiswidth = 16, thisheight = 16;
+               int thiswidth = 20, thisheight = 20;
                
                if(imlist)
                   ImageList_GetIconSize(imlist, &thiswidth, &thisheight);
+                  
+               if(thiswidth < 20)
+                  thiswidth = 20;
+               if(thisheight < 20)
+                  thisheight = 20;
                   
                MoveWindow(handle, thiswidth < width ? currentx + pad + ((width-thiswidth)/2) : currentx + pad, 
                           thisheight < height ? currenty + pad + ((height-thisheight)/2) : currenty + pad, 
@@ -4648,6 +4653,11 @@ void _control_size(HWND handle, int *width, int *height)
       
       if(imlist)
          ImageList_GetIconSize(imlist, &thiswidth, &thisheight);
+
+      if(thiswidth < 20)
+         thiswidth = 20;
+      if(thisheight < 20)
+         thisheight = 20;
    }
 #endif   
    /* Listbox */
@@ -6191,6 +6201,7 @@ HWND _create_toolbar(char *text, ULONG id, HICON icon, HBITMAP hbitmap)
                          
    /* Insert the single bitmap and button into the toolbar */
    SendMessage(tmp, TB_BUTTONSTRUCTSIZE, sizeof(TBBUTTON), 0);
+   SendMessage(tmp, TB_SETBUTTONSIZE, 0, MAKELPARAM(bmi.bmWidth, bmi.bmHeight));
    SendMessage(tmp, TB_SETPADDING, 0, 0);
    SendMessage(tmp, TB_SETIMAGELIST, 0, (LPARAM)imlist);
    SendMessage(tmp, TB_SETDISABLEDIMAGELIST, 0, (LPARAM)imlist);
