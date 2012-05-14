@@ -758,6 +758,8 @@ BOOL CALLBACK _free_window_memory(HWND handle, LPARAM lParam)
    {
       HIMAGELIST imlist = (HIMAGELIST)SendMessage(handle, TB_GETIMAGELIST, 0, 0);
       
+      SendMessage(handle, TB_SETIMAGELIST, 0, 0);
+      
       if(imlist)
          ImageList_Destroy(imlist);
    }
@@ -2162,6 +2164,13 @@ LRESULT CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
                            tmp = NULL;
                         }
                      }
+#ifdef TOOLBAR                     
+                     else if (message == BN_CLICKED && tmp->message == WM_COMMAND && tmp->window == (HWND)mp2)
+                     {
+                        result = clickfunc(tmp->window, tmp->data);
+                        tmp = NULL;
+                     }
+#endif                     
                      else if (tmp->id && passthru == tmp->id)
                      {
                         HMENU hwndmenu = GetMenu(hWnd), menuowner = _menu_owner((HMENU)tmp->window);
@@ -6132,6 +6141,50 @@ HWND API dw_button_new(char *text, ULONG id)
    return tmp;
 }
 
+/* Internal function to create a toolbar based button */
+HWND _create_toolbar(char *text, ULONG id, HICON icon, HBITMAP hbitmap)
+{
+   HWND tmp;
+   HIMAGELIST imlist;
+   BITMAP bmi = { 0 };
+   TBBUTTON tbButtons[] = {    
+   { MAKELONG(0, 0), id, TBSTATE_ENABLED, TBSTYLE_BUTTON, 0L, 0}
+   };
+   
+   /* Get the bitmap from either the icon or bitmap itself */
+   if(hbitmap)
+   {
+      GetObject(hbitmap, sizeof(BITMAP), &bmi);
+      imlist = ImageList_Create(bmi.bmWidth, bmi.bmHeight, ILC_COLOR32, 1, 0);
+      ImageList_Add(imlist, hbitmap, NULL);
+   }
+   else if(icon)
+   {
+      ICONINFO iconinfo;
+      
+      GetIconInfo(icon, &iconinfo);
+      GetObject(iconinfo.hbmColor, sizeof(BITMAP), &bmi);
+      imlist = ImageList_Create(bmi.bmWidth, bmi.bmHeight, ILC_COLOR32 | ILC_MASK, 1, 0);
+      ImageList_AddIcon(imlist, icon);
+   }
+   else
+      return 0;
+
+   /* Create the toolbar */
+   tmp = CreateWindowEx(0L, TOOLBARCLASSNAME, NULL, WS_CHILD | WS_VISIBLE | TBSTYLE_AUTOSIZE | CCS_NORESIZE | 
+                        CCS_NOPARENTALIGN | CCS_NODIVIDER, 0, 0, 100, 30, DW_HWND_OBJECT, (HMENU)id, DWInstance, NULL);
+                         
+   /* Insert the single bitmap and button into the toolbar */
+   SendMessage(tmp, TB_BUTTONSTRUCTSIZE, sizeof(TBBUTTON), 0);
+   SendMessage(tmp, TB_SETPADDING, 0, 0);
+   SendMessage(tmp, TB_SETIMAGELIST, 0, (LPARAM)imlist);
+   SendMessage(tmp, TB_SETDISABLEDIMAGELIST, 0, (LPARAM)imlist);
+   SendMessage(tmp, TB_ADDBUTTONS, 1, (LONG) &tbButtons);
+   
+   _create_tooltip(tmp, text);
+   return tmp;
+}
+
 /*
  * Create a new bitmap button window (widget) to be packed.
  * Parameters:
@@ -6143,47 +6196,13 @@ HWND API dw_bitmapbutton_new(char *text, ULONG id)
    HWND tmp;
    ColorInfo *cinfo = calloc(1, sizeof(ColorInfo));
    HICON icon = LoadImage(DWInstance, MAKEINTRESOURCE(id), IMAGE_ICON, 0, 0, 0);
-#ifdef TOOLBAR
-   HIMAGELIST imlist;
-   BITMAP bmi = { 0 };
-   TBBUTTON tbButtons[] = {    
-   { MAKELONG(0, 0), id, TBSTATE_ENABLED, TBSTYLE_BUTTON, 0L, 0}
-   };
-   
-   /* Get the bitmap from either the icon or bitmap itself */
-   if(!icon)
-   {
-      HBITMAP hbitmap = LoadBitmap(DWInstance, MAKEINTRESOURCE(id));
-      
-      GetObject(hbitmap, sizeof(BITMAP), &bmi);
-      imlist = ImageList_Create(bmi.bmWidth, bmi.bmHeight, ILC_COLORDDB | ILC_MASK, 1, 0);
-      ImageList_Add(imlist, hbitmap, NULL);
-   }
-   else
-   {
-      ICONINFO iconinfo;
-      
-      GetIconInfo(icon, &iconinfo);
-      GetObject(iconinfo.hbmColor, sizeof(BITMAP), &bmi);
-      imlist = ImageList_Create(bmi.bmWidth, bmi.bmHeight, ILC_COLORDDB | ILC_MASK, 1, 0);
-      ImageList_AddIcon(imlist, icon);
-   }
-
-   /* Create the toolbar */
-   tmp = CreateWindowEx(0L, TOOLBARCLASSNAME, NULL, WS_CHILD | WS_VISIBLE | CCS_NORESIZE | CCS_NOPARENTALIGN,
-                         0, 0, 100, 30, DW_HWND_OBJECT, (HMENU)id, DWInstance, NULL);
-                         
-   cinfo->fore = cinfo->back = -1;
-   
-   /* Insert the single bitmap and button into the toolbar */
-   SendMessage(tmp, TB_BUTTONSTRUCTSIZE, sizeof(TBBUTTON), 0);
-   SendMessage(tmp, TB_SETIMAGELIST, 0, (LPARAM)imlist);
-   SendMessage(tmp, TB_ADDBUTTONS, 1, (LONG) &tbButtons);
-   SetWindowLongPtr(tmp, GWLP_USERDATA, (LONG_PTR)cinfo);
-   
-   _create_tooltip(tmp, text);
-#else
    HBITMAP hbitmap = icon ? 0 : LoadBitmap(DWInstance, MAKEINTRESOURCE(id));
+#ifdef TOOLBAR
+   tmp = _create_toolbar(text, id, icon, hbitmap);
+   
+   cinfo->fore = cinfo->back = -1;
+   SetWindowLongPtr(tmp, GWLP_USERDATA, (LONG_PTR)cinfo);
+#else
 
    tmp = CreateWindow(BUTTONCLASSNAME,
                   NULL,
@@ -6247,6 +6266,12 @@ HWND API dw_bitmapbutton_new_from_file(char *text, unsigned long id, char *filen
    windowtype = _dw_get_image_handle(filename, &hicon, &hbitmap);
 #endif
 
+#ifdef TOOLBAR
+   tmp = _create_toolbar(text, id, hicon, hbitmap);
+   
+   cinfo->fore = cinfo->back = -1;
+   SetWindowLongPtr(tmp, GWLP_USERDATA, (LONG_PTR)cinfo);
+#else
    tmp = CreateWindow( BUTTONCLASSNAME,
                        NULL,
                        windowtype | WS_CHILD | BS_PUSHBUTTON | WS_CLIPCHILDREN | WS_VISIBLE,
@@ -6271,6 +6296,7 @@ HWND API dw_bitmapbutton_new_from_file(char *text, unsigned long id, char *filen
    {
       SendMessage(tmp, BM_SETIMAGE,(WPARAM) IMAGE_BITMAP, (LPARAM) hbitmap);
    }
+#endif   
    return tmp;
 }
 
@@ -6329,6 +6355,12 @@ HWND API dw_bitmapbutton_new_from_data(char *text, unsigned long id, char *data,
       free( file );
    }
 
+#ifdef TOOLBAR
+   tmp = _create_toolbar(text, id, hicon, hbitmap);
+   
+   cinfo->fore = cinfo->back = -1;
+   SetWindowLongPtr(tmp, GWLP_USERDATA, (LONG_PTR)cinfo);
+#else
    tmp = CreateWindow( BUTTONCLASSNAME,
                        NULL,
                        WS_CHILD | BS_PUSHBUTTON |
@@ -6355,6 +6387,7 @@ HWND API dw_bitmapbutton_new_from_data(char *text, unsigned long id, char *data,
    {
       SendMessage( tmp, BM_SETIMAGE, (WPARAM) IMAGE_BITMAP, (LPARAM) hbitmap);
    }
+#endif   
    return tmp;
 }
 
