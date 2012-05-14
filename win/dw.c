@@ -757,11 +757,15 @@ BOOL CALLBACK _free_window_memory(HWND handle, LPARAM lParam)
    else if(_tcsnicmp(tmpbuf, TOOLBARCLASSNAME, _tcslen(TOOLBARCLASSNAME)+1) == 0)
    {
       HIMAGELIST imlist = (HIMAGELIST)SendMessage(handle, TB_GETIMAGELIST, 0, 0);
+      HIMAGELIST dimlist = (HIMAGELIST)SendMessage(handle, TB_GETDISABLEDIMAGELIST, 0, 0);
       
       SendMessage(handle, TB_SETIMAGELIST, 0, 0);
+      SendMessage(handle, TB_SETDISABLEDIMAGELIST, 0, 0);
       
       if(imlist)
          ImageList_Destroy(imlist);
+      if(dimlist)
+         ImageList_Destroy(dimlist);
    }
 #endif   
    else if(_tcsnicmp(tmpbuf, FRAMECLASSNAME, _tcslen(FRAMECLASSNAME)+1)==0)
@@ -6166,11 +6170,36 @@ HWND API dw_button_new(char *text, ULONG id)
    return tmp;
 }
 
+/* Internal function to create a grayscale bitmap from a color one */
+void _to_grayscale(HBITMAP hbm, int width, int height)
+{
+   HDC hdc = CreateCompatibleDC(NULL);
+   if (hdc) 
+   {
+      HBITMAP hbmPrev = SelectBitmap(hdc, hbm);
+      int x, y;
+
+      for(y=0;y<height;y++)
+      {
+         for(x=0;x<width;x++)
+         {
+            COLORREF c = GetPixel(hdc, x, y);
+            /* Use half-values then add 127 to make it look washed out */
+            int luma = (int)(GetRValue(c)*0.15 + GetGValue(c)*0.3+ GetBValue(c)*0.06) + 127;
+
+            SetPixel(hdc, x, y, RGB(luma,luma,luma));
+         }
+      }
+      SelectBitmap(hdc, hbmPrev);
+      DeleteDC(hdc);
+   }
+}
+
 /* Internal function to create a toolbar based button */
 HWND _create_toolbar(char *text, ULONG id, HICON icon, HBITMAP hbitmap)
 {
    HWND tmp;
-   HIMAGELIST imlist;
+   HIMAGELIST imlist, dimlist;
    BITMAP bmi = { 0 };
    TBBUTTON tbButtons[] = {    
    { MAKELONG(0, 0), id, TBSTATE_ENABLED, TBSTYLE_BUTTON, 0L, 0}
@@ -6182,6 +6211,9 @@ HWND _create_toolbar(char *text, ULONG id, HICON icon, HBITMAP hbitmap)
       GetObject(hbitmap, sizeof(BITMAP), &bmi);
       imlist = ImageList_Create(bmi.bmWidth, bmi.bmHeight, ILC_COLOR32, 1, 0);
       ImageList_Add(imlist, hbitmap, NULL);
+      dimlist = ImageList_Create(bmi.bmWidth, bmi.bmHeight, ILC_COLOR32, 1, 0);
+      _to_grayscale(hbitmap, bmi.bmWidth, bmi.bmHeight);
+      ImageList_Add(dimlist, hbitmap, NULL);
    }
    else if(icon)
    {
@@ -6191,6 +6223,9 @@ HWND _create_toolbar(char *text, ULONG id, HICON icon, HBITMAP hbitmap)
       GetObject(iconinfo.hbmColor, sizeof(BITMAP), &bmi);
       imlist = ImageList_Create(bmi.bmWidth, bmi.bmHeight, ILC_COLOR32 | ILC_MASK, 1, 0);
       ImageList_AddIcon(imlist, icon);
+      dimlist = ImageList_Create(bmi.bmWidth, bmi.bmHeight, ILC_COLOR32 | ILC_MASK, 1, 0);
+      _to_grayscale(iconinfo.hbmColor, bmi.bmWidth, bmi.bmHeight);
+      ImageList_Add(dimlist, iconinfo.hbmColor, iconinfo.hbmMask);
    }
    else
       return 0;
@@ -6204,7 +6239,7 @@ HWND _create_toolbar(char *text, ULONG id, HICON icon, HBITMAP hbitmap)
    SendMessage(tmp, TB_SETBUTTONSIZE, 0, MAKELPARAM(bmi.bmWidth, bmi.bmHeight));
    SendMessage(tmp, TB_SETPADDING, 0, 0);
    SendMessage(tmp, TB_SETIMAGELIST, 0, (LPARAM)imlist);
-   SendMessage(tmp, TB_SETDISABLEDIMAGELIST, 0, (LPARAM)imlist);
+   SendMessage(tmp, TB_SETDISABLEDIMAGELIST, 0, (LPARAM)dimlist);
    SendMessage(tmp, TB_ADDBUTTONS, 1, (LONG) &tbButtons);
    
    _create_tooltip(tmp, text);
