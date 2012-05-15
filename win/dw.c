@@ -207,12 +207,13 @@ ULONG_PTR gdiplusToken;
 #ifdef AEROGLASS
 HRESULT (WINAPI *_DwmExtendFrameIntoClientArea)(HWND hWnd, const MARGINS *pMarInset) = 0;
 HRESULT (WINAPI *_DwmIsCompositionEnabled)(BOOL *pfEnabled) = 0;
-HTHEME (WINAPI *_OpenThemeData)(HWND hwnd, LPCWSTR pszClassList);
-HPAINTBUFFER (WINAPI *_BeginBufferedPaint)(HDC hdcTarget, const RECT *prcTarget, BP_BUFFERFORMAT dwFormat, BP_PAINTPARAMS *pPaintParams, HDC *phdc);
-HRESULT (WINAPI *_BufferedPaintSetAlpha)(HPAINTBUFFER hBufferedPaint, const RECT *prc, BYTE alpha);
-HRESULT (WINAPI *_DrawThemeTextEx)(HTHEME hTheme, HDC hdc, int iPartId, int iStateId, LPCWSTR pszText, int iCharCount, DWORD dwFlags, LPRECT pRect, const DTTOPTS *pOptions);
-HRESULT (WINAPI *_EndBufferedPaint)(HPAINTBUFFER hBufferedPaint, BOOL fUpdateTarget);
-HRESULT (WINAPI *_CloseThemeData)(HTHEME hTheme);
+HTHEME (WINAPI *_OpenThemeData)(HWND hwnd, LPCWSTR pszClassList) = 0;
+HPAINTBUFFER (WINAPI *_BeginBufferedPaint)(HDC hdcTarget, const RECT *prcTarget, BP_BUFFERFORMAT dwFormat, BP_PAINTPARAMS *pPaintParams, HDC *phdc) = 0;
+HRESULT (WINAPI *_BufferedPaintSetAlpha)(HPAINTBUFFER hBufferedPaint, const RECT *prc, BYTE alpha) = 0;
+HRESULT (WINAPI *_DrawThemeTextEx)(HTHEME hTheme, HDC hdc, int iPartId, int iStateId, LPCWSTR pszText, int iCharCount, DWORD dwFlags, LPRECT pRect, const DTTOPTS *pOptions) = 0;
+HRESULT (WINAPI *_EndBufferedPaint)(HPAINTBUFFER hBufferedPaint, BOOL fUpdateTarget) = 0;
+HRESULT (WINAPI *_CloseThemeData)(HTHEME hTheme) = 0;
+HRESULT (WINAPI *_SetWindowTheme)(HWND hwnd, LPCWSTR pszSubAppName, LPCWSTR pszSubIdList) = 0;
 BOOL _dw_composition = FALSE;
 COLORREF _dw_transparencykey = RGB(200,201,202);
 HANDLE hdwm = 0, huxtheme = 0;
@@ -4074,6 +4075,7 @@ int API dw_init(int newthread, int argc, char *argv[])
       _DrawThemeTextEx = (HRESULT (WINAPI *)(HTHEME, HDC, int, int, LPCWSTR, int, DWORD, LPRECT, const DTTOPTS *))GetProcAddress(huxtheme, "DrawThemeTextEx");
       _EndBufferedPaint = (HRESULT (WINAPI *)(HPAINTBUFFER, BOOL))GetProcAddress(huxtheme, "EndBufferedPaint");
       _CloseThemeData = (HRESULT (WINAPI *)(HTHEME))GetProcAddress(huxtheme, "CloseThemeData");
+      _SetWindowTheme = (HRESULT (WINAPI *)(HWND, LPCWSTR, LPCWSTR ))GetProcAddress(huxtheme, "SetWindowTheme");
    }
    /* In case of error close the library if needed */
    else if(hdwm)
@@ -6234,6 +6236,12 @@ HWND _create_toolbar(char *text, ULONG id, HICON icon, HBITMAP hbitmap)
    tmp = CreateWindowEx(0L, TOOLBARCLASSNAME, NULL, WS_CHILD | WS_VISIBLE | TBSTYLE_AUTOSIZE | CCS_NORESIZE | 
                         CCS_NOPARENTALIGN | CCS_NODIVIDER, 0, 0, 100, 30, DW_HWND_OBJECT, (HMENU)id, DWInstance, NULL);
                          
+#ifdef AEROGLASS
+   /* Disable visual styles by default */
+   if(_SetWindowTheme)
+      _SetWindowTheme(tmp, TEXT(""), TEXT(""));
+#endif      
+
    /* Insert the single bitmap and button into the toolbar */
    SendMessage(tmp, TB_BUTTONSTRUCTSIZE, sizeof(TBBUTTON), 0);
    SendMessage(tmp, TB_SETBUTTONSIZE, 0, MAKELPARAM(bmi.bmWidth, bmi.bmHeight));
@@ -6259,11 +6267,13 @@ HWND API dw_bitmapbutton_new(char *text, ULONG id)
    HICON icon = LoadImage(DWInstance, MAKEINTRESOURCE(id), IMAGE_ICON, 0, 0, 0);
    HBITMAP hbitmap = icon ? 0 : LoadBitmap(DWInstance, MAKEINTRESOURCE(id));
 #ifdef TOOLBAR
-   tmp = _create_toolbar(text, id, icon, hbitmap);
-   
-   cinfo->fore = cinfo->back = -1;
-   SetWindowLongPtr(tmp, GWLP_USERDATA, (LONG_PTR)cinfo);
-#else
+   if(tmp = _create_toolbar(text, id, icon, hbitmap))
+   {
+      cinfo->fore = cinfo->back = -1;
+      SetWindowLongPtr(tmp, GWLP_USERDATA, (LONG_PTR)cinfo);
+      return tmp;
+   }
+#endif
 
    tmp = CreateWindow(BUTTONCLASSNAME,
                   NULL,
@@ -6291,7 +6301,6 @@ HWND API dw_bitmapbutton_new(char *text, ULONG id)
    {
       SendMessage(tmp, BM_SETIMAGE, (WPARAM) IMAGE_BITMAP, (LPARAM) hbitmap);
    }
-#endif
    return tmp;
 }
 
@@ -6328,11 +6337,13 @@ HWND API dw_bitmapbutton_new_from_file(char *text, unsigned long id, char *filen
 #endif
 
 #ifdef TOOLBAR
-   tmp = _create_toolbar(text, id, hicon, hbitmap);
-   
-   cinfo->fore = cinfo->back = -1;
-   SetWindowLongPtr(tmp, GWLP_USERDATA, (LONG_PTR)cinfo);
-#else
+   if(tmp = _create_toolbar(text, id, hicon, hbitmap))
+   {
+      cinfo->fore = cinfo->back = -1;
+      SetWindowLongPtr(tmp, GWLP_USERDATA, (LONG_PTR)cinfo);
+      return tmp;
+   }
+#endif
    tmp = CreateWindow( BUTTONCLASSNAME,
                        NULL,
                        windowtype | WS_CHILD | BS_PUSHBUTTON | WS_CLIPCHILDREN | WS_VISIBLE,
@@ -6357,7 +6368,6 @@ HWND API dw_bitmapbutton_new_from_file(char *text, unsigned long id, char *filen
    {
       SendMessage(tmp, BM_SETIMAGE,(WPARAM) IMAGE_BITMAP, (LPARAM) hbitmap);
    }
-#endif   
    return tmp;
 }
 
@@ -6417,11 +6427,13 @@ HWND API dw_bitmapbutton_new_from_data(char *text, unsigned long id, char *data,
    }
 
 #ifdef TOOLBAR
-   tmp = _create_toolbar(text, id, hicon, hbitmap);
-   
-   cinfo->fore = cinfo->back = -1;
-   SetWindowLongPtr(tmp, GWLP_USERDATA, (LONG_PTR)cinfo);
-#else
+   if(tmp = _create_toolbar(text, id, hicon, hbitmap))
+   {
+      cinfo->fore = cinfo->back = -1;
+      SetWindowLongPtr(tmp, GWLP_USERDATA, (LONG_PTR)cinfo);
+      return tmp;
+   }
+#endif
    tmp = CreateWindow( BUTTONCLASSNAME,
                        NULL,
                        WS_CHILD | BS_PUSHBUTTON |
@@ -6448,7 +6460,6 @@ HWND API dw_bitmapbutton_new_from_data(char *text, unsigned long id, char *data,
    {
       SendMessage( tmp, BM_SETIMAGE, (WPARAM) IMAGE_BITMAP, (LPARAM) hbitmap);
    }
-#endif   
    return tmp;
 }
 
@@ -7606,6 +7617,12 @@ void API dw_window_set_style(HWND handle, ULONG style, ULONG mask)
       if(mask & DW_BS_NOBORDER)
       {
          SetWindowLong(handle, GWL_STYLE, (style & DW_BS_NOBORDER) ? (currentstyle | thisstyle) : (currentstyle & ~thisstyle));
+
+#ifdef AEROGLASS         
+         /* Enable or disable visual themese */
+         if(_SetWindowTheme)
+            _SetWindowTheme(handle, (style & DW_BS_NOBORDER) ? NULL : TEXT(""), (style & DW_BS_NOBORDER) ? NULL : TEXT(""));
+#endif      
          return;
       }
    }
