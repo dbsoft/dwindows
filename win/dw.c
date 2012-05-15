@@ -1511,12 +1511,17 @@ static void _resize_box(Box *thisbox, int *depth, int x, int y, int pass)
                HIMAGELIST imlist = (HIMAGELIST)SendMessage(handle, TB_GETIMAGELIST, 0, 0);
                int thiswidth = 20, thisheight = 20, minsize = 24;
 
+               if(imlist)
+                  ImageList_GetIconSize(imlist, &thiswidth, &thisheight);
+                  
                /* If we are flat the size can be smaller */
                if(GetWindowLong(handle, GWL_STYLE) & TBSTYLE_FLAT)
                   minsize = 20;
-                  
-               if(imlist)
-                  ImageList_GetIconSize(imlist, &thiswidth, &thisheight);
+               else
+               {
+                  thiswidth += 4;
+                  thisheight += 4;
+               }
                   
                if(thiswidth < minsize)
                   thiswidth = minsize;
@@ -4662,13 +4667,18 @@ void _control_size(HWND handle, int *width, int *height)
       HIMAGELIST imlist = (HIMAGELIST)SendMessage(handle, TB_GETIMAGELIST, 0, 0);
       int minsize = 24;
       
-      /* If we are flat the size can be smaller */
-      if(GetWindowLong(handle, GWL_STYLE) & TBSTYLE_FLAT)
-         minsize = 20;
-         
       if(imlist)
          ImageList_GetIconSize(imlist, &thiswidth, &thisheight);
 
+      /* If we are flat the size can be smaller */
+      if(GetWindowLong(handle, GWL_STYLE) & TBSTYLE_FLAT)
+         minsize = 20;
+      else
+      {
+         thiswidth += 4;
+         thisheight += 4;
+      }
+         
       if(thiswidth < minsize)
          thiswidth = minsize;
       if(thisheight < minsize)
