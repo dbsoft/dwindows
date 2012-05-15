@@ -1509,15 +1509,19 @@ static void _resize_box(Box *thisbox, int *depth, int x, int y, int pass)
             else if(_tcsnicmp(tmpbuf, TOOLBARCLASSNAME, _tcslen(TOOLBARCLASSNAME)+1) == 0)
             {
                HIMAGELIST imlist = (HIMAGELIST)SendMessage(handle, TB_GETIMAGELIST, 0, 0);
-               int thiswidth = 20, thisheight = 20;
-               
+               int thiswidth = 20, thisheight = 20, minsize = 24;
+
+               /* If we are flat the size can be smaller */
+               if(GetWindowLong(handle, GWL_STYLE) & TBSTYLE_FLAT)
+                  minsize = 20;
+                  
                if(imlist)
                   ImageList_GetIconSize(imlist, &thiswidth, &thisheight);
                   
-               if(thiswidth < 20)
-                  thiswidth = 20;
-               if(thisheight < 20)
-                  thisheight = 20;
+               if(thiswidth < minsize)
+                  thiswidth = minsize;
+               if(thisheight < minsize)
+                  thisheight = minsize;
                   
                MoveWindow(handle, thiswidth < width ? currentx + pad + ((width-thiswidth)/2) : currentx + pad, 
                           thisheight < height ? currenty + pad + ((height-thisheight)/2) : currenty + pad, 
@@ -4656,14 +4660,19 @@ void _control_size(HWND handle, int *width, int *height)
    else if(_tcsnicmp(tmpbuf, TOOLBARCLASSNAME, _tcslen(TOOLBARCLASSNAME)+1) == 0)
    {
       HIMAGELIST imlist = (HIMAGELIST)SendMessage(handle, TB_GETIMAGELIST, 0, 0);
+      int minsize = 24;
       
+      /* If we are flat the size can be smaller */
+      if(GetWindowLong(handle, GWL_STYLE) & TBSTYLE_FLAT)
+         minsize = 20;
+         
       if(imlist)
          ImageList_GetIconSize(imlist, &thiswidth, &thisheight);
 
-      if(thiswidth < 20)
-         thiswidth = 20;
-      if(thisheight < 20)
-         thisheight = 20;
+      if(thiswidth < minsize)
+         thiswidth = minsize;
+      if(thisheight < minsize)
+         thisheight = minsize;
    }
 #endif   
    /* Listbox */
