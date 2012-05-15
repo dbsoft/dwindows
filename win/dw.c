@@ -213,12 +213,14 @@ HRESULT (WINAPI *_BufferedPaintSetAlpha)(HPAINTBUFFER hBufferedPaint, const RECT
 HRESULT (WINAPI *_DrawThemeTextEx)(HTHEME hTheme, HDC hdc, int iPartId, int iStateId, LPCWSTR pszText, int iCharCount, DWORD dwFlags, LPRECT pRect, const DTTOPTS *pOptions) = 0;
 HRESULT (WINAPI *_EndBufferedPaint)(HPAINTBUFFER hBufferedPaint, BOOL fUpdateTarget) = 0;
 HRESULT (WINAPI *_CloseThemeData)(HTHEME hTheme) = 0;
-HRESULT (WINAPI *_SetWindowTheme)(HWND hwnd, LPCWSTR pszSubAppName, LPCWSTR pszSubIdList) = 0;
 BOOL _dw_composition = FALSE;
 COLORREF _dw_transparencykey = RGB(200,201,202);
-HANDLE hdwm = 0, huxtheme = 0;
+HANDLE hdwm = 0;
 #endif
-
+/* Aero related but separate functions and handles */
+HRESULT (WINAPI *_SetWindowTheme)(HWND hwnd, LPCWSTR pszSubAppName, LPCWSTR pszSubIdList) = 0;
+HANDLE huxtheme = 0;
+ 
 /* Needed for Rich Edit controls */
 HANDLE hrichedit = 0;
 
@@ -4071,9 +4073,11 @@ int API dw_init(int newthread, int argc, char *argv[])
    /* GDI+ Needs to be initialized before calling _init_thread(); */
    _init_thread();
 
+   if((huxtheme = LoadLibrary(TEXT("uxtheme"))))
+      _SetWindowTheme = (HRESULT (WINAPI *)(HWND, LPCWSTR, LPCWSTR ))GetProcAddress(huxtheme, "SetWindowTheme");
 #ifdef AEROGLASS
    /* Attempt to load the Desktop Window Manager and Theme library */
-   if((hdwm = LoadLibrary(TEXT("dwmapi"))) && (huxtheme = LoadLibrary(TEXT("uxtheme"))))
+   if(huxtheme && (hdwm = LoadLibrary(TEXT("dwmapi"))))
    {
       _DwmExtendFrameIntoClientArea = (HRESULT (WINAPI *)(HWND, const MARGINS *))GetProcAddress(hdwm, "DwmExtendFrameIntoClientArea");
       if((_DwmIsCompositionEnabled = (HRESULT (WINAPI *)(BOOL *))GetProcAddress(hdwm, "DwmIsCompositionEnabled")))
@@ -4084,7 +4088,6 @@ int API dw_init(int newthread, int argc, char *argv[])
       _DrawThemeTextEx = (HRESULT (WINAPI *)(HTHEME, HDC, int, int, LPCWSTR, int, DWORD, LPRECT, const DTTOPTS *))GetProcAddress(huxtheme, "DrawThemeTextEx");
       _EndBufferedPaint = (HRESULT (WINAPI *)(HPAINTBUFFER, BOOL))GetProcAddress(huxtheme, "EndBufferedPaint");
       _CloseThemeData = (HRESULT (WINAPI *)(HTHEME))GetProcAddress(huxtheme, "CloseThemeData");
-      _SetWindowTheme = (HRESULT (WINAPI *)(HWND, LPCWSTR, LPCWSTR ))GetProcAddress(huxtheme, "SetWindowTheme");
    }
    /* In case of error close the library if needed */
    else if(hdwm)
@@ -6255,11 +6258,9 @@ HWND _create_toolbar(char *text, ULONG id, HICON icon, HBITMAP hbitmap)
    tmp = CreateWindowEx(0L, TOOLBARCLASSNAME, NULL, WS_CHILD | WS_VISIBLE | TBSTYLE_AUTOSIZE | CCS_NORESIZE | 
                         CCS_NOPARENTALIGN | CCS_NODIVIDER, 0, 0, 100, 30, DW_HWND_OBJECT, (HMENU)id, DWInstance, NULL);
                          
-#ifdef AEROGLASS
    /* Disable visual styles by default */
    if(_SetWindowTheme)
       _SetWindowTheme(tmp, TEXT(""), TEXT(""));
-#endif      
 
    /* Insert the single bitmap and button into the toolbar */
    SendMessage(tmp, TB_BUTTONSTRUCTSIZE, sizeof(TBBUTTON), 0);
@@ -7637,11 +7638,10 @@ void API dw_window_set_style(HWND handle, ULONG style, ULONG mask)
       {
          SetWindowLong(handle, GWL_STYLE, (style & DW_BS_NOBORDER) ? (currentstyle | thisstyle) : (currentstyle & ~thisstyle));
 
-#ifdef AEROGLASS         
          /* Enable or disable visual themese */
          if(_SetWindowTheme)
             _SetWindowTheme(handle, (style & DW_BS_NOBORDER) ? NULL : TEXT(""), (style & DW_BS_NOBORDER) ? NULL : TEXT(""));
-#endif      
+            
          return;
       }
    }
@@ -11342,8 +11342,8 @@ void API dw_exit(int exitcode)
 #ifdef AEROGLASS
    /* Free any in use libraries */
    FreeLibrary(hdwm);
-   FreeLibrary(huxtheme);
 #endif   
+   FreeLibrary(huxtheme);
    exit(exitcode);
 }
 
