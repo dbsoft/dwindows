@@ -1510,29 +1510,9 @@ static void _resize_box(Box *thisbox, int *depth, int x, int y, int pass)
             /* Bitmap Buttons */
             else if(_tcsnicmp(tmpbuf, TOOLBARCLASSNAME, _tcslen(TOOLBARCLASSNAME)+1) == 0)
             {
-               HIMAGELIST imlist = (HIMAGELIST)SendMessage(handle, TB_GETIMAGELIST, 0, 0);
-               int thiswidth = 20, thisheight = 20, minsize = 24;
+               SendMessage(handle, TB_SETBUTTONSIZE, 0, MAKELPARAM(width, height));
 
-               if(imlist)
-                  ImageList_GetIconSize(imlist, &thiswidth, &thisheight);
-                  
-               /* If we are flat the size can be smaller */
-               if(GetWindowLong(handle, GWL_STYLE) & TBSTYLE_FLAT)
-                  minsize = 20;
-               else
-               {
-                  thiswidth += 4;
-                  thisheight += 4;
-               }
-                  
-               if(thiswidth < minsize)
-                  thiswidth = minsize;
-               if(thisheight < minsize)
-                  thisheight = minsize;
-                  
-               MoveWindow(handle, thiswidth < width ? currentx + pad + ((width-thiswidth)/2) : currentx + pad, 
-                          thisheight < height ? currenty + pad + ((height-thisheight)/2) : currenty + pad, 
-                          thiswidth < width ? thiswidth : width, thisheight < height ? thisheight : height, FALSE);
+               MoveWindow(handle, currentx + pad, currenty + pad, width, height, FALSE);
             }
 #endif
             else if(_tcsnicmp(tmpbuf, UPDOWN_CLASS, _tcslen(UPDOWN_CLASS)+1)==0)
