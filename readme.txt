@@ -39,6 +39,7 @@ Added GBM (Generalized Bitmap Module) support for OS/2 and eCS for loading
    It is also available at http://hobbes.nmsu.edu
 Added resizing HICNs to 24x24 max size on platforms which do not 
    do it automatically (Mac and GTK). OS/2 and Windows limit the size.
+Added toolbar control support to replace existing bitmap buttons on Windows.   
 Fixed dwindows-config --version not returning the version at all.
 Fixed value changed events not working for spinbuttons on OS/2 and Windows.
 Fixed issues drawing arcs on GTK2, GTK3 and Mac.
