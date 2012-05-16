@@ -1229,7 +1229,7 @@ void buttons_add(void)
     calbox = dw_box_new(DW_HORZ, 0);
     dw_box_pack_start(notebookbox5, calbox, 500, 200, TRUE, TRUE, 1);
     cal = dw_calendar_new(100);
-    dw_box_pack_start(calbox, cal, 180, 160, TRUE, TRUE, 0);
+    dw_box_pack_start(calbox, cal, 180, 120, TRUE, TRUE, 0);
     /*
      dw_calendar_set_date(cal, 2001, 1, 1);
      */
@@ -1716,7 +1716,7 @@ int main(int argc, char *argv[])
 
     dw_signal_connect(mainwindow, DW_SIGNAL_DELETE, DW_SIGNAL_FUNC(exit_callback), DW_POINTER(mainwindow));
     timerid = dw_timer_connect(2000, DW_SIGNAL_FUNC(timer_callback), 0);
-    dw_window_set_size(mainwindow, 640, 520);
+    dw_window_set_size(mainwindow, 640, 550);
     dw_window_show(mainwindow);
 
     /* Now that the window is created and shown...
