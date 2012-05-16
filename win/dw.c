@@ -3799,17 +3799,17 @@ int _dw_get_image_handle(char *filename, HANDLE *icon, HBITMAP *hbitmap)
       }
       if ( stricmp( file + len - 4, ".ico" ) == 0 )
       {
-         *icon = LoadImage(NULL, file, IMAGE_ICON, 0, 0, LR_LOADFROMFILE);
+         *icon = LoadImage(NULL, UTF8toWide(file), IMAGE_ICON, 0, 0, LR_LOADFROMFILE);
          windowtype = BS_ICON;
       }
       else if ( stricmp( file + len - 4, ".bmp" ) == 0 )
       {
-         *hbitmap = (HBITMAP)LoadImage(NULL, file, IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
+         *hbitmap = (HBITMAP)LoadImage(NULL, UTF8toWide(file), IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
          windowtype = BS_BITMAP;
       }
       else if ( stricmp( file + len - 4, ".png" ) == 0 )
       {
-         *hbitmap = (HBITMAP)LoadImage(NULL, file, IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
+         *hbitmap = (HBITMAP)LoadImage(NULL, UTF8toWide(file), IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
          windowtype = BS_BITMAP;
       }
       free(file);
@@ -3820,7 +3820,7 @@ int _dw_get_image_handle(char *filename, HANDLE *icon, HBITMAP *hbitmap)
       strcat(file, ".ico");
       if (access(file, 04) == 0)
       {
-         *icon = LoadImage(NULL, file, IMAGE_ICON, 0, 0, LR_LOADFROMFILE);
+         *icon = LoadImage(NULL, UTF8toWide(file), IMAGE_ICON, 0, 0, LR_LOADFROMFILE);
          windowtype = BS_ICON;
       }
       else
@@ -3829,7 +3829,7 @@ int _dw_get_image_handle(char *filename, HANDLE *icon, HBITMAP *hbitmap)
          strcat(file, ".bmp");
          if (access(file, 04) == 0)
          {
-            *hbitmap = (HBITMAP)LoadImage(NULL, file, IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
+            *hbitmap = (HBITMAP)LoadImage(NULL, UTF8toWide(file), IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
             windowtype = BS_BITMAP;
          }
       }
@@ -6408,10 +6408,10 @@ HWND API dw_bitmapbutton_new_from_data(char *text, unsigned long id, char *data,
             hbitmap = _dw_load_bitmap(file, NULL);
 #else
          if ( len > 1 && data[0] == 'B' && data[1] == 'M' ) /* first 2 chars of data is BM, then its a BMP */
-            hbitmap = (HBITMAP)LoadImage( NULL, file, IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE );
+            hbitmap = (HBITMAP)LoadImage( NULL, UTF8toWide(file), IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE );
          else /* otherwise its assumed to be an ico */
          {
-            hicon = LoadImage( NULL, file, IMAGE_ICON, 0, 0, LR_LOADFROMFILE );
+            hicon = LoadImage( NULL, UTF8toWide(file), IMAGE_ICON, 0, 0, LR_LOADFROMFILE );
             windowtype = BS_ICON;
          }
 #endif
@@ -6802,9 +6802,9 @@ void API dw_window_set_bitmap_from_data(HWND handle, unsigned long id, char *dat
             hbitmap = _dw_load_bitmap(file, NULL);
 #else
             if ( len > 1 && data[0] == 'B' && data[1] == 'M' ) /* first 2 chars of data is BM, then its a BMP */
-               hbitmap = (HBITMAP)LoadImage( NULL, file, IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE );
+               hbitmap = (HBITMAP)LoadImage( NULL, UTF8toWide(file), IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE );
             else /* otherwise its assumed to be an ico */
-               icon = LoadImage( NULL, file, IMAGE_ICON, 0, 0, LR_LOADFROMFILE );
+               icon = LoadImage( NULL, UTF8toWide(file), IMAGE_ICON, 0, 0, LR_LOADFROMFILE );
 #endif
          }
          else
@@ -7136,7 +7136,9 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
 #ifdef TOOLBAR      
       else if(_tcsnicmp(tmpbuf, TOOLBARCLASSNAME, _tcslen(TOOLBARCLASSNAME)+1) == 0)
       {
+#ifdef AEROGLASS	  
          if(!(_dw_composition && (GetWindowLongPtr(_toplevel_window(box), GWL_EXSTYLE) & WS_EX_LAYERED)))
+#endif		 
          { 
             /* Enable double buffering if our window isn't composited */
             SendMessage(item, TB_SETEXTENDEDSTYLE, 0, (LPARAM)TBSTYLE_EX_DOUBLEBUFFER);
@@ -9068,7 +9070,7 @@ HICN API dw_icon_load_from_file(char *filename)
          return 0;
       }
    }
-   icon = LoadImage(NULL, file, IMAGE_ICON, 0, 0, LR_LOADFROMFILE);
+   icon = LoadImage(NULL, UTF8toWide(file), IMAGE_ICON, 0, 0, LR_LOADFROMFILE);
    free(file);
    return (HICN)icon;
 #endif
@@ -9100,7 +9102,7 @@ HICN API dw_icon_load_from_data(char *data, int len)
 #ifdef GDIPLUS
          icon = _dw_load_icon(file);
 #else
-         icon = LoadImage( NULL, file, IMAGE_ICON, 0, 0, LR_LOADFROMFILE );
+         icon = LoadImage( NULL, UTF8toWide(file), IMAGE_ICON, 0, 0, LR_LOADFROMFILE );
 #endif
       }
       else
@@ -10581,7 +10583,7 @@ HPIXMAP API dw_pixmap_new_from_file(HWND handle, char *filename)
       }
    }
 
-   pixmap->hbm = (HBITMAP)LoadImage(NULL, file, IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
+   pixmap->hbm = (HBITMAP)LoadImage(NULL, UTF8toWide(file), IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
    pixmap->depth = _read_bitmap_header(file);
 #endif
 
@@ -10643,7 +10645,7 @@ HPIXMAP API dw_pixmap_new_from_data(HWND handle, char *data, int len)
 #ifdef GDIPLUS
          pixmap->hbm = _dw_load_bitmap(file, NULL);
 #else
-         pixmap->hbm = (HBITMAP)LoadImage( NULL, file, IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE );
+         pixmap->hbm = (HBITMAP)LoadImage( NULL, UTF8toWide(file), IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE );
          pixmap->depth = _read_bitmap_header(file);
 #endif
       }
