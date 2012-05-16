@@ -6746,6 +6746,13 @@ void API dw_window_set_icon(HWND handle, HICN icon)
    WinSendMsg(handle, WM_SETICON, (MPARAM)hptr, 0);
 }
 
+/* GBM seems to be compiled with VisualAge which defines O_BINARY and O_RDONLY
+ * as follows... but other compilers (GCC and Watcom at least) define them
+ * differently... so we add defines that are compatible with VAC here.
+ */
+#define GBM_O_BINARY        0x00008000
+#define GBM_O_RDONLY        0x00000004
+
 /* Internal function to load a bitmap from a file and return handles
  * to the bitmap, presentation space etc.
  */
@@ -6768,8 +6775,13 @@ int _load_bitmap_file(char *file, HWND handle, HBITMAP *hbm, HDC *hdc, HPS *hps,
         ULONG byteswidth;
 
         /* Try to open the file */
-        if((fd = _gbm_io_open(file, O_RDONLY|O_BINARY)) == -1)
+        if((fd = _gbm_io_open(file, GBM_O_RDONLY|GBM_O_BINARY)) == -1)
+        {
+#ifdef DEBUG
+            dw_debug("Failed to open file %s\n", file);
+#endif
             return 0;
+        }
 
         /* guess the source file type from the source filename */
         _gbm_query_n_filetypes(&ft);
