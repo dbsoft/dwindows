@@ -4847,7 +4847,7 @@ void _control_size(HWND handle, int *width, int *height)
    /* Bitmap/Static */
    else if(strncmp(tmpbuf, "#5", 3)==0)
    {
-       HBITMAP hbm = (HBITMAP)WinSendMsg(handle, SM_QUERYHANDLE, MPVOID, MPVOID);
+       HBITMAP hbm = (HBITMAP)dw_window_get_data(handle, "_dw_bitmap");
 
        /* If we got a bitmap handle */
        if(hbm)
