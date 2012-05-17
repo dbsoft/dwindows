@@ -10,8 +10,6 @@ Boxes with no expandable items will have their contents centered on
 GTK3 due to changes in the core architecture does not support
     widgets that are smaller than what is contained within them
     unless they use scrolled windows. GTK2 and other platforms do.
-OS/2 Bitmap widget has the image anchored to the bottom left corner
-    of the widget instead of centered like other platforms.
 
 Known limitations:
 
