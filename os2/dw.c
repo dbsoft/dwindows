@@ -1605,6 +1605,53 @@ MRESULT EXPENTRY _BubbleProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
    return WinDefWindowProc(hwnd, msg, mp1, mp2);
 }
 
+/* Subclass WC_STATIC to draw a bitmap centered */
+MRESULT EXPENTRY _BitmapProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
+{
+    WindowData *blah = (WindowData *)WinQueryWindowPtr(hwnd, QWL_USER);
+
+    if(msg == WM_PAINT)
+    {
+        HPS hps = WinBeginPaint(hwnd, 0, 0);
+        HBITMAP hbm = (HBITMAP)dw_window_get_data(hwnd, "_dw_bitmap");
+        RECTL rcl;
+
+        WinQueryWindowRect(hwnd, &rcl) ;
+        WinFillRect(hps, &rcl, CLR_PALEGRAY);
+
+        /* If we have a bitmap... draw it */
+        if(hbm)
+        {
+            BITMAPINFOHEADER sl;
+
+            sl.cbFix = sizeof(BITMAPINFOHEADER);
+
+            /* Check the bitmap size */
+            if(GpiQueryBitmapParameters(hbm, &sl))
+            {
+               /* Figure out the window size before clobbering the data */
+                int width = rcl.xRight - rcl.xLeft, height = rcl.yTop - rcl.yBottom;
+
+                /* If the control is bigger than the bitmap, center it */
+               if(width > sl.cx)
+                   rcl.xLeft = (width-sl.cx)/2;
+               if(height > sl.cy)
+                   rcl.yBottom = (height-sl.cy)/2;
+
+           }
+            /* Draw the bitmap unscaled at the desired location */
+            WinDrawBitmap(hps, hbm, NULL, (PPOINTL) &rcl,
+                          CLR_NEUTRAL, CLR_BACKGROUND, DBM_NORMAL);
+        }
+
+       WinEndPaint(hps);
+       return 0;
+    }
+    if(blah && blah->oldproc)
+        return blah->oldproc(hwnd, msg, mp1, mp2);
+    return WinDefWindowProc(hwnd, msg, mp1, mp2);
+}
+
 /* Function to handle tooltip messages from a variety of procedures */
 MRESULT EXPENTRY _TooltipProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2, WindowData *blah)
 {
@@ -3788,6 +3835,8 @@ MRESULT EXPENTRY _button_draw(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2, PFNW
          BITMAPINFOHEADER sl;
          int newcx = cx, newcy = cy;
 
+         sl.cbFix = sizeof(BITMAPINFOHEADER);
+
          /* Check the mini icon first */
          if(GpiQueryBitmapParameters(pi.hbmMiniColor, &sl))
          {
@@ -5581,16 +5630,20 @@ HWND API dw_mdi_new(unsigned long id)
  */
 HWND API dw_bitmap_new(ULONG id)
 {
-   return WinCreateWindow(HWND_OBJECT,
-                     WC_STATIC,
-                     NULL,
-                     WS_VISIBLE | SS_TEXT,
-                     0,0,2000,1000,
-                     NULLHANDLE,
-                     HWND_TOP,
-                     id,
-                     NULL,
-                     NULL);
+   WindowData *blah = calloc(1, sizeof(WindowData));
+   HWND tmp = WinCreateWindow(HWND_OBJECT,
+                              WC_STATIC,
+                              NULL,
+                              WS_VISIBLE | SS_TEXT,
+                              0,0,0,0,
+                              NULLHANDLE,
+                              HWND_TOP,
+                              id,
+                              NULL,
+                              NULL);
+   blah->oldproc = WinSubclassWindow(tmp, _BitmapProc);
+   WinSetWindowPtr(tmp, QWP_USER, blah);
+   return tmp;
 }
 
 /*
@@ -7024,8 +7077,6 @@ void API dw_window_set_bitmap(HWND handle, unsigned long id, char *filename)
    else
       return;
 
-   WinSetWindowBits(handle,QWL_STYLE,SS_BITMAP,SS_BITMAP | 0x7f);
-   WinSendMsg( handle, SM_SETHANDLE, MPFROMP(hbm), NULL );
    if ( id )
       WinReleasePS(hps);
    dw_window_set_data(handle, "_dw_bitmap", (void *)hbm);
@@ -7106,8 +7157,6 @@ void API dw_window_set_bitmap_from_data(HWND handle, unsigned long id, char *dat
    else
       return;
 
-   WinSetWindowBits(handle,QWL_STYLE,SS_BITMAP,SS_BITMAP | 0x7f);
-   WinSendMsg( handle, SM_SETHANDLE, MPFROMP(hbm), NULL );
    if ( id )
       WinReleasePS(hps);
    dw_window_set_data(handle, "_dw_bitmap", (void *)hbm);
