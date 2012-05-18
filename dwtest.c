@@ -363,7 +363,7 @@ void draw_shapes(int direct, HPIXMAP hpma)
     HWND window = direct ? textbox2 : 0;
     int x[7] = { 20, 180, 180, 230, 180, 180, 20 };
     int y[7] = { 50, 50, 20, 70, 120, 90, 90 };
-    
+
     image_x = (int)dw_spinbutton_get_pos(imagexspin);
     image_y = (int)dw_spinbutton_get_pos(imageyspin);
     image_stretch = dw_checkbox_get(imagestretchcheck);
@@ -432,16 +432,16 @@ int DWSIGNAL draw_page(HPRINT print, HPIXMAP pixmap, int page_num, void *data)
    {
        /* Get the font size for this printer context... */
        int fheight, fwidth;
-       
+
        /* If we have a file to display... */
        if(current_file)
        {
            int nrows;
-           
+
            /* Calculate new dimensions */
            dw_font_text_extents_get(0, pixmap, "(g", NULL, &fheight);
            nrows = (int)(DW_PIXMAP_HEIGHT(pixmap) / fheight);
-       
+
            /* Do the actual drawing */
            draw_file(0, 0, nrows, fheight, pixmap);
        }
@@ -450,12 +450,12 @@ int DWSIGNAL draw_page(HPRINT print, HPIXMAP pixmap, int page_num, void *data)
            /* We don't have a file so center an error message on the page */
            char *text = "No file currently selected!";
            int posx, posy;
-           
+
            dw_font_text_extents_get(0, pixmap, text, &fwidth, &fheight);
-           
+
            posx = (int)(DW_PIXMAP_WIDTH(pixmap) - fwidth)/2;
            posy = (int)(DW_PIXMAP_HEIGHT(pixmap) - fheight)/2;
-           
+
            dw_color_foreground_set(DW_CLR_BLACK);
            dw_color_background_set(DW_CLR_WHITE);
            dw_draw_text(0, pixmap, posx, posy, text);
@@ -710,7 +710,7 @@ int DWSIGNAL configure_event(HWND hwnd, int width, int height, void *data)
     /* Make sure the side area is cleared */
     dw_color_foreground_set(DW_CLR_WHITE);
     dw_draw_rect(0, text1pm, DW_DRAW_FILL | DW_DRAW_NOAA, 0, 0, (int)DW_PIXMAP_WIDTH(text1pm), (int)DW_PIXMAP_HEIGHT(text1pm));
-    
+
    /* Destroy the old pixmaps */
     dw_pixmap_destroy(old1);
     dw_pixmap_destroy(old2);
@@ -759,7 +759,7 @@ int DWSIGNAL item_select_cb( HWND window, HTREEITEM item, char *text, void *data
     char buf[200];
     HWND statline = (HWND)data;
 
-    sprintf(buf,"DW_SIGNAL_ITEM_SELECT: Window: %x Item: %x Text: %s Itemdata: %x", DW_POINTER_TO_UINT(window), 
+    sprintf(buf,"DW_SIGNAL_ITEM_SELECT: Window: %x Item: %x Text: %s Itemdata: %x", DW_POINTER_TO_UINT(window),
             DW_POINTER_TO_UINT(item), text, DW_POINTER_TO_UINT(itemdata) );
     dw_window_set_text( statline, buf);
     return 0;
@@ -772,10 +772,10 @@ int DWSIGNAL container_select_cb( HWND window, HTREEITEM item, char *text, void 
     HWND statline = (HWND)data;
     unsigned long size;
 
-    sprintf(buf,"DW_SIGNAL_ITEM_SELECT: Window: %x Item: %x Text: %s Itemdata: %x", DW_POINTER_TO_UINT(window), 
+    sprintf(buf,"DW_SIGNAL_ITEM_SELECT: Window: %x Item: %x Text: %s Itemdata: %x", DW_POINTER_TO_UINT(window),
             DW_POINTER_TO_UINT(item), text, DW_POINTER_TO_UINT(itemdata) );
     dw_window_set_text( statline, buf);
-    sprintf(buf,"\r\nDW_SIGNAL_ITEM_SELECT: Window: %x Item: %x Text: %s Itemdata: %x\r\n", DW_POINTER_TO_UINT(window), 
+    sprintf(buf,"\r\nDW_SIGNAL_ITEM_SELECT: Window: %x Item: %x Text: %s Itemdata: %x\r\n", DW_POINTER_TO_UINT(window),
             DW_POINTER_TO_UINT(item), text, DW_POINTER_TO_UINT(itemdata) );
     mle_point = dw_mle_import( container_mle, buf, mle_point);
     str = dw_container_query_start(container, DW_CRA_SELECTED);
@@ -788,11 +788,11 @@ int DWSIGNAL container_select_cb( HWND window, HTREEITEM item, char *text, void 
     /* Make the last inserted point the cursor location */
     dw_mle_set_cursor(container_mle, mle_point);
     /* set the details of item 0 to new data */
-    dw_debug("In cb: container: %x containerinfo: %x icon: %x\n", DW_POINTER_TO_INT(container), 
+    dw_debug("In cb: container: %x containerinfo: %x icon: %x\n", DW_POINTER_TO_INT(container),
             DW_POINTER_TO_INT(containerinfo), DW_POINTER_TO_INT(fileicon));
     dw_filesystem_change_file(container, 0, "new data", fileicon);
     size = 999;
-    dw_debug("In cb: container: %x containerinfo: %x icon: %x\n", DW_POINTER_TO_INT(container), 
+    dw_debug("In cb: container: %x containerinfo: %x icon: %x\n", DW_POINTER_TO_INT(container),
             DW_POINTER_TO_INT(containerinfo), DW_POINTER_TO_INT(fileicon));
     dw_filesystem_change_item(container, 1, 0, &size);
     return 0;
@@ -800,7 +800,7 @@ int DWSIGNAL container_select_cb( HWND window, HTREEITEM item, char *text, void 
 
 int DWSIGNAL switch_page_cb( HWND window, unsigned long page_num, void *itemdata )
 {
-    dw_debug("DW_SIGNAL_SWITCH_PAGE: Window: %x PageNum: %u Itemdata: %x\n", DW_POINTER_TO_UINT(window), 
+    dw_debug("DW_SIGNAL_SWITCH_PAGE: Window: %x PageNum: %u Itemdata: %x\n", DW_POINTER_TO_UINT(window),
               DW_POINTER_TO_UINT(page_num), DW_POINTER_TO_UINT(itemdata) );
     return 0;
 }
@@ -829,7 +829,7 @@ int DWSIGNAL column_click_cb( HWND window, int column_num, void *data )
         else
             strcpy(buf1,"Unknown");
     }
-    sprintf(buf,"DW_SIGNAL_COLUMN_CLICK: Window: %x Column: %d Type: %s Itemdata: %x", DW_POINTER_TO_UINT(window), 
+    sprintf(buf,"DW_SIGNAL_COLUMN_CLICK: Window: %x Column: %d Type: %s Itemdata: %x", DW_POINTER_TO_UINT(window),
             column_num, buf1, DW_POINTER_TO_UINT(data) );
     dw_window_set_text( statline, buf);
     return 0;
@@ -884,7 +884,7 @@ void archive_add(void)
 
     cancelbutton = dw_button_new("Exit", 1002L);
     dw_box_pack_start(buttonbox, cancelbutton, 130, 30, TRUE, TRUE, 2);
-    
+
     cursortogglebutton = dw_button_new("Set Cursor pointer - CLOCK", 1003L);
     dw_box_pack_start(buttonbox, cursortogglebutton, 130, 30, TRUE, TRUE, 2);
 
@@ -935,7 +935,7 @@ int API context_menu_event(HWND window, int x, int y, int buttonmask, void *data
     HMENUI hwndMenu = dw_menu_new(0L);
     HWND menuitem = dw_menu_append_item(hwndMenu, "~Quit", DW_MENU_POPUP, 0L, TRUE, FALSE, DW_NOMENU);
     long px, py;
-    
+
     dw_signal_connect(menuitem, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(exit_callback), DW_POINTER(mainwindow));
     dw_menu_append_item(hwndMenu, DW_MENU_SEPARATOR, DW_MENU_POPUP, 0L, TRUE, FALSE, DW_NOMENU);
     menuitem = dw_menu_append_item(hwndMenu, "~Show Window", DW_MENU_POPUP, 0L, TRUE, FALSE, DW_NOMENU);
@@ -1001,15 +1001,15 @@ void text_add(void)
     hscrollbar = dw_scrollbar_new(DW_HORZ, 50);
     dw_window_get_preferred_size(vscrollbar, &vscrollbarwidth, NULL);
     dw_window_get_preferred_size(hscrollbar, NULL, &hscrollbarheight);
-    
-    /* On GTK with overlay scrollbars enabled this returns us 0... 
+
+    /* On GTK with overlay scrollbars enabled this returns us 0...
      * so in that case we need to give it some real values.
      */
     if(!vscrollbarwidth)
         vscrollbarwidth = 8;
     if(!hscrollbarheight)
         hscrollbarheight = 8;
-    
+
     /* create render box for number pixmap */
     textbox1 = dw_render_new( 100 );
     dw_window_set_font(textbox1, FIXEDFONT);
@@ -1065,7 +1065,7 @@ void text_add(void)
     dw_signal_connect(button2, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(print_callback), NULL);
     dw_signal_connect(rendcombo, DW_SIGNAL_LIST_SELECT, DW_SIGNAL_FUNC(render_select_event_callback), NULL );
     dw_signal_connect(mainwindow, DW_SIGNAL_KEY_PRESS, DW_SIGNAL_FUNC(keypress_callback), NULL);
-    
+
     dw_taskbar_insert(textbox1, fileicon, "DWTest");
 }
 
@@ -1239,8 +1239,7 @@ void buttons_add(void)
     buttonboxperm = dw_box_new( DW_VERT, 0 );
     dw_box_pack_start( buttonsbox, buttonboxperm, 25, 0, FALSE, TRUE, 2 );
     dw_window_set_color(buttonboxperm, DW_CLR_WHITE, DW_CLR_WHITE);
-    //   abutton1 = dw_bitmapbutton_new_from_file( "Top Button", 0, FILE_ICON_NAME );
-    abutton1 = dw_bitmapbutton_new_from_file( "Top Button", 0, "z:\\projects\\RexxGd\\regina\\tile_up.png" );
+    abutton1 = dw_bitmapbutton_new_from_file( "Top Button", 0, FILE_ICON_NAME );
     dw_box_pack_start( buttonboxperm, abutton1, 100, 30, FALSE, FALSE, 0 );
     dw_signal_connect( abutton1, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(button_callback), NULL );
     dw_box_pack_start( buttonboxperm, 0, 25, 5, FALSE, FALSE, 0 );
@@ -1315,15 +1314,16 @@ void create_button( int redraw)
     filetoolbarbox = dw_box_new( DW_VERT, 0 );
     dw_box_pack_start( buttonboxperm, filetoolbarbox, 0, 0, TRUE, TRUE, 0 );
 
-    abutton1 = dw_bitmapbutton_new_from_file( "Should be under Top button", 0, "junk" );
+    abutton1 = dw_bitmapbutton_new_from_file( "Empty image. Should be under Top button", 0, "junk" );
     dw_box_pack_start( filetoolbarbox, abutton1, 25, 25, FALSE, FALSE, 0);
     dw_signal_connect( abutton1, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(change_color_red_callback), NULL );
     dw_box_pack_start( filetoolbarbox, 0, 25, 5, FALSE, FALSE, 0 );
 
-    abutton1 = dw_bitmapbutton_new_from_file( "Should be under Top button", 0, "junk" );
+    abutton1 = dw_bitmapbutton_new_from_data( "A borderless bitmapbitton", 0, folder_ico, 1718 );
     dw_box_pack_start( filetoolbarbox, abutton1, 25, 25, FALSE, FALSE, 0);
     dw_signal_connect( abutton1, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(change_color_yellow_callback), NULL );
     dw_box_pack_start( filetoolbarbox, 0, 25, 5, FALSE, FALSE, 0 );
+    dw_window_set_style( abutton1, DW_BS_NOBORDER, DW_BS_NOBORDER );
 
     abutton1 = dw_bitmapbutton_new_from_data( "A button from data", 0, folder_ico, 1718 );
     dw_box_pack_start( filetoolbarbox, abutton1, 25, 25, FALSE, FALSE, 0);
@@ -1499,7 +1499,7 @@ void thread_add(void)
     startbutton = dw_button_new( "Start Threads", 0 );
     dw_box_pack_start( tmpbox, startbutton, -1, 30, FALSE, FALSE, 0 );
     dw_signal_connect( startbutton, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(start_threads_button_callback), NULL );
-    
+
     /* Create the base threading components */
     threadmle = dw_mle_new(0);
     dw_box_pack_start(tmpbox, threadmle, 1, 1, TRUE, TRUE, 0);
@@ -1518,7 +1518,7 @@ void DWSIGNAL run_thread(void *data)
     /* Increment the ready count while protected by mutex */
     dw_mutex_lock(mutex);
     ready++;
-    /* If all 4 threads have incrememted the ready count... 
+    /* If all 4 threads have incrememted the ready count...
      * Post the control event semaphore so things will get started.
      */
     if(ready == 4)
@@ -1545,7 +1545,7 @@ void DWSIGNAL run_thread(void *data)
             dw_mutex_lock(mutex);
             ready++;
             sprintf(buf, "Thread %d work done. ready=%d", threadnum, ready);
-            /* If all 4 threads have incrememted the ready count... 
+            /* If all 4 threads have incrememted the ready count...
             * Post the control event semaphore so things will get started.
             */
             if(ready == 4)
@@ -1638,10 +1638,10 @@ int main(int argc, char *argv[])
 
     notebookbox = dw_box_new( DW_VERT, 5 );
     dw_box_pack_start( mainwindow, notebookbox, 0, 0, TRUE, TRUE, 0);
-    
+
     foldericon = dw_icon_load_from_file( FOLDER_ICON_NAME );
     fileicon = dw_icon_load_from_file( FILE_ICON_NAME  );
-    
+
     notebook = dw_notebook_new( 1, TRUE );
     dw_box_pack_start( notebookbox, notebook, 100, 100, TRUE, TRUE, 0);
     dw_signal_connect(notebook, DW_SIGNAL_SWITCH_PAGE, DW_SIGNAL_FUNC(switch_page_cb), NULL);
@@ -1727,7 +1727,7 @@ int main(int argc, char *argv[])
     /* Now that the loop is done we can cleanup */
     dw_taskbar_delete(textbox1, fileicon);
     dw_window_destroy(mainwindow);
-    
+
     dw_debug("dwtest exiting...\n");
     /* Call dw_exit() to shutdown the Dynamic Windows engine */
     dw_exit(0);
