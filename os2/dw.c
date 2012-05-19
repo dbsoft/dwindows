@@ -3840,22 +3840,40 @@ MRESULT EXPENTRY _button_draw(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2, PFNW
          /* Check the mini icon first */
          if(GpiQueryBitmapParameters(pi.hbmMiniColor, &sl))
          {
-            if(sl.cx && sl.cy && cx > sl.cx && cy > sl.cy)
-            {
-               newcx = sl.cx;
-               newcy = sl.cy;
-            }
+             if(sl.cx && sl.cy && cx > sl.cx && cy > sl.cy)
+             {
+                 newcx = sl.cx;
+                 newcy = sl.cy;
+             }
          }
          /* Check the normal icon second */
          if(GpiQueryBitmapParameters(pi.hbmColor, &sl))
          {
-            if(sl.cx && sl.cy && cx > sl.cx && cy > sl.cy)
-            {
-               newcx = sl.cx;
-               newcy = sl.cy;
-            }
+             if(sl.cx && sl.cy)
+             {
+                 if(cx > sl.cx && cy > sl.cy)
+                 {
+                     newcx = sl.cx;
+                     newcy = sl.cy;
+                 }
+                 /* In case there was no mini icon... cut it in half */
+                 else if(cx >= (sl.cx/2) && cy >= (sl.cy/2))
+                 {
+                     newcx = sl.cx/2;
+                     newcy = sl.cy/2;
+                 }
+             }
          }
          cx = newcx; cy = newcy;
+         /* Safety check to avoid icon dimension stretching */
+         if(cx != cy)
+         {
+             if(cx > cy)
+                 cx = cy;
+             else
+                 cy = cx;
+         }
+         /* Finally center it in the window */
          x = (width - cx)/2;
          y = (height - cy)/2;
       }
