@@ -20,7 +20,7 @@
 #include <math.h>
 
 /* Create a define to let us know to include Snow Leopard specific features */
-#if defined(MAC_OS_X_VERSION_10_6) && ((defined(MAC_OS_X_VERSION_MIN_REQUIRED) && MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_6) || !defined(MAC_OS_X_VERSION_MIN_REQUIRED))
+#if defined(MAC_OS_X_VERSION_10_6) && ((defined(MAC_OS_X_VERSION_MAX_ALLOWED) && MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_6) || !defined(MAC_OS_X_VERSION_MAX_ALLOWED))
 #define BUILDING_FOR_SNOW_LEOPARD
 #endif
 
