@@ -570,15 +570,13 @@ int DWSIGNAL menutoggle_callback(HWND window, void *data)
 
 int DWSIGNAL helpabout_callback(HWND window, void *data)
 {
-    char buf[100];
     DWEnv env;
 
     dw_environment_query(&env);
-    sprintf( buf, "dwindows test\n\nOS: %s %s %s Version: %d.%d.%d.%d\n\ndwindows Version: %d.%d.%d",
-            env.osName, env.buildDate, env.buildTime,
-            env.MajorVersion, env.MinorVersion, env.MajorBuild, env.MinorBuild,
-            env.DWMajorVersion, env.DWMinorVersion, env.DWSubVersion );
-    dw_messagebox( "About dwindows", DW_MB_OK | DW_MB_INFORMATION, buf );
+    dw_messagebox( "About dwindows", DW_MB_OK | DW_MB_INFORMATION, "dwindows test\n\nOS: %s %s %s Version: %d.%d.%d.%d\n\ndwindows Version: %d.%d.%d",
+                   env.osName, env.buildDate, env.buildTime,
+                   env.MajorVersion, env.MinorVersion, env.MajorBuild, env.MinorBuild,
+                   env.DWMajorVersion, env.DWMinorVersion, env.DWSubVersion );
     return 0;
 }
 
