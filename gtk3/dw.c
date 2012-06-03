@@ -1329,10 +1329,9 @@ static gint _expose_event(GtkWidget *widget, cairo_t *cr, gpointer data)
 static gint _combobox_select_event(GtkWidget *widget, gpointer data)
 {
    SignalHandler work = _get_signal_handler(widget, data);
-   static int _dw_recursing = 0;
    int retval = FALSE;
 
-   if(_dw_recursing)
+   if(g_object_get_data(G_OBJECT(widget), "_dw_recursing"))
       return FALSE;
 
    if(work.window && GTK_IS_COMBO_BOX(widget))
@@ -1344,7 +1343,7 @@ static gint _combobox_select_event(GtkWidget *widget, gpointer data)
          GtkTreeIter iter;
          GtkTreePath *path;
 
-         _dw_recursing = 1;
+         g_object_set_data(G_OBJECT(widget), "_dw_recursing", GINT_TO_POINTER(1));
 
          if(gtk_combo_box_get_active_iter(GTK_COMBO_BOX(widget), &iter))
          {
@@ -1364,7 +1363,7 @@ static gint _combobox_select_event(GtkWidget *widget, gpointer data)
             }
          }
 
-         _dw_recursing = 0;
+         g_object_set_data(G_OBJECT(widget), "_dw_recursing", NULL);
       }
    }
    return retval;
@@ -4403,7 +4402,7 @@ void API dw_window_set_tooltip(HWND handle, char *bubbletext)
  */
 char *dw_window_get_text(HWND handle)
 {
-   const char *possible = "";
+   const char *possible = NULL;
    int _locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
@@ -4413,7 +4412,7 @@ char *dw_window_get_text(HWND handle)
       possible = gtk_entry_get_text(GTK_ENTRY(gtk_bin_get_child(GTK_BIN(handle))));
 
    DW_MUTEX_UNLOCK;
-   return strdup(possible);
+   return strdup(possible ? possible : "");
 }
 
 /*
