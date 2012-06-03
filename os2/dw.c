@@ -3138,6 +3138,7 @@ MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 
                      WinQueryClassName(tmp->window, 99, (PCH)classbuf);
 
+                     /* Slider/Percent */
                      if(strncmp(classbuf, "#38", 4) == 0)
                      {
                         int (API_FUNC valuechangedfunc)(HWND, int, void *) = (int (API_FUNC)(HWND, int, void *))tmp->signalfunction;
@@ -3170,6 +3171,7 @@ MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 
                            _recursing = 1;
 
+                           /* Combobox */
                            if(id && strncmp(classbuf, "#2", 3)==0)
                            {
                               char *buf2;
