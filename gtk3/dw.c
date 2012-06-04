@@ -5622,6 +5622,19 @@ int dw_container_setup(HWND handle, unsigned long *flags, char **titles, int cou
 }
 
 /*
+ * Configures the main filesystem columnn title for localization.
+ * Parameters:
+ *          handle: Handle to the container to be configured.
+ *          title: The title to be displayed in the main column.
+ */
+void API dw_filesystem_set_column_title(HWND handle, char *title)
+{
+	char *newtitle = strdup(title ? title : "");
+	
+	dw_window_set_data(handle, "_dw_coltitle", newtitle);
+}
+
+/*
  * Sets up the filesystem columns, note: filesystem always has an icon/filename field.
  * Parameters:
  *          handle: Handle to the container to be configured.
@@ -5633,8 +5646,9 @@ int dw_filesystem_setup(HWND handle, unsigned long *flags, char **titles, int co
 {
    char **newtitles = malloc(sizeof(char *) * (count + 1));
    unsigned long *newflags = malloc(sizeof(unsigned long) * (count + 1));
+   char *coltitle = (char *)dw_window_get_data(handle, "_dw_coltitle");
 
-   newtitles[0] = "Filename";
+   newtitles[0] = coltitle ? coltitle : "Filename";
    newflags[0] = DW_CFA_STRINGANDICON | DW_CFA_LEFT | DW_CFA_HORZSEPARATOR;
 
    memcpy(&newtitles[1], titles, sizeof(char *) * count);
@@ -5642,6 +5656,11 @@ int dw_filesystem_setup(HWND handle, unsigned long *flags, char **titles, int co
 
    _dw_container_setup(handle, newflags, newtitles, count + 1, 1, 1);
 
+   if(coltitle)
+   {
+	  dw_window_set_data(handle, "_dw_coltitle", NULL);
+	  free(coltitle);
+   }
    if ( newtitles) free(newtitles);
    if ( newflags ) free(newflags);
    return DW_ERROR_NONE;

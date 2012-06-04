@@ -160,6 +160,7 @@ EXPORTS
   dw_filesystem_change_item              @243
   dw_filesystem_change_file              @244
   dw_filesystem_get_column_type          @245
+  dw_filesystem_set_column_title         @246
 
   dw_screen_width                        @250
   dw_screen_height                       @251
