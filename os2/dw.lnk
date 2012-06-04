@@ -155,6 +155,7 @@ export dw_filesystem_set_file.242
 export dw_filesystem_change_item.243
 export dw_filesystem_change_file.244
 export dw_filesystem_get_column_type.245
+export dw_filesystem_set_column_title.246
 
 export dw_screen_width.250
 export dw_screen_height.251

@@ -1135,6 +1135,7 @@ void container_add(void)
     titles[2] = "Time";
     titles[3] = "Date";
 
+	dw_filesystem_set_column_title(container, "Test");
     dw_filesystem_setup(container, flags, titles, 4);
     dw_container_set_stripe(container, DW_CLR_DEFAULT, DW_CLR_DEFAULT);
     containerinfo = dw_container_alloc(container, 3);

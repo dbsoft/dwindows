@@ -9001,6 +9001,19 @@ int API dw_container_setup(HWND handle, unsigned long *flags, char **titles, int
 }
 
 /*
+ * Configures the main filesystem columnn title for localization.
+ * Parameters:
+ *          handle: Handle to the container to be configured.
+ *          title: The title to be displayed in the main column.
+ */
+void API dw_filesystem_set_column_title(HWND handle, char *title)
+{
+	char *newtitle = strdup(title ? title : "");
+	
+	dw_window_set_data(handle, "_dw_coltitle", newtitle);
+}
+
+/*
  * Sets up the filesystem columns, note: filesystem always has an icon/filename field.
  * Parameters:
  *          handle: Handle to the container to be configured.
@@ -9010,10 +9023,11 @@ int API dw_container_setup(HWND handle, unsigned long *flags, char **titles, int
  */
 int API dw_filesystem_setup(HWND handle, unsigned long *flags, char **titles, int count)
 {
+   char *coltitle = (char *)dw_window_get_data(handle, "_dw_coltitle");
    LV_COLUMN lvc;
 
    lvc.mask = LVCF_TEXT | LVCF_WIDTH | LVCF_SUBITEM;
-   lvc.pszText = TEXT("Filename");
+   lvc.pszText = coltitle ? UTF8toWide(coltitle) : TEXT("Filename");
    lvc.cchTextMax = 8;
    lvc.fmt = 0;
    if(!count)
@@ -9023,6 +9037,11 @@ int API dw_filesystem_setup(HWND handle, unsigned long *flags, char **titles, in
    lvc.iSubItem = count;
    SendMessage(handle, LVM_INSERTCOLUMN, (WPARAM)0, (LPARAM)&lvc);
    dw_container_setup(handle, flags, titles, count, -1);
+   if(coltitle)
+   {
+	  dw_window_set_data(handle, "_dw_coltitle", NULL);
+	  free(coltitle);
+   }
    return DW_ERROR_NONE;
 }
 

@@ -1615,6 +1615,16 @@ int API dw_container_setup(HWND handle, unsigned long *flags, char **titles, int
 }
 
 /*
+ * Configures the main filesystem columnn title for localization.
+ * Parameters:
+ *          handle: Handle to the container to be configured.
+ *          title: The title to be displayed in the main column.
+ */
+void API dw_filesystem_set_column_title(HWND handle, char *title)
+{
+}
+
+/*
  * Sets up the filesystem columns, note: filesystem always has an icon/filename field.
  * Parameters:
  *          handle: Handle to the container to be configured.
