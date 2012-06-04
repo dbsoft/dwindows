@@ -5631,7 +5631,7 @@ void API dw_filesystem_set_column_title(HWND handle, char *title)
 {
 	char *newtitle = strdup(title ? title : "");
 	
-	dw_window_set_data(handle, "_dw_coltitle", newtitle);
+	g_object_set_data(G_OBJECT(handle), "_dw_coltitle", newtitle);
 }
 
 /*
@@ -5646,7 +5646,7 @@ int dw_filesystem_setup(HWND handle, unsigned long *flags, char **titles, int co
 {
    char **newtitles = malloc(sizeof(char *) * (count + 1));
    unsigned long *newflags = malloc(sizeof(unsigned long) * (count + 1));
-   char *coltitle = (char *)dw_window_get_data(handle, "_dw_coltitle");
+   char *coltitle = (char *)g_object_get_data(G_OBJECT(handle), "_dw_coltitle");
 
    newtitles[0] = coltitle ? coltitle : "Filename";
    newflags[0] = DW_CFA_STRINGANDICON | DW_CFA_LEFT | DW_CFA_HORZSEPARATOR;
@@ -5658,7 +5658,7 @@ int dw_filesystem_setup(HWND handle, unsigned long *flags, char **titles, int co
 
    if(coltitle)
    {
-	  dw_window_set_data(handle, "_dw_coltitle", NULL);
+	  g_object_set_data(G_OBJECT(handle), "_dw_coltitle", NULL);
 	  free(coltitle);
    }
    if ( newtitles) free(newtitles);

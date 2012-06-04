@@ -495,14 +495,17 @@ void _free_window_memory(HWND handle)
          }
          else if(strncmp(tmpbuf, "#37", 4)==0)
          {
+            char *coltitle = (char *)dw_window_get_data(handle, "_dw_coltitle");
+
             dw_container_clear(handle, FALSE);
             if(wd && dw_window_get_data(handle, "_dw_container"))
             {
                void *oldflags = wd->data;
-
                wd->data = NULL;
                free(oldflags);
             }
+            if(coltitle)
+               free(coltitle);
          }
 
          if(wd->oldproc)
@@ -8985,11 +8988,6 @@ int API dw_filesystem_setup(HWND handle, unsigned long *flags, char **titles, in
 
    dw_container_setup(handle, newflags, newtitles, count + 2, count ? 2 : 0);
 
-   if(coltitle)
-   {
-	  dw_window_set_data(handle, "_dw_coltitle", NULL);
-	  free(coltitle);
-   }
    free(newtitles);
    free(newflags);
    return DW_ERROR_NONE;
