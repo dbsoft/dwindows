@@ -21,6 +21,9 @@
     .\dw.obj
    so32dll.lib
    tcp32dll.lib
+   libuls.lib
+   libconv.lib
+   unikbd.lib
 <<
   IMPLIB DW.LIB OS2\DW.DEF
   copy dw.lib lib\dw.lib

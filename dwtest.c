@@ -531,13 +531,13 @@ int DWSIGNAL beep_callback(HWND window, void *data)
     return TRUE;
 }
 
-int DWSIGNAL keypress_callback(HWND window, char ch, int vk, int state, void *data)
+int DWSIGNAL keypress_callback(HWND window, char ch, int vk, int state, void *data, char *utf8)
 {
     char tmpbuf[100];
     if ( ch )
-        sprintf( tmpbuf, "Key: %c(%d) Modifiers: %s(%d)", ch, ch, resolve_keymodifiers(state), state );
+        sprintf( tmpbuf, "Key: %c(%d) Modifiers: %s(%d) utf8 %s", ch, ch, resolve_keymodifiers(state), state,  utf8 );
     else
-        sprintf( tmpbuf, "Key: %s(%d) Modifiers: %s(%d)", resolve_keyname(vk), vk, resolve_keymodifiers(state), state );
+        sprintf( tmpbuf, "Key: %s(%d) Modifiers: %s(%d) utf8 %s", resolve_keyname(vk), vk, resolve_keymodifiers(state), state, utf8 );
     dw_window_set_text( status1, tmpbuf);
     return 0;
 }

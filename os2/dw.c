@@ -38,6 +38,10 @@
 #include <alloca.h>
 #endif
 #include <fcntl.h>
+#ifdef UNICODE
+#include <uconv.h>
+#include <unikbd.h>
+#endif
 #include "dw.h"
 
 #define QWP_USER 0
@@ -119,6 +123,12 @@ ULONG aulBuffer[4];
 HWND lasthcnr = 0, lastitem = 0, popup = 0, desktop;
 HMOD wpconfig = 0, pmprintf = 0, pmmerge = 0, gbm = 0;
 static char _dw_exec_dir[MAX_PATH+1] = {0};
+
+#ifdef UNICODE
+/* Atom for "text/unicode" clipboard format */
+ATOM  Unicode;
+KHAND Keyboard;
+#endif
 
 unsigned long _colors[] = {
    CLR_BLACK,
@@ -2774,6 +2784,50 @@ HWND _menu_owner(HWND handle)
    return NULLHANDLE;
 }
 
+#ifdef UNICODE
+#define MAX_CP_NAME     12      /* maximum length of a codepage name */
+#define MAX_CP_SPEC     64      /* maximum length of a UconvObject codepage specifier */
+
+char *_WideToUTF8(UniChar *unistr)
+{
+    UconvObject uconv;                      /* conversion object */
+    UniChar     suCodepage[MAX_CP_SPEC];    /* conversion specifier */
+    /* Convert text to the active codepage */
+    ULONG ulRC;
+    char *retval = NULL;
+
+    /* Create the conversion object */
+    UniMapCpToUcsCp(1208, suCodepage, MAX_CP_NAME);
+    UniStrcat(suCodepage, (UniChar *) L"@map=cdra,path=no");
+
+    if((ulRC = UniCreateUconvObject(suCodepage, &uconv)) == ULS_SUCCESS)
+    {
+        /* Now do the conversion */
+        ULONG ulBufLen = (UniStrlen(unistr) * 4) + 1;
+        char *s, *pszLocalText = (char *)malloc(ulBufLen);
+
+        if((ulRC = UniStrFromUcs(uconv, pszLocalText,
+                                 unistr, ulBufLen )) == ULS_SUCCESS)
+        {
+            /* (some codepages use 0x1A for substitutions; replace with ?) */
+            while((s = strchr(pszLocalText, 0x1A)) != NULL) *s = '?';
+            /* Output the converted text */
+            retval = pszLocalText;
+        }
+#ifdef DEBUG
+        else
+            dw_debug("Error pasting Unicode text:\nUniStrFromUcs() = %08X", ulRC);
+#endif
+        UniFreeUconvObject(uconv);
+    }
+#ifdef DEBUG
+    else
+        dw_debug("Error pasting Unicode text:\nUniCreateUconvObject() = %08X", ulRC);
+#endif
+    return retval;
+}
+#endif
+
 MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 {
    int result = -1;
@@ -2908,15 +2962,24 @@ MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
             break;
          case WM_CHAR:
             {
-               int (API_FUNC keypressfunc)(HWND, char, int, int, void *) = (int (API_FUNC)(HWND, char, int, int, void *))tmp->signalfunction;
+               int (API_FUNC keypressfunc)(HWND, char, int, int, void *, char *) = (int (API_FUNC)(HWND, char, int, int, void *, char *))tmp->signalfunction;
 
                if((hWnd == tmp->window || _toplevel_window(hWnd) == tmp->window) && !(SHORT1FROMMP(mp1) & KC_KEYUP))
                {
                   int vk;
-                  char ch = 0;
+                  char ch[2] = {0};
+                  char *utf8 = NULL;
+#ifdef UNICODE
+                  UniChar uc[2] = {0};
+                  VDKEY vdk;
+                  BYTE bscan;
+
+                  UniTranslateKey(Keyboard, 0, CHAR4FROMMP(mp1), uc, &vdk, &bscan);
+                  utf8 = _WideToUTF8(uc);
+#endif
 
                   if(SHORT1FROMMP(mp1) & KC_CHAR)
-                     ch = (char)SHORT1FROMMP(mp2);
+                     ch[0] = (char)SHORT1FROMMP(mp2);
                   if(SHORT1FROMMP(mp1) & KC_VIRTUALKEY)
                      vk = SHORT2FROMMP(mp2);
                   else
@@ -2925,15 +2988,18 @@ MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
                   /* This is a hack to fix shift presses showing
                    * up as tabs!
                    */
-                  if(ch == '\t' && !(SHORT1FROMMP(mp1) & KC_CHAR))
+                  if(ch[0] == '\t' && !(SHORT1FROMMP(mp1) & KC_CHAR))
                   {
-                     ch = 0;
+                     ch[0] = 0;
                      vk = VK_SHIFT;
                   }
 
-                  result = keypressfunc(tmp->window, ch, vk,
-                                   SHORT1FROMMP(mp1) & (KC_ALT | KC_SHIFT | KC_CTRL), tmp->data);
+                  result = keypressfunc(tmp->window, ch[0], vk,
+                                        SHORT1FROMMP(mp1) & (KC_ALT | KC_SHIFT | KC_CTRL), tmp->data, utf8 ? utf8 : ch);
                   tmp = NULL;
+
+                  if(utf8)
+                      free(utf8);
                }
             }
             break;
@@ -2999,14 +3065,14 @@ MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
             {
                int svar = SLN_SLIDERTRACK;
                int id = SHORT1FROMMP(mp1);
-			   HWND notifyhwnd = dw_window_from_id(hWnd, id);
+               HWND notifyhwnd = dw_window_from_id(hWnd, id);
 
-			   if(origmsg == WM_CONTROL)
-			   {
-				   svar = SHORT2FROMMP(mp1);
-				   if(!notifyhwnd && WinIsWindow(dwhab, (HWND)mp2))
+               if(origmsg == WM_CONTROL)
+               {
+                   svar = SHORT2FROMMP(mp1);
+                   if(!notifyhwnd && WinIsWindow(dwhab, (HWND)mp2))
                        notifyhwnd = (HWND)mp2;
-			   }
+               }
 
                switch(svar)
                {
@@ -3379,8 +3445,8 @@ MRESULT EXPENTRY _controlproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
                if(!dw_window_get_data((HWND)mp2, "_dw_updating"))
                    WinPostMsg(hWnd, WM_USER, mp1, mp2);
            }
-		   else
-			   _run_event(hWnd, msg, mp1, mp2);
+           else
+               _run_event(hWnd, msg, mp1, mp2);
       }
       break;
    }
@@ -4171,6 +4237,10 @@ int API dw_init(int newthread, int argc, char *argv[])
       dwhab = WinInitialize(0);
       dwhmq = WinCreateMsgQueue(dwhab, 0);
 #ifdef UNICODE
+      /* Create the Unicode atom for copy and paste */
+      Unicode = WinAddAtom(WinQuerySystemAtomTable(), (PSZ)"text/unicode");
+      /* TODO: Need to figure out how to determine the correct keyboard here */
+      UniCreateKeyboard(&Keyboard, (UniChar *) L"de", 0);
       /* Set the codepage to 1208 (UTF-8) */
       WinSetCp(dwhmq, 1208);
 #endif
@@ -11346,6 +11416,11 @@ void API dw_exit(int exitcode)
    /* Deinit the GBM */
    if(_gbm_deinit)
        _gbm_deinit();
+
+#ifdef UNICODE
+    /* Deregister the Unicode clipboard format */
+    WinDeleteAtom(WinQuerySystemAtomTable(), Unicode);
+#endif
 
    /* Destroy the main message queue and anchor block */
    WinDestroyMsgQueue(dwhmq);
