@@ -262,23 +262,24 @@ int _event_handler1(id object, NSEvent *event, int message)
             }
             case 2:
             {
-                int (*keypressfunc)(HWND, char, int, int, void *) = handler->signalfunction;
+                int (*keypressfunc)(HWND, char, int, int, void *, char *) = handler->signalfunction;
                 NSString *nchar = [event charactersIgnoringModifiers];
                 int special = (int)[event modifierFlags];
                 unichar vk = [nchar characterAtIndex:0];
-                char ch = '\0';
+                char *utf8 = NULL, ch = '\0';
 
                 /* Handle a valid key */
                 if([nchar length] == 1)
                 {
-                    const char *tmp = [nchar UTF8String];
+                    char *tmp = (char *)[nchar UTF8String];
                     if(tmp && strlen(tmp) == 1)
                     {
                         ch = tmp[0];
                     }
+                    utf8 = tmp;
                 }
 
-                return keypressfunc(handler->window, ch, (int)vk, special, handler->data);
+                return keypressfunc(handler->window, ch, (int)vk, special, handler->data, utf8);
             }
             /* Button press and release event */
             case 3:
