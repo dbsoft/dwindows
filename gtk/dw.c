@@ -1403,10 +1403,14 @@ static gint _key_press_event(GtkWidget *widget, GdkEventKey *event, gpointer dat
    if ( dbgfp != NULL ) _dw_log("%s %d: %s\n",__FILE__,__LINE__,__func__);
    if(work.window)
    {
-      int (*keypressfunc)(HWND, char, int, int, void *) = work.func;
+      int (*keypressfunc)(HWND, char, int, int, void *, char *) = work.func;
+      guint32 unichar = gdk_keyval_to_unicode(event->keyval);
+      char utf8[7] = { 0 };
+      
+      g_unichar_to_utf8(unichar, utf8);
 
       retval = keypressfunc(work.window, *event->string, event->keyval,
-                       event->state & (GDK_CONTROL_MASK | GDK_SHIFT_MASK | GDK_MOD1_MASK), work.data);
+                       event->state & (GDK_CONTROL_MASK | GDK_SHIFT_MASK | GDK_MOD1_MASK), work.data, utf8);
    }
    return retval;
 }
