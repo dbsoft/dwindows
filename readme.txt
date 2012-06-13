@@ -39,6 +39,9 @@ Added resizing HICNs to 24x24 max size on platforms which do not
    do it automatically (Mac and GTK). OS/2 and Windows limit the size.
 Added toolbar control support to replace existing bitmap buttons on Windows.
 Added dw_filesystem_set_column_title() to fill a hole in localization.   
+Added new optional UTF-8 parameter to the key press callback.
+    This is a pointer to a UTF-8 string representing the key pressed.
+    The buffer pointed to is only good for the duration of the callback.
 Fixed dwindows-config --version not returning the version at all.
 Fixed value changed events not working for spinbuttons on OS/2 and Windows.
 Fixed issues drawing arcs on GTK2, GTK3 and Mac.
