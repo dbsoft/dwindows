@@ -1976,7 +1976,6 @@ LRESULT CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
                         
                         uc[0] = (WCHAR)mp1;
                         utf8 = WideToUTF8(uc);
-                        dw_debug("UTF8 %s\n", utf8);
 #endif                        
                         
                         if(GetAsyncKeyState(VK_SHIFT) & 0x8000)
@@ -6247,7 +6246,7 @@ HWND _create_toolbar(char *text, ULONG id, HICON icon, HBITMAP hbitmap)
                          
    /* Disable visual styles by default */
    if(_SetWindowTheme)
-      _SetWindowTheme(tmp, TEXT(""), TEXT(""));
+      _SetWindowTheme(tmp, L"", L"");
 
    /* Insert the single bitmap and button into the toolbar */
    SendMessage(tmp, TB_BUTTONSTRUCTSIZE, sizeof(TBBUTTON), 0);
@@ -7629,7 +7628,7 @@ void API dw_window_set_style(HWND handle, ULONG style, ULONG mask)
 
          /* Enable or disable visual themese */
          if(_SetWindowTheme)
-            _SetWindowTheme(handle, (style & DW_BS_NOBORDER) ? NULL : TEXT(""), (style & DW_BS_NOBORDER) ? NULL : TEXT(""));
+            _SetWindowTheme(handle, (style & DW_BS_NOBORDER) ? NULL : L"", (style & DW_BS_NOBORDER) ? NULL : L"");
             
          return;
       }
