@@ -1965,13 +1965,20 @@ LRESULT CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
                   break;
                case WM_CHAR:
                   {
-                     int (*keypressfunc)(HWND, char, int, int, void *) = tmp->signalfunction;
+                     int (*keypressfunc)(HWND, char, int, int, void *, char *) = tmp->signalfunction;
 
                      if(hWnd == tmp->window || _toplevel_window(hWnd) == tmp->window)
                      {
                         int special = 0;
-                        char ch = 0;
-
+                        char *utf8 = NULL, ch[2] = {0};
+#ifdef UNICODE             
+                        WCHAR uc[2] = { 0 };
+                        
+                        uc[0] = (WCHAR)mp1;
+                        utf8 = WideToUTF8(uc);
+                        dw_debug("UTF8 %s\n", utf8);
+#endif                        
+                        
                         if(GetAsyncKeyState(VK_SHIFT) & 0x8000)
                            special |= KC_SHIFT;
                         if(GetAsyncKeyState(VK_CONTROL) & 0x8000)
@@ -1980,9 +1987,9 @@ LRESULT CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
                            special |= KC_ALT;
 
                         if(origmsg == WM_CHAR && mp1 < 128)
-                           ch = (char)mp1;
+                           ch[0] = (char)mp1;
 
-                        result = keypressfunc(tmp->window, ch, (int)mp1, special, tmp->data);
+                        result = keypressfunc(tmp->window, ch[0], (int)mp1, special, tmp->data, utf8 ? utf8 : ch);
                         tmp = NULL;
                      }
                   }
@@ -9001,16 +9008,16 @@ int API dw_container_setup(HWND handle, unsigned long *flags, char **titles, int
 }
 
 /*
- * Configures the main filesystem columnn title for localization.
+ * Configures the main filesystem column title for localization.
  * Parameters:
  *          handle: Handle to the container to be configured.
  *          title: The title to be displayed in the main column.
  */
 void API dw_filesystem_set_column_title(HWND handle, char *title)
 {
-	char *newtitle = strdup(title ? title : "");
-	
-	dw_window_set_data(handle, "_dw_coltitle", newtitle);
+    char *newtitle = strdup(title ? title : "");
+
+    dw_window_set_data(handle, "_dw_coltitle", newtitle);
 }
 
 /*
@@ -9039,8 +9046,8 @@ int API dw_filesystem_setup(HWND handle, unsigned long *flags, char **titles, in
    dw_container_setup(handle, flags, titles, count, -1);
    if(coltitle)
    {
-	  dw_window_set_data(handle, "_dw_coltitle", NULL);
-	  free(coltitle);
+      dw_window_set_data(handle, "_dw_coltitle", NULL);
+      free(coltitle);
    }
    return DW_ERROR_NONE;
 }
