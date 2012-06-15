@@ -2963,10 +2963,10 @@ MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
             break;
          case WM_CHAR:
             {
-               int (API_FUNC keypressfunc)(HWND, char, int, int, void *, char *) = (int (API_FUNC)(HWND, char, int, int, void *, char *))tmp->signalfunction;
+                int (API_FUNC keypressfunc)(HWND, char, int, int, void *, char *) = (int (API_FUNC)(HWND, char, int, int, void *, char *))tmp->signalfunction;
 
-               if((hWnd == tmp->window || _toplevel_window(hWnd) == tmp->window) && !(SHORT1FROMMP(mp1) & KC_KEYUP))
-               {
+                if((hWnd == tmp->window || _toplevel_window(hWnd) == tmp->window) && !(SHORT1FROMMP(mp1) & KC_KEYUP))
+                {
                   int vk;
                   char ch[2] = {0};
                   char *utf8 = NULL;
@@ -2974,8 +2974,7 @@ MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
                   UniChar uc[2] = {0};
                   VDKEY vdk;
                   BYTE bscan;
-
-                  UniTranslateKey(Keyboard, 0, CHAR4FROMMP(mp1), uc, &vdk, &bscan);
+                  UniTranslateKey(Keyboard, SHORT1FROMMP(mp1) & KC_SHIFT  ? 1 : 0, CHAR4FROMMP(mp1), uc, &vdk, &bscan);
                   utf8 = _WideToUTF8(uc);
 #endif
 
@@ -4213,15 +4212,15 @@ UniChar *_detect_keyb(void)
     {
         USHORT length;
         USHORT codepage;
-        UCHAR strings[8];
+        CHAR   strings[8];
     } kd;
     ULONG action;
     UniChar *buf = NULL;
 
-    if(DosOpen("KBD$", &handle, &action, 0, 0,
-                    OPEN_ACTION_FAIL_IF_NEW | OPEN_ACTION_OPEN_IF_EXISTS,
-                    OPEN_ACCESS_READONLY | OPEN_SHARE_DENYNONE,
-                    NULL) == 0)
+    if(DosOpen((PSZ)"KBD$", &handle, &action, 0, 0,
+               OPEN_ACTION_FAIL_IF_NEW | OPEN_ACTION_OPEN_IF_EXISTS,
+               OPEN_ACCESS_READONLY | OPEN_SHARE_DENYNONE,
+               NULL) == 0)
     {
         ULONG plen = 0, dlen = sizeof(kd);
 
@@ -11691,17 +11690,25 @@ void API dw_window_click_default(HWND window, HWND next)
  */
 char * API dw_clipboard_get_text(void)
 {
-    APIRET rc;
     char *retbuf = NULL;
-    ULONG fmtInfo;
+#ifdef UNICODE
+    UniChar *unistr;
+#endif
 
     WinOpenClipbrd(dwhab);
 
-    rc = WinQueryClipbrdFmtInfo(dwhab, CF_TEXT, &fmtInfo);
-    if (rc) /* Text data in clipboard */
+#ifdef UNICODE
+    if(!Unicode || !(unistr = (UniChar *)WinQueryClipbrdData(dwhab, Unicode)) ||
+       !(retbuf = _WideToUTF8(unistr)))
+#endif
     {
-        PSZ pszClipText = (PSZ)WinQueryClipbrdData(dwhab, CF_TEXT); /* Query data handle */
-        retbuf = strdup((char *)pszClipText);
+        ULONG fmtInfo;
+
+        if (WinQueryClipbrdFmtInfo(dwhab, CF_TEXT, &fmtInfo)) /* Text data in clipboard */
+        {
+            PSZ pszClipText = (PSZ)WinQueryClipbrdData(dwhab, CF_TEXT); /* Query data handle */
+            retbuf = strdup((char *)pszClipText);
+        }
     }
     WinCloseClipbrd(dwhab);
     return retbuf;
@@ -11714,23 +11721,55 @@ char * API dw_clipboard_get_text(void)
  */
 void API dw_clipboard_set_text( char *str, int len )
 {
-    APIRET rc;
     static PVOID shared;
+    PVOID old = shared, src = str;
+    int buflen = len + 1;
 
     WinOpenClipbrd(dwhab); /* Open clipboard */
     WinEmptyClipbrd(dwhab); /* Empty clipboard */
 
     /* Ok, clipboard wants giveable unnamed shared memory */
-
     shared = NULL;
-    rc = DosAllocSharedMem(&shared, NULL, len, OBJ_GIVEABLE | PAG_COMMIT | PAG_READ | PAG_WRITE);
-
-    if (rc == 0)
+    if(!DosAllocSharedMem(&shared, NULL, buflen, OBJ_GIVEABLE | PAG_COMMIT | PAG_READ | PAG_WRITE))
     {
-        memcpy(shared, str, len);
+        memcpy(shared, src, buflen);
 
         WinSetClipbrdData(dwhab, (ULONG)shared, CF_TEXT, CFI_POINTER);
     }
+    if(old)
+        DosFreeMem(old);
+
+#ifdef UNICODE
+    if(Unicode)
+    {
+        UniChar *unistr = NULL;
+        static PVOID ushared;
+        PVOID uold = ushared;
+
+        src = calloc(len + 1, 1);
+
+        memcpy(src, str, len);
+        unistr = _UTF8toWide((char *)src);
+        free(src);
+
+        if(unistr)
+        {
+            buflen = (UniStrlen(unistr) + 1) * sizeof(UniChar);
+            src = unistr;
+            /* Ok, clipboard wants giveable unnamed shared memory */
+            ushared = NULL;
+            if(!DosAllocSharedMem(&ushared, NULL, buflen, OBJ_GIVEABLE | PAG_COMMIT | PAG_READ | PAG_WRITE))
+            {
+                memcpy(ushared, src, buflen);
+
+                WinSetClipbrdData(dwhab, (ULONG)ushared, Unicode, CFI_POINTER);
+            }
+            free(unistr);
+        }
+        if(uold)
+            DosFreeMem(uold);
+    }
+#endif
 
     WinCloseClipbrd(dwhab); /* Close clipboard */
     return;
