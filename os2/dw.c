@@ -128,6 +128,7 @@ static char _dw_exec_dir[MAX_PATH+1] = {0};
 /* Atom for "text/unicode" clipboard format */
 ATOM  Unicode;
 KHAND Keyboard;
+UconvObject Uconv;                      /* conversion object */
 #endif
 
 unsigned long _colors[] = {
@@ -2790,40 +2791,40 @@ HWND _menu_owner(HWND handle)
 
 char *_WideToUTF8(UniChar *unistr)
 {
-    UconvObject uconv;                      /* conversion object */
-    UniChar     suCodepage[MAX_CP_SPEC];    /* conversion specifier */
-    /* Convert text to the active codepage */
-    ULONG ulRC;
+    /* Convert text to UTF-8 codepage */
     char *retval = NULL;
+    /* Now do the conversion */
+    ULONG ulBufLen = (UniStrlen(unistr) * 4) + 1;
+    char *s, *pszLocalText = (char *)malloc(ulBufLen);
 
-    /* Create the conversion object */
-    UniMapCpToUcsCp(1208, suCodepage, MAX_CP_NAME);
-    UniStrcat(suCodepage, (UniChar *) L"@map=cdra,path=no");
-
-    if((ulRC = UniCreateUconvObject(suCodepage, &uconv)) == ULS_SUCCESS)
+    if(UniStrFromUcs(Uconv, pszLocalText,
+                     unistr, ulBufLen) == ULS_SUCCESS)
     {
-        /* Now do the conversion */
-        ULONG ulBufLen = (UniStrlen(unistr) * 4) + 1;
-        char *s, *pszLocalText = (char *)malloc(ulBufLen);
-
-        if((ulRC = UniStrFromUcs(uconv, pszLocalText,
-                                 unistr, ulBufLen )) == ULS_SUCCESS)
-        {
-            /* (some codepages use 0x1A for substitutions; replace with ?) */
-            while((s = strchr(pszLocalText, 0x1A)) != NULL) *s = '?';
-            /* Output the converted text */
-            retval = pszLocalText;
-        }
-#ifdef DEBUG
-        else
-            dw_debug("Error pasting Unicode text:\nUniStrFromUcs() = %08X", ulRC);
-#endif
-        UniFreeUconvObject(uconv);
+        /* (some codepages use 0x1A for substitutions; replace with ?) */
+        while((s = strchr(pszLocalText, 0x1A)) != NULL) *s = '?';
+        /* Output the converted text */
+        retval = pszLocalText;
     }
-#ifdef DEBUG
-    else
-        dw_debug("Error pasting Unicode text:\nUniCreateUconvObject() = %08X", ulRC);
-#endif
+    else if(pszLocalText)
+        free(pszLocalText);
+    return retval;
+}
+
+UniChar *_UTF8toWide(char *utf8str)
+{
+    /* Convert text to Unicode */
+    UniChar *retval = NULL;
+    /* Now do the conversion */
+    UniChar *buf = calloc(strlen(utf8str) + 1, sizeof(UniChar));
+
+    if(UniStrToUcs(Uconv, buf,
+                   utf8str, strlen(utf8str) * sizeof(UniChar)) == ULS_SUCCESS)
+    {
+        /* Output the converted text */
+        retval = buf;
+    }
+    else if(buf)
+        free(buf);
     return retval;
 }
 #endif
@@ -4203,6 +4204,42 @@ MRESULT EXPENTRY _TreeProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
    return WinDefWindowProc(hwnd, msg, mp1, mp2);
 }
 
+#ifdef UNICODE
+/* Internal function to detect the active keyboard layout */
+UniChar *_detect_keyb(void)
+{
+    HFILE handle;
+    struct
+    {
+        USHORT length;
+        USHORT codepage;
+        UCHAR strings[8];
+    } kd;
+    ULONG action;
+    UniChar *buf = NULL;
+
+    if(DosOpen("KBD$", &handle, &action, 0, 0,
+                    OPEN_ACTION_FAIL_IF_NEW | OPEN_ACTION_OPEN_IF_EXISTS,
+                    OPEN_ACCESS_READONLY | OPEN_SHARE_DENYNONE,
+                    NULL) == 0)
+    {
+        ULONG plen = 0, dlen = sizeof(kd);
+
+        kd.length = dlen;
+
+        if(DosDevIOCtl(handle, 4, 0x7b, NULL, plen, &plen,
+                       &kd, dlen, &dlen) == 0 && strlen(kd.strings) > 0)
+        {
+
+            /* Convert to Unicode */
+            buf = _UTF8toWide(kd.strings);
+        }
+        DosClose (handle);
+    }
+    return buf;
+}
+#endif
+
 /*
  * Initializes the Dynamic Windows engine.
  * Parameters:
@@ -4234,13 +4271,26 @@ int API dw_init(int newthread, int argc, char *argv[])
       
    if(newthread)
    {
+#ifdef UNICODE
+      UniChar *kbd;
+      UniChar  suCodepage[MAX_CP_SPEC];    /* conversion specifier */
+#endif
       dwhab = WinInitialize(0);
       dwhmq = WinCreateMsgQueue(dwhab, 0);
 #ifdef UNICODE
+      /* Create the conversion object */
+      UniMapCpToUcsCp(1208, suCodepage, MAX_CP_NAME);
+      UniStrcat(suCodepage, (UniChar *) L"@map=cdra,path=no");
+      UniCreateUconvObject(suCodepage, &Uconv);
       /* Create the Unicode atom for copy and paste */
       Unicode = WinAddAtom(WinQuerySystemAtomTable(), (PSZ)"text/unicode");
-      /* TODO: Need to figure out how to determine the correct keyboard here */
-      UniCreateKeyboard(&Keyboard, (UniChar *) L"de", 0);
+      /* Figure out how to determine the correct keyboard here */
+      kbd = _detect_keyb();
+      /* Default to US if could not detect */
+      UniCreateKeyboard(&Keyboard, (UniChar *)kbd ? kbd : L"us", 0);
+      /* Free temporary memory */
+      if(kbd)
+          free(kbd);
       /* Set the codepage to 1208 (UTF-8) */
       WinSetCp(dwhmq, 1208);
 #endif
@@ -11418,8 +11468,10 @@ void API dw_exit(int exitcode)
        _gbm_deinit();
 
 #ifdef UNICODE
-    /* Deregister the Unicode clipboard format */
-    WinDeleteAtom(WinQuerySystemAtomTable(), Unicode);
+   /* Free the conversion object */
+   UniFreeUconvObject(Uconv);
+   /* Deregister the Unicode clipboard format */
+   WinDeleteAtom(WinQuerySystemAtomTable(), Unicode);
 #endif
 
    /* Destroy the main message queue and anchor block */
