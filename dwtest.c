@@ -69,6 +69,7 @@ static char folder_ico[1718] = {
 };
 
 HWND mainwindow,
+    copypastefield,
     entryfield,
     checkable_menuitem,
     noncheckable_menuitem,
@@ -839,14 +840,56 @@ int DWSIGNAL combobox_select_event_callback(HWND window, int index)
     return FALSE;
 }
 
+int DWSIGNAL copy_clicked_callback(HWND button, void *data)
+{
+    char *test = dw_window_get_text(copypastefield);
+    
+    if(test)
+    {
+        dw_clipboard_set_text(test, strlen(test));
+        dw_free(test);
+    }
+    return TRUE;
+}
+
+int DWSIGNAL paste_clicked_callback(HWND button, void *data)
+{
+    char *test = dw_clipboard_get_text();
+    if(test)
+    {
+        dw_window_set_text(copypastefield, test);
+        dw_free(test);
+    }
+    return TRUE;
+}
+
 void archive_add(void)
 {
-    HWND browsefilebutton, browsefolderbutton, browsebox;
+    HWND browsefilebutton, browsefolderbutton, copybutton, pastebutton, browsebox;
 
     lbbox = dw_box_new(DW_VERT, 10);
 
     dw_box_pack_start(notebookbox1, lbbox, 150, 70, TRUE, TRUE, 0);
 
+    /* Copy and Paste */
+    browsebox = dw_box_new(DW_HORZ, 0);
+
+    dw_box_pack_start(lbbox, browsebox, 0, 0, FALSE, FALSE, 0);
+
+    copypastefield = dw_entryfield_new("", 0);
+
+    dw_entryfield_set_limit(copypastefield, 260);
+
+    dw_box_pack_start(browsebox, copypastefield, -1, -1, TRUE, FALSE, 4);
+
+    copybutton = dw_button_new("Copy", 0);
+
+    dw_box_pack_start(browsebox, copybutton, -1, -1, FALSE, FALSE, 0);
+
+    pastebutton = dw_button_new("Paste", 0);
+
+    dw_box_pack_start(browsebox, pastebutton, -1, -1, FALSE, FALSE, 0);
+    
     /* Archive Name */
     stext = dw_text_new("File to browse", 0);
 
@@ -903,6 +946,8 @@ void archive_add(void)
 
     dw_signal_connect(browsefilebutton, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(browse_file_callback), DW_POINTER(notebookbox1));
     dw_signal_connect(browsefolderbutton, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(browse_folder_callback), DW_POINTER(notebookbox1));
+    dw_signal_connect(copybutton, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(copy_clicked_callback), DW_POINTER(copypastefield));
+    dw_signal_connect(pastebutton, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(paste_clicked_callback), DW_POINTER(copypastefield));
     dw_signal_connect(okbutton, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(beep_callback), DW_POINTER(notebookbox1));
     dw_signal_connect(cancelbutton, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(exit_callback), DW_POINTER(mainwindow));
     dw_signal_connect(cursortogglebutton, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(cursortoggle_callback), DW_POINTER(mainwindow));
