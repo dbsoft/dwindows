@@ -6,6 +6,7 @@
  * (C) 2003-2011 Mark Hessling <mark@rexx.org>
  * (C) 2000 Achim Hasenmueller <achimha@innotek.de>
  * (C) 2000 Peter Nielsen <peter@pmview.com>
+ * (C) 2007 Alex Taylor (some code borrowed from clipuni)
  * (C) 1998 Sergey I. Yevtushenko (some code borrowed from cell toolkit)
  *
  */
@@ -1111,6 +1112,50 @@ BOOL _MySetWindowPos(HWND hwnd, HWND parent, HWND behind, LONG x, LONG y, LONG c
 
    return WinSetWindowPos(hwnd, behind, x, height - y - cy, cx, cy, fl);
 }
+
+#ifdef UNICODE
+#define MAX_CP_NAME     12      /* maximum length of a codepage name */
+#define MAX_CP_SPEC     64      /* maximum length of a UconvObject codepage specifier */
+
+char *_WideToUTF8(UniChar *unistr)
+{
+    /* Convert text to UTF-8 codepage */
+    char *retval = NULL;
+    /* Now do the conversion */
+    ULONG ulBufLen = (UniStrlen(unistr) * 4) + 1;
+    char *s, *pszLocalText = (char *)malloc(ulBufLen);
+
+    if(UniStrFromUcs(Uconv, pszLocalText,
+                     unistr, ulBufLen) == ULS_SUCCESS)
+    {
+        /* (some codepages use 0x1A for substitutions; replace with ?) */
+        while((s = strchr(pszLocalText, 0x1A)) != NULL) *s = '?';
+        /* Output the converted text */
+        retval = pszLocalText;
+    }
+    else if(pszLocalText)
+        free(pszLocalText);
+    return retval;
+}
+
+UniChar *_UTF8toWide(char *utf8str)
+{
+    /* Convert text to Unicode */
+    UniChar *retval = NULL;
+    /* Now do the conversion */
+    UniChar *buf = calloc(strlen(utf8str) + 1, sizeof(UniChar));
+
+    if(UniStrToUcs(Uconv, buf,
+                   utf8str, strlen(utf8str) * sizeof(UniChar)) == ULS_SUCCESS)
+    {
+        /* Output the converted text */
+        retval = buf;
+    }
+    else if(buf)
+        free(buf);
+    return retval;
+}
+#endif
 
 /* This function calculates how much space the widgets and boxes require
  * and does expansion as necessary.
@@ -2287,6 +2332,28 @@ void _click_default(HWND handle)
       WinSetFocus(HWND_DESKTOP, handle);
 }
 
+#ifdef UNICODE
+void _combine_text(HWND handle, USHORT pos1, char *text, char *pastetext)
+{
+    char *combined = calloc((text ? strlen(text) : 0) + strlen(pastetext) + 1, 1);
+    SHORT newsel = pos1 + strlen(pastetext);
+
+    /* Combine the two strings into 1... or just use pastetext if no text */
+    if(text)
+        strncpy(combined, text, pos1);
+    strcat(combined, pastetext);
+    if(text && pos1 < strlen(text))
+        strcat(combined, &text[pos1]);
+
+    /* Set the new combined text to the entryfield */
+    dw_window_set_text(handle, combined);
+    /* Move the cursor to the old selection start plus paste length */
+    WinSendMsg(handle, EM_SETSEL, MPFROM2SHORT(newsel, newsel), 0);
+    /* Free temporary memory */
+    free(combined);
+}
+#endif
+
 #define ENTRY_CUT   60901
 #define ENTRY_COPY  60902
 #define ENTRY_PASTE 60903
@@ -2351,12 +2418,50 @@ MRESULT EXPENTRY _entryproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
             {
                switch(command)
                {
+#ifdef UNICODE
+               case ENTRY_CUT:
+               case ENTRY_COPY:
+               case ENTRY_PASTE:
+                   {
+                       /* MLE insertion points (for querying selection) */
+                       IPT ipt1, ipt2;
+
+                       /* Get the selected text */
+                       ipt1 = (IPT)WinSendMsg(hWnd, MLM_QUERYSEL, MPFROMSHORT(MLFQS_MINSEL), 0);
+                       ipt2 = (IPT)WinSendMsg(hWnd, MLM_QUERYSEL, MPFROMSHORT(MLFQS_MAXSEL), 0);
+
+                       /* Get the selection and put on clipboard for copy and cut */
+                       if(command != ENTRY_PASTE)
+                       {
+                           char *text = (char *)malloc((ULONG)WinSendMsg(hWnd, MLM_QUERYFORMATTEXTLENGTH, MPFROMLONG(ipt1), MPFROMLONG(ipt2 - ipt1)) + 1);
+                           ULONG ulCopied = (ULONG)WinSendMsg(hWnd, MLM_QUERYSELTEXT, MPFROMP(text), 0);
+
+                           dw_clipboard_set_text(text, ulCopied);
+                           free(text);
+                       }
+                       /* Clear selection for cut and paste */
+                       if(command != ENTRY_COPY)
+                           WinSendMsg(hWnd, MLM_CLEAR, 0, 0);
+                       if(command == ENTRY_PASTE)
+                       {
+                           char *text = dw_clipboard_get_text();
+
+                           if(text)
+                           {
+                               WinSendMsg(hWnd, MLM_INSERT, MPFROMP(text), 0);
+                               dw_free(text);
+                           }
+                       }
+                   }
+                   return (MRESULT)0;
+#else
                case ENTRY_CUT:
                   return WinSendMsg(hWnd, MLM_CUT, 0, 0);
                case ENTRY_COPY:
                   return WinSendMsg(hWnd, MLM_COPY, 0, 0);
                case ENTRY_PASTE:
                   return WinSendMsg(hWnd, MLM_PASTE, 0, 0);
+#endif
                case ENTRY_UNDO:
                   return WinSendMsg(hWnd, MLM_UNDO, 0, 0);
                case ENTRY_SALL:
@@ -2378,12 +2483,57 @@ MRESULT EXPENTRY _entryproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
                {
                   switch(command)
                   {
+#ifdef UNICODE
+               case ENTRY_CUT:
+               case ENTRY_COPY:
+               case ENTRY_PASTE:
+                   {
+                       /* Get the selected text */
+                       char *text = dw_window_get_text(handle);
+                       ULONG sel = (ULONG)WinSendMsg(handle, EM_QUERYSEL, 0, 0);
+                       SHORT pos1 = SHORT1FROMMP(sel), pos2 = SHORT2FROMMP(sel);
+
+                       /* Get the selection and put on clipboard for copy and cut */
+                       if(text)
+                       {
+                           if(command != ENTRY_PASTE)
+                           {
+                               if(pos2 > pos1)
+                               {
+                                   text[pos2] = 0;
+
+                                   dw_clipboard_set_text(&text[pos1], pos2 - pos1);
+                               }
+                           }
+                           free(text);
+                       }
+                       /* Clear selection for cut and paste */
+                       if(command != ENTRY_COPY)
+                           WinSendMsg(handle, EM_CLEAR, 0, 0);
+                       text = dw_window_get_text(handle);
+                       if(command == ENTRY_PASTE)
+                       {
+                           char *pastetext = dw_clipboard_get_text();
+
+                           if(pastetext)
+                           {
+                               _combine_text(handle, pos1, text, pastetext);
+                               /* Free temporary memory */
+                               dw_free(pastetext);
+                           }
+                       }
+                       if(text)
+                           free(text);
+                   }
+                   return (MRESULT)0;
+#else
                   case ENTRY_CUT:
                      return WinSendMsg(handle, EM_CUT, 0, 0);
                   case ENTRY_COPY:
                      return WinSendMsg(handle, EM_COPY, 0, 0);
                   case ENTRY_PASTE:
                      return WinSendMsg(handle, EM_PASTE, 0, 0);
+#endif
                   case ENTRY_SALL:
                      {
                         LONG len = WinQueryWindowTextLength(hWnd);
@@ -2434,7 +2584,51 @@ MRESULT EXPENTRY _entryproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
        */
       else if(SHORT1FROMMP(mp2) == 283)
          return (MRESULT)TRUE;
+#ifdef UNICODE
+      else if(!SHORT1FROMMP(mp2))
+      {
+          UniChar uc[2] = {0};
+          VDKEY vdk;
+          BYTE bscan;
+          char *utf8;
 
+          UniTranslateKey(Keyboard, SHORT1FROMMP(mp1) & KC_SHIFT  ? 1 : 0, CHAR4FROMMP(mp1), uc, &vdk, &bscan);
+
+          if((utf8 = _WideToUTF8(uc)) != NULL)
+          {
+              if(*utf8)
+              {
+                  /* MLE */
+                  if(strncmp(tmpbuf, "#10", 4)==0)
+                  {
+                      WinSendMsg(hWnd, MLM_INSERT, MPFROMP(utf8), 0);
+                  }
+                  else /* Other */
+                  {
+                      HWND handle = hWnd;
+
+                      /* Get the entryfield handle from multi window controls */
+                      if(strncmp(tmpbuf, "#2", 3)==0)
+                          handle = WinWindowFromID(hWnd, 667);
+
+                      if(handle)
+                      {
+                          char *text = dw_window_get_text(handle);
+                          ULONG sel = (ULONG)WinSendMsg(hWnd, EM_QUERYSEL, 0, 0);
+                          SHORT pos1 = SHORT1FROMMP(sel), pos2 = SHORT2FROMMP(sel);
+
+                           WinSendMsg(handle, EM_CLEAR, 0, 0);
+                          _combine_text(handle, pos1, text, utf8);
+
+                          if(text)
+                              free(text);
+                      }
+                  }
+              }
+              free(utf8);
+          }
+      }
+#endif
       break;
    case WM_SIZE:
       {
@@ -2784,50 +2978,6 @@ HWND _menu_owner(HWND handle)
    }
    return NULLHANDLE;
 }
-
-#ifdef UNICODE
-#define MAX_CP_NAME     12      /* maximum length of a codepage name */
-#define MAX_CP_SPEC     64      /* maximum length of a UconvObject codepage specifier */
-
-char *_WideToUTF8(UniChar *unistr)
-{
-    /* Convert text to UTF-8 codepage */
-    char *retval = NULL;
-    /* Now do the conversion */
-    ULONG ulBufLen = (UniStrlen(unistr) * 4) + 1;
-    char *s, *pszLocalText = (char *)malloc(ulBufLen);
-
-    if(UniStrFromUcs(Uconv, pszLocalText,
-                     unistr, ulBufLen) == ULS_SUCCESS)
-    {
-        /* (some codepages use 0x1A for substitutions; replace with ?) */
-        while((s = strchr(pszLocalText, 0x1A)) != NULL) *s = '?';
-        /* Output the converted text */
-        retval = pszLocalText;
-    }
-    else if(pszLocalText)
-        free(pszLocalText);
-    return retval;
-}
-
-UniChar *_UTF8toWide(char *utf8str)
-{
-    /* Convert text to Unicode */
-    UniChar *retval = NULL;
-    /* Now do the conversion */
-    UniChar *buf = calloc(strlen(utf8str) + 1, sizeof(UniChar));
-
-    if(UniStrToUcs(Uconv, buf,
-                   utf8str, strlen(utf8str) * sizeof(UniChar)) == ULS_SUCCESS)
-    {
-        /* Output the converted text */
-        retval = buf;
-    }
-    else if(buf)
-        free(buf);
-    return retval;
-}
-#endif
 
 MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 {
