@@ -11556,20 +11556,26 @@ void API dw_window_click_default(HWND window, HWND next)
 char * API dw_clipboard_get_text(void)
 {
    HANDLE handle;
-   char *tmp, *ret = NULL;
+   char *ret = NULL;
+   TCHAR *tmp;
+#ifdef UNICODE
+   int type = CF_UNICODETEXT;
+#else   
+   int type = CF_TEXT;
+#endif
 
    if ( !OpenClipboard( NULL ) )
       return ret;
 
-   if ( ( handle = GetClipboardData( CF_TEXT) ) == NULL )
+   if ( ( handle = GetClipboardData(type) ) == NULL )
    {
       CloseClipboard();
       return ret;
    }
 
-   if ( (tmp = GlobalLock(handle)) && strlen(tmp) )
+   if ( (tmp = GlobalLock(handle)) && _tcslen(tmp) )
    {
-        ret = _strdup(tmp);
+        ret = _strdup(WideToUTF8(tmp));
         GlobalUnlock(handle);
    }
    CloseClipboard();
@@ -11585,6 +11591,20 @@ void API dw_clipboard_set_text( char *str, int len )
 {
    HGLOBAL ptr1;
    LPTSTR ptr2;
+   TCHAR *buf;
+#ifdef UNICODE
+   int type = CF_UNICODETEXT;
+   char *src = calloc(len + 1, 1);
+
+   memcpy(src, str, len);
+   buf = UTF8toWide(src);
+   free(src);
+   len = _tcslen(buf);
+#else   
+   int type = CF_TEXT;
+   
+   buf = str;
+#endif
 
    if ( !OpenClipboard( NULL ) )
       return;
@@ -11596,16 +11616,14 @@ void API dw_clipboard_set_text( char *str, int len )
 
    ptr2 = GlobalLock( ptr1 );
 
-   memcpy( (char *)ptr2, str, len + 1);
+   memcpy(ptr2, buf, (len + 1) * sizeof(TCHAR));
    GlobalUnlock( ptr1 );
    EmptyClipboard();
 
-   SetClipboardData( CF_TEXT, ptr1 );
+   SetClipboardData( type, ptr1 );
 
    CloseClipboard();
    GlobalFree( ptr1 );
-
-   return;
 }
 
 /*
