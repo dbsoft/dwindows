@@ -2332,6 +2332,12 @@ void _click_default(HWND handle)
       WinSetFocus(HWND_DESKTOP, handle);
 }
 
+#define ENTRY_CUT   60901
+#define ENTRY_COPY  60902
+#define ENTRY_PASTE 60903
+#define ENTRY_UNDO  60904
+#define ENTRY_SALL  60905
+
 #ifdef UNICODE
 void _combine_text(HWND handle, USHORT pos1, char *text, char *pastetext)
 {
@@ -2352,13 +2358,6 @@ void _combine_text(HWND handle, USHORT pos1, char *text, char *pastetext)
     /* Free temporary memory */
     free(combined);
 }
-#endif
-
-#define ENTRY_CUT   60901
-#define ENTRY_COPY  60902
-#define ENTRY_PASTE 60903
-#define ENTRY_UNDO  60904
-#define ENTRY_SALL  60905
 
 /* Internal function to handle Unicode enabled MLE cut, copy and paste */
 void _MleCopyPaste(HWND hWnd, int command)
@@ -2434,6 +2433,7 @@ void _EntryCopyPaste(HWND handle, int command)
     if(text)
         free(text);
 }
+#endif
 
 /* Originally just intended for entryfields, it now serves as a generic
  * procedure for handling TAB presses to change input focus on controls.
@@ -2627,7 +2627,7 @@ MRESULT EXPENTRY _entryproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
                       {
                           char *text = dw_window_get_text(handle);
                           ULONG sel = (ULONG)WinSendMsg(hWnd, EM_QUERYSEL, 0, 0);
-                          SHORT pos1 = SHORT1FROMMP(sel), pos2 = SHORT2FROMMP(sel);
+                          SHORT pos1 = SHORT1FROMMP(sel);
 
                            WinSendMsg(handle, EM_CLEAR, 0, 0);
                           _combine_text(handle, pos1, text, utf8);
@@ -2684,9 +2684,11 @@ MRESULT EXPENTRY _comboentryproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
       break;
    case WM_CONTEXTMENU:
    case WM_COMMAND:
+#ifdef UNICODE
    case EM_PASTE:
    case EM_CUT:
    case EM_COPY:
+#endif
       return _entryproc(hWnd, msg, mp1, mp2);
    case WM_SETFOCUS:
       _run_event(hWnd, msg, mp1, mp2);
@@ -2743,9 +2745,11 @@ MRESULT EXPENTRY _spinentryproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
       break;
    case WM_CONTEXTMENU:
    case WM_COMMAND:
+#ifdef UNICODE
    case EM_PASTE:
    case EM_CUT:
    case EM_COPY:
+#endif
        return _entryproc(hWnd, msg, mp1, mp2);
    }
 
