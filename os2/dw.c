@@ -2360,6 +2360,81 @@ void _combine_text(HWND handle, USHORT pos1, char *text, char *pastetext)
 #define ENTRY_UNDO  60904
 #define ENTRY_SALL  60905
 
+/* Internal function to handle Unicode enabled MLE cut, copy and paste */
+void _MleCopyPaste(HWND hWnd, int command)
+{
+    /* MLE insertion points (for querying selection) */
+    IPT ipt1, ipt2;
+
+    /* Get the selected text */
+    ipt1 = (IPT)WinSendMsg(hWnd, MLM_QUERYSEL, MPFROMSHORT(MLFQS_MINSEL), 0);
+    ipt2 = (IPT)WinSendMsg(hWnd, MLM_QUERYSEL, MPFROMSHORT(MLFQS_MAXSEL), 0);
+
+    /* Get the selection and put on clipboard for copy and cut */
+    if(command != ENTRY_PASTE)
+    {
+        char *text = (char *)malloc((ULONG)WinSendMsg(hWnd, MLM_QUERYFORMATTEXTLENGTH, MPFROMLONG(ipt1), MPFROMLONG(ipt2 - ipt1)) + 1);
+        ULONG ulCopied = (ULONG)WinSendMsg(hWnd, MLM_QUERYSELTEXT, MPFROMP(text), 0);
+
+        dw_clipboard_set_text(text, ulCopied);
+        free(text);
+    }
+    /* Clear selection for cut and paste */
+    if(command != ENTRY_COPY)
+        WinSendMsg(hWnd, MLM_CLEAR, 0, 0);
+    if(command == ENTRY_PASTE)
+    {
+        char *text = dw_clipboard_get_text();
+
+        if(text)
+        {
+            WinSendMsg(hWnd, MLM_INSERT, MPFROMP(text), 0);
+            dw_free(text);
+        }
+    }
+}
+
+/* Internal function to handle Unicode enabled Entryfield cut, copy and paste */
+void _EntryCopyPaste(HWND handle, int command)
+{
+    /* Get the selected text */
+    char *text = dw_window_get_text(handle);
+    ULONG sel = (ULONG)WinSendMsg(handle, EM_QUERYSEL, 0, 0);
+    SHORT pos1 = SHORT1FROMMP(sel), pos2 = SHORT2FROMMP(sel);
+
+    /* Get the selection and put on clipboard for copy and cut */
+    if(text)
+    {
+        if(command != ENTRY_PASTE)
+        {
+            if(pos2 > pos1)
+            {
+                text[pos2] = 0;
+
+                dw_clipboard_set_text(&text[pos1], pos2 - pos1);
+            }
+        }
+        free(text);
+    }
+    /* Clear selection for cut and paste */
+    if(command != ENTRY_COPY)
+        WinSendMsg(handle, EM_CLEAR, 0, 0);
+    text = dw_window_get_text(handle);
+    if(command == ENTRY_PASTE)
+    {
+        char *pastetext = dw_clipboard_get_text();
+
+        if(pastetext)
+        {
+            _combine_text(handle, pos1, text, pastetext);
+            /* Free temporary memory */
+            dw_free(pastetext);
+        }
+    }
+    if(text)
+        free(text);
+}
+
 /* Originally just intended for entryfields, it now serves as a generic
  * procedure for handling TAB presses to change input focus on controls.
  */
@@ -2385,6 +2460,26 @@ MRESULT EXPENTRY _entryproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
    {
       switch(msg)
       {
+#ifdef UNICODE
+      case MLM_PASTE:
+          _MleCopyPaste(hWnd, ENTRY_PASTE);
+          return (MRESULT)TRUE;
+      case MLM_CUT:
+          _MleCopyPaste(hWnd, ENTRY_CUT);
+          return (MRESULT)TRUE;
+      case MLM_COPY:
+          _MleCopyPaste(hWnd, ENTRY_COPY);
+          return (MRESULT)TRUE;
+      case EM_PASTE:
+          _EntryCopyPaste(hWnd, ENTRY_PASTE);
+          return (MRESULT)TRUE;
+      case EM_CUT:
+          _EntryCopyPaste(hWnd, ENTRY_CUT);
+          return (MRESULT)TRUE;
+      case EM_COPY:
+          _EntryCopyPaste(hWnd, ENTRY_COPY);
+          return (MRESULT)TRUE;
+#endif
       case WM_CONTEXTMENU:
          {
             HMENUI hwndMenu = dw_menu_new(0L);
@@ -2418,50 +2513,12 @@ MRESULT EXPENTRY _entryproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
             {
                switch(command)
                {
-#ifdef UNICODE
-               case ENTRY_CUT:
-               case ENTRY_COPY:
-               case ENTRY_PASTE:
-                   {
-                       /* MLE insertion points (for querying selection) */
-                       IPT ipt1, ipt2;
-
-                       /* Get the selected text */
-                       ipt1 = (IPT)WinSendMsg(hWnd, MLM_QUERYSEL, MPFROMSHORT(MLFQS_MINSEL), 0);
-                       ipt2 = (IPT)WinSendMsg(hWnd, MLM_QUERYSEL, MPFROMSHORT(MLFQS_MAXSEL), 0);
-
-                       /* Get the selection and put on clipboard for copy and cut */
-                       if(command != ENTRY_PASTE)
-                       {
-                           char *text = (char *)malloc((ULONG)WinSendMsg(hWnd, MLM_QUERYFORMATTEXTLENGTH, MPFROMLONG(ipt1), MPFROMLONG(ipt2 - ipt1)) + 1);
-                           ULONG ulCopied = (ULONG)WinSendMsg(hWnd, MLM_QUERYSELTEXT, MPFROMP(text), 0);
-
-                           dw_clipboard_set_text(text, ulCopied);
-                           free(text);
-                       }
-                       /* Clear selection for cut and paste */
-                       if(command != ENTRY_COPY)
-                           WinSendMsg(hWnd, MLM_CLEAR, 0, 0);
-                       if(command == ENTRY_PASTE)
-                       {
-                           char *text = dw_clipboard_get_text();
-
-                           if(text)
-                           {
-                               WinSendMsg(hWnd, MLM_INSERT, MPFROMP(text), 0);
-                               dw_free(text);
-                           }
-                       }
-                   }
-                   return (MRESULT)0;
-#else
                case ENTRY_CUT:
                   return WinSendMsg(hWnd, MLM_CUT, 0, 0);
                case ENTRY_COPY:
                   return WinSendMsg(hWnd, MLM_COPY, 0, 0);
                case ENTRY_PASTE:
                   return WinSendMsg(hWnd, MLM_PASTE, 0, 0);
-#endif
                case ENTRY_UNDO:
                   return WinSendMsg(hWnd, MLM_UNDO, 0, 0);
                case ENTRY_SALL:
@@ -2483,57 +2540,12 @@ MRESULT EXPENTRY _entryproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
                {
                   switch(command)
                   {
-#ifdef UNICODE
-               case ENTRY_CUT:
-               case ENTRY_COPY:
-               case ENTRY_PASTE:
-                   {
-                       /* Get the selected text */
-                       char *text = dw_window_get_text(handle);
-                       ULONG sel = (ULONG)WinSendMsg(handle, EM_QUERYSEL, 0, 0);
-                       SHORT pos1 = SHORT1FROMMP(sel), pos2 = SHORT2FROMMP(sel);
-
-                       /* Get the selection and put on clipboard for copy and cut */
-                       if(text)
-                       {
-                           if(command != ENTRY_PASTE)
-                           {
-                               if(pos2 > pos1)
-                               {
-                                   text[pos2] = 0;
-
-                                   dw_clipboard_set_text(&text[pos1], pos2 - pos1);
-                               }
-                           }
-                           free(text);
-                       }
-                       /* Clear selection for cut and paste */
-                       if(command != ENTRY_COPY)
-                           WinSendMsg(handle, EM_CLEAR, 0, 0);
-                       text = dw_window_get_text(handle);
-                       if(command == ENTRY_PASTE)
-                       {
-                           char *pastetext = dw_clipboard_get_text();
-
-                           if(pastetext)
-                           {
-                               _combine_text(handle, pos1, text, pastetext);
-                               /* Free temporary memory */
-                               dw_free(pastetext);
-                           }
-                       }
-                       if(text)
-                           free(text);
-                   }
-                   return (MRESULT)0;
-#else
                   case ENTRY_CUT:
                      return WinSendMsg(handle, EM_CUT, 0, 0);
                   case ENTRY_COPY:
                      return WinSendMsg(handle, EM_COPY, 0, 0);
                   case ENTRY_PASTE:
                      return WinSendMsg(handle, EM_PASTE, 0, 0);
-#endif
                   case ENTRY_SALL:
                      {
                         LONG len = WinQueryWindowTextLength(hWnd);
@@ -2627,6 +2639,7 @@ MRESULT EXPENTRY _entryproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
               }
               free(utf8);
           }
+          return (MRESULT)TRUE;
       }
 #endif
       break;
@@ -2671,6 +2684,9 @@ MRESULT EXPENTRY _comboentryproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
       break;
    case WM_CONTEXTMENU:
    case WM_COMMAND:
+   case EM_PASTE:
+   case EM_CUT:
+   case EM_COPY:
       return _entryproc(hWnd, msg, mp1, mp2);
    case WM_SETFOCUS:
       _run_event(hWnd, msg, mp1, mp2);
@@ -2727,6 +2743,9 @@ MRESULT EXPENTRY _spinentryproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
       break;
    case WM_CONTEXTMENU:
    case WM_COMMAND:
+   case EM_PASTE:
+   case EM_CUT:
+   case EM_COPY:
        return _entryproc(hWnd, msg, mp1, mp2);
    }
 
