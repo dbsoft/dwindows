@@ -24,7 +24,7 @@ dirent.obj:
 	wcc386 $(CFLAGS) os2\dirent.c
 
 dw.dll: dw.obj
-	wlink @os2\dw.lnk name dw.dll system os2v2_dll d a option implib=dw option map option symf f $[@
+	wlink @os2\dw.lnk name dw.dll system os2v2_dll d a library $(TLKTLIB)\libuls,$(TLKTLIB)\libconv,$(TLKTLIB)\unikbd option implib=dw option map option symf f $[@
 	copy dw.lib lib
         copy dw.dll dll
 
