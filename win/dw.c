@@ -2189,8 +2189,16 @@ LRESULT CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 #ifdef TOOLBAR                     
                      else if (message == BN_CLICKED && tmp->message == WM_COMMAND && tmp->window == (HWND)mp2)
                      {
-                        result = clickfunc(tmp->window, tmp->data);
-                        tmp = NULL;
+                        TCHAR tmpbuf[100] = {0};
+
+                        GetClassName((HWND)mp2, tmpbuf, 99);
+
+                        /* Make sure this isn't a button, because it will have already been handled */
+                        if (_tcsnicmp(tmpbuf, BUTTONCLASSNAME, _tcslen(BUTTONCLASSNAME)+1) != 0)
+                        {
+                           result = clickfunc(tmp->window, tmp->data);
+                           tmp = NULL;
+                        }
                      }
 #endif                     
                      else if (tmp->id && passthru == tmp->id)
