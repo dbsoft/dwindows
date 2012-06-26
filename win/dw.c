@@ -8873,9 +8873,7 @@ HTREEITEM API dw_tree_get_parent(HWND handle, HTREEITEM item)
  */
 void API dw_tree_item_select(HWND handle, HTREEITEM item)
 {
-   dw_window_set_data(handle, "_dw_select_item", (void *)1);
    TreeView_SelectItem(handle, item);
-   dw_window_set_data(handle, "_dw_select_item", (void *)0);
 }
 
 /* Delete all tree subitems */
