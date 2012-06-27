@@ -246,7 +246,7 @@ HANDLE hrichedit = 0;
 # define LVS_EX_DOUBLEBUFFER 0x10000
 #endif
 
-HWND popup = (HWND)NULL, DW_HWND_OBJECT = (HWND)NULL;
+HWND popup = (HWND)NULL, DW_HWND_OBJECT = (HWND)NULL, hwndTooltip = (HWND)0;
 
 HINSTANCE DWInstance = NULL;
 
@@ -728,10 +728,14 @@ BOOL CALLBACK _free_window_memory(HWND handle, LPARAM lParam)
    HFONT oldfont = (HFONT)SendMessage(handle, WM_GETFONT, 0, 0);
    HICON oldicon = (HICON)SendMessage(handle, WM_GETICON, 0, 0);
    TCHAR tmpbuf[100] = {0};
-   HWND tooltip = (HWND)dw_window_get_data(handle, "_dw_tooltip");
    
-   if(tooltip)
-      DestroyWindow(tooltip);
+   TOOLINFO ti = { 0 };
+ 
+   ti.cbSize = sizeof(TOOLINFO);
+   ti.hwnd = handle;
+   ti.hinst = DWInstance;
+ 
+   SendMessage(hwndTooltip, TTM_DELTOOL, 0, (LPARAM) (LPTOOLINFO) &ti);
       
    GetClassName(handle, tmpbuf, 99);
 
@@ -3756,39 +3760,25 @@ void _resize_notebook_page(HWND handle, int pageid)
 
 void _create_tooltip(HWND handle, char *text)
 {
-    HWND hwndTT = 0;
-    HWND oldTT = (HWND)dw_window_get_data(handle, "_dw_tooltip");
+    TOOLINFO ti = { 0 };
     
-    if(oldTT)
-        DestroyWindow(oldTT);
+    ti.cbSize = sizeof(TOOLINFO);
+    ti.hwnd = handle;
+    ti.hinst = DWInstance;
+    
+    SendMessage(hwndTooltip, TTM_DELTOOL, 0, (LPARAM) (LPTOOLINFO) &ti);
     if(text)
     {
-        TOOLINFO ti = { 0 };
-        
-        /* Create a tooltip. */
-        hwndTT = CreateWindowEx(WS_EX_TOPMOST,
-            TOOLTIPS_CLASS, NULL,
-            WS_POPUP | TTS_NOPREFIX | TTS_ALWAYSTIP,
-            CW_USEDEFAULT, CW_USEDEFAULT,
-            CW_USEDEFAULT, CW_USEDEFAULT,
-            handle, NULL, DWInstance,NULL);
-
-        SetWindowPos(hwndTT, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
-
         /* Set up "tool" information.
          * In this case, the "tool" is the entire parent window.
          */
-        ti.cbSize = sizeof(TOOLINFO);
         ti.uFlags = TTF_SUBCLASS;
-        ti.hwnd = handle;
-        ti.hinst = DWInstance;
         ti.lpszText = UTF8toWide(text);
         ti.rect.right = ti.rect.bottom = 2000;
 
         /* Associate the tooltip with the "tool" window. */
-        SendMessage(hwndTT, TTM_ADDTOOL, 0, (LPARAM) (LPTOOLINFO) &ti);
+        SendMessage(hwndTooltip, TTM_ADDTOOL, 0, (LPARAM) (LPTOOLINFO) &ti);
     }
-    dw_window_set_data(handle, "_dw_tooltip", (void *)hwndTT);
 }
 
 #ifndef GDIPLUS
@@ -4028,7 +4018,7 @@ int API dw_init(int newthread, int argc, char *argv[])
     * packed into their correct parent.
     */
 
-   DW_HWND_OBJECT = CreateWindow(ObjectClassName, NULL, 0, 0, 0,
+   DW_HWND_OBJECT = CreateWindow(ObjectClassName, TEXT("HWND_OBJECT"), 0, 0, 0,
                           0, 0, HWND_DESKTOP, NULL, DWInstance, NULL);
 
    if(!DW_HWND_OBJECT)
@@ -4037,6 +4027,12 @@ int API dw_init(int newthread, int argc, char *argv[])
       exit(1);
    }
    
+   /* Create a tooltip. */
+   hwndTooltip = CreateWindowEx(WS_EX_TOPMOST, TOOLTIPS_CLASS, NULL, WS_POPUP | TTS_NOPREFIX | TTS_ALWAYSTIP,
+                  CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, DW_HWND_OBJECT, NULL, DWInstance,NULL);
+
+   SetWindowPos(hwndTooltip, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+
    /* Create empty box data */
    SetWindowLongPtr(DW_HWND_OBJECT, GWLP_USERDATA, (LONG_PTR)calloc(sizeof(Box), 1));
 
@@ -11375,6 +11371,7 @@ void API dw_exit(int exitcode)
    FreeLibrary(hdwm);
 #endif   
    FreeLibrary(huxtheme);
+   DestroyWindow(hwndTooltip);
    exit(exitcode);
 }
 
