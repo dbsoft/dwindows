@@ -719,8 +719,8 @@ ULONG _findsigmessage(char *signame)
    return 0L;
 }
 
-/* This function removes and handlers on windows and frees
- * the user memory allocated to it.
+/* This function removes any handlers on windows and frees
+ * the user memory and resources allocated to it.
  */
 BOOL CALLBACK _free_window_memory(HWND handle, LPARAM lParam)
 {
@@ -728,7 +728,11 @@ BOOL CALLBACK _free_window_memory(HWND handle, LPARAM lParam)
    HFONT oldfont = (HFONT)SendMessage(handle, WM_GETFONT, 0, 0);
    HICON oldicon = (HICON)SendMessage(handle, WM_GETICON, 0, 0);
    TCHAR tmpbuf[100] = {0};
-
+   HWND tooltip = (HWND)dw_window_get_data(handle, "_dw_tooltip");
+   
+   if(tooltip)
+      DestroyWindow(tooltip);
+      
    GetClassName(handle, tmpbuf, 99);
 
    /* Don't try to free memory from an OLE embedded IE */
@@ -751,9 +755,12 @@ BOOL CALLBACK _free_window_memory(HWND handle, LPARAM lParam)
    if(_tcsnicmp(tmpbuf, BUTTONCLASSNAME, _tcslen(BUTTONCLASSNAME)+1)==0)
    {
       HBITMAP oldbitmap = (HBITMAP)SendMessage(handle, BM_GETIMAGE, IMAGE_BITMAP, 0);
+      HICON oldicon = (HICON)SendMessage(handle, BM_GETIMAGE, IMAGE_ICON, 0);
 
       if(oldbitmap)
          DeleteObject(oldbitmap);
+      if(oldicon)
+         DestroyIcon(oldicon);
    }
 #ifdef TOOLBAR   
    /* Bitmap Buttons */
@@ -4574,6 +4581,7 @@ void _control_size(HWND handle, int *width, int *height)
    static char testtext[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
    HBITMAP hbm = 0;
    HICON hic = 0;
+   ICONINFO ii = {0};
 
    GetClassName(handle, tmpbuf, 99);
 
@@ -4596,8 +4604,6 @@ void _control_size(HWND handle, int *width, int *height)
    /* If we got an icon, pull out the internal bitmap */
    if(hic)
    {
-      ICONINFO ii;
-      
       if(GetIconInfo(hic, &ii))
          hbm = ii.hbmMask ? ii.hbmMask : ii.hbmColor;
    }
@@ -4840,6 +4846,12 @@ void _control_size(HWND handle, int *width, int *height)
       *width = thiswidth + extrawidth;
    if(height)
       *height = thisheight + extraheight;
+      
+   /* Free temporary bitmaps */
+   if(ii.hbmColor)
+      DeleteObject(ii.hbmColor);
+   if(ii.hbmMask);
+      DeleteObject(ii.hbmMask);
 }
 
 /*
@@ -6188,6 +6200,7 @@ HWND API dw_button_new(char *text, ULONG id)
    return tmp;
 }
 
+#ifdef TOOLBAR
 /* Internal function to create a grayscale bitmap from a color one */
 void _to_grayscale(HBITMAP hbm, int width, int height)
 {
@@ -6232,6 +6245,7 @@ HWND _create_toolbar(char *text, ULONG id, HICON icon, HBITMAP hbitmap)
       dimlist = ImageList_Create(bmi.bmWidth, bmi.bmHeight, ILC_COLOR32, 1, 0);
       _to_grayscale(hbitmap, bmi.bmWidth, bmi.bmHeight);
       ImageList_Add(dimlist, hbitmap, NULL);
+      DeleteObject(hbitmap);
    }
    else if(icon)
    {
@@ -6244,6 +6258,9 @@ HWND _create_toolbar(char *text, ULONG id, HICON icon, HBITMAP hbitmap)
       dimlist = ImageList_Create(bmi.bmWidth, bmi.bmHeight, ILC_COLOR32 | ILC_MASK, 1, 0);
       _to_grayscale(iconinfo.hbmColor, bmi.bmWidth, bmi.bmHeight);
       ImageList_Add(dimlist, iconinfo.hbmColor, iconinfo.hbmMask);
+      DeleteObject(iconinfo.hbmColor);
+      DeleteObject(iconinfo.hbmMask);
+      DestroyIcon(icon);
    }
    else
       return 0;
@@ -6267,6 +6284,7 @@ HWND _create_toolbar(char *text, ULONG id, HICON icon, HBITMAP hbitmap)
    _create_tooltip(tmp, text);
    return tmp;
 }
+#endif
 
 /*
  * Create a new bitmap button window (widget) to be packed.
@@ -9020,7 +9038,7 @@ int API dw_container_setup(HWND handle, unsigned long *flags, char **titles, int
  */
 void API dw_filesystem_set_column_title(HWND handle, char *title)
 {
-    char *newtitle = strdup(title ? title : "");
+    char *newtitle = _strdup(title ? title : "");
 
     dw_window_set_data(handle, "_dw_coltitle", newtitle);
 }
@@ -11605,7 +11623,7 @@ void API dw_clipboard_set_text( char *str, int len )
    memcpy(src, str, len);
    buf = UTF8toWide(src);
    free(src);
-   len = _tcslen(buf);
+   len = (int)_tcslen(buf);
 #else   
    int type = CF_TEXT;
    
