@@ -846,7 +846,7 @@ int DWSIGNAL copy_clicked_callback(HWND button, void *data)
     
     if(test)
     {
-        dw_clipboard_set_text(test, strlen(test));
+        dw_clipboard_set_text(test, (int)strlen(test));
         dw_free(test);
     }
     return TRUE;
