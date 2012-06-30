@@ -11716,6 +11716,8 @@ void _to_dos(TCHAR *dst, TCHAR *src)
    dst[x] = 0;
 }
 
+#define BROWSEBUFSIZE 1000
+
 /*
  * Opens a file dialog and queries user selection.
  * Parameters:
@@ -11731,8 +11733,8 @@ void _to_dos(TCHAR *dst, TCHAR *src)
 char * API dw_file_browse(char *title, char *defpath, char *ext, int flags)
 {
    OPENFILENAME of = {0};
-   TCHAR filenamebuf[1001] = {0}, *fbuf = filenamebuf;
-   TCHAR filterbuf[1001] = {0};
+   TCHAR filenamebuf[BROWSEBUFSIZE+1] = {0}, *fbuf = filenamebuf;
+   TCHAR filterbuf[BROWSEBUFSIZE+1] = {0};
    TCHAR *exten = UTF8toWide(ext);
    TCHAR *dpath = UTF8toWide(defpath);
    int rc;
@@ -11760,7 +11762,7 @@ char * API dw_file_browse(char *title, char *defpath, char *ext, int flags)
          {
             if (SHGetPathFromIDList(pidl,szDir))
             {
-               _tcsncpy(filenamebuf,szDir,1000);
+               _tcsncpy(filenamebuf,szDir,BROWSEBUFSIZE);
             }
 
             /* In C++: pMalloc->Free(pidl); pMalloc->Release(); */
@@ -11775,7 +11777,7 @@ char * API dw_file_browse(char *title, char *defpath, char *ext, int flags)
                             -1,
                             (LPCTSTR)UTF8toWide(title),
                             (LPTSTR)filenamebuf,
-                            1000,
+                            BROWSEBUFSIZE,
                             FALSE ) )
      {
         return _strdup( WideToUTF8(fbuf) );
@@ -11794,13 +11796,15 @@ char * API dw_file_browse(char *title, char *defpath, char *ext, int flags)
           */
          int len;
          TCHAR *ptr = filterbuf;
-         len = _stprintf( ptr, TEXT("%s Files (*.%s)"), exten, exten );
+         TCHAR *start = filterbuf;
+
+         len = _sntprintf( ptr, BROWSEBUFSIZE - (ptr - start), TEXT("%s Files (*.%s)"), exten, exten );
          ptr = ptr + len + 1; /* past first \0 */
-         len = _stprintf( ptr, TEXT("*.%s"), exten );
+         len = _sntprintf( ptr, BROWSEBUFSIZE - (ptr - start), TEXT("*.%s"), exten );
          ptr = ptr + len + 1; /* past next \0 */
-         len = _stprintf( ptr, TEXT("All Files") );
+         len = _sntprintf( ptr, BROWSEBUFSIZE - (ptr - start), TEXT("All Files") );
          ptr = ptr + len + 1; /* past next \0 */
-         len = _stprintf( ptr, TEXT("*.*") );
+         len = _sntprintf( ptr, BROWSEBUFSIZE - (ptr - start), TEXT("*.*") );
       }
 
       memset( &of, 0, sizeof(OPENFILENAME) );
@@ -11817,7 +11821,7 @@ char * API dw_file_browse(char *title, char *defpath, char *ext, int flags)
       of.lpstrFile = filenamebuf;
       of.lpstrFilter = filterbuf;
       of.nFilterIndex = 1;
-      of.nMaxFile = 1000;
+      of.nMaxFile = BROWSEBUFSIZE;
       /*of.lpstrDefExt = ext;*/
       of.Flags = OFN_NOCHANGEDIR;
 
