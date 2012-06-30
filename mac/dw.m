@@ -707,6 +707,8 @@ DWObject *DWObj;
 -(void)dealloc
 {
     UserData *root = userdata;
+    if(box->items)
+        free(box->items);
     free(box);
     _remove_userdata(&root, NULL, TRUE);
     dw_signal_disconnect_by_window(self);
@@ -3826,13 +3828,15 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
     }
 
     /* Do some sanity bounds checking */
+    if(!thisitem)
+        thisbox->count = 0;
     if(index < 0)
         index = 0;
     if(index > thisbox->count)
         index = thisbox->count;
 
     /* Duplicate the existing data */
-    tmpitem = malloc(sizeof(Item)*(thisbox->count+1));
+    tmpitem = calloc(sizeof(Item), (thisbox->count+1));
 
     for(z=0;z<thisbox->count;z++)
     {
@@ -3897,7 +3901,7 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
     _dw_redraw([view window], TRUE);
 
     /* Free the old data */
-    if(thisbox->count)
+    if(thisitem)
        free(thisitem);
     DW_MUTEX_UNLOCK;
 }
@@ -3935,7 +3939,10 @@ int API dw_box_remove(HWND handle)
             id window = [object window];
             Box *thisbox = [parent box];
             int z, index = -1;
-            Item *tmpitem, *thisitem = thisbox->items;
+            Item *tmpitem = NULL, *thisitem = thisbox->items;
+            
+            if(!thisitem)
+                thisbox->count = 0;
             
             for(z=0;z<thisbox->count;z++)
             {
@@ -3953,21 +3960,28 @@ int API dw_box_remove(HWND handle)
             [object retain];
             [object removeFromSuperview];
             
-            tmpitem = malloc(sizeof(Item)*(thisbox->count-1));
-            
-            /* Copy all but the current entry to the new list */
-            for(z=0;z<index;z++)
+            if(thisbox->count > 1)
             {
-                tmpitem[z] = thisitem[z];
-            }
-            for(z=index+1;z<thisbox->count;z++)
-            {
-                tmpitem[z-1] = thisitem[z];
+                tmpitem = calloc(sizeof(Item), (thisbox->count-1));
+                
+                /* Copy all but the current entry to the new list */
+                for(z=0;z<index;z++)
+                {
+                    tmpitem[z] = thisitem[z];
+                }
+                for(z=index+1;z<thisbox->count;z++)
+                {
+                    tmpitem[z-1] = thisitem[z];
+                }
             }
             
             thisbox->items = tmpitem;
-            free(thisitem);
-            thisbox->count--;
+            if(thisitem)
+                free(thisitem);
+            if(tmpitem)
+                thisbox->count--;
+            else
+                thisbox->count = 0;
             /* Queue a redraw on the top-level window */
             _dw_redraw(window, TRUE);
         }
@@ -4001,7 +4015,7 @@ HWND API dw_box_remove_at_index(HWND box, int index)
         if(thisbox && index > -1 && index < thisbox->count)
         {
             int z;
-            Item *tmpitem, *thisitem = thisbox->items;
+            Item *tmpitem = NULL, *thisitem = thisbox->items;
             
             object = thisitem[index].hwnd;
             
@@ -4011,21 +4025,29 @@ HWND API dw_box_remove_at_index(HWND box, int index)
                 [object removeFromSuperview];
             }
             
-            tmpitem = malloc(sizeof(Item)*(thisbox->count-1));
-            
-            /* Copy all but the current entry to the new list */
-            for(z=0;z<index;z++)
+            if(thisbox->count > 1)
             {
-                tmpitem[z] = thisitem[z];
-            }
-            for(z=index+1;z<thisbox->count;z++)
-            {
-                tmpitem[z-1] = thisitem[z];
+                tmpitem = calloc(sizeof(Item), (thisbox->count-1));
+                
+                /* Copy all but the current entry to the new list */
+                for(z=0;thisitem && z<index;z++)
+                {
+                    tmpitem[z] = thisitem[z];
+                }
+                for(z=index+1;z<thisbox->count;z++)
+                {
+                    tmpitem[z-1] = thisitem[z];
+                }
             }
             
             thisbox->items = tmpitem;
-            free(thisitem);
-            thisbox->count--;
+            if(thisitem)
+                free(thisitem);
+            if(tmpitem)
+                thisbox->count--;
+            else 
+                thisbox->count = 0;
+            
             /* Queue a redraw on the top-level window */
             _dw_redraw(window, TRUE);
         }
@@ -8683,8 +8705,11 @@ int API dw_window_destroy(HWND handle)
             id window = [object window];
             Box *thisbox = [parent box];
             int z, index = -1;
-            Item *tmpitem, *thisitem = thisbox->items;
+            Item *tmpitem = NULL, *thisitem = thisbox->items;
 
+            if(!thisitem)
+                thisbox->count = 0;
+            
             for(z=0;z<thisbox->count;z++)
             {
                 if(thisitem[z].hwnd == object)
@@ -8700,21 +8725,29 @@ int API dw_window_destroy(HWND handle)
 
             [object removeFromSuperview];
 
-            tmpitem = malloc(sizeof(Item)*(thisbox->count-1));
-
-            /* Copy all but the current entry to the new list */
-            for(z=0;z<index;z++)
+            if(thisbox->count > 1)
             {
-                tmpitem[z] = thisitem[z];
+                tmpitem = calloc(sizeof(Item), (thisbox->count-1));
+                
+                /* Copy all but the current entry to the new list */
+                for(z=0;z<index;z++)
+                {
+                    tmpitem[z] = thisitem[z];
+                }
+                for(z=index+1;z<thisbox->count;z++)
+                {
+                    tmpitem[z-1] = thisitem[z];
+                }
             }
-            for(z=index+1;z<thisbox->count;z++)
-            {
-                tmpitem[z-1] = thisitem[z];
-            }
-
+            
             thisbox->items = tmpitem;
-            free(thisitem);
-            thisbox->count--;
+            if(thisitem)
+                free(thisitem);
+            if(tmpitem)
+                thisbox->count--;
+            else 
+                thisbox->count = 0;
+            
             /* Queue a redraw on the top-level window */
             _dw_redraw(window, TRUE);
         }
@@ -10088,17 +10121,20 @@ static void _handle_sem(int *tmpsock)
          {
             if((bytesread = (int)read(array[z].fd, &command, 1)) < 1)
             {
-               struct _seminfo *newarray;
+               struct _seminfo *newarray = NULL;
 
                /* Remove this connection from the set */
-               newarray = (struct _seminfo *)malloc(sizeof(struct _seminfo)*(connectcount-1));
-               if(!z)
-                  memcpy(newarray, &array[1], sizeof(struct _seminfo)*(connectcount-1));
-               else
+               if(connectcount > 1)
                {
-                  memcpy(newarray, array, sizeof(struct _seminfo)*z);
-                  if(z!=(connectcount-1))
-                     memcpy(&newarray[z], &array[z+1], sizeof(struct _seminfo)*(z-connectcount-1));
+                   newarray = (struct _seminfo *)malloc(sizeof(struct _seminfo)*(connectcount-1));
+                   if(!z)
+                       memcpy(newarray, &array[1], sizeof(struct _seminfo)*(connectcount-1));
+                   else
+                   {
+                       memcpy(newarray, array, sizeof(struct _seminfo)*z);
+                       if(z!=(connectcount-1))
+                           memcpy(&newarray[z], &array[z+1], sizeof(struct _seminfo)*(z-connectcount-1));
+                   }
                }
                connectcount--;
 
