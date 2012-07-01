@@ -7710,12 +7710,14 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
       HWND frame = (HWND)dw_window_get_data(item, "_dw_combo_box");
 
       /* Do some sanity bounds checking */
+      if(!thisitem)
+        thisbox->count = 0;
       if(index < 0)
         index = 0;
       if(index > thisbox->count)
         index = thisbox->count;
         
-      tmpitem = malloc(sizeof(Item)*(thisbox->count+1));
+      tmpitem = calloc(sizeof(Item), (thisbox->count+1));
 
       for(z=0;z<thisbox->count;z++)
       {
@@ -7724,7 +7726,6 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
          tmpitem[x] = thisitem[z];
          x++;
       }
-
 
       WinQueryClassName(item, 99, (PCH)tmpbuf);
 
@@ -7758,7 +7759,7 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
 
       thisbox->items = tmpitem;
 
-      if(thisbox->count)
+      if(thisitem)
          free(thisitem);
 
       thisbox->count++;
@@ -7798,8 +7799,11 @@ int API dw_box_remove(HWND handle)
       if(thisbox && thisbox->count)
       {
          int z, index = -1;
-         Item *tmpitem, *thisitem = thisbox->items;
+         Item *tmpitem = NULL, *thisitem = thisbox->items;
 
+         if(!thisitem)
+            thisbox->count = 0;
+            
          for(z=0;z<thisbox->count;z++)
          {
             if(thisitem[z].hwnd == handle)
@@ -7809,21 +7813,29 @@ int API dw_box_remove(HWND handle)
          if(index == -1)
             return DW_ERROR_GENERAL;
 
-         tmpitem = malloc(sizeof(Item)*(thisbox->count-1));
+         if(thisbox->count > 1)
+         {
+            tmpitem = calloc(sizeof(Item), (thisbox->count-1));
 
-         /* Copy all but the current entry to the new list */
-         for(z=0;z<index;z++)
-         {
-            tmpitem[z] = thisitem[z];
-         }
-         for(z=index+1;z<thisbox->count;z++)
-         {
-            tmpitem[z-1] = thisitem[z];
+            /* Copy all but the current entry to the new list */
+            for(z=0;z<index;z++)
+            {
+               tmpitem[z] = thisitem[z];
+            }
+            for(z=index+1;z<thisbox->count;z++)
+            {
+               tmpitem[z-1] = thisitem[z];
+            }
          }
 
          thisbox->items = tmpitem;
-         free(thisitem);
-         thisbox->count--;
+         if(thisitem)
+            free(thisitem);
+         if(tmpitem)
+            thisbox->count--;
+         else
+            thisbox->count = 0;
+            
          /* If it isn't padding, reset the parent */
          if(handle)
             WinSetParent(handle, HWND_OBJECT, FALSE);
@@ -7851,24 +7863,32 @@ HWND API dw_box_remove_at_index(HWND box, int index)
    if(thisbox && index > -1 && index < thisbox->count)
    {
       int z;
-      Item *tmpitem, *thisitem = thisbox->items;
+      Item *tmpitem = NULL, *thisitem = thisbox->items;
       HWND handle = thisitem[index].hwnd;
 
-      tmpitem = malloc(sizeof(Item)*(thisbox->count-1));
+      if(thisbox->count > 1)
+      {
+         tmpitem = calloc(sizeof(Item), (thisbox->count-1));
 
-      /* Copy all but the current entry to the new list */
-      for(z=0;z<index;z++)
-      {
-         tmpitem[z] = thisitem[z];
-      }
-      for(z=index+1;z<thisbox->count;z++)
-      {
-         tmpitem[z-1] = thisitem[z];
+         /* Copy all but the current entry to the new list */
+         for(z=0;z<index;z++)
+         {
+            tmpitem[z] = thisitem[z];
+         }
+         for(z=index+1;z<thisbox->count;z++)
+         {
+            tmpitem[z-1] = thisitem[z];
+         }
       }
 
       thisbox->items = tmpitem;
-      free(thisitem);
-      thisbox->count--;
+      if(thisitem)
+         free(thisitem);
+      if(tmpitem)
+         thisbox->count--;
+      else
+         thisbox->count = 0;
+         
       /* If it isn't padding, reset the parent */
       if(handle)
          WinSetParent(handle, HWND_OBJECT, FALSE);
