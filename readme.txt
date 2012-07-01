@@ -10,6 +10,10 @@ Boxes with no expandable items will have their contents centered on
 GTK3 due to changes in the core architecture does not support
     widgets that are smaller than what is contained within them
     unless they use scrolled windows. GTK2 and other platforms do.
+In Unicode mode on OS/2 there are some bugs in the input controls,
+    minor bugs in entryfield based controls and major bugs in the MLE.
+    The text displays properly but the cursor and selection jumps
+    around oddly when passing over multibyte characters.
 
 Known limitations:
 
@@ -23,11 +27,12 @@ not support it by default. Looking into importing functionality
 from available libraries (Firefox, Webkit, Qt, etc).
 
 Changes from version 2.3:
-Added fullscreen support on Mac for resizable windows.
+Added fullscreen support on Mac for resizable windows on Lion.
 Added UNICODE build mode on Windows allowing UTF-8 encoded text.
    ANSI builds are supported by removing -DUNICODE -D_UNICODE and -DAEROGLASS
 Added support for antialiased drawing on Windows via GDI+.
-Added codepage 1208 (UTF-8) as the default codepage on OS/2.
+Added UNICODE build mode on OS/2 using codepage 1208 (UTF-8) as the 
+   active codepage; Non-Unicode mode will use the default codepage.
 Added support for Control-Click on Mac for button press events.
 Added DW_POINTER() macro for casting parameters to (void *).
 Added dw_box_remove() and dw_box_remove_at_index() for removing items
@@ -55,6 +60,7 @@ Fixed issues rendering to printer pixmaps on Windows with GDI+ enabled.
 Fixed dw_window_set_bitmap_from_data() prefering the resource ID 
    over the data passed in on most platforms.
 Fixed dw_container_delete_row() failing and/or crashing on Mac.
+Fixed memory and resource leaks on Windows and Mac.
 Updated the test program removing deprecated flags and using new ones.
 
 Dynamic Windows Documentation is available at:
