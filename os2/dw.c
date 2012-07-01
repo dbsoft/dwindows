@@ -508,6 +508,7 @@ void _free_window_memory(HWND handle)
          else if(strncmp(tmpbuf, "#37", 4)==0)
          {
             char *coltitle = (char *)dw_window_get_data(handle, "_dw_coltitle");
+            PFIELDINFO first;
 
             dw_container_clear(handle, FALSE);
             if(wd && dw_window_get_data(handle, "_dw_container"))
@@ -515,6 +516,13 @@ void _free_window_memory(HWND handle)
                void *oldflags = wd->data;
                wd->data = NULL;
                free(oldflags);
+            }
+            /* Free memory allocated for the container column titles */
+            while((first = (PFIELDINFO)WinSendMsg(handle, CM_QUERYDETAILFIELDINFO,  0, MPFROMSHORT(CMA_FIRST))) != NULL)
+            {
+                if(first->pTitleData)
+                    free(first->pTitleData);
+                WinSendMsg(handle, CM_REMOVEDETAILFIELDINFO, (MPARAM)&first, MPFROM2SHORT(1, CMA_FREE));
             }
             if(coltitle)
                free(coltitle);
@@ -9231,7 +9239,7 @@ int API dw_container_setup(HWND handle, unsigned long *flags, char **titles, int
       details->cb = sizeof(FIELDINFO);
       details->flData = flags[z];
       details->flTitle = CFA_FITITLEREADONLY;
-      details->pTitleData = titles[z];
+      details->pTitleData = strdup(titles[z]);
       details->offStruct = offStruct[z];
       details = details->pNextFieldInfo;
    }
