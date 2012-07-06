@@ -602,7 +602,7 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
  * Returns:
  *       DW_ERROR_NONE on success and DW_ERROR_GENERAL on failure.
  */
-int API dw_box_remove(HWND handle)
+int API dw_box_unpack(HWND handle)
 {
    return DW_ERROR_GENERAL;
 }
@@ -615,7 +615,7 @@ int API dw_box_remove(HWND handle)
  * Returns:
  *       Handle to the removed item on success, 0 on failure or padding.
  */
-HWND API dw_box_remove_at_index(HWND box, int index)
+HWND API dw_box_unpack_at_index(HWND box, int index)
 {
    return 0;
 }

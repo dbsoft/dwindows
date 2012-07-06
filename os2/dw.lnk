@@ -28,8 +28,8 @@ export dw_box_pack_at_index.44
 
 export dw_mdi_new.46
 
-export dw_box_remove.47
-export dw_box_remove_at_index.48
+export dw_box_unpack.47
+export dw_box_unpack_at_index.48
 
 export dw_window_new.50
 export dw_window_show.51

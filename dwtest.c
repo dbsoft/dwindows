@@ -932,7 +932,7 @@ void archive_add(void)
     okbutton = dw_button_new("Turn Off Annoying Beep!", 1001L);
     dw_box_pack_start(buttonbox, okbutton, 130, 30, TRUE, TRUE, 2);
 
-    dw_box_remove(cancelbutton);
+    dw_box_unpack(cancelbutton);
     dw_box_pack_start(buttonbox, cancelbutton, 130, 30, TRUE, TRUE, 2);
     dw_window_click_default( mainwindow, cancelbutton );
 
