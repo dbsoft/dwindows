@@ -35,7 +35,7 @@ Added UNICODE build mode on OS/2 using codepage 1208 (UTF-8) as the
    active codepage; Non-Unicode mode will use the default codepage.
 Added support for Control-Click on Mac for button press events.
 Added DW_POINTER() macro for casting parameters to (void *).
-Added dw_box_remove() and dw_box_remove_at_index() for removing items
+Added dw_box_unpack() and dw_box_unpack_at_index() for removing items
    from boxes without destroying them. Also allows removal of padding.
 Added GBM (Generalized Bitmap Module) support for OS/2 and eCS for loading
    Non-OS/2 native file formats. GBM comes with eCS 1.2 and later.
