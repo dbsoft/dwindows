@@ -126,7 +126,7 @@ pthread_key_t _dw_pool_key;
 #endif
 pthread_key_t _dw_fg_color_key;
 pthread_key_t _dw_bg_color_key;
-SInt32 DWOSMajor, DWOSMinor, DWOSBuild;
+int DWOSMajor, DWOSMinor, DWOSBuild;
 static char _dw_bundle_path[PATH_MAX+1] = { 0 };
 
 /* Create a default colors for a thread */
@@ -4204,7 +4204,7 @@ HWND API dw_bitmapbutton_new(char *text, ULONG resid)
 {
     NSBundle *bundle = [NSBundle mainBundle];
     NSString *respath = [bundle resourcePath];
-    NSString *filepath = [respath stringByAppendingFormat:@"/%u.png", resid];
+    NSString *filepath = [respath stringByAppendingFormat:@"/%lu.png", resid];
     NSImage *image = [[NSImage alloc] initWithContentsOfFile:filepath];
     DWButton *button = _button_new("", resid);
     if(image)
@@ -6885,7 +6885,7 @@ HICN _dw_icon_load(unsigned long resid)
 {
     NSBundle *bundle = [NSBundle mainBundle];
     NSString *respath = [bundle resourcePath];
-    NSString *filepath = [respath stringByAppendingFormat:@"/%u.png", resid];
+    NSString *filepath = [respath stringByAppendingFormat:@"/%lu.png", resid];
     NSImage *image = [[NSImage alloc] initWithContentsOfFile:filepath];
     return image;
 }
@@ -7307,7 +7307,7 @@ HPIXMAP API dw_pixmap_grab(HWND handle, ULONG resid)
 
     NSBundle *bundle = [NSBundle mainBundle];
     NSString *respath = [bundle resourcePath];
-    NSString *filepath = [respath stringByAppendingFormat:@"/%u.png", resid];
+    NSString *filepath = [respath stringByAppendingFormat:@"/%lu.png", resid];
     NSImage *temp = [[NSImage alloc] initWithContentsOfFile:filepath];
     
     if(temp)
@@ -10503,9 +10503,9 @@ int API dw_init(int newthread, int argc, char *argv[])
         getcwd(_dw_bundle_path, PATH_MAX);
     
     /* Get the operating system version */
-    Gestalt(gestaltSystemVersionMajor, &DWOSMajor);
-    Gestalt(gestaltSystemVersionMinor, &DWOSMinor);
-    Gestalt(gestaltSystemVersionBugFix, &DWOSBuild);
+    NSString *version = [[NSProcessInfo processInfo] operatingSystemVersionString];
+    const char *versionstr = [version UTF8String];
+    sscanf(versionstr, "Version %d.%d.%d", &DWOSMajor, &DWOSMinor, &DWOSBuild);
     /* Create the application object */
     DWApp = [NSApplication sharedApplication];
     /* Create object for handling timers */
