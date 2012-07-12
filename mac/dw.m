@@ -5318,13 +5318,12 @@ HWND API dw_status_text_new(char *text, ULONG cid)
 {
     NSTextField *textfield = dw_text_new(text, cid);
     [textfield setBordered:YES];
-    if(DWOSMinor > 5)
+    if(DWOSMinor > 5 && DWOSMinor < 8)
     {
         [textfield setBezeled:YES];
         [textfield setBezelStyle:NSTextFieldSquareBezel];
     }
     [textfield setBackgroundColor:[NSColor clearColor]];
-    [textfield setDrawsBackground:NO];
     [[textfield cell] setVCenter:YES];
     return textfield;
 }
