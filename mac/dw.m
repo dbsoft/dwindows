@@ -3552,6 +3552,27 @@ int API dw_scrollbox_get_range(HWND handle, int orient)
     return range;
 }
 
+/* Return the handle to the text object */
+id _text_handle(id object)
+{
+    if([object isMemberOfClass:[ DWSpinButton class]])
+    {
+        DWSpinButton *spinbutton = object;
+        object = [spinbutton textfield];
+    }
+    if([object isMemberOfClass:[ NSBox class]])
+    {
+        NSBox *box = object;
+        id content = [box contentView];
+        
+        if([content isMemberOfClass:[ DWText class]])
+        {
+            object = content;
+        }
+    }
+    return object;
+}
+
 /* Internal function to calculate the widget's required size..
  * These are the general rules for widget sizes:
  * 
@@ -3567,10 +3588,8 @@ void _control_size(id handle, int *width, int *height)
 {
     int thiswidth = 1, thisheight = 1, extrawidth = 0, extraheight = 0;
     NSString *nsstr = nil;
-    id object = handle;
+    id object = _text_handle(handle);
     
-    if([object isMemberOfClass:[ DWSpinButton class]])
-        object = [object textfield];
     /* Handle all the different button types */
     if([ object isKindOfClass:[ NSButton class ] ])
     {
@@ -3750,7 +3769,7 @@ void _control_size(id handle, int *width, int *height)
     {
         thiswidth = (int)((_DW_SCROLLED_MAX_WIDTH + _DW_SCROLLED_MIN_WIDTH)/2);
         thisheight = (int)((_DW_SCROLLED_MAX_HEIGHT + _DW_SCROLLED_MIN_HEIGHT)/2);
-    }
+    }        
     /* Any other control type */
     else if([ object isKindOfClass:[ NSControl class ] ])
         nsstr = [object stringValue];
@@ -3764,17 +3783,20 @@ void _control_size(id handle, int *width, int *height)
     /* Handle static text fields */
     if([object isKindOfClass:[ NSTextField class ]] && ![object isEditable])
     {
+        id border = handle;
+        
         /* Handle status bar field */
-        if([object isBordered] || (DWOSMinor > 5 && [object isBezeled]))
+        if([border isMemberOfClass:[ NSBox class ] ])
         {
             extrawidth = 12;
             extraheight = 4;
         }
         else
             extrawidth = 10;
+        //dw_debug("this width %d height %d extra width %d height %d \"%s\"\n", thiswidth, thisheight, extrawidth, extraheight, (char *)[nsstr UTF8String]);
     }
     
-    /* Set the requested sizes */    
+    /* Set the requested sizes */
     if(width)
         *width = thiswidth + extrawidth;
     if(height)
@@ -5316,16 +5338,18 @@ void API dw_mle_thaw(HWND handle)
  */
 HWND API dw_status_text_new(char *text, ULONG cid)
 {
+    NSBox *border = [[NSBox alloc] init];
     NSTextField *textfield = dw_text_new(text, cid);
-    [textfield setBordered:YES];
-    if(DWOSMinor > 5 && DWOSMinor < 8)
-    {
-        [textfield setBezeled:YES];
-        [textfield setBezelStyle:NSTextFieldSquareBezel];
-    }
+    
+    [border setBorderType:NSGrooveBorder];
+    //[border setBorderType:NSLineBorder];
+    [border setTitlePosition:NSNoTitle];
+    [border setContentView:textfield];
+    [border setContentViewMargins:NSMakeSize(1,1)];
+    [textfield autorelease];
     [textfield setBackgroundColor:[NSColor clearColor]];
     [[textfield cell] setVCenter:YES];
-    return textfield;
+    return border;
 }
 
 /*
@@ -8593,7 +8617,7 @@ int API dw_window_set_font(HWND handle, char *fontname)
 
     if(font)
     {
-        id object = handle;
+        id object = _text_handle(handle);
         if([object window])
         {
             [object lockFocus];
@@ -8639,7 +8663,7 @@ int API dw_window_set_font(HWND handle, char *fontname)
  */
 char * API dw_window_get_font(HWND handle)
 {
-    id object = handle;
+    id object = _text_handle(handle);
     NSFont *font = nil;
 
     if([object isMemberOfClass:[DWGroupBox class]])
@@ -8765,23 +8789,18 @@ int API dw_window_destroy(HWND handle)
  */
 char * API dw_window_get_text(HWND handle)
 {
-    NSObject *object = handle;
+    id object = _text_handle(handle);
 
-    if([object isMemberOfClass:[ DWSpinButton class]])
-    {
-        DWSpinButton *spinbutton = handle;
-        handle = object = [spinbutton textfield];
-    }
     if([ object isKindOfClass:[ NSWindow class ] ] || [ object isKindOfClass:[ NSButton class ] ])
     {
-        id window = handle;
+        id window = object;
         NSString *nsstr = [ window title];
 
         return strdup([ nsstr UTF8String ]);
     }
     else if([ object isKindOfClass:[ NSControl class ] ])
     {
-        NSControl *control = handle;
+        NSControl *control = object;
         NSString *nsstr = [ control stringValue];
 
         return strdup([ nsstr UTF8String ]);
@@ -8797,23 +8816,18 @@ char * API dw_window_get_text(HWND handle)
  */
 void API dw_window_set_text(HWND handle, char *text)
 {
-    id object = handle;
+    id object = _text_handle(handle);
 
-    if([object isMemberOfClass:[ DWSpinButton class]])
-    {
-        DWSpinButton *spinbutton = handle;
-        object = [spinbutton textfield];
-    }
     if([ object isKindOfClass:[ NSWindow class ] ] || [ object isKindOfClass:[ NSButton class ] ])
         [object setTitle:[ NSString stringWithUTF8String:text ]];
     else if([ object isKindOfClass:[ NSControl class ] ])
     {
-        NSControl *control = handle;
+        NSControl *control = object;
         [control setStringValue:[ NSString stringWithUTF8String:text ]];
     }
     else if([object isMemberOfClass:[DWGroupBox class]])
     {
-       DWGroupBox *groupbox = handle;
+       DWGroupBox *groupbox = object;
        [groupbox setTitle:[NSString stringWithUTF8String:text]];
     }
     else
