@@ -5,7 +5,7 @@
  * (C) 2011-2012 Brian Smith <brian@dbsoft.org>
  * (C) 2011 Mark Hessling <mark@rexx.org>
  *
- * Requires 10.5 or later.f
+ * Requires 10.5 or later.
  * clang -std=c99 -g -o dwtest -D__MAC__ -I. dwtest.c mac/dw.m -framework Cocoa -framework WebKit
  */
 #import <Cocoa/Cocoa.h>
@@ -1874,10 +1874,10 @@ DWObject *DWObj;
 -(void)clear { if(data) { [data removeAllObjects]; while([titles count]) { [titles removePointerAtIndex:0]; } } lastAddPoint = 0; }
 -(void)setup
 {
-    SEL swopa = NSSelectorFromString(@"weakObjectsPointerArray");
+    SEL swopa = NSSelectorFromString(@"pointerArrayWithWeakObjects");
 
     if(![[NSPointerArray class] respondsToSelector:swopa])
-        swopa = NSSelectorFromString(@"pointerArrayWithWeakObjects");
+        swopa = NSSelectorFromString(@"weakObjectsPointerArray");
     if(![[NSPointerArray class] respondsToSelector:swopa])
         return;
     
