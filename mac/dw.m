@@ -5,7 +5,7 @@
  * (C) 2011-2012 Brian Smith <brian@dbsoft.org>
  * (C) 2011 Mark Hessling <mark@rexx.org>
  *
- * Requires 10.5 or later.
+ * Requires 10.5 or later.f
  * clang -std=c99 -g -o dwtest -D__MAC__ -I. dwtest.c mac/dw.m -framework Cocoa -framework WebKit
  */
 #import <Cocoa/Cocoa.h>
@@ -316,15 +316,12 @@ int _event_handler1(id object, NSEvent *event, int message)
             case 5:
             {
                 int (* API motionfunc)(HWND, int, int, int, void *) = (int (* API)(HWND, int, int, int, void *))handler->signalfunction;
-                int buttonmask = DWOSMinor > 5 ? (int)[NSEvent pressedMouseButtons] : 0;
                 id view = [[[event window] contentView] superview];
                 NSPoint p = [view convertPoint:[event locationInWindow] toView:object];
-
-                if(DWOSMinor < 6)
-                {
-                    buttonmask = (1 << [event buttonNumber]);
-                }
-
+                SEL spmb = NSSelectorFromString(@"pressedMouseButtons");
+                IMP ipmb = [[NSEvent class] respondsToSelector:spmb] ? [[NSEvent class] methodForSelector:spmb] : 0;
+                int buttonmask = ipmb ? (int)ipmb([NSEvent class], spmb) : (1 << [event buttonNumber]);
+                                               
                 return motionfunc(object, (int)p.x, (int)p.y, buttonmask, handler->data);
             }
             /* Window close event */
@@ -593,15 +590,17 @@ typedef struct _bitbltinfo
     if([bltsrc isMemberOfClass:[NSBitmapImageRep class]])
     {
         NSBitmapImageRep *rep = bltsrc;
-        NSImage *image;
+        NSImage *image = [NSImage alloc];
+        SEL siwc = NSSelectorFromString(@"initWithCGImage");
 
-        if(DWOSMinor > 5)
+        if([image respondsToSelector:siwc])
         {
-            image = [[NSImage alloc] initWithCGImage:[rep CGImage] size:NSZeroSize];
+            IMP iiwc = [image methodForSelector:siwc];
+            image = iiwc(image, siwc, [rep CGImage], NSZeroSize);
         }
         else
         {
-            image = [[NSImage alloc] initWithSize:[rep size]];
+            image = [image initWithSize:[rep size]];
             [image addRepresentation:rep];
         }
         if(bltinfo->srcwidth != -1)
@@ -1875,10 +1874,21 @@ DWObject *DWObj;
 -(void)clear { if(data) { [data removeAllObjects]; while([titles count]) { [titles removePointerAtIndex:0]; } } lastAddPoint = 0; }
 -(void)setup
 {
+    SEL swopa = NSSelectorFromString(@"weakObjectsPointerArray");
+
+    if(![[NSPointerArray class] respondsToSelector:swopa])
+        swopa = NSSelectorFromString(@"pointerArrayWithWeakObjects");
+    if(![[NSPointerArray class] respondsToSelector:swopa])
+        return;
+    
+    IMP iwopa = [[NSPointerArray class] methodForSelector:swopa];
+        
+    titles = iwopa([NSPointerArray class], swopa);
+    [titles retain];
     tvcols = [[[NSMutableArray alloc] init] retain];
     data = [[[NSMutableArray alloc] init] retain];
     types = [[[NSMutableArray alloc] init] retain];
-    titles = [[NSPointerArray pointerArrayWithWeakObjects] retain];
+
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(selectionChanged:) name:NSTableViewSelectionDidChangeNotification object:self];
 }
 -(NSSize)getsize
@@ -3261,7 +3271,15 @@ char * API dw_file_browse(char *title, char *defpath, char *ext, int flags)
         NSOpenPanel* openDlg = [NSOpenPanel openPanel];
         
         if(path)
-            [openDlg setDirectoryURL:[NSURL fileURLWithPath:[NSString stringWithUTF8String:path]]];
+        {
+            SEL ssdu = NSSelectorFromString(@"setDirectoryURL");
+            
+            if([openDlg respondsToSelector:ssdu])
+            {
+                IMP isdu = [openDlg methodForSelector:ssdu];
+                isdu(openDlg, ssdu, [NSURL fileURLWithPath:[NSString stringWithUTF8String:path]]);
+            }
+        }
 
         /* Enable the selection of files in the dialog. */
         if(flags == DW_FILE_OPEN)
@@ -3309,9 +3327,25 @@ char * API dw_file_browse(char *title, char *defpath, char *ext, int flags)
         NSSavePanel* saveDlg = [NSSavePanel savePanel];
         
         if(path)
-            [saveDlg setDirectoryURL:[NSURL fileURLWithPath:[NSString stringWithUTF8String:path]]];
+        {
+            SEL ssdu = NSSelectorFromString(@"setDirectoryURL");
+            
+            if([saveDlg respondsToSelector:ssdu])
+            {
+                IMP isdu = [saveDlg methodForSelector:ssdu];
+                isdu(saveDlg, ssdu, [NSURL fileURLWithPath:[NSString stringWithUTF8String:path]]);
+            }
+        }
         if(file)
-            [saveDlg setNameFieldStringValue:[NSString stringWithUTF8String:file]];
+        {
+            SEL ssnfsv = NSSelectorFromString(@"setNameFieldStringValue");
+            
+            if([saveDlg respondsToSelector:ssnfsv])
+            {
+                IMP isnfsv = [saveDlg methodForSelector:ssnfsv];
+                isnfsv(saveDlg, ssnfsv, [NSString stringWithUTF8String:file]);
+            }
+        }
 
         /* Enable the creation of directories in the dialog. */
         [saveDlg setCanCreateDirectories:YES];
@@ -3371,11 +3405,12 @@ char *dw_clipboard_get_text()
 void dw_clipboard_set_text( char *str, int len)
 {
     NSPasteboard *pasteboard = [NSPasteboard generalPasteboard];
-
-    /* Only in Snow Leopard */
-    if(DWOSMinor > 5)
+    SEL scc = NSSelectorFromString(@"clearContents");
+    
+    if([pasteboard respondsToSelector:scc])
     {
-        [pasteboard clearContents];
+        IMP icc = [pasteboard methodForSelector:scc];
+        icc(pasteboard, scc);
     }
 
     [pasteboard setString:[ NSString stringWithUTF8String:str ] forType:NSStringPboardType];
@@ -8348,17 +8383,23 @@ void API dw_window_set_style(HWND handle, ULONG style, ULONG mask)
 {
     id object = handle;
 
-    if(DWOSMinor > 5 && [object isMemberOfClass:[DWWindow class]])
+    if([object isMemberOfClass:[DWWindow class]])
     {
         DWWindow *window = object;
-        int currentstyle = (int)[window styleMask];
-        int tmp;
-
-        tmp = currentstyle | (int)mask;
-        tmp ^= mask;
-        tmp |= style;
-
-        [window setStyleMask:tmp];
+        SEL sssm = NSSelectorFromString(@"setStyleMask");
+        
+        if([window respondsToSelector:sssm])
+        {
+            IMP issm = [window methodForSelector:sssm];
+            int currentstyle = (int)[window styleMask];
+            int tmp;
+            
+            tmp = currentstyle | (int)mask;
+            tmp ^= mask;
+            tmp |= style;
+            
+            issm(window, sssm, tmp);
+        }
     }
     else if([object isKindOfClass:[NSTextField class]])
     {
