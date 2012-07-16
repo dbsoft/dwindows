@@ -6861,7 +6861,7 @@ HWND API dw_bitmapbutton_new_from_data(char *text, unsigned long id, char *data,
          {
             fwrite( data, 1, len, fp );
             fclose( fp );
-            if(!_load_bitmap_file( file, tmp, &pixmap->hbm, &pixmap->hdc, &pixmap->hps, &pixmap->width, &pixmap->height, &pixmap->depth));
+            if(!_load_bitmap_file( file, tmp, &pixmap->hbm, &pixmap->hdc, &pixmap->hps, &pixmap->width, &pixmap->height, &pixmap->depth))
             {
                icon = WinLoadFileIcon((PSZ)file, FALSE);
             }
