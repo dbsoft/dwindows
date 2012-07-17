@@ -3816,15 +3816,14 @@ void _control_size(id handle, int *width, int *height)
     {
         id border = handle;
         
+        extrawidth = 10;
+        
         /* Handle status bar field */
         if([border isMemberOfClass:[ NSBox class ] ])
         {
-            extrawidth = 12;
-            extraheight = 4;
+            extrawidth += 2;
+            extraheight = 8;
         }
-        else
-            extrawidth = 10;
-        //dw_debug("this width %d height %d extra width %d height %d \"%s\"\n", thiswidth, thisheight, extrawidth, extraheight, (char *)[nsstr UTF8String]);
     }
     
     /* Set the requested sizes */
@@ -5376,7 +5375,7 @@ HWND API dw_status_text_new(char *text, ULONG cid)
     //[border setBorderType:NSLineBorder];
     [border setTitlePosition:NSNoTitle];
     [border setContentView:textfield];
-    [border setContentViewMargins:NSMakeSize(1,1)];
+    [border setContentViewMargins:NSMakeSize(1.5,1.5)];
     [textfield autorelease];
     [textfield setBackgroundColor:[NSColor clearColor]];
     [[textfield cell] setVCenter:YES];
@@ -8377,7 +8376,7 @@ int API dw_window_set_border(HWND handle, int border)
  */
 void API dw_window_set_style(HWND handle, ULONG style, ULONG mask)
 {
-    id object = handle;
+    id object = _text_handle(handle);
 
     if([object isMemberOfClass:[DWWindow class]])
     {
@@ -8400,11 +8399,12 @@ void API dw_window_set_style(HWND handle, ULONG style, ULONG mask)
     else if([object isKindOfClass:[NSTextField class]])
     {
         NSTextField *tf = object;
+        DWTextFieldCell *cell = [tf cell];
 
-        [[tf cell] setAlignment:(style & 0xF)];
-        if(mask & DW_DT_VCENTER)
+        [cell setAlignment:(style & 0xF)];
+        if(mask & DW_DT_VCENTER && [cell isMemberOfClass:[DWTextFieldCell class]])
         {
-            [[tf cell] setVCenter:(style & DW_DT_VCENTER ? YES : NO)];
+            [cell setVCenter:(style & DW_DT_VCENTER ? YES : NO)];
         }
     }
     else if([object isMemberOfClass:[NSTextView class]])
