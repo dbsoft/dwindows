@@ -1596,6 +1596,7 @@ DWObject *DWObj;
     {
         NSSize	imageSize;
         NSRect	imageFrame;
+        SEL sdir = NSSelectorFromString(@"drawInRect:fromRect:operation:fraction:respectFlipped:hints:");
         
         imageSize = [image size];
         NSDivideRect(cellFrame, &imageFrame, &cellFrame, 3 + imageSize.width, NSMinXEdge);
@@ -1606,9 +1607,33 @@ DWObject *DWObj;
         }
         imageFrame.origin.x += 3;
         imageFrame.size = imageSize;
-        imageFrame.origin.y += ceil((cellFrame.size.height - imageFrame.size.height) / 2);
         
-        [image drawInRect:imageFrame fromRect:NSZeroRect operation:NSCompositeSourceOver fraction:1.0 respectFlipped:YES hints:nil];
+        /* New method for 10.6 and later */
+        if([image respondsToSelector:sdir])
+        {
+            IMP idir = [image methodForSelector:sdir];
+            
+            imageFrame.origin.y += ceil((cellFrame.size.height - imageFrame.size.height) / 2);
+            
+            idir(image, sdir, imageFrame, NSZeroRect, NSCompositeSourceOver, 1.0, YES, nil);
+        }
+        else 
+        {
+            /* Old method for 10.5 */
+            SEL sctp = NSSelectorFromString(@"compositeToPoint:operation:");
+            
+            if ([controlView isFlipped]) 
+                imageFrame.origin.y += ceil((cellFrame.size.height + imageFrame.size.height) / 2); 
+            else 
+                imageFrame.origin.y += ceil((cellFrame.size.height - imageFrame.size.height) / 2); 
+            
+            if([image respondsToSelector:sctp])
+            {
+                IMP ictp = [image methodForSelector:sctp];
+                
+                ictp(image, sctp, imageFrame.origin, NSCompositeSourceOver);
+            }
+        }
     }
     [super drawWithFrame:cellFrame inView:controlView];
 }
