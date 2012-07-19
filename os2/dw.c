@@ -11623,12 +11623,19 @@ void _dwthreadstart(void *data)
  */
 DWTID API dw_thread_new(void *func, void *data, int stack)
 {
-   void **tmp = malloc(sizeof(void *) * 2);
+    void **tmp = malloc(sizeof(void *) * 2);
+    int z = 1;
 
-   tmp[0] = func;
-   tmp[1] = data;
+    /* Clamp the stack size to 4K blocks...
+     * since some CRTs require it (VAC)
+     */
+    while(stack > (4096*z))
+        z++;
 
-   return (DWTID)_beginthread((void (*)(void *))_dwthreadstart, NULL, stack, (void *)tmp);
+    tmp[0] = func;
+    tmp[1] = data;
+
+    return (DWTID)_beginthread((void (*)(void *))_dwthreadstart, NULL, (z*4096), (void *)tmp);
 }
 
 /*
