@@ -10450,7 +10450,7 @@ void API dw_draw_point(HWND handle, HPIXMAP pixmap, int x, int y)
    if(handle)
    {
       hps = _set_colors(handle);
-        height = _get_height(handle);
+      height = _get_height(handle);
    }
    else if(pixmap)
    {
@@ -10464,7 +10464,7 @@ void API dw_draw_point(HWND handle, HPIXMAP pixmap, int x, int y)
    ptl.y = height - y - 1;
 
    GpiSetPel(hps, &ptl);
-   if(!pixmap)
+   if(handle)
       WinReleasePS(hps);
 }
 
@@ -10486,7 +10486,7 @@ void API dw_draw_line(HWND handle, HPIXMAP pixmap, int x1, int y1, int x2, int y
    if(handle)
    {
       hps = _set_colors(handle);
-        height = _get_height(handle);
+      height = _get_height(handle);
    }
    else if(pixmap)
    {
@@ -10504,8 +10504,8 @@ void API dw_draw_line(HWND handle, HPIXMAP pixmap, int x1, int y1, int x2, int y
    GpiMove(hps, &ptl[0]);
    GpiLine(hps, &ptl[1]);
 
-   if(!pixmap)
-      WinReleasePS(hps);
+   if(handle)
+       WinReleasePS(hps);
 }
 
 
@@ -10587,7 +10587,7 @@ void API dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
     else
         WinDrawText(hps, -1, (PCH)text, &rcl, _internal_color(_foreground), _internal_color(_background), DT_VCENTER | DT_LEFT | DT_ERASERECT);
 
-    if(!pixmap)
+    if(handle)
         WinReleasePS(hps);
 }
 
@@ -10627,7 +10627,7 @@ void API dw_font_text_extents_get(HWND handle, HPIXMAP pixmap, char *text, int *
    if(height)
       *height = aptl[TXTBOX_TOPLEFT].y - aptl[TXTBOX_BOTTOMLEFT].y;
 
-   if(!pixmap)
+   if(handle)
       WinReleasePS(hps);
 }
 
@@ -10692,7 +10692,7 @@ void API dw_draw_polygon( HWND handle, HPIXMAP pixmap, int flags, int npoints, i
       if ( flags & DW_DRAW_FILL )
          GpiEndArea( hps );
    }
-   if ( !pixmap )
+   if(handle)
       WinReleasePS(hps);
    free( pptl );
 }
@@ -10716,7 +10716,7 @@ void API dw_draw_rect(HWND handle, HPIXMAP pixmap, int flags, int x, int y, int 
    if(handle)
    {
       hps = _set_colors(handle);
-        thisheight = _get_height(handle);
+      thisheight = _get_height(handle);
    }
    else if(pixmap)
    {
@@ -10734,7 +10734,7 @@ void API dw_draw_rect(HWND handle, HPIXMAP pixmap, int flags, int x, int y, int 
    GpiMove(hps, &ptl[0]);
    GpiBox(hps, (flags & DW_DRAW_FILL) ? DRO_OUTLINEFILL : DRO_OUTLINE, &ptl[1], 0, 0);
 
-   if(!pixmap)
+   if(handle)
       WinReleasePS(hps);
 }
 
@@ -10820,7 +10820,7 @@ void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yo
            GpiEndArea(hps);
    }
 
-   if(!pixmap)
+   if(handle)
       WinReleasePS(hps);
 }
 
@@ -11160,7 +11160,7 @@ int API dw_pixmap_stretch_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest,
    }
    else
    {
-      if(!destp)
+      if(dest)
          WinReleasePS(hpsdest);
       return DW_ERROR_GENERAL;
    }
@@ -11196,9 +11196,9 @@ int API dw_pixmap_stretch_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest,
        GpiBitBlt(hpsdest, hpssrc, count, ptl, ROP_SRCCOPY, BBO_IGNORE);
    }
 
-   if(!destp)
+   if(dest)
       WinReleasePS(hpsdest);
-   if(!srcp)
+   if(src)
       WinReleasePS(hpssrc);
    return DW_ERROR_NONE;
 }
