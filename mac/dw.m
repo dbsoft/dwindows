@@ -8272,6 +8272,13 @@ int API dw_window_show(HWND handle)
         }
         [[window contentView] showWindow];
         [window makeKeyAndOrderFront:nil];
+        
+        if(!([window styleMask] & NSResizableWindowMask))
+        {
+            /* Fix incorrect repeat in displaying textured windows */
+            [window setAutorecalculatesContentBorderThickness:NO forEdge:NSMinYEdge];
+            [window setContentBorderThickness:0.0 forEdge:NSMinYEdge];
+        }
     }
     return 0;
 }
