@@ -12474,3 +12474,38 @@ void API dw_signal_disconnect_by_data(HWND window, void *data)
       }
    }
 }
+
+/*
+ * Converts a UTF-8 encoded string into a wide string.
+ * Parameters:
+ *       utf8string: UTF-8 encoded source string.
+ * Returns:
+ *       Wide string that needs to be freed with dw_free()
+ *       or NULL on failure.
+ */
+wchar_t * API dw_utf8_to_wchar(char *utf8string)
+{
+ #ifdef UNICODE
+    return _myUTF8toWide(utf8string, malloc(MultiByteToWideChar(CP_UTF8, 0, utf8string, -1, NULL, 0) * sizeof(WCHAR)));
+#else
+    return NULL;
+#endif    
+}
+
+/*
+ * Converts a wide string into a UTF-8 encoded string.
+ * Parameters:
+ *       wstring: Wide source string.
+ * Returns:
+ *       UTF-8 encoded string that needs to be freed with dw_free()
+ *       or NULL on failure.
+ */
+char * API dw_wchar_to_utf8(wchar_t *wstring)
+{
+#ifdef UNICODE
+    return _myWideToUTF8(wstring, malloc(WideCharToMultiByte(CP_UTF8, 0, wstring, -1, NULL, 0, NULL, NULL)));
+#else
+    return NULL;
+#endif
+}
+

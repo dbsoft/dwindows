@@ -27,6 +27,7 @@ not support it by default. Looking into importing functionality
 from available libraries (Firefox, Webkit, Qt, etc).
 
 Changes from version 2.3:
+Added support for MacOS 10.8 Mountain Lion.
 Added fullscreen support on Mac for resizable windows on Lion.
 Added UNICODE build mode on Windows allowing UTF-8 encoded text.
    ANSI builds are supported by removing -DUNICODE -D_UNICODE and -DAEROGLASS
@@ -47,6 +48,7 @@ Added dw_filesystem_set_column_title() to fill a hole in localization.
 Added new optional UTF-8 parameter to the key press callback.
     This is a pointer to a UTF-8 string representing the key pressed.
     The buffer pointed to is only good for the duration of the callback.
+Added UTF-8/Wide string conversion functions for Unicode buffer management.    
 Fixed dwindows-config --version not returning the version at all.
 Fixed value changed events not working for spinbuttons on OS/2 and Windows.
 Fixed issues drawing arcs on GTK2, GTK3 and Mac.
@@ -61,6 +63,10 @@ Fixed dw_window_set_bitmap_from_data() prefering the resource ID
    over the data passed in on most platforms.
 Fixed dw_container_delete_row() failing and/or crashing on Mac.
 Fixed memory and resource leaks on Windows and Mac.
+Fixed incorrect display of status text fields on Mac 10.5 and 10.8.
+Fixed compiler warnings on Mac 10.5 and 10.8 by checking selectors directly
+    and removing use of now deprecated APIs.
+Fixed incorrect display of textured background non-resizable windows on Mac.
 Updated the test program removing deprecated flags and using new ones.
 
 Dynamic Windows Documentation is available at:
