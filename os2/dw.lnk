@@ -303,3 +303,5 @@ export dw_print_new.510
 export dw_print_run.511
 export dw_print_cancel.512
 
+export dw_utf8_to_wchar.520
+export dw_wchar_to_utf8.521

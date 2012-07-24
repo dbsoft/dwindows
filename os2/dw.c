@@ -13279,3 +13279,37 @@ void API dw_calendar_get_date( HWND window, unsigned int *year, unsigned int *mo
     if(day)
         *day = DW_POINTER_TO_UINT(dw_window_get_data(window, "_dw_day")) + 1;
 }
+
+/*
+ * Converts a UTF-8 encoded string into a wide string.
+ * Parameters:
+ *       utf8string: UTF-8 encoded source string.
+ * Returns:
+ *       Wide string that needs to be freed with dw_free()
+ *       or NULL on failure.
+ */
+wchar_t * API dw_utf8_to_wchar(char *utf8string)
+{
+#ifdef UNICODE
+    return _UTF8toWide(utf8string);
+#else
+    return NULL;
+#endif
+}
+
+/*
+ * Converts a wide string into a UTF-8 encoded string.
+ * Parameters:
+ *       wstring: Wide source string.
+ * Returns:
+ *       UTF-8 encoded string that needs to be freed with dw_free()
+ *       or NULL on failure.
+ */
+char * API dw_wchar_to_utf8(wchar_t *wstring)
+{
+#ifdef UNICODE
+    return _WideToUTF8(wstring);
+#else
+    return NULL;
+#endif
+}

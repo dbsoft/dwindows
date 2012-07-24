@@ -11035,14 +11035,16 @@ void API dw_print_cancel(HPRINT print)
  * Parameters:
  *       utf8string: UTF-8 encoded source string.
  * Returns:
- *       Wide string that needs to be freed with dw_free().
+ *       Wide string that needs to be freed with dw_free()
+ *       or NULL on failure.
  */
 wchar_t * API dw_utf8_to_wchar(char *utf8string)
 {
     size_t buflen = strlen(utf8string) + 1;
-    wchar_t *buffer = malloc(buflen * sizeof(wchar_t));
-    mbstowcs(buffer, utf8string, buflen);
-    return buffer;
+    wchar_t *temp = malloc(buflen * sizeof(wchar_t));
+    if(temp)
+        mbstowcs(temp, utf8string, buflen);
+    return temp;
 }
 
 /*
@@ -11050,12 +11052,14 @@ wchar_t * API dw_utf8_to_wchar(char *utf8string)
  * Parameters:
  *       wstring: Wide source string.
  * Returns:
- *       UTF-8 encoded string that needs to be freed with dw_free().
+ *       UTF-8 encoded string that needs to be freed with dw_free()
+ *       or NULL on failure.
  */
 char * API dw_wchar_to_utf8(wchar_t *wstring)
 {
     size_t bufflen = 8 * wcslen(wstring) + 1;
     char *temp = malloc(bufflen);
-    wcstombs(temp, wstring, bufflen);
+    if(temp)
+        wcstombs(temp, wstring, bufflen);
     return temp;
 }
