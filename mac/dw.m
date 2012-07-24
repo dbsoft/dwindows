@@ -11030,3 +11030,32 @@ void API dw_print_cancel(HPRINT print)
         p->drawfunc = NULL;
 }
 
+/*
+ * Converts a UTF-8 encoded string into a wide string.
+ * Parameters:
+ *       utf8string: UTF-8 encoded source string.
+ * Returns:
+ *       Wide string that needs to be freed with dw_free().
+ */
+wchar_t * API dw_utf8_to_wchar(char *utf8string)
+{
+    size_t buflen = strlen(utf8string) + 1;
+    wchar_t *buffer = malloc(buflen * sizeof(wchar_t));
+    mbstowcs(buffer, utf8string, buflen);
+    return buffer;
+}
+
+/*
+ * Converts a wide string into a UTF-8 encoded string.
+ * Parameters:
+ *       wstring: Wide source string.
+ * Returns:
+ *       UTF-8 encoded string that needs to be freed with dw_free().
+ */
+char * API dw_wchar_to_utf8(wchar_t *wstring)
+{
+    size_t bufflen = 8 * wcslen(wstring) + 1;
+    char *temp = malloc(bufflen);
+    wcstombs(temp, wstring, bufflen);
+    return temp;
+}

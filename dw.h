@@ -1415,6 +1415,8 @@ typedef void *HPRINT;
 #define _DW_SCROLLED_MAX_WIDTH   500
 #define _DW_SCROLLED_MAX_HEIGHT  400
 
+#include <wchar.h>
+
 /* Let other APIs know what types we've defined,
  * Regina REXX in particular, on Unix.
  */
@@ -1724,5 +1726,7 @@ void API dw_calendar_get_date( HWND window, unsigned int *year, unsigned int *mo
 HPRINT API dw_print_new(char *jobname, unsigned long flags, unsigned int pages, void *drawfunc, void *drawdata);
 int API dw_print_run(HPRINT print, unsigned long flags);
 void API dw_print_cancel(HPRINT print);
+wchar_t * API dw_utf8_to_wchar(char *utf8string);
+char * API dw_wchar_to_utf8(wchar_t *wstring);
 
 #endif
