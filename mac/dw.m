@@ -10547,6 +10547,8 @@ void API dw_font_set_default(char *fontname)
  */
 int API dw_init(int newthread, int argc, char *argv[])
 {
+    char *lang = getenv("LANG");
+    
     /* Correct the startup path if run from a bundle */
     if(argc > 0 && argv[0])
     {
@@ -10588,6 +10590,10 @@ int API dw_init(int newthread, int argc, char *argv[])
     NSString *version = [[NSProcessInfo processInfo] operatingSystemVersionString];
     const char *versionstr = [version UTF8String];
     sscanf(versionstr, "Version %d.%d.%d", &DWOSMajor, &DWOSMinor, &DWOSBuild);
+    /* Set the locale... if it is UTF-8 pass it 
+     * directly, otherwise specify UTF-8 explicitly.
+     */
+    setlocale(LC_ALL, lang && strstr(lang, ".UTF-8") ? lang : "UTF-8");
     /* Create the application object */
     DWApp = [NSApplication sharedApplication];
     /* Create object for handling timers */
