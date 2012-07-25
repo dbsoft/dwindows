@@ -998,6 +998,8 @@ void text_add(void)
     unsigned long depth = dw_color_depth_get();
     HWND vscrollbox, hbox, button1, button2, label;
     int vscrollbarwidth, hscrollbarheight;
+    wchar_t widestring[100] = L"DWTest Wide";
+    char *utf8string = dw_wchar_to_utf8(widestring);
 
     /* create a box to pack into the notebook page */
     pagebox = dw_box_new(DW_HORZ, 2);
@@ -1092,7 +1094,7 @@ void text_add(void)
     if(image)
         dw_pixmap_set_transparent_color(image, DW_CLR_WHITE);
 
-    dw_messagebox("DWTest", DW_MB_OK|DW_MB_INFORMATION, "Width: %d Height: %d\n", font_width, font_height);
+    dw_messagebox(utf8string ? utf8string : "DWTest", DW_MB_OK|DW_MB_INFORMATION, "Width: %d Height: %d\n", font_width, font_height);
     dw_draw_rect(0, text1pm, DW_DRAW_FILL | DW_DRAW_NOAA, 0, 0, font_width*width1, font_height*rows);
     dw_draw_rect(0, text2pm, DW_DRAW_FILL | DW_DRAW_NOAA, 0, 0, font_width*cols, font_height*rows);
     dw_signal_connect(textbox1, DW_SIGNAL_BUTTON_PRESS, DW_SIGNAL_FUNC(context_menu_event), NULL);
