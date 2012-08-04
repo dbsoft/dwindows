@@ -332,7 +332,7 @@ void _dw_pool_drain(void);
 #define DW_DT_BOTTOM             0
 #define DW_DT_HALFTONE           0
 #define DW_DT_MNEMONIC           0
-#define DW_DT_WORDBREAK          0
+#define DW_DT_WORDBREAK          (1 << 11)
 #define DW_DT_ERASERECT          0
 
 #define DW_FCF_CLOSEBUTTON       (1 << 1) /* NSClosableWindowMask */
@@ -494,7 +494,7 @@ void _dw_pool_drain(void);
 #endif
 #endif
 
-#define DW_DT_LEFT               SS_LEFT
+#define DW_DT_LEFT               SS_LEFTNOWORDWRAP
 #define DW_DT_QUERYEXTENT        0
 #define DW_DT_UNDERSCORE         0
 #define DW_DT_STRIKEOUT          0
@@ -507,7 +507,7 @@ void _dw_pool_drain(void);
 #define DW_DT_BOTTOM             0
 #define DW_DT_HALFTONE           0
 #define DW_DT_MNEMONIC           0
-#define DW_DT_WORDBREAK          0
+#define DW_DT_WORDBREAK          SS_LEFT
 #define DW_DT_ERASERECT          0
 
 #define DW_FCF_CLOSEBUTTON       0
