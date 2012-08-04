@@ -8438,6 +8438,10 @@ void API dw_window_set_style(HWND handle, ULONG style, ULONG mask)
         {
             [cell setVCenter:(style & DW_DT_VCENTER ? YES : NO)];
         }
+        if(mask & DW_DT_WORDBREAK && [cell isMemberOfClass:[DWTextFieldCell class]])
+        {
+            [cell setWraps:(style & DW_DT_WORDBREAK ? YES : NO)];
+        }
     }
     else if([object isMemberOfClass:[NSTextView class]])
     {
