@@ -503,11 +503,11 @@ void _dw_pool_drain(void);
 #define DW_DT_CENTER             SS_CENTER
 #define DW_DT_RIGHT              SS_RIGHT
 #define DW_DT_TOP                0
-#define DW_DT_VCENTER            SS_NOPREFIX
+#define DW_DT_VCENTER            (1 << 29)
 #define DW_DT_BOTTOM             0
 #define DW_DT_HALFTONE           0
 #define DW_DT_MNEMONIC           0
-#define DW_DT_WORDBREAK          SS_LEFT
+#define DW_DT_WORDBREAK          (1 << 28)
 #define DW_DT_ERASERECT          0
 
 #define DW_FCF_CLOSEBUTTON       0

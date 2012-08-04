@@ -5979,8 +5979,8 @@ HWND API dw_text_new(char *text, ULONG id)
 {
    HWND tmp = CreateWindow(STATICCLASSNAME,
                      UTF8toWide(text),
-                     SS_NOPREFIX | SS_NOTIFY | WS_VISIBLE |
-                     WS_CHILD | WS_CLIPCHILDREN,
+                     SS_NOPREFIX | SS_NOTIFY | SS_LEFTNOWORDWRAP |
+                     WS_VISIBLE | WS_CHILD | WS_CLIPCHILDREN,
                      0,0,0,0,
                      DW_HWND_OBJECT,
                      (HMENU)id,
@@ -7637,7 +7637,7 @@ void API dw_window_set_style(HWND handle, ULONG style, ULONG mask)
    ColorInfo *cinfo;
    TCHAR tmpbuf[100] = {0};
 
-   if(!handle)
+   if(!handle || !mask)
       return;
 
    if(handle < (HWND)65536)
@@ -7680,7 +7680,7 @@ void API dw_window_set_style(HWND handle, ULONG style, ULONG mask)
    
    tmp = currentstyle | mask;
    tmp ^= mask;
-   tmp |= style;
+   tmp |= style & mask;
 
    if(_tcsnicmp(tmpbuf, ClassName, _tcslen(ClassName)+1)==0)
    {
@@ -7710,26 +7710,46 @@ void API dw_window_set_style(HWND handle, ULONG style, ULONG mask)
       }
 #endif      
    }
-   else
+   else if(_tcsnicmp(tmpbuf, STATICCLASSNAME, _tcslen(STATICCLASSNAME)+1)==0)
    {
-      /* We are using SS_NOPREFIX as a VCENTER flag */
-      if(tmp & SS_NOPREFIX)
+      static ULONG halign = (SS_LEFTNOWORDWRAP | SS_RIGHT | SS_CENTER);
+      ULONG thismask = mask & ~(DW_DT_VCENTER | DW_DT_WORDBREAK);
+      ULONG thisstyle = style & ~(DW_DT_VCENTER | DW_DT_WORDBREAK);
+      ULONG type = style & mask & 0xFL;
+      
+      /* Need to filter out bits that shouldn't be set */
+      tmp = currentstyle | thismask;
+      tmp ^= thismask;
+      tmp |= thisstyle & thismask;
+
+      if(mask & DW_DT_VCENTER)
       {
-
-         if(cinfo)
-            cinfo->vcenter = 1;
-         else
+         if(style & DW_DT_VCENTER)
          {
-            cinfo = calloc(1, sizeof(ColorInfo));
-            cinfo->fore = cinfo->back = -1;
-            cinfo->vcenter = 1;
+            if(cinfo)
+               cinfo->vcenter = 1;
+            else
+            {
+               cinfo = calloc(1, sizeof(ColorInfo));
+               cinfo->fore = cinfo->back = -1;
+               cinfo->vcenter = 1;
 
-            cinfo->pOldProc = SubclassWindow(handle, _colorwndproc);
-            SetWindowLongPtr(handle, GWLP_USERDATA, (LONG_PTR)cinfo);
+               cinfo->pOldProc = SubclassWindow(handle, _colorwndproc);
+               SetWindowLongPtr(handle, GWLP_USERDATA, (LONG_PTR)cinfo);
+            }
          }
+         else if(cinfo)
+            cinfo->vcenter = 0;
       }
-      else if(cinfo)
-         cinfo->vcenter = 0;
+      /* Alignment style is 0 for word wrap */
+      if((style & DW_DT_WORDBREAK) && (mask & DW_DT_WORDBREAK))
+         tmp &= ~(0xFL);
+      else if(type == SS_LEFTNOWORDWRAP)
+         tmp = (tmp & ~(0xFL)) | SS_LEFTNOWORDWRAP;
+      else if(type == SS_CENTER)
+         tmp = (tmp & ~(0xFL)) | SS_CENTER;
+      else if(type == SS_RIGHT)
+         tmp = (tmp & ~(0xFL)) | SS_RIGHT;
    }
 
    SetWindowLong(handle, GWL_STYLE, tmp);
