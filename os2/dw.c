@@ -1616,7 +1616,27 @@ void _drawtext(HWND hWnd, HPS hpsPaint)
     if(WinQueryPresParam(hWnd, PP_FOREGROUNDCOLOR, 0, NULL, sizeof(fcolor), &fcolor, QPF_NOINHERIT) ||
        WinQueryPresParam(hWnd, PP_FOREGROUNDCOLORINDEX, 0, NULL, sizeof(fcolor), &fcolor, QPF_NOINHERIT))
         GpiSetColor(hpsPaint, fcolor);
-    WinDrawText(hpsPaint, -1, (PCH)tempbuf, &rclPaint, DT_TEXTATTRS, DT_TEXTATTRS, style | DT_TEXTATTRS | DT_ERASERECT);
+    if(style & DT_WORDBREAK)
+    {
+        int thisheight;
+        LONG drawn, totaldrawn = 0;
+
+        dw_font_text_extents_get(hWnd, NULL, tempbuf, NULL, &thisheight);
+
+        /* until all chars drawn */
+        for(; totaldrawn !=  len; rclPaint.yTop -= thisheight)
+        {
+            /* draw the text */
+            drawn = WinDrawText(hpsPaint, len -  totaldrawn, (PCH)tempbuf +  totaldrawn,
+                                &rclPaint, DT_TEXTATTRS, DT_TEXTATTRS, style | DT_TEXTATTRS | DT_ERASERECT);
+            if(drawn)
+                totaldrawn += drawn;
+            else
+                break;
+        }
+    }
+    else
+        WinDrawText(hpsPaint, -1, (PCH)tempbuf, &rclPaint, DT_TEXTATTRS, DT_TEXTATTRS, style | DT_TEXTATTRS | DT_ERASERECT);
 }
 
 /* Function: BubbleProc
@@ -6492,6 +6512,7 @@ HWND API dw_entryfield_new(char *text, ULONG id)
 {
 
    WindowData *blah = calloc(1, sizeof(WindowData));
+   ENTRYFDATA efd = { sizeof(ENTRYFDATA), 32000, 0, 0 };
    HWND tmp = WinCreateWindow(HWND_OBJECT,
                         WC_ENTRYFIELD,
                         (PSZ)text,
@@ -6501,7 +6522,7 @@ HWND API dw_entryfield_new(char *text, ULONG id)
                         NULLHANDLE,
                         HWND_TOP,
                         id,
-                        NULL,
+                        (PVOID)&efd,
                         NULL);
    blah->oldproc = WinSubclassWindow(tmp, _entryproc);
    WinSetWindowPtr(tmp, QWP_USER, blah);
