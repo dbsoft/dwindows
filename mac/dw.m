@@ -3694,19 +3694,26 @@ void _control_size(id handle, int *width, int *height)
         }
     }
     /* If the control is an entryfield set width to 150 */
-    else if([object isKindOfClass:[ NSTextField class ]] && [object isEditable])
+    else if([object isKindOfClass:[ NSTextField class ]])
     {
         NSFont *font = [object font];
-        /* Spinbuttons don't need to be as wide */
-        if([object isMemberOfClass:[ DWSpinButton class]])
-            thiswidth = 50;
+        
+        if([object isEditable])
+        {
+            /* Spinbuttons don't need to be as wide */
+            if([object isMemberOfClass:[ DWSpinButton class]])
+                thiswidth = 50;
+            else
+                thiswidth = 150;
+            /* Spinbuttons don't need to be as wide */
+            if([object isMemberOfClass:[ DWComboBox class]])
+                extraheight = 4;
+        }
         else
-            thiswidth = 150;
+            nsstr = [object stringValue];
+        
         if(font)
             thisheight = (int)[font boundingRectForFont].size.height;
-        /* Spinbuttons don't need to be as wide */
-        if([object isMemberOfClass:[ DWComboBox class]])
-            extraheight = 4;
     }
     /* Handle the ranged widgets */
     else if([ object isMemberOfClass:[DWPercent class] ] ||

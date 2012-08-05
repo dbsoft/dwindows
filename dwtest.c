@@ -1008,9 +1008,9 @@ void text_add(void)
     hbox = dw_box_new(DW_HORZ, 1 );
     dw_box_pack_start( notebookbox2, hbox, 100, 20, TRUE, FALSE, 1);
     status1 = dw_status_text_new("", 0);
-    dw_box_pack_start( hbox, status1, 100, 20, TRUE, FALSE, 1);
+    dw_box_pack_start( hbox, status1, 100, -1, TRUE, FALSE, 1);
     status2 = dw_status_text_new("", 0);
-    dw_box_pack_start( hbox, status2, 100, 20, TRUE, FALSE, 1);
+    dw_box_pack_start( hbox, status2, 100, -1, TRUE, FALSE, 1);
     /* a box with combobox and button */
     hbox = dw_box_new(DW_HORZ, 1 );
     dw_box_pack_start( notebookbox2, hbox, 100, 25, TRUE, FALSE, 1);
@@ -1134,7 +1134,7 @@ void tree_add(void)
 
     /* and a status area to see whats going on */
     tree_status = dw_status_text_new("", 0);
-    dw_box_pack_start( notebookbox3, tree_status, 100, 20, TRUE, FALSE, 1);
+    dw_box_pack_start( notebookbox3, tree_status, 100, -1, TRUE, FALSE, 1);
 
     /* set up our signal trappers... */
     dw_signal_connect(tree, DW_SIGNAL_ITEM_CONTEXT, DW_SIGNAL_FUNC(item_context_cb), DW_POINTER(tree_status));
@@ -1175,7 +1175,7 @@ void container_add(void)
 
     /* and a status area to see whats going on */
     container_status = dw_status_text_new("", 0);
-    dw_box_pack_start( notebookbox4, container_status, 100, 20, TRUE, FALSE, 1);
+    dw_box_pack_start( notebookbox4, container_status, 100, -1, TRUE, FALSE, 1);
 
     titles[0] = "Type";
     titles[1] = "Size";
