@@ -8918,9 +8918,21 @@ void API dw_window_set_text(HWND handle, char *text)
     /* Check to see if any of the sizes need to be recalculated */
     if(item && (item->origwidth == -1 || item->origheight == -1))
     {
-        _control_size(handle, item->origwidth == -1 ? &item->width : NULL, item->origheight == -1 ? &item->height : NULL);        
-        /* Queue a redraw on the top-level window */
-        _dw_redraw([object window], TRUE);
+      int newwidth, newheight;
+      
+      _control_size(handle, &newwidth, &newheight); 
+      
+      /* Only update the item and redraw the window if it changed */
+      if((item->origwidth == -1 && item->width != newwidth) ||
+         (item->origheight == -1 && item->height != newheight))
+      {
+         if(item->origwidth == -1)
+            item->width = newwidth;
+         if(item->origheight == -1)
+            item->height = newheight;
+         /* Queue a redraw on the top-level window */
+         _dw_redraw([object window], TRUE);
+      }
     }
 }
 

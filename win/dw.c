@@ -4572,7 +4572,6 @@ Item *_box_item(HWND handle)
 void _control_size(HWND handle, int *width, int *height)
 {
    int thiswidth = 1, thisheight = 1, extrawidth = 0, extraheight = 0;
-   char *buf = dw_window_get_text(handle);
    TCHAR tmpbuf[100] = {0};
    static char testtext[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
    HBITMAP hbm = 0;
@@ -4581,16 +4580,6 @@ void _control_size(HWND handle, int *width, int *height)
 
    GetClassName(handle, tmpbuf, 99);
 
-   /* If we have a string... 
-    * calculate the size with the current font.
-    */
-   if(buf)
-   {
-      if(*buf)
-         dw_font_text_extents_get(handle, NULL, buf, &thiswidth, &thisheight);
-      dw_free(buf);
-   }
-   
    /* Attempt to get icon from classes that can have them */
    if(_tcsnicmp(tmpbuf, STATICCLASSNAME, _tcslen(STATICCLASSNAME)+1) == 0)
       hic = (HICON)SendMessage(handle, STM_GETIMAGE, IMAGE_ICON, 0);
@@ -4622,6 +4611,23 @@ void _control_size(HWND handle, int *width, int *height)
       GetObject(hbm, sizeof(BITMAP), &bmi);
       thiswidth = bmi.bmWidth;
       thisheight = bmi.bmHeight;
+   }
+   else
+   {
+      char *buf = dw_window_get_text(handle);
+      
+      /* If we have a string... 
+       * calculate the size with the current font.
+       */
+      if(buf)
+      {
+         if(*buf)
+            dw_font_text_extents_get(handle, NULL, buf, &thiswidth, &thisheight);
+         else if(_tcsnicmp(tmpbuf, STATICCLASSNAME, _tcslen(STATICCLASSNAME)+1) == 0 ||
+                 _tcsnicmp(tmpbuf, StatusbarClassName, _tcslen(StatusbarClassName)+1) == 0)
+            dw_font_text_extents_get(handle, NULL, testtext, NULL, &thisheight);
+         dw_free(buf);
+      }
    }
    
    /* Combobox */
@@ -6917,9 +6923,21 @@ void API dw_window_set_text(HWND handle, char *text)
       /* Check to see if any of the sizes need to be recalculated */
       if(item && (item->origwidth == -1 || item->origheight == -1))
       {
-         _control_size(handle, item->origwidth == -1 ? &item->width : NULL, item->origheight == -1 ? &item->height : NULL); 
-         /* Queue a redraw on the top-level window */
-         _dw_redraw(_toplevel_window(handle), TRUE);
+         int newwidth, newheight;
+         
+         _control_size(handle, &newwidth, &newheight); 
+         
+         /* Only update the item and redraw the window if it changed */
+         if((item->origwidth == -1 && item->width != newwidth) ||
+            (item->origheight == -1 && item->height != newheight))
+         {
+            if(item->origwidth == -1)
+               item->width = newwidth;
+            if(item->origheight == -1)
+               item->height = newheight;
+            /* Queue a redraw on the top-level window */
+            _dw_redraw(_toplevel_window(handle), TRUE);
+         }
       }
    }
 }
