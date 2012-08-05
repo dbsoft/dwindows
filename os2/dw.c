@@ -5204,10 +5204,15 @@ void _control_size(HWND handle, int *width, int *height)
                thisheight = bmp.cy;
             }
        }
-       else if(dw_window_get_data(handle, "_dw_status"))
+       else
        {
-           extrawidth = 4;
-           extraheight = 4;
+            if(thiswidth == 1 && thisheight == 1)
+               dw_font_text_extents_get(handle, NULL, testtext, NULL, &thisheight);
+            if(dw_window_get_data(handle, "_dw_status"))
+            {
+               extrawidth = 4;
+               extraheight = 4;
+            }
        }
    }
    /* Ranged: Slider/Percent */
@@ -7523,9 +7528,21 @@ void API dw_window_set_text(HWND handle, char *text)
       /* Check to see if any of the sizes need to be recalculated */
       if(item && (item->origwidth == -1 || item->origheight == -1))
       {
-         _control_size(handle, item->origwidth == -1 ? &item->width : NULL, item->origheight == -1 ? &item->height : NULL); 
-          /* Queue a redraw on the top-level window */
-         _dw_redraw(_toplevel_window(handle), TRUE);
+         int newwidth, newheight;
+         
+         _control_size(handle, &newwidth, &newheight); 
+         
+         /* Only update the item and redraw the window if it changed */
+         if((item->origwidth == -1 && item->width != newwidth) ||
+            (item->origheight == -1 && item->height != newheight))
+         {
+            if(item->origwidth == -1)
+               item->width = newwidth;
+            if(item->origheight == -1)
+               item->height = newheight;
+            /* Queue a redraw on the top-level window */
+            _dw_redraw(_toplevel_window(handle), TRUE);
+         }
       }
    }
 }
