@@ -57,3 +57,6 @@
 /* Define if USING GTK (but not on X11). */
 #undef DW_USE_GTK
 
+/* Define if we have Ubuntu overlay scrollbars */
+#undef HAVE_OVERLAY_SCROLLBARS
+
