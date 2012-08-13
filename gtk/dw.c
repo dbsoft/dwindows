@@ -4752,6 +4752,11 @@ HWND dw_slider_new(int vertical, int increments, ULONG id)
    return tmp;
 }
 
+#ifdef HAVE_OVERLAY_SCROLLBARS2
+gboolean ubuntu_gtk_get_use_overlay_scrollbar(void);
+void ubuntu_gtk_set_use_overlay_scrollbar(gboolean enabled);
+#endif
+
 /*
  * Create a new scrollbar window (widget) to be packed.
  * Parameters:
@@ -4764,13 +4769,23 @@ HWND dw_scrollbar_new(int vertical, ULONG id)
    GtkWidget *tmp;
    GtkAdjustment *adjustment;
    int _locked_by_me = FALSE;
+#ifdef HAVE_OVERLAY_SCROLLBARS2
+   gboolean overlaysb;
+#endif
 
    DW_MUTEX_LOCK;
+#ifdef HAVE_OVERLAY_SCROLLBARS2
+   overlaysb = ubuntu_gtk_get_use_overlay_scrollbar();
+   ubuntu_gtk_set_use_overlay_scrollbar(FALSE);
+#endif
    adjustment = (GtkAdjustment *)gtk_adjustment_new(0, 0, 0, 1, 1, 1);
    if(vertical)
       tmp = gtk_vscrollbar_new(adjustment);
    else
       tmp = gtk_hscrollbar_new(adjustment);
+#ifdef HAVE_OVERLAY_SCROLLBARS2
+   ubuntu_gtk_set_use_overlay_scrollbar(overlaysb);
+#endif
    GTK_WIDGET_UNSET_FLAGS(tmp, GTK_CAN_FOCUS);
    gtk_widget_show(tmp);
    gtk_object_set_data(GTK_OBJECT(tmp), "_dw_adjustment", (gpointer)adjustment);

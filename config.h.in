@@ -60,3 +60,6 @@
 /* Define if we have Ubuntu overlay scrollbars */
 #undef HAVE_OVERLAY_SCROLLBARS
 
+/* Define if we have Ubuntu overlay scrollbars (GTK2) */
+#undef HAVE_OVERLAY_SCROLLBARS2
+

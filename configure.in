@@ -323,6 +323,7 @@ fi
 LIBS="$RPATH $LIBS $GTK_LIBS $PTHREAD_LIBS $GDK_IMLIB_LIBS $MOZEMBED_LIBS $PLATLIBS"
 
 AC_CHECK_FUNCS(ubuntu_overlay_scrollbar_set_enabled, AC_DEFINE(HAVE_OVERLAY_SCROLLBARS,1,Define if we have Ubuntu overlay scrollbars))
+AC_CHECK_FUNCS(ubuntu_gtk_set_use_overlay_scrollbar, AC_DEFINE(HAVE_OVERLAY_SCROLLBARS2,1,Define if we have Ubuntu overlay scrollbars))
 
 RM="rm -f"
 LN="ln -s"
