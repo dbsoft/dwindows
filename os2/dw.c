@@ -11894,10 +11894,24 @@ ULONG _GetSystemBuildLevel(void) {
 }
 
 /*
+ * Sets the current focus item for a window/dialog.
+ * Parameters:
+ *         handle: Handle to the dialog item to be focused.
+ * Remarks:
+ *          This is for use after showing the window/dialog.
+ */
+void API dw_window_set_focus(HWND handle)
+{
+	WinSetFocus(HWND_DESKTOP, handle);
+}
+
+/*
  * Sets the default focus item for a window/dialog.
  * Parameters:
  *         window: Toplevel window or dialog.
  *         defaultitem: Handle to the dialog item to be default.
+ * Remarks:
+ *          This is for use before showing the window/dialog.
  */
 void API dw_window_default(HWND window, HWND defaultitem)
 {

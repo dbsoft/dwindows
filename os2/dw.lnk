@@ -67,6 +67,7 @@ export dw_window_get_font.82
 export dw_window_set_tooltip.83
 export dw_window_get_preferred_size.84
 export dw_window_set_gravity.85
+export dw_window_set_focus.86
 
 export dw_button_new.90
 export dw_bitmapbutton_new.91
