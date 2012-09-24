@@ -1554,6 +1554,7 @@ void API dw_window_capture(HWND handle);
 void API dw_window_release(void);
 void API dw_window_reparent(HWND handle, HWND newparent);
 void API dw_window_set_pointer(HWND handle, int pointertype);
+void API dw_window_set_focus(HWND handle);
 void API dw_window_default(HWND window, HWND defaultitem);
 void API dw_window_click_default(HWND window, HWND next);
 unsigned int API dw_mle_import(HWND handle, char *buffer, int startpoint);

@@ -1766,6 +1766,9 @@ int main(int argc, char *argv[])
     dw_notebook_page_set_text( notebook, notebookpage9, "thread/event");
     thread_add();
 
+    /* Set the default field */
+    dw_window_default(mainwindow, copypastefield);
+    
     dw_signal_connect(mainwindow, DW_SIGNAL_DELETE, DW_SIGNAL_FUNC(exit_callback), DW_POINTER(mainwindow));
     timerid = dw_timer_connect(2000, DW_SIGNAL_FUNC(timer_callback), 0);
     dw_window_set_size(mainwindow, 640, 550);

@@ -8240,6 +8240,7 @@ int API dw_window_show(HWND handle)
     {
         DWWindow *window = handle;
         NSRect rect = [[window contentView] frame];
+        id defaultitem = [window initialFirstResponder];
 
         if([window isMiniaturized])
         {
@@ -8285,6 +8286,11 @@ int API dw_window_show(HWND handle)
             /* Fix incorrect repeat in displaying textured windows */
             [window setAutorecalculatesContentBorderThickness:NO forEdge:NSMinYEdge];
             [window setContentBorderThickness:0.0 forEdge:NSMinYEdge];
+        }
+        if(defaultitem)
+        {
+            /* If there is a default item set, make it first responder */
+            [window makeFirstResponder:defaultitem];
         }
     }
     return 0;
@@ -8487,10 +8493,26 @@ void API dw_window_set_style(HWND handle, ULONG style, ULONG mask)
 }
 
 /*
+ * Sets the current focus item for a window/dialog.
+ * Parameters:
+ *         handle: Handle to the dialog item to be focused.
+ * Remarks:
+ *          This is for use after showing the window/dialog.
+ */
+void API dw_window_set_focus(HWND handle)
+{
+    id object = handle;
+    
+    [[object window] makeFirstResponder:object];
+}
+
+/*
  * Sets the default focus item for a window/dialog.
  * Parameters:
  *         window: Toplevel window or dialog.
  *         defaultitem: Handle to the dialog item to be default.
+ * Remarks:
+ *          This is for use before showing the window/dialog.
  */
 void API dw_window_default(HWND handle, HWND defaultitem)
 {
