@@ -10390,7 +10390,7 @@ void API dw_window_set_focus(HWND handle)
        return;
 
     DW_MUTEX_LOCK;
-	gtk_widget_grab_focus(handle);
+    gtk_widget_grab_focus(handle);
     DW_MUTEX_UNLOCK;
 }
 

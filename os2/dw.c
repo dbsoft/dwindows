@@ -11902,7 +11902,7 @@ ULONG _GetSystemBuildLevel(void) {
  */
 void API dw_window_set_focus(HWND handle)
 {
-	WinSetFocus(HWND_DESKTOP, handle);
+    WinSetFocus(HWND_DESKTOP, handle);
 }
 
 /*

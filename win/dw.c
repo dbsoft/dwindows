@@ -11604,7 +11604,7 @@ void API dw_calendar_get_date(HWND handle, unsigned int *year, unsigned int *mon
  */
 void API dw_window_set_focus(HWND handle)
 {
-	SetFocus(handle);
+    SetFocus(handle);
 }
 
 /*
