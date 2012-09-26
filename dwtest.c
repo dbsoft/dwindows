@@ -606,6 +606,7 @@ int DWSIGNAL browse_file_callback(HWND window, void *data)
         current_col = current_row = 0;
         update_render();
     }
+    dw_window_set_focus(copypastefield);
     return 0;
 }
 
@@ -843,12 +844,13 @@ int DWSIGNAL combobox_select_event_callback(HWND window, int index)
 int DWSIGNAL copy_clicked_callback(HWND button, void *data)
 {
     char *test = dw_window_get_text(copypastefield);
-    
+
     if(test)
     {
         dw_clipboard_set_text(test, (int)strlen(test));
         dw_free(test);
     }
+    dw_window_set_focus(entryfield);
     return TRUE;
 }
 
@@ -889,7 +891,7 @@ void archive_add(void)
     pastebutton = dw_button_new("Paste", 0);
 
     dw_box_pack_start(browsebox, pastebutton, -1, -1, FALSE, FALSE, 0);
-    
+
     /* Archive Name */
     stext = dw_text_new("File to browse", 0);
 
@@ -1768,7 +1770,7 @@ int main(int argc, char *argv[])
 
     /* Set the default field */
     dw_window_default(mainwindow, copypastefield);
-    
+
     dw_signal_connect(mainwindow, DW_SIGNAL_DELETE, DW_SIGNAL_FUNC(exit_callback), DW_POINTER(mainwindow));
     timerid = dw_timer_connect(2000, DW_SIGNAL_FUNC(timer_callback), 0);
     dw_window_set_size(mainwindow, 640, 550);
