@@ -7703,7 +7703,10 @@ void API dw_window_set_style(HWND handle, ULONG style, ULONG mask)
    tmp ^= mask;
    tmp |= style & mask;
 
-   if(_tcsnicmp(tmpbuf, ClassName, _tcslen(ClassName)+1)==0)
+   /* Drop out for status bar, it currently doesn't accept styles on Windows */
+   if(_tcsnicmp(tmpbuf, StatusbarClassName, _tcslen(StatusbarClassName)+1)==0)
+      return;
+   else if(_tcsnicmp(tmpbuf, ClassName, _tcslen(ClassName)+1)==0)
    {
       tmp = tmp & 0xffff0000;
 #ifdef AEROGLASS      
