@@ -143,6 +143,7 @@ typedef struct _user_data
 #define DW_FCF_AUTOICON          FCF_AUTOICON
 #define DW_FCF_MAXIMIZE          WS_MAXIMIZED
 #define DW_FCF_MINIMIZE          WS_MINIMIZED
+#define DW_FCF_TEXTURED          0
 
 #define DW_CFA_BITMAPORICON      CFA_BITMAPORICON
 #define DW_CFA_STRING            CFA_STRING
@@ -353,6 +354,7 @@ void _dw_pool_drain(void);
 #define DW_FCF_AUTOICON          0
 #define DW_FCF_MAXIMIZE          0
 #define DW_FCF_MINIMIZE          0
+#define DW_FCF_TEXTURED          (1 << 8) /* NSTexturedBackgroundWindowMask */
 
 #define DW_CFA_BITMAPORICON      1
 #define DW_CFA_STRING            (1 << 1)
@@ -529,6 +531,7 @@ void _dw_pool_drain(void);
 #define DW_FCF_MAXIMIZE          WS_MAXIMIZE
 #define DW_FCF_MINIMIZE          WS_MINIMIZE
 #define DW_FCF_COMPOSITED        1
+#define DW_FCF_TEXTURED          0
 
 #define DW_CFA_BITMAPORICON      1
 #define DW_CFA_STRING            (1 << 1)
@@ -791,6 +794,7 @@ typedef struct _hpixmap {
 #define DW_FCF_AUTOICON          (Ph_WM_RENDER_ASICON | ~Ph_WM_RENDER_ASAPP)
 #define DW_FCF_MAXIMIZE          0
 #define DW_FCF_MINIMIZE          0
+#define DW_FCF_TEXTURED          0
 
 #define DW_CFA_BITMAPORICON      1
 #define DW_CFA_STRING            (1 << 1)
@@ -973,6 +977,7 @@ typedef struct _hpixmap {
 #define DW_FCF_MAXIMIZE          (1 << 19)
 #define DW_FCF_MINIMIZE          (1 << 20)
 #define DW_FCF_CLOSEBUTTON       (1 << 21)
+#define DW_FCF_TEXTURED          0
 
 #define DW_CFA_BITMAPORICON      1
 #define DW_CFA_STRING            (1 << 1)
@@ -1437,20 +1442,20 @@ typedef void *HPRINT;
 #endif
 
 /* Visual C */
-#if defined(_MSC_VER) 
+#if defined(_MSC_VER)
 #  if _MSC_VER >= 1400
 #  define DW_DEPRECATED(func, message) __declspec(deprecated(message)) func
 #  endif
 /* Clang */
 #elif defined(__has_extension)
-#  if __has_extension(attribute_deprecated_with_message) 
+#  if __has_extension(attribute_deprecated_with_message)
 #  define DW_DEPRECATED(func, message) func __attribute__ ((deprecated (message)))
 #  else
 #  define DW_DEPRECATED(func, message) func __attribute__ ((deprecated))
 #  endif
 /* GCC */
 #elif defined(__GNUC__)
-#  if (__GNUC__ * 10000 + __GNUC_MINOR__ * 100 + __GNUC_PATCHLEVEL__) >= 40500 
+#  if (__GNUC__ * 10000 + __GNUC_MINOR__ * 100 + __GNUC_PATCHLEVEL__) >= 40500
 #  define DW_DEPRECATED(func, message) func __attribute__ ((deprecated (message)))
 #  else
 #  define DW_DEPRECATED(func, message) func __attribute__ ((deprecated))
