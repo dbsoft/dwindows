@@ -11595,6 +11595,12 @@ void API dw_calendar_get_date(HWND handle, unsigned int *year, unsigned int *mon
    }
 }
 
+/* Internal function to set the focus from the window thread */
+void _dw_set_focus(HWND handle)
+{
+    SetFocus(handle);
+}
+ 
 /*
  * Sets the current focus item for a window/dialog.
  * Parameters:
@@ -11604,7 +11610,10 @@ void API dw_calendar_get_date(HWND handle, unsigned int *year, unsigned int *mon
  */
 void API dw_window_set_focus(HWND handle)
 {
-    SetFocus(handle);
+    if(_dwtid == (DWTID)-1)
+        SetFocus(handle);
+    else
+        dw_window_function(handle, (void *)_dw_set_focus, handle);
 }
 
 /*
@@ -12161,7 +12170,7 @@ char * API dw_app_dir(void)
  */
 void API dw_window_function(HWND handle, void *function, void *data)
 {
-   SendMessage(handle, WM_USER, (WPARAM)function, (LPARAM)data);
+   SendMessage(_toplevel_window(handle), WM_USER, (WPARAM)function, (LPARAM)data);
 }
 
 /* Functions for managing the user data lists that are associated with
