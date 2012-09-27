@@ -12907,7 +12907,7 @@ char * API dw_app_dir(void)
  */
 void API dw_window_function(HWND handle, void *function, void *data)
 {
-   WinSendMsg(handle, WM_USER, (MPARAM)function, (MPARAM)data);
+   WinSendMsg(_toplevel_window(handle), WM_USER, (MPARAM)function, (MPARAM)data);
 }
 
 /* Functions for managing the user data lists that are associated with
