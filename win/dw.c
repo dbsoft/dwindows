@@ -1249,6 +1249,9 @@ HWND _toplevel_window(HWND handle)
 {
    HWND box, lastbox = GetParent(handle);
 
+   if(!lastbox)
+      lastbox = handle;
+      
    /* Find the toplevel window */
    while((box = GetParent(lastbox)))
    {
