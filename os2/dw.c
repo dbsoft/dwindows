@@ -305,6 +305,9 @@ HWND _toplevel_window(HWND handle)
 {
    HWND box, lastbox = WinQueryWindow(handle, QW_PARENT);
 
+   if(lastbox == desktop)
+       return handle;
+
    /* Find the toplevel window */
    while((box = WinQueryWindow(lastbox, QW_PARENT)) != desktop && box)
    {
