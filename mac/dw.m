@@ -162,7 +162,7 @@ void _dw_redraw(id window, int skip)
 {
     static id lastwindow = nil;
     id redraw = lastwindow;
-    
+
     if(skip && window == nil)
         return;
 
@@ -286,14 +286,14 @@ int _event_handler1(id object, NSEvent *event, int message)
             case 4:
             {
                 int (* API buttonfunc)(HWND, int, int, int, void *) = (int (* API)(HWND, int, int, int, void *))handler->signalfunction;
-                NSPoint p = [NSEvent mouseLocation]; 
+                NSPoint p = [NSEvent mouseLocation];
                 int button = 1;
-                
+
                 if([event isMemberOfClass:[NSEvent class]])
                 {
                     id view = [[[event window] contentView] superview];
                     NSEventType type = [event type];
-                    
+
                     p = [view convertPoint:[event locationInWindow] toView:object];
 
                     if(type == NSRightMouseDown || type == NSRightMouseUp)
@@ -321,7 +321,7 @@ int _event_handler1(id object, NSEvent *event, int message)
                 SEL spmb = NSSelectorFromString(@"pressedMouseButtons");
                 IMP ipmb = [[NSEvent class] respondsToSelector:spmb] ? [[NSEvent class] methodForSelector:spmb] : 0;
                 int buttonmask = ipmb ? (int)ipmb([NSEvent class], spmb) : (1 << [event buttonNumber]);
-                                               
+
                 return motionfunc(object, (int)p.x, (int)p.y, buttonmask, handler->data);
             }
             /* Window close event */
@@ -534,8 +534,8 @@ typedef struct _bitbltinfo
 -(void)doFlush:(id)param;
 @end
 
-@interface DWMenuItem : NSMenuItem 
-{ 
+@interface DWMenuItem : NSMenuItem
+{
     int check;
 }
 -(void)setCheck:(int)input;
@@ -560,7 +560,7 @@ typedef struct _bitbltinfo
         if([item state] == NSOnState)
             [item setState:NSOffState];
         else
-            [item setState:NSOnState];            
+            [item setState:NSOnState];
     }
     _event_handler(param, nil, 8);
 }
@@ -605,13 +605,13 @@ typedef struct _bitbltinfo
         }
         if(bltinfo->srcwidth != -1)
         {
-            [image drawInRect:NSMakeRect(bltinfo->xdest, bltinfo->ydest, bltinfo->width, bltinfo->height) 
+            [image drawInRect:NSMakeRect(bltinfo->xdest, bltinfo->ydest, bltinfo->width, bltinfo->height)
                      fromRect:NSMakeRect(bltinfo->xsrc, bltinfo->ysrc, bltinfo->srcwidth, bltinfo->srcheight)
                      operation:NSCompositeSourceOver fraction:1.0];
         }
         else
         {
-            [image drawAtPoint:NSMakePoint(bltinfo->xdest, bltinfo->ydest) 
+            [image drawAtPoint:NSMakePoint(bltinfo->xdest, bltinfo->ydest)
                       fromRect:NSMakeRect(bltinfo->xsrc, bltinfo->ysrc, bltinfo->width, bltinfo->height)
                      operation:NSCompositeSourceOver fraction:1.0];
         }
@@ -851,10 +851,10 @@ DWObject *DWObj;
 -(NSFont *)font { return font; }
 -(void)setSize:(NSSize)input { size = input; }
 -(NSSize)size { return size; }
--(void)mouseDown:(NSEvent *)theEvent 
-{ 
+-(void)mouseDown:(NSEvent *)theEvent
+{
     if(![theEvent isMemberOfClass:[NSEvent class]] || !([theEvent modifierFlags] & NSControlKeyMask))
-        _event_handler(self, theEvent, 3); 
+        _event_handler(self, theEvent, 3);
 }
 -(void)mouseUp:(NSEvent *)theEvent { _event_handler(self, theEvent, 4); }
 -(NSMenu *)menuForEvent:(NSEvent *)theEvent { _event_handler(self, theEvent, 3); return nil; }
@@ -944,7 +944,7 @@ DWObject *DWObj;
     _event_handler([self window], nil, 13);
 }
 -(void)setMenu:(NSMenu *)input { windowmenu = input; [windowmenu retain]; }
--(void)menuHandler:(id)sender 
+-(void)menuHandler:(id)sender
 {
     id menu = [sender menu];
 
@@ -1170,9 +1170,9 @@ DWObject *DWObj;
         [super keyUp:theEvent];
     }
 }
--(BOOL)performKeyEquivalent:(NSEvent *)theEvent 
+-(BOOL)performKeyEquivalent:(NSEvent *)theEvent
 {
-    if(([theEvent modifierFlags] & NSDeviceIndependentModifierFlagsMask) == NSCommandKeyMask) 
+    if(([theEvent modifierFlags] & NSDeviceIndependentModifierFlagsMask) == NSCommandKeyMask)
     {
         if ([[theEvent charactersIgnoringModifiers] isEqualToString:@"x"])
             return [NSApp sendAction:@selector(cut:) to:[[self window] firstResponder] from:self];
@@ -1234,9 +1234,9 @@ DWObject *DWObj;
         [super keyUp:theEvent];
     }
 }
--(BOOL)performKeyEquivalent:(NSEvent *)theEvent 
+-(BOOL)performKeyEquivalent:(NSEvent *)theEvent
 {
-    if(([theEvent modifierFlags] & NSDeviceIndependentModifierFlagsMask) == NSCommandKeyMask) 
+    if(([theEvent modifierFlags] & NSDeviceIndependentModifierFlagsMask) == NSCommandKeyMask)
     {
         if ([[theEvent charactersIgnoringModifiers] isEqualToString:@"x"])
             return [NSApp sendAction:@selector(cut:) to:[[self window] firstResponder] from:self];
@@ -1323,23 +1323,23 @@ DWObject *DWObj;
 @end
 
 @implementation DWColorChoose
--(void)changeColor:(id)sender 
-{ 
+-(void)changeColor:(id)sender
+{
     if(!dialog)
         [self close];
     else
-        pickedcolor = [self color]; 
+        pickedcolor = [self color];
 }
--(BOOL)windowShouldClose:(id)window 
-{ 
+-(BOOL)windowShouldClose:(id)window
+{
     if(dialog)
     {
-        DWDialog *d = dialog; 
-        dialog = nil; 
+        DWDialog *d = dialog;
+        dialog = nil;
         dw_dialog_dismiss(d, pickedcolor);
     }
-    [self close]; 
-    return NO; 
+    [self close];
+    return NO;
 }
 -(void)setDialog:(DWDialog *)input { dialog = input; }
 -(DWDialog *)dialog { return dialog; }
@@ -1528,7 +1528,7 @@ DWObject *DWObj;
 @end
 
 /* Subclass NSTextFieldCell for displaying image and text */
-@interface DWImageAndTextCell : NSTextFieldCell 
+@interface DWImageAndTextCell : NSTextFieldCell
 {
 @private
     NSImage	*image;
@@ -1540,33 +1540,33 @@ DWObject *DWObj;
 @end
 
 @implementation DWImageAndTextCell
--(void)dealloc 
+-(void)dealloc
 {
     [image release];
     image = nil;
     [super dealloc];
 }
--copyWithZone:(NSZone *)zone 
+-copyWithZone:(NSZone *)zone
 {
     DWImageAndTextCell *cell = (DWImageAndTextCell *)[super copyWithZone:zone];
     cell->image = [image retain];
     return cell;
 }
--(void)setImage:(NSImage *)anImage 
+-(void)setImage:(NSImage *)anImage
 {
-    if(anImage != image) 
+    if(anImage != image)
     {
         [image release];
         image = [anImage retain];
     }
 }
--(NSImage *)image 
+-(NSImage *)image
 {
     return [[image retain] autorelease];
 }
--(NSRect)imageFrameForCellFrame:(NSRect)cellFrame 
+-(NSRect)imageFrameForCellFrame:(NSRect)cellFrame
 {
-    if(image != nil) 
+    if(image != nil)
     {
         NSRect imageFrame;
         imageFrame.size = [image size];
@@ -1578,66 +1578,66 @@ DWObject *DWObj;
     else
         return NSZeroRect;
 }
--(void)editWithFrame:(NSRect)aRect inView:(NSView *)controlView editor:(NSText *)textObj delegate:(id)anObject event:(NSEvent *)theEvent 
+-(void)editWithFrame:(NSRect)aRect inView:(NSView *)controlView editor:(NSText *)textObj delegate:(id)anObject event:(NSEvent *)theEvent
 {
     NSRect textFrame, imageFrame;
     NSDivideRect (aRect, &imageFrame, &textFrame, 3 + [image size].width, NSMinXEdge);
     [super editWithFrame: textFrame inView: controlView editor:textObj delegate:anObject event: theEvent];
 }
--(void)selectWithFrame:(NSRect)aRect inView:(NSView *)controlView editor:(NSText *)textObj delegate:(id)anObject start:(NSInteger)selStart length:(NSInteger)selLength 
+-(void)selectWithFrame:(NSRect)aRect inView:(NSView *)controlView editor:(NSText *)textObj delegate:(id)anObject start:(NSInteger)selStart length:(NSInteger)selLength
 {
     NSRect textFrame, imageFrame;
     NSDivideRect (aRect, &imageFrame, &textFrame, 3 + [image size].width, NSMinXEdge);
     [super selectWithFrame: textFrame inView: controlView editor:textObj delegate:anObject start:selStart length:selLength];
 }
--(void)drawWithFrame:(NSRect)cellFrame inView:(NSView *)controlView 
+-(void)drawWithFrame:(NSRect)cellFrame inView:(NSView *)controlView
 {
-    if(image != nil) 
+    if(image != nil)
     {
         NSSize	imageSize;
         NSRect	imageFrame;
         SEL sdir = NSSelectorFromString(@"drawInRect:fromRect:operation:fraction:respectFlipped:hints:");
-        
+
         imageSize = [image size];
         NSDivideRect(cellFrame, &imageFrame, &cellFrame, 3 + imageSize.width, NSMinXEdge);
-        if ([self drawsBackground]) 
+        if ([self drawsBackground])
         {
             [[self backgroundColor] set];
             NSRectFill(imageFrame);
         }
         imageFrame.origin.x += 3;
         imageFrame.size = imageSize;
-        
+
         /* New method for 10.6 and later */
         if([image respondsToSelector:sdir])
         {
             IMP idir = [image methodForSelector:sdir];
-            
+
             imageFrame.origin.y += ceil((cellFrame.size.height - imageFrame.size.height) / 2);
-            
+
             idir(image, sdir, imageFrame, NSZeroRect, NSCompositeSourceOver, 1.0, YES, nil);
         }
-        else 
+        else
         {
             /* Old method for 10.5 */
             SEL sctp = NSSelectorFromString(@"compositeToPoint:operation:");
-            
-            if ([controlView isFlipped]) 
-                imageFrame.origin.y += ceil((cellFrame.size.height + imageFrame.size.height) / 2); 
-            else 
-                imageFrame.origin.y += ceil((cellFrame.size.height - imageFrame.size.height) / 2); 
-            
+
+            if ([controlView isFlipped])
+                imageFrame.origin.y += ceil((cellFrame.size.height + imageFrame.size.height) / 2);
+            else
+                imageFrame.origin.y += ceil((cellFrame.size.height - imageFrame.size.height) / 2);
+
             if([image respondsToSelector:sctp])
             {
                 IMP ictp = [image methodForSelector:sctp];
-                
+
                 ictp(image, sctp, imageFrame.origin, NSCompositeSourceOver);
             }
         }
     }
     [super drawWithFrame:cellFrame inView:controlView];
 }
--(NSSize)cellSize 
+-(NSSize)cellSize
 {
     NSSize cellSize = [super cellSize];
     cellSize.width += (image ? [image size].width : 0) + 3;
@@ -1752,7 +1752,7 @@ DWObject *DWObj;
     NSColor *oldeven = evencolor;
     unsigned long _odd = _get_color(oddcol);
     unsigned long _even = _get_color(evencol);
-    
+
     /* Get the NSColor for non-default colors */
     if(oddcol != DW_RGB_TRANSPARENT)
         oddcolor = [[NSColor colorWithDeviceRed: DW_RED_VALUE(_odd)/255.0 green: DW_GREEN_VALUE(_odd)/255.0 blue: DW_BLUE_VALUE(_odd)/255.0 alpha: 1] retain];
@@ -1817,7 +1817,7 @@ DWObject *DWObj;
 -(void)tableView:(NSTableView *)tableView willDisplayCell:(id)cell forTableColumn:(NSTableColumn *)tableColumn row:(NSInteger)row
 {
     DWImageAndTextCell *bcell = cell;
-    
+
     /* Handle drawing image and text if necessary */
     if([cell isMemberOfClass:[DWImageAndTextCell class]])
     {
@@ -1901,9 +1901,9 @@ DWObject *DWObj;
         swopa = NSSelectorFromString(@"weakObjectsPointerArray");
     if(![[NSPointerArray class] respondsToSelector:swopa])
         return;
-    
+
     IMP iwopa = [[NSPointerArray class] methodForSelector:swopa];
-        
+
     titles = iwopa([NSPointerArray class], swopa);
     [titles retain];
     tvcols = [[[NSMutableArray alloc] init] retain];
@@ -1915,31 +1915,31 @@ DWObject *DWObj;
 -(NSSize)getsize
 {
     int cwidth = 0, cheight = 0;
-    
+
     if(tvcols)
     {
         int z;
         int colcount = (int)[tvcols count];
         int rowcount = (int)[self numberOfRowsInTableView:self];
-        
+
         for(z=0;z<colcount;z++)
         {
             NSTableColumn *column = [tvcols objectAtIndex:z];
             int width = [column width];
-            
+
             if(rowcount > 0)
             {
                 int x;
-                
+
                 for(x=0;x<rowcount;x++)
                 {
                     NSCell *cell = [self preparedCellAtColumn:z row:x];
                     int thiswidth = [cell cellSize].width;
-                    
+
                     /* If on the first column... add up the heights */
                     if(z == 0)
                         cheight += [cell cellSize].height;
-                    
+
                     /* Check the image inside the cell to get its width */
                     if([cell isMemberOfClass:[NSImageCell class]])
                     {
@@ -1950,7 +1950,7 @@ DWObject *DWObj;
                             thiswidth = [image size].width;
                         }
                     }
-                    
+
                     if(thiswidth > width)
                     {
                         width = thiswidth;
@@ -2617,7 +2617,7 @@ static void _resize_box(Box *thisbox, int *depth, int x, int y, int pass)
      */
     int uymax = 0, uxmax = 0;
     int upymax = 0, upxmax = 0;
-    
+
     /* Reset the box sizes */
     thisbox->minwidth = thisbox->minheight = thisbox->usedpadx = thisbox->usedpady = thisbox->pad * 2;
 
@@ -2643,18 +2643,18 @@ static void _resize_box(Box *thisbox, int *depth, int x, int y, int pass)
             thisbox->grouppadx = borderSize.width;
             thisbox->grouppady = borderSize.height + titleRect.size.height;
         }
-        
+
         thisbox->minwidth += thisbox->grouppadx;
         thisbox->usedpadx += thisbox->grouppadx;
         thisbox->minheight += thisbox->grouppady;
         thisbox->usedpady += thisbox->grouppady;
     }
-    
+
     /* Count up all the space for all items in the box */
     for(z=0;z<thisbox->count;z++)
     {
         int itempad, itemwidth, itemheight;
-        
+
         if(thisbox->items[z].type == TYPEBOX)
         {
             id box = thisbox->items[z].hwnd;
@@ -2691,13 +2691,13 @@ static void _resize_box(Box *thisbox, int *depth, int x, int y, int pass)
         itempad = thisbox->items[z].pad * 2;
         itemwidth = thisbox->items[z].width + itempad;
         itemheight = thisbox->items[z].height + itempad;
-        
+
         /* Calculate the totals and maximums */
         if(thisbox->type == DW_VERT)
         {
             if(itemwidth > uxmax)
                 uxmax = itemwidth;
-            
+
             if(thisbox->items[z].hsize != SIZEEXPAND)
             {
                 if(itemwidth > upxmax)
@@ -2758,7 +2758,7 @@ static void _resize_box(Box *thisbox, int *depth, int x, int y, int pass)
                 if(thisbox->type == DW_HORZ)
                 {
                     int expandablex = thisbox->minwidth - thisbox->usedpadx;
-                
+
                     if(expandablex)
                         width = (int)(((float)width / (float)expandablex) * (float)(x - thisbox->usedpadx));
                 }
@@ -2770,14 +2770,14 @@ static void _resize_box(Box *thisbox, int *depth, int x, int y, int pass)
                 if(thisbox->type == DW_VERT)
                 {
                     int expandabley = thisbox->minheight - thisbox->usedpady;
-                
+
                     if(expandabley)
                         height = (int)(((float)height / (float)expandabley) * (float)(y - thisbox->usedpady));
                 }
                 else
                     height = y - (itempad + thispad + thisbox->grouppady);
             }
-            
+
             /* If the calculated size is valid... */
             if(height > 0 && width > 0)
             {
@@ -2785,7 +2785,7 @@ static void _resize_box(Box *thisbox, int *depth, int x, int y, int pass)
                 NSView *handle = thisbox->items[z].hwnd;
                 NSPoint point;
                 NSSize size;
-                
+
                 point.x = currentx + pad;
                 point.y = currenty + pad;
                 size.width = width;
@@ -2877,7 +2877,7 @@ static void _resize_box(Box *thisbox, int *depth, int x, int y, int pass)
                         [split splitViewDidResizeSubviews:nil];
                     }
                 }
-                
+
                 /* Advance the current position in the box */
                 if(thisbox->type == DW_HORZ)
                     currentx += width + (pad * 2);
@@ -2895,10 +2895,10 @@ static void _do_resize(Box *thisbox, int x, int y)
         if(thisbox)
         {
             int depth = 0;
-            
+
             /* Calculate space requirements */
             _resize_box(thisbox, &depth, x, y, 1);
-            
+
             /* Finally place all the boxes and controls */
             _resize_box(thisbox, &depth, x, y, 2);
         }
@@ -3115,7 +3115,7 @@ char *dw_user_dir(void)
 
 /*
  * Returns a pointer to a static buffer which containes the
- * private application data directory. 
+ * private application data directory.
  */
 char * API dw_app_dir(void)
 {
@@ -3136,10 +3136,10 @@ void API dw_debug(char *format, ...)
    va_start(args, format);
    vsnprintf(outbuf, 1024, format, args);
    va_end(args);
-   
+
    NSLog(@"%s", outbuf);
 }
-   
+
 /*
  * Displays a Message Box with given text and title..
  * Parameters:
@@ -3238,18 +3238,18 @@ char * API dw_file_browse(char *title, char *defpath, char *ext, int flags)
     char temp[PATH_MAX+1];
     char *file = NULL, *path = NULL;
     DW_LOCAL_POOL_IN;
-    
+
     /* Figure out path information...
      * These functions are only support in Snow Leopard and later...
      */
     if(defpath && *defpath && DWOSMinor > 5)
     {
         struct stat buf;
-        
+
         /* Get an absolute path */
         if(!realpath(defpath, temp))
             strcpy(temp, defpath);
-        
+
         /* Check if the defpath exists */
         if(stat(temp, &buf) == 0)
         {
@@ -3263,7 +3263,7 @@ char * API dw_file_browse(char *title, char *defpath, char *ext, int flags)
         if(!path && strchr(temp, '/'))
         {
             unsigned long x = strlen(temp) - 1;
-            
+
             /* Trim off the filename */
             while(x > 0 && temp[x] != '/')
             {
@@ -3285,16 +3285,16 @@ char * API dw_file_browse(char *title, char *defpath, char *ext, int flags)
             }
         }
     }
-    
+
     if(flags == DW_FILE_OPEN || flags == DW_DIRECTORY_OPEN)
     {
         /* Create the File Open Dialog class. */
         NSOpenPanel* openDlg = [NSOpenPanel openPanel];
-        
+
         if(path)
         {
             SEL ssdu = NSSelectorFromString(@"setDirectoryURL");
-            
+
             if([openDlg respondsToSelector:ssdu])
             {
                 IMP isdu = [openDlg methodForSelector:ssdu];
@@ -3313,7 +3313,7 @@ char * API dw_file_browse(char *title, char *defpath, char *ext, int flags)
             [openDlg setCanChooseFiles:NO];
             [openDlg setCanChooseDirectories:YES];
         }
-        
+
         /* Handle file types */
         if(ext && *ext)
         {
@@ -3346,11 +3346,11 @@ char * API dw_file_browse(char *title, char *defpath, char *ext, int flags)
     {
         /* Create the File Save Dialog class. */
         NSSavePanel* saveDlg = [NSSavePanel savePanel];
-        
+
         if(path)
         {
             SEL ssdu = NSSelectorFromString(@"setDirectoryURL");
-            
+
             if([saveDlg respondsToSelector:ssdu])
             {
                 IMP isdu = [saveDlg methodForSelector:ssdu];
@@ -3360,7 +3360,7 @@ char * API dw_file_browse(char *title, char *defpath, char *ext, int flags)
         if(file)
         {
             SEL ssnfsv = NSSelectorFromString(@"setNameFieldStringValue");
-            
+
             if([saveDlg respondsToSelector:ssnfsv])
             {
                 IMP isnfsv = [saveDlg methodForSelector:ssnfsv];
@@ -3377,7 +3377,7 @@ char * API dw_file_browse(char *title, char *defpath, char *ext, int flags)
             NSArray* fileTypes = [[[NSArray alloc] initWithObjects:[NSString stringWithUTF8String:ext], nil] autorelease];
             [saveDlg setAllowedFileTypes:fileTypes];
         }
-        
+
         /* Display the dialog.  If the OK button was pressed,
          * process the files.
          */
@@ -3427,7 +3427,7 @@ void dw_clipboard_set_text( char *str, int len)
 {
     NSPasteboard *pasteboard = [NSPasteboard generalPasteboard];
     SEL scc = NSSelectorFromString(@"clearContents");
-    
+
     if([pasteboard respondsToSelector:scc])
     {
         IMP icc = [pasteboard methodForSelector:scc];
@@ -3620,7 +3620,7 @@ id _text_handle(id object)
     {
         NSBox *box = object;
         id content = [box contentView];
-        
+
         if([content isMemberOfClass:[ DWText class]])
         {
             object = content;
@@ -3631,7 +3631,7 @@ id _text_handle(id object)
 
 /* Internal function to calculate the widget's required size..
  * These are the general rules for widget sizes:
- * 
+ *
  * Render/Unspecified: 1x1
  * Scrolled(Container,Tree,MLE): Guessed size clamped to min and max in dw.h
  * Entryfield/Combobox/Spinbutton: 150x(maxfontheight)
@@ -3645,7 +3645,7 @@ void _control_size(id handle, int *width, int *height)
     int thiswidth = 1, thisheight = 1, extrawidth = 0, extraheight = 0;
     NSString *nsstr = nil;
     id object = _text_handle(handle);
-    
+
     /* Handle all the different button types */
     if([ object isKindOfClass:[ NSButton class ] ])
     {
@@ -3660,7 +3660,7 @@ void _control_size(id handle, int *width, int *height)
             default:
             {
                 NSImage *image = [object image];
-                
+
                 if(image)
                 {
                     /* Image button */
@@ -3677,7 +3677,7 @@ void _control_size(id handle, int *width, int *height)
                 {
                     /* Text button */
                     nsstr = [object title];
-                    
+
                     if([object isBordered])
                     {
                         extrawidth = 30;
@@ -3697,7 +3697,7 @@ void _control_size(id handle, int *width, int *height)
     else if([object isKindOfClass:[ NSTextField class ]])
     {
         NSFont *font = [object font];
-        
+
         if([object isEditable])
         {
             /* Spinbuttons don't need to be as wide */
@@ -3711,7 +3711,7 @@ void _control_size(id handle, int *width, int *height)
         }
         else
             nsstr = [object stringValue];
-        
+
         if(font)
             thisheight = (int)[font boundingRectForFont].size.height;
     }
@@ -3740,7 +3740,7 @@ void _control_size(id handle, int *width, int *height)
     else if([ object isMemberOfClass:[NSImageView class] ])
     {
         NSImage *image = [object image];
-        
+
         if(image)
         {
             NSSize size = [image size];
@@ -3752,11 +3752,11 @@ void _control_size(id handle, int *width, int *height)
     else if([ object isMemberOfClass:[DWCalendar class] ])
     {
         NSCell *cell = [object cell];
-        
+
         if(cell)
         {
             NSSize size = [cell cellSize];
-            
+
             thiswidth = size.width;
             thisheight = size.height;
         }
@@ -3766,13 +3766,13 @@ void _control_size(id handle, int *width, int *height)
             [ object isMemberOfClass:[DWContainer class] ])
     {
         NSSize size;
-        
+
         if([ object isMemberOfClass:[DWMLE class] ])
         {
             NSScrollView *sv = [object scrollview];
             NSSize frame = [sv frame].size;
             BOOL hscroll = [sv hasHorizontalScroller];
-           
+
             /* Make sure word wrap is off for the first part */
             if(!hscroll)
             {
@@ -3791,12 +3791,12 @@ void _control_size(id handle, int *width, int *height)
             {
                 [[object textContainer] setWidthTracksTextView:YES];
                 [sv setHasHorizontalScroller:NO];
-                
+
                 /* If the un wrapped it is beyond the bounds... */
                 if(size.width > _DW_SCROLLED_MAX_WIDTH)
                 {
                     NSSize max = [object maxSize];
-                    
+
                     /* Set the max size to the limit */
                     [object setMaxSize:NSMakeSize(_DW_SCROLLED_MAX_WIDTH, max.height)];
                     /* Recalculate the size */
@@ -3814,10 +3814,10 @@ void _control_size(id handle, int *width, int *height)
         }
         else
             size = [object getsize];
-        
+
         thiswidth = size.width;
         thisheight = size.height;
-        
+
         if(thiswidth < _DW_SCROLLED_MIN_WIDTH)
             thiswidth = _DW_SCROLLED_MIN_WIDTH;
         if(thiswidth > _DW_SCROLLED_MAX_WIDTH)
@@ -3832,24 +3832,24 @@ void _control_size(id handle, int *width, int *height)
     {
         thiswidth = (int)((_DW_SCROLLED_MAX_WIDTH + _DW_SCROLLED_MIN_WIDTH)/2);
         thisheight = (int)((_DW_SCROLLED_MAX_HEIGHT + _DW_SCROLLED_MIN_HEIGHT)/2);
-    }        
+    }
     /* Any other control type */
     else if([ object isKindOfClass:[ NSControl class ] ])
         nsstr = [object stringValue];
-    
-    /* If we have a string... 
+
+    /* If we have a string...
      * calculate the size with the current font.
      */
     if(nsstr && [nsstr length])
         dw_font_text_extents_get(object, NULL, (char *)[nsstr UTF8String], &thiswidth, &thisheight);
-    
+
     /* Handle static text fields */
     if([object isKindOfClass:[ NSTextField class ]] && ![object isEditable])
     {
         id border = handle;
-        
+
         extrawidth = 10;
-        
+
         /* Handle status bar field */
         if([border isMemberOfClass:[ NSBox class ] ])
         {
@@ -3857,7 +3857,7 @@ void _control_size(id handle, int *width, int *height)
             extraheight = 8;
         }
     }
-    
+
     /* Set the requested sizes */
     if(width)
         *width = thiswidth + extrawidth;
@@ -3955,7 +3955,7 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
     tmpitem[index].pad = pad;
     tmpitem[index].hsize = hsize ? SIZEEXPAND : SIZESTATIC;
     tmpitem[index].vsize = vsize ? SIZEEXPAND : SIZESTATIC;
-    
+
     /* If either of the parameters are -1 ... calculate the size */
     if(width == -1 || height == -1)
         _control_size(object, width == -1 ? &tmpitem[index].width : NULL, height == -1 ? &tmpitem[index].height : NULL);
@@ -4003,11 +4003,11 @@ int API dw_box_unpack(HWND handle)
     DW_LOCAL_POOL_IN;
     DW_MUTEX_LOCK;
     id object = handle;
-    
+
     if([object isKindOfClass:[NSView class]] || [object isKindOfClass:[NSControl class]])
     {
         DWBox *parent = (DWBox *)[object superview];
-        
+
         /* Some controls are embedded in scrollviews...
          * so get the parent of the scrollview in that case.
          */
@@ -4017,37 +4017,37 @@ int API dw_box_unpack(HWND handle)
             object = [parent superview];
             parent = (DWBox *)[object superview];
         }
-        
+
         if([parent isKindOfClass:[DWBox class]] || [parent isKindOfClass:[DWGroupBox class]])
         {
             id window = [object window];
             Box *thisbox = [parent box];
             int z, index = -1;
             Item *tmpitem = NULL, *thisitem = thisbox->items;
-            
+
             if(!thisitem)
                 thisbox->count = 0;
-            
+
             for(z=0;z<thisbox->count;z++)
             {
                 if(thisitem[z].hwnd == object)
                     index = z;
             }
-            
+
             if(index == -1)
             {
                 DW_MUTEX_UNLOCK;
                 DW_LOCAL_POOL_OUT;
                 return DW_ERROR_GENERAL;
             }
-            
+
             [object retain];
             [object removeFromSuperview];
-            
+
             if(thisbox->count > 1)
             {
                 tmpitem = calloc(sizeof(Item), (thisbox->count-1));
-                
+
                 /* Copy all but the current entry to the new list */
                 for(z=0;z<index;z++)
                 {
@@ -4058,7 +4058,7 @@ int API dw_box_unpack(HWND handle)
                     tmpitem[z-1] = thisitem[z];
                 }
             }
-            
+
             thisbox->items = tmpitem;
             if(thisitem)
                 free(thisitem);
@@ -4090,29 +4090,29 @@ HWND API dw_box_unpack_at_index(HWND box, int index)
     DW_MUTEX_LOCK;
     DWBox *parent = (DWBox *)box;
     id object = nil;
-    
+
     if([parent isKindOfClass:[DWBox class]] || [parent isKindOfClass:[DWGroupBox class]])
     {
         id window = [parent window];
         Box *thisbox = [parent box];
-        
+
         if(thisbox && index > -1 && index < thisbox->count)
         {
             int z;
             Item *tmpitem = NULL, *thisitem = thisbox->items;
-            
+
             object = thisitem[index].hwnd;
-            
+
             if(object)
             {
                 [object retain];
                 [object removeFromSuperview];
             }
-            
+
             if(thisbox->count > 1)
             {
                 tmpitem = calloc(sizeof(Item), (thisbox->count-1));
-                
+
                 /* Copy all but the current entry to the new list */
                 for(z=0;thisitem && z<index;z++)
                 {
@@ -4123,15 +4123,15 @@ HWND API dw_box_unpack_at_index(HWND box, int index)
                     tmpitem[z-1] = thisitem[z];
                 }
             }
-            
+
             thisbox->items = tmpitem;
             if(thisitem)
                 free(thisitem);
             if(tmpitem)
                 thisbox->count--;
-            else 
+            else
                 thisbox->count = 0;
-            
+
             /* Queue a redraw on the top-level window */
             _dw_redraw(window, TRUE);
         }
@@ -5302,7 +5302,7 @@ void API dw_mle_set_word_wrap(HWND handle, int state)
 {
     DWMLE *mle = handle;
     NSScrollView *sv = [mle scrollview];
-    
+
     if(state)
     {
         [[mle textContainer] setWidthTracksTextView:YES];
@@ -5402,7 +5402,7 @@ HWND API dw_status_text_new(char *text, ULONG cid)
 {
     NSBox *border = [[NSBox alloc] init];
     NSTextField *textfield = dw_text_new(text, cid);
-    
+
     [border setBorderType:NSGrooveBorder];
     //[border setBorderType:NSLineBorder];
     [border setTitlePosition:NSNoTitle];
@@ -5525,7 +5525,7 @@ unsigned long API dw_color_choose(unsigned long value)
     }
     else
         colorDlg = (DWColorChoose *)[DWColorChoose sharedColorPanel];
-    
+
     /* If someone is already waiting just return */
     if([colorDlg dialog])
     {
@@ -5536,7 +5536,7 @@ unsigned long API dw_color_choose(unsigned long value)
     unsigned long tempcol = _get_color(value);
     NSColor *color = [[NSColor colorWithDeviceRed: DW_RED_VALUE(tempcol)/255.0 green: DW_GREEN_VALUE(tempcol)/255.0 blue: DW_BLUE_VALUE(tempcol)/255.0 alpha: 1] retain];
     [colorDlg setColor:color];
-    
+
     dialog = dw_dialog_new(colorDlg);
     [colorDlg setDialog:dialog];
     [colorDlg makeKeyAndOrderFront:nil];
@@ -5742,9 +5742,9 @@ void API dw_font_text_extents_get(HWND handle, HPIXMAP pixmap, char *text, int *
     NSString *nstr;
     NSFont *font = nil;
     DW_LOCAL_POOL_IN;
-    
+
     nstr = [NSString stringWithUTF8String:text];
-    
+
     /* Check the pixmap for associated object or font */
     if(pixmap)
     {
@@ -5923,7 +5923,7 @@ void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yo
     DW_LOCAL_POOL_IN;
     DW_MUTEX_LOCK;
     id image = handle;
-    
+
     if(pixmap)
     {
         image = (id)pixmap->image;
@@ -5958,11 +5958,11 @@ void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yo
         double dx = xorigin - x1;
         double dy = yorigin - y1;
         double r = sqrt(dx*dx + dy*dy);
-        
+
         /* Convert to degrees */
         a1 *= (180.0 / M_PI);
         a2 *= (180.0 / M_PI);
-        
+
         /* Prepare to draw */
         [aPath appendBezierPathWithArcWithCenter:NSMakePoint(xorigin, yorigin)
                                           radius:r startAngle:a1 endAngle:a2];
@@ -6111,7 +6111,7 @@ void API dw_tree_item_change(HWND handle, HTREEITEM item, char *title, HICN icon
     DWTree *tree = handle;
     NSMutableArray *array = (NSMutableArray *)item;
     DW_LOCAL_POOL_IN;
-    
+
     if(title)
     {
         NSString *oldstr = [array objectAtIndex:1];
@@ -6422,35 +6422,35 @@ void API dw_container_set_item(HWND handle, void *pointer, int column, int row, 
         else
         {
             char textbuffer[101] = {0};
-            
+
             if(type & DW_CFA_ULONG)
             {
                 ULONG tmp = *((ULONG *)data);
-                
+
                 snprintf(textbuffer, 100, "%lu", tmp);
             }
             else if(type & DW_CFA_DATE)
             {
                 struct tm curtm;
                 CDATE cdate = *((CDATE *)data);
-                
+
                 memset( &curtm, 0, sizeof(curtm) );
                 curtm.tm_mday = cdate.day;
                 curtm.tm_mon = cdate.month - 1;
                 curtm.tm_year = cdate.year - 1900;
-                
+
                 strftime(textbuffer, 100, "%x", &curtm);
             }
             else if(type & DW_CFA_TIME)
             {
                 struct tm curtm;
                 CTIME ctime = *((CTIME *)data);
-                
+
                 memset( &curtm, 0, sizeof(curtm) );
                 curtm.tm_hour = ctime.hours;
                 curtm.tm_min = ctime.minutes;
                 curtm.tm_sec = ctime.seconds;
-                
+
                 strftime(textbuffer, 100, "%X", &curtm);
             }
             if(textbuffer[0])
@@ -6602,7 +6602,7 @@ void API dw_container_set_stripe(HWND handle, unsigned long oddcolor, unsigned l
     int _locked_by_me = FALSE;
     DW_MUTEX_LOCK;
     DWContainer *cont = handle;
-    [cont setRowBgOdd:(oddcolor == DW_CLR_DEFAULT ? DW_RGB(230,230,230) : oddcolor) 
+    [cont setRowBgOdd:(oddcolor == DW_CLR_DEFAULT ? DW_RGB(230,230,230) : oddcolor)
               andEven:(evencolor == DW_CLR_DEFAULT ? DW_RGB_TRANSPARENT : evencolor)];
     DW_MUTEX_UNLOCK;
 }
@@ -6960,7 +6960,7 @@ void _icon_resize(NSImage *image)
                 size.width = 24;
             if(size.height > 24)
                 size.height = 24;
-            [image setSize:size];    
+            [image setSize:size];
         }
     }
 }
@@ -7168,7 +7168,7 @@ NSFont *_dw_font_by_name(char *fontname)
     char *fontcopy = strdup(fontname);
     char *name = strchr(fontcopy, '.');
     NSFont *font = nil;
-    
+
     if(name)
     {
         int size = atoi(fontcopy);
@@ -7394,7 +7394,7 @@ HPIXMAP API dw_pixmap_grab(HWND handle, ULONG resid)
     NSString *respath = [bundle resourcePath];
     NSString *filepath = [respath stringByAppendingFormat:@"/%lu.png", resid];
     NSImage *temp = [[NSImage alloc] initWithContentsOfFile:filepath];
-    
+
     if(temp)
     {
         NSSize size = [temp size];
@@ -7438,7 +7438,7 @@ int API dw_pixmap_set_font(HPIXMAP pixmap, char *fontname)
     if(pixmap)
     {
         NSFont *font = _dw_font_by_name(fontname);
-        
+
         if(font)
         {
             DW_LOCAL_POOL_IN;
@@ -7516,17 +7516,17 @@ int API dw_pixmap_stretch_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest,
     DWBitBlt *bltinfo = calloc(1, sizeof(DWBitBlt));
     NSValue* bi;
     DW_LOCAL_POOL_IN;
-    
+
     bi = [NSValue valueWithPointer:bltinfo];
 
     /* Sanity checks */
-    if((!dest && !destp) || (!src && !srcp) || 
+    if((!dest && !destp) || (!src && !srcp) ||
        ((srcwidth == -1 || srcheight == -1) && srcwidth != srcheight))
     {
         DW_LOCAL_POOL_OUT;
         return DW_ERROR_GENERAL;
     }
-    
+
     /* Fill in the information */
     bltinfo->dest = dest;
     bltinfo->src = src;
@@ -7862,7 +7862,7 @@ HWND API dw_menu_append_item(HMENUI menux, char *title, ULONG itemid, ULONG flag
                             action:@selector(menuHandler:)
                             keyEquivalent:[ NSString stringWithUTF8String:accel ]] autorelease];
         [menu addItem:item];
-        
+
         [item setTag:itemid];
         if(check)
         {
@@ -7918,14 +7918,14 @@ void API dw_menu_item_set_check(HMENUI menux, unsigned long itemid, int check)
  * Parameters:
  *       menu: The handle to the  menu in which the item was appended.
  *       id: Menuitem id.
- * Returns: 
+ * Returns:
  *       DW_ERROR_NONE (0) on success or DW_ERROR_UNKNOWN on failure.
  */
 int API dw_menu_delete_item(HMENUI menux, unsigned long itemid)
 {
     id menu = menux;
     NSMenuItem *menuitem = (NSMenuItem *)[menu itemWithTag:itemid];
-    
+
     if(menuitem != nil)
     {
         [menu removeItem:menuitem];
@@ -8140,7 +8140,7 @@ HWND API dw_window_new(HWND hwndOwner, char *title, ULONG flStyle)
     NSRect frame = NSMakeRect(1,1,1,1);
     DWWindow *window = [[DWWindow alloc]
                         initWithContentRect:frame
-                        styleMask:(flStyle | NSTexturedBackgroundWindowMask)
+                        styleMask:(flStyle)
                         backing:NSBackingStoreBuffered
                         defer:false];
 
@@ -8153,7 +8153,7 @@ HWND API dw_window_new(HWND hwndOwner, char *title, ULONG flStyle)
     [window setAutorecalculatesKeyViewLoop:YES];
     [window setAcceptsMouseMovedEvents:YES];
     [view release];
-    
+
     /* Enable full screen mode on resizeable windows */
     if(flStyle & DW_FCF_SIZEBORDER)
     {
@@ -8252,35 +8252,35 @@ int API dw_window_show(HWND handle)
             /* Determine the contents size */
             dw_window_set_size(handle, 0, 0);
         }
-        /* If the position was not set... generate a default 
-         * default one in a similar pattern to SHELLPOSITION. 
-         */ 
+        /* If the position was not set... generate a default
+         * default one in a similar pattern to SHELLPOSITION.
+         */
         if(![window shown])
         {
-            static int defaultx = 0, defaulty = 0; 
+            static int defaultx = 0, defaulty = 0;
             int cx = dw_screen_width(), cy = dw_screen_height();
-            int maxx = cx / 4, maxy = cy / 4; 
+            int maxx = cx / 4, maxy = cy / 4;
             NSPoint point;
-            
+
             rect = [window frame];
-            
-            defaultx += 20; 
-            defaulty += 20; 
-            if(defaultx > maxx) 
-                defaultx = 20; 
-            if(defaulty > maxy) 
-                defaulty = 20; 
-            
+
+            defaultx += 20;
+            defaulty += 20;
+            if(defaultx > maxx)
+                defaultx = 20;
+            if(defaulty > maxy)
+                defaulty = 20;
+
             point.x = defaultx;
             /* Take into account menu bar and inverted Y */
             point.y = cy - defaulty - (int)rect.size.height - 22;
-            
+
             [window setFrameOrigin:point];
             [window setShown:YES];
         }
         [[window contentView] showWindow];
         [window makeKeyAndOrderFront:nil];
-        
+
         if(!([window styleMask] & NSResizableWindowMask))
         {
             /* Fix incorrect repeat in displaying textured windows */
@@ -8427,17 +8427,17 @@ void API dw_window_set_style(HWND handle, ULONG style, ULONG mask)
     {
         DWWindow *window = object;
         SEL sssm = NSSelectorFromString(@"setStyleMask");
-        
+
         if([window respondsToSelector:sssm])
         {
             IMP issm = [window methodForSelector:sssm];
             int currentstyle = (int)[window styleMask];
             int tmp;
-            
+
             tmp = currentstyle | (int)mask;
             tmp ^= mask;
             tmp |= style;
-            
+
             issm(window, sssm, tmp);
         }
     }
@@ -8502,7 +8502,7 @@ void API dw_window_set_style(HWND handle, ULONG style, ULONG mask)
 void API dw_window_set_focus(HWND handle)
 {
     id object = handle;
-    
+
     [[object window] makeFirstResponder:object];
 }
 
@@ -8681,7 +8681,7 @@ Item *_box_item(id object)
     if([object isKindOfClass:[DWBox class]] || [object isKindOfClass:[DWGroupBox class]] || [object isKindOfClass:[NSControl class]])
     {
         DWBox *parent = (DWBox *)[object superview];
-        
+
         /* Some controls are embedded in scrollviews...
          * so get the parent of the scrollview in that case.
          */
@@ -8690,13 +8690,13 @@ Item *_box_item(id object)
             object = [parent superview];
             parent = (DWBox *)[object superview];
         }
-        
+
         if([parent isKindOfClass:[DWBox class]] || [parent isKindOfClass:[DWGroupBox class]])
         {
             Box *thisbox = [parent box];
             Item *thisitem = thisbox->items;
             int z;
-            
+
             for(z=0;z<thisbox->count;z++)
             {
                 if(thisitem[z].hwnd == object)
@@ -8745,11 +8745,11 @@ int API dw_window_set_font(HWND handle, char *fontname)
             return DW_ERROR_UNKNOWN;
         /* If we changed the text... */
         Item *item = _box_item(handle);
-        
+
         /* Check to see if any of the sizes need to be recalculated */
         if(item && (item->origwidth == -1 || item->origheight == -1))
         {
-            _control_size(handle, item->origwidth == -1 ? &item->width : NULL, item->origheight == -1 ? &item->height : NULL); 
+            _control_size(handle, item->origwidth == -1 ? &item->width : NULL, item->origheight == -1 ? &item->height : NULL);
             /* Queue a redraw on the top-level window */
             _dw_redraw([object window], TRUE);
         }
@@ -8807,7 +8807,7 @@ int API dw_window_destroy(HWND handle)
     else if([ object isKindOfClass:[NSMenuItem class]])
     {
         NSMenu *menu = [object menu];
-        
+
         [menu removeItem:object];
     }
     /* Handle destroying a control or box */
@@ -8834,7 +8834,7 @@ int API dw_window_destroy(HWND handle)
 
             if(!thisitem)
                 thisbox->count = 0;
-            
+
             for(z=0;z<thisbox->count;z++)
             {
                 if(thisitem[z].hwnd == object)
@@ -8853,7 +8853,7 @@ int API dw_window_destroy(HWND handle)
             if(thisbox->count > 1)
             {
                 tmpitem = calloc(sizeof(Item), (thisbox->count-1));
-                
+
                 /* Copy all but the current entry to the new list */
                 for(z=0;z<index;z++)
                 {
@@ -8864,15 +8864,15 @@ int API dw_window_destroy(HWND handle)
                     tmpitem[z-1] = thisitem[z];
                 }
             }
-            
+
             thisbox->items = tmpitem;
             if(thisitem)
                 free(thisitem);
             if(tmpitem)
                 thisbox->count--;
-            else 
+            else
                 thisbox->count = 0;
-            
+
             /* Queue a redraw on the top-level window */
             _dw_redraw(window, TRUE);
         }
@@ -8936,14 +8936,14 @@ void API dw_window_set_text(HWND handle, char *text)
         return;
     /* If we changed the text... */
     Item *item = _box_item(handle);
-    
+
     /* Check to see if any of the sizes need to be recalculated */
     if(item && (item->origwidth == -1 || item->origheight == -1))
     {
       int newwidth, newheight;
-      
-      _control_size(handle, &newwidth, &newheight); 
-      
+
+      _control_size(handle, &newwidth, &newheight);
+
       /* Only update the item and redraw the window if it changed */
       if((item->origwidth == -1 && item->width != newwidth) ||
          (item->origheight == -1 && item->height != newheight))
@@ -9046,7 +9046,7 @@ void API dw_window_set_bitmap_from_data(HWND handle, unsigned long cid, char *da
             NSImageView *iv = handle;
             NSData *thisdata = [NSData dataWithBytes:data length:len];
             NSImage *pixmap = [[NSImage alloc] initWithData:thisdata];
-            
+
             if(pixmap)
             {
                 [iv setImage:pixmap];
@@ -9054,11 +9054,11 @@ void API dw_window_set_bitmap_from_data(HWND handle, unsigned long cid, char *da
             [pixmap release];
             /* If we changed the text... */
             Item *item = _box_item(handle);
-            
+
             /* Check to see if any of the sizes need to be recalculated */
             if(item && (item->origwidth == -1 || item->origheight == -1))
             {
-                _control_size(handle, item->origwidth == -1 ? &item->width : NULL, item->origheight == -1 ? &item->height : NULL);        
+                _control_size(handle, item->origwidth == -1 ? &item->width : NULL, item->origheight == -1 ? &item->height : NULL);
                 /* Queue a redraw on the top-level window */
                 _dw_redraw([iv window], TRUE);
             }
@@ -9083,7 +9083,7 @@ void API dw_window_set_bitmap(HWND handle, unsigned long resid, char *filename)
 {
     NSObject *object = handle;
     DW_LOCAL_POOL_IN;
-    
+
     if([ object isKindOfClass:[ NSImageView class ] ])
     {
         NSImageView *iv = handle;
@@ -9204,10 +9204,10 @@ void API dw_window_set_size(HWND handle, ULONG width, ULONG height)
         DWWindow *window = handle;
         Box *thisbox;
         NSRect content, frame = NSMakeRect(0, 0, width, height);
-       
+
         /* Convert the external frame size to internal content size */
         content = [NSWindow contentRectForFrameRect:frame styleMask:[window styleMask]];
-        
+
         /*
          * The following is an attempt to dynamically size a window based on the size of its
          * children before realization. Only applicable when width or height is less than one.
@@ -9215,15 +9215,15 @@ void API dw_window_set_size(HWND handle, ULONG width, ULONG height)
         if((width < 1 || height < 1) && (thisbox = [[window contentView] box]))
         {
             int depth = 0;
-                
+
             /* Calculate space requirements */
             _resize_box(thisbox, &depth, (int)width, (int)height, 1);
-          
+
             /* Update components that need auto-sizing */
             if(width < 1) content.size.width = thisbox->minwidth;
             if(height < 1) content.size.height = thisbox->minheight;
         }
-       
+
         /* Finally set the size */
         [window setContentSize:content.size];
     }
@@ -9240,22 +9240,22 @@ void API dw_window_set_size(HWND handle, ULONG width, ULONG height)
 void API dw_window_get_preferred_size(HWND handle, int *width, int *height)
 {
     id object = handle;
-    
+
     if([object isMemberOfClass:[DWWindow class]])
     {
         Box *thisbox;
-        
+
         if((thisbox = [[object contentView] box]))
         {
             int depth = 0;
             NSRect frame;
-            
+
             /* Calculate space requirements */
             _resize_box(thisbox, &depth, 0, 0, 1);
-            
+
             /* Figure out the border size */
             frame = [NSWindow frameRectForContentRect:NSMakeRect(0, 0, thisbox->minwidth, thisbox->minheight) styleMask:[object styleMask]];
-            
+
             /* Return what was requested */
             if(width) *width = frame.size.width;
             if(height) *height = frame.size.height;
@@ -9264,14 +9264,14 @@ void API dw_window_get_preferred_size(HWND handle, int *width, int *height)
     else if([object isMemberOfClass:[DWBox class]])
     {
         Box *thisbox;
-        
+
         if((thisbox = [object box]))
         {
             int depth = 0;
-            
+
             /* Calculate space requirements */
             _resize_box(thisbox, &depth, 0, 0, 1);
-            
+
             /* Return what was requested */
             if(width) *width = thisbox->minwidth;
             if(height) *height = thisbox->minheight;
@@ -9301,12 +9301,12 @@ void _handle_gravity(HWND handle, long *x, long *y, unsigned long width, unsigne
     int horz = DW_POINTER_TO_INT(dw_window_get_data(handle, "_dw_grav_horz"));
     int vert = DW_POINTER_TO_INT(dw_window_get_data(handle, "_dw_grav_vert"));
     id object = handle;
-    
+
     /* Do any gravity calculations */
     if(horz || (vert & 0xf) != DW_GRAV_BOTTOM)
     {
         long newx = *x, newy = *y;
-        
+
         /* Handle horizontal center gravity */
         if((horz & 0xf) == DW_GRAV_CENTER)
             newx += ((dw_screen_width() / 2) - (width / 2));
@@ -9318,17 +9318,17 @@ void _handle_gravity(HWND handle, long *x, long *y, unsigned long width, unsigne
             newy += ((dw_screen_height() / 2) - (height / 2));
         else if((vert & 0xf) == DW_GRAV_TOP)
             newy = dw_screen_height() - height - *y;
-        
+
         /* Save the new values */
         *x = newx;
         *y = newy;
-    }   
+    }
     /* Adjust the values to avoid Dock/Menubar if requested */
     if((horz | vert) & DW_GRAV_OBSTACLES)
     {
         NSRect visiblerect = [[object screen] visibleFrame];
         NSRect totalrect = [[object screen] frame];
-        
+
         if(horz & DW_GRAV_OBSTACLES)
         {
             if((horz & 0xf) == DW_GRAV_LEFT)
@@ -9358,7 +9358,7 @@ void API dw_window_set_pos(HWND handle, LONG x, LONG y)
     int _locked_by_me = FALSE;
     DW_MUTEX_LOCK;
     NSObject *object = handle;
-    
+
     if([ object isMemberOfClass:[ DWWindow class ] ])
     {
         DWWindow *window = handle;
@@ -9374,10 +9374,10 @@ void API dw_window_set_pos(HWND handle, LONG x, LONG y)
 
         size = [window frame].size;
         _handle_gravity(handle, &x, &y, (unsigned long)size.width, (unsigned long)size.height);
-        
+
         point.x = x;
         point.y = y;
-        
+
         [window setFrameOrigin:point];
         /* Position set manually... don't auto-position */
         [window setShown:YES];
@@ -9557,7 +9557,7 @@ int _new_userdata(UserData **root, char *varname, void *data)
             else
             {
                 UserData *prev = *root, *tmp = prev->next;
-                
+
                 while(tmp)
                 {
                     prev = tmp;
@@ -10118,23 +10118,23 @@ int dw_event_post (HEV eve)
 int dw_event_wait(HEV eve, unsigned long timeout)
 {
     int rc;
-    
+
     if(!eve)
         return DW_ERROR_NON_INIT;
-    
+
     pthread_mutex_lock (&(eve->mutex));
-    
+
     if(eve->posted)
     {
         pthread_mutex_unlock (&(eve->mutex));
         return DW_ERROR_NONE;
     }
-    
+
     if(timeout != -1)
     {
         struct timeval now;
         struct timespec timeo;
-        
+
         gettimeofday(&now, 0);
         timeo.tv_sec = now.tv_sec + (timeout / 1000);
         timeo.tv_nsec = now.tv_usec * 1000;
@@ -10593,7 +10593,7 @@ void API dw_font_set_default(char *fontname)
 int API dw_init(int newthread, int argc, char *argv[])
 {
     char *lang = getenv("LANG");
-    
+
     /* Correct the startup path if run from a bundle */
     if(argc > 0 && argv[0])
     {
@@ -10604,7 +10604,7 @@ int API dw_init(int newthread, int argc, char *argv[])
         {
             char pathbuf[PATH_MAX+1] = { 0 };
             size_t len = (size_t)(app - pathcopy);
-            
+
             if(len > 0)
                 strncpy(_dw_bundle_path, pathcopy, len + 4);
             *app = 0;
@@ -10626,16 +10626,16 @@ int API dw_init(int newthread, int argc, char *argv[])
         if(pathcopy)
             free(pathcopy);
     }
-        
+
     /* Just in case we can't obtain a path */
     if(!_dw_bundle_path[0])
         getcwd(_dw_bundle_path, PATH_MAX);
-    
+
     /* Get the operating system version */
     NSString *version = [[NSProcessInfo processInfo] operatingSystemVersionString];
     const char *versionstr = [version UTF8String];
     sscanf(versionstr, "Version %d.%d.%d", &DWOSMajor, &DWOSMinor, &DWOSBuild);
-    /* Set the locale... if it is UTF-8 pass it 
+    /* Set the locale... if it is UTF-8 pass it
      * directly, otherwise specify UTF-8 explicitly.
      */
     setlocale(LC_ALL, lang && strstr(lang, ".UTF-8") ? lang : "UTF-8");
@@ -10897,7 +10897,7 @@ int dw_browse(char *url)
     return DW_ERROR_NONE;
 }
 
-typedef struct _dwprint 
+typedef struct _dwprint
 {
     NSPrintInfo *pi;
     int (*drawfunc)(HPRINT, HPIXMAP, int, void *);
@@ -10922,19 +10922,19 @@ HPRINT API dw_print_new(char *jobname, unsigned long flags, unsigned int pages, 
     NSPrintPanel *panel;
     PMPrintSettings settings;
     NSPrintInfo *pi;
-    
+
     if(!drawfunc || !(print = calloc(1, sizeof(DWPrint))))
     {
         return NULL;
     }
-    
+
     if(!jobname)
         jobname = "Dynamic Windows Print Job";
-    
+
     print->drawfunc = drawfunc;
     print->drawdata = drawdata;
     print->flags = flags;
-    
+
     /* Get the page range */
     pi = [NSPrintInfo sharedPrintInfo];
     [pi setHorizontalPagination:NSFitPagination];
@@ -10945,15 +10945,15 @@ HPRINT API dw_print_new(char *jobname, unsigned long flags, unsigned int pages, 
     [pi setLeftMargin:0.0];
     [pi setRightMargin:0.0];
     [pi setTopMargin:0.0];
-    [pi setBottomMargin:0.0]; 
-    
+    [pi setBottomMargin:0.0];
+
     settings = [pi PMPrintSettings];
     PMSetPageRange(settings, 1, pages);
     PMSetFirstPage(settings, 1, true);
     PMSetLastPage(settings, pages, true);
     PMPrintSettingsSetJobName(settings, (CFStringRef)[NSString stringWithUTF8String:jobname]);
     [pi updateFromPMPrintSettings];
-    
+
     /* Create and show the print panel */
     panel = [NSPrintPanel printPanel];
     if(!panel || [panel runModalWithPrintInfo:pi] == NSCancelButton)
@@ -10963,11 +10963,11 @@ HPRINT API dw_print_new(char *jobname, unsigned long flags, unsigned int pages, 
     }
     /* Put the print info from the panel into the operation */
     print->pi = pi;
-    
+
     return print;
 }
 
-/* 
+/*
  * Runs the print job, causing the draw page callbacks to fire.
  * Parameters:
  *       print: Handle to the print object returned by dw_print_new().
@@ -10988,12 +10988,12 @@ int API dw_print_run(HPRINT print, unsigned long flags)
     PMPrintSettings settings;
     int x, result = DW_ERROR_UNKNOWN;
     UInt32 start, end;
-    
+
     if(!p)
         return result;
-    
+
     DW_LOCAL_POOL_IN;
-    
+
     /* Figure out the printer/paper size */
     pi = p->pi;
     size = [pi paperSize];
@@ -11008,15 +11008,15 @@ int API dw_print_run(HPRINT print, unsigned long flags)
     PMSetFirstPage(settings, 1, true);
     PMSetLastPage(settings, 1, true);
     [pi updateFromPMPrintSettings];
-    
+
     /* Create an image view to print and a pixmap to draw into */
     iv = [[NSImageView alloc] init];
     pixmap = dw_pixmap_new(iv, (int)size.width, (int)size.height, 8);
     rep = pixmap->image;
     pixmap2 = dw_pixmap_new(iv, (int)size.width, (int)size.height, 8);
     rep2 = pixmap2->image;
-    
-    /* Create an image with the data from the pixmap 
+
+    /* Create an image with the data from the pixmap
      * to go into the image view.
      */
     image = [[NSImage alloc] initWithSize:[rep size]];
@@ -11027,13 +11027,13 @@ int API dw_print_run(HPRINT print, unsigned long flags)
     [iv setImageScaling:NSScaleProportionally];
     [iv setFrameOrigin:NSMakePoint(0,0)];
     [iv setFrameSize:size];
-    
+
     /* Create the print operation using the image view and
      * print info obtained from the panel in the last call.
      */
     po = [NSPrintOperation printOperationWithView:iv printInfo:pi];
     [po setShowsPrintPanel:NO];
-    
+
     /* Cycle through each page */
     for(x=start; x<end && p->drawfunc; x++)
     {
@@ -11076,7 +11076,7 @@ int API dw_print_run(HPRINT print, unsigned long flags)
 void API dw_print_cancel(HPRINT print)
 {
     DWPrint *p = print;
-    
+
     if(p)
         p->drawfunc = NULL;
 }
