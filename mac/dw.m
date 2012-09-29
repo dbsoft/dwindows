@@ -2582,7 +2582,7 @@ void _handle_resize_events(Box *thisbox)
                 DWNotebookPage *notepage = (DWNotebookPage *)[notebook selectedTabViewItem];
                 id view = [notepage view];
 
-                if(view != nil)
+                if([view isMemberOfClass:[DWBox class]])
                 {
                     Box *box = [view box];
                     _handle_resize_events(box);
@@ -2814,7 +2814,7 @@ static void _resize_box(Box *thisbox, int *depth, int x, int y, int pass)
                     DWNotebookPage *notepage = (DWNotebookPage *)[notebook selectedTabViewItem];
                     id view = [notepage view];
 
-                    if(view != nil)
+                    if([view isMemberOfClass:[DWBox class]])
                     {
                         Box *box = [view box];
                         NSSize size = [view frame].size;
