@@ -1031,6 +1031,8 @@ DWObject *DWObj;
     {
         if(buttonType == NSSwitchButton)
             [self setState:([self state] ? NSOffState : NSOnState)];
+        else if(buttonType == NSRadioButton)
+            [self setState:NSOnState];
         [self buttonClicked:self];
     }
     else
