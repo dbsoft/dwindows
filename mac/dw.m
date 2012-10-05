@@ -1024,6 +1024,23 @@ DWObject *DWObj;
 -(NSButtonType)buttonType { return buttonType; }
 -(void)setParent:(DWBox *)input { parent = input; }
 -(DWBox *)parent { return parent; }
+-(void)keyDown:(NSEvent *)theEvent
+{
+    unichar vk = [[theEvent charactersIgnoringModifiers] characterAtIndex:0];
+    if(vk == VK_RETURN || vk == VK_SPACE)
+    {
+        if(buttonType == NSSwitchButton)
+            [self setState:([self state] ? NSOffState : NSOnState)];
+        [self buttonClicked:self];
+    }
+    else
+    {
+        [self interpretKeyEvents:[NSArray arrayWithObject:theEvent]];
+        [super keyDown:theEvent];
+    }
+}
+-(void)insertTab:(id)sender { if([[self window] firstResponder] == self) [[self window] selectNextKeyView:self]; }
+-(void)insertBacktab:(id)sender { if([[self window] firstResponder] == self) [[self window] selectPreviousKeyView:self]; }
 -(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); dw_signal_disconnect_by_window(self); [super dealloc]; }
 @end
 
@@ -2079,6 +2096,14 @@ DWObject *DWObj;
     _event_handler(self, (NSEvent *)[self getRowTitle:row], 10);
     return nil;
 }
+-(void)keyDown:(NSEvent *)theEvent
+{
+    if([[theEvent charactersIgnoringModifiers] characterAtIndex:0] == VK_TAB)
+        [self interpretKeyEvents:[NSArray arrayWithObject:theEvent]];
+    [super keyDown:theEvent];
+}
+-(void)insertTab:(id)sender { if([[self window] firstResponder] == self) [[self window] selectNextKeyView:self]; }
+-(void)insertBacktab:(id)sender { if([[self window] firstResponder] == self) [[self window] selectPreviousKeyView:self]; }
 -(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); dw_signal_disconnect_by_window(self); [super dealloc]; }
 @end
 
@@ -2314,6 +2339,14 @@ void _free_tree_recurse(NSMutableArray *node, NSMutableArray *item)
     [cell setTextColor:fgcolor];
 }
 -(void)clear { NSMutableArray *toclear = data; data = nil; _free_tree_recurse(toclear, NULL); [self reloadData]; }
+-(void)keyDown:(NSEvent *)theEvent
+{
+    if([[theEvent charactersIgnoringModifiers] characterAtIndex:0] == VK_TAB)
+        [self interpretKeyEvents:[NSArray arrayWithObject:theEvent]];
+    [super keyDown:theEvent];
+}
+-(void)insertTab:(id)sender { if([[self window] firstResponder] == self) [[self window] selectNextKeyView:self]; }
+-(void)insertBacktab:(id)sender { if([[self window] firstResponder] == self) [[self window] selectPreviousKeyView:self]; }
 -(void)dealloc
 {
     UserData *root = userdata;
@@ -2404,6 +2437,25 @@ void _free_tree_recurse(NSMutableArray *node, NSMutableArray *item)
     [textfield takeIntValueFrom:self];
     _event_handler(parent, (void *)[self integerValue], 14);
 }
+-(void)keyDown:(NSEvent *)theEvent
+{
+    unichar vk = [[theEvent charactersIgnoringModifiers] characterAtIndex:0];
+    if(vk == VK_UP || vk == VK_DOWN)
+    {
+        if(vk == VK_UP)
+            [self setIntegerValue:([self integerValue]+[self increment])];
+        else
+            [self setIntegerValue:([self integerValue]-[self increment])];
+        [self mouseUp:theEvent];
+    }
+    else
+    {
+        [self interpretKeyEvents:[NSArray arrayWithObject:theEvent]];
+        [super keyDown:theEvent];
+    }
+}
+-(void)insertTab:(id)sender { if([[self window] firstResponder] == self) [[self window] selectNextKeyView:self]; }
+-(void)insertBacktab:(id)sender { if([[self window] firstResponder] == self) [[self window] selectPreviousKeyView:self]; }
 @end
 
 /* Subclass for a Spinbutton type */
