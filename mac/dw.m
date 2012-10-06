@@ -1319,6 +1319,47 @@ DWObject *DWObj;
     }
     _event_handler(self, DW_INT_TO_POINTER([page pageid]), 15);
 }
+-(void)keyDown:(NSEvent *)theEvent
+{
+    unichar vk = [[theEvent charactersIgnoringModifiers] characterAtIndex:0];
+    
+    if(vk == VK_TAB)
+        [self interpretKeyEvents:[NSArray arrayWithObject:theEvent]];
+    else if(vk == VK_LEFT)
+    {
+        NSArray *pages = [self tabViewItems];
+        DWNotebookPage *page = (DWNotebookPage *)[self selectedTabViewItem];
+        NSUInteger index = [pages indexOfObject:page];
+                     
+        if(index != NSNotFound)
+        {
+            if(index > 0)
+               [self selectTabViewItem:[pages objectAtIndex:(index-1)]];
+            else
+               [self selectTabViewItem:[pages objectAtIndex:0]];
+                
+        }
+    }
+    else if(vk == VK_RIGHT)
+    {
+        NSArray *pages = [self tabViewItems];
+        DWNotebookPage *page = (DWNotebookPage *)[self selectedTabViewItem];
+        NSUInteger index = [pages indexOfObject:page];
+        NSUInteger count = [pages count];
+        
+        if(index != NSNotFound)
+        {
+            if(index + 1 < count)
+                [self selectTabViewItem:[pages objectAtIndex:(index+1)]];
+            else
+                [self selectTabViewItem:[pages objectAtIndex:(count-1)]];
+            
+        }
+    }
+    [super keyDown:theEvent];
+}
+-(void)insertTab:(id)sender { if([[self window] firstResponder] == self) [[self window] selectNextKeyView:self]; }
+-(void)insertBacktab:(id)sender { if([[self window] firstResponder] == self) [[self window] selectPreviousKeyView:self]; }
 -(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); dw_signal_disconnect_by_window(self); [super dealloc]; }
 @end
 
