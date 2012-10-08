@@ -927,6 +927,9 @@ int _validate_focus(HWND handle)
       _tcsnicmp(tmpbuf, WC_LISTVIEW, _tcslen(WC_LISTVIEW)+1)== 0 ||             /* Container */
       _tcsnicmp(tmpbuf, WC_TREEVIEW, _tcslen(WC_TREEVIEW)+1)== 0)               /* Tree */
       return 1;
+   /* Special case for the notebook, can get focus and contains other items */
+   if(_tcsnicmp(tmpbuf, WC_TABCONTROL, _tcslen(WC_TABCONTROL))==0)              /* Notebook */
+      return 2;
    return 0;
 }
 
@@ -952,146 +955,25 @@ HWND _normalize_handle(HWND handle)
    return handle;
 }
 
-int _focus_check_box(Box *box, HWND handle, int start, HWND defaultitem)
+#define _DW_DIRECTION_FORWARD -1
+#define _DW_DIRECTION_BACKWARD 1
+
+/* Internal comparision function */
+int _focus_comp(int direction, int z, int end)
 {
-   int z;
-   static HWND lasthwnd, firsthwnd;
-   static int finish_searching;
-
-   /* Start is 2 when we have cycled completely and
-    * need to set the focus to the last widget we found
-    * that was valid.
-    */
-   if(start == 2)
-   {
-      if(lasthwnd)
-         SetFocus(lasthwnd);
-      return 0;
-   }
-
-   /* Start is 1 when we are entering the function
-    * for the first time, it is zero when entering
-    * the function recursively.
-    */
-   if(start == 1)
-   {
-      lasthwnd = handle;
-      finish_searching = 0;
-      firsthwnd = 0;
-   }
-
-   for(z=box->count-1;z>-1;z--)
-   {
-      if(box->items[z].type == TYPEBOX)
-      {
-         Box *thisbox = (Box *)GetWindowLongPtr(box->items[z].hwnd, GWLP_USERDATA);
-
-         if(thisbox && _focus_check_box(thisbox, handle, start == 3 ? 3 : 0, defaultitem))
-            return 1;
-      }
-      else
-      {
-         if(box->items[z].hwnd == handle)
-         {
-            if(lasthwnd == handle && firsthwnd)
-               SetFocus(firsthwnd);
-            else if(lasthwnd == handle && !firsthwnd)
-               finish_searching = 1;
-            else
-               SetFocus(lasthwnd);
-
-            /* If we aren't looking for the last handle,
-             * return immediately.
-             */
-            if(!finish_searching)
-               return 1;
-         }
-         if(_validate_focus(box->items[z].hwnd))
-         {
-            /* Start is 3 when we are looking for the
-             * first valid item in the layout.
-             */
-            if(start == 3)
-            {
-               if(!defaultitem || (defaultitem && box->items[z].hwnd == defaultitem))
-               {
-                  SetFocus(_normalize_handle(box->items[z].hwnd));
-                  return 1;
-               }
-            }
-
-            if(!firsthwnd)
-               firsthwnd = _normalize_handle(box->items[z].hwnd);
-
-            lasthwnd = _normalize_handle(box->items[z].hwnd);
-         }
-         else
-         {
-            TCHAR tmpbuf[100] = {0};
-
-            GetClassName(box->items[z].hwnd, tmpbuf, 99);
-
-            if(_tcsncmp(tmpbuf, SplitbarClassName, _tcslen(SplitbarClassName)+1)==0)
-            {
-               /* Then try the bottom or right box */
-               HWND mybox = (HWND)dw_window_get_data(box->items[z].hwnd, "_dw_bottomright");
-
-               if(mybox)
-               {
-                  Box *splitbox = (Box *)GetWindowLongPtr(mybox, GWLP_USERDATA);
-
-                  if(splitbox && _focus_check_box(splitbox, handle, start == 3 ? 3 : 0, defaultitem))
-                     return 1;
-               }
-
-               /* Try the top or left box */
-               mybox = (HWND)dw_window_get_data(box->items[z].hwnd, "_dw_topleft");
-
-               if(mybox)
-               {
-                  Box *splitbox = (Box *)GetWindowLongPtr(mybox, GWLP_USERDATA);
-
-                  if(splitbox && _focus_check_box(splitbox, handle, start == 3 ? 3 : 0, defaultitem))
-                     return 1;
-               }
-            }
-            else if(_tcsnicmp(tmpbuf, WC_TABCONTROL, _tcslen(WC_TABCONTROL))==0) /* Notebook */
-            {
-               NotebookPage **array = (NotebookPage **)dw_window_get_data(box->items[z].hwnd, "_dw_array");
-               int pageid = TabCtrl_GetCurSel(box->items[z].hwnd);
-
-               if(pageid > -1 && array && array[pageid])
-               {
-                  Box *notebox;
-
-                  if(array[pageid]->hwnd)
-                  {
-                     notebox = (Box *)GetWindowLongPtr(array[pageid]->hwnd, GWLP_USERDATA);
-
-                     if(notebox && _focus_check_box(notebox, handle, start == 3 ? 3 : 0, defaultitem))
-                        return 1;
-                  }
-               }
-            }
-            else if(_tcsnicmp(tmpbuf, ScrollClassName, _tcslen(ScrollClassName))==0) /* Scroll Box */
-            {
-                ColorInfo *cinfo = (ColorInfo *)GetWindowLongPtr(box->items[z].hwnd, GWLP_USERDATA);
-                Box *scrollbox = (Box *)GetWindowLongPtr(cinfo->combo, GWLP_USERDATA);
-
-                if(scrollbox && _focus_check_box(scrollbox, handle, start == 3 ? 3 : 0, defaultitem))
-                   return 1;
-            }
-         }
-      }
-   }
-   return 0;
+   if(direction == _DW_DIRECTION_FORWARD)
+      return z > -1;
+   return z < end;
 }
 
-int _focus_check_box_back(Box *box, HWND handle, int start, HWND defaultitem)
+/* Handle box focus traversal in either direction */
+int _focus_check_box(Box *box, HWND handle, int start, int direction, HWND defaultitem)
 {
    int z;
    static HWND lasthwnd, firsthwnd;
    static int finish_searching;
+   int beg = (direction == _DW_DIRECTION_FORWARD) ? box->count-1 : 0;
+   int end = (direction == _DW_DIRECTION_FORWARD) ? -1 : box->count;
 
    /* Start is 2 when we have cycled completely and
     * need to set the focus to the last widget we found
@@ -1115,17 +997,19 @@ int _focus_check_box_back(Box *box, HWND handle, int start, HWND defaultitem)
       firsthwnd = 0;
    }
 
-   for(z=0;z<box->count;z++)
+   for(z=beg;_focus_comp(direction, z, end);z+=direction)
    {
       if(box->items[z].type == TYPEBOX)
       {
          Box *thisbox = (Box *)GetWindowLongPtr(box->items[z].hwnd, GWLP_USERDATA);
 
-         if(thisbox && _focus_check_box_back(thisbox, handle, start == 3 ? 3 : 0, defaultitem))
+         if(thisbox && _focus_check_box(thisbox, handle, start == 3 ? 3 : 0, direction, defaultitem))
             return 1;
       }
       else
       {
+         int type;
+         
          if(box->items[z].hwnd == handle)
          {
             if(lasthwnd == handle && firsthwnd)
@@ -1141,7 +1025,7 @@ int _focus_check_box_back(Box *box, HWND handle, int start, HWND defaultitem)
             if(!finish_searching)
                return 1;
          }
-         if(_validate_focus(box->items[z].hwnd))
+         if((type = _validate_focus(box->items[z].hwnd)) != 0)
          {
             /* Start is 3 when we are looking for the
              * first valid item in the layout.
@@ -1155,57 +1039,40 @@ int _focus_check_box_back(Box *box, HWND handle, int start, HWND defaultitem)
                }
             }
 
-            if(!firsthwnd)
-               firsthwnd = _normalize_handle(box->items[z].hwnd);
-
             lasthwnd = _normalize_handle(box->items[z].hwnd);
+            
+            if(!firsthwnd)
+               firsthwnd = lasthwnd;
          }
          else
          {
+            /* Handle controls that contain other items */
             TCHAR tmpbuf[100] = {0};
 
             GetClassName(box->items[z].hwnd, tmpbuf, 99);
 
             if(_tcsncmp(tmpbuf, SplitbarClassName, _tcslen(SplitbarClassName)+1)==0)
             {
-               /* Try the top or left box */
-               HWND mybox = (HWND)dw_window_get_data(box->items[z].hwnd, "_dw_topleft");
-
-               if(mybox)
-               {
-                  Box *splitbox = (Box *)GetWindowLongPtr(mybox, GWLP_USERDATA);
-
-                  if(splitbox && _focus_check_box_back(splitbox, handle, start == 3 ? 3 : 0, defaultitem))
-                     return 1;
-               }
-
                /* Then try the bottom or right box */
-               mybox = (HWND)dw_window_get_data(box->items[z].hwnd, "_dw_bottomright");
+               HWND mybox = (HWND)dw_window_get_data(box->items[z].hwnd, (direction == _DW_DIRECTION_FORWARD) ? "_dw_bottomright" : "_dw_topleft");
 
                if(mybox)
                {
                   Box *splitbox = (Box *)GetWindowLongPtr(mybox, GWLP_USERDATA);
 
-                  if(splitbox && _focus_check_box_back(splitbox, handle, start == 3 ? 3 : 0, defaultitem))
+                  if(splitbox && _focus_check_box(splitbox, handle, start == 3 ? 3 : 0, direction, defaultitem))
                      return 1;
                }
-            }
-            else if(_tcsnicmp(tmpbuf, WC_TABCONTROL, _tcslen(WC_TABCONTROL))==0) /* Notebook */
-            {
-               NotebookPage **array = (NotebookPage **)dw_window_get_data(box->items[z].hwnd, "_dw_array");
-               int pageid = TabCtrl_GetCurSel(box->items[z].hwnd);
 
-               if(pageid > -1 && array && array[pageid])
+               /* Try the top or left box */
+               mybox = (HWND)dw_window_get_data(box->items[z].hwnd, (direction == _DW_DIRECTION_FORWARD) ? "_dw_topleft" : "_dw_bottomright");
+
+               if(mybox)
                {
-                  Box *notebox;
+                  Box *splitbox = (Box *)GetWindowLongPtr(mybox, GWLP_USERDATA);
 
-                  if(array[pageid]->hwnd)
-                  {
-                     notebox = (Box *)GetWindowLongPtr(array[pageid]->hwnd, GWLP_USERDATA);
-
-                     if(notebox && _focus_check_box_back(notebox, handle, start == 3 ? 3 : 0, defaultitem))
-                        return 1;
-                  }
+                  if(splitbox && _focus_check_box(splitbox, handle, start == 3 ? 3 : 0, direction, defaultitem))
+                     return 1;
                }
             }
             else if(_tcsnicmp(tmpbuf, ScrollClassName, _tcslen(ScrollClassName))==0) /* Scroll Box */
@@ -1213,8 +1080,27 @@ int _focus_check_box_back(Box *box, HWND handle, int start, HWND defaultitem)
                 ColorInfo *cinfo = (ColorInfo *)GetWindowLongPtr(box->items[z].hwnd, GWLP_USERDATA);
                 Box *scrollbox = (Box *)GetWindowLongPtr(cinfo->combo, GWLP_USERDATA);
 
-                if(scrollbox && _focus_check_box_back(scrollbox, handle, start == 3 ? 3 : 0, defaultitem))
+                if(scrollbox && _focus_check_box(scrollbox, handle, start == 3 ? 3 : 0, direction, defaultitem))
                    return 1;
+            }
+         }
+         /* Special case notebook, can focus and contains items */
+         if(type == 2 && box->items[z].hwnd != handle) 
+         {
+            NotebookPage **array = (NotebookPage **)dw_window_get_data(box->items[z].hwnd, "_dw_array");
+            int pageid = TabCtrl_GetCurSel(box->items[z].hwnd);
+
+            if(pageid > -1 && array && array[pageid])
+            {
+               Box *notebox;
+
+               if(array[pageid]->hwnd)
+               {
+                  notebox = (Box *)GetWindowLongPtr(array[pageid]->hwnd, GWLP_USERDATA);
+
+                  if(notebox && _focus_check_box(notebox, handle, start == 3 ? 3 : 0, direction, defaultitem))
+                     return 1;
+               }
             }
          }
       }
@@ -1244,7 +1130,7 @@ void _initial_focus(HWND handle)
 
    if(thisbox)
    {
-      _focus_check_box(thisbox, handle, 3, thisbox->defaultitem);
+      _focus_check_box(thisbox, handle, 3, _DW_DIRECTION_FORWARD, thisbox->defaultitem);
    }
 }
 
@@ -1278,7 +1164,7 @@ HWND _toplevel_window(HWND handle)
 /* This function finds the current widget in the
  * layout and moves the current focus to the next item.
  */
-void _shift_focus(HWND handle)
+void _shift_focus(HWND handle, int direction)
 {
    Box *thisbox;
 
@@ -1293,33 +1179,11 @@ void _shift_focus(HWND handle)
    thisbox = (Box *)GetWindowLongPtr(lastbox, GWLP_USERDATA);
    if(thisbox)
    {
-      if(_focus_check_box(thisbox, handle, 1, 0)  == 0)
-         _focus_check_box(thisbox, handle, 2, 0);
+      if(_focus_check_box(thisbox, handle, 1, direction, 0)  == 0)
+         _focus_check_box(thisbox, handle, 2, direction, 0);
    }
 }
 
-/* This function finds the current widget in the
- * layout and moves the current focus to the next item.
- */
-void _shift_focus_back(HWND handle)
-{
-   Box *thisbox;
-
-   HWND box, lastbox = GetParent(handle);
-
-   /* Find the toplevel window */
-   while((box = GetParent(lastbox)))
-   {
-      lastbox = box;
-   }
-
-   thisbox = (Box *)GetWindowLongPtr(lastbox, GWLP_USERDATA);
-   if(thisbox)
-   {
-      if(_focus_check_box_back(thisbox, handle, 1, 0)  == 0)
-         _focus_check_box_back(thisbox, handle, 2, 0);
-   }
-}
 /* This function calculates how much space the widgets and boxes require
  * and does expansion as necessary.
  */
@@ -2845,20 +2709,20 @@ LRESULT CALLBACK _colorwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
             if (GetAsyncKeyState(VK_SHIFT) & 0x8000)
             {
                if (cinfo->combo)
-                  _shift_focus_back(cinfo->combo);
+                  _shift_focus(cinfo->combo, _DW_DIRECTION_BACKWARD);
                else if(cinfo->buddy)
-                  _shift_focus_back(cinfo->buddy);
+                  _shift_focus(cinfo->buddy, _DW_DIRECTION_BACKWARD);
                else
-                  _shift_focus_back(hWnd);
+                  _shift_focus(hWnd, _DW_DIRECTION_BACKWARD);
             }
             else
             {
                if (cinfo->combo)
-                  _shift_focus(cinfo->combo);
+                  _shift_focus(cinfo->combo, _DW_DIRECTION_FORWARD);
                else if(cinfo->buddy)
-                  _shift_focus(cinfo->buddy);
+                  _shift_focus(cinfo->buddy, _DW_DIRECTION_FORWARD);
                else
-                  _shift_focus(hWnd);
+                  _shift_focus(hWnd, _DW_DIRECTION_FORWARD);
             }
             return FALSE;
          }
@@ -3057,9 +2921,9 @@ LRESULT CALLBACK _containerwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
          if(LOWORD(mp1) == '\t')
          {
             if(GetAsyncKeyState(VK_SHIFT) & 0x8000)
-               _shift_focus_back(hWnd);
+               _shift_focus(hWnd, _DW_DIRECTION_BACKWARD);
             else
-               _shift_focus(hWnd);
+               _shift_focus(hWnd, _DW_DIRECTION_FORWARD);
             return FALSE;
          }
 
@@ -3170,9 +3034,9 @@ LRESULT CALLBACK _simplewndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
       if(ret != TRUE && LOWORD(mp1) == '\t')
       {
          if(GetAsyncKeyState(VK_SHIFT) & 0x8000)
-            _shift_focus_back(hWnd);
+            _shift_focus(hWnd, _DW_DIRECTION_BACKWARD);
          else
-            _shift_focus(hWnd);
+            _shift_focus(hWnd, _DW_DIRECTION_FORWARD);
          return FALSE;
       }
       break;
@@ -3718,18 +3582,18 @@ LRESULT CALLBACK _BtProc(HWND hwnd, ULONG msg, WPARAM mp1, LPARAM mp2)
          if(LOWORD(mp1) == '\t')
          {
             if(GetAsyncKeyState(VK_SHIFT) & 0x8000)
-               _shift_focus_back(hwnd);
+               _shift_focus(hwnd, _DW_DIRECTION_BACKWARD);
             else
-               _shift_focus(hwnd);
+               _shift_focus(hwnd, _DW_DIRECTION_FORWARD);
             return FALSE;
          }
       }
       break;
    case WM_KEYDOWN:
       if(mp1 == VK_LEFT || mp1 == VK_UP)
-         _shift_focus_back(hwnd);
+         _shift_focus(hwnd, _DW_DIRECTION_BACKWARD);
       if(mp1 == VK_RIGHT || mp1 == VK_DOWN)
-         _shift_focus(hwnd);
+         _shift_focus(hwnd, _DW_DIRECTION_FORWARD);
       break;
    }
 
@@ -5482,6 +5346,7 @@ HWND API dw_notebook_new(ULONG id, int top)
    ULONG flags = 0;
    HWND tmp;
    NotebookPage **array = calloc(256, sizeof(NotebookPage *));
+   ColorInfo *cinfo = calloc(1, sizeof(ColorInfo));
 
    if(!top)
       flags = TCS_BOTTOM;
@@ -5494,6 +5359,9 @@ HWND API dw_notebook_new(ULONG id, int top)
                   (HMENU)id,
                   DWInstance,
                   NULL);
+   cinfo->fore = cinfo->back = -1;
+   cinfo->pOldProc = SubclassWindow(tmp, _simplewndproc);
+   SetWindowLongPtr(tmp, GWLP_USERDATA, (LONG_PTR)cinfo);
    dw_window_set_data(tmp, "_dw_array", (void *)array);
    dw_window_set_font(tmp, DefaultFont);
    return tmp;
