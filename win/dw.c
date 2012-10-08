@@ -917,6 +917,9 @@ int _validate_focus(HWND handle)
     */
    if(_tcsnicmp(tmpbuf, EDITCLASSNAME, _tcslen(EDITCLASSNAME)+1)==0 ||          /* Entryfield */
       _tcsnicmp(tmpbuf, BUTTONCLASSNAME, _tcslen(BUTTONCLASSNAME)+1)==0 ||      /* Button */
+#ifdef TOOLBAR      
+      _tcsnicmp(tmpbuf, TOOLBARCLASSNAME, _tcslen(TOOLBARCLASSNAME)+1) == 0 ||  /* Toolbar */
+#endif      
       _tcsnicmp(tmpbuf, COMBOBOXCLASSNAME, _tcslen(COMBOBOXCLASSNAME)+1)==0 ||  /* Combobox */
       _tcsnicmp(tmpbuf, LISTBOXCLASSNAME, _tcslen(LISTBOXCLASSNAME)+1)==0 ||    /* List box */
       _tcsnicmp(tmpbuf, UPDOWN_CLASS, _tcslen(UPDOWN_CLASS)+1)==0 ||            /* Spinbutton */
@@ -2730,7 +2733,11 @@ void _click_default(HWND handle)
    /* These are the window classes which can
     * obtain input focus.
     */
-   if (_tcsnicmp(tmpbuf, BUTTONCLASSNAME, _tcslen(BUTTONCLASSNAME)+1)==0)
+   if (_tcsnicmp(tmpbuf, BUTTONCLASSNAME, _tcslen(BUTTONCLASSNAME)+1)==0
+#ifdef TOOLBAR      
+    || _tcsnicmp(tmpbuf, TOOLBARCLASSNAME, _tcslen(TOOLBARCLASSNAME)+1) == 0
+#endif
+      )
    {
       /* Generate click on default item */
       SignalHandler *tmp = Root;
@@ -3146,7 +3153,7 @@ LRESULT CALLBACK _containerwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
    return CallWindowProc(continfo->cinfo.pOldProc, hWnd, msg, mp1, mp2);
 }
 
-LRESULT CALLBACK _treewndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
+LRESULT CALLBACK _simplewndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 {
    ContainerInfo *cinfo;
    LRESULT ret = -1;
@@ -5940,7 +5947,7 @@ HWND API dw_tree_new(ULONG id)
       return NULL;
    }
 
-   cinfo->cinfo.pOldProc = SubclassWindow(tmp, _treewndproc);
+   cinfo->cinfo.pOldProc = SubclassWindow(tmp, _simplewndproc);
    cinfo->cinfo.fore = cinfo->cinfo.back = -1;
    cinfo->odd = cinfo->even = DW_RGB_TRANSPARENT;
 
@@ -6056,7 +6063,7 @@ HWND API dw_mle_new(ULONG id)
       return NULL;
    }
 
-   cinfo->cinfo.pOldProc = SubclassWindow(tmp, _treewndproc);
+   cinfo->cinfo.pOldProc = SubclassWindow(tmp, _simplewndproc);
    cinfo->cinfo.fore = cinfo->cinfo.back = -1;
    cinfo->odd = cinfo->even = DW_RGB_TRANSPARENT;
 
@@ -6307,6 +6314,7 @@ HWND API dw_bitmapbutton_new(char *text, ULONG id)
    if(tmp = _create_toolbar(text, id, icon, hbitmap))
    {
       cinfo->fore = cinfo->back = -1;
+      cinfo->pOldProc = SubclassWindow(tmp, _simplewndproc);
       SetWindowLongPtr(tmp, GWLP_USERDATA, (LONG_PTR)cinfo);
       return tmp;
    }
@@ -6377,6 +6385,7 @@ HWND API dw_bitmapbutton_new_from_file(char *text, unsigned long id, char *filen
    if(tmp = _create_toolbar(text, id, hicon, hbitmap))
    {
       cinfo->fore = cinfo->back = -1;
+      cinfo->pOldProc = SubclassWindow(tmp, _simplewndproc);
       SetWindowLongPtr(tmp, GWLP_USERDATA, (LONG_PTR)cinfo);
       return tmp;
    }
@@ -6467,6 +6476,7 @@ HWND API dw_bitmapbutton_new_from_data(char *text, unsigned long id, char *data,
    if(tmp = _create_toolbar(text, id, hicon, hbitmap))
    {
       cinfo->fore = cinfo->back = -1;
+      cinfo->pOldProc = SubclassWindow(tmp, _simplewndproc);
       SetWindowLongPtr(tmp, GWLP_USERDATA, (LONG_PTR)cinfo);
       return tmp;
    }
