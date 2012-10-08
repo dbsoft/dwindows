@@ -1323,9 +1323,9 @@ DWObject *DWObj;
 {
     unichar vk = [[theEvent charactersIgnoringModifiers] characterAtIndex:0];
     
-    if(vk == VK_TAB)
+    if(vk == NSTabCharacter || vk == NSBackTabCharacter)
         [self interpretKeyEvents:[NSArray arrayWithObject:theEvent]];
-    else if(vk == VK_LEFT)
+    else if(vk == NSLeftArrowFunctionKey)
     {
         NSArray *pages = [self tabViewItems];
         DWNotebookPage *page = (DWNotebookPage *)[self selectedTabViewItem];
@@ -1340,7 +1340,7 @@ DWObject *DWObj;
                 
         }
     }
-    else if(vk == VK_RIGHT)
+    else if(vk == NSRightArrowFunctionKey)
     {
         NSArray *pages = [self tabViewItems];
         DWNotebookPage *page = (DWNotebookPage *)[self selectedTabViewItem];
@@ -2141,7 +2141,9 @@ DWObject *DWObj;
 }
 -(void)keyDown:(NSEvent *)theEvent
 {
-    if([[theEvent charactersIgnoringModifiers] characterAtIndex:0] == VK_TAB)
+    unichar vk = [[theEvent charactersIgnoringModifiers] characterAtIndex:0];
+    
+    if(vk == NSTabCharacter || vk == NSBackTabCharacter)
         [self interpretKeyEvents:[NSArray arrayWithObject:theEvent]];
     [super keyDown:theEvent];
 }
@@ -2384,7 +2386,9 @@ void _free_tree_recurse(NSMutableArray *node, NSMutableArray *item)
 -(void)clear { NSMutableArray *toclear = data; data = nil; _free_tree_recurse(toclear, NULL); [self reloadData]; }
 -(void)keyDown:(NSEvent *)theEvent
 {
-    if([[theEvent charactersIgnoringModifiers] characterAtIndex:0] == VK_TAB)
+    unichar vk = [[theEvent charactersIgnoringModifiers] characterAtIndex:0];
+    
+    if(vk == NSTabCharacter || vk == NSBackTabCharacter)
         [self interpretKeyEvents:[NSArray arrayWithObject:theEvent]];
     [super keyDown:theEvent];
 }
