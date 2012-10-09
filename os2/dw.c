@@ -789,7 +789,7 @@ int _initial_focus(HWND handle)
       return 1;
 
    if(thisbox)
-      _focus_check_box(thisbox, handle, 3, thisbox->defaultitem);
+      _focus_check_box(thisbox, handle, 3, _DW_DIRECTION_FORWARD, thisbox->defaultitem);
    return 0;
 }
 
@@ -4170,7 +4170,7 @@ MRESULT EXPENTRY _BtProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
          }
          else if(!(CHARMSG(&msg)->fs & KC_KEYUP) && (CHARMSG(&msg)->vkey == VK_LEFT || CHARMSG(&msg)->vkey == VK_UP))
          {
-            _shift_focus_back(hwnd);
+            _shift_focus(hwnd, _DW_DIRECTION_BACKWARD);
             return FALSE;
          }
          else if(!(CHARMSG(&msg)->fs & KC_KEYUP) && (CHARMSG(&msg)->vkey == VK_RIGHT || CHARMSG(&msg)->vkey == VK_DOWN))
