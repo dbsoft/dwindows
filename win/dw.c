@@ -958,12 +958,34 @@ HWND _normalize_handle(HWND handle)
 #define _DW_DIRECTION_FORWARD -1
 #define _DW_DIRECTION_BACKWARD 1
 
+int _focus_check_box(Box *box, HWND handle, int start, int direction, HWND defaultitem);
+
 /* Internal comparision function */
 int _focus_comp(int direction, int z, int end)
 {
    if(direction == _DW_DIRECTION_FORWARD)
       return z > -1;
    return z < end;
+}
+
+int _focus_notebook(HWND hwnd, HWND handle, int start, int direction, HWND defaultitem)
+{
+   NotebookPage **array = (NotebookPage **)dw_window_get_data(hwnd, "_dw_array");
+   int pageid = TabCtrl_GetCurSel(hwnd);
+
+   if(pageid > -1 && array && array[pageid])
+   {
+      Box *notebox;
+
+      if(array[pageid]->hwnd)
+      {
+         notebox = (Box *)GetWindowLongPtr(array[pageid]->hwnd, GWLP_USERDATA);
+
+         if(notebox && _focus_check_box(notebox, handle, start == 3 ? 3 : 0, direction, defaultitem))
+            return 1;
+      }
+   }
+   return 0;
 }
 
 /* Handle box focus traversal in either direction */
@@ -1008,8 +1030,11 @@ int _focus_check_box(Box *box, HWND handle, int start, int direction, HWND defau
       }
       else
       {
-         int type;
+         int type = _validate_focus(box->items[z].hwnd);
          
+         /* Special case notebook, can focus and contains items */
+         if(type == 2 && direction == _DW_DIRECTION_FORWARD && _focus_notebook(box->items[z].hwnd, handle, start, direction, defaultitem)) 
+            return 1;
          if(box->items[z].hwnd == handle)
          {
             if(lasthwnd == handle && firsthwnd)
@@ -1025,7 +1050,7 @@ int _focus_check_box(Box *box, HWND handle, int start, int direction, HWND defau
             if(!finish_searching)
                return 1;
          }
-         if((type = _validate_focus(box->items[z].hwnd)) != 0)
+         if(type > 0)
          {
             /* Start is 3 when we are looking for the
              * first valid item in the layout.
@@ -1085,24 +1110,8 @@ int _focus_check_box(Box *box, HWND handle, int start, int direction, HWND defau
             }
          }
          /* Special case notebook, can focus and contains items */
-         if(type == 2 && box->items[z].hwnd != handle) 
-         {
-            NotebookPage **array = (NotebookPage **)dw_window_get_data(box->items[z].hwnd, "_dw_array");
-            int pageid = TabCtrl_GetCurSel(box->items[z].hwnd);
-
-            if(pageid > -1 && array && array[pageid])
-            {
-               Box *notebox;
-
-               if(array[pageid]->hwnd)
-               {
-                  notebox = (Box *)GetWindowLongPtr(array[pageid]->hwnd, GWLP_USERDATA);
-
-                  if(notebox && _focus_check_box(notebox, handle, start == 3 ? 3 : 0, direction, defaultitem))
-                     return 1;
-               }
-            }
-         }
+         if(type == 2 && direction == _DW_DIRECTION_BACKWARD && _focus_notebook(box->items[z].hwnd, handle, start, direction, defaultitem)) 
+            return 1;
       }
    }
    return 0;
