@@ -610,14 +610,46 @@ int _validate_focus(HWND handle)
       strncmp(tmpbuf, "#37", 4)==0 || /* Container */
       strncmp(tmpbuf, "#38", 4)== 0)  /* Slider */
       return 1;
+   if(strncmp(tmpbuf, "#40", 4)==0)   /* Notebook */
+      return 2;
    return 0;
 }
 
-int _focus_check_box(Box *box, HWND handle, int start, HWND defaultitem)
+#define _DW_DIRECTION_FORWARD -1
+#define _DW_DIRECTION_BACKWARD 1
+
+int _focus_check_box(Box *box, HWND handle, int start, int direction, HWND defaultitem);
+
+/* Internal comparision function */
+int _focus_comp(int direction, int z, int end)
+{
+   if(direction == _DW_DIRECTION_FORWARD)
+      return z > -1;
+   return z < end;
+}
+int _focus_notebook(HWND hwnd, HWND handle, int start, int direction, HWND defaultitem)
+{
+   Box *notebox;
+   HWND page = (HWND)WinSendMsg(hwnd, BKM_QUERYPAGEWINDOWHWND,
+                         (MPARAM)dw_notebook_page_get(hwnd), 0);
+
+   if(page)
+   {
+      notebox = (Box *)WinQueryWindowPtr(page, QWP_USER);
+
+      if(notebox && _focus_check_box(notebox, handle, start == 3 ? 3 : 0, direction, defaultitem))
+         return 1;
+   }
+   return 0;
+}
+
+int _focus_check_box(Box *box, HWND handle, int start, int direction, HWND defaultitem)
 {
    int z;
    static HWND lasthwnd, firsthwnd;
    static int finish_searching;
+   int beg = (direction == _DW_DIRECTION_FORWARD) ? box->count-1 : 0;
+   int end = (direction == _DW_DIRECTION_FORWARD) ? -1 : box->count;
 
    /* Start is 2 when we have cycled completely and
     * need to set the focus to the last widget we found
@@ -641,17 +673,22 @@ int _focus_check_box(Box *box, HWND handle, int start, HWND defaultitem)
       firsthwnd = 0;
    }
 
-   for(z=box->count-1;z>-1;z--)
+   for(z=beg;_focus_comp(direction, z, end);z+=direction)
    {
       if(box->items[z].type == TYPEBOX)
       {
          Box *thisbox = WinQueryWindowPtr(box->items[z].hwnd, QWP_USER);
 
-         if(thisbox && _focus_check_box(thisbox, handle, start == 3 ? 3 : 0, defaultitem))
+         if(thisbox && _focus_check_box(thisbox, handle, start == 3 ? 3 : 0, direction, defaultitem))
             return 1;
       }
       else
       {
+         int type = _validate_focus(box->items[z].hwnd);
+         
+         /* Special case notebook, can focus and contains items */
+         if(type == 2 && direction == _DW_DIRECTION_FORWARD && _focus_notebook(box->items[z].hwnd, handle, start, direction, defaultitem)) 
+            return 1;
          if(box->items[z].hwnd == handle)
          {
             if(lasthwnd == handle && firsthwnd)
@@ -681,10 +718,10 @@ int _focus_check_box(Box *box, HWND handle, int start, HWND defaultitem)
                }
             }
 
-            if(!firsthwnd)
-               firsthwnd = box->items[z].hwnd;
-
             lasthwnd = box->items[z].hwnd;
+            
+            if(!firsthwnd)
+               firsthwnd = lasthwnd;
          }
          else
          {
@@ -700,7 +737,7 @@ int _focus_check_box(Box *box, HWND handle, int start, HWND defaultitem)
                {
                   Box *splitbox = (Box *)WinQueryWindowPtr(mybox, QWP_USER);
 
-                  if(splitbox && _focus_check_box(splitbox, handle, start == 3 ? 3 : 0, defaultitem))
+                  if(splitbox && _focus_check_box(splitbox, handle, start == 3 ? 3 : 0, direction, defaultitem))
                      return 1;
                }
 
@@ -711,21 +748,7 @@ int _focus_check_box(Box *box, HWND handle, int start, HWND defaultitem)
                {
                   Box *splitbox = (Box *)WinQueryWindowPtr(mybox, QWP_USER);
 
-                  if(splitbox && _focus_check_box(splitbox, handle, start == 3 ? 3 : 0, defaultitem))
-                     return 1;
-               }
-            }
-            else if(strncmp(tmpbuf, "#40", 4)==0) /* Notebook */
-            {
-               Box *notebox;
-               HWND page = (HWND)WinSendMsg(box->items[z].hwnd, BKM_QUERYPAGEWINDOWHWND,
-                                     (MPARAM)dw_notebook_page_get(box->items[z].hwnd), 0);
-
-               if(page)
-               {
-                  notebox = (Box *)WinQueryWindowPtr(page, QWP_USER);
-
-                  if(notebox && _focus_check_box(notebox, handle, start == 3 ? 3 : 0, defaultitem))
+                  if(splitbox && _focus_check_box(splitbox, handle, start == 3 ? 3 : 0, direction, defaultitem))
                      return 1;
                }
             }
@@ -738,146 +761,14 @@ int _focus_check_box(Box *box, HWND handle, int start, HWND defaultitem)
                 {
                     Box *scrollbox = (Box *)WinQueryWindowPtr(mybox, QWP_USER);
 
-                    if(scrollbox && _focus_check_box(scrollbox, handle, start == 3 ? 3 : 0, defaultitem))
+                    if(scrollbox && _focus_check_box(scrollbox, handle, start == 3 ? 3 : 0, direction, defaultitem))
                         return 1;
                 }
             }
          }
-      }
-   }
-   return 0;
-}
-
-int _focus_check_box_back(Box *box, HWND handle, int start, HWND defaultitem)
-{
-   int z;
-   static HWND lasthwnd, firsthwnd;
-    static int finish_searching;
-
-   /* Start is 2 when we have cycled completely and
-    * need to set the focus to the last widget we found
-    * that was valid.
-    */
-   if(start == 2)
-   {
-      if(lasthwnd)
-         WinSetFocus(HWND_DESKTOP, lasthwnd);
-      return 0;
-   }
-
-   /* Start is 1 when we are entering the function
-    * for the first time, it is zero when entering
-    * the function recursively.
-    */
-   if(start == 1)
-   {
-      lasthwnd = handle;
-      finish_searching = 0;
-      firsthwnd = 0;
-   }
-
-   for(z=0;z<box->count;z++)
-   {
-      if(box->items[z].type == TYPEBOX)
-      {
-         Box *thisbox = WinQueryWindowPtr(box->items[z].hwnd, QWP_USER);
-
-         if(thisbox && _focus_check_box_back(thisbox, handle, start == 3 ? 3 : 0, defaultitem))
+         /* Special case notebook, can focus and contains items */
+         if(type == 2 && direction == _DW_DIRECTION_BACKWARD && _focus_notebook(box->items[z].hwnd, handle, start, direction, defaultitem)) 
             return 1;
-      }
-      else
-      {
-         if(box->items[z].hwnd == handle)
-         {
-            if(lasthwnd == handle && firsthwnd)
-               WinSetFocus(HWND_DESKTOP, firsthwnd);
-            else if(lasthwnd == handle && !firsthwnd)
-               finish_searching = 1;
-            else
-               WinSetFocus(HWND_DESKTOP, lasthwnd);
-
-            /* If we aren't looking for the last handle,
-             * return immediately.
-             */
-            if(!finish_searching)
-               return 1;
-         }
-         if(_validate_focus(box->items[z].hwnd))
-         {
-            /* Start is 3 when we are looking for the
-             * first valid item in the layout.
-             */
-            if(start == 3)
-            {
-               if(!defaultitem || (defaultitem && defaultitem == box->items[z].hwnd))
-               {
-                  WinSetFocus(HWND_DESKTOP, box->items[z].hwnd);
-                  return 1;
-               }
-            }
-
-            if(!firsthwnd)
-               firsthwnd = box->items[z].hwnd;
-
-            lasthwnd = box->items[z].hwnd;
-         }
-         else
-         {
-            char tmpbuf[100] = {0};
-
-            WinQueryClassName(box->items[z].hwnd, 99, (PCH)tmpbuf);
-            if(strncmp(tmpbuf, SplitbarClassName, strlen(SplitbarClassName)+1)==0)
-            {
-               /* Try the top or left box */
-               HWND mybox = (HWND)dw_window_get_data(box->items[z].hwnd, "_dw_topleft");
-
-               if(mybox)
-               {
-                  Box *splitbox = (Box *)WinQueryWindowPtr(mybox, QWP_USER);
-
-                  if(splitbox && _focus_check_box_back(splitbox, handle, start == 3 ? 3 : 0, defaultitem))
-                     return 1;
-               }
-
-               /* Then try the bottom or right box */
-               mybox = (HWND)dw_window_get_data(box->items[z].hwnd, "_dw_bottomright");
-
-               if(mybox)
-               {
-                  Box *splitbox = (Box *)WinQueryWindowPtr(mybox, QWP_USER);
-
-                  if(splitbox && _focus_check_box_back(splitbox, handle, start == 3 ? 3 : 0, defaultitem))
-                     return 1;
-               }
-            }
-            else if(strncmp(tmpbuf, "#40", 4)==0) /* Notebook */
-            {
-               Box *notebox;
-               HWND page = (HWND)WinSendMsg(box->items[z].hwnd, BKM_QUERYPAGEWINDOWHWND,
-                                     (MPARAM)dw_notebook_page_get(box->items[z].hwnd), 0);
-
-               if(page)
-               {
-                  notebox = (Box *)WinQueryWindowPtr(page, QWP_USER);
-
-                  if(notebox && _focus_check_box_back(notebox, handle, start == 3 ? 3 : 0, defaultitem))
-                     return 1;
-               }
-            }
-            else if(strncmp(tmpbuf, ScrollClassName, strlen(ScrollClassName)+1)==0) /* Scrollbox */
-            {
-                /* Get the box window handle */
-                HWND mybox = (HWND)dw_window_get_data(box->items[z].hwnd, "_dw_box");
-
-                if(mybox)
-                {
-                    Box *scrollbox = (Box *)WinQueryWindowPtr(mybox, QWP_USER);
-
-                    if(scrollbox && _focus_check_box_back(scrollbox, handle, start == 3 ? 3 : 0, defaultitem))
-                        return 1;
-                }
-            }
-         }
       }
    }
    return 0;
@@ -905,7 +796,7 @@ int _initial_focus(HWND handle)
 /* This function finds the current widget in the
  * layout and moves the current focus to the next item.
  */
-void _shift_focus(HWND handle)
+void _shift_focus(HWND handle, int direction)
 {
    Box *thisbox;
    HWND box, lastbox = _toplevel_window(handle);
@@ -918,29 +809,8 @@ void _shift_focus(HWND handle)
 
    if(thisbox)
    {
-      if(_focus_check_box(thisbox, handle, 1, 0)  == 0)
-         _focus_check_box(thisbox, handle, 2, 0);
-   }
-}
-
-/* This function finds the current widget in the
- * layout and moves the current focus to the next item.
- */
-void _shift_focus_back(HWND handle)
-{
-   Box *thisbox;
-   HWND box, lastbox = _toplevel_window(handle);
-
-   box = WinWindowFromID(lastbox, FID_CLIENT);
-   if(box)
-      thisbox = WinQueryWindowPtr(box, QWP_USER);
-   else
-      thisbox = WinQueryWindowPtr(lastbox, QWP_USER);
-
-   if(thisbox)
-   {
-      if(_focus_check_box_back(thisbox, handle, 1, 0)  == 0)
-         _focus_check_box_back(thisbox, handle, 2, 0);
+      if(_focus_check_box(thisbox, handle, 1, direction, 0)  == 0)
+         _focus_check_box(thisbox, handle, 2, direction, 0);
    }
 }
 
@@ -2615,9 +2485,9 @@ MRESULT EXPENTRY _entryproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
       if(SHORT1FROMMP(mp2) == '\t')
       {
          if(CHARMSG(&msg)->fs & KC_SHIFT)
-            _shift_focus_back(hWnd);
+            _shift_focus(hWnd, _DW_DIRECTION_BACKWARD);
          else
-            _shift_focus(hWnd);
+            _shift_focus(hWnd, _DW_DIRECTION_FORWARD);
          return FALSE;
       }
       else if(SHORT1FROMMP(mp2) == '\r' && blah && blah->clickdefault)
@@ -2869,9 +2739,9 @@ MRESULT EXPENTRY _comboproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
       if(SHORT1FROMMP(mp2) == '\t')
       {
          if(CHARMSG(&msg)->fs & KC_SHIFT)
-            _shift_focus_back(hWnd);
+            _shift_focus(hWnd, _DW_DIRECTION_BACKWARD);
          else
-            _shift_focus(hWnd);
+            _shift_focus(hWnd, _DW_DIRECTION_FORWARD);
          return FALSE;
       }
       else if(SHORT1FROMMP(mp2) == '\r' && blah && blah->clickdefault)
@@ -3825,9 +3695,9 @@ MRESULT EXPENTRY _wndproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
       if(SHORT1FROMMP(mp2) == '\t')
       {
          if(CHARMSG(&msg)->fs & KC_SHIFT)
-            _shift_focus_back(hWnd);
+            _shift_focus(hWnd, _DW_DIRECTION_BACKWARD);
          else
-            _shift_focus(hWnd);
+            _shift_focus(hWnd, _DW_DIRECTION_FORWARD);
          return FALSE;
       }
       break;
@@ -4292,9 +4162,9 @@ MRESULT EXPENTRY _BtProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
          if(SHORT1FROMMP(mp2) == '\t')
          {
             if(CHARMSG(&msg)->fs & KC_SHIFT)
-               _shift_focus_back(hwnd);
+               _shift_focus(hwnd, _DW_DIRECTION_BACKWARD);
             else
-               _shift_focus(hwnd);
+               _shift_focus(hwnd, _DW_DIRECTION_FORWARD);
             WinSendMsg(hwnd, BM_SETDEFAULT, 0, 0);
             return FALSE;
          }
@@ -4305,7 +4175,7 @@ MRESULT EXPENTRY _BtProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
          }
          else if(!(CHARMSG(&msg)->fs & KC_KEYUP) && (CHARMSG(&msg)->vkey == VK_RIGHT || CHARMSG(&msg)->vkey == VK_DOWN))
          {
-            _shift_focus(hwnd);
+            _shift_focus(hwnd, _DW_DIRECTION_FORWARD);
             return FALSE;
          }
       }
@@ -4391,9 +4261,9 @@ MRESULT EXPENTRY _TreeProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
       if(SHORT1FROMMP(mp2) == '\t')
       {
          if(CHARMSG(&msg)->fs & KC_SHIFT)
-            _shift_focus_back(hwnd);
+            _shift_focus(hwnd, _DW_DIRECTION_BACKWARD);
          else
-            _shift_focus(hwnd);
+            _shift_focus(hwnd, _DW_DIRECTION_FORWARD);
          return FALSE;
       }
       break;
@@ -4401,6 +4271,34 @@ MRESULT EXPENTRY _TreeProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 
    _run_event(hwnd, msg, mp1, mp2);
 
+   if(oldproc)
+      return oldproc(hwnd, msg, mp1, mp2);
+
+   return WinDefWindowProc(hwnd, msg, mp1, mp2);
+}
+
+MRESULT EXPENTRY _NotebookProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
+{
+   WindowData *blah = (WindowData *)WinQueryWindowPtr(hwnd, QWP_USER);
+   PFNWP oldproc = 0;
+
+   if(blah)
+      oldproc = blah->oldproc;
+
+   switch(msg)
+   {
+   case WM_CHAR:
+      if(SHORT1FROMMP(mp2) == '\t')
+      {
+         if(CHARMSG(&msg)->fs & KC_SHIFT)
+            _shift_focus(hwnd, _DW_DIRECTION_BACKWARD);
+         else
+            _shift_focus(hwnd, _DW_DIRECTION_FORWARD);
+         return FALSE;
+      }
+      break;
+   }
+   
    if(oldproc)
       return oldproc(hwnd, msg, mp1, mp2);
 
@@ -6007,6 +5905,7 @@ HWND API dw_notebook_new(ULONG id, int top)
 {
    ULONG flags;
    HWND tmp;
+   WindowData *blah = calloc(1, sizeof(WindowData));
 
    if(top)
       flags = BKS_MAJORTABTOP;
@@ -6035,6 +5934,8 @@ HWND API dw_notebook_new(ULONG id, int top)
       WinSendMsg(tmp, BKM_SETDIMENSIONS,MPFROM2SHORT(102, 28), MPFROMSHORT( BKA_MAJORTAB));
    }
 
+   blah->oldproc = WinSubclassWindow(tmp, _NotebookProc);
+   WinSetWindowPtr(tmp, QWP_USER, blah);
    dw_window_set_font(tmp, DefaultFont);
    return tmp;
 }
