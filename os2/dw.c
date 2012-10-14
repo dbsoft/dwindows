@@ -4287,6 +4287,17 @@ MRESULT EXPENTRY _NotebookProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 
    switch(msg)
    {
+   case WM_PAINT:
+      if(!WinSendMsg(hwnd, BKM_QUERYPAGECOUNT, 0, (MPARAM)BKA_END))
+      {
+         HPS hpsPaint;
+         RECTL rclPaint;
+
+         hpsPaint = WinBeginPaint(hwnd, 0, &rclPaint);
+         WinFillRect(hpsPaint, &rclPaint, CLR_PALEGRAY);
+         WinEndPaint(hpsPaint);
+      }
+      break;
    case WM_CHAR:
       if(SHORT1FROMMP(mp2) == '\t')
       {
