@@ -8201,7 +8201,8 @@ unsigned long API dw_notebook_page_new(HWND handle, ULONG flags, int front)
    RECTL rect;
    WinQueryWindowRect(handle, &rect);
    WinInvalidateRect(handle, &rect, TRUE);
-   return retval;}
+   return retval;
+}
 
 /*
  * Remove a page from a notebook.
