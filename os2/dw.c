@@ -8196,9 +8196,12 @@ void API dw_window_set_style(HWND handle, ULONG style, ULONG mask)
  */
 unsigned long API dw_notebook_page_new(HWND handle, ULONG flags, int front)
 {
-   return (ULONG)WinSendMsg(handle, BKM_INSERTPAGE, 0L,
-                      MPFROM2SHORT((BKA_STATUSTEXTON | BKA_AUTOPAGESIZE | BKA_MAJOR | flags), front ? BKA_FIRST : BKA_LAST));
-}
+   ULONG retval = (ULONG)WinSendMsg(handle, BKM_INSERTPAGE, 0L,
+                                    MPFROM2SHORT((BKA_STATUSTEXTON | BKA_AUTOPAGESIZE | BKA_MAJOR | flags), front ? BKA_FIRST : BKA_LAST));
+   RECTL rect;
+   WinQueryWindowRect(handle, &rect);
+   WinInvalidateRect(handle, &rect, TRUE);
+   return retval;}
 
 /*
  * Remove a page from a notebook.
@@ -8210,10 +8213,13 @@ void API dw_notebook_page_destroy(HWND handle, unsigned int pageid)
 {
    HWND pagehwnd = (HWND)WinSendMsg(handle, BKM_QUERYPAGEWINDOWHWND,
                                     MPFROMLONG(pageid), 0L);
+   RECTL rect;
    WinSendMsg(handle, BKM_DELETEPAGE,
             MPFROMLONG(pageid),  (MPARAM)BKA_SINGLE);
    if(pagehwnd)
       dw_window_destroy(pagehwnd);
+   WinQueryWindowRect(handle, &rect);
+   WinInvalidateRect(handle, &rect, TRUE);
 }
 
 /*
