@@ -1322,7 +1322,7 @@ DWObject *DWObj;
 -(void)keyDown:(NSEvent *)theEvent
 {
     unichar vk = [[theEvent charactersIgnoringModifiers] characterAtIndex:0];
-    
+
     if(vk == NSTabCharacter || vk == NSBackTabCharacter)
         [self interpretKeyEvents:[NSArray arrayWithObject:theEvent]];
     else if(vk == NSLeftArrowFunctionKey)
@@ -1330,14 +1330,14 @@ DWObject *DWObj;
         NSArray *pages = [self tabViewItems];
         DWNotebookPage *page = (DWNotebookPage *)[self selectedTabViewItem];
         NSUInteger index = [pages indexOfObject:page];
-                     
+
         if(index != NSNotFound)
         {
             if(index > 0)
                [self selectTabViewItem:[pages objectAtIndex:(index-1)]];
             else
                [self selectTabViewItem:[pages objectAtIndex:0]];
-                
+
         }
     }
     else if(vk == NSRightArrowFunctionKey)
@@ -1346,14 +1346,14 @@ DWObject *DWObj;
         DWNotebookPage *page = (DWNotebookPage *)[self selectedTabViewItem];
         NSUInteger index = [pages indexOfObject:page];
         NSUInteger count = [pages count];
-        
+
         if(index != NSNotFound)
         {
             if(index + 1 < count)
                 [self selectTabViewItem:[pages objectAtIndex:(index+1)]];
             else
                 [self selectTabViewItem:[pages objectAtIndex:(count-1)]];
-            
+
         }
     }
     [super keyDown:theEvent];
@@ -2142,7 +2142,7 @@ DWObject *DWObj;
 -(void)keyDown:(NSEvent *)theEvent
 {
     unichar vk = [[theEvent charactersIgnoringModifiers] characterAtIndex:0];
-    
+
     if(vk == NSTabCharacter || vk == NSBackTabCharacter)
         [self interpretKeyEvents:[NSArray arrayWithObject:theEvent]];
     [super keyDown:theEvent];
@@ -2387,7 +2387,7 @@ void _free_tree_recurse(NSMutableArray *node, NSMutableArray *item)
 -(void)keyDown:(NSEvent *)theEvent
 {
     unichar vk = [[theEvent charactersIgnoringModifiers] characterAtIndex:0];
-    
+
     if(vk == NSTabCharacter || vk == NSBackTabCharacter)
         [self interpretKeyEvents:[NSArray arrayWithObject:theEvent]];
     [super keyDown:theEvent];
@@ -5302,7 +5302,7 @@ void API dw_mle_get_size(HWND handle, unsigned long *bytes, unsigned long *lines
 
         *lines = numberOfLines;
     }
-    DW_MUTEX_LOCK;
+    DW_MUTEX_UNLOCK;
 }
 
 /*
