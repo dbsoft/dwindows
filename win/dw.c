@@ -6621,61 +6621,73 @@ void API dw_window_set_icon(HWND handle, HICN icon)
             (LPARAM) hicon);
 }
 
-/*
- * Sets the bitmap used for a given static window.
- * Parameters:
- *       handle: Handle to the window.
- *       id: An ID to be used to specify the icon,
- *           (pass 0 if you use the filename param)
- *       filename: a path to a file (Bitmap on OS/2 or
- *                 Windows and a pixmap on Unix, pass
- *                 NULL if you use the id param)
- */
-void API dw_window_set_bitmap(HWND handle, unsigned long id, char *filename)
+/* Internal function to set bitmap for the next two functions */
+void _dw_window_set_bitmap(HWND handle, HICON icon, HBITMAP hbitmap)
 {
-   HBITMAP hbitmap = 0;
-   HBITMAP oldbitmap = (HBITMAP)SendMessage(handle, STM_GETIMAGE, IMAGE_BITMAP, 0);
-   HANDLE icon = 0;
-   HANDLE oldicon = (HICON)SendMessage(handle, STM_GETIMAGE, IMAGE_ICON, 0);
+   HBITMAP oldbitmap = 0;
+   HANDLE oldicon = 0;
+   TCHAR tmpbuf[100] = {0};
+   
+   if (!icon && !hbitmap)
+      return;
 
-   if(id)
+   GetClassName(handle, tmpbuf, 99);
+  
+   if(_tcsnicmp(tmpbuf, BUTTONCLASSNAME, _tcslen(BUTTONCLASSNAME)+1)==0)
    {
-      hbitmap = LoadImage(DWInstance, MAKEINTRESOURCE(id), IMAGE_BITMAP, 0, 0, LR_LOADMAP3DCOLORS | LR_SHARED);
-      icon = LoadImage(DWInstance, MAKEINTRESOURCE(id), IMAGE_ICON, 0, 0, LR_SHARED);
-   }
-   else if(filename)
-   {
-#ifdef GDIPLUS
-      hbitmap = _dw_load_bitmap(filename, NULL);
-#else
-      _dw_get_image_handle(filename, &icon, &hbitmap);
-#endif
-      if (icon == 0 && hbitmap == 0)
-         return;
-   }
-
-   if(icon)
-   {
+      oldbitmap = (HBITMAP)SendMessage(handle, BM_GETIMAGE, IMAGE_BITMAP, 0);
+      oldicon = (HICON)SendMessage(handle, BM_GETIMAGE, IMAGE_ICON, 0);
       SendMessage(handle, BM_SETIMAGE,
-               (WPARAM) IMAGE_ICON,
-               (LPARAM) icon);
-      SendMessage(handle, STM_SETIMAGE,
-               (WPARAM) IMAGE_ICON,
-               (LPARAM) icon);
+               (icon ? (WPARAM)IMAGE_ICON : (WPARAM)IMAGE_BITMAP),
+               (icon ? (LPARAM)icon : (LPARAM)hbitmap));
    }
-   else if(hbitmap)
+#ifdef TOOLBAR   
+   /* Bitmap Buttons */
+   else if(_tcsnicmp(tmpbuf, TOOLBARCLASSNAME, _tcslen(TOOLBARCLASSNAME)+1) == 0)
    {
-      SendMessage(handle, BM_SETIMAGE,
-               (WPARAM) IMAGE_BITMAP,
-               (LPARAM) hbitmap);
+      HIMAGELIST imlist = (HIMAGELIST)SendMessage(handle, TB_GETIMAGELIST, 0, 0);
+      HIMAGELIST dimlist = (HIMAGELIST)SendMessage(handle, TB_GETDISABLEDIMAGELIST, 0, 0);
+      BITMAP bmi = { 0 };
+     
+      if(hbitmap)
+      {
+         GetObject(hbitmap, sizeof(BITMAP), &bmi);
+         imlist = ImageList_Create(bmi.bmWidth, bmi.bmHeight, ILC_COLOR32, 1, 0);
+         ImageList_Replace(imlist, 0, hbitmap, NULL);
+         dimlist = ImageList_Create(bmi.bmWidth, bmi.bmHeight, ILC_COLOR32, 1, 0);
+         _to_grayscale(hbitmap, bmi.bmWidth, bmi.bmHeight);
+         ImageList_Replace(dimlist, 0, hbitmap, NULL);
+         DeleteObject(hbitmap);
+      }
+      else if(icon)
+      {
+         ICONINFO iconinfo;
+         
+         GetIconInfo(icon, &iconinfo);
+         GetObject(iconinfo.hbmColor, sizeof(BITMAP), &bmi);
+         imlist = ImageList_Create(bmi.bmWidth, bmi.bmHeight, ILC_COLOR32 | ILC_MASK, 1, 0);
+         ImageList_ReplaceIcon(imlist, 0, icon);
+         dimlist = ImageList_Create(bmi.bmWidth, bmi.bmHeight, ILC_COLOR32 | ILC_MASK, 1, 0);
+         _to_grayscale(iconinfo.hbmColor, bmi.bmWidth, bmi.bmHeight);
+         ImageList_Replace(dimlist, 0, iconinfo.hbmColor, iconinfo.hbmMask);
+         DeleteObject(iconinfo.hbmColor);
+         DeleteObject(iconinfo.hbmMask);
+         DestroyIcon(icon);
+      }
+   }
+#endif   
+   else
+   {
+      oldbitmap = (HBITMAP)SendMessage(handle, STM_GETIMAGE, IMAGE_BITMAP, 0);
+      oldicon = (HICON)SendMessage(handle, STM_GETIMAGE, IMAGE_ICON, 0);
       SendMessage(handle, STM_SETIMAGE,
-               (WPARAM) IMAGE_BITMAP,
-               (LPARAM) hbitmap);
+               (icon ? (WPARAM)IMAGE_ICON : (WPARAM)IMAGE_BITMAP),
+               (icon ? (LPARAM)icon : (LPARAM)hbitmap));
    }
 
-   if(hbitmap && oldbitmap)
+   if(oldbitmap)
       DeleteObject(oldbitmap);
-   else if(icon && oldicon)
+   if(oldicon)
       DeleteObject(oldicon);
 
    /* If we changed the bitmap... */
@@ -6693,6 +6705,38 @@ void API dw_window_set_bitmap(HWND handle, unsigned long id, char *filename)
 }
 
 /*
+ * Sets the bitmap used for a given static window.
+ * Parameters:
+ *       handle: Handle to the window.
+ *       id: An ID to be used to specify the icon,
+ *           (pass 0 if you use the filename param)
+ *       filename: a path to a file (Bitmap on OS/2 or
+ *                 Windows and a pixmap on Unix, pass
+ *                 NULL if you use the id param)
+ */
+void API dw_window_set_bitmap(HWND handle, unsigned long id, char *filename)
+{
+   HBITMAP hbitmap = 0;
+   HANDLE icon = 0;
+
+   if(id)
+   {
+      hbitmap = LoadImage(DWInstance, MAKEINTRESOURCE(id), IMAGE_BITMAP, 0, 0, LR_LOADMAP3DCOLORS | LR_SHARED);
+      icon = LoadImage(DWInstance, MAKEINTRESOURCE(id), IMAGE_ICON, 0, 0, LR_SHARED);
+   }
+   else if(filename)
+   {
+#ifdef GDIPLUS
+      hbitmap = _dw_load_bitmap(filename, NULL);
+#else
+      _dw_get_image_handle(filename, &icon, &hbitmap);
+#endif
+   }
+   
+   _dw_window_set_bitmap(handle, icon, hbitmap);
+}
+
+/*
  * Sets the bitmap used for a given static window from data.
  * Parameters:
  *       handle: Handle to the window.
@@ -6706,9 +6750,7 @@ void API dw_window_set_bitmap(HWND handle, unsigned long id, char *filename)
 void API dw_window_set_bitmap_from_data(HWND handle, unsigned long id, char *data, int len)
 {
    HBITMAP hbitmap=0;
-   HBITMAP oldbitmap = (HBITMAP)SendMessage(handle, STM_GETIMAGE, IMAGE_BITMAP, 0);
    HICON icon=0;
-   HICON oldicon = (HICON)SendMessage(handle, STM_GETIMAGE, IMAGE_ICON, 0);
    char *file;
    FILE *fp;
 
@@ -6749,29 +6791,7 @@ void API dw_window_set_bitmap_from_data(HWND handle, unsigned long id, char *dat
       icon = LoadImage( DWInstance, MAKEINTRESOURCE(id), IMAGE_ICON, 0, 0, LR_SHARED );
    }
 
-   if ( icon )
-   {
-      SendMessage( handle, BM_SETIMAGE,
-                   (WPARAM) IMAGE_ICON,
-                   (LPARAM) icon );
-      SendMessage( handle, STM_SETIMAGE,
-                   (WPARAM) IMAGE_ICON,
-                   (LPARAM) icon );
-   }
-   else if ( hbitmap )
-   {
-      SendMessage( handle, BM_SETIMAGE,
-                   (WPARAM) IMAGE_BITMAP,
-                   (LPARAM) hbitmap );
-      SendMessage( handle, STM_SETIMAGE,
-                   (WPARAM) IMAGE_BITMAP,
-                   (LPARAM) hbitmap );
-   }
-
-   if( hbitmap && oldbitmap )
-      DeleteObject( oldbitmap );
-   else if ( icon && oldicon )
-      DeleteObject( oldicon );
+   _dw_window_set_bitmap(handle, icon, hbitmap);
 }
 
 
