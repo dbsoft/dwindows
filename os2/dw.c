@@ -6655,6 +6655,29 @@ HWND API dw_bitmapbutton_new(char *text, ULONG id)
    return tmp;
 }
 
+/* Internal function to create a disabled version of a pixmap */
+HPIXMAP _create_disabled(HWND handle, HPIXMAP pixmap)
+{
+    /* Create a disabled style pixmap */
+    HPIXMAP disabled = dw_pixmap_new(handle, pixmap->width, pixmap->height, dw_color_depth_get());
+    LONG fore = _foreground;
+    int z, j, lim;
+
+    dw_pixmap_bitblt(0, disabled, 0, 0, pixmap->width, pixmap->height, 0, pixmap, 0, 0);
+
+    dw_color_foreground_set(DW_CLR_PALEGRAY);
+    lim = pixmap->width/2;
+    for(j=0;j<pixmap->height;j++)
+    {
+        int mod = j%2;
+
+        for(z=0;z<lim;z++)
+            dw_draw_point(0, disabled, (z*2)+mod, j);
+    }
+    _foreground = fore;
+    return disabled;
+}
+
 /*
  * Create a new bitmap button window (widget) to be packed from a file.
  * Parameters:
@@ -6684,8 +6707,7 @@ HWND API dw_bitmapbutton_new_from_file(char *text, unsigned long id, char *filen
 
    if(file && (pixmap = calloc(1,sizeof(struct _hpixmap))))
    {
-      int z, j, lim, len;
-      LONG fore;
+      int z, len;
 
       strcpy(file, filename);
 
@@ -6727,21 +6749,7 @@ HWND API dw_bitmapbutton_new_from_file(char *text, unsigned long id, char *filen
       }
       else
       {
-         /* Create a disabled style pixmap */
-         disabled = dw_pixmap_new(tmp, pixmap->width, pixmap->height, dw_color_depth_get());
-         dw_pixmap_bitblt(0, disabled, 0, 0, pixmap->width, pixmap->height, 0, pixmap, 0, 0);
-
-         fore = _foreground;
-         dw_color_foreground_set(DW_CLR_PALEGRAY);
-         lim = pixmap->width/2;
-         for(j=0;j<pixmap->height;j++)
-         {
-            int mod = j%2;
-
-            for(z=0;z<lim;z++)
-               dw_draw_point(0, disabled, (z*2)+mod, j);
-         }
-         _foreground = fore;
+          disabled = _create_disabled(tmp, pixmap);
       }
    }
 
@@ -6792,8 +6800,6 @@ HWND API dw_bitmapbutton_new_from_data(char *text, unsigned long id, char *data,
 
    if((pixmap = calloc(1, sizeof(struct _hpixmap))) != NULL)
    {
-      int z, j, lim;
-      LONG fore;
       file = tmpnam( NULL );
       if ( file != NULL )
       {
@@ -6822,21 +6828,7 @@ HWND API dw_bitmapbutton_new_from_data(char *text, unsigned long id, char *data,
       }
       else
       {
-         /* Create a disabled style pixmap */
-         disabled = dw_pixmap_new(tmp, pixmap->width, pixmap->height, dw_color_depth_get());
-         dw_pixmap_bitblt(0, disabled, 0, 0, pixmap->width, pixmap->height, 0, pixmap, 0, 0);
-
-         fore = _foreground;
-         dw_color_foreground_set(DW_CLR_PALEGRAY);
-         lim = pixmap->width/2;
-         for(j=0;j<pixmap->height;j++)
-         {
-            int mod = j%2;
-
-            for(z=0;z<lim;z++)
-               dw_draw_point(0, disabled, (z*2)+mod, j);
-         }
-         _foreground = fore;
+          disabled = _create_disabled(tmp, pixmap);
       }
    }
 
@@ -7276,74 +7268,57 @@ int _load_bitmap_file(char *file, HWND handle, HBITMAP *hbm, HDC *hdc, HPS *hps,
     return 1;
 }
 
-/*
- * Sets the bitmap used for a given static window.
- * Parameters:
- *       handle: Handle to the window.
- *       id: An ID to be used to specify the icon,
- *           (pass 0 if you use the filename param)
- *       filename: a path to a file (Bitmap on OS/2 or
- *                 Windows and a pixmap on Unix, pass
- *                 NULL if you use the id param)
- */
-void API dw_window_set_bitmap(HWND handle, unsigned long id, char *filename)
+/* Internal function to change the button bitmap */
+void _dw_window_set_bitmap(HWND handle, HBITMAP hbm, HDC hdc, HPS hps, unsigned long width, unsigned long height, int depth, HPOINTER icon)
 {
-   HBITMAP hbm;
-   HPS     hps;
+   char tmpbuf[100] = {0};
 
-   /* Destroy any old bitmap data */
-   _free_bitmap(handle);
+   WinQueryClassName(handle, 99, (PCH)tmpbuf);
 
-   /* If id is non-zero use the resource */
-   if ( id )
+   /* Button */
+   if(strncmp(tmpbuf, "#3", 3)==0)
    {
-      hps = WinGetPS( handle );
-      hbm = GpiLoadBitmap( hps, NULLHANDLE, id, 0, 0 );
+       WNDPARAMS   wp = {0};
+       BTNCDATA    bcd = {0};
+       RECTL       rect;
+
+       wp.fsStatus = WPM_CTLDATA;
+       wp.pCtlData = &bcd;
+       wp.cbCtlData = bcd.cb = sizeof(BTNCDATA);
+
+       /* Clear any existing icon */
+       WinSendMsg(handle, WM_SETWINDOWPARAMS, (MPARAM)&wp, NULL);
+
+       if(icon)
+       {
+           dw_window_set_data(handle, "_dw_button_icon", DW_POINTER(icon));
+       }
+       else
+       {
+           HPIXMAP pixmap = (HPIXMAP)dw_window_get_data(handle, "_dw_hpixmap");
+           HPIXMAP disabled = (HPIXMAP)dw_window_get_data(handle, "_dw_hpixmap_disabled");
+
+           if(pixmap)
+               dw_pixmap_destroy(pixmap);
+           if(disabled)
+               dw_pixmap_destroy(disabled);
+
+           pixmap = calloc(1,sizeof(struct _hpixmap));
+           pixmap->hbm = hbm;
+           pixmap->hdc = hdc;
+           pixmap->hps = hps;
+           pixmap->width = width;
+           pixmap->height = height;
+           disabled = _create_disabled(handle, pixmap);
+
+           dw_window_set_data(handle, "_dw_hpixmap", DW_POINTER(pixmap));
+           dw_window_set_data(handle, "_dw_hpixmap_disabled", DW_POINTER(disabled));
+       }
+       dw_window_set_data(handle, "_dw_bitmapbutton", DW_POINTER(1));
+       /* Make sure we invalidate the button so it redraws */
+       WinQueryWindowRect(handle, &rect);
+       WinInvalidateRect(handle, &rect, TRUE);
    }
-   else if ( filename )
-   {
-      HDC hdc = 0;
-      unsigned long width, height;
-      char *file = alloca(strlen(filename) + 6);
-      int depth;
-
-      if(!file)
-         return;
-
-      strcpy(file, filename);
-
-      /* check if we can read from this file (it exists and read permission) */
-      if(access(file, 04) != 0)
-      {
-          int z;
-
-          /* Try with supported extensions */
-          for(z=0;z<(_gbm_init?NUM_EXTS:1);z++)
-          {
-              strcpy(file, filename);
-              strcat(file, image_exts[z]);
-              if(access(file, 04) == 0 &&
-                 _load_bitmap_file(file, handle, &hbm, &hdc, &hps, &width, &height, &depth))
-                  break;
-          }
-      }
-      else
-          _load_bitmap_file(file, handle, &hbm, &hdc, &hps, &width, &height, &depth);
-
-      if(!hdc)
-         return;
-
-      dw_window_set_data(handle, "_dw_hps", (void *)hps);
-      dw_window_set_data(handle, "_dw_hdc", (void *)hdc);
-      dw_window_set_data(handle, "_dw_width", (void *)width);
-      dw_window_set_data(handle, "_dw_height", (void *)height);
-   }
-   else
-      return;
-
-   if ( id )
-      WinReleasePS(hps);
-   dw_window_set_data(handle, "_dw_bitmap", (void *)hbm);
    
    /* If we changed the bitmap... */
    {
@@ -7357,6 +7332,94 @@ void API dw_window_set_bitmap(HWND handle, unsigned long id, char *filename)
          _dw_redraw(_toplevel_window(handle), TRUE);
       }
    }
+}
+
+/*
+ * Sets the bitmap used for a given static window.
+ * Parameters:
+ *       handle: Handle to the window.
+ *       id: An ID to be used to specify the icon,
+ *           (pass 0 if you use the filename param)
+ *       filename: a path to a file (Bitmap on OS/2 or
+ *                 Windows and a pixmap on Unix, pass
+ *                 NULL if you use the id param)
+ */
+void API dw_window_set_bitmap(HWND handle, unsigned long id, char *filename)
+{
+   HBITMAP hbm = 0;
+   HPS     hps = 0;
+   HDC     hdc = 0;
+   HPOINTER icon = 0;
+   unsigned long width = 0, height = 0;
+   int depth = 0;
+
+   /* Destroy any old bitmap data */
+   _free_bitmap(handle);
+
+   /* If id is non-zero use the resource */
+   if ( id )
+   {
+      hps = WinGetPS( handle );
+      hbm = GpiLoadBitmap( hps, NULLHANDLE, id, 0, 0 );
+      WinReleasePS(hps);
+   }
+   else if ( filename )
+   {
+      char *file = alloca(strlen(filename) + 6);
+
+      if(!file)
+         return;
+
+      strcpy(file, filename);
+
+      /* check if we can read from this file (it exists and read permission) */
+      if(access(file, 04) != 0)
+      {
+         /* Try with .ico extension first...*/
+         strcat(file, ".ico");
+         if(access(file, 04) == 0)
+            icon = WinLoadFileIcon((PSZ)file, FALSE);
+         else
+         {
+             int z;
+
+             /* Try with supported extensions */
+             for(z=0;z<(_gbm_init?NUM_EXTS:1);z++)
+             {
+                 strcpy(file, filename);
+                 strcat(file, image_exts[z]);
+                 if(access(file, 04) == 0 &&
+                    _load_bitmap_file(file, handle, &hbm, &hdc, &hps, &width, &height, &depth))
+                     break;
+             }
+         }
+      }
+      else
+      {
+         int len = strlen( file );
+         if(len > 4)
+         {
+            if(stricmp(file + len - 4, ".ico") == 0)
+               icon = WinLoadFileIcon((PSZ)file, FALSE);
+            else
+               _load_bitmap_file(file, handle, &hbm, &hdc, &hps, &width, &height, &depth);
+         }
+      }
+
+      if(!hdc && !icon)
+         return;
+
+      dw_window_set_data(handle, "_dw_hps", (void *)hps);
+      dw_window_set_data(handle, "_dw_hdc", (void *)hdc);
+      dw_window_set_data(handle, "_dw_width", (void *)width);
+      dw_window_set_data(handle, "_dw_height", (void *)height);
+   }
+   else
+      return;
+
+   dw_window_set_data(handle, "_dw_bitmap", (void *)hbm);
+
+   _dw_window_set_bitmap(handle, hbm, hdc, hps, width, height, depth, icon);
 }
 
 /*
@@ -7417,13 +7480,14 @@ void API dw_window_set_bitmap_from_data(HWND handle, unsigned long id, char *dat
    {
       hps = WinGetPS( handle );
       hbm = GpiLoadBitmap( hps, NULLHANDLE, id, 0, 0 );
+      WinReleasePS(hps);
    }
    else
       return;
 
-   if ( id )
-      WinReleasePS(hps);
    dw_window_set_data(handle, "_dw_bitmap", (void *)hbm);
+
+   _dw_window_set_bitmap(handle, hbm, hdc, hps, width, height, depth, 0);
 }
 
 /*
