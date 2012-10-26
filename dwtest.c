@@ -1294,6 +1294,7 @@ void buttons_add(void)
     abutton2 = dw_bitmapbutton_new_from_file( "Bottom", 0, FOLDER_ICON_NAME );
     dw_box_pack_start( buttonsbox, abutton2, 25, 25, FALSE, FALSE, 0 );
     dw_signal_connect( abutton2, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(button_callback), NULL );
+    dw_window_set_bitmap(abutton2, 0, FILE_ICON_NAME);
 
     create_button(0);
     /* make a combobox */
