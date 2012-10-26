@@ -3918,9 +3918,7 @@ HWND dw_bitmapbutton_new_from_file(char *text, unsigned long id, char *filename)
 {
    GtkWidget *bitmap;
    GtkWidget *box;
-   GtkWidget *label;
    GtkWidget *button;
-   char *label_text=NULL;
    int _locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
@@ -3940,14 +3938,6 @@ HWND dw_bitmapbutton_new_from_file(char *text, unsigned long id, char *filename)
       gtk_box_pack_start( GTK_BOX(box), bitmap, TRUE, FALSE, 3 );
       gtk_widget_show( bitmap );
       g_object_set_data(G_OBJECT(button), "_dw_bitmap", bitmap);
-   }
-   if(label_text)
-   {
-      /* Create a label for the button */
-      label = gtk_label_new( label_text );
-      /* Pack the label into the box */
-      gtk_box_pack_start( GTK_BOX(box), label, TRUE, FALSE, 3 );
-      gtk_widget_show( label );
    }
 
    /* Pack and show all our widgets */
@@ -4289,8 +4279,11 @@ void dw_window_set_bitmap(HWND handle, unsigned long id, char *filename)
    {
       if ( GTK_IS_BUTTON(handle) )
       {
-         GtkWidget *image = gtk_button_get_image( GTK_BUTTON(handle) );
-         gtk_image_set_from_pixbuf(GTK_IMAGE(image), tmp);
+         GtkWidget *pixmap = (GtkWidget *)g_object_get_data( G_OBJECT(handle), "_dw_bitmap" );
+         if(pixmap)
+         {
+            gtk_image_set_from_pixbuf(GTK_IMAGE(pixmap), tmp);
+         }
       }
       else
       {
@@ -4349,7 +4342,18 @@ void dw_window_set_bitmap_from_data(HWND handle, unsigned long id, char *data, i
 
    if(tmp)
    {
-      gtk_image_set_from_pixbuf(GTK_IMAGE(handle), tmp);
+      if ( GTK_IS_BUTTON(handle) )
+      {
+         GtkWidget *pixmap = (GtkWidget *)g_object_get_data( G_OBJECT(handle), "_dw_bitmap" );
+         if(pixmap)
+         {
+            gtk_image_set_from_pixbuf(GTK_IMAGE(pixmap), tmp);
+         }
+      }
+      else
+      {
+         gtk_image_set_from_pixbuf(GTK_IMAGE(handle), tmp);
+      }
    }
    DW_MUTEX_UNLOCK;
 }
