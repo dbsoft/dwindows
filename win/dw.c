@@ -6652,9 +6652,7 @@ void _dw_window_set_bitmap(HWND handle, HICON icon, HBITMAP hbitmap)
       if(hbitmap)
       {
          GetObject(hbitmap, sizeof(BITMAP), &bmi);
-         imlist = ImageList_Create(bmi.bmWidth, bmi.bmHeight, ILC_COLOR32, 1, 0);
          ImageList_Replace(imlist, 0, hbitmap, NULL);
-         dimlist = ImageList_Create(bmi.bmWidth, bmi.bmHeight, ILC_COLOR32, 1, 0);
          _to_grayscale(hbitmap, bmi.bmWidth, bmi.bmHeight);
          ImageList_Replace(dimlist, 0, hbitmap, NULL);
          DeleteObject(hbitmap);
@@ -6665,9 +6663,7 @@ void _dw_window_set_bitmap(HWND handle, HICON icon, HBITMAP hbitmap)
          
          GetIconInfo(icon, &iconinfo);
          GetObject(iconinfo.hbmColor, sizeof(BITMAP), &bmi);
-         imlist = ImageList_Create(bmi.bmWidth, bmi.bmHeight, ILC_COLOR32 | ILC_MASK, 1, 0);
          ImageList_ReplaceIcon(imlist, 0, icon);
-         dimlist = ImageList_Create(bmi.bmWidth, bmi.bmHeight, ILC_COLOR32 | ILC_MASK, 1, 0);
          _to_grayscale(iconinfo.hbmColor, bmi.bmWidth, bmi.bmHeight);
          ImageList_Replace(dimlist, 0, iconinfo.hbmColor, iconinfo.hbmMask);
          DeleteObject(iconinfo.hbmColor);
