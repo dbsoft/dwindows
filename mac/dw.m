@@ -9149,7 +9149,6 @@ void API dw_window_set_bitmap_from_data(HWND handle, unsigned long cid, char *da
             if(pixmap)
             {
                 [object setImage:pixmap];
-                [pixmap release];
             }
             /* If we changed the bitmap... */
             Item *item = _box_item(handle);
@@ -9219,7 +9218,6 @@ void API dw_window_set_bitmap(HWND handle, unsigned long resid, char *filename)
                 /* Queue a redraw on the top-level window */
                 _dw_redraw([object window], TRUE);
             }
-            [bitmap release];
         }
     }
     DW_LOCAL_POOL_OUT;
