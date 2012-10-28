@@ -6670,6 +6670,7 @@ void _dw_window_set_bitmap(HWND handle, HICON icon, HBITMAP hbitmap)
          DeleteObject(iconinfo.hbmMask);
          DestroyIcon(icon);
       }
+      InvalidateRect(handle, NULL, FALSE);
    }
 #endif   
    else
