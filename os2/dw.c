@@ -431,6 +431,14 @@ void _free_bitmap(HWND handle)
    HPIXMAP disable = (HPIXMAP)dw_window_get_data(handle, "_dw_hpixmap_disabled");
    HPOINTER icon = (HPOINTER)dw_window_get_data(handle, "_dw_button_icon");
 
+   /* For safety purposes, reset all the window data */
+   dw_window_set_data(handle, "_dw_bitmap", NULL);
+   dw_window_set_data(handle, "_dw_hps", NULL);
+   dw_window_set_data(handle, "_dw_hdc", NULL);
+   dw_window_set_data(handle, "_dw_hpixmap", NULL);
+   dw_window_set_data(handle, "_dw_hpixmap_disabled", NULL);
+   dw_window_set_data(handle, "_dw_button_icon", NULL);
+   
    if(icon)
       WinDestroyPointer(icon);
 
@@ -7295,15 +7303,8 @@ void _dw_window_set_bitmap(HWND handle, HBITMAP hbm, HDC hdc, HPS hps, unsigned 
        }
        else
        {
-           HPIXMAP pixmap = (HPIXMAP)dw_window_get_data(handle, "_dw_hpixmap");
-           HPIXMAP disabled = (HPIXMAP)dw_window_get_data(handle, "_dw_hpixmap_disabled");
+           HPIXMAP disabled, pixmap = calloc(1,sizeof(struct _hpixmap));
 
-           if(pixmap)
-               dw_pixmap_destroy(pixmap);
-           if(disabled)
-               dw_pixmap_destroy(disabled);
-
-           pixmap = calloc(1,sizeof(struct _hpixmap));
            pixmap->hbm = hbm;
            pixmap->hdc = hdc;
            pixmap->hps = hps;
