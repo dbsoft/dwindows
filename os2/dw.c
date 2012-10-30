@@ -65,7 +65,7 @@ MRESULT EXPENTRY _wndproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2);
 MRESULT EXPENTRY _scrollwndproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2);
 void _do_resize(Box *thisbox, int x, int y);
 void _handle_splitbar_resize(HWND hwnd, float percent, int type, int x, int y);
-int _load_bitmap_file(char *file, HWND handle, HBITMAP *hbm, HDC *hdc, HPS *hps, unsigned long *width, unsigned long *height, int *depth);
+int _load_bitmap_file(char *file, HWND handle, HBITMAP *hbm, HDC *hdc, HPS *hps, unsigned long *width, unsigned long *height, int *depth, unsigned long backrgb);
 void _free_menu_data(HWND menu);
 BOOL (API_FUNC _WinQueryDesktopWorkArea)(HWND hwndDesktop, PWRECT pwrcWorkArea) = 0;
 /* PMPrintf support for dw_debug() */
@@ -6728,7 +6728,7 @@ HWND API dw_bitmapbutton_new_from_file(char *text, unsigned long id, char *filen
             if(stricmp(file + len - 4, ".ico") == 0)
                icon = WinLoadFileIcon((PSZ)file, FALSE);
             else
-               _load_bitmap_file(file, tmp, &pixmap->hbm, &pixmap->hdc, &pixmap->hps, &pixmap->width, &pixmap->height, &pixmap->depth);
+               _load_bitmap_file(file, tmp, &pixmap->hbm, &pixmap->hdc, &pixmap->hps, &pixmap->width, &pixmap->height, &pixmap->depth, DW_CLR_DEFAULT);
          }
       }
       else
@@ -6744,7 +6744,7 @@ HWND API dw_bitmapbutton_new_from_file(char *text, unsigned long id, char *filen
                 strcpy(file, filename);
                 strcat(file, image_exts[z]);
                 if(access(file, 04) == 0 &&
-                   _load_bitmap_file(file, tmp, &pixmap->hbm, &pixmap->hdc, &pixmap->hps, &pixmap->width, &pixmap->height, &pixmap->depth))
+                   _load_bitmap_file(file, tmp, &pixmap->hbm, &pixmap->hdc, &pixmap->hps, &pixmap->width, &pixmap->height, &pixmap->depth, DW_CLR_DEFAULT))
                     break;
             }
          }
@@ -6816,7 +6816,7 @@ HWND API dw_bitmapbutton_new_from_data(char *text, unsigned long id, char *data,
          {
             fwrite( data, 1, len, fp );
             fclose( fp );
-            if(!_load_bitmap_file( file, tmp, &pixmap->hbm, &pixmap->hdc, &pixmap->hps, &pixmap->width, &pixmap->height, &pixmap->depth))
+            if(!_load_bitmap_file( file, tmp, &pixmap->hbm, &pixmap->hdc, &pixmap->hps, &pixmap->width, &pixmap->height, &pixmap->depth, DW_CLR_DEFAULT))
             {
                icon = WinLoadFileIcon((PSZ)file, FALSE);
             }
@@ -7073,7 +7073,7 @@ void API dw_window_set_icon(HWND handle, HICN icon)
 /* Internal function to load a bitmap from a file and return handles
  * to the bitmap, presentation space etc.
  */
-int _load_bitmap_file(char *file, HWND handle, HBITMAP *hbm, HDC *hdc, HPS *hps, unsigned long *width, unsigned long *height, int *depth)
+int _load_bitmap_file(char *file, HWND handle, HBITMAP *hbm, HDC *hdc, HPS *hps, unsigned long *width, unsigned long *height, int *depth, unsigned long backrgb)
 {
     PBITMAPINFOHEADER2 pBitmapInfoHeader;
     /* pointer to the first byte of bitmap data  */
@@ -7105,8 +7105,27 @@ int _load_bitmap_file(char *file, HWND handle, HBITMAP *hbm, HDC *hdc, HPS *hps,
 
         for(z=0;z<ft;z++)
         {
+            /* Using CLR_PALEGRAY as a default alpha background... we can
+             * change this to use WinQuerySysColor() later, but pale gray is
+             * already hardcoded elsewhere so just continue using it here.
+             */
+            char options[101] = "back_rgb=52020_52020_52020";
+
+            /* Ask the control if it has another color set */
+            if(backrgb == DW_CLR_DEFAULT && handle)
+            {
+                RGB rgb = {0};
+
+                if(WinQueryPresParam(handle, PP_BACKGROUNDCOLOR, PP_BACKGROUNDCOLORINDEX, NULL, sizeof(rgb), &rgb, QPF_NOINHERIT | QPF_PURERGBCOLOR | QPF_ID2COLORINDEX))
+                    snprintf(options, 100, "back_rgb=%d_%d_%d", rgb.bRed * 255, rgb.bGreen * 255, rgb.bBlue * 255);
+            }
+            else if(backrgb & DW_RGB_COLOR)
+            {
+                snprintf(options, 100, "back_rgb=%d_%d_%d", (int)DW_RED_VALUE(backrgb) * 255, (int)DW_GREEN_VALUE(backrgb) * 255, (int)DW_BLUE_VALUE(backrgb) * 255);
+            }
+
             /* Read the file header */
-            if((err = _gbm_read_header(file, fd, z, &gbm, "")) == 0)
+            if((err = _gbm_read_header(file, fd, z, &gbm, options)) == 0)
                 break;
         }
 
@@ -7390,7 +7409,7 @@ void API dw_window_set_bitmap(HWND handle, unsigned long id, char *filename)
                  strcpy(file, filename);
                  strcat(file, image_exts[z]);
                  if(access(file, 04) == 0 &&
-                    _load_bitmap_file(file, handle, &hbm, &hdc, &hps, &width, &height, &depth))
+                    _load_bitmap_file(file, handle, &hbm, &hdc, &hps, &width, &height, &depth, DW_CLR_DEFAULT))
                      break;
              }
          }
@@ -7403,7 +7422,7 @@ void API dw_window_set_bitmap(HWND handle, unsigned long id, char *filename)
             if(stricmp(file + len - 4, ".ico") == 0)
                icon = WinLoadFileIcon((PSZ)file, FALSE);
             else
-               _load_bitmap_file(file, handle, &hbm, &hdc, &hps, &width, &height, &depth);
+               _load_bitmap_file(file, handle, &hbm, &hdc, &hps, &width, &height, &depth, DW_CLR_DEFAULT);
          }
       }
 
@@ -7456,7 +7475,7 @@ void API dw_window_set_bitmap_from_data(HWND handle, unsigned long id, char *dat
          {
             fwrite( data, 1, len, fp );
             fclose( fp );
-            if(!_load_bitmap_file(file, handle, &hbm, &hdc, &hps, &width, &height, &depth))
+            if(!_load_bitmap_file(file, handle, &hbm, &hdc, &hps, &width, &height, &depth, DW_CLR_DEFAULT))
             {
                /* can't use ICO ? */
                unlink( file );
@@ -9422,14 +9441,14 @@ HICN API dw_icon_load_from_file(char *filename)
            strcpy(file, filename);
            strcat(file, image_exts[z]);
            if(access(file, 04) == 0 &&
-              _load_bitmap_file(file, hwndApp, &src->hbm, &src->hdc, &src->hps, &src->width, &src->height, &src->depth))
+              _load_bitmap_file(file, hwndApp, &src->hbm, &src->hdc, &src->hps, &src->width, &src->height, &src->depth, DW_CLR_DEFAULT))
            {
                icon = _create_icon(src);
                break;
            }
        }
    }
-   else if(_load_bitmap_file(file, hwndApp, &src->hbm, &src->hdc, &src->hps, &src->width, &src->height, &src->depth))
+   else if(_load_bitmap_file(file, hwndApp, &src->hbm, &src->hdc, &src->hps, &src->width, &src->height, &src->depth, DW_CLR_DEFAULT))
        icon = _create_icon(src);
    /* Free temporary resources if in use */
    if(icon)
@@ -10949,7 +10968,7 @@ HPIXMAP API dw_pixmap_new_from_file(HWND handle, char *filename)
            strcpy(file, filename);
            strcat(file, image_exts[z]);
            if(access(file, 04) == 0 &&
-              _load_bitmap_file(file, handle, &pixmap->hbm, &pixmap->hdc, &pixmap->hps, &pixmap->width, &pixmap->height, &pixmap->depth))
+              _load_bitmap_file(file, handle, &pixmap->hbm, &pixmap->hdc, &pixmap->hps, &pixmap->width, &pixmap->height, &pixmap->depth, DW_CLR_DEFAULT))
                break;
        }
    }
@@ -10995,7 +11014,7 @@ HPIXMAP API dw_pixmap_new_from_data(HWND handle, char *data, int len)
       {
          fwrite( data, 1, len, fp );
          fclose( fp );
-         if(!_load_bitmap_file(file, handle, &pixmap->hbm, &pixmap->hdc, &pixmap->hps, &pixmap->width, &pixmap->height, &pixmap->depth))
+         if(!_load_bitmap_file(file, handle, &pixmap->hbm, &pixmap->hdc, &pixmap->hps, &pixmap->width, &pixmap->height, &pixmap->depth, DW_CLR_DEFAULT))
          {
             /* can't use ICO ? */
             unlink( file );
