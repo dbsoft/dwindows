@@ -7117,11 +7117,11 @@ int _load_bitmap_file(char *file, HWND handle, HBITMAP *hbm, HDC *hdc, HPS *hps,
                 RGB rgb = {0};
 
                 if(WinQueryPresParam(handle, PP_BACKGROUNDCOLOR, PP_BACKGROUNDCOLORINDEX, NULL, sizeof(rgb), &rgb, QPF_NOINHERIT | QPF_PURERGBCOLOR | QPF_ID2COLORINDEX))
-                    snprintf(options, 100, "back_rgb=%d_%d_%d", rgb.bRed * 255, rgb.bGreen * 255, rgb.bBlue * 255);
+                    sprintf(options, "back_rgb=%d_%d_%d", rgb.bRed * 255, rgb.bGreen * 255, rgb.bBlue * 255);
             }
             else if(backrgb & DW_RGB_COLOR)
             {
-                snprintf(options, 100, "back_rgb=%d_%d_%d", (int)DW_RED_VALUE(backrgb) * 255, (int)DW_GREEN_VALUE(backrgb) * 255, (int)DW_BLUE_VALUE(backrgb) * 255);
+                sprintf(options, "back_rgb=%d_%d_%d", (int)DW_RED_VALUE(backrgb) * 255, (int)DW_GREEN_VALUE(backrgb) * 255, (int)DW_BLUE_VALUE(backrgb) * 255);
             }
 
             /* Read the file header */
