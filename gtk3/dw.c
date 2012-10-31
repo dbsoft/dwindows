@@ -3931,7 +3931,7 @@ HWND dw_bitmapbutton_new_from_file(char *text, unsigned long id, char *filename)
       gtk_container_add (GTK_CONTAINER(tmp), bitmap);
       g_object_set_data(G_OBJECT(tmp), "_dw_bitmap", bitmap);
    }
-
+   gtk_widget_show(tmp);
    if(text)
    {
       gtk_widget_set_tooltip_text(tmp, text);
