@@ -4602,38 +4602,28 @@ HWND dw_bitmapbutton_new(char *text, unsigned long id)
  */
 HWND dw_bitmapbutton_new_from_file(char *text, unsigned long id, char *filename)
 {
-   GtkWidget *bitmap;
-   GtkWidget *box;
+   GtkWidget *tmp;
    GtkWidget *button;
    int _locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
-
-   /* Create box for image and label */
-   box = gtk_hbox_new (FALSE, 0);
-   gtk_container_set_border_width (GTK_CONTAINER (box), 2);
-
    /* Create a new button */
-   button = gtk_button_new();
+   tmp = gtk_button_new();
    /* Now on to the image stuff */
    bitmap = dw_bitmap_new(id);
    if ( bitmap )
    {
       dw_window_set_bitmap( bitmap, 0, filename );
-      /* Pack the image into the box */
-      gtk_box_pack_start( GTK_BOX(box), bitmap, TRUE, FALSE, 3 );
-      gtk_widget_show( bitmap );
-      gtk_object_set_data(GTK_OBJECT(button), "_dw_bitmap", bitmap);
+      gtk_container_add (GTK_CONTAINER(tmp), bitmap);
+      gtk_object_set_data(GTK_OBJECT(tmp), "_dw_bitmap", bitmap);
    }
 
    /* Pack and show all our widgets */
-   gtk_widget_show( box );
-   gtk_container_add( GTK_CONTAINER(button), box );
-   gtk_widget_show( button );
-   _create_tooltip(button, text);
-   gtk_object_set_data( GTK_OBJECT(button), "_dw_id", GINT_TO_POINTER(id) );
+   gtk_widget_show(tmp);
+   _create_tooltip(tmp, text);
+   gtk_object_set_data(GTK_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(id));
    DW_MUTEX_UNLOCK;
-   return button;
+   return tmp;
 }
 
 /*
