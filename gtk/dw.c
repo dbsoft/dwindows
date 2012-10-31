@@ -4603,7 +4603,7 @@ HWND dw_bitmapbutton_new(char *text, unsigned long id)
 HWND dw_bitmapbutton_new_from_file(char *text, unsigned long id, char *filename)
 {
    GtkWidget *tmp;
-   GtkWidget *button;
+   GtkWidget *bitmap;
    int _locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
