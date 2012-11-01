@@ -1949,7 +1949,11 @@ static GdkPixbuf *_find_pixbuf(HICN icon)
    }
 
    if(data)
+   {
+      if(data[0] == 'G' && data[1] == 'd' && data[2] == 'k' && data[3] == 'P')
+         return gdk_pixbuf_new_from_inline(-1, (const guint8 *)data, FALSE, NULL);
       return gdk_pixbuf_new_from_xpm_data((const char **)data);
+   }
    return NULL;
 }
 #endif
@@ -4649,7 +4653,7 @@ HWND dw_bitmapbutton_new_from_data(char *text, unsigned long id, char *data, int
    {
       dw_window_set_bitmap_from_data(bitmap, 0, data, len);
       gtk_container_add (GTK_CONTAINER(tmp), bitmap);
-      g_object_set_data(GTK_OBJECT(tmp), "_dw_bitmap", bitmap);
+      gtk_object_set_data(GTK_OBJECT(tmp), "_dw_bitmap", bitmap);
    }
    gtk_widget_show(tmp);
    _create_tooltip(tmp, text);
@@ -4883,8 +4887,12 @@ void dw_window_set_icon(HWND handle, HICN icon)
  */
 void dw_window_set_bitmap(HWND handle, unsigned long id, char *filename)
 {
+#if GTK_MAJOR_VERSION > 1
+   GdkPixbuf *pixbuf = NULL;
+#else   
    GdkBitmap *bitmap = NULL;
-   GdkPixmap *tmp;
+   GdkPixmap *tmp = NULL;
+#endif
    int found_ext = 0;
    int i;
    int _locked_by_me = FALSE;
@@ -4894,13 +4902,15 @@ void dw_window_set_bitmap(HWND handle, unsigned long id, char *filename)
 
    DW_MUTEX_LOCK;
    if(id)
+#if GTK_MAJOR_VERSION > 1
+      pixbuf = _find_pixbuf((HICN)id);
+#else
       tmp = _find_pixmap(&bitmap, (HICN)id, handle, NULL, NULL);
+#endif      
    else
    {
       char *file = alloca(strlen(filename) + 6);
-#if GTK_MAJOR_VERSION > 1
-      GdkPixbuf *pixbuf;
-#elif defined(USE_IMLIB)
+#if defined(USE_IMLIB)
       GdkImlibImage *image;
 #endif
 
@@ -4934,8 +4944,6 @@ void dw_window_set_bitmap(HWND handle, unsigned long id, char *filename)
       }
 #if GTK_MAJOR_VERSION > 1
       pixbuf = gdk_pixbuf_new_from_file(file, NULL );
-      gdk_pixbuf_render_pixmap_and_mask(pixbuf, &tmp, &bitmap, 1);
-      g_object_unref(pixbuf);
 #elif defined(USE_IMLIB)
       image = gdk_imlib_load_image(file);
       gdk_imlib_render(image, image->rgb_width, image->rgb_height);
@@ -4947,30 +4955,38 @@ void dw_window_set_bitmap(HWND handle, unsigned long id, char *filename)
 #endif
    }
 
+#if GTK_MAJOR_VERSION > 1
+   if (pixbuf)
+#else   
    if (tmp)
+#endif   
    {
       if ( GTK_IS_BUTTON(handle) )
       {
-#if GTK_MAJOR_VERSION < 2
-         GtkWidget *pixmap = GTK_BUTTON(handle)->child;
-         gtk_pixmap_set(GTK_PIXMAP(pixmap), tmp, bitmap);
-#else
+#if GTK_MAJOR_VERSION > 1
          GtkWidget *pixmap = (GtkWidget *)gtk_object_get_data( GTK_OBJECT(handle), "_dw_bitmap" );
          if(pixmap)
          {
-            gtk_image_set_from_pixmap(GTK_IMAGE(pixmap), tmp, bitmap);
+            gtk_image_set_from_pixbuf(GTK_IMAGE(pixmap), pixbuf);
          }
+#else
+         GtkWidget *pixmap = GTK_BUTTON(handle)->child;
+         gtk_pixmap_set(GTK_PIXMAP(pixmap), tmp, bitmap);
 #endif
       }
       else
       {
 #if GTK_MAJOR_VERSION > 1
-         gtk_image_set_from_pixmap(GTK_IMAGE(handle), tmp, bitmap);
+         gtk_image_set_from_pixbuf(GTK_IMAGE(handle), pixbuf);
 #else
          gtk_pixmap_set(GTK_PIXMAP(handle), tmp, bitmap);
 #endif
       }
    }
+#if GTK_MAJOR_VERSION > 1
+   if(pixbuf)
+      g_object_unref(pixbuf);
+#endif      
    DW_MUTEX_UNLOCK;
 }
 
@@ -4987,8 +5003,12 @@ void dw_window_set_bitmap(HWND handle, unsigned long id, char *filename)
  */
 void dw_window_set_bitmap_from_data(HWND handle, unsigned long id, char *data, int len)
 {
+#if GTK_MAJOR_VERSION > 1
+   GdkPixbuf *pixbuf = NULL;
+#else   
    GdkBitmap *bitmap = NULL;
-   GdkPixmap *tmp;
+   GdkPixmap *tmp = NULL;
+#endif
    int _locked_by_me = FALSE;
    char *file;
    FILE *fp;
@@ -4999,9 +5019,7 @@ void dw_window_set_bitmap_from_data(HWND handle, unsigned long id, char *data, i
    DW_MUTEX_LOCK;
    if(data)
    {
-#if GTK_MAJOR_VERSION > 1
-      GdkPixbuf *pixbuf;
-#elif defined(USE_IMLIB)
+#if defined(USE_IMLIB)
       GdkImlibImage *image;
 #endif
       /*
@@ -5022,8 +5040,6 @@ void dw_window_set_bitmap_from_data(HWND handle, unsigned long id, char *data, i
       }
 #if GTK_MAJOR_VERSION > 1
       pixbuf = gdk_pixbuf_new_from_file(file, NULL );
-      gdk_pixbuf_render_pixmap_and_mask(pixbuf, &tmp, &bitmap, 1);
-      g_object_unref(pixbuf);
 #elif defined(USE_IMLIB)
       image = gdk_imlib_load_image(file);
       gdk_imlib_render(image, image->rgb_width, image->rgb_height);
@@ -5037,32 +5053,44 @@ void dw_window_set_bitmap_from_data(HWND handle, unsigned long id, char *data, i
       unlink (file );
    }
    else if (id)
+#if GTK_MAJOR_VERSION > 1
+      pixbuf = _find_pixbuf((HICN)id);
+#else
       tmp = _find_pixmap(&bitmap, (HICN)id, handle, NULL, NULL);
+#endif      
 
-   if(tmp)
+#if GTK_MAJOR_VERSION > 1
+   if (pixbuf)
+#else   
+   if (tmp)
+#endif   
    {
       if ( GTK_IS_BUTTON(handle) )
       {
-#if GTK_MAJOR_VERSION < 2
-         GtkWidget *pixmap = GTK_BUTTON(handle)->child;
-         gtk_pixmap_set(GTK_PIXMAP(pixmap), tmp, bitmap);
-#else
+#if GTK_MAJOR_VERSION > 1
          GtkWidget *pixmap = (GtkWidget *)gtk_object_get_data( GTK_OBJECT(handle), "_dw_bitmap" );
          if(pixmap)
          {
-            gtk_image_set_from_pixmap(GTK_IMAGE(pixmap), tmp, bitmap);
+            gtk_image_set_from_pixbuf(GTK_IMAGE(pixmap), pixbuf);
          }
+#else
+         GtkWidget *pixmap = GTK_BUTTON(handle)->child;
+         gtk_pixmap_set(GTK_PIXMAP(pixmap), tmp, bitmap);
 #endif
       }
       else
       {
 #if GTK_MAJOR_VERSION > 1
-         gtk_image_set_from_pixmap(GTK_IMAGE(handle), tmp, bitmap);
+         gtk_image_set_from_pixbuf(GTK_IMAGE(handle), pixbuf);
 #else
          gtk_pixmap_set(GTK_PIXMAP(handle), tmp, bitmap);
 #endif
       }
    }
+#if GTK_MAJOR_VERSION > 1
+   if(pixbuf)
+      g_object_unref(pixbuf);
+#endif      
    DW_MUTEX_UNLOCK;
 }
 
