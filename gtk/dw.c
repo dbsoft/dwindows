@@ -1406,7 +1406,7 @@ static gint _key_press_event(GtkWidget *widget, GdkEventKey *event, gpointer dat
       int (*keypressfunc)(HWND, char, int, int, void *, char *) = work.func;
       guint32 unichar = gdk_keyval_to_unicode(event->keyval);
       char utf8[7] = { 0 };
-      
+
       g_unichar_to_utf8(unichar, utf8);
 
       retval = keypressfunc(work.window, *event->string, event->keyval,
@@ -2076,12 +2076,12 @@ void init_webkit(void)
 
 static GStaticRecMutex _dw_gdk_lock;
 
-static void _dw_gdk_lock_enter(void) 
+static void _dw_gdk_lock_enter(void)
 {
     g_static_rec_mutex_lock(&_dw_gdk_lock);
 }
 
-static void _dw_gdk_lock_leave(void) 
+static void _dw_gdk_lock_leave(void)
 {
     g_static_rec_mutex_unlock(&_dw_gdk_lock);
 }
@@ -2114,8 +2114,8 @@ int dw_int_init(DWResources *res, int newthread, int *argc, char **argv[])
       char *pathcopy = strdup((*argv)[0]);
       char *pos = strrchr(pathcopy, '/');
       char *binname = pathcopy;
-      
-      /* If we have a / then... 
+
+      /* If we have a / then...
        * the binary name should be at the end.
        */
       if(pos)
@@ -2123,11 +2123,11 @@ int dw_int_init(DWResources *res, int newthread, int *argc, char **argv[])
          binname = pos + 1;
          *pos = 0;
       }
-      
+
       if(*binname)
       {
          char *binpos = strstr(pathcopy, "/bin");
-         
+
          if(binpos)
             strncpy(_dw_share_path, pathcopy, (size_t)(binpos - pathcopy));
          else
@@ -2150,7 +2150,7 @@ int dw_int_init(DWResources *res, int newthread, int *argc, char **argv[])
    g_static_rec_mutex_init(&_dw_gdk_lock);
 
    gdk_threads_set_lock_functions(G_CALLBACK(_dw_gdk_lock_enter), G_CALLBACK(_dw_gdk_lock_leave));
-   
+
    gdk_threads_init();
 #endif
 
@@ -2256,7 +2256,7 @@ void API dw_main_sleep(int milliseconds)
       while(((tv.tv_sec - start.tv_sec)*1000) + ((tv.tv_usec - start.tv_usec)/1000) <= milliseconds)
       {
          int _locked_by_me = FALSE;
-         
+
          if(orig == (pthread_t)-1)
          {
             if(!pthread_getspecific(_dw_mutex_key))
@@ -2295,7 +2295,7 @@ void API dw_main_iteration(void)
    pthread_t orig = _dw_thread;
    pthread_t curr = pthread_self();
    int _locked_by_me = FALSE;
-   
+
    if(_dw_thread == (pthread_t)-1)
    {
       if(!pthread_getspecific(_dw_mutex_key))
@@ -2888,31 +2888,31 @@ int dw_window_destroy(HWND handle)
       if(eventbox && GTK_IS_WIDGET(eventbox))
          handle2 = eventbox;
 
-      /* Check if we are removing a widget from a box */	      
+      /* Check if we are removing a widget from a box */	
       if((box = gtk_widget_get_parent(handle2)) && GTK_IS_TABLE(box))
       {
          /* Get the number of items in the box... */
          int boxcount = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(box), "_dw_boxcount"));
          int boxtype = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(box), "_dw_boxtype"));
          gint pos;
-         
+
          gtk_container_child_get(GTK_CONTAINER(box), handle2, boxtype == DW_VERT ? "top-attach" : "left-attach", &pos, NULL);
          gtk_widget_destroy(handle2);
-         
+
          /* If we are destroying the last item in the box this isn't necessary */
          if((pos+1) < boxcount)
          {
             /* If we need to contract the table, reposition all the children */
             gtk_container_forall(GTK_CONTAINER(box),_rearrange_table_destroy, GINT_TO_POINTER(boxtype == DW_VERT ? pos : -(pos+1)));
          }
-         
+
          if(boxcount > 0)
          {
             /* Decrease the count by 1 */
             boxcount--;
             gtk_object_set_data(GTK_OBJECT(box), "_dw_boxcount", GINT_TO_POINTER(boxcount));
          }
-         
+
          /* If we aren't trying to resize the table to 0... */
          if(boxcount > 0)
          {
@@ -2922,7 +2922,7 @@ int dw_window_destroy(HWND handle)
       }
       else
       {
-         /* Finally destroy the widget */      
+         /* Finally destroy the widget */
          gtk_widget_destroy(handle2);
       }
    }
@@ -3591,7 +3591,7 @@ HWND dw_window_new(HWND hwndOwner, char *title, unsigned long flStyle)
 #if GTK_MAJOR_VERSION > 1
       if(flStyle & DW_FCF_MAXIMIZE)
          gtk_window_maximize(GTK_WINDOW(tmp));
-         
+
       if(flStyle & DW_FCF_MINIMIZE)
          gtk_window_iconify(GTK_WINDOW(tmp));
 #endif
@@ -4649,6 +4649,7 @@ HWND dw_bitmapbutton_new_from_data(char *text, unsigned long id, char *data, int
    {
       dw_window_set_bitmap_from_data(bitmap, 0, data, len);
       gtk_container_add (GTK_CONTAINER(tmp), bitmap);
+      g_object_set_data(GTK_OBJECT(tmp), "_dw_bitmap", bitmap);
    }
    gtk_widget_show(tmp);
    _create_tooltip(tmp, text);
@@ -7001,7 +7002,7 @@ GdkPixbuf *_icon_resize(GdkPixbuf *ret)
    {
       int pwidth = gdk_pixbuf_get_width(ret);
       int pheight = gdk_pixbuf_get_height(ret);
-      
+
       if(pwidth > 24 || pheight > 24)
       {
          GdkPixbuf *orig = ret;
@@ -7356,7 +7357,7 @@ void _dw_container_set_item(HWND handle, void *pointer, int column, int row, voi
    {
       GdkBitmap *bitmap = NULL;
       GdkPixmap *pixmap = NULL;
-      
+
       if(data)
       {
          HICN hicon = *((HICN *)data);
@@ -7368,7 +7369,7 @@ void _dw_container_set_item(HWND handle, void *pointer, int column, int row, voi
    {
       GdkBitmap *bitmap = NULL;
       GdkPixmap *pixmap = NULL;
-      
+
       if(data)
       {
          HICN hicon = *((HICN *)data);
@@ -8398,7 +8399,7 @@ void dw_draw_polygon(HWND handle, HPIXMAP pixmap, int flags, int npoints, int *x
 
       if(flags & DW_DRAW_NOAA)
          cairo_set_antialias(cr, CAIRO_ANTIALIAS_NONE);
-         
+
       gdk_cairo_set_source_color (cr, foreground);
       cairo_set_line_width(cr, 1);
       cairo_move_to(cr, x[0], y[0]);
@@ -8462,7 +8463,7 @@ void dw_draw_rect(HWND handle, HPIXMAP pixmap, int flags, int x, int y, int widt
 
       if(flags & DW_DRAW_NOAA)
          cairo_set_antialias(cr, CAIRO_ANTIALIAS_NONE);
-         
+
       gdk_cairo_set_source_color (cr, foreground);
       cairo_set_line_width(cr, 1);
       cairo_move_to(cr, x, y);
@@ -8525,7 +8526,7 @@ void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yo
 
       if(flags & DW_DRAW_NOAA)
          cairo_set_antialias(cr, CAIRO_ANTIALIAS_NONE);
-         
+
       gdk_cairo_set_source_color (cr, foreground);
       cairo_set_line_width(cr, 1);
       if(scale != 1.0)
@@ -10169,20 +10170,20 @@ void _get_scrolled_size(GtkWidget *item, gint *thiswidth, gint *thisheight)
    if(widget && (GTK_IS_LIST(widget) || GTK_IS_CLIST(widget)))
    {
       GtkRequisition req;
-      
+
       gtk_widget_size_request(widget, &req);
-      
+
       *thiswidth = req.width + 20;
       *thisheight = req.height + 20;
-      
+
       if(GTK_IS_CLIST(widget))
       {
          gint rowcount = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(widget), "_dw_rowcount"));
-         
+
          if(rowcount)
          {
             int height = 0;
-            
+
             dw_font_text_extents_get(item, NULL, testtext, NULL, &height);
             *thisheight += rowcount * height;
          }
@@ -10196,17 +10197,17 @@ void _get_scrolled_size(GtkWidget *item, gint *thiswidth, gint *thisheight)
       char *buf, *ptr;
       int basicwidth;
       int wrap = (gtk_text_view_get_wrap_mode(GTK_TEXT_VIEW(widget)) == GTK_WRAP_WORD);
-      
+
       *thisheight = 20;
       basicwidth = *thiswidth = 20;
-      
+
       dw_mle_get_size(item, &bytes, NULL);
-      
+
       ptr = buf = alloca(bytes + 2);
       dw_mle_export(item, buf, 0, (int)bytes);
       buf[bytes] = 0;
       strcat(buf, "\r");
-      
+
       /* MLE */
       while((ptr = strstr(buf, "\r")))
       {
@@ -10216,9 +10217,9 @@ void _get_scrolled_size(GtkWidget *item, gint *thiswidth, gint *thisheight)
             dw_font_text_extents_get(item, NULL, buf, &width, &height);
          else
             dw_font_text_extents_get(item, NULL, testtext, NULL, &height);
-         
+
          width += basicwidth;
-         
+
          if(wrap && width > _DW_SCROLLED_MAX_WIDTH)
          {
             *thiswidth = _DW_SCROLLED_MAX_WIDTH;
@@ -10354,13 +10355,13 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
 
          /* If it is a scrolled item and not expandable...
           * Clamp to minumum or maximum.
-          */         
+          */
          if(GTK_IS_SCROLLED_WINDOW(item) && ((width < 1 && !hsize) || (height < 1 && !vsize)))
          {
             gint scrolledwidth = 0, scrolledheight = 0;
-         
+
             _get_scrolled_size(item, &scrolledwidth, &scrolledheight);
-         
+
             if(width < 1 && !hsize)
                thiswidth = scrolledwidth;
             if(height < 1 && !vsize)
@@ -10409,7 +10410,7 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
 int API dw_box_unpack(HWND handle)
 {
    int _locked_by_me = FALSE, retcode = DW_ERROR_GENERAL;
-   
+
    DW_MUTEX_LOCK;
    if(GTK_IS_WIDGET(handle))
    {
@@ -10420,14 +10421,14 @@ int API dw_box_unpack(HWND handle)
       if(eventbox && GTK_IS_WIDGET(eventbox))
          handle2 = eventbox;
 
-      /* Check if we are removing a widget from a box */	      
+      /* Check if we are removing a widget from a box */	
       if((box = gtk_widget_get_parent(handle2)) && GTK_IS_TABLE(box))
       {
          /* Get the number of items in the box... */
          int boxcount = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(box), "_dw_boxcount"));
          int boxtype = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(box), "_dw_boxtype"));
          gint pos;
-         
+
          gtk_container_child_get(GTK_CONTAINER(box), handle2, boxtype == DW_VERT ? "top-attach" : "left-attach", &pos, NULL);
          /* If we haven't incremented the reference count... raised it before removal */
          if(!gtk_object_get_data(GTK_OBJECT(handle2), "_dw_refed"))
@@ -10437,21 +10438,21 @@ int API dw_box_unpack(HWND handle)
          }
          gtk_container_remove(GTK_CONTAINER(box), handle2);
          retcode = DW_ERROR_NONE;
-         
+
          /* If we are destroying the last item in the box this isn't necessary */
          if((pos+1) < boxcount)
          {
             /* If we need to contract the table, reposition all the children */
             gtk_container_forall(GTK_CONTAINER(box),_rearrange_table_destroy, GINT_TO_POINTER(boxtype == DW_VERT ? pos : -(pos+1)));
          }
-         
+
          if(boxcount > 0)
          {
             /* Decrease the count by 1 */
             boxcount--;
             gtk_object_set_data(GTK_OBJECT(box), "_dw_boxcount", GINT_TO_POINTER(boxcount));
          }
-         
+
          /* If we aren't trying to resize the table to 0... */
          if(boxcount > 0)
          {
@@ -10478,7 +10479,7 @@ HWND API dw_box_unpack_at_index(HWND box, int index)
    int _locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
-   /* Check if we are removing a widget from a box */	      
+   /* Check if we are removing a widget from a box */	
    if(GTK_IS_TABLE(box))
    {
       /* Get the number of items in the box... */
@@ -10487,9 +10488,9 @@ HWND API dw_box_unpack_at_index(HWND box, int index)
       GList *children, *child;
       GtkWidget *item = NULL;
       gint pos;
-      
-      children = child = gtk_container_get_children(GTK_CONTAINER(box));  
-       
+
+      children = child = gtk_container_get_children(GTK_CONTAINER(box));
+
       /* Locate the child with the correct attachment point in the table */
       while(child)
       {
@@ -10501,14 +10502,14 @@ HWND API dw_box_unpack_at_index(HWND box, int index)
          }
          else
             child = child->next;
-      } 
-      
+      }
+
       /* Free the returned list */
       if(children)
          g_list_free(children);
-         
+
       if(item)
-      {      
+      {
          /* If we haven't incremented the reference count... raise it before removal */
          if(gtk_object_get_data(GTK_OBJECT(item), "_dw_padding"))
             gtk_widget_destroy(item);
@@ -10519,25 +10520,25 @@ HWND API dw_box_unpack_at_index(HWND box, int index)
                g_object_ref(G_OBJECT(item));
                gtk_object_set_data(GTK_OBJECT(item), "_dw_refed", GINT_TO_POINTER(1));
             }
-            /* Remove the widget from the box */      
+            /* Remove the widget from the box */
             gtk_container_remove(GTK_CONTAINER(box), item);
             retval = item;
          }
-            
+
          /* If we are destroying the last item in the box this isn't necessary */
          if((pos+1) < boxcount)
          {
             /* If we need to contract the table, reposition all the children */
             gtk_container_forall(GTK_CONTAINER(box),_rearrange_table_destroy, GINT_TO_POINTER(boxtype == DW_VERT ? pos : -(pos+1)));
          }
-         
+
          if(boxcount > 0)
          {
             /* Decrease the count by 1 */
             boxcount--;
             gtk_object_set_data(GTK_OBJECT(box), "_dw_boxcount", GINT_TO_POINTER(boxcount));
          }
-         
+
          /* If we aren't trying to resize the table to 0... */
          if(boxcount > 0)
          {
@@ -10657,7 +10658,7 @@ void _dw_get_frame_extents(GtkWidget *window, int *vert, int *horz)
 
          /* Connect a signal to look for the property change */
          connid = gtk_signal_connect(GTK_OBJECT(window), "property_notify_event", GTK_SIGNAL_FUNC(_dw_property_notify), window->window);
-         
+
          /* Record the request time */
          time(&extents_time);
 
@@ -10668,7 +10669,7 @@ void _dw_get_frame_extents(GtkWidget *window, int *vert, int *horz)
             time(&currtime);
          }
          while(currtime - extents_time < 2);
-         
+
          /* Remove the signal handler now that we are done */
          gtk_signal_disconnect(GTK_OBJECT(window), connid);
       }
@@ -10776,9 +10777,9 @@ void API dw_window_get_preferred_size(HWND handle, int *width, int *height)
    if(GTK_IS_SCROLLED_WINDOW(handle))
    {
       gint scrolledwidth, scrolledheight;
-      
+
       _get_scrolled_size(handle, &scrolledwidth, &scrolledheight);
-      
+
       if(width)
          *width = scrolledwidth;
       if(height)
@@ -13701,10 +13702,10 @@ void dw_signal_disconnect_by_data(HWND window, void *data)
 wchar_t * API dw_utf8_to_wchar(char *utf8string)
 {
    wchar_t *retval = NULL, *freeme;
-   
+
    if(sizeof(wchar_t) == sizeof(gunichar))
       freeme = retval = (wchar_t *)g_utf8_to_ucs4(utf8string, -1, NULL, NULL, NULL);
-   else if(sizeof(wchar_t) == sizeof(gunichar2))   
+   else if(sizeof(wchar_t) == sizeof(gunichar2))
       freeme = retval = (wchar_t *)g_utf8_to_utf16(utf8string, -1, NULL, NULL, NULL);
    if(retval)
    {
@@ -13725,7 +13726,7 @@ wchar_t * API dw_utf8_to_wchar(char *utf8string)
 char * API dw_wchar_to_utf8(wchar_t *wstring)
 {
    char *retval = NULL, *freeme;
-   
+
    if(sizeof(wchar_t) == sizeof(gunichar))
       freeme = retval = g_ucs4_to_utf8((gunichar *)wstring, -1, NULL, NULL, NULL);
    else if(sizeof(wchar_t) == sizeof(gunichar2))
@@ -13735,6 +13736,6 @@ char * API dw_wchar_to_utf8(wchar_t *wstring)
       retval = strdup(retval);
       g_free(freeme);
    }
-   return retval;    
+   return retval;
 }
 

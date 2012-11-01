@@ -642,6 +642,25 @@ int DWSIGNAL button_callback(HWND window, void *data)
     return 0;
 }
 
+int DWSIGNAL bitmap_toggle_callback(HWND window, void *data)
+{
+    static int isfoldericon = 1;
+
+    if ( isfoldericon )
+    {
+       isfoldericon = 0;
+       dw_window_set_bitmap( window, 0, FILE_ICON_NAME );
+       dw_window_set_tooltip( window, "File Icon" );
+    }
+    else
+    {
+       isfoldericon = 1;
+       dw_window_set_bitmap_from_data( window, 0, folder_ico, sizeof(folder_ico) );
+       dw_window_set_tooltip( window, "Folder Icon" );
+    }
+    return 0;
+}
+
 int DWSIGNAL percent_button_box_callback(HWND window, void *data)
 {
     dw_percent_set_pos(percent, DW_PERCENT_INDETERMINATE);
@@ -1291,10 +1310,9 @@ void buttons_add(void)
     dw_box_pack_start( buttonboxperm, abutton1, 100, 30, FALSE, FALSE, 0 );
     dw_signal_connect( abutton1, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(button_callback), NULL );
     dw_box_pack_start( buttonboxperm, 0, 25, 5, FALSE, FALSE, 0 );
-    abutton2 = dw_bitmapbutton_new_from_file( "Bottom", 0, FOLDER_ICON_NAME );
+    abutton2 = dw_bitmapbutton_new_from_data( "Folder Icon", 0, folder_ico, sizeof( folder_ico) );
     dw_box_pack_start( buttonsbox, abutton2, 25, 25, FALSE, FALSE, 0 );
-    dw_signal_connect( abutton2, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(button_callback), NULL );
-    dw_window_set_bitmap(abutton2, 0, FILE_ICON_NAME);
+    dw_signal_connect( abutton2, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(bitmap_toggle_callback), NULL );
 
     create_button(0);
     /* make a combobox */
