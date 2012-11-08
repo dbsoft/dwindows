@@ -7142,7 +7142,7 @@ int _load_bitmap_file(char *file, HWND handle, HBITMAP *hbm, HDC *hdc, HPS *hps,
         /* if less than 24-bit, then have palette */
         if(gbm.bpp < 24)
         {
-            gbmrgb = alloca(sizeof(GBMRGB));
+            gbmrgb = alloca(sizeof(GBMRGB) * 256);
             /* Read the palette from the file */
             if((err = _gbm_read_palette(fd, z, &gbm, gbmrgb)) != 0)
             {
