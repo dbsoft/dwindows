@@ -7063,6 +7063,94 @@ void API dw_window_set_icon(HWND handle, HICN icon)
    WinSendMsg(handle, WM_SETICON, (MPARAM)hptr, 0);
 }
 
+/* Code from GBM to convert to 24bpp if it isn't currently */
+static int _To24Bit(GBM *gbm, GBMRGB *gbmrgb, BYTE **ppbData)
+{
+    unsigned long stride     = (((unsigned long)gbm -> w * gbm -> bpp + 31)/32) * 4;
+    unsigned long new_stride = (((unsigned long)gbm -> w * 3 + 3) & ~3);
+    unsigned long bytes;
+    int y;
+    unsigned char *pbDataNew;
+
+    if ( gbm -> bpp == 24 )
+    {
+        return ( TRUE );
+    }
+
+    bytes = new_stride * gbm -> h;
+    /* Allocate a buffer to store the image */
+    if(DosAllocMem((PPVOID)&pbDataNew, (ULONG)bytes, PAG_READ | PAG_WRITE | PAG_COMMIT) != NO_ERROR)
+    {
+        return ( FALSE );
+    }
+
+    for ( y = 0; y < gbm -> h; y++ )
+    {
+        unsigned char *src = *ppbData + y * stride;
+        unsigned char *dest = pbDataNew + y * new_stride;
+        int   x;
+
+        switch ( gbm -> bpp )
+        {
+        case 1:
+            {
+                unsigned char  c = 0;
+                for ( x = 0; x < gbm -> w; x++ )
+                {
+                    if ( (x & 7) == 0 )
+                        c = *src++;
+                    else
+                        c <<= 1;
+
+                    *dest++ = gbmrgb [(c & 0x80) != 0].b;
+                    *dest++ = gbmrgb [(c & 0x80) != 0].g;
+                    *dest++ = gbmrgb [(c & 0x80) != 0].r;
+                }
+            }
+            break;
+
+        case 4:
+            for ( x = 0; x + 1 < gbm -> w; x += 2 )
+            {
+                unsigned char c = *src++;
+
+                *dest++ = gbmrgb [c >> 4].b;
+                *dest++ = gbmrgb [c >> 4].g;
+                *dest++ = gbmrgb [c >> 4].r;
+                *dest++ = gbmrgb [c & 15].b;
+                *dest++ = gbmrgb [c & 15].g;
+                *dest++ = gbmrgb [c & 15].r;
+            }
+
+            if ( x < gbm -> w )
+            {
+                unsigned char c = *src;
+
+                *dest++ = gbmrgb [c >> 4].b;
+                *dest++ = gbmrgb [c >> 4].g;
+                *dest++ = gbmrgb [c >> 4].r;
+            }
+            break;
+
+        case 8:
+            for ( x = 0; x < gbm -> w; x++ )
+            {
+                unsigned char c = *src++;
+
+                *dest++ = gbmrgb [c].b;
+                *dest++ = gbmrgb [c].g;
+                *dest++ = gbmrgb [c].r;
+            }
+            break;
+        }
+    }
+    DosFreeMem(*ppbData);
+    *ppbData = pbDataNew;
+    gbm->bpp = 24;
+
+    return ( TRUE );
+}
+
 /* GBM seems to be compiled with VisualAge which defines O_BINARY and O_RDONLY
  * as follows... but other compilers (GCC and Watcom at least) define them
  * differently... so we add defines that are compatible with VAC here.
@@ -7088,7 +7176,7 @@ int _load_bitmap_file(char *file, HWND handle, HBITMAP *hbm, HDC *hdc, HPS *hps,
     {
         int fd, z, err = -1, ft = 0;
         GBM gbm;
-        GBMRGB *gbmrgb;
+        GBMRGB *gbmrgb = NULL;
         ULONG byteswidth;
 
         /* Try to open the file */
@@ -7153,8 +7241,6 @@ int _load_bitmap_file(char *file, HWND handle, HBITMAP *hbm, HDC *hdc, HPS *hps,
                 return 0;
             }
         }
-        else
-            gbmrgb = NULL;
 
         /* Save the dimension for return */
         *width = gbm.w;
@@ -7179,6 +7265,18 @@ int _load_bitmap_file(char *file, HWND handle, HBITMAP *hbm, HDC *hdc, HPS *hps,
 
         /* Close the file */
         _gbm_io_close(fd);
+
+        /* Convert to 24bpp for use in the application */
+        if(_To24Bit(&gbm, gbmrgb, &BitmapFileBegin))
+            *depth = 24;
+        else
+        {
+#ifdef DEBUG
+            dw_debug("GBM: Failed 24bpp conversion\n", z, file, err, _gbm_err(err));
+#endif
+            DosFreeMem(BitmapFileBegin);
+            return 0;
+        }
 
         pBitmapInfoHeader = alloca(sizeof(BITMAPINFOHEADER2));
         memset(pBitmapInfoHeader, 0, sizeof(BITMAPINFOHEADER2));
