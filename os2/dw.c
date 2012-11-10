@@ -7197,7 +7197,7 @@ int _load_bitmap_file(char *file, HWND handle, HBITMAP *hbm, HDC *hdc, HPS *hps,
              * change this to use WinQuerySysColor() later, but pale gray is
              * already hardcoded elsewhere so just continue using it here.
              */
-            char options[101] = "back_rgb=52020_52020_52020";
+            char options[101] = "back_rgb=52224_52224_52224";
 
             /* Ask the control if it has another color set */
             if(backrgb == DW_CLR_DEFAULT && handle)
@@ -7205,11 +7205,11 @@ int _load_bitmap_file(char *file, HWND handle, HBITMAP *hbm, HDC *hdc, HPS *hps,
                 RGB rgb = {0};
 
                 if(WinQueryPresParam(handle, PP_BACKGROUNDCOLOR, PP_BACKGROUNDCOLORINDEX, NULL, sizeof(rgb), &rgb, QPF_NOINHERIT | QPF_PURERGBCOLOR | QPF_ID2COLORINDEX))
-                    sprintf(options, "back_rgb=%d_%d_%d", rgb.bRed * 255, rgb.bGreen * 255, rgb.bBlue * 255);
+                    sprintf(options, "back_rgb=%d_%d_%d", rgb.bRed * 256, rgb.bGreen * 256, rgb.bBlue * 256);
             }
             else if(backrgb & DW_RGB_COLOR)
             {
-                sprintf(options, "back_rgb=%d_%d_%d", (int)DW_RED_VALUE(backrgb) * 255, (int)DW_GREEN_VALUE(backrgb) * 255, (int)DW_BLUE_VALUE(backrgb) * 255);
+                sprintf(options, "back_rgb=%d_%d_%d", (int)DW_RED_VALUE(backrgb) * 256, (int)DW_GREEN_VALUE(backrgb) * 256, (int)DW_BLUE_VALUE(backrgb) * 256);
             }
 
             /* Read the file header */
@@ -7272,7 +7272,7 @@ int _load_bitmap_file(char *file, HWND handle, HBITMAP *hbm, HDC *hdc, HPS *hps,
         else
         {
 #ifdef DEBUG
-            dw_debug("GBM: Failed 24bpp conversion\n", z, file, err, _gbm_err(err));
+            dw_debug("GBM: Failed 24bpp conversion \"%s\"\n", file);
 #endif
             DosFreeMem(BitmapFileBegin);
             return 0;
@@ -9468,8 +9468,35 @@ HICN API dw_icon_load(unsigned long module, unsigned long id)
    return WinLoadPointer(HWND_DESKTOP,module,id);
 }
 
+#if 0
+/* Internal function to create pointer/icon masks */
+void _create_mask(HPIXMAP src, HPIXMAP mask, unsigned long backrgb)
+{
+    LONG maskcolor = (DW_RED_VALUE(backrgb) << 16) | (DW_GREEN_VALUE(backrgb) << 8) | DW_BLUE_VALUE(backrgb);
+    int x, y;
+
+    for(x=0; x < src->width; x++)
+    {
+        for(y=0; y < src->height; y++)
+        {
+            POINTL pt = {x, y};
+            LONG color = GpiQueryPel(src->hps, &pt);
+
+            dw_debug("Mask color %x (%dx%d) %x\n", (int)maskcolor, x, y, (int)color);
+            if(color == maskcolor)
+            {
+                GpiSetColor(mask->hps, CLR_WHITE);
+                GpiSetPel(mask->hps, &pt);
+                pt.y = y + src->height;
+                GpiSetPel(mask->hps, &pt);
+            }
+        }
+    }
+}
+#endif
+
 /* Internal function to create an icon from an existing pixmap */
-HICN _create_icon(HPIXMAP src)
+HICN _create_icon(HPIXMAP src, unsigned long backrgb)
 {
     HPIXMAP pntr = dw_pixmap_new(hwndApp, WinQuerySysValue(HWND_DESKTOP, SV_CXICON), WinQuerySysValue(HWND_DESKTOP, SV_CYICON), src->depth);
     HPIXMAP mask = dw_pixmap_new(hwndApp, pntr->width, pntr->height*2, 1);
@@ -9486,6 +9513,14 @@ HICN _create_icon(HPIXMAP src)
     dw_color_foreground_set(DW_CLR_BLACK);
     dw_draw_rect(0, mask, DW_DRAW_FILL, 0, 0, mask->width, mask->height);
     dw_draw_rect(0, minimask, DW_DRAW_FILL, 0, 0, minimask->width, minimask->height);
+#if 0
+    /* If we have a background color... create masks */
+    if(backrgb & DW_RGB_COLOR)
+    {
+        _create_mask(pntr, mask, backrgb);
+        _create_mask(minipntr, minimask, backrgb);
+    }
+#endif
     _foreground = oldcol;
 
     /* Assemble the Pointer Info structure */
@@ -9494,7 +9529,7 @@ HICN _create_icon(HPIXMAP src)
     pi.hbmMiniPointer = minimask->hbm;
     pi.hbmMiniColor = minipntr->hbm;
 
-    /* Destroy the pixmaps but not the bitmaps */
+    /* Destroy the temporary pixmaps */
     mask->hbm = pntr->hbm = minimask->hbm = minipntr->hbm = 0;
     dw_pixmap_destroy(mask);
     dw_pixmap_destroy(pntr);
@@ -9517,6 +9552,7 @@ HICN API dw_icon_load_from_file(char *filename)
    char *file = alloca(strlen(filename) + 6);
    HPIXMAP src = alloca(sizeof(struct _hpixmap));
    HICN icon = 0;
+   unsigned long defcol = DW_RGB(204, 204, 204);
 
    if(!file || !src)
       return 0;
@@ -9539,15 +9575,15 @@ HICN API dw_icon_load_from_file(char *filename)
            strcpy(file, filename);
            strcat(file, image_exts[z]);
            if(access(file, 04) == 0 &&
-              _load_bitmap_file(file, hwndApp, &src->hbm, &src->hdc, &src->hps, &src->width, &src->height, &src->depth, DW_CLR_DEFAULT))
+              _load_bitmap_file(file, hwndApp, &src->hbm, &src->hdc, &src->hps, &src->width, &src->height, &src->depth, defcol))
            {
-               icon = _create_icon(src);
+               icon = _create_icon(src, defcol);
                break;
            }
        }
    }
-   else if(_load_bitmap_file(file, hwndApp, &src->hbm, &src->hdc, &src->hps, &src->width, &src->height, &src->depth, DW_CLR_DEFAULT))
-       icon = _create_icon(src);
+   else if(_load_bitmap_file(file, hwndApp, &src->hbm, &src->hdc, &src->hps, &src->width, &src->height, &src->depth, defcol))
+       icon = _create_icon(src, defcol);
    /* Free temporary resources if in use */
    if(icon)
    {
