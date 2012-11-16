@@ -6168,7 +6168,7 @@ HWND _create_toolbar(char *text, ULONG id, HICON icon, HBITMAP hbitmap)
    SendMessage(tmp, TB_SETPADDING, 0, 0);
    SendMessage(tmp, TB_SETIMAGELIST, 0, (LPARAM)imlist);
    SendMessage(tmp, TB_SETDISABLEDIMAGELIST, 0, (LPARAM)dimlist);
-   SendMessage(tmp, TB_ADDBUTTONS, 1, (LONG) &tbButtons);
+   SendMessage(tmp, TB_ADDBUTTONS, 1, (LPARAM) &tbButtons);
    
    _create_tooltip(tmp, text);
    return tmp;
@@ -6493,7 +6493,7 @@ HWND API dw_slider_new(int vertical, int increments, ULONG id)
 
    cinfo->pOldProc = SubclassWindow(tmp, _colorwndproc);
    SetWindowLongPtr(tmp, GWLP_USERDATA, (LONG_PTR)cinfo);
-   SendMessage(tmp, TBM_SETRANGE, (WPARAM)FALSE, (LPARAM)MAKELONG(0, increments-1));
+   SendMessage(tmp, TBM_SETRANGE, (WPARAM)FALSE, MAKELPARAM(0, increments-1));
    return tmp;
 }
 
@@ -8396,7 +8396,7 @@ void API dw_mle_set_word_wrap(HWND handle, int state)
  */
 void API dw_mle_set_cursor(HWND handle, int point)
 {
-   SendMessage(handle, EM_SETSEL, 0, MAKELONG(point,point));
+   SendMessage(handle, EM_SETSEL, 0, MAKELPARAM(point,point));
    SendMessage(handle, EM_SCROLLCARET, 0, 0);
 }
 
@@ -8696,7 +8696,7 @@ HTREEITEM API dw_tree_insert_after(HWND handle, HTREEITEM item, char *title, HIC
 
    tvi.mask = TVIF_TEXT | TVIF_IMAGE | TVIF_SELECTEDIMAGE | TVIF_PARAM;
    tvi.pszText = UTF8toWide(title);
-   tvi.lParam = (LONG)ptrs;
+   tvi.lParam = (LPARAM)ptrs;
    tvi.cchTextMax = (int)_tcslen(tvi.pszText);
    tvi.iSelectedImage = tvi.iImage = _lookup_icon(handle, (HICON)icon, 1);
 
@@ -8730,7 +8730,7 @@ HTREEITEM API dw_tree_insert(HWND handle, char *title, HICN icon, HTREEITEM pare
 
    tvi.mask = TVIF_TEXT | TVIF_IMAGE | TVIF_SELECTEDIMAGE | TVIF_PARAM;
    tvi.pszText = UTF8toWide(title);
-   tvi.lParam = (LONG)ptrs;
+   tvi.lParam = (LPARAM)ptrs;
    tvi.cchTextMax = (int)_tcslen(tvi.pszText);
    tvi.iSelectedImage = tvi.iImage = _lookup_icon(handle, (HICON)icon, 1);
 
