@@ -1,4 +1,4 @@
-/* $Id$ */
+/* $Id: dwcompat.c 1717 2012-05-05 22:44:27Z bsmith $ */
 #undef UNICODE
 #undef _UNICODE
 
@@ -8,6 +8,7 @@
 #if defined(__OS2__) || defined(__WIN32__)
 #include <share.h>
 #endif
+#define _DW_INTERNAL
 #include "dwcompat.h"
 #include "dw.h"
 
@@ -53,8 +54,8 @@ void msleep(long period)
 
 int API makedir(char *path)
 {
-#if defined(__IBMC__) || defined(__WATCOMC__) || (defined(__WIN32__) && !defined(__CYGWIN32__))
-	return mkdir(path, 0);
+#if defined(__IBMC__) || defined(__WATCOMC__) || defined(_MSC_VER) || defined(__MINGW32__) || defined(__MINGW64__)
+	return mkdir(path);
 #else
 	return mkdir(path,S_IRWXU);
 #endif

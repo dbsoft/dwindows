@@ -5,6 +5,7 @@
 # make -C MingW32-gcc-3.4.0-RELEASE -f ../makefile.mingw > MingW32-gcc-3.4.0-RELEASE/make-out.log 2>&1
 
 CC = gcc
+RM = del /f
 
 DEFS =
 LIBS =
@@ -29,6 +30,9 @@ dwcompat.dll:  $(COMPATOBJECTS) win/dwcompat-mingw.def
 
 dwtest.exe: dwtest.o dw.a dwcompat.a
 	$(CC) $(CFLAGS) -o dwtest.exe dwtest.o dw.a dwcompat.a
+
+clean:
+	$(RM) *.obj *.o *.lib *.res *~ dwtest.exe dw.dll dwcompat.dll SVN.REV
 
 dw.o: win/dw.c
 	$(CC) $(CFLAGS) -DBUILD_DLL -c $<	

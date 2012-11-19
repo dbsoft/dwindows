@@ -33,12 +33,16 @@ Added DW_FCF_TEXTURED flag on Mac, which enables textured backgrounds
 Added keyboard support for non-entryfield controls on Mac.
 Added tab support for notebook controls on Windows and OS/2 and in 
    the process rewrote and optimized the existing tab code.
+Added bitmap button support for dw_window_set_bitmap().
+Added full alpha channel support for bitmaps from file on GTK2.
+Improved transparency support for pixmaps/bitmaps from file on OS/2.
 Fixed tab support for bitmap buttons which broke in 2.4 on Windows.
 Fixed a notebook crash early in creation on Mac.
 Fixed unusable scrollbars on Ubuntu Linux when overlay scrollbars
    are enabled.  We now disable overlay scrollbars when creating.
 Fixed dw_window_function() not working on non-toplevel windows on
    Windows and OS/2.
+Fixed building 64bit with Visual C 2012 and MINGW gcc on Windows.
 
 Dynamic Windows Documentation is available at:
 
