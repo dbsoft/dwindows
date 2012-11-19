@@ -8,6 +8,7 @@
 
 #include <windows.h>
 
+#define _DW_INTERNAL
 #include "dwcompat.h"
 #include <errno.h>
 #include <direct.h>

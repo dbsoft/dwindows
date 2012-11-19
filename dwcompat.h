@@ -1,4 +1,4 @@
-/* $Id$ */
+/* $Id: dwcompat.h 1722 2012-05-08 17:14:40Z bsmith $ */
 
 #ifndef _DWCOMPAT_H
 #define _DWCOMPAT_H
@@ -209,9 +209,11 @@ void msleep(long period);
 #  define snprintf _snprintf
 #  define unlink(a) _unlink(a)
 #  define close(a) _close(a)
-#  define mkdir(a,b) _mkdir(a)
 #  define fdopen(a, b) _fdopen(a, b)
 #  define chdir(a) _chdir(a)
+#ifndef _DW_INTERNAL
+#  define mkdir(a,b) _mkdir(a)
+#endif
 #  else
 #  define strcasecmp(a, b) stricmp(a, b)
 #  define strncasecmp(a, b, c) strnicmp(a, b, c)
@@ -389,9 +391,11 @@ typedef int socklen_t;
 #define O_BINARY 0
 #endif
 
-#if defined(__IBMC__) || defined(__WATCOMC__) || (defined(__WIN32__) && !defined(__CYGWIN32__) && _MSC_VER < 1400)
-#undef mkdir
-#define mkdir(a,b) mkdir(a)
+#if defined(__IBMC__) || defined(__WATCOMC__) || (defined(_MSC_VER) && _MSC_VER < 1400) || defined(__MINGW32__) || defined(__MINGW64__)
+#ifndef _DW_INTERNAL
+#  undef mkdir
+#  define mkdir(a,b) mkdir(a)
+#endif
 #endif
 
 #define socksprint(a, b) sockwrite(a, b, strlen(b), 0)

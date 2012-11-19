@@ -1,4 +1,4 @@
-/* $Id$ */
+/* $Id: dw.h 1811 2012-09-27 05:09:10Z mhessling $ */
 
 #ifndef _H_DW
 #define _H_DW
@@ -1391,12 +1391,22 @@ typedef void *HPRINT;
 
 #include <limits.h>
 /* Macros for converting from INT/UINT to and from POINTER without compiler warnings */
-#if LONG_MAX > INT_MAX
+#if _MSC_VER > 1200 || (__GNUC__ * 10000 + __GNUC_MINOR__ * 100 + __GNUC_PATCHLEVEL__) >= 30100 || defined(__has_extension)
+/* There has got to be a better way to check for the intptr_t type....
+ * for now just include valid versions of Visual C and GCC plus clang.
+ */
+#define DW_INT_TO_POINTER(a) ((void *)(intptr_t)a)
+#define DW_POINTER_TO_INT(a) ((int)(intptr_t)a)
+#define DW_UINT_TO_POINTER(a) ((void *)(uintptr_t)a)
+#define DW_POINTER_TO_UINT(a) ((unsigned int)(uintptr_t)a)
+#elif ULONG_MAX > UINT_MAX
+/* If no intptr_t... ULONG is often bigger than UINT */
 #define DW_INT_TO_POINTER(a) ((void *)(long)a)
 #define DW_POINTER_TO_INT(a) ((int)(long)a)
 #define DW_UINT_TO_POINTER(a) ((void *)(unsigned long)a)
 #define DW_POINTER_TO_UINT(a) ((unsigned int)(unsigned long)a)
 #else
+/* Otherwise just fall back to standard casts */
 #define DW_INT_TO_POINTER(a) ((void *)a)
 #define DW_POINTER_TO_INT(a) ((int)a)
 #define DW_UINT_TO_POINTER(a) ((void *)a)

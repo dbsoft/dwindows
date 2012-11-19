@@ -1487,7 +1487,7 @@ static void _resize_box(Box *thisbox, int *depth, int x, int y, int pass)
             {
                /* Then try the bottom or right box */
                float *percent = (float *)dw_window_get_data(handle, "_dw_percent");
-               int type = (int)dw_window_get_data(handle, "_dw_type");
+               int type = DW_POINTER_TO_INT(dw_window_get_data(handle, "_dw_type"));
 
                MoveWindow(handle, currentx + pad, currenty + pad,
                         width, height, FALSE);
@@ -1681,12 +1681,12 @@ static void _dw_toggle_checkable_menu_item( HWND window, int id )
    char buffer[40];
    int checkable;
    sprintf( buffer, "_dw_checkable%d", id );
-   checkable = (int)dw_window_get_data(DW_HWND_OBJECT, buffer);
+   checkable = DW_POINTER_TO_INT(dw_window_get_data(DW_HWND_OBJECT, buffer));
    if ( checkable )
    {
       int is_checked;
       sprintf( buffer, "_dw_ischecked%d", id );
-      is_checked = (int)dw_window_get_data(DW_HWND_OBJECT, buffer);
+      is_checked = DW_POINTER_TO_INT(dw_window_get_data(DW_HWND_OBJECT, buffer));
       is_checked = (is_checked) ? DW_MIS_UNCHECKED : DW_MIS_CHECKED;
       dw_menu_item_set_state( window, id, is_checked );
    }
@@ -2062,9 +2062,9 @@ LRESULT CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
                      int (*clickfunc)(HWND, void *) = tmp->signalfunction;
                      HWND command;
                      ULONG passthru = (ULONG)LOWORD(mp1);
-                     ULONG message = HIWORD(mp1);
+                     ULONG message = (ULONG)HIWORD(mp1);
 
-                     command = (HWND)passthru;
+                     command = (HWND)(uintptr_t)passthru;
 
                      if (message == LBN_SELCHANGE || message == CBN_SELCHANGE)
                      {
@@ -2101,13 +2101,13 @@ LRESULT CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
                            /*
                             * Call the user supplied callback
                             */
-                           result = clickfunc((HWND)tmp->id, tmp->data);
+                           result = clickfunc((HWND)(uintptr_t)tmp->id, tmp->data);
                            tmp = NULL;
                         }
                      } /* this fires for checkable menu items */
                      else if ( tmp->window < (HWND)65536 && command == tmp->window && tmp->message != WM_TIMER )
                      {
-                        _dw_toggle_checkable_menu_item( popup ? popup : tmp->window, (int)tmp->data );
+                        _dw_toggle_checkable_menu_item( popup ? popup : tmp->window, DW_POINTER_TO_INT(tmp->data) );
                         result = clickfunc(popup ? popup : tmp->window, tmp->data);
                         tmp = NULL;
                      }
@@ -2815,7 +2815,7 @@ LRESULT CALLBACK _colorwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
                   SetBkColor((HDC)mp1, GetSysColor(COLOR_3DFACE));
 
                   SelectObject((HDC)mp1, hbr);
-                  return (LONG)hbr;
+                  return (LONG)(intptr_t)hbr;
                }
                else if(thisback != -1 && thisback != DW_RGB_TRANSPARENT)
                {
@@ -2830,7 +2830,7 @@ LRESULT CALLBACK _colorwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
                                                  DW_GREEN_VALUE(back),
                                                  DW_BLUE_VALUE(back)));
                   SelectObject((HDC)mp1, thiscinfo->hbrush);
-                  return (LONG)thiscinfo->hbrush;
+                  return (LONG)(intptr_t)thiscinfo->hbrush;
                }
             }
  #ifdef AEROGLASS
@@ -3113,7 +3113,7 @@ void _handle_splitbar_resize(HWND hwnd, float percent, int type, int x, int y)
       MoveWindow(handle2, x - newx, 0, newx, y, FALSE);
       _do_resize(tmp, newx - 1, y - 1);
 
-      dw_window_set_data(hwnd, "_dw_start", (void *)newx);
+      dw_window_set_data(hwnd, "_dw_start", DW_INT_TO_POINTER(newx));
    }
    else
    {
@@ -3133,7 +3133,7 @@ void _handle_splitbar_resize(HWND hwnd, float percent, int type, int x, int y)
       MoveWindow(handle1, 0, 0, x, newy, FALSE);
       _do_resize(tmp, x - 1, newy - 1);
 
-      dw_window_set_data(hwnd, "_dw_start", (void *)newy);
+      dw_window_set_data(hwnd, "_dw_start", DW_INT_TO_POINTER(newy));
    }
 
    ShowWindow(handle1, SW_SHOW);
@@ -3221,8 +3221,8 @@ LRESULT CALLBACK _splitwndproc(HWND hwnd, UINT msg, WPARAM mp1, LPARAM mp2)
       {
          PAINTSTRUCT ps;
          HDC hdcPaint;
-         int type = (int)dw_window_get_data(hwnd, "_dw_type");
-         int start = (int)dw_window_get_data(hwnd, "_dw_start");
+         int type = DW_POINTER_TO_INT(dw_window_get_data(hwnd, "_dw_type"));
+         int start = DW_POINTER_TO_INT(dw_window_get_data(hwnd, "_dw_start"));
 
          BeginPaint(hwnd, &ps);
 
@@ -3260,7 +3260,7 @@ LRESULT CALLBACK _splitwndproc(HWND hwnd, UINT msg, WPARAM mp1, LPARAM mp2)
    case WM_MOUSEMOVE:
       {
          float *percent = (float *)dw_window_get_data(hwnd, "_dw_percent");
-         int type = (int)dw_window_get_data(hwnd, "_dw_type");
+         int type = DW_POINTER_TO_INT(dw_window_get_data(hwnd, "_dw_type"));
          int start;
 
          if(type == DW_HORZ)
@@ -3746,10 +3746,10 @@ void _init_thread(void)
     GdipCreatePen1(gpfore, 1.0, UnitPixel, &pen);
     TlsSetValue(_gpPen, (LPVOID)pen);
     GdipCreateSolidFill(gpfore, &brush);
-    TlsSetValue(_gpBrush, (LPVOID)brush);
+    TlsSetValue(_gpBrush, brush);
 #endif    
-    TlsSetValue(_foreground, (LPVOID)foreground);
-    TlsSetValue(_background, (LPVOID)background);
+    TlsSetValue(_foreground, DW_UINT_TO_POINTER(foreground));
+    TlsSetValue(_background, DW_UINT_TO_POINTER(background));
     TlsSetValue(_hPen, CreatePen(PS_SOLID, 1, foreground));
     TlsSetValue(_hBrush, CreateSolidBrush(foreground));
 }
@@ -4266,7 +4266,7 @@ int API dw_window_destroy(HWND handle)
    if(handle < (HWND)65536)
    {
       char buffer[31] = {0};
-      ULONG id = (ULONG)handle;
+      ULONG id = (ULONG)(uintptr_t)handle;
       
       _snprintf(buffer, 30, "_dw_id%ld", id);
       menu = (HMENU)dw_window_get_data(DW_HWND_OBJECT, buffer);
@@ -5000,13 +5000,13 @@ void API dw_window_release(void)
  */
 void API dw_window_set_pointer(HWND handle, int pointertype)
 {
-   HCURSOR cursor = pointertype < 65536 ? LoadCursor(NULL, MAKEINTRESOURCE(pointertype)) : (HCURSOR)pointertype;
+   HCURSOR cursor = pointertype < 65536 ? LoadCursor(NULL, MAKEINTRESOURCE(pointertype)) : (HCURSOR)(intptr_t)pointertype;
 
    if(!pointertype)
       dw_window_set_data(handle, "_dw_cursor", 0);
     else
    {
-      dw_window_set_data(handle, "_dw_cursor", (void *)cursor);
+      dw_window_set_data(handle, "_dw_cursor", DW_POINTER(cursor));
       SetCursor(cursor);
    }
 }
@@ -5243,7 +5243,7 @@ HWND API dw_mdi_new(unsigned long id)
                       WS_VISIBLE | WS_CHILD | WS_CLIPSIBLINGS,
                       0,0,0,0,
                       DW_HWND_OBJECT,
-                      (HMENU)id,
+                      (HMENU)(uintptr_t)id,
                       DWInstance,
                       &ccs);
    return hwndframe;
@@ -5262,7 +5262,7 @@ HWND API dw_html_new(unsigned long id)
                   WS_VISIBLE | WS_CHILD | WS_CLIPSIBLINGS,
                   0,0,0,0,
                   DW_HWND_OBJECT,
-                  (HMENU)id,
+                  (HMENU)(uintptr_t)id,
                   DWInstance,
                   NULL);
 #else
@@ -5339,7 +5339,7 @@ HWND API dw_bitmap_new(ULONG id)
                   WS_CHILD | WS_CLIPCHILDREN,
                   0,0,0,0,
                   DW_HWND_OBJECT,
-                  (HMENU)id,
+                  (HMENU)(uintptr_t)id,
                   DWInstance,
                   NULL);
 }
@@ -5365,7 +5365,7 @@ HWND API dw_notebook_new(ULONG id, int top)
                   WS_VISIBLE | WS_CHILD | WS_CLIPCHILDREN | flags,
                   0,0,0,0,
                   DW_HWND_OBJECT,
-                  (HMENU)id,
+                  (HMENU)(uintptr_t)id,
                   DWInstance,
                   NULL);
    cinfo->fore = cinfo->back = -1;
@@ -5547,13 +5547,13 @@ HWND API dw_menu_append_item(HMENUI menux, char *title, ULONG id, ULONG flags, i
    InsertMenuItem(mymenu, 65535, TRUE, &mii);
 
    _snprintf(buffer, 30, "_dw_id%ld", id);
-   dw_window_set_data( DW_HWND_OBJECT, buffer, (void *)mymenu );
+   dw_window_set_data( DW_HWND_OBJECT, buffer, DW_POINTER(mymenu) );
    _snprintf(buffer, 30, "_dw_checkable%ld", id);
-   dw_window_set_data( DW_HWND_OBJECT, buffer, (void *)check );
+   dw_window_set_data( DW_HWND_OBJECT, buffer, DW_INT_TO_POINTER(check) );
    _snprintf(buffer, 30, "_dw_ischecked%ld", id);
-   dw_window_set_data( DW_HWND_OBJECT, buffer, (void *)is_checked );
+   dw_window_set_data( DW_HWND_OBJECT, buffer, DW_INT_TO_POINTER(is_checked) );
    _snprintf(buffer, 30, "_dw_isdisabled%ld", id);
-   dw_window_set_data( DW_HWND_OBJECT, buffer, (void *)is_disabled );
+   dw_window_set_data( DW_HWND_OBJECT, buffer, DW_INT_TO_POINTER(is_disabled) );
 
    if (submenu)
    {
@@ -5568,7 +5568,7 @@ HWND API dw_menu_append_item(HMENUI menux, char *title, ULONG id, ULONG flags, i
 
    if (IsWindow(menux) && !IsMenu((HMENU)menux))
       DrawMenuBar(menux);
-   return (HWND)id;
+   return (HWND)(uintptr_t)id;
 }
 
 /*
@@ -5605,7 +5605,7 @@ void API dw_menu_item_set_check(HMENUI menux, unsigned long id, int check)
     * Keep our internal state consistent
     */
    _snprintf( buffer, 30, "_dw_ischecked%ld", id );
-   dw_window_set_data( DW_HWND_OBJECT, buffer, (void *)check );
+   dw_window_set_data( DW_HWND_OBJECT, buffer, DW_INT_TO_POINTER(check) );
 }
 
 /*
@@ -5628,9 +5628,9 @@ void API dw_menu_item_set_state( HMENUI menux, unsigned long id, unsigned long s
       mymenu = (HMENU)dw_window_get_data(menux, "_dw_menu");
 
    _snprintf( buffer1, 30, "_dw_ischecked%ld", id );
-   check = (int)dw_window_get_data( DW_HWND_OBJECT, buffer1 );
+   check = DW_POINTER_TO_INT(dw_window_get_data( DW_HWND_OBJECT, buffer1 ));
    _snprintf( buffer2, 30, "_dw_isdisabled%ld", id );
-   disabled = (int)dw_window_get_data( DW_HWND_OBJECT, buffer2 );
+   disabled = DW_POINTER_TO_INT(dw_window_get_data( DW_HWND_OBJECT, buffer2 ));
 
    memset( &mii, 0, sizeof(mii) );
 
@@ -5697,8 +5697,8 @@ void API dw_menu_item_set_state( HMENUI menux, unsigned long id, unsigned long s
    /*
     * Keep our internal checked state consistent
     */
-   dw_window_set_data( DW_HWND_OBJECT, buffer1, (void *)check );
-   dw_window_set_data( DW_HWND_OBJECT, buffer2, (void *)disabled );
+   dw_window_set_data( DW_HWND_OBJECT, buffer1, DW_INT_TO_POINTER(check) );
+   dw_window_set_data( DW_HWND_OBJECT, buffer2, DW_INT_TO_POINTER(disabled) );
 }
 
 /*
@@ -5721,7 +5721,7 @@ int API dw_menu_delete_item(HMENUI menux, unsigned long id)
    
    /* If the ID was autogenerated it is safe to remove it */
    if(id >= 30000)
-      dw_signal_disconnect_by_window((HWND)id);
+      dw_signal_disconnect_by_window((HWND)(uintptr_t)id);
       
    /* Make sure the menu is redrawn if needed */
    if( (HMENU)menux != mymenu )
@@ -5770,7 +5770,7 @@ HWND API dw_container_new(ULONG id, int multi)
                      WS_CLIPCHILDREN,
                      0,0,0,0,
                      DW_HWND_OBJECT,
-                     (HMENU)id,
+                     (HMENU)(uintptr_t)id,
                      DWInstance,
                      NULL);
    ContainerInfo *cinfo = (ContainerInfo *)calloc(1, sizeof(ContainerInfo));
@@ -5812,7 +5812,7 @@ HWND API dw_tree_new(ULONG id)
                      WS_BORDER | WS_CLIPCHILDREN,
                      0,0,0,0,
                      DW_HWND_OBJECT,
-                     (HMENU)id,
+                     (HMENU)(uintptr_t)id,
                      DWInstance,
                      NULL);
    ContainerInfo *cinfo = (ContainerInfo *)calloc(1, sizeof(ContainerInfo));
@@ -5876,7 +5876,7 @@ HWND API dw_text_new(char *text, ULONG id)
                      WS_VISIBLE | WS_CHILD | WS_CLIPCHILDREN,
                      0,0,0,0,
                      DW_HWND_OBJECT,
-                     (HMENU)id,
+                     (HMENU)(uintptr_t)id,
                      DWInstance,
                      NULL);
 #ifdef AEROGLASS
@@ -5905,7 +5905,7 @@ HWND API dw_status_text_new(char *text, ULONG id)
                      WS_VISIBLE | WS_CHILD | WS_CLIPCHILDREN,
                      0,0,0,0,
                      DW_HWND_OBJECT,
-                     (HMENU)id,
+                     (HMENU)(uintptr_t)id,
                      DWInstance,
                      NULL);
    dw_window_set_font(tmp, DefaultFont);
@@ -5929,7 +5929,7 @@ HWND API dw_mle_new(ULONG id)
                        WS_CLIPCHILDREN,
                        0,0,0,0,
                        DW_HWND_OBJECT,
-                       (HMENU)id,
+                       (HMENU)(uintptr_t)id,
                        DWInstance,
                        NULL);
    ContainerInfo *cinfo = (ContainerInfo *)calloc(1, sizeof(ContainerInfo));
@@ -5965,7 +5965,7 @@ HWND API dw_entryfield_new(char *text, ULONG id)
                        WS_VISIBLE | WS_CLIPCHILDREN,
                        0,0,0,0,
                        DW_HWND_OBJECT,
-                       (HMENU)id,
+                       (HMENU)(uintptr_t)id,
                        DWInstance,
                        NULL);
    ColorInfo *cinfo = calloc(1, sizeof(ColorInfo));
@@ -5994,7 +5994,7 @@ HWND API dw_entryfield_password_new(char *text, ULONG id)
                        ES_AUTOHSCROLL | WS_CLIPCHILDREN,
                        0,0,0,0,
                        DW_HWND_OBJECT,
-                       (HMENU)id,
+                       (HMENU)(uintptr_t)id,
                        DWInstance,
                        NULL);
    ColorInfo *cinfo = calloc(1, sizeof(ColorInfo));
@@ -6034,7 +6034,7 @@ HWND API dw_combobox_new(char *text, ULONG id)
                      WS_CLIPCHILDREN | CBS_AUTOHSCROLL | WS_VISIBLE,
                      0,0,0,0,
                      DW_HWND_OBJECT,
-                     (HMENU)id,
+                     (HMENU)(uintptr_t)id,
                      DWInstance,
                      NULL);
    ColorInfo *cinfo = (ColorInfo *)calloc(1, sizeof(ColorInfo));
@@ -6078,7 +6078,7 @@ HWND API dw_button_new(char *text, ULONG id)
                      WS_VISIBLE | WS_CLIPCHILDREN,
                      0,0,0,0,
                      DW_HWND_OBJECT,
-                     (HMENU)id,
+                     (HMENU)(uintptr_t)id,
                      DWInstance,
                      NULL);
    cinfo->fore = cinfo->back = -1;
@@ -6156,7 +6156,7 @@ HWND _create_toolbar(char *text, ULONG id, HICON icon, HBITMAP hbitmap)
 
    /* Create the toolbar */
    tmp = CreateWindowEx(0L, TOOLBARCLASSNAME, NULL, WS_CHILD | WS_VISIBLE | TBSTYLE_AUTOSIZE | CCS_NORESIZE | 
-                        CCS_NOPARENTALIGN | CCS_NODIVIDER, 0, 0, 100, 30, DW_HWND_OBJECT, (HMENU)id, DWInstance, NULL);
+                        CCS_NOPARENTALIGN | CCS_NODIVIDER, 0, 0, 100, 30, DW_HWND_OBJECT, (HMENU)(uintptr_t)id, DWInstance, NULL);
                          
    /* Disable visual styles by default */
    if(_SetWindowTheme)
@@ -6204,7 +6204,7 @@ HWND API dw_bitmapbutton_new(char *text, ULONG id)
                   (icon ? BS_ICON : BS_BITMAP),
                   0,0,0,0,
                   DW_HWND_OBJECT,
-                  (HMENU)id,
+                  (HMENU)(uintptr_t)id,
                   DWInstance,
                   NULL);
 
@@ -6272,7 +6272,7 @@ HWND API dw_bitmapbutton_new_from_file(char *text, unsigned long id, char *filen
                        windowtype | WS_CHILD | BS_PUSHBUTTON | WS_CLIPCHILDREN | WS_VISIBLE,
                        0,0,0,0,
                        DW_HWND_OBJECT,
-                       (HMENU)id,
+                       (HMENU)(uintptr_t)id,
                        DWInstance,
                        NULL);
 
@@ -6365,7 +6365,7 @@ HWND API dw_bitmapbutton_new_from_data(char *text, unsigned long id, char *data,
                        WS_VISIBLE,
                        0,0,0,0,
                        DW_HWND_OBJECT,
-                       (HMENU)id,
+                       (HMENU)(uintptr_t)id,
                        DWInstance,
                        NULL );
 
@@ -6413,7 +6413,7 @@ HWND API dw_spinbutton_new(char *text, ULONG id)
                        UDS_WRAP | UDS_NOTHOUSANDS | WS_VISIBLE,
                        0,0,0,0,
                        DW_HWND_OBJECT,
-                       (HMENU)id,
+                       (HMENU)(uintptr_t)id,
                        DWInstance,
                        NULL);
    ColorInfo *cinfo = calloc(1, sizeof(ColorInfo));
@@ -6456,7 +6456,7 @@ HWND API dw_radiobutton_new(char *text, ULONG id)
                      WS_CLIPCHILDREN | WS_VISIBLE,
                      0,0,0,0,
                      DW_HWND_OBJECT,
-                     (HMENU)id,
+                     (HMENU)(uintptr_t)id,
                      DWInstance,
                      NULL);
    ColorInfo *cinfo = calloc(1, sizeof(ColorInfo));
@@ -6484,7 +6484,7 @@ HWND API dw_slider_new(int vertical, int increments, ULONG id)
                      (vertical ? TBS_VERT : TBS_HORZ),
                      0,0,0,0,
                      DW_HWND_OBJECT,
-                     (HMENU)id,
+                     (HMENU)(uintptr_t)id,
                      DWInstance,
                      NULL);
    ColorInfo *cinfo = calloc(1, sizeof(ColorInfo));
@@ -6512,7 +6512,7 @@ HWND API dw_scrollbar_new(int vertical, ULONG id)
                      (vertical ? SBS_VERT : SBS_HORZ),
                      0,0,0,0,
                      DW_HWND_OBJECT,
-                     (HMENU)id,
+                     (HMENU)(uintptr_t)id,
                      DWInstance,
                      NULL);
    ColorInfo *cinfo = calloc(1, sizeof(ColorInfo));
@@ -6537,7 +6537,7 @@ HWND API dw_percent_new(ULONG id)
                   WS_VISIBLE | WS_CHILD | WS_CLIPCHILDREN,
                   0,0,0,0,
                   DW_HWND_OBJECT,
-                  (HMENU)id,
+                  (HMENU)(uintptr_t)id,
                   DWInstance,
                   NULL);
 }
@@ -6557,7 +6557,7 @@ HWND API dw_checkbox_new(char *text, ULONG id)
                      BS_TEXT | WS_CLIPCHILDREN | WS_VISIBLE,
                      0,0,0,0,
                      DW_HWND_OBJECT,
-                     (HMENU)id,
+                     (HMENU)(uintptr_t)id,
                      DWInstance,
                      NULL);
    cinfo->pOldProc = SubclassWindow(tmp, _BtProc);
@@ -6585,7 +6585,7 @@ HWND API dw_listbox_new(ULONG id, int multi)
                        WS_VSCROLL | (multi ? LBS_MULTIPLESEL : 0) ,
                        0,0,0,0,
                        DW_HWND_OBJECT,
-                       (HMENU)id,
+                       (HMENU)(uintptr_t)id,
                        DWInstance,
                        NULL);
    ContainerInfo *cinfo = (ContainerInfo *)calloc(1, sizeof(ContainerInfo));
@@ -6613,7 +6613,7 @@ HWND API dw_listbox_new(ULONG id, int multi)
  */
 void API dw_window_set_icon(HWND handle, HICN icon)
 {
-   int iicon = (int)icon;
+   int iicon = DW_POINTER_TO_INT(icon);
    HICON hicon = iicon < 65536 ? LoadIcon(DWInstance, MAKEINTRESOURCE(iicon)) : (HICON)icon;
 
    SendMessage(handle, WM_SETICON,
@@ -6915,7 +6915,7 @@ void API dw_window_disable(HWND handle)
    {
       char buffer[31] = {0};
       HMENU mymenu;
-      ULONG id = (ULONG)handle;
+      ULONG id = (ULONG)(uintptr_t)handle;
       
       _snprintf(buffer, 30, "_dw_id%ld", id);
       mymenu = (HMENU)dw_window_get_data(DW_HWND_OBJECT, buffer);
@@ -6938,7 +6938,7 @@ void API dw_window_enable(HWND handle)
    {
       char buffer[31] = {0};
       HMENU mymenu;
-      ULONG id = (ULONG)handle;
+      ULONG id = (ULONG)(uintptr_t)handle;
       
       _snprintf(buffer, 30, "_dw_id%ld", id);
       mymenu = (HMENU)dw_window_get_data(DW_HWND_OBJECT, buffer);
@@ -7569,7 +7569,7 @@ void API dw_window_set_style(HWND handle, ULONG style, ULONG mask)
    {
       char buffer[31] = {0};
       HMENU mymenu;
-      ULONG id = (ULONG)handle;
+      ULONG id = (ULONG)(uintptr_t)handle;
       
       _snprintf(buffer, 30, "_dw_id%ld", id);
       mymenu = (HMENU)dw_window_get_data(DW_HWND_OBJECT, buffer);
@@ -7640,7 +7640,6 @@ void API dw_window_set_style(HWND handle, ULONG style, ULONG mask)
    }
    else if(_tcsnicmp(tmpbuf, STATICCLASSNAME, _tcslen(STATICCLASSNAME)+1)==0)
    {
-      static ULONG halign = (SS_LEFTNOWORDWRAP | SS_RIGHT | SS_CENTER);
       ULONG thismask = mask & ~(DW_DT_VCENTER | DW_DT_WORDBREAK);
       ULONG thisstyle = style & ~(DW_DT_VCENTER | DW_DT_WORDBREAK);
       ULONG type = style & mask & 0xFL;
@@ -8555,7 +8554,7 @@ unsigned int API dw_scrollbar_get_pos(HWND handle)
  */
 void API dw_scrollbar_set_pos(HWND handle, unsigned int position)
 {
-   dw_window_set_data(handle, "_dw_scrollbar_value", (void *)position);
+   dw_window_set_data(handle, "_dw_scrollbar_value", DW_UINT_TO_POINTER(position));
    SendMessage(handle, SBM_SETPOS, (WPARAM)position, (LPARAM)TRUE);
 }
 
@@ -9164,7 +9163,7 @@ void * API dw_container_alloc(HWND handle, int rowcount)
    item = ListView_InsertItem(handle, &lvi);
    for(z=1;z<rowcount;z++)
       ListView_InsertItem(handle, &lvi);
-   dw_window_set_data(handle, "_dw_insertitem", (void *)item);
+   dw_window_set_data(handle, "_dw_insertitem", DW_INT_TO_POINTER(item));
    return (void *)handle;
 }
 
@@ -9243,7 +9242,7 @@ void API dw_filesystem_set_file(HWND handle, void *pointer, int row, char *filen
 
    if(pointer)
    {
-      item = (int)dw_window_get_data(handle, "_dw_insertitem");
+      item = DW_POINTER_TO_INT(dw_window_get_data(handle, "_dw_insertitem"));
    }
 
    lvi.iItem = row + item;
@@ -9289,7 +9288,7 @@ void API dw_container_set_item(HWND handle, void *pointer, int column, int row, 
 
    if(pointer)
    {
-      item = (int)dw_window_get_data(handle, "_dw_insertitem");
+      item = DW_POINTER_TO_INT(dw_window_get_data(handle, "_dw_insertitem"));
    }
 
    if(!cinfo || !cinfo->flags)
@@ -9508,7 +9507,7 @@ void _dw_container_set_row_title(HWND handle, void *pointer, int row, char *titl
 
    if(pointer)
    {
-      item = (int)dw_window_get_data(handle, "_dw_insertitem");
+      item = DW_POINTER_TO_INT(dw_window_get_data(handle, "_dw_insertitem"));
    }
 
    lvi.iItem = row + item;
@@ -9576,7 +9575,7 @@ void API dw_container_clear(HWND handle, int redraw)
  */
 void API dw_container_delete(HWND handle, int rowcount)
 {
-   int z, _index = (int)dw_window_get_data(handle, "_dw_index");
+   int z, _index = DW_POINTER_TO_INT(dw_window_get_data(handle, "_dw_index"));
 
    for(z=0;z<rowcount;z++)
    {
@@ -9585,7 +9584,7 @@ void API dw_container_delete(HWND handle, int rowcount)
    if(rowcount > _index)
       dw_window_set_data(handle, "_dw_index", 0);
    else
-      dw_window_set_data(handle, "_dw_index", (void *)(_index - rowcount));
+      dw_window_set_data(handle, "_dw_index", DW_INT_TO_POINTER((_index - rowcount)));
 }
 
 /*
@@ -9632,7 +9631,7 @@ char * API dw_container_query_start(HWND handle, unsigned long flags)
 
    ListView_GetItem(handle, &lvi);
 
-   dw_window_set_data(handle, "_dw_index", (void *)_index);
+   dw_window_set_data(handle, "_dw_index", DW_INT_TO_POINTER(_index));
    return (char *)lvi.lParam;
 }
 
@@ -9647,7 +9646,7 @@ char * API dw_container_query_start(HWND handle, unsigned long flags)
 char * API dw_container_query_next(HWND handle, unsigned long flags)
 {
    LV_ITEM lvi;
-   int _index = (int)dw_window_get_data(handle, "_dw_index");
+   int _index = DW_POINTER_TO_INT(dw_window_get_data(handle, "_dw_index"));
 
    _index = ListView_GetNextItem(handle, _index, flags);
 
@@ -9661,7 +9660,7 @@ char * API dw_container_query_next(HWND handle, unsigned long flags)
 
    ListView_GetItem(handle, &lvi);
 
-   dw_window_set_data(handle, "_dw_index", (void *)_index);
+   dw_window_set_data(handle, "_dw_index", DW_INT_TO_POINTER(_index));
    return (char *)lvi.lParam;
 }
 
@@ -9727,10 +9726,10 @@ void API dw_container_delete_row(HWND handle, char *text)
 
       if ( (textcomp && lvi.lParam && strcmp( (char *)lvi.lParam, text ) == 0) || (!textcomp && (char *)lvi.lParam == text) )
       {
-         int _index = (int)dw_window_get_data(handle, "_dw_index");
+         int _index = DW_POINTER_TO_INT(dw_window_get_data(handle, "_dw_index"));
 
          if(index < _index)
-            dw_window_set_data(handle, "_dw_index", (void *)(_index - 1));
+            dw_window_set_data(handle, "_dw_index", DW_INT_TO_POINTER((_index - 1)));
 
          ListView_DeleteItem(handle, index);
          return;
@@ -9828,7 +9827,7 @@ void API dw_taskbar_insert(HWND handle, HICN icon, char *bubbletext)
 
    tnid.cbSize = sizeof(NOTIFYICONDATA);
    tnid.hWnd = handle;
-   tnid.uID = (UINT)icon;
+   tnid.uID = (UINT)(uintptr_t)icon;
    tnid.uFlags = NIF_MESSAGE | NIF_ICON | NIF_TIP;
    tnid.uCallbackMessage = WM_USER+2;
    tnid.hIcon = (HICON)icon;
@@ -9852,7 +9851,7 @@ void API dw_taskbar_delete(HWND handle, HICN icon)
 
    tnid.cbSize = sizeof(NOTIFYICONDATA);
    tnid.hWnd = handle;
-   tnid.uID = (UINT)icon;
+   tnid.uID = (UINT)(uintptr_t)icon;
 
    Shell_NotifyIcon(NIM_DELETE, &tnid);
 }
@@ -9872,7 +9871,7 @@ HWND API dw_render_new(unsigned long id)
                      WS_VISIBLE | WS_CHILD | WS_CLIPCHILDREN,
                      0,0,0,0,
                      DW_HWND_OBJECT,
-                     (HMENU)id,
+                     (HMENU)(uintptr_t)id,
                      DWInstance,
                      NULL);
    newbox->pad = 0;
@@ -9915,7 +9914,7 @@ void API dw_color_foreground_set(unsigned long value)
 
    DeleteObject(hPen);
    DeleteObject(hBrush);
-   TlsSetValue(_foreground, (LPVOID)foreground);
+   TlsSetValue(_foreground, (LPVOID)(uintptr_t)foreground);
    TlsSetValue(_hPen, CreatePen(PS_SOLID, 1, foreground));
    TlsSetValue(_hBrush, CreateSolidBrush(foreground));
 }
@@ -9936,7 +9935,7 @@ void API dw_color_background_set(unsigned long value)
    if(value == DW_RGB_TRANSPARENT)
       TlsSetValue(_background, (LPVOID)DW_RGB_TRANSPARENT);
    else
-      TlsSetValue(_background, (LPVOID)background);
+      TlsSetValue(_background, (LPVOID)(uintptr_t)background);
 }
 
 /* Allows the user to choose a color using the system's color chooser dialog.
@@ -10378,10 +10377,10 @@ void API dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
       mustdelete = 1;
    }
 
-   background = (COLORREF)TlsGetValue(_background);
+   background = (COLORREF)(uintptr_t)TlsGetValue(_background);
    if(hFont)
       oldFont = SelectObject(hdc, hFont);
-   SetTextColor(hdc, (COLORREF)TlsGetValue(_foreground));
+   SetTextColor(hdc, (COLORREF)(uintptr_t)TlsGetValue(_foreground));
    if(background == DW_RGB_TRANSPARENT)
       SetBkMode(hdc, TRANSPARENT);
    else
@@ -11360,26 +11359,26 @@ HWND API dw_splitbar_new(int type, HWND topleft, HWND bottomright, unsigned long
                      WS_VISIBLE | WS_CHILD | WS_CLIPCHILDREN,
                      0,0,0,0,
                      DW_HWND_OBJECT,
-                     (HMENU)id,
+                     (HMENU)(uintptr_t)id,
                      DWInstance,
                      NULL);
 
    if(tmp)
    {
       HWND tmpbox = dw_box_new(DW_VERT, 0);
-        float *percent = (float *)malloc(sizeof(float));
+      float *percent = (float *)malloc(sizeof(float));
 
       dw_box_pack_start(tmpbox, topleft, 1, 1, TRUE, TRUE, 0);
       SetParent(tmpbox, tmp);
-      dw_window_set_data(tmp, "_dw_topleft", (void *)tmpbox);
+      dw_window_set_data(tmp, "_dw_topleft", DW_POINTER(tmpbox));
 
       tmpbox = dw_box_new(DW_VERT, 0);
       dw_box_pack_start(tmpbox, bottomright, 1, 1, TRUE, TRUE, 0);
       SetParent(tmpbox, tmp);
-      dw_window_set_data(tmp, "_dw_bottomright", (void *)tmpbox);
+      dw_window_set_data(tmp, "_dw_bottomright", DW_POINTER(tmpbox));
       *percent = 50.0;
-      dw_window_set_data(tmp, "_dw_percent", (void *)percent);
-      dw_window_set_data(tmp, "_dw_type", (void *)type);
+      dw_window_set_data(tmp, "_dw_percent", DW_POINTER(percent));
+      dw_window_set_data(tmp, "_dw_type", DW_INT_TO_POINTER(type));
    }
    return tmp;
 }
@@ -11392,8 +11391,8 @@ HWND API dw_splitbar_new(int type, HWND topleft, HWND bottomright, unsigned long
 void API dw_splitbar_set(HWND handle, float percent)
 {
    float *mypercent = (float *)dw_window_get_data(handle, "_dw_percent");
-   int type = (int)dw_window_get_data(handle, "_dw_type");
-    unsigned long width, height;
+   int type = DW_POINTER_TO_INT(dw_window_get_data(handle, "_dw_type"));
+   unsigned long width, height;
 
    if(mypercent)
       *mypercent = percent;
@@ -11438,7 +11437,7 @@ HWND API dw_calendar_new(unsigned long id)
                            WS_VISIBLE | WS_CHILD | WS_CLIPCHILDREN | MCS_DAYSTATE,
                            0,0,0,0,
                            DW_HWND_OBJECT,
-                           (HMENU)id,
+                           (HMENU)(uintptr_t)id,
                            DWInstance,
                            NULL);
    if ( tmp )
@@ -11902,7 +11901,7 @@ int API dw_browse(char *url)
       }
    }
 
-   retcode = (int)ShellExecute(NULL, TEXT("open"), UTF8toWide(browseurl), NULL, NULL, SW_SHOWNORMAL);
+   retcode = DW_POINTER_TO_INT(ShellExecute(NULL, TEXT("open"), UTF8toWide(browseurl), NULL, NULL, SW_SHOWNORMAL));
    if(retcode<33 && retcode != 2)
       return DW_ERROR_UNKNOWN;
    return DW_ERROR_NONE;
@@ -12322,7 +12321,7 @@ void API dw_signal_connect(HWND window, char *signame, void *sigfunc, void *data
             char buffer[16];
             HWND owner;
 
-            _snprintf(buffer, 15, "_dw_id%d", (int)window);
+            _snprintf(buffer, 15, "_dw_id%d", (int)(intptr_t)window);
             owner = (HWND)dw_window_get_data(DW_HWND_OBJECT, buffer);
 
             /* Make sure there are no dupes from popups */
@@ -12330,7 +12329,7 @@ void API dw_signal_connect(HWND window, char *signame, void *sigfunc, void *data
 
             if (owner)
             {
-               id = (ULONG)window;
+               id = (ULONG)(uintptr_t)window;
                window = owner;
             }
          }
@@ -12354,7 +12353,7 @@ void API dw_signal_disconnect_by_name(HWND window, char *signame)
 
    while(tmp)
    {
-      if(((window < (HWND)65536 && (int)window == tmp->id) || tmp->window == window) && tmp->message == message)
+      if(((window < (HWND)65536 && (int)(intptr_t)window == tmp->id) || tmp->window == window) && tmp->message == message)
       {
         if(prev)
          {
@@ -12388,7 +12387,7 @@ void API dw_signal_disconnect_by_window(HWND window)
 
    while(tmp)
    {
-      if((window < (HWND)65536 && (int)window == tmp->id) || tmp->window == window)
+      if((window < (HWND)65536 && (int)(intptr_t)window == tmp->id) || tmp->window == window)
       {
          if(prev)
          {
@@ -12423,7 +12422,7 @@ void API dw_signal_disconnect_by_data(HWND window, void *data)
 
    while(tmp)
    {
-      if(((window < (HWND)65536 && (int)window == tmp->id) || tmp->window == window) && tmp->data == data)
+      if(((window < (HWND)65536 && (int)(intptr_t)window == tmp->id) || tmp->window == window) && tmp->data == data)
       {
         if(prev)
          {
