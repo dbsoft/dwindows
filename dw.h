@@ -1,4 +1,4 @@
-/* $Id: dw.h 1811 2012-09-27 05:09:10Z mhessling $ */
+/* $Id$ */
 
 #ifndef _H_DW
 #define _H_DW
@@ -7,6 +7,8 @@
 #define DW_MAJOR_VERSION 2
 #define DW_MINOR_VERSION 4
 #define DW_SUB_VERSION 0
+
+#include <stdint.h>
 
 #if !defined(__PHOTON__)
 /* These corespond to the entries in the color
