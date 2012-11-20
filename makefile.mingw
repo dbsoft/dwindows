@@ -1,16 +1,15 @@
 
 # Dynamic Windows MINGW Makefile
 
-# make -C MingW32-gcc-3.4.0-DEBUG -f ../makefile.mingw DEBUG=Y > MingW32-gcc-3.4.0-DEBUG/make-out.log 2>&1
-# make -C MingW32-gcc-3.4.0-RELEASE -f ../makefile.mingw > MingW32-gcc-3.4.0-RELEASE/make-out.log 2>&1
-
 CC = gcc
 RM = del /f
 
 DEFS =
 LIBS =
 
-CFLAGS = -O -g -DMSVC -DWIN32 -D__WIN32__ -DGDIPLUS -DUNICODE -D_UNICODE -DISOLATION_AWARE_ENABLED=1 -I./win -I. -I./platform -Wall -mthreads -o $(@)
+# Had to disable -Wunused-value due to every Win32 macro generating this warning...
+# GCC has marked this as  WONTFIX http://gcc.gnu.org/bugzilla/show_bug.cgi?id=24900
+CFLAGS = -O -g -DMSVC -DWIN32 -D__WIN32__ -DGDIPLUS -DUNICODE -D_UNICODE -DISOLATION_AWARE_ENABLED=1 -I./win -I. -I./platform -Wall -Wno-unused-value -mthreads -o $(@)
 LDFLAGS = -shared -mwindows -mthreads -lcomctl32 -lole32 -loleaut32 -luserenv -lmsimg32 -lgdiplus
 
 COMPATOBJECTS = dwcompat.o dirent.o

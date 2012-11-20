@@ -1865,7 +1865,7 @@ LRESULT CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
                         WCHAR uc[2] = { 0 };
                         
                         uc[0] = (WCHAR)mp1;
-                        utf8 = WideToUTF8(uc);
+                        utf8 = WideToUTF8(&uc[0]);
 #endif                        
                         
                         if(GetAsyncKeyState(VK_SHIFT) & 0x8000)
@@ -9174,7 +9174,6 @@ int _lookup_icon(HWND handle, HICON hicon, int type)
 {
    int z;
    static HWND lasthwnd = NULL;
-   HIMAGELIST himl;
 
    /* We can't add an invalid handle */
    if(!hicon)
@@ -9194,12 +9193,12 @@ int _lookup_icon(HWND handle, HICON hicon, int type)
          ImageList_AddIcon(hLarge, hicon);
          if(type)
          {
-            himl = TreeView_SetImageList(handle, hSmall, TVSIL_NORMAL);
+            TreeView_SetImageList(handle, hSmall, TVSIL_NORMAL);
          }
          else
          {
-            himl = ListView_SetImageList(handle, hSmall, LVSIL_SMALL);
-            himl = ListView_SetImageList(handle, hLarge, LVSIL_NORMAL);
+            ListView_SetImageList(handle, hSmall, LVSIL_SMALL);
+            ListView_SetImageList(handle, hLarge, LVSIL_NORMAL);
          }
          lasthwnd = handle;
          return z;
@@ -9211,12 +9210,12 @@ int _lookup_icon(HWND handle, HICON hicon, int type)
          {
             if(type)
             {
-               himl = TreeView_SetImageList(handle, hSmall, TVSIL_NORMAL);
+               TreeView_SetImageList(handle, hSmall, TVSIL_NORMAL);
             }
             else
             {
-               himl = ListView_SetImageList(handle, hSmall, LVSIL_SMALL);
-               himl = ListView_SetImageList(handle, hLarge, LVSIL_NORMAL);
+               ListView_SetImageList(handle, hSmall, LVSIL_SMALL);
+               ListView_SetImageList(handle, hLarge, LVSIL_NORMAL);
             }
             lasthwnd = handle;
          }

@@ -175,6 +175,7 @@ void msleep(long period);
 
 #ifdef MSVC
 #include "platform/dirent.h"
+#undef alloca
 #define alloca _alloca
 #ifdef __stat64
 #undef stat
