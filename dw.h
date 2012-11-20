@@ -8,8 +8,6 @@
 #define DW_MINOR_VERSION 4
 #define DW_SUB_VERSION 0
 
-#include <stdint.h>
-
 #if !defined(__PHOTON__)
 /* These corespond to the entries in the color
  * arrays in the Win32 dw.c, they are also the
@@ -1393,7 +1391,8 @@ typedef void *HPRINT;
 
 #include <limits.h>
 /* Macros for converting from INT/UINT to and from POINTER without compiler warnings */
-#if _MSC_VER > 1200 || (__GNUC__ * 10000 + __GNUC_MINOR__ * 100 + __GNUC_PATCHLEVEL__) >= 30100 || defined(__has_extension)
+#if _MSC_VER > 1500 || (__GNUC__ * 10000 + __GNUC_MINOR__ * 100 + __GNUC_PATCHLEVEL__) >= 30100 || defined(__has_extension)
+#include <stdint.h>
 /* There has got to be a better way to check for the intptr_t type....
  * for now just include valid versions of Visual C and GCC plus clang.
  */
