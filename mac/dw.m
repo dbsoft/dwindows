@@ -869,6 +869,25 @@ DWObject *DWObj;
 -(BOOL)acceptsFirstResponder { return YES; }
 @end
 
+/* Subclass for the application class */
+@interface DWAppDel : NSObject
+#ifdef BUILDING_FOR_SNOW_LEOPARD
+<NSApplicationDelegate>
+#endif
+{
+}
+-(NSApplicationTerminateReply)applicationShouldTerminate:(NSApplication *)sender;
+@end
+
+@implementation DWAppDel
+-(NSApplicationTerminateReply)applicationShouldTerminate:(NSApplication *)sender
+{
+    if(_event_handler(sender, nil, 6) > 0)
+        return NSTerminateCancel;
+    return NSTerminateNow;
+}
+@end
+
 /* Subclass for a top-level window */
 @interface DWView : DWBox
 #ifdef BUILDING_FOR_SNOW_LEOPARD
@@ -9885,6 +9904,12 @@ void API dw_timer_disconnect(int timerid)
 void API dw_signal_connect(HWND window, char *signame, void *sigfunc, void *data)
 {
     ULONG message = 0, msgid = 0;
+    
+    /* Handle special case of application delete signal */
+    if(!window && signame && strcmp(signame, DW_SIGNAL_DELETE) == 0)
+    {
+        window = DWApp;
+    }
 
     if(window && signame && sigfunc)
     {
@@ -10756,6 +10781,8 @@ int API dw_init(int newthread, int argc, char *argv[])
     setlocale(LC_ALL, lang && strstr(lang, ".UTF-8") ? lang : "UTF-8");
     /* Create the application object */
     DWApp = [NSApplication sharedApplication];
+    DWAppDel *del = [[DWAppDel alloc] init];
+    [DWApp setDelegate:del];
     /* Create object for handling timers */
     DWHandler = [[DWTimerHandler alloc] init];
     /* If we aren't using garbage collection we need autorelease pools */
