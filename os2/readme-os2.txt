@@ -1,4 +1,4 @@
-This package contains Dynamic Windows (dwindows) v 2.4 for OS/2 and eCS.
+This package contains Dynamic Windows (dwindows) v 2.5 for OS/2 and eCS.
 
 It contains:
 
@@ -10,7 +10,8 @@ dwcompat.lib - import library for functions in dwcompat.dll
 readme-os2.txt - this file
 
 This binary package was compiled with gcc 4.4.4.
-It requires libc064.dll available at ftp://ftp.netlabs.org/pub/libc
+It requires libc065.dll available at ftp://ftp.netlabs.org/pub/libc
+
 Dynamic Windows may take advantage of features from these packages: 
 
 XCenter/eCenter with the System Tray plugin
@@ -19,8 +20,8 @@ http://www.eros2.info/systray_widget_en.shtml
 Generalized Bitmap Module - For additional image formats
 http://heikon.home.tlink.de/
 
--- Special notes for version 2.4 --
-Version 2.4 is starting a transition to Unicode on OS/2. Warp 4 and 
+-- Special notes for version 2.5 --
+Version 2.4 has started a transition to Unicode on OS/2. Warp 4 and 
 later have fairly decent support for UTF-8 via codepage 1208, however 
 there are some known input problems, which shall be worked around
 in future versions.  For English or non-input applications Unicode

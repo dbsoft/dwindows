@@ -1,4 +1,4 @@
-This is a pre-release of Dynamic Windows version 2.5.
+This is a stable release of Dynamic Windows version 2.5.
 
 The current Dynamic Windows source base is considered stable on:
 OS/2, Mac, Windows, Linux, FreeBSD and Solaris.
@@ -35,6 +35,8 @@ Added tab support for notebook controls on Windows and OS/2 and in
    the process rewrote and optimized the existing tab code.
 Added bitmap button support for dw_window_set_bitmap().
 Added full alpha channel support for bitmaps from file on GTK2.
+Added support for handling Mac application menu Quit and dock Quit.
+   Use DW_DESKTOP as window handle to dw_signal_connect().
 Improved transparency support for pixmaps/bitmaps from file on OS/2.
 Fixed tab support for bitmap buttons which broke in 2.4 on Windows.
 Fixed a notebook crash early in creation on Mac.
@@ -47,6 +49,11 @@ Fixed building 64bit with Visual C 2012 and MINGW gcc on Windows.
 Dynamic Windows Documentation is available at:
 
 http://dbsoft.org/dw_help.php
+
+I would like to dedicate this release to my father, James Smith.  
+He passed away this summer and was the most amazing individual I 
+have ever had in my life.  Without him this software would not be
+able to exist in so many different ways.  Love you Dad.
 
 If you have any questions or suggestions feel free to email me at:
 

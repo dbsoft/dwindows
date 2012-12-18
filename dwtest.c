@@ -1791,6 +1791,14 @@ int main(int argc, char *argv[])
     dw_window_default(mainwindow, copypastefield);
 
     dw_signal_connect(mainwindow, DW_SIGNAL_DELETE, DW_SIGNAL_FUNC(exit_callback), DW_POINTER(mainwindow));
+    /*
+     * The following is a special case handler for the Mac and other platforms which contain
+     * an application object which can be closed.  It function identically to a window delete/close
+     * request except it applies to the entire application not an individual window. If it is not
+     * handled or you allow the default handler to take place the entire application will close.
+     * On platforms which do not have an application object this line will be ignored.
+     */
+    dw_signal_connect(DW_DESKTOP, DW_SIGNAL_DELETE, DW_SIGNAL_FUNC(exit_callback), DW_POINTER(mainwindow));
     timerid = dw_timer_connect(2000, DW_SIGNAL_FUNC(timer_callback), 0);
     dw_window_set_size(mainwindow, 640, 550);
     dw_window_show(mainwindow);
