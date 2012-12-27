@@ -2741,6 +2741,7 @@ LRESULT CALLBACK _colorwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
             if ( cinfo->clickdefault )
             {
                _click_default(cinfo->clickdefault);
+               return (LRESULT)TRUE;
             }
             else
             {
@@ -2753,6 +2754,7 @@ LRESULT CALLBACK _colorwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
                if ( mycinfo && mycinfo->clickdefault )
                {
                   _click_default( mycinfo->clickdefault );
+                  return (LRESULT)TRUE;
                }
             }
          }
