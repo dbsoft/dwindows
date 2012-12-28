@@ -2736,7 +2736,7 @@ static int _set_color(HWND handle, unsigned long fore, unsigned long back)
    /* Remember that each color component in X11 use 16 bit no matter
     * what the destination display supports. (and thus GDK)
     */
-   GdkRGBA forecolor, backcolor;
+   GdkRGBA forecolor = {0}, backcolor = {0};
 
    if(fore & DW_RGB_COLOR)
    {
@@ -2744,34 +2744,25 @@ static int _set_color(HWND handle, unsigned long fore, unsigned long back)
       forecolor.red = (gdouble)DW_RED_VALUE(fore) / 255.0;
       forecolor.green = (gdouble)DW_GREEN_VALUE(fore) / 255.0;
       forecolor.blue = (gdouble)DW_BLUE_VALUE(fore) / 255.0;
-
-      gtk_widget_override_color(handle, GTK_STATE_NORMAL, &forecolor);
-      gtk_widget_override_color(handle, GTK_STATE_ACTIVE, &forecolor);
    }
    else if(fore != DW_CLR_DEFAULT)
-   {
       forecolor = _colors[fore];
-
-      gtk_widget_override_color(handle, GTK_STATE_NORMAL, &forecolor);
-      gtk_widget_override_color(handle, GTK_STATE_ACTIVE, &forecolor);
-   }
+      
+   gtk_widget_override_color(handle, GTK_STATE_NORMAL, fore != DW_CLR_DEFAULT ? &forecolor : NULL);
+   gtk_widget_override_color(handle, GTK_STATE_ACTIVE, fore != DW_CLR_DEFAULT ? &forecolor : NULL);
+   
    if(back & DW_RGB_COLOR)
    {
       backcolor.alpha = 1.0;
       backcolor.red = (gdouble)DW_RED_VALUE(back) / 255.0;
       backcolor.green = (gdouble)DW_GREEN_VALUE(back) / 255.0;
       backcolor.blue = (gdouble)DW_BLUE_VALUE(back) / 255.0;
-
-      gtk_widget_override_background_color(handle, GTK_STATE_NORMAL, &backcolor);
-      gtk_widget_override_background_color(handle, GTK_STATE_ACTIVE, &backcolor);
    }
    else if(back != DW_CLR_DEFAULT)
-   {
       backcolor = _colors[back];
-
-      gtk_widget_override_background_color(handle, GTK_STATE_NORMAL, &backcolor);
-      gtk_widget_override_background_color(handle, GTK_STATE_ACTIVE, &backcolor);
-   }
+      
+   gtk_widget_override_background_color(handle, GTK_STATE_NORMAL, back != DW_CLR_DEFAULT ? &backcolor : NULL);
+   gtk_widget_override_background_color(handle, GTK_STATE_ACTIVE, back != DW_CLR_DEFAULT ? &backcolor : NULL);
 
    _save_gdk_colors(handle, forecolor, backcolor);
 

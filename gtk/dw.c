@@ -3358,30 +3358,24 @@ static int _set_color(HWND handle, unsigned long fore, unsigned long back)
    GtkStyle *style = gtk_style_copy(gtk_widget_get_style(handle));
 #endif
 
-   if(fore != DW_CLR_DEFAULT)
-   {
 #if GTK_MAJOR_VERSION > 1
-      gtk_widget_modify_text(handle, 0, &forecolor);
-      gtk_widget_modify_text(handle, 1, &forecolor);
-      gtk_widget_modify_fg(handle, 0, &forecolor);
-      gtk_widget_modify_fg(handle, 1, &forecolor);
+   gtk_widget_modify_text(handle, 0, fore != DW_CLR_DEFAULT ? &forecolor : NULL);
+   gtk_widget_modify_text(handle, 1, fore != DW_CLR_DEFAULT ? &forecolor : NULL);
+   gtk_widget_modify_fg(handle, 0, fore != DW_CLR_DEFAULT ? &forecolor : NULL);
+   gtk_widget_modify_fg(handle, 1, fore != DW_CLR_DEFAULT ? &forecolor : NULL);
 #else
-      if(style)
-         style->text[0] = style->text[1] = style->fg[0] = style->fg[1] = forecolor;
+   if(fore != DW_CLR_DEFAULT && style)
+      style->text[0] = style->text[1] = style->fg[0] = style->fg[1] = forecolor;
 #endif
-   }
-   if(back != DW_CLR_DEFAULT)
-   {
 #if GTK_MAJOR_VERSION > 1
-      gtk_widget_modify_base(handle, 0, &backcolor);
-      gtk_widget_modify_base(handle, 1, &backcolor);
-      gtk_widget_modify_bg(handle, 0, &backcolor);
-      gtk_widget_modify_bg(handle, 1, &backcolor);
+   gtk_widget_modify_base(handle, 0, back != DW_CLR_DEFAULT ? &backcolor : NULL);
+   gtk_widget_modify_base(handle, 1, back != DW_CLR_DEFAULT ? &backcolor : NULL);
+   gtk_widget_modify_bg(handle, 0, back != DW_CLR_DEFAULT ? &backcolor : NULL);
+   gtk_widget_modify_bg(handle, 1, back != DW_CLR_DEFAULT ? &backcolor : NULL);
 #else
-      if(style)
-         style->base[0] = style->base[1] = style->bg[0] = style->bg[1] = backcolor;
+   if(back != DW_CLR_DEFAULT && style)
+      style->base[0] = style->base[1] = style->bg[0] = style->bg[1] = backcolor;
 #endif
-   }
 
    _save_gdk_colors(handle, forecolor, backcolor);
 
@@ -3391,8 +3385,8 @@ static int _set_color(HWND handle, unsigned long fore, unsigned long back)
 
       for(z=0;z<rowcount;z++)
       {
-         gtk_clist_set_foreground(GTK_CLIST(handle), z, &forecolor);
-         gtk_clist_set_background(GTK_CLIST(handle), z, &backcolor);
+         gtk_clist_set_foreground(GTK_CLIST(handle), z, fore != DW_CLR_DEFAULT ? &forecolor : NULL);
+         gtk_clist_set_background(GTK_CLIST(handle), z, back != DW_CLR_DEFAULT ? &backcolor : NULL);
       }
    }
 
