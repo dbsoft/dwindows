@@ -746,8 +746,8 @@ DWObject *DWObj;
         bgcolor = [[NSColor colorWithDeviceRed: DW_RED_VALUE(input)/255.0 green: DW_GREEN_VALUE(input)/255.0 blue: DW_BLUE_VALUE(input)/255.0 alpha: 1] retain];
         [bgcolor set];
         NSRectFill([self bounds]);
-        [self setNeedsDisplay:YES];
     }
+    [self setNeedsDisplay:YES];
     [orig release];
 }
 @end
@@ -8467,54 +8467,33 @@ int API dw_window_set_color(HWND handle, ULONG fore, ULONG back)
     {
         id cell = [object cell];
 
-        if(fg)
-        {
-            [cell setTextColor:fg];
-        }
+        [cell setTextColor:(fg ? fg : [NSColor controlTextColor])];
     }
     if([object isKindOfClass:[NSTextField class]] || [object isKindOfClass:[NSButton class]])
     {
         id cell = [object cell];
 
-        if(bg)
-        {
-            [cell setBackgroundColor:bg];
-        }
+        [cell setBackgroundColor:(bg ? bg : [NSColor controlColor])];
     }
     else if([object isMemberOfClass:[DWBox class]])
     {
         DWBox *box = object;
 
-        if(bg)
-        {
-            [box setColor:_back];
-        }
+        [box setColor:_back];
     }
     else if([object isKindOfClass:[NSTableView class]])
     {
         DWContainer *cont = handle;
 
-        if(bg)
-        {
-            [cont setBackgroundColor:bg];
-        }
-        if(fg)
-        {
-            [cont setForegroundColor:fg];
-        }
+        [cont setBackgroundColor:(bg ? bg : [NSColor controlBackgroundColor])];
+        [cont setForegroundColor:(fg ? fg : [NSColor controlTextColor])];
     }
     else if([object isMemberOfClass:[DWMLE class]])
     {
         DWMLE *mle = handle;
-        if(bg)
-        {
-            [mle setBackgroundColor:bg];
-        }
-        if(fg)
-        {
-            NSTextStorage *ts = [mle textStorage];
-            [ts setForegroundColor:fg];
-        }
+        [mle setBackgroundColor:(bg ? bg : [NSColor controlBackgroundColor])];
+        NSTextStorage *ts = [mle textStorage];
+        [ts setForegroundColor:(fg ? fg : [NSColor controlTextColor])];
     }
     return 0;
 }
