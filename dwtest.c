@@ -964,6 +964,16 @@ void archive_add(void)
     dw_window_set_color(lbbox, DW_CLR_DARKCYAN, DW_CLR_PALEGRAY);
     dw_window_set_color(buttonbox, DW_CLR_DARKCYAN, DW_CLR_PALEGRAY);
     dw_window_set_color(okbutton, DW_CLR_PALEGRAY, DW_CLR_DARKCYAN);
+#ifdef COLOR_DEBUG
+    dw_window_set_color(copypastefield, DW_CLR_WHITE, DW_CLR_RED);
+    dw_window_set_color(copybutton, DW_CLR_WHITE, DW_CLR_RED);
+    /* Set a color then clear it to make sure it clears correctly */
+    dw_window_set_color(entryfield, DW_CLR_WHITE, DW_CLR_RED);
+    dw_window_set_color(entryfield, DW_CLR_DEFAULT, DW_CLR_DEFAULT);
+    /* Set a color then clear it to make sure it clears correctly... again */
+    dw_window_set_color(pastebutton, DW_CLR_WHITE, DW_CLR_RED);
+    dw_window_set_color(pastebutton, DW_CLR_DEFAULT, DW_CLR_DEFAULT);
+#endif
 
     dw_signal_connect(browsefilebutton, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(browse_file_callback), DW_POINTER(notebookbox1));
     dw_signal_connect(browsefolderbutton, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(browse_folder_callback), DW_POINTER(notebookbox1));

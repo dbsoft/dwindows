@@ -1006,6 +1006,8 @@ DWObject *DWObj;
 -(NSButtonType)buttonType;
 -(void)setParent:(DWBox *)input;
 -(DWBox *)parent;
+-(NSColor *)textColor;
+-(void)setTextColor:(NSColor *)textColor;
 @end
 
 @implementation DWButton
@@ -1043,6 +1045,31 @@ DWObject *DWObj;
 -(NSButtonType)buttonType { return buttonType; }
 -(void)setParent:(DWBox *)input { parent = input; }
 -(DWBox *)parent { return parent; }
+-(NSColor *)textColor
+{
+    NSAttributedString *attrTitle = [self attributedTitle];
+    NSUInteger len = [attrTitle length];
+    NSRange range = NSMakeRange(0, MIN(len, 1));
+    NSDictionary *attrs = [attrTitle fontAttributesInRange:range];
+    NSColor *textColor = [NSColor controlTextColor];
+    if (attrs) {
+        textColor = [attrs objectForKey:NSForegroundColorAttributeName];
+    }
+    return textColor;
+}
+-(void)setTextColor:(NSColor *)textColor
+{
+    NSMutableAttributedString *attrTitle = [[NSMutableAttributedString alloc]
+                                            initWithAttributedString:[self attributedTitle]];
+    NSUInteger len = [attrTitle length];
+    NSRange range = NSMakeRange(0, len);
+    [attrTitle addAttribute:NSForegroundColorAttributeName
+                      value:textColor
+                      range:range];
+    [attrTitle fixAttributesInRange:range];
+    [self setAttributedTitle:attrTitle];
+    [attrTitle release];
+}
 -(void)keyDown:(NSEvent *)theEvent
 {
     unichar vk = [[theEvent charactersIgnoringModifiers] characterAtIndex:0];
@@ -8467,7 +8494,12 @@ int API dw_window_set_color(HWND handle, ULONG fore, ULONG back)
     {
         id cell = [object cell];
 
+        [object setTextColor:(fg ? fg : [NSColor controlTextColor])];
         [cell setTextColor:(fg ? fg : [NSColor controlTextColor])];
+    }
+    if([object isMemberOfClass:[DWButton class]])
+    {
+        [object setTextColor:(fg ? fg : [NSColor controlTextColor])];
     }
     if([object isKindOfClass:[NSTextField class]] || [object isKindOfClass:[NSButton class]])
     {
