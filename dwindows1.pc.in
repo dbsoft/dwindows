@@ -1,0 +1,10 @@
+prefix=@prefix@
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib
+includedir=${exec_prefix}/include
+ 
+Name: dwindows
+Description: Dynamic Windows Cross platform UI Toolkit
+Version: @VERSION@
+Libs: @LIBS@
+Cflags: @CFLAGS@ -D@DW_DEFINE@

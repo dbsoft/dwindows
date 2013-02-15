@@ -5904,7 +5904,7 @@ MKDIR="mkdir"
 
 
 
-ac_config_files="$ac_config_files Makefile dwindows-config1"
+ac_config_files="$ac_config_files Makefile dwindows1.pc dwindows-config1"
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
@@ -6610,6 +6610,7 @@ do
   case $ac_config_target in
     "config.h") CONFIG_HEADERS="$CONFIG_HEADERS config.h" ;;
     "Makefile") CONFIG_FILES="$CONFIG_FILES Makefile" ;;
+    "dwindows1.pc") CONFIG_FILES="$CONFIG_FILES dwindows1.pc" ;;
     "dwindows-config1") CONFIG_FILES="$CONFIG_FILES dwindows-config1" ;;
 
   *) as_fn_error $? "invalid argument: \`$ac_config_target'" "$LINENO" 5;;

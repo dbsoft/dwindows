@@ -92,6 +92,8 @@ installbase: $(SYSCONF_LINK_TARGET)
 	$(INSTALL) $(srcdir)/dw.h $(prefix)/include; \
 	sed -e 's/@DW_MAJOR_VERSION@/'$(VER_MAJ)'/' -e 's/@DW_MINOR_VERSION@/'$(VER_MIN)'/' -e 's/@DW_SUB_VERSION@/'$(VER_REV)'/' < dwindows-config1 > dwindows-config
 	$(INSTALL) dwindows-config $(prefix)/bin; \
+	sed -e 's/@VERSION@/'$(VER_MAJ).$(VER_MIN).$(VER_REV)'/' < dwindows1.pc > dwindows.pc
+	$(INSTALL) dwindows.pc $(prefix)/lib/pkgconfig; \
 	$(INSTALL) $(srcdir)/dwindows-config.1 $(prefix)/share/man/man1; \
 	cd $(prefix)/share/man/man1; gzip -f -9 dwindows-config.1
 	$(INSTALL) $(SYSCONF_LINK_TARGET)  $(prefix)/lib; \
