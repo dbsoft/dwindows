@@ -6,5 +6,5 @@ includedir=${exec_prefix}/include
 Name: dwindows
 Description: Dynamic Windows Cross platform UI Toolkit
 Version: @VERSION@
-Libs: @LIBS@
-Cflags: @CFLAGS@ -D@DW_DEFINE@
+Libs: -L${prefix}/lib -ldwindows @LIBS@
+Cflags: -I${prefix}/include @CFLAGS@ -D@DW_DEFINE@
