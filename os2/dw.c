@@ -166,6 +166,7 @@ typedef struct _sighandler
    HWND window;
    int id;
    void *signalfunction;
+   void *discfunction;
    void *data;
 
 } SignalHandler;
@@ -216,7 +217,7 @@ USHORT _GlobalID(void)
 
 /* This function adds a signal handler callback into the linked list.
  */
-void _new_signal(ULONG message, HWND window, int id, void *signalfunction, void *data)
+void _new_signal(ULONG message, HWND window, int id, void *signalfunction, void *discfunc, void *data)
 {
    SignalHandler *new = malloc(sizeof(SignalHandler));
 
@@ -224,6 +225,7 @@ void _new_signal(ULONG message, HWND window, int id, void *signalfunction, void 
    new->window = window;
    new->id = id;
    new->signalfunction = signalfunction;
+   new->discfunction = discfunc;
    new->data = data;
    new->next = NULL;
 
@@ -13210,7 +13212,7 @@ int API dw_timer_connect(int interval, void *sigfunc, void *data)
 
       if(timerid)
       {
-         _new_signal(WM_TIMER, NULLHANDLE, timerid, sigfunc, data);
+         _new_signal(WM_TIMER, NULLHANDLE, timerid, sigfunc, NULL, data);
          return timerid;
       }
    }
@@ -13267,6 +13269,20 @@ void API dw_timer_disconnect(int id)
  */
 void API dw_signal_connect(HWND window, char *signame, void *sigfunc, void *data)
 {
+    dw_signal_connect_data(window, signame, sigfunc, NULL, data);
+}
+
+/*
+ * Add a callback to a window event with a closure callback.
+ * Parameters:
+ *       window: Window handle of signal to be called back.
+ *       signame: A string pointer identifying which signal to be hooked.
+ *       sigfunc: The pointer to the function to be used as the callback.
+ *       discfunc: The pointer to the function called when this handler is removed.
+ *       data: User data to be passed to the handler function.
+ */
+void API dw_signal_connect_data(HWND window, char *signame, void *sigfunc, void *discfunc, void *data)
+{
    ULONG message = 0, id = 0;
 
    if(window && signame && sigfunc)
@@ -13291,7 +13307,7 @@ void API dw_signal_connect(HWND window, char *signame, void *sigfunc, void *data
                window = owner;
             }
          }
-         _new_signal(message, window, id, sigfunc, data);
+         _new_signal(message, window, id, sigfunc, discfunc, data);
       }
    }
 }
@@ -13313,6 +13329,13 @@ void API dw_signal_disconnect_by_name(HWND window, char *signame)
    {
       if(((window < 65536 && tmp->id == window) || tmp->window == window) && tmp->message == message)
       {
+         void (API_FUNC discfunc)(HWND, void *) = (void (API_FUNC)(HWND, void *))tmp->discfunction;
+            
+         if(discfunc)
+         {
+             discfunc(tmp->window, tmp->data);
+         }
+         
          if(prev)
          {
             prev->next = tmp->next;
@@ -13347,6 +13370,13 @@ void API dw_signal_disconnect_by_window(HWND window)
    {
       if((window < 65536 && tmp->id == window) || tmp->window == window)
       {
+         void (API_FUNC discfunc)(HWND, void *) = (void (API_FUNC)(HWND, void *))tmp->discfunction;
+            
+         if(discfunc)
+         {
+             discfunc(tmp->window, tmp->data);
+         }
+         
          if(prev)
          {
             prev->next = tmp->next;
@@ -13382,6 +13412,13 @@ void API dw_signal_disconnect_by_data(HWND window, void *data)
    {
       if(((window < 65536 && tmp->id == window) || tmp->window == window) && tmp->data == data)
       {
+         void (API_FUNC discfunc)(HWND, void *) = (void (API_FUNC)(HWND, void *))tmp->discfunction;
+            
+         if(discfunc)
+         {
+             discfunc(tmp->window, tmp->data);
+         }
+         
          if(prev)
          {
             prev->next = tmp->next;
