@@ -3,7 +3,7 @@
  *          A GTK like cross-platform GUI
  *          GTK forwarder module for portabilty.
  *
- * (C) 2000-2012 Brian Smith <brian@dbsoft.org>
+ * (C) 2000-2013 Brian Smith <brian@dbsoft.org>
  * (C) 2003-2011 Mark Hessling <mark@rexx.org>
  * (C) 2002 Nickolay V. Shmyrev <shmyrev@yandex.ru>
  */
@@ -177,6 +177,7 @@ static gint _tree_expand_event(GtkTreeItem *treeitem, gpointer data);
 #endif
 static gint _switch_page_event(GtkNotebook *notebook, GtkNotebookPage *page, guint page_num, gpointer data);
 static gint _column_click_event(GtkWidget *widget, gint column_num, gpointer data);
+static void _dw_signal_disconnect(gpointer data, GClosure *closure);
 
 /* Embedable Mozilla functions*/
 #ifdef USE_GTKMOZEMBED
@@ -1223,23 +1224,28 @@ static void *_findsigfunc(char *signame)
    return NULL;
 }
 
-static SignalHandler _get_signal_handler(GtkWidget *widget, gpointer data)
+static SignalHandler _get_signal_handler(gpointer data)
 {
-   int counter = GPOINTER_TO_INT(data);
-   SignalHandler sh;
-   char text[101] = {0};
+   SignalHandler sh = {0};
+   
+   if(data)
+   {
+      void **params = (void **)data;
+      int counter = GPOINTER_TO_INT(params[0]);
+      GtkWidget *widget = (GtkWidget *)params[2];
+      char text[101] = {0};
 
-   snprintf(text, 100, "_dw_sigwindow%d", counter);
-   sh.window = (HWND)gtk_object_get_data(GTK_OBJECT(widget), text);
-   snprintf(text, 100, "_dw_sigfunc%d", counter);
-   sh.func = (void *)gtk_object_get_data(GTK_OBJECT(widget), text);
-   snprintf(text, 100, "_dw_intfunc%d", counter);
-   sh.intfunc = (void *)gtk_object_get_data(GTK_OBJECT(widget), text);
-   snprintf(text, 100, "_dw_sigdata%d", counter);
-   sh.data = gtk_object_get_data(GTK_OBJECT(widget), text);
-   snprintf(text, 100, "_dw_sigcid%d", counter);
-   sh.cid = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(widget), text));
-
+      snprintf(text, 100, "_dw_sigwindow%d", counter);
+      sh.window = (HWND)gtk_object_get_data(GTK_OBJECT(widget), text);
+      snprintf(text, 100, "_dw_sigfunc%d", counter);
+      sh.func = (void *)gtk_object_get_data(GTK_OBJECT(widget), text);
+      snprintf(text, 100, "_dw_intfunc%d", counter);
+      sh.intfunc = (void *)gtk_object_get_data(GTK_OBJECT(widget), text);
+      snprintf(text, 100, "_dw_sigdata%d", counter);
+      sh.data = gtk_object_get_data(GTK_OBJECT(widget), text);
+      snprintf(text, 100, "_dw_sigcid%d", counter);
+      sh.cid = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(widget), text));
+   }
    return sh;
 }
 
@@ -1292,7 +1298,7 @@ static void _set_signal_handler_id(GtkWidget *widget, int counter, gint cid)
 
 static gint _set_focus_event(GtkWindow *window, GtkWidget *widget, gpointer data)
 {
-   SignalHandler work = _get_signal_handler((GtkWidget *)window, data);
+   SignalHandler work = _get_signal_handler(data);
    int retval = FALSE;
 
    if ( dbgfp != NULL ) _dw_log("%s %d: %s\n",__FILE__,__LINE__,__func__);
@@ -1307,7 +1313,7 @@ static gint _set_focus_event(GtkWindow *window, GtkWidget *widget, gpointer data
 
 static gint _button_press_event(GtkWidget *widget, GdkEventButton *event, gpointer data)
 {
-   SignalHandler work = _get_signal_handler(widget, data);
+   SignalHandler work = _get_signal_handler(data);
    int retval = FALSE;
 
    if ( dbgfp != NULL ) _dw_log("%s %d: %s\n",__FILE__,__LINE__,__func__);
@@ -1328,7 +1334,7 @@ static gint _button_press_event(GtkWidget *widget, GdkEventButton *event, gpoint
 
 static gint _button_release_event(GtkWidget *widget, GdkEventButton *event, gpointer data)
 {
-   SignalHandler work = _get_signal_handler(widget, data);
+   SignalHandler work = _get_signal_handler(data);
    int retval = FALSE;
 
    if ( dbgfp != NULL ) _dw_log("%s %d: %s\n",__FILE__,__LINE__,__func__);
@@ -1349,7 +1355,7 @@ static gint _button_release_event(GtkWidget *widget, GdkEventButton *event, gpoi
 
 static gint _motion_notify_event(GtkWidget *widget, GdkEventMotion *event, gpointer data)
 {
-   SignalHandler work = _get_signal_handler(widget, data);
+   SignalHandler work = _get_signal_handler(data);
    int retval = FALSE;
 
    if ( dbgfp != NULL ) _dw_log("%s %d: %s\n",__FILE__,__LINE__,__func__);
@@ -1382,7 +1388,7 @@ static gint _motion_notify_event(GtkWidget *widget, GdkEventMotion *event, gpoin
 
 static gint _delete_event(GtkWidget *widget, GdkEvent *event, gpointer data)
 {
-   SignalHandler work = _get_signal_handler(widget, data);
+   SignalHandler work = _get_signal_handler(data);
    int retval = FALSE;
 
    if ( dbgfp != NULL ) _dw_log("%s %d: %s\n",__FILE__,__LINE__,__func__);
@@ -1397,7 +1403,7 @@ static gint _delete_event(GtkWidget *widget, GdkEvent *event, gpointer data)
 
 static gint _key_press_event(GtkWidget *widget, GdkEventKey *event, gpointer data)
 {
-   SignalHandler work = _get_signal_handler(widget, data);
+   SignalHandler work = _get_signal_handler(data);
    int retval = FALSE;
 
    if ( dbgfp != NULL ) _dw_log("%s %d: %s\n",__FILE__,__LINE__,__func__);
@@ -1417,7 +1423,7 @@ static gint _key_press_event(GtkWidget *widget, GdkEventKey *event, gpointer dat
 
 static gint _generic_event(GtkWidget *widget, gpointer data)
 {
-   SignalHandler work = _get_signal_handler(widget, data);
+   SignalHandler work = _get_signal_handler(data);
    int retval = FALSE;
 
    if ( dbgfp != NULL ) _dw_log("%s %d: %s\n",__FILE__,__LINE__,__func__);
@@ -1432,7 +1438,7 @@ static gint _generic_event(GtkWidget *widget, gpointer data)
 
 static gint _activate_event(GtkWidget *widget, gpointer data)
 {
-   SignalHandler work = _get_signal_handler(widget, data);
+   SignalHandler work = _get_signal_handler(data);
    int retval = FALSE;
 
    if ( dbgfp != NULL ) _dw_log("%s %d: %s\n",__FILE__,__LINE__,__func__);
@@ -1448,7 +1454,7 @@ static gint _activate_event(GtkWidget *widget, gpointer data)
 
 static gint _configure_event(GtkWidget *widget, GdkEventConfigure *event, gpointer data)
 {
-   SignalHandler work = _get_signal_handler(widget, data);
+   SignalHandler work = _get_signal_handler(data);
    int retval = FALSE;
 
    if ( dbgfp != NULL ) _dw_log("%s %d: %s\n",__FILE__,__LINE__,__func__);
@@ -1463,7 +1469,7 @@ static gint _configure_event(GtkWidget *widget, GdkEventConfigure *event, gpoint
 
 static gint _expose_event(GtkWidget *widget, GdkEventExpose *event, gpointer data)
 {
-   SignalHandler work = _get_signal_handler(widget, data);
+   SignalHandler work = _get_signal_handler(data);
    int retval = FALSE;
 
    if ( dbgfp != NULL ) _dw_log("%s %d: %s\n",__FILE__,__LINE__,__func__);
@@ -1483,7 +1489,7 @@ static gint _expose_event(GtkWidget *widget, GdkEventExpose *event, gpointer dat
 
 static gint _item_select_event(GtkWidget *widget, GtkWidget *child, gpointer data)
 {
-   SignalHandler work = _get_signal_handler(widget, data);
+   SignalHandler work = _get_signal_handler(data);
    static int _dw_recursing = 0;
    int retval = FALSE;
 
@@ -1528,7 +1534,7 @@ static gint _item_select_event(GtkWidget *widget, GtkWidget *child, gpointer dat
 
 static gint _container_context_event(GtkWidget *widget, GdkEventButton *event, gpointer data)
 {
-   SignalHandler work = _get_signal_handler(widget, data);
+   SignalHandler work = _get_signal_handler(data);
    int retval = FALSE;
 
    if ( dbgfp != NULL ) _dw_log("%s %d: %s\n",__FILE__,__LINE__,__func__);
@@ -1551,7 +1557,7 @@ static gint _container_context_event(GtkWidget *widget, GdkEventButton *event, g
 
 static gint _tree_context_event(GtkWidget *widget, GdkEventButton *event, gpointer data)
 {
-   SignalHandler work = _get_signal_handler(widget, data);
+   SignalHandler work = _get_signal_handler(data);
    int retval = FALSE;
 
    if ( dbgfp != NULL ) _dw_log("%s %d: %s\n",__FILE__,__LINE__,__func__);
@@ -1614,7 +1620,7 @@ static gint _tree_select_event(GtkTreeSelection *sel, gpointer data)
    if ( dbgfp != NULL ) _dw_log("%s %d: %s\n",__FILE__,__LINE__,__func__);
    if(widget)
    {
-      SignalHandler work = _get_signal_handler(widget, data);
+      SignalHandler work = _get_signal_handler(data);
 
       if(work.window)
       {
@@ -1636,7 +1642,7 @@ static gint _tree_select_event(GtkTreeSelection *sel, gpointer data)
 
 static gint _tree_expand_event(GtkTreeView *widget, GtkTreeIter *iter, GtkTreePath *path, gpointer data)
 {
-   SignalHandler work = _get_signal_handler((GtkWidget *)widget, data);
+   SignalHandler work = _get_signal_handler(data);
    int retval = FALSE;
 
    if ( dbgfp != NULL ) _dw_log("%s %d: %s\n",__FILE__,__LINE__,__func__);
@@ -1650,7 +1656,7 @@ static gint _tree_expand_event(GtkTreeView *widget, GtkTreeIter *iter, GtkTreePa
 #else
 static gint _tree_select_event(GtkTree *tree, GtkWidget *child, gpointer data)
 {
-   SignalHandler work = _get_signal_handler((GtkWidget *)tree, data);
+   SignalHandler work = _get_signal_handler(data);
    GtkWidget *treeroot = (GtkWidget *)gtk_object_get_data(GTK_OBJECT(child), "_dw_tree");
    int retval = FALSE;
 
@@ -1675,7 +1681,7 @@ static gint _tree_select_event(GtkTree *tree, GtkWidget *child, gpointer data)
 
 static gint _tree_expand_event(GtkTreeItem *treeitem, gpointer data)
 {
-   SignalHandler work = _get_signal_handler((GtkWidget *)treeitem, data);
+   SignalHandler work = _get_signal_handler(data);
    int retval = FALSE;
 
    if ( dbgfp != NULL ) _dw_log("%s %d: %s\n",__FILE__,__LINE__,__func__);
@@ -1690,7 +1696,7 @@ static gint _tree_expand_event(GtkTreeItem *treeitem, gpointer data)
 
 static gint _container_select_event(GtkWidget *widget, GdkEventButton *event, gpointer data)
 {
-   SignalHandler work = _get_signal_handler(widget, data);
+   SignalHandler work = _get_signal_handler(data);
    int retval = FALSE;
 
    if ( dbgfp != NULL ) _dw_log("%s %d: %s\n",__FILE__,__LINE__,__func__);
@@ -1714,7 +1720,7 @@ static gint _container_select_event(GtkWidget *widget, GdkEventButton *event, gp
 
 static gint _container_enter_event(GtkWidget *widget, GdkEventKey *event, gpointer data)
 {
-   SignalHandler work = _get_signal_handler(widget, data);
+   SignalHandler work = _get_signal_handler(data);
    int retval = FALSE;
 
    if ( dbgfp != NULL ) _dw_log("%s %d: %s\n",__FILE__,__LINE__,__func__);
@@ -1750,7 +1756,7 @@ int _get_logical_page(HWND handle, unsigned long pageid)
 
 static gint _switch_page_event(GtkNotebook *notebook, GtkNotebookPage *page, guint page_num, gpointer data)
 {
-   SignalHandler work = _get_signal_handler((GtkWidget *)notebook, data);
+   SignalHandler work = _get_signal_handler(data);
    int retval = FALSE;
 
    if ( dbgfp != NULL ) _dw_log("%s %d: %s\n",__FILE__,__LINE__,__func__);
@@ -1764,7 +1770,7 @@ static gint _switch_page_event(GtkNotebook *notebook, GtkNotebookPage *page, gui
 
 static gint _column_click_event(GtkWidget *widget, gint column_num, gpointer data)
 {
-   SignalHandler work = _get_signal_handler(widget, data);
+   SignalHandler work = _get_signal_handler(data);
    int retval = FALSE;
 
    if ( dbgfp != NULL ) _dw_log("%s %d: %s\n",__FILE__,__LINE__,__func__);
@@ -1778,7 +1784,7 @@ static gint _column_click_event(GtkWidget *widget, gint column_num, gpointer dat
 
 static gint _container_select_row(GtkWidget *widget, gint row, gint column, GdkEventButton *event, gpointer data)
 {
-   SignalHandler work = _get_signal_handler(widget, data);
+   SignalHandler work = _get_signal_handler(data);
    char *rowdata = gtk_clist_get_row_data(GTK_CLIST(widget), row);
    int (*contextfunc)(HWND, HWND, char *, void *, void *) = work.func;
 
@@ -1819,7 +1825,7 @@ static gint _value_changed_event(GtkAdjustment *adjustment, gpointer data)
 
    if (slider || spinbutton || scrollbar)
    {
-      SignalHandler work = _get_signal_handler((GtkWidget *)adjustment, data);
+      SignalHandler work = _get_signal_handler(data);
 
       if (work.window)
       {
@@ -6212,13 +6218,23 @@ HTREEITEM dw_tree_insert_after(HWND handle, HTREEITEM item, char *title, HICN ic
    {
       void *thisfunc = (void *)gtk_object_get_data(GTK_OBJECT(tree), "_dw_tree_item_expand_func");
       void *mydata = (void *)gtk_object_get_data(GTK_OBJECT(tree), "_dw_tree_item_expand_data");
-      SignalHandler work = _get_signal_handler(tree, mydata);
+      void **params = calloc(sizeof(void *), 3):
+      SignalHandler work;
+      
+      params[0] = mydata;
+      params[2] = (void *)tree;
+      work = _get_signal_handler(mydata);
 
       if(thisfunc && work.window)
       {
-         int sigid = _set_signal_handler(newitem, work.window, work.func, work.data, thisfunc);
-         gint cid =gtk_signal_connect(GTK_OBJECT(newitem), "expand", GTK_SIGNAL_FUNC(thisfunc),(gpointer)sigid);
+         gint sigid = _set_signal_handler(newitem, work.window, work.func, work.data, thisfunc);
+         pointer[0] = GINT_TO_POINTER(sigid);
+         gint cid = g_signal_connect_data(G_OBJECT(newitem), "expand", G_CALLBACK(thisfunc), params, _dw_signal_disconnect, 0);
          _set_signal_handler_id(newitem, sigid, cid);
+      }
+      else
+      {
+         free(params);
       }
    }
 
@@ -6230,7 +6246,7 @@ HTREEITEM dw_tree_insert_after(HWND handle, HTREEITEM item, char *title, HICN ic
       {
          void *thisfunc = (void *)gtk_object_get_data(GTK_OBJECT(tree), "_dw_select_child_func");
          void *mydata = (void *)gtk_object_get_data(GTK_OBJECT(tree), "_dw_select_child_data");
-         SignalHandler work = _get_signal_handler(tree, mydata);
+         SignalHandler work = _get_signal_handler(mydata);
 
          subtree = gtk_tree_new();
 
@@ -6243,7 +6259,7 @@ HTREEITEM dw_tree_insert_after(HWND handle, HTREEITEM item, char *title, HICN ic
 
          thisfunc = (void *)gtk_object_get_data(GTK_OBJECT(tree), "_dw_container_context_func");
          mydata = (void *)gtk_object_get_data(GTK_OBJECT(tree), "_dw_container_context_data");
-         work = _get_signal_handler(tree, mydata);
+         work = _get_signal_handler(mydata);
 
          if(thisfunc && work.window)
          {
@@ -6358,12 +6374,18 @@ HTREEITEM dw_tree_insert(HWND handle, char *title, HICN icon, HTREEITEM parent, 
    {
       void *thisfunc = (void *)gtk_object_get_data(GTK_OBJECT(tree), "_dw_tree_item_expand_func");
       void *mydata = (void *)gtk_object_get_data(GTK_OBJECT(tree), "_dw_tree_item_expand_data");
-      SignalHandler work = _get_signal_handler(tree, mydata);
+      void **params = calloc(sizeof(void *), 3):
+      SignalHandler work;
+      
+      params[0] = mydata;
+      params[2] = (void *)tree;
+      work = _get_signal_handler(mydata);
 
       if(thisfunc && work.window)
       {
-         int sigid = _set_signal_handler(item, work.window, work.func, work.data, thisfunc);
-         gint cid =gtk_signal_connect(GTK_OBJECT(item), "expand", GTK_SIGNAL_FUNC(thisfunc),(gpointer)sigid);
+         gint sigid = _set_signal_handler(item, work.window, work.func, work.data, thisfunc);
+         params[0] = GINT_TO_POINTER(sigid);
+         gint cid = g_signal_connect_data(G_OBJECT(item), "expand", G_CALLBACK(thisfunc), params, _dw_signal_disconnect, 0);
          _set_signal_handler_id(item, sigid, cid);
       }
    }
@@ -6376,7 +6398,7 @@ HTREEITEM dw_tree_insert(HWND handle, char *title, HICN icon, HTREEITEM parent, 
       {
          void *thisfunc = (void *)gtk_object_get_data(GTK_OBJECT(tree), "_dw_select_child_func");
          void *mydata = (void *)gtk_object_get_data(GTK_OBJECT(tree), "_dw_select_child_data");
-         SignalHandler work = _get_signal_handler(tree, mydata);
+         SignalHandler work = _get_signal_handler(mydata);
 
          subtree = gtk_tree_new();
 
@@ -6389,7 +6411,7 @@ HTREEITEM dw_tree_insert(HWND handle, char *title, HICN icon, HTREEITEM parent, 
 
          thisfunc = (void *)gtk_object_get_data(GTK_OBJECT(tree), "_dw_container_context_func");
          mydata = (void *)gtk_object_get_data(GTK_OBJECT(tree), "_dw_container_context_data");
-         work = _get_signal_handler(tree, mydata);
+         work = _get_signal_handler(mydata);
 
          if(thisfunc && work.window)
          {
@@ -13466,6 +13488,29 @@ static HWND _find_signal_window(HWND window, char *signame)
    return thiswindow;
 }
 
+/* Internal function to free any allocated signal data..
+ * and call any required function to free additional memory.
+ */
+static void _dw_signal_disconnect(gpointer data, GClosure *closure)
+{
+   if(data)
+   {
+      void **params = (void **)data;
+      void (*discfunc)(HWND, void *) = params[1];
+
+      if(discfunc)
+      {
+         SignalHandler work = _get_signal_handler(data);
+         
+         if(work.window)
+         {
+            discfunc(work.window, work.data);
+         }
+      }
+      free(data);
+   }
+}
+
 /*
  * Add a callback to a window event.
  * Parameters:
@@ -13476,11 +13521,29 @@ static HWND _find_signal_window(HWND window, char *signame)
  */
 void dw_signal_connect(HWND window, char *signame, void *sigfunc, void *data)
 {
+   dw_signal_connect_data(window, signame, sigfunc, NULL, data);
+}
+
+/*
+ * Add a callback to a window event with a closure callback.
+ * Parameters:
+ *       window: Window handle of signal to be called back.
+ *       signame: A string pointer identifying which signal to be hooked.
+ *       sigfunc: The pointer to the function to be used as the callback.
+ *       discfunc: The pointer to the function called when this handler is removed.
+ *       data: User data to be passed to the handler function.
+ */
+void dw_signal_connect_data(HWND window, char *signame, void *sigfunc, void *discfunc, void *data)
+{
    void *thisfunc  = _findsigfunc(signame);
    char *thisname = signame;
    HWND thiswindow = window;
    int sigid, _locked_by_me = FALSE;
+   void **params = calloc(3, sizeof(void *));
    gint cid;
+
+   /* Save the disconnect function pointer */
+   params[1] = discfunc;
 
    DW_MUTEX_LOCK;
    /*
@@ -13508,7 +13571,7 @@ void dw_signal_connect(HWND window, char *signame, void *sigfunc, void *data)
       thisfunc = _findsigfunc("tree-context");
 
       sigid = _set_signal_handler(thiswindow, window, sigfunc, data, thisfunc);
-      cid = gtk_signal_connect(GTK_OBJECT(thiswindow), "button_press_event", GTK_SIGNAL_FUNC(thisfunc), GINT_TO_POINTER(sigid));
+      cid = g_signal_connect_data(G_OBJECT(thiswindow), "button_press_event", G_CALLBACK(thisfunc), params, _dw_signal_disconnect, 0);
       _set_signal_handler_id(thiswindow, sigid, cid);
 
 #if 0
@@ -13528,7 +13591,9 @@ void dw_signal_connect(HWND window, char *signame, void *sigfunc, void *data)
       thisname = "changed";
 
       sigid = _set_signal_handler(treeview, window, sigfunc, data, thisfunc);
-      cid = g_signal_connect(G_OBJECT(thiswindow), thisname, (GCallback)thisfunc, GINT_TO_POINTER(sigid));
+      params[0] = GINT_TO_POINTER(sigid);
+      params[2] = (void *)thiswindow;
+      cid = g_signal_connect_data(G_OBJECT(thiswindow), thisname, (GCallback)thisfunc, params, _dw_signal_disconnect, 0);
       _set_signal_handler_id(treeview, sigid, cid);
       DW_MUTEX_UNLOCK;
       return;
@@ -13542,13 +13607,18 @@ void dw_signal_connect(HWND window, char *signame, void *sigfunc, void *data)
    {
       thisfunc = _findsigfunc("tree-context");
       sigid = _set_signal_handler(thiswindow, window, sigfunc, data, thisfunc);
-
+      params[0] = GINT_TO_POINTER(sigid);
+      params[2] = (void *)thiswindow;
       gtk_object_set_data(GTK_OBJECT(thiswindow), "_dw_container_context_func", (gpointer)thisfunc);
-      gtk_object_set_data(GTK_OBJECT(thiswindow), "_dw_container_context_data", GINT_TO_POINTER(sigid));
-      cid = gtk_signal_connect(GTK_OBJECT(thiswindow), "button_press_event", GTK_SIGNAL_FUNC(thisfunc), GINT_TO_POINTER(sigid));
+      gtk_object_set_data(GTK_OBJECT(thiswindow), "_dw_container_context_data", params);
+      cid = gtk_signal_connect(GTK_OBJECT(thiswindow), "button_press_event", GTK_SIGNAL_FUNC(thisfunc), params);
       _set_signal_handler_id(thiswindow, sigid, cid);
+      
+      params = calloc(sizeof(void *), 3);
       sigid = _set_signal_handler(window, window, sigfunc, data, thisfunc);
-      cid = gtk_signal_connect(GTK_OBJECT(window), "button_press_event", GTK_SIGNAL_FUNC(thisfunc), GINT_TO_POINTER(sigid));
+      params[0] = GINT_TO_POINTER(sigid);
+      params[2] = (void *)thiswindow;
+      cid = gtk_signal_connect(GTK_OBJECT(window), "button_press_event", GTK_SIGNAL_FUNC(thisfunc), params);
       _set_signal_handler_id(window, sigid, cid);
       DW_MUTEX_UNLOCK;
       return;
@@ -13558,6 +13628,7 @@ void dw_signal_connect(HWND window, char *signame, void *sigfunc, void *data)
       if(thisfunc)
       {
          sigid = _set_signal_handler(thiswindow, window, sigfunc, data, thisfunc);
+         params[0] = GINT_TO_POINTER(sigid);
          gtk_object_set_data(GTK_OBJECT(thiswindow), "_dw_select_child_func", (gpointer)thisfunc);
          gtk_object_set_data(GTK_OBJECT(thiswindow), "_dw_select_child_data", GINT_TO_POINTER(sigid));
       }
@@ -13578,7 +13649,9 @@ void dw_signal_connect(HWND window, char *signame, void *sigfunc, void *data)
    else if (GTK_IS_CLIST(thiswindow) && strcmp(signame, DW_SIGNAL_ITEM_ENTER) == 0)
    {
       sigid = _set_signal_handler(thiswindow, window, sigfunc, data, _container_enter_event);
-      cid = gtk_signal_connect(GTK_OBJECT(thiswindow), "key_press_event", GTK_SIGNAL_FUNC(_container_enter_event), GINT_TO_POINTER(sigid));
+      params[0] = GINT_TO_POINTER(sigid);
+      params[2] = (void *)thiswindow;
+      cid = g_signal_connect_data(G_OBJECT(thiswindow), "key_press_event", G_CALLBACK(_container_enter_event), params, _dw_signal_disconnect, 0);
       _set_signal_handler_id(thiswindow, sigid, cid);
 
       thisname = "button_press_event";
@@ -13634,7 +13707,9 @@ void dw_signal_connect(HWND window, char *signame, void *sigfunc, void *data)
    }
 
    sigid = _set_signal_handler(thiswindow, window, sigfunc, data, thisfunc);
-   cid = gtk_signal_connect(GTK_OBJECT(thiswindow), thisname, GTK_SIGNAL_FUNC(thisfunc),GINT_TO_POINTER(sigid));
+   params[0] = GINT_TO_POINTER(sigid);
+   params[2] = (void *)thiswindow;
+   cid = g_signal_connect_data(G_OBJECT(thiswindow), thisname, G_CALLBACK(thisfunc), params, _dw_signal_disconnect, 0);
    _set_signal_handler_id(thiswindow, sigid, cid);
    DW_MUTEX_UNLOCK;
 }
@@ -13646,22 +13721,25 @@ void dw_signal_connect(HWND window, char *signame, void *sigfunc, void *data)
  */
 void dw_signal_disconnect_by_name(HWND window, char *signame)
 {
-   HWND thiswindow;
    int z, count;
    void *thisfunc;
    int _locked_by_me = FALSE;
+   void **params = alloca(sizeof(void *) * 3);
 
    DW_MUTEX_LOCK;
-   thiswindow = _find_signal_window(window, signame);
-   count = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(thiswindow), "_dw_sigcounter"));
-   thisfunc  = _findsigfunc(signame);
+   params[2] = _find_signal_window(window, signame);
+   count = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(params[2]), "_dw_sigcounter"));
+   thisfunc = _findsigfunc(signame);
 
    for(z=0;z<count;z++)
    {
-      SignalHandler sh = _get_signal_handler(thiswindow, GINT_TO_POINTER(z));
+      SignalHandler sh;
+      
+      params[0] = GINT_TO_POINTER(z);
+      sh = _get_signal_handler(params);
 
       if(sh.intfunc == thisfunc)
-         _remove_signal_handler(thiswindow, z);
+         _remove_signal_handler((HWND)params[2], z);
    }
    DW_MUTEX_UNLOCK;
 }
@@ -13695,20 +13773,23 @@ void dw_signal_disconnect_by_window(HWND window)
  */
 void dw_signal_disconnect_by_data(HWND window, void *data)
 {
-   HWND thiswindow;
    int z, count;
    int _locked_by_me = FALSE;
+   void **params = alloca(sizeof(void *) * 3);
 
    DW_MUTEX_LOCK;
-   thiswindow = _find_signal_window(window, NULL);
-   count = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(thiswindow), "_dw_sigcounter"));
+   params[2] = _find_signal_window(window, NULL);
+   count = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(params[2]), "_dw_sigcounter"));
 
    for(z=0;z<count;z++)
    {
-      SignalHandler sh = _get_signal_handler(thiswindow, GINT_TO_POINTER(z));
+      SignalHandler sh;
+      
+      params[0] = GINT_TO_POINTER(z);
+      sh = _get_signal_handler(params);
 
       if(sh.data == data)
-         _remove_signal_handler(thiswindow, z);
+         _remove_signal_handler((HWND)params[2], z);
    }
    DW_MUTEX_UNLOCK;
 }

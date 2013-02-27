@@ -2,7 +2,7 @@
  * Dynamic Windows:
  *          A GTK like implementation of the MacOS GUI using Cocoa
  *
- * (C) 2011-2012 Brian Smith <brian@dbsoft.org>
+ * (C) 2011-2013 Brian Smith <brian@dbsoft.org>
  * (C) 2011 Mark Hessling <mark@rexx.org>
  *
  * Requires 10.5 or later.
@@ -145,6 +145,7 @@ typedef struct _sighandler
     HWND window;
     int id;
     void *signalfunction;
+    void *discfunction;
     void *data;
 
 } SignalHandler;
@@ -2627,7 +2628,7 @@ void _free_tree_recurse(NSMutableArray *node, NSMutableArray *item)
 
 /* This function adds a signal handler callback into the linked list.
  */
-void _new_signal(ULONG message, HWND window, int msgid, void *signalfunction, void *data)
+void _new_signal(ULONG message, HWND window, int msgid, void *signalfunction, void *discfunc, void *data)
 {
     SignalHandler *new = malloc(sizeof(SignalHandler));
 
@@ -2635,6 +2636,7 @@ void _new_signal(ULONG message, HWND window, int msgid, void *signalfunction, vo
     new->window = window;
     new->id = msgid;
     new->signalfunction = signalfunction;
+    new->discfunction = discfunc;
     new->data = data;
     new->next = NULL;
 
@@ -9854,7 +9856,7 @@ int API dw_timer_connect(int interval, void *sigfunc, void *data)
     {
         NSTimeInterval seconds = (double)interval / 1000.0;
         NSTimer *thistimer = DWTimers[z] = [NSTimer scheduledTimerWithTimeInterval:seconds target:DWHandler selector:@selector(runTimer:) userInfo:nil repeats:YES];
-        _new_signal(0, thistimer, z+1, sigfunc, data);
+        _new_signal(0, thistimer, z+1, sigfunc, NULL, data);
         return z+1;
     }
     return 0;
@@ -9914,6 +9916,20 @@ void API dw_timer_disconnect(int timerid)
  */
 void API dw_signal_connect(HWND window, char *signame, void *sigfunc, void *data)
 {
+    dw_signal_connect_data(window, signame, sigfunc, NULL, data);
+}
+
+/*
+ * Add a callback to a window event with a closure callback.
+ * Parameters:
+ *       window: Window handle of signal to be called back.
+ *       signame: A string pointer identifying which signal to be hooked.
+ *       sigfunc: The pointer to the function to be used as the callback.
+ *       discfunc: The pointer to the function called when this handler is removed.
+ *       data: User data to be passed to the handler function.
+ */
+void API dw_signal_connect_data(HWND window, char *signame, void *sigfunc, void *discfunc, void *data)
+{
     ULONG message = 0, msgid = 0;
     
     /* Handle special case of application delete signal */
@@ -9926,7 +9942,7 @@ void API dw_signal_connect(HWND window, char *signame, void *sigfunc, void *data
     {
         if((message = _findsigmessage(signame)) != 0)
         {
-            _new_signal(message, window, (int)msgid, sigfunc, data);
+            _new_signal(message, window, (int)msgid, sigfunc, discfunc, data);
         }
     }
 }
@@ -9948,6 +9964,13 @@ void API dw_signal_disconnect_by_name(HWND window, char *signame)
     {
         if(tmp->window == window && tmp->message == message)
         {
+            void (*discfunc)(HWND, void *) = tmp->discfunction;
+            
+            if(discfunc)
+            {
+                discfunc(tmp->window, tmp->data);
+            }
+            
             if(prev)
             {
                 prev->next = tmp->next;
@@ -9982,6 +10005,13 @@ void API dw_signal_disconnect_by_window(HWND window)
     {
         if(tmp->window == window)
         {
+            void (*discfunc)(HWND, void *) = tmp->discfunction;
+            
+            if(discfunc)
+            {
+                discfunc(tmp->window, tmp->data);
+            }
+            
             if(prev)
             {
                 prev->next = tmp->next;
@@ -10017,6 +10047,13 @@ void API dw_signal_disconnect_by_data(HWND window, void *data)
     {
         if(tmp->window == window && tmp->data == data)
         {
+            void (*discfunc)(HWND, void *) = tmp->discfunction;
+            
+            if(discfunc)
+            {
+                discfunc(tmp->window, tmp->data);
+            }
+            
             if(prev)
             {
                 prev->next = tmp->next;

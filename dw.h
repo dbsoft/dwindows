@@ -1719,6 +1719,7 @@ int API dw_module_close(HMOD handle);
 int API dw_timer_connect(int interval, void *sigfunc, void *data);
 void API dw_timer_disconnect(int id);
 void API dw_signal_connect(HWND window, char *signame, void *sigfunc, void *data);
+void API dw_signal_connect_data(HWND window, char *signame, void *sigfunc, void *discfunc, void *data);
 void API dw_signal_disconnect_by_window(HWND window);
 void API dw_signal_disconnect_by_data(HWND window, void *data);
 void API dw_signal_disconnect_by_name(HWND window, char *signame);
