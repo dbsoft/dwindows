@@ -1,0 +1,6 @@
+#include "winuser.h"
+#ifdef WIN64
+1 RT_MANIFEST dwtest.exe.x64.manifest
+#else
+1 RT_MANIFEST dwtest.exe.x86.manifest
+#endif
