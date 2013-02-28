@@ -302,7 +302,7 @@ HBRUSH _colors[18];
 
 HFONT _DefaultFont = NULL;
 
-#if (defined(BUILD_DLL) || defined(BUILD_HTML)) && !defined(__MINGW32__)
+#if (defined(BUILD_DLL) || defined(BUILD_HTML))
 LRESULT CALLBACK _browserWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 #endif
 LRESULT CALLBACK _colorwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2);
@@ -3869,7 +3869,7 @@ int API dw_init(int newthread, int argc, char *argv[])
 
    RegisterClass(&wc);
 
-#if (defined(BUILD_DLL) || defined(BUILD_HTML)) && !defined(__MINGW32__)
+#if (defined(BUILD_DLL) || defined(BUILD_HTML))
    /* Register HTML renderer class */
    memset(&wc, 0, sizeof(WNDCLASS));
    wc.lpfnWndProc = (WNDPROC)_browserWindowProc;
@@ -5260,7 +5260,7 @@ HWND API dw_mdi_new(unsigned long id)
  */
 HWND API dw_html_new(unsigned long id)
 {
-#if (defined(BUILD_DLL) || defined(BUILD_HTML)) && !defined(__MINGW32__)
+#if (defined(BUILD_DLL) || defined(BUILD_HTML))
    return CreateWindow(BrowserClassName,
                   NULL,
                   WS_VISIBLE | WS_CHILD | WS_CLIPSIBLINGS,
@@ -5275,7 +5275,7 @@ HWND API dw_html_new(unsigned long id)
 #endif
 }
 
-#if (defined(BUILD_DLL) || defined(BUILD_HTML)) && !defined(__MINGW32__)
+#if (defined(BUILD_DLL) || defined(BUILD_HTML))
 void _dw_html_action(HWND hwnd, int action);
 int _dw_html_raw(HWND hwnd, char *string);
 int _dw_html_url(HWND hwnd, char *url);
@@ -5289,7 +5289,7 @@ int _dw_html_url(HWND hwnd, char *url);
  */
 void API dw_html_action(HWND handle, int action)
 {
-#if (defined(BUILD_DLL) || defined(BUILD_HTML)) && !defined(__MINGW32__)
+#if (defined(BUILD_DLL) || defined(BUILD_HTML))
    _dw_html_action(handle, action);
 #endif
 }
@@ -5305,7 +5305,7 @@ void API dw_html_action(HWND handle, int action)
  */
 int API dw_html_raw(HWND handle, char *string)
 {
-#if (defined(BUILD_DLL) || defined(BUILD_HTML)) && !defined(__MINGW32__)
+#if (defined(BUILD_DLL) || defined(BUILD_HTML))
    return _dw_html_raw(handle, string);
 #else
    return DW_ERROR_GENERAL;
@@ -5323,7 +5323,7 @@ int API dw_html_raw(HWND handle, char *string)
  */
 int API dw_html_url(HWND handle, char *url)
 {
-#if (defined(BUILD_DLL) || defined(BUILD_HTML)) && !defined(__MINGW32__)
+#if (defined(BUILD_DLL) || defined(BUILD_HTML))
    return _dw_html_url(handle, url);
 #else
    return DW_ERROR_GENERAL;
