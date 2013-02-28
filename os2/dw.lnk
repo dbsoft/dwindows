@@ -228,6 +228,7 @@ export dw_signal_connect.360
 export dw_signal_disconnect_by_window.361
 export dw_signal_disconnect_by_data.362
 export dw_signal_disconnect_by_name.363
+export dw_signal_connect_data.364
 
 export dw_timer_connect.365
 export dw_timer_disconnect.366
