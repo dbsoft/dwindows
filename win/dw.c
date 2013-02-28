@@ -6126,7 +6126,7 @@ HWND _create_toolbar(char *text, ULONG id, HICON icon, HBITMAP hbitmap)
    HIMAGELIST imlist, dimlist;
    BITMAP bmi = { 0 };
    TBBUTTON tbButtons[] = {    
-   { MAKELONG(0, 0), id, TBSTATE_ENABLED, TBSTYLE_BUTTON, 0L, 0}
+   { MAKELONG(0, 0), id, TBSTATE_ENABLED, TBSTYLE_BUTTON}
    };
    
    /* Get the bitmap from either the icon or bitmap itself */
@@ -6192,7 +6192,7 @@ HWND API dw_bitmapbutton_new(char *text, ULONG id)
    HICON icon = LoadImage(DWInstance, MAKEINTRESOURCE(id), IMAGE_ICON, 0, 0, 0);
    HBITMAP hbitmap = icon ? 0 : LoadBitmap(DWInstance, MAKEINTRESOURCE(id));
 #ifdef TOOLBAR
-   if(tmp = _create_toolbar(text, id, icon, hbitmap))
+   if((tmp = _create_toolbar(text, id, icon, hbitmap)))
    {
       cinfo->fore = cinfo->back = -1;
       cinfo->pOldProc = SubclassWindow(tmp, _simplewndproc);
@@ -6263,7 +6263,7 @@ HWND API dw_bitmapbutton_new_from_file(char *text, unsigned long id, char *filen
 #endif
 
 #ifdef TOOLBAR
-   if(tmp = _create_toolbar(text, id, hicon, hbitmap))
+   if((tmp = _create_toolbar(text, id, hicon, hbitmap)))
    {
       cinfo->fore = cinfo->back = -1;
       cinfo->pOldProc = SubclassWindow(tmp, _simplewndproc);
@@ -6354,7 +6354,7 @@ HWND API dw_bitmapbutton_new_from_data(char *text, unsigned long id, char *data,
    }
 
 #ifdef TOOLBAR
-   if(tmp = _create_toolbar(text, id, hicon, hbitmap))
+   if((tmp = _create_toolbar(text, id, hicon, hbitmap)))
    {
       cinfo->fore = cinfo->back = -1;
       cinfo->pOldProc = SubclassWindow(tmp, _simplewndproc);
