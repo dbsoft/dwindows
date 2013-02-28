@@ -1699,7 +1699,7 @@ LRESULT CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 {
    int result = -1, taskbar = FALSE;
    SignalHandler *tmp = Root;
-   void (*windowfunc)(PVOID);
+   void (DWSIGNAL *windowfunc)(PVOID);
    ULONG origmsg = msg;
 
    /* Deal with translating some messages */
@@ -1730,7 +1730,7 @@ LRESULT CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
                   {
                      if (!hWnd)
                      {
-                        int (*timerfunc)(void *) = tmp->signalfunction;
+                        int (DWSIGNAL *timerfunc)(void *) = tmp->signalfunction;
                         if (tmp->id == (int)mp1)
                         {
                            if (!timerfunc(tmp->data))
@@ -1745,7 +1745,7 @@ LRESULT CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
                   break;
                case WM_SETFOCUS:
                   {
-                     int (*setfocusfunc)(HWND, void *) = (int (*)(HWND, void *))tmp->signalfunction;
+                     int (DWSIGNAL *setfocusfunc)(HWND, void *) = (int (*)(HWND, void *))tmp->signalfunction;
 
                      if(hWnd == tmp->window)
                      {
@@ -1756,7 +1756,7 @@ LRESULT CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
                   break;
                case WM_SIZE:
                   {
-                     int (*sizefunc)(HWND, int, int, void *) = tmp->signalfunction;
+                     int (DWSIGNAL *sizefunc)(HWND, int, int, void *) = tmp->signalfunction;
                      if(hWnd == tmp->window)
                      {
                         result = sizefunc(tmp->window, LOWORD(mp2), HIWORD(mp2), tmp->data);
@@ -1766,7 +1766,7 @@ LRESULT CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
                   break;
                case WM_LBUTTONDOWN:
                   {
-                     int (*buttonfunc)(HWND, int, int, int, void *) = (int (*)(HWND, int, int, int, void *))tmp->signalfunction;
+                     int (DWSIGNAL *buttonfunc)(HWND, int, int, int, void *) = (int (*)(HWND, int, int, int, void *))tmp->signalfunction;
 
                      if(hWnd == tmp->window)
                      {
@@ -1801,7 +1801,7 @@ LRESULT CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
                   break;
                case WM_LBUTTONUP:
                   {
-                     int (*buttonfunc)(HWND, int, int, int, void *) = (int (*)(HWND, int, int, int, void *))tmp->signalfunction;
+                     int (DWSIGNAL *buttonfunc)(HWND, int, int, int, void *) = (int (*)(HWND, int, int, int, void *))tmp->signalfunction;
 
                      if(hWnd == tmp->window)
                      {
@@ -1837,7 +1837,7 @@ LRESULT CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
                case WM_MOUSEMOVE:
                   {
                      POINTS pts = MAKEPOINTS(mp2);
-                     int (*motionfunc)(HWND, int, int, int, void *) = (int (*)(HWND, int, int, int, void *))tmp->signalfunction;
+                     int (DWSIGNAL *motionfunc)(HWND, int, int, int, void *) = (int (*)(HWND, int, int, int, void *))tmp->signalfunction;
 
                      if(hWnd == tmp->window)
                      {
@@ -1857,7 +1857,7 @@ LRESULT CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
                   break;
                case WM_CHAR:
                   {
-                     int (*keypressfunc)(HWND, char, int, int, void *, char *) = tmp->signalfunction;
+                     int (DWSIGNAL *keypressfunc)(HWND, char, int, int, void *, char *) = tmp->signalfunction;
 
                      if(hWnd == tmp->window || _toplevel_window(hWnd) == tmp->window)
                      {
@@ -1887,7 +1887,7 @@ LRESULT CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
                   break;
                case WM_CLOSE:
                   {
-                     int (*closefunc)(HWND, void *) = tmp->signalfunction;
+                     int (DWSIGNAL *closefunc)(HWND, void *) = tmp->signalfunction;
 
                      if(hWnd == tmp->window)
                      {
@@ -1900,7 +1900,7 @@ LRESULT CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
                   {
                      PAINTSTRUCT ps;
                      DWExpose exp;
-                     int (*exposefunc)(HWND, DWExpose *, void *) = tmp->signalfunction;
+                     int (DWSIGNAL *exposefunc)(HWND, DWExpose *, void *) = tmp->signalfunction;
 
                      if ( hWnd == tmp->window )
                      {
@@ -1932,7 +1932,7 @@ LRESULT CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
                            {
                               if(tmp->window == tem->hdr.hwndFrom && !dw_window_get_data(tmp->window, "_dw_select_item"))
                               {
-                                 int (*treeselectfunc)(HWND, HTREEITEM, char *, void *, void *) = tmp->signalfunction;
+                                 int (DWSIGNAL *treeselectfunc)(HWND, HTREEITEM, char *, void *, void *) = tmp->signalfunction;
                                  TVITEM tvi;
                                  void **ptrs;
 
@@ -1952,7 +1952,7 @@ LRESULT CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
                            {
                               if(tmp->window == tem->hdr.hwndFrom && tem->action == TVE_EXPAND)
                               {
-                                 int (*treeexpandfunc)(HWND, HTREEITEM, void *) = tmp->signalfunction;
+                                 int (DWSIGNAL *treeexpandfunc)(HWND, HTREEITEM, void *) = tmp->signalfunction;
 
                                  result = treeexpandfunc(tmp->window, tem->itemNew.hItem, tmp->data);
                                  tmp = NULL;
@@ -1962,7 +1962,7 @@ LRESULT CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
                            {
                               if(tmp->window == tem->hdr.hwndFrom)
                               {
-                                 int (*containercontextfunc)(HWND, char *, int, int, void *, void *) = tmp->signalfunction;
+                                 int (DWSIGNAL *containercontextfunc)(HWND, char *, int, int, void *, void *) = tmp->signalfunction;
                                  HTREEITEM hti;
                                  TVITEM tvi;
                                  TVHITTESTINFO thi;
@@ -2008,7 +2008,7 @@ LRESULT CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 
                                  if(iItem > -1)
                                  {
-                                    int (*treeselectfunc)(HWND, HWND, char *, void *, void *) = tmp->signalfunction;
+                                    int (DWSIGNAL *treeselectfunc)(HWND, HWND, char *, void *, void *) = tmp->signalfunction;
 
                                     lvi.iItem = iItem;
                                     lvi.mask = LVIF_PARAM;
@@ -2031,7 +2031,7 @@ LRESULT CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
                         NMHDR FAR *tem=(NMHDR FAR *)mp2;
                         if(tmp->window == tem->hwndFrom && tem->code == tmp->message)
                         {
-                           int (*switchpagefunc)(HWND, unsigned long, void *) = tmp->signalfunction;
+                           int (DWSIGNAL *switchpagefunc)(HWND, unsigned long, void *) = tmp->signalfunction;
                            unsigned long num=dw_notebook_page_get(tem->hwndFrom);
                            result = switchpagefunc(tem->hwndFrom, num, tmp->data);
                            tmp = NULL;
@@ -2042,7 +2042,7 @@ LRESULT CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
                         NMLISTVIEW FAR *tem=(NMLISTVIEW FAR *)mp2;
                         if(tmp->window == tem->hdr.hwndFrom && tem->hdr.code == tmp->message)
                         {
-                           int (*columnclickfunc)(HWND, int, void *) = tmp->signalfunction;
+                           int (DWSIGNAL *columnclickfunc)(HWND, int, void *) = tmp->signalfunction;
                            result = columnclickfunc(tem->hdr.hwndFrom, tem->iSubItem, tmp->data);
                            tmp = NULL;
                         }
@@ -2052,7 +2052,7 @@ LRESULT CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
                         NMUPDOWN FAR *tem=(NMUPDOWN FAR *)mp2;
                         if(tmp->window == tem->hdr.hwndFrom && tem->hdr.code == UDN_DELTAPOS)
                         {
-                           int (*valuechangefunc)(HWND, int, void *) = tmp->signalfunction;
+                           int (DWSIGNAL *valuechangefunc)(HWND, int, void *) = tmp->signalfunction;
                            result = valuechangefunc(tmp->window, tem->iPos + tem->iDelta, tmp->data);
                            tmp = NULL;
                         }
@@ -2061,7 +2061,7 @@ LRESULT CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
                   break;
                case WM_COMMAND:
                   {
-                     int (*clickfunc)(HWND, void *) = tmp->signalfunction;
+                     int (DWSIGNAL *clickfunc)(HWND, void *) = tmp->signalfunction;
                      HWND command;
                      ULONG passthru = (ULONG)LOWORD(mp1);
                      ULONG message = (ULONG)HIWORD(mp1);
@@ -2070,7 +2070,7 @@ LRESULT CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 
                      if (message == LBN_SELCHANGE || message == CBN_SELCHANGE)
                      {
-                        int (*listboxselectfunc)(HWND, int, void *) = tmp->signalfunction;
+                        int (DWSIGNAL *listboxselectfunc)(HWND, int, void *) = tmp->signalfunction;
 
                         if (tmp->message == LBN_SELCHANGE && tmp->window == (HWND)mp2)
                         {
@@ -2120,7 +2120,7 @@ LRESULT CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
                   {
                      TCHAR tmpbuf[100] = {0};
                      HWND handle = (HWND)mp2;
-                     int (*valuechangefunc)(HWND, int, void *) = tmp->signalfunction;
+                     int (DWSIGNAL *valuechangefunc)(HWND, int, void *) = tmp->signalfunction;
 
                      if(!GetClassName(handle, tmpbuf, 99))
                      {
@@ -2625,7 +2625,7 @@ void _click_default(HWND handle)
             /* Make sure it's the right window, and the right ID */
             if (tmp->window == handle)
             {
-               int (*clickfunc)(HWND, void *) = tmp->signalfunction;
+               int (DWSIGNAL *clickfunc)(HWND, void *) = tmp->signalfunction;
                clickfunc(tmp->window, tmp->data);
                tmp = NULL;
             }
@@ -2962,7 +2962,7 @@ LRESULT CALLBACK _containerwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
             {
                if(tmp->message == NM_DBLCLK && tmp->window == hWnd)
                {
-                  int (*containerselectfunc)(HWND, char *, void *) = tmp->signalfunction;
+                  int (DWSIGNAL *containerselectfunc)(HWND, char *, void *) = tmp->signalfunction;
 
                   /* Seems to be having lParam as 1 which really sucks */
                   if(lvi.lParam < 100)
@@ -2985,7 +2985,7 @@ LRESULT CALLBACK _containerwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
          {
             if(tmp->message == NM_RCLICK && tmp->window == hWnd)
             {
-               int (*containercontextfunc)(HWND, char *, int, int, void *, void *) = tmp->signalfunction;
+               int (DWSIGNAL *containercontextfunc)(HWND, char *, int, int, void *, void *) = tmp->signalfunction;
                LONG x,y;
                LV_ITEM lvi;
                int iItem;
@@ -3543,7 +3543,7 @@ LRESULT CALLBACK _BtProc(HWND hwnd, ULONG msg, WPARAM mp1, LPARAM mp2)
          {
             if(tmp->message == WM_COMMAND)
             {
-               int (*clickfunc)(HWND, void *) = tmp->signalfunction;
+               int (DWSIGNAL *clickfunc)(HWND, void *) = tmp->signalfunction;
 
                /* Make sure it's the right window, and the right ID */
                if(tmp->window == hwnd)
@@ -3579,7 +3579,7 @@ LRESULT CALLBACK _BtProc(HWND hwnd, ULONG msg, WPARAM mp1, LPARAM mp2)
             {
                if(tmp->message == WM_COMMAND)
                {
-                  int (*clickfunc)(HWND, void *) = tmp->signalfunction;
+                  int (DWSIGNAL *clickfunc)(HWND, void *) = tmp->signalfunction;
 
                   /* Make sure it's the right window, and the right ID */
                   if(tmp->window == hwnd)
@@ -11914,7 +11914,7 @@ typedef struct _dwprint
 {
     PRINTDLG pd;
     DOCINFO di;
-    int (*drawfunc)(HPRINT, HPIXMAP, int, void *);
+    int (DWSIGNAL *drawfunc)(HPRINT, HPIXMAP, int, void *);
     void *drawdata;
     unsigned long flags;
 } DWPrint;
@@ -12372,7 +12372,7 @@ void API dw_signal_disconnect_by_name(HWND window, char *signame)
    {
       if(((window < (HWND)65536 && (int)(intptr_t)window == tmp->id) || tmp->window == window) && tmp->message == message)
       {
-         void (*discfunc)(HWND, void *) = (void (*)(HWND, void *))tmp->discfunction;
+         void (DWSIGNAL *discfunc)(HWND, void *) = (void (*)(HWND, void *))tmp->discfunction;
             
          if(discfunc)
          {
@@ -12413,7 +12413,7 @@ void API dw_signal_disconnect_by_window(HWND window)
    {
       if((window < (HWND)65536 && (int)(intptr_t)window == tmp->id) || tmp->window == window)
       {
-         void (*discfunc)(HWND, void *) = (void (*)(HWND, void *))tmp->discfunction;
+         void (DWSIGNAL *discfunc)(HWND, void *) = (void (*)(HWND, void *))tmp->discfunction;
             
          if(discfunc)
          {
@@ -12455,7 +12455,7 @@ void API dw_signal_disconnect_by_data(HWND window, void *data)
    {
       if(((window < (HWND)65536 && (int)(intptr_t)window == tmp->id) || tmp->window == window) && tmp->data == data)
       {
-         void (*discfunc)(HWND, void *) = (void (*)(HWND, void *))tmp->discfunction;
+         void (DWSIGNAL *discfunc)(HWND, void *) = (void (*)(HWND, void *))tmp->discfunction;
             
          if(discfunc)
          {
