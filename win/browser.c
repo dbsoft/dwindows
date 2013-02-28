@@ -33,8 +33,8 @@ static const SAFEARRAYBOUND ArrayBound = {1, 0};
 
 // Our IStorage functions that the browser may call
 HRESULT STDMETHODCALLTYPE Storage_QueryInterface(IStorage FAR* This, REFIID riid, LPVOID FAR* ppvObj);
-HRESULT STDMETHODCALLTYPE Storage_AddRef(IStorage FAR* This);
-HRESULT STDMETHODCALLTYPE Storage_Release(IStorage FAR* This);
+ULONG STDMETHODCALLTYPE Storage_AddRef(IStorage FAR* This);
+ULONG STDMETHODCALLTYPE Storage_Release(IStorage FAR* This);
 HRESULT STDMETHODCALLTYPE Storage_CreateStream(IStorage FAR* This, const WCHAR *pwcsName, DWORD grfMode, DWORD reserved1, DWORD reserved2, IStream **ppstm);
 HRESULT STDMETHODCALLTYPE Storage_OpenStream(IStorage FAR* This, const WCHAR * pwcsName, void *reserved1, DWORD grfMode, DWORD reserved2, IStream **ppstm);
 HRESULT STDMETHODCALLTYPE Storage_CreateStorage(IStorage FAR* This, const WCHAR *pwcsName, DWORD grfMode, DWORD reserved1, DWORD reserved2, IStorage **ppstg);
@@ -81,8 +81,8 @@ IStorage			MyIStorage = { &MyIStorageTable };
 
 // Our IOleInPlaceFrame functions that the browser may call
 HRESULT STDMETHODCALLTYPE Frame_QueryInterface(IOleInPlaceFrame FAR* This, REFIID riid, LPVOID FAR* ppvObj);
-HRESULT STDMETHODCALLTYPE Frame_AddRef(IOleInPlaceFrame FAR* This);
-HRESULT STDMETHODCALLTYPE Frame_Release(IOleInPlaceFrame FAR* This);
+ULONG STDMETHODCALLTYPE Frame_AddRef(IOleInPlaceFrame FAR* This);
+ULONG STDMETHODCALLTYPE Frame_Release(IOleInPlaceFrame FAR* This);
 HRESULT STDMETHODCALLTYPE Frame_GetWindow(IOleInPlaceFrame FAR* This, HWND FAR* lphwnd);
 HRESULT STDMETHODCALLTYPE Frame_ContextSensitiveHelp(IOleInPlaceFrame FAR* This, BOOL fEnterMode);
 HRESULT STDMETHODCALLTYPE Frame_GetBorder(IOleInPlaceFrame FAR* This, LPRECT lprectBorder);
@@ -154,8 +154,8 @@ typedef struct {
 
 // Our IOleClientSite functions that the browser may call
 HRESULT STDMETHODCALLTYPE Site_QueryInterface(IOleClientSite FAR* This, REFIID riid, void ** ppvObject);
-HRESULT STDMETHODCALLTYPE Site_AddRef(IOleClientSite FAR* This);
-HRESULT STDMETHODCALLTYPE Site_Release(IOleClientSite FAR* This);
+ULONG STDMETHODCALLTYPE Site_AddRef(IOleClientSite FAR* This);
+ULONG STDMETHODCALLTYPE Site_Release(IOleClientSite FAR* This);
 HRESULT STDMETHODCALLTYPE Site_SaveObject(IOleClientSite FAR* This);
 HRESULT STDMETHODCALLTYPE Site_GetMoniker(IOleClientSite FAR* This, DWORD dwAssign, DWORD dwWhichMoniker, IMoniker ** ppmk);
 HRESULT STDMETHODCALLTYPE Site_GetContainer(IOleClientSite FAR* This, LPOLECONTAINER FAR* ppContainer);
@@ -186,8 +186,8 @@ Site_RequestNewObjectLayout};
 
 // Our IDocHostUIHandler functions that the browser may call
 HRESULT STDMETHODCALLTYPE UI_QueryInterface(IDocHostUIHandler FAR* This, REFIID riid, void ** ppvObject);
-HRESULT STDMETHODCALLTYPE UI_AddRef(IDocHostUIHandler FAR* This);
-HRESULT STDMETHODCALLTYPE UI_Release(IDocHostUIHandler FAR* This);
+ULONG STDMETHODCALLTYPE UI_AddRef(IDocHostUIHandler FAR* This);
+ULONG STDMETHODCALLTYPE UI_Release(IDocHostUIHandler FAR* This);
 HRESULT STDMETHODCALLTYPE UI_ShowContextMenu(IDocHostUIHandler FAR* This, DWORD dwID, POINT __RPC_FAR *ppt, IUnknown __RPC_FAR *pcmdtReserved, IDispatch __RPC_FAR *pdispReserved);
 HRESULT STDMETHODCALLTYPE UI_GetHostInfo(IDocHostUIHandler FAR* This, DOCHOSTUIINFO __RPC_FAR *pInfo);
 HRESULT STDMETHODCALLTYPE UI_ShowUI(IDocHostUIHandler FAR* This, DWORD dwID, IOleInPlaceActiveObject __RPC_FAR *pActiveObject, IOleCommandTarget __RPC_FAR *pCommandTarget, IOleInPlaceFrame __RPC_FAR *pFrame, IOleInPlaceUIWindow __RPC_FAR *pDoc);
@@ -236,8 +236,8 @@ UI_FilterDataObject};
 
 // Our IOleInPlaceSite functions that the browser may call
 HRESULT STDMETHODCALLTYPE InPlace_QueryInterface(IOleInPlaceSite FAR* This, REFIID riid, void ** ppvObject);
-HRESULT STDMETHODCALLTYPE InPlace_AddRef(IOleInPlaceSite FAR* This);
-HRESULT STDMETHODCALLTYPE InPlace_Release(IOleInPlaceSite FAR* This);
+ULONG STDMETHODCALLTYPE InPlace_AddRef(IOleInPlaceSite FAR* This);
+ULONG STDMETHODCALLTYPE InPlace_Release(IOleInPlaceSite FAR* This);
 HRESULT STDMETHODCALLTYPE InPlace_GetWindow(IOleInPlaceSite FAR* This, HWND FAR* lphwnd);
 HRESULT STDMETHODCALLTYPE InPlace_ContextSensitiveHelp(IOleInPlaceSite FAR* This, BOOL fEnterMode);
 HRESULT STDMETHODCALLTYPE InPlace_CanInPlaceActivate(IOleInPlaceSite FAR* This);
@@ -360,12 +360,12 @@ HRESULT STDMETHODCALLTYPE UI_QueryInterface(IDocHostUIHandler FAR* This, REFIID 
 	return(Site_QueryInterface((IOleClientSite *)((char *)This - sizeof(IOleClientSite) - sizeof(_IOleInPlaceSiteEx)), riid, ppvObj));
 }
 
-HRESULT STDMETHODCALLTYPE UI_AddRef(IDocHostUIHandler FAR* This)
+ULONG STDMETHODCALLTYPE UI_AddRef(IDocHostUIHandler FAR* This)
 {
 	return(1);
 }
 
-HRESULT STDMETHODCALLTYPE UI_Release(IDocHostUIHandler FAR* This)
+ULONG STDMETHODCALLTYPE UI_Release(IDocHostUIHandler FAR* This)
 {
 	return(1);
 }
@@ -596,12 +596,12 @@ HRESULT STDMETHODCALLTYPE Storage_QueryInterface(IStorage FAR* This, REFIID riid
 	NOTIMPLEMENTED;
 }
 
-HRESULT STDMETHODCALLTYPE Storage_AddRef(IStorage FAR* This)
+ULONG STDMETHODCALLTYPE Storage_AddRef(IStorage FAR* This)
 {
 	return(1);
 }
 
-HRESULT STDMETHODCALLTYPE Storage_Release(IStorage FAR* This)
+ULONG STDMETHODCALLTYPE Storage_Release(IStorage FAR* This)
 {
 	return(1);
 }
@@ -780,12 +780,12 @@ HRESULT STDMETHODCALLTYPE Site_QueryInterface(IOleClientSite FAR* This, REFIID r
 	return(S_OK);
 }
 
-HRESULT STDMETHODCALLTYPE Site_AddRef(IOleClientSite FAR* This)
+ULONG STDMETHODCALLTYPE Site_AddRef(IOleClientSite FAR* This)
 {
 	return(1);
 }
 
-HRESULT STDMETHODCALLTYPE Site_Release(IOleClientSite FAR* This)
+ULONG STDMETHODCALLTYPE Site_Release(IOleClientSite FAR* This)
 {
 	return(1);
 }
@@ -852,12 +852,12 @@ HRESULT STDMETHODCALLTYPE InPlace_QueryInterface(IOleInPlaceSite FAR* This, REFI
 	return(Site_QueryInterface((IOleClientSite *)((char *)This - sizeof(IOleClientSite)), riid, ppvObj));
 }
 
-HRESULT STDMETHODCALLTYPE InPlace_AddRef(IOleInPlaceSite FAR* This)
+ULONG STDMETHODCALLTYPE InPlace_AddRef(IOleInPlaceSite FAR* This)
 {
 	return(1);
 }
 
-HRESULT STDMETHODCALLTYPE InPlace_Release(IOleInPlaceSite FAR* This)
+ULONG STDMETHODCALLTYPE InPlace_Release(IOleInPlaceSite FAR* This)
 {
 	return(1);
 }
@@ -994,12 +994,12 @@ HRESULT STDMETHODCALLTYPE Frame_QueryInterface(IOleInPlaceFrame FAR* This, REFII
 	NOTIMPLEMENTED;
 }
 
-HRESULT STDMETHODCALLTYPE Frame_AddRef(IOleInPlaceFrame FAR* This)
+ULONG STDMETHODCALLTYPE Frame_AddRef(IOleInPlaceFrame FAR* This)
 {
 	return(1);
 }
 
-HRESULT STDMETHODCALLTYPE Frame_Release(IOleInPlaceFrame FAR* This)
+ULONG STDMETHODCALLTYPE Frame_Release(IOleInPlaceFrame FAR* This)
 {
 	return(1);
 }
