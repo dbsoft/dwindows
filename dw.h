@@ -494,6 +494,7 @@ void _dw_pool_drain(void);
 # else
 #  define API _cdecl
 #endif
+#define DWSIGNAL _cdecl
 #endif
 
 #define DW_DT_LEFT               SS_LEFTNOWORDWRAP
@@ -1423,7 +1424,9 @@ typedef void *HPRINT;
 #define API
 #endif
 
+#ifndef DWSIGNAL
 #define DWSIGNAL API
+#endif
 
 /* Constants for sizing scrolled widgets */
 #define _DW_SCROLLED_MIN_WIDTH   100
