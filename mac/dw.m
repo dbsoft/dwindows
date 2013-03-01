@@ -3216,15 +3216,23 @@ void API dw_main_iteration(void)
 
 /*
  * Cleanly terminates a DW session, should be signal handler safe.
- * Parameters:
- *       exitcode: Exit code reported to the operating system.
  */
-void API dw_exit(int exitcode)
+void API dw_shutdown(void)
 {
 #if !defined(GARBAGE_COLLECT)
     pool = pthread_getspecific(_dw_pool_key);
     [pool drain];
 #endif
+}
+
+/*
+ * Cleanly terminates a DW session, should be signal handler safe.
+ * Parameters:
+ *       exitcode: Exit code reported to the operating system.
+ */
+void API dw_exit(int exitcode)
+{
+    dw_shutdown();
     exit(exitcode);
 }
 
@@ -8299,7 +8307,8 @@ HWND API dw_window_new(HWND hwndOwner, char *title, ULONG flStyle)
     [window setDelegate:view];
     [window setAutorecalculatesKeyViewLoop:YES];
     [window setAcceptsMouseMovedEvents:YES];
-    [view release];
+    [window setReleasedWhenClosed:YES];
+    [view autorelease];
 
     /* Enable full screen mode on resizeable windows */
     if(flStyle & DW_FCF_SIZEBORDER)

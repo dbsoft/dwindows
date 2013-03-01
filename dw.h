@@ -1679,6 +1679,7 @@ DWTID API dw_thread_new(void *func, void *data, int stack);
 void API dw_thread_end(void);
 DWTID API dw_thread_id(void);
 void API dw_exit(int exitcode);
+void API dw_shutdown(void);
 HWND API dw_render_new(unsigned long id);
 void API dw_color_foreground_set(unsigned long value);
 void API dw_color_background_set(unsigned long value);

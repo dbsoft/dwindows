@@ -8396,6 +8396,13 @@ DWTID dw_thread_id(void)
 
 /*
  * Cleanly terminates a DW session, should be signal handler safe.
+ */
+void dw_shutdown(void)
+{
+}
+
+/*
+ * Cleanly terminates a DW session, should be signal handler safe.
  * Parameters:
  *       exitcode: Exit code reported to the operating system.
  */

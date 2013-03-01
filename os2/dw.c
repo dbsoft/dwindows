@@ -11836,10 +11836,8 @@ DWTID API dw_thread_id(void)
 
 /*
  * Cleanly terminates a DW session, should be signal handler safe.
- * Parameters:
- *       exitcode: Exit code reported to the operating system.
  */
-void API dw_exit(int exitcode)
+void API dw_shutdown(void)
 {
    /* Destroy the menu message window */
    dw_window_destroy(hwndApp);
@@ -11852,7 +11850,10 @@ void API dw_exit(int exitcode)
 
    /* Deinit the GBM */
    if(_gbm_deinit)
+   {
        _gbm_deinit();
+       _gbm_deinit = NULL;
+   }
 
 #ifdef UNICODE
    /* Free the conversion object */
@@ -11870,7 +11871,16 @@ void API dw_exit(int exitcode)
    DosFreeModule(pmprintf);
    DosFreeModule(pmmerge);
    DosFreeModule(gbm);
-   
+}
+
+/*
+ * Cleanly terminates a DW session, should be signal handler safe.
+ * Parameters:
+ *       exitcode: Exit code reported to the operating system.
+ */
+void API dw_exit(int exitcode)
+{
+   dw_shutdown();
    /* And finally exit */
    exit(exitcode);
 }

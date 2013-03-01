@@ -10157,15 +10157,24 @@ DWTID dw_thread_id(void)
 
 /*
  * Cleanly terminates a DW session, should be signal handler safe.
+ */
+void dw_shutdown(void)
+{
+   if ( dbgfp != NULL )
+   {
+      fclose( dbgfp );
+      dbgfp = NULL;
+   }
+}
+
+/*
+ * Cleanly terminates a DW session, should be signal handler safe.
  * Parameters:
  *       exitcode: Exit code reported to the operating system.
  */
 void dw_exit(int exitcode)
 {
-   if ( dbgfp != NULL )
-   {
-      fclose( dbgfp );
-   }
+   dw_shutdown();
    exit(exitcode);
 }
 

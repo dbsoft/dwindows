@@ -7,7 +7,6 @@ export dw_exit.12
 export dw_beep.13
 export dw_messagebox.14
 export dw_debug.15
-
 export dw_environment_query.16
 export dw_exec.17
 export dw_browse.18
@@ -19,6 +18,7 @@ export dw_main_sleep.23
 export dw_main_iteration.24
 export dw_app_dir.25
 export dw_main_quit.26
+export dw_shutdown.27
 
 export dw_box_new.40
 export dw_groupbox_new.41
