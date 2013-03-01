@@ -94,7 +94,11 @@ int _getmntinfo_r(struct statfs **mntbufp, int flags)
 }
 #endif
 
+#ifdef __MINGW32__
+double API drivefree(int drive)
+#else
 long double API drivefree(int drive)
+#endif
 {
 #if defined(__EMX__) || defined(__OS2__)
 	ULONG   aulFSInfoBuf[40] = {0};
@@ -196,7 +200,11 @@ long double API drivefree(int drive)
 #endif
 }
 
+#ifdef __MINGW32__
+double API drivesize(int drive)
+#else
 long double API drivesize(int drive)
+#endif
 {
 #if defined(__EMX__) || defined(__OS2__)
 	ULONG   aulFSInfoBuf[40] = {0};

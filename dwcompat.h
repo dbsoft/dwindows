@@ -400,8 +400,13 @@ typedef int socklen_t;
 char * API vargs(char *buf, int len, char *format, ...);
 int API makedir(char *path);
 void API setfileinfo(char *filename, char *url, char *logfile);
+#ifdef __MINGW32__
+double API drivesize(int drive);
+double API drivefree(int drive);
+#else
 long double API drivesize(int drive);
 long double API drivefree(int drive);
+#endif
 int API isdrive(int drive);
 void API getfsname(int drive, char *buf, int len);
 FILE * API fsopen(char *path, char *modes);
