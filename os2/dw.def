@@ -12,7 +12,6 @@ EXPORTS
   dw_beep                                @13
   dw_messagebox                          @14
   dw_debug                               @15
-
   dw_environment_query                   @16
   dw_exec                                @17
   dw_browse                              @18
@@ -24,6 +23,7 @@ EXPORTS
   dw_main_iteration                      @24
   dw_app_dir                             @25
   dw_main_quit                           @26
+  dw_shutdown                            @27
 
   dw_box_new                             @40
   dw_groupbox_new                        @41

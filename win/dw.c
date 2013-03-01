@@ -11331,10 +11331,8 @@ DWTID API dw_thread_id(void)
 
 /*
  * Cleanly terminates a DW session, should be signal handler safe.
- * Parameters:
- *       exitcode: Exit code reported to the operating system.
  */
-void API dw_exit(int exitcode)
+void API dw_shutdown(void)
 {
    OleUninitialize();
 #ifdef AEROGLASS
@@ -11343,6 +11341,16 @@ void API dw_exit(int exitcode)
 #endif   
    FreeLibrary(huxtheme);
    DestroyWindow(hwndTooltip);
+}
+
+/*
+ * Cleanly terminates a DW session, should be signal handler safe.
+ * Parameters:
+ *       exitcode: Exit code reported to the operating system.
+ */
+void API dw_exit(int exitcode)
+{
+   dw_shutdown();
    exit(exitcode);
 }
 
