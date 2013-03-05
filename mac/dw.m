@@ -819,6 +819,7 @@ DWObject *DWObj;
 -(void)setRedraw:(int)val { redraw = val; }
 -(int)shown { return shown; }
 -(void)setShown:(int)val { shown = val; }
+-(void)dealloc { dw_signal_disconnect_by_window(self); [super dealloc]; }
 @end
 
 /* Subclass for a render area type */
@@ -912,12 +913,12 @@ DWObject *DWObj;
         return NO;
     return YES;
 }
-- (void)viewDidMoveToWindow
+-(void)viewDidMoveToWindow
 {
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(windowResized:) name:NSWindowDidResizeNotification object:[self window]];
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(windowDidBecomeMain:) name:NSWindowDidBecomeMainNotification object:[self window]];
 }
-- (void)dealloc
+-(void)dealloc
 {
     if(windowmenu)
     {
@@ -927,7 +928,7 @@ DWObject *DWObj;
     dw_signal_disconnect_by_window(self);
     [super dealloc];
 }
-- (void)windowResized:(NSNotification *)notification;
+-(void)windowResized:(NSNotification *)notification;
 {
     NSSize size = [self frame].size;
 
@@ -8274,6 +8275,7 @@ void API dw_notebook_pack(HWND handle, ULONG pageid, HWND page)
 
         dw_box_pack_start(tmpbox, page, 0, 0, TRUE, TRUE, 0);
         [notepage setView:box];
+        [box autorelease];
     }
 }
 
