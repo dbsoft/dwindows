@@ -1356,10 +1356,18 @@ typedef void *HPRINT;
 #define DW_RGB(a, b, c) (0xF0000000 | (a) | (b) << 8 | (c) << 16)
 #endif
 
+/* Menu convenience paramaters */
 #define DW_MENU_SEPARATOR ""
 #define DW_NOMENU 0
 #define DW_MENU_AUTO 0
 #define DW_MENU_POPUP (unsigned long)-1
+
+/* Convenience parameters for various types */
+#define DW_NOHWND 0
+#define DW_NOHTIMER 0
+#define DW_NOHPRINT 0
+#define DW_NOHPIXMAP 0
+#define DW_NOHICN 0
 
 #define DW_PERCENT_INDETERMINATE ((unsigned int)-1)
 
