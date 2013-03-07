@@ -30,7 +30,7 @@ struct _dirdescr {
 /*
  * Return first char of filesystem type, or 0 if unknown.
  */
-static char API getFSType(const char *path)
+static char getFSType(const char *path)
 {
 	static char cache[1+26];
 	char drive[3];

@@ -419,9 +419,4 @@ void API nice_strformat(char *dest, long double val, int dec);
 void API initdir(int argc, char *argv[]);
 int API setpath(char *path);
 
-#ifdef __MINGW32__
-# undef API
-# define API APIENTRY
-#endif
-
 #endif
