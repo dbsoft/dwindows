@@ -18,7 +18,7 @@ PLATFORM_TARGET=pe-i386
 else
 PLATFORM_DEF=-DWIN64
 PLATFORM_CFLAGS=-m64
-PLATFORM_TARGET=pe-x86-64
+PLATFORM_TARGET=pe-x86-64 -DDW64
 endif
 
 # Had to disable -Wunused-value due to every Win32 macro generating this warning...
@@ -34,7 +34,7 @@ VPATH=../ ../win
 all: dw.dll dwcompat.dll dwtest.exe
 
 dw.res:  win/dw.rc
-	windres $(PLATFORM_DEF) --target=$(PLATFORM_TARGET) --input win/dw.rc --output dw.res --output-format=coff
+	windres --target=$(PLATFORM_TARGET) --input win/dw.rc --output dw.res --output-format=coff
    
 dw.dll:  $(OBJECTS) win/dw-mingw.def dw.res
 	$(CC) $(CFLAGS) $(DEFS) -o dw.dll dw.res $(OBJECTS) $(LDFLAGS) \
@@ -45,7 +45,7 @@ dwcompat.dll:  $(COMPATOBJECTS) win/dwcompat-mingw.def
   -Wl,--out-implib,dwcompat.a -Wl,-Map,dwcompat.dll.map -Wl,--cref  -Wl,--enable-stdcall-fixup win/dwcompat-mingw.def 
 
 dwtest.res: win/dwtest.rc
-	windres $(PLATFORM_DEF) --target=$(PLATFORM_TARGET) --input win/dwtest.rc --output dwtest.res --output-format=coff
+	windres --target=$(PLATFORM_TARGET) --input win/dwtest.rc --output dwtest.res --output-format=coff
    
 dwtest.exe: dwtest.o dw.a dwcompat.a dwtest.res
 	$(CC) $(CFLAGS) -o dwtest.exe dwtest.res dwtest.o dw.a dwcompat.a
