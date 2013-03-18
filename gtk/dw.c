@@ -2084,16 +2084,16 @@ void init_webkit(void)
 }
 #endif
 
-static GStaticRecMutex _dw_gdk_lock;
+static GRecMutex _dw_gdk_lock;
 
 static void _dw_gdk_lock_enter(void)
 {
-    g_static_rec_mutex_lock(&_dw_gdk_lock);
+    g_rec_mutex_lock(&_dw_gdk_lock);
 }
 
 static void _dw_gdk_lock_leave(void)
 {
-    g_static_rec_mutex_unlock(&_dw_gdk_lock);
+    g_rec_mutex_unlock(&_dw_gdk_lock);
 }
 
 /*
@@ -2157,7 +2157,7 @@ int dw_int_init(DWResources *res, int newthread, int *argc, char **argv[])
    g_thread_init(NULL);
 #endif
 #if GTK_MAJOR_VERSION > 1
-   g_static_rec_mutex_init(&_dw_gdk_lock);
+   g_rec_mutex_init(&_dw_gdk_lock);
 
    gdk_threads_set_lock_functions(G_CALLBACK(_dw_gdk_lock_enter), G_CALLBACK(_dw_gdk_lock_leave));
 
@@ -13580,6 +13580,8 @@ void dw_signal_connect_data(HWND window, char *signame, void *sigfunc, void *dis
       thisfunc = _findsigfunc("tree-context");
 
       sigid = _set_signal_handler(thiswindow, window, sigfunc, data, thisfunc);
+      params[0] = GINT_TO_POINTER(sigid);
+      params[2] = (void *)thiswindow;
       cid = g_signal_connect_data(G_OBJECT(thiswindow), "button_press_event", G_CALLBACK(thisfunc), params, _dw_signal_disconnect, 0);
       _set_signal_handler_id(thiswindow, sigid, cid);
 
@@ -13601,7 +13603,7 @@ void dw_signal_connect_data(HWND window, char *signame, void *sigfunc, void *dis
 
       sigid = _set_signal_handler(treeview, window, sigfunc, data, thisfunc);
       params[0] = GINT_TO_POINTER(sigid);
-      params[2] = (void *)thiswindow;
+      params[2] = (void *)treeview;
       cid = g_signal_connect_data(G_OBJECT(thiswindow), thisname, (GCallback)thisfunc, params, _dw_signal_disconnect, 0);
       _set_signal_handler_id(treeview, sigid, cid);
       DW_MUTEX_UNLOCK;
