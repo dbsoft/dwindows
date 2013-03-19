@@ -13650,6 +13650,7 @@ void dw_signal_connect_data(HWND window, char *signame, void *sigfunc, void *dis
       if(thisfunc)
       {
          sigid = _set_signal_handler(thiswindow, window, sigfunc, data, thisfunc);
+         params[0] = GINT_TO_POINTER(sigid);
          gtk_object_set_data(GTK_OBJECT(thiswindow), "_dw_tree_item_expand_func", (gpointer)thisfunc);
          gtk_object_set_data(GTK_OBJECT(thiswindow), "_dw_tree_item_expand_data", GINT_TO_POINTER(sigid));
       }
@@ -13665,6 +13666,7 @@ void dw_signal_connect_data(HWND window, char *signame, void *sigfunc, void *dis
       cid = g_signal_connect_data(G_OBJECT(thiswindow), "key_press_event", G_CALLBACK(_container_enter_event), params, _dw_signal_disconnect, 0);
       _set_signal_handler_id(thiswindow, sigid, cid);
 
+      params = calloc(sizeof(void *), 3);
       thisname = "button_press_event";
       thisfunc = _findsigfunc(DW_SIGNAL_ITEM_ENTER);
    }
@@ -13713,6 +13715,7 @@ void dw_signal_connect_data(HWND window, char *signame, void *sigfunc, void *dis
 
    if (!thisfunc || !thiswindow)
    {
+      free(params);
       DW_MUTEX_UNLOCK;
       return;
    }
