@@ -1934,16 +1934,16 @@ LRESULT CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
                               {
                                  int (DWSIGNAL *treeselectfunc)(HWND, HTREEITEM, char *, void *, void *) = tmp->signalfunction;
                                  TVITEM tvi;
-                                 void **ptrs;
+                                 TCHAR textbuf[1025] = {0}, *textptr = textbuf;
 
-                                 tvi.mask = TVIF_HANDLE | TVIF_PARAM;
+                                 tvi.mask = TVIF_HANDLE | TVIF_PARAM | TVIF_TEXT;
                                  tvi.hItem = tem->itemNew.hItem;
+                                 tvi.pszText = textbuf;
+                                 tvi.cchTextMax = 1024;
 
                                  TreeView_GetItem(tmp->window, &tvi);
 
-                                 ptrs = (void **)tvi.lParam;
-                                 if(ptrs)
-                                    result = treeselectfunc(tmp->window, tem->itemNew.hItem, (char *)ptrs[0], tmp->data, (void *)ptrs[1]);
+                                 result = treeselectfunc(tmp->window, tem->itemNew.hItem, WideToUTF8(textptr), tmp->data, (void *)tvi.lParam);
 
                                  tmp = NULL;
                               }
@@ -1966,8 +1966,9 @@ LRESULT CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
                                  HTREEITEM hti;
                                  TVITEM tvi;
                                  TVHITTESTINFO thi;
-                                 void **ptrs = NULL;
+                                 void *itemdata = NULL;
                                  LONG x, y;
+                                 TCHAR textbuf[1025] = {0}, *textptr = textbuf;
 
                                  dw_pointer_query_pos(&x, &y);
 
@@ -1980,15 +1981,17 @@ LRESULT CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 
                                  if(hti)
                                  {
-                                    tvi.mask = TVIF_HANDLE | TVIF_PARAM;
+                                    tvi.mask = TVIF_HANDLE | TVIF_PARAM | TVIF_TEXT;
                                     tvi.hItem = hti;
+                                    tvi.pszText = textbuf;
+                                    tvi.cchTextMax = 1024;
 
                                     TreeView_GetItem(tmp->window, &tvi);
                                     TreeView_SelectItem(tmp->window, hti);
 
-                                    ptrs = (void **)tvi.lParam;
+                                    itemdata = (void *)tvi.lParam;
                                  }
-                                 containercontextfunc(tmp->window, ptrs ? (char *)ptrs[0] : NULL, x, y, tmp->data, ptrs ? ptrs[1] : NULL);
+                                 containercontextfunc(tmp->window, WideToUTF8(textptr), x, y, tmp->data, itemdata);
                                  tmp = NULL;
                               }
                            }
@@ -8692,14 +8695,10 @@ HTREEITEM API dw_tree_insert_after(HWND handle, HTREEITEM item, char *title, HIC
    TVITEM tvi;
    TVINSERTSTRUCT tvins;
    HTREEITEM hti;
-   void **ptrs= malloc(sizeof(void *) * 2);
-
-   ptrs[0] = title;
-   ptrs[1] = itemdata;
 
    tvi.mask = TVIF_TEXT | TVIF_IMAGE | TVIF_SELECTEDIMAGE | TVIF_PARAM;
    tvi.pszText = UTF8toWide(title);
-   tvi.lParam = (LPARAM)ptrs;
+   tvi.lParam = (LPARAM)itemdata;
    tvi.cchTextMax = (int)_tcslen(tvi.pszText);
    tvi.iSelectedImage = tvi.iImage = _lookup_icon(handle, (HICON)icon, 1);
 
@@ -8726,14 +8725,10 @@ HTREEITEM API dw_tree_insert(HWND handle, char *title, HICN icon, HTREEITEM pare
    TVITEM tvi;
    TVINSERTSTRUCT tvins;
    HTREEITEM hti;
-   void **ptrs= malloc(sizeof(void *) * 2);
-
-   ptrs[0] = title;
-   ptrs[1] = itemdata;
 
    tvi.mask = TVIF_TEXT | TVIF_IMAGE | TVIF_SELECTEDIMAGE | TVIF_PARAM;
    tvi.pszText = UTF8toWide(title);
-   tvi.lParam = (LPARAM)ptrs;
+   tvi.lParam = (LPARAM)itemdata;
    tvi.cchTextMax = (int)_tcslen(tvi.pszText);
    tvi.iSelectedImage = tvi.iImage = _lookup_icon(handle, (HICON)icon, 1);
 
@@ -8757,17 +8752,12 @@ HTREEITEM API dw_tree_insert(HWND handle, char *title, HICN icon, HTREEITEM pare
 void API dw_tree_item_change(HWND handle, HTREEITEM item, char *title, HICN icon)
 {
    TVITEM tvi;
-   void **ptrs;
 
    tvi.mask = TVIF_HANDLE;
    tvi.hItem = item;
 
    if(TreeView_GetItem(handle, &tvi))
    {
-
-      ptrs = (void **)tvi.lParam;
-      ptrs[0] = title;
-
       tvi.mask = TVIF_TEXT | TVIF_IMAGE | TVIF_SELECTEDIMAGE;
       tvi.pszText = UTF8toWide(title);
       tvi.cchTextMax = (int)_tcslen(tvi.pszText);
