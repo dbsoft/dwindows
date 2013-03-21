@@ -8778,16 +8778,12 @@ void API dw_tree_item_change(HWND handle, HTREEITEM item, char *title, HICN icon
 void API dw_tree_item_set_data(HWND handle, HTREEITEM item, void *itemdata)
 {
    TVITEM tvi;
-   void **ptrs;
 
-   tvi.mask = TVIF_HANDLE;
+   tvi.mask = TVIF_HANDLE | TVIF_PARAM;
    tvi.hItem = item;
+   tvi.lParam = (LPARAM)itemdata;
 
-   if(TreeView_GetItem(handle, &tvi))
-   {
-      ptrs = (void **)tvi.lParam;
-      ptrs[1] = itemdata;
-   }
+   TreeView_SetItem(handle, &tvi);
 }
 
 /*
@@ -8799,15 +8795,13 @@ void API dw_tree_item_set_data(HWND handle, HTREEITEM item, void *itemdata)
 void * API dw_tree_item_get_data(HWND handle, HTREEITEM item)
 {
    TVITEM tvi;
-   void **ptrs;
 
    tvi.mask = TVIF_HANDLE | TVIF_PARAM;
    tvi.hItem = item;
 
    if(TreeView_GetItem(handle, &tvi))
    {
-      ptrs = (void **)tvi.lParam;
-      return ptrs[1];
+      return (void *)tvi.lParam;
    }
    return NULL;
 }
@@ -8821,12 +8815,13 @@ void * API dw_tree_item_get_data(HWND handle, HTREEITEM item)
 char * API dw_tree_get_title(HWND handle, HTREEITEM item)
 {
    TVITEM tvi;
+   TCHAR textbuf[1025] = {0}, *textptr = textbuf;
 
-   tvi.mask = TVIF_HANDLE;
+   tvi.mask = TVIF_HANDLE | TVIF_TEXT;
    tvi.hItem = item;
 
    if(TreeView_GetItem(handle, &tvi))
-      return _strdup(WideToUTF8(tvi.pszText));
+      return _strdup(WideToUTF8(textptr));
     return NULL;
 }
 
@@ -8852,22 +8847,6 @@ void API dw_tree_item_select(HWND handle, HTREEITEM item)
    TreeView_SelectItem(handle, item);
 }
 
-/* Delete all tree subitems */
-void _dw_tree_item_delete_recursive(HWND handle, HTREEITEM node)
-{
-   HTREEITEM hti;
-
-   hti = TreeView_GetChild(handle, node);
-
-   while(hti)
-   {
-      HTREEITEM lastitem = hti;
-
-      hti = TreeView_GetNextSibling(handle, hti);
-      dw_tree_item_delete(handle, lastitem);
-   }
-}
-
 /*
  * Removes all nodes from a tree.
  * Parameters:
@@ -8875,18 +8854,9 @@ void _dw_tree_item_delete_recursive(HWND handle, HTREEITEM node)
  */
 void API dw_tree_clear(HWND handle)
 {
-   HTREEITEM hti = TreeView_GetRoot(handle);
-
-   dw_window_set_data(handle, "_dw_select_item", (void *)1);
-   while(hti)
-   {
-      HTREEITEM lastitem = hti;
-
-      _dw_tree_item_delete_recursive(handle, hti);
-      hti = TreeView_GetNextSibling(handle, hti);
-      dw_tree_item_delete(handle, lastitem);
-   }
-   dw_window_set_data(handle, "_dw_select_item", (void *)0);
+   dw_window_set_data(handle, "_dw_select_item", DW_INT_TO_POINTER(1));
+   TreeView_DeleteAllItems(handle);
+   dw_window_set_data(handle, "_dw_select_item", NULL);
 }
 
 /*
@@ -8919,22 +8889,7 @@ void API dw_tree_item_collapse(HWND handle, HTREEITEM item)
  */
 void API dw_tree_item_delete(HWND handle, HTREEITEM item)
 {
-   TVITEM tvi;
-   void **ptrs=NULL;
-
-   if(item == TVI_ROOT || !item)
-      return;
-
-   tvi.mask = TVIF_HANDLE;
-   tvi.hItem = item;
-
-   if(TreeView_GetItem(handle, &tvi))
-      ptrs = (void **)tvi.lParam;
-
-   _dw_tree_item_delete_recursive(handle, item);
    TreeView_DeleteItem(handle, item);
-   if(ptrs)
-      free(ptrs);
 }
 
 /*
@@ -12514,4 +12469,3 @@ char * API dw_wchar_to_utf8(wchar_t *wstring)
     return NULL;
 #endif
 }
-
