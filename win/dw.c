@@ -8819,6 +8819,8 @@ char * API dw_tree_get_title(HWND handle, HTREEITEM item)
 
    tvi.mask = TVIF_HANDLE | TVIF_TEXT;
    tvi.hItem = item;
+   tvi.pszText = textptr;
+   tvi.cchTextMax = 1024;
 
    if(TreeView_GetItem(handle, &tvi))
       return _strdup(WideToUTF8(textptr));
