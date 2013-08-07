@@ -160,6 +160,8 @@ typedef struct _user_data
 #define DW_CRA_SELECTED          CRA_SELECTED
 #define DW_CRA_CURSORED          CRA_CURSORED
 
+#define DW_CR_RETDATA            (1 << 10)
+
 #define DW_LS_MULTIPLESEL        LS_MULTIPLESEL
 
 #define DW_LIT_NONE              -1
@@ -371,6 +373,8 @@ void _dw_pool_drain(void);
 #define DW_CRA_SELECTED          1
 #define DW_CRA_CURSORED          (1 << 1)
 
+#define DW_CR_RETDATA            (1 << 10)
+
 #define DW_LS_MULTIPLESEL        1
 
 #define DW_LIT_NONE              -1
@@ -548,6 +552,8 @@ void _dw_pool_drain(void);
 
 #define DW_CRA_SELECTED          LVNI_SELECTED
 #define DW_CRA_CURSORED          LVNI_FOCUSED
+
+#define DW_CR_RETDATA            (1 << 10)
 
 #define DW_LS_MULTIPLESEL        LBS_MULTIPLESEL
 
@@ -812,6 +818,8 @@ typedef struct _hpixmap {
 #define DW_CRA_SELECTED          1
 #define DW_CRA_CURSORED          (1 << 1)
 
+#define DW_CR_RETDATA            (1 << 10)
+
 #define DW_LS_MULTIPLESEL        1
 
 #define DW_LIT_NONE              -1
@@ -994,6 +1002,8 @@ typedef struct _hpixmap {
 
 #define DW_CRA_SELECTED          1
 #define DW_CRA_CURSORED          (1 << 1)
+
+#define DW_CR_RETDATA            (1 << 10)
 
 #define DW_LS_MULTIPLESEL        1
 
@@ -1625,8 +1635,8 @@ void API dw_container_change_item(HWND handle, int column, int row, void *data);
 void API dw_container_set_column_width(HWND handle, int column, int width);
 void API dw_container_set_row_title(void *pointer, int row, char *title);
 void API dw_container_change_row_title(HWND handle, int row, char *title);
-#define dw_container_set_row_data(a, b, c) dw_container_set_row_title(a, b, (char *)c)
-#define dw_container_change_row_data(a, b, c) dw_container_change_row_title(a, b, (char *)c)
+void API dw_container_set_row_data(void *pointer, int row, void *data);
+void API dw_container_change_row_data(HWND handle, int row, void *data);
 void API dw_container_insert(HWND handle, void *pointer, int rowcount);
 void API dw_container_clear(HWND handle, int redraw);
 void API dw_container_delete(HWND handle, int rowcount);
@@ -1634,7 +1644,9 @@ char * API dw_container_query_start(HWND handle, unsigned long flags);
 char * API dw_container_query_next(HWND handle, unsigned long flags);
 void API dw_container_scroll(HWND handle, int direction, long rows);
 void API dw_container_cursor(HWND handle, char *text);
+void API dw_container_cursor_by_data(HWND handle, void *data);
 void API dw_container_delete_row(HWND handle, char *text);
+void API dw_container_delete_row_by_data(HWND handle, void *data);
 void API dw_container_optimize(HWND handle);
 void API dw_container_set_stripe(HWND handle, unsigned long oddcolor, unsigned long evencolor);
 void API dw_filesystem_set_column_title(HWND handle, char *title);

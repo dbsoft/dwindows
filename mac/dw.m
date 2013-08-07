@@ -356,9 +356,10 @@ int _event_handler1(id object, NSEvent *event, int message)
             /* Container class selection event */
             case 9:
             {
-                int (*containerselectfunc)(HWND, char *, void *) = handler->signalfunction;
+                int (*containerselectfunc)(HWND, char *, void *, void *) = handler->signalfunction;
+                void **params = (void **)event;
 
-                return containerselectfunc(handler->window, (char *)event, handler->data);
+                return containerselectfunc(handler->window, params[0], handler->data, params[1]);
             }
             /* Container context menu event */
             case 10:
@@ -1764,6 +1765,7 @@ DWObject *DWObj;
     NSMutableArray *data;
     NSMutableArray *types;
     NSPointerArray *titles;
+    NSPointerArray *rowdatas;
     NSColor *fgcolor, *oddcolor, *evencolor;
     int lastAddPoint, lastQueryPoint;
     id scrollview;
@@ -1885,6 +1887,7 @@ DWObject *DWObj;
         }
         [data insertObjects:input atIndexes:set];
         [titles insertPointer:NULL atIndex:index];
+        [rowdatas insertPointer:NULL atIndex:index];
         [set release];
         return (int)[titles count];
     }
@@ -1897,6 +1900,7 @@ DWObject *DWObj;
         lastAddPoint = (int)[titles count];
         [data addObjectsFromArray:input];
         [titles addPointer:NULL];
+        [rowdatas addPointer:NULL];
         return (int)[titles count];
     }
     return 0;
@@ -1917,6 +1921,7 @@ DWObject *DWObj;
         for(z=0;z<number;z++)
         {
             [titles addPointer:NULL];
+            [rowdatas addPointer:NULL];
         }
         return (int)[titles count];
     }
@@ -1987,6 +1992,7 @@ DWObject *DWObj;
             [data removeObjectAtIndex:start];
         }
         [titles removePointerAtIndex:row];
+        [rowdatas removePointerAtIndex:row];
         if(lastAddPoint > 0 && lastAddPoint > row)
         {
             lastAddPoint--;
@@ -1994,7 +2000,9 @@ DWObject *DWObj;
     }
 }
 -(void)setRow:(int)row title:(void *)input { if(titles && input) { [titles replacePointerAtIndex:row withPointer:input]; } }
+-(void)setRowData:(int)row title:(void *)input { if(rowdatas && input) { [rowdatas replacePointerAtIndex:row withPointer:input]; } }
 -(void *)getRowTitle:(int)row { if(titles && row > -1) { return [titles pointerAtIndex:row]; } return NULL; }
+-(void *)getRowData:(int)row { if(rowdatas && row > -1) { return [rowdatas pointerAtIndex:row]; } return NULL; }
 -(id)getRow:(int)row and:(int)col { if(data) { int index = (int)(row * [tvcols count]) + col; return [data objectAtIndex:index]; } return nil; }
 -(int)cellType:(int)col { return [[types objectAtIndex:col] intValue]; }
 -(int)lastAddPoint { return lastAddPoint; }
@@ -2014,6 +2022,8 @@ DWObject *DWObj;
 
     titles = iwopa([NSPointerArray class], swopa);
     [titles retain];
+    rowdatas = iwopa([NSPointerArray class], swopa);
+    [rowdatas retain];
     tvcols = [[[NSMutableArray alloc] init] retain];
     data = [[[NSMutableArray alloc] init] retain];
     types = [[[NSMutableArray alloc] init] retain];
@@ -2153,14 +2163,24 @@ DWObject *DWObj;
 }
 -(void)doubleClicked:(id)sender
 {
+    void *params[2];
+    
+    params[0] = (void *)[self getRowTitle:(int)[self selectedRow]];
+    params[1] = (void *)[self getRowData:(int)[self selectedRow]];
+    
     /* Handler for container class */
-    _event_handler(self, (NSEvent *)[self getRowTitle:(int)[self selectedRow]], 9);
+    _event_handler(self, (NSEvent *)params, 9);
 }
 -(void)keyUp:(NSEvent *)theEvent
 {
     if([[theEvent charactersIgnoringModifiers] characterAtIndex:0] == VK_RETURN)
     {
-        _event_handler(self, (NSEvent *)[self getRowTitle:(int)[self selectedRow]], 9);
+        void *params[2];
+        
+        params[0] = (void *)[self getRowTitle:(int)[self selectedRow]];
+        params[1] = (void *)[self getRowData:(int)[self selectedRow]];
+        
+        _event_handler(self, (NSEvent *)params, 9);
     }
     [super keyUp:theEvent];
 }
@@ -6804,6 +6824,24 @@ void API dw_container_set_row_title(void *pointer, int row, char *title)
 
 
 /*
+ * Sets the data pointer of a row in the container.
+ * Parameters:
+ *          pointer: Pointer to the allocated memory in dw_container_alloc().
+ *          row: Zero based row of data being set.
+ *          data: Data pointer.
+ */
+void API dw_container_set_row_data(void *pointer, int row, void *data)
+{
+    int _locked_by_me = FALSE;
+    DW_MUTEX_LOCK;
+    DWContainer *cont = pointer;
+    int lastadd = [cont lastAddPoint];
+    [cont setRowData:(row+lastadd) title:data];
+    DW_MUTEX_UNLOCK;
+}
+
+
+/*
  * Sets the title of a row in the container.
  * Parameters:
  *          handle: Handle to window (widget) of container.
@@ -6816,6 +6854,22 @@ void API dw_container_change_row_title(HWND handle, int row, char *title)
     DW_MUTEX_LOCK;
     DWContainer *cont = handle;
     [cont setRow:row title:title];
+    DW_MUTEX_UNLOCK;
+}
+
+/*
+ * Sets the data pointer of a row in the container.
+ * Parameters:
+ *          handle: Handle to window (widget) of container.
+ *          row: Zero based row of data being set.
+ *          data: Data pointer.
+ */
+void API dw_container_change_row_data(HWND handle, int row, void *data)
+{
+    int _locked_by_me = FALSE;
+    DW_MUTEX_LOCK;
+    DWContainer *cont = handle;
+    [cont setRowData:row title:data];
     DW_MUTEX_UNLOCK;
 }
 
@@ -6950,11 +7004,14 @@ char * API dw_container_query_start(HWND handle, unsigned long flags)
     DWContainer *cont = handle;
     NSIndexSet *selected = [cont selectedRowIndexes];
     NSUInteger result = [selected indexGreaterThanOrEqualToIndex:0];
-    char *retval = NULL;
+    void *retval = NULL;
 
     if(result != NSNotFound)
     {
-        retval = [cont getRowTitle:(int)result];
+        if(flags & DW_CR_RETDATA)
+            retval = [cont getRowData:(int)result];
+        else
+            retval = [cont getRowTitle:(int)result];
         [cont setLastQueryPoint:(int)result];
     }
     DW_MUTEX_UNLOCK;
@@ -6977,11 +7034,14 @@ char * API dw_container_query_next(HWND handle, unsigned long flags)
     int lastQueryPoint = [cont lastQueryPoint];
     NSIndexSet *selected = [cont selectedRowIndexes];
     NSUInteger result = [selected indexGreaterThanIndex:lastQueryPoint];
-    char *retval = NULL;
+    void *retval = NULL;
 
     if(result != NSNotFound)
     {
-        retval = [cont getRowTitle:(int)result];
+        if(flags & DW_CR_RETDATA)
+            retval = [cont getRowData:(int)result];
+        else
+            retval = [cont getRowTitle:(int)result];
         [cont setLastQueryPoint:(int)result];
     }
     DW_MUTEX_UNLOCK;
@@ -7002,16 +7062,50 @@ void API dw_container_cursor(HWND handle, char *text)
     DWContainer *cont = handle;
     char *thistext;
     int x, count = (int)[cont numberOfRowsInTableView:cont];
-    int textcomp = DW_POINTER_TO_INT(dw_window_get_data(handle, "_dw_textcomp"));
 
     for(x=0;x<count;x++)
     {
         thistext = [cont getRowTitle:x];
 
-        if((textcomp && thistext && strcmp(thistext, text) == 0) || (!textcomp && thistext == text))
+        if(thistext && strcmp(thistext, text) == 0)
         {
             NSIndexSet *selected = [[NSIndexSet alloc] initWithIndex:(NSUInteger)x];
 
+            [cont selectRowIndexes:selected byExtendingSelection:YES];
+            [selected release];
+            [cont scrollRowToVisible:x];
+            DW_MUTEX_UNLOCK;
+            DW_LOCAL_POOL_OUT;
+            return;
+        }
+    }
+    DW_MUTEX_UNLOCK;
+    DW_LOCAL_POOL_OUT;
+}
+
+/*
+ * Cursors the item with the data speficied, and scrolls to that item.
+ * Parameters:
+ *       handle: Handle to the window (widget) to be queried.
+ *       data: Data associated with the row.
+ */
+void API dw_container_cursor_by_data(HWND handle, void *data)
+{
+    int _locked_by_me = FALSE;
+    DW_LOCAL_POOL_IN;
+    DW_MUTEX_LOCK;
+    DWContainer *cont = handle;
+    void *thisdata;
+    int x, count = (int)[cont numberOfRowsInTableView:cont];
+    
+    for(x=0;x<count;x++)
+    {
+        thisdata = [cont getRowData:x];
+        
+        if(thisdata == data)
+        {
+            NSIndexSet *selected = [[NSIndexSet alloc] initWithIndex:(NSUInteger)x];
+            
             [cont selectRowIndexes:selected byExtendingSelection:YES];
             [selected release];
             [cont scrollRowToVisible:x];
@@ -7037,13 +7131,41 @@ void API dw_container_delete_row(HWND handle, char *text)
     DWContainer *cont = handle;
     char *thistext;
     int x, count = (int)[cont numberOfRowsInTableView:cont];
-    int textcomp = DW_POINTER_TO_INT(dw_window_get_data(handle, "_dw_textcomp"));
 
     for(x=0;x<count;x++)
     {
         thistext = [cont getRowTitle:x];
 
-        if((textcomp && thistext && strcmp(thistext, text) == 0) || (!textcomp && thistext == text))
+        if(thistext && strcmp(thistext, text) == 0)
+        {
+            [cont removeRow:x];
+            [cont reloadData];
+            DW_MUTEX_UNLOCK;
+            return;
+        }
+    }
+    DW_MUTEX_UNLOCK;
+}
+
+/*
+ * Deletes the item with the data speficied.
+ * Parameters:
+ *       handle: Handle to the window (widget).
+ *       data: Data specified.
+ */
+void API dw_container_delete_row_by_data(HWND handle, void *data)
+{
+    int _locked_by_me = FALSE;
+    DW_MUTEX_LOCK;
+    DWContainer *cont = handle;
+    void *thisdata;
+    int x, count = (int)[cont numberOfRowsInTableView:cont];
+    
+    for(x=0;x<count;x++)
+    {
+        thisdata = [cont getRowData:x];
+        
+        if(thisdata == data)
         {
             [cont removeRow:x];
             [cont reloadData];
