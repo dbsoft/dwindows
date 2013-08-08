@@ -399,7 +399,7 @@ int _event_handler1(id object, NSEvent *event, int message)
             case 12:
             {
                 int (* API treeselectfunc)(HWND, HTREEITEM, char *, void *, void *) = (int (* API)(HWND, HTREEITEM, char *, void *, void *))handler->signalfunction;
-                char *text = (char *)event;
+                char *text = NULL;
                 void *user = NULL;
                 id item = nil;
 
@@ -411,10 +411,6 @@ int _event_handler1(id object, NSEvent *event, int message)
                     if(nstr)
                     {
                         text = strdup([nstr UTF8String]);
-                    }
-                    else
-                    {
-                        text = NULL;
                     }
 
                     NSValue *value = [item objectAtIndex:2];
@@ -428,6 +424,13 @@ int _event_handler1(id object, NSEvent *event, int message)
                         free(text);
                     }
                     return result;
+                }
+                else if(event)
+                {
+                    void **params = (void **)event;
+                    
+                    text = params[0];
+                    user = params[1];
                 }
 
                 return treeselectfunc(handler->window, item, text, handler->data, user);
@@ -1983,6 +1986,7 @@ DWObject *DWObj;
     {
         int z, start, end;
         int count = (int)[tvcols count];
+        void *oldtitle;
 
         start = (count * row);
         end = start + count;
@@ -1991,15 +1995,28 @@ DWObject *DWObj;
         {
             [data removeObjectAtIndex:start];
         }
+        oldtitle = [titles pointerAtIndex:row];
         [titles removePointerAtIndex:row];
         [rowdatas removePointerAtIndex:row];
         if(lastAddPoint > 0 && lastAddPoint > row)
         {
             lastAddPoint--;
         }
+        if(oldtitle)
+            free(oldtitle);
     }
 }
--(void)setRow:(int)row title:(void *)input { if(titles && input) { [titles replacePointerAtIndex:row withPointer:input]; } }
+-(void)setRow:(int)row title:(void *)input
+{
+    if(titles && input)
+    {
+        void *oldtitle = [titles pointerAtIndex:row];
+        void *newtitle = input ? (void *)strdup((char *)input) : NULL;
+        [titles replacePointerAtIndex:row withPointer:newtitle];
+        if(oldtitle)
+            free(oldtitle);
+    }
+}
 -(void)setRowData:(int)row title:(void *)input { if(rowdatas && input) { [rowdatas replacePointerAtIndex:row withPointer:input]; } }
 -(void *)getRowTitle:(int)row { if(titles && row > -1) { return [titles pointerAtIndex:row]; } return NULL; }
 -(void *)getRowData:(int)row { if(rowdatas && row > -1) { return [rowdatas pointerAtIndex:row]; } return NULL; }
@@ -2008,7 +2025,22 @@ DWObject *DWObj;
 -(int)lastAddPoint { return lastAddPoint; }
 -(int)lastQueryPoint { return lastQueryPoint; }
 -(void)setLastQueryPoint:(int)input { lastQueryPoint = input; }
--(void)clear { if(data) { [data removeAllObjects]; while([titles count]) { [titles removePointerAtIndex:0]; } } lastAddPoint = 0; }
+-(void)clear
+{
+    if(data)
+    {
+        [data removeAllObjects];
+        while([titles count])
+        {
+            void *oldtitle = [titles pointerAtIndex:0];
+            [titles removePointerAtIndex:0];
+            [rowdatas removePointerAtIndex:0];
+            if(oldtitle)
+                free(oldtitle);
+        }
+    }
+    lastAddPoint = 0;
+}
 -(void)setup
 {
     SEL swopa = NSSelectorFromString(@"pointerArrayWithWeakObjects");
@@ -2194,8 +2226,13 @@ DWObject *DWObj;
 }
 -(void)selectionChanged:(id)sender
 {
+    void *params[2];
+    
+    params[0] = (void *)[self getRowTitle:(int)[self selectedRow]];
+    params[1] = (void *)[self getRowData:(int)[self selectedRow]];
+    
     /* Handler for container class */
-    _event_handler(self, (NSEvent *)[self getRowTitle:(int)[self selectedRow]], 12);
+    _event_handler(self, (NSEvent *)params, 12);
     /* Handler for listbox class */
     _event_handler(self, DW_INT_TO_POINTER((int)[self selectedRow]), 11);
 }
