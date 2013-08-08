@@ -1477,7 +1477,7 @@ static gint _tree_select_event(GtkTreeSelection *sel, gpointer data)
             }
             else if(g_object_get_data(G_OBJECT(widget), "_dw_tree_type") == GINT_TO_POINTER(_DW_TREE_TYPE_CONTAINER))
             {
-               gtk_tree_model_get(store, &iter, 0, &text, -1);
+               gtk_tree_model_get(store, &iter, 0, &text, 1, &itemdata, -1);
                retval = treeselectfunc(work.window, (HTREEITEM)item, text, work.data, itemdata);
             }
             else
@@ -1516,7 +1516,7 @@ static gint _tree_select_event(GtkTreeSelection *sel, gpointer data)
                   }
                   else if(g_object_get_data(G_OBJECT(widget), "_dw_tree_type") == GINT_TO_POINTER(_DW_TREE_TYPE_CONTAINER))
                   {
-                     gtk_tree_model_get(store, &iter, 0, &text, -1);
+                     gtk_tree_model_get(store, &iter, 0, &text, 1, &itemdata, -1);
                      retval = treeselectfunc(work.window, (HTREEITEM)item, text, work.data, itemdata);
                   }
                   else
@@ -5482,6 +5482,8 @@ void dw_tree_item_delete(HWND handle, HTREEITEM item)
    DW_MUTEX_UNLOCK;
 }
 
+#define _DW_CONTAINER_STORE_EXTRA 2
+
 static int _dw_container_setup(HWND handle, unsigned long *flags, char **titles, int count, int separator, int extra)
 {
    int z;
@@ -5492,47 +5494,49 @@ static int _dw_container_setup(HWND handle, unsigned long *flags, char **titles,
    GtkCellRenderer *rend;
    GtkTreeSelection *sel;
    int _locked_by_me = FALSE;
-   GType *array = calloc(count + 2, sizeof(GType));
+   GType *array = calloc(count + _DW_CONTAINER_STORE_EXTRA + 1, sizeof(GType));
 
    DW_MUTEX_LOCK;
    /* Save some of the info so it is easily accessible */
    g_object_set_data(G_OBJECT(handle), "_dw_cont_columns", GINT_TO_POINTER(count));
    g_object_set_data(G_OBJECT(handle), "_dw_cont_extra", GINT_TO_POINTER(extra));
 
-   /* First param is row title/data */
-   array[0] = G_TYPE_POINTER;
+   /* First param is row title */
+   array[0] = G_TYPE_STRING;
+   /* Second param is row data */
    array[1] = G_TYPE_POINTER;
+   array[2] = G_TYPE_POINTER;
    /* First loop... create array to create the store */
    for(z=0;z<count;z++)
    {
       if(z == 0 && flags[z] & DW_CFA_STRINGANDICON)
       {
-         array[1] = GDK_TYPE_PIXBUF;
-         array[2] = G_TYPE_STRING;
+         array[_DW_CONTAINER_STORE_EXTRA] = GDK_TYPE_PIXBUF;
+         array[_DW_CONTAINER_STORE_EXTRA+1] = G_TYPE_STRING;
       }
       else if(flags[z] & DW_CFA_BITMAPORICON)
       {
-         array[z+2] = GDK_TYPE_PIXBUF;
+         array[z+_DW_CONTAINER_STORE_EXTRA+1] = GDK_TYPE_PIXBUF;
       }
       else if(flags[z] & DW_CFA_STRING)
       {
-         array[z+2] = G_TYPE_STRING;
+         array[z+_DW_CONTAINER_STORE_EXTRA+1] = G_TYPE_STRING;
       }
       else if(flags[z] & DW_CFA_ULONG)
       {
-         array[z+2] = G_TYPE_ULONG;
+         array[z+_DW_CONTAINER_STORE_EXTRA+1] = G_TYPE_ULONG;
       }
       else if(flags[z] & DW_CFA_TIME)
       {
-         array[z+2] = G_TYPE_STRING;
+         array[z+_DW_CONTAINER_STORE_EXTRA+1] = G_TYPE_STRING;
       }
       else if(flags[z] & DW_CFA_DATE)
       {
-         array[z+2] = G_TYPE_STRING;
+         array[z+_DW_CONTAINER_STORE_EXTRA+1] = G_TYPE_STRING;
       }
    }
    /* Create the store and then the tree */
-   store = gtk_list_store_newv(count+2, array);
+   store = gtk_list_store_newv(count + _DW_CONTAINER_STORE_EXTRA + 1, array);
    tree = _tree_setup(handle, GTK_TREE_MODEL(store));
    g_object_set_data(G_OBJECT(tree), "_dw_tree_type", GINT_TO_POINTER(_DW_TREE_TYPE_CONTAINER));
    /* Second loop... create the columns */
@@ -5548,43 +5552,43 @@ static int _dw_container_setup(HWND handle, unsigned long *flags, char **titles,
       {
          rend = gtk_cell_renderer_pixbuf_new();
          gtk_tree_view_column_pack_start(col, rend, FALSE);
-         gtk_tree_view_column_add_attribute(col, rend, "pixbuf", 1);
+         gtk_tree_view_column_add_attribute(col, rend, "pixbuf", _DW_CONTAINER_STORE_EXTRA);
          rend = gtk_cell_renderer_text_new();
          gtk_tree_view_column_pack_start(col, rend, TRUE);
-         gtk_tree_view_column_add_attribute(col, rend, "text", 2);
+         gtk_tree_view_column_add_attribute(col, rend, "text", _DW_CONTAINER_STORE_EXTRA+1);
       }
       else if(flags[z] & DW_CFA_BITMAPORICON)
       {
          rend = gtk_cell_renderer_pixbuf_new();
          gtk_tree_view_column_pack_start(col, rend, FALSE);
-         gtk_tree_view_column_add_attribute(col, rend, "pixbuf", z+2);
+         gtk_tree_view_column_add_attribute(col, rend, "pixbuf", z+_DW_CONTAINER_STORE_EXTRA+1);
       }
       else if(flags[z] & DW_CFA_STRING)
       {
          rend = gtk_cell_renderer_text_new();
          gtk_tree_view_column_pack_start(col, rend, TRUE);
-         gtk_tree_view_column_add_attribute(col, rend, "text", z+2);
+         gtk_tree_view_column_add_attribute(col, rend, "text", z+_DW_CONTAINER_STORE_EXTRA+1);
          gtk_tree_view_column_set_resizable(col, TRUE);
       }
       else if(flags[z] & DW_CFA_ULONG)
       {
          rend = gtk_cell_renderer_text_new();
          gtk_tree_view_column_pack_start(col, rend, TRUE);
-         gtk_tree_view_column_add_attribute(col, rend, "text", z+2);
+         gtk_tree_view_column_add_attribute(col, rend, "text", z+_DW_CONTAINER_STORE_EXTRA+1);
          gtk_tree_view_column_set_resizable(col, TRUE);
       }
       else if(flags[z] & DW_CFA_TIME)
       {
          rend = gtk_cell_renderer_text_new();
          gtk_tree_view_column_pack_start(col, rend, TRUE);
-         gtk_tree_view_column_add_attribute(col, rend, "text", z+2);
+         gtk_tree_view_column_add_attribute(col, rend, "text", z+_DW_CONTAINER_STORE_EXTRA+1);
          gtk_tree_view_column_set_resizable(col, TRUE);
       }
       else if(flags[z] & DW_CFA_DATE)
       {
          rend = gtk_cell_renderer_text_new();
          gtk_tree_view_column_pack_start(col, rend, TRUE);
-         gtk_tree_view_column_add_attribute(col, rend, "text", z+2);
+         gtk_tree_view_column_add_attribute(col, rend, "text", z+_DW_CONTAINER_STORE_EXTRA+1);
          gtk_tree_view_column_set_resizable(col, TRUE);
       }
       g_object_set_data(G_OBJECT(col), "_dw_column", GINT_TO_POINTER(z));
@@ -5887,26 +5891,26 @@ void _dw_container_set_item(HWND handle, void *pointer, int column, int row, voi
             char *tmp = data ? (char *)thisdata[1] : NULL;
             GdkPixbuf *pixbuf = hicon ? _find_pixbuf(hicon, NULL, NULL) : NULL;
 
-            gtk_list_store_set(store, &iter, 1, pixbuf, -1);
-            gtk_list_store_set(store, &iter, 2, tmp, -1);
+            gtk_list_store_set(store, &iter, _DW_CONTAINER_STORE_EXTRA, pixbuf, -1);
+            gtk_list_store_set(store, &iter, _DW_CONTAINER_STORE_EXTRA + 1, tmp, -1);
          }
          else if(flag & DW_CFA_BITMAPORICON)
          {
             HICN hicon = data ? *((HICN *)data) : 0;
             GdkPixbuf *pixbuf = hicon ? _find_pixbuf(hicon, NULL, NULL) : NULL;
 
-            gtk_list_store_set(store, &iter, column + 2, pixbuf, -1);
+            gtk_list_store_set(store, &iter, column + _DW_CONTAINER_STORE_EXTRA + 1, pixbuf, -1);
          }
          else if(flag & DW_CFA_STRING)
          {
             char *tmp = data ? *((char **)data) : NULL;
-            gtk_list_store_set(store, &iter, column + 2, tmp, -1);
+            gtk_list_store_set(store, &iter, column + _DW_CONTAINER_STORE_EXTRA + 1, tmp, -1);
          }
          else if(flag & DW_CFA_ULONG)
          {
             ULONG tmp = data ? *((ULONG *)data): 0;
 
-            gtk_list_store_set(store, &iter, column + 2, tmp, -1);
+            gtk_list_store_set(store, &iter, column + _DW_CONTAINER_STORE_EXTRA + 1, tmp, -1);
          }
          else if(flag & DW_CFA_DATE)
          {
@@ -5922,7 +5926,7 @@ void _dw_container_set_item(HWND handle, void *pointer, int column, int row, voi
 
                strftime(textbuffer, 100, "%x", &curtm);
             }
-            gtk_list_store_set(store, &iter, column + 2, textbuffer, -1);
+            gtk_list_store_set(store, &iter, column + _DW_CONTAINER_STORE_EXTRA + 1, textbuffer, -1);
          }
          else if(flag & DW_CFA_TIME)
          {
@@ -5938,7 +5942,7 @@ void _dw_container_set_item(HWND handle, void *pointer, int column, int row, voi
 
                strftime(textbuffer, 100, "%X", &curtm);
             }
-            gtk_list_store_set(store, &iter, column + 2, textbuffer, -1);
+            gtk_list_store_set(store, &iter, column + _DW_CONTAINER_STORE_EXTRA + 1, textbuffer, -1);
          }
       }
    }
@@ -6136,7 +6140,10 @@ void dw_container_set_column_width(HWND handle, int column, int width)
 }
 
 /* Internal version for both */
-void _dw_container_set_row_title(HWND handle, void *pointer, int row, char *title)
+#define _DW_DATA_TYPE_STRING  0
+#define _DW_DATA_TYPE_POINTER 1
+
+void _dw_container_set_row_data(HWND handle, void *pointer, int row, int type, void *data)
 {
    GtkWidget *cont = handle;
    GtkListStore *store = NULL;
@@ -6158,7 +6165,7 @@ void _dw_container_set_row_title(HWND handle, void *pointer, int row, char *titl
 
       if(gtk_tree_model_iter_nth_child(GTK_TREE_MODEL(store), &iter, NULL, row))
       {
-         gtk_list_store_set(store, &iter, 0, (gpointer)title, -1);
+         gtk_list_store_set(store, &iter, type, (gpointer)data, -1);
       }
    }
    DW_MUTEX_UNLOCK;
@@ -6173,7 +6180,7 @@ void _dw_container_set_row_title(HWND handle, void *pointer, int row, char *titl
  */
 void dw_container_set_row_title(void *pointer, int row, char *title)
 {
-   _dw_container_set_row_title(pointer, pointer, row, title);
+   _dw_container_set_row_data(pointer, pointer, row, _DW_DATA_TYPE_STRING, title);
 }
 
 /*
@@ -6185,7 +6192,31 @@ void dw_container_set_row_title(void *pointer, int row, char *title)
  */
 void dw_container_change_row_title(HWND handle, int row, char *title)
 {
-   _dw_container_set_row_title(handle, NULL, row, title);
+   _dw_container_set_row_data(handle, NULL, row, _DW_DATA_TYPE_STRING, title);
+}
+
+/*
+ * Sets the title of a row in the container.
+ * Parameters:
+ *          pointer: Pointer to the allocated memory in dw_container_alloc().
+ *          row: Zero based row of data being set.
+ *          title: String title of the item.
+ */
+void dw_container_set_row_data(void *pointer, int row, void *data)
+{
+   _dw_container_set_row_data(pointer, pointer, row, _DW_DATA_TYPE_POINTER, data);
+}
+
+/*
+ * Changes the title of a row already inserted in the container.
+ * Parameters:
+ *          handle: Handle to window (widget) of container.
+ *          row: Zero based row of data being set.
+ *          title: String title of the item.
+ */
+void dw_container_change_row_data(HWND handle, int row, void *data)
+{
+   _dw_container_set_row_data(handle, NULL, row, _DW_DATA_TYPE_POINTER, data);
 }
 
 /*
@@ -6508,17 +6539,18 @@ char *dw_container_query_next(HWND handle, unsigned long flags)
    return retval;
 }
 
-int _find_iter(GtkListStore *store, GtkTreeIter *iter, char *text, int textcomp)
+int _find_iter(GtkListStore *store, GtkTreeIter *iter, void *data, int textcomp)
 {
    int z, rows = gtk_tree_model_iter_n_children(GTK_TREE_MODEL(store), NULL);
-   char *thistext;
+   void *thisdata;
 
    for(z=0;z<rows;z++)
    {
       if(gtk_tree_model_iter_nth_child(GTK_TREE_MODEL(store), iter, NULL, z))
       {
-         gtk_tree_model_get(GTK_TREE_MODEL(store), iter, 0, &thistext, -1);
-         if((textcomp && thistext && strcmp(thistext, text) == 0) || (!textcomp && thistext == text))
+         /* Get either string from position 0 or pointer from position 1 */
+         gtk_tree_model_get(GTK_TREE_MODEL(store), iter, textcomp ? 0 : 1, &thisdata, -1);
+         if((textcomp && thisdata && strcmp((char *)thisdata, (char *)data) == 0) || (!textcomp && thisdata == data))
          {
             return TRUE;
          }
@@ -6527,21 +6559,14 @@ int _find_iter(GtkListStore *store, GtkTreeIter *iter, char *text, int textcomp)
    return FALSE;
 }
 
-/*
- * Cursors the item with the text speficied, and scrolls to that item.
- * Parameters:
- *       handle: Handle to the window (widget) to be queried.
- *       text:  Text usually returned by dw_container_query().
- */
-void dw_container_cursor(HWND handle, char *text)
+void _dw_container_cursor(HWND handle, void *data, int textcomp)
 {
    GtkWidget *cont;
    GtkListStore *store = NULL;
-   int textcomp, _locked_by_me = FALSE;
+   int _locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
    cont = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user");
-   textcomp = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(handle), "_dw_textcomp"));
 
    /* Make sure it is the correct tree type */
    if(cont && GTK_IS_TREE_VIEW(cont) && g_object_get_data(G_OBJECT(cont), "_dw_tree_type") == GINT_TO_POINTER(_DW_TREE_TYPE_CONTAINER))
@@ -6551,7 +6576,7 @@ void dw_container_cursor(HWND handle, char *text)
    {
       GtkTreeIter iter;
 
-      if(_find_iter(store, &iter, text, textcomp))
+      if(_find_iter(store, &iter, data, textcomp))
       {
          GtkTreePath *path = gtk_tree_model_get_path(GTK_TREE_MODEL(store), &iter);
 
@@ -6566,20 +6591,35 @@ void dw_container_cursor(HWND handle, char *text)
 }
 
 /*
- * Deletes the item with the text speficied.
+ * Cursors the item with the text speficied, and scrolls to that item.
  * Parameters:
- *       handle: Handle to the window (widget).
+ *       handle: Handle to the window (widget) to be queried.
  *       text:  Text usually returned by dw_container_query().
  */
-void dw_container_delete_row(HWND handle, char *text)
+void dw_container_cursor(HWND handle, char *text)
+{
+   _dw_container_cursor(handle, text, TRUE);
+}
+
+/*
+ * Cursors the item with the text speficied, and scrolls to that item.
+ * Parameters:
+ *       handle: Handle to the window (widget) to be queried.
+ *       text:  Text usually returned by dw_container_query().
+ */
+void dw_container_cursor_by_data(HWND handle, void *data)
+{
+   _dw_container_cursor(handle, data, FALSE);
+}
+
+void _dw_container_delete_row(HWND handle, void *data, int textcomp)
 {
    GtkWidget *cont;
    GtkListStore *store = NULL;
-   int textcomp, _locked_by_me = FALSE;
+   int _locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
    cont = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user");
-   textcomp = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(handle), "_dw_textcomp"));
 
    /* Make sure it is the correct tree type */
    if(cont && GTK_IS_TREE_VIEW(cont) && g_object_get_data(G_OBJECT(cont), "_dw_tree_type") == GINT_TO_POINTER(_DW_TREE_TYPE_CONTAINER))
@@ -6590,7 +6630,7 @@ void dw_container_delete_row(HWND handle, char *text)
       GtkTreeIter iter;
       int rows = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(cont), "_dw_rowcount"));
 
-      if(_find_iter(store, &iter, text, textcomp))
+      if(_find_iter(store, &iter, data, textcomp))
       {
          gtk_list_store_remove(store, &iter);
          rows--;
@@ -6599,6 +6639,28 @@ void dw_container_delete_row(HWND handle, char *text)
       g_object_set_data(G_OBJECT(cont), "_dw_rowcount", GINT_TO_POINTER(rows));
    }
    DW_MUTEX_UNLOCK;
+}
+
+/*
+ * Deletes the item with the text speficied.
+ * Parameters:
+ *       handle: Handle to the window (widget).
+ *       text:  Text usually returned by dw_container_query().
+ */
+void dw_container_delete_row(HWND handle, char *text)
+{
+   _dw_container_delete_row(handle, text, TRUE);
+}
+
+/*
+ * Deletes the item with the text speficied.
+ * Parameters:
+ *       handle: Handle to the window (widget).
+ *       text:  Text usually returned by dw_container_query().
+ */
+void dw_container_delete_row_by_data(HWND handle, void *data)
+{
+   _dw_container_delete_row(handle, data, FALSE);
 }
 
 /*
