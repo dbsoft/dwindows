@@ -1249,6 +1249,7 @@ void container_add(void)
         dw_filesystem_set_item(container, containerinfo, 3, z, &date);
 
         dw_container_set_row_title(containerinfo, z, names[z]);
+        dw_container_set_row_data(containerinfo, z, DW_INT_TO_POINTER(z));
     }
 
     dw_container_insert(container, containerinfo, 3);
