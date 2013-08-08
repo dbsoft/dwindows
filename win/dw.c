@@ -263,6 +263,9 @@ SECURITY_DESCRIPTOR _dwsd;
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))
 #endif
 
+#define _DW_DATA_TYPE_STRING  0
+#define _DW_DATA_TYPE_POINTER 1
+
 /*
  * For the dw*from_data() functions, a temporary file is required to write
  * the contents of the image to so it can be loaded by the Win32 API
@@ -2012,17 +2015,16 @@ LRESULT CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
                                  if(iItem > -1)
                                  {
                                     int (DWSIGNAL *treeselectfunc)(HWND, HWND, char *, void *, void *) = tmp->signalfunction;
+                                    void **params;
 
                                     lvi.iItem = iItem;
                                     lvi.mask = LVIF_PARAM;
 
                                     ListView_GetItem(tmp->window, &lvi);
 
-                                    /* Seems to be having lParam as 1 which really sucks */
-                                    if(lvi.lParam < 100)
-                                       lvi.lParam = 0;
+                                    params = (void **)lvi.lParam;
 
-                                    treeselectfunc(tmp->window, 0, (char *)lvi.lParam, tmp->data, 0);
+                                    treeselectfunc(tmp->window, 0, params ? (char *)params[_DW_DATA_TYPE_STRING] : NULL, tmp->data, params ? params[_DW_DATA_TYPE_POINTER] : NULL);
                                     tmp = NULL;
                                  }
                               }
@@ -2933,6 +2935,7 @@ LRESULT CALLBACK _containerwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
       {
          LV_ITEM lvi;
          int iItem;
+         void **params = NULL;
 
          if(LOWORD(mp1) == '\t')
          {
@@ -2956,6 +2959,7 @@ LRESULT CALLBACK _containerwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
             lvi.mask = LVIF_PARAM;
 
             ListView_GetItem(hWnd, &lvi);
+            params = (void **)lvi.lParam;
          }
 
          {
@@ -2965,13 +2969,9 @@ LRESULT CALLBACK _containerwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
             {
                if(tmp->message == NM_DBLCLK && tmp->window == hWnd)
                {
-                  int (DWSIGNAL *containerselectfunc)(HWND, char *, void *) = tmp->signalfunction;
+                  int (DWSIGNAL *containerselectfunc)(HWND, char *, void *, void *) = tmp->signalfunction;
 
-                  /* Seems to be having lParam as 1 which really sucks */
-                  if(lvi.lParam < 100)
-                     lvi.lParam = 0;
-
-                  containerselectfunc(tmp->window, (char *)lvi.lParam, tmp->data);
+                  containerselectfunc(tmp->window, params ? params[_DW_DATA_TYPE_STRING] : NULL, tmp->data, params ? params[_DW_DATA_TYPE_POINTER] : NULL);
                   tmp = NULL;
                }
                if(tmp)
@@ -2993,6 +2993,7 @@ LRESULT CALLBACK _containerwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
                LV_ITEM lvi;
                int iItem;
                LVHITTESTINFO lhi;
+               TCHAR textbuf[1025] = {0};
 
                dw_pointer_query_pos(&x, &y);
 
@@ -3008,17 +3009,15 @@ LRESULT CALLBACK _containerwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
                if(iItem > -1)
                {
                   lvi.iItem = iItem;
-                  lvi.mask = LVIF_PARAM;
+                  lvi.pszText = textbuf;
+                  lvi.cchTextMax = 1024;
+                  lvi.mask = LVIF_PARAM | LVIF_TEXT;
 
                   ListView_GetItem(tmp->window, &lvi);
                   ListView_SetSelectionMark(tmp->window, iItem);
                }
 
-               /* Seems to be having lParam as 1 which really sucks */
-               if(lvi.lParam < 100)
-                  lvi.lParam = 0;
-
-               containercontextfunc(tmp->window, (char *)lvi.lParam, x, y, tmp->data, NULL);
+               containercontextfunc(tmp->window, lvi.pszText ? WideToUTF8(lvi.pszText) : NULL, x, y, tmp->data, (void *)lvi.lParam);
                tmp = NULL;
             }
             if(tmp)
@@ -9450,7 +9449,7 @@ void API dw_container_set_column_width(HWND handle, int column, int width)
 }
 
 /* Internal version that handles both types */
-void _dw_container_set_row_title(HWND handle, void *pointer, int row, char *title)
+void _dw_container_set_row_data(HWND handle, void *pointer, int row, int type, void *data)
 {
    LV_ITEM lvi;
    int item = 0;
@@ -9460,14 +9459,41 @@ void _dw_container_set_row_title(HWND handle, void *pointer, int row, char *titl
       item = DW_POINTER_TO_INT(dw_window_get_data(handle, "_dw_insertitem"));
    }
 
+   memset(&lvi, 0, sizeof(LV_ITEM));
+   
    lvi.iItem = row + item;
-   lvi.iSubItem = 0;
    lvi.mask = LVIF_PARAM;
-   lvi.lParam = (LPARAM)title;
-
-   if(!ListView_SetItem(handle, &lvi) && lvi.lParam)
-      lvi.lParam = 0;
-
+   
+   if(ListView_GetItem(handle, &lvi))
+   {
+      void **params = (void **)lvi.lParam;
+      void *newparam = data;
+      
+      /* Make sure we have our pointer array... */
+      if(!params)
+      {
+         /* If not allocate it */
+         params = (void **)calloc(2, sizeof(void *));
+         lvi.lParam = (LPARAM)params;
+         ListView_SetItem(handle, &lvi);
+      }
+      /* If type string, we need to duplicate the string...
+       * freeing any existing string.
+       */
+      if(type == _DW_DATA_TYPE_STRING)
+      {
+         void *oldparam = params[type];
+         
+         params[type] = NULL;
+         
+         if(oldparam)
+            free(oldparam);
+         if(newparam)
+            newparam = _strdup((char *)newparam);
+      }
+      /* Set the new data in the pointer array */
+      params[type] = newparam;
+   }
 }
 
 /*
@@ -9479,7 +9505,7 @@ void _dw_container_set_row_title(HWND handle, void *pointer, int row, char *titl
  */
 void API dw_container_set_row_title(void *pointer, int row, char *title)
 {
-   _dw_container_set_row_title(pointer, pointer, row, title);
+   _dw_container_set_row_data(pointer, pointer, row, _DW_DATA_TYPE_STRING, title);
 }
 
 /*
@@ -9491,7 +9517,31 @@ void API dw_container_set_row_title(void *pointer, int row, char *title)
  */
 void API dw_container_change_row_title(HWND handle, int row, char *title)
 {
-   _dw_container_set_row_title(handle, NULL, row, title);
+   _dw_container_set_row_data(handle, NULL, row, _DW_DATA_TYPE_STRING, title);
+}
+
+/*
+ * Sets the title of a row in the container.
+ * Parameters:
+ *          pointer: Pointer to the allocated memory in dw_container_alloc().
+ *          row: Zero based row of data being set.
+ *          data: Data pointer.
+ */
+void API dw_container_set_row_data(void *pointer, int row, void *data)
+{
+   _dw_container_set_row_data(pointer, pointer, row, _DW_DATA_TYPE_POINTER, data);
+}
+
+/*
+ * Changes the data of a row already inserted in the container.
+ * Parameters:
+ *          handle: Handle to the container window (widget).
+ *          row: Zero based row of data being set.
+ *          data: Data pointer.
+ */
+void API dw_container_change_row_data(HWND handle, int row, void *data)
+{
+   _dw_container_set_row_data(handle, NULL, row, _DW_DATA_TYPE_POINTER, data);
 }
 
 /*
@@ -9570,9 +9620,14 @@ char * API dw_container_query_start(HWND handle, unsigned long flags)
 {
    LV_ITEM lvi;
    int _index = ListView_GetNextItem(handle, -1, flags);
+   void **params;
+   int type = _DW_DATA_TYPE_STRING;
 
    if(_index == -1)
       return NULL;
+      
+   if(flags & DW_CR_RETDATA)
+      type = _DW_DATA_TYPE_POINTER;
 
    memset(&lvi, 0, sizeof(LV_ITEM));
 
@@ -9580,9 +9635,10 @@ char * API dw_container_query_start(HWND handle, unsigned long flags)
    lvi.mask = LVIF_PARAM;
 
    ListView_GetItem(handle, &lvi);
+   params = (void **)lvi.lParam;
 
    dw_window_set_data(handle, "_dw_index", DW_INT_TO_POINTER(_index));
-   return (char *)lvi.lParam;
+   return params ? (char *)params[type] : NULL;
 }
 
 /*
@@ -9597,21 +9653,27 @@ char * API dw_container_query_next(HWND handle, unsigned long flags)
 {
    LV_ITEM lvi;
    int _index = DW_POINTER_TO_INT(dw_window_get_data(handle, "_dw_index"));
+   void **params;
+   int type = _DW_DATA_TYPE_STRING;
 
    _index = ListView_GetNextItem(handle, _index, flags);
 
    if(_index == -1)
       return NULL;
 
+   if(flags & DW_CR_RETDATA)
+      type = _DW_DATA_TYPE_POINTER;
+      
    memset(&lvi, 0, sizeof(LV_ITEM));
 
    lvi.iItem = _index;
    lvi.mask = LVIF_PARAM;
 
    ListView_GetItem(handle, &lvi);
+   params = (void **)lvi.lParam;
 
    dw_window_set_data(handle, "_dw_index", DW_INT_TO_POINTER(_index));
-   return (char *)lvi.lParam;
+   return params ? (char *)params[type] : NULL;
 }
 
 /*
@@ -9623,11 +9685,11 @@ char * API dw_container_query_next(HWND handle, unsigned long flags)
 void API dw_container_cursor(HWND handle, char *text)
 {
    int index = ListView_GetNextItem(handle, -1, LVNI_ALL);
-   int textcomp = DW_POINTER_TO_INT(dw_window_get_data(handle, "_dw_textcomp"));
 
    while ( index != -1 )
    {
       LV_ITEM lvi;
+      void **params;
 
       memset(&lvi, 0, sizeof(LV_ITEM));
 
@@ -9635,8 +9697,48 @@ void API dw_container_cursor(HWND handle, char *text)
       lvi.mask = LVIF_PARAM;
 
       ListView_GetItem( handle, &lvi );
+      params = (void **)lvi.lParam;
 
-      if ( (textcomp && lvi.lParam && strcmp( (char *)lvi.lParam, text ) == 0) || (!textcomp && (char *)lvi.lParam == text) )
+      if ( params && params[_DW_DATA_TYPE_STRING] && strcmp( (char *)params[_DW_DATA_TYPE_STRING], text ) == 0 )
+      {
+         unsigned long width, height;
+         
+         ListView_SetItemState( handle, index, LVIS_FOCUSED | LVIS_SELECTED, LVIS_FOCUSED | LVIS_SELECTED );
+         dw_window_get_pos_size( handle, NULL, NULL, &width, &height);
+         if(width < 10 || height < 10)
+            dw_window_set_data( handle, "_dw_cursor", DW_INT_TO_POINTER(index) );
+         ListView_EnsureVisible( handle, index, TRUE );
+         return;
+      }
+
+      index = ListView_GetNextItem( handle, index, LVNI_ALL );
+   }
+}
+
+/*
+ * Cursors the item with the text speficied, and scrolls to that item.
+ * Parameters:
+ *       handle: Handle to the window (widget) to be queried.
+ *       text:  Text usually returned by dw_container_query().
+ */
+void API dw_container_cursor_by_data(HWND handle, void *data)
+{
+   int index = ListView_GetNextItem(handle, -1, LVNI_ALL);
+
+   while ( index != -1 )
+   {
+      LV_ITEM lvi;
+      void **params;
+
+      memset(&lvi, 0, sizeof(LV_ITEM));
+
+      lvi.iItem = index;
+      lvi.mask = LVIF_PARAM;
+
+      ListView_GetItem( handle, &lvi );
+      params = (void **)lvi.lParam;
+
+      if ( params && params[_DW_DATA_TYPE_POINTER] == data )
       {
          unsigned long width, height;
          
@@ -9661,11 +9763,12 @@ void API dw_container_cursor(HWND handle, char *text)
 void API dw_container_delete_row(HWND handle, char *text)
 {
    int index = ListView_GetNextItem(handle, -1, LVNI_ALL);
-   int textcomp = DW_POINTER_TO_INT(dw_window_get_data(handle, "_dw_textcomp"));
+   void **params;
 
    while(index != -1)
    {
       LV_ITEM lvi;
+      void **params;
 
       memset(&lvi, 0, sizeof(LV_ITEM));
 
@@ -9673,8 +9776,9 @@ void API dw_container_delete_row(HWND handle, char *text)
       lvi.mask = LVIF_PARAM;
 
       ListView_GetItem(handle, &lvi);
+      params = (void **)lvi.lParam;
 
-      if ( (textcomp && lvi.lParam && strcmp( (char *)lvi.lParam, text ) == 0) || (!textcomp && (char *)lvi.lParam == text) )
+      if ( params && params[_DW_DATA_TYPE_STRING] && strcmp( (char *)params[_DW_DATA_TYPE_STRING], text ) == 0 )
       {
          int _index = DW_POINTER_TO_INT(dw_window_get_data(handle, "_dw_index"));
 
@@ -9685,7 +9789,45 @@ void API dw_container_delete_row(HWND handle, char *text)
          return;
       }
 
-        index = ListView_GetNextItem(handle, index, LVNI_ALL);
+      index = ListView_GetNextItem(handle, index, LVNI_ALL);
+   }
+}
+
+/*
+ * Deletes the item with the text speficied.
+ * Parameters:
+ *       handle: Handle to the window (widget).
+ *       text:  Text usually returned by dw_container_query().
+ */
+void API dw_container_delete_row_by_data(HWND handle, void *data)
+{
+   int index = ListView_GetNextItem(handle, -1, LVNI_ALL);
+
+   while(index != -1)
+   {
+      LV_ITEM lvi;
+      void **params;
+
+      memset(&lvi, 0, sizeof(LV_ITEM));
+
+      lvi.iItem = index;
+      lvi.mask = LVIF_PARAM;
+
+      ListView_GetItem(handle, &lvi);
+      params = (void **)lvi.lParam;
+
+      if ( params && params[_DW_DATA_TYPE_POINTER] == data )
+      {
+         int _index = DW_POINTER_TO_INT(dw_window_get_data(handle, "_dw_index"));
+
+         if(index < _index)
+            dw_window_set_data(handle, "_dw_index", DW_INT_TO_POINTER((_index - 1)));
+
+         ListView_DeleteItem(handle, index);
+         return;
+      }
+
+      index = ListView_GetNextItem(handle, index, LVNI_ALL);
    }
 }
 
