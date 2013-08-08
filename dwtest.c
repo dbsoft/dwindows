@@ -1189,7 +1189,6 @@ void tree_add(void)
 void container_add(void)
 {
     char *titles[4];
-    char *names[3];
     char buffer[100];
     unsigned long flags[4] = {   DW_CFA_BITMAPORICON | DW_CFA_LEFT | DW_CFA_HORZSEPARATOR | DW_CFA_SEPARATOR,
         DW_CFA_ULONG | DW_CFA_RIGHT | DW_CFA_HORZSEPARATOR | DW_CFA_SEPARATOR,
@@ -1225,9 +1224,10 @@ void container_add(void)
 
     for(z=0;z<3;z++)
     {
-        names[z] = (char *)malloc( 100 );
+        char names[100];
+        
         /* yes, there is a memory leak here */
-        sprintf(names[z],"Don't allocate from stack: Item: %d",z);
+        sprintf(names, "We can now allocate from the stack: Item: %d", z);
         size = z*100;
         sprintf(buffer, "Filename %d",z+1);
         if (z == 0 ) thisicon = foldericon;
@@ -1248,7 +1248,7 @@ void container_add(void)
         date.year = z+2000;
         dw_filesystem_set_item(container, containerinfo, 3, z, &date);
 
-        dw_container_set_row_title(containerinfo, z, names[z]);
+        dw_container_set_row_title(containerinfo, z, names);
         dw_container_set_row_data(containerinfo, z, DW_INT_TO_POINTER(z));
     }
 
