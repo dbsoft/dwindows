@@ -9786,13 +9786,19 @@ void _dw_container_free_strings(HWND handle, PRECORDCORE temp)
    WindowData *blah = (WindowData *)WinQueryWindowPtr(handle, QWP_USER);
    ULONG totalsize, size = 0, *flags = blah ? blah->data : 0;
    int z, count = 0;
-
+   char *oldtitle = (char *)temp->pszIcon;
+   
    if(!flags)
       return;
 
    while(flags[count])
       count++;
 
+   /* Empty and free the title memory */
+   temp->pszIcon = temp->pszText = NULL;
+   if(oldtitle)
+        free(oldtitle);
+        
    /* Figure out the offsets to the items in the struct */
    for(z=0;z<count;z++)
    {
@@ -10006,6 +10012,7 @@ void API dw_container_set_row_title(void *pointer, int row, char *title)
    PRECORDCORE temp;
    int z, currentcount;
    CNRINFO cnr;
+   char *newtitle;
 
    if(!ci)
       return;
@@ -10022,9 +10029,8 @@ void API dw_container_set_row_title(void *pointer, int row, char *title)
    for(z=0;z<(row-currentcount);z++)
       temp = temp->preccNextRecord;
 
-   temp->pszIcon = (PSZ)title;
-   temp->pszName = (PSZ)title;
-   temp->pszText = (PSZ)title;
+   newtitle = title ? strdup(title) : NULL;
+   temp->pszName = temp->pszIcon = (PSZ)title;
 }
 
 /*
@@ -10043,9 +10049,70 @@ void API dw_container_change_row_title(HWND handle, int row, char *title)
    {
       if(count == row)
       {
-         pCore->pszIcon = (PSZ)title;
-         pCore->pszName = (PSZ)title;
-         pCore->pszText = (PSZ)title;
+         char *oldtitle = (char *)pCore->pszIcon;
+         char *newtitle = title ? strdup(title) : NULL;
+         pCore->pszName = pCore->pszIcon = (PSZ)title;
+
+         WinSendMsg(handle, CM_INVALIDATERECORD, (MPARAM)&pCore, MPFROM2SHORT(1, CMA_NOREPOSITION | CMA_TEXTCHANGED));
+         
+         if(oldtitle)
+            free(oldtitle);
+         return;
+      }
+      pCore = WinSendMsg(handle, CM_QUERYRECORD, (MPARAM)pCore, MPFROM2SHORT(CMA_NEXT, CMA_ITEMORDER));
+      count++;
+   }
+}
+
+/*
+ * Sets the data of a row in the container.
+ * Parameters:
+ *          pointer: Pointer to the allocated memory in dw_container_alloc().
+ *          row: Zero based row of data being set.
+ *          data: Data pointer.
+ */
+void API dw_container_set_row_data(void *pointer, int row, void *data)
+{
+   ContainerInfo *ci = (ContainerInfo *)pointer;
+   PRECORDCORE temp;
+   int z, currentcount;
+   CNRINFO cnr;
+
+   if(!ci)
+      return;
+
+   temp = (PRECORDCORE)ci->data;
+
+   z = 0;
+
+   if(!_dw_send_msg(ci->handle, CM_QUERYCNRINFO, (MPARAM)&cnr, MPFROMSHORT(sizeof(CNRINFO)), 0))
+      return;
+
+   currentcount = cnr.cRecords;
+
+   for(z=0;z<(row-currentcount);z++)
+      temp = temp->preccNextRecord;
+
+   temp->pszText = (PSZ)data;
+}
+
+/*
+ * Changes the data of a row already inserted in the container.
+ * Parameters:
+ *          handle: Handle to the container window (widget).
+ *          row: Zero based row of data being set.
+ *          data: Data pointer.
+ */
+void API dw_container_change_row_data(HWND handle, int row, void *data)
+{
+   PRECORDCORE pCore = WinSendMsg(handle, CM_QUERYRECORD, (MPARAM)0L, MPFROM2SHORT(CMA_FIRST, CMA_ITEMORDER));
+   int count = 0;
+
+   while(pCore)
+   {
+      if(count == row)
+      {
+         pCore->pszText = (PSZ)data;
 
          WinSendMsg(handle, CM_INVALIDATERECORD, (MPARAM)&pCore, MPFROM2SHORT(1, CMA_NOREPOSITION | CMA_TEXTCHANGED));
          return;
@@ -10215,7 +10282,7 @@ char * API dw_container_query_start(HWND handle, unsigned long flags)
             if(pCore->flRecordAttr & flags)
             {
                dw_window_set_data(handle, "_dw_pcore", (void *)pCore);
-               return (char *)pCore->pszIcon;
+               return flags & DW_CR_RETDATA ? (char *)pCore->pszText : (char *)pCore->pszIcon;
             }
             pCore = WinSendMsg(handle, CM_QUERYRECORD, (MPARAM)pCore, MPFROM2SHORT(CMA_NEXT, CMA_ITEMORDER));
          }
@@ -10223,7 +10290,7 @@ char * API dw_container_query_start(HWND handle, unsigned long flags)
       else
       {
          dw_window_set_data(handle, "_dw_pcore", (void *)pCore);
-         return (char *)pCore->pszIcon;
+         return flags & DW_CR_RETDATA ? (char *)pCore->pszText : (char *)pCore->pszIcon;
       }
    }
    return NULL;
@@ -10252,7 +10319,7 @@ char * API dw_container_query_next(HWND handle, unsigned long flags)
             if(pCore->flRecordAttr & flags)
             {
                dw_window_set_data(handle, "_dw_pcore", (void *)pCore);
-               return (char *)pCore->pszIcon;
+               return flags & DW_CR_RETDATA ? (char *)pCore->pszText : (char *)pCore->pszIcon;
             }
 
             pCore = WinSendMsg(handle, CM_QUERYRECORD, (MPARAM)pCore, MPFROM2SHORT(CMA_NEXT, CMA_ITEMORDER));
@@ -10261,7 +10328,7 @@ char * API dw_container_query_next(HWND handle, unsigned long flags)
       else
       {
          dw_window_set_data(handle, "_dw_pcore", (void *)pCore);
-         return (char *)pCore->pszIcon;
+         return flags & DW_CR_RETDATA ? (char *)pCore->pszText : (char *)pCore->pszIcon;
       }
    }
     return NULL;
@@ -10277,11 +10344,10 @@ void API dw_container_cursor(HWND handle, char *text)
 {
    RECTL viewport, item;
    PRECORDCORE pCore = WinSendMsg(handle, CM_QUERYRECORD, (MPARAM)0L, MPFROM2SHORT(CMA_FIRST, CMA_ITEMORDER));
-   int textcomp = DW_POINTER_TO_INT(dw_window_get_data(handle, "_dw_textcomp"));
 
    while(pCore)
    {
-      if((textcomp && pCore->pszIcon && strcmp((char *)pCore->pszIcon, text) == 0) || (!textcomp && (char *)pCore->pszIcon == text))
+      if(pCore->pszIcon && strcmp((char *)pCore->pszIcon, text) == 0)
       {
          QUERYRECORDRECT qrr;
          int scrollpixels = 0, midway;
@@ -10315,11 +10381,70 @@ void API dw_container_cursor(HWND handle, char *text)
 void API dw_container_delete_row(HWND handle, char *text)
 {
    PRECORDCORE pCore = WinSendMsg(handle, CM_QUERYRECORD, (MPARAM)0L, MPFROM2SHORT(CMA_FIRST, CMA_ITEMORDER));
+
+   while(pCore)
+   {
+      if(pCore->pszIcon && strcmp((char *)pCore->pszIcon, text) == 0)
+      {
+         WinSendMsg(handle, CM_REMOVERECORD, (MPARAM)&pCore, MPFROM2SHORT(1, CMA_FREE | CMA_INVALIDATE));
+         return;
+      }
+      pCore = WinSendMsg(handle, CM_QUERYRECORD, (MPARAM)pCore, MPFROM2SHORT(CMA_NEXT, CMA_ITEMORDER));
+   }
+}
+
+/*
+ * Cursors the item with the data speficied, and scrolls to that item.
+ * Parameters:
+ *       handle: Handle to the window (widget) to be queried.
+ *       data:  Data usually returned by dw_container_query().
+ */
+void API dw_container_cursor_by_data(HWND handle, void *data)
+{
+   RECTL viewport, item;
+   PRECORDCORE pCore = WinSendMsg(handle, CM_QUERYRECORD, (MPARAM)0L, MPFROM2SHORT(CMA_FIRST, CMA_ITEMORDER));
+
+   while(pCore)
+   {
+      if((void *)pCore->pszText == data)
+      {
+         QUERYRECORDRECT qrr;
+         int scrollpixels = 0, midway;
+
+         qrr.cb = sizeof(QUERYRECORDRECT);
+         qrr.pRecord = pCore;
+         qrr.fRightSplitWindow = 0;
+         qrr.fsExtent = CMA_TEXT;
+
+         WinSendMsg(handle, CM_SETRECORDEMPHASIS, (MPARAM)pCore, MPFROM2SHORT(TRUE, CRA_CURSORED));
+         WinSendMsg(handle, CM_QUERYVIEWPORTRECT, (MPARAM)&viewport, MPFROM2SHORT(CMA_WORKSPACE, FALSE));
+         WinSendMsg(handle, CM_QUERYRECORDRECT, (MPARAM)&item, (MPARAM)&qrr);
+
+         midway = (viewport.yTop - viewport.yBottom)/2;
+         scrollpixels = viewport.yTop - (item.yTop + midway);
+
+         WinSendMsg(handle, CM_SCROLLWINDOW, MPFROMSHORT(CMA_VERTICAL),  MPFROMLONG(scrollpixels));
+         return;
+      }
+
+      pCore = WinSendMsg(handle, CM_QUERYRECORD, (MPARAM)pCore, MPFROM2SHORT(CMA_NEXT, CMA_ITEMORDER));
+   }
+}
+
+/*
+ * Deletes the item with the data speficied.
+ * Parameters:
+ *       handle: Handle to the window (widget).
+ *       data:  Data usually returned by dw_container_query().
+ */
+void API dw_container_delete_row(HWND handle, void *data)
+{
+   PRECORDCORE pCore = WinSendMsg(handle, CM_QUERYRECORD, (MPARAM)0L, MPFROM2SHORT(CMA_FIRST, CMA_ITEMORDER));
    int textcomp = DW_POINTER_TO_INT(dw_window_get_data(handle, "_dw_textcomp"));
 
    while(pCore)
    {
-      if((textcomp && pCore->pszIcon && strcmp((char *)pCore->pszIcon, text) == 0) || (!textcomp && (char *)pCore->pszIcon == text))
+      if((void *)pCore->pszText == data)
       {
          WinSendMsg(handle, CM_REMOVERECORD, (MPARAM)&pCore, MPFROM2SHORT(1, CMA_FREE | CMA_INVALIDATE));
          return;
