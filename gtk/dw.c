@@ -7997,8 +7997,7 @@ void _dw_container_cursor(HWND handle, int textcomp, void *data)
 {
    int _locked_by_me = FALSE;
    GtkWidget *clist;
-   int rowcount, z, textcomp;
-   char *rowdata;
+   int rowcount, z;
 
    DW_MUTEX_LOCK;
    clist = (GtkWidget*)gtk_object_get_user_data(GTK_OBJECT(handle));
@@ -8059,8 +8058,7 @@ void _dw_container_delete_row(HWND handle, int textcomp, void *data)
 {
    int _locked_by_me = FALSE;
    GtkWidget *clist;
-   int rowcount, z, textcomp;
-   char *rowdata;
+   int rowcount, z;
 
    DW_MUTEX_LOCK;
    clist = (GtkWidget*)gtk_object_get_user_data(GTK_OBJECT(handle));
