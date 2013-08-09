@@ -163,6 +163,11 @@ EXPORTS
   dw_filesystem_get_column_type          @245
   dw_filesystem_set_column_title         @246
 
+  dw_container_set_row_data              @600
+  dw_container_change_row_data           @601
+  dw_container_delete_row_by_data        @602
+  dw_container_cursor_by_data            @603
+
   dw_screen_width                        @250
   dw_screen_height                       @251
 
