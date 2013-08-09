@@ -1226,7 +1226,6 @@ void container_add(void)
     {
         char names[100];
         
-        /* yes, there is a memory leak here */
         sprintf(names, "We can now allocate from the stack: Item: %d", z);
         size = z*100;
         sprintf(buffer, "Filename %d",z+1);
