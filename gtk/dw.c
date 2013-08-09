@@ -1543,13 +1543,13 @@ static gint _container_context_event(GtkWidget *widget, GdkEventButton *event, g
       if(event->button == 3)
       {
          int (*contextfunc)(HWND, char *, int, int, void *, void *) = work.func;
-         char *text;
+         void **params;
          int row, col;
 
          gtk_clist_get_selection_info(GTK_CLIST(widget), event->x, event->y, &row, &col);
 
-         text = (char *)gtk_clist_get_row_data(GTK_CLIST(widget), row);
-         retval = contextfunc(work.window, text, event->x, event->y, work.data, NULL);
+         params = (void **)gtk_clist_get_row_data(GTK_CLIST(widget), row);
+         retval = contextfunc(work.window, params ? params[0] : NULL, event->x, event->y, work.data, params ? params[1] : NULL);
       }
    }
    return retval;
@@ -1704,14 +1704,14 @@ static gint _container_select_event(GtkWidget *widget, GdkEventButton *event, gp
    {
       if(event->button == 1 && event->type == GDK_2BUTTON_PRESS)
       {
-         int (*contextfunc)(HWND, char *, void *) = work.func;
-         char *text;
+         int (*contextfunc)(HWND, char *, void *, void *) = work.func;
+         void **params;
          int row, col;
 
          gtk_clist_get_selection_info(GTK_CLIST(widget), event->x, event->y, &row, &col);
 
-         text = (char *)gtk_clist_get_row_data(GTK_CLIST(widget), row);
-         retval = contextfunc(work.window, text, work.data);
+         params = (void **)gtk_clist_get_row_data(GTK_CLIST(widget), row);
+         retval = contextfunc(work.window, params ? params[0] : NULL, work.data, params ? params[1] : NULL);
          gtk_object_set_data(GTK_OBJECT(widget), "_dw_double_click", GINT_TO_POINTER(1));
       }
    }
@@ -1726,11 +1726,11 @@ static gint _container_enter_event(GtkWidget *widget, GdkEventKey *event, gpoint
    if ( dbgfp != NULL ) _dw_log("%s %d: %s\n",__FILE__,__LINE__,__func__);
    if(work.window && event->keyval == VK_RETURN)
    {
-      int (*contextfunc)(HWND, char *, void *) = work.func;
-      char *text;
+      int (*contextfunc)(HWND, char *, void *, void *) = work.func;
+      void **params;
 
-      text = (char *)gtk_clist_get_row_data(GTK_CLIST(widget), GTK_CLIST(widget)->focus_row);
-      retval = contextfunc(work.window, text, work.data);
+      params = (void **)gtk_clist_get_row_data(GTK_CLIST(widget), GTK_CLIST(widget)->focus_row);
+      retval = contextfunc(work.window, params ? params[0] : NULL, work.data, params ? params[1] : NULL);
    }
    return retval;
 }
@@ -1785,7 +1785,7 @@ static gint _column_click_event(GtkWidget *widget, gint column_num, gpointer dat
 static gint _container_select_row(GtkWidget *widget, gint row, gint column, GdkEventButton *event, gpointer data)
 {
    SignalHandler work = _get_signal_handler(data);
-   char *rowdata = gtk_clist_get_row_data(GTK_CLIST(widget), row);
+   void **rowdata = (void **)gtk_clist_get_row_data(GTK_CLIST(widget), row);
    int (*contextfunc)(HWND, HWND, char *, void *, void *) = work.func;
 
    if ( dbgfp != NULL ) _dw_log("%s %d: %s\n",__FILE__,__LINE__,__func__);
@@ -1797,7 +1797,7 @@ static gint _container_select_row(GtkWidget *widget, gint row, gint column, GdkE
       gtk_object_set_data(GTK_OBJECT(widget), "_dw_double_click", GINT_TO_POINTER(0));
       return TRUE;
    }
-   return contextfunc(work.window, 0, rowdata, work.data, 0);;
+   return contextfunc(work.window, 0, rowdata ? rowdata[0] : NULL, work.data, rowdata ? rowdata[1] : NULL);;
 }
 
 static int _round_value(gfloat val)
