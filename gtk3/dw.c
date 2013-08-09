@@ -6196,11 +6196,11 @@ void dw_container_change_row_title(HWND handle, int row, char *title)
 }
 
 /*
- * Sets the title of a row in the container.
+ * Sets the data of a row in the container.
  * Parameters:
  *          pointer: Pointer to the allocated memory in dw_container_alloc().
  *          row: Zero based row of data being set.
- *          title: String title of the item.
+ *          data: Data pointer.
  */
 void dw_container_set_row_data(void *pointer, int row, void *data)
 {
@@ -6208,11 +6208,11 @@ void dw_container_set_row_data(void *pointer, int row, void *data)
 }
 
 /*
- * Changes the title of a row already inserted in the container.
+ * Changes the data of a row already inserted in the container.
  * Parameters:
  *          handle: Handle to window (widget) of container.
  *          row: Zero based row of data being set.
- *          title: String title of the item.
+ *          data: Data pointer.
  */
 void dw_container_change_row_data(HWND handle, int row, void *data)
 {

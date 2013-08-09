@@ -7652,8 +7652,23 @@ void dw_container_set_column_width(HWND handle, int column, int width)
    DW_MUTEX_UNLOCK;
 }
 
+void _dw_container_row_data_destroy(gpointer data)
+{
+    void **params = (void **)data;
+    
+    if(params)
+    {
+        if(params[0])
+            free(params[0]);
+        free(params);
+    }
+}
+
 /* Internal version for both */
-void _dw_container_set_row_title(HWND handle, void *pointer, int row, char *title)
+#define _DW_DATA_TYPE_STRING  0
+#define _DW_DATA_TYPE_POINTER 1
+
+void _dw_container_set_row_data(HWND handle, void *pointer, int row, int type, void *data)
 {
    GtkWidget *clist;
    int _locked_by_me = FALSE;
@@ -7666,7 +7681,24 @@ void _dw_container_set_row_title(HWND handle, void *pointer, int row, char *titl
    }
 
    if(clist)
-      gtk_clist_set_row_data(GTK_CLIST(clist), row, (gpointer)title);
+   {
+      void **params = (void **)gtk_clist_get_row_data(GTK_CLIST(clist), row);
+      
+      if(!params)
+      {
+          params = (void **)calloc(2, sizeof(void *));
+          gtk_clist_set_row_data_full(GTK_CLIST(clist), row, (gpointer)params, _dw_container_row_data_destroy);
+      }
+      if(type == _DW_DATA_TYPE_STRING)
+      {
+          void *oldtitle = params[0];
+          params[0] = data ? (void *)strdup((char *)data) : NULL;
+          if(oldtitle)
+              free(oldtitle);
+      }
+      else
+          params[type] = data;
+   }
    DW_MUTEX_UNLOCK;
 }
 
@@ -7679,7 +7711,7 @@ void _dw_container_set_row_title(HWND handle, void *pointer, int row, char *titl
  */
 void dw_container_set_row_title(void *pointer, int row, char *title)
 {
-   _dw_container_set_row_title(pointer, pointer, row, title);
+   _dw_container_set_row_data(pointer, pointer, row, _DW_DATA_TYPE_STRING, title);
 }
 
 /*
@@ -7691,7 +7723,31 @@ void dw_container_set_row_title(void *pointer, int row, char *title)
  */
 void dw_container_change_row_title(HWND handle, int row, char *title)
 {
-   _dw_container_set_row_title(handle, NULL, row, title);
+   _dw_container_set_row_data(handle, NULL, row, _DW_DATA_TYPE_STRING, title);
+}
+
+/*
+ * Sets the data of a row in the container.
+ * Parameters:
+ *          pointer: Pointer to the allocated memory in dw_container_alloc().
+ *          row: Zero based row of data being set.
+ *          data: Data pointer.
+ */
+void dw_container_set_row_data(void *pointer, int row, void *data)
+{
+   _dw_container_set_row_data(pointer, pointer, row, _DW_DATA_TYPE_POINTER, data);
+}
+
+/*
+ * Changes the data of a row already inserted in the container.
+ * Parameters:
+ *          handle: Handle to window (widget) of container.
+ *          row: Zero based row of data being set.
+ *          data: Data pointer.
+ */
+void dw_container_change_row_data(HWND handle, int row, void *data)
+{
+   _dw_container_set_row_data(handle, NULL, row, _DW_DATA_TYPE_POINTER, data);
 }
 
 /*
@@ -7822,8 +7878,13 @@ char *dw_container_query_start(HWND handle, unsigned long flags)
 {
    GtkWidget *clist;
    GList *list;
-   char *retval = NULL;
+   void *retval = NULL;
    int _locked_by_me = FALSE;
+   int type = _DW_DATA_TYPE_STRING;
+   void **params;
+
+   if(flags & DW_CR_RETDATA)
+       type = _DW_DATA_TYPE_POINTER;
 
    DW_MUTEX_LOCK;
    clist = (GtkWidget*)gtk_object_get_user_data(GTK_OBJECT(handle));
@@ -7842,17 +7903,20 @@ char *dw_container_query_start(HWND handle, unsigned long flags)
       if(list)
       {
          gtk_object_set_data(GTK_OBJECT(clist), "_dw_querypos", GINT_TO_POINTER(1));
-         retval = (char *)gtk_clist_get_row_data(GTK_CLIST(clist), GPOINTER_TO_UINT(list->data));
+         params = (void **)gtk_clist_get_row_data(GTK_CLIST(clist), GPOINTER_TO_UINT(list->data));
+         retval = params ? params[type] : NULL;
       }
    }
    else if(flags & DW_CRA_CURSORED)
    {
-      retval = (char *)gtk_clist_get_row_data(GTK_CLIST(clist), GTK_CLIST(clist)->focus_row);
+      params = (void **)gtk_clist_get_row_data(GTK_CLIST(clist), GTK_CLIST(clist)->focus_row);
+      retval = params ? params[type] : NULL;
    }
    else
    {
-      retval = (char *)gtk_clist_get_row_data(GTK_CLIST(clist), 0);
+      params = (void **)gtk_clist_get_row_data(GTK_CLIST(clist), 0);
       gtk_object_set_data(GTK_OBJECT(clist), "_dw_querypos", GINT_TO_POINTER(1));
+      retval = params ? params[type] : NULL;
    }
    DW_MUTEX_UNLOCK;
    return retval;
@@ -7870,8 +7934,13 @@ char *dw_container_query_next(HWND handle, unsigned long flags)
 {
    GtkWidget *clist;
    GList *list;
-   char *retval = NULL;
+   void *retval = NULL;
    int _locked_by_me = FALSE;
+   int type = _DW_DATA_TYPE_STRING;
+   void **params;
+   
+   if(flags & DW_CR_RETDATA)
+       type = _DW_DATA_TYPE_POINTER;
 
    DW_MUTEX_LOCK;
    clist = (GtkWidget*)gtk_object_get_user_data(GTK_OBJECT(handle));
@@ -7899,7 +7968,10 @@ char *dw_container_query_next(HWND handle, unsigned long flags)
          }
 
          if(list)
-            retval = (char *)gtk_clist_get_row_data(GTK_CLIST(clist), GPOINTER_TO_UINT(list->data));
+         {
+            params = (void **)gtk_clist_get_row_data(GTK_CLIST(clist), GPOINTER_TO_UINT(list->data));
+            retval = params ? params[type] : NULL;
+         }
       }
    }
    else if(flags & DW_CRA_CURSORED)
@@ -7913,20 +7985,15 @@ char *dw_container_query_next(HWND handle, unsigned long flags)
    {
       int pos = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(clist), "_dw_querypos"));
 
-      retval = (char *)gtk_clist_get_row_data(GTK_CLIST(clist), pos);
+      params = (void **)gtk_clist_get_row_data(GTK_CLIST(clist), pos);
       gtk_object_set_data(GTK_OBJECT(clist), "_dw_querypos", GINT_TO_POINTER(pos+1));
+      retval = params ? params[type] : NULL;
    }
    DW_MUTEX_UNLOCK;
    return retval;
 }
 
-/*
- * Cursors the item with the text speficied, and scrolls to that item.
- * Parameters:
- *       handle: Handle to the window (widget) to be queried.
- *       text:  Text usually returned by dw_container_query().
- */
-void dw_container_cursor(HWND handle, char *text)
+void _dw_container_cursor(HWND handle, int textcomp, void *data)
 {
    int _locked_by_me = FALSE;
    GtkWidget *clist;
@@ -7941,13 +8008,13 @@ void dw_container_cursor(HWND handle, char *text)
       DW_MUTEX_UNLOCK;
       return;
    }
-   textcomp = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(handle), "_dw_textcomp"));
    rowcount = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(clist), "_dw_rowcount"));
 
    for(z=0;z<rowcount;z++)
    {
-      rowdata = gtk_clist_get_row_data(GTK_CLIST(clist), z);
-      if ( (textcomp && rowdata && strcmp(rowdata, text) == 0) || (!textcomp && rowdata == text) )
+      void **params = (void **)gtk_clist_get_row_data(GTK_CLIST(clist), z);
+      
+      if ( params && ((textcomp && params[0] && strcmp((char *)params[0], (char *)data) == 0) || (!textcomp && params[1] == data)) )
       {
          gfloat pos;
          GtkAdjustment *adj = gtk_clist_get_vadjustment(GTK_CLIST(clist));
@@ -7967,12 +8034,28 @@ void dw_container_cursor(HWND handle, char *text)
 }
 
 /*
- * Deletes the item with the text speficied.
+ * Cursors the item with the text speficied, and scrolls to that item.
  * Parameters:
- *       handle: Handle to the window (widget).
+ *       handle: Handle to the window (widget) to be queried.
  *       text:  Text usually returned by dw_container_query().
  */
-void dw_container_delete_row(HWND handle, char *text)
+void dw_container_cursor(HWND handle, char *text)
+{
+    _dw_container_cursor(handle, TRUE, text);
+}
+
+/*
+ * Cursors the item with the data speficied, and scrolls to that item.
+ * Parameters:
+ *       handle: Handle to the window (widget) to be queried.
+ *       data:  Data usually returned by dw_container_query().
+ */
+void dw_container_cursor_by_data(HWND handle, void *data)
+{
+    _dw_container_cursor(handle, FALSE, data);
+}
+
+void _dw_container_delete_row(HWND handle, int textcomp, void *data)
 {
    int _locked_by_me = FALSE;
    GtkWidget *clist;
@@ -7987,13 +8070,13 @@ void dw_container_delete_row(HWND handle, char *text)
       DW_MUTEX_UNLOCK;
       return;
    }
-   textcomp = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(handle), "_dw_textcomp"));
    rowcount = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(clist), "_dw_rowcount"));
 
    for(z=0;z<rowcount;z++)
    {
-      rowdata = gtk_clist_get_row_data(GTK_CLIST(clist), z);
-      if ( (textcomp && rowdata && strcmp(rowdata, text) == 0) || (!textcomp && rowdata == text) )
+      void **params = (void **)gtk_clist_get_row_data(GTK_CLIST(clist), z);
+      
+      if ( params && ((textcomp && params[0] && strcmp((char *)params[0], (char *)data) == 0) || (!textcomp && params[1] == data)) )
       {
          _dw_unselect(clist);
 
@@ -8002,13 +8085,35 @@ void dw_container_delete_row(HWND handle, char *text)
          rowcount--;
 
          gtk_object_set_data(GTK_OBJECT(clist), "_dw_rowcount", GINT_TO_POINTER(rowcount));
-        _update_clist_rows(clist);
+         _update_clist_rows(clist);
          DW_MUTEX_UNLOCK;
          return;
       }
    }
 
    DW_MUTEX_UNLOCK;
+}
+
+/*
+ * Deletes the item with the text speficied.
+ * Parameters:
+ *       handle: Handle to the window (widget).
+ *       text:  Text usually returned by dw_container_query().
+ */
+void dw_container_delete_row(HWND handle, char *text)
+{
+    _dw_container_delete_row(handle, _DW_DATA_TYPE_STRING, text);
+}
+
+/*
+ * Deletes the item with the data speficied.
+ * Parameters:
+ *       handle: Handle to the window (widget).
+ *       data:  Data usually returned by dw_container_query().
+ */
+void dw_container_delete_row_by_data(HWND handle, void *data)
+{
+    _dw_container_delete_row(handle, _DW_DATA_TYPE_POINTER, data);
 }
 
 /*
