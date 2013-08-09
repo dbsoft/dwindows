@@ -158,6 +158,11 @@ export dw_filesystem_change_file.244
 export dw_filesystem_get_column_type.245
 export dw_filesystem_set_column_title.246
 
+export dw_container_set_row_data.600
+export dw_container_change_row_data.601
+export dw_container_delete_row_by_data.602
+export dw_container_cursor_by_data.603
+
 export dw_screen_width.250
 export dw_screen_height.251
 

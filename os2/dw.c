@@ -3162,8 +3162,9 @@ MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
                {
                case CN_ENTER:
                   {
-                     int (API_FUNC containerselectfunc)(HWND, char *, void *) = (int (API_FUNC)(HWND, char *, void *))tmp->signalfunction;
+                     int (API_FUNC containerselectfunc)(HWND, char *, void *, void *) = (int (API_FUNC)(HWND, char *, void *, void *))tmp->signalfunction;
                      char *text = NULL;
+                     void *data = NULL;
 
                      if(mp2)
                      {
@@ -3171,12 +3172,15 @@ MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 
                         pre = ((PNOTIFYRECORDENTER)mp2)->pRecord;
                         if(pre)
-                           text = (char *)pre->pszIcon;
+                        {
+                            text = (char *)pre->pszIcon;
+                            data = (void *)pre->pszText;
+                        }
                      }
 
                      if(tmp->window == notifyhwnd)
                      {
-                        result = containerselectfunc(tmp->window, text, tmp->data);
+                        result = containerselectfunc(tmp->window, text, tmp->data, data);
                         tmp = NULL;
                      }
                   }
@@ -3255,14 +3259,16 @@ MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
                         {
                            if(tmp->window == pre->hwndCnr)
                            {
+                              /* PCNRITEM for Tree PRECORDCORE for Container */
                               PCNRITEM pci = (PCNRITEM)pre->pRecord;
+                              PRECORDCORE prc = pre->pRecord;
 
                               if(pci && pre->fEmphasisMask & CRA_CURSORED && (pci->rc.flRecordAttr & CRA_CURSORED))
                               {
                                  int (API_FUNC treeselectfunc)(HWND, HTREEITEM, char *, void *, void *) = (int (API_FUNC)(HWND, HTREEITEM, char *, void *, void *))tmp->signalfunction;
 
                                  if(dw_window_get_data(tmp->window, "_dw_container"))
-                                    result = treeselectfunc(tmp->window, 0, (char *)pci->rc.pszIcon, tmp->data, 0);
+                                    result = treeselectfunc(tmp->window, 0, (char *)prc->pszIcon, tmp->data, (void *)prc->pszText);
                                  else
                                  {
                                     if(lasthcnr == tmp->window && lastitem == (HWND)pci)
@@ -10030,7 +10036,7 @@ void API dw_container_set_row_title(void *pointer, int row, char *title)
       temp = temp->preccNextRecord;
 
    newtitle = title ? strdup(title) : NULL;
-   temp->pszName = temp->pszIcon = (PSZ)title;
+   temp->pszName = temp->pszIcon = (PSZ)newtitle;
 }
 
 /*
@@ -10051,7 +10057,7 @@ void API dw_container_change_row_title(HWND handle, int row, char *title)
       {
          char *oldtitle = (char *)pCore->pszIcon;
          char *newtitle = title ? strdup(title) : NULL;
-         pCore->pszName = pCore->pszIcon = (PSZ)title;
+         pCore->pszName = pCore->pszIcon = (PSZ)newtitle;
 
          WinSendMsg(handle, CM_INVALIDATERECORD, (MPARAM)&pCore, MPFROM2SHORT(1, CMA_NOREPOSITION | CMA_TEXTCHANGED));
          
@@ -10437,7 +10443,7 @@ void API dw_container_cursor_by_data(HWND handle, void *data)
  *       handle: Handle to the window (widget).
  *       data:  Data usually returned by dw_container_query().
  */
-void API dw_container_delete_row(HWND handle, void *data)
+void API dw_container_delete_row_by_data(HWND handle, void *data)
 {
    PRECORDCORE pCore = WinSendMsg(handle, CM_QUERYRECORD, (MPARAM)0L, MPFROM2SHORT(CMA_FIRST, CMA_ITEMORDER));
    int textcomp = DW_POINTER_TO_INT(dw_window_get_data(handle, "_dw_textcomp"));
