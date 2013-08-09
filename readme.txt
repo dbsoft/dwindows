@@ -1,4 +1,4 @@
-This is a stable release of Dynamic Windows version 2.5.
+This is a pre-release of Dynamic Windows version 2.6.
 
 The current Dynamic Windows source base is considered stable on:
 OS/2, Mac, Windows, Linux, FreeBSD and Solaris.
@@ -26,25 +26,26 @@ OS/2 is currently missing the HTML widget because the system does
 not support it by default. Looking into importing functionality 
 from available libraries (Firefox, Webkit, Qt, etc).
 
-Changes from version 2.4:
-Added dw_window_set_focus() to focus a widget after the window is shown.
-Added DW_FCF_TEXTURED flag on Mac, which enables textured backgrounds
-   which had been the default on Mac prior to 2.5.
-Added keyboard support for non-entryfield controls on Mac.
-Added tab support for notebook controls on Windows and OS/2 and in 
-   the process rewrote and optimized the existing tab code.
-Added bitmap button support for dw_window_set_bitmap().
-Added full alpha channel support for bitmaps from file on GTK2.
-Added support for handling Mac application menu Quit and dock Quit.
-   Use DW_DESKTOP as window handle to dw_signal_connect().
-Improved transparency support for pixmaps/bitmaps from file on OS/2.
-Fixed tab support for bitmap buttons which broke in 2.4 on Windows.
-Fixed a notebook crash early in creation on Mac.
-Fixed unusable scrollbars on Ubuntu Linux when overlay scrollbars
-   are enabled.  We now disable overlay scrollbars when creating.
-Fixed dw_window_function() not working on non-toplevel windows on
-   Windows and OS/2.
-Fixed building 64bit with Visual C 2012 and MINGW gcc on Windows.
+Changes from version 2.5:
+Added package configuration (pkg-config) support on Unix.
+Changed DW_CLR_DEFAULT behavior to improve consistency.
+Added dw_signal_connect_data() which features a callback on signal disconnection.
+Improvements for building on 64bit Windows with MinGW.
+   Window styles, HTML and Toolbar widgets are now supported.
+Added dw_shutdown() for use when shutting down Dynamic Windows but not quite ready
+   to exit immediately. (Functions like dw_exit() without the exit())
+Separated the container "title" (string) and "data" (pointer) into separate spaces.
+   The "classic" functions which take (char *) parameters now maintain their
+   own string memory backing so you no longer need to keep the data available.
+Removed dw_container_set_row_data() and dw_container_change_row_data() macros.
+Added dw_container_set_row_data() and dw_container_change_row_data() functions.
+Removed the "_dw_textcomp" container data flag, dw_container_cursor() and
+   dw_container_delete_row() which take (char *) now function in text compare mode.
+Added dw_container_cursor_by_data() and dw_container_delete_row_by_data() 
+   functions which do the same things except in pointer comparison mode.
+Added DW_CR_RETDATA flag to dw_container_query_*() functions to return the
+   data pointer instead of the string pointer, this may change in the future.
+Fixed some memory leaks.
 
 Dynamic Windows Documentation is available at:
 
