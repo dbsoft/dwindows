@@ -9763,7 +9763,6 @@ void API dw_container_cursor_by_data(HWND handle, void *data)
 void API dw_container_delete_row(HWND handle, char *text)
 {
    int index = ListView_GetNextItem(handle, -1, LVNI_ALL);
-   void **params;
 
    while(index != -1)
    {
