@@ -1565,8 +1565,9 @@ static gint _container_enter_event(GtkWidget *widget, GdkEventAny *event, gpoint
       if((event->type == GDK_2BUTTON_PRESS && buttonevent->button == 1) ||
          (event->type == GDK_KEY_PRESS && keyevent->keyval == VK_RETURN))
       {
-         int (*contextfunc)(HWND, char *, void *) = work.func;
+         int (*contextfunc)(HWND, char *, void *, void *) = work.func;
          char *text = NULL;
+         void *data = NULL;
 
          /* Prevent some double events from happening */
          if(event->type == GDK_2BUTTON_PRESS)
@@ -1589,8 +1590,8 @@ static gint _container_enter_event(GtkWidget *widget, GdkEventAny *event, gpoint
                {
                   if(g_object_get_data(G_OBJECT(widget), "_dw_tree_type") == GINT_TO_POINTER(_DW_TREE_TYPE_CONTAINER))
                   {
-                     gtk_tree_model_get(store, &iter, 0, &text, -1);
-                     retval = contextfunc(work.window, text, work.data);
+                     gtk_tree_model_get(store, &iter, 0, &text, 1, &data, -1);
+                     retval = contextfunc(work.window, text, work.data, data);
                   }
                }
                gtk_tree_path_free(path);
