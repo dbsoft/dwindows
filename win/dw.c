@@ -2276,6 +2276,28 @@ LRESULT CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 
             _resize_notebook_page(tem->hwndFrom, num);
          }
+         else if(tem->code == LVN_DELETEITEM)
+         {
+            NMLISTVIEW FAR *lem=(NMLISTVIEW FAR *)mp2;
+            LV_ITEM lvi;
+            void **params;
+
+            memset(&lvi, 0, sizeof(LV_ITEM));
+
+            lvi.iItem = lem->iItem;
+            lvi.mask = LVIF_PARAM;
+
+            ListView_GetItem(lem->hdr.hwndFrom, &lvi);
+            params = (void **)lvi.lParam;
+
+            /* Free row data */
+            if(params)
+            {
+               if(params[_DW_DATA_TYPE_STRING])
+                  free(params[_DW_DATA_TYPE_STRING]);
+               free(params);
+            }
+         }
       }
       break;
    case WM_HSCROLL:
