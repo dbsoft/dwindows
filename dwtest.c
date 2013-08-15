@@ -743,12 +743,12 @@ int DWSIGNAL configure_event(HWND hwnd, int width, int height, void *data)
     return TRUE;
 }
 
-int DWSIGNAL item_enter_cb( HWND window, char *text, void *data )
+int DWSIGNAL item_enter_cb( HWND window, char *text, void *data, void *itemdata )
 {
     char buf[200];
     HWND statline = (HWND)data;
 
-    sprintf(buf,"DW_SIGNAL_ITEM_ENTER: Window: %x Text: %s", DW_POINTER_TO_UINT(window), text );
+    sprintf(buf,"DW_SIGNAL_ITEM_ENTER: Window: %x Text: %s Itemdata: %x", DW_POINTER_TO_UINT(window), text, DW_POINTER_TO_UINT(itemdata) );
     dw_window_set_text( statline, buf);
     return 0;
 }
