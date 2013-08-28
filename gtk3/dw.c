@@ -1382,6 +1382,9 @@ static gint _combobox_select_event(GtkWidget *widget, gpointer data)
    return retval;
 }
 
+#define _DW_DATA_TYPE_STRING  0
+#define _DW_DATA_TYPE_POINTER 1
+
 static gint _tree_context_event(GtkWidget *widget, GdkEventButton *event, gpointer data)
 {
    SignalHandler work = _get_signal_handler(data);
@@ -1406,11 +1409,11 @@ static gint _tree_context_event(GtkWidget *widget, GdkEventButton *event, gpoint
             {
                if(g_object_get_data(G_OBJECT(widget), "_dw_tree_type") == GINT_TO_POINTER(_DW_TREE_TYPE_TREE))
                {
-                  gtk_tree_model_get(store, &iter, 0, &text, 2, &itemdata, -1);
+                  gtk_tree_model_get(store, &iter, _DW_DATA_TYPE_STRING, &text, 2, &itemdata, -1);
                }
                else
                {
-                  gtk_tree_model_get(store, &iter, 0, &text, -1);
+                  gtk_tree_model_get(store, &iter, _DW_DATA_TYPE_STRING, &text, -1);
                }
             }
             else
@@ -1426,11 +1429,11 @@ static gint _tree_context_event(GtkWidget *widget, GdkEventButton *event, gpoint
                   {
                      if(g_object_get_data(G_OBJECT(widget), "_dw_tree_type") == GINT_TO_POINTER(_DW_TREE_TYPE_TREE))
                      {
-                        gtk_tree_model_get(store, &iter, 0, &text, 2, &itemdata, -1);
+                        gtk_tree_model_get(store, &iter, _DW_DATA_TYPE_STRING, &text, 2, &itemdata, -1);
                      }
                      else
                      {
-                        gtk_tree_model_get(store, &iter, 0, &text, -1);
+                        gtk_tree_model_get(store, &iter, _DW_DATA_TYPE_STRING, &text, -1);
                      }
                   }
                   gtk_tree_path_free(path);
@@ -1439,6 +1442,8 @@ static gint _tree_context_event(GtkWidget *widget, GdkEventButton *event, gpoint
          }
 
          retval = contextfunc(work.window, text, event->x, event->y, work.data, itemdata);
+         if(text)
+            g_free(text);
       }
    }
    return retval;
@@ -1472,12 +1477,12 @@ static gint _tree_select_event(GtkTreeSelection *sel, gpointer data)
          {
             if(g_object_get_data(G_OBJECT(widget), "_dw_tree_type") == GINT_TO_POINTER(_DW_TREE_TYPE_TREE))
             {
-               gtk_tree_model_get(store, &iter, 0, &text, 2, &itemdata, 3, &item, -1);
+               gtk_tree_model_get(store, &iter, _DW_DATA_TYPE_STRING, &text, 2, &itemdata, 3, &item, -1);
                retval = treeselectfunc(work.window, (HTREEITEM)item, text, work.data, itemdata);
             }
             else if(g_object_get_data(G_OBJECT(widget), "_dw_tree_type") == GINT_TO_POINTER(_DW_TREE_TYPE_CONTAINER))
             {
-               gtk_tree_model_get(store, &iter, 0, &text, 1, &itemdata, -1);
+               gtk_tree_model_get(store, &iter, _DW_DATA_TYPE_STRING, &text, _DW_DATA_TYPE_POINTER, &itemdata, -1);
                retval = treeselectfunc(work.window, (HTREEITEM)item, text, work.data, itemdata);
             }
             else
@@ -1511,12 +1516,12 @@ static gint _tree_select_event(GtkTreeSelection *sel, gpointer data)
                {
                   if(g_object_get_data(G_OBJECT(widget), "_dw_tree_type") == GINT_TO_POINTER(_DW_TREE_TYPE_TREE))
                   {
-                     gtk_tree_model_get(store, &iter, 0, &text, 2, &itemdata, 3, &item, -1);
+                     gtk_tree_model_get(store, &iter, _DW_DATA_TYPE_STRING, &text, 2, &itemdata, 3, &item, -1);
                      retval = treeselectfunc(work.window, (HTREEITEM)item, text, work.data, itemdata);
                   }
                   else if(g_object_get_data(G_OBJECT(widget), "_dw_tree_type") == GINT_TO_POINTER(_DW_TREE_TYPE_CONTAINER))
                   {
-                     gtk_tree_model_get(store, &iter, 0, &text, 1, &itemdata, -1);
+                     gtk_tree_model_get(store, &iter, _DW_DATA_TYPE_STRING, &text, _DW_DATA_TYPE_POINTER, &itemdata, -1);
                      retval = treeselectfunc(work.window, (HTREEITEM)item, text, work.data, itemdata);
                   }
                   else
@@ -1534,6 +1539,8 @@ static gint _tree_select_event(GtkTreeSelection *sel, gpointer data)
                gtk_tree_path_free(path);
             }
          }
+         if(text)
+            g_free(text);
       }
    }
    return retval;
@@ -1590,8 +1597,10 @@ static gint _container_enter_event(GtkWidget *widget, GdkEventAny *event, gpoint
                {
                   if(g_object_get_data(G_OBJECT(widget), "_dw_tree_type") == GINT_TO_POINTER(_DW_TREE_TYPE_CONTAINER))
                   {
-                     gtk_tree_model_get(store, &iter, 0, &text, 1, &data, -1);
+                     gtk_tree_model_get(store, &iter, _DW_DATA_TYPE_STRING, &text, _DW_DATA_TYPE_POINTER, &data, -1);
                      retval = contextfunc(work.window, text, work.data, data);
+                     if(text)
+                        g_free(text);
                   }
                }
                gtk_tree_path_free(path);
@@ -5260,7 +5269,13 @@ char * API dw_tree_get_title(HWND handle, HTREEITEM item)
 
    if(tree && GTK_IS_TREE_VIEW(tree) &&
       (store = (GtkTreeModel *)gtk_tree_view_get_model(GTK_TREE_VIEW(tree))))
-      gtk_tree_model_get(store, (GtkTreeIter *)item, 0, &text, -1);
+      gtk_tree_model_get(store, (GtkTreeIter *)item, _DW_DATA_TYPE_STRING, &text, -1);
+   if(text)
+   {
+      char *temp = text;
+      text = strdup(temp);
+      g_free(temp);
+   }
    DW_MUTEX_UNLOCK;
    return text;
 }
@@ -6141,9 +6156,6 @@ void dw_container_set_column_width(HWND handle, int column, int width)
 }
 
 /* Internal version for both */
-#define _DW_DATA_TYPE_STRING  0
-#define _DW_DATA_TYPE_POINTER 1
-
 void _dw_container_set_row_data(HWND handle, void *pointer, int row, int type, void *data)
 {
    GtkWidget *cont = handle;
@@ -6393,6 +6405,7 @@ char *dw_container_query_start(HWND handle, unsigned long flags)
    GtkListStore *store = NULL;
    char *retval = NULL;
    int _locked_by_me = FALSE;
+   int type = flags & DW_CR_RETDATA ? _DW_DATA_TYPE_POINTER : _DW_DATA_TYPE_STRING;
 
    DW_MUTEX_LOCK;
    cont = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user");
@@ -6422,7 +6435,7 @@ char *dw_container_query_start(HWND handle, unsigned long flags)
 
                   if(gtk_tree_model_iter_nth_child(GTK_TREE_MODEL(store), &iter, NULL, indices[0]))
                   {
-                     gtk_tree_model_get(GTK_TREE_MODEL(store), &iter, 0, &retval, -1);
+                     gtk_tree_model_get(GTK_TREE_MODEL(store), &iter, type, &retval, -1);
                      g_object_set_data(G_OBJECT(cont), "_dw_querypos", GINT_TO_POINTER(1));
                   }
                }
@@ -6442,7 +6455,7 @@ char *dw_container_query_start(HWND handle, unsigned long flags)
 
             if(gtk_tree_model_get_iter(GTK_TREE_MODEL(store), &iter, path))
             {
-               gtk_tree_model_get(GTK_TREE_MODEL(store), &iter, 0, &retval, -1);
+               gtk_tree_model_get(GTK_TREE_MODEL(store), &iter, type, &retval, -1);
             }
             gtk_tree_path_free(path);
          }
@@ -6453,10 +6466,17 @@ char *dw_container_query_start(HWND handle, unsigned long flags)
 
          if(gtk_tree_model_iter_nth_child(GTK_TREE_MODEL(store), &iter, NULL, 0))
          {
-            gtk_tree_model_get(GTK_TREE_MODEL(store), &iter, 0, &retval, -1);
+            gtk_tree_model_get(GTK_TREE_MODEL(store), &iter, type, &retval, -1);
             g_object_set_data(G_OBJECT(cont), "_dw_querypos", GINT_TO_POINTER(1));
          }
       }
+   }
+   /* If there is a title, duplicate it and free the temporary copy */
+   if(retval && type == _DW_DATA_TYPE_STRING)
+   {
+      char *temp = retval;
+      retval = strdup(temp);
+      g_free(temp);
    }
    DW_MUTEX_UNLOCK;
    return retval;
@@ -6476,6 +6496,7 @@ char *dw_container_query_next(HWND handle, unsigned long flags)
    GtkListStore *store = NULL;
    char *retval = NULL;
    int _locked_by_me = FALSE;
+   int type = flags & DW_CR_RETDATA ? _DW_DATA_TYPE_POINTER : _DW_DATA_TYPE_STRING;
 
    DW_MUTEX_LOCK;
    cont = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user");
@@ -6509,7 +6530,7 @@ char *dw_container_query_next(HWND handle, unsigned long flags)
 
                   if(gtk_tree_model_iter_nth_child(GTK_TREE_MODEL(store), &iter, NULL, indices[0]))
                   {
-                     gtk_tree_model_get(GTK_TREE_MODEL(store), &iter, 0, &retval, -1);
+                     gtk_tree_model_get(GTK_TREE_MODEL(store), &iter, type, &retval, -1);
                      g_object_set_data(G_OBJECT(cont), "_dw_querypos", GINT_TO_POINTER(pos+1));
                   }
                }
@@ -6531,10 +6552,17 @@ char *dw_container_query_next(HWND handle, unsigned long flags)
 
          if(pos < count && gtk_tree_model_iter_nth_child(GTK_TREE_MODEL(store), &iter, NULL, pos))
          {
-            gtk_tree_model_get(GTK_TREE_MODEL(store), &iter, 0, &retval, -1);
+            gtk_tree_model_get(GTK_TREE_MODEL(store), &iter, type, &retval, -1);
             g_object_set_data(G_OBJECT(cont), "_dw_querypos", GINT_TO_POINTER(pos+1));
          }
       }
+   }
+   /* If there is a title, duplicate it and free the temporary copy */
+   if(retval && type == _DW_DATA_TYPE_STRING)
+   {
+      char *temp = retval;
+      retval = strdup(temp);
+      g_free(temp);
    }
    DW_MUTEX_UNLOCK;
    return retval;
@@ -6544,20 +6572,24 @@ int _find_iter(GtkListStore *store, GtkTreeIter *iter, void *data, int textcomp)
 {
    int z, rows = gtk_tree_model_iter_n_children(GTK_TREE_MODEL(store), NULL);
    void *thisdata;
+   int retval = FALSE;
 
    for(z=0;z<rows;z++)
    {
       if(gtk_tree_model_iter_nth_child(GTK_TREE_MODEL(store), iter, NULL, z))
       {
          /* Get either string from position 0 or pointer from position 1 */
-         gtk_tree_model_get(GTK_TREE_MODEL(store), iter, textcomp ? 0 : 1, &thisdata, -1);
+         gtk_tree_model_get(GTK_TREE_MODEL(store), iter, textcomp ? _DW_DATA_TYPE_STRING : _DW_DATA_TYPE_POINTER, &thisdata, -1);
          if((textcomp && thisdata && strcmp((char *)thisdata, (char *)data) == 0) || (!textcomp && thisdata == data))
          {
-            return TRUE;
+            retval = TRUE;
+            z = rows;
          }
+         if(textcomp && thisdata)
+            g_free(thisdata);
       }
    }
-   return FALSE;
+   return retval;
 }
 
 void _dw_container_cursor(HWND handle, void *data, int textcomp)
@@ -9990,8 +10022,12 @@ void dw_listbox_get_text(HWND handle, unsigned int index, char *buffer, unsigned
          {
             /* Get the text */
             gchar *text;
-            gtk_tree_model_get(GTK_TREE_MODEL(store), &iter, 0, &text, -1);
-            strncpy(buffer, text, length);
+            gtk_tree_model_get(GTK_TREE_MODEL(store), &iter, _DW_DATA_TYPE_STRING, &text, -1);
+            if(text)
+            {
+               strncpy(buffer, text, length);
+               g_free(text);
+            }
             DW_MUTEX_UNLOCK;
             return;
          }

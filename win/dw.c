@@ -9644,9 +9644,10 @@ char * API dw_container_query_start(HWND handle, unsigned long flags)
    int _index = ListView_GetNextItem(handle, -1, flags);
    void **params;
    int type = _DW_DATA_TYPE_STRING;
+   char *retval = NULL;
 
    if(_index == -1)
-      return NULL;
+      return retval;
       
    if(flags & DW_CR_RETDATA)
       type = _DW_DATA_TYPE_POINTER;
@@ -9658,9 +9659,17 @@ char * API dw_container_query_start(HWND handle, unsigned long flags)
 
    ListView_GetItem(handle, &lvi);
    params = (void **)lvi.lParam;
+   
+   if(params)
+   {
+      if(type == _DW_DATA_TYPE_STRING && params[type])
+         retval = _strdup((char *)params[type]);
+      else
+         retval = (char *)params[type];
+   }
 
    dw_window_set_data(handle, "_dw_index", DW_INT_TO_POINTER(_index));
-   return params ? (char *)params[type] : NULL;
+   return retval;
 }
 
 /*
@@ -9677,11 +9686,12 @@ char * API dw_container_query_next(HWND handle, unsigned long flags)
    int _index = DW_POINTER_TO_INT(dw_window_get_data(handle, "_dw_index"));
    void **params;
    int type = _DW_DATA_TYPE_STRING;
+   char *retval = NULL;
 
    _index = ListView_GetNextItem(handle, _index, flags);
 
    if(_index == -1)
-      return NULL;
+      return retval;
 
    if(flags & DW_CR_RETDATA)
       type = _DW_DATA_TYPE_POINTER;
@@ -9694,8 +9704,16 @@ char * API dw_container_query_next(HWND handle, unsigned long flags)
    ListView_GetItem(handle, &lvi);
    params = (void **)lvi.lParam;
 
+   if(params)
+   {
+      if(type == _DW_DATA_TYPE_STRING && params[type])
+         retval = _strdup((char *)params[type]);
+      else
+         retval = (char *)params[type];
+   }
+
    dw_window_set_data(handle, "_dw_index", DW_INT_TO_POINTER(_index));
-   return params ? (char *)params[type] : NULL;
+   return retval;
 }
 
 /*

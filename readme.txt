@@ -1,4 +1,4 @@
-This is a pre-release of Dynamic Windows version 2.6.
+This is a pre-release of Dynamic Windows version 3.0.
 
 The current Dynamic Windows source base is considered stable on:
 OS/2, Mac, Windows, Linux, FreeBSD and Solaris.
@@ -46,6 +46,10 @@ Added dw_container_cursor_by_data() and dw_container_delete_row_by_data()
 Added DW_CR_RETDATA flag to dw_container_query_*() functions to return the
    data pointer instead of the string pointer, this may change in the future.
 Fixed some memory leaks.
+WARNING: Changed how tree and container titles are returned, they are now duplicated 
+   and need to be freed with dw_free().  This affects the following functions:
+   dw_tree_get_title(), dw_container_query_start() and dw_container_query_next()
+   You should audit any code using these functions for leaks if using verison 3.
 
 Dynamic Windows Documentation is available at:
 

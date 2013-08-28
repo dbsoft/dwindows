@@ -9182,8 +9182,8 @@ char * API dw_tree_get_title(HWND handle, HTREEITEM item)
    PCNRITEM pci = (PCNRITEM)item;
 
    handle = handle; /* keep compiler happy */
-   if(pci)
-      return (char *)pci->rc.pszIcon;
+   if(pci && pci->rc.pszIcon)
+      return strdup((char *)pci->rc.pszIcon);
    return NULL;
 }
 
@@ -10288,7 +10288,9 @@ char * API dw_container_query_start(HWND handle, unsigned long flags)
             if(pCore->flRecordAttr & flags)
             {
                dw_window_set_data(handle, "_dw_pcore", (void *)pCore);
-               return flags & DW_CR_RETDATA ? (char *)pCore->pszText : (char *)pCore->pszIcon;
+               if(flags & DW_CR_RETDATA)
+                  return (char *)pCore->pszText;
+               return pCore->pszIcon ? strdup((char *)pCore->pszIcon) : NULL;
             }
             pCore = WinSendMsg(handle, CM_QUERYRECORD, (MPARAM)pCore, MPFROM2SHORT(CMA_NEXT, CMA_ITEMORDER));
          }
@@ -10296,7 +10298,9 @@ char * API dw_container_query_start(HWND handle, unsigned long flags)
       else
       {
          dw_window_set_data(handle, "_dw_pcore", (void *)pCore);
-         return flags & DW_CR_RETDATA ? (char *)pCore->pszText : (char *)pCore->pszIcon;
+         if(flags & DW_CR_RETDATA)
+            return (char *)pCore->pszText;
+         return pCore->pszIcon ? strdup((char *)pCore->pszIcon) : NULL;
       }
    }
    return NULL;
@@ -10325,7 +10329,9 @@ char * API dw_container_query_next(HWND handle, unsigned long flags)
             if(pCore->flRecordAttr & flags)
             {
                dw_window_set_data(handle, "_dw_pcore", (void *)pCore);
-               return flags & DW_CR_RETDATA ? (char *)pCore->pszText : (char *)pCore->pszIcon;
+               if(flags & DW_CR_RETDATA)
+                  return (char *)pCore->pszText;
+               return pCore->pszIcon ? strdup((char *)pCore->pszIcon) : NULL;
             }
 
             pCore = WinSendMsg(handle, CM_QUERYRECORD, (MPARAM)pCore, MPFROM2SHORT(CMA_NEXT, CMA_ITEMORDER));
@@ -10334,7 +10340,9 @@ char * API dw_container_query_next(HWND handle, unsigned long flags)
       else
       {
          dw_window_set_data(handle, "_dw_pcore", (void *)pCore);
-         return flags & DW_CR_RETDATA ? (char *)pCore->pszText : (char *)pCore->pszIcon;
+         if(flags & DW_CR_RETDATA)
+            return (char *)pCore->pszText;
+         return pCore->pszIcon ? strdup((char *)pCore->pszIcon) : NULL;
       }
    }
     return NULL;

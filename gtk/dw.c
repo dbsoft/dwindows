@@ -6573,6 +6573,12 @@ char * API dw_tree_get_title(HWND handle, HTREEITEM item)
    if(tree && GTK_IS_TREE_VIEW(tree) &&
       (store = (GtkTreeModel *)gtk_object_get_data(GTK_OBJECT(tree), "_dw_tree_store")))
       gtk_tree_model_get(store, (GtkTreeIter *)item, 0, &text, -1);
+   if(text)
+   {
+      char *temp = text;
+      text = strdup(temp);
+      g_free(temp);
+   }
 #else
    text = (char *)gtk_object_get_data(GTK_OBJECT(item), "_dw_text");
 #endif
@@ -7881,7 +7887,7 @@ char *dw_container_query_start(HWND handle, unsigned long flags)
    void *retval = NULL;
    int _locked_by_me = FALSE;
    int type = _DW_DATA_TYPE_STRING;
-   void **params;
+   void **params = NULL;
 
    if(flags & DW_CR_RETDATA)
        type = _DW_DATA_TYPE_POINTER;
@@ -7892,7 +7898,7 @@ char *dw_container_query_start(HWND handle, unsigned long flags)
    if(!clist)
    {
       DW_MUTEX_UNLOCK;
-      return NULL;
+      return retval;
    }
 
    /* These should be separate but right now this will work */
@@ -7904,19 +7910,23 @@ char *dw_container_query_start(HWND handle, unsigned long flags)
       {
          gtk_object_set_data(GTK_OBJECT(clist), "_dw_querypos", GINT_TO_POINTER(1));
          params = (void **)gtk_clist_get_row_data(GTK_CLIST(clist), GPOINTER_TO_UINT(list->data));
-         retval = params ? params[type] : NULL;
       }
    }
    else if(flags & DW_CRA_CURSORED)
    {
       params = (void **)gtk_clist_get_row_data(GTK_CLIST(clist), GTK_CLIST(clist)->focus_row);
-      retval = params ? params[type] : NULL;
    }
    else
    {
       params = (void **)gtk_clist_get_row_data(GTK_CLIST(clist), 0);
       gtk_object_set_data(GTK_OBJECT(clist), "_dw_querypos", GINT_TO_POINTER(1));
-      retval = params ? params[type] : NULL;
+   }
+   if(params)
+   {
+      if(type == _DW_DATA_TYPE_STRING && params[type])
+         retval = strdup((char *)params[type]);
+      else
+         retval = (char *)params[type];
    }
    DW_MUTEX_UNLOCK;
    return retval;
@@ -7937,7 +7947,7 @@ char *dw_container_query_next(HWND handle, unsigned long flags)
    void *retval = NULL;
    int _locked_by_me = FALSE;
    int type = _DW_DATA_TYPE_STRING;
-   void **params;
+   void **params = NULL;
    
    if(flags & DW_CR_RETDATA)
        type = _DW_DATA_TYPE_POINTER;
@@ -7948,7 +7958,7 @@ char *dw_container_query_next(HWND handle, unsigned long flags)
    if(!clist)
    {
       DW_MUTEX_UNLOCK;
-      return NULL;
+      return retval;
    }
 
    /* These should be separate but right now this will work */
@@ -7968,10 +7978,7 @@ char *dw_container_query_next(HWND handle, unsigned long flags)
          }
 
          if(list)
-         {
             params = (void **)gtk_clist_get_row_data(GTK_CLIST(clist), GPOINTER_TO_UINT(list->data));
-            retval = params ? params[type] : NULL;
-         }
       }
    }
    else if(flags & DW_CRA_CURSORED)
@@ -7987,7 +7994,13 @@ char *dw_container_query_next(HWND handle, unsigned long flags)
 
       params = (void **)gtk_clist_get_row_data(GTK_CLIST(clist), pos);
       gtk_object_set_data(GTK_OBJECT(clist), "_dw_querypos", GINT_TO_POINTER(pos+1));
-      retval = params ? params[type] : NULL;
+   }
+   if(params)
+   {
+      if(type == _DW_DATA_TYPE_STRING && params[type])
+         retval = strdup((char *)params[type]);
+      else
+         retval = (char *)params[type];
    }
    DW_MUTEX_UNLOCK;
    return retval;
