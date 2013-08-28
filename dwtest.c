@@ -802,6 +802,7 @@ int DWSIGNAL container_select_cb( HWND window, HTREEITEM item, char *text, void 
     {
         sprintf(buf,"Selected: %s\r\n", str);
         mle_point = dw_mle_import( container_mle, buf, mle_point);
+        dw_free(str);
         str = dw_container_query_next(container, DW_CRA_SELECTED);
     }
     /* Make the last inserted point the cursor location */
