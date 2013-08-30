@@ -7048,7 +7048,11 @@ char * API dw_container_query_start(HWND handle, unsigned long flags)
         if(flags & DW_CR_RETDATA)
             retval = [cont getRowData:(int)result];
         else
-            retval = [cont getRowTitle:(int)result];
+        {
+            char *temp = [cont getRowTitle:(int)result];
+            if(temp)
+               retval = strdup(temp);
+        }
         [cont setLastQueryPoint:(int)result];
     }
     DW_MUTEX_UNLOCK;
@@ -7078,7 +7082,11 @@ char * API dw_container_query_next(HWND handle, unsigned long flags)
         if(flags & DW_CR_RETDATA)
             retval = [cont getRowData:(int)result];
         else
-            retval = [cont getRowTitle:(int)result];
+        {
+            char *temp = [cont getRowTitle:(int)result];
+            if(temp)
+               retval = strdup(temp);
+        }
         [cont setLastQueryPoint:(int)result];
     }
     DW_MUTEX_UNLOCK;
