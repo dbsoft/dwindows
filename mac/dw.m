@@ -3694,15 +3694,18 @@ int API dw_dialog_dismiss(DWDialog *dialog, void *result)
  */
 void * API dw_dialog_wait(DWDialog *dialog)
 {
-    void *tmp;
+    void *tmp = NULL;
 
-    while(!dialog->done)
+    if(dialog)
     {
-        _dw_main_iteration([NSDate dateWithTimeIntervalSinceNow:0.01]);
+        while(!dialog->done)
+        {
+            _dw_main_iteration([NSDate dateWithTimeIntervalSinceNow:0.01]);
+        }
+        dw_event_close(&dialog->eve);
+        tmp = dialog->result;
+        free(dialog);
     }
-    dw_event_close(&dialog->eve);
-    tmp = dialog->result;
-    free(dialog);
     return tmp;
 }
 
@@ -7836,11 +7839,9 @@ void API dw_pixmap_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest, int wi
  */
 int API dw_pixmap_stretch_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest, int width, int height, HWND src, HPIXMAP srcp, int xsrc, int ysrc, int srcwidth, int srcheight)
 {
-    DWBitBlt *bltinfo = calloc(1, sizeof(DWBitBlt));
+    DWBitBlt *bltinfo;
     NSValue* bi;
     DW_LOCAL_POOL_IN;
-
-    bi = [NSValue valueWithPointer:bltinfo];
 
     /* Sanity checks */
     if((!dest && !destp) || (!src && !srcp) ||
@@ -7850,6 +7851,9 @@ int API dw_pixmap_stretch_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest,
         return DW_ERROR_GENERAL;
     }
 
+    bltinfo = calloc(1, sizeof(DWBitBlt));
+    bi = [NSValue valueWithPointer:bltinfo];
+    
     /* Fill in the information */
     bltinfo->dest = dest;
     bltinfo->src = src;
@@ -10583,7 +10587,10 @@ static void _handle_sem(int *tmpsock)
       }
 
       if(select(maxfd+1, &rd, NULL, NULL, NULL) == -1)
-         return;
+      {
+          free(array);
+          return;
+      }
 
       if(FD_ISSET(listenfd, &rd))
       {
