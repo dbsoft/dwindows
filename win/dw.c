@@ -4153,6 +4153,9 @@ void * API dw_dialog_wait(DWDialog *dialog)
    MSG msg;
    void *tmp;
 
+   if(!dialog)
+      return NULL;
+
    while (GetMessage(&msg,NULL,0,0))
    {
       if(msg.hwnd == NULL && msg.message == WM_TIMER)

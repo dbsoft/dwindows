@@ -4637,6 +4637,9 @@ void * API dw_dialog_wait(DWDialog *dialog)
    QMSG qmsg;
    void *tmp;
 
+   if(!dialog)
+      return NULL;
+
    while (WinGetMsg(dwhab, &qmsg, 0, 0, 0))
    {
       if(qmsg.msg == WM_TIMER && qmsg.hwnd == NULLHANDLE)

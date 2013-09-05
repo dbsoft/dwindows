@@ -2391,6 +2391,9 @@ void *dw_dialog_wait(DWDialog *dialog)
 {
    void *tmp;
    int newprocess = 0;
+   
+   if(!dialog)
+      return NULL;
 
    /* _dw_thread will be -1 if dw_main hasn't been run yet. */
    if(_dw_thread == (pthread_t)-1)
@@ -9813,12 +9816,15 @@ static void _handle_sem(int *tmpsock)
       }
 
       if(select(maxfd+1, &rd, NULL, NULL, NULL) == -1)
+      {
+         free(array);
          return;
+      }
 
       if(FD_ISSET(listenfd, &rd))
       {
          struct _seminfo *newarray;
-            int newfd = accept(listenfd, 0, 0);
+         int newfd = accept(listenfd, 0, 0);
 
          if(newfd > -1)
          {
