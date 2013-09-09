@@ -1783,15 +1783,6 @@ static GdkPixbuf *_find_pixbuf(HICN icon, unsigned long *userwidth, unsigned lon
    return NULL;
 }
 
-void _init_thread(void)
-{
-   GdkRGBA *foreground = malloc(sizeof(GdkRGBA));
-
-   foreground->alpha = foreground->red = foreground->green = foreground->blue = 0.0;
-   pthread_setspecific(_dw_fg_color_key, foreground);
-   pthread_setspecific(_dw_bg_color_key, NULL);
-}
-
 /* Try to load the WebKitGtk shared libary */
 #ifdef USE_WEBKIT
 void init_webkit(void)
@@ -1879,7 +1870,7 @@ int dw_int_init(DWResources *res, int newthread, int *argc, char **argv[])
    pthread_key_create(&_dw_bg_color_key, NULL);
    pthread_key_create(&_dw_mutex_key, NULL);
 
-   _init_thread();
+   _dw_init_thread();
 
    /* Create a global object for glib activities */
    _DWObject = g_object_new(G_TYPE_OBJECT, NULL);
@@ -8323,6 +8314,37 @@ int dw_named_event_close(HEV eve)
    return DW_ERROR_NONE;
 }
 
+/* 
+ * Generally an internal function called from a newly created
+ * thread to setup the Dynamic Windows environment for the thread.
+ * However it is exported so language bindings can call it when
+ * they create threads that require access to Dynamic Windows.
+ */
+void API _dw_init_thread(void)
+{
+   GdkRGBA *foreground = malloc(sizeof(GdkRGBA));
+
+   foreground->alpha = foreground->red = foreground->green = foreground->blue = 0.0;
+   pthread_setspecific(_dw_fg_color_key, foreground);
+   pthread_setspecific(_dw_bg_color_key, NULL);
+}
+
+/* 
+ * Generally an internal function called from a terminating
+ * thread to cleanup the Dynamic Windows environment for the thread.
+ * However it is exported so language bindings can call it when
+ * they exit threads that require access to Dynamic Windows.
+ */
+void API _dw_deinit_thread(void)
+{
+   GdkRGBA *foreground, *background;
+   
+   if((foreground = pthread_getspecific(_dw_fg_color_key)))
+      free(foreground);
+   if((background = pthread_getspecific(_dw_bg_color_key)))
+      free(background);
+}
+
 /*
  * Setup thread independent color sets.
  */
@@ -8330,21 +8352,17 @@ void _dwthreadstart(void *data)
 {
    void (*threadfunc)(void *) = NULL;
    void **tmp = (void **)data;
-   GdkRGBA *foreground, *background;
 
    threadfunc = (void (*)(void *))tmp[0];
 
    /* Initialize colors */
-   _init_thread();
+   _dw_init_thread();
 
    threadfunc(tmp[1]);
    free(tmp);
 
    /* Free colors */
-   if((foreground = pthread_getspecific(_dw_fg_color_key)))
-      free(foreground);
-   if((background = pthread_getspecific(_dw_bg_color_key)))
-      free(background);
+   _dw_deinit_thread();
 }
 
 /*

@@ -11912,28 +11912,66 @@ int API dw_named_memory_free(HSHM handle, void *ptr)
    return 0;
 }
 
+/* 
+ * Generally an internal function called from a newly created
+ * thread to setup the Dynamic Windows environment for the thread.
+ * However it is exported so language bindings can call it when
+ * they create threads that require access to Dynamic Windows.
+ */
+void API _dw_init_thread(void)
+{
+   HAB thishab = WinInitialize(0);
+   HMQ thishmq = WinCreateMsgQueue(thishab, 0);
+   void **threadinfo = (void **)malloc(sizeof(void *) * 2);
+   
+   threadinfo[0] = (void *)thishab;
+   threadinfo[1] = (void *)thishmq;
+   
+   _threadstore() = (void *)threadinfo;
+   
+#ifdef UNICODE
+   /* Set the codepage to 1208 (UTF-8) */
+   WinSetCp(thishmq, 1208);
+#endif
+}
+
+/* 
+ * Generally an internal function called from a terminating
+ * thread to cleanup the Dynamic Windows environment for the thread.
+ * However it is exported so language bindings can call it when
+ * they exit threads that require access to Dynamic Windows.
+ */
+void API _dw_deinit_thread(void)
+{
+   void **threadinfo = (void **)_threadstore();
+   
+   if(threadinfo)
+   {
+      HAB thishab = (HAB)threadinfo[0];
+      HMQ thishmq = (HMQ)threadinfo[1];
+      
+      WinDestroyMsgQueue(thishmq);
+      WinTerminate(thishab);
+      free(threadinfo);
+   }
+}
+
 /*
  * Encapsulate the message queues on OS/2.
  */
 void _dwthreadstart(void *data)
 {
-   HAB thishab = WinInitialize(0);
-   HMQ thishmq = WinCreateMsgQueue(thishab, 0);
    void (API_FUNC threadfunc)(void *) = NULL;
    void **tmp = (void **)data;
 
-#ifdef UNICODE
-   /* Set the codepage to 1208 (UTF-8) */
-   WinSetCp(thishmq, 1208);
-#endif
+   _dw_init_thread();
 
    threadfunc = (void (API_FUNC)(void *))tmp[0];
    threadfunc(tmp[1]);
 
    free(tmp);
 
-   WinDestroyMsgQueue(thishmq);
-   WinTerminate(thishab);
+   _dw_deinit_thread();
 }
 
 /*

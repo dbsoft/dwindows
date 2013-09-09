@@ -19,6 +19,9 @@ export dw_main_iteration.24
 export dw_app_dir.25
 export dw_main_quit.26
 export dw_shutdown.27
+  
+export _dw_init_thread.30
+export _dw_deinit_thread.31
 
 export dw_box_new.40
 export dw_groupbox_new.41

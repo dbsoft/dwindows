@@ -3761,27 +3761,6 @@ int _dw_get_image_handle(char *filename, HANDLE *icon, HBITMAP *hbitmap)
 }
 #endif
 
-/* Initialize thread local values to the defaults */
-void _init_thread(void)
-{
-    COLORREF foreground = RGB(128,128,128);
-    COLORREF background = DW_RGB_TRANSPARENT;
-#ifdef GDIPLUS
-    ARGB gpfore = MAKEARGB(255, 128, 128, 128);
-    GpBrush *brush;
-    GpPen *pen;
-    
-    GdipCreatePen1(gpfore, 1.0, UnitPixel, &pen);
-    TlsSetValue(_gpPen, (LPVOID)pen);
-    GdipCreateSolidFill(gpfore, &brush);
-    TlsSetValue(_gpBrush, brush);
-#endif    
-    TlsSetValue(_foreground, DW_UINT_TO_POINTER(foreground));
-    TlsSetValue(_background, DW_UINT_TO_POINTER(background));
-    TlsSetValue(_hPen, CreatePen(PS_SOLID, 1, foreground));
-    TlsSetValue(_hBrush, CreateSolidBrush(foreground));
-}
-
 /*
  * Initializes the Dynamic Windows engine.
  * Parameters:
@@ -3978,8 +3957,8 @@ int API dw_init(int newthread, int argc, char *argv[])
    GdiplusStartup(&gdiplusToken, &si, NULL);
 #endif
    
-   /* GDI+ Needs to be initialized before calling _init_thread(); */
-   _init_thread();
+   /* GDI+ Needs to be initialized before calling _dw_init_thread(); */
+   _dw_init_thread();
 
    if((huxtheme = LoadLibrary(TEXT("uxtheme"))))
       _SetWindowTheme = (HRESULT (WINAPI *)(HWND, LPCWSTR, LPCWSTR ))GetProcAddress(huxtheme, "SetWindowTheme");
@@ -11385,13 +11364,40 @@ int API dw_named_memory_free(HSHM handle, void *ptr)
    return 0;
 }
 
-/*
- * Encapsulate thread creation on Win32.
+/* 
+ * Generally an internal function called from a newly created
+ * thread to setup the Dynamic Windows environment for the thread.
+ * However it is exported so language bindings can call it when
+ * they create threads that require access to Dynamic Windows.
  */
-void _dwthreadstart(void *data)
+void API _dw_init_thread(void)
 {
-   void (* threadfunc)(void *) = NULL;
-   void **tmp = (void **)data;
+    COLORREF foreground = RGB(128,128,128);
+    COLORREF background = DW_RGB_TRANSPARENT;
+#ifdef GDIPLUS
+    ARGB gpfore = MAKEARGB(255, 128, 128, 128);
+    GpBrush *brush;
+    GpPen *pen;
+    
+    GdipCreatePen1(gpfore, 1.0, UnitPixel, &pen);
+    TlsSetValue(_gpPen, (LPVOID)pen);
+    GdipCreateSolidFill(gpfore, &brush);
+    TlsSetValue(_gpBrush, brush);
+#endif    
+    TlsSetValue(_foreground, DW_UINT_TO_POINTER(foreground));
+    TlsSetValue(_background, DW_UINT_TO_POINTER(background));
+    TlsSetValue(_hPen, CreatePen(PS_SOLID, 1, foreground));
+    TlsSetValue(_hBrush, CreateSolidBrush(foreground));
+}
+
+/* 
+ * Generally an internal function called from a terminating
+ * thread to cleanup the Dynamic Windows environment for the thread.
+ * However it is exported so language bindings can call it when
+ * they exit threads that require access to Dynamic Windows.
+ */
+void API _dw_deinit_thread(void)
+{
    HPEN hPen;
    HBRUSH hBrush;
 #ifdef GDIPLUS
@@ -11399,12 +11405,6 @@ void _dwthreadstart(void *data)
    GpPen *pen;
 #endif       
 
-   _init_thread();
-
-   threadfunc = (void (*)(void *))tmp[0];
-   threadfunc(tmp[1]);
-
-   free(tmp);
    if((hPen = TlsGetValue(_hPen)))
        DeleteObject(hPen);
    if((hBrush = TlsGetValue(_hBrush)))
@@ -11415,6 +11415,23 @@ void _dwthreadstart(void *data)
    if((pen = TlsGetValue(_gpPen)))
       GdipDeletePen(pen);
 #endif       
+}
+
+/*
+ * Encapsulate thread creation on Win32.
+ */
+void _dwthreadstart(void *data)
+{
+   void (* threadfunc)(void *) = NULL;
+   void **tmp = (void **)data;
+
+   _dw_init_thread();
+
+   threadfunc = (void (*)(void *))tmp[0];
+   threadfunc(tmp[1]);
+
+   free(tmp);
+   _dw_deinit_thread();
 }
 
 /*

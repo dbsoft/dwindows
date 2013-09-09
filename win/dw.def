@@ -23,6 +23,9 @@ EXPORTS
   dw_app_dir                             @25
   dw_main_quit                           @26
   dw_shutdown                            @27
+  
+  _dw_init_thread                        @30
+  _dw_deinit_thread                      @31
 
   dw_box_new                             @40
   dw_groupbox_new                        @41
