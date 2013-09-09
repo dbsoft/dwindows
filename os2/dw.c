@@ -10457,7 +10457,6 @@ void API dw_container_cursor_by_data(HWND handle, void *data)
 void API dw_container_delete_row_by_data(HWND handle, void *data)
 {
    PRECORDCORE pCore = WinSendMsg(handle, CM_QUERYRECORD, (MPARAM)0L, MPFROM2SHORT(CMA_FIRST, CMA_ITEMORDER));
-   int textcomp = DW_POINTER_TO_INT(dw_window_get_data(handle, "_dw_textcomp"));
 
    while(pCore)
    {
@@ -11922,13 +11921,15 @@ void API _dw_init_thread(void)
 {
    HAB thishab = WinInitialize(0);
    HMQ thishmq = WinCreateMsgQueue(thishab, 0);
+#ifndef __WATCOMC__
    void **threadinfo = (void **)malloc(sizeof(void *) * 2);
-   
+
    threadinfo[0] = (void *)thishab;
    threadinfo[1] = (void *)thishmq;
    
-   _threadstore() = (void *)threadinfo;
-   
+   *_threadstore() = (void *)threadinfo;
+#endif
+
 #ifdef UNICODE
    /* Set the codepage to 1208 (UTF-8) */
    WinSetCp(thishmq, 1208);
@@ -11943,7 +11944,8 @@ void API _dw_init_thread(void)
  */
 void API _dw_deinit_thread(void)
 {
-   void **threadinfo = (void **)_threadstore();
+#ifndef __WATCOMC__
+   void **threadinfo = (void **)*_threadstore();
    
    if(threadinfo)
    {
@@ -11954,6 +11956,7 @@ void API _dw_deinit_thread(void)
       WinTerminate(thishab);
       free(threadinfo);
    }
+#endif
 }
 
 /*
