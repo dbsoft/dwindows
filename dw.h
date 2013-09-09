@@ -1770,5 +1770,8 @@ int API dw_print_run(HPRINT print, unsigned long flags);
 void API dw_print_cancel(HPRINT print);
 wchar_t * API dw_utf8_to_wchar(char *utf8string);
 char * API dw_wchar_to_utf8(wchar_t *wstring);
+/* Exported for language bindings */
+void API _dw_init_thread(void);
+void API _dw_deinit_thread(void);
 
 #endif

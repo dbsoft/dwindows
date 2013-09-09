@@ -1983,15 +1983,6 @@ static void _size_allocate(GtkWindow *window)
 }
 #endif
 
-void _init_thread(void)
-{
-   GdkColor *foreground = malloc(sizeof(GdkColor));
-
-   foreground->pixel = foreground->red = foreground->green = foreground->blue = 0;
-   pthread_setspecific(_dw_fg_color_key, foreground);
-   pthread_setspecific(_dw_bg_color_key, NULL);
-}
-
 /* Try to load the mozilla embed shared libary */
 #ifdef USE_GTKMOZEMBED
 #include <ctype.h>
@@ -2177,7 +2168,7 @@ int dw_int_init(DWResources *res, int newthread, int *argc, char **argv[])
    pthread_key_create(&_dw_bg_color_key, NULL);
    pthread_key_create(&_dw_mutex_key, NULL);
 
-   _init_thread();
+   _dw_init_thread();
 
    gtk_rc_parse_string("style \"gtk-tooltips-style\" { bg[NORMAL] = \"#eeee00\" } widget \"gtk-tooltips\" style \"gtk-tooltips-style\"");
 
@@ -10106,6 +10097,37 @@ int dw_named_event_close(HEV eve)
    return DW_ERROR_NONE;
 }
 
+/* 
+ * Generally an internal function called from a newly created
+ * thread to setup the Dynamic Windows environment for the thread.
+ * However it is exported so language bindings can call it when
+ * they create threads that require access to Dynamic Windows.
+ */
+void API _dw_init_thread(void)
+{
+   GdkColor *foreground = malloc(sizeof(GdkColor));
+
+   foreground->pixel = foreground->red = foreground->green = foreground->blue = 0;
+   pthread_setspecific(_dw_fg_color_key, foreground);
+   pthread_setspecific(_dw_bg_color_key, NULL);
+}
+
+/* 
+ * Generally an internal function called from a terminating
+ * thread to cleanup the Dynamic Windows environment for the thread.
+ * However it is exported so language bindings can call it when
+ * they exit threads that require access to Dynamic Windows.
+ */
+void API _dw_deinit_thread(void)
+{
+   GdkColor *foreground, *background;
+   
+   if((foreground = pthread_getspecific(_dw_fg_color_key)))
+      free(foreground);
+   if((background = pthread_getspecific(_dw_bg_color_key)))
+      free(background);
+}
+
 /*
  * Setup thread independent color sets.
  */
@@ -10113,21 +10135,17 @@ void _dwthreadstart(void *data)
 {
    void (*threadfunc)(void *) = NULL;
    void **tmp = (void **)data;
-   GdkColor *foreground, *background;
 
    threadfunc = (void (*)(void *))tmp[0];
 
    /* Initialize colors */
-   _init_thread();
+   _dw_init_thread();
 
    threadfunc(tmp[1]);
    free(tmp);
 
    /* Free colors */
-   if((foreground = pthread_getspecific(_dw_fg_color_key)))
-      free(foreground);
-   if((background = pthread_getspecific(_dw_bg_color_key)))
-      free(background);
+   _dw_deinit_thread();
 }
 
 /*

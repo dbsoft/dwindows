@@ -10911,27 +10911,32 @@ void _dw_pool_drain(void)
 #endif
 }
 
-/*
- * Setup thread independent pools.
+/* 
+ * Generally an internal function called from a newly created
+ * thread to setup the Dynamic Windows environment for the thread.
+ * However it is exported so language bindings can call it when
+ * they create threads that require access to Dynamic Windows.
  */
-void _dwthreadstart(void *data)
+void API _dw_init_thread(void)
 {
-    void (*threadfunc)(void *) = NULL;
-    void **tmp = (void **)data;
-    NSColor *color;
-
     /* If we aren't using garbage collection we need autorelease pools */
 #if !defined(GARBAGE_COLLECT)
     NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
     pthread_setspecific(_dw_pool_key, pool);
 #endif
     _init_colors();
+}
 
-    threadfunc = (void (*)(void *))tmp[0];
-
-    /* Start our thread function */
-    threadfunc(tmp[1]);
-
+/* 
+ * Generally an internal function called from a terminating
+ * thread to cleanup the Dynamic Windows environment for the thread.
+ * However it is exported so language bindings can call it when
+ * they exit threads that require access to Dynamic Windows.
+ */
+void API _dw_deinit_thread(void)
+{
+    NSColor *color;
+    
     /* Release the pool when we are done so we don't leak */
     color = pthread_getspecific(_dw_fg_color_key);
     [color release];
@@ -10941,7 +10946,26 @@ void _dwthreadstart(void *data)
     pool = pthread_getspecific(_dw_pool_key);
     [pool drain];
 #endif
+}
+
+/*
+ * Setup thread independent pools.
+ */
+void _dwthreadstart(void *data)
+{
+    void (*threadfunc)(void *) = NULL;
+    void **tmp = (void **)data;
+
+    _dw_init_thread();
+    
+    threadfunc = (void (*)(void *))tmp[0];
+
+    /* Start our thread function */
+    threadfunc(tmp[1]);
+
     free(tmp);
+    
+    _dw_deinit_thread();
 }
 
 /*
