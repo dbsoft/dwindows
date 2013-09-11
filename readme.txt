@@ -45,6 +45,8 @@ Added dw_container_cursor_by_data() and dw_container_delete_row_by_data()
    functions which do the same things except in pointer comparison mode.
 Added DW_CR_RETDATA flag to dw_container_query_*() functions to return the
    data pointer instead of the string pointer, this may change in the future.
+Added exported internal functions _dw_init_thread() and _dw_deinit_thread()
+    for language bindings to setup/cleanup threads created for DW use.
 Fixed some memory leaks.
 WARNING: Changed how tree and container titles are returned, they are now duplicated 
    and need to be freed with dw_free().  This affects the following functions:
@@ -54,11 +56,6 @@ WARNING: Changed how tree and container titles are returned, they are now duplic
 Dynamic Windows Documentation is available at:
 
 http://dbsoft.org/dw_help.php
-
-I would like to dedicate this release to my father, James Smith.  
-He passed away this summer and was the most amazing individual I 
-have ever had in my life.  Without him this software would not be
-able to exist in so many different ways.  Love you Dad.
 
 If you have any questions or suggestions feel free to email me at:
 
