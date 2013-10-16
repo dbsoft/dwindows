@@ -2467,7 +2467,7 @@ int dw_window_destroy(HWND handle)
          /* Figure out where in the grid this widget is and remove that row/column */
          if(boxtype == DW_VERT)
          {
-            for(z=0;z<index;z++)
+            for(z=0;z<boxcount;z++)
             {
                if(gtk_grid_get_child_at(GTK_GRID(box), 0, z) == handle2)
                {
@@ -2478,7 +2478,7 @@ int dw_window_destroy(HWND handle)
          }
          else
          {
-            for(z=0;z<index;z++)
+            for(z=0;z<boxcount;z++)
             {
                if(gtk_grid_get_child_at(GTK_GRID(box), z, 0) == handle2)
                {
@@ -8741,13 +8741,13 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
          warn = TRUE;
       }
 
-#if !GTK_CHECK_VERSION(3,10,0)               
       /* Do some sanity bounds checking */
       if(index < 0)
          index = 0;
       if(index > boxcount)
          index = boxcount;
          
+#if !GTK_CHECK_VERSION(3,10,0)               
       /* Fix the index by taking into account empty cells */
       if(boxtype == DW_VERT)
       {
@@ -8878,6 +8878,9 @@ int API dw_box_unpack(HWND handle)
       {
          /* Get the number of items in the box... */
          int boxcount = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(box), "_dw_boxcount"));
+#if GTK_CHECK_VERSION(3,10,0)               
+         int boxtype = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(box), "_dw_boxtype"));
+#endif
 			
          if(boxcount > 0)
          {
@@ -8892,7 +8895,37 @@ int API dw_box_unpack(HWND handle)
             g_object_set_data(G_OBJECT(handle2), "_dw_refed", GINT_TO_POINTER(1));
          }
          /* Remove the widget from the box */      
+#if GTK_CHECK_VERSION(3,10,0)               
+         /* Figure out where in the grid this widget is and remove that row/column */
+         if(boxtype == DW_VERT)
+         {
+            int z;
+
+            for(z=0;z<boxcount;z++)
+            {
+               if(gtk_grid_get_child_at(GTK_GRID(box), 0, z) == handle2)
+               {
+                  gtk_grid_remove_row(GTK_GRID(box), z);
+                  break;
+               }
+            }
+         }
+         else
+         {
+            int z;
+
+            for(z=0;z<boxcount;z++)
+            {
+               if(gtk_grid_get_child_at(GTK_GRID(box), z, 0) == handle2)
+               {
+                  gtk_grid_remove_column(GTK_GRID(box), z);
+                  break;
+               }
+            }
+         }
+#else
          gtk_container_remove(GTK_CONTAINER(box), handle2);
+#endif
          retcode = DW_ERROR_NONE;
       }
    }
@@ -8920,9 +8953,11 @@ HWND API dw_box_unpack_at_index(HWND box, int index)
       /* Get the number of items in the box... */
       int boxcount = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(box), "_dw_boxcount"));
       int boxtype = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(box), "_dw_boxtype"));
+#if GTK_CHECK_VERSION(3,10,0)               
+      GtkWidget *item = (boxtype == DW_VERT) ? gtk_grid_get_child_at(GTK_GRID(box), 0, index) : gtk_grid_get_child_at(GTK_GRID(box), index, 0);
+#else
       GtkWidget *item;
 		
-#if !GTK_CHECK_VERSION(3,10,0)               
       /* Fix the index by taking into account empty cells */
       if(boxtype == DW_VERT)
       {
@@ -8955,9 +8990,9 @@ HWND API dw_box_unpack_at_index(HWND box, int index)
          g_object_set_data(G_OBJECT(box), "_dw_boxcount", GINT_TO_POINTER(boxcount));
       }
       /* If we haven't incremented the reference count... raise it before removal */
-      if(g_object_get_data(G_OBJECT(item), "_dw_padding"))
+      if(item && g_object_get_data(G_OBJECT(item), "_dw_padding"))
          gtk_widget_destroy(item);
-      else
+      else if(item)
       {
          if(!g_object_get_data(G_OBJECT(item), "_dw_refed"))
          {
@@ -8966,6 +9001,12 @@ HWND API dw_box_unpack_at_index(HWND box, int index)
          }
          /* Remove the widget from the box */      
          gtk_container_remove(GTK_CONTAINER(box), item);
+#if GTK_CHECK_VERSION(3,10,0)   
+         if(boxtype == DW_VERT)
+            gtk_grid_remove_row(GTK_GRID(box), index);
+         else
+            gtk_grid_remove_column(GTK_GRID(box), index);
+#endif       
          retval = item;
       }
    }
