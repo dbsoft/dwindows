@@ -9,6 +9,7 @@
  */
 #include "config.h"
 #include "dw.h"
+#include <glib/gi18n.h>
 #include <string.h>
 #include <stdlib.h>
 #if !defined(GDK_WINDOWING_WIN32)
@@ -121,8 +122,12 @@ GtkWidget *last_window = NULL, *popup = NULL;
 static int _dw_ignore_click = 0, _dw_ignore_expand = 0;
 static pthread_t _dw_thread = (pthread_t)-1;
 
-#define  DW_MUTEX_LOCK { if(pthread_self() != _dw_thread && !pthread_getspecific(_dw_mutex_key)) { gdk_threads_enter(); pthread_setspecific(_dw_mutex_key, (void *)1); _locked_by_me = TRUE; } }
-#define  DW_MUTEX_UNLOCK { if(pthread_self() != _dw_thread && _locked_by_me == TRUE) { gdk_threads_leave(); pthread_setspecific(_dw_mutex_key, NULL); _locked_by_me = FALSE; } }
+void (*_dw_gdk_threads_init)(void) = NULL;
+void (*_dw_gdk_threads_enter)(void) = NULL;
+void (*_dw_gdk_threads_leave)(void) = NULL;
+
+#define  DW_MUTEX_LOCK { if(pthread_self() != _dw_thread && !pthread_getspecific(_dw_mutex_key)) { _dw_gdk_threads_enter(); pthread_setspecific(_dw_mutex_key, (void *)1); _locked_by_me = TRUE; } }
+#define  DW_MUTEX_UNLOCK { if(pthread_self() != _dw_thread && _locked_by_me == TRUE) { _dw_gdk_threads_leave(); pthread_setspecific(_dw_mutex_key, NULL); _locked_by_me = FALSE; } }
 
 #define DEFAULT_SIZE_WIDTH 12
 #define DEFAULT_SIZE_HEIGHT 6
@@ -1862,7 +1867,13 @@ int dw_int_init(DWResources *res, int newthread, int *argc, char **argv[])
 #if !GLIB_CHECK_VERSION(2,31,0)
    g_thread_init(NULL);
 #endif
-   gdk_threads_init();
+   
+   /* Load these functions via dlsym to avoid deprecation warnings */
+   _dw_gdk_threads_init = dlsym(RTLD_DEFAULT, "gdk_threads_init");
+   _dw_gdk_threads_enter = dlsym(RTLD_DEFAULT, "gdk_threads_enter");
+   _dw_gdk_threads_leave = dlsym(RTLD_DEFAULT, "gdk_threads_leave");
+
+   _dw_gdk_threads_init();
 
    gtk_init(argc, argv);
 
@@ -1887,11 +1898,11 @@ int dw_int_init(DWResources *res, int newthread, int *argc, char **argv[])
  */
 void API dw_main(void)
 {
-   gdk_threads_enter();
+   _dw_gdk_threads_enter();
    _dw_thread = pthread_self();
    gtk_main();
    _dw_thread = (pthread_t)-1;
-   gdk_threads_leave();
+   _dw_gdk_threads_leave();
 }
 
 /*
@@ -1928,7 +1939,7 @@ void API dw_main_sleep(int milliseconds)
          {
             if(!pthread_getspecific(_dw_mutex_key))
             {
-               gdk_threads_enter();
+               _dw_gdk_threads_enter();
                pthread_setspecific(_dw_mutex_key, (void *)1);
                _locked_by_me = TRUE;
             }
@@ -1944,7 +1955,7 @@ void API dw_main_sleep(int milliseconds)
             if(_locked_by_me)
             {
                pthread_setspecific(_dw_mutex_key, NULL);
-               gdk_threads_leave();
+               _dw_gdk_threads_leave();
             }
          }
          gettimeofday(&tv, NULL);
@@ -1967,7 +1978,7 @@ void API dw_main_iteration(void)
    {
       if(!pthread_getspecific(_dw_mutex_key))
       {
-         gdk_threads_enter();
+         _dw_gdk_threads_enter();
          pthread_setspecific(_dw_mutex_key, (void *)1);
          _locked_by_me = TRUE;
       }
@@ -1983,7 +1994,7 @@ void API dw_main_iteration(void)
       if(_locked_by_me)
       {
          pthread_setspecific(_dw_mutex_key, NULL);
-         gdk_threads_leave();
+         _dw_gdk_threads_leave();
       }
    }
 }
@@ -2057,7 +2068,7 @@ void *dw_dialog_wait(DWDialog *dialog)
    {
       _dw_thread = pthread_self();
       newprocess = 1;
-      gdk_threads_enter();
+      _dw_gdk_threads_enter();
    }
 
    if(pthread_self() == _dw_thread)
@@ -2074,7 +2085,7 @@ void *dw_dialog_wait(DWDialog *dialog)
    if(newprocess)
    {
       _dw_thread = (pthread_t)-1;
-      gdk_threads_leave();
+      _dw_gdk_threads_leave();
    }
 
    dw_event_close(&dialog->eve);
@@ -3060,7 +3071,11 @@ HWND dw_scrollbox_new( int type, int pad )
    g_object_set_data(G_OBJECT(box), "_dw_boxpad", GINT_TO_POINTER(pad));
    g_object_set_data(G_OBJECT(tmp), "_dw_boxhandle", (gpointer)box);
 
+#if GTK_CHECK_VERSION(3,8,0)
+   gtk_container_add(GTK_CONTAINER(tmp), box);
+#else
    gtk_scrolled_window_add_with_viewport(GTK_SCROLLED_WINDOW(tmp),box);
+#endif
    g_object_set_data(G_OBJECT(tmp), "_dw_user", box);
    gtk_widget_show(box);
    gtk_widget_show(tmp);
@@ -3650,7 +3665,11 @@ GtkWidget *_tree_setup(GtkWidget *tmp, GtkTreeModel *store)
 {
    GtkWidget *tree = gtk_tree_view_new_with_model(store);
    gtk_tree_view_set_enable_search(GTK_TREE_VIEW(tree), FALSE);
+#if GTK_CHECK_VERSION(3,8,0)
+   gtk_container_add(GTK_CONTAINER(tmp), tree);
+#else
    gtk_scrolled_window_add_with_viewport(GTK_SCROLLED_WINDOW(tmp), tree);
+#endif
    g_object_set_data(G_OBJECT(tmp), "_dw_user", (gpointer)tree);
    return tree;
 }
@@ -7850,13 +7869,13 @@ void dw_mutex_lock(HMTX mutex)
     * the GTK mutex so we don't deadlock.
     */
    if(pthread_self() == _dw_thread)
-      gdk_threads_leave();
+      _dw_gdk_threads_leave();
 
    pthread_mutex_lock(mutex);
 
    /* And of course relock it when we have acquired the mutext */
    if(pthread_self() == _dw_thread)
-      gdk_threads_enter();
+      _dw_gdk_threads_enter();
 }
 
 /*
@@ -10707,15 +10726,15 @@ char *dw_file_browse(char *title, char *defpath, char *ext, int flags)
    {
       case DW_DIRECTORY_OPEN:
          action = GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER;
-         button = GTK_STOCK_OPEN;
+         button = _("_Open");
          break;
       case DW_FILE_OPEN:
          action = GTK_FILE_CHOOSER_ACTION_OPEN;
-         button = GTK_STOCK_OPEN;
+         button = _("_Open");
          break;
       case DW_FILE_SAVE:
          action = GTK_FILE_CHOOSER_ACTION_SAVE;
-         button = GTK_STOCK_SAVE;
+         button = _("_Save");
          break;
       default:
          dw_messagebox( "Coding error", DW_MB_OK|DW_MB_ERROR, "dw_file_browse() flags argument invalid.");
@@ -10726,7 +10745,7 @@ char *dw_file_browse(char *title, char *defpath, char *ext, int flags)
    filew = gtk_file_chooser_dialog_new ( title,
                                          NULL,
                                          action,
-                                         GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
+                                         _("_Cancel"), GTK_RESPONSE_CANCEL,
                                          button, GTK_RESPONSE_ACCEPT,
                                          NULL);
 
@@ -11035,10 +11054,8 @@ static void _dw_html_print_cb( GtkWidget *widget, gpointer *data )
  */
 static void _dw_html_populate_popup_cb( WebKitWebView *web_view, GtkMenu *menu, gpointer user_data )
 {
-   GtkWidget *image = gtk_image_new_from_stock( GTK_STOCK_PRINT, GTK_ICON_SIZE_MENU );
-   GtkWidget *item = gtk_image_menu_item_new_with_label( "Print" );
+   GtkWidget *item = gtk_menu_item_new_with_mnemonic( _("_Print") );
 
-   gtk_image_menu_item_set_image( GTK_IMAGE_MENU_ITEM(item), image );
    gtk_menu_shell_append(GTK_MENU_SHELL(menu), item);
    g_signal_connect( item, "activate", G_CALLBACK(_dw_html_print_cb), web_view );
    gtk_widget_show(item);
