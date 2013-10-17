@@ -1,4 +1,4 @@
-/* $Id$ */
+/* $Id: dw.h 1897 2013-09-09 19:18:36Z bsmith $ */
 
 #ifndef _H_DW
 #define _H_DW
@@ -937,6 +937,7 @@ typedef struct _hpixmap {
 
 #else
 /* GTK Specific section */
+#define _GNU_SOURCE
 #include <gtk/gtk.h>
 #ifdef GDK_WINDOWING_X11
 # include <gdk/gdkx.h>
