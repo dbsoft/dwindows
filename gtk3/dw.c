@@ -378,7 +378,7 @@ static GtkWidget *gtk_mdi_new(void)
 
    mdi = GTK_WIDGET (g_object_new (gtk_mdi_get_type (), NULL));
    gdk_rgba_parse (&background, GTK_MDI_BACKGROUND);
-   gtk_widget_override_background_color (mdi, GTK_STATE_NORMAL, &background);
+   gtk_widget_override_background_color (mdi, GTK_STATE_FLAG_NORMAL, &background);
 
    return mdi;
 }
@@ -418,18 +418,16 @@ static void gtk_mdi_put(GtkMdi *mdi, GtkWidget *child_widget, gint x, gint y, Gt
 
    gdk_rgba_parse (&color, GTK_MDI_LABEL_BACKGROUND);
 
-   gtk_widget_override_background_color (top_event_box, GTK_STATE_NORMAL, &color);
-   gtk_widget_override_background_color (bottom_event_box, GTK_STATE_NORMAL, &color);
-   gtk_widget_override_background_color (child_box, GTK_STATE_NORMAL, &color);
-   for (i = GTK_STATE_NORMAL; i < GTK_STATE_ACTIVE; i++)
+   gtk_widget_override_background_color (top_event_box, GTK_STATE_FLAG_NORMAL, &color);
+   gtk_widget_override_background_color (bottom_event_box, GTK_STATE_FLAG_NORMAL, &color);
+   gtk_widget_override_background_color (child_box, GTK_STATE_FLAG_NORMAL, &color);
+   for (j = 0; j < 3; j++)
    {
-      for (j = 0; j < 3; j++)
-      {
-         gtk_widget_override_background_color (button[j], i, &color);
-      }
+      gtk_widget_override_background_color (button[j], GTK_STATE_FLAG_NORMAL, &color);
+      gtk_widget_override_background_color (button[j], GTK_STATE_FLAG_ACTIVE, &color);
    }
    gdk_rgba_parse (&color, GTK_MDI_LABEL_FOREGROUND);
-   gtk_widget_override_color (label, GTK_STATE_NORMAL, &color);
+   gtk_widget_override_color (label, GTK_STATE_FLAG_NORMAL, &color);
    gtk_misc_set_alignment (GTK_MISC (label), 0.0, 0.5);
 
    gtk_container_add (GTK_CONTAINER (top_event_box), label);
@@ -2807,8 +2805,8 @@ static int _set_color(HWND handle, unsigned long fore, unsigned long back)
    else if(fore != DW_CLR_DEFAULT)
       forecolor = _colors[fore];
       
-   gtk_widget_override_color(handle, GTK_STATE_NORMAL, fore != DW_CLR_DEFAULT ? &forecolor : NULL);
-   gtk_widget_override_color(handle, GTK_STATE_ACTIVE, fore != DW_CLR_DEFAULT ? &forecolor : NULL);
+   gtk_widget_override_color(handle, GTK_STATE_FLAG_NORMAL, fore != DW_CLR_DEFAULT ? &forecolor : NULL);
+   gtk_widget_override_color(handle, GTK_STATE_FLAG_ACTIVE, fore != DW_CLR_DEFAULT ? &forecolor : NULL);
    
    if(back & DW_RGB_COLOR)
    {
@@ -2820,8 +2818,8 @@ static int _set_color(HWND handle, unsigned long fore, unsigned long back)
    else if(back != DW_CLR_DEFAULT)
       backcolor = _colors[back];
       
-   gtk_widget_override_background_color(handle, GTK_STATE_NORMAL, back != DW_CLR_DEFAULT ? &backcolor : NULL);
-   gtk_widget_override_background_color(handle, GTK_STATE_ACTIVE, back != DW_CLR_DEFAULT ? &backcolor : NULL);
+   gtk_widget_override_background_color(handle, GTK_STATE_FLAG_NORMAL, back != DW_CLR_DEFAULT ? &backcolor : NULL);
+   gtk_widget_override_background_color(handle, GTK_STATE_FLAG_ACTIVE, back != DW_CLR_DEFAULT ? &backcolor : NULL);
 
    _save_gdk_colors(handle, forecolor, backcolor);
 
@@ -7571,8 +7569,6 @@ HPIXMAP dw_pixmap_new_from_data(HWND handle, char *data, int len)
  */
 void dw_pixmap_set_transparent_color(HPIXMAP pixmap, unsigned long color)
 {
-   pixmap = pixmap;
-   color = color;
 }
 
 /*
@@ -8540,8 +8536,7 @@ DWTID dw_thread_new(void *func, void *data, int stack)
    rc = pthread_create(&gtkthread, NULL, (void *)_dwthreadstart, (void *)tmp);
    if ( rc == 0 )
       return gtkthread;
-   else
-      return rc;
+   return (DWTID)DW_ERROR_UNKNOWN;
 }
 
 /*
