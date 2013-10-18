@@ -9171,12 +9171,6 @@ HPIXMAP dw_pixmap_new_from_data(HWND handle, char *data, int len)
  */
 void dw_pixmap_set_transparent_color(HPIXMAP pixmap, unsigned long color)
 {
-   int _locked_by_me = FALSE;
-
-   DW_MUTEX_LOCK;
-   pixmap = pixmap;
-   color = color;
-   DW_MUTEX_UNLOCK;
 }
 
 /*
@@ -11109,8 +11103,6 @@ void dw_window_set_pos(HWND handle, long x, long y)
          }
          else
          {
-            int cx , cy;
-
             /* Check if we have cached frame size values */
             if(!(cx | cy))
             {
