@@ -3390,8 +3390,6 @@ int API dw_messagebox(char *title, int flags, char *format, ...)
     alert = [NSAlert alertWithMessageText:[ NSString stringWithUTF8String:title ] defaultButton:button1 alternateButton:button2 otherButton:button3 informativeTextWithFormat:@"%@", [[[NSString alloc] initWithFormat:[NSString stringWithUTF8String:format] arguments:args] autorelease]];
     va_end(args);
     
-    iResponse = [alert runModal];
-    
     if(flags & DW_MB_ERROR)
         [alert setAlertStyle:NSCriticalAlertStyle];
     else if(flags & DW_MB_INFORMATION)
@@ -3399,6 +3397,8 @@ int API dw_messagebox(char *title, int flags, char *format, ...)
     else
         [alert setAlertStyle:NSWarningAlertStyle];
 
+    iResponse = [alert runModal];
+    
     switch(iResponse)
     {
         case NSAlertDefaultReturn:    /* user pressed OK */
