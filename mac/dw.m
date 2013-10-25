@@ -3363,16 +3363,12 @@ void API dw_debug(char *format, ...)
  */
 int API dw_messagebox(char *title, int flags, char *format, ...)
 {
-    int iResponse;
+    NSAlert *alert;
+    NSInteger iResponse;
     NSString *button1 = @"OK";
     NSString *button2 = nil;
     NSString *button3 = nil;
     va_list args;
-    char outbuf[1025] = {0};
-
-    va_start(args, format);
-    vsnprintf(outbuf, 1024, format, args);
-    va_end(args);
 
     if(flags & DW_MB_OKCANCEL)
     {
@@ -3390,27 +3386,18 @@ int API dw_messagebox(char *title, int flags, char *format, ...)
         button3 = @"Cancel";
     }
 
+    va_start(args, format);
+    alert = [NSAlert alertWithMessageText:[ NSString stringWithUTF8String:title ] defaultButton:button1 alternateButton:button2 otherButton:button3 informativeTextWithFormat:@"%@", [[[NSString alloc] initWithFormat:[NSString stringWithUTF8String:format] arguments:args] autorelease]];
+    va_end(args);
+    
+    iResponse = [alert runModal];
+    
     if(flags & DW_MB_ERROR)
-    {
-        iResponse = (int)
-        NSRunCriticalAlertPanel([ NSString stringWithUTF8String:title ],
-                                [ NSString stringWithUTF8String:outbuf ],
-                                button1, button2, button3);
-    }
+        [alert setAlertStyle:NSCriticalAlertStyle];
     else if(flags & DW_MB_INFORMATION)
-    {
-        iResponse = (int)
-        NSRunInformationalAlertPanel([ NSString stringWithUTF8String:title ],
-                                [ NSString stringWithUTF8String:outbuf ],
-                                button1, button2, button3);
-    }
+        [alert setAlertStyle:NSInformationalAlertStyle];
     else
-    {
-        iResponse = (int)
-        NSRunAlertPanel([ NSString stringWithUTF8String:title ],
-                        [ NSString stringWithUTF8String:outbuf ],
-                        button1, button2, button3);
-    }
+        [alert setAlertStyle:NSWarningAlertStyle];
 
     switch(iResponse)
     {
