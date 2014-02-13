@@ -1,4 +1,4 @@
-This package contains Dynamic Windows (dwindows) v 2.5 for Windows.
+This package contains Dynamic Windows (dwindows) v 3.0 for Windows.
 
 It contains:
 
