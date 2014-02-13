@@ -1,4 +1,4 @@
-This is a pre-release of Dynamic Windows version 3.0.
+This is a stable release of Dynamic Windows version 3.0.
 
 The current Dynamic Windows source base is considered stable on:
 OS/2, Mac, Windows, Linux, FreeBSD and Solaris.
@@ -14,6 +14,9 @@ In Unicode mode on OS/2 there are some bugs in the input controls,
     minor bugs in entryfield based controls and major bugs in the MLE.
     The text displays properly but the cursor and selection jumps
     around oddly when passing over multibyte characters.
+Watcom builds on OS/2 currently leak handles when threads end.
+    If you require Watcom on OS/2 stay with version 2.5 or
+    do not use threads until fixed in a future version.
 
 Known limitations:
 

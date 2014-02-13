@@ -1,11 +1,11 @@
-/* $Id: dw.h 1897 2013-09-09 19:18:36Z bsmith $ */
+/* $Id$ */
 
 #ifndef _H_DW
 #define _H_DW
 
 /* Dynamic Windows version numbers */
-#define DW_MAJOR_VERSION 2
-#define DW_MINOR_VERSION 5
+#define DW_MAJOR_VERSION 3
+#define DW_MINOR_VERSION 0
 #define DW_SUB_VERSION 0
 
 #if !defined(__PHOTON__)
