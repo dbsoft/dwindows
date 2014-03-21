@@ -5341,12 +5341,10 @@ HTREEITEM API dw_tree_get_parent(HWND handle, HTREEITEM item)
    if(tree && GTK_IS_TREE_VIEW(tree) &&
       (store = (GtkTreeModel *)gtk_tree_view_get_model(GTK_TREE_VIEW(tree))))
    {
-      GtkTreeIter *p = malloc(sizeof(GtkTreeIter));
+      GtkTreeIter iter;
 
-      if(gtk_tree_model_iter_parent(store, p, (GtkTreeIter *)item))
-         parent = p;
-      else
-         free(p);
+      if(gtk_tree_model_iter_parent(store, &iter, (GtkTreeIter *)item))
+         gtk_tree_model_get(store, &iter, 3, &parent, -1);      
    }
    DW_MUTEX_UNLOCK;
    return parent;
