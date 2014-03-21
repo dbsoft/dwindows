@@ -6605,12 +6605,10 @@ HTREEITEM API dw_tree_get_parent(HWND handle, HTREEITEM item)
    if(tree && GTK_IS_TREE_VIEW(tree) &&
       (store = (GtkTreeModel *)gtk_object_get_data(GTK_OBJECT(tree), "_dw_tree_store")))
    {
-      GtkTreeIter *p = malloc(sizeof(GtkTreeIter));
+      GtkTreeIter iter;
 
-      if(gtk_tree_model_iter_parent(store, p, (GtkTreeIter *)item))
-         parent = p;
-      else
-         free(p);
+      if(gtk_tree_model_iter_parent(store, &iter, (GtkTreeIter *)item))
+         gtk_tree_model_get(store, &iter, 3, &parent, -1);      
    }
 #else
    parent = (HTREEITEM)gtk_object_get_data(GTK_OBJECT(item), "_dw_parent");
