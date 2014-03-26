@@ -2075,6 +2075,7 @@ void init_webkit(void)
 }
 #endif
 
+#if GLIB_CHECK_VERSION(2,32,0)
 static GRecMutex _dw_gdk_lock;
 
 static void _dw_gdk_lock_enter(void)
@@ -2086,6 +2087,19 @@ static void _dw_gdk_lock_leave(void)
 {
     g_rec_mutex_unlock(&_dw_gdk_lock);
 }
+#else
+static GStaticRecMutex _dw_gdk_lock;
+
+static void _dw_gdk_lock_enter(void)
+{
+    g_static_rec_mutex_lock(&_dw_gdk_lock);
+}
+
+static void _dw_gdk_lock_leave(void)
+{
+    g_static_rec_mutex_unlock(&_dw_gdk_lock);
+}
+#endif
 
 /*
  * Initializes the Dynamic Windows engine.
@@ -2148,7 +2162,11 @@ int dw_int_init(DWResources *res, int newthread, int *argc, char **argv[])
    g_thread_init(NULL);
 #endif
 #if GTK_MAJOR_VERSION > 1
+#if GLIB_CHECK_VERSION(2,32,0)
    g_rec_mutex_init(&_dw_gdk_lock);
+#else
+   g_static_rec_mutex_init(&_dw_gdk_lock);
+#endif
 
    gdk_threads_set_lock_functions(G_CALLBACK(_dw_gdk_lock_enter), G_CALLBACK(_dw_gdk_lock_leave));
 

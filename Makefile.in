@@ -3,7 +3,7 @@ mandir=@mandir@
 CC	=	@CC@
 PLATCCFLAGS = @PLATCCFLAGS@
 MLFLAGS	=	-L.
-include Version
+include $(srcdir)/Version
 CCFLAGS = @CFLAGS@ $(PLATCCFLAGS) @ARCH@ -D@DW_DEFINE@ -DBUILD_DLL -DDW_RESOURCES -DVER_REV=$(VER_REV)
 LFLAGS	=	@LIBS@ @ARCH@
 ARFLAGS = @ARFLAGS@
