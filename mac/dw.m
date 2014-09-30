@@ -3387,7 +3387,14 @@ int API dw_messagebox(char *title, int flags, char *format, ...)
     }
 
     va_start(args, format);
-    alert = [NSAlert alertWithMessageText:[ NSString stringWithUTF8String:title ] defaultButton:button1 alternateButton:button2 otherButton:button3 informativeTextWithFormat:@"%@", [[[NSString alloc] initWithFormat:[NSString stringWithUTF8String:format] arguments:args] autorelease]];
+    alert = [[NSAlert alloc] init];
+    [alert setMessageText:[NSString stringWithUTF8String:title]];
+    [alert setInformativeText:[[[NSString alloc] initWithFormat:[NSString stringWithUTF8String:format] arguments:args] autorelease]];
+    [alert addButtonWithTitle:button1];
+    if(button2)
+        [alert addButtonWithTitle:button2];
+    if(button3)
+        [alert addButtonWithTitle:button3];
     va_end(args);
     
     if(flags & DW_MB_ERROR)
@@ -3401,22 +3408,20 @@ int API dw_messagebox(char *title, int flags, char *format, ...)
     
     switch(iResponse)
     {
-        case NSAlertDefaultReturn:    /* user pressed OK */
+        case NSAlertFirstButtonReturn:    /* user pressed OK */
             if(flags & DW_MB_YESNO || flags & DW_MB_YESNOCANCEL)
             {
                 return DW_MB_RETURN_YES;
             }
             return DW_MB_RETURN_OK;
-        case NSAlertAlternateReturn:  /* user pressed Cancel */
+        case NSAlertSecondButtonReturn:  /* user pressed Cancel */
             if(flags & DW_MB_OKCANCEL)
             {
                 return DW_MB_RETURN_CANCEL;
             }
             return DW_MB_RETURN_NO;
-        case NSAlertOtherReturn:      /* user pressed the third button */
+        case NSAlertThirdButtonReturn:      /* user pressed the third button */
             return DW_MB_RETURN_CANCEL;
-        case NSAlertErrorReturn:      /* an error occurred */
-            break;
     }
     return 0;
 }
@@ -7504,7 +7509,7 @@ HWND API dw_bitmap_new(ULONG cid)
     DW_MUTEX_LOCK;
     NSImageView *bitmap = [[NSImageView alloc] init];
     [bitmap setImageFrameStyle:NSImageFrameNone];
-    [bitmap setImageScaling:NSScaleNone];
+    [bitmap setImageScaling:NSImageScaleNone];
     [bitmap setEditable:NO];
     [bitmap setTag:cid];
     DW_MUTEX_UNLOCK;
@@ -7901,9 +7906,12 @@ void dw_calendar_set_date(HWND handle, unsigned int year, unsigned int month, un
     char buffer[101];
     DW_LOCAL_POOL_IN;
 
-    snprintf(buffer, 100, "%04d-%02d-%02d 00:00:00 +0600", year, month, day);
-
-    date = [[NSDate alloc] initWithString:[ NSString stringWithUTF8String:buffer ]];
+    snprintf(buffer, 100, "%04d-%02d-%02d", year, month, day);
+    
+    NSDateFormatter *dateFormatter = [[[NSDateFormatter alloc] init] autorelease];
+    dateFormatter.dateFormat = @"yy-mm-dd";
+    
+    date = [dateFormatter dateFromString:[NSString stringWithUTF8String:buffer]];
     [calendar setDateValue:date];
     [date release];
     DW_LOCAL_POOL_OUT;
@@ -11327,7 +11335,7 @@ HPRINT API dw_print_new(char *jobname, unsigned long flags, unsigned int pages, 
     [pi setHorizontallyCentered:YES];
     [pi setVerticalPagination:NSFitPagination];
     [pi setVerticallyCentered:YES];
-    [pi setOrientation:NSPortraitOrientation];
+    [pi setOrientation:NSPaperOrientationPortrait];
     [pi setLeftMargin:0.0];
     [pi setRightMargin:0.0];
     [pi setTopMargin:0.0];
@@ -11410,7 +11418,7 @@ int API dw_print_run(HPRINT print, unsigned long flags)
     [image addRepresentation:rep];
     [flipped addRepresentation:rep2];
     [iv setImage:flipped];
-    [iv setImageScaling:NSScaleProportionally];
+    [iv setImageScaling:NSImageScaleProportionallyDown];
     [iv setFrameOrigin:NSMakePoint(0,0)];
     [iv setFrameSize:size];
 
