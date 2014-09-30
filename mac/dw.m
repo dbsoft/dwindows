@@ -47,6 +47,19 @@
             localpool = [[NSAutoreleasePool alloc] init];
 #define DW_LOCAL_POOL_OUT if(localpool) [localpool drain];
 
+/* Handle deprecation of several response constants in 10.10...
+ * the replacements are not available in earlier versions.
+ */
+#if defined(MAC_OS_X_VERSION_10_9) && ((defined(MAC_OS_X_VERSION_MAX_ALLOWED) && MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_9) || !defined(MAC_OS_X_VERSION_MAX_ALLOWED))
+#define DWModalResponseOK NSModalResponseOK
+#define DWModalResponseCancel NSModalResponseCancel
+#define DWPaperOrientationPortrait NSPaperOrientationPortrait
+#else
+#define DWModalResponseOK NSOKButton
+#define DWModalResponseCancel NSCancelButton
+#define DWPaperOrientationPortrait NSPortraitOrientation
+#endif
+
 unsigned long _colors[] =
 {
     0x00000000,   /* 0  black */
@@ -3532,7 +3545,7 @@ char * API dw_file_browse(char *title, char *defpath, char *ext, int flags)
         /* Display the dialog.  If the OK button was pressed,
          * process the files.
          */
-        if([openDlg runModal] == NSOKButton)
+        if([openDlg runModal] == DWModalResponseOK)
         {
             /* Get an array containing the full filenames of all
              * files and directories selected.
@@ -7909,7 +7922,7 @@ void dw_calendar_set_date(HWND handle, unsigned int year, unsigned int month, un
     snprintf(buffer, 100, "%04d-%02d-%02d", year, month, day);
     
     NSDateFormatter *dateFormatter = [[[NSDateFormatter alloc] init] autorelease];
-    dateFormatter.dateFormat = @"yy-mm-dd";
+    dateFormatter.dateFormat = @"yyyy-mm-dd";
     
     date = [dateFormatter dateFromString:[NSString stringWithUTF8String:buffer]];
     [calendar setDateValue:date];
@@ -8095,6 +8108,32 @@ void API dw_menu_destroy(HMENUI *menu)
     DW_LOCAL_POOL_OUT;
 }
 
+/* Handle deprecation of convertScreenToBase in 10.10 yet still supporting
+ * 10.6 and earlier since convertRectFromScreen was introduced in 10.7.
+ */
+NSPoint _windowPointFromScreen(NSWindow *window, NSPoint p)
+{
+    SEL crfs = NSSelectorFromString(@"convertRectFromScreen");
+    
+    if([window respondsToSelector:crfs])
+    {
+        NSRect (* icrfs)(id, SEL, NSRect) = (NSRect (*)(id, SEL, NSRect))[window methodForSelector:crfs];
+        NSRect rect = icrfs(window, crfs, NSMakeRect(p.x, p.y, 1, 1));
+        return rect.origin;
+    }
+    else
+    {
+        SEL cstb = NSSelectorFromString(@"convertScreenToBase");
+        
+        if([window respondsToSelector:cstb])
+        {
+            NSPoint (* icstb)(id, SEL, NSPoint) = (NSPoint (*)(id, SEL, NSPoint))[window methodForSelector:cstb];
+            return icstb(window, cstb, p);
+        }
+    }
+    return NSMakePoint(0,0);
+}
+
 /*
  * Pops up a context menu at given x and y coordinates.
  * Parameters:
@@ -8115,7 +8154,7 @@ void API dw_menu_popup(HMENUI *menu, HWND parent, int x, int y)
     [thismenu autorelease];
     NSPoint p = NSMakePoint(x, [[NSScreen mainScreen] frame].size.height - y);
     NSEvent* fake = [NSEvent mouseEventWithType:NSRightMouseDown
-                                       location:[window convertScreenToBase:p]
+                                       location:_windowPointFromScreen(window, p)
                                   modifierFlags:0
                                       timestamp:[event timestamp]
                                    windowNumber:[window windowNumber]
@@ -11335,7 +11374,7 @@ HPRINT API dw_print_new(char *jobname, unsigned long flags, unsigned int pages, 
     [pi setHorizontallyCentered:YES];
     [pi setVerticalPagination:NSFitPagination];
     [pi setVerticallyCentered:YES];
-    [pi setOrientation:NSPaperOrientationPortrait];
+    [pi setOrientation:DWPaperOrientationPortrait];
     [pi setLeftMargin:0.0];
     [pi setRightMargin:0.0];
     [pi setTopMargin:0.0];
@@ -11350,7 +11389,7 @@ HPRINT API dw_print_new(char *jobname, unsigned long flags, unsigned int pages, 
 
     /* Create and show the print panel */
     panel = [NSPrintPanel printPanel];
-    if(!panel || [panel runModalWithPrintInfo:pi] == NSCancelButton)
+    if(!panel || [panel runModalWithPrintInfo:pi] == DWModalResponseCancel)
     {
         free(print);
         return NULL;
