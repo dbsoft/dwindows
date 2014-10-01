@@ -47,7 +47,7 @@
             localpool = [[NSAutoreleasePool alloc] init];
 #define DW_LOCAL_POOL_OUT if(localpool) [localpool drain];
 
-/* Handle deprecation of several response constants in 10.10...
+/* Handle deprecation of several constants in 10.10...
  * the replacements are not available in earlier versions.
  */
 #if defined(MAC_OS_X_VERSION_10_9) && ((defined(MAC_OS_X_VERSION_MAX_ALLOWED) && MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_9) || !defined(MAC_OS_X_VERSION_MAX_ALLOWED))
@@ -8111,9 +8111,9 @@ void API dw_menu_destroy(HMENUI *menu)
 /* Handle deprecation of convertScreenToBase in 10.10 yet still supporting
  * 10.6 and earlier since convertRectFromScreen was introduced in 10.7.
  */
-NSPoint _windowPointFromScreen(NSWindow *window, NSPoint p)
+NSPoint _windowPointFromScreen(id window, NSPoint p)
 {
-    SEL crfs = NSSelectorFromString(@"convertRectFromScreen");
+    SEL crfs = NSSelectorFromString(@"convertRectFromScreen:");
     
     if([window respondsToSelector:crfs])
     {
@@ -8123,7 +8123,7 @@ NSPoint _windowPointFromScreen(NSWindow *window, NSPoint p)
     }
     else
     {
-        SEL cstb = NSSelectorFromString(@"convertScreenToBase");
+        SEL cstb = NSSelectorFromString(@"convertScreenToBase:");
         
         if([window respondsToSelector:cstb])
         {
