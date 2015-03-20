@@ -3142,7 +3142,9 @@ NSMenu *_generate_main_menu()
     NSMenuItem * mitem = [mainMenu addItemWithTitle:@"Apple" action:NULL keyEquivalent:@""];
     NSMenu * menu = [[[NSMenu alloc] initWithTitle:@"Apple"] autorelease];
 
+#if (MAC_OS_X_VERSION_MAX_ALLOWED < MAC_OS_X_VERSION_10_6)
     [DWApp performSelector:@selector(setAppleMenu:) withObject:menu];
+#endif
 
     /* Setup the Application menu */
     NSMenuItem * item = [menu addItemWithTitle:[NSString stringWithFormat:@"%@ %@", NSLocalizedString(@"About", nil), applicationName]
@@ -3418,6 +3420,7 @@ int API dw_messagebox(char *title, int flags, char *format, ...)
         [alert setAlertStyle:NSWarningAlertStyle];
 
     iResponse = [alert runModal];
+    [alert release];
     
     switch(iResponse)
     {
@@ -4716,8 +4719,6 @@ HWND API dw_scrollbar_new(int vertical, ULONG cid)
         scrollbar = [[DWScrollbar alloc] initWithFrame:NSMakeRect(0,0,100,5)];
     }
     [scrollbar setArrowsPosition:NSScrollerArrowsDefaultSetting];
-    [scrollbar setTarget:scrollbar];
-    [scrollbar setAction:@selector(changed:)];
     [scrollbar setRange:0.0 andVisible:0.0];
     [scrollbar setKnobProportion:1.0];
     [scrollbar setTarget:scrollbar];
