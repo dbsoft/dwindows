@@ -2,7 +2,7 @@
  * Dynamic Windows:
  *          A GTK like implementation of the MacOS GUI using Cocoa
  *
- * (C) 2011-2013 Brian Smith <brian@dbsoft.org>
+ * (C) 2011-2015 Brian Smith <brian@dbsoft.org>
  * (C) 2011 Mark Hessling <mark@rexx.org>
  *
  * Requires 10.5 or later.
@@ -2762,7 +2762,7 @@ void _handle_resize_events(Box *thisbox)
 
         if(thisbox->items[z].type == TYPEBOX)
         {
-            Box *tmp = [handle box];
+            Box *tmp = (Box *)[handle box];
 
             if(tmp)
             {
@@ -2802,7 +2802,7 @@ void _handle_resize_events(Box *thisbox)
 
                 if([view isMemberOfClass:[DWBox class]])
                 {
-                    Box *box = [view box];
+                    Box *box = (Box *)[view box];
                     _handle_resize_events(box);
                 }
             }
@@ -2876,7 +2876,7 @@ static void _resize_box(Box *thisbox, int *depth, int x, int y, int pass)
         if(thisbox->items[z].type == TYPEBOX)
         {
             id box = thisbox->items[z].hwnd;
-            Box *tmp = [box box];
+            Box *tmp = (Box *)[box box];
 
             if(tmp)
             {
@@ -3015,7 +3015,7 @@ static void _resize_box(Box *thisbox, int *depth, int x, int y, int pass)
                 if(thisbox->items[z].type == TYPEBOX)
                 {
                     id box = thisbox->items[z].hwnd;
-                    Box *tmp = [box box];
+                    Box *tmp = (Box *)[box box];
 
                     if(tmp)
                     {
@@ -3034,7 +3034,7 @@ static void _resize_box(Box *thisbox, int *depth, int x, int y, int pass)
 
                     if([view isMemberOfClass:[DWBox class]])
                     {
-                        Box *box = [view box];
+                        Box *box = (Box *)[view box];
                         NSSize size = [view frame].size;
                         _do_resize(box, size.width, size.height);
                         _handle_resize_events(box);
@@ -3929,9 +3929,11 @@ void _control_size(id handle, int *width, int *height)
                 thiswidth = 50;
             else
                 thiswidth = 150;
-            /* Spinbuttons don't need to be as wide */
+            /* Comboboxes need some extra height for the border...
+             * and even more with the new look in Yosemite.
+             */
             if([object isMemberOfClass:[ DWComboBox class]])
-                extraheight = 4;
+                extraheight = DWOSMinor < 10 ? 4 : 8;
         }
         else
             nsstr = [object stringValue];
@@ -9576,7 +9578,7 @@ void API dw_window_set_size(HWND handle, ULONG width, ULONG height)
          * The following is an attempt to dynamically size a window based on the size of its
          * children before realization. Only applicable when width or height is less than one.
          */
-        if((width < 1 || height < 1) && (thisbox = [[window contentView] box]))
+        if((width < 1 || height < 1) && (thisbox = (Box *)[[window contentView] box]))
         {
             int depth = 0;
 
@@ -9609,7 +9611,7 @@ void API dw_window_get_preferred_size(HWND handle, int *width, int *height)
     {
         Box *thisbox;
 
-        if((thisbox = [[object contentView] box]))
+        if((thisbox = (Box *)[[object contentView] box]))
         {
             int depth = 0;
             NSRect frame;
@@ -9629,7 +9631,7 @@ void API dw_window_get_preferred_size(HWND handle, int *width, int *height)
     {
         Box *thisbox;
 
-        if((thisbox = [object box]))
+        if((thisbox = (Box *)[object box]))
         {
             int depth = 0;
 
