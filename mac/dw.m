@@ -8371,7 +8371,7 @@ unsigned long API dw_notebook_page_new(HWND handle, ULONG flags, int front)
 {
     DWNotebook *notebook = handle;
     NSInteger page = [notebook pageid];
-    DWNotebookPage *notepage = [[DWNotebookPage alloc] initWithIdentifier:nil];
+    DWNotebookPage *notepage = [[DWNotebookPage alloc] initWithIdentifier:[NSString stringWithFormat: @"pageid:%d", (int)page]];
     [notepage setPageid:(int)page];
     if(front)
     {
