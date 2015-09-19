@@ -1,4 +1,4 @@
-/* $Id: dwcompat.h 1722 2012-05-08 17:14:40Z bsmith $ */
+/* $Id$ */
 
 #ifndef _DWCOMPAT_H
 #define _DWCOMPAT_H
