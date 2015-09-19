@@ -3929,11 +3929,12 @@ void _control_size(id handle, int *width, int *height)
                 thiswidth = 50;
             else
                 thiswidth = 150;
-            /* Comboboxes need some extra height for the border...
-             * and even more with the new look in Yosemite.
-             */
+            /* Comboboxes need some extra height for the border */
             if([object isMemberOfClass:[ DWComboBox class]])
-                extraheight = DWOSMinor < 10 ? 4 : 8;
+                extraheight = 4;
+            /* Yosemite and higher requires even more border space */
+            if(DWOSMinor > 9)
+                extraheight += 4;
         }
         else
             nsstr = [object stringValue];
