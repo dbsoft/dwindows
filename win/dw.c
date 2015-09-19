@@ -2,7 +2,7 @@
  * Dynamic Windows:
  *          A GTK like implementation of the Win32 GUI
  *
- * (C) 2000-2013 Brian Smith <brian@dbsoft.org>
+ * (C) 2000-2015 Brian Smith <brian@dbsoft.org>
  * (C) 2003-2011 Mark Hessling <mark@rexx.org>
  *
  */
@@ -11828,6 +11828,8 @@ void API dw_environment_query(DWEnv *env)
          strcpy(env->osName, "Windows 7");
       else if(env->MajorVersion == 6 && env->MinorVersion > 1)
          strcpy(env->osName, "Windows 8");
+      else if(env->MajorVersion == 10)
+         strcpy(env->osName, "Windows 10");
       else
          strcpy(env->osName, "Windows NT");
 

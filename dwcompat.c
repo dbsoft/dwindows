@@ -1,4 +1,4 @@
-/* $Id: dwcompat.c 1717 2012-05-05 22:44:27Z bsmith $ */
+/* $Id$ */
 #undef UNICODE
 #undef _UNICODE
 
