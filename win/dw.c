@@ -2861,7 +2861,7 @@ LRESULT CALLBACK _colorwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
                                                  DW_GREEN_VALUE(back),
                                                  DW_BLUE_VALUE(back)));
                   SelectObject((HDC)mp1, thiscinfo->hbrush);
-                  return (LONG)(intptr_t)thiscinfo->hbrush;
+                  return (LRESULT)(intptr_t)thiscinfo->hbrush;
                }
             }
  #ifdef AEROGLASS
@@ -2882,7 +2882,7 @@ LRESULT CALLBACK _colorwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
                               DeleteObject(thiscinfo->hbrush);
                            thiscinfo->hbrush = CreateSolidBrush(_dw_transparencykey);
                            SelectObject((HDC)mp1, thiscinfo->hbrush);
-                           return (LONG)thiscinfo->hbrush;
+                           return (LRESULT)thiscinfo->hbrush;
                         }
                      }
                   }
@@ -4901,7 +4901,7 @@ char * API dw_window_get_font(HWND handle)
             italic = " Italic";
          height = MulDiv(abs(lf.lfHeight), 72,  GetDeviceCaps (hdc, LOGPIXELSY));
          ReleaseDC(handle, hdc);
-         _snprintf( str, 100, "%d.%s%s%s", height, lf.lfFaceName, bold, italic );
+         _snprintf( str, 100, "%d.%s%s%s", height, WideToUTF8(lf.lfFaceName), bold, italic );
       }
    }
    if ( oldfont )
@@ -11310,7 +11310,7 @@ HSHM API dw_named_memory_new(void **dest, int size, char *name)
    sa.lpSecurityDescriptor = &_dwsd;
    sa.bInheritHandle = FALSE;
 
-   handle = CreateFileMapping((HANDLE)0xFFFFFFFF, &sa, PAGE_READWRITE, 0, size, UTF8toWide(name));
+   handle = CreateFileMapping(INVALID_HANDLE_VALUE, &sa, PAGE_READWRITE, 0, size, UTF8toWide(name));
 
    if(!handle)
       return 0;
