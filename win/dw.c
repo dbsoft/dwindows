@@ -3005,7 +3005,7 @@ LRESULT CALLBACK _containerwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
    case WM_CONTEXTMENU:
       {
          SignalHandler *tmp = Root;
-
+         void **params = NULL;
          while(tmp)
          {
             if(tmp->message == NM_RCLICK && tmp->window == hWnd)
@@ -3037,9 +3037,10 @@ LRESULT CALLBACK _containerwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 
                   ListView_GetItem(tmp->window, &lvi);
                   ListView_SetSelectionMark(tmp->window, iItem);
+                  params = (void **)lvi.lParam;
                }
 
-               containercontextfunc(tmp->window, lvi.pszText ? WideToUTF8(lvi.pszText) : NULL, x, y, tmp->data, (void *)lvi.lParam);
+               containercontextfunc(tmp->window, params ? params[_DW_DATA_TYPE_STRING] : NULL, x, y, tmp->data, (void *)lvi.lParam);
                tmp = NULL;
             }
             if(tmp)
