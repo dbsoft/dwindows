@@ -3,7 +3,7 @@
  *          A GTK like cross-platform GUI
  *          GTK3 forwarder module for portabilty.
  *
- * (C) 2000-2013 Brian Smith <brian@dbsoft.org>
+ * (C) 2000-2016 Brian Smith <brian@dbsoft.org>
  * (C) 2003-2011 Mark Hessling <mark@rexx.org>
  * (C) 2002 Nickolay V. Shmyrev <shmyrev@yandex.ru>
  */
@@ -403,7 +403,7 @@ static void gtk_mdi_put(GtkMdi *mdi, GtkWidget *child_widget, gint x, gint y, Gt
 
    child_box = gtk_event_box_new ();
    child_widget_box = gtk_event_box_new ();
-   gtk_widget_set_margin_left(child_widget_box, 2);
+   gtk_widget_set_margin_start(child_widget_box, 2);
    top_event_box = gtk_event_box_new ();
    bottom_event_box = gtk_event_box_new ();
    grid = gtk_grid_new ();
@@ -489,10 +489,10 @@ static void gtk_mdi_put(GtkMdi *mdi, GtkWidget *child_widget, gint x, gint y, Gt
       gtk_widget_show (button[i]);
    }
 
-   cursor = gdk_cursor_new (GDK_HAND1);
+   cursor = gdk_cursor_new_for_display (gdk_display_get_default(), GDK_HAND1);
    gtk_widget_realize (top_event_box);
    gdk_window_set_cursor (gtk_widget_get_window(top_event_box), cursor);
-   cursor = gdk_cursor_new (GDK_BOTTOM_RIGHT_CORNER);
+   cursor = gdk_cursor_new_for_display (gdk_display_get_default(), GDK_BOTTOM_RIGHT_CORNER);
    gtk_widget_realize (bottom_event_box);
    gdk_window_set_cursor (gtk_widget_get_window(bottom_event_box), cursor);
 
@@ -2916,7 +2916,7 @@ void dw_window_set_pointer(HWND handle, int pointertype)
    else if(!pointertype)
       cursor = NULL;
    else
-      cursor = gdk_cursor_new(pointertype);
+      cursor = gdk_cursor_new_for_display(gdk_display_get_default(), pointertype);
    if(handle && gtk_widget_get_window(handle))
       gdk_window_set_cursor(gtk_widget_get_window(handle), cursor);
    if(cursor)
