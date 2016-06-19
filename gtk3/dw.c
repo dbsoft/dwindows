@@ -231,6 +231,7 @@ static SignalList SignalTranslate[SIGNALMAX] = {
 #define DW_TOP 0.0f
 #define DW_BOTTOM 1.0f
 
+#ifdef DW_INCLUDE_DEPRECATED
 /* MDI Support Code */
 #define GTK_MDI(obj)          G_TYPE_CHECK_INSTANCE_CAST (obj, gtk_mdi_get_type (), GtkMdi)
 #define GTK_MDI_CLASS(klass)  G_TYPE_CHECK_CLASS_CAST (klass, gtk_mdi_get_type (), GtkMdiClass)
@@ -1054,6 +1055,7 @@ static GtkMdiChild *get_child (GtkMdi *mdi, GtkWidget *widget)
 
    return NULL;
 }
+#endif
 
 static void _dw_msleep(long period)
 {
@@ -2296,17 +2298,21 @@ int dw_messagebox(char *title, int flags, char *format, ...)
 int dw_window_minimize(HWND handle)
 {
    int _locked_by_me = FALSE;
+#ifdef DW_INCLUDE_DEPRECATED
    GtkWidget *mdi = NULL;
+#endif
 
    if(!handle)
       return 0;
 
    DW_MUTEX_LOCK;
+#ifdef DW_INCLUDE_DEPRECATED
    if((mdi = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_mdi")) && GTK_IS_MDI(mdi))
    {
       gtk_mdi_set_state(GTK_MDI(mdi), handle, CHILD_ICONIFIED);
    }
    else
+#endif
    {
       gtk_window_iconify( GTK_WINDOW(handle) );
    }
@@ -2359,18 +2365,22 @@ int dw_window_show(HWND handle)
 {
    int _locked_by_me = FALSE;
    GtkWidget *defaultitem;
+#ifdef DW_INCLUDE_DEPRECATED
    GtkWidget *mdi;
+#endif
 
    if (!handle)
       return 0;
 
    DW_MUTEX_LOCK;
    gtk_widget_show(handle);
+#ifdef DW_INCLUDE_DEPRECATED
    if ((mdi = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_mdi")) && GTK_IS_MDI(mdi))
    {
       gtk_mdi_set_state(GTK_MDI(mdi), handle, CHILD_NORMAL);
    }
    else
+#endif
    {
       GdkWindow *window = gtk_widget_get_window(GTK_WIDGET(handle));
       if (window && gtk_widget_get_mapped(handle))
@@ -2421,17 +2431,21 @@ int dw_window_show(HWND handle)
 int dw_window_hide(HWND handle)
 {
    int _locked_by_me = FALSE;
+#ifdef DW_INCLUDE_DEPRECATED
    GtkWidget *mdi = NULL;
+#endif
 
    if(!handle)
       return 0;
 
    DW_MUTEX_LOCK;
+#ifdef DW_INCLUDE_DEPRECATED
    if((mdi = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_mdi")) && GTK_IS_MDI(mdi))
    {
       gtk_mdi_set_state(GTK_MDI(mdi), handle, CHILD_ICONIFIED);
    }
    else
+#endif
       gtk_widget_hide(handle);
    DW_MUTEX_UNLOCK;
    return 0;
@@ -2445,16 +2459,20 @@ int dw_window_hide(HWND handle)
 int dw_window_destroy(HWND handle)
 {
    int _locked_by_me = FALSE;
+#ifdef DW_INCLUDE_DEPRECATED
    GtkWidget *mdi = NULL;
+#endif
 
    if(!handle)
       return 0;
 
    DW_MUTEX_LOCK;
+#ifdef DW_INCLUDE_DEPRECATED
    if((mdi = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_mdi")) && GTK_IS_MDI(mdi))
    {
       gtk_mdi_remove(GTK_MDI(mdi), handle);
    }
+#endif
    if(GTK_IS_WIDGET(handle))
    {
       GtkWidget *box, *handle2 = handle;
@@ -2951,6 +2969,7 @@ HWND dw_window_new(HWND hwndOwner, char *title, unsigned long flStyle)
    int flags = 0;
 
    DW_MUTEX_LOCK;
+#ifdef DW_INCLUDE_DEPRECATED
    if(hwndOwner && GTK_IS_MDI(hwndOwner))
    {
       GtkWidget *label;
@@ -2966,6 +2985,7 @@ HWND dw_window_new(HWND hwndOwner, char *title, unsigned long flStyle)
       gtk_mdi_put(GTK_MDI(hwndOwner), tmp, 100, 75, label);
    }
    else
+#endif
    {
       GtkWidget *box = dw_box_new(DW_VERT, 0);
       GtkWidget *grid = gtk_grid_new();
@@ -3165,6 +3185,7 @@ HWND dw_groupbox_new(int type, int pad, char *title)
    return frame;
 }
 
+#ifdef DW_INCLUDE_DEPRECATED
 /*
  * Create a new MDI Frame to be packed.
  * Parameters:
@@ -3181,6 +3202,7 @@ HWND dw_mdi_new(unsigned long id)
    DW_MUTEX_UNLOCK;
    return tmp;
 }
+#endif
 
 /*
  * Create a bitmap object to be packed.
@@ -3759,10 +3781,10 @@ HWND dw_text_new(char *text, unsigned long id)
    tmp = gtk_label_new(text);
 
    /* Left and centered */
-   gtk_misc_set_alignment(GTK_MISC(tmp), 0.0f, 0.5f);
+   gtk_label_set_xalign(GTK_LABEL(tmp), 0.0f);
+   gtk_label_set_yalign(GTK_LABEL(tmp), 0.5f);
    gtk_widget_show(tmp);
    g_object_set_data(G_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(id));
-   gtk_misc_set_alignment(GTK_MISC(tmp), DW_LEFT, DW_LEFT);
    if(_DWDefaultFont)
       dw_window_set_font(tmp, _DWDefaultFont);
    DW_MUTEX_UNLOCK;
@@ -3789,7 +3811,8 @@ HWND dw_status_text_new(char *text, ULONG id)
    gtk_widget_show(frame);
 
    /* Left and centered */
-   gtk_misc_set_alignment(GTK_MISC(tmp), 0.0f, 0.5f);
+   gtk_label_set_xalign(GTK_LABEL(tmp), 0.0f);
+   gtk_label_set_yalign(GTK_LABEL(tmp), 0.5f);
    g_object_set_data(G_OBJECT(frame), "_dw_id", GINT_TO_POINTER(id));
    g_object_set_data(G_OBJECT(frame), "_dw_label", (gpointer)tmp);
    if(_DWDefaultFont)
@@ -9333,17 +9356,21 @@ void API dw_window_set_gravity(HWND handle, int horz, int vert)
 void dw_window_set_pos(HWND handle, long x, long y)
 {
    int _locked_by_me = FALSE;
+#ifdef DW_INCLUDE_DEPRECATED
    GtkWidget *mdi;
+#endif
 
    if(!handle)
       return;
       
    DW_MUTEX_LOCK;
+#ifdef DW_INCLUDE_DEPRECATED
    if((mdi = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_mdi")) && GTK_IS_MDI(mdi))
    {
       gtk_mdi_move(GTK_MDI(mdi), handle, x, y);
    }
    else
+#endif
    {
       GdkWindow *window = NULL;
       
@@ -9490,15 +9517,19 @@ void dw_window_get_pos_size(HWND handle, long *x, long *y, ULONG *width, ULONG *
 {
    int _locked_by_me = FALSE;
    gint gx = 0, gy = 0, gwidth = 0, gheight = 0;
+#ifdef DW_INCLUDE_DEPRECATED
    GtkWidget *mdi;
+#endif
 
    DW_MUTEX_LOCK;
+#ifdef DW_INCLUDE_DEPRECATED
    /* If it is an MDI window query what we can */
    if((mdi = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_mdi")) && GTK_IS_MDI(mdi))
    {
       gtk_mdi_get_pos(GTK_MDI(mdi), handle, &gx, &gy);
    }
    else
+#endif
    {
       GdkWindow *window;
       
@@ -9596,7 +9627,8 @@ void dw_window_set_style(HWND handle, unsigned long style, unsigned long mask)
          y = DW_TOP;
       if ( style & DW_DT_BOTTOM )
          y = DW_BOTTOM;
-      gtk_misc_set_alignment( GTK_MISC(handle2), x, y );
+      gtk_label_set_xalign(GTK_LABEL(handle2), x);
+      gtk_label_set_yalign(GTK_LABEL(handle2), y);
       if ( style & DW_DT_WORDBREAK )
          gtk_label_set_line_wrap( GTK_LABEL(handle), TRUE );
    }
