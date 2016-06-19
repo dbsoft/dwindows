@@ -55,6 +55,13 @@ AC_ARG_WITH(gtk3,
    [with_gtk3=no],
 )
 
+dnl ---------------------- check for '--with-deprecated' switch -----------------
+AC_ARG_WITH(deprecated,
+   [  --with-deprecated         specify this to build with deprecated functions],
+   [with_deprecated=$withval],
+   [with_deprecated=no],
+)
+
 dnl ---------------------- default targets to build -----------------
 if test $with_dwcompat = yes; then
    COMPAT_OBJECT="dwcompat.o"
@@ -304,6 +311,9 @@ fi
 
 CFLAGS="$CFLAGS $GTK_CFLAGS $GDK_IMLIB_FLAGS $MOZEMBED_CFLAGS"
 
+if test $with_deprecated = yes; then
+   CFLAGS="$CFLAGS -DDW_INCLUDE_DEPRECATED"
+fi
 BROWSER_OBJECT=""
 if test x"$MOZEMBED_CFLAGS" != x; then
    SAVE_LIBS="$LIBS"
