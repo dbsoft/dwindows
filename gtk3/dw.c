@@ -233,6 +233,8 @@ static SignalList SignalTranslate[SIGNALMAX] = {
 
 #ifdef DW_INCLUDE_DEPRECATED
 /* MDI Support Code */
+static void _dw_override_color(GtkWidget *widget, const char *element, GdkRGBA *color);
+static void _dw_override_font(GtkWidget *widget, const char *font);
 #define GTK_MDI(obj)          G_TYPE_CHECK_INSTANCE_CAST (obj, gtk_mdi_get_type (), GtkMdi)
 #define GTK_MDI_CLASS(klass)  G_TYPE_CHECK_CLASS_CAST (klass, gtk_mdi_get_type (), GtkMdiClass)
 #define GTK_IS_MDI(obj)       G_TYPE_CHECK_INSTANCE_TYPE (obj, gtk_mdi_get_type ())
@@ -379,7 +381,7 @@ static GtkWidget *gtk_mdi_new(void)
 
    mdi = GTK_WIDGET (g_object_new (gtk_mdi_get_type (), NULL));
    gdk_rgba_parse (&background, GTK_MDI_BACKGROUND);
-   gtk_widget_override_background_color (mdi, GTK_STATE_FLAG_NORMAL, &background);
+   _dw_override_color (mdi, "background-color", &background);
 
    return mdi;
 }
@@ -419,17 +421,22 @@ static void gtk_mdi_put(GtkMdi *mdi, GtkWidget *child_widget, gint x, gint y, Gt
 
    gdk_rgba_parse (&color, GTK_MDI_LABEL_BACKGROUND);
 
-   gtk_widget_override_background_color (top_event_box, GTK_STATE_FLAG_NORMAL, &color);
-   gtk_widget_override_background_color (bottom_event_box, GTK_STATE_FLAG_NORMAL, &color);
-   gtk_widget_override_background_color (child_box, GTK_STATE_FLAG_NORMAL, &color);
+   _dw_override_color (top_event_box, "background-color", &color);
+   _dw_override_color (bottom_event_box, "background-color", &color);
+   _dw_override_color (child_box, "background-color", &color);
    for (j = 0; j < 3; j++)
    {
-      gtk_widget_override_background_color (button[j], GTK_STATE_FLAG_NORMAL, &color);
-      gtk_widget_override_background_color (button[j], GTK_STATE_FLAG_ACTIVE, &color);
+      _dw_override_color (button[j], "background-color", &color);
+      _dw_override_color (button[j], "background-color", &color);
    }
    gdk_rgba_parse (&color, GTK_MDI_LABEL_FOREGROUND);
-   gtk_widget_override_color (label, GTK_STATE_FLAG_NORMAL, &color);
-   gtk_misc_set_alignment (GTK_MISC (label), 0.0, 0.5);
+   _dw_override_color (label, "color", &color);
+#if GTK_CHECK_VERSION(3,16,0)               
+   gtk_label_set_xalign(GTK_LABEL(label), 0.0f);
+   gtk_label_set_yalign(GTK_LABEL(label), 0.5f);
+#else
+   gtk_misc_set_alignment(GTK_MISC(label), 0.0f, 0.5f);	
+#endif	
 
    gtk_container_add (GTK_CONTAINER (top_event_box), label);
    gtk_container_add (GTK_CONTAINER (child_widget_box), child_widget);
