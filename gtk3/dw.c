@@ -2857,7 +2857,7 @@ static int _set_color(HWND handle, unsigned long fore, unsigned long back)
    else if(back != DW_CLR_DEFAULT)
       backcolor = _colors[back];
       
-   _dw_override_background_color(handle, "background-color", back != DW_CLR_DEFAULT ? &backcolor : NULL);
+   _dw_override_color(handle, "background-color", back != DW_CLR_DEFAULT ? &backcolor : NULL);
 
    _save_gdk_colors(handle, forecolor, backcolor);
 
@@ -6191,6 +6191,7 @@ int API dw_filesystem_get_column_type(HWND handle, int column)
  */
 void API dw_container_set_stripe(HWND handle, unsigned long oddcolor, unsigned long evencolor)
 {
+#if !GTK_CHECK_VERSION(3,14,0)               
    GtkWidget *cont;
    int _locked_by_me = FALSE;
    DW_MUTEX_LOCK;
@@ -6205,6 +6206,7 @@ void API dw_container_set_stripe(HWND handle, unsigned long oddcolor, unsigned l
          gtk_tree_view_set_rules_hint(GTK_TREE_VIEW(cont), TRUE);
    }
    DW_MUTEX_UNLOCK;
+#endif   
 }
 
 /*
