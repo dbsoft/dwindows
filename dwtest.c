@@ -1419,7 +1419,7 @@ void create_button( int redraw)
     }
 }
 
-#ifdef DEPRECATED
+#ifdef DW_INCLUDE_DEPRECATED
 void mdi_add(void)
 {
     HWND mdibox, mdi, mdi1w, mdi1box, ef, mdi2w, mdi2box, bb;
@@ -1707,7 +1707,7 @@ int main(int argc, char *argv[])
     ULONG notebookpage3;
     ULONG notebookpage4;
     ULONG notebookpage5;
-#ifdef DEPRECATED
+#ifdef DW_INCLUDE_DEPRECATED
     ULONG notebookpage6;
 #endif
     ULONG notebookpage7;
@@ -1763,7 +1763,7 @@ int main(int argc, char *argv[])
     dw_notebook_page_set_text( notebook, notebookpage5, "buttons");
     buttons_add();
 
-#ifdef DEPRECATED
+#ifdef DW_INCLUDE_DEPRECATED
     notebookbox6 = dw_box_new( DW_VERT, 5 );
     notebookpage6 = dw_notebook_page_new( notebook, 1, FALSE );
     dw_notebook_pack( notebook, notebookpage6, notebookbox6 );
