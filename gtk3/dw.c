@@ -427,7 +427,6 @@ static void gtk_mdi_put(GtkMdi *mdi, GtkWidget *child_widget, gint x, gint y, Gt
    for (j = 0; j < 3; j++)
    {
       _dw_override_color (button[j], "background-color", &color);
-      _dw_override_color (button[j], "background-color", &color);
    }
    gdk_rgba_parse (&color, GTK_MDI_LABEL_FOREGROUND);
    _dw_override_color (label, "color", &color);
@@ -582,7 +581,7 @@ static void gtk_mdi_realize(GtkWidget *widget)
    GdkWindowAttr attributes;
    gint attributes_mask;
    GdkWindow *thiswindow;
-   GtkStyleContext *context;
+   GtkAllocation allocation;
 
    mdi = GTK_MDI (widget);
 
@@ -591,7 +590,6 @@ static void gtk_mdi_realize(GtkWidget *widget)
 
    gtk_widget_set_realized(widget, TRUE);
 
-   GtkAllocation allocation;
    gtk_widget_get_allocation(widget, &allocation);
    attributes.x = allocation.x;
    attributes.y = allocation.y;
@@ -610,9 +608,6 @@ static void gtk_mdi_realize(GtkWidget *widget)
    gtk_widget_set_window(widget, thiswindow);
    
    gdk_window_set_user_data (gtk_widget_get_window(widget), widget);
-
-   if((context = gtk_widget_get_style_context(widget)))
-      gtk_style_context_set_background (context, gtk_widget_get_window(widget));
 }
 
 static void gtk_mdi_get_preferred_width (GtkWidget *widget, gint *minimum_width, gint *natural_width)
@@ -747,12 +742,22 @@ static gboolean gtk_mdi_draw(GtkWidget *widget, cairo_t *cr)
    GtkMdiChild *child;
    GList *children;
    GtkMdi *mdi;
+   GtkStyleContext *context;
 
    g_return_val_if_fail (widget != NULL, FALSE);
    g_return_val_if_fail (GTK_IS_MDI (widget), FALSE);
    g_return_val_if_fail (cr != NULL, FALSE);
 
    mdi = GTK_MDI (widget);
+
+   if((context = gtk_widget_get_style_context(widget)))
+   {
+      GtkAllocation allocation;
+
+      gtk_widget_get_allocation (widget, &allocation);
+      gtk_render_background (context, cr, 0, 0, allocation.x, allocation.y);
+   }
+
    for (children = mdi->children; children; children = children->next)
    {
       child = (GtkMdiChild *) children->data;
