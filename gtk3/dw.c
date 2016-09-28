@@ -2586,6 +2586,34 @@ void _convert_font(char *font)
    }
 }
 
+/* Internal functions to convert to GTK3 style CSS */
+static void _dw_override_color(GtkWidget *widget, const char *element, GdkRGBA *color)
+{
+	if(color)
+	{
+		GtkCssProvider *provider = gtk_css_provider_new();
+		gchar *scolor = gdk_rgba_to_string(color);
+		gchar *css = g_strdup_printf ("* { %s: %s; }", element, scolor);
+		
+		g_free(scolor);
+		gtk_css_provider_load_from_data(provider, css, -1, NULL);
+		g_free(css);
+		gtk_style_context_add_provider(gtk_widget_get_style_context(widget), GTK_STYLE_PROVIDER(provider), GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+		g_object_unref(provider);
+	}
+}
+
+static void _dw_override_font(GtkWidget *widget, const char *font)
+{
+	GtkCssProvider *provider = gtk_css_provider_new();
+	gchar *css = g_strdup_printf ("* { font: %s; }", font);
+	
+	gtk_css_provider_load_from_data(provider, css, -1, NULL);
+	g_free(css);
+	gtk_style_context_add_provider(gtk_widget_get_style_context(widget), GTK_STYLE_PROVIDER(provider), GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+	g_object_unref(provider);
+}
+
 /*
  * Sets the font used by a specified window (widget) handle.
  * Parameters:
@@ -2594,7 +2622,6 @@ void _convert_font(char *font)
  */
 int dw_window_set_font(HWND handle, char *fontname)
 {
-   PangoFontDescription *pfont;
    GtkWidget *handle2 = handle;
    char *font = strdup(fontname);
    int _locked_by_me = FALSE;
@@ -2629,13 +2656,8 @@ int dw_window_set_font(HWND handle, char *fontname)
    if(data)
       free(data);
 
-   pfont = pango_font_description_from_string(fontname);
-
-   if(pfont)
-   {
-      gtk_widget_override_font(handle2, pfont);
-      pango_font_description_free(pfont);
-   }
+   _dw_override_font(handle2, font);
+   
    DW_MUTEX_UNLOCK;
    return TRUE;
 }
@@ -2823,8 +2845,7 @@ static int _set_color(HWND handle, unsigned long fore, unsigned long back)
    else if(fore != DW_CLR_DEFAULT)
       forecolor = _colors[fore];
       
-   gtk_widget_override_color(handle, GTK_STATE_FLAG_NORMAL, fore != DW_CLR_DEFAULT ? &forecolor : NULL);
-   gtk_widget_override_color(handle, GTK_STATE_FLAG_ACTIVE, fore != DW_CLR_DEFAULT ? &forecolor : NULL);
+   _dw_override_color(handle, "color", fore != DW_CLR_DEFAULT ? &forecolor : NULL);
    
    if(back & DW_RGB_COLOR)
    {
@@ -2836,8 +2857,7 @@ static int _set_color(HWND handle, unsigned long fore, unsigned long back)
    else if(back != DW_CLR_DEFAULT)
       backcolor = _colors[back];
       
-   gtk_widget_override_background_color(handle, GTK_STATE_FLAG_NORMAL, back != DW_CLR_DEFAULT ? &backcolor : NULL);
-   gtk_widget_override_background_color(handle, GTK_STATE_FLAG_ACTIVE, back != DW_CLR_DEFAULT ? &backcolor : NULL);
+   _dw_override_background_color(handle, "background-color", back != DW_CLR_DEFAULT ? &backcolor : NULL);
 
    _save_gdk_colors(handle, forecolor, backcolor);
 
