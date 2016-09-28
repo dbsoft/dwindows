@@ -3801,8 +3801,12 @@ HWND dw_text_new(char *text, unsigned long id)
    tmp = gtk_label_new(text);
 
    /* Left and centered */
+#if GTK_CHECK_VERSION(3,16,0)               
    gtk_label_set_xalign(GTK_LABEL(tmp), 0.0f);
    gtk_label_set_yalign(GTK_LABEL(tmp), 0.5f);
+#else
+   gtk_misc_set_alignment(GTK_MISC(tmp), 0.0f, 0.5f);	
+#endif	
    gtk_widget_show(tmp);
    g_object_set_data(G_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(id));
    if(_DWDefaultFont)
@@ -3831,8 +3835,12 @@ HWND dw_status_text_new(char *text, ULONG id)
    gtk_widget_show(frame);
 
    /* Left and centered */
+#if GTK_CHECK_VERSION(3,16,0)               
    gtk_label_set_xalign(GTK_LABEL(tmp), 0.0f);
    gtk_label_set_yalign(GTK_LABEL(tmp), 0.5f);
+#else
+   gtk_misc_set_alignment(GTK_MISC(tmp), 0.0f, 0.5f);
+#endif
    g_object_set_data(G_OBJECT(frame), "_dw_id", GINT_TO_POINTER(id));
    g_object_set_data(G_OBJECT(frame), "_dw_label", (gpointer)tmp);
    if(_DWDefaultFont)
@@ -9649,8 +9657,12 @@ void dw_window_set_style(HWND handle, unsigned long style, unsigned long mask)
          y = DW_TOP;
       if ( style & DW_DT_BOTTOM )
          y = DW_BOTTOM;
+#if GTK_CHECK_VERSION(3,16,0)               
       gtk_label_set_xalign(GTK_LABEL(handle2), x);
       gtk_label_set_yalign(GTK_LABEL(handle2), y);
+#else
+      gtk_misc_set_alignment(GTK_MISC(handle2), x, y);
+#endif	
       if ( style & DW_DT_WORDBREAK )
          gtk_label_set_line_wrap( GTK_LABEL(handle), TRUE );
    }
