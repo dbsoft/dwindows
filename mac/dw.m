@@ -2,7 +2,7 @@
  * Dynamic Windows:
  *          A GTK like implementation of the MacOS GUI using Cocoa
  *
- * (C) 2011-2015 Brian Smith <brian@dbsoft.org>
+ * (C) 2011-2016 Brian Smith <brian@dbsoft.org>
  * (C) 2011 Mark Hessling <mark@rexx.org>
  *
  * Requires 10.5 or later.
@@ -310,15 +310,27 @@ int _event_handler1(id object, NSEvent *event, int message)
 
                     p = [view convertPoint:[event locationInWindow] toView:object];
 
+#ifdef MAC_OS_X_VERSION_10_12
+                    if(type == NSEventTypeRightMouseDown || type == NSEventTypeRightMouseUp)
+#else
                     if(type == NSRightMouseDown || type == NSRightMouseUp)
+#endif
                     {
                         button = 2;
                     }
+#ifdef MAC_OS_X_VERSION_10_12
+                    else if(type == NSEventTypeOtherMouseDown || type == NSEventTypeOtherMouseDown)
+#else
                     else if(type == NSOtherMouseDown || type == NSOtherMouseUp)
+#endif
                     {
                         button = 3;
                     }
+#ifdef MAC_OS_X_VERSION_10_12
+                    else if([event modifierFlags] & NSEventModifierFlagControl)
+#else
                     else if([event modifierFlags] & NSControlKeyMask)
+#endif
                     {
                         button = 2;
                     }
@@ -516,7 +528,11 @@ DWTID _dw_mutex_locked = (DWTID)-1;
 /* Send fake event to make sure the loop isn't stuck */
 void _dw_wakeup_app()
 {
+#ifdef MAC_OS_X_VERSION_10_12
+    [DWApp postEvent:[NSEvent otherEventWithType:NSEventTypeApplicationDefined
+#else
     [DWApp postEvent:[NSEvent otherEventWithType:NSApplicationDefined
+#endif
                                         location:NSMakePoint(0, 0)
                                    modifierFlags:0
                                        timestamp:0
@@ -610,6 +626,11 @@ typedef struct _bitbltinfo
         NSBitmapImageRep *rep = bltsrc;
         NSImage *image = [NSImage alloc];
         SEL siwc = NSSelectorFromString(@"initWithCGImage");
+#ifdef MAC_OS_X_VERSION_10_12
+        NSCompositingOperation op = NSCompositingOperationSourceOver;
+#else
+        NSCompositingOperation op = NSCompositeSourceOver;
+#endif
 
         if([image respondsToSelector:siwc])
         {
@@ -625,13 +646,13 @@ typedef struct _bitbltinfo
         {
             [image drawInRect:NSMakeRect(bltinfo->xdest, bltinfo->ydest, bltinfo->width, bltinfo->height)
                      fromRect:NSMakeRect(bltinfo->xsrc, bltinfo->ysrc, bltinfo->srcwidth, bltinfo->srcheight)
-                     operation:NSCompositeSourceOver fraction:1.0];
+                     operation:op fraction:1.0];
         }
         else
         {
             [image drawAtPoint:NSMakePoint(bltinfo->xdest, bltinfo->ydest)
                       fromRect:NSMakeRect(bltinfo->xsrc, bltinfo->ysrc, bltinfo->width, bltinfo->height)
-                     operation:NSCompositeSourceOver fraction:1.0];
+                     operation:op fraction:1.0];
         }
         [bltsrc release];
         [image release];
@@ -823,7 +844,11 @@ DWObject *DWObj;
 -(void)sendEvent:(NSEvent *)theEvent
 {
    int rcode = -1;
+#ifdef MAC_OS_X_VERSION_10_12
+   if([theEvent type] == NSEventTypeKeyDown)
+#else
    if([theEvent type] == NSKeyDown)
+#endif
    {
       rcode = _event_handler(self, theEvent, 2);
    }
@@ -872,7 +897,11 @@ DWObject *DWObj;
 -(NSSize)size { return size; }
 -(void)mouseDown:(NSEvent *)theEvent
 {
+#ifdef MAC_OS_X_VERSION_10_12
+    if(![theEvent isMemberOfClass:[NSEvent class]] || !([theEvent modifierFlags] & NSEventModifierFlagControl))
+#else
     if(![theEvent isMemberOfClass:[NSEvent class]] || !([theEvent modifierFlags] & NSControlKeyMask))
+#endif
         _event_handler(self, theEvent, 3);
 }
 -(void)mouseUp:(NSEvent *)theEvent { _event_handler(self, theEvent, 4); }
@@ -1256,7 +1285,11 @@ DWObject *DWObj;
 }
 -(BOOL)performKeyEquivalent:(NSEvent *)theEvent
 {
+#ifdef MAC_OS_X_VERSION_10_12
+    if(([theEvent modifierFlags] & NSEventModifierFlagDeviceIndependentFlagsMask) == NSEventModifierFlagCommand)
+#else
     if(([theEvent modifierFlags] & NSDeviceIndependentModifierFlagsMask) == NSCommandKeyMask)
+#endif
     {
         if ([[theEvent charactersIgnoringModifiers] isEqualToString:@"x"])
             return [NSApp sendAction:@selector(cut:) to:[[self window] firstResponder] from:self];
@@ -1320,7 +1353,11 @@ DWObject *DWObj;
 }
 -(BOOL)performKeyEquivalent:(NSEvent *)theEvent
 {
+#ifdef MAC_OS_X_VERSION_10_12
+    if(([theEvent modifierFlags] & NSEventModifierFlagDeviceIndependentFlagsMask) == NSEventModifierFlagControl)
+#else
     if(([theEvent modifierFlags] & NSDeviceIndependentModifierFlagsMask) == NSCommandKeyMask)
+#endif
     {
         if ([[theEvent charactersIgnoringModifiers] isEqualToString:@"x"])
             return [NSApp sendAction:@selector(cut:) to:[[self window] firstResponder] from:self];
@@ -1722,6 +1759,11 @@ DWObject *DWObj;
         NSSize	imageSize;
         NSRect	imageFrame;
         SEL sdir = NSSelectorFromString(@"drawInRect:fromRect:operation:fraction:respectFlipped:hints:");
+#ifdef MAC_OS_X_VERSION_10_12
+        NSCompositingOperation op = NSCompositingOperationSourceOver;
+#else
+        NSCompositingOperation op = NSCompositeSourceOver;
+#endif
 
         imageSize = [image size];
         NSDivideRect(cellFrame, &imageFrame, &cellFrame, 3 + imageSize.width, NSMinXEdge);
@@ -1740,7 +1782,7 @@ DWObject *DWObj;
 
             imageFrame.origin.y += ceil((cellFrame.size.height - imageFrame.size.height) / 2);
 
-            idir(image, sdir, imageFrame, NSZeroRect, NSCompositeSourceOver, 1.0, YES, nil);
+            idir(image, sdir, imageFrame, NSZeroRect, op, 1.0, YES, nil);
         }
         else
         {
@@ -1756,7 +1798,7 @@ DWObject *DWObj;
             {
                 IMP ictp = [image methodForSelector:sctp];
 
-                ictp(image, sctp, imageFrame.origin, NSCompositeSourceOver);
+                ictp(image, sctp, imageFrame.origin, op);
             }
         }
     }
@@ -2594,7 +2636,11 @@ void _free_tree_recurse(NSMutableArray *node, NSMutableArray *item)
 -(void)mouseDown:(NSEvent *)event
 {
     [super mouseDown:event];
+#ifdef MAC_OS_X_VERSION_10_12
+    if([[NSApp currentEvent] type] == NSEventTypeLeftMouseUp)
+#else
     if([[NSApp currentEvent] type] == NSLeftMouseUp)
+#endif
         [self mouseUp:event];
 }
 -(void)mouseUp:(NSEvent *)event
@@ -3171,7 +3217,11 @@ NSMenu *_generate_main_menu()
     item = [menu addItemWithTitle:NSLocalizedString(@"Hide Others", nil)
                            action:@selector(hideOtherApplications:)
                     keyEquivalent:@"h"];
+#ifdef MAC_OS_X_VERSION_10_12
+    [item setKeyEquivalentModifierMask:NSEventModifierFlagCommand | NSEventModifierFlagOption];
+#else
     [item setKeyEquivalentModifierMask:NSCommandKeyMask | NSAlternateKeyMask];
+#endif
     [item setTarget:DWApp];
 
     item = [menu addItemWithTitle:NSLocalizedString(@"Show All", nil)
@@ -3253,7 +3303,11 @@ void API dw_main_sleep(int milliseconds)
 /* Internal version that doesn't lock the run mutex */
 int _dw_main_iteration(NSDate *date)
 {
+#ifdef MAC_OS_X_VERSION_10_12
+    NSEvent *event = [DWApp nextEventMatchingMask:NSEventMaskAny
+#else
     NSEvent *event = [DWApp nextEventMatchingMask:NSAnyEventMask
+#endif
                                         untilDate:date
                                            inMode:NSDefaultRunLoopMode
                                           dequeue:YES];
@@ -3412,13 +3466,21 @@ int API dw_messagebox(char *title, int flags, char *format, ...)
         [alert addButtonWithTitle:button3];
     va_end(args);
     
+#ifdef MAC_OS_X_VERSION_10_12
+    if(flags & DW_MB_ERROR)
+        [alert setAlertStyle:NSAlertStyleCritical];
+    else if(flags & DW_MB_INFORMATION)
+        [alert setAlertStyle:NSAlertStyleInformational];
+    else
+        [alert setAlertStyle:NSAlertStyleWarning];
+#else
     if(flags & DW_MB_ERROR)
         [alert setAlertStyle:NSCriticalAlertStyle];
     else if(flags & DW_MB_INFORMATION)
         [alert setAlertStyle:NSInformationalAlertStyle];
     else
         [alert setAlertStyle:NSWarningAlertStyle];
-
+#endif
     iResponse = [alert runModal];
     [alert release];
     
@@ -4431,7 +4493,11 @@ HWND _button_new(char *text, ULONG cid)
     [button setAction:@selector(buttonClicked:)];
     [button setTag:cid];
     [button setButtonType:NSMomentaryPushInButton];
+#ifdef MAC_OS_X_VERSION_10_12
+    [button setBezelStyle:NSBezelStyleRegularSquare];
+#else
     [button setBezelStyle:NSThickerSquareBezelStyle];
+#endif
     /* TODO: Reenable scaling in the future if it is possible on other platforms.
     [[button cell] setImageScaling:NSImageScaleProportionallyDown]; */
     if(DWDefaultFont)
@@ -4453,7 +4519,11 @@ HWND API dw_button_new(char *text, ULONG cid)
     [button setButtonType:NSMomentaryPushInButton];
     [button setBezelStyle:NSRoundedBezelStyle];
     [button setImagePosition:NSNoImage];
+#ifdef MAC_OS_X_VERSION_10_12
+    [button setAlignment:NSTextAlignmentCenter];
+#else
     [button setAlignment:NSCenterTextAlignment];
+#endif
     [[button cell] setControlTint:NSBlueControlTint];
     return button;
 }
@@ -6526,6 +6596,18 @@ int API dw_container_setup(HWND handle, unsigned long *flags, char **titles, int
             [browsercell release];
         }
         /* Defaults to left justified so just handle right and center */
+#ifdef MAC_OS_X_VERSION_10_12
+        if(flags[z] & DW_CFA_RIGHT)
+        {
+            [(NSCell *)[column dataCell] setAlignment:NSTextAlignmentRight];
+            [(NSCell *)[column headerCell] setAlignment:NSTextAlignmentRight];
+        }
+        else if(flags[z] & DW_CFA_CENTER)
+        {
+            [(NSCell *)[column dataCell] setAlignment:NSTextAlignmentCenter];
+            [(NSCell *)[column headerCell] setAlignment:NSTextAlignmentCenter];
+        }
+#else
         if(flags[z] & DW_CFA_RIGHT)
         {
             [(NSCell *)[column dataCell] setAlignment:NSRightTextAlignment];
@@ -6536,6 +6618,7 @@ int API dw_container_setup(HWND handle, unsigned long *flags, char **titles, int
             [(NSCell *)[column dataCell] setAlignment:NSCenterTextAlignment];
             [(NSCell *)[column headerCell] setAlignment:NSCenterTextAlignment];
         }
+#endif
         [column setEditable:NO];
         [cont addTableColumn:column];
         [cont addColumn:column andType:(int)flags[z]];
@@ -7264,7 +7347,11 @@ void API dw_taskbar_insert(HWND handle, HICN icon, char *bubbletext)
     [item setTarget:handle];
     [item setEnabled:YES];
     [item setHighlightMode:YES];
+#ifdef MAC_OS_X_VERSION_10_12
+    [item sendActionOn:(NSEventMaskLeftMouseUp|NSEventMaskLeftMouseDown|NSEventMaskRightMouseUp|NSEventMaskRightMouseDown)];
+#else
     [item sendActionOn:(NSLeftMouseUpMask|NSLeftMouseDownMask|NSRightMouseUpMask|NSRightMouseDownMask)];
+#endif
     [item setAction:@selector(mouseDown:)];
     dw_window_set_data(handle, "_dw_taskbar", item);
 }
@@ -7569,6 +7656,11 @@ HPIXMAP API dw_pixmap_new(HWND handle, unsigned long width, unsigned long height
 /* Function takes an NSImage and copies it into a flipped NSBitmapImageRep */
 void _flip_image(NSImage *tmpimage, NSBitmapImageRep *image, NSSize size)
 {
+#ifdef MAC_OS_X_VERSION_10_12
+    NSCompositingOperation op =NSCompositingOperationSourceOver;
+#else
+    NSCompositingOperation op =NSCompositeSourceOver;
+#endif
     [NSGraphicsContext saveGraphicsState];
     [NSGraphicsContext setCurrentContext:[NSGraphicsContext
                                           graphicsContextWithGraphicsPort:[[NSGraphicsContext graphicsContextWithBitmapImageRep:image] graphicsPort]
@@ -7586,7 +7678,7 @@ void _flip_image(NSImage *tmpimage, NSBitmapImageRep *image, NSSize size)
     /* Apply the transform */
     [t concat];
     [tmpimage drawAtPoint:NSMakePoint(0, 0) fromRect:NSMakeRect(0, 0, size.width, size.height)
-                operation:NSCompositeSourceOver fraction:1.0];
+                operation:op fraction:1.0];
     [NSGraphicsContext restoreGraphicsState];
 }
 
@@ -8157,7 +8249,11 @@ void API dw_menu_popup(HMENUI *menu, HWND parent, int x, int y)
         window = [event window];
     [thismenu autorelease];
     NSPoint p = NSMakePoint(x, [[NSScreen mainScreen] frame].size.height - y);
+#ifdef MAC_OS_X_VERSION_10_12
+    NSEvent* fake = [NSEvent mouseEventWithType:NSEventTypeRightMouseDown
+#else
     NSEvent* fake = [NSEvent mouseEventWithType:NSRightMouseDown
+#endif
                                        location:_windowPointFromScreen(window, p)
                                   modifierFlags:0
                                       timestamp:[event timestamp]
@@ -8648,7 +8744,11 @@ int API dw_window_show(HWND handle)
         [[window contentView] showWindow];
         [window makeKeyAndOrderFront:nil];
 
+#ifdef MAC_OS_X_VERSION_10_12
+        if(!([window styleMask] & NSWindowStyleMaskResizable))
+#else
         if(!([window styleMask] & NSResizableWindowMask))
+#endif
         {
             /* Fix incorrect repeat in displaying textured windows */
             [window setAutorecalculatesContentBorderThickness:NO forEdge:NSMinYEdge];
