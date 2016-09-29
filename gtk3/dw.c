@@ -406,7 +406,11 @@ static void gtk_mdi_put(GtkMdi *mdi, GtkWidget *child_widget, gint x, gint y, Gt
 
    child_box = gtk_event_box_new ();
    child_widget_box = gtk_event_box_new ();
+#if GTK_CHECK_VERSION(3,12,0)               
    gtk_widget_set_margin_start(child_widget_box, 2);
+#else
+   gtk_widget_set_margin_left(child_widget_box, 2);
+#endif
    top_event_box = gtk_event_box_new ();
    bottom_event_box = gtk_event_box_new ();
    grid = gtk_grid_new ();
