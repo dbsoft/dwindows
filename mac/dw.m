@@ -453,7 +453,7 @@ int _event_handler1(id object, NSEvent *event, int message)
                 else if(event)
                 {
                     void **params = (void **)event;
-                    
+
                     text = params[0];
                     user = params[1];
                 }
@@ -2251,10 +2251,10 @@ DWObject *DWObj;
 -(void)doubleClicked:(id)sender
 {
     void *params[2];
-    
+
     params[0] = (void *)[self getRowTitle:(int)[self selectedRow]];
     params[1] = (void *)[self getRowData:(int)[self selectedRow]];
-    
+
     /* Handler for container class */
     _event_handler(self, (NSEvent *)params, 9);
 }
@@ -2263,10 +2263,10 @@ DWObject *DWObj;
     if([[theEvent charactersIgnoringModifiers] characterAtIndex:0] == VK_RETURN)
     {
         void *params[2];
-        
+
         params[0] = (void *)[self getRowTitle:(int)[self selectedRow]];
         params[1] = (void *)[self getRowData:(int)[self selectedRow]];
-        
+
         _event_handler(self, (NSEvent *)params, 9);
     }
     [super keyUp:theEvent];
@@ -2282,10 +2282,10 @@ DWObject *DWObj;
 -(void)selectionChanged:(id)sender
 {
     void *params[2];
-    
+
     params[0] = (void *)[self getRowTitle:(int)[self selectedRow]];
     params[1] = (void *)[self getRowData:(int)[self selectedRow]];
-    
+
     /* Handler for container class */
     _event_handler(self, (NSEvent *)params, 12);
     /* Handler for listbox class */
@@ -3465,7 +3465,7 @@ int API dw_messagebox(char *title, int flags, char *format, ...)
     if(button3)
         [alert addButtonWithTitle:button3];
     va_end(args);
-    
+
 #ifdef MAC_OS_X_VERSION_10_12
     if(flags & DW_MB_ERROR)
         [alert setAlertStyle:NSAlertStyleCritical];
@@ -3483,7 +3483,7 @@ int API dw_messagebox(char *title, int flags, char *format, ...)
 #endif
     iResponse = [alert runModal];
     [alert release];
-    
+
     switch(iResponse)
     {
         case NSAlertFirstButtonReturn:    /* user pressed OK */
@@ -5422,6 +5422,9 @@ HWND API dw_mle_new(ULONG cid)
     [mle setVerticallyResizable:YES];
     [mle setAutoresizingMask:NSViewWidthSizable|NSViewHeightSizable];
     [mle setScrollview:scrollview];
+    [mle setAutomaticQuoteSubstitutionEnabled:NO];
+    [mle setAutomaticDashSubstitutionEnabled:NO];
+    [mle setAutomaticTextReplacementEnabled:NO];
     /* [mle setTag:cid]; Why doesn't this work? */
     [mle autorelease];
     return mle;
@@ -7237,15 +7240,15 @@ void API dw_container_cursor_by_data(HWND handle, void *data)
     DWContainer *cont = handle;
     void *thisdata;
     int x, count = (int)[cont numberOfRowsInTableView:cont];
-    
+
     for(x=0;x<count;x++)
     {
         thisdata = [cont getRowData:x];
-        
+
         if(thisdata == data)
         {
             NSIndexSet *selected = [[NSIndexSet alloc] initWithIndex:(NSUInteger)x];
-            
+
             [cont selectRowIndexes:selected byExtendingSelection:YES];
             [selected release];
             [cont scrollRowToVisible:x];
@@ -7300,11 +7303,11 @@ void API dw_container_delete_row_by_data(HWND handle, void *data)
     DWContainer *cont = handle;
     void *thisdata;
     int x, count = (int)[cont numberOfRowsInTableView:cont];
-    
+
     for(x=0;x<count;x++)
     {
         thisdata = [cont getRowData:x];
-        
+
         if(thisdata == data)
         {
             [cont removeRow:x];
@@ -7954,7 +7957,7 @@ int API dw_pixmap_stretch_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest,
 
     bltinfo = calloc(1, sizeof(DWBitBlt));
     bi = [NSValue valueWithPointer:bltinfo];
-    
+
     /* Fill in the information */
     bltinfo->dest = dest;
     bltinfo->src = src;
@@ -8016,10 +8019,10 @@ void dw_calendar_set_date(HWND handle, unsigned int year, unsigned int month, un
     DW_LOCAL_POOL_IN;
 
     snprintf(buffer, 100, "%04d-%02d-%02d", year, month, day);
-    
+
     NSDateFormatter *dateFormatter = [[[NSDateFormatter alloc] init] autorelease];
     dateFormatter.dateFormat = @"yyyy-mm-dd";
-    
+
     date = [dateFormatter dateFromString:[NSString stringWithUTF8String:buffer]];
     [calendar setDateValue:date];
     [date release];
@@ -8210,7 +8213,7 @@ void API dw_menu_destroy(HMENUI *menu)
 NSPoint _windowPointFromScreen(id window, NSPoint p)
 {
     SEL crfs = NSSelectorFromString(@"convertRectFromScreen:");
-    
+
     if([window respondsToSelector:crfs])
     {
         NSRect (* icrfs)(id, SEL, NSRect) = (NSRect (*)(id, SEL, NSRect))[window methodForSelector:crfs];
@@ -8220,7 +8223,7 @@ NSPoint _windowPointFromScreen(id window, NSPoint p)
     else
     {
         SEL cstb = NSSelectorFromString(@"convertScreenToBase:");
-        
+
         if([window respondsToSelector:cstb])
         {
             NSPoint (* icstb)(id, SEL, NSPoint) = (NSPoint (*)(id, SEL, NSPoint))[window methodForSelector:cstb];
@@ -9489,7 +9492,7 @@ void API dw_window_enable(HWND handle)
 void API dw_window_set_bitmap_from_data(HWND handle, unsigned long cid, char *data, int len)
 {
     id object = handle;
-    
+
     if([ object isKindOfClass:[ NSImageView class ] ] || [ object isKindOfClass:[ NSButton class ]])
     {
         if(data)
@@ -9537,14 +9540,14 @@ void API dw_window_set_bitmap(HWND handle, unsigned long resid, char *filename)
     if([ object isKindOfClass:[ NSImageView class ] ] || [ object isKindOfClass:[ NSButton class ]])
     {
         NSImage *bitmap = nil;
-        
+
         if(filename)
         {
             char *ext = _dw_get_image_extension( filename );
             NSString *nstr = [ NSString stringWithUTF8String:filename ];
-            
+
             bitmap = [[[NSImage alloc] initWithContentsOfFile:nstr] autorelease];
-        
+
             if(!bitmap && ext)
             {
                 nstr = [nstr stringByAppendingString: [NSString stringWithUTF8String:ext]];
@@ -9559,10 +9562,10 @@ void API dw_window_set_bitmap(HWND handle, unsigned long resid, char *filename)
         if(bitmap)
         {
             [object setImage:bitmap];
-            
+
             /* If we changed the bitmap... */
             Item *item = _box_item(handle);
-            
+
             /* Check to see if any of the sizes need to be recalculated */
             if(item && (item->origwidth == -1 || item->origheight == -1))
             {
@@ -10251,7 +10254,7 @@ void API dw_signal_connect(HWND window, char *signame, void *sigfunc, void *data
 void API dw_signal_connect_data(HWND window, char *signame, void *sigfunc, void *discfunc, void *data)
 {
     ULONG message = 0, msgid = 0;
-    
+
     /* Handle special case of application delete signal */
     if(!window && signame && strcmp(signame, DW_SIGNAL_DELETE) == 0)
     {
@@ -10285,12 +10288,12 @@ void API dw_signal_disconnect_by_name(HWND window, char *signame)
         if(tmp->window == window && tmp->message == message)
         {
             void (*discfunc)(HWND, void *) = tmp->discfunction;
-            
+
             if(discfunc)
             {
                 discfunc(tmp->window, tmp->data);
             }
-            
+
             if(prev)
             {
                 prev->next = tmp->next;
@@ -10326,12 +10329,12 @@ void API dw_signal_disconnect_by_window(HWND window)
         if(tmp->window == window)
         {
             void (*discfunc)(HWND, void *) = tmp->discfunction;
-            
+
             if(discfunc)
             {
                 discfunc(tmp->window, tmp->data);
             }
-            
+
             if(prev)
             {
                 prev->next = tmp->next;
@@ -10368,12 +10371,12 @@ void API dw_signal_disconnect_by_data(HWND window, void *data)
         if(tmp->window == window && tmp->data == data)
         {
             void (*discfunc)(HWND, void *) = tmp->discfunction;
-            
+
             if(discfunc)
             {
                 discfunc(tmp->window, tmp->data);
             }
-            
+
             if(prev)
             {
                 prev->next = tmp->next;
@@ -11049,7 +11052,7 @@ void _dw_pool_drain(void)
 #endif
 }
 
-/* 
+/*
  * Generally an internal function called from a newly created
  * thread to setup the Dynamic Windows environment for the thread.
  * However it is exported so language bindings can call it when
@@ -11065,7 +11068,7 @@ void API _dw_init_thread(void)
     _init_colors();
 }
 
-/* 
+/*
  * Generally an internal function called from a terminating
  * thread to cleanup the Dynamic Windows environment for the thread.
  * However it is exported so language bindings can call it when
@@ -11074,7 +11077,7 @@ void API _dw_init_thread(void)
 void API _dw_deinit_thread(void)
 {
     NSColor *color;
-    
+
     /* Release the pool when we are done so we don't leak */
     color = pthread_getspecific(_dw_fg_color_key);
     [color release];
@@ -11095,14 +11098,14 @@ void _dwthreadstart(void *data)
     void **tmp = (void **)data;
 
     _dw_init_thread();
-    
+
     threadfunc = (void (*)(void *))tmp[0];
 
     /* Start our thread function */
     threadfunc(tmp[1]);
 
     free(tmp);
-    
+
     _dw_deinit_thread();
 }
 
