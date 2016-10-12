@@ -12018,10 +12018,15 @@ int API dw_exec(char *program, int type, char **params)
 
    for(z=0;z<count;z++)
    {
-      newparams[z] = malloc(strlen(params[z])+3);
-      strcpy(newparams[z], "\"");
-      strcat(newparams[z], params[z]);
-      strcat(newparams[z], "\"");
+      if(strchr(params[z], ' '))
+      {		  
+         newparams[z] = malloc(strlen(params[z])+3);
+         strcpy(newparams[z], "\"");
+         strcat(newparams[z], params[z]);
+         strcat(newparams[z], "\"");
+      }
+      else 
+         newparams[z] = strdup(params[z]);
    }
    newparams[count] = NULL;
 
