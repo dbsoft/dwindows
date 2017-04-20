@@ -3987,10 +3987,10 @@ int API dw_init(int newthread, int argc, char *argv[])
 #endif
 #ifdef RICHEDIT
    /* Attempt to load rich edit library: 4.1, 3/2.0 and 1.0 */
-   if(!(hmsftedit = LoadLibrary("msftedit")))
+   if(!(hmsftedit = LoadLibrary(TEXT("msftedit"))))
    {
-      if(!(hrichedit = LoadLibrary("riched20")))
-         hrichedit = LoadLibrary("riched32");
+      if(!(hrichedit = LoadLibrary(TEXT("riched20"))))
+         hrichedit = LoadLibrary(TEXT("riched32"));
    }
 #endif      
    return 0;
