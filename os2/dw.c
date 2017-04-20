@@ -2,7 +2,7 @@
  * Dynamic Windows:
  *          A GTK like implementation of the PM GUI
  *
- * (C) 2000-2012 Brian Smith <brian@dbsoft.org>
+ * (C) 2000-2017 Brian Smith <brian@dbsoft.org>
  * (C) 2003-2011 Mark Hessling <mark@rexx.org>
  * (C) 2000 Achim Hasenmueller <achimha@innotek.de>
  * (C) 2000 Peter Nielsen <peter@pmview.com>
@@ -8813,6 +8813,16 @@ void API dw_mle_set_editable(HWND handle, int state)
 void API dw_mle_set_word_wrap(HWND handle, int state)
 {
    WinSendMsg(handle, MLM_SETWRAP, MPFROMLONG(state), 0);
+}
+
+/*
+ * Sets the word auto complete state of an MLE box.
+ * Parameters:
+ *          handle: Handle to the MLE.
+ *          state: Bitwise combination of DW_MLE_COMPLETE_TEXT/DASH/QUOTE
+ */
+void API dw_mle_set_auto_complete(HWND handle, int state)
+{
 }
 
 /*

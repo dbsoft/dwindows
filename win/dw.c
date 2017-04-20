@@ -2,7 +2,7 @@
  * Dynamic Windows:
  *          A GTK like implementation of the Win32 GUI
  *
- * (C) 2000-2015 Brian Smith <brian@dbsoft.org>
+ * (C) 2000-2017 Brian Smith <brian@dbsoft.org>
  * (C) 2003-2011 Mark Hessling <mark@rexx.org>
  *
  */
@@ -223,6 +223,7 @@ HANDLE huxtheme = 0;
  
 /* Needed for Rich Edit controls */
 HANDLE hrichedit = 0;
+HANDLE hmsftedit = 0;
 
 /*
  * MinGW Is missing a bunch of definitions
@@ -3985,9 +3986,12 @@ int API dw_init(int newthread, int argc, char *argv[])
    }
 #endif
 #ifdef RICHEDIT
-   /* Attempt to load rich edit library */
-   if(!(hrichedit = LoadLibrary("riched20")))
-      hrichedit = LoadLibrary("riched32");
+   /* Attempt to load rich edit library: 4.1, 3/2.0 and 1.0 */
+   if(!(hmsftedit = LoadLibrary("msftedit")))
+   {
+      if(!(hrichedit = LoadLibrary("riched20")))
+         hrichedit = LoadLibrary("riched32");
+   }
 #endif      
    return 0;
 }
@@ -4620,7 +4624,8 @@ void _control_size(HWND handle, int *width, int *height)
    }
    /* Entryfields and MLE */
    else if(_tcsnicmp(tmpbuf, EDITCLASSNAME, _tcslen(EDITCLASSNAME)+1) == 0 ||
-           _tcsnicmp(tmpbuf, RICHEDIT_CLASS, _tcslen(RICHEDIT_CLASS)+1) == 0)
+           _tcsnicmp(tmpbuf, RICHEDIT_CLASS, _tcslen(RICHEDIT_CLASS)+1) == 0 ||
+           _tcsnicmp(tmpbuf, MSFTEDIT_CLASS, _tcslen(MSFTEDIT_CLASS)+1) == 0)
    {
       LONG style = GetWindowLong(handle, GWL_STYLE);
       if((style & ES_MULTILINE))
@@ -5932,7 +5937,7 @@ HWND API dw_mle_new(ULONG id)
 {
 
    HWND tmp = CreateWindowEx(WS_EX_CLIENTEDGE,
-                       hrichedit ? RICHEDIT_CLASS : EDITCLASSNAME,
+                       hmsftedit ? MSFTEDIT_CLASS : (hrichedit ? RICHEDIT_CLASS : EDITCLASSNAME),
                        NULL,
                        WS_VISIBLE | WS_BORDER |
                        WS_VSCROLL | ES_MULTILINE |
@@ -8389,13 +8394,23 @@ void API dw_mle_set_word_wrap(HWND handle, int state)
    else
       dw_window_set_style(handle, ES_AUTOHSCROLL, ES_AUTOHSCROLL);
    /* If it is a rich edit control use the rich edit message */
-   if(hrichedit)
+   if(hrichedit || hmsftedit)
    {
       if(state)
          SendMessage(handle, EM_SETOPTIONS, (WPARAM)ECOOP_AND, (LPARAM)~ECO_AUTOHSCROLL);
       else
          SendMessage(handle, EM_SETOPTIONS, (WPARAM)ECOOP_OR, (LPARAM)ECO_AUTOHSCROLL);
    }
+}
+
+/*
+ * Sets the word auto complete state of an MLE box.
+ * Parameters:
+ *          handle: Handle to the MLE.
+ *          state: Bitwise combination of DW_MLE_COMPLETE_TEXT/DASH/QUOTE
+ */
+void API dw_mle_set_auto_complete(HWND handle, int state)
+{
 }
 
 /*
