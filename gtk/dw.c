@@ -3,7 +3,7 @@
  *          A GTK like cross-platform GUI
  *          GTK forwarder module for portabilty.
  *
- * (C) 2000-2013 Brian Smith <brian@dbsoft.org>
+ * (C) 2000-2017 Brian Smith <brian@dbsoft.org>
  * (C) 2003-2011 Mark Hessling <mark@rexx.org>
  * (C) 2002 Nickolay V. Shmyrev <shmyrev@yandex.ru>
  */
@@ -5671,6 +5671,16 @@ void dw_mle_set_word_wrap(HWND handle, int state)
    }
 #endif
    DW_MUTEX_UNLOCK;
+}
+
+/*
+ * Sets the word auto complete state of an MLE box.
+ * Parameters:
+ *          handle: Handle to the MLE.
+ *          state: Bitwise combination of DW_MLE_COMPLETE_TEXT/DASH/QUOTE
+ */
+void dw_mle_set_auto_complete(HWND handle, int state)
+{
 }
 
 /*
