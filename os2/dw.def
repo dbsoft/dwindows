@@ -122,6 +122,7 @@ EXPORTS
   dw_mle_search                          @180
   dw_mle_set_editable                    @181
   dw_mle_set_word_wrap                   @182
+  dw_mle_set_auto_complete               @183
 
   dw_spinbutton_new                      @190
   dw_spinbutton_set_pos                  @191
