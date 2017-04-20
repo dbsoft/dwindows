@@ -1406,6 +1406,11 @@ typedef void *HPRINT;
 #define DW_DRAW_FULL       (1 << 1)
 #define DW_DRAW_NOAA       (1 << 2)
 
+/* MLE Completion flags */
+#define DW_MLE_COMPLETE_TEXT      1
+#define DW_MLE_COMPLETE_DASH      (1 << 1)
+#define DW_MLE_COMPLETE_QUOTE     (1 << 2)
+
 /* Macro for casting resource IDs to HICN */
 #define DW_RESOURCE(a) (a < 65536 ? (HICN)a : (HICN)0)
 
@@ -1606,6 +1611,7 @@ void API dw_mle_set_cursor(HWND handle, int point);
 void API dw_mle_set_visible(HWND handle, int line);
 void API dw_mle_set_editable(HWND handle, int state);
 void API dw_mle_set_word_wrap(HWND handle, int state);
+void API dw_mle_set_auto_complete(HWND handle, int state);
 int API dw_mle_search(HWND handle, char *text, int point, unsigned long flags);
 void API dw_spinbutton_set_pos(HWND handle, long position);
 void API dw_spinbutton_set_limits(HWND handle, long upper, long lower);

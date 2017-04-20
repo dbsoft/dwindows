@@ -24,6 +24,11 @@
 #define BUILDING_FOR_SNOW_LEOPARD
 #endif
 
+/* Create a define to let us know to include Snow Leopard specific features */
+#if defined(MAC_OS_X_VERSION_10_7) && ((defined(MAC_OS_X_VERSION_MAX_ALLOWED) && MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_7) || !defined(MAC_OS_X_VERSION_MAX_ALLOWED))
+#define BUILDING_FOR_LION
+#endif
+
 /* Macros to protect access to thread unsafe classes */
 #define  DW_MUTEX_LOCK { \
     if(DWThread != (DWTID)-1 && pthread_self() != DWThread && pthread_self() != _dw_mutex_locked) { \
@@ -1862,6 +1867,9 @@ DWObject *DWObj;
 -(void)tableView:(NSTableView *)tableView didClickTableColumn:(NSTableColumn *)tableColumn;
 -(void)selectionChanged:(id)sender;
 -(NSMenu *)menuForEvent:(NSEvent *)event;
+#ifdef BUILDING_FOR_LION1
+-(NSView *)tableView:(NSTableView *)tableView viewForTableColumn:(NSTableColumn *)tableColumn row:(NSInteger)row;
+#endif
 @end
 
 @implementation DWContainer
@@ -1905,6 +1913,17 @@ DWObject *DWObj;
     }
     return nil;
 }
+#ifdef BUILDING_FOR_LION1
+-(NSView *)tableView:(NSTableView *)tableView viewForTableColumn:(NSTableColumn *)tableColumn row:(NSInteger)row
+{
+    ItemCellView *result = [tableView makeViewWithIdentifier:tableColumn.identifier owner:self];
+    Item *item = [self.items objectAtIndex:row];
+    result.imageView.image = item.itemIcon;
+    result.textField.stringValue = item.itemDisplayName;
+    result.detailTextField.stringValue = item.itemKind;
+    return result;
+}
+#endif
 -(BOOL)tableView:(NSTableView *)aTableView shouldEditTableColumn:(NSTableColumn *)aTableColumn row:(int)rowIndex { return NO; }
 -(void *)userdata { return userdata; }
 -(void)setUserdata:(void *)input { userdata = input; }
@@ -5613,6 +5632,20 @@ void API dw_mle_set_word_wrap(HWND handle, int state)
         [mle setHorizontallyResizable:YES];
         [sv setHasHorizontalScroller:YES];
     }
+}
+
+/*
+ * Sets the word auto complete state of an MLE box.
+ * Parameters:
+ *          handle: Handle to the MLE.
+ *          state: Bitwise combination of DW_MLE_COMPLETE_TEXT/DASH/QUOTE
+ */
+void API dw_mle_set_auto_complete(HWND handle, int state)
+{
+    DWMLE *mle = handle;
+    [mle setAutomaticQuoteSubstitutionEnabled:(state & DW_MLE_COMPLETE_QUOTE ? YES : NO)];
+    [mle setAutomaticDashSubstitutionEnabled:(state & DW_MLE_COMPLETE_DASH ? YES : NO)];
+    [mle setAutomaticTextReplacementEnabled:(state & DW_MLE_COMPLETE_TEXT ? YES : NO)];
 }
 
 /*
