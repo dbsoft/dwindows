@@ -28,7 +28,11 @@ DWDLLDIR=.\dll
 #	Default to x86 if not specified
 #
 !if "$(TARGET_CPU)" == ""
+!if "$(VSCMD_ARG_TGT_ARCH)" == ""
 TARGET_CPU=x86
+!else
+TARGET_CPU=$(VSCMD_ARG_TGT_ARCH)
+!endif
 !endif
 
 !if "$(TARGET_CPU)" == "x86"
