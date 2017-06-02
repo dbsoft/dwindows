@@ -3686,9 +3686,7 @@ void dw_menu_popup(HMENUI *menu, HWND parent, int x, int y)
 
    DW_MUTEX_LOCK;
 #if GTK_CHECK_VERSION(3,22,0)
-   GdkRectangle rc = { x, y, 1, 1 };
-   gtk_menu_popup_at_rect(GTK_MENU(*menu), gtk_widget_get_window(parent), 
-                          &rc, GDK_GRAVITY_CENTER, GDK_GRAVITY_CENTER, NULL);
+   gtk_menu_popup_at_pointer(GTK_MENU(*menu), NULL);
 #else
    gtk_menu_popup(GTK_MENU(*menu), NULL, NULL, NULL, NULL, 1, GDK_CURRENT_TIME);
 #endif
