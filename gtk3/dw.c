@@ -849,6 +849,12 @@ static gboolean move_child_callback(GtkWidget *widget, GdkEvent *event, gpointer
          return FALSE;
       if (mdi->drag_button < 0)
       {
+#if GTK_CHECK_VERSION(3,20,0)
+         if (gdk_seat_grab (gdk_event_get_seat(event),
+                          event->button.window,
+                          GDK_SEAT_CAPABILITY_ALL_POINTING,
+                          FALSE, NULL, event, NULL, NULL) != GDK_GRAB_SUCCESS)
+#else
          if (gdk_device_grab (gdk_event_get_device(event),
                           event->button.window,
                           GDK_OWNERSHIP_WINDOW,
@@ -857,6 +863,7 @@ static gboolean move_child_callback(GtkWidget *widget, GdkEvent *event, gpointer
                           GDK_BUTTON_RELEASE_MASK,
                           NULL,
                           event->button.time) != GDK_GRAB_SUCCESS)
+#endif                          
             return FALSE;
 
          mdi->drag_button = event->button.button;
@@ -874,7 +881,11 @@ static gboolean move_child_callback(GtkWidget *widget, GdkEvent *event, gpointer
       {
          int x, y;
 
+#if GTK_CHECK_VERSION(3,20,0)
+         gdk_seat_ungrab (gdk_event_get_seat(event));
+#else
          gdk_device_ungrab (gdk_event_get_device(event), event->button.time);
+#endif
          mdi->drag_button = -1;
 
          x = event->button.x + child->x - mdi->drag_start.x;
@@ -925,6 +936,12 @@ static gboolean resize_child_callback(GtkWidget *widget, GdkEvent *event, gpoint
    case GDK_BUTTON_PRESS:
       if (mdi->drag_button < 0)
       {
+#if GTK_CHECK_VERSION(3,20,0)
+         if (gdk_seat_grab (gdk_event_get_seat(event),
+                          event->button.window,
+                          GDK_SEAT_CAPABILITY_ALL_POINTING,
+                          FALSE, NULL, event, NULL, NULL) != GDK_GRAB_SUCCESS)
+#else
          if (gdk_device_grab (gdk_event_get_device(event),
                           event->button.window,
                           GDK_OWNERSHIP_WINDOW,
@@ -933,6 +950,7 @@ static gboolean resize_child_callback(GtkWidget *widget, GdkEvent *event, gpoint
                           GDK_BUTTON_RELEASE_MASK,
                           NULL,
                           event->button.time) != GDK_GRAB_SUCCESS)
+#endif                          
             return FALSE;
 
          mdi->drag_button = event->button.button;
@@ -960,7 +978,11 @@ static gboolean resize_child_callback(GtkWidget *widget, GdkEvent *event, gpoint
          int width, height;
          GtkAllocation allocation;
 
+#if GTK_CHECK_VERSION(3,20,0)
+         gdk_seat_ungrab (gdk_event_get_seat(event));
+#else
          gdk_device_ungrab (gdk_event_get_device(event), event->button.time);
+#endif
          mdi->drag_button = -1;
 
          gtk_widget_get_allocation(widget, &allocation);
@@ -2927,7 +2949,11 @@ int dw_window_set_border(HWND handle, int border)
    return 0;
 }
 
-static GdkDeviceManager *manager = NULL;
+#if GTK_CHECK_VERSION(3,20,0)
+static GdkSeat *_dw_grab_seat = NULL;
+#else
+static GdkDeviceManager *_dw_grab_manager = NULL;
+#endif
 
 /*
  * Captures the mouse input to this window.
@@ -2939,7 +2965,14 @@ void dw_window_capture(HWND handle)
    int _locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
-   manager = gdk_display_get_device_manager(gtk_widget_get_display(handle));
+#if GTK_CHECK_VERSION(3,20,0)
+   _dw_grab_seat = gdk_display_get_default_seat(gtk_widget_get_display(handle));
+   gdk_seat_grab (_dw_grab_seat,
+                  gtk_widget_get_window(handle),
+                  GDK_SEAT_CAPABILITY_ALL_POINTING,
+                  FALSE, NULL, NULL, NULL, NULL);
+#else
+   _dw_grab_manager = gdk_display_get_device_manager(gtk_widget_get_display(handle));
    gdk_device_grab(gdk_device_manager_get_client_pointer(manager),
                    gtk_widget_get_window(handle),
                    GDK_OWNERSHIP_WINDOW,
@@ -2947,6 +2980,7 @@ void dw_window_capture(HWND handle)
                    GDK_BUTTON_RELEASE_MASK | GDK_BUTTON_PRESS_MASK | GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK, 
                    NULL, 
                    GDK_CURRENT_TIME);
+#endif
    DW_MUTEX_UNLOCK;
 }
 
@@ -2986,8 +3020,14 @@ void dw_window_release(void)
    int _locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
+#if GTK_CHECK_VERSION(3,20,0)
+   if(_dw_grab_seat)
+      gdk_seat_ungrab(_dw_grab_seat);
+   _dw_grab_seat = NULL;
+#else   
    gdk_device_ungrab(gdk_device_manager_get_client_pointer(manager), GDK_CURRENT_TIME);
    manager = NULL;
+#endif   
    DW_MUTEX_UNLOCK;
 }
 
@@ -3645,7 +3685,13 @@ void dw_menu_popup(HMENUI *menu, HWND parent, int x, int y)
    popup = parent;
 
    DW_MUTEX_LOCK;
+#if GTK_CHECK_VERSION(3,22,0)
+   GdkRectangle rc = { x, y, 1, 1 };
+   gtk_menu_popup_at_rect(GTK_MENU(*menu), gtk_widget_get_window(parent), 
+                          &rc, GDK_GRAVITY_CENTER, GDK_GRAVITY_CENTER, NULL);
+#else
    gtk_menu_popup(GTK_MENU(*menu), NULL, NULL, NULL, NULL, 1, GDK_CURRENT_TIME);
+#endif
    *menu = NULL;
    DW_MUTEX_UNLOCK;
 }
@@ -3663,14 +3709,25 @@ void dw_pointer_query_pos(long *x, long *y)
    int gx, gy;
    int _locked_by_me = FALSE;
    GdkDisplay *display;
+   GdkDevice *device;
+#if GTK_CHECK_VERSION(3,20,0)
+   GdkSeat *seat;
+#else
    GdkDeviceManager *manager;
+#endif   
 
    DW_MUTEX_LOCK;
 #ifdef GDK_WINDOWING_X11
    display = gdk_display_get_default();
+#if GTK_CHECK_VERSION(3,20,0)
+   seat = gdk_display_get_default_seat(display);
+   device = gdk_seat_get_pointer(seat);
+#else
    manager = gdk_display_get_device_manager(display);
-   gdk_window_get_device_position (gdk_x11_window_lookup_for_display(display, GDK_ROOT_WINDOW()), 
-                                   gdk_device_manager_get_client_pointer(manager), &gx, &gy, &state);
+   device = gdk_device_manager_get_client_pointer(manager);
+#endif
+   gdk_window_get_device_position(gdk_x11_window_lookup_for_display(display, GDK_ROOT_WINDOW()), 
+                                   device, &gx, &gy, &state);
 #endif
    if(x)
       *x = gx;
@@ -3689,13 +3746,24 @@ void dw_pointer_set_pos(long x, long y)
 {
    int _locked_by_me = FALSE;
    GdkDisplay *display;
+   GdkDevice *device;
+#if GTK_CHECK_VERSION(3,20,0)
+   GdkSeat *seat;
+#else
    GdkDeviceManager *manager;
+#endif   
 
    DW_MUTEX_LOCK;
 #ifdef GDK_WINDOWING_X11
    display = gdk_display_get_default();
+#if GTK_CHECK_VERSION(3,20,0)
+   seat = gdk_display_get_default_seat(display);
+   device = gdk_seat_get_pointer(seat);
+#else
    manager = gdk_display_get_device_manager(display);
-   gdk_device_warp( gdk_device_manager_get_client_pointer(manager), gdk_screen_get_default(), x, y );
+   device = gdk_device_manager_get_client_pointer(manager);
+#endif
+   gdk_device_warp(device, gdk_screen_get_default(), x, y);
 #endif
    DW_MUTEX_UNLOCK;
 }
@@ -7102,6 +7170,9 @@ void dw_draw_point(HWND handle, HPIXMAP pixmap, int x, int y)
 {
    int _locked_by_me = FALSE;
    cairo_t *cr = NULL;
+#if GTK_CHECK_VERSION(3,22,0)
+   GdkDrawingContext *dc = NULL;
+#endif
 
    DW_MUTEX_LOCK;
    if(handle)
@@ -7113,7 +7184,12 @@ void dw_draw_point(HWND handle, HPIXMAP pixmap, int x, int y)
          DW_MUTEX_UNLOCK;
          return;
       }
+#if GTK_CHECK_VERSION(3,22,0)
+      dc = gdk_window_begin_draw_frame(window, NULL);
+      cr = gdk_drawing_context_get_cairo_context(dc);
+#else      
       cr = gdk_cairo_create(window);
+#endif      
    }
    else if(pixmap)
       cr = cairo_create(pixmap->image);
@@ -7125,6 +7201,12 @@ void dw_draw_point(HWND handle, HPIXMAP pixmap, int x, int y)
       cairo_set_line_width(cr, 1);
       cairo_move_to(cr, x, y);
       cairo_stroke(cr);
+#if GTK_CHECK_VERSION(3,22,0)
+      /* If we are using a drawing context...
+       * we don't own the cairo context so don't destroy it.
+       */
+      if(!dc)
+#endif            
       cairo_destroy(cr);
    }
    DW_MUTEX_UNLOCK;
@@ -7143,6 +7225,9 @@ void dw_draw_line(HWND handle, HPIXMAP pixmap, int x1, int y1, int x2, int y2)
 {
    int _locked_by_me = FALSE;
    cairo_t *cr = NULL;
+#if GTK_CHECK_VERSION(3,22,0)
+   GdkDrawingContext *dc = NULL;
+#endif
 
    DW_MUTEX_LOCK;
    if(handle)
@@ -7154,7 +7239,12 @@ void dw_draw_line(HWND handle, HPIXMAP pixmap, int x1, int y1, int x2, int y2)
          DW_MUTEX_UNLOCK;
          return;
       }
+#if GTK_CHECK_VERSION(3,22,0)
+      dc = gdk_window_begin_draw_frame(window, NULL);
+      cr = gdk_drawing_context_get_cairo_context(dc);
+#else      
       cr = gdk_cairo_create(window);
+#endif      
    }
    else if(pixmap)
       cr = cairo_create(pixmap->image);
@@ -7167,6 +7257,12 @@ void dw_draw_line(HWND handle, HPIXMAP pixmap, int x1, int y1, int x2, int y2)
       cairo_move_to(cr, x1, y1);
       cairo_line_to(cr, x2, y2);
       cairo_stroke(cr);
+#if GTK_CHECK_VERSION(3,22,0)
+      /* If we are using a drawing context...
+       * we don't own the cairo context so don't destroy it.
+       */
+      if(!dc)
+#endif            
       cairo_destroy(cr);
    }
    DW_MUTEX_UNLOCK;
@@ -7186,6 +7282,9 @@ void dw_draw_polygon(HWND handle, HPIXMAP pixmap, int flags, int npoints, int *x
    int _locked_by_me = FALSE;
    cairo_t *cr = NULL;
    int z;
+#if GTK_CHECK_VERSION(3,22,0)
+   GdkDrawingContext *dc = NULL;
+#endif
 
    DW_MUTEX_LOCK;
    if(handle)
@@ -7197,7 +7296,12 @@ void dw_draw_polygon(HWND handle, HPIXMAP pixmap, int flags, int npoints, int *x
          DW_MUTEX_UNLOCK;
          return;
       }
+#if GTK_CHECK_VERSION(3,22,0)
+      dc = gdk_window_begin_draw_frame(window, NULL);
+      cr = gdk_drawing_context_get_cairo_context(dc);
+#else      
       cr = gdk_cairo_create(window);
+#endif      
    }
    else if(pixmap)
       cr = cairo_create(pixmap->image);
@@ -7218,6 +7322,12 @@ void dw_draw_polygon(HWND handle, HPIXMAP pixmap, int flags, int npoints, int *x
       if(flags & DW_DRAW_FILL)
          cairo_fill(cr);
       cairo_stroke(cr);
+#if GTK_CHECK_VERSION(3,22,0)
+      /* If we are using a drawing context...
+       * we don't own the cairo context so don't destroy it.
+       */
+      if(!dc)
+#endif            
       cairo_destroy(cr);
    }
    DW_MUTEX_UNLOCK;
@@ -7237,6 +7347,9 @@ void dw_draw_rect(HWND handle, HPIXMAP pixmap, int flags, int x, int y, int widt
 {
    int _locked_by_me = FALSE;
    cairo_t *cr = NULL;
+#if GTK_CHECK_VERSION(3,22,0)
+   GdkDrawingContext *dc = NULL;
+#endif
 
    DW_MUTEX_LOCK;
    if(handle)
@@ -7248,7 +7361,12 @@ void dw_draw_rect(HWND handle, HPIXMAP pixmap, int flags, int x, int y, int widt
          DW_MUTEX_UNLOCK;
          return;
       }
+#if GTK_CHECK_VERSION(3,22,0)
+      dc = gdk_window_begin_draw_frame(window, NULL);
+      cr = gdk_drawing_context_get_cairo_context(dc);
+#else      
       cr = gdk_cairo_create(window);
+#endif      
    }
    else if(pixmap)
       cr = cairo_create(pixmap->image);
@@ -7268,6 +7386,12 @@ void dw_draw_rect(HWND handle, HPIXMAP pixmap, int flags, int x, int y, int widt
       if(flags & DW_DRAW_FILL)
          cairo_fill(cr);
       cairo_stroke(cr);
+#if GTK_CHECK_VERSION(3,22,0)
+      /* If we are using a drawing context...
+       * we don't own the cairo context so don't destroy it.
+       */
+      if(!dc)
+#endif            
       cairo_destroy(cr);
    }
    DW_MUTEX_UNLOCK;
@@ -7290,6 +7414,9 @@ void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yo
 {
    int _locked_by_me = FALSE;
    cairo_t *cr = NULL;
+#if GTK_CHECK_VERSION(3,22,0)
+   GdkDrawingContext *dc = NULL;
+#endif
 
    DW_MUTEX_LOCK;
    if(handle)
@@ -7301,7 +7428,12 @@ void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yo
          DW_MUTEX_UNLOCK;
          return;
       }
+#if GTK_CHECK_VERSION(3,22,0)
+      dc = gdk_window_begin_draw_frame(window, NULL);
+      cr = gdk_drawing_context_get_cairo_context(dc);
+#else      
       cr = gdk_cairo_create(window);
+#endif      
    }
    else if(pixmap)
       cr = cairo_create(pixmap->image);
@@ -7333,6 +7465,12 @@ void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yo
       if(flags & DW_DRAW_FILL)
          cairo_fill(cr);
       cairo_stroke(cr);
+#if GTK_CHECK_VERSION(3,22,0)
+      /* If we are using a drawing context...
+       * we don't own the cairo context so don't destroy it.
+       */
+      if(!dc)
+#endif            
       cairo_destroy(cr);
    }
    DW_MUTEX_UNLOCK;
@@ -7352,6 +7490,9 @@ void dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
    cairo_t *cr = NULL;
    PangoFontDescription *font;
    char *tmpname, *fontname = "monospace 10";
+#if GTK_CHECK_VERSION(3,22,0)
+   GdkDrawingContext *dc = NULL;
+#endif
 
    if(!text)
       return;
@@ -7366,7 +7507,12 @@ void dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
          DW_MUTEX_UNLOCK;
          return;
       }
+#if GTK_CHECK_VERSION(3,22,0)
+      dc = gdk_window_begin_draw_frame(window, NULL);
+      cr = gdk_drawing_context_get_cairo_context(dc);
+#else      
       cr = gdk_cairo_create(window);
+#endif      
       if((tmpname = (char *)g_object_get_data(G_OBJECT(handle), "_dw_fontname")))
          fontname = tmpname;
    }
@@ -7422,6 +7568,12 @@ void dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
          }
          pango_font_description_free(font);
       }
+#if GTK_CHECK_VERSION(3,22,0)
+      /* If we are using a drawing context...
+       * we don't own the cairo context so don't destroy it.
+       */
+      if(!dc)
+#endif            
       cairo_destroy(cr);
    }
    DW_MUTEX_UNLOCK;
@@ -7764,6 +7916,9 @@ int API dw_pixmap_stretch_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest,
    int _locked_by_me = FALSE;
    cairo_t *cr = NULL;
    int retval = DW_ERROR_GENERAL;
+#if GTK_CHECK_VERSION(3,22,0)
+   GdkDrawingContext *dc = NULL;
+#endif
 
    if((!dest && (!destp || !destp->image)) || (!src && (!srcp || !srcp->image)))
       return retval;
@@ -7778,7 +7933,12 @@ int API dw_pixmap_stretch_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest,
          DW_MUTEX_UNLOCK;
          return retval;
       }
+#if GTK_CHECK_VERSION(3,22,0)
+      dc = gdk_window_begin_draw_frame(window, NULL);
+      cr = gdk_drawing_context_get_cairo_context(dc);
+#else      
       cr = gdk_cairo_create(window);
+#endif      
    }
    else if(destp)
       cr = cairo_create(destp->image);
@@ -7801,6 +7961,12 @@ int API dw_pixmap_stretch_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest,
          
       cairo_rectangle(cr, xdest / xscale, ydest / yscale, width, height);
       cairo_fill(cr);
+#if GTK_CHECK_VERSION(3,22,0)
+      /* If we are using a drawing context...
+       * we don't own the cairo context so don't destroy it.
+       */
+      if(!dc)
+#endif            
       cairo_destroy(cr);
       retval = DW_ERROR_NONE;
    }
@@ -9346,18 +9512,68 @@ void API dw_window_get_preferred_size(HWND handle, int *width, int *height)
    DW_MUTEX_UNLOCK;
 }
 
+/* Internal version to simplify the code with multiple versions of GTK */
+int _dw_screen_width(void)
+{
+#if GTK_CHECK_VERSION(3,22,0)
+   {
+      GdkDisplay *display = gdk_display_get_default();
+      
+      if(display)
+      {
+         GdkMonitor *monitor = gdk_display_get_primary_monitor(display);
+         
+         if(monitor)
+         {
+            GdkRectangle rc = { 0, 0, 0 ,0 };
+            gdk_monitor_get_geometry(monitor, &rc);
+            return rc.width;
+         }
+      }
+   }
+   return 0;
+#else      
+   return gdk_screen_width();
+#endif      
+}
+
 /*
  * Returns the width of the screen.
  */
 int dw_screen_width(void)
 {
-   int retval;
+   int retval = 0;
    int _locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
-   retval = gdk_screen_width();
+   retval = _dw_screen_width();
    DW_MUTEX_UNLOCK;
    return retval;
+}
+
+/* Internal version to simplify the code with multiple versions of GTK */
+int _dw_screen_height(void)
+{
+#if GTK_CHECK_VERSION(3,22,0)
+   {
+      GdkDisplay *display = gdk_display_get_default();
+      
+      if(display)
+      {
+         GdkMonitor *monitor = gdk_display_get_primary_monitor(display);
+         
+         if(monitor)
+         {
+            GdkRectangle rc = { 0, 0, 0 ,0 };
+            gdk_monitor_get_geometry(monitor, &rc);
+            return rc.height;
+         }
+      }
+   }
+   return 0;
+#else      
+   return gdk_screen_height();
+#endif      
 }
 
 /*
@@ -9368,8 +9584,8 @@ int dw_screen_height(void)
    int retval;
    int _locked_by_me = FALSE;
 
-   DW_MUTEX_UNLOCK;
-   retval = gdk_screen_height();
+   DW_MUTEX_LOCK;
+   retval = _dw_screen_height();
    DW_MUTEX_UNLOCK;
    return retval;
 }
@@ -9381,8 +9597,12 @@ unsigned long dw_color_depth_get(void)
    GdkVisual *vis;
    int _locked_by_me = FALSE;
 
-   DW_MUTEX_UNLOCK;
+   DW_MUTEX_LOCK;
+#if GTK_CHECK_VERSION(3,22,0)
+   vis = gdk_screen_get_system_visual(gdk_screen_get_default());
+#else
    vis = gdk_visual_get_system();
+#endif   
    retval = gdk_visual_get_depth(vis);
    DW_MUTEX_UNLOCK;
    return retval;
@@ -9500,38 +9720,49 @@ void dw_window_set_pos(HWND handle, long x, long y)
          {
             /* Handle horizontal center gravity */
             if((horz & 0xf) == DW_GRAV_CENTER)
-               newx += ((gdk_screen_width() / 2) - (width / 2));
+               newx += ((_dw_screen_width() / 2) - (width / 2));
             /* Handle right gravity */
             else if((horz & 0xf) == DW_GRAV_RIGHT)
-               newx = gdk_screen_width() - width - x;
+               newx = _dw_screen_width() - width - x;
             /* Handle vertical center gravity */
             if((vert & 0xf) == DW_GRAV_CENTER)
-               newy += ((gdk_screen_height() / 2) - (height / 2));
+               newy += ((_dw_screen_height() / 2) - (height / 2));
             else if((vert & 0xf) == DW_GRAV_BOTTOM)
-               newy = gdk_screen_height() - height - y;
+               newy = _dw_screen_height() - height - y;
 
 #if GTK_CHECK_VERSION(3,3,8)               
             /* Adjust the values to avoid Gnome bar if requested */
             if((horz | vert) & DW_GRAV_OBSTACLES)
             {
-               GdkRectangle rect;
+               GdkRectangle rect = { 0, 0, 0, 0 };
+#if GTK_CHECK_VERSION(3,22,0)
+               GdkDisplay *display = gdk_display_get_default();
+               
+               if(display)
+               {
+                  GdkMonitor *monitor = gdk_display_get_primary_monitor(display);
+                  
+                  if(monitor)
+                     gdk_monitor_get_workarea(monitor, &rect);
+               }
+#else      
                GdkScreen *screen = gdk_screen_get_default();
                
                gdk_screen_get_monitor_workarea(screen, 0, &rect);
-               
+#endif              
                if(horz & DW_GRAV_OBSTACLES)
                {
                   if((horz & 0xf) == DW_GRAV_LEFT)
                      newx += rect.x;
                   else if((horz & 0xf) == DW_GRAV_RIGHT)
-                     newx -= dw_screen_width() - (rect.x + rect.width);
+                     newx -= _dw_screen_width() - (rect.x + rect.width);
                }
                if(vert & DW_GRAV_OBSTACLES)
                {
                   if((vert & 0xf) == DW_GRAV_TOP)
                      newy += rect.y;
                   else if((vert & 0xf) == DW_GRAV_BOTTOM)
-                     newy -= dw_screen_height() - (rect.y + rect.height);
+                     newy -= _dw_screen_height() - (rect.y + rect.height);
                }
             }
 #endif            
