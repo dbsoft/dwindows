@@ -7172,6 +7172,7 @@ void dw_draw_point(HWND handle, HPIXMAP pixmap, int x, int y)
    cairo_t *cr = NULL;
 #if GTK_CHECK_VERSION(3,22,0)
    GdkDrawingContext *dc = NULL;
+   cairo_region_t *clip = NULL;
 #endif
 
    DW_MUTEX_LOCK;
@@ -7185,7 +7186,8 @@ void dw_draw_point(HWND handle, HPIXMAP pixmap, int x, int y)
          return;
       }
 #if GTK_CHECK_VERSION(3,22,0)
-      dc = gdk_window_begin_draw_frame(window, NULL);
+      clip = gdk_window_get_clip_region(window);
+      dc = gdk_window_begin_draw_frame(window, clip);
       cr = gdk_drawing_context_get_cairo_context(dc);
 #else      
       cr = gdk_cairo_create(window);
@@ -7202,10 +7204,14 @@ void dw_draw_point(HWND handle, HPIXMAP pixmap, int x, int y)
       cairo_move_to(cr, x, y);
       cairo_stroke(cr);
 #if GTK_CHECK_VERSION(3,22,0)
+      if(clip)
+         cairo_region_destroy(clip);
       /* If we are using a drawing context...
        * we don't own the cairo context so don't destroy it.
        */
-      if(!dc)
+      if(dc)
+         gdk_window_end_draw_frame(gtk_widget_get_window(handle), dc);
+      else         
 #endif            
       cairo_destroy(cr);
    }
@@ -7227,6 +7233,7 @@ void dw_draw_line(HWND handle, HPIXMAP pixmap, int x1, int y1, int x2, int y2)
    cairo_t *cr = NULL;
 #if GTK_CHECK_VERSION(3,22,0)
    GdkDrawingContext *dc = NULL;
+   cairo_region_t *clip = NULL;
 #endif
 
    DW_MUTEX_LOCK;
@@ -7240,7 +7247,8 @@ void dw_draw_line(HWND handle, HPIXMAP pixmap, int x1, int y1, int x2, int y2)
          return;
       }
 #if GTK_CHECK_VERSION(3,22,0)
-      dc = gdk_window_begin_draw_frame(window, NULL);
+      clip = gdk_window_get_clip_region(window);
+      dc = gdk_window_begin_draw_frame(window, clip);
       cr = gdk_drawing_context_get_cairo_context(dc);
 #else      
       cr = gdk_cairo_create(window);
@@ -7258,10 +7266,14 @@ void dw_draw_line(HWND handle, HPIXMAP pixmap, int x1, int y1, int x2, int y2)
       cairo_line_to(cr, x2, y2);
       cairo_stroke(cr);
 #if GTK_CHECK_VERSION(3,22,0)
+      if(clip)
+         cairo_region_destroy(clip);
       /* If we are using a drawing context...
        * we don't own the cairo context so don't destroy it.
        */
-      if(!dc)
+      if(dc)
+         gdk_window_end_draw_frame(gtk_widget_get_window(handle), dc);
+      else         
 #endif            
       cairo_destroy(cr);
    }
@@ -7284,6 +7296,7 @@ void dw_draw_polygon(HWND handle, HPIXMAP pixmap, int flags, int npoints, int *x
    int z;
 #if GTK_CHECK_VERSION(3,22,0)
    GdkDrawingContext *dc = NULL;
+   cairo_region_t *clip = NULL;
 #endif
 
    DW_MUTEX_LOCK;
@@ -7297,7 +7310,8 @@ void dw_draw_polygon(HWND handle, HPIXMAP pixmap, int flags, int npoints, int *x
          return;
       }
 #if GTK_CHECK_VERSION(3,22,0)
-      dc = gdk_window_begin_draw_frame(window, NULL);
+      clip = gdk_window_get_clip_region(window);
+      dc = gdk_window_begin_draw_frame(window, clip);
       cr = gdk_drawing_context_get_cairo_context(dc);
 #else      
       cr = gdk_cairo_create(window);
@@ -7323,10 +7337,14 @@ void dw_draw_polygon(HWND handle, HPIXMAP pixmap, int flags, int npoints, int *x
          cairo_fill(cr);
       cairo_stroke(cr);
 #if GTK_CHECK_VERSION(3,22,0)
+      if(clip)
+         cairo_region_destroy(clip);
       /* If we are using a drawing context...
        * we don't own the cairo context so don't destroy it.
        */
-      if(!dc)
+      if(dc)
+         gdk_window_end_draw_frame(gtk_widget_get_window(handle), dc);
+      else         
 #endif            
       cairo_destroy(cr);
    }
@@ -7349,6 +7367,7 @@ void dw_draw_rect(HWND handle, HPIXMAP pixmap, int flags, int x, int y, int widt
    cairo_t *cr = NULL;
 #if GTK_CHECK_VERSION(3,22,0)
    GdkDrawingContext *dc = NULL;
+   cairo_region_t *clip = NULL;
 #endif
 
    DW_MUTEX_LOCK;
@@ -7362,7 +7381,8 @@ void dw_draw_rect(HWND handle, HPIXMAP pixmap, int flags, int x, int y, int widt
          return;
       }
 #if GTK_CHECK_VERSION(3,22,0)
-      dc = gdk_window_begin_draw_frame(window, NULL);
+      clip = gdk_window_get_clip_region(window);
+      dc = gdk_window_begin_draw_frame(window, clip);
       cr = gdk_drawing_context_get_cairo_context(dc);
 #else      
       cr = gdk_cairo_create(window);
@@ -7387,10 +7407,14 @@ void dw_draw_rect(HWND handle, HPIXMAP pixmap, int flags, int x, int y, int widt
          cairo_fill(cr);
       cairo_stroke(cr);
 #if GTK_CHECK_VERSION(3,22,0)
+      if(clip)
+         cairo_region_destroy(clip);
       /* If we are using a drawing context...
        * we don't own the cairo context so don't destroy it.
        */
-      if(!dc)
+      if(dc)
+         gdk_window_end_draw_frame(gtk_widget_get_window(handle), dc);
+      else         
 #endif            
       cairo_destroy(cr);
    }
@@ -7416,6 +7440,7 @@ void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yo
    cairo_t *cr = NULL;
 #if GTK_CHECK_VERSION(3,22,0)
    GdkDrawingContext *dc = NULL;
+   cairo_region_t *clip = NULL;
 #endif
 
    DW_MUTEX_LOCK;
@@ -7429,7 +7454,8 @@ void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yo
          return;
       }
 #if GTK_CHECK_VERSION(3,22,0)
-      dc = gdk_window_begin_draw_frame(window, NULL);
+      clip = gdk_window_get_clip_region(window);
+      dc = gdk_window_begin_draw_frame(window, clip);
       cr = gdk_drawing_context_get_cairo_context(dc);
 #else      
       cr = gdk_cairo_create(window);
@@ -7466,10 +7492,14 @@ void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yo
          cairo_fill(cr);
       cairo_stroke(cr);
 #if GTK_CHECK_VERSION(3,22,0)
+      if(clip)
+         cairo_region_destroy(clip);
       /* If we are using a drawing context...
        * we don't own the cairo context so don't destroy it.
        */
-      if(!dc)
+      if(dc)
+         gdk_window_end_draw_frame(gtk_widget_get_window(handle), dc);
+      else         
 #endif            
       cairo_destroy(cr);
    }
@@ -7492,6 +7522,7 @@ void dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
    char *tmpname, *fontname = "monospace 10";
 #if GTK_CHECK_VERSION(3,22,0)
    GdkDrawingContext *dc = NULL;
+   cairo_region_t *clip = NULL;
 #endif
 
    if(!text)
@@ -7508,7 +7539,8 @@ void dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
          return;
       }
 #if GTK_CHECK_VERSION(3,22,0)
-      dc = gdk_window_begin_draw_frame(window, NULL);
+      clip = gdk_window_get_clip_region(window);
+      dc = gdk_window_begin_draw_frame(window, clip);
       cr = gdk_drawing_context_get_cairo_context(dc);
 #else      
       cr = gdk_cairo_create(window);
@@ -7569,10 +7601,14 @@ void dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
          pango_font_description_free(font);
       }
 #if GTK_CHECK_VERSION(3,22,0)
+      if(clip)
+         cairo_region_destroy(clip);
       /* If we are using a drawing context...
        * we don't own the cairo context so don't destroy it.
        */
-      if(!dc)
+      if(dc)
+         gdk_window_end_draw_frame(gtk_widget_get_window(handle), dc);
+      else         
 #endif            
       cairo_destroy(cr);
    }
@@ -7918,6 +7954,7 @@ int API dw_pixmap_stretch_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest,
    int retval = DW_ERROR_GENERAL;
 #if GTK_CHECK_VERSION(3,22,0)
    GdkDrawingContext *dc = NULL;
+   cairo_region_t *clip = NULL;
 #endif
 
    if((!dest && (!destp || !destp->image)) || (!src && (!srcp || !srcp->image)))
@@ -7934,7 +7971,8 @@ int API dw_pixmap_stretch_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest,
          return retval;
       }
 #if GTK_CHECK_VERSION(3,22,0)
-      dc = gdk_window_begin_draw_frame(window, NULL);
+      clip = gdk_window_get_clip_region(window);
+      dc = gdk_window_begin_draw_frame(window, clip);
       cr = gdk_drawing_context_get_cairo_context(dc);
 #else      
       cr = gdk_cairo_create(window);
@@ -7962,10 +8000,14 @@ int API dw_pixmap_stretch_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest,
       cairo_rectangle(cr, xdest / xscale, ydest / yscale, width, height);
       cairo_fill(cr);
 #if GTK_CHECK_VERSION(3,22,0)
+      if(clip)
+         cairo_region_destroy(clip);
       /* If we are using a drawing context...
        * we don't own the cairo context so don't destroy it.
        */
-      if(!dc)
+      if(dc)
+         gdk_window_end_draw_frame(gtk_widget_get_window(dest), dc);
+      else         
 #endif            
       cairo_destroy(cr);
       retval = DW_ERROR_NONE;
