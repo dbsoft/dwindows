@@ -114,7 +114,7 @@ $(LINKFLAGS) $(DLLLINKFLAGS)
 $(OBJS) $(RES)
 $(LIBS)
 <<
-	lib /def:$(DEFFILE) /out:dw.lib
+	lib /def:$(DEFFILE) /machine:$(TARGET_CPU) /out:dw.lib
 	mt.exe /manifest dw.dll.manifest win\dw.dll.$(TARGET_CPU).manifest /outputresource:dw.dll;2
 	-erase dw.dll.manifest
         copy dw.lib $(DWLIBDIR)\dw.lib
