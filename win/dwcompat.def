@@ -1,7 +1,5 @@
 LIBRARY DWCOMPAT
 
-DESCRIPTION 'Dynamic Windows Compatibility Module for Win32'
-
 EXPORTS
   makedir            @20
   vargs              @21

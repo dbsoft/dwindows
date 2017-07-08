@@ -1,7 +1,5 @@
 LIBRARY DW
 
-DESCRIPTION 'Dynamic Windows for Win32'
-
 EXPORTS
   Win32_Set_Instance                     @1
 
