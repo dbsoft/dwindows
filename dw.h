@@ -144,6 +144,7 @@ typedef struct _user_data
 #define DW_FCF_MAXIMIZE          WS_MAXIMIZED
 #define DW_FCF_MINIMIZE          WS_MINIMIZED
 #define DW_FCF_TEXTURED          0
+#define DW_FCF_FULLSCREEN        0
 
 #define DW_CFA_BITMAPORICON      CFA_BITMAPORICON
 #define DW_CFA_STRING            CFA_STRING
@@ -357,6 +358,7 @@ void _dw_pool_drain(void);
 #define DW_FCF_MAXIMIZE          0
 #define DW_FCF_MINIMIZE          0
 #define DW_FCF_TEXTURED          (1 << 8) /* NSTexturedBackgroundWindowMask */
+#define DW_FCF_FULLSCREEN        (1 << 4)
 
 #define DW_CFA_BITMAPORICON      1
 #define DW_CFA_STRING            (1 << 1)
@@ -537,6 +539,7 @@ void _dw_pool_drain(void);
 #define DW_FCF_MINIMIZE          WS_MINIMIZE
 #define DW_FCF_COMPOSITED        1
 #define DW_FCF_TEXTURED          0
+#define DW_FCF_FULLSCREEN        (1 << 2)
 
 #define DW_CFA_BITMAPORICON      1
 #define DW_CFA_STRING            (1 << 1)
@@ -648,6 +651,7 @@ typedef struct _item {
 typedef struct _box {
 #if defined(__WIN32__) || defined(WINNT)
    ColorInfo cinfo;
+   int fullscreen;
 #elif defined(__OS2__) || defined(__EMX__)
    PFNWP oldproc;
    UserData *root;
@@ -802,6 +806,7 @@ typedef struct _hpixmap {
 #define DW_FCF_MAXIMIZE          0
 #define DW_FCF_MINIMIZE          0
 #define DW_FCF_TEXTURED          0
+#define DW_FCF_FULLSCREEN        0
 
 #define DW_CFA_BITMAPORICON      1
 #define DW_CFA_STRING            (1 << 1)
@@ -988,6 +993,7 @@ typedef struct _hpixmap {
 #define DW_FCF_MINIMIZE          (1 << 20)
 #define DW_FCF_CLOSEBUTTON       (1 << 21)
 #define DW_FCF_TEXTURED          0
+#define DW_FCF_FULLSCREEN        (1 << 22)
 
 #define DW_CFA_BITMAPORICON      1
 #define DW_CFA_STRING            (1 << 1)
