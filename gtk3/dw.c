@@ -406,7 +406,7 @@ static void gtk_mdi_put(GtkMdi *mdi, GtkWidget *child_widget, gint x, gint y, Gt
 
    child_box = gtk_event_box_new ();
    child_widget_box = gtk_event_box_new ();
-#if GTK_CHECK_VERSION(3,12,0)               
+#if GTK_CHECK_VERSION(3,12,0)
    gtk_widget_set_margin_start(child_widget_box, 2);
 #else
    gtk_widget_set_margin_left(child_widget_box, 2);
@@ -416,7 +416,7 @@ static void gtk_mdi_put(GtkMdi *mdi, GtkWidget *child_widget, gint x, gint y, Gt
    grid = gtk_grid_new ();
    gtk_grid_set_row_spacing(GTK_GRID(grid), 1);
    gtk_grid_set_column_spacing(GTK_GRID(grid), 1);
-   
+
    for (i = 0; i < 3; i++)
    {
       button[i] = gtk_event_box_new ();
@@ -434,7 +434,7 @@ static void gtk_mdi_put(GtkMdi *mdi, GtkWidget *child_widget, gint x, gint y, Gt
    }
    gdk_rgba_parse (&color, GTK_MDI_LABEL_FOREGROUND);
    _dw_override_color (label, "color", &color);
-#if GTK_CHECK_VERSION(3,16,0)               
+#if GTK_CHECK_VERSION(3,16,0)
    gtk_label_set_xalign(GTK_LABEL(label), 0.0f);
    gtk_label_set_yalign(GTK_LABEL(label), 0.5f);
 #else
@@ -466,12 +466,12 @@ static void gtk_mdi_put(GtkMdi *mdi, GtkWidget *child_widget, gint x, gint y, Gt
    gtk_grid_attach (GTK_GRID (grid), button[0], 1, 0, 1, 1);
    gtk_grid_attach (GTK_GRID (grid), button[1], 2, 0, 1, 1);
    gtk_grid_attach (GTK_GRID (grid), button[2], 3, 0, 1, 1);
-   
+
    /* Window contents */
    gtk_widget_set_hexpand(child_widget_box, TRUE);
    gtk_widget_set_vexpand(child_widget_box, TRUE);
    gtk_grid_attach (GTK_GRID (grid), child_widget_box, 0, 1, 4, 1);
-   
+
    /* Bottom border */
    gtk_grid_attach (GTK_GRID (grid), bottom_event_box, 4, 2, 1, 1);
 
@@ -610,7 +610,7 @@ static void gtk_mdi_realize(GtkWidget *widget)
    attributes_mask = GDK_WA_X | GDK_WA_Y | GDK_WA_VISUAL;
    thiswindow = gdk_window_new (gtk_widget_get_parent_window(widget), &attributes, attributes_mask);
    gtk_widget_set_window(widget, thiswindow);
-   
+
    gdk_window_set_user_data (gtk_widget_get_window(widget), widget);
 }
 
@@ -863,7 +863,7 @@ static gboolean move_child_callback(GtkWidget *widget, GdkEvent *event, gpointer
                           GDK_BUTTON_RELEASE_MASK,
                           NULL,
                           event->button.time) != GDK_GRAB_SUCCESS)
-#endif                          
+#endif
             return FALSE;
 
          mdi->drag_button = event->button.button;
@@ -950,7 +950,7 @@ static gboolean resize_child_callback(GtkWidget *widget, GdkEvent *event, gpoint
                           GDK_BUTTON_RELEASE_MASK,
                           NULL,
                           event->button.time) != GDK_GRAB_SUCCESS)
-#endif                          
+#endif
             return FALSE;
 
          mdi->drag_button = event->button.button;
@@ -1131,7 +1131,7 @@ static void *_findsigfunc(char *signame)
 static SignalHandler _get_signal_handler(gpointer data)
 {
    SignalHandler sh = {0};
-   
+
    if(data)
    {
       void **params = (void **)data;
@@ -1312,9 +1312,9 @@ static gint _key_press_event(GtkWidget *widget, GdkEventKey *event, gpointer dat
       int (*keypressfunc)(HWND, char, int, int, void *, char *) = work.func;
       guint32 unichar = gdk_keyval_to_unicode(event->keyval);
       char utf8[7] = { 0 };
-      
+
       g_unichar_to_utf8(unichar, utf8);
-      
+
       retval = keypressfunc(work.window, *event->string, event->keyval,
                        event->state & (GDK_CONTROL_MASK | GDK_SHIFT_MASK | GDK_MOD1_MASK), work.data, utf8);
    }
@@ -1690,7 +1690,7 @@ static gint _column_click_event(GtkWidget *widget, gpointer data)
 {
    void **params = data;
    int retval = FALSE;
-   
+
    if(params && params[2])
    {
       GtkWidget *tree = (GtkWidget *)params[2];
@@ -1699,7 +1699,7 @@ static gint _column_click_event(GtkWidget *widget, gpointer data)
       if(handlerdata)
       {
          SignalHandler work;
-         
+
          params[0] = GINT_TO_POINTER(handlerdata-1);
          work = _get_signal_handler(params);
 
@@ -1729,17 +1729,17 @@ static gint _value_changed_event(GtkWidget *widget, gpointer data)
    GtkWidget *slider, *spinbutton, *scrollbar;
    GtkAdjustment *adjustment = (GtkAdjustment *)widget;
    int max, val;
-   
+
    if(!GTK_IS_ADJUSTMENT(adjustment))
       adjustment = (GtkAdjustment *)g_object_get_data(G_OBJECT(widget), "_dw_adjustment");
-      
+
    slider = (GtkWidget *)g_object_get_data(G_OBJECT(adjustment), "_dw_slider");
    spinbutton = (GtkWidget *)g_object_get_data(G_OBJECT(adjustment), "_dw_spinbutton");
    scrollbar = (GtkWidget *)g_object_get_data(G_OBJECT(adjustment), "_dw_scrollbar");
-   
+
    max = _round_value(gtk_adjustment_get_upper(adjustment));
    val = _round_value(gtk_adjustment_get_value(adjustment));
-   
+
    if(g_object_get_data(G_OBJECT(adjustment), "_dw_suppress_value_changed_event"))
       return FALSE;
 
@@ -1810,7 +1810,7 @@ static GdkPixbuf *_find_pixbuf(HICN icon, unsigned long *userwidth, unsigned lon
    if(data)
    {
       GdkPixbuf *icon_pixbuf;
-      
+
       if(data[0] == 'G' && data[1] == 'd' && data[2] == 'k' && data[3] == 'P')
          icon_pixbuf = gdk_pixbuf_new_from_inline(-1, (const guint8 *)data, FALSE, NULL);
       else
@@ -1867,15 +1867,15 @@ int dw_int_init(DWResources *res, int newthread, int *argc, char **argv[])
       _resources.resource_id = res->resource_id;
       _resources.resource_data = res->resource_data;
    }
-   
+
    /* Setup the private data directory */
    if(argc && argv && *argc > 0 && (*argv)[0])
    {
       char *pathcopy = strdup((*argv)[0]);
       char *pos = strrchr(pathcopy, '/');
       char *binname = pathcopy;
-      
-      /* If we have a / then... 
+
+      /* If we have a / then...
        * the binary name should be at the end.
        */
       if(pos)
@@ -1883,11 +1883,11 @@ int dw_int_init(DWResources *res, int newthread, int *argc, char **argv[])
          binname = pos + 1;
          *pos = 0;
       }
-      
+
       if(*binname)
       {
          char *binpos = strstr(pathcopy, "/bin");
-         
+
          if(binpos)
             strncpy(_dw_share_path, pathcopy, (size_t)(binpos - pathcopy));
          else
@@ -1901,11 +1901,11 @@ int dw_int_init(DWResources *res, int newthread, int *argc, char **argv[])
    /* If that failed... just get the current directory */
    if(!_dw_share_path[0] && !getcwd(_dw_share_path, PATH_MAX))
       _dw_share_path[0] = '/';
-   
+
 #if !GLIB_CHECK_VERSION(2,31,0)
    g_thread_init(NULL);
 #endif
-   
+
    /* Load these functions via dlsym to avoid deprecation warnings */
    _dw_gdk_threads_init = dlsym(RTLD_DEFAULT, "gdk_threads_init");
    _dw_gdk_threads_enter = dlsym(RTLD_DEFAULT, "gdk_threads_enter");
@@ -1972,7 +1972,7 @@ void API dw_main_sleep(int milliseconds)
       while(((tv.tv_sec - start.tv_sec)*1000) + ((tv.tv_usec - start.tv_usec)/1000) <= milliseconds)
       {
          int _locked_by_me = FALSE;
-         
+
          if(orig == (pthread_t)-1)
          {
             if(!pthread_getspecific(_dw_mutex_key))
@@ -2011,7 +2011,7 @@ void API dw_main_iteration(void)
    pthread_t orig = _dw_thread;
    pthread_t curr = pthread_self();
    int _locked_by_me = FALSE;
-   
+
    if(_dw_thread == (pthread_t)-1)
    {
       if(!pthread_getspecific(_dw_mutex_key))
@@ -2194,7 +2194,7 @@ void API dw_debug(char *format, ...)
    va_start(args, format);
    vsnprintf(outbuf, 1024, format, args);
    va_end(args);
-   
+
    fprintf(stderr, "%s", outbuf);
 }
 
@@ -2441,7 +2441,7 @@ int dw_window_show(HWND handle)
          {
             int x = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(handle), "_dw_x"));
             int y = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(handle), "_dw_y"));
-            
+
             /* Call the position function again now that we are realized */
             dw_window_set_pos(handle, x, y);
             /* Clear out the data so we don't do it again */
@@ -2520,15 +2520,15 @@ int dw_window_destroy(HWND handle)
       if(eventbox && GTK_IS_WIDGET(eventbox))
          handle2 = eventbox;
 
-      /* Check if we are removing a widget from a box */	      
+      /* Check if we are removing a widget from a box */	
       if((box = gtk_widget_get_parent(handle2)) && GTK_IS_GRID(box))
       {
          /* Get the number of items in the box... */
          int boxcount = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(box), "_dw_boxcount"));
-#if GTK_CHECK_VERSION(3,10,0)               
+#if GTK_CHECK_VERSION(3,10,0)
          int boxtype = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(box), "_dw_boxtype"));
          int z;
-            
+
          /* Figure out where in the grid this widget is and remove that row/column */
          if(boxtype == DW_VERT)
          {
@@ -2561,7 +2561,7 @@ int dw_window_destroy(HWND handle)
             g_object_set_data(G_OBJECT(box), "_dw_boxcount", GINT_TO_POINTER(boxcount));
          }
       }
-      /* Finally destroy the widget */      
+      /* Finally destroy the widget */
       gtk_widget_destroy(handle2);
    }
    DW_MUTEX_UNLOCK;
@@ -2599,9 +2599,9 @@ void dw_window_reparent(HWND handle, HWND newparent)
 void API dw_font_set_default(char *fontname)
 {
    char *oldfont = _DWDefaultFont;
-   
+
    _DWDefaultFont = strdup(fontname);
-   
+
    if(oldfont)
       free(oldfont);
 }
@@ -2695,7 +2695,7 @@ int dw_window_set_font(HWND handle, char *fontname)
       free(data);
 
    _dw_override_font(handle2, font);
-   
+
    DW_MUTEX_UNLOCK;
    return TRUE;
 }
@@ -2733,9 +2733,9 @@ char * API dw_font_choose(char *currfont)
       gtk_font_chooser_set_font(fd, font);
       free(font);
    }
-   
+
    gtk_widget_show(GTK_WIDGET(fd));
-   
+
    if(gtk_dialog_run(GTK_DIALOG(fd)) == GTK_RESPONSE_OK)
    {
       char *fontname = gtk_font_chooser_get_font(fd);
@@ -2746,7 +2746,7 @@ char * API dw_font_choose(char *currfont)
          if(len > 0 && isdigit(fontname[len-1]))
          {
             int size, x=len-1;
-            
+
             while(x > 0 && fontname[x] != ' ')
             {
                x--;
@@ -2882,9 +2882,9 @@ static int _set_color(HWND handle, unsigned long fore, unsigned long back)
    }
    else if(fore != DW_CLR_DEFAULT)
       forecolor = _colors[fore];
-      
+
    _dw_override_color(handle, "color", fore != DW_CLR_DEFAULT ? &forecolor : NULL);
-   
+
    if(back & DW_RGB_COLOR)
    {
       backcolor.alpha = 1.0;
@@ -2894,7 +2894,7 @@ static int _set_color(HWND handle, unsigned long fore, unsigned long back)
    }
    else if(back != DW_CLR_DEFAULT)
       backcolor = _colors[back];
-      
+
    _dw_override_color(handle, "background-color", back != DW_CLR_DEFAULT ? &backcolor : NULL);
 
    _save_gdk_colors(handle, forecolor, backcolor);
@@ -2976,9 +2976,9 @@ void dw_window_capture(HWND handle)
    gdk_device_grab(gdk_device_manager_get_client_pointer(manager),
                    gtk_widget_get_window(handle),
                    GDK_OWNERSHIP_WINDOW,
-                   FALSE, 
-                   GDK_BUTTON_RELEASE_MASK | GDK_BUTTON_PRESS_MASK | GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK, 
-                   NULL, 
+                   FALSE,
+                   GDK_BUTTON_RELEASE_MASK | GDK_BUTTON_PRESS_MASK | GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK,
+                   NULL,
                    GDK_CURRENT_TIME);
 #endif
    DW_MUTEX_UNLOCK;
@@ -3024,10 +3024,10 @@ void dw_window_release(void)
    if(_dw_grab_seat)
       gdk_seat_ungrab(_dw_grab_seat);
    _dw_grab_seat = NULL;
-#else   
+#else
    gdk_device_ungrab(gdk_device_manager_get_client_pointer(manager), GDK_CURRENT_TIME);
    manager = NULL;
-#endif   
+#endif
    DW_MUTEX_UNLOCK;
 }
 
@@ -3067,7 +3067,7 @@ HWND dw_window_new(HWND hwndOwner, char *title, unsigned long flStyle)
       GtkWidget *grid = gtk_grid_new();
 
       gtk_widget_show_all(grid);
-            
+
       last_window = tmp = gtk_window_new(GTK_WINDOW_TOPLEVEL);
 
       gtk_window_set_title(GTK_WINDOW(tmp), title);
@@ -3087,12 +3087,17 @@ HWND dw_window_new(HWND hwndOwner, char *title, unsigned long flStyle)
       if(flStyle & (DW_FCF_BORDER | DW_FCF_DLGBORDER))
          flags |= GDK_DECOR_BORDER;
 
-      if(flStyle & DW_FCF_MAXIMIZE)
-         gtk_window_maximize(GTK_WINDOW(tmp));
-         
-      if(flStyle & DW_FCF_MINIMIZE)
-         gtk_window_iconify(GTK_WINDOW(tmp));
-         
+      if(flStyle & DW_FCF_FULLSCREEN)
+         gtk_window_fullscreen(GTK_WINDOW(tmp));
+      else
+      {
+         if(flStyle & DW_FCF_MAXIMIZE)
+            gtk_window_maximize(GTK_WINDOW(tmp));
+
+         if(flStyle & DW_FCF_MINIMIZE)
+            gtk_window_iconify(GTK_WINDOW(tmp));
+      }
+
       /* Either the CLOSEBUTTON or SYSMENU flags should make it deletable */
       gtk_window_set_deletable(GTK_WINDOW(tmp), (flStyle & (DW_FCF_CLOSEBUTTON | DW_FCF_SYSMENU)) ? TRUE : FALSE);
 
@@ -3105,7 +3110,7 @@ HWND dw_window_new(HWND hwndOwner, char *title, unsigned long flStyle)
 
       if(flStyle & DW_FCF_SIZEBORDER)
          g_object_set_data(G_OBJECT(tmp), "_dw_size", GINT_TO_POINTER(1));
-         
+
       gtk_grid_attach(GTK_GRID(grid), box, 0, 1, 1, 1);
       gtk_container_add(GTK_CONTAINER(tmp), grid);
       g_object_set_data(G_OBJECT(tmp), "_dw_boxhandle", (gpointer)box);
@@ -3360,7 +3365,7 @@ HMENUI dw_menubar_new(HWND location)
    HMENUI tmp = 0;
 
    DW_MUTEX_LOCK;
-   if(GTK_IS_WINDOW(location) && 
+   if(GTK_IS_WINDOW(location) &&
       (box = (GtkWidget *)g_object_get_data(G_OBJECT(location), "_dw_grid")))
    {
       /* If there is an existing menu bar, remove it */
@@ -3640,7 +3645,7 @@ void dw_menu_item_set_state(HMENUI menu, unsigned long id, unsigned long state)
  * Parameters:
  *       menu: The handle to the  menu in which the item was appended.
  *       id: Menuitem id.
- * Returns: 
+ * Returns:
  *       DW_ERROR_NONE (0) on success or DW_ERROR_UNKNOWN on failure.
  */
 int API dw_menu_delete_item(HMENUI menu, unsigned long id)
@@ -3712,7 +3717,7 @@ void dw_pointer_query_pos(long *x, long *y)
    GdkSeat *seat;
 #else
    GdkDeviceManager *manager;
-#endif   
+#endif
 
    DW_MUTEX_LOCK;
 #ifdef GDK_WINDOWING_X11
@@ -3724,7 +3729,7 @@ void dw_pointer_query_pos(long *x, long *y)
    manager = gdk_display_get_device_manager(display);
    device = gdk_device_manager_get_client_pointer(manager);
 #endif
-   gdk_window_get_device_position(gdk_x11_window_lookup_for_display(display, GDK_ROOT_WINDOW()), 
+   gdk_window_get_device_position(gdk_x11_window_lookup_for_display(display, GDK_ROOT_WINDOW()),
                                    device, &gx, &gy, &state);
 #endif
    if(x)
@@ -3749,7 +3754,7 @@ void dw_pointer_set_pos(long x, long y)
    GdkSeat *seat;
 #else
    GdkDeviceManager *manager;
-#endif   
+#endif
 
    DW_MUTEX_LOCK;
 #ifdef GDK_WINDOWING_X11
@@ -3883,7 +3888,7 @@ HWND dw_text_new(char *text, unsigned long id)
    tmp = gtk_label_new(text);
 
    /* Left and centered */
-#if GTK_CHECK_VERSION(3,16,0)               
+#if GTK_CHECK_VERSION(3,16,0)
    gtk_label_set_xalign(GTK_LABEL(tmp), 0.0f);
    gtk_label_set_yalign(GTK_LABEL(tmp), 0.5f);
 #else
@@ -3917,7 +3922,7 @@ HWND dw_status_text_new(char *text, ULONG id)
    gtk_widget_show(frame);
 
    /* Left and centered */
-#if GTK_CHECK_VERSION(3,16,0)               
+#if GTK_CHECK_VERSION(3,16,0)
    gtk_label_set_xalign(GTK_LABEL(tmp), 0.0f);
    gtk_label_set_yalign(GTK_LABEL(tmp), 0.5f);
 #else
@@ -4610,6 +4615,8 @@ char *dw_window_get_text(HWND handle)
       possible = gtk_entry_get_text(GTK_ENTRY(handle));
    else if(GTK_IS_COMBO_BOX(handle))
       possible = gtk_entry_get_text(GTK_ENTRY(gtk_bin_get_child(GTK_BIN(handle))));
+   else if(GTK_IS_LABEL(handle))
+      possible = gtk_label_get_text(GTK_LABEL(handle));
 
    DW_MUTEX_UNLOCK;
    return strdup(possible ? possible : "");
@@ -5020,7 +5027,7 @@ void dw_mle_thaw(HWND handle)
 }
 
 /* Internal function to update the progress bar
- * while in an indeterminate state. 
+ * while in an indeterminate state.
  */
 gboolean _dw_update_progress_bar(gpointer data)
 {
@@ -5487,7 +5494,7 @@ HTREEITEM API dw_tree_get_parent(HWND handle, HTREEITEM item)
       GtkTreeIter iter;
 
       if(gtk_tree_model_iter_parent(store, &iter, (GtkTreeIter *)item))
-         gtk_tree_model_get(store, &iter, 3, &parent, -1);      
+         gtk_tree_model_get(store, &iter, 3, &parent, -1);
    }
    DW_MUTEX_UNLOCK;
    return parent;
@@ -5906,7 +5913,7 @@ GdkPixbuf *_icon_resize(GdkPixbuf *ret)
    {
       int pwidth = gdk_pixbuf_get_width(ret);
       int pheight = gdk_pixbuf_get_height(ret);
-      
+
       if(pwidth > 24 || pheight > 24)
       {
          GdkPixbuf *orig = ret;
@@ -6291,7 +6298,7 @@ int API dw_filesystem_get_column_type(HWND handle, int column)
  */
 void API dw_container_set_stripe(HWND handle, unsigned long oddcolor, unsigned long evencolor)
 {
-#if !GTK_CHECK_VERSION(3,14,0)               
+#if !GTK_CHECK_VERSION(3,14,0)
    GtkWidget *cont;
    int _locked_by_me = FALSE;
    DW_MUTEX_LOCK;
@@ -6302,11 +6309,11 @@ void API dw_container_set_stripe(HWND handle, unsigned long oddcolor, unsigned l
    {
       if(oddcolor == DW_RGB_TRANSPARENT && evencolor == DW_RGB_TRANSPARENT)
          gtk_tree_view_set_rules_hint(GTK_TREE_VIEW(cont), FALSE);
-      else  
+      else
          gtk_tree_view_set_rules_hint(GTK_TREE_VIEW(cont), TRUE);
    }
    DW_MUTEX_UNLOCK;
-#endif   
+#endif
 }
 
 /*
@@ -6323,7 +6330,7 @@ void dw_container_set_column_width(HWND handle, int column, int width)
 
    DW_MUTEX_LOCK;
    cont = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user");
-   
+
    /* Make sure it is the correct tree type */
    if(cont && GTK_IS_TREE_VIEW(cont) && g_object_get_data(G_OBJECT(cont), "_dw_tree_type") == GINT_TO_POINTER(_DW_TREE_TYPE_CONTAINER))
    {
@@ -6903,13 +6910,13 @@ static void _status_translate(GtkStatusIcon *status_icon, guint button, guint ac
    GdkEventButton event = { 0 };
    long x, y;
    gboolean retval;
-      
+
    dw_pointer_query_pos(&x, &y);
-   
+
    event.button = button;
    event.x = x;
    event.y = y;
-   
+
    g_signal_emit_by_name(G_OBJECT(user_data), "button_press_event", &event, &retval);
 }
 
@@ -6933,8 +6940,8 @@ void dw_taskbar_insert(HWND handle, HICN icon, char *bubbletext)
       gtk_status_icon_set_tooltip_text(status, bubbletext);
    g_object_set_data(G_OBJECT(handle), "_dw_taskbar", status);
    g_signal_connect(G_OBJECT (status), "popup-menu", G_CALLBACK (_status_translate), handle);
-   gtk_status_icon_set_visible(status, TRUE); 
-   DW_MUTEX_UNLOCK;   
+   gtk_status_icon_set_visible(status, TRUE);
+   DW_MUTEX_UNLOCK;
 }
 
 /*
@@ -7042,7 +7049,7 @@ void dw_color_background_set(unsigned long value)
    }
 }
 
-#if GTK_CHECK_VERSION(3,3,11)  
+#if GTK_CHECK_VERSION(3,3,11)
 /* Allows the user to choose a color using the system's color chooser dialog.
  * Parameters:
  *       value: current color
@@ -7060,9 +7067,9 @@ unsigned long API dw_color_choose(unsigned long value)
    cd = (GtkColorChooser *)gtk_color_chooser_dialog_new("Choose color", NULL);
    gtk_color_chooser_set_use_alpha(cd, FALSE);
    gtk_color_chooser_set_rgba(cd, &color);
-   
+
    gtk_widget_show(GTK_WIDGET(cd));
-   
+
    if(gtk_dialog_run(GTK_DIALOG(cd)) == GTK_RESPONSE_OK)
    {
       gtk_color_chooser_get_rgba(cd, &color);
@@ -7072,7 +7079,7 @@ unsigned long API dw_color_choose(unsigned long value)
    DW_MUTEX_UNLOCK;
    return retcolor;
 }
-#else    
+#else
 static int _dw_color_active = 0;
 
 /* Internal function to handle the color OK press */
@@ -7187,9 +7194,9 @@ void dw_draw_point(HWND handle, HPIXMAP pixmap, int x, int y)
       clip = gdk_window_get_clip_region(window);
       dc = gdk_window_begin_draw_frame(window, clip);
       cr = gdk_drawing_context_get_cairo_context(dc);
-#else      
+#else
       cr = gdk_cairo_create(window);
-#endif      
+#endif
    }
    else if(pixmap)
       cr = cairo_create(pixmap->image);
@@ -7209,8 +7216,8 @@ void dw_draw_point(HWND handle, HPIXMAP pixmap, int x, int y)
        */
       if(dc)
          gdk_window_end_draw_frame(gtk_widget_get_window(handle), dc);
-      else         
-#endif            
+      else
+#endif
       cairo_destroy(cr);
    }
    DW_MUTEX_UNLOCK;
@@ -7248,9 +7255,9 @@ void dw_draw_line(HWND handle, HPIXMAP pixmap, int x1, int y1, int x2, int y2)
       clip = gdk_window_get_clip_region(window);
       dc = gdk_window_begin_draw_frame(window, clip);
       cr = gdk_drawing_context_get_cairo_context(dc);
-#else      
+#else
       cr = gdk_cairo_create(window);
-#endif      
+#endif
    }
    else if(pixmap)
       cr = cairo_create(pixmap->image);
@@ -7271,8 +7278,8 @@ void dw_draw_line(HWND handle, HPIXMAP pixmap, int x1, int y1, int x2, int y2)
        */
       if(dc)
          gdk_window_end_draw_frame(gtk_widget_get_window(handle), dc);
-      else         
-#endif            
+      else
+#endif
       cairo_destroy(cr);
    }
    DW_MUTEX_UNLOCK;
@@ -7311,19 +7318,19 @@ void dw_draw_polygon(HWND handle, HPIXMAP pixmap, int flags, int npoints, int *x
       clip = gdk_window_get_clip_region(window);
       dc = gdk_window_begin_draw_frame(window, clip);
       cr = gdk_drawing_context_get_cairo_context(dc);
-#else      
+#else
       cr = gdk_cairo_create(window);
-#endif      
+#endif
    }
    else if(pixmap)
       cr = cairo_create(pixmap->image);
    if(cr)
    {
       GdkRGBA *foreground = pthread_getspecific(_dw_fg_color_key);
-      
+
       if(flags & DW_DRAW_NOAA)
          cairo_set_antialias(cr, CAIRO_ANTIALIAS_NONE);
-         
+
       gdk_cairo_set_source_rgba(cr, foreground);
       cairo_set_line_width(cr, 1);
       cairo_move_to(cr, x[0], y[0]);
@@ -7342,8 +7349,8 @@ void dw_draw_polygon(HWND handle, HPIXMAP pixmap, int flags, int npoints, int *x
        */
       if(dc)
          gdk_window_end_draw_frame(gtk_widget_get_window(handle), dc);
-      else         
-#endif            
+      else
+#endif
       cairo_destroy(cr);
    }
    DW_MUTEX_UNLOCK;
@@ -7382,9 +7389,9 @@ void dw_draw_rect(HWND handle, HPIXMAP pixmap, int flags, int x, int y, int widt
       clip = gdk_window_get_clip_region(window);
       dc = gdk_window_begin_draw_frame(window, clip);
       cr = gdk_drawing_context_get_cairo_context(dc);
-#else      
+#else
       cr = gdk_cairo_create(window);
-#endif      
+#endif
    }
    else if(pixmap)
       cr = cairo_create(pixmap->image);
@@ -7394,7 +7401,7 @@ void dw_draw_rect(HWND handle, HPIXMAP pixmap, int flags, int x, int y, int widt
 
       if(flags & DW_DRAW_NOAA)
          cairo_set_antialias(cr, CAIRO_ANTIALIAS_NONE);
-         
+
       gdk_cairo_set_source_rgba(cr, foreground);
       cairo_set_line_width(cr, 1);
       cairo_move_to(cr, x, y);
@@ -7412,8 +7419,8 @@ void dw_draw_rect(HWND handle, HPIXMAP pixmap, int flags, int x, int y, int widt
        */
       if(dc)
          gdk_window_end_draw_frame(gtk_widget_get_window(handle), dc);
-      else         
-#endif            
+      else
+#endif
       cairo_destroy(cr);
    }
    DW_MUTEX_UNLOCK;
@@ -7455,9 +7462,9 @@ void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yo
       clip = gdk_window_get_clip_region(window);
       dc = gdk_window_begin_draw_frame(window, clip);
       cr = gdk_drawing_context_get_cairo_context(dc);
-#else      
+#else
       cr = gdk_cairo_create(window);
-#endif      
+#endif
    }
    else if(pixmap)
       cr = cairo_create(pixmap->image);
@@ -7466,10 +7473,10 @@ void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yo
       GdkRGBA *foreground = pthread_getspecific(_dw_fg_color_key);
       int width = abs(x2-x1);
       float scale = fabs((float)(y2-y1))/(float)width;
-      
+
       if(flags & DW_DRAW_NOAA)
          cairo_set_antialias(cr, CAIRO_ANTIALIAS_NONE);
-         
+
       gdk_cairo_set_source_rgba(cr, foreground);
       cairo_set_line_width(cr, 1);
       if(scale != 1.0)
@@ -7497,8 +7504,8 @@ void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yo
        */
       if(dc)
          gdk_window_end_draw_frame(gtk_widget_get_window(handle), dc);
-      else         
-#endif            
+      else
+#endif
       cairo_destroy(cr);
    }
    DW_MUTEX_UNLOCK;
@@ -7540,9 +7547,9 @@ void dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
       clip = gdk_window_get_clip_region(window);
       dc = gdk_window_begin_draw_frame(window, clip);
       cr = gdk_drawing_context_get_cairo_context(dc);
-#else      
+#else
       cr = gdk_cairo_create(window);
-#endif      
+#endif
       if((tmpname = (char *)g_object_get_data(G_OBJECT(handle), "_dw_fontname")))
          fontname = tmpname;
    }
@@ -7606,8 +7613,8 @@ void dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
        */
       if(dc)
          gdk_window_end_draw_frame(gtk_widget_get_window(handle), dc);
-      else         
-#endif            
+      else
+#endif
       cairo_destroy(cr);
    }
    DW_MUTEX_UNLOCK;
@@ -7972,9 +7979,9 @@ int API dw_pixmap_stretch_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest,
       clip = gdk_window_get_clip_region(window);
       dc = gdk_window_begin_draw_frame(window, clip);
       cr = gdk_drawing_context_get_cairo_context(dc);
-#else      
+#else
       cr = gdk_cairo_create(window);
-#endif      
+#endif
    }
    else if(destp)
       cr = cairo_create(destp->image);
@@ -7982,19 +7989,19 @@ int API dw_pixmap_stretch_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest,
    if(cr)
    {
       double xscale = 1, yscale = 1;
-      
+
       if(srcwidth != -1 && srcheight != -1)
       {
          xscale = (double)width / (double)srcwidth;
          yscale = (double)height / (double)srcheight;
          cairo_scale(cr, xscale, yscale);
       }
-      
+
       if(src)
          gdk_cairo_set_source_window (cr, gtk_widget_get_window(src), (xdest + xsrc) / xscale, (ydest + ysrc) / yscale);
       else if(srcp)
          cairo_set_source_surface (cr, srcp->image, (xdest + xsrc) / xscale, (ydest + ysrc) / yscale);
-         
+
       cairo_rectangle(cr, xdest / xscale, ydest / yscale, width, height);
       cairo_fill(cr);
 #if GTK_CHECK_VERSION(3,22,0)
@@ -8005,8 +8012,8 @@ int API dw_pixmap_stretch_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest,
        */
       if(dc)
          gdk_window_end_draw_frame(gtk_widget_get_window(dest), dc);
-      else         
-#endif            
+      else
+#endif
       cairo_destroy(cr);
       retval = DW_ERROR_NONE;
    }
@@ -8256,7 +8263,7 @@ int dw_event_wait(HEV eve, unsigned long timeout)
       return DW_ERROR_NON_INIT;
 
    pthread_mutex_lock (&(eve->mutex));
-    
+
    if(eve->posted)
    {
       pthread_mutex_unlock (&(eve->mutex));
@@ -8267,7 +8274,7 @@ int dw_event_wait(HEV eve, unsigned long timeout)
    {
       struct timeval now;
       struct timespec timeo;
-   
+
       gettimeofday(&now, 0);
       timeo.tv_sec = now.tv_sec + (timeout / 1000);
       timeo.tv_nsec = now.tv_usec * 1000;
@@ -8275,7 +8282,7 @@ int dw_event_wait(HEV eve, unsigned long timeout)
    }
    else
       rc = pthread_cond_wait(&(eve->event), &(eve->mutex));
-      
+
    pthread_mutex_unlock (&(eve->mutex));
    if(!rc)
       return DW_ERROR_NONE;
@@ -8640,7 +8647,7 @@ int dw_named_event_close(HEV eve)
    return DW_ERROR_NONE;
 }
 
-/* 
+/*
  * Generally an internal function called from a newly created
  * thread to setup the Dynamic Windows environment for the thread.
  * However it is exported so language bindings can call it when
@@ -8655,7 +8662,7 @@ void API _dw_init_thread(void)
    pthread_setspecific(_dw_bg_color_key, NULL);
 }
 
-/* 
+/*
  * Generally an internal function called from a terminating
  * thread to cleanup the Dynamic Windows environment for the thread.
  * However it is exported so language bindings can call it when
@@ -8664,7 +8671,7 @@ void API _dw_init_thread(void)
 void API _dw_deinit_thread(void)
 {
    GdkRGBA *foreground, *background;
-   
+
    if((foreground = pthread_getspecific(_dw_fg_color_key)))
       free(foreground);
    if((background = pthread_getspecific(_dw_bg_color_key)))
@@ -8859,9 +8866,9 @@ void dw_exit(int exitcode)
 void _get_scrolled_size(GtkWidget *item, gint *thiswidth, gint *thisheight)
 {
    GtkWidget *widget = g_object_get_data(G_OBJECT(item), "_dw_user");
-   
+
    *thisheight = *thiswidth = 0;
-   
+
    if(widget)
    {
       if(g_object_get_data(G_OBJECT(widget), "_dw_tree_type") == GINT_TO_POINTER(_DW_TREE_TYPE_TREE))
@@ -8878,16 +8885,16 @@ void _get_scrolled_size(GtkWidget *item, gint *thiswidth, gint *thisheight)
          int wrap = (gtk_text_view_get_wrap_mode(GTK_TEXT_VIEW(widget)) == GTK_WRAP_WORD);
          static char testtext[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
          int hscrolled = FALSE;
-         
+
          *thiswidth = *thisheight = 0;
-         
+
          dw_mle_get_size(item, &bytes, NULL);
-         
+
          ptr = buf = alloca(bytes + 2);
          dw_mle_export(item, buf, 0, (int)bytes);
          buf[bytes] = 0;
          strcat(buf, "\r");
-         
+
          /* MLE */
          while((ptr = strstr(buf, "\r")))
          {
@@ -8897,7 +8904,7 @@ void _get_scrolled_size(GtkWidget *item, gint *thiswidth, gint *thisheight)
                dw_font_text_extents_get(item, NULL, buf, &width, &height);
             else
                dw_font_text_extents_get(item, NULL, testtext, NULL, &height);
-            
+
             if(wrap && width > _DW_SCROLLED_MAX_WIDTH)
             {
                *thiswidth = _DW_SCROLLED_MAX_WIDTH;
@@ -8929,7 +8936,7 @@ void _get_scrolled_size(GtkWidget *item, gint *thiswidth, gint *thisheight)
       {
          gtk_widget_get_preferred_height(GTK_WIDGET(widget), NULL, thisheight);
          gtk_widget_get_preferred_width(GTK_WIDGET(widget), NULL, thiswidth);
-         
+
          *thisheight += 20;
          *thiswidth += 20;
       }
@@ -8989,7 +8996,7 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
       {
          int pwidth = gdk_pixbuf_get_width(pixbuf);
          int pheight = gdk_pixbuf_get_height(pixbuf);
-         
+
          if(width == -1)
             width = pwidth;
          if(height == -1)
@@ -9043,8 +9050,8 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
          index = 0;
       if(index > boxcount)
          index = boxcount;
-         
-#if !GTK_CHECK_VERSION(3,10,0)               
+
+#if !GTK_CHECK_VERSION(3,10,0)
       /* Fix the index by taking into account empty cells */
       if(boxtype == DW_VERT)
       {
@@ -9076,7 +9083,7 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
       gtk_widget_set_halign(item, hsize ? GTK_ALIGN_FILL : GTK_ALIGN_START);
       /* Use the margin property as padding */
       g_object_set(G_OBJECT(item), "margin", pad, NULL);
-      /* Add to the grid using insert... 
+      /* Add to the grid using insert...
        * rows for vertical boxes and columns for horizontal.
        */
       if(boxtype == DW_VERT)
@@ -9094,11 +9101,11 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
       if(GTK_IS_SCROLLED_WINDOW(item))
       {
          gint scrolledwidth = 0, scrolledheight = 0;
-         
+
          /* Pre-run the calculation code for MLE/Container/Tree if needed */
          if((width < 1 && !hsize) || (height < 1 && !vsize))
             _get_scrolled_size(item, &scrolledwidth, &scrolledheight);
-         
+
          if(width > 0)
             gtk_scrolled_window_set_min_content_width(GTK_SCROLLED_WINDOW(item), width);
          else if(!hsize)
@@ -9115,7 +9122,7 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
             gtk_widget_set_size_request(item, 150, height);
          else if(width == -1 && GTK_IS_SPIN_BUTTON(item))
             gtk_widget_set_size_request(item, 50, height);
-         else      	 
+         else      	
             gtk_widget_set_size_request(item, width, height);
       }
       if(GTK_IS_RADIO_BUTTON(item))
@@ -9159,7 +9166,7 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
 int API dw_box_unpack(HWND handle)
 {
    int _locked_by_me = FALSE, retcode = DW_ERROR_GENERAL;
-   
+
    DW_MUTEX_LOCK;
    if(GTK_IS_WIDGET(handle))
    {
@@ -9170,12 +9177,12 @@ int API dw_box_unpack(HWND handle)
       if(eventbox && GTK_IS_WIDGET(eventbox))
          handle2 = eventbox;
 
-      /* Check if we are removing a widget from a box */	      
+      /* Check if we are removing a widget from a box */	
       if((box = gtk_widget_get_parent(handle2)) && GTK_IS_GRID(box))
       {
          /* Get the number of items in the box... */
          int boxcount = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(box), "_dw_boxcount"));
-#if GTK_CHECK_VERSION(3,10,0)               
+#if GTK_CHECK_VERSION(3,10,0)
          int boxtype = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(box), "_dw_boxtype"));
 #endif
 			
@@ -9191,8 +9198,8 @@ int API dw_box_unpack(HWND handle)
             g_object_ref(G_OBJECT(handle2));
             g_object_set_data(G_OBJECT(handle2), "_dw_refed", GINT_TO_POINTER(1));
          }
-         /* Remove the widget from the box */      
-#if GTK_CHECK_VERSION(3,10,0)               
+         /* Remove the widget from the box */
+#if GTK_CHECK_VERSION(3,10,0)
          /* Figure out where in the grid this widget is and remove that row/column */
          if(boxtype == DW_VERT)
          {
@@ -9242,15 +9249,15 @@ HWND API dw_box_unpack_at_index(HWND box, int index)
 {
    int _locked_by_me = FALSE;
    HWND retval = 0;
-   
+
    DW_MUTEX_LOCK;
-   /* Check if we are removing a widget from a box */	      
+   /* Check if we are removing a widget from a box */	
    if(GTK_IS_GRID(box))
    {
       /* Get the number of items in the box... */
       int boxcount = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(box), "_dw_boxcount"));
       int boxtype = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(box), "_dw_boxtype"));
-#if GTK_CHECK_VERSION(3,10,0)               
+#if GTK_CHECK_VERSION(3,10,0)
       GtkWidget *item = (boxtype == DW_VERT) ? gtk_grid_get_child_at(GTK_GRID(box), 0, index) : gtk_grid_get_child_at(GTK_GRID(box), index, 0);
 #else
       GtkWidget *item;
@@ -9296,14 +9303,14 @@ HWND API dw_box_unpack_at_index(HWND box, int index)
             g_object_ref(G_OBJECT(item));
             g_object_set_data(G_OBJECT(item), "_dw_refed", GINT_TO_POINTER(1));
          }
-         /* Remove the widget from the box */      
+         /* Remove the widget from the box */
          gtk_container_remove(GTK_CONTAINER(box), item);
-#if GTK_CHECK_VERSION(3,10,0)   
+#if GTK_CHECK_VERSION(3,10,0)
          if(boxtype == DW_VERT)
             gtk_grid_remove_row(GTK_GRID(box), index);
          else
             gtk_grid_remove_column(GTK_GRID(box), index);
-#endif       
+#endif
          retval = item;
       }
    }
@@ -9420,7 +9427,7 @@ void _dw_get_frame_extents(GtkWidget *window, int *vert, int *horz)
 
          /* Connect a signal to look for the property change */
          connid = g_signal_connect(G_OBJECT(window), "property_notify_event", G_CALLBACK(_dw_property_notify), gdkwindow);
-         
+
          /* Record the request time */
          time(&extents_time);
 
@@ -9431,11 +9438,11 @@ void _dw_get_frame_extents(GtkWidget *window, int *vert, int *horz)
             time(&currtime);
          }
          while(currtime - extents_time < 2);
-         
+
          /* Remove the signal handler now that we are done */
          g_signal_handler_disconnect(G_OBJECT(window), connid);
       }
-      
+
       /* Attempt to retrieve window's frame extents. */
       eu.extents = &extents;
       if(gdk_property_get(gdkwindow,
@@ -9481,7 +9488,7 @@ void dw_window_set_size(HWND handle, unsigned long width, unsigned long height)
          /* Calculate the border size */
          gdk_window_get_frame_extents(window, &frame);
          gdk_window_get_geometry(window, NULL, NULL, &gwidth, &gheight);
-         
+
          cx = frame.width - gwidth;
          if(cx < 0)
             cx = 0;
@@ -9534,9 +9541,9 @@ void API dw_window_get_preferred_size(HWND handle, int *width, int *height)
    if(GTK_IS_SCROLLED_WINDOW(handle))
    {
       gint scrolledwidth, scrolledheight;
-      
+
       _get_scrolled_size(handle, &scrolledwidth, &scrolledheight);
-      
+
       if(width)
          *width = scrolledwidth;
       if(height)
@@ -9558,11 +9565,11 @@ int _dw_screen_width(void)
 #if GTK_CHECK_VERSION(3,22,0)
    {
       GdkDisplay *display = gdk_display_get_default();
-      
+
       if(display)
       {
          GdkMonitor *monitor = gdk_display_get_primary_monitor(display);
-         
+
          if(monitor)
          {
             GdkRectangle rc = { 0, 0, 0 ,0 };
@@ -9572,9 +9579,9 @@ int _dw_screen_width(void)
       }
    }
    return 0;
-#else      
+#else
    return gdk_screen_width();
-#endif      
+#endif
 }
 
 /*
@@ -9597,11 +9604,11 @@ int _dw_screen_height(void)
 #if GTK_CHECK_VERSION(3,22,0)
    {
       GdkDisplay *display = gdk_display_get_default();
-      
+
       if(display)
       {
          GdkMonitor *monitor = gdk_display_get_primary_monitor(display);
-         
+
          if(monitor)
          {
             GdkRectangle rc = { 0, 0, 0 ,0 };
@@ -9611,9 +9618,9 @@ int _dw_screen_height(void)
       }
    }
    return 0;
-#else      
+#else
    return gdk_screen_height();
-#endif      
+#endif
 }
 
 /*
@@ -9642,7 +9649,7 @@ unsigned long dw_color_depth_get(void)
    vis = gdk_screen_get_system_visual(gdk_screen_get_default());
 #else
    vis = gdk_visual_get_system();
-#endif   
+#endif
    retval = gdk_visual_get_depth(vis);
    DW_MUTEX_UNLOCK;
    return retval;
@@ -9678,7 +9685,7 @@ void dw_window_set_pos(HWND handle, long x, long y)
 
    if(!handle)
       return;
-      
+
    DW_MUTEX_LOCK;
 #ifdef DW_INCLUDE_DEPRECATED
    if((mdi = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_mdi")) && GTK_IS_MDI(mdi))
@@ -9689,7 +9696,7 @@ void dw_window_set_pos(HWND handle, long x, long y)
 #endif
    {
       GdkWindow *window = NULL;
-      
+
       if(GTK_IS_WINDOW(handle))
       {
          GdkWindow *window = gtk_widget_get_window(handle);
@@ -9698,7 +9705,7 @@ void dw_window_set_pos(HWND handle, long x, long y)
          int cx = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(handle), "_dw_frame_width"));
          int cy = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(handle), "_dw_frame_height"));
          int newx = x, newy = y, width = 0, height = 0;
-         
+
          /* If the window is mapped */
          if(window && gtk_widget_get_mapped(handle))
          {
@@ -9710,12 +9717,12 @@ void dw_window_set_pos(HWND handle, long x, long y)
 
                /* Get the frame size */
                gdk_window_get_frame_extents(window, &frame);
-               
+
                /* FIXME: Sometimes we get returned an invalid 200x200
-                * result... so if we get this... try the call a second 
+                * result... so if we get this... try the call a second
                 * time and hope for a better result.
                 */
-               while((frame.width == 200 || frame.width == (200 + cx)) && 
+               while((frame.width == 200 || frame.width == (200 + cx)) &&
                      (frame.height == 200 || frame.height == (200 + cy)) && count < 10)
                {
                   _dw_msleep(1);
@@ -9770,26 +9777,26 @@ void dw_window_set_pos(HWND handle, long x, long y)
             else if((vert & 0xf) == DW_GRAV_BOTTOM)
                newy = _dw_screen_height() - height - y;
 
-#if GTK_CHECK_VERSION(3,3,8)               
+#if GTK_CHECK_VERSION(3,3,8)
             /* Adjust the values to avoid Gnome bar if requested */
             if((horz | vert) & DW_GRAV_OBSTACLES)
             {
                GdkRectangle rect = { 0, 0, 0, 0 };
 #if GTK_CHECK_VERSION(3,22,0)
                GdkDisplay *display = gdk_display_get_default();
-               
+
                if(display)
                {
                   GdkMonitor *monitor = gdk_display_get_primary_monitor(display);
-                  
+
                   if(monitor)
                      gdk_monitor_get_workarea(monitor, &rect);
                }
-#else      
+#else
                GdkScreen *screen = gdk_screen_get_default();
-               
+
                gdk_screen_get_monitor_workarea(screen, 0, &rect);
-#endif              
+#endif
                if(horz & DW_GRAV_OBSTACLES)
                {
                   if((horz & 0xf) == DW_GRAV_LEFT)
@@ -9805,8 +9812,8 @@ void dw_window_set_pos(HWND handle, long x, long y)
                      newy -= _dw_screen_height() - (rect.y + rect.height);
                }
             }
-#endif            
-         }            
+#endif
+         }
          /* Finally move the window into place */
          gtk_window_move(GTK_WINDOW(handle), newx, newy);
       }
@@ -9859,7 +9866,7 @@ void dw_window_get_pos_size(HWND handle, long *x, long *y, ULONG *width, ULONG *
 #endif
    {
       GdkWindow *window;
-      
+
       /* Can only query if the window is realized */
       if(handle && (window = gtk_widget_get_window(handle)))
       {
@@ -9954,7 +9961,7 @@ void dw_window_set_style(HWND handle, unsigned long style, unsigned long mask)
          y = DW_TOP;
       if ( style & DW_DT_BOTTOM )
          y = DW_BOTTOM;
-#if GTK_CHECK_VERSION(3,16,0)               
+#if GTK_CHECK_VERSION(3,16,0)
       gtk_label_set_xalign(GTK_LABEL(handle2), x);
       gtk_label_set_yalign(GTK_LABEL(handle2), y);
 #else
@@ -9966,7 +9973,7 @@ void dw_window_set_style(HWND handle, unsigned long style, unsigned long mask)
    if ( GTK_IS_CHECK_MENU_ITEM(handle2) && (mask & (DW_MIS_CHECKED | DW_MIS_UNCHECKED)) )
    {
       int check = 0;
-      
+
       if ( style & DW_MIS_CHECKED )
          check = 1;
 
@@ -10434,14 +10441,14 @@ void dw_listbox_set_top(HWND handle, int top)
          gdouble upper = gtk_adjustment_get_upper(adjust) - pagesize;
          gdouble lower = gtk_adjustment_get_lower(adjust);
          gdouble change;
-         
+
          /* Safety check */
          if(rowcount < 2)
          {
             DW_MUTEX_UNLOCK;
             return;
          }
-         
+
          /* Verify the range */
          rowcount--;
          if(top > rowcount)
@@ -10790,9 +10797,9 @@ gboolean _splitbar_set_percent(gpointer data)
    if(percent)
    {
       GtkAllocation alloc;
-      
+
       gtk_widget_get_allocation(widget, &alloc);
-      
+
       if(gtk_orientable_get_orientation(GTK_ORIENTABLE(widget)) == GTK_ORIENTATION_HORIZONTAL)
          gtk_paned_set_position(GTK_PANED(widget), (int)(alloc.width * (*percent / 100.0)));
       else
@@ -11125,13 +11132,13 @@ char *dw_file_browse(char *title, char *defpath, char *ext, int flags)
    if ( defpath )
    {
       struct stat buf;
-      
+
       if ( g_path_is_absolute( defpath ) || !realpath(defpath, mypath))
       {
          strcpy( mypath, defpath );
       }
 
-      /* See if the path exists */      
+      /* See if the path exists */
       if(stat(mypath, &buf) == 0)
       {
          /* If the path is a directory... set the current folder */
@@ -11147,7 +11154,7 @@ char *dw_file_browse(char *title, char *defpath, char *ext, int flags)
          if(strchr(mypath, '/'))
          {
             unsigned long x = strlen(mypath) - 1;
-            
+
             /* Trim off the filename */
             while(x > 0 && mypath[x] != '/')
             {
@@ -11157,11 +11164,11 @@ char *dw_file_browse(char *title, char *defpath, char *ext, int flags)
             {
                 char *file = NULL;
                 char temp[PATH_MAX+1];
-             
+
                 /* Save the original path in temp */
                 strcpy(temp, mypath);
                 mypath[x] = 0;
-                
+
                 /* Check to make sure the trimmed piece is a directory */
                 if(realpath(mypath, temp) && stat(temp, &buf) == 0)
                 {
@@ -11171,7 +11178,7 @@ char *dw_file_browse(char *title, char *defpath, char *ext, int flags)
                       file = &mypath[x+1];
                    }
                 }
-                
+
                 /* Select folder... */
                 gtk_file_chooser_set_current_folder( GTK_FILE_CHOOSER(filew), temp );
                 /* ... and file separately */
@@ -11539,11 +11546,11 @@ HPRINT API dw_print_new(char *jobname, unsigned long flags, unsigned int pages, 
 {
    GtkPrintOperation *op;
    int _locked_by_me = FALSE;
-   
+
    if(!drawfunc)
       return NULL;
 
-   DW_MUTEX_LOCK;   
+   DW_MUTEX_LOCK;
    if((op = gtk_print_operation_new()))
    {
       gtk_print_operation_set_n_pages(op, pages);
@@ -11569,7 +11576,7 @@ int API dw_print_run(HPRINT print, unsigned long flags)
    GtkPrintOperationResult res;
    GtkPrintOperation *op = (GtkPrintOperation *)print;
    int _locked_by_me = FALSE;
-   
+
    DW_MUTEX_LOCK;
    res = gtk_print_operation_run(op, GTK_PRINT_OPERATION_ACTION_PRINT_DIALOG, NULL, NULL);
    DW_MUTEX_UNLOCK;
@@ -11585,7 +11592,7 @@ void API dw_print_cancel(HPRINT print)
 {
    int _locked_by_me = FALSE;
    GtkPrintOperation *op = (GtkPrintOperation *)print;
-   
+
    DW_MUTEX_LOCK;
    gtk_print_operation_cancel(op);
    DW_MUTEX_UNLOCK;
@@ -11614,7 +11621,7 @@ char *dw_user_dir(void)
 
 /*
  * Returns a pointer to a static buffer which containes the
- * private application data directory. 
+ * private application data directory.
  */
 char * API dw_app_dir(void)
 {
@@ -11785,7 +11792,7 @@ static HWND _find_signal_window(HWND window, char *signame)
  */
 void dw_signal_connect(HWND window, char *signame, void *sigfunc, void *data)
 {
-   dw_signal_connect_data(window, signame, sigfunc, NULL, data); 
+   dw_signal_connect_data(window, signame, sigfunc, NULL, data);
 }
 
 /* Internal function to free any allocated signal data..
@@ -11801,7 +11808,7 @@ static void _dw_signal_disconnect(gpointer data, GClosure *closure)
       if(discfunc)
       {
          SignalHandler work = _get_signal_handler(data);
-         
+
          if(work.window)
          {
             discfunc(work.window, work.data);
@@ -11828,7 +11835,7 @@ void dw_signal_connect_data(HWND window, char *signame, void *sigfunc, void *dis
    int sigid, _locked_by_me = FALSE;
    void **params = calloc(3, sizeof(void *));
    gint cid;
-   
+
    /* Save the disconnect function pointer */
    params[1] = discfunc;
 
@@ -11897,7 +11904,7 @@ void dw_signal_connect_data(HWND window, char *signame, void *sigfunc, void *dis
       params[2] = (void *)thiswindow;
       cid = g_signal_connect_data(G_OBJECT(thiswindow), "key_press_event", G_CALLBACK(_container_enter_event), params, _dw_signal_disconnect, 0);
       _set_signal_handler_id(thiswindow, sigid, cid);
-      
+
       params = calloc(sizeof(void *), 3);
 
       thisname = "button_press_event";
@@ -11971,7 +11978,7 @@ void dw_signal_disconnect_by_name(HWND window, char *signame)
    for(z=0;z<count;z++)
    {
       SignalHandler sh;
-      
+
       params[0] = GINT_TO_POINTER(z);
       sh = _get_signal_handler(params);
 
@@ -12021,7 +12028,7 @@ void dw_signal_disconnect_by_data(HWND window, void *data)
    for(z=0;z<count;z++)
    {
       SignalHandler sh;
-      
+
       params[0] = GINT_TO_POINTER(z);
       sh = _get_signal_handler(params);
 
@@ -12042,10 +12049,10 @@ void dw_signal_disconnect_by_data(HWND window, void *data)
 wchar_t * API dw_utf8_to_wchar(char *utf8string)
 {
    wchar_t *retval = NULL, *freeme;
-   
+
    if(sizeof(wchar_t) == sizeof(gunichar))
       freeme = retval = (wchar_t *)g_utf8_to_ucs4(utf8string, -1, NULL, NULL, NULL);
-   else if(sizeof(wchar_t) == sizeof(gunichar2))   
+   else if(sizeof(wchar_t) == sizeof(gunichar2))
       freeme = retval = (wchar_t *)g_utf8_to_utf16(utf8string, -1, NULL, NULL, NULL);
    if(retval)
    {
@@ -12066,7 +12073,7 @@ wchar_t * API dw_utf8_to_wchar(char *utf8string)
 char * API dw_wchar_to_utf8(wchar_t *wstring)
 {
    char *retval = NULL, *freeme;
-   
+
    if(sizeof(wchar_t) == sizeof(gunichar))
       freeme = retval = g_ucs4_to_utf8((gunichar *)wstring, -1, NULL, NULL, NULL);
    else if(sizeof(wchar_t) == sizeof(gunichar2))
@@ -12076,6 +12083,6 @@ char * API dw_wchar_to_utf8(wchar_t *wstring)
       retval = strdup(retval);
       g_free(freeme);
    }
-   return retval;    
+   return retval;
 }
 

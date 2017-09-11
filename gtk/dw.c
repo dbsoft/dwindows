@@ -1227,7 +1227,7 @@ static void *_findsigfunc(char *signame)
 static SignalHandler _get_signal_handler(gpointer data)
 {
    SignalHandler sh = {0};
-   
+
    if(data)
    {
       void **params = (void **)data;
@@ -2400,7 +2400,7 @@ void *dw_dialog_wait(DWDialog *dialog)
 {
    void *tmp;
    int newprocess = 0;
-   
+
    if(!dialog)
       return NULL;
 
@@ -3605,11 +3605,15 @@ HWND dw_window_new(HWND hwndOwner, char *title, unsigned long flStyle)
          flags |= GDK_DECOR_BORDER;
 
 #if GTK_MAJOR_VERSION > 1
-      if(flStyle & DW_FCF_MAXIMIZE)
-         gtk_window_maximize(GTK_WINDOW(tmp));
-
-      if(flStyle & DW_FCF_MINIMIZE)
-         gtk_window_iconify(GTK_WINDOW(tmp));
+      if(flStyle & DW_FCF_FULLSCREEN)
+         gtk_window_fullscreen(GTK_WINDOW(tmp));
+      else
+      {
+         if(flStyle & DW_FCF_MAXIMIZE)
+            gtk_window_maximize(GTK_WINDOW(tmp));
+         if(flStyle & DW_FCF_MINIMIZE)
+            gtk_window_iconify(GTK_WINDOW(tmp));
+      }
 #endif
 
 #if GTK_CHECK_VERSION(2,10,0)
@@ -4901,7 +4905,7 @@ void dw_window_set_bitmap(HWND handle, unsigned long id, char *filename)
 {
 #if GTK_MAJOR_VERSION > 1
    GdkPixbuf *pixbuf = NULL;
-#else   
+#else
    GdkBitmap *bitmap = NULL;
    GdkPixmap *tmp = NULL;
 #endif
@@ -4918,7 +4922,7 @@ void dw_window_set_bitmap(HWND handle, unsigned long id, char *filename)
       pixbuf = _find_pixbuf((HICN)id);
 #else
       tmp = _find_pixmap(&bitmap, (HICN)id, handle, NULL, NULL);
-#endif      
+#endif
    else
    {
       char *file = alloca(strlen(filename) + 6);
@@ -4969,9 +4973,9 @@ void dw_window_set_bitmap(HWND handle, unsigned long id, char *filename)
 
 #if GTK_MAJOR_VERSION > 1
    if (pixbuf)
-#else   
+#else
    if (tmp)
-#endif   
+#endif
    {
       if ( GTK_IS_BUTTON(handle) )
       {
@@ -4998,7 +5002,7 @@ void dw_window_set_bitmap(HWND handle, unsigned long id, char *filename)
 #if GTK_MAJOR_VERSION > 1
    if(pixbuf)
       g_object_unref(pixbuf);
-#endif      
+#endif
    DW_MUTEX_UNLOCK;
 }
 
@@ -5017,7 +5021,7 @@ void dw_window_set_bitmap_from_data(HWND handle, unsigned long id, char *data, i
 {
 #if GTK_MAJOR_VERSION > 1
    GdkPixbuf *pixbuf = NULL;
-#else   
+#else
    GdkBitmap *bitmap = NULL;
    GdkPixmap *tmp = NULL;
 #endif
@@ -5069,13 +5073,13 @@ void dw_window_set_bitmap_from_data(HWND handle, unsigned long id, char *data, i
       pixbuf = _find_pixbuf((HICN)id);
 #else
       tmp = _find_pixmap(&bitmap, (HICN)id, handle, NULL, NULL);
-#endif      
+#endif
 
 #if GTK_MAJOR_VERSION > 1
    if (pixbuf)
-#else   
+#else
    if (tmp)
-#endif   
+#endif
    {
       if ( GTK_IS_BUTTON(handle) )
       {
@@ -5102,7 +5106,7 @@ void dw_window_set_bitmap_from_data(HWND handle, unsigned long id, char *data, i
 #if GTK_MAJOR_VERSION > 1
    if(pixbuf)
       g_object_unref(pixbuf);
-#endif      
+#endif
    DW_MUTEX_UNLOCK;
 }
 
@@ -5189,6 +5193,8 @@ char *dw_window_get_text(HWND handle)
       possible = gtk_entry_get_text(GTK_ENTRY(handle));
    else if(GTK_IS_COMBO(handle))
       possible = gtk_entry_get_text(GTK_ENTRY(GTK_COMBO(handle)->entry));
+   else if(GTK_IS_LABEL(handle))
+      possible = gtk_label_get_text(GTK_LABEL(handle));
 
    DW_MUTEX_UNLOCK;
    return strdup(possible);
@@ -6242,7 +6248,7 @@ HTREEITEM dw_tree_insert_after(HWND handle, HTREEITEM item, char *title, HICN ic
       void *mydata = (void *)gtk_object_get_data(GTK_OBJECT(tree), "_dw_tree_item_expand_data");
       void **params = calloc(sizeof(void *), 3):
       SignalHandler work;
-      
+
       params[0] = mydata;
       params[2] = (void *)tree;
       work = _get_signal_handler(mydata);
@@ -6398,7 +6404,7 @@ HTREEITEM dw_tree_insert(HWND handle, char *title, HICN icon, HTREEITEM parent, 
       void *mydata = (void *)gtk_object_get_data(GTK_OBJECT(tree), "_dw_tree_item_expand_data");
       void **params = calloc(sizeof(void *), 3):
       SignalHandler work;
-      
+
       params[0] = mydata;
       params[2] = (void *)tree;
       work = _get_signal_handler(mydata);
@@ -6636,7 +6642,7 @@ HTREEITEM API dw_tree_get_parent(HWND handle, HTREEITEM item)
       GtkTreeIter iter;
 
       if(gtk_tree_model_iter_parent(store, &iter, (GtkTreeIter *)item))
-         gtk_tree_model_get(store, &iter, 3, &parent, -1);      
+         gtk_tree_model_get(store, &iter, 3, &parent, -1);
    }
 #else
    parent = (HTREEITEM)gtk_object_get_data(GTK_OBJECT(item), "_dw_parent");
@@ -7681,7 +7687,7 @@ void dw_container_set_column_width(HWND handle, int column, int width)
 void _dw_container_row_data_destroy(gpointer data)
 {
     void **params = (void **)data;
-    
+
     if(params)
     {
         if(params[0])
@@ -7709,7 +7715,7 @@ void _dw_container_set_row_data(HWND handle, void *pointer, int row, int type, v
    if(clist)
    {
       void **params = (void **)gtk_clist_get_row_data(GTK_CLIST(clist), row);
-      
+
       if(!params)
       {
           params = (void **)calloc(2, sizeof(void *));
@@ -7968,7 +7974,7 @@ char *dw_container_query_next(HWND handle, unsigned long flags)
    int _locked_by_me = FALSE;
    int type = _DW_DATA_TYPE_STRING;
    void **params = NULL;
-   
+
    if(flags & DW_CR_RETDATA)
        type = _DW_DATA_TYPE_POINTER;
 
@@ -8045,7 +8051,7 @@ void _dw_container_cursor(HWND handle, int textcomp, void *data)
    for(z=0;z<rowcount;z++)
    {
       void **params = (void **)gtk_clist_get_row_data(GTK_CLIST(clist), z);
-      
+
       if ( params && ((textcomp && params[0] && strcmp((char *)params[0], (char *)data) == 0) || (!textcomp && params[1] == data)) )
       {
          gfloat pos;
@@ -8106,7 +8112,7 @@ void _dw_container_delete_row(HWND handle, int textcomp, void *data)
    for(z=0;z<rowcount;z++)
    {
       void **params = (void **)gtk_clist_get_row_data(GTK_CLIST(clist), z);
-      
+
       if ( params && ((textcomp && params[0] && strcmp((char *)params[0], (char *)data) == 0) || (!textcomp && params[1] == data)) )
       {
          _dw_unselect(clist);
@@ -10117,7 +10123,7 @@ int dw_named_event_close(HEV eve)
    return DW_ERROR_NONE;
 }
 
-/* 
+/*
  * Generally an internal function called from a newly created
  * thread to setup the Dynamic Windows environment for the thread.
  * However it is exported so language bindings can call it when
@@ -10132,7 +10138,7 @@ void API _dw_init_thread(void)
    pthread_setspecific(_dw_bg_color_key, NULL);
 }
 
-/* 
+/*
  * Generally an internal function called from a terminating
  * thread to cleanup the Dynamic Windows environment for the thread.
  * However it is exported so language bindings can call it when
@@ -10141,7 +10147,7 @@ void API _dw_init_thread(void)
 void API _dw_deinit_thread(void)
 {
    GdkColor *foreground, *background;
-   
+
    if((foreground = pthread_getspecific(_dw_fg_color_key)))
       free(foreground);
    if((background = pthread_getspecific(_dw_bg_color_key)))
@@ -13668,7 +13674,7 @@ static void _dw_signal_disconnect(gpointer data, GClosure *closure)
       if(discfunc)
       {
          SignalHandler work = _get_signal_handler(data);
-         
+
          if(work.window)
          {
             discfunc(work.window, work.data);
@@ -13782,7 +13788,7 @@ void dw_signal_connect_data(HWND window, char *signame, void *sigfunc, void *dis
       gtk_object_set_data(GTK_OBJECT(thiswindow), "_dw_container_context_data", params);
       cid = gtk_signal_connect(GTK_OBJECT(thiswindow), "button_press_event", GTK_SIGNAL_FUNC(thisfunc), params);
       _set_signal_handler_id(thiswindow, sigid, cid);
-      
+
       params = calloc(sizeof(void *), 3);
       sigid = _set_signal_handler(window, window, sigfunc, data, thisfunc);
       params[0] = GINT_TO_POINTER(sigid);
@@ -13906,7 +13912,7 @@ void dw_signal_disconnect_by_name(HWND window, char *signame)
    for(z=0;z<count;z++)
    {
       SignalHandler sh;
-      
+
       params[0] = GINT_TO_POINTER(z);
       sh = _get_signal_handler(params);
 
@@ -13956,7 +13962,7 @@ void dw_signal_disconnect_by_data(HWND window, void *data)
    for(z=0;z<count;z++)
    {
       SignalHandler sh;
-      
+
       params[0] = GINT_TO_POINTER(z);
       sh = _get_signal_handler(params);
 
