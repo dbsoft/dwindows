@@ -3683,7 +3683,11 @@ char * API dw_file_browse(char *title, char *defpath, char *ext, int flags)
         /* Display the dialog.  If the OK button was pressed,
          * process the files.
          */
+#if defined(MAC_OS_X_VERSION_10_9) && ((defined(MAC_OS_X_VERSION_MAX_ALLOWED) && MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_9) || !defined(MAC_OS_X_VERSION_MAX_ALLOWED))
+        if([saveDlg runModal] == NSModalResponseOK)
+#else
         if([saveDlg runModal] == NSFileHandlingPanelOKButton)
+#endif
         {
             /* Get an array containing the full filenames of all
              * files and directories selected.
