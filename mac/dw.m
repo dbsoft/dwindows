@@ -9033,7 +9033,7 @@ void API dw_window_click_default(HWND handle, HWND next)
         {
             NSWindow *window = object;
 
-            [window setDefaultButtonCell:control];
+            [window setDefaultButtonCell:[control cell]];
         }
     }
     else
