@@ -3,7 +3,7 @@
  *          A GTK like cross-platform GUI
  *          GTK3 forwarder module for portabilty.
  *
- * (C) 2000-2017 Brian Smith <brian@dbsoft.org>
+ * (C) 2000-2019 Brian Smith <brian@dbsoft.org>
  * (C) 2003-2011 Mark Hessling <mark@rexx.org>
  * (C) 2002 Nickolay V. Shmyrev <shmyrev@yandex.ru>
  */
@@ -2449,9 +2449,9 @@ int dw_window_show(HWND handle)
          }
 
          gdk_window_raise(window);
-         gdk_flush();
+         gdk_display_flush(gdk_display_get_default());
          gdk_window_show(window);
-         gdk_flush();
+         gdk_display_flush(gdk_display_get_default());
       }
       defaultitem = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_defaultitem");
       if (defaultitem)
@@ -5690,7 +5690,7 @@ void dw_tree_item_delete(HWND handle, HTREEITEM item)
 static int _dw_container_setup(HWND handle, unsigned long *flags, char **titles, int count, int separator, int extra)
 {
    int z;
-   char numbuf[21];
+   char numbuf[25];
    GtkWidget *tree;
    GtkListStore *store;
    GtkTreeViewColumn *col;
@@ -5745,7 +5745,7 @@ static int _dw_container_setup(HWND handle, unsigned long *flags, char **titles,
    /* Second loop... create the columns */
    for(z=0;z<count;z++)
    {
-      snprintf(numbuf, 20, "_dw_cont_col%d", z);
+      snprintf(numbuf, 24, "_dw_cont_col%d", z);
       g_object_set_data(G_OBJECT(tree), numbuf, GINT_TO_POINTER(flags[z]));
       col = gtk_tree_view_column_new();
       rend = NULL;
@@ -8032,7 +8032,7 @@ void dw_beep(int freq, int dur)
    int _locked_by_me = FALSE;
 
    DW_MUTEX_LOCK;
-   gdk_beep();
+   gdk_display_beep(gdk_display_get_default());
    DW_MUTEX_UNLOCK;
 }
 
