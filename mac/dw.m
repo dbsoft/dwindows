@@ -55,14 +55,47 @@
 /* Handle deprecation of several constants in 10.10...
  * the replacements are not available in earlier versions.
  */
-#if defined(MAC_OS_X_VERSION_10_9) && ((defined(MAC_OS_X_VERSION_MAX_ALLOWED) && MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_9) || !defined(MAC_OS_X_VERSION_MAX_ALLOWED))
+#if defined(MAC_OS_X_VERSION_10_10) && ((defined(MAC_OS_X_VERSION_MAX_ALLOWED) && MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_10) || !defined(MAC_OS_X_VERSION_MAX_ALLOWED))
 #define DWModalResponseOK NSModalResponseOK
 #define DWModalResponseCancel NSModalResponseCancel
 #define DWPaperOrientationPortrait NSPaperOrientationPortrait
+#define DWWebView WKWebView
+#define BUILDING_FOR_YOSEMITE
 #else
 #define DWModalResponseOK NSOKButton
 #define DWModalResponseCancel NSCancelButton
 #define DWPaperOrientationPortrait NSPortraitOrientation
+#define DWWebView WebView
+#endif
+
+/* Handle deprecation of several constants in 10.12...
+ * the replacements are not available in earlier versions.
+ */
+#if defined(MAC_OS_X_VERSION_10_12) && ((defined(MAC_OS_X_VERSION_MAX_ALLOWED) && MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_12) || !defined(MAC_OS_X_VERSION_MAX_ALLOWED))
+#define DWButtonTypeSwitch NSButtonTypeSwitch
+#define DWButtonTypeRadio NSButtonTypeRadio
+#define DWButtonTypeMomentaryPushIn NSButtonTypeMomentaryPushIn
+#define DWBezelStyleRegularSquare NSBezelStyleRegularSquare
+#define DWBezelStyleRounded NSBezelStyleRounded
+#define BUILDING_FOR_SIERRA
+#else
+#define DWButtonTypeSwitch NSSwitchButton
+#define DWButtonTypeRadio NSRadioButton
+#define DWButtonTypeMomentaryPushIn NSMomentaryPushInButton
+#define DWBezelStyleRegularSquare NSRegularSquareBezelStyle
+#define DWBezelStyleRounded NSRoundedBezelStyle
+#endif
+
+/* Handle deprecation of several constants in 10.13...
+ * the replacements are not available in earlier versions.
+ */
+#if defined(MAC_OS_X_VERSION_10_13) && ((defined(MAC_OS_X_VERSION_MAX_ALLOWED) && MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_13) || !defined(MAC_OS_X_VERSION_MAX_ALLOWED))
+#define DWControlStateValueOff NSControlStateValueOff
+#define DWControlStateValueOn NSControlStateValueOn
+#define BUILDING_FOR_HIGH_SIERRA
+#else
+#define DWControlStateValueOff NSOffState
+#define DWControlStateValueOn NSOnState
 #endif
 
 unsigned long _colors[] =
@@ -596,10 +629,10 @@ typedef struct _bitbltinfo
     DWMenuItem *item = param;
     if([item check])
     {
-        if([item state] == NSOnState)
-            [item setState:NSOffState];
+        if([item state] == DWControlStateValueOn)
+            [item setState:DWControlStateValueOff];
         else
-            [item setState:NSOnState];
+            [item setState:DWControlStateValueOn];
     }
     _event_handler(param, nil, 8);
 }
@@ -1069,7 +1102,7 @@ DWObject *DWObj;
 -(void)buttonClicked:(id)sender
 {
     _event_handler(self, nil, 8);
-    if([self buttonType] == NSRadioButton)
+    if([self buttonType] == DWButtonTypeRadio)
     {
         DWBox *viewbox = [self parent];
         Box *thisbox = [viewbox box];
@@ -1085,7 +1118,7 @@ DWObject *DWObj;
                 {
                     DWButton *button = object;
 
-                    if(button != self && [button buttonType] == NSRadioButton)
+                    if(button != self && [button buttonType] == DWButtonTypeRadio)
                     {
                         [button setState:NSOffState];
                     }
@@ -1128,10 +1161,10 @@ DWObject *DWObj;
     unichar vk = [[theEvent charactersIgnoringModifiers] characterAtIndex:0];
     if(vk == VK_RETURN || vk == VK_SPACE)
     {
-        if(buttonType == NSSwitchButton)
-            [self setState:([self state] ? NSOffState : NSOnState)];
-        else if(buttonType == NSRadioButton)
-            [self setState:NSOnState];
+        if(buttonType == DWButtonTypeSwitch)
+            [self setState:([self state] ? DWControlStateValueOff : DWControlStateValueOn)];
+        else if(buttonType == DWButtonTypeRadio)
+            [self setState:DWControlStateValueOn];
         [self buttonClicked:self];
     }
     else
@@ -3716,7 +3749,7 @@ char * API dw_file_browse(char *title, char *defpath, char *ext, int flags)
 char *dw_clipboard_get_text()
 {
     NSPasteboard *pasteboard = [NSPasteboard generalPasteboard];
-    NSString *str = [pasteboard stringForType:NSStringPboardType];
+    NSString *str = [pasteboard stringForType:NSPasteboardTypeString];
     if(str != nil)
     {
         return strdup([ str UTF8String ]);
@@ -3740,7 +3773,7 @@ void dw_clipboard_set_text( char *str, int len)
         icc(pasteboard, scc);
     }
 
-    [pasteboard setString:[ NSString stringWithUTF8String:str ] forType:NSStringPboardType];
+    [pasteboard setString:[ NSString stringWithUTF8String:str ] forType:NSPasteboardTypeString];
 }
 
 
@@ -3960,8 +3993,8 @@ void _control_size(id handle, int *width, int *height)
     {
         switch([object buttonType])
         {
-            case NSSwitchButton:
-            case NSRadioButton:
+            case DWButtonTypeSwitch:
+            case DWButtonTypeRadio:
                 extrawidth = 24;
                 extraheight = 4;
                 nsstr = [object title];
@@ -4515,7 +4548,7 @@ HWND _button_new(char *text, ULONG cid)
     [button setTarget:button];
     [button setAction:@selector(buttonClicked:)];
     [button setTag:cid];
-    [button setButtonType:NSMomentaryPushInButton];
+    [button setButtonType:DWButtonTypeMomentaryPushIn];
 #ifdef MAC_OS_X_VERSION_10_12
     [button setBezelStyle:NSBezelStyleRegularSquare];
 #else
@@ -4539,8 +4572,8 @@ HWND _button_new(char *text, ULONG cid)
 HWND API dw_button_new(char *text, ULONG cid)
 {
     DWButton *button = _button_new(text, cid);
-    [button setButtonType:NSMomentaryPushInButton];
-    [button setBezelStyle:NSRoundedBezelStyle];
+    [button setButtonType:DWButtonTypeMomentaryPushIn];
+    [button setBezelStyle:DWBezelStyleRounded];
     [button setImagePosition:NSNoImage];
 #ifdef MAC_OS_X_VERSION_10_12
     [button setAlignment:NSTextAlignmentCenter];
@@ -4748,7 +4781,7 @@ long API dw_spinbutton_get_pos(HWND handle)
 HWND API dw_radiobutton_new(char *text, ULONG cid)
 {
     DWButton *button = _button_new(text, cid);
-    [button setButtonType:NSRadioButton];
+    [button setButtonType:DWButtonTypeRadio];
     return button;
 }
 
@@ -4923,8 +4956,8 @@ void API dw_percent_set_pos(HWND handle, unsigned int position)
 HWND API dw_checkbox_new(char *text, ULONG cid)
 {
     DWButton *button = _button_new(text, cid);
-    [button setButtonType:NSSwitchButton];
-    [button setBezelStyle:NSRegularSquareBezelStyle];
+    [button setButtonType:DWButtonTypeSwitch];
+    [button setBezelStyle:DWBezelStyleRegularSquare];
     return button;
 }
 
@@ -4954,11 +4987,11 @@ void API dw_checkbox_set(HWND handle, int value)
     DWButton *button = handle;
     if(value)
     {
-        [button setState:NSOnState];
+        [button setState:DWControlStateValueOn];
     }
     else
     {
-        [button setState:NSOffState];
+        [button setState:DWControlStateValueOff];
     }
 
 }
@@ -8100,7 +8133,7 @@ void dw_calendar_get_date(HWND handle, unsigned int *year, unsigned int *month, 
  */
 void API dw_html_action(HWND handle, int action)
 {
-    WebView *html = handle;
+    DWWebView *html = handle;
     switch(action)
     {
         case DW_HTML_GOBACK:
@@ -8135,8 +8168,12 @@ void API dw_html_action(HWND handle, int action)
  */
 int API dw_html_raw(HWND handle, char *string)
 {
-    WebView *html = handle;
+    DWWebView *html = handle;
+#ifdef BUILDING_FOR_YOSEMITE
+    [html loadHTMLString:[ NSString stringWithUTF8String:string ] baseURL:nil];
+#else
     [[html mainFrame] loadHTMLString:[ NSString stringWithUTF8String:string ] baseURL:nil];
+#endif
     return 0;
 }
 
@@ -8151,8 +8188,12 @@ int API dw_html_raw(HWND handle, char *string)
  */
 int API dw_html_url(HWND handle, char *url)
 {
-    WebView *html = handle;
+    DWWebView *html = handle;
+#ifdef BUILDING_FOR_YOSEMITE
+    [html loadRequest:[NSURLRequest requestWithURL:[NSURL URLWithString:[ NSString stringWithUTF8String:url ]]]];
+#else
     [[html mainFrame] loadRequest:[NSURLRequest requestWithURL:[NSURL URLWithString:[ NSString stringWithUTF8String:url ]]]];
+#endif
     return 0;
 }
 
@@ -8167,7 +8208,7 @@ HWND API dw_html_new(unsigned long cid)
 {
     int _locked_by_me = FALSE;
     DW_MUTEX_LOCK;
-    WebView *web = [[WebView alloc] init];
+    DWWebView *web = [[DWWebView alloc] init];
     /* [web setTag:cid]; Why doesn't this work? */
     DW_MUTEX_UNLOCK;
     return web;
@@ -8370,7 +8411,7 @@ HWND API dw_menu_append_item(HMENUI menux, char *title, ULONG itemid, ULONG flag
             [item setCheck:YES];
             if(flags & DW_MIS_CHECKED)
             {
-                [item setState:NSOnState];
+                [item setState:DWControlStateValueOn];
             }
         }
         if(flags & DW_MIS_DISABLED)
@@ -8405,11 +8446,11 @@ void API dw_menu_item_set_check(HMENUI menux, unsigned long itemid, int check)
     {
         if(check)
         {
-            [menuitem setState:NSOnState];
+            [menuitem setState:DWControlStateValueOn];
         }
         else
         {
-            [menuitem setState:NSOffState];
+            [menuitem setState:DWControlStateValueOff];
         }
     }
 }
@@ -8452,11 +8493,11 @@ void API dw_menu_item_set_state(HMENUI menux, unsigned long itemid, unsigned lon
     {
         if(state & DW_MIS_CHECKED)
         {
-            [menuitem setState:NSOnState];
+            [menuitem setState:DWControlStateValueOn];
         }
         else if(state & DW_MIS_UNCHECKED)
         {
-            [menuitem setState:NSOffState];
+            [menuitem setState:DWControlStateValueOff];
         }
         if(state & DW_MIS_ENABLED)
         {
@@ -8969,9 +9010,9 @@ void API dw_window_set_style(HWND handle, ULONG style, ULONG mask)
         if(mask & (DW_MIS_CHECKED | DW_MIS_UNCHECKED))
         {
             if(style & DW_MIS_CHECKED)
-                [object setState:NSOnState];
+                [object setState:DWControlStateValueOn];
             else if(style & DW_MIS_UNCHECKED)
-                [object setState:NSOffState];
+                [object setState:DWControlStateValueOff];
         }
         if(mask & (DW_MIS_ENABLED | DW_MIS_DISABLED))
         {
