@@ -52,6 +52,13 @@
             localpool = [[NSAutoreleasePool alloc] init];
 #define DW_LOCAL_POOL_OUT if(localpool) [localpool drain];
 
+/* For some reason WKWebView is undefined on some versions that supposed to support it */
+#ifdef WKWebView
+#define DWWebView WKWebView
+#else
+#define DWWebView WebView
+#endif
+
 /* Handle deprecation of several constants in 10.10...
  * the replacements are not available in earlier versions.
  */
@@ -59,13 +66,11 @@
 #define DWModalResponseOK NSModalResponseOK
 #define DWModalResponseCancel NSModalResponseCancel
 #define DWPaperOrientationPortrait NSPaperOrientationPortrait
-#define DWWebView WKWebView
 #define BUILDING_FOR_YOSEMITE
 #else
 #define DWModalResponseOK NSOKButton
 #define DWModalResponseCancel NSCancelButton
 #define DWPaperOrientationPortrait NSPortraitOrientation
-#define DWWebView WebView
 #endif
 
 /* Handle deprecation of several constants in 10.12...
@@ -8181,7 +8186,7 @@ void API dw_html_action(HWND handle, int action)
 int API dw_html_raw(HWND handle, char *string)
 {
     DWWebView *html = handle;
-#ifdef BUILDING_FOR_YOSEMITE
+#ifdef WKWebKit
     [html loadHTMLString:[ NSString stringWithUTF8String:string ] baseURL:nil];
 #else
     [[html mainFrame] loadHTMLString:[ NSString stringWithUTF8String:string ] baseURL:nil];
@@ -8201,7 +8206,7 @@ int API dw_html_raw(HWND handle, char *string)
 int API dw_html_url(HWND handle, char *url)
 {
     DWWebView *html = handle;
-#ifdef BUILDING_FOR_YOSEMITE
+#ifdef WKWebKit
     [html loadRequest:[NSURLRequest requestWithURL:[NSURL URLWithString:[ NSString stringWithUTF8String:url ]]]];
 #else
     [[html mainFrame] loadRequest:[NSURLRequest requestWithURL:[NSURL URLWithString:[ NSString stringWithUTF8String:url ]]]];
