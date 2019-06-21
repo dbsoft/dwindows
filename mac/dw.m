@@ -2,8 +2,8 @@
  * Dynamic Windows:
  *          A GTK like implementation of the MacOS GUI using Cocoa
  *
- * (C) 2011-2017 Brian Smith <brian@dbsoft.org>
- * (C) 2011 Mark Hessling <mark@rexx.org>
+ * (C) 2011-2019 Brian Smith <brian@dbsoft.org>
+ * (C) 2011-2018 Mark Hessling <mark@rexx.org>
  *
  * Requires 10.5 or later.
  * clang -std=c99 -g -o dwtest -D__MAC__ -I. dwtest.c mac/dw.m -framework Cocoa -framework WebKit
@@ -1120,7 +1120,7 @@ DWObject *DWObj;
 
                     if(button != self && [button buttonType] == DWButtonTypeRadio)
                     {
-                        [button setState:NSOffState];
+                        [button setState:DWControlStateValueOff];
                     }
                 }
             }
@@ -5920,6 +5920,18 @@ unsigned long API dw_color_choose(unsigned long value)
     return value;
 }
 
+/* Set the current context to be a flipped image,
+ * On 10.10 or higher use CoreGraphics otherwise Graphics Port
+ */
+NSGraphicsContext *_dw_draw_context(NSBitmapImageRep *image)
+{
+#ifdef BUILDING_FOR_YOSEMITE
+    return [NSGraphicsContext graphicsContextWithCGContext:[[NSGraphicsContext graphicsContextWithBitmapImageRep:image] CGContext] flipped:YES];
+#else
+    return [NSGraphicsContext graphicsContextWithGraphicsPort:[[NSGraphicsContext graphicsContextWithBitmapImageRep:image] graphicsPort] flipped:YES];
+#endif
+}
+                      
 /* Draw a point on a window (preferably a render window).
  * Parameters:
  *       handle: Handle to the window.
@@ -5937,8 +5949,7 @@ void API dw_draw_point(HWND handle, HPIXMAP pixmap, int x, int y)
     {
         image = (id)pixmap->image;
         [NSGraphicsContext saveGraphicsState];
-        [NSGraphicsContext setCurrentContext:[NSGraphicsContext
-                                              graphicsContextWithGraphicsPort:[[NSGraphicsContext graphicsContextWithBitmapImageRep:image] graphicsPort] flipped:YES]];
+        [NSGraphicsContext setCurrentContext:_dw_draw_context(image)];
     }
     else
     {
@@ -5988,8 +5999,7 @@ void API dw_draw_line(HWND handle, HPIXMAP pixmap, int x1, int y1, int x2, int y
     {
         image = (id)pixmap->image;
         [NSGraphicsContext saveGraphicsState];
-        [NSGraphicsContext setCurrentContext:[NSGraphicsContext
-                                              graphicsContextWithGraphicsPort:[[NSGraphicsContext graphicsContextWithBitmapImageRep:image] graphicsPort] flipped:YES]];
+        [NSGraphicsContext setCurrentContext:_dw_draw_context(image)];
     }
     else
     {
@@ -6075,8 +6085,7 @@ void API dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
         }
         image = (id)pixmap->image;
         [NSGraphicsContext saveGraphicsState];
-        [NSGraphicsContext setCurrentContext:[NSGraphicsContext
-                                              graphicsContextWithGraphicsPort:[[NSGraphicsContext graphicsContextWithBitmapImageRep:image] graphicsPort] flipped:YES]];
+        [NSGraphicsContext setCurrentContext:_dw_draw_context(image)];
         NSColor *fgcolor = pthread_getspecific(_dw_fg_color_key);
         NSColor *bgcolor = pthread_getspecific(_dw_bg_color_key);
         NSMutableDictionary *dict = [[NSMutableDictionary alloc] initWithObjectsAndKeys:fgcolor, NSForegroundColorAttributeName, nil];
@@ -6150,8 +6159,13 @@ void API dw_font_text_extents_get(HWND handle, HPIXMAP pixmap, char *text, int *
  */
 id _create_gc(id image, bool antialiased)
 {
+#ifdef BUILDING_FOR_YOSEMITE
+    CGContextRef  context = (CGContextRef)[[NSGraphicsContext graphicsContextWithBitmapImageRep:image] CGContext];
+    NSGraphicsContext *gc = [NSGraphicsContext graphicsContextWithCGContext:context flipped:YES];
+#else
     CGContextRef  context = (CGContextRef)[[NSGraphicsContext graphicsContextWithBitmapImageRep:image] graphicsPort];
     NSGraphicsContext *gc = [NSGraphicsContext graphicsContextWithGraphicsPort:context flipped:YES];
+#endif
     [gc setShouldAntialias:antialiased];
     CGContextSetAllowsAntialiasing(context, antialiased);
     return gc;
@@ -7735,9 +7749,7 @@ void _flip_image(NSImage *tmpimage, NSBitmapImageRep *image, NSSize size)
     NSCompositingOperation op =NSCompositeSourceOver;
 #endif
     [NSGraphicsContext saveGraphicsState];
-    [NSGraphicsContext setCurrentContext:[NSGraphicsContext
-                                          graphicsContextWithGraphicsPort:[[NSGraphicsContext graphicsContextWithBitmapImageRep:image] graphicsPort]
-                                          flipped:YES]];
+    [NSGraphicsContext setCurrentContext:_dw_draw_context(image)];
     [[[NSDictionary alloc] initWithObjectsAndKeys:image, NSGraphicsContextDestinationAttributeName, nil] autorelease];
     /* Make a new transform */
     NSAffineTransform *t = [NSAffineTransform transform];
