@@ -7417,17 +7417,20 @@ void API dw_container_optimize(HWND handle)
  */
 void API dw_taskbar_insert(HWND handle, HICN icon, char *bubbletext)
 {
+#ifdef BUILDING_FOR_YOSEMITE
     NSStatusItem *item = [[[NSStatusBar systemStatusBar] statusItemWithLength:NSSquareStatusItemLength] retain];
+    NSStatusBarButton *button = [item button];
     NSImage *image = icon;
-    [item setImage:image];
+    [button setImage:image];
     if(bubbletext)
-        [item setToolTip:[NSString stringWithUTF8String:bubbletext]];
-    [item setTarget:handle];
-    [item setEnabled:YES];
-    [item setHighlightMode:YES];
-    [item sendActionOn:(DWEventMaskLeftMouseUp|DWEventMaskLeftMouseDown|DWEventMaskRightMouseUp|DWEventMaskRightMouseDown)];
-    [item setAction:@selector(mouseDown:)];
+        [button setToolTip:[NSString stringWithUTF8String:bubbletext]];
+    [button setTarget:handle];
+    [button setEnabled:YES];
+    [[button cell] setHighlighted:YES];
+    [button sendActionOn:(DWEventMaskLeftMouseUp|DWEventMaskLeftMouseDown|DWEventMaskRightMouseUp|DWEventMaskRightMouseDown)];
+    [button setAction:@selector(mouseDown:)];
     dw_window_set_data(handle, "_dw_taskbar", item);
+#endif
 }
 
 /*
@@ -7438,10 +7441,12 @@ void API dw_taskbar_insert(HWND handle, HICN icon, char *bubbletext)
  */
 void API dw_taskbar_delete(HWND handle, HICN icon)
 {
+#ifdef BUILDING_FOR_YOSEMITE
     NSStatusItem *item = dw_window_get_data(handle, "_dw_taskbar");
     DW_LOCAL_POOL_IN;
     [item release];
     DW_LOCAL_POOL_OUT;
+#endif
 }
 
 /* Internal function to keep HICNs from getting too big */
