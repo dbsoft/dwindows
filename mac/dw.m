@@ -268,6 +268,7 @@ static void _do_resize(Box *thisbox, int x, int y);
 void _handle_resize_events(Box *thisbox);
 int _remove_userdata(UserData **root, char *varname, int all);
 int _dw_main_iteration(NSDate *date);
+NSGraphicsContext *_dw_draw_context(NSBitmapImageRep *image);
 
 /* Internal function to queue a window redraw */
 void _dw_redraw(id window, int skip)
@@ -627,8 +628,6 @@ void _dw_wakeup_app()
                                            data2:0]
              atStart:NO];
 }
-
-NSGraphicsContext *_dw_draw_context(NSBitmapImageRep *image);
 
 /* Used for doing bitblts from the main thread */
 typedef struct _bitbltinfo
