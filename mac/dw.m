@@ -4912,7 +4912,7 @@ void API dw_scrollbar_set_range(HWND handle, unsigned int range, unsigned int vi
 HWND API dw_percent_new(ULONG cid)
 {
     DWPercent *percent = [[DWPercent alloc] init];
-    [percent setStyle:NSProgressIndicatorBarStyle];
+    [percent setStyle:DWProgressIndicatorStyleBar];
     [percent setBezeled:YES];
     [percent setMaxValue:100];
     [percent setMinValue:0];
