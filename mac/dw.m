@@ -1691,7 +1691,7 @@ DWObject *DWObj;
 
     switch ([sender hitPart])
     {
-
+#ifndef BUILDING_FOR_YOSEMITE
         case NSScrollerDecrementLine:
             if(newpos > 0)
             {
@@ -1705,7 +1705,7 @@ DWObject *DWObj;
                 newpos++;
             }
             break;
-
+#endif
         case NSScrollerDecrementPage:
             newpos -= visible;
             if(newpos < 0)
