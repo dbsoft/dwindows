@@ -150,9 +150,11 @@
  * the replacements are not available in earlier versions.
  */
 #if defined(MAC_OS_X_VERSION_10_14) && ((defined(MAC_OS_X_VERSION_MAX_ALLOWED) && MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_14) || !defined(MAC_OS_X_VERSION_MAX_ALLOWED))
+#define DWProgressIndicatorStyleBar NSProgressIndicatorStyleBar
 #define DWWebView WKWebView
 #define BUILDING_FOR_MOJAVE
 #else
+#define DWProgressIndicatorStyleBar NSProgressIndicatorBarStyle
 #define DWWebView WebView
 #endif
 
@@ -452,7 +454,9 @@ int _event_handler1(id object, NSEvent *event, int message)
                 exp.width = rect.size.width;
                 exp.height = rect.size.height;
                 int result = exposefunc(object, &exp, handler->data);
+#ifndef BUILDING_FOR_MOJAVE
                 [[object window] flushWindow];
+#endif
                 return result;
             }
             /* Clicked event for buttons and menu items */
@@ -624,6 +628,8 @@ void _dw_wakeup_app()
              atStart:NO];
 }
 
+NSGraphicsContext *_dw_draw_context(NSBitmapImageRep *image);
+
 /* Used for doing bitblts from the main thread */
 typedef struct _bitbltinfo
 {
@@ -688,8 +694,7 @@ typedef struct _bitbltinfo
     if([bltdest isMemberOfClass:[NSBitmapImageRep class]])
     {
         [NSGraphicsContext saveGraphicsState];
-        [NSGraphicsContext setCurrentContext:[NSGraphicsContext
-                                              graphicsContextWithGraphicsPort:[[NSGraphicsContext graphicsContextWithBitmapImageRep:bltdest] graphicsPort] flipped:YES]];
+        [NSGraphicsContext setCurrentContext:_dw_draw_context(bltdest)];
         [[[NSDictionary alloc] initWithObjectsAndKeys:bltdest, NSGraphicsContextDestinationAttributeName, nil] autorelease];
     }
     else
@@ -745,12 +750,14 @@ typedef struct _bitbltinfo
 }
 -(void)doFlush:(id)param
 {
+#ifndef BUILDING_FOR_MOJAVE
     if(_DWLastDrawable)
     {
         id object = _DWLastDrawable;
         NSWindow *window = [object window];
         [window flushWindow];
     }
+#endif
 }
 -(void)doWindowFunc:(id)param
 {
@@ -2888,13 +2895,19 @@ void _handle_resize_events(Box *thisbox)
                 DWRender *render = (DWRender *)handle;
                 NSSize oldsize = [render size];
                 NSSize newsize = [render frame].size;
-                NSWindow *window = [render window];
 
+                /* The 10.14 appkit warns this property does nothing... not sure
+                 * how long that has been the case but just removing it for Mojave.
+                 */
+#ifndef BUILDING_FOR_MOJAVE
+                NSWindow *window = [render window];
+                
                 if([window preferredBackingLocation] != NSWindowBackingLocationVideoMemory)
                 {
                     [window setPreferredBackingLocation:NSWindowBackingLocationVideoMemory];
                 }
-
+#endif
+                
                 /* Eliminate duplicate configure requests */
                 if(oldsize.width != newsize.width || oldsize.height != newsize.height)
                 {
@@ -4836,7 +4849,9 @@ HWND API dw_scrollbar_new(int vertical, ULONG cid)
     {
         scrollbar = [[DWScrollbar alloc] initWithFrame:NSMakeRect(0,0,100,5)];
     }
+#ifndef BUILDING_FOR_YOSEMITE
     [scrollbar setArrowsPosition:NSScrollerArrowsDefaultSetting];
+#endif
     [scrollbar setRange:0.0 andVisible:0.0];
     [scrollbar setKnobProportion:1.0];
     [scrollbar setTarget:scrollbar];
@@ -9678,7 +9693,9 @@ void API dw_window_redraw(HWND handle)
     DWWindow *window = handle;
     [window setRedraw:YES];
     [[window contentView] showWindow];
+#ifndef BUILDING_FOR_MOJAVE
     [window flushWindow];
+#endif
     [window setRedraw:NO];
 }
 
