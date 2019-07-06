@@ -891,7 +891,16 @@ typedef struct _bitbltinfo
 }
 -(void)keyDown:(NSEvent *)theEvent { _event_handler(self, theEvent, 2); }
 -(BOOL)isFlipped { return YES; }
--(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); [font release]; dw_signal_disconnect_by_window(self); [super dealloc]; [cachedDrawingRep release]; }
+-(void)dealloc {
+    UserData *root = userdata;
+    _remove_userdata(&root, NULL, TRUE);
+    [font release];
+    dw_signal_disconnect_by_window(self);
+#ifdef BUILDING_FOR_MOJAVE
+    [cachedDrawingRep release];
+#endif
+    [super dealloc];
+}
 -(BOOL)acceptsFirstResponder { return YES; }
 @end
 
