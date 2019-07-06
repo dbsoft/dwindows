@@ -862,12 +862,24 @@ typedef struct _bitbltinfo
 -(void)setUserdata:(void *)input { userdata = input; }
 -(void)setFont:(NSFont *)input { [font release]; font = input; [font retain]; }
 -(NSFont *)font { return font; }
--(void)setSize:(NSSize)input { size = input; }
+-(void)setSize:(NSSize)input {
+    size = input;
+    if(cachedDrawingRep)
+    {
+        NSBitmapImageRep *oldrep = cachedDrawingRep;
+        cachedDrawingRep = [self bitmapImageRepForCachingDisplayInRect:self.bounds];
+        [cachedDrawingRep retain];
+        [oldrep release];
+    }
+}
 -(NSSize)size { return size; }
 #ifdef BUILDING_FOR_MOJAVE
 -(NSBitmapImageRep *)cachedDrawingRep {
     if(!cachedDrawingRep)
+    {
         cachedDrawingRep = [self bitmapImageRepForCachingDisplayInRect:self.bounds];
+        [cachedDrawingRep retain];
+    }
     return cachedDrawingRep;
 }
 #endif
