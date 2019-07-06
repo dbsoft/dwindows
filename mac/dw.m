@@ -607,7 +607,9 @@ DWTimerHandler *DWHandler;
 #if !defined(GARBAGE_COLLECT)
 NSAutoreleasePool *pool;
 #endif
+#ifndef BUILDING_FOR_MOJAVE
 HWND _DWLastDrawable;
+#endif
 HMTX DWRunMutex;
 HMTX DWThreadMutex;
 HMTX DWThreadMutex2;
@@ -864,6 +866,7 @@ typedef struct _bitbltinfo
 -(NSFont *)font { return font; }
 -(void)setSize:(NSSize)input {
     size = input;
+#ifdef BUILDING_FOR_MOJAVE
     if(cachedDrawingRep)
     {
         NSBitmapImageRep *oldrep = cachedDrawingRep;
@@ -871,6 +874,7 @@ typedef struct _bitbltinfo
         [cachedDrawingRep retain];
         [oldrep release];
     }
+#endif
 }
 -(NSSize)size { return size; }
 #ifdef BUILDING_FOR_MOJAVE
