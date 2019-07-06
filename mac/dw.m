@@ -662,121 +662,6 @@ typedef struct _bitbltinfo
 -(void)dealloc;
 @end
 
-@implementation DWObject
--(void)uselessThread:(id)sender { /* Thread only to initialize threading */ }
--(void)synchronizeThread:(id)param
-{
-    pthread_mutex_unlock(DWRunMutex);
-    pthread_mutex_lock(DWThreadMutex2);
-    pthread_mutex_unlock(DWThreadMutex2);
-    pthread_mutex_lock(DWRunMutex);
-}
--(void)menuHandler:(id)param
-{
-    DWMenuItem *item = param;
-    if([item check])
-    {
-        if([item state] == DWControlStateValueOn)
-            [item setState:DWControlStateValueOff];
-        else
-            [item setState:DWControlStateValueOn];
-    }
-    _event_handler(param, nil, 8);
-}
--(void)doBitBlt:(id)param
-{
-    NSValue *bi = (NSValue *)param;
-    DWBitBlt *bltinfo = (DWBitBlt *)[bi pointerValue];
-    id bltdest = bltinfo->dest;
-    id bltsrc = bltinfo->src;
-
-    if([bltdest isMemberOfClass:[NSBitmapImageRep class]])
-    {
-        [NSGraphicsContext saveGraphicsState];
-        [NSGraphicsContext setCurrentContext:_dw_draw_context(bltdest)];
-        [[[NSDictionary alloc] initWithObjectsAndKeys:bltdest, NSGraphicsContextDestinationAttributeName, nil] autorelease];
-    }
-    else
-    {
-        if([bltdest lockFocusIfCanDraw] == NO)
-        {
-            free(bltinfo);
-            return;
-        }
-        _DWLastDrawable = bltinfo->dest;
-    }
-    if([bltsrc isMemberOfClass:[NSBitmapImageRep class]])
-    {
-        NSBitmapImageRep *rep = bltsrc;
-        NSImage *image = [NSImage alloc];
-        SEL siwc = NSSelectorFromString(@"initWithCGImage");
-        NSCompositingOperation op = DWCompositingOperationSourceOver;
-
-        if([image respondsToSelector:siwc])
-        {
-            IMP iiwc = [image methodForSelector:siwc];
-            image = iiwc(image, siwc, [rep CGImage], NSZeroSize);
-        }
-        else
-        {
-            image = [image initWithSize:[rep size]];
-            [image addRepresentation:rep];
-        }
-        if(bltinfo->srcwidth != -1)
-        {
-            [image drawInRect:NSMakeRect(bltinfo->xdest, bltinfo->ydest, bltinfo->width, bltinfo->height)
-                     fromRect:NSMakeRect(bltinfo->xsrc, bltinfo->ysrc, bltinfo->srcwidth, bltinfo->srcheight)
-                     operation:op fraction:1.0];
-        }
-        else
-        {
-            [image drawAtPoint:NSMakePoint(bltinfo->xdest, bltinfo->ydest)
-                      fromRect:NSMakeRect(bltinfo->xsrc, bltinfo->ysrc, bltinfo->width, bltinfo->height)
-                     operation:op fraction:1.0];
-        }
-        [bltsrc release];
-        [image release];
-    }
-    if([bltdest isMemberOfClass:[NSBitmapImageRep class]])
-    {
-        [NSGraphicsContext restoreGraphicsState];
-    }
-    else
-    {
-        [bltdest unlockFocus];
-    }
-    free(bltinfo);
-}
--(void)doFlush:(id)param
-{
-#ifndef BUILDING_FOR_MOJAVE
-    if(_DWLastDrawable)
-    {
-        id object = _DWLastDrawable;
-        NSWindow *window = [object window];
-        [window flushWindow];
-    }
-#endif
-}
--(void)doWindowFunc:(id)param
-{
-    NSValue *v = (NSValue *)param;
-    void **params = (void **)[v pointerValue];
-    void (* windowfunc)(void *);
-
-    if(params)
-    {
-        windowfunc = params[0];
-        if(windowfunc)
-        {
-            windowfunc(params[1]);
-        }
-    }
-}
-@end
-
-DWObject *DWObj;
-
 /* So basically to implement our event handlers...
  * it looks like we are going to have to subclass
  * basically everything.  Was hoping to add methods
@@ -948,6 +833,9 @@ DWObject *DWObj;
     void *userdata;
     NSFont *font;
     NSSize size;
+#ifdef BUILDING_FOR_MOJAVE
+    NSBitmapImageRep *cachedDrawingRep;
+#endif
 }
 -(void *)userdata;
 -(void)setUserdata:(void *)input;
@@ -955,6 +843,9 @@ DWObject *DWObj;
 -(NSFont *)font;
 -(void)setSize:(NSSize)input;
 -(NSSize)size;
+#ifdef BUILDING_FOR_MOJAVE
+-(NSBitmapImageRep *)cachedDrawingRep;
+#endif
 -(void)mouseDown:(NSEvent *)theEvent;
 -(void)mouseUp:(NSEvent *)theEvent;
 -(NSMenu *)menuForEvent:(NSEvent *)theEvent;
@@ -973,6 +864,13 @@ DWObject *DWObj;
 -(NSFont *)font { return font; }
 -(void)setSize:(NSSize)input { size = input; }
 -(NSSize)size { return size; }
+#ifdef BUILDING_FOR_MOJAVE
+-(NSBitmapImageRep *)cachedDrawingRep {
+    if(!cachedDrawingRep)
+        cachedDrawingRep = [self bitmapImageRepForCachingDisplayInRect:self.bounds];
+    return cachedDrawingRep;
+}
+#endif
 -(void)mouseDown:(NSEvent *)theEvent
 {
     if(![theEvent isMemberOfClass:[NSEvent class]] || !([theEvent modifierFlags] & DWEventModifierFlagControl))
@@ -984,12 +882,145 @@ DWObject *DWObj;
 -(void)otherMouseDown:(NSEvent *)theEvent { _event_handler(self, theEvent, 3); }
 -(void)otherMouseUp:(NSEvent *)theEvent { _event_handler(self, theEvent, 4); }
 -(void)mouseDragged:(NSEvent *)theEvent { _event_handler(self, theEvent, 5); }
--(void)drawRect:(NSRect)rect { _event_handler(self, nil, 7); }
+-(void)drawRect:(NSRect)rect {
+    _event_handler(self, nil, 7);
+#ifdef BUILDING_FOR_MOJAVE
+    if (cachedDrawingRep)
+        [cachedDrawingRep drawInRect:self.bounds];
+#endif
+}
 -(void)keyDown:(NSEvent *)theEvent { _event_handler(self, theEvent, 2); }
 -(BOOL)isFlipped { return YES; }
--(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); [font release]; dw_signal_disconnect_by_window(self); [super dealloc]; }
+-(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); [font release]; dw_signal_disconnect_by_window(self); [super dealloc]; [cachedDrawingRep release]; }
 -(BOOL)acceptsFirstResponder { return YES; }
 @end
+
+@implementation DWObject
+-(void)uselessThread:(id)sender { /* Thread only to initialize threading */ }
+-(void)synchronizeThread:(id)param
+{
+    pthread_mutex_unlock(DWRunMutex);
+    pthread_mutex_lock(DWThreadMutex2);
+    pthread_mutex_unlock(DWThreadMutex2);
+    pthread_mutex_lock(DWRunMutex);
+}
+-(void)menuHandler:(id)param
+{
+    DWMenuItem *item = param;
+    if([item check])
+    {
+        if([item state] == DWControlStateValueOn)
+            [item setState:DWControlStateValueOff];
+        else
+            [item setState:DWControlStateValueOn];
+    }
+    _event_handler(param, nil, 8);
+}
+-(void)doBitBlt:(id)param
+{
+    NSValue *bi = (NSValue *)param;
+    DWBitBlt *bltinfo = (DWBitBlt *)[bi pointerValue];
+    id bltdest = bltinfo->dest;
+    id bltsrc = bltinfo->src;
+    
+#ifdef BUILDING_FOR_MOJAVE
+    if([bltdest isMemberOfClass:[DWRender class]])
+    {
+        DWRender *render = bltdest;
+        
+        bltdest = [render cachedDrawingRep];
+    }
+#endif
+    if([bltdest isMemberOfClass:[NSBitmapImageRep class]])
+    {
+        [NSGraphicsContext saveGraphicsState];
+        [NSGraphicsContext setCurrentContext:_dw_draw_context(bltdest)];
+        [[[NSDictionary alloc] initWithObjectsAndKeys:bltdest, NSGraphicsContextDestinationAttributeName, nil] autorelease];
+    }
+#ifndef BUILDING_FOR_MOJAVE
+    else
+    {
+        if([bltdest lockFocusIfCanDraw] == NO)
+        {
+            free(bltinfo);
+            return;
+        }
+        _DWLastDrawable = bltinfo->dest;
+    }
+#endif
+    if([bltsrc isMemberOfClass:[NSBitmapImageRep class]])
+    {
+        NSBitmapImageRep *rep = bltsrc;
+        NSImage *image = [NSImage alloc];
+        SEL siwc = NSSelectorFromString(@"initWithCGImage");
+        NSCompositingOperation op = DWCompositingOperationSourceOver;
+        
+        if([image respondsToSelector:siwc])
+        {
+            IMP iiwc = [image methodForSelector:siwc];
+            image = iiwc(image, siwc, [rep CGImage], NSZeroSize);
+        }
+        else
+        {
+            image = [image initWithSize:[rep size]];
+            [image addRepresentation:rep];
+        }
+        if(bltinfo->srcwidth != -1)
+        {
+            [image drawInRect:NSMakeRect(bltinfo->xdest, bltinfo->ydest, bltinfo->width, bltinfo->height)
+                     fromRect:NSMakeRect(bltinfo->xsrc, bltinfo->ysrc, bltinfo->srcwidth, bltinfo->srcheight)
+                    operation:op fraction:1.0];
+        }
+        else
+        {
+            [image drawAtPoint:NSMakePoint(bltinfo->xdest, bltinfo->ydest)
+                      fromRect:NSMakeRect(bltinfo->xsrc, bltinfo->ysrc, bltinfo->width, bltinfo->height)
+                     operation:op fraction:1.0];
+        }
+        [bltsrc release];
+        [image release];
+    }
+    if([bltdest isMemberOfClass:[NSBitmapImageRep class]])
+    {
+        [NSGraphicsContext restoreGraphicsState];
+    }
+#ifndef BUILDING_FOR_MOJAVE
+    else
+    {
+        [bltdest unlockFocus];
+    }
+#endif
+    free(bltinfo);
+}
+-(void)doFlush:(id)param
+{
+#ifndef BUILDING_FOR_MOJAVE
+    if(_DWLastDrawable)
+    {
+        id object = _DWLastDrawable;
+        NSWindow *window = [object window];
+        [window flushWindow];
+    }
+#endif
+}
+-(void)doWindowFunc:(id)param
+{
+    NSValue *v = (NSValue *)param;
+    void **params = (void **)[v pointerValue];
+    void (* windowfunc)(void *);
+    
+    if(params)
+    {
+        windowfunc = params[0];
+        if(windowfunc)
+        {
+            windowfunc(params[1]);
+        }
+    }
+}
+@end
+
+DWObject *DWObj;
 
 /* Subclass for the application class */
 @interface DWAppDel : NSObject
@@ -5948,14 +5979,20 @@ void API dw_draw_point(HWND handle, HPIXMAP pixmap, int x, int y)
     DW_LOCAL_POOL_IN;
     DW_MUTEX_LOCK;
     id image = handle;
+    NSBitmapImageRep *bi = nil;
+    
     if(pixmap)
-    {
-        image = (id)pixmap->image;
-        [NSGraphicsContext saveGraphicsState];
-        [NSGraphicsContext setCurrentContext:_dw_draw_context(image)];
-    }
+        bi = image = (id)pixmap->image;
     else
     {
+#ifdef BUILDING_FOR_MOJAVE
+        if([image isMemberOfClass:[DWRender class]])
+        {
+            DWRender *render = image;
+            
+            bi = [render cachedDrawingRep];
+        }
+#else
         if([image lockFocusIfCanDraw] == NO)
         {
             DW_MUTEX_UNLOCK;
@@ -5963,6 +6000,12 @@ void API dw_draw_point(HWND handle, HPIXMAP pixmap, int x, int y)
             return;
         }
         _DWLastDrawable = handle;
+#endif
+    }
+    if(bi)
+    {
+        [NSGraphicsContext saveGraphicsState];
+        [NSGraphicsContext setCurrentContext:_dw_draw_context(bi)];
     }
     NSBezierPath* aPath = [NSBezierPath bezierPath];
     [aPath setLineWidth: 0.5];
@@ -5971,14 +6014,12 @@ void API dw_draw_point(HWND handle, HPIXMAP pixmap, int x, int y)
 
     [aPath moveToPoint:NSMakePoint(x, y)];
     [aPath stroke];
-    if(pixmap)
-    {
+    if(bi)
         [NSGraphicsContext restoreGraphicsState];
-    }
-    else
-    {
+#ifndef BUILDING_FOR_MOJAVE
+    if(!pixmap)
         [image unlockFocus];
-    }
+#endif
     DW_MUTEX_UNLOCK;
     DW_LOCAL_POOL_OUT;
 }
@@ -5998,14 +6039,20 @@ void API dw_draw_line(HWND handle, HPIXMAP pixmap, int x1, int y1, int x2, int y
     DW_LOCAL_POOL_IN;
     DW_MUTEX_LOCK;
     id image = handle;
+    NSBitmapImageRep *bi = nil;
+    
     if(pixmap)
-    {
-        image = (id)pixmap->image;
-        [NSGraphicsContext saveGraphicsState];
-        [NSGraphicsContext setCurrentContext:_dw_draw_context(image)];
-    }
+        bi = image = (id)pixmap->image;
     else
     {
+#ifdef BUILDING_FOR_MOJAVE
+        if([image isMemberOfClass:[DWRender class]])
+        {
+            DWRender *render = image;
+            
+            bi = [render cachedDrawingRep];
+        }
+#else
         if([image lockFocusIfCanDraw] == NO)
         {
             DW_MUTEX_UNLOCK;
@@ -6013,6 +6060,12 @@ void API dw_draw_line(HWND handle, HPIXMAP pixmap, int x1, int y1, int x2, int y
             return;
         }
         _DWLastDrawable = handle;
+#endif
+    }
+    if(bi)
+    {
+        [NSGraphicsContext saveGraphicsState];
+        [NSGraphicsContext setCurrentContext:_dw_draw_context(bi)];
     }
     NSBezierPath* aPath = [NSBezierPath bezierPath];
     NSColor *color = pthread_getspecific(_dw_fg_color_key);
@@ -6022,14 +6075,12 @@ void API dw_draw_line(HWND handle, HPIXMAP pixmap, int x1, int y1, int x2, int y
     [aPath lineToPoint:NSMakePoint(x2 + 0.5, y2 + 0.5)];
     [aPath stroke];
 
-    if(pixmap)
-    {
+    if(bi)
         [NSGraphicsContext restoreGraphicsState];
-    }
-    else
-    {
+#ifndef BUILDING_FOR_MOJAVE
+    if(!pixmap)
         [image unlockFocus];
-    }
+#endif
     DW_MUTEX_UNLOCK;
     DW_LOCAL_POOL_OUT;
 }
@@ -6049,61 +6100,63 @@ void API dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
     DW_MUTEX_LOCK;
     id image = handle;
     NSString *nstr = [ NSString stringWithUTF8String:text ];
-    if(image)
-    {
-        if([image isMemberOfClass:[DWRender class]])
-        {
-            DWRender *render = handle;
-            NSFont *font = [render font];
-            if([image lockFocusIfCanDraw] == NO)
-            {
-                DW_MUTEX_UNLOCK;
-                DW_LOCAL_POOL_OUT;
-                return;
-            }
-            NSColor *fgcolor = pthread_getspecific(_dw_fg_color_key);
-            NSColor *bgcolor = pthread_getspecific(_dw_bg_color_key);
-            NSMutableDictionary *dict = [[NSMutableDictionary alloc] initWithObjectsAndKeys:fgcolor, NSForegroundColorAttributeName, nil];
-            if(bgcolor)
-            {
-                [dict setValue:bgcolor forKey:NSBackgroundColorAttributeName];
-            }
-            if(font)
-            {
-                [dict setValue:font forKey:NSFontAttributeName];
-            }
-            [nstr drawAtPoint:NSMakePoint(x, y) withAttributes:dict];
-            [image unlockFocus];
-            [dict release];
-        }
-        _DWLastDrawable = handle;
-    }
+    NSBitmapImageRep *bi = nil;
+    NSFont *font = nil;
+    DWRender *render;
+#ifndef BUILDING_FOR_MOJAVE
+    bool canDraw = NO;
+#endif
+    
     if(pixmap)
     {
-        NSFont *font = pixmap->font;
-        DWRender *render = pixmap->handle;
+        bi = image = (id)pixmap->image;
+        font = pixmap->font;
+        render = pixmap->handle;
         if(!font && [render isMemberOfClass:[DWRender class]])
         {
             font = [render font];
         }
         image = (id)pixmap->image;
-        [NSGraphicsContext saveGraphicsState];
-        [NSGraphicsContext setCurrentContext:_dw_draw_context(image)];
-        NSColor *fgcolor = pthread_getspecific(_dw_fg_color_key);
-        NSColor *bgcolor = pthread_getspecific(_dw_bg_color_key);
-        NSMutableDictionary *dict = [[NSMutableDictionary alloc] initWithObjectsAndKeys:fgcolor, NSForegroundColorAttributeName, nil];
-        if(bgcolor)
-        {
-            [dict setValue:bgcolor forKey:NSBackgroundColorAttributeName];
-        }
-        if(font)
-        {
-            [dict setValue:font forKey:NSFontAttributeName];
-        }
-        [nstr drawAtPoint:NSMakePoint(x, y) withAttributes:dict];
-        [NSGraphicsContext restoreGraphicsState];
-        [dict release];
     }
+    else if(image && [image isMemberOfClass:[DWRender class]])
+    {
+        render = image;
+        font = [render font];
+#ifdef BUILDING_FOR_MOJAVE
+        bi = [render cachedDrawingRep];
+#else
+        canDraw = [image lockFocusIfCanDraw];
+        if(canDraw == NO)
+        {
+            DW_MUTEX_UNLOCK;
+            DW_LOCAL_POOL_OUT;
+            return;
+        }
+        _DWLastDrawable = handle;
+#endif
+    }
+    if(bi)
+    {
+        [NSGraphicsContext saveGraphicsState];
+        [NSGraphicsContext setCurrentContext:_dw_draw_context(bi)];
+    }
+
+    NSColor *fgcolor = pthread_getspecific(_dw_fg_color_key);
+    NSColor *bgcolor = pthread_getspecific(_dw_bg_color_key);
+    NSMutableDictionary *dict = [[NSMutableDictionary alloc] initWithObjectsAndKeys:fgcolor, NSForegroundColorAttributeName, nil];
+    if(bgcolor)
+        [dict setValue:bgcolor forKey:NSBackgroundColorAttributeName];
+    if(font)
+        [dict setValue:font forKey:NSFontAttributeName];
+    [nstr drawAtPoint:NSMakePoint(x, y) withAttributes:dict];
+    [dict release];
+
+    if(bi)
+        [NSGraphicsContext restoreGraphicsState];
+#ifndef BUILDING_FOR_MOJAVE
+    if(canDraw == YES)
+        [image unlockFocus];
+#endif
     DW_MUTEX_UNLOCK;
     DW_LOCAL_POOL_OUT;
 }
@@ -6190,16 +6243,21 @@ void API dw_draw_polygon( HWND handle, HPIXMAP pixmap, int flags, int npoints, i
     DW_LOCAL_POOL_IN;
     DW_MUTEX_LOCK;
     id image = handle;
+    NSBitmapImageRep *bi = nil;
     int z;
+    
     if(pixmap)
-    {
-        image = (id)pixmap->image;
-        id gc = _create_gc(image, flags & DW_DRAW_NOAA ? NO : YES);
-        [NSGraphicsContext saveGraphicsState];
-        [NSGraphicsContext setCurrentContext:gc];
-    }
+        bi = image = (id)pixmap->image;
     else
     {
+#ifdef BUILDING_FOR_MOJAVE
+        if([image isMemberOfClass:[DWRender class]])
+        {
+            DWRender *render = image;
+            
+            bi = [render cachedDrawingRep];
+        }
+#else
         if([image lockFocusIfCanDraw] == NO)
         {
             DW_MUTEX_UNLOCK;
@@ -6208,7 +6266,15 @@ void API dw_draw_polygon( HWND handle, HPIXMAP pixmap, int flags, int npoints, i
         }
         [[NSGraphicsContext currentContext] setShouldAntialias:(flags & DW_DRAW_NOAA ? NO : YES)];
         _DWLastDrawable = handle;
+#endif
     }
+    if(bi)
+    {
+        id gc = _create_gc(image, flags & DW_DRAW_NOAA ? NO : YES);
+        [NSGraphicsContext saveGraphicsState];
+        [NSGraphicsContext setCurrentContext:gc];
+    }
+
     NSBezierPath* aPath = [NSBezierPath bezierPath];
     NSColor *color = pthread_getspecific(_dw_fg_color_key);
     [color set];
@@ -6224,14 +6290,12 @@ void API dw_draw_polygon( HWND handle, HPIXMAP pixmap, int flags, int npoints, i
         [aPath fill];
     }
     [aPath stroke];
-    if(pixmap)
-    {
+    if(bi)
         [NSGraphicsContext restoreGraphicsState];
-    }
-    else
-    {
+#ifndef BUILDING_FOR_MOJAVE
+    if(!pixmap)
         [image unlockFocus];
-    }
+#endif
     DW_MUTEX_UNLOCK;
     DW_LOCAL_POOL_OUT;
 }
@@ -6252,15 +6316,20 @@ void API dw_draw_rect(HWND handle, HPIXMAP pixmap, int flags, int x, int y, int 
     DW_LOCAL_POOL_IN;
     DW_MUTEX_LOCK;
     id image = handle;
+    NSBitmapImageRep *bi = nil;
+    
     if(pixmap)
-    {
-        image = (id)pixmap->image;
-        id gc = _create_gc(image, flags & DW_DRAW_NOAA ? NO : YES);
-        [NSGraphicsContext saveGraphicsState];
-        [NSGraphicsContext setCurrentContext:gc];
-    }
+        bi = image = (id)pixmap->image;
     else
     {
+#ifdef BUILDING_FOR_MOJAVE
+        if([image isMemberOfClass:[DWRender class]])
+        {
+            DWRender *render = image;
+            
+            bi = [render cachedDrawingRep];
+        }
+#else
         if([image lockFocusIfCanDraw] == NO)
         {
             DW_MUTEX_UNLOCK;
@@ -6269,7 +6338,15 @@ void API dw_draw_rect(HWND handle, HPIXMAP pixmap, int flags, int x, int y, int 
         }
         [[NSGraphicsContext currentContext] setShouldAntialias:(flags & DW_DRAW_NOAA ? NO : YES)];
         _DWLastDrawable = handle;
+#endif
     }
+    if(bi)
+    {
+        id gc = _create_gc(image, flags & DW_DRAW_NOAA ? NO : YES);
+        [NSGraphicsContext saveGraphicsState];
+        [NSGraphicsContext setCurrentContext:gc];
+    }
+    
     NSColor *color = pthread_getspecific(_dw_fg_color_key);
     [color set];
 
@@ -6277,14 +6354,12 @@ void API dw_draw_rect(HWND handle, HPIXMAP pixmap, int flags, int x, int y, int 
         [NSBezierPath fillRect:NSMakeRect(x, y, width, height)];
     else
         [NSBezierPath strokeRect:NSMakeRect(x, y, width, height)];
-    if(pixmap)
-    {
+    if(bi)
         [NSGraphicsContext restoreGraphicsState];
-    }
-    else
-    {
+#ifndef BUILDING_FOR_MOJAVE
+    if(!pixmap)
         [image unlockFocus];
-    }
+#endif
     DW_MUTEX_UNLOCK;
     DW_LOCAL_POOL_OUT;
 }
@@ -6308,16 +6383,20 @@ void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yo
     DW_LOCAL_POOL_IN;
     DW_MUTEX_LOCK;
     id image = handle;
-
+    NSBitmapImageRep *bi = nil;
+    
     if(pixmap)
-    {
-        image = (id)pixmap->image;
-        id gc = _create_gc(image, flags & DW_DRAW_NOAA ? NO : YES);
-        [NSGraphicsContext saveGraphicsState];
-        [NSGraphicsContext setCurrentContext:gc];
-    }
+        bi = image = (id)pixmap->image;
     else
     {
+#ifdef BUILDING_FOR_MOJAVE
+        if([image isMemberOfClass:[DWRender class]])
+        {
+            DWRender *render = image;
+            
+            bi = [render cachedDrawingRep];
+        }
+#else
         if([image lockFocusIfCanDraw] == NO)
         {
             DW_MUTEX_UNLOCK;
@@ -6326,7 +6405,15 @@ void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yo
         }
         [[NSGraphicsContext currentContext] setShouldAntialias:(flags & DW_DRAW_NOAA ? NO : YES)];
         _DWLastDrawable = handle;
+#endif
     }
+    if(bi)
+    {
+        id gc = _create_gc(image, flags & DW_DRAW_NOAA ? NO : YES);
+        [NSGraphicsContext saveGraphicsState];
+        [NSGraphicsContext setCurrentContext:gc];
+    }
+    
     NSBezierPath* aPath = [NSBezierPath bezierPath];
     NSColor *color = pthread_getspecific(_dw_fg_color_key);
     [color set];
@@ -6359,14 +6446,12 @@ void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yo
     }
     /* Actually do the drawing */
     [aPath stroke];
-    if(pixmap)
-    {
+    if(bi)
         [NSGraphicsContext restoreGraphicsState];
-    }
-    else
-    {
+#ifndef BUILDING_FOR_MOJAVE
+    if(!pixmap)
         [image unlockFocus];
-    }
+#endif
     DW_MUTEX_UNLOCK;
     DW_LOCAL_POOL_OUT;
 }
