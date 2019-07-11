@@ -884,6 +884,7 @@ typedef struct _bitbltinfo
         cachedDrawingRep = [self bitmapImageRepForCachingDisplayInRect:self.bounds];
         [cachedDrawingRep retain];
     }
+    self.needsDisplay = YES;
     return cachedDrawingRep;
 }
 #endif
