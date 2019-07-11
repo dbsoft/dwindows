@@ -6295,7 +6295,7 @@ void API dw_draw_polygon( HWND handle, HPIXMAP pixmap, int flags, int npoints, i
     }
     if(bi)
     {
-        id gc = _create_gc(image, flags & DW_DRAW_NOAA ? NO : YES);
+        id gc = _create_gc(bi, flags & DW_DRAW_NOAA ? NO : YES);
         [NSGraphicsContext saveGraphicsState];
         [NSGraphicsContext setCurrentContext:gc];
     }
@@ -6367,7 +6367,7 @@ void API dw_draw_rect(HWND handle, HPIXMAP pixmap, int flags, int x, int y, int 
     }
     if(bi)
     {
-        id gc = _create_gc(image, flags & DW_DRAW_NOAA ? NO : YES);
+        id gc = _create_gc(bi, flags & DW_DRAW_NOAA ? NO : YES);
         [NSGraphicsContext saveGraphicsState];
         [NSGraphicsContext setCurrentContext:gc];
     }
@@ -6434,7 +6434,7 @@ void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yo
     }
     if(bi)
     {
-        id gc = _create_gc(image, flags & DW_DRAW_NOAA ? NO : YES);
+        id gc = _create_gc(bi, flags & DW_DRAW_NOAA ? NO : YES);
         [NSGraphicsContext saveGraphicsState];
         [NSGraphicsContext setCurrentContext:gc];
     }
