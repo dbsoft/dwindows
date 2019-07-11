@@ -151,10 +151,18 @@
  */
 #if defined(MAC_OS_X_VERSION_10_14) && ((defined(MAC_OS_X_VERSION_MAX_ALLOWED) && MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_14) || !defined(MAC_OS_X_VERSION_MAX_ALLOWED))
 #define DWProgressIndicatorStyleBar NSProgressIndicatorStyleBar
-#define DWWebView WKWebView
 #define BUILDING_FOR_MOJAVE
 #else
 #define DWProgressIndicatorStyleBar NSProgressIndicatorBarStyle
+#endif
+
+/* Apparently the WKWebKit API is only enabled on intel 64bit...
+ * Causing build failures on 32bit builds, so this should allow
+ * WKWebKit on intel 64 and the old WebKit on intel 32 bit and earlier.
+ */
+#if WK_API_ENABLED
+#define DWWebView WKWebView
+#else
 #define DWWebView WebView
 #endif
 
@@ -8279,7 +8287,7 @@ void API dw_html_action(HWND handle, int action)
 int API dw_html_raw(HWND handle, char *string)
 {
     DWWebView *html = handle;
-#ifdef BUILDING_FOR_MOJAVE
+#if WK_API_ENABLED
     [html loadHTMLString:[ NSString stringWithUTF8String:string ] baseURL:nil];
 #else
     [[html mainFrame] loadHTMLString:[ NSString stringWithUTF8String:string ] baseURL:nil];
@@ -8299,7 +8307,7 @@ int API dw_html_raw(HWND handle, char *string)
 int API dw_html_url(HWND handle, char *url)
 {
     DWWebView *html = handle;
-#ifdef BUILDING_FOR_MOJAVE
+#if WK_API_ENABLED
     [html loadRequest:[NSURLRequest requestWithURL:[NSURL URLWithString:[ NSString stringWithUTF8String:url ]]]];
 #else
     [[html mainFrame] loadRequest:[NSURLRequest requestWithURL:[NSURL URLWithString:[ NSString stringWithUTF8String:url ]]]];
