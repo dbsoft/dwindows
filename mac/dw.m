@@ -950,6 +950,23 @@ typedef struct _bitbltinfo
     }
     _event_handler(param, nil, 8);
 }
+-(void)safeCall:(SEL)sel withObject:(id)param
+{
+    if([self respondsToSelector:sel])
+    {
+        DWTID curr = pthread_self();
+
+        if(DWThread == (DWTID)-1 || DWThread == curr)
+        {
+            IMP imp = [self methodForSelector:sel];
+            
+            if(imp)
+                imp(self, sel, param);
+        }
+        else
+            [self performSelectorOnMainThread:sel withObject:param waitUntilDone:YES];
+    }
+}
 -(void)doBitBlt:(id)param
 {
     NSValue *bi = (NSValue *)param;
@@ -8167,10 +8184,7 @@ int API dw_pixmap_stretch_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest,
         id object = bltinfo->src = (id)srcp->image;
         [object retain];
     }
-    if(DWThread == (DWTID)-1)
-        [DWObj doBitBlt:bi];
-    else
-        [DWObj performSelectorOnMainThread:@selector(doBitBlt:) withObject:bi waitUntilDone:YES];
+    [DWObj safeCall:@selector(doBitBlt:) withObject:bi];
     DW_LOCAL_POOL_OUT;
     return DW_ERROR_NONE;
 }
