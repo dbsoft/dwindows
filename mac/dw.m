@@ -615,7 +615,9 @@ DWTimerHandler *DWHandler;
 #if !defined(GARBAGE_COLLECT)
 NSAutoreleasePool *pool;
 #endif
-#ifndef BUILDING_FOR_MOJAVE
+#ifdef BUILDING_FOR_MOJAVE
+NSMutableArray *_DWDirtyDrawables;
+#else
 HWND _DWLastDrawable;
 #endif
 HMTX DWRunMutex;
@@ -892,7 +894,9 @@ typedef struct _bitbltinfo
         cachedDrawingRep = [self bitmapImageRepForCachingDisplayInRect:self.bounds];
         [cachedDrawingRep retain];
     }
-    self.needsDisplay = YES;
+    /* Mark this render dirty if something is requesting it to draw */
+    if(![_DWDirtyDrawables containsObject:self])
+        [_DWDirtyDrawables addObject:self];
     return cachedDrawingRep;
 }
 #endif
@@ -911,7 +915,10 @@ typedef struct _bitbltinfo
     _event_handler(self, nil, 7);
 #ifdef BUILDING_FOR_MOJAVE
     if (cachedDrawingRep)
+    {
         [cachedDrawingRep drawInRect:self.bounds];
+        [_DWDirtyDrawables removeObject:self];
+    }
 #endif
 }
 -(void)keyDown:(NSEvent *)theEvent { _event_handler(self, theEvent, 2); }
@@ -923,6 +930,7 @@ typedef struct _bitbltinfo
     dw_signal_disconnect_by_window(self);
 #ifdef BUILDING_FOR_MOJAVE
     [cachedDrawingRep release];
+    [_DWDirtyDrawables removeObject:self];
 #endif
     [super dealloc];
 }
@@ -1045,12 +1053,20 @@ typedef struct _bitbltinfo
 }
 -(void)doFlush:(id)param
 {
-#ifndef BUILDING_FOR_MOJAVE
+#ifdef BUILDING_FOR_MOJAVE
+    NSEnumerator *enumerator = [_DWDirtyDrawables objectEnumerator];
+    DWRender *rend;
+    
+    while (rend = [enumerator nextObject])
+        rend.needsDisplay = YES;
+    [_DWDirtyDrawables removeAllObjects];
+#else
     if(_DWLastDrawable)
     {
         id object = _DWLastDrawable;
         NSWindow *window = [object window];
         [window flushWindow];
+        _DWLastDrawable = nil;
     }
 #endif
 }
@@ -11406,6 +11422,9 @@ int API dw_init(int newthread, int argc, char *argv[])
     DWRunMutex = dw_mutex_new();
     DWThreadMutex = dw_mutex_new();
     DWThreadMutex2 = dw_mutex_new();
+#ifdef BUILDING_FOR_MOJAVE
+    _DWDirtyDrawables = [[NSMutableArray alloc] init];
+#endif
     /* Use NSThread to start a dummy thread to initialize the threading subsystem */
     NSThread *thread = [[ NSThread alloc] initWithTarget:DWObj selector:@selector(uselessThread:) object:nil];
     [thread start];
