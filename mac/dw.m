@@ -19,6 +19,9 @@
 #include <sys/stat.h>
 #include <math.h>
 
+/* This may move to dw.h for use on all platforms in the future */
+#define __DW_UNUSED__ __attribute__((unused))
+
 /* Create a define to let us know to include Snow Leopard specific features */
 #if defined(MAC_OS_X_VERSION_10_6) && ((defined(MAC_OS_X_VERSION_MAX_ALLOWED) && MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_6) || !defined(MAC_OS_X_VERSION_MAX_ALLOWED))
 #define BUILDING_FOR_SNOW_LEOPARD
@@ -1878,8 +1881,10 @@ DWObject *DWObj;
 {
     void *userdata;
     float percent;
+    NSInteger Tag;
 }
 -(void)splitViewDidResizeSubviews:(NSNotification *)aNotification;
+-(void)setTag:(NSInteger)tag;
 -(void *)userdata;
 -(void)setUserdata:(void *)input;
 -(float)percent;
@@ -1904,6 +1909,7 @@ DWObject *DWObj;
         }
     }
 }
+-(void)setTag:(NSInteger)tag { self.Tag = tag; }
 -(void *)userdata { return userdata; }
 -(void)setUserdata:(void *)input { userdata = input; }
 -(float)percent { return percent; }
@@ -6848,7 +6854,7 @@ HTREEITEM API dw_tree_insert(HWND handle, char *title, HICN icon, HTREEITEM pare
 DW_FUNCTION_DEFINITION(dw_tree_get_title, char *, HWND handle, HTREEITEM item)
 DW_FUNCTION_ADD_PARAM2(handle, item)
 DW_FUNCTION_RETURN(dw_tree_get_title, char *)
-DW_FUNCTION_RESTORE_PARAM2(handle, HWND, item, HTREEITEM)
+DW_FUNCTION_RESTORE_PARAM2(__DW_UNUSED__ handle, HWND, item, HTREEITEM)
 {
     DW_FUNCTION_INIT;
     char *retval = NULL;
@@ -6921,7 +6927,7 @@ DW_FUNCTION_RESTORE_PARAM4(handle, HWND, item, HTREEITEM, title, char *, icon, H
 DW_FUNCTION_DEFINITION(dw_tree_item_set_data, void, HWND handle, HTREEITEM item, void *itemdata)
 DW_FUNCTION_ADD_PARAM3(handle, item, itemdata)
 DW_FUNCTION_NO_RETURN(dw_tree_item_set_data)
-DW_FUNCTION_RESTORE_PARAM3(handle, HWND, item, HTREEITEM, itemdata, void *)
+DW_FUNCTION_RESTORE_PARAM3(__DW_UNUSED__ handle, HWND, item, HTREEITEM, itemdata, void *)
 {
     DW_FUNCTION_INIT;
     NSMutableArray *array = (NSMutableArray *)item;
@@ -6938,7 +6944,7 @@ DW_FUNCTION_RESTORE_PARAM3(handle, HWND, item, HTREEITEM, itemdata, void *)
 DW_FUNCTION_DEFINITION(dw_tree_item_get_data, void *, HWND handle, HTREEITEM item)
 DW_FUNCTION_ADD_PARAM2(handle, item)
 DW_FUNCTION_RETURN(dw_tree_item_get_data, void *)
-DW_FUNCTION_RESTORE_PARAM2(handle, HWND, item, HTREEITEM)
+DW_FUNCTION_RESTORE_PARAM2(__DW_UNUSED__ handle, HWND, item, HTREEITEM)
 {
     DW_FUNCTION_INIT;
     void *result = NULL;
@@ -7073,7 +7079,7 @@ DW_FUNCTION_RESTORE_PARAM2(cid, ULONG, multi, int)
 DW_FUNCTION_DEFINITION(dw_container_setup, int, HWND handle, unsigned long *flags, char **titles, int count, int separator)
 DW_FUNCTION_ADD_PARAM5(handle, flags, titles, count, separator)
 DW_FUNCTION_RETURN(dw_container_setup, int)
-DW_FUNCTION_RESTORE_PARAM5(handle, HWND, flags, unsigned long *, titles, char **, count, int, separator, int)
+DW_FUNCTION_RESTORE_PARAM5(handle, HWND, flags, unsigned long *, titles, char **, count, int, __DW_UNUSED__ separator, int)
 {
     DW_FUNCTION_INIT;
     int z, retval = DW_ERROR_NONE;
@@ -7519,7 +7525,7 @@ DW_FUNCTION_RESTORE_PARAM3(handle, HWND, row, int, data, void *)
 DW_FUNCTION_DEFINITION(dw_container_insert, void, HWND handle, void *pointer, int rowcount)
 DW_FUNCTION_ADD_PARAM3(handle, pointer, rowcount)
 DW_FUNCTION_NO_RETURN(dw_container_insert)
-DW_FUNCTION_RESTORE_PARAM3(handle, HWND, pointer, void *, rowcount, int)
+DW_FUNCTION_RESTORE_PARAM3(handle, HWND, __DW_UNUSED__ pointer, void *, __DW_UNUSED__ rowcount, int)
 {
     DW_FUNCTION_INIT;
     DWContainer *cont = handle;
@@ -8038,7 +8044,7 @@ DW_FUNCTION_RESTORE_PARAM4(type, int, topleft, HWND, bottomright, HWND, cid, uns
     }
     /* Set the default percent to 50% split */
     [split setPercent:50.0];
-    /* [split setTag:cid]; Why doesn't this work? */
+    [split setTag:cid];
     DW_FUNCTION_RETURN_THIS(split);
 }
 
@@ -8653,7 +8659,7 @@ int API dw_html_url(HWND handle, char *url)
 DW_FUNCTION_DEFINITION(dw_html_new, HWND, ULONG cid)
 DW_FUNCTION_ADD_PARAM1(cid)
 DW_FUNCTION_RETURN(dw_html_new, HWND)
-DW_FUNCTION_RESTORE_PARAM1(cid, ULONG)
+DW_FUNCTION_RESTORE_PARAM1(__DW_UNUSED__ cid, ULONG)
 {
     DW_FUNCTION_INIT;
     DWWebView *web = [[DWWebView alloc] init];
