@@ -395,6 +395,9 @@ char *_dw_get_image_extension( char *filename )
    return NULL;
 }
 
+unsigned long _DW_COLOR_ROW_ODD = DW_RGB(230, 230, 230);
+unsigned long _DW_COLOR_ROW_EVEN = DW_RGB_TRANSPARENT;
+
 unsigned long _get_color(unsigned long thiscolor)
 {
     if(thiscolor & DW_RGB_COLOR)
@@ -421,7 +424,24 @@ static char _dw_bundle_path[PATH_MAX+1] = { 0 };
 void _init_colors(void)
 {
     NSColor *fgcolor = [[NSColor grayColor] retain];
-
+#ifdef BUILDING_FOR_MOJAVE
+    if (@available(macOS 10.14, *))
+    {
+        NSArray<NSColor *> *bgColors = [NSColor alternatingContentBackgroundColors];
+        if(bgColors)
+        {
+            NSColor *color = bgColors[0];
+            NSColor* device_color = [color colorUsingColorSpace:[NSColorSpace deviceRGBColorSpace]];
+            CGFloat red, green, blue;
+            [device_color getRed:&red green:&green blue:&blue alpha:NULL];
+            _DW_COLOR_ROW_ODD = DW_RGB((int)(red * 255), (int)(green *255), (int)(blue *255));
+            color = bgColors[1];
+            device_color = [color colorUsingColorSpace:[NSColorSpace deviceRGBColorSpace]];
+            [device_color getRed:&red green:&green blue:&blue alpha:NULL];
+            _DW_COLOR_ROW_EVEN = DW_RGB((int)(red * 255), (int)(green *255), (int)(blue *255));
+        }
+    }
+#endif
     pthread_setspecific(_dw_fg_color_key, fgcolor);
     pthread_setspecific(_dw_bg_color_key, NULL);
 }
@@ -1909,7 +1929,7 @@ DWObject *DWObj;
         }
     }
 }
--(void)setTag:(NSInteger)tag { self.Tag = tag; }
+-(void)setTag:(NSInteger)tag { Tag = tag; }
 -(void *)userdata { return userdata; }
 -(void)setUserdata:(void *)input { userdata = input; }
 -(float)percent { return percent; }
@@ -7412,8 +7432,8 @@ DW_FUNCTION_RESTORE_PARAM3(handle, HWND, oddcolor, unsigned long, evencolor, uns
 {
     DW_FUNCTION_INIT;
     DWContainer *cont = handle;
-    [cont setRowBgOdd:(oddcolor == DW_CLR_DEFAULT ? DW_RGB(230,230,230) : oddcolor)
-              andEven:(evencolor == DW_CLR_DEFAULT ? DW_RGB_TRANSPARENT : evencolor)];
+    [cont setRowBgOdd:(oddcolor == DW_CLR_DEFAULT ? _DW_COLOR_ROW_ODD : oddcolor)
+              andEven:(evencolor == DW_CLR_DEFAULT ? _DW_COLOR_ROW_EVEN : evencolor)];
     DW_FUNCTION_RETURN_NOTHING;
 }
 
