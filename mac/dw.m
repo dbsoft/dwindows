@@ -29,23 +29,6 @@
 #define BUILDING_FOR_LION
 #endif
 
-/* Macros to protect access to thread unsafe classes */
-#define  DW_MUTEX_LOCK { \
-    if(DWThread != (DWTID)-1 && pthread_self() != DWThread && pthread_self() != _dw_mutex_locked) { \
-        dw_mutex_lock(DWThreadMutex); \
-        _dw_mutex_locked = pthread_self(); \
-        dw_mutex_lock(DWThreadMutex2); \
-        [DWObj performSelectorOnMainThread:@selector(synchronizeThread:) withObject:nil waitUntilDone:NO]; \
-        dw_mutex_lock(DWRunMutex); \
-        _locked_by_me = TRUE; } }
-#define  DW_MUTEX_UNLOCK { \
-    if(pthread_self() != DWThread && _locked_by_me == TRUE) { \
-        dw_mutex_unlock(DWRunMutex); \
-        dw_mutex_unlock(DWThreadMutex2); \
-        _dw_mutex_locked = (pthread_t)-1; \
-        dw_mutex_unlock(DWThreadMutex); \
-        _locked_by_me = FALSE; } }
-
 /* Macros to handle local auto-release pools */
 #define DW_LOCAL_POOL_IN NSAutoreleasePool *localpool = nil; \
         if(DWThread != (DWTID)-1 && pthread_self() != DWThread) \
@@ -154,6 +137,189 @@
 #define BUILDING_FOR_MOJAVE
 #else
 #define DWProgressIndicatorStyleBar NSProgressIndicatorBarStyle
+#endif
+
+/* Macros to encapsulate running functions on the main thread
+ * on Mojave or later... and locking mutexes on earlier versions.
+ */
+#ifdef BUILDING_FOR_MOJAVE
+#define DW_FUNCTION_INIT
+#define DW_FUNCTION_DEFINITION(func, rettype, ...)  void _##func(NSPointerArray *_args); \
+rettype API func(__VA_ARGS__) { \
+    DW_LOCAL_POOL_IN; \
+    NSPointerArray *_args = [[NSPointerArray alloc] initWithOptions:NSPointerFunctionsOpaqueMemory]; \
+    [_args retain]; \
+    [_args addPointer:(void *)_##func];
+#define DW_FUNCTION_ADD_PARAM1(param1) [_args addPointer:(void *)&param1];
+#define DW_FUNCTION_ADD_PARAM2(param1, param2) [_args addPointer:(void *)&param1]; \
+    [_args addPointer:(void *)&param2];
+#define DW_FUNCTION_ADD_PARAM3(param1, param2, param3) [_args addPointer:(void *)&param1]; \
+    [_args addPointer:(void *)&param2]; \
+    [_args addPointer:(void *)&param3];
+#define DW_FUNCTION_ADD_PARAM4(param1, param2, param3, param4) [_args addPointer:(void *)&param1]; \
+    [_args addPointer:(void *)&param2]; \
+    [_args addPointer:(void *)&param3]; \
+    [_args addPointer:(void *)&param4];
+#define DW_FUNCTION_ADD_PARAM5(param1, param2, param3, param4, param5) [_args addPointer:(void *)&param1]; \
+    [_args addPointer:(void *)&param2]; \
+    [_args addPointer:(void *)&param3]; \
+    [_args addPointer:(void *)&param4]; \
+    [_args addPointer:(void *)&param5];
+#define DW_FUNCTION_ADD_PARAM6(param1, param2, param3, param4, param5, param6) \
+    [_args addPointer:(void *)&param1]; \
+    [_args addPointer:(void *)&param2]; \
+    [_args addPointer:(void *)&param3]; \
+    [_args addPointer:(void *)&param4]; \
+    [_args addPointer:(void *)&param5]; \
+    [_args addPointer:(void *)&param6];
+#define DW_FUNCTION_ADD_PARAM7(param1, param2, param3, param4, param5, param6, param7) \
+    [_args addPointer:(void *)&param1]; \
+    [_args addPointer:(void *)&param2]; \
+    [_args addPointer:(void *)&param3]; \
+    [_args addPointer:(void *)&param4]; \
+    [_args addPointer:(void *)&param5]; \
+    [_args addPointer:(void *)&param6]; \
+    [_args addPointer:(void *)&param7];
+#define DW_FUNCTION_ADD_PARAM8(param1, param2, param3, param4, param5, param6, param7, param8) \
+    [_args addPointer:(void *)&param1]; \
+    [_args addPointer:(void *)&param2]; \
+    [_args addPointer:(void *)&param3]; \
+    [_args addPointer:(void *)&param4]; \
+    [_args addPointer:(void *)&param5]; \
+    [_args addPointer:(void *)&param6]; \
+    [_args addPointer:(void *)&param7]; \
+    [_args addPointer:(void *)&param8];
+#define DW_FUNCTION_ADD_PARAM9(param1, param2, param3, param4, param5, param6, param7, param8, param9) \
+    [_args addPointer:(void *)&param1]; \
+    [_args addPointer:(void *)&param2]; \
+    [_args addPointer:(void *)&param3]; \
+    [_args addPointer:(void *)&param4]; \
+    [_args addPointer:(void *)&param5]; \
+    [_args addPointer:(void *)&param6]; \
+    [_args addPointer:(void *)&param7]; \
+    [_args addPointer:(void *)&param8]; \
+    [_args addPointer:(void *)&param9];
+#define DW_FUNCTION_RESTORE_PARAM1(param1, vartype1) vartype1 param1 = *((vartype1 *)[_args pointerAtIndex:1]);
+#define DW_FUNCTION_RESTORE_PARAM2(param1, vartype1, param2, vartype2) \
+    vartype1 param1 = *((vartype1 *)[_args pointerAtIndex:1]); \
+    vartype2 param2 = *((vartype2 *)[_args pointerAtIndex:2]);
+#define DW_FUNCTION_RESTORE_PARAM3(param1, vartype1, param2, vartype2, param3, vartype3) \
+    vartype1 param1 = *((vartype1 *)[_args pointerAtIndex:1]); \
+    vartype2 param2 = *((vartype2 *)[_args pointerAtIndex:2]); \
+    vartype3 param3 = *((vartype3 *)[_args pointerAtIndex:3]);
+#define DW_FUNCTION_RESTORE_PARAM4(param1, vartype1, param2, vartype2, param3, vartype3, param4, vartype4) \
+    vartype1 param1 = *((vartype1 *)[_args pointerAtIndex:1]); \
+    vartype2 param2 = *((vartype2 *)[_args pointerAtIndex:2]); \
+    vartype3 param3 = *((vartype3 *)[_args pointerAtIndex:3]); \
+    vartype4 param4 = *((vartype4 *)[_args pointerAtIndex:4]);
+#define DW_FUNCTION_RESTORE_PARAM5(param1, vartype1, param2, vartype2, param3, vartype3, param4, vartype4, param5, vartype5) \
+    vartype1 param1 = *((vartype1 *)[_args pointerAtIndex:1]); \
+    vartype2 param2 = *((vartype2 *)[_args pointerAtIndex:2]); \
+    vartype3 param3 = *((vartype3 *)[_args pointerAtIndex:3]); \
+    vartype4 param4 = *((vartype4 *)[_args pointerAtIndex:4]); \
+    vartype5 param5 = *((vartype5 *)[_args pointerAtIndex:5]);
+#define DW_FUNCTION_RESTORE_PARAM6(param1, vartype1, param2, vartype2, param3, vartype3, param4, vartype4, param5, vartype5, param6, vartype6) \
+    vartype1 param1 = *((vartype1 *)[_args pointerAtIndex:1]); \
+    vartype2 param2 = *((vartype2 *)[_args pointerAtIndex:2]); \
+    vartype3 param3 = *((vartype3 *)[_args pointerAtIndex:3]); \
+    vartype4 param4 = *((vartype4 *)[_args pointerAtIndex:4]); \
+    vartype5 param5 = *((vartype5 *)[_args pointerAtIndex:5]); \
+    vartype6 param6 = *((vartype6 *)[_args pointerAtIndex:6]);
+#define DW_FUNCTION_RESTORE_PARAM7(param1, vartype1, param2, vartype2, param3, vartype3, param4, vartype4, param5, vartype5, param6, vartype6, param7, vartype7) \
+    vartype1 param1 = *((vartype1 *)[_args pointerAtIndex:1]); \
+    vartype2 param2 = *((vartype2 *)[_args pointerAtIndex:2]); \
+    vartype3 param3 = *((vartype3 *)[_args pointerAtIndex:3]); \
+    vartype4 param4 = *((vartype4 *)[_args pointerAtIndex:4]); \
+    vartype5 param5 = *((vartype5 *)[_args pointerAtIndex:5]); \
+    vartype6 param6 = *((vartype6 *)[_args pointerAtIndex:6]); \
+    vartype7 param7 = *((vartype7 *)[_args pointerAtIndex:7]);
+#define DW_FUNCTION_RESTORE_PARAM8(param1, vartype1, param2, vartype2, param3, vartype3, param4, vartype4, param5, vartype5, param6, vartype6, param7, vartype7, param8, vartype8) \
+    vartype1 param1 = *((vartype1 *)[_args pointerAtIndex:1]); \
+    vartype2 param2 = *((vartype2 *)[_args pointerAtIndex:2]); \
+    vartype3 param3 = *((vartype3 *)[_args pointerAtIndex:3]); \
+    vartype4 param4 = *((vartype4 *)[_args pointerAtIndex:4]); \
+    vartype5 param5 = *((vartype5 *)[_args pointerAtIndex:5]); \
+    vartype6 param6 = *((vartype6 *)[_args pointerAtIndex:6]); \
+    vartype7 param7 = *((vartype7 *)[_args pointerAtIndex:7]); \
+    vartype8 param8 = *((vartype8 *)[_args pointerAtIndex:8]);
+#define DW_FUNCTION_RESTORE_PARAM9(param1, vartype1, param2, vartype2, param3, vartype3, param4, vartype4, param5, vartype5, param6, vartype6, param7, vartype7, param8, vartype8, param9, vartype9) \
+    vartype1 param1 = *((vartype1 *)[_args pointerAtIndex:1]); \
+    vartype2 param2 = *((vartype2 *)[_args pointerAtIndex:2]); \
+    vartype3 param3 = *((vartype3 *)[_args pointerAtIndex:3]); \
+    vartype4 param4 = *((vartype4 *)[_args pointerAtIndex:4]); \
+    vartype5 param5 = *((vartype5 *)[_args pointerAtIndex:5]); \
+    vartype6 param6 = *((vartype6 *)[_args pointerAtIndex:6]); \
+    vartype7 param7 = *((vartype7 *)[_args pointerAtIndex:7]); \
+    vartype8 param8 = *((vartype8 *)[_args pointerAtIndex:8]); \
+    vartype9 param9 = *((vartype9 *)[_args pointerAtIndex:9]);
+#define DW_FUNCTION_END }
+#define DW_FUNCTION_NO_RETURN(func) [DWObj safeCall:@selector(callBack:) withObject:_args]; \
+    [_args release]; \
+    DW_LOCAL_POOL_OUT; } \
+void _##func(NSPointerArray *_args) {
+#define DW_FUNCTION_RETURN(func, rettype) [DWObj safeCall:@selector(callBack:) withObject:_args]; {\
+        void *tmp = [_args pointerAtIndex:[_args count]-1]; \
+        rettype myreturn = *((rettype *)tmp); \
+        free(tmp); \
+        return myreturn; } \
+    [_args release]; \
+    DW_LOCAL_POOL_OUT; } \
+void _##func(NSPointerArray *_args) {
+#define DW_FUNCTION_RETURN_THIS(_retvar) { void *_myreturn = malloc(sizeof(_retvar)); \
+    memcpy(_myreturn, (void *)&_retvar, sizeof(_retvar)); \
+    [_args addPointer:_myreturn]; }}
+#define DW_FUNCTION_RETURN_NOTHING }
+#else
+/* Macros to protect access to thread unsafe classes */
+#define DW_FUNCTION_INIT int _locked_by_me = FALSE; { \
+    if(DWThread != (DWTID)-1 && pthread_self() != DWThread && pthread_self() != _dw_mutex_locked) { \
+        dw_mutex_lock(DWThreadMutex); \
+        _dw_mutex_locked = pthread_self(); \
+        dw_mutex_lock(DWThreadMutex2); \
+        [DWObj performSelectorOnMainThread:@selector(synchronizeThread:) withObject:nil waitUntilDone:NO]; \
+        dw_mutex_lock(DWRunMutex); \
+        _locked_by_me = TRUE; } }
+#define DW_FUNCTION_DEFINITION(func, rettype, ...) rettype API func(__VA_ARGS__)
+#define DW_FUNCTION_ADD_PARAM1(param1)
+#define DW_FUNCTION_ADD_PARAM2(param1, param2)
+#define DW_FUNCTION_ADD_PARAM3(param1, param2, param3)
+#define DW_FUNCTION_ADD_PARAM4(param1, param2, param3, param4)
+#define DW_FUNCTION_ADD_PARAM5(param1, param2, param3, param4, param5)
+#define DW_FUNCTION_ADD_PARAM6(param1, param2, param3, param4, param5, param6)
+#define DW_FUNCTION_ADD_PARAM7(param1, param2, param3, param4, param5, param6, param7)
+#define DW_FUNCTION_ADD_PARAM8(param1, param2, param3, param4, param5, param6, param7, param8)
+#define DW_FUNCTION_ADD_PARAM9(param1, param2, param3, param4, param5, param6, param7, param8, param9)
+#define DW_FUNCTION_RESTORE_PARAM1(param1, vartype1)
+#define DW_FUNCTION_RESTORE_PARAM2(param1, vartype1, param2, vartype2)
+#define DW_FUNCTION_RESTORE_PARAM3(param1, vartype1, param2, vartype2, param3, vartype3)
+#define DW_FUNCTION_RESTORE_PARAM4(param1, vartype1, param2, vartype2, param3, vartype3, param4, vartype4)
+#define DW_FUNCTION_RESTORE_PARAM5(param1, vartype1, param2, vartype2, param3, vartype3, param4, vartype4, param5, vartype5)
+#define DW_FUNCTION_RESTORE_PARAM6(param1, vartype1, param2, vartype2, param3, vartype3, param4, vartype4, param5, vartype5, param6, vartype6)
+#define DW_FUNCTION_RESTORE_PARAM7(param1, vartype1, param2, vartype2, param3, vartype3, param4, vartype4, param5, vartype5, param6, vartype6, param7, vartype7)
+#define DW_FUNCTION_RESTORE_PARAM8(param1, vartype1, param2, vartype2, param3, vartype3, param4, vartype4, param5, vartype5, param6, vartype6, param7, vartype7, param8, vartype8)
+#define DW_FUNCTION_RESTORE_PARAM9(param1, vartype1, param2, vartype2, param3, vartype3, param4, vartype4, param5, vartype5, param6, vartype6, param7, vartype7, param8, vartype8, param9, vartype9)
+#define DW_FUNCTION_END
+#define DW_FUNCTION_NO_RETURN(func)
+#define DW_FUNCTION_RETURN(func, rettype)
+#define DW_FUNCTION_RETURN_THIS(retvar) { \
+    if(pthread_self() != DWThread && _locked_by_me == TRUE) { \
+        dw_mutex_unlock(DWRunMutex); \
+        dw_mutex_unlock(DWThreadMutex2); \
+        _dw_mutex_locked = (pthread_t)-1; \
+        dw_mutex_unlock(DWThreadMutex); \
+        _locked_by_me = FALSE; } } \
+    return retvar;
+#define DW_FUNCTION_RETURN_NOTHING { \
+    if(pthread_self() != DWThread && _locked_by_me == TRUE) { \
+        dw_mutex_unlock(DWRunMutex); \
+        dw_mutex_unlock(DWThreadMutex2); \
+        _dw_mutex_locked = (pthread_t)-1; \
+        dw_mutex_unlock(DWThreadMutex); \
+        _locked_by_me = FALSE; } }
+HMTX DWRunMutex;
+HMTX DWThreadMutex;
+HMTX DWThreadMutex2;
+DWTID _dw_mutex_locked = (DWTID)-1;
 #endif
 
 /* Apparently the WKWebKit API is only enabled on intel 64bit...
@@ -620,11 +786,7 @@ NSMutableArray *_DWDirtyDrawables;
 #else
 HWND _DWLastDrawable;
 #endif
-HMTX DWRunMutex;
-HMTX DWThreadMutex;
-HMTX DWThreadMutex2;
 DWTID DWThread = (DWTID)-1;
-DWTID _dw_mutex_locked = (DWTID)-1;
 
 /* Send fake event to make sure the loop isn't stuck */
 void _dw_wakeup_app()
@@ -659,7 +821,9 @@ typedef struct _bitbltinfo
 /* Subclass for a test object type */
 @interface DWObject : NSObject {}
 -(void)uselessThread:(id)sender;
+#ifndef BUILDING_FOR_MOJAVE
 -(void)synchronizeThread:(id)param;
+#endif
 -(void)menuHandler:(id)param;
 -(void)doBitBlt:(id)param;
 -(void)doFlush:(id)param;
@@ -939,6 +1103,7 @@ typedef struct _bitbltinfo
 
 @implementation DWObject
 -(void)uselessThread:(id)sender { /* Thread only to initialize threading */ }
+#ifndef BUILDING_FOR_MOJAVE
 -(void)synchronizeThread:(id)param
 {
     pthread_mutex_unlock(DWRunMutex);
@@ -946,6 +1111,7 @@ typedef struct _bitbltinfo
     pthread_mutex_unlock(DWThreadMutex2);
     pthread_mutex_lock(DWRunMutex);
 }
+#endif
 -(void)menuHandler:(id)param
 {
     DWMenuItem *item = param;
@@ -958,6 +1124,14 @@ typedef struct _bitbltinfo
     }
     _event_handler(param, nil, 8);
 }
+#ifdef BUILDING_FOR_MOJAVE
+-(void)callBack:(NSPointerArray *)params
+{
+    void (*mycallback)(NSPointerArray *) = [params pointerAtIndex:0];
+    if(mycallback)
+        mycallback(params);
+}
+#endif
 -(void)safeCall:(SEL)sel withObject:(id)param
 {
     if([self respondsToSelector:sel])
@@ -3418,13 +3592,17 @@ NSMenu *_generate_main_menu()
  */
 void API dw_main(void)
 {
+#ifndef BUILDING_FOR_MOJAVE
     dw_mutex_lock(DWRunMutex);
+#endif
     DWThread = dw_thread_id();
     /* Make sure any queued redraws are handled */
     _dw_redraw(0, FALSE);
     [DWApp run];
     DWThread = (DWTID)-1;
+#ifndef BUILDING_FOR_MOJAVE
     dw_mutex_unlock(DWRunMutex);
+#endif
 }
 
 /*
@@ -3452,7 +3630,9 @@ void API dw_main_sleep(int milliseconds)
 
         if(orig == (DWTID)-1)
         {
+#ifndef BUILDING_FOR_MOJAVE
             dw_mutex_lock(DWRunMutex);
+#endif
             DWThread = curr;
         }
        /* Process any pending events */
@@ -3463,7 +3643,9 @@ void API dw_main_sleep(int milliseconds)
         if(orig == (DWTID)-1)
         {
             DWThread = orig;
+#ifndef BUILDING_FOR_MOJAVE
             dw_mutex_unlock(DWRunMutex);
+#endif
         }
     }
     else
@@ -3497,11 +3679,15 @@ void API dw_main_iteration(void)
 
     if(DWThread == (DWTID)-1)
     {
+#ifndef BUILDING_FOR_MOJAVE
         dw_mutex_lock(DWRunMutex);
+#endif
         DWThread = curr;
         _dw_main_iteration([NSDate distantPast]);
         DWThread = (DWTID)-1;
+#ifndef BUILDING_FOR_MOJAVE
         dw_mutex_unlock(DWRunMutex);
+#endif
     }
     else if(DWThread == curr)
     {
@@ -3948,17 +4134,18 @@ void * API dw_dialog_wait(DWDialog *dialog)
  *       type: Either DW_VERT (vertical) or DW_HORZ (horizontal).
  *       pad: Number of pixels to pad around the box.
  */
-HWND API dw_box_new(int type, int pad)
+DW_FUNCTION_DEFINITION(dw_box_new, HWND, int type, int pad)
+DW_FUNCTION_ADD_PARAM2(type, pad)
+DW_FUNCTION_RETURN(dw_box_new, HWND)
+DW_FUNCTION_RESTORE_PARAM2(type, int, pad, int)
 {
-    int _locked_by_me = FALSE;
-    DW_MUTEX_LOCK;
+    DW_FUNCTION_INIT;
     DWBox *view = [[DWBox alloc] init];
     Box *newbox = [view box];
     memset(newbox, 0, sizeof(Box));
     newbox->pad = pad;
     newbox->type = type;
-    DW_MUTEX_UNLOCK;
-    return view;
+    DW_FUNCTION_RETURN_THIS(view);
 }
 
 /*
@@ -4320,8 +4507,8 @@ void _control_size(id handle, int *width, int *height)
 /* Internal box packing function called by the other 3 functions */
 void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsize, int vsize, int pad, char *funcname)
 {
-    int _locked_by_me = FALSE;
-    DW_MUTEX_LOCK;
+    //int _locked_by_me = FALSE;
+    //DW_MUTEX_LOCK;
     id object = box;
     DWBox *view = box;
     DWBox *this = item;
@@ -4439,7 +4626,7 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
     /* Free the old data */
     if(thisitem)
        free(thisitem);
-    DW_MUTEX_UNLOCK;
+    //DW_MUTEX_UNLOCK;
 }
 
 /*
@@ -4449,12 +4636,15 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
  * Returns:
  *       DW_ERROR_NONE on success and DW_ERROR_GENERAL on failure.
  */
-int API dw_box_unpack(HWND handle)
+DW_FUNCTION_DEFINITION(dw_box_unpack, int, HWND handle)
+DW_FUNCTION_ADD_PARAM1(handle)
+DW_FUNCTION_RETURN(dw_box_unpack, int)
+DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
 {
-    int _locked_by_me = FALSE;
+    DW_FUNCTION_INIT;
     DW_LOCAL_POOL_IN;
-    DW_MUTEX_LOCK;
     id object = handle;
+    int retval = DW_ERROR_NONE;
 
     if([object isKindOfClass:[NSView class]] || [object isKindOfClass:[NSControl class]])
     {
@@ -4487,44 +4677,41 @@ int API dw_box_unpack(HWND handle)
             }
 
             if(index == -1)
-            {
-                DW_MUTEX_UNLOCK;
-                DW_LOCAL_POOL_OUT;
-                return DW_ERROR_GENERAL;
-            }
-
-            [object retain];
-            [object removeFromSuperview];
-
-            if(thisbox->count > 1)
-            {
-                tmpitem = calloc(sizeof(Item), (thisbox->count-1));
-
-                /* Copy all but the current entry to the new list */
-                for(z=0;z<index;z++)
-                {
-                    tmpitem[z] = thisitem[z];
-                }
-                for(z=index+1;z<thisbox->count;z++)
-                {
-                    tmpitem[z-1] = thisitem[z];
-                }
-            }
-
-            thisbox->items = tmpitem;
-            if(thisitem)
-                free(thisitem);
-            if(tmpitem)
-                thisbox->count--;
+                retval = DW_ERROR_GENERAL;
             else
-                thisbox->count = 0;
-            /* Queue a redraw on the top-level window */
-            _dw_redraw(window, TRUE);
+            {
+                [object retain];
+                [object removeFromSuperview];
+
+                if(thisbox->count > 1)
+                {
+                    tmpitem = calloc(sizeof(Item), (thisbox->count-1));
+
+                    /* Copy all but the current entry to the new list */
+                    for(z=0;z<index;z++)
+                    {
+                        tmpitem[z] = thisitem[z];
+                    }
+                    for(z=index+1;z<thisbox->count;z++)
+                    {
+                        tmpitem[z-1] = thisitem[z];
+                    }
+                }
+
+                thisbox->items = tmpitem;
+                if(thisitem)
+                    free(thisitem);
+                if(tmpitem)
+                    thisbox->count--;
+                else
+                    thisbox->count = 0;
+                /* Queue a redraw on the top-level window */
+                _dw_redraw(window, TRUE);
+            }
         }
     }
-    DW_MUTEX_UNLOCK;
     DW_LOCAL_POOL_OUT;
-    return DW_ERROR_NONE;
+    DW_FUNCTION_RETURN_THIS(retval);
 }
 
 /*
@@ -4535,11 +4722,13 @@ int API dw_box_unpack(HWND handle)
  * Returns:
  *       Handle to the removed item on success, 0 on failure or padding.
  */
-HWND API dw_box_unpack_at_index(HWND box, int index)
+DW_FUNCTION_DEFINITION(dw_box_unpack_at_index, HWND, HWND box, int index)
+DW_FUNCTION_ADD_PARAM2(box, index)
+DW_FUNCTION_RETURN(dw_box_unpack_at_index, HWND)
+DW_FUNCTION_RESTORE_PARAM2(box, HWND, index, int)
 {
-    int _locked_by_me = FALSE;
+    DW_FUNCTION_INIT;
     DW_LOCAL_POOL_IN;
-    DW_MUTEX_LOCK;
     DWBox *parent = (DWBox *)box;
     id object = nil;
 
@@ -4588,9 +4777,8 @@ HWND API dw_box_unpack_at_index(HWND box, int index)
             _dw_redraw(window, TRUE);
         }
     }
-    DW_MUTEX_UNLOCK;
     DW_LOCAL_POOL_OUT;
-    return object;
+    DW_FUNCTION_RETURN_THIS(object);
 }
 
 /*
@@ -5130,10 +5318,12 @@ HWND _cont_new(ULONG cid, int multi)
  *       id: An ID to be used with dw_window_from_id() or 0L.
  *       multi: Multiple select TRUE or FALSE.
  */
-HWND API dw_listbox_new(ULONG cid, int multi)
+DW_FUNCTION_DEFINITION(dw_listbox_new, HWND, ULONG cid, int multi)
+DW_FUNCTION_ADD_PARAM2(cid, multi)
+DW_FUNCTION_RETURN(dw_listbox_new, HWND)
+DW_FUNCTION_RESTORE_PARAM2(cid, ULONG, multi, int)
 {
-    int _locked_by_me = FALSE;
-    DW_MUTEX_LOCK;
+    DW_FUNCTION_INIT;
     DWContainer *cont = _cont_new(cid, multi);
     [cont setHeaderView:nil];
     int type = DW_CFA_STRING;
@@ -5142,8 +5332,7 @@ HWND API dw_listbox_new(ULONG cid, int multi)
     [column setEditable:NO];
     [cont addTableColumn:column];
     [cont addColumn:column andType:type];
-    DW_MUTEX_UNLOCK;
-    return cont;
+    DW_FUNCTION_RETURN_THIS(cont)
 }
 
 /*
@@ -5152,10 +5341,12 @@ HWND API dw_listbox_new(ULONG cid, int multi)
  *          handle: Handle to the listbox to be appended to.
  *          text: Text to append into listbox.
  */
-void API dw_listbox_append(HWND handle, char *text)
+DW_FUNCTION_DEFINITION(dw_listbox_append, void, HWND handle, char *text)
+DW_FUNCTION_ADD_PARAM2(handle, text)
+DW_FUNCTION_NO_RETURN(dw_listbox_append)
+DW_FUNCTION_RESTORE_PARAM2(handle, HWND, text, char *)
 {
-    int _locked_by_me = FALSE;
-    DW_MUTEX_LOCK;
+    DW_FUNCTION_INIT;
     id object = handle;
 
     if([object isMemberOfClass:[DWComboBox class]])
@@ -5177,7 +5368,7 @@ void API dw_listbox_append(HWND handle, char *text)
         [cont reloadData];
         [cont setNeedsDisplay:YES];
     }
-    DW_MUTEX_UNLOCK;
+    DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -5187,10 +5378,12 @@ void API dw_listbox_append(HWND handle, char *text)
  *          text: Text to insert into listbox.
  *          pos: 0-based position to insert text
  */
-void API dw_listbox_insert(HWND handle, char *text, int pos)
+DW_FUNCTION_DEFINITION(dw_listbox_insert, void, HWND handle, char *text, int pos)
+DW_FUNCTION_ADD_PARAM3(handle, text, pos)
+DW_FUNCTION_NO_RETURN(dw_listbox_insert)
+DW_FUNCTION_RESTORE_PARAM3(handle, HWND, text, char *, pos, int)
 {
-    int _locked_by_me = FALSE;
-    DW_MUTEX_LOCK;
+    DW_FUNCTION_INIT;
     id object = handle;
 
     if([object isMemberOfClass:[DWComboBox class]])
@@ -5209,7 +5402,7 @@ void API dw_listbox_insert(HWND handle, char *text, int pos)
         [cont reloadData];
         [cont setNeedsDisplay:YES];
     }
-    DW_MUTEX_UNLOCK;
+    DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -5219,10 +5412,12 @@ void API dw_listbox_insert(HWND handle, char *text, int pos)
  *          text: Text strings to append into listbox.
  *          count: Number of text strings to append
  */
-void API dw_listbox_list_append(HWND handle, char **text, int count)
+DW_FUNCTION_DEFINITION(dw_listbox_list_append, void, HWND handle, char **text, int count)
+DW_FUNCTION_ADD_PARAM3(handle, text, count)
+DW_FUNCTION_NO_RETURN(dw_listbox_list_append)
+DW_FUNCTION_RESTORE_PARAM3(handle, HWND, text, char **, count, int)
 {
-    int _locked_by_me = FALSE;
-    DW_MUTEX_LOCK;
+    DW_FUNCTION_INIT;
     id object = handle;
 
     if([object isMemberOfClass:[DWComboBox class]])
@@ -5250,7 +5445,7 @@ void API dw_listbox_list_append(HWND handle, char **text, int count)
         [cont reloadData];
         [cont setNeedsDisplay:YES];
     }
-    DW_MUTEX_UNLOCK;
+    DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -5258,10 +5453,12 @@ void API dw_listbox_list_append(HWND handle, char **text, int count)
  * Parameters:
  *          handle: Handle to the listbox to be cleared.
  */
-void API dw_listbox_clear(HWND handle)
+DW_FUNCTION_DEFINITION(dw_listbox_clear, void, HWND handle)
+DW_FUNCTION_ADD_PARAM1(handle)
+DW_FUNCTION_NO_RETURN(dw_listbox_clear)
+DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
 {
-    int _locked_by_me = FALSE;
-    DW_MUTEX_LOCK;
+    DW_FUNCTION_INIT;
     id object = handle;
 
     if([object isMemberOfClass:[DWComboBox class]])
@@ -5278,7 +5475,7 @@ void API dw_listbox_clear(HWND handle)
         [cont reloadData];
         [cont setNeedsDisplay:YES];
     }
-    DW_MUTEX_UNLOCK;
+    DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -5286,26 +5483,27 @@ void API dw_listbox_clear(HWND handle)
  * Parameters:
  *          handle: Handle to the listbox to be cleared.
  */
-int API dw_listbox_count(HWND handle)
+DW_FUNCTION_DEFINITION(dw_listbox_count, int, HWND handle)
+DW_FUNCTION_ADD_PARAM1(handle)
+DW_FUNCTION_RETURN(dw_listbox_count, int)
+DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
 {
+    DW_FUNCTION_INIT;
     id object = handle;
+    int result = 0;
 
     if([object isMemberOfClass:[DWComboBox class]])
     {
         DWComboBox *combo = handle;
 
-        return (int)[combo numberOfItems];
+        result = (int)[combo numberOfItems];
     }
     else if([object isMemberOfClass:[DWContainer class]])
     {
-        int _locked_by_me = FALSE;
-        DW_MUTEX_LOCK;
         DWContainer *cont = handle;
-        int result = (int)[cont numberOfRowsInTableView:cont];
-        DW_MUTEX_UNLOCK;
-        return result;
+        result = (int)[cont numberOfRowsInTableView:cont];
     }
-    return 0;
+    DW_FUNCTION_RETURN_THIS(result);
 }
 
 /*
@@ -5314,10 +5512,12 @@ int API dw_listbox_count(HWND handle)
  *          handle: Handle to the listbox to be cleared.
  *          top: Index to the top item.
  */
-void API dw_listbox_set_top(HWND handle, int top)
+DW_FUNCTION_DEFINITION(dw_listbox_set_top, void, HWND handle, int top)
+DW_FUNCTION_ADD_PARAM2(handle, top)
+DW_FUNCTION_NO_RETURN(dw_listbox_set_top)
+DW_FUNCTION_RESTORE_PARAM2(handle, HWND, top, int)
 {
-    int _locked_by_me = FALSE;
-    DW_MUTEX_LOCK;
+    DW_FUNCTION_INIT;
     id object = handle;
 
     if([object isMemberOfClass:[DWComboBox class]])
@@ -5332,7 +5532,7 @@ void API dw_listbox_set_top(HWND handle, int top)
 
         [cont scrollRowToVisible:top];
     }
-    DW_MUTEX_UNLOCK;
+    DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -5343,10 +5543,12 @@ void API dw_listbox_set_top(HWND handle, int top)
  *          buffer: Buffer where text will be copied.
  *          length: Length of the buffer (including NULL).
  */
-void API dw_listbox_get_text(HWND handle, unsigned int index, char *buffer, unsigned int length)
+DW_FUNCTION_DEFINITION(dw_listbox_get_text, void, HWND handle, unsigned int index, char *buffer, unsigned int length)
+DW_FUNCTION_ADD_PARAM4(handle, index, buffer, length)
+DW_FUNCTION_NO_RETURN(dw_listbox_get_text)
+DW_FUNCTION_RESTORE_PARAM4(handle, HWND, index, unsigned int, buffer, char *, length, unsigned int)
 {
-    int _locked_by_me = FALSE;
-    DW_MUTEX_LOCK;
+    DW_FUNCTION_INIT;
     id object = handle;
 
     if([object isMemberOfClass:[DWComboBox class]])
@@ -5380,7 +5582,7 @@ void API dw_listbox_get_text(HWND handle, unsigned int index, char *buffer, unsi
             strncpy(buffer, [ nstr UTF8String ], length - 1);
         }
     }
-    DW_MUTEX_UNLOCK;
+    DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -5390,10 +5592,12 @@ void API dw_listbox_get_text(HWND handle, unsigned int index, char *buffer, unsi
  *          index: Index into the list to be queried.
  *          buffer: Buffer where text will be copied.
  */
-void API dw_listbox_set_text(HWND handle, unsigned int index, char *buffer)
+DW_FUNCTION_DEFINITION(dw_listbox_set_text, void, HWND handle, unsigned int index, char *buffer)
+DW_FUNCTION_ADD_PARAM3(handle, index, buffer)
+DW_FUNCTION_NO_RETURN(dw_listbox_set_text)
+DW_FUNCTION_RESTORE_PARAM3(handle, HWND, index, unsigned int, buffer, char *)
 {
-    int _locked_by_me = FALSE;
-    DW_MUTEX_LOCK;
+    DW_FUNCTION_INIT;
     id object = handle;
 
     if([object isMemberOfClass:[DWComboBox class]])
@@ -5421,7 +5625,7 @@ void API dw_listbox_set_text(HWND handle, unsigned int index, char *buffer)
             [cont setNeedsDisplay:YES];
         }
     }
-    DW_MUTEX_UNLOCK;
+    DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -5429,25 +5633,26 @@ void API dw_listbox_set_text(HWND handle, unsigned int index, char *buffer)
  * Parameters:
  *          handle: Handle to the listbox to be queried.
  */
-int API dw_listbox_selected(HWND handle)
+DW_FUNCTION_DEFINITION(dw_listbox_selected, int, HWND handle)
+DW_FUNCTION_ADD_PARAM1(handle)
+DW_FUNCTION_RETURN(dw_listbox_selected, int)
+DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
 {
+    DW_FUNCTION_INIT;
     id object = handle;
+    int result = -1;
 
     if([object isMemberOfClass:[DWComboBox class]])
     {
         DWComboBox *combo = handle;
-        return (int)[combo indexOfSelectedItem];
+        result = (int)[combo indexOfSelectedItem];
     }
     else if([object isMemberOfClass:[DWContainer class]])
     {
-        int _locked_by_me = FALSE;
-        DW_MUTEX_LOCK;
         DWContainer *cont = handle;
-        int result = (int)[cont selectedRow];
-        DW_MUTEX_UNLOCK;
-        return result;
+        result = (int)[cont selectedRow];
     }
-    return -1;
+    DW_FUNCTION_RETURN_THIS(result);
 }
 
 /*
@@ -5456,10 +5661,12 @@ int API dw_listbox_selected(HWND handle)
  *          handle: Handle to the listbox to be queried.
  *          where: Either the previous return or -1 to restart.
  */
-int API dw_listbox_selected_multi(HWND handle, int where)
+DW_FUNCTION_DEFINITION(dw_listbox_selected_multi, int, HWND handle, int where)
+DW_FUNCTION_ADD_PARAM2(handle, where)
+DW_FUNCTION_RETURN(dw_listbox_selected_multi, int)
+DW_FUNCTION_RESTORE_PARAM2(handle, HWND, where, int)
 {
-    int _locked_by_me = FALSE;
-    DW_MUTEX_LOCK;
+    DW_FUNCTION_INIT;
     id object = handle;
     int retval = -1;
 
@@ -5478,8 +5685,7 @@ int API dw_listbox_selected_multi(HWND handle, int where)
             retval = (int)result;
         }
     }
-    DW_MUTEX_UNLOCK;
-    return retval;
+    DW_FUNCTION_RETURN_THIS(retval)
 }
 
 /*
@@ -5489,10 +5695,12 @@ int API dw_listbox_selected_multi(HWND handle, int where)
  *          index: Item index.
  *          state: TRUE if selected FALSE if unselected.
  */
-void API dw_listbox_select(HWND handle, int index, int state)
+DW_FUNCTION_DEFINITION(dw_listbox_select, void, HWND handle, int index, int state)
+DW_FUNCTION_ADD_PARAM3(handle, index, state)
+DW_FUNCTION_NO_RETURN(dw_listbox_select)
+DW_FUNCTION_RESTORE_PARAM3(handle, HWND, index, int, state, int)
 {
-    int _locked_by_me = FALSE;
-    DW_MUTEX_LOCK;
+    DW_FUNCTION_INIT;
     id object = handle;
 
     if([object isMemberOfClass:[DWComboBox class]])
@@ -5511,7 +5719,7 @@ void API dw_listbox_select(HWND handle, int index, int state)
         [cont selectRowIndexes:selected byExtendingSelection:YES];
         [selected release];
     }
-    DW_MUTEX_UNLOCK;
+    DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -5520,10 +5728,12 @@ void API dw_listbox_select(HWND handle, int index, int state)
  *          handle: Handle to the listbox to be set.
  *          index: Item index.
  */
-void API dw_listbox_delete(HWND handle, int index)
+DW_FUNCTION_DEFINITION(dw_listbox_delete, void, HWND handle, int index)
+DW_FUNCTION_ADD_PARAM2(handle, index)
+DW_FUNCTION_NO_RETURN(dw_listbox_delete)
+DW_FUNCTION_RESTORE_PARAM2(handle, HWND, index, int)
 {
-    int _locked_by_me = FALSE;
-    DW_MUTEX_LOCK;
+    DW_FUNCTION_INIT;
     id object = handle;
 
     if([object isMemberOfClass:[DWComboBox class]])
@@ -5540,7 +5750,7 @@ void API dw_listbox_delete(HWND handle, int index)
         [cont reloadData];
         [cont setNeedsDisplay:YES];
     }
-    DW_MUTEX_UNLOCK;
+    DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -5549,13 +5759,17 @@ void API dw_listbox_delete(HWND handle, int index)
  *       text: The default text to be in the combpbox widget.
  *       id: An ID to be used with dw_window_from_id() or 0L.
  */
-HWND API dw_combobox_new(char *text, ULONG cid)
+DW_FUNCTION_DEFINITION(dw_combobox_new, HWND, char *text, ULONG cid)
+DW_FUNCTION_ADD_PARAM2(text, cid)
+DW_FUNCTION_RETURN(dw_combobox_new, HWND)
+DW_FUNCTION_RESTORE_PARAM2(text, char *, cid, ULONG)
 {
+    DW_FUNCTION_INIT;
     DWComboBox *combo = [[DWComboBox alloc] init];
     [combo setStringValue:[NSString stringWithUTF8String:text]];
     [combo setDelegate:combo];
     [combo setTag:cid];
-    return combo;
+    DW_FUNCTION_RETURN_THIS(combo)
 }
 
 /*
@@ -5594,11 +5808,14 @@ HWND API dw_mle_new(ULONG cid)
  *          buffer: Text buffer to be imported.
  *          startpoint: Point to start entering text.
  */
-unsigned int API dw_mle_import(HWND handle, char *buffer, int startpoint)
+DW_FUNCTION_DEFINITION(dw_mle_import, unsigned int, HWND handle, char *buffer, int startpoint)
+DW_FUNCTION_ADD_PARAM3(handle, buffer, startpoint)
+DW_FUNCTION_RETURN(dw_mle_import, unsigned int)
+DW_FUNCTION_RESTORE_PARAM3(handle, HWND, buffer, char *, startpoint, int)
 {
+    DW_FUNCTION_INIT;
     DWMLE *mle = handle;
-    int _locked_by_me = FALSE;
-    DW_MUTEX_LOCK;
+    unsigned int retval;
     NSTextStorage *ts = [mle textStorage];
     NSString *nstr = [NSString stringWithUTF8String:buffer];
     NSMutableString *ms = [ts mutableString];
@@ -5608,8 +5825,8 @@ unsigned int API dw_mle_import(HWND handle, char *buffer, int startpoint)
     if(startpoint > length)
         startpoint = (int)length;
     [ms insertString:nstr atIndex:startpoint];
-    DW_MUTEX_UNLOCK;
-    return (unsigned int)strlen(buffer) + startpoint;
+    retval = (unsigned int)strlen(buffer) + startpoint;
+    DW_FUNCTION_RETURN_THIS(retval);
 }
 
 /*
@@ -5620,17 +5837,19 @@ unsigned int API dw_mle_import(HWND handle, char *buffer, int startpoint)
  *          startpoint: Point to start grabbing text.
  *          length: Amount of text to be grabbed.
  */
-void API dw_mle_export(HWND handle, char *buffer, int startpoint, int length)
+DW_FUNCTION_DEFINITION(dw_mle_export, void, HWND handle, char *buffer, int startpoint, int length)
+DW_FUNCTION_ADD_PARAM4(handle, buffer, startpoint, length)
+DW_FUNCTION_NO_RETURN(dw_mle_export)
+DW_FUNCTION_RESTORE_PARAM4(handle, HWND, buffer, char *, startpoint, int, length, int)
 {
+    DW_FUNCTION_INIT;
     DWMLE *mle = handle;
-    int _locked_by_me = FALSE;
-    DW_MUTEX_LOCK;
     NSTextStorage *ts = [mle textStorage];
     NSMutableString *ms = [ts mutableString];
     const char *tmp = [ms UTF8String];
     strncpy(buffer, tmp+startpoint, length);
     buffer[length] = '\0';
-    DW_MUTEX_UNLOCK;
+    DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -5640,11 +5859,13 @@ void API dw_mle_export(HWND handle, char *buffer, int startpoint, int length)
  *          bytes: A pointer to a variable to return the total bytes.
  *          lines: A pointer to a variable to return the number of lines.
  */
-void API dw_mle_get_size(HWND handle, unsigned long *bytes, unsigned long *lines)
+DW_FUNCTION_DEFINITION(dw_mle_get_size, void, HWND handle, unsigned long *bytes, unsigned long *lines)
+DW_FUNCTION_ADD_PARAM3(handle, bytes, lines)
+DW_FUNCTION_NO_RETURN(dw_mle_get_size)
+DW_FUNCTION_RESTORE_PARAM3(handle, HWND, bytes, unsigned long *, lines, unsigned long *)
 {
+    DW_FUNCTION_INIT;
     DWMLE *mle = handle;
-    int _locked_by_me = FALSE;
-    DW_MUTEX_LOCK;
     NSTextStorage *ts = [mle textStorage];
     NSMutableString *ms = [ts mutableString];
     NSUInteger numberOfLines, index, stringLength = [ms length];
@@ -5658,7 +5879,7 @@ void API dw_mle_get_size(HWND handle, unsigned long *bytes, unsigned long *lines
 
         *lines = numberOfLines;
     }
-    DW_MUTEX_UNLOCK;
+    DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -5668,11 +5889,13 @@ void API dw_mle_get_size(HWND handle, unsigned long *bytes, unsigned long *lines
  *          startpoint: Point to start deleting text.
  *          length: Amount of text to be deleted.
  */
-void API dw_mle_delete(HWND handle, int startpoint, int length)
+DW_FUNCTION_DEFINITION(dw_mle_delete, void, HWND handle, int startpoint, int length)
+DW_FUNCTION_ADD_PARAM3(handle, startpoint, length)
+DW_FUNCTION_NO_RETURN(dw_mle_delete)
+DW_FUNCTION_RESTORE_PARAM3(handle, HWND, startpoint, int, length, int)
 {
+    DW_FUNCTION_INIT;
     DWMLE *mle = handle;
-    int _locked_by_me = FALSE;
-    DW_MUTEX_LOCK;
     NSTextStorage *ts = [mle textStorage];
     NSMutableString *ms = [ts mutableString];
     NSUInteger mslength = [ms length];
@@ -5683,7 +5906,7 @@ void API dw_mle_delete(HWND handle, int startpoint, int length)
     if(startpoint + length > mslength)
         length = (int)mslength - startpoint;
     [ms deleteCharactersInRange:NSMakeRange(startpoint, length)];
-    DW_MUTEX_UNLOCK;
+    DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -5691,16 +5914,18 @@ void API dw_mle_delete(HWND handle, int startpoint, int length)
  * Parameters:
  *          handle: Handle to the MLE to be cleared.
  */
-void API dw_mle_clear(HWND handle)
+DW_FUNCTION_DEFINITION(dw_mle_clear, void, HWND handle)
+DW_FUNCTION_ADD_PARAM1(handle)
+DW_FUNCTION_NO_RETURN(dw_mle_clear)
+DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
 {
+    DW_FUNCTION_INIT;
     DWMLE *mle = handle;
-    int _locked_by_me = FALSE;
-    DW_MUTEX_LOCK;
     NSTextStorage *ts = [mle textStorage];
     NSMutableString *ms = [ts mutableString];
     NSUInteger length = [ms length];
     [ms deleteCharactersInRange:NSMakeRange(0, length)];
-    DW_MUTEX_UNLOCK;
+    DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -5709,11 +5934,13 @@ void API dw_mle_clear(HWND handle)
  *          handle: Handle to the MLE to be positioned.
  *          line: Line to be visible.
  */
-void API dw_mle_set_visible(HWND handle, int line)
+DW_FUNCTION_DEFINITION(dw_mle_set_visible, void, HWND handle, int line)
+DW_FUNCTION_ADD_PARAM2(handle, line)
+DW_FUNCTION_NO_RETURN(dw_mle_set_visible)
+DW_FUNCTION_RESTORE_PARAM2(handle, HWND, line, int)
 {
+    DW_FUNCTION_INIT;
     DWMLE *mle = handle;
-    int _locked_by_me = FALSE;
-    DW_MUTEX_LOCK;
     NSTextStorage *ts = [mle textStorage];
     NSMutableString *ms = [ts mutableString];
     NSUInteger numberOfLines, index, stringLength = [ms length];
@@ -5725,7 +5952,7 @@ void API dw_mle_set_visible(HWND handle, int line)
     {
         [mle scrollRangeToVisible:[ms lineRangeForRange:NSMakeRange(index, 0)]];
     }
-    DW_MUTEX_UNLOCK;
+    DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -5792,11 +6019,13 @@ void API dw_mle_set_auto_complete(HWND handle, int state)
  *          handle: Handle to the MLE to be positioned.
  *          point: Point to position cursor.
  */
-void API dw_mle_set_cursor(HWND handle, int point)
+DW_FUNCTION_DEFINITION(dw_mle_set_cursor, void, HWND handle, int point)
+DW_FUNCTION_ADD_PARAM2(handle, point)
+DW_FUNCTION_NO_RETURN(dw_mle_set_cursor)
+DW_FUNCTION_RESTORE_PARAM2(handle, HWND, point, int)
 {
+    DW_FUNCTION_INIT;
     DWMLE *mle = handle;
-    int _locked_by_me = FALSE;
-    DW_MUTEX_LOCK;
     NSTextStorage *ts = [mle textStorage];
     NSMutableString *ms = [ts mutableString];
     NSUInteger length = [ms length];
@@ -5806,7 +6035,7 @@ void API dw_mle_set_cursor(HWND handle, int point)
         point = (int)length;
     [mle setSelectedRange: NSMakeRange(point,point)];
     [mle scrollRangeToVisible:NSMakeRange(point,point)];
-    DW_MUTEX_UNLOCK;
+    DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -5817,28 +6046,26 @@ void API dw_mle_set_cursor(HWND handle, int point)
  *          point: Start point of search.
  *          flags: Search specific flags.
  */
-int API dw_mle_search(HWND handle, char *text, int point, unsigned long flags)
+DW_FUNCTION_DEFINITION(dw_mle_search, int, HWND handle, char *text, int point, unsigned long flags)
+DW_FUNCTION_ADD_PARAM4(handle, text, point, flags)
+DW_FUNCTION_RETURN(dw_mle_search, int)
+DW_FUNCTION_RESTORE_PARAM4(handle, HWND, text, char *, point, int, flags, unsigned long)
 {
+    DW_FUNCTION_INIT;
     DWMLE *mle = handle;
-    int _locked_by_me = FALSE;
-    DW_MUTEX_LOCK;
     NSTextStorage *ts = [mle textStorage];
     NSMutableString *ms = [ts mutableString];
     NSString *searchForMe = [NSString stringWithUTF8String:text];
     NSRange searchRange = NSMakeRange(point, [ms length] - point);
     NSRange range = NSMakeRange(NSNotFound, 0);
     NSUInteger options = flags ? flags : NSCaseInsensitiveSearch;
+    int retval = -1;
 
     if(ms)
-    {
         range = [ms rangeOfString:searchForMe options:options range:searchRange];
-    }
-    DW_MUTEX_UNLOCK;
-    if(range.location != NSNotFound)
-    {
-        return -1;
-    }
-    return (int)range.location;
+    if(range.location == NSNotFound)
+        retval = (int)range.location;
+    DW_FUNCTION_RETURN_THIS(retval);
 }
 
 /*
@@ -6040,13 +6267,16 @@ NSGraphicsContext *_dw_draw_context(NSBitmapImageRep *image)
  *       x: X coordinate.
  *       y: Y coordinate.
  */
-void API dw_draw_point(HWND handle, HPIXMAP pixmap, int x, int y)
+DW_FUNCTION_DEFINITION(dw_draw_point, void, HWND handle, HPIXMAP pixmap, int x, int y)
+DW_FUNCTION_ADD_PARAM4(handle, pixmap, x, y)
+DW_FUNCTION_NO_RETURN(dw_draw_point)
+DW_FUNCTION_RESTORE_PARAM4(handle, HWND, pixmap, HPIXMAP, x, int, y, int)
 {
-    int _locked_by_me = FALSE;
+    DW_FUNCTION_INIT;
     DW_LOCAL_POOL_IN;
-    DW_MUTEX_LOCK;
     id image = handle;
     NSBitmapImageRep *bi = nil;
+    bool bCanDraw = YES;
     
     if(pixmap)
         bi = image = (id)pixmap->image;
@@ -6060,13 +6290,8 @@ void API dw_draw_point(HWND handle, HPIXMAP pixmap, int x, int y)
             bi = [render cachedDrawingRep];
         }
 #else
-        if([image lockFocusIfCanDraw] == NO)
-        {
-            DW_MUTEX_UNLOCK;
-            DW_LOCAL_POOL_OUT;
-            return;
-        }
-        _DWLastDrawable = handle;
+        if((bCanDraw = [image lockFocusIfCanDraw]) == YES)
+            _DWLastDrawable = handle;
 #endif
     }
     if(bi)
@@ -6074,21 +6299,24 @@ void API dw_draw_point(HWND handle, HPIXMAP pixmap, int x, int y)
         [NSGraphicsContext saveGraphicsState];
         [NSGraphicsContext setCurrentContext:_dw_draw_context(bi)];
     }
-    NSBezierPath* aPath = [NSBezierPath bezierPath];
-    [aPath setLineWidth: 0.5];
-    NSColor *color = pthread_getspecific(_dw_fg_color_key);
-    [color set];
+    if(bCanDraw == YES)
+    {
+        NSBezierPath* aPath = [NSBezierPath bezierPath];
+        [aPath setLineWidth: 0.5];
+        NSColor *color = pthread_getspecific(_dw_fg_color_key);
+        [color set];
 
-    [aPath moveToPoint:NSMakePoint(x, y)];
-    [aPath stroke];
+        [aPath moveToPoint:NSMakePoint(x, y)];
+        [aPath stroke];
+    }
     if(bi)
         [NSGraphicsContext restoreGraphicsState];
 #ifndef BUILDING_FOR_MOJAVE
-    if(!pixmap)
+    if(bCanDraw == YES && !pixmap)
         [image unlockFocus];
 #endif
-    DW_MUTEX_UNLOCK;
     DW_LOCAL_POOL_OUT;
+    DW_FUNCTION_RETURN_NOTHING;
 }
 
 /* Draw a line on a window (preferably a render window).
@@ -6100,14 +6328,17 @@ void API dw_draw_point(HWND handle, HPIXMAP pixmap, int x, int y)
  *       x2: Second X coordinate.
  *       y2: Second Y coordinate.
  */
-void API dw_draw_line(HWND handle, HPIXMAP pixmap, int x1, int y1, int x2, int y2)
+DW_FUNCTION_DEFINITION(dw_draw_line, void, HWND handle, HPIXMAP pixmap, int x1, int y1, int x2, int y2)
+DW_FUNCTION_ADD_PARAM6(handle, pixmap, x1, y1, x2, y2)
+DW_FUNCTION_NO_RETURN(dw_draw_line)
+DW_FUNCTION_RESTORE_PARAM6(handle, HWND, pixmap, HPIXMAP, x1, int, y1, int, x2, int, y2, int)
 {
-    int _locked_by_me = FALSE;
+    DW_FUNCTION_INIT;
     DW_LOCAL_POOL_IN;
-    DW_MUTEX_LOCK;
     id image = handle;
     NSBitmapImageRep *bi = nil;
-    
+    bool bCanDraw = YES;
+
     if(pixmap)
         bi = image = (id)pixmap->image;
     else
@@ -6120,13 +6351,8 @@ void API dw_draw_line(HWND handle, HPIXMAP pixmap, int x1, int y1, int x2, int y
             bi = [render cachedDrawingRep];
         }
 #else
-        if([image lockFocusIfCanDraw] == NO)
-        {
-            DW_MUTEX_UNLOCK;
-            DW_LOCAL_POOL_OUT;
-            return;
-        }
-        _DWLastDrawable = handle;
+        if((bCanDraw = [image lockFocusIfCanDraw]) == YES)
+            _DWLastDrawable = handle;
 #endif
     }
     if(bi)
@@ -6134,22 +6360,25 @@ void API dw_draw_line(HWND handle, HPIXMAP pixmap, int x1, int y1, int x2, int y
         [NSGraphicsContext saveGraphicsState];
         [NSGraphicsContext setCurrentContext:_dw_draw_context(bi)];
     }
-    NSBezierPath* aPath = [NSBezierPath bezierPath];
-    NSColor *color = pthread_getspecific(_dw_fg_color_key);
-    [color set];
+    if(bCanDraw == YES)
+    {
+        NSBezierPath* aPath = [NSBezierPath bezierPath];
+        NSColor *color = pthread_getspecific(_dw_fg_color_key);
+        [color set];
 
-    [aPath moveToPoint:NSMakePoint(x1 + 0.5, y1 + 0.5)];
-    [aPath lineToPoint:NSMakePoint(x2 + 0.5, y2 + 0.5)];
-    [aPath stroke];
+        [aPath moveToPoint:NSMakePoint(x1 + 0.5, y1 + 0.5)];
+        [aPath lineToPoint:NSMakePoint(x2 + 0.5, y2 + 0.5)];
+        [aPath stroke];
+    }
 
     if(bi)
         [NSGraphicsContext restoreGraphicsState];
 #ifndef BUILDING_FOR_MOJAVE
-    if(!pixmap)
+    if(bCanDraw == YES && !pixmap)
         [image unlockFocus];
 #endif
-    DW_MUTEX_UNLOCK;
     DW_LOCAL_POOL_OUT;
+    DW_FUNCTION_RETURN_NOTHING;
 }
 
 /* Draw text on a window (preferably a render window).
@@ -6160,19 +6389,19 @@ void API dw_draw_line(HWND handle, HPIXMAP pixmap, int x1, int y1, int x2, int y
  *       y: Y coordinate.
  *       text: Text to be displayed.
  */
-void API dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
+DW_FUNCTION_DEFINITION(dw_draw_text, void, HWND handle, HPIXMAP pixmap, int x, int y, char *text)
+DW_FUNCTION_ADD_PARAM5(handle, pixmap, x, y, text)
+DW_FUNCTION_NO_RETURN(dw_draw_text)
+DW_FUNCTION_RESTORE_PARAM5(handle, HWND, pixmap, HPIXMAP, x, int, y, int, text, char *)
 {
-    int _locked_by_me = FALSE;
+    DW_FUNCTION_INIT;
     DW_LOCAL_POOL_IN;
-    DW_MUTEX_LOCK;
     id image = handle;
     NSString *nstr = [ NSString stringWithUTF8String:text ];
     NSBitmapImageRep *bi = nil;
     NSFont *font = nil;
     DWRender *render;
-#ifndef BUILDING_FOR_MOJAVE
-    bool canDraw = NO;
-#endif
+    bool bCanDraw = YES;
     
     if(pixmap)
     {
@@ -6192,14 +6421,8 @@ void API dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
 #ifdef BUILDING_FOR_MOJAVE
         bi = [render cachedDrawingRep];
 #else
-        canDraw = [image lockFocusIfCanDraw];
-        if(canDraw == NO)
-        {
-            DW_MUTEX_UNLOCK;
-            DW_LOCAL_POOL_OUT;
-            return;
-        }
-        _DWLastDrawable = handle;
+        if((bCanDraw = [image lockFocusIfCanDraw]) == YES)
+            _DWLastDrawable = handle;
 #endif
     }
     if(bi)
@@ -6208,24 +6431,27 @@ void API dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
         [NSGraphicsContext setCurrentContext:_dw_draw_context(bi)];
     }
 
-    NSColor *fgcolor = pthread_getspecific(_dw_fg_color_key);
-    NSColor *bgcolor = pthread_getspecific(_dw_bg_color_key);
-    NSMutableDictionary *dict = [[NSMutableDictionary alloc] initWithObjectsAndKeys:fgcolor, NSForegroundColorAttributeName, nil];
-    if(bgcolor)
-        [dict setValue:bgcolor forKey:NSBackgroundColorAttributeName];
-    if(font)
-        [dict setValue:font forKey:NSFontAttributeName];
-    [nstr drawAtPoint:NSMakePoint(x, y) withAttributes:dict];
-    [dict release];
+    if(bCanDraw == YES)
+    {
+        NSColor *fgcolor = pthread_getspecific(_dw_fg_color_key);
+        NSColor *bgcolor = pthread_getspecific(_dw_bg_color_key);
+        NSMutableDictionary *dict = [[NSMutableDictionary alloc] initWithObjectsAndKeys:fgcolor, NSForegroundColorAttributeName, nil];
+        if(bgcolor)
+            [dict setValue:bgcolor forKey:NSBackgroundColorAttributeName];
+        if(font)
+            [dict setValue:font forKey:NSFontAttributeName];
+        [nstr drawAtPoint:NSMakePoint(x, y) withAttributes:dict];
+        [dict release];
+    }
 
     if(bi)
         [NSGraphicsContext restoreGraphicsState];
 #ifndef BUILDING_FOR_MOJAVE
-    if(canDraw == YES)
+    if(bCanDraw == YES && !pixmap)
         [image unlockFocus];
 #endif
-    DW_MUTEX_UNLOCK;
     DW_LOCAL_POOL_OUT;
+    DW_FUNCTION_RETURN_NOTHING;
 }
 
 /* Query the width and height of a text string.
@@ -6304,13 +6530,16 @@ id _create_gc(id image, bool antialiased)
  *       width: Width of rectangle.
  *       height: Height of rectangle.
  */
-void API dw_draw_polygon( HWND handle, HPIXMAP pixmap, int flags, int npoints, int *x, int *y )
+DW_FUNCTION_DEFINITION(dw_draw_polygon, void, HWND handle, HPIXMAP pixmap, int flags, int npoints, int *x, int *y)
+DW_FUNCTION_ADD_PARAM6(handle, pixmap, flags, npoints, x, y)
+DW_FUNCTION_NO_RETURN(dw_draw_polygon)
+DW_FUNCTION_RESTORE_PARAM6(handle, HWND, pixmap, HPIXMAP, flags, int, npoints, int, x, int *, y, int *)
 {
-    int _locked_by_me = FALSE;
+    DW_FUNCTION_INIT;
     DW_LOCAL_POOL_IN;
-    DW_MUTEX_LOCK;
     id image = handle;
     NSBitmapImageRep *bi = nil;
+    bool bCanDraw = YES;
     int z;
     
     if(pixmap)
@@ -6325,14 +6554,11 @@ void API dw_draw_polygon( HWND handle, HPIXMAP pixmap, int flags, int npoints, i
             bi = [render cachedDrawingRep];
         }
 #else
-        if([image lockFocusIfCanDraw] == NO)
+        if((bCanDraw = [image lockFocusIfCanDraw]) == YES)
         {
-            DW_MUTEX_UNLOCK;
-            DW_LOCAL_POOL_OUT;
-            return;
+            _DWLastDrawable = handle;
+            [[NSGraphicsContext currentContext] setShouldAntialias:(flags & DW_DRAW_NOAA ? NO : YES)];
         }
-        [[NSGraphicsContext currentContext] setShouldAntialias:(flags & DW_DRAW_NOAA ? NO : YES)];
-        _DWLastDrawable = handle;
 #endif
     }
     if(bi)
@@ -6342,29 +6568,33 @@ void API dw_draw_polygon( HWND handle, HPIXMAP pixmap, int flags, int npoints, i
         [NSGraphicsContext setCurrentContext:gc];
     }
 
-    NSBezierPath* aPath = [NSBezierPath bezierPath];
-    NSColor *color = pthread_getspecific(_dw_fg_color_key);
-    [color set];
+    if(bCanDraw == YES)
+    {
+        NSBezierPath* aPath = [NSBezierPath bezierPath];
+        NSColor *color = pthread_getspecific(_dw_fg_color_key);
+        [color set];
 
-    [aPath moveToPoint:NSMakePoint(*x + 0.5, *y + 0.5)];
-    for(z=1;z<npoints;z++)
-    {
-        [aPath lineToPoint:NSMakePoint(x[z] + 0.5, y[z] + 0.5)];
+        [aPath moveToPoint:NSMakePoint(*x + 0.5, *y + 0.5)];
+        for(z=1;z<npoints;z++)
+        {
+            [aPath lineToPoint:NSMakePoint(x[z] + 0.5, y[z] + 0.5)];
+        }
+        [aPath closePath];
+        if(flags & DW_DRAW_FILL)
+        {
+            [aPath fill];
+        }
+        [aPath stroke];
     }
-    [aPath closePath];
-    if(flags & DW_DRAW_FILL)
-    {
-        [aPath fill];
-    }
-    [aPath stroke];
+    
     if(bi)
         [NSGraphicsContext restoreGraphicsState];
 #ifndef BUILDING_FOR_MOJAVE
-    if(!pixmap)
+    if(bCanDraw == YES && !pixmap)
         [image unlockFocus];
 #endif
-    DW_MUTEX_UNLOCK;
     DW_LOCAL_POOL_OUT;
+    DW_FUNCTION_RETURN_NOTHING;
 }
 
 /* Draw a rectangle on a window (preferably a render window).
@@ -6377,13 +6607,16 @@ void API dw_draw_polygon( HWND handle, HPIXMAP pixmap, int flags, int npoints, i
  *       width: Width of rectangle.
  *       height: Height of rectangle.
  */
-void API dw_draw_rect(HWND handle, HPIXMAP pixmap, int flags, int x, int y, int width, int height)
+DW_FUNCTION_DEFINITION(dw_draw_rect, void, HWND handle, HPIXMAP pixmap, int flags, int x, int y, int width, int height)
+DW_FUNCTION_ADD_PARAM7(handle, pixmap, flags, x, y, width, height)
+DW_FUNCTION_NO_RETURN(dw_draw_rect)
+DW_FUNCTION_RESTORE_PARAM7(handle, HWND, pixmap, HPIXMAP, flags, int, x, int, y, int, width, int, height, int)
 {
-    int _locked_by_me = FALSE;
+    DW_FUNCTION_INIT;
     DW_LOCAL_POOL_IN;
-    DW_MUTEX_LOCK;
     id image = handle;
     NSBitmapImageRep *bi = nil;
+    bool bCanDraw = YES;
     
     if(pixmap)
         bi = image = (id)pixmap->image;
@@ -6397,14 +6630,11 @@ void API dw_draw_rect(HWND handle, HPIXMAP pixmap, int flags, int x, int y, int 
             bi = [render cachedDrawingRep];
         }
 #else
-        if([image lockFocusIfCanDraw] == NO)
+        if((bCanDraw = [image lockFocusIfCanDraw]) == YES)
         {
-            DW_MUTEX_UNLOCK;
-            DW_LOCAL_POOL_OUT;
-            return;
+            _DWLastDrawable = handle;
+            [[NSGraphicsContext currentContext] setShouldAntialias:(flags & DW_DRAW_NOAA ? NO : YES)];
         }
-        [[NSGraphicsContext currentContext] setShouldAntialias:(flags & DW_DRAW_NOAA ? NO : YES)];
-        _DWLastDrawable = handle;
 #endif
     }
     if(bi)
@@ -6414,21 +6644,25 @@ void API dw_draw_rect(HWND handle, HPIXMAP pixmap, int flags, int x, int y, int 
         [NSGraphicsContext setCurrentContext:gc];
     }
     
-    NSColor *color = pthread_getspecific(_dw_fg_color_key);
-    [color set];
+    if(bCanDraw == YES)
+    {
+        NSColor *color = pthread_getspecific(_dw_fg_color_key);
+        [color set];
 
-    if(flags & DW_DRAW_FILL)
-        [NSBezierPath fillRect:NSMakeRect(x, y, width, height)];
-    else
-        [NSBezierPath strokeRect:NSMakeRect(x, y, width, height)];
+        if(flags & DW_DRAW_FILL)
+            [NSBezierPath fillRect:NSMakeRect(x, y, width, height)];
+        else
+            [NSBezierPath strokeRect:NSMakeRect(x, y, width, height)];
+    }
+    
     if(bi)
         [NSGraphicsContext restoreGraphicsState];
 #ifndef BUILDING_FOR_MOJAVE
-    if(!pixmap)
+    if(bCanDraw == YES && !pixmap)
         [image unlockFocus];
 #endif
-    DW_MUTEX_UNLOCK;
     DW_LOCAL_POOL_OUT;
+    DW_FUNCTION_RETURN_NOTHING;
 }
 
 /* Draw an arc on a window (preferably a render window).
@@ -6444,13 +6678,16 @@ void API dw_draw_rect(HWND handle, HPIXMAP pixmap, int flags, int x, int y, int 
  *       x2: X coordinate of second segment of arc.
  *       y2: Y coordinate of second segment of arc.
  */
-void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yorigin, int x1, int y1, int x2, int y2)
+DW_FUNCTION_DEFINITION(dw_draw_arc, void, HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yorigin, int x1, int y1, int x2, int y2)
+DW_FUNCTION_ADD_PARAM9(handle, pixmap, flags, xorigin, yorigin, x1, y1, x2, y2)
+DW_FUNCTION_NO_RETURN(dw_draw_arc)
+DW_FUNCTION_RESTORE_PARAM9(handle, HWND, pixmap, HPIXMAP, flags, int, xorigin, int, yorigin, int, x1, int, y1, int, x2, int, y2, int)
 {
-    int _locked_by_me = FALSE;
+    DW_FUNCTION_INIT;
     DW_LOCAL_POOL_IN;
-    DW_MUTEX_LOCK;
     id image = handle;
     NSBitmapImageRep *bi = nil;
+    bool bCanDraw = YES;
     
     if(pixmap)
         bi = image = (id)pixmap->image;
@@ -6464,14 +6701,11 @@ void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yo
             bi = [render cachedDrawingRep];
         }
 #else
-        if([image lockFocusIfCanDraw] == NO)
+        if((bCanDraw = [image lockFocusIfCanDraw]) == YES)
         {
-            DW_MUTEX_UNLOCK;
-            DW_LOCAL_POOL_OUT;
-            return;
+            _DWLastDrawable = handle;
+            [[NSGraphicsContext currentContext] setShouldAntialias:(flags & DW_DRAW_NOAA ? NO : YES)];
         }
-        [[NSGraphicsContext currentContext] setShouldAntialias:(flags & DW_DRAW_NOAA ? NO : YES)];
-        _DWLastDrawable = handle;
 #endif
     }
     if(bi)
@@ -6481,46 +6715,50 @@ void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yo
         [NSGraphicsContext setCurrentContext:gc];
     }
     
-    NSBezierPath* aPath = [NSBezierPath bezierPath];
-    NSColor *color = pthread_getspecific(_dw_fg_color_key);
-    [color set];
-
-    /* Special case of a full circle/oval */
-    if(flags & DW_DRAW_FULL)
+    if(bCanDraw)
     {
-        [aPath appendBezierPathWithOvalInRect:NSMakeRect(x1, y1, x2 - x1, y2 - y1)];
-    }
-    else
-    {
-        double a1 = atan2((y1-yorigin), (x1-xorigin));
-        double a2 = atan2((y2-yorigin), (x2-xorigin));
-        double dx = xorigin - x1;
-        double dy = yorigin - y1;
-        double r = sqrt(dx*dx + dy*dy);
+        NSBezierPath* aPath = [NSBezierPath bezierPath];
+        NSColor *color = pthread_getspecific(_dw_fg_color_key);
+        [color set];
 
-        /* Convert to degrees */
-        a1 *= (180.0 / M_PI);
-        a2 *= (180.0 / M_PI);
+        /* Special case of a full circle/oval */
+        if(flags & DW_DRAW_FULL)
+        {
+            [aPath appendBezierPathWithOvalInRect:NSMakeRect(x1, y1, x2 - x1, y2 - y1)];
+        }
+        else
+        {
+            double a1 = atan2((y1-yorigin), (x1-xorigin));
+            double a2 = atan2((y2-yorigin), (x2-xorigin));
+            double dx = xorigin - x1;
+            double dy = yorigin - y1;
+            double r = sqrt(dx*dx + dy*dy);
 
-        /* Prepare to draw */
-        [aPath appendBezierPathWithArcWithCenter:NSMakePoint(xorigin, yorigin)
-                                          radius:r startAngle:a1 endAngle:a2];
+            /* Convert to degrees */
+            a1 *= (180.0 / M_PI);
+            a2 *= (180.0 / M_PI);
+
+            /* Prepare to draw */
+            [aPath appendBezierPathWithArcWithCenter:NSMakePoint(xorigin, yorigin)
+                                              radius:r startAngle:a1 endAngle:a2];
+        }
+        /* If the fill flag is passed */
+        if(flags & DW_DRAW_FILL)
+        {
+            [aPath fill];
+        }
+        /* Actually do the drawing */
+        [aPath stroke];
     }
-    /* If the fill flag is passed */
-    if(flags & DW_DRAW_FILL)
-    {
-        [aPath fill];
-    }
-    /* Actually do the drawing */
-    [aPath stroke];
+    
     if(bi)
         [NSGraphicsContext restoreGraphicsState];
 #ifndef BUILDING_FOR_MOJAVE
-    if(!pixmap)
+    if(bCanDraw == YES && !pixmap)
         [image unlockFocus];
 #endif
-    DW_MUTEX_UNLOCK;
     DW_LOCAL_POOL_OUT;
+    DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -6529,10 +6767,12 @@ void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yo
  *       id: An ID to be used for getting the resource from the
  *           resource file.
  */
-HWND API dw_tree_new(ULONG cid)
+DW_FUNCTION_DEFINITION(dw_tree_new, HWND, ULONG cid)
+DW_FUNCTION_ADD_PARAM1(cid)
+DW_FUNCTION_RETURN(dw_tree_new, HWND)
+DW_FUNCTION_RESTORE_PARAM1(cid, ULONG)
 {
-    int _locked_by_me = FALSE;
-    DW_MUTEX_LOCK;
+    DW_FUNCTION_INIT;
     NSScrollView *scrollview  = [[NSScrollView alloc] init];
     DWTree *tree = [[DWTree alloc] init];
 
@@ -6548,8 +6788,7 @@ HWND API dw_tree_new(ULONG cid)
     [tree setHeaderView:nil];
     [tree setTag:cid];
     [tree autorelease];
-    DW_MUTEX_UNLOCK;
-    return tree;
+    DW_FUNCTION_RETURN_THIS(tree);
 }
 
 /*
@@ -6562,10 +6801,12 @@ HWND API dw_tree_new(ULONG cid)
  *          parent: Parent handle or 0 if root.
  *          itemdata: Item specific data.
  */
-HTREEITEM API dw_tree_insert_after(HWND handle, HTREEITEM item, char *title, HICN icon, HTREEITEM parent, void *itemdata)
+DW_FUNCTION_DEFINITION(dw_tree_insert_after, HTREEITEM, HWND handle, HTREEITEM item, char *title, HICN icon, HTREEITEM parent, void *itemdata)
+DW_FUNCTION_ADD_PARAM6(handle, item, title, icon, parent, itemdata)
+DW_FUNCTION_RETURN(dw_tree_insert_after, HTREEITEM)
+DW_FUNCTION_RESTORE_PARAM6(handle, HWND, item, HTREEITEM, title, char *, icon, HICN, parent, HTREEITEM, itemdata, void *)
 {
-    int _locked_by_me = FALSE;
-    DW_MUTEX_LOCK;
+    DW_FUNCTION_INIT;
     DWTree *tree = handle;
     NSString *nstr = [[NSString stringWithUTF8String:title] retain];
     NSMutableArray *treenode = [[[NSMutableArray alloc] init] retain];
@@ -6581,8 +6822,7 @@ HTREEITEM API dw_tree_insert_after(HWND handle, HTREEITEM item, char *title, HIC
         [tree reloadItem:parent reloadChildren:YES];
     else
         [tree reloadData];
-    DW_MUTEX_UNLOCK;
-    return treenode;
+    DW_FUNCTION_RETURN_THIS(treenode);
 }
 
 /*
@@ -6605,14 +6845,17 @@ HTREEITEM API dw_tree_insert(HWND handle, char *title, HICN icon, HTREEITEM pare
  *          handle: Handle to the tree containing the item.
  *          item: Handle of the item to be modified.
  */
-char * API dw_tree_get_title(HWND handle, HTREEITEM item)
+DW_FUNCTION_DEFINITION(dw_tree_get_title, char *, HWND handle, HTREEITEM item)
+DW_FUNCTION_ADD_PARAM2(handle, item)
+DW_FUNCTION_RETURN(dw_tree_get_title, char *)
+DW_FUNCTION_RESTORE_PARAM2(handle, HWND, item, HTREEITEM)
 {
-    int _locked_by_me = FALSE;
-    DW_MUTEX_LOCK;
+    DW_FUNCTION_INIT;
+    char *retval = NULL;
     NSMutableArray *array = (NSMutableArray *)item;
     NSString *nstr = (NSString *)[array objectAtIndex:1];
-    DW_MUTEX_UNLOCK;
-    return strdup([nstr UTF8String]);
+    retval = strdup([nstr UTF8String]);
+    DW_FUNCTION_RETURN_THIS(retval);
 }
 
 /*
@@ -6621,16 +6864,17 @@ char * API dw_tree_get_title(HWND handle, HTREEITEM item)
  *          handle: Handle to the tree containing the item.
  *          item: Handle of the item to be modified.
  */
-HTREEITEM API dw_tree_get_parent(HWND handle, HTREEITEM item)
+DW_FUNCTION_DEFINITION(dw_tree_get_parent, HTREEITEM, HWND handle, HTREEITEM item)
+DW_FUNCTION_ADD_PARAM2(handle, item)
+DW_FUNCTION_RETURN(dw_tree_get_parent, HTREEITEM)
+DW_FUNCTION_RESTORE_PARAM2(handle, HWND, item, HTREEITEM)
 {
-    int _locked_by_me = FALSE;
+    DW_FUNCTION_INIT;
     HTREEITEM parent;
     DWTree *tree = handle;
 
-    DW_MUTEX_LOCK;
     parent = [tree parentForItem:item];
-    DW_MUTEX_UNLOCK;
-    return parent;
+    DW_FUNCTION_RETURN_THIS(parent);
 }
 
 /*
@@ -6641,10 +6885,12 @@ HTREEITEM API dw_tree_get_parent(HWND handle, HTREEITEM item)
  *          title: The text title of the entry.
  *          icon: Handle to coresponding icon.
  */
-void API dw_tree_item_change(HWND handle, HTREEITEM item, char *title, HICN icon)
+DW_FUNCTION_DEFINITION(dw_tree_item_change, void, HWND handle, HTREEITEM item, char *title, HICN icon)
+DW_FUNCTION_ADD_PARAM4(handle, item, title, icon)
+DW_FUNCTION_NO_RETURN(dw_tree_item_change)
+DW_FUNCTION_RESTORE_PARAM4(handle, HWND, item, HTREEITEM, title, char *, icon, HICN)
 {
-    int _locked_by_me = FALSE;
-    DW_MUTEX_LOCK;
+    DW_FUNCTION_INIT;
     DWTree *tree = handle;
     NSMutableArray *array = (NSMutableArray *)item;
     DW_LOCAL_POOL_IN;
@@ -6662,7 +6908,7 @@ void API dw_tree_item_change(HWND handle, HTREEITEM item, char *title, HICN icon
     }
     [tree reloadData];
     DW_LOCAL_POOL_OUT;
-    DW_MUTEX_UNLOCK;
+    DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -6672,13 +6918,15 @@ void API dw_tree_item_change(HWND handle, HTREEITEM item, char *title, HICN icon
  *          item: Handle of the item to be modified.
  *          itemdata: User defined data to be associated with item.
  */
-void API dw_tree_item_set_data(HWND handle, HTREEITEM item, void *itemdata)
+DW_FUNCTION_DEFINITION(dw_tree_item_set_data, void, HWND handle, HTREEITEM item, void *itemdata)
+DW_FUNCTION_ADD_PARAM3(handle, item, itemdata)
+DW_FUNCTION_NO_RETURN(dw_tree_item_set_data)
+DW_FUNCTION_RESTORE_PARAM3(handle, HWND, item, HTREEITEM, itemdata, void *)
 {
-    int _locked_by_me = FALSE;
-    DW_MUTEX_LOCK;
+    DW_FUNCTION_INIT;
     NSMutableArray *array = (NSMutableArray *)item;
     [array replaceObjectAtIndex:2 withObject:[NSValue valueWithPointer:itemdata]];
-    DW_MUTEX_UNLOCK;
+    DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -6687,19 +6935,18 @@ void API dw_tree_item_set_data(HWND handle, HTREEITEM item, void *itemdata)
  *          handle: Handle to the tree containing the item.
  *          item: Handle of the item to be modified.
  */
-void * API dw_tree_item_get_data(HWND handle, HTREEITEM item)
+DW_FUNCTION_DEFINITION(dw_tree_item_get_data, void *, HWND handle, HTREEITEM item)
+DW_FUNCTION_ADD_PARAM2(handle, item)
+DW_FUNCTION_RETURN(dw_tree_item_get_data, void *)
+DW_FUNCTION_RESTORE_PARAM2(handle, HWND, item, HTREEITEM)
 {
-    int _locked_by_me = FALSE;
+    DW_FUNCTION_INIT;
     void *result = NULL;
-    DW_MUTEX_LOCK;
     NSMutableArray *array = (NSMutableArray *)item;
     NSValue *value = [array objectAtIndex:2];
     if(value)
-    {
         result = [value pointerValue];
-    }
-    DW_MUTEX_UNLOCK;
-    return result;
+    DW_FUNCTION_RETURN_THIS(result);
 }
 
 /*
@@ -6708,17 +6955,19 @@ void * API dw_tree_item_get_data(HWND handle, HTREEITEM item)
  *       handle: Handle to the tree window (widget) to be selected.
  *       item: Handle to the item to be selected.
  */
-void API dw_tree_item_select(HWND handle, HTREEITEM item)
+DW_FUNCTION_DEFINITION(dw_tree_item_select, void, HWND handle, HTREEITEM item)
+DW_FUNCTION_ADD_PARAM2(handle, item)
+DW_FUNCTION_NO_RETURN(dw_tree_item_select)
+DW_FUNCTION_RESTORE_PARAM2(handle, HWND, item, HTREEITEM)
 {
-    int _locked_by_me = FALSE;
-    DW_MUTEX_LOCK;
+    DW_FUNCTION_INIT;
     DWTree *tree = handle;
     NSInteger itemIndex = [tree rowForItem:item];
     if(itemIndex > -1)
     {
         [tree selectRowIndexes:[NSIndexSet indexSetWithIndex:itemIndex] byExtendingSelection:NO];
     }
-    DW_MUTEX_UNLOCK;
+    DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -6726,13 +6975,15 @@ void API dw_tree_item_select(HWND handle, HTREEITEM item)
  * Parameters:
  *       handle: Handle to the window (widget) to be cleared.
  */
-void API dw_tree_clear(HWND handle)
+DW_FUNCTION_DEFINITION(dw_tree_clear, void, HWND handle)
+DW_FUNCTION_ADD_PARAM1(handle)
+DW_FUNCTION_NO_RETURN(dw_tree_clear)
+DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
 {
-    int _locked_by_me = FALSE;
-    DW_MUTEX_LOCK;
+    DW_FUNCTION_INIT;
     DWTree *tree = handle;
     [tree clear];
-    DW_MUTEX_UNLOCK;
+    DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -6741,13 +6992,15 @@ void API dw_tree_clear(HWND handle)
  *       handle: Handle to the tree window (widget).
  *       item: Handle to node to be expanded.
  */
-void API dw_tree_item_expand(HWND handle, HTREEITEM item)
+DW_FUNCTION_DEFINITION(dw_tree_item_expand, void, HWND handle, HTREEITEM item)
+DW_FUNCTION_ADD_PARAM2(handle, item)
+DW_FUNCTION_NO_RETURN(dw_tree_item_expand)
+DW_FUNCTION_RESTORE_PARAM2(handle, HWND, item, HTREEITEM)
 {
-    int _locked_by_me = FALSE;
-    DW_MUTEX_LOCK;
+    DW_FUNCTION_INIT;
     DWTree *tree = handle;
     [tree expandItem:item];
-    DW_MUTEX_UNLOCK;
+    DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -6756,13 +7009,15 @@ void API dw_tree_item_expand(HWND handle, HTREEITEM item)
  *       handle: Handle to the tree window (widget).
  *       item: Handle to node to be collapsed.
  */
-void API dw_tree_item_collapse(HWND handle, HTREEITEM item)
+DW_FUNCTION_DEFINITION(dw_tree_item_collapse, void, HWND handle, HTREEITEM item)
+DW_FUNCTION_ADD_PARAM2(handle, item)
+DW_FUNCTION_NO_RETURN(dw_tree_item_collapse)
+DW_FUNCTION_RESTORE_PARAM2(handle, HWND, item, HTREEITEM)
 {
-    int _locked_by_me = FALSE;
-    DW_MUTEX_LOCK;
+    DW_FUNCTION_INIT;
     DWTree *tree = handle;
     [tree collapseItem:item];
-    DW_MUTEX_UNLOCK;
+    DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -6771,14 +7026,16 @@ void API dw_tree_item_collapse(HWND handle, HTREEITEM item)
  *       handle: Handle to the window (widget) to be cleared.
  *       item: Handle to node to be deleted.
  */
-void API dw_tree_item_delete(HWND handle, HTREEITEM item)
+DW_FUNCTION_DEFINITION(dw_tree_item_delete, void, HWND handle, HTREEITEM item)
+DW_FUNCTION_ADD_PARAM2(handle, item)
+DW_FUNCTION_NO_RETURN(dw_tree_item_delete)
+DW_FUNCTION_RESTORE_PARAM2(handle, HWND, item, HTREEITEM)
 {
-    int _locked_by_me = FALSE;
-    DW_MUTEX_LOCK;
+    DW_FUNCTION_INIT;
     DWTree *tree = handle;
     [tree deleteNode:item];
     [tree reloadData];
-    DW_MUTEX_UNLOCK;
+    DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -6787,10 +7044,12 @@ void API dw_tree_item_delete(HWND handle, HTREEITEM item)
  *       id: An ID to be used for getting the resource from the
  *           resource file.
  */
-HWND API dw_container_new(ULONG cid, int multi)
+DW_FUNCTION_DEFINITION(dw_container_new, HWND, ULONG cid, int multi)
+DW_FUNCTION_ADD_PARAM2(cid, multi)
+DW_FUNCTION_RETURN(dw_container_new, HWND)
+DW_FUNCTION_RESTORE_PARAM2(cid, ULONG, multi, int)
 {
-    int _locked_by_me = FALSE;
-    DW_MUTEX_LOCK;
+    DW_FUNCTION_INIT;
     DWContainer *cont = _cont_new(cid, multi);
     NSScrollView *scrollview = [cont scrollview];
     [scrollview setHasHorizontalScroller:YES];
@@ -6798,8 +7057,7 @@ HWND API dw_container_new(ULONG cid, int multi)
     [cont setHeaderView:header];
     [cont setTarget:cont];
     [cont setDoubleAction:@selector(doubleClicked:)];
-    DW_MUTEX_UNLOCK;
-    return cont;
+    DW_FUNCTION_RETURN_THIS(cont);
 }
 
 /*
@@ -6812,11 +7070,13 @@ HWND API dw_container_new(ULONG cid, int multi)
  *          separator: The column number that contains the main separator.
  *                     (this item may only be used in OS/2)
  */
-int API dw_container_setup(HWND handle, unsigned long *flags, char **titles, int count, int separator)
+DW_FUNCTION_DEFINITION(dw_container_setup, int, HWND handle, unsigned long *flags, char **titles, int count, int separator)
+DW_FUNCTION_ADD_PARAM5(handle, flags, titles, count, separator)
+DW_FUNCTION_RETURN(dw_container_setup, int)
+DW_FUNCTION_RESTORE_PARAM5(handle, HWND, flags, unsigned long *, titles, char **, count, int, separator, int)
 {
-    int _locked_by_me = FALSE;
-    DW_MUTEX_LOCK;
-    int z;
+    DW_FUNCTION_INIT;
+    int z, retval = DW_ERROR_NONE;
     DWContainer *cont = handle;
 
     [cont setup];
@@ -6853,8 +7113,7 @@ int API dw_container_setup(HWND handle, unsigned long *flags, char **titles, int
         [cont addColumn:column andType:(int)flags[z]];
         [column release];
     }
-    DW_MUTEX_UNLOCK;
-    return DW_ERROR_NONE;
+    DW_FUNCTION_RETURN_THIS(retval);
 }
 
 /*
@@ -6911,14 +7170,15 @@ int API dw_filesystem_setup(HWND handle, unsigned long *flags, char **titles, in
  *          handle: Handle to the container window (widget).
  *          rowcount: The number of items to be populated.
  */
-void * API dw_container_alloc(HWND handle, int rowcount)
+DW_FUNCTION_DEFINITION(dw_container_alloc, void *, HWND handle, int rowcount)
+DW_FUNCTION_ADD_PARAM2(handle, rowcount)
+DW_FUNCTION_RETURN(dw_container_alloc, void *)
+DW_FUNCTION_RESTORE_PARAM2(handle, HWND, rowcount, int)
 {
-    int _locked_by_me = FALSE;
-    DW_MUTEX_LOCK;
+    DW_FUNCTION_INIT;
     DWContainer *cont = handle;
     [cont addRows:rowcount];
-    DW_MUTEX_UNLOCK;
-    return cont;
+    DW_FUNCTION_RETURN_THIS(cont);
 }
 
 /*
@@ -6930,10 +7190,12 @@ void * API dw_container_alloc(HWND handle, int rowcount)
  *          row: Zero based row of data being set.
  *          data: Pointer to the data to be added.
  */
-void API dw_container_set_item(HWND handle, void *pointer, int column, int row, void *data)
+DW_FUNCTION_DEFINITION(dw_container_set_item, void, HWND handle, void *pointer, int column, int row, void *data)
+DW_FUNCTION_ADD_PARAM5(handle, pointer, column, row, data)
+DW_FUNCTION_NO_RETURN(dw_container_set_item)
+DW_FUNCTION_RESTORE_PARAM5(handle, HWND, pointer, void *, column, int, row, int, data, void *)
 {
-    int _locked_by_me = FALSE;
-    DW_MUTEX_LOCK;
+    DW_FUNCTION_INIT;
     DWContainer *cont = handle;
     id object = nil;
     int type = [cont cellType:column];
@@ -6997,7 +7259,7 @@ void API dw_container_set_item(HWND handle, void *pointer, int column, int row, 
 
     [cont editCell:object at:(row+lastadd) and:column];
     [cont setNeedsDisplay:YES];
-    DW_MUTEX_UNLOCK;
+    DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -7049,10 +7311,12 @@ void API dw_filesystem_change_file(HWND handle, int row, char *filename, HICN ic
  *          row: Zero based row of data being set.
  *          data: Pointer to the data to be added.
  */
-void API dw_filesystem_set_file(HWND handle, void *pointer, int row, char *filename, HICN icon)
+DW_FUNCTION_DEFINITION(dw_filesystem_set_file, void, HWND handle, void *pointer, int row, char *filename, HICN icon)
+DW_FUNCTION_ADD_PARAM5(handle, pointer, row, filename, icon)
+DW_FUNCTION_NO_RETURN(dw_filesystem_set_file)
+DW_FUNCTION_RESTORE_PARAM5(handle, HWND, pointer, void *, row, int, filename, char *, icon, HICN)
 {
-    int _locked_by_me = FALSE;
-    DW_MUTEX_LOCK;
+    DW_FUNCTION_INIT;
     DWContainer *cont = handle;
     DWImageAndTextCell *browsercell;
     int lastadd = 0;
@@ -7068,7 +7332,7 @@ void API dw_filesystem_set_file(HWND handle, void *pointer, int row, char *filen
     [browsercell setStringValue:[ NSString stringWithUTF8String:filename ]];
     [cont editCell:browsercell at:(row+lastadd) and:0];
     [cont setNeedsDisplay:YES];
-    DW_MUTEX_UNLOCK;
+    DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -7091,10 +7355,12 @@ void API dw_filesystem_set_item(HWND handle, void *pointer, int column, int row,
  *          handle: Handle to the container window (widget).
  *          column: Zero based column.
  */
-int API dw_container_get_column_type(HWND handle, int column)
+DW_FUNCTION_DEFINITION(dw_container_get_column_type, int, HWND handle, int column)
+DW_FUNCTION_ADD_PARAM2(handle, column)
+DW_FUNCTION_RETURN(dw_container_get_column_type, int)
+DW_FUNCTION_RESTORE_PARAM2(handle, HWND, column, int)
 {
-    int _locked_by_me = FALSE;
-    DW_MUTEX_LOCK;
+    DW_FUNCTION_INIT;
     DWContainer *cont = handle;
     int rc;
     int flag = [cont cellType:column];
@@ -7110,8 +7376,7 @@ int API dw_container_get_column_type(HWND handle, int column)
         rc = DW_CFA_TIME;
     else
         rc = 0;
-    DW_MUTEX_UNLOCK;
-    return rc;
+    DW_FUNCTION_RETURN_THIS(rc);
 }
 
 /*
@@ -7134,14 +7399,16 @@ int API dw_filesystem_get_column_type(HWND handle, int column)
  *                    DW_RGB_TRANSPARENT will disable coloring rows.
  *                    DW_CLR_DEFAULT will use the system default alternating row colors.
  */
-void API dw_container_set_stripe(HWND handle, unsigned long oddcolor, unsigned long evencolor)
+DW_FUNCTION_DEFINITION(dw_container_set_stripe, void, HWND handle, unsigned long oddcolor, unsigned long evencolor)
+DW_FUNCTION_ADD_PARAM3(handle, oddcolor, evencolor)
+DW_FUNCTION_NO_RETURN(dw_container_set_stripe)
+DW_FUNCTION_RESTORE_PARAM3(handle, HWND, oddcolor, unsigned long, evencolor, unsigned long)
 {
-    int _locked_by_me = FALSE;
-    DW_MUTEX_LOCK;
+    DW_FUNCTION_INIT;
     DWContainer *cont = handle;
     [cont setRowBgOdd:(oddcolor == DW_CLR_DEFAULT ? DW_RGB(230,230,230) : oddcolor)
               andEven:(evencolor == DW_CLR_DEFAULT ? DW_RGB_TRANSPARENT : evencolor)];
-    DW_MUTEX_UNLOCK;
+    DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -7151,19 +7418,19 @@ void API dw_container_set_stripe(HWND handle, unsigned long oddcolor, unsigned l
  *          column: Zero based column of width being set.
  *          width: Width of column in pixels.
  */
-void API dw_container_set_column_width(HWND handle, int column, int width)
+DW_FUNCTION_DEFINITION(dw_container_set_column_width, void, HWND handle, int column, int width)
+DW_FUNCTION_ADD_PARAM3(handle, column, width)
+DW_FUNCTION_NO_RETURN(dw_container_set_column_width)
+DW_FUNCTION_RESTORE_PARAM3(handle, HWND, column, int, width, int)
 {
-    int _locked_by_me = FALSE;
-    DW_MUTEX_LOCK;
+    DW_FUNCTION_INIT;
     DWContainer *cont = handle;
     if([cont filesystem])
-    {
         column++;
-    }
     NSTableColumn *col = [cont getColumn:column];
 
     [col setWidth:width];
-    DW_MUTEX_UNLOCK;
+    DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -7173,14 +7440,16 @@ void API dw_container_set_column_width(HWND handle, int column, int width)
  *          row: Zero based row of data being set.
  *          title: String title of the item.
  */
-void API dw_container_set_row_title(void *pointer, int row, char *title)
+DW_FUNCTION_DEFINITION(dw_container_set_row_title, void, void *pointer, int row, char *title)
+DW_FUNCTION_ADD_PARAM3(pointer, row, title)
+DW_FUNCTION_NO_RETURN(dw_container_set_row_title)
+DW_FUNCTION_RESTORE_PARAM3(pointer, void *, row, int, title, char *)
 {
-    int _locked_by_me = FALSE;
-    DW_MUTEX_LOCK;
+    DW_FUNCTION_INIT;
     DWContainer *cont = pointer;
     int lastadd = [cont lastAddPoint];
     [cont setRow:(row+lastadd) title:title];
-    DW_MUTEX_UNLOCK;
+    DW_FUNCTION_RETURN_NOTHING;
 }
 
 
@@ -7191,14 +7460,16 @@ void API dw_container_set_row_title(void *pointer, int row, char *title)
  *          row: Zero based row of data being set.
  *          data: Data pointer.
  */
-void API dw_container_set_row_data(void *pointer, int row, void *data)
+DW_FUNCTION_DEFINITION(dw_container_set_row_data, void, void *pointer, int row, void *data)
+DW_FUNCTION_ADD_PARAM3(pointer, row, data)
+DW_FUNCTION_NO_RETURN(dw_container_set_row_data)
+DW_FUNCTION_RESTORE_PARAM3(pointer, void *, row, int, data, void *)
 {
-    int _locked_by_me = FALSE;
-    DW_MUTEX_LOCK;
+    DW_FUNCTION_INIT;
     DWContainer *cont = pointer;
     int lastadd = [cont lastAddPoint];
     [cont setRowData:(row+lastadd) title:data];
-    DW_MUTEX_UNLOCK;
+    DW_FUNCTION_RETURN_NOTHING;
 }
 
 
@@ -7209,13 +7480,15 @@ void API dw_container_set_row_data(void *pointer, int row, void *data)
  *          row: Zero based row of data being set.
  *          title: String title of the item.
  */
-void API dw_container_change_row_title(HWND handle, int row, char *title)
+DW_FUNCTION_DEFINITION(dw_container_change_row_title, void, HWND handle, int row, char *title)
+DW_FUNCTION_ADD_PARAM3(handle, row, title)
+DW_FUNCTION_NO_RETURN(dw_container_change_row_title)
+DW_FUNCTION_RESTORE_PARAM3(handle, HWND, row, int, title, char *)
 {
-    int _locked_by_me = FALSE;
-    DW_MUTEX_LOCK;
+    DW_FUNCTION_INIT;
     DWContainer *cont = handle;
     [cont setRow:row title:title];
-    DW_MUTEX_UNLOCK;
+    DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -7225,13 +7498,15 @@ void API dw_container_change_row_title(HWND handle, int row, char *title)
  *          row: Zero based row of data being set.
  *          data: Data pointer.
  */
-void API dw_container_change_row_data(HWND handle, int row, void *data)
+DW_FUNCTION_DEFINITION(dw_container_change_row_data, void, HWND handle, int row, void *data)
+DW_FUNCTION_ADD_PARAM3(handle, row, data)
+DW_FUNCTION_NO_RETURN(dw_container_change_row_data)
+DW_FUNCTION_RESTORE_PARAM3(handle, HWND, row, int, data, void *)
 {
-    int _locked_by_me = FALSE;
-    DW_MUTEX_LOCK;
+    DW_FUNCTION_INIT;
     DWContainer *cont = handle;
     [cont setRowData:row title:data];
-    DW_MUTEX_UNLOCK;
+    DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -7241,13 +7516,15 @@ void API dw_container_change_row_data(HWND handle, int row, void *data)
  *          pointer: Pointer to the allocated memory in dw_container_alloc().
  *          rowcount: The number of rows to be inserted.
  */
-void API dw_container_insert(HWND handle, void *pointer, int rowcount)
+DW_FUNCTION_DEFINITION(dw_container_insert, void, HWND handle, void *pointer, int rowcount)
+DW_FUNCTION_ADD_PARAM3(handle, pointer, rowcount)
+DW_FUNCTION_NO_RETURN(dw_container_insert)
+DW_FUNCTION_RESTORE_PARAM3(handle, HWND, pointer, void *, rowcount, int)
 {
-    int _locked_by_me = FALSE;
-    DW_MUTEX_LOCK;
+    DW_FUNCTION_INIT;
     DWContainer *cont = handle;
     [cont reloadData];
-    DW_MUTEX_UNLOCK;
+    DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -7256,17 +7533,17 @@ void API dw_container_insert(HWND handle, void *pointer, int rowcount)
  *       handle: Handle to the window (widget) to be cleared.
  *       redraw: TRUE to cause the container to redraw immediately.
  */
-void API dw_container_clear(HWND handle, int redraw)
+DW_FUNCTION_DEFINITION(dw_container_clear, void, HWND handle, int redraw)
+DW_FUNCTION_ADD_PARAM2(handle, redraw)
+DW_FUNCTION_NO_RETURN(dw_container_clear)
+DW_FUNCTION_RESTORE_PARAM2(handle, HWND, redraw, int)
 {
-    int _locked_by_me = FALSE;
-    DW_MUTEX_LOCK;
+    DW_FUNCTION_INIT;
     DWContainer *cont = handle;
     [cont clear];
     if(redraw)
-    {
         [cont reloadData];
-    }
-    DW_MUTEX_UNLOCK;
+    DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -7275,10 +7552,12 @@ void API dw_container_clear(HWND handle, int redraw)
  *       handle: Handle to the window (widget) to be deleted from.
  *       rowcount: The number of rows to be deleted.
  */
-void API dw_container_delete(HWND handle, int rowcount)
+DW_FUNCTION_DEFINITION(dw_container_delete, void, HWND handle, int rowcount)
+DW_FUNCTION_ADD_PARAM2(handle, rowcount)
+DW_FUNCTION_NO_RETURN(dw_container_delete)
+DW_FUNCTION_RESTORE_PARAM2(handle, HWND, rowcount, int)
 {
-    int _locked_by_me = FALSE;
-    DW_MUTEX_LOCK;
+    DW_FUNCTION_INIT;
     DWContainer *cont = handle;
     int x;
 
@@ -7287,7 +7566,7 @@ void API dw_container_delete(HWND handle, int rowcount)
         [cont removeRow:0];
     }
     [cont reloadData];
-    DW_MUTEX_UNLOCK;
+    DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -7298,8 +7577,12 @@ void API dw_container_delete(HWND handle, int rowcount)
  *                  DW_SCROLL_BOTTOM. (rows is ignored for last two)
  *       rows: The number of rows to be scrolled.
  */
-void API dw_container_scroll(HWND handle, int direction, long rows)
+DW_FUNCTION_DEFINITION(dw_container_scroll, void, HWND handle, int direction, long rows)
+DW_FUNCTION_ADD_PARAM3(handle, direction, rows)
+DW_FUNCTION_NO_RETURN(dw_container_scroll)
+DW_FUNCTION_RESTORE_PARAM3(handle, HWND, direction, int, rows, long)
 {
+    DW_FUNCTION_INIT;
     DWContainer *cont = handle;
     NSScrollView *sv = [cont scrollview];
     NSScroller *scrollbar = [sv verticalScroller];
@@ -7348,6 +7631,7 @@ void API dw_container_scroll(HWND handle, int direction, long rows)
             break;
         }
     }
+    DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -7358,10 +7642,12 @@ void API dw_container_scroll(HWND handle, int direction, long rows)
  *              return items that are currently selected.  Otherwise
  *              it will return all records in the container.
  */
-char * API dw_container_query_start(HWND handle, unsigned long flags)
+DW_FUNCTION_DEFINITION(dw_container_query_start, char *, HWND handle, unsigned long flags)
+DW_FUNCTION_ADD_PARAM2(handle, flags)
+DW_FUNCTION_RETURN(dw_container_query_start, char *)
+DW_FUNCTION_RESTORE_PARAM2(handle, HWND, flags, unsigned long)
 {
-    int _locked_by_me = FALSE;
-    DW_MUTEX_LOCK;
+    DW_FUNCTION_INIT;
     DWContainer *cont = handle;
     NSIndexSet *selected = [cont selectedRowIndexes];
     NSUInteger result = [selected indexGreaterThanOrEqualToIndex:0];
@@ -7379,8 +7665,7 @@ char * API dw_container_query_start(HWND handle, unsigned long flags)
         }
         [cont setLastQueryPoint:(int)result];
     }
-    DW_MUTEX_UNLOCK;
-    return retval;
+    DW_FUNCTION_RETURN_THIS(retval);
 }
 
 /*
@@ -7391,10 +7676,12 @@ char * API dw_container_query_start(HWND handle, unsigned long flags)
  *              return items that are currently selected.  Otherwise
  *              it will return all records in the container.
  */
-char * API dw_container_query_next(HWND handle, unsigned long flags)
+DW_FUNCTION_DEFINITION(dw_container_query_next, char *, HWND handle, unsigned long flags)
+DW_FUNCTION_ADD_PARAM2(handle, flags)
+DW_FUNCTION_RETURN(dw_container_query_next, char *)
+DW_FUNCTION_RESTORE_PARAM2(handle, HWND, flags, unsigned long)
 {
-    int _locked_by_me = FALSE;
-    DW_MUTEX_LOCK;
+    DW_FUNCTION_INIT;
     DWContainer *cont = handle;
     int lastQueryPoint = [cont lastQueryPoint];
     NSIndexSet *selected = [cont selectedRowIndexes];
@@ -7413,8 +7700,7 @@ char * API dw_container_query_next(HWND handle, unsigned long flags)
         }
         [cont setLastQueryPoint:(int)result];
     }
-    DW_MUTEX_UNLOCK;
-    return retval;
+    DW_FUNCTION_RETURN_THIS(retval);
 }
 
 /*
@@ -7423,11 +7709,13 @@ char * API dw_container_query_next(HWND handle, unsigned long flags)
  *       handle: Handle to the window (widget) to be queried.
  *       text:  Text usually returned by dw_container_query().
  */
-void API dw_container_cursor(HWND handle, char *text)
+DW_FUNCTION_DEFINITION(dw_container_cursor, void, HWND handle, char *text)
+DW_FUNCTION_ADD_PARAM2(handle, text)
+DW_FUNCTION_NO_RETURN(dw_container_cursor)
+DW_FUNCTION_RESTORE_PARAM2(handle, HWND, text, char *)
 {
-    int _locked_by_me = FALSE;
+    DW_FUNCTION_INIT;
     DW_LOCAL_POOL_IN;
-    DW_MUTEX_LOCK;
     DWContainer *cont = handle;
     char *thistext;
     int x, count = (int)[cont numberOfRowsInTableView:cont];
@@ -7443,13 +7731,12 @@ void API dw_container_cursor(HWND handle, char *text)
             [cont selectRowIndexes:selected byExtendingSelection:YES];
             [selected release];
             [cont scrollRowToVisible:x];
-            DW_MUTEX_UNLOCK;
-            DW_LOCAL_POOL_OUT;
-            return;
+            x=count;
+            break;
         }
     }
-    DW_MUTEX_UNLOCK;
     DW_LOCAL_POOL_OUT;
+    DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -7458,11 +7745,13 @@ void API dw_container_cursor(HWND handle, char *text)
  *       handle: Handle to the window (widget) to be queried.
  *       data: Data associated with the row.
  */
-void API dw_container_cursor_by_data(HWND handle, void *data)
+DW_FUNCTION_DEFINITION(dw_container_cursor_by_data, void, HWND handle, void *data)
+DW_FUNCTION_ADD_PARAM2(handle, data)
+DW_FUNCTION_NO_RETURN(dw_container_cursor_by_data)
+DW_FUNCTION_RESTORE_PARAM2(handle, HWND, data, void *)
 {
-    int _locked_by_me = FALSE;
+    DW_FUNCTION_INIT;
     DW_LOCAL_POOL_IN;
-    DW_MUTEX_LOCK;
     DWContainer *cont = handle;
     void *thisdata;
     int x, count = (int)[cont numberOfRowsInTableView:cont];
@@ -7478,13 +7767,12 @@ void API dw_container_cursor_by_data(HWND handle, void *data)
             [cont selectRowIndexes:selected byExtendingSelection:YES];
             [selected release];
             [cont scrollRowToVisible:x];
-            DW_MUTEX_UNLOCK;
-            DW_LOCAL_POOL_OUT;
-            return;
+            x=count;
+            break;
         }
     }
-    DW_MUTEX_UNLOCK;
     DW_LOCAL_POOL_OUT;
+    DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -7493,10 +7781,12 @@ void API dw_container_cursor_by_data(HWND handle, void *data)
  *       handle: Handle to the window (widget).
  *       text:  Text usually returned by dw_container_query().
  */
-void API dw_container_delete_row(HWND handle, char *text)
+DW_FUNCTION_DEFINITION(dw_container_delete_row, void, HWND handle, char *text)
+DW_FUNCTION_ADD_PARAM2(handle, text)
+DW_FUNCTION_NO_RETURN(dw_container_delete_row)
+DW_FUNCTION_RESTORE_PARAM2(handle, HWND, text, char *)
 {
-    int _locked_by_me = FALSE;
-    DW_MUTEX_LOCK;
+    DW_FUNCTION_INIT;
     DWContainer *cont = handle;
     char *thistext;
     int x, count = (int)[cont numberOfRowsInTableView:cont];
@@ -7509,11 +7799,11 @@ void API dw_container_delete_row(HWND handle, char *text)
         {
             [cont removeRow:x];
             [cont reloadData];
-            DW_MUTEX_UNLOCK;
-            return;
+            x=count;
+            break;
         }
     }
-    DW_MUTEX_UNLOCK;
+    DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -7522,10 +7812,12 @@ void API dw_container_delete_row(HWND handle, char *text)
  *       handle: Handle to the window (widget).
  *       data: Data specified.
  */
-void API dw_container_delete_row_by_data(HWND handle, void *data)
+DW_FUNCTION_DEFINITION(dw_container_delete_row_by_data, void, HWND handle, void *data)
+DW_FUNCTION_ADD_PARAM2(handle, data)
+DW_FUNCTION_NO_RETURN(dw_container_delete_row_by_data)
+DW_FUNCTION_RESTORE_PARAM2(handle, HWND, data, void *)
 {
-    int _locked_by_me = FALSE;
-    DW_MUTEX_LOCK;
+    DW_FUNCTION_INIT;
     DWContainer *cont = handle;
     void *thisdata;
     int x, count = (int)[cont numberOfRowsInTableView:cont];
@@ -7538,11 +7830,11 @@ void API dw_container_delete_row_by_data(HWND handle, void *data)
         {
             [cont removeRow:x];
             [cont reloadData];
-            DW_MUTEX_UNLOCK;
-            return;
+            x=count;
+            break;
         }
     }
-    DW_MUTEX_UNLOCK;
+    DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -7550,13 +7842,15 @@ void API dw_container_delete_row_by_data(HWND handle, void *data)
  * Parameters:
  *       handle: Handle to the window (widget) to be optimized.
  */
-void API dw_container_optimize(HWND handle)
+DW_FUNCTION_DEFINITION(dw_container_optimize, void, HWND handle)
+DW_FUNCTION_ADD_PARAM1(handle)
+DW_FUNCTION_NO_RETURN(dw_container_optimize)
+DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
 {
-    int _locked_by_me = FALSE;
-    DW_MUTEX_LOCK;
+    DW_FUNCTION_INIT;
     DWContainer *cont = handle;
     [cont optimize];
-    DW_MUTEX_UNLOCK;
+    DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -7718,11 +8012,13 @@ HWND API dw_mdi_new(unsigned long cid)
  * Returns:
  *       A handle to a splitbar window or NULL on failure.
  */
-HWND API dw_splitbar_new(int type, HWND topleft, HWND bottomright, unsigned long cid)
+DW_FUNCTION_DEFINITION(dw_splitbar_new, HWND, int type, HWND topleft, HWND bottomright, unsigned long cid)
+DW_FUNCTION_ADD_PARAM4(type, topleft, bottomright, cid)
+DW_FUNCTION_RETURN(dw_splitbar_new, HWND)
+DW_FUNCTION_RESTORE_PARAM4(type, int, topleft, HWND, bottomright, HWND, cid, unsigned long)
 {
+    DW_FUNCTION_INIT;
     id tmpbox = dw_box_new(DW_VERT, 0);
-    int _locked_by_me = FALSE;
-    DW_MUTEX_LOCK;
     DWSplitBar *split = [[DWSplitBar alloc] init];
     [split setDelegate:split];
     dw_box_pack_start(tmpbox, topleft, 0, 0, TRUE, TRUE, 0);
@@ -7743,8 +8039,7 @@ HWND API dw_splitbar_new(int type, HWND topleft, HWND bottomright, unsigned long
     /* Set the default percent to 50% split */
     [split setPercent:50.0];
     /* [split setTag:cid]; Why doesn't this work? */
-    DW_MUTEX_UNLOCK;
-    return split;
+    DW_FUNCTION_RETURN_THIS(split);
 }
 
 /*
@@ -7753,11 +8048,13 @@ HWND API dw_splitbar_new(int type, HWND topleft, HWND bottomright, unsigned long
  *       handle: The handle to the splitbar returned by dw_splitbar_new().
  *       percent: The position of the splitbar.
  */
-void API dw_splitbar_set(HWND handle, float percent)
+DW_FUNCTION_DEFINITION(dw_splitbar_set, void, HWND handle, float percent)
+DW_FUNCTION_ADD_PARAM2(handle, percent)
+DW_FUNCTION_NO_RETURN(dw_splitbar_set)
+DW_FUNCTION_RESTORE_PARAM2(handle, HWND, percent, float)
 {
+    DW_FUNCTION_INIT;
     DWSplitBar *split = handle;
-    int _locked_by_me = FALSE;
-    DW_MUTEX_LOCK;
     NSRect rect = [split frame];
     float pos;
     /* Calculate the position based on the size */
@@ -7781,7 +8078,7 @@ void API dw_splitbar_set(HWND handle, float percent)
          */
         [split setPercent:percent];
     }
-    DW_MUTEX_UNLOCK;
+    DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -7837,17 +8134,18 @@ NSFont *_dw_font_by_name(char *fontname)
  * Parameters:
  *       id: An ID to be used with dw_window_from_id() or 0L.
  */
-HWND API dw_bitmap_new(ULONG cid)
+DW_FUNCTION_DEFINITION(dw_bitmap_new, HWND, ULONG cid)
+DW_FUNCTION_ADD_PARAM1(cid)
+DW_FUNCTION_RETURN(dw_bitmap_new, HWND)
+DW_FUNCTION_RESTORE_PARAM1(cid, ULONG)
 {
-    int _locked_by_me = FALSE;
-    DW_MUTEX_LOCK;
+    DW_FUNCTION_INIT;
     NSImageView *bitmap = [[NSImageView alloc] init];
     [bitmap setImageFrameStyle:NSImageFrameNone];
     [bitmap setImageScaling:NSImageScaleNone];
     [bitmap setEditable:NO];
     [bitmap setTag:cid];
-    DW_MUTEX_UNLOCK;
-    return bitmap;
+    DW_FUNCTION_RETURN_THIS(bitmap);
 }
 
 /*
@@ -8352,14 +8650,15 @@ int API dw_html_url(HWND handle, char *url)
  *       text: The default text to be in the entryfield widget.
  *       id: An ID to be used with dw_window_from_id() or 0L.
  */
-HWND API dw_html_new(unsigned long cid)
+DW_FUNCTION_DEFINITION(dw_html_new, HWND, ULONG cid)
+DW_FUNCTION_ADD_PARAM1(cid)
+DW_FUNCTION_RETURN(dw_html_new, HWND)
+DW_FUNCTION_RESTORE_PARAM1(cid, ULONG)
 {
-    int _locked_by_me = FALSE;
-    DW_MUTEX_LOCK;
+    DW_FUNCTION_INIT;
     DWWebView *web = [[DWWebView alloc] init];
     /* [web setTag:cid]; Why doesn't this work? */
-    DW_MUTEX_UNLOCK;
-    return web;
+    DW_FUNCTION_RETURN_THIS(web);
 }
 
 /*
@@ -8820,10 +9119,12 @@ void API dw_notebook_pack(HWND handle, ULONG pageid, HWND page)
  *       title: The Window title.
  *       flStyle: Style flags, see the PM reference.
  */
-HWND API dw_window_new(HWND hwndOwner, char *title, ULONG flStyle)
+DW_FUNCTION_DEFINITION(dw_window_new, HWND, HWND hwndOwner, char *title, ULONG flStyle)
+DW_FUNCTION_ADD_PARAM3(hwndOwner, title, flStyle)
+DW_FUNCTION_RETURN(dw_window_new, HWND)
+DW_FUNCTION_RESTORE_PARAM3(hwndOwner, HWND, title, char *, flStyle, ULONG)
 {
-    int _locked_by_me = FALSE;
-    DW_MUTEX_LOCK;
+    DW_FUNCTION_INIT;
     NSRect frame = NSMakeRect(1,1,1,1);
     DWWindow *window = [[DWWindow alloc]
                         initWithContentRect:frame
@@ -8861,8 +9162,7 @@ HWND API dw_window_new(HWND hwndOwner, char *title, ULONG flStyle)
             [window setHidesOnDeactivate:YES];
         }
     }
-    DW_MUTEX_UNLOCK;
-    return (HWND)window;
+    DW_FUNCTION_RETURN_THIS(window);
 }
 
 /*
@@ -9462,12 +9762,15 @@ char * API dw_window_get_font(HWND handle)
  * Parameters:
  *           handle: The window handle to destroy.
  */
-int API dw_window_destroy(HWND handle)
+DW_FUNCTION_DEFINITION(dw_window_destroy, int, HWND handle)
+DW_FUNCTION_ADD_PARAM1(handle)
+DW_FUNCTION_RETURN(dw_window_destroy, int)
+DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
 {
-    int _locked_by_me = FALSE;
+    DW_FUNCTION_INIT;
     DW_LOCAL_POOL_IN;
-    DW_MUTEX_LOCK;
     id object = handle;
+    int retval = 0;
 
     /* Handle destroying a top-level window */
     if([ object isKindOfClass:[ NSWindow class ] ])
@@ -9513,45 +9816,40 @@ int API dw_window_destroy(HWND handle)
                     index = z;
             }
 
-            if(index == -1)
+            if(index != -1)
             {
-                DW_MUTEX_UNLOCK;
-                DW_LOCAL_POOL_OUT;
-                return 0;
-            }
+                [object removeFromSuperview];
 
-            [object removeFromSuperview];
-
-            if(thisbox->count > 1)
-            {
-                tmpitem = calloc(sizeof(Item), (thisbox->count-1));
-
-                /* Copy all but the current entry to the new list */
-                for(z=0;z<index;z++)
+                if(thisbox->count > 1)
                 {
-                    tmpitem[z] = thisitem[z];
+                    tmpitem = calloc(sizeof(Item), (thisbox->count-1));
+
+                    /* Copy all but the current entry to the new list */
+                    for(z=0;z<index;z++)
+                    {
+                        tmpitem[z] = thisitem[z];
+                    }
+                    for(z=index+1;z<thisbox->count;z++)
+                    {
+                        tmpitem[z-1] = thisitem[z];
+                    }
                 }
-                for(z=index+1;z<thisbox->count;z++)
-                {
-                    tmpitem[z-1] = thisitem[z];
-                }
+
+                thisbox->items = tmpitem;
+                if(thisitem)
+                    free(thisitem);
+                if(tmpitem)
+                    thisbox->count--;
+                else
+                    thisbox->count = 0;
+
+                /* Queue a redraw on the top-level window */
+                _dw_redraw(window, TRUE);
             }
-
-            thisbox->items = tmpitem;
-            if(thisitem)
-                free(thisitem);
-            if(tmpitem)
-                thisbox->count--;
-            else
-                thisbox->count = 0;
-
-            /* Queue a redraw on the top-level window */
-            _dw_redraw(window, TRUE);
         }
     }
-    DW_MUTEX_UNLOCK;
     DW_LOCAL_POOL_OUT;
-    return 0;
+    DW_FUNCTION_RETURN_THIS(retval);
 }
 
 /*
@@ -9561,25 +9859,30 @@ int API dw_window_destroy(HWND handle)
  * Returns:
  *       text: The text associsated with a given window.
  */
-char * API dw_window_get_text(HWND handle)
+DW_FUNCTION_DEFINITION(dw_window_get_text, char *, HWND handle)
+DW_FUNCTION_ADD_PARAM1(handle)
+DW_FUNCTION_RETURN(dw_window_get_text, char *)
+DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
 {
+    DW_FUNCTION_INIT;
     id object = _text_handle(handle);
+    char *retval = NULL;
 
     if([ object isKindOfClass:[ NSWindow class ] ] || [ object isKindOfClass:[ NSButton class ] ])
     {
         id window = object;
         NSString *nsstr = [ window title];
 
-        return strdup([ nsstr UTF8String ]);
+        retval = strdup([ nsstr UTF8String ]);
     }
     else if([ object isKindOfClass:[ NSControl class ] ])
     {
         NSControl *control = object;
         NSString *nsstr = [ control stringValue];
 
-        return strdup([ nsstr UTF8String ]);
+        retval = strdup([ nsstr UTF8String ]);
     }
-    return NULL;
+    DW_FUNCTION_RETURN_THIS(retval);
 }
 
 /*
@@ -9588,8 +9891,12 @@ char * API dw_window_get_text(HWND handle)
  *       handle: Handle to the window.
  *       text: The text associsated with a given window.
  */
-void API dw_window_set_text(HWND handle, char *text)
+DW_FUNCTION_DEFINITION(dw_window_set_text, void, HWND handle, char *text)
+DW_FUNCTION_ADD_PARAM2(handle, text)
+DW_FUNCTION_NO_RETURN(dw_window_set_text)
+DW_FUNCTION_RESTORE_PARAM2(handle, HWND, text, char *)
 {
+    DW_FUNCTION_INIT;
     id object = _text_handle(handle);
 
     if([ object isKindOfClass:[ NSWindow class ] ] || [ object isKindOfClass:[ NSButton class ] ])
@@ -9628,6 +9935,7 @@ void API dw_window_set_text(HWND handle, char *text)
          _dw_redraw([object window], TRUE);
       }
     }
+    DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -9636,13 +9944,18 @@ void API dw_window_set_text(HWND handle, char *text)
  *       handle: Handle to the window (widget).
  *       bubbletext: The text in the floating bubble tooltip.
  */
-void API dw_window_set_tooltip(HWND handle, char *bubbletext)
+DW_FUNCTION_DEFINITION(dw_window_set_tooltip, void, HWND handle, char *bubbletext)
+DW_FUNCTION_ADD_PARAM2(handle, bubbletext)
+DW_FUNCTION_NO_RETURN(dw_window_set_tooltip)
+DW_FUNCTION_RESTORE_PARAM2(handle, HWND, bubbletext, char *)
 {
+    DW_FUNCTION_INIT;
     id object = handle;
     if(bubbletext && *bubbletext)
         [object setToolTip:[NSString stringWithUTF8String:bubbletext]];
     else
         [object setToolTip:nil];
+    DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -9650,8 +9963,12 @@ void API dw_window_set_tooltip(HWND handle, char *bubbletext)
  * Parameters:
  *       handle: Handle to the window.
  */
-void API dw_window_disable(HWND handle)
+DW_FUNCTION_DEFINITION(dw_window_disable, void, HWND handle)
+DW_FUNCTION_ADD_PARAM1(handle)
+DW_FUNCTION_NO_RETURN(dw_window_disable)
+DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
 {
+    DW_FUNCTION_INIT;
     id object = handle;
 
     if([object isMemberOfClass:[NSScrollView class]])
@@ -9669,6 +9986,7 @@ void API dw_window_disable(HWND handle)
 
         [mle setEditable:NO];
     }
+    DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -9676,8 +9994,12 @@ void API dw_window_disable(HWND handle)
  * Parameters:
  *       handle: Handle to the window.
  */
-void API dw_window_enable(HWND handle)
+DW_FUNCTION_DEFINITION(dw_window_enable, void, HWND handle)
+DW_FUNCTION_ADD_PARAM1(handle)
+DW_FUNCTION_NO_RETURN(dw_window_enable)
+DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
 {
+    DW_FUNCTION_INIT;
     id object = handle;
 
     if([object isMemberOfClass:[NSScrollView class]])
@@ -9695,6 +10017,7 @@ void API dw_window_enable(HWND handle)
 
         [mle setEditable:YES];
     }
+    DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -9883,10 +10206,12 @@ int API dw_window_lower(HWND handle)
  *          width: New width in pixels.
  *          height: New height in pixels.
  */
-void API dw_window_set_size(HWND handle, ULONG width, ULONG height)
+DW_FUNCTION_DEFINITION(dw_window_set_size, void, HWND handle, ULONG width, ULONG height)
+DW_FUNCTION_ADD_PARAM3(handle, width, height)
+DW_FUNCTION_NO_RETURN(dw_window_set_size)
+DW_FUNCTION_RESTORE_PARAM3(handle, HWND, width, ULONG, height, ULONG)
 {
-    int _locked_by_me = FALSE;
-    DW_MUTEX_LOCK;
+    DW_FUNCTION_INIT;
     NSObject *object = handle;
 
     if([ object isMemberOfClass:[ DWWindow class ] ])
@@ -9917,7 +10242,7 @@ void API dw_window_set_size(HWND handle, ULONG width, ULONG height)
         /* Finally set the size */
         [window setContentSize:content.size];
     }
-    DW_MUTEX_UNLOCK;
+    DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -10043,10 +10368,12 @@ void _handle_gravity(HWND handle, long *x, long *y, unsigned long width, unsigne
  *          x: X location from the bottom left.
  *          y: Y location from the bottom left.
  */
-void API dw_window_set_pos(HWND handle, LONG x, LONG y)
+DW_FUNCTION_DEFINITION(dw_window_set_pos, void, HWND handle, LONG x, LONG y)
+DW_FUNCTION_ADD_PARAM3(handle, x, y)
+DW_FUNCTION_NO_RETURN(dw_window_set_pos)
+DW_FUNCTION_RESTORE_PARAM3(handle, HWND, x, LONG, y, LONG)
 {
-    int _locked_by_me = FALSE;
-    DW_MUTEX_LOCK;
+    DW_FUNCTION_INIT;
     NSObject *object = handle;
 
     if([ object isMemberOfClass:[ DWWindow class ] ])
@@ -10072,7 +10399,7 @@ void API dw_window_set_pos(HWND handle, LONG x, LONG y)
         /* Position set manually... don't auto-position */
         [window setShown:YES];
     }
-    DW_MUTEX_UNLOCK;
+    DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -11418,12 +11745,13 @@ int API dw_init(int newthread, int argc, char *argv[])
     [DWApp setMainMenu:DWMainMenu];
     DWObj = [[DWObject alloc] init];
     DWDefaultFont = nil;
+#ifdef BUILDING_FOR_MOJAVE
+    _DWDirtyDrawables = [[NSMutableArray alloc] init];
+#else
     /* Create mutexes for thread safety */
     DWRunMutex = dw_mutex_new();
     DWThreadMutex = dw_mutex_new();
     DWThreadMutex2 = dw_mutex_new();
-#ifdef BUILDING_FOR_MOJAVE
-    _DWDirtyDrawables = [[NSMutableArray alloc] init];
 #endif
     /* Use NSThread to start a dummy thread to initialize the threading subsystem */
     NSThread *thread = [[ NSThread alloc] initWithTarget:DWObj selector:@selector(uselessThread:) object:nil];
