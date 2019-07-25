@@ -395,9 +395,7 @@ char *_dw_get_image_extension( char *filename )
    return NULL;
 }
 
-unsigned long _DW_COLOR_ROW_ODD = DW_RGB(230, 230, 230);
-unsigned long _DW_COLOR_ROW_EVEN = DW_RGB_TRANSPARENT;
-
+/* Return the RGB color regardless if a predefined color was passed */
 unsigned long _get_color(unsigned long thiscolor)
 {
     if(thiscolor & DW_RGB_COLOR)
@@ -409,6 +407,21 @@ unsigned long _get_color(unsigned long thiscolor)
         return _colors[thiscolor];
     }
     return 0;
+}
+
+/* Returns TRUE of Mojave or later is in Dark Mode */
+BOOL _is_dark(NSAppearance * appearance)
+{
+#ifdef BUILDING_FOR_MOJAVE
+    if(@available(macOS 10.14, *))
+    {
+        NSAppearanceName basicAppearance = [appearance bestMatchFromAppearancesWithNames:@[
+                                                                                           NSAppearanceNameAqua,
+                                                                                           NSAppearanceNameDarkAqua]];
+        return [basicAppearance isEqualToString:NSAppearanceNameDarkAqua];
+    }
+#endif
+    return NO;
 }
 
 /* Thread specific storage */
@@ -424,24 +437,6 @@ static char _dw_bundle_path[PATH_MAX+1] = { 0 };
 void _init_colors(void)
 {
     NSColor *fgcolor = [[NSColor grayColor] retain];
-#ifdef BUILDING_FOR_MOJAVE
-    if (@available(macOS 10.14, *))
-    {
-        NSArray<NSColor *> *bgColors = [NSColor alternatingContentBackgroundColors];
-        if(bgColors)
-        {
-            NSColor *color = bgColors[0];
-            NSColor* device_color = [color colorUsingColorSpace:[NSColorSpace deviceRGBColorSpace]];
-            CGFloat red, green, blue;
-            [device_color getRed:&red green:&green blue:&blue alpha:NULL];
-            _DW_COLOR_ROW_ODD = DW_RGB((int)(red * 255), (int)(green *255), (int)(blue *255));
-            color = bgColors[1];
-            device_color = [color colorUsingColorSpace:[NSColorSpace deviceRGBColorSpace]];
-            [device_color getRed:&red green:&green blue:&blue alpha:NULL];
-            _DW_COLOR_ROW_EVEN = DW_RGB((int)(red * 255), (int)(green *255), (int)(blue *255));
-        }
-    }
-#endif
     pthread_setspecific(_dw_fg_color_key, fgcolor);
     pthread_setspecific(_dw_bg_color_key, NULL);
 }
@@ -2185,6 +2180,8 @@ DWObject *DWObj;
     NSPointerArray *titles;
     NSPointerArray *rowdatas;
     NSColor *fgcolor, *oddcolor, *evencolor;
+    unsigned long dw_oddcolor, dw_evencolor;
+    unsigned long _DW_COLOR_ROW_ODD, _DW_COLOR_ROW_EVEN;
     int lastAddPoint, lastQueryPoint;
     id scrollview;
     int filesystem;
@@ -2288,25 +2285,47 @@ DWObject *DWObj;
 -(void)setScrollview:(id)input { scrollview = input; }
 -(void)addColumn:(NSTableColumn *)input andType:(int)type { if(tvcols) { [tvcols addObject:input]; [types addObject:[NSNumber numberWithInt:type]]; } }
 -(NSTableColumn *)getColumn:(int)col { if(tvcols) { return [tvcols objectAtIndex:col]; } return nil; }
--(void)setRowBgOdd:(unsigned long)oddcol andEven:(unsigned long)evencol
+-(void)refreshColors
 {
     NSColor *oldodd = oddcolor;
     NSColor *oldeven = evencolor;
-    unsigned long _odd = _get_color(oddcol);
-    unsigned long _even = _get_color(evencol);
+    unsigned long thisodd = dw_oddcolor == DW_CLR_DEFAULT ? _DW_COLOR_ROW_ODD : dw_oddcolor;
+    unsigned long _odd = _get_color(thisodd);
+    unsigned long thiseven = dw_evencolor == DW_CLR_DEFAULT ? _DW_COLOR_ROW_EVEN : dw_evencolor;
+    unsigned long _even = _get_color(thiseven);
 
     /* Get the NSColor for non-default colors */
-    if(oddcol != DW_RGB_TRANSPARENT)
+    if(thisodd != DW_RGB_TRANSPARENT)
         oddcolor = [[NSColor colorWithDeviceRed: DW_RED_VALUE(_odd)/255.0 green: DW_GREEN_VALUE(_odd)/255.0 blue: DW_BLUE_VALUE(_odd)/255.0 alpha: 1] retain];
     else
         oddcolor = NULL;
-    if(evencol != DW_RGB_TRANSPARENT)
+    if(thiseven != DW_RGB_TRANSPARENT)
         evencolor = [[NSColor colorWithDeviceRed: DW_RED_VALUE(_even)/255.0 green: DW_GREEN_VALUE(_even)/255.0 blue: DW_BLUE_VALUE(_even)/255.0 alpha: 1] retain];
     else
         evencolor = NULL;
     [oldodd release];
     [oldeven release];
 }
+-(void)setRowBgOdd:(unsigned long)oddcol andEven:(unsigned long)evencol
+{
+    /* Save the set colors in case we get a theme change */
+    dw_oddcolor = oddcol;
+    dw_evencolor = evencol;
+    [self refreshColors];
+}
+-(void)checkDark
+{
+    /* Update any system colors based on the Dark Mode */
+    _DW_COLOR_ROW_EVEN = DW_RGB_TRANSPARENT;
+    if(_is_dark([self effectiveAppearance]))
+        _DW_COLOR_ROW_ODD = DW_RGB(100, 100, 100);
+    else
+        _DW_COLOR_ROW_ODD = DW_RGB(230, 230, 230);
+    /* Only refresh if we've been setup already */
+    if(titles)
+        [self refreshColors];
+}
+-(void)viewDidChangeEffectiveAppearance { [self checkDark]; }
 -(int)insertRow:(NSArray *)input at:(int)index
 {
     if(data)
@@ -2488,7 +2507,9 @@ DWObject *DWObj;
     tvcols = [[[NSMutableArray alloc] init] retain];
     data = [[[NSMutableArray alloc] init] retain];
     types = [[[NSMutableArray alloc] init] retain];
-
+    if(!dw_oddcolor && !dw_evencolor)
+        dw_oddcolor = dw_evencolor = DW_CLR_DEFAULT;
+    [self checkDark];
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(selectionChanged:) name:NSTableViewSelectionDidChangeNotification object:self];
 }
 -(NSSize)getsize
@@ -7432,8 +7453,8 @@ DW_FUNCTION_RESTORE_PARAM3(handle, HWND, oddcolor, unsigned long, evencolor, uns
 {
     DW_FUNCTION_INIT;
     DWContainer *cont = handle;
-    [cont setRowBgOdd:(oddcolor == DW_CLR_DEFAULT ? _DW_COLOR_ROW_ODD : oddcolor)
-              andEven:(evencolor == DW_CLR_DEFAULT ? _DW_COLOR_ROW_EVEN : evencolor)];
+    [cont setRowBgOdd:oddcolor
+              andEven:evencolor];
     DW_FUNCTION_RETURN_NOTHING;
 }
 
