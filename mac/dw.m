@@ -5865,13 +5865,14 @@ DW_FUNCTION_RESTORE_PARAM3(handle, HWND, buffer, char *, startpoint, int)
     unsigned int retval;
     NSTextStorage *ts = [mle textStorage];
     NSString *nstr = [NSString stringWithUTF8String:buffer];
-    NSMutableString *ms = [ts mutableString];
-    NSUInteger length = [ms length];
+    NSDictionary *attributes = [NSDictionary dictionaryWithObject:NSColor.textColor forKey:NSForegroundColorAttributeName];
+    NSAttributedString *nastr = [[NSAttributedString alloc] initWithString:nstr attributes:attributes];
+    NSUInteger length = [ts length];
     if(startpoint < 0)
         startpoint = 0;
     if(startpoint > length)
         startpoint = (int)length;
-    [ms insertString:nstr atIndex:startpoint];
+    [ts insertAttributedString:nastr atIndex:startpoint];
     retval = (unsigned int)strlen(buffer) + startpoint;
     DW_FUNCTION_RETURN_THIS(retval);
 }
