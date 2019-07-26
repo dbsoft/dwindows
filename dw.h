@@ -491,6 +491,7 @@ void _dw_pool_drain(void);
 
 /* Windows specific section */
 #if defined(__WIN32__) || defined(WINNT)
+#include <winsock2.h>
 #include <windows.h>
 #include <commctrl.h>
 

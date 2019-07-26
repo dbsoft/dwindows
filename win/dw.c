@@ -14,6 +14,7 @@
 #define _WIN32_IE 0x0500
 #define WINVER 0x500
 #endif
+#include <winsock2.h>
 #include <windows.h>
 #include <windowsx.h>
 #include <commctrl.h>

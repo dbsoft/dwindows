@@ -6,6 +6,7 @@
 #include <string.h>
 #include <ctype.h>
 
+#include <winsock2.h>
 #include <windows.h>
 
 #define _DW_INTERNAL
