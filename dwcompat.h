@@ -195,7 +195,7 @@ void msleep(long period);
 #define PIPEROOT "/tmp/"
 #endif
 
-#define PIPENAME "%s" __TARGET__ "%d"
+#define PIPENAME "%s" __TARGET__ "%d-%d"
 
 #if defined(_P_NOWAIT) && !defined(P_NOWAIT)
 #define P_NOWAIT _P_NOWAIT
@@ -342,7 +342,8 @@ void msleep(long period);
 	pipes[1] = socket(AF_UNIX, SOCK_STREAM, 0); \
 	memset(&un, 0, sizeof(un)); \
 	un.sun_family=AF_UNIX; \
-	sprintf(un.sun_path, PIPENAME, PIPEROOT, pipes[1]); \
+	sprintf(un.sun_path, PIPENAME, PIPEROOT, (int)getpid(), pipes[1]); \
+	unlink(un.sun_path); \
 	bind(tmpsock, (struct sockaddr *)&un, sizeof(un)); \
 	listen(tmpsock, 0); \
 	connect(pipes[1], (struct sockaddr *)&un, sizeof(un)); \
