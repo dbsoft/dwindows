@@ -129,11 +129,7 @@ void msleep(long period);
 #define BKS_TABBEDDIALOG          0x0800
 #endif
 
-#define PIPENAME "\\socket\\" __TARGET__ "%d"
-#define TPIPENAME "\\socket\\" __TARGET__ "%d"
-#else
-#define PIPENAME "/tmp/" __TARGET__ "%d"
-#define TPIPENAME "/tmp/" __TARGET__ "%d"
+#define PIPEROOT "\\socket\\"
 #endif /* __EMX__ || __IBMC__ */
 
 #if defined(__OS2__) && (defined(__IBMC__) || defined(__WATCOMC__))
@@ -163,8 +159,8 @@ void msleep(long period);
 # endif
 #endif
 
+#include <winsock2.h>
 #include <windows.h>
-#include <winsock.h>
 #include <time.h>
 #include <process.h>
 #include <sys/stat.h>
@@ -185,13 +181,21 @@ void msleep(long period);
 
 #include <stdarg.h>
 
-#if defined(__CYGWIN32__) /*|| defined(__MINGW32__)*/
+/* Cygwin and Visual Studio 15.4 (SDK 10.0.16299.15) support domain sockets */
+#if defined(__CYGWIN32__)
 #include <sys/un.h>
-#endif /* __CYGWIN32__ || __MINGW32__ */
-
-#ifndef __CYGWIN32__
+#elif defined(_MSC_VER) && _MSC_VER >= 1912
+#include <afunix.h>
+#define PIPEROOT "C:\\Windows\\Temp\\"
+#else
 #define NO_DOMAIN_SOCKETS
-#endif /* __CYGWIN32__ */
+#endif 
+
+#ifndef PIPEROOT
+#define PIPEROOT "/tmp/"
+#endif
+
+#define PIPENAME "%s" __TARGET__ "%d"
 
 #if defined(_P_NOWAIT) && !defined(P_NOWAIT)
 #define P_NOWAIT _P_NOWAIT
@@ -318,7 +322,7 @@ void msleep(long period);
 #ifdef __IBMC__
 #define sockinit() sock_init();
 #elif defined(__WIN32__) || defined(WINNT)
-#define sockinit() { static WSADATA wsa; WSAStartup(MAKEWORD (1, 1), &wsa); }
+#define sockinit() { static WSADATA wsa; WSAStartup(MAKEWORD (2, 0), &wsa); }
 #else  /* !WIN32 */
 #define sockinit()
 #endif
@@ -338,7 +342,7 @@ void msleep(long period);
 	pipes[1] = socket(AF_UNIX, SOCK_STREAM, 0); \
 	memset(&un, 0, sizeof(un)); \
 	un.sun_family=AF_UNIX; \
-	sprintf(un.sun_path, PIPENAME, pipes[1]); \
+	sprintf(un.sun_path, PIPENAME, PIPEROOT, pipes[1]); \
 	bind(tmpsock, (struct sockaddr *)&un, sizeof(un)); \
 	listen(tmpsock, 0); \
 	connect(pipes[1], (struct sockaddr *)&un, sizeof(un)); \
