@@ -2618,12 +2618,13 @@ DWObject *DWObj;
                     /* Sanity check... don't set the width to 0 */
                     if(width)
                     {
-                        [column setWidth:width];
+                        [column setWidth:width+1];
                     }
                 }
                 else
                 {
-                    [column sizeToFit];
+                    if(self.headerView)
+                        [column sizeToFit];
                 }
             }
         }
@@ -5356,6 +5357,7 @@ HWND _cont_new(ULONG cid, int multi)
     [scrollview setDocumentView:cont];
     [cont setTag:cid];
     [cont autorelease];
+    [cont setRowBgOdd:DW_RGB_TRANSPARENT andEven:DW_RGB_TRANSPARENT];
     return cont;
 }
 
@@ -5409,10 +5411,8 @@ DW_FUNCTION_RESTORE_PARAM2(handle, HWND, text, char *)
         NSArray *newrow = [NSArray arrayWithObject:nstr];
 
         [cont addRow:newrow];
-        /*[cont performSelectorOnMainThread:@selector(addRow:)
-                               withObject:newrow
-                            waitUntilDone:YES];*/
         [cont reloadData];
+        [cont optimize];
         [cont setNeedsDisplay:YES];
     }
     DW_FUNCTION_RETURN_NOTHING;
@@ -5447,6 +5447,7 @@ DW_FUNCTION_RESTORE_PARAM3(handle, HWND, text, char *, pos, int)
 
         [cont insertRow:newrow at:pos];
         [cont reloadData];
+        [cont optimize];
         [cont setNeedsDisplay:YES];
     }
     DW_FUNCTION_RETURN_NOTHING;
@@ -5490,6 +5491,7 @@ DW_FUNCTION_RESTORE_PARAM3(handle, HWND, text, char **, count, int)
             [cont addRow:newrow];
         }
         [cont reloadData];
+        [cont optimize];
         [cont setNeedsDisplay:YES];
     }
     DW_FUNCTION_RETURN_NOTHING;
@@ -5669,6 +5671,7 @@ DW_FUNCTION_RESTORE_PARAM3(handle, HWND, index, unsigned int, buffer, char *)
 
             [cont editCell:nstr at:index and:0];
             [cont reloadData];
+            [cont optimize];
             [cont setNeedsDisplay:YES];
         }
     }
