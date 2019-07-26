@@ -186,7 +186,7 @@ void msleep(long period);
 #include <sys/un.h>
 #elif defined(_MSC_VER) && _MSC_VER >= 1912
 #include <afunix.h>
-#define PIPEROOT "C:\\Windows\\Temp\\"
+#define PIPEROOT getenv("TEMP") ? getenv("TEMP") : "C:\\Windows\\Temp\\"
 #else
 #define NO_DOMAIN_SOCKETS
 #endif 
