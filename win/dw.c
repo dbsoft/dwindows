@@ -2,7 +2,7 @@
  * Dynamic Windows:
  *          A GTK like implementation of the Win32 GUI
  *
- * (C) 2000-2017 Brian Smith <brian@dbsoft.org>
+ * (C) 2000-2019 Brian Smith <brian@dbsoft.org>
  * (C) 2003-2011 Mark Hessling <mark@rexx.org>
  *
  */
@@ -670,6 +670,29 @@ HICON _dw_load_icon(char *filename)
     return NULL;
 }
 #endif
+
+int _DW_DARK_MODE_ALLOWED = TRUE;
+
+/* Call this on a window to apply the style */
+void _set_window_theme(HWND window)
+{
+	static int initialized = FALSE;
+	BOOL (WINAPI * AllowDarkModeForWindow)(HWND a_HWND, BOOL a_Allow) = NULL;
+	
+	if(initialized == FALSE && dwVersion)
+	{
+		/* Dark mode is introduced in Windows 10 build 1809 */
+		if(LOBYTE(LOWORD(dwVersion)) == 10 && HIWORD(dwVersion) >= 1809)
+			AllowDarkModeForWindow = (BOOL (WINAPI *)(HWND, BOOL))GetProcAddress(huxtheme, MAKEINTRESOURCEA(133));
+		initialized = TRUE;
+	}
+	if(AllowDarkModeForWindow)
+	{
+		AllowDarkModeForWindow(window, _DW_DARK_MODE_ALLOWED);
+		if(_DW_DARK_MODE_ALLOWED && _SetWindowTheme)
+			_SetWindowTheme(window, L"Explorer", NULL);
+	}
+}
 
 /* This function adds a signal handler callback into the linked list.
  */
