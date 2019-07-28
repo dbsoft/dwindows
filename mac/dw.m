@@ -1100,6 +1100,7 @@ typedef struct _bitbltinfo
     {
         [cachedDrawingRep drawInRect:self.bounds];
         [_DWDirtyDrawables removeObject:self];
+        self.needsDisplay = YES;
     }
 #endif
 }
