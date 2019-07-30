@@ -671,27 +671,30 @@ HICON _dw_load_icon(char *filename)
 }
 #endif
 
-int _DW_DARK_MODE_ALLOWED = TRUE;
+int _DW_DARK_MODE_ALLOWED = FALSE;
 
 /* Call this on a window to apply the style */
-void _set_window_theme(HWND window)
+BOOL CALLBACK _set_child_window_theme(HWND window, LPARAM lParam)
 {
-	static int initialized = FALSE;
-	BOOL (WINAPI * AllowDarkModeForWindow)(HWND a_HWND, BOOL a_Allow) = NULL;
-	
-	if(initialized == FALSE && dwVersion)
-	{
-		/* Dark mode is introduced in Windows 10 build 1809 */
-		if(LOBYTE(LOWORD(dwVersion)) == 10 && HIWORD(dwVersion) >= 1809)
-			AllowDarkModeForWindow = (BOOL (WINAPI *)(HWND, BOOL))GetProcAddress(huxtheme, MAKEINTRESOURCEA(133));
-		initialized = TRUE;
-	}
-	if(AllowDarkModeForWindow)
-	{
-		AllowDarkModeForWindow(window, _DW_DARK_MODE_ALLOWED);
-		if(_DW_DARK_MODE_ALLOWED && _SetWindowTheme)
-			_SetWindowTheme(window, L"Explorer", NULL);
-	}
+   static int initialized = FALSE;
+   static BOOL (WINAPI * AllowDarkModeForWindow)(HWND a_HWND, BOOL a_Allow) = NULL;
+
+   if(initialized == FALSE && dwVersion)
+   {
+      /* Dark mode is introduced in Windows 10 (1809) build 17763 */
+      if(LOBYTE(LOWORD(dwVersion)) >= 10 && HIWORD(dwVersion) >= 17763)
+         AllowDarkModeForWindow = (BOOL (WINAPI *)(HWND, BOOL))GetProcAddress(huxtheme, MAKEINTRESOURCEA(133));
+      initialized = TRUE;
+   }
+   if(AllowDarkModeForWindow)
+   {
+      AllowDarkModeForWindow(window, _DW_DARK_MODE_ALLOWED);
+      if(_DW_DARK_MODE_ALLOWED && _SetWindowTheme)
+      {
+         _SetWindowTheme(window, L"DarkMode_Explorer", NULL);
+      }
+   }
+   return TRUE;
 }
 
 /* This function adds a signal handler callback into the linked list.
@@ -4268,6 +4271,10 @@ int API dw_window_show(HWND handle)
 {
    int rc;
    RECT rect;
+   
+   /* Try to enable dark mode support if our OS supports it */
+   _set_child_window_theme(handle, 0);
+   EnumChildWindows(handle, _set_child_window_theme, 0);
    
    GetClientRect(handle, &rect);
    
