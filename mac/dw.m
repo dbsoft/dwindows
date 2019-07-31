@@ -1093,6 +1093,7 @@ typedef struct _bitbltinfo
 -(void)otherMouseDown:(NSEvent *)theEvent { _event_handler(self, theEvent, 3); }
 -(void)otherMouseUp:(NSEvent *)theEvent { _event_handler(self, theEvent, 4); }
 -(void)mouseDragged:(NSEvent *)theEvent { _event_handler(self, theEvent, 5); }
+-(void)delayedNeedsDisplay { [self setNeedsDisplay:YES]; }
 -(void)drawRect:(NSRect)rect {
     _event_handler(self, nil, 7);
 #ifdef BUILDING_FOR_MOJAVE
@@ -1100,7 +1101,7 @@ typedef struct _bitbltinfo
     {
         [cachedDrawingRep drawInRect:self.bounds];
         [_DWDirtyDrawables removeObject:self];
-        self.needsDisplay = YES;
+        [self performSelector:@selector(delayedNeedsDisplay) withObject:nil afterDelay:0];
     }
 #endif
 }
