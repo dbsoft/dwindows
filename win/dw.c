@@ -673,7 +673,7 @@ HICON _dw_load_icon(char *filename)
 #endif
 
 #ifdef AEROGLASS
-int _DW_DARK_MODE_ALLOWED = FALSE;
+int _DW_DARK_MODE_ALLOWED = TRUE;
 int _DW_DARK_MODE_SUPPORTED = FALSE;
 int _DW_DARK_MODE_ENABLED = FALSE;
 
@@ -726,8 +726,12 @@ void _dw_init_dark_mode(void)
          (_AllowDarkModeForApp || _SetPreferredAppMode) && _IsDarkModeAllowedForWindow && _DwmSetWindowAttribute)
       {
          _DW_DARK_MODE_SUPPORTED = TRUE;
-         _AllowDarkModeForApp(TRUE);
+         if(_AllowDarkModeForApp)
+            _AllowDarkModeForApp(TRUE);
+         else
+            _SetPreferredAppMode(_AllowDark);
          _RefreshImmersiveColorPolicyState();
+         _DW_DARK_MODE_ENABLED = _ShouldAppsUseDarkMode() && !IsHighContrast();
       }
    }
 }
@@ -771,7 +775,10 @@ void RefreshTitleBarThemeColor(HWND window)
 BOOL CALLBACK _dw_set_child_window_theme(HWND window, LPARAM lParam)
 {
    if(_DW_DARK_MODE_SUPPORTED)
+   {
       AllowDarkModeForWindow(window, _DW_DARK_MODE_ENABLED);
+      SendMessageW(window, WM_THEMECHANGED, 0, 0);
+   }
    return TRUE;
 }
 #endif
@@ -2305,16 +2312,12 @@ LRESULT CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
    case WM_SETTINGCHANGE:
    {
       if(_DW_DARK_MODE_SUPPORTED && IsColorSchemeChangeMessage(mp2))
-         SendMessageW(hWnd, WM_THEMECHANGED, 0, 0);
-   }
-   break;
-   case WM_THEMECHANGED:
-   {
-      if(_DW_DARK_MODE_SUPPORTED)
       {
-         _AllowDarkModeForWindow(hWnd, _DW_DARK_MODE_ENABLED);
-         if(GetParent(hWnd) == HWND_DESKTOP)
-            RefreshTitleBarThemeColor(hWnd);
+         _DW_DARK_MODE_ENABLED = _ShouldAppsUseDarkMode() && !IsHighContrast();
+
+         RefreshTitleBarThemeColor(hWnd);
+         _dw_set_child_window_theme(hWnd, 0);
+         EnumChildWindows(hWnd, _dw_set_child_window_theme, 0);
       }
    }
    break;
@@ -4369,9 +4372,16 @@ int API dw_window_show(HWND handle)
    int rc;
    RECT rect;
    
-   /* Try to enable dark mode support if our OS supports it */
-   _dw_set_child_window_theme(handle, 0);
-   EnumChildWindows(handle, _dw_set_child_window_theme, 0);
+#ifdef AEROGLASS
+   if(_DW_DARK_MODE_SUPPORTED)
+   {
+      /* Try to enable dark mode support if our OS supports it */
+      _dw_set_child_window_theme(handle, 0);
+      EnumChildWindows(handle, _dw_set_child_window_theme, 0);
+      if(GetParent(handle) == HWND_DESKTOP)
+         RefreshTitleBarThemeColor(handle);
+   }
+#endif
    
    GetClientRect(handle, &rect);
    
