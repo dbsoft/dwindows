@@ -208,6 +208,7 @@ ULONG_PTR gdiplusToken;
 #ifdef AEROGLASS
 HRESULT (WINAPI *_DwmExtendFrameIntoClientArea)(HWND hWnd, const MARGINS *pMarInset) = 0;
 HRESULT (WINAPI *_DwmIsCompositionEnabled)(BOOL *pfEnabled) = 0;
+HRESULT (WINAPI *_DwmSetWindowAttribute)(HWND, DWORD, LPCVOID, DWORD) = 0;
 HTHEME (WINAPI *_OpenThemeData)(HWND hwnd, LPCWSTR pszClassList) = 0;
 HPAINTBUFFER (WINAPI *_BeginBufferedPaint)(HDC hdcTarget, const RECT *prcTarget, BP_BUFFERFORMAT dwFormat, BP_PAINTPARAMS *pPaintParams, HDC *phdc) = 0;
 HRESULT (WINAPI *_BufferedPaintSetAlpha)(HPAINTBUFFER hBufferedPaint, const RECT *prc, BYTE alpha) = 0;
@@ -671,31 +672,109 @@ HICON _dw_load_icon(char *filename)
 }
 #endif
 
+#ifdef AEROGLASS
 int _DW_DARK_MODE_ALLOWED = FALSE;
+int _DW_DARK_MODE_SUPPORTED = FALSE;
+int _DW_DARK_MODE_ENABLED = FALSE;
 
-/* Call this on a window to apply the style */
-BOOL CALLBACK _set_child_window_theme(HWND window, LPARAM lParam)
+typedef enum IMMERSIVE_HC_CACHE_MODE
 {
-   static int initialized = FALSE;
-   static BOOL (WINAPI * AllowDarkModeForWindow)(HWND a_HWND, BOOL a_Allow) = NULL;
+   IHCM_USE_CACHED_VALUE,
+   IHCM_REFRESH
+} IMMERSIVE_HC_CACHE_MODE;
 
-   if(initialized == FALSE && dwVersion)
+typedef enum _PreferredAppMode
+{
+   _Default,
+   _AllowDark,
+   _ForceDark,
+   _ForceLight,
+   _Max
+} _PreferredAppMode;
+
+HTHEME (WINAPI * _OpenNcThemeData)(HWND, LPCWSTR) = NULL; 
+VOID (WINAPI * _RefreshImmersiveColorPolicyState)(VOID) = NULL; 
+BOOL (WINAPI * _GetIsImmersiveColorUsingHighContrast)(IMMERSIVE_HC_CACHE_MODE) = NULL; 
+BOOL (WINAPI * _ShouldAppsUseDarkMode)(VOID) = NULL; 
+BOOL (WINAPI * _AllowDarkModeForWindow)(HWND, BOOL) = NULL;
+BOOL (WINAPI * _AllowDarkModeForApp)(BOOL) = NULL; 
+_PreferredAppMode (WINAPI * _SetPreferredAppMode)(_PreferredAppMode) = NULL; 
+BOOL (WINAPI * _IsDarkModeAllowedForWindow)(HWND) = NULL; 
+BOOL (WINAPI * _ShouldSystemUseDarkMode)(VOID) = NULL; 
+
+void _dw_init_dark_mode(void)
+{
+   if(_DW_DARK_MODE_ALLOWED && dwVersion && huxtheme)
    {
       /* Dark mode is introduced in Windows 10 (1809) build 17763 */
       if(LOBYTE(LOWORD(dwVersion)) >= 10 && HIWORD(dwVersion) >= 17763)
-         AllowDarkModeForWindow = (BOOL (WINAPI *)(HWND, BOOL))GetProcAddress(huxtheme, MAKEINTRESOURCEA(133));
-      initialized = TRUE;
-   }
-   if(AllowDarkModeForWindow)
-   {
-      AllowDarkModeForWindow(window, _DW_DARK_MODE_ALLOWED);
-      if(_DW_DARK_MODE_ALLOWED && _SetWindowTheme)
       {
-         _SetWindowTheme(window, L"DarkMode_Explorer", NULL);
+         _OpenNcThemeData = (HTHEME (WINAPI *)(HWND, LPCWSTR))GetProcAddress(huxtheme, MAKEINTRESOURCEA(49));
+         _RefreshImmersiveColorPolicyState = (VOID (WINAPI *)(VOID))GetProcAddress(huxtheme, MAKEINTRESOURCEA(104));
+         _GetIsImmersiveColorUsingHighContrast = (BOOL (WINAPI *)(IMMERSIVE_HC_CACHE_MODE))GetProcAddress(huxtheme, MAKEINTRESOURCEA(106));
+         _ShouldAppsUseDarkMode = (BOOL (WINAPI *)(VOID))GetProcAddress(huxtheme, MAKEINTRESOURCEA(132));
+         _AllowDarkModeForWindow = (BOOL (WINAPI *)(HWND, BOOL))GetProcAddress(huxtheme, MAKEINTRESOURCEA(133));
+         if(HIWORD(dwVersion) < 18334)
+            _AllowDarkModeForApp = (BOOL (WINAPI *)(BOOL))GetProcAddress(huxtheme, MAKEINTRESOURCEA(135));
+         else
+            _SetPreferredAppMode = (_PreferredAppMode (WINAPI *)(_PreferredAppMode))GetProcAddress(huxtheme, MAKEINTRESOURCEA(135));
+         _IsDarkModeAllowedForWindow = (BOOL (WINAPI *)(HWND))GetProcAddress(huxtheme, MAKEINTRESOURCEA(137));
+         _ShouldSystemUseDarkMode = (BOOL (WINAPI *)(VOID))GetProcAddress(huxtheme, MAKEINTRESOURCEA(138));
+      }
+      /* Make sure we were able to load all the Dark Mode functions */
+      if(_OpenNcThemeData && _RefreshImmersiveColorPolicyState && _ShouldAppsUseDarkMode && _AllowDarkModeForWindow &&
+         (_AllowDarkModeForApp || _SetPreferredAppMode) && _IsDarkModeAllowedForWindow && _DwmSetWindowAttribute)
+      {
+         _DW_DARK_MODE_SUPPORTED = TRUE;
+         _AllowDarkModeForApp(TRUE);
+         _RefreshImmersiveColorPolicyState();
       }
    }
+}
+
+BOOL AllowDarkModeForWindow(HWND window, BOOL allow)
+{
+   if(_DW_DARK_MODE_SUPPORTED)
+      return _AllowDarkModeForWindow(window, allow);
+   return FALSE;
+}
+
+BOOL IsHighContrast(VOID)
+{
+   HIGHCONTRASTW highContrast = { sizeof(highContrast) };
+   if(SystemParametersInfoW(SPI_GETHIGHCONTRAST, sizeof(highContrast), &highContrast, FALSE))
+      return highContrast.dwFlags & HCF_HIGHCONTRASTON;
+   return FALSE;
+}
+
+BOOL IsColorSchemeChangeMessage(LPARAM lParam)
+{
+   BOOL is = FALSE;
+   if(lParam && CompareStringOrdinal((LPCWCH)lParam, -1, L"ImmersiveColorSet", -1, TRUE) == CSTR_EQUAL)
+   {
+      _RefreshImmersiveColorPolicyState();
+      is = TRUE;
+   }
+   _GetIsImmersiveColorUsingHighContrast(IHCM_REFRESH);
+   return is;
+}
+
+void RefreshTitleBarThemeColor(HWND window)
+{
+   BOOL dark = FALSE;
+   if (_IsDarkModeAllowedForWindow(window) && _ShouldAppsUseDarkMode() && !IsHighContrast())
+      dark = TRUE;
+   _DwmSetWindowAttribute(window, 19, &dark, sizeof(dark));
+}
+
+/* Call this on a window to apply the style */
+BOOL CALLBACK _dw_set_child_window_theme(HWND window, LPARAM lParam)
+{
+   if(_DW_DARK_MODE_SUPPORTED)
+      AllowDarkModeForWindow(window, _DW_DARK_MODE_ENABLED);
    return TRUE;
 }
+#endif
 
 /* This function adds a signal handler callback into the linked list.
  */
@@ -2223,8 +2302,24 @@ LRESULT CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
          }
       }
       break;
+   case WM_SETTINGCHANGE:
+   {
+      if(_DW_DARK_MODE_SUPPORTED && IsColorSchemeChangeMessage(mp2))
+         SendMessageW(hWnd, WM_THEMECHANGED, 0, 0);
+   }
+   break;
+   case WM_THEMECHANGED:
+   {
+      if(_DW_DARK_MODE_SUPPORTED)
+      {
+         _AllowDarkModeForWindow(hWnd, _DW_DARK_MODE_ENABLED);
+         if(GetParent(hWnd) == HWND_DESKTOP)
+            RefreshTitleBarThemeColor(hWnd);
+      }
+   }
+   break;
 #endif
-#ifdef AEROGLASS1      
+#ifdef AEROGLASS1
    case WM_ERASEBKGND: 
       if(_dw_composition && (GetWindowLongPtr(hWnd, GWL_EXSTYLE) & WS_EX_LAYERED))
       {
@@ -2239,7 +2334,7 @@ LRESULT CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
          return TRUE;
       }
       break;
-#endif      
+#endif
    case WM_PAINT:
       {
          PAINTSTRUCT ps;
@@ -3996,6 +4091,7 @@ int API dw_init(int newthread, int argc, char *argv[])
    if(huxtheme && (hdwm = LoadLibrary(TEXT("dwmapi"))))
    {
       _DwmExtendFrameIntoClientArea = (HRESULT (WINAPI *)(HWND, const MARGINS *))GetProcAddress(hdwm, "DwmExtendFrameIntoClientArea");
+      _DwmSetWindowAttribute = (HRESULT (WINAPI *)(HWND, DWORD, LPCVOID, DWORD))GetProcAddress(hdwm, "DwmSetWindowAttribute");
       if((_DwmIsCompositionEnabled = (HRESULT (WINAPI *)(BOOL *))GetProcAddress(hdwm, "DwmIsCompositionEnabled")))
          _DwmIsCompositionEnabled(&_dw_composition);
       _OpenThemeData = (HTHEME (WINAPI *)(HWND, LPCWSTR))GetProcAddress(huxtheme, "OpenThemeData");
@@ -4004,6 +4100,7 @@ int API dw_init(int newthread, int argc, char *argv[])
       _DrawThemeTextEx = (HRESULT (WINAPI *)(HTHEME, HDC, int, int, LPCWSTR, int, DWORD, LPRECT, const DTTOPTS *))GetProcAddress(huxtheme, "DrawThemeTextEx");
       _EndBufferedPaint = (HRESULT (WINAPI *)(HPAINTBUFFER, BOOL))GetProcAddress(huxtheme, "EndBufferedPaint");
       _CloseThemeData = (HRESULT (WINAPI *)(HTHEME))GetProcAddress(huxtheme, "CloseThemeData");
+      _dw_init_dark_mode();
    }
    /* In case of error close the library if needed */
    else if(hdwm)
@@ -4273,8 +4370,8 @@ int API dw_window_show(HWND handle)
    RECT rect;
    
    /* Try to enable dark mode support if our OS supports it */
-   _set_child_window_theme(handle, 0);
-   EnumChildWindows(handle, _set_child_window_theme, 0);
+   _dw_set_child_window_theme(handle, 0);
+   EnumChildWindows(handle, _dw_set_child_window_theme, 0);
    
    GetClientRect(handle, &rect);
    
