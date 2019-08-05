@@ -211,6 +211,20 @@ static void SizeBrowseDialog(HWND hWnd, FOLDER_PROPS *fp)
 	}
 }
 
+#ifdef AEROGLASS
+extern "C" {
+/* Include necessary variables and prototypes from dw.c */
+extern int _DW_DARK_MODE_SUPPORTED;
+extern int _DW_DARK_MODE_ENABLED;
+extern BOOL (WINAPI * _ShouldAppsUseDarkMode)(VOID);
+
+BOOL IsHighContrast(VOID);
+BOOL IsColorSchemeChangeMessage(LPARAM lParam);
+void RefreshTitleBarThemeColor(HWND window);
+BOOL CALLBACK _dw_set_child_window_theme(HWND window, LPARAM lParam);
+}
+#endif
+
 ///////////////////////////////////////////////////////////////////////////////
 // BrowseCallbackProc - SHBrowseForFolder callback function
 static int CALLBACK BrowseCallbackProc(HWND hWnd,		// Window handle to the browse dialog box
@@ -222,6 +236,20 @@ static int CALLBACK BrowseCallbackProc(HWND hWnd,		// Window handle to the brows
 {
 	switch (uMsg)
 	{
+#ifdef AEROGLASS
+		case WM_SETTINGCHANGE:
+		{
+			if(_DW_DARK_MODE_SUPPORTED && IsColorSchemeChangeMessage(lpData))
+			{
+				_DW_DARK_MODE_ENABLED = _ShouldAppsUseDarkMode() && !IsHighContrast();
+
+				RefreshTitleBarThemeColor(hWnd);
+				_dw_set_child_window_theme(hWnd, 0);
+				EnumChildWindows(hWnd, _dw_set_child_window_theme, 0);
+			}
+		}
+		break;
+#endif
 		case BFFM_INITIALIZED:		// sent when the browse dialog box has finished initializing.
 		{
 			// remove context help button from dialog caption
@@ -248,6 +276,14 @@ static int CALLBACK BrowseCallbackProc(HWND hWnd,		// Window handle to the brows
 				}
 			}
 
+#ifdef AEROGLASS
+			if(_DW_DARK_MODE_SUPPORTED)
+			{
+				_dw_set_child_window_theme(hWnd, 0);
+				EnumChildWindows(hWnd, _dw_set_child_window_theme, 0);
+				RefreshTitleBarThemeColor(hWnd);
+			}
+#endif
 			SizeBrowseDialog(hWnd, fp);
 		}
 		break;
