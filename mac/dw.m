@@ -151,7 +151,6 @@
 rettype API func(__VA_ARGS__) { \
     DW_LOCAL_POOL_IN; \
     NSPointerArray *_args = [[NSPointerArray alloc] initWithOptions:NSPointerFunctionsOpaqueMemory]; \
-    [_args retain]; \
     [_args addPointer:(void *)_##func];
 #define DW_FUNCTION_ADD_PARAM1(param1) [_args addPointer:(void *)&param1];
 #define DW_FUNCTION_ADD_PARAM2(param1, param2) [_args addPointer:(void *)&param1]; \
