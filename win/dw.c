@@ -673,6 +673,10 @@ HICON _dw_load_icon(char *filename)
 #endif
 
 #ifdef AEROGLASS
+/* Set _DW_DARK_MODE_ALLOWED to FALSE to disable dark mode.
+ * Set _DW_DARK_MODE_ALLOWED to TRUE for basic dark mode.
+ * Set _DW_DARK_MODE_ALLOWED to 2 for full dark mode.
+ */
 int _DW_DARK_MODE_ALLOWED = TRUE;
 int _DW_DARK_MODE_SUPPORTED = FALSE;
 int _DW_DARK_MODE_ENABLED = FALSE;
@@ -739,7 +743,16 @@ void _dw_init_dark_mode(void)
 BOOL AllowDarkModeForWindow(HWND window, BOOL allow)
 {
    if(_DW_DARK_MODE_SUPPORTED)
+   {
+      if(_DW_DARK_MODE_ALLOWED == 2)
+      {
+         if(_DW_DARK_MODE_ENABLED)
+            _SetWindowTheme(window, L"DarkMode_Explorer", NULL);
+         else
+            _SetWindowTheme(window, L"Explorer", NULL);
+      }
       return _AllowDarkModeForWindow(window, allow);
+   }
    return FALSE;
 }
 
@@ -782,6 +795,59 @@ BOOL CALLBACK _dw_set_child_window_theme(HWND window, LPARAM lParam)
    return TRUE;
 }
 #endif
+
+/* Special wrappers for GetSysColor*() since they currently don't support 
+ * dark mode, we will have to return modified colors when dark mode is enabled.
+ */
+DWORD _DW_GetSysColor(int nIndex)
+{
+   DWORD retval = GetSysColor(nIndex);
+#ifdef AEROGLASS
+   if(_DW_DARK_MODE_ALLOWED == 2 && _DW_DARK_MODE_ENABLED)
+   {
+      const COLORREF darkBkColor = 0x383838;
+      const COLORREF darkTextColor = 0xFFFFFF;
+   
+      switch(nIndex)
+      {
+         case COLOR_3DFACE:
+         case COLOR_WINDOW:
+            retval = darkBkColor;
+         break;
+         case COLOR_WINDOWTEXT:
+            retval = darkTextColor;
+         break;
+      }
+   }
+#endif
+   return retval;
+}
+
+HBRUSH _DW_GetSysColorBrush(int nIndex)
+{
+   HBRUSH retval = GetSysColorBrush(nIndex);
+#ifdef AEROGLASS
+   static HBRUSH darkBkColorBrush = 0;
+   
+   if(_DW_DARK_MODE_ALLOWED == 2 && _DW_DARK_MODE_ENABLED)
+   {
+      if(!darkBkColorBrush)
+         darkBkColorBrush = CreateSolidBrush(0x383838);
+
+      switch(nIndex)
+      {
+         case COLOR_3DFACE:
+         case COLOR_WINDOW:
+            retval = darkBkColorBrush;
+         break;
+         case COLOR_WINDOWTEXT:
+            retval = _colors[DW_CLR_WHITE];
+         break;
+      }
+   }
+#endif
+   return retval;
+}
 
 /* This function adds a signal handler callback into the linked list.
  */
@@ -2521,7 +2587,14 @@ LRESULT CALLBACK _framewndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
    case WM_MOUSEMOVE:
       _wndproc(hWnd, msg, mp1, mp2);
       break;
-#ifdef AEROGLASS   
+#ifdef AEROGLASS
+   case WM_THEMECHANGED:
+      if(_DW_DARK_MODE_ALLOWED == 2 && _DW_DARK_MODE_SUPPORTED)
+      {
+         SetClassLongPtr(hWnd, GCLP_HBRBACKGROUND, (LONG_PTR)_DW_GetSysColorBrush(COLOR_3DFACE));
+         InvalidateRect(hWnd, NULL, TRUE);
+      }
+      break;
    case WM_ERASEBKGND: 
       if(_dw_composition && (GetWindowLongPtr(_toplevel_window(hWnd), GWL_EXSTYLE) & WS_EX_LAYERED))
       {
@@ -2957,6 +3030,10 @@ LRESULT CALLBACK _colorwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
                                        DW_GREEN_VALUE(fore),
                                        DW_BLUE_VALUE(fore)));
                }
+#ifdef AEROGLASS
+               else if(thiscinfo->fore == DW_CLR_DEFAULT && _DW_DARK_MODE_ALLOWED == 2 && _DW_DARK_MODE_ENABLED)
+                  SetTextColor((HDC)mp1, _DW_GetSysColor(COLOR_WINDOWTEXT));
+#endif
                /* Handle background */
                if(thiscinfo->back == DW_RGB_TRANSPARENT)
                {
@@ -2967,12 +3044,12 @@ LRESULT CALLBACK _colorwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
                }
                if(thisback == DW_CLR_DEFAULT)
                {
-                  HBRUSH hbr = GetSysColorBrush(COLOR_3DFACE);
+                  HBRUSH hbr = _DW_GetSysColorBrush(COLOR_3DFACE);
 
-                  SetBkColor((HDC)mp1, GetSysColor(COLOR_3DFACE));
+                  SetBkColor((HDC)mp1, _DW_GetSysColor(COLOR_3DFACE));
 
                   SelectObject((HDC)mp1, hbr);
-                  return (LONG)(intptr_t)hbr;
+                  return (LRESULT)(intptr_t)hbr;
                }
                else if(thisback != -1 && thisback != DW_RGB_TRANSPARENT)
                {
@@ -2991,6 +3068,7 @@ LRESULT CALLBACK _colorwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
                }
             }
  #ifdef AEROGLASS
+            /* First handle the transparent or layered cases */
             switch(msg)
             {
                case WM_CTLCOLORSTATIC:
@@ -3012,6 +3090,39 @@ LRESULT CALLBACK _colorwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
                         }
                      }
                   }
+            }
+            /* Second we handle the dark mode cases */
+            switch(msg)
+            {
+               case WM_CTLCOLORSTATIC:
+               case WM_CTLCOLORLISTBOX:
+               case WM_CTLCOLORBTN:
+               case WM_CTLCOLOREDIT:
+               case WM_CTLCOLORMSGBOX:
+               case WM_CTLCOLORSCROLLBAR:
+               case WM_CTLCOLORDLG:
+               {
+                  if(_DW_DARK_MODE_ALLOWED == 2 && _DW_DARK_MODE_ENABLED)
+                  {
+                     ColorInfo *parentcinfo = (ColorInfo *)GetWindowLongPtr(hWnd, GWLP_USERDATA);
+                     int thisback = thiscinfo ? thiscinfo->back : -1;
+                     
+                     if(thisback == DW_RGB_TRANSPARENT && parentcinfo)
+                        thisback = parentcinfo->back;
+
+                     if(!thiscinfo || (thiscinfo && (thiscinfo->fore == DW_CLR_DEFAULT || thiscinfo->fore == -1)))
+                        SetTextColor((HDC)mp1, _DW_GetSysColor(COLOR_WINDOWTEXT));
+                     if(!thiscinfo || (thiscinfo && (thisback == DW_CLR_DEFAULT || thisback == -1 || thisback == DW_RGB_TRANSPARENT)))
+                     {
+                        HBRUSH hbr = _DW_GetSysColorBrush(COLOR_3DFACE);
+
+                        SetBkColor((HDC)mp1, _DW_GetSysColor(COLOR_3DFACE));
+
+                        SelectObject((HDC)mp1, hbr);
+                        return (LRESULT)(intptr_t)hbr;
+                     }
+                  }
+               }
             }
 #endif
          }
@@ -3371,7 +3482,12 @@ LRESULT CALLBACK _splitwndproc(HWND hwnd, UINT msg, WPARAM mp1, LPARAM mp2)
    case WM_ACTIVATE:
    case WM_SETFOCUS:
       return FALSE;
-
+#ifdef AEROGLASS
+   case WM_THEMECHANGED:
+      if(_DW_DARK_MODE_ALLOWED == 2 && _DW_DARK_MODE_SUPPORTED)
+         InvalidateRect(hwnd, NULL, TRUE);
+      break;
+#endif
    case WM_PAINT:
       {
          PAINTSTRUCT ps;
@@ -3384,8 +3500,8 @@ LRESULT CALLBACK _splitwndproc(HWND hwnd, UINT msg, WPARAM mp1, LPARAM mp2)
          if((hdcPaint = GetDC(hwnd)) != NULL)
          {
             unsigned long cx, cy;
-            HBRUSH oldBrush = SelectObject(hdcPaint, GetSysColorBrush(COLOR_3DFACE));
-            HPEN oldPen = SelectObject(hdcPaint, CreatePen(PS_SOLID, 1, GetSysColor(COLOR_3DFACE)));
+            HBRUSH oldBrush = SelectObject(hdcPaint, _DW_GetSysColorBrush(COLOR_3DFACE));
+            HPEN oldPen = SelectObject(hdcPaint, CreatePen(PS_SOLID, 1, _DW_GetSysColor(COLOR_3DFACE)));
 
             dw_window_get_pos_size(hwnd, NULL, NULL, &cx, &cy);
 
@@ -3478,6 +3594,12 @@ LRESULT CALLBACK _statuswndproc(HWND hwnd, UINT msg, WPARAM mp1, LPARAM mp2)
          InvalidateRgn(hwnd, NULL, TRUE);
          return ret;
       }
+#ifdef AEROGLASS
+   case WM_THEMECHANGED:
+      if(_DW_DARK_MODE_ALLOWED == 2 && _DW_DARK_MODE_SUPPORTED)
+         InvalidateRect(hwnd, NULL, TRUE);
+      break;
+#endif
    case WM_PAINT:
       {
          HDC hdcPaint;
@@ -3937,6 +4059,37 @@ int API dw_init(int newthread, int argc, char *argv[])
 
    memset(lookup, 0, sizeof(HICON) * ICON_INDEX_LIMIT);
 
+   /* We need the version to check capability like up-down controls */
+   dwVersion = GetVersion();
+   dwComctlVer = GetDllVersion(TEXT("comctl32.dll"));
+
+   /* We need to initialize dark mode, and thus the aero/theme subsystems before registering our window classes */
+   if((huxtheme = LoadLibrary(TEXT("uxtheme"))))
+      _SetWindowTheme = (HRESULT (WINAPI *)(HWND, LPCWSTR, LPCWSTR ))GetProcAddress(huxtheme, "SetWindowTheme");
+#ifdef AEROGLASS
+   /* Attempt to load the Desktop Window Manager and Theme library */
+   if(huxtheme && (hdwm = LoadLibrary(TEXT("dwmapi"))))
+   {
+      _DwmExtendFrameIntoClientArea = (HRESULT (WINAPI *)(HWND, const MARGINS *))GetProcAddress(hdwm, "DwmExtendFrameIntoClientArea");
+      _DwmSetWindowAttribute = (HRESULT (WINAPI *)(HWND, DWORD, LPCVOID, DWORD))GetProcAddress(hdwm, "DwmSetWindowAttribute");
+      if((_DwmIsCompositionEnabled = (HRESULT (WINAPI *)(BOOL *))GetProcAddress(hdwm, "DwmIsCompositionEnabled")))
+         _DwmIsCompositionEnabled(&_dw_composition);
+      _OpenThemeData = (HTHEME (WINAPI *)(HWND, LPCWSTR))GetProcAddress(huxtheme, "OpenThemeData");
+      _BeginBufferedPaint = (HPAINTBUFFER (WINAPI *)(HDC, const RECT *, BP_BUFFERFORMAT, BP_PAINTPARAMS *, HDC *))GetProcAddress(huxtheme, "BeginBufferedPaint");
+      _BufferedPaintSetAlpha = (HRESULT (WINAPI *)(HPAINTBUFFER, const RECT *, BYTE))GetProcAddress(huxtheme, "BufferedPaintSetAlpha");
+      _DrawThemeTextEx = (HRESULT (WINAPI *)(HTHEME, HDC, int, int, LPCWSTR, int, DWORD, LPRECT, const DTTOPTS *))GetProcAddress(huxtheme, "DrawThemeTextEx");
+      _EndBufferedPaint = (HRESULT (WINAPI *)(HPAINTBUFFER, BOOL))GetProcAddress(huxtheme, "EndBufferedPaint");
+      _CloseThemeData = (HRESULT (WINAPI *)(HTHEME))GetProcAddress(huxtheme, "CloseThemeData");
+      _dw_init_dark_mode();
+   }
+   /* In case of error close the library if needed */
+   else if(hdwm)
+   {
+      FreeLibrary(hdwm);
+      hdwm = 0;
+   }
+#endif
+
    /* Register the generic Dynamic Windows class */
    memset(&wc, 0, sizeof(WNDCLASS));
    wc.style = CS_DBLCLKS;
@@ -3979,7 +4132,7 @@ int API dw_init(int newthread, int argc, char *argv[])
    wc.lpfnWndProc = (WNDPROC)_framewndproc;
    wc.cbClsExtra = 0;
    wc.cbWndExtra = 32;
-   wc.hbrBackground = (HBRUSH)GetSysColorBrush(COLOR_3DFACE);
+   wc.hbrBackground = (HBRUSH)_DW_GetSysColorBrush(COLOR_3DFACE);
    wc.hCursor = LoadCursor(NULL, IDC_ARROW);
    wc.lpszMenuName = NULL;
    wc.lpszClassName = FRAMECLASSNAME;
@@ -3992,7 +4145,7 @@ int API dw_init(int newthread, int argc, char *argv[])
    wc.lpfnWndProc = (WNDPROC)_statuswndproc;
    wc.cbClsExtra = 0;
    wc.cbWndExtra = 32;
-   wc.hbrBackground = (HBRUSH)GetSysColorBrush(COLOR_3DFACE);
+   wc.hbrBackground = NULL;
    wc.hCursor = LoadCursor(NULL, IDC_ARROW);
    wc.lpszMenuName = NULL;
    wc.lpszClassName = StatusbarClassName;
@@ -4053,10 +4206,6 @@ int API dw_init(int newthread, int argc, char *argv[])
    /* Create empty box data */
    SetWindowLongPtr(DW_HWND_OBJECT, GWLP_USERDATA, (LONG_PTR)calloc(sizeof(Box), 1));
 
-   /* We need the version to check capability like up-down controls */
-   dwVersion = GetVersion();
-   dwComctlVer = GetDllVersion(TEXT("comctl32.dll"));
-
    /* Initialize Security for named events and memory */
    InitializeSecurityDescriptor(&_dwsd, SECURITY_DESCRIPTOR_REVISION);
    SetSecurityDescriptorDacl(&_dwsd, TRUE, (PACL) NULL, FALSE);
@@ -4087,31 +4236,6 @@ int API dw_init(int newthread, int argc, char *argv[])
    /* GDI+ Needs to be initialized before calling _dw_init_thread(); */
    _dw_init_thread();
 
-   if((huxtheme = LoadLibrary(TEXT("uxtheme"))))
-      _SetWindowTheme = (HRESULT (WINAPI *)(HWND, LPCWSTR, LPCWSTR ))GetProcAddress(huxtheme, "SetWindowTheme");
-#ifdef AEROGLASS
-   /* Attempt to load the Desktop Window Manager and Theme library */
-   if(huxtheme && (hdwm = LoadLibrary(TEXT("dwmapi"))))
-   {
-      _DwmExtendFrameIntoClientArea = (HRESULT (WINAPI *)(HWND, const MARGINS *))GetProcAddress(hdwm, "DwmExtendFrameIntoClientArea");
-      _DwmSetWindowAttribute = (HRESULT (WINAPI *)(HWND, DWORD, LPCVOID, DWORD))GetProcAddress(hdwm, "DwmSetWindowAttribute");
-      if((_DwmIsCompositionEnabled = (HRESULT (WINAPI *)(BOOL *))GetProcAddress(hdwm, "DwmIsCompositionEnabled")))
-         _DwmIsCompositionEnabled(&_dw_composition);
-      _OpenThemeData = (HTHEME (WINAPI *)(HWND, LPCWSTR))GetProcAddress(huxtheme, "OpenThemeData");
-      _BeginBufferedPaint = (HPAINTBUFFER (WINAPI *)(HDC, const RECT *, BP_BUFFERFORMAT, BP_PAINTPARAMS *, HDC *))GetProcAddress(huxtheme, "BeginBufferedPaint");
-      _BufferedPaintSetAlpha = (HRESULT (WINAPI *)(HPAINTBUFFER, const RECT *, BYTE))GetProcAddress(huxtheme, "BufferedPaintSetAlpha");
-      _DrawThemeTextEx = (HRESULT (WINAPI *)(HTHEME, HDC, int, int, LPCWSTR, int, DWORD, LPRECT, const DTTOPTS *))GetProcAddress(huxtheme, "DrawThemeTextEx");
-      _EndBufferedPaint = (HRESULT (WINAPI *)(HPAINTBUFFER, BOOL))GetProcAddress(huxtheme, "EndBufferedPaint");
-      _CloseThemeData = (HRESULT (WINAPI *)(HTHEME))GetProcAddress(huxtheme, "CloseThemeData");
-      _dw_init_dark_mode();
-   }
-   /* In case of error close the library if needed */
-   else if(hdwm)
-   {
-      FreeLibrary(hdwm);
-      hdwm = 0;
-   }
-#endif
 #ifdef RICHEDIT
    /* Attempt to load rich edit library: 4.1, 3/2.0 and 1.0 */
    if(!(hmsftedit = LoadLibrary(TEXT("msftedit"))))
