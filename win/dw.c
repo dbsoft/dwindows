@@ -7230,6 +7230,9 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
 
       thisbox->count++;
 
+#ifdef AEROGLASS
+      AllowDarkModeForWindow(item, _DW_DARK_MODE_ENABLED);
+#endif
       SetParent(item, box);
       if(_tcsnicmp(tmpbuf, UPDOWN_CLASS, _tcslen(UPDOWN_CLASS)+1)==0)
       {
