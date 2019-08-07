@@ -3182,7 +3182,26 @@ LRESULT CALLBACK _containerwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
        {
             RECT rectUpd, rectDestin, rectThis, *rect = &rectThis;
             int iItems, iTop, i;
-            COLORREF c;
+            COLORREF c, odd, even;
+            unsigned long temp = _internal_color(continfo->odd);
+            
+            /* Create the colors based on the current theme */
+            if(continfo->odd == DW_CLR_DEFAULT)
+            {
+#ifdef AEROGLASS
+               if(_DW_DARK_MODE_ALLOWED == 2 && _DW_DARK_MODE_ENABLED)
+                  odd = RGB(100,100,100);
+               else
+#endif              
+                  odd = RGB(230, 230, 230);
+            }
+            else 
+                  odd = RGB(DW_RED_VALUE(temp), DW_GREEN_VALUE(temp), DW_BLUE_VALUE(temp));
+            temp = _internal_color(continfo->even);
+            if(continfo->even == DW_CLR_DEFAULT)
+               even = DW_RGB_TRANSPARENT;
+            else
+               even = RGB(DW_RED_VALUE(temp), DW_GREEN_VALUE(temp), DW_BLUE_VALUE(temp));
 
             /* Load the default background color for the first pass */
             ListView_SetTextBkColor(hWnd, continfo->cinfo.back != -1 ? continfo->cinfo.back : ListView_GetBkColor(hWnd));
@@ -3201,7 +3220,7 @@ LRESULT CALLBACK _containerwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
                 if(ListView_GetItemRect(hWnd, i, rect, LVIR_BOUNDS) && IntersectRect(&rectDestin, &rectUpd, rect)) 
                 {
                     /* change text background colour accordingly */
-                    c = (i % 2) ? continfo->odd : continfo->even;
+                    c = (i % 2) ? odd : even;
 
                     if(c != DW_RGB_TRANSPARENT)
                     {
@@ -9745,25 +9764,14 @@ int API dw_filesystem_get_column_type(HWND handle, int column)
 void API dw_container_set_stripe(HWND handle, unsigned long oddcolor, unsigned long evencolor)
 {
     ContainerInfo *cinfo = (ContainerInfo *)GetWindowLongPtr(handle, GWLP_USERDATA);
-    unsigned long temp = _internal_color(oddcolor);
-    COLORREF even, odd = RGB(DW_RED_VALUE(temp), DW_GREEN_VALUE(temp), DW_BLUE_VALUE(temp));
-    temp = _internal_color(evencolor);
-    even = RGB(DW_RED_VALUE(temp), DW_GREEN_VALUE(temp), DW_BLUE_VALUE(temp));
 
     /* Drop out on error */
     if(!cinfo)
         return;
 
     /* Create new brushes or remove if transparent */
-    if(oddcolor != DW_RGB_TRANSPARENT)
-        cinfo->odd = (oddcolor == DW_CLR_DEFAULT ? RGB(230, 230, 230) : odd);
-    else 
-        cinfo->odd = oddcolor;
-
-    if(evencolor != DW_RGB_TRANSPARENT)
-        cinfo->even = (evencolor == DW_CLR_DEFAULT ? DW_RGB_TRANSPARENT : even);
-    else 
-        cinfo->even = evencolor;
+    cinfo->odd = oddcolor;
+    cinfo->even = evencolor;
 }
 
 /*
