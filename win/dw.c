@@ -746,10 +746,20 @@ BOOL AllowDarkModeForWindow(HWND window, BOOL allow)
    {
       if(_DW_DARK_MODE_ALLOWED == 2)
       {
-         if(_DW_DARK_MODE_ENABLED)
-            _SetWindowTheme(window, L"DarkMode_Explorer", NULL);
-         else
-            _SetWindowTheme(window, L"Explorer", NULL);
+#ifdef TOOLBAR
+         TCHAR tmpbuf[100] = {0};
+         
+         GetClassName(window, tmpbuf, 99);
+
+         /* Toolbar controls don't display properly with visual styles enabled */
+         if(_tcsnicmp(tmpbuf, TOOLBARCLASSNAME, _tcslen(TOOLBARCLASSNAME)+1) != 0)
+#endif
+         {
+            if(_DW_DARK_MODE_ENABLED)
+               _SetWindowTheme(window, L"DarkMode_Explorer", NULL);
+            else
+               _SetWindowTheme(window, L"Explorer", NULL);
+         }
       }
       return _AllowDarkModeForWindow(window, allow);
    }
@@ -3151,6 +3161,22 @@ LRESULT CALLBACK _containerwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
    case WM_MOUSEMOVE:
       _wndproc(hWnd, msg, mp1, mp2);
       break;
+#ifdef AEROGLASS
+   case WM_THEMECHANGED:
+      if(_DW_DARK_MODE_ALLOWED == 2 && _DW_DARK_MODE_SUPPORTED)
+      {
+         if(!continfo || continfo->cinfo.back == -1 || continfo->cinfo.back == DW_CLR_DEFAULT)
+         {
+            COLORREF bk = _DW_GetSysColor(COLOR_WINDOW);
+
+            ListView_SetBkColor(hWnd, bk);
+            ListView_SetTextBkColor(hWnd, bk);
+         }
+         if(!continfo || continfo->cinfo.fore == -1 || continfo->cinfo.fore == DW_CLR_DEFAULT)
+            ListView_SetTextColor(hWnd, _DW_GetSysColor(COLOR_WINDOWTEXT));
+      }
+      break;
+#endif
    case WM_PAINT:
        if(continfo->cinfo.pOldProc && (continfo->even != DW_RGB_TRANSPARENT || continfo->odd != DW_RGB_TRANSPARENT))
        {
@@ -3324,6 +3350,25 @@ LRESULT CALLBACK _simplewndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
        return CallWindowProc(cinfo->cinfo.pOldProc, hWnd, msg, mp1, mp2);
    }
    return ret;
+}
+
+LRESULT CALLBACK _treewndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
+{
+#ifdef AEROGLASS
+   if(msg == WM_THEMECHANGED)
+   {
+      if(_DW_DARK_MODE_ALLOWED == 2 && _DW_DARK_MODE_SUPPORTED)
+      {
+         ContainerInfo *continfo = (ContainerInfo *)GetWindowLongPtr(hWnd, GWLP_USERDATA);
+         
+         if(!continfo || continfo->cinfo.back == -1 || continfo->cinfo.back == DW_CLR_DEFAULT)
+            TreeView_SetBkColor(hWnd, _DW_GetSysColor(COLOR_WINDOW));
+         if(!continfo || continfo->cinfo.fore == -1 || continfo->cinfo.fore == DW_CLR_DEFAULT)
+            TreeView_SetTextColor(hWnd, _DW_GetSysColor(COLOR_WINDOWTEXT));
+      }
+   }
+#endif
+   return _simplewndproc(hWnd, msg, mp1, mp2);
 }
 
 void _changebox(Box *thisbox, int percent, int type)
@@ -6102,7 +6147,7 @@ HWND API dw_tree_new(ULONG id)
       return NULL;
    }
 
-   cinfo->cinfo.pOldProc = SubclassWindow(tmp, _simplewndproc);
+   cinfo->cinfo.pOldProc = SubclassWindow(tmp, _treewndproc);
    cinfo->cinfo.fore = cinfo->cinfo.back = -1;
    cinfo->odd = cinfo->even = DW_RGB_TRANSPARENT;
 

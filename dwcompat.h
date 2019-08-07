@@ -174,6 +174,7 @@ void msleep(long period);
 #define stat(a, b) _stat64(a, b)
 #define dwstat __stat64
 #endif
+#include <direct.h>
 #else
 #include <dir.h>
 #include <dirent.h>
