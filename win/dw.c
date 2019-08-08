@@ -3713,15 +3713,24 @@ LRESULT CALLBACK _statuswndproc(HWND hwnd, UINT msg, WPARAM mp1, LPARAM mp2)
             (cinfo && cinfo->fore != -1 && cinfo->fore != DW_CLR_DEFAULT &&
              cinfo->back !=- -1 && cinfo->back != DW_CLR_DEFAULT))
          {
+            ULONG fore = (cinfo && (cinfo->fore != -1 && cinfo->fore != DW_CLR_DEFAULT)) ? _internal_color(cinfo->fore) : DW_RGB_TRANSPARENT;
+            ULONG back = (cinfo && (cinfo->back != -1 && cinfo->back != DW_CLR_DEFAULT)) ? _internal_color(cinfo->back) : DW_RGB_TRANSPARENT;
+            HBRUSH hbrback, hbrfore;
+            hbrfore = fore != DW_RGB_TRANSPARENT ? CreateSolidBrush(RGB(DW_RED_VALUE(fore), DW_GREEN_VALUE(fore), DW_BLUE_VALUE(fore))) : NULL;
+            hbrback = back != DW_RGB_TRANSPARENT ? CreateSolidBrush(RGB(DW_RED_VALUE(back), DW_GREEN_VALUE(back), DW_BLUE_VALUE(back))) : NULL;
             /* Fill with the background color */
-            FillRect(hdcPaint, &rc, _DW_GetSysColorBrush(COLOR_3DFACE));
+            FillRect(hdcPaint, &rc, hbrback ? hbrback : _DW_GetSysColorBrush(COLOR_3DFACE));
             /* Dwaw a border around it */
-            FrameRect(hdcPaint, &rc, _DW_GetSysColorBrush(COLOR_WINDOWTEXT));
+            FrameRect(hdcPaint, &rc, hbrfore ? hbrfore : _DW_GetSysColorBrush(COLOR_WINDOWTEXT));
             SetRect(&rc, 3, 1, cx -1, cy - 1);
-            SetTextColor(hdcPaint, _DW_GetSysColor(COLOR_WINDOWTEXT));
+            SetTextColor(hdcPaint, fore != DW_RGB_TRANSPARENT ? RGB(DW_RED_VALUE(fore), DW_GREEN_VALUE(fore), DW_BLUE_VALUE(fore)) : _DW_GetSysColor(COLOR_WINDOWTEXT));
             SetBkMode(hdcPaint, TRANSPARENT);
             /* Draw the text in the middle */
             ExtTextOut(hdcPaint, 3, 1, ETO_CLIPPED, &rc, tempbuf, (UINT)_tcslen(tempbuf), NULL);
+            if(hbrfore)
+               DeleteObject(hbrfore);
+            if(hbrback)
+               DeleteObject(hbrback);
          }
          else
             DrawStatusText(hdcPaint, &rc, tempbuf, 0);
