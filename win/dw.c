@@ -696,6 +696,7 @@ typedef enum _PreferredAppMode
    _Max
 } _PreferredAppMode;
 
+int CompareStringOrdinal(LPCWCH lpString1, int cchCount1, LPCWCH lpString2, int cchCount2, BOOL bIgnoreCase);
 HTHEME (WINAPI * _OpenNcThemeData)(HWND, LPCWSTR) = NULL; 
 VOID (WINAPI * _RefreshImmersiveColorPolicyState)(VOID) = NULL; 
 BOOL (WINAPI * _GetIsImmersiveColorUsingHighContrast)(IMMERSIVE_HC_CACHE_MODE) = NULL; 
@@ -705,6 +706,14 @@ BOOL (WINAPI * _AllowDarkModeForApp)(BOOL) = NULL;
 _PreferredAppMode (WINAPI * _SetPreferredAppMode)(_PreferredAppMode) = NULL; 
 BOOL (WINAPI * _IsDarkModeAllowedForWindow)(HWND) = NULL; 
 BOOL (WINAPI * _ShouldSystemUseDarkMode)(VOID) = NULL; 
+
+BOOL IsHighContrast(VOID)
+{
+   HIGHCONTRASTW highContrast = { sizeof(highContrast) };
+   if(SystemParametersInfoW(SPI_GETHIGHCONTRAST, sizeof(highContrast), &highContrast, FALSE))
+      return highContrast.dwFlags & HCF_HIGHCONTRASTON;
+   return FALSE;
+}
 
 void _dw_init_dark_mode(void)
 {
@@ -763,14 +772,6 @@ BOOL AllowDarkModeForWindow(HWND window, BOOL allow)
       }
       return _AllowDarkModeForWindow(window, allow);
    }
-   return FALSE;
-}
-
-BOOL IsHighContrast(VOID)
-{
-   HIGHCONTRASTW highContrast = { sizeof(highContrast) };
-   if(SystemParametersInfoW(SPI_GETHIGHCONTRAST, sizeof(highContrast), &highContrast, FALSE))
-      return highContrast.dwFlags & HCF_HIGHCONTRASTON;
    return FALSE;
 }
 
@@ -3027,6 +3028,7 @@ LRESULT CALLBACK _colorwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
       case WM_CTLCOLORDLG:
          {
             ColorInfo *thiscinfo = (ColorInfo *)GetWindowLongPtr((HWND)mp2, GWLP_USERDATA);
+            
             if(thiscinfo && thiscinfo->fore != -1 && thiscinfo->back != -1)
             {
                int thisback = thiscinfo->back;
@@ -3390,6 +3392,26 @@ LRESULT CALLBACK _treewndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
    return _simplewndproc(hWnd, msg, mp1, mp2);
 }
 
+LRESULT CALLBACK _notebookwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
+{
+#ifdef AEROGLASS
+   if(msg == WM_ERASEBKGND)
+   {
+      if(_DW_DARK_MODE_ALLOWED == 2 && _DW_DARK_MODE_SUPPORTED)
+      {
+         HDC  hdc;
+         RECT rc;
+
+         hdc=(HDC)mp1;
+         GetClientRect(hWnd, &rc);
+         FillRect(hdc, &rc, _DW_GetSysColorBrush(COLOR_3DFACE));
+         return (LRESULT)TRUE;
+      }
+   }
+#endif
+   return _simplewndproc(hWnd, msg, mp1, mp2);
+}
+
 void _changebox(Box *thisbox, int percent, int type)
 {
    int z;
@@ -3681,10 +3703,28 @@ LRESULT CALLBACK _statuswndproc(HWND hwnd, UINT msg, WPARAM mp1, LPARAM mp2)
          hdcPaint = BeginPaint(hwnd, &ps);
          if(hfont)
             oldfont = (HFONT)SelectObject(hdcPaint, hfont);
-         rc.top = rc.left = 0;
-         rc.right = cx;
-         rc.bottom = cy;
-         DrawStatusText(hdcPaint, &rc, tempbuf, 0);
+         
+         SetRect(&rc, 0, 0, cx, cy);
+         
+         /* If we are in full dark mode, or we have custom colors selected...
+          * we will draw the status window ourselves... otherwise DrawStatusText()
+          */
+         if((_DW_DARK_MODE_ALLOWED == 2 && _DW_DARK_MODE_ENABLED) ||
+            (cinfo && cinfo->fore != -1 && cinfo->fore != DW_CLR_DEFAULT &&
+             cinfo->back !=- -1 && cinfo->back != DW_CLR_DEFAULT))
+         {
+            /* Fill with the background color */
+            FillRect(hdcPaint, &rc, _DW_GetSysColorBrush(COLOR_3DFACE));
+            /* Dwaw a border around it */
+            FrameRect(hdcPaint, &rc, _DW_GetSysColorBrush(COLOR_WINDOWTEXT));
+            SetRect(&rc, 3, 1, cx -1, cy - 1);
+            SetTextColor(hdcPaint, _DW_GetSysColor(COLOR_WINDOWTEXT));
+            SetBkMode(hdcPaint, TRANSPARENT);
+            /* Draw the text in the middle */
+            ExtTextOut(hdcPaint, 3, 1, ETO_CLIPPED, &rc, tempbuf, (UINT)_tcslen(tempbuf), NULL);
+         }
+         else
+            DrawStatusText(hdcPaint, &rc, tempbuf, 0);
          if(hfont && oldfont)
             SelectObject(hdcPaint, oldfont);
          if(hfont)
@@ -5711,7 +5751,7 @@ HWND API dw_notebook_new(ULONG id, int top)
                   DWInstance,
                   NULL);
    cinfo->fore = cinfo->back = -1;
-   cinfo->pOldProc = SubclassWindow(tmp, _simplewndproc);
+   cinfo->pOldProc = SubclassWindow(tmp, _notebookwndproc);
    SetWindowLongPtr(tmp, GWLP_USERDATA, (LONG_PTR)cinfo);
    dw_window_set_data(tmp, "_dw_array", (void *)array);
    dw_window_set_font(tmp, DefaultFont);
