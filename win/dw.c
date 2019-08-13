@@ -749,20 +749,31 @@ void _dw_init_dark_mode(void)
    }
 }
 
+BOOL _CanThemeWindow(HWND window)
+{
+   TCHAR tmpbuf[100] = {0};
+   LONG_PTR style = GetWindowLongPtr(window, GWL_STYLE);
+   
+   GetClassName(window, tmpbuf, 99);
+
+   /* Some controls don't display properly with visual styles enabled */
+   if(_tcsnicmp(tmpbuf, BUTTONCLASSNAME, _tcslen(BUTTONCLASSNAME)+1) == 0 && 
+      (style & (BS_AUTOCHECKBOX | BS_CHECKBOX | BS_RADIOBUTTON)))
+      return FALSE;
+#ifdef TOOLBAR
+   else if(_tcsnicmp(tmpbuf, TOOLBARCLASSNAME, _tcslen(TOOLBARCLASSNAME)+1) == 0)
+      return FALSE;
+#endif
+   return TRUE;
+}
+
 BOOL AllowDarkModeForWindow(HWND window, BOOL allow)
 {
    if(_DW_DARK_MODE_SUPPORTED)
    {
       if(_DW_DARK_MODE_ALLOWED == 2)
       {
-#ifdef TOOLBAR
-         TCHAR tmpbuf[100] = {0};
-         
-         GetClassName(window, tmpbuf, 99);
-
-         /* Toolbar controls don't display properly with visual styles enabled */
-         if(_tcsnicmp(tmpbuf, TOOLBARCLASSNAME, _tcslen(TOOLBARCLASSNAME)+1) != 0)
-#endif
+         if(_CanThemeWindow(window))
          {
             if(_DW_DARK_MODE_ENABLED)
                _SetWindowTheme(window, L"DarkMode_Explorer", NULL);
@@ -5622,6 +5633,10 @@ HWND API dw_groupbox_new(int type, int pad, char *title)
                             DWInstance,
                             NULL);
 
+   /* Disable visual styles by default */
+   if(_SetWindowTheme)
+      _SetWindowTheme(newbox->grouphwnd, L"", L"");
+
    SetWindowLongPtr(hwndframe, GWLP_USERDATA, (LONG_PTR)newbox);
    newbox->cinfo.pOldProc = SubclassWindow(hwndframe, _colorwndproc);
    dw_window_set_font(hwndframe, DefaultFont);
@@ -6560,7 +6575,7 @@ HWND _create_toolbar(char *text, ULONG id, HICON icon, HBITMAP hbitmap)
    /* Create the toolbar */
    tmp = CreateWindowEx(0L, TOOLBARCLASSNAME, NULL, WS_CHILD | WS_VISIBLE | TBSTYLE_AUTOSIZE | CCS_NORESIZE | 
                         CCS_NOPARENTALIGN | CCS_NODIVIDER, 0, 0, 100, 30, DW_HWND_OBJECT, (HMENU)(uintptr_t)id, DWInstance, NULL);
-                         
+
    /* Disable visual styles by default */
    if(_SetWindowTheme)
       _SetWindowTheme(tmp, L"", L"");
@@ -6862,6 +6877,11 @@ HWND API dw_radiobutton_new(char *text, ULONG id)
                      (HMENU)(uintptr_t)id,
                      DWInstance,
                      NULL);
+
+   /* Disable visual styles by default */
+   if(_SetWindowTheme)
+      _SetWindowTheme(tmp, L"", L"");
+
    ColorInfo *cinfo = calloc(1, sizeof(ColorInfo));
    cinfo->fore = cinfo->back = -1;
    cinfo->pOldProc = SubclassWindow(tmp, _BtProc);
@@ -6963,6 +6983,11 @@ HWND API dw_checkbox_new(char *text, ULONG id)
                      (HMENU)(uintptr_t)id,
                      DWInstance,
                      NULL);
+
+   /* Disable visual styles by default */
+   if(_SetWindowTheme)
+      _SetWindowTheme(tmp, L"", L"");
+
    cinfo->pOldProc = SubclassWindow(tmp, _BtProc);
    SetWindowLongPtr(tmp, GWLP_USERDATA, (LONG_PTR)cinfo);
    dw_window_set_data(tmp, "_dw_checkbox", DW_INT_TO_POINTER(1));
