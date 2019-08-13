@@ -3029,6 +3029,17 @@ LRESULT CALLBACK _colorwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
          {
             ColorInfo *thiscinfo = (ColorInfo *)GetWindowLongPtr((HWND)mp2, GWLP_USERDATA);
             
+            if(msg == WM_CTLCOLORBTN)
+            {
+               /* Groupbox color info is on the frame window it is attached to */
+               if(GetWindowLongPtr((HWND)mp2, GWL_STYLE) & BS_GROUPBOX)
+               {
+                  Box *framebox = (Box *)GetWindowLongPtr(hWnd, GWLP_USERDATA);
+                  if(framebox)
+                     thiscinfo = &framebox->cinfo;
+               }
+            }
+            
             if(thiscinfo && thiscinfo->fore != -1 && thiscinfo->back != -1)
             {
                int thisback = thiscinfo->back;
@@ -3037,7 +3048,7 @@ LRESULT CALLBACK _colorwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
                if(thiscinfo->fore != DW_CLR_DEFAULT)
                {
                   int fore = _internal_color(thiscinfo->fore);
-               
+
                   SetTextColor((HDC)mp1, RGB(DW_RED_VALUE(fore),
                                        DW_GREEN_VALUE(fore),
                                        DW_BLUE_VALUE(fore)));
@@ -5612,6 +5623,7 @@ HWND API dw_groupbox_new(int type, int pad, char *title)
                             NULL);
 
    SetWindowLongPtr(hwndframe, GWLP_USERDATA, (LONG_PTR)newbox);
+   newbox->cinfo.pOldProc = SubclassWindow(hwndframe, _colorwndproc);
    dw_window_set_font(hwndframe, DefaultFont);
    return hwndframe;
 }
