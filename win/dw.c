@@ -762,7 +762,16 @@ BOOL _CanThemeWindow(HWND window)
       return FALSE;
 #ifdef TOOLBAR
    else if(_tcsnicmp(tmpbuf, TOOLBARCLASSNAME, _tcslen(TOOLBARCLASSNAME)+1) == 0)
+   {
+     /* If we aren't in full dark mode */
+      if(_DW_DARK_MODE_ALLOWED != 2)
+      {
+         /* Enable or disable visual themes */
+         if(_SetWindowTheme)
+            _SetWindowTheme(window, (style & TBSTYLE_FLAT) ? L"" : NULL, (style & TBSTYLE_FLAT) ? L"" : NULL);
+      }
       return FALSE;
+   }
 #endif
    return TRUE;
 }
@@ -771,9 +780,9 @@ BOOL AllowDarkModeForWindow(HWND window, BOOL allow)
 {
    if(_DW_DARK_MODE_SUPPORTED)
    {
-      if(_DW_DARK_MODE_ALLOWED == 2)
+      if(_CanThemeWindow(window))
       {
-         if(_CanThemeWindow(window))
+         if(_DW_DARK_MODE_ALLOWED == 2)
          {
             if(_DW_DARK_MODE_ENABLED)
                _SetWindowTheme(window, L"DarkMode_Explorer", NULL);
