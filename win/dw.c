@@ -3423,26 +3423,6 @@ LRESULT CALLBACK _treewndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
    return _simplewndproc(hWnd, msg, mp1, mp2);
 }
 
-LRESULT CALLBACK _notebookwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
-{
-#ifdef AEROGLASS
-   if(msg == WM_ERASEBKGND)
-   {
-      if(_DW_DARK_MODE_ALLOWED == 2 && _DW_DARK_MODE_SUPPORTED)
-      {
-         HDC  hdc;
-         RECT rc;
-
-         hdc=(HDC)mp1;
-         GetClientRect(hWnd, &rc);
-         FillRect(hdc, &rc, _DW_GetSysColorBrush(COLOR_3DFACE));
-         return (LRESULT)TRUE;
-      }
-   }
-#endif
-   return _simplewndproc(hWnd, msg, mp1, mp2);
-}
-
 void _changebox(Box *thisbox, int percent, int type)
 {
    int z;
@@ -5796,7 +5776,7 @@ HWND API dw_notebook_new(ULONG id, int top)
                   DWInstance,
                   NULL);
    cinfo->fore = cinfo->back = -1;
-   cinfo->pOldProc = SubclassWindow(tmp, _notebookwndproc);
+   cinfo->pOldProc = SubclassWindow(tmp, _simplewndproc);
    SetWindowLongPtr(tmp, GWLP_USERDATA, (LONG_PTR)cinfo);
    dw_window_set_data(tmp, "_dw_array", (void *)array);
    dw_window_set_font(tmp, DefaultFont);
