@@ -1714,7 +1714,7 @@ DWObject *DWObj;
 }
 -(BOOL)performKeyEquivalent:(NSEvent *)theEvent
 {
-    if(([theEvent modifierFlags] & NSEventModifierFlagDeviceIndependentFlagsMask) == DWEventModifierFlagCommand)
+    if(([theEvent modifierFlags] & DWEventModifierFlagDeviceIndependentFlagsMask) == DWEventModifierFlagCommand)
     {
         if ([[theEvent charactersIgnoringModifiers] isEqualToString:@"x"])
             return [NSApp sendAction:@selector(cut:) to:[[self window] firstResponder] from:self];
