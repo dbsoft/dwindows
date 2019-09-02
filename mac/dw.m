@@ -409,9 +409,11 @@ unsigned long _get_color(unsigned long thiscolor)
 }
 
 /* Returns TRUE of Mojave or later is in Dark Mode */
-BOOL _is_dark(NSAppearance * appearance)
+BOOL _is_dark(id object)
 {
 #ifdef BUILDING_FOR_MOJAVE
+    NSAppearance *appearance = [object effectiveAppearance];
+    
     if(@available(macOS 10.14, *))
     {
         NSAppearanceName basicAppearance = [appearance bestMatchFromAppearancesWithNames:@[
@@ -2318,7 +2320,7 @@ DWObject *DWObj;
 {
     /* Update any system colors based on the Dark Mode */
     _DW_COLOR_ROW_EVEN = DW_RGB_TRANSPARENT;
-    if(_is_dark([self effectiveAppearance]))
+    if(_is_dark(self))
         _DW_COLOR_ROW_ODD = DW_RGB(100, 100, 100);
     else
         _DW_COLOR_ROW_ODD = DW_RGB(230, 230, 230);
