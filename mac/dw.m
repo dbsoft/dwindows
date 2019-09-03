@@ -1153,6 +1153,22 @@ typedef struct _bitbltinfo
         mycallback(params);
 }
 #endif
+-(void)messageBox:(NSMutableArray *)params
+{
+    NSInteger iResponse;
+    NSAlert *alert = [[NSAlert alloc] init];
+    [alert setMessageText:[params objectAtIndex:0]];
+    [alert setInformativeText:[params objectAtIndex:1]];
+    [alert addButtonWithTitle:[params objectAtIndex:3]];
+    if([params count] > 4)
+        [alert addButtonWithTitle:[params objectAtIndex:4]];
+    if([params count] > 5)
+        [alert addButtonWithTitle:[params objectAtIndex:5]];
+    [alert setAlertStyle:[[params objectAtIndex:2] integerValue]];
+    iResponse = [alert runModal];
+    [alert release];
+    [params addObject:[NSNumber numberWithInteger:iResponse]];
+}
 -(void)safeCall:(SEL)sel withObject:(id)param
 {
     if([self respondsToSelector:sel])
@@ -3837,11 +3853,14 @@ void API dw_debug(char *format, ...)
  */
 int API dw_messagebox(char *title, int flags, char *format, ...)
 {
-    NSAlert *alert;
     NSInteger iResponse;
     NSString *button1 = @"OK";
     NSString *button2 = nil;
     NSString *button3 = nil;
+    NSString *mtitle = [NSString stringWithUTF8String:title];
+    NSString *mtext;
+    NSAlertStyle mstyle = DWAlertStyleWarning;
+    NSArray *params;
     va_list args;
 
     if(flags & DW_MB_OKCANCEL)
@@ -3861,24 +3880,17 @@ int API dw_messagebox(char *title, int flags, char *format, ...)
     }
 
     va_start(args, format);
-    alert = [[NSAlert alloc] init];
-    [alert setMessageText:[NSString stringWithUTF8String:title]];
-    [alert setInformativeText:[[[NSString alloc] initWithFormat:[NSString stringWithUTF8String:format] arguments:args] autorelease]];
-    [alert addButtonWithTitle:button1];
-    if(button2)
-        [alert addButtonWithTitle:button2];
-    if(button3)
-        [alert addButtonWithTitle:button3];
+    mtext = [[[NSString alloc] initWithFormat:[NSString stringWithUTF8String:format] arguments:args] autorelease];
     va_end(args);
 
     if(flags & DW_MB_ERROR)
-        [alert setAlertStyle:DWAlertStyleCritical];
+        mstyle = DWAlertStyleCritical;
     else if(flags & DW_MB_INFORMATION)
-        [alert setAlertStyle:DWAlertStyleInformational];
-    else
-        [alert setAlertStyle:DWAlertStyleWarning];
-    iResponse = [alert runModal];
-    [alert release];
+        mstyle = DWAlertStyleInformational;
+    
+    params = [NSMutableArray arrayWithObjects:mtitle, mtext, [NSNumber numberWithInteger:mstyle], button1, button2, button3, nil];
+    [DWObj safeCall:@selector(messageBox:) withObject:params];
+    iResponse = [[params lastObject] integerValue];
 
     switch(iResponse)
     {
