@@ -5277,8 +5277,12 @@ HWND API dw_percent_new(ULONG cid)
  *          handle: Handle to the percent bar to be set.
  *          position: Position of the percent bar withing the range.
  */
-void API dw_percent_set_pos(HWND handle, unsigned int position)
+DW_FUNCTION_DEFINITION(dw_percent_set_pos, void, HWND handle, unsigned int position)
+DW_FUNCTION_ADD_PARAM2(handle, position)
+DW_FUNCTION_NO_RETURN(dw_percent_set_pos)
+DW_FUNCTION_RESTORE_PARAM2(handle, HWND, position, unsigned int)
 {
+    DW_FUNCTION_INIT;
     DWPercent *percent = handle;
 
     /* Handle indeterminate */
@@ -5297,6 +5301,7 @@ void API dw_percent_set_pos(HWND handle, unsigned int position)
         }
         [percent setDoubleValue:(double)position];
     }
+    DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
