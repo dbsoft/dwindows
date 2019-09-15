@@ -2,7 +2,7 @@
  * Dynamic Windows:
  *          A GTK like implementation of the PM GUI
  *
- * (C) 2000-2017 Brian Smith <brian@dbsoft.org>
+ * (C) 2000-2019 Brian Smith <brian@dbsoft.org>
  * (C) 2003-2011 Mark Hessling <mark@rexx.org>
  * (C) 2000 Achim Hasenmueller <achimha@innotek.de>
  * (C) 2000 Peter Nielsen <peter@pmview.com>
@@ -11927,16 +11927,16 @@ int API dw_named_memory_free(HSHM handle, void *ptr)
  * However it is exported so language bindings can call it when
  * they create threads that require access to Dynamic Windows.
  */
-void API _dw_init_thread(void)
+void **_dw_init_thread2(void)
 {
    HAB thishab = WinInitialize(0);
    HMQ thishmq = WinCreateMsgQueue(thishab, 0);
-#ifndef __WATCOMC__
    void **threadinfo = (void **)malloc(sizeof(void *) * 2);
 
    threadinfo[0] = (void *)thishab;
    threadinfo[1] = (void *)thishmq;
    
+#ifndef __WATCOMC__
    *_threadstore() = (void *)threadinfo;
 #endif
 
@@ -11944,6 +11944,12 @@ void API _dw_init_thread(void)
    /* Set the codepage to 1208 (UTF-8) */
    WinSetCp(thishmq, 1208);
 #endif
+   return threadinfo;
+}
+
+void API _dw_init_thread(void)
+{
+   _dw_init_thread2();
 }
 
 /* 
@@ -11952,11 +11958,13 @@ void API _dw_init_thread(void)
  * However it is exported so language bindings can call it when
  * they exit threads that require access to Dynamic Windows.
  */
-void API _dw_deinit_thread(void)
+void _dw_deinit_thread2(void **threadinfo)
 {
 #ifndef __WATCOMC__
-   void **threadinfo = (void **)*_threadstore();
-   
+   if(!threadinfo)
+      threadinfo = (void **)*_threadstore();
+#endif
+	
    if(threadinfo)
    {
       HAB thishab = (HAB)threadinfo[0];
@@ -11966,7 +11974,11 @@ void API _dw_deinit_thread(void)
       WinTerminate(thishab);
       free(threadinfo);
    }
-#endif
+}
+
+void API _dw_deinit_thread(void)
+{
+   _dw_deinit_thread2(NULL);
 }
 
 /*
@@ -11976,15 +11988,14 @@ void _dwthreadstart(void *data)
 {
    void (API_FUNC threadfunc)(void *) = NULL;
    void **tmp = (void **)data;
-
-   _dw_init_thread();
+   void **threadinfo = _dw_init_thread2();
 
    threadfunc = (void (API_FUNC)(void *))tmp[0];
    threadfunc(tmp[1]);
 
    free(tmp);
 
-   _dw_deinit_thread();
+   _dw_deinit_thread2(threadinfo);
 }
 
 /*
@@ -12016,6 +12027,7 @@ DWTID API dw_thread_new(void *func, void *data, int stack)
  */
 void API dw_thread_end(void)
 {
+   _dw_deinit_thread();
    _endthread();
 }
 
