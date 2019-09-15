@@ -11870,6 +11870,7 @@ DWTID API dw_thread_new(void *func, void *data, int stack)
 void API dw_thread_end(void)
 {
 #if !defined(__CYGWIN__)
+   _dw_deinit_thread();
    _endthread();
 #endif
 }
