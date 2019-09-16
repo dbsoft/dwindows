@@ -3720,7 +3720,10 @@ LRESULT CALLBACK _statuswndproc(HWND hwnd, UINT msg, WPARAM mp1, LPARAM mp2)
          /* If we are in full dark mode, or we have custom colors selected...
           * we will draw the status window ourselves... otherwise DrawStatusText()
           */
-         if((_DW_DARK_MODE_ALLOWED == 2 && _DW_DARK_MODE_ENABLED) ||
+         if(
+#ifdef AEROGLASS
+            (_DW_DARK_MODE_ALLOWED == 2 && _DW_DARK_MODE_ENABLED) ||
+#endif
             (cinfo && cinfo->fore != -1 && cinfo->fore != DW_CLR_DEFAULT &&
              cinfo->back !=- -1 && cinfo->back != DW_CLR_DEFAULT))
          {
@@ -6857,6 +6860,7 @@ HWND API dw_spinbutton_new(char *text, ULONG id)
  */
 HWND API dw_radiobutton_new(char *text, ULONG id)
 {
+   ColorInfo *cinfo;
    HWND tmp = CreateWindow(BUTTONCLASSNAME,
                      UTF8toWide(text),
                      WS_CHILD | BS_AUTORADIOBUTTON |
@@ -6871,7 +6875,7 @@ HWND API dw_radiobutton_new(char *text, ULONG id)
    if(_SetWindowTheme)
       _SetWindowTheme(tmp, L"", L"");
 
-   ColorInfo *cinfo = calloc(1, sizeof(ColorInfo));
+   cinfo = calloc(1, sizeof(ColorInfo));
    cinfo->fore = cinfo->back = -1;
    cinfo->pOldProc = SubclassWindow(tmp, _BtProc);
    SetWindowLongPtr(tmp, GWLP_USERDATA, (LONG_PTR)cinfo);
