@@ -30,6 +30,29 @@
 #include <time.h>
 #include <errno.h>
 
+/* Mostly safe but slow snprintf() for compilers that don't have it... 
+ * like VisualAge.  So we can write safe code and still use VAC to test.
+ */
+#if defined(__IBMC__) && !defined(snprintf)
+static int snprintf(char *str, size_t size, const char *format, ...)
+{
+   va_list args;
+   char *outbuf = calloc(1, size + strlen(format) + 1024);
+   int retval = -1;
+
+   if(outbuf)
+   {
+      va_start(args, format);
+      vsprintf(outbuf, format, args);
+      va_end(args);
+      retval = strlen(outbuf);
+      strncpy(str, outbuf, size);
+      free(outbuf);
+   }
+   return retval;
+}
+#endif
+
 #if defined(__UNIX__) || defined(__MAC__)
 void msleep(long period)
 {
