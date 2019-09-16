@@ -451,12 +451,8 @@ void API getfsname(int drive, char *buf, int len)
 		endmntent(fp);
 	}
 #endif
-#elif defined(__OS2__)
-	/* No snprintf() on OS/2 ??? */
-	len = len;
-	sprintf(buf, "Drive %c",  (char)drive + 'A' - 1);
 #else
-	_snprintf(buf, len, "Drive %c",  (char)drive + 'A' - 1);
+	snprintf(buf, len, "Drive %c",  (char)drive + 'A' - 1);
 #endif
 }
 
@@ -464,7 +460,7 @@ void API setfileinfo(char *filename, char *url, char *logfile)
 {
 	time_t		ltime;
 	struct tm	*tm;
-    char buffer[200], timebuf[200];
+    char buffer[250], timebuf[200];
 #ifdef __OS2__
 	const unsigned fea2listsize = 6000;
 	char *pData;
@@ -478,9 +474,9 @@ void API setfileinfo(char *filename, char *url, char *logfile)
 
 	tm = localtime(&ltime);
 
-	strftime(timebuf, 200, "%c", tm);
+	strftime(timebuf, sizeof(timebuf), "%c", tm);
 
-	sprintf(buffer, "%s %s", url, timebuf);
+	snprintf(buffer, sizeof(buffer), "%s %s", url, timebuf);
 
 #ifdef __OS2__
 	logfile = logfile;
