@@ -259,6 +259,36 @@ typedef unsigned long HICN;
 
 extern HAB dwhab;
 extern HMQ dwhmq;
+
+#include <stdio.h>
+
+/* Mostly safe but slow snprintf() for compilers that don't have it... 
+ * like VisualAge.  So we can write safe code and still use VAC to test.
+ */
+#if defined(__IBMC__) && !defined(snprintf)
+#include <stdarg.h>
+#include <string.h>
+#include <stdlib.h>
+static int _dw_snprintf(char *str, size_t size, const char *format, ...)
+{
+   va_list args;
+   char *outbuf = calloc(1, size + strlen(format) + 1024);
+   int retval = -1;
+
+   if(outbuf)
+   {
+      va_start(args, format);
+      vsprintf(outbuf, format, args);
+      va_end(args);
+      retval = strlen(outbuf);
+      strncpy(str, outbuf, size);
+      free(outbuf);
+   }
+   return retval;
+}
+#define snprintf _dw_snprintf
+#endif
+
 #endif
 
 #if defined(__MAC__)
