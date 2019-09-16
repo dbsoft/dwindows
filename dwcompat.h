@@ -102,6 +102,36 @@ void msleep(long period);
 #define API
 #endif
 
+#include <stdio.h>
+
+/* Mostly safe but slow snprintf() for compilers that don't have it... 
+ * like VisualAge.  So we can write safe code and still use VAC to test.
+ */
+#if defined(__IBMC__) && !defined(snprintf)
+#include <stdarg.h>
+#include <string.h>
+#include <stdlib.h>
+static int _dw_snprintf(char *str, size_t size, const char *format, ...)
+{
+   va_list args;
+   char *outbuf = calloc(1, size + strlen(format) + 1024);
+   int retval = -1;
+
+   if(outbuf)
+   {
+      va_start(args, format);
+      vsprintf(outbuf, format, args);
+      va_end(args);
+      retval = strlen(outbuf);
+      strncpy(str, outbuf, size);
+      free(outbuf);
+   }
+   return retval;
+}
+#define snprintf _dw_snprintf
+#endif
+
+
 #define msleep(a) DosSleep(a)
 
 #ifdef __EMX__
@@ -192,12 +222,6 @@ void msleep(long period);
 #define NO_DOMAIN_SOCKETS
 #endif 
 
-#ifndef PIPEROOT
-#define PIPEROOT "/tmp/"
-#endif
-
-#define PIPENAME "%s" __TARGET__ "%d-%d"
-
 #if defined(_P_NOWAIT) && !defined(P_NOWAIT)
 #define P_NOWAIT _P_NOWAIT
 #endif
@@ -278,6 +302,12 @@ void msleep(long period);
 #ifndef API
 #define API
 #endif
+
+#ifndef PIPEROOT
+#define PIPEROOT "/tmp/"
+#endif
+
+#define PIPENAME "%s" __TARGET__ "%d-%d"
 
 /* Compatibility layer for IBM C/Winsock
  * Now using macros so we can allow cross
