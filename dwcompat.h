@@ -263,7 +263,9 @@ static int _dw_snprintf(char *str, size_t size, const char *format, ...)
 #include <fcntl.h>
 
 #if !defined(__WIN32__) && !defined(WINNT)
+#ifndef __WATCOMC__
 #include <sys/time.h>
+#endif
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <netinet/in.h>
