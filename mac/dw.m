@@ -142,6 +142,15 @@
 #define DWProgressIndicatorStyleBar NSProgressIndicatorBarStyle
 #endif
 
+/* Handle deprecation of several constants in 10.15...
+ * the replacements are not available in earlier versions.
+ */
+#if defined(MAC_OS_X_VERSION_10_15) && ((defined(MAC_OS_X_VERSION_MAX_ALLOWED) && MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_15) || !defined(MAC_OS_X_VERSION_MAX_ALLOWED))
+#define DWProgressIndicatorStyleBar NSProgressIndicatorStyleBar
+#define BUILDING_FOR_CATALINA
+#define WK_API_ENABLED 1
+#endif
+
 /* Macros to encapsulate running functions on the main thread
  * on Mojave or later... and locking mutexes on earlier versions.
  */
@@ -462,6 +471,7 @@ void _handle_resize_events(Box *thisbox);
 int _remove_userdata(UserData **root, char *varname, int all);
 int _dw_main_iteration(NSDate *date);
 NSGraphicsContext *_dw_draw_context(NSBitmapImageRep *image);
+typedef id (*DWIMP)(id, SEL, ...);
 
 /* Internal function to queue a window redraw */
 void _dw_redraw(id window, int skip)
@@ -625,7 +635,7 @@ int _event_handler1(id object, NSEvent *event, int message)
                 id view = [[[event window] contentView] superview];
                 NSPoint p = [view convertPoint:[event locationInWindow] toView:object];
                 SEL spmb = NSSelectorFromString(@"pressedMouseButtons");
-                IMP ipmb = [[NSEvent class] respondsToSelector:spmb] ? [[NSEvent class] methodForSelector:spmb] : 0;
+                DWIMP ipmb = [[NSEvent class] respondsToSelector:spmb] ? (DWIMP)[[NSEvent class] methodForSelector:spmb] : 0;
                 int buttonmask = ipmb ? (int)ipmb([NSEvent class], spmb) : (1 << [event buttonNumber]);
 
                 return motionfunc(object, (int)p.x, (int)p.y, buttonmask, handler->data);
@@ -1177,7 +1187,7 @@ typedef struct _bitbltinfo
 
         if(DWThread == (DWTID)-1 || DWThread == curr)
         {
-            IMP imp = [self methodForSelector:sel];
+            DWIMP imp = (DWIMP)[self methodForSelector:sel];
             
             if(imp)
                 imp(self, sel, param);
@@ -1227,7 +1237,7 @@ typedef struct _bitbltinfo
         
         if([image respondsToSelector:siwc])
         {
-            IMP iiwc = [image methodForSelector:siwc];
+            DWIMP iiwc = (DWIMP)[image methodForSelector:siwc];
             image = iiwc(image, siwc, [rep CGImage], NSZeroSize);
         }
         else
@@ -2152,7 +2162,7 @@ DWObject *DWObj;
         /* New method for 10.6 and later */
         if([image respondsToSelector:sdir])
         {
-            IMP idir = [image methodForSelector:sdir];
+            DWIMP idir = (DWIMP)[image methodForSelector:sdir];
 
             imageFrame.origin.y += ceil((cellFrame.size.height - imageFrame.size.height) / 2);
 
@@ -2170,7 +2180,7 @@ DWObject *DWObj;
 
             if([image respondsToSelector:sctp])
             {
-                IMP ictp = [image methodForSelector:sctp];
+                DWIMP ictp = (DWIMP)[image methodForSelector:sctp];
 
                 ictp(image, sctp, imageFrame.origin, op);
             }
@@ -2517,7 +2527,7 @@ DWObject *DWObj;
     if(![[NSPointerArray class] respondsToSelector:swopa])
         return;
 
-    IMP iwopa = [[NSPointerArray class] methodForSelector:swopa];
+    DWIMP iwopa = (DWIMP)[[NSPointerArray class] methodForSelector:swopa];
 
     titles = iwopa([NSPointerArray class], swopa);
     [titles retain];
@@ -3988,7 +3998,7 @@ char * API dw_file_browse(char *title, char *defpath, char *ext, int flags)
 
             if([openDlg respondsToSelector:ssdu])
             {
-                IMP isdu = [openDlg methodForSelector:ssdu];
+                DWIMP isdu = (DWIMP)[openDlg methodForSelector:ssdu];
                 isdu(openDlg, ssdu, [NSURL fileURLWithPath:[NSString stringWithUTF8String:path]]);
             }
         }
@@ -4044,7 +4054,7 @@ char * API dw_file_browse(char *title, char *defpath, char *ext, int flags)
 
             if([saveDlg respondsToSelector:ssdu])
             {
-                IMP isdu = [saveDlg methodForSelector:ssdu];
+                DWIMP isdu = (DWIMP)[saveDlg methodForSelector:ssdu];
                 isdu(saveDlg, ssdu, [NSURL fileURLWithPath:[NSString stringWithUTF8String:path]]);
             }
         }
@@ -4054,7 +4064,7 @@ char * API dw_file_browse(char *title, char *defpath, char *ext, int flags)
 
             if([saveDlg respondsToSelector:ssnfsv])
             {
-                IMP isnfsv = [saveDlg methodForSelector:ssnfsv];
+                DWIMP isnfsv = (DWIMP)[saveDlg methodForSelector:ssnfsv];
                 isnfsv(saveDlg, ssnfsv, [NSString stringWithUTF8String:file]);
             }
         }
@@ -4125,7 +4135,7 @@ void dw_clipboard_set_text( char *str, int len)
 
     if([pasteboard respondsToSelector:scc])
     {
-        IMP icc = [pasteboard methodForSelector:scc];
+        DWIMP icc = (DWIMP)[pasteboard methodForSelector:scc];
         icc(pasteboard, scc);
     }
 
@@ -9473,7 +9483,7 @@ void API dw_window_set_style(HWND handle, ULONG style, ULONG mask)
 
         if([window respondsToSelector:sssm])
         {
-            IMP issm = [window methodForSelector:sssm];
+            DWIMP issm = (DWIMP)[window methodForSelector:sssm];
             int currentstyle = (int)[window styleMask];
             int tmp;
 
