@@ -27,7 +27,7 @@
 #define BUILDING_FOR_SNOW_LEOPARD
 #endif
 
-/* Create a define to let us know to include Snow Leopard specific features */
+/* Create a define to let us know to include Lion specific features */
 #if defined(MAC_OS_X_VERSION_10_7) && ((defined(MAC_OS_X_VERSION_MAX_ALLOWED) && MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_7) || !defined(MAC_OS_X_VERSION_MAX_ALLOWED))
 #define BUILDING_FOR_LION
 #endif
@@ -142,11 +142,8 @@
 #define DWProgressIndicatorStyleBar NSProgressIndicatorBarStyle
 #endif
 
-/* Handle deprecation of several constants in 10.15...
- * the replacements are not available in earlier versions.
- */
+/* Handle deprecation of constants in 10.15... */
 #if defined(MAC_OS_X_VERSION_10_15) && ((defined(MAC_OS_X_VERSION_MAX_ALLOWED) && MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_15) || !defined(MAC_OS_X_VERSION_MAX_ALLOWED))
-#define DWProgressIndicatorStyleBar NSProgressIndicatorStyleBar
 #define BUILDING_FOR_CATALINA
 #define WK_API_ENABLED 1
 #endif
