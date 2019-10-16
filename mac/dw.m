@@ -635,7 +635,7 @@ int _event_handler1(id object, NSEvent *event, int message)
                 DWIMP ipmb = [[NSEvent class] respondsToSelector:spmb] ? (DWIMP)[[NSEvent class] methodForSelector:spmb] : 0;
                 NSUInteger buttonmask = ipmb ? (NSUInteger)ipmb([NSEvent class], spmb) : (1 << [event buttonNumber]);
 
-                return motionfunc(object, (int)p.x, (int)p.y, buttonmask, handler->data);
+                return motionfunc(object, (int)p.x, (int)p.y, (int)buttonmask, handler->data);
             }
             /* Window close event */
             case 6:
