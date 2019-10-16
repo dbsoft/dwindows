@@ -633,7 +633,7 @@ int _event_handler1(id object, NSEvent *event, int message)
                 NSPoint p = [view convertPoint:[event locationInWindow] toView:object];
                 SEL spmb = NSSelectorFromString(@"pressedMouseButtons");
                 DWIMP ipmb = [[NSEvent class] respondsToSelector:spmb] ? (DWIMP)[[NSEvent class] methodForSelector:spmb] : 0;
-                int buttonmask = ipmb ? (int)ipmb([NSEvent class], spmb) : (1 << [event buttonNumber]);
+                NSUInteger buttonmask = ipmb ? (NSUInteger)ipmb([NSEvent class], spmb) : (1 << [event buttonNumber]);
 
                 return motionfunc(object, (int)p.x, (int)p.y, buttonmask, handler->data);
             }
