@@ -1338,7 +1338,7 @@ int _focus_check_box(Box *box, HWND handle, int start, int direction, HWND defau
  */
 void _initial_focus(HWND handle)
 {
-   Box *thisbox;
+   Box *thisbox = NULL;
    TCHAR tmpbuf[100] = {0};
 
    if(!handle)
@@ -2774,7 +2774,8 @@ LRESULT CALLBACK _spinnerwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 
             if(!cinfo || !cinfo->pOldProc)
                ret = DefWindowProc(hWnd, msg, mp1, mp2);
-            ret = CallWindowProc(cinfo->pOldProc, hWnd, msg, mp1, mp2);
+            else
+               ret = CallWindowProc(cinfo->pOldProc, hWnd, msg, mp1, mp2);
 
             /* Tell the edit control that a buttonpress has
              * occured and to update it's window title.
@@ -3125,7 +3126,7 @@ LRESULT CALLBACK _colorwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
                         if(!(msg == WM_CTLCOLORSTATIC && SendMessage((HWND)mp2, STM_GETIMAGE, IMAGE_BITMAP, 0)))
                         {
                            SetBkColor((HDC)mp1, _dw_transparencykey);
-                           if(thiscinfo->hbrush)
+                           if(thiscinfo && thiscinfo->hbrush)
                               DeleteObject(thiscinfo->hbrush);
                            thiscinfo->hbrush = CreateSolidBrush(_dw_transparencykey);
                            SelectObject((HDC)mp1, thiscinfo->hbrush);
@@ -5140,7 +5141,7 @@ void _control_size(HWND handle, int *width, int *height)
    /* Free temporary bitmaps */
    if(ii.hbmColor)
       DeleteObject(ii.hbmColor);
-   if(ii.hbmMask);
+   if(ii.hbmMask)
       DeleteObject(ii.hbmMask);
 }
 
@@ -5182,9 +5183,8 @@ int API dw_window_set_font(HWND handle, char *fontname)
                 oldfont = cinfo->hfont;
             cinfo->hfont = hfont;
         }
-        else
+        else if(cinfo = calloc(1, sizeof(ColorInfo)))
         {
-            cinfo = calloc(1, sizeof(ColorInfo));
             cinfo->fore = cinfo->back = -1;
 
             strncpy(cinfo->fontname, fontname, 127);
@@ -5354,10 +5354,8 @@ int API dw_window_set_color(HWND handle, ULONG fore, ULONG back)
       cinfo->fore = fore;
       cinfo->back = back;
    }
-   else
+   else if(cinfo = calloc(1, sizeof(ColorInfo)))
    {
-      cinfo = calloc(1, sizeof(ColorInfo));
-
       cinfo->fore = fore;
       cinfo->back = back;
 
