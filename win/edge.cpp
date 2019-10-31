@@ -16,15 +16,34 @@
 using namespace Microsoft::WRL;
 
 #define _DW_HTML_DATA_NAME (char *)"_dw_edge"
+#define _DW_HTML_DATA_LOCATION (char *)"_dw_edge_location"
+#define _DW_HTML_DATA_RAW (char *)"_dw_edge_raw"
 
 extern "C" {
 
+	extern HWND DW_HWND_OBJECT;
+	BOOL DW_EDGE_DETECTED = FALSE;
+
+	/******************************* dw_edge_detect() **************************
+	 * Attempts to create a temporary Edge (Chromium) browser context...
+	 * If we succeed return TRUE and use Edge for HTML windows.
+	 * If it fails return FALSE and fall back to using embedded IE.
+	 */
 	BOOL _dw_edge_detect(VOID)
 	{
-		return TRUE;
+		HWND hWnd = DW_HWND_OBJECT;
+
+		CreateWebView2EnvironmentWithDetails(nullptr, nullptr, nullptr,
+			Callback<IWebView2CreateWebView2EnvironmentCompletedHandler>(
+				[hWnd](HRESULT result, IWebView2Environment* env) -> HRESULT {
+					// Successfully created Edge environment, return TRUE 
+					DW_EDGE_DETECTED = TRUE;
+					return S_OK;
+				}).Get());
+		return DW_EDGE_DETECTED;
 	}
 
-	/******************************* dw_html_action() **************************
+	/******************************* dw_edge_action() **************************
 	 * Implements the functionality of a "Back". "Forward", "Home", "Search",
 	 * "Refresh", or "Stop" button.
 	 *
@@ -96,7 +115,7 @@ extern "C" {
 		}
 	}
 
-	/******************************* dw_html_raw() ****************************
+	/******************************* dw_edge_raw() ****************************
 	 * Takes a string containing some HTML BODY, and displays it in the specified
 	 * window. For example, perhaps you want to display the HTML text of...
 	 *
@@ -118,13 +137,13 @@ extern "C" {
 		webview = (IWebView2WebView*)dw_window_get_data(hwnd, _DW_HTML_DATA_NAME);
 
 		if (webview)
-		{
-			return DW_ERROR_NONE;
-		}
-		return DW_ERROR_UNKNOWN;
+			webview->NavigateToString(string);
+		else
+			dw_window_set_data(hwnd, _DW_HTML_DATA_RAW, _wcsdup(string));
+		return DW_ERROR_NONE;
 	}
 
-	/******************************* dw_html_url() ****************************
+	/******************************* dw_edge_url() ****************************
 	 * Displays a URL, or HTML file on disk.
 	 *
 	 * hwnd =		Handle to the window hosting the browser object.
@@ -142,14 +161,13 @@ extern "C" {
 		webview = (IWebView2WebView*)dw_window_get_data(hwnd, _DW_HTML_DATA_NAME);
 
 		if (webview)
-		{
 			webview->Navigate(url);
-			return DW_ERROR_NONE;
-		}
-		return DW_ERROR_UNKNOWN;
+		else
+			dw_window_set_data(hwnd, _DW_HTML_DATA_LOCATION, _wcsdup(url));
+		return DW_ERROR_NONE;
 	}
 
-	/************************** browserWindowProc() *************************
+	/************************** edgeWindowProc() *************************
 	 * Our message handler for our window to host the browser.
 	 */
 
@@ -160,16 +178,19 @@ extern "C" {
 		case WM_SIZE:
 		{
 			// Resize the browser object to fit the window
-			RECT bounds;
 			IWebView2WebView* webview;
 
 			// Retrieve the browser object's pointer we stored in our window's GWL_USERDATA when
 			// we initially attached the browser object to this window.
 			webview = (IWebView2WebView*)dw_window_get_data(hWnd, _DW_HTML_DATA_NAME);
-			GetClientRect(hWnd, &bounds);
 			// Resize WebView to fit the bounds of the parent window
 			if (webview)
+			{
+				RECT bounds;
+
+				GetClientRect(hWnd, &bounds);
 				webview->put_Bounds(bounds);
+			}
 			return(0);
 		}
 
@@ -200,6 +221,21 @@ extern "C" {
 								RECT bounds;
 								GetClientRect(hWnd, &bounds);
 								webview->put_Bounds(bounds);
+
+								// Handle cached load requests due to delayed
+								// loading of the edge webview contexts
+								LPCWSTR url = (LPCWSTR)dw_window_get_data(hWnd, _DW_HTML_DATA_LOCATION);
+								if(url)
+								{
+									webview->Navigate(url);
+									free((void *)url);
+								}
+								LPCWSTR raw = (LPCWSTR)dw_window_get_data(hWnd, _DW_HTML_DATA_RAW);
+								if (raw)
+								{
+									webview->NavigateToString(raw);
+									free((void *)raw);
+								}
 								return S_OK;
 							}).Get());
 						return S_OK;
