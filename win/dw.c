@@ -4285,25 +4285,6 @@ int API dw_init(int newthread, int argc, char *argv[])
 
    RegisterClass(&wc);
 
-#if (defined(BUILD_DLL) || defined(BUILD_HTML))
-   /* Register HTML renderer class */
-   memset(&wc, 0, sizeof(WNDCLASS));
-   wc.lpszClassName = BrowserClassName;
-   wc.style = CS_HREDRAW | CS_VREDRAW;
-#ifdef BUILD_EDGE
-   /* Check if Microsoft Edge (Chromium) is installed */
-   if(_DW_EDGE_DETECTED = _dw_edge_detect())
-   {
-      wc.lpfnWndProc = (WNDPROC)_edgeWindowProc;
-   }
-   else
-#endif
-   {
-      wc.lpfnWndProc = (WNDPROC)_browserWindowProc;
-   }
-   RegisterClass(&wc);
-#endif
-
    /* Create a set of brushes using the default OS/2 and DOS colors */
    for(z=0;z<18;z++)
       _colors[z] = CreateSolidBrush(RGB(_red[z],_green[z],_blue[z]));
@@ -4340,6 +4321,25 @@ int API dw_init(int newthread, int argc, char *argv[])
       exit(1);
    }
    
+#if (defined(BUILD_DLL) || defined(BUILD_HTML))
+   /* Register HTML renderer class */
+   memset(&wc, 0, sizeof(WNDCLASS));
+   wc.lpszClassName = BrowserClassName;
+   wc.style = CS_HREDRAW | CS_VREDRAW;
+#ifdef BUILD_EDGE
+   /* Check if Microsoft Edge (Chromium) is installed */
+   if (_DW_EDGE_DETECTED = _dw_edge_detect())
+   {
+	   wc.lpfnWndProc = (WNDPROC)_edgeWindowProc;
+   }
+   else
+#endif
+   {
+	   wc.lpfnWndProc = (WNDPROC)_browserWindowProc;
+   }
+   RegisterClass(&wc);
+#endif
+
    /* Create a tooltip. */
    hwndTooltip = CreateWindowEx(WS_EX_TOPMOST, TOOLTIPS_CLASS, NULL, WS_POPUP | TTS_NOPREFIX | TTS_ALWAYSTIP,
                   CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, DW_HWND_OBJECT, NULL, DWInstance,NULL);
