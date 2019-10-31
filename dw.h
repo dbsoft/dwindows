@@ -3,6 +3,10 @@
 #ifndef _H_DW
 #define _H_DW
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* Dynamic Windows version numbers */
 #define DW_MAJOR_VERSION 3
 #define DW_MINOR_VERSION 0
@@ -1817,5 +1821,9 @@ char * API dw_wchar_to_utf8(wchar_t *wstring);
 /* Exported for language bindings */
 void API _dw_init_thread(void);
 void API _dw_deinit_thread(void);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

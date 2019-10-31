@@ -311,6 +311,7 @@ HFONT _DefaultFont = NULL;
 #if (defined(BUILD_DLL) || defined(BUILD_HTML))
 LRESULT CALLBACK _browserWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 #ifdef BUILD_EDGE
+BOOL _dw_edge_detect(VOID);
 BOOL _DW_EDGE_DETECTED = FALSE;
 LRESULT CALLBACK _edgeWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 #endif
@@ -5701,7 +5702,6 @@ int _dw_html_url(HWND hwnd, char *url);
 void _dw_edge_action(HWND hwnd, int action);
 int _dw_edge_raw(HWND hwnd, LPCWSTR string);
 int _dw_edge_url(HWND hwnd, LPCWSTR url);
-BOOL _dw_edge_detect(VOID);
 #endif
 #endif
 
