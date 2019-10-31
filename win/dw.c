@@ -310,6 +310,10 @@ HFONT _DefaultFont = NULL;
 
 #if (defined(BUILD_DLL) || defined(BUILD_HTML))
 LRESULT CALLBACK _browserWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+#ifdef BUILD_EDGE
+BOOL _DW_EDGE_DETECTED = FALSE;
+LRESULT CALLBACK _edgeWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+#endif
 #endif
 LRESULT CALLBACK _colorwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2);
 void _resize_notebook_page(HWND handle, int pageid);
@@ -4283,9 +4287,19 @@ int API dw_init(int newthread, int argc, char *argv[])
 #if (defined(BUILD_DLL) || defined(BUILD_HTML))
    /* Register HTML renderer class */
    memset(&wc, 0, sizeof(WNDCLASS));
-   wc.lpfnWndProc = (WNDPROC)_browserWindowProc;
    wc.lpszClassName = BrowserClassName;
-   wc.style = CS_HREDRAW|CS_VREDRAW;
+   wc.style = CS_HREDRAW | CS_VREDRAW;
+#ifdef BUILD_EDGE
+   /* Check if Microsoft Edge (Chromium) is installed */
+   if(_DW_EDGE_DETECTED = _dw_edge_detect())
+   {
+      wc.lpfnWndProc = (WNDPROC)_edgeWindowProc;
+   }
+   else
+#endif
+   {
+      wc.lpfnWndProc = (WNDPROC)_browserWindowProc;
+   }
    RegisterClass(&wc);
 #endif
 
@@ -5683,6 +5697,12 @@ HWND API dw_html_new(unsigned long id)
 void _dw_html_action(HWND hwnd, int action);
 int _dw_html_raw(HWND hwnd, char *string);
 int _dw_html_url(HWND hwnd, char *url);
+#ifdef BUILD_EDGE
+void _dw_edge_action(HWND hwnd, int action);
+int _dw_edge_raw(HWND hwnd, LPCWSTR string);
+int _dw_edge_url(HWND hwnd, LPCWSTR url);
+BOOL _dw_edge_detect(VOID);
+#endif
 #endif
 
 /*
@@ -5694,6 +5714,11 @@ int _dw_html_url(HWND hwnd, char *url);
 void API dw_html_action(HWND handle, int action)
 {
 #if (defined(BUILD_DLL) || defined(BUILD_HTML))
+#ifdef BUILD_EDGE
+   if (_DW_EDGE_DETECTED)
+      _dw_edge_action(handle, action);
+   else
+#endif
    _dw_html_action(handle, action);
 #endif
 }
@@ -5710,6 +5735,10 @@ void API dw_html_action(HWND handle, int action)
 int API dw_html_raw(HWND handle, char *string)
 {
 #if (defined(BUILD_DLL) || defined(BUILD_HTML))
+#ifdef BUILD_EDGE
+   if (_DW_EDGE_DETECTED)
+      return _dw_edge_raw(handle, UTF8toWide(string));
+#endif
    return _dw_html_raw(handle, string);
 #else
    return DW_ERROR_GENERAL;
@@ -5728,6 +5757,10 @@ int API dw_html_raw(HWND handle, char *string)
 int API dw_html_url(HWND handle, char *url)
 {
 #if (defined(BUILD_DLL) || defined(BUILD_HTML))
+#if BUILD_EDGE
+   if (_DW_EDGE_DETECTED)
+      return _dw_edge_url(handle, UTF8toWide(url));
+#endif
    return _dw_html_url(handle, url);
 #else
    return DW_ERROR_GENERAL;
