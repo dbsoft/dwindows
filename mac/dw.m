@@ -419,7 +419,7 @@ BOOL _is_dark(id object)
 {
 #ifdef BUILDING_FOR_MOJAVE
     NSAppearance *appearance = [object effectiveAppearance];
-    
+
     if(@available(macOS 10.14, *))
     {
         NSAppearanceName basicAppearance = [appearance bestMatchFromAppearancesWithNames:@[
@@ -1185,7 +1185,7 @@ typedef struct _bitbltinfo
         if(DWThread == (DWTID)-1 || DWThread == curr)
         {
             DWIMP imp = (DWIMP)[self methodForSelector:sel];
-            
+
             if(imp)
                 imp(self, sel, param);
         }
@@ -1199,12 +1199,12 @@ typedef struct _bitbltinfo
     DWBitBlt *bltinfo = (DWBitBlt *)[bi pointerValue];
     id bltdest = bltinfo->dest;
     id bltsrc = bltinfo->src;
-    
+
 #ifdef BUILDING_FOR_MOJAVE
     if([bltdest isMemberOfClass:[DWRender class]])
     {
         DWRender *render = bltdest;
-        
+
         bltdest = [render cachedDrawingRep];
     }
 #endif
@@ -1231,7 +1231,7 @@ typedef struct _bitbltinfo
         NSImage *image = [NSImage alloc];
         SEL siwc = NSSelectorFromString(@"initWithCGImage");
         NSCompositingOperation op = DWCompositingOperationSourceOver;
-        
+
         if([image respondsToSelector:siwc])
         {
             DWIMP iiwc = (DWIMP)[image methodForSelector:siwc];
@@ -1274,7 +1274,7 @@ typedef struct _bitbltinfo
 #ifdef BUILDING_FOR_MOJAVE
     NSEnumerator *enumerator = [_DWDirtyDrawables objectEnumerator];
     DWRender *rend;
-    
+
     while (rend = [enumerator nextObject])
         rend.needsDisplay = YES;
     [_DWDirtyDrawables removeAllObjects];
@@ -1293,7 +1293,7 @@ typedef struct _bitbltinfo
     NSValue *v = (NSValue *)param;
     void **params = (void **)[v pointerValue];
     void (* windowfunc)(void *);
-    
+
     if(params)
     {
         windowfunc = params[0];
@@ -3246,13 +3246,13 @@ void _handle_resize_events(Box *thisbox)
                  */
 #ifndef BUILDING_FOR_MOJAVE
                 NSWindow *window = [render window];
-                
+
                 if([window preferredBackingLocation] != NSWindowBackingLocationVideoMemory)
                 {
                     [window setPreferredBackingLocation:NSWindowBackingLocationVideoMemory];
                 }
 #endif
-                
+
                 /* Eliminate duplicate configure requests */
                 if(oldsize.width != newsize.width || oldsize.height != newsize.height)
                 {
@@ -3894,7 +3894,7 @@ int API dw_messagebox(char *title, int flags, char *format, ...)
         mstyle = DWAlertStyleCritical;
     else if(flags & DW_MB_INFORMATION)
         mstyle = DWAlertStyleInformational;
-    
+
     params = [NSMutableArray arrayWithObjects:mtitle, mtext, [NSNumber numberWithInteger:mstyle], button1, button2, button3, nil];
     [DWObj safeCall:@selector(messageBox:) withObject:params];
     iResponse = [[params lastObject] integerValue];
@@ -6337,7 +6337,7 @@ NSGraphicsContext *_dw_draw_context(NSBitmapImageRep *image)
     return [NSGraphicsContext graphicsContextWithGraphicsPort:[[NSGraphicsContext graphicsContextWithBitmapImageRep:image] graphicsPort] flipped:YES];
 #endif
 }
-                      
+
 /* Draw a point on a window (preferably a render window).
  * Parameters:
  *       handle: Handle to the window.
@@ -6355,7 +6355,7 @@ DW_FUNCTION_RESTORE_PARAM4(handle, HWND, pixmap, HPIXMAP, x, int, y, int)
     id image = handle;
     NSBitmapImageRep *bi = nil;
     bool bCanDraw = YES;
-    
+
     if(pixmap)
         bi = image = (id)pixmap->image;
     else
@@ -6364,7 +6364,7 @@ DW_FUNCTION_RESTORE_PARAM4(handle, HWND, pixmap, HPIXMAP, x, int, y, int)
         if([image isMemberOfClass:[DWRender class]])
         {
             DWRender *render = image;
-            
+
             bi = [render cachedDrawingRep];
         }
 #else
@@ -6425,7 +6425,7 @@ DW_FUNCTION_RESTORE_PARAM6(handle, HWND, pixmap, HPIXMAP, x1, int, y1, int, x2, 
         if([image isMemberOfClass:[DWRender class]])
         {
             DWRender *render = image;
-            
+
             bi = [render cachedDrawingRep];
         }
 #else
@@ -6480,7 +6480,7 @@ DW_FUNCTION_RESTORE_PARAM5(handle, HWND, pixmap, HPIXMAP, x, int, y, int, text, 
     NSFont *font = nil;
     DWRender *render;
     bool bCanDraw = YES;
-    
+
     if(pixmap)
     {
         bi = image = (id)pixmap->image;
@@ -6619,7 +6619,7 @@ DW_FUNCTION_RESTORE_PARAM6(handle, HWND, pixmap, HPIXMAP, flags, int, npoints, i
     NSBitmapImageRep *bi = nil;
     bool bCanDraw = YES;
     int z;
-    
+
     if(pixmap)
         bi = image = (id)pixmap->image;
     else
@@ -6628,7 +6628,7 @@ DW_FUNCTION_RESTORE_PARAM6(handle, HWND, pixmap, HPIXMAP, flags, int, npoints, i
         if([image isMemberOfClass:[DWRender class]])
         {
             DWRender *render = image;
-            
+
             bi = [render cachedDrawingRep];
         }
 #else
@@ -6664,7 +6664,7 @@ DW_FUNCTION_RESTORE_PARAM6(handle, HWND, pixmap, HPIXMAP, flags, int, npoints, i
         }
         [aPath stroke];
     }
-    
+
     if(bi)
         [NSGraphicsContext restoreGraphicsState];
 #ifndef BUILDING_FOR_MOJAVE
@@ -6695,7 +6695,7 @@ DW_FUNCTION_RESTORE_PARAM7(handle, HWND, pixmap, HPIXMAP, flags, int, x, int, y,
     id image = handle;
     NSBitmapImageRep *bi = nil;
     bool bCanDraw = YES;
-    
+
     if(pixmap)
         bi = image = (id)pixmap->image;
     else
@@ -6704,7 +6704,7 @@ DW_FUNCTION_RESTORE_PARAM7(handle, HWND, pixmap, HPIXMAP, flags, int, x, int, y,
         if([image isMemberOfClass:[DWRender class]])
         {
             DWRender *render = image;
-            
+
             bi = [render cachedDrawingRep];
         }
 #else
@@ -6721,7 +6721,7 @@ DW_FUNCTION_RESTORE_PARAM7(handle, HWND, pixmap, HPIXMAP, flags, int, x, int, y,
         [NSGraphicsContext saveGraphicsState];
         [NSGraphicsContext setCurrentContext:gc];
     }
-    
+
     if(bCanDraw == YES)
     {
         NSColor *color = pthread_getspecific(_dw_fg_color_key);
@@ -6732,7 +6732,7 @@ DW_FUNCTION_RESTORE_PARAM7(handle, HWND, pixmap, HPIXMAP, flags, int, x, int, y,
         else
             [NSBezierPath strokeRect:NSMakeRect(x, y, width, height)];
     }
-    
+
     if(bi)
         [NSGraphicsContext restoreGraphicsState];
 #ifndef BUILDING_FOR_MOJAVE
@@ -6766,7 +6766,7 @@ DW_FUNCTION_RESTORE_PARAM9(handle, HWND, pixmap, HPIXMAP, flags, int, xorigin, i
     id image = handle;
     NSBitmapImageRep *bi = nil;
     bool bCanDraw = YES;
-    
+
     if(pixmap)
         bi = image = (id)pixmap->image;
     else
@@ -6775,7 +6775,7 @@ DW_FUNCTION_RESTORE_PARAM9(handle, HWND, pixmap, HPIXMAP, flags, int, xorigin, i
         if([image isMemberOfClass:[DWRender class]])
         {
             DWRender *render = image;
-            
+
             bi = [render cachedDrawingRep];
         }
 #else
@@ -6792,7 +6792,7 @@ DW_FUNCTION_RESTORE_PARAM9(handle, HWND, pixmap, HPIXMAP, flags, int, xorigin, i
         [NSGraphicsContext saveGraphicsState];
         [NSGraphicsContext setCurrentContext:gc];
     }
-    
+
     if(bCanDraw)
     {
         NSBezierPath* aPath = [NSBezierPath bezierPath];
@@ -6828,7 +6828,7 @@ DW_FUNCTION_RESTORE_PARAM9(handle, HWND, pixmap, HPIXMAP, flags, int, xorigin, i
         /* Actually do the drawing */
         [aPath stroke];
     }
-    
+
     if(bi)
         [NSGraphicsContext restoreGraphicsState];
 #ifndef BUILDING_FOR_MOJAVE
@@ -8615,7 +8615,7 @@ void dw_calendar_set_date(HWND handle, unsigned int year, unsigned int month, un
     snprintf(buffer, 100, "%04d-%02d-%02d", year, month, day);
 
     NSDateFormatter *dateFormatter = [[[NSDateFormatter alloc] init] autorelease];
-    dateFormatter.dateFormat = @"yyyy-mm-dd";
+    dateFormatter.dateFormat = @"yyyy-MM-dd";
 
     date = [dateFormatter dateFromString:[NSString stringWithUTF8String:buffer]];
     [calendar setDateValue:date];
@@ -8632,20 +8632,13 @@ void dw_calendar_get_date(HWND handle, unsigned int *year, unsigned int *month, 
 {
     DWCalendar *calendar = handle;
     DW_LOCAL_POOL_IN;
+    NSCalendar *mycalendar = [[NSCalendar alloc] initWithCalendarIdentifier:NSCalendarIdentifierGregorian];
     NSDate *date = [calendar dateValue];
-    NSDateFormatter *df = [[NSDateFormatter alloc] init];
-    [df setDateStyle:NSDateFormatterShortStyle];
-    NSString *nstr = [df stringFromDate:date];
-    sscanf([ nstr UTF8String ], "%d/%d/%d", month, day, year);
-    if(*year < 70)
-    {
-        *year += 2000;
-    }
-    else if(*year < 100)
-    {
-        *year += 1900;
-    }
-    [df release];
+    NSDateComponents* components = [mycalendar components:NSCalendarUnitDay|NSCalendarUnitMonth|NSCalendarUnitYear fromDate:date];
+    *day = [components day];
+    *month = [components month];
+    *year = [components year];
+    [mycalendar release];
     DW_LOCAL_POOL_OUT;
 }
 

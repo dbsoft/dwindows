@@ -1226,7 +1226,7 @@ void container_add(void)
     for(z=0;z<3;z++)
     {
         char names[100];
-        
+
         sprintf(names, "We can now allocate from the stack: Item: %d", z);
         size = z*100;
         sprintf(buffer, "Filename %d",z+1);
@@ -1313,9 +1313,9 @@ void buttons_add(void)
     dw_box_pack_start(notebookbox5, calbox, 500, 200, TRUE, TRUE, 1);
     cal = dw_calendar_new(100);
     dw_box_pack_start(calbox, cal, 180, 120, TRUE, TRUE, 0);
-    /*
-     dw_calendar_set_date(cal, 2001, 1, 1);
-     */
+
+    dw_calendar_set_date(cal, 2019, 4, 30);
+
     /*
      * Create our file toolbar boxes...
      */
