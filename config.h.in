@@ -30,12 +30,6 @@
 /* Determine whether we have the vsnprintf function */
 #undef HAVE_VSNPRINTF
 
-/* Define if GtkMozEmbed is available */
-#undef USE_GTKMOZEMBED
-
-/* Define if libgtkhtml-2.0 is available */
-#undef USE_LIBGTKHTML2
-
 /* Define if WebKit is available */
 #undef USE_WEBKIT
 
@@ -44,6 +38,9 @@
 
 /* Define if webkit-1.1 is available */
 #undef USE_WEBKIT11
+
+/* Define if webkit2 is available */
+#undef USE_WEBKIT2
 
 /* Define for name of webkit library */
 #undef WEBKIT_LIB
