@@ -8,7 +8,7 @@ AC_SUBST(TARGET2)
 
 AC_DEFUN([AC_DATAROOTDIR_CHECKED])
 
-DW_DIR=gtk
+DW_DIR=gtk3
 DW_SRC=dw.c
 DW_DEFINE=__UNIX__
 SHAREDFLAG=-shared
@@ -48,16 +48,16 @@ AC_ARG_WITH(dwcompat,
    [with_dwcompat=no],
 )
 
-dnl ---------------------- check for '--with-gtk3' switch -----------------
-AC_ARG_WITH(gtk3,
-   [  --with-gtk3             specify this to build with GTK+ 3.x if available],
-   [with_gtk3=$withval],
-   [with_gtk3=no],
+dnl ---------------------- check for '--with-gtk2' switch -----------------
+AC_ARG_WITH(gtk2,
+   [  --with-gtk2             specify this to build with GTK+ 2.x if available],
+   [with_gtk2=$withval],
+   [with_gtk2=no],
 )
 
 dnl ---------------------- check for '--with-deprecated' switch -----------------
 AC_ARG_WITH(deprecated,
-   [  --with-deprecated         specify this to build with deprecated functions],
+   [  --with-deprecated       specify this to build with deprecated functions],
    [with_deprecated=$withval],
    [with_deprecated=no],
 )
@@ -74,34 +74,6 @@ else
 fi
 SYSCONF_LINK_TARGET_SHARED="lib$TARGET.$SOSUFFIX.\$(DW_MAJOR_VERSION).\$(DW_MINOR_VERSION)"
 SYSCONF_LINK_TARGET_STATIC="lib$TARGET.a"
-
-dnl ---------------------- check for '--with-gtk+' switch -----------------
-AC_ARG_WITH(gtk,
-   [  --with-gtk              specify this to build dwindows with GTK+ (only relevant for OSX)],
-   [with_gtk=$withval],
-   [with_gtk=no],
-)
-
-dnl ---------------------- check for '--with-gtkframework' switch -----------------
-AC_ARG_WITH(gtkframework,
-   [  --with-gtkframework     specify this to build dwindows with GTK+ Framework (only relevant for OSX)],
-   [with_gtkframework=$withval],
-   [with_gtkframework=no],
-)
-
-dnl ---------------------- check for '--with-gtkhtml' switch -----------------
-AC_ARG_WITH(gtkhtml,
-   [  --with-gtkhtml          specify this to build dwindows with libgtkhtml-2],
-   [with_gtkhtml=$withval],
-   [with_gtkhtml=no],
-)
-
-dnl ---------------------- check for '--with-gtkmozembed' switch -----------------
-AC_ARG_WITH(gtkmozembed,
-   [  --with-gtkmozembed      specify this to build dwindows with Mozilla gtkmozembed],
-   [with_gtkmozembed=$withval],
-   [with_gtkmozembed=no],
-)
 
 dnl ---------------------- check for '--with-arch' switch -----------------
 AC_ARG_WITH(arch,
@@ -190,26 +162,20 @@ case "$target" in
          intel)
             ARCH="-arch i386 -arch x86_64"
             ;;
+         powerpc)
+            ARCH="-arch ppc -arch ppc64"
+            ;;
          *)
             ARCH="-arch $with_arch"
             ;;
       esac
       SHAREDFLAG="-dynamiclib -flat_namespace -undefined suppress -headerpad_max_install_names"
       SOSUFFIX=dylib
-      if test $with_gtkframework = yes; then
-         DW_DIR=gtk
-         LIBS="$LIBS -framework Gtk -framework Glib -framework Cairo"
-         GTK_CFLAGS="-I/Library/Frameworks/Gtk.framework/Headers -I/Library/Frameworks/Glib.framework/Headers -I/Library/Frameworks/Cairo.framework/Headers"
-         build_gtk="no"
-      elif test $with_gtk = yes; then
-         build_gtk="yes"
-      else
-         DW_DIR=mac
-         DW_SRC=dw.m
-         DW_DEFINE=__MAC__
-         LIBS="$LIBS -framework Cocoa -framework WebKit"
-         build_gtk="no"
-      fi
+      DW_DIR=mac
+      DW_SRC=dw.m
+      DW_DEFINE=__MAC__
+      LIBS="$LIBS -framework Cocoa -framework WebKit"
+      build_gtk="no"
    ;;
    *)
    ;;
@@ -219,60 +185,49 @@ if test $build_gtk = "yes"; then
    AC_CHECK_PROG(PKG_CFG, pkg-config, pkg-config)
    if test x"$PKG_CFG" != x; then
       GTK_LIBS=""
-      if test $with_gtk3 = "yes"; then
-         GTK_PACKAGES="gtk+-3.0"
-         GTK_LIBS=`$PKG_CFG --silence-errors --libs $GTK_PACKAGES`
-      fi
-      WEBKIT_PKG="webkit-1.1"
-      if test x"$GTK_LIBS" = x; then
+      if test $with_gtk2 = "yes"; then
          GTK_PACKAGES="gtk+-2.0 gthread-2.0"
          GTK_LIBS=`$PKG_CFG --silence-errors --libs $GTK_PACKAGES`
-      else
-         DW_DIR=gtk3
-         WEBKIT_PKG="webkitgtk-3.0"
       fi
-      if test $with_gtkmozembed = yes; then
-         MOZEMBED_LIBS=`$PKG_CFG --silence-errors --libs firefox-gtkmozembed`
-         MOZEMBED_CFLAGS=`$PKG_CFG --silence-errors --cflags firefox-gtkmozembed`
-         RPATH=`$PKG_CFG --silence-errors --libs-only-L firefox-gtkmozembed | cut -b 3-`
-         if test x"$MOZEMBED_LIBS" = x; then
-            MOZEMBED_LIBS=`$PKG_CFG --silence-errors --libs mozilla-gtkmozembed`
-            MOZEMBED_CFLAGS=`$PKG_CFG --silence-errors --cflags mozilla-gtkmozembed`
-            RPATH=`$PKG_CFG --silence-errors --libs-only-L mozilla-gtkmozembed | cut -b 3-`
-         fi
-      elif test $with_gtkhtml = yes; then
-         MOZEMBED_LIBS=`$PKG_CFG --silence-errors --libs libgtkhtml-2.0`
-         MOZEMBED_CFLAGS=`$PKG_CFG --silence-errors --cflags libgtkhtml-2.0`
-         RPATH=`$PKG_CFG --silence-errors --libs-only-L libgtkhtml-2.0 | cut -b 3-`
+      WEBKIT_PKG="webkitgtk-3.0"
+      if test x"$GTK_LIBS" = x; then
+         GTK_PACKAGES="gtk+-3.0"
+         GTK_LIBS=`$PKG_CFG --silence-errors --libs $GTK_PACKAGES`
       else
-         # test for webkit-1.1 or webkitgtk-3.0 packages
-         MOZEMBED_CFLAGS=`$PKG_CFG --silence-errors --cflags $WEBKIT_PKG`
+         DW_DIR=gtk
+         WEBKIT_PKG="webkit-1.1"
+      fi
+      # test for webkit2gtk or webkitgtk packages
+      WEBKIT_CFLAGS=`$PKG_CFG --silence-errors --cflags $WEBKIT_PKG`
+      RPATH=`$PKG_CFG --silence-errors --libs-only-L $WEBKIT_PKG | cut -b 3-`
+      if test x"$WEBKIT_CFLAGS" = x; then
+         # no webkit-1.1 or webkitgtk-3.0, look for webkit-1.0
+         WEBKIT_PKG="webkit-1.0"
+         WEBKIT_CFLAGS=`$PKG_CFG --silence-errors --cflags $WEBKIT_PKG`
          RPATH=`$PKG_CFG --silence-errors --libs-only-L $WEBKIT_PKG | cut -b 3-`
-         if test x"$MOZEMBED_CFLAGS" = x; then
-            # no webkit-1.1 or webkitgtk-3.0, look for webkit-1.0
-            WEBKIT_PKG="webkit-1.0"
-            MOZEMBED_CFLAGS=`$PKG_CFG --silence-errors --cflags $WEBKIT_PKG`
+         if test x"$WEBKIT_CFLAGS" = x; then
+            WEBKIT_PKG="WebKitGtk"
+            WEBKIT_LIBS=`$PKG_CFG --silence-errors --libs $WEBKIT_PKG`
+            WEBKIT_CFLAGS=`$PKG_CFG --silence-errors --cflags $WEBKIT_PKG`
             RPATH=`$PKG_CFG --silence-errors --libs-only-L $WEBKIT_PKG | cut -b 3-`
-            if test x"$MOZEMBED_CFLAGS" = x; then
-               WEBKIT_PKG="WebKitGtk"
-               MOZEMBED_LIBS=`$PKG_CFG --silence-errors --libs $WEBKIT_PKG`
-               MOZEMBED_CFLAGS=`$PKG_CFG --silence-errors --cflags $WEBKIT_PKG`
-               RPATH=`$PKG_CFG --silence-errors --libs-only-L $WEBKIT_PKG | cut -b 3-`
-            else
-               AC_DEFINE(USE_WEBKIT10)
-               WEBKIT_LIB=$WEBKIT_PKG
-               MOZEMBED_LIBS=`$PKG_CFG --silence-errors --libs $WEBKIT_PKG`
-               RESULT=`echo $MOZEMBED_LIBS | grep lwebkitgtk-1.0`
-               if test x"$RESULT" != x; then
-                   WEBKIT_LIB=webkitgtk-1.0
-               fi
-            fi
          else
-            AC_DEFINE(USE_WEBKIT11)
+            AC_DEFINE(USE_WEBKIT10)
             WEBKIT_LIB=$WEBKIT_PKG
+            WEBKIT_LIBS=`$PKG_CFG --silence-errors --libs $WEBKIT_PKG`
+            RESULT=`echo $WEBKIT_LIBS | grep lwebkitgtk-1.0`
+            if test x"$RESULT" != x; then
+                WEBKIT_LIB=webkitgtk-1.0
+            fi
          fi
-         AC_DEFINE_UNQUOTED(WEBKIT_LIB, "$WEBKIT_LIB")
+      else
+         if test $with_gtk2 = "yes"; then
+            AC_DEFINE(USE_WEBKIT11)
+         else            
+            AC_DEFINE(USE_WEBKIT2)
+         fi
+         WEBKIT_LIB=$WEBKIT_PKG
       fi
+      AC_DEFINE_UNQUOTED(WEBKIT_LIB, "$WEBKIT_LIB")
       if test x"$RPATH" != x; then
          RPATH="-Wl,-R$RPATH"
       fi
@@ -309,28 +264,19 @@ if test $check_pthreads = "yes"; then
                )
 fi
 
-CFLAGS="$CFLAGS $GTK_CFLAGS $GDK_IMLIB_FLAGS $MOZEMBED_CFLAGS"
+CFLAGS="$CFLAGS $GTK_CFLAGS $GDK_IMLIB_FLAGS $WEBKIT_CFLAGS"
 
 if test $with_deprecated = yes; then
    CFLAGS="$CFLAGS -DDW_INCLUDE_DEPRECATED"
 fi
-BROWSER_OBJECT=""
-if test x"$MOZEMBED_CFLAGS" != x; then
+if test x"$WEBKIT_CFLAGS" != x; then
    SAVE_LIBS="$LIBS"
-   LIBS="$RPATH $LIBS $GTK_LIBS $PTHREAD_LIBS $GDK_IMLIB_LIBS $MOZEMBED_LIBS"
-   BROWSER_OBJECT="browser.o"
-   if test $with_gtkmozembed = yes; then
-      AC_CHECK_LIB(gtkembedmoz,gtk_moz_embed_new,AC_DEFINE(USE_GTKMOZEMBED),BROWSER_OBJECT="")
-   elif test $with_gtkhtml = yes; then
-      AC_CHECK_LIB(gtkhtml-2,html_document_new,AC_DEFINE(USE_LIBGTKHTML2),BROWSER_OBJECT="")
-   else
-      AC_CHECK_LIB($WEBKIT_LIB,webkit_web_view_new,AC_DEFINE(USE_WEBKIT),BROWSER_OBJECT="")
-      BROWSER_OBJECT=""
-   fi
+   LIBS="$RPATH $LIBS $GTK_LIBS $PTHREAD_LIBS $GDK_IMLIB_LIBS $WEBKIT_LIBS"
+   AC_CHECK_LIB($WEBKIT_LIB,webkit_web_view_new,AC_DEFINE(USE_WEBKIT),)
    LIBS="$SAVE_LIBS"
 fi
 
-LIBS="$RPATH $LIBS $GTK_LIBS $PTHREAD_LIBS $GDK_IMLIB_LIBS $MOZEMBED_LIBS $PLATLIBS"
+LIBS="$RPATH $LIBS $GTK_LIBS $PTHREAD_LIBS $GDK_IMLIB_LIBS $WEBKIT_LIBS $PLATLIBS"
 
 AC_CHECK_FUNCS(ubuntu_overlay_scrollbar_set_enabled, AC_DEFINE(HAVE_OVERLAY_SCROLLBARS,1,Define if we have Ubuntu overlay scrollbars))
 AC_CHECK_FUNCS(ubuntu_gtk_set_use_overlay_scrollbar, AC_DEFINE(HAVE_OVERLAY_SCROLLBARS2,1,Define if we have Ubuntu overlay scrollbars))
