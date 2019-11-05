@@ -45,11 +45,19 @@
 #define DWModalResponseOK NSModalResponseOK
 #define DWModalResponseCancel NSModalResponseCancel
 #define DWPaperOrientationPortrait NSPaperOrientationPortrait
+#define DWCalendarUnitDay NSCalendarUnitDay
+#define DWCalendarUnitMonth NSCalendarUnitMonth
+#define DWCalendarUnitYear NSCalendarUnitYear
+#define DWCalendarIdentifierGregorian NSCalendarIdentifierGregorian
 #define BUILDING_FOR_YOSEMITE
 #else
 #define DWModalResponseOK NSOKButton
 #define DWModalResponseCancel NSCancelButton
 #define DWPaperOrientationPortrait NSPortraitOrientation
+#define DWCalendarUnitDay NSDayCalendarUnit
+#define DWCalendarUnitMonth NSMonthCalendarUnit
+#define DWCalendarUnitYear NSYearCalendarUnit
+#define DWCalendarIdentifierGregorian (NSString *)kCFGregorianCalendar
 #endif
 
 /* Handle deprecation of several constants in 10.12...
@@ -8632,9 +8640,9 @@ void dw_calendar_get_date(HWND handle, unsigned int *year, unsigned int *month, 
 {
     DWCalendar *calendar = handle;
     DW_LOCAL_POOL_IN;
-    NSCalendar *mycalendar = [[NSCalendar alloc] initWithCalendarIdentifier:NSCalendarIdentifierGregorian];
+    NSCalendar *mycalendar = [[NSCalendar alloc] initWithCalendarIdentifier:DWCalendarIdentifierGregorian];
     NSDate *date = [calendar dateValue];
-    NSDateComponents* components = [mycalendar components:NSCalendarUnitDay|NSCalendarUnitMonth|NSCalendarUnitYear fromDate:date];
+    NSDateComponents* components = [mycalendar components:DWCalendarUnitDay|DWCalendarUnitMonth|DWCalendarUnitYear fromDate:date];
     *day = [components day];
     *month = [components month];
     *year = [components year];
