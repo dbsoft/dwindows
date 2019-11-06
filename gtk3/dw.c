@@ -11508,13 +11508,17 @@ int dw_html_url(HWND handle, char *url)
  */
 int dw_html_javascript_run(HWND handle, char *script, void *scriptdata)
 {
-#ifdef USE_WEBKIT2
+#ifdef USE_WEBKIT
    int _locked_by_me = FALSE;
    WebKitWebView *web_view;
    
    DW_MUTEX_LOCK;
    if((web_view = _dw_html_web_view(handle)))
-      webkit_web_view_run_javascript (web_view, script, NULL, _html_result_event, scriptdata);
+#ifdef USE_WEBKIT2
+      webkit_web_view_run_javascript(web_view, script, NULL, _html_result_event, scriptdata);
+#else
+      webkit_web_view_execute_script(web_view, script);
+#endif
    DW_MUTEX_UNLOCK;
    return DW_ERROR_NONE;
 #else
@@ -11558,9 +11562,14 @@ HWND dw_html_new(unsigned long id)
 #ifdef USE_WEBKIT
    int _locked_by_me = FALSE;
    WebKitWebView *web_view;
+   WebKitSettings *settings;
 
    DW_MUTEX_LOCK;
    web_view = (WebKitWebView *)webkit_web_view_new();
+   settings = webkit_web_view_get_settings(web_view);
+   /* Make sure java script is enabled */
+   webkit_settings_set_enable_javascript(settings, TRUE);
+   webkit_web_view_set_settings(web_view, settings);
    /* WebKit2 no longer requires a scrolled window...
     * So only create a scrolled window and pack it in older versions.
     */
