@@ -160,6 +160,14 @@ static gint _tree_select_event(GtkTreeSelection *sel, gpointer data);
 static gint _tree_expand_event(GtkTreeView *treeview, GtkTreeIter *arg1, GtkTreePath *arg2, gpointer data);
 static gint _switch_page_event(GtkNotebook *notebook, GtkWidget *page, guint page_num, gpointer data);
 static gint _column_click_event(GtkWidget *widget, gpointer data);
+static void _html_result_event(GObject *object, GAsyncResult *result, gpointer script_data);
+#ifdef USE_WEBKIT
+#ifdef USE_WEBKIT2
+static void _html_changed_event(WebKitWebView  *web_view, WebKitLoadEvent load_event, gpointer data);
+#else
+static void _html_changed_event(WebKitWebView  *web_view, WebKitWebFrame *frame, gpointer user_data);
+#endif
+#endif
 static void _dw_signal_disconnect(gpointer data, GClosure *closure);
 
 GObject *_DWObject = NULL;
@@ -183,7 +191,7 @@ typedef struct
 
 } SignalHandler;
 
-#define SIGNALMAX 18
+#define SIGNALMAX 20
 
 /* A list of signal forwarders, to account for paramater differences. */
 static SignalList SignalTranslate[SIGNALMAX] = {
@@ -204,7 +212,13 @@ static SignalList SignalTranslate[SIGNALMAX] = {
    { _value_changed_event,     DW_SIGNAL_VALUE_CHANGED },
    { _switch_page_event,       DW_SIGNAL_SWITCH_PAGE },
    { _column_click_event,      DW_SIGNAL_COLUMN_CLICK },
-   { _tree_expand_event,       DW_SIGNAL_TREE_EXPAND }
+   { _tree_expand_event,       DW_SIGNAL_TREE_EXPAND },
+#ifdef USE_WEBKIT
+   { _html_changed_event,      DW_SIGNAL_HTML_CHANGED },
+#else
+   { _generic_event,           DW_SIGNAL_HTML_CHANGED },
+#endif
+   { _html_result_event,       DW_SIGNAL_HTML_RESULT }
 };
 
 /* Alignment flags */
@@ -1184,6 +1198,109 @@ static void _set_signal_handler_id(GtkWidget *widget, int counter, gint cid)
    sprintf(text, "_dw_sigcid%d", counter);
    g_object_set_data(G_OBJECT(widget), text, GINT_TO_POINTER(cid));
 }
+
+static void _html_result_event(GObject *object, GAsyncResult *result, gpointer script_data)
+{
+#if USE_WEBKIT2
+    WebKitJavascriptResult *js_result;
+    JSCValue *value;
+    GError *error = NULL;
+    int (*htmlresultfunc)(HWND, int, char *, void *, void *) = NULL;
+    gint handlerdata = GPOINTER_TO_INT(g_object_get_data(object, "_dw_html_result_id"));
+    void *user_data = NULL;
+
+    if(handlerdata)
+    {
+        SignalHandler work;
+        void *params[3] = { GINT_TO_POINTER(handlerdata-1), 0, object };
+
+        work = _get_signal_handler(params);
+
+        if(work.window)
+        {
+            htmlresultfunc = work.func;
+            user_data = work.data;
+        }
+    }
+
+    if(!(js_result = webkit_web_view_run_javascript_finish(WEBKIT_WEB_VIEW(object), result, &error)))
+    {
+        if(htmlresultfunc)
+           htmlresultfunc((HWND)object, DW_ERROR_UNKNOWN, error->message, user_data, script_data);
+        g_error_free (error);
+        return;
+    }
+
+    value = webkit_javascript_result_get_js_value(js_result);
+    if(jsc_value_is_string(value)) 
+    {
+        gchar *str_value = jsc_value_to_string(value);
+        JSCException *exception = jsc_context_get_exception(jsc_value_get_context(value));
+        
+        if(htmlresultfunc)
+        {
+           if(exception)
+               htmlresultfunc((HWND)object, DW_ERROR_UNKNOWN, (char *)jsc_exception_get_message(exception), user_data, script_data);
+           else
+               htmlresultfunc((HWND)object, DW_ERROR_NONE, str_value, user_data, script_data);
+        }
+        g_free (str_value);
+    } 
+    else if(htmlresultfunc)
+        htmlresultfunc((HWND)object, DW_ERROR_UNKNOWN, "Unknown javascript error", user_data, script_data);
+    webkit_javascript_result_unref (js_result);
+#endif
+}
+
+#ifdef USE_WEBKIT
+#ifdef USE_WEBKIT2
+static void _html_changed_event(WebKitWebView  *web_view, WebKitLoadEvent load_event, gpointer data)
+{
+    SignalHandler work = _get_signal_handler(data);
+    char *location = (char *)webkit_web_view_get_uri(web_view);
+    int status = 0;
+    
+    switch (load_event) {
+    case WEBKIT_LOAD_STARTED:
+        status = DW_HTML_CHANGE_STARTED;
+        break;
+    case WEBKIT_LOAD_REDIRECTED:
+        status = DW_HTML_CHANGE_REDIRECT;
+        break;
+    case WEBKIT_LOAD_COMMITTED:
+        status = DW_HTML_CHANGE_LOADING;
+        break;
+    case WEBKIT_LOAD_FINISHED:
+        status = DW_HTML_CHANGE_COMPLETE;
+        break;
+    }
+    if(status && location && work.window && work.func)
+    {
+        int (*htmlchangedfunc)(HWND, int, char *, void *) = work.func;
+        
+        htmlchangedfunc(work.window, status, location, work.data);
+    }
+}
+#else
+static void _html_changed_event(WebKitWebView  *web_view, WebKitWebFrame *frame, gpointer data)
+{
+    SignalHandler work = _get_signal_handler(data);
+    char *location = (char *)webkit_web_view_get_uri(web_view);
+    int status = 0;
+    void **params = data;
+    
+    if(params)
+      status = DW_POINTER_TO_INT(params[1]);
+      
+    if(status && location && work.window && work.func)
+    {
+        int (*htmlchangedfunc)(HWND, int, char *, void *) = work.func;
+        
+        htmlchangedfunc(work.window, status, location, work.data);
+    }
+}
+#endif
+#endif
 
 static gint _set_focus_event(GtkWindow *window, GtkWidget *widget, gpointer data)
 {
@@ -11302,6 +11419,7 @@ void dw_html_action(HWND handle, int action)
 #ifdef USE_WEBKIT2
                WebKitPrintOperation *operation = webkit_print_operation_new(web_view);
                webkit_print_operation_run_dialog(operation, NULL);
+               g_object_unref(operation);
 #else         
                WebKitWebFrame *frame = webkit_web_view_get_focused_frame(web_view);
                webkit_web_frame_print(frame);
@@ -11371,6 +11489,32 @@ int dw_html_url(HWND handle, char *url)
 #endif      
       gtk_widget_show(GTK_WIDGET(handle));
    }
+   DW_MUTEX_UNLOCK;
+   return DW_ERROR_NONE;
+#else
+   return DW_ERROR_UNKNOWN;
+#endif
+}
+
+/*
+ * Executes the javascript contained in "script" in the HTML window.
+ * Parameters:
+ *       handle: Handle to the HTML window.
+ *       script: Javascript code to execute.
+ *       scriptdata: Data passed to the signal handler.
+ * Notes: A DW_SIGNAL_HTML_RESULT event will be raised with scriptdata.
+ * Returns:
+ *       DW_ERROR_NONE (0) on success.
+ */
+int dw_html_javascript_run(HWND handle, char *script, void *scriptdata)
+{
+#ifdef USE_WEBKIT2
+   int _locked_by_me = FALSE;
+   WebKitWebView *web_view;
+   
+   DW_MUTEX_LOCK;
+   if((web_view = _dw_html_web_view(handle)))
+      webkit_web_view_run_javascript (web_view, script, NULL, _html_result_event, scriptdata);
    DW_MUTEX_UNLOCK;
    return DW_ERROR_NONE;
 #else
@@ -11902,6 +12046,45 @@ void dw_signal_connect_data(HWND window, char *signame, void *sigfunc, void *dis
       if (GTK_IS_COMBO_BOX(thiswindow))
          thiswindow = gtk_bin_get_child(GTK_BIN(thiswindow));
    }
+#ifdef USE_WEBKIT
+   else if (WEBKIT_IS_WEB_VIEW(thiswindow) && strcmp(signame, DW_SIGNAL_HTML_CHANGED) == 0)
+   {
+#ifdef USE_WEBKIT2
+      thisname = "load-changed";
+#else
+      sigid = _set_signal_handler(thiswindow, window, sigfunc, data, thisfunc, discfunc);
+      params[0] = GINT_TO_POINTER(sigid);
+      params[1] = GINT_TO_POINTER(DW_HTML_CHANGE_STARTED);
+      params[2] = (void *)thiswindow;
+      cid = g_signal_connect_data(G_OBJECT(thiswindow), "load-started", G_CALLBACK(thisfunc), params, _dw_signal_disconnect, 0);
+      _set_signal_handler_id(thiswindow, sigid, cid);
+
+      params = calloc(sizeof(void *), 3);
+
+      sigid = _set_signal_handler(thiswindow, window, sigfunc, data, thisfunc, discfunc);
+      params[0] = GINT_TO_POINTER(sigid);
+      params[1] = GINT_TO_POINTER(DW_HTML_CHANGE_LOADING);
+      params[2] = (void *)thiswindow;
+      cid = g_signal_connect_data(G_OBJECT(thiswindow), "load-committed", G_CALLBACK(thisfunc), params, _dw_signal_disconnect, 0);
+      _set_signal_handler_id(thiswindow, sigid, cid);
+
+      params = calloc(sizeof(void *), 3);
+      params[1] = GINT_TO_POINTER(DW_HTML_CHANGE_COMPLETE);
+
+      thisname = "load-finished";
+#endif
+   }
+   else if (WEBKIT_IS_WEB_VIEW(thiswindow) && strcmp(signame, DW_SIGNAL_HTML_RESULT) == 0)
+   {
+      /* We don't actually need a signal handler here... just need to assign the handler ID
+       * Since the handler is created in dw_html_javasript_run()
+       */
+      sigid = _set_signal_handler(thiswindow, window, sigfunc, data, _html_result_event, discfunc);
+      g_object_set_data(G_OBJECT(thiswindow), "_dw_html_result_id", GINT_TO_POINTER(sigid+1));
+      DW_MUTEX_UNLOCK;
+      return;
+   }
+#endif
 #if 0
    else if (strcmp(signame, DW_SIGNAL_LOSE_FOCUS) == 0)
    {
