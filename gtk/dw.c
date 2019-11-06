@@ -3,7 +3,7 @@
  *          A GTK like cross-platform GUI
  *          GTK forwarder module for portabilty.
  *
- * (C) 2000-2017 Brian Smith <brian@dbsoft.org>
+ * (C) 2000-2019 Brian Smith <brian@dbsoft.org>
  * (C) 2003-2011 Mark Hessling <mark@rexx.org>
  * (C) 2002 Nickolay V. Shmyrev <shmyrev@yandex.ru>
  */
@@ -34,16 +34,6 @@
 #include <gdk_imlib.h>
 #endif
 
-#ifdef USE_GTKMOZEMBED
-# include <gtkmozembed.h>
-# undef GTK_TYPE_MOZ_EMBED
-# define GTK_TYPE_MOZ_EMBED             (_dw_moz_embed_get_type())
-#endif
-
-#ifdef USE_LIBGTKHTML2
-# include <libgtkhtml/gtkhtml.h>
-#endif
-
 #ifdef USE_WEBKIT
 # if defined(USE_WEBKIT10) || defined(USE_WEBKIT11)
 #  include <webkit/webkit.h>
@@ -68,11 +58,6 @@
 #include "gtk/messagebox_warning.xpm"
 #include "gtk/messagebox_information.xpm"
 #include "gtk/messagebox_question.xpm"
-
-#ifdef USE_GTKMOZEMBED
-extern gint mozilla_get_mouse_event_button(gpointer event);
-extern gint mozilla_get_mouse_location( gpointer event, glong *x, glong *y);
-#endif
 
 /* These are used for resource management */
 #if defined(DW_RESOURCES) && !defined(BUILD_DLL)
@@ -178,29 +163,6 @@ static gint _tree_expand_event(GtkTreeItem *treeitem, gpointer data);
 static gint _switch_page_event(GtkNotebook *notebook, GtkNotebookPage *page, guint page_num, gpointer data);
 static gint _column_click_event(GtkWidget *widget, gint column_num, gpointer data);
 static void _dw_signal_disconnect(gpointer data, GClosure *closure);
-
-/* Embedable Mozilla functions*/
-#ifdef USE_GTKMOZEMBED
-void (*_gtk_moz_embed_go_back)(GtkMozEmbed *) = NULL;
-void (*_gtk_moz_embed_go_forward)(GtkMozEmbed *) = NULL;
-void (*_gtk_moz_embed_load_url)(GtkMozEmbed *, const char *) = NULL;
-void (*_gtk_moz_embed_reload)(GtkMozEmbed *, guint32) = NULL;
-void (*_gtk_moz_embed_stop_load)(GtkMozEmbed *) = NULL;
-void (*_gtk_moz_embed_render_data)(GtkMozEmbed *, const char *, guint32, const char *, const char *) = NULL;
-GtkWidget *(*_gtk_moz_embed_new)(void) = NULL;
-GtkType (*_dw_moz_embed_get_type)(void) = NULL;
-gboolean (*_gtk_moz_embed_can_go_back)(GtkMozEmbed *) = NULL;
-gboolean (*_gtk_moz_embed_can_go_forward)(GtkMozEmbed *) = NULL;
-void (*_gtk_moz_embed_set_comp_path)(const char *) = NULL;
-void (*_gtk_moz_embed_set_profile_path)(const char *, const char *) = NULL;
-void (*_gtk_moz_embed_push_startup)(void) = NULL;
-#endif
-
-#ifdef USE_LIBGTKHTML2
-GtkHtmlContext *(*_gtk_html_context_get)(void) = NULL;
-HtmlDocument *(*_html_document_new)(void) = NULL;
-GtkWidget *(*_html_view_new)(void) = NULL;
-#endif
 
 #ifdef USE_WEBKIT
 /*
@@ -1983,98 +1945,6 @@ static void _size_allocate(GtkWindow *window)
 }
 #endif
 
-/* Try to load the mozilla embed shared libary */
-#ifdef USE_GTKMOZEMBED
-#include <ctype.h>
-
-void init_mozembed(void)
-{
-   void *handle = NULL;
-   gchar *profile;
-   handle = dlopen( "libgtkembedmoz.so", RTLD_LAZY );
-
-   /* If we loaded it, grab the symbols we want */
-   if ( handle )
-   {
-      _gtk_moz_embed_go_back = dlsym(handle, "gtk_moz_embed_go_back");
-      _gtk_moz_embed_go_forward = dlsym(handle, "gtk_moz_embed_go_forward");
-      _gtk_moz_embed_load_url = dlsym(handle, "gtk_moz_embed_load_url");
-      _gtk_moz_embed_reload = dlsym(handle, "gtk_moz_embed_reload");
-      _gtk_moz_embed_stop_load = dlsym(handle, "gtk_moz_embed_stop_load");
-      _gtk_moz_embed_render_data = dlsym(handle, "gtk_moz_embed_render_data");
-      _dw_moz_embed_get_type = dlsym(handle, "gtk_moz_embed_get_type");
-      _gtk_moz_embed_new = dlsym(handle, "gtk_moz_embed_new");
-      _gtk_moz_embed_can_go_back = dlsym(handle, "gtk_moz_embed_can_go_back");
-      _gtk_moz_embed_can_go_forward = dlsym(handle, "gtk_moz_embed_can_go_forward");
-      _gtk_moz_embed_set_comp_path = dlsym(handle, "gtk_moz_embed_set_comp_path");
-      _gtk_moz_embed_set_profile_path = dlsym(handle, "gtk_moz_embed_set_profile_path");
-      _gtk_moz_embed_push_startup = dlsym(handle, "gtk_moz_embed_push_startup");
-      _gtk_moz_embed_set_comp_path( "/usr/lib/mozilla");
-      _gtk_moz_embed_set_comp_path( "/usr/lib/firefox");
-      profile = g_build_filename(g_get_home_dir(), ".dwindows/mozilla", NULL);
-
-      /* initialize profile */
-      _gtk_moz_embed_set_profile_path(profile, "dwindows");
-      g_free(profile);
-
-      /* startup done */
-      _gtk_moz_embed_push_startup();
-   }
-}
-#endif
-
-/* Try to load the libgtkhtml2 shared libary */
-#ifdef USE_LIBGTKHTML2
-#include <ctype.h>
-
-void init_libgtkhtml2 (void)
-{
-   void *handle = NULL;
-   handle = dlopen( "libgtkhtml-2.so", RTLD_LAZY );
-
-   /* If we loaded it, grab the symbols we want */
-   if ( handle )
-   {
-      _html_document_new = dlsym(handle, "html_document_new");
-      _html_view_new = dlsym(handle, "html_view_new");
-      //...
-      _gtk_html_context_get = dlsym(handle, "gtk_html_context_get" );
-      g_object_set( G_OBJECT(_gtk_html_context_get()), "debug_painting", FALSE, NULL );
-   }
-}
-#endif
-
-/* Try to load the WebKitGtk shared libary */
-#ifdef USE_WEBKIT
-void init_webkit(void)
-{
-   char libname[101] = {0};
-   void *handle = NULL;
-
-   snprintf( libname, 100, "lib%s.so", WEBKIT_LIB);
-   handle = dlopen( libname, RTLD_LAZY );
-
-   /* If we loaded it, grab the symbols we want */
-   if ( handle )
-   {
-      _webkit_web_view_get_type = dlsym( handle, "webkit_web_view_get_type" );
-      _webkit_web_view_load_html_string = dlsym( handle, "webkit_web_view_load_html_string" );
-      _webkit_web_view_open = dlsym( handle, "webkit_web_view_open" );
-      _webkit_web_view_new = dlsym( handle, "webkit_web_view_new" );
-      _webkit_web_view_go_back = dlsym( handle, "webkit_web_view_go_back" );
-      _webkit_web_view_go_forward = dlsym( handle, "webkit_web_view_go_forward" );
-      _webkit_web_view_reload = dlsym( handle, "webkit_web_view_reload" );
-      _webkit_web_view_stop_loading = dlsym( handle, "webkit_web_view_stop_loading" );
-# ifdef WEBKIT_CHECK_VERSION
-#  if WEBKIT_CHECK_VERSION(1,1,5)
-      _webkit_web_frame_print = dlsym( handle, "webkit_web_frame_print" );
-      _webkit_web_view_get_focused_frame = dlsym( handle, "webkit_web_view_get_focused_frame" );
-#  endif
-# endif
-   }
-}
-#endif
-
 #if GLIB_CHECK_VERSION(2,32,0)
 static GRecMutex _dw_gdk_lock;
 
@@ -2189,18 +2059,6 @@ int dw_int_init(DWResources *res, int newthread, int *argc, char **argv[])
    _dw_init_thread();
 
    gtk_rc_parse_string("style \"gtk-tooltips-style\" { bg[NORMAL] = \"#eeee00\" } widget \"gtk-tooltips\" style \"gtk-tooltips-style\"");
-
-#ifdef USE_GTKMOZEMBED
-   init_mozembed();
-#endif
-
-#ifdef USE_LIBGTKHTML2
-   init_libgtkhtml2();
-#endif
-
-#ifdef USE_WEBKIT
-   init_webkit();
-#endif
 
    /* Create place holder pixmap/bitmap when one is needed by the API...
     * but we don't really want to display anything.
@@ -6944,7 +6802,7 @@ void dw_tree_item_delete(HWND handle, HTREEITEM item)
 static int _dw_container_setup(HWND handle, unsigned long *flags, char **titles, int count, int separator, int extra)
 {
    GtkWidget *clist;
-   char numbuf[11] = {0};
+   char numbuf[25] = {0};
    int z, multi;
    int _locked_by_me = FALSE;
    GtkJustification justification;
@@ -6978,7 +6836,7 @@ static int _dw_container_setup(HWND handle, unsigned long *flags, char **titles,
    {
       if(!extra || z > 1)
          gtk_clist_set_column_width(GTK_CLIST(clist), z, 50);
-      snprintf(numbuf, 10, "%d", z);
+      snprintf(numbuf, 24, "%d", z);
       gtk_object_set_data(GTK_OBJECT(clist), numbuf, GINT_TO_POINTER(flags[z]));
       if(flags[z]&DW_CFA_RIGHT)
          justification = GTK_JUSTIFY_RIGHT;
@@ -12953,66 +12811,38 @@ int dw_browse(char *url)
  */
 void dw_html_action(HWND handle, int action)
 {
-#ifdef USE_GTKMOZEMBED
-   int _locked_by_me = FALSE;
-
-   if(!_gtk_moz_embed_new)
-      return;
-
-   DW_MUTEX_LOCK;
-   switch(action)
-   {
-      case DW_HTML_GOBACK:
-         _gtk_moz_embed_go_back(GTK_MOZ_EMBED(handle));
-         break;
-      case DW_HTML_GOFORWARD:
-         _gtk_moz_embed_go_forward(GTK_MOZ_EMBED(handle));
-         break;
-      case DW_HTML_GOHOME:
-         _gtk_moz_embed_load_url(GTK_MOZ_EMBED(handle), "http://dwindows.netlabs.org");
-         break;
-      case DW_HTML_RELOAD:
-         _gtk_moz_embed_reload(GTK_MOZ_EMBED(handle), 0);
-         break;
-      case DW_HTML_STOP:
-         _gtk_moz_embed_stop_load(GTK_MOZ_EMBED(handle));
-         break;
-   }
-   DW_MUTEX_UNLOCK;
-#elif defined(USE_WEBKIT)
+#ifdef USE_WEBKIT
    int _locked_by_me = FALSE;
    WebKitWebView *web_view;
-   WebKitWebFrame *frame;
-
-   if (!_webkit_web_view_open)
-      return;
 
    DW_MUTEX_LOCK;
    web_view = (WebKitWebView *)gtk_object_get_data(GTK_OBJECT(handle), "_dw_web_view");
-   if ( web_view )
+   if(web_view)
    {
-      switch( action )
+      WebKitWebFrame *frame;
+      
+      switch(action)
       {
          case DW_HTML_GOBACK:
-            _webkit_web_view_go_back( web_view );
+            webkit_web_view_go_back(web_view);
             break;
          case DW_HTML_GOFORWARD:
-            _webkit_web_view_go_forward( web_view );
+            webkit_web_view_go_forward(web_view);
             break;
          case DW_HTML_GOHOME:
-            _webkit_web_view_open( web_view, "http://dwindows.netlabs.org" );
+            webkit_web_view_open(web_view, DW_HOME_URL);
             break;
          case DW_HTML_RELOAD:
-            _webkit_web_view_reload( web_view );
+            webkit_web_view_reload(web_view);
             break;
          case DW_HTML_STOP:
-            _webkit_web_view_stop_loading( web_view );
+            webkit_web_view_stop_loading(web_view);
             break;
 # ifdef WEBKIT_CHECK_VERSION
 #  if WEBKIT_CHECK_VERSION(1,1,5)
          case DW_HTML_PRINT:
-            frame = _webkit_web_view_get_focused_frame( web_view );
-            _webkit_web_frame_print( frame );
+            frame = webkit_web_view_get_focused_frame(web_view);
+            webkit_web_frame_print(frame);
             break;
 #  endif
 # endif
@@ -13022,25 +12852,6 @@ void dw_html_action(HWND handle, int action)
 #endif
 }
 
-#ifdef USE_LIBGTKHTML2
-void _dw_html_render_data( HWND handle, char *string, int i )
-{
-   HtmlDocument *document;
-
-   html_view_set_document (HTML_VIEW(handle), NULL);
-   document = (HtmlDocument *)gtk_object_get_data(GTK_OBJECT(handle), "_dw_html_document" );
-/*   html_document_clear (document);*/
-   if ( document )
-   {
-      html_view_set_document (HTML_VIEW(handle), document);
-      if ( html_document_open_stream( document, "text/html" ) )
-      {
-         html_document_write_stream( document, string, i );
-      }
-      html_document_close_stream (document);
-   }
-}
-#endif
 /*
  * Render raw HTML code in the embedded HTML widget..
  * Parameters:
@@ -13052,46 +12863,21 @@ void _dw_html_render_data( HWND handle, char *string, int i )
  */
 int dw_html_raw(HWND handle, char *string)
 {
-#ifdef USE_GTKMOZEMBED
-   int _locked_by_me = FALSE;
-
-   if (!_gtk_moz_embed_new)
-      return -1;
-
-   DW_MUTEX_LOCK;
-   _gtk_moz_embed_render_data(GTK_MOZ_EMBED(handle), string, strlen(string), "file:///", "text/html");
-   gtk_widget_show(GTK_WIDGET(handle));
-   DW_MUTEX_UNLOCK;
-   return 0;
-#elif defined(USE_LIBGTKHTML2)
-   int _locked_by_me = FALSE;
-
-   if ( !_html_document_new )
-      return -1;
-
-   DW_MUTEX_LOCK;
-   _dw_html_render_data( handle, string, strlen(string) );
-   gtk_widget_show( GTK_WIDGET(handle) );
-   DW_MUTEX_UNLOCK;
-   return 0;
-#elif defined(USE_WEBKIT)
+#ifdef USE_WEBKIT
    int _locked_by_me = FALSE;
    WebKitWebView *web_view;
 
-   if (!_webkit_web_view_open)
-      return -1;
-
    DW_MUTEX_LOCK;
    web_view = (WebKitWebView *)gtk_object_get_data(GTK_OBJECT(handle), "_dw_web_view");
-   if ( web_view )
+   if(web_view)
    {
-      _webkit_web_view_load_html_string( web_view, string, "file:///");
+      webkit_web_view_load_html_string( web_view, string, "file:///");
       gtk_widget_show( GTK_WIDGET(handle) );
    }
    DW_MUTEX_UNLOCK;
-   return 0;
+   return DW_ERROR_NONE;
 #endif
-   return -1;
+   return DW_ERROR_UNKNOWN;
 }
 
 /*
@@ -13105,178 +12891,47 @@ int dw_html_raw(HWND handle, char *string)
  */
 int dw_html_url(HWND handle, char *url)
 {
-#ifdef USE_GTKMOZEMBED
-   int _locked_by_me = FALSE;
-
-   if (!_gtk_moz_embed_new)
-      return -1;
-
-   DW_MUTEX_LOCK;
-   _gtk_moz_embed_load_url( GTK_MOZ_EMBED(handle), url );
-   gtk_widget_show(GTK_WIDGET(handle));
-   DW_MUTEX_UNLOCK;
-   return 0;
-#elif defined( USE_WEBKIT )
+#ifdef USE_WEBKIT
    int _locked_by_me = FALSE;
    WebKitWebView *web_view;
 
-   if (!_webkit_web_view_open)
-      return -1;
-
    DW_MUTEX_LOCK;
    web_view = (WebKitWebView *)gtk_object_get_data(GTK_OBJECT(handle), "_dw_web_view");
-   if ( web_view )
+   if(web_view)
    {
-      _webkit_web_view_open( web_view, url );
+      webkit_web_view_open(web_view, url);
       gtk_widget_show(GTK_WIDGET(handle));
    }
    DW_MUTEX_UNLOCK;
-   return 0;
+   return DW_ERROR_NONE;
 #endif
-   return -1;
+   return DW_ERROR_UNKNOWN;
 }
-
-#ifdef USE_GTKMOZEMBED
-/*
- * Callback for a HTML widget when the "Forward" menu item is selected
- */
-static int _dw_html_forward_callback(HWND window, void *data)
-{
-   HWND handle=(HWND)data;
-   dw_html_action( handle, DW_HTML_GOFORWARD );
-   return TRUE;
-}
-
-/*
- * Callback for a HTML widget when the "Back" menu item is selected
- */
-static int _dw_html_backward_callback(HWND window, void *data)
-{
-   HWND handle=(HWND)data;
-   dw_html_action( handle, DW_HTML_GOBACK );
-   return TRUE;
-}
-
-/*
- * Callback for a HTML widget when the "Reload" menu item is selected
- */
-static int _dw_html_reload_callback(HWND window, void *data)
-{
-   HWND handle=(HWND)data;
-   dw_html_action( handle, DW_HTML_RELOAD );
-   return TRUE;
-}
-
-/*
- * Callback for a HTML widget when a page has completed loading
- * Once the page has finished loading, show the widget.
- */
-void _dw_html_net_stop_cb( GtkMozEmbed *embed, gpointer data )
-{
-   gtk_widget_show(GTK_WIDGET(data));
-}
-
-/*
- * Callback for a HTML widget when a mouse button is clicked inside the widget
- * If the right mouse button is clicked, popup a context menu
- */
-static gint _dw_dom_mouse_click_cb (GtkMozEmbed *dummy, gpointer dom_event, gpointer embed)
-{
-   gint  button,rc;
-   glong x,y;
-   int flags;
-
-   button = mozilla_get_mouse_event_button( dom_event );
-   if ( button == 2 )
-   {
-      HWND menuitem;
-      HMENUI popup;
-      /*
-       * Right mouse button; display context menu
-       */
-      rc = mozilla_get_mouse_location( dom_event, &x, &y);
-      popup = dw_menu_new( 0 );
-      if ( _gtk_moz_embed_can_go_forward(GTK_MOZ_EMBED(embed) ) )
-         flags = DW_MIS_ENABLED;
-      else
-         flags = DW_MIS_DISABLED;
-      menuitem = dw_menu_append_item( popup, "Forward", 1, flags, TRUE, FALSE, 0 );
-      dw_signal_connect( menuitem, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(_dw_html_forward_callback), embed );
-
-      if ( _gtk_moz_embed_can_go_back(GTK_MOZ_EMBED(embed) ) )
-         flags = DW_MIS_ENABLED;
-      else
-         flags = DW_MIS_DISABLED;
-      menuitem = dw_menu_append_item( popup, "Back", 2, flags, TRUE, FALSE, 0 );
-      dw_signal_connect( menuitem, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(_dw_html_backward_callback), embed );
-
-      dw_menu_append_item( popup, DW_MENU_SEPARATOR, 99, 0, TRUE, FALSE, 0 );
-
-      menuitem = dw_menu_append_item( popup, "Reload", 3, 0, TRUE, FALSE, 0 );
-      dw_signal_connect( menuitem, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(_dw_html_reload_callback), embed );
-
-      dw_menu_popup( &popup, embed, x, y );
-      rc = TRUE;
-   }
-   else
-   {
-      rc = FALSE;
-   }
-   return rc;
-}
-#endif
-
-#ifdef USE_LIBGTKHTML2
-static gboolean dom_mouse_down( HtmlDocument *doc, DomMouseEvent *event, gpointer data )
-{
-fprintf(stderr,"mouse down\n");
-return TRUE;
-}
-static gboolean dom_mouse_up( HtmlDocument *doc, DomMouseEvent *event, gpointer data )
-{
-fprintf(stderr,"mouse up\n");
-return TRUE;
-}
-static gboolean dom_mouse_click( HtmlDocument *doc, DomMouseEvent *event, gpointer data )
-{
-fprintf(stderr,"mouse click\n");
-return TRUE;
-}
-static gboolean url_requested (HtmlDocument *doc, const gchar *url, HtmlStream *stream)
-{
-fprintf(stderr,"URL IS REQUESTED: %s\n",url);
-return TRUE;
-}
-static void link_clicked (HtmlDocument *doc, const gchar *url)
-{
-fprintf(stderr,"link clicked: %s!\n", url);
-}
-#endif
 
 #ifdef USE_WEBKIT
 # ifdef WEBKIT_CHECK_VERSION
 #  if WEBKIT_CHECK_VERSION(1,1,5)
-static void _dw_html_print_cb( GtkWidget *widget, gpointer *data )
+static void _dw_html_print_cb(GtkWidget *widget, gpointer *data)
 {
-   WebKitWebView *web_view = DW_WEBKIT_WEB_VIEW(data);
+   WebKitWebView *web_view = WEBKIT_WEB_VIEW(data);
    WebKitWebFrame *frame;
 
-   frame = _webkit_web_view_get_focused_frame( web_view );
-   _webkit_web_frame_print( frame );
+   frame = webkit_web_view_get_focused_frame(web_view);
+   webkit_web_frame_print(frame);
 }
 /*
  * Fired when the user right-clicks to get the popup-menu on the HTML widget
  * We add a "Print" menu item to enable printing
  * user_data is not used
  */
-static void _dw_html_populate_popup_cb( WebKitWebView *web_view, GtkMenu *menu, gpointer user_data )
+static void _dw_html_populate_popup_cb(WebKitWebView *web_view, GtkMenu *menu, gpointer user_data)
 {
    GtkWidget *image = gtk_image_new_from_stock( GTK_STOCK_PRINT, GTK_ICON_SIZE_MENU );
-   GtkWidget *item = gtk_image_menu_item_new_with_label( "Print" );
+   GtkWidget *item = gtk_image_menu_item_new_with_label("Print");
 
-   gtk_image_menu_item_set_image( GTK_IMAGE_MENU_ITEM(item), image );
+   gtk_image_menu_item_set_image(GTK_IMAGE_MENU_ITEM(item), image);
    gtk_menu_append( GTK_MENU(menu), item);
-   g_signal_connect( item, "activate", G_CALLBACK(_dw_html_print_cb), web_view );
+   g_signal_connect(item, "activate", G_CALLBACK(_dw_html_print_cb), web_view);
    gtk_widget_show(item);
 }
 #  endif
@@ -13292,67 +12947,27 @@ static void _dw_html_populate_popup_cb( WebKitWebView *web_view, GtkMenu *menu, 
 HWND dw_html_new(unsigned long id)
 {
    GtkWidget *widget = NULL;
+#ifdef USE_WEBKIT
    int _locked_by_me = FALSE;
+   WebKitWebView *web_view;
 
    DW_MUTEX_LOCK;
-#ifdef USE_GTKMOZEMBED
-   if (!_gtk_moz_embed_new)
-   {
-      dw_debug( "HTML widget not available; you do not have access to gtkmozembed.\n" );
-   }
-   else
-   {
-      widget = _gtk_moz_embed_new();
-      /*
-       * Connect some signals
-       */
-      gtk_signal_connect( GTK_OBJECT(widget), "net-stop", GTK_SIGNAL_FUNC(_dw_html_net_stop_cb), widget );
-      gtk_signal_connect( GTK_OBJECT(widget), "dom_mouse_click", GTK_SIGNAL_FUNC(_dw_dom_mouse_click_cb), widget );
-      gtk_widget_show(widget);
-   }
-#elif defined(USE_LIBGTKHTML2)
-   if ( !_html_document_new )
-   {
-      dw_debug( "HTML widget not available; you do not have access to libgtkhtml-2.\n" );
-   }
-   else
-   {
-      HtmlDocument *document;
-      document = html_document_new ();
-      g_signal_connect (G_OBJECT (document), "dom_mouse_down",  G_CALLBACK (dom_mouse_down), NULL);
-      g_signal_connect (G_OBJECT (document), "dom_mouse_up", G_CALLBACK (dom_mouse_up), NULL);
-      g_signal_connect (G_OBJECT (document), "dom_mouse_click", G_CALLBACK (dom_mouse_click), NULL);
-      g_signal_connect (G_OBJECT (document), "request_url",  G_CALLBACK (url_requested), NULL);
-      g_signal_connect (G_OBJECT (document), "link_clicked", G_CALLBACK (link_clicked), NULL);
-      widget = _html_view_new();
-      gtk_object_set_data(GTK_OBJECT(widget), "_dw_html_document", (gpointer)document);
-      gtk_widget_show(widget);
-   }
-#elif defined(USE_WEBKIT)
-   if (!_webkit_web_view_open)
-   {
-      dw_debug( "HTML widget not available; you do not have access to webkit.\n" );
-   }
-   else
-   {
-      WebKitWebView *web_view;
-      widget = gtk_scrolled_window_new (NULL, NULL);
-      gtk_scrolled_window_set_policy( GTK_SCROLLED_WINDOW (widget), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC );
-      web_view = (WebKitWebView *)_webkit_web_view_new();
-      gtk_container_add( GTK_CONTAINER (widget), GTK_WIDGET(web_view) );
-      gtk_widget_show( GTK_WIDGET(web_view) );
-      gtk_object_set_data( GTK_OBJECT(widget), "_dw_web_view", (gpointer)web_view );
+   widget = gtk_scrolled_window_new(NULL, NULL);
+   gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW (widget), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
+   web_view = (WebKitWebView *)_webkit_web_view_new();
+   gtk_container_add(GTK_CONTAINER (widget), GTK_WIDGET(web_view));
+   gtk_widget_show( GTK_WIDGET(web_view) );
+   gtk_object_set_data(GTK_OBJECT(widget), "_dw_web_view", (gpointer)web_view);
 # ifdef WEBKIT_CHECK_VERSION
 #  if WEBKIT_CHECK_VERSION(1,1,5)
-      g_signal_connect( web_view, "populate-popup", G_CALLBACK(_dw_html_populate_popup_cb), NULL );
+   g_signal_connect(web_view, "populate-popup", G_CALLBACK(_dw_html_populate_popup_cb), NULL);
 #  endif
 # endif
-      gtk_widget_show(widget);
-   }
-#else
-   dw_debug( "HTML widget not available; you do not have access to gtkmozembed, webkit nor libgtkhtml-2.\n" );
-#endif
+   gtk_widget_show(widget);
    DW_MUTEX_UNLOCK;
+#else
+   dw_debug( "HTML widget not available; you do not have access to webkit.\n" );
+#endif
    return widget;
 }
 

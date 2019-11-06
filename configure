@@ -4685,7 +4685,7 @@ fi
          GTK_PACKAGES="gtk+-2.0 gthread-2.0"
          GTK_LIBS=`$PKG_CFG --silence-errors --libs $GTK_PACKAGES`
       fi
-      WEBKIT_PKG="webkitgtk-3.0"
+      WEBKIT_PKG="webkit2gtk-4.0"
       if test x"$GTK_LIBS" = x; then
          GTK_PACKAGES="gtk+-3.0"
          GTK_LIBS=`$PKG_CFG --silence-errors --libs $GTK_PACKAGES`
@@ -4695,28 +4695,41 @@ fi
       fi
       # test for webkit2gtk or webkitgtk packages
       WEBKIT_CFLAGS=`$PKG_CFG --silence-errors --cflags $WEBKIT_PKG`
-      RPATH=`$PKG_CFG --silence-errors --libs-only-L $WEBKIT_PKG | cut -b 3-`
       if test x"$WEBKIT_CFLAGS" = x; then
-         # no webkit-1.1 or webkitgtk-3.0, look for webkit-1.0
-         WEBKIT_PKG="webkit-1.0"
-         WEBKIT_CFLAGS=`$PKG_CFG --silence-errors --cflags $WEBKIT_PKG`
-         RPATH=`$PKG_CFG --silence-errors --libs-only-L $WEBKIT_PKG | cut -b 3-`
-         if test x"$WEBKIT_CFLAGS" = x; then
-            WEBKIT_PKG="WebKitGtk"
-            WEBKIT_LIBS=`$PKG_CFG --silence-errors --libs $WEBKIT_PKG`
+         # no webkit2gtk-4.0 or webkitgtk-1.1
+         if test $DW_DIR = "gtk"; then
+            WEBKIT_PKG="webkit-1.0"
             WEBKIT_CFLAGS=`$PKG_CFG --silence-errors --cflags $WEBKIT_PKG`
-            RPATH=`$PKG_CFG --silence-errors --libs-only-L $WEBKIT_PKG | cut -b 3-`
-         else
-            $as_echo "#define USE_WEBKIT10 1" >>confdefs.h
+            if test x"$WEBKIT_CFLAGS" = x; then
+               WEBKIT_PKG="WebKitGtk"
+               WEBKIT_CFLAGS=`$PKG_CFG --silence-errors --cflags $WEBKIT_PKG`
+               if test x"$WEBKIT_CFLAGS" = x; then
+                  WEBKIT_LIBS=`$PKG_CFG --silence-errors --libs $WEBKIT_PKG`
+               fi
+            else
+               $as_echo "#define USE_WEBKIT10 1" >>confdefs.h
 
-            WEBKIT_LIB=$WEBKIT_PKG
-            WEBKIT_LIBS=`$PKG_CFG --silence-errors --libs $WEBKIT_PKG`
-            RESULT=`echo $WEBKIT_LIBS | grep lwebkitgtk-1.0`
-            if test x"$RESULT" != x; then
-                WEBKIT_LIB=webkitgtk-1.0
+               WEBKIT_LIBS=`$PKG_CFG --silence-errors --libs $WEBKIT_PKG`
+            fi
+         else
+            WEBKIT_PKG="webkitgtk-3.0"
+            WEBKIT_CFLAGS=`$PKG_CFG --silence-errors --cflags $WEBKIT_PKG`
+            if test x"$WEBKIT_CFLAGS" = x; then
+               WEBKIT_PKG="webkitgtk-1.0"
+               WEBKIT_CFLAGS=`$PKG_CFG --silence-errors --cflags $WEBKIT_PKG`
+               if test x"$WEBKIT_CFLAGS" = x; then
+                  $as_echo "#define USE_WEBKIT10 1" >>confdefs.h
+
+                  WEBKIT_LIBS=`$PKG_CFG --silence-errors --libs $WEBKIT_PKG`
+               fi
+            else
+               $as_echo "#define USE_WEBKIT11 1" >>confdefs.h
+
+               WEBKIT_LIBS=`$PKG_CFG --silence-errors --libs $WEBKIT_PKG`
             fi
          fi
       else
+         WEBKIT_LIBS=`$PKG_CFG --silence-errors --libs $WEBKIT_PKG`
          if test $with_gtk2 = "yes"; then
             $as_echo "#define USE_WEBKIT11 1" >>confdefs.h
 
@@ -4724,12 +4737,7 @@ fi
             $as_echo "#define USE_WEBKIT2 1" >>confdefs.h
 
          fi
-         WEBKIT_LIB=$WEBKIT_PKG
       fi
-      cat >>confdefs.h <<_ACEOF
-#define WEBKIT_LIB "$WEBKIT_LIB"
-_ACEOF
-
       if test x"$RPATH" != x; then
          RPATH="-Wl,-R$RPATH"
       fi
@@ -5680,9 +5688,8 @@ CFLAGS="$CFLAGS $GTK_CFLAGS $GDK_IMLIB_FLAGS $WEBKIT_CFLAGS"
 if test $with_deprecated = yes; then
    CFLAGS="$CFLAGS -DDW_INCLUDE_DEPRECATED"
 fi
-if test x"$WEBKIT_CFLAGS" != x; then
-   SAVE_LIBS="$LIBS"
-   LIBS="$RPATH $LIBS $GTK_LIBS $PTHREAD_LIBS $GDK_IMLIB_LIBS $WEBKIT_LIBS"
+if test x"$WEBKIT_LIBS" != x; then
+   WEBKIT_LIB=`echo $WEBKIT_LIBS | cut -b 3-`
    as_ac_Lib=`$as_echo "ac_cv_lib_$WEBKIT_LIB''_webkit_web_view_new" | $as_tr_sh`
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for webkit_web_view_new in -l$WEBKIT_LIB" >&5
 $as_echo_n "checking for webkit_web_view_new in -l$WEBKIT_LIB... " >&6; }
@@ -5726,7 +5733,6 @@ if eval test \"x\$"$as_ac_Lib"\" = x"yes"; then :
 
 fi
 
-   LIBS="$SAVE_LIBS"
 fi
 
 LIBS="$RPATH $LIBS $GTK_LIBS $PTHREAD_LIBS $GDK_IMLIB_LIBS $WEBKIT_LIBS $PLATLIBS"

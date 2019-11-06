@@ -12,6 +12,8 @@ extern "C" {
 #define DW_MINOR_VERSION 0
 #define DW_SUB_VERSION 0
 
+#define DW_HOME_URL "http://dwindows.netlabs.org"
+
 #if !defined(__PHOTON__)
 /* These corespond to the entries in the color
  * arrays in the Win32 dw.c, they are also the
