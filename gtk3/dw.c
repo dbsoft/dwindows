@@ -32,7 +32,10 @@
 #include <math.h>
 #include <gdk/gdkkeysyms.h>
 
-#ifdef USE_WEBKIT
+
+#ifdef USE_WEBKIT2
+#include <webkit2/webkit2.h>
+#else
 #include <webkit/webkit.h>
 #endif
 
@@ -158,26 +161,6 @@ static gint _tree_expand_event(GtkTreeView *treeview, GtkTreeIter *arg1, GtkTree
 static gint _switch_page_event(GtkNotebook *notebook, GtkWidget *page, guint page_num, gpointer data);
 static gint _column_click_event(GtkWidget *widget, gpointer data);
 static void _dw_signal_disconnect(gpointer data, GClosure *closure);
-
-
-#ifdef USE_WEBKIT
-/*
- * we need to add these equivalents from webkitwebview.h so we can refer to
- * our own pointers to functions (we don't link with the webkit libraries
- */
-# define DW_WEBKIT_TYPE_WEB_VIEW            (_webkit_web_view_get_type())
-# define DW_WEBKIT_WEB_VIEW(obj)            (G_TYPE_CHECK_INSTANCE_CAST((obj), DW_WEBKIT_TYPE_WEB_VIEW, WebKitWebView))
-WEBKIT_API GType (*_webkit_web_view_get_type)(void) = NULL;
-WEBKIT_API void (*_webkit_web_view_load_html_string)(WebKitWebView *, const gchar *, const gchar *) = NULL;
-WEBKIT_API void (*_webkit_web_view_open)(WebKitWebView *, const gchar *) = NULL;
-WEBKIT_API GtkWidget *(*_webkit_web_view_new)(void) = NULL;
-WEBKIT_API void (*_webkit_web_view_go_back)(WebKitWebView *) = NULL;
-WEBKIT_API void (*_webkit_web_view_go_forward)(WebKitWebView *) = NULL;
-WEBKIT_API void (*_webkit_web_view_reload)(WebKitWebView *) = NULL;
-WEBKIT_API void (*_webkit_web_view_stop_loading)(WebKitWebView *) = NULL;
-WEBKIT_API void (*_webkit_web_frame_print)(WebKitWebFrame *) = NULL;
-WEBKIT_API WebKitWebFrame *(*_webkit_web_view_get_focused_frame)(WebKitWebView *) = NULL;
-#endif
 
 GObject *_DWObject = NULL;
 char *_DWDefaultFont = NULL;
@@ -1826,33 +1809,6 @@ static GdkPixbuf *_find_pixbuf(HICN icon, unsigned long *userwidth, unsigned lon
    return NULL;
 }
 
-/* Try to load the WebKitGtk shared libary */
-#ifdef USE_WEBKIT
-void init_webkit(void)
-{
-   char libname[100];
-   void *handle = NULL;
-
-   sprintf( libname, "lib%s.so", WEBKIT_LIB);
-   handle = dlopen( libname, RTLD_LAZY );
-
-   /* If we loaded it, grab the symbols we want */
-   if ( handle )
-   {
-      _webkit_web_view_get_type = dlsym( handle, "webkit_web_view_get_type" );
-      _webkit_web_view_load_html_string = dlsym( handle, "webkit_web_view_load_html_string" );
-      _webkit_web_view_open = dlsym( handle, "webkit_web_view_open" );
-      _webkit_web_view_new = dlsym( handle, "webkit_web_view_new" );
-      _webkit_web_view_go_back = dlsym( handle, "webkit_web_view_go_back" );
-      _webkit_web_view_go_forward = dlsym( handle, "webkit_web_view_go_forward" );
-      _webkit_web_view_reload = dlsym( handle, "webkit_web_view_reload" );
-      _webkit_web_view_stop_loading = dlsym( handle, "webkit_web_view_stop_loading" );
-      _webkit_web_frame_print = dlsym( handle, "webkit_web_frame_print" );
-      _webkit_web_view_get_focused_frame = dlsym( handle, "webkit_web_view_get_focused_frame" );
-   }
-}
-#endif
-
 /*
  * Initializes the Dynamic Windows engine.
  * Parameters:
@@ -1923,11 +1879,7 @@ int dw_int_init(DWResources *res, int newthread, int *argc, char **argv[])
 
    /* Create a global object for glib activities */
    _DWObject = g_object_new(G_TYPE_OBJECT, NULL);
-
-#ifdef USE_WEBKIT
-   init_webkit();
-#endif
-
+   
    return TRUE;
 }
 
@@ -11290,6 +11242,24 @@ int dw_browse(char *url)
    }
 }
 
+#ifdef USE_WEBKIT
+/* Helper function to get the web view handle */
+WebKitWebView *_dw_html_web_view(GtkWidget *widget)
+{
+   if(widget)
+   {
+      WebKitWebView *web_view = (WebKitWebView *)widget;
+      if(WEBKIT_IS_WEB_VIEW(web_view))
+         return web_view;
+#ifndef USE_WEBKIT2         
+      web_view = (WebKitWebView *)g_object_get_data(G_OBJECT(widget), "_dw_web_view");
+      if(WEBKIT_IS_WEB_VIEW(web_view))
+         return web_view;
+#endif         
+   }
+   return NULL;
+}
+#endif
 /*
  * Causes the embedded HTML widget to take action.
  * Parameters:
@@ -11301,35 +11271,42 @@ void dw_html_action(HWND handle, int action)
 #ifdef USE_WEBKIT
    int _locked_by_me = FALSE;
    WebKitWebView *web_view;
-   WebKitWebFrame *frame;
-
-   if (!_webkit_web_view_open)
-      return;
 
    DW_MUTEX_LOCK;
-   web_view = (WebKitWebView *)g_object_get_data(G_OBJECT(handle), "_dw_web_view");
-   if ( web_view )
+   
+   if((web_view = _dw_html_web_view(handle)))
    {
-      switch( action )
+      switch(action)
       {
          case DW_HTML_GOBACK:
-            _webkit_web_view_go_back( web_view );
+            webkit_web_view_go_back(web_view);
             break;
          case DW_HTML_GOFORWARD:
-            _webkit_web_view_go_forward( web_view );
+            webkit_web_view_go_forward(web_view);
             break;
          case DW_HTML_GOHOME:
-            _webkit_web_view_open( web_view, "http://dwindows.netlabs.org" );
+#ifdef USE_WEBKIT2
+            webkit_web_view_load_uri(web_view, DW_HOME_URL);
+#else
+            webkit_web_view_open(web_view, DW_HOME_URL);
+#endif            
             break;
          case DW_HTML_RELOAD:
-            _webkit_web_view_reload( web_view );
+            webkit_web_view_reload(web_view);
             break;
          case DW_HTML_STOP:
-            _webkit_web_view_stop_loading( web_view );
+            webkit_web_view_stop_loading(web_view);
             break;
          case DW_HTML_PRINT:
-            frame = _webkit_web_view_get_focused_frame( web_view );
-            _webkit_web_frame_print( frame );
+            {
+#ifdef USE_WEBKIT2
+               WebKitPrintOperation *operation = webkit_print_operation_new(web_view);
+               webkit_print_operation_run_dialog(operation, NULL);
+#else         
+               WebKitWebFrame *frame = webkit_web_view_get_focused_frame(web_view);
+               webkit_web_frame_print(frame);
+#endif               
+            }
             break;
       }
    }
@@ -11352,20 +11329,20 @@ int dw_html_raw(HWND handle, char *string)
    int _locked_by_me = FALSE;
    WebKitWebView *web_view;
 
-   if (!_webkit_web_view_open)
-      return -1;
-
    DW_MUTEX_LOCK;
-   web_view = (WebKitWebView *)g_object_get_data(G_OBJECT(handle), "_dw_web_view");
-   if ( web_view )
+   if((web_view = _dw_html_web_view(handle)))
    {
-      _webkit_web_view_load_html_string( web_view, string, "file:///");
-      gtk_widget_show( GTK_WIDGET(handle) );
+#ifdef USE_WEBKIT2
+      webkit_web_view_load_html(web_view, string, "file:///");
+#else      
+      webkit_web_view_load_html_string(web_view, string, "file:///");
+#endif      
+      gtk_widget_show(GTK_WIDGET(handle));
    }
    DW_MUTEX_UNLOCK;
-   return 0;
+   return DW_ERROR_NONE;
 #else
-   return -1;
+   return DW_ERROR_UNKNOWN;
 #endif
 }
 
@@ -11384,81 +11361,80 @@ int dw_html_url(HWND handle, char *url)
    int _locked_by_me = FALSE;
    WebKitWebView *web_view;
 
-   if (!_webkit_web_view_open)
-      return -1;
-
    DW_MUTEX_LOCK;
-   web_view = (WebKitWebView *)g_object_get_data(G_OBJECT(handle), "_dw_web_view");
-   if ( web_view )
+   if((web_view = _dw_html_web_view(handle)))
    {
-      _webkit_web_view_open( web_view, url );
+#ifdef USE_WEBKIT2
+      webkit_web_view_load_uri(web_view, url);
+#else
+      webkit_web_view_open(web_view, url);
+#endif      
       gtk_widget_show(GTK_WIDGET(handle));
    }
    DW_MUTEX_UNLOCK;
-   return 0;
+   return DW_ERROR_NONE;
 #else
-   return -1;
+   return DW_ERROR_UNKNOWN;
 #endif
 }
 
-#ifdef USE_WEBKIT
-static void _dw_html_print_cb( GtkWidget *widget, gpointer *data )
+#if defined(USE_WEBKIT) && !defined(USE_WEBKIT2)
+static void _dw_html_print_cb(GtkWidget *widget, gpointer *data)
 {
-   WebKitWebView *web_view = DW_WEBKIT_WEB_VIEW(data);
+   WebKitWebView *web_view = WEBKIT_WEB_VIEW(data);
    WebKitWebFrame *frame;
 
-   frame = _webkit_web_view_get_focused_frame( web_view );
-   _webkit_web_frame_print( frame );
+   frame = webkit_web_view_get_focused_frame(web_view);
+   webkit_web_frame_print(frame);
 }
+
 /*
  * Fired when the user right-clicks to get the popup-menu on the HTML widget
  * We add a "Print" menu item to enable printing
  * user_data is not used
  */
-static void _dw_html_populate_popup_cb( WebKitWebView *web_view, GtkMenu *menu, gpointer user_data )
+static void _dw_html_populate_popup_cb(WebKitWebView *web_view, GtkMenu *menu, gpointer user_data)
 {
    GtkWidget *item = gtk_menu_item_new_with_mnemonic( _("_Print") );
 
    gtk_menu_shell_append(GTK_MENU_SHELL(menu), item);
-   g_signal_connect( item, "activate", G_CALLBACK(_dw_html_print_cb), web_view );
+   g_signal_connect(item, "activate", G_CALLBACK(_dw_html_print_cb), web_view);
    gtk_widget_show(item);
 }
 #endif
 
 /*
- * Create a new Entryfield window (widget) to be packed.
+ * Create a new HTML window (widget) to be packed.
  * Parameters:
- *       text: The default text to be in the entryfield widget.
  *       id: An ID to be used with dw_window_from_id() or 0L.
  */
 HWND dw_html_new(unsigned long id)
 {
    GtkWidget *widget = NULL;
+#ifdef USE_WEBKIT
    int _locked_by_me = FALSE;
+   WebKitWebView *web_view;
 
    DW_MUTEX_LOCK;
-#ifdef USE_WEBKIT
-   if (!_webkit_web_view_open)
-   {
-      dw_debug( "HTML widget not available; you do not have access to webkit.\n" );
-   }
-   else
-   {
-      WebKitWebView *web_view;
-      widget = gtk_scrolled_window_new (NULL, NULL);
-      gtk_scrolled_window_set_policy( GTK_SCROLLED_WINDOW (widget), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC );
-      web_view = (WebKitWebView *)_webkit_web_view_new();
-      /* web_view = WEBKIT_WEB_VIEW(_webkit_web_view_new() ); */
-      gtk_container_add( GTK_CONTAINER (widget), GTK_WIDGET(web_view) );
-      gtk_widget_show( GTK_WIDGET(web_view) );
-      g_object_set_data(G_OBJECT(widget), "_dw_web_view", (gpointer)web_view);
-      g_signal_connect( web_view, "populate-popup", G_CALLBACK(_dw_html_populate_popup_cb), NULL );
-   }
+   web_view = (WebKitWebView *)webkit_web_view_new();
+   /* WebKit2 no longer requires a scrolled window...
+    * So only create a scrolled window and pack it in older versions.
+    */
+#ifndef USE_WEBKIT2
+   widget = gtk_scrolled_window_new(NULL, NULL);
+   gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW (widget), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
+   gtk_container_add(GTK_CONTAINER (widget), GTK_WIDGET(web_view));
+   gtk_widget_show(GTK_WIDGET(web_view));
+   g_object_set_data(G_OBJECT(widget), "_dw_web_view", (gpointer)web_view);
+   g_signal_connect(web_view, "populate-popup", G_CALLBACK(_dw_html_populate_popup_cb), NULL);
+#else 
+   widget = (GtkWidget *)web_view;
+#endif
    gtk_widget_show(widget);
+   DW_MUTEX_UNLOCK;
 #else
    dw_debug( "HTML widget not available; you do not have access to webkit.\n" );
 #endif
-   DW_MUTEX_UNLOCK;
    return widget;
 }
 

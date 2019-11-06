@@ -42,9 +42,6 @@
 /* Define if webkit2 is available */
 #undef USE_WEBKIT2
 
-/* Define for name of webkit library */
-#undef WEBKIT_LIB
-
 /* Define if IMLIB is available. */
 #undef USE_IMLIB
 
