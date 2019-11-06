@@ -56,6 +56,8 @@ extern "C" {
 #define DW_SIGNAL_SWITCH_PAGE    "switch-page"
 #define DW_SIGNAL_COLUMN_CLICK   "click-column"
 #define DW_SIGNAL_TREE_EXPAND    "tree-expand"
+#define DW_SIGNAL_HTML_CHANGED   "html-changed"
+#define DW_SIGNAL_HTML_RESULT    "html-result"
 
 /* status of menu items */
 #define DW_MIS_ENABLED           1
@@ -1443,6 +1445,12 @@ typedef void *HPRINT;
 #define DW_HTML_STOP       5
 #define DW_HTML_PRINT      6
 
+/* Embedded HTML notifcations */
+#define DW_HTML_CHANGE_STARTED  1
+#define DW_HTML_CHANGE_REDIRECT 2
+#define DW_HTML_CHANGE_LOADING  3
+#define DW_HTML_CHANGE_COMPLETE 4
+
 /* Drawing flags  */
 #define DW_DRAW_DEFAULT    0
 #define DW_DRAW_FILL       1
@@ -1809,6 +1817,7 @@ int API dw_named_memory_free(HSHM handle, void *ptr);
 void API dw_html_action(HWND hwnd, int action);
 int API dw_html_raw(HWND hwnd, char *string);
 int API dw_html_url(HWND hwnd, char *url);
+int API dw_html_javascript_run(HWND hwnd, char *script, void *scriptdata);
 HWND API dw_html_new(unsigned long id);
 char * API dw_clipboard_get_text(void);
 void API dw_clipboard_set_text( char *str, int len );
