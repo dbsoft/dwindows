@@ -1696,6 +1696,52 @@ void DWSIGNAL control_thread(void *data)
     dw_window_enable(startbutton);
 }
 
+/* Handle web back navigation */
+int DWSIGNAL web_back_clicked(HWND button, void *data)
+{
+    HWND html = (HWND)data;
+    
+    dw_html_action(html, DW_HTML_GOBACK);
+    return FALSE;
+}
+
+/* Handle web forward navigation */
+int DWSIGNAL web_forward_clicked(HWND button, void *data)
+{
+    HWND html = (HWND)data;
+    
+    dw_html_action(html, DW_HTML_GOFORWARD);
+    return FALSE;
+}
+
+/* Handle web reload */
+int DWSIGNAL web_reload_clicked(HWND button, void *data)
+{
+    HWND html = (HWND)data;
+    
+    dw_html_action(html, DW_HTML_RELOAD);
+    return FALSE;
+}
+
+/* Handle web run */
+int DWSIGNAL web_run_clicked(HWND button, void *data)
+{
+    HWND html = (HWND)data;
+    HWND javascript = (HWND)dw_window_get_data(button, "javascript");
+    char *script = dw_window_get_text(javascript);
+    
+    dw_html_javascript_run(html, script, NULL);
+    dw_free(script);
+    return FALSE;
+}
+
+/* Handle web javascript result */
+int DWSIGNAL web_html_result(HWND html, int status, char *result, void *user_data, void *script_data)
+{
+    dw_messagebox("Javascript Result", DW_MB_OK | (status ? DW_MB_ERROR : DW_MB_INFORMATION), result);
+    return TRUE;
+}
+
 /* Handle web html changed */
 int DWSIGNAL web_html_changed(HWND html, int status, char *url, void *data)
 {
@@ -1797,15 +1843,48 @@ int main(int argc, char *argv[])
     if(rawhtml)
     {
         HWND htmlstatus;
-        
+        HWND hbox = dw_box_new(DW_HORZ, 0);
+        HWND item;
+        HWND javascript = dw_entryfield_new("window.scrollTo(0,500);", 0);
+         
         dw_box_pack_start( notebookbox7, rawhtml, 0, 100, TRUE, FALSE, 0);
         dw_html_raw(rawhtml, "<html><body><center><h1>dwtest</h1></center></body></html>");
         html = dw_html_new(1002);
+        
+        dw_box_pack_start(notebookbox7, hbox, 0, 0, TRUE, FALSE, 0);
+         
+        /* Add navigation buttons */
+        item = dw_button_new("Back", 0);
+        dw_box_pack_start(hbox, item, -1, -1, FALSE, FALSE, 0);
+        dw_signal_connect(item, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(web_back_clicked), DW_POINTER(html));
+         
+        item = dw_button_new("Forward", 0);
+        dw_box_pack_start(hbox, item, -1, -1, FALSE, FALSE, 0);
+        dw_signal_connect(item, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(web_forward_clicked), DW_POINTER(html));
+         
+        /* Put in some extra space */
+        dw_box_pack_start(hbox, 0, 5, 1, FALSE, FALSE, 0);
+         
+        item = dw_button_new("Reload", 0);
+        dw_box_pack_start(hbox, item, -1, -1, FALSE, FALSE, 0);
+        dw_signal_connect(item, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(web_reload_clicked), DW_POINTER(html));
+           
+        /* Put in some extra space */
+        dw_box_pack_start(hbox, 0, 5, 1, FALSE, FALSE, 0);
+        dw_box_pack_start(hbox, javascript, -1, -1, TRUE, FALSE, 0);
+         
+        item = dw_button_new("Run", 0);
+        dw_window_set_data(item, "javascript", DW_POINTER(javascript));
+        dw_box_pack_start(hbox, item, -1, -1, FALSE, FALSE, 0);
+        dw_signal_connect(item, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(web_run_clicked), DW_POINTER(html));
+        dw_window_click_default(javascript, item);
+      
         dw_box_pack_start( notebookbox7, html, 0, 100, TRUE, TRUE, 0);
         dw_html_url(html, "http://dwindows.netlabs.org");
         htmlstatus = dw_status_text_new("HTML status loading...", 0);
         dw_box_pack_start( notebookbox7, htmlstatus, 100, -1, TRUE, FALSE, 1);
         dw_signal_connect(html, DW_SIGNAL_HTML_CHANGED, DW_SIGNAL_FUNC(web_html_changed), DW_POINTER(htmlstatus));
+        dw_signal_connect(html, DW_SIGNAL_HTML_RESULT, DW_SIGNAL_FUNC(web_html_result), DW_POINTER(javascript));
     }
     else
     {
