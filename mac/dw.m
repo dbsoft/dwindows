@@ -8608,7 +8608,7 @@ HWND API dw_calendar_new(ULONG cid)
 }
 
 /*
- * Sets the current date of a calendar
+ * Sets the current date of a calendar.
  * Parameters:
  *       handle: The handle to the calendar returned by dw_calendar_new().
  *       year...
@@ -8632,9 +8632,9 @@ void dw_calendar_set_date(HWND handle, unsigned int year, unsigned int month, un
 }
 
 /*
- * Gets the position of a splitbar (pecentage).
+ * Gets the current date of a calendar.
  * Parameters:
- *       handle: The handle to the splitbar returned by dw_splitbar_new().
+ *       handle: The handle to the calendar returned by dw_calendar_new().
  */
 void dw_calendar_get_date(HWND handle, unsigned int *year, unsigned int *month, unsigned int *day)
 {
@@ -8643,9 +8643,9 @@ void dw_calendar_get_date(HWND handle, unsigned int *year, unsigned int *month, 
     NSCalendar *mycalendar = [[NSCalendar alloc] initWithCalendarIdentifier:DWCalendarIdentifierGregorian];
     NSDate *date = [calendar dateValue];
     NSDateComponents* components = [mycalendar components:DWCalendarUnitDay|DWCalendarUnitMonth|DWCalendarUnitYear fromDate:date];
-    *day = [components day];
-    *month = [components month];
-    *year = [components year];
+    *day = (unsigned int)[components day];
+    *month = (unsigned int)[components month];
+    *year = (unsigned int)[components year];
     [mycalendar release];
     DW_LOCAL_POOL_OUT;
 }
@@ -8668,6 +8668,7 @@ void API dw_html_action(HWND handle, int action)
             [html goForward];
             break;
         case DW_HTML_GOHOME:
+            dw_html_url(handle, DW_HOME_URL);
             break;
         case DW_HTML_SEARCH:
             break;
@@ -8720,6 +8721,27 @@ int API dw_html_url(HWND handle, char *url)
     [[html mainFrame] loadRequest:[NSURLRequest requestWithURL:[NSURL URLWithString:[ NSString stringWithUTF8String:url ]]]];
 #endif
     return 0;
+}
+
+/*
+ * Executes the javascript contained in "script" in the HTML window.
+ * Parameters:
+ *       handle: Handle to the HTML window.
+ *       script: Javascript code to execute.
+ *       scriptdata: Data passed to the signal handler.
+ * Notes: A DW_SIGNAL_HTML_RESULT event will be raised with scriptdata.
+ * Returns:
+ *       DW_ERROR_NONE (0) on success.
+ */
+int dw_html_javascript_run(HWND handle, char *script, void *scriptdata)
+{
+#if WK_API_ENABLED
+    DWWebView *html = handle;
+    [html evaluateJavaScript:[NSString stringWithUTF8String:script] completionHandler:nil];
+    return DW_ERROR_NONE;
+#else
+    return DW_ERROR_UKNOWN;
+#endif
 }
 
 /*
