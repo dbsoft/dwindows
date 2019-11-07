@@ -782,6 +782,11 @@ int _event_handler1(id object, NSEvent *event, int message)
             /* HTML result event */
             case 18:
             {
+                int (* API htmlresultfunc)(HWND, int, char *, void *, void *) = handler->signalfunction;
+                void **params = (void **)event;
+                NSString *result = params[0];
+                
+                return htmlresultfunc(handler->window, [result length] ? DW_ERROR_NONE : DW_ERROR_UNKNOWN, [result length] ? (char *)[result UTF8String] : NULL, params[1], handler->data);
             }
             /* HTML changed event */
             case 19:
@@ -1367,10 +1372,29 @@ DWObject *DWObj;
 }
 @end
 #else
-@interface DWWebView : WebView { }
+@interface DWWebView : WebView
+{ }
+-(void)webView:(WebView *)sender didFinishLoadForFrame:(WebFrame *)frame;
+-(void)webView:(WebView *)sender didCommitLoadForFrame:(WebFrame *)frame;
+-(void)webView:(WebView *)sender didStartProvisionalLoadForFrame:(WebFrame *)frame;
 @end
 
 @implementation DWWebView : WebView { }
+-(void)webView:(WebView *)sender didFinishLoadForFrame:(WebFrame *)frame
+{
+    void *params[2] = { DW_INT_TO_POINTER(DW_HTML_CHANGE_COMPLETE), [self mainFrameURL] };
+    _event_handler(self, (NSEvent *)params, 19);
+}
+-(void)webView:(WebView *)sender didCommitLoadForFrame:(WebFrame *)frame
+{
+    void *params[2] = { DW_INT_TO_POINTER(DW_HTML_CHANGE_STARTED), [self mainFrameURL] };
+    _event_handler(self, (NSEvent *)params, 19);
+}
+-(void)webView:(WebView *)sender didStartProvisionalLoadForFrame:(WebFrame *)frame
+{
+    void *params[2] = { DW_INT_TO_POINTER(DW_HTML_CHANGE_LOADING), [self mainFrameURL] };
+    _event_handler(self, (NSEvent *)params, 19);
+}
 @end
 #endif
 
@@ -8750,7 +8774,7 @@ int API dw_html_raw(HWND handle, char *string)
 #else
     [[html mainFrame] loadHTMLString:[ NSString stringWithUTF8String:string ] baseURL:nil];
 #endif
-    return 0;
+    return DW_ERROR_NONE;
 }
 
 /*
@@ -8770,7 +8794,7 @@ int API dw_html_url(HWND handle, char *url)
 #else
     [[html mainFrame] loadRequest:[NSURLRequest requestWithURL:[NSURL URLWithString:[ NSString stringWithUTF8String:url ]]]];
 #endif
-    return 0;
+    return DW_ERROR_NONE;
 }
 
 /*
@@ -8785,13 +8809,17 @@ int API dw_html_url(HWND handle, char *url)
  */
 int dw_html_javascript_run(HWND handle, char *script, void *scriptdata)
 {
-#if WK_API_ENABLED
     DWWebView *html = handle;
+    DW_LOCAL_POOL_IN;
+    
+#if WK_API_ENABLED
     [html evaluateJavaScript:[NSString stringWithUTF8String:script] completionHandler:nil];
-    return DW_ERROR_NONE;
 #else
-    return DW_ERROR_UNKNOWN;
+    NSString *result = [html stringByEvaluatingJavaScriptFromString:[NSString stringWithUTF8String:script]];
+    _event_handler(html, (NSEvent *)result, 18);
 #endif
+    DW_LOCAL_POOL_OUT;
+    return DW_ERROR_NONE;
 }
 
 /*
@@ -8810,6 +8838,8 @@ DW_FUNCTION_RESTORE_PARAM1(__DW_UNUSED__ cid, ULONG)
     DWWebView *web = [[DWWebView alloc] init];
 #if WK_API_ENABLED
     web.navigationDelegate = web;
+#else
+    web.frameLoadDelegate = web;
 #endif
     /* [web setTag:cid]; Why doesn't this work? */
     DW_FUNCTION_RETURN_THIS(web);
