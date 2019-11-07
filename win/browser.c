@@ -1433,6 +1433,29 @@ badalloc:	webBrowser2->lpVtbl->Release(webBrowser2);
 
 int _dw_html_javascript_run(HWND hwnd, LPCWSTR script, void *scriptdata)
 {
+	IHTMLWindow2	*htmlWindow2;
+	IOleObject		*browserObject;
+	VARIANT			retVal;
+
+	// Retrieve the browser object's pointer we stored in our window's GWL_USERDATA when
+	// we initially attached the browser object to this window.
+	browserObject = *((IOleObject **)dw_window_get_data(hwnd, "_dw_html"));
+
+	// We want to get the base address (ie, a pointer) to the IWebBrowser2 object embedded within the browser
+	// object, so we can call some of the functions in the former's table.
+	if (!browserObject->lpVtbl->QueryInterface(browserObject, &IID_IHTMLWindow2, (void**)&htmlWindow2))
+	{
+		BSTR myscript = SysAllocString(script);
+		if (myscript)
+		{
+			htmlWindow2->lpVtbl->execScript(htmlWindow2, myscript, NULL, &retVal);
+			SysFreeString(myscript);
+		}
+		// We no longer need the IWebBrowser2 object (ie, we don't plan to call any more functions in it,
+		// so we can release our hold on it). Note that we'll still maintain our hold on the browser
+		// object.
+		htmlWindow2->lpVtbl->Release(htmlWindow2);
+	}
 	return DW_ERROR_UNKNOWN;
 }
 
