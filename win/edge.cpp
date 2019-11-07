@@ -89,7 +89,7 @@ extern "C" {
 			case DW_HTML_GOHOME:
 			{
 				// Call the IWebView2WebView object's GoHome function.
-				//webview->GoHome();
+				dw_html_url(hwnd, (char *)DW_HOME_URL);
 				break;
 			}
 
@@ -147,7 +147,7 @@ extern "C" {
 	 * Displays a URL, or HTML file on disk.
 	 *
 	 * hwnd =		Handle to the window hosting the browser object.
-	 * webPageName =	Pointer to nul-terminated name of the URL/file.
+	 * url	=		Pointer to nul-terminated name of the URL/file.
 	 *
 	 * RETURNS: 0 if success, or non-zero if an error.
 	 */
@@ -164,6 +164,40 @@ extern "C" {
 			webview->Navigate(url);
 		else
 			dw_window_set_data(hwnd, _DW_HTML_DATA_LOCATION, _wcsdup(url));
+		return DW_ERROR_NONE;
+	}
+
+	/* These reference functions in dw.c */
+	#define WideToUTF8(a) _myWideToUTF8(a, a ? _alloca(WideCharToMultiByte(CP_UTF8, 0, a, -1, NULL, 0, NULL, NULL)) : NULL)
+	char* _myWideToUTF8(LPWSTR widestring, void* outbuf);
+	LRESULT CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2);
+
+	/******************************* dw_edge_javascript_run() ****************************
+	 * Runs a javascript in the specified browser context.
+	 *
+	 * hwnd			=	Handle to the window hosting the browser object.
+	 * script		=	Pointer to nul-terminated javascript string.
+	 * scriptdata	=   Pointer to user data to be passed to the callback.
+	 *
+	 * RETURNS: 0 if success, or non-zero if an error.
+	 */
+
+	int _dw_edge_javascript_run(HWND hwnd, LPCWSTR script, void *scriptdata)
+	{
+		IWebView2WebView* webview;
+
+		// Retrieve the browser object's pointer we stored in our window's GWL_USERDATA when
+		// we initially attached the browser object to this window.
+		webview = (IWebView2WebView*)dw_window_get_data(hwnd, _DW_HTML_DATA_NAME);
+
+		if (webview)
+			webview->ExecuteScript(script,
+				Callback<IWebView2ExecuteScriptCompletedHandler>(
+					[hwnd, scriptdata](HRESULT error, PCWSTR result) -> HRESULT
+					{
+						_wndproc(hwnd, WM_USER + 100, (error == S_OK ? (WPARAM)WideToUTF8((LPWSTR)result) : NULL), (LPARAM)scriptdata);
+						return S_OK;
+					}).Get());
 		return DW_ERROR_NONE;
 	}
 

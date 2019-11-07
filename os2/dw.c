@@ -12863,6 +12863,24 @@ int API dw_html_url(HWND handle, char *url)
 }
 
 /*
+ * Executes the javascript contained in "script" in the HTML window.
+ * Parameters:
+ *       handle: Handle to the HTML window.
+ *       script: Javascript code to execute.
+ *       scriptdata: Data passed to the signal handler.
+ * Notes: A DW_SIGNAL_HTML_RESULT event will be raised with scriptdata.
+ * Returns:
+ *       DW_ERROR_NONE (0) on success.
+ */
+int dw_html_javascript_run(HWND handle, char *script, void *scriptdata)
+{
+   handle = handle;
+   script = script;
+   scriptdata = scriptdata;
+   return DW_ERROR_UNKNOWN;
+}
+
+/*
  * Create a new HTML window (widget) to be packed.
  * Not available under OS/2, eCS
  * Parameters:
