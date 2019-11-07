@@ -162,30 +162,10 @@ static gint _tree_expand_event(GtkTreeItem *treeitem, gpointer data);
 #endif
 static gint _switch_page_event(GtkNotebook *notebook, GtkNotebookPage *page, guint page_num, gpointer data);
 static gint _column_click_event(GtkWidget *widget, gint column_num, gpointer data);
-static void _dw_signal_disconnect(gpointer data, GClosure *closure);
-
 #ifdef USE_WEBKIT
-/*
- * we need to add these equivalents from webkitwebview.h so we can refer to
- * our own pointers to functions (we don't link with the webkit libraries
- */
-# define DW_WEBKIT_TYPE_WEB_VIEW            (_webkit_web_view_get_type())
-# define DW_WEBKIT_WEB_VIEW(obj)            (G_TYPE_CHECK_INSTANCE_CAST((obj), DW_WEBKIT_TYPE_WEB_VIEW, WebKitWebView))
-WEBKIT_API GType (*_webkit_web_view_get_type)(void) = NULL;
-WEBKIT_API void (*_webkit_web_view_load_html_string)(WebKitWebView *, const gchar *, const gchar *) = NULL;
-WEBKIT_API void (*_webkit_web_view_open)(WebKitWebView *, const gchar *) = NULL;
-WEBKIT_API GtkWidget *(*_webkit_web_view_new)(void) = NULL;
-WEBKIT_API void (*_webkit_web_view_go_back)(WebKitWebView *) = NULL;
-WEBKIT_API void (*_webkit_web_view_go_forward)(WebKitWebView *) = NULL;
-WEBKIT_API void (*_webkit_web_view_reload)(WebKitWebView *) = NULL;
-WEBKIT_API void (*_webkit_web_view_stop_loading)(WebKitWebView *) = NULL;
-# ifdef WEBKIT_CHECK_VERSION
-#  if WEBKIT_CHECK_VERSION(1,1,5)
-WEBKIT_API void (*_webkit_web_frame_print)(WebKitWebFrame *) = NULL;
-WEBKIT_API WebKitWebFrame *(*_webkit_web_view_get_focused_frame)(WebKitWebView *) = NULL;
-#  endif
-# endif
+static void _html_changed_event(WebKitWebView  *web_view, WebKitWebFrame *frame, gpointer user_data);
 #endif
+static void _dw_signal_disconnect(gpointer data, GClosure *closure);
 
 typedef struct
 {
@@ -218,7 +198,7 @@ typedef struct
 
 } SignalHandler;
 
-#define SIGNALMAX 19
+#define SIGNALMAX 20
 
 /* A list of signal forwarders, to account for paramater differences. */
 static SignalList SignalTranslate[SIGNALMAX] = {
@@ -240,7 +220,12 @@ static SignalList SignalTranslate[SIGNALMAX] = {
    { _value_changed_event,     DW_SIGNAL_VALUE_CHANGED },
    { _switch_page_event,       DW_SIGNAL_SWITCH_PAGE },
    { _column_click_event,      DW_SIGNAL_COLUMN_CLICK },
-   { _tree_expand_event,       DW_SIGNAL_TREE_EXPAND }
+   { _tree_expand_event,       DW_SIGNAL_TREE_EXPAND },
+#ifdef USE_WEBKIT
+   { _html_changed_event,      DW_SIGNAL_HTML_CHANGED }
+#else
+   { _generic_event,           DW_SIGNAL_HTML_CHANGED }
+#endif
 };
 
 /* Alignment flags */
@@ -1257,6 +1242,26 @@ static void _set_signal_handler_id(GtkWidget *widget, int counter, gint cid)
    snprintf(text, 100, "_dw_sigcid%d", counter);
    gtk_object_set_data(GTK_OBJECT(widget), text, GINT_TO_POINTER(cid));
 }
+
+#ifdef USE_WEBKIT
+static void _html_changed_event(WebKitWebView  *web_view, WebKitWebFrame *frame, gpointer data)
+{
+    SignalHandler work = _get_signal_handler(data);
+    char *location = (char *)webkit_web_view_get_uri(web_view);
+    int status = 0;
+    void **params = data;
+    
+    if(params)
+      status = DW_POINTER_TO_INT(params[3]);
+      
+    if(status && location && work.window && work.func)
+    {
+        int (*htmlchangedfunc)(HWND, int, char *, void *) = work.func;
+        
+        htmlchangedfunc(work.window, status, location, work.data);
+    }
+}
+#endif
 
 static gint _set_focus_event(GtkWindow *window, GtkWidget *widget, gpointer data)
 {
@@ -12908,6 +12913,32 @@ int dw_html_url(HWND handle, char *url)
    return DW_ERROR_UNKNOWN;
 }
 
+/*
+ * Executes the javascript contained in "script" in the HTML window.
+ * Parameters:
+ *       handle: Handle to the HTML window.
+ *       script: Javascript code to execute.
+ *       scriptdata: Data passed to the signal handler.
+ * Notes: A DW_SIGNAL_HTML_RESULT event will be raised with scriptdata.
+ * Returns:
+ *       DW_ERROR_NONE (0) on success.
+ */
+int dw_html_javascript_run(HWND handle, char *script, void *scriptdata)
+{
+#ifdef USE_WEBKIT
+   int _locked_by_me = FALSE;
+   WebKitWebView *web_view;
+   
+   DW_MUTEX_LOCK;
+   if((web_view = (WebKitWebView *)gtk_object_get_data(GTK_OBJECT(handle), "_dw_web_view")))
+      webkit_web_view_execute_script(web_view, script);
+   DW_MUTEX_UNLOCK;
+   return DW_ERROR_NONE;
+#else
+   return DW_ERROR_UNKNOWN;
+#endif
+}
+
 #ifdef USE_WEBKIT
 # ifdef WEBKIT_CHECK_VERSION
 #  if WEBKIT_CHECK_VERSION(1,1,5)
@@ -12950,11 +12981,12 @@ HWND dw_html_new(unsigned long id)
 #ifdef USE_WEBKIT
    int _locked_by_me = FALSE;
    WebKitWebView *web_view;
+   WebKitWebSettings *settings;
 
    DW_MUTEX_LOCK;
    widget = gtk_scrolled_window_new(NULL, NULL);
    gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW (widget), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
-   web_view = (WebKitWebView *)_webkit_web_view_new();
+   web_view = (WebKitWebView *)webkit_web_view_new();
    gtk_container_add(GTK_CONTAINER (widget), GTK_WIDGET(web_view));
    gtk_widget_show( GTK_WIDGET(web_view) );
    gtk_object_set_data(GTK_OBJECT(widget), "_dw_web_view", (gpointer)web_view);
@@ -12963,6 +12995,10 @@ HWND dw_html_new(unsigned long id)
    g_signal_connect(web_view, "populate-popup", G_CALLBACK(_dw_html_populate_popup_cb), NULL);
 #  endif
 # endif
+   /* Create a new websettings and enable java script */
+   settings = webkit_web_settings_new();
+   g_object_set(G_OBJECT(settings), "enable-scripts", TRUE, NULL);
+   webkit_web_view_set_settings(WEBKIT_WEB_VIEW(web_view), settings);
    gtk_widget_show(widget);
    DW_MUTEX_UNLOCK;
 #else
@@ -13312,6 +13348,8 @@ void dw_signal_connect(HWND window, char *signame, void *sigfunc, void *data)
    dw_signal_connect_data(window, signame, sigfunc, NULL, data);
 }
 
+#define _DW_INTERNAL_CALLBACK_PARAMS 4
+
 /*
  * Add a callback to a window event with a closure callback.
  * Parameters:
@@ -13327,7 +13365,7 @@ void dw_signal_connect_data(HWND window, char *signame, void *sigfunc, void *dis
    char *thisname = signame;
    HWND thiswindow = window;
    int sigid, _locked_by_me = FALSE;
-   void **params = calloc(3, sizeof(void *));
+   void **params = calloc(_DW_INTERNAL_CALLBACK_PARAMS, sizeof(void *));
    gint cid;
 
    /* Save the disconnect function pointer */
@@ -13340,6 +13378,10 @@ void dw_signal_connect_data(HWND window, char *signame, void *sigfunc, void *dis
     */
    if (GTK_IS_SCROLLED_WINDOW(thiswindow))
    {
+#ifdef USE_WEBKIT
+      thiswindow = (HWND)gtk_object_get_data(GTK_OBJECT(window), "_dw_web_view");
+      if(!thiswindow)
+#endif
       thiswindow = (HWND)gtk_object_get_user_data(GTK_OBJECT(window));
    }
 
@@ -13404,7 +13446,7 @@ void dw_signal_connect_data(HWND window, char *signame, void *sigfunc, void *dis
       cid = gtk_signal_connect(GTK_OBJECT(thiswindow), "button_press_event", GTK_SIGNAL_FUNC(thisfunc), params);
       _set_signal_handler_id(thiswindow, sigid, cid);
 
-      params = calloc(sizeof(void *), 3);
+      params = calloc(sizeof(void *), _DW_INTERNAL_CALLBACK_PARAMS);
       sigid = _set_signal_handler(window, window, sigfunc, data, thisfunc);
       params[0] = GINT_TO_POINTER(sigid);
       params[2] = (void *)thiswindow;
@@ -13445,7 +13487,7 @@ void dw_signal_connect_data(HWND window, char *signame, void *sigfunc, void *dis
       cid = g_signal_connect_data(G_OBJECT(thiswindow), "key_press_event", G_CALLBACK(_container_enter_event), params, _dw_signal_disconnect, 0);
       _set_signal_handler_id(thiswindow, sigid, cid);
 
-      params = calloc(sizeof(void *), 3);
+      params = calloc(sizeof(void *), _DW_INTERNAL_CALLBACK_PARAMS);
       thisname = "button_press_event";
       thisfunc = _findsigfunc(DW_SIGNAL_ITEM_ENTER);
    }
@@ -13469,6 +13511,31 @@ void dw_signal_connect_data(HWND window, char *signame, void *sigfunc, void *dis
       if (GTK_IS_COMBO(thiswindow))
          thiswindow = GTK_COMBO(thiswindow)->entry;
    }
+#ifdef USE_WEBKIT
+   else if (WEBKIT_IS_WEB_VIEW(thiswindow) && strcmp(signame, DW_SIGNAL_HTML_CHANGED) == 0)
+   {
+      sigid = _set_signal_handler(thiswindow, window, sigfunc, data, thisfunc);
+      params[0] = GINT_TO_POINTER(sigid);
+      params[2] = (void *)thiswindow;
+      params[3] = GINT_TO_POINTER(DW_HTML_CHANGE_STARTED);
+      cid = g_signal_connect_data(G_OBJECT(thiswindow), "load-started", G_CALLBACK(thisfunc), params, _dw_signal_disconnect, 0);
+      _set_signal_handler_id(thiswindow, sigid, cid);
+
+      params = calloc(sizeof(void *), _DW_INTERNAL_CALLBACK_PARAMS);
+
+      sigid = _set_signal_handler(thiswindow, window, sigfunc, data, thisfunc);
+      params[0] = GINT_TO_POINTER(sigid);
+      params[2] = (void *)thiswindow;
+      params[3] = GINT_TO_POINTER(DW_HTML_CHANGE_LOADING);
+      cid = g_signal_connect_data(G_OBJECT(thiswindow), "load-committed", G_CALLBACK(thisfunc), params, _dw_signal_disconnect, 0);
+      _set_signal_handler_id(thiswindow, sigid, cid);
+
+      params = calloc(sizeof(void *), _DW_INTERNAL_CALLBACK_PARAMS);
+      params[3] = GINT_TO_POINTER(DW_HTML_CHANGE_COMPLETE);
+
+      thisname = "load-finished";
+   }
+#endif
 #if 0
    else if (strcmp(signame, DW_SIGNAL_LOSE_FOCUS) == 0)
    {
