@@ -1421,7 +1421,20 @@ badalloc:	webBrowser2->lpVtbl->Release(webBrowser2);
 }
 
 
+/******************************* dw_html_javascript_run() ****************************
+ * Runs a javascript in the specified browser context.
+ *
+ * hwnd			=	Handle to the window hosting the browser object.
+ * script		=	Pointer to nul-terminated javascript string.
+ * scriptdata	=   Pointer to user data to be passed to the callback.
+ *
+ * RETURNS: 0 if success, or non-zero if an error.
+ */
 
+int _dw_html_javascript_run(HWND hwnd, LPCWSTR script, void *scriptdata)
+{
+	return DW_ERROR_UNKNOWN;
+}
 
 
 /******************************* ResizeBrowser() ****************************

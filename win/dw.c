@@ -364,7 +364,7 @@ typedef struct
 static int in_checkbox_handler = 0;
 
 /* List of signals and their equivilent Win32 message */
-#define SIGNALMAX 17
+#define SIGNALMAX 19
 
 SignalList SignalTranslate[SIGNALMAX] = {
    { WM_SIZE,         DW_SIGNAL_CONFIGURE },
@@ -383,7 +383,9 @@ SignalList SignalTranslate[SIGNALMAX] = {
    { WM_VSCROLL,      DW_SIGNAL_VALUE_CHANGED },
    { TCN_SELCHANGE,   DW_SIGNAL_SWITCH_PAGE },
    { LVN_COLUMNCLICK, DW_SIGNAL_COLUMN_CLICK },
-   { TVN_ITEMEXPANDED,DW_SIGNAL_TREE_EXPAND }
+   { TVN_ITEMEXPANDED,DW_SIGNAL_TREE_EXPAND },
+   { WM_USER+100,     DW_SIGNAL_HTML_RESULT },
+   { WM_USER+101,     DW_SIGNAL_HTML_CHANGED }
 };
 
 #ifdef BUILD_DLL
@@ -2380,6 +2382,20 @@ LRESULT CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
                            msg = 0;
                         }
                      }
+                  }
+                  break;
+               case WM_USER+100:
+                  {
+                      int (DWSIGNAL *htmlresultfunc)(HWND, int, char *, void *, void *) = tmp->signalfunction;
+                      
+                      return htmlresultfunc(tmp->window, mp1 ? DW_ERROR_NONE : DW_ERROR_UNKNOWN, (char *)mp1, (void *)mp2, tmp->data);
+                  }
+                  break;
+               case WM_USER+101:
+                  {
+                      int (DWSIGNAL *htmlchangedfunc)(HWND, int, char *, void *) = tmp->signalfunction;
+                      
+                      return htmlchangedfunc(tmp->window, DW_POINTER_TO_INT(mp1), (char *)mp2, tmp->data);
                   }
                   break;
             }
@@ -5765,6 +5781,29 @@ int API dw_html_url(HWND handle, char *url)
 #else
    return DW_ERROR_GENERAL;
 #endif    
+}
+
+/*
+ * Executes the javascript contained in "script" in the HTML window.
+ * Parameters:
+ *       handle: Handle to the HTML window.
+ *       script: Javascript code to execute.
+ *       scriptdata: Data passed to the signal handler.
+ * Notes: A DW_SIGNAL_HTML_RESULT event will be raised with scriptdata.
+ * Returns:
+ *       DW_ERROR_NONE (0) on success.
+ */
+int dw_html_javascript_run(HWND handle, char *script, void *scriptdata)
+{
+#if (defined(BUILD_DLL) || defined(BUILD_HTML))
+#if BUILD_EDGE
+   if (_DW_EDGE_DETECTED)
+      return _dw_edge_javascript_run(handle, UTF8toWide(script), scriptdata);
+#endif
+   return _dw_html_javascript_run(handle, script, scriptdata);
+#else
+   return DW_ERROR_UNKNOWN;
+#endif
 }
 
 /*
