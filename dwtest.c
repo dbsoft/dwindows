@@ -1738,7 +1738,8 @@ int DWSIGNAL web_run_clicked(HWND button, void *data)
 /* Handle web javascript result */
 int DWSIGNAL web_html_result(HWND html, int status, char *result, void *user_data, void *script_data)
 {
-    dw_messagebox("Javascript Result", DW_MB_OK | (status ? DW_MB_ERROR : DW_MB_INFORMATION), result);
+    dw_messagebox("Javascript Result", DW_MB_OK | (status ? DW_MB_ERROR : DW_MB_INFORMATION), 
+                  result ? result : "Javascript result is not a string value");
     return TRUE;
 }
 
@@ -1845,7 +1846,10 @@ int main(int argc, char *argv[])
         HWND htmlstatus;
         HWND hbox = dw_box_new(DW_HORZ, 0);
         HWND item;
-        HWND javascript = dw_entryfield_new("window.scrollTo(0,500);", 0);
+        HWND javascript = dw_combobox_new("", 0);
+        
+        dw_listbox_append(javascript, "window.scrollTo(0,500);");
+        dw_listbox_append(javascript, "window.document.title;");
          
         dw_box_pack_start( notebookbox7, rawhtml, 0, 100, TRUE, FALSE, 0);
         dw_html_raw(rawhtml, "<html><body><center><h1>dwtest</h1></center></body></html>");
