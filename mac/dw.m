@@ -338,16 +338,6 @@ HMTX DWThreadMutex2;
 DWTID _dw_mutex_locked = (DWTID)-1;
 #endif
 
-/* Apparently the WKWebKit API is only enabled on intel 64bit...
- * Causing build failures on 32bit builds, so this should allow
- * WKWebKit on intel 64 and the old WebKit on intel 32 bit and earlier.
- */
-#if WK_API_ENABLED
-#define DWWebView WKWebView
-#else
-#define DWWebView WebView
-#endif
-
 unsigned long _colors[] =
 {
     0x00000000,   /* 0  black */
@@ -518,7 +508,7 @@ typedef struct
 } SignalList;
 
 /* List of signals */
-#define SIGNALMAX 17
+#define SIGNALMAX 19
 
 SignalList SignalTranslate[SIGNALMAX] = {
     { 1,    DW_SIGNAL_CONFIGURE },
@@ -537,7 +527,9 @@ SignalList SignalTranslate[SIGNALMAX] = {
     { 14,   DW_SIGNAL_VALUE_CHANGED },
     { 15,   DW_SIGNAL_SWITCH_PAGE },
     { 16,   DW_SIGNAL_TREE_EXPAND },
-    { 17,   DW_SIGNAL_COLUMN_CLICK }
+    { 17,   DW_SIGNAL_COLUMN_CLICK },
+    { 18,   DW_SIGNAL_HTML_RESULT },
+    { 19,   DW_SIGNAL_HTML_CHANGED }
 };
 
 int _event_handler1(id object, NSEvent *event, int message)
@@ -772,18 +764,33 @@ int _event_handler1(id object, NSEvent *event, int message)
 
                 return switchpagefunc(handler->window, pageid, handler->data);
             }
+            /* Tree expand event */
             case 16:
             {
                 int (* API treeexpandfunc)(HWND, HTREEITEM, void *) = (int (* API)(HWND, HTREEITEM, void *))handler->signalfunction;
 
                 return treeexpandfunc(handler->window, (HTREEITEM)event, handler->data);
             }
+            /* Column click event */
             case 17:
             {
-                int (*clickcolumnfunc)(HWND, int, void *) = handler->signalfunction;
+                int (* API clickcolumnfunc)(HWND, int, void *) = handler->signalfunction;
                 int column_num = DW_POINTER_TO_INT(event);
 
                 return clickcolumnfunc(handler->window, column_num, handler->data);
+            }
+            /* HTML result event */
+            case 18:
+            {
+            }
+            /* HTML changed event */
+            case 19:
+            {
+                int (* API htmlchangedfunc)(HWND, int, char *, void *) = handler->signalfunction;
+                void **params = (void **)event;
+                NSString *uri = params[1];
+                
+                return htmlchangedfunc(handler->window, DW_POINTER_TO_INT(params[0]), (char *)[uri UTF8String], handler->data);
             }
         }
     }
@@ -1324,6 +1331,49 @@ DWObject *DWObj;
 }
 -(NSApplicationTerminateReply)applicationShouldTerminate:(NSApplication *)sender;
 @end
+
+/* Apparently the WKWebKit API is only enabled on intel 64bit...
+ * Causing build failures on 32bit builds, so this should allow
+ * WKWebKit on intel 64 and the old WebKit on intel 32 bit and earlier.
+ */
+#if WK_API_ENABLED
+@interface DWWebView : WKWebView <WKNavigationDelegate> { }
+-(void)webView:(WKWebView *)webView didCommitNavigation:(WKNavigation *)navigation;
+-(void)webView:(WKWebView *)webView didFinishNavigation:(WKNavigation *)navigation;
+-(void)webView:(WKWebView *)webView didStartProvisionalNavigation:(WKNavigation *)navigation;
+-(void)webView:(WKWebView *)webView didReceiveServerRedirectForProvisionalNavigation:(WKNavigation *)navigation;
+@end
+
+@implementation DWWebView : WKWebView { }
+-(void)webView:(WKWebView *)webView didCommitNavigation:(WKNavigation *)navigation
+{
+    void *params[2] = { DW_INT_TO_POINTER(DW_HTML_CHANGE_STARTED), [[self URL] absoluteString] };
+    _event_handler(self, (NSEvent *)params, 19);
+}
+-(void)webView:(WKWebView *)webView didFinishNavigation:(WKNavigation *)navigation
+{
+    void *params[2] = { DW_INT_TO_POINTER(DW_HTML_CHANGE_COMPLETE), [[self URL] absoluteString] };
+    _event_handler(self, (NSEvent *)params, 19);
+}
+-(void)webView:(WKWebView *)webView didStartProvisionalNavigation:(WKNavigation *)navigation
+{
+    void *params[2] = { DW_INT_TO_POINTER(DW_HTML_CHANGE_LOADING), [[self URL] absoluteString] };
+    _event_handler(self, (NSEvent *)params, 19);
+}
+-(void)webView:(WKWebView *)webView didReceiveServerRedirectForProvisionalNavigation:(WKNavigation *)navigation
+{
+    void *params[2] = { DW_INT_TO_POINTER(DW_HTML_CHANGE_REDIRECT), [[self URL] absoluteString] };
+    _event_handler(self, (NSEvent *)params, 19);
+}
+@end
+#else
+@interface DWWebView : WebView { }
+@end
+
+@implementation DWWebView : WebView { }
+@end
+#endif
+
 
 @implementation DWAppDel
 -(NSApplicationTerminateReply)applicationShouldTerminate:(NSApplication *)sender
@@ -8740,7 +8790,7 @@ int dw_html_javascript_run(HWND handle, char *script, void *scriptdata)
     [html evaluateJavaScript:[NSString stringWithUTF8String:script] completionHandler:nil];
     return DW_ERROR_NONE;
 #else
-    return DW_ERROR_UKNOWN;
+    return DW_ERROR_UNKNOWN;
 #endif
 }
 
@@ -8758,6 +8808,9 @@ DW_FUNCTION_RESTORE_PARAM1(__DW_UNUSED__ cid, ULONG)
 {
     DW_FUNCTION_INIT;
     DWWebView *web = [[DWWebView alloc] init];
+#if WK_API_ENABLED
+    web.navigationDelegate = web;
+#endif
     /* [web setTag:cid]; Why doesn't this work? */
     DW_FUNCTION_RETURN_THIS(web);
 }
