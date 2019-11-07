@@ -1247,7 +1247,7 @@ static void _html_result_event(GObject *object, GAsyncResult *result, gpointer s
         g_free (str_value);
     } 
     else if(htmlresultfunc)
-        htmlresultfunc((HWND)object, DW_ERROR_UNKNOWN, "Unknown javascript error", user_data, script_data);
+        htmlresultfunc((HWND)object, DW_ERROR_UNKNOWN, NULL, user_data, script_data);
     webkit_javascript_result_unref (js_result);
 #endif
 }
