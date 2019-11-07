@@ -1290,7 +1290,7 @@ static void _html_changed_event(WebKitWebView  *web_view, WebKitWebFrame *frame,
     void **params = data;
     
     if(params)
-      status = DW_POINTER_TO_INT(params[1]);
+      status = DW_POINTER_TO_INT(params[3]);
       
     if(status && location && work.window && work.func)
     {
@@ -11562,14 +11562,14 @@ HWND dw_html_new(unsigned long id)
 #ifdef USE_WEBKIT
    int _locked_by_me = FALSE;
    WebKitWebView *web_view;
+#ifdef USE_WEBKIT2
    WebKitSettings *settings;
+#else
+   WebKitWebSettings *settings;
+#endif
 
    DW_MUTEX_LOCK;
    web_view = (WebKitWebView *)webkit_web_view_new();
-   settings = webkit_web_view_get_settings(web_view);
-   /* Make sure java script is enabled */
-   webkit_settings_set_enable_javascript(settings, TRUE);
-   webkit_web_view_set_settings(web_view, settings);
    /* WebKit2 no longer requires a scrolled window...
     * So only create a scrolled window and pack it in older versions.
     */
@@ -11580,7 +11580,15 @@ HWND dw_html_new(unsigned long id)
    gtk_widget_show(GTK_WIDGET(web_view));
    g_object_set_data(G_OBJECT(widget), "_dw_web_view", (gpointer)web_view);
    g_signal_connect(web_view, "populate-popup", G_CALLBACK(_dw_html_populate_popup_cb), NULL);
+   /* Create a new websettings and enable java script */
+   settings = webkit_web_settings_new();
+   g_object_set(G_OBJECT(settings), "enable-scripts", TRUE, NULL);
+   webkit_web_view_set_settings(WEBKIT_WEB_VIEW(web_view), settings);
 #else 
+   settings = webkit_web_view_get_settings(web_view);
+   /* Make sure java script is enabled */
+   webkit_settings_set_enable_javascript(settings, TRUE);
+   webkit_web_view_set_settings(web_view, settings);
    widget = (GtkWidget *)web_view;
 #endif
    gtk_widget_show(widget);
@@ -11947,6 +11955,8 @@ static void _dw_signal_disconnect(gpointer data, GClosure *closure)
    }
 }
 
+#define _DW_INTERNAL_CALLBACK_PARAMS 4
+
 /*
  * Add a callback to a window event with a closure callback.
  * Parameters:
@@ -11962,7 +11972,7 @@ void dw_signal_connect_data(HWND window, char *signame, void *sigfunc, void *dis
    char *thisname = signame;
    HWND thiswindow = window;
    int sigid, _locked_by_me = FALSE;
-   void **params = calloc(3, sizeof(void *));
+   void **params = calloc(_DW_INTERNAL_CALLBACK_PARAMS, sizeof(void *));
    gint cid;
 
    /* Save the disconnect function pointer */
@@ -11973,7 +11983,11 @@ void dw_signal_connect_data(HWND window, char *signame, void *sigfunc, void *dis
     * If the window we are setting the signal on is a scrolled window we need to get
     * the "real" widget type. thiswindow is the "real" widget type
     */
-   if (GTK_IS_SCROLLED_WINDOW(thiswindow))
+   if (GTK_IS_SCROLLED_WINDOW(thiswindow)
+#ifdef USE_WEBKIT
+       && !(thiswindow = (HWND)_dw_html_web_view(thiswindow))
+#endif
+   )
    {
       thiswindow = (HWND)g_object_get_data(G_OBJECT(window), "_dw_user");
    }
@@ -12034,7 +12048,7 @@ void dw_signal_connect_data(HWND window, char *signame, void *sigfunc, void *dis
       cid = g_signal_connect_data(G_OBJECT(thiswindow), "key_press_event", G_CALLBACK(_container_enter_event), params, _dw_signal_disconnect, 0);
       _set_signal_handler_id(thiswindow, sigid, cid);
 
-      params = calloc(sizeof(void *), 3);
+      params = calloc(sizeof(void *), _DW_INTERNAL_CALLBACK_PARAMS);
 
       thisname = "button_press_event";
       thisfunc = _findsigfunc(DW_SIGNAL_ITEM_ENTER);
@@ -12063,22 +12077,22 @@ void dw_signal_connect_data(HWND window, char *signame, void *sigfunc, void *dis
 #else
       sigid = _set_signal_handler(thiswindow, window, sigfunc, data, thisfunc, discfunc);
       params[0] = GINT_TO_POINTER(sigid);
-      params[1] = GINT_TO_POINTER(DW_HTML_CHANGE_STARTED);
       params[2] = (void *)thiswindow;
+      params[3] = GINT_TO_POINTER(DW_HTML_CHANGE_STARTED);
       cid = g_signal_connect_data(G_OBJECT(thiswindow), "load-started", G_CALLBACK(thisfunc), params, _dw_signal_disconnect, 0);
       _set_signal_handler_id(thiswindow, sigid, cid);
 
-      params = calloc(sizeof(void *), 3);
+      params = calloc(sizeof(void *), _DW_INTERNAL_CALLBACK_PARAMS);
 
       sigid = _set_signal_handler(thiswindow, window, sigfunc, data, thisfunc, discfunc);
       params[0] = GINT_TO_POINTER(sigid);
-      params[1] = GINT_TO_POINTER(DW_HTML_CHANGE_LOADING);
       params[2] = (void *)thiswindow;
+      params[3] = GINT_TO_POINTER(DW_HTML_CHANGE_LOADING);
       cid = g_signal_connect_data(G_OBJECT(thiswindow), "load-committed", G_CALLBACK(thisfunc), params, _dw_signal_disconnect, 0);
       _set_signal_handler_id(thiswindow, sigid, cid);
 
-      params = calloc(sizeof(void *), 3);
-      params[1] = GINT_TO_POINTER(DW_HTML_CHANGE_COMPLETE);
+      params = calloc(sizeof(void *), _DW_INTERNAL_CALLBACK_PARAMS);
+      params[3] = GINT_TO_POINTER(DW_HTML_CHANGE_COMPLETE);
 
       thisname = "load-finished";
 #endif

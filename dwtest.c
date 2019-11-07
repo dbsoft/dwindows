@@ -1696,6 +1696,23 @@ void DWSIGNAL control_thread(void *data)
     dw_window_enable(startbutton);
 }
 
+/* Handle web html changed */
+int DWSIGNAL web_html_changed(HWND html, int status, char *url, void *data)
+{
+    HWND hwndstatus = (HWND)data;
+    char *statusnames[] = { "none", "started", "redirect", "loading", "complete", NULL };
+    
+    if(hwndstatus && url && status < 5)
+    {
+        int length = strlen(url) + strlen(statusnames[status]) + 10;
+        char *text = calloc(1, length+1);
+
+        snprintf(text, length, "Status %s: %s", statusnames[status], url);
+        dw_window_set_text(hwndstatus, text);
+        free(text);
+    }    
+    return FALSE;
+}
 
 /*
  * Let's demonstrate the functionality of this library. :)
@@ -1779,11 +1796,16 @@ int main(int argc, char *argv[])
     rawhtml = dw_html_new(1001);
     if(rawhtml)
     {
+        HWND htmlstatus;
+        
         dw_box_pack_start( notebookbox7, rawhtml, 0, 100, TRUE, FALSE, 0);
         dw_html_raw(rawhtml, "<html><body><center><h1>dwtest</h1></center></body></html>");
         html = dw_html_new(1002);
         dw_box_pack_start( notebookbox7, html, 0, 100, TRUE, TRUE, 0);
         dw_html_url(html, "http://dwindows.netlabs.org");
+        htmlstatus = dw_status_text_new("HTML status loading...", 0);
+        dw_box_pack_start( notebookbox7, htmlstatus, 100, -1, TRUE, FALSE, 1);
+        dw_signal_connect(html, DW_SIGNAL_HTML_CHANGED, DW_SIGNAL_FUNC(web_html_changed), DW_POINTER(htmlstatus));
     }
     else
     {
