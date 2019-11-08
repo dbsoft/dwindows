@@ -27,6 +27,7 @@ the same level of OLE in-place activation.
 #include <mshtml.h>		// Defines of stuff like IHTMLDocument2. This is an include file with Visual C 6 and above
 #include <mshtmhst.h>	// Defines of stuff like IDocHostUIHandler. This is an include file with Visual C 6 and above
 #include <crtdbg.h>		// for _ASSERT()
+#include <initguid.h>
 #include "dw.h"
 
 // This is used by DisplayHTMLStr(). It can be global because we never change it.
@@ -1075,10 +1076,81 @@ HRESULT STDMETHODCALLTYPE Frame_TranslateAccelerator(IOleInPlaceFrame FAR* This,
 }
 
 
+// The DWEventHandler object must be created by an application using IWebBRowser2,
+// and given to IWebBrowser2's IConnectPoint object (via
+// IConnectPoint's Advise function).
+// {4115B8E2-1823-4bbc-B10D-3D33AAA12ACF}
+
+// DWEventHandler VTable's GUID
+// {d2d531c4-83d7-48d7-b733-840245ea2b34}
+DEFINE_GUID(DIID_DWEventHandler, 0xd2d531c4, 0x83d7, 0x48d7, 0xb7, 0x33, 0x84, 0x2, 0x45, 0xea, 0x2b, 0x34);
+
+// DWEventHandler's VTable
+#undef  INTERFACE
+#define INTERFACE DWEventHandler
+DECLARE_INTERFACE_ (INTERFACE, IUnknown)
+{
+	// IUnknown functions
+	STDMETHOD  (QueryInterface)		(THIS_ REFIID, void **) PURE;
+	STDMETHOD_ (ULONG, AddRef)		(THIS) PURE;
+	STDMETHOD_ (ULONG, Release)		(THIS) PURE;
+	// Extra functions
+	STDMETHOD_ (void, DocumentComplete)		(THIS_ IDispatch*, VARIANT*) PURE;
+};
+
+// IWebBrowser2 supports us giving it only 1 DWEventHandler object, so for simplicity, we
+// can just declare it as a global. That way, we don't need to allocate it, free it,
+// nor maintain a reference count for it. Here's our 1 DWEventHandler object.
+static DWEventHandler		MyDWEventHandler;
 
 
+static HRESULT STDMETHODCALLTYPE DWEventHandler_QueryInterface(DWEventHandler *this, REFIID vTableGuid, void **ppv)
+{
+	// This is an DWEventHandler object, so we must recognize DWEventHandler VTable's GUID,
+	// Our DWEventHandler can also masquerade as an IUnknown
+	if (!IsEqualIID(vTableGuid, &IID_IUnknown) && !IsEqualIID(vTableGuid, &DIID_DWEventHandler))
+	{
+		*ppv = 0;
+		return(E_NOINTERFACE);
+	}
+
+	*ppv = this;
+
+	// Normally, we'd call our AddRef function here. But since our DWEventHandler isn't
+	// allocated, we don't need to bother with reference counting
+	return(NOERROR);
+}
+
+static ULONG STDMETHODCALLTYPE DWEventHandler_AddRef(DWEventHandler *this)
+{
+	// Our one and only DWEventHandler isn't allocated. Instead, it is statically
+	// declared above (MyDWEventHandler). So we'll just return a 1
+	return(1);
+}
+
+static ULONG STDMETHODCALLTYPE DWEventHandler_Release(DWEventHandler *this)
+{
+	return(1);
+}
+
+// This is the extra function for DWEventHandler. 
+
+static void STDMETHODCALLTYPE DWEventHandler_DocumentComplete(DWEventHandler *this, IDispatch* pDisp, VARIANT* URL)
+{
+	// Do a compare of the two elements. We happen to know that
+	// we'll be passing an array of DWORD values to Sort()
+	dw_debug("DocumentComplete() called!\n");
+}
 
 
+// Our DWEventHandler VTable. We need only one of these, so we can
+// declare it static
+static const DWEventHandlerVtbl DWEventHandler_Vtbl = {
+	DWEventHandler_QueryInterface,
+	DWEventHandler_AddRef,
+	DWEventHandler_Release,
+	DWEventHandler_DocumentComplete
+};
 
 
 /*************************** UnEmbedBrowserObject() ************************
@@ -1532,6 +1604,8 @@ long _EmbedBrowserObject(HWND hwnd)
 	RECT				rect;
 	char				*ptr;
 	_IOleClientSiteEx	*_iOleClientSiteEx;
+	
+	MyDWEventHandler.lpVtbl = (DWEventHandlerVtbl *)&DWEventHandler_Vtbl;
 
 	// Our IOleClientSite, IOleInPlaceSite, and IOleInPlaceFrame functions need to get our window handle. We
 	// could store that in some global. But then, that would mean that our functions would work with only that
@@ -1612,7 +1686,7 @@ long _EmbedBrowserObject(HWND hwnd)
 		// its matching window and its own objects containing per-window data.
 		*((IOleObject **)ptr) = browserObject;
 		dw_window_set_data(hwnd, "_dw_html", (void *)ptr);
-
+			
 		// We can now call the browser object's SetHostNames function. SetHostNames lets the browser object know our
 		// application's name and the name of the document in which we're embedding the browser. (Since we have no
 		// document name, we'll pass a 0 for the latter). When the browser object is opened for editing, it displays
@@ -1660,6 +1734,10 @@ long _EmbedBrowserObject(HWND hwnd)
 			// pointer to the IWebBrowser2 object.
 			!browserObject->lpVtbl->QueryInterface(browserObject, &IID_IWebBrowser2, (void**)&webBrowser2))
 		{
+			IConnectionPointContainer	*container;
+			IConnectionPoint			*point;
+			HRESULT						hr;
+
 			// Ok, now the pointer to our IWebBrowser2 object is in 'webBrowser2', and so its VTable is
 			// webBrowser2->lpVtbl.
 
@@ -1671,6 +1749,46 @@ long _EmbedBrowserObject(HWND hwnd)
 			webBrowser2->lpVtbl->put_Top(webBrowser2, 0);
 			webBrowser2->lpVtbl->put_Width(webBrowser2, rect.right);
 			webBrowser2->lpVtbl->put_Height(webBrowser2, rect.bottom);
+
+			// Get IWebBrowser2' IConnectionPointContainer sub-object. We do this by calling
+			// IWebBrowser2' QueryInterface, and pass it the standard GUID for an
+			// IConnectionPointContainer VTable
+			if ((hr = webBrowser2->lpVtbl->QueryInterface(webBrowser2, &IID_IConnectionPointContainer, &container)))
+				dw_debug("QueryInterface error: Can't get IConnectionPointContainer object");
+			else
+			{
+				// Get IWebBrowser2' IConnectionPoint sub-object for specifically giving
+				// IWebBRowser2 our DWEventHandler. We do this by calling IConnectionPointContainer's
+				// FindConnectionPoint, and pass it DWEventHandler VTable's GUID
+				hr = container->lpVtbl->FindConnectionPoint(container, &DIID_DWEventHandler, &point);
+
+				// We don't need the IConnectionPointContainer, now that we got the one IConnectionPoint
+				// we want (ie, the one we use to give IWebBrowser2 our DWEventHandler)
+				container->lpVtbl->Release(container);
+
+				if (hr)
+					dw_debug("FindConnectionPoint error: Can't get IConnectionPoint object");
+				else
+				{
+					DWORD		cookie;
+					
+					// Now call the IConnectionPoint's Advise function, giving it some object
+					// whose QueryInterface it will call to get our DWEventHandler object. Let's
+					// just give it our DWEventHandler object. So Advise will call our DWEventHandler's
+					// QueryInterface to tell us to give it a pointer to our DWEventHandler. Dumb?
+					// You bet. All of this convoluted stuff is a combination of poor pre-planning
+					// by Microsoft programmers when they designed this stuff, as well as the
+					// colossal blunder of designing COM to accomodate the limitations of early,
+					// primitive editions of Visual Basic.
+					//
+					// Advise() gives us back a "cookie" value that we'll need to later pass to
+					// Unadvise() (when we want to tell IWebBrowser2 to stop using our DWEventHandler)
+					if ((hr = point->lpVtbl->Advise(point, (IUnknown *)&MyDWEventHandler, &cookie)))
+						dw_debug("Advise error: Can't set our DWEventHandler object");
+					else 
+						dw_window_set_data(hwnd, "_dw_html_cookie", DW_INT_TO_POINTER(cookie));
+				}
+			}
 
 			// We no longer need the IWebBrowser2 object (ie, we don't plan to call any more functions in it
 			// right now, so we can release our hold on it). Note that we'll still maintain our hold on the
