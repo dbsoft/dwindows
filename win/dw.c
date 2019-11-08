@@ -5717,9 +5717,9 @@ int _dw_html_url(HWND hwnd, char *url);
 int _dw_html_javascript_run(HWND hwnd, char *script, void *scriptdata);
 #ifdef BUILD_EDGE
 void _dw_edge_action(HWND hwnd, int action);
-int _dw_edge_raw(HWND hwnd, LPCWSTR string);
-int _dw_edge_url(HWND hwnd, LPCWSTR url);
-int _dw_edge_javascript_run(HWND hwnd, LPCWSTR script, void *scriptdata);
+int _dw_edge_raw(HWND hwnd, char *string);
+int _dw_edge_url(HWND hwnd, char *url);
+int _dw_edge_javascript_run(HWND hwnd, char *script, void *scriptdata);
 #endif
 #endif
 
@@ -5755,7 +5755,7 @@ int API dw_html_raw(HWND handle, char *string)
 #if (defined(BUILD_DLL) || defined(BUILD_HTML))
 #ifdef BUILD_EDGE
    if (_DW_EDGE_DETECTED)
-      return _dw_edge_raw(handle, UTF8toWide(string));
+      return _dw_edge_raw(handle, string);
 #endif
    return _dw_html_raw(handle, string);
 #else
@@ -5777,7 +5777,7 @@ int API dw_html_url(HWND handle, char *url)
 #if (defined(BUILD_DLL) || defined(BUILD_HTML))
 #if BUILD_EDGE
    if (_DW_EDGE_DETECTED)
-      return _dw_edge_url(handle, UTF8toWide(url));
+      return _dw_edge_url(handle, url);
 #endif
    return _dw_html_url(handle, url);
 #else
@@ -5800,7 +5800,7 @@ int dw_html_javascript_run(HWND handle, char *script, void *scriptdata)
 #if (defined(BUILD_DLL) || defined(BUILD_HTML))
 #if BUILD_EDGE
    if (_DW_EDGE_DETECTED)
-      return _dw_edge_javascript_run(handle, UTF8toWide(script), scriptdata);
+      return _dw_edge_javascript_run(handle, script, scriptdata);
 #endif
    return _dw_html_javascript_run(handle, script, scriptdata);
 #else
