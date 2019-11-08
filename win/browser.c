@@ -30,6 +30,13 @@ the same level of OLE in-place activation.
 #include <initguid.h>
 #include "dw.h"
 
+/* Import the character conversion functions from dw.c */
+LPWSTR _myUTF8toWide(char *utf8string, void *outbuf);
+char *_myWideToUTF8(LPWSTR widestring, void *outbuf);
+#define UTF8toWide(a) _myUTF8toWide(a, a ? _alloca(MultiByteToWideChar(CP_UTF8, 0, a, -1, NULL, 0) * sizeof(WCHAR)) : NULL)
+#define WideToUTF8(a) _myWideToUTF8(a, a ? _alloca(WideCharToMultiByte(CP_UTF8, 0, a, -1, NULL, 0, NULL, NULL)) : NULL)
+LRESULT CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2);
+
 // This is used by DisplayHTMLStr(). It can be global because we never change it.
 static const SAFEARRAYBOUND ArrayBound = {1, 0};
 
@@ -1079,7 +1086,6 @@ HRESULT STDMETHODCALLTYPE Frame_TranslateAccelerator(IOleInPlaceFrame FAR* This,
 // The DWEventHandler object must be created by an application using IWebBRowser2,
 // and given to IWebBrowser2's IConnectPoint object (via
 // IConnectPoint's Advise function).
-// {4115B8E2-1823-4bbc-B10D-3D33AAA12ACF}
 
 // DWEventHandler VTable's GUID
 // {d2d531c4-83d7-48d7-b733-840245ea2b34}
@@ -1137,8 +1143,6 @@ static ULONG STDMETHODCALLTYPE DWEventHandler_Release(DWEventHandler *this)
 
 static void STDMETHODCALLTYPE DWEventHandler_DocumentComplete(DWEventHandler *this, IDispatch* pDisp, VARIANT* URL)
 {
-	// Do a compare of the two elements. We happen to know that
-	// we'll be passing an array of DWORD values to Sort()
 	dw_debug("DocumentComplete() called!\n");
 }
 
@@ -1457,20 +1461,10 @@ int _dw_html_url(HWND hwnd, char *url)
 		// any language.
 		VariantInit(&myURL);
 		myURL.vt = VT_BSTR;
-
-		{
-			wchar_t		*buffer;
-			DWORD		size;
-
-			size = MultiByteToWideChar(CP_ACP, 0, url, -1, 0, 0);
-			if (!(buffer = (wchar_t *)GlobalAlloc(GMEM_FIXED, sizeof(wchar_t) * size))) goto badalloc;
-			MultiByteToWideChar(CP_ACP, 0, url, -1, buffer, size);
-			myURL.bstrVal = SysAllocString(buffer);
-			GlobalFree(buffer);
-		}
+		myURL.bstrVal = SysAllocString(UTF8toWide(url));
 		if (!myURL.bstrVal)
 		{
-badalloc:	webBrowser2->lpVtbl->Release(webBrowser2);
+			webBrowser2->lpVtbl->Release(webBrowser2);
 			return(-6);
 		}
 
@@ -1503,11 +1497,14 @@ badalloc:	webBrowser2->lpVtbl->Release(webBrowser2);
  * RETURNS: 0 if success, or non-zero if an error.
  */
 
-int _dw_html_javascript_run(HWND hwnd, LPCWSTR script, void *scriptdata)
+int _dw_html_javascript_run(HWND hwnd, char *script, void *scriptdata)
 {
+	IWebBrowser2	*webBrowser2;
 	IHTMLWindow2	*htmlWindow2;
+	IHTMLDocument2	*htmlDocument2;
 	IOleObject		*browserObject;
-	VARIANT			retVal;
+	VARIANT			result;
+	int				retval = DW_ERROR_UNKNOWN;
 
 	// Retrieve the browser object's pointer we stored in our window's GWL_USERDATA when
 	// we initially attached the browser object to this window.
@@ -1515,21 +1512,43 @@ int _dw_html_javascript_run(HWND hwnd, LPCWSTR script, void *scriptdata)
 
 	// We want to get the base address (ie, a pointer) to the IWebBrowser2 object embedded within the browser
 	// object, so we can call some of the functions in the former's table.
-	if (!browserObject->lpVtbl->QueryInterface(browserObject, &IID_IHTMLWindow2, (void**)&htmlWindow2))
+	if (!browserObject->lpVtbl->QueryInterface(browserObject, &IID_IWebBrowser2, (void**)&webBrowser2))
 	{
-		BSTR myscript = SysAllocString(script);
-		if (myscript)
+		IDispatch *pDp;
+		
+		if(!webBrowser2->lpVtbl->get_Document(webBrowser2, &pDp))
 		{
-			htmlWindow2->lpVtbl->execScript(htmlWindow2, myscript, NULL, &retVal);
-			SysFreeString(myscript);
+			if (!pDp->lpVtbl->QueryInterface(pDp, &IID_IHTMLDocument2, (void**)&htmlDocument2))
+			{
+				if (!htmlDocument2->lpVtbl->get_parentWindow(htmlDocument2, &htmlWindow2))
+				{
+					BSTR myscript = SysAllocString(UTF8toWide(script));
+					if (myscript)
+					{
+						HRESULT hr;
+						
+						VariantInit(&result);
+						hr = htmlWindow2->lpVtbl->execScript(htmlWindow2, myscript, L"javascript", &result);
+						/* Pass the result back for event handling */
+						_wndproc(hwnd, WM_USER+100, (WPARAM)(result.vt == VT_BSTR ? WideToUTF8(result.bstrVal) : NULL), (LPARAM)scriptdata);
+						VariantClear(&result);
+						SysFreeString(myscript);
+						retval = DW_ERROR_NONE;
+					}
+					// We no longer need the IWebBrowser2 object (ie, we don't plan to call any more functions in it,
+					// so we can release our hold on it). Note that we'll still maintain our hold on the browser
+					// object.
+					htmlWindow2->lpVtbl->Release(htmlWindow2);
+				}
+				htmlDocument2->lpVtbl->Release(htmlDocument2);
+			}
+			pDp->lpVtbl->Release(pDp);
 		}
-		// We no longer need the IWebBrowser2 object (ie, we don't plan to call any more functions in it,
-		// so we can release our hold on it). Note that we'll still maintain our hold on the browser
-		// object.
-		htmlWindow2->lpVtbl->Release(htmlWindow2);
+		webBrowser2->lpVtbl->Release(webBrowser2);
 	}
-	return DW_ERROR_UNKNOWN;
+	return retval;
 }
+
 
 
 /******************************* ResizeBrowser() ****************************

@@ -21,6 +21,12 @@ using namespace Microsoft::WRL;
 
 extern "C" {
 
+	/* Import the character conversion functions from dw.c */
+	LPWSTR _myUTF8toWide(char *utf8string, void *outbuf);
+	char *_myWideToUTF8(LPWSTR widestring, void *outbuf);
+	#define UTF8toWide(a) _myUTF8toWide(a, a ? _alloca(MultiByteToWideChar(CP_UTF8, 0, a, -1, NULL, 0) * sizeof(WCHAR)) : NULL)
+	#define WideToUTF8(a) _myWideToUTF8(a, a ? _alloca(WideCharToMultiByte(CP_UTF8, 0, a, -1, NULL, 0, NULL, NULL)) : NULL)
+	LRESULT CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2);
 	extern HWND DW_HWND_OBJECT;
 	BOOL DW_EDGE_DETECTED = FALSE;
 
@@ -128,7 +134,7 @@ extern "C" {
 	 * RETURNS: 0 if success, or non-zero if an error.
 	 */
 
-	int _dw_edge_raw(HWND hwnd, LPCWSTR string)
+	int _dw_edge_raw(HWND hwnd, char *string)
 	{
 		IWebView2WebView* webview;
 
@@ -137,9 +143,9 @@ extern "C" {
 		webview = (IWebView2WebView*)dw_window_get_data(hwnd, _DW_HTML_DATA_NAME);
 
 		if (webview)
-			webview->NavigateToString(string);
+			webview->NavigateToString(UTF8toWide(string));
 		else
-			dw_window_set_data(hwnd, _DW_HTML_DATA_RAW, _wcsdup(string));
+			dw_window_set_data(hwnd, _DW_HTML_DATA_RAW, _wcsdup(UTF8toWide(string)));
 		return DW_ERROR_NONE;
 	}
 
@@ -152,7 +158,7 @@ extern "C" {
 	 * RETURNS: 0 if success, or non-zero if an error.
 	 */
 
-	int _dw_edge_url(HWND hwnd, LPCWSTR url)
+	int _dw_edge_url(HWND hwnd, char *url)
 	{
 		IWebView2WebView* webview;
 
@@ -161,16 +167,11 @@ extern "C" {
 		webview = (IWebView2WebView*)dw_window_get_data(hwnd, _DW_HTML_DATA_NAME);
 
 		if (webview)
-			webview->Navigate(url);
+			webview->Navigate(UTF8toWide(url));
 		else
-			dw_window_set_data(hwnd, _DW_HTML_DATA_LOCATION, _wcsdup(url));
+			dw_window_set_data(hwnd, _DW_HTML_DATA_LOCATION, _wcsdup(UTF8toWide(url)));
 		return DW_ERROR_NONE;
 	}
-
-	/* These reference functions in dw.c */
-	#define WideToUTF8(a) _myWideToUTF8(a, a ? _alloca(WideCharToMultiByte(CP_UTF8, 0, a, -1, NULL, 0, NULL, NULL)) : NULL)
-	char* _myWideToUTF8(LPWSTR widestring, void* outbuf);
-	LRESULT CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2);
 
 	/******************************* dw_edge_javascript_run() ****************************
 	 * Runs a javascript in the specified browser context.
@@ -182,7 +183,7 @@ extern "C" {
 	 * RETURNS: 0 if success, or non-zero if an error.
 	 */
 
-	int _dw_edge_javascript_run(HWND hwnd, LPCWSTR script, void *scriptdata)
+	int _dw_edge_javascript_run(HWND hwnd, char *script, void *scriptdata)
 	{
 		IWebView2WebView* webview;
 
@@ -191,7 +192,7 @@ extern "C" {
 		webview = (IWebView2WebView*)dw_window_get_data(hwnd, _DW_HTML_DATA_NAME);
 
 		if (webview)
-			webview->ExecuteScript(script,
+			webview->ExecuteScript(UTF8toWide(script),
 				Callback<IWebView2ExecuteScriptCompletedHandler>(
 					[hwnd, scriptdata](HRESULT error, PCWSTR result) -> HRESULT
 					{
