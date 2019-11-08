@@ -8813,10 +8813,15 @@ int dw_html_javascript_run(HWND handle, char *script, void *scriptdata)
     DW_LOCAL_POOL_IN;
     
 #if WK_API_ENABLED
-    [html evaluateJavaScript:[NSString stringWithUTF8String:script] completionHandler:nil];
+    [html evaluateJavaScript:[NSString stringWithUTF8String:script] completionHandler:^(NSString *result, NSError *error)
+    {
+        void *params[2] = { result, scriptdata };
+        _event_handler(html, (NSEvent *)params, 18);
+    }];
 #else
     NSString *result = [html stringByEvaluatingJavaScriptFromString:[NSString stringWithUTF8String:script]];
-    _event_handler(html, (NSEvent *)result, 18);
+    void *params[2] = { result, scriptdata };
+    _event_handler(html, (NSEvent *)params, 18);
 #endif
     DW_LOCAL_POOL_OUT;
     return DW_ERROR_NONE;
