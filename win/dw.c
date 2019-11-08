@@ -5714,10 +5714,12 @@ HWND API dw_html_new(unsigned long id)
 void _dw_html_action(HWND hwnd, int action);
 int _dw_html_raw(HWND hwnd, char *string);
 int _dw_html_url(HWND hwnd, char *url);
+int _dw_html_javascript_run(HWND hwnd, char *script, void *scriptdata);
 #ifdef BUILD_EDGE
 void _dw_edge_action(HWND hwnd, int action);
 int _dw_edge_raw(HWND hwnd, LPCWSTR string);
 int _dw_edge_url(HWND hwnd, LPCWSTR url);
+int _dw_edge_javascript_run(HWND hwnd, LPCWSTR script, void *scriptdata);
 #endif
 #endif
 
