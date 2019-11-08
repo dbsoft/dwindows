@@ -24,6 +24,7 @@ the same level of OLE in-place activation.
 #include <winsock2.h>
 #include <windows.h>
 #include <exdisp.h>		// Defines of stuff like IWebBrowser2. This is an include file with Visual C 6 and above
+#include <exdispid.h>
 #include <mshtml.h>		// Defines of stuff like IHTMLDocument2. This is an include file with Visual C 6 and above
 #include <mshtmhst.h>	// Defines of stuff like IDocHostUIHandler. This is an include file with Visual C 6 and above
 #include <crtdbg.h>		// for _ASSERT()
@@ -1096,12 +1097,14 @@ DEFINE_GUID(DIID_DWEventHandler, 0xd2d531c4, 0x83d7, 0x48d7, 0xb7, 0x33, 0x84, 0
 #define INTERFACE DWEventHandler
 DECLARE_INTERFACE_ (INTERFACE, IUnknown)
 {
-	// IUnknown functions
-	STDMETHOD  (QueryInterface)		(THIS_ REFIID, void **) PURE;
-	STDMETHOD_ (ULONG, AddRef)		(THIS) PURE;
-	STDMETHOD_ (ULONG, Release)		(THIS) PURE;
-	// Extra functions
-	STDMETHOD_ (void, DocumentComplete)		(THIS_ IDispatch*, VARIANT*) PURE;
+	// Interface functions
+	STDMETHOD  (QueryInterface)				(THIS_ REFIID, void **) PURE;
+	STDMETHOD_ (ULONG, AddRef)				(THIS) PURE;
+	STDMETHOD_ (ULONG, Release)				(THIS) PURE;
+	STDMETHOD_ (HRESULT, GetTypeInfoCount)	(THIS_ UINT *) PURE;
+	STDMETHOD_ (HRESULT, GetTypeInfo)		(THIS_ UINT, LCID, ITypeInfo **) PURE;
+	STDMETHOD_ (HRESULT, GetIDsOfNames)		(THIS_ REFIID, LPOLESTR *, UINT, LCID, DISPID *) PURE;
+	STDMETHOD_ (HRESULT, Invoke)			(THIS_ DISPID, REFIID, LCID, WORD, DISPPARAMS, VARIANT *, EXCEPINFO *, UINT *) PURE;
 };
 
 // IWebBrowser2 supports us giving it only 1 DWEventHandler object, so for simplicity, we
@@ -1114,7 +1117,7 @@ static HRESULT STDMETHODCALLTYPE DWEventHandler_QueryInterface(DWEventHandler *t
 {
 	// This is an DWEventHandler object, so we must recognize DWEventHandler VTable's GUID,
 	// Our DWEventHandler can also masquerade as an IUnknown
-	if (!IsEqualIID(vTableGuid, &IID_IUnknown) && !IsEqualIID(vTableGuid, &DIID_DWEventHandler))
+	if (!IsEqualIID(vTableGuid, &IID_IUnknown) && !IsEqualIID(vTableGuid, &DIID_DWebBrowserEvents2))
 	{
 		*ppv = 0;
 		return(E_NOINTERFACE);
@@ -1138,12 +1141,59 @@ static ULONG STDMETHODCALLTYPE DWEventHandler_Release(DWEventHandler *this)
 {
 	return(1);
 }
-
-// This is the extra function for DWEventHandler. 
-
-static void STDMETHODCALLTYPE DWEventHandler_DocumentComplete(DWEventHandler *this, IDispatch* pDisp, VARIANT* URL)
+static HRESULT STDMETHODCALLTYPE DWEventHandler_GetTypeInfoCount(DWEventHandler *this, UINT * pctinfo)
 {
-	dw_debug("DocumentComplete() called!\n");
+	return E_NOTIMPL;
+}
+static HRESULT STDMETHODCALLTYPE DWebBrowserEvent2_GetTypeInfo(DWEventHandler *this,  UINT iTInfo, LCID lcid, ITypeInfo ** ppTInfo)
+{
+	return E_NOTIMPL;
+}
+static HRESULT STDMETHODCALLTYPE DWebBrowserEvent2_GetIDsOfNames(DWEventHandler *this,  REFIID riid, LPOLESTR * rgszNames, UINT cNames, LCID lcid, DISPID * rgDispId)
+{
+	return E_NOTIMPL;
+}
+static HRESULT STDMETHODCALLTYPE DWebBrowserEvent2_Invoke(DWEventHandler *this, DISPID dispIdMember, REFIID riid, LCID lcid, WORD wFlags, DISPPARAMS * pDispParams, VARIANT * pVarResult, EXCEPINFO * pExcepInfo, UINT * puArgErr)
+{
+	switch (dispIdMember)
+	{
+		case DISPID_BEFORENAVIGATE2:
+		{
+			// Params are in the variant array from right to left wrt how they are defined in the documentation.
+			LPCWSTR pszURL = pDispParams->rgvarg[5].pvarVal->bstrVal;
+			IWebBrowser2* pwb = (IWebBrowser2*)pDispParams->rgvarg[pDispParams->cArgs - 1].byref;
+			LONG_PTR tmp;
+			HWND hwnd;
+
+			/* Get the window handle and URL */
+			pwb->lpVtbl->get_HWND(pwb, &tmp);
+			hwnd = (HWND)tmp;
+			/* Send the event for signal handling */
+			_wndproc(hwnd, WM_USER+101, (WPARAM)DW_INT_TO_POINTER(DW_HTML_CHANGE_STARTED), (LPARAM)WideToUTF8((LPWSTR)pszURL));
+
+			// Make sure you don't accidently cancel the navigation.
+			*V_BOOLREF(&pDispParams->rgvarg[0]) = VARIANT_FALSE;
+			break;
+		}
+		case DISPID_DOCUMENTCOMPLETE:
+		{
+			IWebBrowser2* pwb = (IWebBrowser2*)pDispParams->rgvarg[pDispParams->cArgs - 1].byref;
+			LONG_PTR tmp;
+			HWND hwnd;
+			BSTR locationURL;
+
+			/* Get the window handle and URL */
+			pwb->lpVtbl->get_HWND(pwb, &tmp);
+			hwnd = (HWND)tmp;
+			pwb->lpVtbl->get_LocationURL(pwb, &locationURL);
+			/* Send the event for signal handling */
+			_wndproc(hwnd, WM_USER+101, (WPARAM)DW_INT_TO_POINTER(DW_HTML_CHANGE_COMPLETE), (LPARAM)WideToUTF8((LPWSTR)locationURL));
+			break;
+		}
+		default:
+			return DISP_E_MEMBERNOTFOUND;
+	}
+	return NOERROR;
 }
 
 
@@ -1153,7 +1203,10 @@ static const DWEventHandlerVtbl DWEventHandler_Vtbl = {
 	DWEventHandler_QueryInterface,
 	DWEventHandler_AddRef,
 	DWEventHandler_Release,
-	DWEventHandler_DocumentComplete
+	DWEventHandler_GetTypeInfoCount,
+	DWebBrowserEvent2_GetTypeInfo,
+	DWebBrowserEvent2_GetIDsOfNames,
+	DWebBrowserEvent2_Invoke
 };
 
 
@@ -1779,7 +1832,7 @@ long _EmbedBrowserObject(HWND hwnd)
 				// Get IWebBrowser2' IConnectionPoint sub-object for specifically giving
 				// IWebBRowser2 our DWEventHandler. We do this by calling IConnectionPointContainer's
 				// FindConnectionPoint, and pass it DWEventHandler VTable's GUID
-				hr = container->lpVtbl->FindConnectionPoint(container, &DIID_DWEventHandler, &point);
+				hr = container->lpVtbl->FindConnectionPoint(container, &DIID_DWebBrowserEvents2, &point);
 
 				// We don't need the IConnectionPointContainer, now that we got the one IConnectionPoint
 				// we want (ie, the one we use to give IWebBrowser2 our DWEventHandler)
