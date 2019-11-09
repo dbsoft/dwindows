@@ -2386,16 +2386,22 @@ LRESULT CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
                   break;
                case WM_USER+100:
                   {
-                      int (DWSIGNAL *htmlresultfunc)(HWND, int, char *, void *, void *) = tmp->signalfunction;
-                      
-                      return htmlresultfunc(tmp->window, mp1 ? DW_ERROR_NONE : DW_ERROR_UNKNOWN, (char *)mp1, (void *)mp2, tmp->data);
+                     if(hWnd == tmp->window)
+                     {
+                        int (DWSIGNAL *htmlresultfunc)(HWND, int, char *, void *, void *) = tmp->signalfunction;
+
+                        return htmlresultfunc(tmp->window, mp1 ? DW_ERROR_NONE : DW_ERROR_UNKNOWN, (char *)mp1, (void *)mp2, tmp->data);
+                     }
                   }
                   break;
                case WM_USER+101:
                   {
-                      int (DWSIGNAL *htmlchangedfunc)(HWND, int, char *, void *) = tmp->signalfunction;
-                      
-                      return htmlchangedfunc(tmp->window, DW_POINTER_TO_INT(mp1), (char *)mp2, tmp->data);
+                     if(hWnd == tmp->window)
+                     {
+                        int (DWSIGNAL *htmlchangedfunc)(HWND, int, char *, void *) = tmp->signalfunction;
+
+                        return htmlchangedfunc(tmp->window, DW_POINTER_TO_INT(mp1), (char *)mp2, tmp->data);
+                     }
                   }
                   break;
             }
