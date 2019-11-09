@@ -703,7 +703,6 @@ typedef enum _PreferredAppMode
    _Max
 } _PreferredAppMode;
 
-int CompareStringOrdinal(LPCWCH lpString1, int cchCount1, LPCWCH lpString2, int cchCount2, BOOL bIgnoreCase);
 HTHEME (WINAPI * _OpenNcThemeData)(HWND, LPCWSTR) = NULL; 
 VOID (WINAPI * _RefreshImmersiveColorPolicyState)(VOID) = NULL; 
 BOOL (WINAPI * _GetIsImmersiveColorUsingHighContrast)(IMMERSIVE_HC_CACHE_MODE) = NULL; 
@@ -805,7 +804,7 @@ BOOL AllowDarkModeForWindow(HWND window, BOOL allow)
 BOOL IsColorSchemeChangeMessage(LPARAM lParam)
 {
    BOOL is = FALSE;
-   if(lParam && CompareStringOrdinal((LPCWCH)lParam, -1, L"ImmersiveColorSet", -1, TRUE) == CSTR_EQUAL)
+   if(lParam && _wcsicmp((LPCWCH)lParam, L"ImmersiveColorSet") == 0)
    {
       _RefreshImmersiveColorPolicyState();
       is = TRUE;
