@@ -1342,14 +1342,21 @@ DWObject *DWObj;
  * WKWebKit on intel 64 and the old WebKit on intel 32 bit and earlier.
  */
 #if WK_API_ENABLED
-@interface DWWebView : WKWebView <WKNavigationDelegate> { }
+@interface DWWebView : WKWebView <WKNavigationDelegate>
+{
+    void *userdata;
+}
+-(void *)userdata;
+-(void)setUserdata:(void *)input;
 -(void)webView:(WKWebView *)webView didCommitNavigation:(WKNavigation *)navigation;
 -(void)webView:(WKWebView *)webView didFinishNavigation:(WKNavigation *)navigation;
 -(void)webView:(WKWebView *)webView didStartProvisionalNavigation:(WKNavigation *)navigation;
 -(void)webView:(WKWebView *)webView didReceiveServerRedirectForProvisionalNavigation:(WKNavigation *)navigation;
 @end
 
-@implementation DWWebView : WKWebView { }
+@implementation DWWebView : WKWebView
+-(void *)userdata { return userdata; }
+-(void)setUserdata:(void *)input { userdata = input; }
 -(void)webView:(WKWebView *)webView didCommitNavigation:(WKNavigation *)navigation
 {
     void *params[2] = { DW_INT_TO_POINTER(DW_HTML_CHANGE_STARTED), [[self URL] absoluteString] };
@@ -1370,16 +1377,23 @@ DWObject *DWObj;
     void *params[2] = { DW_INT_TO_POINTER(DW_HTML_CHANGE_REDIRECT), [[self URL] absoluteString] };
     _event_handler(self, (NSEvent *)params, 19);
 }
+-(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); dw_signal_disconnect_by_window(self); [super dealloc]; }
 @end
 #else
 @interface DWWebView : WebView
-{ }
+{
+    void *userdata;
+}
+-(void *)userdata;
+-(void)setUserdata:(void *)input;
 -(void)webView:(WebView *)sender didFinishLoadForFrame:(WebFrame *)frame;
 -(void)webView:(WebView *)sender didCommitLoadForFrame:(WebFrame *)frame;
 -(void)webView:(WebView *)sender didStartProvisionalLoadForFrame:(WebFrame *)frame;
 @end
 
-@implementation DWWebView : WebView { }
+@implementation DWWebView : WebView
+-(void *)userdata { return userdata; }
+-(void)setUserdata:(void *)input { userdata = input; }
 -(void)webView:(WebView *)sender didFinishLoadForFrame:(WebFrame *)frame
 {
     void *params[2] = { DW_INT_TO_POINTER(DW_HTML_CHANGE_COMPLETE), [self mainFrameURL] };
@@ -1395,6 +1409,7 @@ DWObject *DWObj;
     void *params[2] = { DW_INT_TO_POINTER(DW_HTML_CHANGE_LOADING), [self mainFrameURL] };
     _event_handler(self, (NSEvent *)params, 19);
 }
+-(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); dw_signal_disconnect_by_window(self); [super dealloc]; }
 @end
 #endif
 
