@@ -27,6 +27,7 @@ extern "C" {
 	#define UTF8toWide(a) _myUTF8toWide(a, a ? _alloca(MultiByteToWideChar(CP_UTF8, 0, a, -1, NULL, 0) * sizeof(WCHAR)) : NULL)
 	#define WideToUTF8(a) _myWideToUTF8(a, a ? _alloca(WideCharToMultiByte(CP_UTF8, 0, a, -1, NULL, 0, NULL, NULL)) : NULL)
 	LRESULT CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2);
+	BOOL CALLBACK _free_window_memory(HWND handle, LPARAM lParam);
 	extern HWND DW_HWND_OBJECT;
 	BOOL DW_EDGE_DETECTED = FALSE;
 
@@ -292,8 +293,8 @@ extern "C" {
 			{
 				dw_window_set_data(hWnd, _DW_HTML_DATA_NAME, NULL);
 				webview->Close();
-
 			}
+			_free_window_memory(hwnd, 0);
 			return(TRUE);
 		}
 		}

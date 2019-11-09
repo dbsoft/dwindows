@@ -37,6 +37,7 @@ char *_myWideToUTF8(LPWSTR widestring, void *outbuf);
 #define UTF8toWide(a) _myUTF8toWide(a, a ? _alloca(MultiByteToWideChar(CP_UTF8, 0, a, -1, NULL, 0) * sizeof(WCHAR)) : NULL)
 #define WideToUTF8(a) _myWideToUTF8(a, a ? _alloca(WideCharToMultiByte(CP_UTF8, 0, a, -1, NULL, 0, NULL, NULL)) : NULL)
 LRESULT CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2);
+BOOL CALLBACK _free_window_memory(HWND handle, LPARAM lParam);
 
 // This is used by DisplayHTMLStr(). It can be global because we never change it.
 static const SAFEARRAYBOUND ArrayBound = {1, 0};
@@ -1841,9 +1842,7 @@ long _EmbedBrowserObject(HWND hwnd)
 			// Get IWebBrowser2' IConnectionPointContainer sub-object. We do this by calling
 			// IWebBrowser2' QueryInterface, and pass it the standard GUID for an
 			// IConnectionPointContainer VTable
-			if ((hr = webBrowser2->lpVtbl->QueryInterface(webBrowser2, &IID_IConnectionPointContainer, &container)))
-				dw_debug("QueryInterface error: Can't get IConnectionPointContainer object");
-			else
+			if (!(hr = webBrowser2->lpVtbl->QueryInterface(webBrowser2, &IID_IConnectionPointContainer, &container)))
 			{
 				// Get IWebBrowser2' IConnectionPoint sub-object for specifically giving
 				// IWebBRowser2 our DWEventHandler. We do this by calling IConnectionPointContainer's
@@ -1854,9 +1853,7 @@ long _EmbedBrowserObject(HWND hwnd)
 				// we want (ie, the one we use to give IWebBrowser2 our DWEventHandler)
 				container->lpVtbl->Release(container);
 
-				if (hr)
-					dw_debug("FindConnectionPoint error: Can't get IConnectionPoint object");
-				else
+				if (!hr)
 				{
 					DWORD		cookie;
 					
@@ -1871,9 +1868,7 @@ long _EmbedBrowserObject(HWND hwnd)
 					//
 					// Advise() gives us back a "cookie" value that we'll need to later pass to
 					// Unadvise() (when we want to tell IWebBrowser2 to stop using our DWEventHandler)
-					if ((hr = point->lpVtbl->Advise(point, (IUnknown *)&MyDWEventHandler, &cookie)))
-						dw_debug("Advise error: Can't set our DWEventHandler object");
-					else 
+					if (!(hr = point->lpVtbl->Advise(point, (IUnknown *)&MyDWEventHandler, &cookie)))
 						dw_window_set_data(hwnd, "_dw_html_cookie", DW_INT_TO_POINTER(cookie));
 				}
 			}
@@ -1932,7 +1927,7 @@ LRESULT CALLBACK _browserWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM 
 		{
 			// Detach the browser object from this window, and free resources.
 			_UnEmbedBrowserObject(hwnd);
-
+			_free_window_memory(hwnd, 0);
 			return(TRUE);
 		}
 	}
