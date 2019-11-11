@@ -7,6 +7,8 @@
 #include <string.h>
 #include <stdio.h>
 #include "dw.h"
+/* For snprintf on old Windows SDK */
+#include "dwcompat.h"
 
 #ifdef _MSC_VER
 #  if _MSC_VER >= 1400
