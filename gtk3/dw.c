@@ -53,11 +53,6 @@
 # endif
 #endif
 
-#include "gtk/messagebox_error.xpm"
-#include "gtk/messagebox_warning.xpm"
-#include "gtk/messagebox_information.xpm"
-#include "gtk/messagebox_question.xpm"
-
 /* These are used for resource management */
 #if defined(DW_RESOURCES) && !defined(BUILD_DLL)
 extern DWResources _resources;
@@ -2201,54 +2196,6 @@ void *dw_dialog_wait(DWDialog *dialog)
    return tmp;
 }
 
-static int _dw_ok_func(HWND window, void *data)
-{
-   DWDialog *dwwait = (DWDialog *)data;
-
-   if(!dwwait)
-      return FALSE;
-
-   dw_window_destroy((HWND)dwwait->data);
-   dw_dialog_dismiss((DWDialog *)data, (void *)DW_MB_RETURN_OK);
-   return FALSE;
-}
-
-int _dw_yes_func(HWND window, void *data)
-{
-   DWDialog *dwwait = (DWDialog *)data;
-
-   if(!dwwait)
-      return FALSE;
-
-   dw_window_destroy((HWND)dwwait->data);
-   dw_dialog_dismiss((DWDialog *)data, (void *)DW_MB_RETURN_YES);
-   return FALSE;
-}
-
-int _dw_no_func(HWND window, void *data)
-{
-   DWDialog *dwwait = (DWDialog *)data;
-
-   if(!dwwait)
-      return FALSE;
-
-   dw_window_destroy((HWND)dwwait->data);
-   dw_dialog_dismiss((DWDialog *)data, (void *)DW_MB_RETURN_NO);
-   return FALSE;
-}
-
-int _dw_cancel_func(HWND window, void *data)
-{
-   DWDialog *dwwait = (DWDialog *)data;
-
-   if(!dwwait)
-      return FALSE;
-
-   dw_window_destroy((HWND)dwwait->data);
-   dw_dialog_dismiss((DWDialog *)data, (void *)DW_MB_RETURN_CANCEL);
-   return FALSE;
-}
-
 /*
  * Displays a debug message on the console...
  * Parameters:
@@ -2277,124 +2224,59 @@ void API dw_debug(char *format, ...)
  */
 int dw_messagebox(char *title, int flags, char *format, ...)
 {
-   HWND entrywindow, texttargetbox, imagetextbox, mainbox, okbutton, nobutton, yesbutton, cancelbutton, buttonbox, stext;
-   ULONG flStyle = DW_FCF_TITLEBAR | DW_FCF_SHELLPOSITION | DW_FCF_SIZEBORDER;
-   DWDialog *dwwait;
+   GtkMessageType gtkicon = GTK_MESSAGE_OTHER;
+   GtkButtonsType gtkbuttons = GTK_BUTTONS_OK;
+   GtkWidget *dialog;
+   int response, _locked_by_me = FALSE;
    va_list args;
    char outbuf[1025] = {0};
-   char **xpm_data = NULL;
-   int x, y, extra_width=0,text_width,text_height;
-   int width,height;
 
    va_start(args, format);
    vsnprintf(outbuf, 1024, format, args);
    va_end(args);
-
-   entrywindow = dw_window_new(HWND_DESKTOP, title, flStyle);
-   mainbox = dw_box_new(DW_VERT, 10);
-   dw_box_pack_start(entrywindow, mainbox, 0, 0, TRUE, TRUE, 0);
-
-   /* determine if an icon is to be used - if so we need another HORZ box */
-   if((flags & DW_MB_ERROR) | (flags & DW_MB_WARNING) | (flags & DW_MB_INFORMATION) | (flags & DW_MB_QUESTION))
-   {
-      imagetextbox = dw_box_new(DW_HORZ, 0);
-      dw_box_pack_start(mainbox, imagetextbox, 0, 0, TRUE, TRUE, 2);
-      texttargetbox = imagetextbox;
-   }
-   else
-   {
-      imagetextbox = NULL;
-      texttargetbox = mainbox;
-   }
-
+   
    if(flags & DW_MB_ERROR)
-      xpm_data = (char **)_dw_messagebox_error;
+      gtkicon = GTK_MESSAGE_ERROR;
    else if(flags & DW_MB_WARNING)
-      xpm_data = (char **)_dw_messagebox_warning;
+      gtkicon = GTK_MESSAGE_WARNING;
    else if(flags & DW_MB_INFORMATION)
-      xpm_data = (char **)_dw_messagebox_information;
+      gtkicon = GTK_MESSAGE_INFO;
    else if(flags & DW_MB_QUESTION)
-      xpm_data = (char **)_dw_messagebox_question;
+      gtkicon = GTK_MESSAGE_QUESTION;
+      
+   if(flags & DW_MB_OKCANCEL)
+      gtkbuttons = GTK_BUTTONS_OK_CANCEL;
+   else if(flags & (DW_MB_YESNO | DW_MB_YESNOCANCEL))
+      gtkbuttons = GTK_BUTTONS_YES_NO;
 
-   if(xpm_data)
-      extra_width = 32;
-
-   if(texttargetbox == imagetextbox)
+   DW_MUTEX_LOCK;
+   dialog = gtk_message_dialog_new(NULL, GTK_DIALOG_MODAL | GTK_DIALOG_USE_HEADER_BAR, gtkicon, gtkbuttons, "%s", title);
+   gtk_message_dialog_format_secondary_text(GTK_MESSAGE_DIALOG(dialog), outbuf);
+   if(flags & DW_MB_YESNOCANCEL)
+      gtk_dialog_add_button(GTK_DIALOG(dialog), "Cancel", GTK_RESPONSE_CANCEL);
+   response = gtk_dialog_run(GTK_DIALOG(dialog));
+   gtk_widget_destroy(dialog);
+   DW_MUTEX_UNLOCK;
+   switch(response)
    {
-      HWND handle = dw_bitmap_new( 100 );
-      GdkPixbuf *icon_pixbuf = gdk_pixbuf_new_from_xpm_data((const char **)xpm_data);
-
-      gtk_image_set_from_pixbuf(GTK_IMAGE(handle), icon_pixbuf);
-
-      dw_box_pack_start( texttargetbox, handle, 32, 32, FALSE, FALSE, 2);
+      case GTK_RESPONSE_OK:
+         return DW_MB_RETURN_OK;
+      case GTK_RESPONSE_CANCEL:
+         return DW_MB_RETURN_CANCEL;
+      case GTK_RESPONSE_YES:
+         return DW_MB_RETURN_YES;
+      case GTK_RESPONSE_NO:
+         return DW_MB_RETURN_NO;
+      default:
+      {
+         /* Handle the destruction of the dialog result */
+         if(flags & (DW_MB_OKCANCEL | DW_MB_YESNOCANCEL))
+            return DW_MB_RETURN_CANCEL;
+         else if(flags & DW_MB_YESNO)
+            return DW_MB_RETURN_NO;
+      }
    }
-
-   /* Create text */
-   text_width = 240;
-   text_height = 0;
-   stext = dw_text_new(outbuf, 0);
-   dw_window_set_style(stext, DW_DT_WORDBREAK, DW_DT_WORDBREAK);
-   dw_font_text_extents_get(stext, NULL, outbuf, &width, &height);
-
-   text_width = min( width, dw_screen_width() - extra_width - 100 );
-   text_height = min( height, dw_screen_height() );
-
-   dw_box_pack_start(texttargetbox, stext, text_width, text_height, TRUE, TRUE, 2);
-
-   /* Buttons */
-   buttonbox = dw_box_new(DW_HORZ, 10);
-
-   dw_box_pack_start(mainbox, buttonbox, 0, 0, TRUE, FALSE, 0);
-
-   dwwait = dw_dialog_new((void *)entrywindow);
-
-   /* which buttons ? */
-   if(flags & DW_MB_OK)
-   {
-      okbutton = dw_button_new("Ok", 1001L);
-      dw_box_pack_start(buttonbox, okbutton, 50, 30, TRUE, FALSE, 2);
-      dw_signal_connect(okbutton, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(_dw_ok_func), (void *)dwwait);
-   }
-   else if(flags & DW_MB_OKCANCEL)
-   {
-      okbutton = dw_button_new("Ok", 1001L);
-      dw_box_pack_start(buttonbox, okbutton, 50, 30, TRUE, FALSE, 2);
-      dw_signal_connect(okbutton, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(_dw_ok_func), (void *)dwwait);
-      cancelbutton = dw_button_new("Cancel", 1002L);
-      dw_box_pack_start(buttonbox, cancelbutton, 50, 30, TRUE, FALSE, 2);
-      dw_signal_connect(cancelbutton, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(_dw_cancel_func), (void *)dwwait);
-   }
-   else if(flags & DW_MB_YESNO)
-   {
-      yesbutton = dw_button_new("Yes", 1001L);
-      dw_box_pack_start(buttonbox, yesbutton, 50, 30, TRUE, FALSE, 2);
-      dw_signal_connect(yesbutton, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(_dw_yes_func), (void *)dwwait);
-      nobutton = dw_button_new("No", 1002L);
-      dw_box_pack_start(buttonbox, nobutton, 50, 30, TRUE, FALSE, 2);
-      dw_signal_connect(nobutton, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(_dw_no_func), (void *)dwwait);
-   }
-   else if(flags & DW_MB_YESNOCANCEL)
-   {
-      yesbutton = dw_button_new("Yes", 1001L);
-      dw_box_pack_start(buttonbox, yesbutton, 50, 30, TRUE, FALSE, 2);
-      dw_signal_connect(yesbutton, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(_dw_yes_func), (void *)dwwait);
-      nobutton = dw_button_new("No", 1002L);
-      dw_box_pack_start(buttonbox, nobutton, 50, 30, TRUE, FALSE, 2);
-      dw_signal_connect(nobutton, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(_dw_no_func), (void *)dwwait);
-      cancelbutton = dw_button_new("Cancel", 1003L);
-      dw_box_pack_start(buttonbox, cancelbutton, 50, 30, TRUE, FALSE, 2);
-      dw_signal_connect(cancelbutton, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(_dw_cancel_func), (void *)dwwait);
-   }
-
-   height = max(50,text_height)+100;
-   x = (dw_screen_width() - (text_width+60+extra_width))/2;
-   y = (dw_screen_height() - height)/2;
-
-   dw_window_set_pos_size(entrywindow, x, y, (text_width+60+extra_width), height);
-
-   dw_window_show(entrywindow);
-
-   return GPOINTER_TO_INT(dw_dialog_wait(dwwait));
+   return DW_MB_RETURN_OK;
 }
 
 /*
