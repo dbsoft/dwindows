@@ -1190,7 +1190,7 @@ static HRESULT STDMETHODCALLTYPE DWebBrowserEvent2_Invoke(DWEventHandler *this, 
 			/* Get the window handle and URL */
 			vWindow.vt = VT_UI8;
 			pwb->lpVtbl->GetProperty(pwb, bstrProp, &vWindow);
-			hwnd = (HWND)vWindow.byref;
+			hwnd = (HWND)vWindow.ullVal;
 			SysFreeString(bstrProp);
 			pwb->lpVtbl->get_LocationURL(pwb, &locationURL);
 			/* Send the event for signal handling */
