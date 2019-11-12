@@ -35,6 +35,9 @@
 
 #ifdef USE_WEBKIT2
 #include <webkit2/webkit2.h>
+#if !WEBKIT_CHECK_VERSION(2, 22, 0)
+#include <JavaScriptCore/JavaScript.h>
+#endif
 #else
 #include <webkit/webkit.h>
 #endif
@@ -1198,7 +1201,12 @@ static void _html_result_event(GObject *object, GAsyncResult *result, gpointer s
 {
 #if USE_WEBKIT2
     WebKitJavascriptResult *js_result;
+    #if WEBKIT_CHECK_VERSION(2, 22, 0)
     JSCValue *value;
+    #else
+    JSValueRef value;
+    JSGlobalContextRef context;
+    #endif
     GError *error = NULL;
     int (*htmlresultfunc)(HWND, int, char *, void *, void *) = NULL;
     gint handlerdata = GPOINTER_TO_INT(g_object_get_data(object, "_dw_html_result_id"));
@@ -1226,17 +1234,35 @@ static void _html_result_event(GObject *object, GAsyncResult *result, gpointer s
         return;
     }
 
+#if WEBKIT_CHECK_VERSION(2, 22, 0)
     value = webkit_javascript_result_get_js_value(js_result);
     if(jsc_value_is_string(value)) 
     {
         gchar *str_value = jsc_value_to_string(value);
         JSCException *exception = jsc_context_get_exception(jsc_value_get_context(value));
-        
+#else
+    context = webkit_javascript_result_get_global_context(js_result);
+    value = webkit_javascript_result_get_value(js_result);
+    if (JSValueIsString(context, value)) 
+    {
+        JSStringRef js_str_value;
+        gchar *str_value;
+        gsize str_length;
+  
+        js_str_value = JSValueToStringCopy(context, value, NULL);
+        str_length = JSStringGetMaximumUTF8CStringSize(js_str_value);
+        str_value = (gchar *)g_malloc (str_length);
+        JSStringGetUTF8CString(js_str_value, str_value, str_length);
+        JSStringRelease(js_str_value);
+#endif
+
         if(htmlresultfunc)
         {
+#if WEBKIT_CHECK_VERSION(2, 22, 0)
            if(exception)
                htmlresultfunc((HWND)object, DW_ERROR_UNKNOWN, (char *)jsc_exception_get_message(exception), user_data, script_data);
            else
+#endif
                htmlresultfunc((HWND)object, DW_ERROR_NONE, str_value, user_data, script_data);
         }
         g_free (str_value);
@@ -2251,7 +2277,7 @@ int dw_messagebox(char *title, int flags, char *format, ...)
 
    DW_MUTEX_LOCK;
    dialog = gtk_message_dialog_new(NULL, GTK_DIALOG_MODAL | GTK_DIALOG_USE_HEADER_BAR, gtkicon, gtkbuttons, "%s", title);
-   gtk_message_dialog_format_secondary_text(GTK_MESSAGE_DIALOG(dialog), outbuf);
+   gtk_message_dialog_format_secondary_text(GTK_MESSAGE_DIALOG(dialog), "%s", outbuf);
    if(flags & DW_MB_YESNOCANCEL)
       gtk_dialog_add_button(GTK_DIALOG(dialog), "Cancel", GTK_RESPONSE_CANCEL);
    response = gtk_dialog_run(GTK_DIALOG(dialog));
