@@ -1211,7 +1211,9 @@ static void _html_result_event(GObject *object, GAsyncResult *result, gpointer s
     int (*htmlresultfunc)(HWND, int, char *, void *, void *) = NULL;
     gint handlerdata = GPOINTER_TO_INT(g_object_get_data(object, "_dw_html_result_id"));
     void *user_data = NULL;
+    pthread_t saved_thread = _dw_thread;
 
+    _dw_thread = (pthread_t)-1;
     if(handlerdata)
     {
         SignalHandler work;
@@ -1231,6 +1233,7 @@ static void _html_result_event(GObject *object, GAsyncResult *result, gpointer s
         if(htmlresultfunc)
            htmlresultfunc((HWND)object, DW_ERROR_UNKNOWN, error->message, user_data, script_data);
         g_error_free (error);
+        _dw_thread = saved_thread;
         return;
     }
 
@@ -1271,6 +1274,7 @@ static void _html_result_event(GObject *object, GAsyncResult *result, gpointer s
         htmlresultfunc((HWND)object, DW_ERROR_UNKNOWN, NULL, user_data, script_data);
     webkit_javascript_result_unref (js_result);
 #endif
+   _dw_thread = saved_thread;
 }
 
 #ifdef USE_WEBKIT
