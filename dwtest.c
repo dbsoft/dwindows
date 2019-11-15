@@ -1747,7 +1747,7 @@ int DWSIGNAL web_html_changed(HWND html, int status, char *url, void *data)
     
     if(hwndstatus && url && status < 5)
     {
-        int length = strlen(url) + strlen(statusnames[status]) + 10;
+        int length = (int)strlen(url) + (int)strlen(statusnames[status]) + 10;
         char *text = calloc(1, length+1);
 
         snprintf(text, length, "Status %s: %s", statusnames[status], url);
@@ -1910,7 +1910,7 @@ int main(int argc, char *argv[])
     dw_signal_connect(mainwindow, DW_SIGNAL_DELETE, DW_SIGNAL_FUNC(exit_callback), DW_POINTER(mainwindow));
     /*
      * The following is a special case handler for the Mac and other platforms which contain
-     * an application object which can be closed.  It function identically to a window delete/close
+     * an application object which can be closed.  It functions identically to a window delete/close
      * request except it applies to the entire application not an individual window. If it is not
      * handled or you allow the default handler to take place the entire application will close.
      * On platforms which do not have an application object this line will be ignored.
