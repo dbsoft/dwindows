@@ -1121,6 +1121,7 @@ typedef struct _bitbltinfo
 -(void)otherMouseDown:(NSEvent *)theEvent { _event_handler(self, theEvent, 3); }
 -(void)otherMouseUp:(NSEvent *)theEvent { _event_handler(self, theEvent, 4); }
 -(void)mouseDragged:(NSEvent *)theEvent { _event_handler(self, theEvent, 5); }
+-(void)delayedNeedsDisplay { [self setNeedsDisplay:YES]; }
 -(void)drawRect:(NSRect)rect {
     _event_handler(self, nil, 7);
 #ifdef BUILDING_FOR_MOJAVE
@@ -1128,7 +1129,11 @@ typedef struct _bitbltinfo
     {
         [cachedDrawingRep drawInRect:self.bounds];
         [_DWDirtyDrawables removeObject:self];
-        [self setNeedsDisplay:YES];
+        /* Work around a bug in Mojave 10.14 by delaying the setNeedsDisplay */
+        if(DWOSMinor != 14)
+            [self setNeedsDisplay:YES];
+        else
+            [self performSelector:@selector(delayedNeedsDisplay) withObject:nil afterDelay:0];
     }
 #endif
 }
@@ -4175,11 +4180,7 @@ char * API dw_file_browse(char *title, char *defpath, char *ext, int flags)
         /* Display the dialog.  If the OK button was pressed,
          * process the files.
          */
-#if defined(MAC_OS_X_VERSION_10_9) && ((defined(MAC_OS_X_VERSION_MAX_ALLOWED) && MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_9) || !defined(MAC_OS_X_VERSION_MAX_ALLOWED))
-        if([saveDlg runModal] == NSModalResponseOK)
-#else
-        if([saveDlg runModal] == NSFileHandlingPanelOKButton)
-#endif
+        if([saveDlg runModal] == DWModalResponseOK)
         {
             /* Get an array containing the full filenames of all
              * files and directories selected.
