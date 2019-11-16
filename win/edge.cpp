@@ -258,6 +258,62 @@ extern "C" {
 								GetClientRect(hWnd, &bounds);
 								webview->put_Bounds(bounds);
 
+								// Save the token, we might need to dw_window_set_data() this value
+								// for later use to remove the handlers
+								EventRegistrationToken token;
+
+								// Register a handler for the NavigationStarting event.
+								// This handler will check the domain being navigated to, and if the domain
+								// matches a list of blocked sites, it will cancel the navigation and
+								// possibly display a warning page.  It will also disable JavaScript on
+								// selected websites.
+								webview->add_NavigationStarting(
+									Callback<IWebView2NavigationStartingEventHandler>(
+										[hWnd](IWebView2WebView* sender,
+											IWebView2NavigationStartingEventArgs* args) -> HRESULT
+										{
+											LPWSTR uri;
+											sender->get_Source(&uri);
+
+											_wndproc(hWnd, WM_USER + 101, (WPARAM)DW_INT_TO_POINTER(DW_HTML_CHANGE_STARTED),
+												!wcscmp(uri, L"about:blank") ? (LPARAM)"" : (LPARAM)WideToUTF8((LPWSTR)uri));
+
+											return S_OK;
+										}).Get(), &token);
+
+								// Register a handler for the DocumentStateChanged event.
+								// This handler will read the webview's source URI and update
+								// the app's address bar.
+								webview->add_DocumentStateChanged(
+									Callback<IWebView2DocumentStateChangedEventHandler>(
+										[hWnd](IWebView2WebView* sender,
+											IWebView2DocumentStateChangedEventArgs* args) -> HRESULT
+										{
+											LPWSTR uri;
+											sender->get_Source(&uri);
+
+											_wndproc(hWnd, WM_USER + 101, (WPARAM)DW_INT_TO_POINTER(DW_HTML_CHANGE_LOADING), 
+												!wcscmp(uri, L"about:blank") ? (LPARAM)"" : (LPARAM)WideToUTF8((LPWSTR)uri));
+
+											return S_OK;
+										}).Get(), &token);
+
+								// Register a handler for the NavigationCompleted event.
+								// If the navigation was successful, update the back and forward buttons.
+								webview->add_NavigationCompleted(
+									Callback<IWebView2NavigationCompletedEventHandler>(
+										[hWnd](IWebView2WebView* sender,
+											IWebView2NavigationCompletedEventArgs* args) -> HRESULT
+										{
+											LPWSTR uri;
+											sender->get_Source(&uri);
+
+											_wndproc(hWnd, WM_USER + 101, (WPARAM)DW_INT_TO_POINTER(DW_HTML_CHANGE_COMPLETE),
+												!wcscmp(uri, L"about:blank") ? (LPARAM)"" : (LPARAM)WideToUTF8((LPWSTR)uri));
+
+											return S_OK;
+										}).Get(), &token);
+
 								// Handle cached load requests due to delayed
 								// loading of the edge webview contexts
 								LPCWSTR url = (LPCWSTR)dw_window_get_data(hWnd, _DW_HTML_DATA_LOCATION);
@@ -294,7 +350,7 @@ extern "C" {
 				dw_window_set_data(hWnd, _DW_HTML_DATA_NAME, NULL);
 				webview->Close();
 			}
-			_free_window_memory(hwnd, 0);
+			_free_window_memory(hWnd, 0);
 			return(TRUE);
 		}
 		}
