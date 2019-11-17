@@ -5000,7 +5000,7 @@ void API dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, 
     _dw_box_pack(box, item, 0, width, height, hsize, vsize, pad, "dw_box_pack_end()");
 }
 
-HWND _button_new(char *text, ULONG cid)
+HWND _button_new(const char *text, ULONG cid)
 {
     DWButton *button = [[DWButton alloc] init];
     if(text)
@@ -5027,7 +5027,7 @@ HWND _button_new(char *text, ULONG cid)
  *       text: The text to be display by the static text widget.
  *       id: An ID to be used with dw_window_from_id() or 0L.
  */
-HWND API dw_button_new(char *text, ULONG cid)
+HWND API dw_button_new(const char *text, ULONG cid)
 {
     DWButton *button = _button_new(text, cid);
     [button setButtonType:DWButtonTypeMomentaryPushIn];
@@ -5044,7 +5044,7 @@ HWND API dw_button_new(char *text, ULONG cid)
  *       text: The default text to be in the entryfield widget.
  *       id: An ID to be used with dw_window_from_id() or 0L.
  */
-HWND API dw_entryfield_new(char *text, ULONG cid)
+HWND API dw_entryfield_new(const char *text, ULONG cid)
 {
     DWEntryField *entry = [[DWEntryField alloc] init];
     [entry setStringValue:[ NSString stringWithUTF8String:text ]];
@@ -5232,7 +5232,7 @@ long API dw_spinbutton_get_pos(HWND handle)
  *       text: The text to be display by the static text widget.
  *       id: An ID to be used with dw_window_from_id() or 0L.
  */
-HWND API dw_radiobutton_new(char *text, ULONG cid)
+HWND API dw_radiobutton_new(const char *text, ULONG cid)
 {
     DWButton *button = _button_new(text, cid);
     [button setButtonType:DWButtonTypeRadio];
@@ -5414,7 +5414,7 @@ DW_FUNCTION_RESTORE_PARAM2(handle, HWND, position, unsigned int)
  *       text: The text to be display by the static text widget.
  *       id: An ID to be used with dw_window_from_id() or 0L.
  */
-HWND API dw_checkbox_new(char *text, ULONG cid)
+HWND API dw_checkbox_new(const char *text, ULONG cid)
 {
     DWButton *button = _button_new(text, cid);
     [button setButtonType:DWButtonTypeSwitch];
@@ -5549,10 +5549,10 @@ DW_FUNCTION_RESTORE_PARAM2(handle, HWND, text, char *)
  *          text: Text to insert into listbox.
  *          pos: 0-based position to insert text
  */
-DW_FUNCTION_DEFINITION(dw_listbox_insert, void, HWND handle, char *text, int pos)
+DW_FUNCTION_DEFINITION(dw_listbox_insert, void, HWND handle, const char *text, int pos)
 DW_FUNCTION_ADD_PARAM3(handle, text, pos)
 DW_FUNCTION_NO_RETURN(dw_listbox_insert)
-DW_FUNCTION_RESTORE_PARAM3(handle, HWND, text, char *, pos, int)
+DW_FUNCTION_RESTORE_PARAM3(handle, HWND, text, const char *, pos, int)
 {
     DW_FUNCTION_INIT;
     id object = handle;
@@ -5933,10 +5933,10 @@ DW_FUNCTION_RESTORE_PARAM2(handle, HWND, index, int)
  *       text: The default text to be in the combpbox widget.
  *       id: An ID to be used with dw_window_from_id() or 0L.
  */
-DW_FUNCTION_DEFINITION(dw_combobox_new, HWND, char *text, ULONG cid)
+DW_FUNCTION_DEFINITION(dw_combobox_new, HWND, const char *text, ULONG cid)
 DW_FUNCTION_ADD_PARAM2(text, cid)
 DW_FUNCTION_RETURN(dw_combobox_new, HWND)
-DW_FUNCTION_RESTORE_PARAM2(text, char *, cid, ULONG)
+DW_FUNCTION_RESTORE_PARAM2(text, const char *, cid, ULONG)
 {
     DW_FUNCTION_INIT;
     DWComboBox *combo = [[DWComboBox alloc] init];
@@ -5982,10 +5982,10 @@ HWND API dw_mle_new(ULONG cid)
  *          buffer: Text buffer to be imported.
  *          startpoint: Point to start entering text.
  */
-DW_FUNCTION_DEFINITION(dw_mle_import, unsigned int, HWND handle, char *buffer, int startpoint)
+DW_FUNCTION_DEFINITION(dw_mle_import, unsigned int, HWND handle, const char *buffer, int startpoint)
 DW_FUNCTION_ADD_PARAM3(handle, buffer, startpoint)
 DW_FUNCTION_RETURN(dw_mle_import, unsigned int)
-DW_FUNCTION_RESTORE_PARAM3(handle, HWND, buffer, char *, startpoint, int)
+DW_FUNCTION_RESTORE_PARAM3(handle, HWND, buffer, const char *, startpoint, int)
 {
     DW_FUNCTION_INIT;
     DWMLE *mle = handle;
@@ -6221,10 +6221,10 @@ DW_FUNCTION_RESTORE_PARAM2(handle, HWND, point, int)
  *          point: Start point of search.
  *          flags: Search specific flags.
  */
-DW_FUNCTION_DEFINITION(dw_mle_search, int, HWND handle, char *text, int point, unsigned long flags)
+DW_FUNCTION_DEFINITION(dw_mle_search, int, HWND handle, const char *text, int point, unsigned long flags)
 DW_FUNCTION_ADD_PARAM4(handle, text, point, flags)
 DW_FUNCTION_RETURN(dw_mle_search, int)
-DW_FUNCTION_RESTORE_PARAM4(handle, HWND, text, char *, point, int, flags, unsigned long)
+DW_FUNCTION_RESTORE_PARAM4(handle, HWND, text, const char *, point, int, flags, unsigned long)
 {
     DW_FUNCTION_INIT;
     DWMLE *mle = handle;
@@ -8993,7 +8993,7 @@ void API dw_menu_popup(HMENUI *menu, HWND parent, int x, int y)
     [NSMenu popUpContextMenu:thismenu withEvent:fake forView:view];
 }
 
-char _removetilde(char *dest, char *src)
+char _removetilde(char *dest, const char *src)
 {
     int z, cur=0;
     char accel = '\0';
@@ -9026,7 +9026,7 @@ char _removetilde(char *dest, char *src)
  *       flags: Extended attributes to set on the menu.
  *       submenu: Handle to an existing menu to be a submenu or NULL.
  */
-HWND API dw_menu_append_item(HMENUI menux, char *title, ULONG itemid, ULONG flags, int end, int check, HMENUI submenux)
+HWND API dw_menu_append_item(HMENUI menux, const char *title, ULONG itemid, ULONG flags, int end, int check, HMENUI submenux)
 {
     NSMenu *menu = menux;
     NSMenu *submenu = submenux;
@@ -11166,7 +11166,7 @@ void _my_strlwr(char *buf)
  *         handle: Pointer to a module handle,
  *                 will be filled in with the handle.
  */
-int dw_module_load(char *name, HMOD *handle)
+int dw_module_load(const char *name, HMOD *handle)
 {
    int len;
    char *newname;
@@ -12185,7 +12185,7 @@ int dw_exec(const char *program, int type, char **params)
  * Parameters:
  *       url: Uniform resource locator.
  */
-int dw_browse(char *url)
+int dw_browse(const char *url)
 {
     NSURL *myurl = [NSURL URLWithString:[NSString stringWithUTF8String:url]];
     [[NSWorkspace sharedWorkspace] openURL:myurl];
@@ -12211,7 +12211,7 @@ typedef struct _dwprint
  * Returns:
  *       A handle to the print object or NULL on failure.
  */
-HPRINT API dw_print_new(char *jobname, unsigned long flags, unsigned int pages, void *drawfunc, void *drawdata)
+HPRINT API dw_print_new(const char *jobname, unsigned long flags, unsigned int pages, void *drawfunc, void *drawdata)
 {
     DWPrint *print;
     NSPrintPanel *panel;
