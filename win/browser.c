@@ -32,8 +32,8 @@ the same level of OLE in-place activation.
 #include "dw.h"
 
 /* Import the character conversion functions from dw.c */
-LPWSTR _myUTF8toWide(char *utf8string, void *outbuf);
-char *_myWideToUTF8(LPWSTR widestring, void *outbuf);
+LPWSTR _myUTF8toWide(const char *utf8string, void *outbuf);
+char *_myWideToUTF8(LPCWSTR widestring, void *outbuf);
 #define UTF8toWide(a) _myUTF8toWide(a, a ? _alloca(MultiByteToWideChar(CP_UTF8, 0, a, -1, NULL, 0) * sizeof(WCHAR)) : NULL)
 #define WideToUTF8(a) _myWideToUTF8(a, a ? _alloca(WideCharToMultiByte(CP_UTF8, 0, a, -1, NULL, 0, NULL, NULL)) : NULL)
 LRESULT CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2);
@@ -1362,7 +1362,7 @@ void _dw_html_action(HWND hwnd, int action)
  * this function to display numerous pages in the specified window.
  */
 
-int _dw_html_raw(HWND hwnd, char *string)
+int _dw_html_raw(HWND hwnd, const char *string)
 {	
 	IWebBrowser2	*webBrowser2;
 	LPDISPATCH		lpDispatch;
@@ -1487,7 +1487,7 @@ bad:			htmlDoc2->lpVtbl->Release(htmlDoc2);
  * this function to display numerous pages in the specified window.
  */
 
-int _dw_html_url(HWND hwnd, char *url)
+int _dw_html_url(HWND hwnd, const char *url)
 {
 	IWebBrowser2	*webBrowser2;
 	VARIANT			myURL;
@@ -1557,7 +1557,7 @@ int _dw_html_url(HWND hwnd, char *url)
  * RETURNS: 0 if success, or non-zero if an error.
  */
 
-int _dw_html_javascript_run(HWND hwnd, char *script, void *scriptdata)
+int _dw_html_javascript_run(HWND hwnd, const char *script, void *scriptdata)
 {
 	IWebBrowser2	*webBrowser2;
 	IHTMLWindow2	*htmlWindow2;

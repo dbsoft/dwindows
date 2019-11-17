@@ -15,15 +15,16 @@
 
 using namespace Microsoft::WRL;
 
-#define _DW_HTML_DATA_NAME (char *)"_dw_edge"
-#define _DW_HTML_DATA_LOCATION (char *)"_dw_edge_location"
-#define _DW_HTML_DATA_RAW (char *)"_dw_edge_raw"
+#define _DW_HTML_DATA_NAME "_dw_edge"
+#define _DW_HTML_DATA_ENV "_dw_edge_env"
+#define _DW_HTML_DATA_LOCATION "_dw_edge_location"
+#define _DW_HTML_DATA_RAW "_dw_edge_raw"
 
 extern "C" {
 
 	/* Import the character conversion functions from dw.c */
-	LPWSTR _myUTF8toWide(char *utf8string, void *outbuf);
-	char *_myWideToUTF8(LPWSTR widestring, void *outbuf);
+	LPWSTR _myUTF8toWide(const char *utf8string, void *outbuf);
+	char *_myWideToUTF8(LPCWSTR widestring, void *outbuf);
 	#define UTF8toWide(a) _myUTF8toWide(a, a ? _alloca(MultiByteToWideChar(CP_UTF8, 0, a, -1, NULL, 0) * sizeof(WCHAR)) : NULL)
 	#define WideToUTF8(a) _myWideToUTF8(a, a ? _alloca(WideCharToMultiByte(CP_UTF8, 0, a, -1, NULL, 0, NULL, NULL)) : NULL)
 	LRESULT CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2);
@@ -135,7 +136,7 @@ extern "C" {
 	 * RETURNS: 0 if success, or non-zero if an error.
 	 */
 
-	int _dw_edge_raw(HWND hwnd, char *string)
+	int _dw_edge_raw(HWND hwnd, const char *string)
 	{
 		IWebView2WebView* webview;
 
@@ -159,7 +160,7 @@ extern "C" {
 	 * RETURNS: 0 if success, or non-zero if an error.
 	 */
 
-	int _dw_edge_url(HWND hwnd, char *url)
+	int _dw_edge_url(HWND hwnd, const char *url)
 	{
 		IWebView2WebView* webview;
 
@@ -184,7 +185,7 @@ extern "C" {
 	 * RETURNS: 0 if success, or non-zero if an error.
 	 */
 
-	int _dw_edge_javascript_run(HWND hwnd, char *script, void *scriptdata)
+	int _dw_edge_javascript_run(HWND hwnd, const char *script, void *scriptdata)
 	{
 		IWebView2WebView* webview;
 
@@ -230,6 +231,14 @@ extern "C" {
 			return(0);
 		}
 
+		case WM_PAINT:
+		{
+			PAINTSTRUCT ps;
+			HDC hdc = BeginPaint(hWnd, &ps);
+			EndPaint(hWnd, &ps);
+			return(0);
+		}
+
 		case WM_CREATE:
 		{
 			// Step 3 - Create a single WebView within the parent window
@@ -237,6 +246,9 @@ extern "C" {
 			CreateWebView2EnvironmentWithDetails(nullptr, nullptr, nullptr,
 				Callback<IWebView2CreateWebView2EnvironmentCompletedHandler>(
 					[hWnd](HRESULT result, IWebView2Environment* env) -> HRESULT {
+
+						// Save the environment for later use
+						dw_window_set_data(hWnd, _DW_HTML_DATA_ENV, DW_POINTER(env));
 
 						// Create a WebView, whose parent is the main window hWnd
 						env->CreateWebView(hWnd, Callback<IWebView2CreateWebViewCompletedHandler>(
@@ -263,10 +275,6 @@ extern "C" {
 								EventRegistrationToken token;
 
 								// Register a handler for the NavigationStarting event.
-								// This handler will check the domain being navigated to, and if the domain
-								// matches a list of blocked sites, it will cancel the navigation and
-								// possibly display a warning page.  It will also disable JavaScript on
-								// selected websites.
 								webview->add_NavigationStarting(
 									Callback<IWebView2NavigationStartingEventHandler>(
 										[hWnd](IWebView2WebView* sender,
@@ -282,8 +290,6 @@ extern "C" {
 										}).Get(), &token);
 
 								// Register a handler for the DocumentStateChanged event.
-								// This handler will read the webview's source URI and update
-								// the app's address bar.
 								webview->add_DocumentStateChanged(
 									Callback<IWebView2DocumentStateChangedEventHandler>(
 										[hWnd](IWebView2WebView* sender,
@@ -299,7 +305,6 @@ extern "C" {
 										}).Get(), &token);
 
 								// Register a handler for the NavigationCompleted event.
-								// If the navigation was successful, update the back and forward buttons.
 								webview->add_NavigationCompleted(
 									Callback<IWebView2NavigationCompletedEventHandler>(
 										[hWnd](IWebView2WebView* sender,

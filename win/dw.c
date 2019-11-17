@@ -320,7 +320,7 @@ LRESULT CALLBACK _colorwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2);
 void _resize_notebook_page(HWND handle, int pageid);
 void _handle_splitbar_resize(HWND hwnd, float percent, int type, int x, int y);
 int _lookup_icon(HWND handle, HICON hicon, int type);
-HFONT _acquire_font(HWND handle, char *fontname);
+HFONT _acquire_font(HWND handle, const char *fontname);
 void _click_default(HWND handle);
 void _do_resize(Box *thisbox, int x, int y);
 
@@ -495,7 +495,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 #ifdef UNICODE
 /* Macro and internal function to convert UTF8 to Unicode wide characters */
 #define UTF8toWide(a) _myUTF8toWide(a, a ? _alloca(MultiByteToWideChar(CP_UTF8, 0, a, -1, NULL, 0) * sizeof(WCHAR)) : NULL)
-LPWSTR _myUTF8toWide(char *utf8string, void *outbuf)
+LPWSTR _myUTF8toWide(const char *utf8string, void *outbuf)
 {
    LPWSTR retbuf = outbuf;
    
@@ -504,7 +504,7 @@ LPWSTR _myUTF8toWide(char *utf8string, void *outbuf)
    return retbuf;
 }
 #define WideToUTF8(a) _myWideToUTF8(a, a ? _alloca(WideCharToMultiByte(CP_UTF8, 0, a, -1, NULL, 0, NULL, NULL)) : NULL)
-char *_myWideToUTF8(LPWSTR widestring, void *outbuf)
+char *_myWideToUTF8(LPCWSTR widestring, void *outbuf)
 {
    char *retbuf = outbuf;
    
@@ -577,7 +577,7 @@ char *image_exts[NUM_EXTS] =
 };
 
 /* Section for loading files of types besides BMP and ICO and return HBITMAP or HICON */
-void *_dw_load_gpbitmap( char *filename )
+void *_dw_load_gpbitmap(const char *filename)
 {
    int i, wclen = (int)(strlen(filename) + 6) * sizeof(wchar_t);
    char *file = _alloca(strlen(filename) + 6);
@@ -601,7 +601,7 @@ void *_dw_load_gpbitmap( char *filename )
 }
 
 /* Try to load the appropriate image and return the HBITMAP handle */
-HBITMAP _dw_load_bitmap(char *filename, unsigned long *depth)
+HBITMAP _dw_load_bitmap(const char *filename, unsigned long *depth)
 {
     void *bitmap = _dw_load_gpbitmap(filename);
     if(bitmap)
@@ -664,7 +664,7 @@ HBITMAP _dw_load_bitmap(char *filename, unsigned long *depth)
 }
 
 /* Try to load the appropriate image and return the HICON handle */
-HICON _dw_load_icon(char *filename)
+HICON _dw_load_icon(const char *filename)
 {
     void *bitmap = _dw_load_gpbitmap(filename);
     if(bitmap)
@@ -929,7 +929,7 @@ void _new_signal(ULONG message, HWND window, int id, void *signalfunction, void 
 }
 
 /* Finds the message number for a given signal name */
-ULONG _findsigmessage(char *signame)
+ULONG _findsigmessage(const char *signame)
 {
    int z;
 
@@ -4072,7 +4072,7 @@ void _resize_notebook_page(HWND handle, int pageid)
    }
 }
 
-void _create_tooltip(HWND handle, char *text)
+void _create_tooltip(HWND handle, const char *text)
 {
     TOOLINFO ti = { 0 };
     
@@ -4352,6 +4352,7 @@ int API dw_init(int newthread, int argc, char *argv[])
    if (_DW_EDGE_DETECTED = _dw_edge_detect())
    {
 	   wc.lpfnWndProc = (WNDPROC)_edgeWindowProc;
+	   wc.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
    }
    else
 #endif
@@ -4579,7 +4580,7 @@ void * API dw_dialog_wait(DWDialog *dialog)
  *           format: printf style format string.
  *           ...: Additional variables for use in the format.
  */
-void API dw_debug(char *format, ...)
+void API dw_debug(const char *format, ...)
 {
    va_list args;
    char outbuf[1025] = {0}, *thisbuf = outbuf;
@@ -4598,7 +4599,7 @@ void API dw_debug(char *format, ...)
  *           format: printf style format string.
  *           ...: Additional variables for use in the format.
  */
-int API dw_messagebox(char *title, int flags, char *format, ...)
+int API dw_messagebox(const char *title, int flags, const char *format, ...)
 {
    va_list args;
    char outbuf[1025] = { 0 }, *thisbuf = outbuf;
@@ -4765,7 +4766,7 @@ void API dw_window_reparent(HWND handle, HWND newparent)
    SetParent(handle, newparent);
 }
 
-LOGFONT _get_logfont(HDC hdc, char *fontname)
+LOGFONT _get_logfont(HDC hdc, const char *fontname)
 {
    char  *Italic, *Bold, *myFontName = strchr(fontname, '.');
    int size = atoi(fontname);
@@ -4813,7 +4814,7 @@ HFONT _DupFontHandle(HFONT hfont)
 /* Create a font handle from specified font name..
  * or return a handle to the default font.
  */
-HFONT _acquire_font2(HDC hdc, char *fontname)
+HFONT _acquire_font2(HDC hdc, const char *fontname)
 {
    HFONT hfont = 0;
 
@@ -4832,7 +4833,7 @@ HFONT _acquire_font2(HDC hdc, char *fontname)
 /* Create a font handle from specified font name..
  * or return a handle to the default font.
  */
-HFONT _acquire_font(HWND handle, char *fontname)
+HFONT _acquire_font(HWND handle, const char *fontname)
 {
    HDC hdc = GetDC(handle);
    HFONT hfont = _acquire_font2(hdc, fontname);
@@ -4845,7 +4846,7 @@ HFONT _acquire_font(HWND handle, char *fontname)
  * Parameters:
  *           fontname: Font name in Dynamic Windows format.
  */
-void API dw_font_set_default(char *fontname)
+void API dw_font_set_default(const char *fontname)
 {
     HFONT oldfont = _DefaultFont;
 
@@ -5187,7 +5188,7 @@ void _control_size(HWND handle, int *width, int *height)
  *          handle: The window (widget) handle.
  *          fontname: Name and size of the font in the form "size.fontname"
  */
-int API dw_window_set_font(HWND handle, char *fontname)
+int API dw_window_set_font(HWND handle, const char *fontname)
 {
     HFONT hfont, oldfont;
     ColorInfo *cinfo;
@@ -5256,7 +5257,7 @@ int API dw_window_set_font(HWND handle, char *fontname)
  * Returns:
  *       A malloced buffer with the selected font or NULL on error.
  */
-char * API dw_font_choose(char *currfont)
+char * API dw_font_choose(const char *currfont)
 {
    CHOOSEFONT cf = { 0 };
    LOGFONT lf = { 0 };
@@ -5457,7 +5458,7 @@ void API dw_window_set_pointer(HWND handle, int pointertype)
  *       title: The Window title.
  *       flStyle: Style flags, see the DW reference.
  */
-HWND API dw_window_new(HWND hwndOwner, char *title, ULONG flStyle)
+HWND API dw_window_new(HWND hwndOwner, const char *title, ULONG flStyle)
 {
    HWND hwndframe;
    Box *newbox = calloc(sizeof(Box), 1);
@@ -5630,7 +5631,7 @@ int API dw_scrollbox_get_range( HWND handle, int orient )
  *       pad: Number of pixels to pad around the box.
  *       title: Text to be displayined in the group outline.
  */
-HWND API dw_groupbox_new(int type, int pad, char *title)
+HWND API dw_groupbox_new(int type, int pad, const char *title)
 {
    Box *newbox = calloc(sizeof(Box), 1);
    HWND hwndframe;
@@ -5717,14 +5718,14 @@ HWND API dw_html_new(unsigned long id)
 
 #if (defined(BUILD_DLL) || defined(BUILD_HTML))
 void _dw_html_action(HWND hwnd, int action);
-int _dw_html_raw(HWND hwnd, char *string);
-int _dw_html_url(HWND hwnd, char *url);
-int _dw_html_javascript_run(HWND hwnd, char *script, void *scriptdata);
+int _dw_html_raw(HWND hwnd, const char *string);
+int _dw_html_url(HWND hwnd, const char *url);
+int _dw_html_javascript_run(HWND hwnd, const char *script, void *scriptdata);
 #ifdef BUILD_EDGE
 void _dw_edge_action(HWND hwnd, int action);
-int _dw_edge_raw(HWND hwnd, char *string);
-int _dw_edge_url(HWND hwnd, char *url);
-int _dw_edge_javascript_run(HWND hwnd, char *script, void *scriptdata);
+int _dw_edge_raw(HWND hwnd, const char *string);
+int _dw_edge_url(HWND hwnd, const char *url);
+int _dw_edge_javascript_run(HWND hwnd, const char *script, void *scriptdata);
 #endif
 #endif
 
@@ -5755,7 +5756,7 @@ void API dw_html_action(HWND handle, int action)
  * Returns:
  *       DW_ERROR_NONE (0) on success.
  */
-int API dw_html_raw(HWND handle, char *string)
+int API dw_html_raw(HWND handle, const char *string)
 {
 #if (defined(BUILD_DLL) || defined(BUILD_HTML))
 #ifdef BUILD_EDGE
@@ -5777,7 +5778,7 @@ int API dw_html_raw(HWND handle, char *string)
  * Returns:
  *       DW_ERROR_NONE (0) on success.
  */
-int API dw_html_url(HWND handle, char *url)
+int API dw_html_url(HWND handle, const char *url)
 {
 #if (defined(BUILD_DLL) || defined(BUILD_HTML))
 #if BUILD_EDGE
@@ -5800,7 +5801,7 @@ int API dw_html_url(HWND handle, char *url)
  * Returns:
  *       DW_ERROR_NONE (0) on success.
  */
-int dw_html_javascript_run(HWND handle, char *script, void *scriptdata)
+int dw_html_javascript_run(HWND handle, const char *script, void *scriptdata)
 {
 #if (defined(BUILD_DLL) || defined(BUILD_HTML))
 #if BUILD_EDGE
@@ -6355,7 +6356,7 @@ void API dw_pointer_set_pos(long x, long y)
  *       text: The text to be display by the static text widget.
  *       id: An ID to be used with dw_window_from_id() or 0L.
  */
-HWND API dw_text_new(char *text, ULONG id)
+HWND API dw_text_new(const char *text, ULONG id)
 {
    HWND tmp = CreateWindow(STATICCLASSNAME,
                      UTF8toWide(text),
@@ -6385,7 +6386,7 @@ HWND API dw_text_new(char *text, ULONG id)
  *       text: The text to be display by the static text widget.
  *       id: An ID to be used with dw_window_from_id() or 0L.
  */
-HWND API dw_status_text_new(char *text, ULONG id)
+HWND API dw_status_text_new(const char *text, ULONG id)
 {
    HWND tmp = CreateWindow(StatusbarClassName,
                      UTF8toWide(text),
@@ -6471,7 +6472,7 @@ HWND API dw_entryfield_new(char *text, ULONG id)
  *       text: The default text to be in the entryfield widget.
  *       id: An ID to be used with dw_window_from_id() or 0L.
  */
-HWND API dw_entryfield_password_new(char *text, ULONG id)
+HWND API dw_entryfield_password_new(const char *text, ULONG id)
 {
    HWND tmp = CreateWindowEx(WS_EX_CLIENTEDGE,
                        EDITCLASSNAME,
@@ -6603,7 +6604,7 @@ void _to_grayscale(HBITMAP hbm, int width, int height)
 }
 
 /* Internal function to create a toolbar based button */
-HWND _create_toolbar(char *text, ULONG id, HICON icon, HBITMAP hbitmap)
+HWND _create_toolbar(const char *text, ULONG id, HICON icon, HBITMAP hbitmap)
 {
    HWND tmp;
    HIMAGELIST imlist, dimlist;
@@ -6668,7 +6669,7 @@ HWND _create_toolbar(char *text, ULONG id, HICON icon, HBITMAP hbitmap)
  *       text: Bubble help text to be displayed.
  *       id: An ID of a bitmap in the resource file.
  */
-HWND API dw_bitmapbutton_new(char *text, ULONG id)
+HWND API dw_bitmapbutton_new(const char *text, ULONG id)
 {
    HWND tmp;
    ColorInfo *cinfo = calloc(1, sizeof(ColorInfo));
@@ -6722,7 +6723,7 @@ HWND API dw_bitmapbutton_new(char *text, ULONG id)
  *                 DW pick the appropriate file extension.
  *                 (BMP or ICO on OS/2 or Windows, XPM on Unix)
  */
-HWND API dw_bitmapbutton_new_from_file(char *text, unsigned long id, char *filename)
+HWND API dw_bitmapbutton_new_from_file(const char *text, unsigned long id, const char *filename)
 {
    HWND tmp;
    ColorInfo *cinfo = calloc(1, sizeof(ColorInfo));
@@ -6790,7 +6791,7 @@ HWND API dw_bitmapbutton_new_from_file(char *text, unsigned long id, char *filen
  *            (BMP or ICO on OS/2 or Windows, XPM on Unix)
  *       len: length of str
  */
-HWND API dw_bitmapbutton_new_from_data(char *text, unsigned long id, char *data, int len)
+HWND API dw_bitmapbutton_new_from_data(const char *text, unsigned long id, const char *data, int len)
 {
    HWND tmp;
    ColorInfo *cinfo = calloc(1, sizeof(ColorInfo));
@@ -6880,7 +6881,7 @@ HWND API dw_bitmapbutton_new_from_data(char *text, unsigned long id, char *data,
  *       text: The text to be display by the static text widget.
  *       id: An ID to be used with dw_window_from_id() or 0L.
  */
-HWND API dw_spinbutton_new(char *text, ULONG id)
+HWND API dw_spinbutton_new(const char *text, ULONG id)
 {
    HWND buddy = CreateWindowEx(WS_EX_CLIENTEDGE,
                         EDITCLASSNAME,
@@ -7209,7 +7210,7 @@ void _dw_window_set_bitmap(HWND handle, HICON icon, HBITMAP hbitmap)
  *                 Windows and a pixmap on Unix, pass
  *                 NULL if you use the id param)
  */
-void API dw_window_set_bitmap(HWND handle, unsigned long id, char *filename)
+void API dw_window_set_bitmap(HWND handle, unsigned long id, const char *filename)
 {
    HBITMAP hbitmap = 0;
    HANDLE icon = 0;
@@ -7242,7 +7243,7 @@ void API dw_window_set_bitmap(HWND handle, unsigned long id, char *filename)
  *                 NULL if you use the id param)
  *       len: length of data
  */
-void API dw_window_set_bitmap_from_data(HWND handle, unsigned long id, char *data, int len)
+void API dw_window_set_bitmap_from_data(HWND handle, unsigned long id, const char *data, int len)
 {
    HBITMAP hbitmap=0;
    HICON icon=0;
@@ -7296,7 +7297,7 @@ void API dw_window_set_bitmap_from_data(HWND handle, unsigned long id, char *dat
  *       handle: Handle to the window.
  *       text: The text associsated with a given window.
  */
-void API dw_window_set_text(HWND handle, char *text)
+void API dw_window_set_text(HWND handle, const char *text)
 {
    Box *thisbox;
    TCHAR tmpbuf[100] = {0}, *wtext = UTF8toWide(text);
@@ -7353,7 +7354,7 @@ void API dw_window_set_text(HWND handle, char *text)
  *       handle: Handle to the window (widget).
  *       bubbletext: The text in the floating bubble tooltip.
  */
-void API dw_window_set_tooltip(HWND handle, char *bubbletext)
+void API dw_window_set_tooltip(HWND handle, const char *bubbletext)
 {
     ColorInfo *cinfo = (ColorInfo *)GetWindowLongPtr(handle, GWLP_USERDATA);
     
@@ -8247,7 +8248,7 @@ unsigned long API dw_notebook_page_new(HWND handle, ULONG flags, int front)
  *          pageid: Page ID of the tab to set.
  *          text: Pointer to the text to set.
  */
-void API dw_notebook_page_set_text(HWND handle, ULONG pageidx, char *text)
+void API dw_notebook_page_set_text(HWND handle, ULONG pageidx, const char *text)
 {
 
    NotebookPage **array = (NotebookPage **)dw_window_get_data(handle, "_dw_array");
@@ -8274,7 +8275,7 @@ void API dw_notebook_page_set_text(HWND handle, ULONG pageidx, char *text)
  *          pageid: Page ID of the tab to set.
  *          text: Pointer to the text to set.
  */
-void API dw_notebook_page_set_status_text(HWND handle, ULONG pageid, char *text)
+void API dw_notebook_page_set_status_text(HWND handle, ULONG pageid, const char *text)
 {
 }
 
@@ -8416,7 +8417,7 @@ void API dw_notebook_page_set(HWND handle, unsigned int pageidx)
  *          handle: Handle to the listbox to be appended to.
  *          text: Text to append into listbox.
  */
-void API dw_listbox_append(HWND handle, char *text)
+void API dw_listbox_append(HWND handle, const char *text)
 {
    TCHAR tmpbuf[100] = {0};
 
@@ -8515,7 +8516,7 @@ void API dw_listbox_clear(HWND handle)
  *          index: Index into the list to be queried.
  *          buffer: Buffer where text will be copied.
  */
-void API dw_listbox_set_text(HWND handle, unsigned int index, char *buffer)
+void API dw_listbox_set_text(HWND handle, unsigned int index, const char *buffer)
 {
    TCHAR tmpbuf[100] = {0};
 
@@ -9194,7 +9195,7 @@ void API dw_checkbox_set(HWND handle, int value)
  *          parent: Parent handle or 0 if root.
  *          itemdata: Item specific data.
  */
-HTREEITEM API dw_tree_insert_after(HWND handle, HTREEITEM item, char *title, HICN icon, HTREEITEM parent, void *itemdata)
+HTREEITEM API dw_tree_insert_after(HWND handle, HTREEITEM item, const char *title, HICN icon, HTREEITEM parent, void *itemdata)
 {
    TVITEM tvi;
    TVINSERTSTRUCT tvins;
@@ -9224,7 +9225,7 @@ HTREEITEM API dw_tree_insert_after(HWND handle, HTREEITEM item, char *title, HIC
  *          parent: Parent handle or 0 if root.
  *          itemdata: Item specific data.
  */
-HTREEITEM API dw_tree_insert(HWND handle, char *title, HICN icon, HTREEITEM parent, void *itemdata)
+HTREEITEM API dw_tree_insert(HWND handle, const char *title, HICN icon, HTREEITEM parent, void *itemdata)
 {
    TVITEM tvi;
    TVINSERTSTRUCT tvins;
@@ -9253,7 +9254,7 @@ HTREEITEM API dw_tree_insert(HWND handle, char *title, HICN icon, HTREEITEM pare
  *          title: The text title of the entry.
  *          icon: Handle to coresponding icon.
  */
-void API dw_tree_item_change(HWND handle, HTREEITEM item, char *title, HICN icon)
+void API dw_tree_item_change(HWND handle, HTREEITEM item, const char *title, HICN icon)
 {
    TVITEM tvi;
 
@@ -9455,7 +9456,7 @@ int API dw_container_setup(HWND handle, unsigned long *flags, char **titles, int
  *          handle: Handle to the container to be configured.
  *          title: The title to be displayed in the main column.
  */
-void API dw_filesystem_set_column_title(HWND handle, char *title)
+void API dw_filesystem_set_column_title(HWND handle, const char *title)
 {
     char *newtitle = _strdup(title ? title : "");
 
@@ -9514,7 +9515,7 @@ HICN API dw_icon_load(unsigned long module, unsigned long id)
  *                 DW pick the appropriate file extension.
  *                 (ICO on OS/2 or Windows, XPM on Unix)
  */
-HICN API dw_icon_load_from_file(char *filename)
+HICN API dw_icon_load_from_file(const char *filename)
 {
 #ifdef GDIPLUS
     return _dw_load_icon(filename);
@@ -9551,7 +9552,7 @@ HICN API dw_icon_load_from_file(char *filename)
  *                 DW pick the appropriate file extension.
  *                 (ICO on OS/2 or Windows, XPM on Unix)
  */
-HICN API dw_icon_load_from_data(char *data, int len)
+HICN API dw_icon_load_from_data(const char *data, int len)
 {
    HANDLE icon = 0;
    char *file;
@@ -9689,7 +9690,7 @@ int _lookup_icon(HWND handle, HICON hicon, int type)
  *          row: Zero based row of data being set.
  *          data: Pointer to the data to be added.
  */
-void API dw_filesystem_set_file(HWND handle, void *pointer, int row, char *filename, HICN icon)
+void API dw_filesystem_set_file(HWND handle, void *pointer, int row, const char *filename, HICN icon)
 {
    LV_ITEM lvi;
    int item = 0;
@@ -9860,7 +9861,7 @@ void API dw_filesystem_change_item(HWND handle, int column, int row, void *data)
  *          row: Zero based row of data being set.
  *          data: Pointer to the data to be added.
  */
-void API dw_filesystem_change_file(HWND handle, int row, char *filename, HICN icon)
+void API dw_filesystem_change_file(HWND handle, int row, const char *filename, HICN icon)
 {
    dw_filesystem_set_file(handle, NULL, row, filename, icon);
 }
@@ -9997,9 +9998,9 @@ void _dw_container_set_row_data(HWND handle, void *pointer, int row, int type, v
  *          row: Zero based row of data being set.
  *          title: String title of the item.
  */
-void API dw_container_set_row_title(void *pointer, int row, char *title)
+void API dw_container_set_row_title(void *pointer, int row, const char *title)
 {
-   _dw_container_set_row_data(pointer, pointer, row, _DW_DATA_TYPE_STRING, title);
+   _dw_container_set_row_data(pointer, pointer, row, _DW_DATA_TYPE_STRING, (void *)title);
 }
 
 /*
@@ -10009,9 +10010,9 @@ void API dw_container_set_row_title(void *pointer, int row, char *title)
  *          row: Zero based row of data being set.
  *          title: String title of the item.
  */
-void API dw_container_change_row_title(HWND handle, int row, char *title)
+void API dw_container_change_row_title(HWND handle, int row, const char *title)
 {
-   _dw_container_set_row_data(handle, NULL, row, _DW_DATA_TYPE_STRING, title);
+   _dw_container_set_row_data(handle, NULL, row, _DW_DATA_TYPE_STRING, (void *)title);
 }
 
 /*
@@ -10194,7 +10195,7 @@ char * API dw_container_query_next(HWND handle, unsigned long flags)
  *       handle: Handle to the window (widget) to be queried.
  *       text:  Text usually returned by dw_container_query().
  */
-void API dw_container_cursor(HWND handle, char *text)
+void API dw_container_cursor(HWND handle, const char *text)
 {
    int index = ListView_GetNextItem(handle, -1, LVNI_ALL);
 
@@ -10272,7 +10273,7 @@ void API dw_container_cursor_by_data(HWND handle, void *data)
  *       handle: Handle to the window (widget).
  *       text:  Text usually returned by dw_container_query().
  */
-void API dw_container_delete_row(HWND handle, char *text)
+void API dw_container_delete_row(HWND handle, const char *text)
 {
    int index = ListView_GetNextItem(handle, -1, LVNI_ALL);
 
@@ -10424,7 +10425,7 @@ void API dw_container_optimize(HWND handle)
  *       icon: Icon handle to display in the taskbar.
  *       bubbletext: Text to show when the mouse is above the icon.
  */
-void API dw_taskbar_insert(HWND handle, HICN icon, char *bubbletext)
+void API dw_taskbar_insert(HWND handle, HICN icon, const char *bubbletext)
 {
    NOTIFYICONDATA tnid;
 
@@ -10435,7 +10436,7 @@ void API dw_taskbar_insert(HWND handle, HICN icon, char *bubbletext)
    tnid.uCallbackMessage = WM_USER+2;
    tnid.hIcon = (HICON)icon;
    if(bubbletext)
-      _tcsncpy(tnid.szTip, UTF8toWide(bubbletext), sizeof(tnid.szTip));
+      _tcsncpy(tnid.szTip, UTF8toWide(bubbletext), sizeof(tnid.szTip) / sizeof(TCHAR));
    else
       tnid.szTip[0] = 0;
 
@@ -10951,7 +10952,7 @@ void _convert_dpi(HDC hdc, int *x, int *y, int mult)
  *       y: Y coordinate.
  *       text: Text to be displayed.
  */
-void API dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
+void API dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, const char *text)
 {
    HDC hdc;
    int mustdelete = 0;
@@ -11011,7 +11012,7 @@ void API dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
  *       width: Pointer to a variable to be filled in with the width.
  *       height Pointer to a variable to be filled in with the height.
  */
-void API dw_font_text_extents_get(HWND handle, HPIXMAP pixmap, char *text, int *width, int *height)
+void API dw_font_text_extents_get(HWND handle, HPIXMAP pixmap, const char *text, int *width, int *height)
 {
    HDC hdc;
    int mustdelete = 0;
@@ -11168,7 +11169,7 @@ unsigned long _read_bitmap_header(char *file)
  * Returns:
  *       A handle to a pixmap or NULL on failure.
  */
-HPIXMAP API dw_pixmap_new_from_file(HWND handle, char *filename)
+HPIXMAP API dw_pixmap_new_from_file(HWND handle, const char *filename)
 {
    HPIXMAP pixmap;
    BITMAP bm;
@@ -11233,7 +11234,7 @@ HPIXMAP API dw_pixmap_new_from_file(HWND handle, char *filename)
  * Returns:
  *       A handle to a pixmap or NULL on failure.
  */
-HPIXMAP API dw_pixmap_new_from_data(HWND handle, char *data, int len)
+HPIXMAP API dw_pixmap_new_from_data(HWND handle, const char *data, int len)
 {
    HPIXMAP pixmap;
    BITMAP bm;
@@ -11354,7 +11355,7 @@ HPIXMAP API dw_pixmap_grab(HWND handle, ULONG id)
  * Returns:
  *       DW_ERROR_NONE on success and DW_ERROR_GENERAL on failure.
  */
-int API dw_pixmap_set_font(HPIXMAP pixmap, char *fontname)
+int API dw_pixmap_set_font(HPIXMAP pixmap, const char *fontname)
 {
     if(pixmap)
     {
@@ -11545,7 +11546,7 @@ int API dw_module_load(char *name, HMOD *handle)
  *         func: A pointer to a function pointer, to obtain
  *               the address.
  */
-int API dw_module_symbol(HMOD handle, char *name, void**func)
+int API dw_module_symbol(HMOD handle, const char *name, void**func)
 {
    if(!func || !name)
       return DW_ERROR_UNKNOWN;
@@ -11701,7 +11702,7 @@ int API dw_event_close(HEV *eve)
  *         name: Name given to semaphore which can be opened
  *               by other processes.
  */
-HEV API dw_named_event_new(char *name)
+HEV API dw_named_event_new(const char *name)
 {
    SECURITY_ATTRIBUTES sa;
 
@@ -11717,7 +11718,7 @@ HEV API dw_named_event_new(char *name)
  *         eve: Handle to the semaphore obtained by
  *              a create call.
  */
-HEV API dw_named_event_get(char *name)
+HEV API dw_named_event_get(const char *name)
 {
    return OpenEvent(EVENT_ALL_ACCESS, FALSE, UTF8toWide(name));
 }
@@ -11791,7 +11792,7 @@ int API dw_named_event_close(HEV eve)
  *         size: Size in bytes of the shared memory region to allocate.
  *         name: A string pointer to a unique memory name.
  */
-HSHM API dw_named_memory_new(void **dest, int size, char *name)
+HSHM API dw_named_memory_new(void **dest, int size, const char *name)
 {
    SECURITY_ATTRIBUTES sa;
    HSHM handle;
@@ -11823,7 +11824,7 @@ HSHM API dw_named_memory_new(void **dest, int size, char *name)
  *         size: Size in bytes of the shared memory region to requested.
  *         name: A string pointer to a unique memory name.
  */
-HSHM API dw_named_memory_get(void **dest, int size, char *name)
+HSHM API dw_named_memory_get(void **dest, int size, const char *name)
 {
    HSHM handle = OpenFileMapping(FILE_MAP_ALL_ACCESS, FALSE, UTF8toWide(name));
 
@@ -12249,7 +12250,7 @@ char * API dw_clipboard_get_text(void)
  * Parameters:
  *       Text.
  */
-void API dw_clipboard_set_text( char *str, int len )
+void API dw_clipboard_set_text(const char *str, int len)
 {
    HGLOBAL ptr1;
    LPTSTR ptr2;
@@ -12373,7 +12374,7 @@ void _to_dos(TCHAR *dst, TCHAR *src)
  *       the file path on success.
  *
  */
-char * API dw_file_browse(char *title, char *defpath, char *ext, int flags)
+char * API dw_file_browse(const char *title, const char *defpath, char *ext, int flags)
 {
    OPENFILENAME of = {0};
    TCHAR filenamebuf[BROWSEBUFSIZE+1] = {0}, *fbuf = filenamebuf;
@@ -12494,7 +12495,7 @@ char * API dw_file_browse(char *title, char *defpath, char *ext, int flags)
  * Returns:
  *       -1 on error.
  */
-int API dw_exec(char *program, int type, char **params)
+int API dw_exec(const char *program, int type, char **params)
 {
    char **newparams;
    int retcode, count = 0, z;
@@ -12743,7 +12744,7 @@ void API dw_window_function(HWND handle, void *function, void *data)
  * a given window handle.  Used in dw_window_set_data() and
  * dw_window_get_data().
  */
-UserData *_find_userdata(UserData **root, char *varname)
+UserData *_find_userdata(UserData **root, const char *varname)
 {
    UserData *tmp = *root;
 
@@ -12756,7 +12757,7 @@ UserData *_find_userdata(UserData **root, char *varname)
    return NULL;
 }
 
-int _new_userdata(UserData **root, char *varname, void *data)
+int _new_userdata(UserData **root, const char *varname, void *data)
 {
    UserData *new = _find_userdata(root, varname);
 
@@ -12794,7 +12795,7 @@ int _new_userdata(UserData **root, char *varname, void *data)
    return FALSE;
 }
 
-int _remove_userdata(UserData **root, char *varname, int all)
+int _remove_userdata(UserData **root, const char *varname, int all)
 {
    UserData *prev = NULL, *tmp = *root;
 
@@ -12838,7 +12839,7 @@ int _remove_userdata(UserData **root, char *varname, int all)
  *       dataname: A string pointer identifying which signal to be hooked.
  *       data: User data to be passed to the handler function.
  */
-void API dw_window_set_data(HWND window, char *dataname, void *data)
+void API dw_window_set_data(HWND window, const char *dataname, void *data)
 {
    ColorInfo *cinfo = (ColorInfo *)GetWindowLongPtr(window, GWLP_USERDATA);
 
@@ -12873,7 +12874,7 @@ void API dw_window_set_data(HWND window, char *dataname, void *data)
  *       dataname: A string pointer identifying which signal to be hooked.
  *       data: User data to be passed to the handler function.
  */
-void * API dw_window_get_data(HWND window, char *dataname)
+void * API dw_window_get_data(HWND window, const char *dataname)
 {
    ColorInfo *cinfo = (ColorInfo *)GetWindowLongPtr(window, GWLP_USERDATA);
 
@@ -12961,7 +12962,7 @@ void API dw_timer_disconnect(int id)
  *       sigfunc: The pointer to the function to be used as the callback.
  *       data: User data to be passed to the handler function.
  */
-void API dw_signal_connect(HWND window, char *signame, void *sigfunc, void *data)
+void API dw_signal_connect(HWND window, const char *signame, void *sigfunc, void *data)
 {
     dw_signal_connect_data(window, signame, sigfunc, NULL, data);
 }
@@ -12975,7 +12976,7 @@ void API dw_signal_connect(HWND window, char *signame, void *sigfunc, void *data
  *       discfunc: The pointer to the function called when this handler is removed.
  *       data: User data to be passed to the handler function.
  */
-void API dw_signal_connect_data(HWND window, char *signame, void *sigfunc, void *discfunc, void *data)
+void API dw_signal_connect_data(HWND window, const char *signame, void *sigfunc, void *discfunc, void *data)
 {
    ULONG message = 0, id = 0;
 
@@ -13014,7 +13015,7 @@ void API dw_signal_connect_data(HWND window, char *signame, void *sigfunc, void 
  * Parameters:
  *       window: Window handle of callback to be removed.
  */
-void API dw_signal_disconnect_by_name(HWND window, char *signame)
+void API dw_signal_disconnect_by_name(HWND window, const char *signame)
 {
    SignalHandler *prev = NULL, *tmp = Root;
    ULONG message;
@@ -13145,7 +13146,7 @@ void API dw_signal_disconnect_by_data(HWND window, void *data)
  *       Wide string that needs to be freed with dw_free()
  *       or NULL on failure.
  */
-wchar_t * API dw_utf8_to_wchar(char *utf8string)
+wchar_t * API dw_utf8_to_wchar(const char *utf8string)
 {
  #ifdef UNICODE
     return _myUTF8toWide(utf8string, malloc(MultiByteToWideChar(CP_UTF8, 0, utf8string, -1, NULL, 0) * sizeof(WCHAR)));
@@ -13162,7 +13163,7 @@ wchar_t * API dw_utf8_to_wchar(char *utf8string)
  *       UTF-8 encoded string that needs to be freed with dw_free()
  *       or NULL on failure.
  */
-char * API dw_wchar_to_utf8(wchar_t *wstring)
+char * API dw_wchar_to_utf8(const wchar_t *wstring)
 {
 #ifdef UNICODE
     return _myWideToUTF8(wstring, malloc(WideCharToMultiByte(CP_UTF8, 0, wstring, -1, NULL, 0, NULL, NULL)));
