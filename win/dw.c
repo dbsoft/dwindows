@@ -5942,13 +5942,13 @@ int _menuid_allocated(int id)
  *       flags: Extended attributes to set on the menu.
  *       submenu: Handle to an existing menu to be a submenu or NULL.
  */
-HWND API dw_menu_append_item(HMENUI menux, char *title, ULONG id, ULONG flags, int end, int check, HMENUI submenu)
+HWND API dw_menu_append_item(HMENUI menux, const char *title, ULONG id, ULONG flags, int end, int check, HMENUI submenu)
 {
    MENUITEMINFO mii;
    HMENU mymenu = (HMENU)menux;
    char buffer[31] = {0};
    int is_checked, is_disabled;
-   char *menutitle = title;
+   char *menutitle = (char *)title;
 
    /*
     * Check if this is a menubar; if so get the menu object
@@ -6443,7 +6443,7 @@ HWND API dw_mle_new(ULONG id)
  *       text: The default text to be in the entryfield widget.
  *       id: An ID to be used with dw_window_from_id() or 0L.
  */
-HWND API dw_entryfield_new(char *text, ULONG id)
+HWND API dw_entryfield_new(const char *text, ULONG id)
 {
    HWND tmp = CreateWindowEx(WS_EX_CLIENTEDGE,
                        EDITCLASSNAME,
@@ -6514,7 +6514,7 @@ BOOL CALLBACK _subclass_child(HWND handle, LPARAM lp)
  *       text: The default text to be in the combpbox widget.
  *       id: An ID to be used with dw_window_from_id() or 0L.
  */
-HWND API dw_combobox_new(char *text, ULONG id)
+HWND API dw_combobox_new(const char *text, ULONG id)
 {
    HWND tmp = CreateWindow(COMBOBOXCLASSNAME,
                      UTF8toWide(text),
@@ -6556,7 +6556,7 @@ HWND API dw_combobox_new(char *text, ULONG id)
  *       text: The text to be display by the static text widget.
  *       id: An ID to be used with dw_window_from_id() or 0L.
  */
-HWND API dw_button_new(char *text, ULONG id)
+HWND API dw_button_new(const char *text, ULONG id)
 {
    ColorInfo *cinfo = calloc(1, sizeof(ColorInfo));
 
@@ -6936,7 +6936,7 @@ HWND API dw_spinbutton_new(const char *text, ULONG id)
  *       text: The text to be display by the static text widget.
  *       id: An ID to be used with dw_window_from_id() or 0L.
  */
-HWND API dw_radiobutton_new(char *text, ULONG id)
+HWND API dw_radiobutton_new(const char *text, ULONG id)
 {
    ColorInfo *cinfo;
    HWND tmp = CreateWindow(BUTTONCLASSNAME,
@@ -7042,7 +7042,7 @@ HWND API dw_percent_new(ULONG id)
  *       text: The text to be display by the static text widget.
  *       id: An ID to be used with dw_window_from_id() or 0L.
  */
-HWND API dw_checkbox_new(char *text, ULONG id)
+HWND API dw_checkbox_new(const char *text, ULONG id)
 {
    ColorInfo *cinfo = calloc(1, sizeof(ColorInfo));
    HWND tmp = CreateWindow(BUTTONCLASSNAME,
@@ -8464,7 +8464,7 @@ void API dw_listbox_list_append(HWND handle, char **text, int count)
  *          text: Text to append into listbox.
  *          pos: 0 based position to insert text
  */
-void API dw_listbox_insert(HWND handle, char *text, int pos)
+void API dw_listbox_insert(HWND handle, const char *text, int pos)
 {
    TCHAR tmpbuf[100] = {0};
 
@@ -8729,7 +8729,7 @@ void API dw_listbox_set_top(HWND handle, int top)
  *          buffer: Text buffer to be imported.
  *          startpoint: Point to start entering text.
  */
-unsigned int API dw_mle_import(HWND handle, char *buffer, int startpoint)
+unsigned int API dw_mle_import(HWND handle, const char *buffer, int startpoint)
 {
    int textlen, len = GetWindowTextLength(handle);
    TCHAR *tmpbuf, *srcbuf = UTF8toWide(buffer);
@@ -8919,7 +8919,7 @@ void API dw_mle_set_cursor(HWND handle, int point)
  *          point: Start point of search.
  *          flags: Search specific flags.
  */
-int API dw_mle_search(HWND handle, char *text, int point, unsigned long flags)
+int API dw_mle_search(HWND handle, const char *text, int point, unsigned long flags)
 {
    int len = GetWindowTextLength(handle);
    TCHAR *tmpbuf = calloc(sizeof(TCHAR), len+2);
@@ -11530,7 +11530,7 @@ void API dw_beep(int freq, int dur)
  *         handle: Pointer to a module handle,
  *                 will be filled in with the handle.
  */
-int API dw_module_load(char *name, HMOD *handle)
+int API dw_module_load(const char *name, HMOD *handle)
 {
    if(!handle)
       return DW_ERROR_UNKNOWN;
@@ -12538,16 +12538,16 @@ int API dw_exec(const char *program, int type, char **params)
  * Parameters:
  *       url: Uniform resource locator.
  */
-int API dw_browse(char *url)
+int API dw_browse(const char *url)
 {
-   char *browseurl = url;
+   char *browseurl = strdup(url);
    int retcode;
 
-   if(strlen(url) > 7 && strncmp(url, "file://", 7) == 0)
+   if(strlen(browseurl) > 7 && strncmp(browseurl, "file://", 7) == 0)
    {
       int len, z;
 
-      browseurl = &url[7];
+      browseurl = &browseurl[7];
       len = (int)strlen(browseurl);
 
       for(z=0;z<len;z++)
@@ -12560,6 +12560,7 @@ int API dw_browse(char *url)
    }
 
    retcode = DW_POINTER_TO_INT(ShellExecute(NULL, TEXT("open"), UTF8toWide(browseurl), NULL, NULL, SW_SHOWNORMAL));
+   free(browseurl);
    if(retcode<33 && retcode != 2)
       return DW_ERROR_UNKNOWN;
    return DW_ERROR_NONE;
@@ -12585,7 +12586,7 @@ typedef struct _dwprint
  * Returns:
  *       A handle to the print object or NULL on failure.
  */
-HPRINT API dw_print_new(char *jobname, unsigned long flags, unsigned int pages, void *drawfunc, void *drawdata)
+HPRINT API dw_print_new(const char *jobname, unsigned long flags, unsigned int pages, void *drawfunc, void *drawdata)
 {
     DWPrint *print;
     
