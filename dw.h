@@ -1787,7 +1787,7 @@ int API dw_messagebox(const char *title, int flags, const char *format, ...);
 void API dw_environment_query(DWEnv *env);
 int API dw_exec(const char *program, int type, char **params);
 int API dw_browse(char *url);
-char * API dw_file_browse(const char *title, const char *defpath, char *ext, int flags);
+char * API dw_file_browse(const char *title, const char *defpath, const char *ext, int flags);
 char * API dw_user_dir(void);
 char * API dw_app_dir(void);
 DWDialog * API dw_dialog_new(void *data);

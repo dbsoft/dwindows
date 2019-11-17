@@ -375,7 +375,7 @@ char *image_exts[NUM_EXTS] =
    ".bmp"
 };
 
-char *_dw_get_image_extension( char *filename )
+char *_dw_get_image_extension(const char *filename)
 {
    char *file = alloca(strlen(filename) + 6);
    int found_ext = 0,i;
@@ -463,7 +463,7 @@ SignalHandler *Root = NULL;
 /* Some internal prototypes */
 static void _do_resize(Box *thisbox, int x, int y);
 void _handle_resize_events(Box *thisbox);
-int _remove_userdata(UserData **root, char *varname, int all);
+int _remove_userdata(UserData **root, const char *varname, int all);
 int _dw_main_iteration(NSDate *date);
 NSGraphicsContext *_dw_draw_context(NSBitmapImageRep *image);
 typedef id (*DWIMP)(id, SEL, ...);
@@ -2329,7 +2329,7 @@ DWObject *DWObj;
 -(void)tableView:(NSTableView *)tableView willDisplayCell:(id)cell forTableColumn:(NSTableColumn *)tableColumn row:(NSInteger)row;
 -(void)editCell:(id)input at:(int)row and:(int)col;
 -(void)removeRow:(int)row;
--(void)setRow:(int)row title:(void *)input;
+-(void)setRow:(int)row title:(const char *)input;
 -(void *)getRowTitle:(int)row;
 -(id)getRow:(int)row and:(int)col;
 -(int)cellType:(int)col;
@@ -2581,12 +2581,12 @@ DWObject *DWObj;
             free(oldtitle);
     }
 }
--(void)setRow:(int)row title:(void *)input
+-(void)setRow:(int)row title:(const char *)input
 {
     if(titles && input)
     {
         void *oldtitle = [titles pointerAtIndex:row];
-        void *newtitle = input ? (void *)strdup((char *)input) : NULL;
+        void *newtitle = input ? (void *)strdup(input) : NULL;
         [titles replacePointerAtIndex:row withPointer:newtitle];
         if(oldtitle)
             free(oldtitle);
@@ -3303,7 +3303,7 @@ void _new_signal(ULONG message, HWND window, int msgid, void *signalfunction, vo
 }
 
 /* Finds the message number for a given signal name */
-ULONG _findsigmessage(char *signame)
+ULONG _findsigmessage(const char *signame)
 {
     int z;
 
@@ -3939,7 +3939,7 @@ char * API dw_app_dir(void)
  *           format: printf style format string.
  *           ...: Additional variables for use in the format.
  */
-void API dw_debug(char *format, ...)
+void API dw_debug(const char *format, ...)
 {
    va_list args;
    char outbuf[1025] = {0};
@@ -3959,7 +3959,7 @@ void API dw_debug(char *format, ...)
  *           format: printf style format string.
  *           ...: Additional variables for use in the format.
  */
-int API dw_messagebox(char *title, int flags, char *format, ...)
+int API dw_messagebox(const char *title, int flags, const char *format, ...)
 {
     NSInteger iResponse;
     NSString *button1 = @"OK";
@@ -4032,7 +4032,7 @@ int API dw_messagebox(char *title, int flags, char *format, ...)
  *       the file path on success.
  *
  */
-char * API dw_file_browse(char *title, char *defpath, char *ext, int flags)
+char * API dw_file_browse(const char *title, const char *defpath, const char *ext, int flags)
 {
     char temp[PATH_MAX+1];
     char *file = NULL, *path = NULL;
@@ -4222,7 +4222,7 @@ char *dw_clipboard_get_text()
  * Parameters:
  *       Text.
  */
-void dw_clipboard_set_text( char *str, int len)
+void dw_clipboard_set_text(const char *str, int len)
 {
     NSPasteboard *pasteboard = [NSPasteboard generalPasteboard];
     SEL scc = NSSelectorFromString(@"clearContents");
@@ -4322,7 +4322,7 @@ DW_FUNCTION_RESTORE_PARAM2(type, int, pad, int)
  *       pad: Number of pixels to pad around the box.
  *       title: Text to be displayined in the group outline.
  */
-HWND API dw_groupbox_new(int type, int pad, char *title)
+HWND API dw_groupbox_new(int type, int pad, const char *title)
 {
     NSBox *groupbox = [[DWGroupBox alloc] init];
     DWBox *thisbox = dw_box_new(type, pad);
@@ -5060,7 +5060,7 @@ HWND API dw_entryfield_new(char *text, ULONG cid)
  *       text: The default text to be in the entryfield widget.
  *       id: An ID to be used with dw_window_from_id() or 0L.
  */
-HWND API dw_entryfield_password_new(char *text, ULONG cid)
+HWND API dw_entryfield_password_new(const char *text, ULONG cid)
 {
     DWEntryFieldPassword *entry = [[DWEntryFieldPassword alloc] init];
     [entry setStringValue:[ NSString stringWithUTF8String:text ]];
@@ -5091,7 +5091,7 @@ void API dw_entryfield_set_limit(HWND handle, ULONG limit)
  *       text: Bubble help text to be displayed.
  *       id: An ID of a bitmap in the resource file.
  */
-HWND API dw_bitmapbutton_new(char *text, ULONG resid)
+HWND API dw_bitmapbutton_new(const char *text, ULONG resid)
 {
     NSBundle *bundle = [NSBundle mainBundle];
     NSString *respath = [bundle resourcePath];
@@ -5117,9 +5117,9 @@ HWND API dw_bitmapbutton_new(char *text, ULONG resid)
  *                 DW pick the appropriate file extension.
  *                 (BMP on OS/2 or Windows, XPM on Unix)
  */
-HWND API dw_bitmapbutton_new_from_file(char *text, unsigned long cid, char *filename)
+HWND API dw_bitmapbutton_new_from_file(const char *text, unsigned long cid, const char *filename)
 {
-    char *ext = _dw_get_image_extension( filename );
+    char *ext = _dw_get_image_extension(filename);
 
     NSString *nstr = [ NSString stringWithUTF8String:filename ];
     NSImage *image = [[NSImage alloc] initWithContentsOfFile:nstr];
@@ -5149,7 +5149,7 @@ HWND API dw_bitmapbutton_new_from_file(char *text, unsigned long cid, char *file
  *            (BMP or ICO on OS/2 or Windows, XPM on Unix)
  *       len: length of str
  */
-HWND API dw_bitmapbutton_new_from_data(char *text, unsigned long cid, char *data, int len)
+HWND API dw_bitmapbutton_new_from_data(const char *text, unsigned long cid, const char *data, int len)
 {
     NSData *thisdata = [NSData dataWithBytes:data length:len];
     NSImage *image = [[NSImage alloc] initWithData:thisdata];
@@ -5170,7 +5170,7 @@ HWND API dw_bitmapbutton_new_from_data(char *text, unsigned long cid, char *data
  *       text: The text to be display by the static text widget.
  *       id: An ID to be used with dw_window_from_id() or 0L.
  */
-HWND API dw_spinbutton_new(char *text, ULONG cid)
+HWND API dw_spinbutton_new(const char *text, ULONG cid)
 {
     DWSpinButton *spinbutton = [[DWSpinButton alloc] init];
     NSStepper *stepper = [spinbutton stepper];
@@ -5514,7 +5514,7 @@ DW_FUNCTION_RESTORE_PARAM2(cid, ULONG, multi, int)
  *          handle: Handle to the listbox to be appended to.
  *          text: Text to append into listbox.
  */
-DW_FUNCTION_DEFINITION(dw_listbox_append, void, HWND handle, char *text)
+DW_FUNCTION_DEFINITION(dw_listbox_append, void, HWND handle, const char *text)
 DW_FUNCTION_ADD_PARAM2(handle, text)
 DW_FUNCTION_NO_RETURN(dw_listbox_append)
 DW_FUNCTION_RESTORE_PARAM2(handle, HWND, text, char *)
@@ -5765,7 +5765,7 @@ DW_FUNCTION_RESTORE_PARAM4(handle, HWND, index, unsigned int, buffer, char *, le
  *          index: Index into the list to be queried.
  *          buffer: Buffer where text will be copied.
  */
-DW_FUNCTION_DEFINITION(dw_listbox_set_text, void, HWND handle, unsigned int index, char *buffer)
+DW_FUNCTION_DEFINITION(dw_listbox_set_text, void, HWND handle, unsigned int index, const char *buffer)
 DW_FUNCTION_ADD_PARAM3(handle, index, buffer)
 DW_FUNCTION_NO_RETURN(dw_listbox_set_text)
 DW_FUNCTION_RESTORE_PARAM3(handle, HWND, index, unsigned int, buffer, char *)
@@ -6269,7 +6269,7 @@ void API dw_mle_thaw(HWND handle)
  *       text: The text to be display by the static text widget.
  *       id: An ID to be used with dw_window_from_id() or 0L.
  */
-HWND API dw_status_text_new(char *text, ULONG cid)
+HWND API dw_status_text_new(const char *text, ULONG cid)
 {
     NSBox *border = [[NSBox alloc] init];
     NSTextField *textfield = dw_text_new(text, cid);
@@ -6291,7 +6291,7 @@ HWND API dw_status_text_new(char *text, ULONG cid)
  *       text: The text to be display by the static text widget.
  *       id: An ID to be used with dw_window_from_id() or 0L.
  */
-HWND API dw_text_new(char *text, ULONG cid)
+HWND API dw_text_new(const char *text, ULONG cid)
 {
     DWText *textfield = [[DWText alloc] init];
     [textfield setEditable:NO];
@@ -6564,10 +6564,10 @@ DW_FUNCTION_RESTORE_PARAM6(handle, HWND, pixmap, HPIXMAP, x1, int, y1, int, x2, 
  *       y: Y coordinate.
  *       text: Text to be displayed.
  */
-DW_FUNCTION_DEFINITION(dw_draw_text, void, HWND handle, HPIXMAP pixmap, int x, int y, char *text)
+DW_FUNCTION_DEFINITION(dw_draw_text, void, HWND handle, HPIXMAP pixmap, int x, int y, const char *text)
 DW_FUNCTION_ADD_PARAM5(handle, pixmap, x, y, text)
 DW_FUNCTION_NO_RETURN(dw_draw_text)
-DW_FUNCTION_RESTORE_PARAM5(handle, HWND, pixmap, HPIXMAP, x, int, y, int, text, char *)
+DW_FUNCTION_RESTORE_PARAM5(handle, HWND, pixmap, HPIXMAP, x, int, y, int, text, const char *)
 {
     DW_FUNCTION_INIT;
     DW_LOCAL_POOL_IN;
@@ -6637,7 +6637,7 @@ DW_FUNCTION_RESTORE_PARAM5(handle, HWND, pixmap, HPIXMAP, x, int, y, int, text, 
  *       width: Pointer to a variable to be filled in with the width.
  *       height Pointer to a variable to be filled in with the height.
  */
-void API dw_font_text_extents_get(HWND handle, HPIXMAP pixmap, char *text, int *width, int *height)
+void API dw_font_text_extents_get(HWND handle, HPIXMAP pixmap, const char *text, int *width, int *height)
 {
     id object = handle;
     NSString *nstr;
@@ -6976,7 +6976,7 @@ DW_FUNCTION_RESTORE_PARAM1(cid, ULONG)
  *          parent: Parent handle or 0 if root.
  *          itemdata: Item specific data.
  */
-DW_FUNCTION_DEFINITION(dw_tree_insert_after, HTREEITEM, HWND handle, HTREEITEM item, char *title, HICN icon, HTREEITEM parent, void *itemdata)
+DW_FUNCTION_DEFINITION(dw_tree_insert_after, HTREEITEM, HWND handle, HTREEITEM item, const char *title, HICN icon, HTREEITEM parent, void *itemdata)
 DW_FUNCTION_ADD_PARAM6(handle, item, title, icon, parent, itemdata)
 DW_FUNCTION_RETURN(dw_tree_insert_after, HTREEITEM)
 DW_FUNCTION_RESTORE_PARAM6(handle, HWND, item, HTREEITEM, title, char *, icon, HICN, parent, HTREEITEM, itemdata, void *)
@@ -7009,7 +7009,7 @@ DW_FUNCTION_RESTORE_PARAM6(handle, HWND, item, HTREEITEM, title, char *, icon, H
  *          parent: Parent handle or 0 if root.
  *          itemdata: Item specific data.
  */
-HTREEITEM API dw_tree_insert(HWND handle, char *title, HICN icon, HTREEITEM parent, void *itemdata)
+HTREEITEM API dw_tree_insert(HWND handle, const char *title, HICN icon, HTREEITEM parent, void *itemdata)
 {
     return dw_tree_insert_after(handle, NULL, title, icon, parent, itemdata);
 }
@@ -7060,7 +7060,7 @@ DW_FUNCTION_RESTORE_PARAM2(handle, HWND, item, HTREEITEM)
  *          title: The text title of the entry.
  *          icon: Handle to coresponding icon.
  */
-DW_FUNCTION_DEFINITION(dw_tree_item_change, void, HWND handle, HTREEITEM item, char *title, HICN icon)
+DW_FUNCTION_DEFINITION(dw_tree_item_change, void, HWND handle, HTREEITEM item, const char *title, HICN icon)
 DW_FUNCTION_ADD_PARAM4(handle, item, title, icon)
 DW_FUNCTION_NO_RETURN(dw_tree_item_change)
 DW_FUNCTION_RESTORE_PARAM4(handle, HWND, item, HTREEITEM, title, char *, icon, HICN)
@@ -7297,7 +7297,7 @@ DW_FUNCTION_RESTORE_PARAM5(handle, HWND, flags, unsigned long *, titles, char **
  *          handle: Handle to the container to be configured.
  *          title: The title to be displayed in the main column.
  */
-void API dw_filesystem_set_column_title(HWND handle, char *title)
+void API dw_filesystem_set_column_title(HWND handle, const char *title)
 {
 	char *newtitle = strdup(title ? title : "");
 	
@@ -7472,7 +7472,7 @@ void API dw_filesystem_change_item(HWND handle, int column, int row, void *data)
  *          row: Zero based row of data being set.
  *          data: Pointer to the data to be added.
  */
-void API dw_filesystem_change_file(HWND handle, int row, char *filename, HICN icon)
+void API dw_filesystem_change_file(HWND handle, int row, const char *filename, HICN icon)
 {
     dw_filesystem_set_file(handle, NULL, row, filename, icon);
 }
@@ -7486,7 +7486,7 @@ void API dw_filesystem_change_file(HWND handle, int row, char *filename, HICN ic
  *          row: Zero based row of data being set.
  *          data: Pointer to the data to be added.
  */
-DW_FUNCTION_DEFINITION(dw_filesystem_set_file, void, HWND handle, void *pointer, int row, char *filename, HICN icon)
+DW_FUNCTION_DEFINITION(dw_filesystem_set_file, void, HWND handle, void *pointer, int row, const char *filename, HICN icon)
 DW_FUNCTION_ADD_PARAM5(handle, pointer, row, filename, icon)
 DW_FUNCTION_NO_RETURN(dw_filesystem_set_file)
 DW_FUNCTION_RESTORE_PARAM5(handle, HWND, pointer, void *, row, int, filename, char *, icon, HICN)
@@ -7615,7 +7615,7 @@ DW_FUNCTION_RESTORE_PARAM3(handle, HWND, column, int, width, int)
  *          row: Zero based row of data being set.
  *          title: String title of the item.
  */
-DW_FUNCTION_DEFINITION(dw_container_set_row_title, void, void *pointer, int row, char *title)
+DW_FUNCTION_DEFINITION(dw_container_set_row_title, void, void *pointer, int row, const char *title)
 DW_FUNCTION_ADD_PARAM3(pointer, row, title)
 DW_FUNCTION_NO_RETURN(dw_container_set_row_title)
 DW_FUNCTION_RESTORE_PARAM3(pointer, void *, row, int, title, char *)
@@ -7655,7 +7655,7 @@ DW_FUNCTION_RESTORE_PARAM3(pointer, void *, row, int, data, void *)
  *          row: Zero based row of data being set.
  *          title: String title of the item.
  */
-DW_FUNCTION_DEFINITION(dw_container_change_row_title, void, HWND handle, int row, char *title)
+DW_FUNCTION_DEFINITION(dw_container_change_row_title, void, HWND handle, int row, const char *title)
 DW_FUNCTION_ADD_PARAM3(handle, row, title)
 DW_FUNCTION_NO_RETURN(dw_container_change_row_title)
 DW_FUNCTION_RESTORE_PARAM3(handle, HWND, row, int, title, char *)
@@ -7884,7 +7884,7 @@ DW_FUNCTION_RESTORE_PARAM2(handle, HWND, flags, unsigned long)
  *       handle: Handle to the window (widget) to be queried.
  *       text:  Text usually returned by dw_container_query().
  */
-DW_FUNCTION_DEFINITION(dw_container_cursor, void, HWND handle, char *text)
+DW_FUNCTION_DEFINITION(dw_container_cursor, void, HWND handle, const char *text)
 DW_FUNCTION_ADD_PARAM2(handle, text)
 DW_FUNCTION_NO_RETURN(dw_container_cursor)
 DW_FUNCTION_RESTORE_PARAM2(handle, HWND, text, char *)
@@ -7956,7 +7956,7 @@ DW_FUNCTION_RESTORE_PARAM2(handle, HWND, data, void *)
  *       handle: Handle to the window (widget).
  *       text:  Text usually returned by dw_container_query().
  */
-DW_FUNCTION_DEFINITION(dw_container_delete_row, void, HWND handle, char *text)
+DW_FUNCTION_DEFINITION(dw_container_delete_row, void, HWND handle, const char *text)
 DW_FUNCTION_ADD_PARAM2(handle, text)
 DW_FUNCTION_NO_RETURN(dw_container_delete_row)
 DW_FUNCTION_RESTORE_PARAM2(handle, HWND, text, char *)
@@ -8035,7 +8035,7 @@ DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
  *       icon: Icon handle to display in the taskbar.
  *       bubbletext: Text to show when the mouse is above the icon.
  */
-void API dw_taskbar_insert(HWND handle, HICN icon, char *bubbletext)
+void API dw_taskbar_insert(HWND handle, HICN icon, const char *bubbletext)
 {
 #ifdef BUILDING_FOR_YOSEMITE
     NSStatusItem *item = [[[NSStatusBar systemStatusBar] statusItemWithLength:NSSquareStatusItemLength] retain];
@@ -8118,7 +8118,7 @@ HICN API dw_icon_load(unsigned long module, unsigned long resid)
  *                 DW pick the appropriate file extension.
  *                 (ICO on OS/2 or Windows, XPM on Unix)
  */
-HICN API dw_icon_load_from_file(char *filename)
+HICN API dw_icon_load_from_file(const char *filename)
 {
     char *ext = _dw_get_image_extension( filename );
 
@@ -8140,7 +8140,7 @@ HICN API dw_icon_load_from_file(char *filename)
  *                 DW pick the appropriate file extension.
  *                 (ICO on OS/2 or Windows, XPM on Unix)
  */
-HICN API dw_icon_load_from_data(char *data, int len)
+HICN API dw_icon_load_from_data(const char *data, int len)
 {
     NSData *thisdata = [NSData dataWithBytes:data length:len];
     NSImage *image = [[NSImage alloc] initWithData:thisdata];
@@ -8287,7 +8287,7 @@ float API dw_splitbar_get(HWND handle)
 }
 
 /* Internal function to convert fontname to NSFont */
-NSFont *_dw_font_by_name(char *fontname)
+NSFont *_dw_font_by_name(const char *fontname)
 {
     char *fontcopy = strdup(fontname);
     char *name = strchr(fontcopy, '.');
@@ -8389,7 +8389,7 @@ void _flip_image(NSImage *tmpimage, NSBitmapImageRep *image, NSSize size)
  * Returns:
  *       A handle to a pixmap or NULL on failure.
  */
-HPIXMAP API dw_pixmap_new_from_file(HWND handle, char *filename)
+HPIXMAP API dw_pixmap_new_from_file(HWND handle, const char *filename)
 {
     HPIXMAP pixmap;
     DW_LOCAL_POOL_IN;
@@ -8443,7 +8443,7 @@ HPIXMAP API dw_pixmap_new_from_file(HWND handle, char *filename)
  * Returns:
  *       A handle to a pixmap or NULL on failure.
  */
-HPIXMAP API dw_pixmap_new_from_data(HWND handle, char *data, int len)
+HPIXMAP API dw_pixmap_new_from_data(HWND handle, const char *data, int len)
 {
     HPIXMAP pixmap;
     DW_LOCAL_POOL_IN;
@@ -8557,7 +8557,7 @@ HPIXMAP API dw_pixmap_grab(HWND handle, ULONG resid)
  * Returns:
  *       DW_ERROR_NONE on success and DW_ERROR_GENERAL on failure.
  */
-int API dw_pixmap_set_font(HPIXMAP pixmap, char *fontname)
+int API dw_pixmap_set_font(HPIXMAP pixmap, const char *fontname)
 {
     if(pixmap)
     {
@@ -8781,7 +8781,7 @@ void API dw_html_action(HWND handle, int action)
  * Returns:
  *       0 on success.
  */
-int API dw_html_raw(HWND handle, char *string)
+int API dw_html_raw(HWND handle, const char *string)
 {
     DWWebView *html = handle;
 #if WK_API_ENABLED
@@ -8801,7 +8801,7 @@ int API dw_html_raw(HWND handle, char *string)
  * Returns:
  *       0 on success.
  */
-int API dw_html_url(HWND handle, char *url)
+int API dw_html_url(HWND handle, const char *url)
 {
     DWWebView *html = handle;
 #if WK_API_ENABLED
@@ -8822,7 +8822,7 @@ int API dw_html_url(HWND handle, char *url)
  * Returns:
  *       DW_ERROR_NONE (0) on success.
  */
-int dw_html_javascript_run(HWND handle, char *script, void *scriptdata)
+int dw_html_javascript_run(HWND handle, const char *script, void *scriptdata)
 {
     DWWebView *html = handle;
     DW_LOCAL_POOL_IN;
@@ -9266,7 +9266,7 @@ void API dw_notebook_page_set(HWND handle, unsigned int pageid)
  *          pageid: Page ID of the tab to set.
  *          text: Pointer to the text to set.
  */
-void API dw_notebook_page_set_text(HWND handle, ULONG pageid, char *text)
+void API dw_notebook_page_set_text(HWND handle, ULONG pageid, const char *text)
 {
     DWNotebook *notebook = handle;
     DWNotebookPage *notepage = _notepage_from_id(notebook, pageid);
@@ -9284,7 +9284,7 @@ void API dw_notebook_page_set_text(HWND handle, ULONG pageid, char *text)
  *          pageid: Page ID of the tab to set.
  *          text: Pointer to the text to set.
  */
-void API dw_notebook_page_set_status_text(HWND handle, ULONG pageid, char *text)
+void API dw_notebook_page_set_status_text(HWND handle, ULONG pageid, const char *text)
 {
     /* Note supported here... do nothing */
 }
@@ -9323,7 +9323,7 @@ void API dw_notebook_pack(HWND handle, ULONG pageid, HWND page)
  *       title: The Window title.
  *       flStyle: Style flags, see the PM reference.
  */
-DW_FUNCTION_DEFINITION(dw_window_new, HWND, HWND hwndOwner, char *title, ULONG flStyle)
+DW_FUNCTION_DEFINITION(dw_window_new, HWND, HWND hwndOwner, const char *title, ULONG flStyle)
 DW_FUNCTION_ADD_PARAM3(hwndOwner, title, flStyle)
 DW_FUNCTION_RETURN(dw_window_new, HWND)
 DW_FUNCTION_RESTORE_PARAM3(hwndOwner, HWND, title, char *, flStyle, ULONG)
@@ -9800,7 +9800,7 @@ void API dw_window_reparent(HWND handle, HWND newparent)
  * Returns:
  *       A malloced buffer with the selected font or NULL on error.
  */
-char * API dw_font_choose(char *currfont)
+char * API dw_font_choose(const char *currfont)
 {
     /* Create the Color Chooser Dialog class. */
     static DWFontChoose *fontDlg = nil;
@@ -9889,7 +9889,7 @@ Item *_box_item(id object)
  *          handle: The window (widget) handle.
  *          fontname: Name and size of the font in the form "size.fontname"
  */
-int API dw_window_set_font(HWND handle, char *fontname)
+int API dw_window_set_font(HWND handle, const char *fontname)
 {
     NSFont *font = _dw_font_by_name(fontname);
 
@@ -10095,7 +10095,7 @@ DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
  *       handle: Handle to the window.
  *       text: The text associsated with a given window.
  */
-DW_FUNCTION_DEFINITION(dw_window_set_text, void, HWND handle, char *text)
+DW_FUNCTION_DEFINITION(dw_window_set_text, void, HWND handle, const char *text)
 DW_FUNCTION_ADD_PARAM2(handle, text)
 DW_FUNCTION_NO_RETURN(dw_window_set_text)
 DW_FUNCTION_RESTORE_PARAM2(handle, HWND, text, char *)
@@ -10148,7 +10148,7 @@ DW_FUNCTION_RESTORE_PARAM2(handle, HWND, text, char *)
  *       handle: Handle to the window (widget).
  *       bubbletext: The text in the floating bubble tooltip.
  */
-DW_FUNCTION_DEFINITION(dw_window_set_tooltip, void, HWND handle, char *bubbletext)
+DW_FUNCTION_DEFINITION(dw_window_set_tooltip, void, HWND handle, const char *bubbletext)
 DW_FUNCTION_ADD_PARAM2(handle, bubbletext)
 DW_FUNCTION_NO_RETURN(dw_window_set_tooltip)
 DW_FUNCTION_RESTORE_PARAM2(handle, HWND, bubbletext, char *)
@@ -10234,7 +10234,7 @@ DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
  *                 Windows and a pixmap on Unix, pass
  *                 NULL if you use the id param)
  */
-void API dw_window_set_bitmap_from_data(HWND handle, unsigned long cid, char *data, int len)
+void API dw_window_set_bitmap_from_data(HWND handle, unsigned long cid, const char *data, int len)
 {
     id object = handle;
 
@@ -10277,7 +10277,7 @@ void API dw_window_set_bitmap_from_data(HWND handle, unsigned long cid, char *da
  *                 Windows and a pixmap on Unix, pass
  *                 NULL if you use the id param)
  */
-void API dw_window_set_bitmap(HWND handle, unsigned long resid, char *filename)
+void API dw_window_set_bitmap(HWND handle, unsigned long resid, const char *filename)
 {
     id object = handle;
     DW_LOCAL_POOL_IN;
@@ -10741,7 +10741,7 @@ void API dw_flush(void)
  * a given window handle.  Used in dw_window_set_data() and
  * dw_window_get_data().
  */
-UserData *_find_userdata(UserData **root, char *varname)
+UserData *_find_userdata(UserData **root, const char *varname)
 {
     UserData *tmp = *root;
 
@@ -10754,7 +10754,7 @@ UserData *_find_userdata(UserData **root, char *varname)
     return NULL;
 }
 
-int _new_userdata(UserData **root, char *varname, void *data)
+int _new_userdata(UserData **root, const char *varname, void *data)
 {
     UserData *new = _find_userdata(root, varname);
 
@@ -10792,7 +10792,7 @@ int _new_userdata(UserData **root, char *varname, void *data)
     return FALSE;
 }
 
-int _remove_userdata(UserData **root, char *varname, int all)
+int _remove_userdata(UserData **root, const char *varname, int all)
 {
     UserData *prev = NULL, *tmp = *root;
 
@@ -10836,7 +10836,7 @@ int _remove_userdata(UserData **root, char *varname, int all)
  *       dataname: A string pointer identifying which signal to be hooked.
  *       data: User data to be passed to the handler function.
  */
-void dw_window_set_data(HWND window, char *dataname, void *data)
+void dw_window_set_data(HWND window, const char *dataname, void *data)
 {
     id object = window;
     if([object isMemberOfClass:[DWWindow class]])
@@ -10878,7 +10878,7 @@ void dw_window_set_data(HWND window, char *dataname, void *data)
  *       dataname: A string pointer identifying which signal to be hooked.
  *       data: User data to be passed to the handler function.
  */
-void *dw_window_get_data(HWND window, char *dataname)
+void *dw_window_get_data(HWND window, const char *dataname)
 {
     id object = window;
     if([object isMemberOfClass:[DWWindow class]])
@@ -10988,7 +10988,7 @@ void API dw_timer_disconnect(int timerid)
  *       sigfunc: The pointer to the function to be used as the callback.
  *       data: User data to be passed to the handler function.
  */
-void API dw_signal_connect(HWND window, char *signame, void *sigfunc, void *data)
+void API dw_signal_connect(HWND window, const char *signame, void *sigfunc, void *data)
 {
     dw_signal_connect_data(window, signame, sigfunc, NULL, data);
 }
@@ -11002,7 +11002,7 @@ void API dw_signal_connect(HWND window, char *signame, void *sigfunc, void *data
  *       discfunc: The pointer to the function called when this handler is removed.
  *       data: User data to be passed to the handler function.
  */
-void API dw_signal_connect_data(HWND window, char *signame, void *sigfunc, void *discfunc, void *data)
+void API dw_signal_connect_data(HWND window, const char *signame, void *sigfunc, void *discfunc, void *data)
 {
     ULONG message = 0, msgid = 0;
 
@@ -11026,7 +11026,7 @@ void API dw_signal_connect_data(HWND window, char *signame, void *sigfunc, void 
  * Parameters:
  *       window: Window handle of callback to be removed.
  */
-void API dw_signal_disconnect_by_name(HWND window, char *signame)
+void API dw_signal_disconnect_by_name(HWND window, const char *signame)
 {
     SignalHandler *prev = NULL, *tmp = Root;
     ULONG message;
@@ -11209,7 +11209,7 @@ int dw_module_load(char *name, HMOD *handle)
  *         func: A pointer to a function pointer, to obtain
  *               the address.
  */
-int dw_module_symbol(HMOD handle, char *name, void**func)
+int dw_module_symbol(HMOD handle, const char *name, void**func)
 {
    if(!func || !name)
       return   -1;
@@ -11596,7 +11596,7 @@ static void _handle_sem(int *tmpsock)
  *         name: Name given to semaphore which can be opened
  *               by other processes.
  */
-HEV dw_named_event_new(char *name)
+HEV dw_named_event_new(const char *name)
 {
     struct sockaddr_un un;
     int ev, *tmpsock = (int *)malloc(sizeof(int)*2);
@@ -11657,7 +11657,7 @@ HEV dw_named_event_new(char *name)
  *         name: Name given to semaphore which can be opened
  *               by other processes.
  */
-HEV dw_named_event_get(char *name)
+HEV dw_named_event_get(const char *name)
 {
     struct sockaddr_un un;
     HEV eve;
@@ -11865,7 +11865,7 @@ void _dwthreadstart(void *data)
  * Parameters:
  *           fontname: Font name in Dynamic Windows format.
  */
-void API dw_font_set_default(char *fontname)
+void API dw_font_set_default(const char *fontname)
 {
     NSFont *oldfont = DWDefaultFont;
     DWDefaultFont = _dw_font_by_name(fontname);
@@ -11973,7 +11973,7 @@ int API dw_init(int newthread, int argc, char *argv[])
  *         size: Size in bytes of the shared memory region to allocate.
  *         name: A string pointer to a unique memory name.
  */
-HSHM dw_named_memory_new(void **dest, int size, char *name)
+HSHM dw_named_memory_new(void **dest, int size, const char *name)
 {
    char namebuf[1025] = {0};
    struct _dw_unix_shm *handle = malloc(sizeof(struct _dw_unix_shm));
@@ -12014,7 +12014,7 @@ HSHM dw_named_memory_new(void **dest, int size, char *name)
  *         size: Size in bytes of the shared memory region to requested.
  *         name: A string pointer to a unique memory name.
  */
-HSHM dw_named_memory_get(void **dest, int size, char *name)
+HSHM dw_named_memory_get(void **dest, int size, const char *name)
 {
    char namebuf[1025];
    struct _dw_unix_shm *handle = malloc(sizeof(struct _dw_unix_shm));
@@ -12117,7 +12117,7 @@ DWTID dw_thread_id(void)
  * Returns:
  *       -1 on error.
  */
-int dw_exec(char *program, int type, char **params)
+int dw_exec(const char *program, int type, char **params)
 {
     int ret = -1;
 
@@ -12384,7 +12384,7 @@ void API dw_print_cancel(HPRINT print)
  *       Wide string that needs to be freed with dw_free()
  *       or NULL on failure.
  */
-wchar_t * API dw_utf8_to_wchar(char *utf8string)
+wchar_t * API dw_utf8_to_wchar(const char *utf8string)
 {
     size_t buflen = strlen(utf8string) + 1;
     wchar_t *temp = malloc(buflen * sizeof(wchar_t));
@@ -12401,7 +12401,7 @@ wchar_t * API dw_utf8_to_wchar(char *utf8string)
  *       UTF-8 encoded string that needs to be freed with dw_free()
  *       or NULL on failure.
  */
-char * API dw_wchar_to_utf8(wchar_t *wstring)
+char * API dw_wchar_to_utf8(const wchar_t *wstring)
 {
     size_t bufflen = 8 * wcslen(wstring) + 1;
     char *temp = malloc(bufflen);

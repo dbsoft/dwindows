@@ -12374,7 +12374,7 @@ void _to_dos(TCHAR *dst, TCHAR *src)
  *       the file path on success.
  *
  */
-char * API dw_file_browse(const char *title, const char *defpath, char *ext, int flags)
+char * API dw_file_browse(const char *title, const char *defpath, const char *ext, int flags)
 {
    OPENFILENAME of = {0};
    TCHAR filenamebuf[BROWSEBUFSIZE+1] = {0}, *fbuf = filenamebuf;
