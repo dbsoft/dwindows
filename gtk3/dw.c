@@ -1111,7 +1111,7 @@ static void _dw_msleep(long period)
 }
 
 /* Finds the translation function for a given signal name */
-static void *_findsigfunc(char *signame)
+static void *_findsigfunc(const char *signame)
 {
    int z;
 
@@ -2232,7 +2232,7 @@ void *dw_dialog_wait(DWDialog *dialog)
  *           format: printf style format string.
  *           ...: Additional variables for use in the format.
  */
-void API dw_debug(char *format, ...)
+void API dw_debug(const char *format, ...)
 {
    va_list args;
    char outbuf[1025] = {0};
@@ -2252,7 +2252,7 @@ void API dw_debug(char *format, ...)
  *           format: printf style format string.
  *           ...: Additional variables for use in the format.
  */
-int dw_messagebox(char *title, int flags, char *format, ...)
+int dw_messagebox(const char *title, int flags, const char *format, ...)
 {
    GtkMessageType gtkicon = GTK_MESSAGE_OTHER;
    GtkButtonsType gtkbuttons = GTK_BUTTONS_OK;
@@ -2577,7 +2577,7 @@ void dw_window_reparent(HWND handle, HWND newparent)
  * Parameters:
  *           fontname: Font name in Dynamic Windows format.
  */
-void API dw_font_set_default(char *fontname)
+void API dw_font_set_default(const char *fontname)
 {
    char *oldfont = _DWDefaultFont;
 
@@ -2639,7 +2639,7 @@ static void _dw_override_font(GtkWidget *widget, const char *font)
  *          handle: The window (widget) handle.
  *          fontname: Name and size of the font in the form "size.fontname"
  */
-int dw_window_set_font(HWND handle, char *fontname)
+int dw_window_set_font(HWND handle, const char *fontname)
 {
    GtkWidget *handle2 = handle;
    char *font = strdup(fontname);
@@ -2687,7 +2687,7 @@ int dw_window_set_font(HWND handle, char *fontname)
  * Returns:
  *       A malloced buffer with the selected font or NULL on error.
  */
-char * API dw_font_choose(char *currfont)
+char * API dw_font_choose(const char *currfont)
 {
    GtkFontChooser *fd;
    char *font = currfont ? strdup(currfont) : NULL;
@@ -3019,7 +3019,7 @@ void dw_window_release(void)
  *       title: The Window title.
  *       flStyle: Style flags, see the PM reference.
  */
-HWND dw_window_new(HWND hwndOwner, char *title, unsigned long flStyle)
+HWND dw_window_new(HWND hwndOwner, const char *title, unsigned long flStyle)
 {
    GtkWidget *tmp;
    int _locked_by_me = FALSE;
@@ -3223,7 +3223,7 @@ int API dw_scrollbox_get_range(HWND handle, int orient)
  *       pad: Number of pixels to pad around the box.
  *       title: Text to be displayined in the group outline.
  */
-HWND dw_groupbox_new(int type, int pad, char *title)
+HWND dw_groupbox_new(int type, int pad, const char *title)
 {
    GtkWidget *tmp, *frame;
    int _locked_by_me = FALSE;
@@ -3391,7 +3391,7 @@ void dw_menu_destroy(HMENUI *menu)
    }
 }
 
-char _removetilde(char *dest, char *src)
+char _removetilde(char *dest, const char *src)
 {
    int z, cur=0;
    char accel = '\0';
@@ -3425,7 +3425,7 @@ char _removetilde(char *dest, char *src)
  *       check: If TRUE menu is "check"able.
  *       submenu: Handle to an existing menu to be a submenu or NULL.
  */
-HWND dw_menu_append_item(HMENUI menu, char *title, unsigned long id, unsigned long flags, int end, int check, HMENUI submenu)
+HWND dw_menu_append_item(HMENUI menu, const char *title, unsigned long id, unsigned long flags, int end, int check, HMENUI submenu)
 {
    GtkWidget *tmphandle;
    char accel, *tempbuf = malloc(strlen(title)+1);
@@ -3515,7 +3515,7 @@ HWND dw_menu_append_item(HMENUI menu, char *title, unsigned long id, unsigned lo
    return tmphandle;
 }
 
-GtkWidget *_find_submenu_id(GtkWidget *start, char *name)
+GtkWidget *_find_submenu_id(GtkWidget *start, const char *name)
 {
    GtkWidget *tmp;
    int z, submenucount = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(start), "_dw_submenucount"));
@@ -3860,7 +3860,7 @@ HWND dw_tree_new(ULONG id)
  *       text: The text to be display by the static text widget.
  *       id: An ID to be used with dw_window_from_id() or 0L.
  */
-HWND dw_text_new(char *text, unsigned long id)
+HWND dw_text_new(const char *text, unsigned long id)
 {
    GtkWidget *tmp;
    int _locked_by_me = FALSE;
@@ -3889,7 +3889,7 @@ HWND dw_text_new(char *text, unsigned long id)
  *       text: The text to be display by the static text widget.
  *       id: An ID to be used with dw_window_from_id() or 0L.
  */
-HWND dw_status_text_new(char *text, ULONG id)
+HWND dw_status_text_new(const char *text, ULONG id)
 {
    GtkWidget *tmp, *frame;
    int _locked_by_me = FALSE;
@@ -3952,7 +3952,7 @@ HWND dw_mle_new(unsigned long id)
  *       text: The default text to be in the entryfield widget.
  *       id: An ID to be used with dw_window_from_id() or 0L.
  */
-HWND dw_entryfield_new(char *text, unsigned long id)
+HWND dw_entryfield_new(const char *text, unsigned long id)
 {
    GtkWidget *tmp;
    int _locked_by_me = FALSE;
@@ -3978,7 +3978,7 @@ HWND dw_entryfield_new(char *text, unsigned long id)
  *       text: The default text to be in the entryfield widget.
  *       id: An ID to be used with dw_window_from_id() or 0L.
  */
-HWND dw_entryfield_password_new(char *text, ULONG id)
+HWND dw_entryfield_password_new(const char *text, ULONG id)
 {
    GtkWidget *tmp;
    int _locked_by_me = FALSE;
@@ -4005,7 +4005,7 @@ HWND dw_entryfield_password_new(char *text, ULONG id)
  *       text: The default text to be in the combpbox widget.
  *       id: An ID to be used with dw_window_from_id() or 0L.
  */
-HWND dw_combobox_new(char *text, unsigned long id)
+HWND dw_combobox_new(const char *text, unsigned long id)
 {
    GtkWidget *tmp;
    GtkListStore *store;
@@ -4032,7 +4032,7 @@ HWND dw_combobox_new(char *text, unsigned long id)
  *       text: The text to be display by the static text widget.
  *       id: An ID to be used with dw_window_from_id() or 0L.
  */
-HWND dw_button_new(char *text, unsigned long id)
+HWND dw_button_new(const char *text, unsigned long id)
 {
    GtkWidget *tmp;
    int _locked_by_me = FALSE;
@@ -4053,7 +4053,7 @@ HWND dw_button_new(char *text, unsigned long id)
  *       text: Bubble help text to be displayed.
  *       id: An ID of a bitmap in the resource file.
  */
-HWND dw_bitmapbutton_new(char *text, unsigned long id)
+HWND dw_bitmapbutton_new(const char *text, unsigned long id)
 {
    GtkWidget *tmp;
    GtkWidget *bitmap;
@@ -4089,7 +4089,7 @@ HWND dw_bitmapbutton_new(char *text, unsigned long id)
  *                 DW pick the appropriate file extension.
  *                 (BMP on OS/2 or Windows, XPM on Unix)
  */
-HWND dw_bitmapbutton_new_from_file(char *text, unsigned long id, char *filename)
+HWND dw_bitmapbutton_new_from_file(const char *text, unsigned long id, const char *filename)
 {
    GtkWidget *tmp;
    GtkWidget *bitmap;
@@ -4125,7 +4125,7 @@ HWND dw_bitmapbutton_new_from_file(char *text, unsigned long id, char *filename)
  *                 (BMP on OS/2 or Windows, XPM on Unix)
  *       len:  Length of raw data
  */
-HWND dw_bitmapbutton_new_from_data(char *text, unsigned long id, char *data, int len)
+HWND dw_bitmapbutton_new_from_data(const char *text, unsigned long id, const char *data, int len)
 {
    GtkWidget *tmp;
    GtkWidget *bitmap;
@@ -4157,7 +4157,7 @@ HWND dw_bitmapbutton_new_from_data(char *text, unsigned long id, char *data, int
  *       text: The text to be display by the static text widget.
  *       id: An ID to be used with dw_window_from_id() or 0L.
  */
-HWND dw_spinbutton_new(char *text, unsigned long id)
+HWND dw_spinbutton_new(const char *text, unsigned long id)
 {
    GtkAdjustment *adj;
    GtkWidget *tmp;
@@ -4184,7 +4184,7 @@ HWND dw_spinbutton_new(char *text, unsigned long id)
  *       text: The text to be display by the static text widget.
  *       id: An ID to be used with dw_window_from_id() or 0L.
  */
-HWND dw_radiobutton_new(char *text, ULONG id)
+HWND dw_radiobutton_new(const char *text, ULONG id)
 {
    /* This will have to be fixed in the future. */
    GtkWidget *tmp;
@@ -4291,7 +4291,7 @@ HWND dw_percent_new(unsigned long id)
  *       text: The text to be display by the static text widget.
  *       id: An ID to be used with dw_window_from_id() or 0L.
  */
-HWND dw_checkbox_new(char *text, unsigned long id)
+HWND dw_checkbox_new(const char *text, unsigned long id)
 {
    GtkWidget *tmp;
    int _locked_by_me = FALSE;
@@ -4390,7 +4390,7 @@ void dw_window_set_icon(HWND handle, HICN icon)
  *                 Windows and a pixmap on Unix, pass
  *                 NULL if you use the id param)
  */
-void dw_window_set_bitmap(HWND handle, unsigned long id, char *filename)
+void dw_window_set_bitmap(HWND handle, unsigned long id, const char *filename)
 {
    GdkPixbuf *tmp = NULL;
    int found_ext = 0;
@@ -4467,7 +4467,7 @@ void dw_window_set_bitmap(HWND handle, unsigned long id, char *filename)
  *                 NULL if you use the id param)
  *       len: length of data
  */
-void dw_window_set_bitmap_from_data(HWND handle, unsigned long id, char *data, int len)
+void dw_window_set_bitmap_from_data(HWND handle, unsigned long id, const char *data, int len)
 {
    GdkPixbuf *tmp = NULL;
    int _locked_by_me = FALSE;
@@ -4527,7 +4527,7 @@ void dw_window_set_bitmap_from_data(HWND handle, unsigned long id, char *data, i
  *       handle: Handle to the window.
  *       text: The text associated with a given window.
  */
-void dw_window_set_text(HWND handle, char *text)
+void dw_window_set_text(HWND handle, const char *text)
 {
    int _locked_by_me = FALSE;
    GtkWidget *tmp;
@@ -4567,7 +4567,7 @@ void dw_window_set_text(HWND handle, char *text)
  *       handle: Handle to the window (widget).
  *       bubbletext: The text in the floating bubble tooltip.
  */
-void API dw_window_set_tooltip(HWND handle, char *bubbletext)
+void API dw_window_set_tooltip(HWND handle, const char *bubbletext)
 {
    int _locked_by_me = FALSE;
 
@@ -4674,7 +4674,7 @@ HWND API dw_window_from_id(HWND handle, int id)
  *          buffer: Text buffer to be imported.
  *          startpoint: Point to start entering text.
  */
-unsigned int dw_mle_import(HWND handle, char *buffer, int startpoint)
+unsigned int dw_mle_import(HWND handle, const char *buffer, int startpoint)
 {
    unsigned int tmppoint = startpoint;
    int _locked_by_me = FALSE;
@@ -4965,7 +4965,7 @@ void dw_mle_set_cursor(HWND handle, int point)
  *          point: Start point of search.
  *          flags: Search specific flags.
  */
-int dw_mle_search(HWND handle, char *text, int point, unsigned long flags)
+int dw_mle_search(HWND handle, const char *text, int point, unsigned long flags)
 {
    int _locked_by_me = FALSE, retval = 0;
 
@@ -5295,7 +5295,7 @@ void dw_checkbox_set(HWND handle, int value)
  *          parent: Parent handle or 0 if root.
  *          itemdata: Item specific data.
  */
-HTREEITEM dw_tree_insert_after(HWND handle, HTREEITEM item, char *title, HICN icon, HTREEITEM parent, void *itemdata)
+HTREEITEM dw_tree_insert_after(HWND handle, HTREEITEM item, const char *title, HICN icon, HTREEITEM parent, void *itemdata)
 {
    GtkWidget *tree;
    GtkTreeIter *iter;
@@ -5334,7 +5334,7 @@ HTREEITEM dw_tree_insert_after(HWND handle, HTREEITEM item, char *title, HICN ic
  *          parent: Parent handle or 0 if root.
  *          itemdata: Item specific data.
  */
-HTREEITEM dw_tree_insert(HWND handle, char *title, HICN icon, HTREEITEM parent, void *itemdata)
+HTREEITEM dw_tree_insert(HWND handle, const char *title, HICN icon, HTREEITEM parent, void *itemdata)
 {
    GtkWidget *tree;
    GtkTreeIter *iter;
@@ -5372,7 +5372,7 @@ HTREEITEM dw_tree_insert(HWND handle, char *title, HICN icon, HTREEITEM parent, 
  *          title: The text title of the entry.
  *          icon: Handle to coresponding icon.
  */
-void dw_tree_item_change(HWND handle, HTREEITEM item, char *title, HICN icon)
+void dw_tree_item_change(HWND handle, HTREEITEM item, const char *title, HICN icon)
 {
    GtkWidget *tree;
    GtkTreeStore *store;
@@ -5835,7 +5835,7 @@ int dw_container_setup(HWND handle, unsigned long *flags, char **titles, int cou
  *          handle: Handle to the container to be configured.
  *          title: The title to be displayed in the main column.
  */
-void API dw_filesystem_set_column_title(HWND handle, char *title)
+void API dw_filesystem_set_column_title(HWND handle, const char *title)
 {
 	char *newtitle = strdup(title ? title : "");
 	
@@ -5912,7 +5912,7 @@ GdkPixbuf *_icon_resize(GdkPixbuf *ret)
  *                 DW pick the appropriate file extension.
  *                 (ICO on OS/2 or Windows, XPM on Unix)
  */
-HICN API dw_icon_load_from_file(char *filename)
+HICN API dw_icon_load_from_file(const char *filename)
 {
    int _locked_by_me = FALSE;
    char *file = alloca(strlen(filename) + 6);
@@ -5956,7 +5956,7 @@ HICN API dw_icon_load_from_file(char *filename)
  *       data: Source of data for image.
  *       len:  length of data
  */
-HICN API dw_icon_load_from_data(char *data, int len)
+HICN API dw_icon_load_from_data(const char *data, int len)
 {
    int _locked_by_me = FALSE;
    char *file;
@@ -6182,7 +6182,7 @@ void API dw_filesystem_change_item(HWND handle, int column, int row, void *data)
  *          row: Zero based row of data being set.
  *          data: Pointer to the data to be added.
  */
-void API dw_filesystem_change_file(HWND handle, int row, char *filename, HICN icon)
+void API dw_filesystem_change_file(HWND handle, int row, const char *filename, HICN icon)
 {
    dw_filesystem_set_file(handle, NULL, row, filename, icon);
 }
@@ -6196,7 +6196,7 @@ void API dw_filesystem_change_file(HWND handle, int row, char *filename, HICN ic
  *          row: Zero based row of data being set.
  *          data: Pointer to the data to be added.
  */
-void dw_filesystem_set_file(HWND handle, void *pointer, int row, char *filename, HICN icon)
+void dw_filesystem_set_file(HWND handle, void *pointer, int row, const char *filename, HICN icon)
 {
    void *data[2] = { (void *)&icon, (void *)filename };
 
@@ -6361,9 +6361,9 @@ void _dw_container_set_row_data(HWND handle, void *pointer, int row, int type, v
  *          row: Zero based row of data being set.
  *          title: String title of the item.
  */
-void dw_container_set_row_title(void *pointer, int row, char *title)
+void dw_container_set_row_title(void *pointer, int row, const char *title)
 {
-   _dw_container_set_row_data(pointer, pointer, row, _DW_DATA_TYPE_STRING, title);
+   _dw_container_set_row_data(pointer, pointer, row, _DW_DATA_TYPE_STRING, (void *)title);
 }
 
 /*
@@ -6373,9 +6373,9 @@ void dw_container_set_row_title(void *pointer, int row, char *title)
  *          row: Zero based row of data being set.
  *          title: String title of the item.
  */
-void dw_container_change_row_title(HWND handle, int row, char *title)
+void dw_container_change_row_title(HWND handle, int row, const char *title)
 {
-   _dw_container_set_row_data(handle, NULL, row, _DW_DATA_TYPE_STRING, title);
+   _dw_container_set_row_data(handle, NULL, row, _DW_DATA_TYPE_STRING, (void *)title);
 }
 
 /*
@@ -6799,9 +6799,9 @@ void _dw_container_cursor(HWND handle, void *data, int textcomp)
  *       handle: Handle to the window (widget) to be queried.
  *       text:  Text usually returned by dw_container_query().
  */
-void dw_container_cursor(HWND handle, char *text)
+void dw_container_cursor(HWND handle, const char *text)
 {
-   _dw_container_cursor(handle, text, TRUE);
+   _dw_container_cursor(handle, (void *)text, TRUE);
 }
 
 /*
@@ -6850,9 +6850,9 @@ void _dw_container_delete_row(HWND handle, void *data, int textcomp)
  *       handle: Handle to the window (widget).
  *       text:  Text usually returned by dw_container_query().
  */
-void dw_container_delete_row(HWND handle, char *text)
+void dw_container_delete_row(HWND handle, const char *text)
 {
-   _dw_container_delete_row(handle, text, TRUE);
+   _dw_container_delete_row(handle, (void *)text, TRUE);
 }
 
 /*
@@ -6908,7 +6908,7 @@ static void _status_translate(GtkStatusIcon *status_icon, guint button, guint ac
  *       icon: Icon handle to display in the taskbar.
  *       bubbletext: Text to show when the mouse is above the icon.
  */
-void dw_taskbar_insert(HWND handle, HICN icon, char *bubbletext)
+void dw_taskbar_insert(HWND handle, HICN icon, const char *bubbletext)
 {
    GtkStatusIcon *status;
    GdkPixbuf *pixbuf;
@@ -7500,7 +7500,7 @@ void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yo
  *       y: Y coordinate.
 *       text: Text to be displayed.
   */
-void dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
+void dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, const char *text)
 {
    int _locked_by_me = FALSE;
    cairo_t *cr = NULL;
@@ -7609,7 +7609,7 @@ void dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
  *       width: Pointer to a variable to be filled in with the width.
  *       height Pointer to a variable to be filled in with the height.
  */
-void dw_font_text_extents_get(HWND handle, HPIXMAP pixmap, char *text, int *width, int *height)
+void dw_font_text_extents_get(HWND handle, HPIXMAP pixmap, const char *text, int *width, int *height)
 {
    int _locked_by_me = FALSE;
    PangoFontDescription *font;
@@ -7717,7 +7717,7 @@ HPIXMAP dw_pixmap_new(HWND handle, unsigned long width, unsigned long height, in
  * Returns:
  *       A handle to a pixmap or NULL on failure.
  */
-HPIXMAP dw_pixmap_new_from_file(HWND handle, char *filename)
+HPIXMAP dw_pixmap_new_from_file(HWND handle, const char *filename)
 {
    int _locked_by_me = FALSE;
    HPIXMAP pixmap;
@@ -7771,7 +7771,7 @@ HPIXMAP dw_pixmap_new_from_file(HWND handle, char *filename)
  * Returns:
  *       A handle to a pixmap or NULL on failure.
  */
-HPIXMAP dw_pixmap_new_from_data(HWND handle, char *data, int len)
+HPIXMAP dw_pixmap_new_from_data(HWND handle, const char *data, int len)
 {
    int _locked_by_me = FALSE;
    char *file;
@@ -7863,7 +7863,7 @@ void dw_flush(void)
  * Returns:
  *       DW_ERROR_NONE on success and DW_ERROR_GENERAL on failure.
  */
-int API dw_pixmap_set_font(HPIXMAP pixmap, char *fontname)
+int API dw_pixmap_set_font(HPIXMAP pixmap, const char *fontname)
 {
     if(pixmap && fontname && *fontname)
     {
@@ -8034,7 +8034,7 @@ void _my_strlwr(char *buf)
  *         handle: Pointer to a module handle,
  *                 will be filled in with the handle.
  */
-int dw_module_load(char *name, HMOD *handle)
+int dw_module_load(const char *name, HMOD *handle)
 {
    int len;
    char *newname;
@@ -8077,7 +8077,7 @@ int dw_module_load(char *name, HMOD *handle)
  *         func: A pointer to a function pointer, to obtain
  *               the address.
  */
-int dw_module_symbol(HMOD handle, char *name, void**func)
+int dw_module_symbol(HMOD handle, const char *name, void**func)
 {
    if(!func || !name)
       return   -1;
@@ -8454,7 +8454,7 @@ static void _handle_sem(int *tmpsock)
  *         name: Name given to semaphore which can be opened
  *               by other processes.
  */
-HEV dw_named_event_new(char *name)
+HEV dw_named_event_new(const char *name)
 {
    struct sockaddr_un un;
    int ev, *tmpsock = (int *)malloc(sizeof(int)*2);
@@ -8504,7 +8504,7 @@ HEV dw_named_event_new(char *name)
  *         name: Name given to semaphore which can be opened
  *               by other processes.
  */
-HEV dw_named_event_get(char *name)
+HEV dw_named_event_get(const char *name)
 {
    struct sockaddr_un un;
    int ev = socket(AF_UNIX, SOCK_STREAM, 0);
@@ -8687,7 +8687,7 @@ void _dwthreadstart(void *data)
  *         size: Size in bytes of the shared memory region to allocate.
  *         name: A string pointer to a unique memory name.
  */
-HSHM dw_named_memory_new(void **dest, int size, char *name)
+HSHM dw_named_memory_new(void **dest, int size, const char *name)
 {
    char namebuf[1025];
    struct _dw_unix_shm *handle = malloc(sizeof(struct _dw_unix_shm));
@@ -8733,7 +8733,7 @@ HSHM dw_named_memory_new(void **dest, int size, char *name)
  *         size: Size in bytes of the shared memory region to requested.
  *         name: A string pointer to a unique memory name.
  */
-HSHM dw_named_memory_get(void **dest, int size, char *name)
+HSHM dw_named_memory_get(void **dest, int size, const char *name)
 {
    char namebuf[1025];
    struct _dw_unix_shm *handle = malloc(sizeof(struct _dw_unix_shm));
@@ -10101,7 +10101,7 @@ void dw_notebook_page_set(HWND handle, unsigned int pageid)
  *          pageid: Page ID of the tab to set.
  *          text: Pointer to the text to set.
  */
-void dw_notebook_page_set_text(HWND handle, unsigned long pageid, char *text)
+void dw_notebook_page_set_text(HWND handle, unsigned long pageid, const char *text)
 {
    GtkWidget *child;
    int realpage, _locked_by_me = FALSE;
@@ -10134,7 +10134,7 @@ void dw_notebook_page_set_text(HWND handle, unsigned long pageid, char *text)
  *          pageid: Page ID of the tab to set.
  *          text: Pointer to the text to set.
  */
-void dw_notebook_page_set_status_text(HWND handle, unsigned long pageid, char *text)
+void dw_notebook_page_set_status_text(HWND handle, unsigned long pageid, const char *text)
 {
    /* TODO (if possible) */
 }
@@ -10208,7 +10208,7 @@ void dw_notebook_pack(HWND handle, unsigned long pageid, HWND page)
  *          handle: Handle to the listbox to be appended to.
  *          text: Text to append into listbox.
  */
-void dw_listbox_append(HWND handle, char *text)
+void dw_listbox_append(HWND handle, const char *text)
 {
    dw_listbox_insert(handle, text, -1);
 }
@@ -10221,7 +10221,7 @@ void dw_listbox_append(HWND handle, char *text)
  *          text: Text to insert into listbox.
  *          pos: 0-based index into listbox. -1 will append
  */
-void dw_listbox_insert(HWND handle, char *text, int pos)
+void dw_listbox_insert(HWND handle, const char *text, int pos)
 {
    GtkWidget *handle2 = handle;
    GtkListStore *store = NULL;
@@ -10504,7 +10504,7 @@ void dw_listbox_get_text(HWND handle, unsigned int index, char *buffer, unsigned
  *          index: Index into the list to be queried.
  *          buffer: Buffer where text will be copied.
  */
-void dw_listbox_set_text(HWND handle, unsigned int index, char *buffer)
+void dw_listbox_set_text(HWND handle, unsigned int index, const char *buffer)
 {
    GtkWidget *handle2 = handle;
    GtkListStore *store = NULL;
@@ -11054,7 +11054,7 @@ void dw_environment_query(DWEnv *env)
  *       the file path on success.
  *
  */
-char *dw_file_browse(char *title, char *defpath, char *ext, int flags)
+char *dw_file_browse(const char *title, const char *defpath, const char *ext, int flags)
 {
    GtkWidget *filew;
 
@@ -11190,7 +11190,7 @@ char *dw_file_browse(char *title, char *defpath, char *ext, int flags)
  * Returns:
  *       -1 on error.
  */
-int dw_exec(char *program, int type, char **params)
+int dw_exec(const char *program, int type, char **params)
 {
    int ret = -1;
 
@@ -11247,7 +11247,7 @@ int dw_exec(char *program, int type, char **params)
  * Parameters:
  *       url: Uniform resource locator.
  */
-int dw_browse(char *url)
+int dw_browse(const char *url)
 {
    /* If possible load the URL/URI using gvfs... */
    if(gtk_show_uri(gdk_screen_get_default(), url, GDK_CURRENT_TIME, NULL))
@@ -11264,7 +11264,7 @@ int dw_browse(char *url)
       tmp = getenv( "DW_BROWSER" );
       if(tmp) browser = tmp;
       execargs[0] = browser;
-      execargs[1] = url;
+      execargs[1] = (char *)url;
       execargs[2] = NULL;
 
       return dw_exec(browser, DW_EXEC_GUI, execargs);
@@ -11353,7 +11353,7 @@ void dw_html_action(HWND handle, int action)
  * Returns:
  *       0 on success.
  */
-int dw_html_raw(HWND handle, char *string)
+int dw_html_raw(HWND handle, const char *string)
 {
 #ifdef USE_WEBKIT
    int _locked_by_me = FALSE;
@@ -11385,7 +11385,7 @@ int dw_html_raw(HWND handle, char *string)
  * Returns:
  *       0 on success.
  */
-int dw_html_url(HWND handle, char *url)
+int dw_html_url(HWND handle, const char *url)
 {
 #ifdef USE_WEBKIT
    int _locked_by_me = FALSE;
@@ -11418,7 +11418,7 @@ int dw_html_url(HWND handle, char *url)
  * Returns:
  *       DW_ERROR_NONE (0) on success.
  */
-int dw_html_javascript_run(HWND handle, char *script, void *scriptdata)
+int dw_html_javascript_run(HWND handle, const char *script, void *scriptdata)
 {
 #ifdef USE_WEBKIT
    int _locked_by_me = FALSE;
@@ -11545,7 +11545,7 @@ char *dw_clipboard_get_text()
  * Parameters:
  *       Text.
  */
-void  dw_clipboard_set_text( char *str, int len )
+void  dw_clipboard_set_text(const char *str, int len)
 {
    int _locked_by_me = FALSE;
    GtkClipboard *clipboard_object;
@@ -11591,7 +11591,7 @@ static void _dw_draw_page(GtkPrintOperation *operation, GtkPrintContext *context
  * Returns:
  *       A handle to the print object or NULL on failure.
  */
-HPRINT API dw_print_new(char *jobname, unsigned long flags, unsigned int pages, void *drawfunc, void *drawdata)
+HPRINT API dw_print_new(const char *jobname, unsigned long flags, unsigned int pages, void *drawfunc, void *drawdata)
 {
    GtkPrintOperation *op;
    int _locked_by_me = FALSE;
@@ -11701,7 +11701,7 @@ void dw_window_function(HWND handle, void *function, void *data)
  *       dataname: A string pointer identifying which signal to be hooked.
  *       data: User data to be passed to the handler function.
  */
-void dw_window_set_data(HWND window, char *dataname, void *data)
+void dw_window_set_data(HWND window, const char *dataname, void *data)
 {
    HWND thiswindow = window;
    int _locked_by_me = FALSE;
@@ -11726,7 +11726,7 @@ void dw_window_set_data(HWND window, char *dataname, void *data)
  *       dataname: A string pointer identifying which signal to be hooked.
  *       data: User data to be passed to the handler function.
  */
-void *dw_window_get_data(HWND window, char *dataname)
+void *dw_window_get_data(HWND window, const char *dataname)
 {
    HWND thiswindow = window;
    int _locked_by_me = FALSE;
@@ -11818,7 +11818,7 @@ void API dw_timer_disconnect(int id)
 /* Get the actual signal window handle not the user window handle
  * Should mimic the code in dw_signal_connect() below.
  */
-static HWND _find_signal_window(HWND window, char *signame)
+static HWND _find_signal_window(HWND window, const char *signame)
 {
    HWND thiswindow = window;
 
@@ -11839,7 +11839,7 @@ static HWND _find_signal_window(HWND window, char *signame)
  *       sigfunc: The pointer to the function to be used as the callback.
  *       data: User data to be passed to the handler function.
  */
-void dw_signal_connect(HWND window, char *signame, void *sigfunc, void *data)
+void dw_signal_connect(HWND window, const char *signame, void *sigfunc, void *data)
 {
    dw_signal_connect_data(window, signame, sigfunc, NULL, data);
 }
@@ -11878,10 +11878,10 @@ static void _dw_signal_disconnect(gpointer data, GClosure *closure)
  *       discfunc: The pointer to the function called when this handler is removed.
  *       data: User data to be passed to the handler function.
  */
-void dw_signal_connect_data(HWND window, char *signame, void *sigfunc, void *discfunc, void *data)
+void dw_signal_connect_data(HWND window, const char *signame, void *sigfunc, void *discfunc, void *data)
 {
    void *thisfunc  = _findsigfunc(signame);
-   char *thisname = signame;
+   char *thisname = (char *)signame;
    HWND thiswindow = window;
    int sigid, _locked_by_me = FALSE;
    void **params = calloc(_DW_INTERNAL_CALLBACK_PARAMS, sizeof(void *));
@@ -12057,7 +12057,7 @@ void dw_signal_connect_data(HWND window, char *signame, void *sigfunc, void *dis
  * Parameters:
  *       window: Window handle of callback to be removed.
  */
-void dw_signal_disconnect_by_name(HWND window, char *signame)
+void dw_signal_disconnect_by_name(HWND window, const char *signame)
 {
    int z, count;
    void *thisfunc;
@@ -12140,7 +12140,7 @@ void dw_signal_disconnect_by_data(HWND window, void *data)
  *       Wide string that needs to be freed with dw_free()
  *       or NULL on failure.
  */
-wchar_t * API dw_utf8_to_wchar(char *utf8string)
+wchar_t * API dw_utf8_to_wchar(const char *utf8string)
 {
    wchar_t *retval = NULL, *freeme;
 
@@ -12164,7 +12164,7 @@ wchar_t * API dw_utf8_to_wchar(char *utf8string)
  *       UTF-8 encoded string that needs to be freed with dw_free()
  *       or NULL on failure.
  */
-char * API dw_wchar_to_utf8(wchar_t *wstring)
+char * API dw_wchar_to_utf8(const wchar_t *wstring)
 {
    char *retval = NULL, *freeme;
 
