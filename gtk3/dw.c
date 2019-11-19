@@ -1199,6 +1199,7 @@ static void _set_signal_handler_id(GtkWidget *widget, int counter, gint cid)
 
 static void _html_result_event(GObject *object, GAsyncResult *result, gpointer script_data)
 {
+    pthread_t saved_thread = _dw_thread;
 #if USE_WEBKIT2
     WebKitJavascriptResult *js_result;
     #if WEBKIT_CHECK_VERSION(2, 22, 0)
@@ -1211,7 +1212,6 @@ static void _html_result_event(GObject *object, GAsyncResult *result, gpointer s
     int (*htmlresultfunc)(HWND, int, char *, void *, void *) = NULL;
     gint handlerdata = GPOINTER_TO_INT(g_object_get_data(object, "_dw_html_result_id"));
     void *user_data = NULL;
-    pthread_t saved_thread = _dw_thread;
 
     _dw_thread = (pthread_t)-1;
     if(handlerdata)
@@ -1239,19 +1239,19 @@ static void _html_result_event(GObject *object, GAsyncResult *result, gpointer s
 
 #if WEBKIT_CHECK_VERSION(2, 22, 0)
     value = webkit_javascript_result_get_js_value(js_result);
-    if(jsc_value_is_string(value)) 
+    if(jsc_value_is_string(value))
     {
         gchar *str_value = jsc_value_to_string(value);
         JSCException *exception = jsc_context_get_exception(jsc_value_get_context(value));
 #else
     context = webkit_javascript_result_get_global_context(js_result);
     value = webkit_javascript_result_get_value(js_result);
-    if (JSValueIsString(context, value)) 
+    if (JSValueIsString(context, value))
     {
         JSStringRef js_str_value;
         gchar *str_value;
         gsize str_length;
-  
+
         js_str_value = JSValueToStringCopy(context, value, NULL);
         str_length = JSStringGetMaximumUTF8CStringSize(js_str_value);
         str_value = (gchar *)g_malloc (str_length);
@@ -1269,7 +1269,7 @@ static void _html_result_event(GObject *object, GAsyncResult *result, gpointer s
                htmlresultfunc((HWND)object, DW_ERROR_NONE, str_value, user_data, script_data);
         }
         g_free (str_value);
-    } 
+    }
     else if(htmlresultfunc)
         htmlresultfunc((HWND)object, DW_ERROR_UNKNOWN, NULL, user_data, script_data);
     webkit_javascript_result_unref (js_result);
@@ -1284,7 +1284,7 @@ static void _html_changed_event(WebKitWebView  *web_view, WebKitLoadEvent load_e
     SignalHandler work = _get_signal_handler(data);
     char *location = (char *)webkit_web_view_get_uri(web_view);
     int status = 0;
-    
+
     switch (load_event) {
     case WEBKIT_LOAD_STARTED:
         status = DW_HTML_CHANGE_STARTED;
@@ -1302,7 +1302,7 @@ static void _html_changed_event(WebKitWebView  *web_view, WebKitLoadEvent load_e
     if(status && location && work.window && work.func)
     {
         int (*htmlchangedfunc)(HWND, int, char *, void *) = work.func;
-        
+
         htmlchangedfunc(work.window, status, location, work.data);
     }
 }
@@ -1313,14 +1313,14 @@ static void _html_changed_event(WebKitWebView  *web_view, WebKitWebFrame *frame,
     char *location = (char *)webkit_web_view_get_uri(web_view);
     int status = 0;
     void **params = data;
-    
+
     if(params)
       status = DW_POINTER_TO_INT(params[3]);
-      
+
     if(status && location && work.window && work.func)
     {
         int (*htmlchangedfunc)(HWND, int, char *, void *) = work.func;
-        
+
         htmlchangedfunc(work.window, status, location, work.data);
     }
 }
@@ -2021,7 +2021,7 @@ int dw_int_init(DWResources *res, int newthread, int *argc, char **argv[])
 
    /* Create a global object for glib activities */
    _DWObject = g_object_new(G_TYPE_OBJECT, NULL);
-   
+
    return TRUE;
 }
 
@@ -2264,7 +2264,7 @@ int dw_messagebox(const char *title, int flags, const char *format, ...)
    va_start(args, format);
    vsnprintf(outbuf, 1024, format, args);
    va_end(args);
-   
+
    if(flags & DW_MB_ERROR)
       gtkicon = GTK_MESSAGE_ERROR;
    else if(flags & DW_MB_WARNING)
@@ -2273,7 +2273,7 @@ int dw_messagebox(const char *title, int flags, const char *format, ...)
       gtkicon = GTK_MESSAGE_INFO;
    else if(flags & DW_MB_QUESTION)
       gtkicon = GTK_MESSAGE_QUESTION;
-      
+
    if(flags & DW_MB_OKCANCEL)
       gtkbuttons = GTK_BUTTONS_OK_CANCEL;
    else if(flags & (DW_MB_YESNO | DW_MB_YESNOCANCEL))
@@ -11280,11 +11280,11 @@ WebKitWebView *_dw_html_web_view(GtkWidget *widget)
       WebKitWebView *web_view = (WebKitWebView *)widget;
       if(WEBKIT_IS_WEB_VIEW(web_view))
          return web_view;
-#ifndef USE_WEBKIT2         
+#ifndef USE_WEBKIT2
       web_view = (WebKitWebView *)g_object_get_data(G_OBJECT(widget), "_dw_web_view");
       if(WEBKIT_IS_WEB_VIEW(web_view))
          return web_view;
-#endif         
+#endif
    }
    return NULL;
 }
@@ -11302,7 +11302,7 @@ void dw_html_action(HWND handle, int action)
    WebKitWebView *web_view;
 
    DW_MUTEX_LOCK;
-   
+
    if((web_view = _dw_html_web_view(handle)))
    {
       switch(action)
@@ -11318,7 +11318,7 @@ void dw_html_action(HWND handle, int action)
             webkit_web_view_load_uri(web_view, DW_HOME_URL);
 #else
             webkit_web_view_open(web_view, DW_HOME_URL);
-#endif            
+#endif
             break;
          case DW_HTML_RELOAD:
             webkit_web_view_reload(web_view);
@@ -11332,10 +11332,10 @@ void dw_html_action(HWND handle, int action)
                WebKitPrintOperation *operation = webkit_print_operation_new(web_view);
                webkit_print_operation_run_dialog(operation, NULL);
                g_object_unref(operation);
-#else         
+#else
                WebKitWebFrame *frame = webkit_web_view_get_focused_frame(web_view);
                webkit_web_frame_print(frame);
-#endif               
+#endif
             }
             break;
       }
@@ -11364,9 +11364,9 @@ int dw_html_raw(HWND handle, const char *string)
    {
 #ifdef USE_WEBKIT2
       webkit_web_view_load_html(web_view, string, "file:///");
-#else      
+#else
       webkit_web_view_load_html_string(web_view, string, "file:///");
-#endif      
+#endif
       gtk_widget_show(GTK_WIDGET(handle));
    }
    DW_MUTEX_UNLOCK;
@@ -11398,7 +11398,7 @@ int dw_html_url(HWND handle, const char *url)
       webkit_web_view_load_uri(web_view, url);
 #else
       webkit_web_view_open(web_view, url);
-#endif      
+#endif
       gtk_widget_show(GTK_WIDGET(handle));
    }
    DW_MUTEX_UNLOCK;
@@ -11423,7 +11423,7 @@ int dw_html_javascript_run(HWND handle, const char *script, void *scriptdata)
 #ifdef USE_WEBKIT
    int _locked_by_me = FALSE;
    WebKitWebView *web_view;
-   
+
    DW_MUTEX_LOCK;
    if((web_view = _dw_html_web_view(handle)))
 #ifdef USE_WEBKIT2
@@ -11496,7 +11496,7 @@ HWND dw_html_new(unsigned long id)
    settings = webkit_web_settings_new();
    g_object_set(G_OBJECT(settings), "enable-scripts", TRUE, NULL);
    webkit_web_view_set_settings(WEBKIT_WEB_VIEW(web_view), settings);
-#else 
+#else
    settings = webkit_web_view_get_settings(web_view);
    /* Make sure java script is enabled */
    webkit_settings_set_enable_javascript(settings, TRUE);
