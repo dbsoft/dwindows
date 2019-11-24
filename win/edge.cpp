@@ -27,7 +27,6 @@ extern "C" {
 	#define UTF8toWide(a) _myUTF8toWide(a, a ? _alloca(MultiByteToWideChar(CP_UTF8, 0, a, -1, NULL, 0) * sizeof(WCHAR)) : NULL)
 	#define WideToUTF8(a) _myWideToUTF8(a, a ? _alloca(WideCharToMultiByte(CP_UTF8, 0, a, -1, NULL, 0, NULL, NULL)) : NULL)
 	LRESULT CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2);
-	BOOL CALLBACK _free_window_memory(HWND handle, LPARAM lParam);
 }
 
 class EdgeBrowser
@@ -58,136 +57,135 @@ LRESULT CALLBACK EdgeBrowser::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARA
 {
 	switch (uMsg)
 	{
-	case WM_SIZE:
-	{
-		// Resize the browser object to fit the window
-		EdgeWebView *webview;
-
-		// Retrieve the browser object's pointer we stored in our window's GWL_USERDATA when
-		// we initially attached the browser object to this window.
-		webview = (EdgeWebView*)dw_window_get_data(hWnd, _DW_HTML_DATA_NAME);
-		// Resize WebView to fit the bounds of the parent window
-		if (webview)
-			webview->DoSize();
-		return(0);
-	}
-
-	case WM_PAINT:
-	{
-		PAINTSTRUCT ps;
-		HDC hdc = BeginPaint(hWnd, &ps);
-		EndPaint(hWnd, &ps);
-		return(0);
-	}
-
-	case WM_CREATE:
-	{
-		// Step 3 - Create a single WebView within the parent window
-		// Create a WebView, whose parent is the main window hWnd
-		Env->CreateWebView(hWnd, Callback<IWebView2CreateWebViewCompletedHandler>(
-			[hWnd](HRESULT result, IWebView2WebView* webview) -> HRESULT {
-				EdgeWebView* WebView = new EdgeWebView;
-
-				WebView->Setup(hWnd, webview);
-				dw_window_set_data(hWnd, _DW_HTML_DATA_NAME, DW_POINTER(WebView));
-
-				// Add a few settings for the webview
-				// this is a redundant demo step as they are the default settings values
-				IWebView2Settings* Settings;
-				webview->get_Settings(&Settings);
-				Settings->put_IsScriptEnabled(TRUE);
-				Settings->put_AreDefaultScriptDialogsEnabled(TRUE);
-				Settings->put_IsWebMessageEnabled(TRUE);
-
-				// Resize WebView to fit the bounds of the parent window
-				WebView->DoSize();
-
-				// Save the token, we might need to dw_window_set_data() this value
-				// for later use to remove the handlers
-				EventRegistrationToken token;
-
-				// Register a handler for the NavigationStarting event.
-				webview->add_NavigationStarting(
-					Callback<IWebView2NavigationStartingEventHandler>(
-						[hWnd](IWebView2WebView* sender,
-							IWebView2NavigationStartingEventArgs* args) -> HRESULT
-						{
-							LPWSTR uri;
-							sender->get_Source(&uri);
-
-							_wndproc(hWnd, WM_USER + 101, (WPARAM)DW_INT_TO_POINTER(DW_HTML_CHANGE_STARTED),
-								!wcscmp(uri, L"about:blank") ? (LPARAM)"" : (LPARAM)WideToUTF8((LPWSTR)uri));
-
-							return S_OK;
-						}).Get(), &token);
-
-				// Register a handler for the DocumentStateChanged event.
-				webview->add_DocumentStateChanged(
-					Callback<IWebView2DocumentStateChangedEventHandler>(
-						[hWnd](IWebView2WebView* sender,
-							IWebView2DocumentStateChangedEventArgs* args) -> HRESULT
-						{
-							LPWSTR uri;
-							sender->get_Source(&uri);
-
-							_wndproc(hWnd, WM_USER + 101, (WPARAM)DW_INT_TO_POINTER(DW_HTML_CHANGE_LOADING),
-								!wcscmp(uri, L"about:blank") ? (LPARAM)"" : (LPARAM)WideToUTF8((LPWSTR)uri));
-
-							return S_OK;
-						}).Get(), &token);
-
-				// Register a handler for the NavigationCompleted event.
-				webview->add_NavigationCompleted(
-					Callback<IWebView2NavigationCompletedEventHandler>(
-						[hWnd](IWebView2WebView* sender,
-							IWebView2NavigationCompletedEventArgs* args) -> HRESULT
-						{
-							LPWSTR uri;
-							sender->get_Source(&uri);
-
-							_wndproc(hWnd, WM_USER + 101, (WPARAM)DW_INT_TO_POINTER(DW_HTML_CHANGE_COMPLETE),
-								!wcscmp(uri, L"about:blank") ? (LPARAM)"" : (LPARAM)WideToUTF8((LPWSTR)uri));
-
-							return S_OK;
-						}).Get(), &token);
-
-				// Handle cached load requests due to delayed
-				// loading of the edge webview contexts
-				char *url = (char *)dw_window_get_data(hWnd, _DW_HTML_DATA_LOCATION);
-				if (url)
-				{
-					WebView->URL(url);
-					free((void*)url);
-				}
-				char *raw = (char *)dw_window_get_data(hWnd, _DW_HTML_DATA_RAW);
-				if (raw)
-				{
-					WebView->Raw(raw);
-					free((void*)raw);
-				}
-				return S_OK;
-			}).Get());
-		// Success
-		return(0);
-	}
-
-	case WM_DESTROY:
-	{
-		// Detach the browser object from this window, and free resources.
-		EdgeWebView *webview;
-
-		// Retrieve the browser object's pointer we stored in our window's GWL_USERDATA when
-		// we initially attached the browser object to this window.
-		webview = (EdgeWebView*)dw_window_get_data(hWnd, _DW_HTML_DATA_NAME);
-		if (webview)
+		case WM_SIZE:
 		{
-			dw_window_set_data(hWnd, _DW_HTML_DATA_NAME, NULL);
-			webview->Close();
-			delete webview;
+			// Resize the browser object to fit the window
+			EdgeWebView *webview;
+
+			// Retrieve the browser object's pointer we stored in our window's GWL_USERDATA when
+			// we initially attached the browser object to this window.
+			webview = (EdgeWebView*)dw_window_get_data(hWnd, _DW_HTML_DATA_NAME);
+			// Resize WebView to fit the bounds of the parent window
+			if (webview)
+				webview->DoSize();
+			return(0);
 		}
-		_free_window_memory(hWnd, 0);
-		return(TRUE);
-	}
+
+		case WM_PAINT:
+		{
+			PAINTSTRUCT ps;
+			HDC hdc = BeginPaint(hWnd, &ps);
+			EndPaint(hWnd, &ps);
+			return(0);
+		}
+
+		case WM_CREATE:
+		{
+			// Step 3 - Create a single WebView within the parent window
+			// Create a WebView, whose parent is the main window hWnd
+			Env->CreateWebView(hWnd, Callback<IWebView2CreateWebViewCompletedHandler>(
+				[hWnd](HRESULT result, IWebView2WebView* webview) -> HRESULT {
+					EdgeWebView* WebView = new EdgeWebView;
+
+					WebView->Setup(hWnd, webview);
+					dw_window_set_data(hWnd, _DW_HTML_DATA_NAME, DW_POINTER(WebView));
+
+					// Add a few settings for the webview
+					// this is a redundant demo step as they are the default settings values
+					IWebView2Settings* Settings;
+					webview->get_Settings(&Settings);
+					Settings->put_IsScriptEnabled(TRUE);
+					Settings->put_AreDefaultScriptDialogsEnabled(TRUE);
+					Settings->put_IsWebMessageEnabled(TRUE);
+
+					// Resize WebView to fit the bounds of the parent window
+					WebView->DoSize();
+
+					// Save the token, we might need to dw_window_set_data() this value
+					// for later use to remove the handlers
+					EventRegistrationToken token;
+
+					// Register a handler for the NavigationStarting event.
+					webview->add_NavigationStarting(
+						Callback<IWebView2NavigationStartingEventHandler>(
+							[hWnd](IWebView2WebView* sender,
+								IWebView2NavigationStartingEventArgs* args) -> HRESULT
+							{
+								LPWSTR uri;
+								sender->get_Source(&uri);
+
+								_wndproc(hWnd, WM_USER + 101, (WPARAM)DW_INT_TO_POINTER(DW_HTML_CHANGE_STARTED),
+									!wcscmp(uri, L"about:blank") ? (LPARAM)"" : (LPARAM)WideToUTF8((LPWSTR)uri));
+
+								return S_OK;
+							}).Get(), &token);
+
+					// Register a handler for the DocumentStateChanged event.
+					webview->add_DocumentStateChanged(
+						Callback<IWebView2DocumentStateChangedEventHandler>(
+							[hWnd](IWebView2WebView* sender,
+								IWebView2DocumentStateChangedEventArgs* args) -> HRESULT
+							{
+								LPWSTR uri;
+								sender->get_Source(&uri);
+
+								_wndproc(hWnd, WM_USER + 101, (WPARAM)DW_INT_TO_POINTER(DW_HTML_CHANGE_LOADING),
+									!wcscmp(uri, L"about:blank") ? (LPARAM)"" : (LPARAM)WideToUTF8((LPWSTR)uri));
+
+								return S_OK;
+							}).Get(), &token);
+
+					// Register a handler for the NavigationCompleted event.
+					webview->add_NavigationCompleted(
+						Callback<IWebView2NavigationCompletedEventHandler>(
+							[hWnd](IWebView2WebView* sender,
+								IWebView2NavigationCompletedEventArgs* args) -> HRESULT
+							{
+								LPWSTR uri;
+								sender->get_Source(&uri);
+
+								_wndproc(hWnd, WM_USER + 101, (WPARAM)DW_INT_TO_POINTER(DW_HTML_CHANGE_COMPLETE),
+									!wcscmp(uri, L"about:blank") ? (LPARAM)"" : (LPARAM)WideToUTF8((LPWSTR)uri));
+
+								return S_OK;
+							}).Get(), &token);
+
+					// Handle cached load requests due to delayed
+					// loading of the edge webview contexts
+					char *url = (char *)dw_window_get_data(hWnd, _DW_HTML_DATA_LOCATION);
+					if (url)
+					{
+						WebView->URL(url);
+						free((void*)url);
+					}
+					char *raw = (char *)dw_window_get_data(hWnd, _DW_HTML_DATA_RAW);
+					if (raw)
+					{
+						WebView->Raw(raw);
+						free((void*)raw);
+					}
+					return S_OK;
+				}).Get());
+			// Success
+			return(0);
+		}
+
+		case WM_DESTROY:
+		{
+			// Detach the browser object from this window, and free resources.
+			EdgeWebView *webview;
+
+			// Retrieve the browser object's pointer we stored in our window's GWL_USERDATA when
+			// we initially attached the browser object to this window.
+			webview = (EdgeWebView*)dw_window_get_data(hWnd, _DW_HTML_DATA_NAME);
+			if (webview)
+			{
+				dw_window_set_data(hWnd, _DW_HTML_DATA_NAME, NULL);
+				webview->Close();
+				delete webview;
+			}
+			return(TRUE);
+		}
 	}
 
 	return(DefWindowProc(hWnd, uMsg, wParam, lParam));
