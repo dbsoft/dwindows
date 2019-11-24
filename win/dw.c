@@ -961,8 +961,9 @@ BOOL CALLBACK _free_window_memory(HWND handle, LPARAM lParam)
       
    GetClassName(handle, tmpbuf, 99);
 
-   /* Don't try to free memory from an OLE embedded IE */
-   if(_tcsncmp(tmpbuf, TEXT("Internet Explorer_Server"), 25) == 0)
+   /* Don't try to free memory from an embedded IE or Edge/Chromium window */
+   if(_tcsncmp(tmpbuf, TEXT("Internet Explorer_Server"), 25) == 0 ||
+	   _tcsncmp(tmpbuf, TEXT("Chrome_WidgetWin_"), 17) == 0)
       return TRUE;
 
    /* Delete font, icon and bitmap GDI objects in use */
