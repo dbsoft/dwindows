@@ -97,6 +97,9 @@ LRESULT CALLBACK EdgeBrowser::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARA
 					Settings->put_IsScriptEnabled(TRUE);
 					Settings->put_AreDefaultScriptDialogsEnabled(TRUE);
 					Settings->put_IsWebMessageEnabled(TRUE);
+#ifndef DEBUG
+					Settings->put_AreDevToolsEnabled(FALSE);
+#endif
 
 					// Resize WebView to fit the bounds of the parent window
 					WebView->DoSize();
@@ -290,7 +293,10 @@ int EdgeWebView::JavascriptRun(const char* script, void* scriptdata)
 			Callback<IWebView2ExecuteScriptCompletedHandler>(
 				[thishwnd, scriptdata](HRESULT error, PCWSTR result) -> HRESULT
 				{
-					_wndproc(thishwnd, WM_USER + 100, (error == S_OK ? (WPARAM)WideToUTF8((LPWSTR)result) : NULL), (LPARAM)scriptdata);
+					if (result && _wcsicmp(result, L"null") == 0)
+						result = NULL;
+					void *params[2] = { (void *)(result ? WideToUTF8((LPWSTR)result) : NULL), DW_INT_TO_POINTER((error == S_OK ? DW_ERROR_NONE : DW_ERROR_UNKNOWN)) };
+					_wndproc(thishwnd, WM_USER + 100, (WPARAM)params, (LPARAM)scriptdata);
 					return S_OK;
 				}).Get());
 	return DW_ERROR_NONE;
