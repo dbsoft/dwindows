@@ -1586,11 +1586,14 @@ int _dw_html_javascript_run(HWND hwnd, const char *script, void *scriptdata)
 					if (myscript)
 					{
 						HRESULT hr;
+						void* params[2];
 						
 						VariantInit(&result);
 						hr = htmlWindow2->lpVtbl->execScript(htmlWindow2, myscript, L"javascript", &result);
+						params[0] = (void*)(result.vt == VT_BSTR ? WideToUTF8(result.bstrVal) : NULL);
+						params[1] = DW_INT_TO_POINTER((hr == S_OK ? DW_ERROR_NONE : DW_ERROR_UNKNOWN));
 						/* Pass the result back for event handling */
-						_wndproc(hwnd, WM_USER+100, (WPARAM)(result.vt == VT_BSTR ? WideToUTF8(result.bstrVal) : NULL), (LPARAM)scriptdata);
+						_wndproc(hwnd, WM_USER+100, (WPARAM)params, (LPARAM)scriptdata);
 						VariantClear(&result);
 						SysFreeString(myscript);
 						retval = DW_ERROR_NONE;
