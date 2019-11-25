@@ -2389,7 +2389,7 @@ LRESULT CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
                      if(hWnd == tmp->window)
                      {
                         int (DWSIGNAL *htmlresultfunc)(HWND, int, char *, void *, void *) = tmp->signalfunction;
-						void** params = (void**)mp1;
+                        void** params = (void**)mp1;
 
                         return htmlresultfunc(tmp->window, DW_POINTER_TO_INT(params[1]), (char *)params[0], (void *)mp2, tmp->data);
                      }
