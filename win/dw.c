@@ -1052,6 +1052,9 @@ BOOL CALLBACK _free_window_memory(HWND handle, LPARAM lParam)
       if(cinfo && cinfo->buddy)
          DestroyWindow( cinfo->buddy );
    }
+   /* Some Edge Windows have an empty class.. abort. */
+   else if(_tcslen(tmpbuf) == 0)
+      return TRUE;
 
    dw_signal_disconnect_by_window(handle);
 
