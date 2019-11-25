@@ -194,9 +194,13 @@ LRESULT CALLBACK EdgeBrowser::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARA
 VOID EdgeWebView::DoSize(VOID)
 {
 	RECT bounds;
+	BOOL isVisible;
 
 	GetClientRect(hWnd, &bounds);
 	WebView->put_Bounds(bounds);
+	WebView->get_IsVisible(&isVisible);
+	if(!isVisible)
+		WebView->put_IsVisible(TRUE);
 }
 
 BOOL EdgeBrowser::Detect(VOID)
@@ -220,45 +224,45 @@ void EdgeWebView::Action(int action)
 		// Call the desired function
 		switch (action)
 		{
-		case DW_HTML_GOBACK:
-		{
-			// Call the IWebView2WebView object's GoBack function.
-			WebView->GoBack();
-			break;
-		}
+			case DW_HTML_GOBACK:
+			{
+				// Call the IWebView2WebView object's GoBack function.
+				WebView->GoBack();
+				break;
+			}
 
-		case DW_HTML_GOFORWARD:
-		{
-			// Call the IWebView2WebView object's GoForward function.
-			WebView->GoForward();
-			break;
-		}
+			case DW_HTML_GOFORWARD:
+			{
+				// Call the IWebView2WebView object's GoForward function.
+				WebView->GoForward();
+				break;
+			}
 
-		case DW_HTML_GOHOME:
-		{
-			// Call the IWebView2WebView object's GoHome function.
-			dw_html_url(hWnd, (char*)DW_HOME_URL);
-			break;
-		}
+			case DW_HTML_GOHOME:
+			{
+				// Call the IWebView2WebView object's GoHome function.
+				dw_html_url(hWnd, (char*)DW_HOME_URL);
+				break;
+			}
 
-		case DW_HTML_SEARCH:
-		{
-			// Call the IWebView2WebView object's GoSearch function.
-			//WebView->GoSearch();
-			break;
-		}
+			case DW_HTML_SEARCH:
+			{
+				// Call the IWebView2WebView object's GoSearch function.
+				//WebView->GoSearch();
+				break;
+			}
 
-		case DW_HTML_RELOAD:
-		{
-			// Call the IWebView2WebView object's Refresh function.
-			WebView->Reload();
-		}
+			case DW_HTML_RELOAD:
+			{
+				// Call the IWebView2WebView object's Refresh function.
+				WebView->Reload();
+			}
 
-		case DW_HTML_STOP:
-		{
-			// Call the IWebView2WebView object's Stop function.
-			//WebView->Stop();
-		}
+			case DW_HTML_STOP:
+			{
+				// Call the IWebView2WebView object's Stop function.
+				//WebView->Stop();
+			}
 		}
 	}
 }
