@@ -1598,8 +1598,11 @@ int _dw_html_javascript_run(HWND hwnd, const char *script, void *scriptdata)
 						if(SUCCEEDED(pScript->lpVtbl->GetIDsOfNames(pScript, &IID_NULL, rgszNames, 1, LOCALE_SYSTEM_DEFAULT, &idSave)))
 						{
 							DISPPARAMS dispParams = {NULL, NULL, 0, 0};
+							VARIANT scriptparam;
+							scriptparam.vt = VT_BSTR;
+							scriptparam.bstrVal = myscript;
 							dispParams.cArgs = 1;
-							dispParams.rgvarg = &myscript;
+							dispParams.rgvarg = &scriptparam;
 							hr = pScript->lpVtbl->Invoke(pScript, idSave, &IID_NULL, LOCALE_SYSTEM_DEFAULT, DISPATCH_METHOD, &dispParams, &result, NULL, NULL);
 						}
 						pScript->lpVtbl->Release(pScript);
