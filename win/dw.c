@@ -703,6 +703,45 @@ typedef enum _PreferredAppMode
    _Max
 } _PreferredAppMode;
 
+typedef enum _WINDOWCOMPOSITIONATTRIB
+{
+   WCA_UNDEFINED = 0,
+   WCA_NCRENDERING_ENABLED = 1,
+   WCA_NCRENDERING_POLICY = 2,
+   WCA_TRANSITIONS_FORCEDISABLED = 3,
+   WCA_ALLOW_NCPAINT = 4,
+   WCA_CAPTION_BUTTON_BOUNDS = 5,
+   WCA_NONCLIENT_RTL_LAYOUT = 6,
+   WCA_FORCE_ICONIC_REPRESENTATION = 7,
+   WCA_EXTENDED_FRAME_BOUNDS = 8,
+   WCA_HAS_ICONIC_BITMAP = 9,
+   WCA_THEME_ATTRIBUTES = 10,
+   WCA_NCRENDERING_EXILED = 11,
+   WCA_NCADORNMENTINFO = 12,
+   WCA_EXCLUDED_FROM_LIVEPREVIEW = 13,
+   WCA_VIDEO_OVERLAY_ACTIVE = 14,
+   WCA_FORCE_ACTIVEWINDOW_APPEARANCE = 15,
+   WCA_DISALLOW_PEEK = 16,
+   WCA_CLOAK = 17,
+   WCA_CLOAKED = 18,
+   WCA_ACCENT_POLICY = 19,
+   WCA_FREEZE_REPRESENTATION = 20,
+   WCA_EVER_UNCLOAKED = 21,
+   WCA_VISUAL_OWNER = 22,
+   WCA_HOLOGRAPHIC = 23,
+   WCA_EXCLUDED_FROM_DDA = 24,
+   WCA_PASSIVEUPDATEMODE = 25,
+   WCA_USEDARKMODECOLORS = 26,
+   WCA_LAST = 27
+} _WINDOWCOMPOSITIONATTRIB;
+
+typedef struct _WINDOWCOMPOSITIONATTRIBDATA
+{
+   _WINDOWCOMPOSITIONATTRIB Attrib;
+   PVOID pvData;
+   SIZE_T cbData;
+} _WINDOWCOMPOSITIONATTRIBDATA;
+
 HTHEME (WINAPI * _OpenNcThemeData)(HWND, LPCWSTR) = NULL; 
 VOID (WINAPI * _RefreshImmersiveColorPolicyState)(VOID) = NULL; 
 BOOL (WINAPI * _GetIsImmersiveColorUsingHighContrast)(IMMERSIVE_HC_CACHE_MODE) = NULL; 
@@ -712,6 +751,7 @@ BOOL (WINAPI * _AllowDarkModeForApp)(BOOL) = NULL;
 _PreferredAppMode (WINAPI * _SetPreferredAppMode)(_PreferredAppMode) = NULL; 
 BOOL (WINAPI * _IsDarkModeAllowedForWindow)(HWND) = NULL; 
 BOOL (WINAPI * _ShouldSystemUseDarkMode)(VOID) = NULL; 
+BOOL (WINAPI* _SetWindowCompositionAttribute)(HWND, _WINDOWCOMPOSITIONATTRIBDATA *) = NULL;
 
 BOOL IsHighContrast(VOID)
 {
@@ -733,16 +773,18 @@ void _dw_init_dark_mode(void)
          _GetIsImmersiveColorUsingHighContrast = (BOOL (WINAPI *)(IMMERSIVE_HC_CACHE_MODE))GetProcAddress(huxtheme, MAKEINTRESOURCEA(106));
          _ShouldAppsUseDarkMode = (BOOL (WINAPI *)(VOID))GetProcAddress(huxtheme, MAKEINTRESOURCEA(132));
          _AllowDarkModeForWindow = (BOOL (WINAPI *)(HWND, BOOL))GetProcAddress(huxtheme, MAKEINTRESOURCEA(133));
-         if(HIWORD(dwVersion) < 18334)
+         if(HIWORD(dwVersion) < 18362)
             _AllowDarkModeForApp = (BOOL (WINAPI *)(BOOL))GetProcAddress(huxtheme, MAKEINTRESOURCEA(135));
          else
             _SetPreferredAppMode = (_PreferredAppMode (WINAPI *)(_PreferredAppMode))GetProcAddress(huxtheme, MAKEINTRESOURCEA(135));
          _IsDarkModeAllowedForWindow = (BOOL (WINAPI *)(HWND))GetProcAddress(huxtheme, MAKEINTRESOURCEA(137));
          _ShouldSystemUseDarkMode = (BOOL (WINAPI *)(VOID))GetProcAddress(huxtheme, MAKEINTRESOURCEA(138));
+         _SetWindowCompositionAttribute = (BOOL (WINAPI*)(HWND, _WINDOWCOMPOSITIONATTRIBDATA*))GetProcAddress(GetModuleHandle(TEXT("user32.dll")), "SetWindowCompositionAttribute");
       }
       /* Make sure we were able to load all the Dark Mode functions */
       if(_OpenNcThemeData && _RefreshImmersiveColorPolicyState && _ShouldAppsUseDarkMode && _AllowDarkModeForWindow &&
-         (_AllowDarkModeForApp || _SetPreferredAppMode) && _IsDarkModeAllowedForWindow && _DwmSetWindowAttribute)
+         (_AllowDarkModeForApp || _SetPreferredAppMode) && _IsDarkModeAllowedForWindow && 
+         (_DwmSetWindowAttribute || _SetWindowCompositionAttribute))
       {
          _DW_DARK_MODE_SUPPORTED = TRUE;
          if(_AllowDarkModeForApp)
@@ -818,7 +860,14 @@ void RefreshTitleBarThemeColor(HWND window)
    BOOL dark = FALSE;
    if (_IsDarkModeAllowedForWindow(window) && _ShouldAppsUseDarkMode() && !IsHighContrast())
       dark = TRUE;
-   _DwmSetWindowAttribute(window, 19, &dark, sizeof(dark));
+   if(HIWORD(dwVersion) < 18362)
+      SetProp(window, TEXT("UseImmersiveDarkModeColors"), (HANDLE)dark);
+   else if (_SetWindowCompositionAttribute)
+   {
+      _WINDOWCOMPOSITIONATTRIBDATA data = { WCA_USEDARKMODECOLORS, &dark, sizeof(dark) };
+      _SetWindowCompositionAttribute(window, &data);
+   } else
+      _DwmSetWindowAttribute(window, 19, &dark, sizeof(dark));
 }
 
 /* Call this on a window to apply the style */
