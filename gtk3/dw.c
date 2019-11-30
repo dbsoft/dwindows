@@ -12016,6 +12016,9 @@ void dw_signal_connect_data(HWND window, const char *signame, void *sigfunc, voi
        */
       sigid = _set_signal_handler(thiswindow, window, sigfunc, data, _html_result_event, discfunc);
       g_object_set_data(G_OBJECT(thiswindow), "_dw_html_result_id", GINT_TO_POINTER(sigid+1));
+#ifndef USE_WEBKIT2
+      dw_debug("WARNING: DW_SIGNAL_HTML_RESULT will not be generated unless using webkit2gtk!\n");
+#endif
       DW_MUTEX_UNLOCK;
       return;
    }
