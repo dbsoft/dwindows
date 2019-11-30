@@ -1563,7 +1563,6 @@ int _dw_html_javascript_run(HWND hwnd, const char *script, void *scriptdata)
 	IHTMLWindow2	*htmlWindow2;
 	IHTMLDocument2	*htmlDocument2;
 	IOleObject		*browserObject;
-	VARIANT			result;
 	int				retval = DW_ERROR_UNKNOWN;
 
 	// Retrieve the browser object's pointer we stored in our window's GWL_USERDATA when
@@ -1580,28 +1579,47 @@ int _dw_html_javascript_run(HWND hwnd, const char *script, void *scriptdata)
 		{
 			if (!pDp->lpVtbl->QueryInterface(pDp, &IID_IHTMLDocument2, (void**)&htmlDocument2))
 			{
-				if (!htmlDocument2->lpVtbl->get_parentWindow(htmlDocument2, &htmlWindow2))
+				BSTR myscript = SysAllocString(UTF8toWide(script));
+				if (myscript)
 				{
-					BSTR myscript = SysAllocString(UTF8toWide(script));
-					if (myscript)
+					IDispatch* pScript = 0;
+					HRESULT hr = E_FAIL;
+					void* params[2];
+					VARIANT result;
+					
+					VariantInit(&result);
+					
+					/* We first attempt to use the Invoke method */
+					if(SUCCEEDED(htmlDocument2->lpVtbl->get_Script(htmlDocument2, &pScript)))
 					{
-						HRESULT hr;
-						void* params[2];
+						DISPID idSave;
+						LPOLESTR rgszNames[1] = {L"eval"};
 						
-						VariantInit(&result);
-						hr = htmlWindow2->lpVtbl->execScript(htmlWindow2, myscript, L"javascript", &result);
-						params[0] = (void*)(result.vt == VT_BSTR ? WideToUTF8(result.bstrVal) : NULL);
-						params[1] = DW_INT_TO_POINTER((hr == S_OK ? DW_ERROR_NONE : DW_ERROR_UNKNOWN));
-						/* Pass the result back for event handling */
-						_wndproc(hwnd, WM_USER+100, (WPARAM)params, (LPARAM)scriptdata);
-						VariantClear(&result);
-						SysFreeString(myscript);
-						retval = DW_ERROR_NONE;
+						if(SUCCEEDED(pScript->lpVtbl->GetIDsOfNames(pScript, &IID_NULL, rgszNames, 1, LOCALE_SYSTEM_DEFAULT, &idSave)))
+						{
+							DISPPARAMS dispParams = {NULL, NULL, 0, 0};
+							dispParams.cArgs = 1;
+							dispParams.rgvarg = &myscript;
+							hr = pScript->lpVtbl->Invoke(pScript, idSave, &IID_NULL, LOCALE_SYSTEM_DEFAULT, DISPATCH_METHOD, &dispParams, &result, NULL, NULL);
+						}
+						pScript->lpVtbl->Release(pScript);
 					}
-					// We no longer need the IWebBrowser2 object (ie, we don't plan to call any more functions in it,
-					// so we can release our hold on it). Note that we'll still maintain our hold on the browser
-					// object.
-					htmlWindow2->lpVtbl->Release(htmlWindow2);
+					/* If Invoke fails, fall back to execScript */
+					if(FAILED(hr) && SUCCEEDED(htmlDocument2->lpVtbl->get_parentWindow(htmlDocument2, &htmlWindow2)))
+					{
+						hr = htmlWindow2->lpVtbl->execScript(htmlWindow2, myscript, L"javascript", &result);
+						// We no longer need the IWebBrowser2 object (ie, we don't plan to call any more functions in it,
+						// so we can release our hold on it). Note that we'll still maintain our hold on the browser
+						// object.
+						htmlWindow2->lpVtbl->Release(htmlWindow2);
+					}
+					params[0] = (void*)(result.vt == VT_BSTR ? WideToUTF8(result.bstrVal) : NULL);
+					params[1] = DW_INT_TO_POINTER((SUCCEEDED(hr) ? DW_ERROR_NONE : DW_ERROR_UNKNOWN));
+					/* Pass the result back for event handling */
+					_wndproc(hwnd, WM_USER+100, (WPARAM)params, (LPARAM)scriptdata);
+					VariantClear(&result);
+					SysFreeString(myscript);
+					retval = DW_ERROR_NONE;
 				}
 				htmlDocument2->lpVtbl->Release(htmlDocument2);
 			}
