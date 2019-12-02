@@ -1199,8 +1199,8 @@ static void _set_signal_handler_id(GtkWidget *widget, int counter, gint cid)
 
 static void _html_result_event(GObject *object, GAsyncResult *result, gpointer script_data)
 {
-    pthread_t saved_thread = _dw_thread;
 #if USE_WEBKIT2
+    pthread_t saved_thread = _dw_thread;
     WebKitJavascriptResult *js_result;
     #if WEBKIT_CHECK_VERSION(2, 22, 0)
     JSCValue *value;
@@ -1231,7 +1231,7 @@ static void _html_result_event(GObject *object, GAsyncResult *result, gpointer s
     if(!(js_result = webkit_web_view_run_javascript_finish(WEBKIT_WEB_VIEW(object), result, &error)))
     {
         if(htmlresultfunc)
-           htmlresultfunc((HWND)object, DW_ERROR_UNKNOWN, error->message, user_data, script_data);
+           htmlresultfunc((HWND)object, DW_ERROR_UNKNOWN, error->message, script_data, user_data);
         g_error_free (error);
         _dw_thread = saved_thread;
         return;
@@ -1263,18 +1263,18 @@ static void _html_result_event(GObject *object, GAsyncResult *result, gpointer s
         {
 #if WEBKIT_CHECK_VERSION(2, 22, 0)
            if(exception)
-               htmlresultfunc((HWND)object, DW_ERROR_UNKNOWN, (char *)jsc_exception_get_message(exception), user_data, script_data);
+               htmlresultfunc((HWND)object, DW_ERROR_UNKNOWN, (char *)jsc_exception_get_message(exception), script_data, user_data);
            else
 #endif
-               htmlresultfunc((HWND)object, DW_ERROR_NONE, str_value, user_data, script_data);
+               htmlresultfunc((HWND)object, DW_ERROR_NONE, str_value, script_data, user_data);
         }
         g_free (str_value);
     }
     else if(htmlresultfunc)
-        htmlresultfunc((HWND)object, DW_ERROR_UNKNOWN, NULL, user_data, script_data);
+        htmlresultfunc((HWND)object, DW_ERROR_UNKNOWN, NULL, script_data, user_data);
     webkit_javascript_result_unref (js_result);
-#endif
    _dw_thread = saved_thread;
+#endif
 }
 
 #ifdef USE_WEBKIT
