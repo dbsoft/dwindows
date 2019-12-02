@@ -293,9 +293,23 @@ int EdgeWebView::JavascriptRun(const char* script, void* scriptdata)
 			Callback<IWebView2ExecuteScriptCompletedHandler>(
 				[thishwnd, scriptdata](HRESULT error, PCWSTR result) -> HRESULT
 				{
+					char *scriptresult;
+					
+					/* Result is unquoted "null" when we should return NULL */
 					if (result && _wcsicmp(result, L"null") == 0)
-						result = NULL;
-					void *params[2] = { (void *)(result ? WideToUTF8((LPWSTR)result) : NULL), DW_INT_TO_POINTER((error == S_OK ? DW_ERROR_NONE : DW_ERROR_UNKNOWN)) };
+						scriptresult = NULL;
+					else
+						scriptresult = result ? WideToUTF8((LPWSTR)result) : NULL;
+					
+					/* String results are enclosed in quotations, remove the quotes */
+					if(scriptresult && *scriptresult == '\"')
+					{
+						char *end = strrchr(scriptresult, '\"');
+						if(end)
+							*end = '\0';
+						scriptresult++;
+					}
+					void *params[2] = { (void *)scriptresult, DW_INT_TO_POINTER((error == S_OK ? DW_ERROR_NONE : DW_ERROR_UNKNOWN)) };
 					_wndproc(thishwnd, WM_USER + 100, (WPARAM)params, (LPARAM)scriptdata);
 					return S_OK;
 				}).Get());
