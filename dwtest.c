@@ -1732,7 +1732,7 @@ int DWSIGNAL web_run_clicked(HWND button, void *data)
 }
 
 /* Handle web javascript result */
-int DWSIGNAL web_html_result(HWND html, int status, char *result, void *user_data, void *script_data)
+int DWSIGNAL web_html_result(HWND html, int status, char *result, void *script_data, void *user_data)
 {
     dw_messagebox("Javascript Result", DW_MB_OK | (status ? DW_MB_ERROR : DW_MB_INFORMATION), 
                   result ? result : "Javascript result is not a string value");
