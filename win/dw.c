@@ -861,7 +861,7 @@ void RefreshTitleBarThemeColor(HWND window)
    if (_IsDarkModeAllowedForWindow(window) && _ShouldAppsUseDarkMode() && !IsHighContrast())
       dark = TRUE;
    if(HIWORD(dwVersion) < 18362)
-      SetProp(window, TEXT("UseImmersiveDarkModeColors"), (HANDLE)dark);
+      SetProp(window, TEXT("UseImmersiveDarkModeColors"), (HANDLE)DW_INT_TO_POINTER(dark));
    else if (_SetWindowCompositionAttribute)
    {
       _WINDOWCOMPOSITIONATTRIBDATA data = { WCA_USEDARKMODECOLORS, &dark, sizeof(dark) };
