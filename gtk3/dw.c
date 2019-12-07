@@ -38,7 +38,7 @@
 #if !WEBKIT_CHECK_VERSION(2, 22, 0)
 #include <JavaScriptCore/JavaScript.h>
 #endif
-#else
+#elif defined(USE_WEBKIT)
 #include <webkit/webkit.h>
 #endif
 
