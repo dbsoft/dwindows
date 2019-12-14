@@ -2542,8 +2542,11 @@ int dw_window_destroy(HWND handle)
             g_object_set_data(G_OBJECT(box), "_dw_boxcount", GINT_TO_POINTER(boxcount));
          }
       }
-      /* Finally destroy the widget */
-      gtk_widget_destroy(handle2);
+      /* Finally destroy the widget, make sure it is still
+       * a valid widget if it got removed from the grid.
+       */
+      if(GTK_IS_WIDGET(handle2))
+         gtk_widget_destroy(handle2);
    }
    DW_MUTEX_UNLOCK;
    return 0;
