@@ -5274,7 +5274,7 @@ int API dw_window_set_font(HWND handle, const char *fontname)
                 oldfont = cinfo->hfont;
             cinfo->hfont = hfont;
         }
-        else if(cinfo = calloc(1, sizeof(ColorInfo)))
+        else if((cinfo = calloc(1, sizeof(ColorInfo))))
         {
             cinfo->fore = cinfo->back = -1;
 
@@ -5445,7 +5445,7 @@ int API dw_window_set_color(HWND handle, ULONG fore, ULONG back)
       cinfo->fore = fore;
       cinfo->back = back;
    }
-   else if(cinfo = calloc(1, sizeof(ColorInfo)))
+   else if((cinfo = calloc(1, sizeof(ColorInfo))))
    {
       cinfo->fore = fore;
       cinfo->back = back;
