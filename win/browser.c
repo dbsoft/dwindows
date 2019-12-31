@@ -1170,7 +1170,7 @@ static HRESULT STDMETHODCALLTYPE DWebBrowserEvent2_Invoke(DWEventHandler *this, 
 			/* Get the window handle and URL */
 			vWindow.vt = VT_UI8;
 			pwb->lpVtbl->GetProperty(pwb, bstrProp, &vWindow);
-			hwnd = (HWND)vWindow.ullVal;
+			hwnd = (HWND)DW_UINT_TO_POINTER(vWindow.ullVal);
 			SysFreeString(bstrProp);
 			/* Send the event for signal handling */
 			_wndproc(hwnd, WM_USER+101, (WPARAM)DW_INT_TO_POINTER(DW_HTML_CHANGE_STARTED), (LPARAM)WideToUTF8((LPWSTR)pszURL));
@@ -1190,7 +1190,7 @@ static HRESULT STDMETHODCALLTYPE DWebBrowserEvent2_Invoke(DWEventHandler *this, 
 			/* Get the window handle and URL */
 			vWindow.vt = VT_UI8;
 			pwb->lpVtbl->GetProperty(pwb, bstrProp, &vWindow);
-			hwnd = (HWND)vWindow.ullVal;
+			hwnd = (HWND)DW_UINT_TO_POINTER(vWindow.ullVal);
 			SysFreeString(bstrProp);
 			pwb->lpVtbl->get_LocationURL(pwb, &locationURL);
 			/* Send the event for signal handling */
@@ -1858,7 +1858,7 @@ long _EmbedBrowserObject(HWND hwnd)
 			// Save the window handle as a property for later use
 			VariantInit(&vWindow);
 			vWindow.vt = VT_UI8;
-			vWindow.ullVal = (ULONGLONG)hwnd;
+			vWindow.ullVal = (ULONGLONG)DW_POINTER_TO_UINT(hwnd);
 			bstrProp = SysAllocString(L"DWindow");
 			webBrowser2->lpVtbl->PutProperty(webBrowser2, bstrProp, vWindow);
 			SysFreeString(bstrProp);
@@ -1866,7 +1866,7 @@ long _EmbedBrowserObject(HWND hwnd)
 			// Get IWebBrowser2' IConnectionPointContainer sub-object. We do this by calling
 			// IWebBrowser2' QueryInterface, and pass it the standard GUID for an
 			// IConnectionPointContainer VTable
-			if (!(hr = webBrowser2->lpVtbl->QueryInterface(webBrowser2, &IID_IConnectionPointContainer, &container)))
+			if (!(hr = webBrowser2->lpVtbl->QueryInterface(webBrowser2, &IID_IConnectionPointContainer, (void **)&container)))
 			{
 				// Get IWebBrowser2' IConnectionPoint sub-object for specifically giving
 				// IWebBRowser2 our DWEventHandler. We do this by calling IConnectionPointContainer's
