@@ -1144,13 +1144,13 @@ void _free_menu_data(HMENU menu)
            {
               char buffer[31] = {0};
            
-              _snprintf(buffer, 30, "_dw_id%ld", mii.wID);
+              _snprintf(buffer, 30, "_dw_id%u", mii.wID);
               dw_window_set_data( DW_HWND_OBJECT, buffer, NULL );
-              _snprintf(buffer, 30, "_dw_checkable%ld", mii.wID);
+              _snprintf(buffer, 30, "_dw_checkable%u", mii.wID);
               dw_window_set_data( DW_HWND_OBJECT, buffer, NULL );
-              _snprintf(buffer, 30, "_dw_ischecked%ld", mii.wID);
+              _snprintf(buffer, 30, "_dw_ischecked%u", mii.wID);
               dw_window_set_data( DW_HWND_OBJECT, buffer, NULL );
-              _snprintf(buffer, 30, "_dw_isdisabled%ld", mii.wID);
+              _snprintf(buffer, 30, "_dw_isdisabled%u", mii.wID);
               dw_window_set_data( DW_HWND_OBJECT, buffer, NULL );
            }
            
