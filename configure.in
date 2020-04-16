@@ -109,6 +109,7 @@ fi
 AC_CHECK_LIB(sun, getpwnam, LIBS="$LIBS -lsun",)
 AC_CHECK_LIB(dgc, inet_addr, LIBS="$LIBS -ldgc",)
 AC_CHECK_LIB(resolv, gethostbyname, LIBS="$LIBS -lresolv",)
+AC_CHECK_LIB(m, atan2, LIBS="$LIBS -lm",)
 
 build_gtk="yes"
 check_pthreads="yes"
@@ -182,6 +183,8 @@ case "$target" in
 esac
 
 if test $build_gtk = "yes"; then
+   AC_PATH_XTRA
+   LIBS="$LIBS $X_LIBS -lX11"
    AC_CHECK_PROG(PKG_CFG, pkg-config, pkg-config)
    if test x"$PKG_CFG" != x; then
       GTK_LIBS=""
