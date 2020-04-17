@@ -6414,7 +6414,7 @@ if test $with_deprecated = yes; then
    CFLAGS="$CFLAGS -DDW_INCLUDE_DEPRECATED"
 fi
 if test x"$WEBKIT_LIBS" != x; then
-   WEBKIT_LIB=`echo $WEBKIT_LIBS | cut -b 3-`
+   WEBKIT_LIB=`$PKG_CFG --silence-errors --libs-only-l $WEBKIT_PKG | cut -b 3-`
    as_ac_Lib=`$as_echo "ac_cv_lib_$WEBKIT_LIB''_webkit_web_view_new" | $as_tr_sh`
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for webkit_web_view_new in -l$WEBKIT_LIB" >&5
 $as_echo_n "checking for webkit_web_view_new in -l$WEBKIT_LIB... " >&6; }
