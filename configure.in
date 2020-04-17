@@ -282,7 +282,7 @@ if test $with_deprecated = yes; then
    CFLAGS="$CFLAGS -DDW_INCLUDE_DEPRECATED"
 fi
 if test x"$WEBKIT_LIBS" != x; then
-   WEBKIT_LIB=`echo $WEBKIT_LIBS | cut -b 3-`
+   WEBKIT_LIB=`$PKG_CFG --silence-errors --libs-only-l $WEBKIT_PKG | cut -b 3-`
    AC_CHECK_LIB($WEBKIT_LIB,webkit_web_view_new,AC_DEFINE(USE_WEBKIT),)
 fi
 
