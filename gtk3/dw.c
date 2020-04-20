@@ -11010,19 +11010,15 @@ void dw_window_click_default(HWND window, HWND next)
 void dw_environment_query(DWEnv *env)
 {
    struct utsname name;
-   char tempbuf[100];
-   int len, z;
+   char tempbuf[100] = { 0 }, *dot;
 
    uname(&name);
-   strcpy(env->osName, name.sysname);
-   strcpy(tempbuf, name.release);
+   memset(env, '\0', sizeof(DWEnv));
+   strncpy(env->osName, name.sysname, sizeof(env->osName)-1);
+   strncpy(tempbuf, name.release, 99);
 
-   env->MajorBuild = env->MinorBuild = 0;
-
-   len = strlen(tempbuf);
-
-   strcpy(env->buildDate, __DATE__);
-   strcpy(env->buildTime, __TIME__);
+   strncpy(env->buildDate, __DATE__, sizeof(env->buildDate)-1);
+   strncpy(env->buildTime, __TIME__, sizeof(env->buildTime)-1);
    env->DWMajorVersion = DW_MAJOR_VERSION;
    env->DWMinorVersion = DW_MINOR_VERSION;
 #ifdef VER_REV
@@ -11031,18 +11027,14 @@ void dw_environment_query(DWEnv *env)
    env->DWSubVersion = DW_SUB_VERSION;
 #endif
 
-   for(z=1;z<len;z++)
+   if((dot = strchr(tempbuf, '.')) != NULL)
    {
-      if(tempbuf[z] == '.')
-      {
-         tempbuf[z] = '\0';
-         env->MajorVersion = atoi(&tempbuf[z-1]);
-         env->MinorVersion = atoi(&tempbuf[z+1]);
-         return;
-      }
+      *dot = '\0';
+      env->MajorVersion = atoi(tempbuf);
+      env->MinorVersion = atoi(&dot[1]);
+      return;
    }
    env->MajorVersion = atoi(tempbuf);
-   env->MinorVersion = 0;
 }
 
 /*
