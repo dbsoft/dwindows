@@ -10696,13 +10696,11 @@ unsigned long API dw_color_depth_get(void)
  */
 void dw_environment_query(DWEnv *env)
 {
-    struct utsname name;
-
-    uname(&name);
+    memset(env, '\0', sizeof(DWEnv));
     strcpy(env->osName, "MacOS");
 
-    strcpy(env->buildDate, __DATE__);
-    strcpy(env->buildTime, __TIME__);
+    strncpy(env->buildDate, __DATE__, sizeof(env->buildDate)-1);
+    strncpy(env->buildTime, __TIME__, sizeof(env->buildTime)-1);
     env->DWMajorVersion = DW_MAJOR_VERSION;
     env->DWMinorVersion = DW_MINOR_VERSION;
 #ifdef VER_REV
@@ -10714,7 +10712,6 @@ void dw_environment_query(DWEnv *env)
     env->MajorVersion = DWOSMajor;
     env->MinorVersion = DWOSMinor;
     env->MajorBuild = DWOSBuild;
-    env->MinorBuild = 0;
 }
 
 /*
