@@ -46,12 +46,12 @@ public:
 	int URL(const char* url);
 	int JavascriptRun(const char* script, void* scriptdata);
 	VOID DoSize(VOID);
-	VOID Setup(HWND hwnd, ICoreWebView2Host* webview);
+	VOID Setup(HWND hwnd, ICoreWebView2Controller* webview);
 	VOID Close(VOID);
 protected:
 	HWND hWnd = nullptr;
 	Microsoft::WRL::ComPtr<ICoreWebView2> WebView;
-	Microsoft::WRL::ComPtr<ICoreWebView2Host> WebHost;
+	Microsoft::WRL::ComPtr<ICoreWebView2Controller> WebHost;
 };
 
 LRESULT CALLBACK EdgeBrowser::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -84,8 +84,8 @@ LRESULT CALLBACK EdgeBrowser::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARA
 		{
 			// Step 3 - Create a single WebView within the parent window
 			// Create a WebView, whose parent is the main window hWnd
-			Env->CreateCoreWebView2Host(hWnd, Callback<ICoreWebView2CreateCoreWebView2HostCompletedHandler>(
-				[hWnd](HRESULT result, ICoreWebView2Host* webhost) -> HRESULT {
+			Env->CreateCoreWebView2Controller(hWnd, Callback<ICoreWebView2CreateCoreWebView2ControllerCompletedHandler>(
+				[hWnd](HRESULT result, ICoreWebView2Controller* webhost) -> HRESULT {
 					EdgeWebView* WebView = new EdgeWebView;
 					ICoreWebView2* webview;
 
@@ -335,7 +335,7 @@ int EdgeWebView::JavascriptRun(const char* script, void* scriptdata)
 	return DW_ERROR_NONE;
 }
 
-VOID EdgeWebView::Setup(HWND hwnd, ICoreWebView2Host* host)
+VOID EdgeWebView::Setup(HWND hwnd, ICoreWebView2Controller* host)
 {
 	hWnd = hwnd;
 	WebHost = host;
