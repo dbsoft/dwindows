@@ -592,6 +592,8 @@ int DWSIGNAL browse_file_callback(HWND window, void *data)
     tmp = dw_file_browse("Pick a file", "dwtest.c", "c", DW_FILE_OPEN );
     if ( tmp )
     {
+        HWND notification = dw_notification_new("New file loaded", NULL, "dwtest loaded \"%s\" into the file browser on the Render tab, with \"File Display\" selected from the drop down list.", tmp);
+        
         if ( current_file )
         {
             dw_free( current_file );
@@ -601,6 +603,7 @@ int DWSIGNAL browse_file_callback(HWND window, void *data)
         read_file();
         current_col = current_row = 0;
         update_render();
+        dw_notification_send(notification);
     }
     dw_window_set_focus(copypastefield);
     return 0;
