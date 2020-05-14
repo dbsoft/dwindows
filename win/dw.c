@@ -2,7 +2,7 @@
  * Dynamic Windows:
  *          A GTK like implementation of the Win32 GUI
  *
- * (C) 2000-2019 Brian Smith <brian@dbsoft.org>
+ * (C) 2000-2020 Brian Smith <brian@dbsoft.org>
  * (C) 2003-2011 Mark Hessling <mark@rexx.org>
  *
  */
@@ -278,6 +278,7 @@ SECURITY_DESCRIPTOR _dwsd;
  */
 static char _dw_alternate_temp_dir[MAX_PATH+1] = {0};
 static char _dw_exec_dir[MAX_PATH+1] = {0};
+static char _dw_app_id[101]= {0};
 
 int main(int argc, char *argv[]);
 
@@ -12344,6 +12345,37 @@ void API dw_clipboard_set_text(const char *str, int len)
 }
 
 /*
+ * Creates a new system notification if possible.
+ * Parameters:
+ *         title: The short title of the notification.
+ *         pixmap: Handle to an image to display or NULL if none.
+ *         description: A longer description of the notification,
+ *                      or NULL if none is necessary.
+ * Returns:
+ *         A handle to the notification which can be used to attach a "clicked" event if desired,
+ *         or NULL if it fails or notifications are not supported by the system.
+ * Remarks:
+ *          This will create a system notification that will show in the notifaction panel 
+ *          on supported systems, which may be clicked to perform another task.
+ */
+HWND dw_notification_new(const char *title, HPIXMAP pixmap, const char *description, ...)
+{
+   return NULL;
+}
+
+/*
+ * Sends a notification created by dw_notification_new() after attaching signal handler.
+ * Parameters:
+ *         notification: The handle to the notification returned by dw_notification_new().
+ * Returns:
+ *         DW_ERROR_NONE on success, DW_ERROR_UNKNOWN on error or not supported.
+ */
+int dw_notification_send(HWND notification)
+{
+   return DW_ERROR_UNKNOWN;
+}
+
+/*
  * Returns some information about the current operating environment.
  * Parameters:
  *       env: Pointer to a DWEnv struct.
@@ -12781,6 +12813,24 @@ char * API dw_user_dir(void)
 char * API dw_app_dir(void)
 {
     return _dw_exec_dir;
+}
+
+/*
+ * Sets the application ID used by this Dynamic Windows application instance.
+ * Parameters:
+ *         appid: A string typically in the form: com.company.division.application
+ * Returns:
+ *         DW_ERROR_NONE after successfully setting the application ID.
+ *         DW_ERROR_UNKNOWN if unsupported on this system.
+ *         DW_ERROR_GENERAL if the application ID is not allowed.
+ * Remarks:
+ *          This must be called before dw_init().  If dw_init() is called first
+ *          it will create a unique ID in the form: org.dbsoft.dwindows.application
+ *          or if the application name cannot be detected: org.dbsoft.dwindows.pid.#
+ */
+int dw_app_id_set(const char *appid)
+{
+    return DW_ERROR_UNKNOWN;
 }
 
 /*
