@@ -3,7 +3,7 @@
  *          A GTK like cross-platform GUI
  *          GTK3 forwarder module for portabilty.
  *
- * (C) 2000-2019 Brian Smith <brian@dbsoft.org>
+ * (C) 2000-2020 Brian Smith <brian@dbsoft.org>
  * (C) 2003-2011 Mark Hessling <mark@rexx.org>
  * (C) 2002 Nickolay V. Shmyrev <shmyrev@yandex.ru>
  */
@@ -169,6 +169,9 @@ static void _html_changed_event(WebKitWebView  *web_view, WebKitWebFrame *frame,
 static void _dw_signal_disconnect(gpointer data, GClosure *closure);
 
 GObject *_DWObject = NULL;
+#if GLIB_CHECK_VERSION(2,28,0)
+GApplication *_DWApp = NULL;
+#endif
 char *_DWDefaultFont = NULL;
 static char _dw_share_path[PATH_MAX+1] = { 0 };
 
@@ -1951,6 +1954,8 @@ static GdkPixbuf *_find_pixbuf(HICN icon, unsigned long *userwidth, unsigned lon
    return NULL;
 }
 
+#define DW_APP_DOMAIN_DEFAULT "org.dbsoft.dwindows"
+
 /*
  * Initializes the Dynamic Windows engine.
  * Parameters:
@@ -1959,6 +1964,12 @@ static GdkPixbuf *_find_pixbuf(HICN icon, unsigned long *userwidth, unsigned lon
  */
 int dw_int_init(DWResources *res, int newthread, int *argc, char **argv[])
 {
+#if GLIB_CHECK_VERSION(2,28,0)
+   char appid[101] = {0};
+   
+   /* Generate an Application ID based on the PID initially. */
+   snprintf(appid, 100, "%s.pid.%d", DW_APP_DOMAIN_DEFAULT, getpid());
+#endif
    if(res)
    {
       _resources.resource_max = res->resource_max;
@@ -1992,6 +2003,10 @@ int dw_int_init(DWResources *res, int newthread, int *argc, char **argv[])
             strcpy(_dw_share_path, "/usr/local");
          strcat(_dw_share_path, "/share/");
          strcat(_dw_share_path, binname);
+#if GLIB_CHECK_VERSION(2,28,0)
+         /* If we have a binary name, use that for the Application ID instead. */
+         snprintf(appid, 100, "%s.%s", DW_APP_DOMAIN_DEFAULT, binname);
+#endif
       }
       if(pathcopy)
          free(pathcopy);
@@ -2021,7 +2036,16 @@ int dw_int_init(DWResources *res, int newthread, int *argc, char **argv[])
 
    /* Create a global object for glib activities */
    _DWObject = g_object_new(G_TYPE_OBJECT, NULL);
-
+   
+#if GLIB_CHECK_VERSION(2,28,0)
+   /* Initialize the application subsystem on supported versions...
+    * we generate an application ID based on the binary name or PID
+    * instead of passing NULL to enable full application support.
+    */
+   _DWApp = g_application_new(appid, G_APPLICATION_FLAGS_NONE);
+   if(g_application_register(_DWApp, NULL, NULL))
+      g_application_activate(_DWApp);
+#endif
    return TRUE;
 }
 
@@ -11000,6 +11024,73 @@ void dw_window_click_default(HWND window, HWND next)
    DW_MUTEX_LOCK;
    g_signal_connect(G_OBJECT(window), "key_press_event", G_CALLBACK(_default_key_press_event), next);
    DW_MUTEX_UNLOCK;
+}
+
+
+/*
+ * Creates a new system notification if possible.
+ * Parameters:
+ *         title: The short title of the notification.
+ *         pixmap: Handle to an image to display or NULL if none.
+ *         description: A longer description of the notification,
+ *                      or NULL if none is necessary.
+ * Returns:
+ *         A handle to the notification which can be used to attach a "clicked" event if desired,
+ *         or NULL if it fails or notifications are not supported by the system.
+ * Remarks:
+ *          This will create a system notification that will show in the notifaction panel 
+ *          on supported systems, which may be clicked to perform another task.
+ */
+HWND dw_notification_new(const char *title, HPIXMAP pixmap, const char *description, ...)
+{
+#if GLIB_CHECK_VERSION(2,40,0)
+   GNotification *notification = g_notification_new(title);
+   
+   if(notification)
+   {
+      if(description)
+      {
+         va_list args;
+         char outbuf[1025] = {0};
+
+         va_start(args, description);
+         vsnprintf(outbuf, 1024, description, args);
+         va_end(args);
+
+         g_notification_set_body(notification, outbuf);
+      }
+      if(pixmap && pixmap->pixbuf)
+         g_notification_set_icon(notification, G_ICON(pixmap->pixbuf));
+   }
+   return (HWND)notification;
+#else
+   return NULL;
+#endif
+}
+
+/*
+ * Sends a notification created by dw_notification_new() after attaching signal handler.
+ * Parameters:
+ *         notification: The handle to the notification returned by dw_notification_new().
+ * Returns:
+ *         DW_ERROR_NONE on success, DW_ERROR_UNKNOWN on error or not supported.
+ */
+int dw_notification_send(HWND notification)
+{
+#if GLIB_CHECK_VERSION(2,40,0)
+   if(notification)
+   {
+      char id[101] = {0};
+      
+      /* Generate a unique ID based on the notification handle, 
+       * so we can use it to remove the notification in dw_window_destroy().
+       */
+      snprintf(id, 100, "dw-notification-%llu", (unsigned long long)notification);
+      g_application_send_notification(_DWApp, id, (GNotification *)notification);
+      return DW_ERROR_NONE;
+   }
+#endif
+   return DW_ERROR_UNKNOWN;
 }
 
 /*

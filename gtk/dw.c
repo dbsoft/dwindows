@@ -119,6 +119,9 @@ GtkWidget *last_window = NULL, *popup = NULL;
 GdkPixmap *_dw_tmppixmap = NULL;
 GdkBitmap *_dw_tmpbitmap = NULL;
 
+#if GLIB_CHECK_VERSION(2,28,0)
+GApplication *_DWApp = NULL;
+#endif
 char *_DWDefaultFont = NULL;
 static char _dw_share_path[PATH_MAX+1] = { 0 };
 
@@ -1976,6 +1979,8 @@ static void _dw_gdk_lock_leave(void)
 }
 #endif
 
+#define DW_APP_DOMAIN_DEFAULT "org.dbsoft.dwindows"
+
 /*
  * Initializes the Dynamic Windows engine.
  * Parameters:
@@ -1990,6 +1995,12 @@ int dw_int_init(DWResources *res, int newthread, int *argc, char **argv[])
       "1 1 1 1",
       " 	c None",
       " "};
+#if GLIB_CHECK_VERSION(2,28,0)
+   char appid[101] = {0};
+   
+   /* Generate an Application ID based on the PID initially. */
+   snprintf(appid, 100, "%s.pid.%d", DW_APP_DOMAIN_DEFAULT, getpid());
+#endif
 
    if(res)
    {
@@ -2024,6 +2035,10 @@ int dw_int_init(DWResources *res, int newthread, int *argc, char **argv[])
             strcpy(_dw_share_path, "/usr/local");
          strcat(_dw_share_path, "/share/");
          strcat(_dw_share_path, binname);
+#if GLIB_CHECK_VERSION(2,28,0)
+         /* If we have a binary name, use that for the Application ID instead. */
+         snprintf(appid, 100, "%s.%s", DW_APP_DOMAIN_DEFAULT, binname);
+#endif
       }
       if(pathcopy)
          free(pathcopy);
@@ -2094,6 +2109,15 @@ int dw_int_init(DWResources *res, int newthread, int *argc, char **argv[])
       dbgfp = fopen( fname, "w" );
    }
 
+#if GLIB_CHECK_VERSION(2,28,0)
+   /* Initialize the application subsystem on supported versions...
+    * we generate an application ID based on the binary name or PID
+    * instead of passing NULL to enable full application support.
+    */
+   _DWApp = g_application_new(appid, G_APPLICATION_FLAGS_NONE);
+   if(g_application_register(_DWApp, NULL, NULL))
+      g_application_activate(_DWApp);
+#endif
    return TRUE;
 }
 
@@ -12296,6 +12320,75 @@ void dw_window_click_default(HWND window, HWND next)
    DW_MUTEX_LOCK;
    gtk_signal_connect(GTK_OBJECT(window), "key_press_event", GTK_SIGNAL_FUNC(_default_key_press_event), next);
    DW_MUTEX_UNLOCK;
+}
+
+/*
+ * Creates a new system notification if possible.
+ * Parameters:
+ *         title: The short title of the notification.
+ *         pixmap: Handle to an image to display or NULL if none.
+ *         description: A longer description of the notification,
+ *                      or NULL if none is necessary.
+ * Returns:
+ *         A handle to the notification which can be used to attach a "clicked" event if desired,
+ *         or NULL if it fails or notifications are not supported by the system.
+ * Remarks:
+ *          This will create a system notification that will show in the notifaction panel 
+ *          on supported systems, which may be clicked to perform another task.
+ */
+HWND dw_notification_new(const char *title, HPIXMAP pixmap, const char *description, ...)
+{
+#if GLIB_CHECK_VERSION(2,40,0)
+   GNotification *notification = g_notification_new(title);
+   
+   if(notification)
+   {
+      if(description)
+      {
+         va_list args;
+         char outbuf[1025] = {0};
+
+         va_start(args, description);
+         vsnprintf(outbuf, 1024, description, args);
+         va_end(args);
+
+         g_notification_set_body(notification, outbuf);
+      }
+#if GTK_MAJOR_VERSION > 1
+      /* GTK 1.x is not implemented as pixbuf, so only allow icons on 2.x */
+      if(pixmap && pixmap->pixbuf)
+         g_notification_set_icon(notification, G_ICON(pixmap->pixbuf));
+#endif         
+   }
+   return (HWND)notification;
+#else
+   return NULL;
+#endif
+}
+
+/*
+ * Sends a notification created by dw_notification_new() after attaching signal handler.
+ * Parameters:
+ *         notification: The handle to the notification returned by dw_notification_new().
+ * Returns:
+ *         DW_ERROR_NONE on success, DW_ERROR_UNKNOWN on error or not supported.
+ */
+int dw_notification_send(HWND notification)
+{
+#if GLIB_CHECK_VERSION(2,40,0)
+   if(notification)
+   {
+      char id[101] = {0};
+      
+      /* Generate a unique ID based on the notification handle, 
+       * so we can use it to remove the notification in dw_window_destroy().
+       */
+      snprintf(id, 100, "dw-notification-%llu", (unsigned long long)notification);
+      g_application_send_notification(_DWApp, id, (GNotification *)notification);
+      return DW_ERROR_NONE;
+   }
+#endif
+   return DW_ERROR_UNKNOWN;
 }
 
 /*
