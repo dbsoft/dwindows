@@ -24,6 +24,7 @@ EXPORTS
   dw_app_dir                             @25
   dw_main_quit                           @26
   dw_shutdown                            @27
+  dw_app_id_set                          @28
   
   _dw_init_thread                        @30
   _dw_deinit_thread                      @31
@@ -323,3 +324,6 @@ EXPORTS
 
   dw_utf8_to_wchar                       @520
   dw_wchar_to_utf8                       @521
+
+  dw_notification_new                    @530
+  dw_notification_send                   @531
