@@ -2,7 +2,7 @@
  * Dynamic Windows:
  *          A GTK like implementation of the MacOS GUI using Cocoa
  *
- * (C) 2011-2019 Brian Smith <brian@dbsoft.org>
+ * (C) 2011-2020 Brian Smith <brian@dbsoft.org>
  * (C) 2011-2018 Mark Hessling <mark@rexx.org>
  *
  * Requires 10.5 or later.
@@ -30,6 +30,11 @@
 /* Create a define to let us know to include Lion specific features */
 #if defined(MAC_OS_X_VERSION_10_7) && ((defined(MAC_OS_X_VERSION_MAX_ALLOWED) && MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_7) || !defined(MAC_OS_X_VERSION_MAX_ALLOWED))
 #define BUILDING_FOR_LION
+#endif
+
+/* Create a define to let us know to include Mountain Lion specific features */
+#if defined(MAC_OS_X_VERSION_10_8) && ((defined(MAC_OS_X_VERSION_MAX_ALLOWED) && MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_8) || !defined(MAC_OS_X_VERSION_MAX_ALLOWED))
+#define BUILDING_FOR_MOUNTAIN_LION
 #endif
 
 /* Macros to handle local auto-release pools */
@@ -146,6 +151,7 @@
 #if defined(MAC_OS_X_VERSION_10_14) && ((defined(MAC_OS_X_VERSION_MAX_ALLOWED) && MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_14) || !defined(MAC_OS_X_VERSION_MAX_ALLOWED))
 #define DWProgressIndicatorStyleBar NSProgressIndicatorStyleBar
 #define BUILDING_FOR_MOJAVE
+#import <UserNotifications/UserNotifications.h>
 #else
 #define DWProgressIndicatorStyleBar NSProgressIndicatorBarStyle
 #endif
@@ -10690,6 +10696,109 @@ unsigned long API dw_color_depth_get(void)
 }
 
 /*
+ * Creates a new system notification if possible.
+ * Parameters:
+ *         title: The short title of the notification.
+ *         pixmap: Handle to an image to display or NULL if none.
+ *         description: A longer description of the notification,
+ *                      or NULL if none is necessary.
+ * Returns:
+ *         A handle to the notification which can be used to attach a "clicked" event if desired,
+ *         or NULL if it fails or notifications are not supported by the system.
+ * Remarks:
+ *          This will create a system notification that will show in the notifaction panel
+ *          on supported systems, which may be clicked to perform another task.
+ */
+HWND dw_notification_new(const char *title, HPIXMAP pixmap, const char *description, ...)
+{
+#ifdef BUILDING_FOR_MOUNTAIN_LION
+    char outbuf[1025] = {0};
+    HWND retval = NULL;
+    
+    if(description)
+    {
+        va_list args;
+
+        va_start(args, description);
+        vsnprintf(outbuf, 1024, description, args);
+        va_end(args);
+    }
+
+#ifdef BUILDING_FOR_MOJAVE
+    // Configure the notification's payload.
+    if (@available(macOS 10.14, *))
+    {
+        UNMutableNotificationContent* notification = [[UNMutableNotificationContent alloc] init];
+        
+        if(notification)
+        {
+            notification.title = [NSString stringWithUTF8String:title];
+            if(description)
+                notification.body = [NSString stringWithUTF8String:outbuf];
+            retval = notification;
+        }
+    }
+    else
+#endif
+    {
+        // Fallback on earlier versions
+        NSUserNotification *notification = [[NSUserNotification alloc] init];
+        
+        if(notification)
+        {
+            notification.title = [NSString stringWithUTF8String:title];
+            notification.informativeText = [NSString stringWithUTF8String:outbuf];
+            if(pixmap && pixmap->image)
+                notification.contentImage = pixmap->image;
+            retval = notification;
+        }
+    }
+    return retval;
+#else
+   return NULL;
+#endif
+}
+
+/*
+ * Sends a notification created by dw_notification_new() after attaching signal handler.
+ * Parameters:
+ *         notification: The handle to the notification returned by dw_notification_new().
+ * Returns:
+ *         DW_ERROR_NONE on success, DW_ERROR_UNKNOWN on error or not supported.
+ */
+int dw_notification_send(HWND notification)
+{
+#ifdef BUILDING_FOR_MOUNTAIN_LION
+    if(notification)
+    {
+#ifdef BUILDING_FOR_MOJAVE
+        // Schedule the notification.
+        if (@available(macOS 10.14, *))
+        {
+            UNMutableNotificationContent *content = (UNMutableNotificationContent *)notification;
+            NSString *notid = [NSString stringWithFormat:@"dw-notification-%llu", (unsigned long long)notification];
+            UNNotificationRequest* request = [UNNotificationRequest requestWithIdentifier:notid
+            content:content trigger:nil];
+            
+            UNUserNotificationCenter* center = [UNUserNotificationCenter currentNotificationCenter];
+            [center addNotificationRequest:request withCompletionHandler:^(NSError * _Nullable error) {
+                    _event_handler(notification, nil, 8);
+            }];
+        }
+        else
+#endif
+        {
+            // Fallback on earlier versions
+            [[NSUserNotificationCenter defaultUserNotificationCenter] deliverNotification:notification];
+        }
+        return DW_ERROR_NONE;
+    }
+#endif
+    return DW_ERROR_UNKNOWN;
+}
+
+
+/*
  * Returns some information about the current operating environment.
  * Parameters:
  *       env: Pointer to a DWEnv struct.
@@ -11947,6 +12056,15 @@ int API dw_init(int newthread, int argc, char *argv[])
     DWObj = [[DWObject alloc] init];
     DWDefaultFont = nil;
 #ifdef BUILDING_FOR_MOJAVE
+    if (@available(macOS 10.14, *))
+    {
+        [[UNUserNotificationCenter currentNotificationCenter] requestAuthorizationWithOptions:UNAuthorizationOptionAlert
+                completionHandler:^(BOOL granted, NSError * _Nullable error) {
+            if (!granted) {
+                NSLog(@"Unable to get notification permission.");
+            }
+        }];
+    }
     _DWDirtyDrawables = [[NSMutableArray alloc] init];
 #else
     /* Create mutexes for thread safety */
