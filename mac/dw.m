@@ -443,6 +443,7 @@ pthread_key_t _dw_fg_color_key;
 pthread_key_t _dw_bg_color_key;
 int DWOSMajor, DWOSMinor, DWOSBuild;
 static char _dw_bundle_path[PATH_MAX+1] = { 0 };
+static char _dw_app_id[101]= {0};
 
 /* Create a default colors for a thread */
 void _init_colors(void)
@@ -3937,6 +3938,27 @@ char *dw_user_dir(void)
 char * API dw_app_dir(void)
 {
     return _dw_bundle_path;
+}
+
+/*
+ * Sets the application ID used by this Dynamic Windows application instance.
+ * Parameters:
+ *         appid: A string typically in the form: com.company.division.application
+ *         appguid: A globally unique identifier required on Windows or NULL.
+ * Returns:
+ *         DW_ERROR_NONE after successfully setting the application ID.
+ *         DW_ERROR_UNKNOWN if unsupported on this system.
+ *         DW_ERROR_GENERAL if the application ID is not allowed.
+ * Remarks:
+ *          This must be called before dw_init().  If dw_init() is called first
+ *          it will create a unique ID in the form: org.dbsoft.dwindows.application
+ *          or if the application name cannot be detected: org.dbsoft.dwindows.pid.#
+ *          The GUID is only required on Windows, NULL can be passed on other platforms.
+ */
+int dw_app_id_set(const char *appid, const char *appguid)
+{
+    strncpy(_dw_app_id, appid, 100);
+    return DW_ERROR_NONE;
 }
 
 /*
@@ -11994,7 +12016,13 @@ int API dw_init(int newthread, int argc, char *argv[])
     {
         char *pathcopy = strdup(argv[0]);
         char *app = strstr(pathcopy, ".app/");
-
+        char *binname = strrchr(pathcopy, '/');
+        
+        if(binname && (binname++) && _dw_app_id[0])
+        {
+            /* If we have a binary name, use that for the Application ID instead. */
+            snprintf(_dw_app_id, 100, "%s.%s", DW_APP_DOMAIN_DEFAULT, binname);
+        }
         if(app)
         {
             char pathbuf[PATH_MAX+1] = { 0 };
@@ -12077,6 +12105,11 @@ int API dw_init(int newthread, int argc, char *argv[])
     [thread start];
     [thread release];
     [NSTextField setCellClass:[DWTextFieldCell class]];
+    if(!_dw_app_id[0])
+    {
+        /* Generate an Application ID based on the PID if all else fails. */
+        snprintf(_dw_app_id, 100, "%s.pid.%d", DW_APP_DOMAIN_DEFAULT, getpid());
+    }
     return 0;
 }
 
