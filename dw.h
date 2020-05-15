@@ -1525,6 +1525,9 @@ typedef void *HPRINT;
 #define UINT_TYPEDEFED 1
 #define INT_TYPEDEFED 1
 
+/* Use the dbsoft.org application domain by default if not specified */
+#define DW_APP_DOMAIN_DEFAULT "org.dbsoft.dwindows"
+
 /* Support for API deprecation in supported compilers */
 #if defined(__has_feature) && !defined(__has_extension)
 #define __has_extension __has_feature
