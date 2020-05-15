@@ -1341,11 +1341,13 @@ DWObject *DWObj;
 /* Subclass for the application class */
 @interface DWAppDel : NSObject
 #ifdef BUILDING_FOR_SNOW_LEOPARD
-<NSApplicationDelegate>
+<NSApplicationDelegate, NSUserNotificationCenterDelegate>
 #endif
 {
 }
 -(NSApplicationTerminateReply)applicationShouldTerminate:(NSApplication *)sender;
+-(void)applicationDidFinishLaunching:(NSNotification *)aNotification;
+-(BOOL)userNotificationCenter:(NSUserNotificationCenter *)center shouldPresentNotification:(NSUserNotification *)notification;
 @end
 
 /* Apparently the WKWebKit API is only enabled on intel 64bit...
@@ -1431,6 +1433,20 @@ DWObject *DWObj;
     if(_event_handler(sender, nil, 6) > 0)
         return NSTerminateCancel;
     return NSTerminateNow;
+}
+-(void)applicationDidFinishLaunching:(NSNotification *)aNotification
+{
+#ifdef BUILDING_FOR_MOJAVE
+    if (!@available(macOS 10.14, *))
+#endif
+    {
+        NSUserNotificationCenter* unc = [NSUserNotificationCenter defaultUserNotificationCenter];
+        unc.delegate = self;
+    }
+}
+-(BOOL)userNotificationCenter:(NSUserNotificationCenter *)center shouldPresentNotification:(NSUserNotification *)notification
+{
+    return YES;
 }
 @end
 
