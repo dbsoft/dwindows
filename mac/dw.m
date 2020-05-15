@@ -12086,12 +12086,16 @@ int API dw_init(int newthread, int argc, char *argv[])
 #ifdef BUILDING_FOR_MOJAVE
     if (@available(macOS 10.14, *))
     {
-        [[UNUserNotificationCenter currentNotificationCenter] requestAuthorizationWithOptions:UNAuthorizationOptionAlert
-                completionHandler:^(BOOL granted, NSError * _Nullable error) {
-            if (!granted) {
-                NSLog(@"Unable to get notification permission.");
-            }
-        }];
+        UNUserNotificationCenter *center = [UNUserNotificationCenter currentNotificationCenter];
+        if(center)
+        {
+            [center requestAuthorizationWithOptions:UNAuthorizationOptionAlert|UNAuthorizationOptionSound
+                    completionHandler:^(BOOL granted, NSError * _Nullable error) {
+                        if (!granted) {
+                            NSLog(@"WARNING: Unable to get notification permission.");
+                        }
+            }];
+        }
     }
     _DWDirtyDrawables = [[NSMutableArray alloc] init];
 #else
