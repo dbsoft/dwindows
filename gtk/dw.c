@@ -3,7 +3,7 @@
  *          A GTK like cross-platform GUI
  *          GTK forwarder module for portabilty.
  *
- * (C) 2000-2019 Brian Smith <brian@dbsoft.org>
+ * (C) 2000-2020 Brian Smith <brian@dbsoft.org>
  * (C) 2003-2011 Mark Hessling <mark@rexx.org>
  * (C) 2002 Nickolay V. Shmyrev <shmyrev@yandex.ru>
  */
@@ -124,6 +124,7 @@ GApplication *_DWApp = NULL;
 #endif
 char *_DWDefaultFont = NULL;
 static char _dw_share_path[PATH_MAX+1] = { 0 };
+static char _dw_app_id[101] = { 0 };
 
 #if GTK_MAJOR_VERSION < 2
 static int _dw_file_active = 0;
@@ -1979,8 +1980,6 @@ static void _dw_gdk_lock_leave(void)
 }
 #endif
 
-#define DW_APP_DOMAIN_DEFAULT "org.dbsoft.dwindows"
-
 /*
  * Initializes the Dynamic Windows engine.
  * Parameters:
@@ -1995,12 +1994,6 @@ int dw_int_init(DWResources *res, int newthread, int *argc, char **argv[])
       "1 1 1 1",
       " 	c None",
       " "};
-#if GLIB_CHECK_VERSION(2,28,0)
-   char appid[101] = {0};
-   
-   /* Generate an Application ID based on the PID initially. */
-   snprintf(appid, 100, "%s.pid.%d", DW_APP_DOMAIN_DEFAULT, getpid());
-#endif
 
    if(res)
    {
@@ -2036,8 +2029,11 @@ int dw_int_init(DWResources *res, int newthread, int *argc, char **argv[])
          strcat(_dw_share_path, "/share/");
          strcat(_dw_share_path, binname);
 #if GLIB_CHECK_VERSION(2,28,0)
-         /* If we have a binary name, use that for the Application ID instead. */
-         snprintf(appid, 100, "%s.%s", DW_APP_DOMAIN_DEFAULT, binname);
+         if(!_dw_app_id[0])
+         {
+            /* If we have a binary name, use that for the Application ID instead. */
+            snprintf(_dw_app_id, 100, "%s.%s", DW_APP_DOMAIN_DEFAULT, binname);
+         }
 #endif
       }
       if(pathcopy)
@@ -2110,11 +2106,17 @@ int dw_int_init(DWResources *res, int newthread, int *argc, char **argv[])
    }
 
 #if GLIB_CHECK_VERSION(2,28,0)
+   if(!_dw_app_id[0])
+   {
+      /* Generate an Application ID based on the PID if all else fails. */
+      snprintf(_dw_app_id, 100, "%s.pid.%d", DW_APP_DOMAIN_DEFAULT, getpid());
+   }
+   
    /* Initialize the application subsystem on supported versions...
     * we generate an application ID based on the binary name or PID
     * instead of passing NULL to enable full application support.
     */
-   _DWApp = g_application_new(appid, G_APPLICATION_FLAGS_NONE);
+   _DWApp = g_application_new(_dw_app_id, G_APPLICATION_FLAGS_NONE);
    if(g_application_register(_DWApp, NULL, NULL))
       g_application_activate(_DWApp);
 #endif
@@ -13268,6 +13270,35 @@ char *dw_user_dir(void)
 char * API dw_app_dir(void)
 {
     return _dw_share_path;
+}
+
+/*
+ * Sets the application ID used by this Dynamic Windows application instance.
+ * Parameters:
+ *         appid: A string typically in the form: com.company.division.application
+ *         appguid: A globally unique identifier required on Windows or NULL.
+ * Returns:
+ *         DW_ERROR_NONE after successfully setting the application ID.
+ *         DW_ERROR_UNKNOWN if unsupported on this system.
+ *         DW_ERROR_GENERAL if the application ID is not allowed.
+ * Remarks:
+ *          This must be called before dw_init().  If dw_init() is called first
+ *          it will create a unique ID in the form: org.dbsoft.dwindows.application
+ *          or if the application name cannot be detected: org.dbsoft.dwindows.pid.#
+ *          The GUID is only required on Windows, NULL can be passed on other platforms.
+ */
+int dw_app_id_set(const char *appid, const char *appguid)
+{
+#if GLIB_CHECK_VERSION(2,28,0)
+   if(g_application_id_is_valid(appid))
+   {
+      strncpy(_dw_app_id, appid, 100);
+      return DW_ERROR_NONE;
+   }
+   return DW_ERROR_GENERAL;
+#else
+   return DW_ERROR_UNKNOWN;
+#endif
 }
 
 /*

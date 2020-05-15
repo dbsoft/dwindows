@@ -12018,7 +12018,7 @@ int API dw_init(int newthread, int argc, char *argv[])
         char *app = strstr(pathcopy, ".app/");
         char *binname = strrchr(pathcopy, '/');
         
-        if(binname && (binname++) && _dw_app_id[0])
+        if(binname && (binname++) && !_dw_app_id[0])
         {
             /* If we have a binary name, use that for the Application ID instead. */
             snprintf(_dw_app_id, 100, "%s.%s", DW_APP_DOMAIN_DEFAULT, binname);
