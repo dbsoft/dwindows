@@ -1437,7 +1437,7 @@ DWObject *DWObj;
 -(void)applicationDidFinishLaunching:(NSNotification *)aNotification
 {
 #ifdef BUILDING_FOR_MOJAVE
-    if (!@available(macOS 10.14, *))
+    if (@available(macOS 10.14, *)) {} else
 #endif
     {
         NSUserNotificationCenter* unc = [NSUserNotificationCenter defaultUserNotificationCenter];
@@ -10766,14 +10766,17 @@ HWND dw_notification_new(const char *title, HPIXMAP pixmap, const char *descript
     // Configure the notification's payload.
     if (@available(macOS 10.14, *))
     {
-        UNMutableNotificationContent* notification = [[UNMutableNotificationContent alloc] init];
-        
-        if(notification)
+        if([[NSBundle mainBundle] bundleIdentifier] != nil)
         {
-            notification.title = [NSString stringWithUTF8String:title];
-            if(description)
-                notification.body = [NSString stringWithUTF8String:outbuf];
-            retval = notification;
+            UNMutableNotificationContent* notification = [[UNMutableNotificationContent alloc] init];
+            
+            if(notification)
+            {
+                notification.title = [NSString stringWithUTF8String:title];
+                if(description)
+                    notification.body = [NSString stringWithUTF8String:outbuf];
+                retval = notification;
+            }
         }
     }
     else
@@ -10813,15 +10816,18 @@ int dw_notification_send(HWND notification)
         // Schedule the notification.
         if (@available(macOS 10.14, *))
         {
-            UNMutableNotificationContent *content = (UNMutableNotificationContent *)notification;
-            NSString *notid = [NSString stringWithFormat:@"dw-notification-%llu", (unsigned long long)notification];
-            UNNotificationRequest* request = [UNNotificationRequest requestWithIdentifier:notid
-            content:content trigger:nil];
-            
-            UNUserNotificationCenter* center = [UNUserNotificationCenter currentNotificationCenter];
-            [center addNotificationRequest:request withCompletionHandler:^(NSError * _Nullable error) {
-                    _event_handler(notification, nil, 8);
-            }];
+            if([[NSBundle mainBundle] bundleIdentifier] != nil)
+            {
+                UNMutableNotificationContent *content = (UNMutableNotificationContent *)notification;
+                NSString *notid = [NSString stringWithFormat:@"dw-notification-%llu", (unsigned long long)notification];
+                UNNotificationRequest* request = [UNNotificationRequest requestWithIdentifier:notid
+                content:content trigger:nil];
+                
+                UNUserNotificationCenter* center = [UNUserNotificationCenter currentNotificationCenter];
+                [center addNotificationRequest:request withCompletionHandler:^(NSError * _Nullable error) {
+                        _event_handler(notification, nil, 8);
+                }];
+            }
         }
         else
 #endif
@@ -12102,15 +12108,18 @@ int API dw_init(int newthread, int argc, char *argv[])
 #ifdef BUILDING_FOR_MOJAVE
     if (@available(macOS 10.14, *))
     {
-        UNUserNotificationCenter *center = [UNUserNotificationCenter currentNotificationCenter];
-        if(center)
+        if([[NSBundle mainBundle] bundleIdentifier] != nil)
         {
-            [center requestAuthorizationWithOptions:UNAuthorizationOptionAlert|UNAuthorizationOptionSound
-                    completionHandler:^(BOOL granted, NSError * _Nullable error) {
-                        if (!granted) {
-                            NSLog(@"WARNING: Unable to get notification permission.");
-                        }
-            }];
+            UNUserNotificationCenter *center = [UNUserNotificationCenter currentNotificationCenter];
+            if(center)
+            {
+                [center requestAuthorizationWithOptions:UNAuthorizationOptionAlert|UNAuthorizationOptionSound
+                        completionHandler:^(BOOL granted, NSError * _Nullable error) {
+                            if (!granted) {
+                                NSLog(@"WARNING: Unable to get notification permission. %@", error.localizedDescription);
+                            }
+                }];
+            }
         }
     }
     _DWDirtyDrawables = [[NSMutableArray alloc] init];
