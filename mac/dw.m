@@ -1340,14 +1340,18 @@ DWObject *DWObj;
 
 /* Subclass for the application class */
 @interface DWAppDel : NSObject
-#ifdef BUILDING_FOR_SNOW_LEOPARD
+#ifdef BUILDING_FOR_MOUNTAIN_LION
 <NSApplicationDelegate, NSUserNotificationCenterDelegate>
+#elif defined(BUILDING_FOR_SNOW_LEOPARD)
+<NSApplicationDelegate>
 #endif
 {
 }
 -(NSApplicationTerminateReply)applicationShouldTerminate:(NSApplication *)sender;
 -(void)applicationDidFinishLaunching:(NSNotification *)aNotification;
+#ifdef BUILDING_FOR_MOUNTAIN_LION
 -(BOOL)userNotificationCenter:(NSUserNotificationCenter *)center shouldPresentNotification:(NSUserNotification *)notification;
+#endif
 @end
 
 /* Apparently the WKWebKit API is only enabled on intel 64bit...
@@ -1438,16 +1442,19 @@ DWObject *DWObj;
 {
 #ifdef BUILDING_FOR_MOJAVE
     if (@available(macOS 10.14, *)) {} else
-#endif
+#elif defined(BUILDING_FOR_MOUNTAIN_LION)
     {
         NSUserNotificationCenter* unc = [NSUserNotificationCenter defaultUserNotificationCenter];
         unc.delegate = self;
     }
+#endif
 }
+#ifdef BUILDING_FOR_MOUNTAIN_LION
 -(BOOL)userNotificationCenter:(NSUserNotificationCenter *)center shouldPresentNotification:(NSUserNotification *)notification
 {
     return YES;
 }
+#endif
 @end
 
 /* Subclass for a top-level window */
