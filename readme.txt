@@ -14,6 +14,12 @@ In Unicode mode on OS/2 there are some bugs in the input controls,
     minor bugs in entryfield based controls and major bugs in the MLE.
     The text displays properly but the cursor and selection jumps
     around oddly when passing over multibyte characters.
+Building for MacOS 10.14 or later may prevent apps from running on
+    earlier versions.  Building for versions prior to 10.14 should
+    work on any supported version but dark mode may not be available
+    for these apps running on 10.14 and later.  If you wish to support
+    dark mode I suggest building 2 versions, one for 64 bit intel 
+    only for 10.14 and later. Then a fat binary for prior to 10.14.
 
 Known limitations:
 
@@ -40,6 +46,20 @@ Added notification APIs: dw_notification_new() dw_notification_send() dw_app_id_
     Requires Windows 8 or higher. MacOS 10.8 or higher. GLib 2.40 or higher on Unix.
     MacOS also requires the application bundle being signed or self-signed.
     Unix requires a desktop file link with the application ID used in dw_app_id_set().
+Added webkit2gtk support and removed dead gtkmozembed and libgtkhtml2 support on Unix.
+Added embedded HTML javascript support on Mac, Windows and Unix with webkit(2)gtk. 
+    Added function dw_html_javascript_run() to execute javascript code.
+    Added DW_SIGNAL_HTML_RESULT signal for getting the results from javascript.
+    DW_SIGNAL_HTML_RESULT requires webkit2gtk on Unix.
+Added DW_SIGNAL_HTML_CHANGED signal handler for getting the status of embedded HTML.
+    Status can be: DW_HTML_CHANGE_STARTED/REDIRECT/LOADING/COMPLETE
+Fixed internatational calendar issues on Mac.
+Added dw_mle_set_auto_complete() to enable completion, only available on Mac.
+Changed to using GTK3 by default instead of GTK2.  --with-gtk2 is now available.
+Changed to using winsock2 on Windows ending support for Win95 and NT 3.5.
+Added support for domain sockets on Windows 10 in the dwcompat sockpipe() macro.
+    If compiled with Visual Studio 2017 or later, otherwise the old method is used.
+Fixed many small bugs, too numerous to list here.
 
 Dynamic Windows Documentation is available at:
 
