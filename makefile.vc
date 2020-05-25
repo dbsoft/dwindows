@@ -72,9 +72,22 @@ SVNVERSION=-DVER_REV=$(VER_REV)
 
 !endif
 
+#
+# Settings for supporting embedded Edge (Chromium) WebView2
+#
+!if "$(WEBVIEW2DIR)" == ""
+WEBVIEW2DIR=$(SRCDIR)\packages\Microsoft.Web.WebView2
+!endif
+
+!if exists($(WEBVIEW2DIR)\build\native\include\WebView2.h) 
+WEBVIEW2INC=-DBUILD_EDGE -I$(WEBVIEW2DIR)\build\native\include
+WEBVIEW2LIB=$(WEBVIEW2DIR)\build\native\$(TARGET_CPU)\WebView2Loader.dll.lib
+WEBVIEW2OBJ=edge.obj
+!endif
+
 CC = cl
-CFLAGS = -c $(PLATFORM_DEF) -D__WIN32__ -DMSVC -DTOOLBAR -DGDIPLUS -DAEROGLASS -D_UNICODE -DUNICODE -DBUILD_DLL -DISOLATION_AWARE_ENABLED=1 -I$(SRCDIR)\platform -I$(SRCDIR) $(SVNVERSION)
-LIBS = wsock32.lib kernel32.lib user32.lib comctl32.lib gdi32.lib advapi32.lib shell32.lib comdlg32.lib ole32.lib oleaut32.lib userenv.lib msimg32.lib gdiplus.lib
+CFLAGS = -c $(PLATFORM_DEF) -D__WIN32__ -DMSVC -DTOOLBAR -DGDIPLUS -DAEROGLASS -D_UNICODE -DUNICODE -DBUILD_DLL -DISOLATION_AWARE_ENABLED=1 -I$(SRCDIR)\platform -I$(SRCDIR) $(WEBVIEW2INC) $(SVNVERSION)
+LIBS = wsock32.lib kernel32.lib user32.lib comctl32.lib gdi32.lib advapi32.lib shell32.lib comdlg32.lib ole32.lib oleaut32.lib userenv.lib msimg32.lib gdiplus.lib $(WEBVIEW2LIB)
 RES =
 LINKFLAGS = -machine:$(TARGET_CPU) -manifest $(LINK_DEBUG)
 DLLLINKFLAGS = -dll
@@ -82,7 +95,7 @@ LINK = link
 DEFFILE = $(SRCDIR)\win\dw.def
 DEFFILE2 = $(SRCDIR)\win\dwcompat.def
 
-OBJS = dw.obj browser.obj XBrowseForFolder.obj
+OBJS = dw.obj browser.obj XBrowseForFolder.obj $(WEBVIEW2OBJ)
 
 OBJS2 = dwcompat.obj dirent.obj
 
@@ -91,17 +104,17 @@ all: dw dwcompat dwtest
 
 
 clean:
-        -erase *.dll
-        -erase *.exe
-        -erase *.opt
-        -erase *.lib
-        -erase *.obj
-        -erase *.map
-        -erase *.pdb
-        -erase *.ilk
-        -erase *.exp
-        -erase *.REV
-        -erase *~
+	-erase *.dll
+	-erase *.exe
+	-erase *.opt
+	-erase *.lib
+	-erase *.obj
+	-erase *.map
+	-erase *.pdb
+	-erase *.ilk
+	-erase *.exp
+	-erase *.REV
+	-erase *~
 
 dw: dw.dll
 
@@ -117,8 +130,8 @@ $(LIBS)
 	lib /def:$(DEFFILE) /machine:$(TARGET_CPU) /out:dw.lib
 	mt.exe /manifest dw.dll.manifest win\dw.dll.$(TARGET_CPU).manifest /outputresource:dw.dll;2
 	-erase dw.dll.manifest
-        copy dw.lib $(DWLIBDIR)\dw.lib
-        copy dw.dll $(DWDLLDIR)\dw.dll
+	copy dw.lib $(DWLIBDIR)\dw.lib
+	copy dw.dll $(DWDLLDIR)\dw.dll
 
 dwcompat: dwcompat.dll
 
@@ -132,8 +145,8 @@ $(LIBS)
 	lib /def:$(DEFFILE2) /machine:$(TARGET_CPU) /out:dwcompat.lib
 	mt.exe /manifest dwcompat.dll.manifest /outputresource:dwcompat.dll;2
 	-erase dwcompat.dll.manifest
-        copy dwcompat.lib $(DWLIBDIR)\dwcompat.lib
-        copy dwcompat.dll $(DWDLLDIR)\dwcompat.dll
+	copy dwcompat.lib $(DWLIBDIR)\dwcompat.lib
+	copy dwcompat.dll $(DWDLLDIR)\dwcompat.dll
 
 dw.obj: $(SRCDIR)\win\dw.c
 	$(CC) $(CFLAGS) $(CFLAGS_DEBUG) $(SRCDIR)\win\dw.c
@@ -143,6 +156,9 @@ browser.obj: $(SRCDIR)\win\browser.c
 
 XBrowseForFolder.obj: $(SRCDIR)\win\XBrowseForFolder.cpp
 	$(CC) $(CFLAGS) $(CFLAGS_DEBUG) $(SRCDIR)\win\XBrowseForFolder.cpp
+
+edge.obj: $(SRCDIR)\win\edge.cpp
+	$(CC) $(CFLAGS) $(CFLAGS_DEBUG) $(SRCDIR)\win\edge.cpp
 
 dirent.obj: $(SRCDIR)\win\dirent.c
 	$(CC) $(CFLAGS) $(CFLAGS_DEBUG) $(SRCDIR)\win\dirent.c
