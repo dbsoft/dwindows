@@ -9,7 +9,7 @@ extern "C" {
 
 /* Dynamic Windows version numbers */
 #define DW_MAJOR_VERSION 3
-#define DW_MINOR_VERSION 0
+#define DW_MINOR_VERSION 1
 #define DW_SUB_VERSION 0
 
 #define DW_HOME_URL "http://dwindows.netlabs.org"

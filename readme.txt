@@ -1,4 +1,4 @@
-This is a stable release of Dynamic Windows version 3.0.
+This is a stable release of Dynamic Windows version 3.1.
 
 The current Dynamic Windows source base is considered stable on:
 OS/2, Mac, Windows, Linux, FreeBSD and Solaris.
@@ -14,9 +14,6 @@ In Unicode mode on OS/2 there are some bugs in the input controls,
     minor bugs in entryfield based controls and major bugs in the MLE.
     The text displays properly but the cursor and selection jumps
     around oddly when passing over multibyte characters.
-Watcom builds on OS/2 currently leak handles when threads end.
-    If you require Watcom on OS/2 stay with version 2.5 or
-    do not use threads until fixed in a future version.
 
 Known limitations:
 
@@ -29,32 +26,20 @@ OS/2 is currently missing the HTML widget because the system does
 not support it by default. Looking into importing functionality 
 from available libraries (Firefox, Webkit, Qt, etc).
 
-Changes from version 2.5:
-Added package configuration (pkg-config) support on Unix.
-Changed DW_CLR_DEFAULT behavior to improve consistency.
-Added dw_signal_connect_data() which features a callback on signal disconnection.
-Improvements for building on 64bit Windows with MinGW.
-   Window styles, HTML and Toolbar widgets are now supported.
-Added dw_shutdown() for use when shutting down Dynamic Windows but not quite ready
-   to exit immediately. (Functions like dw_exit() without the exit())
-Separated the container "title" (string) and "data" (pointer) into separate spaces.
-   The "classic" functions which take (char *) parameters now maintain their
-   own string memory backing so you no longer need to keep the data available.
-Removed dw_container_set_row_data() and dw_container_change_row_data() macros.
-Added dw_container_set_row_data() and dw_container_change_row_data() functions.
-Removed the "_dw_textcomp" container data flag, dw_container_cursor() and
-   dw_container_delete_row() which take (char *) now function in text compare mode.
-Added dw_container_cursor_by_data() and dw_container_delete_row_by_data() 
-   functions which do the same things except in pointer comparison mode.
-Added DW_CR_RETDATA flag to dw_container_query_*() functions to return the
-   data pointer instead of the string pointer, this may change in the future.
-Added exported internal functions _dw_init_thread() and _dw_deinit_thread()
-    for language bindings to setup/cleanup threads created for DW use.
-Fixed some memory leaks.
-WARNING: Changed how tree and container titles are returned, they are now duplicated 
-   and need to be freed with dw_free().  This affects the following functions:
-   dw_tree_get_title(), dw_container_query_start() and dw_container_query_next()
-   You should audit any code using these functions for leaks if using verison 3.
+Changes from version 3.0:
+Added support for MacOS versions through Catalina 10.15, 
+    Windows versions through 10 build 1909.
+Fixed handle leak on OS/2 when built with (Open)Watcom.
+Added dark mode support on MacOS Mojave 10.14 and later. 
+Added experimental dark mode support on Windows 10 build 1809 (disabled by default).
+Added embedding Microsoft Edge (Chromium) support on Windows 7 and higher.
+    Requires Windows 8 or higher SDK to build and the nuget package from:
+    https://www.nuget.org/packages/Microsoft.Web.WebView2 unzipped into
+    .\packages\Microsoft.Web.WebView2
+Added notification APIs: dw_notification_new() dw_notification_send() dw_app_id_set()
+    Requires Windows 8 or higher. MacOS 10.8 or higher. GLib 2.40 or higher on Unix.
+    MacOS also requires the application bundle being signed or self-signed.
+    Unix requires a desktop file link with the application ID used in dw_app_id_set().
 
 Dynamic Windows Documentation is available at:
 
