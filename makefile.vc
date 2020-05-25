@@ -147,6 +147,9 @@ $(LIBS)
 	-erase dwcompat.dll.manifest
 	copy dwcompat.lib $(DWLIBDIR)\dwcompat.lib
 	copy dwcompat.dll $(DWDLLDIR)\dwcompat.dll
+!if exists($(WEBVIEW2DIR)\build\native\$(TARGET_CPU)\WebView2Loader.dll) 
+	copy $(WEBVIEW2DIR)\build\native\$(TARGET_CPU)\WebView2Loader.dll $(DWDLLDIR)\WebView2Loader.dll
+!endif
 
 dw.obj: $(SRCDIR)\win\dw.c
 	$(CC) $(CFLAGS) $(CFLAGS_DEBUG) $(SRCDIR)\win\dw.c
