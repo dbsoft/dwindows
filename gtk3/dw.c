@@ -2032,14 +2032,14 @@ int dw_int_init(DWResources *res, int newthread, int *argc, char **argv[])
 
    /* Create a global object for glib activities */
    _DWObject = g_object_new(G_TYPE_OBJECT, NULL);
-   
+
 #if GLIB_CHECK_VERSION(2,28,0)
    if(!_dw_app_id[0])
    {
       /* Generate an Application ID based on the PID if all else fails. */
       snprintf(_dw_app_id, 100, "%s.pid.%d", DW_APP_DOMAIN_DEFAULT, getpid());
    }
-   
+
    /* Initialize the application subsystem on supported versions...
     * we generate an application ID based on the binary name or PID
     * instead of passing NULL to enable full application support.
@@ -11040,14 +11040,14 @@ void dw_window_click_default(HWND window, HWND next)
  *         A handle to the notification which can be used to attach a "clicked" event if desired,
  *         or NULL if it fails or notifications are not supported by the system.
  * Remarks:
- *          This will create a system notification that will show in the notifaction panel 
+ *          This will create a system notification that will show in the notifaction panel
  *          on supported systems, which may be clicked to perform another task.
  */
 HWND dw_notification_new(const char *title, HPIXMAP pixmap, const char *description, ...)
 {
 #if GLIB_CHECK_VERSION(2,40,0)
    GNotification *notification = g_notification_new(title);
-   
+
    if(notification)
    {
       if(description)
@@ -11083,8 +11083,8 @@ int dw_notification_send(HWND notification)
    if(notification)
    {
       char id[101] = {0};
-      
-      /* Generate a unique ID based on the notification handle, 
+
+      /* Generate a unique ID based on the notification handle,
        * so we can use it to remove the notification in dw_window_destroy().
        */
       snprintf(id, 100, "dw-notification-%llu", (unsigned long long)notification);
@@ -11112,6 +11112,15 @@ void dw_environment_query(DWEnv *env)
 
    strncpy(env->buildDate, __DATE__, sizeof(env->buildDate)-1);
    strncpy(env->buildTime, __TIME__, sizeof(env->buildTime)-1);
+#ifdef USE_WEBKIT
+#  ifdef USE_WEBKIT2
+   strncpy(env->htmlEngine, "WEBKIT2", sizeof(env->htmlEngine)-1);
+#  else
+   strncpy(env->htmlEngine, "WEBKIT", sizeof(env->htmlEngine)-1);
+#  endif
+#else
+   strncpy(env->htmlEngine, "N/A", sizeof(env->htmlEngine)-1);
+#endif
    env->DWMajorVersion = DW_MAJOR_VERSION;
    env->DWMinorVersion = DW_MINOR_VERSION;
 #ifdef VER_REV

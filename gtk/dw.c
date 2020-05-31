@@ -1254,14 +1254,14 @@ static void _html_changed_event(WebKitWebView  *web_view, WebKitWebFrame *frame,
     char *location = (char *)webkit_web_view_get_uri(web_view);
     int status = 0;
     void **params = data;
-    
+
     if(params)
       status = DW_POINTER_TO_INT(params[3]);
-      
+
     if(status && location && work.window && work.func)
     {
         int (*htmlchangedfunc)(HWND, int, char *, void *) = work.func;
-        
+
         htmlchangedfunc(work.window, status, location, work.data);
     }
 }
@@ -2111,7 +2111,7 @@ int dw_int_init(DWResources *res, int newthread, int *argc, char **argv[])
       /* Generate an Application ID based on the PID if all else fails. */
       snprintf(_dw_app_id, 100, "%s.pid.%d", DW_APP_DOMAIN_DEFAULT, getpid());
    }
-   
+
    /* Initialize the application subsystem on supported versions...
     * we generate an application ID based on the binary name or PID
     * instead of passing NULL to enable full application support.
@@ -12335,14 +12335,14 @@ void dw_window_click_default(HWND window, HWND next)
  *         A handle to the notification which can be used to attach a "clicked" event if desired,
  *         or NULL if it fails or notifications are not supported by the system.
  * Remarks:
- *          This will create a system notification that will show in the notifaction panel 
+ *          This will create a system notification that will show in the notifaction panel
  *          on supported systems, which may be clicked to perform another task.
  */
 HWND dw_notification_new(const char *title, HPIXMAP pixmap, const char *description, ...)
 {
 #if GLIB_CHECK_VERSION(2,40,0)
    GNotification *notification = g_notification_new(title);
-   
+
    if(notification)
    {
       if(description)
@@ -12360,7 +12360,7 @@ HWND dw_notification_new(const char *title, HPIXMAP pixmap, const char *descript
       /* GTK 1.x is not implemented as pixbuf, so only allow icons on 2.x */
       if(pixmap && pixmap->pixbuf)
          g_notification_set_icon(notification, G_ICON(pixmap->pixbuf));
-#endif         
+#endif
    }
    return (HWND)notification;
 #else
@@ -12381,8 +12381,8 @@ int dw_notification_send(HWND notification)
    if(notification)
    {
       char id[101] = {0};
-      
-      /* Generate a unique ID based on the notification handle, 
+
+      /* Generate a unique ID based on the notification handle,
        * so we can use it to remove the notification in dw_window_destroy().
        */
       snprintf(id, 100, "dw-notification-%llu", (unsigned long long)notification);
@@ -12416,6 +12416,11 @@ void dw_environment_query(DWEnv *env)
    env->DWSubVersion = VER_REV;
 #else
    env->DWSubVersion = DW_SUB_VERSION;
+#endif
+#ifdef USE_WEBKIT
+   strncpy(env->htmlEngine, "WEBKIT", sizeof(env->htmlEngine)-1);
+#else
+   strncpy(env->htmlEngine, "N/A", sizeof(env->htmlEngine)-1);
 #endif
 
    if((dot = strchr(tempbuf, '.')) != NULL)
@@ -12912,7 +12917,7 @@ void dw_html_action(HWND handle, int action)
    if(web_view)
    {
       WebKitWebFrame *frame;
-      
+
       switch(action)
       {
          case DW_HTML_GOBACK:
@@ -13015,7 +13020,7 @@ int dw_html_javascript_run(HWND handle, const char *script, void *scriptdata)
 #ifdef USE_WEBKIT
    int _locked_by_me = FALSE;
    WebKitWebView *web_view;
-   
+
    DW_MUTEX_LOCK;
    if((web_view = (WebKitWebView *)gtk_object_get_data(GTK_OBJECT(handle), "_dw_web_view")))
       webkit_web_view_execute_script(web_view, script);

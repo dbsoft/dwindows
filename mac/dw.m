@@ -792,7 +792,7 @@ int _event_handler1(id object, NSEvent *event, int message)
                 int (* API htmlresultfunc)(HWND, int, char *, void *, void *) = handler->signalfunction;
                 void **params = (void **)event;
                 NSString *result = params[0];
-                
+
                 return htmlresultfunc(handler->window, [result length] ? DW_ERROR_NONE : DW_ERROR_UNKNOWN, [result length] ? (char *)[result UTF8String] : NULL, params[1], handler->data);
             }
             /* HTML changed event */
@@ -801,7 +801,7 @@ int _event_handler1(id object, NSEvent *event, int message)
                 int (* API htmlchangedfunc)(HWND, int, char *, void *) = handler->signalfunction;
                 void **params = (void **)event;
                 NSString *uri = params[1];
-                
+
                 return htmlchangedfunc(handler->window, DW_POINTER_TO_INT(params[0]), (char *)[uri UTF8String], handler->data);
             }
         }
@@ -8880,7 +8880,7 @@ int dw_html_javascript_run(HWND handle, const char *script, void *scriptdata)
 {
     DWWebView *html = handle;
     DW_LOCAL_POOL_IN;
-    
+
 #if WK_API_ENABLED
     [html evaluateJavaScript:[NSString stringWithUTF8String:script] completionHandler:^(NSString *result, NSError *error)
     {
@@ -10762,7 +10762,7 @@ HWND dw_notification_new(const char *title, HPIXMAP pixmap, const char *descript
 #ifdef BUILDING_FOR_MOUNTAIN_LION
     char outbuf[1025] = {0};
     HWND retval = NULL;
-    
+
     if(description)
     {
         va_list args;
@@ -10779,7 +10779,7 @@ HWND dw_notification_new(const char *title, HPIXMAP pixmap, const char *descript
         if([[NSBundle mainBundle] bundleIdentifier] != nil)
         {
             UNMutableNotificationContent* notification = [[UNMutableNotificationContent alloc] init];
-            
+
             if(notification)
             {
                 notification.title = [NSString stringWithUTF8String:title];
@@ -10794,7 +10794,7 @@ HWND dw_notification_new(const char *title, HPIXMAP pixmap, const char *descript
     {
         // Fallback on earlier versions
         NSUserNotification *notification = [[NSUserNotification alloc] init];
-        
+
         if(notification)
         {
             notification.title = [NSString stringWithUTF8String:title];
@@ -10832,7 +10832,7 @@ int dw_notification_send(HWND notification)
                 NSString *notid = [NSString stringWithFormat:@"dw-notification-%llu", (unsigned long long)notification];
                 UNNotificationRequest* request = [UNNotificationRequest requestWithIdentifier:notid
                 content:content trigger:nil];
-                
+
                 UNUserNotificationCenter* center = [UNUserNotificationCenter currentNotificationCenter];
                 [center addNotificationRequest:request withCompletionHandler:^(NSError * _Nullable error) {
                         _event_handler(notification, nil, 8);
@@ -10864,6 +10864,11 @@ void dw_environment_query(DWEnv *env)
 
     strncpy(env->buildDate, __DATE__, sizeof(env->buildDate)-1);
     strncpy(env->buildTime, __TIME__, sizeof(env->buildTime)-1);
+#ifdef WK_API_ENABLED
+   strncpy(env->htmlEngine, "WEBKIT", sizeof(env->htmlEngine)-1);
+#else
+   strncpy(env->htmlEngine, "WEBVIEW", sizeof(env->htmlEngine)-1);
+#endif
     env->DWMajorVersion = DW_MAJOR_VERSION;
     env->DWMinorVersion = DW_MINOR_VERSION;
 #ifdef VER_REV
@@ -12049,7 +12054,7 @@ int API dw_init(int newthread, int argc, char *argv[])
         char *pathcopy = strdup(argv[0]);
         char *app = strstr(pathcopy, ".app/");
         char *binname = strrchr(pathcopy, '/');
-        
+
         if(binname && (binname++) && !_dw_app_id[0])
         {
             /* If we have a binary name, use that for the Application ID instead. */

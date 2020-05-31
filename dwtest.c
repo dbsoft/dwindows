@@ -570,9 +570,10 @@ int DWSIGNAL helpabout_callback(HWND window, void *data)
     DWEnv env;
 
     dw_environment_query(&env);
-    dw_messagebox( "About dwindows", DW_MB_OK | DW_MB_INFORMATION, "dwindows test\n\nOS: %s %s %s Version: %d.%d.%d.%d\n\ndwindows Version: %d.%d.%d",
+    dw_messagebox( "About dwindows", DW_MB_OK | DW_MB_INFORMATION, "dwindows test\n\nOS: %s %s %s Version: %d.%d.%d.%d HTML: %s\n\ndwindows Version: %d.%d.%d",
                    env.osName, env.buildDate, env.buildTime,
                    env.MajorVersion, env.MinorVersion, env.MajorBuild, env.MinorBuild,
+                   env.htmlEngine,
                    env.DWMajorVersion, env.DWMinorVersion, env.DWSubVersion );
     return 0;
 }
@@ -593,7 +594,7 @@ int DWSIGNAL browse_file_callback(HWND window, void *data)
     if ( tmp )
     {
         HWND notification = dw_notification_new("New file loaded", NULL, "dwtest loaded \"%s\" into the file browser on the Render tab, with \"File Display\" selected from the drop down list.", tmp);
-        
+
         if ( current_file )
         {
             dw_free( current_file );
@@ -1699,7 +1700,7 @@ void DWSIGNAL control_thread(void *data)
 int DWSIGNAL web_back_clicked(HWND button, void *data)
 {
     HWND html = (HWND)data;
-    
+
     dw_html_action(html, DW_HTML_GOBACK);
     return FALSE;
 }
@@ -1708,7 +1709,7 @@ int DWSIGNAL web_back_clicked(HWND button, void *data)
 int DWSIGNAL web_forward_clicked(HWND button, void *data)
 {
     HWND html = (HWND)data;
-    
+
     dw_html_action(html, DW_HTML_GOFORWARD);
     return FALSE;
 }
@@ -1717,7 +1718,7 @@ int DWSIGNAL web_forward_clicked(HWND button, void *data)
 int DWSIGNAL web_reload_clicked(HWND button, void *data)
 {
     HWND html = (HWND)data;
-    
+
     dw_html_action(html, DW_HTML_RELOAD);
     return FALSE;
 }
@@ -1728,7 +1729,7 @@ int DWSIGNAL web_run_clicked(HWND button, void *data)
     HWND html = (HWND)data;
     HWND javascript = (HWND)dw_window_get_data(button, "javascript");
     char *script = dw_window_get_text(javascript);
-    
+
     dw_html_javascript_run(html, script, NULL);
     dw_free(script);
     return FALSE;
@@ -1737,7 +1738,7 @@ int DWSIGNAL web_run_clicked(HWND button, void *data)
 /* Handle web javascript result */
 int DWSIGNAL web_html_result(HWND html, int status, char *result, void *script_data, void *user_data)
 {
-    dw_messagebox("Javascript Result", DW_MB_OK | (status ? DW_MB_ERROR : DW_MB_INFORMATION), 
+    dw_messagebox("Javascript Result", DW_MB_OK | (status ? DW_MB_ERROR : DW_MB_INFORMATION),
                   result ? result : "Javascript result is not a string value");
     return TRUE;
 }
@@ -1747,7 +1748,7 @@ int DWSIGNAL web_html_changed(HWND html, int status, char *url, void *data)
 {
     HWND hwndstatus = (HWND)data;
     char *statusnames[] = { "none", "started", "redirect", "loading", "complete", NULL };
-    
+
     if(hwndstatus && url && status < 5)
     {
         int length = (int)strlen(url) + (int)strlen(statusnames[status]) + 10;
@@ -1756,7 +1757,7 @@ int DWSIGNAL web_html_changed(HWND html, int status, char *url, void *data)
         snprintf(text, length, "Status %s: %s", statusnames[status], url);
         dw_window_set_text(hwndstatus, text);
         free(text);
-    }    
+    }
     return FALSE;
 }
 
@@ -1846,42 +1847,42 @@ int main(int argc, char *argv[])
         HWND hbox = dw_box_new(DW_HORZ, 0);
         HWND item;
         HWND javascript = dw_combobox_new("", 0);
-        
+
         dw_listbox_append(javascript, "window.scrollTo(0,500);");
         dw_listbox_append(javascript, "window.document.title;");
-         
+
         dw_box_pack_start( notebookbox7, rawhtml, 0, 100, TRUE, FALSE, 0);
         dw_html_raw(rawhtml, "<html><body><center><h1>dwtest</h1></center></body></html>");
         html = dw_html_new(1002);
-        
+
         dw_box_pack_start(notebookbox7, hbox, 0, 0, TRUE, FALSE, 0);
-         
+
         /* Add navigation buttons */
         item = dw_button_new("Back", 0);
         dw_box_pack_start(hbox, item, -1, -1, FALSE, FALSE, 0);
         dw_signal_connect(item, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(web_back_clicked), DW_POINTER(html));
-         
+
         item = dw_button_new("Forward", 0);
         dw_box_pack_start(hbox, item, -1, -1, FALSE, FALSE, 0);
         dw_signal_connect(item, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(web_forward_clicked), DW_POINTER(html));
-         
+
         /* Put in some extra space */
         dw_box_pack_start(hbox, 0, 5, 1, FALSE, FALSE, 0);
-         
+
         item = dw_button_new("Reload", 0);
         dw_box_pack_start(hbox, item, -1, -1, FALSE, FALSE, 0);
         dw_signal_connect(item, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(web_reload_clicked), DW_POINTER(html));
-           
+
         /* Put in some extra space */
         dw_box_pack_start(hbox, 0, 5, 1, FALSE, FALSE, 0);
         dw_box_pack_start(hbox, javascript, -1, -1, TRUE, FALSE, 0);
-         
+
         item = dw_button_new("Run", 0);
         dw_window_set_data(item, "javascript", DW_POINTER(javascript));
         dw_box_pack_start(hbox, item, -1, -1, FALSE, FALSE, 0);
         dw_signal_connect(item, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(web_run_clicked), DW_POINTER(html));
         dw_window_click_default(javascript, item);
-      
+
         dw_box_pack_start( notebookbox7, html, 0, 100, TRUE, TRUE, 0);
         dw_html_url(html, "http://dwindows.netlabs.org");
         htmlstatus = dw_status_text_new("HTML status loading...", 0);

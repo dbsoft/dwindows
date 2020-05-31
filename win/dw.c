@@ -6,7 +6,7 @@
  * (C) 2003-2011 Mark Hessling <mark@rexx.org>
  *
  */
- 
+
 #ifdef AEROGLASS
 #define _WIN32_IE 0x0501
 #define WINVER 0x501
@@ -64,7 +64,7 @@ struct GdiplusStartupInput
     UINT32 GdiplusVersion;
     void *DebugEventCallback;
     BOOL SuppressBackgroundThread;
-    BOOL SuppressExternalCodecs;       
+    BOOL SuppressExternalCodecs;
 };
 
 typedef enum  {
@@ -89,7 +89,7 @@ typedef enum  {
   GdiplusNotInitialized       = 18,
   PropertyNotFound            = 19,
   PropertyNotSupported        = 20,
-  ProfileNotFound             = 21 
+  ProfileNotFound             = 21
 } GpStatus;
 
 typedef enum {
@@ -104,7 +104,7 @@ typedef enum {
 
 typedef enum  {
   FlushIntentionFlush   = 0,
-  FlushIntentionSync    = 1 
+  FlushIntentionSync    = 1
 } GpFlushIntention;
 
 typedef enum {
@@ -175,12 +175,12 @@ GpStatus WINAPI GdipFillEllipseI(GpGraphics *graphics, GpBrush *brush, INT x, IN
 GpStatus WINAPI GdipFlush(GpGraphics *graphics, GpFlushIntention intention);
 
 /* Pixel format information */
-#define    PixelFormatIndexed      0x00010000 
+#define    PixelFormatIndexed      0x00010000
 #define    PixelFormatGDI          0x00020000
 #define    PixelFormatAlpha        0x00040000
 #define    PixelFormatPAlpha       0x00080000
 #define    PixelFormatExtended     0x00100000
-#define    PixelFormatCanonical    0x00200000 
+#define    PixelFormatCanonical    0x00200000
 
 #define    PixelFormatUndefined       0
 #define    PixelFormatDontCare        0
@@ -202,7 +202,7 @@ GpStatus WINAPI GdipFlush(GpGraphics *graphics, GpFlushIntention intention);
 #define    PixelFormat32bppCMYK       (15 | (32 << 8))
 
 /* Token to the GDI+ Instance */
-ULONG_PTR gdiplusToken; 
+ULONG_PTR gdiplusToken;
 #endif
 
 #ifdef AEROGLASS
@@ -222,7 +222,7 @@ HANDLE hdwm = 0;
 /* Aero related but separate functions and handles */
 HRESULT (WINAPI *_SetWindowTheme)(HWND hwnd, LPCWSTR pszSubAppName, LPCWSTR pszSubIdList) = 0;
 HANDLE huxtheme = 0;
- 
+
 /* Needed for Rich Edit controls */
 HANDLE hrichedit = 0;
 HANDLE hmsftedit = 0;
@@ -330,7 +330,7 @@ void _dw_redraw(HWND window, int skip)
 {
     static HWND lastwindow = 0;
     HWND redraw = lastwindow;
-    
+
     if(skip && !window)
         return;
 
@@ -499,7 +499,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 LPWSTR _myUTF8toWide(const char *utf8string, void *outbuf)
 {
    LPWSTR retbuf = outbuf;
-   
+
    if(retbuf)
       MultiByteToWideChar(CP_UTF8, 0, utf8string, -1, retbuf, MultiByteToWideChar(CP_UTF8, 0, utf8string, -1, NULL, 0) * sizeof(WCHAR));
    return retbuf;
@@ -508,7 +508,7 @@ LPWSTR _myUTF8toWide(const char *utf8string, void *outbuf)
 char *_myWideToUTF8(LPCWSTR widestring, void *outbuf)
 {
    char *retbuf = outbuf;
-   
+
    if(retbuf)
       WideCharToMultiByte(CP_UTF8, 0, widestring, -1, retbuf, WideCharToMultiByte(CP_UTF8, 0, widestring, -1, NULL, 0, NULL, NULL), NULL, NULL);
    return retbuf;
@@ -743,15 +743,15 @@ typedef struct _WINDOWCOMPOSITIONATTRIBDATA
    SIZE_T cbData;
 } _WINDOWCOMPOSITIONATTRIBDATA;
 
-HTHEME (WINAPI * _OpenNcThemeData)(HWND, LPCWSTR) = NULL; 
-VOID (WINAPI * _RefreshImmersiveColorPolicyState)(VOID) = NULL; 
-BOOL (WINAPI * _GetIsImmersiveColorUsingHighContrast)(IMMERSIVE_HC_CACHE_MODE) = NULL; 
-BOOL (WINAPI * _ShouldAppsUseDarkMode)(VOID) = NULL; 
+HTHEME (WINAPI * _OpenNcThemeData)(HWND, LPCWSTR) = NULL;
+VOID (WINAPI * _RefreshImmersiveColorPolicyState)(VOID) = NULL;
+BOOL (WINAPI * _GetIsImmersiveColorUsingHighContrast)(IMMERSIVE_HC_CACHE_MODE) = NULL;
+BOOL (WINAPI * _ShouldAppsUseDarkMode)(VOID) = NULL;
 BOOL (WINAPI * _AllowDarkModeForWindow)(HWND, BOOL) = NULL;
-BOOL (WINAPI * _AllowDarkModeForApp)(BOOL) = NULL; 
-_PreferredAppMode (WINAPI * _SetPreferredAppMode)(_PreferredAppMode) = NULL; 
-BOOL (WINAPI * _IsDarkModeAllowedForWindow)(HWND) = NULL; 
-BOOL (WINAPI * _ShouldSystemUseDarkMode)(VOID) = NULL; 
+BOOL (WINAPI * _AllowDarkModeForApp)(BOOL) = NULL;
+_PreferredAppMode (WINAPI * _SetPreferredAppMode)(_PreferredAppMode) = NULL;
+BOOL (WINAPI * _IsDarkModeAllowedForWindow)(HWND) = NULL;
+BOOL (WINAPI * _ShouldSystemUseDarkMode)(VOID) = NULL;
 BOOL (WINAPI* _SetWindowCompositionAttribute)(HWND, _WINDOWCOMPOSITIONATTRIBDATA *) = NULL;
 
 BOOL IsHighContrast(VOID)
@@ -784,7 +784,7 @@ void _dw_init_dark_mode(void)
       }
       /* Make sure we were able to load all the Dark Mode functions */
       if(_OpenNcThemeData && _RefreshImmersiveColorPolicyState && _ShouldAppsUseDarkMode && _AllowDarkModeForWindow &&
-         (_AllowDarkModeForApp || _SetPreferredAppMode) && _IsDarkModeAllowedForWindow && 
+         (_AllowDarkModeForApp || _SetPreferredAppMode) && _IsDarkModeAllowedForWindow &&
          (_DwmSetWindowAttribute || _SetWindowCompositionAttribute))
       {
          _DW_DARK_MODE_SUPPORTED = TRUE;
@@ -802,11 +802,11 @@ BOOL _CanThemeWindow(HWND window)
 {
    TCHAR tmpbuf[100] = {0};
    LONG_PTR style = GetWindowLongPtr(window, GWL_STYLE);
-   
+
    GetClassName(window, tmpbuf, 99);
 
    /* Some controls don't display properly with visual styles enabled */
-   if(_tcsnicmp(tmpbuf, BUTTONCLASSNAME, _tcslen(BUTTONCLASSNAME)+1) == 0 && 
+   if(_tcsnicmp(tmpbuf, BUTTONCLASSNAME, _tcslen(BUTTONCLASSNAME)+1) == 0 &&
       (style & (BS_AUTOCHECKBOX | BS_CHECKBOX | BS_RADIOBUTTON)))
       return FALSE;
 #ifdef TOOLBAR
@@ -883,7 +883,7 @@ BOOL CALLBACK _dw_set_child_window_theme(HWND window, LPARAM lParam)
 }
 #endif
 
-/* Special wrappers for GetSysColor*() since they currently don't support 
+/* Special wrappers for GetSysColor*() since they currently don't support
  * dark mode, we will have to return modified colors when dark mode is enabled.
  */
 DWORD _DW_GetSysColor(int nIndex)
@@ -894,7 +894,7 @@ DWORD _DW_GetSysColor(int nIndex)
    {
       const COLORREF darkBkColor = 0x383838;
       const COLORREF darkTextColor = 0xFFFFFF;
-   
+
       switch(nIndex)
       {
          case COLOR_3DFACE:
@@ -915,7 +915,7 @@ HBRUSH _DW_GetSysColorBrush(int nIndex)
    HBRUSH retval = GetSysColorBrush(nIndex);
 #ifdef AEROGLASS
    static HBRUSH darkBkColorBrush = 0;
-   
+
    if(_DW_DARK_MODE_ALLOWED == 2 && _DW_DARK_MODE_ENABLED)
    {
       if(!darkBkColorBrush)
@@ -1000,15 +1000,15 @@ BOOL CALLBACK _free_window_memory(HWND handle, LPARAM lParam)
    HFONT oldfont = (HFONT)SendMessage(handle, WM_GETFONT, 0, 0);
    HICON oldicon = (HICON)SendMessage(handle, WM_GETICON, 0, 0);
    TCHAR tmpbuf[100] = {0};
-   
+
    TOOLINFO ti = { 0 };
- 
+
    ti.cbSize = sizeof(TOOLINFO);
    ti.hwnd = handle;
    ti.hinst = DWInstance;
- 
+
    SendMessage(hwndTooltip, TTM_DELTOOL, 0, (LPARAM) (LPTOOLINFO) &ti);
-      
+
    GetClassName(handle, tmpbuf, 99);
 
    /* Don't try to free memory from an embedded IE or Edge/Chromium window */
@@ -1039,22 +1039,22 @@ BOOL CALLBACK _free_window_memory(HWND handle, LPARAM lParam)
       if(oldicon)
          DestroyIcon(oldicon);
    }
-#ifdef TOOLBAR   
+#ifdef TOOLBAR
    /* Bitmap Buttons */
    else if(_tcsnicmp(tmpbuf, TOOLBARCLASSNAME, _tcslen(TOOLBARCLASSNAME)+1) == 0)
    {
       HIMAGELIST imlist = (HIMAGELIST)SendMessage(handle, TB_GETIMAGELIST, 0, 0);
       HIMAGELIST dimlist = (HIMAGELIST)SendMessage(handle, TB_GETDISABLEDIMAGELIST, 0, 0);
-      
+
       SendMessage(handle, TB_SETIMAGELIST, 0, 0);
       SendMessage(handle, TB_SETDISABLEDIMAGELIST, 0, 0);
-      
+
       if(imlist)
          ImageList_Destroy(imlist);
       if(dimlist)
          ImageList_Destroy(dimlist);
    }
-#endif   
+#endif
    else if(_tcsnicmp(tmpbuf, FRAMECLASSNAME, _tcslen(FRAMECLASSNAME)+1)==0)
    {
       Box *box = (Box *)thiscinfo;
@@ -1139,12 +1139,12 @@ void _free_menu_data(HMENU menu)
         mii.fMask = MIIM_SUBMENU | MIIM_ID;
 
         if ( GetMenuItemInfo( menu, i, TRUE, &mii ) )
-        {  
+        {
            /* Free the data associated with the ID */
            if(mii.wID >= 30000)
            {
               char buffer[31] = {0};
-           
+
               _snprintf(buffer, 30, "_dw_id%u", mii.wID);
               dw_window_set_data( DW_HWND_OBJECT, buffer, NULL );
               _snprintf(buffer, 30, "_dw_checkable%u", mii.wID);
@@ -1154,7 +1154,7 @@ void _free_menu_data(HMENU menu)
               _snprintf(buffer, 30, "_dw_isdisabled%u", mii.wID);
               dw_window_set_data( DW_HWND_OBJECT, buffer, NULL );
            }
-           
+
            /* Check any submenus */
            if( mii.hSubMenu )
               _free_menu_data(mii.hSubMenu);
@@ -1193,9 +1193,9 @@ int _validate_focus(HWND handle)
     */
    if(_tcsnicmp(tmpbuf, EDITCLASSNAME, _tcslen(EDITCLASSNAME)+1)==0 ||          /* Entryfield */
       _tcsnicmp(tmpbuf, BUTTONCLASSNAME, _tcslen(BUTTONCLASSNAME)+1)==0 ||      /* Button */
-#ifdef TOOLBAR      
+#ifdef TOOLBAR
       _tcsnicmp(tmpbuf, TOOLBARCLASSNAME, _tcslen(TOOLBARCLASSNAME)+1) == 0 ||  /* Toolbar */
-#endif      
+#endif
       _tcsnicmp(tmpbuf, COMBOBOXCLASSNAME, _tcslen(COMBOBOXCLASSNAME)+1)==0 ||  /* Combobox */
       _tcsnicmp(tmpbuf, LISTBOXCLASSNAME, _tcslen(LISTBOXCLASSNAME)+1)==0 ||    /* List box */
       _tcsnicmp(tmpbuf, UPDOWN_CLASS, _tcslen(UPDOWN_CLASS)+1)==0 ||            /* Spinbutton */
@@ -1307,9 +1307,9 @@ int _focus_check_box(Box *box, HWND handle, int start, int direction, HWND defau
       else
       {
          int type = _validate_focus(box->items[z].hwnd);
-         
+
          /* Special case notebook, can focus and contains items */
-         if(type == 2 && direction == _DW_DIRECTION_FORWARD && _focus_notebook(box->items[z].hwnd, handle, start, direction, defaultitem)) 
+         if(type == 2 && direction == _DW_DIRECTION_FORWARD && _focus_notebook(box->items[z].hwnd, handle, start, direction, defaultitem))
             return 1;
          if(box->items[z].hwnd == handle)
          {
@@ -1341,7 +1341,7 @@ int _focus_check_box(Box *box, HWND handle, int start, int direction, HWND defau
             }
 
             lasthwnd = _normalize_handle(box->items[z].hwnd);
-            
+
             if(!firsthwnd)
                firsthwnd = lasthwnd;
          }
@@ -1386,7 +1386,7 @@ int _focus_check_box(Box *box, HWND handle, int start, int direction, HWND defau
             }
          }
          /* Special case notebook, can focus and contains items */
-         if(type == 2 && direction == _DW_DIRECTION_BACKWARD && _focus_notebook(box->items[z].hwnd, handle, start, direction, defaultitem)) 
+         if(type == 2 && direction == _DW_DIRECTION_BACKWARD && _focus_notebook(box->items[z].hwnd, handle, start, direction, defaultitem))
             return 1;
       }
    }
@@ -1425,7 +1425,7 @@ HWND _toplevel_window(HWND handle)
 
    if(!lastbox)
       lastbox = handle;
-      
+
    /* Find the toplevel window */
    while((box = GetParent(lastbox)))
    {
@@ -1437,9 +1437,9 @@ HWND _toplevel_window(HWND handle)
    if(lastbox)
    {
       TCHAR tmpbuf[100] = {0};
-      
+
       GetClassName(lastbox, tmpbuf, 99);
-      
+
       if(_tcsncmp(tmpbuf, ClassName, _tcslen(ClassName)+1)==0)
          return lastbox;
    }
@@ -1482,7 +1482,7 @@ static void _resize_box(Box *thisbox, int *depth, int x, int y, int pass)
     */
    int uymax = 0, uxmax = 0;
    int upymax = 0, upxmax = 0;
-    
+
    /* Reset the box sizes */
    thisbox->minwidth = thisbox->minheight = thisbox->usedpadx = thisbox->usedpady = thisbox->pad * 2;
 
@@ -1508,7 +1508,7 @@ static void _resize_box(Box *thisbox, int *depth, int x, int y, int pass)
           */
          if(thisbox->grouppady < 9)
             thisbox->grouppady = 9;
-         
+
          if(thisbox->grouppady)
             thisbox->grouppady += 3;
          else
@@ -1527,7 +1527,7 @@ static void _resize_box(Box *thisbox, int *depth, int x, int y, int pass)
    for(z=0;z<thisbox->count;z++)
    {
       int itempad, itemwidth, itemheight;
-        
+
       if(thisbox->items[z].type == TYPEBOX)
       {
          Box *tmp = (Box *)GetWindowLongPtr(thisbox->items[z].hwnd, GWLP_USERDATA);
@@ -1538,38 +1538,38 @@ static void _resize_box(Box *thisbox, int *depth, int x, int y, int pass)
             if(pass == 1)
             {
                (*depth)++;
-                    
+
                /* Save the newly calculated values on the box */
                _resize_box(tmp, depth, x, y, pass);
-                    
+
                /* Duplicate the values in the item list for use below */
                thisbox->items[z].width = tmp->minwidth;
                thisbox->items[z].height = tmp->minheight;
-               
+
                /* If the box has no contents but is expandable... default the size to 1 */
                if(!thisbox->items[z].width && thisbox->items[z].hsize)
                   thisbox->items[z].width = 1;
                if(!thisbox->items[z].height && thisbox->items[z].vsize)
                   thisbox->items[z].height = 1;
-               
+
                (*depth)--;
             }
          }
       }
-        
+
       /* Precalculate these values, since they will
        * be used used repeatedly in the next section.
        */
       itempad = thisbox->items[z].pad * 2;
       itemwidth = thisbox->items[z].width + itempad;
       itemheight = thisbox->items[z].height + itempad;
-        
+
       /* Calculate the totals and maximums */
       if(thisbox->type == DW_VERT)
       {
          if(itemwidth > uxmax)
             uxmax = itemwidth;
-            
+
          if(thisbox->items[z].hsize != SIZEEXPAND)
          {
             if(itemwidth > upxmax)
@@ -1637,7 +1637,7 @@ static void _resize_box(Box *thisbox, int *depth, int x, int y, int pass)
             if(thisbox->type == DW_HORZ)
             {
                int expandablex = thisbox->minwidth - thisbox->usedpadx;
-                
+
                if(expandablex)
                   width = (int)(((float)width / (float)expandablex) * (float)(x - thisbox->usedpadx));
             }
@@ -1649,21 +1649,21 @@ static void _resize_box(Box *thisbox, int *depth, int x, int y, int pass)
             if(thisbox->type == DW_VERT)
             {
                int expandabley = thisbox->minheight - thisbox->usedpady;
-                
+
                if(expandabley)
                   height = (int)(((float)height / (float)expandabley) * (float)(y - thisbox->usedpady));
             }
             else
                height = y - (itempad + thispad + thisbox->grouppady);
          }
-            
+
          /* If the calculated size is valid... */
          if(width > 0 && height > 0)
          {
             int pad = thisbox->items[z].pad;
             HWND handle = thisbox->items[z].hwnd;
             TCHAR tmpbuf[100] = {0};
-               
+
             GetClassName(handle, tmpbuf, 99);
 
             if(_tcsnicmp(tmpbuf, COMBOBOXCLASSNAME, _tcslen(COMBOBOXCLASSNAME)+1)==0)
@@ -1845,9 +1845,9 @@ static void _resize_box(Box *thisbox, int *depth, int x, int y, int pass)
             }
             /* So does the List View... handle delayed cursoring */
             if(_tcsnicmp(tmpbuf, WC_LISTVIEW, _tcslen(WC_LISTVIEW)+1)==0 && width > 10 && height > 10)
-            {            
+            {
                 int index = DW_POINTER_TO_INT(dw_window_get_data(handle, "_dw_cursor"));
-                
+
                 if(index > 0)
                     ListView_EnsureVisible(handle, index, TRUE);
             }
@@ -1869,10 +1869,10 @@ void _do_resize(Box *thisbox, int x, int y)
       if(thisbox)
       {
          int depth = 0;
-            
+
          /* Calculate space requirements */
          _resize_box(thisbox, &depth, x, y, 1);
-            
+
          /* Finally place all the boxes and controls */
          _resize_box(thisbox, &depth, x, y, 2);
       }
@@ -2137,13 +2137,13 @@ LRESULT CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
                      {
                         int special = 0;
                         char *utf8 = NULL, ch[2] = {0};
-#ifdef UNICODE             
+#ifdef UNICODE
                         WCHAR uc[2] = { 0 };
-                        
+
                         uc[0] = (WCHAR)mp1;
                         utf8 = WideToUTF8(&uc[0]);
-#endif                        
-                        
+#endif
+
                         if(GetAsyncKeyState(VK_SHIFT) & 0x8000)
                            special |= KC_SHIFT;
                         if(GetAsyncKeyState(VK_CONTROL) & 0x8000)
@@ -2354,7 +2354,7 @@ LRESULT CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
                            tmp = NULL;
                         }
                      }
-#ifdef TOOLBAR                     
+#ifdef TOOLBAR
                      else if (message == BN_CLICKED && tmp->message == WM_COMMAND && tmp->window == (HWND)mp2)
                      {
                         TCHAR tmpbuf[100] = {0};
@@ -2368,7 +2368,7 @@ LRESULT CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
                            tmp = NULL;
                         }
                      }
-#endif                     
+#endif
                      else if (tmp->id && passthru == tmp->id)
                      {
                         HMENU hwndmenu = GetMenu(hWnd), menuowner = _menu_owner((HMENU)tmp->window);
@@ -2468,19 +2468,19 @@ LRESULT CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
    /* Now that any handlers are done... do normal processing */
    switch( msg )
    {
-#ifdef AEROGLASS   
+#ifdef AEROGLASS
    case WM_DWMCOMPOSITIONCHANGED:
       {
          LONG_PTR styleex = GetWindowLongPtr(hWnd, GWL_EXSTYLE);
-         
+
          if(_DwmIsCompositionEnabled)
             _DwmIsCompositionEnabled(&_dw_composition);
-         
+
          /* If we are no longer compositing... disable layered windows */
          if(!_dw_composition && (styleex & WS_EX_LAYERED))
          {
             MARGINS mar = {0};
-            
+
             SetWindowLongPtr(hWnd, GWL_EXSTYLE, styleex & ~WS_EX_LAYERED);
             if(_DwmExtendFrameIntoClientArea)
                _DwmExtendFrameIntoClientArea(hWnd, &mar);
@@ -2501,15 +2501,15 @@ LRESULT CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
    break;
 #endif
 #ifdef AEROGLASS1
-   case WM_ERASEBKGND: 
+   case WM_ERASEBKGND:
       if(_dw_composition && (GetWindowLongPtr(hWnd, GWL_EXSTYLE) & WS_EX_LAYERED))
       {
          static HBRUSH hbrush = 0;
          RECT rect;
-         
+
          if(!hbrush)
             hbrush = CreateSolidBrush(_dw_transparencykey);
-            
+
          GetClientRect(hWnd, &rect);
          FillRect((HDC)mp1, &rect, hbrush);
          return TRUE;
@@ -2620,7 +2620,7 @@ LRESULT CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
          else
          {
             TCHAR tmpbuf[100] = {0};
-            
+
             GetClassName( hWnd, tmpbuf, 99 );
             if ( _tcsnicmp(tmpbuf, FRAMECLASSNAME, _tcslen(FRAMECLASSNAME)+1 ) == 0 )
             {
@@ -2707,21 +2707,21 @@ LRESULT CALLBACK _framewndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
          InvalidateRect(hWnd, NULL, TRUE);
       }
       break;
-   case WM_ERASEBKGND: 
+   case WM_ERASEBKGND:
       if(_dw_composition && (GetWindowLongPtr(_toplevel_window(hWnd), GWL_EXSTYLE) & WS_EX_LAYERED))
       {
          static HBRUSH hbrush = 0;
          RECT rect;
-         
+
          if(!hbrush)
             hbrush = CreateSolidBrush(_dw_transparencykey);
-            
+
          GetClientRect(hWnd, &rect);
          FillRect((HDC)mp1, &rect, hbrush);
          return TRUE;
       }
       break;
-#endif      
+#endif
    case WM_PAINT:
       {
          ColorInfo *thiscinfo = (ColorInfo *)GetWindowLongPtr(hWnd, GWLP_USERDATA);
@@ -2948,7 +2948,7 @@ void _click_default(HWND handle)
     * obtain input focus.
     */
    if (_tcsnicmp(tmpbuf, BUTTONCLASSNAME, _tcslen(BUTTONCLASSNAME)+1)==0
-#ifdef TOOLBAR      
+#ifdef TOOLBAR
     || _tcsnicmp(tmpbuf, TOOLBARCLASSNAME, _tcslen(TOOLBARCLASSNAME)+1) == 0
 #endif
       )
@@ -3130,7 +3130,7 @@ LRESULT CALLBACK _colorwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
       case WM_CTLCOLORDLG:
          {
             ColorInfo *thiscinfo = (ColorInfo *)GetWindowLongPtr((HWND)mp2, GWLP_USERDATA);
-            
+
             if(msg == WM_CTLCOLORBTN)
             {
                /* Groupbox color info is on the frame window it is attached to */
@@ -3141,11 +3141,11 @@ LRESULT CALLBACK _colorwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
                      thiscinfo = &framebox->cinfo;
                }
             }
-            
+
             if(thiscinfo && thiscinfo->fore != -1 && thiscinfo->back != -1)
             {
                int thisback = thiscinfo->back;
-               
+
                /* Handle foreground */
                if(thiscinfo->fore != DW_CLR_DEFAULT)
                {
@@ -3163,7 +3163,7 @@ LRESULT CALLBACK _colorwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
                if(thiscinfo->back == DW_RGB_TRANSPARENT)
                {
                   ColorInfo *parentcinfo = (ColorInfo *)GetWindowLongPtr(hWnd, GWLP_USERDATA);
-                  
+
                   if(parentcinfo && parentcinfo->back != -1)
                      thisback = parentcinfo->back;
                }
@@ -3179,7 +3179,7 @@ LRESULT CALLBACK _colorwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
                else if(thisback != -1 && thisback != DW_RGB_TRANSPARENT)
                {
                   int back = _internal_color(thisback);
-                  
+
                   SetBkColor((HDC)mp1, RGB(DW_RED_VALUE(back),
                                      DW_GREEN_VALUE(back),
                                      DW_BLUE_VALUE(back)));
@@ -3200,8 +3200,8 @@ LRESULT CALLBACK _colorwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
                case WM_CTLCOLORBTN:
                case WM_CTLCOLORDLG:
                   {
-                     
-                     if((_dw_composition && GetWindowLongPtr(_toplevel_window(hWnd), GWL_EXSTYLE) & WS_EX_LAYERED) && 
+
+                     if((_dw_composition && GetWindowLongPtr(_toplevel_window(hWnd), GWL_EXSTYLE) & WS_EX_LAYERED) &&
                         (!thiscinfo || (thiscinfo && (thiscinfo->back == -1 || thiscinfo->back == DW_RGB_TRANSPARENT))))
                      {
                         if(!(msg == WM_CTLCOLORSTATIC && SendMessage((HWND)mp2, STM_GETIMAGE, IMAGE_BITMAP, 0)))
@@ -3231,7 +3231,7 @@ LRESULT CALLBACK _colorwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
                   {
                      ColorInfo *parentcinfo = (ColorInfo *)GetWindowLongPtr(hWnd, GWLP_USERDATA);
                      int thisback = thiscinfo ? thiscinfo->back : -1;
-                     
+
                      if(thisback == DW_RGB_TRANSPARENT && parentcinfo)
                         thisback = parentcinfo->back;
 
@@ -3299,7 +3299,7 @@ LRESULT CALLBACK _containerwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
             int iItems, iTop, i;
             COLORREF c, odd, even;
             unsigned long temp = _internal_color(continfo->odd);
-            
+
             /* Create the colors based on the current theme */
             if(continfo->odd == DW_CLR_DEFAULT)
             {
@@ -3307,10 +3307,10 @@ LRESULT CALLBACK _containerwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
                if(_DW_DARK_MODE_ALLOWED == 2 && _DW_DARK_MODE_ENABLED)
                   odd = RGB(100,100,100);
                else
-#endif              
+#endif
                   odd = RGB(230, 230, 230);
             }
-            else 
+            else
                   odd = RGB(DW_RED_VALUE(temp), DW_GREEN_VALUE(temp), DW_BLUE_VALUE(temp));
             temp = _internal_color(continfo->even);
             if(continfo->even == DW_CLR_DEFAULT)
@@ -3329,10 +3329,10 @@ LRESULT CALLBACK _containerwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
             /* first visible row */
             iTop = ListView_GetTopIndex(hWnd);
 
-            for(i=iTop; i<=(iTop+iItems+1); i++) 
+            for(i=iTop; i<=(iTop+iItems+1); i++)
             {
                 /* if row rectangle intersects update rectangle then it requires re-drawing */
-                if(ListView_GetItemRect(hWnd, i, rect, LVIR_BOUNDS) && IntersectRect(&rectDestin, &rectUpd, rect)) 
+                if(ListView_GetItemRect(hWnd, i, rect, LVIR_BOUNDS) && IntersectRect(&rectDestin, &rectUpd, rect))
                 {
                     /* change text background colour accordingly */
                     c = (i % 2) ? odd : even;
@@ -3346,7 +3346,7 @@ LRESULT CALLBACK _containerwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
                         CallWindowProc(continfo->cinfo.pOldProc, hWnd, msg, 0, 0);
                     }
                 }
-            }            
+            }
        }
        break;
    case WM_LBUTTONDBLCLK:
@@ -3494,7 +3494,7 @@ LRESULT CALLBACK _treewndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
       if(_DW_DARK_MODE_ALLOWED == 2 && _DW_DARK_MODE_SUPPORTED)
       {
          ContainerInfo *continfo = (ContainerInfo *)GetWindowLongPtr(hWnd, GWLP_USERDATA);
-         
+
          if(!continfo || continfo->cinfo.back == -1 || continfo->cinfo.back == DW_CLR_DEFAULT)
             TreeView_SetBkColor(hWnd, _DW_GetSysColor(COLOR_WINDOW));
          if(!continfo || continfo->cinfo.fore == -1 || continfo->cinfo.fore == DW_CLR_DEFAULT)
@@ -3796,9 +3796,9 @@ LRESULT CALLBACK _statuswndproc(HWND hwnd, UINT msg, WPARAM mp1, LPARAM mp2)
          hdcPaint = BeginPaint(hwnd, &ps);
          if(hfont)
             oldfont = (HFONT)SelectObject(hdcPaint, hfont);
-         
+
          SetRect(&rc, 0, 0, cx, cy);
-         
+
          /* If we are in full dark mode, or we have custom colors selected...
           * we will draw the status window ourselves... otherwise DrawStatusText()
           */
@@ -3853,14 +3853,14 @@ LRESULT CALLBACK _staticwndproc(HWND hwnd, ULONG msg, WPARAM mp1, LPARAM mp2)
 
    /* Need the parent to do the check completely */
    parentcinfo = (ColorInfo *)GetWindowLongPtr(GetParent(hwnd), GWLP_USERDATA);
-   
+
    /* If we don't require themed drawing */
-   if(((cinfo->back != -1 && cinfo->back != DW_RGB_TRANSPARENT) || (parentcinfo && parentcinfo->back != -1)) 
+   if(((cinfo->back != -1 && cinfo->back != DW_RGB_TRANSPARENT) || (parentcinfo && parentcinfo->back != -1))
        || !_dw_composition || !(GetWindowLongPtr(_toplevel_window(hwnd), GWL_EXSTYLE) & WS_EX_LAYERED))
       return _colorwndproc(hwnd, msg, mp1, mp2);
-   
+
    pOldProc = cinfo->pOldProc;
-   
+
    switch(msg)
    {
       case WM_PAINT:
@@ -3875,15 +3875,15 @@ LRESULT CALLBACK _staticwndproc(HWND hwnd, ULONG msg, WPARAM mp1, LPARAM mp2)
             RECT rcClient;
             LONG_PTR dwStyle = GetWindowLongPtr(hwnd, GWL_STYLE);
             LONG_PTR dwStyleEx = GetWindowLongPtr(hwnd, GWL_EXSTYLE);
-            HTHEME hTheme = _OpenThemeData(NULL, L"ControlPanelStyle"); 
+            HTHEME hTheme = _OpenThemeData(NULL, L"ControlPanelStyle");
 
             GetClientRect(hwnd, &rcClient);
-            
+
             if(hTheme)
             {
                /* Create an in memory image to draw to */
                HPAINTBUFFER hBufferedPaint = _BeginBufferedPaint(hdc, &rcClient, BPBF_TOPDOWNDIB, NULL, &hdcPaint);
-               
+
                if(hdcPaint)
                {
                   LONG_PTR dwStaticStyle = dwStyle & 0x1F;
@@ -3891,37 +3891,37 @@ LRESULT CALLBACK _staticwndproc(HWND hwnd, ULONG msg, WPARAM mp1, LPARAM mp2)
                   int iLen = GetWindowTextLength(hwnd), fore = _internal_color(cinfo->fore);
                   DTTOPTS DttOpts = { sizeof(DTTOPTS) };
                   static HBRUSH hbrush = 0;
-                   
+
                   /* Make sure we have a transparency brush */
                   if(!hbrush)
                      hbrush = CreateSolidBrush(_dw_transparencykey);
-            
+
                   /* Fill the background with the transparency color */
                   FillRect(hdcPaint, &rcClient, hbrush);
                   _BufferedPaintSetAlpha(hBufferedPaint, &ps.rcPaint, 0x00);
-                  
+
                   /* Setup how we will draw the text */
                   DttOpts.dwFlags = DTT_COMPOSITED | DTT_GLOWSIZE | DTT_TEXTCOLOR;
                   DttOpts.crText = cinfo->fore == -1 ? RGB(255, 255, 255) : RGB(DW_RED_VALUE(fore), DW_GREEN_VALUE(fore), DW_BLUE_VALUE(fore));
                   DttOpts.iGlowSize = 12;
-                  
+
                   SetBkMode(hdcPaint, TRANSPARENT);
 
-                  if(hFontOld) 
+                  if(hFontOld)
                      hFontOld = (HFONT)SelectObject(hdcPaint, hFontOld);
 
                   /* Make sure there is text to draw */
                   if(iLen)
                   {
                      LPWSTR szText = (LPWSTR)_alloca(sizeof(WCHAR)*(iLen+5));
-                     
+
                      if(szText)
                      {
                         iLen = GetWindowTextW(hwnd, szText, iLen+5);
                         if(iLen)
                         {
                            DWORD dwFlags = DT_WORDBREAK;
-                         
+
                            switch (dwStaticStyle)
                            {
                               case SS_CENTER:
@@ -3954,9 +3954,9 @@ LRESULT CALLBACK _staticwndproc(HWND hwnd, ULONG msg, WPARAM mp1, LPARAM mp2)
 
                            if(dwStyle & SS_NOPREFIX)
                               dwFlags |= DT_NOPREFIX;
-                         
+
                            /* Draw the text! */
-                           _DrawThemeTextEx(hTheme, hdcPaint, 0, 0, 
+                           _DrawThemeTextEx(hTheme, hdcPaint, 0, 0,
                                             szText, -1, dwFlags, &rcClient, &DttOpts);
                         }
                      }
@@ -3966,17 +3966,17 @@ LRESULT CALLBACK _staticwndproc(HWND hwnd, ULONG msg, WPARAM mp1, LPARAM mp2)
                   if (hFontOld)
                      SelectObject(hdcPaint, hFontOld);
                   _EndBufferedPaint(hBufferedPaint, TRUE);
-               }                
+               }
                _CloseThemeData(hTheme);
             }
          }
-             
+
          EndPaint(hwnd, &ps);
          return TRUE;
       }
       break;
    }
-    
+
    if ( !pOldProc )
       return DefWindowProc(hwnd, msg, mp1, mp2);
    return CallWindowProc(pOldProc, hwnd, msg, mp1, mp2);
@@ -4031,7 +4031,7 @@ LRESULT CALLBACK _BtProc(HWND hwnd, ULONG msg, WPARAM mp1, LPARAM mp2)
                if(tmp->window == hwnd)
                {
                   int checkbox = DW_POINTER_TO_INT(dw_window_get_data(hwnd, "_dw_checkbox"));
-                  
+
                   if(checkbox)
                      in_checkbox_handler = 1;
 
@@ -4130,11 +4130,11 @@ void _resize_notebook_page(HWND handle, int pageid)
 void _create_tooltip(HWND handle, const char *text)
 {
     TOOLINFO ti = { 0 };
-    
+
     ti.cbSize = sizeof(TOOLINFO);
     ti.hwnd = handle;
     ti.hinst = DWInstance;
-    
+
     SendMessage(hwndTooltip, TTM_DELTOOL, 0, (LPARAM) (LPTOOLINFO) &ti);
     if(text)
     {
@@ -4232,25 +4232,25 @@ int API dw_init(int newthread, int argc, char *argv[])
    INITCOMMONCONTROLSEX icc;
    char *alttmpdir;
 #ifdef GDIPLUS
-   struct GdiplusStartupInput si; 
+   struct GdiplusStartupInput si;
 #endif
 
    /* Setup the private data directory */
    if(argc > 0 && argv[0])
    {
       char *pos = strrchr(argv[0], '\\');
-      
+
       /* Just to be safe try the unix style */
       if(!pos)
          pos = strrchr(argv[0], '/');
-         
+
       if(pos)
          strncpy(_dw_exec_dir, argv[0], (size_t)(pos - argv[0]));
    }
    /* If that failed... just get the current directory */
    if(!_dw_exec_dir[0])
       GetCurrentDirectoryA(MAX_PATH, _dw_exec_dir);
-      
+
    /* Initialize our thread local storage */
    _foreground = TlsAlloc();
    _background = TlsAlloc();
@@ -4259,7 +4259,7 @@ int API dw_init(int newthread, int argc, char *argv[])
 #ifdef GDIPLUS
    _gpPen = TlsAlloc();
    _gpBrush = TlsAlloc();
-#endif   
+#endif
 
    icc.dwSize = sizeof(INITCOMMONCONTROLSEX);
    icc.dwICC = ICC_WIN95_CLASSES|ICC_DATE_CLASSES;
@@ -4396,7 +4396,7 @@ int API dw_init(int newthread, int argc, char *argv[])
       dw_messagebox("Dynamic Windows", DW_MB_OK|DW_MB_ERROR, "Could not initialize the object window. error code %d", GetLastError());
       exit(1);
    }
-   
+
 #if (defined(BUILD_DLL) || defined(BUILD_HTML))
    /* Register HTML renderer class */
    memset(&wc, 0, sizeof(WNDCLASS));
@@ -4431,7 +4431,7 @@ int API dw_init(int newthread, int argc, char *argv[])
    SetSecurityDescriptorDacl(&_dwsd, TRUE, (PACL) NULL, FALSE);
 
    OleInitialize(NULL);
-   
+
    /*
     * Get an alternate temporary directory in case TMP doesn't exist
     */
@@ -4452,7 +4452,7 @@ int API dw_init(int newthread, int argc, char *argv[])
    si.SuppressExternalCodecs = FALSE;
    GdiplusStartup(&gdiplusToken, &si, NULL);
 #endif
-   
+
    /* GDI+ Needs to be initialized before calling _dw_init_thread(); */
    _dw_init_thread();
 
@@ -4463,7 +4463,7 @@ int API dw_init(int newthread, int argc, char *argv[])
       if(!(hrichedit = LoadLibrary(TEXT("riched20"))))
          hrichedit = LoadLibrary(TEXT("riched32"));
    }
-#endif      
+#endif
    return 0;
 }
 
@@ -4482,7 +4482,7 @@ void API dw_main(void)
 
    /* Set the running flag to TRUE */
    _dw_main_running = TRUE;
-   
+
    /* Run the loop until the flag is unset... or error */
    while(_dw_main_running && GetMessage(&msg, NULL, 0, 0))
    {
@@ -4643,7 +4643,7 @@ void API dw_debug(const char *format, ...)
    va_start(args, format);
    vsnprintf(outbuf, 1024, format, args);
    va_end(args);
-   
+
    OutputDebugString(UTF8toWide(thisbuf));
 }
 
@@ -4715,7 +4715,7 @@ int API dw_window_show(HWND handle)
 {
    int rc;
    RECT rect;
-   
+
 #ifdef AEROGLASS
    if(_DW_DARK_MODE_SUPPORTED)
    {
@@ -4726,13 +4726,13 @@ int API dw_window_show(HWND handle)
          RefreshTitleBarThemeColor(handle);
    }
 #endif
-   
+
    GetClientRect(handle, &rect);
-   
+
    /* If the client area is 0x0 then call the autosize routine */
    if((rect.bottom - rect.top) == 0 || (rect.right - rect.left) == 0)
       dw_window_set_size(handle, 0, 0);
-      
+
    rc = ShowWindow(handle, SW_SHOW);
    SetFocus(handle);
    _initial_focus(handle);
@@ -4764,18 +4764,18 @@ int API dw_window_destroy(HWND handle)
    {
       char buffer[31] = {0};
       ULONG id = (ULONG)(uintptr_t)handle;
-      
+
       _snprintf(buffer, 30, "_dw_id%ld", id);
       menu = (HMENU)dw_window_get_data(DW_HWND_OBJECT, buffer);
-      
+
       if(menu && IsMenu(menu))
          return dw_menu_delete_item((HMENUI)menu, id);
       return DW_ERROR_UNKNOWN;
    }
-   
+
    parent = GetParent(handle);
    menu = GetMenu(handle);
-   
+
    if(menu)
       _free_menu_data(menu);
 
@@ -4918,8 +4918,8 @@ void API dw_font_set_default(const char *fontname)
 Item *_box_item(HWND handle)
 {
    HWND parent = GetParent(handle);
-   Box *thisbox = (Box *)GetWindowLongPtr(parent, GWLP_USERDATA);   
-   
+   Box *thisbox = (Box *)GetWindowLongPtr(parent, GWLP_USERDATA);
+
    /* If it is a desktop window let WM_DESTROY handle it */
    if(parent != HWND_DESKTOP)
    {
@@ -4940,7 +4940,7 @@ Item *_box_item(HWND handle)
 
 /* Internal function to calculate the widget's required size..
  * These are the general rules for widget sizes:
- * 
+ *
  * Render/Unspecified: 1x1
  * Scrolled(Container,Tree,MLE): Guessed size clamped to min and max in dw.h
  * Entryfield/Combobox/Spinbutton: 150x(maxfontheight)
@@ -4965,14 +4965,14 @@ void _control_size(HWND handle, int *width, int *height)
       hic = (HICON)SendMessage(handle, STM_GETIMAGE, IMAGE_ICON, 0);
    else if(_tcsnicmp(tmpbuf, BUTTONCLASSNAME, _tcslen(BUTTONCLASSNAME)+1) == 0)
       hic = (HICON)SendMessage(handle, BM_GETIMAGE, IMAGE_ICON, 0);
-      
+
    /* If we got an icon, pull out the internal bitmap */
    if(hic)
    {
       if(GetIconInfo(hic, &ii))
          hbm = ii.hbmMask ? ii.hbmMask : ii.hbmColor;
    }
-   
+
    /* If we weren't able to get the bitmap from the icon... */
    if(!hbm)
    {
@@ -4982,12 +4982,12 @@ void _control_size(HWND handle, int *width, int *height)
       else if(_tcsnicmp(tmpbuf, BUTTONCLASSNAME, _tcslen(BUTTONCLASSNAME)+1) == 0)
          hbm = (HBITMAP)SendMessage(handle, BM_GETIMAGE, IMAGE_BITMAP, 0);
    }
-   
+
    /* If we got an image... set the sizes appropriately */
    if(hbm)
    {
       BITMAP bmi = { 0 };
-      
+
       GetObject(hbm, sizeof(BITMAP), &bmi);
       thiswidth = bmi.bmWidth;
       thisheight = bmi.bmHeight;
@@ -4995,8 +4995,8 @@ void _control_size(HWND handle, int *width, int *height)
    else
    {
       char *buf = dw_window_get_text(handle);
-      
-      /* If we have a string... 
+
+      /* If we have a string...
        * calculate the size with the current font.
        */
       if(buf)
@@ -5009,7 +5009,7 @@ void _control_size(HWND handle, int *width, int *height)
          dw_free(buf);
       }
    }
-   
+
    /* Combobox */
    if(_tcsnicmp(tmpbuf, COMBOBOXCLASSNAME, _tcslen(COMBOBOXCLASSNAME)+1) == 0)
    {
@@ -5020,7 +5020,7 @@ void _control_size(HWND handle, int *width, int *height)
         thisheight = 18;
    }
    /* Ranged: Percent, Slider, Scrollbar */
-   else if(_tcsnicmp(tmpbuf, PROGRESS_CLASS, _tcslen(PROGRESS_CLASS)+1) == 0 || 
+   else if(_tcsnicmp(tmpbuf, PROGRESS_CLASS, _tcslen(PROGRESS_CLASS)+1) == 0 ||
            _tcsnicmp(tmpbuf, TRACKBAR_CLASS, _tcslen(TRACKBAR_CLASS)+1) == 0 ||
            _tcsnicmp(tmpbuf, SCROLLBARCLASSNAME, _tcslen(SCROLLBARCLASSNAME)+1) == 0)
    {
@@ -5045,13 +5045,13 @@ void _control_size(HWND handle, int *width, int *height)
       thiswidth = 50;
       extraheight = 6;
    }
-#ifdef TOOLBAR   
+#ifdef TOOLBAR
    /* Bitmap Buttons */
    else if(_tcsnicmp(tmpbuf, TOOLBARCLASSNAME, _tcslen(TOOLBARCLASSNAME)+1) == 0)
    {
       HIMAGELIST imlist = (HIMAGELIST)SendMessage(handle, TB_GETIMAGELIST, 0, 0);
       int minsize = 24;
-      
+
       if(imlist)
          ImageList_GetIconSize(imlist, &thiswidth, &thisheight);
 
@@ -5063,40 +5063,40 @@ void _control_size(HWND handle, int *width, int *height)
          thiswidth += 4;
          thisheight += 4;
       }
-         
+
       if(thiswidth < minsize)
          thiswidth = minsize;
       if(thisheight < minsize)
          thisheight = minsize;
    }
-#endif   
+#endif
    /* Listbox */
    else if(_tcsnicmp(tmpbuf, LISTBOXCLASSNAME, _tcslen(LISTBOXCLASSNAME)+1) == 0)
    {
       char buf[1025] = {0};
       int x, count = dw_listbox_count(handle);
       int basicwidth = thiswidth = GetSystemMetrics(SM_CXVSCROLL) + 8;
-      
+
       thisheight = 8;
-      
+
       for(x=0;x<count;x++)
       {
          int height, width = 0;
-         
+
          dw_listbox_get_text(handle, x, buf, 1024);
-         
+
          if(strlen(buf))
             dw_font_text_extents_get(handle, NULL, buf, &width, &height);
          else
             dw_font_text_extents_get(handle, NULL, testtext, NULL, &height);
-        
+
          width += basicwidth;
-         
+
          if(width > thiswidth)
             thiswidth = width > _DW_SCROLLED_MAX_WIDTH ? _DW_SCROLLED_MAX_WIDTH : width;
          thisheight += height;
       }
-      
+
       if(thiswidth < _DW_SCROLLED_MIN_WIDTH)
          thiswidth = _DW_SCROLLED_MIN_WIDTH;
       if(thisheight < _DW_SCROLLED_MIN_HEIGHT)
@@ -5116,20 +5116,20 @@ void _control_size(HWND handle, int *width, int *height)
          int height, width;
          char *buf, *ptr;
          int basicwidth;
-         
+
          if(style & ES_AUTOHSCROLL)
             thisheight = GetSystemMetrics(SM_CYHSCROLL) + 8;
-         else 
+         else
             thisheight = 8;
          basicwidth = thiswidth = GetSystemMetrics(SM_CXVSCROLL) + 8;
-         
+
          dw_mle_get_size(handle, &bytes, NULL);
-         
+
          ptr = buf = _alloca(bytes + 2);
          dw_mle_export(handle, buf, 0, (int)bytes);
          buf[bytes] = 0;
          strcat(buf, "\n");
-         
+
          /* MLE */
          while((ptr = strstr(buf, "\n")))
          {
@@ -5139,9 +5139,9 @@ void _control_size(HWND handle, int *width, int *height)
                dw_font_text_extents_get(handle, NULL, buf, &width, &height);
             else
                dw_font_text_extents_get(handle, NULL, testtext, NULL, &height);
-            
+
             width += basicwidth;
-            
+
             if(!(style & ES_AUTOHSCROLL) && width > _DW_SCROLLED_MAX_WIDTH)
             {
                thiswidth = _DW_SCROLLED_MAX_WIDTH;
@@ -5155,7 +5155,7 @@ void _control_size(HWND handle, int *width, int *height)
             thisheight += height;
             buf = &ptr[1];
          }
-         
+
          if(thiswidth < _DW_SCROLLED_MIN_WIDTH)
             thiswidth = _DW_SCROLLED_MIN_WIDTH;
          if(thisheight < _DW_SCROLLED_MIN_HEIGHT)
@@ -5175,10 +5175,10 @@ void _control_size(HWND handle, int *width, int *height)
    else if(_tcsnicmp(tmpbuf, WC_LISTVIEW, _tcslen(WC_LISTVIEW)+1)== 0)
    {
       DWORD result = ListView_ApproximateViewRect(handle, _DW_SCROLLED_MAX_WIDTH, _DW_SCROLLED_MAX_HEIGHT, -1);
-      
+
       thiswidth = LOWORD(result);
       thisheight = HIWORD(result);
-      
+
       if(thiswidth > _DW_SCROLLED_MAX_WIDTH)
          thiswidth = _DW_SCROLLED_MAX_WIDTH;
       if(thiswidth < _DW_SCROLLED_MIN_WIDTH)
@@ -5198,7 +5198,7 @@ void _control_size(HWND handle, int *width, int *height)
    else if(_tcsnicmp(tmpbuf, BUTTONCLASSNAME, _tcslen(BUTTONCLASSNAME)+1) == 0)
    {
       ULONG style = GetWindowLong(handle, GWL_STYLE);
-      
+
       /* Bitmap buttons */
       if(hbm)
       {
@@ -5224,12 +5224,12 @@ void _control_size(HWND handle, int *width, int *height)
       extraheight = 2;
    }
 
-   /* Set the requested sizes */    
+   /* Set the requested sizes */
    if(width)
       *width = thiswidth + extrawidth;
    if(height)
       *height = thisheight + extraheight;
-      
+
    /* Free temporary bitmaps */
    if(ii.hbmColor)
       DeleteObject(ii.hbmColor);
@@ -5289,15 +5289,15 @@ int API dw_window_set_font(HWND handle, const char *fontname)
     if(hfont)
     {
        Item *item = _box_item(handle);
-       
+
        SendMessage(handle, WM_SETFONT, (WPARAM)hfont, (LPARAM)TRUE);
        if(oldfont)
           DeleteObject(oldfont);
-        
+
        /* Check to see if any of the sizes need to be recalculated */
        if(item && (item->origwidth == -1 || item->origheight == -1))
        {
-          _control_size(handle, item->origwidth == -1 ? &item->width : NULL, item->origheight == -1 ? &item->height : NULL); 
+          _control_size(handle, item->origwidth == -1 ? &item->width : NULL, item->origheight == -1 ? &item->height : NULL);
           /* Queue a redraw on the top-level window */
          _dw_redraw(_toplevel_window(handle), TRUE);
        }
@@ -5520,7 +5520,7 @@ HWND API dw_window_new(HWND hwndOwner, const char *title, ULONG flStyle)
    ULONG flStyleEx = 0;
 #ifdef AEROGLASS
    MARGINS mar = {-1};
-   
+
    if(_dw_composition && (flStyle & DW_FCF_COMPOSITED))
       flStyleEx = WS_EX_LAYERED;
 #endif
@@ -5843,7 +5843,7 @@ int API dw_html_url(HWND handle, const char *url)
    return _dw_html_url(handle, url);
 #else
    return DW_ERROR_GENERAL;
-#endif    
+#endif
 }
 
 /*
@@ -5980,7 +5980,7 @@ int _menuid_allocated(int id)
    while(tmp)
    {
      if(tmp->id == id)
-        return TRUE;   
+        return TRUE;
      tmp = tmp->next;
    }
    return FALSE;
@@ -6020,7 +6020,7 @@ HWND API dw_menu_append_item(HMENUI menux, const char *title, ULONG id, ULONG fl
    if (title)
    {
       char *tmp = menutitle = _alloca(strlen(title)+1);
-      
+
       strcpy(tmp, title);
 
       while(*tmp)
@@ -6034,15 +6034,15 @@ HWND API dw_menu_append_item(HMENUI menux, const char *title, ULONG id, ULONG fl
    if (menutitle && *menutitle)
    {
       /* Code to autogenerate a menu ID if not specified or invalid
-       * First pool is smaller for transient popup menus 
+       * First pool is smaller for transient popup menus
        */
       if(id == (ULONG)-1)
       {
          static ULONG tempid = 61000;
-         
+
          tempid++;
          id = tempid;
-         
+
          if(tempid > 65500)
             tempid = 61000;
       }
@@ -6249,7 +6249,7 @@ void API dw_menu_item_set_state( HMENUI menux, unsigned long id, unsigned long s
  * Parameters:
  *       menu: The handle to the  menu in which the item was appended.
  *       id: Menuitem id.
- * Returns: 
+ * Returns:
  *       DW_ERROR_NONE (0) on success or DW_ERROR_UNKNOWN on failure.
  */
 int API dw_menu_delete_item(HMENUI menux, unsigned long id)
@@ -6261,11 +6261,11 @@ int API dw_menu_delete_item(HMENUI menux, unsigned long id)
 
    if ( mymenu == 0 || DeleteMenu(mymenu, id, MF_BYCOMMAND) == 0 )
       return DW_ERROR_UNKNOWN;
-   
+
    /* If the ID was autogenerated it is safe to remove it */
    if(id >= 30000)
       dw_signal_disconnect_by_window((HWND)(uintptr_t)id);
-      
+
    /* Make sure the menu is redrawn if needed */
    if( (HMENU)menux != mymenu )
       DrawMenuBar(menux);
@@ -6429,7 +6429,7 @@ HWND API dw_text_new(const char *text, ULONG id)
 
    cinfo->pOldProc = SubclassWindow(tmp, _staticwndproc);
    SetWindowLongPtr(tmp, GWLP_USERDATA, (LONG_PTR)cinfo);
-#endif                     
+#endif
    dw_window_set_font(tmp, DefaultFont);
    dw_window_set_color(tmp, DW_CLR_DEFAULT, DW_RGB_TRANSPARENT);
    return tmp;
@@ -6598,7 +6598,7 @@ HWND API dw_combobox_new(const char *text, ULONG id)
    cinfo2->combo = cinfo->combo = tmp;
    EnumChildWindows(tmp, _subclass_child, (LPARAM)cinfo2);
    cinfo->buddy = cinfo2->buddy;
-   
+
    SetWindowLongPtr(tmp, GWLP_USERDATA, (LONG_PTR)cinfo);
    dw_window_set_font(tmp, DefaultFont);
    SetWindowText(tmp, UTF8toWide(text));
@@ -6637,7 +6637,7 @@ HWND API dw_button_new(const char *text, ULONG id)
 void _to_grayscale(HBITMAP hbm, int width, int height)
 {
    HDC hdc = CreateCompatibleDC(NULL);
-   if (hdc) 
+   if (hdc)
    {
       HBITMAP hbmPrev = SelectBitmap(hdc, hbm);
       int x, y;
@@ -6664,10 +6664,10 @@ HWND _create_toolbar(const char *text, ULONG id, HICON icon, HBITMAP hbitmap)
    HWND tmp;
    HIMAGELIST imlist, dimlist;
    BITMAP bmi = { 0 };
-   TBBUTTON tbButtons[] = {    
+   TBBUTTON tbButtons[] = {
    { MAKELONG(0, 0), id, TBSTATE_ENABLED, TBSTYLE_BUTTON}
    };
-   
+
    /* Get the bitmap from either the icon or bitmap itself */
    if(hbitmap)
    {
@@ -6682,7 +6682,7 @@ HWND _create_toolbar(const char *text, ULONG id, HICON icon, HBITMAP hbitmap)
    else if(icon)
    {
       ICONINFO iconinfo;
-      
+
       GetIconInfo(icon, &iconinfo);
       GetObject(iconinfo.hbmColor, sizeof(BITMAP), &bmi);
       imlist = ImageList_Create(bmi.bmWidth, bmi.bmHeight, ILC_COLOR32 | ILC_MASK, 1, 0);
@@ -6698,7 +6698,7 @@ HWND _create_toolbar(const char *text, ULONG id, HICON icon, HBITMAP hbitmap)
       return 0;
 
    /* Create the toolbar */
-   tmp = CreateWindowEx(0L, TOOLBARCLASSNAME, NULL, WS_CHILD | WS_VISIBLE | TBSTYLE_AUTOSIZE | CCS_NORESIZE | 
+   tmp = CreateWindowEx(0L, TOOLBARCLASSNAME, NULL, WS_CHILD | WS_VISIBLE | TBSTYLE_AUTOSIZE | CCS_NORESIZE |
                         CCS_NOPARENTALIGN | CCS_NODIVIDER, 0, 0, 100, 30, DW_HWND_OBJECT, (HMENU)(uintptr_t)id, DWInstance, NULL);
 
    /* Disable visual styles by default */
@@ -6712,7 +6712,7 @@ HWND _create_toolbar(const char *text, ULONG id, HICON icon, HBITMAP hbitmap)
    SendMessage(tmp, TB_SETIMAGELIST, 0, (LPARAM)imlist);
    SendMessage(tmp, TB_SETDISABLEDIMAGELIST, 0, (LPARAM)dimlist);
    SendMessage(tmp, TB_ADDBUTTONS, 1, (LPARAM) &tbButtons);
-   
+
    _create_tooltip(tmp, text);
    return tmp;
 }
@@ -6971,9 +6971,9 @@ HWND API dw_spinbutton_new(const char *text, ULONG id)
 
    cinfo = calloc(1, sizeof(ColorInfo));
    cinfo->buddy = buddy;
-   /* The horrible spinbutton workaround isn't necessary 
+   /* The horrible spinbutton workaround isn't necessary
     * any more on Vista or 7... but still seems necessary
-    * for XP, so only enable it if on XP or lower. 
+    * for XP, so only enable it if on XP or lower.
     */
    if(!IS_VISTAPLUS)
    {
@@ -7181,12 +7181,12 @@ void _dw_window_set_bitmap(HWND handle, HICON icon, HBITMAP hbitmap)
    HBITMAP oldbitmap = 0;
    HANDLE oldicon = 0;
    TCHAR tmpbuf[100] = {0};
-   
+
    if (!icon && !hbitmap)
       return;
 
    GetClassName(handle, tmpbuf, 99);
-  
+
    if(_tcsnicmp(tmpbuf, BUTTONCLASSNAME, _tcslen(BUTTONCLASSNAME)+1)==0)
    {
       oldbitmap = (HBITMAP)SendMessage(handle, BM_GETIMAGE, IMAGE_BITMAP, 0);
@@ -7195,14 +7195,14 @@ void _dw_window_set_bitmap(HWND handle, HICON icon, HBITMAP hbitmap)
                (icon ? (WPARAM)IMAGE_ICON : (WPARAM)IMAGE_BITMAP),
                (icon ? (LPARAM)icon : (LPARAM)hbitmap));
    }
-#ifdef TOOLBAR   
+#ifdef TOOLBAR
    /* Bitmap Buttons */
    else if(_tcsnicmp(tmpbuf, TOOLBARCLASSNAME, _tcslen(TOOLBARCLASSNAME)+1) == 0)
    {
       HIMAGELIST imlist = (HIMAGELIST)SendMessage(handle, TB_GETIMAGELIST, 0, 0);
       HIMAGELIST dimlist = (HIMAGELIST)SendMessage(handle, TB_GETDISABLEDIMAGELIST, 0, 0);
       BITMAP bmi = { 0 };
-     
+
       if(hbitmap)
       {
          GetObject(hbitmap, sizeof(BITMAP), &bmi);
@@ -7214,7 +7214,7 @@ void _dw_window_set_bitmap(HWND handle, HICON icon, HBITMAP hbitmap)
       else if(icon)
       {
          ICONINFO iconinfo;
-         
+
          GetIconInfo(icon, &iconinfo);
          GetObject(iconinfo.hbmColor, sizeof(BITMAP), &bmi);
          ImageList_ReplaceIcon(imlist, 0, icon);
@@ -7226,7 +7226,7 @@ void _dw_window_set_bitmap(HWND handle, HICON icon, HBITMAP hbitmap)
       }
       InvalidateRect(handle, NULL, FALSE);
    }
-#endif   
+#endif
    else
    {
       oldbitmap = (HBITMAP)SendMessage(handle, STM_GETIMAGE, IMAGE_BITMAP, 0);
@@ -7244,11 +7244,11 @@ void _dw_window_set_bitmap(HWND handle, HICON icon, HBITMAP hbitmap)
    /* If we changed the bitmap... */
    {
       Item *item = _box_item(handle);
-       
+
       /* Check to see if any of the sizes need to be recalculated */
       if(item && (item->origwidth == -1 || item->origheight == -1))
       {
-         _control_size(handle, item->origwidth == -1 ? &item->width : NULL, item->origheight == -1 ? &item->height : NULL); 
+         _control_size(handle, item->origwidth == -1 ? &item->width : NULL, item->origheight == -1 ? &item->height : NULL);
          /* Queue a redraw on the top-level window */
          _dw_redraw(_toplevel_window(handle), TRUE);
       }
@@ -7283,7 +7283,7 @@ void API dw_window_set_bitmap(HWND handle, unsigned long id, const char *filenam
       _dw_get_image_handle(filename, &icon, &hbitmap);
 #endif
    }
-   
+
    _dw_window_set_bitmap(handle, icon, hbitmap);
 }
 
@@ -7380,14 +7380,14 @@ void API dw_window_set_text(HWND handle, const char *text)
    /* If we changed the text... */
    {
       Item *item = _box_item(handle);
-       
+
       /* Check to see if any of the sizes need to be recalculated */
       if(item && (item->origwidth == -1 || item->origheight == -1))
       {
          int newwidth, newheight;
-         
-         _control_size(handle, &newwidth, &newheight); 
-         
+
+         _control_size(handle, &newwidth, &newheight);
+
          /* Only update the item and redraw the window if it changed */
          if((item->origwidth == -1 && item->width != newwidth) ||
             (item->origheight == -1 && item->height != newheight))
@@ -7412,7 +7412,7 @@ void API dw_window_set_text(HWND handle, const char *text)
 void API dw_window_set_tooltip(HWND handle, const char *bubbletext)
 {
     ColorInfo *cinfo = (ColorInfo *)GetWindowLongPtr(handle, GWLP_USERDATA);
-    
+
     if(cinfo && cinfo->buddy)
         _create_tooltip(cinfo->buddy, bubbletext);
     _create_tooltip(handle, bubbletext);
@@ -7449,7 +7449,7 @@ char * API dw_window_get_text(HWND handle)
    len = GetWindowTextLength(handle) + 1;
    if((tempbuf = _alloca(len * sizeof(TCHAR))))
       GetWindowText(handle, tempbuf, len);
-   
+
    /* Figure out the UTF8 length, allocate a return buffer
     * and fill it with the UTF8 text and return it.
     */
@@ -7470,10 +7470,10 @@ void API dw_window_disable(HWND handle)
       char buffer[31] = {0};
       HMENU mymenu;
       ULONG id = (ULONG)(uintptr_t)handle;
-      
+
       _snprintf(buffer, 30, "_dw_id%ld", id);
       mymenu = (HMENU)dw_window_get_data(DW_HWND_OBJECT, buffer);
-      
+
       if(mymenu && IsMenu(mymenu))
          dw_menu_item_set_state((HMENUI)mymenu, id, DW_MIS_DISABLED);
    }
@@ -7493,10 +7493,10 @@ void API dw_window_enable(HWND handle)
       char buffer[31] = {0};
       HMENU mymenu;
       ULONG id = (ULONG)(uintptr_t)handle;
-      
+
       _snprintf(buffer, 30, "_dw_id%ld", id);
       mymenu = (HMENU)dw_window_get_data(DW_HWND_OBJECT, buffer);
-      
+
       if(mymenu && IsMenu(mymenu))
          dw_menu_item_set_state((HMENUI)mymenu, id, DW_MIS_ENABLED);
    }
@@ -7546,7 +7546,7 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
    }
 
    GetClassName(box, tmpbuf, 99);
-   
+
    /* If we are in a scrolled box... extract the interal box */
    if(_tcsnicmp(tmpbuf, ScrollClassName, _tcslen(ScrollClassName)+1)==0)
    {
@@ -7618,7 +7618,7 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
       tmpitem[index].pad = pad;
       tmpitem[index].hsize = hsize ? SIZEEXPAND : SIZESTATIC;
       tmpitem[index].vsize = vsize ? SIZEEXPAND : SIZESTATIC;
-    
+
       /* If either of the parameters are -1 ... calculate the size */
       if(width == -1 || height == -1)
          _control_size(item, width == -1 ? &tmpitem[index].width : NULL, height == -1 ? &tmpitem[index].height : NULL);
@@ -7645,18 +7645,18 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
             SendMessage(item, UDM_SETBUDDY, (WPARAM)cinfo->buddy, 0);
          }
       }
-#ifdef TOOLBAR      
+#ifdef TOOLBAR
       else if(_tcsnicmp(tmpbuf, TOOLBARCLASSNAME, _tcslen(TOOLBARCLASSNAME)+1) == 0)
       {
-#ifdef AEROGLASS	  
+#ifdef AEROGLASS	
          if(!(_dw_composition && (GetWindowLongPtr(_toplevel_window(box), GWL_EXSTYLE) & WS_EX_LAYERED)))
-#endif		 
-         { 
+#endif		
+         {
             /* Enable double buffering if our window isn't composited */
             SendMessage(item, TB_SETEXTENDEDSTYLE, 0, (LPARAM)TBSTYLE_EX_DOUBLEBUFFER);
          }
       }
-#endif      
+#endif
       /* Queue a redraw on the top-level window */
       _dw_redraw(_toplevel_window(box), TRUE);
    }
@@ -7672,13 +7672,13 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
 int API dw_box_unpack(HWND handle)
 {
    HWND parent = GetParent(handle);
-   
+
    if(handle && parent != HWND_DESKTOP)
    {
       Box *thisbox = (Box *)GetWindowLongPtr(parent, GWLP_USERDATA);
-      
-      /* If the parent box has items... 
-       * try to remove it from the layout 
+
+      /* If the parent box has items...
+       * try to remove it from the layout
        */
       if(thisbox && thisbox->count)
       {
@@ -7740,7 +7740,7 @@ int API dw_box_unpack(HWND handle)
 HWND API dw_box_unpack_at_index(HWND box, int index)
 {
    Box *thisbox = (Box *)GetWindowLongPtr(box, GWLP_USERDATA);
-   
+
    /* Try to remove it from the layout */
    if(thisbox && index > -1 && index < thisbox->count)
    {
@@ -7840,7 +7840,7 @@ void API dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, 
 void _get_window_for_size(HWND handle, unsigned long *width, unsigned long *height)
 {
    Box *thisbox = (Box *)GetWindowLongPtr(handle, GWLP_USERDATA);
-   
+
    if(thisbox)
    {
       int depth = 0;
@@ -7848,16 +7848,16 @@ void _get_window_for_size(HWND handle, unsigned long *width, unsigned long *heig
       DWORD dwExStyle = GetWindowLong(handle, GWL_EXSTYLE);
       HMENU menu = GetMenu(handle) ;
       RECT rc = { 0 } ;
-     
+
       /* Calculate space requirements */
       _resize_box(thisbox, &depth, *width, *height, 1);
-      
+
       rc.right = thisbox->minwidth;
       rc.bottom = thisbox->minheight;
-      
+
       /* Take into account the window border and menu here */
       AdjustWindowRectEx(&rc, dwStyle, menu ? TRUE : FALSE, dwExStyle);
-      
+
       if ( *width < 1 ) *width = rc.right - rc.left;
       if ( *height < 1 ) *height = rc.bottom - rc.top;
    }
@@ -7875,7 +7875,7 @@ void API dw_window_set_size(HWND handle, ULONG width, ULONG height)
    /* Attempt to auto-size */
    if ( width < 1 || height < 1 )
       _get_window_for_size(handle, &width, &height);
-   
+
    /* Finally set the size */
    SetWindowPos(handle, (HWND)NULL, 0, 0, width, height, SWP_NOZORDER | SWP_NOMOVE);
 }
@@ -7892,14 +7892,14 @@ void API dw_window_get_preferred_size(HWND handle, int *width, int *height)
    TCHAR tmpbuf[100] = {0};
 
    GetClassName(handle, tmpbuf, 99);
-   
+
    if(_tcsnicmp(tmpbuf, ClassName, _tcslen(ClassName)+1) == 0)
    {
       unsigned long thiswidth = 0, thisheight = 0;
-      
+
       /* Get the size with the border */
       _get_window_for_size(handle, &thiswidth, &thisheight);
-      
+
       /* Return what was requested */
       if(width) *width = (int)thiswidth;
       if(height) *height = (int)thisheight;
@@ -7907,14 +7907,14 @@ void API dw_window_get_preferred_size(HWND handle, int *width, int *height)
    else if(_tcsnicmp(tmpbuf, FRAMECLASSNAME, _tcslen(FRAMECLASSNAME)+1) == 0)
    {
       Box *thisbox = (Box *)GetWindowLongPtr(handle, GWLP_USERDATA);
-      
+
       if(thisbox)
       {
          int depth = 0;
-         
+
          /* Calculate space requirements */
          _resize_box(thisbox, &depth, 0, 0, 1);
-         
+
          /* Return what was requested */
          if(width) *width = thisbox->minwidth;
          if(height) *height = thisbox->minheight;
@@ -7972,12 +7972,12 @@ void _handle_gravity(HWND handle, long *x, long *y, unsigned long width, unsigne
 {
    int horz = DW_POINTER_TO_INT(dw_window_get_data(handle, "_dw_grav_horz"));
    int vert = DW_POINTER_TO_INT(dw_window_get_data(handle, "_dw_grav_vert"));
-   
+
    /* Do any gravity calculations */
    if(horz || vert)
    {
       long newx = *x, newy = *y;
-   
+
       /* Handle horizontal center gravity */
       if((horz & 0xf) == DW_GRAV_CENTER)
          newx += ((dw_screen_width() / 2) - (width / 2));
@@ -7989,22 +7989,22 @@ void _handle_gravity(HWND handle, long *x, long *y, unsigned long width, unsigne
          newy += ((dw_screen_height() / 2) - (height / 2));
       else if((vert & 0xf) == DW_GRAV_BOTTOM)
          newy = dw_screen_height() - height - *y;
-        
+
       /* Save the new values */
       *x = newx;
       *y = newy;
-      
+
        /* Adjust the values to avoid Taskbar if requested */
        if((horz | vert) & DW_GRAV_OBSTACLES)
        {
          POINT pt = { 0, 0 };
          HMONITOR mon = MonitorFromPoint(pt, MONITOR_DEFAULTTOPRIMARY);
          MONITORINFO mi;
-         
+
          mi.cbSize = sizeof(MONITORINFO);
-         
+
          GetMonitorInfo(mon, &mi);
-         
+
          if(horz & DW_GRAV_OBSTACLES)
          {
             if((horz & 0xf) == DW_GRAV_LEFT)
@@ -8020,7 +8020,7 @@ void _handle_gravity(HWND handle, long *x, long *y, unsigned long width, unsigne
                *y -= (mi.rcMonitor.bottom - mi.rcWork.bottom);
          }
       }
-   }            
+   }
 }
 
 /*
@@ -8060,7 +8060,7 @@ void API dw_window_set_pos_size(HWND handle, long x, long y, ULONG width, ULONG 
    /* Attempt to auto-size */
    if ( width < 1 || height < 1 )
       _get_window_for_size(handle, &width, &height);
-   
+
    _handle_gravity(handle, &x, &y, width, height);
    /* Finally set the size */
    SetWindowPos(handle, (HWND)NULL, x, y, width, height, SWP_NOZORDER | SWP_NOACTIVATE);
@@ -8127,15 +8127,15 @@ void API dw_window_set_style(HWND handle, ULONG style, ULONG mask)
       char buffer[31] = {0};
       HMENU mymenu;
       ULONG id = (ULONG)(uintptr_t)handle;
-      
+
       _snprintf(buffer, 30, "_dw_id%ld", id);
       mymenu = (HMENU)dw_window_get_data(DW_HWND_OBJECT, buffer);
-      
+
       if(mymenu && IsMenu(mymenu))
          dw_menu_item_set_state((HMENUI)mymenu, id, style & mask);
       return;
    }
-   
+
    GetClassName(handle, tmpbuf, 99);
 
    currentstyle = GetWindowLong(handle, GWL_STYLE);
@@ -8146,7 +8146,7 @@ void API dw_window_set_style(HWND handle, ULONG style, ULONG mask)
    if(_tcsnicmp(tmpbuf, TOOLBARCLASSNAME, _tcslen(TOOLBARCLASSNAME)+1) == 0)
    {
       ULONG thisstyle = (TBSTYLE_FLAT | TBSTYLE_TRANSPARENT);
-      
+
       if(mask & DW_BS_NOBORDER)
       {
          SetWindowLong(handle, GWL_STYLE, (style & DW_BS_NOBORDER) ? (currentstyle | thisstyle) : (currentstyle & ~thisstyle));
@@ -8154,12 +8154,12 @@ void API dw_window_set_style(HWND handle, ULONG style, ULONG mask)
          /* Enable or disable visual themese */
          if(_SetWindowTheme)
             _SetWindowTheme(handle, (style & DW_BS_NOBORDER) ? NULL : L"", (style & DW_BS_NOBORDER) ? NULL : L"");
-            
+
          return;
       }
    }
 #endif
-   
+
    tmp = currentstyle | mask;
    tmp ^= mask;
    tmp |= style & mask;
@@ -8170,15 +8170,15 @@ void API dw_window_set_style(HWND handle, ULONG style, ULONG mask)
    else if(_tcsnicmp(tmpbuf, ClassName, _tcslen(ClassName)+1)==0)
    {
       tmp = tmp & 0xffff0000;
-#ifdef AEROGLASS      
+#ifdef AEROGLASS
       if(mask & DW_FCF_COMPOSITED && _DwmExtendFrameIntoClientArea && _dw_composition)
       {
          LONG_PTR styleex = GetWindowLongPtr(handle, GWL_EXSTYLE);
-         
+
          if(style & DW_FCF_COMPOSITED)
          {
             MARGINS mar = {-1};
-            
+
             /* Attempt to enable Aero glass background on the entire window */
             SetWindowLongPtr(handle, GWL_EXSTYLE, styleex | WS_EX_LAYERED);
             SetLayeredWindowAttributes(handle, _dw_transparencykey, 0, LWA_COLORKEY);
@@ -8187,20 +8187,20 @@ void API dw_window_set_style(HWND handle, ULONG style, ULONG mask)
          else
          {
             MARGINS mar = {0};
-            
+
             /* Remove Aero Glass */
             SetWindowLongPtr(handle, GWL_EXSTYLE, styleex & ~WS_EX_LAYERED);
             _DwmExtendFrameIntoClientArea(handle, &mar);
          }
       }
-#endif      
+#endif
    }
    else if(_tcsnicmp(tmpbuf, STATICCLASSNAME, _tcslen(STATICCLASSNAME)+1)==0)
    {
       ULONG thismask = mask & ~(DW_DT_VCENTER | DW_DT_WORDBREAK);
       ULONG thisstyle = style & ~(DW_DT_VCENTER | DW_DT_WORDBREAK);
       ULONG type = style & mask & 0xFL;
-      
+
       /* Need to filter out bits that shouldn't be set */
       tmp = currentstyle | thismask;
       tmp ^= thismask;
@@ -9057,7 +9057,7 @@ void API dw_percent_set_pos(HWND handle, unsigned int position)
       if((dwComctlVer >= PACKVERSION(6,0)))
       {
           unsigned long style = GetWindowLong(handle, GWL_STYLE);
-  
+
           if(style & PBS_MARQUEE)
           {
              /* Stop the bar */
@@ -9689,7 +9689,7 @@ int _lookup_icon(HWND handle, HICON hicon, int type)
    /* We can't add an invalid handle */
    if(!hicon)
       return -1;
-      
+
    if(!hSmall || !hLarge)
    {
       hSmall = ImageList_Create(16, 16, ILC_COLOR16 | ILC_MASK, ICON_INDEX_LIMIT, 0);
@@ -9816,7 +9816,7 @@ void API dw_container_set_item(HWND handle, void *pointer, int column, int row, 
    {
       lvi.mask = LVIF_DI_SETITEM | LVIF_IMAGE;
       lvi.pszText = NULL;
-      
+
       if(data)
       {
          HICON hicon = *((HICON *)data);
@@ -10010,15 +10010,15 @@ void _dw_container_set_row_data(HWND handle, void *pointer, int row, int type, v
    }
 
    memset(&lvi, 0, sizeof(LV_ITEM));
-   
+
    lvi.iItem = row + item;
    lvi.mask = LVIF_PARAM;
-   
+
    if(ListView_GetItem(handle, &lvi))
    {
       void **params = (void **)lvi.lParam;
       void *newparam = data;
-      
+
       /* Make sure we have our pointer array... */
       if(!params)
       {
@@ -10033,9 +10033,9 @@ void _dw_container_set_row_data(HWND handle, void *pointer, int row, int type, v
       if(type == _DW_DATA_TYPE_STRING)
       {
          void *oldparam = params[type];
-         
+
          params[type] = NULL;
-         
+
          if(oldparam)
             free(oldparam);
          if(newparam)
@@ -10176,7 +10176,7 @@ char * API dw_container_query_start(HWND handle, unsigned long flags)
 
    if(_index == -1)
       return retval;
-      
+
    if(flags & DW_CR_RETDATA)
       type = _DW_DATA_TYPE_POINTER;
 
@@ -10187,7 +10187,7 @@ char * API dw_container_query_start(HWND handle, unsigned long flags)
 
    ListView_GetItem(handle, &lvi);
    params = (void **)lvi.lParam;
-   
+
    if(params)
    {
       if(type == _DW_DATA_TYPE_STRING && params[type])
@@ -10223,7 +10223,7 @@ char * API dw_container_query_next(HWND handle, unsigned long flags)
 
    if(flags & DW_CR_RETDATA)
       type = _DW_DATA_TYPE_POINTER;
-      
+
    memset(&lvi, 0, sizeof(LV_ITEM));
 
    lvi.iItem = _index;
@@ -10270,7 +10270,7 @@ void API dw_container_cursor(HWND handle, const char *text)
       if ( params && params[_DW_DATA_TYPE_STRING] && strcmp( (char *)params[_DW_DATA_TYPE_STRING], text ) == 0 )
       {
          unsigned long width, height;
-         
+
          ListView_SetItemState( handle, index, LVIS_FOCUSED | LVIS_SELECTED, LVIS_FOCUSED | LVIS_SELECTED );
          dw_window_get_pos_size( handle, NULL, NULL, &width, &height);
          if(width < 10 || height < 10)
@@ -10309,7 +10309,7 @@ void API dw_container_cursor_by_data(HWND handle, void *data)
       if ( params && params[_DW_DATA_TYPE_POINTER] == data )
       {
          unsigned long width, height;
-         
+
          ListView_SetItemState( handle, index, LVIS_FOCUSED | LVIS_SELECTED, LVIS_FOCUSED | LVIS_SELECTED );
          dw_window_get_pos_size( handle, NULL, NULL, &width, &height);
          if(width < 10 || height < 10)
@@ -10446,7 +10446,7 @@ void API dw_container_optimize(HWND handle)
          for(z=0;z<cinfo->columns;z++)
          {
             unsigned int width;
-            
+
             ListView_GetItemText(handle, index, z, text, 1023);
             width = ListView_GetStringWidth(handle, text);
 
@@ -10462,7 +10462,7 @@ void API dw_container_optimize(HWND handle)
       }
 
       /* Set the new sizes... Microsoft says we need to add
-       * padding to the calculated sized but does not give 
+       * padding to the calculated sized but does not give
        * a value.  Trial and error shows that 16 works for us.
        */
       for(z=0;z<cinfo->columns;z++)
@@ -10564,12 +10564,12 @@ void API dw_color_foreground_set(unsigned long value)
    foreground = RGB(DW_RED_VALUE(value), DW_GREEN_VALUE(value), DW_BLUE_VALUE(value));
 #ifdef GDIPLUS
    gpfore = MAKEARGB(255, DW_RED_VALUE(value), DW_GREEN_VALUE(value), DW_BLUE_VALUE(value));
-   
+
    GdipDeletePen(pen);
    GdipCreatePen1(gpfore, 1.0, UnitPixel, &pen);
    TlsSetValue(_gpPen, (LPVOID)pen);
    GdipSetSolidFillColor(brush, gpfore);
-#endif    
+#endif
 
    DeleteObject(hPen);
    DeleteObject(hBrush);
@@ -10635,11 +10635,11 @@ unsigned long API dw_color_choose(unsigned long value)
 void API dw_draw_point(HWND handle, HPIXMAP pixmap, int x, int y)
 {
 #ifdef GDIPLUS
-   /* There doesn't seem to be an equivalent to SetPixel in GDI+ ... 
+   /* There doesn't seem to be an equivalent to SetPixel in GDI+ ...
     * so instead we call dw_draw_rect() with 1 for width and height.
     */
    dw_draw_rect(handle, pixmap, DW_DRAW_FILL | DW_DRAW_NOAA, x, y, 1, 1);
-#else   
+#else
    HDC hdcPaint;
 
    if(handle)
@@ -10652,7 +10652,7 @@ void API dw_draw_point(HWND handle, HPIXMAP pixmap, int x, int y)
    SetPixel(hdcPaint, x, y, (COLORREF)TlsGetValue(_foreground));
    if(!pixmap)
       ReleaseDC(handle, hdcPaint);
-#endif      
+#endif
 }
 
 /* Draw a line on a window (preferably a render window).
@@ -10669,14 +10669,14 @@ void API dw_draw_line(HWND handle, HPIXMAP pixmap, int x1, int y1, int x2, int y
 #ifdef GDIPLUS
    GpGraphics *graphics = NULL;
    GpPen *pen = TlsGetValue(_gpPen);
-   
+
    if(handle)
       GdipCreateFromHWND(handle, &graphics);
    else if(pixmap)
       GdipCreateFromHDC(pixmap->hdc, &graphics);
    else
       return;
-   
+
    GdipSetSmoothingMode(graphics, SmoothingModeAntiAlias);
    GdipDrawLineI(graphics, pen, x1, y1, x2, y2);
    GdipDeleteGraphics(graphics);
@@ -10709,14 +10709,14 @@ POINT *_makePoints(int *npoints, int *x, int *y)
 {
    POINT *points;
    int i;
-   
+
    /*
     * Allocate enough space for the number of points supplied plus 1.
     * Under windows, unless the first and last points are the same
     * the polygon won't be closed
     */
    points = (POINT *)malloc( ((*npoints)+1) * sizeof(POINT) );
-   
+
    if(points)
    {
       for ( i = 0 ; i < *npoints ; i++ )
@@ -10749,7 +10749,7 @@ POINT *_makePoints(int *npoints, int *x, int *y)
 void API dw_draw_polygon(HWND handle, HPIXMAP pixmap, int flags, int npoints, int *x, int *y)
 {
    POINT *points = NULL;
-   
+
    /* Sanity check */
    if(npoints < 1)
       return;
@@ -10757,30 +10757,30 @@ void API dw_draw_polygon(HWND handle, HPIXMAP pixmap, int flags, int npoints, in
 #ifdef GDIPLUS
    {
       GpGraphics *graphics = NULL;
-      
+
       if(handle)
          GdipCreateFromHWND(handle, &graphics);
       else if(pixmap)
          GdipCreateFromHDC(pixmap->hdc, &graphics);
       else
          return;
-      
+
       /* Enable antialiasing if the DW_DRAW_NOAA flag isn't set */
       if(!(flags & DW_DRAW_NOAA))
         GdipSetSmoothingMode(graphics, SmoothingModeAntiAlias);
-  
+
       if((points = _makePoints(&npoints, x, y)))
       {
          if(flags & DW_DRAW_FILL)
          {
             GpBrush *brush = TlsGetValue(_gpBrush);
-            
+
             GdipFillPolygon2I(graphics, brush, points, npoints);
          }
          else
          {
             GpPen *pen = TlsGetValue(_gpPen);
-            
+
             GdipDrawPolygonI(graphics, pen, points, npoints);
          }
       }
@@ -10789,32 +10789,32 @@ void API dw_draw_polygon(HWND handle, HPIXMAP pixmap, int flags, int npoints, in
 #else
    {
       HDC hdcPaint;
-      
+
       if ( handle )
          hdcPaint = GetDC( handle );
       else if ( pixmap )
          hdcPaint = pixmap->hdc;
-      else 
+      else
          return;
 
       if((points = _makePoints(&npoints, x, y)))
       {
          HBRUSH oldBrush = SelectObject( hdcPaint, TlsGetValue(_hBrush) );
          HPEN oldPen = SelectObject( hdcPaint, TlsGetValue(_hPen) );
-      
+
          if ( flags & DW_DRAW_FILL )
             Polygon( hdcPaint, points, npoints );
          else
             Polyline( hdcPaint, points, npoints );
-            
+
          SelectObject( hdcPaint, oldBrush );
          SelectObject( hdcPaint, oldPen );
       }
-      
+
       if ( !pixmap )
          ReleaseDC( handle, hdcPaint );
    }
-#endif   
+#endif
    if(points)
       free(points);
 }
@@ -10833,28 +10833,28 @@ void API dw_draw_rect(HWND handle, HPIXMAP pixmap, int flags, int x, int y, int 
 {
 #ifdef GDIPLUS
    GpGraphics *graphics = NULL;
-   
+
    if(handle)
       GdipCreateFromHWND(handle, &graphics);
    else if(pixmap)
       GdipCreateFromHDC(pixmap->hdc, &graphics);
    else
       return;
-   
+
    /* Enable antialiasing if the DW_DRAW_NOAA flag isn't set */
    if(!(flags & DW_DRAW_NOAA))
      GdipSetSmoothingMode(graphics, SmoothingModeAntiAlias);
-     
+
    if(flags & DW_DRAW_FILL)
    {
       GpBrush *brush = TlsGetValue(_gpBrush);
-   
+
       GdipFillRectangleI(graphics, brush, x, y, width, height);
    }
    else
    {
       GpPen *pen = TlsGetValue(_gpPen);
-      
+
       GdipDrawRectangleI(graphics, pen, x, y, width, height);
    }
    GdipDeleteGraphics(graphics);
@@ -10876,7 +10876,7 @@ void API dw_draw_rect(HWND handle, HPIXMAP pixmap, int flags, int x, int y, int 
       FrameRect(hdcPaint, &Rect, TlsGetValue(_hBrush));
    if(!pixmap)
       ReleaseDC(handle, hdcPaint);
-#endif   
+#endif
 }
 
 /* Draw an arc on a window (preferably a render window).
@@ -10897,24 +10897,24 @@ void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yo
 #ifdef GDIPLUS
    GpGraphics *graphics = NULL;
    GpPen *pen = TlsGetValue(_gpPen);
-   
+
    if(handle)
       GdipCreateFromHWND(handle, &graphics);
    else if(pixmap)
       GdipCreateFromHDC(pixmap->hdc, &graphics);
    else
       return;
-   
+
    /* Enable antialiasing if the DW_DRAW_NOAA flag isn't set */
    if(!(flags & DW_DRAW_NOAA))
      GdipSetSmoothingMode(graphics, SmoothingModeAntiAlias);
-  
+
    if(flags & DW_DRAW_FULL)
    {
       if(flags & DW_DRAW_FILL)
       {
          GpBrush *brush = TlsGetValue(_gpBrush);
-      
+
          GdipFillEllipseI(graphics, brush, x1 < x2 ? x1 : x2, y1 < y2 ? y1 : y2, abs(x1-x2), abs(y1-y2));
       }
       else
@@ -10929,16 +10929,16 @@ void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yo
       double r = sqrt(dx*dx + dy*dy);
       double sweep;
       int ri = (int)r;
-      
+
       /* Convert to degrees */
       a1 *= (180.0 / M_PI);
       a2 *= (180.0 / M_PI);
       sweep = fabs(a1 - a2);
-      
+
       GdipDrawArcI(graphics, pen, xorigin-ri, yorigin-ri, ri*2, ri*2, (REAL)a1, (REAL)sweep);
    }
    GdipDeleteGraphics(graphics);
-#else  
+#else
    HDC hdcPaint;
    HBRUSH oldBrush;
    HPEN oldPen;
@@ -10953,8 +10953,8 @@ void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yo
       hdcPaint = pixmap->hdc;
    else
       return;
-     
-   if(flags & DW_DRAW_FILL)     
+
+   if(flags & DW_DRAW_FILL)
       oldBrush = SelectObject( hdcPaint, TlsGetValue(_hBrush) );
    else
       oldBrush = SelectObject( hdcPaint, GetStockObject(HOLLOW_BRUSH) );
@@ -10968,7 +10968,7 @@ void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yo
 
    if(!pixmap)
       ReleaseDC(handle, hdcPaint);
-#endif   
+#endif
 }
 
 #ifdef GDIPLUS
@@ -11415,7 +11415,7 @@ int API dw_pixmap_set_font(HPIXMAP pixmap, const char *fontname)
     if(pixmap)
     {
         HFONT hfont = _acquire_font2(pixmap->hdc, fontname);
-        
+
         if(hfont)
         {
             HFONT oldfont = pixmap->font;
@@ -11521,7 +11521,7 @@ int API dw_pixmap_stretch_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest,
    _convert_dpi(hdcsrc, &xsrc, &ysrc, TRUE);
    _convert_dpi(hdcsrc, &swidth, &sheight, TRUE);
 #endif
-   
+
    /* If it is a 32bpp bitmap (with alpha) use AlphaBlend unless it fails */
    if ( srcp && srcp->depth == 32 && AlphaBlend( hdcdest, xdest, ydest, width, height, hdcsrc, xsrc, ysrc, swidth, sheight, bf ) )
    {
@@ -11910,7 +11910,7 @@ int API dw_named_memory_free(HSHM handle, void *ptr)
    return 0;
 }
 
-/* 
+/*
  * Generally an internal function called from a newly created
  * thread to setup the Dynamic Windows environment for the thread.
  * However it is exported so language bindings can call it when
@@ -11924,19 +11924,19 @@ void API _dw_init_thread(void)
     ARGB gpfore = MAKEARGB(255, 128, 128, 128);
     GpBrush *brush;
     GpPen *pen;
-    
+
     GdipCreatePen1(gpfore, 1.0, UnitPixel, &pen);
     TlsSetValue(_gpPen, (LPVOID)pen);
     GdipCreateSolidFill(gpfore, &brush);
     TlsSetValue(_gpBrush, brush);
-#endif    
+#endif
     TlsSetValue(_foreground, DW_UINT_TO_POINTER(foreground));
     TlsSetValue(_background, DW_UINT_TO_POINTER(background));
     TlsSetValue(_hPen, CreatePen(PS_SOLID, 1, foreground));
     TlsSetValue(_hBrush, CreateSolidBrush(foreground));
 }
 
-/* 
+/*
  * Generally an internal function called from a terminating
  * thread to cleanup the Dynamic Windows environment for the thread.
  * However it is exported so language bindings can call it when
@@ -11949,7 +11949,7 @@ void API _dw_deinit_thread(void)
 #ifdef GDIPLUS
    GpBrush *brush;
    GpPen *pen;
-#endif       
+#endif
 
    if((hPen = TlsGetValue(_hPen)))
        DeleteObject(hPen);
@@ -11960,7 +11960,7 @@ void API _dw_deinit_thread(void)
       GdipDeleteBrush(brush);
    if((pen = TlsGetValue(_gpPen)))
       GdipDeletePen(pen);
-#endif       
+#endif
 }
 
 /*
@@ -12033,7 +12033,7 @@ void API dw_shutdown(void)
 #ifdef AEROGLASS
    /* Free any in use libraries */
    FreeLibrary(hdwm);
-#endif   
+#endif
    FreeLibrary(huxtheme);
    DestroyWindow(hwndTooltip);
 }
@@ -12215,7 +12215,7 @@ void _dw_set_focus(HWND handle)
 {
     SetFocus(handle);
 }
- 
+
 /*
  * Sets the current focus item for a window/dialog.
  * Parameters:
@@ -12278,7 +12278,7 @@ char * API dw_clipboard_get_text(void)
    TCHAR *tmp;
 #ifdef UNICODE
    int type = CF_UNICODETEXT;
-#else   
+#else
    int type = CF_TEXT;
 #endif
 
@@ -12318,9 +12318,9 @@ void API dw_clipboard_set_text(const char *str, int len)
    buf = UTF8toWide(src);
    free(src);
    len = (int)_tcslen(buf);
-#else   
+#else
    int type = CF_TEXT;
-   
+
    buf = str;
 #endif
 
@@ -12355,7 +12355,7 @@ void API dw_clipboard_set_text(const char *str, int len)
  *         A handle to the notification which can be used to attach a "clicked" event if desired,
  *         or NULL if it fails or notifications are not supported by the system.
  * Remarks:
- *          This will create a system notification that will show in the notifaction panel 
+ *          This will create a system notification that will show in the notifaction panel
  *          on supported systems, which may be clicked to perform another task.
  */
 HWND dw_notification_new(const char *title, HPIXMAP pixmap, const char *description, ...)
@@ -12421,6 +12421,16 @@ void API dw_environment_query(DWEnv *env)
 
    strcpy(env->buildDate, __DATE__);
    strcpy(env->buildTime, __TIME__);
+#if (defined(BUILD_DLL) || defined(BUILD_HTML))
+#  ifdef BUILD_EDGE
+   strcpy(env->htmlEngine, "EDGE");
+#  else
+   strcpy(env->htmlEngine, "IE");
+#  endif
+#else
+   strcpy(env->htmlEngine, "N/A");
+#endif
+
    env->DWMajorVersion = DW_MAJOR_VERSION;
    env->DWMinorVersion = DW_MINOR_VERSION;
 #ifdef VER_REV
@@ -12434,7 +12444,7 @@ void API dw_environment_query(DWEnv *env)
 void _to_dos(TCHAR *dst, TCHAR *src)
 {
    int x = 0;
-   
+
    while(src[x])
    {
       if(src[x] == TEXT('/'))
@@ -12517,7 +12527,7 @@ char * API dw_file_browse(const char *title, const char *defpath, const char *ex
    else
    {
       DWORD att = defpath ? GetFileAttributes(UTF8toWide(defpath)) : INVALID_FILE_ATTRIBUTES;
-      
+
       if (ext)
       {
          /*
@@ -12596,13 +12606,13 @@ int API dw_exec(const char *program, int type, char **params)
    for(z=0;z<count;z++)
    {
       if(strchr(params[z], ' '))
-      {		  
+      {		
          newparams[z] = malloc(strlen(params[z])+3);
          strcpy(newparams[z], "\"");
          strcat(newparams[z], params[z]);
          strcat(newparams[z], "\"");
       }
-      else 
+      else
          newparams[z] = strdup(params[z]);
    }
    newparams[count] = NULL;
@@ -12652,7 +12662,7 @@ int API dw_browse(const char *url)
    return DW_ERROR_NONE;
 }
 
-typedef struct _dwprint 
+typedef struct _dwprint
 {
     PRINTDLG pd;
     DOCINFO di;
@@ -12675,10 +12685,10 @@ typedef struct _dwprint
 HPRINT API dw_print_new(const char *jobname, unsigned long flags, unsigned int pages, void *drawfunc, void *drawdata)
 {
     DWPrint *print;
-    
+
     if(!drawfunc || !(print = calloc(1, sizeof(DWPrint))))
         return NULL;
-    
+
     print->drawfunc = drawfunc;
     print->drawdata = drawdata;
     print->pd.lStructSize = sizeof(PRINTDLG);
@@ -12714,14 +12724,14 @@ int API dw_print_run(HPRINT print, unsigned long flags)
     DWPrint *p = print;
     HPIXMAP pixmap;
     int x, width, height, result = DW_ERROR_UNKNOWN;
-    
+
     if(!p)
         return result;
-        
+
     if (!(pixmap = calloc(1,sizeof(struct _hpixmap))))
         return result;
 
-    width = GetDeviceCaps(p->pd.hDC, HORZRES); 
+    width = GetDeviceCaps(p->pd.hDC, HORZRES);
     height = GetDeviceCaps(p->pd.hDC, VERTRES);
 
     pixmap->hbm = CreateCompatibleBitmap(p->pd.hDC, width, height);
@@ -12740,7 +12750,7 @@ int API dw_print_run(HPRINT print, unsigned long flags)
 
     /* Start the job */
     StartDoc(p->pd.hDC, &(p->di));
-    
+
     /* Cycle through each page */
     for(x=p->pd.nFromPage-1; x<p->pd.nToPage && p->drawfunc; x++)
     {
@@ -12769,7 +12779,7 @@ int API dw_print_run(HPRINT print, unsigned long flags)
 void API dw_print_cancel(HPRINT print)
 {
     DWPrint *p = print;
-    
+
     if(p)
         p->drawfunc = NULL;
 }
@@ -12808,7 +12818,7 @@ char * API dw_user_dir(void)
 
 /*
  * Returns a pointer to a static buffer which containes the
- * private application data directory. 
+ * private application data directory.
  */
 char * API dw_app_dir(void)
 {
@@ -13135,12 +13145,12 @@ void API dw_signal_disconnect_by_name(HWND window, const char *signame)
       if(((window < (HWND)65536 && (int)(intptr_t)window == tmp->id) || tmp->window == window) && tmp->message == message)
       {
          void (DWSIGNAL *discfunc)(HWND, void *) = (void (*)(HWND, void *))tmp->discfunction;
-            
+
          if(discfunc)
          {
              discfunc(tmp->window, tmp->data);
          }
-         
+
          if(prev)
          {
             prev->next = tmp->next;
@@ -13176,12 +13186,12 @@ void API dw_signal_disconnect_by_window(HWND window)
       if((window < (HWND)65536 && (int)(intptr_t)window == tmp->id) || tmp->window == window)
       {
          void (DWSIGNAL *discfunc)(HWND, void *) = (void (*)(HWND, void *))tmp->discfunction;
-            
+
          if(discfunc)
          {
              discfunc(tmp->window, tmp->data);
          }
-         
+
          if(prev)
          {
             prev->next = tmp->next;
@@ -13218,12 +13228,12 @@ void API dw_signal_disconnect_by_data(HWND window, void *data)
       if(((window < (HWND)65536 && (int)(intptr_t)window == tmp->id) || tmp->window == window) && tmp->data == data)
       {
          void (DWSIGNAL *discfunc)(HWND, void *) = (void (*)(HWND, void *))tmp->discfunction;
-            
+
          if(discfunc)
          {
              discfunc(tmp->window, tmp->data);
          }
-         
+
         if(prev)
          {
             prev->next = tmp->next;
@@ -13259,7 +13269,7 @@ wchar_t * API dw_utf8_to_wchar(const char *utf8string)
     return _myUTF8toWide(utf8string, malloc(MultiByteToWideChar(CP_UTF8, 0, utf8string, -1, NULL, 0) * sizeof(WCHAR)));
 #else
     return NULL;
-#endif    
+#endif
 }
 
 /*
