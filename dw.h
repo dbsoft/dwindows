@@ -1331,15 +1331,18 @@ typedef CTIME *PCTIME;
 typedef unsigned long DWTID;
 #endif
 
+/* Use at least the linux utsname limit to avoid gcc fortify warnings */
+#define _DW_ENV_STRING_SIZE 65
+
 typedef struct _dwenv {
    /* Operating System Name and DW Build Date/Time */
-   char osName[30], buildDate[30], buildTime[30];
+   char osName[_DW_ENV_STRING_SIZE], buildDate[_DW_ENV_STRING_SIZE], buildTime[_DW_ENV_STRING_SIZE];
    /* Versions and builds */
    short MajorVersion, MinorVersion, MajorBuild, MinorBuild;
    /* Dynamic Window version */
    short DWMajorVersion, DWMinorVersion, DWSubVersion;
    /* Which HTML engine is compiled in */
-   char htmlEngine[30];
+   char htmlEngine[_DW_ENV_STRING_SIZE];
 } DWEnv;
 
 
