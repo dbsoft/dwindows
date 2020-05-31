@@ -83,7 +83,7 @@ SVNVERSION=-DVER_REV=$(VER_REV)
 WEBVIEW2DIR=$(SRCDIR)\packages\Microsoft.Web.WebView2
 !endif
 
-!if exists($(WEBVIEW2DIR)\build\native\include\WebView2.h) 
+!if exists($(WEBVIEW2DIR)\build\native\include\WebView2.h)
 WEBVIEW2INC=-DBUILD_EDGE -I$(WEBVIEW2DIR)\build\native\include
 WEBVIEW2LIB=$(WEBVIEW2DIR)\build\native\$(TARGET_CPU)\WebView2Loader.dll.lib
 WEBVIEW2OBJ=edge.obj
@@ -132,7 +132,7 @@ $(OBJS) $(RES)
 $(LIBS)
 <<
 	lib /def:$(DEFFILE) /machine:$(TARGET_CPU) /out:dw.lib
-	mt.exe /manifest dw.dll.manifest win\dw.dll.$(TARGET_CPU).manifest /outputresource:dw.dll;2
+	mt.exe /manifest dw.dll.manifest $(SRCDIR)\win\dw.dll.$(TARGET_CPU).manifest /outputresource:dw.dll;2
 	-erase dw.dll.manifest
 	copy dw.lib $(DWLIBDIR)\dw.lib
 	copy dw.dll $(DWDLLDIR)\dw.dll
@@ -151,7 +151,7 @@ $(LIBS)
 	-erase dwcompat.dll.manifest
 	copy dwcompat.lib $(DWLIBDIR)\dwcompat.lib
 	copy dwcompat.dll $(DWDLLDIR)\dwcompat.dll
-!if exists($(WEBVIEW2DIR)\build\native\$(TARGET_CPU)\WebView2Loader.dll) 
+!if exists($(WEBVIEW2DIR)\build\native\$(TARGET_CPU)\WebView2Loader.dll)
 	copy $(WEBVIEW2DIR)\build\native\$(TARGET_CPU)\WebView2Loader.dll $(DWDLLDIR)\WebView2Loader.dll
 !endif
 
@@ -176,11 +176,14 @@ dwcompat.obj: $(SRCDIR)\dwcompat.c
 dwtest.obj: $(SRCDIR)\dwtest.c
 	$(CC) $(CFLAGS) $(CFLAGS_DEBUG) $(SRCDIR)\dwtest.c
 
+winmain.obj: $(SRCDIR)\winmain.c
+	$(CC) $(CFLAGS) $(CFLAGS_DEBUG) $(SRCDIR)\winmain.c
+
 dwtest: dwtest.exe
 
 dwtest.exe: dwtest.obj winmain.obj
 	$(LINK) $(LINKFLAGS) /out:dwtest.exe dwtest.obj winmain.obj /subsystem:windows $(DWLIBDIR)\dwcompat.lib $(DWLIBDIR)\dw.lib $(LIBS)
-	mt.exe /manifest dwtest.exe.manifest win\dwtest.exe.$(TARGET_CPU).manifest /outputresource:dwtest.exe;1
+	mt.exe /manifest dwtest.exe.manifest $(SRCDIR)\win\dwtest.exe.$(TARGET_CPU).manifest /outputresource:dwtest.exe;1
 	-erase dwtest.exe.manifest
 
 zip: dw.dll
