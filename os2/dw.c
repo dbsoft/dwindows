@@ -291,7 +291,7 @@ void _dw_redraw(HWND window, int skip)
 {
     static HWND lastwindow = 0;
     HWND redraw = lastwindow;
-    
+
     if(skip && !window)
         return;
 
@@ -440,7 +440,7 @@ void _free_bitmap(HWND handle)
    dw_window_set_data(handle, "_dw_hpixmap", NULL);
    dw_window_set_data(handle, "_dw_hpixmap_disabled", NULL);
    dw_window_set_data(handle, "_dw_button_icon", NULL);
-   
+
    if(icon)
       WinDestroyPointer(icon);
 
@@ -574,7 +574,7 @@ void _free_menu_data(HWND menu)
       if(menuid >= 30000)
       {
          char buffer[31] = {0};
-       
+
          sprintf(buffer, "_dw_id%d", menuid);
          dw_window_set_data( hwndApp, buffer, NULL );
          sprintf(buffer, "_dw_checkable%d", menuid);
@@ -584,7 +584,7 @@ void _free_menu_data(HWND menu)
          sprintf(buffer, "_dw_isdisabled%d", menuid);
          dw_window_set_data( hwndApp, buffer, NULL );
       }
-      
+
       /* Check any submenus */
       if(WinSendMsg(menu, MM_QUERYITEM, MPFROMSHORT(menuid), MPFROMP(&mi))
          && mi.hwndSubMenu)
@@ -695,9 +695,9 @@ int _focus_check_box(Box *box, HWND handle, int start, int direction, HWND defau
       else
       {
          int type = _validate_focus(box->items[z].hwnd);
-         
+
          /* Special case notebook, can focus and contains items */
-         if(type == 2 && direction == _DW_DIRECTION_FORWARD && _focus_notebook(box->items[z].hwnd, handle, start, direction, defaultitem)) 
+         if(type == 2 && direction == _DW_DIRECTION_FORWARD && _focus_notebook(box->items[z].hwnd, handle, start, direction, defaultitem))
             return 1;
          if(box->items[z].hwnd == handle)
          {
@@ -729,7 +729,7 @@ int _focus_check_box(Box *box, HWND handle, int start, int direction, HWND defau
             }
 
             lasthwnd = box->items[z].hwnd;
-            
+
             if(!firsthwnd)
                firsthwnd = lasthwnd;
          }
@@ -777,7 +777,7 @@ int _focus_check_box(Box *box, HWND handle, int start, int direction, HWND defau
             }
          }
          /* Special case notebook, can focus and contains items */
-         if(type == 2 && direction == _DW_DIRECTION_BACKWARD && _focus_notebook(box->items[z].hwnd, handle, start, direction, defaultitem)) 
+         if(type == 2 && direction == _DW_DIRECTION_BACKWARD && _focus_notebook(box->items[z].hwnd, handle, start, direction, defaultitem))
             return 1;
       }
    }
@@ -1061,7 +1061,7 @@ static void _resize_box(Box *thisbox, int *depth, int x, int y, int pass)
     */
    int uymax = 0, uxmax = 0;
    int upymax = 0, upxmax = 0;
-    
+
    /* Reset the box sizes */
    thisbox->minwidth = thisbox->minheight = thisbox->usedpadx = thisbox->usedpady = thisbox->pad * 2;
 
@@ -1095,7 +1095,7 @@ static void _resize_box(Box *thisbox, int *depth, int x, int y, int pass)
 
          thisbox->grouppadx = 6;
       }
-      
+
       thisbox->minwidth += thisbox->grouppadx;
       thisbox->usedpadx += thisbox->grouppadx;
       thisbox->minheight += thisbox->grouppady;
@@ -1106,7 +1106,7 @@ static void _resize_box(Box *thisbox, int *depth, int x, int y, int pass)
    for(z=0;z<thisbox->count;z++)
    {
       int itempad, itemwidth, itemheight;
-        
+
       if(thisbox->items[z].type == TYPEBOX)
       {
          Box *tmp = WinQueryWindowPtr(thisbox->items[z].hwnd, QWP_USER);
@@ -1117,38 +1117,38 @@ static void _resize_box(Box *thisbox, int *depth, int x, int y, int pass)
             if(pass == 1)
             {
                (*depth)++;
-                    
+
                /* Save the newly calculated values on the box */
                _resize_box(tmp, depth, x, y, pass);
-                    
+
                /* Duplicate the values in the item list for use below */
                thisbox->items[z].width = tmp->minwidth;
                thisbox->items[z].height = tmp->minheight;
-               
+
                /* If the box has no contents but is expandable... default the size to 1 */
                if(!thisbox->items[z].width && thisbox->items[z].hsize)
                   thisbox->items[z].width = 1;
                if(!thisbox->items[z].height && thisbox->items[z].vsize)
                   thisbox->items[z].height = 1;
-               
+
                (*depth)--;
             }
          }
       }
-        
+
       /* Precalculate these values, since they will
        * be used used repeatedly in the next section.
        */
       itempad = thisbox->items[z].pad * 2;
       itemwidth = thisbox->items[z].width + itempad;
       itemheight = thisbox->items[z].height + itempad;
-        
+
       /* Calculate the totals and maximums */
       if(thisbox->type == DW_VERT)
       {
          if(itemwidth > uxmax)
             uxmax = itemwidth;
-            
+
          if(thisbox->items[z].hsize != SIZEEXPAND)
          {
             if(itemwidth > upxmax)
@@ -1199,7 +1199,7 @@ static void _resize_box(Box *thisbox, int *depth, int x, int y, int pass)
       currentx += 3;
       currenty += thisbox->grouppady - 3;
    }
-   
+
    /* The second pass is for actual placement. */
    if(pass > 1)
    {
@@ -1216,7 +1216,7 @@ static void _resize_box(Box *thisbox, int *depth, int x, int y, int pass)
             if(thisbox->type == DW_HORZ)
             {
                int expandablex = thisbox->minwidth - thisbox->usedpadx;
-                
+
                if(expandablex)
                   width = (int)(((float)width / (float)expandablex) * (float)(x - thisbox->usedpadx));
             }
@@ -1228,7 +1228,7 @@ static void _resize_box(Box *thisbox, int *depth, int x, int y, int pass)
             if(thisbox->type == DW_VERT)
             {
                int expandabley = thisbox->minheight - thisbox->usedpady;
-                
+
                if(expandabley)
                   height = (int)(((float)height / (float)expandabley) * (float)(y - thisbox->usedpady));
             }
@@ -1242,7 +1242,7 @@ static void _resize_box(Box *thisbox, int *depth, int x, int y, int pass)
             int pad = thisbox->items[z].pad;
             HWND handle = thisbox->items[z].hwnd;
             char tmpbuf[100] = {0};
-           
+
             WinQueryClassName(handle, 99, (PCH)tmpbuf);
 
             if(strncmp(tmpbuf, "#2", 3)==0)
@@ -1343,7 +1343,7 @@ static void _resize_box(Box *thisbox, int *depth, int x, int y, int pass)
                /* Everything else */
                _MySetWindowPos(handle, thisbox->hwnd, HWND_TOP, currentx + pad, currenty + pad,
                            width, height, SWP_MOVE | SWP_SIZE | SWP_ZORDER);
-                           
+
                /* After placing a box... place its components */
                if(thisbox->items[z].type == TYPEBOX)
                {
@@ -1382,10 +1382,10 @@ void _do_resize(Box *thisbox, int x, int y)
       if(thisbox)
       {
          int depth = 0;
-            
+
          /* Calculate space requirements */
          _resize_box(thisbox, &depth, x, y, 1);
-            
+
          /* Finally place all the boxes and controls */
          _resize_box(thisbox, &depth, x, y, 2);
       }
@@ -4197,7 +4197,7 @@ MRESULT EXPENTRY _BtProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
       }
       break;
    }
-   
+
    /* Make sure windows are up-to-date */
    if(retval != -1)
       _dw_redraw(0, FALSE);
@@ -4325,7 +4325,7 @@ MRESULT EXPENTRY _NotebookProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
       }
       break;
    }
-   
+
    if(oldproc)
       return oldproc(hwnd, msg, mp1, mp2);
 
@@ -4385,18 +4385,18 @@ int API dw_init(int newthread, int argc, char *argv[])
    if(argc > 0 && argv[0])
    {
       char *pos = strrchr(argv[0], '\\');
-      
+
       /* Just to be safe try the unix style */
       if(!pos)
          pos = strrchr(argv[0], '/');
-         
+
       if(pos)
          strncpy(_dw_exec_dir, argv[0], (size_t)(pos - argv[0]));
    }
    /* If that failed... just get the current directory */
    if(!_dw_exec_dir[0])
       _getcwd(_dw_exec_dir, MAX_PATH);
-      
+
    if(newthread)
    {
 #ifdef UNICODE
@@ -4502,7 +4502,7 @@ void API dw_main(void)
 
    /* Set the running flag to TRUE */
    _dw_main_running = TRUE;
-   
+
    /* Run the loop until the flag is unset... or error */
    while(_dw_main_running && WinGetMsg(dwhab, &qmsg, 0, 0, 0))
    {
@@ -4920,7 +4920,7 @@ int API dw_window_destroy(HWND handle)
           return dw_menu_delete_item((HMENUI)menu, handle);
       return DW_ERROR_UNKNOWN;
    }
-   
+
    parent = WinQueryWindow(handle, QW_PARENT);
    frame = (HWND)dw_window_get_data(handle, "_dw_combo_box");
 
@@ -5043,7 +5043,7 @@ char * API dw_font_choose(const char *currfont)
 void API dw_font_set_default(const char *fontname)
 {
     char *oldfont = DefaultFont;
-    
+
     DefaultFont = strdup(fontname);
     free(oldfont);
 }
@@ -5054,8 +5054,8 @@ void API dw_font_set_default(const char *fontname)
 Item *_box_item(HWND handle)
 {
    HWND parent = WinQueryWindow(handle, QW_PARENT);
-   Box *thisbox = (Box *)WinQueryWindowPtr(parent, QWP_USER);   
-   
+   Box *thisbox = (Box *)WinQueryWindowPtr(parent, QWP_USER);
+
    /* If it is a desktop window let WM_DESTROY handle it */
    if(parent != HWND_DESKTOP)
    {
@@ -5076,7 +5076,7 @@ Item *_box_item(HWND handle)
 
 /* Internal function to calculate the widget's required size..
  * These are the general rules for widget sizes:
- * 
+ *
  * Render/Unspecified: 1x1
  * Scrolled(Container,Tree,MLE): Guessed size clamped to min and max in dw.h
  * Entryfield/Combobox/Spinbutton: 150x(maxfontheight)
@@ -5093,7 +5093,7 @@ void _control_size(HWND handle, int *width, int *height)
 
    WinQueryClassName(handle, 99, (PCH)tmpbuf);
 
-    /* If we have a string... 
+    /* If we have a string...
      * calculate the size with the current font.
      */
     if(buf)
@@ -5102,7 +5102,7 @@ void _control_size(HWND handle, int *width, int *height)
           dw_font_text_extents_get(handle, NULL, buf, &thiswidth, &thisheight);
        dw_free(buf);
     }
-        
+
    /* Combobox */
    if(strncmp(tmpbuf, "#2", 3)==0)
    {
@@ -5240,27 +5240,27 @@ void _control_size(HWND handle, int *width, int *height)
       char buf[1025] = {0};
       int x, count = dw_listbox_count(handle);
       int basicwidth = thiswidth = WinQuerySysValue(HWND_DESKTOP, SV_CXVSCROLL) + 8;
-      
+
       thisheight = 8;
-      
+
       for(x=0;x<count;x++)
       {
          int height, width = 0;
-         
+
          dw_listbox_get_text(handle, x, buf, 1024);
-         
+
          if(strlen(buf))
             dw_font_text_extents_get(handle, NULL, buf, &width, &height);
          else
             dw_font_text_extents_get(handle, NULL, testtext, NULL, &height);
-        
+
          width += basicwidth;
-         
+
          if(width > thiswidth)
             thiswidth = width > _DW_SCROLLED_MAX_WIDTH ? _DW_SCROLLED_MAX_WIDTH : width;
          thisheight += height;
       }
-      
+
       if(thiswidth < _DW_SCROLLED_MIN_WIDTH)
          thiswidth = _DW_SCROLLED_MIN_WIDTH;
       if(thisheight < _DW_SCROLLED_MIN_HEIGHT)
@@ -5386,7 +5386,7 @@ void _control_size(HWND handle, int *width, int *height)
    else if(strncmp(tmpbuf, "#3", 3)==0)
    {
       ULONG style = WinQueryWindowULong(handle, QWL_STYLE);
-      
+
       if(style & BS_AUTOCHECKBOX || style & BS_AUTORADIOBUTTON)
       {
          extrawidth = 24;
@@ -5464,7 +5464,7 @@ void _control_size(HWND handle, int *width, int *height)
       }
    }
 
-   /* Set the requested sizes */    
+   /* Set the requested sizes */
    if(width)
       *width = thiswidth + extrawidth;
    if(height)
@@ -5484,11 +5484,11 @@ int API dw_window_set_font(HWND handle, const char *fontname)
    if(!WinSetPresParam(group ? group : handle, PP_FONTNAMESIZE, strlen(fontname)+1, (void *)fontname))
    {
       Item *item = _box_item(handle);
-       
+
       /* Check to see if any of the sizes need to be recalculated */
       if(item && (item->origwidth == -1 || item->origheight == -1))
       {
-         _control_size(handle, item->origwidth == -1 ? &item->width : NULL, item->origheight == -1 ? &item->height : NULL); 
+         _control_size(handle, item->origwidth == -1 ? &item->width : NULL, item->origheight == -1 ? &item->height : NULL);
           /* Queue a redraw on the top-level window */
          _dw_redraw(_toplevel_window(handle), TRUE);
       }
@@ -6032,7 +6032,7 @@ int _menuid_allocated(int id)
    while(tmp)
    {
      if(tmp->id == id)
-        return TRUE;   
+        return TRUE;
      tmp = tmp->next;
    }
    return FALSE;
@@ -6077,15 +6077,15 @@ HWND API dw_menu_append_item(HMENUI menux, const char *title, ULONG id, ULONG fl
    if (title && *title)
    {
       /* Code to autogenerate a menu ID if not specified or invalid
-       * First pool is smaller for transient popup menus 
+       * First pool is smaller for transient popup menus
        */
       if(id == (ULONG)-1)
       {
          static ULONG tempid = 61000;
-         
+
          tempid++;
          id = tempid;
-         
+
          if(tempid > 65500)
             tempid = 61000;
       }
@@ -6098,7 +6098,7 @@ HWND API dw_menu_append_item(HMENUI menux, const char *title, ULONG id, ULONG fl
       else if(!id || id >= 30000)
       {
          static ULONG menuid = 30000;
-         
+
          do
          {
             menuid++;
@@ -6228,7 +6228,7 @@ void API dw_menu_item_set_state( HMENUI menux, unsigned long id, unsigned long s
  * Parameters:
  *       menu: The handle to the  menu in which the item was appended.
  *       id: Menuitem id.
- * Returns: 
+ * Returns:
  *       DW_ERROR_NONE (0) on success or DW_ERROR_UNKNOWN on failure.
  */
 int API dw_menu_delete_item(HMENUI menux, unsigned long id)
@@ -7448,15 +7448,15 @@ void _dw_window_set_bitmap(HWND handle, HBITMAP hbm, HDC hdc, HPS hps, unsigned 
        WinQueryWindowRect(handle, &rect);
        WinInvalidateRect(handle, &rect, TRUE);
    }
-   
+
    /* If we changed the bitmap... */
    {
       Item *item = _box_item(handle);
-       
+
       /* Check to see if any of the sizes need to be recalculated */
       if(item && (item->origwidth == -1 || item->origheight == -1))
       {
-         _control_size(handle, item->origwidth == -1 ? &item->width : NULL, item->origheight == -1 ? &item->height : NULL); 
+         _control_size(handle, item->origwidth == -1 ? &item->width : NULL, item->origheight == -1 ? &item->height : NULL);
          /* Queue a redraw on the top-level window */
          _dw_redraw(_toplevel_window(handle), TRUE);
       }
@@ -7632,14 +7632,14 @@ void API dw_window_set_text(HWND handle, const char *text)
    /* If we changed the text... */
    {
       Item *item = _box_item(handle);
-       
+
       /* Check to see if any of the sizes need to be recalculated */
       if(item && (item->origwidth == -1 || item->origheight == -1))
       {
          int newwidth, newheight;
-         
-         _control_size(handle, &newwidth, &newheight); 
-         
+
+         _control_size(handle, &newwidth, &newheight);
+
          /* Only update the item and redraw the window if it changed */
          if((item->origwidth == -1 && item->width != newwidth) ||
             (item->origheight == -1 && item->height != newheight))
@@ -7706,10 +7706,10 @@ void API dw_window_disable(HWND handle)
    {
       char buffer[30];
       HMENUI mymenu;
-      
+
       sprintf(buffer, "_dw_id%ld", handle);
       mymenu = (HMENUI)dw_window_get_data(hwndApp, buffer);
-      
+
       if(mymenu && WinIsWindow(dwhab, mymenu))
           dw_menu_item_set_state(mymenu, handle, DW_MIS_DISABLED);
       return;
@@ -7771,10 +7771,10 @@ void API dw_window_enable(HWND handle)
    {
       char buffer[30];
       HMENUI mymenu;
-      
+
       sprintf(buffer, "_dw_id%ld", handle);
       mymenu = (HMENUI)dw_window_get_data(hwndApp, buffer);
-      
+
       if(mymenu && WinIsWindow(dwhab, mymenu))
           dw_menu_item_set_state(mymenu, handle, DW_MIS_ENABLED);
       return;
@@ -7830,7 +7830,7 @@ HWND API dw_window_from_id(HWND handle, int id)
 void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsize, int vsize, int pad, char *funcname)
 {
    Box *thisbox;
-   
+
       /*
        * If you try and pack an item into itself VERY bad things can happen; like at least an
        * infinite loop on GTK! Lets be safe!
@@ -7853,7 +7853,7 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
          box = WinWindowFromID(box, FID_CLIENT);
       }
    }
-   
+
    thisbox = WinQueryWindowPtr(box, QWP_USER);
 
    if(thisbox)
@@ -7870,7 +7870,7 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
         index = 0;
       if(index > thisbox->count)
         index = thisbox->count;
-        
+
       tmpitem = calloc(sizeof(Item), (thisbox->count+1));
 
       for(z=0;z<thisbox->count;z++)
@@ -7906,7 +7906,7 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
       tmpitem[index].pad = pad;
       tmpitem[index].hsize = hsize ? SIZEEXPAND : SIZESTATIC;
       tmpitem[index].vsize = vsize ? SIZEEXPAND : SIZESTATIC;
-    
+
       /* If either of the parameters are -1 ... calculate the size */
       if(width == -1 || height == -1)
          _control_size(item, width == -1 ? &tmpitem[index].width : NULL, height == -1 ? &tmpitem[index].height : NULL);
@@ -7942,13 +7942,13 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
 int API dw_box_unpack(HWND handle)
 {
    HWND parent = WinQueryWindow(handle, QW_PARENT);
-   
+
    if(parent != desktop)
    {
       Box *thisbox = WinQueryWindowPtr(parent, QWP_USER);
-      
-      /* If the parent box has items... 
-       * try to remove it from the layout 
+
+      /* If the parent box has items...
+       * try to remove it from the layout
        */
       if(thisbox && thisbox->count)
       {
@@ -7957,7 +7957,7 @@ int API dw_box_unpack(HWND handle)
 
          if(!thisitem)
             thisbox->count = 0;
-            
+
          for(z=0;z<thisbox->count;z++)
          {
             if(thisitem[z].hwnd == handle)
@@ -7989,7 +7989,7 @@ int API dw_box_unpack(HWND handle)
             thisbox->count--;
          else
             thisbox->count = 0;
-            
+
          /* If it isn't padding, reset the parent */
          if(handle)
             WinSetParent(handle, HWND_OBJECT, FALSE);
@@ -8012,7 +8012,7 @@ int API dw_box_unpack(HWND handle)
 HWND API dw_box_unpack_at_index(HWND box, int index)
 {
    Box *thisbox = WinQueryWindowPtr(box, QWP_USER);
-   
+
    /* Try to remove it from the layout */
    if(thisbox && index > -1 && index < thisbox->count)
    {
@@ -8042,7 +8042,7 @@ HWND API dw_box_unpack_at_index(HWND box, int index)
          thisbox->count--;
       else
          thisbox->count = 0;
-         
+
       /* If it isn't padding, reset the parent */
       if(handle)
          WinSetParent(handle, HWND_OBJECT, FALSE);
@@ -8058,7 +8058,7 @@ HWND API dw_box_unpack_at_index(HWND box, int index)
  * Parameters:
  *       box: Window handle of the box to be packed into.
  *       item: Window handle of the item to pack.
- *       index: 0 based index of packed items. 
+ *       index: 0 based index of packed items.
  *       width: Width in pixels of the item or -1 to be self determined.
  *       height: Height in pixels of the item or -1 to be self determined.
  *       hsize: TRUE if the window (widget) should expand horizontally to fill space given.
@@ -8083,7 +8083,7 @@ void API dw_box_pack_at_index(HWND box, HWND item, int index, int width, int hei
  */
 void API dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize, int vsize, int pad)
 {
-    /* 65536 is the table limit on GTK... 
+    /* 65536 is the table limit on GTK...
      * seems like a high enough value we will never hit it here either.
      */
     _dw_box_pack(box, item, 65536, width, height, hsize, vsize, pad, "dw_box_pack_start()");
@@ -8121,13 +8121,13 @@ void _get_window_for_size(HWND handle, unsigned long *width, unsigned long *heig
 
       /* Calculate space requirements */
       _resize_box(thisbox, &depth, *width, *height, 1);
-      
+
       rect.xRight = thisbox->minwidth;
       rect.yTop = thisbox->minheight;
 
       /* Take into account the window border and menu here */
       WinCalcFrameRect(handle, &rect, FALSE);
-      
+
       if(*width < 1) *width = rect.xRight - rect.xLeft;
       if(*height < 1) *height = rect.yTop - rect.yBottom;
    }
@@ -8145,7 +8145,7 @@ void API dw_window_set_size(HWND handle, ULONG width, ULONG height)
    /* Attempt to auto-size */
    if ( width < 1 || height < 1 )
       _get_window_for_size(handle, &width, &height);
-   
+
    /* Finally set the size */
    WinSetWindowPos(handle, NULLHANDLE, 0, 0, width, height, SWP_SIZE);
 }
@@ -8166,14 +8166,14 @@ void API dw_window_get_preferred_size(HWND handle, int *width, int *height)
    if(strncmp(tmpbuf, "#1", 3)==0)
    {
       HWND box = WinWindowFromID(handle, FID_CLIENT);
-      
+
       if(box)
       {
          unsigned long thiswidth = 0, thisheight = 0;
-         
+
          /* Get the size with the border */
          _get_window_for_size(handle, &thiswidth, &thisheight);
-         
+
          /* Return what was requested */
          if(width) *width = (int)thiswidth;
          if(height) *height = (int)thisheight;
@@ -8181,14 +8181,14 @@ void API dw_window_get_preferred_size(HWND handle, int *width, int *height)
       else
       {
          Box *thisbox = WinQueryWindowPtr(handle, QWP_USER);
-         
+
          if(thisbox)
          {
             int depth = 0;
-            
+
             /* Calculate space requirements */
             _resize_box(thisbox, &depth, 0, 0, 1);
-            
+
             /* Return what was requested */
             if(width) *width = thisbox->minwidth;
             if(height) *height = thisbox->minheight;
@@ -8245,12 +8245,12 @@ void _handle_gravity(HWND handle, long *x, long *y, unsigned long width, unsigne
 {
    int horz = DW_POINTER_TO_INT(dw_window_get_data(handle, "_dw_grav_horz"));
    int vert = DW_POINTER_TO_INT(dw_window_get_data(handle, "_dw_grav_vert"));
-   
+
    /* Do any gravity calculations */
    if(horz || (vert & 0xf) != DW_GRAV_BOTTOM)
    {
       long newx = *x, newy = *y;
-   
+
       /* Handle horizontal center gravity */
       if((horz & 0xf) == DW_GRAV_CENTER)
          newx += ((dw_screen_width() / 2) - (width / 2));
@@ -8262,11 +8262,11 @@ void _handle_gravity(HWND handle, long *x, long *y, unsigned long width, unsigne
          newy += ((dw_screen_height() / 2) - (height / 2));
       else if((vert & 0xf) == DW_GRAV_TOP)
          newy = dw_screen_height() - height - *y;
-        
+
       /* Save the new values */
       *x = newx;
       *y = newy;
-   }            
+   }
    /* Adjust the values to avoid WarpCenter/XCenter/eCenter if requested */
    if(_WinQueryDesktopWorkArea && (horz | vert) & DW_GRAV_OBSTACLES)
    {
@@ -8327,7 +8327,7 @@ void API dw_window_set_pos_size(HWND handle, LONG x, LONG y, ULONG width, ULONG 
    /* Attempt to auto-size */
    if ( width < 1 || height < 1 )
       _get_window_for_size(handle, &width, &height);
-   
+
    _handle_gravity(handle, &x, &y, width, height);
    /* Finally set the size */
    WinSetWindowPos(handle, NULLHANDLE, x, y, width, height, SWP_MOVE | SWP_SIZE);
@@ -8369,10 +8369,10 @@ void API dw_window_set_style(HWND handle, ULONG style, ULONG mask)
    {
       char buffer[30];
       HMENUI mymenu;
-      
+
       sprintf(buffer, "_dw_id%ld", handle);
       mymenu = (HMENUI)dw_window_get_data(hwndApp, buffer);
-      
+
       if(mymenu && WinIsWindow(dwhab, mymenu))
           dw_menu_item_set_state(mymenu, handle, style & mask);
    }
@@ -8895,7 +8895,7 @@ void _dw_percent_set_pos(HWND handle, unsigned int position)
 
       if(mypos >= range)
           mypos = range - 1;
-  
+
       _dw_int_set(handle, mypos);
       WinSendMsg(handle, SLM_SETSLIDERINFO, MPFROM2SHORT(SMA_SLIDERARMPOSITION,SMA_RANGEVALUE), (MPARAM)mypos);
    }
@@ -9806,7 +9806,7 @@ void _dw_container_free_strings(HWND handle, PRECORDCORE temp)
    ULONG totalsize, size = 0, *flags = blah ? blah->data : 0;
    int z, count = 0;
    char *oldtitle = (char *)temp->pszIcon;
-   
+
    if(!flags)
       return;
 
@@ -9817,7 +9817,7 @@ void _dw_container_free_strings(HWND handle, PRECORDCORE temp)
    temp->pszIcon = temp->pszText = NULL;
    if(oldtitle)
         free(oldtitle);
-        
+
    /* Figure out the offsets to the items in the struct */
    for(z=0;z<count;z++)
    {
@@ -10073,7 +10073,7 @@ void API dw_container_change_row_title(HWND handle, int row, const char *title)
          pCore->pszName = pCore->pszIcon = (PSZ)newtitle;
 
          WinSendMsg(handle, CM_INVALIDATERECORD, (MPARAM)&pCore, MPFROM2SHORT(1, CMA_NOREPOSITION | CMA_TEXTCHANGED));
-         
+
          if(oldtitle)
             free(oldtitle);
          return;
@@ -11461,7 +11461,7 @@ int API dw_pixmap_stretch_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest,
    POINTL ptl[4];
    int dheight, sheight;
    int count = 3;
-   
+
    /* Do some sanity checks */
    if((srcheight == -1 || srcwidth == -1) && srcheight != srcwidth)
       return DW_ERROR_GENERAL;
@@ -11921,7 +11921,7 @@ int API dw_named_memory_free(HSHM handle, void *ptr)
    return 0;
 }
 
-/* 
+/*
  * Generally an internal function called from a newly created
  * thread to setup the Dynamic Windows environment for the thread.
  * However it is exported so language bindings can call it when
@@ -11935,7 +11935,7 @@ void **_dw_init_thread2(void)
 
    threadinfo[0] = (void *)thishab;
    threadinfo[1] = (void *)thishmq;
-   
+
 #ifndef __WATCOMC__
    *_threadstore() = (void *)threadinfo;
 #endif
@@ -11952,7 +11952,7 @@ void API _dw_init_thread(void)
    _dw_init_thread2();
 }
 
-/* 
+/*
  * Generally an internal function called from a terminating
  * thread to cleanup the Dynamic Windows environment for the thread.
  * However it is exported so language bindings can call it when
@@ -11969,7 +11969,7 @@ void _dw_deinit_thread2(void **threadinfo)
    {
       HAB thishab = (HAB)threadinfo[0];
       HMQ thishmq = (HMQ)threadinfo[1];
-      
+
       WinDestroyMsgQueue(thishmq);
       WinTerminate(thishab);
       free(threadinfo);
@@ -12403,7 +12403,7 @@ void API dw_clipboard_set_text(const char *str, int len)
  *         A handle to the notification which can be used to attach a "clicked" event if desired,
  *         or NULL if it fails or notifications are not supported by the system.
  * Remarks:
- *          This will create a system notification that will show in the notifaction panel 
+ *          This will create a system notification that will show in the notifaction panel
  *          on supported systems, which may be clicked to perform another task.
  */
 HWND dw_notification_new(const char *title, HPIXMAP pixmap, const char *description, ...)
@@ -12458,6 +12458,7 @@ void API dw_environment_query(DWEnv *env)
    }
    strcpy(env->buildDate, __DATE__);
    strcpy(env->buildTime, __TIME__);
+   strcpy(env->htmlEngine, "N/A");
    env->DWMajorVersion = DW_MAJOR_VERSION;
    env->DWMinorVersion = DW_MINOR_VERSION;
 #ifdef VER_REV
@@ -12925,7 +12926,7 @@ HWND API dw_html_new(unsigned long id)
    return 0;
 }
 
-typedef struct _dwprint 
+typedef struct _dwprint
 {
     HDC hdc;
     char *printername;
@@ -13045,7 +13046,7 @@ HPRINT API dw_print_new(const char *jobname, unsigned long flags, unsigned int p
 
     if(!drawfunc || !(print = calloc(1, sizeof(DWPrint))))
         return NULL;
-    
+
     print->drawfunc = (int (API_FUNC)(HPRINT, HPIXMAP, int, void *))drawfunc;
     print->drawdata = drawdata;
     print->jobname = strdup(jobname ? jobname : "Dynamic Windows Print Job");
@@ -13219,10 +13220,10 @@ int API dw_print_run(HPRINT print, unsigned long flags)
     HPIXMAP pixmap;
     int x, result = DW_ERROR_UNKNOWN;
     SIZEL sizl = { 0, 0 };
-    
+
     if(!p)
         return result;
-        
+
     if (!(pixmap = calloc(1,sizeof(struct _hpixmap))))
         return result;
 
@@ -13271,7 +13272,7 @@ int API dw_print_run(HPRINT print, unsigned long flags)
 void API dw_print_cancel(HPRINT print)
 {
     DWPrint *p = print;
-    
+
     if(p)
         p->drawfunc = NULL;
 }
@@ -13299,7 +13300,7 @@ char * API dw_user_dir(void)
 
 /*
  * Returns a pointer to a static buffer which containes the
- * private application data directory. 
+ * private application data directory.
  */
 char * API dw_app_dir(void)
 {
@@ -13616,12 +13617,12 @@ void API dw_signal_disconnect_by_name(HWND window, const char *signame)
       if(((window < 65536 && tmp->id == window) || tmp->window == window) && tmp->message == message)
       {
          void (API_FUNC discfunc)(HWND, void *) = (void (API_FUNC)(HWND, void *))tmp->discfunction;
-            
+
          if(discfunc)
          {
              discfunc(tmp->window, tmp->data);
          }
-         
+
          if(prev)
          {
             prev->next = tmp->next;
@@ -13657,12 +13658,12 @@ void API dw_signal_disconnect_by_window(HWND window)
       if((window < 65536 && tmp->id == window) || tmp->window == window)
       {
          void (API_FUNC discfunc)(HWND, void *) = (void (API_FUNC)(HWND, void *))tmp->discfunction;
-            
+
          if(discfunc)
          {
              discfunc(tmp->window, tmp->data);
          }
-         
+
          if(prev)
          {
             prev->next = tmp->next;
@@ -13699,12 +13700,12 @@ void API dw_signal_disconnect_by_data(HWND window, void *data)
       if(((window < 65536 && tmp->id == window) || tmp->window == window) && tmp->data == data)
       {
          void (API_FUNC discfunc)(HWND, void *) = (void (API_FUNC)(HWND, void *))tmp->discfunction;
-            
+
          if(discfunc)
          {
              discfunc(tmp->window, tmp->data);
          }
-         
+
          if(prev)
          {
             prev->next = tmp->next;

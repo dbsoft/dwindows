@@ -270,7 +270,7 @@ extern HMQ dwhmq;
 
 #include <stdio.h>
 
-/* Mostly safe but slow snprintf() for compilers that don't have it... 
+/* Mostly safe but slow snprintf() for compilers that don't have it...
  * like VisualAge.  So we can write safe code and still use VAC to test.
  */
 #if defined(__IBMC__) && !defined(snprintf)
@@ -1338,6 +1338,8 @@ typedef struct _dwenv {
    short MajorVersion, MinorVersion, MajorBuild, MinorBuild;
    /* Dynamic Window version */
    short DWMajorVersion, DWMinorVersion, DWSubVersion;
+   /* Which HTML engine is compiled in */
+   char htmlEngine[30];
 } DWEnv;
 
 
