@@ -12423,7 +12423,7 @@ void API dw_environment_query(DWEnv *env)
    strcpy(env->buildTime, __TIME__);
 #if (defined(BUILD_DLL) || defined(BUILD_HTML))
 #  ifdef BUILD_EDGE
-   strcpy(env->htmlEngine, "EDGE");
+   strcpy(env->htmlEngine, _DW_EDGE_DETECTED ? "EDGE" : "IE");
 #  else
    strcpy(env->htmlEngine, "IE");
 #  endif
