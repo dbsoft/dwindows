@@ -1850,6 +1850,7 @@ int main(int argc, char *argv[])
 
         dw_listbox_append(javascript, "window.scrollTo(0,500);");
         dw_listbox_append(javascript, "window.document.title;");
+        dw_listbox_append(javascript, "window.navigator.userAgent;");
 
         dw_box_pack_start( notebookbox7, rawhtml, 0, 100, TRUE, FALSE, 0);
         dw_html_raw(rawhtml, "<html><body><center><h1>dwtest</h1></center></body></html>");
