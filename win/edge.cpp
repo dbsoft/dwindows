@@ -178,12 +178,14 @@ LRESULT CALLBACK EdgeBrowser::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARA
 					if (url)
 					{
 						WebView->URL(url);
+						dw_window_set_data(hWnd, _DW_HTML_DATA_LOCATION, NULL);
 						free((void*)url);
 					}
 					char *raw = (char *)dw_window_get_data(hWnd, _DW_HTML_DATA_RAW);
 					if (raw)
 					{
 						WebView->Raw(raw);
+						dw_window_set_data(hWnd, _DW_HTML_DATA_RAW, NULL);
 						free((void*)raw);
 					}
 					return S_OK;
@@ -283,7 +285,7 @@ void EdgeWebView::Action(int action)
 			case DW_HTML_STOP:
 			{
 				// Call the IWebView2WebView object's Stop function.
-				//WebView->Stop();
+				WebView->Stop();
 			}
 		}
 	}
