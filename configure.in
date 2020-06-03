@@ -176,8 +176,8 @@ case "$target" in
       DW_SRC=dw.m
       DW_DEFINE=__MAC__
       LIBS="$LIBS -framework Cocoa -framework WebKit"
-      OSVER=`uname -r`
-      if test $OSVER > 17.9.9; then
+      OSVER=`uname -r | cut -d. -f1`
+      if test $OSVER -ge "18"; then 
          LIBS="$LIBS -framework UserNotifications"
       fi
       build_gtk="no"
