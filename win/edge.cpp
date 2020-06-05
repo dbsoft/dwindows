@@ -5,9 +5,6 @@
  * Requires Windows 10, 8 or 7 with Microsoft Edge (Chromium) installed.
  * 
  * Only included when BUILD_EDGE is defined, will fall back to embedded IE.
- *
- * Currently only buildable with Visual Studio since it requires the EDGE
- * SDK which is currently distributed as a nuget package. 
  */
 #include "dw.h"
 #include "webview2.h"

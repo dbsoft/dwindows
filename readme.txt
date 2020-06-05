@@ -34,7 +34,7 @@ from available libraries (Firefox, Webkit, Qt, etc).
 
 Changes from version 3.0:
 Added support for MacOS versions through Catalina 10.15, 
-    Windows versions through 10 build 1909.
+    Windows versions through 10 build 2004.
 Fixed handle leak on OS/2 when built with (Open)Watcom.
 Added dark mode support on MacOS Mojave 10.14 and later. 
 Added experimental dark mode support on Windows 10 build 1809 (disabled by default).
@@ -46,6 +46,7 @@ Added notification APIs: dw_notification_new() dw_notification_send() dw_app_id_
     Requires Windows 8 or higher. MacOS 10.8 or higher. GLib 2.40 or higher on Unix.
     MacOS also requires the application bundle being signed or self-signed.
     Unix requires a desktop file link with the application ID used in dw_app_id_set().
+    Unzip WinToast from https://github.com/mohabouje/WinToast into  .\packages\WinToast
 Added webkit2gtk support and removed dead gtkmozembed and libgtkhtml2 support on Unix.
 Added embedded HTML javascript support on Mac, Windows and Unix with webkit(2)gtk. 
     Added function dw_html_javascript_run() to execute javascript code.

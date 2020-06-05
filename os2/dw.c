@@ -12406,7 +12406,7 @@ void API dw_clipboard_set_text(const char *str, int len)
  *          This will create a system notification that will show in the notifaction panel
  *          on supported systems, which may be clicked to perform another task.
  */
-HWND dw_notification_new(const char *title, HPIXMAP pixmap, const char *description, ...)
+HWND API dw_notification_new(const char *title, HPIXMAP pixmap, const char *description, ...)
 {
    return NULL;
 }
@@ -12418,7 +12418,7 @@ HWND dw_notification_new(const char *title, HPIXMAP pixmap, const char *descript
  * Returns:
  *         DW_ERROR_NONE on success, DW_ERROR_UNKNOWN on error or not supported.
  */
-int dw_notification_send(HWND notification)
+int API dw_notification_send(HWND notification)
 {
    return DW_ERROR_UNKNOWN;
 }
@@ -13311,7 +13311,7 @@ char * API dw_app_dir(void)
  * Sets the application ID used by this Dynamic Windows application instance.
  * Parameters:
  *         appid: A string typically in the form: com.company.division.application
- *         appguid: A globally unique identifier required on Windows or NULL.
+ *         appname: The application name used on Windows or NULL.
  * Returns:
  *         DW_ERROR_NONE after successfully setting the application ID.
  *         DW_ERROR_UNKNOWN if unsupported on this system.
@@ -13320,9 +13320,10 @@ char * API dw_app_dir(void)
  *          This must be called before dw_init().  If dw_init() is called first
  *          it will create a unique ID in the form: org.dbsoft.dwindows.application
  *          or if the application name cannot be detected: org.dbsoft.dwindows.pid.#
- *          The GUID is only required on Windows, NULL can be passed on other platforms.
+ *          The appname is only required on Windows.  If NULL is passed the detected
+ *          application name will be used, but a prettier name may be desired.
  */
-int dw_app_id_set(const char *appid, const char *appguid)
+int API dw_app_id_set(const char *appid, const char *appname)
 {
     return DW_ERROR_UNKNOWN;
 }

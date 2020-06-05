@@ -89,8 +89,20 @@ WEBVIEW2LIB=$(WEBVIEW2DIR)\build\native\$(TARGET_CPU)\WebView2Loader.dll.lib
 WEBVIEW2OBJ=edge.obj
 !endif
 
+#
+# Settings for supporting WinToast notifications
+#
+!if "$(WINTOASTDIR)" == ""
+WINTOASTDIR=$(SRCDIR)\packages\WinToast
+!endif
+
+!if exists($(WINTOASTDIR)\src\wintoastlib.h)
+WINTOASTINC=-DBUILD_TOAST -I$(WINTOASTDIR)\src
+WINTOASTOBJ=wintoast.obj wintoastlib.obj
+!endif
+
 CC = cl
-CFLAGS = -c $(PLATFORM_DEF) -D__WIN32__ -DMSVC -DTOOLBAR -DGDIPLUS -DAEROGLASS -D_UNICODE -DUNICODE -DBUILD_DLL -DISOLATION_AWARE_ENABLED=1 -I$(SRCDIR)\platform -I$(SRCDIR) $(WEBVIEW2INC) $(SVNVERSION)
+CFLAGS = -c $(PLATFORM_DEF) -D__WIN32__ -DMSVC -DTOOLBAR -DGDIPLUS -DAEROGLASS -D_UNICODE -DUNICODE -DBUILD_DLL -DISOLATION_AWARE_ENABLED=1 -I$(SRCDIR)\platform -I$(SRCDIR) $(WEBVIEW2INC) $(WINTOASTINC) $(SVNVERSION)
 LIBS = wsock32.lib kernel32.lib user32.lib comctl32.lib gdi32.lib advapi32.lib shell32.lib comdlg32.lib ole32.lib oleaut32.lib userenv.lib msimg32.lib gdiplus.lib $(WEBVIEW2LIB)
 RES =
 LINKFLAGS = -machine:$(TARGET_CPU) -manifest $(LINK_DEBUG)
@@ -99,7 +111,7 @@ LINK = link
 DEFFILE = $(SRCDIR)\win\dw.def
 DEFFILE2 = $(SRCDIR)\win\dwcompat.def
 
-OBJS = dw.obj browser.obj XBrowseForFolder.obj $(WEBVIEW2OBJ)
+OBJS = dw.obj browser.obj XBrowseForFolder.obj $(WEBVIEW2OBJ) $(WINTOASTOBJ)
 
 OBJS2 = dwcompat.obj dirent.obj
 
@@ -166,6 +178,12 @@ XBrowseForFolder.obj: $(SRCDIR)\win\XBrowseForFolder.cpp
 
 edge.obj: $(SRCDIR)\win\edge.cpp
 	$(CC) $(CFLAGS) $(CFLAGS_DEBUG) $(SRCDIR)\win\edge.cpp
+
+wintoast.obj: $(SRCDIR)\win\wintoast.cpp
+	$(CC) $(CFLAGS) /EHsc $(CFLAGS_DEBUG) $(SRCDIR)\win\wintoast.cpp
+
+wintoastlib.obj: $(WINTOASTDIR)\src\wintoastlib.cpp
+	$(CC) $(CFLAGS) /EHsc $(CFLAGS_DEBUG) $(WINTOASTDIR)\src\wintoastlib.cpp
 
 dirent.obj: $(SRCDIR)\win\dirent.c
 	$(CC) $(CFLAGS) $(CFLAGS_DEBUG) $(SRCDIR)\win\dirent.c

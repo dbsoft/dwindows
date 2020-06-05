@@ -278,7 +278,10 @@ SECURITY_DESCRIPTOR _dwsd;
  */
 static char _dw_alternate_temp_dir[MAX_PATH+1] = {0};
 static char _dw_exec_dir[MAX_PATH+1] = {0};
+#ifdef BUILD_TOAST
 static char _dw_app_id[101]= {0};
+static char _dw_app_name[101]= {0};
+#endif
 
 int main(int argc, char *argv[]);
 
@@ -317,6 +320,11 @@ BOOL _DW_EDGE_DETECTED = FALSE;
 LRESULT CALLBACK _edgeWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 #endif
 #endif
+#ifdef BUILD_TOAST
+void _dw_toast_init(LPWSTR AppName, LPWSTR AppID);
+void *_dw_notification_new(LPWSTR title, LPWSTR image, LPWSTR description);
+int _dw_notification_send(void *notification);
+#endif 
 LRESULT CALLBACK _colorwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2);
 void _resize_notebook_page(HWND handle, int pageid);
 void _handle_splitbar_resize(HWND hwnd, float percent, int type, int x, int y);
@@ -431,7 +439,7 @@ char **_convertargs(int *count, char *start)
    }
 
    argv = (char **)malloc(sizeof(char *) * ((*count)+1));
-   argv[0] = malloc(260);
+   argv[0] = calloc(261, 1);
    GetModuleFileNameA(DWInstance, argv[0], 260);
 
    argstart = tmp = start;
@@ -4245,7 +4253,17 @@ int API dw_init(int newthread, int argc, char *argv[])
          pos = strrchr(argv[0], '/');
 
       if(pos)
+      {
          strncpy(_dw_exec_dir, argv[0], (size_t)(pos - argv[0]));
+#ifdef BUILD_TOAST
+         if((pos++) && !_dw_app_id[0])
+         {
+            /* If we have a binary name, use that for the Application ID instead. */
+            snprintf(_dw_app_id, 100, "%s.%s", DW_APP_DOMAIN_DEFAULT, pos);
+            strncpy(_dw_app_name, pos, 100);
+         }
+#endif
+      }
    }
    /* If that failed... just get the current directory */
    if(!_dw_exec_dir[0])
@@ -4406,13 +4424,13 @@ int API dw_init(int newthread, int argc, char *argv[])
    /* Check if Microsoft Edge (Chromium) is installed */
    if (_DW_EDGE_DETECTED = _dw_edge_detect())
    {
-	   wc.lpfnWndProc = (WNDPROC)_edgeWindowProc;
-	   wc.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
+      wc.lpfnWndProc = (WNDPROC)_edgeWindowProc;
+      //wc.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
    }
    else
 #endif
    {
-	   wc.lpfnWndProc = (WNDPROC)_browserWindowProc;
+      wc.lpfnWndProc = (WNDPROC)_browserWindowProc;
    }
    RegisterClass(&wc);
 #endif
@@ -4463,6 +4481,24 @@ int API dw_init(int newthread, int argc, char *argv[])
       if(!(hrichedit = LoadLibrary(TEXT("riched20"))))
          hrichedit = LoadLibrary(TEXT("riched32"));
    }
+#endif
+#ifdef BUILD_TOAST
+    if(!_dw_app_id[0])
+    {
+        /* Generate an Application ID based on the PID if all else fails. */
+        snprintf(_dw_app_id, 100, "%s.pid.%d", DW_APP_DOMAIN_DEFAULT, getpid());
+    }
+    if(!_dw_app_name[0])
+    {
+       /* If we still don't have an app name, get the executable name */
+       char fullpath[261] = {0}, *pos;
+       GetModuleFileNameA(DWInstance, fullpath, 260);
+       pos = strrchr(fullpath, '\\');
+       if(pos)
+          pos++;
+       strncpy(_dw_app_name, pos ? pos : fullpath, 100);
+    }
+   _dw_toast_init(UTF8toWide(_dw_app_name), UTF8toWide(_dw_app_id));
 #endif
    return 0;
 }
@@ -12358,9 +12394,23 @@ void API dw_clipboard_set_text(const char *str, int len)
  *          This will create a system notification that will show in the notifaction panel
  *          on supported systems, which may be clicked to perform another task.
  */
-HWND dw_notification_new(const char *title, HPIXMAP pixmap, const char *description, ...)
+HWND API dw_notification_new(const char *title, HPIXMAP pixmap, const char *description, ...)
 {
+#ifdef BUILD_TOAST
+   char outbuf[1025] = {0};
+
+   if(description)
+   {
+      va_list args;
+
+      va_start(args, description);
+      vsnprintf(outbuf, 1024, description, args);
+      va_end(args);
+   }
+   return (HWND)_dw_notification_new(UTF8toWide(title), NULL, UTF8toWide(outbuf));
+#else
    return NULL;
+#endif
 }
 
 /*
@@ -12370,9 +12420,13 @@ HWND dw_notification_new(const char *title, HPIXMAP pixmap, const char *descript
  * Returns:
  *         DW_ERROR_NONE on success, DW_ERROR_UNKNOWN on error or not supported.
  */
-int dw_notification_send(HWND notification)
+int API dw_notification_send(HWND notification)
 {
+#ifdef BUILD_TOAST
+   return _dw_notification_send((void *)notification);
+#else
    return DW_ERROR_UNKNOWN;
+#endif
 }
 
 /*
@@ -12829,7 +12883,7 @@ char * API dw_app_dir(void)
  * Sets the application ID used by this Dynamic Windows application instance.
  * Parameters:
  *         appid: A string typically in the form: com.company.division.application
- *         appguid: A globally unique identifier required on Windows or NULL.
+ *         appname: The application name used on Windows or NULL.
  * Returns:
  *         DW_ERROR_NONE after successfully setting the application ID.
  *         DW_ERROR_UNKNOWN if unsupported on this system.
@@ -12838,11 +12892,19 @@ char * API dw_app_dir(void)
  *          This must be called before dw_init().  If dw_init() is called first
  *          it will create a unique ID in the form: org.dbsoft.dwindows.application
  *          or if the application name cannot be detected: org.dbsoft.dwindows.pid.#
- *          The GUID is only required on Windows, NULL can be passed on other platforms.
+ *          The appname is only required on Windows.  If NULL is passed the detected
+ *          application name will be used, but a prettier name may be desired.
  */
-int dw_app_id_set(const char *appid, const char *appguid)
+int API dw_app_id_set(const char *appid, const char *appname)
 {
+#ifdef BUILD_TOAST
+    strncpy(_dw_app_id, appid, 100);
+    if(appname)
+        strncpy(_dw_app_name, appname, 100);
+    return DW_ERROR_NONE;
+#else
     return DW_ERROR_UNKNOWN;
+#endif
 }
 
 /*

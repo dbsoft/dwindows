@@ -13281,7 +13281,7 @@ char * API dw_app_dir(void)
  * Sets the application ID used by this Dynamic Windows application instance.
  * Parameters:
  *         appid: A string typically in the form: com.company.division.application
- *         appguid: A globally unique identifier required on Windows or NULL.
+ *         appname: The application name used on Windows or NULL.
  * Returns:
  *         DW_ERROR_NONE after successfully setting the application ID.
  *         DW_ERROR_UNKNOWN if unsupported on this system.
@@ -13290,9 +13290,10 @@ char * API dw_app_dir(void)
  *          This must be called before dw_init().  If dw_init() is called first
  *          it will create a unique ID in the form: org.dbsoft.dwindows.application
  *          or if the application name cannot be detected: org.dbsoft.dwindows.pid.#
- *          The GUID is only required on Windows, NULL can be passed on other platforms.
+ *          The appname is only required on Windows.  If NULL is passed the detected
+ *          application name will be used, but a prettier name may be desired.
  */
-int dw_app_id_set(const char *appid, const char *appguid)
+int dw_app_id_set(const char *appid, const char *appname)
 {
 #if GLIB_CHECK_VERSION(2,28,0)
    if(g_application_id_is_valid(appid))
