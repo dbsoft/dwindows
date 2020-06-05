@@ -4425,7 +4425,7 @@ int API dw_init(int newthread, int argc, char *argv[])
    if (_DW_EDGE_DETECTED = _dw_edge_detect())
    {
       wc.lpfnWndProc = (WNDPROC)_edgeWindowProc;
-      //wc.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
+      wc.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
    }
    else
 #endif
