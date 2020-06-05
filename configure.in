@@ -62,19 +62,6 @@ AC_ARG_WITH(deprecated,
    [with_deprecated=no],
 )
 
-dnl ---------------------- default targets to build -----------------
-if test $with_dwcompat = yes; then
-   COMPAT_OBJECT="dwcompat.o"
-   INSTALL_COMPAT="installdwcompat"
-   SYSCONF_LINK_TARGET_SHARED2="lib$TARGET2.$SOSUFFIX.\$(DW_MAJOR_VERSION).\$(DW_MINOR_VERSION)"
-else
-   COMPAT_OBJECT=""
-   INSTALL_COMPAT=""
-   SYSCONF_LINK_TARGET_SHARED2=""
-fi
-SYSCONF_LINK_TARGET_SHARED="lib$TARGET.$SOSUFFIX.\$(DW_MAJOR_VERSION).\$(DW_MINOR_VERSION)"
-SYSCONF_LINK_TARGET_STATIC="lib$TARGET.a"
-
 dnl ---------------------- check for '--with-arch' switch -----------------
 AC_ARG_WITH(arch,
    [  --with-arch             specify architecture: one of all, 32bit, 64bit, intel, ppc, ppc64, x86_64, i386],
@@ -113,7 +100,6 @@ AC_CHECK_LIB(m, atan2, LIBS="$LIBS -lm",)
 
 build_gtk="yes"
 check_pthreads="yes"
-TARGETS="$SYSCONF_LINK_TARGET_SHARED $SYSCONF_LINK_TARGET_SHARED2"
 PLATLIBS=""
 SONAME=""
 PLATCCFLAGS="-g -O2 -fPIC -Wall"
@@ -127,24 +113,6 @@ case "$target" in
    ;;
    *linux*)
       SONAME="-Wl,-soname,lib$TARGET.so.\$(DW_MAJOR_VERSION)"
-   ;;
-   *nto-qnx*)
-      DW_DIR="photon"
-      DW_DEFINE=__PHOTON__
-      build_gtk="no"
-   ;;
-   *qnx*)
-      DW_DIR="photon"
-      DW_DEFINE=__PHOTON__
-      build_gtk="no"
-      check_pthreads="no"
-      LIBSUFFIX="lib"
-      LIBPREFIX=""
-      SYSCONF_LINK_TARGET_STATIC="$TARGET.lib"
-      TARGETS="$TARGET.lib"
-      PLATCCFLAGS=""
-      PLATLIBS="-lphoton_s -lphexlib3r"
-      ARFLAGS="r"
    ;;
    *apple-darwin*)
       case "$with_arch" in
@@ -176,15 +144,29 @@ case "$target" in
       DW_SRC=dw.m
       DW_DEFINE=__MAC__
       LIBS="$LIBS -framework Cocoa -framework WebKit"
-      OSVER=`uname -r | cut -d. -f1`
-      if test $OSVER -ge "18"; then 
-         LIBS="$LIBS -framework UserNotifications"
-      fi
+      save_libs="$LIBS"
+      LIBS="$LIBS -framework UserNotifications"
+      AC_CHECK_FUNC(exit, , [LIBS="$save_libs"])
       build_gtk="no"
    ;;
    *)
    ;;
 esac
+
+dnl ---------------------- default targets to build -----------------
+if test $with_dwcompat = yes; then
+   COMPAT_OBJECT="dwcompat.o"
+   INSTALL_COMPAT="installdwcompat"
+   SYSCONF_LINK_TARGET_SHARED2="lib$TARGET2.$SOSUFFIX.\$(DW_MAJOR_VERSION).\$(DW_MINOR_VERSION)"
+else
+   COMPAT_OBJECT=""
+   INSTALL_COMPAT=""
+   SYSCONF_LINK_TARGET_SHARED2=""
+fi
+SYSCONF_LINK_TARGET_SHARED="lib$TARGET.$SOSUFFIX.\$(DW_MAJOR_VERSION).\$(DW_MINOR_VERSION)"
+SYSCONF_LINK_TARGET_STATIC="lib$TARGET.a"
+
+TARGETS="$SYSCONF_LINK_TARGET_SHARED $SYSCONF_LINK_TARGET_SHARED2"
 
 if test $build_gtk = "yes"; then
    AC_PATH_XTRA
