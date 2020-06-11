@@ -1761,6 +1761,21 @@ int DWSIGNAL web_html_changed(HWND html, int status, char *url, void *data)
     return FALSE;
 }
 
+/* Pretty list of features corresponding to the DWFEATURE enum in dw.h */
+char *DWFeatureList[] = {
+    "Supports the HTML Widget",
+    "Supports the DW_SIGNAL_HTML_RESULT callback",
+    "Supports custom window border sizes",
+    "Supports window frame transparency",
+    "Supports Dark Mode user interface",
+    "Supports auto completion in Multi-line Edit boxes",
+    "Supports word wrapping in Multi-line Edit boxes",
+    "Supports striped line display in container widgets",
+    "Supports Multiple Document Interface window frame",
+    "Supports status text area on notebook/tabbed controls",
+    "Supports sending system notifications",
+    NULL };
+
 /*
  * Let's demonstrate the functionality of this library. :)
  */
@@ -1777,6 +1792,21 @@ int main(int argc, char *argv[])
     ULONG notebookpage7;
     ULONG notebookpage8;
     ULONG notebookpage9;
+    DWFEATURE feat;
+
+    /* Test all the features and display the results */
+    for(feat=0;feat<DW_FEATURE_MAX && DWFeatureList[feat];feat++)
+    {
+        int result = dw_feature_get(feat);
+        char *status = "Unsupported";
+
+        if(result == 0)
+            status = "Disabled";
+        else if(result > 0)
+            status = "Enabled";
+
+        dw_debug("%s: %s (%d)", DWFeatureList[feat], status, result);
+    }
 
     /* Initialize the Dynamic Windows engine */
     dw_init(TRUE, argc, argv);
