@@ -13850,8 +13850,9 @@ int API dw_feature_get(DWFEATURE feature)
         case DW_FEATURE_NOTEBOOK_STATUS_TEXT:
         case DW_FEATURE_MDI:
             return DW_FEATURE_ENABLED;
+        default:
+            return DW_FEATURE_UNSUPPORTED;
     }
-    return DW_FEATURE_UNSUPPORTED;
 }
 
 /*
@@ -13878,6 +13879,7 @@ int API dw_feature_set(DWFEATURE feature, int state)
         case DW_FEATURE_MDI:
             return DW_ERROR_GENERAL;
         /* These features are supported and configurable */
+        default:
+            return DW_FEATURE_UNSUPPORTED;
     }
-    return DW_FEATURE_UNSUPPORTED;
 }
