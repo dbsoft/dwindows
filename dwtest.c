@@ -1805,7 +1805,7 @@ int main(int argc, char *argv[])
         else if(result > 0)
             status = "Enabled";
 
-        dw_debug("%s: %s (%d)", DWFeatureList[feat], status, result);
+        dw_debug("%s: %s (%d)\n", DWFeatureList[feat], status, result);
     }
 
     /* Initialize the Dynamic Windows engine */
