@@ -324,6 +324,7 @@ LRESULT CALLBACK _edgeWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPa
 void _dw_toast_init(LPWSTR AppName, LPWSTR AppID);
 void *_dw_notification_new(LPWSTR title, LPWSTR image, LPWSTR description);
 int _dw_notification_send(void *notification);
+BOOL _dw_toast_is_compatible(void);
 #endif 
 LRESULT CALLBACK _colorwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2);
 void _resize_notebook_page(HWND handle, int pageid);
@@ -13369,12 +13370,17 @@ int API dw_feature_get(DWFEATURE feature)
         case DW_FEATURE_HTML:
         case DW_FEATURE_HTML_RESULT:
 #endif
-#ifdef BUILD_TOAST
-        case DW_FEATURE_NOTIFICATION:
-#endif
         case DW_FEATURE_CONTAINER_STRIPE:
         case DW_FEATURE_MDI:
             return DW_FEATURE_ENABLED;
+#ifdef BUILD_TOAST
+        case DW_FEATURE_NOTIFICATION:
+        {
+            if(_dw_toast_is_compatible())
+                return DW_FEATURE_ENABLED;
+            return DW_FEATURE_UNSUPPORTED;
+        }
+#endif
 #ifdef AEROGLASS
         case DW_FEATURE_WINDOW_TRANSPARENCY:
         {
@@ -13419,12 +13425,17 @@ int API dw_feature_set(DWFEATURE feature, int state)
 #ifdef AEROGLASS
         case DW_FEATURE_WINDOW_TRANSPARENCY:
 #endif
-#ifdef BUILD_TOAST
-        case DW_FEATURE_NOTIFICATION:
-#endif
         case DW_FEATURE_CONTAINER_STRIPE:
         case DW_FEATURE_MDI:
             return DW_ERROR_GENERAL;
+#ifdef BUILD_TOAST
+        case DW_FEATURE_NOTIFICATION:
+        {
+            if(_dw_toast_is_compatible())
+                return DW_ERROR_GENERAL;
+            return DW_FEATURE_UNSUPPORTED;
+        }
+#endif
         /* These features are supported and configurable */
 #ifdef AEROGLASS
         case DW_FEATURE_DARK_MODE:
