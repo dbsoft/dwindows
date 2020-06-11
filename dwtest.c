@@ -1794,6 +1794,9 @@ int main(int argc, char *argv[])
     ULONG notebookpage9;
     DWFEATURE feat;
 
+    /* Initialize the Dynamic Windows engine */
+    dw_init(TRUE, argc, argv);
+
     /* Test all the features and display the results */
     for(feat=0;feat<DW_FEATURE_MAX && DWFeatureList[feat];feat++)
     {
@@ -1807,9 +1810,6 @@ int main(int argc, char *argv[])
 
         dw_debug("%s: %s (%d)\n", DWFeatureList[feat], status, result);
     }
-
-    /* Initialize the Dynamic Windows engine */
-    dw_init(TRUE, argc, argv);
 
     /* Create our window */
     mainwindow = dw_window_new( HWND_DESKTOP, "dwindows test UTF8 中国語 (繁体) cañón", flStyle | DW_FCF_SIZEBORDER | DW_FCF_MINMAX);
