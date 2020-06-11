@@ -88,4 +88,9 @@ extern "C" {
       }
       return -1; // DW_ERROR_UNKNOWN
    }
+   
+   BOOL _dw_toast_is_compatible(void)
+   {
+       return WinToast::isCompatible();
+   }
 } 
