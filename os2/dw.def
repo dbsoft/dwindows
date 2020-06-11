@@ -327,3 +327,6 @@ EXPORTS
 
   dw_notification_new                    @530
   dw_notification_send                   @531
+
+  dw_feature_get                         @540
+  dw_feature_set                         @541

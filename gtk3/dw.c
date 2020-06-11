@@ -12310,3 +12310,77 @@ char * API dw_wchar_to_utf8(const wchar_t *wstring)
    return retval;
 }
 
+/*
+ * Gets the state of the requested library feature.
+ * Parameters:
+ *       feature: The requested feature for example DW_FEATURE_DARK_MODE
+ * Returns:
+ *       DW_FEATURE_UNSUPPORTED if the library or OS does not support the feature.
+ *       DW_FEATURE_DISABLED if the feature is supported but disabled.
+ *       DW_FEATURE_ENABLED if the feature is supported and enabled.
+ *       Other value greater than 1, same as enabled but with extra info.
+ */
+int API dw_feature_get(DWFEATURE feature)
+{
+    switch(feature)
+    {
+#ifdef USE_WEBKIT
+        case DW_FEATURE_HTML:
+#endif
+#ifdef USE_WEBKIT2
+        case DW_FEATURE_HTML_RESULT:
+#endif
+#if GLIB_CHECK_VERSION(2,40,0)
+        case DW_FEATURE_NOTIFICATION:
+#endif
+#ifdef DW_INCLUDE_DEPRECATED
+        case DW_FEATURE_MDI:
+#endif
+#if !GTK_CHECK_VERSION(3,14,0)
+        case DW_FEATURE_CONTAINER_STRIPE:
+#endif
+        case DW_FEATURE_MLE_WORD_WRAP:
+            return DW_FEATURE_ENABLED;
+    }
+    return DW_FEATURE_UNSUPPORTED;
+}
+
+/*
+ * Sets the state of the requested library feature.
+ * Parameters:
+ *       feature: The requested feature for example DW_FEATURE_DARK_MODE
+ *       state: DW_FEATURE_DISABLED, DW_FEATURE_ENABLED or any value greater than 1.
+ * Returns:
+ *       DW_FEATURE_UNSUPPORTED if the library or OS does not support the feature.
+ *       DW_ERROR_NONE if the feature is supported and successfully configured.
+ *       DW_ERROR_GENERAL if the feature is supported but could not be configured.
+ * Remarks: 
+ *       These settings are typically used during dw_init() so issue before 
+ *       setting up the library with dw_init().
+ */
+int API dw_feature_set(DWFEATURE feature, int state)
+{
+    switch(feature)
+    {
+        /* These features are supported but not configurable */
+#ifdef USE_WEBKIT
+        case DW_FEATURE_HTML:
+#endif
+#ifdef USE_WEBKIT2
+        case DW_FEATURE_HTML_RESULT:
+#endif
+#if GLIB_CHECK_VERSION(2,40,0)
+        case DW_FEATURE_NOTIFICATION:
+#endif
+#ifdef DW_INCLUDE_DEPRECATED
+        case DW_FEATURE_MDI:
+#endif
+#if !GTK_CHECK_VERSION(3,14,0)
+        case DW_FEATURE_CONTAINER_STRIPE:
+#endif
+        case DW_FEATURE_MLE_WORD_WRAP:
+            return DW_ERROR_GENERAL;
+        /* These features are supported and configurable */
+    }
+    return DW_FEATURE_UNSUPPORTED;
+}
