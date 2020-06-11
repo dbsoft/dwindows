@@ -13383,7 +13383,7 @@ int API dw_feature_get(DWFEATURE feature)
         {
             if(_DW_DARK_MODE_SUPPORTED)
                 return _DW_DARK_MODE_ALLOWED;
-            break;
+            return DW_FEATURE_UNSUPPORTED;
         }
 #endif
         default:
