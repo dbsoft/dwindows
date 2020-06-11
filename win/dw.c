@@ -13365,7 +13365,7 @@ int API dw_feature_get(DWFEATURE feature)
 {
     switch(feature)
     {
-#ifdef BUILD_HTML
+#if (defined(BUILD_DLL) || defined(BUILD_HTML))
         case DW_FEATURE_HTML:
         case DW_FEATURE_HTML_RESULT:
 #endif
@@ -13409,7 +13409,7 @@ int API dw_feature_set(DWFEATURE feature, int state)
     switch(feature)
     {
         /* These features are supported but not configurable */
-#ifdef BUILD_HTML
+#if (defined(BUILD_DLL) || defined(BUILD_HTML))
         case DW_FEATURE_HTML:
         case DW_FEATURE_HTML_RESULT:
 #endif
