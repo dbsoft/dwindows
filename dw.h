@@ -1467,6 +1467,27 @@ typedef void *HPRINT;
 #define DW_MLE_COMPLETE_DASH      (1 << 1)
 #define DW_MLE_COMPLETE_QUOTE     (1 << 2)
 
+/* Library feature constants */
+#define DW_FEATURE_UNSUPPORTED  -1
+#define DW_FEATURE_DISABLED     0
+#define DW_FEATURE_ENABLED      1
+
+typedef enum 
+{
+    DW_FEATURE_HTML = 0,                /* Supports the HTML Widget */
+    DW_FEATURE_HTML_RESULT,             /* Supports the DW_SIGNAL_HTML_RESULT callback */
+    DW_FEATURE_WINDOW_BORDER,           /* Supports custom window border sizes */
+    DW_FEATURE_WINDOW_TRANSPARENCY,     /* Supports window frame transparency */
+    DW_FEATURE_DARK_MODE,               /* Supports Dark Mode user interface */
+    DW_FEATURE_MLE_AUTO_COMPLETE,       /* Supports auto completion in Multi-line Edit boxes */
+    DW_FEATURE_MLE_WORD_WRAP,           /* Supports word wrapping in Multi-line Edit boxes */
+    DW_FEATURE_CONTAINER_STRIPE,        /* Supports striped line display in container widgets */ 
+    DW_FEATURE_MDI,                     /* Supports Multiple Document Interface window frame */
+    DW_FEATURE_NOTEBOOK_STATUS_TEXT,    /* Supports status text area on notebook/tabbed controls */
+    DW_FEATURE_NOTIFICATION,            /* Supports sending system notifications */
+    DW_FEATURE_MAX
+} DWFEATURE;
+
 /* Macro for casting resource IDs to HICN */
 #define DW_RESOURCE(a) (a < 65536 ? (HICN)a : (HICN)0)
 
@@ -1840,6 +1861,8 @@ HWND API dw_notification_new(const char *title, HPIXMAP pixmap, const char *desc
 int API dw_notification_send(HWND notification);
 wchar_t * API dw_utf8_to_wchar(const char *utf8string);
 char * API dw_wchar_to_utf8(const wchar_t *wstring);
+int API dw_feature_get(DWFEATURE feature); 
+int API dw_feature_set(DWFEATURE feature, int state); 
 /* Exported for language bindings */
 void API _dw_init_thread(void);
 void API _dw_deinit_thread(void);

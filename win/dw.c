@@ -13350,3 +13350,86 @@ char * API dw_wchar_to_utf8(const wchar_t *wstring)
     return NULL;
 #endif
 }
+
+/*
+ * Gets the state of the requested library feature.
+ * Parameters:
+ *       feature: The requested feature for example DW_FEATURE_DARK_MODE
+ * Returns:
+ *       DW_FEATURE_UNSUPPORTED if the library or OS does not support the feature.
+ *       DW_FEATURE_DISABLED if the feature is supported but disabled.
+ *       DW_FEATURE_ENABLED if the feature is supported and enabled.
+ *       Other value greater than 1, same as enabled but with extra info.
+ */
+int API dw_feature_get(DWFEATURE feature)
+{
+    switch(feature)
+    {
+#ifdef BUILD_HTML
+        case DW_FEATURE_HTML:
+        case DW_FEATURE_HTML_RESULT:
+#endif
+#ifdef AEROGLASS
+        case DW_FEATURE_WINDOW_TRANSPARENCY:
+#endif
+#ifdef BUILD_TOAST
+        case DW_FEATURE_NOTIFICATION:
+#endif
+        case DW_FEATURE_CONTAINER_STRIPE:
+        case DW_FEATURE_MDI:
+            return DW_FEATURE_ENABLED;
+#ifdef AEROGLASS
+        case DW_FEATURE_DARK_MODE:
+        {
+            if(_DW_DARK_MODE_SUPPORTED)
+                return _DW_DARK_MODE_ALLOWED;
+            break;
+        }
+#endif
+    }
+    return DW_FEATURE_UNSUPPORTED;
+}
+
+/*
+ * Sets the state of the requested library feature.
+ * Parameters:
+ *       feature: The requested feature for example DW_FEATURE_DARK_MODE
+ *       state: DW_FEATURE_DISABLED, DW_FEATURE_ENABLED or any value greater than 1.
+ * Returns:
+ *       DW_FEATURE_UNSUPPORTED if the library or OS does not support the feature.
+ *       DW_ERROR_NONE if the feature is supported and successfully configured.
+ *       DW_ERROR_GENERAL if the feature is supported but could not be configured.
+ * Remarks: 
+ *       These settings are typically used during dw_init() so issue before 
+ *       setting up the library with dw_init().
+ */
+int API dw_feature_set(DWFEATURE feature, int state)
+{
+    switch(feature)
+    {
+        /* These features are supported but not configurable */
+#ifdef BUILD_HTML
+        case DW_FEATURE_HTML:
+        case DW_FEATURE_HTML_RESULT:
+#endif
+#ifdef AEROGLASS
+        case DW_FEATURE_WINDOW_TRANSPARENCY:
+#endif
+#ifdef BUILD_TOAST
+        case DW_FEATURE_NOTIFICATION:
+#endif
+        case DW_FEATURE_CONTAINER_STRIPE:
+        case DW_FEATURE_MDI:
+            return DW_ERROR_GENERAL;
+        /* These features are supported and configurable */
+#ifdef AEROGLASS
+        case DW_FEATURE_DARK_MODE:
+        {
+            _DW_DARK_MODE_ALLOWED = state;
+            return DW_ERROR_NONE;
+        }
+#endif
+    }
+    return DW_FEATURE_UNSUPPORTED;
+}
+

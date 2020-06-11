@@ -12602,3 +12602,96 @@ char * API dw_wchar_to_utf8(const wchar_t *wstring)
         wcstombs(temp, wstring, bufflen);
     return temp;
 }
+
+/*
+ * Gets the state of the requested library feature.
+ * Parameters:
+ *       feature: The requested feature for example DW_FEATURE_DARK_MODE
+ * Returns:
+ *       DW_FEATURE_UNSUPPORTED if the library or OS does not support the feature.
+ *       DW_FEATURE_DISABLED if the feature is supported but disabled.
+ *       DW_FEATURE_ENABLED if the feature is supported and enabled.
+ *       Other value greater than 1, same as enabled but with extra info.
+ */
+int API dw_feature_get(DWFEATURE feature)
+{
+    switch(feature)
+    {
+#ifdef BUILDING_FOR_MOUNTAIN_LION
+        case DW_FEATURE_NOTIFICATION:
+#endif
+        case DW_FEATURE_HTML:
+        case DW_FEATURE_HTML_RESULT:
+        case DW_FEATURE_CONTAINER_STRIPE:
+        case DW_FEATURE_MLE_WORD_WRAP:
+        case DW_FEATURE_MLE_AUTO_COMPLETE:
+            return DW_FEATURE_ENABLED;
+#ifdef BUILDING_FOR_MOJAVE
+        case DW_FEATURE_DARK_MODE:
+        {
+            NSAppearance *appearance = [DWApp appearance];
+            
+            if(appearance)
+            {
+                NSAppearanceName basicAppearance = [appearance bestMatchFromAppearancesWithNames:@[NSAppearanceNameAqua, NSAppearanceNameDarkAqua]];
+            
+                if([basicAppearance isEqualToString:NSAppearanceNameDarkAqua])
+                    return 2;
+                if([basicAppearance isEqualToString:NSAppearanceNameAqua])
+                    return DW_FEATURE_DISABLED;
+            }
+            return DW_FEATURE_ENABLED;
+        }
+#endif
+    }
+    return DW_FEATURE_UNSUPPORTED;
+}
+
+/*
+ * Sets the state of the requested library feature.
+ * Parameters:
+ *       feature: The requested feature for example DW_FEATURE_DARK_MODE
+ *       state: DW_FEATURE_DISABLED, DW_FEATURE_ENABLED or any value greater than 1.
+ * Returns:
+ *       DW_FEATURE_UNSUPPORTED if the library or OS does not support the feature.
+ *       DW_ERROR_NONE if the feature is supported and successfully configured.
+ *       DW_ERROR_GENERAL if the feature is supported but could not be configured.
+ * Remarks: 
+ *       These settings are typically used during dw_init() so issue before 
+ *       setting up the library with dw_init().
+ */
+int API dw_feature_set(DWFEATURE feature, int state)
+{
+    switch(feature)
+    {
+        /* These features are supported but not configurable */
+#ifdef BUILDING_FOR_MOUNTAIN_LION
+        case DW_FEATURE_NOTIFICATION:
+#endif
+        case DW_FEATURE_HTML:
+        case DW_FEATURE_HTML_RESULT:
+        case DW_FEATURE_CONTAINER_STRIPE:
+        case DW_FEATURE_MLE_WORD_WRAP:
+        case DW_FEATURE_MLE_AUTO_COMPLETE:
+            return DW_ERROR_GENERAL;
+        /* These features are supported and configurable */
+#ifdef BUILDING_FOR_MOJAVE
+        case DW_FEATURE_DARK_MODE:
+        {
+            /* Disabled forces the non-dark aqua theme */
+            if(state == DW_FEATURE_DISABLED)
+               [DWApp setAppearance:[NSAppearance appearanceNamed:NSAppearanceNameAqua]];
+            /* Enabled lets the OS decide the mode */
+            else if(state == DW_FEATURE_ENABLED)
+               [DWApp setAppearance:nil];
+            /* 2 forces dark mode aqua appearance */
+            else if(state == 2)
+               [DWApp setAppearance:[NSAppearance appearanceNamed:NSAppearanceNameDarkAqua]];
+            else 
+                return DW_ERROR_GENERAL;
+            return DW_ERROR_NONE;
+        }
+#endif
+    }
+    return DW_FEATURE_UNSUPPORTED;
+}
