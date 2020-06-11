@@ -60,6 +60,8 @@ Changed to using GTK3 by default instead of GTK2.  --with-gtk2 is now available.
 Changed to using winsock2 on Windows ending support for Win95 and NT 3.5.
 Added support for domain sockets on Windows 10 in the dwcompat sockpipe() macro.
     If compiled with Visual Studio 2017 or later, otherwise the old method is used.
+Added dw_feature_set/get() to test if certain features are available on the current
+    library and operating system combination at runtime or enabled/disable features.
 Fixed many small bugs, too numerous to list here.
 
 Dynamic Windows Documentation is available at:
