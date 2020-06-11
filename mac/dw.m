@@ -12643,8 +12643,9 @@ int API dw_feature_get(DWFEATURE feature)
             return DW_FEATURE_ENABLED;
         }
 #endif
+        default:
+            return DW_FEATURE_UNSUPPORTED;
     }
-    return DW_FEATURE_UNSUPPORTED;
 }
 
 /*
@@ -12692,6 +12693,7 @@ int API dw_feature_set(DWFEATURE feature, int state)
             return DW_ERROR_NONE;
         }
 #endif
+        default:
+            return DW_FEATURE_UNSUPPORTED;
     }
-    return DW_FEATURE_UNSUPPORTED;
 }
