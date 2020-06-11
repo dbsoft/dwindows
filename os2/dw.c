@@ -12408,7 +12408,7 @@ void API dw_clipboard_set_text(const char *str, int len)
  */
 HWND API dw_notification_new(const char *title, HPIXMAP pixmap, const char *description, ...)
 {
-   return NULL;
+   return 0;
 }
 
 /*
