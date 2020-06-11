@@ -13369,9 +13369,6 @@ int API dw_feature_get(DWFEATURE feature)
         case DW_FEATURE_HTML:
         case DW_FEATURE_HTML_RESULT:
 #endif
-#ifdef AEROGLASS
-        case DW_FEATURE_WINDOW_TRANSPARENCY:
-#endif
 #ifdef BUILD_TOAST
         case DW_FEATURE_NOTIFICATION:
 #endif
@@ -13379,6 +13376,12 @@ int API dw_feature_get(DWFEATURE feature)
         case DW_FEATURE_MDI:
             return DW_FEATURE_ENABLED;
 #ifdef AEROGLASS
+        case DW_FEATURE_WINDOW_TRANSPARENCY:
+        {
+            if(_dw_composition)
+                return DW_FEATURE_ENABLED;
+            return DW_FEATURE_DISABLED;
+        }
         case DW_FEATURE_DARK_MODE:
         {
             if(_DW_DARK_MODE_SUPPORTED)
