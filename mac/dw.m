@@ -12642,8 +12642,9 @@ int API dw_feature_get(DWFEATURE feature)
                     if([basicAppearance isEqualToString:NSAppearanceNameAqua])
                         return DW_FEATURE_DISABLED;
                 }
+                return DW_FEATURE_ENABLED;
             }
-            return DW_FEATURE_ENABLED;
+            return DW_FEATURE_UNSUPPORTED;
         }
 #endif
         default:
@@ -12682,21 +12683,22 @@ int API dw_feature_set(DWFEATURE feature, int state)
 #ifdef BUILDING_FOR_MOJAVE
         case DW_FEATURE_DARK_MODE:
         {
-            /* Disabled forces the non-dark aqua theme */
-            if(state == DW_FEATURE_DISABLED)
-               [DWApp setAppearance:[NSAppearance appearanceNamed:NSAppearanceNameAqua]];
-            /* Enabled lets the OS decide the mode */
-            else if(state == DW_FEATURE_ENABLED || state == 2)
-               [DWApp setAppearance:nil];
-            /* 2 forces dark mode aqua appearance */
-            else if(state == 3)
+            if(@available(macOS 10.14, *))
             {
-                if(@available(macOS 10.14, *))
+                /* Disabled forces the non-dark aqua theme */
+                if(state == DW_FEATURE_DISABLED)
+                   [DWApp setAppearance:[NSAppearance appearanceNamed:NSAppearanceNameAqua]];
+                /* Enabled lets the OS decide the mode */
+                else if(state == DW_FEATURE_ENABLED || state == 2)
+                   [DWApp setAppearance:nil];
+                /* 2 forces dark mode aqua appearance */
+                else if(state == 3)
                     [DWApp setAppearance:[NSAppearance appearanceNamed:NSAppearanceNameDarkAqua]];
+                else
+                    return DW_ERROR_GENERAL;
+                return DW_ERROR_NONE;
             }
-            else 
-                return DW_ERROR_GENERAL;
-            return DW_ERROR_NONE;
+            return DW_FEATURE_UNSUPPORTED;
         }
 #endif
         default:
