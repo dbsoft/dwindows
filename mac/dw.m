@@ -12683,10 +12683,10 @@ int API dw_feature_set(DWFEATURE feature, int state)
             if(state == DW_FEATURE_DISABLED)
                [DWApp setAppearance:[NSAppearance appearanceNamed:NSAppearanceNameAqua]];
             /* Enabled lets the OS decide the mode */
-            else if(state == DW_FEATURE_ENABLED)
+            else if(state == DW_FEATURE_ENABLED || state == 2)
                [DWApp setAppearance:nil];
             /* 2 forces dark mode aqua appearance */
-            else if(state == 2)
+            else if(state == 3)
                [DWApp setAppearance:[NSAppearance appearanceNamed:NSAppearanceNameDarkAqua]];
             else 
                 return DW_ERROR_GENERAL;

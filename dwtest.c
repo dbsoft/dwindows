@@ -1794,6 +1794,9 @@ int main(int argc, char *argv[])
     ULONG notebookpage9;
     DWFEATURE feat;
 
+    /* Enable full dark mode on platforms that support it */
+    dw_feature_set(DW_FEATURE_DARK_MODE, 2);
+
     /* Initialize the Dynamic Windows engine */
     dw_init(TRUE, argc, argv);
 

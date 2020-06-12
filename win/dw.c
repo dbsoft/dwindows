@@ -693,6 +693,7 @@ HICON _dw_load_icon(const char *filename)
 /* Set _DW_DARK_MODE_ALLOWED to FALSE to disable dark mode.
  * Set _DW_DARK_MODE_ALLOWED to TRUE for basic dark mode.
  * Set _DW_DARK_MODE_ALLOWED to 2 for full dark mode.
+ * Set _DW_DARK_MODE_ALLOWED to 3 for forced full dark mode.
  */
 int _DW_DARK_MODE_ALLOWED = TRUE;
 int _DW_DARK_MODE_SUPPORTED = FALSE;
@@ -771,6 +772,14 @@ BOOL IsHighContrast(VOID)
    return FALSE;
 }
 
+/* Our own ShouldAppsUseDarkMode() that handles the forced option */
+BOOL _DW_ShouldAppsUseDarkMode(void)
+{
+    if(_DW_DARK_MODE_ALLOWED == 3)
+        return TRUE;
+    return (_ShouldAppsUseDarkMode() && !IsHighContrast());
+}
+
 void _dw_init_dark_mode(void)
 {
    if(_DW_DARK_MODE_ALLOWED && dwVersion && huxtheme)
@@ -802,7 +811,7 @@ void _dw_init_dark_mode(void)
          else
             _SetPreferredAppMode(_AllowDark);
          _RefreshImmersiveColorPolicyState();
-         _DW_DARK_MODE_ENABLED = _ShouldAppsUseDarkMode() && !IsHighContrast();
+         _DW_DARK_MODE_ENABLED = _DW_ShouldAppsUseDarkMode();
       }
    }
 }
@@ -822,7 +831,7 @@ BOOL _CanThemeWindow(HWND window)
    else if(_tcsnicmp(tmpbuf, TOOLBARCLASSNAME, _tcslen(TOOLBARCLASSNAME)+1) == 0)
    {
      /* If we aren't in full dark mode */
-      if(_DW_DARK_MODE_ALLOWED != 2)
+      if(_DW_DARK_MODE_ALLOWED < 2)
       {
          /* Enable or disable visual themes */
          if(_SetWindowTheme)
@@ -840,7 +849,7 @@ BOOL AllowDarkModeForWindow(HWND window, BOOL allow)
    {
       if(_CanThemeWindow(window))
       {
-         if(_DW_DARK_MODE_ALLOWED == 2)
+         if(_DW_DARK_MODE_ALLOWED > 1)
          {
             if(_DW_DARK_MODE_ENABLED)
                _SetWindowTheme(window, L"DarkMode_Explorer", NULL);
@@ -868,7 +877,7 @@ BOOL IsColorSchemeChangeMessage(LPARAM lParam)
 void RefreshTitleBarThemeColor(HWND window)
 {
    BOOL dark = FALSE;
-   if (_IsDarkModeAllowedForWindow(window) && _ShouldAppsUseDarkMode() && !IsHighContrast())
+   if (_IsDarkModeAllowedForWindow(window) && _DW_ShouldAppsUseDarkMode())
       dark = TRUE;
    if(HIWORD(dwVersion) < 18362)
       SetProp(window, TEXT("UseImmersiveDarkModeColors"), (HANDLE)DW_INT_TO_POINTER(dark));
@@ -899,7 +908,7 @@ DWORD _DW_GetSysColor(int nIndex)
 {
    DWORD retval = GetSysColor(nIndex);
 #ifdef AEROGLASS
-   if(_DW_DARK_MODE_ALLOWED == 2 && _DW_DARK_MODE_ENABLED)
+   if(_DW_DARK_MODE_ALLOWED > 1 && _DW_DARK_MODE_ENABLED)
    {
       const COLORREF darkBkColor = 0x383838;
       const COLORREF darkTextColor = 0xFFFFFF;
@@ -925,7 +934,7 @@ HBRUSH _DW_GetSysColorBrush(int nIndex)
 #ifdef AEROGLASS
    static HBRUSH darkBkColorBrush = 0;
 
-   if(_DW_DARK_MODE_ALLOWED == 2 && _DW_DARK_MODE_ENABLED)
+   if(_DW_DARK_MODE_ALLOWED > 1 && _DW_DARK_MODE_ENABLED)
    {
       if(!darkBkColorBrush)
          darkBkColorBrush = CreateSolidBrush(0x383838);
@@ -2500,7 +2509,7 @@ LRESULT CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
    {
       if(_DW_DARK_MODE_SUPPORTED && IsColorSchemeChangeMessage(mp2))
       {
-         _DW_DARK_MODE_ENABLED = _ShouldAppsUseDarkMode() && !IsHighContrast();
+         _DW_DARK_MODE_ENABLED = _DW_ShouldAppsUseDarkMode();
 
          RefreshTitleBarThemeColor(hWnd);
          _dw_set_child_window_theme(hWnd, 0);
@@ -2710,7 +2719,7 @@ LRESULT CALLBACK _framewndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
       break;
 #ifdef AEROGLASS
    case WM_THEMECHANGED:
-      if(_DW_DARK_MODE_ALLOWED == 2 && _DW_DARK_MODE_SUPPORTED)
+      if(_DW_DARK_MODE_ALLOWED > 1 && _DW_DARK_MODE_SUPPORTED)
       {
          SetClassLongPtr(hWnd, GCLP_HBRBACKGROUND, (LONG_PTR)_DW_GetSysColorBrush(COLOR_3DFACE));
          InvalidateRect(hWnd, NULL, TRUE);
@@ -3165,7 +3174,7 @@ LRESULT CALLBACK _colorwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
                                        DW_BLUE_VALUE(fore)));
                }
 #ifdef AEROGLASS
-               else if(thiscinfo->fore == DW_CLR_DEFAULT && _DW_DARK_MODE_ALLOWED == 2 && _DW_DARK_MODE_ENABLED)
+               else if(thiscinfo->fore == DW_CLR_DEFAULT && _DW_DARK_MODE_ALLOWED > 1 && _DW_DARK_MODE_ENABLED)
                   SetTextColor((HDC)mp1, _DW_GetSysColor(COLOR_WINDOWTEXT));
 #endif
                /* Handle background */
@@ -3236,7 +3245,7 @@ LRESULT CALLBACK _colorwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
                case WM_CTLCOLORSCROLLBAR:
                case WM_CTLCOLORDLG:
                {
-                  if(_DW_DARK_MODE_ALLOWED == 2 && _DW_DARK_MODE_ENABLED)
+                  if(_DW_DARK_MODE_ALLOWED > 1 && _DW_DARK_MODE_ENABLED)
                   {
                      ColorInfo *parentcinfo = (ColorInfo *)GetWindowLongPtr(hWnd, GWLP_USERDATA);
                      int thisback = thiscinfo ? thiscinfo->back : -1;
@@ -3287,7 +3296,7 @@ LRESULT CALLBACK _containerwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
       break;
 #ifdef AEROGLASS
    case WM_THEMECHANGED:
-      if(_DW_DARK_MODE_ALLOWED == 2 && _DW_DARK_MODE_SUPPORTED)
+      if(_DW_DARK_MODE_ALLOWED > 1 && _DW_DARK_MODE_SUPPORTED)
       {
          if(!continfo || continfo->cinfo.back == -1 || continfo->cinfo.back == DW_CLR_DEFAULT)
          {
@@ -3313,7 +3322,7 @@ LRESULT CALLBACK _containerwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
             if(continfo->odd == DW_CLR_DEFAULT)
             {
 #ifdef AEROGLASS
-               if(_DW_DARK_MODE_ALLOWED == 2 && _DW_DARK_MODE_ENABLED)
+               if(_DW_DARK_MODE_ALLOWED > 1 && _DW_DARK_MODE_ENABLED)
                   odd = RGB(100,100,100);
                else
 #endif
@@ -3500,7 +3509,7 @@ LRESULT CALLBACK _treewndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 #ifdef AEROGLASS
    if(msg == WM_THEMECHANGED)
    {
-      if(_DW_DARK_MODE_ALLOWED == 2 && _DW_DARK_MODE_SUPPORTED)
+      if(_DW_DARK_MODE_ALLOWED > 1 && _DW_DARK_MODE_SUPPORTED)
       {
          ContainerInfo *continfo = (ContainerInfo *)GetWindowLongPtr(hWnd, GWLP_USERDATA);
 
@@ -3672,7 +3681,7 @@ LRESULT CALLBACK _splitwndproc(HWND hwnd, UINT msg, WPARAM mp1, LPARAM mp2)
       return FALSE;
 #ifdef AEROGLASS
    case WM_THEMECHANGED:
-      if(_DW_DARK_MODE_ALLOWED == 2 && _DW_DARK_MODE_SUPPORTED)
+      if(_DW_DARK_MODE_ALLOWED > 1 && _DW_DARK_MODE_SUPPORTED)
          InvalidateRect(hwnd, NULL, TRUE);
       break;
 #endif
@@ -3784,7 +3793,7 @@ LRESULT CALLBACK _statuswndproc(HWND hwnd, UINT msg, WPARAM mp1, LPARAM mp2)
       }
 #ifdef AEROGLASS
    case WM_THEMECHANGED:
-      if(_DW_DARK_MODE_ALLOWED == 2 && _DW_DARK_MODE_SUPPORTED)
+      if(_DW_DARK_MODE_ALLOWED > 1 && _DW_DARK_MODE_SUPPORTED)
          InvalidateRect(hwnd, NULL, TRUE);
       break;
 #endif
@@ -3813,7 +3822,7 @@ LRESULT CALLBACK _statuswndproc(HWND hwnd, UINT msg, WPARAM mp1, LPARAM mp2)
           */
          if(
 #ifdef AEROGLASS
-            (_DW_DARK_MODE_ALLOWED == 2 && _DW_DARK_MODE_ENABLED) ||
+            (_DW_DARK_MODE_ALLOWED > 1 && _DW_DARK_MODE_ENABLED) ||
 #endif
             (cinfo && cinfo->fore != -1 && cinfo->fore != DW_CLR_DEFAULT &&
              cinfo->back !=- -1 && cinfo->back != DW_CLR_DEFAULT))
@@ -13440,8 +13449,12 @@ int API dw_feature_set(DWFEATURE feature, int state)
 #ifdef AEROGLASS
         case DW_FEATURE_DARK_MODE:
         {
-            _DW_DARK_MODE_ALLOWED = state;
-            return DW_ERROR_NONE;
+            if(state >= 0 && state <= 4)
+            {
+                _DW_DARK_MODE_ALLOWED = state;
+                return DW_ERROR_NONE;
+            }
+            return DW_ERROR_GENERAL;
         }
 #endif
         default:
