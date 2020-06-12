@@ -13449,7 +13449,7 @@ int API dw_feature_set(DWFEATURE feature, int state)
 #ifdef AEROGLASS
         case DW_FEATURE_DARK_MODE:
         {
-            if(state >= 0 && state <= 4)
+            if(state >= 0 && state <= 3)
             {
                 _DW_DARK_MODE_ALLOWED = state;
                 return DW_ERROR_NONE;
