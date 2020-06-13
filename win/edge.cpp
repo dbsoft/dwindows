@@ -226,7 +226,7 @@ VOID EdgeWebView::DoSize(VOID)
 
 BOOL EdgeBrowser::Detect(VOID)
 {
-	CreateCoreWebView2EnvironmentWithDetails(nullptr, nullptr, nullptr,
+	CreateCoreWebView2EnvironmentWithOptions(nullptr, nullptr, nullptr,
 		Callback<ICoreWebView2CreateCoreWebView2EnvironmentCompletedHandler>(
 			[this](HRESULT result, ICoreWebView2Environment* env) -> HRESULT {
 				// Successfully created Edge environment, return TRUE 
