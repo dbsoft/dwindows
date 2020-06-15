@@ -827,7 +827,7 @@ int _event_handler(id object, NSEvent *event, int message)
 -(void)runTimer:(id)sender { _event_handler(sender, nil, 0); }
 @end
 
-NSApplication *DWApp;
+NSApplication *DWApp = nil;
 NSMenu *DWMainMenu;
 NSFont *DWDefaultFont;
 DWTimerHandler *DWHandler;
@@ -12039,6 +12039,17 @@ void API dw_font_set_default(const char *fontname)
     [oldfont release];
 }
 
+/* If DWApp is uninitialized, initialize it */
+void _dw_app_init(void)
+{
+    if(!DWApp)
+    {
+        DWApp = [NSApplication sharedApplication];
+        DWAppDel *del = [[DWAppDel alloc] init];
+        [DWApp setDelegate:del];
+    }
+}
+
 /*
  * Initializes the Dynamic Windows engine.
  * Parameters:
@@ -12101,9 +12112,7 @@ int API dw_init(int newthread, int argc, char *argv[])
      */
     setlocale(LC_ALL, lang && strstr(lang, ".UTF-8") ? lang : "UTF-8");
     /* Create the application object */
-    DWApp = [NSApplication sharedApplication];
-    DWAppDel *del = [[DWAppDel alloc] init];
-    [DWApp setDelegate:del];
+    _dw_app_init();
     /* Create object for handling timers */
     DWHandler = [[DWTimerHandler alloc] init];
     /* If we aren't using garbage collection we need autorelease pools */
@@ -12631,6 +12640,9 @@ int API dw_feature_get(DWFEATURE feature)
         {
             if(@available(macOS 10.14, *))
             {
+                /* Make sure DWApp is initialized */
+                _dw_app_init();
+                /* Get the current appearance */
                 NSAppearance *appearance = [DWApp appearance];
                 
                 if(appearance)
@@ -12685,6 +12697,8 @@ int API dw_feature_set(DWFEATURE feature, int state)
         {
             if(@available(macOS 10.14, *))
             {
+                /* Make sure DWApp is initialized */
+                _dw_app_init();
                 /* Disabled forces the non-dark aqua theme */
                 if(state == DW_FEATURE_DISABLED)
                    [DWApp setAppearance:[NSAppearance appearanceNamed:NSAppearanceNameAqua]];
