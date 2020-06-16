@@ -590,6 +590,7 @@ int DWSIGNAL exit_callback(HWND window, void *data)
 int DWSIGNAL notification_clicked_callback(HWND notification, void *data)
 {
     dw_debug("Notification clicked\n");
+    return TRUE;
 }
 
 int DWSIGNAL browse_file_callback(HWND window, void *data)
@@ -1799,6 +1800,9 @@ int main(int argc, char *argv[])
     ULONG notebookpage8;
     ULONG notebookpage9;
     DWFEATURE feat;
+
+    /* Setup the Application ID for sending notifications */
+    dw_app_id_set("org.dbsoft.dwindows.dwtest", "Dynamic Windows Test");
 
     /* Enable full dark mode on platforms that support it */
     dw_feature_set(DW_FEATURE_DARK_MODE, 2);
