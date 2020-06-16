@@ -1351,6 +1351,7 @@ DWObject *DWObj;
 -(void)applicationDidFinishLaunching:(NSNotification *)aNotification;
 #ifdef BUILDING_FOR_MOUNTAIN_LION
 -(BOOL)userNotificationCenter:(NSUserNotificationCenter *)center shouldPresentNotification:(NSUserNotification *)notification;
+-(void)userNotificationCenter:(NSUserNotificationCenter *)center didActivateNotification:(NSUserNotification *)notification;
 #endif
 @end
 
@@ -1456,6 +1457,27 @@ DWObject *DWObj;
 -(BOOL)userNotificationCenter:(NSUserNotificationCenter *)center shouldPresentNotification:(NSUserNotification *)notification
 {
     return YES;
+}
+-(void)userNotificationCenter:(NSUserNotificationCenter *)center didActivateNotification:(NSUserNotification *)usernotification
+{
+    NSScanner *objScanner = [NSScanner scannerWithString:usernotification.identifier];
+    unsigned long long handle;
+    HWND notification;
+    
+    // Skip the dw-notification- prefix
+    [objScanner scanString:@"dw-notification-" intoString:nil];
+    [objScanner scanUnsignedLongLong:&handle];
+    notification = DW_UINT_TO_POINTER(handle);
+    
+    switch(usernotification.activationType)
+    {
+        case NSUserNotificationActivationTypeContentsClicked:
+            _event_handler(notification, nil, 8);
+            break;
+        default:
+            break;
+    }
+    dw_signal_disconnect_by_window(notification);
 }
 #endif
 @end
@@ -10862,6 +10884,8 @@ int dw_notification_send(HWND notification)
 #ifdef BUILDING_FOR_MOUNTAIN_LION
     if(notification)
     {
+        NSString *notid = [NSString stringWithFormat:@"dw-notification-%llu", (unsigned long long)notification];
+        
 #ifdef BUILDING_FOR_MOJAVE
         // Schedule the notification.
         if (@available(macOS 10.14, *))
@@ -10869,7 +10893,6 @@ int dw_notification_send(HWND notification)
             if([[NSBundle mainBundle] bundleIdentifier] != nil)
             {
                 UNMutableNotificationContent* content = (UNMutableNotificationContent *)notification;
-                NSString *notid = [NSString stringWithFormat:@"dw-notification-%llu", (unsigned long long)notification];
                 UNNotificationRequest* request = [UNNotificationRequest requestWithIdentifier:notid content:content trigger:nil];
 
                 UNUserNotificationCenter* center = [UNUserNotificationCenter currentNotificationCenter];
@@ -10880,7 +10903,9 @@ int dw_notification_send(HWND notification)
 #endif
         {
             // Fallback on earlier versions
-            [[NSUserNotificationCenter defaultUserNotificationCenter] deliverNotification:notification];
+            NSUserNotification *request = (NSUserNotification *)notification;
+            request.identifier = notid;
+            [[NSUserNotificationCenter defaultUserNotificationCenter] deliverNotification:request];
         }
         return DW_ERROR_NONE;
     }
