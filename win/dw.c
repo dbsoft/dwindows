@@ -2476,6 +2476,16 @@ LRESULT CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
                      }
                   }
                   break;
+               case WM_USER+102:
+                  {
+                     if(hWnd == tmp->window)
+                     {
+                        int (DWSIGNAL *clickfunc)(HWND, void *) = tmp->signalfunction;
+
+                        return clickfunc(tmp->window, tmp->data);
+                     }
+                  }
+                  break;
             }
          }
          if(tmp)
