@@ -1819,7 +1819,7 @@ int API dw_browse(const char *url);
 char * API dw_file_browse(const char *title, const char *defpath, const char *ext, int flags);
 char * API dw_user_dir(void);
 char * API dw_app_dir(void);
-int API dw_app_id_set(const char *appid, const char *appguid);
+int API dw_app_id_set(const char *appid, const char *appname);
 DWDialog * API dw_dialog_new(void *data);
 int API dw_dialog_dismiss(DWDialog *dialog, void *result);
 void * API dw_dialog_wait(DWDialog *dialog);
