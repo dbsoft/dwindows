@@ -3285,6 +3285,45 @@ void _free_tree_recurse(NSMutableArray *node, NSMutableArray *item)
 -(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); dw_signal_disconnect_by_window(self); [super dealloc]; }
 @end
 
+#ifdef BUILDING_FOR_MOJAVE
+API_AVAILABLE(macos(10.14))
+@interface DWUserNotificationCenterDelegate : NSObject <UNUserNotificationCenterDelegate>
+@end
+
+@implementation DWUserNotificationCenterDelegate
+//Called when a notification is delivered to a foreground app.
+-(void)userNotificationCenter:(UNUserNotificationCenter *)center willPresentNotification:(UNNotification *)notification withCompletionHandler:(void (^)(UNNotificationPresentationOptions options))completionHandler API_AVAILABLE(macos(10.14))
+{
+    completionHandler(UNAuthorizationOptionSound | UNAuthorizationOptionAlert | UNAuthorizationOptionBadge);
+}
+//Called to let your app know which action was selected by the user for a given notification.
+-(void)userNotificationCenter:(UNUserNotificationCenter *)center didReceiveNotificationResponse:(UNNotificationResponse *)response withCompletionHandler:(void(^)(void))completionHandler API_AVAILABLE(macos(10.14))
+{
+    NSScanner *objScanner = [NSScanner scannerWithString:response.notification.request.identifier];
+    unsigned long long handle;
+    HWND notification;
+
+    // Skip the dw-notification- prefix
+    [objScanner scanString:@"dw-notification-" intoString:nil];
+    [objScanner scanUnsignedLongLong:&handle];
+    notification = DW_UINT_TO_POINTER(handle);
+    
+    if ([response.actionIdentifier isEqualToString:UNNotificationDismissActionIdentifier])
+    {
+        // The user dismissed the notification without taking action.
+        dw_signal_disconnect_by_window(notification);
+    }
+    else if ([response.actionIdentifier isEqualToString:UNNotificationDefaultActionIdentifier])
+    {
+        // The user launched the app.
+        _event_handler(notification, nil, 8);
+        dw_signal_disconnect_by_window(notification);
+    }
+    completionHandler();
+}
+@end
+#endif
+
 /* Subclass for a MDI type
  * This is just a box for display purposes... but it is a
  * unique class so it can be identified when creating windows.
@@ -10829,15 +10868,12 @@ int dw_notification_send(HWND notification)
         {
             if([[NSBundle mainBundle] bundleIdentifier] != nil)
             {
-                UNMutableNotificationContent *content = (UNMutableNotificationContent *)notification;
+                UNMutableNotificationContent* content = (UNMutableNotificationContent *)notification;
                 NSString *notid = [NSString stringWithFormat:@"dw-notification-%llu", (unsigned long long)notification];
-                UNNotificationRequest* request = [UNNotificationRequest requestWithIdentifier:notid
-                content:content trigger:nil];
+                UNNotificationRequest* request = [UNNotificationRequest requestWithIdentifier:notid content:content trigger:nil];
 
                 UNUserNotificationCenter* center = [UNUserNotificationCenter currentNotificationCenter];
-                [center addNotificationRequest:request withCompletionHandler:^(NSError * _Nullable error) {
-                        _event_handler(notification, nil, 8);
-                }];
+                [center addNotificationRequest:request withCompletionHandler:nil];
             }
         }
         else
@@ -12140,7 +12176,12 @@ int API dw_init(int newthread, int argc, char *argv[])
             {
                 [center requestAuthorizationWithOptions:UNAuthorizationOptionAlert|UNAuthorizationOptionSound
                         completionHandler:^(BOOL granted, NSError * _Nullable error) {
-                            if (!granted) {
+                            if (granted)
+                            {
+                                center.delegate = [[DWUserNotificationCenterDelegate alloc] init];
+                            }
+                            else
+                            {
                                 NSLog(@"WARNING: Unable to get notification permission. %@", error.localizedDescription);
                             }
                 }];
