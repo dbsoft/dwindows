@@ -587,6 +587,11 @@ int DWSIGNAL exit_callback(HWND window, void *data)
     return TRUE;
 }
 
+int DWSIGNAL notification_clicked_callback(HWND notification, void *data)
+{
+    dw_debug("Notification clicked\n");
+}
+
 int DWSIGNAL browse_file_callback(HWND window, void *data)
 {
     char *tmp;
@@ -604,6 +609,7 @@ int DWSIGNAL browse_file_callback(HWND window, void *data)
         read_file();
         current_col = current_row = 0;
         update_render();
+        dw_signal_connect(notification, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(notification_clicked_callback), NULL);
         dw_notification_send(notification);
     }
     dw_window_set_focus(copypastefield);
