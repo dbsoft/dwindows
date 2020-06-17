@@ -314,5 +314,6 @@ AC_SUBST(ARCH)
 AC_CONFIG_FILES([
 Makefile
 dwindows1.pc
-dwindows-config1 ])
+dwindows-config1
+org.dbsoft.dwindows.dwtest.desktop ])
 AC_OUTPUT
