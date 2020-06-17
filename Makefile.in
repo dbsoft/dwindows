@@ -14,8 +14,9 @@ INCPATH	=	-I.. -I. -I$(srcdir)
 TARGET	=	@TARGET@
 SRCS	=	$(srcdir)/$(DW_DIR)/$(DW_SRC)
 BROWSER_OBJECT=@BROWSER_OBJECT@
-COMPAT_OBJECT=@COMPAT_OBJECT@
+COMPAT_OBJECT =@COMPAT_OBJECT@
 INSTALL_COMPAT=@INSTALL_COMPAT@
+INSTALL_TEST  =@INSTALL_TEST@
 OBJECTS	=	dw.o $(BROWSER_OBJECT)
 SRCS2	=	$(srcdir)dwcompat.c
 OBJECTS2=	$(COMPAT_OBJECT)
@@ -82,20 +83,17 @@ SYSCONF_LINK_LIB2 = $(SYSCONF_LINK_LIB_SHARED2)
 
 all: $(TARGETS) dwtest
 
-install: installbase $(INSTALL_COMPAT)
+install: installbase $(INSTALL_COMPAT) $(INSTALL_TEST)
 
 installbase: $(SYSCONF_LINK_TARGET)
 	$(INSTALL) -d $(prefix)/include; \
 	$(INSTALL) -d $(prefix)/lib; \
 	$(INSTALL) -d $(prefix)/bin; \
-	$(INSTALL) -d $(prefix)/share/applications; \
 	$(INSTALL) -d $(prefix)/share/man/man1; \
 	$(INSTALL) -d $(prefix)/lib/pkgconfig; \
 	$(INSTALL) $(srcdir)/dw.h $(prefix)/include; \
 	sed -e 's/@DW_MAJOR_VERSION@/'$(VER_MAJ)'/' -e 's/@DW_MINOR_VERSION@/'$(VER_MIN)'/' -e 's/@DW_SUB_VERSION@/'$(VER_REV)'/' < dwindows-config1 > dwindows-config
 	$(INSTALL) dwindows-config $(prefix)/bin; \
-	$(INSTALL) dwtest $(prefix)/bin; \
-	$(INSTALL) org.dbsoft.dwindows.dwtest.desktop $(prefix)/share/applications/
 	sed -e 's/@VERSION@/'$(VER_MAJ).$(VER_MIN).$(VER_REV)'/' < dwindows1.pc > dwindows.pc
 	$(INSTALL) dwindows.pc $(prefix)/lib/pkgconfig; \
 	$(INSTALL) $(srcdir)/dwindows-config.1 $(prefix)/share/man/man1; \
@@ -105,6 +103,12 @@ installbase: $(SYSCONF_LINK_TARGET)
 	rm -f lib$(TARGET).so lib$(TARGET).so.$(VER_MAJ); \
 	ln -sf $(SYSCONF_LINK_TARGET_SHARED) lib$(TARGET).$(SOSUFFIX); \
 	ln -sf $(SYSCONF_LINK_TARGET_SHARED) lib$(TARGET).$(SOSUFFIX).$(VER_MAJ)
+
+installdwtest: dwtest
+	$(INSTALL) -d $(prefix)/bin; \
+	$(INSTALL) -d $(prefix)/share/applications; \
+	$(INSTALL) dwtest $(prefix)/bin; \
+	$(INSTALL) org.dbsoft.dwindows.dwtest.desktop $(prefix)/share/applications/
 
 installdwcompat: $(SYSCONF_LINK_TARGET2)
 	$(INSTALL) -d $(prefix)/lib; \

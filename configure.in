@@ -15,7 +15,7 @@ SHAREDFLAG=-shared
 SOSUFFIX=so
 LIBSUFFIX=a
 LIBPREFIX=lib
-
+INSTALL_TEST="installdwtest"
 INCLUDES="-I."
 
 AC_PROG_CC
@@ -146,6 +146,7 @@ case "$target" in
       LIBS="$LIBS -framework Cocoa -framework WebKit"
       save_libs="$LIBS"
       LIBS="$LIBS -framework UserNotifications"
+      INSTALL_TEST=""
       AC_CHECK_FUNC(exit, , [LIBS="$save_libs"])
       build_gtk="no"
    ;;
@@ -308,6 +309,7 @@ AC_SUBST(DW_DEFINE)
 AC_SUBST(BROWSER_OBJECT)
 AC_SUBST(COMPAT_OBJECT)
 AC_SUBST(INSTALL_COMPAT)
+AC_SUBST(INSTALL_TEST)
 
 AC_SUBST(ARCH)
 
