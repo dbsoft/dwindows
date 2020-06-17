@@ -622,6 +622,7 @@ ac_includes_default="\
 ac_subst_vars='LTLIBOBJS
 LIBOBJS
 ARCH
+INSTALL_TEST
 INSTALL_COMPAT
 COMPAT_OBJECT
 BROWSER_OBJECT
@@ -2255,7 +2256,7 @@ SHAREDFLAG=-shared
 SOSUFFIX=so
 LIBSUFFIX=a
 LIBPREFIX=lib
-
+INSTALL_TEST="installdwtest"
 INCLUDES="-I."
 
 ac_ext=c
@@ -4659,6 +4660,7 @@ case "$target" in
       LIBS="$LIBS -framework Cocoa -framework WebKit"
       save_libs="$LIBS"
       LIBS="$LIBS -framework UserNotifications"
+      INSTALL_TEST=""
       ac_fn_c_check_func "$LINENO" "exit" "ac_cv_func_exit"
 if test "x$ac_cv_func_exit" = xyes; then :
 
@@ -6498,6 +6500,7 @@ LN="ln -s"
 CP="cp"
 MV="mv"
 MKDIR="mkdir"
+
 
 
 
