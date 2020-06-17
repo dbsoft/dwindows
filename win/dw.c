@@ -2014,7 +2014,7 @@ LRESULT CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
       /* Find any callbacks for this function */
       while (tmp)
       {
-         if (tmp->message == msg || msg == WM_COMMAND || msg == WM_NOTIFY || tmp->message == WM_USER+1)
+         if (tmp->message == msg || msg == WM_COMMAND || msg == WM_NOTIFY || tmp->message == WM_USER+1 || msg == WM_USER+102)
          {
             switch (msg)
             {
