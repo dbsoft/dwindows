@@ -88,11 +88,14 @@ installbase: $(SYSCONF_LINK_TARGET)
 	$(INSTALL) -d $(prefix)/include; \
 	$(INSTALL) -d $(prefix)/lib; \
 	$(INSTALL) -d $(prefix)/bin; \
+	$(INSTALL) -d $(prefix)/share/applications; \
 	$(INSTALL) -d $(prefix)/share/man/man1; \
 	$(INSTALL) -d $(prefix)/lib/pkgconfig; \
 	$(INSTALL) $(srcdir)/dw.h $(prefix)/include; \
 	sed -e 's/@DW_MAJOR_VERSION@/'$(VER_MAJ)'/' -e 's/@DW_MINOR_VERSION@/'$(VER_MIN)'/' -e 's/@DW_SUB_VERSION@/'$(VER_REV)'/' < dwindows-config1 > dwindows-config
 	$(INSTALL) dwindows-config $(prefix)/bin; \
+	$(INSTALL) dwtest $(prefix)/bin; \
+	$(INSTALL) org.dbsoft.dwindows.dwtest.desktop $(prefix)/share/applications/
 	sed -e 's/@VERSION@/'$(VER_MAJ).$(VER_MIN).$(VER_REV)'/' < dwindows1.pc > dwindows.pc
 	$(INSTALL) dwindows.pc $(prefix)/lib/pkgconfig; \
 	$(INSTALL) $(srcdir)/dwindows-config.1 $(prefix)/share/man/man1; \
@@ -119,9 +122,12 @@ uninstall:
 	rm -f $(prefix)/lib/lib$(TARGET).$(SOSUFFIX).$(VER_MAJ)
 	rm -f $(prefix)/lib/lib$(TARGET).$(SOSUFFIX)
 	rm -f $(prefix)/lib/lib$(TARGET).$(SOSUFFIX).$(VER_MAJ).$(VER_MIN)
+	rm -f $(prefix)/lib/pkgconfig/dwindows.pc
 	rm -f $(prefix)/bin/dwindows-config
+	rm -f $(prefix)/bin/dwtest
 	rm -f $(prefix)/include/dwcompat.h
 	rm -f $(prefix)/include/dw.h
+	rm -f $(prefix)/share/applications/org.dbsoft.dwindows.dwtest.desktop
 	rm -f $(prefix)/share/man/man1/dwindows-config.1.gz
 
 deb: dist
@@ -130,8 +136,10 @@ deb: dist
 	(cd tmp;tar zxvf ../../$(srcdir)/$(SRCDIR).tar.gz;cd $(SRCDIR);dpkg-buildpackage -rfakeroot;cd ..;ls -l)
 
 distclean: clean
-	rm -f config.status
-	rm -f dwindows-config dwindows-config1
+	rm -f config.status config.log config.h
+	rm -f dwindows-config dwindows-config1 dwindows.pc dwindows1.pc
+	rm -f org.dbsoft.dwindows.dwtest.desktop
+	rm -f Makefile
 
 clean:
 	rm -f *.$(SOSUFFIX)

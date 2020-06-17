@@ -1,0 +1,8 @@
+
+[Desktop Entry]
+Name=Dynamic Windows Test
+Exec=/usr/local/bin/dwtest 
+Terminal=false
+MultipleArgs=false
+Type=Application
+Categories=Application;Development;X-Red-Hat-Base;
