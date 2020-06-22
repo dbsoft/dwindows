@@ -1980,6 +1980,26 @@ static void _dw_gdk_lock_leave(void)
 }
 #endif
 
+#if GLIB_CHECK_VERSION(2,40,0)
+/* Handle system notification click callbacks */
+static void _dw_notification_handler(GSimpleAction *action, GVariant *param, gpointer user_data)
+{
+   char textbuf[101] = {0};
+   int (*func)(HWND, void *);
+   void *data;
+   
+   snprintf(textbuf, 100, "dw-notification-%llu-func", (unsigned long long)g_variant_get_uint64(param));
+   func = g_object_get_data(G_OBJECT(_DWApp), textbuf);
+   g_object_set_data(G_OBJECT(_DWApp), textbuf, NULL);
+   snprintf(textbuf, 100, "dw-notification-%llu-data", (unsigned long long)g_variant_get_uint64(param));
+   data = g_object_get_data(G_OBJECT(_DWApp), textbuf);
+   g_object_set_data(G_OBJECT(_DWApp), textbuf, NULL);  
+   
+   if(func)
+      func((HWND)g_variant_get_uint64(param), data);  
+}
+#endif
+
 /*
  * Initializes the Dynamic Windows engine.
  * Parameters:
@@ -2118,7 +2138,16 @@ int dw_int_init(DWResources *res, int newthread, int *argc, char **argv[])
     */
    _DWApp = g_application_new(_dw_app_id, G_APPLICATION_FLAGS_NONE);
    if(g_application_register(_DWApp, NULL, NULL))
+   {
+#if GLIB_CHECK_VERSION(2,40,0)
+      /* Creat our notification handler for any notifications */
+      GSimpleAction *action = g_simple_action_new("notification", "t");
+      
+      g_signal_connect(G_OBJECT(action), "activate", G_CALLBACK(_dw_notification_handler), NULL);
+      g_action_map_add_action(G_ACTION_MAP(_DWApp), G_ACTION(action));
+#endif
       g_application_activate(_DWApp);
+   }
 #endif
    return TRUE;
 }
@@ -12361,6 +12390,7 @@ HWND dw_notification_new(const char *title, HPIXMAP pixmap, const char *descript
       if(pixmap && pixmap->pixbuf)
          g_notification_set_icon(notification, G_ICON(pixmap->pixbuf));
 #endif
+      g_notification_set_default_action_and_target(notification, "app.notification", "t", (guint64)notification); 
    }
    return (HWND)notification;
 #else
@@ -13494,6 +13524,19 @@ void dw_signal_connect_data(HWND window, const char *signame, void *sigfunc, voi
    params[1] = discfunc;
 
    DW_MUTEX_LOCK;
+#if GLIB_CHECK_VERSION(2,40,0)
+   /* Special case for handling notification signals, which aren't really signals */
+   if (G_IS_NOTIFICATION(thiswindow) && strcmp(signame, DW_SIGNAL_CLICKED) == 0)
+   {
+      char textbuf[101] = {0};
+      snprintf(textbuf, 100, "dw-notification-%llu-func", (unsigned long long)thiswindow);
+      g_object_set_data(G_OBJECT(_DWApp), textbuf, DW_POINTER(sigfunc));
+      snprintf(textbuf, 100, "dw-notification-%llu-data", (unsigned long long)thiswindow);
+      g_object_set_data(G_OBJECT(_DWApp), textbuf, DW_POINTER(data)); 
+      DW_MUTEX_UNLOCK;     
+      return;
+   }   
+#endif
    /*
     * If the window we are setting the signal on is a scrolled window we need to get
     * the "real" widget type. thiswindow is the "real" widget type
