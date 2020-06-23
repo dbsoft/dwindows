@@ -9642,7 +9642,7 @@ HICN API dw_icon_load_from_file(const char *filename)
    /* check if we can read from this file (it exists and read permission) */
    if(access(file, 04) != 0)
    {
-      /* Try with .bmp extention */
+      /* Try with .ico extention */
       strcat(file, ".ico");
       if(access(file, 04) != 0)
       {
@@ -12404,7 +12404,7 @@ void API dw_clipboard_set_text(const char *str, int len)
  * Creates a new system notification if possible.
  * Parameters:
  *         title: The short title of the notification.
- *         pixmap: Handle to an image to display or NULL if none.
+ *         imagepath: Path to an image to display or NULL if none.
  *         description: A longer description of the notification,
  *                      or NULL if none is necessary.
  * Returns:
@@ -12414,7 +12414,7 @@ void API dw_clipboard_set_text(const char *str, int len)
  *          This will create a system notification that will show in the notifaction panel
  *          on supported systems, which may be clicked to perform another task.
  */
-HWND API dw_notification_new(const char *title, HPIXMAP pixmap, const char *description, ...)
+HWND API dw_notification_new(const char *title, const char *imagepath, const char *description, ...)
 {
 #ifdef BUILD_TOAST
    char outbuf[1025] = {0};
@@ -12427,7 +12427,7 @@ HWND API dw_notification_new(const char *title, HPIXMAP pixmap, const char *desc
       vsnprintf(outbuf, 1024, description, args);
       va_end(args);
    }
-   return (HWND)_dw_notification_new(UTF8toWide(title), NULL, UTF8toWide(outbuf));
+   return (HWND)_dw_notification_new(UTF8toWide(title), imagepath ? UTF8toWide(imagepath) : NULL, UTF8toWide(outbuf));
 #else
    return NULL;
 #endif

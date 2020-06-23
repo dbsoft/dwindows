@@ -11062,7 +11062,7 @@ void dw_window_click_default(HWND window, HWND next)
  * Creates a new system notification if possible.
  * Parameters:
  *         title: The short title of the notification.
- *         pixmap: Handle to an image to display or NULL if none.
+ *         imagepath: Path to an image to display or NULL if none.
  *         description: A longer description of the notification,
  *                      or NULL if none is necessary.
  * Returns:
@@ -11072,7 +11072,7 @@ void dw_window_click_default(HWND window, HWND next)
  *          This will create a system notification that will show in the notifaction panel
  *          on supported systems, which may be clicked to perform another task.
  */
-HWND dw_notification_new(const char *title, HPIXMAP pixmap, const char *description, ...)
+HWND dw_notification_new(const char *title, const char *imagepath, const char *description, ...)
 {
 #if GLIB_CHECK_VERSION(2,40,0)
    GNotification *notification = g_notification_new(title);
@@ -11090,8 +11090,18 @@ HWND dw_notification_new(const char *title, HPIXMAP pixmap, const char *descript
 
          g_notification_set_body(notification, outbuf);
       }
-      if(pixmap && pixmap->pixbuf)
-         g_notification_set_icon(notification, G_ICON(pixmap->pixbuf));
+      if(imagepath)
+      {
+         GFile *file = g_file_new_for_path(imagepath);
+         
+         if(file)
+         {
+            GFileIcon *icon = g_file_icon_new(file);
+            
+            if(icon)
+               g_notification_set_icon(notification, G_ICON(icon));
+         }
+      }
       g_notification_set_default_action_and_target(notification, "app.notification", "t", (guint64)notification); 
    }
    return (HWND)notification;

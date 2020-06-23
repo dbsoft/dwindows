@@ -12357,7 +12357,7 @@ void dw_window_click_default(HWND window, HWND next)
  * Creates a new system notification if possible.
  * Parameters:
  *         title: The short title of the notification.
- *         pixmap: Handle to an image to display or NULL if none.
+ *         imagepath: Path to an image to display or NULL if none.
  *         description: A longer description of the notification,
  *                      or NULL if none is necessary.
  * Returns:
@@ -12385,11 +12385,18 @@ HWND dw_notification_new(const char *title, HPIXMAP pixmap, const char *descript
 
          g_notification_set_body(notification, outbuf);
       }
-#if GTK_MAJOR_VERSION > 1
-      /* GTK 1.x is not implemented as pixbuf, so only allow icons on 2.x */
-      if(pixmap && pixmap->pixbuf)
-         g_notification_set_icon(notification, G_ICON(pixmap->pixbuf));
-#endif
+      if(imagepath)
+      {
+         GFile *file = g_file_new_for_path(imagepath);
+         
+         if(file)
+         {
+            GFileIcon *icon = g_file_icon_new(file);
+            
+            if(icon)
+               g_notification_set_icon(notification, G_ICON(icon));
+         }
+      }
       g_notification_set_default_action_and_target(notification, "app.notification", "t", (guint64)notification); 
    }
    return (HWND)notification;
