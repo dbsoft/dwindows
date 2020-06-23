@@ -2141,7 +2141,7 @@ int dw_int_init(DWResources *res, int newthread, int *argc, char **argv[])
    {
 #if GLIB_CHECK_VERSION(2,40,0)
       /* Creat our notification handler for any notifications */
-      GSimpleAction *action = g_simple_action_new("notification", "t");
+      GSimpleAction *action = g_simple_action_new("notification", G_VARIANT_TYPE_UINT64);
       
       g_signal_connect(G_OBJECT(action), "activate", G_CALLBACK(_dw_notification_handler), NULL);
       g_action_map_add_action(G_ACTION_MAP(_DWApp), G_ACTION(action));
@@ -12389,10 +12389,11 @@ HWND dw_notification_new(const char *title, const char *imagepath, const char *d
       if(imagepath && access(imagepath, 04 ) != 0)
       {
          GFile *file = g_file_new_for_path(imagepath);
+         GBytes *bytes = g_file_load_bytes(file, NULL, NULL, NULL);
          
-         if(file)
+         if(bytes)
          {
-            GIcon *icon = g_file_icon_new(file);
+            GIcon *icon = g_bytes_icon_new(bytes);
             
             if(icon)
                g_notification_set_icon(notification, G_ICON(icon));
