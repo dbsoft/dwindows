@@ -98,7 +98,12 @@ extern "C" {
          templ->setTextField(title, WinToastTemplate::FirstLine);
          templ->setAttributionText(description);
          if(image)
-            templ->setImagePath(image);
+         {
+            WCHAR fullpath[MAX_PATH+1] = {0};
+            
+            GetFullPathNameW(image, MAX_PATH, fullpath, NULL);
+            templ->setImagePath(fullpath);
+         }
          return (void *)templ;
       }
       return NULL;

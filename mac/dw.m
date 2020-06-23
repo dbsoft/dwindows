@@ -10809,7 +10809,7 @@ unsigned long API dw_color_depth_get(void)
  * Creates a new system notification if possible.
  * Parameters:
  *         title: The short title of the notification.
- *         pixmap: Handle to an image to display or NULL if none.
+ *         imagepath: Path to an image to display or NULL if none.
  *         description: A longer description of the notification,
  *                      or NULL if none is necessary.
  * Returns:
@@ -10819,7 +10819,7 @@ unsigned long API dw_color_depth_get(void)
  *          This will create a system notification that will show in the notifaction panel
  *          on supported systems, which may be clicked to perform another task.
  */
-HWND dw_notification_new(const char *title, HPIXMAP pixmap, const char *description, ...)
+HWND dw_notification_new(const char *title, const char *imagepath, const char *description, ...)
 {
 #ifdef BUILDING_FOR_MOUNTAIN_LION
     char outbuf[1025] = {0};
@@ -10861,8 +10861,8 @@ HWND dw_notification_new(const char *title, HPIXMAP pixmap, const char *descript
         {
             notification.title = [NSString stringWithUTF8String:title];
             notification.informativeText = [NSString stringWithUTF8String:outbuf];
-            if(pixmap && pixmap->image)
-                notification.contentImage = pixmap->image;
+            if(imagepath)
+                notification.contentImage = [NSImage initByReferencingFile:[NSString stringWithUTF8String:imagepath]];
             retval = notification;
         }
     }
