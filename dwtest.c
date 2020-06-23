@@ -599,7 +599,7 @@ int DWSIGNAL browse_file_callback(HWND window, void *data)
     tmp = dw_file_browse("Pick a file", "dwtest.c", "c", DW_FILE_OPEN );
     if ( tmp )
     {
-        HWND notification = dw_notification_new("New file loaded", "image\\test.png", "dwtest loaded \"%s\" into the file browser on the Render tab, with \"File Display\" selected from the drop down list.", tmp);
+        HWND notification = dw_notification_new("New file loaded", "image/test.png", "dwtest loaded \"%s\" into the file browser on the Render tab, with \"File Display\" selected from the drop down list.", tmp);
 
         if ( current_file )
         {

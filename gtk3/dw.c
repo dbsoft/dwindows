@@ -11090,13 +11090,14 @@ HWND dw_notification_new(const char *title, const char *imagepath, const char *d
 
          g_notification_set_body(notification, outbuf);
       }
-      if(imagepath)
+      /* check if we can read from this file (it exists and read permission) */
+      if(imagepath && access(imagepath, 04 ) != 0)
       {
          GFile *file = g_file_new_for_path(imagepath);
          
          if(file)
          {
-            GFileIcon *icon = g_file_icon_new(file);
+            GIcon *icon = g_file_icon_new(file);
             
             if(icon)
                g_notification_set_icon(notification, G_ICON(icon));
