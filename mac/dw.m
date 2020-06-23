@@ -1439,21 +1439,18 @@ DWObject *DWObj;
         return NSTerminateCancel;
     return NSTerminateNow;
 }
+#ifdef BUILDING_FOR_MOUNTAIN_LION
 -(void)applicationDidFinishLaunching:(NSNotification *)aNotification
 {
 #ifdef BUILDING_FOR_MOJAVE
     if (@available(macOS 10.14, *)) {} else
-#else
+#endif
     {
-#ifdef BUILDING_FOR_MOUNTAIN_LION
         NSUserNotificationCenter* unc = [NSUserNotificationCenter defaultUserNotificationCenter];
         unc.delegate = self;
-#endif
     }
-#endif
     return;
 }
-#ifdef BUILDING_FOR_MOUNTAIN_LION
 -(BOOL)userNotificationCenter:(NSUserNotificationCenter *)center shouldPresentNotification:(NSUserNotification *)notification
 {
     return YES;
