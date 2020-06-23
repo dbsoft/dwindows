@@ -1348,8 +1348,8 @@ DWObject *DWObj;
 {
 }
 -(NSApplicationTerminateReply)applicationShouldTerminate:(NSApplication *)sender;
--(void)applicationDidFinishLaunching:(NSNotification *)aNotification;
 #ifdef BUILDING_FOR_MOUNTAIN_LION
+-(void)applicationDidFinishLaunching:(NSNotification *)aNotification;
 -(BOOL)userNotificationCenter:(NSUserNotificationCenter *)center shouldPresentNotification:(NSUserNotification *)notification;
 -(void)userNotificationCenter:(NSUserNotificationCenter *)center didActivateNotification:(NSUserNotification *)notification;
 #endif
