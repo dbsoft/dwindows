@@ -10847,6 +10847,17 @@ HWND dw_notification_new(const char *title, const char *imagepath, const char *d
                 notification.title = [NSString stringWithUTF8String:title];
                 if(description)
                     notification.body = [NSString stringWithUTF8String:outbuf];
+                if(imagepath)
+                {
+                    NSURL *url = [NSURL fileURLWithPath:[NSString stringWithUTF8String:imagepath]];
+                    NSError *error;
+                    UNNotificationAttachment *attachment = [UNNotificationAttachment attachmentWithIdentifier:@"imageID"
+                                                                URL:url
+                                                            options:nil
+                                                              error:&error];
+                    if(attachment)
+                        notification.attachments = @[attachment];
+                }
                 retval = notification;
             }
         }
@@ -10862,7 +10873,7 @@ HWND dw_notification_new(const char *title, const char *imagepath, const char *d
             notification.title = [NSString stringWithUTF8String:title];
             notification.informativeText = [NSString stringWithUTF8String:outbuf];
             if(imagepath)
-                notification.contentImage = [NSImage initByReferencingFile:[NSString stringWithUTF8String:imagepath]];
+                notification.contentImage = [[NSImage alloc] initWithContentsOfFile:[NSString stringWithUTF8String:imagepath]];
             retval = notification;
         }
     }
