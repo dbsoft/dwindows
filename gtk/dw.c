@@ -12385,8 +12385,7 @@ HWND dw_notification_new(const char *title, const char *imagepath, const char *d
 
          g_notification_set_body(notification, outbuf);
       }
-      /* check if we can read from this file (it exists and read permission) */
-      if(imagepath && access(imagepath, 04 ) != 0)
+      if(imagepath)
       {
          GFile *file = g_file_new_for_path(imagepath);
          GBytes *bytes = g_file_load_bytes(file, NULL, NULL, NULL);
