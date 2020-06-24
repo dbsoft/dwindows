@@ -12147,7 +12147,10 @@ int API dw_init(int newthread, int argc, char *argv[])
             size_t len = (size_t)(app - pathcopy);
 
             if(len > 0)
+            {
                 strncpy(_dw_bundle_path, pathcopy, len + 4);
+                strcat(_dw_bundle_path, "/Contents/Resources");
+            }
             *app = 0;
 
             getcwd(pathbuf, PATH_MAX);
