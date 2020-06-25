@@ -226,7 +226,11 @@ VOID EdgeWebView::DoSize(VOID)
 
 BOOL EdgeBrowser::Detect(VOID)
 {
-	CreateCoreWebView2EnvironmentWithOptions(nullptr, nullptr, nullptr,
+	WCHAR tempdir[MAX_PATH+1];
+
+	GetTempPathW(MAX_PATH, tempdir);
+
+	CreateCoreWebView2EnvironmentWithOptions(nullptr, tempdir, nullptr,
 		Callback<ICoreWebView2CreateCoreWebView2EnvironmentCompletedHandler>(
 			[this](HRESULT result, ICoreWebView2Environment* env) -> HRESULT {
 				// Successfully created Edge environment, return TRUE 
