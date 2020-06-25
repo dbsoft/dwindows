@@ -30,7 +30,7 @@ class EdgeBrowser
 {
 public:
 	LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
-	BOOL Detect(VOID);
+	BOOL Detect(LPWSTR AppID);
 protected:
 	Microsoft::WRL::ComPtr<ICoreWebView2Environment> Env;
 };
@@ -224,11 +224,14 @@ VOID EdgeWebView::DoSize(VOID)
 		WebHost->put_IsVisible(TRUE);
 }
 
-BOOL EdgeBrowser::Detect(VOID)
+BOOL EdgeBrowser::Detect(LPWSTR AppID)
 {
-	WCHAR tempdir[MAX_PATH+1];
+	WCHAR tempdir[MAX_PATH+1] = {0};
 
 	GetTempPathW(MAX_PATH, tempdir);
+	wcscat(tempdir, AppID);
+	wcscat(tempdir, L"\\");
+	CreateDirectoryW(tempdir, NULL);
 
 	CreateCoreWebView2EnvironmentWithOptions(nullptr, tempdir, nullptr,
 		Callback<ICoreWebView2CreateCoreWebView2EnvironmentCompletedHandler>(
@@ -359,12 +362,12 @@ extern "C" {
 	 * If we succeed return TRUE and use Edge for HTML windows.
 	 * If it fails return FALSE and fall back to using embedded IE.
 	 */
-	BOOL _dw_edge_detect(VOID)
+	BOOL _dw_edge_detect(LPWSTR AppID)
 	{
 		DW_EDGE = new EdgeBrowser;
 		if (DW_EDGE)
 		{
-			BOOL result = DW_EDGE->Detect();
+			BOOL result = DW_EDGE->Detect(AppID);
 			if (!result)
 			{
 				delete DW_EDGE;
