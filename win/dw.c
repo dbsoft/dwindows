@@ -278,10 +278,8 @@ SECURITY_DESCRIPTOR _dwsd;
  */
 static char _dw_alternate_temp_dir[MAX_PATH+1] = {0};
 static char _dw_exec_dir[MAX_PATH+1] = {0};
-#ifdef BUILD_TOAST
 static char _dw_app_id[101]= {0};
 static char _dw_app_name[101]= {0};
-#endif
 
 int main(int argc, char *argv[]);
 
@@ -315,7 +313,7 @@ HFONT _DefaultFont = NULL;
 #if (defined(BUILD_DLL) || defined(BUILD_HTML))
 LRESULT CALLBACK _browserWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 #ifdef BUILD_EDGE
-BOOL _dw_edge_detect(VOID);
+BOOL _dw_edge_detect(LPWSTR AppID);
 BOOL _DW_EDGE_DETECTED = FALSE;
 LRESULT CALLBACK _edgeWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 #endif
@@ -4275,14 +4273,12 @@ int API dw_init(int newthread, int argc, char *argv[])
       if(pos)
       {
          strncpy(_dw_exec_dir, argv[0], (size_t)(pos - argv[0]));
-#ifdef BUILD_TOAST
          if((pos++) && !_dw_app_id[0])
          {
             /* If we have a binary name, use that for the Application ID instead. */
             snprintf(_dw_app_id, 100, "%s.%s", DW_APP_DOMAIN_DEFAULT, pos);
             strncpy(_dw_app_name, pos, 100);
          }
-#endif
       }
    }
    /* If that failed... just get the current directory */
@@ -4442,7 +4438,7 @@ int API dw_init(int newthread, int argc, char *argv[])
    wc.style = CS_HREDRAW | CS_VREDRAW;
 #ifdef BUILD_EDGE
    /* Check if Microsoft Edge (Chromium) is installed */
-   if (_DW_EDGE_DETECTED = _dw_edge_detect())
+   if (_DW_EDGE_DETECTED = _dw_edge_detect(UTF8toWide(_dw_app_id)))
    {
       wc.lpfnWndProc = (WNDPROC)_edgeWindowProc;
       wc.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
@@ -4502,7 +4498,6 @@ int API dw_init(int newthread, int argc, char *argv[])
          hrichedit = LoadLibrary(TEXT("riched32"));
    }
 #endif
-#ifdef BUILD_TOAST
     if(!_dw_app_id[0])
     {
         /* Generate an Application ID based on the PID if all else fails. */
@@ -4518,6 +4513,7 @@ int API dw_init(int newthread, int argc, char *argv[])
           pos++;
        strncpy(_dw_app_name, pos ? pos : fullpath, 100);
     }
+#ifdef BUILD_TOAST
    _dw_toast_init(UTF8toWide(_dw_app_name), UTF8toWide(_dw_app_id));
 #endif
    return 0;
@@ -12917,14 +12913,10 @@ char * API dw_app_dir(void)
  */
 int API dw_app_id_set(const char *appid, const char *appname)
 {
-#ifdef BUILD_TOAST
     strncpy(_dw_app_id, appid, 100);
     if(appname)
         strncpy(_dw_app_name, appname, 100);
     return DW_ERROR_NONE;
-#else
-    return DW_ERROR_UNKNOWN;
-#endif
 }
 
 /*
