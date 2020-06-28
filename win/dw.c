@@ -278,8 +278,8 @@ SECURITY_DESCRIPTOR _dwsd;
  */
 static char _dw_alternate_temp_dir[MAX_PATH+1] = {0};
 static char _dw_exec_dir[MAX_PATH+1] = {0};
-static char _dw_app_id[101]= {0};
-static char _dw_app_name[101]= {0};
+static char _dw_app_id[_DW_APP_ID_SIZE+1]= {0};
+static char _dw_app_name[_DW_APP_ID_SIZE+1]= {0};
 
 int main(int argc, char *argv[]);
 
@@ -4276,8 +4276,8 @@ int API dw_init(int newthread, int argc, char *argv[])
          if((pos++) && !_dw_app_id[0])
          {
             /* If we have a binary name, use that for the Application ID instead. */
-            _snprintf(_dw_app_id, 100, "%s.%s", DW_APP_DOMAIN_DEFAULT, pos);
-            strncpy(_dw_app_name, pos, 100);
+            _snprintf(_dw_app_id, _DW_APP_ID_SIZE, "%s.%s", DW_APP_DOMAIN_DEFAULT, pos);
+            strncpy(_dw_app_name, pos, _DW_APP_ID_SIZE);
          }
       }
    }
@@ -4434,17 +4434,17 @@ int API dw_init(int newthread, int argc, char *argv[])
    if(!_dw_app_id[0])
    {
       /* Generate an Application ID based on the PID if all else fails. */
-      _snprintf(_dw_app_id, 100, "%s.pid.%d", DW_APP_DOMAIN_DEFAULT, getpid());
+      _snprintf(_dw_app_id, _DW_APP_ID_SIZE, "%s.pid.%d", DW_APP_DOMAIN_DEFAULT, getpid());
    }
    if(!_dw_app_name[0])
    {
       /* If we still don't have an app name, get the executable name */
-      char fullpath[261] = {0}, *pos;
-      GetModuleFileNameA(DWInstance, fullpath, 260);
+      char fullpath[MAX_PATH+1] = {0}, *pos;
+      GetModuleFileNameA(DWInstance, fullpath, MAX_PATH);
       pos = strrchr(fullpath, '\\');
       if(pos)
          pos++;
-      strncpy(_dw_app_name, pos ? pos : fullpath, 100);
+      strncpy(_dw_app_name, pos ? pos : fullpath, _DW_APP_ID_SIZE);
    }
     
 #if (defined(BUILD_DLL) || defined(BUILD_HTML))
@@ -12914,9 +12914,9 @@ char * API dw_app_dir(void)
  */
 int API dw_app_id_set(const char *appid, const char *appname)
 {
-    strncpy(_dw_app_id, appid, 100);
+    strncpy(_dw_app_id, appid, _DW_APP_ID_SIZE);
     if(appname)
-        strncpy(_dw_app_name, appname, 100);
+        strncpy(_dw_app_name, appname, _DW_APP_ID_SIZE);
     return DW_ERROR_NONE;
 }
 
@@ -13378,6 +13378,9 @@ int API dw_feature_get(DWFEATURE feature)
 {
     switch(feature)
     {
+#ifdef UNICODE
+        case DW_FEATURE_UTF8_UNICODE:
+#endif
 #if (defined(BUILD_DLL) || defined(BUILD_HTML))
         case DW_FEATURE_HTML:
         case DW_FEATURE_HTML_RESULT:
@@ -13430,6 +13433,9 @@ int API dw_feature_set(DWFEATURE feature, int state)
     switch(feature)
     {
         /* These features are supported but not configurable */
+#ifdef UNICODE
+        case DW_FEATURE_UTF8_UNICODE:
+#endif
 #if (defined(BUILD_DLL) || defined(BUILD_HTML))
         case DW_FEATURE_HTML:
         case DW_FEATURE_HTML_RESULT:

@@ -174,7 +174,7 @@ GApplication *_DWApp = NULL;
 #endif
 char *_DWDefaultFont = NULL;
 static char _dw_share_path[PATH_MAX+1] = { 0 };
-static char _dw_app_id[101] = { 0 };
+static char _dw_app_id[_DW_APP_ID_SIZE+1] = { 0 };
 
 typedef struct
 {
@@ -2020,7 +2020,7 @@ int dw_int_init(DWResources *res, int newthread, int *argc, char **argv[])
          if(!_dw_app_id[0])
          {
             /* If we have a binary name, use that for the Application ID instead. */
-            snprintf(_dw_app_id, 100, "%s.%s", DW_APP_DOMAIN_DEFAULT, binname);
+            snprintf(_dw_app_id, _DW_APP_ID_SIZE, "%s.%s", DW_APP_DOMAIN_DEFAULT, binname);
          }
 #endif
       }
@@ -2057,7 +2057,7 @@ int dw_int_init(DWResources *res, int newthread, int *argc, char **argv[])
    if(!_dw_app_id[0])
    {
       /* Generate an Application ID based on the PID if all else fails. */
-      snprintf(_dw_app_id, 100, "%s.pid.%d", DW_APP_DOMAIN_DEFAULT, getpid());
+      snprintf(_dw_app_id, _DW_APP_ID_SIZE, "%s.pid.%d", DW_APP_DOMAIN_DEFAULT, getpid());
    }
 
    /* Initialize the application subsystem on supported versions...
@@ -11836,7 +11836,7 @@ int dw_app_id_set(const char *appid, const char *appname)
 #if GLIB_CHECK_VERSION(2,28,0)
    if(g_application_id_is_valid(appid))
    {
-      strncpy(_dw_app_id, appid, 100);
+      strncpy(_dw_app_id, appid, _DW_APP_ID_SIZE);
       return DW_ERROR_NONE;
    }
    return DW_ERROR_GENERAL;
@@ -12393,6 +12393,7 @@ int API dw_feature_get(DWFEATURE feature)
 #if !GTK_CHECK_VERSION(3,14,0)
         case DW_FEATURE_CONTAINER_STRIPE:
 #endif
+        case DW_FEATURE_UTF8_UNICODE:
         case DW_FEATURE_MLE_WORD_WRAP:
             return DW_FEATURE_ENABLED;
         default:
@@ -12433,6 +12434,7 @@ int API dw_feature_set(DWFEATURE feature, int state)
 #if !GTK_CHECK_VERSION(3,14,0)
         case DW_FEATURE_CONTAINER_STRIPE:
 #endif
+        case DW_FEATURE_UTF8_UNICODE:
         case DW_FEATURE_MLE_WORD_WRAP:
             return DW_ERROR_GENERAL;
         /* These features are supported and configurable */

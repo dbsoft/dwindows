@@ -1331,6 +1331,15 @@ typedef CTIME *PCTIME;
 typedef unsigned long DWTID;
 #endif
 
+/* Some dark mode constants for supported platforms */
+#define DW_DARK_MODE_DISABLED 0
+#define DW_DARK_MODE_BASIC    1
+#define DW_DARK_MODE_FULL     2
+#define DW_DARK_MODE_FORCED   3
+
+/* Application ID support lengths */
+#define _DW_APP_ID_SIZE 100
+
 /* Use at least the linux utsname limit to avoid gcc fortify warnings */
 #define _DW_ENV_STRING_SIZE 65
 
@@ -1485,6 +1494,7 @@ typedef enum
     DW_FEATURE_MDI,                     /* Supports Multiple Document Interface window frame */
     DW_FEATURE_NOTEBOOK_STATUS_TEXT,    /* Supports status text area on notebook/tabbed controls */
     DW_FEATURE_NOTIFICATION,            /* Supports sending system notifications */
+    DW_FEATURE_UTF8_UNICODE,            /* Supports UTF8 encoded Unicode text */
     DW_FEATURE_MAX
 } DWFEATURE;
 

@@ -443,7 +443,7 @@ pthread_key_t _dw_fg_color_key;
 pthread_key_t _dw_bg_color_key;
 int DWOSMajor, DWOSMinor, DWOSBuild;
 static char _dw_bundle_path[PATH_MAX+1] = { 0 };
-static char _dw_app_id[101]= {0};
+static char _dw_app_id[_DW_APP_ID_SIZE+1]= {0};
 
 /* Create a default colors for a thread */
 void _init_colors(void)
@@ -4042,7 +4042,7 @@ char * API dw_app_dir(void)
  */
 int dw_app_id_set(const char *appid, const char *appname)
 {
-    strncpy(_dw_app_id, appid, 100);
+    strncpy(_dw_app_id, appid, _DW_APP_ID_SIZE);
     return DW_ERROR_NONE;
 }
 
@@ -12139,7 +12139,7 @@ int API dw_init(int newthread, int argc, char *argv[])
         if(binname && (binname++) && !_dw_app_id[0])
         {
             /* If we have a binary name, use that for the Application ID instead. */
-            snprintf(_dw_app_id, 100, "%s.%s", DW_APP_DOMAIN_DEFAULT, binname);
+            snprintf(_dw_app_id, _DW_APP_ID_SIZE, "%s.%s", DW_APP_DOMAIN_DEFAULT, binname);
         }
         if(app)
         {
@@ -12239,7 +12239,7 @@ int API dw_init(int newthread, int argc, char *argv[])
     if(!_dw_app_id[0])
     {
         /* Generate an Application ID based on the PID if all else fails. */
-        snprintf(_dw_app_id, 100, "%s.pid.%d", DW_APP_DOMAIN_DEFAULT, getpid());
+        snprintf(_dw_app_id, _DW_APP_ID_SIZE, "%s.pid.%d", DW_APP_DOMAIN_DEFAULT, getpid());
     }
     return 0;
 }
@@ -12711,6 +12711,7 @@ int API dw_feature_get(DWFEATURE feature)
         case DW_FEATURE_CONTAINER_STRIPE:
         case DW_FEATURE_MLE_WORD_WRAP:
         case DW_FEATURE_MLE_AUTO_COMPLETE:
+        case DW_FEATURE_UTF8_UNICODE:
             return DW_FEATURE_ENABLED;
 #ifdef BUILDING_FOR_MOJAVE
         case DW_FEATURE_DARK_MODE:
@@ -12727,7 +12728,7 @@ int API dw_feature_get(DWFEATURE feature)
                     NSAppearanceName basicAppearance = [appearance bestMatchFromAppearancesWithNames:@[NSAppearanceNameAqua, NSAppearanceNameDarkAqua]];
                     
                     if([basicAppearance isEqualToString:NSAppearanceNameDarkAqua])
-                        return 3;
+                        return DW_DARK_MODE_FORCED;
                     if([basicAppearance isEqualToString:NSAppearanceNameAqua])
                         return DW_FEATURE_DISABLED;
                 }
@@ -12767,6 +12768,7 @@ int API dw_feature_set(DWFEATURE feature, int state)
         case DW_FEATURE_CONTAINER_STRIPE:
         case DW_FEATURE_MLE_WORD_WRAP:
         case DW_FEATURE_MLE_AUTO_COMPLETE:
+        case DW_FEATURE_UTF8_UNICODE:
             return DW_ERROR_GENERAL;
         /* These features are supported and configurable */
 #ifdef BUILDING_FOR_MOJAVE
@@ -12780,10 +12782,10 @@ int API dw_feature_set(DWFEATURE feature, int state)
                 if(state == DW_FEATURE_DISABLED)
                    [DWApp setAppearance:[NSAppearance appearanceNamed:NSAppearanceNameAqua]];
                 /* Enabled lets the OS decide the mode */
-                else if(state == DW_FEATURE_ENABLED || state == 2)
+                else if(state == DW_FEATURE_ENABLED || state == DW_DARK_MODE_FULL)
                    [DWApp setAppearance:nil];
                 /* 2 forces dark mode aqua appearance */
-                else if(state == 3)
+                else if(state == DW_DARK_MODE_FORCED)
                     [DWApp setAppearance:[NSAppearance appearanceNamed:NSAppearanceNameDarkAqua]];
                 else
                     return DW_ERROR_GENERAL;

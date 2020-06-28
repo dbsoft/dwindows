@@ -226,11 +226,12 @@ VOID EdgeWebView::DoSize(VOID)
 
 BOOL EdgeBrowser::Detect(LPWSTR AppID)
 {
-	WCHAR tempdir[MAX_PATH+1] = {0};
+	// Combine two buffer lengths, ".WebView2\" (10) and a NULL
+	WCHAR tempdir[MAX_PATH+_DW_APP_ID_SIZE+11] = {0};
 
 	GetTempPathW(MAX_PATH, tempdir);
 	wcscat(tempdir, AppID);
-	wcscat(tempdir, L"\\");
+	wcscat(tempdir, L".WebView2\\");
 	CreateDirectoryW(tempdir, NULL);
 
 	CreateCoreWebView2EnvironmentWithOptions(nullptr, tempdir, nullptr,
