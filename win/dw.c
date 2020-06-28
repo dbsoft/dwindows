@@ -4276,7 +4276,7 @@ int API dw_init(int newthread, int argc, char *argv[])
          if((pos++) && !_dw_app_id[0])
          {
             /* If we have a binary name, use that for the Application ID instead. */
-            snprintf(_dw_app_id, 100, "%s.%s", DW_APP_DOMAIN_DEFAULT, pos);
+            _snprintf(_dw_app_id, 100, "%s.%s", DW_APP_DOMAIN_DEFAULT, pos);
             strncpy(_dw_app_name, pos, 100);
          }
       }
@@ -4431,21 +4431,21 @@ int API dw_init(int newthread, int argc, char *argv[])
       exit(1);
    }
 
-    if(!_dw_app_id[0])
-    {
-        /* Generate an Application ID based on the PID if all else fails. */
-        snprintf(_dw_app_id, 100, "%s.pid.%d", DW_APP_DOMAIN_DEFAULT, getpid());
-    }
-    if(!_dw_app_name[0])
-    {
-       /* If we still don't have an app name, get the executable name */
-       char fullpath[261] = {0}, *pos;
-       GetModuleFileNameA(DWInstance, fullpath, 260);
-       pos = strrchr(fullpath, '\\');
-       if(pos)
-          pos++;
-       strncpy(_dw_app_name, pos ? pos : fullpath, 100);
-    }
+   if(!_dw_app_id[0])
+   {
+      /* Generate an Application ID based on the PID if all else fails. */
+      _snprintf(_dw_app_id, 100, "%s.pid.%d", DW_APP_DOMAIN_DEFAULT, getpid());
+   }
+   if(!_dw_app_name[0])
+   {
+      /* If we still don't have an app name, get the executable name */
+      char fullpath[261] = {0}, *pos;
+      GetModuleFileNameA(DWInstance, fullpath, 260);
+      pos = strrchr(fullpath, '\\');
+      if(pos)
+         pos++;
+      strncpy(_dw_app_name, pos ? pos : fullpath, 100);
+   }
     
 #if (defined(BUILD_DLL) || defined(BUILD_HTML))
    /* Register HTML renderer class */
