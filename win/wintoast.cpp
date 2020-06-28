@@ -1,12 +1,12 @@
 /* Simple WinToast forwarder from Dynamic Windows APIs */
 
+#include "dw.h"
 #include "wintoastlib.h"
 
 using namespace WinToastLib;
 
 extern "C" {
    LRESULT CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2);
-   void dw_signal_disconnect_by_window(HWND window);
 }
 
 class DWHandler : public IWinToastHandler {
@@ -118,9 +118,9 @@ extern "C" {
          handler->templ = templ;
 
          if(templ && WinToast::instance()->showToast(*templ, handler) >= 0)
-            return 0; // DW_ERROR_NONE
+            return DW_ERROR_NONE;
       }
-      return -1; // DW_ERROR_UNKNOWN
+      return DW_ERROR_UNKNOWN;
    }
 
    BOOL _dw_toast_is_compatible(void)

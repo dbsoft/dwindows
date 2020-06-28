@@ -13845,6 +13845,9 @@ int API dw_feature_get(DWFEATURE feature)
 {
     switch(feature)
     {
+#ifdef UNICODE
+        case DW_FEATURE_UTF8_UNICODE:
+#endif
         case DW_FEATURE_WINDOW_BORDER:
         case DW_FEATURE_MLE_WORD_WRAP:
         case DW_FEATURE_NOTEBOOK_STATUS_TEXT:
@@ -13873,6 +13876,9 @@ int API dw_feature_set(DWFEATURE feature, int state)
     switch(feature)
     {
         /* These features are supported but not configurable */
+#ifdef UNICODE
+        case DW_FEATURE_UTF8_UNICODE:
+#endif
         case DW_FEATURE_WINDOW_BORDER:
         case DW_FEATURE_MLE_WORD_WRAP:
         case DW_FEATURE_NOTEBOOK_STATUS_TEXT:

@@ -1781,6 +1781,7 @@ char *DWFeatureList[] = {
     "Supports Multiple Document Interface window frame",
     "Supports status text area on notebook/tabbed controls",
     "Supports sending system notifications",
+    "Supports UTF8 encoded Unicode text",
     NULL };
 
 /*
@@ -1805,7 +1806,7 @@ int main(int argc, char *argv[])
     dw_app_id_set("org.dbsoft.dwindows.dwtest", "Dynamic Windows Test");
 
     /* Enable full dark mode on platforms that support it */
-    dw_feature_set(DW_FEATURE_DARK_MODE, 2);
+    dw_feature_set(DW_FEATURE_DARK_MODE, DW_DARK_MODE_FULL);
 
     /* Initialize the Dynamic Windows engine */
     dw_init(TRUE, argc, argv);
