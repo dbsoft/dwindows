@@ -145,7 +145,7 @@ case "$target" in
       DW_DEFINE=__MAC__
       LIBS="$LIBS -framework Cocoa -framework WebKit"
       save_libs="$LIBS"
-      LIBS="$LIBS -framework UserNotifications"
+      LIBS="$LIBS -weak_framework UserNotifications"
       INSTALL_TEST=""
       AC_CHECK_FUNC(exit, , [LIBS="$save_libs"])
       build_gtk="no"
