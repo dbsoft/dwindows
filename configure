@@ -738,6 +738,7 @@ with_dwcompat
 with_gtk2
 with_deprecated
 with_arch
+with_sdk
 with_x
 with_glib_prefix
 with_glib_exec_prefix
@@ -1388,7 +1389,8 @@ Optional Packages:
   --with-dwcompat         specify this to build the optional dwcompat library
   --with-gtk2             specify this to build with GTK+ 2.x if available
   --with-deprecated       specify this to build with deprecated functions
-  --with-arch             specify architecture: one of all, 32bit, 64bit, intel, ppc, ppc64, x86_64, i386
+  --with-arch             specify MacOS architecture: one of all, 32bit, 64bit, intel, arm, ppc, ppc64, x86_64, i386
+  --with-sdk              specify this to build with an alternate MacOS SDK location
   --with-x                use the X Window System
   --with-glib-prefix=PFX  Prefix where GLIB is installed (optional)
   --with-glib-exec-prefix=PFX Exec prefix where GLIB is installed (optional)
@@ -3689,6 +3691,15 @@ fi
 
 
 
+# Check whether --with-sdk was given.
+if test "${with_sdk+set}" = set; then :
+  withval=$with_sdk; with_sdk=$withval
+else
+  with_sdk=no
+fi
+
+
+
 ac_ext=c
 ac_cpp='$CPP $CPPFLAGS'
 ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
@@ -4641,6 +4652,13 @@ case "$target" in
             ;;
          *)
             ARCH="-arch $with_arch"
+            ;;
+      esac
+      case "$with_sdk" in
+         no)
+            ;;
+         *)
+            CC="$CC -isysroot$with_sdk"
             ;;
       esac
       SHAREDFLAG="-dynamiclib -flat_namespace -undefined suppress -headerpad_max_install_names"
