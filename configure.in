@@ -64,9 +64,16 @@ AC_ARG_WITH(deprecated,
 
 dnl ---------------------- check for '--with-arch' switch -----------------
 AC_ARG_WITH(arch,
-   [  --with-arch             specify architecture: one of all, 32bit, 64bit, intel, ppc, ppc64, x86_64, i386],
+   [  --with-arch             specify MacOS architecture: one of all, 32bit, 64bit, intel, arm, ppc, ppc64, x86_64, i386],
    [with_arch=$withval],
    [with_arch=no],
+)
+
+dnl ---------------------- check for '--with-sdk' switch -----------------
+AC_ARG_WITH(sdk,
+   [  --with-sdk              specify this to build with an alternate MacOS SDK location],
+   [with_sdk=$withval],
+   [with_sdk=no],
 )
 
 AC_HEADER_STDC
@@ -139,6 +146,13 @@ case "$target" in
             ;;
          *)
             ARCH="-arch $with_arch"
+            ;;
+      esac
+      case "$with_sdk" in
+         no)
+            ;;
+         *)
+            CC="$CC -isysroot$with_sdk"
             ;;
       esac
       SHAREDFLAG="-dynamiclib -flat_namespace -undefined suppress -headerpad_max_install_names"
