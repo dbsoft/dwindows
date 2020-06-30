@@ -162,6 +162,11 @@
 #define WK_API_ENABLED 1
 #endif
 
+/* Handle deprecation of constants in 10.16... */
+#if defined(MAC_OS_X_VERSION_11_0) && ((defined(MAC_OS_X_VERSION_MAX_ALLOWED) && MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_11_0) || !defined(MAC_OS_X_VERSION_MAX_ALLOWED))
+#define BUILDING_FOR_BIG_SUR
+#endif
+
 /* Macros to encapsulate running functions on the main thread
  * on Mojave or later... and locking mutexes on earlier versions.
  */
@@ -4441,7 +4446,9 @@ HWND API dw_groupbox_new(int type, int pad, const char *title)
     DWBox *thisbox = dw_box_new(type, pad);
     Box *box = [thisbox box];
 
+#ifndef BUILDING_FOR_BIG_SUR
     [groupbox setBorderType:NSBezelBorder];
+#endif
     [groupbox setTitle:[NSString stringWithUTF8String:title]];
     box->grouphwnd = groupbox;
     [groupbox setContentView:thisbox];
@@ -6387,8 +6394,9 @@ HWND API dw_status_text_new(const char *text, ULONG cid)
     NSBox *border = [[NSBox alloc] init];
     NSTextField *textfield = dw_text_new(text, cid);
 
+#ifndef BUILDING_FOR_BIG_SUR
     [border setBorderType:NSGrooveBorder];
-    //[border setBorderType:NSLineBorder];
+#endif
     [border setTitlePosition:NSNoTitle];
     [border setContentView:textfield];
     [border setContentViewMargins:NSMakeSize(1.5,1.5)];
