@@ -4622,19 +4622,22 @@ case "$target" in
             ARCH=""
             ;;
          all)
-            ARCH="-arch ppc -arch ppc64 -arch x86_64 -arch i386"
+            ARCH="-arch ppc -arch ppc64 -arch x86_64 -arch i386 -arch arm64"
             ;;
          32bit)
             ARCH="-arch ppc -arch i386"
             ;;
          64bit)
-            ARCH="-arch ppc64 -arch x86_64"
+            ARCH="-arch ppc64 -arch x86_64 -arch arm64"
             ;;
          intel)
             ARCH="-arch i386 -arch x86_64"
             ;;
          powerpc)
             ARCH="-arch ppc -arch ppc64"
+            ;;
+         arm)
+            ARCH="-arch arm64"
             ;;
          *)
             ARCH="-arch $with_arch"
