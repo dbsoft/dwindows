@@ -1971,7 +1971,7 @@ static void _dw_notification_handler(GSimpleAction *action, GVariant *param, gpo
    g_object_set_data(G_OBJECT(_DWApp), textbuf, NULL);  
    
    if(func)
-      func((HWND)g_variant_get_uint64(param), data);  
+      func((HWND)DW_ULONGLONG_TO_POINTER(g_variant_get_uint64(param)), data);  
 }
 #endif
 
@@ -2057,7 +2057,7 @@ int dw_int_init(DWResources *res, int newthread, int *argc, char **argv[])
    if(!_dw_app_id[0])
    {
       /* Generate an Application ID based on the PID if all else fails. */
-      snprintf(_dw_app_id, _DW_APP_ID_SIZE, "%s.pid.%d", DW_APP_DOMAIN_DEFAULT, getpid());
+      snprintf(_dw_app_id, _DW_APP_ID_SIZE, "%s.pid.%d", DW_APP_DOMAIN_DEFAULT, (int)getpid());
    }
 
    /* Initialize the application subsystem on supported versions...
@@ -11103,7 +11103,8 @@ HWND dw_notification_new(const char *title, const char *imagepath, const char *d
                g_notification_set_icon(notification, G_ICON(icon));
          }
       }
-      g_notification_set_default_action_and_target(notification, "app.notification", "t", (guint64)notification); 
+      g_notification_set_default_action_and_target(notification, "app.notification", "t", 
+                                                  (guint64)DW_POINTER_TO_ULONGLONG(notification)); 
    }
    return (HWND)notification;
 #else
