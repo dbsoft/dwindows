@@ -1512,6 +1512,10 @@ typedef enum
 #define DW_POINTER_TO_INT(a) ((int)(intptr_t)a)
 #define DW_UINT_TO_POINTER(a) ((void *)(uintptr_t)a)
 #define DW_POINTER_TO_UINT(a) ((unsigned int)(uintptr_t)a)
+#define DW_LONGLONG_TO_POINTER(a) ((void *)(intptr_t)a)
+#define DW_POINTER_TO_LONGLONG(a) ((long long)(intptr_t)a)
+#define DW_ULONGLONG_TO_POINTER(a) ((void *)(uintptr_t)a)
+#define DW_POINTER_TO_ULONGLONG(a) ((unsigned long long)(uintptr_t)a)
 #elif ULONG_MAX > UINT_MAX
 /* If no intptr_t... ULONG is often bigger than UINT */
 #define DW_INT_TO_POINTER(a) ((void *)(long)a)
@@ -1524,6 +1528,12 @@ typedef enum
 #define DW_POINTER_TO_INT(a) ((int)a)
 #define DW_UINT_TO_POINTER(a) ((void *)a)
 #define DW_POINTER_TO_UINT(a) ((unsigned int)a)
+#endif
+#ifndef DW_LONGLONG_TO_POINTER
+#define DW_LONGLONG_TO_POINTER(a) ((void *)a)
+#define DW_POINTER_TO_LONGLONG(a) ((long long)a)
+#define DW_ULONGLONG_TO_POINTER(a) ((void *)a)
+#define DW_POINTER_TO_ULONGLONG(a) ((unsigned long long)a)
 #endif
 #define DW_POINTER(a) ((void *)a)
 

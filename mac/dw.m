@@ -10900,7 +10900,7 @@ int dw_notification_send(HWND notification)
 #ifdef BUILDING_FOR_MOUNTAIN_LION
     if(notification)
     {
-        NSString *notid = [NSString stringWithFormat:@"dw-notification-%llu", (unsigned long long)notification];
+        NSString *notid = [NSString stringWithFormat:@"dw-notification-%llu", DW_POINTER_TO_ULONGLONG(notification)];
         
 #ifdef BUILDING_FOR_MOJAVE
         // Schedule the notification.
