@@ -1988,10 +1988,10 @@ static void _dw_notification_handler(GSimpleAction *action, GVariant *param, gpo
    int (*func)(HWND, void *);
    void *data;
    
-   snprintf(textbuf, 100, "dw-notification-%llu-func", (unsigned long long)g_variant_get_uint64(param));
+   snprintf(textbuf, 100, "dw-notification-%llu-func", DW_POINTER_TO_ULONGLONG(g_variant_get_uint64(param)));
    func = g_object_get_data(G_OBJECT(_DWApp), textbuf);
    g_object_set_data(G_OBJECT(_DWApp), textbuf, NULL);
-   snprintf(textbuf, 100, "dw-notification-%llu-data", (unsigned long long)g_variant_get_uint64(param));
+   snprintf(textbuf, 100, "dw-notification-%llu-data", DW_POINTER_TO_ULONGLONG(g_variant_get_uint64(param)));
    data = g_object_get_data(G_OBJECT(_DWApp), textbuf);
    g_object_set_data(G_OBJECT(_DWApp), textbuf, NULL);  
    
@@ -12423,7 +12423,7 @@ int dw_notification_send(HWND notification)
       /* Generate a unique ID based on the notification handle,
        * so we can use it to remove the notification in dw_window_destroy().
        */
-      snprintf(id, 100, "dw-notification-%llu", (unsigned long long)notification);
+      snprintf(id, 100, "dw-notification-%llu", DW_POINTER_TO_ULONGLONG(notification));
       g_application_send_notification(_DWApp, id, (GNotification *)notification);
       return DW_ERROR_NONE;
    }
@@ -13537,9 +13537,9 @@ void dw_signal_connect_data(HWND window, const char *signame, void *sigfunc, voi
    if (G_IS_NOTIFICATION(thiswindow) && strcmp(signame, DW_SIGNAL_CLICKED) == 0)
    {
       char textbuf[101] = {0};
-      snprintf(textbuf, 100, "dw-notification-%llu-func", (unsigned long long)thiswindow);
+      snprintf(textbuf, 100, "dw-notification-%llu-func", DW_POINTER_TO_ULONGLONG(thiswindow));
       g_object_set_data(G_OBJECT(_DWApp), textbuf, DW_POINTER(sigfunc));
-      snprintf(textbuf, 100, "dw-notification-%llu-data", (unsigned long long)thiswindow);
+      snprintf(textbuf, 100, "dw-notification-%llu-data", DW_POINTER_TO_ULONGLONG(thiswindow));
       g_object_set_data(G_OBJECT(_DWApp), textbuf, DW_POINTER(data)); 
       DW_MUTEX_UNLOCK;     
       return;
