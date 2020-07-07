@@ -209,6 +209,7 @@ ULONG_PTR gdiplusToken;
 HRESULT (WINAPI *_DwmExtendFrameIntoClientArea)(HWND hWnd, const MARGINS *pMarInset) = 0;
 HRESULT (WINAPI *_DwmIsCompositionEnabled)(BOOL *pfEnabled) = 0;
 HRESULT (WINAPI *_DwmSetWindowAttribute)(HWND, DWORD, LPCVOID, DWORD) = 0;
+BOOL (WINAPI *_DwmDefWindowProc)(HWND, UINT, WPARAM, LPARAM, LRESULT *) = 0;
 HTHEME (WINAPI *_OpenThemeData)(HWND hwnd, LPCWSTR pszClassList) = 0;
 HPAINTBUFFER (WINAPI *_BeginBufferedPaint)(HDC hdcTarget, const RECT *prcTarget, BP_BUFFERFORMAT dwFormat, BP_PAINTPARAMS *pPaintParams, HDC *phdc) = 0;
 HRESULT (WINAPI *_BufferedPaintSetAlpha)(HPAINTBUFFER hBufferedPaint, const RECT *prc, BYTE alpha) = 0;
@@ -330,7 +331,7 @@ void _handle_splitbar_resize(HWND hwnd, float percent, int type, int x, int y);
 int _lookup_icon(HWND handle, HICON hicon, int type);
 HFONT _acquire_font(HWND handle, const char *fontname);
 void _click_default(HWND handle);
-void _do_resize(Box *thisbox, int x, int y);
+void _do_resize(Box *thisbox, int x, int y, int xborder, int yborder);
 
 /* Internal function to queue a window redraw */
 void _dw_redraw(HWND window, int skip)
@@ -773,7 +774,7 @@ BOOL IsHighContrast(VOID)
 /* Our own ShouldAppsUseDarkMode() that handles the forced option */
 BOOL _DW_ShouldAppsUseDarkMode(void)
 {
-    if(_DW_DARK_MODE_ALLOWED == 3)
+    if(_DW_DARK_MODE_ALLOWED == DW_DARK_MODE_FULL)
         return TRUE;
     return (_ShouldAppsUseDarkMode() && !IsHighContrast());
 }
@@ -829,7 +830,7 @@ BOOL _CanThemeWindow(HWND window)
    else if(_tcsnicmp(tmpbuf, TOOLBARCLASSNAME, _tcslen(TOOLBARCLASSNAME)+1) == 0)
    {
      /* If we aren't in full dark mode */
-      if(_DW_DARK_MODE_ALLOWED < 2)
+      if(_DW_DARK_MODE_ALLOWED < DW_DARK_MODE_FULL)
       {
          /* Enable or disable visual themes */
          if(_SetWindowTheme)
@@ -847,7 +848,7 @@ BOOL AllowDarkModeForWindow(HWND window, BOOL allow)
    {
       if(_CanThemeWindow(window))
       {
-         if(_DW_DARK_MODE_ALLOWED > 1)
+         if(_DW_DARK_MODE_ALLOWED > DW_DARK_MODE_BASIC)
          {
             if(_DW_DARK_MODE_ENABLED)
                _SetWindowTheme(window, L"DarkMode_Explorer", NULL);
@@ -932,7 +933,7 @@ HBRUSH _DW_GetSysColorBrush(int nIndex)
 #ifdef AEROGLASS
    static HBRUSH darkBkColorBrush = 0;
 
-   if(_DW_DARK_MODE_ALLOWED > 1 && _DW_DARK_MODE_ENABLED)
+   if(_DW_DARK_MODE_ALLOWED > DW_DARK_MODE_BASIC && _DW_DARK_MODE_ENABLED)
    {
       if(!darkBkColorBrush)
          darkBkColorBrush = CreateSolidBrush(0x383838);
@@ -1488,7 +1489,7 @@ void _shift_focus(HWND handle, int direction)
 /* This function calculates how much space the widgets and boxes require
  * and does expansion as necessary.
  */
-static void _resize_box(Box *thisbox, int *depth, int x, int y, int pass)
+static void _resize_box(Box *thisbox, int *depth, int x, int y, int xborder, int yborder, int pass)
 {
    /* Current item position */
    int z, currentx = thisbox->pad, currenty = thisbox->pad;
@@ -1556,7 +1557,7 @@ static void _resize_box(Box *thisbox, int *depth, int x, int y, int pass)
                (*depth)++;
 
                /* Save the newly calculated values on the box */
-               _resize_box(tmp, depth, x, y, pass);
+               _resize_box(tmp, depth, x, y, 0, 0, pass);
 
                /* Duplicate the values in the item list for use below */
                thisbox->items[z].width = tmp->minwidth;
@@ -1685,7 +1686,7 @@ static void _resize_box(Box *thisbox, int *depth, int x, int y, int pass)
             if(_tcsnicmp(tmpbuf, COMBOBOXCLASSNAME, _tcslen(COMBOBOXCLASSNAME)+1)==0)
             {
                /* Handle special case Combobox */
-               MoveWindow(handle, currentx + pad, currenty + pad,
+               MoveWindow(handle, currentx + pad + xborder, currenty + pad + yborder,
                         width, height + 400, FALSE);
             }
 #ifdef TOOLBAR
@@ -1694,7 +1695,7 @@ static void _resize_box(Box *thisbox, int *depth, int x, int y, int pass)
             {
                SendMessage(handle, TB_SETBUTTONSIZE, 0, MAKELPARAM(width, height));
 
-               MoveWindow(handle, currentx + pad, currenty + pad, width, height, FALSE);
+               MoveWindow(handle, currentx + pad + xborder, currenty + pad + yborder, width, height, FALSE);
             }
 #endif
             else if(_tcsnicmp(tmpbuf, UPDOWN_CLASS, _tcslen(UPDOWN_CLASS)+1)==0)
@@ -1702,12 +1703,12 @@ static void _resize_box(Box *thisbox, int *depth, int x, int y, int pass)
                /* Handle special case Spinbutton */
                ColorInfo *cinfo = (ColorInfo *)GetWindowLongPtr(handle, GWLP_USERDATA);
 
-               MoveWindow(handle, currentx + pad + (width - 20), currenty + pad,
+               MoveWindow(handle, currentx + pad + (width - 20) + xborder, currenty + pad + yborder,
                         20, height, FALSE);
 
                if(cinfo)
                {
-                  MoveWindow(cinfo->buddy, currentx + pad, currenty + pad,
+                  MoveWindow(cinfo->buddy, currentx + pad + xborder, currenty + pad + yborder,
                            width - 20, height, FALSE);
                }
             }
@@ -1728,7 +1729,7 @@ static void _resize_box(Box *thisbox, int *depth, int x, int y, int pass)
                 GetScrollInfo(handle, SB_VERT, &vsi);
 
                 /* Position the scrollbox */
-                MoveWindow(handle, currentx + pad, currenty + pad, width, height, FALSE);
+                MoveWindow(handle, currentx + pad + xborder, currenty + pad + yborder, width, height, FALSE);
 
                 GetClientRect(handle, &rect);
                 cx = rect.right;
@@ -1736,7 +1737,7 @@ static void _resize_box(Box *thisbox, int *depth, int x, int y, int pass)
 
 
                 /* Get the required space for the box */
-                _resize_box(thisbox, &depth, cx, cy, 1);
+                _resize_box(thisbox, &depth, cx, cy, 0, 0, 1);
 
                 if(cx < thisbox->minwidth)
                 {
@@ -1773,7 +1774,7 @@ static void _resize_box(Box *thisbox, int *depth, int x, int y, int pass)
                 SetScrollInfo(handle, SB_VERT, &vsi, TRUE);
 
                 /* Layout the content of the scrollbox */
-                _do_resize(thisbox, cx, cy);
+                _do_resize(thisbox, cx, cy, 0, 0);
             }
             else if(_tcsncmp(tmpbuf, SplitbarClassName, _tcslen(SplitbarClassName)+1)==0)
             {
@@ -1781,7 +1782,7 @@ static void _resize_box(Box *thisbox, int *depth, int x, int y, int pass)
                float *percent = (float *)dw_window_get_data(handle, "_dw_percent");
                int type = DW_POINTER_TO_INT(dw_window_get_data(handle, "_dw_type"));
 
-               MoveWindow(handle, currentx + pad, currenty + pad,
+               MoveWindow(handle, currentx + pad + xborder, currenty + pad + yborder,
                         width, height, FALSE);
 
                if(percent && width > 0 && height > 0)
@@ -1805,12 +1806,12 @@ static void _resize_box(Box *thisbox, int *depth, int x, int y, int pass)
 
                   diff = (total - textheight) / 2;
 
-                  MoveWindow(handle, currentx + pad, currenty + pad + diff,
+                  MoveWindow(handle, currentx + pad + xborder, currenty + pad + diff + yborder,
                            width, height - diff, FALSE);
                }
                else
                {
-                  MoveWindow(handle, currentx + pad, currenty + pad,
+                  MoveWindow(handle, currentx + pad + xborder, currenty + pad + yborder,
                            width, height, FALSE);
                }
             }
@@ -1818,9 +1819,9 @@ static void _resize_box(Box *thisbox, int *depth, int x, int y, int pass)
             {
                /* Everything else */
                if(*depth)
-                  MoveWindow(handle, currentx + pad, currenty + pad, width, height, FALSE);
+                  MoveWindow(handle, currentx + pad + xborder, currenty + pad + yborder, width, height, FALSE);
                else /* FIXME: This is a hack to generate WM_PAINT messages for items on the top-level */
-                  SetWindowPos(handle, HWND_TOP, currentx + pad, currenty + pad, width, height, 0);
+                  SetWindowPos(handle, HWND_TOP, currentx + pad + xborder, currenty + pad + yborder, width, height, 0);
 
                /* After placing a box... place its components */
                if(thisbox->items[z].type == TYPEBOX)
@@ -1837,7 +1838,7 @@ static void _resize_box(Box *thisbox, int *depth, int x, int y, int pass)
                      }
                      /* Dive into the box */
                      (*depth)++;
-                     _resize_box(boxinfo, depth, width, height, pass);
+                     _resize_box(boxinfo, depth, width, height, 0, 0, pass);
                      (*depth)--;
                   }
                }
@@ -1878,7 +1879,7 @@ static void _resize_box(Box *thisbox, int *depth, int x, int y, int pass)
    }
 }
 
-void _do_resize(Box *thisbox, int x, int y)
+void _do_resize(Box *thisbox, int x, int y, int xborder, int yborder)
 {
    if(x != 0 && y != 0)
    {
@@ -1887,10 +1888,10 @@ void _do_resize(Box *thisbox, int x, int y)
          int depth = 0;
 
          /* Calculate space requirements */
-         _resize_box(thisbox, &depth, x, y, 1);
+         _resize_box(thisbox, &depth, x, y, xborder, yborder, 1);
 
          /* Finally place all the boxes and controls */
-         _resize_box(thisbox, &depth, x, y, 2);
+         _resize_box(thisbox, &depth, x, y, xborder, yborder, 2);
       }
    }
 }
@@ -1991,6 +1992,58 @@ LRESULT CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
    SignalHandler *tmp = Root;
    void (DWSIGNAL *windowfunc)(PVOID);
    ULONG origmsg = msg;
+
+#ifdef DARK_MODE_TITLEBAR_MENU
+   /* Expand the client area into the titlebar so we can draw our alternate dark mode button
+    * which when clicked will display the window's menubar menu. Since the menubar cannot be
+    * made dark, hide it and add the button to the titlebar instead.
+    */
+   if(msg == WM_NCCALCSIZE && mp2 && _DW_DARK_MODE_ENABLED && _DW_DARK_MODE_ALLOWED > DW_DARK_MODE_BASIC)
+   {
+      MARGINS *margins = dw_window_get_data(hWnd, "_dw_margins");
+      RECT *border_thickness = dw_window_get_data(hWnd, "_dw_border");
+
+      if (margins && border_thickness)
+      {
+         NCCALCSIZE_PARAMS* sz = (NCCALCSIZE_PARAMS*)mp2;
+
+         sz->rgrc[0].left += border_thickness->left;
+         sz->rgrc[0].right -= border_thickness->right;
+         sz->rgrc[0].bottom -= border_thickness->bottom;
+
+         if (_DwmExtendFrameIntoClientArea)
+            _DwmExtendFrameIntoClientArea(hWnd, margins);
+         SetWindowPos(hWnd, NULL, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_FRAMECHANGED);
+         return 0;
+      }
+   }
+   else if(msg == WM_NCHITTEST && _DW_DARK_MODE_ENABLED && _DW_DARK_MODE_ALLOWED > DW_DARK_MODE_BASIC)
+   {
+      /* Handle close/minimize/maximize/help button */
+      LRESULT lResult;
+
+      if(_DwmDefWindowProc && _DwmDefWindowProc(hWnd, msg, mp1, mp2, &lResult))
+         return lResult;
+
+      /* Do default processing, except change the result for caption area */
+      lResult = DefWindowProc(hWnd, msg, mp1, mp2);
+      if(lResult == HTCLIENT)
+      {
+         MARGINS *margins = dw_window_get_data(hWnd, "_dw_margins");
+         RECT *border_thickness = dw_window_get_data(hWnd, "_dw_border");
+
+         if (margins && border_thickness)
+         {
+            POINT pt = { LOWORD(mp2), HIWORD(mp2) };
+
+            ScreenToClient(hWnd, &pt);
+            if (pt.y < border_thickness->top) return HTTOP;
+            if (pt.y < margins->cyTopHeight)  return HTCAPTION;
+         }
+      }
+      return lResult;
+   }
+#endif
 
    /* Deal with translating some messages */
    if (msg == WM_USER+2)
@@ -2505,11 +2558,11 @@ LRESULT CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
          /* If we are no longer compositing... disable layered windows */
          if(!_dw_composition && (styleex & WS_EX_LAYERED))
          {
-            MARGINS mar = {0};
+            MARGINS *mar = dw_window_get_data(hWnd, "_dw_margins");
 
             SetWindowLongPtr(hWnd, GWL_EXSTYLE, styleex & ~WS_EX_LAYERED);
-            if(_DwmExtendFrameIntoClientArea)
-               _DwmExtendFrameIntoClientArea(hWnd, &mar);
+            if(_DwmExtendFrameIntoClientArea && mar)
+               _DwmExtendFrameIntoClientArea(hWnd, mar);
          }
       }
       break;
@@ -2554,19 +2607,39 @@ LRESULT CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
       {
          static int lastx = -1, lasty = -1;
          static HWND lasthwnd = 0;
+         int x = LOWORD(mp2), y = HIWORD(mp2);
 
-         if(lastx != LOWORD(mp2) || lasty != HIWORD(mp2) || lasthwnd != hWnd)
+         if(lastx != x || lasty != y || lasthwnd != hWnd)
          {
             Box *mybox = (Box *)GetWindowLongPtr(hWnd, GWLP_USERDATA);
 
             if(mybox && mybox->count)
             {
-               lastx = LOWORD(mp2);
-               lasty = HIWORD(mp2);
+               int xborder = 0, yborder = 0;
+
+               lastx = x;
+               lasty = y;
                lasthwnd = hWnd;
 
+#ifdef DARK_MODE_TITLEBAR_MENU
+               if(_DW_DARK_MODE_ALLOWED > DW_DARK_MODE_BASIC && _DW_DARK_MODE_ENABLED)
+               {
+                  RECT *border_thickness = dw_window_get_data(hWnd, "_dw_border");
+
+                  if(border_thickness)
+                  {
+                     dw_debug("Modifying resize from original %d, %d, %d, %d\n", x, y, xborder, yborder);
+                     x -= (border_thickness->left + border_thickness->right);
+                     y -= (border_thickness->top + border_thickness->bottom);
+                     xborder = border_thickness->left;
+                     yborder = border_thickness->top;
+                     dw_debug("To resize %d, %d, %d, %d\n", x, y, xborder, yborder);
+                  }
+               }
+#endif
+
                ShowWindow(mybox->items[0].hwnd, SW_HIDE);
-               _do_resize(mybox,LOWORD(mp2),HIWORD(mp2));
+               _do_resize(mybox, x, y, xborder, yborder);
                ShowWindow(mybox->items[0].hwnd, SW_SHOW);
                return 0;
             }
@@ -2727,7 +2800,7 @@ LRESULT CALLBACK _framewndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
       break;
 #ifdef AEROGLASS
    case WM_THEMECHANGED:
-      if(_DW_DARK_MODE_ALLOWED > 1 && _DW_DARK_MODE_SUPPORTED)
+      if(_DW_DARK_MODE_ALLOWED > DW_DARK_MODE_BASIC && _DW_DARK_MODE_SUPPORTED)
       {
          SetClassLongPtr(hWnd, GCLP_HBRBACKGROUND, (LONG_PTR)_DW_GetSysColorBrush(COLOR_3DFACE));
          InvalidateRect(hWnd, NULL, TRUE);
@@ -3182,7 +3255,7 @@ LRESULT CALLBACK _colorwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
                                        DW_BLUE_VALUE(fore)));
                }
 #ifdef AEROGLASS
-               else if(thiscinfo->fore == DW_CLR_DEFAULT && _DW_DARK_MODE_ALLOWED > 1 && _DW_DARK_MODE_ENABLED)
+               else if(thiscinfo->fore == DW_CLR_DEFAULT && _DW_DARK_MODE_ALLOWED > DW_DARK_MODE_BASIC && _DW_DARK_MODE_ENABLED)
                   SetTextColor((HDC)mp1, _DW_GetSysColor(COLOR_WINDOWTEXT));
 #endif
                /* Handle background */
@@ -3253,7 +3326,7 @@ LRESULT CALLBACK _colorwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
                case WM_CTLCOLORSCROLLBAR:
                case WM_CTLCOLORDLG:
                {
-                  if(_DW_DARK_MODE_ALLOWED > 1 && _DW_DARK_MODE_ENABLED)
+                  if(_DW_DARK_MODE_ALLOWED > DW_DARK_MODE_BASIC && _DW_DARK_MODE_ENABLED)
                   {
                      ColorInfo *parentcinfo = (ColorInfo *)GetWindowLongPtr(hWnd, GWLP_USERDATA);
                      int thisback = thiscinfo ? thiscinfo->back : -1;
@@ -3304,7 +3377,7 @@ LRESULT CALLBACK _containerwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
       break;
 #ifdef AEROGLASS
    case WM_THEMECHANGED:
-      if(_DW_DARK_MODE_ALLOWED > 1 && _DW_DARK_MODE_SUPPORTED)
+      if(_DW_DARK_MODE_ALLOWED > DW_DARK_MODE_BASIC && _DW_DARK_MODE_SUPPORTED)
       {
          if(!continfo || continfo->cinfo.back == -1 || continfo->cinfo.back == DW_CLR_DEFAULT)
          {
@@ -3330,7 +3403,7 @@ LRESULT CALLBACK _containerwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
             if(continfo->odd == DW_CLR_DEFAULT)
             {
 #ifdef AEROGLASS
-               if(_DW_DARK_MODE_ALLOWED > 1 && _DW_DARK_MODE_ENABLED)
+               if(_DW_DARK_MODE_ALLOWED > DW_DARK_MODE_BASIC && _DW_DARK_MODE_ENABLED)
                   odd = RGB(100,100,100);
                else
 #endif
@@ -3517,7 +3590,7 @@ LRESULT CALLBACK _treewndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 #ifdef AEROGLASS
    if(msg == WM_THEMECHANGED)
    {
-      if(_DW_DARK_MODE_ALLOWED > 1 && _DW_DARK_MODE_SUPPORTED)
+      if(_DW_DARK_MODE_ALLOWED > DW_DARK_MODE_BASIC && _DW_DARK_MODE_SUPPORTED)
       {
          ContainerInfo *continfo = (ContainerInfo *)GetWindowLongPtr(hWnd, GWLP_USERDATA);
 
@@ -3575,14 +3648,14 @@ void _handle_splitbar_resize(HWND hwnd, float percent, int type, int x, int y)
       newx = (int)((float)newx * ratio) - (SPLITBAR_WIDTH/2);
 
       MoveWindow(handle1, 0, 0, newx, y, FALSE);
-      _do_resize(tmp, newx - 1, y - 1);
+      _do_resize(tmp, newx - 1, y - 1, 0, 0);
 
       tmp = (Box *)GetWindowLongPtr(handle2, GWLP_USERDATA);
 
       newx = x - newx - SPLITBAR_WIDTH;
 
       MoveWindow(handle2, x - newx, 0, newx, y, FALSE);
-      _do_resize(tmp, newx - 1, y - 1);
+      _do_resize(tmp, newx - 1, y - 1, 0, 0);
 
       dw_window_set_data(hwnd, "_dw_start", DW_INT_TO_POINTER(newx));
    }
@@ -3595,14 +3668,14 @@ void _handle_splitbar_resize(HWND hwnd, float percent, int type, int x, int y)
       newy = (int)((float)newy * ratio) - (SPLITBAR_WIDTH/2);
 
       MoveWindow(handle2, 0, y - newy, x, newy, FALSE);
-      _do_resize(tmp, x - 1, newy - 1);
+      _do_resize(tmp, x - 1, newy - 1, 0, 0);
 
       tmp = (Box *)GetWindowLongPtr(handle1, GWLP_USERDATA);
 
       newy = y - newy - SPLITBAR_WIDTH;
 
       MoveWindow(handle1, 0, 0, x, newy, FALSE);
-      _do_resize(tmp, x - 1, newy - 1);
+      _do_resize(tmp, x - 1, newy - 1, 0, 0);
 
       dw_window_set_data(hwnd, "_dw_start", DW_INT_TO_POINTER(newy));
    }
@@ -3689,7 +3762,7 @@ LRESULT CALLBACK _splitwndproc(HWND hwnd, UINT msg, WPARAM mp1, LPARAM mp2)
       return FALSE;
 #ifdef AEROGLASS
    case WM_THEMECHANGED:
-      if(_DW_DARK_MODE_ALLOWED > 1 && _DW_DARK_MODE_SUPPORTED)
+      if(_DW_DARK_MODE_ALLOWED > DW_DARK_MODE_BASIC && _DW_DARK_MODE_SUPPORTED)
          InvalidateRect(hwnd, NULL, TRUE);
       break;
 #endif
@@ -3801,7 +3874,7 @@ LRESULT CALLBACK _statuswndproc(HWND hwnd, UINT msg, WPARAM mp1, LPARAM mp2)
       }
 #ifdef AEROGLASS
    case WM_THEMECHANGED:
-      if(_DW_DARK_MODE_ALLOWED > 1 && _DW_DARK_MODE_SUPPORTED)
+      if(_DW_DARK_MODE_ALLOWED > DW_DARK_MODE_BASIC && _DW_DARK_MODE_SUPPORTED)
          InvalidateRect(hwnd, NULL, TRUE);
       break;
 #endif
@@ -3830,7 +3903,7 @@ LRESULT CALLBACK _statuswndproc(HWND hwnd, UINT msg, WPARAM mp1, LPARAM mp2)
           */
          if(
 #ifdef AEROGLASS
-            (_DW_DARK_MODE_ALLOWED > 1 && _DW_DARK_MODE_ENABLED) ||
+            (_DW_DARK_MODE_ALLOWED > DW_DARK_MODE_BASIC && _DW_DARK_MODE_ENABLED) ||
 #endif
             (cinfo && cinfo->fore != -1 && cinfo->fore != DW_CLR_DEFAULT &&
              cinfo->back !=- -1 && cinfo->back != DW_CLR_DEFAULT))
@@ -4145,7 +4218,7 @@ void _resize_notebook_page(HWND handle, int pageid)
       if(box && box->count)
       {
          ShowWindow(box->items[0].hwnd, SW_HIDE);
-         _do_resize(box, rect.right - rect.left, rect.bottom - rect.top);
+         _do_resize(box, rect.right - rect.left, rect.bottom - rect.top, 0, 0);
          ShowWindow(box->items[0].hwnd, SW_SHOW);
       }
 
@@ -4315,6 +4388,7 @@ int API dw_init(int newthread, int argc, char *argv[])
    {
       _DwmExtendFrameIntoClientArea = (HRESULT (WINAPI *)(HWND, const MARGINS *))GetProcAddress(hdwm, "DwmExtendFrameIntoClientArea");
       _DwmSetWindowAttribute = (HRESULT (WINAPI *)(HWND, DWORD, LPCVOID, DWORD))GetProcAddress(hdwm, "DwmSetWindowAttribute");
+      _DwmDefWindowProc = (BOOL (WINAPI *)(HWND, UINT, WPARAM, LPARAM, LRESULT *))GetProcAddress(hdwm, "DwmDefWindowProc");
       if((_DwmIsCompositionEnabled = (HRESULT (WINAPI *)(BOOL *))GetProcAddress(hdwm, "DwmIsCompositionEnabled")))
          _DwmIsCompositionEnabled(&_dw_composition);
       _OpenThemeData = (HTHEME (WINAPI *)(HWND, LPCWSTR))GetProcAddress(huxtheme, "OpenThemeData");
@@ -4858,7 +4932,7 @@ void API dw_window_redraw(HWND handle)
       GetClientRect(handle, &rect);
 
       ShowWindow(istoplevel ? mybox->items[0].hwnd : handle, SW_HIDE);
-      _do_resize(mybox, rect.right - rect.left, rect.bottom - rect.top);
+      _do_resize(mybox, rect.right - rect.left, rect.bottom - rect.top, 0, 0);
       ShowWindow(istoplevel ? mybox->items[0].hwnd : handle, SW_SHOW);
    }
 }
@@ -5572,9 +5646,10 @@ HWND API dw_window_new(HWND hwndOwner, const char *title, ULONG flStyle)
    Box *newbox = calloc(sizeof(Box), 1);
    ULONG flStyleEx = 0;
 #ifdef AEROGLASS
-   MARGINS mar = {-1};
+   MARGINS *margins = calloc(1, sizeof(MARGINS));
+   RECT *border_thickness = calloc(1, sizeof(RECT));
 
-   if(_dw_composition && (flStyle & DW_FCF_COMPOSITED))
+   if (_dw_composition && (flStyle & DW_FCF_COMPOSITED))
       flStyleEx = WS_EX_LAYERED;
 #endif
 
@@ -5598,17 +5673,39 @@ HWND API dw_window_new(HWND hwndOwner, const char *title, ULONG flStyle)
       hwndframe = CreateWindowEx(flStyleEx, ClassName, UTF8toWide(title), (flStyle | WS_CLIPCHILDREN) & 0xffff0000, CW_USEDEFAULT, CW_USEDEFAULT,
                            0, 0, hwndOwner, NULL, DWInstance, NULL);
    }
+
    SetWindowLongPtr(hwndframe, GWLP_USERDATA, (LONG_PTR)newbox);
 
    if(hwndOwner)
       SetParent(hwndframe, hwndOwner);
 
 #ifdef AEROGLASS
+   /* Determine the borders of the default window frame */
+   AdjustWindowRectEx(border_thickness, flStyle, FALSE, 0);
+   border_thickness->left *= -1;
+   border_thickness->top *= -1;
+
+   /* With the DW_FCF_COMPOSITED flag, expand it to the entire window */
+   if (flStyle & DW_FCF_COMPOSITED)
+   {
+      MARGINS fullmar = { -1 };
+      *margins = fullmar;
+   }
+   else
+   {
+      /* Otherwise use the calculated border sizes */
+      margins->cyTopHeight = border_thickness->top;
+   }
+   
+   dw_window_set_data(hwndframe, "_dw_margins", margins);
+   dw_window_set_data(hwndframe, "_dw_border", border_thickness);
+
    /* Attempt to enable Aero glass background on the entire window */
-   if(_DwmExtendFrameIntoClientArea && _dw_composition && (flStyle & DW_FCF_COMPOSITED))
+   if(_DwmExtendFrameIntoClientArea && _dw_composition && 
+     ((flStyle & DW_FCF_COMPOSITED) || (_DW_DARK_MODE_ALLOWED > DW_DARK_MODE_BASIC && _DW_DARK_MODE_ENABLED)))
    {
       SetLayeredWindowAttributes(hwndframe, _dw_transparencykey, 0, LWA_COLORKEY);
-      _DwmExtendFrameIntoClientArea(hwndframe, &mar);
+      _DwmExtendFrameIntoClientArea(hwndframe, margins);
    }
 #endif
 
@@ -7903,7 +8000,7 @@ void _get_window_for_size(HWND handle, unsigned long *width, unsigned long *heig
       RECT rc = { 0 } ;
 
       /* Calculate space requirements */
-      _resize_box(thisbox, &depth, *width, *height, 1);
+      _resize_box(thisbox, &depth, *width, *height, 0, 0, 1);
 
       rc.right = thisbox->minwidth;
       rc.bottom = thisbox->minheight;
@@ -7966,7 +8063,7 @@ void API dw_window_get_preferred_size(HWND handle, int *width, int *height)
          int depth = 0;
 
          /* Calculate space requirements */
-         _resize_box(thisbox, &depth, 0, 0, 1);
+         _resize_box(thisbox, &depth, 0, 0, 0, 0, 1);
 
          /* Return what was requested */
          if(width) *width = thisbox->minwidth;
@@ -13458,7 +13555,7 @@ int API dw_feature_set(DWFEATURE feature, int state)
 #ifdef AEROGLASS
         case DW_FEATURE_DARK_MODE:
         {
-            if(state >= 0 && state <= 3)
+            if(state >= DW_DARK_MODE_DISABLED && state <= DW_DARK_MODE_FORCED)
             {
                 _DW_DARK_MODE_ALLOWED = state;
                 return DW_ERROR_NONE;
