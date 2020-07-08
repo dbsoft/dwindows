@@ -1008,12 +1008,33 @@ ULONG _findsigmessage(const char *signame)
    return 0L;
 }
 
+/* Internal function to get the ColorInfo struct from a widget/window */
+ColorInfo *_dw_window_get_cinfo(HWND handle)
+{
+   return (ColorInfo *)GetWindowLongPtr(handle, GWLP_USERDATA);
+}
+
+/* Internal function to add ColorInfo and subclass a widget/window */
+ColorInfo *_dw_window_new_cinfo(HWND handle, BOOL subclass)
+{
+   ColorInfo *cinfo = calloc(1, sizeof(ColorInfo));
+
+   if(cinfo)
+   {
+      cinfo->back = cinfo->fore = -1;
+      if(subclass)
+         cinfo->pOldProc = SubclassWindow(handle, _colorwndproc);
+      SetWindowLongPtr(handle, GWLP_USERDATA, (LONG_PTR)cinfo);
+   }
+   return cinfo;
+}
+
 /* This function removes any handlers on windows and frees
  * the user memory and resources allocated to it.
  */
 BOOL CALLBACK _free_window_memory(HWND handle, LPARAM lParam)
 {
-   ColorInfo *thiscinfo = (ColorInfo *)GetWindowLongPtr(handle, GWLP_USERDATA);
+   ColorInfo *thiscinfo = _dw_window_get_cinfo(handle);
    HFONT oldfont = (HFONT)SendMessage(handle, WM_GETFONT, 0, 0);
    HICON oldicon = (HICON)SendMessage(handle, WM_GETICON, 0, 0);
    TCHAR tmpbuf[100] = {0};
@@ -1114,10 +1135,10 @@ BOOL CALLBACK _free_window_memory(HWND handle, LPARAM lParam)
    else if(_tcsnicmp(tmpbuf, UPDOWN_CLASS, _tcslen(UPDOWN_CLASS)+1)==0)
    {
       /* for spinbuttons, we need to get the spinbutton's "buddy", the text window associated and destroy it */
-      ColorInfo *cinfo = (ColorInfo *)GetWindowLongPtr(handle, GWLP_USERDATA);
+      ColorInfo *cinfo = _dw_window_get_cinfo(handle);
 
       if(cinfo && cinfo->buddy)
-         DestroyWindow( cinfo->buddy );
+         DestroyWindow(cinfo->buddy);
    }
    /* Some Edge Windows have an empty class.. abort. */
    else if(_tcslen(tmpbuf) == 0)
@@ -1233,14 +1254,14 @@ HWND _normalize_handle(HWND handle)
    GetClassName(handle, tmpbuf, 99);
    if(_tcsnicmp(tmpbuf, UPDOWN_CLASS, _tcslen(UPDOWN_CLASS))==0) /* Spinner */
    {
-      ColorInfo *cinfo = (ColorInfo *)GetWindowLongPtr(handle, GWLP_USERDATA);
+      ColorInfo *cinfo = _dw_window_get_cinfo(handle);
 
       if(cinfo && cinfo->buddy)
          return cinfo->buddy;
    }
    if(_tcsnicmp(tmpbuf, COMBOBOXCLASSNAME, _tcslen(COMBOBOXCLASSNAME))==0) /* Combobox */
    {
-      ColorInfo *cinfo = (ColorInfo *)GetWindowLongPtr(handle, GWLP_USERDATA);
+      ColorInfo *cinfo = _dw_window_get_cinfo(handle);
 
       if(cinfo && cinfo->buddy)
          return cinfo->buddy;
@@ -1395,7 +1416,7 @@ int _focus_check_box(Box *box, HWND handle, int start, int direction, HWND defau
             }
             else if(_tcsnicmp(tmpbuf, ScrollClassName, _tcslen(ScrollClassName))==0) /* Scroll Box */
             {
-                ColorInfo *cinfo = (ColorInfo *)GetWindowLongPtr(box->items[z].hwnd, GWLP_USERDATA);
+                ColorInfo *cinfo = _dw_window_get_cinfo(handle);
                 Box *scrollbox = (Box *)GetWindowLongPtr(cinfo->combo, GWLP_USERDATA);
 
                 if(scrollbox && _focus_check_box(scrollbox, handle, start == 3 ? 3 : 0, direction, defaultitem))
@@ -1701,7 +1722,7 @@ static void _resize_box(Box *thisbox, int *depth, int x, int y, int xborder, int
             else if(_tcsnicmp(tmpbuf, UPDOWN_CLASS, _tcslen(UPDOWN_CLASS)+1)==0)
             {
                /* Handle special case Spinbutton */
-               ColorInfo *cinfo = (ColorInfo *)GetWindowLongPtr(handle, GWLP_USERDATA);
+               ColorInfo *cinfo = _dw_window_get_cinfo(handle);
 
                MoveWindow(handle, currentx + pad + (width - 20) + xborder, currenty + pad + yborder,
                         20, height, FALSE);
@@ -1715,7 +1736,7 @@ static void _resize_box(Box *thisbox, int *depth, int x, int y, int xborder, int
             else if(_tcsncmp(tmpbuf, ScrollClassName, _tcslen(ScrollClassName)+1)==0)
             {
                 /* Handle special case of scrollbox */
-                ColorInfo *cinfo = (ColorInfo *)GetWindowLongPtr(handle, GWLP_USERDATA);
+                ColorInfo *cinfo = _dw_window_get_cinfo(handle);
                 int cx, cy, depth = 0;
                 Box *thisbox = (Box *)GetWindowLongPtr(cinfo->combo, GWLP_USERDATA);
                 SCROLLINFO hsi, vsi;
@@ -1791,9 +1812,9 @@ static void _resize_box(Box *thisbox, int *depth, int x, int y, int xborder, int
             else if(_tcsnicmp(tmpbuf, STATICCLASSNAME, _tcslen(STATICCLASSNAME)+1)==0)
             {
                /* Handle special case Vertically Center static text */
-               ColorInfo *cinfo = (ColorInfo *)GetWindowLongPtr(handle, GWLP_USERDATA);
+               ColorInfo *cinfo = _dw_window_get_cinfo(handle);
 
-               if(cinfo && cinfo->vcenter)
+               if(cinfo && cinfo->style & DW_DT_VCENTER)
                {
                   /* We are centered so calculate a new position */
                   TCHAR tmpbuf[1024] = {0}, *thisbuf = tmpbuf;
@@ -2001,15 +2022,15 @@ LRESULT CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
    if(msg == WM_NCCALCSIZE && mp2 && _DW_DARK_MODE_ENABLED && _DW_DARK_MODE_ALLOWED > DW_DARK_MODE_BASIC)
    {
       MARGINS *margins = dw_window_get_data(hWnd, "_dw_margins");
-      RECT *border_thickness = dw_window_get_data(hWnd, "_dw_border");
+      ColorInfo *cinfo = _dw_window_get_cinfo(hWnd);
 
-      if (margins && border_thickness)
+      if(margins && cinfo)
       {
          NCCALCSIZE_PARAMS* sz = (NCCALCSIZE_PARAMS*)mp2;
 
-         sz->rgrc[0].left += border_thickness->left;
-         sz->rgrc[0].right -= border_thickness->right;
-         sz->rgrc[0].bottom -= border_thickness->bottom;
+         sz->rgrc[0].left += cinfo->rect.left;
+         sz->rgrc[0].right -= cinfo->rect.right;
+         sz->rgrc[0].bottom -= cinfo->rect.bottom;
 
          if (_DwmExtendFrameIntoClientArea)
             _DwmExtendFrameIntoClientArea(hWnd, margins);
@@ -2030,14 +2051,14 @@ LRESULT CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
       if(lResult == HTCLIENT)
       {
          MARGINS *margins = dw_window_get_data(hWnd, "_dw_margins");
-         RECT *border_thickness = dw_window_get_data(hWnd, "_dw_border");
+         ColorInfo *cinfo = _dw_window_get_cinfo(hWnd);
 
-         if (margins && border_thickness)
+         if(margins && cinfo)
          {
             POINT pt = { LOWORD(mp2), HIWORD(mp2) };
 
             ScreenToClient(hWnd, &pt);
-            if (pt.y < border_thickness->top) return HTTOP;
+            if (pt.y < cinfo->rect.top) return HTTOP;
             if (pt.y < margins->cyTopHeight)  return HTCAPTION;
          }
       }
@@ -2624,16 +2645,14 @@ LRESULT CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 #ifdef DARK_MODE_TITLEBAR_MENU
                if(_DW_DARK_MODE_ALLOWED > DW_DARK_MODE_BASIC && _DW_DARK_MODE_ENABLED)
                {
-                  RECT *border_thickness = dw_window_get_data(hWnd, "_dw_border");
+                  ColorInfo *cinfo = _dw_window_get_cinfo(hWnd);
 
-                  if(border_thickness)
+                  if(cinfo)
                   {
-                     dw_debug("Modifying resize from original %d, %d, %d, %d\n", x, y, xborder, yborder);
-                     x -= (border_thickness->left + border_thickness->right);
-                     y -= (border_thickness->top + border_thickness->bottom);
-                     xborder = border_thickness->left;
-                     yborder = border_thickness->top;
-                     dw_debug("To resize %d, %d, %d, %d\n", x, y, xborder, yborder);
+                     x -= (cinfo->rect.left + cinfo->rect.right);
+                     y -= (cinfo->rect.top + cinfo->rect.bottom);
+                     xborder = cinfo->rect.left;
+                     yborder = cinfo->rect.top;
                   }
                }
 #endif
@@ -2823,7 +2842,7 @@ LRESULT CALLBACK _framewndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 #endif
    case WM_PAINT:
       {
-         ColorInfo *thiscinfo = (ColorInfo *)GetWindowLongPtr(hWnd, GWLP_USERDATA);
+         ColorInfo *thiscinfo = _dw_window_get_cinfo(hWnd);
 
          if(thiscinfo && thiscinfo->fore != -1 && thiscinfo->back != -1)
          {
@@ -2934,9 +2953,7 @@ LRESULT CALLBACK _rendwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 
 LRESULT CALLBACK _spinnerwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 {
-   ColorInfo *cinfo;
-
-   cinfo = (ColorInfo *)GetWindowLongPtr(hWnd, GWLP_USERDATA);
+   ColorInfo *cinfo = _dw_window_get_cinfo(hWnd);
 
    if(msg == WM_MOUSEMOVE)
       _wndproc(hWnd, msg, mp1, mp2);
@@ -3079,12 +3096,10 @@ void _click_default(HWND handle)
 /* Subclass function that will handle setting colors on controls */
 LRESULT CALLBACK _colorwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 {
-   ColorInfo *cinfo;
+   ColorInfo *cinfo = _dw_window_get_cinfo(hWnd);
    TCHAR tmpbuf[100] = {0};
    WNDPROC pOldProc = 0;
    LRESULT ret = -1;
-
-   cinfo = (ColorInfo *)GetWindowLongPtr(hWnd, GWLP_USERDATA);
 
    GetClassName(hWnd, tmpbuf, 99);
    if(_tcsncmp(tmpbuf, FRAMECLASSNAME, _tcslen(FRAMECLASSNAME)+1) == 0)
@@ -3190,10 +3205,11 @@ LRESULT CALLBACK _colorwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
                 * has a default click set
                 */
                HWND tl = _toplevel_window( hWnd );
-               ColorInfo *mycinfo = (ColorInfo *)GetWindowLongPtr( tl, GWLP_USERDATA );
-               if ( mycinfo && mycinfo->clickdefault )
+               ColorInfo *mycinfo = _dw_window_get_cinfo(tl);
+
+               if(mycinfo && mycinfo->clickdefault)
                {
-                  _click_default( mycinfo->clickdefault );
+                  _click_default(mycinfo->clickdefault);
                   return (LRESULT)TRUE;
                }
             }
@@ -3228,7 +3244,7 @@ LRESULT CALLBACK _colorwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
       case WM_CTLCOLORSCROLLBAR:
       case WM_CTLCOLORDLG:
          {
-            ColorInfo *thiscinfo = (ColorInfo *)GetWindowLongPtr((HWND)mp2, GWLP_USERDATA);
+            ColorInfo *thiscinfo = _dw_window_get_cinfo((HWND)mp2);
 
             if(msg == WM_CTLCOLORBTN)
             {
@@ -3261,7 +3277,7 @@ LRESULT CALLBACK _colorwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
                /* Handle background */
                if(thiscinfo->back == DW_RGB_TRANSPARENT)
                {
-                  ColorInfo *parentcinfo = (ColorInfo *)GetWindowLongPtr(hWnd, GWLP_USERDATA);
+                  ColorInfo *parentcinfo = _dw_window_get_cinfo(hWnd);
 
                   if(parentcinfo && parentcinfo->back != -1)
                      thisback = parentcinfo->back;
@@ -3328,7 +3344,7 @@ LRESULT CALLBACK _colorwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
                {
                   if(_DW_DARK_MODE_ALLOWED > DW_DARK_MODE_BASIC && _DW_DARK_MODE_ENABLED)
                   {
-                     ColorInfo *parentcinfo = (ColorInfo *)GetWindowLongPtr(hWnd, GWLP_USERDATA);
+                     ColorInfo *parentcinfo = _dw_window_get_cinfo(hWnd);
                      int thisback = thiscinfo ? thiscinfo->back : -1;
 
                      if(thisback == DW_RGB_TRANSPARENT && parentcinfo)
@@ -3692,7 +3708,7 @@ LRESULT CALLBACK _scrollwndproc(HWND hwnd, UINT msg, WPARAM mp1, LPARAM mp2)
        case WM_HSCROLL:
        case WM_VSCROLL:
        {
-            ColorInfo *cinfo = (ColorInfo *)GetWindowLongPtr(hwnd, GWLP_USERDATA);
+            ColorInfo *cinfo = _dw_window_get_cinfo(hwnd);
             SCROLLINFO hsi, vsi, *si = &hsi;
             int bar = SB_HORZ;
             int which = LOWORD(mp1);
@@ -3885,7 +3901,7 @@ LRESULT CALLBACK _statuswndproc(HWND hwnd, UINT msg, WPARAM mp1, LPARAM mp2)
          RECT rc;
          unsigned long cx, cy;
          TCHAR tempbuf[1025] = { 0 };
-         ColorInfo *cinfo = (ColorInfo *)GetWindowLongPtr(hwnd, GWLP_USERDATA);
+         ColorInfo *cinfo = _dw_window_get_cinfo(hwnd);
          HFONT hfont = _acquire_font(hwnd, cinfo ? cinfo->fontname : NULL);
          HFONT oldfont = (HFONT)SendMessage(hwnd, WM_GETFONT, 0, 0);
 
@@ -3944,14 +3960,14 @@ LRESULT CALLBACK _statuswndproc(HWND hwnd, UINT msg, WPARAM mp1, LPARAM mp2)
 /* Window procedure to handle drawing themed text when in composited mode */
 LRESULT CALLBACK _staticwndproc(HWND hwnd, ULONG msg, WPARAM mp1, LPARAM mp2)
 {
-   ColorInfo *parentcinfo, *cinfo = (ColorInfo *)GetWindowLongPtr(hwnd, GWLP_USERDATA);
+   ColorInfo *parentcinfo, *cinfo = _dw_window_get_cinfo(hwnd);
    WNDPROC pOldProc;
 
    if (!cinfo)
       return DefWindowProc(hwnd, msg, mp1, mp2);
 
    /* Need the parent to do the check completely */
-   parentcinfo = (ColorInfo *)GetWindowLongPtr(GetParent(hwnd), GWLP_USERDATA);
+   parentcinfo = _dw_window_get_cinfo(GetParent(hwnd));
 
    /* If we don't require themed drawing */
    if(((cinfo->back != -1 && cinfo->back != DW_RGB_TRANSPARENT) || (parentcinfo && parentcinfo->back != -1))
@@ -4088,7 +4104,7 @@ LRESULT CALLBACK _staticwndproc(HWND hwnd, ULONG msg, WPARAM mp1, LPARAM mp2)
 
 LRESULT CALLBACK _BtProc(HWND hwnd, ULONG msg, WPARAM mp1, LPARAM mp2)
 {
-   ColorInfo *cinfo = (ColorInfo *)GetWindowLongPtr(hwnd, GWLP_USERDATA);
+   ColorInfo *cinfo = _dw_window_get_cinfo(hwnd);
    WNDPROC pOldProc;
    int retval = -1;
 
@@ -5373,10 +5389,8 @@ void _control_size(HWND handle, int *width, int *height)
 int API dw_window_set_font(HWND handle, const char *fontname)
 {
     HFONT hfont, oldfont;
-    ColorInfo *cinfo;
+    ColorInfo *cinfo = _dw_window_get_cinfo(handle);
     TCHAR tmpbuf[100] = {0};
-
-    cinfo = (ColorInfo *)GetWindowLongPtr(handle, GWLP_USERDATA);
 
     GetClassName(handle, tmpbuf, 99);
     if ( _tcsnicmp( tmpbuf, FRAMECLASSNAME, _tcslen(FRAMECLASSNAME)+1) == 0 )
@@ -5395,21 +5409,12 @@ int API dw_window_set_font(HWND handle, const char *fontname)
 
     if(hfont && fontname)
     {
-        if(cinfo)
+        if(cinfo || (cinfo = _dw_window_new_cinfo(handle, TRUE)))
         {
-            strcpy(cinfo->fontname, fontname);
+            strncpy(cinfo->fontname, fontname, 127);
             if(!oldfont)
                 oldfont = cinfo->hfont;
             cinfo->hfont = hfont;
-        }
-        else if((cinfo = calloc(1, sizeof(ColorInfo))))
-        {
-            cinfo->fore = cinfo->back = -1;
-
-            strncpy(cinfo->fontname, fontname, 127);
-
-            cinfo->pOldProc = SubclassWindow(handle, _colorwndproc);
-            SetWindowLongPtr(handle, GWLP_USERDATA, (LONG_PTR)cinfo);
         }
     }
     /* If we changed the font... */
@@ -5532,11 +5537,9 @@ char * API dw_window_get_font(HWND handle)
  */
 int API dw_window_set_color(HWND handle, ULONG fore, ULONG back)
 {
-   ColorInfo *cinfo;
+   ColorInfo *cinfo = _dw_window_get_cinfo(handle);
    Box *thisbox;
    TCHAR tmpbuf[100] = {0};
-
-   cinfo = (ColorInfo *)GetWindowLongPtr(handle, GWLP_USERDATA);
 
    GetClassName(handle, tmpbuf, 99);
 
@@ -5568,18 +5571,10 @@ int API dw_window_set_color(HWND handle, ULONG fore, ULONG back)
       }
    }
 
-   if(cinfo)
+   if(cinfo || (cinfo = _dw_window_new_cinfo(handle, TRUE)))
    {
       cinfo->fore = fore;
       cinfo->back = back;
-   }
-   else if((cinfo = calloc(1, sizeof(ColorInfo))))
-   {
-      cinfo->fore = fore;
-      cinfo->back = back;
-
-      cinfo->pOldProc = SubclassWindow(handle, _colorwndproc);
-      SetWindowLongPtr(handle, GWLP_USERDATA, (LONG_PTR)cinfo);
    }
    InvalidateRgn(handle, NULL, TRUE);
    return TRUE;
@@ -5647,7 +5642,6 @@ HWND API dw_window_new(HWND hwndOwner, const char *title, ULONG flStyle)
    ULONG flStyleEx = 0;
 #ifdef AEROGLASS
    MARGINS *margins = calloc(1, sizeof(MARGINS));
-   RECT *border_thickness = calloc(1, sizeof(RECT));
 
    if (_dw_composition && (flStyle & DW_FCF_COMPOSITED))
       flStyleEx = WS_EX_LAYERED;
@@ -5656,6 +5650,7 @@ HWND API dw_window_new(HWND hwndOwner, const char *title, ULONG flStyle)
    newbox->type = DW_VERT;
    newbox->vsize = newbox->hsize = SIZEEXPAND;
    newbox->cinfo.fore = newbox->cinfo.back = -1;
+   newbox->cinfo.style = flStyle;
 
    if(!(flStyle & WS_CAPTION))
       flStyle |= WS_POPUPWINDOW;
@@ -5681,9 +5676,9 @@ HWND API dw_window_new(HWND hwndOwner, const char *title, ULONG flStyle)
 
 #ifdef AEROGLASS
    /* Determine the borders of the default window frame */
-   AdjustWindowRectEx(border_thickness, flStyle, FALSE, 0);
-   border_thickness->left *= -1;
-   border_thickness->top *= -1;
+   AdjustWindowRectEx(&(newbox->cinfo.rect), flStyle, FALSE, 0);
+   newbox->cinfo.rect.left *= -1;
+   newbox->cinfo.rect.top *= -1;
 
    /* With the DW_FCF_COMPOSITED flag, expand it to the entire window */
    if (flStyle & DW_FCF_COMPOSITED)
@@ -5694,11 +5689,10 @@ HWND API dw_window_new(HWND hwndOwner, const char *title, ULONG flStyle)
    else
    {
       /* Otherwise use the calculated border sizes */
-      margins->cyTopHeight = border_thickness->top;
+      margins->cyTopHeight = newbox->cinfo.rect.top;
    }
    
    dw_window_set_data(hwndframe, "_dw_margins", margins);
-   dw_window_set_data(hwndframe, "_dw_border", border_thickness);
 
    /* Attempt to enable Aero glass background on the entire window */
    if(_DwmExtendFrameIntoClientArea && _dw_composition && 
@@ -5753,27 +5747,28 @@ HWND API dw_box_new(int type, int pad)
  */
 HWND API dw_scrollbox_new(int type, int pad)
 {
-    ColorInfo *cinfo = calloc(sizeof(ColorInfo), 1);
-    HWND hwndframe, box = dw_box_new(type, pad);
-    HWND tmpbox = dw_box_new(DW_VERT, 0);
-    dw_box_pack_start(tmpbox, box, 1, 1, TRUE, TRUE, 0);
+   HWND hwndframe, box = dw_box_new(type, pad);
+   HWND tmpbox = dw_box_new(DW_VERT, 0);
+   ColorInfo *cinfo;
 
-    cinfo->fore = cinfo->back = -1;
+   dw_box_pack_start(tmpbox, box, 1, 1, TRUE, TRUE, 0);
 
-    hwndframe = CreateWindow(ScrollClassName,
-                      NULL,
-                      WS_VISIBLE | WS_CHILD | WS_CLIPCHILDREN | WS_VSCROLL | WS_HSCROLL,
-                      0,0,0,0,
-                      DW_HWND_OBJECT,
-                      NULL,
-                      DWInstance,
-                      NULL);
+   hwndframe = CreateWindow(ScrollClassName,
+                     NULL,
+                     WS_VISIBLE | WS_CHILD | WS_CLIPCHILDREN | WS_VSCROLL | WS_HSCROLL,
+                     0,0,0,0,
+                     DW_HWND_OBJECT,
+                     NULL,
+                     DWInstance,
+                     NULL);
 
-    cinfo->buddy = box;
-    cinfo->combo = tmpbox;
-    SetParent(tmpbox, hwndframe);
-    SetWindowLongPtr(hwndframe, GWLP_USERDATA, (LONG_PTR)cinfo);
-    return hwndframe;
+   if((cinfo = _dw_window_new_cinfo(hwndframe, FALSE)))
+   {
+      cinfo->buddy = box;
+      cinfo->combo = tmpbox;
+   }
+   SetParent(tmpbox, hwndframe);
+   return hwndframe;
 }
 
 /*
@@ -6048,7 +6043,7 @@ HWND API dw_notebook_new(ULONG id, int top)
    ULONG flags = 0;
    HWND tmp;
    NotebookPage **array = calloc(256, sizeof(NotebookPage *));
-   ColorInfo *cinfo = calloc(1, sizeof(ColorInfo));
+   ColorInfo *cinfo;
 
    if(!top)
       flags = TCS_BOTTOM;
@@ -6061,9 +6056,8 @@ HWND API dw_notebook_new(ULONG id, int top)
                   (HMENU)(uintptr_t)id,
                   DWInstance,
                   NULL);
-   cinfo->fore = cinfo->back = -1;
-   cinfo->pOldProc = SubclassWindow(tmp, _simplewndproc);
-   SetWindowLongPtr(tmp, GWLP_USERDATA, (LONG_PTR)cinfo);
+   if((cinfo = _dw_window_new_cinfo(tmp, FALSE)))
+      cinfo->pOldProc = SubclassWindow(tmp, _simplewndproc);
    dw_window_set_data(tmp, "_dw_array", (void *)array);
    dw_window_set_font(tmp, DefaultFont);
    return tmp;
@@ -6573,12 +6567,10 @@ HWND API dw_text_new(const char *text, ULONG id)
                      DWInstance,
                      NULL);
 #ifdef AEROGLASS
-   ColorInfo *cinfo = calloc(1, sizeof(ColorInfo));
+   ColorInfo *cinfo = _dw_window_new_cinfo(tmp, FALSE);
 
-   cinfo->back = cinfo->fore = -1;
-
-   cinfo->pOldProc = SubclassWindow(tmp, _staticwndproc);
-   SetWindowLongPtr(tmp, GWLP_USERDATA, (LONG_PTR)cinfo);
+   if(cinfo)
+      cinfo->pOldProc = SubclassWindow(tmp, _staticwndproc);
 #endif
    dw_window_set_font(tmp, DefaultFont);
    dw_window_set_color(tmp, DW_CLR_DEFAULT, DW_RGB_TRANSPARENT);
@@ -6661,12 +6653,8 @@ HWND API dw_entryfield_new(const char *text, ULONG id)
                        (HMENU)(uintptr_t)id,
                        DWInstance,
                        NULL);
-   ColorInfo *cinfo = calloc(1, sizeof(ColorInfo));
 
-   cinfo->back = cinfo->fore = -1;
-
-   cinfo->pOldProc = SubclassWindow(tmp, _colorwndproc);
-   SetWindowLongPtr(tmp, GWLP_USERDATA, (LONG_PTR)cinfo);
+   _dw_window_new_cinfo(tmp, TRUE);
    dw_window_set_font(tmp, DefaultFont);
    return tmp;
 }
@@ -6690,12 +6678,8 @@ HWND API dw_entryfield_password_new(const char *text, ULONG id)
                        (HMENU)(uintptr_t)id,
                        DWInstance,
                        NULL);
-   ColorInfo *cinfo = calloc(1, sizeof(ColorInfo));
 
-   cinfo->back = cinfo->fore = -1;
-
-   cinfo->pOldProc = SubclassWindow(tmp, _colorwndproc);
-   SetWindowLongPtr(tmp, GWLP_USERDATA, (LONG_PTR)cinfo);
+   _dw_window_new_cinfo(tmp, TRUE);
    dw_window_set_font(tmp, DefaultFont);
    return tmp;
 }
@@ -6763,8 +6747,6 @@ HWND API dw_combobox_new(const char *text, ULONG id)
  */
 HWND API dw_button_new(const char *text, ULONG id)
 {
-   ColorInfo *cinfo = calloc(1, sizeof(ColorInfo));
-
    HWND tmp = CreateWindow(BUTTONCLASSNAME,
                      UTF8toWide(text),
                      WS_CHILD | BS_PUSHBUTTON |
@@ -6774,10 +6756,11 @@ HWND API dw_button_new(const char *text, ULONG id)
                      (HMENU)(uintptr_t)id,
                      DWInstance,
                      NULL);
-   cinfo->fore = cinfo->back = -1;
-   cinfo->pOldProc = SubclassWindow(tmp, _BtProc);
+   ColorInfo *cinfo;
 
-   SetWindowLongPtr(tmp, GWLP_USERDATA, (LONG_PTR)cinfo);
+   if((cinfo = _dw_window_new_cinfo(tmp, FALSE)))
+      cinfo->pOldProc = SubclassWindow(tmp, _BtProc);
+
    dw_window_set_font(tmp, DefaultFont);
    return tmp;
 }
@@ -6876,16 +6859,16 @@ HWND _create_toolbar(const char *text, ULONG id, HICON icon, HBITMAP hbitmap)
  */
 HWND API dw_bitmapbutton_new(const char *text, ULONG id)
 {
-   HWND tmp;
-   ColorInfo *cinfo = calloc(1, sizeof(ColorInfo));
    HICON icon = LoadImage(DWInstance, MAKEINTRESOURCE(id), IMAGE_ICON, 0, 0, 0);
    HBITMAP hbitmap = icon ? 0 : LoadBitmap(DWInstance, MAKEINTRESOURCE(id));
+   ColorInfo *cinfo;
+   HWND tmp;
+
 #ifdef TOOLBAR
    if((tmp = _create_toolbar(text, id, icon, hbitmap)))
    {
-      cinfo->fore = cinfo->back = -1;
-      cinfo->pOldProc = SubclassWindow(tmp, _simplewndproc);
-      SetWindowLongPtr(tmp, GWLP_USERDATA, (LONG_PTR)cinfo);
+      if((cinfo = _dw_window_new_cinfo(tmp, FALSE)))
+         cinfo->pOldProc = SubclassWindow(tmp, _simplewndproc);
       return tmp;
    }
 #endif
@@ -6901,21 +6884,15 @@ HWND API dw_bitmapbutton_new(const char *text, ULONG id)
                   DWInstance,
                   NULL);
 
-   cinfo->fore = cinfo->back = -1;
-   cinfo->pOldProc = SubclassWindow(tmp, _BtProc);
-
-   SetWindowLongPtr(tmp, GWLP_USERDATA, (LONG_PTR)cinfo);
+   if((cinfo = _dw_window_new_cinfo(tmp, FALSE)))
+      cinfo->pOldProc = SubclassWindow(tmp, _BtProc);
 
    _create_tooltip(tmp, text);
 
    if(icon)
-   {
-      SendMessage(tmp, BM_SETIMAGE, (WPARAM) IMAGE_ICON, (LPARAM) icon);
-   }
+      SendMessage(tmp, BM_SETIMAGE, (WPARAM)IMAGE_ICON, (LPARAM)icon);
    else if(hbitmap)
-   {
-      SendMessage(tmp, BM_SETIMAGE, (WPARAM) IMAGE_BITMAP, (LPARAM) hbitmap);
-   }
+      SendMessage(tmp, BM_SETIMAGE, (WPARAM)IMAGE_BITMAP, (LPARAM)hbitmap);
    return tmp;
 }
 
@@ -6931,13 +6908,10 @@ HWND API dw_bitmapbutton_new(const char *text, ULONG id)
 HWND API dw_bitmapbutton_new_from_file(const char *text, unsigned long id, const char *filename)
 {
    HWND tmp;
-   ColorInfo *cinfo = calloc(1, sizeof(ColorInfo));
+   ColorInfo *cinfo;
    HBITMAP hbitmap = 0;
    HANDLE hicon = 0;
    int windowtype = 0;
-
-   if (!cinfo)
-      return 0;
 
 #ifdef GDIPLUS
    if((hicon = _dw_load_icon(filename)))
@@ -6954,9 +6928,8 @@ HWND API dw_bitmapbutton_new_from_file(const char *text, unsigned long id, const
 #ifdef TOOLBAR
    if((tmp = _create_toolbar(text, id, hicon, hbitmap)))
    {
-      cinfo->fore = cinfo->back = -1;
-      cinfo->pOldProc = SubclassWindow(tmp, _simplewndproc);
-      SetWindowLongPtr(tmp, GWLP_USERDATA, (LONG_PTR)cinfo);
+      if((cinfo = _dw_window_new_cinfo(tmp, FALSE)))
+         cinfo->pOldProc = SubclassWindow(tmp, _simplewndproc);
       return tmp;
    }
 #endif
@@ -6969,21 +6942,15 @@ HWND API dw_bitmapbutton_new_from_file(const char *text, unsigned long id, const
                        DWInstance,
                        NULL);
 
-   cinfo->fore = cinfo->back = -1;
-   cinfo->pOldProc = SubclassWindow(tmp, _BtProc);
-
-   SetWindowLongPtr(tmp, GWLP_USERDATA, (LONG_PTR)cinfo);
+   if((cinfo = _dw_window_new_cinfo(tmp, FALSE)))
+      cinfo->pOldProc = SubclassWindow(tmp, _BtProc);
 
    _create_tooltip(tmp, text);
 
    if (hicon)
-   {
-      SendMessage(tmp, BM_SETIMAGE,(WPARAM) IMAGE_ICON,(LPARAM) hicon);
-   }
+      SendMessage(tmp, BM_SETIMAGE,(WPARAM)IMAGE_ICON,(LPARAM)hicon);
    else if (hbitmap)
-   {
-      SendMessage(tmp, BM_SETIMAGE,(WPARAM) IMAGE_BITMAP, (LPARAM) hbitmap);
-   }
+      SendMessage(tmp, BM_SETIMAGE,(WPARAM)IMAGE_BITMAP, (LPARAM)hbitmap);
    return tmp;
 }
 
@@ -6999,15 +6966,12 @@ HWND API dw_bitmapbutton_new_from_file(const char *text, unsigned long id, const
 HWND API dw_bitmapbutton_new_from_data(const char *text, unsigned long id, const char *data, int len)
 {
    HWND tmp;
-   ColorInfo *cinfo = calloc(1, sizeof(ColorInfo));
+   ColorInfo *cinfo;
    HBITMAP hbitmap = 0;
    HANDLE hicon = 0;
    char *file;
    FILE *fp;
    int windowtype = BS_BITMAP;
-
-   if (!cinfo)
-      return 0;
 
    file = _tempnam( _dw_alternate_temp_dir, "dw" );
    if ( file != NULL )
@@ -7045,9 +7009,8 @@ HWND API dw_bitmapbutton_new_from_data(const char *text, unsigned long id, const
 #ifdef TOOLBAR
    if((tmp = _create_toolbar(text, id, hicon, hbitmap)))
    {
-      cinfo->fore = cinfo->back = -1;
-      cinfo->pOldProc = SubclassWindow(tmp, _simplewndproc);
-      SetWindowLongPtr(tmp, GWLP_USERDATA, (LONG_PTR)cinfo);
+      if((cinfo = _dw_window_new_cinfo(tmp, FALSE)))
+         cinfo->pOldProc = SubclassWindow(tmp, _simplewndproc);
       return tmp;
    }
 #endif
@@ -7062,21 +7025,15 @@ HWND API dw_bitmapbutton_new_from_data(const char *text, unsigned long id, const
                        DWInstance,
                        NULL );
 
-   cinfo->fore = cinfo->back = -1;
-   cinfo->pOldProc = SubclassWindow( tmp, _BtProc );
-
-   SetWindowLongPtr( tmp, GWLP_USERDATA, (LONG_PTR)cinfo );
+   if((cinfo = _dw_window_new_cinfo(tmp, FALSE)))
+      cinfo->pOldProc = SubclassWindow( tmp, _BtProc );
 
    _create_tooltip(tmp, text);
 
-   if ( hicon )
-   {
-      SendMessage( tmp, BM_SETIMAGE, (WPARAM) IMAGE_ICON, (LPARAM) hicon);
-   }
-   else if( hbitmap )
-   {
-      SendMessage( tmp, BM_SETIMAGE, (WPARAM) IMAGE_BITMAP, (LPARAM) hbitmap);
-   }
+   if(hicon)
+      SendMessage(tmp, BM_SETIMAGE, (WPARAM)IMAGE_ICON, (LPARAM)hicon);
+   else if(hbitmap)
+      SendMessage(tmp, BM_SETIMAGE, (WPARAM)IMAGE_BITMAP, (LPARAM)hbitmap);
    return tmp;
 }
 
@@ -7109,28 +7066,26 @@ HWND API dw_spinbutton_new(const char *text, ULONG id)
                        (HMENU)(uintptr_t)id,
                        DWInstance,
                        NULL);
-   ColorInfo *cinfo = calloc(1, sizeof(ColorInfo));
+   ColorInfo *cinfo;
 
    SendMessage(tmp, UDM_SETRANGE32, (WPARAM)-65536,(LPARAM)65536);
    SendMessage(tmp, UDM_SETBUDDY, (WPARAM)buddy, 0);
-   cinfo->back = cinfo->fore = -1;
-   cinfo->buddy = tmp;
+   
+   if((cinfo = _dw_window_new_cinfo(buddy, TRUE)))
+      cinfo->buddy = tmp;
 
-   cinfo->pOldProc = SubclassWindow(buddy, _colorwndproc);
-   SetWindowLongPtr(buddy, GWLP_USERDATA, (LONG_PTR)cinfo);
-
-   cinfo = calloc(1, sizeof(ColorInfo));
-   cinfo->buddy = buddy;
-   /* The horrible spinbutton workaround isn't necessary
-    * any more on Vista or 7... but still seems necessary
-    * for XP, so only enable it if on XP or lower.
-    */
-   if(!IS_VISTAPLUS)
+   if((cinfo = _dw_window_new_cinfo(tmp, FALSE)))
    {
-      cinfo->pOldProc = SubclassWindow(tmp, _spinnerwndproc);
+      cinfo->buddy = buddy;
+
+      /* The horrible spinbutton workaround isn't necessary
+       * any more on Vista or 7... but still seems necessary
+       * for XP, so only enable it if on XP or lower.
+       */
+      if(!IS_VISTAPLUS)
+         cinfo->pOldProc = SubclassWindow(tmp, _spinnerwndproc);
    }
 
-   SetWindowLongPtr(tmp, GWLP_USERDATA, (LONG_PTR)cinfo);
    dw_window_set_font(buddy, DefaultFont);
    return tmp;
 }
@@ -7158,10 +7113,8 @@ HWND API dw_radiobutton_new(const char *text, ULONG id)
    if(_SetWindowTheme)
       _SetWindowTheme(tmp, L"", L"");
 
-   cinfo = calloc(1, sizeof(ColorInfo));
-   cinfo->fore = cinfo->back = -1;
-   cinfo->pOldProc = SubclassWindow(tmp, _BtProc);
-   SetWindowLongPtr(tmp, GWLP_USERDATA, (LONG_PTR)cinfo);
+   if((cinfo = _dw_window_new_cinfo(tmp, FALSE)))
+      cinfo->pOldProc = SubclassWindow(tmp, _BtProc);
    dw_window_set_font(tmp, DefaultFont);
    dw_window_set_color(tmp, DW_CLR_DEFAULT, DW_RGB_TRANSPARENT);
    return tmp;
@@ -7186,12 +7139,8 @@ HWND API dw_slider_new(int vertical, int increments, ULONG id)
                      (HMENU)(uintptr_t)id,
                      DWInstance,
                      NULL);
-   ColorInfo *cinfo = calloc(1, sizeof(ColorInfo));
 
-   cinfo->back = cinfo->fore = -1;
-
-   cinfo->pOldProc = SubclassWindow(tmp, _colorwndproc);
-   SetWindowLongPtr(tmp, GWLP_USERDATA, (LONG_PTR)cinfo);
+   _dw_window_new_cinfo(tmp, TRUE);
    SendMessage(tmp, TBM_SETRANGE, (WPARAM)FALSE, MAKELPARAM(0, increments-1));
    return tmp;
 }
@@ -7214,12 +7163,8 @@ HWND API dw_scrollbar_new(int vertical, ULONG id)
                      (HMENU)(uintptr_t)id,
                      DWInstance,
                      NULL);
-   ColorInfo *cinfo = calloc(1, sizeof(ColorInfo));
 
-   cinfo->back = cinfo->fore = -1;
-
-   cinfo->pOldProc = SubclassWindow(tmp, _colorwndproc);
-   SetWindowLongPtr(tmp, GWLP_USERDATA, (LONG_PTR)cinfo);
+   _dw_window_new_cinfo(tmp, TRUE);
    dw_window_set_data(tmp, "_dw_scrollbar", (void *)1);
    return tmp;
 }
@@ -7249,7 +7194,7 @@ HWND API dw_percent_new(ULONG id)
  */
 HWND API dw_checkbox_new(const char *text, ULONG id)
 {
-   ColorInfo *cinfo = calloc(1, sizeof(ColorInfo));
+   ColorInfo *cinfo;
    HWND tmp = CreateWindow(BUTTONCLASSNAME,
                      UTF8toWide(text),
                      WS_CHILD | BS_AUTOCHECKBOX |
@@ -7264,8 +7209,8 @@ HWND API dw_checkbox_new(const char *text, ULONG id)
    if(_SetWindowTheme)
       _SetWindowTheme(tmp, L"", L"");
 
-   cinfo->pOldProc = SubclassWindow(tmp, _BtProc);
-   SetWindowLongPtr(tmp, GWLP_USERDATA, (LONG_PTR)cinfo);
+   if((cinfo = _dw_window_new_cinfo(tmp, FALSE)))
+      cinfo->pOldProc = SubclassWindow(tmp, _BtProc);
    dw_window_set_data(tmp, "_dw_checkbox", DW_INT_TO_POINTER(1));
    dw_window_set_font(tmp, DefaultFont);
    dw_window_set_color(tmp, DW_CLR_DEFAULT, DW_RGB_TRANSPARENT);
@@ -7512,20 +7457,20 @@ void API dw_window_set_text(HWND handle, const char *text)
    SetWindowText(handle, wtext);
 
    /* Combobox */
-   if ( _tcsnicmp( tmpbuf, COMBOBOXCLASSNAME, _tcslen(COMBOBOXCLASSNAME)+1) == 0 )
+   if(_tcsnicmp( tmpbuf, COMBOBOXCLASSNAME, _tcslen(COMBOBOXCLASSNAME)+1) == 0)
       SendMessage(handle, CB_SETEDITSEL, 0, MAKELPARAM(-1, 0));
-   else if ( _tcsnicmp( tmpbuf, UPDOWN_CLASS, _tcslen(UPDOWN_CLASS)+1) == 0 )
+   else if(_tcsnicmp( tmpbuf, UPDOWN_CLASS, _tcslen(UPDOWN_CLASS)+1) == 0)
    {
-      ColorInfo *cinfo = (ColorInfo *)GetWindowLongPtr(handle, GWLP_USERDATA);
-      if( cinfo && cinfo->buddy )
-         SetWindowText( cinfo->buddy, wtext );
+      ColorInfo *cinfo = _dw_window_get_cinfo(handle);
+      if(cinfo && cinfo->buddy)
+         SetWindowText(cinfo->buddy, wtext);
    }
-   else if ( _tcsnicmp( tmpbuf, FRAMECLASSNAME, _tcslen(FRAMECLASSNAME)+1) == 0 )
+   else if(_tcsnicmp( tmpbuf, FRAMECLASSNAME, _tcslen(FRAMECLASSNAME)+1) == 0)
    {
       /* groupbox */
-      thisbox = (Box *)GetWindowLongPtr( handle, GWLP_USERDATA );
-      if ( thisbox && thisbox->grouphwnd != (HWND)NULL )
-         SetWindowText( thisbox->grouphwnd, wtext );
+      thisbox = (Box *)GetWindowLongPtr(handle, GWLP_USERDATA);
+      if(thisbox && thisbox->grouphwnd != (HWND)NULL)
+         SetWindowText(thisbox->grouphwnd, wtext);
    }
    /* If we changed the text... */
    {
@@ -7561,7 +7506,7 @@ void API dw_window_set_text(HWND handle, const char *text)
  */
 void API dw_window_set_tooltip(HWND handle, const char *bubbletext)
 {
-    ColorInfo *cinfo = (ColorInfo *)GetWindowLongPtr(handle, GWLP_USERDATA);
+    ColorInfo *cinfo = _dw_window_get_cinfo(handle);
 
     if(cinfo && cinfo->buddy)
         _create_tooltip(cinfo->buddy, bubbletext);
@@ -7583,11 +7528,11 @@ char * API dw_window_get_text(HWND handle)
 
    GetClassName(handle, tmpbuf, 99);
 
-   if ( _tcsnicmp( tmpbuf, UPDOWN_CLASS, _tcslen(UPDOWN_CLASS)+1) == 0 )
+   if(_tcsnicmp( tmpbuf, UPDOWN_CLASS, _tcslen(UPDOWN_CLASS)+1) == 0)
    {
       ColorInfo *cinfo = (ColorInfo *)GetWindowLongPtr(handle, GWLP_USERDATA);
 
-      if( cinfo && cinfo->buddy )
+      if(cinfo && cinfo->buddy)
         handle = cinfo->buddy;
       else
         return NULL;
@@ -7700,7 +7645,7 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
    /* If we are in a scrolled box... extract the interal box */
    if(_tcsnicmp(tmpbuf, ScrollClassName, _tcslen(ScrollClassName)+1)==0)
    {
-        ColorInfo *cinfo = (ColorInfo *)GetWindowLongPtr(box, GWLP_USERDATA);
+        ColorInfo *cinfo = _dw_window_get_cinfo(box);
         if(cinfo)
         {
             box = cinfo->buddy;
@@ -7786,7 +7731,7 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
       SetParent(item, box);
       if(_tcsnicmp(tmpbuf, UPDOWN_CLASS, _tcslen(UPDOWN_CLASS)+1)==0)
       {
-         ColorInfo *cinfo = (ColorInfo *)GetWindowLongPtr(item, GWLP_USERDATA);
+         ColorInfo *cinfo = _dw_window_get_cinfo(item);
 
          if(cinfo)
          {
@@ -8289,7 +8234,7 @@ void API dw_window_set_style(HWND handle, ULONG style, ULONG mask)
    GetClassName(handle, tmpbuf, 99);
 
    currentstyle = GetWindowLong(handle, GWL_STYLE);
-   cinfo = (ColorInfo *)GetWindowLongPtr(handle, GWLP_USERDATA);
+   cinfo = _dw_window_get_cinfo(handle);
 
 #ifdef TOOLBAR
    /* Bitmap Buttons */
@@ -8356,25 +8301,9 @@ void API dw_window_set_style(HWND handle, ULONG style, ULONG mask)
       tmp ^= thismask;
       tmp |= thisstyle & thismask;
 
-      if(mask & DW_DT_VCENTER)
-      {
-         if(style & DW_DT_VCENTER)
-         {
-            if(cinfo)
-               cinfo->vcenter = 1;
-            else
-            {
-               cinfo = calloc(1, sizeof(ColorInfo));
-               cinfo->fore = cinfo->back = -1;
-               cinfo->vcenter = 1;
+      if(mask & DW_DT_VCENTER && style & DW_DT_VCENTER && !cinfo)
+         cinfo = _dw_window_new_cinfo(handle, TRUE);
 
-               cinfo->pOldProc = SubclassWindow(handle, _colorwndproc);
-               SetWindowLongPtr(handle, GWLP_USERDATA, (LONG_PTR)cinfo);
-            }
-         }
-         else if(cinfo)
-            cinfo->vcenter = 0;
-      }
       /* Alignment style is 0 for word wrap */
       if((style & DW_DT_WORDBREAK) && (mask & DW_DT_WORDBREAK))
          tmp &= ~(0xFL);
@@ -8384,6 +8313,14 @@ void API dw_window_set_style(HWND handle, ULONG style, ULONG mask)
          tmp = (tmp & ~(0xFL)) | SS_CENTER;
       else if(type == SS_RIGHT)
          tmp = (tmp & ~(0xFL)) | SS_RIGHT;
+   }
+
+   /* If we have cinfo store the style there for later use */
+   if(cinfo)
+   {
+      cinfo->style = cinfo->style | mask;
+      cinfo->style ^= mask;
+      cinfo->style |= style & mask;
    }
 
    SetWindowLong(handle, GWL_STYLE, tmp);
@@ -9303,7 +9240,7 @@ void API dw_scrollbar_set_range(HWND handle, unsigned int range, unsigned int vi
 void API dw_spinbutton_set_pos(HWND handle, long position)
 {
    TCHAR tmpbuf[101] = {0};
-   ColorInfo *cinfo = (ColorInfo *)GetWindowLongPtr(handle, GWLP_USERDATA);
+   ColorInfo *cinfo = _dw_window_get_cinfo(handle);
 
    _sntprintf(tmpbuf, 100, TEXT("%ld"), position);
 
@@ -11174,11 +11111,11 @@ void API dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, const char *tex
       return;
 
    if(handle)
-      cinfo = (ColorInfo *)GetWindowLongPtr(handle, GWLP_USERDATA);
+      cinfo = _dw_window_get_cinfo(handle);
    else if(pixmap->font)
       hFont = pixmap->font;
    else if(pixmap->handle)
-      cinfo = (ColorInfo *)GetWindowLongPtr(pixmap->handle, GWLP_USERDATA);
+      cinfo = _dw_window_get_cinfo(pixmap->handle);
 
    if(cinfo)
    {
@@ -11238,12 +11175,12 @@ void API dw_font_text_extents_get(HWND handle, HPIXMAP pixmap, const char *text,
    }
    else
    {
-      ColorInfo *cinfo;
+      ColorInfo *cinfo = NULL;
 
       if(handle)
-         cinfo = (ColorInfo *)GetWindowLongPtr(handle, GWLP_USERDATA);
-      else
-         cinfo = (ColorInfo *)GetWindowLongPtr(pixmap->handle, GWLP_USERDATA);
+         cinfo = _dw_window_get_cinfo(handle);
+      else if(pixmap && pixmap->handle)
+         cinfo = _dw_window_get_cinfo(pixmap->handle);
 
       if(cinfo)
       {
@@ -12405,12 +12342,10 @@ void API dw_window_default(HWND window, HWND defaultitem)
  */
 void API dw_window_click_default(HWND window, HWND next)
 {
-   ColorInfo *cinfo = (ColorInfo *)GetWindowLongPtr(window, GWLP_USERDATA);
+   ColorInfo *cinfo = _dw_window_get_cinfo(window);
 
-   if (cinfo)
-   {
+   if(cinfo)
       cinfo->clickdefault = next;
-   }
 }
 
 /*
@@ -13130,16 +13065,14 @@ int _remove_userdata(UserData **root, const char *varname, int all)
  */
 void API dw_window_set_data(HWND window, const char *dataname, void *data)
 {
-   ColorInfo *cinfo = (ColorInfo *)GetWindowLongPtr(window, GWLP_USERDATA);
+   ColorInfo *cinfo = _dw_window_get_cinfo(window);
 
    if(!cinfo)
    {
       if(!dataname)
          return;
 
-      cinfo = calloc(1, sizeof(ColorInfo));
-      cinfo->fore = cinfo->back = -1;
-      SetWindowLongPtr(window, GWLP_USERDATA, (LONG_PTR)cinfo);
+      cinfo = _dw_window_new_cinfo(window, FALSE);
    }
 
    if(cinfo)
@@ -13165,7 +13098,7 @@ void API dw_window_set_data(HWND window, const char *dataname, void *data)
  */
 void * API dw_window_get_data(HWND window, const char *dataname)
 {
-   ColorInfo *cinfo = (ColorInfo *)GetWindowLongPtr(window, GWLP_USERDATA);
+   ColorInfo *cinfo = _dw_window_get_cinfo(window);
 
    if(cinfo && cinfo->root && dataname)
    {
