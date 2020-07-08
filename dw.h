@@ -630,8 +630,8 @@ typedef struct _color {
    int fore;
    int back;
    HWND combo, buddy;
-   int user;
-   int vcenter;
+   ULONG style;
+   RECT rect;
    HWND clickdefault;
    HBRUSH hbrush;
    HFONT hfont;
