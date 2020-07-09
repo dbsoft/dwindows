@@ -2021,20 +2021,15 @@ LRESULT CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
     */
    if(msg == WM_NCCALCSIZE && mp2 && _DW_DARK_MODE_ENABLED && _DW_DARK_MODE_ALLOWED > DW_DARK_MODE_BASIC)
    {
-      MARGINS *margins = dw_window_get_data(hWnd, "_dw_margins");
       ColorInfo *cinfo = _dw_window_get_cinfo(hWnd);
 
-      if(margins && cinfo)
+      if(cinfo)
       {
-         NCCALCSIZE_PARAMS* sz = (NCCALCSIZE_PARAMS*)mp2;
+         /*NCCALCSIZE_PARAMS* sz = (NCCALCSIZE_PARAMS*)mp2;
 
          sz->rgrc[0].left += cinfo->rect.left;
          sz->rgrc[0].right -= cinfo->rect.right;
-         sz->rgrc[0].bottom -= cinfo->rect.bottom;
-
-         if (_DwmExtendFrameIntoClientArea)
-            _DwmExtendFrameIntoClientArea(hWnd, margins);
-         SetWindowPos(hWnd, NULL, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_FRAMECHANGED);
+         sz->rgrc[0].bottom -= cinfo->rect.bottom;;*/
          return 0;
       }
    }
@@ -2050,16 +2045,15 @@ LRESULT CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
       lResult = DefWindowProc(hWnd, msg, mp1, mp2);
       if(lResult == HTCLIENT)
       {
-         MARGINS *margins = dw_window_get_data(hWnd, "_dw_margins");
          ColorInfo *cinfo = _dw_window_get_cinfo(hWnd);
 
-         if(margins && cinfo)
+         if(cinfo)
          {
             POINT pt = { LOWORD(mp2), HIWORD(mp2) };
 
             ScreenToClient(hWnd, &pt);
             if (pt.y < cinfo->rect.top) return HTTOP;
-            if (pt.y < margins->cyTopHeight)  return HTCAPTION;
+            /*if (pt.y < margins->cyTopHeight)  return HTCAPTION;*/
          }
       }
       return lResult;
@@ -2571,19 +2565,31 @@ LRESULT CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 #ifdef AEROGLASS
    case WM_DWMCOMPOSITIONCHANGED:
       {
-         LONG_PTR styleex = GetWindowLongPtr(hWnd, GWL_EXSTYLE);
-
+         ColorInfo *cinfo = _dw_window_get_cinfo(hWnd);
+         
          if(_DwmIsCompositionEnabled)
             _DwmIsCompositionEnabled(&_dw_composition);
-
-         /* If we are no longer compositing... disable layered windows */
-         if(!_dw_composition && (styleex & WS_EX_LAYERED))
+         
+         if(cinfo && (cinfo->style & DW_FCF_COMPOSITED))
          {
-            MARGINS *mar = dw_window_get_data(hWnd, "_dw_margins");
+            /* If we are no longer compositing... */
+            if(!_dw_composition)
+            {
+               MARGINS mar = {0};
 
-            SetWindowLongPtr(hWnd, GWL_EXSTYLE, styleex & ~WS_EX_LAYERED);
-            if(_DwmExtendFrameIntoClientArea && mar)
-               _DwmExtendFrameIntoClientArea(hWnd, mar);
+               SetLayeredWindowAttributes(hWnd, _dw_transparencykey, 255, LWA_ALPHA);
+               if(_DwmExtendFrameIntoClientArea)
+                  _DwmExtendFrameIntoClientArea(hWnd, &mar);
+            }
+            /* If we have started compositing... */
+            else
+            {
+               MARGINS mar = {-1};
+
+               SetLayeredWindowAttributes(hWnd, _dw_transparencykey, 0, LWA_COLORKEY);
+               if(_DwmExtendFrameIntoClientArea)
+                  _DwmExtendFrameIntoClientArea(hWnd, &mar);
+            }
          }
       }
       break;
@@ -2826,17 +2832,22 @@ LRESULT CALLBACK _framewndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
       }
       break;
    case WM_ERASEBKGND:
-      if(_dw_composition && (GetWindowLongPtr(_toplevel_window(hWnd), GWL_EXSTYLE) & WS_EX_LAYERED))
+      if(_dw_composition)
       {
-         static HBRUSH hbrush = 0;
-         RECT rect;
+         ColorInfo *cinfo = _dw_window_get_cinfo(_toplevel_window(hWnd));
 
-         if(!hbrush)
-            hbrush = CreateSolidBrush(_dw_transparencykey);
+         if(cinfo && cinfo->style & DW_FCF_COMPOSITED)
+         {
+            static HBRUSH hbrush = 0;
+            RECT rect;
 
-         GetClientRect(hWnd, &rect);
-         FillRect((HDC)mp1, &rect, hbrush);
-         return TRUE;
+            if(!hbrush)
+               hbrush = CreateSolidBrush(_dw_transparencykey);
+
+            GetClientRect(hWnd, &rect);
+            FillRect((HDC)mp1, &rect, hbrush);
+            return TRUE;
+         }
       }
       break;
 #endif
@@ -3315,8 +3326,9 @@ LRESULT CALLBACK _colorwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
                case WM_CTLCOLORBTN:
                case WM_CTLCOLORDLG:
                   {
+                     ColorInfo *tlcinfo = _dw_window_get_cinfo(_toplevel_window(hWnd));
 
-                     if((_dw_composition && GetWindowLongPtr(_toplevel_window(hWnd), GWL_EXSTYLE) & WS_EX_LAYERED) &&
+                     if((_dw_composition && tlcinfo && (tlcinfo->style & DW_FCF_COMPOSITED)) &&
                         (!thiscinfo || (thiscinfo && (thiscinfo->back == -1 || thiscinfo->back == DW_RGB_TRANSPARENT))))
                      {
                         if(!(msg == WM_CTLCOLORSTATIC && SendMessage((HWND)mp2, STM_GETIMAGE, IMAGE_BITMAP, 0)))
@@ -3960,7 +3972,7 @@ LRESULT CALLBACK _statuswndproc(HWND hwnd, UINT msg, WPARAM mp1, LPARAM mp2)
 /* Window procedure to handle drawing themed text when in composited mode */
 LRESULT CALLBACK _staticwndproc(HWND hwnd, ULONG msg, WPARAM mp1, LPARAM mp2)
 {
-   ColorInfo *parentcinfo, *cinfo = _dw_window_get_cinfo(hwnd);
+   ColorInfo *parentcinfo, *tlcinfo, *cinfo = _dw_window_get_cinfo(hwnd);
    WNDPROC pOldProc;
 
    if (!cinfo)
@@ -3968,10 +3980,11 @@ LRESULT CALLBACK _staticwndproc(HWND hwnd, ULONG msg, WPARAM mp1, LPARAM mp2)
 
    /* Need the parent to do the check completely */
    parentcinfo = _dw_window_get_cinfo(GetParent(hwnd));
+   tlcinfo = _dw_window_get_cinfo(_toplevel_window(hwnd));
 
    /* If we don't require themed drawing */
    if(((cinfo->back != -1 && cinfo->back != DW_RGB_TRANSPARENT) || (parentcinfo && parentcinfo->back != -1))
-       || !_dw_composition || !(GetWindowLongPtr(_toplevel_window(hwnd), GWL_EXSTYLE) & WS_EX_LAYERED))
+       || !_dw_composition || !tlcinfo || !(tlcinfo->style & DW_FCF_COMPOSITED))
       return _colorwndproc(hwnd, msg, mp1, mp2);
 
    pOldProc = cinfo->pOldProc;
@@ -5641,10 +5654,7 @@ HWND API dw_window_new(HWND hwndOwner, const char *title, ULONG flStyle)
    Box *newbox = calloc(sizeof(Box), 1);
    ULONG flStyleEx = 0;
 #ifdef AEROGLASS
-   MARGINS *margins = calloc(1, sizeof(MARGINS));
-
-   if (_dw_composition && (flStyle & DW_FCF_COMPOSITED))
-      flStyleEx = WS_EX_LAYERED;
+   flStyleEx = WS_EX_LAYERED;
 #endif
 
    newbox->type = DW_VERT;
@@ -5680,27 +5690,19 @@ HWND API dw_window_new(HWND hwndOwner, const char *title, ULONG flStyle)
    newbox->cinfo.rect.left *= -1;
    newbox->cinfo.rect.top *= -1;
 
-   /* With the DW_FCF_COMPOSITED flag, expand it to the entire window */
-   if (flStyle & DW_FCF_COMPOSITED)
+   if(flStyle & DW_FCF_COMPOSITED)
    {
-      MARGINS fullmar = { -1 };
-      *margins = fullmar;
+      /* Attempt to enable Aero glass background on the entire window */
+      if(_DwmExtendFrameIntoClientArea && _dw_composition)
+      {
+         MARGINS fullmar = { -1 };
+
+         _DwmExtendFrameIntoClientArea(hwndframe, &fullmar);
+      }
+      SetLayeredWindowAttributes(hwndframe, _dw_transparencykey, 0, LWA_COLORKEY);
    }
    else
-   {
-      /* Otherwise use the calculated border sizes */
-      margins->cyTopHeight = newbox->cinfo.rect.top;
-   }
-   
-   dw_window_set_data(hwndframe, "_dw_margins", margins);
-
-   /* Attempt to enable Aero glass background on the entire window */
-   if(_DwmExtendFrameIntoClientArea && _dw_composition && 
-     ((flStyle & DW_FCF_COMPOSITED) || (_DW_DARK_MODE_ALLOWED > DW_DARK_MODE_BASIC && _DW_DARK_MODE_ENABLED)))
-   {
-      SetLayeredWindowAttributes(hwndframe, _dw_transparencykey, 0, LWA_COLORKEY);
-      _DwmExtendFrameIntoClientArea(hwndframe, margins);
-   }
+      SetLayeredWindowAttributes(hwndframe, _dw_transparencykey, 255, LWA_ALPHA);
 #endif
 
    return hwndframe;
@@ -8268,14 +8270,11 @@ void API dw_window_set_style(HWND handle, ULONG style, ULONG mask)
 #ifdef AEROGLASS
       if(mask & DW_FCF_COMPOSITED && _DwmExtendFrameIntoClientArea && _dw_composition)
       {
-         LONG_PTR styleex = GetWindowLongPtr(handle, GWL_EXSTYLE);
-
          if(style & DW_FCF_COMPOSITED)
          {
             MARGINS mar = {-1};
 
             /* Attempt to enable Aero glass background on the entire window */
-            SetWindowLongPtr(handle, GWL_EXSTYLE, styleex | WS_EX_LAYERED);
             SetLayeredWindowAttributes(handle, _dw_transparencykey, 0, LWA_COLORKEY);
             _DwmExtendFrameIntoClientArea(handle, &mar);
          }
@@ -8284,7 +8283,7 @@ void API dw_window_set_style(HWND handle, ULONG style, ULONG mask)
             MARGINS mar = {0};
 
             /* Remove Aero Glass */
-            SetWindowLongPtr(handle, GWL_EXSTYLE, styleex & ~WS_EX_LAYERED);
+            SetLayeredWindowAttributes(handle, _dw_transparencykey, 255, LWA_ALPHA);
             _DwmExtendFrameIntoClientArea(handle, &mar);
          }
       }
