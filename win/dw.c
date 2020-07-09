@@ -815,6 +815,13 @@ void _dw_init_dark_mode(void)
    }
 }
 
+MARGINS _dw_rect_to_margins(RECT rect)
+{
+   MARGINS mar = { rect.left, rect.right, rect.top, rect.bottom };
+   
+   return mar;
+}
+
 BOOL _CanThemeWindow(HWND window)
 {
    TCHAR tmpbuf[100] = {0};
@@ -2025,13 +2032,21 @@ LRESULT CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 
       if(cinfo)
       {
-         /*NCCALCSIZE_PARAMS* sz = (NCCALCSIZE_PARAMS*)mp2;
+         NCCALCSIZE_PARAMS* sz = (NCCALCSIZE_PARAMS*)mp2;
 
          sz->rgrc[0].left += cinfo->rect.left;
          sz->rgrc[0].right -= cinfo->rect.right;
-         sz->rgrc[0].bottom -= cinfo->rect.bottom;;*/
+         sz->rgrc[0].bottom -= cinfo->rect.bottom;
          return 0;
       }
+   }
+   else if(msg == WM_NCPAINT && _DW_DARK_MODE_ENABLED && _DW_DARK_MODE_ALLOWED > DW_DARK_MODE_BASIC)
+   {
+      /* Handle close/minimize/maximize/help button */
+      LRESULT lResult;
+
+      if(_DwmDefWindowProc && _DwmDefWindowProc(hWnd, msg, mp1, mp2, &lResult))
+         return lResult;
    }
    else if(msg == WM_NCHITTEST && _DW_DARK_MODE_ENABLED && _DW_DARK_MODE_ALLOWED > DW_DARK_MODE_BASIC)
    {
@@ -2570,26 +2585,32 @@ LRESULT CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
          if(_DwmIsCompositionEnabled)
             _DwmIsCompositionEnabled(&_dw_composition);
          
-         if(cinfo && (cinfo->style & DW_FCF_COMPOSITED))
+         /* If we are no longer compositing... */
+         if(!_dw_composition)
          {
-            /* If we are no longer compositing... */
-            if(!_dw_composition)
-            {
-               MARGINS mar = {0};
+            MARGINS mar = {0};
 
-               SetLayeredWindowAttributes(hWnd, _dw_transparencykey, 255, LWA_ALPHA);
-               if(_DwmExtendFrameIntoClientArea)
-                  _DwmExtendFrameIntoClientArea(hWnd, &mar);
-            }
-            /* If we have started compositing... */
+            SetLayeredWindowAttributes(hWnd, _dw_transparencykey, 255, LWA_ALPHA);
+            if(_DwmExtendFrameIntoClientArea)
+               _DwmExtendFrameIntoClientArea(hWnd, &mar);
+         }
+         /* If we have started compositing... */
+         else
+         {
+            MARGINS mar = {-1};
+
+            if(cinfo && (cinfo->style & DW_FCF_COMPOSITED))
+               SetLayeredWindowAttributes(hWnd, _dw_transparencykey, 0, LWA_COLORKEY);
             else
             {
-               MARGINS mar = {-1};
-
-               SetLayeredWindowAttributes(hWnd, _dw_transparencykey, 0, LWA_COLORKEY);
-               if(_DwmExtendFrameIntoClientArea)
-                  _DwmExtendFrameIntoClientArea(hWnd, &mar);
+               if(cinfo)
+                  mar = _dw_rect_to_margins(cinfo->rect);
+               else
+                  memset(&mar, 0, sizeof(MARGINS));
+               SetLayeredWindowAttributes(hWnd, _dw_transparencykey, 255, LWA_ALPHA);
             }
+            if(_DwmExtendFrameIntoClientArea)
+               _DwmExtendFrameIntoClientArea(hWnd, &mar);
          }
       }
       break;
@@ -5702,7 +5723,15 @@ HWND API dw_window_new(HWND hwndOwner, const char *title, ULONG flStyle)
       SetLayeredWindowAttributes(hwndframe, _dw_transparencykey, 0, LWA_COLORKEY);
    }
    else
+   {
+      if(_DwmExtendFrameIntoClientArea && _dw_composition)
+      {
+         MARGINS mar = _dw_rect_to_margins(newbox->cinfo.rect);
+
+         _DwmExtendFrameIntoClientArea(hwndframe, &mar);
+      }
       SetLayeredWindowAttributes(hwndframe, _dw_transparencykey, 255, LWA_ALPHA);
+   }
 #endif
 
    return hwndframe;
@@ -8281,6 +8310,9 @@ void API dw_window_set_style(HWND handle, ULONG style, ULONG mask)
          else
          {
             MARGINS mar = {0};
+
+            if(cinfo)
+               mar = _dw_rect_to_margins(cinfo->rect);
 
             /* Remove Aero Glass */
             SetLayeredWindowAttributes(handle, _dw_transparencykey, 255, LWA_ALPHA);
