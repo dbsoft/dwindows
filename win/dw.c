@@ -820,7 +820,7 @@ void _dw_init_dark_mode(void)
 MARGINS _dw_rect_to_margins(RECT rect)
 {
    /* Left, Right, Top, Bottom */
-   MARGINS mar = { 1, 1, rect.top, 1 }, none = {0};
+   MARGINS mar = { rect.left, rect.right, rect.top, rect.bottom }, none = {0};
    
    if(_DW_DARK_MODE_ALLOWED > DW_DARK_MODE_BASIC & _DW_DARK_MODE_ENABLED)
       return mar;
@@ -2728,7 +2728,7 @@ LRESULT CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
          _dw_set_child_window_theme(hWnd, 0);
          EnumChildWindows(hWnd, _dw_set_child_window_theme, 0);
 #ifdef DARK_MODE_TITLEBAR_MENU
-         if(_DW_DARK_MODE_SUPPORTED > DW_DARK_MODE_BASIC && _DW_DARK_MODE_ENABLED)
+         if(_DW_DARK_MODE_ALLOWED > DW_DARK_MODE_BASIC && _DW_DARK_MODE_ENABLED)
             SetMenu(hWnd, NULL);
          else
          {
@@ -5822,7 +5822,7 @@ HWND API dw_window_new(HWND hwndOwner, const char *title, ULONG flStyle)
 #ifdef AEROGLASS
    /* Determine the borders of the default window frame */
    AdjustWindowRectEx(&(newbox->cinfo.rect), flStyle, FALSE, 0);
-   newbox->cinfo.rect.left *= -1;
+   newbox->cinfo.rect.right = newbox->cinfo.rect.left = newbox->cinfo.rect.bottom = 1;
    newbox->cinfo.rect.top *= -1;
 
    if(flStyle & DW_FCF_COMPOSITED)
