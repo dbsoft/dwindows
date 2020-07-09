@@ -216,6 +216,7 @@ HRESULT (WINAPI *_BufferedPaintSetAlpha)(HPAINTBUFFER hBufferedPaint, const RECT
 HRESULT (WINAPI *_DrawThemeTextEx)(HTHEME hTheme, HDC hdc, int iPartId, int iStateId, LPCWSTR pszText, int iCharCount, DWORD dwFlags, LPRECT pRect, const DTTOPTS *pOptions) = 0;
 HRESULT (WINAPI *_EndBufferedPaint)(HPAINTBUFFER hBufferedPaint, BOOL fUpdateTarget) = 0;
 HRESULT (WINAPI *_CloseThemeData)(HTHEME hTheme) = 0;
+HRESULT (WINAPI *_GetThemeSysFont)(HTHEME hTheme, int iFontId, LOGFONTW *plf) = 0;
 BOOL _dw_composition = FALSE;
 COLORREF _dw_transparencykey = RGB(200,201,202);
 HANDLE hdwm = 0;
@@ -815,11 +816,15 @@ void _dw_init_dark_mode(void)
    }
 }
 
+/* Return a margins struct based on the calculated window rect */
 MARGINS _dw_rect_to_margins(RECT rect)
 {
-   MARGINS mar = { rect.left, rect.right, rect.top, rect.bottom };
+   /* Left, Right, Top, Bottom */
+   MARGINS mar = { 1, 1, rect.top, 1 }, none = {0};
    
-   return mar;
+   if(_DW_DARK_MODE_ALLOWED > DW_DARK_MODE_BASIC & _DW_DARK_MODE_ENABLED)
+      return mar;
+   return none;
 }
 
 BOOL _CanThemeWindow(HWND window)
@@ -904,6 +909,97 @@ BOOL CALLBACK _dw_set_child_window_theme(HWND window, LPARAM lParam)
       SendMessageW(window, WM_THEMECHANGED, 0, 0);
    }
    return TRUE;
+}
+
+#define RECTWIDTH(rc)   (rc.right - rc.left)
+#define RECTHEIGHT(rc)  (rc.bottom - rc.top)
+
+/* Our function to draw the titlebar in dark mode */
+void _DW_DrawDarkModeTitleBar(HWND hWnd, HDC hdc)
+{
+   if(_OpenThemeData && _CloseThemeData && _DrawThemeTextEx && _GetThemeSysFont)
+   {
+      HTHEME hTheme = _OpenThemeData(NULL, L"CompositedWindow::Window");
+      RECT rcClient;
+
+      GetClientRect(hWnd, &rcClient);
+
+      if(hTheme)
+      {
+         HDC hdcPaint = CreateCompatibleDC(hdc);
+
+         if(hdcPaint)
+         {
+            int cx = RECTWIDTH(rcClient);
+            int cy = RECTHEIGHT(rcClient);
+
+            /* Define the BITMAPINFO structure used to draw text.
+             * Note that biHeight is negative. This is done because
+             * DrawThemeTextEx() needs the bitmap to be in top-to-bottom
+             * order.
+             */
+            BITMAPINFO dib = { 0 };
+            dib.bmiHeader.biSize            = sizeof(BITMAPINFOHEADER);
+            dib.bmiHeader.biWidth           = cx;
+            dib.bmiHeader.biHeight          = -cy;
+            dib.bmiHeader.biPlanes          = 1;
+            dib.bmiHeader.biBitCount        = 32;
+            dib.bmiHeader.biCompression     = BI_RGB;
+
+            HBITMAP hbm = CreateDIBSection(hdc, &dib, DIB_RGB_COLORS, NULL, NULL, 0);
+            if (hbm)
+            {
+               HBITMAP hbmOld = (HBITMAP)SelectObject(hdcPaint, hbm);
+               LOGFONT lgFont;
+               HFONT hFontOld = NULL;
+               RECT rcPaint = rcClient;
+               TCHAR *tempbuf;
+               int len;
+
+               /* Setup the theme drawing options. */
+               DTTOPTS DttOpts = {sizeof(DTTOPTS)};
+               DttOpts.dwFlags = DTT_COMPOSITED | DTT_GLOWSIZE;
+               DttOpts.iGlowSize = 15;
+
+               /* Select a font. */
+               if(_GetThemeSysFont(hTheme, 801 /*TMT_CAPTIONFONT*/, &lgFont) == S_OK)
+               {
+                  HFONT hFont = CreateFontIndirect(&lgFont);
+                  hFontOld = (HFONT)SelectObject(hdcPaint, hFont);
+               }
+
+               /* Draw the title. */
+               len = GetWindowTextLength(hWnd) + 1;
+               if((tempbuf = _alloca(len * sizeof(TCHAR))))
+                  GetWindowText(hWnd, tempbuf, len);
+               rcPaint.top += 8;
+               rcPaint.right -= 125;
+               rcPaint.left += 8;
+               rcPaint.bottom = 50;
+               _DrawThemeTextEx(hTheme, 
+                               hdcPaint, 
+                               0, 0, 
+                               tempbuf ? tempbuf : TEXT("<no title>"), 
+                               -1, 
+                               DT_LEFT | DT_WORD_ELLIPSIS, 
+                               &rcPaint, 
+                               &DttOpts);
+
+               /* Blit text to the frame. */
+               BitBlt(hdc, 0, 0, cx, cy, hdcPaint, 0, 0, SRCCOPY);
+
+               SelectObject(hdcPaint, hbmOld);
+               if(hFontOld)
+               {
+                  SelectObject(hdcPaint, hFontOld);
+               }
+               DeleteObject(hbm);
+            }
+            DeleteDC(hdcPaint);
+         }
+         _CloseThemeData(hTheme);
+      }
+   }
 }
 #endif
 
@@ -2275,6 +2371,14 @@ LRESULT CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
                      DWExpose exp;
                      int (DWSIGNAL *exposefunc)(HWND, DWExpose *, void *) = tmp->signalfunction;
 
+#ifdef DARK_MODE_TITLEBAR_MENU
+                     if(_DW_DARK_MODE_ALLOWED > DW_DARK_MODE_BASIC && _DW_DARK_MODE_ENABLED && GetParent(hWnd) == HWND_DESKTOP)
+                     {
+                        HDC hdc = BeginPaint(hWnd, &ps);
+                        _DW_DrawDarkModeTitleBar(hWnd, hdc);
+                        EndPaint(hWnd, &ps);
+                     }
+#endif
                      if ( hWnd == tmp->window )
                      {
                         BeginPaint(hWnd, &ps);
@@ -2623,6 +2727,15 @@ LRESULT CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
          RefreshTitleBarThemeColor(hWnd);
          _dw_set_child_window_theme(hWnd, 0);
          EnumChildWindows(hWnd, _dw_set_child_window_theme, 0);
+#ifdef DARK_MODE_TITLEBAR_MENU
+         if(_DW_DARK_MODE_SUPPORTED > DW_DARK_MODE_BASIC && _DW_DARK_MODE_ENABLED)
+            SetMenu(hWnd, NULL);
+         else
+         {
+            HMENU menu = (HMENU)dw_window_get_data(hWnd, "_dw_menu");
+            SetMenu(hWnd, menu);
+         }
+#endif
       }
    }
    break;
@@ -4442,6 +4555,7 @@ int API dw_init(int newthread, int argc, char *argv[])
       if((_DwmIsCompositionEnabled = (HRESULT (WINAPI *)(BOOL *))GetProcAddress(hdwm, "DwmIsCompositionEnabled")))
          _DwmIsCompositionEnabled(&_dw_composition);
       _OpenThemeData = (HTHEME (WINAPI *)(HWND, LPCWSTR))GetProcAddress(huxtheme, "OpenThemeData");
+      _GetThemeSysFont = (HRESULT (WINAPI *)(HTHEME, int, LOGFONTW *))GetProcAddress(huxtheme, "GetThemeSysFont");
       _BeginBufferedPaint = (HPAINTBUFFER (WINAPI *)(HDC, const RECT *, BP_BUFFERFORMAT, BP_PAINTPARAMS *, HDC *))GetProcAddress(huxtheme, "BeginBufferedPaint");
       _BufferedPaintSetAlpha = (HRESULT (WINAPI *)(HPAINTBUFFER, const RECT *, BYTE))GetProcAddress(huxtheme, "BufferedPaintSetAlpha");
       _DrawThemeTextEx = (HRESULT (WINAPI *)(HTHEME, HDC, int, int, LPCWSTR, int, DWORD, LPRECT, const DTTOPTS *))GetProcAddress(huxtheme, "DrawThemeTextEx");
@@ -6125,6 +6239,9 @@ HMENUI API dw_menubar_new(HWND location)
 
    dw_window_set_data(location, "_dw_menu", (void *)tmp);
 
+#ifdef DARK_MODE_TITLEBAR_MENU
+   if(!(_DW_DARK_MODE_ALLOWED > DW_DARK_MODE_BASIC && _DW_DARK_MODE_ENABLED))
+#endif      
    SetMenu(location, (HMENU)tmp);
    return location;
 }
