@@ -217,6 +217,9 @@ HRESULT (WINAPI *_DrawThemeTextEx)(HTHEME hTheme, HDC hdc, int iPartId, int iSta
 HRESULT (WINAPI *_EndBufferedPaint)(HPAINTBUFFER hBufferedPaint, BOOL fUpdateTarget) = 0;
 HRESULT (WINAPI *_CloseThemeData)(HTHEME hTheme) = 0;
 HRESULT (WINAPI *_GetThemeSysFont)(HTHEME hTheme, int iFontId, LOGFONTW *plf) = 0;
+DWORD(WINAPI *_GetImmersiveColorFromColorSetEx)(UINT dwImmersiveColorSet, UINT dwImmersiveColorType, BOOL bIgnoreHighContrast, UINT dwHighContrastCacheMode) = 0;
+int (WINAPI *_GetImmersiveColorTypeFromName)(const WCHAR *name) = 0;
+int (WINAPI *_GetImmersiveUserColorSetPreference)(BOOL bForceCheckRegistry, BOOL bSkipCheckOnFail) = 0;
 BOOL _dw_composition = FALSE;
 COLORREF _dw_transparencykey = RGB(200,201,202);
 HANDLE hdwm = 0;
@@ -917,7 +920,8 @@ BOOL CALLBACK _dw_set_child_window_theme(HWND window, LPARAM lParam)
 /* Our function to draw the titlebar in dark mode */
 void _DW_DrawDarkModeTitleBar(HWND hWnd, HDC hdc)
 {
-   if(_OpenThemeData && _CloseThemeData && _DrawThemeTextEx && _GetThemeSysFont)
+   if(_OpenThemeData && _CloseThemeData && _DrawThemeTextEx && _GetThemeSysFont && 
+      _GetImmersiveColorFromColorSetEx && _GetImmersiveColorTypeFromName && _GetImmersiveUserColorSetPreference)
    {
       HTHEME hTheme = _OpenThemeData(NULL, L"CompositedWindow::Window");
       RECT rcClient;
@@ -955,11 +959,14 @@ void _DW_DrawDarkModeTitleBar(HWND hWnd, HDC hdc)
                RECT rcPaint = rcClient;
                TCHAR *tempbuf;
                int len;
+               DWORD nColor = _GetImmersiveColorFromColorSetEx(_GetImmersiveUserColorSetPreference(FALSE, FALSE), 
+                                                               _GetImmersiveColorTypeFromName(L"ImmersiveApplicationText"), FALSE, 0);
 
                /* Setup the theme drawing options. */
                DTTOPTS DttOpts = {sizeof(DTTOPTS)};
-               DttOpts.dwFlags = DTT_COMPOSITED | DTT_GLOWSIZE;
+               DttOpts.dwFlags = DTT_COMPOSITED | DTT_GLOWSIZE | DTT_TEXTCOLOR;
                DttOpts.iGlowSize = 15;
+               DttOpts.crText = RGB(0xFF & nColor, (0xFF00 & nColor) >> 8, (0xFF0000 & nColor) >> 16);
 
                /* Select a font. */
                if(_GetThemeSysFont(hTheme, 801 /*TMT_CAPTIONFONT*/, &lgFont) == S_OK)
@@ -4556,6 +4563,9 @@ int API dw_init(int newthread, int argc, char *argv[])
          _DwmIsCompositionEnabled(&_dw_composition);
       _OpenThemeData = (HTHEME (WINAPI *)(HWND, LPCWSTR))GetProcAddress(huxtheme, "OpenThemeData");
       _GetThemeSysFont = (HRESULT (WINAPI *)(HTHEME, int, LOGFONTW *))GetProcAddress(huxtheme, "GetThemeSysFont");
+      _GetImmersiveColorFromColorSetEx = (DWORD (WINAPI *)(UINT, UINT, BOOL, UINT))GetProcAddress(huxtheme, MAKEINTRESOURCEA(95));
+      _GetImmersiveColorTypeFromName = (int (WINAPI *)(const WCHAR *))GetProcAddress(huxtheme, MAKEINTRESOURCEA(96));
+      _GetImmersiveUserColorSetPreference = (int (WINAPI *)(BOOL, BOOL))GetProcAddress(huxtheme, MAKEINTRESOURCEA(98));
       _BeginBufferedPaint = (HPAINTBUFFER (WINAPI *)(HDC, const RECT *, BP_BUFFERFORMAT, BP_PAINTPARAMS *, HDC *))GetProcAddress(huxtheme, "BeginBufferedPaint");
       _BufferedPaintSetAlpha = (HRESULT (WINAPI *)(HPAINTBUFFER, const RECT *, BYTE))GetProcAddress(huxtheme, "BufferedPaintSetAlpha");
       _DrawThemeTextEx = (HRESULT (WINAPI *)(HTHEME, HDC, int, int, LPCWSTR, int, DWORD, LPRECT, const DTTOPTS *))GetProcAddress(huxtheme, "DrawThemeTextEx");
