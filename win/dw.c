@@ -1007,7 +1007,7 @@ void _DW_DrawDarkModeTitleBar(HWND hWnd, HDC hdc)
                if(cinfo && cinfo->hmenu)
                {
                   /* Draw an icon to use as a menu click location */
-                  DrawIconEx(hdcPaint, 32, 8, LoadIcon(NULL, MAKEINTRESOURCE(32516)), 16, 16, 0, NULL, DI_NORMAL);
+                  DrawIconEx(hdcPaint, 8 + ((style & WS_SYSMENU) ? 24 : 0), 8, LoadIcon(NULL, MAKEINTRESOURCE(32516)), 16, 16, 0, NULL, DI_NORMAL);
                }
 
                /* Blit text to the frame. */
@@ -2220,9 +2220,9 @@ LRESULT CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
    }
    else if(msg == WM_ACTIVATE && _DW_DARK_MODE_SUPPORTED && _DW_DARK_MODE_ALLOWED > DW_DARK_MODE_BASIC)
    {
-      RECT r;
-      GetWindowRect(hWnd, &r);
-      SetWindowPos(hWnd, NULL, r.left, r.top, RECTWIDTH(r), RECTHEIGHT(r), SWP_FRAMECHANGED);
+      RECT rect;
+      GetWindowRect(hWnd , &rect);
+      PostMessage(hWnd, WM_SIZE , 0 , MAKELPARAM(rect.right-rect.left, rect.bottom-rect.top));
    }
    else if(msg == WM_PAINT && _DW_DARK_MODE_ALLOWED > DW_DARK_MODE_BASIC && _DW_DARK_MODE_SUPPORTED && GetParent(hWnd) == HWND_DESKTOP)
    {
@@ -2784,22 +2784,6 @@ LRESULT CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
       }
    }
    break;
-#endif
-#ifdef AEROGLASS1
-   case WM_ERASEBKGND:
-      if(_dw_composition && (GetWindowLongPtr(hWnd, GWL_EXSTYLE) & WS_EX_LAYERED))
-      {
-         static HBRUSH hbrush = 0;
-         RECT rect;
-
-         if(!hbrush)
-            hbrush = CreateSolidBrush(_dw_transparencykey);
-
-         GetClientRect(hWnd, &rect);
-         FillRect((HDC)mp1, &rect, hbrush);
-         return TRUE;
-      }
-      break;
 #endif
    case WM_PAINT:
       {
