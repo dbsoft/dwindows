@@ -767,7 +767,7 @@ BOOL (WINAPI * _IsDarkModeAllowedForWindow)(HWND) = NULL;
 BOOL (WINAPI * _ShouldSystemUseDarkMode)(VOID) = NULL;
 BOOL (WINAPI* _SetWindowCompositionAttribute)(HWND, _WINDOWCOMPOSITIONATTRIBDATA *) = NULL;
 
-BOOL IsHighContrast(VOID)
+BOOL _DW_IsHighContrast(VOID)
 {
    HIGHCONTRASTW highContrast = { sizeof(highContrast) };
    if(SystemParametersInfoW(SPI_GETHIGHCONTRAST, sizeof(highContrast), &highContrast, FALSE))
@@ -778,9 +778,9 @@ BOOL IsHighContrast(VOID)
 /* Our own ShouldAppsUseDarkMode() that handles the forced option */
 BOOL _DW_ShouldAppsUseDarkMode(void)
 {
-    if(_DW_DARK_MODE_ALLOWED == DW_DARK_MODE_FULL)
+    if(_DW_DARK_MODE_ALLOWED == DW_DARK_MODE_FORCED)
         return TRUE;
-    return (_ShouldAppsUseDarkMode() && !IsHighContrast());
+    return (_ShouldAppsUseDarkMode() && !_DW_IsHighContrast());
 }
 
 void _dw_init_dark_mode(void)
@@ -823,14 +823,14 @@ void _dw_init_dark_mode(void)
 MARGINS _dw_rect_to_margins(RECT rect)
 {
    /* Left, Right, Top, Bottom */
-   MARGINS mar = { rect.left, rect.right, rect.top, rect.bottom }, none = {0};
+   MARGINS mar = { 1, 1, rect.top, 1 }, none = {0};
    
    if(_DW_DARK_MODE_ALLOWED > DW_DARK_MODE_BASIC & _DW_DARK_MODE_ENABLED)
       return mar;
    return none;
 }
 
-BOOL _CanThemeWindow(HWND window)
+BOOL _DW_CanThemeWindow(HWND window)
 {
    TCHAR tmpbuf[100] = {0};
    LONG_PTR style = GetWindowLongPtr(window, GWL_STYLE);
@@ -857,11 +857,11 @@ BOOL _CanThemeWindow(HWND window)
    return TRUE;
 }
 
-BOOL AllowDarkModeForWindow(HWND window, BOOL allow)
+BOOL _DW_AllowDarkModeForWindow(HWND window, BOOL allow)
 {
    if(_DW_DARK_MODE_SUPPORTED)
    {
-      if(_CanThemeWindow(window))
+      if(_DW_CanThemeWindow(window))
       {
          if(_DW_DARK_MODE_ALLOWED > DW_DARK_MODE_BASIC)
          {
@@ -876,7 +876,7 @@ BOOL AllowDarkModeForWindow(HWND window, BOOL allow)
    return FALSE;
 }
 
-BOOL IsColorSchemeChangeMessage(LPARAM lParam)
+BOOL _DW_IsColorSchemeChangeMessage(LPARAM lParam)
 {
    BOOL is = FALSE;
    if(lParam && _wcsicmp((LPCWCH)lParam, L"ImmersiveColorSet") == 0)
@@ -888,7 +888,7 @@ BOOL IsColorSchemeChangeMessage(LPARAM lParam)
    return is;
 }
 
-void RefreshTitleBarThemeColor(HWND window)
+void _DW_RefreshTitleBarThemeColor(HWND window)
 {
    BOOL dark = FALSE;
    if (_IsDarkModeAllowedForWindow(window) && _DW_ShouldAppsUseDarkMode())
@@ -908,7 +908,7 @@ BOOL CALLBACK _dw_set_child_window_theme(HWND window, LPARAM lParam)
 {
    if(_DW_DARK_MODE_SUPPORTED)
    {
-      AllowDarkModeForWindow(window, _DW_DARK_MODE_ENABLED);
+      _DW_AllowDarkModeForWindow(window, _DW_DARK_MODE_ENABLED);
       SendMessageW(window, WM_THEMECHANGED, 0, 0);
    }
    return TRUE;
@@ -958,6 +958,9 @@ void _DW_DrawDarkModeTitleBar(HWND hWnd, HDC hdc)
                HFONT hFontOld = NULL;
                RECT rcPaint = rcClient;
                TCHAR *tempbuf;
+               HICON icon = (HICON)SendMessage(hWnd, WM_GETICON, ICON_SMALL2, 0);
+               ColorInfo *cinfo = (ColorInfo *)GetWindowLongPtr(hWnd, GWLP_USERDATA);
+               LONG_PTR style = GetWindowLongPtr(hWnd, GWL_STYLE);
                int len;
                DWORD nColor = _GetImmersiveColorFromColorSetEx(_GetImmersiveUserColorSetPreference(FALSE, FALSE), 
                                                                _GetImmersiveColorTypeFromName(L"ImmersiveApplicationText"), FALSE, 0);
@@ -982,6 +985,10 @@ void _DW_DrawDarkModeTitleBar(HWND hWnd, HDC hdc)
                rcPaint.top += 8;
                rcPaint.right -= 125;
                rcPaint.left += 8;
+               if(style & WS_SYSMENU)
+                  rcPaint.left += 24;
+               if(cinfo && cinfo->hmenu)
+                  rcPaint.left += 24;
                rcPaint.bottom = 50;
                _DrawThemeTextEx(hTheme, 
                                hdcPaint, 
@@ -992,14 +999,23 @@ void _DW_DrawDarkModeTitleBar(HWND hWnd, HDC hdc)
                                &rcPaint, 
                                &DttOpts);
 
+               if(style & WS_SYSMENU)
+               {
+                  /* Draw the application icon sysmenu */
+                  DrawIconEx(hdcPaint, 8, 8, icon ? icon : LoadIcon(NULL, MAKEINTRESOURCE(32512)), 16, 16, 0, NULL, DI_NORMAL);
+               }
+               if(cinfo && cinfo->hmenu)
+               {
+                  /* Draw an icon to use as a menu click location */
+                  DrawIconEx(hdcPaint, 32, 8, LoadIcon(NULL, MAKEINTRESOURCE(32516)), 16, 16, 0, NULL, DI_NORMAL);
+               }
+
                /* Blit text to the frame. */
                BitBlt(hdc, 0, 0, cx, cy, hdcPaint, 0, 0, SRCCOPY);
 
                SelectObject(hdcPaint, hbmOld);
                if(hFontOld)
-               {
                   SelectObject(hdcPaint, hFontOld);
-               }
                DeleteObject(hbm);
             }
             DeleteDC(hdcPaint);
@@ -2129,7 +2145,7 @@ LRESULT CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
     * which when clicked will display the window's menubar menu. Since the menubar cannot be
     * made dark, hide it and add the button to the titlebar instead.
     */
-   if(msg == WM_NCCALCSIZE && mp2 && _DW_DARK_MODE_ENABLED && _DW_DARK_MODE_ALLOWED > DW_DARK_MODE_BASIC)
+   if(msg == WM_NCCALCSIZE && mp2 && _DW_DARK_MODE_SUPPORTED && _DW_DARK_MODE_ALLOWED > DW_DARK_MODE_BASIC)
    {
       ColorInfo *cinfo = _dw_window_get_cinfo(hWnd);
 
@@ -2143,7 +2159,7 @@ LRESULT CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
          return 0;
       }
    }
-   else if(msg == WM_NCPAINT && _DW_DARK_MODE_ENABLED && _DW_DARK_MODE_ALLOWED > DW_DARK_MODE_BASIC)
+   else if(msg == WM_NCPAINT && _DW_DARK_MODE_SUPPORTED && _DW_DARK_MODE_ALLOWED > DW_DARK_MODE_BASIC)
    {
       /* Handle close/minimize/maximize/help button */
       LRESULT lResult;
@@ -2151,7 +2167,7 @@ LRESULT CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
       if(_DwmDefWindowProc && _DwmDefWindowProc(hWnd, msg, mp1, mp2, &lResult))
          return lResult;
    }
-   else if(msg == WM_NCHITTEST && _DW_DARK_MODE_ENABLED && _DW_DARK_MODE_ALLOWED > DW_DARK_MODE_BASIC)
+   else if(msg == WM_NCHITTEST && _DW_DARK_MODE_SUPPORTED && _DW_DARK_MODE_ALLOWED > DW_DARK_MODE_BASIC)
    {
       /* Handle close/minimize/maximize/help button */
       LRESULT lResult;
@@ -2170,11 +2186,50 @@ LRESULT CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
             POINT pt = { LOWORD(mp2), HIWORD(mp2) };
 
             ScreenToClient(hWnd, &pt);
-            if (pt.y < cinfo->rect.top) return HTTOP;
-            /*if (pt.y < margins->cyTopHeight)  return HTCAPTION;*/
+            /* The top border should be the same as the bottom. */
+            if (pt.y < cinfo->rect.bottom) return HTTOP;
+            /* The caption is any part of the top besides the border */
+            if (pt.y < cinfo->rect.top) 
+            {
+               ColorInfo *cinfo = (ColorInfo *)GetWindowLongPtr(hWnd, GWLP_USERDATA);
+               LONG_PTR style = GetWindowLongPtr(hWnd, GWL_STYLE);
+               int pos = 32;
+
+               if(style & WS_SYSMENU)
+               {
+                  if(pt.x < (pos + cinfo->rect.left))
+                     return HTSYSMENU;
+                  pos += 24;
+               }
+               if(cinfo && cinfo->hmenu)
+               {
+                  if(pt.x < (pos + cinfo->rect.left))
+                  {
+                     if(cinfo->hmenu)
+                     {
+                        TrackPopupMenu(cinfo->hmenu, 0, LOWORD(mp2), HIWORD(mp2), 0, hWnd, NULL);
+                        return HTNOWHERE;
+                     }
+                  }
+               }
+               return HTCAPTION;
+            }
          }
       }
       return lResult;
+   }
+   else if(msg == WM_ACTIVATE && _DW_DARK_MODE_SUPPORTED && _DW_DARK_MODE_ALLOWED > DW_DARK_MODE_BASIC)
+   {
+      RECT r;
+      GetWindowRect(hWnd, &r);
+      SetWindowPos(hWnd, NULL, r.left, r.top, RECTWIDTH(r), RECTHEIGHT(r), SWP_FRAMECHANGED);
+   }
+   else if(msg == WM_PAINT && _DW_DARK_MODE_ALLOWED > DW_DARK_MODE_BASIC && _DW_DARK_MODE_SUPPORTED && GetParent(hWnd) == HWND_DESKTOP)
+   {
+      PAINTSTRUCT ps;
+      HDC hdc = BeginPaint(hWnd, &ps);
+      _DW_DrawDarkModeTitleBar(hWnd, hdc);
+      EndPaint(hWnd, &ps);
    }
 #endif
 
@@ -2378,14 +2433,6 @@ LRESULT CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
                      DWExpose exp;
                      int (DWSIGNAL *exposefunc)(HWND, DWExpose *, void *) = tmp->signalfunction;
 
-#ifdef DARK_MODE_TITLEBAR_MENU
-                     if(_DW_DARK_MODE_ALLOWED > DW_DARK_MODE_BASIC && _DW_DARK_MODE_ENABLED && GetParent(hWnd) == HWND_DESKTOP)
-                     {
-                        HDC hdc = BeginPaint(hWnd, &ps);
-                        _DW_DrawDarkModeTitleBar(hWnd, hdc);
-                        EndPaint(hWnd, &ps);
-                     }
-#endif
                      if ( hWnd == tmp->window )
                      {
                         BeginPaint(hWnd, &ps);
@@ -2727,22 +2774,13 @@ LRESULT CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
       break;
    case WM_SETTINGCHANGE:
    {
-      if(_DW_DARK_MODE_SUPPORTED && IsColorSchemeChangeMessage(mp2))
+      if(_DW_DARK_MODE_SUPPORTED && _DW_IsColorSchemeChangeMessage(mp2))
       {
          _DW_DARK_MODE_ENABLED = _DW_ShouldAppsUseDarkMode();
 
-         RefreshTitleBarThemeColor(hWnd);
+         _DW_RefreshTitleBarThemeColor(hWnd);
          _dw_set_child_window_theme(hWnd, 0);
          EnumChildWindows(hWnd, _dw_set_child_window_theme, 0);
-#ifdef DARK_MODE_TITLEBAR_MENU
-         if(_DW_DARK_MODE_ALLOWED > DW_DARK_MODE_BASIC && _DW_DARK_MODE_ENABLED)
-            SetMenu(hWnd, NULL);
-         else
-         {
-            HMENU menu = (HMENU)dw_window_get_data(hWnd, "_dw_menu");
-            SetMenu(hWnd, menu);
-         }
-#endif
       }
    }
    break;
@@ -2773,36 +2811,37 @@ LRESULT CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
       break;
    case WM_SIZE:
       {
-         static int lastx = -1, lasty = -1;
-         static HWND lasthwnd = 0;
          int x = LOWORD(mp2), y = HIWORD(mp2);
 
-         if(lastx != x || lasty != y || lasthwnd != hWnd)
+         Box *mybox = (Box *)GetWindowLongPtr(hWnd, GWLP_USERDATA);
+
+         if(mybox && mybox->count)
          {
-            Box *mybox = (Box *)GetWindowLongPtr(hWnd, GWLP_USERDATA);
+            static int lastx = -1, lasty = -1;
+            static HWND lasthwnd = 0;
+            int xborder = 0, yborder = 0;
 
-            if(mybox && mybox->count)
+#ifdef DARK_MODE_TITLEBAR_MENU
+            if(_DW_DARK_MODE_ALLOWED > DW_DARK_MODE_BASIC && _DW_DARK_MODE_SUPPORTED)
             {
-               int xborder = 0, yborder = 0;
+               ColorInfo *cinfo = _dw_window_get_cinfo(hWnd);
 
+               if(cinfo)
+               {
+                  x -= (cinfo->rect.left + cinfo->rect.right);
+                  y -= (cinfo->rect.top + cinfo->rect.bottom);
+                  xborder = cinfo->rect.left;
+                  yborder = cinfo->rect.top;
+               }
+            }
+#endif
+
+            /* Simple check to prevent duplicate sizing calls */
+            if(lastx != x || lasty != y || lasthwnd != hWnd)
+            {
                lastx = x;
                lasty = y;
                lasthwnd = hWnd;
-
-#ifdef DARK_MODE_TITLEBAR_MENU
-               if(_DW_DARK_MODE_ALLOWED > DW_DARK_MODE_BASIC && _DW_DARK_MODE_ENABLED)
-               {
-                  ColorInfo *cinfo = _dw_window_get_cinfo(hWnd);
-
-                  if(cinfo)
-                  {
-                     x -= (cinfo->rect.left + cinfo->rect.right);
-                     y -= (cinfo->rect.top + cinfo->rect.bottom);
-                     xborder = cinfo->rect.left;
-                     yborder = cinfo->rect.top;
-                  }
-               }
-#endif
 
                ShowWindow(mybox->items[0].hwnd, SW_HIDE);
                _do_resize(mybox, x, y, xborder, yborder);
@@ -2905,8 +2944,9 @@ LRESULT CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
    case WM_DESTROY:
       {
          HMENU menu = GetMenu(hWnd);
+         ColorInfo *cinfo = _dw_window_get_cinfo(hWnd);
 
-         if(menu)
+         if(menu || (cinfo && (menu = cinfo->hmenu)))
             _free_menu_data(menu);
 
          /* Free memory before destroying */
@@ -5024,7 +5064,7 @@ int API dw_window_show(HWND handle)
       _dw_set_child_window_theme(handle, 0);
       EnumChildWindows(handle, _dw_set_child_window_theme, 0);
       if(GetParent(handle) == HWND_DESKTOP)
-         RefreshTitleBarThemeColor(handle);
+         _DW_RefreshTitleBarThemeColor(handle);
    }
 #endif
 
@@ -5832,7 +5872,7 @@ HWND API dw_window_new(HWND hwndOwner, const char *title, ULONG flStyle)
 #ifdef AEROGLASS
    /* Determine the borders of the default window frame */
    AdjustWindowRectEx(&(newbox->cinfo.rect), flStyle, FALSE, 0);
-   newbox->cinfo.rect.right = newbox->cinfo.rect.left = newbox->cinfo.rect.bottom = 1;
+   newbox->cinfo.rect.left = newbox->cinfo.rect.right = newbox->cinfo.rect.bottom = 1;
    newbox->cinfo.rect.top *= -1;
 
    if(flStyle & DW_FCF_COMPOSITED)
@@ -6238,19 +6278,29 @@ HMENUI API dw_menubar_new(HWND location)
 {
    HMENUI tmp;
    MENUINFO mi;
+   ColorInfo *cinfo = _dw_window_get_cinfo(location);
 
+   if(!cinfo)
+      return NULL;
+
+#ifdef DARK_MODE_TITLEBAR_MENU
+   if(_DW_DARK_MODE_ALLOWED > DW_DARK_MODE_BASIC && _DW_DARK_MODE_SUPPORTED)
+      tmp = (HMENUI)CreatePopupMenu();
+   else
+#else
    tmp = (HMENUI)CreateMenu();
+#endif
 
    mi.cbSize = sizeof(MENUINFO);
    mi.fMask = MIM_MENUDATA;
    mi.dwMenuData = (ULONG_PTR)1;
 
-   SetMenuInfo( (HMENU)tmp, &mi );
+   SetMenuInfo((HMENU)tmp, &mi);
 
-   dw_window_set_data(location, "_dw_menu", (void *)tmp);
+   cinfo->hmenu = (HMENU)tmp;
 
 #ifdef DARK_MODE_TITLEBAR_MENU
-   if(!(_DW_DARK_MODE_ALLOWED > DW_DARK_MODE_BASIC && _DW_DARK_MODE_ENABLED))
+   if(!(_DW_DARK_MODE_ALLOWED > DW_DARK_MODE_BASIC && _DW_DARK_MODE_SUPPORTED))
 #endif      
    SetMenu(location, (HMENU)tmp);
    return location;
@@ -6268,8 +6318,13 @@ void API dw_menu_destroy(HMENUI *menu)
       HMENU mymenu = (HMENU)*menu;
 
       if(IsWindow((HWND)mymenu) && !IsMenu(mymenu))
-         mymenu = (HMENU)dw_window_get_data((HWND)mymenu, "_dw_menu");
-        if(IsMenu(mymenu))
+      {
+         ColorInfo *cinfo = _dw_window_get_cinfo((HWND)mymenu);
+
+         if(cinfo)
+            mymenu = cinfo->hmenu;
+      }
+      if(IsMenu(mymenu))
          DestroyMenu(mymenu);
    }
 }
@@ -6311,8 +6366,15 @@ HWND API dw_menu_append_item(HMENUI menux, const char *title, ULONG id, ULONG fl
     * Check if this is a menubar; if so get the menu object
     * for the menubar
     */
-   if (IsWindow(menux) && !IsMenu(mymenu))
-      mymenu = (HMENU)dw_window_get_data(menux, "_dw_menu");
+   if(IsWindow(menux) && !IsMenu(mymenu))
+   {
+      ColorInfo *cinfo = _dw_window_get_cinfo((HWND)menux);
+
+      if(cinfo)
+         mymenu = cinfo->hmenu;
+      else
+         return NULL;
+   }
 
    memset( &mii, 0, sizeof(mii) );
    mii.cbSize = sizeof(MENUITEMINFO);
@@ -6430,8 +6492,15 @@ void API dw_menu_item_set_check(HMENUI menux, unsigned long id, int check)
    HMENU mymenu = (HMENU)menux;
    char buffer[30];
 
-   if (IsWindow(menux) && !IsMenu(mymenu))
-      mymenu = (HMENU)dw_window_get_data(menux, "_dw_menu");
+   if(IsWindow(menux) && !IsMenu(mymenu))
+   {
+      ColorInfo *cinfo = _dw_window_get_cinfo((HWND)menux);
+
+      if(cinfo)
+         mymenu = cinfo->hmenu;
+      else
+         return;
+   }
 
    /*
     * Get the current state of the menu item in case it already has some other state set on it
@@ -6461,27 +6530,34 @@ void API dw_menu_item_set_check(HMENUI menux, unsigned long id, int check)
  *       flags: DW_MIS_ENABLED/DW_MIS_DISABLED
  *              DW_MIS_CHECKED/DW_MIS_UNCHECKED
  */
-void API dw_menu_item_set_state( HMENUI menux, unsigned long id, unsigned long state)
+void API dw_menu_item_set_state(HMENUI menux, unsigned long id, unsigned long state)
 {
    MENUITEMINFO mii;
    HMENU mymenu = (HMENU)menux;
-   char buffer1[31] = {0},buffer2[31] = {0};
+   char buffer1[31] = {0}, buffer2[31] = {0};
    int check;
    int disabled;
 
-   if (IsWindow(menux) && !IsMenu(mymenu))
-      mymenu = (HMENU)dw_window_get_data(menux, "_dw_menu");
+   if(IsWindow(menux) && !IsMenu(mymenu))
+   {
+      ColorInfo *cinfo = _dw_window_get_cinfo((HWND)menux);
+
+      if(cinfo)
+         mymenu = cinfo->hmenu;
+      else
+         return;
+   }
 
    _snprintf( buffer1, 30, "_dw_ischecked%ld", id );
    check = DW_POINTER_TO_INT(dw_window_get_data( DW_HWND_OBJECT, buffer1 ));
    _snprintf( buffer2, 30, "_dw_isdisabled%ld", id );
    disabled = DW_POINTER_TO_INT(dw_window_get_data( DW_HWND_OBJECT, buffer2 ));
 
-   memset( &mii, 0, sizeof(mii) );
+   memset(&mii, 0, sizeof(mii));
 
    mii.cbSize = sizeof(MENUITEMINFO);
    mii.fMask = MIIM_STATE | MIIM_CHECKMARKS;
-   if ( (state & DW_MIS_CHECKED) || (state & DW_MIS_UNCHECKED) )
+   if((state & DW_MIS_CHECKED) || (state & DW_MIS_UNCHECKED))
    {
       /*
        * If we are changing state of "checked" base our setting on the passed flag...
@@ -6511,7 +6587,7 @@ void API dw_menu_item_set_state( HMENUI menux, unsigned long id, unsigned long s
          mii.fState |= MFS_UNCHECKED;
       }
    }
-   if ( (state & DW_MIS_ENABLED) || (state & DW_MIS_DISABLED) )
+   if((state & DW_MIS_ENABLED) || (state & DW_MIS_DISABLED))
    {
       if ( state & DW_MIS_DISABLED )
       {
@@ -6538,12 +6614,12 @@ void API dw_menu_item_set_state( HMENUI menux, unsigned long id, unsigned long s
          mii.fState |= MFS_ENABLED;
       }
    }
-   SetMenuItemInfo( mymenu, id, FALSE, &mii );
+   SetMenuItemInfo(mymenu, id, FALSE, &mii);
    /*
     * Keep our internal checked state consistent
     */
-   dw_window_set_data( DW_HWND_OBJECT, buffer1, DW_INT_TO_POINTER(check) );
-   dw_window_set_data( DW_HWND_OBJECT, buffer2, DW_INT_TO_POINTER(disabled) );
+   dw_window_set_data(DW_HWND_OBJECT, buffer1, DW_INT_TO_POINTER(check));
+   dw_window_set_data(DW_HWND_OBJECT, buffer2, DW_INT_TO_POINTER(disabled));
 }
 
 /*
@@ -6558,10 +6634,17 @@ int API dw_menu_delete_item(HMENUI menux, unsigned long id)
 {
    HMENU mymenu = (HMENU)menux;
 
-   if ( IsWindow(menux) && !IsMenu(mymenu) )
-      mymenu = (HMENU)dw_window_get_data(menux, "_dw_menu");
+   if(IsWindow(menux) && !IsMenu(mymenu))
+   {
+      ColorInfo *cinfo = _dw_window_get_cinfo((HWND)menux);
 
-   if ( mymenu == 0 || DeleteMenu(mymenu, id, MF_BYCOMMAND) == 0 )
+      if(cinfo)
+         mymenu = cinfo->hmenu;
+      else
+         return DW_ERROR_UNKNOWN;
+   }
+
+   if(mymenu == 0 || DeleteMenu(mymenu, id, MF_BYCOMMAND) == 0)
       return DW_ERROR_UNKNOWN;
 
    /* If the ID was autogenerated it is safe to remove it */
@@ -6569,7 +6652,7 @@ int API dw_menu_delete_item(HMENUI menux, unsigned long id)
       dw_signal_disconnect_by_window((HWND)(uintptr_t)id);
 
    /* Make sure the menu is redrawn if needed */
-   if( (HMENU)menux != mymenu )
+   if((HMENU)menux != mymenu)
       DrawMenuBar(menux);
    return DW_ERROR_NONE;
 }
@@ -6589,7 +6672,14 @@ void API dw_menu_popup(HMENUI *menu, HWND parent, int x, int y)
       HMENU mymenu = (HMENU)*menu;
 
       if(IsWindow(*menu) && !IsMenu(mymenu))
-         mymenu = (HMENU)dw_window_get_data(*menu, "_dw_menu");
+      {
+         ColorInfo *cinfo = _dw_window_get_cinfo((HWND)*menu);
+
+         if(cinfo)
+            mymenu = cinfo->hmenu;
+         else
+            return;
+      }
 
       popup = parent;
       TrackPopupMenu(mymenu, 0, x, y, 0, parent, NULL);
@@ -7884,7 +7974,7 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
       thisbox->count++;
 
 #ifdef AEROGLASS
-      AllowDarkModeForWindow(item, _DW_DARK_MODE_ENABLED);
+      _DW_AllowDarkModeForWindow(item, _DW_DARK_MODE_ENABLED);
 #endif
       SetParent(item, box);
       if(_tcsnicmp(tmpbuf, UPDOWN_CLASS, _tcslen(UPDOWN_CLASS)+1)==0)
