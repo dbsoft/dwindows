@@ -6271,9 +6271,8 @@ HMENUI API dw_menubar_new(HWND location)
    if(_DW_DARK_MODE_ALLOWED > DW_DARK_MODE_BASIC && _DW_DARK_MODE_SUPPORTED)
       tmp = (HMENUI)CreatePopupMenu();
    else
-#else
-   tmp = (HMENUI)CreateMenu();
 #endif
+   tmp = (HMENUI)CreateMenu();
 
    mi.cbSize = sizeof(MENUINFO);
    mi.fMask = MIM_MENUDATA;
