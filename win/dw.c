@@ -6261,7 +6261,6 @@ HMENUI API dw_menu_new(ULONG id)
 HMENUI API dw_menubar_new(HWND location)
 {
    HMENUI tmp;
-   MENUINFO mi;
    ColorInfo *cinfo = _dw_window_get_cinfo(location);
 
    if(!cinfo)
@@ -6272,13 +6271,17 @@ HMENUI API dw_menubar_new(HWND location)
       tmp = (HMENUI)CreatePopupMenu();
    else
 #endif
-   tmp = (HMENUI)CreateMenu();
+   {
+      MENUINFO mi;
 
-   mi.cbSize = sizeof(MENUINFO);
-   mi.fMask = MIM_MENUDATA;
-   mi.dwMenuData = (ULONG_PTR)1;
+      tmp = (HMENUI)CreateMenu();
 
-   SetMenuInfo((HMENU)tmp, &mi);
+      mi.cbSize = sizeof(MENUINFO);
+      mi.fMask = MIM_MENUDATA;
+      mi.dwMenuData = (ULONG_PTR)1;
+
+      SetMenuInfo((HMENU)tmp, &mi);
+   }
 
    cinfo->hmenu = (HMENU)tmp;
 
