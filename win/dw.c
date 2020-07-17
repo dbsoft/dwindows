@@ -936,6 +936,7 @@ void _DW_DrawDarkModeTitleBar(HWND hWnd, HDC hdc)
          {
             int cx = RECTWIDTH(rcClient);
             int cy = RECTHEIGHT(rcClient);
+            HBITMAP hbm;
 
             /* Define the BITMAPINFO structure used to draw text.
              * Note that biHeight is negative. This is done because
@@ -950,8 +951,7 @@ void _DW_DrawDarkModeTitleBar(HWND hWnd, HDC hdc)
             dib.bmiHeader.biBitCount        = 32;
             dib.bmiHeader.biCompression     = BI_RGB;
 
-            HBITMAP hbm = CreateDIBSection(hdc, &dib, DIB_RGB_COLORS, NULL, NULL, 0);
-            if (hbm)
+            if((hbm = CreateDIBSection(hdc, &dib, DIB_RGB_COLORS, NULL, NULL, 0)))
             {
                HBITMAP hbmOld = (HBITMAP)SelectObject(hdcPaint, hbm);
                LOGFONT lgFont;
