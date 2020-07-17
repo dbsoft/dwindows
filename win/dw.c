@@ -825,7 +825,7 @@ MARGINS _dw_rect_to_margins(RECT rect)
    /* Left, Right, Top, Bottom */
    MARGINS mar = { 1, 1, rect.top, 1 }, none = {0};
    
-   if(_DW_DARK_MODE_ALLOWED > DW_DARK_MODE_BASIC & _DW_DARK_MODE_ENABLED)
+   if(_DW_DARK_MODE_ALLOWED > DW_DARK_MODE_BASIC & _DW_DARK_MODE_SUPPORTED)
       return mar;
    return none;
 }
@@ -2221,8 +2221,8 @@ LRESULT CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
    else if(msg == WM_ACTIVATE && _DW_DARK_MODE_SUPPORTED && _DW_DARK_MODE_ALLOWED > DW_DARK_MODE_BASIC)
    {
       RECT rect;
-      GetWindowRect(hWnd , &rect);
-      PostMessage(hWnd, WM_SIZE , 0 , MAKELPARAM(rect.right-rect.left, rect.bottom-rect.top));
+      GetWindowRect(hWnd, &rect);
+      PostMessage(hWnd, WM_SIZE, 0, MAKELPARAM(rect.right-rect.left, rect.bottom-rect.top));
    }
    else if(msg == WM_PAINT && _DW_DARK_MODE_ALLOWED > DW_DARK_MODE_BASIC && _DW_DARK_MODE_SUPPORTED && GetParent(hWnd) == HWND_DESKTOP)
    {
