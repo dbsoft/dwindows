@@ -7979,10 +7979,12 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
       {
 #ifdef AEROGLASS	
          if(!(_dw_composition && (GetWindowLongPtr(_toplevel_window(box), GWL_EXSTYLE) & WS_EX_LAYERED)))
-#endif		
+#endif
          {
             /* Enable double buffering if our window isn't composited */
+#ifdef TBSTYLE_EX_DOUBLEBUFFER
             SendMessage(item, TB_SETEXTENDEDSTYLE, 0, (LPARAM)TBSTYLE_EX_DOUBLEBUFFER);
+#endif
          }
       }
 #endif
