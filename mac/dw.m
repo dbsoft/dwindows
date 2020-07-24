@@ -163,7 +163,7 @@
 #endif
 
 /* Handle deprecation of constants in 10.16... */
-#if defined(MAC_OS_X_VERSION_11_0) && ((defined(MAC_OS_X_VERSION_MAX_ALLOWED) && MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_11_0) || !defined(MAC_OS_X_VERSION_MAX_ALLOWED))
+#if defined(MAC_OS_X_VERSION_10_16) && ((defined(MAC_OS_X_VERSION_MAX_ALLOWED) && MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_16) || !defined(MAC_OS_X_VERSION_MAX_ALLOWED))
 #define BUILDING_FOR_BIG_SUR
 #endif
 
@@ -4446,7 +4446,7 @@ HWND API dw_groupbox_new(int type, int pad, const char *title)
     DWBox *thisbox = dw_box_new(type, pad);
     Box *box = [thisbox box];
 
-#ifndef BUILDING_FOR_BIG_SUR
+#ifndef BUILDING_FOR_CATALINA
     [groupbox setBorderType:NSBezelBorder];
 #endif
     [groupbox setTitle:[NSString stringWithUTF8String:title]];
@@ -6394,7 +6394,7 @@ HWND API dw_status_text_new(const char *text, ULONG cid)
     NSBox *border = [[NSBox alloc] init];
     NSTextField *textfield = dw_text_new(text, cid);
 
-#ifndef BUILDING_FOR_BIG_SUR
+#ifndef BUILDING_FOR_CATALINA
     [border setBorderType:NSGrooveBorder];
 #endif
     [border setTitlePosition:NSNoTitle];
