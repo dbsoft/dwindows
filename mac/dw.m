@@ -162,9 +162,18 @@
 #define WK_API_ENABLED 1
 #endif
 
-/* Handle deprecation of constants in 10.16... */
-#if defined(MAC_OS_X_VERSION_10_16) && ((defined(MAC_OS_X_VERSION_MAX_ALLOWED) && MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_16) || !defined(MAC_OS_X_VERSION_MAX_ALLOWED))
+/* Handle deprecation of constants in 11.0 (also known as 10.16)... */
+#if (defined(MAC_OS_VERSION_11_0) || defined(MAC_OS_X_VERSION_10_16)) && ((defined(MAC_OS_X_VERSION_MAX_ALLOWED) && MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_VERSION_10_16) || !defined(MAC_OS_X_VERSION_MAX_ALLOWED))
+#define DWPrintingPaginationModeFit NSPrintingPaginationModeFit
+#define DWDatePickerModeSingle NSDatePickerModeSingle
+#define DWDatePickerStyleClockAndCalendar NSDatePickerStyleClockAndCalendar
+#define DWDatePickerElementFlagYearMonthDay NSDatePickerElementFlagYearMonthDay
 #define BUILDING_FOR_BIG_SUR
+#else
+#define DWPrintingPaginationModeFit NSFitPagination
+#define DWDatePickerModeSingle NSSingleDateMode
+#define DWDatePickerStyleClockAndCalendar NSClockAndCalendarDatePickerStyle
+#define DWDatePickerElementFlagYearMonthDay NSYearMonthDayDatePickerElementFlag
 #endif
 
 /* Macros to encapsulate running functions on the main thread
@@ -8809,9 +8818,9 @@ int API dw_pixmap_stretch_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest,
 HWND API dw_calendar_new(ULONG cid)
 {
     DWCalendar *calendar = [[DWCalendar alloc] init];
-    [calendar setDatePickerMode:NSSingleDateMode];
-    [calendar setDatePickerStyle:NSClockAndCalendarDatePickerStyle];
-    [calendar setDatePickerElements:NSYearMonthDayDatePickerElementFlag];
+    [calendar setDatePickerMode:DWDatePickerModeSingle];
+    [calendar setDatePickerStyle:DWDatePickerStyleClockAndCalendar];
+    [calendar setDatePickerElements:DWDatePickerElementFlagYearMonthDay];
     [calendar setTag:cid];
     [calendar setDateValue:[NSDate date]];
     return calendar;
@@ -12519,9 +12528,9 @@ HPRINT API dw_print_new(const char *jobname, unsigned long flags, unsigned int p
 
     /* Get the page range */
     pi = [NSPrintInfo sharedPrintInfo];
-    [pi setHorizontalPagination:NSFitPagination];
+    [pi setHorizontalPagination:DWPrintingPaginationModeFit];
     [pi setHorizontallyCentered:YES];
-    [pi setVerticalPagination:NSFitPagination];
+    [pi setVerticalPagination:DWPrintingPaginationModeFit];
     [pi setVerticallyCentered:YES];
     [pi setOrientation:DWPaperOrientationPortrait];
     [pi setLeftMargin:0.0];
