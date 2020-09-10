@@ -1362,7 +1362,7 @@ DWObject *DWObj;
 {
 }
 -(NSApplicationTerminateReply)applicationShouldTerminate:(NSApplication *)sender;
-#ifdef BUILDING_FOR_MOUNTAIN_LION
+#if defined(BUILDING_FOR_MOUNTAIN_LION) && !defined(BUILDING_FOR_BIG_SUR)
 -(void)applicationDidFinishLaunching:(NSNotification *)aNotification;
 -(BOOL)userNotificationCenter:(NSUserNotificationCenter *)center shouldPresentNotification:(NSUserNotification *)notification;
 -(void)userNotificationCenter:(NSUserNotificationCenter *)center didActivateNotification:(NSUserNotification *)notification;
@@ -1453,7 +1453,7 @@ DWObject *DWObj;
         return NSTerminateCancel;
     return NSTerminateNow;
 }
-#ifdef BUILDING_FOR_MOUNTAIN_LION
+#if defined(BUILDING_FOR_MOUNTAIN_LION) && !defined(BUILDING_FOR_BIG_SUR)
 -(void)applicationDidFinishLaunching:(NSNotification *)aNotification
 {
 #ifdef BUILDING_FOR_MOJAVE
@@ -10879,6 +10879,7 @@ HWND dw_notification_new(const char *title, const char *imagepath, const char *d
     else
 #endif
     {
+#ifndef BUILDING_FOR_BIG_SUR
         // Fallback on earlier versions
         NSUserNotification *notification = [[NSUserNotification alloc] init];
 
@@ -10890,6 +10891,7 @@ HWND dw_notification_new(const char *title, const char *imagepath, const char *d
                 notification.contentImage = [[NSImage alloc] initWithContentsOfFile:[NSString stringWithUTF8String:imagepath]];
             retval = notification;
         }
+#endif
     }
     return retval;
 #else
@@ -10927,10 +10929,12 @@ int dw_notification_send(HWND notification)
         else
 #endif
         {
+#ifndef BUILDING_FOR_BIG_SUR
             // Fallback on earlier versions
             NSUserNotification *request = (NSUserNotification *)notification;
             request.identifier = notid;
             [[NSUserNotificationCenter defaultUserNotificationCenter] deliverNotification:request];
+#endif
         }
         return DW_ERROR_NONE;
     }
