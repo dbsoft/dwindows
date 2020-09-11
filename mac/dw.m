@@ -12415,24 +12415,53 @@ DWTID dw_thread_id(void)
  *       type: Either DW_EXEC_CON or DW_EXEC_GUI.
  *       params: An array of pointers to string arguements.
  * Returns:
- *       -1 on error.
+ *       DW_ERROR_UNKNOWN (-1) on error.
  */
 int dw_exec(const char *program, int type, char **params)
 {
-    int ret = -1;
+    int ret = DW_ERROR_UNKNOWN;
 
     if(type == DW_EXEC_GUI)
     {
+        NSString *nsprogram = [NSString stringWithUTF8String:program];
+        
         if(params && params[0] && params[1])
         {
-            [[NSWorkspace sharedWorkspace] openFile:[NSString stringWithUTF8String:params[1]]
-                                    withApplication:[NSString stringWithUTF8String:program]];
+            NSString *file = [NSString stringWithUTF8String:params[1]];
+            
+#ifdef BUILDING_FOR_CATALINA
+            if(@available(macOS 10.15, *))
+            {
+                NSURL *url = [NSURL fileURLWithPath:nsprogram];
+                NSURL *nsfile = [NSURL fileURLWithPath:file];
+                
+                [[NSWorkspace sharedWorkspace] openURLs:[[NSArray alloc] initWithObjects:nsfile, nil]
+                                    withApplicationAtURL:url
+                                           configuration:[NSWorkspaceOpenConfiguration configuration]
+                                       completionHandler:^(NSRunningApplication *app, NSError *error) {
+                }];
+            }
+            else
+#endif
+                [[NSWorkspace sharedWorkspace] openFile:file withApplication:nsprogram];
         }
         else
         {
-            [[NSWorkspace sharedWorkspace] launchApplication:[NSString stringWithUTF8String:program]];
+#ifdef BUILDING_FOR_CATALINA
+            if(@available(macOS 10.15, *))
+            {
+                NSURL *url = [NSURL fileURLWithPath:nsprogram];
+
+                [[NSWorkspace sharedWorkspace] openApplicationAtURL:url
+                                                      configuration:[NSWorkspaceOpenConfiguration configuration]
+                                                  completionHandler:^(NSRunningApplication *app, NSError *error) {
+                }];
+            }
+            else
+#endif
+                [[NSWorkspace sharedWorkspace] launchApplication:nsprogram];
         }
-        return 0;
+        return DW_ERROR_NONE;
     }
 
     if((ret = fork()) == 0)
