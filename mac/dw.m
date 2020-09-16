@@ -12408,6 +12408,30 @@ DWTID dw_thread_id(void)
    return (DWTID)pthread_self();
 }
 
+#ifdef BUILDING_FOR_CATALINA
+NSURL *_dw_url_from_program(NSString *nsprogram, NSWorkspace *ws)
+{
+    NSURL *retval = [ws URLForApplicationWithBundleIdentifier:nsprogram];
+    
+    if(!retval)
+    {
+        SEL sfpfa = NSSelectorFromString(@"fullPathForApplication");
+
+        if([ws respondsToSelector:sfpfa])
+        {
+            DWIMP ifpfa = (DWIMP)[ws methodForSelector:sfpfa];
+            NSString *apppath = ifpfa(ws, sfpfa, nsprogram);
+            
+            if(apppath)
+                retval = [NSURL fileURLWithPath:apppath];
+        }
+        if(!retval)
+            retval = [NSURL fileURLWithPath:nsprogram];
+    }
+    return retval;
+}
+#endif
+
 /*
  * Execute and external program in a seperate session.
  * Parameters:
@@ -12424,7 +12448,8 @@ int dw_exec(const char *program, int type, char **params)
     if(type == DW_EXEC_GUI)
     {
         NSString *nsprogram = [NSString stringWithUTF8String:program];
-        
+        NSWorkspace *ws = [NSWorkspace sharedWorkspace];
+
         if(params && params[0] && params[1])
         {
             NSString *file = [NSString stringWithUTF8String:params[1]];
@@ -12432,34 +12457,54 @@ int dw_exec(const char *program, int type, char **params)
 #ifdef BUILDING_FOR_CATALINA
             if(@available(macOS 10.15, *))
             {
-                NSURL *url = [NSURL fileURLWithPath:nsprogram];
+                NSURL *url = _dw_url_from_program(nsprogram, ws);
                 NSURL *nsfile = [NSURL fileURLWithPath:file];
                 
-                [[NSWorkspace sharedWorkspace] openURLs:[[NSArray alloc] initWithObjects:nsfile, nil]
+                [ws openURLs:[NSArray arrayWithObjects:nsfile, nil]
                                     withApplicationAtURL:url
                                            configuration:[NSWorkspaceOpenConfiguration configuration]
                                        completionHandler:^(NSRunningApplication *app, NSError *error) {
+                    if(error)
+                        NSLog(@"openURLs: %@", [error localizedDescription]);
                 }];
             }
             else
 #endif
-                [[NSWorkspace sharedWorkspace] openFile:file withApplication:nsprogram];
+            {
+                SEL sofwa = NSSelectorFromString(@"openFile:withApplication:");
+
+                if([ws respondsToSelector:sofwa])
+                {
+                    DWIMP iofwa = (DWIMP)[ws methodForSelector:sofwa];
+                    iofwa(ws, sofwa, file, nsprogram);
+                }
+            }
         }
         else
         {
 #ifdef BUILDING_FOR_CATALINA
             if(@available(macOS 10.15, *))
             {
-                NSURL *url = [NSURL fileURLWithPath:nsprogram];
+                NSURL *url = _dw_url_from_program(nsprogram, ws);
 
-                [[NSWorkspace sharedWorkspace] openApplicationAtURL:url
-                                                      configuration:[NSWorkspaceOpenConfiguration configuration]
-                                                  completionHandler:^(NSRunningApplication *app, NSError *error) {
+                [ws openApplicationAtURL:url
+                           configuration:[NSWorkspaceOpenConfiguration configuration]
+                       completionHandler:^(NSRunningApplication *app, NSError *error) {
+                    if(error)
+                        NSLog(@"openApplicationAtURL: %@", [error localizedDescription]);
                 }];
             }
             else
 #endif
-                [[NSWorkspace sharedWorkspace] launchApplication:nsprogram];
+            {
+                SEL sla = NSSelectorFromString(@"launchApplication");
+
+                if([ws respondsToSelector:sla])
+                {
+                    DWIMP ila = (DWIMP)[ws methodForSelector:sla];
+                    ila(ws, sla, nsprogram);
+                }
+            }
         }
         return DW_ERROR_NONE;
     }
