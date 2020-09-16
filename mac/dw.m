@@ -1270,7 +1270,7 @@ typedef struct _bitbltinfo
         _DWLastDrawable = bltinfo->dest;
     }
 #endif
-    if([bltsrc isMemberOfClass:[NSBitmapImageRep class]])
+    if(bltdest && [bltsrc isMemberOfClass:[NSBitmapImageRep class]])
     {
         NSBitmapImageRep *rep = bltsrc;
         NSImage *image = [NSImage alloc];
@@ -12415,7 +12415,7 @@ NSURL *_dw_url_from_program(NSString *nsprogram, NSWorkspace *ws)
     
     if(!retval)
     {
-        SEL sfpfa = NSSelectorFromString(@"fullPathForApplication");
+        SEL sfpfa = NSSelectorFromString(@"fullPathForApplication:");
 
         if([ws respondsToSelector:sfpfa])
         {
@@ -12497,7 +12497,7 @@ int dw_exec(const char *program, int type, char **params)
             else
 #endif
             {
-                SEL sla = NSSelectorFromString(@"launchApplication");
+                SEL sla = NSSelectorFromString(@"launchApplication:");
 
                 if([ws respondsToSelector:sla])
                 {
