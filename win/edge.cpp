@@ -234,6 +234,8 @@ BOOL EdgeBrowser::Detect(LPWSTR AppID)
 	wcscat(tempdir, L".WebView2\\");
 	CreateDirectoryW(tempdir, NULL);
 
+	CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
+
 	CreateCoreWebView2EnvironmentWithOptions(nullptr, tempdir, nullptr,
 		Callback<ICoreWebView2CreateCoreWebView2EnvironmentCompletedHandler>(
 			[this](HRESULT result, ICoreWebView2Environment* env) -> HRESULT {
