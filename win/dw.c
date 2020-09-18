@@ -825,7 +825,7 @@ MARGINS _dw_rect_to_margins(RECT rect)
    /* Left, Right, Top, Bottom */
    MARGINS mar = { 1, 1, rect.top, 1 }, none = {0};
    
-   if(_DW_DARK_MODE_ALLOWED > DW_DARK_MODE_BASIC & _DW_DARK_MODE_SUPPORTED)
+   if(_DW_DARK_MODE_ALLOWED > DW_DARK_MODE_BASIC && _DW_DARK_MODE_SUPPORTED)
       return mar;
    return none;
 }
