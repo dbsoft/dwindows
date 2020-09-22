@@ -4168,7 +4168,7 @@ char * API dw_file_browse(const char *title, const char *defpath, const char *ex
     /* Figure out path information...
      * These functions are only support in Snow Leopard and later...
      */
-    if(defpath && *defpath && DWOSMinor > 5)
+    if(defpath && *defpath && (DWOSMinor > 5 || DWOSMajor > 10))
     {
         struct stat buf;
 
@@ -4641,7 +4641,7 @@ void _control_size(id handle, int *width, int *height)
             if([object isMemberOfClass:[ DWComboBox class]])
                 extraheight = 4;
             /* Yosemite and higher requires even more border space */
-            if(DWOSMinor > 9)
+            if(DWOSMinor > 9 || DWOSMajor > 10)
                 extraheight += 4;
         }
         else
