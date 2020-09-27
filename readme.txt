@@ -33,7 +33,7 @@ not support it by default. Looking into importing functionality
 from available libraries (Firefox, Webkit, Qt, etc).
 
 Changes from version 3.0:
-Added support for MacOS versions through Catalina 10.15, 
+Added support for MacOS versions through Big Sur 11.0, 
     Windows versions through 10 build 2004.
 Fixed handle leak on OS/2 when built with (Open)Watcom.
 Added dark mode support on MacOS Mojave 10.14 and later. 
