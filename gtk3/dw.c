@@ -11389,7 +11389,11 @@ int dw_exec(const char *program, int type, char **params)
 int dw_browse(const char *url)
 {
    /* If possible load the URL/URI using gvfs... */
+#if GTK_CHECK_VERSION(3,22,0)
+   if(gtk_show_uri_on_window(NULL, url, GDK_CURRENT_TIME, NULL))
+#else
    if(gtk_show_uri(gdk_screen_get_default(), url, GDK_CURRENT_TIME, NULL))
+#endif
    {
       return DW_ERROR_NONE;
    }
