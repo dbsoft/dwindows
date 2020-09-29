@@ -2229,7 +2229,7 @@ ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
-ac_config_headers="$ac_config_headers config.h"
+ac_config_headers="$ac_config_headers dwconfig.h"
 
 
 TARGET="dwindows"
@@ -7231,7 +7231,7 @@ cat >>$CONFIG_STATUS <<\_ACEOF || ac_write_fail=1
 for ac_config_target in $ac_config_targets
 do
   case $ac_config_target in
-    "config.h") CONFIG_HEADERS="$CONFIG_HEADERS config.h" ;;
+    "dwconfig.h") CONFIG_HEADERS="$CONFIG_HEADERS dwconfig.h" ;;
     "Makefile") CONFIG_FILES="$CONFIG_FILES Makefile" ;;
     "dwindows1.pc") CONFIG_FILES="$CONFIG_FILES dwindows1.pc" ;;
     "dwindows-config1") CONFIG_FILES="$CONFIG_FILES dwindows-config1" ;;

@@ -1,5 +1,5 @@
 AC_INIT(winmain.c)
-AC_CONFIG_HEADER(config.h)
+AC_CONFIG_HEADER(dwconfig.h)
 
 TARGET="dwindows"
 TARGET2="dwcompat"

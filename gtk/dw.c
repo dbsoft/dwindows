@@ -7,7 +7,7 @@
  * (C) 2003-2011 Mark Hessling <mark@rexx.org>
  * (C) 2002 Nickolay V. Shmyrev <shmyrev@yandex.ru>
  */
-#include "config.h"
+#include "dwconfig.h"
 #include "dw.h"
 #include <string.h>
 #include <stdlib.h>
