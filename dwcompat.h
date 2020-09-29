@@ -5,9 +5,7 @@
 
 /* This header includes and defines everything needed for a given OS/compiler */
 #if defined(__UNIX__) || defined(__MAC__)
-#ifdef BUILD_DLL
-#include "config.h"
-#endif
+#include "dwconfig.h"
 
 /* Attempt to include 64 bit file functions on various unix flavors */
 #ifndef _FILE_OFFSET_BITS

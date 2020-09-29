@@ -114,6 +114,7 @@ installdwcompat: $(SYSCONF_LINK_TARGET2)
 	$(INSTALL) -d $(prefix)/lib; \
 	$(INSTALL) $(SYSCONF_LINK_TARGET2) $(prefix)/lib; \
 	$(INSTALL) $(srcdir)/dwcompat.h $(prefix)/include; \
+	$(INSTALL) $(srcdir)/dwconfig.h $(prefix)/include; \
 	cd $(prefix)/lib; \
 	rm -f lib$(TARGET2).$(SOSUFFIX) lib$(TARGET2).$(SOSUFFIX).$(VER_MAJ); \
 	ln -sf $(SYSCONF_LINK_TARGET_SHARED2) lib$(TARGET2).$(SOSUFFIX); \
@@ -130,6 +131,7 @@ uninstall:
 	rm -f $(prefix)/bin/dwindows-config
 	rm -f $(prefix)/bin/dwtest
 	rm -f $(prefix)/include/dwcompat.h
+	rm -f $(prefix)/include/dwconfig.h
 	rm -f $(prefix)/include/dw.h
 	rm -f $(prefix)/share/applications/org.dbsoft.dwindows.dwtest.desktop
 	rm -f $(prefix)/share/man/man1/dwindows-config.1.gz
@@ -140,7 +142,7 @@ deb: dist
 	(cd tmp;tar zxvf ../../$(srcdir)/$(SRCDIR).tar.gz;cd $(SRCDIR);dpkg-buildpackage -rfakeroot;cd ..;ls -l)
 
 distclean: clean
-	rm -f config.status config.log config.h
+	rm -f config.status config.log dwconfig.h
 	rm -f dwindows-config dwindows-config1 dwindows.pc dwindows1.pc
 	rm -f org.dbsoft.dwindows.dwtest.desktop
 	rm -f Makefile
