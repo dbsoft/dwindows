@@ -14,6 +14,44 @@ extern "C" {
 
 #define DW_HOME_URL "http://dwindows.netlabs.org"
 
+/* Support for API deprecation in supported compilers */
+#if defined(__has_feature) && !defined(__has_extension)
+#define __has_extension __has_feature
+#endif
+
+/* Visual C */
+#if defined(_MSC_VER)
+#  if _MSC_VER >= 1400
+#  define DW_DEPRECATED(func, message) __declspec(deprecated(message)) func
+#  endif
+/* Clang */
+#elif defined(__clang__) && defined(__has_extension)
+#  if __has_extension(attribute_deprecated_with_message)
+#  define DW_DEPRECATED(func, message) func __attribute__ ((deprecated (message)))
+#  else
+#  define DW_DEPRECATED(func, message) func __attribute__ ((deprecated))
+#  endif
+/* GCC */
+#elif defined(__GNUC__)
+#  if (__GNUC__ * 10000 + __GNUC_MINOR__ * 100 + __GNUC_PATCHLEVEL__) >= 40500
+#  define DW_DEPRECATED(func, message) func __attribute__ ((deprecated (message)))
+#  else
+#  define DW_DEPRECATED(func, message) func __attribute__ ((deprecated))
+#  endif
+#endif
+
+/* Compiler without deprecation support */
+#ifndef DW_DEPRECATED
+#define DW_DEPRECATED(func, message) func
+#endif
+
+/* Support for unused variables in supported compilers */
+#if defined(__GNUC__) || (defined(__clang__) && defined(__has_extension))
+#define DW_UNUSED(x) x __attribute__((__unused__))
+#else
+#define DW_UNUSED(x) x
+#endif
+
 #if !defined(__PHOTON__)
 /* These corespond to the entries in the color
  * arrays in the Win32 dw.c, they are also the
@@ -1302,7 +1340,7 @@ typedef struct _resource_struct {
 } DWResources;
 
 #if !defined(DW_RESOURCES) || defined(BUILD_DLL)
-static DWResources _resources = { 0, 0, 0 };
+static DWResources DW_UNUSED(_resources) = { 0, 0, 0 };
 #else
 extern DWResources _resources;
 #endif
@@ -1574,37 +1612,6 @@ typedef enum
 
 /* Use the dbsoft.org application domain by default if not specified */
 #define DW_APP_DOMAIN_DEFAULT "org.dbsoft.dwindows"
-
-/* Support for API deprecation in supported compilers */
-#if defined(__has_feature) && !defined(__has_extension)
-#define __has_extension __has_feature
-#endif
-
-/* Visual C */
-#if defined(_MSC_VER)
-#  if _MSC_VER >= 1400
-#  define DW_DEPRECATED(func, message) __declspec(deprecated(message)) func
-#  endif
-/* Clang */
-#elif defined(__has_extension)
-#  if __has_extension(attribute_deprecated_with_message)
-#  define DW_DEPRECATED(func, message) func __attribute__ ((deprecated (message)))
-#  else
-#  define DW_DEPRECATED(func, message) func __attribute__ ((deprecated))
-#  endif
-/* GCC */
-#elif defined(__GNUC__)
-#  if (__GNUC__ * 10000 + __GNUC_MINOR__ * 100 + __GNUC_PATCHLEVEL__) >= 40500
-#  define DW_DEPRECATED(func, message) func __attribute__ ((deprecated (message)))
-#  else
-#  define DW_DEPRECATED(func, message) func __attribute__ ((deprecated))
-#  endif
-#endif
-
-/* Compiler without deprecation support */
-#ifndef DW_DEPRECATED
-#define DW_DEPRECATED(func, message) func
-#endif
 
 /* Public function prototypes */
 void API dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize, int vsize, int pad);
