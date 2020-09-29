@@ -8384,7 +8384,7 @@ static void _handle_sem(int *tmpsock)
    {
       FD_ZERO(&rd);
       FD_SET(listenfd, &rd);
-      int result;
+      int DW_UNUSED(result);
 
       maxfd = listenfd;
 
