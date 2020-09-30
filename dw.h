@@ -15,8 +15,24 @@ extern "C" {
 #define DW_HOME_URL "http://dwindows.netlabs.org"
 
 /* Support for API deprecation in supported compilers */
-#if defined(__has_feature) && !defined(__has_extension)
-#define __has_extension __has_feature
+#ifndef __has_attribute
+# define __has_attribute(x) 0
+#endif
+
+#ifndef __has_extension
+# define __has_extension __has_feature
+#endif
+    
+#ifndef __has_feature
+# define __has_feature(x) 0
+#endif
+    
+#ifndef __GNUC_PREREQ
+# if defined(__GNUC__) && defined(__GNUC_MINOR__)
+#  define __GNUC_PREREQ(maj, min) ((__GNUC__ << 16) + __GNUC_MINOR__ >= ((maj) << 16) + (min))
+# else
+#  define __GNUC_PREREQ(maj, min) 0
+# endif
 #endif
 
 /* Visual C */
@@ -24,20 +40,11 @@ extern "C" {
 #  if _MSC_VER >= 1400
 #  define DW_DEPRECATED(func, message) __declspec(deprecated(message)) func
 #  endif
-/* Clang */
-#elif defined(__clang__) && defined(__has_extension)
-#  if __has_extension(attribute_deprecated_with_message)
-#  define DW_DEPRECATED(func, message) func __attribute__ ((deprecated (message)))
-#  else
-#  define DW_DEPRECATED(func, message) func __attribute__ ((deprecated))
-#  endif
-/* GCC */
-#elif defined(__GNUC__)
-#  if (__GNUC__ * 10000 + __GNUC_MINOR__ * 100 + __GNUC_PATCHLEVEL__) >= 40500
-#  define DW_DEPRECATED(func, message) func __attribute__ ((deprecated (message)))
-#  else
-#  define DW_DEPRECATED(func, message) func __attribute__ ((deprecated))
-#  endif
+/* Clang or GCC */
+#elif __has_extension(attribute_deprecated_with_message) || __GNUC_PREREQ(4, 5)
+#  define DW_DEPRECATED(func, message) func __attribute__((deprecated (message)))
+#elif __has_extension(attribute_deprecated) || __GNUC_PREREQ(3, 2)
+#  define DW_DEPRECATED(func, message) func __attribute__((deprecated))
 #endif
 
 /* Compiler without deprecation support */
@@ -46,7 +53,7 @@ extern "C" {
 #endif
 
 /* Support for unused variables in supported compilers */
-#if defined(__GNUC__) || (defined(__clang__) && defined(__has_extension))
+#if __has_attribute(unused) || __GNUC_PREREQ(3, 1)
 #define DW_UNUSED(x) x __attribute__((__unused__))
 #else
 #define DW_UNUSED(x) x
