@@ -278,11 +278,8 @@ typedef struct _CNRITEM
 } CNRITEM, *PCNRITEM;
 
 
-int _null_key(HWND window, int key, void *data)
+int _null_key(HWND DW_UNUSED(window), int DW_UNUSED(key), void * DW_UNUSED(data))
 {
-   window = window; /* keep compiler happy */
-   key = key; /* keep compiler happy */
-   data = data; /* keep compiler happy */
    return TRUE;
 }
 
@@ -9190,11 +9187,10 @@ void API dw_tree_item_change(HWND handle, HTREEITEM item, const char *title, HIC
  *          handle: Handle to the tree containing the item.
  *          item: Handle of the item to be modified.
  */
-char * API dw_tree_get_title(HWND handle, HTREEITEM item)
+char * API dw_tree_get_title(HWND DW_UNUSED(handle), HTREEITEM item)
 {
    PCNRITEM pci = (PCNRITEM)item;
 
-   handle = handle; /* keep compiler happy */
    if(pci && pci->rc.pszIcon)
       return strdup((char *)pci->rc.pszIcon);
    return NULL;
@@ -9206,11 +9202,10 @@ char * API dw_tree_get_title(HWND handle, HTREEITEM item)
  *          handle: Handle to the tree containing the item.
  *          item: Handle of the item to be modified.
  */
-HTREEITEM API dw_tree_get_parent(HWND handle, HTREEITEM item)
+HTREEITEM API dw_tree_get_parent(HWND DW_UNUSED(handle), HTREEITEM item)
 {
    PCNRITEM pci = (PCNRITEM)item;
 
-   handle = handle; /* keep compiler happy */
    if(pci)
       return pci->parent;
    return (HTREEITEM)0;
@@ -9223,11 +9218,10 @@ HTREEITEM API dw_tree_get_parent(HWND handle, HTREEITEM item)
  *          item: Handle of the item to be modified.
  *          itemdata: User defined data to be associated with item.
  */
-void API dw_tree_item_set_data(HWND handle, HTREEITEM item, void *itemdata)
+void API dw_tree_item_set_data(HWND DW_UNUSED(handle), HTREEITEM item, void *itemdata)
 {
    PCNRITEM pci = (PCNRITEM)item;
 
-   handle = handle; /* keep compiler happy */
    if(!pci)
       return;
 
@@ -9240,11 +9234,10 @@ void API dw_tree_item_set_data(HWND handle, HTREEITEM item, void *itemdata)
  *          handle: Handle to the tree containing the item.
  *          item: Handle of the item to be modified.
  */
-void * API dw_tree_item_get_data(HWND handle, HTREEITEM item)
+void * API dw_tree_item_get_data(HWND DW_UNUSED(handle), HTREEITEM item)
 {
    PCNRITEM pci = (PCNRITEM)item;
 
-   handle = handle; /* keep compiler happy */
    if(!pci)
       return NULL;
    return pci->user;
@@ -9999,7 +9992,7 @@ int API dw_filesystem_get_column_type(HWND handle, int column)
  *                    DW_RGB_TRANSPARENT will disable coloring rows.
  *                    DW_CLR_DEFAULT will use the system default alternating row colors.
  */
-void API dw_container_set_stripe(HWND handle, unsigned long oddcolor, unsigned long evencolor)
+void API dw_container_set_stripe(HWND DW_UNUSED(handle), unsigned long DW_UNUSED(oddcolor), unsigned long DW_UNUSED(evencolor))
 {
     /* Don't think this is possible on OS/2 */
 }
@@ -10011,11 +10004,8 @@ void API dw_container_set_stripe(HWND handle, unsigned long oddcolor, unsigned l
  *          column: Zero based column of width being set.
  *          width: Width of column in pixels.
  */
-void API dw_container_set_column_width(HWND handle, int column, int width)
+void API dw_container_set_column_width(HWND DW_UNUSED(handle), int DW_UNUSED(column), int DW_UNUSED(width))
 {
-   handle = handle; /* keep compiler happy */
-   column = column; /* keep compiler happy */
-   width = width; /* keep compiler happy */
 }
 
 /*
@@ -10266,9 +10256,8 @@ void API dw_container_delete(HWND handle, int rowcount)
  *                  DW_SCROLL_BOTTOM. (rows is ignored for last two)
  *       rows: The number of rows to be scrolled.
  */
-void API dw_container_scroll(HWND handle, int direction, long rows)
+void API dw_container_scroll(HWND handle, int direction, long DW_UNUSED(rows))
 {
-   rows = rows; /* keep compiler happy */
    switch(direction)
    {
    case DW_SCROLL_TOP:
@@ -11597,7 +11586,7 @@ int API dw_module_symbol(HMOD handle, const char *name, void**func)
 int API dw_module_close(HMOD handle)
 {
    DosFreeModule(handle);
-   return 0;
+   return DW_ERROR_NONE;
 }
 
 /*
@@ -12406,7 +12395,7 @@ void API dw_clipboard_set_text(const char *str, int len)
  *          This will create a system notification that will show in the notifaction panel
  *          on supported systems, which may be clicked to perform another task.
  */
-HWND API dw_notification_new(const char *title, const char *imagepath, const char *description, ...)
+HWND API dw_notification_new(const char * DW_UNUSED(title), const char * DW_UNUSED(imagepath), const char * DW_UNUSED(description), ...)
 {
    return 0;
 }
@@ -12418,7 +12407,7 @@ HWND API dw_notification_new(const char *title, const char *imagepath, const cha
  * Returns:
  *         DW_ERROR_NONE on success, DW_ERROR_UNKNOWN on error or not supported.
  */
-int API dw_notification_send(HWND notification)
+int API dw_notification_send(HWND DW_UNUSED(notification))
 {
    return DW_ERROR_UNKNOWN;
 }
@@ -12779,9 +12768,8 @@ int _SetPath(char *path)
  * Returns:
  *       -1 on error.
  */
-int API dw_exec(const char *program, int type, char **params)
+int API dw_exec(const char *program, int DW_UNUSED(type), char **params)
 {
-   type = type; /* keep compiler happy */
 #ifdef __EMX__
    return spawnvp(P_NOWAIT, program, (char * const *)params);
 #else
@@ -12856,10 +12844,8 @@ int API dw_browse(const char *url)
  *       handle: Handle to the window.
  *       action: One of the DW_HTML_* constants.
  */
-void API dw_html_action(HWND handle, int action)
+void API dw_html_action(HWND DW_UNUSED(handle), int DW_UNUSED(action))
 {
-   handle = handle;
-   action = action;
 }
 
 /*
@@ -12871,10 +12857,8 @@ void API dw_html_action(HWND handle, int action)
  * Returns:
  *       0 on success.
  */
-int API dw_html_raw(HWND handle, const char *string)
+int API dw_html_raw(HWND DW_UNUSED(handle), const char * DW_UNUSED(string))
 {
-   handle = handle;
-   string = string;
    return DW_ERROR_UNKNOWN;
 }
 
@@ -12887,10 +12871,8 @@ int API dw_html_raw(HWND handle, const char *string)
  * Returns:
  *       0 on success.
  */
-int API dw_html_url(HWND handle, const char *url)
+int API dw_html_url(HWND DW_UNUSED(handle), const char * DW_UNUSED(url))
 {
-   handle = handle;
-   url = url;
    return DW_ERROR_UNKNOWN;
 }
 
@@ -12904,11 +12886,8 @@ int API dw_html_url(HWND handle, const char *url)
  * Returns:
  *       DW_ERROR_NONE (0) on success.
  */
-int dw_html_javascript_run(HWND handle, const char *script, void *scriptdata)
+int dw_html_javascript_run(HWND DW_UNUSED(handle), const char * DW_UNUSED(script), void * DW_UNUSED(scriptdata))
 {
-   handle = handle;
-   script = script;
-   scriptdata = scriptdata;
    return DW_ERROR_UNKNOWN;
 }
 
@@ -12919,9 +12898,8 @@ int dw_html_javascript_run(HWND handle, const char *script, void *scriptdata)
  *       text: The default text to be in the entryfield widget.
  *       id: An ID to be used with dw_window_from_id() or 0L.
  */
-HWND API dw_html_new(unsigned long id)
+HWND API dw_html_new(unsigned long DW_UNUSED(id))
 {
-   id = id;
    dw_debug("HTML widget not available; OS/2 currently does not support it.\n");
    return 0;
 }
@@ -13323,7 +13301,7 @@ char * API dw_app_dir(void)
  *          The appname is only required on Windows.  If NULL is passed the detected
  *          application name will be used, but a prettier name may be desired.
  */
-int API dw_app_id_set(const char *appid, const char *appname)
+int API dw_app_id_set(const char * DW_UNUSED(appid), const char * DW_UNUSED(appname))
 {
     return DW_ERROR_UNKNOWN;
 }
