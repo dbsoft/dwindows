@@ -421,7 +421,7 @@ extern "C" {
 		if (webview)
 			return webview->Raw(string);
 		else
-			dw_window_set_data(hwnd, _DW_HTML_DATA_RAW, strdup(string));
+			dw_window_set_data(hwnd, _DW_HTML_DATA_RAW, _strdup(string));
 		return DW_ERROR_NONE;
 	}
 
@@ -440,7 +440,7 @@ extern "C" {
 		if (webview)
 			return webview->URL(url);
 		else
-			dw_window_set_data(hwnd, _DW_HTML_DATA_LOCATION, strdup(url));
+			dw_window_set_data(hwnd, _DW_HTML_DATA_LOCATION, _strdup(url));
 		return DW_ERROR_NONE;
 	}
 

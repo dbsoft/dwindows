@@ -74,7 +74,7 @@ char **_convertargs(int *count, char *start, HINSTANCE DWInstance)
          else if(*tmp == ' ' && !inquotes)
          {
             *tmp = 0;
-            argv[loc] = strdup(argstart);
+            argv[loc] = _strdup(argstart);
 
             /* Push past any white space */
             while(*(tmp+1) == ' ')
@@ -92,11 +92,14 @@ char **_convertargs(int *count, char *start, HINSTANCE DWInstance)
          tmp++;
       }
       if(*argstart)
-         argv[loc] = strdup(argstart);
+         argv[loc] = _strdup(argstart);
    }
    argv[loc+1] = NULL;
    return argv;
 }
+
+/* Protoype for the application entrypoint */
+int main(int argc, char **argv);
 
 /* Ok this is a really big hack but what the hell ;) */
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
