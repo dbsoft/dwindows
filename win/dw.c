@@ -4706,7 +4706,7 @@ int API dw_init(int newthread, int argc, char *argv[])
    if(!_dw_app_id[0])
    {
       /* Generate an Application ID based on the PID if all else fails. */
-      _snprintf(_dw_app_id, _DW_APP_ID_SIZE, "%s.pid.%d", DW_APP_DOMAIN_DEFAULT, getpid());
+      _snprintf(_dw_app_id, _DW_APP_ID_SIZE, "%s.pid.%d", DW_APP_DOMAIN_DEFAULT, _getpid());
    }
    if(!_dw_app_name[0])
    {
@@ -12952,7 +12952,7 @@ int API dw_exec(const char *program, int type, char **params)
          strcat(newparams[z], "\"");
       }
       else
-         newparams[z] = strdup(params[z]);
+         newparams[z] = _strdup(params[z]);
    }
    newparams[count] = NULL;
 
@@ -12975,7 +12975,7 @@ int API dw_exec(const char *program, int type, char **params)
  */
 int API dw_browse(const char *url)
 {
-   char *browseurl = strdup(url);
+   char *browseurl = _strdup(url);
    int retcode;
 
    if(strlen(browseurl) > 7 && strncmp(browseurl, "file://", 7) == 0)
