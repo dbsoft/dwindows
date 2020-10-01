@@ -21,9 +21,10 @@ PLATFORM_CFLAGS=-m64
 PLATFORM_TARGET=pe-x86-64 -DDW64
 endif
 
-# Had to disable -Wunused-value due to every Win32 macro generating this warning...
+# Had to add -Wno-unused-value due to every Win32 macro generating this warning...
 # GCC has marked this as  WONTFIX http://gcc.gnu.org/bugzilla/show_bug.cgi?id=24900
-CFLAGS = -O -g -DMSVC $(PLATFORM_DEF) $(PLATFORM_CFLAGS) -D__WIN32__ -DBUILD_DLL -DGDIPLUS -DTOOLBAR -DUNICODE -D_UNICODE -DISOLATION_AWARE_ENABLED=1 -I./win -I. -I./platform -Wall -Wno-unused-value -mthreads -o $(@)
+# This seems to be fixed in Mingw-w64 8.1 readd the option below if using an old compiler
+CFLAGS = -O -g -DMSVC $(PLATFORM_DEF) $(PLATFORM_CFLAGS) -D__WIN32__ -DBUILD_DLL -DGDIPLUS -DTOOLBAR -DUNICODE -D_UNICODE -DISOLATION_AWARE_ENABLED=1 -I./win -I. -I./platform -Wall -mthreads -o $(@)
 LDFLAGS = -shared -mwindows -mthreads -lcomctl32 -lole32 -loleaut32 -luserenv -lmsimg32 -lgdiplus -luuid
 
 COMPATOBJECTS = dwcompat.o dirent.o
