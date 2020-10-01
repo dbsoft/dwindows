@@ -43,7 +43,7 @@ extern "C" {
 /* Clang or GCC */
 #elif __has_extension(attribute_deprecated_with_message) || __GNUC_PREREQ(4, 5)
 #  define DW_DEPRECATED(func, message) func __attribute__((deprecated (message)))
-#elif __has_extension(attribute_deprecated) || __GNUC_PREREQ(3, 2)
+#elif __has_extension(attribute_deprecated) || __GNUC_PREREQ(3, 1)
 #  define DW_DEPRECATED(func, message) func __attribute__((deprecated))
 #endif
 
@@ -53,7 +53,7 @@ extern "C" {
 #endif
 
 /* Support for unused variables in supported compilers */
-#if __has_attribute(unused) || __GNUC_PREREQ(3, 1)
+#if __has_attribute(unused) || __GNUC_PREREQ(2, 95)
 #define DW_UNUSED(x) x __attribute__((__unused__))
 #else
 #define DW_UNUSED(x) x
