@@ -23,6 +23,17 @@ DWLIBDIR=.\lib
 DWDLLDIR=.\dll
 !endif
 
+# Configure alternate compiler based on Clang/LLVM
+!if "$(CLANG)" == "Y"
+LIB=llvm-lib.exe
+CC=clang-cl.exe
+LINK=lld-link.exe
+!else
+LIB=lib.exe
+CC=cl.exe
+LINK=link.exe
+!endif
+
 #
 # Configure settings for the target platform
 #	Default to x86 if not specified
@@ -53,7 +64,7 @@ PLATFORM_NAME = win64
 !if "$(DEBUG)" == "Y"
 # -D_CRT_SECURE_NO_WARNINGS disables unsafe string function warnings
 # These can be perfectly safe if used properly but get enabled by -W3
-CFLAGS_DEBUG = -DDEBUG -Z7 -W3 -Od -MTd -D_CRT_SECURE_NO_WARNINGS # was -Zi
+CFLAGS_DEBUG = -DDEBUG -Z7 -W3 -Od -MTd # was -Zi
 LINK_DEBUG = -debug
 !else
 CFLAGS_DEBUG = -Ox -MT
@@ -101,13 +112,11 @@ WINTOASTINC=-DBUILD_TOAST -I$(WINTOASTDIR)\src
 WINTOASTOBJ=wintoast.obj wintoastlib.obj
 !endif
 
-CC = cl
-CFLAGS = -c $(PLATFORM_DEF) -D__WIN32__ -DMSVC -DTOOLBAR -DGDIPLUS -DAEROGLASS -D_UNICODE -DUNICODE -DBUILD_DLL -DISOLATION_AWARE_ENABLED=1 -I$(SRCDIR)\platform -I$(SRCDIR) $(WEBVIEW2INC) $(WINTOASTINC) $(SVNVERSION)
+CFLAGS = -c $(PLATFORM_DEF) -D__WIN32__ -DMSVC -DTOOLBAR -DGDIPLUS -DAEROGLASS -D_UNICODE -DUNICODE -DBUILD_DLL -DISOLATION_AWARE_ENABLED=1 -I$(SRCDIR)\platform -I$(SRCDIR) $(WEBVIEW2INC) $(WINTOASTINC) $(SVNVERSION) -D_CRT_SECURE_NO_WARNINGS 
 LIBS = wsock32.lib kernel32.lib user32.lib comctl32.lib gdi32.lib advapi32.lib shell32.lib comdlg32.lib ole32.lib oleaut32.lib userenv.lib msimg32.lib gdiplus.lib $(WEBVIEW2LIB)
 RES =
 LINKFLAGS = -machine:$(TARGET_CPU) -manifest $(LINK_DEBUG)
 DLLLINKFLAGS = -dll
-LINK = link
 DEFFILE = $(SRCDIR)\win\dw.def
 DEFFILE2 = $(SRCDIR)\win\dwcompat.def
 
@@ -143,7 +152,7 @@ $(LINKFLAGS) $(DLLLINKFLAGS)
 $(OBJS) $(RES)
 $(LIBS)
 <<
-	lib /def:$(DEFFILE) /machine:$(TARGET_CPU) /out:dw.lib
+	$(LIB) /def:$(DEFFILE) /machine:$(TARGET_CPU) /out:dw.lib
 	mt.exe /manifest dw.dll.manifest $(SRCDIR)\win\dw.dll.$(TARGET_CPU).manifest /outputresource:dw.dll;2
 	-erase dw.dll.manifest
 	copy dw.lib $(DWLIBDIR)\dw.lib
@@ -158,7 +167,7 @@ $(LINKFLAGS) $(DLLLINKFLAGS)
 $(OBJS2) $(RES)
 $(LIBS)
 <<
-	lib /def:$(DEFFILE2) /machine:$(TARGET_CPU) /out:dwcompat.lib
+	$(LIB) /def:$(DEFFILE2) /machine:$(TARGET_CPU) /out:dwcompat.lib
 	mt.exe /manifest dwcompat.dll.manifest /outputresource:dwcompat.dll;2
 	-erase dwcompat.dll.manifest
 	copy dwcompat.lib $(DWLIBDIR)\dwcompat.lib

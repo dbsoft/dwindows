@@ -4726,7 +4726,7 @@ int API dw_init(int newthread, int argc, char *argv[])
    wc.style = CS_HREDRAW | CS_VREDRAW;
 #ifdef BUILD_EDGE
    /* Check if Microsoft Edge (Chromium) is installed */
-   if (_DW_EDGE_DETECTED = _dw_edge_detect(UTF8toWide(_dw_app_id)))
+   if ((_DW_EDGE_DETECTED = _dw_edge_detect(UTF8toWide(_dw_app_id))))
    {
       wc.lpfnWndProc = (WNDPROC)_edgeWindowProc;
       wc.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
