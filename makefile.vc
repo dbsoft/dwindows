@@ -152,8 +152,8 @@ $(LINKFLAGS) $(DLLLINKFLAGS)
 $(OBJS) $(RES)
 $(LIBS)
 <<
-	$(WLIB) /def:$(DEFFILE) /machine:$(TARGET_CPU) /out:dw.lib
-	mt.exe /manifest dw.dll.manifest $(SRCDIR)\win\dw.dll.$(TARGET_CPU).manifest /outputresource:dw.dll;2
+	$(WLIB) -def:$(DEFFILE) -machine:$(TARGET_CPU) -out:dw.lib
+	mt.exe -manifest dw.dll.manifest $(SRCDIR)\win\dw.dll.$(TARGET_CPU).manifest -outputresource:dw.dll;2
 	-erase dw.dll.manifest
 	copy dw.lib $(DWLIBDIR)\dw.lib
 	copy dw.dll $(DWDLLDIR)\dw.dll
@@ -167,8 +167,8 @@ $(LINKFLAGS) $(DLLLINKFLAGS)
 $(OBJS2) $(RES)
 $(LIBS)
 <<
-	$(WLIB) /def:$(DEFFILE2) /machine:$(TARGET_CPU) /out:dwcompat.lib
-	mt.exe /manifest dwcompat.dll.manifest /outputresource:dwcompat.dll;2
+	$(WLIB) -def:$(DEFFILE2) -machine:$(TARGET_CPU) -out:dwcompat.lib
+	mt.exe -manifest dwcompat.dll.manifest -outputresource:dwcompat.dll;2
 	-erase dwcompat.dll.manifest
 	copy dwcompat.lib $(DWLIBDIR)\dwcompat.lib
 	copy dwcompat.dll $(DWDLLDIR)\dwcompat.dll
