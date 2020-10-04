@@ -25,11 +25,11 @@ DWDLLDIR=.\dll
 
 # Configure alternate compiler based on Clang/LLVM
 !if "$(CLANG)" == "Y"
-LIB=llvm-lib.exe
+WLIB=llvm-lib.exe
 CC=clang-cl.exe
 LINK=lld-link.exe
 !else
-LIB=lib.exe
+WLIB=lib.exe
 CC=cl.exe
 LINK=link.exe
 !endif
@@ -152,7 +152,7 @@ $(LINKFLAGS) $(DLLLINKFLAGS)
 $(OBJS) $(RES)
 $(LIBS)
 <<
-	$(LIB) /def:$(DEFFILE) /machine:$(TARGET_CPU) /out:dw.lib
+	$(WLIB) /def:$(DEFFILE) /machine:$(TARGET_CPU) /out:dw.lib
 	mt.exe /manifest dw.dll.manifest $(SRCDIR)\win\dw.dll.$(TARGET_CPU).manifest /outputresource:dw.dll;2
 	-erase dw.dll.manifest
 	copy dw.lib $(DWLIBDIR)\dw.lib
@@ -167,7 +167,7 @@ $(LINKFLAGS) $(DLLLINKFLAGS)
 $(OBJS2) $(RES)
 $(LIBS)
 <<
-	$(LIB) /def:$(DEFFILE2) /machine:$(TARGET_CPU) /out:dwcompat.lib
+	$(WLIB) /def:$(DEFFILE2) /machine:$(TARGET_CPU) /out:dwcompat.lib
 	mt.exe /manifest dwcompat.dll.manifest /outputresource:dwcompat.dll;2
 	-erase dwcompat.dll.manifest
 	copy dwcompat.lib $(DWLIBDIR)\dwcompat.lib
