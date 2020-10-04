@@ -7,7 +7,7 @@
  * Only included when BUILD_EDGE is defined, will fall back to embedded IE.
  */
 #include "dw.h"
-#include "webview2.h"
+#include "WebView2.h"
 #include <wrl.h>
 
 using namespace Microsoft::WRL;
