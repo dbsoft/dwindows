@@ -232,9 +232,14 @@ static int _dw_snprintf(char *str, size_t size, const char *format, ...)
 #  define strdup(a) _strdup(a)
 #  define snprintf _snprintf
 #  define unlink(a) _unlink(a)
+#  define rmdir(a) _rmdir(a)
 #  define close(a) _close(a)
+#  define open(a, b) _open(a, b)
+#  define read(a, b, c) _read(a, b, c)
 #  define fdopen(a, b) _fdopen(a, b)
+#  define getcwd(a, b) _getcwd(a, b)
 #  define chdir(a) _chdir(a)
+#  define getpid() _getpid()
 #ifndef _DW_INTERNAL
 #  define mkdir(a,b) _mkdir(a)
 #endif
