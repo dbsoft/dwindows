@@ -62,8 +62,6 @@ PLATFORM_NAME = win64
 # Settings for either debug or release
 #
 !if "$(DEBUG)" == "Y"
-# -D_CRT_SECURE_NO_WARNINGS disables unsafe string function warnings
-# These can be perfectly safe if used properly but get enabled by -W3
 CFLAGS_DEBUG = -DDEBUG -Z7 -W3 -Od -MTd # was -Zi
 LINK_DEBUG = -debug
 !else
@@ -112,9 +110,9 @@ WINTOASTINC=-DBUILD_TOAST -I$(WINTOASTDIR)\src
 WINTOASTOBJ=wintoast.obj wintoastlib.obj
 !endif
 
-# Visual C CRT deprecates a lot of common functions, these lines
-# will hide the deprecation warnings, remove these options to see them
-CRT_FLAGS = -D_CRT_SECURE_NO_DEPRECATE -D_CRT_SECURE_NO_WARNING
+# The Visual C CRT and other Windows components have deprecated lots of common functions
+# These options will hide the deprecation warnings; Comment the next line to see them
+CRT_FLAGS = -D_CRT_SECURE_NO_DEPRECATE -D_CRT_SECURE_NO_WARNING -D_WINSOCK_DEPRECATED_NO_WARNINGS
 
 CFLAGS = -c $(PLATFORM_DEF) -D__WIN32__ -DMSVC -DTOOLBAR -DGDIPLUS -DAEROGLASS -D_UNICODE -DUNICODE -DBUILD_DLL -DISOLATION_AWARE_ENABLED=1 -I$(SRCDIR)\platform -I$(SRCDIR) $(WEBVIEW2INC) $(WINTOASTINC) $(SVNVERSION) $(CRT_FLAGS) 
 LIBS = wsock32.lib kernel32.lib user32.lib comctl32.lib gdi32.lib advapi32.lib shell32.lib comdlg32.lib ole32.lib oleaut32.lib userenv.lib msimg32.lib gdiplus.lib $(WEBVIEW2LIB)
