@@ -2238,7 +2238,7 @@ DWObject *DWObj;
 -(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); dw_signal_disconnect_by_window(self); [super dealloc]; }
 @end
 
-#ifndef BUILDING_FOR_YOSEMITE1
+#ifndef BUILDING_FOR_YOSEMITE
 /* Subclass NSTextFieldCell for displaying image and text */
 @interface DWImageAndTextCell : NSTextFieldCell
 {
@@ -2391,7 +2391,6 @@ DWObject *DWObj;
 -(NSTableColumn *)getColumn:(int)col;
 -(int)addRow:(NSArray *)input;
 -(int)addRows:(int)number;
--(void)tableView:(NSTableView *)tableView willDisplayCell:(id)cell forTableColumn:(NSTableColumn *)tableColumn row:(NSInteger)row;
 -(void)editCell:(id)input at:(int)row and:(int)col;
 -(void)removeRow:(int)row;
 -(void)setRow:(int)row title:(const char *)input;
@@ -2411,8 +2410,10 @@ DWObject *DWObj;
 -(void)tableView:(NSTableView *)tableView didClickTableColumn:(NSTableColumn *)tableColumn;
 -(void)selectionChanged:(id)sender;
 -(NSMenu *)menuForEvent:(NSEvent *)event;
-#ifdef BUILDING_FOR_LION1
+#ifdef BUILDING_FOR_YOSEMITE
 -(NSView *)tableView:(NSTableView *)tableView viewForTableColumn:(NSTableColumn *)tableColumn row:(NSInteger)row;
+#else
+-(void)tableView:(NSTableView *)tableView willDisplayCell:(id)cell forTableColumn:(NSTableColumn *)tableColumn row:(NSInteger)row;
 #endif
 @end
 
@@ -2457,17 +2458,6 @@ DWObject *DWObj;
     }
     return nil;
 }
-#ifdef BUILDING_FOR_LION1
--(NSView *)tableView:(NSTableView *)tableView viewForTableColumn:(NSTableColumn *)tableColumn row:(NSInteger)row
-{
-    ItemCellView *result = [tableView makeViewWithIdentifier:tableColumn.identifier owner:self];
-    Item *item = [self.items objectAtIndex:row];
-    result.imageView.image = item.itemIcon;
-    result.textField.stringValue = item.itemDisplayName;
-    result.detailTextField.stringValue = item.itemKind;
-    return result;
-}
-#endif
 -(BOOL)tableView:(NSTableView *)aTableView shouldEditTableColumn:(NSTableColumn *)aTableColumn row:(int)rowIndex { return NO; }
 -(void *)userdata { return userdata; }
 -(void)setUserdata:(void *)input { userdata = input; }
@@ -2570,22 +2560,72 @@ DWObject *DWObj;
     }
     return 0;
 }
+#ifdef BUILDING_FOR_YOSEMITE
+-(NSView *)tableView:(NSTableView *)tableView viewForTableColumn:(NSTableColumn *)tableColumn row:(NSInteger)row;
+{
+    /* Get an existing cell with the MyView identifier if it exists */
+    NSTableCellView *result = [tableView makeViewWithIdentifier:tableColumn.identifier owner:self];
+    int index = (int)(row * [tvcols count]);
+    id celldata = [data objectAtIndex:index];
+
+    /* There is no existing cell to reuse so create a new one */
+    if(result == nil)
+    {
+        /* The data is already a NSTableCellView so just return that */
+        if([celldata isMemberOfClass:[NSTableCellView class]])
+            result = celldata;
+        else
+        {
+            /* Create the new NSTableCellView with a frame of the {0,0} with the width of the table.
+             * Note that the height of the frame is not really relevant, because the row height will modify the height.
+             */
+            result = [[NSTableCellView alloc] init];
+
+            /* The identifier of the NSTextField instance is set to MyView.
+             * This allows the cell to be reused.
+             */
+            [result setIdentifier:tableColumn.identifier];
+        }
+    }
+
+    /* result is now guaranteed to be valid, either as a reused cell
+     * or as a new cell, so set the text or image
+     */
+    NSTextFieldCell *tcell = [[result textField] cell];
+    
+    if([celldata isMemberOfClass:[NSImage class]])
+        [[result imageView] setImage:celldata];
+    if([celldata isKindOfClass:[NSString class]])
+        [[result textField] setStringValue:celldata];
+    
+    /* Handle drawing alternating row colors if enabled */
+    if ((row % 2) == 0)
+    {
+        if(evencolor)
+        {
+            [tcell setDrawsBackground:YES];
+            [tcell setBackgroundColor:evencolor];
+        }
+        else
+            [tcell setDrawsBackground:NO];
+    }
+    else
+    {
+        if(oddcolor)
+        {
+            [tcell setDrawsBackground:YES];
+            [tcell setBackgroundColor:oddcolor];
+        }
+        else
+            [tcell setDrawsBackground:NO];
+    }
+    
+    /* Return the result */
+    return result;
+}
+#else
 -(void)tableView:(NSTableView *)tableView willDisplayCell:(id)cell forTableColumn:(NSTableColumn *)tableColumn row:(NSInteger)row
 {
-#ifdef BUILDING_FOR_YOSEMITE1
-    NSTableCellView *bcell = cell;
-    NSTextField *tcell = nil;
-    
-    /* Handle drawing image and text if necessary */
-    if([cell isMemberOfClass:[NSTableCellView class]])
-    {
-        int index = (int)(row * [tvcols count]);
-        NSTableCellView *browsercell = [data objectAtIndex:index];
-        NSImage *img = [[browsercell imageView] image];
-        [[bcell imageView] setImage:img];
-        tcell = [bcell textField];
-    }
-#else
     DWImageAndTextCell *bcell = cell, *tcell = cell;
 
     /* Handle drawing image and text if necessary */
@@ -2596,7 +2636,6 @@ DWObject *DWObj;
         NSImage *img = [browsercell image];
         [bcell setImage:img];
     }
-#endif
     
     if([tcell isKindOfClass:[NSTextFieldCell class]])
     {
@@ -2623,6 +2662,7 @@ DWObject *DWObj;
         }
     }
 }
+#endif
 -(void)editCell:(id)input at:(int)row and:(int)col
 {
     if(tvcols)
@@ -2741,7 +2781,7 @@ DWObject *DWObj;
 
                 for(x=0;x<rowcount;x++)
                 {
-#ifdef BUILDING_FOR_YOSEMITE1
+#ifdef BUILDING_FOR_YOSEMITE
                     NSTableCellView *cell = [self viewAtColumn:z row:x makeIfNecessary:YES];
                     int thiswidth = NSWidth([cell frame]);
                     
@@ -2808,7 +2848,7 @@ DWObject *DWObj;
 
                     for(x=0;x<rowcount;x++)
                     {
-#ifdef BUILDING_FOR_YOSEMITE1
+#ifdef BUILDING_FOR_YOSEMITE
                         NSTableCellView *cell = [self viewAtColumn:z row:x makeIfNecessary:YES];
                         int thiswidth = NSWidth([cell frame]);
 #else
@@ -3016,8 +3056,8 @@ void _free_tree_recurse(NSMutableArray *node, NSMutableArray *item)
 
     if (self)
     {
-        treecol = [[NSTableColumn alloc] init];
-#ifndef BUILDING_FOR_YOSEMITE1
+        treecol = [[NSTableColumn alloc] initWithIdentifier:@"_DWTreeColumn"];
+#ifndef BUILDING_FOR_YOSEMITE
         DWImageAndTextCell *browsercell = [[[DWImageAndTextCell alloc] init] autorelease];
         [treecol setDataCell:browsercell];
 #endif
@@ -3081,7 +3121,7 @@ void _free_tree_recurse(NSMutableArray *node, NSMutableArray *item)
 }
 -(void)outlineView:(NSOutlineView *)outlineView willDisplayCell:(id)cell forTableColumn:(NSTableColumn *)tableColumn item:(id)item
 {
-#ifdef BUILDING_FOR_YOSEMITE1
+#ifdef BUILDING_FOR_YOSEMITE
     if([cell isMemberOfClass:[NSTableCellView class]])
     {
         NSMutableArray *this = (NSMutableArray *)item;
@@ -5671,7 +5711,7 @@ DW_FUNCTION_RESTORE_PARAM2(cid, ULONG, multi, int)
     [cont setHeaderView:nil];
     int type = DW_CFA_STRING;
     [cont setup];
-    NSTableColumn *column = [[[NSTableColumn alloc] init] autorelease];
+    NSTableColumn *column = [[[NSTableColumn alloc] initWithIdentifier:@"_DWListboxColumn"] autorelease];
     [column setEditable:NO];
     [cont addTableColumn:column];
     [cont addColumn:column andType:type];
@@ -7429,11 +7469,12 @@ DW_FUNCTION_RESTORE_PARAM5(handle, HWND, flags, unsigned long *, titles, char **
 
     for(z=0;z<count;z++)
     {
-        NSTableColumn *column = [[NSTableColumn alloc] init];
-#ifdef BUILDING_FOR_YOSEMITE1
-        [column setTitle:[ NSString stringWithUTF8String:titles[z] ]];
+        NSString *title = [NSString stringWithUTF8String:titles[z]];
+        NSTableColumn *column = [[NSTableColumn alloc] initWithIdentifier:title];
+#ifdef BUILDING_FOR_YOSEMITE
+        [column setTitle:title];
 #else
-        [[column headerCell] setStringValue:[ NSString stringWithUTF8String:titles[z] ]];
+        [[column headerCell] setStringValue:title];
         if(flags[z] & DW_CFA_BITMAPORICON)
         {
             NSImageCell *imagecell = [[NSImageCell alloc] init];
@@ -7668,7 +7709,7 @@ DW_FUNCTION_RESTORE_PARAM5(handle, HWND, pointer, void *, row, int, filename, ch
 {
     DW_FUNCTION_INIT;
     DWContainer *cont = handle;
-#ifdef BUILDING_FOR_YOSEMITE1
+#ifdef BUILDING_FOR_YOSEMITE
     NSTableCellView *browsercell;
 #else
     DWImageAndTextCell *browsercell;
@@ -7681,7 +7722,7 @@ DW_FUNCTION_RESTORE_PARAM5(handle, HWND, pointer, void *, row, int, filename, ch
         lastadd = [cont lastAddPoint];
     }
 
-#ifdef BUILDING_FOR_YOSEMITE1
+#ifdef BUILDING_FOR_YOSEMITE
     browsercell = [[[NSTableCellView alloc] init] autorelease];
     [[browsercell imageView] setImage:icon];
     [[browsercell textField] setStringValue:[ NSString stringWithUTF8String:filename ]];
