@@ -2238,6 +2238,7 @@ DWObject *DWObj;
 -(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); dw_signal_disconnect_by_window(self); [super dealloc]; }
 @end
 
+#ifndef BUILDING_FOR_YOSEMITE1
 /* Subclass NSTextFieldCell for displaying image and text */
 @interface DWImageAndTextCell : NSTextFieldCell
 {
@@ -2356,6 +2357,7 @@ DWObject *DWObj;
     return cellSize;
 }
 @end
+#endif
 
 /* Subclass for a Container/List type */
 @interface DWContainer : NSTableView
@@ -2570,7 +2572,21 @@ DWObject *DWObj;
 }
 -(void)tableView:(NSTableView *)tableView willDisplayCell:(id)cell forTableColumn:(NSTableColumn *)tableColumn row:(NSInteger)row
 {
-    DWImageAndTextCell *bcell = cell;
+#ifdef BUILDING_FOR_YOSEMITE1
+    NSTableCellView *bcell = cell;
+    NSTextField *tcell = nil;
+    
+    /* Handle drawing image and text if necessary */
+    if([cell isMemberOfClass:[NSTableCellView class]])
+    {
+        int index = (int)(row * [tvcols count]);
+        NSTableCellView *browsercell = [data objectAtIndex:index];
+        NSImage *img = [[browsercell imageView] image];
+        [[bcell imageView] setImage:img];
+        tcell = [bcell textField];
+    }
+#else
+    DWImageAndTextCell *bcell = cell, *tcell = cell;
 
     /* Handle drawing image and text if necessary */
     if([cell isMemberOfClass:[DWImageAndTextCell class]])
@@ -2580,28 +2596,30 @@ DWObject *DWObj;
         NSImage *img = [browsercell image];
         [bcell setImage:img];
     }
-    if([cell isKindOfClass:[NSTextFieldCell class]])
+#endif
+    
+    if([tcell isKindOfClass:[NSTextFieldCell class]])
     {
         /* Handle drawing alternating row colors if enabled */
         if ((row % 2) == 0)
         {
             if(evencolor)
             {
-                [bcell setDrawsBackground:YES];
-                [bcell setBackgroundColor:evencolor];
+                [tcell setDrawsBackground:YES];
+                [tcell setBackgroundColor:evencolor];
             }
             else
-                [bcell setDrawsBackground:NO];
+                [tcell setDrawsBackground:NO];
         }
         else
         {
             if(oddcolor)
             {
-                [bcell setDrawsBackground:YES];
-                [bcell setBackgroundColor:oddcolor];
+                [tcell setDrawsBackground:YES];
+                [tcell setBackgroundColor:oddcolor];
             }
             else
-                [bcell setDrawsBackground:NO];
+                [tcell setDrawsBackground:NO];
         }
     }
 }
@@ -2723,6 +2741,14 @@ DWObject *DWObj;
 
                 for(x=0;x<rowcount;x++)
                 {
+#ifdef BUILDING_FOR_YOSEMITE1
+                    NSTableCellView *cell = [self viewAtColumn:z row:x makeIfNecessary:YES];
+                    int thiswidth = NSWidth([cell frame]);
+                    
+                    /* If on the first column... add up the heights */
+                    if(z == 0)
+                        cheight += NSHeight([cell frame]);
+#else
                     NSCell *cell = [self preparedCellAtColumn:z row:x];
                     int thiswidth = [cell cellSize].width;
 
@@ -2740,7 +2766,8 @@ DWObject *DWObj;
                             thiswidth = [image size].width;
                         }
                     }
-
+#endif
+                    
                     if(thiswidth > width)
                     {
                         width = thiswidth;
@@ -2781,6 +2808,10 @@ DWObject *DWObj;
 
                     for(x=0;x<rowcount;x++)
                     {
+#ifdef BUILDING_FOR_YOSEMITE1
+                        NSTableCellView *cell = [self viewAtColumn:z row:x makeIfNecessary:YES];
+                        int thiswidth = NSWidth([cell frame]);
+#else
                         NSCell *cell = [self preparedCellAtColumn:z row:x];
                         int thiswidth = [cell cellSize].width;
 
@@ -2794,7 +2825,8 @@ DWObject *DWObj;
                                 thiswidth = [image size].width;
                             }
                         }
-
+#endif
+                        
                         if(thiswidth > width)
                         {
                             width = thiswidth;
@@ -2985,8 +3017,10 @@ void _free_tree_recurse(NSMutableArray *node, NSMutableArray *item)
     if (self)
     {
         treecol = [[NSTableColumn alloc] init];
+#ifndef BUILDING_FOR_YOSEMITE1
         DWImageAndTextCell *browsercell = [[[DWImageAndTextCell alloc] init] autorelease];
         [treecol setDataCell:browsercell];
+#endif
         [self addTableColumn:treecol];
         [self setOutlineTableColumn:treecol];
         [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(treeSelectionChanged:) name:NSOutlineViewSelectionDidChangeNotification object:self];
@@ -3047,6 +3081,15 @@ void _free_tree_recurse(NSMutableArray *node, NSMutableArray *item)
 }
 -(void)outlineView:(NSOutlineView *)outlineView willDisplayCell:(id)cell forTableColumn:(NSTableColumn *)tableColumn item:(id)item
 {
+#ifdef BUILDING_FOR_YOSEMITE1
+    if([cell isMemberOfClass:[NSTableCellView class]])
+    {
+        NSMutableArray *this = (NSMutableArray *)item;
+        NSImage *img = [this objectAtIndex:0];
+        if([img isKindOfClass:[NSImage class]])
+            [[(NSTableCellView*)cell imageView] setImage:img];
+    }
+#else
     if([cell isMemberOfClass:[DWImageAndTextCell class]])
     {
         NSMutableArray *this = (NSMutableArray *)item;
@@ -3054,6 +3097,7 @@ void _free_tree_recurse(NSMutableArray *node, NSMutableArray *item)
         if([img isKindOfClass:[NSImage class]])
             [(DWImageAndTextCell*)cell setImage:img];
     }
+#endif
 }
 -(BOOL)outlineView:(NSOutlineView *)outlineView shouldEditTableColumn:(NSTableColumn *)tableColumn item:(id)item { return NO; }
 -(void)addTree:(NSMutableArray *)item and:(NSMutableArray *)parent after:(NSMutableArray *)after
@@ -7386,6 +7430,9 @@ DW_FUNCTION_RESTORE_PARAM5(handle, HWND, flags, unsigned long *, titles, char **
     for(z=0;z<count;z++)
     {
         NSTableColumn *column = [[NSTableColumn alloc] init];
+#ifdef BUILDING_FOR_YOSEMITE1
+        [column setTitle:[ NSString stringWithUTF8String:titles[z] ]];
+#else
         [[column headerCell] setStringValue:[ NSString stringWithUTF8String:titles[z] ]];
         if(flags[z] & DW_CFA_BITMAPORICON)
         {
@@ -7399,6 +7446,7 @@ DW_FUNCTION_RESTORE_PARAM5(handle, HWND, flags, unsigned long *, titles, char **
             [column setDataCell:browsercell];
             [browsercell release];
         }
+#endif
         /* Defaults to left justified so just handle right and center */
         if(flags[z] & DW_CFA_RIGHT)
         {
@@ -7620,7 +7668,11 @@ DW_FUNCTION_RESTORE_PARAM5(handle, HWND, pointer, void *, row, int, filename, ch
 {
     DW_FUNCTION_INIT;
     DWContainer *cont = handle;
+#ifdef BUILDING_FOR_YOSEMITE1
+    NSTableCellView *browsercell;
+#else
     DWImageAndTextCell *browsercell;
+#endif
     int lastadd = 0;
 
     /* If pointer is NULL we are getting a change request instead of set */
@@ -7629,9 +7681,15 @@ DW_FUNCTION_RESTORE_PARAM5(handle, HWND, pointer, void *, row, int, filename, ch
         lastadd = [cont lastAddPoint];
     }
 
+#ifdef BUILDING_FOR_YOSEMITE1
+    browsercell = [[[NSTableCellView alloc] init] autorelease];
+    [[browsercell imageView] setImage:icon];
+    [[browsercell textField] setStringValue:[ NSString stringWithUTF8String:filename ]];
+#else
     browsercell = [[[DWImageAndTextCell alloc] init] autorelease];
     [browsercell setImage:icon];
     [browsercell setStringValue:[ NSString stringWithUTF8String:filename ]];
+#endif
     [cont editCell:browsercell at:(row+lastadd) and:0];
     [cont setNeedsDisplay:YES];
     DW_FUNCTION_RETURN_NOTHING;
