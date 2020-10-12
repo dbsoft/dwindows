@@ -2359,6 +2359,10 @@ DWObject *DWObj;
 @end
 #endif
 
+#define _DW_CONTAINER_ICON_WIDTH 16
+#define _DW_CONTAINER_ICON_HEIGHT 16
+#define _DW_CONTAINER_ROW_HEIGHT 20
+
 /* Subclass for a Container/List type */
 @interface DWContainer : NSTableView
 #ifdef BUILDING_FOR_SNOW_LEOPARD
@@ -2565,10 +2569,10 @@ DWObject *DWObj;
 {
     /* Get an existing cell with the MyView identifier if it exists */
     NSTableCellView *result = [tableView makeViewWithIdentifier:tableColumn.identifier owner:self];
-    int index = (int)(row * [tvcols count]);
+    int index = (int)(row * [tvcols count]) + (int)[tvcols indexOfObject:tableColumn];
     id celldata = [data objectAtIndex:index];
     NSTextFieldCell *tcell = nil;
-
+    
     /* There is no existing cell to reuse so create a new one */
     if(result == nil)
     {
@@ -2576,7 +2580,7 @@ DWObject *DWObj;
         if([celldata isMemberOfClass:[NSTableCellView class]])
         {
             result = celldata;
-            [result setFrame:NSMakeRect(0,0,tableColumn.width,0)];
+            [result setFrame:NSMakeRect(0,0,tableColumn.width,_DW_CONTAINER_ROW_HEIGHT)];
             [[result textField] setFrame:result.frame];
         }
         else
@@ -2584,7 +2588,7 @@ DWObject *DWObj;
             /* Create the new NSTableCellView with a frame of the {0,0} with the width of the table.
              * Note that the height of the frame is not really relevant, because the row height will modify the height.
              */
-            result = [[NSTableCellView alloc] initWithFrame:NSMakeRect(0,0,tableColumn.width,0)];
+            result = [[NSTableCellView alloc] initWithFrame:NSMakeRect(0,0,tableColumn.width,_DW_CONTAINER_ROW_HEIGHT)];
 
             /* The identifier of the NSTextField instance is set to MyView.
              * This allows the cell to be reused.
@@ -2601,7 +2605,7 @@ DWObject *DWObj;
         NSImageView *iv = [result imageView];
         if(!iv)
         {
-            iv = [[[NSImageView alloc] initWithFrame:result.frame] autorelease];
+            iv = [[[NSImageView alloc] init] autorelease];
             [result setImageView:iv];
             [result addSubview:iv];
         }
@@ -2612,13 +2616,35 @@ DWObject *DWObj;
         NSTextField *tf = [result textField];
         if(!tf)
         {
-            tf = [[[NSTextField alloc] initWithFrame:result.frame] autorelease];
+            tf = [[[NSTextField alloc] init] autorelease];
             [result setTextField:tf];
             [result addSubview:tf];
         }
         [tf setStringValue:celldata];
     }
+    /* Adjust the frames of the textField and imageView */
+    if([result imageView])
+    {
+        NSRect rect = NSMakeRect((_DW_CONTAINER_ROW_HEIGHT - _DW_CONTAINER_ICON_WIDTH) / 2,
+                                (_DW_CONTAINER_ROW_HEIGHT - _DW_CONTAINER_ICON_HEIGHT) / 2,
+                                 _DW_CONTAINER_ICON_WIDTH,_DW_CONTAINER_ICON_HEIGHT);
+        [[result imageView] setFrame:rect];
+    }
+    if([result textField])
+    {
+        NSRect rect = result.frame;
+        
+        /* Adjust the rect to allow space for the image */
+        if([result imageView])
+        {
+            rect.origin.x += _DW_CONTAINER_ICON_WIDTH;
+            rect.size.width -= _DW_CONTAINER_ICON_WIDTH;
+        }
+        [[result textField] setFrame:rect];
+    }
     
+    /*NSLog(@"viewForTableColumn:%@ row:%d textField:%@ celldata class:%@\n", tableColumn.identifier, (int)row, [[result textField] stringValue], [celldata className]);*/
+
     tcell = [[result textField] cell];
     
     /* Handle drawing alternating row colors if enabled */
