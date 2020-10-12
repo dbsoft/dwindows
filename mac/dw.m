@@ -2567,19 +2567,24 @@ DWObject *DWObj;
     NSTableCellView *result = [tableView makeViewWithIdentifier:tableColumn.identifier owner:self];
     int index = (int)(row * [tvcols count]);
     id celldata = [data objectAtIndex:index];
+    NSTextFieldCell *tcell = nil;
 
     /* There is no existing cell to reuse so create a new one */
     if(result == nil)
     {
         /* The data is already a NSTableCellView so just return that */
         if([celldata isMemberOfClass:[NSTableCellView class]])
+        {
             result = celldata;
+            [result setFrame:NSMakeRect(0,0,tableColumn.width,0)];
+            [[result textField] setFrame:result.frame];
+        }
         else
         {
             /* Create the new NSTableCellView with a frame of the {0,0} with the width of the table.
              * Note that the height of the frame is not really relevant, because the row height will modify the height.
              */
-            result = [[NSTableCellView alloc] init];
+            result = [[NSTableCellView alloc] initWithFrame:NSMakeRect(0,0,tableColumn.width,0)];
 
             /* The identifier of the NSTextField instance is set to MyView.
              * This allows the cell to be reused.
@@ -2591,12 +2596,30 @@ DWObject *DWObj;
     /* result is now guaranteed to be valid, either as a reused cell
      * or as a new cell, so set the text or image
      */
-    NSTextFieldCell *tcell = [[result textField] cell];
-    
     if([celldata isMemberOfClass:[NSImage class]])
-        [[result imageView] setImage:celldata];
+    {
+        NSImageView *iv = [result imageView];
+        if(!iv)
+        {
+            iv = [[[NSImageView alloc] initWithFrame:result.frame] autorelease];
+            [result setImageView:iv];
+            [result addSubview:iv];
+        }
+        [iv setImage:celldata];
+    }
     if([celldata isKindOfClass:[NSString class]])
-        [[result textField] setStringValue:celldata];
+    {
+        NSTextField *tf = [result textField];
+        if(!tf)
+        {
+            tf = [[[NSTextField alloc] initWithFrame:result.frame] autorelease];
+            [result setTextField:tf];
+            [result addSubview:tf];
+        }
+        [tf setStringValue:celldata];
+    }
+    
+    tcell = [[result textField] cell];
     
     /* Handle drawing alternating row colors if enabled */
     if ((row % 2) == 0)
@@ -7724,8 +7747,12 @@ DW_FUNCTION_RESTORE_PARAM5(handle, HWND, pointer, void *, row, int, filename, ch
 
 #ifdef BUILDING_FOR_YOSEMITE
     browsercell = [[[NSTableCellView alloc] init] autorelease];
+    [browsercell setImageView:[[[NSImageView alloc] init] autorelease]];
+    [browsercell addSubview:[browsercell imageView]];
     [[browsercell imageView] setImage:icon];
-    [[browsercell textField] setStringValue:[ NSString stringWithUTF8String:filename ]];
+    [browsercell setTextField:[[[NSTextField alloc] init] autorelease]];
+    [browsercell addSubview:[browsercell textField]];
+    [[browsercell textField] setStringValue:[NSString stringWithUTF8String:filename]];
 #else
     browsercell = [[[DWImageAndTextCell alloc] init] autorelease];
     [browsercell setImage:icon];
