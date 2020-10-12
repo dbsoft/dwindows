@@ -2363,6 +2363,31 @@ DWObject *DWObj;
 #define _DW_CONTAINER_ICON_HEIGHT 16
 #define _DW_CONTAINER_ROW_HEIGHT 20
 
+#ifdef BUILDING_FOR_YOSEMITE
+NSTableCellView *_dw_table_cell_view_new(NSImage *icon, NSString *text)
+{
+    id browsercell = [[[NSTableCellView alloc] init] autorelease];
+    if(icon)
+    {
+        NSImageView *iv = [[[NSImageView alloc] init] autorelease];
+        [browsercell setImageView:iv];
+        [browsercell addSubview:iv];
+        [iv setImage:icon];
+    }
+    if(text)
+    {
+        NSTextField *tf = [[[NSTextField alloc] init] autorelease];
+        [browsercell setTextField:tf];
+        [browsercell addSubview:tf];
+        [tf setStringValue:text];
+        [tf setEditable:NO];
+        [tf setBezeled:NO];
+        [tf setBordered:NO];
+    }
+    return browsercell;
+}
+#endif
+
 /* Subclass for a Container/List type */
 @interface DWContainer : NSTableView
 #ifdef BUILDING_FOR_SNOW_LEOPARD
@@ -2597,31 +2622,6 @@ DWObject *DWObj;
         }
     }
 
-    /* result is now guaranteed to be valid, either as a reused cell
-     * or as a new cell, so set the text or image
-     */
-    if([celldata isMemberOfClass:[NSImage class]])
-    {
-        NSImageView *iv = [result imageView];
-        if(!iv)
-        {
-            iv = [[[NSImageView alloc] init] autorelease];
-            [result setImageView:iv];
-            [result addSubview:iv];
-        }
-        [iv setImage:celldata];
-    }
-    if([celldata isKindOfClass:[NSString class]])
-    {
-        NSTextField *tf = [result textField];
-        if(!tf)
-        {
-            tf = [[[NSTextField alloc] init] autorelease];
-            [result setTextField:tf];
-            [result addSubview:tf];
-        }
-        [tf setStringValue:celldata];
-    }
     /* Adjust the frames of the textField and imageView */
     if([result imageView])
     {
@@ -7637,7 +7637,7 @@ DW_FUNCTION_RESTORE_PARAM5(handle, HWND, pointer, void *, column, int, row, int,
 {
     DW_FUNCTION_INIT;
     DWContainer *cont = handle;
-    id object = nil;
+    id object = nil, icon = nil, text = nil;
     int type = [cont cellType:column];
     int lastadd = 0;
 
@@ -7651,12 +7651,12 @@ DW_FUNCTION_RESTORE_PARAM5(handle, HWND, pointer, void *, column, int, row, int,
     {
         if(type & DW_CFA_BITMAPORICON)
         {
-            object = *((NSImage **)data);
+            icon = *((NSImage **)data);
         }
         else if(type & DW_CFA_STRING)
         {
             char *str = *((char **)data);
-            object = [ NSString stringWithUTF8String:str ];
+            text = [ NSString stringWithUTF8String:str ];
         }
         else
         {
@@ -7693,9 +7693,15 @@ DW_FUNCTION_RESTORE_PARAM5(handle, HWND, pointer, void *, column, int, row, int,
                 strftime(textbuffer, 100, "%X", &curtm);
             }
             if(textbuffer[0])
-                object = [ NSString stringWithUTF8String:textbuffer ];
+                text = [ NSString stringWithUTF8String:textbuffer ];
         }
     }
+
+#ifdef BUILDING_FOR_YOSEMITE
+    object = _dw_table_cell_view_new(icon, text);
+#else
+    object = icon ? icon : text;
+#endif
 
     [cont editCell:object at:(row+lastadd) and:column];
     [cont setNeedsDisplay:YES];
@@ -7772,13 +7778,7 @@ DW_FUNCTION_RESTORE_PARAM5(handle, HWND, pointer, void *, row, int, filename, ch
     }
 
 #ifdef BUILDING_FOR_YOSEMITE
-    browsercell = [[[NSTableCellView alloc] init] autorelease];
-    [browsercell setImageView:[[[NSImageView alloc] init] autorelease]];
-    [browsercell addSubview:[browsercell imageView]];
-    [[browsercell imageView] setImage:icon];
-    [browsercell setTextField:[[[NSTextField alloc] init] autorelease]];
-    [browsercell addSubview:[browsercell textField]];
-    [[browsercell textField] setStringValue:[NSString stringWithUTF8String:filename]];
+    browsercell = _dw_table_cell_view_new(icon, [NSString stringWithUTF8String:filename]);
 #else
     browsercell = [[[DWImageAndTextCell alloc] init] autorelease];
     [browsercell setImage:icon];
