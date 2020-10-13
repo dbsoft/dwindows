@@ -2809,11 +2809,24 @@ void _dw_table_cell_view_layout(NSTableCellView *result)
                 {
 #ifdef BUILDING_FOR_YOSEMITE
                     NSTableCellView *cell = [self viewAtColumn:z row:x makeIfNecessary:YES];
-                    int thiswidth = NSWidth([cell frame]);
+                    int thiswidth = 4, thisheight = 0;
+                    
+                    if([cell imageView])
+                    {
+                        thiswidth += [[cell imageView] image].size.width;
+                        thisheight = [[cell imageView] image].size.height;
+                    }
+                    if([cell textField])
+                    {
+                        int textheight = [[cell textField] intrinsicContentSize].width;
+                        thiswidth += [[cell textField] intrinsicContentSize].width;
+                        if(textheight > thisheight)
+                            thisheight = textheight;
+                    }
                     
                     /* If on the first column... add up the heights */
                     if(z == 0)
-                        cheight += NSHeight([cell frame]);
+                        cheight += thisheight;
 #else
                     NSCell *cell = [self preparedCellAtColumn:z row:x];
                     int thiswidth = [cell cellSize].width;
@@ -2876,7 +2889,12 @@ void _dw_table_cell_view_layout(NSTableCellView *result)
                     {
 #ifdef BUILDING_FOR_YOSEMITE
                         NSTableCellView *cell = [self viewAtColumn:z row:x makeIfNecessary:YES];
-                        int thiswidth = NSWidth([cell frame]);
+                        int thiswidth = 4;
+                        
+                        if([cell imageView])
+                            thiswidth += [[cell imageView] image].size.width;
+                        if([cell textField])
+                            thiswidth += [[cell textField] intrinsicContentSize].width;
 #else
                         NSCell *cell = [self preparedCellAtColumn:z row:x];
                         int thiswidth = [cell cellSize].width;
