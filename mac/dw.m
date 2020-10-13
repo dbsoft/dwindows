@@ -2381,6 +2381,7 @@ NSTableCellView *_dw_table_cell_view_new(NSImage *icon, NSString *text)
         [tf setBezeled:NO];
         [tf setBordered:NO];
         [tf setDrawsBackground:NO];
+        [[tf cell] setVCenter:YES];
         [browsercell setTextField:tf];
         [browsercell addSubview:tf];
     }
