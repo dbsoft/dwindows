@@ -2386,6 +2386,30 @@ NSTableCellView *_dw_table_cell_view_new(NSImage *icon, NSString *text)
     }
     return browsercell;
 }
+
+void _dw_table_cell_view_layout(NSTableCellView *result)
+{
+    /* Adjust the frames of the textField and imageView */
+    if([result imageView])
+    {
+        NSRect rect = NSMakeRect((_DW_CONTAINER_ROW_HEIGHT - _DW_CONTAINER_ICON_WIDTH) / 2,
+                                 (_DW_CONTAINER_ROW_HEIGHT - _DW_CONTAINER_ICON_HEIGHT) / 2,
+                                 _DW_CONTAINER_ICON_WIDTH,_DW_CONTAINER_ICON_HEIGHT);
+        [[result imageView] setFrame:rect];
+    }
+    if([result textField])
+    {
+        NSRect rect = result.frame;
+        
+        /* Adjust the rect to allow space for the image */
+        if([result imageView])
+        {
+            rect.origin.x += _DW_CONTAINER_ICON_WIDTH;
+            rect.size.width -= _DW_CONTAINER_ICON_WIDTH;
+        }
+        [[result textField] setFrame:rect];
+    }
+}
 #endif
 
 /* Subclass for a Container/List type */
@@ -2622,26 +2646,7 @@ NSTableCellView *_dw_table_cell_view_new(NSImage *icon, NSString *text)
         }
     }
 
-    /* Adjust the frames of the textField and imageView */
-    if([result imageView])
-    {
-        NSRect rect = NSMakeRect((_DW_CONTAINER_ROW_HEIGHT - _DW_CONTAINER_ICON_WIDTH) / 2,
-                                (_DW_CONTAINER_ROW_HEIGHT - _DW_CONTAINER_ICON_HEIGHT) / 2,
-                                 _DW_CONTAINER_ICON_WIDTH,_DW_CONTAINER_ICON_HEIGHT);
-        [[result imageView] setFrame:rect];
-    }
-    if([result textField])
-    {
-        NSRect rect = result.frame;
-        
-        /* Adjust the rect to allow space for the image */
-        if([result imageView])
-        {
-            rect.origin.x += _DW_CONTAINER_ICON_WIDTH;
-            rect.size.width -= _DW_CONTAINER_ICON_WIDTH;
-        }
-        [[result textField] setFrame:rect];
-    }
+    _dw_table_cell_view_layout(result);
     
     /*NSLog(@"viewForTableColumn:%@ row:%d textField:%@ celldata class:%@\n", tableColumn.identifier, (int)row, [[result textField] stringValue], [celldata className]);*/
 
@@ -3083,8 +3088,12 @@ void _free_tree_recurse(NSMutableArray *node, NSMutableArray *item)
 -(id)outlineView:(NSOutlineView *)outlineView child:(int)index ofItem:(id)item;
 -(BOOL)outlineView:(NSOutlineView *)outlineView isItemExpandable:(id)item;
 -(int)outlineView:(NSOutlineView *)outlineView numberOfChildrenOfItem:(id)item;
+#ifdef BUILDING_FOR_YOSEMITE
+-(NSView *)outlineView:(NSOutlineView *)outlineView viewForTableColumn:(NSTableColumn *)tableColumn item:(id)item;
+#else
 -(id)outlineView:(NSOutlineView *)outlineView objectValueForTableColumn:(NSTableColumn *)tableColumn byItem:(id)item;
 -(void)outlineView:(NSOutlineView *)outlineView willDisplayCell:(id)cell forTableColumn:(NSTableColumn *)tableColumn item:(id)item;
+#endif
 -(BOOL)outlineView:(NSOutlineView *)outlineView shouldEditTableColumn:(NSTableColumn *)tableColumn item:(id)item;
 -(void)addTree:(NSMutableArray *)item and:(NSMutableArray *)parent after:(NSMutableArray *)after;
 -(void *)userdata;
@@ -3152,6 +3161,32 @@ void _free_tree_recurse(NSMutableArray *node, NSMutableArray *item)
         return data ? (int)[data count] : 0;
     }
 }
+#ifdef BUILDING_FOR_YOSEMITE
+-(NSView *)outlineView:(NSOutlineView *)outlineView viewForTableColumn:(NSTableColumn *)tableColumn item:(id)item
+{
+    NSTableCellView *view = [outlineView makeViewWithIdentifier:[tableColumn identifier] owner:self];
+    
+    if([item isKindOfClass:[NSMutableArray class]])
+    {
+        NSMutableArray *this = (NSMutableArray *)item;
+        NSImage *icon = [this objectAtIndex:0];
+        NSString *text = [this objectAtIndex:1];
+        if(![icon isKindOfClass:[NSImage class]])
+            icon = nil;
+        if(view)
+        {
+            [[view textField] setStringValue: text];
+            [[view imageView] setImage:icon];
+        }
+        else
+            view = _dw_table_cell_view_new(icon, text);
+    }
+    [view setFrame:NSMakeRect(0,0,tableColumn.width,_DW_CONTAINER_ROW_HEIGHT)];
+    [[view textField] setFrame:view.frame];
+    _dw_table_cell_view_layout(view);
+    return view;
+}
+#else
 -(id)outlineView:(NSOutlineView *)outlineView objectValueForTableColumn:(NSTableColumn *)tableColumn byItem:(id)item
 {
     if(item)
@@ -3170,15 +3205,6 @@ void _free_tree_recurse(NSMutableArray *node, NSMutableArray *item)
 }
 -(void)outlineView:(NSOutlineView *)outlineView willDisplayCell:(id)cell forTableColumn:(NSTableColumn *)tableColumn item:(id)item
 {
-#ifdef BUILDING_FOR_YOSEMITE
-    if([cell isMemberOfClass:[NSTableCellView class]])
-    {
-        NSMutableArray *this = (NSMutableArray *)item;
-        NSImage *img = [this objectAtIndex:0];
-        if([img isKindOfClass:[NSImage class]])
-            [[(NSTableCellView*)cell imageView] setImage:img];
-    }
-#else
     if([cell isMemberOfClass:[DWImageAndTextCell class]])
     {
         NSMutableArray *this = (NSMutableArray *)item;
@@ -3186,8 +3212,8 @@ void _free_tree_recurse(NSMutableArray *node, NSMutableArray *item)
         if([img isKindOfClass:[NSImage class]])
             [(DWImageAndTextCell*)cell setImage:img];
     }
-#endif
 }
+#endif
 -(BOOL)outlineView:(NSOutlineView *)outlineView shouldEditTableColumn:(NSTableColumn *)tableColumn item:(id)item { return NO; }
 -(void)addTree:(NSMutableArray *)item and:(NSMutableArray *)parent after:(NSMutableArray *)after
 {
