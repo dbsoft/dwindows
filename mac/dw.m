@@ -1472,7 +1472,7 @@ DWObject *DWObj;
     unsigned long long handle;
     HWND notification;
     
-    // Skip the dw-notification- prefix
+    /* Skip the dw-notification- prefix */
     [objScanner scanString:@"dw-notification-" intoString:nil];
     [objScanner scanUnsignedLongLong:&handle];
     notification = DW_UINT_TO_POINTER(handle);
@@ -2359,53 +2359,54 @@ DWObject *DWObj;
 @end
 #endif
 
-#define _DW_CONTAINER_ICON_WIDTH 16
-#define _DW_CONTAINER_ICON_HEIGHT 16
-#define _DW_CONTAINER_ROW_HEIGHT 20
-
 #ifdef BUILDING_FOR_YOSEMITE
 NSTableCellView *_dw_table_cell_view_new(NSImage *icon, NSString *text)
 {
-    id browsercell = [[[NSTableCellView alloc] init] autorelease];
+    NSTableCellView *browsercell = [[[NSTableCellView alloc] init] autorelease];
+    [browsercell setAutoresizesSubviews:YES];
     if(icon)
     {
         NSImageView *iv = [[[NSImageView alloc] init] autorelease];
+        [iv setAutoresizingMask:NSViewHeightSizable];
+        [iv setImage:icon];
         [browsercell setImageView:iv];
         [browsercell addSubview:iv];
-        [iv setImage:icon];
     }
     if(text)
     {
         NSTextField *tf = [[[NSTextField alloc] init] autorelease];
-        [browsercell setTextField:tf];
-        [browsercell addSubview:tf];
+        [tf setAutoresizingMask:NSViewHeightSizable|NSViewWidthSizable];
         [tf setStringValue:text];
         [tf setEditable:NO];
         [tf setBezeled:NO];
         [tf setBordered:NO];
+        [tf setDrawsBackground:NO];
+        [browsercell setTextField:tf];
+        [browsercell addSubview:tf];
     }
     return browsercell;
 }
 
 void _dw_table_cell_view_layout(NSTableCellView *result)
 {
+    int width = 0;
+    NSRect rect = result.frame;
+    
     /* Adjust the frames of the textField and imageView */
     if([result imageView])
     {
-        NSRect rect = NSMakeRect((_DW_CONTAINER_ROW_HEIGHT - _DW_CONTAINER_ICON_WIDTH) / 2,
-                                 (_DW_CONTAINER_ROW_HEIGHT - _DW_CONTAINER_ICON_HEIGHT) / 2,
-                                 _DW_CONTAINER_ICON_WIDTH,_DW_CONTAINER_ICON_HEIGHT);
-        [[result imageView] setFrame:rect];
+        NSImage *icon = [[result imageView] image];
+        width = [icon size].width;
+        [[result imageView] setFrame:NSMakeRect(0,0,width,rect.size.height)];
     }
     if([result textField])
     {
-        NSRect rect = result.frame;
         
         /* Adjust the rect to allow space for the image */
         if([result imageView])
         {
-            rect.origin.x += _DW_CONTAINER_ICON_WIDTH;
-            rect.size.width -= _DW_CONTAINER_ICON_WIDTH;
+            rect.origin.x += width;
+            rect.size.width -= width;
         }
         [[result textField] setFrame:rect];
     }
@@ -2627,17 +2628,13 @@ void _dw_table_cell_view_layout(NSTableCellView *result)
     {
         /* The data is already a NSTableCellView so just return that */
         if([celldata isMemberOfClass:[NSTableCellView class]])
-        {
             result = celldata;
-            [result setFrame:NSMakeRect(0,0,tableColumn.width,_DW_CONTAINER_ROW_HEIGHT)];
-            [[result textField] setFrame:result.frame];
-        }
         else
         {
             /* Create the new NSTableCellView with a frame of the {0,0} with the width of the table.
              * Note that the height of the frame is not really relevant, because the row height will modify the height.
              */
-            result = [[NSTableCellView alloc] initWithFrame:NSMakeRect(0,0,tableColumn.width,_DW_CONTAINER_ROW_HEIGHT)];
+            result = [[NSTableCellView alloc] init];
 
             /* The identifier of the NSTextField instance is set to MyView.
              * This allows the cell to be reused.
@@ -2648,8 +2645,6 @@ void _dw_table_cell_view_layout(NSTableCellView *result)
 
     _dw_table_cell_view_layout(result);
     
-    /*NSLog(@"viewForTableColumn:%@ row:%d textField:%@ celldata class:%@\n", tableColumn.identifier, (int)row, [[result textField] stringValue], [celldata className]);*/
-
     tcell = [[result textField] cell];
     
     /* Handle drawing alternating row colors if enabled */
@@ -3181,8 +3176,6 @@ void _free_tree_recurse(NSMutableArray *node, NSMutableArray *item)
         else
             view = _dw_table_cell_view_new(icon, text);
     }
-    [view setFrame:NSMakeRect(0,0,tableColumn.width,_DW_CONTAINER_ROW_HEIGHT)];
-    [[view textField] setFrame:view.frame];
     _dw_table_cell_view_layout(view);
     return view;
 }
@@ -3480,31 +3473,31 @@ API_AVAILABLE(macos(10.14))
 @end
 
 @implementation DWUserNotificationCenterDelegate
-//Called when a notification is delivered to a foreground app.
+/* Called when a notification is delivered to a foreground app. */
 -(void)userNotificationCenter:(UNUserNotificationCenter *)center willPresentNotification:(UNNotification *)notification withCompletionHandler:(void (^)(UNNotificationPresentationOptions options))completionHandler API_AVAILABLE(macos(10.14))
 {
     completionHandler(UNAuthorizationOptionSound | UNAuthorizationOptionAlert | UNAuthorizationOptionBadge);
 }
-//Called to let your app know which action was selected by the user for a given notification.
+/* Called to let your app know which action was selected by the user for a given notification. */
 -(void)userNotificationCenter:(UNUserNotificationCenter *)center didReceiveNotificationResponse:(UNNotificationResponse *)response withCompletionHandler:(void(^)(void))completionHandler API_AVAILABLE(macos(10.14))
 {
     NSScanner *objScanner = [NSScanner scannerWithString:response.notification.request.identifier];
     unsigned long long handle;
     HWND notification;
 
-    // Skip the dw-notification- prefix
+    /* Skip the dw-notification- prefix */
     [objScanner scanString:@"dw-notification-" intoString:nil];
     [objScanner scanUnsignedLongLong:&handle];
     notification = DW_UINT_TO_POINTER(handle);
     
     if ([response.actionIdentifier isEqualToString:UNNotificationDismissActionIdentifier])
     {
-        // The user dismissed the notification without taking action.
+        /* The user dismissed the notification without taking action. */
         dw_signal_disconnect_by_window(notification);
     }
     else if ([response.actionIdentifier isEqualToString:UNNotificationDefaultActionIdentifier])
     {
-        // The user launched the app.
+        /* The user launched the app. */
         _event_handler(notification, nil, 8);
         dw_signal_disconnect_by_window(notification);
     }
@@ -4959,8 +4952,6 @@ void _control_size(id handle, int *width, int *height)
 /* Internal box packing function called by the other 3 functions */
 void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsize, int vsize, int pad, char *funcname)
 {
-    //int _locked_by_me = FALSE;
-    //DW_MUTEX_LOCK;
     id object = box;
     DWBox *view = box;
     DWBox *this = item;
@@ -5078,7 +5069,6 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
     /* Free the old data */
     if(thisitem)
        free(thisitem);
-    //DW_MUTEX_UNLOCK;
 }
 
 /*
@@ -11024,7 +11014,7 @@ HWND dw_notification_new(const char *title, const char *imagepath, const char *d
     }
 
 #ifdef BUILDING_FOR_MOJAVE
-    // Configure the notification's payload.
+    /* Configure the notification's payload. */
     if (@available(macOS 10.14, *))
     {
         if([[NSBundle mainBundle] bundleIdentifier] != nil)
@@ -11055,7 +11045,7 @@ HWND dw_notification_new(const char *title, const char *imagepath, const char *d
 #endif
     {
 #ifndef BUILDING_FOR_BIG_SUR
-        // Fallback on earlier versions
+        /* Fallback on earlier versions */
         NSUserNotification *notification = [[NSUserNotification alloc] init];
 
         if(notification)
@@ -11089,7 +11079,7 @@ int dw_notification_send(HWND notification)
         NSString *notid = [NSString stringWithFormat:@"dw-notification-%llu", DW_POINTER_TO_ULONGLONG(notification)];
         
 #ifdef BUILDING_FOR_MOJAVE
-        // Schedule the notification.
+        /* Schedule the notification. */
         if (@available(macOS 10.14, *))
         {
             if([[NSBundle mainBundle] bundleIdentifier] != nil)
@@ -11105,7 +11095,7 @@ int dw_notification_send(HWND notification)
 #endif
         {
 #ifndef BUILDING_FOR_BIG_SUR
-            // Fallback on earlier versions
+            /* Fallback on earlier versions */
             NSUserNotification *request = (NSUserNotification *)notification;
             request.identifier = notid;
             [[NSUserNotificationCenter defaultUserNotificationCenter] deliverNotification:request];
