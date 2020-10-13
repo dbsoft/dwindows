@@ -2465,6 +2465,7 @@ void _dw_table_cell_view_layout(NSTableCellView *result)
 -(void)selectionChanged:(id)sender;
 -(NSMenu *)menuForEvent:(NSEvent *)event;
 #ifdef BUILDING_FOR_YOSEMITE
+-(void)tableView:(NSTableView *)tableView didAddRowView:(NSTableRowView *)rowView forRow:(NSInteger)row;
 -(NSView *)tableView:(NSTableView *)tableView viewForTableColumn:(NSTableColumn *)tableColumn row:(NSInteger)row;
 #else
 -(void)tableView:(NSTableView *)tableView willDisplayCell:(id)cell forTableColumn:(NSTableColumn *)tableColumn row:(NSInteger)row;
@@ -2615,62 +2616,37 @@ void _dw_table_cell_view_layout(NSTableCellView *result)
     return 0;
 }
 #ifdef BUILDING_FOR_YOSEMITE
--(NSView *)tableView:(NSTableView *)tableView viewForTableColumn:(NSTableColumn *)tableColumn row:(NSInteger)row;
+-(void)tableView:(NSTableView *)tableView didAddRowView:(NSTableRowView *)rowView forRow:(NSInteger)row
 {
-    /* Get an existing cell with the MyView identifier if it exists */
-    NSTableCellView *result = [tableView makeViewWithIdentifier:tableColumn.identifier owner:self];
-    int index = (int)(row * [tvcols count]) + (int)[tvcols indexOfObject:tableColumn];
-    id celldata = [data objectAtIndex:index];
-    NSTextFieldCell *tcell = nil;
-    
-    /* There is no existing cell to reuse so create a new one */
-    if(result == nil)
-    {
-        /* The data is already a NSTableCellView so just return that */
-        if([celldata isMemberOfClass:[NSTableCellView class]])
-            result = celldata;
-        else
-        {
-            /* Create the new NSTableCellView with a frame of the {0,0} with the width of the table.
-             * Note that the height of the frame is not really relevant, because the row height will modify the height.
-             */
-            result = [[NSTableCellView alloc] init];
-
-            /* The identifier of the NSTextField instance is set to MyView.
-             * This allows the cell to be reused.
-             */
-            [result setIdentifier:tableColumn.identifier];
-        }
-    }
-
-    _dw_table_cell_view_layout(result);
-    
-    tcell = [[result textField] cell];
-    
     /* Handle drawing alternating row colors if enabled */
     if ((row % 2) == 0)
     {
         if(evencolor)
-        {
-            [tcell setDrawsBackground:YES];
-            [tcell setBackgroundColor:evencolor];
-        }
-        else
-            [tcell setDrawsBackground:NO];
+            [rowView setBackgroundColor:evencolor];
     }
     else
     {
         if(oddcolor)
-        {
-            [tcell setDrawsBackground:YES];
-            [tcell setBackgroundColor:oddcolor];
-        }
-        else
-            [tcell setDrawsBackground:NO];
+            [rowView setBackgroundColor:oddcolor];
     }
-    
-    /* Return the result */
-    return result;
+}
+-(NSView *)tableView:(NSTableView *)tableView viewForTableColumn:(NSTableColumn *)tableColumn row:(NSInteger)row;
+{
+    /* Get an existing cell with the MyView identifier if it exists */
+    int index = (int)(row * [tvcols count]) + (int)[tvcols indexOfObject:tableColumn];
+    id celldata = [data objectAtIndex:index];
+
+    /* The data is already a NSTableCellView so just return that */
+    if([celldata isMemberOfClass:[NSTableCellView class]])
+    {
+        NSTableCellView *result = celldata;
+
+        _dw_table_cell_view_layout(result);
+            
+        /* Return the result */
+        return result;
+    }
+    return nil;
 }
 #else
 -(void)tableView:(NSTableView *)tableView willDisplayCell:(id)cell forTableColumn:(NSTableColumn *)tableColumn row:(NSInteger)row
