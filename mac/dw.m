@@ -52,6 +52,7 @@
 #define DWCalendarUnitYear NSCalendarUnitYear
 #define DWCalendarIdentifierGregorian NSCalendarIdentifierGregorian
 #define BUILDING_FOR_YOSEMITE
+#define DW_USE_NSVIEW
 #else
 #define DWModalResponseOK NSOKButton
 #define DWModalResponseCancel NSCancelButton
@@ -2238,7 +2239,7 @@ DWObject *DWObj;
 -(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); dw_signal_disconnect_by_window(self); [super dealloc]; }
 @end
 
-#ifndef BUILDING_FOR_YOSEMITE
+#ifndef DW_USE_NSVIEW
 /* Subclass NSTextFieldCell for displaying image and text */
 @interface DWImageAndTextCell : NSTextFieldCell
 {
@@ -2359,7 +2360,7 @@ DWObject *DWObj;
 @end
 #endif
 
-#ifdef BUILDING_FOR_YOSEMITE
+#ifdef DW_USE_NSVIEW
 NSTableCellView *_dw_table_cell_view_new(NSImage *icon, NSString *text)
 {
     NSTableCellView *browsercell = [[[NSTableCellView alloc] init] autorelease];
@@ -2465,7 +2466,7 @@ void _dw_table_cell_view_layout(NSTableCellView *result)
 -(void)tableView:(NSTableView *)tableView didClickTableColumn:(NSTableColumn *)tableColumn;
 -(void)selectionChanged:(id)sender;
 -(NSMenu *)menuForEvent:(NSEvent *)event;
-#ifdef BUILDING_FOR_YOSEMITE
+#ifdef DW_USE_NSVIEW
 -(void)tableView:(NSTableView *)tableView didAddRowView:(NSTableRowView *)rowView forRow:(NSInteger)row;
 -(NSView *)tableView:(NSTableView *)tableView viewForTableColumn:(NSTableColumn *)tableColumn row:(NSInteger)row;
 #else
@@ -2616,7 +2617,7 @@ void _dw_table_cell_view_layout(NSTableCellView *result)
     }
     return 0;
 }
-#ifdef BUILDING_FOR_YOSEMITE
+#ifdef DW_USE_NSVIEW
 -(void)tableView:(NSTableView *)tableView didAddRowView:(NSTableRowView *)rowView forRow:(NSInteger)row
 {
     /* Handle drawing alternating row colors if enabled */
@@ -2812,7 +2813,7 @@ void _dw_table_cell_view_layout(NSTableCellView *result)
 
                 for(x=0;x<rowcount;x++)
                 {
-#ifdef BUILDING_FOR_YOSEMITE
+#ifdef DW_USE_NSVIEW
                     NSTableCellView *cell = [self viewAtColumn:z row:x makeIfNecessary:YES];
                     int thiswidth = 4, thisheight = 0;
                     
@@ -2892,7 +2893,7 @@ void _dw_table_cell_view_layout(NSTableCellView *result)
 
                     for(x=0;x<rowcount;x++)
                     {
-#ifdef BUILDING_FOR_YOSEMITE
+#ifdef DW_USE_NSVIEW
                         NSTableCellView *cell = [self viewAtColumn:z row:x makeIfNecessary:YES];
                         int thiswidth = 4;
                         
@@ -3083,7 +3084,7 @@ void _free_tree_recurse(NSMutableArray *node, NSMutableArray *item)
 -(id)outlineView:(NSOutlineView *)outlineView child:(int)index ofItem:(id)item;
 -(BOOL)outlineView:(NSOutlineView *)outlineView isItemExpandable:(id)item;
 -(int)outlineView:(NSOutlineView *)outlineView numberOfChildrenOfItem:(id)item;
-#ifdef BUILDING_FOR_YOSEMITE
+#ifdef DW_USE_NSVIEW
 -(NSView *)outlineView:(NSOutlineView *)outlineView viewForTableColumn:(NSTableColumn *)tableColumn item:(id)item;
 #else
 -(id)outlineView:(NSOutlineView *)outlineView objectValueForTableColumn:(NSTableColumn *)tableColumn byItem:(id)item;
@@ -3110,7 +3111,7 @@ void _free_tree_recurse(NSMutableArray *node, NSMutableArray *item)
     if (self)
     {
         treecol = [[NSTableColumn alloc] initWithIdentifier:@"_DWTreeColumn"];
-#ifndef BUILDING_FOR_YOSEMITE
+#ifndef DW_USE_NSVIEW
         DWImageAndTextCell *browsercell = [[[DWImageAndTextCell alloc] init] autorelease];
         [treecol setDataCell:browsercell];
 #endif
@@ -3156,7 +3157,7 @@ void _free_tree_recurse(NSMutableArray *node, NSMutableArray *item)
         return data ? (int)[data count] : 0;
     }
 }
-#ifdef BUILDING_FOR_YOSEMITE
+#ifdef DW_USE_NSVIEW
 -(NSView *)outlineView:(NSOutlineView *)outlineView viewForTableColumn:(NSTableColumn *)tableColumn item:(id)item
 {
     NSTableCellView *view = [outlineView makeViewWithIdentifier:[tableColumn identifier] owner:self];
@@ -7536,7 +7537,7 @@ DW_FUNCTION_RESTORE_PARAM5(handle, HWND, flags, unsigned long *, titles, char **
     {
         NSString *title = [NSString stringWithUTF8String:titles[z]];
         NSTableColumn *column = [[NSTableColumn alloc] initWithIdentifier:title];
-#ifdef BUILDING_FOR_YOSEMITE
+#ifdef DW_USE_NSVIEW
         [column setTitle:title];
 #else
         [[column headerCell] setStringValue:title];
@@ -7556,14 +7557,14 @@ DW_FUNCTION_RESTORE_PARAM5(handle, HWND, flags, unsigned long *, titles, char **
         /* Defaults to left justified so just handle right and center */
         if(flags[z] & DW_CFA_RIGHT)
         {
-#ifndef BUILDING_FOR_YOSEMITE
+#ifndef DW_USE_NSVIEW
             [(NSCell *)[column dataCell] setAlignment:DWTextAlignmentRight];
 #endif
             [(NSCell *)[column headerCell] setAlignment:DWTextAlignmentRight];
         }
         else if(flags[z] & DW_CFA_CENTER)
         {
-#ifndef BUILDING_FOR_YOSEMITE
+#ifndef DW_USE_NSVIEW
             [(NSCell *)[column dataCell] setAlignment:DWTextAlignmentCenter];
 #endif
             [(NSCell *)[column headerCell] setAlignment:DWTextAlignmentCenter];
@@ -7717,7 +7718,7 @@ DW_FUNCTION_RESTORE_PARAM5(handle, HWND, pointer, void *, column, int, row, int,
         }
     }
 
-#ifdef BUILDING_FOR_YOSEMITE
+#ifdef DW_USE_NSVIEW
     object = _dw_table_cell_view_new(icon, text);
 #else
     object = icon ? icon : text;
@@ -7784,7 +7785,7 @@ DW_FUNCTION_RESTORE_PARAM5(handle, HWND, pointer, void *, row, int, filename, ch
 {
     DW_FUNCTION_INIT;
     DWContainer *cont = handle;
-#ifdef BUILDING_FOR_YOSEMITE
+#ifdef DW_USE_NSVIEW
     NSTableCellView *browsercell;
 #else
     DWImageAndTextCell *browsercell;
@@ -7797,7 +7798,7 @@ DW_FUNCTION_RESTORE_PARAM5(handle, HWND, pointer, void *, row, int, filename, ch
         lastadd = [cont lastAddPoint];
     }
 
-#ifdef BUILDING_FOR_YOSEMITE
+#ifdef DW_USE_NSVIEW
     browsercell = _dw_table_cell_view_new(icon, [NSString stringWithUTF8String:filename]);
 #else
     browsercell = [[[DWImageAndTextCell alloc] init] autorelease];
