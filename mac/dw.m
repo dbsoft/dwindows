@@ -2641,9 +2641,14 @@ void _dw_table_cell_view_layout(NSTableCellView *result)
     if([celldata isMemberOfClass:[NSTableCellView class]])
     {
         NSTableCellView *result = celldata;
-
+        NSTextAlignment align = [[tableColumn headerCell] alignment];
+        
         _dw_table_cell_view_layout(result);
-            
+        
+        /* Copy the alignment setting from the column */
+        if([result textField])
+            [[result textField] setAlignment:align];
+        
         /* Return the result */
         return result;
     }
@@ -7551,12 +7556,16 @@ DW_FUNCTION_RESTORE_PARAM5(handle, HWND, flags, unsigned long *, titles, char **
         /* Defaults to left justified so just handle right and center */
         if(flags[z] & DW_CFA_RIGHT)
         {
+#ifndef BUILDING_FOR_YOSEMITE
             [(NSCell *)[column dataCell] setAlignment:DWTextAlignmentRight];
+#endif
             [(NSCell *)[column headerCell] setAlignment:DWTextAlignmentRight];
         }
         else if(flags[z] & DW_CFA_CENTER)
         {
+#ifndef BUILDING_FOR_YOSEMITE
             [(NSCell *)[column dataCell] setAlignment:DWTextAlignmentCenter];
+#endif
             [(NSCell *)[column headerCell] setAlignment:DWTextAlignmentCenter];
         }
         [column setEditable:NO];
