@@ -64,7 +64,7 @@ AC_ARG_WITH(deprecated,
 
 dnl ---------------------- check for '--with-arch' switch -----------------
 AC_ARG_WITH(arch,
-   [  --with-arch             specify MacOS architecture: one of all, 32bit, 64bit, intel, arm, ppc, ppc64, x86_64, i386],
+   [  --with-arch             specify MacOS architecture: one of modern, all, 32bit, 64bit, intel, arm, ppc, ppc64, x86_64, i386],
    [with_arch=$withval],
    [with_arch=no],
 )
@@ -143,6 +143,9 @@ case "$target" in
             ;;
          arm)
             ARCH="-arch arm64"
+            ;;
+         modern)
+            ARCH="-arch x86_64 -arch arm64"
             ;;
          *)
             ARCH="-arch $with_arch"
