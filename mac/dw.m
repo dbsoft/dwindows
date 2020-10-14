@@ -2368,7 +2368,7 @@ NSTableCellView *_dw_table_cell_view_new(NSImage *icon, NSString *text)
     if(icon)
     {
         NSImageView *iv = [[[NSImageView alloc] init] autorelease];
-        [iv setAutoresizingMask:NSViewHeightSizable];
+        [iv setAutoresizingMask:NSViewHeightSizable|(text ? 0 :NSViewWidthSizable)];
         [iv setImage:icon];
         [browsercell setImageView:iv];
         [browsercell addSubview:iv];
@@ -2391,26 +2391,21 @@ NSTableCellView *_dw_table_cell_view_new(NSImage *icon, NSString *text)
 
 void _dw_table_cell_view_layout(NSTableCellView *result)
 {
-    int width = 0;
-    NSRect rect = result.frame;
+    /* Adjust the frames of the textField and imageView when both are present */
+    if([result imageView] && [result textField])
+    {
+        NSImageView *iv = [result imageView];
+        NSImage *icon = [iv image];
+        NSTextField *tf = [result textField];
+        NSRect rect = result.frame;
+        int width =[icon size].width;
     
-    /* Adjust the frames of the textField and imageView */
-    if([result imageView])
-    {
-        NSImage *icon = [[result imageView] image];
-        width = [icon size].width;
-        [[result imageView] setFrame:NSMakeRect(0,0,width,rect.size.height)];
-    }
-    if([result textField])
-    {
+        [iv setFrame:NSMakeRect(0,0,width,rect.size.height)];
         
         /* Adjust the rect to allow space for the image */
-        if([result imageView])
-        {
-            rect.origin.x += width;
-            rect.size.width -= width;
-        }
-        [[result textField] setFrame:rect];
+        rect.origin.x += width;
+        rect.size.width -= width;
+        [tf setFrame:rect];
     }
 }
 #endif
@@ -2634,7 +2629,7 @@ void _dw_table_cell_view_layout(NSTableCellView *result)
 }
 -(NSView *)tableView:(NSTableView *)tableView viewForTableColumn:(NSTableColumn *)tableColumn row:(NSInteger)row;
 {
-    /* Get an existing cell with the MyView identifier if it exists */
+    /* Not reusing cell views, so get the cell from our array */
     int index = (int)(row * [tvcols count]) + (int)[tvcols indexOfObject:tableColumn];
     id celldata = [data objectAtIndex:index];
 
@@ -4722,7 +4717,7 @@ id _text_handle(id object)
  * Ranged: 100x14 or 14x100 for vertical.
  * Buttons/Bitmaps: Size of text or image and border.
 */
-void _control_size(id handle, int *width, int *height)
+void _dw_control_size(id handle, int *width, int *height)
 {
     int thiswidth = 1, thisheight = 1, extrawidth = 0, extraheight = 0;
     NSString *nsstr = nil;
@@ -5041,7 +5036,7 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
 
     /* If either of the parameters are -1 ... calculate the size */
     if(width == -1 || height == -1)
-        _control_size(object, width == -1 ? &tmpitem[index].width : NULL, height == -1 ? &tmpitem[index].height : NULL);
+        _dw_control_size(object, width == -1 ? &tmpitem[index].width : NULL, height == -1 ? &tmpitem[index].height : NULL);
 
     thisbox->items = tmpitem;
 
@@ -5276,7 +5271,8 @@ void API dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, 
     _dw_box_pack(box, item, 0, width, height, hsize, vsize, pad, "dw_box_pack_end()");
 }
 
-HWND _button_new(const char *text, ULONG cid)
+/* Internal function to create a basic button, used by all button types */
+HWND _dw_button_new(const char *text, ULONG cid)
 {
     DWButton *button = [[DWButton alloc] init];
     if(text)
@@ -5305,7 +5301,7 @@ HWND _button_new(const char *text, ULONG cid)
  */
 HWND API dw_button_new(const char *text, ULONG cid)
 {
-    DWButton *button = _button_new(text, cid);
+    DWButton *button = _dw_button_new(text, cid);
     [button setButtonType:DWButtonTypeMomentaryPushIn];
     [button setBezelStyle:DWBezelStyleRounded];
     [button setImagePosition:NSNoImage];
@@ -5373,7 +5369,7 @@ HWND API dw_bitmapbutton_new(const char *text, ULONG resid)
     NSString *respath = [bundle resourcePath];
     NSString *filepath = [respath stringByAppendingFormat:@"/%lu.png", resid];
     NSImage *image = [[NSImage alloc] initWithContentsOfFile:filepath];
-    DWButton *button = _button_new("", resid);
+    DWButton *button = _dw_button_new("", resid);
     if(image)
     {
         [button setImage:image];
@@ -5405,7 +5401,7 @@ HWND API dw_bitmapbutton_new_from_file(const char *text, unsigned long cid, cons
         nstr = [nstr stringByAppendingString: [NSString stringWithUTF8String:ext]];
         image = [[NSImage alloc] initWithContentsOfFile:nstr];
     }
-    DWButton *button = _button_new("", cid);
+    DWButton *button = _dw_button_new("", cid);
     if(image)
     {
         [button setImage:image];
@@ -5429,7 +5425,7 @@ HWND API dw_bitmapbutton_new_from_data(const char *text, unsigned long cid, cons
 {
     NSData *thisdata = [NSData dataWithBytes:data length:len];
     NSImage *image = [[NSImage alloc] initWithData:thisdata];
-    DWButton *button = _button_new("", cid);
+    DWButton *button = _dw_button_new("", cid);
     if(image)
     {
         [button setImage:image];
@@ -5510,7 +5506,7 @@ long API dw_spinbutton_get_pos(HWND handle)
  */
 HWND API dw_radiobutton_new(const char *text, ULONG cid)
 {
-    DWButton *button = _button_new(text, cid);
+    DWButton *button = _dw_button_new(text, cid);
     [button setButtonType:DWButtonTypeRadio];
     return button;
 }
@@ -5692,7 +5688,7 @@ DW_FUNCTION_RESTORE_PARAM2(handle, HWND, position, unsigned int)
  */
 HWND API dw_checkbox_new(const char *text, ULONG cid)
 {
-    DWButton *button = _button_new(text, cid);
+    DWButton *button = _dw_button_new(text, cid);
     [button setButtonType:DWButtonTypeSwitch];
     [button setBezelStyle:DWBezelStyleRegularSquare];
     return button;
@@ -5733,8 +5729,8 @@ void API dw_checkbox_set(HWND handle, int value)
 
 }
 
-/* Common code for containers and listboxes */
-HWND _cont_new(ULONG cid, int multi)
+/* Internal common function to create containers and listboxes */
+HWND _dw_cont_new(ULONG cid, int multi)
 {
     NSScrollView *scrollview  = [[NSScrollView alloc] init];
     DWContainer *cont = [[DWContainer alloc] init];
@@ -5743,15 +5739,8 @@ HWND _cont_new(ULONG cid, int multi)
     [scrollview setBorderType:NSBezelBorder];
     [scrollview setHasVerticalScroller:YES];
     [scrollview setAutohidesScrollers:YES];
-
-    if(multi)
-    {
-        [cont setAllowsMultipleSelection:YES];
-    }
-    else
-    {
-        [cont setAllowsMultipleSelection:NO];
-    }
+    [cont setAllowsMultipleSelection:(multi ? YES : NO)];
+    [cont setAllowsColumnReordering:NO];
     [cont setDataSource:cont];
     [cont setDelegate:cont];
     [scrollview setDocumentView:cont];
@@ -5773,7 +5762,7 @@ DW_FUNCTION_RETURN(dw_listbox_new, HWND)
 DW_FUNCTION_RESTORE_PARAM2(cid, ULONG, multi, int)
 {
     DW_FUNCTION_INIT;
-    DWContainer *cont = _cont_new(cid, multi);
+    DWContainer *cont = _dw_cont_new(cid, multi);
     [cont setHeaderView:nil];
     int type = DW_CFA_STRING;
     [cont setup];
@@ -7502,7 +7491,7 @@ DW_FUNCTION_RETURN(dw_container_new, HWND)
 DW_FUNCTION_RESTORE_PARAM2(cid, ULONG, multi, int)
 {
     DW_FUNCTION_INIT;
-    DWContainer *cont = _cont_new(cid, multi);
+    DWContainer *cont = _dw_cont_new(cid, multi);
     NSScrollView *scrollview = [cont scrollview];
     [scrollview setHasHorizontalScroller:YES];
     NSTableHeaderView *header = [[[NSTableHeaderView alloc] init] autorelease];
@@ -10225,7 +10214,7 @@ int API dw_window_set_font(HWND handle, const char *fontname)
         /* Check to see if any of the sizes need to be recalculated */
         if(item && (item->origwidth == -1 || item->origheight == -1))
         {
-            _control_size(handle, item->origwidth == -1 ? &item->width : NULL, item->origheight == -1 ? &item->height : NULL);
+            _dw_control_size(handle, item->origwidth == -1 ? &item->width : NULL, item->origheight == -1 ? &item->height : NULL);
             /* Queue a redraw on the top-level window */
             _dw_redraw([object window], TRUE);
         }
@@ -10425,7 +10414,7 @@ DW_FUNCTION_RESTORE_PARAM2(handle, HWND, text, char *)
     {
       int newwidth, newheight;
 
-      _control_size(handle, &newwidth, &newheight);
+      _dw_control_size(handle, &newwidth, &newheight);
 
       /* Only update the item and redraw the window if it changed */
       if((item->origwidth == -1 && item->width != newwidth) ||
@@ -10556,7 +10545,7 @@ void API dw_window_set_bitmap_from_data(HWND handle, unsigned long cid, const ch
             /* Check to see if any of the sizes need to be recalculated */
             if(item && (item->origwidth == -1 || item->origheight == -1))
             {
-                _control_size(handle, item->origwidth == -1 ? &item->width : NULL, item->origheight == -1 ? &item->height : NULL);
+                _dw_control_size(handle, item->origwidth == -1 ? &item->width : NULL, item->origheight == -1 ? &item->height : NULL);
                 /* Queue a redraw on the top-level window */
                 _dw_redraw([object window], TRUE);
             }
@@ -10614,7 +10603,7 @@ void API dw_window_set_bitmap(HWND handle, unsigned long resid, const char *file
             /* Check to see if any of the sizes need to be recalculated */
             if(item && (item->origwidth == -1 || item->origheight == -1))
             {
-                _control_size(handle, item->origwidth == -1 ? &item->width : NULL, item->origheight == -1 ? &item->height : NULL);
+                _dw_control_size(handle, item->origwidth == -1 ? &item->width : NULL, item->origheight == -1 ? &item->height : NULL);
                 /* Queue a redraw on the top-level window */
                 _dw_redraw([object window], TRUE);
             }
@@ -10797,7 +10786,7 @@ void API dw_window_get_preferred_size(HWND handle, int *width, int *height)
         }
     }
     else
-        _control_size(handle, width, height);
+        _dw_control_size(handle, width, height);
 }
 
 /*
