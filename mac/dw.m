@@ -27,6 +27,7 @@
 /* Create a define to let us know to include Lion specific features */
 #if defined(MAC_OS_X_VERSION_10_7) && ((defined(MAC_OS_X_VERSION_MAX_ALLOWED) && MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_7) || !defined(MAC_OS_X_VERSION_MAX_ALLOWED))
 #define BUILDING_FOR_LION
+#define DW_USE_NSVIEW
 #endif
 
 /* Create a define to let us know to include Mountain Lion specific features */
@@ -52,7 +53,6 @@
 #define DWCalendarUnitYear NSCalendarUnitYear
 #define DWCalendarIdentifierGregorian NSCalendarIdentifierGregorian
 #define BUILDING_FOR_YOSEMITE
-#define DW_USE_NSVIEW
 #else
 #define DWModalResponseOK NSOKButton
 #define DWModalResponseCancel NSCancelButton
@@ -7526,10 +7526,12 @@ DW_FUNCTION_RESTORE_PARAM5(handle, HWND, flags, unsigned long *, titles, char **
     {
         NSString *title = [NSString stringWithUTF8String:titles[z]];
         NSTableColumn *column = [[NSTableColumn alloc] initWithIdentifier:title];
-#ifdef DW_USE_NSVIEW
+#ifdef BUILDING_FOR_YOSEMITE
         [column setTitle:title];
 #else
         [[column headerCell] setStringValue:title];
+#endif
+#ifndef DW_USE_NSVIEW
         if(flags[z] & DW_CFA_BITMAPORICON)
         {
             NSImageCell *imagecell = [[NSImageCell alloc] init];
