@@ -7677,9 +7677,7 @@ DW_FUNCTION_RESTORE_PARAM5(handle, HWND, pointer, void *, column, int, row, int,
 
     /* If pointer is NULL we are getting a change request instead of set */
     if(pointer)
-    {
         lastadd = [cont lastAddPoint];
-    }
 
     if(data)
     {
@@ -7737,7 +7735,7 @@ DW_FUNCTION_RESTORE_PARAM5(handle, HWND, pointer, void *, column, int, row, int,
     /* If it is a cell, change the content of the cell */
     if([object isMemberOfClass:[NSTableCellView class]])
     {
-        NSTableCellView *cell = [cont getRow:(row+lastadd) and:column];
+        NSTableCellView *cell = object;
         if(icon)
             [[cell imageView] setImage:icon];
         else
@@ -7808,27 +7806,34 @@ DW_FUNCTION_RESTORE_PARAM5(handle, HWND, pointer, void *, row, int, filename, ch
 {
     DW_FUNCTION_INIT;
     DWContainer *cont = handle;
-#ifdef DW_USE_NSVIEW
-    NSTableCellView *browsercell;
-#else
-    DWImageAndTextCell *browsercell;
-#endif
+    NSString *text = filename ? [NSString stringWithUTF8String:filename] : nil;
     int lastadd = 0;
 
     /* If pointer is NULL we are getting a change request instead of set */
     if(pointer)
-    {
         lastadd = [cont lastAddPoint];
-    }
 
 #ifdef DW_USE_NSVIEW
-    browsercell = _dw_table_cell_view_new(icon, [NSString stringWithUTF8String:filename]);
+    id object = [cont getRow:(row+lastadd) and:0];
+    
+    /* If it is a cell, change the content of the cell */
+    if([object isMemberOfClass:[NSTableCellView class]])
+    {
+        NSTableCellView *cell = object;
+        
+        if(icon)
+            [[cell imageView] setImage:icon];
+        if(text)
+            [[cell textField] setStringValue:text];
+    }
+    else /* Otherwise replace it with a new cell */
+        [cont editCell:_dw_table_cell_view_new(icon, text) at:(row+lastadd) and:0];
 #else
-    browsercell = [[[DWImageAndTextCell alloc] init] autorelease];
+    DWImageAndTextCell *browsercell = [[[DWImageAndTextCell alloc] init] autorelease];
     [browsercell setImage:icon];
-    [browsercell setStringValue:[ NSString stringWithUTF8String:filename ]];
-#endif
+    [browsercell setStringValue:[NSString stringWithUTF8String:filename]];
     [cont editCell:browsercell at:(row+lastadd) and:0];
+#endif
     [cont setNeedsDisplay:YES];
     DW_FUNCTION_RETURN_NOTHING;
 }
