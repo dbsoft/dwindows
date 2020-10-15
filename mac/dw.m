@@ -7831,7 +7831,7 @@ DW_FUNCTION_RESTORE_PARAM5(handle, HWND, pointer, void *, row, int, filename, ch
 #else
     DWImageAndTextCell *browsercell = [[[DWImageAndTextCell alloc] init] autorelease];
     [browsercell setImage:icon];
-    [browsercell setStringValue:[NSString stringWithUTF8String:filename]];
+    [browsercell setStringValue:text];
     [cont editCell:browsercell at:(row+lastadd) and:0];
 #endif
     [cont setNeedsDisplay:YES];
