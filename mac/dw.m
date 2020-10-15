@@ -3174,8 +3174,17 @@ void _free_tree_recurse(NSMutableArray *node, NSMutableArray *item)
             icon = nil;
         if(view)
         {
-            [[view textField] setStringValue: text];
-            [[view imageView] setImage:icon];
+            NSTextField *tf = [view textField];
+            NSImageView *iv = [view imageView];
+            
+            if(tf)
+            {
+                [tf setStringValue: text];
+                if(fgcolor)
+                    [tf setTextColor:fgcolor];
+            }
+            if(iv)
+                [iv setImage:icon];
         }
         else
             view = _dw_table_cell_view_new(icon, text);
