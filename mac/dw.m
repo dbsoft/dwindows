@@ -2641,9 +2641,17 @@ void _dw_table_cell_view_layout(NSTableCellView *result)
         
         _dw_table_cell_view_layout(result);
         
-        /* Copy the alignment setting from the column */
+        /* Copy the alignment setting from the column,
+         * and set the text color from the container.
+         */
         if([result textField])
-            [[result textField] setAlignment:align];
+        {
+            NSTextField *tf = [result textField];
+            
+            [tf setAlignment:align];
+            if(fgcolor)
+                [tf setTextColor:fgcolor];
+        }
         
         /* Return the result */
         return result;
