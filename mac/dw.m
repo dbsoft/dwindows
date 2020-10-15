@@ -5791,13 +5791,17 @@ DW_FUNCTION_RESTORE_PARAM2(handle, HWND, text, char *)
     {
         DWComboBox *combo = handle;
 
-        [combo addItemWithObjectValue:[ NSString stringWithUTF8String:text ]];
+        [combo addItemWithObjectValue:[NSString stringWithUTF8String:text]];
     }
     else if([object isMemberOfClass:[DWContainer class]])
     {
         DWContainer *cont = handle;
-        NSString *nstr = [ NSString stringWithUTF8String:text ];
+        NSString *nstr = [NSString stringWithUTF8String:text];
+#ifdef DW_USE_NSVIEW
+        NSArray *newrow = [NSArray arrayWithObject:_dw_table_cell_view_new(nil, nstr)];
+#else
         NSArray *newrow = [NSArray arrayWithObject:nstr];
+#endif
 
         [cont addRow:newrow];
         [cont reloadData];
@@ -5826,13 +5830,17 @@ DW_FUNCTION_RESTORE_PARAM3(handle, HWND, text, const char *, pos, int)
     {
         DWComboBox *combo = handle;
 
-        [combo insertItemWithObjectValue:[ NSString stringWithUTF8String:text ] atIndex:pos];
+        [combo insertItemWithObjectValue:[NSString stringWithUTF8String:text] atIndex:pos];
     }
     else if([object isMemberOfClass:[DWContainer class]])
     {
         DWContainer *cont = handle;
-        NSString *nstr = [ NSString stringWithUTF8String:text ];
+        NSString *nstr = [NSString stringWithUTF8String:text];
+#ifdef DW_USE_NSVIEW
+        NSArray *newrow = [NSArray arrayWithObject:_dw_table_cell_view_new(nil, nstr)];
+#else
         NSArray *newrow = [NSArray arrayWithObject:nstr];
+#endif
 
         [cont insertRow:newrow at:pos];
         [cont reloadData];
@@ -5875,7 +5883,11 @@ DW_FUNCTION_RESTORE_PARAM3(handle, HWND, text, char **, count, int)
         for(z=0;z<count;z++)
         {
             NSString *nstr = [NSString stringWithUTF8String:text[z]];
+#ifdef DW_USE_NSVIEW
+            NSArray *newrow = [NSArray arrayWithObjects:_dw_table_cell_view_new(nil, nstr),nil];
+#else
             NSArray *newrow = [NSArray arrayWithObjects:nstr,nil];
+#endif
 
             [cont addRow:newrow];
         }
@@ -6015,9 +6027,14 @@ DW_FUNCTION_RESTORE_PARAM4(handle, HWND, index, unsigned int, buffer, char *, le
         }
         else
         {
+#ifdef DW_USE_NSVIEW
+            NSTableCellView *cell = [cont getRow:index and:0];
+            NSString *nstr = [[cell textField] stringValue];
+#else
             NSString *nstr = [cont getRow:index and:0];
+#endif
 
-            strncpy(buffer, [ nstr UTF8String ], length - 1);
+            strncpy(buffer, [nstr UTF8String], length - 1);
         }
     }
     DW_FUNCTION_RETURN_NOTHING;
@@ -6046,7 +6063,7 @@ DW_FUNCTION_RESTORE_PARAM3(handle, HWND, index, unsigned int, buffer, char *)
         if(index <= count)
         {
             [combo removeItemAtIndex:index];
-            [combo insertItemWithObjectValue:[ NSString stringWithUTF8String:buffer ] atIndex:index];
+            [combo insertItemWithObjectValue:[NSString stringWithUTF8String:buffer] atIndex:index];
         }
     }
     else if([object isMemberOfClass:[DWContainer class]])
@@ -6056,9 +6073,14 @@ DW_FUNCTION_RESTORE_PARAM3(handle, HWND, index, unsigned int, buffer, char *)
 
         if(index <= count)
         {
-            NSString *nstr = [ NSString stringWithUTF8String:buffer ];
-
+            NSString *nstr = [NSString stringWithUTF8String:buffer];
+#ifdef DW_USE_NSVIEW
+            NSTableCellView *cell = [cont getRow:index and:0];
+            
+            [[cell textField] setStringValue:nstr];
+#else
             [cont editCell:nstr at:index and:0];
+#endif
             [cont reloadData];
             [cont optimize];
             [cont setNeedsDisplay:YES];
@@ -7649,7 +7671,7 @@ DW_FUNCTION_RESTORE_PARAM5(handle, HWND, pointer, void *, column, int, row, int,
 {
     DW_FUNCTION_INIT;
     DWContainer *cont = handle;
-    id object = nil, icon = nil, text = nil;
+    id icon = nil, text = nil;
     int type = [cont cellType:column];
     int lastadd = 0;
 
@@ -7710,12 +7732,22 @@ DW_FUNCTION_RESTORE_PARAM5(handle, HWND, pointer, void *, column, int, row, int,
     }
 
 #ifdef DW_USE_NSVIEW
-    object = _dw_table_cell_view_new(icon, text);
+    id object = [cont getRow:(row+lastadd) and:column];
+    
+    /* If it is a cell, change the content of the cell */
+    if([object isMemberOfClass:[NSTableCellView class]])
+    {
+        NSTableCellView *cell = [cont getRow:(row+lastadd) and:column];
+        if(icon)
+            [[cell imageView] setImage:icon];
+        else
+            [[cell textField] setStringValue:text];
+    }
+    else /* Otherwise replace it with a new cell */
+        [cont editCell:_dw_table_cell_view_new(icon, text) at:(row+lastadd) and:column];
 #else
-    object = icon ? icon : text;
+    [cont editCell:(icon ? icon : text) at:(row+lastadd) and:column];
 #endif
-
-    [cont editCell:object at:(row+lastadd) and:column];
     [cont setNeedsDisplay:YES];
     DW_FUNCTION_RETURN_NOTHING;
 }
