@@ -7386,7 +7386,9 @@ DW_FUNCTION_RESTORE_PARAM4(handle, HWND, item, HTREEITEM, title, char *, icon, H
     {
         [array replaceObjectAtIndex:0 withObject:icon];
     }
-    [tree reloadData];
+    NSInteger row = [tree rowForItem:item];
+    [tree reloadDataForRowIndexes:[NSIndexSet indexSetWithIndex:row]
+                    columnIndexes:[NSIndexSet indexSetWithIndex:0]];
     DW_LOCAL_POOL_OUT;
     DW_FUNCTION_RETURN_NOTHING;
 }
