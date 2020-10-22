@@ -94,7 +94,12 @@ WEBVIEW2DIR=$(SRCDIR)\packages\Microsoft.Web.WebView2
 
 !if exists($(WEBVIEW2DIR)\build\native\include\WebView2.h)
 WEBVIEW2INC=-DBUILD_EDGE -I$(WEBVIEW2DIR)\build\native\include
+!if exists($(WEBVIEW2DIR)\build\native\$(TARGET_CPU)\WebView2LoaderStatic.lib)
+WEBVIEW2LIB=$(WEBVIEW2DIR)\build\native\$(TARGET_CPU)\WebView2LoaderStatic.lib version.lib
+!else
 WEBVIEW2LIB=$(WEBVIEW2DIR)\build\native\$(TARGET_CPU)\WebView2Loader.dll.lib
+WEBVIEW2LOADER=$(WEBVIEW2DIR)\build\native\$(TARGET_CPU)\WebView2Loader.dll
+!endif
 WEBVIEW2OBJ=edge.obj
 !endif
 
@@ -174,8 +179,8 @@ $(LIBS)
 	-erase dwcompat.dll.manifest
 	copy dwcompat.lib $(DWLIBDIR)\dwcompat.lib
 	copy dwcompat.dll $(DWDLLDIR)\dwcompat.dll
-!if exists($(WEBVIEW2DIR)\build\native\$(TARGET_CPU)\WebView2Loader.dll)
-	copy $(WEBVIEW2DIR)\build\native\$(TARGET_CPU)\WebView2Loader.dll $(DWDLLDIR)\WebView2Loader.dll
+!if exists($(WEBVIEW2LOADER))
+	copy $(WEBVIEW2LOADER) $(DWDLLDIR)\WebView2Loader.dll
 !endif
 
 dw.obj: $(SRCDIR)\win\dw.c
