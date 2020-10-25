@@ -3444,6 +3444,9 @@ void _free_tree_recurse(NSMutableArray *node, NSMutableArray *item)
     if(self)
     {
         textfield = [[[NSTextField alloc] init] autorelease];
+        /* Workaround for infinite loop in Snow Leopard 10.6 */
+        if(DWOSMajor == 10 && DWOSMinor < 7)
+            [textfield setFrameSize:NSMakeSize(10,10)];
         [self addSubview:textfield];
         stepper = [[[DWStepper alloc] init] autorelease];
         [self addSubview:stepper];
