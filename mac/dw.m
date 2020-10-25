@@ -991,8 +991,15 @@ typedef struct _bitbltinfo
     else
     {
         bgcolor = [[NSColor colorWithDeviceRed: DW_RED_VALUE(input)/255.0 green: DW_GREEN_VALUE(input)/255.0 blue: DW_BLUE_VALUE(input)/255.0 alpha: 1] retain];
-        [bgcolor set];
-        NSRectFill([self bounds]);
+#ifdef BUILDING_FOR_YOSEMITE
+        if([[NSGraphicsContext currentContext] CGContext])
+#else
+        if([[NSGraphicsContext currentContext] graphicsPort])
+#endif
+        {
+            [bgcolor set];
+            NSRectFill([self bounds]);
+        }
     }
     [self setNeedsDisplay:YES];
     [orig release];
