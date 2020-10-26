@@ -1975,6 +1975,16 @@ static void _dw_notification_handler(GSimpleAction *action, GVariant *param, gpo
 }
 #endif
 
+#if GLIB_CHECK_VERSION(2,28,0)
+static void _dw_app_activate(GApplication *app, gpointer user_data)
+{
+   /* Not sure why this signal is required, but GLib gives warnings
+    * when this signal is not connected, so putting this here to
+    * quell the warning and can be used at a later point if needed.
+    */
+}
+#endif
+
 /*
  * Initializes the Dynamic Windows engine.
  * Parameters:
@@ -2074,6 +2084,7 @@ int dw_int_init(DWResources *res, int newthread, int *argc, char **argv[])
       g_signal_connect(G_OBJECT(action), "activate", G_CALLBACK(_dw_notification_handler), NULL);
       g_action_map_add_action(G_ACTION_MAP(_DWApp), G_ACTION(action));
 #endif
+      g_signal_connect(_DWApp, "activate", G_CALLBACK(_dw_app_activate), NULL);
       g_application_activate(_DWApp);
    }
 #endif
