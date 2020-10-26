@@ -3918,7 +3918,7 @@ HWND dw_menu_append_item(HMENUI menu, const char *title, unsigned long id, unsig
       tmphandle=gtk_menu_item_new();
    else
    {
-      char numbuf[11] = {0};
+      char numbuf[25] = {0};
 
       if (check)
       {
@@ -3934,7 +3934,7 @@ HWND dw_menu_append_item(HMENUI menu, const char *title, unsigned long id, unsig
          else
             tmphandle = gtk_check_menu_item_new_with_label(tempbuf);
          gtk_check_menu_item_set_show_toggle(GTK_CHECK_MENU_ITEM(tmphandle), TRUE);
-         snprintf(numbuf, 10, "%lu", id);
+         snprintf(numbuf, 24, "%lu", id);
          gtk_object_set_data(GTK_OBJECT(menu), numbuf, (gpointer)tmphandle);
       }
       else
@@ -3950,7 +3950,7 @@ HWND dw_menu_append_item(HMENUI menu, const char *title, unsigned long id, unsig
          }
          else
             tmphandle=gtk_menu_item_new_with_label(tempbuf);
-         snprintf(numbuf, 10, "%lu", id);
+         snprintf(numbuf, 24, "%lu", id);
          gtk_object_set_data(GTK_OBJECT(menu), numbuf, (gpointer)tmphandle);
       }
    }
@@ -4026,7 +4026,7 @@ GtkWidget *_find_submenu_id(GtkWidget *start, const char *name)
  */
 void dw_menu_item_set_check(HMENUI menu, unsigned long id, int check)
 {
-   char numbuf[11] = {0};
+   char numbuf[25] = {0};
    GtkWidget *tmphandle;
    int _locked_by_me = FALSE;
 
@@ -4034,7 +4034,7 @@ void dw_menu_item_set_check(HMENUI menu, unsigned long id, int check)
       return;
 
    DW_MUTEX_LOCK;
-   snprintf(numbuf, 10, "%lu", id);
+   snprintf(numbuf, 24, "%lu", id);
    tmphandle = _find_submenu_id(menu, numbuf);
 
    if(tmphandle)
@@ -4056,7 +4056,7 @@ void dw_menu_item_set_check(HMENUI menu, unsigned long id, int check)
  */
 void dw_menu_item_set_state(HMENUI menu, unsigned long id, unsigned long state)
 {
-   char numbuf[11] = {0};
+   char numbuf[25] = {0};
    GtkWidget *tmphandle;
    int check;
    int _locked_by_me = FALSE;
@@ -4065,7 +4065,7 @@ void dw_menu_item_set_state(HMENUI menu, unsigned long id, unsigned long state)
       return;
 
    DW_MUTEX_LOCK;
-   snprintf(numbuf, 10, "%lu", id);
+   snprintf(numbuf, 24, "%lu", id);
    tmphandle = _find_submenu_id(menu, numbuf);
 
    if ( (state & DW_MIS_CHECKED) || (state & DW_MIS_UNCHECKED) )
@@ -4108,7 +4108,7 @@ void dw_menu_item_set_state(HMENUI menu, unsigned long id, unsigned long state)
  */
 int API dw_menu_delete_item(HMENUI menu, unsigned long id)
 {
-   char numbuf[11];
+   char numbuf[25] = {0};
    GtkWidget *tmphandle;
    int _locked_by_me = FALSE;
    int ret = DW_ERROR_UNKNOWN;
@@ -4117,7 +4117,7 @@ int API dw_menu_delete_item(HMENUI menu, unsigned long id)
       return ret;
 
    DW_MUTEX_LOCK;
-   snprintf(numbuf, 10, "%lu", id);
+   snprintf(numbuf, 24, "%lu", id);
    tmphandle = _find_submenu_id(menu, numbuf);
 
    if(tmphandle)
@@ -4189,7 +4189,6 @@ void dw_pointer_set_pos(long x, long y)
 #ifdef GDK_WINDOWING_X11
 # if GTK_CHECK_VERSION(2,8,0)
    gdk_display_warp_pointer( gdk_display_get_default(), gdk_screen_get_default(), x, y );
-//   gdk_display_warp_pointer( GDK_DISPLAY(), gdk_screen_get_default(), x, y );
 # else
    XWarpPointer(GDK_DISPLAY(), None, GDK_ROOT_WINDOW(), 0,0,0,0, x, y);
 # endif
@@ -7338,7 +7337,7 @@ void *dw_container_alloc(HWND handle, int rowcount)
  */
 void _dw_container_set_item(HWND handle, void *pointer, int column, int row, void *data, const char *text)
 {
-   char numbuf[11] = {0}, textbuffer[101] = {0};
+   char numbuf[25] = {0}, textbuffer[101] = {0};
    int flag = 0;
    GtkWidget *clist;
    int _locked_by_me = FALSE;
@@ -7351,7 +7350,7 @@ void _dw_container_set_item(HWND handle, void *pointer, int column, int row, voi
       return;
    }
 
-   snprintf(numbuf, 10, "%d", column);
+   snprintf(numbuf, 24, "%d", column);
    flag = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(clist), numbuf));
    if(pointer)
    {
@@ -7524,7 +7523,7 @@ void dw_filesystem_set_item(HWND handle, void *pointer, int column, int row, voi
  */
 int dw_container_get_column_type(HWND handle, int column)
 {
-   char numbuf[11] = {0};
+   char numbuf[25] = {0};
    int flag, rc;
    GtkWidget *clist;
    int _locked_by_me = FALSE;
@@ -7537,7 +7536,7 @@ int dw_container_get_column_type(HWND handle, int column)
       return 0;
    }
 
-   snprintf(numbuf, 10, "%d", column);
+   snprintf(numbuf, 24, "%d", column);
    flag = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(clist), numbuf));
 
    if(flag & DW_CFA_BITMAPORICON)
