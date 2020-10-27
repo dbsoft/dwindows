@@ -4554,14 +4554,15 @@ void dw_window_set_bitmap_from_data(HWND handle, unsigned long id, const char *d
        * of the data to the file
        */
       char template[] = "/tmp/dwpixmapXXXXXX";
-      int fd = mkstemp(template);
+      int written = -1, fd = mkstemp(template);
 
-      if(fd)
+      if(fd != -1)
       {
-         write(fd, data, len);
+         written = write(fd, data, len);
          close(fd);
       }
-      else
+      /* Bail if we couldn't write full file */
+      if(fd == -1 || written != len)
       {
          DW_MUTEX_UNLOCK;
          return;
@@ -6026,7 +6027,7 @@ HICN API dw_icon_load_from_file(const char *filename)
  */
 HICN API dw_icon_load_from_data(const char *data, int len)
 {
-   int fd, _locked_by_me = FALSE;
+   int fd, written = -1, _locked_by_me = FALSE;
    char template[] = "/tmp/dwiconXXXXXX";
    HICN ret = 0;
 
@@ -6034,12 +6035,13 @@ HICN API dw_icon_load_from_data(const char *data, int len)
     * A real hack; create a temporary file and write the contents
     * of the data to the file
     */
-   if((fd = mkstemp(template)))
+   if((fd = mkstemp(template)) != -1)
    {
-      write(fd, data, len);
+      written = write(fd, data, len);
       close(fd);
    }
-   else
+   /* Bail if we couldn't write full file */
+   if(fd == -1 || written != len)
       return 0;
    DW_MUTEX_LOCK;
    ret = _icon_resize(gdk_pixbuf_new_from_file(template, NULL));
@@ -7837,7 +7839,7 @@ HPIXMAP dw_pixmap_new_from_file(HWND handle, const char *filename)
  */
 HPIXMAP dw_pixmap_new_from_data(HWND handle, const char *data, int len)
 {
-   int fd, _locked_by_me = FALSE;
+   int fd, written = -1, _locked_by_me = FALSE;
    HPIXMAP pixmap;
    char template[] = "/tmp/dwpixmapXXXXXX";
 
@@ -7849,12 +7851,13 @@ HPIXMAP dw_pixmap_new_from_data(HWND handle, const char *data, int len)
     * A real hack; create a temporary file and write the contents
     * of the data to the file
     */
-   if((fd = mkstemp(template)))
+   if((fd = mkstemp(template)) != -1)
    {
-      write(fd, data, len);
+      written = write(fd, data, len);
       close(fd);
    }
-   else
+   /* Bail if we couldn't write full file */
+   if(fd == -1 || written != len)
    {
       DW_MUTEX_UNLOCK;
       return 0;

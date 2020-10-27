@@ -4954,10 +4954,8 @@ void dw_window_set_bitmap_from_data(HWND handle, unsigned long id, const char *d
    GdkPixmap *tmp = NULL;
 #endif
    int _locked_by_me = FALSE;
-   char *file;
-   FILE *fp;
 
-   if (!id && !data)
+   if(!id && !data)
       return;
 
    DW_MUTEX_LOCK;
@@ -4970,22 +4968,24 @@ void dw_window_set_bitmap_from_data(HWND handle, unsigned long id, const char *d
        * A real hack; create a temporary file and write the contents
        * of the data to the file
        */
-      file = tmpnam( NULL );
-      fp = fopen( file, "wb" );
-      if ( fp )
+      char template[] = "/tmp/dwpixmapXXXXXX";
+      int written = -1, fd = mkstemp(template);
+
+      if(fd != -1)
       {
-         fwrite( data, len, 1, fp );
-         fclose( fp );
+         written = write(fd, data, len);
+         close(fd);
       }
-      else
+      /* Bail if we couldn't write full file */
+      if(fd == -1 || written != len)
       {
          DW_MUTEX_UNLOCK;
          return;
       }
 #if GTK_MAJOR_VERSION > 1
-      pixbuf = gdk_pixbuf_new_from_file(file, NULL );
+      pixbuf = gdk_pixbuf_new_from_file(template, NULL);
 #elif defined(USE_IMLIB)
-      image = gdk_imlib_load_image(file);
+      image = gdk_imlib_load_image(template);
       gdk_imlib_render(image, image->rgb_width, image->rgb_height);
       tmp = gdk_imlib_copy_image(image);
       bitmap = gdk_imlib_copy_mask(image);
@@ -4994,7 +4994,7 @@ void dw_window_set_bitmap_from_data(HWND handle, unsigned long id, const char *d
       tmp = gdk_pixmap_create_from_xpm_d(handle->window, &bitmap, &_colors[DW_CLR_PALEGRAY], mydata);
 #endif
       /* remove our temporary file */
-      unlink (file );
+      unlink(template);
    }
    else if (id)
 #if GTK_MAJOR_VERSION > 1
@@ -7138,9 +7138,8 @@ HICN API dw_icon_load_from_file(const char *filename)
  */
 HICN API dw_icon_load_from_data(const char *data, int len)
 {
-   int found = -1, _locked_by_me = FALSE;
-   char *file;
-   FILE *fp;
+   int fd, written = -1, found = -1, _locked_by_me = FALSE;
+   char template[] = "/tmp/dwiconXXXXXX";
 #if GTK_MAJOR_VERSION > 1
    GdkPixbuf *pixbuf;
 #elif defined(USE_IMLIB)
@@ -7153,20 +7152,17 @@ HICN API dw_icon_load_from_data(const char *data, int len)
     * A real hack; create a temporary file and write the contents
     * of the data to the file
     */
-   file = tmpnam( NULL );
-   fp = fopen( file, "wb" );
-   if ( fp )
+   if((fd = mkstemp(template)) != -1)
    {
-      fwrite( data, len, 1, fp );
-      fclose( fp );
+      written = write(fd, data, len);
+      close(fd);
    }
-   else
-   {
-      DW_MUTEX_UNLOCK;
+   /* Bail if we couldn't write full file */
+   if(fd == -1 || written != len)
       return 0;
-   }
+      
    /* Find a free entry in the array */
-   for (z=0;z<_PixmapCount;z++)
+   for(z=0;z<_PixmapCount;z++)
    {
       if(!_PixmapArray[z].used)
       {
@@ -7178,7 +7174,7 @@ HICN API dw_icon_load_from_data(const char *data, int len)
    /* If there are no free entries, expand the
     * array.
     */
-   if (found == -1)
+   if(found == -1)
    {
       DWPrivatePixmap *old = _PixmapArray;
 
@@ -7196,8 +7192,9 @@ HICN API dw_icon_load_from_data(const char *data, int len)
    }
 
 #if GTK_MAJOR_VERSION > 1
-   pixbuf = _icon_resize(gdk_pixbuf_new_from_file(file, NULL));
-   if (pixbuf)
+   pixbuf = _icon_resize(gdk_pixbuf_new_from_file(template, NULL));
+
+   if(pixbuf)
    {
       _PixmapArray[found].pixbuf = pixbuf;
       _PixmapArray[found].width = gdk_pixbuf_get_width(pixbuf);
@@ -7206,9 +7203,9 @@ HICN API dw_icon_load_from_data(const char *data, int len)
       gdk_pixbuf_render_pixmap_and_mask(pixbuf, &_PixmapArray[found].pixmap, &_PixmapArray[found].mask, 1);
    }
 #elif defined(USE_IMLIB)
-   image = gdk_imlib_load_image(file);
+   image = gdk_imlib_load_image(template);
 
-   if (image)
+   if(image)
    {
       _PixmapArray[found].width = image->rgb_width;
       _PixmapArray[found].height = image->rgb_height;
@@ -7219,13 +7216,13 @@ HICN API dw_icon_load_from_data(const char *data, int len)
       gdk_imlib_destroy_image(image);
    }
 #else
-   if (last_window)
+   if(last_window)
       _PixmapArray[found].pixmap = gdk_pixmap_create_from_xpm_d(last_window->window, &_PixmapArray[found].mask, &_colors[DW_CLR_PALEGRAY], data);
 #endif
    /* remove our temporary file */
-   unlink (file );
+   unlink(template);
    DW_MUTEX_UNLOCK;
-   if (!_PixmapArray[found].pixmap || !_PixmapArray[found].mask)
+   if(!_PixmapArray[found].pixmap || !_PixmapArray[found].mask)
    {
       _PixmapArray[found].used = 0;
       _PixmapArray[found].pixmap = _PixmapArray[found].mask = NULL;
@@ -9065,17 +9062,16 @@ HPIXMAP dw_pixmap_new_from_file(HWND handle, const char *filename)
  */
 HPIXMAP dw_pixmap_new_from_data(HWND handle, const char *data, int len)
 {
-   int _locked_by_me = FALSE;
-   char *file;
-   FILE *fp;
+   int fd, written = -1, _locked_by_me = FALSE;
    HPIXMAP pixmap;
 #if GTK_MAJOR_VERSION > 1
    GdkPixbuf *pixbuf;
 #elif defined(USE_IMLIB)
    GdkImlibImage *image;
 #endif
+   char template[] = "/tmp/dwpixmapXXXXXX";
 
-   if (!data || !(pixmap = calloc(1,sizeof(struct _hpixmap))))
+   if(!data || !(pixmap = calloc(1,sizeof(struct _hpixmap))))
       return NULL;
 
    DW_MUTEX_LOCK;
@@ -9083,26 +9079,25 @@ HPIXMAP dw_pixmap_new_from_data(HWND handle, const char *data, int len)
     * A real hack; create a temporary file and write the contents
     * of the data to the file
     */
-   file = tmpnam( NULL );
-   fp = fopen( file, "wb" );
-   if ( fp )
+   if((fd = mkstemp(template)) != -1)
    {
-      fwrite( data, len, 1, fp );
-      fclose( fp );
+      written = write(fd, data, len);
+      close(fd);
    }
-   else
+   /* Bail if we couldn't write full file */
+   if(fd == -1 || written != len)
    {
       DW_MUTEX_UNLOCK;
       return 0;
    }
 #if GTK_MAJOR_VERSION > 1
-   pixbuf = gdk_pixbuf_new_from_file(file, NULL);
+   pixbuf = gdk_pixbuf_new_from_file(template, NULL);
    pixmap->width = gdk_pixbuf_get_width(pixbuf);
    pixmap->height = gdk_pixbuf_get_height(pixbuf);
    gdk_pixbuf_render_pixmap_and_mask(pixbuf, &pixmap->pixmap, &pixmap->bitmap, 1);
    g_object_unref(pixbuf);
 #elif defined(USE_IMLIB)
-   image = gdk_imlib_load_image(file);
+   image = gdk_imlib_load_image(template);
 
    pixmap->width = image->rgb_width;
    pixmap->height = image->rgb_height;
@@ -9114,7 +9109,7 @@ HPIXMAP dw_pixmap_new_from_data(HWND handle, const char *data, int len)
    pixmap->pixmap = gdk_pixmap_create_from_xpm_d(handle->window, &pixmap->bitmap, &_colors[DW_CLR_PALEGRAY], data);
 #endif
    /* remove our temporary file */
-   unlink (file );
+   unlink(template);
    pixmap->handle = handle;
    DW_MUTEX_UNLOCK;
    return pixmap;
