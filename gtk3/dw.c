@@ -1906,6 +1906,13 @@ static gint _default_key_press_event(GtkWidget *widget, GdkEventKey *event, gpoi
    return FALSE;
 }
 
+static GdkPixbuf *_dw_pixbuf_from_data(char *data)
+{
+   if(data[0] == 'G' && data[1] == 'd' && data[2] == 'k' && data[3] == 'P')
+      return gdk_pixbuf_new_from_inline(-1, (const guint8 *)data, FALSE, NULL);
+   return gdk_pixbuf_new_from_xpm_data((const char **)data);
+}
+
 static GdkPixbuf *_find_pixbuf(HICN icon, unsigned long *userwidth, unsigned long *userheight)
 {
    char *data = NULL;
@@ -1938,17 +1945,12 @@ static GdkPixbuf *_find_pixbuf(HICN icon, unsigned long *userwidth, unsigned lon
 
    if(data)
    {
-      GdkPixbuf *icon_pixbuf;
-
-      if(data[0] == 'G' && data[1] == 'd' && data[2] == 'k' && data[3] == 'P')
-         icon_pixbuf = gdk_pixbuf_new_from_inline(-1, (const guint8 *)data, FALSE, NULL);
-      else
-         icon_pixbuf = gdk_pixbuf_new_from_xpm_data((const char **)data);
+      GdkPixbuf *icon_pixbuf = _dw_pixbuf_from_data(data);
 
       if(userwidth)
-         *userwidth = gdk_pixbuf_get_width(icon_pixbuf);
+         *userwidth = icon_pixbuf ? gdk_pixbuf_get_width(icon_pixbuf) : 0;
       if(userheight)
-         *userheight = gdk_pixbuf_get_height(icon_pixbuf);
+         *userheight = icon_pixbuf ? gdk_pixbuf_get_height(icon_pixbuf) : 0;
 
       return icon_pixbuf;
    }
@@ -4204,7 +4206,7 @@ HWND dw_bitmapbutton_new_from_data(const char *text, unsigned long id, const cha
    tmp = gtk_button_new();
    bitmap = dw_bitmap_new(id);
 
-   if ( bitmap )
+   if(bitmap)
    {
       dw_window_set_bitmap_from_data(bitmap, 0, data, len);
       gtk_container_add (GTK_CONTAINER(tmp), bitmap);
@@ -4540,10 +4542,8 @@ void dw_window_set_bitmap_from_data(HWND handle, unsigned long id, const char *d
 {
    GdkPixbuf *tmp = NULL;
    int _locked_by_me = FALSE;
-   char *file;
-   FILE *fp;
 
-   if (!id && !data)
+   if(!id && !data)
       return;
 
    DW_MUTEX_LOCK;
@@ -4553,39 +4553,38 @@ void dw_window_set_bitmap_from_data(HWND handle, unsigned long id, const char *d
        * A real hack; create a temporary file and write the contents
        * of the data to the file
        */
-      file = tmpnam( NULL );
-      fp = fopen( file, "wb" );
-      if ( fp )
+      char template[] = "/tmp/dwpixmapXXXXXX";
+      int fd = mkstemp(template);
+
+      if(fd)
       {
-         fwrite( data, len, 1, fp );
-         fclose( fp );
+         write(fd, data, len);
+         close(fd);
       }
       else
       {
          DW_MUTEX_UNLOCK;
          return;
       }
-      tmp = gdk_pixbuf_new_from_file(file, NULL );
+
+      tmp = gdk_pixbuf_new_from_file(template, NULL);
       /* remove our temporary file */
-      unlink (file );
+      unlink(template);
    }
    else if (id)
       tmp = _find_pixbuf((HICN)id, NULL, NULL);
 
    if(tmp)
    {
-      if ( GTK_IS_BUTTON(handle) )
+      if(GTK_IS_BUTTON(handle))
       {
-         GtkWidget *pixmap = (GtkWidget *)g_object_get_data( G_OBJECT(handle), "_dw_bitmap" );
+         GtkWidget *pixmap = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_bitmap");
+
          if(pixmap)
-         {
             gtk_image_set_from_pixbuf(GTK_IMAGE(pixmap), tmp);
-         }
       }
       else
-      {
          gtk_image_set_from_pixbuf(GTK_IMAGE(handle), tmp);
-      }
    }
    DW_MUTEX_UNLOCK;
 }
@@ -6027,29 +6026,25 @@ HICN API dw_icon_load_from_file(const char *filename)
  */
 HICN API dw_icon_load_from_data(const char *data, int len)
 {
-   int _locked_by_me = FALSE;
-   char *file;
-   FILE *fp;
+   int fd, _locked_by_me = FALSE;
+   char template[] = "/tmp/dwiconXXXXXX";
    HICN ret = 0;
 
    /*
     * A real hack; create a temporary file and write the contents
     * of the data to the file
     */
-   file = tmpnam( NULL );
-   fp = fopen( file, "wb" );
-   if ( fp )
+   if((fd = mkstemp(template)))
    {
-      fwrite( data, len, 1, fp );
-      fclose( fp );
+      write(fd, data, len);
+      close(fd);
    }
    else
-   {
       return 0;
-   }
    DW_MUTEX_LOCK;
-   ret = _icon_resize(gdk_pixbuf_new_from_file(file, NULL));
+   ret = _icon_resize(gdk_pixbuf_new_from_file(template, NULL));
    DW_MUTEX_UNLOCK;
+   unlink(template);
    return ret;
 }
 
@@ -7842,12 +7837,11 @@ HPIXMAP dw_pixmap_new_from_file(HWND handle, const char *filename)
  */
 HPIXMAP dw_pixmap_new_from_data(HWND handle, const char *data, int len)
 {
-   int _locked_by_me = FALSE;
-   char *file;
-   FILE *fp;
+   int fd, _locked_by_me = FALSE;
    HPIXMAP pixmap;
+   char template[] = "/tmp/dwpixmapXXXXXX";
 
-   if (!data || !(pixmap = calloc(1,sizeof(struct _hpixmap))))
+   if(!data || !(pixmap = calloc(1,sizeof(struct _hpixmap))))
       return NULL;
 
    DW_MUTEX_LOCK;
@@ -7855,24 +7849,22 @@ HPIXMAP dw_pixmap_new_from_data(HWND handle, const char *data, int len)
     * A real hack; create a temporary file and write the contents
     * of the data to the file
     */
-   file = tmpnam( NULL );
-   fp = fopen( file, "wb" );
-   if ( fp )
+   if((fd = mkstemp(template)))
    {
-      fwrite( data, len, 1, fp );
-      fclose( fp );
+      write(fd, data, len);
+      close(fd);
    }
    else
    {
       DW_MUTEX_UNLOCK;
       return 0;
    }
-   pixmap->pixbuf = gdk_pixbuf_new_from_file(file, NULL);
-   pixmap->image = cairo_image_surface_create_from_png(file);
+   pixmap->pixbuf = gdk_pixbuf_new_from_file(template, NULL);
+   pixmap->image = cairo_image_surface_create_from_png(template);
    pixmap->width = gdk_pixbuf_get_width(pixmap->pixbuf);
    pixmap->height = gdk_pixbuf_get_height(pixmap->pixbuf);
    /* remove our temporary file */
-   unlink (file );
+   unlink(template);
    pixmap->handle = handle;
    DW_MUTEX_UNLOCK;
    return pixmap;
