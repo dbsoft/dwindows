@@ -17,6 +17,7 @@ Options:
 	[--version]
 	[--libs]
 	[--cflags]
+	[--gresource]
 EOF
 	exit $1
 }
@@ -54,6 +55,9 @@ while test $# -gt 0; do
     --libs)
       echo_libs=yes
       ;;
+    --gresource)
+      echo_gresource=yes
+      ;;
     *)
       usage 1 1>&2
       ;;
@@ -75,5 +79,9 @@ fi
 
 if test "$echo_libs" = "yes"; then
       echo -L${prefix}/lib -ldwindows $dw_libs
+fi
+
+if test "$echo_gresource" = "yes"; then
+      echo @DW_GRESOURCE@
 fi
 

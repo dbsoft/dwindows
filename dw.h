@@ -1346,10 +1346,26 @@ typedef struct _resource_struct {
    char **resource_data;
 } DWResources;
 
+/* As of Dynamic Windows 3.1 GResource is default if supported.
+ * Defining DW_INCLUDE_DEPRECATED_RESOURCES at compile time will
+ * include support for our old home brewed resource system.
+ * GLib 2.32 is required for GResource, so we automatically 
+ * enable our old system if using an old Glib.
+ * Test for GResource using: dwindows-config --gresource
+ */
+#ifndef DW_INCLUDE_DEPRECATED_RESOURCES
+#if !GLIB_CHECK_VERSION(2,32,0)
+#define DW_INCLUDE_DEPRECATED_RESOURCES 1
+#endif
+#endif
+
+/* Only reference our old style resources if required. */
+#ifdef DW_INCLUDE_DEPRECATED_RESOURCES
 #if !defined(DW_RESOURCES) || defined(BUILD_DLL)
 static DWResources DW_UNUSED(_resources) = { 0, 0, 0 };
 #else
 extern DWResources _resources;
+#endif
 #endif
 
 #endif
@@ -1626,7 +1642,7 @@ void API dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, 
 void API dw_box_pack_at_index(HWND box, HWND item, int index, int width, int height, int hsize, int vsize, int pad);
 HWND API dw_box_unpack_at_index(HWND box, int index);
 int API dw_box_unpack(HWND handle);
-#if !defined(__OS2__) && !defined(__WIN32__) && !defined(__EMX__) && !defined(__MAC__)
+#ifdef DW_INCLUDE_DEPRECATED_RESOURCES
 int API dw_int_init(DWResources *res, int newthread, int *argc, char **argv[]);
 #define dw_init(a, b, c) dw_int_init(&_resources, a, &b, &c)
 #else

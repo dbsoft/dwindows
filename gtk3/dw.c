@@ -56,9 +56,14 @@
 # endif
 #endif
 
-/* These are used for resource management */
+/* These are used for legacy resource management 
+ * Starting with Dynamic Windows 3.1 the default 
+ * compiled in resource management is GResource.
+ */
+#ifdef DW_INCLUDE_DEPRECATED_RESOURCES
 #if defined(DW_RESOURCES) && !defined(BUILD_DLL)
 extern DWResources _resources;
+#endif
 #endif
 
 /* ff = 255 = 1.0000
@@ -1906,55 +1911,65 @@ static gint _default_key_press_event(GtkWidget *widget, GdkEventKey *event, gpoi
    return FALSE;
 }
 
+#ifdef DW_INCLUDE_DEPRECATED_RESOURCES
 static GdkPixbuf *_dw_pixbuf_from_data(char *data)
 {
    if(data[0] == 'G' && data[1] == 'd' && data[2] == 'k' && data[3] == 'P')
       return gdk_pixbuf_new_from_inline(-1, (const guint8 *)data, FALSE, NULL);
    return gdk_pixbuf_new_from_xpm_data((const char **)data);
 }
+#endif
+
+static GdkPixbuf *_dw_pixbuf_from_resource(unsigned int rid)
+{
+#if GLIB_CHECK_VERSION(2,32,0)
+   char resource_path[201] = {0};
+   snprintf(resource_path, 200, "/org/dbsoft/dwindows/%s/%u", _dw_app_id, rid);
+   return gdk_pixbuf_new_from_resource(resource_path, NULL);
+#else
+   return NULL;
+#endif   
+}
 
 static GdkPixbuf *_find_pixbuf(HICN icon, unsigned long *userwidth, unsigned long *userheight)
 {
-   char *data = NULL;
-   int z, id = GPOINTER_TO_INT(icon);
+   unsigned int id = GPOINTER_TO_INT(icon);
+   GdkPixbuf *icon_pixbuf = NULL;
 
    /* Quick dropout for non-handle */
    if(!icon)
       return NULL;
 
    if(id > 65535)
+      icon_pixbuf = icon;
+   else
+      icon_pixbuf = _dw_pixbuf_from_resource(id);
+   
+#ifdef DW_INCLUDE_DEPRECATED_RESOURCES
+   if(!icon_pixbuf)
    {
-      GdkPixbuf *icon_pixbuf = icon;
+      char *data = NULL;
+      int z;
 
-      if(userwidth)
-         *userwidth = gdk_pixbuf_get_width(icon_pixbuf);
-      if(userheight)
-         *userheight = gdk_pixbuf_get_height(icon_pixbuf);
-
-      return icon;
-   }
-
-   for(z=0;z<_resources.resource_max;z++)
-   {
-      if(_resources.resource_id[z] == id)
+      for(z=0;z<_resources.resource_max;z++)
       {
-         data = _resources.resource_data[z];
-         break;
+         if(_resources.resource_id[z] == id)
+         {
+            data = _resources.resource_data[z];
+            break;
+         }
       }
+
+      if(data)
+         icon_pixbuf = _dw_pixbuf_from_data(data);
    }
+#endif
+   if(userwidth)
+      *userwidth = icon_pixbuf ? gdk_pixbuf_get_width(icon_pixbuf) : 0;
+   if(userheight)
+      *userheight = icon_pixbuf ? gdk_pixbuf_get_height(icon_pixbuf) : 0;
 
-   if(data)
-   {
-      GdkPixbuf *icon_pixbuf = _dw_pixbuf_from_data(data);
-
-      if(userwidth)
-         *userwidth = icon_pixbuf ? gdk_pixbuf_get_width(icon_pixbuf) : 0;
-      if(userheight)
-         *userheight = icon_pixbuf ? gdk_pixbuf_get_height(icon_pixbuf) : 0;
-
-      return icon_pixbuf;
-   }
-   return NULL;
+   return icon_pixbuf;
 }
 
 #if GLIB_CHECK_VERSION(2,40,0)
@@ -1993,19 +2008,26 @@ static void _dw_app_activate(GApplication *app, gpointer user_data)
  *           newthread: True if this is the only thread.
  *                      False if there is already a message loop running.
  */
-int dw_int_init(DWResources *res, int newthread, int *argc, char **argv[])
+#ifdef DW_INCLUDE_DEPRECATED_RESOURCES
+int dw_int_init(DWResources *res, int newthread, int *pargc, char **pargv[])
 {
+   int argc = pargc ? *pargc : 0;
+   char **argv = pargv ? *pargv : NULL;
+   
    if(res)
    {
       _resources.resource_max = res->resource_max;
       _resources.resource_id = res->resource_id;
       _resources.resource_data = res->resource_data;
    }
-
+#else
+int dw_init(int newthread, int argc, char *argv[])
+{
+#endif
    /* Setup the private data directory */
-   if(argc && argv && *argc > 0 && (*argv)[0])
+   if(argc > 0 && argv[0])
    {
-      char *pathcopy = strdup((*argv)[0]);
+      char *pathcopy = strdup(argv[0]);
       char *pos = strrchr(pathcopy, '/');
       char *binname = pathcopy;
 
@@ -2054,7 +2076,7 @@ int dw_int_init(DWResources *res, int newthread, int *argc, char **argv[])
 
    _dw_gdk_threads_init();
 
-   gtk_init(argc, argv);
+   gtk_init(&argc, &argv);
 
    pthread_key_create(&_dw_fg_color_key, NULL);
    pthread_key_create(&_dw_bg_color_key, NULL);
