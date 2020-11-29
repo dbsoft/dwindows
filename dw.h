@@ -1642,11 +1642,10 @@ void API dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, 
 void API dw_box_pack_at_index(HWND box, HWND item, int index, int width, int height, int hsize, int vsize, int pad);
 HWND API dw_box_unpack_at_index(HWND box, int index);
 int API dw_box_unpack(HWND handle);
+int API dw_init(int newthread, int argc, char *argv[]);
 #ifdef DW_INCLUDE_DEPRECATED_RESOURCES
 int API dw_int_init(DWResources *res, int newthread, int *argc, char **argv[]);
 #define dw_init(a, b, c) dw_int_init(&_resources, a, &b, &c)
-#else
-int API dw_init(int newthread, int argc, char *argv[]);
 #endif
 void API dw_main(void);
 void API dw_main_quit(void);
