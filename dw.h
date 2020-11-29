@@ -1341,11 +1341,6 @@ typedef void *HTREEITEM;
 typedef void *HSHM;
 typedef void *HICN;
 
-typedef struct _resource_struct {
-   long resource_max, *resource_id;
-   char **resource_data;
-} DWResources;
-
 /* As of Dynamic Windows 3.1 GResource is default if supported.
  * Using --with-deprecated at configure time will include
  * support for our old home brewed resource system.
@@ -1354,13 +1349,18 @@ typedef struct _resource_struct {
  * Test for GResource using: dwindows-config --gresource
  */
 #ifndef DW_INCLUDE_DEPRECATED_RESOURCES
-#if defined(DW_INCLUDE_DEPRECATED) || GTK_MAJOR_VERSION < 3 || !GLIB_CHECK_VERSION(2,32,0)
+#if defined(DW_INCLUDE_DEPRECATED) || GTK_MAJOR_VERSION < 2 || !GLIB_CHECK_VERSION(2,32,0)
 #define DW_INCLUDE_DEPRECATED_RESOURCES 1
 #endif
 #endif
 
 /* Only reference our old style resources if required. */
 #ifdef DW_INCLUDE_DEPRECATED_RESOURCES
+typedef struct _resource_struct {
+   long resource_max, *resource_id;
+   char **resource_data;
+} DWResources;
+
 #if !defined(DW_RESOURCES) || defined(BUILD_DLL)
 static DWResources DW_UNUSED(_resources) = { 0, 0, 0 };
 #else

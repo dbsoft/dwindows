@@ -59,9 +59,14 @@
 #include "gtk/messagebox_information.xpm"
 #include "gtk/messagebox_question.xpm"
 
-/* These are used for resource management */
+/* These are used for legacy resource management 
+ * Starting with Dynamic Windows 3.1 the default 
+ * compiled in resource management is GResource.
+ */
+#ifdef DW_INCLUDE_DEPRECATED_RESOURCES
 #if defined(DW_RESOURCES) && !defined(BUILD_DLL)
 extern DWResources _resources;
+#endif
 #endif
 
 GdkColor _colors[] =
@@ -1845,10 +1850,35 @@ static GdkPixmap *_find_private_pixmap(GdkBitmap **bitmap, HICN icon, unsigned l
    return NULL;
 }
 
+#if GTK_MAJOR_VERSION > 1
+#ifdef DW_INCLUDE_DEPRECATED_RESOURCES
+static GdkPixbuf *_dw_pixbuf_from_data(char *data)
+{
+   if(data[0] == 'G' && data[1] == 'd' && data[2] == 'k' && data[3] == 'P')
+      return gdk_pixbuf_new_from_inline(-1, (const guint8 *)data, FALSE, NULL);
+   return gdk_pixbuf_new_from_xpm_data((const char **)data);
+}
+#endif
+
+static GdkPixbuf *_dw_pixbuf_from_resource(unsigned int rid)
+{
+#if GLIB_CHECK_VERSION(2,32,0)
+   char resource_path[201] = {0};
+   snprintf(resource_path, 200, "/org/dbsoft/dwindows/%u", rid);
+   return gdk_pixbuf_new_from_resource(resource_path, NULL);
+#else
+   return NULL;
+#endif   
+}
+#endif
+
 static GdkPixmap *_find_pixmap(GdkBitmap **bitmap, HICN icon, HWND handle, unsigned long *userwidth, unsigned long *userheight)
 {
-   char *data = NULL;
-   int z, id = GPOINTER_TO_INT(icon);
+   unsigned int id = GPOINTER_TO_INT(icon);
+#if GTK_MAJOR_VERSION > 1
+   GdkPixbuf *icon_pixbuf = NULL;
+#endif
+   GdkPixmap *icon_pixmap = NULL;
 
    /* Quick dropout for non-handle */
    if(!icon)
@@ -1857,41 +1887,64 @@ static GdkPixmap *_find_pixmap(GdkBitmap **bitmap, HICN icon, HWND handle, unsig
    if(id & (1 << 31))
       return _find_private_pixmap(bitmap, GINT_TO_POINTER((id & 0xFFFFFF)), userwidth, userheight);
 
-   for(z=0;z<_resources.resource_max;z++)
+#if GTK_MAJOR_VERSION > 1
+   icon_pixbuf = _dw_pixbuf_from_resource(id);
+#endif
+
+#ifdef DW_INCLUDE_DEPRECATED_RESOURCES
+#if GTK_MAJOR_VERSION > 1
+   if(!icon_pixbuf)
+#endif   
    {
-      if(_resources.resource_id[z] == id)
+      char *data = NULL;
+      int z;
+
+      for(z=0;z<_resources.resource_max;z++)
       {
-         data = _resources.resource_data[z];
-         break;
+         if(_resources.resource_id[z] == id)
+         {
+            data = _resources.resource_data[z];
+            break;
+         }
+      }
+
+      if(data)
+      {
+#if GTK_MAJOR_VERSION > 1
+         icon_pixbuf = _dw_pixbuf_from_data(data);
+#elif defined(USE_IMLIB)
+         gdk_imlib_data_to_pixmap((char **)data, &icon_pixmap, bitmap);
+#else
+         icon_pixmap = gdk_pixmap_create_from_xpm_d(handle->window, bitmap, &_colors[DW_CLR_PALEGRAY], (char **)data);
+#endif
       }
    }
-
-   if(data)
-   {
-      GdkPixmap *icon_pixmap = NULL;
+#endif
 #if GTK_MAJOR_VERSION > 1
-      GdkPixbuf *icon_pixbuf;
-
-      if(data[0] == 'G' && data[1] == 'd' && data[2] == 'k' && data[3] == 'P')
-         icon_pixbuf = gdk_pixbuf_new_from_inline(-1, (const guint8 *)data, FALSE, NULL);
-      else
-         icon_pixbuf = gdk_pixbuf_new_from_xpm_data((const char **)data);
-
-      if(userwidth)
-         *userwidth = gdk_pixbuf_get_width(icon_pixbuf);
-      if(userheight)
-         *userheight = gdk_pixbuf_get_height(icon_pixbuf);
-
+   if(icon_pixbuf)
+   {
       gdk_pixbuf_render_pixmap_and_mask(icon_pixbuf, &icon_pixmap, bitmap, 1);
       g_object_unref(icon_pixbuf);
-#elif defined(USE_IMLIB)
-      gdk_imlib_data_to_pixmap((char **)data, &icon_pixmap, bitmap);
-#else
-      icon_pixmap = gdk_pixmap_create_from_xpm_d(handle->window, bitmap, &_colors[DW_CLR_PALEGRAY], (char **)data);
-#endif
-      return icon_pixmap;
    }
-   return NULL;
+   if(userwidth)
+      *userwidth = icon_pixbuf ? gdk_pixbuf_get_width(icon_pixbuf) : 0;
+   if(userheight)
+      *userheight = icon_pixbuf ? gdk_pixbuf_get_height(icon_pixbuf) : 0;
+#else
+   if(icon_pixmap)
+   {
+      gint width = 0, height = 0;
+
+#if GTK_CHECK_VERSION(2,24,0)
+      gdk_pixmap_get_size(icon_pixmap, &width, &height);
+#endif
+      if(userwidth)
+         *userwidth = (unsigned long)width;
+      if(userheight)
+         *userheight = (unsigned long)height;         
+   }
+#endif
+   return icon_pixmap;
 }
 
 #if GTK_MAJOR_VERSION > 1
@@ -1906,8 +1959,8 @@ static GdkPixbuf *_find_private_pixbuf(HICN icon)
 
 static GdkPixbuf *_find_pixbuf(HICN icon)
 {
-   char *data = NULL;
-   int z, id = GPOINTER_TO_INT(icon);
+   unsigned int id = GPOINTER_TO_INT(icon);
+   GdkPixbuf *icon_pixbuf;
 
    /* Quick dropout for non-handle */
    if(!icon)
@@ -1916,20 +1969,26 @@ static GdkPixbuf *_find_pixbuf(HICN icon)
    if(id & (1 << 31))
       return _find_private_pixbuf(GINT_TO_POINTER((id & 0xFFFFFF)));
 
-   for(z=0;z<_resources.resource_max;z++)
+   if((icon_pixbuf = _dw_pixbuf_from_resource(id)))
+      return icon_pixbuf;
+   else
    {
-      if(_resources.resource_id[z] == id)
+#ifdef DW_INCLUDE_DEPRECATED_RESOURCES
+      char *data = NULL;
+      int z;
+      
+      for(z=0;z<_resources.resource_max;z++)
       {
-         data = _resources.resource_data[z];
-         break;
+         if(_resources.resource_id[z] == id)
+         {
+            data = _resources.resource_data[z];
+            break;
+         }
       }
-   }
 
-   if(data)
-   {
-      if(data[0] == 'G' && data[1] == 'd' && data[2] == 'k' && data[3] == 'P')
-         return gdk_pixbuf_new_from_inline(-1, (const guint8 *)data, FALSE, NULL);
-      return gdk_pixbuf_new_from_xpm_data((const char **)data);
+      if(data)
+         return _dw_pixbuf_from_data(data);
+#endif
    }
    return NULL;
 }
@@ -2010,20 +2069,22 @@ static void _dw_app_activate(GApplication *app, gpointer user_data)
 }
 #endif
 
+static char * _dw_test_xpm[] = {
+   "1 1 1 1",
+   " 	c None",
+   " "};
+   
 /*
  * Initializes the Dynamic Windows engine.
  * Parameters:
  *           newthread: True if this is the only thread.
  *                      False if there is already a message loop running.
  */
-int dw_int_init(DWResources *res, int newthread, int *argc, char **argv[])
+#ifdef DW_INCLUDE_DEPRECATED_RESOURCES
+int dw_int_init(DWResources *res, int newthread, int *pargc, char **pargv[])
 {
-   int z;
-   char *fname;
-   static char * test_xpm[] = {
-      "1 1 1 1",
-      " 	c None",
-      " "};
+   int z, argc = pargc ? *pargc : 0;
+   char *fname, **argv = pargv ? *pargv : NULL;
 
    if(res)
    {
@@ -2031,11 +2092,17 @@ int dw_int_init(DWResources *res, int newthread, int *argc, char **argv[])
       _resources.resource_id = res->resource_id;
       _resources.resource_data = res->resource_data;
    }
+#else
+int dw_init(int newthread, int argc, char *argv[])
+{
+   int z;
+   char *fname;
+#endif
 
    /* Setup the private data directory */
-   if(argc && argv && *argc > 0 && (*argv)[0])
+   if(argc > 0 && argv[0])
    {
-      char *pathcopy = strdup((*argv)[0]);
+      char *pathcopy = strdup(argv[0]);
       char *pos = strrchr(pathcopy, '/');
       char *binname = pathcopy;
 
@@ -2089,7 +2156,7 @@ int dw_int_init(DWResources *res, int newthread, int *argc, char **argv[])
    gdk_threads_init();
 #endif
 
-   gtk_init(argc, argv);
+   gtk_init(&argc, &argv);
 #ifdef USE_IMLIB
    gdk_imlib_init();
 #endif
@@ -2111,18 +2178,18 @@ int dw_int_init(DWResources *res, int newthread, int *argc, char **argv[])
     */
 #if GTK_MAJOR_VERSION > 1
    {
-      GdkPixbuf *pixbuf = gdk_pixbuf_new_from_xpm_data((const char **)test_xpm);
+      GdkPixbuf *pixbuf = gdk_pixbuf_new_from_xpm_data((const char **)_dw_test_xpm);
 
       gdk_pixbuf_render_pixmap_and_mask(pixbuf, &_dw_tmppixmap, &_dw_tmpbitmap, 1);
       g_object_unref(pixbuf);
    }
 #elif defined(USE_IMLIB)
-   gdk_imlib_data_to_pixmap((char **)test_xpm, &_dw_tmppixmap, &_dw_tmpbitmap);
+   gdk_imlib_data_to_pixmap((char **)_dw_test_xpm, &_dw_tmppixmap, &_dw_tmpbitmap);
 #else
    {
       GtkWidget *handle = gtk_label_new("");
       gtk_widget_realize(handle);
-      _dw_tmppixmap = gdk_pixmap_create_from_xpm_d(handle->window, &_dw_tmpbitmap, &_colors[DW_CLR_PALEGRAY], (char **)test_xpm);
+      _dw_tmppixmap = gdk_pixmap_create_from_xpm_d(handle->window, &_dw_tmpbitmap, &_colors[DW_CLR_PALEGRAY], (char **)_dw_test_xpm);
       gtk_widget_destroy(handle);
    }
 #endif
