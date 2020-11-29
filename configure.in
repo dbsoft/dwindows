@@ -259,7 +259,11 @@ if test $build_gtk = "yes"; then
    else
       GTK_CFLAGS=`$PKG_CFG --cflags $GTK_PACKAGES`
       GTK_LIBS=`$PKG_CFG --libs $GTK_PACKAGES`
-      PKG_CHECK_MODULES([GLIB], [glib-2.0 >= 2.32.0], [DW_GRESOURCE="enabled"])
+      if test $with_gtk2 = "yes"; then
+         CFLAGS="$CFLAGS -DDW_INCLUDE_DEPRECATED_RESOURCES=1"
+      else
+         PKG_CHECK_MODULES([GLIB], [glib-2.0 >= 2.32.0], [DW_GRESOURCE="enabled"], [CFLAGS="$CFLAGS -DDW_INCLUDE_DEPRECATED_RESOURCES=1"])
+      fi
    fi
 fi
 
