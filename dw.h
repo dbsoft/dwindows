@@ -1347,14 +1347,14 @@ typedef struct _resource_struct {
 } DWResources;
 
 /* As of Dynamic Windows 3.1 GResource is default if supported.
- * Defining DW_INCLUDE_DEPRECATED_RESOURCES at compile time will
- * include support for our old home brewed resource system.
+ * Using --with-deprecated at configure time will include
+ * support for our old home brewed resource system.
  * GLib 2.32 is required for GResource, so we automatically 
  * enable our old system if using an old Glib.
  * Test for GResource using: dwindows-config --gresource
  */
 #ifndef DW_INCLUDE_DEPRECATED_RESOURCES
-#if !GLIB_CHECK_VERSION(2,32,0)
+#if defined(DW_INCLUDE_DEPRECATED) || GTK_MAJOR_VERSION < 3 || !GLIB_CHECK_VERSION(2,32,0)
 #define DW_INCLUDE_DEPRECATED_RESOURCES 1
 #endif
 #endif
