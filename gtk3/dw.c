@@ -1924,7 +1924,7 @@ static GdkPixbuf *_dw_pixbuf_from_resource(unsigned int rid)
 {
 #if GLIB_CHECK_VERSION(2,32,0)
    char resource_path[201] = {0};
-   snprintf(resource_path, 200, "/org/dbsoft/dwindows/%u", rid);
+   snprintf(resource_path, 200, "/org/dbsoft/dwindows/resources/%u.png", rid);
    return gdk_pixbuf_new_from_resource(resource_path, NULL);
 #else
    return NULL;
@@ -2002,13 +2002,8 @@ static void _dw_app_activate(GApplication *app, gpointer user_data)
 }
 #endif
 
-/*
- * Initializes the Dynamic Windows engine.
- * Parameters:
- *           newthread: True if this is the only thread.
- *                      False if there is already a message loop running.
- */
 #ifdef DW_INCLUDE_DEPRECATED_RESOURCES
+#undef dw_init
 int dw_int_init(DWResources *res, int newthread, int *pargc, char **pargv[])
 {
    int argc = pargc ? *pargc : 0;
@@ -2020,10 +2015,18 @@ int dw_int_init(DWResources *res, int newthread, int *pargc, char **pargv[])
       _resources.resource_id = res->resource_id;
       _resources.resource_data = res->resource_data;
    }
-#else
+   return dw_init(newthread, argc, argv);
+}
+#endif
+
+/*
+ * Initializes the Dynamic Windows engine.
+ * Parameters:
+ *           newthread: True if this is the only thread.
+ *                      False if there is already a message loop running.
+ */
 int dw_init(int newthread, int argc, char *argv[])
 {
-#endif
    /* Setup the private data directory */
    if(argc > 0 && argv[0])
    {
