@@ -6268,12 +6268,10 @@ rm -f core conftest.err conftest.$ac_objext \
 
   rm -f conf.gdkimlibtest
 
+      CFLAGS="$CFLAGS -DDW_INCLUDE_DEPRECATED_RESOURCES=1"
    else
       GTK_CFLAGS=`$PKG_CFG --cflags $GTK_PACKAGES`
       GTK_LIBS=`$PKG_CFG --libs $GTK_PACKAGES`
-      if test $with_gtk2 = "yes"; then
-         CFLAGS="$CFLAGS -DDW_INCLUDE_DEPRECATED_RESOURCES=1"
-      else
 
 
 
@@ -6465,7 +6463,6 @@ else
 $as_echo "yes" >&6; }
 	DW_GRESOURCE="enabled"
 fi
-      fi
    fi
 fi
 

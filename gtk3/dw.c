@@ -1924,7 +1924,7 @@ static GdkPixbuf *_dw_pixbuf_from_resource(unsigned int rid)
 {
 #if GLIB_CHECK_VERSION(2,32,0)
    char resource_path[201] = {0};
-   snprintf(resource_path, 200, "/org/dbsoft/dwindows/%s/%u", _dw_app_id, rid);
+   snprintf(resource_path, 200, "/org/dbsoft/dwindows/%u", rid);
    return gdk_pixbuf_new_from_resource(resource_path, NULL);
 #else
    return NULL;
