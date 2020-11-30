@@ -2417,6 +2417,45 @@ void _dw_table_cell_view_layout(NSTableCellView *result)
 }
 #endif
 
+@interface DWFocusRingScrollView : NSScrollView
+{
+    BOOL shouldDrawFocusRing;
+    NSResponder* lastResp;
+}
+@end
+
+@implementation DWFocusRingScrollView
+-(BOOL)needsDisplay;
+{
+    NSResponder* resp = nil;
+    
+    if([[self window] isKeyWindow])
+    {
+        resp = [[self window] firstResponder];
+        if (resp == lastResp)
+            return [super needsDisplay];
+    }
+    else if (lastResp == nil)
+    {
+        return [super needsDisplay];
+    }
+    shouldDrawFocusRing = (resp != nil && [resp isKindOfClass:[NSView class]] && [(NSView*)resp isDescendantOf:self]);
+    lastResp = resp;
+    [self setKeyboardFocusRingNeedsDisplayInRect:[self bounds]];
+    return YES;
+}
+-(void)drawRect:(NSRect)rect
+{
+    [super drawRect:rect];
+                                                                                                    
+    if(shouldDrawFocusRing)
+    {
+        NSSetFocusRingStyle(NSFocusRingOnly);
+        NSRectFill(rect);
+    }
+}
+@end
+
 /* Subclass for a Container/List type */
 @interface DWContainer : NSTableView
 #ifdef BUILDING_FOR_SNOW_LEOPARD
@@ -5759,7 +5798,7 @@ void API dw_checkbox_set(HWND handle, int value)
 /* Internal common function to create containers and listboxes */
 HWND _dw_cont_new(ULONG cid, int multi)
 {
-    NSScrollView *scrollview  = [[NSScrollView alloc] init];
+    DWFocusRingScrollView *scrollview  = [[DWFocusRingScrollView alloc] init];
     DWContainer *cont = [[DWContainer alloc] init];
 
     [cont setScrollview:scrollview];
