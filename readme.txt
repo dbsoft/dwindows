@@ -42,6 +42,7 @@ Added embedding Microsoft Edge (Chromium) support on Windows 7 and higher.
     Requires Windows 8 or higher SDK to build and the nuget package from:
     https://www.nuget.org/packages/Microsoft.Web.WebView2 unzipped into
     .\packages\Microsoft.Web.WebView2
+    Install runtime: https://developer.microsoft.com/en-us/microsoft-edge/webview2/
 Added notification APIs: dw_notification_new() dw_notification_send() dw_app_id_set()
     Requires Windows 8 or higher. MacOS 10.8 or higher. GLib 2.40 or higher on Unix.
     MacOS also requires the application bundle being signed or self-signed.
@@ -54,7 +55,7 @@ Added embedded HTML javascript support on Mac, Windows and Unix with webkit(2)gt
     DW_SIGNAL_HTML_RESULT requires webkit2gtk on Unix.
 Added DW_SIGNAL_HTML_CHANGED signal handler for getting the status of embedded HTML.
     Status can be: DW_HTML_CHANGE_STARTED/REDIRECT/LOADING/COMPLETE
-Fixed internatational calendar issues on Mac.
+Fixed international calendar issues on Mac.
 Added dw_mle_set_auto_complete() to enable completion, only available on Mac.
 Changed to using GTK3 by default instead of GTK2.  --with-gtk2 is now available.
 Changed to using winsock2 on Windows ending support for Win95 and NT 3.5.
@@ -62,6 +63,9 @@ Added support for domain sockets on Windows 10 in the dwcompat sockpipe() macro.
     If compiled with Visual Studio 2017 or later, otherwise the old method is used.
 Added dw_feature_set/get() to test if certain features are available on the current
     library and operating system combination at runtime or enabled/disable features.
+Added support for GResource embedded images on GTK2/3 with GLib 2.32. The old 
+    resouce system is still available via configure --with-deprecated if needed.
+Added support for NSView based Tree, Container and Listbox widgets on Mac 10.7+.
 Fixed many small bugs, too numerous to list here.
 
 Dynamic Windows Documentation is available at:
