@@ -2373,7 +2373,11 @@ int dw_messagebox(const char *title, int flags, const char *format, ...)
       gtkbuttons = GTK_BUTTONS_YES_NO;
 
    DW_MUTEX_LOCK;
-   dialog = gtk_message_dialog_new(NULL, GTK_DIALOG_MODAL | GTK_DIALOG_USE_HEADER_BAR, gtkicon, gtkbuttons, "%s", title);
+   dialog = gtk_message_dialog_new(NULL,
+#if GTK_CHECK_VERSION(3,12,0)
+                                   GTK_DIALOG_USE_HEADER_BAR |
+#endif
+                                   GTK_DIALOG_MODAL, gtkicon, gtkbuttons, "%s", title);
    gtk_message_dialog_format_secondary_text(GTK_MESSAGE_DIALOG(dialog), "%s", outbuf);
    if(flags & DW_MB_YESNOCANCEL)
       gtk_dialog_add_button(GTK_DIALOG(dialog), "Cancel", GTK_RESPONSE_CANCEL);
@@ -3050,7 +3054,7 @@ void dw_window_capture(HWND handle)
                   FALSE, NULL, NULL, NULL, NULL);
 #else
    _dw_grab_manager = gdk_display_get_device_manager(gtk_widget_get_display(handle));
-   gdk_device_grab(gdk_device_manager_get_client_pointer(manager),
+   gdk_device_grab(gdk_device_manager_get_client_pointer(_dw_grab_manager),
                    gtk_widget_get_window(handle),
                    GDK_OWNERSHIP_WINDOW,
                    FALSE,
@@ -3102,8 +3106,8 @@ void dw_window_release(void)
       gdk_seat_ungrab(_dw_grab_seat);
    _dw_grab_seat = NULL;
 #else
-   gdk_device_ungrab(gdk_device_manager_get_client_pointer(manager), GDK_CURRENT_TIME);
-   manager = NULL;
+   gdk_device_ungrab(gdk_device_manager_get_client_pointer(_dw_grab_manager), GDK_CURRENT_TIME);
+   _dw_grab_manager = NULL;
 #endif
    DW_MUTEX_UNLOCK;
 }
