@@ -12460,6 +12460,7 @@ HWND dw_notification_new(const char *title, const char *imagepath, const char *d
 
          g_notification_set_body(notification, outbuf);
       }
+#if GLIB_CHECK_VERSION(2,52,0)
       if(imagepath)
       {
          GFile *file = g_file_new_for_path(imagepath);
@@ -12473,6 +12474,7 @@ HWND dw_notification_new(const char *title, const char *imagepath, const char *d
                g_notification_set_icon(notification, G_ICON(icon));
          }
       }
+#endif
       g_notification_set_default_action_and_target(notification, "app.notification", "t", 
                                                   (guint64)DW_POINTER_TO_ULONGLONG(notification)); 
    }
