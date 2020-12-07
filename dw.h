@@ -1403,7 +1403,7 @@ typedef unsigned long DWTID;
 #define _DW_APP_ID_SIZE 100
 
 /* Use at least the linux utsname limit to avoid gcc fortify warnings */
-#define _DW_ENV_STRING_SIZE 65
+#define _DW_ENV_STRING_SIZE 257
 
 typedef struct _dwenv {
    /* Operating System Name and DW Build Date/Time */
