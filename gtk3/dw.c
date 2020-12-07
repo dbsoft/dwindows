@@ -11182,12 +11182,12 @@ int dw_notification_send(HWND notification)
 void dw_environment_query(DWEnv *env)
 {
    struct utsname name;
-   char tempbuf[100] = { 0 }, *dot;
+   char tempbuf[_DW_ENV_STRING_SIZE] = { 0 }, *dot;
 
    uname(&name);
    memset(env, '\0', sizeof(DWEnv));
    strncpy(env->osName, name.sysname, sizeof(env->osName)-1);
-   strncpy(tempbuf, name.release, 99);
+   strncpy(tempbuf, name.release, sizeof(tempbuf)-1);
 
    strncpy(env->buildDate, __DATE__, sizeof(env->buildDate)-1);
    strncpy(env->buildTime, __TIME__, sizeof(env->buildTime)-1);
