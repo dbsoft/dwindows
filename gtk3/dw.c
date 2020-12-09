@@ -176,10 +176,10 @@ static void _dw_signal_disconnect(gpointer data, GClosure *closure);
 GObject *_DWObject = NULL;
 #if GLIB_CHECK_VERSION(2,28,0)
 GApplication *_DWApp = NULL;
+static char _dw_app_id[_DW_APP_ID_SIZE+1] = { 0 };
 #endif
 char *_DWDefaultFont = NULL;
 static char _dw_share_path[PATH_MAX+1] = { 0 };
-static char _dw_app_id[_DW_APP_ID_SIZE+1] = { 0 };
 
 typedef struct
 {
