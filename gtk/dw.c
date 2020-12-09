@@ -126,10 +126,10 @@ GdkBitmap *_dw_tmpbitmap = NULL;
 
 #if GLIB_CHECK_VERSION(2,28,0)
 GApplication *_DWApp = NULL;
+static char _dw_app_id[_DW_APP_ID_SIZE+1] = { 0 };
 #endif
 char *_DWDefaultFont = NULL;
 static char _dw_share_path[PATH_MAX+1] = { 0 };
-static char _dw_app_id[_DW_APP_ID_SIZE+1] = { 0 };
 
 #if GTK_MAJOR_VERSION < 2
 static int _dw_file_active = 0;
