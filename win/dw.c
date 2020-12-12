@@ -2132,6 +2132,17 @@ static void _dw_toggle_checkable_menu_item( HWND window, int id )
    }
 }
 
+void _dw_show_margins(HWND handle, MARGINS mar, int line)
+{
+#ifdef DEBUG
+   char *title = dw_window_get_text(handle);
+   dw_debug("_DwmExtendFrameIntoClientArea(\"%s\",%d,%d,%d,%d) line %d\n", title,
+            mar.cxLeftWidth, mar.cxRightWidth,
+            mar.cyTopHeight, mar.cyBottomHeight, line);
+   dw_free(title);
+#endif
+}
+
 /* The main window procedure for Dynamic Windows, all the resizing code is done here. */
 LRESULT CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 {
@@ -2751,24 +2762,28 @@ LRESULT CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
             SetLayeredWindowAttributes(hWnd, _dw_transparencykey, 255, LWA_ALPHA);
             if(_DwmExtendFrameIntoClientArea)
                _DwmExtendFrameIntoClientArea(hWnd, &mar);
+            _dw_show_margins(hWnd, mar, __LINE__);
          }
          /* If we have started compositing... */
          else
          {
-            MARGINS mar = {-1};
+            MARGINS mar = {-1,-1,-1,-1};
 
             if(cinfo && (cinfo->style & DW_FCF_COMPOSITED))
                SetLayeredWindowAttributes(hWnd, _dw_transparencykey, 0, LWA_COLORKEY);
             else
             {
+#ifdef DARK_MODE_TITLEBAR_MENU
                if(cinfo)
                   mar = _dw_rect_to_margins(cinfo->rect);
                else
+#endif
                   memset(&mar, 0, sizeof(MARGINS));
                SetLayeredWindowAttributes(hWnd, _dw_transparencykey, 255, LWA_ALPHA);
             }
             if(_DwmExtendFrameIntoClientArea)
                _DwmExtendFrameIntoClientArea(hWnd, &mar);
+            _dw_show_margins(hWnd, mar, __LINE__);
          }
       }
       break;
@@ -5855,18 +5870,23 @@ HWND API dw_window_new(HWND hwndOwner, const char *title, ULONG flStyle)
 
 #ifdef AEROGLASS
    /* Determine the borders of the default window frame */
-   AdjustWindowRectEx(&(newbox->cinfo.rect), flStyle, FALSE, 0);
-   newbox->cinfo.rect.left = newbox->cinfo.rect.right = newbox->cinfo.rect.bottom = 1;
+   AdjustWindowRectEx(&(newbox->cinfo.rect), flStyle, FALSE, flStyleEx);
+#ifdef DEBUG
+   dw_debug("AdjustWindowRectExt(%d,%d,%d,%d)\n", newbox->cinfo.rect.left, newbox->cinfo.rect.right,
+                                                  newbox->cinfo.rect.top, newbox->cinfo.rect.bottom);
+#endif
    newbox->cinfo.rect.top *= -1;
+   newbox->cinfo.rect.left = newbox->cinfo.rect.right = newbox->cinfo.rect.bottom = 1;
 
    if(flStyle & DW_FCF_COMPOSITED)
    {
       /* Attempt to enable Aero glass background on the entire window */
       if(_DwmExtendFrameIntoClientArea && _dw_composition)
       {
-         MARGINS fullmar = { -1 };
+         MARGINS fullmar = {-1,-1,-1,-1};
 
          _DwmExtendFrameIntoClientArea(hwndframe, &fullmar);
+         _dw_show_margins(hwndframe, fullmar, __LINE__);
       }
       SetLayeredWindowAttributes(hwndframe, _dw_transparencykey, 0, LWA_COLORKEY);
    }
@@ -5874,9 +5894,14 @@ HWND API dw_window_new(HWND hwndOwner, const char *title, ULONG flStyle)
    {
       if(_DwmExtendFrameIntoClientArea && _dw_composition)
       {
-         MARGINS mar = _dw_rect_to_margins(newbox->cinfo.rect);
+         MARGINS mar = {0};
+
+#ifdef DARK_MODE_TITLEBAR_MENU
+         mar = _dw_rect_to_margins(newbox->cinfo.rect);
+#endif
 
          _DwmExtendFrameIntoClientArea(hwndframe, &mar);
+         _dw_show_margins(hwndframe, mar, __LINE__);
       }
       SetLayeredWindowAttributes(hwndframe, _dw_transparencykey, 255, LWA_ALPHA);
    }
@@ -8506,22 +8531,26 @@ void API dw_window_set_style(HWND handle, ULONG style, ULONG mask)
       {
          if(style & DW_FCF_COMPOSITED)
          {
-            MARGINS mar = {-1};
+            MARGINS mar = {-1,-1,-1,-1};
 
             /* Attempt to enable Aero glass background on the entire window */
             SetLayeredWindowAttributes(handle, _dw_transparencykey, 0, LWA_COLORKEY);
             _DwmExtendFrameIntoClientArea(handle, &mar);
+            _dw_show_margins(handle, mar, __LINE__);
          }
          else
          {
             MARGINS mar = {0};
 
+#ifdef DARK_MODE_TITLEBAR_MENU
             if(cinfo)
                mar = _dw_rect_to_margins(cinfo->rect);
+#endif
 
             /* Remove Aero Glass */
             SetLayeredWindowAttributes(handle, _dw_transparencykey, 255, LWA_ALPHA);
             _DwmExtendFrameIntoClientArea(handle, &mar);
+            _dw_show_margins(handle, mar, __LINE__);
          }
       }
 #endif
