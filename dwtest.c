@@ -1806,7 +1806,8 @@ int main(int argc, char *argv[])
     dw_app_id_set("org.dbsoft.dwindows.dwtest", "Dynamic Windows Test");
 
     /* Enable full dark mode on platforms that support it */
-    dw_feature_set(DW_FEATURE_DARK_MODE, DW_DARK_MODE_FULL);
+    if(getenv("DW_DARK_MODE"))
+        dw_feature_set(DW_FEATURE_DARK_MODE, DW_DARK_MODE_FULL);
 
     /* Initialize the Dynamic Windows engine */
     dw_init(TRUE, argc, argv);
