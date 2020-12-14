@@ -4591,8 +4591,6 @@ int API dw_init(int newthread, int argc, char *argv[])
    /* We need the version to check capability like up-down controls */
    _dwVersion = GetVersion();
    _dwComctlVer = GetDllVersion(TEXT("comctl32.dll"));
-   dw_debug("PACKVERSION(%d,%d) %x PACKVERSION(6,1) %x PACKVERSION(6,0) %x PACKVERSION(6,2) %x PACKVERSION(10,0) %x PACKVERSION(5,1) %x\n",
-            LOBYTE(LOWORD(_dwVersion)), HIBYTE(LOWORD(_dwVersion)), PACKVERSION(LOBYTE(LOWORD(_dwVersion)),HIBYTE(LOWORD(_dwVersion))), PACKVERSION(6,1), PACKVERSION(6,0), PACKVERSION(6,3), PACKVERSION(10,0), PACKVERSION(5,1));
 
    /* We need to initialize dark mode, and thus the aero/theme subsystems before registering our window classes */
    if((huxtheme = LoadLibrary(TEXT("uxtheme"))))

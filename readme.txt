@@ -34,7 +34,7 @@ from available libraries (Firefox, Webkit, Qt, etc).
 
 Changes from version 3.0:
 Added support for MacOS versions through Big Sur 11.0, 
-    Windows versions through 10 build 2004.
+    Windows versions through 10 build 20H2.
 Fixed handle leak on OS/2 when built with (Open)Watcom.
 Added dark mode support on MacOS Mojave 10.14 and later. 
 Added experimental dark mode support on Windows 10 build 1809 (disabled by default).
@@ -66,6 +66,10 @@ Added dw_feature_set/get() to test if certain features are available on the curr
 Added support for GResource embedded images on GTK2/3 with GLib 2.32. The old 
     resouce system is still available via configure --with-deprecated if needed.
 Added support for NSView based Tree, Container and Listbox widgets on Mac 10.7+.
+Removed DW_FCF_COMPOSITED support from Windows 8 and higher. 
+    This flag will still function to create a glass effect on Windows Vista and 7.
+    The transparent key feature used to create it causes issues on 8 and 10, plus
+    the glass effect, the main reason for the flag was removed in 8.
 Fixed many small bugs, too numerous to list here.
 
 Dynamic Windows Documentation is available at:
