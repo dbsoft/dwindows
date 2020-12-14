@@ -254,19 +254,22 @@ HANDLE hmsftedit = 0;
 # define LVS_EX_DOUBLEBUFFER 0x10000
 #endif
 
-HWND popup = (HWND)NULL, DW_HWND_OBJECT = (HWND)NULL, hwndTooltip = (HWND)0;
+HWND _dw_popup = (HWND)NULL, DW_HWND_OBJECT = (HWND)NULL, _dw_tooltip = (HWND)NULL;
 
-HINSTANCE DWInstance = NULL;
+HINSTANCE _DWInstance = NULL;
 
-DWORD dwVersion = 0, dwComctlVer = 0;
+DWORD _dwVersion = 0, _dwComctlVer = 0;
 DWTID _dwtid = -1;
 SECURITY_DESCRIPTOR _dwsd;
 
 #define PACKVERSION(major,minor) MAKELONG(minor,major)
 
-#define IS_XPPLUS (dwComctlVer >= PACKVERSION(5,82))
-#define IS_VISTAPLUS (dwComctlVer >= PACKVERSION(6,10))
-#define IS_WIN8PLUS (dwVersion >= PACKVERSION(6,1))
+#define IS_XPPLUS (_dwComctlVer >= PACKVERSION(5,82))
+#define IS_VISTAPLUS (_dwComctlVer >= PACKVERSION(6,10))
+#define IS_WIN7PLUS (PACKVERSION(LOBYTE(LOWORD(_dwVersion)),HIBYTE(LOWORD(_dwVersion))) >= PACKVERSION(6,1))
+#define IS_WIN8PLUS (PACKVERSION(LOBYTE(LOWORD(_dwVersion)),HIBYTE(LOWORD(_dwVersion))) >= PACKVERSION(6,2))
+#define IS_WIN81PLUS (PACKVERSION(LOBYTE(LOWORD(_dwVersion)),HIBYTE(LOWORD(_dwVersion))) >= PACKVERSION(6,3))
+#define IS_WIN10PLUS (PACKVERSION(LOBYTE(LOWORD(_dwVersion)),HIBYTE(LOWORD(_dwVersion))) >= PACKVERSION(10,0))
 
 #ifndef MIN
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))
@@ -405,7 +408,7 @@ SignalList SignalTranslate[SIGNALMAX] = {
 #ifdef BUILD_DLL
 void Win32_Set_Instance(HINSTANCE hInstance)
 {
-   DWInstance = hInstance;
+   _DWInstance = hInstance;
 }
 #else
 char **_convertargs(int *count, char *start)
@@ -445,7 +448,7 @@ char **_convertargs(int *count, char *start)
 
    argv = (char **)malloc(sizeof(char *) * ((*count)+1));
    argv[0] = calloc(261, 1);
-   GetModuleFileNameA(DWInstance, argv[0], 260);
+   GetModuleFileNameA(_DWInstance, argv[0], 260);
 
    argstart = tmp = start;
 
@@ -498,7 +501,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
    char **argv;
    int argc;
 
-   DWInstance = hInstance;
+   _DWInstance = hInstance;
 
    argv = _convertargs(&argc, lpCmdLine);
 
@@ -786,17 +789,17 @@ BOOL _DW_ShouldAppsUseDarkMode(void)
 
 void _dw_init_dark_mode(void)
 {
-   if(_DW_DARK_MODE_ALLOWED && dwVersion && huxtheme)
+   if(_DW_DARK_MODE_ALLOWED && _dwVersion && huxtheme)
    {
       /* Dark mode is introduced in Windows 10 (1809) build 17763 */
-      if(LOBYTE(LOWORD(dwVersion)) >= 10 && HIWORD(dwVersion) >= 17763)
+      if(LOBYTE(LOWORD(_dwVersion)) >= 10 && HIWORD(_dwVersion) >= 17763)
       {
          _OpenNcThemeData = (HTHEME (WINAPI *)(HWND, LPCWSTR))GetProcAddress(huxtheme, MAKEINTRESOURCEA(49));
          _RefreshImmersiveColorPolicyState = (VOID (WINAPI *)(VOID))GetProcAddress(huxtheme, MAKEINTRESOURCEA(104));
          _GetIsImmersiveColorUsingHighContrast = (BOOL (WINAPI *)(IMMERSIVE_HC_CACHE_MODE))GetProcAddress(huxtheme, MAKEINTRESOURCEA(106));
          _ShouldAppsUseDarkMode = (BOOL (WINAPI *)(VOID))GetProcAddress(huxtheme, MAKEINTRESOURCEA(132));
          _AllowDarkModeForWindow = (BOOL (WINAPI *)(HWND, BOOL))GetProcAddress(huxtheme, MAKEINTRESOURCEA(133));
-         if(HIWORD(dwVersion) < 18362)
+         if(HIWORD(_dwVersion) < 18362)
             _AllowDarkModeForApp = (BOOL (WINAPI *)(BOOL))GetProcAddress(huxtheme, MAKEINTRESOURCEA(135));
          else
             _SetPreferredAppMode = (_PreferredAppMode (WINAPI *)(_PreferredAppMode))GetProcAddress(huxtheme, MAKEINTRESOURCEA(135));
@@ -894,7 +897,7 @@ void _DW_RefreshTitleBarThemeColor(HWND window)
    BOOL dark = FALSE;
    if (_IsDarkModeAllowedForWindow(window) && _DW_ShouldAppsUseDarkMode())
       dark = TRUE;
-   if(HIWORD(dwVersion) < 18362)
+   if(HIWORD(_dwVersion) < 18362)
       SetProp(window, TEXT("UseImmersiveDarkModeColors"), (HANDLE)DW_INT_TO_POINTER(dark));
    else if (_SetWindowCompositionAttribute)
    {
@@ -1170,9 +1173,9 @@ BOOL CALLBACK _free_window_memory(HWND handle, LPARAM lParam)
 
    ti.cbSize = sizeof(TOOLINFO);
    ti.hwnd = handle;
-   ti.hinst = DWInstance;
+   ti.hinst = _DWInstance;
 
-   SendMessage(hwndTooltip, TTM_DELTOOL, 0, (LPARAM) (LPTOOLINFO) &ti);
+   SendMessage(_dw_tooltip, TTM_DELTOOL, 0, (LPARAM) (LPTOOLINFO) &ti);
 
    GetClassName(handle, tmpbuf, 99);
 
@@ -2654,8 +2657,8 @@ LRESULT CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
                      } /* this fires for checkable menu items */
                      else if ( tmp->window < (HWND)65536 && command == tmp->window && tmp->message != WM_TIMER )
                      {
-                        _dw_toggle_checkable_menu_item( popup ? popup : tmp->window, DW_POINTER_TO_INT(tmp->data) );
-                        result = clickfunc(popup ? popup : tmp->window, tmp->data);
+                        _dw_toggle_checkable_menu_item( _dw_popup ? _dw_popup : tmp->window, DW_POINTER_TO_INT(tmp->data) );
+                        result = clickfunc(_dw_popup ? _dw_popup : tmp->window, tmp->data);
                         tmp = NULL;
                      }
                   }
@@ -4442,9 +4445,9 @@ void _create_tooltip(HWND handle, const char *text)
 
     ti.cbSize = sizeof(TOOLINFO);
     ti.hwnd = handle;
-    ti.hinst = DWInstance;
+    ti.hinst = _DWInstance;
 
-    SendMessage(hwndTooltip, TTM_DELTOOL, 0, (LPARAM) (LPTOOLINFO) &ti);
+    SendMessage(_dw_tooltip, TTM_DELTOOL, 0, (LPARAM) (LPTOOLINFO) &ti);
     if(text)
     {
         /* Set up "tool" information.
@@ -4455,7 +4458,7 @@ void _create_tooltip(HWND handle, const char *text)
         ti.rect.right = ti.rect.bottom = 2000;
 
         /* Associate the tooltip with the "tool" window. */
-        SendMessage(hwndTooltip, TTM_ADDTOOL, 0, (LPARAM) (LPTOOLINFO) &ti);
+        SendMessage(_dw_tooltip, TTM_ADDTOOL, 0, (LPARAM) (LPTOOLINFO) &ti);
     }
 }
 
@@ -4586,8 +4589,10 @@ int API dw_init(int newthread, int argc, char *argv[])
    memset(lookup, 0, sizeof(HICON) * ICON_INDEX_LIMIT);
 
    /* We need the version to check capability like up-down controls */
-   dwVersion = GetVersion();
-   dwComctlVer = GetDllVersion(TEXT("comctl32.dll"));
+   _dwVersion = GetVersion();
+   _dwComctlVer = GetDllVersion(TEXT("comctl32.dll"));
+   dw_debug("PACKVERSION(%d,%d) %x PACKVERSION(6,1) %x PACKVERSION(6,0) %x PACKVERSION(6,2) %x PACKVERSION(10,0) %x PACKVERSION(5,1) %x\n",
+            LOBYTE(LOWORD(_dwVersion)), HIBYTE(LOWORD(_dwVersion)), PACKVERSION(LOBYTE(LOWORD(_dwVersion)),HIBYTE(LOWORD(_dwVersion))), PACKVERSION(6,1), PACKVERSION(6,0), PACKVERSION(6,3), PACKVERSION(10,0), PACKVERSION(5,1));
 
    /* We need to initialize dark mode, and thus the aero/theme subsystems before registering our window classes */
    if((huxtheme = LoadLibrary(TEXT("uxtheme"))))
@@ -4711,7 +4716,7 @@ int API dw_init(int newthread, int argc, char *argv[])
     */
 
    DW_HWND_OBJECT = CreateWindow(ObjectClassName, TEXT("HWND_OBJECT"), 0, 0, 0,
-                          0, 0, HWND_DESKTOP, NULL, DWInstance, NULL);
+                          0, 0, HWND_DESKTOP, NULL, _DWInstance, NULL);
 
    if(!DW_HWND_OBJECT)
    {
@@ -4728,7 +4733,7 @@ int API dw_init(int newthread, int argc, char *argv[])
    {
       /* If we still don't have an app name, get the executable name */
       char fullpath[MAX_PATH+1] = {0}, *pos;
-      GetModuleFileNameA(DWInstance, fullpath, MAX_PATH);
+      GetModuleFileNameA(_DWInstance, fullpath, MAX_PATH);
       pos = strrchr(fullpath, '\\');
       if(pos)
          pos++;
@@ -4756,10 +4761,10 @@ int API dw_init(int newthread, int argc, char *argv[])
 #endif
 
    /* Create a tooltip. */
-   hwndTooltip = CreateWindowEx(WS_EX_TOPMOST, TOOLTIPS_CLASS, NULL, WS_POPUP | TTS_NOPREFIX | TTS_ALWAYSTIP,
-                  CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, DW_HWND_OBJECT, NULL, DWInstance,NULL);
+   _dw_tooltip = CreateWindowEx(WS_EX_TOPMOST, TOOLTIPS_CLASS, NULL, WS_POPUP | TTS_NOPREFIX | TTS_ALWAYSTIP,
+                  CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, DW_HWND_OBJECT, NULL, _DWInstance, NULL);
 
-   SetWindowPos(hwndTooltip, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+   SetWindowPos(_dw_tooltip, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
 
    /* Create empty box data */
    SetWindowLongPtr(DW_HWND_OBJECT, GWLP_USERDATA, (LONG_PTR)calloc(sizeof(Box), 1));
@@ -5854,14 +5859,14 @@ HWND API dw_window_new(HWND hwndOwner, const char *title, ULONG flStyle)
       flStyle & WS_VSCROLL /* This is deprecated and should go away in version 3? */)
    {
       hwndframe = CreateWindowEx(flStyleEx, ClassName, UTF8toWide(title), (flStyle | WS_CLIPCHILDREN) & 0xffdf0000, CW_USEDEFAULT, CW_USEDEFAULT,
-                           0, 0, hwndOwner, NULL, DWInstance, NULL);
+                           0, 0, hwndOwner, NULL, _DWInstance, NULL);
    }
    else
    {
       flStyleEx |= WS_EX_TOOLWINDOW;
 
       hwndframe = CreateWindowEx(flStyleEx, ClassName, UTF8toWide(title), (flStyle | WS_CLIPCHILDREN) & 0xffff0000, CW_USEDEFAULT, CW_USEDEFAULT,
-                           0, 0, hwndOwner, NULL, DWInstance, NULL);
+                           0, 0, hwndOwner, NULL, _DWInstance, NULL);
    }
 
    SetWindowLongPtr(hwndframe, GWLP_USERDATA, (LONG_PTR)newbox);
@@ -5934,7 +5939,7 @@ HWND API dw_box_new(int type, int pad)
                       0,0,0,0,
                       DW_HWND_OBJECT,
                       NULL,
-                      DWInstance,
+                      _DWInstance,
                       NULL);
 
    newbox->cinfo.pOldProc = SubclassWindow(hwndframe, _colorwndproc);
@@ -5964,7 +5969,7 @@ HWND API dw_scrollbox_new(int type, int pad)
                      0,0,0,0,
                      DW_HWND_OBJECT,
                      NULL,
-                     DWInstance,
+                     _DWInstance,
                      NULL);
 
    if((cinfo = _dw_window_new_cinfo(hwndframe, FALSE)))
@@ -6052,7 +6057,7 @@ HWND API dw_groupbox_new(int type, int pad, const char *title)
                       0,0,0,0,
                       DW_HWND_OBJECT,
                       NULL,
-                      DWInstance,
+                      _DWInstance,
                       NULL);
 
    newbox->grouphwnd = CreateWindow(BUTTONCLASSNAME,
@@ -6062,7 +6067,7 @@ HWND API dw_groupbox_new(int type, int pad, const char *title)
                             0,0,0,0,
                             hwndframe,
                             NULL,
-                            DWInstance,
+                            _DWInstance,
                             NULL);
 
    /* Disable visual styles by default */
@@ -6094,7 +6099,7 @@ HWND API dw_mdi_new(unsigned long id)
                       0,0,0,0,
                       DW_HWND_OBJECT,
                       (HMENU)(uintptr_t)id,
-                      DWInstance,
+                      _DWInstance,
                       &ccs);
    return hwndframe;
 }
@@ -6113,7 +6118,7 @@ HWND API dw_html_new(unsigned long id)
                   0,0,0,0,
                   DW_HWND_OBJECT,
                   (HMENU)(uintptr_t)id,
-                  DWInstance,
+                  _DWInstance,
                   NULL);
 #else
    dw_debug("HTML widget not available; Support not enabled in this build.\n");
@@ -6233,7 +6238,7 @@ HWND API dw_bitmap_new(ULONG id)
                   0,0,0,0,
                   DW_HWND_OBJECT,
                   (HMENU)(uintptr_t)id,
-                  DWInstance,
+                  _DWInstance,
                   NULL);
 }
 
@@ -6259,7 +6264,7 @@ HWND API dw_notebook_new(ULONG id, int top)
                   0,0,0,0,
                   DW_HWND_OBJECT,
                   (HMENU)(uintptr_t)id,
-                  DWInstance,
+                  _DWInstance,
                   NULL);
    if((cinfo = _dw_window_new_cinfo(tmp, FALSE)))
       cinfo->pOldProc = SubclassWindow(tmp, _simplewndproc);
@@ -6693,7 +6698,7 @@ void API dw_menu_popup(HMENUI *menu, HWND parent, int x, int y)
             return;
       }
 
-      popup = parent;
+      _dw_popup = parent;
       TrackPopupMenu(mymenu, 0, x, y, 0, parent, NULL);
       PostMessage(DW_HWND_OBJECT, WM_USER+5, (LPARAM)mymenu, 0);
    }
@@ -6718,7 +6723,7 @@ HWND API dw_container_new(ULONG id, int multi)
                      0,0,0,0,
                      DW_HWND_OBJECT,
                      (HMENU)(uintptr_t)id,
-                     DWInstance,
+                     _DWInstance,
                      NULL);
    ContainerInfo *cinfo = (ContainerInfo *)calloc(1, sizeof(ContainerInfo));
 
@@ -6760,7 +6765,7 @@ HWND API dw_tree_new(ULONG id)
                      0,0,0,0,
                      DW_HWND_OBJECT,
                      (HMENU)(uintptr_t)id,
-                     DWInstance,
+                     _DWInstance,
                      NULL);
    ContainerInfo *cinfo = (ContainerInfo *)calloc(1, sizeof(ContainerInfo));
    TreeView_SetItemHeight(tmp, 16);
@@ -6824,7 +6829,7 @@ HWND API dw_text_new(const char *text, ULONG id)
                      0,0,0,0,
                      DW_HWND_OBJECT,
                      (HMENU)(uintptr_t)id,
-                     DWInstance,
+                     _DWInstance,
                      NULL);
 #ifdef AEROGLASS
    ColorInfo *cinfo = _dw_window_new_cinfo(tmp, FALSE);
@@ -6851,7 +6856,7 @@ HWND API dw_status_text_new(const char *text, ULONG id)
                      0,0,0,0,
                      DW_HWND_OBJECT,
                      (HMENU)(uintptr_t)id,
-                     DWInstance,
+                     _DWInstance,
                      NULL);
    dw_window_set_font(tmp, DefaultFont);
    return tmp;
@@ -6875,7 +6880,7 @@ HWND API dw_mle_new(ULONG id)
                        0,0,0,0,
                        DW_HWND_OBJECT,
                        (HMENU)(uintptr_t)id,
-                       DWInstance,
+                       _DWInstance,
                        NULL);
    ContainerInfo *cinfo = (ContainerInfo *)calloc(1, sizeof(ContainerInfo));
 
@@ -6911,7 +6916,7 @@ HWND API dw_entryfield_new(const char *text, ULONG id)
                        0,0,0,0,
                        DW_HWND_OBJECT,
                        (HMENU)(uintptr_t)id,
-                       DWInstance,
+                       _DWInstance,
                        NULL);
 
    _dw_window_new_cinfo(tmp, TRUE);
@@ -6936,7 +6941,7 @@ HWND API dw_entryfield_password_new(const char *text, ULONG id)
                        0,0,0,0,
                        DW_HWND_OBJECT,
                        (HMENU)(uintptr_t)id,
-                       DWInstance,
+                       _DWInstance,
                        NULL);
 
    _dw_window_new_cinfo(tmp, TRUE);
@@ -6972,7 +6977,7 @@ HWND API dw_combobox_new(const char *text, ULONG id)
                      0,0,0,0,
                      DW_HWND_OBJECT,
                      (HMENU)(uintptr_t)id,
-                     DWInstance,
+                     _DWInstance,
                      NULL);
    ColorInfo *cinfo = (ColorInfo *)calloc(1, sizeof(ColorInfo));
    ColorInfo *cinfo2 = (ColorInfo *)calloc(1, sizeof(ColorInfo));
@@ -7014,7 +7019,7 @@ HWND API dw_button_new(const char *text, ULONG id)
                      0,0,0,0,
                      DW_HWND_OBJECT,
                      (HMENU)(uintptr_t)id,
-                     DWInstance,
+                     _DWInstance,
                      NULL);
    ColorInfo *cinfo;
 
@@ -7092,7 +7097,7 @@ HWND _create_toolbar(const char *text, ULONG id, HICON icon, HBITMAP hbitmap)
 
    /* Create the toolbar */
    tmp = CreateWindowEx(0L, TOOLBARCLASSNAME, NULL, WS_CHILD | WS_VISIBLE | TBSTYLE_AUTOSIZE | CCS_NORESIZE |
-                        CCS_NOPARENTALIGN | CCS_NODIVIDER, 0, 0, 100, 30, DW_HWND_OBJECT, (HMENU)(uintptr_t)id, DWInstance, NULL);
+                        CCS_NOPARENTALIGN | CCS_NODIVIDER, 0, 0, 100, 30, DW_HWND_OBJECT, (HMENU)(uintptr_t)id, _DWInstance, NULL);
 
    /* Disable visual styles by default */
    if(_SetWindowTheme)
@@ -7119,8 +7124,8 @@ HWND _create_toolbar(const char *text, ULONG id, HICON icon, HBITMAP hbitmap)
  */
 HWND API dw_bitmapbutton_new(const char *text, ULONG id)
 {
-   HICON icon = LoadImage(DWInstance, MAKEINTRESOURCE(id), IMAGE_ICON, 0, 0, 0);
-   HBITMAP hbitmap = icon ? 0 : LoadBitmap(DWInstance, MAKEINTRESOURCE(id));
+   HICON icon = LoadImage(_DWInstance, MAKEINTRESOURCE(id), IMAGE_ICON, 0, 0, 0);
+   HBITMAP hbitmap = icon ? 0 : LoadBitmap(_DWInstance, MAKEINTRESOURCE(id));
    ColorInfo *cinfo;
    HWND tmp;
 
@@ -7141,7 +7146,7 @@ HWND API dw_bitmapbutton_new(const char *text, ULONG id)
                   0,0,0,0,
                   DW_HWND_OBJECT,
                   (HMENU)(uintptr_t)id,
-                  DWInstance,
+                  _DWInstance,
                   NULL);
 
    if((cinfo = _dw_window_new_cinfo(tmp, FALSE)))
@@ -7199,7 +7204,7 @@ HWND API dw_bitmapbutton_new_from_file(const char *text, unsigned long id, const
                        0,0,0,0,
                        DW_HWND_OBJECT,
                        (HMENU)(uintptr_t)id,
-                       DWInstance,
+                       _DWInstance,
                        NULL);
 
    if((cinfo = _dw_window_new_cinfo(tmp, FALSE)))
@@ -7282,7 +7287,7 @@ HWND API dw_bitmapbutton_new_from_data(const char *text, unsigned long id, const
                        0,0,0,0,
                        DW_HWND_OBJECT,
                        (HMENU)(uintptr_t)id,
-                       DWInstance,
+                       _DWInstance,
                        NULL );
 
    if((cinfo = _dw_window_new_cinfo(tmp, FALSE)))
@@ -7313,7 +7318,7 @@ HWND API dw_spinbutton_new(const char *text, ULONG id)
                         0,0,0,0,
                         DW_HWND_OBJECT,
                         NULL,
-                        DWInstance,
+                        _DWInstance,
                         NULL);
    HWND tmp = CreateWindowEx(WS_EX_CLIENTEDGE,
                        UPDOWN_CLASS,
@@ -7324,7 +7329,7 @@ HWND API dw_spinbutton_new(const char *text, ULONG id)
                        0,0,0,0,
                        DW_HWND_OBJECT,
                        (HMENU)(uintptr_t)id,
-                       DWInstance,
+                       _DWInstance,
                        NULL);
    ColorInfo *cinfo;
 
@@ -7366,7 +7371,7 @@ HWND API dw_radiobutton_new(const char *text, ULONG id)
                      0,0,0,0,
                      DW_HWND_OBJECT,
                      (HMENU)(uintptr_t)id,
-                     DWInstance,
+                     _DWInstance,
                      NULL);
 
    /* Disable visual styles by default */
@@ -7397,7 +7402,7 @@ HWND API dw_slider_new(int vertical, int increments, ULONG id)
                      0,0,0,0,
                      DW_HWND_OBJECT,
                      (HMENU)(uintptr_t)id,
-                     DWInstance,
+                     _DWInstance,
                      NULL);
 
    _dw_window_new_cinfo(tmp, TRUE);
@@ -7421,7 +7426,7 @@ HWND API dw_scrollbar_new(int vertical, ULONG id)
                      0,0,0,0,
                      DW_HWND_OBJECT,
                      (HMENU)(uintptr_t)id,
-                     DWInstance,
+                     _DWInstance,
                      NULL);
 
    _dw_window_new_cinfo(tmp, TRUE);
@@ -7442,7 +7447,7 @@ HWND API dw_percent_new(ULONG id)
                   0,0,0,0,
                   DW_HWND_OBJECT,
                   (HMENU)(uintptr_t)id,
-                  DWInstance,
+                  _DWInstance,
                   NULL);
 }
 
@@ -7462,7 +7467,7 @@ HWND API dw_checkbox_new(const char *text, ULONG id)
                      0,0,0,0,
                      DW_HWND_OBJECT,
                      (HMENU)(uintptr_t)id,
-                     DWInstance,
+                     _DWInstance,
                      NULL);
 
    /* Disable visual styles by default */
@@ -7495,7 +7500,7 @@ HWND API dw_listbox_new(ULONG id, int multi)
                        0,0,0,0,
                        DW_HWND_OBJECT,
                        (HMENU)(uintptr_t)id,
-                       DWInstance,
+                       _DWInstance,
                        NULL);
    ContainerInfo *cinfo = (ContainerInfo *)calloc(1, sizeof(ContainerInfo));
 
@@ -7523,7 +7528,7 @@ HWND API dw_listbox_new(ULONG id, int multi)
 void API dw_window_set_icon(HWND handle, HICN icon)
 {
    int iicon = DW_POINTER_TO_INT(icon);
-   HICON hicon = iicon < 65536 ? LoadIcon(DWInstance, MAKEINTRESOURCE(iicon)) : (HICON)icon;
+   HICON hicon = iicon < 65536 ? LoadIcon(_DWInstance, MAKEINTRESOURCE(iicon)) : (HICON)icon;
 
    SendMessage(handle, WM_SETICON,
             (WPARAM) IMAGE_ICON,
@@ -7627,8 +7632,8 @@ void API dw_window_set_bitmap(HWND handle, unsigned long id, const char *filenam
 
    if(id)
    {
-      hbitmap = LoadImage(DWInstance, MAKEINTRESOURCE(id), IMAGE_BITMAP, 0, 0, LR_LOADMAP3DCOLORS | LR_SHARED);
-      icon = LoadImage(DWInstance, MAKEINTRESOURCE(id), IMAGE_ICON, 0, 0, LR_SHARED);
+      hbitmap = LoadImage(_DWInstance, MAKEINTRESOURCE(id), IMAGE_BITMAP, 0, 0, LR_LOADMAP3DCOLORS | LR_SHARED);
+      icon = LoadImage(_DWInstance, MAKEINTRESOURCE(id), IMAGE_ICON, 0, 0, LR_SHARED);
    }
    else if(filename)
    {
@@ -7693,8 +7698,8 @@ void API dw_window_set_bitmap_from_data(HWND handle, unsigned long id, const cha
    }
    else if ( id )
    {
-      hbitmap = LoadBitmap( DWInstance, MAKEINTRESOURCE(id) );
-      icon = LoadImage( DWInstance, MAKEINTRESOURCE(id), IMAGE_ICON, 0, 0, LR_SHARED );
+      hbitmap = LoadBitmap(_DWInstance, MAKEINTRESOURCE(id));
+      icon = LoadImage(_DWInstance, MAKEINTRESOURCE(id), IMAGE_ICON, 0, 0, LR_SHARED);
    }
 
    _dw_window_set_bitmap(handle, icon, hbitmap);
@@ -9395,7 +9400,7 @@ void API dw_percent_set_pos(HWND handle, unsigned int position)
    if(position == DW_PERCENT_INDETERMINATE)
    {
       /* If our common controls supports it... */
-      if((dwComctlVer >= PACKVERSION(6,0)))
+      if((_dwComctlVer >= PACKVERSION(6,0)))
       {
           /* Enable the style on the control */
           SetWindowLong(handle, GWL_STYLE, GetWindowLong(handle, GWL_STYLE) | PBS_MARQUEE);
@@ -9407,7 +9412,7 @@ void API dw_percent_set_pos(HWND handle, unsigned int position)
    }
    else
    {
-      if((dwComctlVer >= PACKVERSION(6,0)))
+      if((_dwComctlVer >= PACKVERSION(6,0)))
       {
           unsigned long style = GetWindowLong(handle, GWL_STYLE);
 
@@ -9913,7 +9918,7 @@ int API dw_filesystem_setup(HWND handle, unsigned long *flags, char **titles, in
  */
 HICN API dw_icon_load(unsigned long module, unsigned long id)
 {
-   return (HICN)LoadIcon(DWInstance, MAKEINTRESOURCE(id));
+   return (HICN)LoadIcon(_DWInstance, MAKEINTRESOURCE(id));
 }
 
 /*
@@ -10884,7 +10889,7 @@ HWND API dw_render_new(unsigned long id)
                      0,0,0,0,
                      DW_HWND_OBJECT,
                      (HMENU)(uintptr_t)id,
-                     DWInstance,
+                     _DWInstance,
                      NULL);
    newbox->pad = 0;
    newbox->type = 0;
@@ -11736,7 +11741,7 @@ HPIXMAP API dw_pixmap_grab(HWND handle, ULONG id)
 
    hdc = GetDC(handle);
 
-   pixmap->hbm = LoadBitmap(DWInstance, MAKEINTRESOURCE(id));
+   pixmap->hbm = LoadBitmap(_DWInstance, MAKEINTRESOURCE(id));
    pixmap->hdc = CreateCompatibleDC(hdc);
 
    GetObject(pixmap->hbm, sizeof(BITMAP), (void *)&bm);
@@ -12388,7 +12393,7 @@ void API dw_shutdown(void)
    FreeLibrary(hdwm);
 #endif
    FreeLibrary(huxtheme);
-   DestroyWindow(hwndTooltip);
+   DestroyWindow(_dw_tooltip);
 }
 
 /*
@@ -12419,7 +12424,7 @@ HWND API dw_splitbar_new(int type, HWND topleft, HWND bottomright, unsigned long
                      0,0,0,0,
                      DW_HWND_OBJECT,
                      (HMENU)(uintptr_t)id,
-                     DWInstance,
+                     _DWInstance,
                      NULL);
 
    if(tmp)
@@ -12497,7 +12502,7 @@ HWND API dw_calendar_new(unsigned long id)
                            0,0,0,0,
                            DW_HWND_OBJECT,
                            (HMENU)(uintptr_t)id,
-                           DWInstance,
+                           _DWInstance,
                            NULL);
    if ( tmp )
    {
@@ -12756,14 +12761,14 @@ void API dw_environment_query(DWEnv *env)
 
    /* Get the Windows version. */
 
-   env->MajorVersion =  (DWORD)(LOBYTE(LOWORD(dwVersion)));
-   env->MinorVersion =  (DWORD)(HIBYTE(LOWORD(dwVersion)));
+   env->MajorVersion =  (DWORD)(LOBYTE(LOWORD(_dwVersion)));
+   env->MinorVersion =  (DWORD)(HIBYTE(LOWORD(_dwVersion)));
 
    /* Get the build number for Windows NT/Windows 2000. */
 
    env->MinorBuild =  0;
 
-   if (dwVersion < 0x80000000)
+   if (_dwVersion < 0x80000000)
    {
       if(env->MajorVersion == 5 && env->MinorVersion == 0)
          strcpy(env->osName, "Windows 2000");
@@ -12780,7 +12785,7 @@ void API dw_environment_query(DWEnv *env)
       else
          strcpy(env->osName, "Windows NT");
 
-      env->MajorBuild = (DWORD)(HIWORD(dwVersion));
+      env->MajorBuild = (DWORD)(HIWORD(_dwVersion));
    }
    else
    {
@@ -12920,7 +12925,7 @@ char * API dw_file_browse(const char *title, const char *defpath, const char *ex
 
       of.lStructSize = sizeof(OPENFILENAME);
       of.hwndOwner = HWND_DESKTOP;
-      of.hInstance = DWInstance;
+      of.hInstance = _DWInstance;
       of.lpstrTitle = UTF8toWide(title);
       of.lpstrInitialDir = TEXT(".");
       if(att != INVALID_FILE_ATTRIBUTES && (att & FILE_ATTRIBUTE_DIRECTORY))
