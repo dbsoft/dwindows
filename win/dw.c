@@ -266,6 +266,7 @@ SECURITY_DESCRIPTOR _dwsd;
 
 #define IS_XPPLUS (dwComctlVer >= PACKVERSION(5,82))
 #define IS_VISTAPLUS (dwComctlVer >= PACKVERSION(6,10))
+#define IS_WIN8PLUS (dwVersion >= PACKVERSION(6,1))
 
 #ifndef MIN
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))
@@ -2769,7 +2770,7 @@ LRESULT CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
          {
             MARGINS mar = {-1,-1,-1,-1};
 
-            if(cinfo && (cinfo->style & DW_FCF_COMPOSITED))
+            if(cinfo && (cinfo->style & DW_FCF_COMPOSITED) && !IS_WIN8PLUS)
                SetLayeredWindowAttributes(hWnd, _dw_transparencykey, 0, LWA_COLORKEY);
             else
             {
@@ -3016,7 +3017,7 @@ LRESULT CALLBACK _framewndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
       {
          ColorInfo *cinfo = _dw_window_get_cinfo(_toplevel_window(hWnd));
 
-         if(cinfo && cinfo->style & DW_FCF_COMPOSITED)
+         if(cinfo && cinfo->style & DW_FCF_COMPOSITED && !IS_WIN8PLUS)
          {
             static HBRUSH hbrush = 0;
             RECT rect;
@@ -3508,7 +3509,7 @@ LRESULT CALLBACK _colorwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
                   {
                      ColorInfo *tlcinfo = _dw_window_get_cinfo(_toplevel_window(hWnd));
 
-                     if((_dw_composition && tlcinfo && (tlcinfo->style & DW_FCF_COMPOSITED)) &&
+                     if((_dw_composition && tlcinfo && (tlcinfo->style & DW_FCF_COMPOSITED)) && !IS_WIN8PLUS &&
                         (!thiscinfo || (thiscinfo && (thiscinfo->back == -1 || thiscinfo->back == DW_RGB_TRANSPARENT))))
                      {
                         if(!(msg == WM_CTLCOLORSTATIC && SendMessage((HWND)mp2, STM_GETIMAGE, IMAGE_BITMAP, 0)))
@@ -4164,7 +4165,7 @@ LRESULT CALLBACK _staticwndproc(HWND hwnd, ULONG msg, WPARAM mp1, LPARAM mp2)
 
    /* If we don't require themed drawing */
    if(((cinfo->back != -1 && cinfo->back != DW_RGB_TRANSPARENT) || (parentcinfo && parentcinfo->back != -1))
-       || !_dw_composition || !tlcinfo || !(tlcinfo->style & DW_FCF_COMPOSITED))
+       || !_dw_composition || !tlcinfo || !(tlcinfo->style & DW_FCF_COMPOSITED) || IS_WIN8PLUS)
       return _colorwndproc(hwnd, msg, mp1, mp2);
 
    pOldProc = cinfo->pOldProc;
@@ -5878,7 +5879,7 @@ HWND API dw_window_new(HWND hwndOwner, const char *title, ULONG flStyle)
    newbox->cinfo.rect.top *= -1;
    newbox->cinfo.rect.left = newbox->cinfo.rect.right = newbox->cinfo.rect.bottom = 1;
 
-   if(flStyle & DW_FCF_COMPOSITED)
+   if((flStyle & DW_FCF_COMPOSITED) && !IS_WIN8PLUS)
    {
       /* Attempt to enable Aero glass background on the entire window */
       if(_DwmExtendFrameIntoClientArea && _dw_composition)
@@ -8527,7 +8528,7 @@ void API dw_window_set_style(HWND handle, ULONG style, ULONG mask)
    {
       tmp = tmp & 0xffff0000;
 #ifdef AEROGLASS
-      if(mask & DW_FCF_COMPOSITED && _DwmExtendFrameIntoClientArea && _dw_composition)
+      if(mask & DW_FCF_COMPOSITED && _DwmExtendFrameIntoClientArea && _dw_composition && !IS_WIN8PLUS)
       {
          if(style & DW_FCF_COMPOSITED)
          {
