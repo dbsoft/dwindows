@@ -2136,6 +2136,7 @@ static void _dw_toggle_checkable_menu_item( HWND window, int id )
    }
 }
 
+#ifdef AEROGLASS
 void _dw_show_margins(HWND handle, MARGINS mar, int line)
 {
 #ifdef DEBUG
@@ -2146,6 +2147,7 @@ void _dw_show_margins(HWND handle, MARGINS mar, int line)
    dw_free(title);
 #endif
 }
+#endif
 
 /* The main window procedure for Dynamic Windows, all the resizing code is done here. */
 LRESULT CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
