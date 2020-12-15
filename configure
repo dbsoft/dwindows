@@ -1410,7 +1410,7 @@ Optional Packages:
   --with-dwcompat         specify this to build the optional dwcompat library
   --with-gtk2             specify this to build with GTK+ 2.x if available
   --with-deprecated       specify this to build with deprecated functions
-  --with-arch             specify MacOS architecture: one of modern, all, 32bit, 64bit, intel, arm, ppc, ppc64, x86_64, i386
+  --with-arch             specify MacOS architecture: one of modern, classic, 32bit, intel, arm, powerpc
   --with-sdk              specify this to build with an alternate MacOS SDK location
   --with-x                use the X Window System
   --with-glib-prefix=PFX  Prefix where GLIB is installed (optional)
@@ -4660,14 +4660,11 @@ case "$target" in
          no)
             ARCH=""
             ;;
-         all)
-            ARCH="-arch ppc -arch ppc64 -arch x86_64 -arch i386 -arch arm64"
+         classic)
+            ARCH="-arch ppc -arch x86_64 -arch i386"
             ;;
          32bit)
             ARCH="-arch ppc -arch i386"
-            ;;
-         64bit)
-            ARCH="-arch ppc64 -arch x86_64 -arch arm64"
             ;;
          intel)
             ARCH="-arch i386 -arch x86_64"
