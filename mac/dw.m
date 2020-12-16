@@ -9255,7 +9255,7 @@ DW_FUNCTION_RESTORE_PARAM1(DW_UNUSED(cid), ULONG)
 #if WK_API_ENABLED
     web.navigationDelegate = web;
 #else
-    web.frameLoadDelegate = web;
+    web.frameLoadDelegate = (id)web;
 #endif
     /* [web setTag:cid]; Why doesn't this work? */
     DW_FUNCTION_RETURN_THIS(web);
