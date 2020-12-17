@@ -716,7 +716,6 @@ infodir
 docdir
 oldincludedir
 includedir
-runstatedir
 localstatedir
 sharedstatedir
 sysconfdir
@@ -744,6 +743,7 @@ with_gtk2
 with_deprecated
 with_arch
 with_sdk
+with_minver
 with_x
 with_glib_prefix
 with_glib_exec_prefix
@@ -811,7 +811,6 @@ datadir='${datarootdir}'
 sysconfdir='${prefix}/etc'
 sharedstatedir='${prefix}/com'
 localstatedir='${prefix}/var'
-runstatedir='${localstatedir}/run'
 includedir='${prefix}/include'
 oldincludedir='/usr/include'
 docdir='${datarootdir}/doc/${PACKAGE}'
@@ -1064,15 +1063,6 @@ do
   | -silent | --silent | --silen | --sile | --sil)
     silent=yes ;;
 
-  -runstatedir | --runstatedir | --runstatedi | --runstated \
-  | --runstate | --runstat | --runsta | --runst | --runs \
-  | --run | --ru | --r)
-    ac_prev=runstatedir ;;
-  -runstatedir=* | --runstatedir=* | --runstatedi=* | --runstated=* \
-  | --runstate=* | --runstat=* | --runsta=* | --runst=* | --runs=* \
-  | --run=* | --ru=* | --r=*)
-    runstatedir=$ac_optarg ;;
-
   -sbindir | --sbindir | --sbindi | --sbind | --sbin | --sbi | --sb)
     ac_prev=sbindir ;;
   -sbindir=* | --sbindir=* | --sbindi=* | --sbind=* | --sbin=* \
@@ -1210,7 +1200,7 @@ fi
 for ac_var in	exec_prefix prefix bindir sbindir libexecdir datarootdir \
 		datadir sysconfdir sharedstatedir localstatedir includedir \
 		oldincludedir docdir infodir htmldir dvidir pdfdir psdir \
-		libdir localedir mandir runstatedir
+		libdir localedir mandir
 do
   eval ac_val=\$$ac_var
   # Remove trailing slashes.
@@ -1363,7 +1353,6 @@ Fine tuning of the installation directories:
   --sysconfdir=DIR        read-only single-machine data [PREFIX/etc]
   --sharedstatedir=DIR    modifiable architecture-independent data [PREFIX/com]
   --localstatedir=DIR     modifiable single-machine data [PREFIX/var]
-  --runstatedir=DIR       modifiable per-process data [LOCALSTATEDIR/run]
   --libdir=DIR            object code libraries [EPREFIX/lib]
   --includedir=DIR        C header files [PREFIX/include]
   --oldincludedir=DIR     C header files for non-gcc [/usr/include]
@@ -1412,6 +1401,7 @@ Optional Packages:
   --with-deprecated       specify this to build with deprecated functions
   --with-arch             specify MacOS architecture: one of modern, classic, 32bit, intel, arm, powerpc
   --with-sdk              specify this to build with an alternate MacOS SDK location
+  --with-minver           specify this to build with a minimum MacOS version
   --with-x                use the X Window System
   --with-glib-prefix=PFX  Prefix where GLIB is installed (optional)
   --with-glib-exec-prefix=PFX Exec prefix where GLIB is installed (optional)
@@ -3728,6 +3718,15 @@ fi
 
 
 
+# Check whether --with-minver was given.
+if test "${with_minver+set}" = set; then :
+  withval=$with_minver; with_minver=$withval
+else
+  with_minver=no
+fi
+
+
+
 ac_ext=c
 ac_cpp='$CPP $CPPFLAGS'
 ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
@@ -4687,6 +4686,14 @@ case "$target" in
             ;;
          *)
             CC="$CC -isysroot$with_sdk"
+            ;;
+      esac
+      case "$with_minver" in
+         no)
+            ;;
+         *)
+            CFLAGS="$CFLAGS -mmacosx-version-min=$with_minver"
+            LIBS="$LIBS -mmacosx-version-min=$with_minver"
             ;;
       esac
       SHAREDFLAG="-dynamiclib -flat_namespace -undefined suppress -headerpad_max_install_names"

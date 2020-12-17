@@ -1,7 +1,30 @@
 This is a stable release of Dynamic Windows version 3.1.
 
 The current Dynamic Windows source base is considered stable on:
-OS/2, Mac, Windows, Linux, FreeBSD and Solaris.
+OS/2, Mac, Windows, Linux, FreeBSD and OpenSolaris.
+
+Build Recommendations:
+MacOS:
+    11.0: configure --with-arch=modern --with-minver=10.14
+        64bit Intel and Apple Silicon support with Dark Mode.
+    10.13-10.15: configure --with-minver=10.8
+        64bit Intel with Notifications, Dark Mode for 10.14-15.
+    10.8-10.12: configure --with-arch=intel --with-minver=10.8
+        64 and 32bit Intel with Notifications but no Dark Mode.
+    10.6: configure --with-arch=classic --with-minver=10.5
+        32bit PowerPC, 64bit and 32bit Intel classic support.
+Windows:
+    10: Visual Studio 2017-2019, WebView2 and WinToast.
+        Should run on Vista and later, but sockpipe() only on 10.
+        Supports domain sockets on Windows 10 dwcompat sockpipe().
+    7-8.1: Visual Studio 2015, WebView2 and WinToast with 8 SDK.
+        Should run on Vista and later, old sockpipe() on all.
+    XP: Visual Studio 2010.  Old sockpipe() on all versions.
+        Should run on XP and later, with Aero on Vista and 7.
+        No notifications or WebView2 and old sockpipe() on all.
+    2000: Visual Studio 2005. Remove -DAEROGLASS from CFLAGS.
+        Should run on 2000 and later, no Aero, notifications, 
+        WebView2 and old sockpipe() on all versions.
 
 Known problems:
 
