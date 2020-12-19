@@ -13,6 +13,7 @@ MacOS:
         64 and 32bit Intel with Notifications but no Dark Mode.
     10.6: configure --with-arch=classic --with-minver=10.5
         32bit PowerPC, 64bit and 32bit Intel classic support.
+        No Notifications, Dark Mode nor NSView container/trees.
 Windows:
     10: Visual Studio 2017-2019, WebView2 and WinToast.
         Should run on Vista and later, but sockpipe() only on 10.
@@ -21,9 +22,9 @@ Windows:
         Should run on Vista and later, old sockpipe() on all.
     XP: Visual Studio 2010.  Old sockpipe() on all versions.
         Should run on XP and later, with Aero on Vista and 7.
-        No notifications or WebView2 and old sockpipe() on all.
+        No Notifications nor WebView2 and old sockpipe() on all.
     2000: Visual Studio 2005. Remove -DAEROGLASS from CFLAGS.
-        Should run on 2000 and later, no Aero, notifications, 
+        Should run on 2000 and later, no Aero, Notifications, 
         WebView2 and old sockpipe() on all versions.
 
 Known problems:
@@ -37,12 +38,6 @@ In Unicode mode on OS/2 there are some bugs in the input controls,
     minor bugs in entryfield based controls and major bugs in the MLE.
     The text displays properly but the cursor and selection jumps
     around oddly when passing over multibyte characters.
-Building for MacOS 10.14 or later may prevent apps from running on
-    earlier versions.  Building for versions prior to 10.14 should
-    work on any supported version but dark mode may not be available
-    for these apps running on 10.14 and later.  If you wish to support
-    dark mode I suggest building 2 versions, one for 64 bit intel 
-    only for 10.14 and later. Then a fat binary for prior to 10.14.
 
 Known limitations:
 
