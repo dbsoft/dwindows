@@ -155,6 +155,7 @@ clean:
 	rm -f *.a
 	rm -f $(DW_DIR)/*.o
 	rm -f dwtest
+	rm -rf dwtest.app
 
 $(SYSCONF_LINK_TARGET2): $(OBJECTS2)
 	$(SYSCONF_LINK_LIB2)
@@ -196,9 +197,10 @@ dist:
 	(cd $(srcdir)/..;ln -sf dwindows $(SRCDIR))
 	(cd $(srcdir)/..;tar -cvf - $(SRCDIR)/license.txt $(SRCDIR)/makefile.* $(SRCDIR)/readme.txt $(SRCDIR)/*.c $(SRCDIR)/dw.h $(SRCDIR)/dwcompat.h \
 	$(SRCDIR)/install.sh $(SRCDIR)/*.in $(SRCDIR)/configure $(SRCDIR)/Version \
-	$(SRCDIR)/ac*.m4 $(SRCDIR)/dwindows-config.1 $(SRCDIR)/config.sub $(SRCDIR)/config.guess \
-	$(SRCDIR)/gtk/*.c $(SRCDIR)/gtk/*.cpp $(SRCDIR)/win/*.c $(SRCDIR)/win/*.cpp $(SRCDIR)/os2/*.c  $(SRCDIR)/win/*.txt $(SRCDIR)/os2/*.txt \
-	$(SRCDIR)/gtk/*.xpm $(SRCDIR)/gtk3/*.c $(SRCDIR)/win/*.def $(SRCDIR)/os2/*.def $(SRCDIR)/image/test.* $(SRCDIR)/win/*.ico $(SRCDIR)/os2/*.ico \
+	$(SRCDIR)/ac*.m4 $(SRCDIR)/dwindows-config.1 $(SRCDIR)/config.sub $(SRCDIR)/config.guess $(SRCDIR)/image/test.* \
+	$(SRCDIR)/win/*.c $(SRCDIR)/win/*.cpp $(SRCDIR)/win/*.manifest $(SRCDIR)/win/*.txt $(SRCDIR)/win/*.def $(SRCDIR)/win/*.ico $(SRCDIR)/win/*.rc \
+	$(SRCDIR)/os2/*.c $(SRCDIR)/os2/*.txt $(SRCDIR)/os2/*.def $(SRCDIR)/os2/*.ico \
+	$(SRCDIR)/gtk/*.c $(SRCDIR)/gtk3/*.c $(SRCDIR)/gtk/*.xpm \
 	$(SRCDIR)/mac/Info.plist $(SRCDIR)/mac/PkgInfo $(SRCDIR)/mac/*.m $(SRCDIR)/mac/finishup.sh $(SRCDIR)/mac/*.png \
 	$(SRCDIR)/debian/control $(SRCDIR)/debian/rules $(SRCDIR)/debian/copyright $(SRCDIR)/debian/compat $(SRCDIR)/debian/changelog \
 	$(SRCDIR)/platform/*.h | gzip > $(SRCDIR).tar.gz )
