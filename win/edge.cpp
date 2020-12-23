@@ -384,14 +384,17 @@ EdgeBrowser *DW_EDGE = NULL;
 extern "C" {
 	// Create a junction to Edge Stable current version so we can load it...
 	// For now we are using CreateProcess() to execute the mklink command...
-	// May switch to using C code to do it instead since this may only work 
-	// on Windows 10, but that seems to be overly complicated
+	// May switch to using C code  but that seems to be overly complicated
 	void _DWCreateJunction(LPWSTR source, LPWSTR target)
 	{
 		// Command line must be at least 2 MAX_PATHs and "cmd /c mklink /J "<path1>" "<path2>"" (22) and a NULL
 		WCHAR cmdLine[(MAX_PATH*2)+23] = L"cmd /c mklink /J \"";
 		STARTUPINFO si = {sizeof(si)};
 		PROCESS_INFORMATION pi = {0};
+		
+		// Safety check
+		if(!source[0] || !target[0])
+			return;
 
 		// Combine the command line components
 		wcscat(cmdLine, target);
@@ -404,10 +407,7 @@ extern "C" {
 
 		// Create the junction to the new version
 		if(!CreateProcessW(NULL, cmdLine, NULL, NULL, TRUE, CREATE_NO_WINDOW, NULL, NULL, &si, &pi))
-		{
-			dw_debug("CreateProcess failed creating junction. GetLastError %d\n", GetLastError());
 			return;
-		}
 
 		// Wait until child process exits.
 		WaitForSingleObject(pi.hProcess, INFINITE);
@@ -427,8 +427,8 @@ extern "C" {
 
 		/* If we haven't successfully gotten the path, try to find it in the registry */
 		if(!EdgeStablePath[0] &&
-			RegOpenKeyExW(HKEY_CURRENT_USER, L"SOFTWARE\\Microsoft\\Edge\\BLBeacon", 0, KEY_READ, &hKey) == ERROR_SUCCESS &&
-			RegQueryValueExW(hKey, L"version", 0, NULL, (LPBYTE)szBuffer, &dwBufferSize) == ERROR_SUCCESS)
+			RegOpenKeyExW(HKEY_LOCAL_MACHINE, L"SOFTWARE\\WOW6432Node\\Microsoft\\EdgeUpdate\\Clients\\{56EB18F8-B008-4CBD-B6D2-8C97FE7E9062}", 0, KEY_READ, &hKey) == ERROR_SUCCESS &&
+			RegQueryValueExW(hKey, L"pv", 0, NULL, (LPBYTE)szBuffer, &dwBufferSize) == ERROR_SUCCESS)
 		{
 			wcscpy(EdgeStablePath, L"C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\");
 			wcscat(EdgeStablePath, szBuffer);
