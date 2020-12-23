@@ -24,6 +24,8 @@ extern "C" {
 	#define UTF8toWide(a) _myUTF8toWide(a, a ? _alloca(MultiByteToWideChar(CP_UTF8, 0, a, -1, NULL, 0) * sizeof(WCHAR)) : NULL)
 	#define WideToUTF8(a) _myWideToUTF8(a, a ? _alloca(WideCharToMultiByte(CP_UTF8, 0, a, -1, NULL, 0, NULL, NULL)) : NULL)
 	LRESULT CALLBACK _wndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2);
+	void _DWCreateJunction(LPWSTR source, LPWSTR target);
+	LPWSTR _DWGetEdgeStablePath(void);
 }
 
 class EdgeBrowser
@@ -243,6 +245,26 @@ BOOL EdgeBrowser::Detect(LPWSTR AppID)
 				Env = env;
 				return S_OK;
 			}).Get());
+	// If our first attempt was unsuccessful, attempt to load Edge Stable instead
+	if(!Env)
+	{
+		// Combine tempdir length, "EdgeStable" (10) and a NULL
+		WCHAR edgepath[sizeof(tempdir)+10] = {0};
+
+		wcscpy(edgepath, tempdir);
+		wcscat(edgepath, L"EdgeStable");
+
+		// Create the NTFS junction to get around Microsoft's path blacklist
+		_DWCreateJunction(_DWGetEdgeStablePath(), edgepath);
+
+		CreateCoreWebView2EnvironmentWithOptions(edgepath, tempdir, nullptr,
+			Callback<ICoreWebView2CreateCoreWebView2EnvironmentCompletedHandler>(
+				[this](HRESULT result, ICoreWebView2Environment* env) -> HRESULT {
+					// Successfully created Edge environment, return TRUE 
+					Env = env;
+					return S_OK;
+				}).Get());
+	}
 	return Env ? TRUE : FALSE;
 }
 
@@ -360,6 +382,60 @@ VOID EdgeWebView::Close(VOID)
 EdgeBrowser *DW_EDGE = NULL;
 
 extern "C" {
+	// Create a junction to Edge Stable current version so we can load it...
+	// For now we are using CreateProcess() to execute the mklink command...
+	// May switch to using C code to do it instead since this may only work 
+	// on Windows 10, but that seems to be overly complicated
+	void _DWCreateJunction(LPWSTR source, LPWSTR target)
+	{
+		// Command line must be at least 2 MAX_PATHs and "cmd /c mklink /J "<path1>" "<path2>"" (22) and a NULL
+		WCHAR cmdLine[(MAX_PATH*2)+23] = L"cmd /c mklink /J \"";
+		STARTUPINFO si = {sizeof(si)};
+		PROCESS_INFORMATION pi = {0};
+
+		// Combine the command line components
+		wcscat(cmdLine, target);
+		wcscat(cmdLine, L"\" \"");
+		wcscat(cmdLine, source);
+		wcscat(cmdLine, L"\"");
+
+		// First remove any existing junction to an old version
+		RemoveDirectoryW(target);
+
+		// Create the junction to the new version
+		if(!CreateProcessW(NULL, cmdLine, NULL, NULL, TRUE, CREATE_NO_WINDOW, NULL, NULL, &si, &pi))
+		{
+			dw_debug("CreateProcess failed creating junction. GetLastError %d\n", GetLastError());
+			return;
+		}
+
+		// Wait until child process exits.
+		WaitForSingleObject(pi.hProcess, INFINITE);
+
+		// Close process and thread handles. 
+		CloseHandle(pi.hProcess);
+		CloseHandle(pi.hThread);
+	}
+
+	// Return the path the the current Edge Stable version
+	LPWSTR _DWGetEdgeStablePath(void)
+	{
+		HKEY hKey;
+		WCHAR szBuffer[100] = {0};
+		DWORD dwBufferSize = sizeof(szBuffer);
+		static WCHAR EdgeStablePath[MAX_PATH+1] = {0};
+
+		/* If we haven't successfully gotten the path, try to find it in the registry */
+		if(!EdgeStablePath[0] &&
+			RegOpenKeyExW(HKEY_CURRENT_USER, L"SOFTWARE\\Microsoft\\Edge\\BLBeacon", 0, KEY_READ, &hKey) == ERROR_SUCCESS &&
+			RegQueryValueExW(hKey, L"version", 0, NULL, (LPBYTE)szBuffer, &dwBufferSize) == ERROR_SUCCESS)
+		{
+			wcscpy(EdgeStablePath, L"C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\");
+			wcscat(EdgeStablePath, szBuffer);
+		}
+		return EdgeStablePath;
+	 }
+
 	/******************************* dw_edge_detect() **************************
 	 * Attempts to create a temporary Edge (Chromium) browser context...
 	 * If we succeed return TRUE and use Edge for HTML windows.
