@@ -426,12 +426,22 @@ extern "C" {
 		static WCHAR EdgeStablePath[MAX_PATH+1] = {0};
 
 		/* If we haven't successfully gotten the path, try to find it in the registry */
-		if(!EdgeStablePath[0] &&
-			RegOpenKeyExW(HKEY_LOCAL_MACHINE, L"SOFTWARE\\WOW6432Node\\Microsoft\\EdgeUpdate\\Clients\\{56EB18F8-B008-4CBD-B6D2-8C97FE7E9062}", 0, KEY_READ, &hKey) == ERROR_SUCCESS &&
-			RegQueryValueExW(hKey, L"pv", 0, NULL, (LPBYTE)szBuffer, &dwBufferSize) == ERROR_SUCCESS)
+		if(!EdgeStablePath[0])
 		{
-			wcscpy(EdgeStablePath, L"C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\");
-			wcscat(EdgeStablePath, szBuffer);
+			// Handle the case we are running on x64
+			if(RegOpenKeyExW(HKEY_LOCAL_MACHINE, L"SOFTWARE\\WOW6432Node\\Microsoft\\EdgeUpdate\\Clients\\{56EB18F8-B008-4CBD-B6D2-8C97FE7E9062}", 0, KEY_READ, &hKey) == ERROR_SUCCESS &&
+				RegQueryValueExW(hKey, L"pv", 0, NULL, (LPBYTE)szBuffer, &dwBufferSize) == ERROR_SUCCESS)
+			{
+				wcscpy(EdgeStablePath, L"C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\");
+				wcscat(EdgeStablePath, szBuffer);
+			}
+			// and also the case we are running x86
+			else if(RegOpenKeyExW(HKEY_LOCAL_MACHINE, L"SOFTWARE\\Microsoft\\EdgeUpdate\\Clients\\{56EB18F8-B008-4CBD-B6D2-8C97FE7E9062}", 0, KEY_READ, &hKey) == ERROR_SUCCESS &&
+					RegQueryValueExW(hKey, L"pv", 0, NULL, (LPBYTE)szBuffer, &dwBufferSize) == ERROR_SUCCESS)
+			{
+				wcscpy(EdgeStablePath, L"C:\\Program Files\\Microsoft\\Edge\\Application\\");
+				wcscat(EdgeStablePath, szBuffer);
+			}
 		}
 		return EdgeStablePath;
 	 }
