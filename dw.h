@@ -59,7 +59,6 @@ extern "C" {
 #define DW_UNUSED(x) x
 #endif
 
-#if !defined(__PHOTON__)
 /* These corespond to the entries in the color
  * arrays in the Win32 dw.c, they are also the
  * same as DOS ANSI colors.
@@ -81,7 +80,6 @@ extern "C" {
 #define DW_CLR_CYAN              14
 #define DW_CLR_WHITE             15
 #define DW_CLR_DEFAULT           16
-#endif
 
 /* Signal handler defines */
 #define DW_SIGNAL_CONFIGURE      "configure_event"
@@ -125,7 +123,7 @@ extern "C" {
 # endif
 #endif
 
-#if defined(__OS2__) || (defined(__WIN32__) && !defined(GDK_WINDOWING_WIN32)) || defined(__MAC__) || (defined(WINNT) && !defined(GDK_WINDOWING_WIN32)) || defined(__EMX__)
+#if defined(__OS2__) || (defined(__WIN32__) && !defined(GDK_WINDOWING_WIN32)) || defined(__MAC__) || defined(__EMX__) || defined(__TEMPLATE__)
 /* OS/2, Windows or MacOS */
 
 #ifdef __OS2__
@@ -573,7 +571,7 @@ void _dw_pool_drain(void);
 #endif
 
 /* Windows specific section */
-#if defined(__WIN32__) || defined(WINNT)
+#if defined(__WIN32__)
 #include <winsock2.h>
 #include <windows.h>
 #include <commctrl.h>
@@ -720,72 +718,22 @@ typedef struct _hpixmap {
 typedef HWND HMENUI;
 #endif
 
-typedef struct _item {
-   /* Item type - Box or Item */
-   int type;
-   /* Handle to Frame or Window */
-   HWND hwnd;
-   /* Width and Height of static size */
-   int width, height, origwidth, origheight;
-   /* Size Type - Static or Expand */
-   int hsize, vsize;
-   /* Padding */
-   int pad;
-} Item;
-
-typedef struct _box {
-#if defined(__WIN32__) || defined(WINNT)
-   ColorInfo cinfo;
-   int fullscreen;
-#elif defined(__OS2__) || defined(__EMX__)
-   PFNWP oldproc;
-   UserData *root;
-   HWND hwndtitle, hwnd;
-   int titlebar;
-#endif
-   /* Number of items in the box */
-   int count;
-   /* Box type - horizontal or vertical */
-   int type;
-   /* Keep track of how box is packed */
-   int hsize, vsize;
-   /* Padding */
-   int pad, grouppadx, grouppady;
-   /* Groupbox */
-   HWND grouphwnd;
-   /* Default item */
-   HWND defaultitem;
-   /* Used as temporary storage in the calculation stage */
-   int usedpadx, usedpady, minheight, minwidth;
-   /* Used for calculating individual item ratios */
-   int width, height;
-   /* Any combinations of flags describing the box */
-   unsigned long flags;
-   /* Array of item structures */
-   struct _item *items;
-} Box;
-
-#elif defined(__PHOTON__)
+/* Template section, framework for new platform ports */
+#if defined(__TEMPLATE__)
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
-#include <sys/utsname.h>
-/* Photon specific section */
-#include <Pt.h>
-#include <Ph.h>
-/* which image formats supported */
-#define PX_IMAGE_MODULES
-#define PX_GIF_SUPPORT
-#define PX_JPG_SUPPORT
-#define PX_BMP_SUPPORT
-#define PX_PND_SUPPORT
-#include <photon/PxImage.h>
+#include <stdarg.h>
+#include <limits.h>
+
+/* Can remove this for your port when you know where MAX_PATH is */
+#ifndef MAX_PATH
+#define MAX_PATH 260
+#endif
 
 #define TRUE  1
 #define FALSE 0
 
-typedef PtWidget_t *pPtWidget_t;
-typedef pPtWidget_t HWND;
+typedef void *HWND;
 
 typedef unsigned long ULONG;
 typedef long LONG;
@@ -801,17 +749,10 @@ typedef void *HMTX;
 typedef void *HEV;
 typedef void *HSHM;
 typedef void *HMOD;
-typedef PtTreeItem_t *HTREEITEM;
+typedef void *HTREEITEM;
 typedef HWND HMENUI;
 typedef int DWTID;
 typedef unsigned long HICN;
-
-typedef struct _user_data
-{
-   struct _user_data *next;
-   void              *data;
-   char              *varname;
-} UserData;
 
 typedef struct _window_data {
    UserData *root;
@@ -825,36 +766,6 @@ typedef struct _hpixmap {
    /* ?? *pixmap; */
    HWND handle;
 } *HPIXMAP;
-
-/* colors matching Photon Graphics colors */
-#define DW_CLR_BLACK             Pg_BLACK
-#define DW_CLR_DARKRED           Pg_DRED
-#define DW_CLR_DARKGREEN         Pg_DGREEN
-#define DW_CLR_BROWN             Pg_BROWN
-#define DW_CLR_DARKBLUE          Pg_DBLUE
-#define DW_CLR_DARKPINK          Pg_PURPLE
-#define DW_CLR_DARKCYAN          Pg_DCYAN
-#define DW_CLR_PALEGRAY          Pg_GRAY
-#define DW_CLR_DARKGRAY          Pg_MGRAY
-#define DW_CLR_RED               Pg_RED
-#define DW_CLR_GREEN             Pg_GREEN
-#define DW_CLR_YELLOW            Pg_YELLOW
-#define DW_CLR_BLUE              Pg_BLUE
-#define DW_CLR_PINK              Pg_MAGENTA
-#define DW_CLR_CYAN              Pg_CYAN
-#define DW_CLR_WHITE             Pg_WHITE
-#define DW_CLR_DEFAULT           Pg_GRAY
-/* color manipulation macros */
-#define DW_RGB_COLOR (0xF0000000)
-#define DW_RGB_TRANSPARENT (0x0F000000)
-#define DW_RGB_MASK (0x00FFFFFF)
-#define DW_RED_MASK (0x00FF0000)
-#define DW_GREEN_MASK (0x0000FF00)
-#define DW_BLUE_MASK (0x000000FF)
-#define DW_RED_VALUE(a) PgRedValue(a)
-#define DW_GREEN_VALUE(a) PgGreenValue(a)
-#define DW_BLUE_VALUE(a) PgBluValue(a)
-#define DW_RGB(a, b, c) PgRGB( a, b, c )
 
 #define DW_DT_LEFT               0
 #define DW_DT_QUERYEXTENT        0
@@ -872,22 +783,22 @@ typedef struct _hpixmap {
 #define DW_DT_WORDBREAK          0
 #define DW_DT_ERASERECT          0
 
-#define DW_FCF_CLOSEBUTTON       Ph_WM_RENDER_CLOSE
-#define DW_FCF_TITLEBAR          Ph_WM_RENDER_TITLE
+#define DW_FCF_CLOSEBUTTON       0
+#define DW_FCF_TITLEBAR          0
 #define DW_FCF_SYSMENU           0
-#define DW_FCF_MENU              Ph_WM_RENDER_MENU
-#define DW_FCF_SIZEBORDER        Ph_WM_RENDER_RESIZE
-#define DW_FCF_MINBUTTON         Ph_WM_RENDER_MIN
-#define DW_FCF_MAXBUTTON         Ph_WM_RENDER_MAX
-#define DW_FCF_MINMAX            (Ph_WM_RENDER_MIN|Ph_WM_RENDER_MAX)
+#define DW_FCF_MENU              0
+#define DW_FCF_SIZEBORDER        0
+#define DW_FCF_MINBUTTON         0
+#define DW_FCF_MAXBUTTON         0
+#define DW_FCF_MINMAX            (DW_FCF_MINBUTTON|DW_FCF_MAXBUTTON)
 #define DW_FCF_DLGBORDER         0
-#define DW_FCF_BORDER            Ph_WM_RENDER_BORDER
+#define DW_FCF_BORDER            0
 #define DW_FCF_TASKLIST          0
 #define DW_FCF_NOMOVEWITHOWNER   0
 #define DW_FCF_SYSMODAL          0
 #define DW_FCF_HIDEBUTTON        0
 #define DW_FCF_HIDEMAX           0
-#define DW_FCF_AUTOICON          (Ph_WM_RENDER_ASICON | ~Ph_WM_RENDER_ASAPP)
+#define DW_FCF_AUTOICON          0
 #define DW_FCF_MAXIMIZE          0
 #define DW_FCF_MINIMIZE          0
 #define DW_FCF_TEXTURED          0
@@ -914,13 +825,9 @@ typedef struct _hpixmap {
 
 #define DW_LIT_NONE              -1
 
-#ifdef MLFSEARCH_CASESENSITIVE
-# define DW_MLE_CASESENSITIVE    MLFSEARCH_CASESENSITIVE
-#else
-# define DW_MLE_CASESENSITIVE    0
-#endif
+#define DW_MLE_CASESENSITIVE    0
 
-#define DW_BS_NOBORDER           1
+#define DW_BS_NOBORDER           0
 
 #define DW_POINTER_DEFAULT       0
 #define DW_POINTER_ARROW         0
@@ -1024,6 +931,52 @@ typedef struct _hpixmap {
 #define KC_CTRL                  (1)
 #define KC_SHIFT                 (1 << 1)
 #define KC_ALT                   (1 << 2)
+#endif
+
+typedef struct _item {
+   /* Item type - Box or Item */
+   int type;
+   /* Handle to Frame or Window */
+   HWND hwnd;
+   /* Width and Height of static size */
+   int width, height, origwidth, origheight;
+   /* Size Type - Static or Expand */
+   int hsize, vsize;
+   /* Padding */
+   int pad;
+} Item;
+
+typedef struct _box {
+#if defined(__WIN32__)
+   ColorInfo cinfo;
+   int fullscreen;
+#elif defined(__OS2__) || defined(__EMX__)
+   PFNWP oldproc;
+   UserData *root;
+   HWND hwndtitle, hwnd;
+   int titlebar;
+#endif
+   /* Number of items in the box */
+   int count;
+   /* Box type - horizontal or vertical */
+   int type;
+   /* Keep track of how box is packed */
+   int hsize, vsize;
+   /* Padding */
+   int pad, grouppadx, grouppady;
+   /* Groupbox */
+   HWND grouphwnd;
+   /* Default item */
+   HWND defaultitem;
+   /* Used as temporary storage in the calculation stage */
+   int usedpadx, usedpady, minheight, minwidth;
+   /* Used for calculating individual item ratios */
+   int width, height;
+   /* Any combinations of flags describing the box */
+   unsigned long flags;
+   /* Array of item structures */
+   struct _item *items;
+} Box;
 
 #else
 /* GTK Specific section */
@@ -1475,7 +1428,6 @@ typedef void *HPRINT;
 #define DW_PIXMAP_WIDTH(x) (x ? x->width : 0)
 #define DW_PIXMAP_HEIGHT(x) (x ? x->height : 0)
 
-#if !defined(__PHOTON__)
 #define DW_RGB_COLOR (0xF0000000)
 #define DW_RGB_TRANSPARENT (0x0F000000)
 #define DW_RGB_MASK (0x00FFFFFF)
@@ -1486,7 +1438,6 @@ typedef void *HPRINT;
 #define DW_GREEN_VALUE(a) ((a & DW_GREEN_MASK) >> 8)
 #define DW_BLUE_VALUE(a) ((a & DW_BLUE_MASK) >> 16)
 #define DW_RGB(a, b, c) (0xF0000000 | (a) | (b) << 8 | (c) << 16)
-#endif
 
 /* Menu convenience paramaters */
 #define DW_MENU_SEPARATOR ""

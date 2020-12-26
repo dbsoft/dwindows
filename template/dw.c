@@ -2,8 +2,10 @@
  * Dynamic Windows:
  *          A GTK like GUI implementation template.
  *
- * (C) 2011-2012 Brian Smith <brian@dbsoft.org>
- * (C) 2011-2012 Mark Hessling <mark@rexx.org>
+ * (C) 2011-2021 Brian Smith <brian@dbsoft.org>
+ * (C) 2011-2021 Mark Hessling <mark@rexx.org>
+ *
+ * Compile with $CC -I. -D__TEMPLATE__ template/dw.c 
  *
  */
 
@@ -291,30 +293,55 @@ void API dw_free(void *ptr)
  * current user directory.  Or the root directory if it could
  * not be determined.
  */
-char * API dw_app_dir(void)
+char * API dw_user_dir(void)
 {
-    static char _user_dir[1024] = "";
+   static char _dw_user_dir[MAX_PATH+1] = {0};
 
-    if(!_user_dir[0])
-    {
-        char *home = getenv("HOME");
+   if(!_dw_user_dir[0])
+   {
+      char *home = getenv("HOME");
 
-        if(home)
-            strcpy(_user_dir, home);
-        else
-            strcpy(_user_dir, "/");
-    }
-    return _user_dir;
+      if(home)
+         strcpy(_dw_user_dir, home);
+      else
+         strcpy(_dw_user_dir, "/");
+   }
+   return _dw_user_dir;
 }
 
 /*
  * Returns a pointer to a static buffer which containes the
- * private application data directory. 
+ * private application data directory.
  */
-char *dw_app_dir(void)
+char * API dw_app_dir(void)
 {
-    static _dw_app_dir[MAX_PATH+1] = "/";
-    return _dw_app_dir;
+    static char _dw_exec_dir[MAX_PATH+1] = {0};
+    /* Code to determine the execution directory here,
+     * some implementations make this variable global
+     * and determin the location in dw_init().
+     */
+    return _dw_exec_dir;
+}
+
+/*
+ * Sets the application ID used by this Dynamic Windows application instance.
+ * Parameters:
+ *         appid: A string typically in the form: com.company.division.application
+ *         appname: The application name used on Windows or NULL.
+ * Returns:
+ *         DW_ERROR_NONE after successfully setting the application ID.
+ *         DW_ERROR_UNKNOWN if unsupported on this system.
+ *         DW_ERROR_GENERAL if the application ID is not allowed.
+ * Remarks:
+ *          This must be called before dw_init().  If dw_init() is called first
+ *          it will create a unique ID in the form: org.dbsoft.dwindows.application
+ *          or if the application name cannot be detected: org.dbsoft.dwindows.pid.#
+ *          The appname is only required on Windows.  If NULL is passed the detected
+ *          application name will be used, but a prettier name may be desired.
+ */
+int API dw_app_id_set(const char * DW_UNUSED(appid), const char * DW_UNUSED(appname))
+{
+    return DW_ERROR_UNKNOWN;
 }
 
 /*
@@ -323,7 +350,7 @@ char *dw_app_dir(void)
  *           format: printf style format string.
  *           ...: Additional variables for use in the format.
  */
-void API dw_debug(char *format, ...)
+void API dw_debug(const char *format, ...)
 {
    va_list args;
    char outbuf[1025] = {0};
@@ -331,7 +358,10 @@ void API dw_debug(char *format, ...)
    va_start(args, format);
    vsnprintf(outbuf, 1024, format, args);
    va_end(args);
-   
+
+   /* Output to stderr, if there is another way to send it
+    * on the implementation platform, change this.
+    */
    fprintf(stderr, "%s", outbuf);
 }
 
@@ -346,7 +376,7 @@ void API dw_debug(char *format, ...)
  *       DW_MB_RETURN_YES, DW_MB_RETURN_NO, DW_MB_RETURN_OK,
  *       or DW_MB_RETURN_CANCEL based on flags and user response.
  */
-int API dw_messagebox(char *title, int flags, char *format, ...)
+int API dw_messagebox(const char *title, int flags, const char *format, ...)
 {
     return 0;
 }
@@ -363,7 +393,7 @@ int API dw_messagebox(char *title, int flags, char *format, ...)
  *       the file path on success.
  *
  */
-char * API dw_file_browse(char *title, char *defpath, char *ext, int flags)
+char * API dw_file_browse(const char *title, const char *defpath, const char *ext, int flags)
 {
     return NULL;
 }
@@ -387,7 +417,7 @@ char *dw_clipboard_get_text()
  *       str: Text to put on the clipboard.
  *       len: Length of the text.
  */
-void dw_clipboard_set_text(char *str, int len)
+void dw_clipboard_set_text(const char *str, int len)
 {
 }
 
@@ -482,7 +512,7 @@ HWND API dw_box_new(int type, int pad)
  * Returns:
  *       A handle to a groupbox window or NULL on failure.
  */
-HWND API dw_groupbox_new(int type, int pad, char *title)
+HWND API dw_groupbox_new(int type, int pad, const char *title)
 {
     return 0;
 }
@@ -680,7 +710,7 @@ void API dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, 
  * Returns:
  *       A handle to a button window or NULL on failure.
  */
-HWND API dw_button_new(char *text, ULONG cid)
+HWND API dw_button_new(const char *text, ULONG cid)
 {
     return 0;
 }
@@ -693,7 +723,7 @@ HWND API dw_button_new(char *text, ULONG cid)
  * Returns:
  *       A handle to an entryfield window or NULL on failure.
  */
-HWND API dw_entryfield_new(char *text, ULONG cid)
+HWND API dw_entryfield_new(const char *text, ULONG cid)
 {
     return 0;
 }
@@ -706,7 +736,7 @@ HWND API dw_entryfield_new(char *text, ULONG cid)
  * Returns:
  *       A handle to an entryfield password window or NULL on failure.
  */
-HWND API dw_entryfield_password_new(char *text, ULONG cid)
+HWND API dw_entryfield_password_new(const char *text, ULONG cid)
 {
     return 0;
 }
@@ -729,7 +759,7 @@ void API dw_entryfield_set_limit(HWND handle, ULONG limit)
  * Returns:
  *       A handle to a bitmap button window or NULL on failure.
  */
-HWND API dw_bitmapbutton_new(char *text, ULONG resid)
+HWND API dw_bitmapbutton_new(const char *text, ULONG resid)
 {
     return 0;
 }
@@ -745,7 +775,7 @@ HWND API dw_bitmapbutton_new(char *text, ULONG resid)
  * Returns:
  *       A handle to a bitmap button window or NULL on failure.
  */
-HWND API dw_bitmapbutton_new_from_file(char *text, unsigned long cid, char *filename)
+HWND API dw_bitmapbutton_new_from_file(const char *text, unsigned long cid, const char *filename)
 {
     return 0;
 }
@@ -761,7 +791,7 @@ HWND API dw_bitmapbutton_new_from_file(char *text, unsigned long cid, char *file
  * Returns:
  *       A handle to a bitmap button window or NULL on failure.
  */
-HWND API dw_bitmapbutton_new_from_data(char *text, unsigned long cid, char *data, int len)
+HWND API dw_bitmapbutton_new_from_data(const char *text, unsigned long cid, const char *data, int len)
 {
     return 0;
 }
@@ -774,7 +804,7 @@ HWND API dw_bitmapbutton_new_from_data(char *text, unsigned long cid, char *data
  * Returns:
  *       A handle to a spinbutton window or NULL on failure.
  */
-HWND API dw_spinbutton_new(char *text, ULONG cid)
+HWND API dw_spinbutton_new(const char *text, ULONG cid)
 {
     return 0;
 }
@@ -820,7 +850,7 @@ long API dw_spinbutton_get_pos(HWND handle)
  * Returns:
  *       A handle to a radio button window or NULL on failure.
  */
-HWND API dw_radiobutton_new(char *text, ULONG cid)
+HWND API dw_radiobutton_new(const char *text, ULONG cid)
 {
     return 0;
 }
@@ -937,7 +967,7 @@ void API dw_percent_set_pos(HWND handle, unsigned int position)
  * Returns:
  *       A handle to a checkbox window or NULL on failure.
  */
-HWND API dw_checkbox_new(char *text, ULONG cid)
+HWND API dw_checkbox_new(const char *text, ULONG cid)
 {
     return 0;
 }
@@ -983,7 +1013,7 @@ HWND API dw_listbox_new(ULONG cid, int multi)
  *          handle: Handle to the listbox to be appended to.
  *          text: Text to append into listbox.
  */
-void API dw_listbox_append(HWND handle, char *text)
+void API dw_listbox_append(HWND handle, const char *text)
 {
 }
 
@@ -994,7 +1024,7 @@ void API dw_listbox_append(HWND handle, char *text)
  *          text: Text to insert into listbox.
  *          pos: 0-based position to insert text
  */
-void API dw_listbox_insert(HWND handle, char *text, int pos)
+void API dw_listbox_insert(HWND handle, const char *text, int pos)
 {
 }
 
@@ -1059,7 +1089,7 @@ void API dw_listbox_get_text(HWND handle, unsigned int index, char *buffer, unsi
  *          index: Index into the list to be queried.
  *          buffer: Buffer where text will be copied.
  */
-void API dw_listbox_set_text(HWND handle, unsigned int index, char *buffer)
+void API dw_listbox_set_text(HWND handle, unsigned int index, const char *buffer)
 {
 }
 
@@ -1117,7 +1147,7 @@ void API dw_listbox_delete(HWND handle, int index)
  * Returns:
  *       A handle to a combobox window or NULL on failure.
  */
-HWND API dw_combobox_new(char *text, ULONG cid)
+HWND API dw_combobox_new(const char *text, ULONG cid)
 {
     return 0;
 }
@@ -1143,7 +1173,7 @@ HWND API dw_mle_new(ULONG cid)
  * Returns:
  *       Current position in the buffer.
  */
-unsigned int API dw_mle_import(HWND handle, char *buffer, int startpoint)
+unsigned int API dw_mle_import(HWND handle, const char *buffer, int startpoint)
 {
     return 0;
 }
@@ -1234,6 +1264,16 @@ void API dw_mle_set_cursor(HWND handle, int point)
 }
 
 /*
+ * Sets the word auto complete state of an MLE box.
+ * Parameters:
+ *          handle: Handle to the MLE.
+ *          state: Bitwise combination of DW_MLE_COMPLETE_TEXT/DASH/QUOTE
+ */
+void API dw_mle_set_auto_complete(HWND handle, int state)
+{
+}
+
+/*
  * Finds text in an MLE box.
  * Parameters:
  *          handle: Handle to the MLE to be cleared.
@@ -1243,7 +1283,7 @@ void API dw_mle_set_cursor(HWND handle, int point)
  * Returns:
  *       Position in buffer or DW_ERROR_UNKNOWN (-1) on error.
  */
-int API dw_mle_search(HWND handle, char *text, int point, unsigned long flags)
+int API dw_mle_search(HWND handle, const char *text, int point, unsigned long flags)
 {
     return DW_ERROR_UNKNOWN;
 }
@@ -1274,7 +1314,7 @@ void API dw_mle_thaw(HWND handle)
  * Returns:
  *       A handle to a status text window or NULL on failure.
  */
-HWND API dw_status_text_new(char *text, ULONG cid)
+HWND API dw_status_text_new(const char *text, ULONG cid)
 {
     return 0;
 }
@@ -1287,7 +1327,7 @@ HWND API dw_status_text_new(char *text, ULONG cid)
  * Returns:
  *       A handle to a text window or NULL on failure.
  */
-HWND API dw_text_new(char *text, ULONG cid)
+HWND API dw_text_new(const char *text, ULONG cid)
 {
     return 0;
 }
@@ -1367,7 +1407,7 @@ void API dw_draw_line(HWND handle, HPIXMAP pixmap, int x1, int y1, int x2, int y
  *       y: Y coordinate.
  *       text: Text to be displayed.
  */
-void API dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
+void API dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, const char *text)
 {
 }
 
@@ -1379,7 +1419,7 @@ void API dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, char *text)
  *       width: Pointer to a variable to be filled in with the width.
  *       height: Pointer to a variable to be filled in with the height.
  */
-void API dw_font_text_extents_get(HWND handle, HPIXMAP pixmap, char *text, int *width, int *height)
+void API dw_font_text_extents_get(HWND handle, HPIXMAP pixmap, const char *text, int *width, int *height)
 {
 }
 
@@ -1452,7 +1492,7 @@ HWND API dw_tree_new(ULONG cid)
  * Returns:
  *       A handle to a tree item or NULL on failure.
  */
-HTREEITEM API dw_tree_insert_after(HWND handle, HTREEITEM item, char *title, HICN icon, HTREEITEM parent, void *itemdata)
+HTREEITEM API dw_tree_insert_after(HWND handle, HTREEITEM item, const char *title, HICN icon, HTREEITEM parent, void *itemdata)
 {
     return 0;
 }
@@ -1468,7 +1508,7 @@ HTREEITEM API dw_tree_insert_after(HWND handle, HTREEITEM item, char *title, HIC
  * Returns:
  *       A handle to a tree item or NULL on failure.
  */
-HTREEITEM API dw_tree_insert(HWND handle, char *title, HICN icon, HTREEITEM parent, void *itemdata)
+HTREEITEM API dw_tree_insert(HWND handle, const char *title, HICN icon, HTREEITEM parent, void *itemdata)
 {
     return 0;
 }
@@ -1507,7 +1547,7 @@ HTREEITEM API dw_tree_get_parent(HWND handle, HTREEITEM item)
  *          title: The text title of the entry.
  *          icon: Handle to coresponding icon.
  */
-void API dw_tree_item_change(HWND handle, HTREEITEM item, char *title, HICN icon)
+void API dw_tree_item_change(HWND handle, HTREEITEM item, const char *title, HICN icon)
 {
 }
 
@@ -1620,7 +1660,7 @@ int API dw_container_setup(HWND handle, unsigned long *flags, char **titles, int
  *          handle: Handle to the container to be configured.
  *          title: The title to be displayed in the main column.
  */
-void API dw_filesystem_set_column_title(HWND handle, char *title)
+void API dw_filesystem_set_column_title(HWND handle, const char *title)
 {
 }
 
@@ -1698,7 +1738,7 @@ void API dw_filesystem_change_item(HWND handle, int column, int row, void *data)
  *          row: Zero based row of data being set.
  *          data: Pointer to the data to be added.
  */
-void API dw_filesystem_change_file(HWND handle, int row, char *filename, HICN icon)
+void API dw_filesystem_change_file(HWND handle, int row, const char *filename, HICN icon)
 {
 }
 
@@ -1711,7 +1751,7 @@ void API dw_filesystem_change_file(HWND handle, int row, char *filename, HICN ic
  *          row: Zero based row of data being set.
  *          data: Pointer to the data to be added.
  */
-void API dw_filesystem_set_file(HWND handle, void *pointer, int row, char *filename, HICN icon)
+void API dw_filesystem_set_file(HWND handle, void *pointer, int row, const char *filename, HICN icon)
 {
 }
 
@@ -1785,7 +1825,7 @@ void API dw_container_set_column_width(HWND handle, int column, int width)
  *          row: Zero based row of data being set.
  *          title: String title of the item.
  */
-void API dw_container_set_row_title(void *pointer, int row, char *title)
+void API dw_container_set_row_title(void *pointer, int row, const char *title)
 {
 }
 
@@ -1797,7 +1837,7 @@ void API dw_container_set_row_title(void *pointer, int row, char *title)
  *          row: Zero based row of data being set.
  *          title: String title of the item.
  */
-void API dw_container_change_row_title(HWND handle, int row, char *title)
+void API dw_container_change_row_title(HWND handle, int row, const char *title)
 {
 }
 
@@ -1880,7 +1920,7 @@ char * API dw_container_query_next(HWND handle, unsigned long flags)
  *       handle: Handle to the window (widget) to be queried.
  *       text:  Text usually returned by dw_container_query().
  */
-void API dw_container_cursor(HWND handle, char *text)
+void API dw_container_cursor(HWND handle, const char *text)
 {
 }
 
@@ -1890,7 +1930,7 @@ void API dw_container_cursor(HWND handle, char *text)
  *       handle: Handle to the window (widget).
  *       text:  Text usually returned by dw_container_query().
  */
-void API dw_container_delete_row(HWND handle, char *text)
+void API dw_container_delete_row(HWND handle, const char *text)
 {
 }
 
@@ -1910,7 +1950,7 @@ void API dw_container_optimize(HWND handle)
  *       icon: Icon handle to display in the taskbar.
  *       bubbletext: Text to show when the mouse is above the icon.
  */
-void API dw_taskbar_insert(HWND handle, HICN icon, char *bubbletext)
+void API dw_taskbar_insert(HWND handle, HICN icon, const char *bubbletext)
 {
 }
 
@@ -1948,7 +1988,7 @@ HICN API dw_icon_load(unsigned long module, unsigned long resid)
  * Returns:
  *       Handle to the created icon or NULL on error.
  */
-HICN API dw_icon_load_from_file(char *filename)
+HICN API dw_icon_load_from_file(const char *filename)
 {
     return 0;
 }
@@ -1961,7 +2001,7 @@ HICN API dw_icon_load_from_file(char *filename)
  * Returns:
  *       Handle to the created icon or NULL on error.
  */
-HICN API dw_icon_load_from_data(char *data, int len)
+HICN API dw_icon_load_from_data(const char *data, int len)
 {
     return 0;
 }
@@ -2060,7 +2100,7 @@ HPIXMAP API dw_pixmap_new(HWND handle, unsigned long width, unsigned long height
  * Returns:
  *       A handle to a pixmap or NULL on failure.
  */
-HPIXMAP API dw_pixmap_new_from_file(HWND handle, char *filename)
+HPIXMAP API dw_pixmap_new_from_file(HWND handle, const char *filename)
 {
     return 0;
 }
@@ -2075,7 +2115,7 @@ HPIXMAP API dw_pixmap_new_from_file(HWND handle, char *filename)
  * Returns:
  *       A handle to a pixmap or NULL on failure.
  */
-HPIXMAP API dw_pixmap_new_from_data(HWND handle, char *data, int len)
+HPIXMAP API dw_pixmap_new_from_data(HWND handle, const char *data, int len)
 {
     return 0;
 }
@@ -2117,7 +2157,7 @@ HPIXMAP API dw_pixmap_grab(HWND handle, ULONG resid)
  * Returns:
  *       DW_ERROR_NONE on success and DW_ERROR_GENERAL on failure.
 */
-int API dw_pixmap_set_font(HPIXMAP pixmap, char *fontname)
+int API dw_pixmap_set_font(HPIXMAP pixmap, const char *fontname)
 {
     return DW_ERROR_GENERAL;
 }
@@ -2203,7 +2243,7 @@ void API dw_html_action(HWND handle, int action)
  * Returns:
  *       DW_ERROR_NONE (0) on success.
  */
-int API dw_html_raw(HWND handle, char *string)
+int API dw_html_raw(HWND handle, const char *string)
 {
     return DW_ERROR_GENERAL;
 }
@@ -2217,9 +2257,24 @@ int API dw_html_raw(HWND handle, char *string)
  * Returns:
  *       DW_ERROR_NONE (0) on success.
  */
-int API dw_html_url(HWND handle, char *url)
+int API dw_html_url(HWND handle, const char *url)
 {
     return DW_ERROR_GENERAL;
+}
+
+/*
+ * Executes the javascript contained in "script" in the HTML window.
+ * Parameters:
+ *       handle: Handle to the HTML window.
+ *       script: Javascript code to execute.
+ *       scriptdata: Data passed to the signal handler.
+ * Notes: A DW_SIGNAL_HTML_RESULT event will be raised with scriptdata.
+ * Returns:
+ *       DW_ERROR_NONE (0) on success.
+ */
+int dw_html_javascript_run(HWND handle, const char *script, void *scriptdata)
+{
+   return DW_ERROR_UNKNOWN;
 }
 
 /*
@@ -2325,7 +2380,7 @@ void API dw_menu_popup(HMENUI *menu, HWND parent, int x, int y)
  * Returns:
  *       Handle to the created menu item or NULL on error.
  */
-HWND API dw_menu_append_item(HMENUI menux, char *title, ULONG itemid, ULONG flags, int end, int check, HMENUI submenux)
+HWND API dw_menu_append_item(HMENUI menux, const char *title, ULONG itemid, ULONG flags, int end, int check, HMENUI submenux)
 {
     return 0;
 }
@@ -2420,7 +2475,7 @@ void API dw_notebook_page_set(HWND handle, unsigned int pageid)
  *          pageid: Page ID of the tab to set.
  *          text: Pointer to the text to set.
  */
-void API dw_notebook_page_set_text(HWND handle, ULONG pageid, char *text)
+void API dw_notebook_page_set_text(HWND handle, ULONG pageid, const char *text)
 {
 }
 
@@ -2431,7 +2486,7 @@ void API dw_notebook_page_set_text(HWND handle, ULONG pageid, char *text)
  *          pageid: Page ID of the tab to set.
  *          text: Pointer to the text to set.
  */
-void API dw_notebook_page_set_status_text(HWND handle, ULONG pageid, char *text)
+void API dw_notebook_page_set_status_text(HWND handle, ULONG pageid, const char *text)
 {
 }
 
@@ -2455,7 +2510,7 @@ void API dw_notebook_pack(HWND handle, ULONG pageid, HWND page)
  * Returns:
  *       Handle to the created window or NULL on error.
  */
-HWND API dw_window_new(HWND hwndOwner, char *title, ULONG flStyle)
+HWND API dw_window_new(HWND hwndOwner, const char *title, ULONG flStyle)
 {
     return 0;
 }
@@ -2611,7 +2666,7 @@ void API dw_window_reparent(HWND handle, HWND newparent)
  * Returns:
  *       DW_ERROR_NONE (0) on success.
  */
-int API dw_window_set_font(HWND handle, char *fontname)
+int API dw_window_set_font(HWND handle, const char *fontname)
 {
     return DW_ERROR_GENERAL;
 }
@@ -2634,7 +2689,7 @@ char * API dw_window_get_font(HWND handle)
  * Returns:
  *       A malloced buffer with the selected font or NULL on error.
  */
-char * API dw_font_choose(char *currfont)
+char * API dw_font_choose(const char *currfont)
 {
     return NULL;
 }
@@ -2644,7 +2699,7 @@ char * API dw_font_choose(char *currfont)
  * Parameters:
  *           fontname: Font name in Dynamic Windows format.
  */
-void API dw_font_set_default(char *fontname)
+void API dw_font_set_default(const char *fontname)
 {
 }
 
@@ -2678,7 +2733,7 @@ char * API dw_window_get_text(HWND handle)
  *       handle: Handle to the window.
  *       text: The text associsated with a given window.
  */
-void API dw_window_set_text(HWND handle, char *text)
+void API dw_window_set_text(HWND handle, const char *text)
 {
 }
 
@@ -2688,7 +2743,7 @@ void API dw_window_set_text(HWND handle, char *text)
  *       handle: Handle to the window (widget).
  *       bubbletext: The text in the floating bubble tooltip.
  */
-void API dw_window_set_tooltip(HWND handle, char *bubbletext)
+void API dw_window_set_tooltip(HWND handle, const char *bubbletext)
 {
 }
 
@@ -2721,7 +2776,7 @@ void API dw_window_enable(HWND handle)
  *                 NULL if you use the id param)
  *       len: Length of data passed
  */
-void API dw_window_set_bitmap_from_data(HWND handle, unsigned long cid, char *data, int len)
+void API dw_window_set_bitmap_from_data(HWND handle, unsigned long cid, const char *data, int len)
 {
 }
 
@@ -2735,7 +2790,7 @@ void API dw_window_set_bitmap_from_data(HWND handle, unsigned long cid, char *da
  *                 Windows and a pixmap on Unix, pass
  *                 NULL if you use the id param)
  */
-void API dw_window_set_bitmap(HWND handle, unsigned long resid, char *filename)
+void API dw_window_set_bitmap(HWND handle, unsigned long resid, const char *filename)
 {
 }
 
@@ -2944,7 +2999,7 @@ void API dw_flush(void)
  *       dataname: A string pointer identifying which data to be saved.
  *       data: User data to be saved to the window handle.
  */
-void dw_window_set_data(HWND window, char *dataname, void *data)
+void dw_window_set_data(HWND window, const char *dataname, void *data)
 {
 }
 
@@ -2956,7 +3011,7 @@ void dw_window_set_data(HWND window, char *dataname, void *data)
  * Returns:
  *       Pointer to data or NULL if no data is available.
  */
-void *dw_window_get_data(HWND window, char *dataname)
+void *dw_window_get_data(HWND window, const char *dataname)
 {
     return NULL;
 }
@@ -2992,7 +3047,7 @@ void API dw_timer_disconnect(int timerid)
  *       sigfunc: The pointer to the function to be used as the callback.
  *       data: User data to be passed to the handler function.
  */
-void API dw_signal_connect(HWND window, char *signame, void *sigfunc, void *data)
+void API dw_signal_connect(HWND window, const char *signame, void *sigfunc, void *data)
 {
 }
 
@@ -3002,7 +3057,7 @@ void API dw_signal_connect(HWND window, char *signame, void *sigfunc, void *data
  *       window: Window handle of callback to be removed.
  *       signame: Signal name to be matched on window.
  */
-void API dw_signal_disconnect_by_name(HWND window, char *signame)
+void API dw_signal_disconnect_by_name(HWND window, const char *signame)
 {
 }
 
@@ -3033,7 +3088,7 @@ void API dw_signal_disconnect_by_data(HWND window, void *data)
  * Returns:
  *       DW_ERROR_NONE (0) on success.
 */
-int dw_module_load(char *name, HMOD *handle)
+int dw_module_load(const char *name, HMOD *handle)
 {
    return DW_ERROR_UNKNOWN;
 }
@@ -3047,7 +3102,7 @@ int dw_module_load(char *name, HMOD *handle)
  * Returns:
  *       DW_ERROR_NONE (0) on success.
  */
-int dw_module_symbol(HMOD handle, char *name, void**func)
+int dw_module_symbol(HMOD handle, const char *name, void**func)
 {
    return DW_ERROR_UNKNOWN;
 }
@@ -3202,7 +3257,7 @@ int dw_event_close(HEV *eve)
  * Returns:
  *       Handle to event semaphore or NULL on error.
  */
-HEV dw_named_event_new(char *name)
+HEV dw_named_event_new(const char *name)
 {
     return NULL;
 }
@@ -3214,7 +3269,7 @@ HEV dw_named_event_new(char *name)
  * Returns:
  *       Handle to event semaphore or NULL on error.
  */
-HEV dw_named_event_get(char *name)
+HEV dw_named_event_get(const char *name)
 {
     return NULL;
 }
@@ -3297,7 +3352,7 @@ int API dw_init(int newthread, int argc, char *argv[])
  * Returns:
  *       Handle to shared memory or NULL on error.
  */
-HSHM dw_named_memory_new(void **dest, int size, char *name)
+HSHM dw_named_memory_new(void **dest, int size, const char *name)
 {
    return NULL;
 }
@@ -3311,7 +3366,7 @@ HSHM dw_named_memory_new(void **dest, int size, char *name)
  * Returns:
  *       Handle to shared memory or NULL on error.
  */
-HSHM dw_named_memory_get(void **dest, int size, char *name)
+HSHM dw_named_memory_get(void **dest, int size, const char *name)
 {
    return NULL;
 }
@@ -3369,7 +3424,7 @@ DWTID dw_thread_id(void)
  * Returns:
  *       Process ID on success or DW_ERROR_UNKNOWN (-1) on error.
  */
-int dw_exec(char *program, int type, char **params)
+int dw_exec(const char *program, int type, char **params)
 {
     int ret = DW_ERROR_UNKNOWN;
 
@@ -3383,7 +3438,7 @@ int dw_exec(char *program, int type, char **params)
  * Returns:
  *       DW_ERROR_UNKNOWN (-1) on error; DW_ERROR_NONE (0) or a positive Process ID on success.
  */
-int dw_browse(char *url)
+int dw_browse(const char *url)
 {
     return DW_ERROR_UNKNOWN;
 }
@@ -3399,7 +3454,7 @@ int dw_browse(char *url)
  * Returns:
  *       A handle to the print object or NULL on failure.
  */
-HPRINT API dw_print_new(char *jobname, unsigned long flags, unsigned int pages, void *drawfunc, void *drawdata)
+HPRINT API dw_print_new(const char *jobname, unsigned long flags, unsigned int pages, void *drawfunc, void *drawdata)
 {
    return NULL;
 }
@@ -3426,3 +3481,132 @@ void API dw_print_cancel(HPRINT print)
 {
 }
 
+/*
+ * Creates a new system notification if possible.
+ * Parameters:
+ *         title: The short title of the notification.
+ *         imagepath: Path to an image to display or NULL if none.
+ *         description: A longer description of the notification,
+ *                      or NULL if none is necessary.
+ * Returns:
+ *         A handle to the notification which can be used to attach a "clicked" event if desired,
+ *         or NULL if it fails or notifications are not supported by the system.
+ * Remarks:
+ *          This will create a system notification that will show in the notifaction panel
+ *          on supported systems, which may be clicked to perform another task.
+ */
+HWND API dw_notification_new(const char * DW_UNUSED(title), const char * DW_UNUSED(imagepath), const char * DW_UNUSED(description), ...)
+{
+   return 0;
+}
+
+/*
+ * Sends a notification created by dw_notification_new() after attaching signal handler.
+ * Parameters:
+ *         notification: The handle to the notification returned by dw_notification_new().
+ * Returns:
+ *         DW_ERROR_NONE on success, DW_ERROR_UNKNOWN on error or not supported.
+ */
+int API dw_notification_send(HWND DW_UNUSED(notification))
+{
+   return DW_ERROR_UNKNOWN;
+}
+
+/*
+ * Converts a UTF-8 encoded string into a wide string.
+ * Parameters:
+ *       utf8string: UTF-8 encoded source string.
+ * Returns:
+ *       Wide string that needs to be freed with dw_free()
+ *       or NULL on failure.
+ */
+wchar_t * API dw_utf8_to_wchar(const char *utf8string)
+{
+    return NULL;
+}
+
+/*
+ * Converts a wide string into a UTF-8 encoded string.
+ * Parameters:
+ *       wstring: Wide source string.
+ * Returns:
+ *       UTF-8 encoded string that needs to be freed with dw_free()
+ *       or NULL on failure.
+ */
+char * API dw_wchar_to_utf8(const wchar_t *wstring)
+{
+    return NULL;
+}
+
+/*
+ * Gets the state of the requested library feature.
+ * Parameters:
+ *       feature: The requested feature for example DW_FEATURE_DARK_MODE
+ * Returns:
+ *       DW_FEATURE_UNSUPPORTED if the library or OS does not support the feature.
+ *       DW_FEATURE_DISABLED if the feature is supported but disabled.
+ *       DW_FEATURE_ENABLED if the feature is supported and enabled.
+ *       Other value greater than 1, same as enabled but with extra info.
+ */
+int API dw_feature_get(DWFEATURE feature)
+{
+    switch(feature)
+    {
+#if 0
+        case DW_FEATURE_HTML:                    /* Supports the HTML Widget */
+        case DW_FEATURE_HTML_RESULT:             /* Supports the DW_SIGNAL_HTML_RESULT callback */
+        case DW_FEATURE_WINDOW_BORDER:           /* Supports custom window border sizes */
+        case DW_FEATURE_WINDOW_TRANSPARENCY:     /* Supports window frame transparency */
+        case DW_FEATURE_DARK_MODE:               /* Supports Dark Mode user interface */
+        case DW_FEATURE_MLE_AUTO_COMPLETE:       /* Supports auto completion in Multi-line Edit boxes */
+        case DW_FEATURE_MLE_WORD_WRAP:           /* Supports word wrapping in Multi-line Edit boxes */
+        case DW_FEATURE_CONTAINER_STRIPE:        /* Supports striped line display in container widgets */ 
+        case DW_FEATURE_MDI:                     /* Supports Multiple Document Interface window frame */
+        case DW_FEATURE_NOTEBOOK_STATUS_TEXT:    /* Supports status text area on notebook/tabbed controls */
+        case DW_FEATURE_NOTIFICATION:            /* Supports sending system notifications */
+        case DW_FEATURE_UTF8_UNICODE:            /* Supports UTF8 encoded Unicode text */
+            return DW_FEATURE_ENABLED;
+#endif
+        default:
+            return DW_FEATURE_UNSUPPORTED;
+    }
+}
+
+/*
+ * Sets the state of the requested library feature.
+ * Parameters:
+ *       feature: The requested feature for example DW_FEATURE_DARK_MODE
+ *       state: DW_FEATURE_DISABLED, DW_FEATURE_ENABLED or any value greater than 1.
+ * Returns:
+ *       DW_FEATURE_UNSUPPORTED if the library or OS does not support the feature.
+ *       DW_ERROR_NONE if the feature is supported and successfully configured.
+ *       DW_ERROR_GENERAL if the feature is supported but could not be configured.
+ * Remarks: 
+ *       These settings are typically used during dw_init() so issue before 
+ *       setting up the library with dw_init().
+ */
+int API dw_feature_set(DWFEATURE feature, int state)
+{
+    switch(feature)
+    {
+        /* These features are supported but not configurable */
+#if 0
+        case DW_FEATURE_HTML:                    /* Supports the HTML Widget */
+        case DW_FEATURE_HTML_RESULT:             /* Supports the DW_SIGNAL_HTML_RESULT callback */
+        case DW_FEATURE_WINDOW_BORDER:           /* Supports custom window border sizes */
+        case DW_FEATURE_WINDOW_TRANSPARENCY:     /* Supports window frame transparency */
+        case DW_FEATURE_DARK_MODE:               /* Supports Dark Mode user interface */
+        case DW_FEATURE_MLE_AUTO_COMPLETE:       /* Supports auto completion in Multi-line Edit boxes */
+        case DW_FEATURE_MLE_WORD_WRAP:           /* Supports word wrapping in Multi-line Edit boxes */
+        case DW_FEATURE_CONTAINER_STRIPE:        /* Supports striped line display in container widgets */ 
+        case DW_FEATURE_MDI:                     /* Supports Multiple Document Interface window frame */
+        case DW_FEATURE_NOTEBOOK_STATUS_TEXT:    /* Supports status text area on notebook/tabbed controls */
+        case DW_FEATURE_NOTIFICATION:            /* Supports sending system notifications */
+        case DW_FEATURE_UTF8_UNICODE:            /* Supports UTF8 encoded Unicode text */
+            return DW_ERROR_GENERAL;
+#endif
+        /* These features are supported and configurable */
+        default:
+            return DW_FEATURE_UNSUPPORTED;
+    }
+}
