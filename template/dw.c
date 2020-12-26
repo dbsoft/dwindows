@@ -202,9 +202,9 @@ static void _resize_box(Box *thisbox, int *depth, int x, int y, int pass)
          if(width > 0 && height > 0)
          {
             int pad = thisbox->items[z].pad;
+#if 0
             HWND handle = thisbox->items[z].hwnd;
 
-#if 0
             /* Here you put your platform specific placement widget placement code */
             PlaceWidget(handle, currentx + pad, currenty + pad, width, height);
 
@@ -346,7 +346,7 @@ char * API dw_app_dir(void)
  *          The appname is only required on Windows.  If NULL is passed the detected
  *          application name will be used, but a prettier name may be desired.
  */
-int API dw_app_id_set(const char * DW_UNUSED(appid), const char * DW_UNUSED(appname))
+int API dw_app_id_set(const char *appid, const char *appname)
 {
     return DW_ERROR_UNKNOWN;
 }
@@ -569,6 +569,10 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
     Box *thisbox;
     int z, x = 0;
     Item *tmpitem, *thisitem;
+
+    /* Sanity checks */
+    if(!box || box == item)
+        return;
 
     thisbox = _dw_window_pointer_get(box);
     thisitem = thisbox->items;
@@ -1206,8 +1210,10 @@ void API dw_mle_export(HWND handle, char *buffer, int startpoint, int length)
  */
 void API dw_mle_get_size(HWND handle, unsigned long *bytes, unsigned long *lines)
 {
-    *bytes = 0;
-    *lines = 0;
+    if(bytes)
+        *bytes = 0;
+    if(lines)
+        *lines = 0;
 }
 
 /*
@@ -1954,12 +1960,32 @@ void API dw_container_cursor(HWND handle, const char *text)
 }
 
 /*
+ * Cursors the item with the data speficied, and scrolls to that item.
+ * Parameters:
+ *       handle: Handle to the window (widget) to be queried.
+ *       data:  Data usually returned by dw_container_query().
+ */
+void API dw_container_cursor_by_data(HWND handle, void *data)
+{
+}
+
+/*
  * Deletes the item with the text speficied.
  * Parameters:
  *       handle: Handle to the window (widget).
  *       text:  Text usually returned by dw_container_query().
  */
 void API dw_container_delete_row(HWND handle, const char *text)
+{
+}
+
+/*
+ * Deletes the item with the data speficied.
+ * Parameters:
+ *       handle: Handle to the window (widget).
+ *       data:  Data usually returned by dw_container_query().
+ */
+void API dw_container_delete_row_by_data(HWND handle, void *data)
 {
 }
 
@@ -3101,6 +3127,20 @@ void API dw_timer_disconnect(int timerid)
  */
 void API dw_signal_connect(HWND window, const char *signame, void *sigfunc, void *data)
 {
+    dw_signal_connect_data(window, signame, sigfunc, NULL, data);
+}
+
+/*
+ * Add a callback to a window event with a closure callback.
+ * Parameters:
+ *       window: Window handle of signal to be called back.
+ *       signame: A string pointer identifying which signal to be hooked.
+ *       sigfunc: The pointer to the function to be used as the callback.
+ *       discfunc: The pointer to the function called when this handler is removed.
+ *       data: User data to be passed to the handler function.
+ */
+void API dw_signal_connect_data(HWND window, const char *signame, void *sigfunc, void *discfunc, void *data)
+{
 }
 
 /*
@@ -3439,6 +3479,26 @@ int API dw_named_memory_free(HSHM handle, void *ptr)
 }
 
 /*
+ * Generally an internal function called from a newly created
+ * thread to setup the Dynamic Windows environment for the thread.
+ * However it is exported so language bindings can call it when
+ * they create threads that require access to Dynamic Windows.
+ */
+void API _dw_init_thread(void)
+{
+}
+
+/*
+ * Generally an internal function called from a terminating
+ * thread to cleanup the Dynamic Windows environment for the thread.
+ * However it is exported so language bindings can call it when
+ * they exit threads that require access to Dynamic Windows.
+ */
+void API _dw_deinit_thread(void)
+{
+}
+
+/*
  * Creates a new thread with a starting point of func.
  * Parameters:
  *       func: Function which will be run in the new thread.
@@ -3465,6 +3525,13 @@ void API dw_thread_end(void)
 DWTID API dw_thread_id(void)
 {
    return (DWTID)0;
+}
+
+/*
+ * Cleanly terminates a DW session, should be signal handler safe.
+ */
+void API dw_shutdown(void)
+{
 }
 
 /*
@@ -3547,7 +3614,7 @@ void API dw_print_cancel(HPRINT print)
  *          This will create a system notification that will show in the notifaction panel
  *          on supported systems, which may be clicked to perform another task.
  */
-HWND API dw_notification_new(const char * DW_UNUSED(title), const char * DW_UNUSED(imagepath), const char * DW_UNUSED(description), ...)
+HWND API dw_notification_new(const char *title, const char *imagepath, const char *description, ...)
 {
    return 0;
 }
@@ -3559,7 +3626,7 @@ HWND API dw_notification_new(const char * DW_UNUSED(title), const char * DW_UNUS
  * Returns:
  *         DW_ERROR_NONE on success, DW_ERROR_UNKNOWN on error or not supported.
  */
-int API dw_notification_send(HWND DW_UNUSED(notification))
+int API dw_notification_send(HWND notification)
 {
    return DW_ERROR_UNKNOWN;
 }
