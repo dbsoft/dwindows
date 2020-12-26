@@ -14,12 +14,12 @@
 #include <string.h>
 
 /* Implement these to get and set the Box* pointer on the widget handle */
-void *_dw_get_window_pointer(HWND handle)
+void *_dw_window_pointer_get(HWND handle)
 {
     return NULL;
 }
 
-void _dw_set_window_pointer(HWND handle, Box *box)
+void _dw_window_pointer_set(HWND handle, Box *box)
 {
 }
 
@@ -77,7 +77,7 @@ static void _resize_box(Box *thisbox, int *depth, int x, int y, int pass)
         
       if(thisbox->items[z].type == TYPEBOX)
       {
-         Box *tmp = (Box *)_dw_get_window_pointer(thisbox->items[z].hwnd);
+         Box *tmp = (Box *)_dw_window_pointer_get(thisbox->items[z].hwnd);
 
          if(tmp)
          {
@@ -252,6 +252,13 @@ void API dw_main(void)
 }
 
 /*
+ * Causes running dw_main() to return.
+ */
+void API dw_main_quit(void)
+{
+}
+
+/*
  * Runs a message loop for Dynamic Windows, for a period of milliseconds.
  * Parameters:
  *           milliseconds: Number of milliseconds to run the loop for.
@@ -406,7 +413,7 @@ char * API dw_file_browse(const char *title, const char *defpath, const char *ex
  *       Pointer to an allocated string of text or NULL if clipboard empty or contents could not
  *       be converted to text.
  */
-char *dw_clipboard_get_text()
+char * API dw_clipboard_get_text()
 {
     return NULL;
 }
@@ -417,7 +424,7 @@ char *dw_clipboard_get_text()
  *       str: Text to put on the clipboard.
  *       len: Length of the text.
  */
-void dw_clipboard_set_text(const char *str, int len)
+void API dw_clipboard_set_text(const char *str, int len)
 {
 }
 
@@ -563,7 +570,7 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
     int z, x = 0;
     Item *tmpitem, *thisitem;
 
-    thisbox = _dw_get_window_pointer(box);
+    thisbox = _dw_window_pointer_get(box);
     thisitem = thisbox->items;
 
     /* Do some sanity bounds checking */
@@ -1769,6 +1776,28 @@ void API dw_filesystem_set_item(HWND handle, void *pointer, int column, int row,
 }
 
 /*
+ * Sets the data of a row in the container.
+ * Parameters:
+ *          pointer: Pointer to the allocated memory in dw_container_alloc().
+ *          row: Zero based row of data being set.
+ *          data: Data pointer.
+ */
+void API dw_container_set_row_data(void *pointer, int row, void *data)
+{
+}
+
+/*
+ * Changes the data of a row already inserted in the container.
+ * Parameters:
+ *          handle: Handle to the container window (widget).
+ *          row: Zero based row of data being set.
+ *          data: Data pointer.
+ */
+void API dw_container_change_row_data(HWND handle, int row, void *data)
+{
+}
+
+/*
  * Gets column type for a container column.
  * Parameters:
  *          handle: Handle to the container window (widget).
@@ -2191,6 +2220,29 @@ void API dw_pixmap_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest, int wi
 }
 
 /*
+ * Copies from one surface to another allowing for stretching.
+ * Parameters:
+ *       dest: Destination window handle.
+ *       destp: Destination pixmap. (choose only one).
+ *       xdest: X coordinate of destination.
+ *       ydest: Y coordinate of destination.
+ *       width: Width of the target area.
+ *       height: Height of the target area.
+ *       src: Source window handle.
+ *       srcp: Source pixmap. (choose only one).
+ *       xsrc: X coordinate of source.
+ *       ysrc: Y coordinate of source.
+ *       srcwidth: Width of area to copy.
+ *       srcheight: Height of area to copy.
+ * Returns:
+ *       DW_ERROR_NONE on success and DW_ERROR_GENERAL on failure.
+ */
+int API dw_pixmap_stretch_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest, int width, int height, HWND src, HPIXMAP srcp, int xsrc, int ysrc, int srcwidth, int srcheight)
+{
+    return DW_ERROR_GENERAL;
+}
+
+/*
  * Create a new calendar window (widget) to be packed.
  * Parameters:
  *       id: An ID to be used with dw_window_from_id() or 0L.
@@ -2208,7 +2260,7 @@ HWND API dw_calendar_new(ULONG cid)
  *       handle: The handle to the calendar returned by dw_calendar_new().
  *       year, month, day: To set the calendar to display.
  */
-void dw_calendar_set_date(HWND handle, unsigned int year, unsigned int month, unsigned int day)
+void API dw_calendar_set_date(HWND handle, unsigned int year, unsigned int month, unsigned int day)
 {
 }
 
@@ -2220,7 +2272,7 @@ void dw_calendar_set_date(HWND handle, unsigned int year, unsigned int month, un
  *       month: Variable to store the month or NULL.
  *       day: Variable to store the day or NULL.
  */
-void dw_calendar_get_date(HWND handle, unsigned int *year, unsigned int *month, unsigned int *day)
+void API dw_calendar_get_date(HWND handle, unsigned int *year, unsigned int *month, unsigned int *day)
 {
 }
 
@@ -2272,7 +2324,7 @@ int API dw_html_url(HWND handle, const char *url)
  * Returns:
  *       DW_ERROR_NONE (0) on success.
  */
-int dw_html_javascript_run(HWND handle, const char *script, void *scriptdata)
+int API dw_html_javascript_run(HWND handle, const char *script, void *scriptdata)
 {
    return DW_ERROR_UNKNOWN;
 }
@@ -2959,7 +3011,7 @@ unsigned long API dw_color_depth_get(void)
  * Parameters:
  *       env: Pointer to a DWEnv struct.
  */
-void dw_environment_query(DWEnv *env)
+void API dw_environment_query(DWEnv *env)
 {
     strcpy(env->osName, "Unknown");
 
@@ -2999,7 +3051,7 @@ void API dw_flush(void)
  *       dataname: A string pointer identifying which data to be saved.
  *       data: User data to be saved to the window handle.
  */
-void dw_window_set_data(HWND window, const char *dataname, void *data)
+void API dw_window_set_data(HWND window, const char *dataname, void *data)
 {
 }
 
@@ -3011,7 +3063,7 @@ void dw_window_set_data(HWND window, const char *dataname, void *data)
  * Returns:
  *       Pointer to data or NULL if no data is available.
  */
-void *dw_window_get_data(HWND window, const char *dataname)
+void * API dw_window_get_data(HWND window, const char *dataname)
 {
     return NULL;
 }
@@ -3088,7 +3140,7 @@ void API dw_signal_disconnect_by_data(HWND window, void *data)
  * Returns:
  *       DW_ERROR_NONE (0) on success.
 */
-int dw_module_load(const char *name, HMOD *handle)
+int API dw_module_load(const char *name, HMOD *handle)
 {
    return DW_ERROR_UNKNOWN;
 }
@@ -3102,7 +3154,7 @@ int dw_module_load(const char *name, HMOD *handle)
  * Returns:
  *       DW_ERROR_NONE (0) on success.
  */
-int dw_module_symbol(HMOD handle, const char *name, void**func)
+int API dw_module_symbol(HMOD handle, const char *name, void**func)
 {
    return DW_ERROR_UNKNOWN;
 }
@@ -3113,7 +3165,7 @@ int dw_module_symbol(HMOD handle, const char *name, void**func)
  * Returns:
  *       DW_ERROR_NONE (0) on success.
  */
-int dw_module_close(HMOD handle)
+int API dw_module_close(HMOD handle)
 {
    return DW_ERROR_GENERAL;
 }
@@ -3121,7 +3173,7 @@ int dw_module_close(HMOD handle)
 /*
  * Returns the handle to an unnamed mutex semaphore or NULL on error.
  */
-HMTX dw_mutex_new(void)
+HMTX API dw_mutex_new(void)
 {
     return NULL;
 }
@@ -3131,7 +3183,7 @@ HMTX dw_mutex_new(void)
  * Parameters:
  *       mutex: The handle to the mutex returned by dw_mutex_new().
  */
-void dw_mutex_close(HMTX mutex)
+void API dw_mutex_close(HMTX mutex)
 {
 }
 
@@ -3140,7 +3192,7 @@ void dw_mutex_close(HMTX mutex)
  * Parameters:
  *       mutex: The handle to the mutex returned by dw_mutex_new().
  */
-void dw_mutex_lock(HMTX mutex)
+void API dw_mutex_lock(HMTX mutex)
 {
 #if 0
     /* We need to handle locks from the main thread differently...
@@ -3183,14 +3235,14 @@ int API dw_mutex_trylock(HMTX mutex)
  * Parameters:
  *       mutex: The handle to the mutex returned by dw_mutex_new().
  */
-void dw_mutex_unlock(HMTX mutex)
+void API dw_mutex_unlock(HMTX mutex)
 {
 }
 
 /*
  * Returns the handle to an unnamed event semaphore or NULL on error.
  */
-HEV dw_event_new(void)
+HEV API dw_event_new(void)
 {
    return NULL;
 }
@@ -3202,7 +3254,7 @@ HEV dw_event_new(void)
  * Returns:
  *       DW_ERROR_NONE (0) on success.
  */
-int dw_event_reset (HEV eve)
+int API dw_event_reset (HEV eve)
 {
    return DW_ERROR_GENERAL;
 }
@@ -3215,7 +3267,7 @@ int dw_event_reset (HEV eve)
  * Returns:
  *       DW_ERROR_NONE (0) on success.
  */
-int dw_event_post (HEV eve)
+int API dw_event_post (HEV eve)
 {
    return DW_ERROR_GENERAL;
 }
@@ -3232,7 +3284,7 @@ int dw_event_post (HEV eve)
  *       DW_ERROR_TIMEOUT (2) if the timeout has expired.
  *       Other values on other error.
  */
-int dw_event_wait(HEV eve, unsigned long timeout)
+int API dw_event_wait(HEV eve, unsigned long timeout)
 {
    return DW_ERROR_GENERAL;
 }
@@ -3244,7 +3296,7 @@ int dw_event_wait(HEV eve, unsigned long timeout)
  * Returns:
  *       DW_ERROR_NONE (0) on success.
  */
-int dw_event_close(HEV *eve)
+int API dw_event_close(HEV *eve)
 {
    return DW_ERROR_GENERAL;
 }
@@ -3257,7 +3309,7 @@ int dw_event_close(HEV *eve)
  * Returns:
  *       Handle to event semaphore or NULL on error.
  */
-HEV dw_named_event_new(const char *name)
+HEV API dw_named_event_new(const char *name)
 {
     return NULL;
 }
@@ -3269,7 +3321,7 @@ HEV dw_named_event_new(const char *name)
  * Returns:
  *       Handle to event semaphore or NULL on error.
  */
-HEV dw_named_event_get(const char *name)
+HEV API dw_named_event_get(const char *name)
 {
     return NULL;
 }
@@ -3282,7 +3334,7 @@ HEV dw_named_event_get(const char *name)
  * Returns:
  *       DW_ERROR_NONE (0) on success.
  */
-int dw_named_event_reset(HEV eve)
+int API dw_named_event_reset(HEV eve)
 {
    return DW_ERROR_GENERAL;
 }
@@ -3295,7 +3347,7 @@ int dw_named_event_reset(HEV eve)
  * Returns:
  *       DW_ERROR_NONE (0) on success.
  */
-int dw_named_event_post(HEV eve)
+int API dw_named_event_post(HEV eve)
 {
    return DW_ERROR_GENERAL;
 }
@@ -3310,7 +3362,7 @@ int dw_named_event_post(HEV eve)
  * Returns:
  *       DW_ERROR_NONE (0) on success.
  */
-int dw_named_event_wait(HEV eve, unsigned long timeout)
+int API dw_named_event_wait(HEV eve, unsigned long timeout)
 {
    return DW_ERROR_UNKNOWN;
 }
@@ -3323,7 +3375,7 @@ int dw_named_event_wait(HEV eve, unsigned long timeout)
  * Returns:
  *       DW_ERROR_NONE (0) on success.
  */
-int dw_named_event_close(HEV eve)
+int API dw_named_event_close(HEV eve)
 {
     return DW_ERROR_UNKNOWN;
 }
@@ -3352,7 +3404,7 @@ int API dw_init(int newthread, int argc, char *argv[])
  * Returns:
  *       Handle to shared memory or NULL on error.
  */
-HSHM dw_named_memory_new(void **dest, int size, const char *name)
+HSHM API dw_named_memory_new(void **dest, int size, const char *name)
 {
    return NULL;
 }
@@ -3366,7 +3418,7 @@ HSHM dw_named_memory_new(void **dest, int size, const char *name)
  * Returns:
  *       Handle to shared memory or NULL on error.
  */
-HSHM dw_named_memory_get(void **dest, int size, const char *name)
+HSHM API dw_named_memory_get(void **dest, int size, const char *name)
 {
    return NULL;
 }
@@ -3379,7 +3431,7 @@ HSHM dw_named_memory_get(void **dest, int size, const char *name)
  * Returns:
  *       DW_ERROR_NONE (0) on success or DW_ERROR_UNKNOWN (-1) on error.
  */
-int dw_named_memory_free(HSHM handle, void *ptr)
+int API dw_named_memory_free(HSHM handle, void *ptr)
 {
    int rc = DW_ERROR_UNKNOWN;
 
@@ -3395,7 +3447,7 @@ int dw_named_memory_free(HSHM handle, void *ptr)
  * Returns:
  *       Thread ID on success or DW_ERROR_UNKNOWN (-1) on error.
  */
-DWTID dw_thread_new(void *func, void *data, int stack)
+DWTID API dw_thread_new(void *func, void *data, int stack)
 {
    return (DWTID)DW_ERROR_UNKNOWN;
 }
@@ -3403,14 +3455,14 @@ DWTID dw_thread_new(void *func, void *data, int stack)
 /*
  * Ends execution of current thread immediately.
  */
-void dw_thread_end(void)
+void API dw_thread_end(void)
 {
 }
 
 /*
  * Returns the current thread's ID.
  */
-DWTID dw_thread_id(void)
+DWTID API dw_thread_id(void)
 {
    return (DWTID)0;
 }
@@ -3424,7 +3476,7 @@ DWTID dw_thread_id(void)
  * Returns:
  *       Process ID on success or DW_ERROR_UNKNOWN (-1) on error.
  */
-int dw_exec(const char *program, int type, char **params)
+int API dw_exec(const char *program, int type, char **params)
 {
     int ret = DW_ERROR_UNKNOWN;
 
@@ -3438,7 +3490,7 @@ int dw_exec(const char *program, int type, char **params)
  * Returns:
  *       DW_ERROR_UNKNOWN (-1) on error; DW_ERROR_NONE (0) or a positive Process ID on success.
  */
-int dw_browse(const char *url)
+int API dw_browse(const char *url)
 {
     return DW_ERROR_UNKNOWN;
 }

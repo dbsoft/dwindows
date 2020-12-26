@@ -265,7 +265,7 @@ static int _dw_snprintf(char *str, size_t size, const char *format, ...)
 #include <signal.h>
 #include <fcntl.h>
 
-#if !defined(__WIN32__) && !defined(WINNT)
+#if !defined(_MSC_VER)
 #ifndef __WATCOMC__
 #include <sys/time.h>
 #endif
@@ -281,7 +281,7 @@ static int _dw_snprintf(char *str, size_t size, const char *format, ...)
 #endif
 #include <stdarg.h>
 #include <string.h>
-#endif /* !WIN32 */
+#endif /* !_MSC_VER */
 #include <ctype.h>
 
 #ifndef _MAX_PATH
