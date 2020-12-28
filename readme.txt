@@ -32,8 +32,10 @@ Known problems:
 Boxes with no expandable items will have their contents centered on 
     GTK2 instead of top or left justified on the other platforms.
 GTK3 due to changes in the core architecture does not support
-    widgets that are smaller than what is contained within them
+    widgets that are smaller than what is contained within them,
     unless they use scrolled windows. GTK2 and other platforms do.
+    Therefore windows or other elements may expand their size to 
+    fit the contents, overriding requested size settings.
 In Unicode mode on OS/2 there are some bugs in the input controls,
     minor bugs in entryfield based controls and major bugs in the MLE.
     The text displays properly but the cursor and selection jumps
@@ -49,11 +51,15 @@ Future features:
 OS/2 is currently missing the HTML widget because the system does 
 not support it by default. Looking into importing functionality 
 from available libraries (Firefox, Webkit, Qt, etc).
+OS/2 is also missing a notification system, so the new notification
+APIs are not yet supported on OS/2.  May implement our own system 
+if a popular notification system is not already in existance.
+Ports to iOS and Android are underway.
 
 Changes from version 3.0:
 Added support for MacOS versions through Big Sur 11.0, 
     Windows versions through 10 build 20H2.
-Fixed handle leak on OS/2 when built with (Open)Watcom.
+Fixed a handle leak on OS/2 when built with (Open)Watcom.
 Added dark mode support on MacOS Mojave 10.14 and later. 
 Added experimental dark mode support on Windows 10 build 1809 (disabled by default).
 Added embedding Microsoft Edge (Chromium) support on Windows 7 and higher.
@@ -61,6 +67,7 @@ Added embedding Microsoft Edge (Chromium) support on Windows 7 and higher.
     https://www.nuget.org/packages/Microsoft.Web.WebView2 unzipped into
     .\packages\Microsoft.Web.WebView2
     Install runtime: https://developer.microsoft.com/en-us/microsoft-edge/webview2/
+    Will prefer to use the runtime above, but will fallback to an installed browser.
 Added notification APIs: dw_notification_new() dw_notification_send() dw_app_id_set()
     Requires Windows 8 or higher. MacOS 10.8 or higher. GLib 2.40 or higher on Unix.
     MacOS also requires the application bundle being signed or self-signed.
@@ -87,7 +94,8 @@ Added support for NSView based Tree, Container and Listbox widgets on Mac 10.7+.
 Removed DW_FCF_COMPOSITED support from Windows 8 and higher. 
     This flag will still function to create a glass effect on Windows Vista and 7.
     The transparent key feature used to create it causes issues on 8 and 10, plus
-    the glass effect, the main reason for the flag was removed in 8.
+    the glass effect, the main reason for the flag was removed in Windows 8.
+Removed the incomplete Photon port.
 Fixed many small bugs, too numerous to list here.
 
 Dynamic Windows Documentation is available at:
