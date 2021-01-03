@@ -1199,6 +1199,7 @@ int DWSIGNAL word_wrap_click_cb(HWND wordwrap, void *data)
     HWND container_mle = (HWND)data;
 
     dw_mle_set_word_wrap(container_mle, dw_checkbox_get(wordwrap));
+    return TRUE;
 }
 
 void container_add(void)
