@@ -3799,6 +3799,78 @@ LRESULT CALLBACK _simplewndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
    return ret;
 }
 
+#ifdef RICHEDIT
+#define ENTRY_CUT    60901
+#define ENTRY_COPY   60902
+#define ENTRY_PASTE  60903
+#define ENTRY_DELETE 60904
+#define ENTRY_UNDO   60905
+#define ENTRY_SALL   60906
+
+
+/* Special WM_NOTIFY handler for Rich Edit controls, to implement the context menu. */
+LRESULT CALLBACK _richeditwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
+{
+    switch(msg)
+    {    
+        case WM_CONTEXTMENU:
+        {
+            HMENUI hwndMenu = dw_menu_new(0L);
+            long x, y;
+            unsigned long style = 0L;
+
+            /* When readonly, disable: Undo, Cut, Paste, Delete */
+            if(GetWindowLongPtr(hWnd, GWL_STYLE) & ES_READONLY)
+                style = DW_MIS_DISABLED;
+
+            dw_menu_append_item(hwndMenu, "Undo", ENTRY_UNDO, style, TRUE, -1, 0L);
+            dw_menu_append_item(hwndMenu, "", 0L, 0L, TRUE, -1, 0L);
+            dw_menu_append_item(hwndMenu, "Cut", ENTRY_CUT, style, TRUE, -1, 0L);
+            dw_menu_append_item(hwndMenu, "Copy", ENTRY_COPY, 0L, TRUE, -1, 0L);
+            dw_menu_append_item(hwndMenu, "Paste", ENTRY_PASTE, style, TRUE, -1, 0L);
+            dw_menu_append_item(hwndMenu, "Delete", ENTRY_DELETE, style, TRUE, -1, 0L);
+            dw_menu_append_item(hwndMenu, "", 0L, 0L, TRUE, -1, 0L);
+            dw_menu_append_item(hwndMenu, "Select All", ENTRY_SALL, 0L, TRUE, -1, 0L);
+
+            dw_pointer_query_pos(&x, &y);
+            dw_menu_popup(&hwndMenu, hWnd, x, y);
+            return TRUE;
+        }
+        break;
+        case WM_COMMAND:
+        {
+            if(HIWORD(mp1) == 0)
+            {
+                switch(LOWORD(mp1))
+                {
+                    case ENTRY_CUT:
+                    SendMessage(hWnd, WM_CUT, 0, 0);
+                    break;
+                    case ENTRY_COPY:
+                    SendMessage(hWnd, WM_COPY, 0, 0);
+                    break;
+                    case ENTRY_PASTE:
+                    SendMessage(hWnd, WM_PASTE, 0, 0);
+                    break;
+                    case ENTRY_DELETE:
+                    SendMessage(hWnd, WM_CLEAR, 0, 0);
+                    break;
+                    case ENTRY_UNDO:
+                    SendMessage(hWnd, EM_UNDO, 0, 0);
+                    break;
+                    case ENTRY_SALL:
+                    SendMessage(hWnd, EM_SETSEL, 0, (LPARAM)-1);
+                    break;
+                }
+            }
+        }
+        break;
+    }
+    return _simplewndproc(hWnd, msg, mp1, mp2);
+}
+#endif
+
+
 LRESULT CALLBACK _treewndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
 {
 #ifdef AEROGLASS
@@ -6427,6 +6499,11 @@ HWND API dw_menu_append_item(HMENUI menux, const char *title, ULONG id, ULONG fl
          if(tempid > 65500)
             tempid = 61000;
       }
+      /* Special internal case - 60001 to 60999 reserved for DW internal use */
+      else if(id > 60000 && id < 61000 && check == -1)
+      {
+          check = 0;
+      }
       /* Second pool is larger for more static windows */
       else if(!id || id >= 30000)
       {
@@ -6890,6 +6967,11 @@ HWND API dw_mle_new(ULONG id)
       return NULL;
    }
 
+#ifdef RICHEDIT
+   if(hrichedit || hmsftedit)
+      cinfo->cinfo.pOldProc = SubclassWindow(tmp, _richeditwndproc);
+   else
+#endif
    cinfo->cinfo.pOldProc = SubclassWindow(tmp, _simplewndproc);
    cinfo->cinfo.fore = cinfo->cinfo.back = -1;
    cinfo->odd = cinfo->even = DW_RGB_TRANSPARENT;
