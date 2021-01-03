@@ -2240,11 +2240,12 @@ void _click_default(HWND handle)
       WinSetFocus(HWND_DESKTOP, handle);
 }
 
-#define ENTRY_CUT   60901
-#define ENTRY_COPY  60902
-#define ENTRY_PASTE 60903
-#define ENTRY_UNDO  60904
-#define ENTRY_SALL  60905
+#define ENTRY_CUT    60901
+#define ENTRY_COPY   60902
+#define ENTRY_PASTE  60903
+#define ENTRY_DELETE 60904
+#define ENTRY_UNDO   60905
+#define ENTRY_SALL   60906
 
 #ifdef UNICODE
 void _combine_text(HWND handle, USHORT pos1, char *text, char *pastetext)
@@ -2392,18 +2393,18 @@ MRESULT EXPENTRY _entryproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
          {
             HMENUI hwndMenu = dw_menu_new(0L);
             long x, y;
+            unsigned long style = 0L;
 
-            if(strncmp(tmpbuf, "#10", 4)==0 && !WinSendMsg(hWnd, MLM_QUERYREADONLY, 0, 0))
-            {
-               dw_menu_append_item(hwndMenu, "Undo", ENTRY_UNDO, 0L, TRUE, -1, 0L);
-               dw_menu_append_item(hwndMenu, "", 0L, 0L, TRUE, -1, 0L);
-            }
+            if(strncmp(tmpbuf, "#10", 4)==0 && WinSendMsg(hWnd, MLM_QUERYREADONLY, 0, 0))
+               style = DW_MIS_DISABLED;
+            dw_menu_append_item(hwndMenu, "Undo", ENTRY_UNDO, style, TRUE, -1, 0L);
+            dw_menu_append_item(hwndMenu, "", 0L, 0L, TRUE, -1, 0L);
+            if(strncmp(tmpbuf, "#10", 4)!=0  && dw_window_get_data(hWnd, "_dw_disabled"))
+               style = DW_MIS_DISABLED;
+            dw_menu_append_item(hwndMenu, "Cut", ENTRY_CUT, style, TRUE, -1, 0L);
             dw_menu_append_item(hwndMenu, "Copy", ENTRY_COPY, 0L, TRUE, -1, 0L);
-            if((strncmp(tmpbuf, "#10", 4)!=0  && !dw_window_get_data(hWnd, "_dw_disabled")) || (strncmp(tmpbuf, "#10", 4)==0 && !WinSendMsg(hWnd, MLM_QUERYREADONLY, 0, 0)))
-            {
-               dw_menu_append_item(hwndMenu, "Cut", ENTRY_CUT, 0L, TRUE, -1, 0L);
-               dw_menu_append_item(hwndMenu, "Paste", ENTRY_PASTE, 0L, TRUE, -1, 0L);
-            }
+            dw_menu_append_item(hwndMenu, "Paste", ENTRY_PASTE, style, TRUE, -1, 0L);
+            dw_menu_append_item(hwndMenu, "Delete", ENTRY_DELETE, style, TRUE, -1, 0L);
             dw_menu_append_item(hwndMenu, "", 0L, 0L, TRUE, -1, 0L);
             dw_menu_append_item(hwndMenu, "Select All", ENTRY_SALL, 0L, TRUE, -1, 0L);
 
@@ -2427,6 +2428,8 @@ MRESULT EXPENTRY _entryproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
                   return WinSendMsg(hWnd, MLM_COPY, 0, 0);
                case ENTRY_PASTE:
                   return WinSendMsg(hWnd, MLM_PASTE, 0, 0);
+               case ENTRY_DELETE:
+                  return WinSendMsg(hWnd, MLM_DELETE, 0, 0);
                case ENTRY_UNDO:
                   return WinSendMsg(hWnd, MLM_UNDO, 0, 0);
                case ENTRY_SALL:
@@ -6086,8 +6089,8 @@ HWND API dw_menu_append_item(HMENUI menux, const char *title, ULONG id, ULONG fl
          if(tempid > 65500)
             tempid = 61000;
       }
-      /* Special internal case */
-      else if(id > 60000 && check == -1)
+      /* Special internal case - 60001 to 60999 reserved for DW internal use */
+      else if(id > 60000 && id < 61000 && check == -1)
       {
           check = 0;
       }
