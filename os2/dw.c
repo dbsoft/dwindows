@@ -2394,13 +2394,23 @@ MRESULT EXPENTRY _entryproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
             HMENUI hwndMenu = dw_menu_new(0L);
             long x, y;
             unsigned long style = 0L;
+            int is_mle = FALSE;
 
-            if(strncmp(tmpbuf, "#10", 4)==0 && WinSendMsg(hWnd, MLM_QUERYREADONLY, 0, 0))
+            if(strncmp(tmpbuf, "#10", 4)==0)
+               is_mle = TRUE;
+
+            /* When readonly, disable: Undo, Cut, Paste, Delete */
+            if(is_mle && WinSendMsg(hWnd, MLM_QUERYREADONLY, 0, 0))
                style = DW_MIS_DISABLED;
-            dw_menu_append_item(hwndMenu, "Undo", ENTRY_UNDO, style, TRUE, -1, 0L);
+
+            /* Undo is also disabled if it isn't an MLE */
+            dw_menu_append_item(hwndMenu, "Undo", ENTRY_UNDO, style | (is_mle ? 0 : DW_MIS_DISABLED), TRUE, -1, 0L);
             dw_menu_append_item(hwndMenu, "", 0L, 0L, TRUE, -1, 0L);
-            if(strncmp(tmpbuf, "#10", 4)!=0  && dw_window_get_data(hWnd, "_dw_disabled"))
+
+            /* Also check if non-MLE windows are disabled */
+            if(!is_mle && dw_window_get_data(hWnd, "_dw_disabled"))
                style = DW_MIS_DISABLED;
+
             dw_menu_append_item(hwndMenu, "Cut", ENTRY_CUT, style, TRUE, -1, 0L);
             dw_menu_append_item(hwndMenu, "Copy", ENTRY_COPY, 0L, TRUE, -1, 0L);
             dw_menu_append_item(hwndMenu, "Paste", ENTRY_PASTE, style, TRUE, -1, 0L);
@@ -2457,6 +2467,8 @@ MRESULT EXPENTRY _entryproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
                      return WinSendMsg(handle, EM_COPY, 0, 0);
                   case ENTRY_PASTE:
                      return WinSendMsg(handle, EM_PASTE, 0, 0);
+                  case ENTRY_DELETE:
+                     return WinSendMsg(handle, EM_CLEAR, 0, 0);
                   case ENTRY_SALL:
                      {
                         LONG len = WinQueryWindowTextLength(hWnd);
