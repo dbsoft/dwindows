@@ -2429,7 +2429,7 @@ MRESULT EXPENTRY _entryproc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
                case ENTRY_PASTE:
                   return WinSendMsg(hWnd, MLM_PASTE, 0, 0);
                case ENTRY_DELETE:
-                  return WinSendMsg(hWnd, MLM_DELETE, 0, 0);
+                  return WinSendMsg(hWnd, MLM_CLEAR, 0, 0);
                case ENTRY_UNDO:
                   return WinSendMsg(hWnd, MLM_UNDO, 0, 0);
                case ENTRY_SALL:
