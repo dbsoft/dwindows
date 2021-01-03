@@ -9294,12 +9294,7 @@ void API dw_mle_set_word_wrap(HWND handle, int state)
       dw_window_set_style(handle, ES_AUTOHSCROLL, ES_AUTOHSCROLL);
    /* If it is a rich edit control use the rich edit message */
    if(hrichedit || hmsftedit)
-   {
-      if(state)
-         SendMessage(handle, EM_SETOPTIONS, (WPARAM)ECOOP_AND, (LPARAM)~ECO_AUTOHSCROLL);
-      else
-         SendMessage(handle, EM_SETOPTIONS, (WPARAM)ECOOP_OR, (LPARAM)ECO_AUTOHSCROLL);
-   }
+      SendMessage(handle, EM_SETTARGETDEVICE, 0, state ? 0 : 1);
 }
 
 /*
