@@ -1194,6 +1194,13 @@ void tree_add(void)
     dw_free(title);
 }
 
+int DWSIGNAL word_wrap_click_cb(HWND wordwrap, void *data)
+{
+    HWND container_mle = (HWND)data;
+
+    dw_mle_set_word_wrap(container_mle, dw_checkbox_get(wordwrap));
+}
+
 void container_add(void)
 {
     char *titles[4];
@@ -1207,10 +1214,16 @@ void container_add(void)
     CDATE date;
     unsigned long size, newpoint;
     HICN thisicon;
+    HWND checkbox;
 
     /* create a box to pack into the notebook page */
     containerbox = dw_box_new(DW_HORZ, 2);
     dw_box_pack_start( notebookbox4, containerbox, 500, 200, TRUE, TRUE, 0);
+
+    /* Add a word wrap checkbox */
+    checkbox = dw_checkbox_new("Word wrap", 0);
+    dw_box_pack_start( notebookbox4, checkbox, 100, -1, TRUE, FALSE, 1);
+    dw_checkbox_set(checkbox, TRUE);
 
     /* now a container area under this box */
     container = dw_container_new(100, TRUE);
@@ -1293,6 +1306,7 @@ void container_add(void)
     dw_signal_connect(container, DW_SIGNAL_ITEM_CONTEXT, DW_SIGNAL_FUNC(item_context_cb), DW_POINTER(container_status));
     dw_signal_connect(container, DW_SIGNAL_ITEM_SELECT, DW_SIGNAL_FUNC(container_select_cb), DW_POINTER(container_status));
     dw_signal_connect(container, DW_SIGNAL_COLUMN_CLICK, DW_SIGNAL_FUNC(column_click_cb), DW_POINTER(container_status));
+    dw_signal_connect(checkbox, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(word_wrap_click_cb), DW_POINTER(container_mle));
 }
 
 /* Beep every second */
