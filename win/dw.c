@@ -9367,16 +9367,12 @@ void API dw_mle_set_editable(HWND handle, int state)
  */
 void API dw_mle_set_word_wrap(HWND handle, int state)
 {
-   /* If ES_AUTOHSCROLL is not set and there is no
-    * horizontal scrollbar it word wraps.
-    */
-   if(state)
-      dw_window_set_style(handle, 0, ES_AUTOHSCROLL);
-   else
-      dw_window_set_style(handle, ES_AUTOHSCROLL, ES_AUTOHSCROLL);
    /* If it is a rich edit control use the rich edit message */
    if(hrichedit || hmsftedit)
+   {
+      SendMessage(handle, EM_SHOWSCROLLBAR, (WPARAM)SB_HORZ, (LPARAM)(state ? FALSE : TRUE));
       SendMessage(handle, EM_SETTARGETDEVICE, 0, state ? 0 : 1);
+   }
 }
 
 /*
@@ -9397,7 +9393,9 @@ void API dw_mle_set_auto_complete(HWND handle, int state)
  */
 void API dw_mle_set_cursor(HWND handle, int point)
 {
-   SendMessage(handle, EM_SETSEL, 0, MAKELPARAM(point,point));
+   SendMessage(handle, EM_SETSEL, (WPARAM)point, (LPARAM)point);
+   if(hrichedit || hmsftedit)
+      SendMessage(handle, EM_HIDESELECTION, 0, 0);
    SendMessage(handle, EM_SCROLLCARET, 0, 0);
 }
 
@@ -9440,6 +9438,8 @@ int API dw_mle_search(HWND handle, const char *text, int point, unsigned long fl
    if(retval)
    {
       SendMessage(handle, EM_SETSEL, (WPARAM)retval - textlen, (LPARAM)retval);
+      if(hrichedit || hmsftedit)
+         SendMessage(handle, EM_HIDESELECTION, 0, 0);
       SendMessage(handle, EM_SCROLLCARET, 0, 0);
    }
 
