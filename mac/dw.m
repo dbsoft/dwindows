@@ -6515,7 +6515,13 @@ void API dw_mle_set_word_wrap(HWND handle, int state)
 
     if(state)
     {
+        NSSize newsize = NSMakeSize([sv contentSize].width,[mle maxSize].height);
+        NSRect newrect = NSMakeRect(0, 0, [sv contentSize].width, 0);
+        
         [[mle textContainer] setWidthTracksTextView:YES];
+        [mle setFrame:newrect];
+        [[mle textContainer] setContainerSize:newsize];
+        [mle setHorizontallyResizable:NO];
         [sv setHasHorizontalScroller:NO];
     }
     else
