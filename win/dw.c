@@ -40,6 +40,10 @@
 #endif
 #include <richedit.h>
 
+#ifdef RICHEDIT
+int _DW_MLE_RICH_EDIT = DW_FEATURE_UNSUPPORTED;
+#endif
+
 #define STATICCLASSNAME TEXT("STATIC")
 #define COMBOBOXCLASSNAME TEXT("COMBOBOX")
 #define LISTBOXCLASSNAME TEXT("LISTBOX")
@@ -4878,6 +4882,9 @@ int API dw_init(int newthread, int argc, char *argv[])
       if(!(hrichedit = LoadLibrary(TEXT("riched20"))))
          hrichedit = LoadLibrary(TEXT("riched32"));
    }
+   /* Enable Rich Edit by default if supported */
+   if(_DW_MLE_RICH_EDIT == DW_FEATURE_UNSUPPORTED && (hmsftedit || hrichedit))
+      _DW_MLE_RICH_EDIT = DW_FEATURE_ENABLED;
 #endif
 #ifdef BUILD_TOAST
    _dw_toast_init(UTF8toWide(_dw_app_name), UTF8toWide(_dw_app_id));
@@ -6946,9 +6953,12 @@ HWND API dw_status_text_new(const char *text, ULONG id)
  */
 HWND API dw_mle_new(ULONG id)
 {
-
    HWND tmp = CreateWindowEx(WS_EX_CLIENTEDGE,
-                       hmsftedit ? MSFTEDIT_CLASS : (hrichedit ? RICHEDIT_CLASS : EDITCLASSNAME),
+#ifdef RICHEDIT
+                       _DW_MLE_RICH_EDIT == DW_FEATURE_ENABLED ? (hmsftedit ? MSFTEDIT_CLASS : (hrichedit ? RICHEDIT_CLASS : EDITCLASSNAME)) : EDITCLASSNAME,
+#else
+                       EDITCLASSNAME,
+#endif
                        NULL,
                        WS_VISIBLE | WS_BORDER |
                        WS_VSCROLL | ES_MULTILINE |
@@ -6968,7 +6978,7 @@ HWND API dw_mle_new(ULONG id)
    }
 
 #ifdef RICHEDIT
-   if(hrichedit || hmsftedit)
+   if(_DW_MLE_RICH_EDIT == DW_FEATURE_ENABLED && (hrichedit || hmsftedit))
       cinfo->cinfo.pOldProc = SubclassWindow(tmp, _richeditwndproc);
    else
 #endif
@@ -9368,7 +9378,7 @@ void API dw_mle_set_editable(HWND handle, int state)
 void API dw_mle_set_word_wrap(HWND handle, int state)
 {
    /* If it is a rich edit control use the rich edit message */
-   if(hrichedit || hmsftedit)
+   if(_DW_MLE_RICH_EDIT == DW_FEATURE_ENABLED && (hrichedit || hmsftedit))
    {
       SendMessage(handle, EM_SHOWSCROLLBAR, (WPARAM)SB_HORZ, (LPARAM)(state ? FALSE : TRUE));
       SendMessage(handle, EM_SETTARGETDEVICE, 0, state ? 0 : 1);
@@ -9394,7 +9404,7 @@ void API dw_mle_set_auto_complete(HWND handle, int state)
 void API dw_mle_set_cursor(HWND handle, int point)
 {
    SendMessage(handle, EM_SETSEL, (WPARAM)point, (LPARAM)point);
-   if(hrichedit || hmsftedit)
+   if(_DW_MLE_RICH_EDIT == DW_FEATURE_ENABLED && (hrichedit || hmsftedit))
       SendMessage(handle, EM_HIDESELECTION, 0, 0);
    SendMessage(handle, EM_SCROLLCARET, 0, 0);
 }
@@ -9438,7 +9448,7 @@ int API dw_mle_search(HWND handle, const char *text, int point, unsigned long fl
    if(retval)
    {
       SendMessage(handle, EM_SETSEL, (WPARAM)retval - textlen, (LPARAM)retval);
-      if(hrichedit || hmsftedit)
+      if(_DW_MLE_RICH_EDIT == DW_FEATURE_ENABLED && (hrichedit || hmsftedit))
          SendMessage(handle, EM_HIDESELECTION, 0, 0);
       SendMessage(handle, EM_SCROLLCARET, 0, 0);
    }
@@ -13788,6 +13798,14 @@ int API dw_feature_get(DWFEATURE feature)
             return DW_FEATURE_UNSUPPORTED;
         }
 #endif
+#ifdef RICHEDIT
+        case DW_FEATURE_MLE_RICH_EDIT:
+        {
+            if(hmsftedit || hrichedit)
+                return _DW_MLE_RICH_EDIT;
+            return DW_FEATURE_UNSUPPORTED;
+        }
+#endif
         default:
             return DW_FEATURE_UNSUPPORTED;
     }
@@ -13839,6 +13857,17 @@ int API dw_feature_set(DWFEATURE feature, int state)
             if(state >= DW_DARK_MODE_DISABLED && state <= DW_DARK_MODE_FORCED)
             {
                 _DW_DARK_MODE_ALLOWED = state;
+                return DW_ERROR_NONE;
+            }
+            return DW_ERROR_GENERAL;
+        }
+#endif
+#ifdef RICHEDIT
+        case DW_FEATURE_MLE_RICH_EDIT:
+        {
+            if(state >= DW_FEATURE_DISABLED && state <= DW_FEATURE_ENABLED)
+            {
+                _DW_MLE_RICH_EDIT = state;
                 return DW_ERROR_NONE;
             }
             return DW_ERROR_GENERAL;
