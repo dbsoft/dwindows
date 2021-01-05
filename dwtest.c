@@ -1797,6 +1797,7 @@ char *DWFeatureList[] = {
     "Supports status text area on notebook/tabbed controls",
     "Supports sending system notifications",
     "Supports UTF8 encoded Unicode text",
+    "Supports Rich Edit based MLE control (Windows)",
     NULL };
 
 /*
