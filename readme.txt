@@ -84,6 +84,8 @@ Fixed international calendar issues on Mac.
 Added dw_mle_set_auto_complete() to enable completion, only available on Mac.
 Changed to using GTK3 by default instead of GTK2.  --with-gtk2 is now available.
 Changed to using winsock2 on Windows ending support for Win95 and NT 3.5.
+Changed to using Rich Edit for MLE controls on Windows. This can be disabled with:
+    dw_feature_set(DW_FEATURE_MLE_RICH_EDIT, DW_FEATURE_DISABLED);
 Added support for domain sockets on Windows 10 in the dwcompat sockpipe() macro.
     If compiled with Visual Studio 2017 or later, otherwise the old method is used.
 Added dw_feature_set/get() to test if certain features are available on the current
