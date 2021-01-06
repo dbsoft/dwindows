@@ -1,3 +1,24 @@
+dwindows (3.1-1) unstable; urgency=low
+
+  * Added notification APIs: dw_notification_new() dw_notification_send() dw_app_id_set()
+    Unix requires a desktop file link with the application ID used in dw_app_id_set().
+  * Added webkit2gtk support and removed dead gtkmozembed and libgtkhtml2 support on Unix.
+  * Added embedded HTML javascript support on Mac, Windows and Unix with webkit(2)gtk. 
+    Added function dw_html_javascript_run() to execute javascript code.
+    Added DW_SIGNAL_HTML_RESULT signal for getting the results from javascript.
+    DW_SIGNAL_HTML_RESULT requires webkit2gtk on Unix.
+  * Added DW_SIGNAL_HTML_CHANGED signal handler for getting the status of embedded HTML.
+    Status can be: DW_HTML_CHANGE_STARTED/REDIRECT/LOADING/COMPLETE
+  * Added dw_mle_set_auto_complete() to enable completion, only available on Mac.
+  * Changed to using GTK3 by default instead of GTK2.  --with-gtk2 is now available.
+  * Added dw_feature_set/get() to test if certain features are available on the current
+    library and operating system combination at runtime or enabled/disable features.
+  * Added support for GResource embedded images on GTK2/3 with GLib 2.32. The old 
+    resouce system is still available via configure --with-deprecated if needed.
+  * Fixed many small bugs, too numerous to list here.
+
+ -- Brian Smith <brian@dbsoft.org>  Wed, 6 Jan 2021 08:00:00 +1000
+ 
 dwindows (3.0-1) unstable; urgency=low
 
   * Added package configuration (pkg-config) support on Unix.
