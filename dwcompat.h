@@ -369,25 +369,7 @@ static int _dw_snprintf(char *str, size_t size, const char *format, ...)
 #define sockshutdown()
 #endif
 
-#ifdef HAVE_PIPE
-#define sockpipe(pipes) { if(pipe(pipes) < 0) pipes[0] = pipes[1] = -1; }
-#elif !defined(NO_DOMAIN_SOCKETS)
-#define sockpipe(pipes) { \
-	struct sockaddr_un un; \
-	int tmpsock = socket(AF_UNIX, SOCK_STREAM, 0); \
-	pipes[1] = socket(AF_UNIX, SOCK_STREAM, 0); \
-	memset(&un, 0, sizeof(un)); \
-	un.sun_family=AF_UNIX; \
-	sprintf(un.sun_path, PIPENAME, PIPEROOT, (int)getpid(), pipes[1]); \
-	unlink(un.sun_path); \
-	bind(tmpsock, (struct sockaddr *)&un, sizeof(un)); \
-	listen(tmpsock, 0); \
-	connect(pipes[1], (struct sockaddr *)&un, sizeof(un)); \
-	pipes[0] = accept(tmpsock, 0, 0); \
-	sockclose(tmpsock); \
-	}
-#else
-#define sockpipe(pipes) { \
+#define oldsockpipe(pipes) { \
 	struct sockaddr_in server_addr; \
 	struct sockaddr_in listen_addr = { 0 }; \
 	int tmpsock, len = sizeof(struct sockaddr_in); \
@@ -400,18 +382,44 @@ static int _dw_snprintf(char *str, size_t size, const char *format, ...)
 		server_addr.sin_port   = 0; \
 		server_addr.sin_addr.s_addr = INADDR_ANY; \
 		if ((tmpsock = socket(AF_INET, SOCK_STREAM, 0)) > -1 && bind(tmpsock, (struct sockaddr *)&server_addr, sizeof(server_addr)) > -1 && listen(tmpsock, 0) > -1) \
-	    { \
-		    memset(&listen_addr, 0, sizeof(listen_addr)); \
-		    getsockname(tmpsock, (struct sockaddr *)&listen_addr, &len); \
-		    server_addr.sin_family      = AF_INET; \
-		    server_addr.sin_port        = listen_addr.sin_port; \
-		    server_addr.sin_addr.s_addr = *((unsigned long *)he->h_addr); \
-		    if((pipes[1] = socket(AF_INET, SOCK_STREAM, 0)) > -1 && !connect(pipes[1], (struct sockaddr *)&server_addr, sizeof(server_addr))) \
-			   pipes[0] = accept(tmpsock, 0, 0); \
-	    } \
-		sockclose(tmpsock); \
+		{ \
+			memset(&listen_addr, 0, sizeof(listen_addr)); \
+			getsockname(tmpsock, (struct sockaddr *)&listen_addr, &len); \
+			server_addr.sin_family      = AF_INET; \
+			server_addr.sin_port        = listen_addr.sin_port; \
+			server_addr.sin_addr.s_addr = *((unsigned long *)he->h_addr); \
+			if((pipes[1] = socket(AF_INET, SOCK_STREAM, 0)) > -1 && !connect(pipes[1], (struct sockaddr *)&server_addr, sizeof(server_addr))) \
+				pipes[0] = accept(tmpsock, 0, 0); \
+		} \
+		if(tmpsock > -1) \
+			sockclose(tmpsock); \
 	} \
 }
+
+#ifdef HAVE_PIPE
+#define sockpipe(pipes) { if(pipe(pipes) < 0) pipes[0] = pipes[1] = -1; }
+#elif !defined(NO_DOMAIN_SOCKETS)
+#define sockpipe(pipes) { \
+	struct sockaddr_un un; \
+	int tmpsock = socket(AF_UNIX, SOCK_STREAM, 0); \
+	pipes[0] = pipes[1] = -1; \
+	if(tmpsock > -1 && (pipes[1] = socket(AF_UNIX, SOCK_STREAM, 0)) > -1) \
+	{ \
+		memset(&un, 0, sizeof(un)); \
+		un.sun_family=AF_UNIX; \
+		sprintf(un.sun_path, PIPENAME, PIPEROOT, (int)getpid(), pipes[1]); \
+		unlink(un.sun_path); \
+		bind(tmpsock, (struct sockaddr *)&un, sizeof(un)); \
+		listen(tmpsock, 0); \
+		connect(pipes[1], (struct sockaddr *)&un, sizeof(un)); \
+		pipes[0] = accept(tmpsock, 0, 0); \
+	} else \
+		oldsockpipe(pipes); \
+	if(tmpsock > -1) \
+		sockclose(tmpsock); \
+	}
+#else
+#define sockpipe(pipes) oldsockpipe(pipes)
 #endif
 
 /* Ok Windows and OS/2 both seem to be missing this */
