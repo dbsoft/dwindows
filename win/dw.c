@@ -5852,6 +5852,25 @@ int API dw_window_set_color(HWND handle, ULONG fore, ULONG back)
          thisbox->cinfo.back = back;
       }
    }
+#ifdef RICHEDIT
+   else if (_tcsnicmp(tmpbuf, RICHEDIT_CLASS, _tcslen(RICHEDIT_CLASS)+1) == 0 ||
+            _tcsnicmp(tmpbuf, MSFTEDIT_CLASS, _tcslen(MSFTEDIT_CLASS)+1) == 0)
+   {
+        ULONG _fore = _internal_color(fore);
+        ULONG _back = _internal_color(back);
+        CHARFORMAT cf;
+
+        SendMessage(handle, EM_GETCHARFORMAT, SCF_DEFAULT, (LPARAM)&cf);
+        cf.cbSize = sizeof(cf);
+        cf.dwMask = CFM_COLOR;
+        cf.dwEffects = 0;
+        cf.crTextColor = RGB(DW_RED_VALUE(_fore), DW_GREEN_VALUE(_fore), DW_BLUE_VALUE(_fore)); 
+        SendMessage(handle, EM_SETCHARFORMAT, SCF_DEFAULT, (LPARAM)&cf);
+
+        SendMessage(handle, EM_SETBKGNDCOLOR, (back == DW_CLR_DEFAULT || back == DW_RGB_TRANSPARENT) ? 1 : 0, 
+                    RGB(DW_RED_VALUE(_back), DW_GREEN_VALUE(_back), DW_BLUE_VALUE(_back)));
+   }
+#endif
 
    if(cinfo || (cinfo = _dw_window_new_cinfo(handle, TRUE)))
    {
