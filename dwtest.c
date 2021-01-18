@@ -1202,6 +1202,113 @@ int DWSIGNAL word_wrap_click_cb(HWND wordwrap, void *data)
     return TRUE;
 }
 
+HWND color_combobox(void)
+{
+    HWND combobox = dw_combobox_new("DW_CLR_DEFAULT", 0);
+
+    dw_listbox_append(combobox, "DW_CLR_DEFAULT");
+    dw_listbox_append(combobox, "DW_CLR_BLACK");
+    dw_listbox_append(combobox, "DW_CLR_DARKRED");
+    dw_listbox_append(combobox, "DW_CLR_DARKGREEN");
+    dw_listbox_append(combobox, "DW_CLR_BROWN");
+    dw_listbox_append(combobox, "DW_CLR_DARKBLUE");
+    dw_listbox_append(combobox, "DW_CLR_DARKPINK");
+    dw_listbox_append(combobox, "DW_CLR_DARKCYAN");
+    dw_listbox_append(combobox, "DW_CLR_PALEGRAY");
+    dw_listbox_append(combobox, "DW_CLR_DARKGRAY");
+    dw_listbox_append(combobox, "DW_CLR_RED");
+    dw_listbox_append(combobox, "DW_CLR_GREEN");
+    dw_listbox_append(combobox, "DW_CLR_YELLOW");
+    dw_listbox_append(combobox, "DW_CLR_BLUE");
+    dw_listbox_append(combobox, "DW_CLR_PINK");
+    dw_listbox_append(combobox, "DW_CLR_CYAN");
+    dw_listbox_append(combobox, "DW_CLR_WHITE");
+    return combobox;
+}
+
+ULONG combobox_color(char *colortext)
+{
+    ULONG color = DW_CLR_DEFAULT;
+
+    if(strcmp(colortext, "DW_CLR_BLACK") == 0)
+        color = DW_CLR_BLACK;
+    else if(strcmp(colortext, "DW_CLR_DARKRED") == 0)
+        color = DW_CLR_DARKRED;
+    else if(strcmp(colortext, "DW_CLR_DARKGREEN") == 0)
+        color = DW_CLR_DARKGREEN;
+    else if(strcmp(colortext, "DW_CLR_BROWN") == 0)
+        color = DW_CLR_BROWN;
+    else if(strcmp(colortext, "DW_CLR_DARKBLUE") == 0)
+        color = DW_CLR_DARKBLUE;
+    else if(strcmp(colortext, "DW_CLR_DARKPINK") == 0)
+        color = DW_CLR_DARKPINK;
+    else if(strcmp(colortext, "DW_CLR_DARKCYAN") == 0)
+        color = DW_CLR_DARKCYAN;
+    else if(strcmp(colortext, "DW_CLR_PALEGRAY") == 0)
+        color = DW_CLR_PALEGRAY;
+    else if(strcmp(colortext, "DW_CLR_DARKGRAY") == 0)
+        color = DW_CLR_DARKGRAY;
+    else if(strcmp(colortext, "DW_CLR_RED") == 0)
+        color = DW_CLR_RED;
+    else if(strcmp(colortext, "DW_CLR_GREEN") == 0)
+        color = DW_CLR_GREEN;
+    else if(strcmp(colortext, "DW_CLR_YELLOW") == 0)
+        color = DW_CLR_YELLOW;
+    else if(strcmp(colortext, "DW_CLR_BLUE") == 0)
+        color = DW_CLR_BLUE;
+    else if(strcmp(colortext, "DW_CLR_PINK") == 0)
+        color = DW_CLR_PINK;
+    else if(strcmp(colortext, "DW_CLR_CYAN") == 0)
+        color = DW_CLR_CYAN;
+    else if(strcmp(colortext, "DW_CLR_WHITE") == 0)
+        color = DW_CLR_WHITE;
+
+    return color;
+}
+
+int DWSIGNAL mle_color_cb(HWND hwnd, int pos, void *data)
+{
+    HWND hbox = (HWND)data;
+    HWND mlefore = dw_window_get_data(hbox, "mlefore");
+    HWND mleback = dw_window_get_data(hbox, "mleback");
+    char colortext[101] = {0};
+    ULONG fore, back;
+
+    if(hwnd == mlefore)
+    {
+        dw_listbox_get_text(mlefore, pos, colortext, 100);
+        fore = combobox_color(colortext);
+    }
+    else
+    {
+        char *text = dw_window_get_text(mlefore);
+
+        if(text)
+        {
+            fore = combobox_color(text);
+            dw_free(text);
+        }
+    }
+    if(hwnd == mleback)
+    {
+        dw_listbox_get_text(mleback, pos, colortext, 100);
+        back = combobox_color(colortext);
+    }
+    else
+    {
+        char *text = dw_window_get_text(mleback);
+
+        if(text)
+        {
+            back = combobox_color(text);
+            dw_free(text);
+        }
+    }
+
+    dw_window_set_color(container_mle, fore, back);
+    return 0;
+}
+
 void container_add(void)
 {
     char *titles[4];
@@ -1215,16 +1322,36 @@ void container_add(void)
     CDATE date;
     unsigned long size, newpoint;
     HICN thisicon;
-    HWND checkbox;
+    HWND checkbox, mlefore, mleback, hbox;
 
     /* create a box to pack into the notebook page */
     containerbox = dw_box_new(DW_HORZ, 2);
-    dw_box_pack_start( notebookbox4, containerbox, 500, 200, TRUE, TRUE, 0);
+    dw_box_pack_start(notebookbox4, containerbox, 500, 200, TRUE, TRUE, 0);
 
     /* Add a word wrap checkbox */
-    checkbox = dw_checkbox_new("Word wrap", 0);
-    dw_box_pack_start( notebookbox4, checkbox, 100, -1, TRUE, FALSE, 1);
-    dw_checkbox_set(checkbox, TRUE);
+    {
+        HWND text;
+
+        hbox = dw_box_new(DW_HORZ, 0);
+
+        checkbox = dw_checkbox_new("Word wrap", 0);
+        dw_box_pack_start(hbox, checkbox, -1, -1, FALSE, TRUE, 1);
+        text = dw_text_new("Foreground:", 0);
+        dw_window_set_style(text, DW_DT_VCENTER, DW_DT_VCENTER);
+        dw_box_pack_start(hbox, text, -1, -1, FALSE, TRUE, 1);
+        mlefore = color_combobox();
+        dw_box_pack_start(hbox, mlefore, 150, -1, TRUE, FALSE, 1);
+        text = dw_text_new("Background:", 0);
+        dw_window_set_style(text, DW_DT_VCENTER, DW_DT_VCENTER);
+        dw_box_pack_start(hbox, text, -1, -1, FALSE, TRUE, 1);
+        mleback = color_combobox();
+        dw_box_pack_start(hbox, mleback, 150, -1, TRUE, FALSE, 1);
+        dw_checkbox_set(checkbox, TRUE);
+        dw_box_pack_start(notebookbox4, hbox, -1, -1, FALSE, FALSE, 1);
+
+        dw_window_set_data(hbox, "mlefore", DW_POINTER(mlefore));
+        dw_window_set_data(hbox, "mleback", DW_POINTER(mleback));
+    }
 
     /* now a container area under this box */
     container = dw_container_new(100, TRUE);
@@ -1288,7 +1415,7 @@ void container_add(void)
     dw_container_optimize(container);
 
     container_mle = dw_mle_new( 111 );
-    dw_box_pack_start( containerbox, container_mle, 500, 200, TRUE, TRUE, 0);
+    dw_box_pack_start(containerbox, container_mle, 500, 200, TRUE, TRUE, 0);
 
     mle_point = dw_mle_import(container_mle, "", -1);
     sprintf(buffer, "[%d]", mle_point);
@@ -1308,6 +1435,8 @@ void container_add(void)
     dw_signal_connect(container, DW_SIGNAL_ITEM_SELECT, DW_SIGNAL_FUNC(container_select_cb), DW_POINTER(container_status));
     dw_signal_connect(container, DW_SIGNAL_COLUMN_CLICK, DW_SIGNAL_FUNC(column_click_cb), DW_POINTER(container_status));
     dw_signal_connect(checkbox, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(word_wrap_click_cb), DW_POINTER(container_mle));
+    dw_signal_connect(mlefore, DW_SIGNAL_LIST_SELECT, DW_SIGNAL_FUNC(mle_color_cb), DW_POINTER(hbox));
+    dw_signal_connect(mleback, DW_SIGNAL_LIST_SELECT, DW_SIGNAL_FUNC(mle_color_cb), DW_POINTER(hbox));
 }
 
 /* Beep every second */
