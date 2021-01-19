@@ -1269,10 +1269,10 @@ ULONG combobox_color(char *colortext)
 int DWSIGNAL mle_color_cb(HWND hwnd, int pos, void *data)
 {
     HWND hbox = (HWND)data;
-    HWND mlefore = dw_window_get_data(hbox, "mlefore");
-    HWND mleback = dw_window_get_data(hbox, "mleback");
+    HWND mlefore = (HWND)dw_window_get_data(hbox, "mlefore");
+    HWND mleback = (HWND)dw_window_get_data(hbox, "mleback");
     char colortext[101] = {0};
-    ULONG fore, back;
+    ULONG fore = DW_CLR_DEFAULT, back = DW_CLR_DEFAULT;
 
     if(hwnd == mlefore)
     {
