@@ -2715,25 +2715,25 @@ static void _dw_override_color(GtkWidget *widget, const char *element, GdkRGBA *
    /* If we have an old context from a previous override remove it */
    if(provider)
    {
-		gtk_style_context_remove_provider(scontext, GTK_STYLE_PROVIDER(provider));
-		g_object_unref(provider);
-		provider = NULL;
+      gtk_style_context_remove_provider(scontext, GTK_STYLE_PROVIDER(provider));
+      g_object_unref(provider);
+      provider = NULL;
    }
    
    /* If we have a new color, create a new provider and add it */
-	if(color)
-	{
-		gchar *scolor = gdk_rgba_to_string(color);
-		gchar *css = g_strdup_printf ("* { %s: %s; }", element, scolor);
-		
-		provider = gtk_css_provider_new();
-		g_free(scolor);
-		gtk_css_provider_load_from_data(provider, css, -1, NULL);
-		g_free(css);
-		gtk_style_context_add_provider(scontext, GTK_STYLE_PROVIDER(provider), GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
-	}
-	g_object_set_data(G_OBJECT(widget), dataname, (gpointer)provider);
-	g_free(dataname);
+   if(color)
+   {
+      gchar *scolor = gdk_rgba_to_string(color);
+      gchar *css = g_strdup_printf ("* { %s: %s; }", element, scolor);
+      
+      provider = gtk_css_provider_new();
+      g_free(scolor);
+      gtk_css_provider_load_from_data(provider, css, -1, NULL);
+      g_free(css);
+      gtk_style_context_add_provider(scontext, GTK_STYLE_PROVIDER(provider), GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+   }
+   g_object_set_data(G_OBJECT(widget), dataname, (gpointer)provider);
+   g_free(dataname);
 }
 
 static void _dw_override_font(GtkWidget *widget, const char *font)
@@ -2744,22 +2744,22 @@ static void _dw_override_font(GtkWidget *widget, const char *font)
    /* If we have an old context from a previous override remove it */
    if(provider)
    {
-		gtk_style_context_remove_provider(scontext, GTK_STYLE_PROVIDER(provider));
-		g_object_unref(provider);
-		provider = NULL;
+      gtk_style_context_remove_provider(scontext, GTK_STYLE_PROVIDER(provider));
+      g_object_unref(provider);
+      provider = NULL;
    }
    
    /* If we have a new font, create a new provider and add it */
-	if(font)
-	{
-	   gchar *css = g_strdup_printf ("* { font: %s; }", font);
-	   
-	   provider = gtk_css_provider_new();
-	   gtk_css_provider_load_from_data(provider, css, -1, NULL);
-	   g_free(css);
-	   gtk_style_context_add_provider(scontext, GTK_STYLE_PROVIDER(provider), GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+   if(font)
+   {
+      gchar *css = g_strdup_printf ("* { font: %s; }", font);
+      
+      provider = gtk_css_provider_new();
+      gtk_css_provider_load_from_data(provider, css, -1, NULL);
+      g_free(css);
+      gtk_style_context_add_provider(scontext, GTK_STYLE_PROVIDER(provider), GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
    }
-	g_object_set_data(G_OBJECT(widget), "_dw_font", (gpointer)provider);
+   g_object_set_data(G_OBJECT(widget), "_dw_font", (gpointer)provider);
 }
 
 /*
