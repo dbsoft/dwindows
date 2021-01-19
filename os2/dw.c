@@ -5572,6 +5572,11 @@ int _dw_window_set_color(HWND handle, ULONG fore, ULONG back)
 
       WinSetPresParam(handle, PP_FOREGROUNDCOLORINDEX, sizeof(ULONG), &fore);
    }
+   else if(fore == DW_CLR_DEFAULT)
+   {
+      WinRemovePresParam(handle, PP_FOREGROUNDCOLOR);
+      WinRemovePresParam(handle, PP_FOREGROUNDCOLORINDEX);
+   }
    /* Handle background */
    if(back == DW_RGB_TRANSPARENT)
    {
@@ -5606,6 +5611,11 @@ int _dw_window_set_color(HWND handle, ULONG fore, ULONG back)
 
       WinSetPresParam(handle, PP_BACKGROUNDCOLORINDEX, sizeof(ULONG), &back);
       dw_window_set_data(handle, "_dw_transparent", NULL);
+   }
+   else if(back == DW_CLR_DEFAULT)
+   {
+      WinRemovePresParam(handle, PP_BACKGROUNDCOLOR);
+      WinRemovePresParam(handle, PP_BACKGROUNDCOLORINDEX);
    }
    /* If this is a box... check if any of the children are transparent */
    _handle_transparent(handle);
