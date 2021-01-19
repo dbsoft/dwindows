@@ -157,7 +157,7 @@ static int _dw_snprintf(char *str, size_t size, const char *format, ...)
 #define BKS_TABBEDDIALOG          0x0800
 #endif
 
-#define PIPEROOT "\\socket\\"
+#define PIPEROOT "\\socket"
 #endif /* __EMX__ || __IBMC__ */
 
 #if defined(__OS2__) && (defined(__IBMC__) || defined(__WATCOMC__))
@@ -215,7 +215,7 @@ static int _dw_snprintf(char *str, size_t size, const char *format, ...)
 #include <sys/un.h>
 #elif defined(_MSC_VER) && _MSC_VER >= 1912
 #include <afunix.h>
-#define PIPEROOT getenv("TEMP") ? getenv("TEMP") : "C:\\Windows\\Temp\\"
+#define PIPEROOT getenv("TEMP") ? getenv("TEMP") : "C:\\Windows\\Temp"
 #else
 #define NO_DOMAIN_SOCKETS
 #endif 
@@ -309,10 +309,10 @@ static int _dw_snprintf(char *str, size_t size, const char *format, ...)
 #endif
 
 #ifndef PIPEROOT
-#define PIPEROOT "/tmp/"
+#define PIPEROOT "/tmp"
 #endif
 
-#define PIPENAME "%s" __TARGET__ "%d-%d"
+#define PIPENAME "%s%s" __TARGET__ "%d-%d"
 
 /* Compatibility layer for IBM C/Winsock
  * Now using macros so we can allow cross
@@ -407,7 +407,7 @@ static int _dw_snprintf(char *str, size_t size, const char *format, ...)
 	{ \
 		memset(&un, 0, sizeof(un)); \
 		un.sun_family=AF_UNIX; \
-		sprintf(un.sun_path, PIPENAME, PIPEROOT, (int)getpid(), pipes[1]); \
+		sprintf(un.sun_path, PIPENAME, PIPEROOT, DIRSEP, (int)getpid(), pipes[1]); \
 		unlink(un.sun_path); \
 		bind(tmpsock, (struct sockaddr *)&un, sizeof(un)); \
 		listen(tmpsock, 0); \
