@@ -135,7 +135,6 @@ static int _dw_snprintf(char *str, size_t size, const char *format, ...)
 #ifdef __EMX__
 #include "platform/dirent.h"
 #include <sys/stat.h>
-#define HAVE_PIPE
 #ifdef FD_SETSIZE
 #undef FD_SETSIZE
 #endif
