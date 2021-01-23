@@ -5670,7 +5670,7 @@ void _control_size(HWND handle, int *width, int *height)
  */
 int API dw_window_set_font(HWND handle, const char *fontname)
 {
-    HFONT hfont, oldfont;
+    HFONT hfont = NULL, oldfont = NULL;
     ColorInfo *cinfo = _dw_window_get_cinfo(handle);
     TCHAR tmpbuf[100] = {0};
 
@@ -5684,19 +5684,54 @@ int API dw_window_set_font(HWND handle, const char *fontname)
             handle = thisbox->grouphwnd;
         }
     }
+#ifdef RICHEDIT
+    if (_tcsnicmp(tmpbuf, RICHEDIT_CLASS, _tcslen(RICHEDIT_CLASS)+1) == 0 ||
+        _tcsnicmp(tmpbuf, MSFTEDIT_CLASS, _tcslen(MSFTEDIT_CLASS)+1) == 0)
+    {
+        CHARFORMAT cf;
+        char  *Italic, *Bold, *myFontName = strchr(fontname, '.');
+        int size = atoi(fontname);
 
-    /* This needs to be after we get the correct handle */
-    oldfont = (HFONT)SendMessage(handle, WM_GETFONT, 0, 0);
-    hfont = _acquire_font(handle, fontname);
+        /* If we found a '.' use the location after the . */
+        if(myFontName)
+           myFontName = _strdup(++myFontName);
+        else /* Otherwise use the whole fontname and default size of 9 */
+           myFontName = _strdup(fontname);
 
-    if(hfont && fontname)
+        if((Italic = strstr(myFontName, " Italic")))
+          *Italic = 0;
+        if((Bold = strstr(myFontName, " Bold")))
+          *Bold = 0;
+
+        SendMessage(handle, EM_GETCHARFORMAT, SCF_DEFAULT, (LPARAM)&cf);
+        cf.cbSize = sizeof(cf);
+        cf.dwMask = CFM_FACE | CFM_ITALIC | CFM_BOLD;
+        cf.dwEffects = (Italic ? CFE_ITALIC : 0) | (Bold ? CFE_BOLD : 0);
+        _tcsncpy(cf.szFaceName, UTF8toWide(myFontName), (sizeof(cf.szFaceName)/sizeof(TCHAR))-1);
+        SendMessage(handle, EM_SETCHARFORMAT, SCF_DEFAULT, (LPARAM)&cf);
+
+        SendMessage(handle, EM_SETFONTSIZE , (WPARAM)(size ? size : 9), 0);
+        free(myFontName);
+    }
+    else
+#endif
+    {
+        /* This needs to be after we get the correct handle */
+        oldfont = (HFONT)SendMessage(handle, WM_GETFONT, 0, 0);
+        hfont = _acquire_font(handle, fontname);
+    }
+
+    if(fontname)
     {
         if(cinfo || (cinfo = _dw_window_new_cinfo(handle, TRUE)))
         {
             strncpy(cinfo->fontname, fontname, 127);
-            if(!oldfont)
-                oldfont = cinfo->hfont;
-            cinfo->hfont = hfont;
+            if(hfont)
+            {
+                if(!oldfont)
+                    oldfont = cinfo->hfont;
+                cinfo->hfont = hfont;
+            }
         }
     }
     /* If we changed the font... */
