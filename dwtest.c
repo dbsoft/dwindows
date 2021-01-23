@@ -1309,6 +1309,44 @@ int DWSIGNAL mle_color_cb(HWND hwnd, int pos, void *data)
     return 0;
 }
 
+void mle_font_set(HWND mle, int fontsize, char *fontname)
+{
+    char font[101] = {0};
+
+    if(fontname)
+        snprintf(font, 100, "%d.%s", fontsize, fontname);
+    dw_window_set_font(mle, fontname ? font : NULL);
+}
+
+int DWSIGNAL mle_fontname_cb(HWND hwnd, int pos, void *data)
+{
+    HWND hbox = (HWND)data;
+    HWND fontsize = (HWND)dw_window_get_data(hbox, "fontsize");
+    HWND fontname = (HWND)dw_window_get_data(hbox, "fontname");
+    char font[101] = {0};
+
+    dw_listbox_get_text(fontname, pos, font, 100);
+    mle_font_set(container_mle, (int)dw_spinbutton_get_pos(fontsize), strcmp(font, "Default") == 0 ? NULL : font);
+    return 0;
+}
+
+int mle_fontsize_cb(HWND hwnd, int size, void *data)
+{
+    HWND hbox = (HWND)data;
+    HWND fontsize = (HWND)dw_window_get_data(hbox, "fontsize");
+    HWND fontname = (HWND)dw_window_get_data(hbox, "fontname");
+    char *font = dw_window_get_text(fontname);
+
+    if(font)
+    {
+        mle_font_set(container_mle, size, strcmp(font, "Default") == 0 ? NULL : font);
+        dw_free(font);
+    }
+    else
+        mle_font_set(container_mle, size, NULL);
+    return 0;
+}
+
 void container_add(void)
 {
     char *titles[4];
@@ -1322,7 +1360,7 @@ void container_add(void)
     CDATE date;
     unsigned long size, newpoint;
     HICN thisicon;
-    HWND checkbox, mlefore, mleback, hbox;
+    HWND checkbox, mlefore, mleback, fontsize, fontname, hbox;
 
     /* create a box to pack into the notebook page */
     containerbox = dw_box_new(DW_HORZ, 2);
@@ -1347,10 +1385,23 @@ void container_add(void)
         mleback = color_combobox();
         dw_box_pack_start(hbox, mleback, 150, -1, TRUE, FALSE, 1);
         dw_checkbox_set(checkbox, TRUE);
-        dw_box_pack_start(notebookbox4, hbox, -1, -1, FALSE, FALSE, 1);
+        text = dw_text_new("Font:", 0);
+        dw_window_set_style(text, DW_DT_VCENTER, DW_DT_VCENTER);
+        dw_box_pack_start(hbox, text, -1, -1, FALSE, TRUE, 1);
+        fontsize = dw_spinbutton_new("9", 0);
+        dw_spinbutton_set_limits(fontsize, 5, 100);
+        dw_box_pack_start(hbox, fontname, 50, -1, TRUE, FALSE, 1);
+        fontname = dw_combobox_new("Default", 0);
+        dw_listbox_append(fontname, "Default");
+        dw_listbox_append(fontname, "Helv");
+        dw_listbox_append(fontname, "Arial");
+        dw_box_pack_start(hbox, fontname, 150, -1, TRUE, FALSE, 1);
+        dw_box_pack_start(notebookbox4, hbox, -1, -1, TRUE, FALSE, 1);
 
         dw_window_set_data(hbox, "mlefore", DW_POINTER(mlefore));
         dw_window_set_data(hbox, "mleback", DW_POINTER(mleback));
+        dw_window_set_data(hbox, "fontsize", DW_POINTER(fontsize));
+        dw_window_set_data(hbox, "fontname", DW_POINTER(fontname));
     }
 
     /* now a container area under this box */
@@ -1437,6 +1488,8 @@ void container_add(void)
     dw_signal_connect(checkbox, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(word_wrap_click_cb), DW_POINTER(container_mle));
     dw_signal_connect(mlefore, DW_SIGNAL_LIST_SELECT, DW_SIGNAL_FUNC(mle_color_cb), DW_POINTER(hbox));
     dw_signal_connect(mleback, DW_SIGNAL_LIST_SELECT, DW_SIGNAL_FUNC(mle_color_cb), DW_POINTER(hbox));
+    dw_signal_connect(fontname, DW_SIGNAL_LIST_SELECT, DW_SIGNAL_FUNC(mle_fontname_cb), DW_POINTER(hbox));
+    dw_signal_connect(fontsize, DW_SIGNAL_VALUE_CHANGED, DW_SIGNAL_FUNC(mle_fontsize_cb), DW_POINTER(hbox));
 }
 
 /* Beep every second */
