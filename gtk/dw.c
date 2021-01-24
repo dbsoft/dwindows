@@ -3167,7 +3167,7 @@ int dw_window_set_font(HWND handle, const char *fontname)
    GdkFont *gdkfont;
 #endif
    GtkWidget *handle2 = handle;
-   char *font = strdup(fontname);
+   char *font = fontname ? strdup(fontname) : NULL;
    int _locked_by_me = FALSE;
    gpointer data;
 
@@ -3203,13 +3203,18 @@ int dw_window_set_font(HWND handle, const char *fontname)
    /* Free old font if it exists */
    gdkfont = (GdkFont *)gtk_object_get_data(GTK_OBJECT(handle2), "_dw_gdkfont");
    if(gdkfont)
+   {
       gdk_font_unref(gdkfont);
-   gdkfont = gdk_font_load(fontname);
+      gdkfont = NULL;
+   }
+   if(fontname)
+      gdkfont = gdk_font_load(fontname);
    if(!gdkfont)
       gdkfont = gdk_font_load("fixed");
    gtk_object_set_data(GTK_OBJECT(handle2), "_dw_gdkfont", (gpointer)gdkfont);
 #else
-   _convert_font(font);
+   if(font)
+      _convert_font(font);
 #endif
 
    /* Free old font name if one is allocated */
@@ -3219,13 +3224,13 @@ int dw_window_set_font(HWND handle, const char *fontname)
       free(data);
 
 #if GTK_MAJOR_VERSION > 1
-   pfont = pango_font_description_from_string(fontname);
-
-   if(pfont)
+   if(font && (pfont = pango_font_description_from_string(font)))
    {
       gtk_widget_modify_font(handle2, pfont);
       pango_font_description_free(pfont);
    }
+   else
+      gtk_widget_modify_font(handle2, NULL);
 #endif
    DW_MUTEX_UNLOCK;
    return TRUE;
