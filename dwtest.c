@@ -1388,11 +1388,11 @@ void container_add(void)
         dw_window_set_style(text, DW_DT_VCENTER, DW_DT_VCENTER);
         dw_box_pack_start(hbox, text, -1, -1, FALSE, TRUE, 1);
         fontsize = dw_spinbutton_new("9", 0);
-        dw_box_pack_start(hbox, fontsize, 50, -1, TRUE, FALSE, 1);
+        dw_box_pack_start(hbox, fontsize, 50, -1, FALSE, FALSE, 1);
         dw_spinbutton_set_limits(fontsize, 100, 5);
         fontname = dw_combobox_new("Default", 0);
         dw_listbox_append(fontname, "Default");
-        dw_listbox_append(fontname, "Helv");
+        dw_listbox_append(fontname, "Helvetica");
         dw_listbox_append(fontname, "Arial");
         dw_box_pack_start(hbox, fontname, 150, -1, TRUE, FALSE, 1);
         dw_box_pack_start(notebookbox4, hbox, -1, -1, TRUE, FALSE, 1);
