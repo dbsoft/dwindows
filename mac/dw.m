@@ -8691,18 +8691,19 @@ float API dw_splitbar_get(HWND handle)
 /* Internal function to convert fontname to NSFont */
 NSFont *_dw_font_by_name(const char *fontname)
 {
-    char *fontcopy = strdup(fontname);
-    char *name = strchr(fontcopy, '.');
-    NSFont *font = nil;
-
-    if(name)
+    NSFont *font = DWDefaultFont;
+    
+    if(fontname)
     {
-        int size = atoi(fontcopy);
-        *name = 0;
-        name++;
-        font = [NSFont fontWithName:[ NSString stringWithUTF8String:name ] size:(float)size];
+        char *name = strchr(fontname, '.');
+
+        if(name && (name++))
+        {
+            int size = atoi(fontname);
+            
+            font = [NSFont fontWithName:[ NSString stringWithUTF8String:name ] size:(float)size];
+        }
     }
-    free(fontcopy);
     return font;
 }
 
@@ -10293,7 +10294,8 @@ Item *_box_item(id object)
  */
 int API dw_window_set_font(HWND handle, const char *fontname)
 {
-    NSFont *font = _dw_font_by_name(fontname);
+    NSFont *font = fontname ? _dw_font_by_name(fontname) :
+    (DWDefaultFont ? DWDefaultFont : [NSFont systemFontOfSize:[NSFont smallSystemFontSize]]);
 
     if(font)
     {
@@ -10307,6 +10309,12 @@ int API dw_window_set_font(HWND handle, const char *fontname)
         if([object isMemberOfClass:[DWGroupBox class]])
         {
             [object setTitleFont:font];
+        }
+        else if([object isMemberOfClass:[DWMLE class]])
+        {
+            DWMLE *mle = object;
+            
+            [[mle textStorage] setFont:font];
         }
         else if([object isKindOfClass:[NSControl class]])
         {
@@ -12396,8 +12404,12 @@ void _dwthreadstart(void *data)
 void API dw_font_set_default(const char *fontname)
 {
     NSFont *oldfont = DWDefaultFont;
-    DWDefaultFont = _dw_font_by_name(fontname);
-    [DWDefaultFont retain];
+    DWDefaultFont = nil;
+    if(fontname)
+    {
+        DWDefaultFont = _dw_font_by_name(fontname);
+        [DWDefaultFont retain];
+    }
     [oldfont release];
 }
 
