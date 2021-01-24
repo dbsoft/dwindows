@@ -42,6 +42,7 @@
 
 #ifdef RICHEDIT
 int _DW_MLE_RICH_EDIT = DW_FEATURE_UNSUPPORTED;
+static CHARFORMAT _dw_default_charformat = {0};
 #endif
 
 #define STATICCLASSNAME TEXT("STATIC")
@@ -5688,30 +5689,38 @@ int API dw_window_set_font(HWND handle, const char *fontname)
     if (_tcsnicmp(tmpbuf, RICHEDIT_CLASS, _tcslen(RICHEDIT_CLASS)+1) == 0 ||
         _tcsnicmp(tmpbuf, MSFTEDIT_CLASS, _tcslen(MSFTEDIT_CLASS)+1) == 0)
     {
-        CHARFORMAT cf;
-        char  *Italic, *Bold, *myFontName = strchr(fontname, '.');
-        int size = atoi(fontname);
+       if(fontname)
+       {
+            CHARFORMAT cf = {0};
+            char  *Italic, *Bold, *myFontName = strchr(fontname, '.');
+            int size = atoi(fontname);
 
-        /* If we found a '.' use the location after the . */
-        if(myFontName)
-           myFontName = _strdup(++myFontName);
-        else /* Otherwise use the whole fontname and default size of 9 */
-           myFontName = _strdup(fontname);
+            /* If we found a '.' use the location after the . */
+            if(myFontName)
+               myFontName = _strdup(++myFontName);
+            else /* Otherwise use the whole fontname and default size of 9 */
+               myFontName = _strdup(fontname);
 
-        if((Italic = strstr(myFontName, " Italic")))
-          *Italic = 0;
-        if((Bold = strstr(myFontName, " Bold")))
-          *Bold = 0;
+            if((Italic = strstr(myFontName, " Italic")))
+              *Italic = 0;
+            if((Bold = strstr(myFontName, " Bold")))
+              *Bold = 0;
 
-        SendMessage(handle, EM_GETCHARFORMAT, SCF_DEFAULT, (LPARAM)&cf);
-        cf.cbSize = sizeof(cf);
-        cf.dwMask = CFM_FACE | CFM_ITALIC | CFM_BOLD;
-        cf.dwEffects = (Italic ? CFE_ITALIC : 0) | (Bold ? CFE_BOLD : 0);
-        _tcsncpy(cf.szFaceName, UTF8toWide(myFontName), (sizeof(cf.szFaceName)/sizeof(TCHAR))-1);
-        SendMessage(handle, EM_SETCHARFORMAT, SCF_DEFAULT, (LPARAM)&cf);
+            cf.cbSize = sizeof(cf);
+            SendMessage(handle, EM_GETCHARFORMAT, SCF_DEFAULT, (LPARAM)&cf);
+            cf.dwMask = CFM_FACE | CFM_ITALIC | CFM_BOLD;
+            cf.dwEffects = (Italic ? CFE_ITALIC : 0) | (Bold ? CFE_BOLD : 0);
+            _tcsncpy(cf.szFaceName, UTF8toWide(myFontName), (sizeof(cf.szFaceName)/sizeof(TCHAR))-1);
+            SendMessage(handle, EM_SETCHARFORMAT, SCF_DEFAULT, (LPARAM)&cf);
 
-        SendMessage(handle, EM_SETFONTSIZE , (WPARAM)(size ? size : 9), 0);
-        free(myFontName);
+            SendMessage(handle, EM_SETFONTSIZE , (WPARAM)(size ? size : 9), 0);
+            free(myFontName);
+       }
+       else
+       {
+           SendMessage(handle, EM_SETCHARFORMAT, SCF_DEFAULT, (LPARAM)&_dw_default_charformat);
+           SendMessage(handle, EM_SETFONTSIZE , (WPARAM)9, 0);
+       }
     }
     else
 #endif
@@ -7033,7 +7042,14 @@ HWND API dw_mle_new(ULONG id)
 
 #ifdef RICHEDIT
    if(_DW_MLE_RICH_EDIT == DW_FEATURE_ENABLED && (hrichedit || hmsftedit))
+   {
       cinfo->cinfo.pOldProc = SubclassWindow(tmp, _richeditwndproc);
+      /* Save the default RichEdit font for later use */
+      _dw_default_charformat.cbSize = sizeof(CHARFORMAT);
+      SendMessage(tmp, EM_GETCHARFORMAT, SCF_DEFAULT, (LPARAM)&_dw_default_charformat);
+      /* Make sure we set the mask we will use for reseting the MLE later */
+      _dw_default_charformat.dwMask = CFM_FACE | CFM_ITALIC | CFM_BOLD;
+   }
    else
 #endif
    cinfo->cinfo.pOldProc = SubclassWindow(tmp, _simplewndproc);
@@ -9431,12 +9447,14 @@ void API dw_mle_set_editable(HWND handle, int state)
  */
 void API dw_mle_set_word_wrap(HWND handle, int state)
 {
+#ifdef RICHEDIT
    /* If it is a rich edit control use the rich edit message */
    if(_DW_MLE_RICH_EDIT == DW_FEATURE_ENABLED && (hrichedit || hmsftedit))
    {
       SendMessage(handle, EM_SHOWSCROLLBAR, (WPARAM)SB_HORZ, (LPARAM)(state ? FALSE : TRUE));
       SendMessage(handle, EM_SETTARGETDEVICE, 0, state ? 0 : 1);
    }
+#endif   
 }
 
 /*
@@ -9458,8 +9476,10 @@ void API dw_mle_set_auto_complete(HWND handle, int state)
 void API dw_mle_set_cursor(HWND handle, int point)
 {
    SendMessage(handle, EM_SETSEL, (WPARAM)point, (LPARAM)point);
+#ifdef RICHEDIT
    if(_DW_MLE_RICH_EDIT == DW_FEATURE_ENABLED && (hrichedit || hmsftedit))
       SendMessage(handle, EM_HIDESELECTION, 0, 0);
+#endif
    SendMessage(handle, EM_SCROLLCARET, 0, 0);
 }
 
@@ -9502,8 +9522,10 @@ int API dw_mle_search(HWND handle, const char *text, int point, unsigned long fl
    if(retval)
    {
       SendMessage(handle, EM_SETSEL, (WPARAM)retval - textlen, (LPARAM)retval);
+#ifdef RICHEDIT
       if(_DW_MLE_RICH_EDIT == DW_FEATURE_ENABLED && (hrichedit || hmsftedit))
          SendMessage(handle, EM_HIDESELECTION, 0, 0);
+#endif
       SendMessage(handle, EM_SCROLLCARET, 0, 0);
    }
 
