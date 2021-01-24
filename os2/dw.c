@@ -5056,8 +5056,9 @@ void API dw_font_set_default(const char *fontname)
 {
     char *oldfont = DefaultFont;
 
-    DefaultFont = strdup(fontname);
-    free(oldfont);
+    DefaultFont = fontname ? strdup(fontname) : NULL;
+    if(oldfont)
+        free(oldfont);
 }
 
 /* Internal function to return a pointer to an item struct
@@ -5492,8 +5493,11 @@ void _control_size(HWND handle, int *width, int *height)
 int API dw_window_set_font(HWND handle, const char *fontname)
 {
    HWND group = (HWND)dw_window_get_data(handle, "_dw_buddy");
+   const char *font = fontname ? fontname : DefaultFont;
+
    /* If we changed the font... */
-   if(!WinSetPresParam(group ? group : handle, PP_FONTNAMESIZE, strlen(fontname)+1, (void *)fontname))
+   if((!font && WinRemovePresParam(group ? group : handle, PP_FONTNAMESIZE)) ||
+      (font && WinSetPresParam(group ? group : handle, PP_FONTNAMESIZE, strlen(font)+1, (void *)font)))
    {
       Item *item = _box_item(handle);
 
