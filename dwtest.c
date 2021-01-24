@@ -1333,7 +1333,6 @@ int DWSIGNAL mle_fontname_cb(HWND hwnd, int pos, void *data)
 int mle_fontsize_cb(HWND hwnd, int size, void *data)
 {
     HWND hbox = (HWND)data;
-    HWND fontsize = (HWND)dw_window_get_data(hbox, "fontsize");
     HWND fontname = (HWND)dw_window_get_data(hbox, "fontname");
     char *font = dw_window_get_text(fontname);
 
@@ -1389,8 +1388,8 @@ void container_add(void)
         dw_window_set_style(text, DW_DT_VCENTER, DW_DT_VCENTER);
         dw_box_pack_start(hbox, text, -1, -1, FALSE, TRUE, 1);
         fontsize = dw_spinbutton_new("9", 0);
-        dw_spinbutton_set_limits(fontsize, 5, 100);
-        dw_box_pack_start(hbox, fontname, 50, -1, TRUE, FALSE, 1);
+        dw_box_pack_start(hbox, fontsize, 50, -1, TRUE, FALSE, 1);
+        dw_spinbutton_set_limits(fontsize, 100, 5);
         fontname = dw_combobox_new("Default", 0);
         dw_listbox_append(fontname, "Default");
         dw_listbox_append(fontname, "Helv");
