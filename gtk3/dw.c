@@ -2687,22 +2687,31 @@ void API dw_font_set_default(const char *fontname)
       free(oldfont);
 }
 
-/* Convert DW style font to pango style */
-void _convert_font(char *font)
+/* Convert DW style font to CSS syntax:
+ * font: font-style font-variant font-weight font-size/line-height font-family
+ */
+char *_convert_font(const char *font)
 {
-   char *name = strchr(font, '.');
-
-   /* Detect Dynamic Windows style font name...
-    * Format: ##.Fontname
-    * and convert to a Pango name
-    */
-   if(name && isdigit(*font))
+   char *newfont = NULL;
+   
+   if(font)
    {
-       int size = atoi(font);
-       *name = 0;
-       name++;
-       sprintf(font, "%s %d", name, size);
+      char *name = strchr(font, '.');
+      char *Italic = strstr(font, " Italic");
+      char *Bold = strstr(font, " Bold");
+      
+      /* Detect Dynamic Windows style font name...
+       * Format: ##.Fontname
+       * and convert to a Pango name
+       */
+      if(name && (name++) && isdigit(*font))
+      {
+          int size = atoi(font);
+          newfont = g_strdup_printf("%s normal %s %dpx %s", Italic ? "italic " : "normal",
+                                    Bold ? "bold " : "normal", size, name);
+      }
    }
+   return newfont;
 }
 
 /* Internal functions to convert to GTK3 style CSS */
@@ -2771,7 +2780,7 @@ static void _dw_override_font(GtkWidget *widget, const char *font)
 int dw_window_set_font(HWND handle, const char *fontname)
 {
    GtkWidget *handle2 = handle;
-   char *font = strdup(fontname);
+   char *font = _convert_font(fontname);
    int _locked_by_me = FALSE;
    gpointer data;
 
@@ -2795,8 +2804,6 @@ int dw_window_set_font(HWND handle, const char *fontname)
       if(tmp)
          handle2 = tmp;
    }
-
-   _convert_font(font);
 
    /* Free old font name if one is allocated */
    data = g_object_get_data(G_OBJECT(handle2), "_dw_fontname");
@@ -7987,11 +7994,12 @@ void dw_flush(void)
  */
 int API dw_pixmap_set_font(HPIXMAP pixmap, const char *fontname)
 {
-    if(pixmap && fontname && *fontname)
+    if(pixmap)
     {
          char *oldfont = pixmap->font;
-         pixmap->font = strdup(fontname);
-         _convert_font(pixmap->font);
+
+         pixmap->font = _convert_font(fontname);
+
          if(oldfont)
              free(oldfont);
          return DW_ERROR_NONE;
