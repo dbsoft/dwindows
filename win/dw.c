@@ -42,7 +42,7 @@
 
 #ifdef RICHEDIT
 int _DW_MLE_RICH_EDIT = DW_FEATURE_UNSUPPORTED;
-static CHARFORMAT _dw_default_charformat = {0};
+static CHARFORMAT2 _dw_default_charformat = {0};
 #endif
 
 #define STATICCLASSNAME TEXT("STATIC")
@@ -5691,7 +5691,7 @@ int API dw_window_set_font(HWND handle, const char *fontname)
     {
        if(fontname)
        {
-            CHARFORMAT cf = {0};
+            CHARFORMAT2 cf = {0};
             char  *Italic, *Bold, *myFontName = strchr(fontname, '.');
             int size = atoi(fontname);
 
@@ -5708,19 +5708,14 @@ int API dw_window_set_font(HWND handle, const char *fontname)
 
             cf.cbSize = sizeof(cf);
             SendMessage(handle, EM_GETCHARFORMAT, SCF_DEFAULT, (LPARAM)&cf);
-            cf.dwMask = CFM_FACE | CFM_ITALIC | CFM_BOLD;
+            cf.dwMask = CFM_FACE | CFM_SIZE | CFM_ITALIC | CFM_BOLD;
             cf.dwEffects = (Italic ? CFE_ITALIC : 0) | (Bold ? CFE_BOLD : 0);
             _tcsncpy(cf.szFaceName, UTF8toWide(myFontName), (sizeof(cf.szFaceName)/sizeof(TCHAR))-1);
+            cf.yHeight = (size > 0) ? (size * 20) : 180;
             SendMessage(handle, EM_SETCHARFORMAT, SCF_DEFAULT, (LPARAM)&cf);
-
-            SendMessage(handle, EM_SETFONTSIZE , (WPARAM)(size ? size : 9), 0);
-            free(myFontName);
        }
        else
-       {
            SendMessage(handle, EM_SETCHARFORMAT, SCF_DEFAULT, (LPARAM)&_dw_default_charformat);
-           SendMessage(handle, EM_SETFONTSIZE , (WPARAM)9, 0);
-       }
     }
     else
 #endif
@@ -5902,7 +5897,7 @@ int API dw_window_set_color(HWND handle, ULONG fore, ULONG back)
    {
         ULONG _fore = _internal_color(fore);
         ULONG _back = _internal_color(back);
-        CHARFORMAT cf;
+        CHARFORMAT2 cf;
 
         SendMessage(handle, EM_GETCHARFORMAT, SCF_DEFAULT, (LPARAM)&cf);
         cf.cbSize = sizeof(cf);
@@ -7045,10 +7040,14 @@ HWND API dw_mle_new(ULONG id)
    {
       cinfo->cinfo.pOldProc = SubclassWindow(tmp, _richeditwndproc);
       /* Save the default RichEdit font for later use */
-      _dw_default_charformat.cbSize = sizeof(CHARFORMAT);
+      _dw_default_charformat.cbSize = sizeof(_dw_default_charformat);
       SendMessage(tmp, EM_GETCHARFORMAT, SCF_DEFAULT, (LPARAM)&_dw_default_charformat);
       /* Make sure we set the mask we will use for reseting the MLE later */
-      _dw_default_charformat.dwMask = CFM_FACE | CFM_ITALIC | CFM_BOLD;
+      _dw_default_charformat.dwMask = CFM_FACE | CFM_SIZE | CFM_ITALIC | CFM_BOLD;
+      dw_debug("Default CHARFORMAT szFaceName \"%s\" dwMask %x yHeight %d\n", WideToUTF8(_dw_default_charformat.szFaceName), 
+                (int)_dw_default_charformat.dwMask, (int)_dw_default_charformat.yHeight);
+      if(_dw_default_charformat.yHeight < 1)
+         _dw_default_charformat.yHeight = 180;
    }
    else
 #endif
