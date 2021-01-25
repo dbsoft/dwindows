@@ -1390,6 +1390,7 @@ void container_add(void)
         fontsize = dw_spinbutton_new("9", 0);
         dw_box_pack_start(hbox, fontsize, 50, -1, FALSE, FALSE, 1);
         dw_spinbutton_set_limits(fontsize, 100, 5);
+        dw_spinbutton_set_pos(fontsize, 9);
         fontname = dw_combobox_new("Default", 0);
         dw_listbox_append(fontname, "Default");
         dw_listbox_append(fontname, "Arial");
