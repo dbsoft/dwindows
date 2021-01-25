@@ -1,4 +1,4 @@
-This is a stable release of Dynamic Windows version 3.1.
+This is a stable release of Dynamic Windows version 3.2.
 
 The current Dynamic Windows source base is considered stable on:
 OS/2, Mac, Windows, Linux, FreeBSD and OpenSolaris.
@@ -15,11 +15,9 @@ MacOS:
         32bit PowerPC, 64bit and 32bit Intel classic support.
         No Notifications, Dark Mode nor NSView container/trees.
 Windows:
-    10: Visual Studio 2017-2019, WebView2 and WinToast.
-        Should run on Vista and later, but sockpipe() only on 10.
-        Supports domain sockets on Windows 10 dwcompat sockpipe().
-    7-8.1: Visual Studio 2015, WebView2 and WinToast with 8 SDK.
-        Should run on Vista and later, old sockpipe() on all.
+    7-10: Visual Studio 2017-2019, WebView2 and WinToast.
+        Should run on Vista and later, supports domain sockets
+        on Windows 10, oldsockpipe() on older versions.
     XP: Visual Studio 2010.  Old sockpipe() on all versions.
         Should run on XP and later, with Aero on Vista and 7.
         No Notifications nor WebView2 and old sockpipe() on all.
@@ -56,49 +54,20 @@ APIs are not yet supported on OS/2.  May implement our own system
 if a popular notification system is not already in existance.
 Ports to iOS and Android are underway.
 
-Changes from version 3.0:
-Added support for MacOS versions through Big Sur 11.0, 
-    Windows versions through 10 build 20H2.
-Fixed a handle leak on OS/2 when built with (Open)Watcom.
-Added dark mode support on MacOS Mojave 10.14 and later. 
-Added experimental dark mode support on Windows 10 build 1809 (disabled by default).
-Added embedding Microsoft Edge (Chromium) support on Windows 7 and higher.
-    Requires Windows 8 or higher SDK to build and the nuget package from:
-    https://www.nuget.org/packages/Microsoft.Web.WebView2 unzipped into
-    .\packages\Microsoft.Web.WebView2
-    Install runtime: https://developer.microsoft.com/en-us/microsoft-edge/webview2/
-    Will prefer to use the runtime above, but will fallback to an installed browser.
-Added notification APIs: dw_notification_new() dw_notification_send() dw_app_id_set()
-    Requires Windows 8 or higher. MacOS 10.8 or higher. GLib 2.40 or higher on Unix.
-    MacOS also requires the application bundle being signed or self-signed.
-    Unix requires a desktop file link with the application ID used in dw_app_id_set().
-    Unzip WinToast from https://github.com/mohabouje/WinToast into  .\packages\WinToast
-Added webkit2gtk support and removed dead gtkmozembed and libgtkhtml2 support on Unix.
-Added embedded HTML javascript support on Mac, Windows and Unix with webkit(2)gtk. 
-    Added function dw_html_javascript_run() to execute javascript code.
-    Added DW_SIGNAL_HTML_RESULT signal for getting the results from javascript.
-    DW_SIGNAL_HTML_RESULT requires webkit2gtk on Unix.
-Added DW_SIGNAL_HTML_CHANGED signal handler for getting the status of embedded HTML.
-    Status can be: DW_HTML_CHANGE_STARTED/REDIRECT/LOADING/COMPLETE
-Fixed international calendar issues on Mac.
-Added dw_mle_set_auto_complete() to enable completion, only available on Mac.
-Changed to using GTK3 by default instead of GTK2.  --with-gtk2 is now available.
-Changed to using winsock2 on Windows ending support for Win95 and NT 3.5.
-Changed to using Rich Edit for MLE controls on Windows. This can be disabled with:
-    dw_feature_set(DW_FEATURE_MLE_RICH_EDIT, DW_FEATURE_DISABLED);
-Added support for domain sockets on Windows 10 in the dwcompat sockpipe() macro.
-    If compiled with Visual Studio 2017 or later, otherwise the old method is used.
-Added dw_feature_set/get() to test if certain features are available on the current
-    library and operating system combination at runtime or enabled/disable features.
-Added support for GResource embedded images on GTK2/3 with GLib 2.32. The old 
-    resouce system is still available via configure --with-deprecated if needed.
-Added support for NSView based Tree, Container and Listbox widgets on Mac 10.7+.
-Removed DW_FCF_COMPOSITED support from Windows 8 and higher. 
-    This flag will still function to create a glass effect on Windows Vista and 7.
-    The transparent key feature used to create it causes issues on 8 and 10, plus
-    the glass effect, the main reason for the flag was removed in Windows 8.
-Removed the incomplete Photon port.
-Fixed many small bugs, too numerous to list here.
+Changes from version 3.1:
+Added support for dw_window_set_font() with a NULL font paramaeter.
+    This resets the font used on the widget to the default font.
+Fixed GTK warnings on GTK3 caused by using Pango style font syntax.
+Fixed GTK3 leaks when setting fonts or colors on a widget repeatedly.
+Fixed incorrect reporting of word wrap support on Windows.
+Fixed a number of misbehaviors with dw_window_set_font() and 
+    dw_window_set_color() on various platforms.
+Added missing DW_CLR_DEFAULT support on OS/2, it previously only
+    worked to avoid setting a color, not resetting them to default.
+Added oldsockpipe() macro which will be used as a fallback.
+    This allows us to use domain socket sockpipe() when available...
+    and fall back to the old version when not, letting us have
+    Windows 10 domain socket builds that work on earlier versions.
 
 Dynamic Windows Documentation is available at:
 
