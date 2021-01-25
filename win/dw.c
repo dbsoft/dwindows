@@ -42,7 +42,6 @@
 
 #ifdef RICHEDIT
 int _DW_MLE_RICH_EDIT = DW_FEATURE_UNSUPPORTED;
-static CHARFORMAT2 _dw_default_charformat = {0};
 #endif
 
 #define STATICCLASSNAME TEXT("STATIC")
@@ -5711,11 +5710,21 @@ int API dw_window_set_font(HWND handle, const char *fontname)
             cf.dwMask = CFM_FACE | CFM_SIZE | CFM_ITALIC | CFM_BOLD;
             cf.dwEffects = (Italic ? CFE_ITALIC : 0) | (Bold ? CFE_BOLD : 0);
             _tcsncpy(cf.szFaceName, UTF8toWide(myFontName), (sizeof(cf.szFaceName)/sizeof(TCHAR))-1);
+            /* yHeight is apparently the point size * 20, defaulting to 9 (180) */
             cf.yHeight = (size > 0) ? (size * 20) : 180;
             SendMessage(handle, EM_SETCHARFORMAT, SCF_DEFAULT, (LPARAM)&cf);
        }
        else
-           SendMessage(handle, EM_SETCHARFORMAT, SCF_DEFAULT, (LPARAM)&_dw_default_charformat);
+       {
+           /* On testing what the default is, the szFaceName is empty,
+            * yHeight is 180 (9 point). So use that to reset to default.
+            */
+           CHARFORMAT2 cf = {0};
+           cf.cbSize = sizeof(cf);
+           cf.yHeight = 180;
+           cf.dwMask = CFM_FACE | CFM_SIZE | CFM_ITALIC | CFM_BOLD;
+           SendMessage(handle, EM_SETCHARFORMAT, SCF_DEFAULT, (LPARAM)&cf);
+       }
     }
     else
 #endif
@@ -7037,18 +7046,7 @@ HWND API dw_mle_new(ULONG id)
 
 #ifdef RICHEDIT
    if(_DW_MLE_RICH_EDIT == DW_FEATURE_ENABLED && (hrichedit || hmsftedit))
-   {
       cinfo->cinfo.pOldProc = SubclassWindow(tmp, _richeditwndproc);
-      /* Save the default RichEdit font for later use */
-      _dw_default_charformat.cbSize = sizeof(_dw_default_charformat);
-      SendMessage(tmp, EM_GETCHARFORMAT, SCF_DEFAULT, (LPARAM)&_dw_default_charformat);
-      /* Make sure we set the mask we will use for reseting the MLE later */
-      _dw_default_charformat.dwMask = CFM_FACE | CFM_SIZE | CFM_ITALIC | CFM_BOLD;
-      dw_debug("Default CHARFORMAT szFaceName \"%s\" dwMask %x yHeight %d\n", WideToUTF8(_dw_default_charformat.szFaceName), 
-                (int)_dw_default_charformat.dwMask, (int)_dw_default_charformat.yHeight);
-      if(_dw_default_charformat.yHeight < 1)
-         _dw_default_charformat.yHeight = 180;
-   }
    else
 #endif
    cinfo->cinfo.pOldProc = SubclassWindow(tmp, _simplewndproc);
@@ -13874,6 +13872,16 @@ int API dw_feature_get(DWFEATURE feature)
         }
 #endif
 #ifdef RICHEDIT
+        /* Word wrap support on Windows is tied to Rich Edit,
+         * if Rich Edit MLE is unsupported or disabled...
+         * Word Wrap will return Unsupported.
+         */
+        case DW_FEATURE_MLE_WORD_WRAP:
+        {
+            if(_DW_MLE_RICH_EDIT == DW_FEATURE_ENABLED && (hrichedit || hmsftedit))
+                return DW_FEATURE_ENABLED;
+            return DW_FEATURE_UNSUPPORTED;
+        }
         case DW_FEATURE_MLE_RICH_EDIT:
         {
             if(hmsftedit || hrichedit)
@@ -13938,6 +13946,17 @@ int API dw_feature_set(DWFEATURE feature, int state)
         }
 #endif
 #ifdef RICHEDIT
+        /* Word wrap support on Windows is tied to Rich Edit,
+         * if Rich Edit MLE is unsupported or disabled...
+         * Word Wrap will return Unsupported. If supported, 
+         * it is not configurable, configure Rich Edit instead.
+         */
+        case DW_FEATURE_MLE_WORD_WRAP:
+        {
+            if(_DW_MLE_RICH_EDIT == DW_FEATURE_ENABLED && (hrichedit || hmsftedit))
+                return DW_ERROR_GENERAL;
+            return DW_FEATURE_UNSUPPORTED;
+        }
         case DW_FEATURE_MLE_RICH_EDIT:
         {
             if(state >= DW_FEATURE_DISABLED && state <= DW_FEATURE_ENABLED)
