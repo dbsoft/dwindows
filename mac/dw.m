@@ -840,6 +840,7 @@ int _event_handler(id object, NSEvent *event, int message)
 @end
 
 NSApplication *DWApp = nil;
+NSFontManager *DWFontManager = nil;
 NSMenu *DWMainMenu;
 NSFont *DWDefaultFont;
 DWTimerHandler *DWHandler;
@@ -2065,10 +2066,8 @@ DWObject *DWObj;
 @interface DWFontChoose : NSFontPanel
 {
     DWDialog *dialog;
-    NSFontManager *fontManager;
 }
 -(void)setDialog:(DWDialog *)input;
--(void)setFontManager:(NSFontManager *)input;
 -(DWDialog *)dialog;
 @end
 
@@ -2076,13 +2075,12 @@ DWObject *DWObj;
 -(BOOL)windowShouldClose:(id)window
 {
     DWDialog *d = dialog; dialog = nil;
-    NSFont *pickedfont = [fontManager selectedFont];
+    NSFont *pickedfont = [DWFontManager selectedFont];
     dw_dialog_dismiss(d, pickedfont);
     [window orderOut:nil];
     return NO;
 }
 -(void)setDialog:(DWDialog *)input { dialog = input; }
--(void)setFontManager:(NSFontManager *)input { fontManager = input; }
 -(DWDialog *)dialog { return dialog; }
 @end
 
@@ -8705,8 +8703,18 @@ NSFont *_dw_font_by_name(const char *fontname)
         if(name && (name++))
         {
             int size = atoi(fontname);
+            char *Italic = strstr(name, " Italic");
+            char *Bold = strstr(name, " Bold");
+            size_t len = (Italic ? (Bold ? (Italic > Bold ? (Bold - name) : (Italic - name)) : (Italic - name)) : (Bold ? (Bold - name) : strlen(name)));
+            char *newname = alloca(len+1);
+
+            memset(newname, 0, len+1);
+            strncpy(newname, name, len);
             
-            font = [NSFont fontWithName:[ NSString stringWithUTF8String:name ] size:(float)size];
+            font = [DWFontManager fontWithFamily:[NSString stringWithUTF8String:newname]
+                                          traits:(Italic ? NSItalicFontMask : 0)|(Bold ? NSBoldFontMask : 0)
+                                          weight:5
+                                            size:(float)size];
         }
     }
     return font;
@@ -10212,7 +10220,6 @@ char * API dw_font_choose(const char *currfont)
 {
     /* Create the Color Chooser Dialog class. */
     static DWFontChoose *fontDlg = nil;
-    static NSFontManager *fontManager = nil;
     DWDialog *dialog;
     NSFont *font = nil;
 
@@ -10231,18 +10238,16 @@ char * API dw_font_choose(const char *currfont)
     else
     {
         [NSFontManager setFontPanelFactory:[DWFontChoose class]];
-        fontManager = [NSFontManager sharedFontManager];
-        fontDlg = (DWFontChoose *)[fontManager fontPanel:YES];
+        fontDlg = (DWFontChoose *)[DWFontManager fontPanel:YES];
     }
 
     dialog = dw_dialog_new(fontDlg);
     if(font)
-        [fontManager setSelectedFont:font isMultiple:NO];
+        [DWFontManager setSelectedFont:font isMultiple:NO];
     else
-        [fontManager setSelectedFont:[NSFont fontWithName:@"Helvetica" size:9.0] isMultiple:NO];
+        [DWFontManager setSelectedFont:[NSFont fontWithName:@"Helvetica" size:9.0] isMultiple:NO];
     [fontDlg setDialog:dialog];
-    [fontDlg setFontManager:fontManager];
-    [fontManager orderFrontFontPanel:fontManager];
+    [DWFontManager orderFrontFontPanel:DWFontManager];
 
 
     /* Wait for them to pick a color */
@@ -12512,6 +12517,7 @@ int API dw_init(int newthread, int argc, char *argv[])
     [DWApp setMainMenu:DWMainMenu];
     DWObj = [[DWObject alloc] init];
     DWDefaultFont = nil;
+    DWFontManager = [NSFontManager sharedFontManager];
 #ifdef BUILDING_FOR_MOJAVE
     if (@available(macOS 10.14, *))
     {
