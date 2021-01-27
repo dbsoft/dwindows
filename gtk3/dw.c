@@ -2687,7 +2687,7 @@ void API dw_font_set_default(const char *fontname)
       free(oldfont);
 }
 
-/* Convert DW style font to CSS syntax:
+/* Convert DW style font to CSS syntax (or Pango for older versions):
  * font: font-style font-variant font-weight font-size/line-height font-family
  */
 char *_convert_font(const char *font)
@@ -2697,18 +2697,24 @@ char *_convert_font(const char *font)
    if(font)
    {
       char *name = strchr(font, '.');
+#if GTK_CHECK_VERSION(3,20,0)
       char *Italic = strstr(font, " Italic");
       char *Bold = strstr(font, " Bold");
+#endif
       
       /* Detect Dynamic Windows style font name...
        * Format: ##.Fontname
-       * and convert to a Pango name
+       * and convert to CSS or Pango syntax
        */
       if(name && (name++) && isdigit(*font))
       {
           int size = atoi(font);
-          newfont = g_strdup_printf("%s normal %s %dpx %s", Italic ? "italic " : "normal",
+#if GTK_CHECK_VERSION(3,20,0)
+          newfont = g_strdup_printf("%s normal %s %dpx \"%s\"", Italic ? "italic " : "normal",
                                     Bold ? "bold " : "normal", size, name);
+#else
+          newfont = g_strdup_printf("%s %d", name, size);
+#endif
       }
    }
    return newfont;
