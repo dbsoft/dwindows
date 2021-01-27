@@ -1401,7 +1401,6 @@ void container_add(void)
         dw_listbox_append(fontname, "Times New Roman");
         dw_listbox_append(fontname, "Times New Roman Bold");
         dw_listbox_append(fontname, "Times New Roman Italic");
-        dw_listbox_append(fontname, "Times New Roman Italic Bold");
         dw_listbox_append(fontname, "Times New Roman Bold Italic");
         dw_box_pack_start(hbox, fontname, 150, -1, TRUE, FALSE, 1);
         dw_box_pack_start(notebookbox4, hbox, -1, -1, TRUE, FALSE, 1);

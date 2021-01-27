@@ -6,7 +6,7 @@ OS/2, Mac, Windows, Linux, FreeBSD and OpenSolaris.
 Build Recommendations:
 MacOS:
     11.0: configure --with-arch=modern --with-minver=10.14
-        64bit Intel and Apple Silicon support with Dark Mode.
+        64bit Intel and Apple Silicon (ARM64) with Dark Mode.
     10.13-10.15: configure --with-minver=10.8
         64bit Intel with Notifications, Dark Mode for 10.14-15.
     10.8-10.12: configure --with-arch=intel --with-minver=10.8
@@ -18,12 +18,12 @@ Windows:
     7-10: Visual Studio 2017-2019, WebView2 and WinToast.
         Should run on Vista and later, supports domain sockets
         on Windows 10, oldsockpipe() on older versions.
-    XP: Visual Studio 2010.  Old sockpipe() on all versions.
+    XP: Visual Studio 2010.
         Should run on XP and later, with Aero on Vista and 7.
-        No Notifications nor WebView2 and old sockpipe() on all.
+        No Notifications nor WebView2 and oldsockpipe() on all.
     2000: Visual Studio 2005. Remove -DAEROGLASS from CFLAGS.
         Should run on 2000 and later, no Aero, Notifications, 
-        WebView2 and old sockpipe() on all versions.
+        WebView2 and oldsockpipe() on all versions.
 
 Known problems:
 
