@@ -5700,10 +5700,12 @@ int API dw_window_set_font(HWND handle, const char *fontname)
             else /* Otherwise use the whole fontname and default size of 9 */
                myFontName = _strdup(fontname);
 
-            if((Italic = strstr(myFontName, " Italic")))
-              *Italic = 0;
-            if((Bold = strstr(myFontName, " Bold")))
-              *Bold = 0;
+            Italic = strstr(myFontName, " Italic");
+            Bold = strstr(myFontName, " Bold");
+            if(Italic)
+                *Italic = 0;
+            if(Bold)
+                *Bold = 0;
 
             cf.cbSize = sizeof(cf);
             SendMessage(handle, EM_GETCHARFORMAT, SCF_DEFAULT, (LPARAM)&cf);
