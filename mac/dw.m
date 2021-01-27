@@ -10218,7 +10218,7 @@ void API dw_window_reparent(HWND handle, HWND newparent)
  */
 char * API dw_font_choose(const char *currfont)
 {
-    /* Create the Color Chooser Dialog class. */
+    /* Create the Font Chooser Dialog class. */
     static DWFontChoose *fontDlg = nil;
     DWDialog *dialog;
     NSFont *font = nil;
