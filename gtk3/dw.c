@@ -2710,8 +2710,14 @@ char *_convert_font(const char *font)
       {
           int size = atoi(font);
 #if GTK_CHECK_VERSION(3,20,0)
-          newfont = g_strdup_printf("%s normal %s %dpx \"%s\"", Italic ? "italic " : "normal",
-                                    Bold ? "bold " : "normal", size, name);
+          int len = (Italic ? (Bold ? (Italic > Bold ? (Bold - name) : (Italic - name)) : (Italic - name)) : (Bold ? (Bold - name) : strlen(name)));
+          char *newname = alloca(len+1);
+          
+          memset(newname, 0, len+1);
+          strncpy(newname, name, len);
+          
+          newfont = g_strdup_printf("%s normal %s %dpx \"%s\"", Italic ? "italic" : "normal",
+                                    Bold ? "bold" : "normal", size, newname);
 #else
           newfont = g_strdup_printf("%s %d", name, size);
 #endif
