@@ -1061,9 +1061,15 @@ typedef struct _box {
 #define DW_BS_NOBORDER           1
 
 #define DW_POINTER_DEFAULT       0
+#if GTK_MAJOR_VERSION > 3
+#define DW_POINTER_ARROW         1
+#define DW_POINTER_CLOCK         2
+#define DW_POINTER_QUESTION      3
+#else
 #define DW_POINTER_ARROW         GDK_TOP_LEFT_ARROW
 #define DW_POINTER_CLOCK         GDK_WATCH
 #define DW_POINTER_QUESTION      GDK_QUESTION_ARROW
+#endif
 
 #define HWND_DESKTOP             ((HWND)0)
 
