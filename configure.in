@@ -55,6 +55,13 @@ AC_ARG_WITH(gtk2,
    [with_gtk2=no],
 )
 
+dnl ---------------------- check for '--with-gtk4' switch -----------------
+AC_ARG_WITH(gtk4,
+   [  --with-gtk4             specify this to build with GTK+ 4.x if available],
+   [with_gtk4=$withval],
+   [with_gtk4=no],
+)
+
 dnl ---------------------- check for '--with-deprecated' switch -----------------
 AC_ARG_WITH(deprecated,
    [  --with-deprecated       specify this to build with deprecated functions],
@@ -208,7 +215,13 @@ if test $build_gtk = "yes"; then
    if test x"$PKG_CFG" != x; then
       GTK_LIBS=""
       if test $with_gtk2 = "yes"; then
+         DW_DIR=gtk
          GTK_PACKAGES="gtk+-2.0 gthread-2.0"
+         GTK_LIBS=`$PKG_CFG --silence-errors --libs $GTK_PACKAGES`
+      fi
+      if test $with_gtk4 = "yes"; then
+         DW_DIR=gtk4
+         GTK_PACKAGES="gtk4"
          GTK_LIBS=`$PKG_CFG --silence-errors --libs $GTK_PACKAGES`
       fi
       WEBKIT_PKG="webkit2gtk-4.0"
@@ -216,7 +229,6 @@ if test $build_gtk = "yes"; then
          GTK_PACKAGES="gtk+-3.0"
          GTK_LIBS=`$PKG_CFG --silence-errors --libs $GTK_PACKAGES`
       else
-         DW_DIR=gtk
          WEBKIT_PKG="webkit-1.1"
       fi
       # test for webkit2gtk or webkitgtk packages
