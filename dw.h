@@ -982,12 +982,14 @@ typedef struct _box {
 /* GTK Specific section */
 #define _GNU_SOURCE
 #include <gtk/gtk.h>
+#if GTK_MAJOR_VERSION < 4
 #ifdef GDK_WINDOWING_X11
 # include <gdk/gdkx.h>
 #else
 # include <gdk/gdk.h>
 #endif
 #include <gdk/gdkprivate.h>
+#endif
 #include <gdk/gdkkeysyms.h>
 #include <pthread.h>
 #if !defined(GDK_WINDOWING_WIN32)
