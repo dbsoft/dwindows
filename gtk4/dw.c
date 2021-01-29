@@ -141,6 +141,7 @@ static void _dw_signal_disconnect(gpointer data, GClosure *closure);
 
 GObject *_DWObject = NULL;
 GApplication *_DWApp = NULL;
+GMainLoop *_DWMainLoop = NULL;
 static char _dw_app_id[_DW_APP_ID_SIZE+1] = { 0 };
 char *_DWDefaultFont = NULL;
 static char _dw_share_path[PATH_MAX+1] = { 0 };
@@ -1066,6 +1067,9 @@ int dw_init(int newthread, int argc, char *argv[])
       _dw_share_path[0] = '/';
 
    gtk_init();
+   
+   _DWMainLoop = g_main_loop_new(NULL, FALSE);
+   g_main_loop_ref(_DWMainLoop);
 
    pthread_key_create(&_dw_fg_color_key, NULL);
    pthread_key_create(&_dw_bg_color_key, NULL);
@@ -1104,7 +1108,7 @@ int dw_init(int newthread, int argc, char *argv[])
  */
 void API dw_main(void)
 {
-   gtk_main();
+   g_main_loop_run(_DWMainLoop);
 }
 
 /*
@@ -1112,7 +1116,7 @@ void API dw_main(void)
  */
 void API dw_main_quit(void)
 {
-   gtk_main_quit();
+   g_main_loop_quit(_DWMainLoop);
 }
 
 /*
@@ -1137,8 +1141,8 @@ void API dw_main_sleep(int milliseconds)
       {
          if(orig == (pthread_t)-1)
             _dw_thread = curr;
-         if(curr == _dw_thread && gtk_events_pending())
-            gtk_main_iteration();
+         if(curr == _dw_thread && g_main_context_pending(NULL))
+            g_main_context_iteration(NULL, FALSE);
          else
             _dw_msleep(1);
          if(orig == (pthread_t)-1)
@@ -1160,8 +1164,8 @@ void API dw_main_iteration(void)
 
    if(_dw_thread == (pthread_t)-1)
       _dw_thread = curr;
-   if(curr == _dw_thread && gtk_events_pending())
-      gtk_main_iteration();
+   if(curr == _dw_thread && g_main_context_pending(NULL))
+      g_main_context_iteration(NULL, FALSE);
    else
       sched_yield();
    if(orig == (pthread_t)-1)
@@ -1211,7 +1215,7 @@ int dw_dialog_dismiss(DWDialog *dialog, void *result)
 {
    dialog->result = result;
    if(dialog->method)
-      gtk_main_quit();
+      g_main_loop_quit(_DWMainLoop);
    else
       dw_event_post(dialog->eve);
    dialog->done = TRUE;
@@ -1227,34 +1231,19 @@ int dw_dialog_dismiss(DWDialog *dialog, void *result)
 void *dw_dialog_wait(DWDialog *dialog)
 {
    void *tmp;
-   int newprocess = 0;
 
    if(!dialog)
       return NULL;
 
-   /* _dw_thread will be -1 if dw_main hasn't been run yet. */
-   if(_dw_thread == (pthread_t)-1)
-   {
-      _dw_thread = pthread_self();
-      newprocess = 1;
-      _dw_gdk_threads_enter();
-   }
-
    if(pthread_self() == _dw_thread)
    {
       dialog->method = TRUE;
-      gtk_main();
+      g_main_loop_run(_DWMainLoop);
    }
    else
    {
       dialog->method = FALSE;
       dw_event_wait(dialog->eve, -1);
-   }
-
-   if(newprocess)
-   {
-      _dw_thread = (pthread_t)-1;
-      _dw_gdk_threads_leave();
    }
 
    dw_event_close(&dialog->eve);
@@ -1323,7 +1312,8 @@ int dw_messagebox(const char *title, int flags, const char *format, ...)
    if(flags & DW_MB_YESNOCANCEL)
       gtk_dialog_add_button(GTK_DIALOG(dialog), "Cancel", GTK_RESPONSE_CANCEL);
    response = gtk_dialog_run(GTK_DIALOG(dialog));
-   gtk_widget_destroy(dialog);
+   if(GTK_IS_WINDOW(dialog))
+      gtk_window_destroy(GTK_WINDOW(dialog));
    switch(response)
    {
       case GTK_RESPONSE_OK:
@@ -1356,7 +1346,7 @@ int dw_window_minimize(HWND handle)
    if(!handle)
       return 0;
 
-   gtk_window_iconify( GTK_WINDOW(handle) );
+   gtk_window_minimize(GTK_WINDOW(handle));
    return 0;
 }
 
@@ -1367,11 +1357,8 @@ int dw_window_minimize(HWND handle)
  */
 int dw_window_raise(HWND handle)
 {
-   if(!handle)
-      return 0;
-
-   gdk_window_raise(gtk_widget_get_window(GTK_WIDGET(handle)));
-   return 0;
+   /* TODO: See if this is possible in GTK4 */
+   return DW_ERROR_UNKNOWN;
 }
 
 /*
@@ -1381,11 +1368,8 @@ int dw_window_raise(HWND handle)
  */
 int dw_window_lower(HWND handle)
 {
-   if(!handle)
-      return 0;
-
-   gdk_window_lower(gtk_widget_get_window(GTK_WIDGET(handle)));
-   return 0;
+   /* TODO: See if this is possible in GTK4 */
+   return DW_ERROR_UNKNOWN;
 }
 
 /*
@@ -1395,46 +1379,16 @@ int dw_window_lower(HWND handle)
  */
 int dw_window_show(HWND handle)
 {
-   GtkWidget *defaultitem;
-
    if (!handle)
       return 0;
 
-   gtk_widget_show(handle);
+   if(GTK_IS_WIDGET(handle))
+      gtk_widget_show(handle);
+   if(GTK_IS_WINDOW(handle))
    {
-      GdkWindow *window = gtk_widget_get_window(GTK_WIDGET(handle));
-      if (window && gtk_widget_get_mapped(handle))
-      {
-         int width = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(handle), "_dw_width"));
-         int height = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(handle), "_dw_height"));
+      GtkWidget *defaultitem;
 
-         /* If we had a size request before shown */
-         if (width || height)
-         {
-            /* Call the size function again now that we are realized */
-            dw_window_set_size(handle, width, height);
-            /* Clear out the data so we don't do it again */
-            g_object_set_data(G_OBJECT(handle), "_dw_width", NULL);
-            g_object_set_data(G_OBJECT(handle), "_dw_height", NULL);
-         }
-
-         /* If we had a position request before shown */
-         if (g_object_get_data(G_OBJECT(handle), "_dw_pos"))
-         {
-            int x = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(handle), "_dw_x"));
-            int y = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(handle), "_dw_y"));
-
-            /* Call the position function again now that we are realized */
-            dw_window_set_pos(handle, x, y);
-            /* Clear out the data so we don't do it again */
-            g_object_set_data(G_OBJECT(handle), "_dw_pos", NULL);
-         }
-
-         gdk_window_raise(window);
-         gdk_display_flush(gdk_display_get_default());
-         gdk_window_show(window);
-         gdk_display_flush(gdk_display_get_default());
-      }
+      gtk_window_unminimize(GTK_WINDOW(handle));
       defaultitem = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_defaultitem");
       if (defaultitem)
          gtk_widget_grab_focus(defaultitem);
@@ -1466,7 +1420,9 @@ int dw_window_destroy(HWND handle)
    if(!handle)
       return 0;
 
-   if(GTK_IS_WIDGET(handle))
+   if(GTK_IS_WINDOW(handle))
+      gtk_window_destroy(GTK_WINDOW(handle));
+   else if(GTK_IS_WIDGET(handle))
    {
       GtkWidget *box, *handle2 = handle;
       GtkWidget *eventbox = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_eventbox");
@@ -1518,7 +1474,7 @@ int dw_window_destroy(HWND handle)
        * a valid widget if it got removed from the grid.
        */
       if(GTK_IS_WIDGET(handle2))
-         gtk_widget_destroy(handle2);
+         g_object_unref(G_OBJECT(handle2));
    }
    return 0;
 }
@@ -1539,7 +1495,8 @@ void dw_window_redraw(HWND handle)
  */
 void dw_window_reparent(HWND handle, HWND newparent)
 {
-   gdk_window_reparent(gtk_widget_get_window(GTK_WIDGET(handle)), newparent ? gtk_widget_get_window(GTK_WIDGET(newparent)) : gdk_get_default_root_window(), 0, 0);
+   if(GTK_IS_WIDGET(handle) && GTK_IS_WIDGET(newparent))
+      gtk_widget_set_parent(GTK_WIDGET(handle), GTK_WIDGET(newparent));
 }
 
 /*
@@ -1567,10 +1524,8 @@ char *_convert_font(const char *font)
    if(font)
    {
       char *name = strchr(font, '.');
-#if GTK_CHECK_VERSION(3,20,0)
       char *Italic = strstr(font, " Italic");
       char *Bold = strstr(font, " Bold");
-#endif
       
       /* Detect Dynamic Windows style font name...
        * Format: ##.Fontname
@@ -1579,7 +1534,6 @@ char *_convert_font(const char *font)
       if(name && (name++) && isdigit(*font))
       {
           int size = atoi(font);
-#if GTK_CHECK_VERSION(3,20,0)
           int len = (Italic ? (Bold ? (Italic > Bold ? (Bold - name) : (Italic - name)) : (Italic - name)) : (Bold ? (Bold - name) : strlen(name)));
           char *newname = alloca(len+1);
           
@@ -1588,9 +1542,6 @@ char *_convert_font(const char *font)
           
           newfont = g_strdup_printf("%s normal %s %dpx \"%s\"", Italic ? "italic" : "normal",
                                     Bold ? "bold" : "normal", size, newname);
-#else
-          newfont = g_strdup_printf("%s %d", name, size);
-#endif
       }
    }
    return newfont;
@@ -1619,7 +1570,7 @@ static void _dw_override_color(GtkWidget *widget, const char *element, GdkRGBA *
       
       provider = gtk_css_provider_new();
       g_free(scolor);
-      gtk_css_provider_load_from_data(provider, css, -1, NULL);
+      gtk_css_provider_load_from_data(provider, css, -1);
       g_free(css);
       gtk_style_context_add_provider(scontext, GTK_STYLE_PROVIDER(provider), GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
    }
@@ -1646,7 +1597,7 @@ static void _dw_override_font(GtkWidget *widget, const char *font)
       gchar *css = g_strdup_printf ("* { font: %s; }", font);
       
       provider = gtk_css_provider_new();
-      gtk_css_provider_load_from_data(provider, css, -1, NULL);
+      gtk_css_provider_load_from_data(provider, css, -1);
       g_free(css);
       gtk_style_context_add_provider(scontext, GTK_STYLE_PROVIDER(provider), GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
    }
@@ -1678,9 +1629,15 @@ int dw_window_set_font(HWND handle, const char *fontname)
       if(tmp)
          handle2 = tmp;
    }
-   else if(GTK_IS_COMBO_BOX(handle) || GTK_IS_BUTTON(handle))
+   else if(GTK_IS_COMBO_BOX(handle))
    {
-      GtkWidget *tmp = gtk_bin_get_child(GTK_BIN(handle));
+      GtkWidget *tmp = gtk_combo_box_get_child(GTK_COMBO_BOX(handle));
+      if(tmp)
+         handle2 = tmp;
+   }
+   else if(GTK_IS_BUTTON(handle))
+   {
+      GtkWidget *tmp = gtk_button_get_child(GTK_BUTTON(handle));
       if(tmp)
          handle2 = tmp;
    }
@@ -1759,7 +1716,7 @@ char * API dw_font_choose(const char *currfont)
          g_free(fontname);
       }
    }
-   gtk_widget_destroy(GTK_WIDGET(fd));
+   g_object_unref(G_OBJECT(fd));
    return retfont;
 }
 
@@ -1935,12 +1892,6 @@ int dw_window_set_border(HWND handle, int border)
    return 0;
 }
 
-#if GTK_CHECK_VERSION(3,20,0)
-static GdkSeat *_dw_grab_seat = NULL;
-#else
-static GdkDeviceManager *_dw_grab_manager = NULL;
-#endif
-
 /*
  * Captures the mouse input to this window.
  * Parameters:
@@ -1948,11 +1899,7 @@ static GdkDeviceManager *_dw_grab_manager = NULL;
  */
 void dw_window_capture(HWND handle)
 {
-   _dw_grab_seat = gdk_display_get_default_seat(gtk_widget_get_display(handle));
-   gdk_seat_grab (_dw_grab_seat,
-                  gtk_widget_get_window(handle),
-                  GDK_SEAT_CAPABILITY_ALL_POINTING,
-                  FALSE, NULL, NULL, NULL, NULL);
+   /* TODO: See if this is possible in GTK4 */
 }
 
 /*
@@ -1963,21 +1910,21 @@ void dw_window_capture(HWND handle)
  */
 void dw_window_set_pointer(HWND handle, int pointertype)
 {
-   GdkCursor *cursor;
-
    if(pointertype > 65535)
    {
-      GdkPixbuf  *pixbuf = _find_pixbuf(GINT_TO_POINTER(pointertype), NULL, NULL);
-      cursor = gdk_cursor_new_from_pixbuf(gdk_display_get_default(), pixbuf, 8, 8);
+      GdkPixbuf *pixbuf = _find_pixbuf(GINT_TO_POINTER(pointertype), NULL, NULL);
+      GdkCursor *cursor = gdk_cursor_new_from_texture(gdk_texture_new_for_pixbuf(pixbuf), 0, 0, NULL);
+      if(cursor)
+         gtk_widget_set_cursor(GTK_WIDGET(handle), cursor);
    }
-   else if(!pointertype)
-      cursor = NULL;
+   if(pointertype == DW_POINTER_ARROW)
+      gtk_widget_set_cursor_from_name(GTK_WIDGET(handle), "default");
+   else if(pointertype == DW_POINTER_CLOCK)
+      gtk_widget_set_cursor_from_name(GTK_WIDGET(handle), "wait");
+   else if(pointertype == DW_POINTER_QUESTION)
+      gtk_widget_set_cursor_from_name(GTK_WIDGET(handle), "help");
    else
-      cursor = gdk_cursor_new_for_display(gdk_display_get_default(), pointertype);
-   if(handle && gtk_widget_get_window(handle))
-      gdk_window_set_cursor(gtk_widget_get_window(handle), cursor);
-   if(cursor)
-      g_object_unref(cursor);
+      gtk_widget_set_cursor(GTK_WIDGET(handle), NULL);
 }
 
 /*
@@ -1985,9 +1932,7 @@ void dw_window_set_pointer(HWND handle, int pointertype)
  */
 void dw_window_release(void)
 {
-   if(_dw_grab_seat)
-      gdk_seat_ungrab(_dw_grab_seat);
-   _dw_grab_seat = NULL;
+   /* TODO: See if this is possible in GTK4 */
 }
 
 /*
@@ -2006,26 +1951,14 @@ HWND dw_window_new(HWND hwndOwner, const char *title, unsigned long flStyle)
       GtkWidget *box = dw_box_new(DW_VERT, 0);
       GtkWidget *grid = gtk_grid_new();
 
-      gtk_widget_show_all(grid);
+      gtk_widget_show(grid);
 
-      last_window = tmp = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+      last_window = tmp = gtk_window_new();
 
       gtk_window_set_title(GTK_WINDOW(tmp), title);
       gtk_window_set_resizable(GTK_WINDOW(tmp), (flStyle & DW_FCF_SIZEBORDER) ? TRUE : FALSE);
 
       gtk_widget_realize(tmp);
-
-      if(flStyle & DW_FCF_TITLEBAR)
-         flags |= GDK_DECOR_TITLE;
-
-      if(flStyle & DW_FCF_MINMAX)
-         flags |= GDK_DECOR_MINIMIZE | GDK_DECOR_MAXIMIZE;
-
-      if(flStyle & DW_FCF_SIZEBORDER)
-         flags |= GDK_DECOR_RESIZEH | GDK_DECOR_BORDER;
-
-      if(flStyle & (DW_FCF_BORDER | DW_FCF_DLGBORDER))
-         flags |= GDK_DECOR_BORDER;
 
       if(flStyle & DW_FCF_FULLSCREEN)
          gtk_window_fullscreen(GTK_WINDOW(tmp));
@@ -2035,27 +1968,22 @@ HWND dw_window_new(HWND hwndOwner, const char *title, unsigned long flStyle)
             gtk_window_maximize(GTK_WINDOW(tmp));
 
          if(flStyle & DW_FCF_MINIMIZE)
-            gtk_window_iconify(GTK_WINDOW(tmp));
+            gtk_window_minimize(GTK_WINDOW(tmp));
       }
 
       /* Either the CLOSEBUTTON or SYSMENU flags should make it deletable */
       gtk_window_set_deletable(GTK_WINDOW(tmp), (flStyle & (DW_FCF_CLOSEBUTTON | DW_FCF_SYSMENU)) ? TRUE : FALSE);
 
-      gdk_window_set_decorations(gtk_widget_get_window(tmp), flags);
       if(!flags)
          gtk_window_set_decorated(GTK_WINDOW(tmp), FALSE);
-
-      if(hwndOwner)
-         gdk_window_reparent(gtk_widget_get_window(GTK_WIDGET(tmp)), gtk_widget_get_window(GTK_WIDGET(hwndOwner)), 0, 0);
 
       if(flStyle & DW_FCF_SIZEBORDER)
          g_object_set_data(G_OBJECT(tmp), "_dw_size", GINT_TO_POINTER(1));
 
       gtk_grid_attach(GTK_GRID(grid), box, 0, 1, 1, 1);
-      gtk_container_add(GTK_CONTAINER(tmp), grid);
+      gtk_window_set_child(GTK_WINDOW(tmp), grid);
       g_object_set_data(G_OBJECT(tmp), "_dw_boxhandle", (gpointer)box);
       g_object_set_data(G_OBJECT(tmp), "_dw_grid", (gpointer)grid);
-      gtk_widget_add_events(GTK_WIDGET(tmp), GDK_PROPERTY_CHANGE_MASK);
    }
    g_object_set_data(G_OBJECT(tmp), "_dw_style", GINT_TO_POINTER(flStyle));
    return tmp;
@@ -2069,13 +1997,9 @@ HWND dw_window_new(HWND hwndOwner, const char *title, unsigned long flStyle)
  */
 HWND dw_box_new(int type, int pad)
 {
-   GtkWidget *tmp, *eventbox;
+   GtkWidget *tmp;
 
    tmp = gtk_grid_new();
-   eventbox = gtk_event_box_new();
-
-   gtk_widget_show(eventbox);
-   g_object_set_data(G_OBJECT(tmp), "_dw_eventbox", (gpointer)eventbox);
    g_object_set_data(G_OBJECT(tmp), "_dw_boxtype", GINT_TO_POINTER(type));
    g_object_set_data(G_OBJECT(tmp), "_dw_boxpad", GINT_TO_POINTER(pad));
    gtk_widget_show(tmp);
@@ -2088,23 +2012,20 @@ HWND dw_box_new(int type, int pad)
  *       type: Either DW_VERT (vertical) or DW_HORZ (horizontal).
  *       pad: Number of pixels to pad around the box.
  */
-HWND dw_scrollbox_new( int type, int pad )
+HWND dw_scrollbox_new(int type, int pad)
 {
-   GtkWidget *tmp, *box, *eventbox;
+   GtkWidget *tmp, *box;
 
-   tmp = gtk_scrolled_window_new(NULL, NULL);
-   gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW (tmp), GTK_POLICY_AUTOMATIC, GTK_POLICY_ALWAYS);
+   tmp = gtk_scrolled_window_new();
+   gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(tmp), GTK_POLICY_AUTOMATIC, GTK_POLICY_ALWAYS);
 
    box = gtk_grid_new();
-   eventbox = gtk_event_box_new();
 
-   gtk_widget_show(eventbox);
-   g_object_set_data(G_OBJECT(box), "_dw_eventbox", (gpointer)eventbox);
    g_object_set_data(G_OBJECT(box), "_dw_boxtype", GINT_TO_POINTER(type));
    g_object_set_data(G_OBJECT(box), "_dw_boxpad", GINT_TO_POINTER(pad));
    g_object_set_data(G_OBJECT(tmp), "_dw_boxhandle", (gpointer)box);
 
-   gtk_container_add(GTK_CONTAINER(tmp), box);
+   gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(tmp), box);
    g_object_set_data(G_OBJECT(tmp), "_dw_user", box);
    gtk_widget_show(box);
    gtk_widget_show(tmp);
@@ -2172,15 +2093,14 @@ HWND dw_groupbox_new(int type, int pad, const char *title)
    GtkWidget *tmp, *frame;
 
    frame = gtk_frame_new(NULL);
-   gtk_frame_set_shadow_type(GTK_FRAME(frame), GTK_SHADOW_ETCHED_IN);
    gtk_frame_set_label(GTK_FRAME(frame), title && *title ? title : NULL);
 
    tmp = gtk_grid_new();
-   gtk_container_set_border_width(GTK_CONTAINER(tmp), pad);
+   /* TODO: Fix this! gtk_container_set_border_width(GTK_CONTAINER(tmp), pad); */
    g_object_set_data(G_OBJECT(tmp), "_dw_boxtype", GINT_TO_POINTER(type));
    g_object_set_data(G_OBJECT(tmp), "_dw_boxpad", GINT_TO_POINTER(pad));
    g_object_set_data(G_OBJECT(frame), "_dw_boxhandle", (gpointer)tmp);
-   gtk_container_add(GTK_CONTAINER(frame), tmp);
+   gtk_frame_set_child(GTK_FRAME(frame), tmp);
    gtk_widget_show(tmp);
    gtk_widget_show(frame);
    if(_DWDefaultFont)
@@ -2233,14 +2153,11 @@ HWND dw_notebook_new(unsigned long id, int top)
  */
 HMENUI dw_menu_new(unsigned long id)
 {
-   GtkAccelGroup *accel_group;
    HMENUI tmp;
 
    tmp = gtk_menu_new();
    gtk_widget_show(tmp);
-   accel_group = gtk_accel_group_new();
    g_object_set_data(G_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(id));
-   g_object_set_data(G_OBJECT(tmp), "_dw_accel", (gpointer)accel_group);
    return tmp;
 }
 
@@ -2253,7 +2170,6 @@ HMENUI dw_menu_new(unsigned long id)
  */
 HMENUI dw_menubar_new(HWND location)
 {
-   GtkAccelGroup *accel_group;
    GtkWidget *box;
    HMENUI tmp = 0;
 
@@ -2262,13 +2178,11 @@ HMENUI dw_menubar_new(HWND location)
    {
       /* If there is an existing menu bar, remove it */
       GtkWidget *oldmenu = (GtkWidget *)g_object_get_data(G_OBJECT(location), "_dw_menubar");
-      if(oldmenu)
-         gtk_widget_destroy(oldmenu);
+      if(oldmenu && GTK_IS_WIDGET(oldmenu))
+         g_object_unref(G_OBJECT(oldmenu));
       /* Create a new menu bar */
       tmp = gtk_menu_bar_new();
       gtk_widget_show(tmp);
-      accel_group = gtk_accel_group_new();
-      g_object_set_data(G_OBJECT(tmp), "_dw_accel", (gpointer)accel_group);
       /* Save pointers to each other */
       g_object_set_data(G_OBJECT(location), "_dw_menubar", (gpointer)tmp);
       g_object_set_data(G_OBJECT(tmp), "_dw_window", (gpointer)location);
@@ -2293,7 +2207,8 @@ void dw_menu_destroy(HMENUI *menu)
          (window = (GtkWidget *)g_object_get_data(G_OBJECT(*menu), "_dw_window")))
             g_object_set_data(G_OBJECT(window), "_dw_menubar", NULL);
       /* Actually destroy the menu */
-      gtk_widget_destroy(*menu);
+      if(GTK_IS_WIDGET(*menu))
+         g_object_unref(G_OBJECT(*menu));
       *menu = NULL;
    }
 }
@@ -2542,7 +2457,8 @@ int API dw_menu_delete_item(HMENUI menu, unsigned long id)
 
    if(tmphandle)
    {
-      gtk_widget_destroy(tmphandle);
+      if(GTK_IS_WIDGET(tmphandle))
+         g_object_unref(G_OBJECT(tmphandle));
       g_object_set_data(G_OBJECT(menu), numbuf, NULL);
       ret = DW_ERROR_NONE;
    }
@@ -5585,7 +5501,8 @@ unsigned long API dw_color_choose(unsigned long value)
       gtk_color_chooser_get_rgba(cd, &color);
       retcolor = DW_RGB((int)(color.red * 255), (int)(color.green * 255), (int)(color.blue * 255));
    }
-   gtk_widget_destroy(GTK_WIDGET(cd));
+   if(GTK_IS_WIDGET(cd))
+      g_object_unref(G_OBJECT(cd));
    return retcolor;
 }
 
@@ -6451,17 +6368,7 @@ void dw_mutex_close(HMTX mutex)
  */
 void dw_mutex_lock(HMTX mutex)
 {
-   /* If we are being called from an event handler we must release
-    * the GTK mutex so we don't deadlock.
-    */
-   if(pthread_self() == _dw_thread)
-      _dw_gdk_threads_leave();
-
    pthread_mutex_lock(mutex);
-
-   /* And of course relock it when we have acquired the mutext */
-   if(pthread_self() == _dw_thread)
-      _dw_gdk_threads_enter();
 }
 
 /*
@@ -7150,6 +7057,7 @@ DWTID dw_thread_id(void)
  */
 void dw_shutdown(void)
 {
+   g_main_loop_unref(_DWMainLoop);
 }
 
 /*
@@ -7159,6 +7067,7 @@ void dw_shutdown(void)
  */
 void dw_exit(int exitcode)
 {
+   dw_shutdown();
    exit(exitcode);
 }
 
@@ -7529,8 +7438,8 @@ HWND API dw_box_unpack_at_index(HWND box, int index)
          g_object_set_data(G_OBJECT(box), "_dw_boxcount", GINT_TO_POINTER(boxcount));
       }
       /* If we haven't incremented the reference count... raise it before removal */
-      if(item && g_object_get_data(G_OBJECT(item), "_dw_padding"))
-         gtk_widget_destroy(item);
+      if(item && g_object_get_data(G_OBJECT(item), "_dw_padding") && GTK_IS_WIDGET(item))
+         g_object_unref(G_OBJECT(item));
       else if(item)
       {
          if(!g_object_get_data(G_OBJECT(item), "_dw_refed"))
@@ -7602,95 +7511,6 @@ void API dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, 
     _dw_box_pack(box, item, 0, width, height, hsize, vsize, pad, "dw_box_pack_end()");
 }
 
-
-union extents_union { guchar **gu_extents; unsigned long **extents; };
-static GdkAtom extents_atom = 0;
-static time_t extents_time = 0;
-
-static gboolean _dw_property_notify(GtkWidget *window, GdkEventProperty* event, GdkWindow *gdkwindow)
-{
-   /* Check to see if we got a property change */
-   if(event->state == GDK_PROPERTY_NEW_VALUE && event->atom == extents_atom && event->window == gdkwindow)
-      extents_time = 0;
-   return FALSE;
-}
-
-/* Internal function to figure out the frame extents of an unmapped window */
-void _dw_get_frame_extents(GtkWidget *window, int *vert, int *horz)
-{
-   if(gtk_window_get_decorated(GTK_WINDOW(window)))
-   {
-      const char *request = "_NET_REQUEST_FRAME_EXTENTS";
-      unsigned long *extents = NULL;
-      union extents_union eu;
-      GdkAtom request_extents = gdk_atom_intern(request, FALSE);
-      GdkWindow *gdkwindow = gtk_widget_get_window(window);
-      GdkDisplay *display = gtk_widget_get_display(window);
-
-      if(!extents_atom)
-         extents_atom = gdk_atom_intern("_NET_FRAME_EXTENTS", FALSE);
-
-      /* Set some rational defaults.. just in case */
-      *vert = 28;
-      *horz = 12;
-
-      /* See if the current window manager supports _NET_REQUEST_FRAME_EXTENTS */
-      if(gdk_x11_screen_supports_net_wm_hint(gdk_screen_get_default(), request_extents))
-      {
-         Display *xdisplay = GDK_DISPLAY_XDISPLAY(display);
-         GdkWindow *root_window = gdk_get_default_root_window();
-         Window xroot_window = GDK_WINDOW_XID(root_window);
-         Atom extents_request_atom = gdk_x11_get_xatom_by_name_for_display(display, request);
-         unsigned long window_id = GDK_WINDOW_XID(gdkwindow);
-         XEvent xevent = {0};
-         time_t currtime;
-         gulong connid;
-
-         xevent.xclient.type = ClientMessage;
-         xevent.xclient.message_type = extents_request_atom;
-         xevent.xclient.display = xdisplay;
-         xevent.xclient.window = window_id;
-         xevent.xclient.format = 32;
-
-         /* Send the property request */
-         XSendEvent(xdisplay, xroot_window, False,
-                   (SubstructureRedirectMask | SubstructureNotifyMask),
-                   &xevent);
-
-         /* Connect a signal to look for the property change */
-         connid = g_signal_connect(G_OBJECT(window), "property_notify_event", G_CALLBACK(_dw_property_notify), gdkwindow);
-
-         /* Record the request time */
-         time(&extents_time);
-
-         /* Look for the property notify event */
-         do
-         {
-            dw_main_iteration();
-            time(&currtime);
-         }
-         while(currtime - extents_time < 2);
-
-         /* Remove the signal handler now that we are done */
-         g_signal_handler_disconnect(G_OBJECT(window), connid);
-      }
-
-      /* Attempt to retrieve window's frame extents. */
-      eu.extents = &extents;
-      if(gdk_property_get(gdkwindow,
-                          extents_atom,
-                          gdk_atom_intern("CARDINAL", FALSE),
-                          0, sizeof(unsigned long)*4, FALSE,
-                          NULL, NULL, NULL, eu.gu_extents))
-      {
-         *horz = extents[0] + extents[1];
-         *vert = extents[2] + extents[3];
-      }
-   }
-   else
-      *horz = *vert = 0;
-}
-
 /*
  * Sets the size of a given window (widget).
  * Parameters:
@@ -7704,52 +7524,7 @@ void dw_window_set_size(HWND handle, unsigned long width, unsigned long height)
       return;
 
    if(GTK_IS_WINDOW(handle))
-   {
-      GdkWindow *window = gtk_widget_get_window(handle);
-      int cx = 0, cy = 0;
-
-      /* Window is mapped query the frame size directly */
-      if(window && gtk_widget_get_mapped(handle))
-      {
-         GdkRectangle frame;
-         gint gwidth, gheight;
-
-         /* Calculate the border size */
-         gdk_window_get_frame_extents(window, &frame);
-         gdk_window_get_geometry(window, NULL, NULL, &gwidth, &gheight);
-
-         cx = frame.width - gwidth;
-         if(cx < 0)
-            cx = 0;
-         cy = frame.height - gheight;
-         if(cy < 0)
-            cy = 0;
-      }
-      else
-      {
-         /* Check if we have cached frame size values */
-         if(!((cx = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(handle), "_dw_frame_width"))) |
-              (cy = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(handle), "_dw_frame_height")))))
-         {
-            /* If not try to ask the window manager for the estimated size...
-             * and finally if all else fails, guess.
-             */
-            _dw_get_frame_extents(handle, &cy, &cx);
-            /* Cache values for later use */
-            g_object_set_data(G_OBJECT(handle), "_dw_frame_width", GINT_TO_POINTER(cx));
-            g_object_set_data(G_OBJECT(handle), "_dw_frame_height", GINT_TO_POINTER(cy));
-         }
-         /* Save the size for when it is shown */
-         g_object_set_data(G_OBJECT(handle), "_dw_width", GINT_TO_POINTER(width));
-         g_object_set_data(G_OBJECT(handle), "_dw_height", GINT_TO_POINTER(height));
-      }
-      /* Resize minus the border size */
-      if(width > cx && height > cy)
-      {
-         gtk_window_resize(GTK_WINDOW(handle), width - cx , height - cy );
-         gtk_window_set_default_size(GTK_WINDOW(handle), width - cx, height - cy);
-      }
-   }
+      gtk_window_set_default_size(handle, width, height);
    else
       gtk_widget_set_size_request(handle, width, height);
 }
@@ -9319,7 +9094,8 @@ char *dw_file_browse(const char *title, const char *defpath, const char *ext, in
       /*g_free (filename);*/
    }
 
-   gtk_widget_destroy( filew );
+   if(GTK_IS_WIDGET(filew))
+      g_object_unref(G_OBJECT(filew));
    return filename;
 }
 
@@ -9745,16 +9521,12 @@ char * API dw_app_dir(void)
  */
 int dw_app_id_set(const char *appid, const char *appname)
 {
-#if GLIB_CHECK_VERSION(2,28,0)
    if(g_application_id_is_valid(appid))
    {
       strncpy(_dw_app_id, appid, _DW_APP_ID_SIZE);
       return DW_ERROR_NONE;
    }
    return DW_ERROR_GENERAL;
-#else
-   return DW_ERROR_UNKNOWN;
-#endif
 }
 
 /*
