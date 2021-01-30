@@ -1286,6 +1286,7 @@ int dw_messagebox(const char *title, int flags, const char *format, ...)
    int response;
    va_list args;
    char outbuf[1025] = {0};
+   DWDialog *tmp = dw_dialog_new(NULL);
 
    va_start(args, format);
    vsnprintf(outbuf, 1024, format, args);
@@ -1311,7 +1312,9 @@ int dw_messagebox(const char *title, int flags, const char *format, ...)
    gtk_message_dialog_format_secondary_text(GTK_MESSAGE_DIALOG(dialog), "%s", outbuf);
    if(flags & DW_MB_YESNOCANCEL)
       gtk_dialog_add_button(GTK_DIALOG(dialog), "Cancel", GTK_RESPONSE_CANCEL);
-   response = gtk_dialog_run(GTK_DIALOG(dialog));
+   gtk_widget_show(GTK_WIDGET(dialog));
+   /* TODO: Implement signal handlers so this will return */
+   response = DW_POINTER_TO_INT(dw_dialog_wait(tmp));
    if(GTK_IS_WINDOW(dialog))
       gtk_window_destroy(GTK_WINDOW(dialog));
    switch(response)
@@ -1665,6 +1668,7 @@ char * API dw_font_choose(const char *currfont)
    char *font = currfont ? strdup(currfont) : NULL;
    char *name = font ? strchr(font, '.') : NULL;
    char *retfont = NULL;
+   DWDialog *tmp = dw_dialog_new(NULL);
 
    /* Detect Dynamic Windows style font name...
     * Format: ##.Fontname
@@ -1687,7 +1691,8 @@ char * API dw_font_choose(const char *currfont)
 
    gtk_widget_show(GTK_WIDGET(fd));
 
-   if(gtk_dialog_run(GTK_DIALOG(fd)) == GTK_RESPONSE_OK)
+   /* TODO: Connect signal handlers so this actually returns */
+   if(DW_POINTER_TO_INT(dw_dialog_wait(tmp)) == GTK_RESPONSE_OK)
    {
       char *fontname = gtk_font_chooser_get_font(fd);
       if(fontname && (retfont = strdup(fontname)))
@@ -1716,7 +1721,8 @@ char * API dw_font_choose(const char *currfont)
          g_free(fontname);
       }
    }
-   g_object_unref(G_OBJECT(fd));
+   if(GTK_IS_WINDOW(fd))
+      gtk_window_destroy(GTK_WINDOW(fd));
    return retfont;
 }
 
@@ -2153,11 +2159,13 @@ HWND dw_notebook_new(unsigned long id, int top)
  */
 HMENUI dw_menu_new(unsigned long id)
 {
-   HMENUI tmp;
+   HMENUI tmp = NULL;
 
+#if 0 /* TODO: Implement this with GMenuModel and GtkPopoverMenu */   
    tmp = gtk_menu_new();
    gtk_widget_show(tmp);
    g_object_set_data(G_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(id));
+#endif   
    return tmp;
 }
 
@@ -2170,8 +2178,9 @@ HMENUI dw_menu_new(unsigned long id)
  */
 HMENUI dw_menubar_new(HWND location)
 {
-   GtkWidget *box;
    HMENUI tmp = 0;
+#if 0 /* TODO: Implement this with GMenuModel and GtkPopoverMenu */   
+   GtkWidget *box;
 
    if(GTK_IS_WINDOW(location) &&
       (box = (GtkWidget *)g_object_get_data(G_OBJECT(location), "_dw_grid")))
@@ -2188,6 +2197,7 @@ HMENUI dw_menubar_new(HWND location)
       g_object_set_data(G_OBJECT(tmp), "_dw_window", (gpointer)location);
       gtk_grid_attach(GTK_GRID(box), tmp, 0, 0, 1, 1);
    }
+#endif   
    return tmp;
 }
 
@@ -2198,6 +2208,7 @@ HMENUI dw_menubar_new(HWND location)
  */
 void dw_menu_destroy(HMENUI *menu)
 {
+#if 0 /* TODO: Implement this with GMenuModel and GtkPopoverMenu */   
    if(menu && *menu)
    {
       GtkWidget *window;
@@ -2211,29 +2222,7 @@ void dw_menu_destroy(HMENUI *menu)
          g_object_unref(G_OBJECT(*menu));
       *menu = NULL;
    }
-}
-
-char _removetilde(char *dest, const char *src)
-{
-   int z, cur=0;
-   char accel = '\0';
-
-   for(z=0;z<strlen(src);z++)
-   {
-      if(src[z] != '~')
-      {
-         dest[cur] = src[z];
-         cur++;
-      }
-      else
-      {
-         dest[cur] = '_';
-         accel = src[z+1];
-         cur++;
-      }
-   }
-   dest[cur] = 0;
-   return accel;
+#endif   
 }
 
 /*
@@ -2249,10 +2238,10 @@ char _removetilde(char *dest, const char *src)
  */
 HWND dw_menu_append_item(HMENUI menu, const char *title, unsigned long id, unsigned long flags, int end, int check, HMENUI submenu)
 {
-   GtkWidget *tmphandle;
+   GtkWidget *tmphandle = NULL;
+#if 0 /* TODO: Implement this with GMenuModel and GtkPopoverMenu */   
    char accel, *tempbuf = malloc(strlen(title)+1);
    int submenucount;
-   GtkAccelGroup *accel_group;
 
    if (!menu)
    {
@@ -2262,7 +2251,6 @@ HWND dw_menu_append_item(HMENUI menu, const char *title, unsigned long id, unsig
 
    accel = _removetilde(tempbuf, title);
 
-   accel_group = (GtkAccelGroup *)g_object_get_data(G_OBJECT(menu), "_dw_accel");
    submenucount = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(menu), "_dw_submenucount"));
 
    if (strlen(tempbuf) == 0)
@@ -2274,25 +2262,17 @@ HWND dw_menu_append_item(HMENUI menu, const char *title, unsigned long id, unsig
       if (check)
       {
          tmphandle = gtk_check_menu_item_new_with_label(tempbuf);
-         if (accel && accel_group)
-         {
+         if (accel)
             gtk_label_set_use_underline(GTK_LABEL(gtk_bin_get_child(GTK_BIN(tmphandle))), TRUE);
-#if 0 /* TODO: This isn't working right */
-            gtk_widget_add_accelerator(tmphandle, "activate", accel_group, tmp_key, GDK_MOD1_MASK, 0);
-#endif
-         }
          snprintf(numbuf, 24, "%lu", id);
          g_object_set_data(G_OBJECT(menu), numbuf, (gpointer)tmphandle);
       }
       else
       {
          tmphandle=gtk_menu_item_new_with_label(tempbuf);
-         if (accel && accel_group)
+         if (accel)
          {
             gtk_label_set_use_underline(GTK_LABEL(gtk_bin_get_child(GTK_BIN(tmphandle))), TRUE);
-#if 0 /* TODO: This isn't working right */
-            gtk_widget_add_accelerator(tmphandle, "activate", accel_group, tmp_key, GDK_MOD1_MASK, 0);
-#endif
          }
          snprintf(numbuf, 24, "%lu", id);
          g_object_set_data(G_OBJECT(menu), numbuf, (gpointer)tmphandle);
@@ -2331,7 +2311,7 @@ HWND dw_menu_append_item(HMENUI menu, const char *title, unsigned long id, unsig
 
    if ( flags & DW_MIS_DISABLED )
       gtk_widget_set_sensitive( tmphandle, FALSE );
-
+#endif
    return tmphandle;
 }
 
@@ -2369,6 +2349,7 @@ GtkWidget *_find_submenu_id(GtkWidget *start, const char *name)
  */
 void dw_menu_item_set_check(HMENUI menu, unsigned long id, int check)
 {
+#if 0 /* TODO: Implement this with GMenuModel and GtkPopoverMenu */   
    char numbuf[25] = {0};
    GtkWidget *tmphandle;
 
@@ -2385,6 +2366,7 @@ void dw_menu_item_set_check(HMENUI menu, unsigned long id, int check)
          gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(tmphandle), check);
       _dw_ignore_click = 0;
    }
+#endif
 }
 
 /*
@@ -2396,6 +2378,7 @@ void dw_menu_item_set_check(HMENUI menu, unsigned long id, int check)
  */
 void dw_menu_item_set_state(HMENUI menu, unsigned long id, unsigned long state)
 {
+#if 0 /* TODO: Implement this with GMenuModel and GtkPopoverMenu */   
    char numbuf[25] = {0};
    GtkWidget *tmphandle;
    int check;
@@ -2433,6 +2416,7 @@ void dw_menu_item_set_state(HMENUI menu, unsigned long id, unsigned long state)
          _dw_ignore_click = 0;
       }
    }
+#endif   
 }
 
 /*
@@ -2445,9 +2429,10 @@ void dw_menu_item_set_state(HMENUI menu, unsigned long id, unsigned long state)
  */
 int API dw_menu_delete_item(HMENUI menu, unsigned long id)
 {
+   int ret = DW_ERROR_UNKNOWN;
+#if 0 /* TODO: Implement this with GMenuModel and GtkPopoverMenu */   
    char numbuf[25] = {0};
    GtkWidget *tmphandle;
-   int ret = DW_ERROR_UNKNOWN;
 
    if(!menu)
       return ret;
@@ -2462,6 +2447,7 @@ int API dw_menu_delete_item(HMENUI menu, unsigned long id)
       g_object_set_data(G_OBJECT(menu), numbuf, NULL);
       ret = DW_ERROR_NONE;
    }
+#endif   
    return ret;
 }
 
@@ -2478,9 +2464,11 @@ void dw_menu_popup(HMENUI *menu, HWND parent, int x, int y)
    if(!menu || !*menu)
       return;
 
+#if 0 /* TODO: Implement this with GMenuModel and GtkPopoverMenu */   
    popup = parent;
 
    gtk_menu_popup_at_pointer(GTK_MENU(*menu), NULL);
+#endif   
    *menu = NULL;
 }
 
@@ -2493,23 +2481,11 @@ void dw_menu_popup(HMENUI *menu, HWND parent, int x, int y)
  */
 void dw_pointer_query_pos(long *x, long *y)
 {
-   GdkModifierType state = 0;
-   int gx, gy;
-   GdkDisplay *display;
-   GdkDevice *device;
-   GdkSeat *seat;
-
-#ifdef GDK_WINDOWING_X11
-   display = gdk_display_get_default();
-   seat = gdk_display_get_default_seat(display);
-   device = gdk_seat_get_pointer(seat);
-   gdk_window_get_device_position(gdk_x11_window_lookup_for_display(display, GDK_ROOT_WINDOW()),
-                                   device, &gx, &gy, &state);
-#endif
+   /* TODO: See if this is possible in GTK4 */
    if(x)
-      *x = gx;
+      *x = 0;
    if(y)
-      *y = gy;
+      *y = 0;
 }
 
 /*
@@ -2520,16 +2496,7 @@ void dw_pointer_query_pos(long *x, long *y)
  */
 void dw_pointer_set_pos(long x, long y)
 {
-   GdkDisplay *display;
-   GdkDevice *device;
-   GdkSeat *seat;
-
-#ifdef GDK_WINDOWING_X11
-   display = gdk_display_get_default();
-   seat = gdk_display_get_default_seat(display);
-   device = gdk_seat_get_pointer(seat);
-   gdk_device_warp(device, gdk_screen_get_default(), x, y);
-#endif
+   /* TODO: See if this is possible in GTK4 */
 }
 
 #define _DW_TREE_CONTAINER 1
@@ -2540,7 +2507,7 @@ GtkWidget *_tree_create(unsigned long id)
 {
    GtkWidget *tmp;
 
-   tmp = gtk_scrolled_window_new(NULL, NULL);
+   tmp = gtk_scrolled_window_new();
    gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW (tmp),
                GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
 
@@ -2553,11 +2520,7 @@ GtkWidget *_tree_setup(GtkWidget *tmp, GtkTreeModel *store)
 {
    GtkWidget *tree = gtk_tree_view_new_with_model(store);
    gtk_tree_view_set_enable_search(GTK_TREE_VIEW(tree), FALSE);
-#if GTK_CHECK_VERSION(3,8,0)
-   gtk_container_add(GTK_CONTAINER(tmp), tree);
-#else
-   gtk_scrolled_window_add_with_viewport(GTK_SCROLLED_WINDOW(tmp), tree);
-#endif
+   gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(tmp), tree);
    g_object_set_data(G_OBJECT(tmp), "_dw_user", (gpointer)tree);
    return tree;
 }
@@ -2655,9 +2618,8 @@ HWND dw_status_text_new(const char *text, ULONG id)
    GtkWidget *tmp, *frame;
 
    frame = gtk_frame_new(NULL);
-   gtk_frame_set_shadow_type(GTK_FRAME(frame), GTK_SHADOW_ETCHED_IN);
    tmp = gtk_label_new(text);
-   gtk_container_add(GTK_CONTAINER(frame), tmp);
+   gtk_frame_set_child(GTK_FRAME(frame), tmp);
    gtk_widget_show(tmp);
    gtk_widget_show(frame);
 
@@ -2680,12 +2642,11 @@ HWND dw_mle_new(unsigned long id)
 {
    GtkWidget *tmp, *tmpbox;
 
-   tmpbox = gtk_scrolled_window_new (NULL, NULL);
-   gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW(tmpbox),
+   tmpbox = gtk_scrolled_window_new();
+   gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(tmpbox),
                GTK_POLICY_AUTOMATIC, GTK_POLICY_ALWAYS);
-   gtk_scrolled_window_set_shadow_type(GTK_SCROLLED_WINDOW(tmpbox), GTK_SHADOW_ETCHED_IN);
    tmp = gtk_text_view_new();
-   gtk_container_add (GTK_CONTAINER(tmpbox), tmp);
+   gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(tmpbox), tmp);
    gtk_text_view_set_wrap_mode(GTK_TEXT_VIEW(tmp), GTK_WRAP_WORD);
 
    g_object_set_data(G_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(id));
@@ -2706,11 +2667,9 @@ HWND dw_mle_new(unsigned long id)
 HWND dw_entryfield_new(const char *text, unsigned long id)
 {
    GtkWidget *tmp;
+   GtkEntryBuffer *buffer = gtk_entry_buffer_new(text, -1);
 
-   tmp = gtk_entry_new();
-
-   gtk_entry_set_text(GTK_ENTRY(tmp), text);
-   gtk_entry_set_width_chars(GTK_ENTRY(tmp), 0);
+   tmp = gtk_entry_new_with_buffer(buffer);
 
    gtk_widget_show(tmp);
    g_object_set_data(G_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(id));
@@ -2729,12 +2688,11 @@ HWND dw_entryfield_new(const char *text, unsigned long id)
 HWND dw_entryfield_password_new(const char *text, ULONG id)
 {
    GtkWidget *tmp;
+   GtkEntryBuffer *buffer = gtk_entry_buffer_new(text, -1);
 
-   tmp = gtk_entry_new();
+   tmp = gtk_entry_new_with_buffer(buffer);
 
    gtk_entry_set_visibility(GTK_ENTRY(tmp), FALSE);
-   gtk_entry_set_text(GTK_ENTRY(tmp), text);
-   gtk_entry_set_width_chars(GTK_ENTRY(tmp), 0);
 
    gtk_widget_show(tmp);
    g_object_set_data(G_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(id));
@@ -2753,13 +2711,15 @@ HWND dw_entryfield_password_new(const char *text, ULONG id)
 HWND dw_combobox_new(const char *text, unsigned long id)
 {
    GtkWidget *tmp;
+   GtkEntryBuffer *buffer;
    GtkListStore *store;
 
    store = gtk_list_store_new(1, G_TYPE_STRING);
    tmp = gtk_combo_box_new_with_model_and_entry(GTK_TREE_MODEL(store));
    gtk_combo_box_set_entry_text_column(GTK_COMBO_BOX(tmp), 0);
-   gtk_entry_set_text(GTK_ENTRY(gtk_bin_get_child(GTK_BIN(tmp))), text);
-   gtk_entry_set_width_chars(GTK_ENTRY(gtk_bin_get_child(GTK_BIN(tmp))), 0);
+   buffer = gtk_entry_get_buffer(GTK_ENTRY(gtk_combo_box_get_child(GTK_COMBO_BOX(tmp))));
+   gtk_entry_buffer_set_max_length(buffer, 0);
+   gtk_entry_buffer_set_text(buffer, text, -1);
    gtk_widget_show(tmp);
    g_object_set_data(G_OBJECT(tmp), "_dw_tree_type", GINT_TO_POINTER(_DW_TREE_TYPE_COMBOBOX));
    g_object_set_data(G_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(id));
@@ -2803,14 +2763,12 @@ HWND dw_bitmapbutton_new(const char *text, unsigned long id)
    if(bitmap)
    {
       dw_window_set_bitmap(bitmap, id, NULL);
-      gtk_container_add (GTK_CONTAINER(tmp), bitmap);
+      gtk_button_set_child(GTK_BUTTON(tmp), bitmap);
       g_object_set_data(G_OBJECT(tmp), "_dw_bitmap", bitmap);
    }
    gtk_widget_show(tmp);
    if(text)
-   {
       gtk_widget_set_tooltip_text(tmp, text);
-   }
    g_object_set_data(G_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(id));
    return tmp;
 }
@@ -2836,15 +2794,13 @@ HWND dw_bitmapbutton_new_from_file(const char *text, unsigned long id, const cha
    bitmap = dw_bitmap_new(id);
    if(bitmap)
    {
-      dw_window_set_bitmap( bitmap, 0, filename );
-      gtk_container_add (GTK_CONTAINER(tmp), bitmap);
+      dw_window_set_bitmap(bitmap, 0, filename);
+      gtk_button_set_child(GTK_BUTTON(tmp), bitmap);
       g_object_set_data(G_OBJECT(tmp), "_dw_bitmap", bitmap);
    }
    gtk_widget_show(tmp);
    if(text)
-   {
       gtk_widget_set_tooltip_text(tmp, text);
-   }
    g_object_set_data(G_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(id));
    return tmp;
 }
@@ -2869,14 +2825,12 @@ HWND dw_bitmapbutton_new_from_data(const char *text, unsigned long id, const cha
    if(bitmap)
    {
       dw_window_set_bitmap_from_data(bitmap, 0, data, len);
-      gtk_container_add (GTK_CONTAINER(tmp), bitmap);
+      gtk_button_set_child(GTK_BUTTON(tmp), bitmap);
       g_object_set_data(G_OBJECT(tmp), "_dw_bitmap", bitmap);
    }
    gtk_widget_show(tmp);
    if(text)
-   {
       gtk_widget_set_tooltip_text(tmp, text);
-   }
    g_object_set_data(G_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(id));
    return tmp;
 }
@@ -2892,8 +2846,8 @@ HWND dw_spinbutton_new(const char *text, unsigned long id)
    GtkAdjustment *adj;
    GtkWidget *tmp;
 
-   adj = (GtkAdjustment *)gtk_adjustment_new ((float)atoi(text), -65536.0, 65536.0, 1.0, 5.0, 0.0);
-   tmp = gtk_spin_button_new (adj, 0, 0);
+   adj = (GtkAdjustment *)gtk_adjustment_new((float)atoi(text), -65536.0, 65536.0, 1.0, 5.0, 0.0);
+   tmp = gtk_spin_button_new(adj, 0, 0);
    gtk_spin_button_set_numeric(GTK_SPIN_BUTTON(tmp), TRUE);
    gtk_spin_button_set_wrap(GTK_SPIN_BUTTON(tmp), TRUE);
    gtk_widget_show(tmp);
@@ -2913,10 +2867,7 @@ HWND dw_spinbutton_new(const char *text, unsigned long id)
  */
 HWND dw_radiobutton_new(const char *text, ULONG id)
 {
-   /* This will have to be fixed in the future. */
-   GtkWidget *tmp;
-
-   tmp = gtk_radio_button_new_with_label(NULL, text);
+   GtkWidget *tmp = gtk_toggle_button_new_with_label(text);
    g_object_set_data(G_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(id));
    gtk_widget_show(tmp);
 
@@ -3056,16 +3007,17 @@ HWND dw_listbox_new(unsigned long id, int multi)
  */
 void dw_window_set_icon(HWND handle, HICN icon)
 {
+   /* TODO: figure out how to do this for GTK4 */
+#if GTK3
    GdkPixbuf *icon_pixbuf;
 
    icon_pixbuf = _find_pixbuf(icon, NULL, NULL);
 
-   if(gtk_widget_get_window(handle) && icon_pixbuf)
+   if(icon_pixbuf)
    {
-      GList *list = g_list_append(NULL, icon_pixbuf);
-      gdk_window_set_icon_list(gtk_widget_get_window(handle), list);
-      g_list_free(list);
+      gtk_window_set_icon_name(
    }
+#endif   
 }
 
 /*
@@ -3200,21 +3152,24 @@ void dw_window_set_bitmap_from_data(HWND handle, unsigned long id, const char *d
  */
 void dw_window_set_text(HWND handle, const char *text)
 {
-   GtkWidget *tmp;
-
-   if((tmp = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_mdi_title")))
-      handle = tmp;
    if(GTK_IS_ENTRY(handle))
-      gtk_entry_set_text(GTK_ENTRY(handle), text);
+   {
+      GtkEntryBuffer *buffer = gtk_entry_get_buffer(GTK_ENTRY(handle));
+      if(buffer)
+         gtk_entry_buffer_set_text(buffer, text, -1);
+   }
    else if(GTK_IS_COMBO_BOX(handle))
-      gtk_entry_set_text(GTK_ENTRY(gtk_bin_get_child(GTK_BIN(handle))), text);
+   {
+      GtkWidget *entry = gtk_combo_box_get_child(GTK_COMBO_BOX(handle));
+      GtkEntryBuffer *buffer = gtk_entry_get_buffer(GTK_ENTRY(entry));
+      if(buffer)
+         gtk_entry_buffer_set_text(buffer, text, -1);
+   }
    else if(GTK_IS_LABEL(handle))
       gtk_label_set_text(GTK_LABEL(handle), text);
    else if(GTK_IS_BUTTON(handle))
-   {
       gtk_button_set_label(GTK_BUTTON(handle), text);
-   }
-   else if(gtk_widget_is_toplevel(handle))
+   else if(GTK_IS_WINDOW(handle))
       gtk_window_set_title(GTK_WINDOW(handle), text);
    else if (GTK_IS_FRAME(handle))
    {
@@ -3222,7 +3177,7 @@ void dw_window_set_text(HWND handle, const char *text)
        * This is a groupbox or status_text
        */
       GtkWidget *tmp = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_label");
-      if ( tmp && GTK_IS_LABEL(tmp) )
+      if (tmp && GTK_IS_LABEL(tmp))
          gtk_label_set_text(GTK_LABEL(tmp), text);
       else /* assume groupbox */
          gtk_frame_set_label(GTK_FRAME(handle), text && *text ? text : NULL);
@@ -3255,9 +3210,16 @@ char *dw_window_get_text(HWND handle)
    const char *possible = NULL;
 
    if(GTK_IS_ENTRY(handle))
-      possible = gtk_entry_get_text(GTK_ENTRY(handle));
+   {
+      GtkEntryBuffer *buffer = gtk_entry_get_buffer(GTK_ENTRY(handle));
+      possible = gtk_entry_buffer_get_text(buffer);
+   }
    else if(GTK_IS_COMBO_BOX(handle))
-      possible = gtk_entry_get_text(GTK_ENTRY(gtk_bin_get_child(GTK_BIN(handle))));
+   {
+      GtkWidget *entry = gtk_combo_box_get_child(GTK_COMBO_BOX(handle));
+      GtkEntryBuffer *buffer = gtk_entry_get_buffer(GTK_ENTRY(entry));
+      possible = gtk_entry_buffer_get_text(buffer);
+   }
    else if(GTK_IS_LABEL(handle))
       possible = gtk_label_get_text(GTK_LABEL(handle));
 
@@ -3292,6 +3254,8 @@ void dw_window_enable(HWND handle)
  */
 HWND API dw_window_from_id(HWND handle, int id)
 {
+   /* TODO: Figure out how to do this in GTK4 without GtkContainer */
+#if GTK3 
    GList *orig = NULL, *list = NULL;
 
    if(handle && GTK_IS_CONTAINER(handle))
@@ -3313,6 +3277,7 @@ HWND API dw_window_from_id(HWND handle, int id)
    }
    if(orig)
       g_list_free(orig);
+#endif      
    return 0L;
 }
 
@@ -5342,22 +5307,6 @@ void dw_container_optimize(HWND handle)
          gtk_tree_view_columns_autosize(GTK_TREE_VIEW(cont));
 }
 
-/* Translate the status message into a message on our buddy window */
-static void _status_translate(GtkStatusIcon *status_icon, guint button, guint activate_time, gpointer user_data)
-{
-   GdkEventButton event = { 0 };
-   long x, y;
-   gboolean retval;
-
-   dw_pointer_query_pos(&x, &y);
-
-   event.button = button;
-   event.x = x;
-   event.y = y;
-
-   g_signal_emit_by_name(G_OBJECT(user_data), "button_press_event", &event, &retval);
-}
-
 /*
  * Inserts an icon into the taskbar.
  * Parameters:
@@ -5367,16 +5316,7 @@ static void _status_translate(GtkStatusIcon *status_icon, guint button, guint ac
  */
 void dw_taskbar_insert(HWND handle, HICN icon, const char *bubbletext)
 {
-   GtkStatusIcon *status;
-   GdkPixbuf *pixbuf;
-
-   pixbuf = _find_pixbuf(icon, NULL, NULL);
-   status = gtk_status_icon_new_from_pixbuf(pixbuf);
-   if(bubbletext)
-      gtk_status_icon_set_tooltip_text(status, bubbletext);
-   g_object_set_data(G_OBJECT(handle), "_dw_taskbar", status);
-   g_signal_connect(G_OBJECT (status), "popup-menu", G_CALLBACK (_status_translate), handle);
-   gtk_status_icon_set_visible(status, TRUE);
+   /* TODO: Removed in GTK4.... no replacement? */
 }
 
 /*
@@ -5387,10 +5327,7 @@ void dw_taskbar_insert(HWND handle, HICN icon, const char *bubbletext)
  */
 void dw_taskbar_delete(HWND handle, HICN icon)
 {
-   GtkStatusIcon *status;
-
-   status = g_object_get_data(G_OBJECT(handle), "_dw_taskbar");
-   g_object_unref(G_OBJECT(status));
+   /* TODO: Removed in GTK4.... no replacement? */
 }
 
 /*
@@ -5405,13 +5342,6 @@ HWND dw_render_new(unsigned long id)
    GtkWidget *tmp;
 
    tmp = gtk_drawing_area_new();
-   gtk_widget_set_events(tmp, GDK_EXPOSURE_MASK
-                    | GDK_LEAVE_NOTIFY_MASK
-                    | GDK_BUTTON_PRESS_MASK
-                    | GDK_BUTTON_RELEASE_MASK
-                    | GDK_KEY_PRESS_MASK
-                    | GDK_POINTER_MOTION_MASK
-                    | GDK_POINTER_MOTION_HINT_MASK);
    g_object_set_data(G_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(id));
    gtk_widget_set_can_focus(tmp, TRUE);
    gtk_widget_show(tmp);
@@ -5489,6 +5419,7 @@ unsigned long API dw_color_choose(unsigned long value)
    GtkColorChooser *cd;
    GdkRGBA color = _internal_color(value);
    unsigned long retcolor = value;
+   DWDialog *tmp = dw_dialog_new(NULL);
 
    cd = (GtkColorChooser *)gtk_color_chooser_dialog_new("Choose color", NULL);
    gtk_color_chooser_set_use_alpha(cd, FALSE);
@@ -5496,13 +5427,13 @@ unsigned long API dw_color_choose(unsigned long value)
 
    gtk_widget_show(GTK_WIDGET(cd));
 
-   if(gtk_dialog_run(GTK_DIALOG(cd)) == GTK_RESPONSE_OK)
+   if(DW_POINTER_TO_INT(dw_dialog_wait(tmp)) == GTK_RESPONSE_OK)
    {
       gtk_color_chooser_get_rgba(cd, &color);
       retcolor = DW_RGB((int)(color.red * 255), (int)(color.green * 255), (int)(color.blue * 255));
    }
-   if(GTK_IS_WIDGET(cd))
-      g_object_unref(G_OBJECT(cd));
+   if(GTK_IS_WINDOW(cd))
+      gtk_window_destroy(GTK_WINDOW(cd));
    return retcolor;
 }
 
@@ -5521,6 +5452,8 @@ void dw_draw_point(HWND handle, HPIXMAP pixmap, int x, int y)
 
    if(handle)
    {
+      /* TODO: Figure out how to do this in GTK4 with no GdkWindow */
+#if GTK3   
       GdkWindow *window = gtk_widget_get_window(handle);
       /* Safety check for non-existant windows */
       if(!window || !GDK_IS_WINDOW(window))
@@ -5528,6 +5461,7 @@ void dw_draw_point(HWND handle, HPIXMAP pixmap, int x, int y)
       clip = gdk_window_get_clip_region(window);
       dc = gdk_window_begin_draw_frame(window, clip);
       cr = gdk_drawing_context_get_cairo_context(dc);
+#endif      
    }
    else if(pixmap)
       cr = cairo_create(pixmap->image);
@@ -5541,13 +5475,18 @@ void dw_draw_point(HWND handle, HPIXMAP pixmap, int x, int y)
       cairo_stroke(cr);
       if(clip)
          cairo_region_destroy(clip);
+      /* TODO: Figure out how to do this in GTK4 with no GdkWindow */
+#if GTK3   
       /* If we are using a drawing context...
        * we don't own the cairo context so don't destroy it.
        */
       if(dc)
          gdk_window_end_draw_frame(gtk_widget_get_window(handle), dc);
       else
-      cairo_destroy(cr);
+#else
+      if(!dc)
+#endif            
+         cairo_destroy(cr);
    }
 }
 
@@ -5568,13 +5507,16 @@ void dw_draw_line(HWND handle, HPIXMAP pixmap, int x1, int y1, int x2, int y2)
 
    if(handle)
    {
-      GdkWindow *window = gtk_widget_get_window(handle);
+       /* TODO: Figure out how to do this in GTK4 with no GdkWindow */
+#if GTK3   
+     GdkWindow *window = gtk_widget_get_window(handle);
       /* Safety check for non-existant windows */
       if(!window || !GDK_IS_WINDOW(window))
          return;
       clip = gdk_window_get_clip_region(window);
       dc = gdk_window_begin_draw_frame(window, clip);
       cr = gdk_drawing_context_get_cairo_context(dc);
+#endif      
    }
    else if(pixmap)
       cr = cairo_create(pixmap->image);
@@ -5589,13 +5531,18 @@ void dw_draw_line(HWND handle, HPIXMAP pixmap, int x1, int y1, int x2, int y2)
       cairo_stroke(cr);
       if(clip)
          cairo_region_destroy(clip);
-      /* If we are using a drawing context...
+       /* TODO: Figure out how to do this in GTK4 with no GdkWindow */
+#if GTK3   
+     /* If we are using a drawing context...
        * we don't own the cairo context so don't destroy it.
        */
       if(dc)
          gdk_window_end_draw_frame(gtk_widget_get_window(handle), dc);
       else
-      cairo_destroy(cr);
+#else
+      if(!dc)
+#endif           
+         cairo_destroy(cr);
    }
 }
 
@@ -5617,6 +5564,8 @@ void dw_draw_polygon(HWND handle, HPIXMAP pixmap, int flags, int npoints, int *x
 
    if(handle)
    {
+      /* TODO: Figure out how to do this in GTK4 with no GdkWindow */
+#if GTK3   
       GdkWindow *window = gtk_widget_get_window(handle);
       /* Safety check for non-existant windows */
       if(!window || !GDK_IS_WINDOW(window))
@@ -5624,6 +5573,7 @@ void dw_draw_polygon(HWND handle, HPIXMAP pixmap, int flags, int npoints, int *x
       clip = gdk_window_get_clip_region(window);
       dc = gdk_window_begin_draw_frame(window, clip);
       cr = gdk_drawing_context_get_cairo_context(dc);
+#endif      
    }
    else if(pixmap)
       cr = cairo_create(pixmap->image);
@@ -5646,13 +5596,18 @@ void dw_draw_polygon(HWND handle, HPIXMAP pixmap, int flags, int npoints, int *x
       cairo_stroke(cr);
       if(clip)
          cairo_region_destroy(clip);
+      /* TODO: Figure out how to do this in GTK4 with no GdkWindow */
+#if GTK3   
       /* If we are using a drawing context...
        * we don't own the cairo context so don't destroy it.
        */
       if(dc)
          gdk_window_end_draw_frame(gtk_widget_get_window(handle), dc);
       else
-      cairo_destroy(cr);
+#else
+      if(!dc)
+#endif            
+         cairo_destroy(cr);
    }
 }
 
@@ -5674,6 +5629,8 @@ void dw_draw_rect(HWND handle, HPIXMAP pixmap, int flags, int x, int y, int widt
 
    if(handle)
    {
+      /* TODO: Figure out how to do this in GTK4 with no GdkWindow */
+#if GTK3   
       GdkWindow *window = gtk_widget_get_window(handle);
       /* Safety check for non-existant windows */
       if(!window || !GDK_IS_WINDOW(window))
@@ -5681,6 +5638,7 @@ void dw_draw_rect(HWND handle, HPIXMAP pixmap, int flags, int x, int y, int widt
       clip = gdk_window_get_clip_region(window);
       dc = gdk_window_begin_draw_frame(window, clip);
       cr = gdk_drawing_context_get_cairo_context(dc);
+#endif      
    }
    else if(pixmap)
       cr = cairo_create(pixmap->image);
@@ -5702,13 +5660,18 @@ void dw_draw_rect(HWND handle, HPIXMAP pixmap, int flags, int x, int y, int widt
       cairo_stroke(cr);
       if(clip)
          cairo_region_destroy(clip);
+      /* TODO: Figure out how to do this in GTK4 with no GdkWindow */
+#if GTK3   
       /* If we are using a drawing context...
        * we don't own the cairo context so don't destroy it.
        */
       if(dc)
          gdk_window_end_draw_frame(gtk_widget_get_window(handle), dc);
       else
-      cairo_destroy(cr);
+#else
+      if(!dc)
+#endif            
+         cairo_destroy(cr);
    }
 }
 
@@ -5733,6 +5696,8 @@ void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yo
 
    if(handle)
    {
+      /* TODO: Figure out how to do this in GTK4 with no GdkWindow */
+#if GTK3   
       GdkWindow *window = gtk_widget_get_window(handle);
       /* Safety check for non-existant windows */
       if(!window || !GDK_IS_WINDOW(window))
@@ -5740,6 +5705,7 @@ void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yo
       clip = gdk_window_get_clip_region(window);
       dc = gdk_window_begin_draw_frame(window, clip);
       cr = gdk_drawing_context_get_cairo_context(dc);
+#endif      
    }
    else if(pixmap)
       cr = cairo_create(pixmap->image);
@@ -5773,13 +5739,18 @@ void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yo
       cairo_stroke(cr);
       if(clip)
          cairo_region_destroy(clip);
+      /* TODO: Figure out how to do this in GTK4 with no GdkWindow */
+#if GTK3   
       /* If we are using a drawing context...
        * we don't own the cairo context so don't destroy it.
        */
       if(dc)
          gdk_window_end_draw_frame(gtk_widget_get_window(handle), dc);
       else
-      cairo_destroy(cr);
+#else
+      if(!dc)
+#endif            
+         cairo_destroy(cr);
    }
 }
 
@@ -5804,6 +5775,8 @@ void dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, const char *text)
 
    if(handle)
    {
+      /* TODO: Figure out how to do this in GTK4 with no GdkWindow */
+#if GTK3   
       GdkWindow *window = gtk_widget_get_window(handle);
       /* Safety check for non-existant windows */
       if(!window || !GDK_IS_WINDOW(window))
@@ -5813,6 +5786,7 @@ void dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, const char *text)
       cr = gdk_drawing_context_get_cairo_context(dc);
       if((tmpname = (char *)g_object_get_data(G_OBJECT(handle), "_dw_fontname")))
          fontname = tmpname;
+#endif         
    }
    else if(pixmap)
    {
@@ -5868,13 +5842,18 @@ void dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, const char *text)
       }
       if(clip)
          cairo_region_destroy(clip);
+      /* TODO: Figure out how to do this in GTK4 with no GdkWindow */
+#if GTK3   
       /* If we are using a drawing context...
        * we don't own the cairo context so don't destroy it.
        */
       if(dc)
          gdk_window_end_draw_frame(gtk_widget_get_window(handle), dc);
       else
-      cairo_destroy(cr);
+#else
+      if(!dc)
+#endif            
+         cairo_destroy(cr);
    }
 }
 
@@ -5915,7 +5894,7 @@ void dw_font_text_extents_get(HWND handle, HPIXMAP pixmap, const char *text, int
    font = pango_font_description_from_string(fontname ? fontname : "monospace 10");
    if(font)
    {
-      PangoContext *context = gdk_pango_context_get();
+      PangoContext *context = pango_context_new();
 
       if(context)
       {
@@ -5940,8 +5919,8 @@ void dw_font_text_extents_get(HWND handle, HPIXMAP pixmap, const char *text, int
       }
       pango_font_description_free(font);
    }
-   if ( free_fontname )
-      free( fontname );
+   if(free_fontname)
+      free(fontname);
 }
 
 /*
@@ -6199,6 +6178,8 @@ int API dw_pixmap_stretch_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest,
 
    if(dest)
    {
+      /* TODO: Figure out how to do this in GTK4 with no GdkWindow */
+#if GTK3   
       GdkWindow *window = gtk_widget_get_window(dest);
       /* Safety check for non-existant windows */
       if(!window || !GDK_IS_WINDOW(window))
@@ -6206,6 +6187,7 @@ int API dw_pixmap_stretch_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest,
       clip = gdk_window_get_clip_region(window);
       dc = gdk_window_begin_draw_frame(window, clip);
       cr = gdk_drawing_context_get_cairo_context(dc);
+#endif      
    }
    else if(destp)
       cr = cairo_create(destp->image);
@@ -6222,7 +6204,10 @@ int API dw_pixmap_stretch_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest,
       }
 
       if(src)
+         ;
+#ifdef GTK3      
          gdk_cairo_set_source_window (cr, gtk_widget_get_window(src), (xdest + xsrc) / xscale, (ydest + ysrc) / yscale);
+#endif         
       else if(srcp)
          cairo_set_source_surface (cr, srcp->image, (xdest + xsrc) / xscale, (ydest + ysrc) / yscale);
 
@@ -6230,12 +6215,17 @@ int API dw_pixmap_stretch_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest,
       cairo_fill(cr);
       if(clip)
          cairo_region_destroy(clip);
+      /* TODO: Figure out how to do this in GTK4 with no GdkWindow */
+#if GTK3   
       /* If we are using a drawing context...
        * we don't own the cairo context so don't destroy it.
        */
       if(dc)
          gdk_window_end_draw_frame(gtk_widget_get_window(dest), dc);
       else
+#else
+      if(!dc)
+#endif            
          cairo_destroy(cr);
       retval = DW_ERROR_NONE;
    }
@@ -7143,8 +7133,8 @@ void _get_scrolled_size(GtkWidget *item, gint *thiswidth, gint *thisheight)
       }
       else
       {
-         gtk_widget_get_preferred_height(GTK_WIDGET(widget), NULL, thisheight);
-         gtk_widget_get_preferred_width(GTK_WIDGET(widget), NULL, thiswidth);
+         gtk_widget_measure(GTK_WIDGET(widget), GTK_ORIENTATION_HORIZONTAL, -1, thiswidth, NULL, NULL, NULL);
+         gtk_widget_measure(GTK_WIDGET(widget), GTK_ORIENTATION_VERTICAL, -1, thisheight, NULL, NULL, NULL);
 
          *thisheight += 20;
          *thiswidth += 20;
@@ -7163,7 +7153,6 @@ void _get_scrolled_size(GtkWidget *item, gint *thiswidth, gint *thisheight)
 /* Internal box packing function called by the other 3 functions */
 void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsize, int vsize, int pad, char *funcname)
 {
-   int warn = FALSE;
    GtkWidget *tmp, *tmpitem, *image = NULL;
 
    if(!box)
@@ -7190,13 +7179,17 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
    {
       item = gtk_label_new("");
       g_object_set_data(G_OBJECT(item), "_dw_padding", GINT_TO_POINTER(1));
-      gtk_widget_show_all(item);
+      gtk_widget_show(item);
    }
    /* Due to GTK3 minimum size limitations, if we are packing a widget
     * with an image, we need to scale the image down to fit the packed size.
     */
    else if((image = g_object_get_data(G_OBJECT(item), "_dw_bitmap")))
    {
+      /* TODO: Figure out how to do this in GTK4 since gtk_image_get_pixbif() is gone...
+       * Might need to save the pixbuf in the window data manually.
+       */
+#if GTK3          
       GdkPixbuf *pixbuf = gtk_image_get_pixbuf(GTK_IMAGE(image));
 
       if(pixbuf)
@@ -7213,6 +7206,7 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
             pixbuf = gdk_pixbuf_scale_simple(pixbuf, pwidth > width ? width : pwidth, pheight > height ? height : pheight, GDK_INTERP_BILINEAR);
          gtk_image_set_from_pixbuf(GTK_IMAGE(image), pixbuf);
       }
+#endif         
    }
 
    /* Check if the item to be packed is a special box */
@@ -7231,25 +7225,11 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
        */
       if(GTK_IS_GRID(item) || (tmpitem && GTK_IS_GRID(tmpitem)))
       {
-         GtkWidget *eventbox = (GtkWidget *)g_object_get_data(G_OBJECT(item), "_dw_eventbox");
-
          /* NOTE: I left in the ability to pack boxes with a size,
           *       this eliminates that by forcing the size to 0.
           */
          height = width = 0;
-
-         if(eventbox)
-         {
-            int boxpad = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(item), "_dw_boxpad"));
-            gtk_container_add(GTK_CONTAINER(eventbox), item);
-            gtk_container_set_border_width(GTK_CONTAINER(eventbox), boxpad);
-            item = eventbox;
-         }
-      }
-      else
-      {
-         /* Only show warning if item is not a box */
-         warn = TRUE;
+         /* TODO: Might need to add "_dw_boxpad" to item here */
       }
 
       /* Do some sanity bounds checking */
@@ -7308,16 +7288,12 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
          else      	
             gtk_widget_set_size_request(item, width, height);
       }
-      if(GTK_IS_RADIO_BUTTON(item))
+      if(GTK_IS_TOGGLE_BUTTON(item))
       {
-         GSList *group;
-         GtkWidget *groupstart = (GtkWidget *)g_object_get_data(G_OBJECT(box), "_dw_group");
+         GtkToggleButton *groupstart = (GtkToggleButton *)g_object_get_data(G_OBJECT(box), "_dw_group");
 
          if(groupstart)
-         {
-            group = gtk_radio_button_get_group(GTK_RADIO_BUTTON(groupstart));
-            gtk_radio_button_set_group(GTK_RADIO_BUTTON(item), group);
-         }
+            gtk_toggle_button_set_group(GTK_TOGGLE_BUTTON(item), groupstart);
          else
             g_object_set_data(G_OBJECT(box), "_dw_group", (gpointer)item);
       }
@@ -7327,14 +7303,6 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
          g_object_unref(G_OBJECT(item));
          g_object_set_data(G_OBJECT(item), "_dw_refed", NULL);
       }
-   }
-
-   if(warn)
-   {
-      if ( width == 0 && hsize == FALSE )
-         dw_messagebox(funcname, DW_MB_OK|DW_MB_ERROR, "Width and expand Horizonal both unset for box: %x item: %x",box,item);
-      if ( height == 0 && vsize == FALSE )
-         dw_messagebox(funcname, DW_MB_OK|DW_MB_ERROR, "Height and expand Vertical both unset for box: %x item: %x",box,item);
    }
 }
 
@@ -7448,7 +7416,7 @@ HWND API dw_box_unpack_at_index(HWND box, int index)
             g_object_set_data(G_OBJECT(item), "_dw_refed", GINT_TO_POINTER(1));
          }
          /* Remove the widget from the box */
-         gtk_container_remove(GTK_CONTAINER(box), item);
+         gtk_grid_remove(GTK_GRID(box), item);
          if(boxtype == DW_VERT)
             gtk_grid_remove_row(GTK_GRID(box), index);
          else
@@ -7524,9 +7492,9 @@ void dw_window_set_size(HWND handle, unsigned long width, unsigned long height)
       return;
 
    if(GTK_IS_WINDOW(handle))
-      gtk_window_set_default_size(handle, width, height);
+      gtk_window_set_default_size(GTK_WINDOW(handle), width, height);
    else
-      gtk_widget_set_size_request(handle, width, height);
+      gtk_widget_set_size_request(GTK_WIDGET(handle), width, height);
 }
 
 /*
@@ -7551,10 +7519,10 @@ void API dw_window_get_preferred_size(HWND handle, int *width, int *height)
    }
    else
    {
-      if(width)
-         gtk_widget_get_preferred_width(handle, NULL, width);
+     if(width)
+         gtk_widget_measure(GTK_WIDGET(handle), GTK_ORIENTATION_HORIZONTAL, -1, width, NULL, NULL, NULL);
       if(height)
-         gtk_widget_get_preferred_height(handle, NULL, height);
+         gtk_widget_measure(GTK_WIDGET(handle), GTK_ORIENTATION_VERTICAL, -1, height, NULL, NULL, NULL);
    }
 }
 
@@ -7565,7 +7533,9 @@ int _dw_screen_width(void)
 
    if(display)
    {
-      GdkMonitor *monitor = gdk_display_get_primary_monitor(display);
+      /* TODO: Verify this is the correct way to do this */
+      GListModel *monitors = gdk_display_get_monitors(display);
+      GdkMonitor *monitor = GDK_MONITOR(g_list_model_get_object(monitors, 0));
 
       if(monitor)
       {
@@ -7592,7 +7562,9 @@ int _dw_screen_height(void)
 
    if(display)
    {
-      GdkMonitor *monitor = gdk_display_get_primary_monitor(display);
+      /* TODO: Verify this is the correct way to do this */
+      GListModel *monitors = gdk_display_get_monitors(display);
+      GdkMonitor *monitor = GDK_MONITOR(g_list_model_get_object(monitors, 0));
 
       if(monitor)
       {
@@ -7615,8 +7587,8 @@ int dw_screen_height(void)
 /* This should return the current color depth */
 unsigned long dw_color_depth_get(void)
 {
-   GdkVisual *vis = gdk_screen_get_system_visual(gdk_screen_get_default());
-   return gdk_visual_get_depth(vis);
+   /* TODO: Make this work on GTK4... with no GdkVisual */
+   return 32;
 }
 
 /*
@@ -7642,127 +7614,9 @@ void API dw_window_set_gravity(HWND handle, int horz, int vert)
  */
 void dw_window_set_pos(HWND handle, long x, long y)
 {
+   /* TODO: Figure out how to do this in GTK4 with no GdkWindow */
    if(!handle)
       return;
-
-   {
-      GdkWindow *window = NULL;
-
-      if(GTK_IS_WINDOW(handle))
-      {
-         GdkWindow *window = gtk_widget_get_window(handle);
-         int horz = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(handle), "_dw_grav_horz"));
-         int vert = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(handle), "_dw_grav_vert"));
-         int cx = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(handle), "_dw_frame_width"));
-         int cy = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(handle), "_dw_frame_height"));
-         int newx = x, newy = y, width = 0, height = 0;
-
-         /* If the window is mapped */
-         if(window && gtk_widget_get_mapped(handle))
-         {
-            /* If we need the width or height... */
-            if(horz || vert)
-            {
-               GdkRectangle frame;
-               int count = 0;
-
-               /* Get the frame size */
-               gdk_window_get_frame_extents(window, &frame);
-
-               /* FIXME: Sometimes we get returned an invalid 200x200
-                * result... so if we get this... try the call a second
-                * time and hope for a better result.
-                */
-               while((frame.width == 200 || frame.width == (200 + cx)) &&
-                     (frame.height == 200 || frame.height == (200 + cy)) && count < 10)
-               {
-                  _dw_msleep(1);
-                  count++;
-                  gdk_window_get_frame_extents(window, &frame);
-               }
-               width = frame.width;
-               height = frame.height;
-            }
-         }
-         else
-         {
-            /* Check if we have cached frame size values */
-            if(!(cx | cy))
-            {
-               /* If not try to ask the window manager for the estimated size...
-                * and finally if all else fails, guess.
-                */
-               _dw_get_frame_extents(handle, &cy, &cx);
-               /* Cache values for later use */
-               g_object_set_data(G_OBJECT(handle), "_dw_frame_width", GINT_TO_POINTER(cx));
-               g_object_set_data(G_OBJECT(handle), "_dw_frame_height", GINT_TO_POINTER(cy));
-            }
-            /* Save the positions for when it is shown */
-            g_object_set_data(G_OBJECT(handle), "_dw_x", GINT_TO_POINTER(x));
-            g_object_set_data(G_OBJECT(handle), "_dw_y", GINT_TO_POINTER(y));
-            g_object_set_data(G_OBJECT(handle), "_dw_pos", GINT_TO_POINTER(1));
-            /* Check to see if there is a pending size request too */
-            width = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(handle), "_dw_width"));
-            height = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(handle), "_dw_height"));
-            if(!width || !height)
-            {
-               /* Ask what GTK is planning on suggesting for the window size */
-               gtk_window_get_size(GTK_WINDOW(handle), !width ? &width : NULL, !height ? &height : NULL);
-            }
-            /* Add the frame size to it */
-            width += cx;
-            height += cy;
-         }
-         /* Do any gravity calculations */
-         if(horz || vert)
-         {
-            /* Handle horizontal center gravity */
-            if((horz & 0xf) == DW_GRAV_CENTER)
-               newx += ((_dw_screen_width() / 2) - (width / 2));
-            /* Handle right gravity */
-            else if((horz & 0xf) == DW_GRAV_RIGHT)
-               newx = _dw_screen_width() - width - x;
-            /* Handle vertical center gravity */
-            if((vert & 0xf) == DW_GRAV_CENTER)
-               newy += ((_dw_screen_height() / 2) - (height / 2));
-            else if((vert & 0xf) == DW_GRAV_BOTTOM)
-               newy = _dw_screen_height() - height - y;
-
-            /* Adjust the values to avoid Gnome bar if requested */
-            if((horz | vert) & DW_GRAV_OBSTACLES)
-            {
-               GdkRectangle rect = { 0, 0, 0, 0 };
-               GdkDisplay *display = gdk_display_get_default();
-
-               if(display)
-               {
-                  GdkMonitor *monitor = gdk_display_get_primary_monitor(display);
-
-                  if(monitor)
-                     gdk_monitor_get_workarea(monitor, &rect);
-               }
-               if(horz & DW_GRAV_OBSTACLES)
-               {
-                  if((horz & 0xf) == DW_GRAV_LEFT)
-                     newx += rect.x;
-                  else if((horz & 0xf) == DW_GRAV_RIGHT)
-                     newx -= _dw_screen_width() - (rect.x + rect.width);
-               }
-               if(vert & DW_GRAV_OBSTACLES)
-               {
-                  if((vert & 0xf) == DW_GRAV_TOP)
-                     newy += rect.y;
-                  else if((vert & 0xf) == DW_GRAV_BOTTOM)
-                     newy -= _dw_screen_height() - (rect.y + rect.height);
-               }
-            }
-         }
-         /* Finally move the window into place */
-         gtk_window_move(GTK_WINDOW(handle), newx, newy);
-      }
-      else if((window = gtk_widget_get_window(handle)))
-         gdk_window_move(window, x, y);
-   }
 }
 
 /*
@@ -7791,46 +7645,18 @@ void dw_window_set_pos_size(HWND handle, long x, long y, unsigned long width, un
  */
 void dw_window_get_pos_size(HWND handle, long *x, long *y, ULONG *width, ULONG *height)
 {
-   gint gx = 0, gy = 0, gwidth = 0, gheight = 0;
-
-   {
-      GdkWindow *window;
-
-      /* Can only query if the window is realized */
-      if(handle && (window = gtk_widget_get_window(handle)))
-      {
-         /* If it is a toplevel window */
-         if(GTK_IS_WINDOW(handle))
-         {
-            if(gtk_widget_get_mapped(handle))
-            {
-               GdkRectangle frame;
-
-               /* Calculate the border rectangle */
-               gdk_window_get_frame_extents(window, &frame);
-               gx = frame.x;
-               gy = frame.y;
-               gwidth = frame.width;
-               gheight = frame.height;
-            }
-         }
-         else
-         {
-            /* Get an individual widget coordinates */
-            gdk_window_get_geometry(window, &gx, &gy, &gwidth, &gheight);
-            gdk_window_get_root_origin(window, &gx, &gy);
-         }
-      }
-   }
-   /* Fill in the requested fields */
-   if(x)
-      *x = gx;
-   if(y)
-      *y = gy;
+   /* TODO: Figure out how to do this in GTK4 with no GdkWindow */
+   if(!handle || !GTK_IS_WIDGET(handle))
+      return;
+      
    if(width)
-      *width = gwidth;
+      *width = (ULONG)gtk_widget_get_width(GTK_WIDGET(handle));
    if(height)
-      *height = gheight;
+      *height = (ULONG)gtk_widget_get_height(GTK_WIDGET(handle));
+   if(x)
+      *x = 0;
+   if(y)
+      *y = 0;
 }
 
 /*
@@ -7860,17 +7686,14 @@ void dw_window_set_style(HWND handle, unsigned long style, unsigned long mask)
    {
         if(mask & DW_BS_NOBORDER)
         {
+            /* TODO: Figure out how to do this in GTK4 with no Shadow or Relief */
             if(style & DW_BS_NOBORDER)
-            {
-                gtk_button_set_relief((GtkButton *)handle, GTK_RELIEF_NONE);
-            }
+               ;
             else
-            {
-                gtk_button_set_relief((GtkButton *)handle, GTK_RELIEF_NORMAL);
-            }
+               ;
         }
    }
-   if ( GTK_IS_LABEL(handle2) )
+   if(GTK_IS_LABEL(handle2))
    {
       gfloat x=DW_LEFT, y=DW_CENTER;
       /* horizontal... */
@@ -7889,10 +7712,12 @@ void dw_window_set_style(HWND handle, unsigned long style, unsigned long mask)
          y = DW_BOTTOM;
       gtk_label_set_xalign(GTK_LABEL(handle2), x);
       gtk_label_set_yalign(GTK_LABEL(handle2), y);
-      if ( style & DW_DT_WORDBREAK )
-         gtk_label_set_line_wrap( GTK_LABEL(handle), TRUE );
+      if(style & DW_DT_WORDBREAK)
+         gtk_label_set_wrap(GTK_LABEL(handle), TRUE);
    }
-   if ( GTK_IS_CHECK_MENU_ITEM(handle2) && (mask & (DW_MIS_CHECKED | DW_MIS_UNCHECKED)) )
+   /* TODO: Convert to GMenuModel */
+#if GTK3   
+   if(GTK_IS_CHECK_MENU_ITEM(handle2) && (mask & (DW_MIS_CHECKED | DW_MIS_UNCHECKED)) 
    {
       int check = 0;
 
@@ -7904,15 +7729,16 @@ void dw_window_set_style(HWND handle, unsigned long style, unsigned long mask)
          gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(handle2), check);
       _dw_ignore_click = 0;
    }
-   if ( (GTK_IS_CHECK_MENU_ITEM(handle2) || GTK_IS_MENU_ITEM(handle2)) && (mask & (DW_MIS_ENABLED | DW_MIS_DISABLED) ))
+   if((GTK_IS_CHECK_MENU_ITEM(handle2) || GTK_IS_MENU_ITEM(handle2)) && (mask & (DW_MIS_ENABLED | DW_MIS_DISABLED)))
    {
       _dw_ignore_click = 1;
       if ( style & DW_MIS_ENABLED )
-         gtk_widget_set_sensitive( handle2, TRUE );
+         gtk_widget_set_sensitive(handle2, TRUE);
       else
-         gtk_widget_set_sensitive( handle2, FALSE );
+         gtk_widget_set_sensitive(handle2, FALSE);
       _dw_ignore_click = 0;
    }
+#endif   
 }
 
 /*
@@ -8113,7 +7939,8 @@ void dw_notebook_pack(HWND handle, unsigned long pageid, HWND page)
    if(GTK_IS_GRID(page))
    {
       pad = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(page), "_dw_boxpad"));
-      gtk_container_set_border_width(GTK_CONTAINER(page), pad);
+      /* TODO: Add padding to page with no GtkContainer in GTK4 */
+      pad = pad;
    }
 
    if(realpage != -1)
@@ -8695,8 +8522,12 @@ HWND dw_splitbar_new(int type, HWND topleft, HWND bottomright, unsigned long id)
    float *percent = malloc(sizeof(float));
 
    tmp = gtk_paned_new(type == DW_HORZ ? GTK_ORIENTATION_HORIZONTAL : GTK_ORIENTATION_VERTICAL);
-   gtk_paned_pack1(GTK_PANED(tmp), topleft, TRUE, FALSE);
-   gtk_paned_pack2(GTK_PANED(tmp), bottomright, TRUE, FALSE);
+   gtk_paned_set_start_child(GTK_PANED(tmp), topleft);
+   gtk_paned_set_resize_start_child(GTK_PANED(tmp), TRUE);
+   gtk_paned_set_shrink_start_child(GTK_PANED(tmp), FALSE);
+   gtk_paned_set_end_child(GTK_PANED(tmp), bottomright);
+   gtk_paned_set_resize_end_child(GTK_PANED(tmp), TRUE);
+   gtk_paned_set_shrink_end_child(GTK_PANED(tmp), FALSE);
    g_object_set_data(G_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(id));
    *percent = 50.0;
    g_object_set_data(G_OBJECT(tmp), "_dw_percent", (gpointer)percent);
@@ -8754,21 +8585,18 @@ float dw_splitbar_get(HWND handle)
  */
 HWND dw_calendar_new(unsigned long id)
 {
-   GtkWidget *tmp;
-   GtkCalendarDisplayOptions flags;
-   time_t now;
-   struct tm *tmdata;
+   GtkWidget *tmp = gtk_calendar_new();
+   GTimeZone *tz = g_time_zone_new_local();
+   GDateTime *now = g_date_time_new_now(tz);
 
-   tmp = gtk_calendar_new();
    gtk_widget_show(tmp);
    g_object_set_data(G_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(id));
    /* select today */
-   flags = GTK_CALENDAR_SHOW_HEADING|GTK_CALENDAR_SHOW_DAY_NAMES;
-   gtk_calendar_set_display_options( GTK_CALENDAR(tmp), flags );
-   now = time( NULL );
-   tmdata = localtime( & now );
-   gtk_calendar_select_month( GTK_CALENDAR(tmp), tmdata->tm_mon, 1900+tmdata->tm_year );
-   gtk_calendar_select_day( GTK_CALENDAR(tmp), tmdata->tm_mday );
+   gtk_calendar_set_show_day_names(GTK_CALENDAR(tmp), TRUE);
+   gtk_calendar_set_show_heading(GTK_CALENDAR(tmp), TRUE);
+   gtk_calendar_select_day(GTK_CALENDAR(tmp), now);
+   g_date_time_unref(now);
+   g_time_zone_unref(tz);
    return tmp;
 }
 
@@ -8782,8 +8610,11 @@ void dw_calendar_set_date(HWND handle, unsigned int year, unsigned int month, un
 {
    if(GTK_IS_CALENDAR(handle))
    {
-      gtk_calendar_select_month(GTK_CALENDAR(handle),month-1,year);
-      gtk_calendar_select_day(GTK_CALENDAR(handle), day);
+      GTimeZone *tz = g_time_zone_new_local();
+      GDateTime *datetime = g_date_time_new(tz, year, month, day, 0, 0, 0);
+      gtk_calendar_select_day(GTK_CALENDAR(handle), datetime);
+      g_date_time_unref(datetime);
+      g_time_zone_unref(tz);
    }
 }
 
@@ -8796,8 +8627,13 @@ void dw_calendar_get_date(HWND handle, unsigned int *year, unsigned int *month, 
 {
    if(GTK_IS_CALENDAR(handle))
    {
-      gtk_calendar_get_date(GTK_CALENDAR(handle),year,month,day);
-      *month = *month + 1;
+      GDateTime *datetime = gtk_calendar_get_date(GTK_CALENDAR(handle));
+      if(year) 
+         *year = g_date_time_get_year(datetime);
+      if(month)
+         *month = g_date_time_get_month(datetime);
+      if(day)
+         *day = g_date_time_get_day_of_month(datetime);
    }
 }
 
@@ -8982,7 +8818,7 @@ char *dw_file_browse(const char *title, const char *defpath, const char *ext, in
    gchar *button;
    char *filename = NULL;
    char buf[1000];
-   char mypath[PATH_MAX+1];
+   DWDialog *tmp = dw_dialog_new(NULL);
 
    switch (flags )
    {
@@ -9011,10 +8847,7 @@ char *dw_file_browse(const char *title, const char *defpath, const char *ext, in
                                          button, GTK_RESPONSE_ACCEPT,
                                          NULL);
 
-   if ( flags == DW_FILE_SAVE )
-      gtk_file_chooser_set_do_overwrite_confirmation( GTK_FILE_CHOOSER( filew ), TRUE );
-
-   if ( ext )
+   if(ext)
    {
       filter1 = gtk_file_filter_new();
       sprintf( buf, "*.%s", ext );
@@ -9028,74 +8861,31 @@ char *dw_file_browse(const char *title, const char *defpath, const char *ext, in
       gtk_file_chooser_add_filter( GTK_FILE_CHOOSER( filew ), filter2 );
    }
 
-   if ( defpath )
+   if(defpath)
    {
-      struct stat buf;
-
-      if ( g_path_is_absolute( defpath ) || !realpath(defpath, mypath))
-      {
-         strcpy( mypath, defpath );
-      }
+      GFile *path = g_file_new_for_path(defpath);
 
       /* See if the path exists */
-      if(stat(mypath, &buf) == 0)
+      if(path)
       {
          /* If the path is a directory... set the current folder */
-         if(buf.st_mode & S_IFDIR)
-            gtk_file_chooser_set_current_folder( GTK_FILE_CHOOSER( filew ), mypath );
-         else if(flags == DW_FILE_SAVE) /* Otherwise set the filename */
-            gtk_file_chooser_set_filename( GTK_FILE_CHOOSER( filew ), mypath );
-         else if(flags == DW_FILE_OPEN)
-            gtk_file_chooser_select_filename( GTK_FILE_CHOOSER( filew), mypath );
-      }
-      else if(flags == DW_FILE_SAVE)
-      {
-         if(strchr(mypath, '/'))
-         {
-            unsigned long x = strlen(mypath) - 1;
+         gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(filew), path, NULL);
+         gtk_file_chooser_set_file(GTK_FILE_CHOOSER(filew), path, NULL);
 
-            /* Trim off the filename */
-            while(x > 0 && mypath[x] != '/')
-            {
-                x--;
-            }
-            if(mypath[x] == '/')
-            {
-                char *file = NULL;
-                char temp[PATH_MAX+1];
-
-                /* Save the original path in temp */
-                strcpy(temp, mypath);
-                mypath[x] = 0;
-
-                /* Check to make sure the trimmed piece is a directory */
-                if(realpath(mypath, temp) && stat(temp, &buf) == 0)
-                {
-                   if(buf.st_mode & S_IFDIR)
-                   {
-                      /* We now have it split */
-                      file = &mypath[x+1];
-                   }
-                }
-
-                /* Select folder... */
-                gtk_file_chooser_set_current_folder( GTK_FILE_CHOOSER(filew), temp );
-                /* ... and file separately */
-                if(file)
-                   gtk_file_chooser_set_current_name( GTK_FILE_CHOOSER(filew), file );
-            }
-         }
+         g_object_unref(G_OBJECT(path));
       }
    }
 
-   if ( gtk_dialog_run( GTK_DIALOG( filew ) ) == GTK_RESPONSE_ACCEPT )
+   /* TODO: Connect signal handlers so this actually returns */
+   if(DW_POINTER_TO_INT(dw_dialog_wait(tmp)) == GTK_RESPONSE_ACCEPT)
    {
-      filename = gtk_file_chooser_get_filename( GTK_FILE_CHOOSER( filew ) );
-      /*g_free (filename);*/
+      GFile *file = gtk_file_chooser_get_file(GTK_FILE_CHOOSER(filew));
+      filename = g_file_get_path(file);
+      g_object_unref(G_OBJECT(file));
    }
 
-   if(GTK_IS_WIDGET(filew))
-      g_object_unref(G_OBJECT(filew));
+   if(GTK_IS_WINDOW(filew))
+      gtk_window_destroy(GTK_WINDOW(filew));
    return filename;
 }
 
@@ -9169,29 +8959,8 @@ int dw_exec(const char *program, int type, char **params)
 int dw_browse(const char *url)
 {
    /* If possible load the URL/URI using gvfs... */
-#if GTK_CHECK_VERSION(3,22,0)
-   if(gtk_show_uri_on_window(NULL, url, GDK_CURRENT_TIME, NULL))
-#else
-   if(gtk_show_uri(gdk_screen_get_default(), url, GDK_CURRENT_TIME, NULL))
-#endif
-   {
-      return DW_ERROR_NONE;
-   }
-   else
-   {
-      /* Otherwise just fall back to executing firefox...
-       * or the browser defined by the DW_BROWSER variable.
-       */
-      char *execargs[3], *browser = "firefox", *tmp;
-
-      tmp = getenv( "DW_BROWSER" );
-      if(tmp) browser = tmp;
-      execargs[0] = browser;
-      execargs[1] = (char *)url;
-      execargs[2] = NULL;
-
-      return dw_exec(browser, DW_EXEC_GUI, execargs);
-   }
+   gtk_show_uri(NULL, url, GDK_CURRENT_TIME);
+   return DW_ERROR_NONE;
 }
 
 #ifdef USE_WEBKIT
@@ -9362,11 +9131,14 @@ HWND dw_html_new(unsigned long id)
  */
 char *dw_clipboard_get_text()
 {
-   GtkClipboard *clipboard_object;
+   GdkDisplay *display = gdk_display_get_default();
+   GdkClipboard *clipboard_object;
    char *ret = NULL;
 
-   if((clipboard_object = gtk_clipboard_get( GDK_SELECTION_CLIPBOARD )))
+   if((clipboard_object = gdk_display_get_clipboard(display)))
    {
+      /* TODO: Finish conversion to GdkClipboard */
+#if GTK3 
       gchar *clipboard_contents;
 
       if((clipboard_contents = gtk_clipboard_wait_for_text( clipboard_object )))
@@ -9374,6 +9146,7 @@ char *dw_clipboard_get_text()
          ret = strdup((char *)clipboard_contents);
          g_free(clipboard_contents);
       }
+#endif      
    }
    return ret;
 }
@@ -9385,11 +9158,15 @@ char *dw_clipboard_get_text()
  */
 void  dw_clipboard_set_text(const char *str, int len)
 {
-   GtkClipboard *clipboard_object;
+   GdkDisplay *display = gdk_display_get_default();
+   GdkClipboard *clipboard_object;
 
-   if((clipboard_object = gtk_clipboard_get( GDK_SELECTION_CLIPBOARD )))
+   if((clipboard_object = gdk_display_get_clipboard(display)))
    {
+      /* TODO: Finish conversion to GdkClipboard */
+#if GTK3 
       gtk_clipboard_set_text( clipboard_object, str, len );
+#endif      
    }
 }
 
@@ -9758,11 +9535,14 @@ void dw_signal_connect_data(HWND window, const char *signame, void *sigfunc, voi
    {
       thisname = "draw";
    }
+   /* TODO: Convert to GMenuModel */
+#if GTK3   
    else if (GTK_IS_MENU_ITEM(thiswindow) && strcmp(signame, DW_SIGNAL_CLICKED) == 0)
    {
       thisname = "activate";
       thisfunc = _findsigfunc(thisname);
    }
+#endif   
    else if (GTK_IS_TREE_VIEW(thiswindow)  && strcmp(signame, DW_SIGNAL_ITEM_CONTEXT) == 0)
    {
       sigid = _set_signal_handler(thiswindow, window, sigfunc, data, thisfunc, discfunc);
@@ -9824,7 +9604,7 @@ void dw_signal_connect_data(HWND window, const char *signame, void *sigfunc, voi
    {
       thisname = "focus-in-event";
       if (GTK_IS_COMBO_BOX(thiswindow))
-         thiswindow = gtk_bin_get_child(GTK_BIN(thiswindow));
+         thiswindow = gtk_combo_box_get_child(GTK_COMBO_BOX(thiswindow));
    }
 #ifdef USE_WEBKIT
    else if (WEBKIT_IS_WEB_VIEW(thiswindow) && strcmp(signame, DW_SIGNAL_HTML_CHANGED) == 0)

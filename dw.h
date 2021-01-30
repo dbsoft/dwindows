@@ -1249,7 +1249,11 @@ typedef struct _box {
 /* Key Modifiers */
 #define KC_CTRL              GDK_CONTROL_MASK
 #define KC_SHIFT             GDK_SHIFT_MASK
+#if GTK_MAJOR_VERSION > 3
+#define KC_ALT               GDK_ALT_MASK
+#else
 #define KC_ALT               GDK_MOD1_MASK
+#endif
 
 typedef GtkWidget *HWND;
 #ifndef _ENVRNMNT_H
