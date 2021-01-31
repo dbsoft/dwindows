@@ -118,13 +118,13 @@ static pthread_t _dw_thread = (pthread_t)-1;
 static gint _button_press_event(GtkGestureClick *gesture, int n_press, double x, double y, gpointer data);
 static gint _button_release_event(GtkGestureClick *gesture, int n_press, double x, double y, gpointer data);
 static gint _motion_notify_event(GtkEventControllerMotion *controller, double x, double y, gpointer data);
-static gint _delete_event(GtkWidget *widget, gpointer data);
+static gboolean _delete_event(GtkWidget *window, gpointer data);
 static gint _key_press_event(GtkEventControllerKey *controller, guint keyval, guint keycode, GdkModifierType state, gpointer data);
 static gint _generic_event(GtkWidget *widget, gpointer data);
-static gint _configure_event(GtkWidget *widget, GdkEvent *event, gpointer data);
+static gint _configure_event(GtkWidget *widget, int width, int height, gpointer data);
 static gint _container_enter_event(GtkEventControllerKey *controller, guint keyval, guint keycode, GdkModifierType state, gpointer data);
 static gint _combobox_select_event(GtkWidget *widget, gpointer data);
-static gint _expose_event(GtkWidget *widget, cairo_t *cr, gpointer data);
+static gint _expose_event(GtkWidget *widget, cairo_t *cr, int width, int height, gpointer data);
 static gint _set_focus_event(GtkWindow *window, GtkWidget *widget, gpointer data);
 static gint _tree_context_event(GtkWidget *widget, GdkEvent *event, gpointer data);
 static gint _value_changed_event(GtkWidget *widget, gpointer user_data);
@@ -157,10 +157,10 @@ typedef struct _dw_signal_list
 /* Signal setup function prototypes */
 GObject *_dw_key_setup(struct _dw_signal_list *signal, GObject *object, void *params[], void *sigfunc, void *discfunc, void *data);
 GObject *_dw_button_setup(struct _dw_signal_list *signal, GObject *object, void *params[], void *sigfunc, void *discfunc, void *data);
+GObject *_dw_mouse_setup(struct _dw_signal_list *signal, GObject *object, void *params[], void *sigfunc, void *discfunc, void *data);
 GObject *_dw_motion_setup(struct _dw_signal_list *signal, GObject *object, void *params[], void *sigfunc, void *discfunc, void *data);
 GObject *_dw_draw_setup(struct _dw_signal_list *signal, GObject *object, void *params[], void *sigfunc, void *discfunc, void *data);
 GObject *_dw_value_setup(struct _dw_signal_list *signal, GObject *object, void *params[], void *sigfunc, void *discfunc, void *data);
-GObject *_dw_list_setup(struct _dw_signal_list *signal, GObject *object, void *params[], void *sigfunc, void *discfunc, void *data);
 GObject *_dw_tree_setup(struct _dw_signal_list *signal, GObject *object, void *params[], void *sigfunc, void *discfunc, void *data);
 GObject *_dw_focus_setup(struct _dw_signal_list *signal, GObject *object, void *params[], void *sigfunc, void *discfunc, void *data);
 GObject *_dw_html_setup(struct _dw_signal_list *signal, GObject *object, void *params[], void *sigfunc, void *discfunc, void *data);
@@ -179,16 +179,16 @@ typedef struct
 static SignalList SignalTranslate[] = {
    { _configure_event,         DW_SIGNAL_CONFIGURE,      "resize",         NULL },
    { _key_press_event,         DW_SIGNAL_KEY_PRESS,      "key-pressed",    _dw_key_setup },
-   { _button_press_event,      DW_SIGNAL_BUTTON_PRESS,   "pressed",        _dw_button_setup },
-   { _button_release_event,    DW_SIGNAL_BUTTON_RELEASE, "released",       _dw_button_setup },
+   { _button_press_event,      DW_SIGNAL_BUTTON_PRESS,   "pressed",        _dw_mouse_setup },
+   { _button_release_event,    DW_SIGNAL_BUTTON_RELEASE, "released",       _dw_mouse_setup },
    { _motion_notify_event,     DW_SIGNAL_MOTION_NOTIFY,  "motion",         _dw_motion_setup },
    { _delete_event,            DW_SIGNAL_DELETE,         "close-request",  NULL },
    { _expose_event,            DW_SIGNAL_EXPOSE,         "draw",           _dw_draw_setup },
-   { _generic_event,           DW_SIGNAL_CLICKED,        "pressed",        _dw_button_setup },
+   { _generic_event,           DW_SIGNAL_CLICKED,        "clicked",        _dw_button_setup },
    { _container_enter_event,   DW_SIGNAL_ITEM_ENTER,     "key-pressed",    _dw_key_setup },
    { _tree_context_event,      DW_SIGNAL_ITEM_CONTEXT,   "pressed",        _dw_tree_setup },
-   { _combobox_select_event,   DW_SIGNAL_LIST_SELECT,    "changed",        _dw_list_setup },
-   { _tree_select_event,       DW_SIGNAL_ITEM_SELECT,    "row-activated",  _dw_list_setup },
+   { _combobox_select_event,   DW_SIGNAL_LIST_SELECT,    "changed",        NULL },
+   { _tree_select_event,       DW_SIGNAL_ITEM_SELECT,    "row-activated",  NULL },
    { _set_focus_event,         DW_SIGNAL_SET_FOCUS,      "activate-focus", _dw_focus_setup },
    { _value_changed_event,     DW_SIGNAL_VALUE_CHANGED,  "value-changed",  _dw_value_setup },
    { _switch_page_event,       DW_SIGNAL_SWITCH_PAGE,    "switch-page",    NULL },
@@ -229,17 +229,18 @@ static void _dw_msleep(long period)
 }
 
 /* Finds the translation function for a given signal name */
-static SignalList *_dw_findsignal(const char *signame)
+static SignalList _dw_findsignal(const char *signame)
 {
    int z=0;
+   static SignalList empty = {0};
 
    while(SignalTranslate[z].func)
    {
       if(strcasecmp(signame, SignalTranslate[z].name) == 0)
-         return &SignalTranslate[z];
+         return SignalTranslate[z];
       z++;
    }
-   return NULL;
+   return empty;
 }
 
 static SignalHandler _get_signal_handler(gpointer data)
@@ -487,7 +488,7 @@ static gint _motion_notify_event(GtkEventControllerMotion *controller, double x,
    return retval;
 }
 
-static gint _delete_event(GtkWidget *widget, gpointer data)
+static gboolean _delete_event(GtkWidget *window, gpointer data)
 {
    SignalHandler work = _get_signal_handler(data);
    int retval = FALSE;
@@ -534,7 +535,7 @@ static gint _generic_event(GtkWidget *widget, gpointer data)
    return retval;
 }
 
-static gint _configure_event(GtkWidget *widget, GdkEvent *event, gpointer data)
+static gint _configure_event(GtkWidget *widget, int width, int height, gpointer data)
 {
    SignalHandler work = _get_signal_handler(data);
    int retval = FALSE;
@@ -543,12 +544,12 @@ static gint _configure_event(GtkWidget *widget, GdkEvent *event, gpointer data)
    {
       int (*sizefunc)(HWND, int, int, void *) = work.func;
 
-      retval = sizefunc(work.window, 100, 100, work.data);
+      retval = sizefunc(work.window, width, height, work.data);
    }
    return retval;
 }
 
-static gint _expose_event(GtkWidget *widget, cairo_t *cr, gpointer data)
+static gint _expose_event(GtkWidget *widget, cairo_t *cr, int width, int height, gpointer data)
 {
    SignalHandler work = _get_signal_handler(data);
    int retval = FALSE;
@@ -559,8 +560,8 @@ static gint _expose_event(GtkWidget *widget, cairo_t *cr, gpointer data)
       int (*exposefunc)(HWND, DWExpose *, void *) = work.func;
 
       exp.x = exp.y = 0;
-      exp.width = gtk_widget_get_allocated_width(widget);
-      exp.height = gtk_widget_get_allocated_height(widget);
+      exp.width = width;
+      exp.height = height;
       retval = exposefunc(work.window, &exp, work.data);
    }
    return retval;
@@ -1586,6 +1587,7 @@ static void _dw_override_color(GtkWidget *widget, const char *element, GdkRGBA *
 
 static void _dw_override_font(GtkWidget *widget, const char *font)
 {
+#if 0
    GtkCssProvider *provider = g_object_get_data(G_OBJECT(widget), "_dw_font");
    GtkStyleContext *scontext = gtk_widget_get_style_context(widget);
    
@@ -1608,6 +1610,7 @@ static void _dw_override_font(GtkWidget *widget, const char *font)
       gtk_style_context_add_provider(scontext, GTK_STYLE_PROVIDER(provider), GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
    }
    g_object_set_data(G_OBJECT(widget), "_dw_font", (gpointer)provider);
+#endif   
 }
 
 /*
@@ -9524,7 +9527,15 @@ GObject *_dw_button_setup(struct _dw_signal_list *signal, GObject *object, void 
       g_object_set_data(G_OBJECT(_DWApp), textbuf, DW_POINTER(data)); 
       return NULL;
    }
-   else if(GTK_IS_WIDGET(object))
+   /* GTK signal name for check buttons is "toggled" not "clicked" */
+   else if(GTK_IS_CHECK_BUTTON(object) && strcmp(signal->name, DW_SIGNAL_CLICKED) == 0)
+      strcpy(signal->gname, "toggled");
+   return object;
+}
+
+GObject *_dw_mouse_setup(struct _dw_signal_list *signal, GObject *object, void *params[], void *sigfunc, void *discfunc, void *data)
+{
+   if(GTK_IS_WIDGET(object))
    {
       GtkGesture *gesture = gtk_gesture_click_new();
       gtk_widget_add_controller(GTK_WIDGET(object), GTK_EVENT_CONTROLLER(gesture));
@@ -9579,25 +9590,6 @@ GObject *_dw_tree_setup(struct _dw_signal_list *signal, GObject *object, void *p
    return object;
 }
 
-GObject *_dw_list_setup(struct _dw_signal_list *signal, GObject *object, void *params[], void *sigfunc, void *discfunc, void *data)
-{
-   if((GTK_IS_TREE_VIEW(object) && strcmp(signal->name, DW_SIGNAL_ITEM_SELECT) == 0) ||
-      (GTK_IS_COMBO_BOX(object) && strcmp(signal->name, DW_SIGNAL_LIST_SELECT) == 0))
-   {
-      /* TODO: Might need to allocate a new "params" here */
-      int cid, sigid = _set_signal_handler(object, (HWND)object, sigfunc, data, signal->func, discfunc);
-      params[0] = DW_INT_TO_POINTER(sigid);
-      params[2] = DW_POINTER(object);
-      if(GTK_IS_TREE_VIEW(object))
-         cid = g_signal_connect_data(object, signal->gname, G_CALLBACK(signal->func), params, _dw_signal_disconnect, 0);
-      else
-         cid = g_signal_connect_data(object, signal->gname, G_CALLBACK(_combobox_select_event), params, _dw_signal_disconnect, 0);
-      _set_signal_handler_id(object, sigid, cid);
-      return NULL;
-   }
-   return object;
-}
-
 GObject *_dw_value_setup(struct _dw_signal_list *signal, GObject *object, void *params[], void *sigfunc, void *discfunc, void *data)
 {
    if(GTK_IS_SCALE(object) || GTK_IS_SCROLLBAR(object) || GTK_IS_SPIN_BUTTON(object))
@@ -9639,9 +9631,9 @@ GObject *_dw_html_setup(struct _dw_signal_list *signal, GObject *object, void *p
  */
 void dw_signal_connect_data(HWND window, const char *signame, void *sigfunc, void *discfunc, void *data)
 {
-   SignalList *signal = _dw_findsignal(signame);
+   SignalList signal = _dw_findsignal(signame);
    
-   if(signal && signal->func)
+   if(signal.func)
    {
       GObject *object = (GObject *)window;
       void **params = calloc(_DW_INTERNAL_CALLBACK_PARAMS, sizeof(void *));
@@ -9663,8 +9655,8 @@ void dw_signal_connect_data(HWND window, const char *signame, void *sigfunc, voi
          object = (GObject *)g_object_get_data(G_OBJECT(window), "_dw_user");
 
       /* Do object class specific setup */
-      if(signal->setup)
-         object = signal->setup(signal, object, params, sigfunc, discfunc, data);
+      if(signal.setup)
+         object = signal.setup(&signal, object, params, sigfunc, discfunc, data);
 
       if(!object)
       {
@@ -9672,10 +9664,10 @@ void dw_signal_connect_data(HWND window, const char *signame, void *sigfunc, voi
          return;
       }
 
-      sigid = _set_signal_handler(object, window, sigfunc, data, signal->func, discfunc);
+      sigid = _set_signal_handler(object, window, sigfunc, data, signal.func, discfunc);
       params[0] = DW_INT_TO_POINTER(sigid);
       params[2] = DW_POINTER(object);
-      cid = g_signal_connect_data(object, signal->gname, G_CALLBACK(signal->func), params, _dw_signal_disconnect, 0);
+      cid = g_signal_connect_data(object, signal.gname, G_CALLBACK(signal.func), params, _dw_signal_disconnect, 0);
       _set_signal_handler_id(object, sigid, cid);
    }
 }
@@ -9688,13 +9680,14 @@ void dw_signal_connect_data(HWND window, const char *signame, void *sigfunc, voi
 void dw_signal_disconnect_by_name(HWND window, const char *signame)
 {
    int z, count;
-   SignalList *signal;
+   SignalList signal;
    void **params = alloca(sizeof(void *) * 3);
 
    params[2] = _find_signal_window(window, signame);
    count = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(params[2]), "_dw_sigcounter"));
-
-   if((signal = _dw_findsignal(signame)))
+   signal = _dw_findsignal(signame);
+   
+   if(signal.func)
    {
       for(z=0;z<count;z++)
       {
@@ -9703,7 +9696,7 @@ void dw_signal_disconnect_by_name(HWND window, const char *signame)
          params[0] = GINT_TO_POINTER(z);
          sh = _get_signal_handler(params);
 
-         if(sh.intfunc == signal->func)
+         if(sh.intfunc == signal.func)
             _remove_signal_handler((HWND)params[2], z);
       }
    }
