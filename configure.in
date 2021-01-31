@@ -249,18 +249,20 @@ if test $build_gtk = "yes"; then
                WEBKIT_LIBS=`$PKG_CFG --silence-errors --libs $WEBKIT_PKG`
             fi
          else
-            WEBKIT_PKG="webkitgtk-3.0"
-            WEBKIT_CFLAGS=`$PKG_CFG --silence-errors --cflags $WEBKIT_PKG`
-            if test x"$WEBKIT_CFLAGS" = x; then
-               WEBKIT_PKG="webkitgtk-1.0"
+            if test $DW_DIR = "gtk3"; then
+               WEBKIT_PKG="webkitgtk-3.0"
                WEBKIT_CFLAGS=`$PKG_CFG --silence-errors --cflags $WEBKIT_PKG`
                if test x"$WEBKIT_CFLAGS" = x; then
-                  AC_DEFINE(USE_WEBKIT10)
+                  WEBKIT_PKG="webkitgtk-1.0"
+                  WEBKIT_CFLAGS=`$PKG_CFG --silence-errors --cflags $WEBKIT_PKG`
+                  if test x"$WEBKIT_CFLAGS" = x; then
+                     AC_DEFINE(USE_WEBKIT10)
+                     WEBKIT_LIBS=`$PKG_CFG --silence-errors --libs $WEBKIT_PKG`
+                  fi
+               else
+                  AC_DEFINE(USE_WEBKIT11)
                   WEBKIT_LIBS=`$PKG_CFG --silence-errors --libs $WEBKIT_PKG`
                fi
-            else
-               AC_DEFINE(USE_WEBKIT11)
-               WEBKIT_LIBS=`$PKG_CFG --silence-errors --libs $WEBKIT_PKG`
             fi
          fi
       else
