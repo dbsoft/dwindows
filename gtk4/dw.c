@@ -123,7 +123,7 @@ static gint _key_press_event(GtkEventControllerKey *controller, guint keyval, gu
 static gint _generic_event(GtkWidget *widget, gpointer data);
 static gint _configure_event(GtkWidget *widget, GdkEvent *event, gpointer data);
 static gint _activate_event(GtkWidget *widget, gpointer data);
-static gint _container_enter_event(GtkWidget *widget, GdkEvent *event, gpointer data);
+static gint _container_enter_event(GtkEventControllerKey *controller, guint keyval, guint keycode, GdkModifierType state, gpointer data);
 static gint _combobox_select_event(GtkWidget *widget, gpointer data);
 static gint _expose_event(GtkWidget *widget, cairo_t *cr, gpointer data);
 static gint _set_focus_event(GtkWindow *window, GtkWidget *widget, gpointer data);
@@ -796,17 +796,18 @@ static gint _tree_expand_event(GtkTreeView *widget, GtkTreeIter *iter, GtkTreePa
    return retval;
 }
 
-static gint _container_enter_event(GtkWidget *widget, GdkEvent *event, gpointer data)
+static gint _container_enter_event(GtkEventControllerKey *controller, guint keyval, guint keycode, GdkModifierType state, gpointer data)
 {
    SignalHandler work = _get_signal_handler(data);
    int retval = FALSE;
 
-   if(work.window)
+   if(work.window && GTK_IS_WIDGET(work.window))
    {
+      GtkWidget *widget = work.window;
+
       /* Handle both key and button events together */
-      if(retval /* TODO: Fix this...
-         (event->type == GDK_2BUTTON_PRESS && buttonevent->button == 1) ||
-         (event->type == GDK_KEY_PRESS && keyevent->keyval == VK_RETURN)*/)
+      if(/* TODO: Fix this...(event->type == GDK_2BUTTON_PRESS && buttonevent->button == 1) || */
+         keyval == VK_RETURN)
       {
          int (*contextfunc)(HWND, char *, void *, void *) = work.func;
          char *text = NULL;
@@ -947,13 +948,13 @@ static gint _value_changed_event(GtkWidget *widget, gpointer data)
    return FALSE;
 }
 
-static gint _default_key_press_event(GtkWidget *widget, GdkEvent *event, gpointer data)
+static gint _default_key_press_event(GtkEventControllerKey *controller, guint keyval, guint keycode, GdkModifierType state, gpointer data)
 {
    GtkWidget *next = (GtkWidget *)data;
 
    if(next)
    {
-      if(0 /* TODO: Fix this: event->keyval == GDK_KEY_Return*/)
+      if(keyval == GDK_KEY_Return)
       {
          if(GTK_IS_BUTTON(next))
             g_signal_emit_by_name(G_OBJECT(next), "clicked");
@@ -962,6 +963,14 @@ static gint _default_key_press_event(GtkWidget *widget, GdkEvent *event, gpointe
       }
    }
    return FALSE;
+}
+
+static void _dw_dialog_response(GtkDialog *dialog, int response_id, gpointer data)
+{
+   DWDialog *dwdialog = (DWDialog *)data;
+   
+   if(dwdialog)
+      dw_dialog_dismiss(dwdialog, DW_INT_TO_POINTER(response_id));
 }
 
 static GdkPixbuf *_dw_pixbuf_from_resource(unsigned int rid)
@@ -1219,7 +1228,7 @@ int dw_dialog_dismiss(DWDialog *dialog, void *result)
    else
       dw_event_post(dialog->eve);
    dialog->done = TRUE;
-   return 0;
+   return DW_ERROR_NONE;
 }
 
 /*
@@ -1235,7 +1244,7 @@ void *dw_dialog_wait(DWDialog *dialog)
    if(!dialog)
       return NULL;
 
-   if(pthread_self() == _dw_thread)
+   if(_dw_thread == (pthread_t)-1 || pthread_self() == _dw_thread)
    {
       dialog->method = TRUE;
       g_main_loop_run(_DWMainLoop);
@@ -1313,7 +1322,7 @@ int dw_messagebox(const char *title, int flags, const char *format, ...)
    if(flags & DW_MB_YESNOCANCEL)
       gtk_dialog_add_button(GTK_DIALOG(dialog), "Cancel", GTK_RESPONSE_CANCEL);
    gtk_widget_show(GTK_WIDGET(dialog));
-   /* TODO: Implement signal handlers so this will return */
+   g_signal_connect(G_OBJECT(dialog), "response", G_CALLBACK(_dw_dialog_response), (gpointer)tmp);
    response = DW_POINTER_TO_INT(dw_dialog_wait(tmp));
    if(GTK_IS_WINDOW(dialog))
       gtk_window_destroy(GTK_WINDOW(dialog));
@@ -1690,8 +1699,8 @@ char * API dw_font_choose(const char *currfont)
    }
 
    gtk_widget_show(GTK_WIDGET(fd));
+   g_signal_connect(G_OBJECT(fd), "response", G_CALLBACK(_dw_dialog_response), (gpointer)tmp);
 
-   /* TODO: Connect signal handlers so this actually returns */
    if(DW_POINTER_TO_INT(dw_dialog_wait(tmp)) == GTK_RESPONSE_OK)
    {
       char *fontname = gtk_font_chooser_get_font(fd);
@@ -1753,11 +1762,11 @@ char *dw_window_get_font(HWND handle)
          handle2 = tmp;
    }
 
-   pcontext = gtk_widget_get_pango_context( handle2 );
-   if ( pcontext )
+   pcontext = gtk_widget_get_pango_context(handle2);
+   if(pcontext)
    {
-      pfont = pango_context_get_font_description( pcontext );
-      if ( pfont )
+      pfont = pango_context_get_font_description(pcontext);
+      if(pfont)
       {
          int len, x;
 
@@ -1785,7 +1794,7 @@ char *dw_window_get_font(HWND handle)
                snprintf(retfont, len+1, "%d.%s", size, font);
             }
          }
-         g_free( font );
+         g_free(font);
       }
    }
    return retfont;
@@ -5426,6 +5435,7 @@ unsigned long API dw_color_choose(unsigned long value)
    gtk_color_chooser_set_rgba(cd, &color);
 
    gtk_widget_show(GTK_WIDGET(cd));
+   g_signal_connect(G_OBJECT(cd), "response", G_CALLBACK(_dw_dialog_response), (gpointer)tmp);
 
    if(DW_POINTER_TO_INT(dw_dialog_wait(tmp)) == GTK_RESPONSE_OK)
    {
@@ -5894,7 +5904,7 @@ void dw_font_text_extents_get(HWND handle, HPIXMAP pixmap, const char *text, int
    font = pango_font_description_from_string(fontname ? fontname : "monospace 10");
    if(font)
    {
-      PangoContext *context = pango_context_new();
+      PangoContext *context = gtk_widget_get_pango_context(pixmap ? pixmap->handle : handle);
 
       if(context)
       {
@@ -7244,8 +7254,8 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
       gtk_widget_set_valign(item, vsize ? GTK_ALIGN_FILL : GTK_ALIGN_START);
       gtk_widget_set_hexpand(item, hsize);
       gtk_widget_set_halign(item, hsize ? GTK_ALIGN_FILL : GTK_ALIGN_START);
-      /* Use the margin property as padding */
-      g_object_set(G_OBJECT(item), "margin", pad, NULL);
+      /* TODO: Use the margin property as padding
+      g_object_set(G_OBJECT(item), "margin", pad, NULL);*/
       /* Add to the grid using insert...
        * rows for vertical boxes and columns for horizontal.
        */
@@ -8676,10 +8686,12 @@ void dw_window_default(HWND window, HWND defaultitem)
  */
 void dw_window_click_default(HWND window, HWND next)
 {
-   if(!window)
-      return;
-
-   g_signal_connect(G_OBJECT(window), "key_press_event", G_CALLBACK(_default_key_press_event), next);
+   if(window && next && GTK_IS_WIDGET(window) && GTK_IS_WIDGET(next))
+   {
+      GtkEventController *controller = gtk_event_controller_key_new();
+      gtk_widget_add_controller(GTK_WIDGET(window), controller);
+      g_signal_connect(G_OBJECT(controller), "key-pressed", G_CALLBACK(_default_key_press_event), next);
+   }
 }
 
 
@@ -8876,7 +8888,9 @@ char *dw_file_browse(const char *title, const char *defpath, const char *ext, in
       }
    }
 
-   /* TODO: Connect signal handlers so this actually returns */
+   gtk_widget_show(GTK_WIDGET(filew));
+   g_signal_connect(G_OBJECT(filew), "response", G_CALLBACK(_dw_dialog_response), (gpointer)tmp);
+
    if(DW_POINTER_TO_INT(dw_dialog_wait(tmp)) == GTK_RESPONSE_ACCEPT)
    {
       GFile *file = gtk_file_chooser_get_file(GTK_FILE_CHOOSER(filew));
@@ -9545,6 +9559,7 @@ void dw_signal_connect_data(HWND window, const char *signame, void *sigfunc, voi
 #endif   
    else if (GTK_IS_TREE_VIEW(thiswindow)  && strcmp(signame, DW_SIGNAL_ITEM_CONTEXT) == 0)
    {
+      //GtkGesture *gesture = gtk_gesture_click_new();
       sigid = _set_signal_handler(thiswindow, window, sigfunc, data, thisfunc, discfunc);
       params[0] = GINT_TO_POINTER(sigid);
       params[2] = (void *)thiswindow;
@@ -9580,10 +9595,12 @@ void dw_signal_connect_data(HWND window, const char *signame, void *sigfunc, voi
    }
    else if (GTK_IS_TREE_VIEW(thiswindow) && strcmp(signame, DW_SIGNAL_ITEM_ENTER) == 0)
    {
+      GtkEventController *controller = gtk_event_controller_key_new();
       sigid = _set_signal_handler(thiswindow, window, sigfunc, data, _container_enter_event, discfunc);
       params[0] = GINT_TO_POINTER(sigid);
       params[2] = (void *)thiswindow;
-      cid = g_signal_connect_data(G_OBJECT(thiswindow), "key_press_event", G_CALLBACK(_container_enter_event), params, _dw_signal_disconnect, 0);
+      gtk_widget_add_controller(GTK_WIDGET(thiswindow), controller);
+      cid = g_signal_connect_data(G_OBJECT(controller), "key-pressed", G_CALLBACK(_container_enter_event), params, _dw_signal_disconnect, 0);
       _set_signal_handler_id(thiswindow, sigid, cid);
 
       params = calloc(sizeof(void *), _DW_INTERNAL_CALLBACK_PARAMS);
