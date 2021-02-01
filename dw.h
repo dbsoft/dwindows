@@ -1301,7 +1301,7 @@ typedef struct _hpixmap {
 #endif
 } *HPIXMAP;
 
-typedef GtkWidget *HMENUI;
+typedef void *HMENUI;
 typedef void *HTREEITEM;
 typedef void *HSHM;
 typedef void *HICN;
