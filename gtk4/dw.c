@@ -7555,7 +7555,6 @@ int _dw_screen_width(void)
 
    if(display)
    {
-      /* TODO: Verify this is the correct way to do this */
       GListModel *monitors = gdk_display_get_monitors(display);
       GdkMonitor *monitor = GDK_MONITOR(g_list_model_get_object(monitors, 0));
 
@@ -7584,7 +7583,6 @@ int _dw_screen_height(void)
 
    if(display)
    {
-      /* TODO: Verify this is the correct way to do this */
       GListModel *monitors = gdk_display_get_monitors(display);
       GdkMonitor *monitor = GDK_MONITOR(g_list_model_get_object(monitors, 0));
 
@@ -9147,6 +9145,18 @@ HWND dw_html_new(unsigned long id)
    return widget;
 }
 
+static void _dw_clipboard_callback(GObject *object, GAsyncResult *res, gpointer data)
+{
+   DWDialog *tmp = (DWDialog *)data;
+   
+   if(tmp && tmp->data)
+   {
+      char *text = gdk_clipboard_read_text_finish(GDK_CLIPBOARD(tmp->data), res, NULL);
+      
+      dw_dialog_dismiss(tmp, text ? strdup(text) : text);
+   }
+}
+
 /*
  * Gets the contents of the default clipboard as text.
  * Parameters:
@@ -9158,21 +9168,16 @@ HWND dw_html_new(unsigned long id)
 char *dw_clipboard_get_text()
 {
    GdkDisplay *display = gdk_display_get_default();
-   GdkClipboard *clipboard_object;
+   GdkClipboard *clipboard;
    char *ret = NULL;
 
-   if((clipboard_object = gdk_display_get_clipboard(display)))
+   if((clipboard = gdk_display_get_clipboard(display)))
    {
-      /* TODO: Finish conversion to GdkClipboard */
-#if GTK3 
-      gchar *clipboard_contents;
-
-      if((clipboard_contents = gtk_clipboard_wait_for_text( clipboard_object )))
-      {
-         ret = strdup((char *)clipboard_contents);
-         g_free(clipboard_contents);
-      }
-#endif      
+      DWDialog *tmp = dw_dialog_new(DW_POINTER(clipboard));
+      
+      gdk_clipboard_read_text_async(clipboard, NULL, _dw_clipboard_callback, (gpointer)tmp);
+      
+      ret = (char *)dw_dialog_wait(tmp);
    }
    return ret;
 }
@@ -9185,15 +9190,10 @@ char *dw_clipboard_get_text()
 void  dw_clipboard_set_text(const char *str, int len)
 {
    GdkDisplay *display = gdk_display_get_default();
-   GdkClipboard *clipboard_object;
+   GdkClipboard *clipboard;
 
-   if((clipboard_object = gdk_display_get_clipboard(display)))
-   {
-      /* TODO: Finish conversion to GdkClipboard */
-#if GTK3 
-      gtk_clipboard_set_text( clipboard_object, str, len );
-#endif      
-   }
+   if((clipboard = gdk_display_get_clipboard(display)))
+      gdk_clipboard_set_text(clipboard, str);
 }
 
 /* Internal function to create the drawable pixmap and call the function */
