@@ -1392,6 +1392,9 @@ typedef struct _dwdialog {
    int done;
    int method;
    void *data, *result;
+#if GTK_MAJOR_VERSION > 3
+   GMainLoop *mainloop;
+#endif
 } DWDialog;
 
 typedef void *HPRINT;
