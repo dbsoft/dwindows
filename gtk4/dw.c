@@ -115,8 +115,8 @@ static pthread_t _dw_thread = (pthread_t)-1;
 #define _DW_TREE_TYPE_COMBOBOX   4
 
 /* Signal forwarder prototypes */
-static gint _dw_button_press_event(GtkGestureClick *gesture, int n_press, double x, double y, gpointer data);
-static gint _dw_button_release_event(GtkGestureClick *gesture, int n_press, double x, double y, gpointer data);
+static gint _dw_button_press_event(GtkGestureSingle *gesture, int n_press, double x, double y, gpointer data);
+static gint _dw_button_release_event(GtkGestureSingle *gesture, int n_press, double x, double y, gpointer data);
 static gint _dw_motion_notify_event(GtkEventControllerMotion *controller, double x, double y, gpointer data);
 static gboolean _dw_delete_event(GtkWidget *window, gpointer data);
 static gint _dw_key_press_event(GtkEventControllerKey *controller, guint keyval, guint keycode, GdkModifierType state, gpointer data);
@@ -126,7 +126,7 @@ static gint _dw_container_enter_event(GtkEventControllerKey *controller, guint k
 static gint _dw_combobox_select_event(GtkWidget *widget, gpointer data);
 static gint _dw_expose_event(GtkWidget *widget, cairo_t *cr, int width, int height, gpointer data);
 static gint _dw_set_focus_event(GtkWindow *window, GtkWidget *widget, gpointer data);
-static gint _dw_tree_context_event(GtkWidget *widget, GdkEvent *event, gpointer data);
+static gint _dw_tree_context_event(GtkGestureSingle *gesture, int n_press, double x, double y, gpointer data);
 static gint _dw_value_changed_event(GtkWidget *widget, gpointer user_data);
 static gint _dw_tree_select_event(GtkTreeSelection *sel, gpointer data);
 static gint _dw_tree_expand_event(GtkTreeView *treeview, GtkTreeIter *arg1, GtkTreePath *arg2, gpointer data);
@@ -245,7 +245,7 @@ static SignalList _dw_findsignal(const char *signame)
    return empty;
 }
 
-static SignalHandler _get_signal_handler(gpointer data)
+static SignalHandler _dw_get_signal_handler(gpointer data)
 {
    SignalHandler sh = {0};
 
@@ -270,7 +270,7 @@ static SignalHandler _get_signal_handler(gpointer data)
    return sh;
 }
 
-static void _remove_signal_handler(GtkWidget *widget, int counter)
+static void _dw_remove_signal_handler(GtkWidget *widget, int counter)
 {
    char text[100];
    gint cid;
@@ -289,7 +289,7 @@ static void _remove_signal_handler(GtkWidget *widget, int counter)
    g_object_set_data(G_OBJECT(widget), text, NULL);
 }
 
-static int _set_signal_handler(GObject *object, HWND window, void *func, gpointer data, void *intfunc, void *discfunc)
+static int _dw_set_signal_handler(GObject *object, HWND window, void *func, gpointer data, void *intfunc, void *discfunc)
 {
    int counter = GPOINTER_TO_INT(g_object_get_data(object, "_dw_sigcounter"));
    char text[100];
@@ -311,7 +311,7 @@ static int _set_signal_handler(GObject *object, HWND window, void *func, gpointe
    return counter - 1;
 }
 
-static void _set_signal_handler_id(GObject *object, int counter, gint cid)
+static void _dw_set_signal_handler_id(GObject *object, int counter, gint cid)
 {
    char text[100];
 
@@ -320,7 +320,7 @@ static void _set_signal_handler_id(GObject *object, int counter, gint cid)
 }
 
 #ifdef USE_WEBKIT
-static void _html_result_event(GObject *object, GAsyncResult *result, gpointer script_data)
+static void _dw_html_result_event(GObject *object, GAsyncResult *result, gpointer script_data)
 {
     pthread_t saved_thread = _dw_thread;
     WebKitJavascriptResult *js_result;
@@ -336,7 +336,7 @@ static void _html_result_event(GObject *object, GAsyncResult *result, gpointer s
         SignalHandler work;
         void *params[3] = { GINT_TO_POINTER(handlerdata-1), 0, object };
 
-        work = _get_signal_handler(params);
+        work = _dw_get_signal_handler(params);
 
         if(work.window)
         {
@@ -375,9 +375,9 @@ static void _html_result_event(GObject *object, GAsyncResult *result, gpointer s
    _dw_thread = saved_thread;
 }
 
-static void _html_changed_event(WebKitWebView  *web_view, WebKitLoadEvent load_event, gpointer data)
+static void _dw_html_changed_event(WebKitWebView  *web_view, WebKitLoadEvent load_event, gpointer data)
 {
-    SignalHandler work = _get_signal_handler(data);
+    SignalHandler work = _dw_get_signal_handler(data);
     char *location = (char *)webkit_web_view_get_uri(web_view);
     int status = 0;
 
@@ -406,7 +406,7 @@ static void _html_changed_event(WebKitWebView  *web_view, WebKitLoadEvent load_e
 
 static gint _dw_set_focus_event(GtkWindow *window, GtkWidget *widget, gpointer data)
 {
-   SignalHandler work = _get_signal_handler(data);
+   SignalHandler work = _dw_get_signal_handler(data);
    int retval = FALSE;
 
    if(work.window)
@@ -418,46 +418,40 @@ static gint _dw_set_focus_event(GtkWindow *window, GtkWidget *widget, gpointer d
    return retval;
 }
 
-static gint _dw_button_press_event(GtkGestureClick *gesture, int n_press, double x, double y, gpointer data)
+static gint _dw_button_press_event(GtkGestureSingle *gesture, int n_press, double x, double y, gpointer data)
 {
-   SignalHandler work = _get_signal_handler(data);
+   SignalHandler work = _dw_get_signal_handler(data);
    int retval = FALSE;
 
    if(work.window)
    {
       int (*buttonfunc)(HWND, int, int, int, void *) = work.func;
-      /* TODO: Fill these in */
-      int mybutton = 1;
+      int mybutton = gtk_gesture_single_get_current_button(gesture);
 
-#if GTK3
-      if(event->button == 3)
+      if(mybutton == 3)
          mybutton = 2;
-      else if(event->button == 2)
+      else if(mybutton == 2)
          mybutton = 3;
-#endif
 
       retval = buttonfunc(work.window, (int)x, (int)y, mybutton, work.data);
    }
    return retval;
 }
 
-static gint _dw_button_release_event(GtkGestureClick *gesture, int n_press, double x, double y, gpointer data)
+static gint _dw_button_release_event(GtkGestureSingle *gesture, int n_press, double x, double y, gpointer data)
 {
-   SignalHandler work = _get_signal_handler(data);
+   SignalHandler work = _dw_get_signal_handler(data);
    int retval = FALSE;
 
    if(work.window)
    {
       int (*buttonfunc)(HWND, int, int, int, void *) = work.func;
-      /* TODO: Fill these in */
-      int mybutton = 1;
+      int mybutton = gtk_gesture_single_get_current_button(gesture);
 
-#if GTK3
-      if(event->button == 3)
+      if(mybutton == 3)
          mybutton = 2;
-      else if(event->button == 2)
+      else if(mybutton == 2)
          mybutton = 3;
-#endif
 
       retval = buttonfunc(work.window, (int)x, (int)y, mybutton, work.data);
    }
@@ -466,7 +460,7 @@ static gint _dw_button_release_event(GtkGestureClick *gesture, int n_press, doub
 
 static gint _dw_motion_notify_event(GtkEventControllerMotion *controller, double x, double y, gpointer data)
 {
-   SignalHandler work = _get_signal_handler(data);
+   SignalHandler work = _dw_get_signal_handler(data);
    int retval = FALSE;
 
    if(work.window)
@@ -490,7 +484,7 @@ static gint _dw_motion_notify_event(GtkEventControllerMotion *controller, double
 
 static gboolean _dw_delete_event(GtkWidget *window, gpointer data)
 {
-   SignalHandler work = _get_signal_handler(data);
+   SignalHandler work = _dw_get_signal_handler(data);
    int retval = FALSE;
 
    if(work.window)
@@ -504,7 +498,7 @@ static gboolean _dw_delete_event(GtkWidget *window, gpointer data)
 
 static gint _dw_key_press_event(GtkEventControllerKey *controller, guint keyval, guint keycode, GdkModifierType state, gpointer data)
 {
-   SignalHandler work = _get_signal_handler(data);
+   SignalHandler work = _dw_get_signal_handler(data);
    int retval = FALSE;
 
    if(work.window)
@@ -523,7 +517,7 @@ static gint _dw_key_press_event(GtkEventControllerKey *controller, guint keyval,
 
 static gint _dw_generic_event(GtkWidget *widget, gpointer data)
 {
-   SignalHandler work = _get_signal_handler(data);
+   SignalHandler work = _dw_get_signal_handler(data);
    int retval = FALSE;
 
    if(work.window)
@@ -537,7 +531,7 @@ static gint _dw_generic_event(GtkWidget *widget, gpointer data)
 
 static gint _dw_configure_event(GtkWidget *widget, int width, int height, gpointer data)
 {
-   SignalHandler work = _get_signal_handler(data);
+   SignalHandler work = _dw_get_signal_handler(data);
    int retval = FALSE;
 
    if(work.window)
@@ -551,7 +545,7 @@ static gint _dw_configure_event(GtkWidget *widget, int width, int height, gpoint
 
 static gint _dw_expose_event(GtkWidget *widget, cairo_t *cr, int width, int height, gpointer data)
 {
-   SignalHandler work = _get_signal_handler(data);
+   SignalHandler work = _dw_get_signal_handler(data);
    int retval = FALSE;
 
    if(work.window)
@@ -569,7 +563,7 @@ static gint _dw_expose_event(GtkWidget *widget, cairo_t *cr, int width, int heig
 
 static gint _dw_combobox_select_event(GtkWidget *widget, gpointer data)
 {
-   SignalHandler work = _get_signal_handler(data);
+   SignalHandler work = _dw_get_signal_handler(data);
    int retval = FALSE;
 
    if(g_object_get_data(G_OBJECT(widget), "_dw_recursing"))
@@ -613,22 +607,21 @@ static gint _dw_combobox_select_event(GtkWidget *widget, gpointer data)
 #define _DW_DATA_TYPE_STRING  0
 #define _DW_DATA_TYPE_POINTER 1
 
-static gint _dw_tree_context_event(GtkWidget *widget, GdkEvent *event, gpointer data)
+static gint _dw_tree_context_event(GtkGestureSingle *gesture, int n_press, double x, double y, gpointer data)
 {
-   SignalHandler work = _get_signal_handler(data);
+   SignalHandler work = _dw_get_signal_handler(data);
    int retval = FALSE;
 
    if(work.window)
    {
-      int button = 1;
+      int button = gtk_gesture_single_get_current_button(gesture);
       
       if(button == 3)
       {
          int (*contextfunc)(HWND, char *, int, int, void *, void *) = work.func;
          char *text = NULL;
          void *itemdata = NULL;
-         /* TODO: Fill these in */
-         int x = 0, y = 0;
+         GtkWidget *widget = work.window;
 
          if(widget && GTK_IS_TREE_VIEW(widget))
          {
@@ -673,7 +666,7 @@ static gint _dw_tree_context_event(GtkWidget *widget, GdkEvent *event, gpointer 
             }
          }
 
-         retval = contextfunc(work.window, text, x, y, work.data, itemdata);
+         retval = contextfunc(work.window, text, (int)x, (int)y, work.data, itemdata);
          if(text)
             g_free(text);
       }
@@ -688,7 +681,7 @@ static gint _dw_tree_select_event(GtkTreeSelection *sel, gpointer data)
 
    if(widget)
    {
-      SignalHandler work = _get_signal_handler(data);
+      SignalHandler work = _dw_get_signal_handler(data);
 
       if(work.window)
       {
@@ -780,7 +773,7 @@ static gint _dw_tree_select_event(GtkTreeSelection *sel, gpointer data)
 
 static gint _dw_tree_expand_event(GtkTreeView *widget, GtkTreeIter *iter, GtkTreePath *path, gpointer data)
 {
-   SignalHandler work = _get_signal_handler(data);
+   SignalHandler work = _dw_get_signal_handler(data);
    int retval = FALSE;
 
    if(!_dw_ignore_expand && work.window)
@@ -793,7 +786,7 @@ static gint _dw_tree_expand_event(GtkTreeView *widget, GtkTreeIter *iter, GtkTre
 
 static gint _dw_container_enter_event(GtkEventControllerKey *controller, guint keyval, guint keycode, GdkModifierType state, gpointer data)
 {
-   SignalHandler work = _get_signal_handler(data);
+   SignalHandler work = _dw_get_signal_handler(data);
    int retval = FALSE;
 
    if(work.window && GTK_IS_WIDGET(work.window))
@@ -858,7 +851,7 @@ int _dw_get_logical_page(HWND handle, unsigned long pageid)
 
 static gint _dw_switch_page_event(GtkNotebook *notebook, GtkWidget *page, guint page_num, gpointer data)
 {
-   SignalHandler work = _get_signal_handler(data);
+   SignalHandler work = _dw_get_signal_handler(data);
    int retval = FALSE;
 
    if(work.window)
@@ -884,7 +877,7 @@ static gint _dw_column_click_event(GtkWidget *widget, gpointer data)
          SignalHandler work;
 
          params[0] = GINT_TO_POINTER(handlerdata-1);
-         work = _get_signal_handler(params);
+         work = _dw_get_signal_handler(params);
 
          if(work.window)
          {
@@ -928,7 +921,7 @@ static gint _dw_value_changed_event(GtkWidget *widget, gpointer data)
 
    if(slider || spinbutton || scrollbar)
    {
-      SignalHandler work = _get_signal_handler(data);
+      SignalHandler work = _dw_get_signal_handler(data);
 
       if (work.window)
       {
@@ -2157,13 +2150,9 @@ HWND dw_notebook_new(unsigned long id, int top)
  */
 HMENUI dw_menu_new(unsigned long id)
 {
-   HMENUI tmp = NULL;
+   HMENUI tmp = gtk_popover_menu_new_from_model_full(NULL, GTK_POPOVER_MENU_NESTED);
 
-#if 0 /* TODO: Implement this with GMenuModel and GtkPopoverMenu */   
-   tmp = gtk_menu_new();
-   gtk_widget_show(tmp);
    g_object_set_data(G_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(id));
-#endif   
    return tmp;
 }
 
@@ -2177,25 +2166,23 @@ HMENUI dw_menu_new(unsigned long id)
 HMENUI dw_menubar_new(HWND location)
 {
    HMENUI tmp = 0;
-#if 0 /* TODO: Implement this with GMenuModel and GtkPopoverMenu */   
    GtkWidget *box;
 
    if(GTK_IS_WINDOW(location) &&
-      (box = (GtkWidget *)g_object_get_data(G_OBJECT(location), "_dw_grid")))
+      (box = GTK_WIDGET(g_object_get_data(G_OBJECT(location), "_dw_grid"))))
    {
       /* If there is an existing menu bar, remove it */
-      GtkWidget *oldmenu = (GtkWidget *)g_object_get_data(G_OBJECT(location), "_dw_menubar");
+      GtkWidget *oldmenu = GTK_WIDGET(g_object_get_data(G_OBJECT(location), "_dw_menubar"));
       if(oldmenu && GTK_IS_WIDGET(oldmenu))
-         g_object_unref(G_OBJECT(oldmenu));
+         gtk_grid_remove(GTK_GRID(box), tmp);
       /* Create a new menu bar */
-      tmp = gtk_menu_bar_new();
+      tmp = gtk_popover_menu_bar_new_from_model(NULL);
       gtk_widget_show(tmp);
       /* Save pointers to each other */
       g_object_set_data(G_OBJECT(location), "_dw_menubar", (gpointer)tmp);
       g_object_set_data(G_OBJECT(tmp), "_dw_window", (gpointer)location);
       gtk_grid_attach(GTK_GRID(box), tmp, 0, 0, 1, 1);
    }
-#endif   
    return tmp;
 }
 
@@ -2206,21 +2193,25 @@ HMENUI dw_menubar_new(HWND location)
  */
 void dw_menu_destroy(HMENUI *menu)
 {
-#if 0 /* TODO: Implement this with GMenuModel and GtkPopoverMenu */   
    if(menu && *menu)
    {
       GtkWidget *window;
 
       /* If it is a menu bar, try to delete the reference to it */
-      if(GTK_IS_MENU_BAR(*menu) &&
-         (window = (GtkWidget *)g_object_get_data(G_OBJECT(*menu), "_dw_window")))
+      if(GTK_IS_POPOVER_MENU_BAR(*menu) &&
+         (window = GTK_WIDGET(g_object_get_data(G_OBJECT(*menu), "_dw_window"))))
             g_object_set_data(G_OBJECT(window), "_dw_menubar", NULL);
       /* Actually destroy the menu */
       if(GTK_IS_WIDGET(*menu))
-         g_object_unref(G_OBJECT(*menu));
+      {
+         GtkWidget *box = GTK_WIDGET(g_object_get_data(G_OBJECT(window), "_dw_grid"));
+         if(box && GTK_IS_GRID(box))
+            gtk_grid_remove(GTK_GRID(box), GTK_WIDGET(*menu));
+         else
+            g_object_unref(G_OBJECT(*menu));
+      }
       *menu = NULL;
    }
-#endif   
 }
 
 /*
@@ -9097,7 +9088,7 @@ int dw_html_javascript_run(HWND handle, const char *script, void *scriptdata)
    WebKitWebView *web_view;
 
    if((web_view = _dw_html_web_view(handle)))
-      webkit_web_view_run_javascript(web_view, script, NULL, _html_result_event, scriptdata);
+      webkit_web_view_run_javascript(web_view, script, NULL, _dw_html_result_event, scriptdata);
    return DW_ERROR_NONE;
 #else
    return DW_ERROR_UNKNOWN;
@@ -9482,7 +9473,7 @@ static void _dw_signal_disconnect(gpointer data, GClosure *closure)
 
       if(discfunc)
       {
-         SignalHandler work = _get_signal_handler(data);
+         SignalHandler work = _dw_get_signal_handler(data);
 
          if(work.window)
          {
@@ -9553,7 +9544,7 @@ GObject *_dw_draw_setup(struct _dw_signal_list *signal, GObject *object, void *p
    {
       /* TODO: Might need to use the disconnect paramater since this isn't a normal signal handler */
       gtk_drawing_area_set_draw_func(GTK_DRAWING_AREA(object), signal->func, data, NULL);
-      _set_signal_handler(object, (HWND)object, sigfunc, data, signal->func, discfunc);
+      _dw_set_signal_handler(object, (HWND)object, sigfunc, data, signal->func, discfunc);
       return NULL;
    }
    return object;
@@ -9568,7 +9559,7 @@ GObject *_dw_tree_setup(struct _dw_signal_list *signal, GObject *object, void *p
          /* We don't actually need a signal handler here... just need to assign the handler ID
           * Since the handlers for the columns were already created in _dw_container_setup()
           */
-         int sigid = _set_signal_handler(object, (HWND)object, sigfunc, data, signal->func, discfunc);
+         int sigid = _dw_set_signal_handler(object, (HWND)object, sigfunc, data, signal->func, discfunc);
          g_object_set_data(object, "_dw_column_click_id", GINT_TO_POINTER(sigid+1));
          return NULL;
       }
@@ -9601,21 +9592,21 @@ GObject *_dw_focus_setup(struct _dw_signal_list *signal, GObject *object, void *
    return object;
 }
 
+#ifdef USE_WEBKIT
 GObject *_dw_html_setup(struct _dw_signal_list *signal, GObject *object, void *params[], void *sigfunc, void *discfunc, void *data)
 {
-#ifdef USE_WEBKIT
    if(WEBKIT_IS_WEB_VIEW(object) && strcmp(signal->name, DW_SIGNAL_HTML_RESULT) == 0)
    {
       /* We don't actually need a signal handler here... just need to assign the handler ID
        * Since the handler is created in dw_html_javasript_run()
        */
-      int sigid = _set_signal_handler(object, (HWND)object, sigfunc, data, signal->func, discfunc);
+      int sigid = _dw_set_signal_handler(object, (HWND)object, sigfunc, data, signal->func, discfunc);
       g_object_set_data(object, "_dw_html_result_id", GINT_TO_POINTER(sigid+1));
       return NULL;
    }
-#endif
    return object;
 }
+#endif
 
 /*
  * Add a callback to a window event with a closure callback.
@@ -9661,11 +9652,11 @@ void dw_signal_connect_data(HWND window, const char *signame, void *sigfunc, voi
          return;
       }
 
-      sigid = _set_signal_handler(object, window, sigfunc, data, signal.func, discfunc);
+      sigid = _dw_set_signal_handler(object, window, sigfunc, data, signal.func, discfunc);
       params[0] = DW_INT_TO_POINTER(sigid);
       params[2] = DW_POINTER(object);
       cid = g_signal_connect_data(object, signal.gname, G_CALLBACK(signal.func), params, _dw_signal_disconnect, 0);
-      _set_signal_handler_id(object, sigid, cid);
+      _dw_set_signal_handler_id(object, sigid, cid);
    }
 }
 
@@ -9691,10 +9682,10 @@ void dw_signal_disconnect_by_name(HWND window, const char *signame)
          SignalHandler sh;
 
          params[0] = GINT_TO_POINTER(z);
-         sh = _get_signal_handler(params);
+         sh = _dw_get_signal_handler(params);
 
          if(sh.intfunc == signal.func)
-            _remove_signal_handler((HWND)params[2], z);
+            _dw_remove_signal_handler((HWND)params[2], z);
       }
    }
 }
@@ -9713,7 +9704,7 @@ void dw_signal_disconnect_by_window(HWND window)
    count = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(thiswindow), "_dw_sigcounter"));
 
    for(z=0;z<count;z++)
-      _remove_signal_handler(thiswindow, z);
+      _dw_remove_signal_handler(thiswindow, z);
    g_object_set_data(G_OBJECT(thiswindow), "_dw_sigcounter", NULL);
 }
 
@@ -9736,10 +9727,10 @@ void dw_signal_disconnect_by_data(HWND window, void *data)
       SignalHandler sh;
 
       params[0] = GINT_TO_POINTER(z);
-      sh = _get_signal_handler(params);
+      sh = _dw_get_signal_handler(params);
 
       if(sh.data == data)
-         _remove_signal_handler((HWND)params[2], z);
+         _dw_remove_signal_handler((HWND)params[2], z);
    }
 }
 
