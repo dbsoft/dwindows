@@ -1008,6 +1008,19 @@ static void _dw_notification_handler(GSimpleAction *action, GVariant *param, gpo
       func((HWND)DW_ULONGLONG_TO_POINTER(g_variant_get_uint64(param)), data);  
 }
 
+/* Handle menu click callbacks */
+static void _dw_menu_handler(GSimpleAction *action, GVariant *param, gpointer data)
+{
+   SignalHandler work = _dw_get_signal_handler(data);
+
+   if(work.window)
+   {
+      int (*genericfunc)(HWND, void *) = work.func;
+
+      genericfunc(work.window, work.data);
+   }
+}
+
 static void _dw_app_activate(GApplication *app, gpointer user_data)
 {
    /* Not sure why this signal is required, but GLib gives warnings
@@ -2218,24 +2231,29 @@ void dw_menu_destroy(HMENUI *menu)
    }
 }
 
-char _dw_removetilde(char *dest, const char *src)
+char _dw_removetilde(char *action, char *dest, const char *src)
 {
    int z, cur=0;
    char accel = '\0';
 
    for(z=0;z<strlen(src);z++)
    {
-      if(src[z] != '~')
+      if(src[z] == '~')
       {
+         action[cur] = dest[cur] = '_';
+         accel = src[z+1];
+      }
+      else if(src[z] == ' ')
+      {
+         action[cur] = '_';
          dest[cur] = src[z];
-         cur++;
       }
       else
       {
-         dest[cur] = '_';
-         accel = src[z+1];
-         cur++;
+         action[cur] = src[z];
+         dest[cur] = src[z];
       }
+      cur++;
    }
    dest[cur] = 0;
    return accel;
@@ -2255,30 +2273,31 @@ char _dw_removetilde(char *dest, const char *src)
  */
 HWND dw_menu_append_item(HMENUI menu, const char *title, unsigned long id, unsigned long flags, int end, int check, HMENUI submenu)
 {
+   GSimpleAction *action = NULL;
    GMenuItem *tmphandle = NULL;
    GMenuModel *menumodel;
-   char accel, *temptitle = alloca(strlen(title)+1);
+   char *temptitle = alloca(strlen(title)+1);
+   char *tempaction = alloca(strlen(title)+1);
    int submenucount;
 
    if(!menu)
-      return NULL;
+      return 0;
 
    if(GTK_IS_POPOVER_MENU_BAR(menu))
       menumodel = gtk_popover_menu_bar_get_menu_model(GTK_POPOVER_MENU_BAR(menu));
    else
       menumodel = gtk_popover_menu_get_menu_model(GTK_POPOVER_MENU(menu));
-   accel = _dw_removetilde(temptitle, title);
+   _dw_removetilde(tempaction, temptitle, title);
    submenucount = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(menu), "_dw_submenucount"));
 
    if (strlen(temptitle) == 0)
       tmphandle = g_menu_item_new_section(NULL, NULL);
    else
    {
-      char numbuf[25] = {0};
+      char tempbuf[101] = {0};
 
       if(submenu)
       {
-         char tempbuf[101] = {0};
          GMenuModel *submenumodel;
          
          if(GTK_IS_POPOVER_MENU_BAR(submenu))
@@ -2294,9 +2313,15 @@ HWND dw_menu_append_item(HMENUI menu, const char *title, unsigned long id, unsig
       }
       else
       {
-         tmphandle=g_menu_item_new(temptitle, NULL);
+         char numbuf[25] = {0};
+
+         snprintf(tempbuf, 100, "menu.%s", tempaction);
+         action = g_simple_action_new(tempbuf, NULL);
+         g_object_ref(G_OBJECT(action));
+         tmphandle=g_menu_item_new(temptitle, tempbuf);
          snprintf(numbuf, 24, "%lu", id);
          g_object_set_data(G_OBJECT(menu), numbuf, (gpointer)tmphandle);
+         g_object_set_data(G_OBJECT(menu), "_dw_action", (gpointer)action);
       }
    }
 
@@ -2307,14 +2332,14 @@ HWND dw_menu_append_item(HMENUI menu, const char *title, unsigned long id, unsig
 
    g_object_set_data(G_OBJECT(tmphandle), "_dw_id", GINT_TO_POINTER(id));
    
-   /*if(flags & DW_MIS_DISABLED)
-      gtk_widget_set_sensitive(tmphandle, FALSE);*/
+   if(action)
+      g_simple_action_set_enabled(action, (flags & DW_MIS_DISABLED) ? FALSE : TRUE);
    return (HWND)tmphandle;
 }
 
-GtkWidget *_find_submenu_id(GtkWidget *start, const char *name)
+GMenuItem *_dw_find_submenu_id(HMENUI start, const char *name)
 {
-   GtkWidget *tmp;
+   GMenuItem *tmp;
    int z, submenucount = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(start), "_dw_submenucount"));
 
    if((tmp = g_object_get_data(G_OBJECT(start), name)))
@@ -2323,13 +2348,14 @@ GtkWidget *_find_submenu_id(GtkWidget *start, const char *name)
    for(z=0;z<submenucount;z++)
    {
       char tempbuf[101] = {0};
-      GtkWidget *submenu, *menuitem;
+      GMenuItem *menuitem;
+      HMENUI submenu;
 
       snprintf(tempbuf, 100, "_dw_submenu%d", z);
 
       if((submenu = g_object_get_data(G_OBJECT(start), tempbuf)))
       {
-         if((menuitem = _find_submenu_id(submenu, name)))
+         if((menuitem = _dw_find_submenu_id(submenu, name)))
             return menuitem;
       }
    }
@@ -2346,22 +2372,22 @@ GtkWidget *_find_submenu_id(GtkWidget *start, const char *name)
  */
 void dw_menu_item_set_check(HMENUI menu, unsigned long id, int check)
 {
-#if 0 /* TODO: Implement this with GMenuModel and GtkPopoverMenu */   
+#if 0
    char numbuf[25] = {0};
-   GtkWidget *tmphandle;
+   GMenuItem *tmphandle;
 
    if(!menu)
       return;
 
    snprintf(numbuf, 24, "%lu", id);
-   tmphandle = _find_submenu_id(menu, numbuf);
+   tmphandle = _dw_find_submenu_id(menu, numbuf);
 
-   if(tmphandle)
+   if(tmphandle && G_IS_MENU_ITEM(tmphandle))
    {
-      _dw_ignore_click = 1;
+      GSimpleAction *action = g_object_get_data(G_OBJECT(tmphandle), "_dw_action");
+      
       if(gtk_check_menu_item_get_active(GTK_CHECK_MENU_ITEM(tmphandle)) != check)
          gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(tmphandle), check);
-      _dw_ignore_click = 0;
    }
 #endif
 }
@@ -2375,45 +2401,39 @@ void dw_menu_item_set_check(HMENUI menu, unsigned long id, int check)
  */
 void dw_menu_item_set_state(HMENUI menu, unsigned long id, unsigned long state)
 {
-#if 0 /* TODO: Implement this with GMenuModel and GtkPopoverMenu */   
    char numbuf[25] = {0};
-   GtkWidget *tmphandle;
-   int check;
+   GMenuItem *tmphandle;
 
    if(!menu)
       return;
 
    snprintf(numbuf, 24, "%lu", id);
-   tmphandle = _find_submenu_id(menu, numbuf);
+   tmphandle = _dw_find_submenu_id(menu, numbuf);
 
-   if ( (state & DW_MIS_CHECKED) || (state & DW_MIS_UNCHECKED) )
+   if(tmphandle && G_IS_MENU_ITEM(tmphandle))
    {
-      if ( state & DW_MIS_CHECKED )
-         check = 1;
-      else
-         check = 0;
-
-      if (tmphandle)
+      GSimpleAction *action = g_object_get_data(G_OBJECT(tmphandle), "_dw_action");
+      
+#if 0
+      if((state & DW_MIS_CHECKED) || (state & DW_MIS_UNCHECKED))
       {
-         _dw_ignore_click = 1;
+         int check = 0;
+
+         if(state & DW_MIS_CHECKED)
+            check = 1;
+
          if(gtk_check_menu_item_get_active(GTK_CHECK_MENU_ITEM(tmphandle)) != check)
             gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(tmphandle), check);
-         _dw_ignore_click = 0;
       }
-   }
-   if ( (state & DW_MIS_ENABLED) || (state & DW_MIS_DISABLED) )
-   {
-      if (tmphandle )
+#endif
+      if((state & DW_MIS_ENABLED) || (state & DW_MIS_DISABLED))
       {
-         _dw_ignore_click = 1;
-         if ( state & DW_MIS_ENABLED )
-            gtk_widget_set_sensitive( tmphandle, TRUE );
+         if(state & DW_MIS_ENABLED)
+            g_simple_action_set_enabled(action, TRUE);
          else
-            gtk_widget_set_sensitive( tmphandle, FALSE );
-         _dw_ignore_click = 0;
+            g_simple_action_set_enabled(action, FALSE);
       }
    }
-#endif   
 }
 
 /*
@@ -2427,24 +2447,22 @@ void dw_menu_item_set_state(HMENUI menu, unsigned long id, unsigned long state)
 int API dw_menu_delete_item(HMENUI menu, unsigned long id)
 {
    int ret = DW_ERROR_UNKNOWN;
-#if 0 /* TODO: Implement this with GMenuModel and GtkPopoverMenu */   
    char numbuf[25] = {0};
-   GtkWidget *tmphandle;
+   GMenuItem *tmphandle;
 
    if(!menu)
       return ret;
 
    snprintf(numbuf, 24, "%lu", id);
-   tmphandle = _find_submenu_id(menu, numbuf);
+   tmphandle = _dw_find_submenu_id(menu, numbuf);
 
-   if(tmphandle)
+   if(tmphandle && G_IS_MENU_ITEM(tmphandle))
    {
-      if(GTK_IS_WIDGET(tmphandle))
-         g_object_unref(G_OBJECT(tmphandle));
+      /* g_menu_remove(menu, position); */
+      g_object_unref(G_OBJECT(tmphandle));
       g_object_set_data(G_OBJECT(menu), numbuf, NULL);
       ret = DW_ERROR_NONE;
    }
-#endif   
    return ret;
 }
 
@@ -2458,15 +2476,16 @@ int API dw_menu_delete_item(HMENUI menu, unsigned long id)
  */
 void dw_menu_popup(HMENUI *menu, HWND parent, int x, int y)
 {
-   if(!menu || !*menu)
-      return;
-
-#if 0 /* TODO: Implement this with GMenuModel and GtkPopoverMenu */   
-   popup = parent;
-
-   gtk_menu_popup_at_pointer(GTK_MENU(*menu), NULL);
-#endif   
-   *menu = NULL;
+   if(menu && *menu && GTK_IS_WIDGET(*menu))
+   {
+      GtkWidget *popover = gtk_popover_new();
+      
+      gtk_popover_set_child(GTK_POPOVER(popover), GTK_WIDGET(*menu));
+      gtk_popover_set_offset(GTK_POPOVER(popover), x, y);
+      gtk_popover_set_autohide(GTK_POPOVER(popover), TRUE);
+      gtk_popover_popup(GTK_POPOVER(popover));
+      *menu = NULL;
+   }
 }
 
 
@@ -9521,6 +9540,22 @@ GObject *_dw_button_setup(struct _dw_signal_list *signal, GObject *object, void 
    /* GTK signal name for check buttons is "toggled" not "clicked" */
    else if(GTK_IS_CHECK_BUTTON(object) && strcmp(signal->name, DW_SIGNAL_CLICKED) == 0)
       strcpy(signal->gname, "toggled");
+   /* For menu items, get the G(Simple)Action and the signal is "activate" */ 
+   else if(G_IS_MENU_ITEM(object) && strcmp(signal->name, DW_SIGNAL_CLICKED) == 0)
+   {
+      GSimpleAction *action = G_SIMPLE_ACTION(g_object_get_data(object, "_dw_action"));
+
+      if(action)
+      {
+         int cid, sigid = _dw_set_signal_handler(G_OBJECT(action), (HWND)object, sigfunc, data, (gpointer)_dw_menu_handler, discfunc);
+
+         params[0] = DW_INT_TO_POINTER(sigid);
+         params[2] = DW_POINTER(object);
+         cid = g_signal_connect_data(G_OBJECT(action), "activate", G_CALLBACK(_dw_menu_handler), params, _dw_signal_disconnect, 0);
+         _dw_set_signal_handler_id(object, sigid, cid);
+      }
+      return NULL;
+   } 
    return object;
 }
 
