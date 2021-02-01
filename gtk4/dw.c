@@ -2150,7 +2150,8 @@ HWND dw_notebook_new(unsigned long id, int top)
  */
 HMENUI dw_menu_new(unsigned long id)
 {
-   HMENUI tmp = gtk_popover_menu_new_from_model_full(NULL, GTK_POPOVER_MENU_NESTED);
+   GMenu *menu = g_menu_new();
+   HMENUI tmp = gtk_popover_menu_new_from_model_full(G_MENU_MODEL(menu), GTK_POPOVER_MENU_NESTED);
 
    g_object_set_data(G_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(id));
    return tmp;
@@ -2171,12 +2172,15 @@ HMENUI dw_menubar_new(HWND location)
    if(GTK_IS_WINDOW(location) &&
       (box = GTK_WIDGET(g_object_get_data(G_OBJECT(location), "_dw_grid"))))
    {
+      GMenu *menu = g_menu_new();
       /* If there is an existing menu bar, remove it */
       GtkWidget *oldmenu = GTK_WIDGET(g_object_get_data(G_OBJECT(location), "_dw_menubar"));
+      
       if(oldmenu && GTK_IS_WIDGET(oldmenu))
          gtk_grid_remove(GTK_GRID(box), tmp);
+         
       /* Create a new menu bar */
-      tmp = gtk_popover_menu_bar_new_from_model(NULL);
+      tmp = gtk_popover_menu_bar_new_from_model(G_MENU_MODEL(menu));
       gtk_widget_show(tmp);
       /* Save pointers to each other */
       g_object_set_data(G_OBJECT(location), "_dw_menubar", (gpointer)tmp);
@@ -2214,6 +2218,30 @@ void dw_menu_destroy(HMENUI *menu)
    }
 }
 
+char _dw_removetilde(char *dest, const char *src)
+{
+   int z, cur=0;
+   char accel = '\0';
+
+   for(z=0;z<strlen(src);z++)
+   {
+      if(src[z] != '~')
+      {
+         dest[cur] = src[z];
+         cur++;
+      }
+      else
+      {
+         dest[cur] = '_';
+         accel = src[z+1];
+         cur++;
+      }
+   }
+   dest[cur] = 0;
+   return accel;
+}
+
+
 /*
  * Adds a menuitem or submenu to an existing menu.
  * Parameters:
@@ -2227,81 +2255,61 @@ void dw_menu_destroy(HMENUI *menu)
  */
 HWND dw_menu_append_item(HMENUI menu, const char *title, unsigned long id, unsigned long flags, int end, int check, HMENUI submenu)
 {
-   GtkWidget *tmphandle = NULL;
-#if 0 /* TODO: Implement this with GMenuModel and GtkPopoverMenu */   
-   char accel, *tempbuf = malloc(strlen(title)+1);
+   GMenuItem *tmphandle = NULL;
+   GMenuModel *menumodel;
+   char accel, *temptitle = alloca(strlen(title)+1);
    int submenucount;
 
-   if (!menu)
-   {
-      free(tempbuf);
+   if(!menu)
       return NULL;
-   }
 
-   accel = _removetilde(tempbuf, title);
-
+   if(GTK_IS_POPOVER_MENU_BAR(menu))
+      menumodel = gtk_popover_menu_bar_get_menu_model(GTK_POPOVER_MENU_BAR(menu));
+   else
+      menumodel = gtk_popover_menu_get_menu_model(GTK_POPOVER_MENU(menu));
+   accel = _dw_removetilde(temptitle, title);
    submenucount = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(menu), "_dw_submenucount"));
 
-   if (strlen(tempbuf) == 0)
-      tmphandle=gtk_menu_item_new();
+   if (strlen(temptitle) == 0)
+      tmphandle = g_menu_item_new_section(NULL, NULL);
    else
    {
       char numbuf[25] = {0};
 
-      if (check)
+      if(submenu)
       {
-         tmphandle = gtk_check_menu_item_new_with_label(tempbuf);
-         if (accel)
-            gtk_label_set_use_underline(GTK_LABEL(gtk_bin_get_child(GTK_BIN(tmphandle))), TRUE);
-         snprintf(numbuf, 24, "%lu", id);
-         g_object_set_data(G_OBJECT(menu), numbuf, (gpointer)tmphandle);
+         char tempbuf[101] = {0};
+         GMenuModel *submenumodel;
+         
+         if(GTK_IS_POPOVER_MENU_BAR(submenu))
+            submenumodel = gtk_popover_menu_bar_get_menu_model(GTK_POPOVER_MENU_BAR(submenu));
+         else
+            submenumodel = gtk_popover_menu_get_menu_model(GTK_POPOVER_MENU(submenu));
+
+         snprintf(tempbuf, 100, "_dw_submenu%d", submenucount);
+         submenucount++;
+         tmphandle = g_menu_item_new_submenu(temptitle, submenumodel);
+         g_object_set_data(G_OBJECT(menu), tempbuf, (gpointer)submenu);
+         g_object_set_data(G_OBJECT(menu), "_dw_submenucount", GINT_TO_POINTER(submenucount));
       }
       else
       {
-         tmphandle=gtk_menu_item_new_with_label(tempbuf);
-         if (accel)
-         {
-            gtk_label_set_use_underline(GTK_LABEL(gtk_bin_get_child(GTK_BIN(tmphandle))), TRUE);
-         }
+         tmphandle=g_menu_item_new(temptitle, NULL);
          snprintf(numbuf, 24, "%lu", id);
          g_object_set_data(G_OBJECT(menu), numbuf, (gpointer)tmphandle);
       }
    }
 
-   gtk_widget_show(tmphandle);
-
-   if (submenu)
-   {
-      char tempbuf[101] = {0};
-
-      snprintf(tempbuf, 100, "_dw_submenu%d", submenucount);
-      submenucount++;
-      gtk_menu_item_set_submenu(GTK_MENU_ITEM(tmphandle), submenu);
-      g_object_set_data(G_OBJECT(menu), tempbuf, (gpointer)submenu);
-      g_object_set_data(G_OBJECT(menu), "_dw_submenucount", GINT_TO_POINTER(submenucount));
-   }
-
-   if (GTK_IS_MENU_BAR(menu))
-      gtk_menu_shell_append(GTK_MENU_SHELL(menu), tmphandle);
+   if(end)
+      g_menu_append_item(G_MENU(menumodel), tmphandle);
    else
-      gtk_menu_shell_append(GTK_MENU_SHELL(menu), tmphandle);
+      g_menu_prepend_item(G_MENU(menumodel), tmphandle);
 
    g_object_set_data(G_OBJECT(tmphandle), "_dw_id", GINT_TO_POINTER(id));
-   free(tempbuf);
-   /*
-    * Set flags
-    */
-   if ( check && (flags & DW_MIS_CHECKED) )
-   {
-      _dw_ignore_click = 1;
-      gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(tmphandle), 1);
-      _dw_ignore_click = 0;
-   }
-
-   if ( flags & DW_MIS_DISABLED )
-      gtk_widget_set_sensitive( tmphandle, FALSE );
-#endif
-   return tmphandle;
+   
+   /*if(flags & DW_MIS_DISABLED)
+      gtk_widget_set_sensitive(tmphandle, FALSE);*/
+   return (HWND)tmphandle;
 }
 
 GtkWidget *_find_submenu_id(GtkWidget *start, const char *name)
