@@ -3270,31 +3270,18 @@ void dw_window_enable(HWND handle)
  */
 HWND API dw_window_from_id(HWND handle, int id)
 {
-   /* TODO: Figure out how to do this in GTK4 without GtkContainer */
-#if GTK3 
-   GList *orig = NULL, *list = NULL;
-
-   if(handle && GTK_IS_CONTAINER(handle))
+   if(handle && GTK_WIDGET(handle) && id)
    {
-      orig = list = gtk_container_get_children(GTK_CONTAINER(handle));
-   }
-   while(list)
-   {
-      if(GTK_IS_WIDGET(list->data))
+      GtkWidget *widget = gtk_widget_get_first_child(GTK_WIDGET(handle));
+      
+      while(widget)
       {
-         if(id == GPOINTER_TO_INT(g_object_get_data(G_OBJECT(list->data), "_dw_id")))
-         {
-            HWND ret = (HWND)list->data;
-            g_list_free(orig);
-            return ret;
-         }
+         if(id == GPOINTER_TO_INT(g_object_get_data(G_OBJECT(widget), "_dw_id")))
+            return widget;
+         widget = gtk_widget_get_next_sibling(GTK_WIDGET(widget));
       }
-      list = list->next;
    }
-   if(orig)
-      g_list_free(orig);
-#endif      
-   return 0L;
+   return 0;
 }
 
 /*
