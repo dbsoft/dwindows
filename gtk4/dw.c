@@ -1021,6 +1021,16 @@ static void _dw_menu_handler(GSimpleAction *action, GVariant *param, gpointer da
    }
 }
 
+/* Internal function to add padding to boxes or other widgets */
+static void _dw_widget_set_pad(GtkWidget *widget, int pad)
+{
+   /* Set pad for each margin direction on the widget */
+   gtk_widget_set_margin_start(widget, pad);
+   gtk_widget_set_margin_end(widget, pad);
+   gtk_widget_set_margin_top(widget, pad);
+   gtk_widget_set_margin_bottom(widget, pad);
+}
+
 static void _dw_app_activate(GApplication *app, gpointer user_data)
 {
    /* Not sure why this signal is required, but GLib gives warnings
@@ -2011,7 +2021,7 @@ HWND dw_box_new(int type, int pad)
 
    tmp = gtk_grid_new();
    g_object_set_data(G_OBJECT(tmp), "_dw_boxtype", GINT_TO_POINTER(type));
-   g_object_set_data(G_OBJECT(tmp), "_dw_boxpad", GINT_TO_POINTER(pad));
+   _dw_widget_set_pad(tmp, pad);
    gtk_widget_show(tmp);
    return tmp;
 }
@@ -2032,9 +2042,9 @@ HWND dw_scrollbox_new(int type, int pad)
    box = gtk_grid_new();
 
    g_object_set_data(G_OBJECT(box), "_dw_boxtype", GINT_TO_POINTER(type));
-   g_object_set_data(G_OBJECT(box), "_dw_boxpad", GINT_TO_POINTER(pad));
    g_object_set_data(G_OBJECT(tmp), "_dw_boxhandle", (gpointer)box);
-
+   _dw_widget_set_pad(box, pad);
+   
    gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(tmp), box);
    g_object_set_data(G_OBJECT(tmp), "_dw_user", box);
    gtk_widget_show(box);
@@ -2104,12 +2114,11 @@ HWND dw_groupbox_new(int type, int pad, const char *title)
 
    frame = gtk_frame_new(NULL);
    gtk_frame_set_label(GTK_FRAME(frame), title && *title ? title : NULL);
-
+   
    tmp = gtk_grid_new();
-   /* TODO: Fix this! gtk_container_set_border_width(GTK_CONTAINER(tmp), pad); */
    g_object_set_data(G_OBJECT(tmp), "_dw_boxtype", GINT_TO_POINTER(type));
-   g_object_set_data(G_OBJECT(tmp), "_dw_boxpad", GINT_TO_POINTER(pad));
    g_object_set_data(G_OBJECT(frame), "_dw_boxhandle", (gpointer)tmp);
+   _dw_widget_set_pad(tmp, pad);
    gtk_frame_set_child(GTK_FRAME(frame), tmp);
    gtk_widget_show(tmp);
    gtk_widget_show(frame);
@@ -7238,7 +7247,6 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
           *       this eliminates that by forcing the size to 0.
           */
          height = width = 0;
-         /* TODO: Might need to add "_dw_boxpad" to item here */
       }
 
       /* Do some sanity bounds checking */
@@ -7253,8 +7261,8 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
       gtk_widget_set_valign(item, vsize ? GTK_ALIGN_FILL : GTK_ALIGN_START);
       gtk_widget_set_hexpand(item, hsize);
       gtk_widget_set_halign(item, hsize ? GTK_ALIGN_FILL : GTK_ALIGN_START);
-      /* TODO: Use the margin property as padding
-      g_object_set(G_OBJECT(item), "margin", pad, NULL);*/
+      /* Set pad for each margin direction on the widget */
+      _dw_widget_set_pad(item, pad);
       /* Add to the grid using insert...
        * rows for vertical boxes and columns for horizontal.
        */
@@ -7910,7 +7918,7 @@ void dw_notebook_pack(HWND handle, unsigned long pageid, HWND page)
 {
    GtkWidget *label, *child, *oldlabel, **pagearray;
    const gchar *text = NULL;
-   int num, z, realpage = -1, pad;
+   int num, z, realpage = -1;
    char ptext[101] = {0};
 
    snprintf(ptext, 100, "_dw_page%d", (int)pageid);
@@ -7942,13 +7950,6 @@ void dw_notebook_pack(HWND handle, unsigned long pageid, HWND page)
    pagearray[pageid] = page;
 
    label = gtk_label_new(text ? text : "");
-
-   if(GTK_IS_GRID(page))
-   {
-      pad = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(page), "_dw_boxpad"));
-      /* TODO: Add padding to page with no GtkContainer in GTK4 */
-      pad = pad;
-   }
 
    if(realpage != -1)
       gtk_notebook_insert_page(GTK_NOTEBOOK(handle), page, label, realpage);
