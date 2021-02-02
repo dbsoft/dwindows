@@ -466,9 +466,9 @@ static gint _dw_motion_notify_event(GtkEventControllerMotion *controller, double
    if(work.window)
    {
       int (*motionfunc)(HWND, int, int, int, void *) = work.func;
+      GdkEvent *event = gtk_event_controller_get_current_event(GDK_EVENT_CONTROLLER(controller));
+      GdkModifierType state = gdk_event_get_modifier_state(event);
       int keys = 0;
-      /* TODO: Fill these in */
-      GdkModifierType state = 0;
 
       if (state & GDK_BUTTON1_MASK)
          keys = DW_BUTTON1_MASK;
@@ -792,10 +792,13 @@ static gint _dw_container_enter_event(GtkEventControllerKey *controller, guint k
    if(work.window && GTK_IS_WIDGET(work.window))
    {
       GtkWidget *widget = work.window;
+      GdkEvent *event = gtk_event_controller_get_current_event(GDK_EVENT_CONTROLLER(controller));
+      gint button = gdk_button_event_get_button(event);
+      GdkEventType type = gdk_event_get_event_type(event);
 
-      /* Handle both key and button events together */
-      if(/* TODO: Fix this...(event->type == GDK_2BUTTON_PRESS && buttonevent->button == 1) || */
-         keyval == VK_RETURN)
+      /* TODO: Make sure this works. 
+         Handle both key and button events together */
+      if((type == GDK_BUTTON_PRESS && button == 1) || keyval == VK_RETURN)
       {
          int (*contextfunc)(HWND, char *, void *, void *) = work.func;
          char *text = NULL;
