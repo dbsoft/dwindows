@@ -13981,6 +13981,9 @@ int API dw_feature_get(DWFEATURE feature)
 #ifdef DW_INCLUDE_DEPRECATED
         case DW_FEATURE_MDI:
 #endif
+#if GTK_CHECK_VERSION(2,10,0)
+        case DW_FEATURE_TASK_BAR:
+#endif
         case DW_FEATURE_CONTAINER_STRIPE:
         case DW_FEATURE_UTF8_UNICODE:
         case DW_FEATURE_MLE_WORD_WRAP:
@@ -14016,6 +14019,9 @@ int API dw_feature_set(DWFEATURE feature, int state)
 #endif
 #ifdef DW_INCLUDE_DEPRECATED
         case DW_FEATURE_MDI:
+#endif
+#if GTK_CHECK_VERSION(2,10,0)
+        case DW_FEATURE_TASK_BAR:
 #endif
         case DW_FEATURE_CONTAINER_STRIPE:
         case DW_FEATURE_UTF8_UNICODE:

@@ -13860,6 +13860,12 @@ int API dw_feature_get(DWFEATURE feature)
         case DW_FEATURE_NOTEBOOK_STATUS_TEXT:
         case DW_FEATURE_MDI:
             return DW_FEATURE_ENABLED;
+        case DW_FEATURE_TASK_BAR:
+        {
+            if(hwndTrayServer)
+                return DW_ERROR_ENABLED;
+            return DW_FEATURE_UNSUPPORTED;
+        }
         default:
             return DW_FEATURE_UNSUPPORTED;
     }
@@ -13891,6 +13897,12 @@ int API dw_feature_set(DWFEATURE feature, int state)
         case DW_FEATURE_NOTEBOOK_STATUS_TEXT:
         case DW_FEATURE_MDI:
             return DW_ERROR_GENERAL;
+        case DW_FEATURE_TASK_BAR:
+        {
+            if(hwndTrayServer)
+                return DW_ERROR_GENERAL;
+            return DW_FEATURE_UNSUPPORTED;
+        }
         /* These features are supported and configurable */
         default:
             return DW_FEATURE_UNSUPPORTED;

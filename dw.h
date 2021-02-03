@@ -1524,6 +1524,7 @@ typedef enum
     DW_FEATURE_NOTIFICATION,            /* Supports sending system notifications */
     DW_FEATURE_UTF8_UNICODE,            /* Supports UTF8 encoded Unicode text */
     DW_FEATURE_MLE_RICH_EDIT,           /* Supports Rich Edit based MLE control (Windows) */
+    DW_FEATURE_TASK_BAR,                /* Supports icons in the taskbar or similar system widget */
     DW_FEATURE_MAX
 } DWFEATURE;
 

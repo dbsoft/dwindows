@@ -13891,6 +13891,7 @@ int API dw_feature_get(DWFEATURE feature)
             return DW_FEATURE_UNSUPPORTED;
         }
 #endif
+        case DW_FEATURE_TASK_BAR:  
         default:
             return DW_FEATURE_UNSUPPORTED;
     }
@@ -13969,6 +13970,8 @@ int API dw_feature_set(DWFEATURE feature, int state)
             return DW_ERROR_GENERAL;
         }
 #endif
+        case DW_FEATURE_TASK_BAR:  
+            return DW_ERROR_GENERAL;
         default:
             return DW_FEATURE_UNSUPPORTED;
     }
