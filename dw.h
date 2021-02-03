@@ -1603,6 +1603,12 @@ typedef enum
 /* Use the dbsoft.org application domain by default if not specified */
 #define DW_APP_DOMAIN_DEFAULT "org.dbsoft.dwindows"
 
+/* Forwarder macros to the future names of these functions */
+#define dw_pointer_get_pos(a, b) dw_pointer_query_pos(a, b)
+#define dw_environment_get(a) dw_environment_query(a)
+#define dw_container_get_start(a, b) dw_container_query_start(a, b)
+#define dw_container_get_next(a, b) dw_container_query_next(a, b)
+
 /* Public function prototypes */
 void API dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize, int vsize, int pad);
 void API dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, int vsize, int pad);
