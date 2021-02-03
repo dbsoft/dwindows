@@ -5473,21 +5473,22 @@ unsigned long API dw_color_choose(unsigned long value)
 void dw_draw_point(HWND handle, HPIXMAP pixmap, int x, int y)
 {
    cairo_t *cr = NULL;
-   GdkDrawingContext *dc = NULL;
-   cairo_region_t *clip = NULL;
+   GdkDrawContext *dc = NULL;
+   const cairo_region_t *clip = NULL;
 
    if(handle)
    {
-      /* TODO: Figure out how to do this in GTK4 with no GdkWindow */
-#if GTK3   
-      GdkWindow *window = gtk_widget_get_window(handle);
-      /* Safety check for non-existant windows */
-      if(!window || !GDK_IS_WINDOW(window))
+      GtkNative *native = gtk_widget_get_native(handle);
+      GdkSurface *surface = gtk_native_get_surface(native);
+
+      if((dc = GDK_DRAW_CONTEXT(gdk_surface_create_cairo_context(surface))))
+      {
+         clip = gdk_draw_context_get_frame_region(dc);
+         gdk_draw_context_begin_frame(dc, clip);
+         cr = gdk_cairo_context_cairo_create(GDK_CAIRO_CONTEXT(dc));
+      }
+      else
          return;
-      clip = gdk_window_get_clip_region(window);
-      dc = gdk_window_begin_draw_frame(window, clip);
-      cr = gdk_drawing_context_get_cairo_context(dc);
-#endif      
    }
    else if(pixmap)
       cr = cairo_create(pixmap->image);
@@ -5499,19 +5500,12 @@ void dw_draw_point(HWND handle, HPIXMAP pixmap, int x, int y)
       cairo_set_line_width(cr, 1);
       cairo_move_to(cr, x, y);
       cairo_stroke(cr);
-      if(clip)
-         cairo_region_destroy(clip);
-      /* TODO: Figure out how to do this in GTK4 with no GdkWindow */
-#if GTK3   
       /* If we are using a drawing context...
        * we don't own the cairo context so don't destroy it.
        */
       if(dc)
-         gdk_window_end_draw_frame(gtk_widget_get_window(handle), dc);
+         gdk_draw_context_end_frame(dc);
       else
-#else
-      if(!dc)
-#endif            
          cairo_destroy(cr);
    }
 }
@@ -5528,21 +5522,22 @@ void dw_draw_point(HWND handle, HPIXMAP pixmap, int x, int y)
 void dw_draw_line(HWND handle, HPIXMAP pixmap, int x1, int y1, int x2, int y2)
 {
    cairo_t *cr = NULL;
-   GdkDrawingContext *dc = NULL;
-   cairo_region_t *clip = NULL;
+   GdkDrawContext *dc = NULL;
+   const cairo_region_t *clip = NULL;
 
    if(handle)
    {
-       /* TODO: Figure out how to do this in GTK4 with no GdkWindow */
-#if GTK3   
-     GdkWindow *window = gtk_widget_get_window(handle);
-      /* Safety check for non-existant windows */
-      if(!window || !GDK_IS_WINDOW(window))
+      GtkNative *native = gtk_widget_get_native(handle);
+      GdkSurface *surface = gtk_native_get_surface(native);
+
+      if((dc = GDK_DRAW_CONTEXT(gdk_surface_create_cairo_context(surface))))
+      {
+         clip = gdk_draw_context_get_frame_region(dc);
+         gdk_draw_context_begin_frame(dc, clip);
+         cr = gdk_cairo_context_cairo_create(GDK_CAIRO_CONTEXT(dc));
+      }
+      else
          return;
-      clip = gdk_window_get_clip_region(window);
-      dc = gdk_window_begin_draw_frame(window, clip);
-      cr = gdk_drawing_context_get_cairo_context(dc);
-#endif      
    }
    else if(pixmap)
       cr = cairo_create(pixmap->image);
@@ -5555,19 +5550,12 @@ void dw_draw_line(HWND handle, HPIXMAP pixmap, int x1, int y1, int x2, int y2)
       cairo_move_to(cr, x1, y1);
       cairo_line_to(cr, x2, y2);
       cairo_stroke(cr);
-      if(clip)
-         cairo_region_destroy(clip);
-       /* TODO: Figure out how to do this in GTK4 with no GdkWindow */
-#if GTK3   
      /* If we are using a drawing context...
        * we don't own the cairo context so don't destroy it.
        */
       if(dc)
-         gdk_window_end_draw_frame(gtk_widget_get_window(handle), dc);
+         gdk_draw_context_end_frame(dc);
       else
-#else
-      if(!dc)
-#endif           
          cairo_destroy(cr);
    }
 }
@@ -5585,21 +5573,22 @@ void dw_draw_polygon(HWND handle, HPIXMAP pixmap, int flags, int npoints, int *x
 {
    cairo_t *cr = NULL;
    int z;
-   GdkDrawingContext *dc = NULL;
-   cairo_region_t *clip = NULL;
+   GdkDrawContext *dc = NULL;
+   const cairo_region_t *clip = NULL;
 
    if(handle)
    {
-      /* TODO: Figure out how to do this in GTK4 with no GdkWindow */
-#if GTK3   
-      GdkWindow *window = gtk_widget_get_window(handle);
-      /* Safety check for non-existant windows */
-      if(!window || !GDK_IS_WINDOW(window))
+      GtkNative *native = gtk_widget_get_native(handle);
+      GdkSurface *surface = gtk_native_get_surface(native);
+
+      if((dc = GDK_DRAW_CONTEXT(gdk_surface_create_cairo_context(surface))))
+      {
+         clip = gdk_draw_context_get_frame_region(dc);
+         gdk_draw_context_begin_frame(dc, clip);
+         cr = gdk_cairo_context_cairo_create(GDK_CAIRO_CONTEXT(dc));
+      }
+      else
          return;
-      clip = gdk_window_get_clip_region(window);
-      dc = gdk_window_begin_draw_frame(window, clip);
-      cr = gdk_drawing_context_get_cairo_context(dc);
-#endif      
    }
    else if(pixmap)
       cr = cairo_create(pixmap->image);
@@ -5620,19 +5609,12 @@ void dw_draw_polygon(HWND handle, HPIXMAP pixmap, int flags, int npoints, int *x
       if(flags & DW_DRAW_FILL)
          cairo_fill(cr);
       cairo_stroke(cr);
-      if(clip)
-         cairo_region_destroy(clip);
-      /* TODO: Figure out how to do this in GTK4 with no GdkWindow */
-#if GTK3   
-      /* If we are using a drawing context...
+     /* If we are using a drawing context...
        * we don't own the cairo context so don't destroy it.
        */
       if(dc)
-         gdk_window_end_draw_frame(gtk_widget_get_window(handle), dc);
+         gdk_draw_context_end_frame(dc);
       else
-#else
-      if(!dc)
-#endif            
          cairo_destroy(cr);
    }
 }
@@ -5650,21 +5632,22 @@ void dw_draw_polygon(HWND handle, HPIXMAP pixmap, int flags, int npoints, int *x
 void dw_draw_rect(HWND handle, HPIXMAP pixmap, int flags, int x, int y, int width, int height)
 {
    cairo_t *cr = NULL;
-   GdkDrawingContext *dc = NULL;
-   cairo_region_t *clip = NULL;
+   GdkDrawContext *dc = NULL;
+   const cairo_region_t *clip = NULL;
 
    if(handle)
    {
-      /* TODO: Figure out how to do this in GTK4 with no GdkWindow */
-#if GTK3   
-      GdkWindow *window = gtk_widget_get_window(handle);
-      /* Safety check for non-existant windows */
-      if(!window || !GDK_IS_WINDOW(window))
+      GtkNative *native = gtk_widget_get_native(handle);
+      GdkSurface *surface = gtk_native_get_surface(native);
+
+      if((dc = GDK_DRAW_CONTEXT(gdk_surface_create_cairo_context(surface))))
+      {
+         clip = gdk_draw_context_get_frame_region(dc);
+         gdk_draw_context_begin_frame(dc, clip);
+         cr = gdk_cairo_context_cairo_create(GDK_CAIRO_CONTEXT(dc));
+      }
+      else
          return;
-      clip = gdk_window_get_clip_region(window);
-      dc = gdk_window_begin_draw_frame(window, clip);
-      cr = gdk_drawing_context_get_cairo_context(dc);
-#endif      
    }
    else if(pixmap)
       cr = cairo_create(pixmap->image);
@@ -5684,19 +5667,12 @@ void dw_draw_rect(HWND handle, HPIXMAP pixmap, int flags, int x, int y, int widt
       if(flags & DW_DRAW_FILL)
          cairo_fill(cr);
       cairo_stroke(cr);
-      if(clip)
-         cairo_region_destroy(clip);
-      /* TODO: Figure out how to do this in GTK4 with no GdkWindow */
-#if GTK3   
-      /* If we are using a drawing context...
+     /* If we are using a drawing context...
        * we don't own the cairo context so don't destroy it.
        */
       if(dc)
-         gdk_window_end_draw_frame(gtk_widget_get_window(handle), dc);
+         gdk_draw_context_end_frame(dc);
       else
-#else
-      if(!dc)
-#endif            
          cairo_destroy(cr);
    }
 }
@@ -5717,21 +5693,22 @@ void dw_draw_rect(HWND handle, HPIXMAP pixmap, int flags, int x, int y, int widt
 void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yorigin, int x1, int y1, int x2, int y2)
 {
    cairo_t *cr = NULL;
-   GdkDrawingContext *dc = NULL;
-   cairo_region_t *clip = NULL;
+   GdkDrawContext *dc = NULL;
+   const cairo_region_t *clip = NULL;
 
    if(handle)
    {
-      /* TODO: Figure out how to do this in GTK4 with no GdkWindow */
-#if GTK3   
-      GdkWindow *window = gtk_widget_get_window(handle);
-      /* Safety check for non-existant windows */
-      if(!window || !GDK_IS_WINDOW(window))
+      GtkNative *native = gtk_widget_get_native(handle);
+      GdkSurface *surface = gtk_native_get_surface(native);
+
+      if((dc = GDK_DRAW_CONTEXT(gdk_surface_create_cairo_context(surface))))
+      {
+         clip = gdk_draw_context_get_frame_region(dc);
+         gdk_draw_context_begin_frame(dc, clip);
+         cr = gdk_cairo_context_cairo_create(GDK_CAIRO_CONTEXT(dc));
+      }
+      else
          return;
-      clip = gdk_window_get_clip_region(window);
-      dc = gdk_window_begin_draw_frame(window, clip);
-      cr = gdk_drawing_context_get_cairo_context(dc);
-#endif      
    }
    else if(pixmap)
       cr = cairo_create(pixmap->image);
@@ -5763,19 +5740,12 @@ void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yo
       if(flags & DW_DRAW_FILL)
          cairo_fill(cr);
       cairo_stroke(cr);
-      if(clip)
-         cairo_region_destroy(clip);
-      /* TODO: Figure out how to do this in GTK4 with no GdkWindow */
-#if GTK3   
-      /* If we are using a drawing context...
+     /* If we are using a drawing context...
        * we don't own the cairo context so don't destroy it.
        */
       if(dc)
-         gdk_window_end_draw_frame(gtk_widget_get_window(handle), dc);
+         gdk_draw_context_end_frame(dc);
       else
-#else
-      if(!dc)
-#endif            
          cairo_destroy(cr);
    }
 }
@@ -5793,26 +5763,27 @@ void dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, const char *text)
    cairo_t *cr = NULL;
    PangoFontDescription *font;
    char *tmpname, *fontname = "monospace 10";
-   GdkDrawingContext *dc = NULL;
-   cairo_region_t *clip = NULL;
+   GdkDrawContext *dc = NULL;
+   const cairo_region_t *clip = NULL;
 
    if(!text)
       return;
 
    if(handle)
    {
-      /* TODO: Figure out how to do this in GTK4 with no GdkWindow */
-#if GTK3   
-      GdkWindow *window = gtk_widget_get_window(handle);
-      /* Safety check for non-existant windows */
-      if(!window || !GDK_IS_WINDOW(window))
+      GtkNative *native = gtk_widget_get_native(handle);
+      GdkSurface *surface = gtk_native_get_surface(native);
+
+      if((dc = GDK_DRAW_CONTEXT(gdk_surface_create_cairo_context(surface))))
+      {
+         clip = gdk_draw_context_get_frame_region(dc);
+         gdk_draw_context_begin_frame(dc, clip);
+         cr = gdk_cairo_context_cairo_create(GDK_CAIRO_CONTEXT(dc));
+      }
+      else
          return;
-      clip = gdk_window_get_clip_region(window);
-      dc = gdk_window_begin_draw_frame(window, clip);
-      cr = gdk_drawing_context_get_cairo_context(dc);
       if((tmpname = (char *)g_object_get_data(G_OBJECT(handle), "_dw_fontname")))
          fontname = tmpname;
-#endif         
    }
    else if(pixmap)
    {
@@ -5866,19 +5837,12 @@ void dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, const char *text)
          }
          pango_font_description_free(font);
       }
-      if(clip)
-         cairo_region_destroy(clip);
-      /* TODO: Figure out how to do this in GTK4 with no GdkWindow */
-#if GTK3   
       /* If we are using a drawing context...
        * we don't own the cairo context so don't destroy it.
        */
       if(dc)
-         gdk_window_end_draw_frame(gtk_widget_get_window(handle), dc);
+         gdk_draw_context_end_frame(dc);
       else
-#else
-      if(!dc)
-#endif            
          cairo_destroy(cr);
    }
 }
