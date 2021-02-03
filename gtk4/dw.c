@@ -5474,7 +5474,6 @@ void dw_draw_point(HWND handle, HPIXMAP pixmap, int x, int y)
 {
    cairo_t *cr = NULL;
    GdkDrawContext *dc = NULL;
-   const cairo_region_t *clip = NULL;
 
    if(handle)
    {
@@ -5483,9 +5482,10 @@ void dw_draw_point(HWND handle, HPIXMAP pixmap, int x, int y)
 
       if((dc = GDK_DRAW_CONTEXT(gdk_surface_create_cairo_context(surface))))
       {
-         clip = gdk_draw_context_get_frame_region(dc);
-         gdk_draw_context_begin_frame(dc, clip);
+         cairo_region_t *region = cairo_region_create();
+         gdk_draw_context_begin_frame(dc, region);
          cr = gdk_cairo_context_cairo_create(GDK_CAIRO_CONTEXT(dc));
+         cairo_region_destroy(region);
       }
       else
          return;
@@ -5523,7 +5523,6 @@ void dw_draw_line(HWND handle, HPIXMAP pixmap, int x1, int y1, int x2, int y2)
 {
    cairo_t *cr = NULL;
    GdkDrawContext *dc = NULL;
-   const cairo_region_t *clip = NULL;
 
    if(handle)
    {
@@ -5532,9 +5531,10 @@ void dw_draw_line(HWND handle, HPIXMAP pixmap, int x1, int y1, int x2, int y2)
 
       if((dc = GDK_DRAW_CONTEXT(gdk_surface_create_cairo_context(surface))))
       {
-         clip = gdk_draw_context_get_frame_region(dc);
-         gdk_draw_context_begin_frame(dc, clip);
+         cairo_region_t *region = cairo_region_create();
+         gdk_draw_context_begin_frame(dc, region);
          cr = gdk_cairo_context_cairo_create(GDK_CAIRO_CONTEXT(dc));
+         cairo_region_destroy(region);
       }
       else
          return;
@@ -5550,7 +5550,7 @@ void dw_draw_line(HWND handle, HPIXMAP pixmap, int x1, int y1, int x2, int y2)
       cairo_move_to(cr, x1, y1);
       cairo_line_to(cr, x2, y2);
       cairo_stroke(cr);
-     /* If we are using a drawing context...
+      /* If we are using a drawing context...
        * we don't own the cairo context so don't destroy it.
        */
       if(dc)
@@ -5574,7 +5574,6 @@ void dw_draw_polygon(HWND handle, HPIXMAP pixmap, int flags, int npoints, int *x
    cairo_t *cr = NULL;
    int z;
    GdkDrawContext *dc = NULL;
-   const cairo_region_t *clip = NULL;
 
    if(handle)
    {
@@ -5583,9 +5582,10 @@ void dw_draw_polygon(HWND handle, HPIXMAP pixmap, int flags, int npoints, int *x
 
       if((dc = GDK_DRAW_CONTEXT(gdk_surface_create_cairo_context(surface))))
       {
-         clip = gdk_draw_context_get_frame_region(dc);
-         gdk_draw_context_begin_frame(dc, clip);
+         cairo_region_t *region = cairo_region_create();
+         gdk_draw_context_begin_frame(dc, region);
          cr = gdk_cairo_context_cairo_create(GDK_CAIRO_CONTEXT(dc));
+         cairo_region_destroy(region);
       }
       else
          return;
@@ -5609,7 +5609,7 @@ void dw_draw_polygon(HWND handle, HPIXMAP pixmap, int flags, int npoints, int *x
       if(flags & DW_DRAW_FILL)
          cairo_fill(cr);
       cairo_stroke(cr);
-     /* If we are using a drawing context...
+      /* If we are using a drawing context...
        * we don't own the cairo context so don't destroy it.
        */
       if(dc)
@@ -5633,7 +5633,6 @@ void dw_draw_rect(HWND handle, HPIXMAP pixmap, int flags, int x, int y, int widt
 {
    cairo_t *cr = NULL;
    GdkDrawContext *dc = NULL;
-   const cairo_region_t *clip = NULL;
 
    if(handle)
    {
@@ -5642,9 +5641,10 @@ void dw_draw_rect(HWND handle, HPIXMAP pixmap, int flags, int x, int y, int widt
 
       if((dc = GDK_DRAW_CONTEXT(gdk_surface_create_cairo_context(surface))))
       {
-         clip = gdk_draw_context_get_frame_region(dc);
-         gdk_draw_context_begin_frame(dc, clip);
+         cairo_region_t *region = cairo_region_create();
+         gdk_draw_context_begin_frame(dc, region);
          cr = gdk_cairo_context_cairo_create(GDK_CAIRO_CONTEXT(dc));
+         cairo_region_destroy(region);
       }
       else
          return;
@@ -5667,7 +5667,7 @@ void dw_draw_rect(HWND handle, HPIXMAP pixmap, int flags, int x, int y, int widt
       if(flags & DW_DRAW_FILL)
          cairo_fill(cr);
       cairo_stroke(cr);
-     /* If we are using a drawing context...
+      /* If we are using a drawing context...
        * we don't own the cairo context so don't destroy it.
        */
       if(dc)
@@ -5694,7 +5694,6 @@ void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yo
 {
    cairo_t *cr = NULL;
    GdkDrawContext *dc = NULL;
-   const cairo_region_t *clip = NULL;
 
    if(handle)
    {
@@ -5703,9 +5702,10 @@ void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yo
 
       if((dc = GDK_DRAW_CONTEXT(gdk_surface_create_cairo_context(surface))))
       {
-         clip = gdk_draw_context_get_frame_region(dc);
-         gdk_draw_context_begin_frame(dc, clip);
+         cairo_region_t *region = cairo_region_create();
+         gdk_draw_context_begin_frame(dc, region);
          cr = gdk_cairo_context_cairo_create(GDK_CAIRO_CONTEXT(dc));
+         cairo_region_destroy(region);
       }
       else
          return;
@@ -5740,7 +5740,7 @@ void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yo
       if(flags & DW_DRAW_FILL)
          cairo_fill(cr);
       cairo_stroke(cr);
-     /* If we are using a drawing context...
+      /* If we are using a drawing context...
        * we don't own the cairo context so don't destroy it.
        */
       if(dc)
@@ -5764,7 +5764,6 @@ void dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, const char *text)
    PangoFontDescription *font;
    char *tmpname, *fontname = "monospace 10";
    GdkDrawContext *dc = NULL;
-   const cairo_region_t *clip = NULL;
 
    if(!text)
       return;
@@ -5776,9 +5775,10 @@ void dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, const char *text)
 
       if((dc = GDK_DRAW_CONTEXT(gdk_surface_create_cairo_context(surface))))
       {
-         clip = gdk_draw_context_get_frame_region(dc);
-         gdk_draw_context_begin_frame(dc, clip);
+         cairo_region_t *region = cairo_region_create();
+         gdk_draw_context_begin_frame(dc, region);
          cr = gdk_cairo_context_cairo_create(GDK_CAIRO_CONTEXT(dc));
+         cairo_region_destroy(region);
       }
       else
          return;
@@ -6160,24 +6160,25 @@ int API dw_pixmap_stretch_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest,
 {
    cairo_t *cr = NULL;
    int retval = DW_ERROR_GENERAL;
-   GdkDrawingContext *dc = NULL;
-   cairo_region_t *clip = NULL;
+   GdkDrawContext *dc = NULL;
 
    if((!dest && (!destp || !destp->image)) || (!src && (!srcp || !srcp->image)))
       return retval;
 
    if(dest)
    {
-      /* TODO: Figure out how to do this in GTK4 with no GdkWindow */
-#if GTK3   
-      GdkWindow *window = gtk_widget_get_window(dest);
-      /* Safety check for non-existant windows */
-      if(!window || !GDK_IS_WINDOW(window))
+      GtkNative *native = gtk_widget_get_native(dest);
+      GdkSurface *surface = gtk_native_get_surface(native);
+
+      if((dc = GDK_DRAW_CONTEXT(gdk_surface_create_cairo_context(surface))))
+      {
+         cairo_region_t *region = cairo_region_create();
+         gdk_draw_context_begin_frame(dc, region);
+         cr = gdk_cairo_context_cairo_create(GDK_CAIRO_CONTEXT(dc));
+         cairo_region_destroy(region);
+      }
+      else
          return retval;
-      clip = gdk_window_get_clip_region(window);
-      dc = gdk_window_begin_draw_frame(window, clip);
-      cr = gdk_drawing_context_get_cairo_context(dc);
-#endif      
    }
    else if(destp)
       cr = cairo_create(destp->image);
@@ -6203,19 +6204,12 @@ int API dw_pixmap_stretch_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest,
 
       cairo_rectangle(cr, xdest / xscale, ydest / yscale, width, height);
       cairo_fill(cr);
-      if(clip)
-         cairo_region_destroy(clip);
-      /* TODO: Figure out how to do this in GTK4 with no GdkWindow */
-#if GTK3   
       /* If we are using a drawing context...
        * we don't own the cairo context so don't destroy it.
        */
       if(dc)
-         gdk_window_end_draw_frame(gtk_widget_get_window(dest), dc);
+         gdk_draw_context_end_frame(dc);
       else
-#else
-      if(!dc)
-#endif            
          cairo_destroy(cr);
       retval = DW_ERROR_NONE;
    }
