@@ -466,7 +466,7 @@ static gint _dw_motion_notify_event(GtkEventControllerMotion *controller, double
    if(work.window)
    {
       int (*motionfunc)(HWND, int, int, int, void *) = work.func;
-      GdkEvent *event = gtk_event_controller_get_current_event(GDK_EVENT_CONTROLLER(controller));
+      GdkEvent *event = gtk_event_controller_get_current_event(GTK_EVENT_CONTROLLER(controller));
       GdkModifierType state = gdk_event_get_modifier_state(event);
       int keys = 0;
 
@@ -792,9 +792,9 @@ static gint _dw_container_enter_event(GtkEventControllerKey *controller, guint k
    if(work.window && GTK_IS_WIDGET(work.window))
    {
       GtkWidget *widget = work.window;
-      GdkEvent *event = gtk_event_controller_get_current_event(GDK_EVENT_CONTROLLER(controller));
-      gint button = gdk_button_event_get_button(event);
+      GdkEvent *event = gtk_event_controller_get_current_event(GTK_EVENT_CONTROLLER(controller));
       GdkEventType type = gdk_event_get_event_type(event);
+      gint button = gdk_button_event_get_button(event);
 
       /* TODO: Make sure this works. 
          Handle both key and button events together */
@@ -2509,11 +2509,16 @@ void dw_menu_popup(HMENUI *menu, HWND parent, int x, int y)
  */
 void dw_pointer_query_pos(long *x, long *y)
 {
-   /* TODO: See if this is possible in GTK4 */
+   GdkSeat *seat = gdk_display_get_default_seat(gdk_display_get_default());
+   GdkDevice *mouse = gdk_seat_get_pointer(seat);
+   double dx, dy;
+  
+   gdk_device_get_surface_at_position(mouse, &dx, &dy);
+  
    if(x)
-      *x = 0;
+      *x = (long)dx;
    if(y)
-      *y = 0;
+      *y = (long)dy;
 }
 
 /*
