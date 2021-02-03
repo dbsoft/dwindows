@@ -13863,7 +13863,7 @@ int API dw_feature_get(DWFEATURE feature)
         case DW_FEATURE_TASK_BAR:
         {
             if(hwndTrayServer)
-                return DW_ERROR_ENABLED;
+                return DW_FEATURE_ENABLED;
             return DW_FEATURE_UNSUPPORTED;
         }
         default:
