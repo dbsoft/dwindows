@@ -2226,14 +2226,14 @@ void dw_menu_destroy(HMENUI *menu)
 {
    if(menu && *menu)
    {
-      GtkWidget *window;
+      GtkWidget *window = NULL;
 
       /* If it is a menu bar, try to delete the reference to it */
       if(GTK_IS_POPOVER_MENU_BAR(*menu) &&
          (window = GTK_WIDGET(g_object_get_data(G_OBJECT(*menu), "_dw_window"))))
             g_object_set_data(G_OBJECT(window), "_dw_menubar", NULL);
       /* Actually destroy the menu */
-      if(GTK_IS_WIDGET(*menu))
+      if(GTK_IS_WIDGET(*menu) && window)
       {
          GtkWidget *box = GTK_WIDGET(g_object_get_data(G_OBJECT(window), "_dw_grid"));
          if(box && GTK_IS_GRID(box))

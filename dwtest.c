@@ -1987,6 +1987,7 @@ char *DWFeatureList[] = {
     "Supports sending system notifications",
     "Supports UTF8 encoded Unicode text",
     "Supports Rich Edit based MLE control (Windows)",
+    "Supports icons in the taskbar or similar system widget",
     NULL };
 
 /*

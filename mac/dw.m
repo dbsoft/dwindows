@@ -13096,6 +13096,9 @@ int API dw_feature_get(DWFEATURE feature)
 #ifdef BUILDING_FOR_MOUNTAIN_LION
         case DW_FEATURE_NOTIFICATION:
 #endif
+#ifdef BUILDING_FOR_YOSEMITE
+        case DW_FEATURE_TASK_BAR:
+#endif
         case DW_FEATURE_HTML:
         case DW_FEATURE_HTML_RESULT:
         case DW_FEATURE_CONTAINER_STRIPE:
@@ -13152,6 +13155,9 @@ int API dw_feature_set(DWFEATURE feature, int state)
         /* These features are supported but not configurable */
 #ifdef BUILDING_FOR_MOUNTAIN_LION
         case DW_FEATURE_NOTIFICATION:
+#endif
+#ifdef BUILDING_FOR_YOSEMITE
+        case DW_FEATURE_TASK_BAR:
 #endif
         case DW_FEATURE_HTML:
         case DW_FEATURE_HTML_RESULT:

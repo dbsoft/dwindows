@@ -12484,6 +12484,7 @@ int API dw_feature_get(DWFEATURE feature)
 #if !GTK_CHECK_VERSION(3,14,0)
         case DW_FEATURE_CONTAINER_STRIPE:
 #endif
+        case DW_FEATURE_TASK_BAR:
         case DW_FEATURE_UTF8_UNICODE:
         case DW_FEATURE_MLE_WORD_WRAP:
             return DW_FEATURE_ENABLED;
@@ -12525,6 +12526,7 @@ int API dw_feature_set(DWFEATURE feature, int state)
 #if !GTK_CHECK_VERSION(3,14,0)
         case DW_FEATURE_CONTAINER_STRIPE:
 #endif
+        case DW_FEATURE_TASK_BAR:
         case DW_FEATURE_UTF8_UNICODE:
         case DW_FEATURE_MLE_WORD_WRAP:
             return DW_ERROR_GENERAL;
