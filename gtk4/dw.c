@@ -545,18 +545,20 @@ static gint _dw_configure_event(GtkWidget *widget, int width, int height, gpoint
 
 static gint _dw_expose_event(GtkWidget *widget, cairo_t *cr, int width, int height, gpointer data)
 {
-   SignalHandler work = _dw_get_signal_handler(data);
    int retval = FALSE;
 
-   if(work.window)
+   if(widget && GTK_IS_DRAWING_AREA(widget))
    {
       DWExpose exp;
-      int (*exposefunc)(HWND, DWExpose *, void *) = work.func;
+      int (*exposefunc)(HWND, DWExpose *, void *) = g_object_get_data(G_OBJECT(widget), "_dw_expose_func");
 
       exp.x = exp.y = 0;
       exp.width = width;
       exp.height = height;
-      retval = exposefunc(work.window, &exp, work.data);
+      /* Save the cairo context for use in the drawing functions */
+      g_object_set_data(G_OBJECT(widget), "_dw_cr", (gpointer)cr);
+      retval = exposefunc((HWND)widget, &exp, data);
+      g_object_set_data(G_OBJECT(widget), "_dw_cr", NULL);
    }
    return retval;
 }
@@ -5474,21 +5476,27 @@ void dw_draw_point(HWND handle, HPIXMAP pixmap, int x, int y)
 {
    cairo_t *cr = NULL;
    GdkDrawContext *dc = NULL;
+   int cached = FALSE;
 
    if(handle)
    {
-      GtkNative *native = gtk_widget_get_native(handle);
-      GdkSurface *surface = gtk_native_get_surface(native);
-
-      if((dc = GDK_DRAW_CONTEXT(gdk_surface_create_cairo_context(surface))))
-      {
-         cairo_region_t *region = cairo_region_create();
-         gdk_draw_context_begin_frame(dc, region);
-         cr = gdk_cairo_context_cairo_create(GDK_CAIRO_CONTEXT(dc));
-         cairo_region_destroy(region);
-      }
+      if((cr = g_object_get_data(G_OBJECT(handle), "_dw_cr")))
+         cached = TRUE;
       else
-         return;
+      {
+         GtkNative *native = gtk_widget_get_native(handle);
+         GdkSurface *surface = gtk_native_get_surface(native);
+
+         if((dc = GDK_DRAW_CONTEXT(gdk_surface_create_cairo_context(surface))))
+         {
+            cairo_region_t *region = cairo_region_create();
+            gdk_draw_context_begin_frame(dc, region);
+            cr = gdk_cairo_context_cairo_create(GDK_CAIRO_CONTEXT(dc));
+            cairo_region_destroy(region);
+         }
+         else
+            return;
+      }
    }
    else if(pixmap)
       cr = cairo_create(pixmap->image);
@@ -5505,7 +5513,7 @@ void dw_draw_point(HWND handle, HPIXMAP pixmap, int x, int y)
        */
       if(dc)
          gdk_draw_context_end_frame(dc);
-      else
+      else if(!cached)
          cairo_destroy(cr);
    }
 }
@@ -5523,21 +5531,27 @@ void dw_draw_line(HWND handle, HPIXMAP pixmap, int x1, int y1, int x2, int y2)
 {
    cairo_t *cr = NULL;
    GdkDrawContext *dc = NULL;
+   int cached = FALSE;
 
    if(handle)
    {
-      GtkNative *native = gtk_widget_get_native(handle);
-      GdkSurface *surface = gtk_native_get_surface(native);
-
-      if((dc = GDK_DRAW_CONTEXT(gdk_surface_create_cairo_context(surface))))
-      {
-         cairo_region_t *region = cairo_region_create();
-         gdk_draw_context_begin_frame(dc, region);
-         cr = gdk_cairo_context_cairo_create(GDK_CAIRO_CONTEXT(dc));
-         cairo_region_destroy(region);
-      }
+      if((cr = g_object_get_data(G_OBJECT(handle), "_dw_cr")))
+         cached = TRUE;
       else
-         return;
+      {
+         GtkNative *native = gtk_widget_get_native(handle);
+         GdkSurface *surface = gtk_native_get_surface(native);
+
+         if((dc = GDK_DRAW_CONTEXT(gdk_surface_create_cairo_context(surface))))
+         {
+            cairo_region_t *region = cairo_region_create();
+            gdk_draw_context_begin_frame(dc, region);
+            cr = gdk_cairo_context_cairo_create(GDK_CAIRO_CONTEXT(dc));
+            cairo_region_destroy(region);
+         }
+         else
+            return;
+      }
    }
    else if(pixmap)
       cr = cairo_create(pixmap->image);
@@ -5555,7 +5569,7 @@ void dw_draw_line(HWND handle, HPIXMAP pixmap, int x1, int y1, int x2, int y2)
        */
       if(dc)
          gdk_draw_context_end_frame(dc);
-      else
+      else if(!cached)
          cairo_destroy(cr);
    }
 }
@@ -5574,21 +5588,27 @@ void dw_draw_polygon(HWND handle, HPIXMAP pixmap, int flags, int npoints, int *x
    cairo_t *cr = NULL;
    int z;
    GdkDrawContext *dc = NULL;
+   int cached = FALSE;
 
    if(handle)
    {
-      GtkNative *native = gtk_widget_get_native(handle);
-      GdkSurface *surface = gtk_native_get_surface(native);
-
-      if((dc = GDK_DRAW_CONTEXT(gdk_surface_create_cairo_context(surface))))
-      {
-         cairo_region_t *region = cairo_region_create();
-         gdk_draw_context_begin_frame(dc, region);
-         cr = gdk_cairo_context_cairo_create(GDK_CAIRO_CONTEXT(dc));
-         cairo_region_destroy(region);
-      }
+      if((cr = g_object_get_data(G_OBJECT(handle), "_dw_cr")))
+         cached = TRUE;
       else
-         return;
+      {
+         GtkNative *native = gtk_widget_get_native(handle);
+         GdkSurface *surface = gtk_native_get_surface(native);
+
+         if((dc = GDK_DRAW_CONTEXT(gdk_surface_create_cairo_context(surface))))
+         {
+            cairo_region_t *region = cairo_region_create();
+            gdk_draw_context_begin_frame(dc, region);
+            cr = gdk_cairo_context_cairo_create(GDK_CAIRO_CONTEXT(dc));
+            cairo_region_destroy(region);
+         }
+         else
+            return;
+      }
    }
    else if(pixmap)
       cr = cairo_create(pixmap->image);
@@ -5614,7 +5634,7 @@ void dw_draw_polygon(HWND handle, HPIXMAP pixmap, int flags, int npoints, int *x
        */
       if(dc)
          gdk_draw_context_end_frame(dc);
-      else
+      else if(!cached)
          cairo_destroy(cr);
    }
 }
@@ -5633,21 +5653,27 @@ void dw_draw_rect(HWND handle, HPIXMAP pixmap, int flags, int x, int y, int widt
 {
    cairo_t *cr = NULL;
    GdkDrawContext *dc = NULL;
+   int cached = FALSE;
 
    if(handle)
    {
-      GtkNative *native = gtk_widget_get_native(handle);
-      GdkSurface *surface = gtk_native_get_surface(native);
-
-      if((dc = GDK_DRAW_CONTEXT(gdk_surface_create_cairo_context(surface))))
-      {
-         cairo_region_t *region = cairo_region_create();
-         gdk_draw_context_begin_frame(dc, region);
-         cr = gdk_cairo_context_cairo_create(GDK_CAIRO_CONTEXT(dc));
-         cairo_region_destroy(region);
-      }
+      if((cr = g_object_get_data(G_OBJECT(handle), "_dw_cr")))
+         cached = TRUE;
       else
-         return;
+      {
+         GtkNative *native = gtk_widget_get_native(handle);
+         GdkSurface *surface = gtk_native_get_surface(native);
+
+         if((dc = GDK_DRAW_CONTEXT(gdk_surface_create_cairo_context(surface))))
+         {
+            cairo_region_t *region = cairo_region_create();
+            gdk_draw_context_begin_frame(dc, region);
+            cr = gdk_cairo_context_cairo_create(GDK_CAIRO_CONTEXT(dc));
+            cairo_region_destroy(region);
+         }
+         else
+            return;
+      }
    }
    else if(pixmap)
       cr = cairo_create(pixmap->image);
@@ -5672,7 +5698,7 @@ void dw_draw_rect(HWND handle, HPIXMAP pixmap, int flags, int x, int y, int widt
        */
       if(dc)
          gdk_draw_context_end_frame(dc);
-      else
+      else if(!cached)
          cairo_destroy(cr);
    }
 }
@@ -5694,21 +5720,27 @@ void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yo
 {
    cairo_t *cr = NULL;
    GdkDrawContext *dc = NULL;
+   int cached = FALSE;
 
    if(handle)
    {
-      GtkNative *native = gtk_widget_get_native(handle);
-      GdkSurface *surface = gtk_native_get_surface(native);
-
-      if((dc = GDK_DRAW_CONTEXT(gdk_surface_create_cairo_context(surface))))
-      {
-         cairo_region_t *region = cairo_region_create();
-         gdk_draw_context_begin_frame(dc, region);
-         cr = gdk_cairo_context_cairo_create(GDK_CAIRO_CONTEXT(dc));
-         cairo_region_destroy(region);
-      }
+      if((cr = g_object_get_data(G_OBJECT(handle), "_dw_cr")))
+         cached = TRUE;
       else
-         return;
+      {
+         GtkNative *native = gtk_widget_get_native(handle);
+         GdkSurface *surface = gtk_native_get_surface(native);
+
+         if((dc = GDK_DRAW_CONTEXT(gdk_surface_create_cairo_context(surface))))
+         {
+            cairo_region_t *region = cairo_region_create();
+            gdk_draw_context_begin_frame(dc, region);
+            cr = gdk_cairo_context_cairo_create(GDK_CAIRO_CONTEXT(dc));
+            cairo_region_destroy(region);
+         }
+         else
+            return;
+      }
    }
    else if(pixmap)
       cr = cairo_create(pixmap->image);
@@ -5745,7 +5777,7 @@ void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yo
        */
       if(dc)
          gdk_draw_context_end_frame(dc);
-      else
+      else if(!cached)
          cairo_destroy(cr);
    }
 }
@@ -5764,24 +5796,30 @@ void dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, const char *text)
    PangoFontDescription *font;
    char *tmpname, *fontname = "monospace 10";
    GdkDrawContext *dc = NULL;
+   int cached = FALSE;
 
    if(!text)
       return;
 
    if(handle)
    {
-      GtkNative *native = gtk_widget_get_native(handle);
-      GdkSurface *surface = gtk_native_get_surface(native);
-
-      if((dc = GDK_DRAW_CONTEXT(gdk_surface_create_cairo_context(surface))))
-      {
-         cairo_region_t *region = cairo_region_create();
-         gdk_draw_context_begin_frame(dc, region);
-         cr = gdk_cairo_context_cairo_create(GDK_CAIRO_CONTEXT(dc));
-         cairo_region_destroy(region);
-      }
+      if((cr = g_object_get_data(G_OBJECT(handle), "_dw_cr")))
+         cached = TRUE;
       else
-         return;
+      {
+         GtkNative *native = gtk_widget_get_native(handle);
+         GdkSurface *surface = gtk_native_get_surface(native);
+
+         if((dc = GDK_DRAW_CONTEXT(gdk_surface_create_cairo_context(surface))))
+         {
+            cairo_region_t *region = cairo_region_create();
+            gdk_draw_context_begin_frame(dc, region);
+            cr = gdk_cairo_context_cairo_create(GDK_CAIRO_CONTEXT(dc));
+            cairo_region_destroy(region);
+         }
+         else
+            return;
+      }
       if((tmpname = (char *)g_object_get_data(G_OBJECT(handle), "_dw_fontname")))
          fontname = tmpname;
    }
@@ -5842,7 +5880,7 @@ void dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, const char *text)
        */
       if(dc)
          gdk_draw_context_end_frame(dc);
-      else
+      else if(!cached)
          cairo_destroy(cr);
    }
 }
@@ -6161,24 +6199,30 @@ int API dw_pixmap_stretch_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest,
    cairo_t *cr = NULL;
    int retval = DW_ERROR_GENERAL;
    GdkDrawContext *dc = NULL;
+   int cached = FALSE;
 
    if((!dest && (!destp || !destp->image)) || (!src && (!srcp || !srcp->image)))
       return retval;
 
    if(dest)
    {
-      GtkNative *native = gtk_widget_get_native(dest);
-      GdkSurface *surface = gtk_native_get_surface(native);
-
-      if((dc = GDK_DRAW_CONTEXT(gdk_surface_create_cairo_context(surface))))
-      {
-         cairo_region_t *region = cairo_region_create();
-         gdk_draw_context_begin_frame(dc, region);
-         cr = gdk_cairo_context_cairo_create(GDK_CAIRO_CONTEXT(dc));
-         cairo_region_destroy(region);
-      }
+      if((cr = g_object_get_data(G_OBJECT(dest), "_dw_cr")))
+         cached = TRUE;
       else
-         return retval;
+      {
+         GtkNative *native = gtk_widget_get_native(dest);
+         GdkSurface *surface = gtk_native_get_surface(native);
+
+         if((dc = GDK_DRAW_CONTEXT(gdk_surface_create_cairo_context(surface))))
+         {
+            cairo_region_t *region = cairo_region_create();
+            gdk_draw_context_begin_frame(dc, region);
+            cr = gdk_cairo_context_cairo_create(GDK_CAIRO_CONTEXT(dc));
+            cairo_region_destroy(region);
+         }
+         else
+            return retval;
+      }
    }
    else if(destp)
       cr = cairo_create(destp->image);
@@ -6209,7 +6253,7 @@ int API dw_pixmap_stretch_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest,
        */
       if(dc)
          gdk_draw_context_end_frame(dc);
-      else
+      else if(!cached)
          cairo_destroy(cr);
       retval = DW_ERROR_NONE;
    }
@@ -9539,9 +9583,8 @@ GObject *_dw_draw_setup(struct _dw_signal_list *signal, GObject *object, void *p
 {
    if(GTK_IS_DRAWING_AREA(object))
    {
-      /* TODO: Might need to use the disconnect paramater since this isn't a normal signal handler */
+      g_object_set_data(object, "_dw_expose_func", sigfunc);
       gtk_drawing_area_set_draw_func(GTK_DRAWING_AREA(object), signal->func, data, NULL);
-      _dw_set_signal_handler(object, (HWND)object, sigfunc, data, signal->func, discfunc);
       return NULL;
    }
    return object;
