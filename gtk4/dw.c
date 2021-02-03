@@ -2245,7 +2245,7 @@ void dw_menu_destroy(HMENUI *menu)
    }
 }
 
-char _dw_removetilde(char *action, char *dest, const char *src)
+char _dw_removetilde(char *dest, const char *src)
 {
    int z, cur=0;
    char accel = '\0';
@@ -2254,19 +2254,11 @@ char _dw_removetilde(char *action, char *dest, const char *src)
    {
       if(src[z] == '~')
       {
-         action[cur] = dest[cur] = '_';
+         dest[cur] = '_';
          accel = src[z+1];
       }
-      else if(src[z] == ' ')
-      {
-         action[cur] = '_';
-         dest[cur] = src[z];
-      }
       else
-      {
-         action[cur] = src[z];
          dest[cur] = src[z];
-      }
       cur++;
    }
    dest[cur] = 0;
@@ -2291,7 +2283,6 @@ HWND dw_menu_append_item(HMENUI menu, const char *title, unsigned long id, unsig
    GMenuItem *tmphandle = NULL;
    GMenuModel *menumodel;
    char *temptitle = alloca(strlen(title)+1);
-   char *tempaction = alloca(strlen(title)+1);
    int submenucount;
 
    if(!menu)
@@ -2301,7 +2292,7 @@ HWND dw_menu_append_item(HMENUI menu, const char *title, unsigned long id, unsig
       menumodel = gtk_popover_menu_bar_get_menu_model(GTK_POPOVER_MENU_BAR(menu));
    else
       menumodel = gtk_popover_menu_get_menu_model(GTK_POPOVER_MENU(menu));
-   _dw_removetilde(tempaction, temptitle, title);
+   _dw_removetilde(temptitle, title);
    submenucount = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(menu), "_dw_submenucount"));
 
    if (strlen(temptitle) == 0)
@@ -2329,7 +2320,7 @@ HWND dw_menu_append_item(HMENUI menu, const char *title, unsigned long id, unsig
       {
          char numbuf[25] = {0};
 
-         snprintf(tempbuf, 100, "menu.%s", tempaction);
+         snprintf(tempbuf, 100, "menu.%llu-%lu", DW_POINTER_TO_ULONGLONG(menu), id);
          action = g_simple_action_new(tempbuf, NULL);
          g_object_ref(G_OBJECT(action));
          tmphandle=g_menu_item_new(temptitle, tempbuf);
