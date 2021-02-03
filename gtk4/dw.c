@@ -3080,44 +3080,46 @@ void dw_window_set_bitmap(HWND handle, unsigned long id, const char *filename)
    {
       char *file = alloca(strlen(filename) + 6);
 
-      if (!file)
+      if(!file)
          return;
 
       strcpy(file, filename);
 
       /* check if we can read from this file (it exists and read permission) */
-      if ( access(file, 04 ) != 0 )
+      if(access(file, 04) != 0)
       {
          /* Try with various extentions */
-         for ( i = 0; i < NUM_EXTS; i++ )
+         for(i=0; i<NUM_EXTS; i++)
          {
-            strcpy( file, filename );
-            strcat( file, image_exts[i] );
-            if ( access( file, 04 ) == 0 )
+            strcpy(file, filename);
+            strcat(file, image_exts[i]);
+            if(access(file, 04) == 0)
             {
                found_ext = 1;
                break;
             }
          }
-         if ( found_ext == 0 )
+         if(found_ext == 0)
             return;
       }
-      tmp = gdk_pixbuf_new_from_file(file, NULL );
+      tmp = gdk_pixbuf_new_from_file(file, NULL);
    }
 
-   if (tmp)
+   if(tmp)
    {
-      if ( GTK_IS_BUTTON(handle) )
+      if(GTK_IS_BUTTON(handle))
       {
-         GtkWidget *pixmap = (GtkWidget *)g_object_get_data( G_OBJECT(handle), "_dw_bitmap" );
+         GtkWidget *pixmap = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_bitmap");
          if(pixmap)
          {
             gtk_image_set_from_pixbuf(GTK_IMAGE(pixmap), tmp);
+            g_object_set_data(G_OBJECT(pixmap), "_dw_pixbuf", tmp);
          }
       }
       else
       {
          gtk_image_set_from_pixbuf(GTK_IMAGE(handle), tmp);
+         g_object_set_data(G_OBJECT(handle), "_dw_pixbuf", tmp);
       }
    }
 }
@@ -3172,10 +3174,16 @@ void dw_window_set_bitmap_from_data(HWND handle, unsigned long id, const char *d
          GtkWidget *pixmap = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_bitmap");
 
          if(pixmap)
+         {
             gtk_image_set_from_pixbuf(GTK_IMAGE(pixmap), tmp);
+            g_object_set_data(G_OBJECT(pixmap), "_dw_pixbuf", tmp);
+         }
       }
       else
+      {
          gtk_image_set_from_pixbuf(GTK_IMAGE(handle), tmp);
+         g_object_set_data(G_OBJECT(handle), "_dw_pixbuf", tmp);
+      }
    }
 }
 
@@ -7214,11 +7222,7 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
     */
    else if((image = g_object_get_data(G_OBJECT(item), "_dw_bitmap")))
    {
-      /* TODO: Figure out how to do this in GTK4 since gtk_image_get_pixbif() is gone...
-       * Might need to save the pixbuf in the window data manually.
-       */
-#if GTK3          
-      GdkPixbuf *pixbuf = gtk_image_get_pixbuf(GTK_IMAGE(image));
+      GdkPixbuf *pixbuf = g_object_get_data(G_OBJECT(image), "_dw_pixbuf");
 
       if(pixbuf)
       {
@@ -7233,8 +7237,8 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
          if(pwidth > width || pheight > height)
             pixbuf = gdk_pixbuf_scale_simple(pixbuf, pwidth > width ? width : pwidth, pheight > height ? height : pheight, GDK_INTERP_BILINEAR);
          gtk_image_set_from_pixbuf(GTK_IMAGE(image), pixbuf);
+         g_object_set_data(G_OBJECT(image), "_dw_pixbuf", pixbuf);
       }
-#endif         
    }
 
    /* Check if the item to be packed is a special box */
@@ -7740,6 +7744,18 @@ void dw_window_set_style(HWND handle, unsigned long style, unsigned long mask)
       if(style & DW_DT_WORDBREAK)
          gtk_label_set_wrap(GTK_LABEL(handle), TRUE);
    }
+   if(G_IS_MENU_ITEM(handle2) && (mask & (DW_MIS_ENABLED | DW_MIS_DISABLED)))
+   {
+      GSimpleAction *action = g_object_get_data(G_OBJECT(handle2), "_dw_action");
+      
+      if((style & DW_MIS_ENABLED) || (style & DW_MIS_DISABLED))
+      {
+         if(style & DW_MIS_ENABLED)
+            g_simple_action_set_enabled(action, TRUE);
+         else
+            g_simple_action_set_enabled(action, FALSE);
+      }
+   }
    /* TODO: Convert to GMenuModel */
 #if GTK3   
    if(GTK_IS_CHECK_MENU_ITEM(handle2) && (mask & (DW_MIS_CHECKED | DW_MIS_UNCHECKED)) 
@@ -7752,15 +7768,6 @@ void dw_window_set_style(HWND handle, unsigned long style, unsigned long mask)
       _dw_ignore_click = 1;
       if(gtk_check_menu_item_get_active(GTK_CHECK_MENU_ITEM(handle2)) != check)
          gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(handle2), check);
-      _dw_ignore_click = 0;
-   }
-   if((GTK_IS_CHECK_MENU_ITEM(handle2) || GTK_IS_MENU_ITEM(handle2)) && (mask & (DW_MIS_ENABLED | DW_MIS_DISABLED)))
-   {
-      _dw_ignore_click = 1;
-      if ( style & DW_MIS_ENABLED )
-         gtk_widget_set_sensitive(handle2, TRUE);
-      else
-         gtk_widget_set_sensitive(handle2, FALSE);
       _dw_ignore_click = 0;
    }
 #endif   
