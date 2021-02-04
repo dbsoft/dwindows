@@ -667,7 +667,6 @@ static gint _dw_tree_context_event(GtkGestureSingle *gesture, int n_press, doubl
                }
             }
          }
-
          retval = contextfunc(work.window, text, (int)x, (int)y, work.data, itemdata);
          if(text)
             g_free(text);
@@ -2529,7 +2528,7 @@ void dw_pointer_set_pos(long x, long y)
 #define _DW_TREE_TREE      2
 #define _DW_TREE_LISTBOX   3
 
-GtkWidget *_tree_create(unsigned long id)
+GtkWidget *_dw_tree_create(unsigned long id)
 {
    GtkWidget *tmp;
 
@@ -2542,7 +2541,7 @@ GtkWidget *_tree_create(unsigned long id)
    return tmp;
 }
 
-GtkWidget *_tree_setup(GtkWidget *tmp, GtkTreeModel *store)
+GtkWidget *_dw_tree_view_setup(GtkWidget *tmp, GtkTreeModel *store)
 {
    GtkWidget *tree = gtk_tree_view_new_with_model(store);
    gtk_tree_view_set_enable_search(GTK_TREE_VIEW(tree), FALSE);
@@ -2561,7 +2560,7 @@ HWND dw_container_new(unsigned long id, int multi)
 {
    GtkWidget *tmp;
 
-   if(!(tmp = _tree_create(id)))
+   if(!(tmp = _dw_tree_create(id)))
       return 0;
    g_object_set_data(G_OBJECT(tmp), "_dw_tree_type", GINT_TO_POINTER(_DW_TREE_TYPE_CONTAINER));
    g_object_set_data(G_OBJECT(tmp), "_dw_multi_sel", GINT_TO_POINTER(multi));
@@ -2582,10 +2581,10 @@ HWND dw_tree_new(ULONG id)
    GtkCellRenderer *rend;
    GtkTreeSelection *sel;
 
-   if(!(tmp = _tree_create(id)))
+   if(!(tmp = _dw_tree_create(id)))
       return 0;
    store = gtk_tree_store_new(4, G_TYPE_STRING, GDK_TYPE_PIXBUF, G_TYPE_POINTER, G_TYPE_POINTER);
-   tree = _tree_setup(tmp, GTK_TREE_MODEL(store));
+   tree = _dw_tree_view_setup(tmp, GTK_TREE_MODEL(store));
    g_object_set_data(G_OBJECT(tmp), "_dw_tree_type", GINT_TO_POINTER(_DW_TREE_TYPE_TREE));
    g_object_set_data(G_OBJECT(tree), "_dw_tree_type", GINT_TO_POINTER(_DW_TREE_TYPE_TREE));
    col = gtk_tree_view_column_new();
@@ -2994,10 +2993,10 @@ HWND dw_listbox_new(unsigned long id, int multi)
    GtkCellRenderer *rend;
    GtkTreeSelection *sel;
 
-   if(!(tmp = _tree_create(id)))
+   if(!(tmp = _dw_tree_create(id)))
       return 0;
    store = gtk_list_store_new(1, G_TYPE_STRING);
-   tree = _tree_setup(tmp, GTK_TREE_MODEL(store));
+   tree = _dw_tree_view_setup(tmp, GTK_TREE_MODEL(store));
    g_object_set_data(G_OBJECT(tmp), "_dw_tree_type", GINT_TO_POINTER(_DW_TREE_TYPE_LISTBOX));
    g_object_set_data(G_OBJECT(tree), "_dw_tree_type", GINT_TO_POINTER(_DW_TREE_TYPE_LISTBOX));
 
@@ -4241,7 +4240,7 @@ static int _dw_container_setup(HWND handle, unsigned long *flags, char **titles,
    }
    /* Create the store and then the tree */
    store = gtk_list_store_newv(count + _DW_CONTAINER_STORE_EXTRA + 1, array);
-   tree = _tree_setup(handle, GTK_TREE_MODEL(store));
+   tree = _dw_tree_view_setup(handle, GTK_TREE_MODEL(store));
    g_object_set_data(G_OBJECT(tree), "_dw_tree_type", GINT_TO_POINTER(_DW_TREE_TYPE_CONTAINER));
    /* Second loop... create the columns */
    for(z=0;z<count;z++)
@@ -9609,6 +9608,9 @@ GObject *_dw_tree_setup(struct _dw_signal_list *signal, GObject *object, void *p
       else
       {
          GtkGesture *gesture = gtk_gesture_click_new();
+         /* Set button to return to 3 for context secondary clicks */
+         if(strcmp(signal->name, DW_SIGNAL_ITEM_CONTEXT) == 0)
+            gtk_gesture_single_set_button(GTK_GESTURE_SINGLE(gesture), 3);
          gtk_widget_add_controller(GTK_WIDGET(object), GTK_EVENT_CONTROLLER(gesture));
          return G_OBJECT(gesture);
       }
