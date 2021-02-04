@@ -2177,9 +2177,14 @@ HWND dw_notebook_new(unsigned long id, int top)
 HMENUI dw_menu_new(unsigned long id)
 {
    GMenu *menu = g_menu_new();
+   /* Create the initial section and add it to the menu */
+   GMenu *section = g_menu_new();
+   GMenuItem *item = g_menu_item_new_section(NULL, G_MENU_MODEL(section));
+   g_menu_append_item(menu, item);
    HMENUI tmp = gtk_popover_menu_new_from_model_full(G_MENU_MODEL(menu), GTK_POPOVER_MENU_NESTED);
 
    g_object_set_data(G_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(id));
+   g_object_set_data(G_OBJECT(tmp), "_dw_section", (gpointer)section);
    return tmp;
 }
 
@@ -2198,9 +2203,13 @@ HMENUI dw_menubar_new(HWND location)
    if(GTK_IS_WINDOW(location) &&
       (box = GTK_WIDGET(g_object_get_data(G_OBJECT(location), "_dw_grid"))))
    {
-      GMenu *menu = g_menu_new();
       /* If there is an existing menu bar, remove it */
       GtkWidget *oldmenu = GTK_WIDGET(g_object_get_data(G_OBJECT(location), "_dw_menubar"));
+      GMenu *menu = g_menu_new();
+      /* Create the initial section and add it to the menu */
+      GMenu *section = g_menu_new();
+      GMenuItem *item = g_menu_item_new_section(NULL, G_MENU_MODEL(section));
+      g_menu_append_item(menu, item);
       
       if(oldmenu && GTK_IS_WIDGET(oldmenu))
          gtk_grid_remove(GTK_GRID(box), tmp);
@@ -2211,6 +2220,7 @@ HMENUI dw_menubar_new(HWND location)
       /* Save pointers to each other */
       g_object_set_data(G_OBJECT(location), "_dw_menubar", (gpointer)tmp);
       g_object_set_data(G_OBJECT(tmp), "_dw_window", (gpointer)location);
+      g_object_set_data(G_OBJECT(tmp), "_dw_section", (gpointer)section);
       gtk_grid_attach(GTK_GRID(box), tmp, 0, 0, 1, 1);
    }
    return tmp;
@@ -2287,15 +2297,25 @@ HWND dw_menu_append_item(HMENUI menu, const char *title, unsigned long id, unsig
    if(!menu)
       return 0;
 
-   if(GTK_IS_POPOVER_MENU_BAR(menu))
-      menumodel = gtk_popover_menu_bar_get_menu_model(GTK_POPOVER_MENU_BAR(menu));
-   else
-      menumodel = gtk_popover_menu_get_menu_model(GTK_POPOVER_MENU(menu));
+   /* By default we add to the menu's current section */
+   menumodel = g_object_get_data(G_OBJECT(menu), "_dw_section");
    _dw_removetilde(temptitle, title);
    submenucount = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(menu), "_dw_submenucount"));
 
+   /* To add a separator we create a new section and add it */
    if (strlen(temptitle) == 0)
-      tmphandle = g_menu_item_new_section(NULL, NULL);
+   {
+      GMenu *section = g_menu_new();
+
+      /* If we are creating a new section, add it to the core menu... not the section */
+      if(GTK_IS_POPOVER_MENU_BAR(menu))
+         menumodel = gtk_popover_menu_bar_get_menu_model(GTK_POPOVER_MENU_BAR(menu));
+      else
+         menumodel = gtk_popover_menu_get_menu_model(GTK_POPOVER_MENU(menu));
+
+      tmphandle = g_menu_item_new_section(NULL, G_MENU_MODEL(section));
+      g_object_set_data(G_OBJECT(menu), "_dw_section", (gpointer)section);
+   }
    else
    {
       char tempbuf[101] = {0};
@@ -2325,7 +2345,7 @@ HWND dw_menu_append_item(HMENUI menu, const char *title, unsigned long id, unsig
          tmphandle=g_menu_item_new(temptitle, tempbuf);
          snprintf(numbuf, 24, "%lu", id);
          g_object_set_data(G_OBJECT(menu), numbuf, (gpointer)tmphandle);
-         g_object_set_data(G_OBJECT(menu), "_dw_action", (gpointer)action);
+         g_object_set_data(G_OBJECT(tmphandle), "_dw_action", (gpointer)action);
       }
    }
 
