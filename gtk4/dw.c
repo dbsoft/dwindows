@@ -2168,6 +2168,8 @@ HWND dw_notebook_new(unsigned long id, int top)
    return tmp;
 }
 
+static int _dw_menugroup = 0;
+
 /*
  * Create a menu object to be popped up.
  * Parameters:
@@ -2180,9 +2182,16 @@ HMENUI dw_menu_new(unsigned long id)
    /* Create the initial section and add it to the menu */
    GMenu *section = g_menu_new();
    GMenuItem *item = g_menu_item_new_section(NULL, G_MENU_MODEL(section));
-   g_menu_append_item(menu, item);
+   GSimpleActionGroup *group = g_simple_action_group_new();
    HMENUI tmp = gtk_popover_menu_new_from_model_full(G_MENU_MODEL(menu), GTK_POPOVER_MENU_NESTED);
+   char tempbuf[25] = {0};
+      
+   g_menu_append_item(menu, item);
+   snprintf(tempbuf, 24, "menu%d", ++_dw_menugroup);
+   gtk_widget_insert_action_group(GTK_WIDGET(tmp), tempbuf, G_ACTION_GROUP(group));
 
+   g_object_set_data(G_OBJECT(tmp), "_dw_menugroup", GINT_TO_POINTER(_dw_menugroup));
+   g_object_set_data(G_OBJECT(tmp), "_dw_group", (gpointer)group);
    g_object_set_data(G_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(id));
    g_object_set_data(G_OBJECT(tmp), "_dw_section", (gpointer)section);
    return tmp;
@@ -2209,6 +2218,9 @@ HMENUI dw_menubar_new(HWND location)
       /* Create the initial section and add it to the menu */
       GMenu *section = g_menu_new();
       GMenuItem *item = g_menu_item_new_section(NULL, G_MENU_MODEL(section));
+      GSimpleActionGroup *group = g_simple_action_group_new();
+      char tempbuf[25] = {0};
+
       g_menu_append_item(menu, item);
       
       if(oldmenu && GTK_IS_WIDGET(oldmenu))
@@ -2216,10 +2228,15 @@ HMENUI dw_menubar_new(HWND location)
          
       /* Create a new menu bar */
       tmp = gtk_popover_menu_bar_new_from_model(G_MENU_MODEL(menu));
+      snprintf(tempbuf, 24, "menu%d", ++_dw_menugroup);
+      gtk_widget_insert_action_group(GTK_WIDGET(tmp), tempbuf, G_ACTION_GROUP(group));
       gtk_widget_show(tmp);
+
       /* Save pointers to each other */
       g_object_set_data(G_OBJECT(location), "_dw_menubar", (gpointer)tmp);
       g_object_set_data(G_OBJECT(tmp), "_dw_window", (gpointer)location);
+      g_object_set_data(G_OBJECT(tmp), "_dw_menugroup", GINT_TO_POINTER(_dw_menugroup));
+      g_object_set_data(G_OBJECT(tmp), "_dw_group", (gpointer)group);
       g_object_set_data(G_OBJECT(tmp), "_dw_section", (gpointer)section);
       gtk_grid_attach(GTK_GRID(box), tmp, 0, 0, 1, 1);
    }
@@ -2338,10 +2355,14 @@ HWND dw_menu_append_item(HMENUI menu, const char *title, unsigned long id, unsig
       else
       {
          char numbuf[25] = {0};
+         GSimpleActionGroup *group = g_object_get_data(G_OBJECT(menu), "_dw_group");
+         int menugroup = DW_POINTER_TO_INT(g_object_get_data(G_OBJECT(menu), "_dw_menugroup"));
+         char *actionname;
 
-         snprintf(tempbuf, 100, "menu.%llu-%lu", DW_POINTER_TO_ULONGLONG(menu), id);
-         action = g_simple_action_new(tempbuf, NULL);
-         g_object_ref(G_OBJECT(action));
+         snprintf(tempbuf, 100, "menu%d.action%lu", menugroup, id);
+         actionname = strchr(tempbuf, '.');
+         action = g_simple_action_new(&actionname[1], NULL);
+         g_action_map_add_action(G_ACTION_MAP(group), G_ACTION(action));
          tmphandle=g_menu_item_new(temptitle, tempbuf);
          snprintf(numbuf, 24, "%lu", id);
          g_object_set_data(G_OBJECT(menu), numbuf, (gpointer)tmphandle);
@@ -9559,7 +9580,7 @@ GObject *_dw_button_setup(struct _dw_signal_list *signal, GObject *object, void 
    else if(G_IS_MENU_ITEM(object) && strcmp(signal->name, DW_SIGNAL_CLICKED) == 0)
    {
       GSimpleAction *action = G_SIMPLE_ACTION(g_object_get_data(object, "_dw_action"));
-
+      
       if(action)
       {
          int cid, sigid = _dw_set_signal_handler(G_OBJECT(action), (HWND)object, sigfunc, data, (gpointer)_dw_menu_handler, discfunc);
