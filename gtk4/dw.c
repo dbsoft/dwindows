@@ -150,21 +150,21 @@ typedef struct _dw_signal_list
    void *func;
    char name[30];
    char gname[30];
-   GObject *(*setup)(struct _dw_signal_list *, GObject *, void *[], void *, void *, void *);
+   GObject *(*setup)(struct _dw_signal_list *, GObject *, void *, void *, void *);
 
 } SignalList;
 
 /* Signal setup function prototypes */
-GObject *_dw_key_setup(struct _dw_signal_list *signal, GObject *object, void *params[], void *sigfunc, void *discfunc, void *data);
-GObject *_dw_button_setup(struct _dw_signal_list *signal, GObject *object, void *params[], void *sigfunc, void *discfunc, void *data);
-GObject *_dw_mouse_setup(struct _dw_signal_list *signal, GObject *object, void *params[], void *sigfunc, void *discfunc, void *data);
-GObject *_dw_motion_setup(struct _dw_signal_list *signal, GObject *object, void *params[], void *sigfunc, void *discfunc, void *data);
-GObject *_dw_draw_setup(struct _dw_signal_list *signal, GObject *object, void *params[], void *sigfunc, void *discfunc, void *data);
-GObject *_dw_value_setup(struct _dw_signal_list *signal, GObject *object, void *params[], void *sigfunc, void *discfunc, void *data);
-GObject *_dw_tree_setup(struct _dw_signal_list *signal, GObject *object, void *params[], void *sigfunc, void *discfunc, void *data);
-GObject *_dw_focus_setup(struct _dw_signal_list *signal, GObject *object, void *params[], void *sigfunc, void *discfunc, void *data);
+GObject *_dw_key_setup(struct _dw_signal_list *signal, GObject *object, void *sigfunc, void *discfunc, void *data);
+GObject *_dw_button_setup(struct _dw_signal_list *signal, GObject *object, void *sigfunc, void *discfunc, void *data);
+GObject *_dw_mouse_setup(struct _dw_signal_list *signal, GObject *object, void *sigfunc, void *discfunc, void *data);
+GObject *_dw_motion_setup(struct _dw_signal_list *signal, GObject *object, void *sigfunc, void *discfunc, void *data);
+GObject *_dw_draw_setup(struct _dw_signal_list *signal, GObject *object, void *sigfunc, void *discfunc, void *data);
+GObject *_dw_value_setup(struct _dw_signal_list *signal, GObject *object, void *sigfunc, void *discfunc, void *data);
+GObject *_dw_tree_setup(struct _dw_signal_list *signal, GObject *object, void *sigfunc, void *discfunc, void *data);
+GObject *_dw_focus_setup(struct _dw_signal_list *signal, GObject *object, void *sigfunc, void *discfunc, void *data);
 #ifdef USE_WEBKIT
-GObject *_dw_html_setup(struct _dw_signal_list *signal, GObject *object, void *params[], void *sigfunc, void *discfunc, void *data);
+GObject *_dw_html_setup(struct _dw_signal_list *signal, GObject *object, void *sigfunc, void *discfunc, void *data);
 #endif
 
 typedef struct
@@ -9586,7 +9586,7 @@ static void _dw_signal_disconnect(gpointer data, GClosure *closure)
 #define _DW_INTERNAL_CALLBACK_PARAMS 4
 
 /* Signal setup functions */
-GObject *_dw_key_setup(struct _dw_signal_list *signal, GObject *object, void *params[], void *sigfunc, void *discfunc, void *data)
+GObject *_dw_key_setup(struct _dw_signal_list *signal, GObject *object, void *sigfunc, void *discfunc, void *data)
 {
    if(GTK_IS_WIDGET(object))
    {
@@ -9597,7 +9597,7 @@ GObject *_dw_key_setup(struct _dw_signal_list *signal, GObject *object, void *pa
    return object;
 }
 
-GObject *_dw_button_setup(struct _dw_signal_list *signal, GObject *object, void *params[], void *sigfunc, void *discfunc, void *data)
+GObject *_dw_button_setup(struct _dw_signal_list *signal, GObject *object, void *sigfunc, void *discfunc, void *data)
 {
    /* Special case for handling notification signals, which aren't really signals */
    if(G_IS_NOTIFICATION(object) && strcmp(signal->name, DW_SIGNAL_CLICKED) == 0)
@@ -9623,7 +9623,7 @@ GObject *_dw_button_setup(struct _dw_signal_list *signal, GObject *object, void 
          void **newparams = calloc(sizeof(void *), 3);
 
          newparams[0] = DW_INT_TO_POINTER(sigid);
-         newparams[1] = params[1];
+         newparams[1] = discfunc;
          newparams[2] = DW_POINTER(object);
          cid = g_signal_connect_data(G_OBJECT(action), "activate", G_CALLBACK(_dw_menu_handler), newparams, _dw_signal_disconnect, 0);
          _dw_set_signal_handler_id(object, sigid, cid);
@@ -9633,7 +9633,7 @@ GObject *_dw_button_setup(struct _dw_signal_list *signal, GObject *object, void 
    return object;
 }
 
-GObject *_dw_mouse_setup(struct _dw_signal_list *signal, GObject *object, void *params[], void *sigfunc, void *discfunc, void *data)
+GObject *_dw_mouse_setup(struct _dw_signal_list *signal, GObject *object, void *sigfunc, void *discfunc, void *data)
 {
    if(GTK_IS_WIDGET(object))
    {
@@ -9644,7 +9644,7 @@ GObject *_dw_mouse_setup(struct _dw_signal_list *signal, GObject *object, void *
    return object;
 }
 
-GObject *_dw_motion_setup(struct _dw_signal_list *signal, GObject *object, void *params[], void *sigfunc, void *discfunc, void *data)
+GObject *_dw_motion_setup(struct _dw_signal_list *signal, GObject *object, void *sigfunc, void *discfunc, void *data)
 {
    if(GTK_IS_WIDGET(object))
    {
@@ -9655,7 +9655,7 @@ GObject *_dw_motion_setup(struct _dw_signal_list *signal, GObject *object, void 
    return object;
 }
 
-GObject *_dw_draw_setup(struct _dw_signal_list *signal, GObject *object, void *params[], void *sigfunc, void *discfunc, void *data)
+GObject *_dw_draw_setup(struct _dw_signal_list *signal, GObject *object, void *sigfunc, void *discfunc, void *data)
 {
    if(GTK_IS_DRAWING_AREA(object))
    {
@@ -9666,7 +9666,7 @@ GObject *_dw_draw_setup(struct _dw_signal_list *signal, GObject *object, void *p
    return object;
 }
 
-GObject *_dw_tree_setup(struct _dw_signal_list *signal, GObject *object, void *params[], void *sigfunc, void *discfunc, void *data)
+GObject *_dw_tree_setup(struct _dw_signal_list *signal, GObject *object, void *sigfunc, void *discfunc, void *data)
 {
    if(GTK_IS_TREE_VIEW(object))
    {
@@ -9697,14 +9697,14 @@ GObject *_dw_tree_setup(struct _dw_signal_list *signal, GObject *object, void *p
    return object;
 }
 
-GObject *_dw_value_setup(struct _dw_signal_list *signal, GObject *object, void *params[], void *sigfunc, void *discfunc, void *data)
+GObject *_dw_value_setup(struct _dw_signal_list *signal, GObject *object, void *sigfunc, void *discfunc, void *data)
 {
    if(GTK_IS_SCALE(object) || GTK_IS_SCROLLBAR(object) || GTK_IS_SPIN_BUTTON(object))
       return G_OBJECT(g_object_get_data(object, "_dw_adjustment"));
    return object;
 }
 
-GObject *_dw_focus_setup(struct _dw_signal_list *signal, GObject *object, void *params[], void *sigfunc, void *discfunc, void *data)
+GObject *_dw_focus_setup(struct _dw_signal_list *signal, GObject *object, void *sigfunc, void *discfunc, void *data)
 {
    if(GTK_IS_COMBO_BOX(object) && strcmp(signal->name, DW_SIGNAL_SET_FOCUS) == 0)
       return G_OBJECT(gtk_combo_box_get_child(GTK_COMBO_BOX(object)));
@@ -9712,7 +9712,7 @@ GObject *_dw_focus_setup(struct _dw_signal_list *signal, GObject *object, void *
 }
 
 #ifdef USE_WEBKIT
-GObject *_dw_html_setup(struct _dw_signal_list *signal, GObject *object, void *params[], void *sigfunc, void *discfunc, void *data)
+GObject *_dw_html_setup(struct _dw_signal_list *signal, GObject *object, void *sigfunc, void *discfunc, void *data)
 {
    if(WEBKIT_IS_WEB_VIEW(object) && strcmp(signal->name, DW_SIGNAL_HTML_RESULT) == 0)
    {
@@ -9743,13 +9743,10 @@ void dw_signal_connect_data(HWND window, const char *signame, void *sigfunc, voi
    if(signal.func)
    {
       GObject *object = (GObject *)window;
-      void **params = calloc(_DW_INTERNAL_CALLBACK_PARAMS, sizeof(void *));
+      void **params;
       int sigid;
       gint cid;
 
-      /* Save the disconnect function pointer */
-      params[1] = discfunc;
-      
       /*
        * If the window we are setting the signal on is a scrolled window we need to get
        * the "real" widget type. thiswindow is the "real" widget type
@@ -9763,16 +9760,16 @@ void dw_signal_connect_data(HWND window, const char *signame, void *sigfunc, voi
 
       /* Do object class specific setup */
       if(signal.setup)
-         object = signal.setup(&signal, object, params, sigfunc, discfunc, data);
+         object = signal.setup(&signal, object, sigfunc, discfunc, data);
 
       if(!object)
-      {
-         free(params);
          return;
-      }
 
+      params = calloc(_DW_INTERNAL_CALLBACK_PARAMS, sizeof(void *));
       sigid = _dw_set_signal_handler(object, window, sigfunc, data, signal.func, discfunc);
       params[0] = DW_INT_TO_POINTER(sigid);
+      /* Save the disconnect function pointer */
+      params[1] = discfunc;
       params[2] = DW_POINTER(object);
       cid = g_signal_connect_data(object, signal.gname, G_CALLBACK(signal.func), params, _dw_signal_disconnect, 0);
       _dw_set_signal_handler_id(object, sigid, cid);
