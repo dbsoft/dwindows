@@ -2168,7 +2168,37 @@ HWND dw_notebook_new(unsigned long id, int top)
    return tmp;
 }
 
-static int _dw_menugroup = 0;
+static unsigned int _dw_menugroup = 0;
+
+/* Recurse into a menu setting the action groups on the menuparent widget */
+void _dw_menu_set_group_recursive(HMENUI start, GtkWidget *menuparent)
+{
+   int z, submenucount = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(start), "_dw_submenucount"));
+   
+   for(z=0;z<submenucount;z++)
+   {
+      char tempbuf[101] = {0};
+      HMENUI submenu;
+
+      snprintf(tempbuf, 100, "_dw_submenu%d", z);
+
+      if((submenu = g_object_get_data(G_OBJECT(start), tempbuf)))
+      {
+         if(!g_object_get_data(G_OBJECT(submenu), "_dw_menuparent"))
+         {
+            int menugroup = DW_POINTER_TO_INT(g_object_get_data(G_OBJECT(submenu), "_dw_menugroup"));
+            GSimpleActionGroup *group = g_object_get_data(G_OBJECT(submenu), "_dw_group");
+            char tempbuf[25] = {0};
+               
+            snprintf(tempbuf, 24, "menu%d", menugroup);
+            
+            gtk_widget_insert_action_group(GTK_WIDGET(menuparent), tempbuf, G_ACTION_GROUP(group));
+            g_object_set_data(G_OBJECT(submenu), "_dw_menuparent", (gpointer)menuparent);
+         }
+         _dw_menu_set_group_recursive(submenu, menuparent);
+      }
+   }
+}
 
 /*
  * Create a menu object to be popped up.
@@ -2178,19 +2208,15 @@ static int _dw_menugroup = 0;
  */
 HMENUI dw_menu_new(unsigned long id)
 {
-   GMenu *menu = g_menu_new();
+   GMenu *tmp = g_menu_new();
    /* Create the initial section and add it to the menu */
    GMenu *section = g_menu_new();
    GMenuItem *item = g_menu_item_new_section(NULL, G_MENU_MODEL(section));
    GSimpleActionGroup *group = g_simple_action_group_new();
-   HMENUI tmp = gtk_popover_menu_new_from_model_full(G_MENU_MODEL(menu), GTK_POPOVER_MENU_NESTED);
-   char tempbuf[25] = {0};
       
-   g_menu_append_item(menu, item);
-   snprintf(tempbuf, 24, "menu%d", ++_dw_menugroup);
-   gtk_widget_insert_action_group(GTK_WIDGET(tmp), tempbuf, G_ACTION_GROUP(group));
+   g_menu_append_item(tmp, item);
 
-   g_object_set_data(G_OBJECT(tmp), "_dw_menugroup", GINT_TO_POINTER(_dw_menugroup));
+   g_object_set_data(G_OBJECT(tmp), "_dw_menugroup", GINT_TO_POINTER(++_dw_menugroup));
    g_object_set_data(G_OBJECT(tmp), "_dw_group", (gpointer)group);
    g_object_set_data(G_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(id));
    g_object_set_data(G_OBJECT(tmp), "_dw_section", (gpointer)section);
@@ -2239,6 +2265,7 @@ HMENUI dw_menubar_new(HWND location)
       g_object_set_data(G_OBJECT(tmp), "_dw_group", (gpointer)group);
       g_object_set_data(G_OBJECT(tmp), "_dw_section", (gpointer)section);
       gtk_grid_attach(GTK_GRID(box), tmp, 0, 0, 1, 1);
+      _dw_menu_set_group_recursive(tmp, GTK_WIDGET(tmp));
    }
    return tmp;
 }
@@ -2267,6 +2294,8 @@ void dw_menu_destroy(HMENUI *menu)
          else
             g_object_unref(G_OBJECT(*menu));
       }
+      else if(G_IS_MENU(*menu))
+         g_object_unref(G_OBJECT(*menu));
       *menu = NULL;
    }
 }
@@ -2309,7 +2338,6 @@ HWND dw_menu_append_item(HMENUI menu, const char *title, unsigned long id, unsig
    GMenuItem *tmphandle = NULL;
    GMenuModel *menumodel;
    char *temptitle = alloca(strlen(title)+1);
-   int submenucount;
 
    if(!menu)
       return 0;
@@ -2317,7 +2345,6 @@ HWND dw_menu_append_item(HMENUI menu, const char *title, unsigned long id, unsig
    /* By default we add to the menu's current section */
    menumodel = g_object_get_data(G_OBJECT(menu), "_dw_section");
    _dw_removetilde(temptitle, title);
-   submenucount = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(menu), "_dw_submenucount"));
 
    /* To add a separator we create a new section and add it */
    if (strlen(temptitle) == 0)
@@ -2328,7 +2355,7 @@ HWND dw_menu_append_item(HMENUI menu, const char *title, unsigned long id, unsig
       if(GTK_IS_POPOVER_MENU_BAR(menu))
          menumodel = gtk_popover_menu_bar_get_menu_model(GTK_POPOVER_MENU_BAR(menu));
       else
-         menumodel = gtk_popover_menu_get_menu_model(GTK_POPOVER_MENU(menu));
+         menumodel = G_MENU_MODEL(menu);
 
       tmphandle = g_menu_item_new_section(NULL, G_MENU_MODEL(section));
       g_object_set_data(G_OBJECT(menu), "_dw_section", (gpointer)section);
@@ -2339,18 +2366,25 @@ HWND dw_menu_append_item(HMENUI menu, const char *title, unsigned long id, unsig
 
       if(submenu)
       {
-         GMenuModel *submenumodel;
-         
-         if(GTK_IS_POPOVER_MENU_BAR(submenu))
-            submenumodel = gtk_popover_menu_bar_get_menu_model(GTK_POPOVER_MENU_BAR(submenu));
-         else
-            submenumodel = gtk_popover_menu_get_menu_model(GTK_POPOVER_MENU(submenu));
+         if(G_IS_MENU(submenu))
+         {
+            int submenucount = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(menu), "_dw_submenucount"));
+            GtkWidget *menuparent = GTK_WIDGET(g_object_get_data(G_OBJECT(menu), "_dw_menuparent"));
 
-         snprintf(tempbuf, 100, "_dw_submenu%d", submenucount);
-         submenucount++;
-         tmphandle = g_menu_item_new_submenu(temptitle, submenumodel);
-         g_object_set_data(G_OBJECT(menu), tempbuf, (gpointer)submenu);
-         g_object_set_data(G_OBJECT(menu), "_dw_submenucount", GINT_TO_POINTER(submenucount));
+            /* If the menu being added to is a menu bar, that is the menuparent for submenus */            
+            if(GTK_IS_POPOVER_MENU_BAR(menu))
+               menuparent = GTK_WIDGET(menu);
+
+            snprintf(tempbuf, 100, "_dw_submenu%d", submenucount);
+            submenucount++;
+            tmphandle = g_menu_item_new_submenu(temptitle, G_MENU_MODEL(submenu));
+            g_object_set_data(G_OBJECT(menu), tempbuf, (gpointer)submenu);
+            g_object_set_data(G_OBJECT(menu), "_dw_submenucount", GINT_TO_POINTER(submenucount));
+
+            /* If we have a menu parent, use it to create the groups if needed */
+            if(menuparent && !g_object_get_data(G_OBJECT(submenu), "_dw_menuparent"))
+               _dw_menu_set_group_recursive(menu, menuparent);
+         }
       }
       else
       {
@@ -2521,11 +2555,13 @@ int API dw_menu_delete_item(HMENUI menu, unsigned long id)
  */
 void dw_menu_popup(HMENUI *menu, HWND parent, int x, int y)
 {
-   if(menu && *menu && GTK_IS_WIDGET(*menu))
+   if(menu && *menu && G_MENU(*menu))
    {
       GtkWidget *popover = gtk_popover_new();
+      GtkWidget *tmp = gtk_popover_menu_new_from_model_full(G_MENU_MODEL(*menu), GTK_POPOVER_MENU_NESTED);
       
-      gtk_popover_set_child(GTK_POPOVER(popover), GTK_WIDGET(*menu));
+      _dw_menu_set_group_recursive(*menu, GTK_WIDGET(tmp));
+      gtk_popover_set_child(GTK_POPOVER(popover), GTK_WIDGET(tmp));
       gtk_popover_set_offset(GTK_POPOVER(popover), x, y);
       gtk_popover_set_autohide(GTK_POPOVER(popover), TRUE);
       gtk_popover_popup(GTK_POPOVER(popover));
@@ -9584,10 +9620,12 @@ GObject *_dw_button_setup(struct _dw_signal_list *signal, GObject *object, void 
       if(action)
       {
          int cid, sigid = _dw_set_signal_handler(G_OBJECT(action), (HWND)object, sigfunc, data, (gpointer)_dw_menu_handler, discfunc);
+         void **newparams = calloc(sizeof(void *), 3);
 
-         params[0] = DW_INT_TO_POINTER(sigid);
-         params[2] = DW_POINTER(object);
-         cid = g_signal_connect_data(G_OBJECT(action), "activate", G_CALLBACK(_dw_menu_handler), params, _dw_signal_disconnect, 0);
+         newparams[0] = DW_INT_TO_POINTER(sigid);
+         newparams[1] = params[1];
+         newparams[2] = DW_POINTER(object);
+         cid = g_signal_connect_data(G_OBJECT(action), "activate", G_CALLBACK(_dw_menu_handler), newparams, _dw_signal_disconnect, 0);
          _dw_set_signal_handler_id(object, sigid, cid);
       }
       return NULL;
