@@ -9619,7 +9619,7 @@ GObject *_dw_button_setup(struct _dw_signal_list *signal, GObject *object, void 
       
       if(action)
       {
-         int cid, sigid = _dw_set_signal_handler(G_OBJECT(action), (HWND)object, sigfunc, data, (gpointer)_dw_menu_handler, discfunc);
+         int cid, sigid = _dw_set_signal_handler(G_OBJECT(object), (HWND)object, sigfunc, data, (gpointer)_dw_menu_handler, discfunc);
          void **newparams = calloc(sizeof(void *), 3);
 
          newparams[0] = DW_INT_TO_POINTER(sigid);
