@@ -8587,12 +8587,12 @@ gboolean _splitbar_set_percent(gpointer data)
 }
 
 /* Reposition the bar according to the percentage */
-static gint _splitbar_size_allocate(GtkWidget *widget, GtkAllocation *event, gpointer data)
+static gint _splitbar_realize(GtkWidget *widget, gpointer data)
 {
    float *percent = (float *)g_object_get_data(G_OBJECT(widget), "_dw_percent");
 
    /* Prevent infinite recursion ;) */
-   if(!percent || event->width < 20 || event->height < 20)
+   if(!percent)
       return FALSE;
 
    g_idle_add(_splitbar_set_percent, widget);
@@ -8623,7 +8623,7 @@ HWND dw_splitbar_new(int type, HWND topleft, HWND bottomright, unsigned long id)
    g_object_set_data(G_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(id));
    *percent = 50.0;
    g_object_set_data(G_OBJECT(tmp), "_dw_percent", (gpointer)percent);
-   g_signal_connect(G_OBJECT(tmp), "size-allocate", G_CALLBACK(_splitbar_size_allocate), NULL);
+   g_signal_connect(G_OBJECT(tmp), "realize", G_CALLBACK(_splitbar_realize), NULL);
    gtk_widget_show(tmp);
    return tmp;
 }
