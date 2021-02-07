@@ -11,7 +11,7 @@ MacOS:
         64bit Intel with Notifications, Dark Mode for 10.14-15.
     10.8-10.12: configure --with-arch=intel --with-minver=10.8
         64 and 32bit Intel with Notifications but no Dark Mode.
-    10.6: configure --with-arch=classic --with-minver=10.5
+    10.5-10.6: configure --with-arch=classic --with-minver=10.5
         32bit PowerPC, 64bit and 32bit Intel classic support.
         No Notifications, Dark Mode nor NSView container/trees.
 Windows:
@@ -55,6 +55,7 @@ if a popular notification system is not already in existance.
 Ports to iOS and Android are underway.
 
 Changes from version 3.1:
+Added initial support for GTK4. --with-gtk4 is now available.
 Added support for dw_window_set_font() with a NULL font paramaeter.
     This resets the font used on the widget to the default font.
 Fixed GTK warnings on GTK3 caused by using Pango style font syntax.
@@ -68,7 +69,8 @@ Added oldsockpipe() macro which will be used as a fallback.
     This allows us to use domain socket sockpipe() when available...
     and fall back to the old version when not, letting us have
     Windows 10 domain socket builds that work on earlier versions.
-
+Fixed building and several issues related to 10.5 now that I have
+    a PowerMac G5 running 10.5.8 to test on.
 Dynamic Windows Documentation is available at:
 
 http://dbsoft.org/dw_help.php
