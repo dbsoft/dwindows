@@ -21,7 +21,10 @@
 
 /* Create a define to let us know to include Snow Leopard specific features */
 #if defined(MAC_OS_X_VERSION_10_6) && ((defined(MAC_OS_X_VERSION_MAX_ALLOWED) && MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_6) || !defined(MAC_OS_X_VERSION_MAX_ALLOWED))
+#define DWPasteboardTypeString NSPasteboardTypeString
 #define BUILDING_FOR_SNOW_LEOPARD
+#else
+#define DWPasteboardTypeString NSStringPboardType
 #endif
 
 /* Create a define to let us know to include Lion specific features */
@@ -4545,7 +4548,7 @@ char * API dw_file_browse(const char *title, const char *defpath, const char *ex
 char *dw_clipboard_get_text()
 {
     NSPasteboard *pasteboard = [NSPasteboard generalPasteboard];
-    NSString *str = [pasteboard stringForType:NSPasteboardTypeString];
+    NSString *str = [pasteboard stringForType:DWPasteboardTypeString];
     if(str != nil)
     {
         return strdup([ str UTF8String ]);
@@ -4569,7 +4572,7 @@ void dw_clipboard_set_text(const char *str, int len)
         icc(pasteboard, scc);
     }
 
-    [pasteboard setString:[ NSString stringWithUTF8String:str ] forType:NSPasteboardTypeString];
+    [pasteboard setString:[ NSString stringWithUTF8String:str ] forType:DWPasteboardTypeString];
 }
 
 
@@ -6318,9 +6321,11 @@ HWND API dw_mle_new(ULONG cid)
     [mle setVerticallyResizable:YES];
     [mle setAutoresizingMask:NSViewWidthSizable|NSViewHeightSizable];
     [mle setScrollview:scrollview];
+#ifdef BUILDING_FOR_SNOW_LEOPARD
     [mle setAutomaticQuoteSubstitutionEnabled:NO];
     [mle setAutomaticDashSubstitutionEnabled:NO];
     [mle setAutomaticTextReplacementEnabled:NO];
+#endif
     /* [mle setTag:cid]; Why doesn't this work? */
     [mle autorelease];
     return mle;
@@ -6346,7 +6351,7 @@ DW_FUNCTION_RESTORE_PARAM3(handle, HWND, buffer, const char *, startpoint, int)
     NSColor *fgcolor = [ts foregroundColor];
     NSFont *font = [ts font];
     NSMutableDictionary *attributes = [[NSMutableDictionary alloc] init];
-    [attributes setObject:(fgcolor ? fgcolor : NSColor.textColor) forKey:NSForegroundColorAttributeName];
+    [attributes setObject:(fgcolor ? fgcolor : [NSColor textColor]) forKey:NSForegroundColorAttributeName];
     if(font)
         [attributes setObject:font forKey:NSFontAttributeName];
     NSAttributedString *nastr = [[NSAttributedString alloc] initWithString:nstr attributes:attributes];
@@ -6544,10 +6549,12 @@ void API dw_mle_set_word_wrap(HWND handle, int state)
  */
 void API dw_mle_set_auto_complete(HWND handle, int state)
 {
+#ifdef BUILDING_FOR_SNOW_LEOPARD
     DWMLE *mle = handle;
     [mle setAutomaticQuoteSubstitutionEnabled:(state & DW_MLE_COMPLETE_QUOTE ? YES : NO)];
     [mle setAutomaticDashSubstitutionEnabled:(state & DW_MLE_COMPLETE_DASH ? YES : NO)];
     [mle setAutomaticTextReplacementEnabled:(state & DW_MLE_COMPLETE_TEXT ? YES : NO)];
+#endif
 }
 
 /*
@@ -7444,9 +7451,13 @@ DW_FUNCTION_RESTORE_PARAM4(handle, HWND, item, HTREEITEM, title, char *, icon, H
     {
         [array replaceObjectAtIndex:0 withObject:icon];
     }
+#ifdef BUILDING_FOR_SNOW_LEOPARD
     NSInteger row = [tree rowForItem:item];
     [tree reloadDataForRowIndexes:[NSIndexSet indexSetWithIndex:row]
                     columnIndexes:[NSIndexSet indexSetWithIndex:0]];
+#else
+	[tree reloadData];
+#endif
     DW_LOCAL_POOL_OUT;
     DW_FUNCTION_RETURN_NOTHING;
 }
