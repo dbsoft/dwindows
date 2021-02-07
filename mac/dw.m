@@ -13110,11 +13110,13 @@ int API dw_feature_get(DWFEATURE feature)
 #ifdef BUILDING_FOR_YOSEMITE
         case DW_FEATURE_TASK_BAR:
 #endif
+#ifdef BUILDING_FOR_SNOW_LEOPARD
+        case DW_FEATURE_MLE_AUTO_COMPLETE:
+#endif
         case DW_FEATURE_HTML:
         case DW_FEATURE_HTML_RESULT:
         case DW_FEATURE_CONTAINER_STRIPE:
         case DW_FEATURE_MLE_WORD_WRAP:
-        case DW_FEATURE_MLE_AUTO_COMPLETE:
         case DW_FEATURE_UTF8_UNICODE:
             return DW_FEATURE_ENABLED;
 #ifdef BUILDING_FOR_MOJAVE
@@ -13170,11 +13172,13 @@ int API dw_feature_set(DWFEATURE feature, int state)
 #ifdef BUILDING_FOR_YOSEMITE
         case DW_FEATURE_TASK_BAR:
 #endif
+#ifdef BUILDING_FOR_SNOW_LEOPARD
+        case DW_FEATURE_MLE_AUTO_COMPLETE:
+#endif
         case DW_FEATURE_HTML:
         case DW_FEATURE_HTML_RESULT:
         case DW_FEATURE_CONTAINER_STRIPE:
         case DW_FEATURE_MLE_WORD_WRAP:
-        case DW_FEATURE_MLE_AUTO_COMPLETE:
         case DW_FEATURE_UTF8_UNICODE:
             return DW_ERROR_GENERAL;
         /* These features are supported and configurable */
