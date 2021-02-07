@@ -56,6 +56,9 @@ Ports to iOS and Android are underway.
 
 Changes from version 3.1:
 Added initial support for GTK4. --with-gtk4 is now available.
+    GTK4 support is less complete than GTK3, a number of features
+    of the GTK3 version are no longer possible in GTK4 like:
+    Taskbar icon support, Window positioning and gravity.
 Added support for dw_window_set_font() with a NULL font paramaeter.
     This resets the font used on the widget to the default font.
 Fixed GTK warnings on GTK3 caused by using Pango style font syntax.
@@ -69,8 +72,9 @@ Added oldsockpipe() macro which will be used as a fallback.
     This allows us to use domain socket sockpipe() when available...
     and fall back to the old version when not, letting us have
     Windows 10 domain socket builds that work on earlier versions.
-Fixed building and several issues related to 10.5 now that I have
-    a PowerMac G5 running 10.5.8 to test on.
+Fixed building and several issues related to MacOS 10.5 now that I
+    have a PowerMac G5 running 10.5.8 to test on.
+
 Dynamic Windows Documentation is available at:
 
 http://dbsoft.org/dw_help.php
