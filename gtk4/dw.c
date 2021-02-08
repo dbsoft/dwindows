@@ -8587,7 +8587,7 @@ void dw_listbox_delete(HWND handle, int index)
 }
 
 /* Function to do delayed positioning */
-gboolean _splitbar_set_percent(gpointer data)
+gboolean _dw_splitbar_set_percent(gpointer data)
 {
    GtkWidget *widget = data;
    float *percent = (float *)g_object_get_data(G_OBJECT(widget), "_dw_percent");
@@ -8598,18 +8598,23 @@ gboolean _splitbar_set_percent(gpointer data)
 
       gtk_widget_get_allocation(widget, &alloc);
 
-      if(gtk_orientable_get_orientation(GTK_ORIENTABLE(widget)) == GTK_ORIENTATION_HORIZONTAL)
-         gtk_paned_set_position(GTK_PANED(widget), (int)(alloc.width * (*percent / 100.0)));
+      if(alloc.width > 10 && alloc.height > 10)
+      {
+         if(gtk_orientable_get_orientation(GTK_ORIENTABLE(widget)) == GTK_ORIENTATION_HORIZONTAL)
+            gtk_paned_set_position(GTK_PANED(widget), (int)(alloc.width * (*percent / 100.0)));
+         else
+            gtk_paned_set_position(GTK_PANED(widget), (int)(alloc.height * (*percent / 100.0)));
+         g_object_set_data(G_OBJECT(widget), "_dw_percent", NULL);
+         free(percent);
+      }
       else
-         gtk_paned_set_position(GTK_PANED(widget), (int)(alloc.height * (*percent / 100.0)));
-      g_object_set_data(G_OBJECT(widget), "_dw_percent", NULL);
-      free(percent);
+         return TRUE;
    }
    return FALSE;
 }
 
 /* Reposition the bar according to the percentage */
-static gint _splitbar_realize(GtkWidget *widget, gpointer data)
+static gint _dw_splitbar_realize(GtkWidget *widget, gpointer data)
 {
    float *percent = (float *)g_object_get_data(G_OBJECT(widget), "_dw_percent");
 
@@ -8617,7 +8622,7 @@ static gint _splitbar_realize(GtkWidget *widget, gpointer data)
    if(!percent)
       return FALSE;
 
-   g_idle_add(_splitbar_set_percent, widget);
+   g_idle_add(_dw_splitbar_set_percent, widget);
    return FALSE;
 }
 
@@ -8645,7 +8650,7 @@ HWND dw_splitbar_new(int type, HWND topleft, HWND bottomright, unsigned long id)
    g_object_set_data(G_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(id));
    *percent = 50.0;
    g_object_set_data(G_OBJECT(tmp), "_dw_percent", (gpointer)percent);
-   g_signal_connect(G_OBJECT(tmp), "realize", G_CALLBACK(_splitbar_realize), NULL);
+   g_signal_connect(G_OBJECT(tmp), "realize", G_CALLBACK(_dw_splitbar_realize), NULL);
    gtk_widget_show(tmp);
    return tmp;
 }
