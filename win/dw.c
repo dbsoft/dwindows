@@ -13850,6 +13850,7 @@ int API dw_feature_get(DWFEATURE feature)
 #endif
         case DW_FEATURE_CONTAINER_STRIPE:
         case DW_FEATURE_MDI:
+        case DW_FEATURE_TASK_BAR:  
             return DW_FEATURE_ENABLED;
 #ifdef BUILD_TOAST
         case DW_FEATURE_NOTIFICATION:
@@ -13891,7 +13892,6 @@ int API dw_feature_get(DWFEATURE feature)
             return DW_FEATURE_UNSUPPORTED;
         }
 #endif
-        case DW_FEATURE_TASK_BAR:  
         default:
             return DW_FEATURE_UNSUPPORTED;
     }
@@ -13927,6 +13927,7 @@ int API dw_feature_set(DWFEATURE feature, int state)
 #endif
         case DW_FEATURE_CONTAINER_STRIPE:
         case DW_FEATURE_MDI:
+        case DW_FEATURE_TASK_BAR:  
             return DW_ERROR_GENERAL;
 #ifdef BUILD_TOAST
         case DW_FEATURE_NOTIFICATION:
@@ -13970,8 +13971,6 @@ int API dw_feature_set(DWFEATURE feature, int state)
             return DW_ERROR_GENERAL;
         }
 #endif
-        case DW_FEATURE_TASK_BAR:  
-            return DW_ERROR_GENERAL;
         default:
             return DW_FEATURE_UNSUPPORTED;
     }
