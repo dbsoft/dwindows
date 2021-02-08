@@ -2545,6 +2545,26 @@ int API dw_menu_delete_item(HMENUI menu, unsigned long id)
    return ret;
 }
 
+/* Delayed unparent of the popup menu from the parent */
+gboolean _dw_idle_popover_unparent(gpointer data)
+{
+   GtkWidget *self = GTK_WIDGET(data);
+
+   gtk_widget_unparent(self);
+   return false;
+}
+
+void _dw_popover_menu_closed(GtkPopover *self, gpointer data)
+{
+   GtkWidget *parent = GTK_WIDGET(data);
+   
+   /* Can't unparent immediately, since the "activate" signal happens second...
+    * so we have to delay unparenting until the "activate" handler runs.
+    */
+   if(GTK_IS_WIDGET(parent) && GTK_IS_POPOVER(self))
+      g_idle_add(G_SOURCE_FUNC(_dw_idle_popover_unparent), (gpointer)self);
+}
+
 /*
  * Pops up a context menu at given x and y coordinates.
  * Parameters:
@@ -2561,8 +2581,11 @@ void dw_menu_popup(HMENUI *menu, HWND parent, int x, int y)
       
       gtk_widget_set_parent(tmp, GTK_WIDGET(parent));
       _dw_menu_set_group_recursive(*menu, GTK_WIDGET(tmp));
-      gtk_popover_set_offset(GTK_POPOVER(tmp), x, y);
       gtk_popover_set_autohide(GTK_POPOVER(tmp), TRUE);
+#if 0      
+      gtk_popover_set_offset(GTK_POPOVER(tmp), x, y);
+#endif      
+      g_signal_connect(G_OBJECT(tmp), "closed", G_CALLBACK(_dw_popover_menu_closed), (gpointer)parent);
       gtk_popover_popup(GTK_POPOVER(tmp));
       *menu = NULL;
    }
