@@ -2557,14 +2557,13 @@ void dw_menu_popup(HMENUI *menu, HWND parent, int x, int y)
 {
    if(menu && *menu && G_MENU(*menu))
    {
-      GtkWidget *popover = gtk_popover_new();
       GtkWidget *tmp = gtk_popover_menu_new_from_model_full(G_MENU_MODEL(*menu), GTK_POPOVER_MENU_NESTED);
       
+      gtk_widget_set_parent(tmp, GTK_WIDGET(parent));
       _dw_menu_set_group_recursive(*menu, GTK_WIDGET(tmp));
-      gtk_popover_set_child(GTK_POPOVER(popover), GTK_WIDGET(tmp));
-      gtk_popover_set_offset(GTK_POPOVER(popover), x, y);
-      gtk_popover_set_autohide(GTK_POPOVER(popover), TRUE);
-      gtk_popover_popup(GTK_POPOVER(popover));
+      gtk_popover_set_offset(GTK_POPOVER(tmp), x, y);
+      gtk_popover_set_autohide(GTK_POPOVER(tmp), TRUE);
+      gtk_popover_popup(GTK_POPOVER(tmp));
       *menu = NULL;
    }
 }
