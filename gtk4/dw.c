@@ -2578,13 +2578,13 @@ void dw_menu_popup(HMENUI *menu, HWND parent, int x, int y)
    if(menu && *menu && G_MENU(*menu))
    {
       GtkWidget *tmp = gtk_popover_menu_new_from_model_full(G_MENU_MODEL(*menu), GTK_POPOVER_MENU_NESTED);
+      GdkRectangle rect = { x, y, 1, 1 };
       
       gtk_widget_set_parent(tmp, GTK_WIDGET(parent));
       _dw_menu_set_group_recursive(*menu, GTK_WIDGET(tmp));
       gtk_popover_set_autohide(GTK_POPOVER(tmp), TRUE);
-#if 0      
-      gtk_popover_set_offset(GTK_POPOVER(tmp), x, y);
-#endif      
+      gtk_popover_set_has_arrow (GTK_POPOVER(tmp), FALSE);
+      gtk_popover_set_pointing_to(GTK_POPOVER(tmp), &rect);
       g_signal_connect(G_OBJECT(tmp), "closed", G_CALLBACK(_dw_popover_menu_closed), (gpointer)parent);
       gtk_popover_popup(GTK_POPOVER(tmp));
       *menu = NULL;
