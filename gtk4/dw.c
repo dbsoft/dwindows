@@ -2581,6 +2581,17 @@ void dw_menu_popup(HMENUI *menu, HWND parent, int x, int y)
       GdkRectangle rect = { x, y, 1, 1 };
       
       gtk_widget_set_parent(tmp, GTK_WIDGET(parent));
+      if(!g_object_get_data(G_OBJECT(*menu), "_dw_menuparent"))
+      {
+         int menugroup = DW_POINTER_TO_INT(g_object_get_data(G_OBJECT(*menu), "_dw_menugroup"));
+         GSimpleActionGroup *group = g_object_get_data(G_OBJECT(*menu), "_dw_group");
+         char tempbuf[25] = {0};
+            
+         snprintf(tempbuf, 24, "menu%d", menugroup);
+         
+         gtk_widget_insert_action_group(GTK_WIDGET(tmp), tempbuf, G_ACTION_GROUP(group));
+         g_object_set_data(G_OBJECT(*menu), "_dw_menuparent", (gpointer)tmp);
+      }
       _dw_menu_set_group_recursive(*menu, GTK_WIDGET(tmp));
       gtk_popover_set_autohide(GTK_POPOVER(tmp), TRUE);
       gtk_popover_set_has_arrow (GTK_POPOVER(tmp), FALSE);
