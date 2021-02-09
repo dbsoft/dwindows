@@ -44,6 +44,202 @@
 # endif
 #endif
 
+/* Macros to encapsulate running functions on the main thread
+ * #define _DW_SINGLE_THREADED to disable thread safety encapulation.
+ * Parameters converted to a pointer array: 
+ * [0] Pointer to the thread's event semaphore
+ * [1] Pointer to the funtion's return value
+ * [2] Pointer to function parameter 1
+ * ...
+ */
+#ifndef _DW_SINGLE_THREADED
+#define DW_FUNCTION_DEFINITION(func, rettype, ...)  gboolean _##func(void **_args); \
+rettype API func(__VA_ARGS__) { 
+#define DW_FUNCTION_ADD_PARAM1(param1) void **_args = alloca(sizeof(void *)*3); \
+    _args[0] = (void *)pthread_getspecific(_dw_event_key); \
+    _args[1] = (void *)NULL; \
+    _args[2] = (void *)&param1;
+#define DW_FUNCTION_ADD_PARAM2(param1, param2) void **_args = alloca(sizeof(void *)*4); \
+    _args[0] = (void *)pthread_getspecific(_dw_event_key); \
+    _args[1] = (void *)NULL; \
+    _args[2] = (void *)&param1; \
+    _args[3] = (void *)&param2;
+#define DW_FUNCTION_ADD_PARAM3(param1, param2, param3) void **_args = alloca(sizeof(void *)*5); \
+    _args[0] = (void *)pthread_getspecific(_dw_event_key); \
+    _args[1] = (void *)NULL; \
+    _args[2] = (void *)&param1; \
+    _args[3] = (void *)&param2; \
+    _args[4] = (void *)&param3;
+#define DW_FUNCTION_ADD_PARAM4(param1, param2, param3, param4) void **_args = alloca(sizeof(void *)*6); \
+    _args[0] = (void *)pthread_getspecific(_dw_event_key); \
+    _args[1] = (void *)NULL; \
+    _args[2] = (void *)&param1; \
+    _args[3] = (void *)&param2; \
+    _args[4] = (void *)&param3; \
+    _args[5] = (void *)&param4;
+#define DW_FUNCTION_ADD_PARAM5(param1, param2, param3, param4, param5) void **_args = alloca(sizeof(void *)*7); \
+    _args[0] = (void *)pthread_getspecific(_dw_event_key); \
+    _args[1] = (void *)NULL; \
+    _args[2] = (void *)&param1; \
+    _args[3] = (void *)&param2; \
+    _args[4] = (void *)&param3; \
+    _args[5] = (void *)&param4; \
+    _args[6] = (void *)&param5;
+#define DW_FUNCTION_ADD_PARAM6(param1, param2, param3, param4, param5, param6) \
+    void **_args = alloca(sizeof(void *)*8); \
+    _args[0] = (void *)pthread_getspecific(_dw_event_key); \
+    _args[1] = (void *)NULL; \
+    _args[2] = (void *)&param1; \
+    _args[3] = (void *)&param2; \
+    _args[4] = (void *)&param3; \
+    _args[5] = (void *)&param4; \
+    _args[6] = (void *)&param5; \
+    _args[7] = (void *)&param6;
+#define DW_FUNCTION_ADD_PARAM7(param1, param2, param3, param4, param5, param6, param7) \
+    void **_args = alloca(sizeof(void *)*9); \
+    _args[0] = (void *)pthread_getspecific(_dw_event_key); \
+    _args[1] = (void *)NULL; \
+    _args[2] = (void *)&param1; \
+    _args[3] = (void *)&param2; \
+    _args[4] = (void *)&param3; \
+    _args[5] = (void *)&param4; \
+    _args[6] = (void *)&param5; \
+    _args[7] = (void *)&param6; \
+    _args[8] = (void *)&param7;
+#define DW_FUNCTION_ADD_PARAM8(param1, param2, param3, param4, param5, param6, param7, param8) \
+    void **_args = alloca(sizeof(void *)*10); \
+    _args[0] = (void *)pthread_getspecific(_dw_event_key); \
+    _args[1] = (void *)NULL; \
+    _args[2] = (void *)&param1; \
+    _args[3] = (void *)&param2; \
+    _args[4] = (void *)&param3; \
+    _args[5] = (void *)&param4; \
+    _args[6] = (void *)&param5; \
+    _args[7] = (void *)&param6; \
+    _args[8] = (void *)&param7; \
+    _args[9] = (void *)&param8;
+#define DW_FUNCTION_ADD_PARAM9(param1, param2, param3, param4, param5, param6, param7, param8, param9) \
+    void **_args = alloca(sizeof(void *)*11); \
+    _args[0] = (void *)pthread_getspecific(_dw_event_key); \
+    _args[1] = (void *)NULL; \
+    _args[2] = (void *)&param1; \
+    _args[3] = (void *)&param2; \
+    _args[4] = (void *)&param3; \
+    _args[5] = (void *)&param4; \
+    _args[6] = (void *)&param5; \
+    _args[7] = (void *)&param6; \
+    _args[8] = (void *)&param7; \
+    _args[9] = (void *)&param8; \
+    _args[10] = (void *)&param9;
+#define DW_FUNCTION_RESTORE_PARAM1(param1, vartype1) \
+    vartype1 param1 = *((vartype1 *)_args[2]);
+#define DW_FUNCTION_RESTORE_PARAM2(param1, vartype1, param2, vartype2) \
+    vartype1 param1 = *((vartype1 *)_args[2]); \
+    vartype2 param2 = *((vartype2 *)_args[3]);
+#define DW_FUNCTION_RESTORE_PARAM3(param1, vartype1, param2, vartype2, param3, vartype3) \
+    vartype1 param1 = *((vartype1 *)_args[2]); \
+    vartype2 param2 = *((vartype2 *)_args[3]); \
+    vartype3 param3 = *((vartype3 *)_args[4]);
+#define DW_FUNCTION_RESTORE_PARAM4(param1, vartype1, param2, vartype2, param3, vartype3, param4, vartype4) \
+    vartype1 param1 = *((vartype1 *)_args[2]); \
+    vartype2 param2 = *((vartype2 *)_args[3]); \
+    vartype3 param3 = *((vartype3 *)_args[4]); \
+    vartype4 param4 = *((vartype4 *)_args[5]);
+#define DW_FUNCTION_RESTORE_PARAM5(param1, vartype1, param2, vartype2, param3, vartype3, param4, vartype4, param5, vartype5) \
+    vartype1 param1 = *((vartype1 *)_args[2]); \
+    vartype2 param2 = *((vartype2 *)_args[3]); \
+    vartype3 param3 = *((vartype3 *)_args[4]); \
+    vartype4 param4 = *((vartype4 *)_args[5]); \
+    vartype5 param5 = *((vartype5 *)_args[6]);
+#define DW_FUNCTION_RESTORE_PARAM6(param1, vartype1, param2, vartype2, param3, vartype3, param4, vartype4, param5, vartype5, param6, vartype6) \
+    vartype1 param1 = *((vartype1 *)_args[2]); \
+    vartype2 param2 = *((vartype2 *)_args[3]); \
+    vartype3 param3 = *((vartype3 *)_args[4]); \
+    vartype4 param4 = *((vartype4 *)_args[5]); \
+    vartype5 param5 = *((vartype5 *)_args[6]); \
+    vartype6 param6 = *((vartype6 *)_args[7]);
+#define DW_FUNCTION_RESTORE_PARAM7(param1, vartype1, param2, vartype2, param3, vartype3, param4, vartype4, param5, vartype5, param6, vartype6, param7, vartype7) \
+    vartype1 param1 = *((vartype1 *)_args[2]); \
+    vartype2 param2 = *((vartype2 *)_args[3]); \
+    vartype3 param3 = *((vartype3 *)_args[4]); \
+    vartype4 param4 = *((vartype4 *)_args[5]); \
+    vartype5 param5 = *((vartype5 *)_args[6]); \
+    vartype6 param6 = *((vartype6 *)_args[7]); \
+    vartype7 param7 = *((vartype7 *)_args[8]);
+#define DW_FUNCTION_RESTORE_PARAM8(param1, vartype1, param2, vartype2, param3, vartype3, param4, vartype4, param5, vartype5, param6, vartype6, param7, vartype7, param8, vartype8) \
+    vartype1 param1 = *((vartype1 *)_args[2]); \
+    vartype2 param2 = *((vartype2 *)_args[3]); \
+    vartype3 param3 = *((vartype3 *)_args[4]); \
+    vartype4 param4 = *((vartype4 *)_args[5]); \
+    vartype5 param5 = *((vartype5 *)_args[6]); \
+    vartype6 param6 = *((vartype6 *)_args[7]); \
+    vartype7 param7 = *((vartype7 *)_args[8]); \
+    vartype8 param8 = *((vartype8 *)_args[9]);
+#define DW_FUNCTION_RESTORE_PARAM9(param1, vartype1, param2, vartype2, param3, vartype3, param4, vartype4, param5, vartype5, param6, vartype6, param7, vartype7, param8, vartype8, param9, vartype9) \
+    vartype1 param1 = *((vartype1 *)_args[2]); \
+    vartype2 param2 = *((vartype2 *)_args[3]); \
+    vartype3 param3 = *((vartype3 *)_args[4]); \
+    vartype4 param4 = *((vartype4 *)_args[5]); \
+    vartype5 param5 = *((vartype5 *)_args[6]); \
+    vartype6 param6 = *((vartype6 *)_args[7]); \
+    vartype7 param7 = *((vartype7 *)_args[8]); \
+    vartype8 param8 = *((vartype8 *)_args[9]); \
+    vartype9 param9 = *((vartype9 *)_args[10]);
+#define DW_FUNCTION_END }
+#define DW_FUNCTION_NO_RETURN(func) dw_event_reset((HEV)_args[0]); \
+    if(_dw_thread == (pthread_t)-1 || pthread_self() == _dw_thread) \
+        _##func(_args); \
+    else { \
+        g_idle_add_full(G_PRIORITY_HIGH_IDLE, G_SOURCE_FUNC(_##func), (gpointer)_args, NULL); \
+        dw_event_wait((HEV)_args[0], DW_TIMEOUT_INFINITE); } \
+    }\
+gboolean _##func(void **_args) {
+#define DW_FUNCTION_RETURN(func, rettype) dw_event_reset((HEV)_args[0]); \
+    if(_dw_thread == (pthread_t)-1 || pthread_self() == _dw_thread) \
+        _##func(_args); \
+    else { \
+        g_idle_add_full(G_PRIORITY_HIGH_IDLE, G_SOURCE_FUNC(_##func), (gpointer)_args, NULL); \
+        dw_event_wait((HEV)_args[0], DW_TIMEOUT_INFINITE); } { \
+        void *tmp = _args[1]; \
+        rettype myreturn = *((rettype *)tmp); \
+        free(tmp); \
+        return myreturn; } \
+    } \
+gboolean _##func(void **_args) {
+#define DW_FUNCTION_RETURN_THIS(_retvar) { void *_myreturn = malloc(sizeof(_retvar)); \
+    memcpy(_myreturn, (void *)&_retvar, sizeof(_retvar)); \
+    _args[1] = _myreturn; } \
+    dw_event_post((HEV)_args[0]); \
+    return FALSE; }
+#define DW_FUNCTION_RETURN_NOTHING dw_event_post((HEV)_args[0]); \
+    return FALSE; }
+#else
+#define DW_FUNCTION_DEFINITION(func, rettype, ...) rettype API func(__VA_ARGS__)
+#define DW_FUNCTION_ADD_PARAM1(param1)
+#define DW_FUNCTION_ADD_PARAM2(param1, param2)
+#define DW_FUNCTION_ADD_PARAM3(param1, param2, param3)
+#define DW_FUNCTION_ADD_PARAM4(param1, param2, param3, param4)
+#define DW_FUNCTION_ADD_PARAM5(param1, param2, param3, param4, param5)
+#define DW_FUNCTION_ADD_PARAM6(param1, param2, param3, param4, param5, param6)
+#define DW_FUNCTION_ADD_PARAM7(param1, param2, param3, param4, param5, param6, param7)
+#define DW_FUNCTION_ADD_PARAM8(param1, param2, param3, param4, param5, param6, param7, param8)
+#define DW_FUNCTION_ADD_PARAM9(param1, param2, param3, param4, param5, param6, param7, param8, param9)
+#define DW_FUNCTION_RESTORE_PARAM1(param1, vartype1)
+#define DW_FUNCTION_RESTORE_PARAM2(param1, vartype1, param2, vartype2)
+#define DW_FUNCTION_RESTORE_PARAM3(param1, vartype1, param2, vartype2, param3, vartype3)
+#define DW_FUNCTION_RESTORE_PARAM4(param1, vartype1, param2, vartype2, param3, vartype3, param4, vartype4)
+#define DW_FUNCTION_RESTORE_PARAM5(param1, vartype1, param2, vartype2, param3, vartype3, param4, vartype4, param5, vartype5)
+#define DW_FUNCTION_RESTORE_PARAM6(param1, vartype1, param2, vartype2, param3, vartype3, param4, vartype4, param5, vartype5, param6, vartype6)
+#define DW_FUNCTION_RESTORE_PARAM7(param1, vartype1, param2, vartype2, param3, vartype3, param4, vartype4, param5, vartype5, param6, vartype6, param7, vartype7)
+#define DW_FUNCTION_RESTORE_PARAM8(param1, vartype1, param2, vartype2, param3, vartype3, param4, vartype4, param5, vartype5, param6, vartype6, param7, vartype7, param8, vartype8)
+#define DW_FUNCTION_RESTORE_PARAM9(param1, vartype1, param2, vartype2, param3, vartype3, param4, vartype4, param5, vartype5, param6, vartype6, param7, vartype7, param8, vartype8, param9, vartype9)
+#define DW_FUNCTION_END
+#define DW_FUNCTION_NO_RETURN(func)
+#define DW_FUNCTION_RETURN(func, rettype)
+#define DW_FUNCTION_RETURN_THIS(retvar) return retvar;
+#define DW_FUNCTION_RETURN_NOTHING
+#endif
+
 /* ff = 255 = 1.0000
  * ee = 238 = 0.9333
  * cc = 204 = 0.8000
@@ -99,6 +295,7 @@ char *image_exts[NUM_EXTS] =
 
 pthread_key_t _dw_fg_color_key;
 pthread_key_t _dw_bg_color_key;
+pthread_key_t _dw_event_key;
 
 GtkWidget *last_window = NULL, *popup = NULL;
 
@@ -1097,6 +1294,7 @@ int dw_init(int newthread, int argc, char *argv[])
 
    pthread_key_create(&_dw_fg_color_key, NULL);
    pthread_key_create(&_dw_bg_color_key, NULL);
+   pthread_key_create(&_dw_event_key, NULL);
 
    _dw_init_thread();
 
@@ -1370,11 +1568,9 @@ int dw_messagebox(const char *title, int flags, const char *format, ...)
  */
 int dw_window_minimize(HWND handle)
 {
-   if(!handle)
-      return 0;
-
-   gtk_window_minimize(GTK_WINDOW(handle));
-   return 0;
+   if(handle && GTK_IS_WINDOW(handle))
+      gtk_window_minimize(GTK_WINDOW(handle));
+   return DW_ERROR_NONE;
 }
 
 /*
@@ -2019,15 +2215,16 @@ HWND dw_window_new(HWND hwndOwner, const char *title, unsigned long flStyle)
  *       type: Either DW_VERT (vertical) or DW_HORZ (horizontal).
  *       pad: Number of pixels to pad around the box.
  */
-HWND dw_box_new(int type, int pad)
+DW_FUNCTION_DEFINITION(dw_box_new, HWND, int type, int pad)
+DW_FUNCTION_ADD_PARAM2(type, pad)
+DW_FUNCTION_RETURN(dw_box_new, HWND)
+DW_FUNCTION_RESTORE_PARAM2(type, int, pad, int)
 {
-   GtkWidget *tmp;
-
-   tmp = gtk_grid_new();
+   GtkWidget *tmp = gtk_grid_new();
    g_object_set_data(G_OBJECT(tmp), "_dw_boxtype", GINT_TO_POINTER(type));
    _dw_widget_set_pad(tmp, pad);
    gtk_widget_show(tmp);
-   return tmp;
+   DW_FUNCTION_RETURN_THIS(tmp);
 }
 
 /*
@@ -2666,15 +2863,19 @@ GtkWidget *_dw_tree_view_setup(GtkWidget *tmp, GtkTreeModel *store)
  *       id: An ID to be used for getting the resource from the
  *           resource file.
  */
-HWND dw_container_new(unsigned long id, int multi)
+DW_FUNCTION_DEFINITION(dw_container_new, HWND, ULONG cid, int multi)
+DW_FUNCTION_ADD_PARAM2(cid, multi)
+DW_FUNCTION_RETURN(dw_container_new, HWND)
+DW_FUNCTION_RESTORE_PARAM2(cid, ULONG, multi, int)
 {
    GtkWidget *tmp;
 
-   if(!(tmp = _dw_tree_create(id)))
-      return 0;
-   g_object_set_data(G_OBJECT(tmp), "_dw_tree_type", GINT_TO_POINTER(_DW_TREE_TYPE_CONTAINER));
-   g_object_set_data(G_OBJECT(tmp), "_dw_multi_sel", GINT_TO_POINTER(multi));
-   return tmp;
+   if((tmp = _dw_tree_create(cid)))
+   {
+      g_object_set_data(G_OBJECT(tmp), "_dw_tree_type", GINT_TO_POINTER(_DW_TREE_TYPE_CONTAINER));
+      g_object_set_data(G_OBJECT(tmp), "_dw_multi_sel", GINT_TO_POINTER(multi));
+   }
+   DW_FUNCTION_RETURN_THIS(tmp);
 }
 
 /*
@@ -2683,7 +2884,10 @@ HWND dw_container_new(unsigned long id, int multi)
  *       id: An ID to be used for getting the resource from the
  *           resource file.
  */
-HWND dw_tree_new(ULONG id)
+DW_FUNCTION_DEFINITION(dw_tree_new, HWND, ULONG cid)
+DW_FUNCTION_ADD_PARAM1(cid)
+DW_FUNCTION_RETURN(dw_tree_new, HWND)
+DW_FUNCTION_RESTORE_PARAM1(cid, ULONG)
 {
    GtkWidget *tmp, *tree;
    GtkTreeStore *store;
@@ -2691,32 +2895,33 @@ HWND dw_tree_new(ULONG id)
    GtkCellRenderer *rend;
    GtkTreeSelection *sel;
 
-   if(!(tmp = _dw_tree_create(id)))
-      return 0;
-   store = gtk_tree_store_new(4, G_TYPE_STRING, GDK_TYPE_PIXBUF, G_TYPE_POINTER, G_TYPE_POINTER);
-   tree = _dw_tree_view_setup(tmp, GTK_TREE_MODEL(store));
-   g_object_set_data(G_OBJECT(tmp), "_dw_tree_type", GINT_TO_POINTER(_DW_TREE_TYPE_TREE));
-   g_object_set_data(G_OBJECT(tree), "_dw_tree_type", GINT_TO_POINTER(_DW_TREE_TYPE_TREE));
-   col = gtk_tree_view_column_new();
+   if((tmp = _dw_tree_create(cid)))
+   {
+      store = gtk_tree_store_new(4, G_TYPE_STRING, GDK_TYPE_PIXBUF, G_TYPE_POINTER, G_TYPE_POINTER);
+      tree = _dw_tree_view_setup(tmp, GTK_TREE_MODEL(store));
+      g_object_set_data(G_OBJECT(tmp), "_dw_tree_type", GINT_TO_POINTER(_DW_TREE_TYPE_TREE));
+      g_object_set_data(G_OBJECT(tree), "_dw_tree_type", GINT_TO_POINTER(_DW_TREE_TYPE_TREE));
+      col = gtk_tree_view_column_new();
 
-   rend = gtk_cell_renderer_pixbuf_new();
-   gtk_tree_view_column_pack_start(col, rend, FALSE);
-   gtk_tree_view_column_add_attribute(col, rend, "pixbuf", 1);
-   rend = gtk_cell_renderer_text_new();
-   gtk_tree_view_column_pack_start(col, rend, TRUE);
-   gtk_tree_view_column_add_attribute(col, rend, "text", 0);
+      rend = gtk_cell_renderer_pixbuf_new();
+      gtk_tree_view_column_pack_start(col, rend, FALSE);
+      gtk_tree_view_column_add_attribute(col, rend, "pixbuf", 1);
+      rend = gtk_cell_renderer_text_new();
+      gtk_tree_view_column_pack_start(col, rend, TRUE);
+      gtk_tree_view_column_add_attribute(col, rend, "text", 0);
 
-   gtk_tree_view_append_column(GTK_TREE_VIEW (tree), col);
-   gtk_tree_view_set_expander_column(GTK_TREE_VIEW(tree), col);
-   gtk_tree_view_set_headers_visible(GTK_TREE_VIEW(tree), FALSE);
+      gtk_tree_view_append_column(GTK_TREE_VIEW (tree), col);
+      gtk_tree_view_set_expander_column(GTK_TREE_VIEW(tree), col);
+      gtk_tree_view_set_headers_visible(GTK_TREE_VIEW(tree), FALSE);
 
-   sel = gtk_tree_view_get_selection(GTK_TREE_VIEW(tree));
-   gtk_tree_selection_set_mode(sel, GTK_SELECTION_SINGLE);
-   gtk_widget_show(tree);
+      sel = gtk_tree_view_get_selection(GTK_TREE_VIEW(tree));
+      gtk_tree_selection_set_mode(sel, GTK_SELECTION_SINGLE);
+      gtk_widget_show(tree);
 
-   if(_DWDefaultFont)
-      dw_window_set_font(tmp, _DWDefaultFont);
-   return tmp;
+      if(_DWDefaultFont)
+         dw_window_set_font(tmp, _DWDefaultFont);
+   }
+   DW_FUNCTION_RETURN_THIS(tmp);
 }
 
 
@@ -2843,7 +3048,10 @@ HWND dw_entryfield_password_new(const char *text, ULONG id)
  *       text: The default text to be in the combpbox widget.
  *       id: An ID to be used with dw_window_from_id() or 0L.
  */
-HWND dw_combobox_new(const char *text, unsigned long id)
+DW_FUNCTION_DEFINITION(dw_combobox_new, HWND, const char *text, ULONG cid)
+DW_FUNCTION_ADD_PARAM2(text, cid)
+DW_FUNCTION_RETURN(dw_combobox_new, HWND)
+DW_FUNCTION_RESTORE_PARAM2(text, const char *, cid, ULONG)
 {
    GtkWidget *tmp;
    GtkEntryBuffer *buffer;
@@ -2857,10 +3065,10 @@ HWND dw_combobox_new(const char *text, unsigned long id)
    gtk_entry_buffer_set_text(buffer, text, -1);
    gtk_widget_show(tmp);
    g_object_set_data(G_OBJECT(tmp), "_dw_tree_type", GINT_TO_POINTER(_DW_TREE_TYPE_COMBOBOX));
-   g_object_set_data(G_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(id));
+   g_object_set_data(G_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(cid));
    if(_DWDefaultFont)
       dw_window_set_font(tmp, _DWDefaultFont);
-   return tmp;
+   DW_FUNCTION_RETURN_THIS(tmp);
 }
 
 /*
@@ -3095,7 +3303,10 @@ HWND dw_checkbox_new(const char *text, unsigned long id)
  *       id: An ID to be used with dw_window_from_id() or 0L.
  *       multi: Multiple select TRUE or FALSE.
  */
-HWND dw_listbox_new(unsigned long id, int multi)
+DW_FUNCTION_DEFINITION(dw_listbox_new, HWND, ULONG cid, int multi)
+DW_FUNCTION_ADD_PARAM2(cid, multi)
+DW_FUNCTION_RETURN(dw_listbox_new, HWND)
+DW_FUNCTION_RESTORE_PARAM2(cid, ULONG, multi, int)
 {
    GtkWidget *tmp, *tree;
    GtkListStore *store;
@@ -3103,35 +3314,36 @@ HWND dw_listbox_new(unsigned long id, int multi)
    GtkCellRenderer *rend;
    GtkTreeSelection *sel;
 
-   if(!(tmp = _dw_tree_create(id)))
-      return 0;
-   store = gtk_list_store_new(1, G_TYPE_STRING);
-   tree = _dw_tree_view_setup(tmp, GTK_TREE_MODEL(store));
-   g_object_set_data(G_OBJECT(tmp), "_dw_tree_type", GINT_TO_POINTER(_DW_TREE_TYPE_LISTBOX));
-   g_object_set_data(G_OBJECT(tree), "_dw_tree_type", GINT_TO_POINTER(_DW_TREE_TYPE_LISTBOX));
-
-   col = gtk_tree_view_column_new();
-   rend = gtk_cell_renderer_text_new();
-   gtk_tree_view_column_pack_start(col, rend, TRUE);
-   gtk_tree_view_column_add_attribute(col, rend, "text", 0);
-
-   gtk_tree_view_append_column(GTK_TREE_VIEW (tree), col);
-   gtk_tree_view_set_expander_column(GTK_TREE_VIEW(tree), col);
-   gtk_tree_view_set_headers_visible(GTK_TREE_VIEW(tree), FALSE);
-
-   sel = gtk_tree_view_get_selection(GTK_TREE_VIEW(tree));
-   if(multi)
+   if((tmp = _dw_tree_create(cid)))
    {
-      gtk_tree_selection_set_mode(sel, GTK_SELECTION_MULTIPLE);
+      store = gtk_list_store_new(1, G_TYPE_STRING);
+      tree = _dw_tree_view_setup(tmp, GTK_TREE_MODEL(store));
+      g_object_set_data(G_OBJECT(tmp), "_dw_tree_type", GINT_TO_POINTER(_DW_TREE_TYPE_LISTBOX));
+      g_object_set_data(G_OBJECT(tree), "_dw_tree_type", GINT_TO_POINTER(_DW_TREE_TYPE_LISTBOX));
+
+      col = gtk_tree_view_column_new();
+      rend = gtk_cell_renderer_text_new();
+      gtk_tree_view_column_pack_start(col, rend, TRUE);
+      gtk_tree_view_column_add_attribute(col, rend, "text", 0);
+
+      gtk_tree_view_append_column(GTK_TREE_VIEW (tree), col);
+      gtk_tree_view_set_expander_column(GTK_TREE_VIEW(tree), col);
+      gtk_tree_view_set_headers_visible(GTK_TREE_VIEW(tree), FALSE);
+
+      sel = gtk_tree_view_get_selection(GTK_TREE_VIEW(tree));
+      if(multi)
+      {
+         gtk_tree_selection_set_mode(sel, GTK_SELECTION_MULTIPLE);
+      }
+      else
+      {
+         gtk_tree_selection_set_mode(sel, GTK_SELECTION_SINGLE);
+      }
+      gtk_widget_show(tree);
+      if(_DWDefaultFont)
+         dw_window_set_font(tmp, _DWDefaultFont);
    }
-   else
-   {
-      gtk_tree_selection_set_mode(sel, GTK_SELECTION_SINGLE);
-   }
-   gtk_widget_show(tree);
-   if(_DWDefaultFont)
-      dw_window_set_font(tmp, _DWDefaultFont);
-   return tmp;
+   DW_FUNCTION_RETURN_THIS(tmp);
 }
 
 /*
@@ -3418,7 +3630,10 @@ HWND API dw_window_from_id(HWND handle, int id)
  *          buffer: Text buffer to be imported.
  *          startpoint: Point to start entering text.
  */
-unsigned int dw_mle_import(HWND handle, const char *buffer, int startpoint)
+DW_FUNCTION_DEFINITION(dw_mle_import, unsigned int, HWND handle, const char *buffer, int startpoint)
+DW_FUNCTION_ADD_PARAM3(handle, buffer, startpoint)
+DW_FUNCTION_RETURN(dw_mle_import, unsigned int)
+DW_FUNCTION_RESTORE_PARAM3(handle, HWND, buffer, const char *, startpoint, int)
 {
    unsigned int tmppoint = startpoint;
 
@@ -3438,7 +3653,7 @@ unsigned int dw_mle_import(HWND handle, const char *buffer, int startpoint)
          tmppoint = (startpoint > -1 ? startpoint : 0) + strlen(buffer);
       }
    }
-   return tmppoint;
+   DW_FUNCTION_RETURN_THIS(tmppoint);
 }
 
 /*
@@ -3449,7 +3664,10 @@ unsigned int dw_mle_import(HWND handle, const char *buffer, int startpoint)
  *          startpoint: Point to start grabbing text.
  *          length: Amount of text to be grabbed.
  */
-void dw_mle_export(HWND handle, char *buffer, int startpoint, int length)
+DW_FUNCTION_DEFINITION(dw_mle_export, void, HWND handle, char *buffer, int startpoint, int length)
+DW_FUNCTION_ADD_PARAM4(handle, buffer, startpoint, length)
+DW_FUNCTION_NO_RETURN(dw_mle_export)
+DW_FUNCTION_RESTORE_PARAM4(handle, HWND, buffer, char *, startpoint, int, length, int)
 {
    gchar *text;
 
@@ -3476,6 +3694,7 @@ void dw_mle_export(HWND handle, char *buffer, int startpoint, int length)
          }
       }
    }
+   DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -3485,7 +3704,10 @@ void dw_mle_export(HWND handle, char *buffer, int startpoint, int length)
  *          bytes: A pointer to a variable to return the total bytes.
  *          lines: A pointer to a variable to return the number of lines.
  */
-void dw_mle_get_size(HWND handle, unsigned long *bytes, unsigned long *lines)
+DW_FUNCTION_DEFINITION(dw_mle_get_size, void, HWND handle, unsigned long *bytes, unsigned long *lines)
+DW_FUNCTION_ADD_PARAM3(handle, bytes, lines)
+DW_FUNCTION_NO_RETURN(dw_mle_get_size)
+DW_FUNCTION_RESTORE_PARAM3(handle, HWND, bytes, unsigned long *, lines, unsigned long *)
 {
    if(bytes)
       *bytes = 0;
@@ -3506,6 +3728,7 @@ void dw_mle_get_size(HWND handle, unsigned long *bytes, unsigned long *lines)
             *lines = gtk_text_buffer_get_line_count(buffer);
       }
    }
+   DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -3515,7 +3738,10 @@ void dw_mle_get_size(HWND handle, unsigned long *bytes, unsigned long *lines)
  *          startpoint: Point to start deleting text.
  *          length: Amount of text to be deleted.
  */
-void dw_mle_delete(HWND handle, int startpoint, int length)
+DW_FUNCTION_DEFINITION(dw_mle_delete, void, HWND handle, int startpoint, int length)
+DW_FUNCTION_ADD_PARAM3(handle, startpoint, length)
+DW_FUNCTION_NO_RETURN(dw_mle_delete)
+DW_FUNCTION_RESTORE_PARAM3(handle, HWND, startpoint, int, length, int)
 {
    if(GTK_IS_SCROLLED_WINDOW(handle))
    {
@@ -3532,6 +3758,7 @@ void dw_mle_delete(HWND handle, int startpoint, int length)
          gtk_text_buffer_delete(tbuffer, &start, &end);
       }
    }
+   DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -3539,7 +3766,10 @@ void dw_mle_delete(HWND handle, int startpoint, int length)
  * Parameters:
  *          handle: Handle to the MLE to be cleared.
  */
-void dw_mle_clear(HWND handle)
+DW_FUNCTION_DEFINITION(dw_mle_clear, void, HWND handle)
+DW_FUNCTION_ADD_PARAM1(handle)
+DW_FUNCTION_NO_RETURN(dw_mle_clear)
+DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
 {
    int length;
 
@@ -3555,6 +3785,7 @@ void dw_mle_clear(HWND handle)
          gtk_text_buffer_set_text(buffer, "", length);
       }
    }
+   DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -3563,7 +3794,10 @@ void dw_mle_clear(HWND handle)
  *          handle: Handle to the MLE.
  *          line: Line to be visible.
  */
-void dw_mle_set_visible(HWND handle, int line)
+DW_FUNCTION_DEFINITION(dw_mle_set_visible, void, HWND handle, int line)
+DW_FUNCTION_ADD_PARAM2(handle, line)
+DW_FUNCTION_NO_RETURN(dw_mle_set_visible)
+DW_FUNCTION_RESTORE_PARAM2(handle, HWND, line, int)
 {
    if(GTK_IS_SCROLLED_WINDOW(handle))
    {
@@ -3589,6 +3823,7 @@ void dw_mle_set_visible(HWND handle, int line)
                                0, FALSE, 0, 0);
       }
    }
+   DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -3641,7 +3876,10 @@ void dw_mle_set_auto_complete(HWND handle, int state)
  *          handle: Handle to the MLE to be positioned.
  *          point: Point to position cursor.
  */
-void dw_mle_set_cursor(HWND handle, int point)
+DW_FUNCTION_DEFINITION(dw_mle_set_cursor, void, HWND handle, int point)
+DW_FUNCTION_ADD_PARAM2(handle, point)
+DW_FUNCTION_NO_RETURN(dw_mle_set_cursor)
+DW_FUNCTION_RESTORE_PARAM2(handle, HWND, point, int)
 {
    if(GTK_IS_SCROLLED_WINDOW(handle))
    {
@@ -3667,6 +3905,7 @@ void dw_mle_set_cursor(HWND handle, int point)
                                0, FALSE, 0, 0);
       }
    }
+   DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -3677,7 +3916,10 @@ void dw_mle_set_cursor(HWND handle, int point)
  *          point: Start point of search.
  *          flags: Search specific flags.
  */
-int dw_mle_search(HWND handle, const char *text, int point, unsigned long flags)
+DW_FUNCTION_DEFINITION(dw_mle_search, int, HWND handle, const char *text, int point, DW_UNUSED(unsigned long flags))
+DW_FUNCTION_ADD_PARAM4(handle, text, point, flags)
+DW_FUNCTION_RETURN(dw_mle_search, int)
+DW_FUNCTION_RESTORE_PARAM4(handle, HWND, text, const char *, point, int, DW_UNUSED(flags), unsigned long)
 {
    int retval = 0;
 
@@ -3696,7 +3938,7 @@ int dw_mle_search(HWND handle, const char *text, int point, unsigned long flags)
          retval = gtk_text_iter_get_offset(&found);
       }
    }
-   return retval;
+   DW_FUNCTION_RETURN_THIS(retval);
 }
 
 /*
@@ -3736,7 +3978,10 @@ gboolean _dw_update_progress_bar(gpointer data)
  *          handle: Handle to the percent bar to be set.
  *          position: Position of the percent bar withing the range.
  */
-void dw_percent_set_pos(HWND handle, unsigned int position)
+DW_FUNCTION_DEFINITION(dw_percent_set_pos, void, HWND handle, unsigned int position)
+DW_FUNCTION_ADD_PARAM2(handle, position)
+DW_FUNCTION_NO_RETURN(dw_percent_set_pos)
+DW_FUNCTION_RESTORE_PARAM2(handle, HWND, position, unsigned int)
 {
    if(position == DW_PERCENT_INDETERMINATE)
    {
@@ -3756,6 +4001,7 @@ void dw_percent_set_pos(HWND handle, unsigned int position)
       /* Set the position like normal */
       gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(handle), (gfloat)position/100);
    }
+   DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -3964,7 +4210,10 @@ void dw_checkbox_set(HWND handle, int value)
  *          parent: Parent handle or 0 if root.
  *          itemdata: Item specific data.
  */
-HTREEITEM dw_tree_insert_after(HWND handle, HTREEITEM item, const char *title, HICN icon, HTREEITEM parent, void *itemdata)
+DW_FUNCTION_DEFINITION(dw_tree_insert_after, HTREEITEM, HWND handle, HTREEITEM item, const char *title, HICN icon, HTREEITEM parent, void *itemdata)
+DW_FUNCTION_ADD_PARAM6(handle, item, title, icon, parent, itemdata)
+DW_FUNCTION_RETURN(dw_tree_insert_after, HTREEITEM)
+DW_FUNCTION_RESTORE_PARAM6(handle, HWND, item, HTREEITEM, title, char *, icon, HICN, parent, HTREEITEM, itemdata, void *)
 {
    GtkWidget *tree;
    GtkTreeIter *iter;
@@ -3972,22 +4221,22 @@ HTREEITEM dw_tree_insert_after(HWND handle, HTREEITEM item, const char *title, H
    GdkPixbuf *pixbuf;
    HTREEITEM retval = 0;
 
-   if(!handle)
-      return NULL;
-
-   if((tree = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user"))
-      && GTK_IS_TREE_VIEW(tree) &&
-      (store = (GtkTreeStore *)gtk_tree_view_get_model(GTK_TREE_VIEW(tree))))
+   if(handle)
    {
-      iter = (GtkTreeIter *)malloc(sizeof(GtkTreeIter));
+      if((tree = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user"))
+         && GTK_IS_TREE_VIEW(tree) &&
+         (store = (GtkTreeStore *)gtk_tree_view_get_model(GTK_TREE_VIEW(tree))))
+      {
+         iter = (GtkTreeIter *)malloc(sizeof(GtkTreeIter));
 
-      pixbuf = _dw_find_pixbuf(icon, NULL, NULL);
+         pixbuf = _dw_find_pixbuf(icon, NULL, NULL);
 
-      gtk_tree_store_insert_after(store, iter, (GtkTreeIter *)parent, (GtkTreeIter *)item);
-      gtk_tree_store_set (store, iter, 0, title, 1, pixbuf, 2, itemdata, 3, iter, -1);
-      retval = (HTREEITEM)iter;
+         gtk_tree_store_insert_after(store, iter, (GtkTreeIter *)parent, (GtkTreeIter *)item);
+         gtk_tree_store_set (store, iter, 0, title, 1, pixbuf, 2, itemdata, 3, iter, -1);
+         retval = (HTREEITEM)iter;
+      }
    }
-   return retval;
+   DW_FUNCTION_RETURN_THIS(retval);
 }
 
 /*
@@ -3999,7 +4248,10 @@ HTREEITEM dw_tree_insert_after(HWND handle, HTREEITEM item, const char *title, H
  *          parent: Parent handle or 0 if root.
  *          itemdata: Item specific data.
  */
-HTREEITEM dw_tree_insert(HWND handle, const char *title, HICN icon, HTREEITEM parent, void *itemdata)
+DW_FUNCTION_DEFINITION(dw_tree_insert, HTREEITEM, HWND handle, const char *title, HICN icon, HTREEITEM parent, void *itemdata)
+DW_FUNCTION_ADD_PARAM5(handle, title, icon, parent, itemdata)
+DW_FUNCTION_RETURN(dw_tree_insert, HTREEITEM)
+DW_FUNCTION_RESTORE_PARAM5(handle, HWND, title, char *, icon, HICN, parent, HTREEITEM, itemdata, void *)
 {
    GtkWidget *tree;
    GtkTreeIter *iter;
@@ -4007,22 +4259,22 @@ HTREEITEM dw_tree_insert(HWND handle, const char *title, HICN icon, HTREEITEM pa
    GdkPixbuf *pixbuf;
    HTREEITEM retval = 0;
 
-   if(!handle)
-      return NULL;
-
-   if((tree = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user"))
-      && GTK_IS_TREE_VIEW(tree) &&
-      (store = (GtkTreeStore *)gtk_tree_view_get_model(GTK_TREE_VIEW(tree))))
+   if(handle)
    {
-      iter = (GtkTreeIter *)malloc(sizeof(GtkTreeIter));
+      if((tree = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user"))
+         && GTK_IS_TREE_VIEW(tree) &&
+         (store = (GtkTreeStore *)gtk_tree_view_get_model(GTK_TREE_VIEW(tree))))
+      {
+         iter = (GtkTreeIter *)malloc(sizeof(GtkTreeIter));
 
-      pixbuf = _dw_find_pixbuf(icon, NULL, NULL);
+         pixbuf = _dw_find_pixbuf(icon, NULL, NULL);
 
-      gtk_tree_store_append (store, iter, (GtkTreeIter *)parent);
-      gtk_tree_store_set (store, iter, 0, title, 1, pixbuf, 2, itemdata, 3, iter, -1);
-      retval = (HTREEITEM)iter;
+         gtk_tree_store_append (store, iter, (GtkTreeIter *)parent);
+         gtk_tree_store_set (store, iter, 0, title, 1, pixbuf, 2, itemdata, 3, iter, -1);
+         retval = (HTREEITEM)iter;
+      }
    }
-   return retval;
+   DW_FUNCTION_RETURN_THIS(retval);
 }
 
 /*
@@ -4033,23 +4285,27 @@ HTREEITEM dw_tree_insert(HWND handle, const char *title, HICN icon, HTREEITEM pa
  *          title: The text title of the entry.
  *          icon: Handle to coresponding icon.
  */
-void dw_tree_item_change(HWND handle, HTREEITEM item, const char *title, HICN icon)
+DW_FUNCTION_DEFINITION(dw_tree_item_change, void, HWND handle, HTREEITEM item, const char *title, HICN icon)
+DW_FUNCTION_ADD_PARAM4(handle, item, title, icon)
+DW_FUNCTION_NO_RETURN(dw_tree_item_change)
+DW_FUNCTION_RESTORE_PARAM4(handle, HWND, item, HTREEITEM, title, char *, icon, HICN)
 {
    GtkWidget *tree;
    GtkTreeStore *store;
    GdkPixbuf *pixbuf;
 
-   if(!handle)
-      return;
-
-   if((tree = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user"))
-      && GTK_IS_TREE_VIEW(tree) &&
-      (store = (GtkTreeStore *)gtk_tree_view_get_model(GTK_TREE_VIEW(tree))))
+   if(handle)
    {
-      pixbuf = _dw_find_pixbuf(icon, NULL, NULL);
+      if((tree = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user"))
+         && GTK_IS_TREE_VIEW(tree) &&
+         (store = (GtkTreeStore *)gtk_tree_view_get_model(GTK_TREE_VIEW(tree))))
+      {
+         pixbuf = _dw_find_pixbuf(icon, NULL, NULL);
 
-      gtk_tree_store_set(store, (GtkTreeIter *)item, 0, title, 1, pixbuf, -1);
+         gtk_tree_store_set(store, (GtkTreeIter *)item, 0, title, 1, pixbuf, -1);
+      }
    }
+   DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -4059,18 +4315,22 @@ void dw_tree_item_change(HWND handle, HTREEITEM item, const char *title, HICN ic
  *          item: Handle of the item to be modified.
  *          itemdata: User defined data to be associated with item.
  */
-void dw_tree_item_set_data(HWND handle, HTREEITEM item, void *itemdata)
+DW_FUNCTION_DEFINITION(dw_tree_item_set_data, void, HWND handle, HTREEITEM item, void *itemdata)
+DW_FUNCTION_ADD_PARAM3(handle, item, itemdata)
+DW_FUNCTION_NO_RETURN(dw_tree_item_set_data)
+DW_FUNCTION_RESTORE_PARAM3(DW_UNUSED(handle), HWND, item, HTREEITEM, itemdata, void *)
 {
    GtkWidget *tree;
    GtkTreeStore *store;
 
-   if(!handle || !item)
-      return;
-
-   if((tree = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user"))
-      && GTK_IS_TREE_VIEW(tree) &&
-      (store = (GtkTreeStore *)gtk_tree_view_get_model(GTK_TREE_VIEW(tree))))
-         gtk_tree_store_set(store, (GtkTreeIter *)item, 2, itemdata, -1);
+   if(handle && item)
+   {
+      if((tree = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user"))
+         && GTK_IS_TREE_VIEW(tree) &&
+         (store = (GtkTreeStore *)gtk_tree_view_get_model(GTK_TREE_VIEW(tree))))
+            gtk_tree_store_set(store, (GtkTreeIter *)item, 2, itemdata, -1);
+   }
+   DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -4079,27 +4339,30 @@ void dw_tree_item_set_data(HWND handle, HTREEITEM item, void *itemdata)
  *          handle: Handle to the tree containing the item.
  *          item: Handle of the item to be modified.
  */
-char * API dw_tree_get_title(HWND handle, HTREEITEM item)
+DW_FUNCTION_DEFINITION(dw_tree_get_title, char *, HWND handle, HTREEITEM item)
+DW_FUNCTION_ADD_PARAM2(handle, item)
+DW_FUNCTION_RETURN(dw_tree_get_title, char *)
+DW_FUNCTION_RESTORE_PARAM2(DW_UNUSED(handle), HWND, item, HTREEITEM)
 {
    char *text = NULL;
    GtkWidget *tree;
    GtkTreeModel *store;
 
-   if(!handle || !item)
-      return text;
-
-   tree = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user");
-
-   if(tree && GTK_IS_TREE_VIEW(tree) &&
-      (store = (GtkTreeModel *)gtk_tree_view_get_model(GTK_TREE_VIEW(tree))))
-      gtk_tree_model_get(store, (GtkTreeIter *)item, _DW_DATA_TYPE_STRING, &text, -1);
-   if(text)
+   if(handle && item)
    {
-      char *temp = text;
-      text = strdup(temp);
-      g_free(temp);
+      tree = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user");
+
+      if(tree && GTK_IS_TREE_VIEW(tree) &&
+         (store = (GtkTreeModel *)gtk_tree_view_get_model(GTK_TREE_VIEW(tree))))
+         gtk_tree_model_get(store, (GtkTreeIter *)item, _DW_DATA_TYPE_STRING, &text, -1);
+      if(text)
+      {
+         char *temp = text;
+         text = strdup(temp);
+         g_free(temp);
+      }
    }
-   return text;
+   DW_FUNCTION_RETURN_THIS(text);
 }
 
 /*
@@ -4108,26 +4371,29 @@ char * API dw_tree_get_title(HWND handle, HTREEITEM item)
  *          handle: Handle to the tree containing the item.
  *          item: Handle of the item to be modified.
  */
-HTREEITEM API dw_tree_get_parent(HWND handle, HTREEITEM item)
+DW_FUNCTION_DEFINITION(dw_tree_get_parent, HTREEITEM, HWND handle, HTREEITEM item)
+DW_FUNCTION_ADD_PARAM2(handle, item)
+DW_FUNCTION_RETURN(dw_tree_get_parent, HTREEITEM)
+DW_FUNCTION_RESTORE_PARAM2(handle, HWND, item, HTREEITEM)
 {
    HTREEITEM parent = (HTREEITEM)0;
    GtkWidget *tree;
    GtkTreeModel *store;
 
-   if(!handle || !item)
-      return parent;
-
-   tree = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user");
-
-   if(tree && GTK_IS_TREE_VIEW(tree) &&
-      (store = (GtkTreeModel *)gtk_tree_view_get_model(GTK_TREE_VIEW(tree))))
+   if(handle && item)
    {
-      GtkTreeIter iter;
+      tree = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user");
 
-      if(gtk_tree_model_iter_parent(store, &iter, (GtkTreeIter *)item))
-         gtk_tree_model_get(store, &iter, 3, &parent, -1);
+      if(tree && GTK_IS_TREE_VIEW(tree) &&
+         (store = (GtkTreeModel *)gtk_tree_view_get_model(GTK_TREE_VIEW(tree))))
+      {
+         GtkTreeIter iter;
+
+         if(gtk_tree_model_iter_parent(store, &iter, (GtkTreeIter *)item))
+            gtk_tree_model_get(store, &iter, 3, &parent, -1);
+      }
    }
-   return parent;
+   DW_FUNCTION_RETURN_THIS(parent);
 }
 
 /*
@@ -4136,20 +4402,23 @@ HTREEITEM API dw_tree_get_parent(HWND handle, HTREEITEM item)
  *          handle: Handle to the tree containing the item.
  *          item: Handle of the item to be modified.
  */
-void *dw_tree_item_get_data(HWND handle, HTREEITEM item)
+DW_FUNCTION_DEFINITION(dw_tree_item_get_data, void *, HWND handle, HTREEITEM item)
+DW_FUNCTION_ADD_PARAM2(handle, item)
+DW_FUNCTION_RETURN(dw_tree_item_get_data, void *)
+DW_FUNCTION_RESTORE_PARAM2(DW_UNUSED(handle), HWND, item, HTREEITEM)
 {
    void *ret = NULL;
    GtkWidget *tree;
    GtkTreeModel *store;
 
-   if(!handle || !item)
-      return NULL;
-
-   if((tree = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user"))
-      && GTK_IS_TREE_VIEW(tree) &&
-      (store = (GtkTreeModel *)gtk_tree_view_get_model(GTK_TREE_VIEW(tree))))
-         gtk_tree_model_get(store, (GtkTreeIter *)item, 2, &ret, -1);
-   return ret;
+   if(handle && item)
+   {
+      if((tree = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user"))
+         && GTK_IS_TREE_VIEW(tree) &&
+         (store = (GtkTreeModel *)gtk_tree_view_get_model(GTK_TREE_VIEW(tree))))
+            gtk_tree_model_get(store, (GtkTreeIter *)item, 2, &ret, -1);
+   }
+   DW_FUNCTION_RETURN_THIS(ret);
 }
 
 /*
@@ -4158,25 +4427,29 @@ void *dw_tree_item_get_data(HWND handle, HTREEITEM item)
  *       handle: Handle to the tree window (widget) to be selected.
  *       item: Handle to the item to be selected.
  */
-void dw_tree_item_select(HWND handle, HTREEITEM item)
+DW_FUNCTION_DEFINITION(dw_tree_item_select, void, HWND handle, HTREEITEM item)
+DW_FUNCTION_ADD_PARAM2(handle, item)
+DW_FUNCTION_NO_RETURN(dw_tree_item_select)
+DW_FUNCTION_RESTORE_PARAM2(handle, HWND, item, HTREEITEM)
 {
    GtkWidget *tree;
    GtkTreeStore *store;
 
-   if(!handle || !item)
-      return;
-
-   if((tree = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user"))
-      && GTK_IS_TREE_VIEW(tree) &&
-      (store = (GtkTreeStore *)gtk_tree_view_get_model(GTK_TREE_VIEW(tree))))
+   if(handle && item)
    {
-      GtkTreePath *path = gtk_tree_model_get_path(GTK_TREE_MODEL(store), (GtkTreeIter *)item);
-      GtkTreeSelection *sel = gtk_tree_view_get_selection(GTK_TREE_VIEW(tree));
+      if((tree = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user"))
+         && GTK_IS_TREE_VIEW(tree) &&
+         (store = (GtkTreeStore *)gtk_tree_view_get_model(GTK_TREE_VIEW(tree))))
+      {
+         GtkTreePath *path = gtk_tree_model_get_path(GTK_TREE_MODEL(store), (GtkTreeIter *)item);
+         GtkTreeSelection *sel = gtk_tree_view_get_selection(GTK_TREE_VIEW(tree));
 
-      gtk_tree_view_set_cursor(GTK_TREE_VIEW(tree), path, NULL, FALSE);
-      gtk_tree_selection_select_iter(sel, (GtkTreeIter *)item);
-      gtk_tree_path_free(path);
+         gtk_tree_view_set_cursor(GTK_TREE_VIEW(tree), path, NULL, FALSE);
+         gtk_tree_selection_select_iter(sel, (GtkTreeIter *)item);
+         gtk_tree_path_free(path);
+      }
    }
+   DW_FUNCTION_RETURN_NOTHING;
 }
 
 static void _dw_recursive_free(GtkTreeModel *store, GtkTreeIter parent)
@@ -4202,28 +4475,32 @@ static void _dw_recursive_free(GtkTreeModel *store, GtkTreeIter parent)
  * Parameters:
  *       handle: Handle to the window (widget) to be cleared.
  */
-void dw_tree_clear(HWND handle)
+DW_FUNCTION_DEFINITION(dw_tree_clear, void, HWND handle)
+DW_FUNCTION_ADD_PARAM1(handle)
+DW_FUNCTION_NO_RETURN(dw_tree_clear)
+DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
 {
    GtkWidget *tree;
    GtkTreeStore *store;
 
-   if(!handle)
-      return;
-
-   if((tree = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user"))
-      && GTK_IS_TREE_VIEW(tree) &&
-      (store = (GtkTreeStore *)gtk_tree_view_get_model(GTK_TREE_VIEW(tree))))
-      {
-         GtkTreeIter iter;
-
-         if(gtk_tree_model_get_iter_first(GTK_TREE_MODEL(store), &iter))
+   if(handle)
+   {
+      if((tree = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user"))
+         && GTK_IS_TREE_VIEW(tree) &&
+         (store = (GtkTreeStore *)gtk_tree_view_get_model(GTK_TREE_VIEW(tree))))
          {
-            do {
-               _dw_recursive_free(GTK_TREE_MODEL(store), iter);
-            } while(gtk_tree_model_iter_next(GTK_TREE_MODEL(store), &iter));
+            GtkTreeIter iter;
+
+            if(gtk_tree_model_get_iter_first(GTK_TREE_MODEL(store), &iter))
+            {
+               do {
+                  _dw_recursive_free(GTK_TREE_MODEL(store), iter);
+               } while(gtk_tree_model_iter_next(GTK_TREE_MODEL(store), &iter));
+            }
+            gtk_tree_store_clear(store);
          }
-         gtk_tree_store_clear(store);
-      }
+   }
+   DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -4232,22 +4509,26 @@ void dw_tree_clear(HWND handle)
  *       handle: Handle to the tree window (widget).
  *       item: Handle to node to be expanded.
  */
-void dw_tree_item_expand(HWND handle, HTREEITEM item)
+DW_FUNCTION_DEFINITION(dw_tree_item_expand, void, HWND handle, HTREEITEM item)
+DW_FUNCTION_ADD_PARAM2(handle, item)
+DW_FUNCTION_NO_RETURN(dw_tree_item_expand)
+DW_FUNCTION_RESTORE_PARAM2(handle, HWND, item, HTREEITEM)
 {
    GtkWidget *tree;
    GtkTreeStore *store;
 
-   if(!handle)
-      return;
-
-   if((tree = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user"))
-      && GTK_IS_TREE_VIEW(tree) &&
-      (store = (GtkTreeStore *)gtk_tree_view_get_model(GTK_TREE_VIEW(tree))))
+   if(handle)
    {
-      GtkTreePath *path = gtk_tree_model_get_path(GTK_TREE_MODEL(store), (GtkTreeIter *)item);
-      gtk_tree_view_expand_row(GTK_TREE_VIEW(tree), path, FALSE);
-      gtk_tree_path_free(path);
+      if((tree = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user"))
+         && GTK_IS_TREE_VIEW(tree) &&
+         (store = (GtkTreeStore *)gtk_tree_view_get_model(GTK_TREE_VIEW(tree))))
+      {
+         GtkTreePath *path = gtk_tree_model_get_path(GTK_TREE_MODEL(store), (GtkTreeIter *)item);
+         gtk_tree_view_expand_row(GTK_TREE_VIEW(tree), path, FALSE);
+         gtk_tree_path_free(path);
+      }
    }
+   DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -4256,22 +4537,26 @@ void dw_tree_item_expand(HWND handle, HTREEITEM item)
  *       handle: Handle to the tree window (widget).
  *       item: Handle to node to be collapsed.
  */
-void dw_tree_item_collapse(HWND handle, HTREEITEM item)
+DW_FUNCTION_DEFINITION(dw_tree_item_collapse, void, HWND handle, HTREEITEM item)
+DW_FUNCTION_ADD_PARAM2(handle, item)
+DW_FUNCTION_NO_RETURN(dw_tree_item_collapse)
+DW_FUNCTION_RESTORE_PARAM2(handle, HWND, item, HTREEITEM)
 {
    GtkWidget *tree;
    GtkTreeStore *store;
 
-   if(!handle)
-      return;
-
-   if((tree = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user"))
-      && GTK_IS_TREE_VIEW(tree) &&
-      (store = (GtkTreeStore *)gtk_tree_view_get_model(GTK_TREE_VIEW(tree))))
+   if(handle)
    {
-      GtkTreePath *path = gtk_tree_model_get_path(GTK_TREE_MODEL(store), (GtkTreeIter *)item);
-      gtk_tree_view_collapse_row(GTK_TREE_VIEW(tree), path);
-      gtk_tree_path_free(path);
+      if((tree = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user"))
+         && GTK_IS_TREE_VIEW(tree) &&
+         (store = (GtkTreeStore *)gtk_tree_view_get_model(GTK_TREE_VIEW(tree))))
+      {
+         GtkTreePath *path = gtk_tree_model_get_path(GTK_TREE_MODEL(store), (GtkTreeIter *)item);
+         gtk_tree_view_collapse_row(GTK_TREE_VIEW(tree), path);
+         gtk_tree_path_free(path);
+      }
    }
+   DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -4280,26 +4565,30 @@ void dw_tree_item_collapse(HWND handle, HTREEITEM item)
  *       handle: Handle to the window (widget) to be cleared.
  *       item: Handle to node to be deleted.
  */
-void dw_tree_item_delete(HWND handle, HTREEITEM item)
+DW_FUNCTION_DEFINITION(dw_tree_item_delete, void, HWND handle, HTREEITEM item)
+DW_FUNCTION_ADD_PARAM2(handle, item)
+DW_FUNCTION_NO_RETURN(dw_tree_item_delete)
+DW_FUNCTION_RESTORE_PARAM2(handle, HWND, item, HTREEITEM)
 {
    GtkWidget *tree;
    GtkTreeStore *store;
 
-   if(!handle)
-      return;
-
-   if((tree = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user"))
-      && GTK_IS_TREE_VIEW(tree) &&
-      (store = (GtkTreeStore *)gtk_tree_view_get_model(GTK_TREE_VIEW(tree))))
+   if(handle)
    {
-      gtk_tree_store_remove(store, (GtkTreeIter *)item);
-      free(item);
+      if((tree = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user"))
+         && GTK_IS_TREE_VIEW(tree) &&
+         (store = (GtkTreeStore *)gtk_tree_view_get_model(GTK_TREE_VIEW(tree))))
+      {
+         gtk_tree_store_remove(store, (GtkTreeIter *)item);
+         free(item);
+      }
    }
+   DW_FUNCTION_RETURN_NOTHING;
 }
 
 #define _DW_CONTAINER_STORE_EXTRA 2
 
-static int _dw_container_setup(HWND handle, unsigned long *flags, char **titles, int count, int separator, int extra)
+static int _dw_container_setup_int(HWND handle, unsigned long *flags, char **titles, int count, int separator, int extra)
 {
    int z;
    char numbuf[25] = {0};
@@ -4452,9 +4741,13 @@ static int _dw_container_setup(HWND handle, unsigned long *flags, char **titles,
  *          separator: The column number that contains the main separator.
  *                     (this item may only be used in OS/2)
  */
-int dw_container_setup(HWND handle, unsigned long *flags, char **titles, int count, int separator)
+DW_FUNCTION_DEFINITION(dw_container_setup, int, HWND handle, unsigned long *flags, char **titles, int count, int separator)
+DW_FUNCTION_ADD_PARAM5(handle, flags, titles, count, separator)
+DW_FUNCTION_RETURN(dw_container_setup, int)
+DW_FUNCTION_RESTORE_PARAM5(handle, HWND, flags, unsigned long *, titles, char **, count, int, DW_UNUSED(separator), int)
 {
-   return _dw_container_setup(handle, flags, titles, count, separator, 0);
+   int retval = _dw_container_setup_int(handle, flags, titles, count, separator, 0);
+   DW_FUNCTION_RETURN_THIS(retval);
 }
 
 /*
@@ -4490,7 +4783,7 @@ int dw_filesystem_setup(HWND handle, unsigned long *flags, char **titles, int co
    memcpy(&newtitles[1], titles, sizeof(char *) * count);
    memcpy(&newflags[1], flags, sizeof(unsigned long) * count);
 
-   _dw_container_setup(handle, newflags, newtitles, count + 1, 1, 1);
+   _dw_container_setup_int(handle, newflags, newtitles, count + 1, 1, 1);
 
    if(coltitle)
    {
@@ -4623,7 +4916,10 @@ void dw_icon_free(HICN handle)
  *          handle: Handle to the container window (widget).
  *          rowcount: The number of items to be populated.
  */
-void *dw_container_alloc(HWND handle, int rowcount)
+DW_FUNCTION_DEFINITION(dw_container_alloc, void *, HWND handle, int rowcount)
+DW_FUNCTION_ADD_PARAM2(handle, rowcount)
+DW_FUNCTION_RETURN(dw_container_alloc, void *)
+DW_FUNCTION_RESTORE_PARAM2(handle, HWND, rowcount, int)
 {
    int z, prevrowcount = 0;
    GtkWidget *cont;
@@ -4648,14 +4944,14 @@ void *dw_container_alloc(HWND handle, int rowcount)
       g_object_set_data(G_OBJECT(cont), "_dw_insertpos", GINT_TO_POINTER(prevrowcount));
       g_object_set_data(G_OBJECT(cont), "_dw_rowcount", GINT_TO_POINTER(rowcount + prevrowcount));
    }
-   return (void *)cont;
+   DW_FUNCTION_RETURN_THIS(cont);
 }
 
 /*
  * Internal representation of dw_container_set_item() extracted so we can pass
  * two data pointers; icon and text for dw_filesystem_set_item().
  */
-void _dw_container_set_item(HWND handle, void *pointer, int column, int row, void *data)
+void _dw_container_set_item_int(HWND handle, void *pointer, int column, int row, void *data)
 {
    char numbuf[25] = {0}, textbuffer[101] = {0};
    int flag = 0;
@@ -4754,9 +5050,13 @@ void _dw_container_set_item(HWND handle, void *pointer, int column, int row, voi
  *          row: Zero based row of data being set.
  *          data: Pointer to the data to be added.
  */
-void dw_container_set_item(HWND handle, void *pointer, int column, int row, void *data)
+DW_FUNCTION_DEFINITION(dw_container_set_item, void, HWND handle, void *pointer, int column, int row, void *data)
+DW_FUNCTION_ADD_PARAM5(handle, pointer, column, row, data)
+DW_FUNCTION_NO_RETURN(dw_container_set_item)
+DW_FUNCTION_RESTORE_PARAM5(handle, HWND, pointer, void *, column, int, row, int, data, void *)
 {
-   _dw_container_set_item(handle, pointer, column, row, data);
+   _dw_container_set_item_int(handle, pointer, column, row, data);
+   DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -4767,9 +5067,13 @@ void dw_container_set_item(HWND handle, void *pointer, int column, int row, void
  *          row: Zero based row of data being set.
  *          data: Pointer to the data to be added.
  */
-void dw_container_change_item(HWND handle, int column, int row, void *data)
+DW_FUNCTION_DEFINITION(dw_container_change_item, void, HWND handle, int column, int row, void *data)
+DW_FUNCTION_ADD_PARAM4(handle, column, row, data)
+DW_FUNCTION_NO_RETURN(dw_container_change_item)
+DW_FUNCTION_RESTORE_PARAM4(handle, HWND, column, int, row, int, data, void *)
 {
-   _dw_container_set_item(handle, NULL, column, row, data);
+   _dw_container_set_item_int(handle, NULL, column, row, data);
+   DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -4808,11 +5112,15 @@ void API dw_filesystem_change_file(HWND handle, int row, const char *filename, H
  *          row: Zero based row of data being set.
  *          data: Pointer to the data to be added.
  */
-void dw_filesystem_set_file(HWND handle, void *pointer, int row, const char *filename, HICN icon)
+DW_FUNCTION_DEFINITION(dw_filesystem_set_file, void, HWND handle, void *pointer, int row, const char *filename, HICN icon)
+DW_FUNCTION_ADD_PARAM5(handle, pointer, row, filename, icon)
+DW_FUNCTION_NO_RETURN(dw_filesystem_set_file)
+DW_FUNCTION_RESTORE_PARAM5(handle, HWND, pointer, void *, row, int, filename, char *, icon, HICN)
 {
    void *data[2] = { (void *)&icon, (void *)filename };
 
-   _dw_container_set_item(handle, pointer, 0, row, (void *)data);
+   _dw_container_set_item_int(handle, pointer, 0, row, (void *)data);
+   DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -4824,9 +5132,13 @@ void dw_filesystem_set_file(HWND handle, void *pointer, int row, const char *fil
  *          row: Zero based row of data being set.
  *          data: Pointer to the data to be added.
  */
-void dw_filesystem_set_item(HWND handle, void *pointer, int column, int row, void *data)
+DW_FUNCTION_DEFINITION(dw_filesystem_set_item, void, HWND handle, void *pointer, int column, int row, void *data)
+DW_FUNCTION_ADD_PARAM5(handle, pointer, column, row, data)
+DW_FUNCTION_NO_RETURN(dw_filesystem_set_item)
+DW_FUNCTION_RESTORE_PARAM5(handle, HWND, pointer, void *, column, int, row, int, data, void *)
 {
-   _dw_container_set_item(handle, pointer, column + 1, row, data);
+   _dw_container_set_item_int(handle, pointer, column + 1, row, data);
+   DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -4835,32 +5147,35 @@ void dw_filesystem_set_item(HWND handle, void *pointer, int column, int row, voi
  *          handle: Handle to the container window (widget).
  *          column: Zero based column.
  */
-int dw_container_get_column_type(HWND handle, int column)
+DW_FUNCTION_DEFINITION(dw_container_get_column_type, int, HWND handle, int column)
+DW_FUNCTION_ADD_PARAM2(handle, column)
+DW_FUNCTION_RETURN(dw_container_get_column_type, int)
+DW_FUNCTION_RESTORE_PARAM2(handle, HWND, column, int)
 {
-   char numbuf[25] = {0};
    int flag, rc = 0;
    GtkWidget *cont = handle;
 
-   cont = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user");
-   if(!cont)
-      return 0;
+   if((cont = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user")))
+   {
+      char numbuf[25] = {0};
 
-   snprintf(numbuf, 24, "_dw_cont_col%d", column);
-   flag = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(cont), numbuf));
+      snprintf(numbuf, 24, "_dw_cont_col%d", column);
+      flag = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(cont), numbuf));
 
-   if(flag & DW_CFA_BITMAPORICON)
-      rc = DW_CFA_BITMAPORICON;
-   else if(flag & DW_CFA_STRING)
-      rc = DW_CFA_STRING;
-   else if(flag & DW_CFA_ULONG)
-      rc = DW_CFA_ULONG;
-   else if(flag & DW_CFA_DATE)
-      rc = DW_CFA_DATE;
-   else if(flag & DW_CFA_TIME)
-      rc = DW_CFA_TIME;
-   else
-      rc = 0;
-   return rc;
+      if(flag & DW_CFA_BITMAPORICON)
+         rc = DW_CFA_BITMAPORICON;
+      else if(flag & DW_CFA_STRING)
+         rc = DW_CFA_STRING;
+      else if(flag & DW_CFA_ULONG)
+         rc = DW_CFA_ULONG;
+      else if(flag & DW_CFA_DATE)
+         rc = DW_CFA_DATE;
+      else if(flag & DW_CFA_TIME)
+         rc = DW_CFA_TIME;
+      else
+         rc = 0;
+   }
+   DW_FUNCTION_RETURN_THIS(rc);
 }
 
 /*
@@ -4894,7 +5209,10 @@ void API dw_container_set_stripe(HWND handle, unsigned long oddcolor, unsigned l
  *          column: Zero based column of width being set.
  *          width: Width of column in pixels.
  */
-void dw_container_set_column_width(HWND handle, int column, int width)
+DW_FUNCTION_DEFINITION(dw_container_set_column_width, void, HWND handle, int column, int width)
+DW_FUNCTION_ADD_PARAM3(handle, column, width)
+DW_FUNCTION_NO_RETURN(dw_container_set_column_width)
+DW_FUNCTION_RESTORE_PARAM3(handle, HWND, column, int, width, int)
 {
    GtkWidget *cont;
 
@@ -4910,10 +5228,11 @@ void dw_container_set_column_width(HWND handle, int column, int width)
          gtk_tree_view_column_set_fixed_width(GTK_TREE_VIEW_COLUMN(col), width);
       }
    }
+   DW_FUNCTION_RETURN_NOTHING;
 }
 
 /* Internal version for both */
-void _dw_container_set_row_data(HWND handle, void *pointer, int row, int type, void *data)
+void _dw_container_set_row_data_int(HWND handle, void *pointer, int row, int type, void *data)
 {
    GtkWidget *cont = handle;
    GtkListStore *store = NULL;
@@ -4947,7 +5266,7 @@ void _dw_container_set_row_data(HWND handle, void *pointer, int row, int type, v
  */
 void dw_container_set_row_title(void *pointer, int row, const char *title)
 {
-   _dw_container_set_row_data(pointer, pointer, row, _DW_DATA_TYPE_STRING, (void *)title);
+   _dw_container_set_row_data_int(pointer, pointer, row, _DW_DATA_TYPE_STRING, (void *)title);
 }
 
 /*
@@ -4959,7 +5278,7 @@ void dw_container_set_row_title(void *pointer, int row, const char *title)
  */
 void dw_container_change_row_title(HWND handle, int row, const char *title)
 {
-   _dw_container_set_row_data(handle, NULL, row, _DW_DATA_TYPE_STRING, (void *)title);
+   _dw_container_set_row_data_int(handle, NULL, row, _DW_DATA_TYPE_STRING, (void *)title);
 }
 
 /*
@@ -4971,7 +5290,7 @@ void dw_container_change_row_title(HWND handle, int row, const char *title)
  */
 void dw_container_set_row_data(void *pointer, int row, void *data)
 {
-   _dw_container_set_row_data(pointer, pointer, row, _DW_DATA_TYPE_POINTER, data);
+   _dw_container_set_row_data_int(pointer, pointer, row, _DW_DATA_TYPE_POINTER, data);
 }
 
 /*
@@ -4983,7 +5302,7 @@ void dw_container_set_row_data(void *pointer, int row, void *data)
  */
 void dw_container_change_row_data(HWND handle, int row, void *data)
 {
-   _dw_container_set_row_data(handle, NULL, row, _DW_DATA_TYPE_POINTER, data);
+   _dw_container_set_row_data_int(handle, NULL, row, _DW_DATA_TYPE_POINTER, data);
 }
 
 /*
@@ -5580,7 +5899,10 @@ unsigned long API dw_color_choose(unsigned long value)
  *       x: X coordinate.
  *       y: Y coordinate.
  */
-void dw_draw_point(HWND handle, HPIXMAP pixmap, int x, int y)
+DW_FUNCTION_DEFINITION(dw_draw_point, void, HWND handle, HPIXMAP pixmap, int x, int y)
+DW_FUNCTION_ADD_PARAM4(handle, pixmap, x, y)
+DW_FUNCTION_NO_RETURN(dw_draw_point)
+DW_FUNCTION_RESTORE_PARAM4(handle, HWND, pixmap, HPIXMAP, x, int, y, int)
 {
    cairo_t *cr = NULL;
    GdkDrawContext *dc = NULL;
@@ -5602,8 +5924,6 @@ void dw_draw_point(HWND handle, HPIXMAP pixmap, int x, int y)
             cr = gdk_cairo_context_cairo_create(GDK_CAIRO_CONTEXT(dc));
             cairo_region_destroy(region);
          }
-         else
-            return;
       }
    }
    else if(pixmap)
@@ -5624,6 +5944,7 @@ void dw_draw_point(HWND handle, HPIXMAP pixmap, int x, int y)
       else if(!cached)
          cairo_destroy(cr);
    }
+   DW_FUNCTION_RETURN_NOTHING;
 }
 
 /* Draw a line on a window (preferably a render window).
@@ -5635,7 +5956,10 @@ void dw_draw_point(HWND handle, HPIXMAP pixmap, int x, int y)
  *       x2: Second X coordinate.
  *       y2: Second Y coordinate.
  */
-void dw_draw_line(HWND handle, HPIXMAP pixmap, int x1, int y1, int x2, int y2)
+DW_FUNCTION_DEFINITION(dw_draw_line, void, HWND handle, HPIXMAP pixmap, int x1, int y1, int x2, int y2)
+DW_FUNCTION_ADD_PARAM6(handle, pixmap, x1, y1, x2, y2)
+DW_FUNCTION_NO_RETURN(dw_draw_line)
+DW_FUNCTION_RESTORE_PARAM6(handle, HWND, pixmap, HPIXMAP, x1, int, y1, int, x2, int, y2, int)
 {
    cairo_t *cr = NULL;
    GdkDrawContext *dc = NULL;
@@ -5657,8 +5981,6 @@ void dw_draw_line(HWND handle, HPIXMAP pixmap, int x1, int y1, int x2, int y2)
             cr = gdk_cairo_context_cairo_create(GDK_CAIRO_CONTEXT(dc));
             cairo_region_destroy(region);
          }
-         else
-            return;
       }
    }
    else if(pixmap)
@@ -5680,6 +6002,7 @@ void dw_draw_line(HWND handle, HPIXMAP pixmap, int x1, int y1, int x2, int y2)
       else if(!cached)
          cairo_destroy(cr);
    }
+   DW_FUNCTION_RETURN_NOTHING;
 }
 
 /* Draw a closed polygon on a window (preferably a render window).
@@ -5691,7 +6014,10 @@ void dw_draw_line(HWND handle, HPIXMAP pixmap, int x1, int y1, int x2, int y2)
  *       x[]: X coordinates.
  *       y[]: Y coordinates.
  */
-void dw_draw_polygon(HWND handle, HPIXMAP pixmap, int flags, int npoints, int *x, int *y)
+DW_FUNCTION_DEFINITION(dw_draw_polygon, void, HWND handle, HPIXMAP pixmap, int flags, int npoints, int *x, int *y)
+DW_FUNCTION_ADD_PARAM6(handle, pixmap, flags, npoints, x, y)
+DW_FUNCTION_NO_RETURN(dw_draw_polygon)
+DW_FUNCTION_RESTORE_PARAM6(handle, HWND, pixmap, HPIXMAP, flags, int, npoints, int, x, int *, y, int *)
 {
    cairo_t *cr = NULL;
    int z;
@@ -5714,8 +6040,6 @@ void dw_draw_polygon(HWND handle, HPIXMAP pixmap, int flags, int npoints, int *x
             cr = gdk_cairo_context_cairo_create(GDK_CAIRO_CONTEXT(dc));
             cairo_region_destroy(region);
          }
-         else
-            return;
       }
    }
    else if(pixmap)
@@ -5745,6 +6069,7 @@ void dw_draw_polygon(HWND handle, HPIXMAP pixmap, int flags, int npoints, int *x
       else if(!cached)
          cairo_destroy(cr);
    }
+   DW_FUNCTION_RETURN_NOTHING;
 }
 
 /* Draw a rectangle on a window (preferably a render window).
@@ -5757,7 +6082,10 @@ void dw_draw_polygon(HWND handle, HPIXMAP pixmap, int flags, int npoints, int *x
  *       width: Width of rectangle.
  *       height: Height of rectangle.
  */
-void dw_draw_rect(HWND handle, HPIXMAP pixmap, int flags, int x, int y, int width, int height)
+DW_FUNCTION_DEFINITION(dw_draw_rect, void, HWND handle, HPIXMAP pixmap, int flags, int x, int y, int width, int height)
+DW_FUNCTION_ADD_PARAM7(handle, pixmap, flags, x, y, width, height)
+DW_FUNCTION_NO_RETURN(dw_draw_rect)
+DW_FUNCTION_RESTORE_PARAM7(handle, HWND, pixmap, HPIXMAP, flags, int, x, int, y, int, width, int, height, int)
 {
    cairo_t *cr = NULL;
    GdkDrawContext *dc = NULL;
@@ -5779,8 +6107,6 @@ void dw_draw_rect(HWND handle, HPIXMAP pixmap, int flags, int x, int y, int widt
             cr = gdk_cairo_context_cairo_create(GDK_CAIRO_CONTEXT(dc));
             cairo_region_destroy(region);
          }
-         else
-            return;
       }
    }
    else if(pixmap)
@@ -5809,6 +6135,7 @@ void dw_draw_rect(HWND handle, HPIXMAP pixmap, int flags, int x, int y, int widt
       else if(!cached)
          cairo_destroy(cr);
    }
+   DW_FUNCTION_RETURN_NOTHING;
 }
 
 /* Draw an arc on a window (preferably a render window).
@@ -5824,7 +6151,10 @@ void dw_draw_rect(HWND handle, HPIXMAP pixmap, int flags, int x, int y, int widt
  *       x2: X coordinate of second segment of arc.
  *       y2: Y coordinate of second segment of arc.
  */
-void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yorigin, int x1, int y1, int x2, int y2)
+DW_FUNCTION_DEFINITION(dw_draw_arc, void, HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yorigin, int x1, int y1, int x2, int y2)
+DW_FUNCTION_ADD_PARAM9(handle, pixmap, flags, xorigin, yorigin, x1, y1, x2, y2)
+DW_FUNCTION_NO_RETURN(dw_draw_arc)
+DW_FUNCTION_RESTORE_PARAM9(handle, HWND, pixmap, HPIXMAP, flags, int, xorigin, int, yorigin, int, x1, int, y1, int, x2, int, y2, int)
 {
    cairo_t *cr = NULL;
    GdkDrawContext *dc = NULL;
@@ -5846,8 +6176,6 @@ void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yo
             cr = gdk_cairo_context_cairo_create(GDK_CAIRO_CONTEXT(dc));
             cairo_region_destroy(region);
          }
-         else
-            return;
       }
    }
    else if(pixmap)
@@ -5888,6 +6216,7 @@ void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yo
       else if(!cached)
          cairo_destroy(cr);
    }
+   DW_FUNCTION_RETURN_NOTHING;
 }
 
 /* Draw text on a window (preferably a render window).
@@ -5898,99 +6227,101 @@ void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yo
  *       y: Y coordinate.
 *       text: Text to be displayed.
   */
-void dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, const char *text)
+DW_FUNCTION_DEFINITION(dw_draw_text, void, HWND handle, HPIXMAP pixmap, int x, int y, const char *text)
+DW_FUNCTION_ADD_PARAM5(handle, pixmap, x, y, text)
+DW_FUNCTION_NO_RETURN(dw_draw_text)
+DW_FUNCTION_RESTORE_PARAM5(handle, HWND, pixmap, HPIXMAP, x, int, y, int, text, const char *)
 {
-   cairo_t *cr = NULL;
-   PangoFontDescription *font;
-   char *tmpname, *fontname = "monospace 10";
-   GdkDrawContext *dc = NULL;
-   int cached = FALSE;
-
-   if(!text)
-      return;
-
-   if(handle)
+   if(text)
    {
-      if((cr = g_object_get_data(G_OBJECT(handle), "_dw_cr")))
-         cached = TRUE;
-      else
-      {
-         GtkNative *native = gtk_widget_get_native(handle);
-         GdkSurface *surface = gtk_native_get_surface(native);
+      cairo_t *cr = NULL;
+      PangoFontDescription *font;
+      char *tmpname, *fontname = "monospace 10";
+      GdkDrawContext *dc = NULL;
+      int cached = FALSE;
 
-         if((dc = GDK_DRAW_CONTEXT(gdk_surface_create_cairo_context(surface))))
-         {
-            cairo_region_t *region = cairo_region_create();
-            gdk_draw_context_begin_frame(dc, region);
-            cr = gdk_cairo_context_cairo_create(GDK_CAIRO_CONTEXT(dc));
-            cairo_region_destroy(region);
-         }
+      if(handle)
+      {
+         if((cr = g_object_get_data(G_OBJECT(handle), "_dw_cr")))
+            cached = TRUE;
          else
-            return;
-      }
-      if((tmpname = (char *)g_object_get_data(G_OBJECT(handle), "_dw_fontname")))
-         fontname = tmpname;
-   }
-   else if(pixmap)
-   {
-      if(pixmap->font)
-         fontname = pixmap->font;
-      else if(pixmap->handle && (tmpname = (char *)g_object_get_data(G_OBJECT(pixmap->handle), "_dw_fontname")))
-         fontname = tmpname;
-      cr = cairo_create(pixmap->image);
-   }
-   if(cr)
-   {
-      font = pango_font_description_from_string(fontname);
-      if(font)
-      {
-         PangoContext *context = pango_cairo_create_context(cr);
-
-         if(context)
          {
-            PangoLayout *layout = pango_layout_new(context);
+            GtkNative *native = gtk_widget_get_native(handle);
+            GdkSurface *surface = gtk_native_get_surface(native);
 
-            if(layout)
+            if((dc = GDK_DRAW_CONTEXT(gdk_surface_create_cairo_context(surface))))
             {
-               GdkRGBA *foreground = pthread_getspecific(_dw_fg_color_key);
-               GdkRGBA *background = pthread_getspecific(_dw_bg_color_key);
-
-               pango_layout_set_font_description(layout, font);
-               pango_layout_set_text(layout, text, strlen(text));
-
-               gdk_cairo_set_source_rgba(cr, foreground);
-               /* Create a background color attribute if required */
-               if(background)
-               {
-                  PangoAttrList *list = pango_layout_get_attributes(layout);
-                  PangoAttribute *attr = pango_attr_background_new((guint16)(background->red * 65535),
-                                                                   (guint16)(background->green * 65535),
-                                                                   (guint16)(background->blue* 65535));
-                  if(!list)
-                  {
-                     list = pango_attr_list_new();
-                  }
-                  pango_attr_list_change(list, attr);
-                  pango_layout_set_attributes(layout, list);
-               }
-               /* Do the drawing */
-               cairo_move_to(cr, x, y);
-               pango_cairo_show_layout (cr, layout);
-
-               g_object_unref(layout);
+               cairo_region_t *region = cairo_region_create();
+               gdk_draw_context_begin_frame(dc, region);
+               cr = gdk_cairo_context_cairo_create(GDK_CAIRO_CONTEXT(dc));
+               cairo_region_destroy(region);
             }
-            g_object_unref(context);
          }
-         pango_font_description_free(font);
+         if((tmpname = (char *)g_object_get_data(G_OBJECT(handle), "_dw_fontname")))
+            fontname = tmpname;
       }
-      /* If we are using a drawing context...
-       * we don't own the cairo context so don't destroy it.
-       */
-      if(dc)
-         gdk_draw_context_end_frame(dc);
-      else if(!cached)
-         cairo_destroy(cr);
+      else if(pixmap)
+      {
+         if(pixmap->font)
+            fontname = pixmap->font;
+         else if(pixmap->handle && (tmpname = (char *)g_object_get_data(G_OBJECT(pixmap->handle), "_dw_fontname")))
+            fontname = tmpname;
+         cr = cairo_create(pixmap->image);
+      }
+      if(cr)
+      {
+         font = pango_font_description_from_string(fontname);
+         if(font)
+         {
+            PangoContext *context = pango_cairo_create_context(cr);
+
+            if(context)
+            {
+               PangoLayout *layout = pango_layout_new(context);
+
+               if(layout)
+               {
+                  GdkRGBA *foreground = pthread_getspecific(_dw_fg_color_key);
+                  GdkRGBA *background = pthread_getspecific(_dw_bg_color_key);
+
+                  pango_layout_set_font_description(layout, font);
+                  pango_layout_set_text(layout, text, strlen(text));
+
+                  gdk_cairo_set_source_rgba(cr, foreground);
+                  /* Create a background color attribute if required */
+                  if(background)
+                  {
+                     PangoAttrList *list = pango_layout_get_attributes(layout);
+                     PangoAttribute *attr = pango_attr_background_new((guint16)(background->red * 65535),
+                                                                      (guint16)(background->green * 65535),
+                                                                      (guint16)(background->blue* 65535));
+                     if(!list)
+                     {
+                        list = pango_attr_list_new();
+                     }
+                     pango_attr_list_change(list, attr);
+                     pango_layout_set_attributes(layout, list);
+                  }
+                  /* Do the drawing */
+                  cairo_move_to(cr, x, y);
+                  pango_cairo_show_layout (cr, layout);
+
+                  g_object_unref(layout);
+               }
+               g_object_unref(context);
+            }
+            pango_font_description_free(font);
+         }
+         /* If we are using a drawing context...
+          * we don't own the cairo context so don't destroy it.
+          */
+         if(dc)
+            gdk_draw_context_end_frame(dc);
+         else if(!cached)
+            cairo_destroy(cr);
+      }
    }
+   DW_FUNCTION_RETURN_NOTHING;
 }
 
 /* Query the width and height of a text string.
@@ -6989,10 +7320,12 @@ int dw_named_event_close(HEV eve)
 void API _dw_init_thread(void)
 {
    GdkRGBA *foreground = malloc(sizeof(GdkRGBA));
+   HEV event = dw_event_new();
 
    foreground->alpha = foreground->red = foreground->green = foreground->blue = 0.0;
    pthread_setspecific(_dw_fg_color_key, foreground);
    pthread_setspecific(_dw_bg_color_key, NULL);
+   pthread_setspecific(_dw_event_key, event);
 }
 
 /*
@@ -7004,11 +7337,14 @@ void API _dw_init_thread(void)
 void API _dw_deinit_thread(void)
 {
    GdkRGBA *foreground, *background;
+   HEV event;
 
    if((foreground = pthread_getspecific(_dw_fg_color_key)))
       free(foreground);
    if((background = pthread_getspecific(_dw_bg_color_key)))
       free(background);
+   if((event = pthread_getspecific(_dw_event_key)))
+      dw_event_close(&event);
 }
 
 /*
@@ -7444,7 +7780,10 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
  * Returns:
  *       DW_ERROR_NONE on success and DW_ERROR_GENERAL on failure.
  */
-int API dw_box_unpack(HWND handle)
+DW_FUNCTION_DEFINITION(dw_box_unpack, int, HWND handle)
+DW_FUNCTION_ADD_PARAM1(handle)
+DW_FUNCTION_RETURN(dw_box_unpack, int)
+DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
 {
    int retcode = DW_ERROR_GENERAL;
 
@@ -7507,7 +7846,7 @@ int API dw_box_unpack(HWND handle)
          retcode = DW_ERROR_NONE;
       }
    }
-   return retcode;
+    DW_FUNCTION_RETURN_THIS(retcode);
 }
 
 /*
@@ -7518,7 +7857,10 @@ int API dw_box_unpack(HWND handle)
  * Returns:
  *       Handle to the removed item on success, 0 on failure or padding.
  */
-HWND API dw_box_unpack_at_index(HWND box, int index)
+DW_FUNCTION_DEFINITION(dw_box_unpack_at_index, HWND, HWND box, int index)
+DW_FUNCTION_ADD_PARAM2(box, index)
+DW_FUNCTION_RETURN(dw_box_unpack_at_index, HWND)
+DW_FUNCTION_RESTORE_PARAM2(box, HWND, index, int)
 {
    HWND retval = 0;
 
@@ -7555,7 +7897,7 @@ HWND API dw_box_unpack_at_index(HWND box, int index)
          retval = item;
       }
    }
-   return retval;
+   DW_FUNCTION_RETURN_THIS(retval);
 }
 
 /*
@@ -7617,15 +7959,19 @@ void API dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, 
  *          width: New width in pixels.
  *          height: New height in pixels.
  */
-void dw_window_set_size(HWND handle, unsigned long width, unsigned long height)
+DW_FUNCTION_DEFINITION(dw_window_set_size, void, HWND handle, ULONG width, ULONG height)
+DW_FUNCTION_ADD_PARAM3(handle, width, height)
+DW_FUNCTION_NO_RETURN(dw_window_set_size)
+DW_FUNCTION_RESTORE_PARAM3(handle, HWND, width, ULONG, height, ULONG)
 {
-   if(!handle)
-      return;
-
-   if(GTK_IS_WINDOW(handle))
-      gtk_window_set_default_size(GTK_WINDOW(handle), width, height);
-   else
-      gtk_widget_set_size_request(GTK_WIDGET(handle), width, height);
+   if(handle)
+   {
+      if(GTK_IS_WINDOW(handle))
+         gtk_window_set_default_size(GTK_WINDOW(handle), width, height);
+      else if(GTK_IS_WIDGET(handle))
+         gtk_widget_set_size_request(GTK_WIDGET(handle), width, height);
+   }
+   DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -8095,7 +8441,10 @@ void dw_listbox_append(HWND handle, const char *text)
  *          text: Text to insert into listbox.
  *          pos: 0-based index into listbox. -1 will append
  */
-void dw_listbox_insert(HWND handle, const char *text, int pos)
+DW_FUNCTION_DEFINITION(dw_listbox_insert, void, HWND handle, const char *text, int pos)
+DW_FUNCTION_ADD_PARAM3(handle, text, pos)
+DW_FUNCTION_NO_RETURN(dw_listbox_insert)
+DW_FUNCTION_RESTORE_PARAM3(handle, HWND, text, const char *, pos, int)
 {
    GtkWidget *handle2 = handle;
    GtkListStore *store = NULL;
@@ -8117,21 +8466,22 @@ void dw_listbox_insert(HWND handle, const char *text, int pos)
       else if(GTK_IS_COMBO_BOX(handle2))
          store = (GtkListStore *)gtk_combo_box_get_model(GTK_COMBO_BOX(handle2));
 
-      if(!store)
-         return;
-
-      if(pos < 0)
+      if(store)
       {
-         /* Insert an entry at the end */
-         gtk_list_store_append(store, &iter);
+         if(pos < 0)
+         {
+            /* Insert an entry at the end */
+            gtk_list_store_append(store, &iter);
+         }
+         else
+         {
+            /* Insert at position */
+            gtk_list_store_insert(store, &iter, pos);
+         }
+         gtk_list_store_set (store, &iter, 0, text, -1);
       }
-      else
-      {
-         /* Insert at position */
-         gtk_list_store_insert(store, &iter, pos);
-      }
-      gtk_list_store_set (store, &iter, 0, text, -1);
    }
+   DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -8141,7 +8491,10 @@ void dw_listbox_insert(HWND handle, const char *text, int pos)
  *          text: Text strings to append into listbox.
  *          count: Number of text strings to append
  */
-void dw_listbox_list_append(HWND handle, char **text, int count)
+DW_FUNCTION_DEFINITION(dw_listbox_list_append, void, HWND handle, char **text, int count)
+DW_FUNCTION_ADD_PARAM3(handle, text, count)
+DW_FUNCTION_NO_RETURN(dw_listbox_list_append)
+DW_FUNCTION_RESTORE_PARAM3(handle, HWND, text, char **, count, int)
 {
    GtkWidget *handle2 = handle;
    GtkListStore *store = NULL;
@@ -8164,16 +8517,17 @@ void dw_listbox_list_append(HWND handle, char **text, int count)
       else if(GTK_IS_COMBO_BOX(handle2))
          store = (GtkListStore *)gtk_combo_box_get_model(GTK_COMBO_BOX(handle2));
 
-      if(!store)
-         return;
-
-      /* Insert entries at the end */
-      for(z=0;z<count;z++)
+      if(store)
       {
-         gtk_list_store_append(store, &iter);
-         gtk_list_store_set (store, &iter, 0, text[z], -1);
+         /* Insert entries at the end */
+         for(z=0;z<count;z++)
+         {
+            gtk_list_store_append(store, &iter);
+            gtk_list_store_set (store, &iter, 0, text[z], -1);
+         }
       }
    }
+   DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -8181,7 +8535,11 @@ void dw_listbox_list_append(HWND handle, char **text, int count)
  * Parameters:
  *          handle: Handle to the listbox to be cleared.
  */
-void dw_listbox_clear(HWND handle)
+DW_FUNCTION_DEFINITION(dw_listbox_clear, void, HWND handle)
+DW_FUNCTION_ADD_PARAM1(handle)
+DW_FUNCTION_NO_RETURN(dw_listbox_clear)
+DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
+
 {
    GtkWidget *handle2 = handle;
    GtkListStore *store = NULL;
@@ -8201,11 +8559,13 @@ void dw_listbox_clear(HWND handle)
       else if(GTK_IS_COMBO_BOX(handle2))
          store = (GtkListStore *)gtk_combo_box_get_model(GTK_COMBO_BOX(handle2));
 
-      if(!store)
-         return;
-      /* Clear the list */
-      gtk_list_store_clear(store);
+      if(store)
+      {
+         /* Clear the list */
+         gtk_list_store_clear(store);
+      }
    }
+   DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -8249,7 +8609,11 @@ int dw_listbox_count(HWND handle)
  *          handle: Handle to the listbox to be cleared.
  *          top: Index to the top item.
  */
-void dw_listbox_set_top(HWND handle, int top)
+DW_FUNCTION_DEFINITION(dw_listbox_set_top, void, HWND handle, int top)
+DW_FUNCTION_ADD_PARAM2(handle, top)
+DW_FUNCTION_NO_RETURN(dw_listbox_set_top)
+DW_FUNCTION_RESTORE_PARAM2(handle, HWND, top, int)
+
 {
    GtkWidget *handle2 = handle;
 
@@ -8275,19 +8639,20 @@ void dw_listbox_set_top(HWND handle, int top)
          gdouble change;
 
          /* Safety check */
-         if(rowcount < 2)
-            return;
+         if(rowcount > 1)
+         {
+            /* Verify the range */
+            rowcount--;
+            if(top > rowcount)
+               top = rowcount;
 
-         /* Verify the range */
-         rowcount--;
-         if(top > rowcount)
-            top = rowcount;
+            change = ((gdouble)top/(gdouble)rowcount) * (upper - lower);
 
-         change = ((gdouble)top/(gdouble)rowcount) * (upper - lower);
-
-         gtk_adjustment_set_value(adjust, change + lower);
+            gtk_adjustment_set_value(adjust, change + lower);
+         }
       }
    }
+   DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -8298,7 +8663,11 @@ void dw_listbox_set_top(HWND handle, int top)
  *          buffer: Buffer where text will be copied.
  *          length: Length of the buffer (including NULL).
  */
-void dw_listbox_get_text(HWND handle, unsigned int index, char *buffer, unsigned int length)
+DW_FUNCTION_DEFINITION(dw_listbox_get_text, void, HWND handle, unsigned int index, char *buffer, unsigned int length)
+DW_FUNCTION_ADD_PARAM4(handle, index, buffer, length)
+DW_FUNCTION_NO_RETURN(dw_listbox_get_text)
+DW_FUNCTION_RESTORE_PARAM4(handle, HWND, index, unsigned int, buffer, char *, length, unsigned int)
+
 {
    GtkWidget *handle2 = handle;
    GtkListStore *store = NULL;
@@ -8333,11 +8702,11 @@ void dw_listbox_get_text(HWND handle, unsigned int index, char *buffer, unsigned
                strncpy(buffer, text, length);
                g_free(text);
             }
-            return;
          }
       }
    }
    buffer[0] = '\0';
+   DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -8347,7 +8716,10 @@ void dw_listbox_get_text(HWND handle, unsigned int index, char *buffer, unsigned
  *          index: Index into the list to be queried.
  *          buffer: Buffer where text will be copied.
  */
-void dw_listbox_set_text(HWND handle, unsigned int index, const char *buffer)
+DW_FUNCTION_DEFINITION(dw_listbox_set_text, void, HWND handle, unsigned int index, const char *buffer)
+DW_FUNCTION_ADD_PARAM3(handle, index, buffer)
+DW_FUNCTION_NO_RETURN(dw_listbox_set_text)
+DW_FUNCTION_RESTORE_PARAM3(handle, HWND, index, unsigned int, buffer, char *)
 {
    GtkWidget *handle2 = handle;
    GtkListStore *store = NULL;
@@ -8379,6 +8751,7 @@ void dw_listbox_set_text(HWND handle, unsigned int index, const char *buffer)
          }
       }
    }
+   DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -8387,7 +8760,10 @@ void dw_listbox_set_text(HWND handle, unsigned int index, const char *buffer)
  *          handle: Handle to the listbox to be queried.
  *          where: Either the previous return or -1 to restart.
  */
-int dw_listbox_selected_multi(HWND handle, int where)
+DW_FUNCTION_DEFINITION(dw_listbox_selected_multi, int, HWND handle, int where)
+DW_FUNCTION_ADD_PARAM2(handle, where)
+DW_FUNCTION_RETURN(dw_listbox_selected_multi, int)
+DW_FUNCTION_RESTORE_PARAM2(handle, HWND, where, int)
 {
    GtkWidget *handle2;
    GtkListStore *store = NULL;
@@ -8427,7 +8803,7 @@ int dw_listbox_selected_multi(HWND handle, int where)
          g_list_free(list);
       }
    }
-   return retval;
+   DW_FUNCTION_RETURN_THIS(retval);
 }
 
 /*
@@ -8435,7 +8811,10 @@ int dw_listbox_selected_multi(HWND handle, int where)
  * Parameters:
  *          handle: Handle to the listbox to be queried.
  */
-int dw_listbox_selected(HWND handle)
+DW_FUNCTION_DEFINITION(dw_listbox_selected, int, HWND handle)
+DW_FUNCTION_ADD_PARAM1(handle)
+DW_FUNCTION_RETURN(dw_listbox_selected, int)
+DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
 {
    GtkWidget *handle2 = handle;
    GtkListStore *store = NULL;
@@ -8498,7 +8877,7 @@ int dw_listbox_selected(HWND handle)
          }
       }
    }
-   return retval;
+   DW_FUNCTION_RETURN_THIS(retval);
 }
 
 /*
@@ -8508,7 +8887,10 @@ int dw_listbox_selected(HWND handle)
  *          index: Item index.
  *          state: TRUE if selected FALSE if unselected.
  */
-void dw_listbox_select(HWND handle, int index, int state)
+DW_FUNCTION_DEFINITION(dw_listbox_select, void, HWND handle, int index, int state)
+DW_FUNCTION_ADD_PARAM3(handle, index, state)
+DW_FUNCTION_NO_RETURN(dw_listbox_select)
+DW_FUNCTION_RESTORE_PARAM3(handle, HWND, index, int, state, int)
 {
    GtkWidget *handle2 = handle;
    GtkListStore *store = NULL;
@@ -8556,6 +8938,7 @@ void dw_listbox_select(HWND handle, int index, int state)
          }
       }
    }
+   DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -8564,7 +8947,10 @@ void dw_listbox_select(HWND handle, int index, int state)
  *          handle: Handle to the listbox to be set.
  *          index: Item index.
  */
-void dw_listbox_delete(HWND handle, int index)
+DW_FUNCTION_DEFINITION(dw_listbox_delete, void, HWND handle, int index)
+DW_FUNCTION_ADD_PARAM2(handle, index)
+DW_FUNCTION_NO_RETURN(dw_listbox_delete)
+DW_FUNCTION_RESTORE_PARAM2(handle, HWND, index, int)
 {
    GtkWidget *handle2 = handle;
    GtkListStore *store = NULL;
@@ -8595,6 +8981,7 @@ void dw_listbox_delete(HWND handle, int index)
          }
       }
    }
+   DW_FUNCTION_RETURN_NOTHING;
 }
 
 /* Function to do delayed positioning */
