@@ -2556,7 +2556,10 @@ void _dw_menu_set_group_recursive(HMENUI start, GtkWidget *menuparent)
  *       id: An ID to be used for getting the resource from the
  *           resource file.
  */
-HMENUI dw_menu_new(unsigned long id)
+DW_FUNCTION_DEFINITION(dw_menu_new, HMENUI, ULONG cid)
+DW_FUNCTION_ADD_PARAM1(cid)
+DW_FUNCTION_RETURN(dw_menu_new, HMENUI)
+DW_FUNCTION_RESTORE_PARAM1(cid, ULONG)
 {
    GMenu *tmp = g_menu_new();
    /* Create the initial section and add it to the menu */
@@ -2568,9 +2571,9 @@ HMENUI dw_menu_new(unsigned long id)
 
    g_object_set_data(G_OBJECT(tmp), "_dw_menugroup", GINT_TO_POINTER(++_dw_menugroup));
    g_object_set_data(G_OBJECT(tmp), "_dw_group", (gpointer)group);
-   g_object_set_data(G_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(id));
+   g_object_set_data(G_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(cid));
    g_object_set_data(G_OBJECT(tmp), "_dw_section", (gpointer)section);
-   return tmp;
+   DW_FUNCTION_RETURN_THIS(tmp);
 }
 
 /*
@@ -2838,41 +2841,45 @@ void dw_menu_item_set_check(HMENUI menu, unsigned long id, int check)
  *       id: Menuitem id.
  *       state: TRUE for checked FALSE for not checked.
  */
-void dw_menu_item_set_state(HMENUI menu, unsigned long id, unsigned long state)
+DW_FUNCTION_DEFINITION(dw_menu_item_set_state, void, HMENUI menu, ULONG cid, ULONG state)
+DW_FUNCTION_ADD_PARAM3(menu, cid, state)
+DW_FUNCTION_NO_RETURN(dw_menu_item_set_state)
+DW_FUNCTION_RESTORE_PARAM3(menu, HMENUI, cid, ULONG, state, ULONG)
 {
    char numbuf[25] = {0};
    GMenuItem *tmphandle;
 
-   if(!menu)
-      return;
-
-   snprintf(numbuf, 24, "%lu", id);
-   tmphandle = _dw_find_submenu_id(menu, numbuf);
-
-   if(tmphandle && G_IS_MENU_ITEM(tmphandle))
+   if(menu)
    {
-      GSimpleAction *action = g_object_get_data(G_OBJECT(tmphandle), "_dw_action");
-      
-#if 0
-      if((state & DW_MIS_CHECKED) || (state & DW_MIS_UNCHECKED))
-      {
-         int check = 0;
+      snprintf(numbuf, 24, "%lu", cid);
+      tmphandle = _dw_find_submenu_id(menu, numbuf);
 
-         if(state & DW_MIS_CHECKED)
-            check = 1;
-
-         if(gtk_check_menu_item_get_active(GTK_CHECK_MENU_ITEM(tmphandle)) != check)
-            gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(tmphandle), check);
-      }
-#endif
-      if((state & DW_MIS_ENABLED) || (state & DW_MIS_DISABLED))
+      if(tmphandle && G_IS_MENU_ITEM(tmphandle))
       {
-         if(state & DW_MIS_ENABLED)
-            g_simple_action_set_enabled(action, TRUE);
-         else
-            g_simple_action_set_enabled(action, FALSE);
+         GSimpleAction *action = g_object_get_data(G_OBJECT(tmphandle), "_dw_action");
+         
+   #if 0
+         if((state & DW_MIS_CHECKED) || (state & DW_MIS_UNCHECKED))
+         {
+            int check = 0;
+
+            if(state & DW_MIS_CHECKED)
+               check = 1;
+
+            if(gtk_check_menu_item_get_active(GTK_CHECK_MENU_ITEM(tmphandle)) != check)
+               gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(tmphandle), check);
+         }
+   #endif
+         if((state & DW_MIS_ENABLED) || (state & DW_MIS_DISABLED))
+         {
+            if(state & DW_MIS_ENABLED)
+               g_simple_action_set_enabled(action, TRUE);
+            else
+               g_simple_action_set_enabled(action, FALSE);
+         }
       }
    }
+   DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -2883,26 +2890,29 @@ void dw_menu_item_set_state(HMENUI menu, unsigned long id, unsigned long state)
  * Returns:
  *       DW_ERROR_NONE (0) on success or DW_ERROR_UNKNOWN on failure.
  */
-int API dw_menu_delete_item(HMENUI menu, unsigned long id)
+DW_FUNCTION_DEFINITION(dw_menu_delete_item, int, HMENUI menu, ULONG cid)
+DW_FUNCTION_ADD_PARAM2(menu, cid)
+DW_FUNCTION_RETURN(dw_menu_delete_item, int)
+DW_FUNCTION_RESTORE_PARAM2(menu, HMENUI, cid, ULONG)
 {
    int ret = DW_ERROR_UNKNOWN;
    char numbuf[25] = {0};
    GMenuItem *tmphandle;
 
-   if(!menu)
-      return ret;
-
-   snprintf(numbuf, 24, "%lu", id);
-   tmphandle = _dw_find_submenu_id(menu, numbuf);
-
-   if(tmphandle && G_IS_MENU_ITEM(tmphandle))
+   if(menu)
    {
-      /* g_menu_remove(menu, position); */
-      g_object_unref(G_OBJECT(tmphandle));
-      g_object_set_data(G_OBJECT(menu), numbuf, NULL);
-      ret = DW_ERROR_NONE;
+      snprintf(numbuf, 24, "%lu", cid);
+      tmphandle = _dw_find_submenu_id(menu, numbuf);
+
+      if(tmphandle && G_IS_MENU_ITEM(tmphandle))
+      {
+         /* g_menu_remove(menu, position); */
+         g_object_unref(G_OBJECT(tmphandle));
+         g_object_set_data(G_OBJECT(menu), numbuf, NULL);
+         ret = DW_ERROR_NONE;
+      }
    }
-   return ret;
+   DW_FUNCTION_RETURN_THIS(ret);
 }
 
 /* Delayed unparent of the popup menu from the parent */
