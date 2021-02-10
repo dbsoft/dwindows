@@ -1417,7 +1417,11 @@ int dw_init(int newthread, int argc, char *argv[])
  */
 void API dw_main(void)
 {
+   pthread_t orig = _dw_thread;
+   
+   _dw_thread = pthread_self();
    g_main_loop_run(_DWMainLoop);
+   _dw_thread = orig;
 }
 
 /*
@@ -3132,7 +3136,7 @@ DW_FUNCTION_RESTORE_PARAM2(text, const char *, cid, ULONG)
    g_object_set_data(G_OBJECT(frame), "_dw_label", (gpointer)tmp);
    if(_DWDefaultFont)
       dw_window_set_font(tmp, _DWDefaultFont);
-   DW_FUNCTION_RETURN_THIS(tmp);
+   DW_FUNCTION_RETURN_THIS(frame);
 }
 
 /*
