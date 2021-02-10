@@ -48,7 +48,7 @@
  * #define _DW_SINGLE_THREADED to disable thread safety encapsulation.
  * Parameters converted to a pointer array: 
  * [0] Pointer to the thread's event semaphore
- * [1] Pointer to the funtion's return value
+ * [1] Pointer to the function's return value
  * [2] Pointer to function parameter 1
  * ...
  */
