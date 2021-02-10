@@ -4030,9 +4030,7 @@ NSMenu *_generate_main_menu()
     NSMenuItem * mitem = [mainMenu addItemWithTitle:@"Apple" action:NULL keyEquivalent:@""];
     NSMenu * menu = [[[NSMenu alloc] initWithTitle:@"Apple"] autorelease];
 
-#if (MAC_OS_X_VERSION_MAX_ALLOWED < MAC_OS_X_VERSION_10_6)
     [DWApp performSelector:@selector(setAppleMenu:) withObject:menu];
-#endif
 
     /* Setup the Application menu */
     NSMenuItem * item = [menu addItemWithTitle:[NSString stringWithFormat:@"%@ %@", NSLocalizedString(@"About", nil), applicationName]
