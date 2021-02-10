@@ -131,6 +131,51 @@ rettype API func(__VA_ARGS__) {
     _args[8] = (void *)&param7; \
     _args[9] = (void *)&param8; \
     _args[10] = (void *)&param9;
+#define DW_FUNCTION_ADD_PARAM10(param1, param2, param3, param4, param5, param6, param7, param8, param9, param10) \
+    void **_args = alloca(sizeof(void *)*12); \
+    _args[0] = (void *)pthread_getspecific(_dw_event_key); \
+    _args[1] = (void *)NULL; \
+    _args[2] = (void *)&param1; \
+    _args[3] = (void *)&param2; \
+    _args[4] = (void *)&param3; \
+    _args[5] = (void *)&param4; \
+    _args[6] = (void *)&param5; \
+    _args[7] = (void *)&param6; \
+    _args[8] = (void *)&param7; \
+    _args[9] = (void *)&param8; \
+    _args[10] = (void *)&param9; \
+    _args[11] = (void *)&param10;
+#define DW_FUNCTION_ADD_PARAM11(param1, param2, param3, param4, param5, param6, param7, param8, param9, param10, param11) \
+    void **_args = alloca(sizeof(void *)*13); \
+    _args[0] = (void *)pthread_getspecific(_dw_event_key); \
+    _args[1] = (void *)NULL; \
+    _args[2] = (void *)&param1; \
+    _args[3] = (void *)&param2; \
+    _args[4] = (void *)&param3; \
+    _args[5] = (void *)&param4; \
+    _args[6] = (void *)&param5; \
+    _args[7] = (void *)&param6; \
+    _args[8] = (void *)&param7; \
+    _args[9] = (void *)&param8; \
+    _args[10] = (void *)&param9; \
+    _args[11] = (void *)&param10; \
+    _args[12] = (void *)&param11;
+#define DW_FUNCTION_ADD_PARAM12(param1, param2, param3, param4, param5, param6, param7, param8, param9, param10, param11, param12) \
+    void **_args = alloca(sizeof(void *)*14); \
+    _args[0] = (void *)pthread_getspecific(_dw_event_key); \
+    _args[1] = (void *)NULL; \
+    _args[2] = (void *)&param1; \
+    _args[3] = (void *)&param2; \
+    _args[4] = (void *)&param3; \
+    _args[5] = (void *)&param4; \
+    _args[6] = (void *)&param5; \
+    _args[7] = (void *)&param6; \
+    _args[8] = (void *)&param7; \
+    _args[9] = (void *)&param8; \
+    _args[10] = (void *)&param9; \
+    _args[11] = (void *)&param10; \
+    _args[12] = (void *)&param11; \
+    _args[13] = (void *)&param12;
 #define DW_FUNCTION_RESTORE_PARAM1(param1, vartype1) \
     vartype1 param1 = *((vartype1 *)_args[2]);
 #define DW_FUNCTION_RESTORE_PARAM2(param1, vartype1, param2, vartype2) \
@@ -185,6 +230,42 @@ rettype API func(__VA_ARGS__) {
     vartype7 param7 = *((vartype7 *)_args[8]); \
     vartype8 param8 = *((vartype8 *)_args[9]); \
     vartype9 param9 = *((vartype9 *)_args[10]);
+#define DW_FUNCTION_RESTORE_PARAM10(param1, vartype1, param2, vartype2, param3, vartype3, param4, vartype4, param5, vartype5, param6, vartype6, param7, vartype7, param8, vartype8, param9, vartype9, param10, vartype10) \
+    vartype1 param1 = *((vartype1 *)_args[2]); \
+    vartype2 param2 = *((vartype2 *)_args[3]); \
+    vartype3 param3 = *((vartype3 *)_args[4]); \
+    vartype4 param4 = *((vartype4 *)_args[5]); \
+    vartype5 param5 = *((vartype5 *)_args[6]); \
+    vartype6 param6 = *((vartype6 *)_args[7]); \
+    vartype7 param7 = *((vartype7 *)_args[8]); \
+    vartype8 param8 = *((vartype8 *)_args[9]); \
+    vartype9 param9 = *((vartype9 *)_args[10]); \
+    vartype10 param10 = *((vartype10 *)_args[11]);
+#define DW_FUNCTION_RESTORE_PARAM11(param1, vartype1, param2, vartype2, param3, vartype3, param4, vartype4, param5, vartype5, param6, vartype6, param7, vartype7, param8, vartype8, param9, vartype9, param10, vartype10, param11, vartype11) \
+    vartype1 param1 = *((vartype1 *)_args[2]); \
+    vartype2 param2 = *((vartype2 *)_args[3]); \
+    vartype3 param3 = *((vartype3 *)_args[4]); \
+    vartype4 param4 = *((vartype4 *)_args[5]); \
+    vartype5 param5 = *((vartype5 *)_args[6]); \
+    vartype6 param6 = *((vartype6 *)_args[7]); \
+    vartype7 param7 = *((vartype7 *)_args[8]); \
+    vartype8 param8 = *((vartype8 *)_args[9]); \
+    vartype9 param9 = *((vartype9 *)_args[10]); \
+    vartype10 param10 = *((vartype10 *)_args[11]); \
+    vartype11 param11 = *((vartype11 *)_args[12]);
+#define DW_FUNCTION_RESTORE_PARAM12(param1, vartype1, param2, vartype2, param3, vartype3, param4, vartype4, param5, vartype5, param6, vartype6, param7, vartype7, param8, vartype8, param9, vartype9, param10, vartype10, param11, vartype11, param12, vartype12) \
+    vartype1 param1 = *((vartype1 *)_args[2]); \
+    vartype2 param2 = *((vartype2 *)_args[3]); \
+    vartype3 param3 = *((vartype3 *)_args[4]); \
+    vartype4 param4 = *((vartype4 *)_args[5]); \
+    vartype5 param5 = *((vartype5 *)_args[6]); \
+    vartype6 param6 = *((vartype6 *)_args[7]); \
+    vartype7 param7 = *((vartype7 *)_args[8]); \
+    vartype8 param8 = *((vartype8 *)_args[9]); \
+    vartype9 param9 = *((vartype9 *)_args[10]); \
+    vartype10 param10 = *((vartype10 *)_args[11]); \
+    vartype11 param11 = *((vartype11 *)_args[12]); \
+    vartype12 param12 = *((vartype12 *)_args[13]);
 #define DW_FUNCTION_END }
 #define DW_FUNCTION_NO_RETURN(func) dw_event_reset((HEV)_args[0]); \
     if(_dw_thread == (pthread_t)-1 || pthread_self() == _dw_thread) \
@@ -224,6 +305,9 @@ gboolean _##func(void **_args) {
 #define DW_FUNCTION_ADD_PARAM7(param1, param2, param3, param4, param5, param6, param7)
 #define DW_FUNCTION_ADD_PARAM8(param1, param2, param3, param4, param5, param6, param7, param8)
 #define DW_FUNCTION_ADD_PARAM9(param1, param2, param3, param4, param5, param6, param7, param8, param9)
+#define DW_FUNCTION_ADD_PARAM10(param1, param2, param3, param4, param5, param6, param7, param8, param9. param10)
+#define DW_FUNCTION_ADD_PARAM11(param1, param2, param3, param4, param5, param6, param7, param8, param9, param10, param11)
+#define DW_FUNCTION_ADD_PARAM12(param1, param2, param3, param4, param5, param6, param7, param8, param9, param10, param11, param12)
 #define DW_FUNCTION_RESTORE_PARAM1(param1, vartype1)
 #define DW_FUNCTION_RESTORE_PARAM2(param1, vartype1, param2, vartype2)
 #define DW_FUNCTION_RESTORE_PARAM3(param1, vartype1, param2, vartype2, param3, vartype3)
@@ -233,6 +317,9 @@ gboolean _##func(void **_args) {
 #define DW_FUNCTION_RESTORE_PARAM7(param1, vartype1, param2, vartype2, param3, vartype3, param4, vartype4, param5, vartype5, param6, vartype6, param7, vartype7)
 #define DW_FUNCTION_RESTORE_PARAM8(param1, vartype1, param2, vartype2, param3, vartype3, param4, vartype4, param5, vartype5, param6, vartype6, param7, vartype7, param8, vartype8)
 #define DW_FUNCTION_RESTORE_PARAM9(param1, vartype1, param2, vartype2, param3, vartype3, param4, vartype4, param5, vartype5, param6, vartype6, param7, vartype7, param8, vartype8, param9, vartype9)
+#define DW_FUNCTION_RESTORE_PARAM10(param1, vartype1, param2, vartype2, param3, vartype3, param4, vartype4, param5, vartype5, param6, vartype6, param7, vartype7, param8, vartype8, param9, vartype9, param10, vartype10)
+#define DW_FUNCTION_RESTORE_PARAM11(param1, vartype1, param2, vartype2, param3, vartype3, param4, vartype4, param5, vartype5, param6, vartype6, param7, vartype7, param8, vartype8, param9, vartype9, param10, vartype10, param11, vartype11)
+#define DW_FUNCTION_RESTORE_PARAM12(param1, vartype1, param2, vartype2, param3, vartype3, param4, vartype4, param5, vartype5, param6, vartype6, param7, vartype7, param8, vartype8, param9, vartype9, param10, vartype10, param11, vartype11, param12, vartype12)
 #define DW_FUNCTION_END
 #define DW_FUNCTION_NO_RETURN(func)
 #define DW_FUNCTION_RETURN(func, rettype)
@@ -1091,7 +1178,7 @@ static gint _dw_column_click_event(GtkWidget *widget, gpointer data)
    return retval;
 }
 
-static int _round_value(gfloat val)
+static int _dw_round_value(gfloat val)
 {
    int newval = (int)val;
 
@@ -1114,8 +1201,8 @@ static gint _dw_value_changed_event(GtkWidget *widget, gpointer data)
    spinbutton = (GtkWidget *)g_object_get_data(G_OBJECT(adjustment), "_dw_spinbutton");
    scrollbar = (GtkWidget *)g_object_get_data(G_OBJECT(adjustment), "_dw_scrollbar");
 
-   max = _round_value(gtk_adjustment_get_upper(adjustment));
-   val = _round_value(gtk_adjustment_get_value(adjustment));
+   max = _dw_round_value(gtk_adjustment_get_upper(adjustment));
+   val = _dw_round_value(gtk_adjustment_get_value(adjustment));
 
    if(g_object_get_data(G_OBJECT(adjustment), "_dw_suppress_value_changed_event"))
       return FALSE;
@@ -1566,11 +1653,16 @@ int dw_messagebox(const char *title, int flags, const char *format, ...)
  * Parameters:
  *           handle: The window handle to minimize.
  */
-int dw_window_minimize(HWND handle)
+DW_FUNCTION_DEFINITION(dw_window_minimize, int, HWND handle)
+DW_FUNCTION_ADD_PARAM1(handle)
+DW_FUNCTION_RETURN(dw_window_minimize, int)
+DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
 {
+   int retval = DW_ERROR_NONE;
+
    if(handle && GTK_IS_WINDOW(handle))
       gtk_window_minimize(GTK_WINDOW(handle));
-   return DW_ERROR_NONE;
+   DW_FUNCTION_RETURN_THIS(retval);
 }
 
 /*
@@ -1600,23 +1692,28 @@ int dw_window_lower(HWND handle)
  * Parameters:
  *           handle: The window handle to make visible.
  */
-int dw_window_show(HWND handle)
+DW_FUNCTION_DEFINITION(dw_window_show, int, HWND handle)
+DW_FUNCTION_ADD_PARAM1(handle)
+DW_FUNCTION_RETURN(dw_window_show, int)
+DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
 {
-   if (!handle)
-      return 0;
+   int retval = DW_ERROR_NONE;
 
-   if(GTK_IS_WIDGET(handle))
-      gtk_widget_show(handle);
-   if(GTK_IS_WINDOW(handle))
+   if(handle)
    {
-      GtkWidget *defaultitem;
+      if(GTK_IS_WIDGET(handle))
+         gtk_widget_show(handle);
+      if(GTK_IS_WINDOW(handle))
+      {
+         GtkWidget *defaultitem;
 
-      gtk_window_unminimize(GTK_WINDOW(handle));
-      defaultitem = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_defaultitem");
-      if (defaultitem)
-         gtk_widget_grab_focus(defaultitem);
+         gtk_window_unminimize(GTK_WINDOW(handle));
+         defaultitem = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_defaultitem");
+         if (defaultitem)
+            gtk_widget_grab_focus(defaultitem);
+      }
    }
-   return 0;
+   DW_FUNCTION_RETURN_THIS(retval);
 }
 
 /*
@@ -1624,13 +1721,16 @@ int dw_window_show(HWND handle)
  * Parameters:
  *           handle: The window handle to make visible.
  */
-int dw_window_hide(HWND handle)
+DW_FUNCTION_DEFINITION(dw_window_hide, int, HWND handle)
+DW_FUNCTION_ADD_PARAM1(handle)
+DW_FUNCTION_RETURN(dw_window_hide, int)
+DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
 {
-   if(!handle)
-      return 0;
+   int retval = DW_ERROR_NONE;
 
-   gtk_widget_hide(handle);
-   return 0;
+   if(handle && GTK_IS_WIDGET(handle))
+      gtk_widget_hide(handle);
+   DW_FUNCTION_RETURN_THIS(retval);
 }
 
 /*
@@ -1638,68 +1738,73 @@ int dw_window_hide(HWND handle)
  * Parameters:
  *           handle: The window handle to destroy.
  */
-int dw_window_destroy(HWND handle)
+DW_FUNCTION_DEFINITION(dw_window_destroy, int, HWND handle)
+DW_FUNCTION_ADD_PARAM1(handle)
+DW_FUNCTION_RETURN(dw_window_destroy, int)
+DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
 {
-   if(!handle)
-      return 0;
+   int retval = DW_ERROR_NONE;
 
-   if(GTK_IS_WINDOW(handle))
-      gtk_window_destroy(GTK_WINDOW(handle));
-   else if(GTK_IS_WIDGET(handle))
+   if(handle)
    {
-      GtkWidget *box, *handle2 = handle;
-      GtkWidget *eventbox = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_eventbox");
-
-      /* Handle the invisible event box if it exists */
-      if(eventbox && GTK_IS_WIDGET(eventbox))
-         handle2 = eventbox;
-
-      /* Check if we are removing a widget from a box */	
-      if((box = gtk_widget_get_parent(handle2)) && GTK_IS_GRID(box))
+      if(GTK_IS_WINDOW(handle))
+         gtk_window_destroy(GTK_WINDOW(handle));
+      else if(GTK_IS_WIDGET(handle))
       {
-         /* Get the number of items in the box... */
-         int boxcount = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(box), "_dw_boxcount"));
-         int boxtype = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(box), "_dw_boxtype"));
-         int z;
+         GtkWidget *box, *handle2 = handle;
+         GtkWidget *eventbox = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_eventbox");
 
-         /* Figure out where in the grid this widget is and remove that row/column */
-         if(boxtype == DW_VERT)
+         /* Handle the invisible event box if it exists */
+         if(eventbox && GTK_IS_WIDGET(eventbox))
+            handle2 = eventbox;
+
+         /* Check if we are removing a widget from a box */	
+         if((box = gtk_widget_get_parent(handle2)) && GTK_IS_GRID(box))
          {
-            for(z=0;z<boxcount;z++)
+            /* Get the number of items in the box... */
+            int boxcount = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(box), "_dw_boxcount"));
+            int boxtype = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(box), "_dw_boxtype"));
+            int z;
+
+            /* Figure out where in the grid this widget is and remove that row/column */
+            if(boxtype == DW_VERT)
             {
-               if(gtk_grid_get_child_at(GTK_GRID(box), 0, z) == handle2)
+               for(z=0;z<boxcount;z++)
                {
-                  gtk_grid_remove_row(GTK_GRID(box), z);
-                  break;
+                  if(gtk_grid_get_child_at(GTK_GRID(box), 0, z) == handle2)
+                  {
+                     gtk_grid_remove_row(GTK_GRID(box), z);
+                     break;
+                  }
                }
             }
-         }
-         else
-         {
-            for(z=0;z<boxcount;z++)
+            else
             {
-               if(gtk_grid_get_child_at(GTK_GRID(box), z, 0) == handle2)
+               for(z=0;z<boxcount;z++)
                {
-                  gtk_grid_remove_column(GTK_GRID(box), z);
-                  break;
+                  if(gtk_grid_get_child_at(GTK_GRID(box), z, 0) == handle2)
+                  {
+                     gtk_grid_remove_column(GTK_GRID(box), z);
+                     break;
+                  }
                }
             }
+			   
+            if(boxcount > 0)
+            {
+               /* Decrease the count by 1 */
+               boxcount--;
+               g_object_set_data(G_OBJECT(box), "_dw_boxcount", GINT_TO_POINTER(boxcount));
+            }
          }
-			
-         if(boxcount > 0)
-         {
-            /* Decrease the count by 1 */
-            boxcount--;
-            g_object_set_data(G_OBJECT(box), "_dw_boxcount", GINT_TO_POINTER(boxcount));
-         }
+         /* Finally destroy the widget, make sure it is still
+          * a valid widget if it got removed from the grid.
+          */
+         if(GTK_IS_WIDGET(handle2))
+            g_object_unref(G_OBJECT(handle2));
       }
-      /* Finally destroy the widget, make sure it is still
-       * a valid widget if it got removed from the grid.
-       */
-      if(GTK_IS_WIDGET(handle2))
-         g_object_unref(G_OBJECT(handle2));
    }
-   return 0;
+   DW_FUNCTION_RETURN_THIS(retval);
 }
 
 /* Causes entire window to be invalidated and redrawn.
@@ -1716,10 +1821,14 @@ void dw_window_redraw(HWND handle)
  *           handle: The window handle to destroy.
  *           newparent: The window's new parent window.
  */
-void dw_window_reparent(HWND handle, HWND newparent)
+DW_FUNCTION_DEFINITION(dw_window_reparent, void, HWND handle, HWND newparent)
+DW_FUNCTION_ADD_PARAM2(handle, newparent)
+DW_FUNCTION_NO_RETURN(dw_window_reparent)
+DW_FUNCTION_RESTORE_PARAM2(handle, HWND, newparent, HWND)
 {
-   if(GTK_IS_WIDGET(handle) && GTK_IS_WIDGET(newparent))
+   if(handle && GTK_IS_WIDGET(handle) && newparent && GTK_IS_WIDGET(newparent))
       gtk_widget_set_parent(GTK_WIDGET(handle), GTK_WIDGET(newparent));
+   DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -1835,11 +1944,15 @@ static void _dw_override_font(GtkWidget *widget, const char *font)
  *          handle: The window (widget) handle.
  *          fontname: Name and size of the font in the form "size.fontname"
  */
-int dw_window_set_font(HWND handle, const char *fontname)
+DW_FUNCTION_DEFINITION(dw_window_set_font, int, HWND handle, const char *fontname)
+DW_FUNCTION_ADD_PARAM2(handle, fontname)
+DW_FUNCTION_RETURN(dw_window_set_font, int)
+DW_FUNCTION_RESTORE_PARAM2(handle, HWND, fontname, const char *)
 {
    GtkWidget *handle2 = handle;
    char *font = _convert_font(fontname);
    gpointer data;
+   int retval = DW_ERROR_NONE;
 
    if(GTK_IS_SCROLLED_WINDOW(handle))
    {
@@ -1875,7 +1988,7 @@ int dw_window_set_font(HWND handle, const char *fontname)
 
    _dw_override_font(handle2, font);
 
-   return TRUE;
+   DW_FUNCTION_RETURN_THIS(retval);
 }
 
 /* Allows the user to choose a font using the system's font chooser dialog.
@@ -1884,7 +1997,10 @@ int dw_window_set_font(HWND handle, const char *fontname)
  * Returns:
  *       A malloced buffer with the selected font or NULL on error.
  */
-char * API dw_font_choose(const char *currfont)
+DW_FUNCTION_DEFINITION(dw_font_choose, char *, const char *currfont)
+DW_FUNCTION_ADD_PARAM1(currfont)
+DW_FUNCTION_RETURN(dw_font_choose, char *)
+DW_FUNCTION_RESTORE_PARAM1(currfont, const char *)
 {
    GtkFontChooser *fd;
    char *font = currfont ? strdup(currfont) : NULL;
@@ -1945,7 +2061,7 @@ char * API dw_font_choose(const char *currfont)
    }
    if(GTK_IS_WINDOW(fd))
       gtk_window_destroy(GTK_WINDOW(fd));
-   return retfont;
+   DW_FUNCTION_RETURN_THIS(retfont);
 }
 
 /*
@@ -1953,7 +2069,10 @@ char * API dw_font_choose(const char *currfont)
  * Parameters:
  *          handle: The window (widget) handle.
  */
-char *dw_window_get_font(HWND handle)
+DW_FUNCTION_DEFINITION(dw_window_get_font, char *, HWND handle)
+DW_FUNCTION_ADD_PARAM1(handle)
+DW_FUNCTION_RETURN(dw_window_get_font, char *)
+DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
 {
    PangoFontDescription *pfont;
    PangoContext *pcontext;
@@ -2010,10 +2129,10 @@ char *dw_window_get_font(HWND handle)
          g_free(font);
       }
    }
-   return retfont;
+   DW_FUNCTION_RETURN_THIS(retfont);
 }
 
-void _free_gdk_colors(HWND handle)
+void _dw_free_gdk_colors(HWND handle)
 {
    GdkRGBA *old = (GdkRGBA *)g_object_get_data(G_OBJECT(handle), "_dw_foregdk");
 
@@ -2027,12 +2146,12 @@ void _free_gdk_colors(HWND handle)
 }
 
 /* Free old color pointers and allocate new ones */
-static void _save_gdk_colors(HWND handle, GdkRGBA fore, GdkRGBA back)
+static void _dw_save_gdk_colors(HWND handle, GdkRGBA fore, GdkRGBA back)
 {
    GdkRGBA *foregdk = malloc(sizeof(GdkRGBA));
    GdkRGBA *backgdk = malloc(sizeof(GdkRGBA));
 
-   _free_gdk_colors(handle);
+   _dw_free_gdk_colors(handle);
 
    *foregdk = fore;
    *backgdk = back;
@@ -2041,7 +2160,7 @@ static void _save_gdk_colors(HWND handle, GdkRGBA fore, GdkRGBA back)
    g_object_set_data(G_OBJECT(handle), "_dw_backgdk", (gpointer)backgdk);
 }
 
-static int _set_color(HWND handle, unsigned long fore, unsigned long back)
+static int _dw_set_color(HWND handle, unsigned long fore, unsigned long back)
 {
    /* Remember that each color component in X11 use 16 bit no matter
     * what the destination display supports. (and thus GDK)
@@ -2072,7 +2191,7 @@ static int _set_color(HWND handle, unsigned long fore, unsigned long back)
 
    _dw_override_color(handle, "background-color", back != DW_CLR_DEFAULT ? &backcolor : NULL);
 
-   _save_gdk_colors(handle, forecolor, backcolor);
+   _dw_save_gdk_colors(handle, forecolor, backcolor);
 
    return TRUE;
 }
@@ -2083,9 +2202,13 @@ static int _set_color(HWND handle, unsigned long fore, unsigned long back)
  *          fore: Foreground color in RGB format.
  *          back: Background color in RGB format.
  */
-int dw_window_set_color(HWND handle, unsigned long fore, unsigned long back)
+DW_FUNCTION_DEFINITION(dw_window_set_color, int, HWND handle, unsigned long fore, unsigned long back)
+DW_FUNCTION_ADD_PARAM3(handle, fore, back)
+DW_FUNCTION_RETURN(dw_window_set_color, int)
+DW_FUNCTION_RESTORE_PARAM3(handle, HWND, fore, unsigned long, back, unsigned long)
 {
    GtkWidget *handle2 = handle;
+   int retval = DW_ERROR_NONE;
 
    if(GTK_IS_SCROLLED_WINDOW(handle) || GTK_IS_BOX(handle))
    {
@@ -2103,9 +2226,9 @@ int dw_window_set_color(HWND handle, unsigned long fore, unsigned long back)
       }
    }
 
-   _set_color(handle2, fore, back);
+   _dw_set_color(handle2, fore, back);
 
-   return TRUE;
+   DW_FUNCTION_RETURN_THIS(retval);
 }
 
 /*
@@ -2136,7 +2259,10 @@ void dw_window_capture(HWND handle)
  *       handle: Handle to widget for which to change.
  *       cursortype: ID of the pointer you want.
  */
-void dw_window_set_pointer(HWND handle, int pointertype)
+DW_FUNCTION_DEFINITION(dw_window_set_pointer, void, HWND handle, int pointertype)
+DW_FUNCTION_ADD_PARAM2(handle, pointertype)
+DW_FUNCTION_NO_RETURN(dw_window_set_pointer)
+DW_FUNCTION_RESTORE_PARAM2(handle, HWND, pointertype, int)
 {
    if(pointertype > 65535)
    {
@@ -2153,6 +2279,7 @@ void dw_window_set_pointer(HWND handle, int pointertype)
       gtk_widget_set_cursor_from_name(GTK_WIDGET(handle), "help");
    else
       gtk_widget_set_cursor(GTK_WIDGET(handle), NULL);
+   DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -2173,7 +2300,10 @@ void dw_window_release(void)
  *       title: The Window title.
  *       flStyle: Style flags, see the PM reference.
  */
-HWND dw_window_new(HWND hwndOwner, const char *title, unsigned long flStyle)
+DW_FUNCTION_DEFINITION(dw_window_new, HWND, DW_UNUSED(HWND hwndOwner), const char *title, ULONG flStyle)
+DW_FUNCTION_ADD_PARAM3(hwndOwner, title, flStyle)
+DW_FUNCTION_RETURN(dw_window_new, HWND)
+DW_FUNCTION_RESTORE_PARAM3(DW_UNUSED(hwndOwner), HWND, title, char *, flStyle, ULONG)
 {
    GtkWidget *box = dw_box_new(DW_VERT, 0);
    GtkWidget *grid = gtk_grid_new();
@@ -2206,7 +2336,7 @@ HWND dw_window_new(HWND hwndOwner, const char *title, unsigned long flStyle)
    g_object_set_data(G_OBJECT(tmp), "_dw_boxhandle", (gpointer)box);
    g_object_set_data(G_OBJECT(tmp), "_dw_grid", (gpointer)grid);
    g_object_set_data(G_OBJECT(tmp), "_dw_style", GINT_TO_POINTER(flStyle));
-   return tmp;
+   DW_FUNCTION_RETURN_THIS(tmp);
 }
 
 /*
@@ -2233,7 +2363,10 @@ DW_FUNCTION_RESTORE_PARAM2(type, int, pad, int)
  *       type: Either DW_VERT (vertical) or DW_HORZ (horizontal).
  *       pad: Number of pixels to pad around the box.
  */
-HWND dw_scrollbox_new(int type, int pad)
+DW_FUNCTION_DEFINITION(dw_scrollbox_new, HWND, int type, int pad)
+DW_FUNCTION_ADD_PARAM2(type, pad)
+DW_FUNCTION_RETURN(dw_scrollbox_new, HWND)
+DW_FUNCTION_RESTORE_PARAM2(type, int, pad, int)
 {
    GtkWidget *tmp, *box;
 
@@ -2251,7 +2384,7 @@ HWND dw_scrollbox_new(int type, int pad)
    gtk_widget_show(box);
    gtk_widget_show(tmp);
 
-   return tmp;
+   DW_FUNCTION_RETURN_THIS(tmp);
 }
 
 /*
@@ -2260,21 +2393,24 @@ HWND dw_scrollbox_new(int type, int pad)
  *          handle: Handle to the scrollbox to be queried.
  *          orient: The vertical or horizontal scrollbar.
  */
-int dw_scrollbox_get_pos(HWND handle, int orient)
+DW_FUNCTION_DEFINITION(dw_scrollbox_get_pos, int, HWND handle, int orient)
+DW_FUNCTION_ADD_PARAM2(handle, orient)
+DW_FUNCTION_RETURN(dw_scrollbox_get_pos, int)
+DW_FUNCTION_RESTORE_PARAM2(handle, HWND, orient, int)
 {
-   int val = -1;
+   int val = DW_ERROR_UNKNOWN;
    GtkAdjustment *adjustment;
 
-   if (!handle)
-      return -1;
-
-   if ( orient == DW_HORZ )
-      adjustment = gtk_scrolled_window_get_hadjustment( GTK_SCROLLED_WINDOW(handle) );
-   else
-      adjustment = gtk_scrolled_window_get_vadjustment( GTK_SCROLLED_WINDOW(handle) );
-   if (adjustment)
-      val = _round_value(gtk_adjustment_get_value(adjustment));
-   return val;
+   if(handle)
+   {
+      if(orient == DW_HORZ)
+         adjustment = gtk_scrolled_window_get_hadjustment(GTK_SCROLLED_WINDOW(handle));
+      else
+         adjustment = gtk_scrolled_window_get_vadjustment(GTK_SCROLLED_WINDOW(handle));
+      if(adjustment)
+         val = _dw_round_value(gtk_adjustment_get_value(adjustment));
+   }
+   DW_FUNCTION_RETURN_THIS(val);
 }
 
 /*
@@ -2283,23 +2419,24 @@ int dw_scrollbox_get_pos(HWND handle, int orient)
  *          handle: Handle to the scrollbox to be queried.
  *          orient: The vertical or horizontal scrollbar.
  */
-int API dw_scrollbox_get_range(HWND handle, int orient)
+DW_FUNCTION_DEFINITION(dw_scrollbox_get_range, int, HWND handle, int orient)
+DW_FUNCTION_ADD_PARAM2(handle, orient)
+DW_FUNCTION_RETURN(dw_scrollbox_get_range, int)
+DW_FUNCTION_RESTORE_PARAM2(handle, HWND, orient, int)
 {
-   int range = -1;
+   int range = DW_ERROR_UNKNOWN;
    GtkAdjustment *adjustment;
 
-   if (!handle)
-      return -1;
-
-   if ( orient == DW_HORZ )
-      adjustment = gtk_scrolled_window_get_hadjustment( GTK_SCROLLED_WINDOW(handle) );
-   else
-      adjustment = gtk_scrolled_window_get_vadjustment( GTK_SCROLLED_WINDOW(handle) );
-   if (adjustment)
+   if(handle)
    {
-      range = _round_value(gtk_adjustment_get_upper(adjustment));
+      if(orient == DW_HORZ)
+         adjustment = gtk_scrolled_window_get_hadjustment(GTK_SCROLLED_WINDOW(handle));
+      else
+         adjustment = gtk_scrolled_window_get_vadjustment(GTK_SCROLLED_WINDOW(handle));
+      if(adjustment)
+         range = _dw_round_value(gtk_adjustment_get_upper(adjustment));
    }
-   return range;
+   DW_FUNCTION_RETURN_THIS(range);
 }
 
 /*
@@ -2309,11 +2446,12 @@ int API dw_scrollbox_get_range(HWND handle, int orient)
  *       pad: Number of pixels to pad around the box.
  *       title: Text to be displayined in the group outline.
  */
-HWND dw_groupbox_new(int type, int pad, const char *title)
+DW_FUNCTION_DEFINITION(dw_groupbox_new, HWND, int type, int pad, const char *title)
+DW_FUNCTION_ADD_PARAM3(type, pad, title)
+DW_FUNCTION_RETURN(dw_groupbox_new, HWND)
+DW_FUNCTION_RESTORE_PARAM3(type, int, pad, int, title, const char *)
 {
-   GtkWidget *tmp, *frame;
-
-   frame = gtk_frame_new(NULL);
+   GtkWidget *tmp, *frame = gtk_frame_new(NULL);
    gtk_frame_set_label(GTK_FRAME(frame), title && *title ? title : NULL);
    
    tmp = gtk_grid_new();
@@ -2325,7 +2463,7 @@ HWND dw_groupbox_new(int type, int pad, const char *title)
    gtk_widget_show(frame);
    if(_DWDefaultFont)
       dw_window_set_font(frame, _DWDefaultFont);
-   return frame;
+   DW_FUNCTION_RETURN_THIS(frame);
 }
 
 /*
@@ -2333,14 +2471,15 @@ HWND dw_groupbox_new(int type, int pad, const char *title)
  * Parameters:
  *       id: An ID to be used with dw_window_from_id() or 0L.
  */
-HWND dw_bitmap_new(unsigned long id)
+DW_FUNCTION_DEFINITION(dw_bitmap_new, HWND, ULONG cid)
+DW_FUNCTION_ADD_PARAM1(cid)
+DW_FUNCTION_RETURN(dw_bitmap_new, HWND)
+DW_FUNCTION_RESTORE_PARAM1(cid, ULONG)
 {
-   GtkWidget *tmp;
-
-   tmp = gtk_image_new();
+   GtkWidget *tmp = gtk_image_new();
    gtk_widget_show(tmp);
-   g_object_set_data(G_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(id));
-   return tmp;
+   g_object_set_data(G_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(cid));
+   DW_FUNCTION_RETURN_THIS(tmp);
 }
 
 /*
@@ -2349,7 +2488,10 @@ HWND dw_bitmap_new(unsigned long id)
  *       id: An ID to be used for getting the resource from the
  *           resource file.
  */
-HWND dw_notebook_new(unsigned long id, int top)
+DW_FUNCTION_DEFINITION(dw_notebook_new, HWND, ULONG cid, int top)
+DW_FUNCTION_ADD_PARAM2(cid, top)
+DW_FUNCTION_RETURN(dw_notebook_new, HWND)
+DW_FUNCTION_RESTORE_PARAM2(cid, ULONG, top, int)
 {
    GtkWidget *tmp, **pagearray = calloc(sizeof(GtkWidget *), 256);
 
@@ -2360,9 +2502,9 @@ HWND dw_notebook_new(unsigned long id, int top)
       gtk_notebook_set_tab_pos(GTK_NOTEBOOK(tmp), GTK_POS_BOTTOM);
    gtk_notebook_set_scrollable(GTK_NOTEBOOK(tmp), TRUE);
    gtk_widget_show(tmp);
-   g_object_set_data(G_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(id));
+   g_object_set_data(G_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(cid));
    g_object_set_data(G_OBJECT(tmp), "_dw_pagearray", (gpointer)pagearray);
-   return tmp;
+   DW_FUNCTION_RETURN_THIS(tmp);
 }
 
 static unsigned int _dw_menugroup = 0;
@@ -2427,7 +2569,10 @@ HMENUI dw_menu_new(unsigned long id)
  * If there is no box already packed into the "location", the menu will not appear
  * so tell the user.
  */
-HMENUI dw_menubar_new(HWND location)
+DW_FUNCTION_DEFINITION(dw_menubar_new, HMENUI, HWND location)
+DW_FUNCTION_ADD_PARAM1(location)
+DW_FUNCTION_RETURN(dw_menubar_new, HMENUI)
+DW_FUNCTION_RESTORE_PARAM1(location, HWND)
 {
    HMENUI tmp = 0;
    GtkWidget *box;
@@ -2464,7 +2609,7 @@ HMENUI dw_menubar_new(HWND location)
       gtk_grid_attach(GTK_GRID(box), tmp, 0, 0, 1, 1);
       _dw_menu_set_group_recursive(tmp, GTK_WIDGET(tmp));
    }
-   return tmp;
+   DW_FUNCTION_RETURN_THIS(tmp);
 }
 
 /*
@@ -2472,7 +2617,10 @@ HMENUI dw_menubar_new(HWND location)
  * Parameters:
  *       menu: Handle of a menu.
  */
-void dw_menu_destroy(HMENUI *menu)
+DW_FUNCTION_DEFINITION(dw_menu_destroy, void, HMENUI *menu)
+DW_FUNCTION_ADD_PARAM1(menu)
+DW_FUNCTION_NO_RETURN(dw_menu_destroy)
+DW_FUNCTION_RESTORE_PARAM1(menu, HMENUI *)
 {
    if(menu && *menu)
    {
@@ -2495,6 +2643,7 @@ void dw_menu_destroy(HMENUI *menu)
          g_object_unref(G_OBJECT(*menu));
       *menu = NULL;
    }
+   DW_FUNCTION_RETURN_NOTHING;
 }
 
 char _dw_removetilde(char *dest, const char *src)
@@ -2529,88 +2678,91 @@ char _dw_removetilde(char *dest, const char *src)
  *       check: If TRUE menu is "check"able.
  *       submenu: Handle to an existing menu to be a submenu or NULL.
  */
-HWND dw_menu_append_item(HMENUI menu, const char *title, unsigned long id, unsigned long flags, int end, int check, HMENUI submenu)
+DW_FUNCTION_DEFINITION(dw_menu_append_item, HWND, HMENUI menu, const char *title, unsigned long id, unsigned long flags, int end, DW_UNUSED(int check), HMENUI submenu)
+DW_FUNCTION_ADD_PARAM7(menu, title, id, flags, end, check, submenu)
+DW_FUNCTION_RETURN(dw_menu_append_item, HWND)
+DW_FUNCTION_RESTORE_PARAM7(menu, HMENUI, title, const char *, id, unsigned long, flags, unsigned long, end, int, DW_UNUSED(check), int, submenu, HMENUI)
 {
    GSimpleAction *action = NULL;
-   GMenuItem *tmphandle = NULL;
+   HWND tmphandle = NULL;
    GMenuModel *menumodel;
    char *temptitle = alloca(strlen(title)+1);
 
-   if(!menu)
-      return 0;
-
-   /* By default we add to the menu's current section */
-   menumodel = g_object_get_data(G_OBJECT(menu), "_dw_section");
-   _dw_removetilde(temptitle, title);
-
-   /* To add a separator we create a new section and add it */
-   if (strlen(temptitle) == 0)
+   if(menu)
    {
-      GMenu *section = g_menu_new();
+      /* By default we add to the menu's current section */
+      menumodel = g_object_get_data(G_OBJECT(menu), "_dw_section");
+      _dw_removetilde(temptitle, title);
 
-      /* If we are creating a new section, add it to the core menu... not the section */
-      if(GTK_IS_POPOVER_MENU_BAR(menu))
-         menumodel = gtk_popover_menu_bar_get_menu_model(GTK_POPOVER_MENU_BAR(menu));
-      else
-         menumodel = G_MENU_MODEL(menu);
-
-      tmphandle = g_menu_item_new_section(NULL, G_MENU_MODEL(section));
-      g_object_set_data(G_OBJECT(menu), "_dw_section", (gpointer)section);
-   }
-   else
-   {
-      char tempbuf[101] = {0};
-
-      if(submenu)
+      /* To add a separator we create a new section and add it */
+      if (strlen(temptitle) == 0)
       {
-         if(G_IS_MENU(submenu))
+         GMenu *section = g_menu_new();
+
+         /* If we are creating a new section, add it to the core menu... not the section */
+         if(GTK_IS_POPOVER_MENU_BAR(menu))
+            menumodel = gtk_popover_menu_bar_get_menu_model(GTK_POPOVER_MENU_BAR(menu));
+         else
+            menumodel = G_MENU_MODEL(menu);
+
+         tmphandle = (HWND)g_menu_item_new_section(NULL, G_MENU_MODEL(section));
+         g_object_set_data(G_OBJECT(menu), "_dw_section", (gpointer)section);
+      }
+      else
+      {
+         char tempbuf[101] = {0};
+
+         if(submenu)
          {
-            int submenucount = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(menu), "_dw_submenucount"));
-            GtkWidget *menuparent = GTK_WIDGET(g_object_get_data(G_OBJECT(menu), "_dw_menuparent"));
+            if(G_IS_MENU(submenu))
+            {
+               int submenucount = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(menu), "_dw_submenucount"));
+               GtkWidget *menuparent = GTK_WIDGET(g_object_get_data(G_OBJECT(menu), "_dw_menuparent"));
 
-            /* If the menu being added to is a menu bar, that is the menuparent for submenus */            
-            if(GTK_IS_POPOVER_MENU_BAR(menu))
-               menuparent = GTK_WIDGET(menu);
+               /* If the menu being added to is a menu bar, that is the menuparent for submenus */            
+               if(GTK_IS_POPOVER_MENU_BAR(menu))
+                  menuparent = GTK_WIDGET(menu);
 
-            snprintf(tempbuf, 100, "_dw_submenu%d", submenucount);
-            submenucount++;
-            tmphandle = g_menu_item_new_submenu(temptitle, G_MENU_MODEL(submenu));
-            g_object_set_data(G_OBJECT(menu), tempbuf, (gpointer)submenu);
-            g_object_set_data(G_OBJECT(menu), "_dw_submenucount", GINT_TO_POINTER(submenucount));
+               snprintf(tempbuf, 100, "_dw_submenu%d", submenucount);
+               submenucount++;
+               tmphandle = (HWND)g_menu_item_new_submenu(temptitle, G_MENU_MODEL(submenu));
+               g_object_set_data(G_OBJECT(menu), tempbuf, (gpointer)submenu);
+               g_object_set_data(G_OBJECT(menu), "_dw_submenucount", GINT_TO_POINTER(submenucount));
 
-            /* If we have a menu parent, use it to create the groups if needed */
-            if(menuparent && !g_object_get_data(G_OBJECT(submenu), "_dw_menuparent"))
-               _dw_menu_set_group_recursive(menu, menuparent);
+               /* If we have a menu parent, use it to create the groups if needed */
+               if(menuparent && !g_object_get_data(G_OBJECT(submenu), "_dw_menuparent"))
+                  _dw_menu_set_group_recursive(menu, menuparent);
+            }
+         }
+         else
+         {
+            char numbuf[25] = {0};
+            GSimpleActionGroup *group = g_object_get_data(G_OBJECT(menu), "_dw_group");
+            int menugroup = DW_POINTER_TO_INT(g_object_get_data(G_OBJECT(menu), "_dw_menugroup"));
+            char *actionname;
+
+            snprintf(tempbuf, 100, "menu%d.action%lu", menugroup, id);
+            actionname = strchr(tempbuf, '.');
+            action = g_simple_action_new(&actionname[1], NULL);
+            g_action_map_add_action(G_ACTION_MAP(group), G_ACTION(action));
+            tmphandle=(HWND)g_menu_item_new(temptitle, tempbuf);
+            snprintf(numbuf, 24, "%lu", id);
+            g_object_set_data(G_OBJECT(menu), numbuf, (gpointer)tmphandle);
+            g_object_set_data(G_OBJECT(tmphandle), "_dw_action", (gpointer)action);
          }
       }
+
+      if(end)
+         g_menu_append_item(G_MENU(menumodel), G_MENU_ITEM(tmphandle));
       else
-      {
-         char numbuf[25] = {0};
-         GSimpleActionGroup *group = g_object_get_data(G_OBJECT(menu), "_dw_group");
-         int menugroup = DW_POINTER_TO_INT(g_object_get_data(G_OBJECT(menu), "_dw_menugroup"));
-         char *actionname;
+         g_menu_prepend_item(G_MENU(menumodel), G_MENU_ITEM(tmphandle));
 
-         snprintf(tempbuf, 100, "menu%d.action%lu", menugroup, id);
-         actionname = strchr(tempbuf, '.');
-         action = g_simple_action_new(&actionname[1], NULL);
-         g_action_map_add_action(G_ACTION_MAP(group), G_ACTION(action));
-         tmphandle=g_menu_item_new(temptitle, tempbuf);
-         snprintf(numbuf, 24, "%lu", id);
-         g_object_set_data(G_OBJECT(menu), numbuf, (gpointer)tmphandle);
-         g_object_set_data(G_OBJECT(tmphandle), "_dw_action", (gpointer)action);
-      }
+      g_object_set_data(G_OBJECT(tmphandle), "_dw_id", GINT_TO_POINTER(id));
+      
+      if(action)
+         g_simple_action_set_enabled(action, (flags & DW_MIS_DISABLED) ? FALSE : TRUE);
    }
-
-   if(end)
-      g_menu_append_item(G_MENU(menumodel), tmphandle);
-   else
-      g_menu_prepend_item(G_MENU(menumodel), tmphandle);
-
-   g_object_set_data(G_OBJECT(tmphandle), "_dw_id", GINT_TO_POINTER(id));
-   
-   if(action)
-      g_simple_action_set_enabled(action, (flags & DW_MIS_DISABLED) ? FALSE : TRUE);
-   return (HWND)tmphandle;
+   DW_FUNCTION_RETURN_THIS(tmphandle);
 }
 
 GMenuItem *_dw_find_submenu_id(HMENUI start, const char *name)
@@ -2770,7 +2922,10 @@ void _dw_popover_menu_closed(GtkPopover *self, gpointer data)
  *       x: X coordinate.
  *       y: Y coordinate.
  */
-void dw_menu_popup(HMENUI *menu, HWND parent, int x, int y)
+DW_FUNCTION_DEFINITION(dw_menu_popup, void, HMENUI *menu, HWND parent, int x, int y)
+DW_FUNCTION_ADD_PARAM4(menu, parent, x, y)
+DW_FUNCTION_NO_RETURN(dw_menu_popup)
+DW_FUNCTION_RESTORE_PARAM4(menu, HMENUI *, parent, HWND, x, int, y, int)
 {
    if(menu && *menu && G_MENU(*menu))
    {
@@ -2797,6 +2952,7 @@ void dw_menu_popup(HMENUI *menu, HWND parent, int x, int y)
       gtk_popover_popup(GTK_POPOVER(tmp));
       *menu = NULL;
    }
+   DW_FUNCTION_RETURN_NOTHING;
 }
 
 
@@ -2806,7 +2962,10 @@ void dw_menu_popup(HMENUI *menu, HWND parent, int x, int y)
  *       x: Pointer to variable to store X coordinate.
  *       y: Pointer to variable to store Y coordinate.
  */
-void dw_pointer_query_pos(long *x, long *y)
+DW_FUNCTION_DEFINITION(dw_pointer_query_pos, void, long *x, long *y)
+DW_FUNCTION_ADD_PARAM2(x, y)
+DW_FUNCTION_NO_RETURN(dw_pointer_query_pos)
+DW_FUNCTION_RESTORE_PARAM2(x, long *, y, long *)
 {
    GdkSeat *seat = gdk_display_get_default_seat(gdk_display_get_default());
    GdkDevice *mouse = gdk_seat_get_pointer(seat);
@@ -2818,6 +2977,7 @@ void dw_pointer_query_pos(long *x, long *y)
       *x = (long)dx;
    if(y)
       *y = (long)dy;
+   DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -2931,20 +3091,21 @@ DW_FUNCTION_RESTORE_PARAM1(cid, ULONG)
  *       text: The text to be display by the static text widget.
  *       id: An ID to be used with dw_window_from_id() or 0L.
  */
-HWND dw_text_new(const char *text, unsigned long id)
+DW_FUNCTION_DEFINITION(dw_text_new, HWND, const char *text, ULONG cid)
+DW_FUNCTION_ADD_PARAM2(text, cid)
+DW_FUNCTION_RETURN(dw_text_new, HWND)
+DW_FUNCTION_RESTORE_PARAM2(text, const char *, cid, ULONG)
 {
-   GtkWidget *tmp;
-
-   tmp = gtk_label_new(text);
+   GtkWidget *tmp = gtk_label_new(text);
 
    /* Left and centered */
    gtk_label_set_xalign(GTK_LABEL(tmp), 0.0f);
    gtk_label_set_yalign(GTK_LABEL(tmp), 0.5f);
    gtk_widget_show(tmp);
-   g_object_set_data(G_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(id));
+   g_object_set_data(G_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(cid));
    if(_DWDefaultFont)
       dw_window_set_font(tmp, _DWDefaultFont);
-   return tmp;
+   DW_FUNCTION_RETURN_THIS(tmp);
 }
 
 /*
@@ -2953,11 +3114,12 @@ HWND dw_text_new(const char *text, unsigned long id)
  *       text: The text to be display by the static text widget.
  *       id: An ID to be used with dw_window_from_id() or 0L.
  */
-HWND dw_status_text_new(const char *text, ULONG id)
+DW_FUNCTION_DEFINITION(dw_status_text_new, HWND, const char *text, ULONG cid)
+DW_FUNCTION_ADD_PARAM2(text, cid)
+DW_FUNCTION_RETURN(dw_status_text_new, HWND)
+DW_FUNCTION_RESTORE_PARAM2(text, const char *, cid, ULONG)
 {
-   GtkWidget *tmp, *frame;
-
-   frame = gtk_frame_new(NULL);
+   GtkWidget *tmp, *frame = gtk_frame_new(NULL);
    tmp = gtk_label_new(text);
    gtk_frame_set_child(GTK_FRAME(frame), tmp);
    gtk_widget_show(tmp);
@@ -2966,11 +3128,11 @@ HWND dw_status_text_new(const char *text, ULONG id)
    /* Left and centered */
    gtk_label_set_xalign(GTK_LABEL(tmp), 0.0f);
    gtk_label_set_yalign(GTK_LABEL(tmp), 0.5f);
-   g_object_set_data(G_OBJECT(frame), "_dw_id", GINT_TO_POINTER(id));
+   g_object_set_data(G_OBJECT(frame), "_dw_id", GINT_TO_POINTER(cid));
    g_object_set_data(G_OBJECT(frame), "_dw_label", (gpointer)tmp);
    if(_DWDefaultFont)
       dw_window_set_font(tmp, _DWDefaultFont);
-   return frame;
+   DW_FUNCTION_RETURN_THIS(tmp);
 }
 
 /*
@@ -2978,24 +3140,25 @@ HWND dw_status_text_new(const char *text, ULONG id)
  * Parameters:
  *       id: An ID to be used with dw_window_from_id() or 0L.
  */
-HWND dw_mle_new(unsigned long id)
+DW_FUNCTION_DEFINITION(dw_mle_new, HWND, ULONG cid)
+DW_FUNCTION_ADD_PARAM1(cid)
+DW_FUNCTION_RETURN(dw_mle_new, HWND)
+DW_FUNCTION_RESTORE_PARAM1(cid, ULONG)
 {
-   GtkWidget *tmp, *tmpbox;
-
-   tmpbox = gtk_scrolled_window_new();
+   GtkWidget *tmp, *tmpbox = gtk_scrolled_window_new();
    gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(tmpbox),
                GTK_POLICY_AUTOMATIC, GTK_POLICY_ALWAYS);
    tmp = gtk_text_view_new();
    gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(tmpbox), tmp);
    gtk_text_view_set_wrap_mode(GTK_TEXT_VIEW(tmp), GTK_WRAP_WORD);
 
-   g_object_set_data(G_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(id));
+   g_object_set_data(G_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(cid));
    g_object_set_data(G_OBJECT(tmpbox), "_dw_user", (gpointer)tmp);
    gtk_widget_show(tmp);
    gtk_widget_show(tmpbox);
    if(_DWDefaultFont)
       dw_window_set_font(tmpbox, _DWDefaultFont);
-   return tmpbox;
+   DW_FUNCTION_RETURN_THIS(tmpbox);
 }
 
 /*
@@ -3004,19 +3167,20 @@ HWND dw_mle_new(unsigned long id)
  *       text: The default text to be in the entryfield widget.
  *       id: An ID to be used with dw_window_from_id() or 0L.
  */
-HWND dw_entryfield_new(const char *text, unsigned long id)
+DW_FUNCTION_DEFINITION(dw_entryfield_new, HWND, const char *text, ULONG cid)
+DW_FUNCTION_ADD_PARAM2(text, cid)
+DW_FUNCTION_RETURN(dw_entryfield_new, HWND)
+DW_FUNCTION_RESTORE_PARAM2(text, const char *, cid, ULONG)
 {
-   GtkWidget *tmp;
    GtkEntryBuffer *buffer = gtk_entry_buffer_new(text, -1);
-
-   tmp = gtk_entry_new_with_buffer(buffer);
+   GtkWidget *tmp = gtk_entry_new_with_buffer(buffer);
 
    gtk_widget_show(tmp);
-   g_object_set_data(G_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(id));
+   g_object_set_data(G_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(cid));
 
     if(_DWDefaultFont)
       dw_window_set_font(tmp, _DWDefaultFont);
-   return tmp;
+   DW_FUNCTION_RETURN_THIS(tmp);
 }
 
 /*
@@ -3025,21 +3189,22 @@ HWND dw_entryfield_new(const char *text, unsigned long id)
  *       text: The default text to be in the entryfield widget.
  *       id: An ID to be used with dw_window_from_id() or 0L.
  */
-HWND dw_entryfield_password_new(const char *text, ULONG id)
+DW_FUNCTION_DEFINITION(dw_entryfield_password_new, HWND, const char *text, ULONG cid)
+DW_FUNCTION_ADD_PARAM2(text, cid)
+DW_FUNCTION_RETURN(dw_entryfield_password_new, HWND)
+DW_FUNCTION_RESTORE_PARAM2(text, const char *, cid, ULONG)
 {
-   GtkWidget *tmp;
    GtkEntryBuffer *buffer = gtk_entry_buffer_new(text, -1);
-
-   tmp = gtk_entry_new_with_buffer(buffer);
+   GtkWidget *tmp = gtk_entry_new_with_buffer(buffer);
 
    gtk_entry_set_visibility(GTK_ENTRY(tmp), FALSE);
 
    gtk_widget_show(tmp);
-   g_object_set_data(G_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(id));
+   g_object_set_data(G_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(cid));
 
    if(_DWDefaultFont)
       dw_window_set_font(tmp, _DWDefaultFont);
-   return tmp;
+   DW_FUNCTION_RETURN_THIS(tmp);
 }
 
 /*
@@ -3055,9 +3220,7 @@ DW_FUNCTION_RESTORE_PARAM2(text, const char *, cid, ULONG)
 {
    GtkWidget *tmp;
    GtkEntryBuffer *buffer;
-   GtkListStore *store;
-
-   store = gtk_list_store_new(1, G_TYPE_STRING);
+   GtkListStore *store = gtk_list_store_new(1, G_TYPE_STRING);
    tmp = gtk_combo_box_new_with_model_and_entry(GTK_TREE_MODEL(store));
    gtk_combo_box_set_entry_text_column(GTK_COMBO_BOX(tmp), 0);
    buffer = gtk_entry_get_buffer(GTK_ENTRY(gtk_combo_box_get_child(GTK_COMBO_BOX(tmp))));
@@ -3077,16 +3240,17 @@ DW_FUNCTION_RESTORE_PARAM2(text, const char *, cid, ULONG)
  *       text: The text to be display by the static text widget.
  *       id: An ID to be used with dw_window_from_id() or 0L.
  */
-HWND dw_button_new(const char *text, unsigned long id)
+DW_FUNCTION_DEFINITION(dw_button_new, HWND, const char *text, ULONG cid)
+DW_FUNCTION_ADD_PARAM2(text, cid)
+DW_FUNCTION_RETURN(dw_button_new, HWND)
+DW_FUNCTION_RESTORE_PARAM2(text, const char *, cid, ULONG)
 {
-   GtkWidget *tmp;
-
-   tmp = gtk_button_new_with_label(text);
+   GtkWidget *tmp = gtk_button_new_with_label(text);
    gtk_widget_show(tmp);
-   g_object_set_data(G_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(id));
+   g_object_set_data(G_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(cid));
    if(_DWDefaultFont)
       dw_window_set_font(tmp, _DWDefaultFont);
-   return tmp;
+   DW_FUNCTION_RETURN_THIS(tmp);
 }
 
 /*
@@ -3095,25 +3259,25 @@ HWND dw_button_new(const char *text, unsigned long id)
  *       text: Bubble help text to be displayed.
  *       id: An ID of a bitmap in the resource file.
  */
-HWND dw_bitmapbutton_new(const char *text, unsigned long id)
+DW_FUNCTION_DEFINITION(dw_bitmapbutton_new, HWND, const char *text, ULONG cid)
+DW_FUNCTION_ADD_PARAM2(text, cid)
+DW_FUNCTION_RETURN(dw_bitmapbutton_new, HWND)
+DW_FUNCTION_RESTORE_PARAM2(text, const char *, cid, ULONG)
 {
-   GtkWidget *tmp;
-   GtkWidget *bitmap;
-
-   tmp = gtk_button_new();
-   bitmap = dw_bitmap_new(id);
+   GtkWidget *tmp = gtk_button_new();
+   GtkWidget *bitmap = dw_bitmap_new(cid);
 
    if(bitmap)
    {
-      dw_window_set_bitmap(bitmap, id, NULL);
+      dw_window_set_bitmap(bitmap, cid, NULL);
       gtk_button_set_child(GTK_BUTTON(tmp), bitmap);
       g_object_set_data(G_OBJECT(tmp), "_dw_bitmap", bitmap);
    }
    gtk_widget_show(tmp);
    if(text)
       gtk_widget_set_tooltip_text(tmp, text);
-   g_object_set_data(G_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(id));
-   return tmp;
+   g_object_set_data(G_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(cid));
+   DW_FUNCTION_RETURN_THIS(tmp);
 }
 
 /*
@@ -3126,15 +3290,14 @@ HWND dw_bitmapbutton_new(const char *text, unsigned long id)
  *                 DW pick the appropriate file extension.
  *                 (BMP on OS/2 or Windows, XPM on Unix)
  */
-HWND dw_bitmapbutton_new_from_file(const char *text, unsigned long id, const char *filename)
+DW_FUNCTION_DEFINITION(dw_bitmapbutton_new_from_file, HWND, const char *text, ULONG cid, const char *filename)
+DW_FUNCTION_ADD_PARAM3(text, cid, filename)
+DW_FUNCTION_RETURN(dw_bitmapbutton_new_from_file, HWND)
+DW_FUNCTION_RESTORE_PARAM3(text, const char *, cid, ULONG, filename, const char *)
 {
-   GtkWidget *tmp;
-   GtkWidget *bitmap;
+   GtkWidget *tmp = gtk_button_new();
+   GtkWidget *bitmap = dw_bitmap_new(cid);
 
-   /* Create a new button */
-   tmp = gtk_button_new();
-   /* Now on to the image stuff */
-   bitmap = dw_bitmap_new(id);
    if(bitmap)
    {
       dw_window_set_bitmap(bitmap, 0, filename);
@@ -3144,8 +3307,8 @@ HWND dw_bitmapbutton_new_from_file(const char *text, unsigned long id, const cha
    gtk_widget_show(tmp);
    if(text)
       gtk_widget_set_tooltip_text(tmp, text);
-   g_object_set_data(G_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(id));
-   return tmp;
+   g_object_set_data(G_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(cid));
+   DW_FUNCTION_RETURN_THIS(tmp);
 }
 
 /*
@@ -3157,13 +3320,13 @@ HWND dw_bitmapbutton_new_from_file(const char *text, unsigned long id, const cha
  *                 (BMP on OS/2 or Windows, XPM on Unix)
  *       len:  Length of raw data
  */
-HWND dw_bitmapbutton_new_from_data(const char *text, unsigned long id, const char *data, int len)
+DW_FUNCTION_DEFINITION(dw_bitmapbutton_new_from_data, HWND, const char *text, ULONG cid, const char *data, int len)
+DW_FUNCTION_ADD_PARAM4(text, cid, data, len)
+DW_FUNCTION_RETURN(dw_bitmapbutton_new_from_data, HWND)
+DW_FUNCTION_RESTORE_PARAM4(text, const char *, cid, ULONG, data, const char *, len, int)
 {
-   GtkWidget *tmp;
-   GtkWidget *bitmap;
-
-   tmp = gtk_button_new();
-   bitmap = dw_bitmap_new(id);
+   GtkWidget *tmp = gtk_button_new();
+   GtkWidget *bitmap = dw_bitmap_new(cid);
 
    if(bitmap)
    {
@@ -3174,8 +3337,8 @@ HWND dw_bitmapbutton_new_from_data(const char *text, unsigned long id, const cha
    gtk_widget_show(tmp);
    if(text)
       gtk_widget_set_tooltip_text(tmp, text);
-   g_object_set_data(G_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(id));
-   return tmp;
+   g_object_set_data(G_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(cid));
+   DW_FUNCTION_RETURN_THIS(tmp);
 }
 
 /*
@@ -3184,22 +3347,23 @@ HWND dw_bitmapbutton_new_from_data(const char *text, unsigned long id, const cha
  *       text: The text to be display by the static text widget.
  *       id: An ID to be used with dw_window_from_id() or 0L.
  */
-HWND dw_spinbutton_new(const char *text, unsigned long id)
+DW_FUNCTION_DEFINITION(dw_spinbutton_new, HWND, const char *text, ULONG cid)
+DW_FUNCTION_ADD_PARAM2(text, cid)
+DW_FUNCTION_RETURN(dw_spinbutton_new, HWND)
+DW_FUNCTION_RESTORE_PARAM2(text, const char *, cid, ULONG)
 {
-   GtkAdjustment *adj;
-   GtkWidget *tmp;
+   GtkAdjustment *adj = (GtkAdjustment *)gtk_adjustment_new((float)atoi(text), -65536.0, 65536.0, 1.0, 5.0, 0.0);
+   GtkWidget *tmp = gtk_spin_button_new(adj, 0, 0);
 
-   adj = (GtkAdjustment *)gtk_adjustment_new((float)atoi(text), -65536.0, 65536.0, 1.0, 5.0, 0.0);
-   tmp = gtk_spin_button_new(adj, 0, 0);
    gtk_spin_button_set_numeric(GTK_SPIN_BUTTON(tmp), TRUE);
    gtk_spin_button_set_wrap(GTK_SPIN_BUTTON(tmp), TRUE);
    gtk_widget_show(tmp);
    g_object_set_data(G_OBJECT(tmp), "_dw_adjustment", (gpointer)adj);
    g_object_set_data(G_OBJECT(adj), "_dw_spinbutton", (gpointer)tmp);
-   g_object_set_data(G_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(id));
+   g_object_set_data(G_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(cid));
    if(_DWDefaultFont)
       dw_window_set_font(tmp, _DWDefaultFont);
-   return tmp;
+   DW_FUNCTION_RETURN_THIS(tmp);
 }
 
 /*
@@ -3208,15 +3372,18 @@ HWND dw_spinbutton_new(const char *text, unsigned long id)
  *       text: The text to be display by the static text widget.
  *       id: An ID to be used with dw_window_from_id() or 0L.
  */
-HWND dw_radiobutton_new(const char *text, ULONG id)
+DW_FUNCTION_DEFINITION(dw_radiobutton_new, HWND, const char *text, ULONG cid)
+DW_FUNCTION_ADD_PARAM2(text, cid)
+DW_FUNCTION_RETURN(dw_radiobutton_new, HWND)
+DW_FUNCTION_RESTORE_PARAM2(text, const char *, cid, ULONG)
 {
    GtkWidget *tmp = gtk_toggle_button_new_with_label(text);
-   g_object_set_data(G_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(id));
+   g_object_set_data(G_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(cid));
    gtk_widget_show(tmp);
 
    if(_DWDefaultFont)
       dw_window_set_font(tmp, _DWDefaultFont);
-   return tmp;
+   DW_FUNCTION_RETURN_THIS(tmp);
 }
 
 /*
@@ -3226,20 +3393,22 @@ HWND dw_radiobutton_new(const char *text, ULONG id)
  *       increments: Number of increments available.
  *       id: An ID to be used with dw_window_from_id() or 0L.
  */
-HWND dw_slider_new(int vertical, int increments, ULONG id)
-{
-   GtkWidget *tmp;
-   GtkAdjustment *adjustment;
+DW_FUNCTION_DEFINITION(dw_slider_new, HWND, int vertical, int increments, ULONG cid)
+DW_FUNCTION_ADD_PARAM3(vertical, increments, cid)
+DW_FUNCTION_RETURN(dw_slider_new, HWND)
+DW_FUNCTION_RESTORE_PARAM3(vertical, int, increments, int, cid, ULONG)
 
-   adjustment = (GtkAdjustment *)gtk_adjustment_new(0, 0, (gfloat)increments, 1, 1, 1);
-   tmp = gtk_scale_new(vertical ? GTK_ORIENTATION_VERTICAL : GTK_ORIENTATION_HORIZONTAL, adjustment);
+{
+   GtkAdjustment *adjustment = (GtkAdjustment *)gtk_adjustment_new(0, 0, (gfloat)increments, 1, 1, 1);
+   GtkWidget *tmp = gtk_scale_new(vertical ? GTK_ORIENTATION_VERTICAL : GTK_ORIENTATION_HORIZONTAL, adjustment);
+
    gtk_widget_show(tmp);
    gtk_scale_set_draw_value(GTK_SCALE(tmp), 0);
    gtk_scale_set_digits(GTK_SCALE(tmp), 0);
    g_object_set_data(G_OBJECT(tmp), "_dw_adjustment", (gpointer)adjustment);
    g_object_set_data(G_OBJECT(adjustment), "_dw_slider", (gpointer)tmp);
-   g_object_set_data(G_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(id));
-   return tmp;
+   g_object_set_data(G_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(cid));
+   DW_FUNCTION_RETURN_THIS(tmp);
 }
 
 /*
@@ -3249,19 +3418,20 @@ HWND dw_slider_new(int vertical, int increments, ULONG id)
  *       increments: Number of increments available.
  *       id: An ID to be used with dw_window_from_id() or 0L.
  */
-HWND dw_scrollbar_new(int vertical, ULONG id)
+DW_FUNCTION_DEFINITION(dw_scrollbar_new, HWND, int vertical, ULONG cid)
+DW_FUNCTION_ADD_PARAM2(vertical, cid)
+DW_FUNCTION_RETURN(dw_scrollbar_new, HWND)
+DW_FUNCTION_RESTORE_PARAM2(vertical, int, cid, ULONG)
 {
-   GtkWidget *tmp;
-   GtkAdjustment *adjustment;
+   GtkAdjustment *adjustment = (GtkAdjustment *)gtk_adjustment_new(0, 0, 0, 1, 1, 1);
+   GtkWidget *tmp = gtk_scrollbar_new(vertical ? GTK_ORIENTATION_VERTICAL : GTK_ORIENTATION_HORIZONTAL, adjustment);
 
-   adjustment = (GtkAdjustment *)gtk_adjustment_new(0, 0, 0, 1, 1, 1);
-   tmp = gtk_scrollbar_new(vertical ? GTK_ORIENTATION_VERTICAL : GTK_ORIENTATION_HORIZONTAL, adjustment);
    gtk_widget_set_can_focus(tmp, FALSE);
    gtk_widget_show(tmp);
    g_object_set_data(G_OBJECT(tmp), "_dw_adjustment", (gpointer)adjustment);
    g_object_set_data(G_OBJECT(adjustment), "_dw_scrollbar", (gpointer)tmp);
-   g_object_set_data(G_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(id));
-   return tmp;
+   g_object_set_data(G_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(cid));
+   DW_FUNCTION_RETURN_THIS(tmp);
 }
 
 /*
@@ -3269,14 +3439,16 @@ HWND dw_scrollbar_new(int vertical, ULONG id)
  * Parameters:
  *       id: An ID to be used with dw_window_from_id() or 0L.
  */
-HWND dw_percent_new(unsigned long id)
-{
-   GtkWidget *tmp;
+DW_FUNCTION_DEFINITION(dw_percent_new, HWND, ULONG cid)
+DW_FUNCTION_ADD_PARAM1(cid)
+DW_FUNCTION_RETURN(dw_percent_new, HWND)
+DW_FUNCTION_RESTORE_PARAM1(cid, ULONG)
 
-   tmp = gtk_progress_bar_new();
+{
+   GtkWidget *tmp = gtk_progress_bar_new();
    gtk_widget_show(tmp);
-   g_object_set_data(G_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(id));
-   return tmp;
+   g_object_set_data(G_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(cid));
+   DW_FUNCTION_RETURN_THIS(tmp);
 }
 
 /*
@@ -3285,16 +3457,17 @@ HWND dw_percent_new(unsigned long id)
  *       text: The text to be display by the static text widget.
  *       id: An ID to be used with dw_window_from_id() or 0L.
  */
-HWND dw_checkbox_new(const char *text, unsigned long id)
+DW_FUNCTION_DEFINITION(dw_checkbox_new, HWND, const char *text, ULONG cid)
+DW_FUNCTION_ADD_PARAM2(text, cid)
+DW_FUNCTION_RETURN(dw_checkbox_new, HWND)
+DW_FUNCTION_RESTORE_PARAM2(text, const char *, cid, ULONG)
 {
-   GtkWidget *tmp;
-
-   tmp = gtk_check_button_new_with_label(text);
+   GtkWidget *tmp = gtk_check_button_new_with_label(text);
    gtk_widget_show(tmp);
-   g_object_set_data(G_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(id));
+   g_object_set_data(G_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(cid));
    if(_DWDefaultFont)
       dw_window_set_font(tmp, _DWDefaultFont);
-   return tmp;
+   DW_FUNCTION_RETURN_THIS(tmp);
 }
 
 /*
@@ -3377,23 +3550,20 @@ void dw_window_set_icon(HWND handle, HICN icon)
  *                 Windows and a pixmap on Unix, pass
  *                 NULL if you use the id param)
  */
-void dw_window_set_bitmap(HWND handle, unsigned long id, const char *filename)
+DW_FUNCTION_DEFINITION(dw_window_set_bitmap, void, HWND handle, unsigned long id, const char *filename)
+DW_FUNCTION_ADD_PARAM3(handle, id, filename)
+DW_FUNCTION_NO_RETURN(dw_window_set_bitmap)
+DW_FUNCTION_RESTORE_PARAM3(handle, HWND, id, ULONG, filename, const char *)
 {
    GdkPixbuf *tmp = NULL;
    int found_ext = 0;
    int i;
-
-   if(!id && !filename)
-      return;
 
    if(id)
       tmp = _dw_find_pixbuf((HICN)id, NULL, NULL);
    else
    {
       char *file = alloca(strlen(filename) + 6);
-
-      if(!file)
-         return;
 
       strcpy(file, filename);
 
@@ -3411,10 +3581,9 @@ void dw_window_set_bitmap(HWND handle, unsigned long id, const char *filename)
                break;
             }
          }
-         if(found_ext == 0)
-            return;
       }
-      tmp = gdk_pixbuf_new_from_file(file, NULL);
+      if(found_ext)
+         tmp = gdk_pixbuf_new_from_file(file, NULL);
    }
 
    if(tmp)
@@ -3434,6 +3603,7 @@ void dw_window_set_bitmap(HWND handle, unsigned long id, const char *filename)
          g_object_set_data(G_OBJECT(handle), "_dw_pixbuf", tmp);
       }
    }
+   DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -3447,12 +3617,12 @@ void dw_window_set_bitmap(HWND handle, unsigned long id, const char *filename)
  *                 NULL if you use the id param)
  *       len: length of data
  */
-void dw_window_set_bitmap_from_data(HWND handle, unsigned long id, const char *data, int len)
+DW_FUNCTION_DEFINITION(dw_window_set_bitmap_from_data, void, HWND handle, unsigned long id, const char *data, int len)
+DW_FUNCTION_ADD_PARAM4(handle, id, data, len)
+DW_FUNCTION_NO_RETURN(dw_window_set_bitmap_from_data)
+DW_FUNCTION_RESTORE_PARAM4(handle, HWND, id, ULONG, data, const char *, len, int)
 {
    GdkPixbuf *tmp = NULL;
-
-   if(!id && !data)
-      return;
 
    if(data)
    {
@@ -3469,12 +3639,12 @@ void dw_window_set_bitmap_from_data(HWND handle, unsigned long id, const char *d
          close(fd);
       }
       /* Bail if we couldn't write full file */
-      if(fd == -1 || written != len)
-         return;
-
-      tmp = gdk_pixbuf_new_from_file(template, NULL);
-      /* remove our temporary file */
-      unlink(template);
+      if(fd != -1 && written == len)
+      {
+         tmp = gdk_pixbuf_new_from_file(template, NULL);
+         /* remove our temporary file */
+         unlink(template);
+      }
    }
    else if (id)
       tmp = _dw_find_pixbuf((HICN)id, NULL, NULL);
@@ -3497,6 +3667,7 @@ void dw_window_set_bitmap_from_data(HWND handle, unsigned long id, const char *d
          g_object_set_data(G_OBJECT(handle), "_dw_pixbuf", tmp);
       }
    }
+   DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -3505,7 +3676,10 @@ void dw_window_set_bitmap_from_data(HWND handle, unsigned long id, const char *d
  *       handle: Handle to the window.
  *       text: The text associated with a given window.
  */
-void dw_window_set_text(HWND handle, const char *text)
+DW_FUNCTION_DEFINITION(dw_window_set_text, void, HWND handle, const char *text)
+DW_FUNCTION_ADD_PARAM2(handle, text)
+DW_FUNCTION_NO_RETURN(dw_window_set_text)
+DW_FUNCTION_RESTORE_PARAM2(handle, HWND, text, char *)
 {
    if(GTK_IS_ENTRY(handle))
    {
@@ -3537,6 +3711,7 @@ void dw_window_set_text(HWND handle, const char *text)
       else /* assume groupbox */
          gtk_frame_set_label(GTK_FRAME(handle), text && *text ? text : NULL);
    }
+   DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -3545,12 +3720,16 @@ void dw_window_set_text(HWND handle, const char *text)
  *       handle: Handle to the window (widget).
  *       bubbletext: The text in the floating bubble tooltip.
  */
-void API dw_window_set_tooltip(HWND handle, const char *bubbletext)
+DW_FUNCTION_DEFINITION(dw_window_set_tooltip, void, HWND handle, const char *bubbletext)
+DW_FUNCTION_ADD_PARAM2(handle, bubbletext)
+DW_FUNCTION_NO_RETURN(dw_window_set_tooltip)
+DW_FUNCTION_RESTORE_PARAM2(handle, HWND, bubbletext, char *)
 {
    if(bubbletext && *bubbletext)
       gtk_widget_set_tooltip_text(handle, bubbletext);
    else
       gtk_widget_set_has_tooltip(handle, FALSE);
+   DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -3560,9 +3739,13 @@ void API dw_window_set_tooltip(HWND handle, const char *bubbletext)
  * Returns:
  *       text: The text associsated with a given window.
  */
-char *dw_window_get_text(HWND handle)
+DW_FUNCTION_DEFINITION(dw_window_get_text, char *, HWND handle)
+DW_FUNCTION_ADD_PARAM1(handle)
+DW_FUNCTION_RETURN(dw_window_get_text, char *)
+DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
 {
    const char *possible = NULL;
+   char *retval = NULL;
 
    if(GTK_IS_ENTRY(handle))
    {
@@ -3577,8 +3760,8 @@ char *dw_window_get_text(HWND handle)
    }
    else if(GTK_IS_LABEL(handle))
       possible = gtk_label_get_text(GTK_LABEL(handle));
-
-   return strdup(possible ? possible : "");
+   retval = strdup(possible ? possible : "");
+   DW_FUNCTION_RETURN_THIS(retval);
 }
 
 /*
@@ -3586,9 +3769,13 @@ char *dw_window_get_text(HWND handle)
  * Parameters:
  *       handle: Handle to the window.
  */
-void dw_window_disable(HWND handle)
+DW_FUNCTION_DEFINITION(dw_window_disable, void, HWND handle)
+DW_FUNCTION_ADD_PARAM1(handle)
+DW_FUNCTION_NO_RETURN(dw_window_disable)
+DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
 {
    gtk_widget_set_sensitive(handle, FALSE);
+   DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -3596,9 +3783,13 @@ void dw_window_disable(HWND handle)
  * Parameters:
  *       handle: Handle to the window.
  */
-void dw_window_enable(HWND handle)
+DW_FUNCTION_DEFINITION(dw_window_enable, void, HWND handle)
+DW_FUNCTION_ADD_PARAM1(handle)
+DW_FUNCTION_NO_RETURN(dw_window_enable)
+DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
 {
    gtk_widget_set_sensitive(handle, TRUE);
+   DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -3607,8 +3798,13 @@ void dw_window_enable(HWND handle)
  *       handle: Handle to the parent window.
  *       id: Integer ID of the child.
  */
-HWND API dw_window_from_id(HWND handle, int id)
+DW_FUNCTION_DEFINITION(dw_window_from_id, HWND, HWND handle, int id)
+DW_FUNCTION_ADD_PARAM2(handle, id)
+DW_FUNCTION_RETURN(dw_window_from_id, HWND)
+DW_FUNCTION_RESTORE_PARAM2(handle, HWND, id, int)
 {
+   GtkWidget *retval = NULL;
+
    if(handle && GTK_WIDGET(handle) && id)
    {
       GtkWidget *widget = gtk_widget_get_first_child(GTK_WIDGET(handle));
@@ -3616,11 +3812,15 @@ HWND API dw_window_from_id(HWND handle, int id)
       while(widget)
       {
          if(id == GPOINTER_TO_INT(g_object_get_data(G_OBJECT(widget), "_dw_id")))
-            return widget;
-         widget = gtk_widget_get_next_sibling(GTK_WIDGET(widget));
+         {
+            retval = widget;
+            widget = NULL;
+         }
+         else
+            widget = gtk_widget_get_next_sibling(GTK_WIDGET(widget));
       }
    }
-   return 0;
+   DW_FUNCTION_RETURN_THIS(retval);
 }
 
 /*
@@ -3832,7 +4032,10 @@ DW_FUNCTION_RESTORE_PARAM2(handle, HWND, line, int)
  *          handle: Handle to the MLE.
  *          state: TRUE if it can be edited, FALSE for readonly.
  */
-void dw_mle_set_editable(HWND handle, int state)
+DW_FUNCTION_DEFINITION(dw_mle_set_editable, void, HWND handle, int state)
+DW_FUNCTION_ADD_PARAM2(handle, state)
+DW_FUNCTION_NO_RETURN(dw_mle_set_editable)
+DW_FUNCTION_RESTORE_PARAM2(handle, HWND, state, int)
 {
    if(GTK_IS_SCROLLED_WINDOW(handle))
    {
@@ -3841,6 +4044,7 @@ void dw_mle_set_editable(HWND handle, int state)
       if(tmp && GTK_IS_TEXT_VIEW(tmp))
          gtk_text_view_set_editable(GTK_TEXT_VIEW(tmp), state);
    }
+   DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -3849,7 +4053,10 @@ void dw_mle_set_editable(HWND handle, int state)
  *          handle: Handle to the MLE.
  *          state: TRUE if it wraps, FALSE if it doesn't.
  */
-void dw_mle_set_word_wrap(HWND handle, int state)
+DW_FUNCTION_DEFINITION(dw_mle_set_word_wrap, void, HWND handle, int state)
+DW_FUNCTION_ADD_PARAM2(handle, state)
+DW_FUNCTION_NO_RETURN(dw_mle_set_word_wrap)
+DW_FUNCTION_RESTORE_PARAM2(handle, HWND, state, int)
 {
    if(GTK_IS_SCROLLED_WINDOW(handle))
    {
@@ -3858,6 +4065,7 @@ void dw_mle_set_word_wrap(HWND handle, int state)
       if(tmp && GTK_IS_TEXT_VIEW(tmp))
          gtk_text_view_set_wrap_mode(GTK_TEXT_VIEW(tmp), state ? GTK_WRAP_WORD : GTK_WRAP_NONE);
    }
+   DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -4009,26 +4217,29 @@ DW_FUNCTION_RESTORE_PARAM2(handle, HWND, position, unsigned int)
  * Parameters:
  *          handle: Handle to the slider to be queried.
  */
-unsigned int dw_slider_get_pos(HWND handle)
+DW_FUNCTION_DEFINITION(dw_slider_get_pos, unsigned int, HWND handle)
+DW_FUNCTION_ADD_PARAM1(handle)
+DW_FUNCTION_RETURN(dw_slider_get_pos, unsigned int)
+DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
 {
    int val = 0;
    GtkAdjustment *adjustment;
 
-   if(!handle)
-      return 0;
-
-   adjustment = (GtkAdjustment *)g_object_get_data(G_OBJECT(handle), "_dw_adjustment");
-   if(adjustment)
+   if(handle)
    {
-      int max = _round_value(gtk_adjustment_get_upper(adjustment)) - 1;
-      int thisval = _round_value(gtk_adjustment_get_value(adjustment));
+      adjustment = (GtkAdjustment *)g_object_get_data(G_OBJECT(handle), "_dw_adjustment");
+      if(adjustment)
+      {
+         int max = _dw_round_value(gtk_adjustment_get_upper(adjustment)) - 1;
+         int thisval = _dw_round_value(gtk_adjustment_get_value(adjustment));
 
-      if(gtk_orientable_get_orientation(GTK_ORIENTABLE(handle)) == GTK_ORIENTATION_VERTICAL)
-         val = max - thisval;
-        else
-         val = thisval;
+         if(gtk_orientable_get_orientation(GTK_ORIENTABLE(handle)) == GTK_ORIENTATION_VERTICAL)
+            val = max - thisval;
+           else
+            val = thisval;
+      }
    }
-   return val;
+   DW_FUNCTION_RETURN_THIS(val);
 }
 
 /*
@@ -4037,23 +4248,27 @@ unsigned int dw_slider_get_pos(HWND handle)
  *          handle: Handle to the slider to be set.
  *          position: Position of the slider withing the range.
  */
-void dw_slider_set_pos(HWND handle, unsigned int position)
+DW_FUNCTION_DEFINITION(dw_slider_set_pos, void, HWND handle, unsigned int position)
+DW_FUNCTION_ADD_PARAM2(handle, position)
+DW_FUNCTION_NO_RETURN(dw_slider_set_pos)
+DW_FUNCTION_RESTORE_PARAM2(handle, HWND, position, unsigned int)
 {
    GtkAdjustment *adjustment;
 
-   if(!handle)
-      return;
-
-   adjustment = (GtkAdjustment *)g_object_get_data(G_OBJECT(handle), "_dw_adjustment");
-   if(adjustment)
+   if(handle)
    {
-      int max = _round_value(gtk_adjustment_get_upper(adjustment)) - 1;
+      adjustment = (GtkAdjustment *)g_object_get_data(G_OBJECT(handle), "_dw_adjustment");
+      if(adjustment)
+      {
+         int max = _dw_round_value(gtk_adjustment_get_upper(adjustment)) - 1;
 
-      if(gtk_orientable_get_orientation(GTK_ORIENTABLE(handle)) == GTK_ORIENTATION_VERTICAL)
-         gtk_adjustment_set_value(adjustment, (gfloat)(max - position));
-        else
-         gtk_adjustment_set_value(adjustment, (gfloat)position);
+         if(gtk_orientable_get_orientation(GTK_ORIENTABLE(handle)) == GTK_ORIENTATION_VERTICAL)
+            gtk_adjustment_set_value(adjustment, (gfloat)(max - position));
+           else
+            gtk_adjustment_set_value(adjustment, (gfloat)position);
+      }
    }
+   DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -4061,18 +4276,21 @@ void dw_slider_set_pos(HWND handle, unsigned int position)
  * Parameters:
  *          handle: Handle to the scrollbar to be queried.
  */
-unsigned int dw_scrollbar_get_pos(HWND handle)
+DW_FUNCTION_DEFINITION(dw_scrollbar_get_pos, unsigned int, HWND handle)
+DW_FUNCTION_ADD_PARAM1(handle)
+DW_FUNCTION_RETURN(dw_scrollbar_get_pos, unsigned int)
+DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
 {
    int val = 0;
    GtkAdjustment *adjustment;
 
-   if(!handle)
-      return 0;
-
-   adjustment = (GtkAdjustment *)g_object_get_data(G_OBJECT(handle), "_dw_adjustment");
-   if(adjustment)
-      val = _round_value(gtk_adjustment_get_value(adjustment));
-   return val;
+   if(handle)
+   {
+      adjustment = (GtkAdjustment *)g_object_get_data(G_OBJECT(handle), "_dw_adjustment");
+      if(adjustment)
+         val = _dw_round_value(gtk_adjustment_get_value(adjustment));
+   }
+   DW_FUNCTION_RETURN_THIS(val);
 }
 
 /*
@@ -4081,20 +4299,24 @@ unsigned int dw_scrollbar_get_pos(HWND handle)
  *          handle: Handle to the scrollbar to be set.
  *          position: Position of the scrollbar withing the range.
  */
-void dw_scrollbar_set_pos(HWND handle, unsigned int position)
+DW_FUNCTION_DEFINITION(dw_scrollbar_set_pos, void, HWND handle, unsigned int position)
+DW_FUNCTION_ADD_PARAM2(handle, position)
+DW_FUNCTION_NO_RETURN(dw_scrollbar_set_pos)
+DW_FUNCTION_RESTORE_PARAM2(handle, HWND, position, unsigned int)
+
 {
    GtkAdjustment *adjustment;
 
-   if(!handle)
-      return;
-
-   adjustment = (GtkAdjustment *)g_object_get_data(G_OBJECT(handle), "_dw_adjustment");
-   if(adjustment)
+   if(handle)
    {
-      g_object_set_data(G_OBJECT(adjustment), "_dw_suppress_value_changed_event", GINT_TO_POINTER(1));
-      gtk_adjustment_set_value(adjustment, (gfloat)position);
-      g_object_set_data(G_OBJECT(adjustment), "_dw_suppress_value_changed_event", GINT_TO_POINTER(0));
+      if((adjustment = (GtkAdjustment *)g_object_get_data(G_OBJECT(handle), "_dw_adjustment")))
+      {
+         g_object_set_data(G_OBJECT(adjustment), "_dw_suppress_value_changed_event", GINT_TO_POINTER(1));
+         gtk_adjustment_set_value(adjustment, (gfloat)position);
+         g_object_set_data(G_OBJECT(adjustment), "_dw_suppress_value_changed_event", GINT_TO_POINTER(0));
+      }
    }
+   DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -4104,20 +4326,23 @@ void dw_scrollbar_set_pos(HWND handle, unsigned int position)
  *          range: Maximum range value.
  *          visible: Visible area relative to the range.
  */
-void API dw_scrollbar_set_range(HWND handle, unsigned int range, unsigned int visible)
+DW_FUNCTION_DEFINITION(dw_scrollbar_set_range, void, HWND handle, unsigned int range, unsigned int visible)
+DW_FUNCTION_ADD_PARAM3(handle, range, visible)
+DW_FUNCTION_NO_RETURN(dw_scrollbar_set_range)
+DW_FUNCTION_RESTORE_PARAM3(handle, HWND, range, unsigned int, visible, unsigned int)
 {
    GtkAdjustment *adjustment;
 
-   if(!handle)
-      return;
-
-   adjustment = (GtkAdjustment *)g_object_get_data(G_OBJECT(handle), "_dw_adjustment");
-   if(adjustment)
+   if(handle)
    {
-      gtk_adjustment_set_upper(adjustment, (gdouble)range);
-      gtk_adjustment_set_page_increment(adjustment,(gdouble)visible);
-      gtk_adjustment_set_page_size(adjustment, (gdouble)visible);
+      if((adjustment = (GtkAdjustment *)g_object_get_data(G_OBJECT(handle), "_dw_adjustment")))
+      {
+         gtk_adjustment_set_upper(adjustment, (gdouble)range);
+         gtk_adjustment_set_page_increment(adjustment,(gdouble)visible);
+         gtk_adjustment_set_page_size(adjustment, (gdouble)visible);
+      }
    }
+   DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -4126,9 +4351,13 @@ void API dw_scrollbar_set_range(HWND handle, unsigned int range, unsigned int vi
  *          handle: Handle to the spinbutton to be set.
  *          position: Current value of the spinbutton.
  */
-void dw_spinbutton_set_pos(HWND handle, long position)
+DW_FUNCTION_DEFINITION(dw_spinbutton_set_pos, void, HWND handle, long position)
+DW_FUNCTION_ADD_PARAM2(handle, position)
+DW_FUNCTION_NO_RETURN(dw_spinbutton_set_pos)
+DW_FUNCTION_RESTORE_PARAM2(handle, HWND, position, long)
 {
    gtk_spin_button_set_value(GTK_SPIN_BUTTON(handle), (gfloat)position);
+   DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -4138,7 +4367,10 @@ void dw_spinbutton_set_pos(HWND handle, long position)
  *          position: Current value of the spinbutton.
  *          position: Current value of the spinbutton.
  */
-void dw_spinbutton_set_limits(HWND handle, long upper, long lower)
+DW_FUNCTION_DEFINITION(dw_spinbutton_set_limits, void, HWND handle, long upper, long lower)
+DW_FUNCTION_ADD_PARAM3(handle, upper, lower)
+DW_FUNCTION_NO_RETURN(dw_spinbutton_set_limits)
+DW_FUNCTION_RESTORE_PARAM3(handle, HWND, upper, long, lower, long)
 {
    long curval;
    GtkAdjustment *adj;
@@ -4151,6 +4383,7 @@ void dw_spinbutton_set_limits(HWND handle, long upper, long lower)
     */
    g_object_set_data(G_OBJECT(handle), "_dw_adjustment", (gpointer)adj);
    g_object_set_data(G_OBJECT(adj), "_dw_spinbutton", (gpointer)handle);
+   DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -4159,9 +4392,13 @@ void dw_spinbutton_set_limits(HWND handle, long upper, long lower)
  *          handle: Handle to the spinbutton to be set.
  *          limit: Number of characters the entryfield will take.
  */
-void dw_entryfield_set_limit(HWND handle, ULONG limit)
+DW_FUNCTION_DEFINITION(dw_entryfield_set_limit, void, HWND handle, ULONG limit)
+DW_FUNCTION_ADD_PARAM2(handle, limit)
+DW_FUNCTION_NO_RETURN(dw_entryfield_set_limit)
+DW_FUNCTION_RESTORE_PARAM2(handle, HWND, limit, ULONG)
 {
    gtk_entry_set_max_length(GTK_ENTRY(handle), limit);
+   DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -4169,9 +4406,13 @@ void dw_entryfield_set_limit(HWND handle, ULONG limit)
  * Parameters:
  *          handle: Handle to the spinbutton to be queried.
  */
-long dw_spinbutton_get_pos(HWND handle)
+DW_FUNCTION_DEFINITION(dw_spinbutton_get_pos, long, HWND handle)
+DW_FUNCTION_ADD_PARAM1(handle)
+DW_FUNCTION_RETURN(dw_spinbutton_get_pos, long)
+DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
 {
-   return (long)gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(handle));
+   long retval = (long)gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(handle));
+   DW_FUNCTION_RETURN_THIS(retval);
 }
 
 /*
@@ -4179,11 +4420,20 @@ long dw_spinbutton_get_pos(HWND handle)
  * Parameters:
  *          handle: Handle to the checkbox to be queried.
  */
-int dw_checkbox_get(HWND handle)
+DW_FUNCTION_DEFINITION(dw_checkbox_get, int, HWND handle)
+DW_FUNCTION_ADD_PARAM1(handle)
+DW_FUNCTION_RETURN(dw_checkbox_get, int)
+DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
 {
-   if(GTK_IS_TOGGLE_BUTTON(handle))
-      return gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(handle));
-   return gtk_check_button_get_active(GTK_CHECK_BUTTON(handle));
+   int retval = 0;
+
+   if(handle)
+   {
+      if(GTK_IS_TOGGLE_BUTTON(handle))
+         retval = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(handle));
+      retval = gtk_check_button_get_active(GTK_CHECK_BUTTON(handle));
+   }
+   DW_FUNCTION_RETURN_THIS(retval);
 }
 
 /*
@@ -4192,12 +4442,19 @@ int dw_checkbox_get(HWND handle)
  *          handle: Handle to the checkbox to be queried.
  *          value: TRUE for checked, FALSE for unchecked.
  */
-void dw_checkbox_set(HWND handle, int value)
+DW_FUNCTION_DEFINITION(dw_checkbox_set, void, HWND handle, int value)
+DW_FUNCTION_ADD_PARAM2(handle, value)
+DW_FUNCTION_NO_RETURN(dw_checkbox_set)
+DW_FUNCTION_RESTORE_PARAM2(handle, HWND, value, int)
 {
-   if(GTK_IS_TOGGLE_BUTTON(handle))
-      gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(handle), value);
-   else
-      gtk_check_button_set_active(GTK_CHECK_BUTTON(handle), value);
+   if(handle)
+   {
+      if(GTK_IS_TOGGLE_BUTTON(handle))
+         gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(handle), value);
+      else
+         gtk_check_button_set_active(GTK_CHECK_BUTTON(handle), value);
+   }
+   DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -4771,11 +5028,15 @@ void API dw_filesystem_set_column_title(HWND handle, const char *title)
  *          titles: An array of strings with column text titles.
  *          count: The number of columns (this should match the arrays).
  */
-int dw_filesystem_setup(HWND handle, unsigned long *flags, char **titles, int count)
+DW_FUNCTION_DEFINITION(dw_filesystem_setup, int, HWND handle, unsigned long *flags, char **titles, int count)
+DW_FUNCTION_ADD_PARAM4(handle, flags, titles, count)
+DW_FUNCTION_RETURN(dw_filesystem_setup, int)
+DW_FUNCTION_RESTORE_PARAM4(handle, HWND, flags, unsigned long *, titles, char **, count, int)
 {
    char **newtitles = malloc(sizeof(char *) * (count + 1));
    unsigned long *newflags = malloc(sizeof(unsigned long) * (count + 1));
    char *coltitle = (char *)g_object_get_data(G_OBJECT(handle), "_dw_coltitle");
+   int retval;
 
    newtitles[0] = coltitle ? coltitle : "Filename";
    newflags[0] = DW_CFA_STRINGANDICON | DW_CFA_LEFT | DW_CFA_HORZSEPARATOR;
@@ -4783,16 +5044,18 @@ int dw_filesystem_setup(HWND handle, unsigned long *flags, char **titles, int co
    memcpy(&newtitles[1], titles, sizeof(char *) * count);
    memcpy(&newflags[1], flags, sizeof(unsigned long) * count);
 
-   _dw_container_setup_int(handle, newflags, newtitles, count + 1, 1, 1);
+   retval = _dw_container_setup_int(handle, newflags, newtitles, count + 1, 1, 1);
 
    if(coltitle)
    {
 	  g_object_set_data(G_OBJECT(handle), "_dw_coltitle", NULL);
 	  free(coltitle);
    }
-   if ( newtitles) free(newtitles);
-   if ( newflags ) free(newflags);
-   return DW_ERROR_NONE;
+   if(newtitles) 
+      free(newtitles);
+   if(newflags) 
+      free(newflags);
+   DW_FUNCTION_RETURN_THIS(retval);
 }
 
 /*
@@ -5264,9 +5527,13 @@ void _dw_container_set_row_data_int(HWND handle, void *pointer, int row, int typ
  *          row: Zero based row of data being set.
  *          title: String title of the item.
  */
-void dw_container_set_row_title(void *pointer, int row, const char *title)
+DW_FUNCTION_DEFINITION(dw_container_set_row_title, void, void *pointer, int row, const char *title)
+DW_FUNCTION_ADD_PARAM3(pointer, row, title)
+DW_FUNCTION_NO_RETURN(dw_container_set_row_title)
+DW_FUNCTION_RESTORE_PARAM3(pointer, void *, row, int, title, char *)
 {
    _dw_container_set_row_data_int(pointer, pointer, row, _DW_DATA_TYPE_STRING, (void *)title);
+   DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -5276,9 +5543,13 @@ void dw_container_set_row_title(void *pointer, int row, const char *title)
  *          row: Zero based row of data being set.
  *          title: String title of the item.
  */
-void dw_container_change_row_title(HWND handle, int row, const char *title)
+DW_FUNCTION_DEFINITION(dw_container_change_row_title, void, HWND handle, int row, const char *title)
+DW_FUNCTION_ADD_PARAM3(handle, row, title)
+DW_FUNCTION_NO_RETURN(dw_container_change_row_title)
+DW_FUNCTION_RESTORE_PARAM3(handle, HWND, row, int, title, char *)
 {
    _dw_container_set_row_data_int(handle, NULL, row, _DW_DATA_TYPE_STRING, (void *)title);
+   DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -5288,9 +5559,13 @@ void dw_container_change_row_title(HWND handle, int row, const char *title)
  *          row: Zero based row of data being set.
  *          data: Data pointer.
  */
-void dw_container_set_row_data(void *pointer, int row, void *data)
+DW_FUNCTION_DEFINITION(dw_container_set_row_data, void, void *pointer, int row, void *data)
+DW_FUNCTION_ADD_PARAM3(pointer, row, data)
+DW_FUNCTION_NO_RETURN(dw_container_set_row_data)
+DW_FUNCTION_RESTORE_PARAM3(pointer, void *, row, int, data, void *)
 {
    _dw_container_set_row_data_int(pointer, pointer, row, _DW_DATA_TYPE_POINTER, data);
+   DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -5300,9 +5575,13 @@ void dw_container_set_row_data(void *pointer, int row, void *data)
  *          row: Zero based row of data being set.
  *          data: Data pointer.
  */
-void dw_container_change_row_data(HWND handle, int row, void *data)
+DW_FUNCTION_DEFINITION(dw_container_change_row_data, void, HWND handle, int row, void *data)
+DW_FUNCTION_ADD_PARAM3(handle, row, data)
+DW_FUNCTION_NO_RETURN(dw_container_change_row_data)
+DW_FUNCTION_RESTORE_PARAM3(handle, HWND, row, int, data, void *)
 {
    _dw_container_set_row_data_int(handle, NULL, row, _DW_DATA_TYPE_POINTER, data);
+   DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -5323,7 +5602,10 @@ void dw_container_insert(HWND handle, void *pointer, int rowcount)
  *       handle: Handle to the window (widget) to be deleted from.
  *       rowcount: The number of rows to be deleted.
  */
-void dw_container_delete(HWND handle, int rowcount)
+DW_FUNCTION_DEFINITION(dw_container_delete, void, HWND handle, int rowcount)
+DW_FUNCTION_ADD_PARAM2(handle, rowcount)
+DW_FUNCTION_NO_RETURN(dw_container_delete)
+DW_FUNCTION_RESTORE_PARAM2(handle, HWND, rowcount, int)
 {
    GtkWidget *cont;
    GtkListStore *store = NULL;
@@ -5354,6 +5636,7 @@ void dw_container_delete(HWND handle, int rowcount)
 
       g_object_set_data(G_OBJECT(cont), "_dw_rowcount", GINT_TO_POINTER(rows));
    }
+   DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -5362,7 +5645,10 @@ void dw_container_delete(HWND handle, int rowcount)
  *       handle: Handle to the window (widget) to be cleared.
  *       redraw: TRUE to cause the container to redraw immediately.
  */
-void dw_container_clear(HWND handle, int redraw)
+DW_FUNCTION_DEFINITION(dw_container_clear, void, HWND handle, DW_UNUSED(int redraw))
+DW_FUNCTION_ADD_PARAM2(handle, redraw)
+DW_FUNCTION_NO_RETURN(dw_container_clear)
+DW_FUNCTION_RESTORE_PARAM2(handle, HWND, DW_UNUSED(redraw), int)
 {
    GtkWidget *cont;
    GtkListStore *store = NULL;
@@ -5380,6 +5666,7 @@ void dw_container_clear(HWND handle, int redraw)
 
       gtk_list_store_clear(store);
    }
+   DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -5390,7 +5677,10 @@ void dw_container_clear(HWND handle, int redraw)
  *                  DW_SCROLL_BOTTOM. (rows is ignored for last two)
  *       rows: The number of rows to be scrolled.
  */
-void dw_container_scroll(HWND handle, int direction, long rows)
+DW_FUNCTION_DEFINITION(dw_container_scroll, void, HWND handle, int direction, long rows)
+DW_FUNCTION_ADD_PARAM3(handle, direction, rows)
+DW_FUNCTION_NO_RETURN(dw_container_scroll)
+DW_FUNCTION_RESTORE_PARAM3(handle, HWND, direction, int, rows, long)
 {
    GtkWidget *cont;
 
@@ -5410,46 +5700,47 @@ void dw_container_scroll(HWND handle, int direction, long rows)
          gdouble change;
 
          /* Safety check */
-         if(rowcount < 1)
-            return;
-
-         change = ((gdouble)rows/(gdouble)rowcount) * (upper - lower);
-
-         switch(direction)
+         if(rowcount > 0)
          {
-           case DW_SCROLL_TOP:
-           {
-               gtk_adjustment_set_value(adjust, lower);
-               break;
-           }
-           case DW_SCROLL_BOTTOM:
-           {
-               gtk_adjustment_set_value(adjust, upper);
-               break;
-           }
-           case DW_SCROLL_UP:
-           {
-               gdouble newpos = currpos - change;
-               if(newpos < lower)
-               {
-                   newpos = lower;
-               }
-               gtk_adjustment_set_value(adjust, newpos);
-               break;
-           }
-           case DW_SCROLL_DOWN:
-           {
-               gdouble newpos = currpos + change;
-               if(newpos > upper)
-               {
-                   newpos = upper;
-               }
-               gtk_adjustment_set_value(adjust, newpos);
-               break;
-           }
+            change = ((gdouble)rows/(gdouble)rowcount) * (upper - lower);
+
+            switch(direction)
+            {
+              case DW_SCROLL_TOP:
+              {
+                  gtk_adjustment_set_value(adjust, lower);
+                  break;
+              }
+              case DW_SCROLL_BOTTOM:
+              {
+                  gtk_adjustment_set_value(adjust, upper);
+                  break;
+              }
+              case DW_SCROLL_UP:
+              {
+                  gdouble newpos = currpos - change;
+                  if(newpos < lower)
+                  {
+                      newpos = lower;
+                  }
+                  gtk_adjustment_set_value(adjust, newpos);
+                  break;
+              }
+              case DW_SCROLL_DOWN:
+              {
+                  gdouble newpos = currpos + change;
+                  if(newpos > upper)
+                  {
+                      newpos = upper;
+                  }
+                  gtk_adjustment_set_value(adjust, newpos);
+                  break;
+              }
+            }
          }
       }
    }
+   DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -5460,7 +5751,10 @@ void dw_container_scroll(HWND handle, int direction, long rows)
  *              return items that are currently selected.  Otherwise
  *              it will return all records in the container.
  */
-char *dw_container_query_start(HWND handle, unsigned long flags)
+DW_FUNCTION_DEFINITION(dw_container_query_start, char *, HWND handle, unsigned long flags)
+DW_FUNCTION_ADD_PARAM2(handle, flags)
+DW_FUNCTION_RETURN(dw_container_query_start, char *)
+DW_FUNCTION_RESTORE_PARAM2(handle, HWND, flags, unsigned long)
 {
    GtkWidget *cont;
    GtkListStore *store = NULL;
@@ -5537,7 +5831,7 @@ char *dw_container_query_start(HWND handle, unsigned long flags)
       retval = strdup(temp);
       g_free(temp);
    }
-   return retval;
+   DW_FUNCTION_RETURN_THIS(retval);
 }
 
 /*
@@ -5548,7 +5842,10 @@ char *dw_container_query_start(HWND handle, unsigned long flags)
  *              return items that are currently selected.  Otherwise
  *              it will return all records in the container.
  */
-char *dw_container_query_next(HWND handle, unsigned long flags)
+DW_FUNCTION_DEFINITION(dw_container_query_next, char *, HWND handle, unsigned long flags)
+DW_FUNCTION_ADD_PARAM2(handle, flags)
+DW_FUNCTION_RETURN(dw_container_query_next, char *)
+DW_FUNCTION_RESTORE_PARAM2(handle, HWND, flags, unsigned long)
 {
    GtkWidget *cont;
    GtkListStore *store = NULL;
@@ -5620,7 +5917,7 @@ char *dw_container_query_next(HWND handle, unsigned long flags)
       retval = strdup(temp);
       g_free(temp);
    }
-   return retval;
+   DW_FUNCTION_RETURN_THIS(retval);
 }
 
 int _find_iter(GtkListStore *store, GtkTreeIter *iter, void *data, int textcomp)
@@ -5647,7 +5944,7 @@ int _find_iter(GtkListStore *store, GtkTreeIter *iter, void *data, int textcomp)
    return retval;
 }
 
-void _dw_container_cursor(HWND handle, void *data, int textcomp)
+void _dw_container_cursor_int(HWND handle, void *data, int textcomp)
 {
    GtkWidget *cont;
    GtkListStore *store = NULL;
@@ -5681,9 +5978,13 @@ void _dw_container_cursor(HWND handle, void *data, int textcomp)
  *       handle: Handle to the window (widget) to be queried.
  *       text:  Text usually returned by dw_container_query().
  */
-void dw_container_cursor(HWND handle, const char *text)
+DW_FUNCTION_DEFINITION(dw_container_cursor, void, HWND handle, const char *text)
+DW_FUNCTION_ADD_PARAM2(handle, text)
+DW_FUNCTION_NO_RETURN(dw_container_cursor)
+DW_FUNCTION_RESTORE_PARAM2(handle, HWND, text, char *)
 {
-   _dw_container_cursor(handle, (void *)text, TRUE);
+   _dw_container_cursor_int(handle, (void *)text, TRUE);
+   DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -5692,12 +5993,16 @@ void dw_container_cursor(HWND handle, const char *text)
  *       handle: Handle to the window (widget) to be queried.
  *       text:  Text usually returned by dw_container_query().
  */
-void dw_container_cursor_by_data(HWND handle, void *data)
+DW_FUNCTION_DEFINITION(dw_container_cursor_by_data, void, HWND handle, void *data)
+DW_FUNCTION_ADD_PARAM2(handle, data)
+DW_FUNCTION_NO_RETURN(dw_container_cursor_by_data)
+DW_FUNCTION_RESTORE_PARAM2(handle, HWND, data, void *)
 {
-   _dw_container_cursor(handle, data, FALSE);
+   _dw_container_cursor_int(handle, data, FALSE);
+   DW_FUNCTION_RETURN_NOTHING;
 }
 
-void _dw_container_delete_row(HWND handle, void *data, int textcomp)
+void _dw_container_delete_row_int(HWND handle, void *data, int textcomp)
 {
    GtkWidget *cont;
    GtkListStore *store = NULL;
@@ -5729,9 +6034,13 @@ void _dw_container_delete_row(HWND handle, void *data, int textcomp)
  *       handle: Handle to the window (widget).
  *       text:  Text usually returned by dw_container_query().
  */
-void dw_container_delete_row(HWND handle, const char *text)
+DW_FUNCTION_DEFINITION(dw_container_delete_row, void, HWND handle, const char *text)
+DW_FUNCTION_ADD_PARAM2(handle, text)
+DW_FUNCTION_NO_RETURN(dw_container_delete_row)
+DW_FUNCTION_RESTORE_PARAM2(handle, HWND, text, char *)
 {
-   _dw_container_delete_row(handle, (void *)text, TRUE);
+   _dw_container_delete_row_int(handle, (void *)text, TRUE);
+   DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -5740,9 +6049,13 @@ void dw_container_delete_row(HWND handle, const char *text)
  *       handle: Handle to the window (widget).
  *       text:  Text usually returned by dw_container_query().
  */
-void dw_container_delete_row_by_data(HWND handle, void *data)
+DW_FUNCTION_DEFINITION(dw_container_delete_row_by_data, void, HWND handle, void *data)
+DW_FUNCTION_ADD_PARAM2(handle, data)
+DW_FUNCTION_NO_RETURN(dw_container_delete_row_by_data)
+DW_FUNCTION_RESTORE_PARAM2(handle, HWND, data, void *)
 {
-   _dw_container_delete_row(handle, data, FALSE);
+   _dw_container_delete_row_int(handle, data, FALSE);
+   DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -5750,7 +6063,10 @@ void dw_container_delete_row_by_data(HWND handle, void *data)
  * Parameters:
  *       handle: Handle to the window (widget) to be optimized.
  */
-void dw_container_optimize(HWND handle)
+DW_FUNCTION_DEFINITION(dw_container_optimize, void, HWND handle)
+DW_FUNCTION_ADD_PARAM1(handle)
+DW_FUNCTION_NO_RETURN(dw_container_optimize)
+DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
 {
    GtkWidget *cont;
 
@@ -5759,6 +6075,7 @@ void dw_container_optimize(HWND handle)
    /* Make sure it is the correct tree type */
    if(cont && GTK_IS_TREE_VIEW(cont) && g_object_get_data(G_OBJECT(cont), "_dw_tree_type") == GINT_TO_POINTER(_DW_TREE_TYPE_CONTAINER))
          gtk_tree_view_columns_autosize(GTK_TREE_VIEW(cont));
+   DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -5791,21 +6108,22 @@ void dw_taskbar_delete(HWND handle, HICN icon)
  * Returns:
  *       A handle to the widget or NULL on failure.
  */
-HWND dw_render_new(unsigned long id)
+DW_FUNCTION_DEFINITION(dw_render_new, HWND, ULONG cid)
+DW_FUNCTION_ADD_PARAM1(cid)
+DW_FUNCTION_RETURN(dw_render_new, HWND)
+DW_FUNCTION_RESTORE_PARAM1(cid, ULONG)
 {
-   GtkWidget *tmp;
-
-   tmp = gtk_drawing_area_new();
-   g_object_set_data(G_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(id));
+   GtkWidget *tmp = gtk_drawing_area_new();
+   g_object_set_data(G_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(cid));
    gtk_widget_set_can_focus(tmp, TRUE);
    gtk_widget_show(tmp);
    if(_DWDefaultFont)
       dw_window_set_font(tmp, _DWDefaultFont);
-   return tmp;
+   DW_FUNCTION_RETURN_THIS(tmp);
 }
 
 /* Returns a GdkRGBA from a DW color */
-static GdkRGBA _internal_color(unsigned long value)
+static GdkRGBA _dw_internal_color(unsigned long value)
 {
    if(DW_RGB_COLOR & value)
    {
@@ -5825,7 +6143,7 @@ static GdkRGBA _internal_color(unsigned long value)
  */
 void dw_color_foreground_set(unsigned long value)
 {
-   GdkRGBA color = _internal_color(value);
+   GdkRGBA color = _dw_internal_color(value);
    GdkRGBA *foreground = pthread_getspecific(_dw_fg_color_key);
 
    *foreground = color;
@@ -5851,7 +6169,7 @@ void dw_color_background_set(unsigned long value)
    }
    else
    {
-      GdkRGBA color = _internal_color(value);
+      GdkRGBA color = _dw_internal_color(value);
 
       if(!background)
       {
@@ -5868,10 +6186,13 @@ void dw_color_background_set(unsigned long value)
  * Returns:
  *       The selected color or the current color if cancelled.
  */
-unsigned long API dw_color_choose(unsigned long value)
+DW_FUNCTION_DEFINITION(dw_color_choose, ULONG, ULONG value)
+DW_FUNCTION_ADD_PARAM1(value)
+DW_FUNCTION_RETURN(dw_color_choose, ULONG)
+DW_FUNCTION_RESTORE_PARAM1(value, ULONG)
 {
    GtkColorChooser *cd;
-   GdkRGBA color = _internal_color(value);
+   GdkRGBA color = _dw_internal_color(value);
    unsigned long retcolor = value;
    DWDialog *tmp = dw_dialog_new(NULL);
 
@@ -5889,7 +6210,7 @@ unsigned long API dw_color_choose(unsigned long value)
    }
    if(GTK_IS_WINDOW(cd))
       gtk_window_destroy(GTK_WINDOW(cd));
-   return retcolor;
+   DW_FUNCTION_RETURN_THIS(retcolor);
 }
 
 /* Draw a point on a window (preferably a render window).
@@ -6332,62 +6653,66 @@ DW_FUNCTION_RESTORE_PARAM5(handle, HWND, pixmap, HPIXMAP, x, int, y, int, text, 
  *       width: Pointer to a variable to be filled in with the width.
  *       height Pointer to a variable to be filled in with the height.
  */
-void dw_font_text_extents_get(HWND handle, HPIXMAP pixmap, const char *text, int *width, int *height)
+DW_FUNCTION_DEFINITION(dw_font_text_extents_get, void, HWND handle, HPIXMAP pixmap, const char *text, int *width, int *height)
+DW_FUNCTION_ADD_PARAM5(handle, pixmap, text, width, height)
+DW_FUNCTION_NO_RETURN(dw_font_text_extents_get)
+DW_FUNCTION_RESTORE_PARAM5(handle, HWND, pixmap, HPIXMAP, text, const char *, width, int *, height, int *)
 {
    PangoFontDescription *font;
    char *fontname = NULL;
    int free_fontname = 0;
 
-   if(!text)
-      return;
-
-   if(handle)
+   if(text)
    {
-      fontname = (char *)g_object_get_data(G_OBJECT(handle), "_dw_fontname");
-      if ( fontname == NULL )
+      if(handle)
       {
-         fontname = dw_window_get_font(handle);
-         free_fontname = 1;
-      }
-   }
-   else if(pixmap)
-   {
-      if(pixmap->font)
-         fontname = pixmap->font;
-      else if(pixmap->handle)
-         fontname = (char *)g_object_get_data(G_OBJECT(pixmap->handle), "_dw_fontname");
-   }
-
-   font = pango_font_description_from_string(fontname ? fontname : "monospace 10");
-   if(font)
-   {
-      PangoContext *context = gtk_widget_get_pango_context(pixmap ? pixmap->handle : handle);
-
-      if(context)
-      {
-         PangoLayout *layout = pango_layout_new(context);
-
-         if(layout)
+         fontname = (char *)g_object_get_data(G_OBJECT(handle), "_dw_fontname");
+         if ( fontname == NULL )
          {
-            PangoRectangle rect;
-
-            pango_layout_set_font_description(layout, font);
-            pango_layout_set_text(layout, text, -1);
-            pango_layout_get_pixel_extents(layout, NULL, &rect);
-
-            if(width)
-               *width = rect.width;
-            if(height)
-               *height = rect.height;
-
-            g_object_unref(layout);
+            fontname = dw_window_get_font(handle);
+            free_fontname = 1;
          }
-         g_object_unref(context);
       }
-      pango_font_description_free(font);
+      else if(pixmap)
+      {
+         if(pixmap->font)
+            fontname = pixmap->font;
+         else if(pixmap->handle)
+            fontname = (char *)g_object_get_data(G_OBJECT(pixmap->handle), "_dw_fontname");
+      }
+
+      font = pango_font_description_from_string(fontname ? fontname : "monospace 10");
+      if(font)
+      {
+         PangoContext *context = gtk_widget_get_pango_context(pixmap ? pixmap->handle : handle);
+
+         if(context)
+         {
+            PangoLayout *layout = pango_layout_new(context);
+
+            if(layout)
+            {
+               PangoRectangle rect;
+
+               pango_layout_set_font_description(layout, font);
+               pango_layout_set_text(layout, text, -1);
+               pango_layout_get_pixel_extents(layout, NULL, &rect);
+
+               if(width)
+                  *width = rect.width;
+               if(height)
+                  *height = rect.height;
+
+               g_object_unref(layout);
+            }
+            g_object_unref(context);
+         }
+         pango_font_description_free(font);
+      }
+      if(free_fontname)
+         free(fontname);
    }
-   if(free_fontname)
-      free(fontname);
+   DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -6633,15 +6958,16 @@ void API dw_pixmap_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest, int wi
  * Returns:
  *       DW_ERROR_NONE on success and DW_ERROR_GENERAL on failure.
  */
-int API dw_pixmap_stretch_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest, int width, int height, HWND src, HPIXMAP srcp, int xsrc, int ysrc, int srcwidth, int srcheight)
+DW_FUNCTION_DEFINITION(dw_pixmap_stretch_bitblt, int, HWND dest, HPIXMAP destp, int xdest, int ydest, int width, int height, HWND src, HPIXMAP srcp, int xsrc, int ysrc, int srcwidth, int srcheight)
+DW_FUNCTION_ADD_PARAM12(dest, destp, xdest, ydest, width, height, src, srcp, xsrc, ysrc, srcwidth, srcheight)
+DW_FUNCTION_RETURN(dw_pixmap_stretch_bitblt, int)
+DW_FUNCTION_RESTORE_PARAM12(dest, HWND, destp, HPIXMAP, xdest, int, ydest, int, width, int, height, int, src, HWND, srcp, HPIXMAP, xsrc, int, ysrc, int, srcwidth, int, srcheight, int)
+
 {
    cairo_t *cr = NULL;
    int retval = DW_ERROR_GENERAL;
    GdkDrawContext *dc = NULL;
    int cached = FALSE;
-
-   if((!dest && (!destp || !destp->image)) || (!src && (!srcp || !srcp->image)))
-      return retval;
 
    if(dest)
    {
@@ -6659,8 +6985,6 @@ int API dw_pixmap_stretch_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest,
             cr = gdk_cairo_context_cairo_create(GDK_CAIRO_CONTEXT(dc));
             cairo_region_destroy(region);
          }
-         else
-            return retval;
       }
    }
    else if(destp)
@@ -6696,7 +7020,7 @@ int API dw_pixmap_stretch_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest,
          cairo_destroy(cr);
       retval = DW_ERROR_NONE;
    }
-   return retval;
+   DW_FUNCTION_RETURN_THIS(retval);
 }
 
 /*
@@ -7912,9 +8236,13 @@ DW_FUNCTION_RESTORE_PARAM2(box, HWND, index, int)
  *       vsize: TRUE if the window (widget) should expand vertically to fill space given.
  *       pad: Number of pixels of padding around the item.
  */
-void API dw_box_pack_at_index(HWND box, HWND item, int index, int width, int height, int hsize, int vsize, int pad)
+DW_FUNCTION_DEFINITION(dw_box_pack_at_index, void, HWND box, HWND item, int index, int width, int height, int hsize, int vsize, int pad)
+DW_FUNCTION_ADD_PARAM8(box, item, index, width, height, hsize, vsize, pad)
+DW_FUNCTION_NO_RETURN(dw_box_pack_at_index)
+DW_FUNCTION_RESTORE_PARAM8(box, HWND, item, HWND, index, int, width, int, height, int, hsize, int, vsize, int, pad, int)
 {
     _dw_box_pack(box, item, index, width, height, hsize, vsize, pad, "dw_box_pack_at_index()");
+    DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -7928,12 +8256,16 @@ void API dw_box_pack_at_index(HWND box, HWND item, int index, int width, int hei
  *       vsize: TRUE if the window (widget) should expand vertically to fill space given.
  *       pad: Number of pixels of padding around the item.
  */
-void API dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize, int vsize, int pad)
+DW_FUNCTION_DEFINITION(dw_box_pack_start, void, HWND box, HWND item, int width, int height, int hsize, int vsize, int pad)
+DW_FUNCTION_ADD_PARAM7(box, item, width, height, hsize, vsize, pad)
+DW_FUNCTION_NO_RETURN(dw_box_pack_start)
+DW_FUNCTION_RESTORE_PARAM7(box, HWND, item, HWND, width, int, height, int, hsize, int, vsize, int, pad, int)
 {
     /* 65536 is the table limit on GTK...
      * seems like a high enough value we will never hit it here either.
      */
     _dw_box_pack(box, item, 65536, width, height, hsize, vsize, pad, "dw_box_pack_start()");
+    DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -7947,9 +8279,13 @@ void API dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize
  *       vsize: TRUE if the window (widget) should expand vertically to fill space given.
  *       pad: Number of pixels of padding around the item.
  */
-void API dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, int vsize, int pad)
+DW_FUNCTION_DEFINITION(dw_box_pack_end, void, HWND box, HWND item, int width, int height, int hsize, int vsize, int pad)
+DW_FUNCTION_ADD_PARAM7(box, item, width, height, hsize, vsize, pad)
+DW_FUNCTION_NO_RETURN(dw_box_pack_end)
+DW_FUNCTION_RESTORE_PARAM7(box, HWND, item, HWND, width, int, height, int, hsize, int, vsize, int, pad, int)
 {
     _dw_box_pack(box, item, 0, width, height, hsize, vsize, pad, "dw_box_pack_end()");
+    DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -7981,7 +8317,10 @@ DW_FUNCTION_RESTORE_PARAM3(handle, HWND, width, ULONG, height, ULONG)
  *       width: Width in pixels of the item or NULL if not needed.
  *       height: Height in pixels of the item or NULL if not needed.
  */
-void API dw_window_get_preferred_size(HWND handle, int *width, int *height)
+DW_FUNCTION_DEFINITION(dw_window_get_preferred_size, void, HWND handle, int *width, int *height)
+DW_FUNCTION_ADD_PARAM3(handle, width, height)
+DW_FUNCTION_NO_RETURN(dw_window_get_preferred_size)
+DW_FUNCTION_RESTORE_PARAM3(handle, HWND, width, int *, height, int *)
 {
    if(GTK_IS_SCROLLED_WINDOW(handle))
    {
@@ -8001,6 +8340,7 @@ void API dw_window_get_preferred_size(HWND handle, int *width, int *height)
       if(height)
          gtk_widget_measure(GTK_WIDGET(handle), GTK_ORIENTATION_VERTICAL, -1, height, NULL, NULL, NULL);
    }
+   DW_FUNCTION_RETURN_NOTHING;
 }
 
 /* Internal version to simplify the code with multiple versions of GTK */
@@ -8118,20 +8458,24 @@ void dw_window_set_pos_size(HWND handle, long x, long y, unsigned long width, un
  *          width: Width of the widget.
  *          height: Height of the widget.
  */
-void dw_window_get_pos_size(HWND handle, long *x, long *y, ULONG *width, ULONG *height)
+DW_FUNCTION_DEFINITION(dw_window_get_pos_size, void, HWND handle, long *x, long *y, ULONG *width, ULONG *height)
+DW_FUNCTION_ADD_PARAM5(handle, x, y, width, height)
+DW_FUNCTION_NO_RETURN(dw_window_get_pos_size)
+DW_FUNCTION_RESTORE_PARAM5(handle, HWND, x, long *, y, long *, width, ULONG *, height, ULONG *)
 {
    /* TODO: Figure out how to do this in GTK4 with no GdkWindow */
-   if(!handle || !GTK_IS_WIDGET(handle))
-      return;
-      
-   if(width)
-      *width = (ULONG)gtk_widget_get_width(GTK_WIDGET(handle));
-   if(height)
-      *height = (ULONG)gtk_widget_get_height(GTK_WIDGET(handle));
-   if(x)
-      *x = 0;
-   if(y)
-      *y = 0;
+   if(handle && GTK_IS_WIDGET(handle))
+   {
+      if(width)
+         *width = (ULONG)gtk_widget_get_width(GTK_WIDGET(handle));
+      if(height)
+         *height = (ULONG)gtk_widget_get_height(GTK_WIDGET(handle));
+      if(x)
+         *x = 0;
+      if(y)
+         *y = 0;
+   }
+   DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -8141,7 +8485,10 @@ void dw_window_get_pos_size(HWND handle, long *x, long *y, ULONG *width, ULONG *
  *          width: New width in pixels.
  *          height: New height in pixels.
  */
-void dw_window_set_style(HWND handle, unsigned long style, unsigned long mask)
+DW_FUNCTION_DEFINITION(dw_window_set_style, void, HWND handle, ULONG style, ULONG mask)
+DW_FUNCTION_ADD_PARAM3(handle, style, mask)
+DW_FUNCTION_NO_RETURN(dw_window_set_style)
+DW_FUNCTION_RESTORE_PARAM3(handle, HWND, style, ULONG, mask, ULONG)
 {
    GtkWidget *handle2 = handle;
 
@@ -8217,6 +8564,7 @@ void dw_window_set_style(HWND handle, unsigned long style, unsigned long mask)
       _dw_ignore_click = 0;
    }
 #endif   
+   DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -8226,10 +8574,14 @@ void dw_window_set_style(HWND handle, unsigned long style, unsigned long mask)
  *          flags: Any additional page creation flags.
  *          front: If TRUE page is added at the beginning.
  */
-unsigned long dw_notebook_page_new(HWND handle, unsigned long flags, int front)
+DW_FUNCTION_DEFINITION(dw_notebook_page_new, ULONG, HWND handle, DW_UNUSED(ULONG flags), int front)
+DW_FUNCTION_ADD_PARAM3(handle, flags, front)
+DW_FUNCTION_RETURN(dw_notebook_page_new, ULONG)
+DW_FUNCTION_RESTORE_PARAM3(handle, HWND, DW_UNUSED(flags), ULONG, front, int)
 {
-   int z;
    GtkWidget **pagearray;
+   ULONG retval = 256;
+   int z;
 
    pagearray = (GtkWidget **)g_object_get_data(G_OBJECT(handle), "_dw_pagearray");
 
@@ -8248,13 +8600,12 @@ unsigned long dw_notebook_page_new(HWND handle, unsigned long flags, int front)
             snprintf(text, 100, "_dw_page%d", z);
             /* Save the real id and the creation flags */
             g_object_set_data(G_OBJECT(handle), text, GINT_TO_POINTER(num));
-            return z;
+            retval = (ULONG)z;
+            z = 256;
          }
       }
    }
-
-   /* Hopefully this won't happen. */
-   return 256;
+   DW_FUNCTION_RETURN_THIS(retval);
 }
 
 /* Return the physical page id from the logical page id */
@@ -8283,7 +8634,10 @@ int _get_physical_page(HWND handle, unsigned long pageid)
  *          handle: Handle to the notebook widget.
  *          pageid: ID of the page to be destroyed.
  */
-void dw_notebook_page_destroy(HWND handle, unsigned int pageid)
+DW_FUNCTION_DEFINITION(dw_notebook_page_destroy, void, HWND handle, unsigned int pageid)
+DW_FUNCTION_ADD_PARAM2(handle, pageid)
+DW_FUNCTION_NO_RETURN(dw_notebook_page_destroy)
+DW_FUNCTION_RESTORE_PARAM2(handle, HWND, pageid, unsigned int)
 {
    int realpage;
    GtkWidget **pagearray;
@@ -8295,6 +8649,7 @@ void dw_notebook_page_destroy(HWND handle, unsigned int pageid)
       if((pagearray = g_object_get_data(G_OBJECT(handle), "_dw_pagearray")))
          pagearray[pageid] = NULL;
    }
+   DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -8302,13 +8657,17 @@ void dw_notebook_page_destroy(HWND handle, unsigned int pageid)
  * Parameters:
  *          handle: Handle to the notebook widget.
  */
-unsigned long dw_notebook_page_get(HWND handle)
+DW_FUNCTION_DEFINITION(dw_notebook_page_get, ULONG, HWND handle)
+DW_FUNCTION_ADD_PARAM1(handle)
+DW_FUNCTION_RETURN(dw_notebook_page_get, ULONG)
+DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
 {
-   int retval, phys;
+   int phys;
+   ULONG retval;
 
    phys = gtk_notebook_get_current_page(GTK_NOTEBOOK(handle));
    retval = _dw_get_logical_page(handle, phys);
-   return retval;
+   DW_FUNCTION_RETURN_THIS(retval);
 }
 
 /*
@@ -8317,13 +8676,17 @@ unsigned long dw_notebook_page_get(HWND handle)
  *          handle: Handle to the notebook widget.
  *          pageid: ID of the page to be made visible.
  */
-void dw_notebook_page_set(HWND handle, unsigned int pageid)
+DW_FUNCTION_DEFINITION(dw_notebook_page_set, void, HWND handle, unsigned int pageid)
+DW_FUNCTION_ADD_PARAM2(handle, pageid)
+DW_FUNCTION_NO_RETURN(dw_notebook_page_set)
+DW_FUNCTION_RESTORE_PARAM2(handle, HWND, pageid, unsigned int)
 {
    int realpage;
 
    realpage = _get_physical_page(handle, pageid);
    if(realpage > -1 && realpage < 256)
       gtk_notebook_set_current_page(GTK_NOTEBOOK(handle), pageid);
+   DW_FUNCTION_RETURN_NOTHING;
 }
 
 
@@ -8334,7 +8697,10 @@ void dw_notebook_page_set(HWND handle, unsigned int pageid)
  *          pageid: Page ID of the tab to set.
  *          text: Pointer to the text to set.
  */
-void dw_notebook_page_set_text(HWND handle, unsigned long pageid, const char *text)
+DW_FUNCTION_DEFINITION(dw_notebook_page_set_text, void, HWND handle, ULONG pageid, const char *text)
+DW_FUNCTION_ADD_PARAM3(handle, pageid, text)
+DW_FUNCTION_NO_RETURN(dw_notebook_page_set_text)
+DW_FUNCTION_RESTORE_PARAM3(handle, HWND, pageid, ULONG, text, const char *)
 {
    GtkWidget *child;
    int realpage;
@@ -8356,6 +8722,7 @@ void dw_notebook_page_set_text(HWND handle, unsigned long pageid, const char *te
       if(child)
          gtk_notebook_set_tab_label_text(GTK_NOTEBOOK(handle), child, text);
    }
+   DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -8377,7 +8744,10 @@ void dw_notebook_page_set_status_text(HWND handle, unsigned long pageid, const c
  *          pageid: Page ID in the notebook which is being packed.
  *          page: Box handle to be packed.
  */
-void dw_notebook_pack(HWND handle, unsigned long pageid, HWND page)
+DW_FUNCTION_DEFINITION(dw_notebook_pack, void, HWND handle, ULONG pageid, HWND page)
+DW_FUNCTION_ADD_PARAM3(handle, pageid, page)
+DW_FUNCTION_NO_RETURN(dw_notebook_pack)
+DW_FUNCTION_RESTORE_PARAM3(handle, HWND, pageid, ULONG, page, HWND)
 {
    GtkWidget *label, *child, *oldlabel, **pagearray;
    const gchar *text = NULL;
@@ -8389,37 +8759,38 @@ void dw_notebook_pack(HWND handle, unsigned long pageid, HWND page)
    g_object_set_data(G_OBJECT(handle), ptext, NULL);
    pagearray = (GtkWidget **)g_object_get_data(G_OBJECT(handle), "_dw_pagearray");
 
-   if(!pagearray)
-      return;
-
-   /* The page already exists... so get it's current page */
-   if(pagearray[pageid])
+   if(pagearray)
    {
-      for(z=0;z<256;z++)
+      /* The page already exists... so get it's current page */
+      if(pagearray[pageid])
       {
-         child = gtk_notebook_get_nth_page(GTK_NOTEBOOK(handle), z);
-         if(child == pagearray[pageid])
+         for(z=0;z<256;z++)
          {
-            oldlabel = gtk_notebook_get_tab_label(GTK_NOTEBOOK(handle), child);
-            if(oldlabel)
-               text = gtk_label_get_text(GTK_LABEL(oldlabel));
-            gtk_notebook_remove_page(GTK_NOTEBOOK(handle), z);
-            realpage = z;
-            break;
+            child = gtk_notebook_get_nth_page(GTK_NOTEBOOK(handle), z);
+            if(child == pagearray[pageid])
+            {
+               oldlabel = gtk_notebook_get_tab_label(GTK_NOTEBOOK(handle), child);
+               if(oldlabel)
+                  text = gtk_label_get_text(GTK_LABEL(oldlabel));
+               gtk_notebook_remove_page(GTK_NOTEBOOK(handle), z);
+               realpage = z;
+               break;
+            }
          }
       }
+
+      pagearray[pageid] = page;
+
+      label = gtk_label_new(text ? text : "");
+
+      if(realpage != -1)
+         gtk_notebook_insert_page(GTK_NOTEBOOK(handle), page, label, realpage);
+      else if(num & ~(0xFF))
+         gtk_notebook_insert_page(GTK_NOTEBOOK(handle), page, label, 0);
+      else
+         gtk_notebook_insert_page(GTK_NOTEBOOK(handle), page, label, 256);
    }
-
-   pagearray[pageid] = page;
-
-   label = gtk_label_new(text ? text : "");
-
-   if(realpage != -1)
-      gtk_notebook_insert_page(GTK_NOTEBOOK(handle), page, label, realpage);
-   else if(num & ~(0xFF))
-      gtk_notebook_insert_page(GTK_NOTEBOOK(handle), page, label, 0);
-   else
-      gtk_notebook_insert_page(GTK_NOTEBOOK(handle), page, label, 256);
+   DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -8573,7 +8944,10 @@ DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
  * Parameters:
  *          handle: Handle to the listbox to be counted
  */
-int dw_listbox_count(HWND handle)
+DW_FUNCTION_DEFINITION(dw_listbox_count, int, HWND handle)
+DW_FUNCTION_ADD_PARAM1(handle)
+DW_FUNCTION_RETURN(dw_listbox_count, int)
+DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
 {
    GtkWidget *handle2 = handle;
    GtkListStore *store = NULL;
@@ -8600,7 +8974,7 @@ int dw_listbox_count(HWND handle)
          retval = gtk_tree_model_iter_n_children(GTK_TREE_MODEL(store), NULL);
       }
    }
-   return retval;
+   DW_FUNCTION_RETURN_THIS(retval);
 }
 
 /*
@@ -9033,7 +9407,10 @@ static gint _dw_splitbar_realize(GtkWidget *widget, gpointer data)
  * Returns:
  *       A handle to a splitbar window or NULL on failure.
  */
-HWND dw_splitbar_new(int type, HWND topleft, HWND bottomright, unsigned long id)
+DW_FUNCTION_DEFINITION(dw_splitbar_new, HWND, int type, HWND topleft, HWND bottomright, unsigned long cid)
+DW_FUNCTION_ADD_PARAM4(type, topleft, bottomright, cid)
+DW_FUNCTION_RETURN(dw_splitbar_new, HWND)
+DW_FUNCTION_RESTORE_PARAM4(type, int, topleft, HWND, bottomright, HWND, cid, unsigned long)
 {
    GtkWidget *tmp = NULL;
    float *percent = malloc(sizeof(float));
@@ -9045,12 +9422,12 @@ HWND dw_splitbar_new(int type, HWND topleft, HWND bottomright, unsigned long id)
    gtk_paned_set_end_child(GTK_PANED(tmp), bottomright);
    gtk_paned_set_resize_end_child(GTK_PANED(tmp), TRUE);
    gtk_paned_set_shrink_end_child(GTK_PANED(tmp), FALSE);
-   g_object_set_data(G_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(id));
+   g_object_set_data(G_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(cid));
    *percent = 50.0;
    g_object_set_data(G_OBJECT(tmp), "_dw_percent", (gpointer)percent);
    g_signal_connect(G_OBJECT(tmp), "realize", G_CALLBACK(_dw_splitbar_realize), NULL);
    gtk_widget_show(tmp);
-   return tmp;
+   DW_FUNCTION_RETURN_THIS(tmp);
 }
 
 /*
@@ -9058,7 +9435,10 @@ HWND dw_splitbar_new(int type, HWND topleft, HWND bottomright, unsigned long id)
  * Parameters:
  *       handle: The handle to the splitbar returned by dw_splitbar_new().
  */
-void dw_splitbar_set(HWND handle, float percent)
+DW_FUNCTION_DEFINITION(dw_splitbar_set, void, HWND handle, float percent)
+DW_FUNCTION_ADD_PARAM2(handle, percent)
+DW_FUNCTION_NO_RETURN(dw_splitbar_set)
+DW_FUNCTION_RESTORE_PARAM2(handle, HWND, percent, float)
 {
    float *mypercent = (float *)dw_window_get_data(handle, "_dw_percent");
    int size = 0, position;
@@ -9077,6 +9457,7 @@ void dw_splitbar_set(HWND handle, float percent)
 
       gtk_paned_set_position(GTK_PANED(handle), position);
    }
+   DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -9084,13 +9465,17 @@ void dw_splitbar_set(HWND handle, float percent)
  * Parameters:
  *       handle: The handle to the splitbar returned by dw_splitbar_new().
  */
-float dw_splitbar_get(HWND handle)
+DW_FUNCTION_DEFINITION(dw_splitbar_get, float, HWND handle)
+DW_FUNCTION_ADD_PARAM1(handle)
+DW_FUNCTION_RETURN(dw_splitbar_get, float)
+DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
 {
    float *percent = (float *)dw_window_get_data(handle, "_dw_percent");
+   float retval = 0.0;
 
    if(percent)
-      return *percent;
-   return 0.0;
+      retval = *percent;
+   DW_FUNCTION_RETURN_THIS(retval);
 }
 
 /*
@@ -9100,21 +9485,24 @@ float dw_splitbar_get(HWND handle)
  * Returns:
  *       A handle to a calendar window or NULL on failure.
  */
-HWND dw_calendar_new(unsigned long id)
+DW_FUNCTION_DEFINITION(dw_calendar_new, HWND, ULONG cid)
+DW_FUNCTION_ADD_PARAM1(cid)
+DW_FUNCTION_RETURN(dw_calendar_new, HWND)
+DW_FUNCTION_RESTORE_PARAM1(cid, ULONG)
 {
    GtkWidget *tmp = gtk_calendar_new();
    GTimeZone *tz = g_time_zone_new_local();
    GDateTime *now = g_date_time_new_now(tz);
 
    gtk_widget_show(tmp);
-   g_object_set_data(G_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(id));
+   g_object_set_data(G_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(cid));
    /* select today */
    gtk_calendar_set_show_day_names(GTK_CALENDAR(tmp), TRUE);
    gtk_calendar_set_show_heading(GTK_CALENDAR(tmp), TRUE);
    gtk_calendar_select_day(GTK_CALENDAR(tmp), now);
    g_date_time_unref(now);
    g_time_zone_unref(tz);
-   return tmp;
+   DW_FUNCTION_RETURN_THIS(tmp);
 }
 
 /*
@@ -9123,7 +9511,10 @@ HWND dw_calendar_new(unsigned long id)
  *       handle: The handle to the calendar returned by dw_calendar_new().
  *       year...
  */
-void dw_calendar_set_date(HWND handle, unsigned int year, unsigned int month, unsigned int day)
+DW_FUNCTION_DEFINITION(dw_calendar_set_date, void, HWND handle, unsigned int year, unsigned int month, unsigned int day)
+DW_FUNCTION_ADD_PARAM4(handle, year, month, day)
+DW_FUNCTION_NO_RETURN(dw_calendar_set_date)
+DW_FUNCTION_RESTORE_PARAM4(handle, HWND, year, unsigned int, month, unsigned int, day, unsigned int)
 {
    if(GTK_IS_CALENDAR(handle))
    {
@@ -9133,6 +9524,7 @@ void dw_calendar_set_date(HWND handle, unsigned int year, unsigned int month, un
       g_date_time_unref(datetime);
       g_time_zone_unref(tz);
    }
+   DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -9140,7 +9532,10 @@ void dw_calendar_set_date(HWND handle, unsigned int year, unsigned int month, un
  * Parameters:
  *       handle: The handle to the splitbar returned by dw_splitbar_new().
  */
-void dw_calendar_get_date(HWND handle, unsigned int *year, unsigned int *month, unsigned int *day)
+DW_FUNCTION_DEFINITION(dw_calendar_get_date, void, HWND handle, unsigned int *year, unsigned int *month, unsigned int *day)
+DW_FUNCTION_ADD_PARAM4(handle, year, month, day)
+DW_FUNCTION_NO_RETURN(dw_calendar_get_date)
+DW_FUNCTION_RESTORE_PARAM4(handle, HWND, year, unsigned int *, month, unsigned int *, day, unsigned int *)
 {
    if(GTK_IS_CALENDAR(handle))
    {
@@ -9152,6 +9547,7 @@ void dw_calendar_get_date(HWND handle, unsigned int *year, unsigned int *month, 
       if(day)
          *day = g_date_time_get_day_of_month(datetime);
    }
+   DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -9161,12 +9557,14 @@ void dw_calendar_get_date(HWND handle, unsigned int *year, unsigned int *month, 
  * Remarks:
  *          This is for use after showing the window/dialog.
  */
-void API dw_window_set_focus(HWND handle)
+DW_FUNCTION_DEFINITION(dw_window_set_focus, void, HWND handle)
+DW_FUNCTION_ADD_PARAM1(handle)
+DW_FUNCTION_NO_RETURN(dw_window_set_focus)
+DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
 {
-    if(!handle)
-       return;
-
-    gtk_widget_grab_focus(handle);
+    if(handle)
+       gtk_widget_grab_focus(handle);
+   DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -9179,10 +9577,8 @@ void API dw_window_set_focus(HWND handle)
  */
 void dw_window_default(HWND window, HWND defaultitem)
 {
-   if(!window)
-      return;
-
-   g_object_set_data(G_OBJECT(window),  "_dw_defaultitem", (gpointer)defaultitem);
+   if(window)
+      g_object_set_data(G_OBJECT(window),  "_dw_defaultitem", (gpointer)defaultitem);
 }
 
 /*
@@ -9191,7 +9587,10 @@ void dw_window_default(HWND window, HWND defaultitem)
  *         window: Window (widget) to look for the ENTER press.
  *         next: Window (widget) to move to next (or click)
  */
-void dw_window_click_default(HWND window, HWND next)
+DW_FUNCTION_DEFINITION(dw_window_click_default, void, HWND window, HWND next)
+DW_FUNCTION_ADD_PARAM2(window, next)
+DW_FUNCTION_NO_RETURN(dw_window_click_default)
+DW_FUNCTION_RESTORE_PARAM2(window, HWND, next, HWND)
 {
    if(window && next && GTK_IS_WIDGET(window) && GTK_IS_WIDGET(next))
    {
@@ -9199,6 +9598,7 @@ void dw_window_click_default(HWND window, HWND next)
       gtk_widget_add_controller(GTK_WIDGET(window), controller);
       g_signal_connect(G_OBJECT(controller), "key-pressed", G_CALLBACK(_dw_default_key_press_event), next);
    }
+   DW_FUNCTION_RETURN_NOTHING;
 }
 
 
@@ -9327,14 +9727,17 @@ void dw_environment_query(DWEnv *env)
  *       the file path on success.
  *
  */
-char *dw_file_browse(const char *title, const char *defpath, const char *ext, int flags)
+DW_FUNCTION_DEFINITION(dw_file_browse, char *, const char *title, const char *defpath, const char *ext, int flags)
+DW_FUNCTION_ADD_PARAM4(title, defpath, ext, flags)
+DW_FUNCTION_RETURN(dw_file_browse, char *)
+DW_FUNCTION_RESTORE_PARAM4(title, const char *, defpath, const char *, ext, const char *, flags, int)
 {
    GtkWidget *filew;
 
    GtkFileChooserAction action;
    GtkFileFilter *filter1 = NULL;
    GtkFileFilter *filter2 = NULL;
-   gchar *button;
+   gchar *button = NULL;
    char *filename = NULL;
    char buf[1000];
    DWDialog *tmp = dw_dialog_new(NULL);
@@ -9355,59 +9758,61 @@ char *dw_file_browse(const char *title, const char *defpath, const char *ext, in
          break;
       default:
          dw_messagebox( "Coding error", DW_MB_OK|DW_MB_ERROR, "dw_file_browse() flags argument invalid.");
-         return NULL;
          break;
    }
 
-   filew = gtk_file_chooser_dialog_new ( title,
-                                         NULL,
-                                         action,
-                                         _("_Cancel"), GTK_RESPONSE_CANCEL,
-                                         button, GTK_RESPONSE_ACCEPT,
-                                         NULL);
-
-   if(ext)
+   if(button)
    {
-      filter1 = gtk_file_filter_new();
-      sprintf( buf, "*.%s", ext );
-      gtk_file_filter_add_pattern( filter1, (gchar *)buf );
-      sprintf( buf, "\"%s\" files", ext );
-      gtk_file_filter_set_name( filter1, (gchar *)buf );
-      filter2 = gtk_file_filter_new();
-      gtk_file_filter_add_pattern( filter2, (gchar *)"*" );
-      gtk_file_filter_set_name( filter2, (gchar *)"All Files" );
-      gtk_file_chooser_add_filter( GTK_FILE_CHOOSER( filew ), filter1 );
-      gtk_file_chooser_add_filter( GTK_FILE_CHOOSER( filew ), filter2 );
-   }
+      filew = gtk_file_chooser_dialog_new ( title,
+                                            NULL,
+                                            action,
+                                            _("_Cancel"), GTK_RESPONSE_CANCEL,
+                                            button, GTK_RESPONSE_ACCEPT,
+                                            NULL);
 
-   if(defpath)
-   {
-      GFile *path = g_file_new_for_path(defpath);
-
-      /* See if the path exists */
-      if(path)
+      if(ext)
       {
-         /* If the path is a directory... set the current folder */
-         gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(filew), path, NULL);
-         gtk_file_chooser_set_file(GTK_FILE_CHOOSER(filew), path, NULL);
-
-         g_object_unref(G_OBJECT(path));
+         filter1 = gtk_file_filter_new();
+         sprintf( buf, "*.%s", ext );
+         gtk_file_filter_add_pattern( filter1, (gchar *)buf );
+         sprintf( buf, "\"%s\" files", ext );
+         gtk_file_filter_set_name( filter1, (gchar *)buf );
+         filter2 = gtk_file_filter_new();
+         gtk_file_filter_add_pattern( filter2, (gchar *)"*" );
+         gtk_file_filter_set_name( filter2, (gchar *)"All Files" );
+         gtk_file_chooser_add_filter( GTK_FILE_CHOOSER( filew ), filter1 );
+         gtk_file_chooser_add_filter( GTK_FILE_CHOOSER( filew ), filter2 );
       }
+
+      if(defpath)
+      {
+         GFile *path = g_file_new_for_path(defpath);
+
+         /* See if the path exists */
+         if(path)
+         {
+            /* If the path is a directory... set the current folder */
+            gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(filew), path, NULL);
+            gtk_file_chooser_set_file(GTK_FILE_CHOOSER(filew), path, NULL);
+
+            g_object_unref(G_OBJECT(path));
+         }
+      }
+
+      gtk_widget_show(GTK_WIDGET(filew));
+      g_signal_connect(G_OBJECT(filew), "response", G_CALLBACK(_dw_dialog_response), (gpointer)tmp);
+
+      if(DW_POINTER_TO_INT(dw_dialog_wait(tmp)) == GTK_RESPONSE_ACCEPT)
+      {
+         GFile *file = gtk_file_chooser_get_file(GTK_FILE_CHOOSER(filew));
+         filename = g_file_get_path(file);
+         g_object_unref(G_OBJECT(file));
+      }
+
+      if(GTK_IS_WINDOW(filew))
+         gtk_window_destroy(GTK_WINDOW(filew));
    }
-
-   gtk_widget_show(GTK_WIDGET(filew));
-   g_signal_connect(G_OBJECT(filew), "response", G_CALLBACK(_dw_dialog_response), (gpointer)tmp);
-
-   if(DW_POINTER_TO_INT(dw_dialog_wait(tmp)) == GTK_RESPONSE_ACCEPT)
-   {
-      GFile *file = gtk_file_chooser_get_file(GTK_FILE_CHOOSER(filew));
-      filename = g_file_get_path(file);
-      g_object_unref(G_OBJECT(file));
-   }
-
-   if(GTK_IS_WINDOW(filew))
-      gtk_window_destroy(GTK_WINDOW(filew));
-   return filename;
+   DW_FUNCTION_RETURN_THIS(filename);
 }
 
 
@@ -9622,7 +10027,10 @@ int dw_html_javascript_run(HWND handle, const char *script, void *scriptdata)
  * Parameters:
  *       id: An ID to be used with dw_window_from_id() or 0L.
  */
-HWND dw_html_new(unsigned long id)
+DW_FUNCTION_DEFINITION(dw_html_new, HWND, DW_UNUSED(ULONG cid))
+DW_FUNCTION_ADD_PARAM1(cid)
+DW_FUNCTION_RETURN(dw_html_new, HWND)
+DW_FUNCTION_RESTORE_PARAM1(DW_UNUSED(cid), ULONG)
 {
    GtkWidget *widget = NULL;
 #ifdef USE_WEBKIT
@@ -9635,11 +10043,12 @@ HWND dw_html_new(unsigned long id)
    webkit_settings_set_enable_javascript(settings, TRUE);
    webkit_web_view_set_settings(web_view, settings);
    widget = (GtkWidget *)web_view;
+   g_object_set_data(G_OBJECT(widget), "_dw_id", GINT_TO_POINTER(cid));
    gtk_widget_show(widget);
 #else
    dw_debug( "HTML widget not available; you do not have access to webkit.\n" );
 #endif
-   return widget;
+   DW_FUNCTION_RETURN_THIS(widget);
 }
 
 static void _dw_clipboard_callback(GObject *object, GAsyncResult *res, gpointer data)
