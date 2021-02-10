@@ -45,7 +45,7 @@
 #endif
 
 /* Macros to encapsulate running functions on the main thread
- * #define _DW_SINGLE_THREADED to disable thread safety encapulation.
+ * #define _DW_SINGLE_THREADED to disable thread safety encapsulation.
  * Parameters converted to a pointer array: 
  * [0] Pointer to the thread's event semaphore
  * [1] Pointer to the funtion's return value
@@ -1076,10 +1076,11 @@ static gint _dw_container_enter_event(GtkEventControllerKey *controller, guint k
 
    if(work.window && GTK_IS_WIDGET(work.window))
    {
-      GtkWidget *widget = work.window;
+      GtkWidget *widget = GTK_WIDGET(g_object_get_data(G_OBJECT(work.window), "_dw_user"));
       GdkEvent *event = gtk_event_controller_get_current_event(GTK_EVENT_CONTROLLER(controller));
       GdkEventType type = gdk_event_get_event_type(event);
-      gint button = gdk_button_event_get_button(event);
+      gint button = (type == GDK_BUTTON_PRESS) ? gdk_button_event_get_button(event) : -1;
+      
 
       /* TODO: Make sure this works. 
          Handle both key and button events together */
