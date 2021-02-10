@@ -406,7 +406,7 @@ static gboolean _dw_delete_event(GtkWidget *window, gpointer data);
 static gint _dw_key_press_event(GtkEventControllerKey *controller, guint keyval, guint keycode, GdkModifierType state, gpointer data);
 static gint _dw_generic_event(GtkWidget *widget, gpointer data);
 static gint _dw_configure_event(GtkWidget *widget, int width, int height, gpointer data);
-static gint _dw_container_enter_event(GtkEventControllerKey *controller, guint keyval, guint keycode, GdkModifierType state, gpointer data);
+static gint _dw_container_enter_event(GtkEventController *controller, guint keyval, guint keycode, GdkModifierType state, gpointer data);
 static gint _dw_combobox_select_event(GtkWidget *widget, gpointer data);
 static gint _dw_expose_event(GtkWidget *widget, cairo_t *cr, int width, int height, gpointer data);
 static gint _dw_set_focus_event(GtkWindow *window, GtkWidget *widget, gpointer data);
@@ -1069,21 +1069,20 @@ static gint _dw_tree_expand_event(GtkTreeView *widget, GtkTreeIter *iter, GtkTre
    return retval;
 }
 
-static gint _dw_container_enter_event(GtkEventControllerKey *controller, guint keyval, guint keycode, GdkModifierType state, gpointer data)
+static gint _dw_container_enter_event(GtkEventController *controller, guint keyval, guint keycode, GdkModifierType state, gpointer data)
 {
    SignalHandler work = _dw_get_signal_handler(data);
    int retval = FALSE;
 
    if(work.window && GTK_IS_WIDGET(work.window))
    {
-      GtkWidget *widget = GTK_WIDGET(g_object_get_data(G_OBJECT(work.window), "_dw_user"));
+      GtkWidget *user = GTK_WIDGET(g_object_get_data(G_OBJECT(work.window), "_dw_user"));
+      GtkWidget *widget = user ? user : work.window;
       GdkEvent *event = gtk_event_controller_get_current_event(GTK_EVENT_CONTROLLER(controller));
       GdkEventType type = gdk_event_get_event_type(event);
       gint button = (type == GDK_BUTTON_PRESS) ? gdk_button_event_get_button(event) : -1;
       
-
-      /* TODO: Make sure this works. 
-         Handle both key and button events together */
+      /* Handle both key and button events together */
       if((type == GDK_BUTTON_PRESS && button == 1) || keyval == VK_RETURN)
       {
          int (*contextfunc)(HWND, char *, void *, void *) = work.func;
@@ -1117,6 +1116,13 @@ static gint _dw_container_enter_event(GtkEventControllerKey *controller, guint k
       }
    }
    return retval;
+}
+
+/* Just forward to the other handler, with bogus key info */
+void _dw_container_enter_mouse(GtkEventController *controller, int n_press, double x, double  y, gpointer data)
+{
+   if(n_press == 2)
+      _dw_container_enter_event(GTK_EVENT_CONTROLLER(controller), 0, 0, 0, data);
 }
 
 /* Return the logical page id from the physical page id */
@@ -10427,6 +10433,19 @@ static void _dw_signal_disconnect(gpointer data, GClosure *closure)
 /* Signal setup functions */
 GObject *_dw_key_setup(struct _dw_signal_list *signal, GObject *object, void *sigfunc, void *discfunc, void *data)
 {
+   /* Special case for item enter... we need a mouse callback too */
+   if(strcmp(signal->name, DW_SIGNAL_ITEM_ENTER) == 0)
+   {
+      GtkGesture *gesture = gtk_gesture_click_new();
+      gtk_widget_add_controller(GTK_WIDGET(object), GTK_EVENT_CONTROLLER(gesture));
+      int cid, sigid = _dw_set_signal_handler(G_OBJECT(object), (HWND)object, sigfunc, data, (gpointer)_dw_container_enter_mouse, discfunc);
+      void **newparams = calloc(sizeof(void *), 3);
+
+      newparams[0] = DW_INT_TO_POINTER(sigid);
+      newparams[2] = DW_POINTER(object);
+      cid = g_signal_connect_data(G_OBJECT(gesture), "pressed", G_CALLBACK(_dw_container_enter_mouse), newparams, _dw_signal_disconnect, 0);
+      _dw_set_signal_handler_id(object, sigid, cid);
+   }
    if(GTK_IS_WIDGET(object))
    {
       GtkEventController *controller = gtk_event_controller_key_new();
