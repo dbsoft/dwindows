@@ -2937,8 +2937,9 @@ DW_FUNCTION_RESTORE_PARAM4(menu, HMENUI *, parent, HWND, x, int, y, int)
    {
       GtkWidget *tmp = gtk_popover_menu_new_from_model_full(G_MENU_MODEL(*menu), GTK_POPOVER_MENU_NESTED);
       GdkRectangle rect = { x, y, 1, 1 };
-      
+
       gtk_widget_set_parent(tmp, GTK_WIDGET(parent));
+
       if(!g_object_get_data(G_OBJECT(*menu), "_dw_menuparent"))
       {
          int menugroup = DW_POINTER_TO_INT(g_object_get_data(G_OBJECT(*menu), "_dw_menugroup"));
@@ -5926,7 +5927,7 @@ DW_FUNCTION_RESTORE_PARAM2(handle, HWND, flags, unsigned long)
    DW_FUNCTION_RETURN_THIS(retval);
 }
 
-int _find_iter(GtkListStore *store, GtkTreeIter *iter, void *data, int textcomp)
+int _dw_find_iter(GtkListStore *store, GtkTreeIter *iter, void *data, int textcomp)
 {
    int z, rows = gtk_tree_model_iter_n_children(GTK_TREE_MODEL(store), NULL);
    void *thisdata;
@@ -5965,7 +5966,7 @@ void _dw_container_cursor_int(HWND handle, void *data, int textcomp)
    {
       GtkTreeIter iter;
 
-      if(_find_iter(store, &iter, data, textcomp))
+      if(_dw_find_iter(store, &iter, data, textcomp))
       {
          GtkTreePath *path = gtk_tree_model_get_path(GTK_TREE_MODEL(store), &iter);
 
@@ -6024,7 +6025,7 @@ void _dw_container_delete_row_int(HWND handle, void *data, int textcomp)
       GtkTreeIter iter;
       int rows = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(cont), "_dw_rowcount"));
 
-      if(_find_iter(store, &iter, data, textcomp))
+      if(_dw_find_iter(store, &iter, data, textcomp))
       {
          gtk_list_store_remove(store, &iter);
          rows--;
@@ -7040,7 +7041,7 @@ void dw_beep(int freq, int dur)
    gdk_display_beep(gdk_display_get_default());
 }
 
-void _my_strlwr(char *buf)
+void _dw_strlwr(char *buf)
 {
    int z, len = strlen(buf);
 
@@ -7077,7 +7078,7 @@ int dw_module_load(const char *name, HMOD *handle)
       return -1;
 
    sprintf(newname, "lib%s.so", name);
-   _my_strlwr(newname);
+   _dw_strlwr(newname);
 
    *handle = dlopen(newname, RTLD_NOW);
    if(*handle == NULL)
@@ -7305,15 +7306,15 @@ int dw_event_close(HEV *eve)
    return DW_ERROR_NONE;
 }
 
-struct _seminfo {
+struct _dw_seminfo {
    int fd;
    int waiting;
 };
 
-static void _handle_sem(int *tmpsock)
+static void _dw_handle_sem(int *tmpsock)
 {
    fd_set rd;
-   struct _seminfo *array = (struct _seminfo *)malloc(sizeof(struct _seminfo));
+   struct _dw_seminfo *array = (struct _dw_seminfo *)malloc(sizeof(struct _dw_seminfo));
    int listenfd = tmpsock[0];
    int bytesread, connectcount = 1, maxfd, z, posted = 0;
    char command;
@@ -7360,14 +7361,14 @@ static void _handle_sem(int *tmpsock)
 
       if(FD_ISSET(listenfd, &rd))
       {
-         struct _seminfo *newarray;
+         struct _dw_seminfo *newarray;
          int newfd = accept(listenfd, 0, 0);
 
          if(newfd > -1)
          {
             /* Add new connections to the set */
-            newarray = (struct _seminfo *)malloc(sizeof(struct _seminfo)*(connectcount+1));
-            memcpy(newarray, array, sizeof(struct _seminfo)*(connectcount));
+            newarray = (struct _dw_seminfo *)malloc(sizeof(struct _dw_seminfo)*(connectcount+1));
+            memcpy(newarray, array, sizeof(struct _dw_seminfo)*(connectcount));
 
             newarray[connectcount].fd = newfd;
             newarray[connectcount].waiting = 0;
@@ -7387,17 +7388,17 @@ static void _handle_sem(int *tmpsock)
          {
             if((bytesread = read(array[z].fd, &command, 1)) < 1)
             {
-               struct _seminfo *newarray;
+               struct _dw_seminfo *newarray;
 
                /* Remove this connection from the set */
-               newarray = (struct _seminfo *)malloc(sizeof(struct _seminfo)*(connectcount-1));
+               newarray = (struct _dw_seminfo *)malloc(sizeof(struct _dw_seminfo)*(connectcount-1));
                if(!z)
-                  memcpy(newarray, &array[1], sizeof(struct _seminfo)*(connectcount-1));
+                  memcpy(newarray, &array[1], sizeof(struct _dw_seminfo)*(connectcount-1));
                else
                {
-                  memcpy(newarray, array, sizeof(struct _seminfo)*z);
+                  memcpy(newarray, array, sizeof(struct _dw_seminfo)*z);
                   if(z!=(connectcount-1))
-                     memcpy(&newarray[z], &array[z+1], sizeof(struct _seminfo)*(z-connectcount-1));
+                     memcpy(&newarray[z], &array[z+1], sizeof(struct _dw_seminfo)*(z-connectcount-1));
                }
                connectcount--;
 
@@ -7507,7 +7508,7 @@ HEV dw_named_event_new(const char *name)
    }
 
    /* Create a thread to handle this event semaphore */
-   pthread_create(&dwthread, NULL, (void *)_handle_sem, (void *)tmpsock);
+   pthread_create(&dwthread, NULL, (void *)_dw_handle_sem, (void *)tmpsock);
    return GINT_TO_POINTER(ev);
 }
 
@@ -7635,7 +7636,7 @@ int dw_named_event_wait(HEV eve, unsigned long timeout)
 int dw_named_event_close(HEV eve)
 {
    /* Finally close the domain socket,
-    * cleanup will continue in _handle_sem.
+    * cleanup will continue in _dw_handle_sem.
     */
    close(GPOINTER_TO_INT(eve));
    return DW_ERROR_NONE;
@@ -7864,7 +7865,7 @@ void dw_exit(int exitcode)
 }
 
 /* Internal function to get the recommended size of scrolled items */
-void _get_scrolled_size(GtkWidget *item, gint *thiswidth, gint *thisheight)
+void _dw_get_scrolled_size(GtkWidget *item, gint *thiswidth, gint *thisheight)
 {
    GtkWidget *widget = g_object_get_data(G_OBJECT(item), "_dw_user");
 
@@ -8064,7 +8065,7 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
 
          /* Pre-run the calculation code for MLE/Container/Tree if needed */
          if((width < 1 && !hsize) || (height < 1 && !vsize))
-            _get_scrolled_size(item, &scrolledwidth, &scrolledheight);
+            _dw_get_scrolled_size(item, &scrolledwidth, &scrolledheight);
 
          if(width > 0)
             gtk_scrolled_window_set_min_content_width(GTK_SCROLLED_WINDOW(item), width);
@@ -8327,7 +8328,7 @@ DW_FUNCTION_RESTORE_PARAM3(handle, HWND, width, int *, height, int *)
    {
       gint scrolledwidth, scrolledheight;
 
-      _get_scrolled_size(handle, &scrolledwidth, &scrolledheight);
+      _dw_get_scrolled_size(handle, &scrolledwidth, &scrolledheight);
 
       if(width)
          *width = scrolledwidth;
@@ -8610,7 +8611,7 @@ DW_FUNCTION_RESTORE_PARAM3(handle, HWND, DW_UNUSED(flags), ULONG, front, int)
 }
 
 /* Return the physical page id from the logical page id */
-int _get_physical_page(HWND handle, unsigned long pageid)
+int _dw_get_physical_page(HWND handle, unsigned long pageid)
 {
    int z;
    GtkWidget *thispage, **pagearray = g_object_get_data(G_OBJECT(handle), "_dw_pagearray");
@@ -8640,10 +8641,9 @@ DW_FUNCTION_ADD_PARAM2(handle, pageid)
 DW_FUNCTION_NO_RETURN(dw_notebook_page_destroy)
 DW_FUNCTION_RESTORE_PARAM2(handle, HWND, pageid, unsigned int)
 {
-   int realpage;
    GtkWidget **pagearray;
+   int realpage = _dw_get_physical_page(handle, pageid);
 
-   realpage = _get_physical_page(handle, pageid);
    if(realpage > -1 && realpage < 256)
    {
       gtk_notebook_remove_page(GTK_NOTEBOOK(handle), realpage);
@@ -8663,10 +8663,9 @@ DW_FUNCTION_ADD_PARAM1(handle)
 DW_FUNCTION_RETURN(dw_notebook_page_get, ULONG)
 DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
 {
-   int phys;
    ULONG retval;
+   int phys = gtk_notebook_get_current_page(GTK_NOTEBOOK(handle));
 
-   phys = gtk_notebook_get_current_page(GTK_NOTEBOOK(handle));
    retval = _dw_get_logical_page(handle, phys);
    DW_FUNCTION_RETURN_THIS(retval);
 }
@@ -8682,9 +8681,8 @@ DW_FUNCTION_ADD_PARAM2(handle, pageid)
 DW_FUNCTION_NO_RETURN(dw_notebook_page_set)
 DW_FUNCTION_RESTORE_PARAM2(handle, HWND, pageid, unsigned int)
 {
-   int realpage;
+   int realpage = _dw_get_physical_page(handle, pageid);
 
-   realpage = _get_physical_page(handle, pageid);
    if(realpage > -1 && realpage < 256)
       gtk_notebook_set_current_page(GTK_NOTEBOOK(handle), pageid);
    DW_FUNCTION_RETURN_NOTHING;
@@ -8704,9 +8702,8 @@ DW_FUNCTION_NO_RETURN(dw_notebook_page_set_text)
 DW_FUNCTION_RESTORE_PARAM3(handle, HWND, pageid, ULONG, text, const char *)
 {
    GtkWidget *child;
-   int realpage;
+   int realpage = _dw_get_physical_page(handle, pageid);
 
-   realpage = _get_physical_page(handle, pageid);
    if(realpage < 0 || realpage > 255)
    {
       char ptext[101] = {0};
@@ -10369,7 +10366,7 @@ void API dw_timer_disconnect(int id)
 /* Get the actual signal window handle not the user window handle
  * Should mimic the code in dw_signal_connect() below.
  */
-static HWND _find_signal_window(HWND window, const char *signame)
+static HWND _dw_find_signal_window(HWND window, const char *signame)
 {
    HWND thiswindow = window;
 
@@ -10635,7 +10632,7 @@ void dw_signal_disconnect_by_name(HWND window, const char *signame)
    SignalList signal;
    void **params = alloca(sizeof(void *) * 3);
 
-   params[2] = _find_signal_window(window, signame);
+   params[2] = _dw_find_signal_window(window, signame);
    count = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(params[2]), "_dw_sigcounter"));
    signal = _dw_findsignal(signame);
    
@@ -10664,7 +10661,7 @@ void dw_signal_disconnect_by_window(HWND window)
    HWND thiswindow;
    int z, count;
 
-   thiswindow = _find_signal_window(window, NULL);
+   thiswindow = _dw_find_signal_window(window, NULL);
    count = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(thiswindow), "_dw_sigcounter"));
 
    for(z=0;z<count;z++)
@@ -10683,7 +10680,7 @@ void dw_signal_disconnect_by_data(HWND window, void *data)
    int z, count;
    void **params = alloca(sizeof(void *) * 3);
 
-   params[2] = _find_signal_window(window, NULL);
+   params[2] = _dw_find_signal_window(window, NULL);
    count = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(params[2]), "_dw_sigcounter"));
 
    for(z=0;z<count;z++)
