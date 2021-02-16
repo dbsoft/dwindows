@@ -6845,6 +6845,11 @@ DW_FUNCTION_RESTORE_PARAM3(handle, HWND, data, const char *, len, int)
          unlink(template);
          pixmap->handle = handle;
       }
+      else
+      {
+         free(pixmap);
+         pixmap = 0;
+      }
    }
    DW_FUNCTION_RETURN_THIS(pixmap);
 }
@@ -6924,13 +6929,17 @@ int API dw_pixmap_set_font(HPIXMAP pixmap, const char *fontname)
  *       pixmap: Handle to a pixmap returned by
  *               dw_pixmap_new..
  */
-void dw_pixmap_destroy(HPIXMAP pixmap)
+DW_FUNCTION_DEFINITION(dw_pixmap_destroy, void, HPIXMAP pixmap)
+DW_FUNCTION_ADD_PARAM1(pixmap)
+DW_FUNCTION_NO_RETURN(dw_pixmap_destroy)
+DW_FUNCTION_RESTORE_PARAM1(pixmap, HPIXMAP)
 {
    g_object_unref(G_OBJECT(pixmap->pixbuf));
    cairo_surface_destroy(pixmap->image);
    if(pixmap->font)
       free(pixmap->font);
    free(pixmap);
+   DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
