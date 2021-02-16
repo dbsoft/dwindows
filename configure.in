@@ -221,7 +221,7 @@ if test $build_gtk = "yes"; then
       fi
       if test $with_gtk4 = "yes"; then
          DW_DIR=gtk4
-         GTK_PACKAGES="gtk4"
+         GTK_PACKAGES="gtk4-x11"
          GTK_LIBS=`$PKG_CFG --silence-errors --libs $GTK_PACKAGES`
       fi
       WEBKIT_PKG="webkit2gtk-4.0"

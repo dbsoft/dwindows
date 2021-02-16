@@ -29,6 +29,9 @@
 #include <math.h>
 #include <gdk/gdkkeysyms.h>
 
+#ifdef GDK_WINDOWING_X11
+#include <gdk/x11/gdkx.h>
+#endif
 
 #ifdef USE_WEBKIT
 #include <webkit2/webkit2.h>
@@ -1686,22 +1689,64 @@ DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
  * Parameters:
  *           handle: The window handle to make topmost.
  */
+#ifndef GDK_WINDOWING_X11
 int dw_window_raise(HWND handle)
 {
-   /* TODO: See if this is possible in GTK4 */
    return DW_ERROR_UNKNOWN;
 }
+#else
+DW_FUNCTION_DEFINITION(dw_window_raise, int, HWND handle)
+DW_FUNCTION_ADD_PARAM1(handle)
+DW_FUNCTION_RETURN(dw_window_raise, int)
+DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
+{
+   int retval = DW_ERROR_UNKNOWN;
+   
+   if(handle && GTK_IS_WINDOW(handle))
+   {
+      GdkSurface *surface = gtk_native_get_surface(GTK_NATIVE(handle));
+      
+      if(surface)
+      {
+         XRaiseWindow(GDK_SURFACE_XDISPLAY(surface), GDK_SURFACE_XID(surface));
+         retval = DW_ERROR_NONE;
+      }
+   }
+   DW_FUNCTION_RETURN_THIS(retval);
+}
+#endif
 
 /*
  * Makes the window bottommost.
  * Parameters:
  *           handle: The window handle to make bottommost.
  */
+#ifndef GDK_WINDOWING_X11
 int dw_window_lower(HWND handle)
 {
-   /* TODO: See if this is possible in GTK4 */
    return DW_ERROR_UNKNOWN;
 }
+#else
+DW_FUNCTION_DEFINITION(dw_window_lower, int, HWND handle)
+DW_FUNCTION_ADD_PARAM1(handle)
+DW_FUNCTION_RETURN(dw_window_lower, int)
+DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
+{
+   int retval = DW_ERROR_UNKNOWN;
+   
+   if(handle && GTK_IS_WINDOW(handle))
+   {
+      GdkSurface *surface = gtk_native_get_surface(GTK_NATIVE(handle));
+      
+      if(surface)
+      {
+         XLowerWindow(GDK_SURFACE_XDISPLAY(surface), GDK_SURFACE_XID(surface));
+         retval = DW_ERROR_NONE;
+      }
+   }
+   DW_FUNCTION_RETURN_THIS(retval);
+}
+#endif
 
 /*
  * Makes the window visible.
@@ -8483,11 +8528,30 @@ void API dw_window_set_gravity(HWND handle, int horz, int vert)
  *          x: X location from the bottom left.
  *          y: Y location from the bottom left.
  */
+#ifndef GDK_WINDOWING_X11
 void dw_window_set_pos(HWND handle, long x, long y)
 {
-   /* TODO: Figure out how to do this in GTK4 with no GdkWindow */
 }
-
+#else
+DW_FUNCTION_DEFINITION(dw_window_set_pos, void, HWND handle, long x, long y)
+DW_FUNCTION_ADD_PARAM3(handle, x, y)
+DW_FUNCTION_NO_RETURN(dw_window_set_pos)
+DW_FUNCTION_RESTORE_PARAM3(handle, HWND, x, long, y, long)
+{
+   if(handle && GTK_IS_WINDOW(handle))
+   {
+      GdkSurface *surface = gtk_native_get_surface(GTK_NATIVE(handle));
+      
+      if(surface)
+      {
+         XMoveWindow(GDK_SURFACE_XDISPLAY(surface),
+                     GDK_SURFACE_XID(surface),
+                     x, y);
+      }
+   }
+   DW_FUNCTION_RETURN_NOTHING;
+}
+#endif
 /*
  * Sets the position and size of a given window (widget).
  * Parameters:
@@ -8517,17 +8581,35 @@ DW_FUNCTION_ADD_PARAM5(handle, x, y, width, height)
 DW_FUNCTION_NO_RETURN(dw_window_get_pos_size)
 DW_FUNCTION_RESTORE_PARAM5(handle, HWND, x, long *, y, long *, width, ULONG *, height, ULONG *)
 {
-   /* TODO: Figure out how to do this in GTK4 with no GdkWindow */
    if(handle && GTK_IS_WIDGET(handle))
    {
       if(width)
          *width = (ULONG)gtk_widget_get_width(GTK_WIDGET(handle));
       if(height)
          *height = (ULONG)gtk_widget_get_height(GTK_WIDGET(handle));
+
+#ifdef GDK_WINDOWING_X11
+      {
+         GdkSurface *surface = gtk_native_get_surface(GTK_NATIVE(handle));
+         
+         if(surface)
+         {
+            XWindowAttributes xwa;
+
+            XGetWindowAttributes(GDK_SURFACE_XDISPLAY(surface), 
+                                 GDK_SURFACE_XID(surface), &xwa);
+            if(x)
+               *x = (long)xwa.x;
+            if(y)
+               *y = (long)xwa.y;
+          }
+      }
+#else                                 
       if(x)
          *x = 0;
       if(y)
          *y = 0;
+#endif
    }
    DW_FUNCTION_RETURN_NOTHING;
 }
