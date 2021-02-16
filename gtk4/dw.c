@@ -391,6 +391,8 @@ static pthread_t _dw_thread = (pthread_t)-1;
 #define _DW_TREE_TYPE_LISTBOX    3
 #define _DW_TREE_TYPE_COMBOBOX   4
 
+#define _DW_RESOURCE_PATH "/org/dbsoft/dwindows/resources/"
+
 /* Signal forwarder prototypes */
 static gint _dw_button_press_event(GtkGestureSingle *gesture, int n_press, double x, double y, gpointer data);
 static gint _dw_button_release_event(GtkGestureSingle *gesture, int n_press, double x, double y, gpointer data);
@@ -1252,7 +1254,8 @@ static void _dw_dialog_response(GtkDialog *dialog, int response_id, gpointer dat
 static GdkPixbuf *_dw_pixbuf_from_resource(unsigned int rid)
 {
    char resource_path[201] = {0};
-   snprintf(resource_path, 200, "/org/dbsoft/dwindows/resources/%u.png", rid);
+
+   snprintf(resource_path, 200, "%s%u.png", _DW_RESOURCE_PATH, rid);
    return gdk_pixbuf_new_from_resource(resource_path, NULL);
 }
 
@@ -3534,13 +3537,9 @@ DW_FUNCTION_RESTORE_PARAM2(cid, ULONG, multi, int)
 
       sel = gtk_tree_view_get_selection(GTK_TREE_VIEW(tree));
       if(multi)
-      {
          gtk_tree_selection_set_mode(sel, GTK_SELECTION_MULTIPLE);
-      }
       else
-      {
          gtk_tree_selection_set_mode(sel, GTK_SELECTION_SINGLE);
-      }
       gtk_widget_show(tree);
       if(_DWDefaultFont)
          dw_window_set_font(tmp, _DWDefaultFont);
@@ -3554,19 +3553,33 @@ DW_FUNCTION_RESTORE_PARAM2(cid, ULONG, multi, int)
  *       handle: Handle to the window.
  *       id: An ID to be used to specify the icon.
  */
-void dw_window_set_icon(HWND handle, HICN icon)
+DW_FUNCTION_DEFINITION(dw_window_set_icon, void, HWND handle, HICN icon)
+DW_FUNCTION_ADD_PARAM2(handle, icon)
+DW_FUNCTION_NO_RETURN(dw_window_set_icon)
+DW_FUNCTION_RESTORE_PARAM2(handle, HWND, icon, HICN)
 {
-   /* TODO: figure out how to do this for GTK4 */
-#if GTK3
-   GdkPixbuf *icon_pixbuf;
-
-   icon_pixbuf = _dw_find_pixbuf(icon, NULL, NULL);
-
-   if(icon_pixbuf)
+   if(handle && GTK_IS_WINDOW(handle))
    {
-      gtk_window_set_icon_name(
+      int rid = GPOINTER_TO_INT(icon);
+
+      if(rid < 65536)
+      {
+         GdkDisplay *display = gdk_display_get_default();
+         GtkIconTheme *theme = gtk_icon_theme_get_for_display(display);
+         
+         if(theme)
+         {
+            char resource_path[201] = {0};
+            char window_icon[25] = {0};
+
+            snprintf(resource_path, 200, "%s%u.png", _DW_RESOURCE_PATH, rid);
+            gtk_icon_theme_add_resource_path(theme, _DW_RESOURCE_PATH);
+            snprintf(window_icon, 24, "%u", rid);
+            gtk_window_set_icon_name(GTK_WINDOW(handle), window_icon);
+         }
+      }
    }
-#endif   
+   DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -8473,8 +8486,6 @@ void API dw_window_set_gravity(HWND handle, int horz, int vert)
 void dw_window_set_pos(HWND handle, long x, long y)
 {
    /* TODO: Figure out how to do this in GTK4 with no GdkWindow */
-   if(!handle)
-      return;
 }
 
 /*
@@ -8563,18 +8574,18 @@ DW_FUNCTION_RESTORE_PARAM3(handle, HWND, style, ULONG, mask, ULONG)
    {
       gfloat x=DW_LEFT, y=DW_CENTER;
       /* horizontal... */
-      if ( style & DW_DT_CENTER )
+      if(style & DW_DT_CENTER)
          x = DW_CENTER;
-      if ( style & DW_DT_RIGHT )
+      if(style & DW_DT_RIGHT)
          x = DW_RIGHT;
-      if ( style & DW_DT_LEFT )
+      if(style & DW_DT_LEFT)
          x = DW_LEFT;
       /* vertical... */
-      if ( style & DW_DT_VCENTER )
+      if(style & DW_DT_VCENTER)
          y = DW_CENTER;
-      if ( style & DW_DT_TOP )
+      if(style & DW_DT_TOP)
          y = DW_TOP;
-      if ( style & DW_DT_BOTTOM )
+      if(style & DW_DT_BOTTOM)
          y = DW_BOTTOM;
       gtk_label_set_xalign(GTK_LABEL(handle2), x);
       gtk_label_set_yalign(GTK_LABEL(handle2), y);
