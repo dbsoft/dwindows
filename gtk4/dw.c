@@ -358,8 +358,7 @@ GdkRGBA _colors[] =
 /*
  * List those icons that have transparency first
  */
-#define NUM_EXTS 9
-char *_dw_image_exts[NUM_EXTS+1] =
+static char *_dw_image_exts[] =
 {
    ".xpm",
    ".png",
@@ -387,10 +386,6 @@ pthread_key_t _dw_event_key;
 
 static int _dw_ignore_expand = 0;
 static pthread_t _dw_thread = (pthread_t)-1;
-
-#define DEFAULT_SIZE_WIDTH 12
-#define DEFAULT_SIZE_HEIGHT 6
-#define DEFAULT_TITLEBAR_HEIGHT 22
 
 #define _DW_TREE_TYPE_CONTAINER  1
 #define _DW_TREE_TYPE_TREE       2
@@ -1854,7 +1849,7 @@ void API dw_font_set_default(const char *fontname)
 /* Convert DW style font to CSS syntax (or Pango for older versions):
  * font: font-style font-variant font-weight font-size/line-height font-family
  */
-char *_convert_font(const char *font)
+char *_dw_convert_font(const char *font)
 {
    char *newfont = NULL;
    
@@ -1955,7 +1950,7 @@ DW_FUNCTION_RETURN(dw_window_set_font, int)
 DW_FUNCTION_RESTORE_PARAM2(handle, HWND, fontname, const char *)
 {
    GtkWidget *handle2 = handle;
-   char *font = _convert_font(fontname);
+   char *font = _dw_convert_font(fontname);
    gpointer data;
    int retval = DW_ERROR_NONE;
 
@@ -3563,8 +3558,6 @@ DW_FUNCTION_NO_RETURN(dw_window_set_bitmap)
 DW_FUNCTION_RESTORE_PARAM3(handle, HWND, id, ULONG, filename, const char *)
 {
    GdkPixbuf *tmp = NULL;
-   int found_ext = 0;
-   int i;
 
    if(id)
       tmp = _dw_find_pixbuf((HICN)id, NULL, NULL);
@@ -3577,19 +3570,19 @@ DW_FUNCTION_RESTORE_PARAM3(handle, HWND, id, ULONG, filename, const char *)
       /* check if we can read from this file (it exists and read permission) */
       if(access(file, 04) != 0)
       {
+         int i = 0;
+
          /* Try with various extentions */
-         for(i=0; i<NUM_EXTS; i++)
+         while(_dw_image_exts[i] && !tmp)
          {
             strcpy(file, filename);
             strcat(file, _dw_image_exts[i]);
             if(access(file, 04) == 0)
-            {
-               found_ext = 1;
-               break;
-            }
+               tmp = gdk_pixbuf_new_from_file(file, NULL);
+            i++;
          }
       }
-      if(found_ext)
+      else
          tmp = gdk_pixbuf_new_from_file(file, NULL);
    }
 
@@ -5079,7 +5072,7 @@ HICN dw_icon_load(unsigned long module, unsigned long id)
 }
 
 /* Internal function to keep HICNs from getting too big */
-GdkPixbuf *_icon_resize(GdkPixbuf *ret)
+GdkPixbuf *_dw_icon_resize(GdkPixbuf *ret)
 {
    if(ret)
    {
@@ -5105,35 +5098,33 @@ GdkPixbuf *_icon_resize(GdkPixbuf *ret)
  */
 HICN API dw_icon_load_from_file(const char *filename)
 {
-   char *file = alloca(strlen(filename) + 6);
-   int i, found_ext = 0;
+   HICN retval = 0;
 
-   if (!file)
-      return 0;
-
-   strcpy(file, filename);
-
-   /* check if we can read from this file (it exists and read permission) */
-   if (access(file, 04) != 0)
+   if(filename && *filename)
    {
-      /* Try with various extentions */
-      for ( i = 0; i < NUM_EXTS; i++ )
+      char *file = alloca(strlen(filename) + 6);
+
+      strcpy(file, filename);
+
+      /* check if we can read from this file (it exists and read permission) */
+      if(access(file, 04) != 0)
       {
-         strcpy( file, filename );
-         strcat( file, _dw_image_exts[i] );
-         if ( access( file, 04 ) == 0 )
+         int i = 0;
+
+         /* Try with various extentions */
+         while(_dw_image_exts[i] && !retval)
          {
-            found_ext = 1;
-            break;
+            strcpy(file, filename);
+            strcat(file, _dw_image_exts[i]);
+            if(access(file, 04) == 0)
+               retval = _dw_icon_resize(gdk_pixbuf_new_from_file(file, NULL));
+            i++;
          }
       }
-      if ( found_ext == 0 )
-      {
-         return 0;
-      }
+      else
+         retval = _dw_icon_resize(gdk_pixbuf_new_from_file(file, NULL));
    }
-
-   return _icon_resize(gdk_pixbuf_new_from_file(file, NULL));
+   return retval;
 }
 
 /*
@@ -5160,7 +5151,7 @@ HICN API dw_icon_load_from_data(const char *data, int len)
    /* Bail if we couldn't write full file */
    if(fd == -1 || written != len)
       return 0;
-   ret = _icon_resize(gdk_pixbuf_new_from_file(template, NULL));
+   ret = _dw_icon_resize(gdk_pixbuf_new_from_file(template, NULL));
    unlink(template);
    return ret;
 }
@@ -6734,26 +6725,25 @@ DW_FUNCTION_RESTORE_PARAM5(handle, HWND, pixmap, HPIXMAP, text, const char *, wi
  * Returns:
  *       A handle to a pixmap or NULL on failure.
  */
-HPIXMAP dw_pixmap_new(HWND handle, unsigned long width, unsigned long height, int depth)
+DW_FUNCTION_DEFINITION(dw_pixmap_new, HPIXMAP, HWND handle, unsigned long width, unsigned long height, DW_UNUSED(int depth))
+DW_FUNCTION_ADD_PARAM4(handle, width, height, depth)
+DW_FUNCTION_RETURN(dw_pixmap_new, HPIXMAP)
+DW_FUNCTION_RESTORE_PARAM4(handle, HWND, width, unsigned long, height, unsigned long, DW_UNUSED(depth), int)
 {
-   HPIXMAP pixmap;
+   HPIXMAP pixmap = 0;
 
-   if (!(pixmap = calloc(1,sizeof(struct _hpixmap))))
-      return NULL;
-
-   if (!depth)
-      depth = -1;
-
-   pixmap->width = width; pixmap->height = height;
-
-
-   pixmap->handle = handle;
-   /* Depth needs to be divided by 3... but for the RGB colorspace...
-    * only 8 bits per sample is allowed, so to avoid issues just pass 8 for now.
-    */
-   pixmap->pixbuf = gdk_pixbuf_new( GDK_COLORSPACE_RGB, FALSE, 8, width, height );
-   pixmap->image = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, width, height);
-   return pixmap;
+   if((pixmap = calloc(1,sizeof(struct _hpixmap))))
+   {
+      pixmap->width = width;
+      pixmap->height = height;
+      pixmap->handle = handle;
+      /* Depth needs to be divided by 3... but for the RGB colorspace...
+       * only 8 bits per sample is allowed, so to avoid issues just pass 8 for now.
+       */
+      pixmap->pixbuf = gdk_pixbuf_new(GDK_COLORSPACE_RGB, FALSE, 8, width, height);
+      pixmap->image = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, width, height);
+   }
+   DW_FUNCTION_RETURN_THIS(pixmap);
 }
 
 /*
@@ -6766,45 +6756,51 @@ HPIXMAP dw_pixmap_new(HWND handle, unsigned long width, unsigned long height, in
  * Returns:
  *       A handle to a pixmap or NULL on failure.
  */
-HPIXMAP dw_pixmap_new_from_file(HWND handle, const char *filename)
+DW_FUNCTION_DEFINITION(dw_pixmap_new_from_file, HPIXMAP, HWND handle, const char *filename)
+DW_FUNCTION_ADD_PARAM2(handle, filename)
+DW_FUNCTION_RETURN(dw_pixmap_new_from_file, HPIXMAP)
+DW_FUNCTION_RESTORE_PARAM2(handle, HWND, filename, const char *)
 {
-   HPIXMAP pixmap;
-   char *file = alloca(strlen(filename) + 6);
-   int found_ext = 0;
-   int i;
+   HPIXMAP pixmap = 0;
 
-   if (!file || !(pixmap = calloc(1,sizeof(struct _hpixmap))))
-      return NULL;
-
-   strcpy(file, filename);
-
-   /* check if we can read from this file (it exists and read permission) */
-   if(access(file, 04) != 0)
+   if(filename && *filename && (pixmap = calloc(1,sizeof(struct _hpixmap))))
    {
-      /* Try with various extentions */
-      for ( i = 0; i < NUM_EXTS; i++ )
+      char *file = alloca(strlen(filename) + 6);
+
+      strcpy(file, filename);
+
+      /* check if we can read from this file (it exists and read permission) */
+      if(access(file, 04) != 0)
       {
-         strcpy( file, filename );
-         strcat( file, _dw_image_exts[i] );
-         if ( access( file, 04 ) == 0 )
+         int i = 0;
+
+         /* Try with various extentions */
+         while(_dw_image_exts[i] && !pixmap->pixbuf)
          {
-            found_ext = 1;
-            break;
+            strcpy(file, filename);
+            strcat(file, _dw_image_exts[i]);
+            if(access(file, 04 ) == 0)
+               pixmap->pixbuf = gdk_pixbuf_new_from_file(file, NULL);
+            i++;
          }
       }
-      if ( found_ext == 0 )
+      else
+         pixmap->pixbuf = gdk_pixbuf_new_from_file(file, NULL);
+
+      if(pixmap->pixbuf)
+      {
+         pixmap->image = cairo_image_surface_create_from_png(file);
+         pixmap->width = gdk_pixbuf_get_width(pixmap->pixbuf);
+         pixmap->height = gdk_pixbuf_get_height(pixmap->pixbuf);
+         pixmap->handle = handle;
+      }
+      else
       {
          free(pixmap);
-         return NULL;
+         pixmap = 0;
       }
    }
-
-   pixmap->pixbuf = gdk_pixbuf_new_from_file(file, NULL);
-   pixmap->image = cairo_image_surface_create_from_png(file);
-   pixmap->width = gdk_pixbuf_get_width(pixmap->pixbuf);
-   pixmap->height = gdk_pixbuf_get_height(pixmap->pixbuf);
-   pixmap->handle = handle;
-   return pixmap;
+   DW_FUNCTION_RETURN_THIS(pixmap);
 }
 
 /*
@@ -6817,35 +6813,40 @@ HPIXMAP dw_pixmap_new_from_file(HWND handle, const char *filename)
  * Returns:
  *       A handle to a pixmap or NULL on failure.
  */
-HPIXMAP dw_pixmap_new_from_data(HWND handle, const char *data, int len)
+DW_FUNCTION_DEFINITION(dw_pixmap_new_from_data, HPIXMAP, HWND handle, const char *data, int len)
+DW_FUNCTION_ADD_PARAM3(handle, data, len)
+DW_FUNCTION_RETURN(dw_pixmap_new_from_data, HPIXMAP)
+DW_FUNCTION_RESTORE_PARAM3(handle, HWND, data, const char *, len, int)
 {
-   int fd, written = -1;
-   HPIXMAP pixmap;
-   char template[] = "/tmp/dwpixmapXXXXXX";
+   HPIXMAP pixmap = 0;
 
-   if(!data || !(pixmap = calloc(1,sizeof(struct _hpixmap))))
-      return NULL;
-
-   /*
-    * A real hack; create a temporary file and write the contents
-    * of the data to the file
-    */
-   if((fd = mkstemp(template)) != -1)
+   if(data && len > 0 && (pixmap = calloc(1,sizeof(struct _hpixmap))))
    {
-      written = write(fd, data, len);
-      close(fd);
+      int fd, written = -1;
+      char template[] = "/tmp/dwpixmapXXXXXX";
+
+      /*
+       * A real hack; create a temporary file and write the contents
+       * of the data to the file
+       */
+      if((fd = mkstemp(template)) != -1)
+      {
+         written = write(fd, data, len);
+         close(fd);
+      }
+      /* Bail if we couldn't write full file */
+      if(fd != -1 && written == len)
+      {
+         pixmap->pixbuf = gdk_pixbuf_new_from_file(template, NULL);
+         pixmap->image = cairo_image_surface_create_from_png(template);
+         pixmap->width = gdk_pixbuf_get_width(pixmap->pixbuf);
+         pixmap->height = gdk_pixbuf_get_height(pixmap->pixbuf);
+         /* remove our temporary file */
+         unlink(template);
+         pixmap->handle = handle;
+      }
    }
-   /* Bail if we couldn't write full file */
-   if(fd == -1 || written != len)
-      return 0;
-   pixmap->pixbuf = gdk_pixbuf_new_from_file(template, NULL);
-   pixmap->image = cairo_image_surface_create_from_png(template);
-   pixmap->width = gdk_pixbuf_get_width(pixmap->pixbuf);
-   pixmap->height = gdk_pixbuf_get_height(pixmap->pixbuf);
-   /* remove our temporary file */
-   unlink(template);
-   pixmap->handle = handle;
-   return pixmap;
+   DW_FUNCTION_RETURN_THIS(pixmap);
 }
 
 /*
@@ -6869,15 +6870,19 @@ void dw_pixmap_set_transparent_color(HPIXMAP pixmap, unsigned long color)
  * Returns:
  *       A handle to a pixmap or NULL on failure.
  */
-HPIXMAP dw_pixmap_grab(HWND handle, ULONG id)
+DW_FUNCTION_DEFINITION(dw_pixmap_grab, HPIXMAP, HWND handle, ULONG id)
+DW_FUNCTION_ADD_PARAM2(handle, id)
+DW_FUNCTION_RETURN(dw_pixmap_grab, HPIXMAP)
+DW_FUNCTION_RESTORE_PARAM2(handle, HWND, id, ULONG)
 {
-   HPIXMAP pixmap;
+   HPIXMAP pixmap = 0;
 
-   if (!(pixmap = calloc(1,sizeof(struct _hpixmap))))
-      return NULL;
-
-   pixmap->pixbuf = gdk_pixbuf_copy(_dw_find_pixbuf((HICN)id, &pixmap->width, &pixmap->height));
-   return pixmap;
+   if((pixmap = calloc(1,sizeof(struct _hpixmap))))
+   {
+      pixmap->pixbuf = gdk_pixbuf_copy(_dw_find_pixbuf((HICN)id, &pixmap->width, &pixmap->height));
+      pixmap->handle = handle;
+   }
+   DW_FUNCTION_RETURN_THIS(pixmap);
 }
 
 /* Call this after drawing to the screen to make sure
@@ -6904,7 +6909,7 @@ int API dw_pixmap_set_font(HPIXMAP pixmap, const char *fontname)
     {
          char *oldfont = pixmap->font;
 
-         pixmap->font = _convert_font(fontname);
+         pixmap->font = _dw_convert_font(fontname);
 
          if(oldfont)
              free(oldfont);
