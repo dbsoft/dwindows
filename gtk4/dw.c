@@ -1762,11 +1762,6 @@ DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
       else if(GTK_IS_WIDGET(handle))
       {
          GtkWidget *box, *handle2 = handle;
-         GtkWidget *eventbox = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_eventbox");
-
-         /* Handle the invisible event box if it exists */
-         if(eventbox && GTK_IS_WIDGET(eventbox))
-            handle2 = eventbox;
 
          /* Check if we are removing a widget from a box */	
          if((box = gtk_widget_get_parent(handle2)) && GTK_IS_GRID(box))
@@ -2225,15 +2220,6 @@ DW_FUNCTION_RESTORE_PARAM3(handle, HWND, fore, unsigned long, back, unsigned lon
       GtkWidget *tmp = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_user");
       if(tmp)
          handle2 = tmp;
-   }
-   else if(GTK_IS_GRID(handle))
-   {
-      GtkWidget *tmp = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_eventbox");
-      if(tmp)
-      {
-         handle2 = tmp;
-         fore = DW_CLR_DEFAULT;
-      }
    }
 
    _dw_set_color(handle2, fore, back);
@@ -8134,11 +8120,6 @@ DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
    if(GTK_IS_WIDGET(handle))
    {
       GtkWidget *box, *handle2 = handle;
-      GtkWidget *eventbox = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_eventbox");
-
-      /* Handle the invisible event box if it exists */
-      if(eventbox && GTK_IS_WIDGET(eventbox))
-         handle2 = eventbox;
 
       /* Check if we are removing a widget from a box */	
       if((box = gtk_widget_get_parent(handle2)) && GTK_IS_GRID(box))
@@ -10825,4 +10806,5 @@ int API dw_feature_set(DWFEATURE feature, int state)
             return DW_FEATURE_UNSUPPORTED;
     }
 }
+
 
