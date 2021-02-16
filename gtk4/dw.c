@@ -305,7 +305,7 @@ gboolean _##func(void **_args) {
 #define DW_FUNCTION_ADD_PARAM7(param1, param2, param3, param4, param5, param6, param7)
 #define DW_FUNCTION_ADD_PARAM8(param1, param2, param3, param4, param5, param6, param7, param8)
 #define DW_FUNCTION_ADD_PARAM9(param1, param2, param3, param4, param5, param6, param7, param8, param9)
-#define DW_FUNCTION_ADD_PARAM10(param1, param2, param3, param4, param5, param6, param7, param8, param9. param10)
+#define DW_FUNCTION_ADD_PARAM10(param1, param2, param3, param4, param5, param6, param7, param8, param9, param10)
 #define DW_FUNCTION_ADD_PARAM11(param1, param2, param3, param4, param5, param6, param7, param8, param9, param10, param11)
 #define DW_FUNCTION_ADD_PARAM12(param1, param2, param3, param4, param5, param6, param7, param8, param9, param10, param11, param12)
 #define DW_FUNCTION_RESTORE_PARAM1(param1, vartype1)
@@ -359,7 +359,7 @@ GdkRGBA _colors[] =
  * List those icons that have transparency first
  */
 #define NUM_EXTS 9
-char *image_exts[NUM_EXTS] =
+char *_dw_image_exts[NUM_EXTS+1] =
 {
    ".xpm",
    ".png",
@@ -369,7 +369,8 @@ char *image_exts[NUM_EXTS] =
    ".jpg",
    ".jpeg",
    ".tiff",
-   ".bmp"
+   ".bmp",
+   NULL
 };
 
 #ifndef max
@@ -383,8 +384,6 @@ char *image_exts[NUM_EXTS] =
 pthread_key_t _dw_fg_color_key;
 pthread_key_t _dw_bg_color_key;
 pthread_key_t _dw_event_key;
-
-GtkWidget *last_window = NULL, *popup = NULL;
 
 static int _dw_ignore_expand = 0;
 static pthread_t _dw_thread = (pthread_t)-1;
@@ -3595,7 +3594,7 @@ DW_FUNCTION_RESTORE_PARAM3(handle, HWND, id, ULONG, filename, const char *)
          for(i=0; i<NUM_EXTS; i++)
          {
             strcpy(file, filename);
-            strcat(file, image_exts[i]);
+            strcat(file, _dw_image_exts[i]);
             if(access(file, 04) == 0)
             {
                found_ext = 1;
@@ -5134,7 +5133,7 @@ HICN API dw_icon_load_from_file(const char *filename)
       for ( i = 0; i < NUM_EXTS; i++ )
       {
          strcpy( file, filename );
-         strcat( file, image_exts[i] );
+         strcat( file, _dw_image_exts[i] );
          if ( access( file, 04 ) == 0 )
          {
             found_ext = 1;
@@ -6799,7 +6798,7 @@ HPIXMAP dw_pixmap_new_from_file(HWND handle, const char *filename)
       for ( i = 0; i < NUM_EXTS; i++ )
       {
          strcpy( file, filename );
-         strcat( file, image_exts[i] );
+         strcat( file, _dw_image_exts[i] );
          if ( access( file, 04 ) == 0 )
          {
             found_ext = 1;
