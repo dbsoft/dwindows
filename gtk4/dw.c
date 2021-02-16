@@ -384,7 +384,6 @@ pthread_key_t _dw_fg_color_key;
 pthread_key_t _dw_bg_color_key;
 pthread_key_t _dw_event_key;
 
-static int _dw_ignore_expand = 0;
 static pthread_t _dw_thread = (pthread_t)-1;
 
 #define _DW_TREE_TYPE_CONTAINER  1
@@ -1055,7 +1054,7 @@ static gint _dw_tree_expand_event(GtkTreeView *widget, GtkTreeIter *iter, GtkTre
    SignalHandler work = _dw_get_signal_handler(data);
    int retval = FALSE;
 
-   if(!_dw_ignore_expand && work.window)
+   if(work.window)
    {
       int (*treeexpandfunc)(HWND, HTREEITEM, void *) = work.func;
       retval = treeexpandfunc(work.window, (HTREEITEM)iter, work.data);
@@ -1301,6 +1300,15 @@ static void _dw_notification_handler(GSimpleAction *action, GVariant *param, gpo
 static void _dw_menu_handler(GSimpleAction *action, GVariant *param, gpointer data)
 {
    SignalHandler work = _dw_get_signal_handler(data);
+   GVariant *action_state = g_action_get_state(G_ACTION(action));
+   
+   /* Handle toggling checkable menu items automatically, before the callback */
+   if(action_state)
+   {
+      gboolean active = g_variant_get_boolean(action_state);
+      GVariant *new_state = g_variant_new_boolean(!active);
+      g_simple_action_set_state(action, new_state);
+   }
 
    if(work.window)
    {
@@ -2737,7 +2745,10 @@ DW_FUNCTION_RESTORE_PARAM7(menu, HMENUI, title, const char *, id, unsigned long,
 
             snprintf(tempbuf, 100, "menu%d.action%lu", menugroup, id);
             actionname = strchr(tempbuf, '.');
-            action = g_simple_action_new(&actionname[1], NULL);
+            if(check)
+               action = g_simple_action_new_stateful(&actionname[1], NULL, g_variant_new_boolean (FALSE));
+            else
+               action = g_simple_action_new(&actionname[1], NULL);
             g_action_map_add_action(G_ACTION_MAP(group), G_ACTION(action));
             tmphandle=(HWND)g_menu_item_new(temptitle, tempbuf);
             snprintf(numbuf, 24, "%lu", id);
@@ -2792,26 +2803,37 @@ GMenuItem *_dw_find_submenu_id(HMENUI start, const char *name)
  *       check: TRUE for checked FALSE for not checked.
  * deprecated: use dw_menu_item_set_state()
  */
-void dw_menu_item_set_check(HMENUI menu, unsigned long id, int check)
+DW_FUNCTION_DEFINITION(dw_menu_item_set_check, void, HMENUI menu, ULONG cid, int check)
+DW_FUNCTION_ADD_PARAM3(menu, cid, check)
+DW_FUNCTION_NO_RETURN(dw_menu_item_set_check)
+DW_FUNCTION_RESTORE_PARAM3(menu, HMENUI, cid, ULONG, check, int)
 {
-#if 0
-   char numbuf[25] = {0};
-   GMenuItem *tmphandle;
-
-   if(!menu)
-      return;
-
-   snprintf(numbuf, 24, "%lu", id);
-   tmphandle = _dw_find_submenu_id(menu, numbuf);
-
-   if(tmphandle && G_IS_MENU_ITEM(tmphandle))
+   if(menu)
    {
-      GSimpleAction *action = g_object_get_data(G_OBJECT(tmphandle), "_dw_action");
-      
-      if(gtk_check_menu_item_get_active(GTK_CHECK_MENU_ITEM(tmphandle)) != check)
-         gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(tmphandle), check);
+      char numbuf[25] = {0};
+      GMenuItem *tmphandle;
+
+      snprintf(numbuf, 24, "%lu", cid);
+      tmphandle = _dw_find_submenu_id(menu, numbuf);
+
+      if(tmphandle && G_IS_MENU_ITEM(tmphandle))
+      {
+         GSimpleAction *action = g_object_get_data(G_OBJECT(tmphandle), "_dw_action");
+         
+         if(action)
+         {
+            GVariant *action_state = g_action_get_state(G_ACTION(action));
+            gboolean thischeck = check;
+
+            if(!action_state || (g_variant_get_boolean(action_state) != thischeck))
+            {
+               GVariant *new_state = g_variant_new_boolean(thischeck);
+               g_simple_action_set_state(action, new_state);
+            }
+         }
+      }
    }
-#endif
+   DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -2826,11 +2848,11 @@ DW_FUNCTION_ADD_PARAM3(menu, cid, state)
 DW_FUNCTION_NO_RETURN(dw_menu_item_set_state)
 DW_FUNCTION_RESTORE_PARAM3(menu, HMENUI, cid, ULONG, state, ULONG)
 {
-   char numbuf[25] = {0};
-   GMenuItem *tmphandle;
-
    if(menu)
    {
+      char numbuf[25] = {0};
+      GMenuItem *tmphandle;
+
       snprintf(numbuf, 24, "%lu", cid);
       tmphandle = _dw_find_submenu_id(menu, numbuf);
 
@@ -2838,24 +2860,29 @@ DW_FUNCTION_RESTORE_PARAM3(menu, HMENUI, cid, ULONG, state, ULONG)
       {
          GSimpleAction *action = g_object_get_data(G_OBJECT(tmphandle), "_dw_action");
          
-   #if 0
-         if((state & DW_MIS_CHECKED) || (state & DW_MIS_UNCHECKED))
+         if(action)
          {
-            int check = 0;
+            if((state & DW_MIS_CHECKED) || (state & DW_MIS_UNCHECKED))
+            {
+               GVariant *action_state = g_action_get_state(G_ACTION(action));
+               gboolean check = false;
 
-            if(state & DW_MIS_CHECKED)
-               check = 1;
+               if(state & DW_MIS_CHECKED)
+                  check = true;
 
-            if(gtk_check_menu_item_get_active(GTK_CHECK_MENU_ITEM(tmphandle)) != check)
-               gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(tmphandle), check);
-         }
-   #endif
-         if((state & DW_MIS_ENABLED) || (state & DW_MIS_DISABLED))
-         {
-            if(state & DW_MIS_ENABLED)
-               g_simple_action_set_enabled(action, TRUE);
-            else
-               g_simple_action_set_enabled(action, FALSE);
+               if(!action_state || (g_variant_get_boolean(action_state) != check))
+               {
+                  GVariant *new_state = g_variant_new_boolean(check);
+                  g_simple_action_set_state(action, new_state);
+               }
+            }
+            if((state & DW_MIS_ENABLED) || (state & DW_MIS_DISABLED))
+            {
+               if(state & DW_MIS_ENABLED)
+                  g_simple_action_set_enabled(action, TRUE);
+               else
+                  g_simple_action_set_enabled(action, FALSE);
+            }
          }
       }
    }
@@ -8553,33 +8580,38 @@ DW_FUNCTION_RESTORE_PARAM3(handle, HWND, style, ULONG, mask, ULONG)
       if(style & DW_DT_WORDBREAK)
          gtk_label_set_wrap(GTK_LABEL(handle), TRUE);
    }
-   if(G_IS_MENU_ITEM(handle2) && (mask & (DW_MIS_ENABLED | DW_MIS_DISABLED)))
+   if(G_IS_MENU_ITEM(handle2))
    {
       GSimpleAction *action = g_object_get_data(G_OBJECT(handle2), "_dw_action");
       
-      if((style & DW_MIS_ENABLED) || (style & DW_MIS_DISABLED))
+      if(action)
       {
-         if(style & DW_MIS_ENABLED)
-            g_simple_action_set_enabled(action, TRUE);
-         else
-            g_simple_action_set_enabled(action, FALSE);
+         if(mask & (DW_MIS_ENABLED | DW_MIS_DISABLED))
+         {
+            if((style & DW_MIS_ENABLED) || (style & DW_MIS_DISABLED))
+            {
+               if(style & DW_MIS_ENABLED)
+                  g_simple_action_set_enabled(action, TRUE);
+               else
+                  g_simple_action_set_enabled(action, FALSE);
+            }
+         }
+         if(mask & (DW_MIS_CHECKED | DW_MIS_UNCHECKED))
+         {
+            GVariant *action_state = g_action_get_state(G_ACTION(action));
+            gboolean check = false;
+
+            if(style & DW_MIS_CHECKED)
+               check = true;
+
+            if(!action_state || (g_variant_get_boolean(action_state) != check))
+            {
+               GVariant *new_state = g_variant_new_boolean(check);
+               g_simple_action_set_state(action, new_state);
+            }
+         }
       }
    }
-   /* TODO: Convert to GMenuModel */
-#if GTK3   
-   if(GTK_IS_CHECK_MENU_ITEM(handle2) && (mask & (DW_MIS_CHECKED | DW_MIS_UNCHECKED)) 
-   {
-      int check = 0;
-
-      if ( style & DW_MIS_CHECKED )
-         check = 1;
-
-      _dw_ignore_click = 1;
-      if(gtk_check_menu_item_get_active(GTK_CHECK_MENU_ITEM(handle2)) != check)
-         gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(handle2), check);
-      _dw_ignore_click = 0;
-   }
-#endif   
    DW_FUNCTION_RETURN_NOTHING;
 }
 
