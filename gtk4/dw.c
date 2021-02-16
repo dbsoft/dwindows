@@ -8551,11 +8551,12 @@ DW_FUNCTION_RESTORE_PARAM3(handle, HWND, style, ULONG, mask, ULONG)
    {
         if(mask & DW_BS_NOBORDER)
         {
-            /* TODO: Figure out how to do this in GTK4 with no Shadow or Relief */
+            GtkStyleContext *context = gtk_widget_get_style_context(GTK_WIDGET(handle));
+  
             if(style & DW_BS_NOBORDER)
-               ;
+               gtk_style_context_add_class(context, "flat");
             else
-               ;
+               gtk_style_context_remove_class(context, "flat");
         }
    }
    if(GTK_IS_LABEL(handle2))
