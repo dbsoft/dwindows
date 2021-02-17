@@ -1351,7 +1351,7 @@ static void _dw_app_activate(GApplication *app, gpointer user_data)
  *           newthread: True if this is the only thread.
  *                      False if there is already a message loop running.
  */
-int dw_init(int newthread, int argc, char *argv[])
+int API dw_init(int newthread, int argc, char *argv[])
 {
    /* Setup the private data directory */
    if(argc > 0 && argv[0])
@@ -1509,7 +1509,7 @@ void API dw_main_iteration(void)
  *           ptr: Pointer to dynamic windows allocated
  *                memory to be free()'d.
  */
-void dw_free(void *ptr)
+void API dw_free(void *ptr)
 {
    free(ptr);
 }
@@ -1519,7 +1519,7 @@ void dw_free(void *ptr)
  * Parameters:
  *           data: User defined data to be passed to functions.
  */
-DWDialog *dw_dialog_new(void *data)
+DWDialog * API dw_dialog_new(void *data)
 {
    DWDialog *tmp = calloc(sizeof(DWDialog), 1);
 
@@ -1541,7 +1541,7 @@ DWDialog *dw_dialog_new(void *data)
  *           dialog: Pointer to a dialog struct aquired by dw_dialog_new).
  *           result: Data to be returned by dw_dialog_wait().
  */
-int dw_dialog_dismiss(DWDialog *dialog, void *result)
+int API dw_dialog_dismiss(DWDialog *dialog, void *result)
 {
    dialog->result = result;
    if(dialog->method)
@@ -1558,7 +1558,7 @@ int dw_dialog_dismiss(DWDialog *dialog, void *result)
  * Parameters:
  *           dialog: Pointer to a dialog struct aquired by dw_dialog_new).
  */
-void *dw_dialog_wait(DWDialog *dialog)
+void * API dw_dialog_wait(DWDialog *dialog)
 {
    void *tmp;
 
@@ -1609,7 +1609,7 @@ void API dw_debug(const char *format, ...)
  *           format: printf style format string.
  *           ...: Additional variables for use in the format.
  */
-int dw_messagebox(const char *title, int flags, const char *format, ...)
+int API dw_messagebox(const char *title, int flags, const char *format, ...)
 {
    GtkMessageType gtkicon = GTK_MESSAGE_OTHER;
    GtkButtonsType gtkbuttons = GTK_BUTTONS_OK;
@@ -1697,7 +1697,7 @@ DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
  *           handle: The window handle to make topmost.
  */
 #ifndef GDK_WINDOWING_X11
-int dw_window_raise(HWND handle)
+int API dw_window_raise(HWND handle)
 {
    return DW_ERROR_UNKNOWN;
 }
@@ -1729,7 +1729,7 @@ DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
  *           handle: The window handle to make bottommost.
  */
 #ifndef GDK_WINDOWING_X11
-int dw_window_lower(HWND handle)
+int API dw_window_lower(HWND handle)
 {
    return DW_ERROR_UNKNOWN;
 }
@@ -1874,7 +1874,7 @@ DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
  * Parameters:
  *           handle: Toplevel window handle to be redrawn.
  */
-void dw_window_redraw(HWND handle)
+void API dw_window_redraw(HWND handle)
 {
 }
 
@@ -2291,7 +2291,7 @@ DW_FUNCTION_RESTORE_PARAM3(handle, HWND, fore, unsigned long, back, unsigned lon
  *          handle: The window (widget) handle.
  *          border: Size of the window border in pixels.
  */
-int dw_window_set_border(HWND handle, int border)
+int API dw_window_set_border(HWND handle, int border)
 {
    /* TODO */
    return 0;
@@ -2332,7 +2332,7 @@ DW_FUNCTION_RESTORE_PARAM2(handle, HWND, pointertype, int)
  *       handle: Handle to receive mouse input.
  */
 #ifndef GDK_WINDOWING_X11
-void dw_window_capture(HWND handle)
+void API dw_window_capture(HWND handle)
 {
 }
 #else
@@ -2364,7 +2364,7 @@ DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
  * Releases previous mouse capture.
  */
 #ifndef GDK_WINDOWING_X11
-void dw_window_release(void)
+void API dw_window_release(void)
 {
 }
 #else
@@ -3108,7 +3108,7 @@ DW_FUNCTION_RESTORE_PARAM2(x, long *, y, long *)
  *       y: Y coordinate.
  */
 #ifndef GDK_WINDOWING_X11
-void dw_pointer_set_pos(long x, long y)
+void API dw_pointer_set_pos(long x, long y)
 {
 }
 #else
@@ -4222,7 +4222,7 @@ DW_FUNCTION_RESTORE_PARAM2(handle, HWND, state, int)
  *          handle: Handle to the MLE.
  *          state: Bitwise combination of DW_MLE_COMPLETE_TEXT/DASH/QUOTE
  */
-void dw_mle_set_auto_complete(HWND handle, int state)
+void API dw_mle_set_auto_complete(HWND handle, int state)
 {
 }
 
@@ -4302,7 +4302,7 @@ DW_FUNCTION_RESTORE_PARAM4(handle, HWND, text, const char *, point, int, DW_UNUS
  * Parameters:
  *          handle: Handle to the MLE to freeze.
  */
-void dw_mle_freeze(HWND handle)
+void API dw_mle_freeze(HWND handle)
 {
 }
 
@@ -4311,7 +4311,7 @@ void dw_mle_freeze(HWND handle)
  * Parameters:
  *          handle: Handle to the MLE to thaw.
  */
-void dw_mle_thaw(HWND handle)
+void API dw_mle_thaw(HWND handle)
 {
 }
 
@@ -5122,13 +5122,9 @@ static int _dw_container_setup_int(HWND handle, unsigned long *flags, char **tit
    gtk_tree_view_set_rubber_banding(GTK_TREE_VIEW(tree), TRUE);
    sel = gtk_tree_view_get_selection(GTK_TREE_VIEW(tree));
    if(g_object_get_data(G_OBJECT(handle), "_dw_multi_sel"))
-   {
       gtk_tree_selection_set_mode(sel, GTK_SELECTION_MULTIPLE);
-   }
    else
-   {
       gtk_tree_selection_set_mode(sel, GTK_SELECTION_SINGLE);
-   }
    gtk_widget_show(tree);
    free(array);
    if(_DWDefaultFont)
@@ -5214,7 +5210,7 @@ DW_FUNCTION_RESTORE_PARAM4(handle, HWND, flags, unsigned long *, titles, char **
  *              Windows, on GTK this is converted to a pointer
  *              to an embedded XPM.
  */
-HICN dw_icon_load(unsigned long module, unsigned long id)
+HICN API dw_icon_load(unsigned long module, unsigned long id)
 {
    return (HICN)id;
 }
@@ -5309,7 +5305,7 @@ HICN API dw_icon_load_from_data(const char *data, int len)
  * Parameters:
  *          handle: Handle to icon returned by dw_icon_load().
  */
-void dw_icon_free(HICN handle)
+void API dw_icon_free(HICN handle)
 {
    int iicon = GPOINTER_TO_INT(handle);
 
@@ -5737,7 +5733,7 @@ DW_FUNCTION_RESTORE_PARAM3(handle, HWND, row, int, data, void *)
  *          pointer: Pointer to the allocated memory in dw_container_alloc().
  *          rowcount: The number of rows to be inserted.
  */
-void dw_container_insert(HWND handle, void *pointer, int rowcount)
+void API dw_container_insert(HWND handle, void *pointer, int rowcount)
 {
    /* Don't need to do anything here */
 }
@@ -6231,7 +6227,7 @@ DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
  *       icon: Icon handle to display in the taskbar.
  *       bubbletext: Text to show when the mouse is above the icon.
  */
-void dw_taskbar_insert(HWND handle, HICN icon, const char *bubbletext)
+void API dw_taskbar_insert(HWND handle, HICN icon, const char *bubbletext)
 {
    /* TODO: Removed in GTK4.... no replacement? */
 }
@@ -6242,7 +6238,7 @@ void dw_taskbar_insert(HWND handle, HICN icon, const char *bubbletext)
  *       handle: Window handle that was used with dw_taskbar_insert().
  *       icon: Icon handle that was used with dw_taskbar_insert().
  */
-void dw_taskbar_delete(HWND handle, HICN icon)
+void API dw_taskbar_delete(HWND handle, HICN icon)
 {
    /* TODO: Removed in GTK4.... no replacement? */
 }
@@ -6287,7 +6283,7 @@ static GdkRGBA _dw_internal_color(unsigned long value)
  *       green: green value.
  *       blue: blue value.
  */
-void dw_color_foreground_set(unsigned long value)
+void API dw_color_foreground_set(unsigned long value)
 {
    GdkRGBA color = _dw_internal_color(value);
    GdkRGBA *foreground = pthread_getspecific(_dw_fg_color_key);
@@ -6301,7 +6297,7 @@ void dw_color_foreground_set(unsigned long value)
  *       green: green value.
  *       blue: blue value.
  */
-void dw_color_background_set(unsigned long value)
+void API dw_color_background_set(unsigned long value)
 {
    GdkRGBA *background = pthread_getspecific(_dw_bg_color_key);
 
@@ -7011,7 +7007,7 @@ DW_FUNCTION_RESTORE_PARAM3(handle, HWND, data, const char *, len, int)
  * Note: This does nothing on GTK+ as transparency
  *       is handled automatically
  */
-void dw_pixmap_set_transparent_color(HPIXMAP pixmap, unsigned long color)
+void API dw_pixmap_set_transparent_color(HPIXMAP pixmap, unsigned long color)
 {
 }
 
@@ -7041,7 +7037,7 @@ DW_FUNCTION_RESTORE_PARAM2(handle, HWND, id, ULONG)
 /* Call this after drawing to the screen to make sure
  * anything you have drawn is visible.
  */
-void dw_flush(void)
+void API dw_flush(void)
 {
 }
 
@@ -7172,7 +7168,7 @@ DW_FUNCTION_RESTORE_PARAM12(dest, HWND, destp, HPIXMAP, xdest, int, ydest, int, 
 
       if(src)
          ;
-#ifdef GTK3      
+#ifdef GTK3 /* TODO: See how to do this in GTK4 */   
          gdk_cairo_set_source_window (cr, gtk_widget_get_window(src), (xdest + xsrc) / xscale, (ydest + ysrc) / yscale);
 #endif         
       else if(srcp)
@@ -7198,7 +7194,7 @@ DW_FUNCTION_RESTORE_PARAM12(dest, HWND, destp, HPIXMAP, xdest, int, ydest, int, 
  *       freq: Frequency.
  *       dur: Duration.
  */
-void dw_beep(int freq, int dur)
+void API dw_beep(int freq, int dur)
 {
    gdk_display_beep(gdk_display_get_default());
 }
@@ -7220,7 +7216,7 @@ void _dw_strlwr(char *buf)
  *         handle: Pointer to a module handle,
  *                 will be filled in with the handle.
  */
-int dw_module_load(const char *name, HMOD *handle)
+int API dw_module_load(const char *name, HMOD *handle)
 {
    int len;
    char *newname;
@@ -7263,7 +7259,7 @@ int dw_module_load(const char *name, HMOD *handle)
  *         func: A pointer to a function pointer, to obtain
  *               the address.
  */
-int dw_module_symbol(HMOD handle, const char *name, void**func)
+int API dw_module_symbol(HMOD handle, const char *name, void**func)
 {
    if(!func || !name)
       return   -1;
@@ -7279,7 +7275,7 @@ int dw_module_symbol(HMOD handle, const char *name, void**func)
  * Parameters:
  *         handle: Module handle returned by dw_module_load()
  */
-int dw_module_close(HMOD handle)
+int API dw_module_close(HMOD handle)
 {
    if(handle)
       return dlclose(handle);
@@ -7289,7 +7285,7 @@ int dw_module_close(HMOD handle)
 /*
  * Returns the handle to an unnamed mutex semaphore.
  */
-HMTX dw_mutex_new(void)
+HMTX API dw_mutex_new(void)
 {
    HMTX mutex = malloc(sizeof(pthread_mutex_t));
 
@@ -7302,7 +7298,7 @@ HMTX dw_mutex_new(void)
  * Parameters:
  *       mutex: The handle to the mutex returned by dw_mutex_new().
  */
-void dw_mutex_close(HMTX mutex)
+void API dw_mutex_close(HMTX mutex)
 {
    if(mutex)
    {
@@ -7316,7 +7312,7 @@ void dw_mutex_close(HMTX mutex)
  * Parameters:
  *       mutex: The handle to the mutex returned by dw_mutex_new().
  */
-void dw_mutex_lock(HMTX mutex)
+void API dw_mutex_lock(HMTX mutex)
 {
    pthread_mutex_lock(mutex);
 }
@@ -7340,7 +7336,7 @@ int API dw_mutex_trylock(HMTX mutex)
  * Parameters:
  *       mutex: The handle to the mutex returned by dw_mutex_new().
  */
-void dw_mutex_unlock(HMTX mutex)
+void API dw_mutex_unlock(HMTX mutex)
 {
    pthread_mutex_unlock(mutex);
 }
@@ -7348,7 +7344,7 @@ void dw_mutex_unlock(HMTX mutex)
 /*
  * Returns the handle to an unnamed event semaphore.
  */
-HEV dw_event_new(void)
+HEV API dw_event_new(void)
 {
    HEV eve = (HEV)malloc(sizeof(struct _dw_unix_event));
 
@@ -7375,7 +7371,7 @@ HEV dw_event_new(void)
  * Parameters:
  *       eve: The handle to the event returned by dw_event_new().
  */
-int dw_event_reset (HEV eve)
+int API dw_event_reset (HEV eve)
 {
    if(!eve)
       return DW_ERROR_NON_INIT;
@@ -7394,7 +7390,7 @@ int dw_event_reset (HEV eve)
  * Parameters:
  *       eve: The handle to the event returned by dw_event_new().
  */
-int dw_event_post (HEV eve)
+int API dw_event_post (HEV eve)
 {
    if(!eve)
       return DW_ERROR_NON_INIT;
@@ -7412,7 +7408,7 @@ int dw_event_post (HEV eve)
  * Parameters:
  *       eve: The handle to the event returned by dw_event_new().
  */
-int dw_event_wait(HEV eve, unsigned long timeout)
+int API dw_event_wait(HEV eve, unsigned long timeout)
 {
    int rc;
 
@@ -7453,7 +7449,7 @@ int dw_event_wait(HEV eve, unsigned long timeout)
  * Parameters:
  *       eve: The handle to the event returned by dw_event_new().
  */
-int dw_event_close(HEV *eve)
+int API dw_event_close(HEV *eve)
 {
    if(!eve || !(*eve))
       return DW_ERROR_NON_INIT;
@@ -7630,7 +7626,7 @@ static void _dw_handle_sem(int *tmpsock)
  *         name: Name given to semaphore which can be opened
  *               by other processes.
  */
-HEV dw_named_event_new(const char *name)
+HEV API dw_named_event_new(const char *name)
 {
    struct sockaddr_un un;
    int ev, *tmpsock = (int *)malloc(sizeof(int)*2);
@@ -7680,7 +7676,7 @@ HEV dw_named_event_new(const char *name)
  *         name: Name given to semaphore which can be opened
  *               by other processes.
  */
-HEV dw_named_event_get(const char *name)
+HEV API dw_named_event_get(const char *name)
 {
    struct sockaddr_un un;
    int ev = socket(AF_UNIX, SOCK_STREAM, 0);
@@ -7701,7 +7697,7 @@ HEV dw_named_event_get(const char *name)
  *         eve: Handle to the semaphore obtained by
  *              an open or create call.
  */
-int dw_named_event_reset(HEV eve)
+int API dw_named_event_reset(HEV eve)
 {
    /* signal reset */
    char tmp = (char)0;
@@ -7720,7 +7716,7 @@ int dw_named_event_reset(HEV eve)
  *         eve: Handle to the semaphore obtained by
  *              an open or create call.
  */
-int dw_named_event_post(HEV eve)
+int API dw_named_event_post(HEV eve)
 {
 
    /* signal post */
@@ -7742,7 +7738,7 @@ int dw_named_event_post(HEV eve)
  *         timeout: Number of milliseconds before timing out
  *                  or -1 if indefinite.
  */
-int dw_named_event_wait(HEV eve, unsigned long timeout)
+int API dw_named_event_wait(HEV eve, unsigned long timeout)
 {
    fd_set rd;
    struct timeval tv, *useme = NULL;
@@ -7795,7 +7791,7 @@ int dw_named_event_wait(HEV eve, unsigned long timeout)
  *         eve: Handle to the semaphore obtained by
  *              an open or create call.
  */
-int dw_named_event_close(HEV eve)
+int API dw_named_event_close(HEV eve)
 {
    /* Finally close the domain socket,
     * cleanup will continue in _dw_handle_sem.
@@ -7868,7 +7864,7 @@ void _dwthreadstart(void *data)
  *         size: Size in bytes of the shared memory region to allocate.
  *         name: A string pointer to a unique memory name.
  */
-HSHM dw_named_memory_new(void **dest, int size, const char *name)
+HSHM API dw_named_memory_new(void **dest, int size, const char *name)
 {
    char namebuf[1025];
    struct _dw_unix_shm *handle = malloc(sizeof(struct _dw_unix_shm));
@@ -7914,7 +7910,7 @@ HSHM dw_named_memory_new(void **dest, int size, const char *name)
  *         size: Size in bytes of the shared memory region to requested.
  *         name: A string pointer to a unique memory name.
  */
-HSHM dw_named_memory_get(void **dest, int size, const char *name)
+HSHM API dw_named_memory_get(void **dest, int size, const char *name)
 {
    char namebuf[1025];
    struct _dw_unix_shm *handle = malloc(sizeof(struct _dw_unix_shm));
@@ -7952,7 +7948,7 @@ HSHM dw_named_memory_get(void **dest, int size, const char *name)
  *         handle: Handle obtained from DB_named_memory_allocate.
  *         ptr: The memory address aquired with DB_named_memory_allocate.
  */
-int dw_named_memory_free(HSHM handle, void *ptr)
+int API dw_named_memory_free(HSHM handle, void *ptr)
 {
    struct _dw_unix_shm *h = handle;
    int rc = munmap(ptr, h->size);
@@ -7976,7 +7972,7 @@ int dw_named_memory_free(HSHM handle, void *ptr)
  *       data: Parameter(s) passed to the function.
  *       stack: Stack size of new thread (OS/2 and Windows only).
  */
-DWTID dw_thread_new(void *func, void *data, int stack)
+DWTID API dw_thread_new(void *func, void *data, int stack)
 {
    DWTID gtkthread;
    void **tmp = malloc(sizeof(void *) * 2);
@@ -7994,7 +7990,7 @@ DWTID dw_thread_new(void *func, void *data, int stack)
 /*
  * Ends execution of current thread immediately.
  */
-void dw_thread_end(void)
+void API dw_thread_end(void)
 {
    pthread_exit(NULL);
 }
@@ -8002,7 +7998,7 @@ void dw_thread_end(void)
 /*
  * Returns the current thread's ID.
  */
-DWTID dw_thread_id(void)
+DWTID API dw_thread_id(void)
 {
    return (DWTID)pthread_self();
 }
@@ -8010,7 +8006,7 @@ DWTID dw_thread_id(void)
 /*
  * Cleanly terminates a DW session, should be signal handler safe.
  */
-void dw_shutdown(void)
+void API dw_shutdown(void)
 {
    g_main_loop_unref(_DWMainLoop);
 }
@@ -8020,7 +8016,7 @@ void dw_shutdown(void)
  * Parameters:
  *       exitcode: Exit code reported to the operating system.
  */
-void dw_exit(int exitcode)
+void API dw_exit(int exitcode)
 {
    dw_shutdown();
    exit(exitcode);
@@ -8508,7 +8504,7 @@ DW_FUNCTION_RESTORE_PARAM3(handle, HWND, width, int *, height, int *)
 }
 
 /* Internal version to simplify the code with multiple versions of GTK */
-int _dw_screen_width(void)
+int _dw_get_screen_width(void)
 {
    GdkDisplay *display = gdk_display_get_default();
 
@@ -8530,13 +8526,16 @@ int _dw_screen_width(void)
 /*
  * Returns the width of the screen.
  */
-int dw_screen_width(void)
+DW_FUNCTION_DEFINITION(dw_screen_width, int)
+DW_FUNCTION_ADD_PARAM
+DW_FUNCTION_RETURN(dw_screen_width, int)
 {
-   return _dw_screen_width();
+   int retval = _dw_get_screen_width();
+   DW_FUNCTION_RETURN_THIS(retval);
 }
 
 /* Internal version to simplify the code with multiple versions of GTK */
-int _dw_screen_height(void)
+int _dw_get_screen_height(void)
 {
    GdkDisplay *display = gdk_display_get_default();
 
@@ -8558,13 +8557,16 @@ int _dw_screen_height(void)
 /*
  * Returns the height of the screen.
  */
-int dw_screen_height(void)
+DW_FUNCTION_DEFINITION(dw_screen_height, int)
+DW_FUNCTION_ADD_PARAM
+DW_FUNCTION_RETURN(dw_screen_height, int)
 {
-   return _dw_screen_height();
+   int retval = _dw_get_screen_height();
+   DW_FUNCTION_RETURN_THIS(retval);
 }
 
 /* This should return the current color depth */
-unsigned long dw_color_depth_get(void)
+unsigned long API dw_color_depth_get(void)
 {
    /* TODO: Make this work on GTK4... with no GdkVisual */
    return 32;
@@ -8592,7 +8594,7 @@ void API dw_window_set_gravity(HWND handle, int horz, int vert)
  *          y: Y location from the bottom left.
  */
 #ifndef GDK_WINDOWING_X11
-void dw_window_set_pos(HWND handle, long x, long y)
+void API dw_window_set_pos(HWND handle, long x, long y)
 {
 }
 #else
@@ -8625,7 +8627,7 @@ DW_FUNCTION_RESTORE_PARAM3(handle, HWND, x, long, y, long)
  *          width: Width of the widget.
  *          height: Height of the widget.
  */
-void dw_window_set_pos_size(HWND handle, long x, long y, unsigned long width, unsigned long height)
+void API dw_window_set_pos_size(HWND handle, long x, long y, unsigned long width, unsigned long height)
 {
    dw_window_set_size(handle, width, height);
    dw_window_set_pos(handle, x, y);
@@ -8958,7 +8960,7 @@ DW_FUNCTION_RESTORE_PARAM3(handle, HWND, pageid, ULONG, text, const char *)
  *          pageid: Page ID of the tab to set.
  *          text: Pointer to the text to set.
  */
-void dw_notebook_page_set_status_text(HWND handle, unsigned long pageid, const char *text)
+void API dw_notebook_page_set_status_text(HWND handle, unsigned long pageid, const char *text)
 {
    /* TODO (if possible) */
 }
@@ -9025,7 +9027,7 @@ DW_FUNCTION_RESTORE_PARAM3(handle, HWND, pageid, ULONG, page, HWND)
  *          handle: Handle to the listbox to be appended to.
  *          text: Text to append into listbox.
  */
-void dw_listbox_append(HWND handle, const char *text)
+void API dw_listbox_append(HWND handle, const char *text)
 {
    dw_listbox_insert(handle, text, -1);
 }
@@ -9801,7 +9803,7 @@ DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
  * Remarks:
  *          This is for use before showing the window/dialog.
  */
-void dw_window_default(HWND window, HWND defaultitem)
+void API dw_window_default(HWND window, HWND defaultitem)
 {
    if(window)
       g_object_set_data(G_OBJECT(window),  "_dw_defaultitem", (gpointer)defaultitem);
@@ -9842,7 +9844,7 @@ DW_FUNCTION_RESTORE_PARAM2(window, HWND, next, HWND)
  *          This will create a system notification that will show in the notifaction panel
  *          on supported systems, which may be clicked to perform another task.
  */
-HWND dw_notification_new(const char *title, const char *imagepath, const char *description, ...)
+HWND API dw_notification_new(const char *title, const char *imagepath, const char *description, ...)
 {
    GNotification *notification = g_notification_new(title);
 
@@ -9885,7 +9887,7 @@ HWND dw_notification_new(const char *title, const char *imagepath, const char *d
  * Returns:
  *         DW_ERROR_NONE on success, DW_ERROR_UNKNOWN on error or not supported.
  */
-int dw_notification_send(HWND notification)
+int API dw_notification_send(HWND notification)
 {
    if(notification)
    {
@@ -9906,7 +9908,7 @@ int dw_notification_send(HWND notification)
  * Parameters:
  *       env: Pointer to a DWEnv struct.
  */
-void dw_environment_query(DWEnv *env)
+void API dw_environment_query(DWEnv *env)
 {
    struct utsname name;
    char tempbuf[_DW_ENV_STRING_SIZE] = { 0 }, *dot;
@@ -10051,7 +10053,7 @@ DW_FUNCTION_RESTORE_PARAM4(title, const char *, defpath, const char *, ext, cons
  * Returns:
  *       -1 on error.
  */
-int dw_exec(const char *program, int type, char **params)
+int API dw_exec(const char *program, int type, char **params)
 {
    int ret = -1;
 
@@ -10108,7 +10110,7 @@ int dw_exec(const char *program, int type, char **params)
  * Parameters:
  *       url: Uniform resource locator.
  */
-int dw_browse(const char *url)
+int API dw_browse(const char *url)
 {
    /* If possible load the URL/URI using gvfs... */
    gtk_show_uri(NULL, url, GDK_CURRENT_TIME);
@@ -10139,7 +10141,7 @@ WebKitWebView *_dw_html_web_view(GtkWidget *widget)
  *       handle: Handle to the window.
  *       action: One of the DW_HTML_* constants.
  */
-void dw_html_action(HWND handle, int action)
+void API dw_html_action(HWND handle, int action)
 {
 #ifdef USE_WEBKIT
    WebKitWebView *web_view;
@@ -10184,7 +10186,7 @@ void dw_html_action(HWND handle, int action)
  * Returns:
  *       0 on success.
  */
-int dw_html_raw(HWND handle, const char *string)
+int API dw_html_raw(HWND handle, const char *string)
 {
 #ifdef USE_WEBKIT
    WebKitWebView *web_view;
@@ -10209,7 +10211,7 @@ int dw_html_raw(HWND handle, const char *string)
  * Returns:
  *       0 on success.
  */
-int dw_html_url(HWND handle, const char *url)
+int API dw_html_url(HWND handle, const char *url)
 {
 #ifdef USE_WEBKIT
    WebKitWebView *web_view;
@@ -10235,7 +10237,7 @@ int dw_html_url(HWND handle, const char *url)
  * Returns:
  *       DW_ERROR_NONE (0) on success.
  */
-int dw_html_javascript_run(HWND handle, const char *script, void *scriptdata)
+int API dw_html_javascript_run(HWND handle, const char *script, void *scriptdata)
 {
 #ifdef USE_WEBKIT
    WebKitWebView *web_view;
@@ -10297,7 +10299,7 @@ static void _dw_clipboard_callback(GObject *object, GAsyncResult *res, gpointer 
  *       Pointer to an allocated string of text or NULL if clipboard empty or contents could not
  *       be converted to text.
  */
-char *dw_clipboard_get_text()
+char * API dw_clipboard_get_text(void)
 {
    GdkDisplay *display = gdk_display_get_default();
    GdkClipboard *clipboard;
@@ -10319,7 +10321,7 @@ char *dw_clipboard_get_text()
  * Parameters:
  *       Text.
  */
-void  dw_clipboard_set_text(const char *str, int len)
+void API dw_clipboard_set_text(const char *str, int len)
 {
    GdkDisplay *display = gdk_display_get_default();
    GdkClipboard *clipboard;
@@ -10413,7 +10415,7 @@ void API dw_print_cancel(HPRINT print)
  * current user directory.  Or the root directory (C:\ on
  * OS/2 and Windows).
  */
-char *dw_user_dir(void)
+char * API dw_user_dir(void)
 {
    static char _user_dir[1024] = "";
 
@@ -10454,7 +10456,7 @@ char * API dw_app_dir(void)
  *          The appname is only required on Windows.  If NULL is passed the detected
  *          application name will be used, but a prettier name may be desired.
  */
-int dw_app_id_set(const char *appid, const char *appname)
+int API dw_app_id_set(const char *appid, const char *appname)
 {
    if(g_application_id_is_valid(appid))
    {
@@ -10471,7 +10473,7 @@ int dw_app_id_set(const char *appid, const char *appname)
  *       function: Function pointer to be called.
  *       data: Pointer to the data to be passed to the function.
  */
-void dw_window_function(HWND handle, void *function, void *data)
+void API dw_window_function(HWND handle, void *function, void *data)
 {
    void (* windowfunc)(void *);
 
@@ -10488,7 +10490,7 @@ void dw_window_function(HWND handle, void *function, void *data)
  *       dataname: A string pointer identifying which signal to be hooked.
  *       data: User data to be passed to the handler function.
  */
-void dw_window_set_data(HWND window, const char *dataname, void *data)
+void API dw_window_set_data(HWND window, const char *dataname, void *data)
 {
    HWND thiswindow = window;
 
@@ -10510,7 +10512,7 @@ void dw_window_set_data(HWND window, const char *dataname, void *data)
  *       dataname: A string pointer identifying which signal to be hooked.
  *       data: User data to be passed to the handler function.
  */
-void *dw_window_get_data(HWND window, const char *dataname)
+void * API dw_window_get_data(HWND window, const char *dataname)
 {
    HWND thiswindow = window;
    void *ret = NULL;
@@ -10615,7 +10617,7 @@ static HWND _dw_find_signal_window(HWND window, const char *signame)
  *       sigfunc: The pointer to the function to be used as the callback.
  *       data: User data to be passed to the handler function.
  */
-void dw_signal_connect(HWND window, const char *signame, void *sigfunc, void *data)
+void API dw_signal_connect(HWND window, const char *signame, void *sigfunc, void *data)
 {
    dw_signal_connect_data(window, signame, sigfunc, NULL, data);
 }
@@ -10809,7 +10811,7 @@ GObject *_dw_html_setup(struct _dw_signal_list *signal, GObject *object, void *s
  *       discfunc: The pointer to the function called when this handler is removed.
  *       data: User data to be passed to the handler function.
  */
-void dw_signal_connect_data(HWND window, const char *signame, void *sigfunc, void *discfunc, void *data)
+void API dw_signal_connect_data(HWND window, const char *signame, void *sigfunc, void *discfunc, void *data)
 {
    SignalList signal = _dw_findsignal(signame);
    
@@ -10854,7 +10856,7 @@ void dw_signal_connect_data(HWND window, const char *signame, void *sigfunc, voi
  * Parameters:
  *       window: Window handle of callback to be removed.
  */
-void dw_signal_disconnect_by_name(HWND window, const char *signame)
+void API dw_signal_disconnect_by_name(HWND window, const char *signame)
 {
    int z, count;
    SignalList signal;
@@ -10884,7 +10886,7 @@ void dw_signal_disconnect_by_name(HWND window, const char *signame)
  * Parameters:
  *       window: Window handle of callback to be removed.
  */
-void dw_signal_disconnect_by_window(HWND window)
+void API dw_signal_disconnect_by_window(HWND window)
 {
    HWND thiswindow;
    int z, count;
@@ -10903,7 +10905,7 @@ void dw_signal_disconnect_by_window(HWND window)
  *       window: Window handle of callback to be removed.
  *       data: Pointer to the data to be compared against.
  */
-void dw_signal_disconnect_by_data(HWND window, void *data)
+void API dw_signal_disconnect_by_data(HWND window, void *data)
 {
    int z, count;
    void **params = alloca(sizeof(void *) * 3);
