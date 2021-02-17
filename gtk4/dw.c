@@ -1708,8 +1708,9 @@ DW_FUNCTION_RETURN(dw_window_raise, int)
 DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
 {
    int retval = DW_ERROR_UNKNOWN;
-   
-   if(handle && GTK_IS_WINDOW(handle))
+   GdkDisplay *display = gdk_display_get_default();
+
+   if(handle && GTK_IS_WINDOW(handle) && display && GDK_IS_X11_DISPLAY(display))
    {
       GdkSurface *surface = gtk_native_get_surface(GTK_NATIVE(handle));
       
@@ -1740,8 +1741,9 @@ DW_FUNCTION_RETURN(dw_window_lower, int)
 DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
 {
    int retval = DW_ERROR_UNKNOWN;
-   
-   if(handle && GTK_IS_WINDOW(handle))
+   GdkDisplay *display = gdk_display_get_default();
+
+   if(handle && GTK_IS_WINDOW(handle) && display && GDK_IS_X11_DISPLAY(display))
    {
       GdkSurface *surface = gtk_native_get_surface(GTK_NATIVE(handle));
       
@@ -2343,7 +2345,9 @@ DW_FUNCTION_ADD_PARAM1(handle)
 DW_FUNCTION_NO_RETURN(dw_window_capture)
 DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
 {
-   if(_DWXGrabbedDisplay == NULL && handle && GTK_IS_WINDOW(handle))
+   GdkDisplay *display = gdk_display_get_default();
+
+   if(_DWXGrabbedDisplay == NULL && handle && GTK_IS_WINDOW(handle) && display && GDK_IS_X11_DISPLAY(display))
    {
       GdkSurface *surface = gtk_native_get_surface(GTK_NATIVE(handle));
       
@@ -2372,6 +2376,7 @@ DW_FUNCTION_DEFINITION(dw_window_release, void)
 DW_FUNCTION_ADD_PARAM
 DW_FUNCTION_NO_RETURN(dw_window_release)
 {
+   /* Don't need X11 test, _DWXGrabbedDisplay won't get set unless X11 */
    if(_DWXGrabbedDisplay)
    {
       XUngrabPointer(_DWXGrabbedDisplay, CurrentTime);
@@ -3119,7 +3124,7 @@ DW_FUNCTION_RESTORE_PARAM2(x, long, y, long)
 {
    GdkDisplay *display = gdk_display_get_default();
    
-   if(display)
+   if(display && GDK_IS_X11_DISPLAY(display))
    {
       Display *xdisplay = gdk_x11_display_get_xdisplay(display);
       Window xrootwin = gdk_x11_display_get_xrootwindow(display);
@@ -8603,7 +8608,9 @@ DW_FUNCTION_ADD_PARAM3(handle, x, y)
 DW_FUNCTION_NO_RETURN(dw_window_set_pos)
 DW_FUNCTION_RESTORE_PARAM3(handle, HWND, x, long, y, long)
 {
-   if(handle && GTK_IS_WINDOW(handle))
+   GdkDisplay *display = gdk_display_get_default();
+   
+   if(handle && GTK_IS_WINDOW(handle) && display && GDK_IS_X11_DISPLAY(display))
    {
       GdkSurface *surface = gtk_native_get_surface(GTK_NATIVE(handle));
       
@@ -8670,24 +8677,19 @@ DW_FUNCTION_RESTORE_PARAM5(handle, HWND, x, long *, y, long *, width, ULONG *, h
 #ifdef GDK_WINDOWING_X11
       {
          GdkSurface *surface = gtk_native_get_surface(GTK_NATIVE(handle));
-         
-         if(surface)
+         GdkDisplay *display = gdk_display_get_default();
+   
+         if(surface && display && GDK_IS_X11_DISPLAY(display))
          {
-            GdkDisplay *display = gdk_display_get_default();
             XWindowAttributes xwa;
             int ix = 0, iy = 0;
-            
-            if(display)
-            {
-               Window child, xrootwin = gdk_x11_display_get_xrootwindow(display);
+            Window child, xrootwin = gdk_x11_display_get_xrootwindow(display);
 
-               XTranslateCoordinates(GDK_SURFACE_XDISPLAY(surface), GDK_SURFACE_XID(surface), 
-                                     xrootwin, 0, 0, &ix, &iy, &child);
-               
-            }
-
+            XTranslateCoordinates(GDK_SURFACE_XDISPLAY(surface), GDK_SURFACE_XID(surface), 
+                                  xrootwin, 0, 0, &ix, &iy, &child);
             XGetWindowAttributes(GDK_SURFACE_XDISPLAY(surface), 
                                  GDK_SURFACE_XID(surface), &xwa);
+
             if(x)
                *x = (long)(ix - xwa.x);
             if(y)
