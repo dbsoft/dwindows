@@ -3107,10 +3107,29 @@ DW_FUNCTION_RESTORE_PARAM2(x, long *, y, long *)
  *       x: X coordinate.
  *       y: Y coordinate.
  */
+#ifndef GDK_WINDOWING_X11
 void dw_pointer_set_pos(long x, long y)
 {
-   /* TODO: See if this is possible in GTK4 */
 }
+#else
+DW_FUNCTION_DEFINITION(dw_pointer_set_pos, void, long x, long y)
+DW_FUNCTION_ADD_PARAM2(x, y)
+DW_FUNCTION_NO_RETURN(dw_pointer_set_pos)
+DW_FUNCTION_RESTORE_PARAM2(x, long, y, long)
+{
+   GdkDisplay *display = gdk_display_get_default();
+   
+   if(display)
+   {
+      Display *xdisplay = gdk_x11_display_get_xdisplay(display);
+      Window xrootwin = gdk_x11_display_get_xrootwindow(display);
+   
+      if(xdisplay)
+         XWarpPointer(xdisplay, None, xrootwin, 0, 0, 0, 0, (int)x, (int)y);
+   }
+   DW_FUNCTION_RETURN_NOTHING;
+}
+#endif
 
 #define _DW_TREE_CONTAINER 1
 #define _DW_TREE_TREE      2
@@ -8596,6 +8615,7 @@ DW_FUNCTION_RESTORE_PARAM3(handle, HWND, x, long, y, long)
    DW_FUNCTION_RETURN_NOTHING;
 }
 #endif
+
 /*
  * Sets the position and size of a given window (widget).
  * Parameters:
@@ -8651,14 +8671,25 @@ DW_FUNCTION_RESTORE_PARAM5(handle, HWND, x, long *, y, long *, width, ULONG *, h
          
          if(surface)
          {
+            GdkDisplay *display = gdk_display_get_default();
             XWindowAttributes xwa;
+            int ix = 0, iy = 0;
+            
+            if(display)
+            {
+               Window child, xrootwin = gdk_x11_display_get_xrootwindow(display);
+
+               XTranslateCoordinates(GDK_SURFACE_XDISPLAY(surface), GDK_SURFACE_XID(surface), 
+                                     xrootwin, 0, 0, &ix, &iy, &child);
+               
+            }
 
             XGetWindowAttributes(GDK_SURFACE_XDISPLAY(surface), 
                                  GDK_SURFACE_XID(surface), &xwa);
             if(x)
-               *x = (long)xwa.x;
+               *x = (long)(ix - xwa.x);
             if(y)
-               *y = (long)xwa.y;
+               *y = (long)(ix - xwa.y);
           }
       }
 #else                                 
