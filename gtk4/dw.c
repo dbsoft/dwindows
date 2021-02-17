@@ -58,6 +58,9 @@
 #ifndef _DW_SINGLE_THREADED
 #define DW_FUNCTION_DEFINITION(func, rettype, ...)  gboolean _##func(void **_args); \
 rettype API func(__VA_ARGS__) { 
+#define DW_FUNCTION_ADD_PARAM void **_args = alloca(sizeof(void *)*2); \
+    _args[0] = (void *)pthread_getspecific(_dw_event_key); \
+    _args[1] = (void *)NULL;
 #define DW_FUNCTION_ADD_PARAM1(param1) void **_args = alloca(sizeof(void *)*3); \
     _args[0] = (void *)pthread_getspecific(_dw_event_key); \
     _args[1] = (void *)NULL; \
@@ -1615,6 +1618,7 @@ int dw_messagebox(const char *title, int flags, const char *format, ...)
    va_list args;
    char outbuf[1025] = {0};
    DWDialog *tmp = dw_dialog_new(NULL);
+   ULONG width, height;
 
    va_start(args, format);
    vsnprintf(outbuf, 1024, format, args);
@@ -1642,6 +1646,9 @@ int dw_messagebox(const char *title, int flags, const char *format, ...)
       gtk_dialog_add_button(GTK_DIALOG(dialog), "Cancel", GTK_RESPONSE_CANCEL);
    gtk_widget_show(GTK_WIDGET(dialog));
    g_signal_connect(G_OBJECT(dialog), "response", G_CALLBACK(_dw_dialog_response), (gpointer)tmp);
+   /* Center the dialog on the screen since there is no parent */
+   dw_window_get_pos_size((HWND)dialog, NULL, NULL, &width, &height);
+   dw_window_set_pos((HWND)dialog, (dw_screen_width() - width)/2, (dw_screen_height() - height)/2);
    response = DW_POINTER_TO_INT(dw_dialog_wait(tmp));
    if(GTK_IS_WINDOW(dialog))
       gtk_window_destroy(GTK_WINDOW(dialog));
@@ -2291,16 +2298,6 @@ int dw_window_set_border(HWND handle, int border)
 }
 
 /*
- * Captures the mouse input to this window.
- * Parameters:
- *       handle: Handle to receive mouse input.
- */
-void dw_window_capture(HWND handle)
-{
-   /* TODO: See if this is possible in GTK4 */
-}
-
-/*
  * Changes the appearance of the mouse pointer.
  * Parameters:
  *       handle: Handle to widget for which to change.
@@ -2330,12 +2327,59 @@ DW_FUNCTION_RESTORE_PARAM2(handle, HWND, pointertype, int)
 }
 
 /*
+ * Captures the mouse input to this window.
+ * Parameters:
+ *       handle: Handle to receive mouse input.
+ */
+#ifndef GDK_WINDOWING_X11
+void dw_window_capture(HWND handle)
+{
+}
+#else
+static Display *_DWXGrabbedDisplay = NULL;
+
+DW_FUNCTION_DEFINITION(dw_window_capture, void, HWND handle)
+DW_FUNCTION_ADD_PARAM1(handle)
+DW_FUNCTION_NO_RETURN(dw_window_capture)
+DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
+{
+   if(_DWXGrabbedDisplay == NULL && handle && GTK_IS_WINDOW(handle))
+   {
+      GdkSurface *surface = gtk_native_get_surface(GTK_NATIVE(handle));
+      
+      if(surface)
+      {
+         if(XGrabPointer(GDK_SURFACE_XDISPLAY(surface), GDK_SURFACE_XID(surface), FALSE,
+                         ButtonPressMask | ButtonReleaseMask | PointerMotionMask | EnterWindowMask | LeaveWindowMask,
+                         GrabModeAsync,  GrabModeAsync, None, None, CurrentTime) == GrabSuccess)
+            _DWXGrabbedDisplay = GDK_SURFACE_XDISPLAY(surface);
+            
+      }
+   }
+   DW_FUNCTION_RETURN_NOTHING;
+}
+#endif
+
+/*
  * Releases previous mouse capture.
  */
+#ifndef GDK_WINDOWING_X11
 void dw_window_release(void)
 {
-   /* TODO: See if this is possible in GTK4 */
 }
+#else
+DW_FUNCTION_DEFINITION(dw_window_release, void)
+DW_FUNCTION_ADD_PARAM
+DW_FUNCTION_NO_RETURN(dw_window_release)
+{
+   if(_DWXGrabbedDisplay)
+   {
+      XUngrabPointer(_DWXGrabbedDisplay, CurrentTime);
+      _DWXGrabbedDisplay = NULL;
+   }
+   DW_FUNCTION_RETURN_NOTHING;
+}
+#endif
 
 /* Window creation flags that will cause the window to have decorations */
 #define _DW_DECORATION_FLAGS (DW_FCF_CLOSEBUTTON|DW_FCF_SYSMENU|DW_FCF_TITLEBAR|DW_FCF_MINMAX|DW_FCF_SIZEBORDER|DW_FCF_BORDER|DW_FCF_DLGBORDER)
@@ -6864,7 +6908,7 @@ DW_FUNCTION_RESTORE_PARAM2(handle, HWND, filename, const char *)
          {
             strcpy(file, filename);
             strcat(file, _dw_image_exts[i]);
-            if(access(file, 04 ) == 0)
+            if(access(file, 04) == 0)
                pixmap->pixbuf = gdk_pixbuf_new_from_file(file, NULL);
             i++;
          }
@@ -8583,10 +8627,23 @@ DW_FUNCTION_RESTORE_PARAM5(handle, HWND, x, long *, y, long *, width, ULONG *, h
 {
    if(handle && GTK_IS_WIDGET(handle))
    {
+      GtkRequisition size;
+
+      /* If the widget hasn't been shown, it returns 0 so use this as backup */
+      gtk_widget_get_preferred_size(GTK_WIDGET(handle), NULL, &size);
+
       if(width)
+      {
          *width = (ULONG)gtk_widget_get_width(GTK_WIDGET(handle));
+         if(!*width)
+            *width = (ULONG)size.width;
+      }
       if(height)
+      {
          *height = (ULONG)gtk_widget_get_height(GTK_WIDGET(handle));
+         if(!*height)
+            *height = (ULONG)size.height;
+      }
 
 #ifdef GDK_WINDOWING_X11
       {
