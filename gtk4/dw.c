@@ -1977,7 +1977,6 @@ static void _dw_override_color(GtkWidget *widget, const char *element, GdkRGBA *
 
 static void _dw_override_font(GtkWidget *widget, const char *font)
 {
-#if 0
    GtkCssProvider *provider = g_object_get_data(G_OBJECT(widget), "_dw_font");
    GtkStyleContext *scontext = gtk_widget_get_style_context(widget);
    
@@ -2000,7 +1999,6 @@ static void _dw_override_font(GtkWidget *widget, const char *font)
       gtk_style_context_add_provider(scontext, GTK_STYLE_PROVIDER(provider), GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
    }
    g_object_set_data(G_OBJECT(widget), "_dw_font", (gpointer)provider);
-#endif   
 }
 
 /*
@@ -2051,7 +2049,8 @@ DW_FUNCTION_RESTORE_PARAM2(handle, HWND, fontname, const char *)
    if(data)
       free(data);
 
-   _dw_override_font(handle2, font);
+   if(!GTK_IS_DRAWING_AREA(handle2))
+      _dw_override_font(handle2, font);
 
    DW_FUNCTION_RETURN_THIS(retval);
 }
