@@ -2839,6 +2839,30 @@ DW_FUNCTION_RESTORE_PARAM7(menu, HMENUI, title, const char *, id, unsigned long,
             int menugroup = DW_POINTER_TO_INT(g_object_get_data(G_OBJECT(menu), "_dw_menugroup"));
             char *actionname;
 
+            /* Code to autogenerate a menu ID if not specified or invalid
+             * First pool is smaller for transient popup menus
+             */
+            if(id == (ULONG)-1)
+            {
+               static ULONG tempid = 60000;
+
+               tempid++;
+               id = tempid;
+
+               if(tempid > 65500)
+                  tempid = 60000;
+            }
+            /* Second pool is larger for more static windows */
+            else if(!id || id >= 30000)
+            {
+               static ULONG menuid = 30000;
+
+               menuid++;
+               if(menuid > 60000)
+                  menuid = 30000;
+               id = menuid;
+            }
+
             snprintf(tempbuf, 100, "menu%d.action%lu", menugroup, id);
             actionname = strchr(tempbuf, '.');
             if(check)
