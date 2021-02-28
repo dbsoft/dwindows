@@ -1601,28 +1601,18 @@ void API dw_debug(const char *format, ...)
    fprintf(stderr, "%s", outbuf);
 }
 
-/*
- * Displays a Message Box with given text and title..
- * Parameters:
- *           title: The title of the message box.
- *           flags: Defines buttons and icons to display
- *           format: printf style format string.
- *           ...: Additional variables for use in the format.
- */
-int API dw_messagebox(const char *title, int flags, const char *format, ...)
+/* Internal version that does not use variable arguments */
+DW_FUNCTION_DEFINITION(dw_messagebox_int, int, const char *title, int flags, char *outbuf)
+DW_FUNCTION_ADD_PARAM3(title, flags, outbuf)
+DW_FUNCTION_RETURN(dw_messagebox_int, int)
+DW_FUNCTION_RESTORE_PARAM3(title, const char *, flags, int, outbuf, char *)
 {
    GtkMessageType gtkicon = GTK_MESSAGE_OTHER;
    GtkButtonsType gtkbuttons = GTK_BUTTONS_OK;
    GtkWidget *dialog;
-   int response;
-   va_list args;
-   char outbuf[1025] = {0};
+   int response, retval = DW_MB_RETURN_OK;
    DWDialog *tmp = dw_dialog_new(NULL);
    ULONG width, height;
-
-   va_start(args, format);
-   vsnprintf(outbuf, 1024, format, args);
-   va_end(args);
 
    if(flags & DW_MB_ERROR)
       gtkicon = GTK_MESSAGE_ERROR;
@@ -1655,23 +1645,47 @@ int API dw_messagebox(const char *title, int flags, const char *format, ...)
    switch(response)
    {
       case GTK_RESPONSE_OK:
-         return DW_MB_RETURN_OK;
+         retval = DW_MB_RETURN_OK;
+         break;
       case GTK_RESPONSE_CANCEL:
-         return DW_MB_RETURN_CANCEL;
+         retval = DW_MB_RETURN_CANCEL;
+         break;
       case GTK_RESPONSE_YES:
-         return DW_MB_RETURN_YES;
+         retval = DW_MB_RETURN_YES;
+         break;
       case GTK_RESPONSE_NO:
-         return DW_MB_RETURN_NO;
+         retval = DW_MB_RETURN_NO;
+         break;
       default:
       {
          /* Handle the destruction of the dialog result */
          if(flags & (DW_MB_OKCANCEL | DW_MB_YESNOCANCEL))
-            return DW_MB_RETURN_CANCEL;
+            retval = DW_MB_RETURN_CANCEL;
          else if(flags & DW_MB_YESNO)
-            return DW_MB_RETURN_NO;
+            retval = DW_MB_RETURN_NO;
       }
    }
-   return DW_MB_RETURN_OK;
+   DW_FUNCTION_RETURN_THIS(retval);
+}
+
+/*
+ * Displays a Message Box with given text and title..
+ * Parameters:
+ *           title: The title of the message box.
+ *           flags: Defines buttons and icons to display
+ *           format: printf style format string.
+ *           ...: Additional variables for use in the format.
+ */
+int API dw_messagebox(const char *title, int flags, const char *format, ...)
+{
+   va_list args;
+   char outbuf[1025] = {0};
+
+   va_start(args, format);
+   vsnprintf(outbuf, 1024, format, args);
+   va_end(args);
+   
+   return dw_messagebox_int(title, flags, outbuf);
 }
 
 /*
