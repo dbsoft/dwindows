@@ -1853,6 +1853,7 @@ DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
                   if(gtk_grid_get_child_at(GTK_GRID(box), 0, z) == handle2)
                   {
                      gtk_grid_remove_row(GTK_GRID(box), z);
+                     handle2 = NULL;
                      break;
                   }
                }
@@ -1864,6 +1865,7 @@ DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
                   if(gtk_grid_get_child_at(GTK_GRID(box), z, 0) == handle2)
                   {
                      gtk_grid_remove_column(GTK_GRID(box), z);
+                     handle2 = NULL;
                      break;
                   }
                }
@@ -1879,7 +1881,7 @@ DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
          /* Finally destroy the widget, make sure it is still
           * a valid widget if it got removed from the grid.
           */
-         if(GTK_IS_WIDGET(handle2))
+         if(handle2 && GTK_IS_WIDGET(handle2))
             g_object_unref(G_OBJECT(handle2));
       }
    }
