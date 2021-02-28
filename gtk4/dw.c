@@ -1890,8 +1890,14 @@ DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
  * Parameters:
  *           handle: Toplevel window handle to be redrawn.
  */
-void API dw_window_redraw(HWND handle)
+DW_FUNCTION_DEFINITION(dw_window_redraw, void, HWND handle)
+DW_FUNCTION_ADD_PARAM1(handle)
+DW_FUNCTION_NO_RETURN(dw_window_redraw)
+DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
 {
+   if(handle && GTK_IS_DRAWING_AREA(handle))
+      gtk_widget_queue_draw(GTK_WIDGET(handle));
+   DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
