@@ -3069,8 +3069,13 @@ DW_FUNCTION_RESTORE_PARAM2(menu, HMENUI, cid, ULONG)
 gboolean _dw_idle_popover_unparent(gpointer data)
 {
    GtkWidget *self = GTK_WIDGET(data);
+   GtkWidget *box, *window = g_object_get_data(G_OBJECT(self), "_dw_window");
 
-   gtk_widget_unparent(self);
+   if(window && GTK_IS_WINDOW(window) && 
+      (box = g_object_get_data(G_OBJECT(window), "_dw_grid")) && GTK_IS_GRID(box))
+      gtk_grid_remove(GTK_GRID(box), self);
+   else
+      gtk_widget_unparent(self);
    return false;
 }
 
@@ -3103,7 +3108,18 @@ DW_FUNCTION_RESTORE_PARAM4(menu, HMENUI *, parent, HWND, x, int, y, int)
       GtkWidget *tmp = gtk_popover_menu_new_from_model_full(G_MENU_MODEL(*menu), GTK_POPOVER_MENU_NESTED);
       GdkRectangle rect = { x, y, 1, 1 };
 
-      gtk_widget_set_parent(tmp, GTK_WIDGET(parent));
+      if(GTK_IS_WINDOW(parent))
+      {
+         GtkWidget *box = g_object_get_data(G_OBJECT(parent), "_dw_grid");
+         
+         if(box && GTK_IS_GRID(box))
+         {
+            gtk_grid_attach(GTK_GRID(box), tmp, 65535, 65535, 1, 1);
+            g_object_set_data(G_OBJECT(tmp), "_dw_window", (gpointer)parent);
+         }
+      }
+      else
+         gtk_widget_set_parent(tmp, GTK_WIDGET(parent));
 
       if(!g_object_get_data(G_OBJECT(*menu), "_dw_menuparent"))
       {
