@@ -2111,6 +2111,7 @@ int dw_init(int newthread, int argc, char *argv[])
       g_signal_connect(G_OBJECT(action), "activate", G_CALLBACK(_dw_notification_handler), NULL);
       g_action_map_add_action(G_ACTION_MAP(_DWApp), G_ACTION(action));
 #endif
+      g_set_prgname(_dw_app_id);
       g_signal_connect(_DWApp, "activate", G_CALLBACK(_dw_app_activate), NULL);
       g_application_activate(_DWApp);
    }

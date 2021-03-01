@@ -1421,7 +1421,8 @@ int API dw_init(int newthread, int argc, char *argv[])
    {
       /* Creat our notification handler for any notifications */
       GSimpleAction *action = g_simple_action_new("notification", G_VARIANT_TYPE_UINT64);
-      
+
+      g_set_prgname(_dw_app_id);
       g_signal_connect(G_OBJECT(action), "activate", G_CALLBACK(_dw_notification_handler), NULL);
       g_action_map_add_action(G_ACTION_MAP(_DWApp), G_ACTION(action));
       g_signal_connect(_DWApp, "activate", G_CALLBACK(_dw_app_activate), NULL);
