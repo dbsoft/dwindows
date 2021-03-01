@@ -2747,14 +2747,20 @@ DW_FUNCTION_RESTORE_PARAM1(menu, HMENUI *)
    {
       GtkWidget *window = NULL;
 
-      /* If it is a menu bar, try to delete the reference to it */
-      if(GTK_IS_POPOVER_MENU_BAR(*menu) &&
+      /* If it is attached to a window, try to delete the reference to it */
+      if((GTK_IS_POPOVER_MENU_BAR(*menu) || GTK_IS_POPOVER_MENU(*menu)) &&
          (window = GTK_WIDGET(g_object_get_data(G_OBJECT(*menu), "_dw_window"))))
-            g_object_set_data(G_OBJECT(window), "_dw_menubar", NULL);
+      {
+            if(GTK_IS_POPOVER_MENU_BAR(*menu))
+               g_object_set_data(G_OBJECT(window), "_dw_menubar", NULL);
+            else
+               g_object_set_data(G_OBJECT(window), "_dw_menu_popup", NULL);
+      }
       /* Actually destroy the menu */
       if(GTK_IS_WIDGET(*menu) && window)
       {
          GtkWidget *box = GTK_WIDGET(g_object_get_data(G_OBJECT(window), "_dw_grid"));
+
          if(box && GTK_IS_GRID(box))
             gtk_grid_remove(GTK_GRID(box), GTK_WIDGET(*menu));
          else
@@ -3116,6 +3122,7 @@ DW_FUNCTION_RESTORE_PARAM4(menu, HMENUI *, parent, HWND, x, int, y, int)
          {
             gtk_grid_attach(GTK_GRID(box), tmp, 65535, 65535, 1, 1);
             g_object_set_data(G_OBJECT(tmp), "_dw_window", (gpointer)parent);
+            g_object_set_data(G_OBJECT(parent), "_dw_menu_popup", (gpointer)tmp);
          }
       }
       else
