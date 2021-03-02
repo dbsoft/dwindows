@@ -13420,6 +13420,8 @@ int dw_app_id_set(const char *appid, const char *appname)
    if(g_application_id_is_valid(appid))
    {
       strncpy(_dw_app_id, appid, _DW_APP_ID_SIZE);
+      if(appname)
+      	g_set_application_name(appname);
       return DW_ERROR_NONE;
    }
    return DW_ERROR_GENERAL;
