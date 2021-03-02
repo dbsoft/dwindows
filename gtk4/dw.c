@@ -386,11 +386,13 @@ static char *_dw_image_exts[] =
 # define min(a,b)        (((a) < (b)) ? (a) : (b))
 #endif
 
-pthread_key_t _dw_fg_color_key;
-pthread_key_t _dw_bg_color_key;
-pthread_key_t _dw_event_key;
+static pthread_key_t _dw_fg_color_key;
+static pthread_key_t _dw_bg_color_key;
+static pthread_key_t _dw_event_key;
 
 static pthread_t _dw_thread = (pthread_t)-1;
+
+static GList *_dw_dirty_list = NULL;
 
 #define _DW_TREE_TYPE_CONTAINER  1
 #define _DW_TREE_TYPE_TREE       2
@@ -828,6 +830,37 @@ static gint _dw_configure_event(GtkWidget *widget, int width, int height, gpoint
    return retval;
 }
 
+cairo_t *_dw_cairo_update(GtkWidget *widget, int width, int height)
+{
+   cairo_t *wincr = g_object_get_data(G_OBJECT(widget), "_dw_cr"); 
+   cairo_surface_t *surface = g_object_get_data(G_OBJECT(widget), "_dw_cr_surface"); 
+
+   if(width == -1 && height == -1 && g_list_find(_dw_dirty_list, widget) == NULL)
+      _dw_dirty_list = g_list_append(_dw_dirty_list, widget);
+
+   if(width == -1)
+      width = gtk_widget_get_width(widget);
+   if(height == -1)
+      height = gtk_widget_get_height(widget);
+   
+   if(!wincr || GPOINTER_TO_INT(g_object_get_data(G_OBJECT(widget), "_dw_width")) != width ||
+      GPOINTER_TO_INT(g_object_get_data(G_OBJECT(widget), "_dw_height")) != height)
+   {
+      if(wincr)
+         cairo_destroy(wincr);
+      if(surface)
+         cairo_surface_destroy(surface);
+      surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, width, height);
+      wincr = cairo_create(surface);
+      /* Save the cairo context for use in the drawing functions */
+      g_object_set_data(G_OBJECT(widget), "_dw_cr", (gpointer)wincr);
+      g_object_set_data(G_OBJECT(widget), "_dw_cr_surface", (gpointer)surface);
+      g_object_set_data(G_OBJECT(widget), "_dw_width", GINT_TO_POINTER(width));
+      g_object_set_data(G_OBJECT(widget), "_dw_height", GINT_TO_POINTER(height));
+   }
+   return wincr;
+}
+
 static gint _dw_expose_event(GtkWidget *widget, cairo_t *cr, int width, int height, gpointer data)
 {
    int retval = FALSE;
@@ -837,13 +870,16 @@ static gint _dw_expose_event(GtkWidget *widget, cairo_t *cr, int width, int heig
       DWExpose exp;
       int (*exposefunc)(HWND, DWExpose *, void *) = g_object_get_data(G_OBJECT(widget), "_dw_expose_func");
 
+      _dw_cairo_update(widget, width, height);
+
       exp.x = exp.y = 0;
       exp.width = width;
       exp.height = height;
-      /* Save the cairo context for use in the drawing functions */
-      g_object_set_data(G_OBJECT(widget), "_dw_cr", (gpointer)cr);
       retval = exposefunc((HWND)widget, &exp, data);
-      g_object_set_data(G_OBJECT(widget), "_dw_cr", NULL);
+      /* Copy the cached image to the outbut surface */
+      cairo_set_source_surface(cr, g_object_get_data(G_OBJECT(widget), "_dw_cr_surface"), 0, 0);
+      cairo_rectangle(cr, 0, 0, width, height);
+      cairo_fill(cr);
    }
    return retval;
 }
@@ -2193,7 +2229,7 @@ DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
       {
          int len, x;
 
-         font = pango_font_description_to_string( pfont );
+         font = pango_font_description_to_string(pfont);
          retfont = strdup(font);
          len = strlen(font);
          /* Convert to Dynamic Windows format if we can... */
@@ -6446,26 +6482,12 @@ DW_FUNCTION_NO_RETURN(dw_draw_point)
 DW_FUNCTION_RESTORE_PARAM4(handle, HWND, pixmap, HPIXMAP, x, int, y, int)
 {
    cairo_t *cr = NULL;
-   GdkDrawContext *dc = NULL;
    int cached = FALSE;
 
    if(handle)
    {
-      if((cr = g_object_get_data(G_OBJECT(handle), "_dw_cr")))
+      if((cr = _dw_cairo_update(handle, -1, -1)))
          cached = TRUE;
-      else
-      {
-         GtkNative *native = gtk_widget_get_native(handle);
-         GdkSurface *surface = gtk_native_get_surface(native);
-
-         if((dc = GDK_DRAW_CONTEXT(gdk_surface_create_cairo_context(surface))))
-         {
-            cairo_region_t *region = cairo_region_create();
-            gdk_draw_context_begin_frame(dc, region);
-            cr = gdk_cairo_context_cairo_create(GDK_CAIRO_CONTEXT(dc));
-            cairo_region_destroy(region);
-         }
-      }
    }
    else if(pixmap)
       cr = cairo_create(pixmap->image);
@@ -6480,9 +6502,7 @@ DW_FUNCTION_RESTORE_PARAM4(handle, HWND, pixmap, HPIXMAP, x, int, y, int)
       /* If we are using a drawing context...
        * we don't own the cairo context so don't destroy it.
        */
-      if(dc)
-         gdk_draw_context_end_frame(dc);
-      else if(!cached)
+      if(!cached)
          cairo_destroy(cr);
    }
    DW_FUNCTION_RETURN_NOTHING;
@@ -6503,26 +6523,12 @@ DW_FUNCTION_NO_RETURN(dw_draw_line)
 DW_FUNCTION_RESTORE_PARAM6(handle, HWND, pixmap, HPIXMAP, x1, int, y1, int, x2, int, y2, int)
 {
    cairo_t *cr = NULL;
-   GdkDrawContext *dc = NULL;
    int cached = FALSE;
 
    if(handle)
    {
-      if((cr = g_object_get_data(G_OBJECT(handle), "_dw_cr")))
+      if((cr = _dw_cairo_update(handle, -1, -1)))
          cached = TRUE;
-      else
-      {
-         GtkNative *native = gtk_widget_get_native(handle);
-         GdkSurface *surface = gtk_native_get_surface(native);
-
-         if((dc = GDK_DRAW_CONTEXT(gdk_surface_create_cairo_context(surface))))
-         {
-            cairo_region_t *region = cairo_region_create();
-            gdk_draw_context_begin_frame(dc, region);
-            cr = gdk_cairo_context_cairo_create(GDK_CAIRO_CONTEXT(dc));
-            cairo_region_destroy(region);
-         }
-      }
    }
    else if(pixmap)
       cr = cairo_create(pixmap->image);
@@ -6538,9 +6544,7 @@ DW_FUNCTION_RESTORE_PARAM6(handle, HWND, pixmap, HPIXMAP, x1, int, y1, int, x2, 
       /* If we are using a drawing context...
        * we don't own the cairo context so don't destroy it.
        */
-      if(dc)
-         gdk_draw_context_end_frame(dc);
-      else if(!cached)
+      if(!cached)
          cairo_destroy(cr);
    }
    DW_FUNCTION_RETURN_NOTHING;
@@ -6562,26 +6566,12 @@ DW_FUNCTION_RESTORE_PARAM6(handle, HWND, pixmap, HPIXMAP, flags, int, npoints, i
 {
    cairo_t *cr = NULL;
    int z;
-   GdkDrawContext *dc = NULL;
    int cached = FALSE;
 
    if(handle)
    {
-      if((cr = g_object_get_data(G_OBJECT(handle), "_dw_cr")))
+      if((cr = _dw_cairo_update(handle, -1, -1)))
          cached = TRUE;
-      else
-      {
-         GtkNative *native = gtk_widget_get_native(handle);
-         GdkSurface *surface = gtk_native_get_surface(native);
-
-         if((dc = GDK_DRAW_CONTEXT(gdk_surface_create_cairo_context(surface))))
-         {
-            cairo_region_t *region = cairo_region_create();
-            gdk_draw_context_begin_frame(dc, region);
-            cr = gdk_cairo_context_cairo_create(GDK_CAIRO_CONTEXT(dc));
-            cairo_region_destroy(region);
-         }
-      }
    }
    else if(pixmap)
       cr = cairo_create(pixmap->image);
@@ -6605,9 +6595,7 @@ DW_FUNCTION_RESTORE_PARAM6(handle, HWND, pixmap, HPIXMAP, flags, int, npoints, i
       /* If we are using a drawing context...
        * we don't own the cairo context so don't destroy it.
        */
-      if(dc)
-         gdk_draw_context_end_frame(dc);
-      else if(!cached)
+      if(!cached)
          cairo_destroy(cr);
    }
    DW_FUNCTION_RETURN_NOTHING;
@@ -6629,26 +6617,12 @@ DW_FUNCTION_NO_RETURN(dw_draw_rect)
 DW_FUNCTION_RESTORE_PARAM7(handle, HWND, pixmap, HPIXMAP, flags, int, x, int, y, int, width, int, height, int)
 {
    cairo_t *cr = NULL;
-   GdkDrawContext *dc = NULL;
    int cached = FALSE;
 
    if(handle)
    {
-      if((cr = g_object_get_data(G_OBJECT(handle), "_dw_cr")))
+      if((cr = _dw_cairo_update(handle, -1, -1)))
          cached = TRUE;
-      else
-      {
-         GtkNative *native = gtk_widget_get_native(handle);
-         GdkSurface *surface = gtk_native_get_surface(native);
-
-         if((dc = GDK_DRAW_CONTEXT(gdk_surface_create_cairo_context(surface))))
-         {
-            cairo_region_t *region = cairo_region_create();
-            gdk_draw_context_begin_frame(dc, region);
-            cr = gdk_cairo_context_cairo_create(GDK_CAIRO_CONTEXT(dc));
-            cairo_region_destroy(region);
-         }
-      }
    }
    else if(pixmap)
       cr = cairo_create(pixmap->image);
@@ -6671,9 +6645,7 @@ DW_FUNCTION_RESTORE_PARAM7(handle, HWND, pixmap, HPIXMAP, flags, int, x, int, y,
       /* If we are using a drawing context...
        * we don't own the cairo context so don't destroy it.
        */
-      if(dc)
-         gdk_draw_context_end_frame(dc);
-      else if(!cached)
+      if(!cached)
          cairo_destroy(cr);
    }
    DW_FUNCTION_RETURN_NOTHING;
@@ -6698,26 +6670,12 @@ DW_FUNCTION_NO_RETURN(dw_draw_arc)
 DW_FUNCTION_RESTORE_PARAM9(handle, HWND, pixmap, HPIXMAP, flags, int, xorigin, int, yorigin, int, x1, int, y1, int, x2, int, y2, int)
 {
    cairo_t *cr = NULL;
-   GdkDrawContext *dc = NULL;
    int cached = FALSE;
 
    if(handle)
    {
-      if((cr = g_object_get_data(G_OBJECT(handle), "_dw_cr")))
+      if((cr = _dw_cairo_update(handle, -1, -1)))
          cached = TRUE;
-      else
-      {
-         GtkNative *native = gtk_widget_get_native(handle);
-         GdkSurface *surface = gtk_native_get_surface(native);
-
-         if((dc = GDK_DRAW_CONTEXT(gdk_surface_create_cairo_context(surface))))
-         {
-            cairo_region_t *region = cairo_region_create();
-            gdk_draw_context_begin_frame(dc, region);
-            cr = gdk_cairo_context_cairo_create(GDK_CAIRO_CONTEXT(dc));
-            cairo_region_destroy(region);
-         }
-      }
    }
    else if(pixmap)
       cr = cairo_create(pixmap->image);
@@ -6752,9 +6710,7 @@ DW_FUNCTION_RESTORE_PARAM9(handle, HWND, pixmap, HPIXMAP, flags, int, xorigin, i
       /* If we are using a drawing context...
        * we don't own the cairo context so don't destroy it.
        */
-      if(dc)
-         gdk_draw_context_end_frame(dc);
-      else if(!cached)
+      if(!cached)
          cairo_destroy(cr);
    }
    DW_FUNCTION_RETURN_NOTHING;
@@ -6778,26 +6734,12 @@ DW_FUNCTION_RESTORE_PARAM5(handle, HWND, pixmap, HPIXMAP, x, int, y, int, text, 
       cairo_t *cr = NULL;
       PangoFontDescription *font;
       char *tmpname, *fontname = "monospace 10";
-      GdkDrawContext *dc = NULL;
       int cached = FALSE;
 
       if(handle)
       {
-         if((cr = g_object_get_data(G_OBJECT(handle), "_dw_cr")))
+         if((cr = _dw_cairo_update(handle, -1, -1)))
             cached = TRUE;
-         else
-         {
-            GtkNative *native = gtk_widget_get_native(handle);
-            GdkSurface *surface = gtk_native_get_surface(native);
-
-            if((dc = GDK_DRAW_CONTEXT(gdk_surface_create_cairo_context(surface))))
-            {
-               cairo_region_t *region = cairo_region_create();
-               gdk_draw_context_begin_frame(dc, region);
-               cr = gdk_cairo_context_cairo_create(GDK_CAIRO_CONTEXT(dc));
-               cairo_region_destroy(region);
-            }
-         }
          if((tmpname = (char *)g_object_get_data(G_OBJECT(handle), "_dw_fontname")))
             fontname = tmpname;
       }
@@ -6856,9 +6798,7 @@ DW_FUNCTION_RESTORE_PARAM5(handle, HWND, pixmap, HPIXMAP, x, int, y, int, text, 
          /* If we are using a drawing context...
           * we don't own the cairo context so don't destroy it.
           */
-         if(dc)
-            gdk_draw_context_end_frame(dc);
-         else if(!cached)
+         if(!cached)
             cairo_destroy(cr);
       }
    }
@@ -7111,11 +7051,22 @@ DW_FUNCTION_RESTORE_PARAM2(handle, HWND, id, ULONG)
    DW_FUNCTION_RETURN_THIS(pixmap);
 }
 
+static void _dw_flush_dirty(gpointer widget, gpointer data)
+{
+   gtk_widget_queue_draw(GTK_WIDGET(widget));
+}
+
 /* Call this after drawing to the screen to make sure
  * anything you have drawn is visible.
  */
-void API dw_flush(void)
+DW_FUNCTION_DEFINITION(dw_flush, void)
+DW_FUNCTION_ADD_PARAM
+DW_FUNCTION_NO_RETURN(dw_flush)
 {
+   g_list_foreach(_dw_dirty_list, _dw_flush_dirty, NULL);
+   g_list_free(_dw_dirty_list);
+   _dw_dirty_list = NULL;
+   DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -7208,26 +7159,12 @@ DW_FUNCTION_RESTORE_PARAM12(dest, HWND, destp, HPIXMAP, xdest, int, ydest, int, 
 {
    cairo_t *cr = NULL;
    int retval = DW_ERROR_GENERAL;
-   GdkDrawContext *dc = NULL;
    int cached = FALSE;
 
    if(dest)
    {
-      if((cr = g_object_get_data(G_OBJECT(dest), "_dw_cr")))
+      if((cr = _dw_cairo_update(dest, -1, -1)))
          cached = TRUE;
-      else
-      {
-         GtkNative *native = gtk_widget_get_native(dest);
-         GdkSurface *surface = gtk_native_get_surface(native);
-
-         if((dc = GDK_DRAW_CONTEXT(gdk_surface_create_cairo_context(surface))))
-         {
-            cairo_region_t *region = cairo_region_create();
-            gdk_draw_context_begin_frame(dc, region);
-            cr = gdk_cairo_context_cairo_create(GDK_CAIRO_CONTEXT(dc));
-            cairo_region_destroy(region);
-         }
-      }
    }
    else if(destp)
       cr = cairo_create(destp->image);
@@ -7244,10 +7181,11 @@ DW_FUNCTION_RESTORE_PARAM12(dest, HWND, destp, HPIXMAP, xdest, int, ydest, int, 
       }
 
       if(src)
-         ;
-#ifdef GTK3 /* TODO: See how to do this in GTK4 */   
-         gdk_cairo_set_source_window (cr, gtk_widget_get_window(src), (xdest + xsrc) / xscale, (ydest + ysrc) / yscale);
-#endif         
+      {
+         cairo_surface_t *surface = g_object_get_data(G_OBJECT(src), "_dw_cr_surface");
+         if(surface)
+            cairo_set_source_surface (cr, surface, (xdest + xsrc) / xscale, (ydest + ysrc) / yscale);
+      }        
       else if(srcp)
          cairo_set_source_surface (cr, srcp->image, (xdest + xsrc) / xscale, (ydest + ysrc) / yscale);
 
@@ -7256,9 +7194,7 @@ DW_FUNCTION_RESTORE_PARAM12(dest, HWND, destp, HPIXMAP, xdest, int, ydest, int, 
       /* If we are using a drawing context...
        * we don't own the cairo context so don't destroy it.
        */
-      if(dc)
-         gdk_draw_context_end_frame(dc);
-      else if(!cached)
+      if(!cached)
          cairo_destroy(cr);
       retval = DW_ERROR_NONE;
    }
