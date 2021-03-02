@@ -10546,7 +10546,10 @@ int API dw_app_id_set(const char *appid, const char *appname)
  *       function: Function pointer to be called.
  *       data: Pointer to the data to be passed to the function.
  */
-void API dw_window_function(HWND handle, void *function, void *data)
+DW_FUNCTION_DEFINITION(dw_window_function, void, DW_UNUSED(HWND handle), void *function, void *data)
+DW_FUNCTION_ADD_PARAM3(handle, function, data)
+DW_FUNCTION_NO_RETURN(dw_window_function)
+DW_FUNCTION_RESTORE_PARAM3(DW_UNUSED(handle), HWND, function, void *, data, void *)
 {
    void (* windowfunc)(void *);
 
@@ -10554,6 +10557,7 @@ void API dw_window_function(HWND handle, void *function, void *data)
 
    if(windowfunc)
       windowfunc(data);
+   DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
