@@ -910,6 +910,10 @@ static gint _dw_tree_context_event(GtkGestureSingle *gesture, int n_press, doubl
          void *itemdata = NULL;
          GtkWidget *widget = work.window;
 
+         /* Containers and trees are inside scrolled window widgets */
+         if(GTK_IS_SCROLLED_WINDOW(widget))
+            widget = GTK_WIDGET(g_object_get_data(G_OBJECT(widget), "_dw_user"));
+
          if(widget && GTK_IS_TREE_VIEW(widget))
          {
             GtkTreeSelection *sel = gtk_tree_view_get_selection(GTK_TREE_VIEW(widget));
