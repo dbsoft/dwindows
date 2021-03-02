@@ -6880,17 +6880,17 @@ DW_FUNCTION_RESTORE_PARAM5(handle, HWND, pixmap, HPIXMAP, text, const char *, wi
 {
    PangoFontDescription *font;
    char *fontname = NULL;
-   int free_fontname = 0;
+   int free_fontname = FALSE;
 
    if(text)
    {
       if(handle)
       {
          fontname = (char *)g_object_get_data(G_OBJECT(handle), "_dw_fontname");
-         if ( fontname == NULL )
+         if(fontname == NULL)
          {
             fontname = dw_window_get_font(handle);
-            free_fontname = 1;
+            free_fontname = TRUE;
          }
       }
       else if(pixmap)
@@ -6925,7 +6925,6 @@ DW_FUNCTION_RESTORE_PARAM5(handle, HWND, pixmap, HPIXMAP, text, const char *, wi
 
                g_object_unref(layout);
             }
-            g_object_unref(context);
          }
          pango_font_description_free(font);
       }
@@ -8748,11 +8747,12 @@ DW_FUNCTION_RESTORE_PARAM5(handle, HWND, x, long *, y, long *, width, ULONG *, h
       }
 
 #ifdef GDK_WINDOWING_X11
+      if(x || y)
       {
-         GdkSurface *surface = gtk_native_get_surface(GTK_NATIVE(handle));
          GdkDisplay *display = gdk_display_get_default();
+         GdkSurface *surface;
    
-         if(surface && display && GDK_IS_X11_DISPLAY(display))
+         if(display && GDK_IS_X11_DISPLAY(display) && (surface = gtk_native_get_surface(GTK_NATIVE(handle))))
          {
             XWindowAttributes xwa;
             int ix = 0, iy = 0;
