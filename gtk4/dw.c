@@ -7327,7 +7327,32 @@ void API dw_mutex_close(HMTX mutex)
  */
 void API dw_mutex_lock(HMTX mutex)
 {
-   pthread_mutex_lock(mutex);
+    /* We need to handle locks from the main thread differently...
+     * since we can't stop message processing... otherwise we
+     * will deadlock... so try to acquire the lock and continue
+     * processing messages in between tries.
+     */
+    if(_dw_thread == pthread_self())
+    {
+        while(pthread_mutex_trylock(mutex) != 0)
+        {
+            /* Process any pending events */
+            if(g_main_context_pending(NULL))
+            {
+               do 
+               {
+                  g_main_context_iteration(NULL, FALSE);
+               } 
+               while(g_main_context_pending(NULL));
+            }
+            else
+               sched_yield();
+        }
+    }
+    else
+    {
+        pthread_mutex_lock(mutex);
+    }
 }
 
 /*
