@@ -6357,6 +6357,12 @@ void API dw_taskbar_delete(HWND handle, HICN icon)
    /* TODO: Removed in GTK4.... no replacement? */
 }
 
+/* Make sure the widget is out of the dirty list if it is destroyed */
+static void _dw_render_destroy(GtkWidget *widget, gpointer data)
+{
+   _dw_dirty_list = g_list_remove(_dw_dirty_list, widget);
+}
+
 /*
  * Creates a rendering context widget (window) to be packed.
  * Parameters:
@@ -6371,6 +6377,7 @@ DW_FUNCTION_RESTORE_PARAM1(cid, ULONG)
 {
    GtkWidget *tmp = gtk_drawing_area_new();
    g_object_set_data(G_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(cid));
+   g_signal_connect(G_OBJECT(tmp), "destroy", G_CALLBACK(_dw_render_destroy), NULL);
    gtk_widget_set_can_focus(tmp, TRUE);
    gtk_widget_show(tmp);
    if(_DWDefaultFont)
