@@ -710,7 +710,6 @@ static gint _dw_button_press_event(GtkGestureSingle *gesture, int n_press, doubl
    SignalHandler work = _dw_get_signal_handler(data);
    int retval = FALSE;
 
-   dw_debug("Button press event %dx%d\n", (int)x, (int)y);
    if(work.window)
    {
       int (*buttonfunc)(HWND, int, int, int, void *) = work.func;
@@ -7054,7 +7053,8 @@ DW_FUNCTION_RESTORE_PARAM2(handle, HWND, id, ULONG)
 
 static void _dw_flush_dirty(gpointer widget, gpointer data)
 {
-   gtk_widget_queue_draw(GTK_WIDGET(widget));
+   if(widget && GTK_IS_WIDGET(widget))
+      gtk_widget_queue_draw(GTK_WIDGET(widget));
 }
 
 /* Call this after drawing to the screen to make sure
