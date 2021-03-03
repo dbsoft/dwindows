@@ -3842,25 +3842,23 @@ void dw_pointer_query_pos(long *x, long *y)
    int gx, gy;
    int _locked_by_me = FALSE;
    GdkDisplay *display;
-   GdkDevice *device;
-#if GTK_CHECK_VERSION(3,20,0)
-   GdkSeat *seat;
-#else
-   GdkDeviceManager *manager;
-#endif
 
    DW_MUTEX_LOCK;
 #ifdef GDK_WINDOWING_X11
    display = gdk_display_get_default();
+   
+   if(display && GDK_IS_X11_DISPLAY(display))
+   {
 #if GTK_CHECK_VERSION(3,20,0)
-   seat = gdk_display_get_default_seat(display);
-   device = gdk_seat_get_pointer(seat);
+      GdkSeat *seat = gdk_display_get_default_seat(display);
+      GdkDevice *device = gdk_seat_get_pointer(seat);
 #else
-   manager = gdk_display_get_device_manager(display);
-   device = gdk_device_manager_get_client_pointer(manager);
+      GdkDeviceManager *manager = gdk_display_get_device_manager(display);
+      GdkDevice *device = gdk_device_manager_get_client_pointer(manager);
 #endif
-   gdk_window_get_device_position(gdk_x11_window_lookup_for_display(display, GDK_ROOT_WINDOW()),
-                                   device, &gx, &gy, &state);
+      gdk_window_get_device_position(gdk_x11_window_lookup_for_display(display, GDK_ROOT_WINDOW()),
+                                     device, &gx, &gy, &state);
+   }
 #endif
    if(x)
       *x = gx;
@@ -3877,28 +3875,27 @@ void dw_pointer_query_pos(long *x, long *y)
  */
 void dw_pointer_set_pos(long x, long y)
 {
+#ifdef GDK_WINDOWING_X11
    int _locked_by_me = FALSE;
    GdkDisplay *display;
    GdkDevice *device;
-#if GTK_CHECK_VERSION(3,20,0)
-   GdkSeat *seat;
-#else
-   GdkDeviceManager *manager;
-#endif
 
    DW_MUTEX_LOCK;
-#ifdef GDK_WINDOWING_X11
    display = gdk_display_get_default();
+   
+   if(display && GDK_IS_X11_DISPLAY(display))
+   {
 #if GTK_CHECK_VERSION(3,20,0)
-   seat = gdk_display_get_default_seat(display);
-   device = gdk_seat_get_pointer(seat);
+      GdkSeat *seat = gdk_display_get_default_seat(display);
+      GdkDevice *device = gdk_seat_get_pointer(seat);
 #else
-   manager = gdk_display_get_device_manager(display);
-   device = gdk_device_manager_get_client_pointer(manager);
+      GdkDeviceManager *manager = gdk_display_get_device_manager(display);
+      GdkDevice *device = gdk_device_manager_get_client_pointer(manager);
 #endif
-   gdk_device_warp(device, gdk_screen_get_default(), x, y);
-#endif
+      gdk_device_warp(device, gdk_screen_get_default(), x, y);
+   }
    DW_MUTEX_UNLOCK;
+#endif
 }
 
 #define _DW_TREE_CONTAINER 1
@@ -9527,7 +9524,7 @@ void _dw_get_frame_extents(GtkWidget *window, int *vert, int *horz)
       *horz = 12;
 
       /* See if the current window manager supports _NET_REQUEST_FRAME_EXTENTS */
-      if(gdk_x11_screen_supports_net_wm_hint(gdk_screen_get_default(), request_extents))
+      if(display && GDK_IS_X11_DISPLAY(display) && gdk_x11_screen_supports_net_wm_hint(gdk_screen_get_default(), request_extents))
       {
          Display *xdisplay = GDK_DISPLAY_XDISPLAY(display);
          GdkWindow *root_window = gdk_get_default_root_window();
