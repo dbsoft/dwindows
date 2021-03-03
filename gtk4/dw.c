@@ -710,6 +710,7 @@ static gint _dw_button_press_event(GtkGestureSingle *gesture, int n_press, doubl
    SignalHandler work = _dw_get_signal_handler(data);
    int retval = FALSE;
 
+   dw_debug("Button press event %dx%d\n", (int)x, (int)y);
    if(work.window)
    {
       int (*buttonfunc)(HWND, int, int, int, void *) = work.func;
@@ -10755,6 +10756,7 @@ GObject *_dw_mouse_setup(struct _dw_signal_list *signal, GObject *object, void *
    if(GTK_IS_WIDGET(object))
    {
       GtkGesture *gesture = gtk_gesture_click_new();
+      gtk_gesture_single_set_button(GTK_GESTURE_SINGLE(gesture), 0);
       gtk_widget_add_controller(GTK_WIDGET(object), GTK_EVENT_CONTROLLER(gesture));
       return G_OBJECT(gesture);
    }
