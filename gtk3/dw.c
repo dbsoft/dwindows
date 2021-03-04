@@ -2620,6 +2620,7 @@ int dw_window_destroy(HWND handle)
                if(gtk_grid_get_child_at(GTK_GRID(box), 0, z) == handle2)
                {
                   gtk_grid_remove_row(GTK_GRID(box), z);
+                  handle2 = NULL;
                   break;
                }
             }
@@ -2631,6 +2632,7 @@ int dw_window_destroy(HWND handle)
                if(gtk_grid_get_child_at(GTK_GRID(box), z, 0) == handle2)
                {
                   gtk_grid_remove_column(GTK_GRID(box), z);
+                  handle2 = NULL;
                   break;
                }
             }
@@ -2647,7 +2649,7 @@ int dw_window_destroy(HWND handle)
       /* Finally destroy the widget, make sure it is still
        * a valid widget if it got removed from the grid.
        */
-      if(GTK_IS_WIDGET(handle2))
+      if(handle2 && GTK_IS_WIDGET(handle2))
          gtk_widget_destroy(handle2);
    }
    DW_MUTEX_UNLOCK;
@@ -7326,13 +7328,13 @@ void dw_draw_point(HWND handle, HPIXMAP pixmap, int x, int y)
             DW_MUTEX_UNLOCK;
             return;
          }
-   #if GTK_CHECK_VERSION(3,22,0)
+#if GTK_CHECK_VERSION(3,22,0)
          clip = gdk_window_get_clip_region(window);
          dc = gdk_window_begin_draw_frame(window, clip);
          cr = gdk_drawing_context_get_cairo_context(dc);
-   #else
+#else
          cr = gdk_cairo_create(window);
-   #endif
+#endif
       }
       else
       {
@@ -7398,13 +7400,13 @@ void dw_draw_line(HWND handle, HPIXMAP pixmap, int x1, int y1, int x2, int y2)
             DW_MUTEX_UNLOCK;
             return;
          }
-   #if GTK_CHECK_VERSION(3,22,0)
+#if GTK_CHECK_VERSION(3,22,0)
          clip = gdk_window_get_clip_region(window);
          dc = gdk_window_begin_draw_frame(window, clip);
          cr = gdk_drawing_context_get_cairo_context(dc);
-   #else
+#else
          cr = gdk_cairo_create(window);
-   #endif
+#endif
       }
       else
       {
@@ -7472,13 +7474,13 @@ void dw_draw_polygon(HWND handle, HPIXMAP pixmap, int flags, int npoints, int *x
             DW_MUTEX_UNLOCK;
             return;
          }
-   #if GTK_CHECK_VERSION(3,22,0)
+#if GTK_CHECK_VERSION(3,22,0)
          clip = gdk_window_get_clip_region(window);
          dc = gdk_window_begin_draw_frame(window, clip);
          cr = gdk_drawing_context_get_cairo_context(dc);
-   #else
+#else
          cr = gdk_cairo_create(window);
-   #endif
+#endif
       }
       else
       {
@@ -7554,13 +7556,13 @@ void dw_draw_rect(HWND handle, HPIXMAP pixmap, int flags, int x, int y, int widt
             DW_MUTEX_UNLOCK;
             return;
          }
-   #if GTK_CHECK_VERSION(3,22,0)
+#if GTK_CHECK_VERSION(3,22,0)
          clip = gdk_window_get_clip_region(window);
          dc = gdk_window_begin_draw_frame(window, clip);
          cr = gdk_drawing_context_get_cairo_context(dc);
-   #else
+#else
          cr = gdk_cairo_create(window);
-   #endif
+#endif
       }
       else
       {
@@ -7638,13 +7640,13 @@ void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yo
             DW_MUTEX_UNLOCK;
             return;
          }
-   #if GTK_CHECK_VERSION(3,22,0)
+#if GTK_CHECK_VERSION(3,22,0)
          clip = gdk_window_get_clip_region(window);
          dc = gdk_window_begin_draw_frame(window, clip);
          cr = gdk_drawing_context_get_cairo_context(dc);
-   #else
+#else
          cr = gdk_cairo_create(window);
-   #endif
+#endif
       }
       else
       {
@@ -7734,13 +7736,13 @@ void dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, const char *text)
             DW_MUTEX_UNLOCK;
             return;
          }
-   #if GTK_CHECK_VERSION(3,22,0)
+#if GTK_CHECK_VERSION(3,22,0)
          clip = gdk_window_get_clip_region(window);
          dc = gdk_window_begin_draw_frame(window, clip);
          cr = gdk_drawing_context_get_cairo_context(dc);
-   #else
+#else
          cr = gdk_cairo_create(window);
-   #endif
+#endif
          if((tmpname = (char *)g_object_get_data(G_OBJECT(handle), "_dw_fontname")))
             fontname = tmpname;
       }
