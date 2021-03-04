@@ -11560,7 +11560,8 @@ int API dw_exec(const char *program, int type, char **params)
       g_signal_connect(G_OBJECT(context), "launched", G_CALLBACK(_dw_exec_launched), (gpointer)&retval);
 #endif
 
-      g_app_info_launch(appinfo, NULL, context, NULL);
+      if(g_app_info_launch(appinfo, NULL, context, NULL) && retval == DW_ERROR_UNKNOWN)
+         retval = DW_ERROR_NONE;
 
       g_object_unref(appinfo);
       g_object_unref(context);
