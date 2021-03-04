@@ -119,11 +119,13 @@ char *image_exts[NUM_EXTS] =
 # define min(a,b)        (((a) < (b)) ? (a) : (b))
 #endif
 
-pthread_key_t _dw_fg_color_key;
-pthread_key_t _dw_bg_color_key;
-pthread_key_t _dw_mutex_key;
+static pthread_key_t _dw_fg_color_key;
+static pthread_key_t _dw_bg_color_key;
+static pthread_key_t _dw_mutex_key;
 
-GtkWidget *last_window = NULL, *popup = NULL;
+static GList *_dw_dirty_list = NULL;
+
+static GtkWidget *_dw_popup = NULL;
 
 static int _dw_ignore_click = 0, _dw_ignore_expand = 0;
 static pthread_t _dw_thread = (pthread_t)-1;
@@ -1478,8 +1480,8 @@ static gint _activate_event(GtkWidget *widget, gpointer data)
    {
       int (*activatefunc)(HWND, void *) = work.func;
 
-      retval = activatefunc(popup ? popup : work.window, work.data);
-      popup = NULL;
+      retval = activatefunc(_dw_popup ? _dw_popup : work.window, work.data);
+      _dw_popup = NULL;
    }
    return retval;
 }
@@ -1511,7 +1513,9 @@ static gint _expose_event(GtkWidget *widget, cairo_t *cr, gpointer data)
       exp.x = exp.y = 0;
       exp.width = gtk_widget_get_allocated_width(widget);
       exp.height = gtk_widget_get_allocated_height(widget);
+      g_object_set_data(G_OBJECT(work.window), "_dw_expose", GINT_TO_POINTER(TRUE));
       retval = exposefunc(work.window, &exp, work.data);
+      g_object_set_data(G_OBJECT(work.window), "_dw_expose", NULL);
    }
    return retval;
 }
@@ -3198,7 +3202,7 @@ HWND dw_window_new(HWND hwndOwner, const char *title, unsigned long flStyle)
 
       gtk_widget_show_all(grid);
 
-      last_window = tmp = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+      tmp = gtk_window_new(GTK_WINDOW_TOPLEVEL);
 
       gtk_window_set_title(GTK_WINDOW(tmp), title);
       gtk_window_set_resizable(GTK_WINDOW(tmp), (flStyle & DW_FCF_SIZEBORDER) ? TRUE : FALSE);
@@ -3817,7 +3821,7 @@ void dw_menu_popup(HMENUI *menu, HWND parent, int x, int y)
    if(!menu || !*menu)
       return;
 
-   popup = parent;
+   _dw_popup = parent;
 
    DW_MUTEX_LOCK;
 #if GTK_CHECK_VERSION(3,22,0)
@@ -3838,13 +3842,13 @@ void dw_menu_popup(HMENUI *menu, HWND parent, int x, int y)
  */
 void dw_pointer_query_pos(long *x, long *y)
 {
+   int gx = 0, gy = 0;
+#ifdef GDK_WINDOWING_X11
    GdkModifierType state = 0;
-   int gx, gy;
    int _locked_by_me = FALSE;
    GdkDisplay *display;
 
    DW_MUTEX_LOCK;
-#ifdef GDK_WINDOWING_X11
    display = gdk_display_get_default();
    
    if(display && GDK_IS_X11_DISPLAY(display))
@@ -3859,12 +3863,12 @@ void dw_pointer_query_pos(long *x, long *y)
       gdk_window_get_device_position(gdk_x11_window_lookup_for_display(display, GDK_ROOT_WINDOW()),
                                      device, &gx, &gy, &state);
    }
+   DW_MUTEX_UNLOCK;
 #endif
    if(x)
       *x = gx;
    if(y)
       *y = gy;
-   DW_MUTEX_UNLOCK;
 }
 
 /*
@@ -3878,7 +3882,6 @@ void dw_pointer_set_pos(long x, long y)
 #ifdef GDK_WINDOWING_X11
    int _locked_by_me = FALSE;
    GdkDisplay *display;
-   GdkDevice *device;
 
    DW_MUTEX_LOCK;
    display = gdk_display_get_default();
@@ -7083,6 +7086,12 @@ void dw_taskbar_delete(HWND handle, HICN icon)
    DW_MUTEX_UNLOCK;
 }
 
+/* Make sure the widget is out of the dirty list if it is destroyed */
+static void _dw_render_destroy(GtkWidget *widget, gpointer data)
+{
+   _dw_dirty_list = g_list_remove(_dw_dirty_list, widget);
+}
+
 /*
  * Creates a rendering context widget (window) to be packed.
  * Parameters:
@@ -7105,6 +7114,7 @@ HWND dw_render_new(unsigned long id)
                     | GDK_POINTER_MOTION_MASK
                     | GDK_POINTER_MOTION_HINT_MASK);
    g_object_set_data(G_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(id));
+   g_signal_connect(G_OBJECT(tmp), "destroy", G_CALLBACK(_dw_render_destroy), NULL);
    gtk_widget_set_can_focus(tmp, TRUE);
    gtk_widget_show(tmp);
    if(_DWDefaultFont)
@@ -7305,20 +7315,31 @@ void dw_draw_point(HWND handle, HPIXMAP pixmap, int x, int y)
    DW_MUTEX_LOCK;
    if(handle)
    {
-      GdkWindow *window = gtk_widget_get_window(handle);
-      /* Safety check for non-existant windows */
-      if(!window || !GDK_IS_WINDOW(window))
+      GdkDisplay *display = gdk_display_get_default();
+      
+      if((display && GDK_IS_X11_DISPLAY(display)) || g_object_get_data(G_OBJECT(handle), "_dw_expose"))
       {
-         DW_MUTEX_UNLOCK;
-         return;
+         GdkWindow *window = gtk_widget_get_window(handle);
+         /* Safety check for non-existant windows */
+         if(!window || !GDK_IS_WINDOW(window))
+         {
+            DW_MUTEX_UNLOCK;
+            return;
+         }
+   #if GTK_CHECK_VERSION(3,22,0)
+         clip = gdk_window_get_clip_region(window);
+         dc = gdk_window_begin_draw_frame(window, clip);
+         cr = gdk_drawing_context_get_cairo_context(dc);
+   #else
+         cr = gdk_cairo_create(window);
+   #endif
       }
-#if GTK_CHECK_VERSION(3,22,0)
-      clip = gdk_window_get_clip_region(window);
-      dc = gdk_window_begin_draw_frame(window, clip);
-      cr = gdk_drawing_context_get_cairo_context(dc);
-#else
-      cr = gdk_cairo_create(window);
-#endif
+      else
+      {
+         /* If not X11, just mark the widget dirty.. and trigger draw in dw_flush() */
+         if(g_list_find(_dw_dirty_list, handle) == NULL)
+            _dw_dirty_list = g_list_append(_dw_dirty_list, handle);
+      }
    }
    else if(pixmap)
       cr = cairo_create(pixmap->image);
@@ -7366,20 +7387,31 @@ void dw_draw_line(HWND handle, HPIXMAP pixmap, int x1, int y1, int x2, int y2)
    DW_MUTEX_LOCK;
    if(handle)
    {
-      GdkWindow *window = gtk_widget_get_window(handle);
-      /* Safety check for non-existant windows */
-      if(!window || !GDK_IS_WINDOW(window))
+      GdkDisplay *display = gdk_display_get_default();
+      
+      if((display && GDK_IS_X11_DISPLAY(display)) || g_object_get_data(G_OBJECT(handle), "_dw_expose"))
       {
-         DW_MUTEX_UNLOCK;
-         return;
+         GdkWindow *window = gtk_widget_get_window(handle);
+         /* Safety check for non-existant windows */
+         if(!window || !GDK_IS_WINDOW(window))
+         {
+            DW_MUTEX_UNLOCK;
+            return;
+         }
+   #if GTK_CHECK_VERSION(3,22,0)
+         clip = gdk_window_get_clip_region(window);
+         dc = gdk_window_begin_draw_frame(window, clip);
+         cr = gdk_drawing_context_get_cairo_context(dc);
+   #else
+         cr = gdk_cairo_create(window);
+   #endif
       }
-#if GTK_CHECK_VERSION(3,22,0)
-      clip = gdk_window_get_clip_region(window);
-      dc = gdk_window_begin_draw_frame(window, clip);
-      cr = gdk_drawing_context_get_cairo_context(dc);
-#else
-      cr = gdk_cairo_create(window);
-#endif
+      else
+      {
+         /* If not X11, just mark the widget dirty.. and trigger draw in dw_flush() */
+         if(g_list_find(_dw_dirty_list, handle) == NULL)
+            _dw_dirty_list = g_list_append(_dw_dirty_list, handle);
+      }
    }
    else if(pixmap)
       cr = cairo_create(pixmap->image);
@@ -7429,20 +7461,31 @@ void dw_draw_polygon(HWND handle, HPIXMAP pixmap, int flags, int npoints, int *x
    DW_MUTEX_LOCK;
    if(handle)
    {
-      GdkWindow *window = gtk_widget_get_window(handle);
-      /* Safety check for non-existant windows */
-      if(!window || !GDK_IS_WINDOW(window))
+      GdkDisplay *display = gdk_display_get_default();
+      
+      if((display && GDK_IS_X11_DISPLAY(display)) || g_object_get_data(G_OBJECT(handle), "_dw_expose"))
       {
-         DW_MUTEX_UNLOCK;
-         return;
+         GdkWindow *window = gtk_widget_get_window(handle);
+         /* Safety check for non-existant windows */
+         if(!window || !GDK_IS_WINDOW(window))
+         {
+            DW_MUTEX_UNLOCK;
+            return;
+         }
+   #if GTK_CHECK_VERSION(3,22,0)
+         clip = gdk_window_get_clip_region(window);
+         dc = gdk_window_begin_draw_frame(window, clip);
+         cr = gdk_drawing_context_get_cairo_context(dc);
+   #else
+         cr = gdk_cairo_create(window);
+   #endif
       }
-#if GTK_CHECK_VERSION(3,22,0)
-      clip = gdk_window_get_clip_region(window);
-      dc = gdk_window_begin_draw_frame(window, clip);
-      cr = gdk_drawing_context_get_cairo_context(dc);
-#else
-      cr = gdk_cairo_create(window);
-#endif
+      else
+      {
+         /* If not X11, just mark the widget dirty.. and trigger draw in dw_flush() */
+         if(g_list_find(_dw_dirty_list, handle) == NULL)
+            _dw_dirty_list = g_list_append(_dw_dirty_list, handle);
+      }
    }
    else if(pixmap)
       cr = cairo_create(pixmap->image);
@@ -7500,20 +7543,31 @@ void dw_draw_rect(HWND handle, HPIXMAP pixmap, int flags, int x, int y, int widt
    DW_MUTEX_LOCK;
    if(handle)
    {
-      GdkWindow *window = gtk_widget_get_window(handle);
-      /* Safety check for non-existant windows */
-      if(!window || !GDK_IS_WINDOW(window))
+      GdkDisplay *display = gdk_display_get_default();
+      
+      if((display && GDK_IS_X11_DISPLAY(display)) || g_object_get_data(G_OBJECT(handle), "_dw_expose"))
       {
-         DW_MUTEX_UNLOCK;
-         return;
+         GdkWindow *window = gtk_widget_get_window(handle);
+         /* Safety check for non-existant windows */
+         if(!window || !GDK_IS_WINDOW(window))
+         {
+            DW_MUTEX_UNLOCK;
+            return;
+         }
+   #if GTK_CHECK_VERSION(3,22,0)
+         clip = gdk_window_get_clip_region(window);
+         dc = gdk_window_begin_draw_frame(window, clip);
+         cr = gdk_drawing_context_get_cairo_context(dc);
+   #else
+         cr = gdk_cairo_create(window);
+   #endif
       }
-#if GTK_CHECK_VERSION(3,22,0)
-      clip = gdk_window_get_clip_region(window);
-      dc = gdk_window_begin_draw_frame(window, clip);
-      cr = gdk_drawing_context_get_cairo_context(dc);
-#else
-      cr = gdk_cairo_create(window);
-#endif
+      else
+      {
+         /* If not X11, just mark the widget dirty.. and trigger draw in dw_flush() */
+         if(g_list_find(_dw_dirty_list, handle) == NULL)
+            _dw_dirty_list = g_list_append(_dw_dirty_list, handle);
+      }
    }
    else if(pixmap)
       cr = cairo_create(pixmap->image);
@@ -7573,20 +7627,31 @@ void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yo
    DW_MUTEX_LOCK;
    if(handle)
    {
-      GdkWindow *window = gtk_widget_get_window(handle);
-      /* Safety check for non-existant windows */
-      if(!window || !GDK_IS_WINDOW(window))
+      GdkDisplay *display = gdk_display_get_default();
+      
+      if((display && GDK_IS_X11_DISPLAY(display)) || g_object_get_data(G_OBJECT(handle), "_dw_expose"))
       {
-         DW_MUTEX_UNLOCK;
-         return;
+         GdkWindow *window = gtk_widget_get_window(handle);
+         /* Safety check for non-existant windows */
+         if(!window || !GDK_IS_WINDOW(window))
+         {
+            DW_MUTEX_UNLOCK;
+            return;
+         }
+   #if GTK_CHECK_VERSION(3,22,0)
+         clip = gdk_window_get_clip_region(window);
+         dc = gdk_window_begin_draw_frame(window, clip);
+         cr = gdk_drawing_context_get_cairo_context(dc);
+   #else
+         cr = gdk_cairo_create(window);
+   #endif
       }
-#if GTK_CHECK_VERSION(3,22,0)
-      clip = gdk_window_get_clip_region(window);
-      dc = gdk_window_begin_draw_frame(window, clip);
-      cr = gdk_drawing_context_get_cairo_context(dc);
-#else
-      cr = gdk_cairo_create(window);
-#endif
+      else
+      {
+         /* If not X11, just mark the widget dirty.. and trigger draw in dw_flush() */
+         if(g_list_find(_dw_dirty_list, handle) == NULL)
+            _dw_dirty_list = g_list_append(_dw_dirty_list, handle);
+      }
    }
    else if(pixmap)
       cr = cairo_create(pixmap->image);
@@ -7658,22 +7723,33 @@ void dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, const char *text)
    DW_MUTEX_LOCK;
    if(handle)
    {
-      GdkWindow *window = gtk_widget_get_window(handle);
-      /* Safety check for non-existant windows */
-      if(!window || !GDK_IS_WINDOW(window))
+      GdkDisplay *display = gdk_display_get_default();
+      
+      if((display && GDK_IS_X11_DISPLAY(display)) || g_object_get_data(G_OBJECT(handle), "_dw_expose"))
       {
-         DW_MUTEX_UNLOCK;
-         return;
+         GdkWindow *window = gtk_widget_get_window(handle);
+         /* Safety check for non-existant windows */
+         if(!window || !GDK_IS_WINDOW(window))
+         {
+            DW_MUTEX_UNLOCK;
+            return;
+         }
+   #if GTK_CHECK_VERSION(3,22,0)
+         clip = gdk_window_get_clip_region(window);
+         dc = gdk_window_begin_draw_frame(window, clip);
+         cr = gdk_drawing_context_get_cairo_context(dc);
+   #else
+         cr = gdk_cairo_create(window);
+   #endif
+         if((tmpname = (char *)g_object_get_data(G_OBJECT(handle), "_dw_fontname")))
+            fontname = tmpname;
       }
-#if GTK_CHECK_VERSION(3,22,0)
-      clip = gdk_window_get_clip_region(window);
-      dc = gdk_window_begin_draw_frame(window, clip);
-      cr = gdk_drawing_context_get_cairo_context(dc);
-#else
-      cr = gdk_cairo_create(window);
-#endif
-      if((tmpname = (char *)g_object_get_data(G_OBJECT(handle), "_dw_fontname")))
-         fontname = tmpname;
+      else
+      {
+         /* If not X11, just mark the widget dirty.. and trigger draw in dw_flush() */
+         if(g_list_find(_dw_dirty_list, handle) == NULL)
+            _dw_dirty_list = g_list_append(_dw_dirty_list, handle);
+      }
    }
    else if(pixmap)
    {
@@ -7984,11 +8060,24 @@ HPIXMAP dw_pixmap_grab(HWND handle, ULONG id)
    return pixmap;
 }
 
+static void _dw_flush_dirty(gpointer widget, gpointer data)
+{
+   if(widget && GTK_IS_WIDGET(widget))
+      gtk_widget_queue_draw(GTK_WIDGET(widget));
+}
+
 /* Call this after drawing to the screen to make sure
  * anything you have drawn is visible.
  */
 void dw_flush(void)
 {
+   int _locked_by_me = FALSE;
+
+   DW_MUTEX_LOCK;
+   g_list_foreach(_dw_dirty_list, _dw_flush_dirty, NULL);
+   g_list_free(_dw_dirty_list);
+   _dw_dirty_list = NULL;
+   DW_MUTEX_UNLOCK;
 }
 
 /*
@@ -8089,20 +8178,31 @@ int API dw_pixmap_stretch_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest,
    DW_MUTEX_LOCK;
    if(dest)
    {
-      GdkWindow *window = gtk_widget_get_window(dest);
-      /* Safety check for non-existant windows */
-      if(!window || !GDK_IS_WINDOW(window))
+      GdkDisplay *display = gdk_display_get_default();
+      
+      if((display && GDK_IS_X11_DISPLAY(display)) || g_object_get_data(G_OBJECT(dest), "_dw_expose"))
       {
-         DW_MUTEX_UNLOCK;
-         return retval;
-      }
+         GdkWindow *window = gtk_widget_get_window(dest);
+         /* Safety check for non-existant windows */
+         if(!window || !GDK_IS_WINDOW(window))
+         {
+            DW_MUTEX_UNLOCK;
+            return retval;
+         }
 #if GTK_CHECK_VERSION(3,22,0)
-      clip = gdk_window_get_clip_region(window);
-      dc = gdk_window_begin_draw_frame(window, clip);
-      cr = gdk_drawing_context_get_cairo_context(dc);
+         clip = gdk_window_get_clip_region(window);
+         dc = gdk_window_begin_draw_frame(window, clip);
+         cr = gdk_drawing_context_get_cairo_context(dc);
 #else
-      cr = gdk_cairo_create(window);
+         cr = gdk_cairo_create(window);
 #endif
+      }
+      else
+      {
+         /* If not X11, just mark the widget dirty.. and trigger draw in dw_flush() */
+         if(g_list_find(_dw_dirty_list, dest) == NULL)
+            _dw_dirty_list = g_list_append(_dw_dirty_list, dest);
+      }
    }
    else if(destp)
       cr = cairo_create(destp->image);
