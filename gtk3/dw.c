@@ -1213,12 +1213,12 @@ static void _html_result_event(GObject *object, GAsyncResult *result, gpointer s
 #if USE_WEBKIT2
     pthread_t saved_thread = _dw_thread;
     WebKitJavascriptResult *js_result;
-    #if WEBKIT_CHECK_VERSION(2, 22, 0)
+#if WEBKIT_CHECK_VERSION(2, 22, 0)
     JSCValue *value;
-    #else
+#else
     JSValueRef value;
     JSGlobalContextRef context;
-    #endif
+#endif
     GError *error = NULL;
     int (*htmlresultfunc)(HWND, int, char *, void *, void *) = NULL;
     gint handlerdata = GPOINTER_TO_INT(g_object_get_data(object, "_dw_html_result_id"));
@@ -11505,6 +11505,12 @@ char *dw_file_browse(const char *title, const char *defpath, const char *ext, in
    return filename;
 }
 
+#if GLIB_CHECK_VERSION(2,36,0)
+static void _dw_exec_launched(GAppLaunchContext *context, GAppInfo *info, GVariant *platform_data, gpointer data)
+{
+   g_variant_lookup(platform_data, "pid", "i", data);
+}
+#endif
 
 /*
  * Execute and external program in a seperate session.
@@ -11513,58 +11519,54 @@ char *dw_file_browse(const char *title, const char *defpath, const char *ext, in
  *       type: Either DW_EXEC_CON or DW_EXEC_GUI.
  *       params: An array of pointers to string arguements.
  * Returns:
- *       -1 on error.
+ *       DW_ERROR_UNKNOWN on error.
  */
-int dw_exec(const char *program, int type, char **params)
+int API dw_exec(const char *program, int type, char **params)
 {
-   int ret = -1;
-
-   if((ret = fork()) == 0)
+   GAppInfo *appinfo = NULL;
+   char *commandline;
+   int retval = DW_ERROR_UNKNOWN;
+   
+   /* Generate a command line from the parameters */
+   if(params && *params)
    {
-      int i;
-
-      for (i = 3; i < 256; i++)
-         close(i);
-      setsid();
-      if(type == DW_EXEC_GUI)
+      int z = 0, len = 0;
+      
+      while(params[z])
       {
-         execvp(program, params);
+         len+=strlen(params[z]) + 1;
+         z++;
       }
-      else if(type == DW_EXEC_CON)
+      z=1;
+      commandline = calloc(1, len);
+      strcpy(commandline, params[0]);
+      while(params[z])
       {
-         char **tmpargs;
-
-         if(!params)
-         {
-            tmpargs = malloc(sizeof(char *));
-            tmpargs[0] = NULL;
-         }
-         else
-         {
-            int z = 0;
-
-            while(params[z])
-            {
-               z++;
-            }
-            tmpargs = malloc(sizeof(char *)*(z+3));
-            z=0;
-            tmpargs[0] = "xterm";
-            tmpargs[1] = "-e";
-            while(params[z])
-            {
-               tmpargs[z+2] = params[z];
-               z++;
-            }
-            tmpargs[z+2] = NULL;
-         }
-         execvp("xterm", tmpargs);
-         free(tmpargs);
+         strcat(commandline, " ");
+         strcat(commandline, params[z]);
+         z++;
       }
-      /* If we got here exec failed */
-      _exit(-1);
    }
-   return ret;
+   else
+      commandline = strdup(program);
+
+   /* Attempt to use app preferences to launch the application, using the selected Terminal if necessary */
+   if((appinfo = g_app_info_create_from_commandline(commandline, NULL, 
+      type == DW_EXEC_CON ? G_APP_INFO_CREATE_NEEDS_TERMINAL : G_APP_INFO_CREATE_NONE, NULL)))
+   {
+      GAppLaunchContext *context = g_app_launch_context_new();
+
+#if GLIB_CHECK_VERSION(2,36,0)
+      g_signal_connect(G_OBJECT(context), "launched", G_CALLBACK(_dw_exec_launched), (gpointer)&retval);
+#endif
+
+      g_app_info_launch(appinfo, NULL, context, NULL);
+
+      g_object_unref(appinfo);
+      g_object_unref(context);
+   }
+   free(commandline);
+   return retval;
 }
 
 /*
