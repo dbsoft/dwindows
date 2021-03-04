@@ -10011,10 +10011,10 @@ DW_FUNCTION_RESTORE_PARAM4(title, const char *, defpath, const char *, ext, cons
    GtkFileFilter *filter2 = NULL;
    gchar *button = NULL;
    char *filename = NULL;
-   char buf[1000];
+   char buf[1001] = {0};
    DWDialog *tmp = dw_dialog_new(NULL);
 
-   switch (flags )
+   switch(flags)
    {
       case DW_DIRECTORY_OPEN:
          action = GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER;
@@ -10035,25 +10035,25 @@ DW_FUNCTION_RESTORE_PARAM4(title, const char *, defpath, const char *, ext, cons
 
    if(button)
    {
-      filew = gtk_file_chooser_dialog_new ( title,
-                                            NULL,
-                                            action,
-                                            _("_Cancel"), GTK_RESPONSE_CANCEL,
-                                            button, GTK_RESPONSE_ACCEPT,
-                                            NULL);
+      filew = gtk_file_chooser_dialog_new(title,
+                                          NULL,
+                                          action,
+                                          _("_Cancel"), GTK_RESPONSE_CANCEL,
+                                          button, GTK_RESPONSE_ACCEPT,
+                                          NULL);
 
       if(ext)
       {
          filter1 = gtk_file_filter_new();
-         sprintf( buf, "*.%s", ext );
-         gtk_file_filter_add_pattern( filter1, (gchar *)buf );
-         sprintf( buf, "\"%s\" files", ext );
-         gtk_file_filter_set_name( filter1, (gchar *)buf );
+         snprintf(buf, 1000, "*.%s", ext);
+         gtk_file_filter_add_pattern( filter1, (gchar *)buf);
+         snprintf(buf, 1000, "\"%s\" files", ext );
+         gtk_file_filter_set_name(filter1, (gchar *)buf);
          filter2 = gtk_file_filter_new();
-         gtk_file_filter_add_pattern( filter2, (gchar *)"*" );
-         gtk_file_filter_set_name( filter2, (gchar *)"All Files" );
-         gtk_file_chooser_add_filter( GTK_FILE_CHOOSER( filew ), filter1 );
-         gtk_file_chooser_add_filter( GTK_FILE_CHOOSER( filew ), filter2 );
+         gtk_file_filter_add_pattern(filter2, (gchar *)"*");
+         gtk_file_filter_set_name(filter2, (gchar *)"All Files");
+         gtk_file_chooser_add_filter(GTK_FILE_CHOOSER( filew ), filter1);
+         gtk_file_chooser_add_filter(GTK_FILE_CHOOSER( filew ), filter2);
       }
 
       if(defpath)
@@ -10064,8 +10064,10 @@ DW_FUNCTION_RESTORE_PARAM4(title, const char *, defpath, const char *, ext, cons
          if(path)
          {
             /* If the path is a directory... set the current folder */
-            gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(filew), path, NULL);
-            gtk_file_chooser_set_file(GTK_FILE_CHOOSER(filew), path, NULL);
+            if(g_file_query_file_type(path, G_FILE_QUERY_INFO_NONE, NULL) == G_FILE_TYPE_DIRECTORY)
+               gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(filew), path, NULL);
+            else
+               gtk_file_chooser_set_file(GTK_FILE_CHOOSER(filew), path, NULL);
 
             g_object_unref(G_OBJECT(path));
          }
