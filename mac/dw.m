@@ -12756,18 +12756,25 @@ int dw_exec(const char *program, int type, char **params)
 
         if(params && params[0] && params[1])
         {
-            NSString *file = [NSString stringWithUTF8String:params[1]];
-            
 #ifdef BUILDING_FOR_CATALINA
             if(@available(macOS 10.15, *))
             {
                 NSURL *url = _dw_url_from_program(nsprogram, ws);
-                NSURL *nsfile = [NSURL fileURLWithPath:file];
-                
-                [ws openURLs:[NSArray arrayWithObjects:nsfile, nil]
-                                    withApplicationAtURL:url
-                                           configuration:[NSWorkspaceOpenConfiguration configuration]
-                                       completionHandler:^(NSRunningApplication *app, NSError *error) {
+                NSMutableArray *array = [[NSMutableArray alloc] init];
+                int z = 1;
+
+                while(params[z])
+                {
+                    NSString *thisfile = [NSString stringWithUTF8String:params[z]];
+                    NSURL *nsfile = [NSURL fileURLWithPath:thisfile];
+
+                    [array addObject:nsfile];
+                    z++;
+                }
+
+                [ws openURLs:array withApplicationAtURL:url
+                                          configuration:[NSWorkspaceOpenConfiguration configuration]
+                                      completionHandler:^(NSRunningApplication *app, NSError *error) {
                     if(error)
                         NSLog(@"openURLs: %@", [error localizedDescription]);
                 }];
@@ -12779,8 +12786,16 @@ int dw_exec(const char *program, int type, char **params)
 
                 if([ws respondsToSelector:sofwa])
                 {
-                    DWIMP iofwa = (DWIMP)[ws methodForSelector:sofwa];
-                    iofwa(ws, sofwa, file, nsprogram);
+                    int z = 1;
+
+                    while(params[z])
+                    {
+                        NSString *file = [NSString stringWithUTF8String:params[z]];
+                        DWIMP iofwa = (DWIMP)[ws methodForSelector:sofwa];
+
+                        iofwa(ws, sofwa, file, nsprogram);
+                        z++;
+                    }
                 }
             }
         }
@@ -12810,50 +12825,50 @@ int dw_exec(const char *program, int type, char **params)
                 }
             }
         }
-        return DW_ERROR_NONE;
+        ret = DW_ERROR_NONE;
     }
-
-    if((ret = fork()) == 0)
+    else
     {
-        int i;
+        /* Use AppleScript to Open Terminal.app or contact an existing copy,
+         * and execute the command passed in params[].
+         */
+        char *commandline;
+        char *format = "osascript -e \'tell app \"Terminal\" to do script \"";
+        int len = (int)strlen(format) + 3;
 
-        for (i = 3; i < 256; i++)
-            close(i);
-        setsid();
-
-        if(type == DW_EXEC_CON)
+        /* Generate a command line from the parameters */
+        if(params && *params)
         {
-            char **tmpargs;
+            int z = 0;
 
-            if(!params)
+            while(params[z])
             {
-                tmpargs = malloc(sizeof(char *));
-                tmpargs[0] = NULL;
+                len+=strlen(params[z]) + 1;
+                z++;
             }
-            else
+            z=1;
+            commandline = calloc(1, len);
+            strcpy(commandline, format);
+            strcat(commandline, params[0]);
+            while(params[z])
             {
-                int z = 0;
-
-                while(params[z])
-                {
-                    z++;
-                }
-                tmpargs = malloc(sizeof(char *)*(z+3));
-                z=0;
-                tmpargs[0] = "xterm";
-                tmpargs[1] = "-e";
-                while(params[z])
-                {
-                    tmpargs[z+2] = params[z];
-                    z++;
-                }
-                tmpargs[z+2] = NULL;
+                strcat(commandline, " ");
+                strcat(commandline, params[z]);
+                z++;
             }
-            execvp("xterm", tmpargs);
-            free(tmpargs);
         }
-        /* If we got here exec failed */
-        _exit(-1);
+        else
+        {
+            len += strlen(program);
+            commandline = calloc(1, len);
+            strcpy(commandline, format);
+            strcat(commandline, program);
+        }
+        strcat(commandline, "\"\'");
+
+        /* Attempt to execute the commmand, DW_ERROR_NONE on success */
+        if(system(commandline) != -1)
+            ret = DW_ERROR_NONE;
     }
     return ret;
 }
