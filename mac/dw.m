@@ -101,7 +101,6 @@
 #define DWEventMaskRightMouseDown NSEventMaskRightMouseDown
 #define DWWindowStyleMaskResizable NSWindowStyleMaskResizable
 #define BUILDING_FOR_SIERRA
-#define HAVE_AVAILABLE
 #else
 #define DWButtonTypeSwitch NSSwitchButton
 #define DWButtonTypeRadio NSRadioButton
@@ -437,7 +436,7 @@ unsigned long _get_color(unsigned long thiscolor)
 /* Returns TRUE of Mojave or later is in Dark Mode */
 BOOL _is_dark(id object)
 {
-#ifdef HAVE_AVAILABLE
+#ifdef BUILDING_FOR_MOJAVE
     NSAppearance *appearance = [object effectiveAppearance];
 
     if(@available(macOS 10.14, *))
@@ -1466,7 +1465,7 @@ DWObject *DWObj;
 #if defined(BUILDING_FOR_MOUNTAIN_LION) && !defined(BUILDING_FOR_BIG_SUR)
 -(void)applicationDidFinishLaunching:(NSNotification *)aNotification
 {
-#ifdef HAVE_AVAILABLE
+#ifdef BUILDING_FOR_MOJAVE
     if (@available(macOS 10.14, *)) {} else
 #endif
     {
@@ -11148,7 +11147,7 @@ HWND dw_notification_new(const char *title, const char *imagepath, const char *d
         va_end(args);
     }
 
-#ifdef HAVE_AVAILABLE
+#ifdef BUILDING_FOR_MOJAVE
     /* Configure the notification's payload. */
     if (@available(macOS 10.14, *))
     {
@@ -11213,7 +11212,7 @@ int dw_notification_send(HWND notification)
     {
         NSString *notid = [NSString stringWithFormat:@"dw-notification-%llu", DW_POINTER_TO_ULONGLONG(notification)];
         
-#ifdef HAVE_AVAILABLE
+#ifdef BUILDING_FOR_MOJAVE
         /* Schedule the notification. */
         if (@available(macOS 10.14, *))
         {
@@ -12528,7 +12527,7 @@ int API dw_init(int newthread, int argc, char *argv[])
     DWObj = [[DWObject alloc] init];
     DWDefaultFont = nil;
     DWFontManager = [NSFontManager sharedFontManager];
-#ifdef HAVE_AVAILABLE
+#ifdef BUILDING_FOR_MOJAVE
     if (@available(macOS 10.14, *))
     {
         if([[NSBundle mainBundle] bundleIdentifier] != nil)
@@ -12757,7 +12756,7 @@ int dw_exec(const char *program, int type, char **params)
 
         if(params && params[0] && params[1])
         {
-#ifdef HAVE_AVAILABLE
+#ifdef BUILDING_FOR_CATALINA
             if(@available(macOS 10.15, *))
             {
                 NSURL *url = _dw_url_from_program(nsprogram, ws);
@@ -12810,7 +12809,7 @@ int dw_exec(const char *program, int type, char **params)
         }
         else
         {
-#ifdef HAVE_AVAILABLE
+#ifdef BUILDING_FOR_CATALINA
             if(@available(macOS 10.15, *))
             {
                 NSURL *url = _dw_url_from_program(nsprogram, ws);
@@ -13148,7 +13147,7 @@ int API dw_feature_get(DWFEATURE feature)
         case DW_FEATURE_MLE_WORD_WRAP:
         case DW_FEATURE_UTF8_UNICODE:
             return DW_FEATURE_ENABLED;
-#ifdef HAVE_AVAILABLE
+#ifdef BUILDING_FOR_MOJAVE
         case DW_FEATURE_DARK_MODE:
         {
             if(@available(macOS 10.14, *))
@@ -13211,7 +13210,7 @@ int API dw_feature_set(DWFEATURE feature, int state)
         case DW_FEATURE_UTF8_UNICODE:
             return DW_ERROR_GENERAL;
         /* These features are supported and configurable */
-#ifdef HAVE_AVAILABLE
+#ifdef BUILDING_FOR_MOJAVE
         case DW_FEATURE_DARK_MODE:
         {
             if(@available(macOS 10.14, *))
