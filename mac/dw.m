@@ -101,6 +101,7 @@
 #define DWEventMaskRightMouseDown NSEventMaskRightMouseDown
 #define DWWindowStyleMaskResizable NSWindowStyleMaskResizable
 #define BUILDING_FOR_SIERRA
+#define HAVE_AVAILABLE
 #else
 #define DWButtonTypeSwitch NSSwitchButton
 #define DWButtonTypeRadio NSRadioButton
@@ -436,7 +437,7 @@ unsigned long _get_color(unsigned long thiscolor)
 /* Returns TRUE of Mojave or later is in Dark Mode */
 BOOL _is_dark(id object)
 {
-#ifdef BUILDING_FOR_MOJAVE
+#ifdef HAVE_AVAILABLE
     NSAppearance *appearance = [object effectiveAppearance];
 
     if(@available(macOS 10.14, *))
@@ -1465,7 +1466,7 @@ DWObject *DWObj;
 #if defined(BUILDING_FOR_MOUNTAIN_LION) && !defined(BUILDING_FOR_BIG_SUR)
 -(void)applicationDidFinishLaunching:(NSNotification *)aNotification
 {
-#ifdef BUILDING_FOR_MOJAVE
+#ifdef HAVE_AVAILABLE
     if (@available(macOS 10.14, *)) {} else
 #endif
     {
@@ -11147,7 +11148,7 @@ HWND dw_notification_new(const char *title, const char *imagepath, const char *d
         va_end(args);
     }
 
-#ifdef BUILDING_FOR_MOJAVE
+#ifdef HAVE_AVAILABLE
     /* Configure the notification's payload. */
     if (@available(macOS 10.14, *))
     {
@@ -11212,7 +11213,7 @@ int dw_notification_send(HWND notification)
     {
         NSString *notid = [NSString stringWithFormat:@"dw-notification-%llu", DW_POINTER_TO_ULONGLONG(notification)];
         
-#ifdef BUILDING_FOR_MOJAVE
+#ifdef HAVE_AVAILABLE
         /* Schedule the notification. */
         if (@available(macOS 10.14, *))
         {
@@ -12527,7 +12528,7 @@ int API dw_init(int newthread, int argc, char *argv[])
     DWObj = [[DWObject alloc] init];
     DWDefaultFont = nil;
     DWFontManager = [NSFontManager sharedFontManager];
-#ifdef BUILDING_FOR_MOJAVE
+#ifdef HAVE_AVAILABLE
     if (@available(macOS 10.14, *))
     {
         if([[NSBundle mainBundle] bundleIdentifier] != nil)
@@ -12566,7 +12567,7 @@ int API dw_init(int newthread, int argc, char *argv[])
         /* Generate an Application ID based on the PID if all else fails. */
         snprintf(_dw_app_id, _DW_APP_ID_SIZE, "%s.pid.%d", DW_APP_DOMAIN_DEFAULT, getpid());
     }
-    return 0;
+    return DW_ERROR_NONE;
 }
 
 /*
@@ -12756,11 +12757,12 @@ int dw_exec(const char *program, int type, char **params)
 
         if(params && params[0] && params[1])
         {
-#ifdef BUILDING_FOR_CATALINA
+#ifdef HAVE_AVAILABLE
             if(@available(macOS 10.15, *))
             {
                 NSURL *url = _dw_url_from_program(nsprogram, ws);
                 NSMutableArray *array = [[NSMutableArray alloc] init];
+                __block DWDialog *dialog = dw_dialog_new(NULL);
                 int z = 1;
 
                 while(params[z])
@@ -12775,9 +12777,15 @@ int dw_exec(const char *program, int type, char **params)
                 [ws openURLs:array withApplicationAtURL:url
                                           configuration:[NSWorkspaceOpenConfiguration configuration]
                                       completionHandler:^(NSRunningApplication *app, NSError *error) {
+                    int pid = DW_ERROR_UNKNOWN;
+
                     if(error)
                         NSLog(@"openURLs: %@", [error localizedDescription]);
+                    else
+                        pid = [app processIdentifier];
+                    dw_dialog_dismiss(dialog, DW_INT_TO_POINTER(pid));
                 }];
+                ret = DW_POINTER_TO_INT(dw_dialog_wait(dialog));
             }
             else
 #endif
@@ -12794,6 +12802,7 @@ int dw_exec(const char *program, int type, char **params)
                         DWIMP iofwa = (DWIMP)[ws methodForSelector:sofwa];
 
                         iofwa(ws, sofwa, file, nsprogram);
+                        ret = DW_ERROR_NONE;
                         z++;
                     }
                 }
@@ -12801,17 +12810,24 @@ int dw_exec(const char *program, int type, char **params)
         }
         else
         {
-#ifdef BUILDING_FOR_CATALINA
+#ifdef HAVE_AVAILABLE
             if(@available(macOS 10.15, *))
             {
                 NSURL *url = _dw_url_from_program(nsprogram, ws);
+                __block DWDialog *dialog = dw_dialog_new(NULL);
 
                 [ws openApplicationAtURL:url
                            configuration:[NSWorkspaceOpenConfiguration configuration]
                        completionHandler:^(NSRunningApplication *app, NSError *error) {
+                    int pid = DW_ERROR_UNKNOWN;
+
                     if(error)
                         NSLog(@"openApplicationAtURL: %@", [error localizedDescription]);
+                    else
+                        pid = [app processIdentifier];
+                    dw_dialog_dismiss(dialog, DW_INT_TO_POINTER(pid));
                 }];
+                ret = DW_POINTER_TO_INT(dw_dialog_wait(dialog));
             }
             else
 #endif
@@ -12822,10 +12838,10 @@ int dw_exec(const char *program, int type, char **params)
                 {
                     DWIMP ila = (DWIMP)[ws methodForSelector:sla];
                     ila(ws, sla, nsprogram);
+                    ret = DW_ERROR_NONE;
                 }
             }
         }
-        ret = DW_ERROR_NONE;
     }
     else
     {
@@ -13132,7 +13148,7 @@ int API dw_feature_get(DWFEATURE feature)
         case DW_FEATURE_MLE_WORD_WRAP:
         case DW_FEATURE_UTF8_UNICODE:
             return DW_FEATURE_ENABLED;
-#ifdef BUILDING_FOR_MOJAVE
+#ifdef HAVE_AVAILABLE
         case DW_FEATURE_DARK_MODE:
         {
             if(@available(macOS 10.14, *))
@@ -13195,7 +13211,7 @@ int API dw_feature_set(DWFEATURE feature, int state)
         case DW_FEATURE_UTF8_UNICODE:
             return DW_ERROR_GENERAL;
         /* These features are supported and configurable */
-#ifdef BUILDING_FOR_MOJAVE
+#ifdef HAVE_AVAILABLE
         case DW_FEATURE_DARK_MODE:
         {
             if(@available(macOS 10.14, *))
