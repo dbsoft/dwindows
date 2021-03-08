@@ -8,7 +8,9 @@
 #include <stdio.h>
 #include "dw.h"
 /* For snprintf, strdup etc on old Windows SDK */
+#if defined(__WIN32__) || defined(__OS2__)
 #include "dwcompat.h"
+#endif
 
 /* Select a fixed width font for our platform */
 #ifdef __OS2__
