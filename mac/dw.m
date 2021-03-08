@@ -5835,7 +5835,7 @@ DW_FUNCTION_RESTORE_PARAM2(cid, ULONG, multi, int)
     [column setEditable:NO];
     [cont addTableColumn:column];
     [cont addColumn:column andType:type];
-    DW_FUNCTION_RETURN_THIS(cont)
+    DW_FUNCTION_RETURN_THIS(cont);
 }
 
 /*
@@ -6295,7 +6295,7 @@ DW_FUNCTION_RESTORE_PARAM2(text, const char *, cid, ULONG)
     [combo setStringValue:[NSString stringWithUTF8String:text]];
     [combo setDelegate:combo];
     [combo setTag:cid];
-    DW_FUNCTION_RETURN_THIS(combo)
+    DW_FUNCTION_RETURN_THIS(combo);
 }
 
 /*
