@@ -6390,7 +6390,6 @@ DW_FUNCTION_RESTORE_PARAM1(cid, ULONG)
  * Parameters:
  *       handle: A handle to a render widget to be redrawn.
  */
-void API dw_render_redraw(HWND handle)
 DW_FUNCTION_DEFINITION(dw_render_redraw, void, HWND handle)
 DW_FUNCTION_ADD_PARAM1(handle)
 DW_FUNCTION_NO_RETURN(dw_render_redraw)
@@ -6398,6 +6397,7 @@ DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
 {
    if(handle && GTK_IS_WIDGET(handle))
       gtk_widget_queue_draw(handle);
+   DW_FUNCTION_RETURN_NOTHING;
 }
 
 /* Returns a GdkRGBA from a DW color */
