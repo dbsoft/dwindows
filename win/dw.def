@@ -222,6 +222,7 @@ EXPORTS
   dw_draw_text                           @334
   dw_draw_polygon                        @335
   dw_draw_arc                            @336
+  dw_render_redraw                       @337
 
   dw_pixmap_bitblt                       @340
   dw_pixmap_new                          @341
