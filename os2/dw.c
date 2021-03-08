@@ -4975,6 +4975,16 @@ void API dw_window_redraw(HWND handle)
 }
 
 /*
+ * Invalidate the render widget triggering an expose event.
+ * Parameters:
+ *       handle: A handle to a render widget to be redrawn.
+ */
+void API dw_render_redraw(HWND handle)
+{
+   WinInvalidateRect(handle, NULL, FALSE);
+}
+
+/*
  * Changes a window's parent to newparent.
  * Parameters:
  *           handle: The window handle to destroy.
