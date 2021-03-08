@@ -1513,9 +1513,9 @@ static gint _expose_event(GtkWidget *widget, cairo_t *cr, gpointer data)
       exp.x = exp.y = 0;
       exp.width = gtk_widget_get_allocated_width(widget);
       exp.height = gtk_widget_get_allocated_height(widget);
-      g_object_set_data(G_OBJECT(work.window), "_dw_expose", GINT_TO_POINTER(TRUE));
+      g_object_set_data(G_OBJECT(work.window), "_dw_cr", (gpointer)cr);
       retval = exposefunc(work.window, &exp, work.data);
-      g_object_set_data(G_OBJECT(work.window), "_dw_expose", NULL);
+      g_object_set_data(G_OBJECT(work.window), "_dw_cr", NULL);
    }
    return retval;
 }
@@ -7324,6 +7324,7 @@ void dw_draw_point(HWND handle, HPIXMAP pixmap, int x, int y)
 {
    int _locked_by_me = FALSE;
    cairo_t *cr = NULL;
+   int cached = FALSE;
 #if GTK_CHECK_VERSION(3,22,0)
    GdkDrawingContext *dc = NULL;
    cairo_region_t *clip = NULL;
@@ -7333,8 +7334,10 @@ void dw_draw_point(HWND handle, HPIXMAP pixmap, int x, int y)
    if(handle)
    {
       GdkDisplay *display = gdk_display_get_default();
-      
-      if((display && GDK_IS_X11_DISPLAY(display)) || g_object_get_data(G_OBJECT(handle), "_dw_expose"))
+
+      if((cr = g_object_get_data(G_OBJECT(handle), "_dw_cr")))
+         cached = TRUE;
+      else if((display && GDK_IS_X11_DISPLAY(display)))
       {
          GdkWindow *window = gtk_widget_get_window(handle);
          /* Safety check for non-existant windows */
@@ -7378,7 +7381,8 @@ void dw_draw_point(HWND handle, HPIXMAP pixmap, int x, int y)
          gdk_window_end_draw_frame(gtk_widget_get_window(handle), dc);
       else
 #endif
-      cairo_destroy(cr);
+      if(!cached)
+         cairo_destroy(cr);
    }
    DW_MUTEX_UNLOCK;
 }
@@ -7396,6 +7400,7 @@ void dw_draw_line(HWND handle, HPIXMAP pixmap, int x1, int y1, int x2, int y2)
 {
    int _locked_by_me = FALSE;
    cairo_t *cr = NULL;
+   int cached = FALSE;
 #if GTK_CHECK_VERSION(3,22,0)
    GdkDrawingContext *dc = NULL;
    cairo_region_t *clip = NULL;
@@ -7406,7 +7411,9 @@ void dw_draw_line(HWND handle, HPIXMAP pixmap, int x1, int y1, int x2, int y2)
    {
       GdkDisplay *display = gdk_display_get_default();
       
-      if((display && GDK_IS_X11_DISPLAY(display)) || g_object_get_data(G_OBJECT(handle), "_dw_expose"))
+      if((cr = g_object_get_data(G_OBJECT(handle), "_dw_cr")))
+         cached = TRUE;
+      else if((display && GDK_IS_X11_DISPLAY(display)))
       {
          GdkWindow *window = gtk_widget_get_window(handle);
          /* Safety check for non-existant windows */
@@ -7451,7 +7458,8 @@ void dw_draw_line(HWND handle, HPIXMAP pixmap, int x1, int y1, int x2, int y2)
          gdk_window_end_draw_frame(gtk_widget_get_window(handle), dc);
       else
 #endif
-      cairo_destroy(cr);
+      if(!cached)
+         cairo_destroy(cr);
    }
    DW_MUTEX_UNLOCK;
 }
@@ -7469,6 +7477,7 @@ void dw_draw_polygon(HWND handle, HPIXMAP pixmap, int flags, int npoints, int *x
 {
    int _locked_by_me = FALSE;
    cairo_t *cr = NULL;
+   int cached = FALSE;
    int z;
 #if GTK_CHECK_VERSION(3,22,0)
    GdkDrawingContext *dc = NULL;
@@ -7480,7 +7489,9 @@ void dw_draw_polygon(HWND handle, HPIXMAP pixmap, int flags, int npoints, int *x
    {
       GdkDisplay *display = gdk_display_get_default();
       
-      if((display && GDK_IS_X11_DISPLAY(display)) || g_object_get_data(G_OBJECT(handle), "_dw_expose"))
+      if((cr = g_object_get_data(G_OBJECT(handle), "_dw_cr")))
+         cached = TRUE;
+      else if((display && GDK_IS_X11_DISPLAY(display)))
       {
          GdkWindow *window = gtk_widget_get_window(handle);
          /* Safety check for non-existant windows */
@@ -7533,7 +7544,8 @@ void dw_draw_polygon(HWND handle, HPIXMAP pixmap, int flags, int npoints, int *x
          gdk_window_end_draw_frame(gtk_widget_get_window(handle), dc);
       else
 #endif
-      cairo_destroy(cr);
+      if(!cached)
+         cairo_destroy(cr);
    }
    DW_MUTEX_UNLOCK;
 }
@@ -7552,6 +7564,7 @@ void dw_draw_rect(HWND handle, HPIXMAP pixmap, int flags, int x, int y, int widt
 {
    int _locked_by_me = FALSE;
    cairo_t *cr = NULL;
+   int cached = FALSE;
 #if GTK_CHECK_VERSION(3,22,0)
    GdkDrawingContext *dc = NULL;
    cairo_region_t *clip = NULL;
@@ -7562,7 +7575,9 @@ void dw_draw_rect(HWND handle, HPIXMAP pixmap, int flags, int x, int y, int widt
    {
       GdkDisplay *display = gdk_display_get_default();
       
-      if((display && GDK_IS_X11_DISPLAY(display)) || g_object_get_data(G_OBJECT(handle), "_dw_expose"))
+      if((cr = g_object_get_data(G_OBJECT(handle), "_dw_cr")))
+         cached = TRUE;
+      else if((display && GDK_IS_X11_DISPLAY(display)))
       {
          GdkWindow *window = gtk_widget_get_window(handle);
          /* Safety check for non-existant windows */
@@ -7614,7 +7629,8 @@ void dw_draw_rect(HWND handle, HPIXMAP pixmap, int flags, int x, int y, int widt
          gdk_window_end_draw_frame(gtk_widget_get_window(handle), dc);
       else
 #endif
-      cairo_destroy(cr);
+      if(!cached)
+         cairo_destroy(cr);
    }
    DW_MUTEX_UNLOCK;
 }
@@ -7636,6 +7652,7 @@ void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yo
 {
    int _locked_by_me = FALSE;
    cairo_t *cr = NULL;
+   int cached = FALSE;
 #if GTK_CHECK_VERSION(3,22,0)
    GdkDrawingContext *dc = NULL;
    cairo_region_t *clip = NULL;
@@ -7646,7 +7663,9 @@ void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yo
    {
       GdkDisplay *display = gdk_display_get_default();
       
-      if((display && GDK_IS_X11_DISPLAY(display)) || g_object_get_data(G_OBJECT(handle), "_dw_expose"))
+      if((cr = g_object_get_data(G_OBJECT(handle), "_dw_cr")))
+         cached = TRUE;
+      else if((display && GDK_IS_X11_DISPLAY(display)))
       {
          GdkWindow *window = gtk_widget_get_window(handle);
          /* Safety check for non-existant windows */
@@ -7710,7 +7729,8 @@ void API dw_draw_arc(HWND handle, HPIXMAP pixmap, int flags, int xorigin, int yo
          gdk_window_end_draw_frame(gtk_widget_get_window(handle), dc);
       else
 #endif
-      cairo_destroy(cr);
+      if(!cached)
+         cairo_destroy(cr);
    }
    DW_MUTEX_UNLOCK;
 }
@@ -7727,6 +7747,7 @@ void dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, const char *text)
 {
    int _locked_by_me = FALSE;
    cairo_t *cr = NULL;
+   int cached = FALSE;
    PangoFontDescription *font;
    char *tmpname, *fontname = "monospace 10";
 #if GTK_CHECK_VERSION(3,22,0)
@@ -7742,7 +7763,9 @@ void dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, const char *text)
    {
       GdkDisplay *display = gdk_display_get_default();
       
-      if((display && GDK_IS_X11_DISPLAY(display)) || g_object_get_data(G_OBJECT(handle), "_dw_expose"))
+      if((cr = g_object_get_data(G_OBJECT(handle), "_dw_cr")))
+         cached = TRUE;
+      else if((display && GDK_IS_X11_DISPLAY(display)))
       {
          GdkWindow *window = gtk_widget_get_window(handle);
          /* Safety check for non-existant windows */
@@ -7830,7 +7853,8 @@ void dw_draw_text(HWND handle, HPIXMAP pixmap, int x, int y, const char *text)
          gdk_window_end_draw_frame(gtk_widget_get_window(handle), dc);
       else
 #endif
-      cairo_destroy(cr);
+      if(!cached)
+         cairo_destroy(cr);
    }
    DW_MUTEX_UNLOCK;
 }
@@ -8183,6 +8207,7 @@ int API dw_pixmap_stretch_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest,
 {
    int _locked_by_me = FALSE;
    cairo_t *cr = NULL;
+   int cached = FALSE;
    int retval = DW_ERROR_GENERAL;
 #if GTK_CHECK_VERSION(3,22,0)
    GdkDrawingContext *dc = NULL;
@@ -8197,7 +8222,9 @@ int API dw_pixmap_stretch_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest,
    {
       GdkDisplay *display = gdk_display_get_default();
       
-      if((display && GDK_IS_X11_DISPLAY(display)) || g_object_get_data(G_OBJECT(dest), "_dw_expose"))
+      if((cr = g_object_get_data(G_OBJECT(dest), "_dw_cr")))
+         cached = TRUE;
+      else if((display && GDK_IS_X11_DISPLAY(display)))
       {
          GdkWindow *window = gtk_widget_get_window(dest);
          /* Safety check for non-existant windows */
@@ -8252,7 +8279,8 @@ int API dw_pixmap_stretch_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest,
          gdk_window_end_draw_frame(gtk_widget_get_window(dest), dc);
       else
 #endif
-      cairo_destroy(cr);
+      if(!cached)
+         cairo_destroy(cr);
       retval = DW_ERROR_NONE;
    }
    DW_MUTEX_UNLOCK;
