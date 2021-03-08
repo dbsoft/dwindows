@@ -8274,6 +8274,21 @@ HWND dw_render_new(unsigned long id)
    return tmp;
 }
 
+/*
+ * Invalidate the render widget triggering an expose event.
+ * Parameters:
+ *       handle: A handle to a render widget to be redrawn.
+ */
+void API dw_render_redraw(HWND handle)
+{
+   int _locked_by_me = FALSE;
+
+   DW_MUTEX_LOCK;
+   if(handle && GTK_IS_WIDGET(handle))
+      gtk_widget_queue_draw(handle);
+   DW_MUTEX_UNLOCK;
+}
+
 /* Returns a GdkColor from a DW color */
 static GdkColor _internal_color(unsigned long value)
 {

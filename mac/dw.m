@@ -6690,6 +6690,18 @@ HWND API dw_render_new(unsigned long cid)
     return render;
 }
 
+/*
+ * Invalidate the render widget triggering an expose event.
+ * Parameters:
+ *       handle: A handle to a render widget to be redrawn.
+ */
+void API dw_render_redraw(HWND handle)
+{
+    DWRender *render = (DWRender *)handle;
+
+    [render setNeedsDisplay:YES];
+}
+
 /* Sets the current foreground drawing color.
  * Parameters:
  *       red: red value.

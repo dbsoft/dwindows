@@ -6385,6 +6385,21 @@ DW_FUNCTION_RESTORE_PARAM1(cid, ULONG)
    DW_FUNCTION_RETURN_THIS(tmp);
 }
 
+/*
+ * Invalidate the render widget triggering an expose event.
+ * Parameters:
+ *       handle: A handle to a render widget to be redrawn.
+ */
+void API dw_render_redraw(HWND handle)
+DW_FUNCTION_DEFINITION(dw_render_redraw, void, HWND handle)
+DW_FUNCTION_ADD_PARAM1(handle)
+DW_FUNCTION_NO_RETURN(dw_render_redraw)
+DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
+{
+   if(handle && GTK_IS_WIDGET(handle))
+      gtk_widget_queue_draw(handle);
+}
+
 /* Returns a GdkRGBA from a DW color */
 static GdkRGBA _dw_internal_color(unsigned long value)
 {
