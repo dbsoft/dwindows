@@ -65,6 +65,11 @@ Added initial support for Wayland on GTK3 and GTK4.
     mouse pointer grabbing and such are unable to function.
     I recommend sticking with X11 for now, but built with GTK3 or
     GTK4 Dynamic Windows applications will run on Wayland now.
+Added dw_render_redraw() function to trigger a DW_SIGNAL_EXPOSE 
+    event on render widgets allowing drawing to happen in the
+    callback. GTK4 and GTK3 with Wayland require drawing to be 
+    done in the callback, necessitating a dw_render_redraw() or
+    dw_flush() call.  dw_flush() may cause multiple draw passes.
 Added support for dw_window_set_font() with a NULL font paramaeter.
     This resets the font used on the widget to the default font.
 Fixed GTK warnings on GTK3 caused by using Pango style font syntax.
