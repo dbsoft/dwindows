@@ -843,17 +843,13 @@ cairo_t *_dw_cairo_update(GtkWidget *widget, int width, int height)
    if(height == -1)
       height = gtk_widget_get_height(widget);
    
-   if(!wincr || GPOINTER_TO_INT(g_object_get_data(G_OBJECT(widget), "_dw_width")) != width ||
+   if(!surface || GPOINTER_TO_INT(g_object_get_data(G_OBJECT(widget), "_dw_width")) != width ||
       GPOINTER_TO_INT(g_object_get_data(G_OBJECT(widget), "_dw_height")) != height)
    {
-      if(wincr)
-         cairo_destroy(wincr);
       if(surface)
          cairo_surface_destroy(surface);
       surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, width, height);
-      wincr = cairo_create(surface);
       /* Save the cairo context for use in the drawing functions */
-      g_object_set_data(G_OBJECT(widget), "_dw_cr", (gpointer)wincr);
       g_object_set_data(G_OBJECT(widget), "_dw_cr_surface", (gpointer)surface);
       g_object_set_data(G_OBJECT(widget), "_dw_width", GINT_TO_POINTER(width));
       g_object_set_data(G_OBJECT(widget), "_dw_height", GINT_TO_POINTER(height));
@@ -875,8 +871,14 @@ static gint _dw_expose_event(GtkWidget *widget, cairo_t *cr, int width, int heig
       exp.x = exp.y = 0;
       exp.width = width;
       exp.height = height;
+#ifdef DW_USE_CACHED_CR
+      g_object_set_data(G_OBJECT(widget), "_dw_cr", (gpointer)cr);
+#endif
       retval = exposefunc((HWND)widget, &exp, data);
-      /* Copy the cached image to the outbut surface */
+#ifdef DW_USE_CACHED_CR
+      g_object_set_data(G_OBJECT(widget), "_dw_cr", NULL);
+#endif
+      /* Copy the cached image to the output surface */
       cairo_set_source_surface(cr, g_object_get_data(G_OBJECT(widget), "_dw_cr_surface"), 0, 0);
       cairo_rectangle(cr, 0, 0, width, height);
       cairo_fill(cr);
@@ -6360,6 +6362,11 @@ void API dw_taskbar_delete(HWND handle, HICN icon)
 /* Make sure the widget is out of the dirty list if it is destroyed */
 static void _dw_render_destroy(GtkWidget *widget, gpointer data)
 {
+   cairo_surface_t *surface = (cairo_surface_t *)g_object_get_data(G_OBJECT(widget), "_dw_cr_surface");
+
+   if(surface)
+      cairo_surface_destroy(surface);
+
    _dw_dirty_list = g_list_remove(_dw_dirty_list, widget);
 }
 
@@ -6508,8 +6515,12 @@ DW_FUNCTION_RESTORE_PARAM4(handle, HWND, pixmap, HPIXMAP, x, int, y, int)
 
    if(handle)
    {
+      cairo_surface_t *surface;
+
       if((cr = _dw_cairo_update(handle, -1, -1)))
          cached = TRUE;
+      else if((surface = g_object_get_data(G_OBJECT(handle), "_dw_cr_surface")))
+         cr = cairo_create(surface);
    }
    else if(pixmap)
       cr = cairo_create(pixmap->image);
@@ -6549,8 +6560,12 @@ DW_FUNCTION_RESTORE_PARAM6(handle, HWND, pixmap, HPIXMAP, x1, int, y1, int, x2, 
 
    if(handle)
    {
+      cairo_surface_t *surface;
+
       if((cr = _dw_cairo_update(handle, -1, -1)))
          cached = TRUE;
+      else if((surface = g_object_get_data(G_OBJECT(handle), "_dw_cr_surface")))
+         cr = cairo_create(surface);
    }
    else if(pixmap)
       cr = cairo_create(pixmap->image);
@@ -6592,8 +6607,12 @@ DW_FUNCTION_RESTORE_PARAM6(handle, HWND, pixmap, HPIXMAP, flags, int, npoints, i
 
    if(handle)
    {
+      cairo_surface_t *surface;
+
       if((cr = _dw_cairo_update(handle, -1, -1)))
          cached = TRUE;
+      else if((surface = g_object_get_data(G_OBJECT(handle), "_dw_cr_surface")))
+         cr = cairo_create(surface);
    }
    else if(pixmap)
       cr = cairo_create(pixmap->image);
@@ -6643,8 +6662,12 @@ DW_FUNCTION_RESTORE_PARAM7(handle, HWND, pixmap, HPIXMAP, flags, int, x, int, y,
 
    if(handle)
    {
+      cairo_surface_t *surface;
+
       if((cr = _dw_cairo_update(handle, -1, -1)))
          cached = TRUE;
+      else if((surface = g_object_get_data(G_OBJECT(handle), "_dw_cr_surface")))
+         cr = cairo_create(surface);
    }
    else if(pixmap)
       cr = cairo_create(pixmap->image);
@@ -6696,8 +6719,12 @@ DW_FUNCTION_RESTORE_PARAM9(handle, HWND, pixmap, HPIXMAP, flags, int, xorigin, i
 
    if(handle)
    {
+      cairo_surface_t *surface;
+
       if((cr = _dw_cairo_update(handle, -1, -1)))
          cached = TRUE;
+      else if((surface = g_object_get_data(G_OBJECT(handle), "_dw_cr_surface")))
+         cr = cairo_create(surface);
    }
    else if(pixmap)
       cr = cairo_create(pixmap->image);
@@ -6760,8 +6787,12 @@ DW_FUNCTION_RESTORE_PARAM5(handle, HWND, pixmap, HPIXMAP, x, int, y, int, text, 
 
       if(handle)
       {
+         cairo_surface_t *surface;
+
          if((cr = _dw_cairo_update(handle, -1, -1)))
             cached = TRUE;
+         else if((surface = g_object_get_data(G_OBJECT(handle), "_dw_cr_surface")))
+            cr = cairo_create(surface);
          if((tmpname = (char *)g_object_get_data(G_OBJECT(handle), "_dw_fontname")))
             fontname = tmpname;
       }
@@ -7186,8 +7217,12 @@ DW_FUNCTION_RESTORE_PARAM12(dest, HWND, destp, HPIXMAP, xdest, int, ydest, int, 
 
    if(dest)
    {
+      cairo_surface_t *surface;
+
       if((cr = _dw_cairo_update(dest, -1, -1)))
          cached = TRUE;
+      else if((surface = g_object_get_data(G_OBJECT(dest), "_dw_cr_surface")))
+         cr = cairo_create(surface);
    }
    else if(destp)
       cr = cairo_create(destp->image);
@@ -7207,10 +7242,10 @@ DW_FUNCTION_RESTORE_PARAM12(dest, HWND, destp, HPIXMAP, xdest, int, ydest, int, 
       {
          cairo_surface_t *surface = g_object_get_data(G_OBJECT(src), "_dw_cr_surface");
          if(surface)
-            cairo_set_source_surface (cr, surface, (xdest + xsrc) / xscale, (ydest + ysrc) / yscale);
+            cairo_set_source_surface(cr, surface, (xdest + xsrc) / xscale, (ydest + ysrc) / yscale);
       }        
       else if(srcp)
-         cairo_set_source_surface (cr, srcp->image, (xdest + xsrc) / xscale, (ydest + ysrc) / yscale);
+         cairo_set_source_surface(cr, srcp->image, (xdest + xsrc) / xscale, (ydest + ysrc) / yscale);
 
       cairo_rectangle(cr, xdest / xscale, ydest / yscale, width, height);
       cairo_fill(cr);
