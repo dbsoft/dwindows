@@ -878,6 +878,10 @@ static gint _dw_expose_event(GtkWidget *widget, cairo_t *cr, int width, int heig
 #ifdef DW_USE_CACHED_CR
       g_object_set_data(G_OBJECT(widget), "_dw_cr", NULL);
 #endif
+
+      /* Remove the currently drawn widget from the dirty list */
+      _dw_dirty_list = g_list_remove(_dw_dirty_list, widget);
+
       /* Copy the cached image to the output surface */
       cairo_set_source_surface(cr, g_object_get_data(G_OBJECT(widget), "_dw_cr_surface"), 0, 0);
       cairo_rectangle(cr, 0, 0, width, height);
