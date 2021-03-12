@@ -123,11 +123,14 @@ HWND mainwindow,
     filetoolbarbox;
 
 HMENUI mainmenubar,changeable_menu;
-#define CHECKABLE_MENUITEMID 2001
+#define CHECKABLE_MENUITEMID    2001
 #define NONCHECKABLE_MENUITEMID 2002
 
-void *containerinfo;
+#define SHAPES_DOUBLE_BUFFERED  0
+#define SHAPES_DIRECT           1
+#define DRAW_FILE               2
 
+void *containerinfo;
 
 int menu_enabled = 1;
 
@@ -145,7 +148,7 @@ int num_lines=0;
 int max_linewidth=0;
 int current_row=0,current_col=0;
 int cursor_arrow = 1;
-int render_type = 0;
+int render_type = SHAPES_DOUBLE_BUFFERED;
 
 FILE *fp=NULL;
 char **lp;
@@ -262,7 +265,7 @@ void update_render(void);
 /* This gets called when a part of the graph needs to be repainted. */
 int DWSIGNAL text_expose(HWND hwnd, DWExpose *exp, void *data)
 {
-    if(render_type != 1)
+    if(render_type != SHAPES_DIRECT)
     {
         HPIXMAP hpm;
         unsigned long width,height;
@@ -345,11 +348,6 @@ void draw_file( int row, int col, int nrows, int fheight, HPIXMAP hpma )
             pLine = lp[i+row];
             dw_draw_text( 0, hpm, 0, y, pLine+col );
         }
-        if(!hpma)
-        {
-            text_expose( textbox1, NULL, NULL);
-            text_expose( textbox2, NULL, NULL);
-        }
     }
 }
 
@@ -396,28 +394,37 @@ void draw_shapes(int direct, HPIXMAP hpma)
         else
             dw_pixmap_bitblt(window, pixmap, image_x, image_y, (int)DW_PIXMAP_WIDTH(image), (int)DW_PIXMAP_HEIGHT(image), 0, image, 0, 0);
     }
-
-    /* If we aren't drawing direct do a bitblt */
-    if(!direct && !hpma)
-    {
-        text_expose( textbox2, NULL, NULL);
-    }
 }
 
 void update_render(void)
 {
     switch(render_type)
     {
-        case 0:
+        case SHAPES_DOUBLE_BUFFERED:
             draw_shapes(FALSE, NULL);
             break;
-        case 1:
+        case SHAPES_DIRECT:
             draw_shapes(TRUE, NULL);
             break;
-        case 2:
+        case DRAW_FILE:
             draw_file(current_row, current_col, rows, font_height, NULL);
             break;
     }
+}
+
+/* Request that the render widgets redraw...
+ * If not using direct rendering, call update_render() to
+ * redraw the in memory pixmaps. Then trigger the expose events.
+ * Expose will call update_render() to draw directly or bitblt the pixmaps.
+ */
+void render_draw(void)
+{
+    /* If we are double buffered, draw to the pixmaps */
+    if(render_type != SHAPES_DIRECT)
+        update_render();
+    /* Trigger expose event */
+    dw_render_redraw(textbox1);
+    dw_render_redraw(textbox2);
 }
 
 int DWSIGNAL draw_page(HPRINT print, HPIXMAP pixmap, int page_num, void *data)
@@ -472,7 +479,7 @@ int DWSIGNAL print_callback(HWND window, void *data)
 
 int DWSIGNAL refresh_callback(HWND window, void *data)
 {
-    update_render();
+    render_draw();
     return FALSE;
 }
 
@@ -480,7 +487,7 @@ int DWSIGNAL render_select_event_callback(HWND window, int index)
 {
     if(index != render_type)
     {
-        if(index == 2)
+        if(index == DRAW_FILE)
         {
             dw_scrollbar_set_range(hscrollbar, max_linewidth, cols);
             dw_scrollbar_set_pos(hscrollbar, 0);
@@ -496,7 +503,7 @@ int DWSIGNAL render_select_event_callback(HWND window, int index)
             dw_scrollbar_set_pos(vscrollbar, 0);
         }
         render_type = index;
-        update_render();
+        render_draw();
     }
     return FALSE;
 }
@@ -611,7 +618,7 @@ int DWSIGNAL browse_file_callback(HWND window, void *data)
         dw_window_set_text( entryfield, current_file );
         read_file();
         current_col = current_row = 0;
-        update_render();
+        render_draw();
         dw_signal_connect(notification, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(notification_clicked_callback), NULL);
         dw_notification_send(notification);
     }
@@ -696,6 +703,7 @@ void DWSIGNAL scrollbar_valuechanged_callback(HWND hwnd, int value, void *data)
     {
         HWND stext = (HWND)data;
         char tmpbuf[100];
+
         if ( hwnd == vscrollbar )
         {
             current_row = value;
@@ -706,7 +714,7 @@ void DWSIGNAL scrollbar_valuechanged_callback(HWND hwnd, int value, void *data)
         }
         sprintf(tmpbuf, "Row:%d Col:%d Lines:%d Cols:%d", current_row,current_col,num_lines,max_linewidth);
         dw_window_set_text(stext, tmpbuf);
-        update_render();
+        render_draw();
     }
 }
 
@@ -747,8 +755,8 @@ int DWSIGNAL configure_event(HWND hwnd, int width, int height, void *data)
     dw_scrollbar_set_range(hscrollbar, max_linewidth, cols);
     dw_scrollbar_set_range(vscrollbar, num_lines, rows);
 
-    /* Redraw the window */
-    update_render();
+    /* Redraw the render widgets */
+    render_draw();
     return TRUE;
 }
 
