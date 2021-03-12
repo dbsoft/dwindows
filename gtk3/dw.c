@@ -1510,6 +1510,9 @@ static gint _expose_event(GtkWidget *widget, cairo_t *cr, gpointer data)
       DWExpose exp;
       int (*exposefunc)(HWND, DWExpose *, void *) = work.func;
 
+      /* Remove the currently drawn widget from the dirty list */
+      _dw_dirty_list = g_list_remove(_dw_dirty_list, widget);
+
       exp.x = exp.y = 0;
       exp.width = gtk_widget_get_allocated_width(widget);
       exp.height = gtk_widget_get_allocated_height(widget);

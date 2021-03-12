@@ -835,7 +835,7 @@ cairo_t *_dw_cairo_update(GtkWidget *widget, int width, int height)
    cairo_t *wincr = g_object_get_data(G_OBJECT(widget), "_dw_cr"); 
    cairo_surface_t *surface = g_object_get_data(G_OBJECT(widget), "_dw_cr_surface"); 
 
-   if(width == -1 && height == -1 && g_list_find(_dw_dirty_list, widget) == NULL)
+   if(width == -1 && height == -1 && !wincr && g_list_find(_dw_dirty_list, widget) == NULL)
       _dw_dirty_list = g_list_append(_dw_dirty_list, widget);
 
    if(width == -1)
@@ -854,7 +854,11 @@ cairo_t *_dw_cairo_update(GtkWidget *widget, int width, int height)
       g_object_set_data(G_OBJECT(widget), "_dw_width", GINT_TO_POINTER(width));
       g_object_set_data(G_OBJECT(widget), "_dw_height", GINT_TO_POINTER(height));
    }
+#ifdef DW_USE_CACHED_CR
    return wincr;
+#else
+   return NULL;
+#endif
 }
 
 static gint _dw_expose_event(GtkWidget *widget, cairo_t *cr, int width, int height, gpointer data)
@@ -868,19 +872,15 @@ static gint _dw_expose_event(GtkWidget *widget, cairo_t *cr, int width, int heig
 
       _dw_cairo_update(widget, width, height);
 
+      /* Remove the currently drawn widget from the dirty list */
+      _dw_dirty_list = g_list_remove(_dw_dirty_list, widget);
+
       exp.x = exp.y = 0;
       exp.width = width;
       exp.height = height;
-#ifdef DW_USE_CACHED_CR
       g_object_set_data(G_OBJECT(widget), "_dw_cr", (gpointer)cr);
-#endif
       retval = exposefunc((HWND)widget, &exp, data);
-#ifdef DW_USE_CACHED_CR
       g_object_set_data(G_OBJECT(widget), "_dw_cr", NULL);
-#endif
-
-      /* Remove the currently drawn widget from the dirty list */
-      _dw_dirty_list = g_list_remove(_dw_dirty_list, widget);
 
       /* Copy the cached image to the output surface */
       cairo_set_source_surface(cr, g_object_get_data(G_OBJECT(widget), "_dw_cr_surface"), 0, 0);
