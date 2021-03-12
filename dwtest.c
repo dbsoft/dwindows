@@ -1064,31 +1064,31 @@ void text_add(void)
     hbox = dw_box_new(DW_HORZ, 1 );
     dw_box_pack_start( notebookbox2, hbox, 100, 25, TRUE, FALSE, 1);
     rendcombo = dw_combobox_new( "Shapes Double Buffered", 0 );
-    dw_box_pack_start( hbox, rendcombo, 80, 25, TRUE, FALSE, 0);
+    dw_box_pack_start( hbox, rendcombo, 80, 25, TRUE, TRUE, 0);
     dw_listbox_append(rendcombo, "Shapes Double Buffered");
     dw_listbox_append(rendcombo, "Shapes Direct");
     dw_listbox_append(rendcombo, "File Display");
     label = dw_text_new("Image X:", 100);
     dw_window_set_style(label, DW_DT_VCENTER | DW_DT_CENTER, DW_DT_VCENTER | DW_DT_CENTER);
-    dw_box_pack_start( hbox, label, -1, 25, FALSE, FALSE, 0);
+    dw_box_pack_start( hbox, label, -1, 25, FALSE, TRUE, 0);
     imagexspin = dw_spinbutton_new("20", 1021);
-    dw_box_pack_start( hbox, imagexspin, 25, 25, TRUE, FALSE, 0);
+    dw_box_pack_start( hbox, imagexspin, 25, 25, TRUE, TRUE, 0);
     label = dw_text_new("Y:", 100);
     dw_window_set_style(label, DW_DT_VCENTER | DW_DT_CENTER, DW_DT_VCENTER | DW_DT_CENTER);
-    dw_box_pack_start( hbox, label, -1, 25, FALSE, FALSE, 0);
+    dw_box_pack_start( hbox, label, -1, 25, FALSE, TRUE, 0);
     imageyspin = dw_spinbutton_new("20", 1021);
-    dw_box_pack_start( hbox, imageyspin, 25, 25, TRUE, FALSE, 0);
+    dw_box_pack_start( hbox, imageyspin, 25, 25, TRUE, TRUE, 0);
     dw_spinbutton_set_limits(imagexspin, 2000, 0);
     dw_spinbutton_set_limits(imageyspin, 2000, 0);
     dw_spinbutton_set_pos(imagexspin, 20);
     dw_spinbutton_set_pos(imageyspin, 20);
     imagestretchcheck = dw_checkbox_new("Stretch", 1021);
-    dw_box_pack_start( hbox, imagestretchcheck, -1, 25, FALSE, FALSE, 0);
+    dw_box_pack_start( hbox, imagestretchcheck, -1, 25, FALSE, TRUE, 0);
 
     button1 = dw_button_new( "Refresh", 1223L );
-    dw_box_pack_start( hbox, button1, 100, 25, FALSE, FALSE, 0);
+    dw_box_pack_start( hbox, button1, 100, 25, FALSE, TRUE, 0);
     button2 = dw_button_new( "Print", 1224L );
-    dw_box_pack_start( hbox, button2, 100, 25, FALSE, FALSE, 0);
+    dw_box_pack_start( hbox, button2, 100, 25, FALSE, TRUE, 0);
 
     /* Pre-create the scrollbars so we can query their sizes */
     vscrollbar = dw_scrollbar_new(DW_VERT, 50);
