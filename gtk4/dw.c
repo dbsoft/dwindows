@@ -1834,11 +1834,11 @@ DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
    {
       if(GTK_IS_WINDOW(handle))
       {
-         GtkWidget *defaultitem;
+         GtkWidget *defaultitem = GTK_WIDGET(g_object_get_data(G_OBJECT(handle), "_dw_defaultitem"));
 
          gtk_window_present(GTK_WINDOW(handle));
-         defaultitem = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_defaultitem");
-         if (defaultitem)
+         
+         if(defaultitem)
             gtk_widget_grab_focus(defaultitem);
       }
       else if(GTK_IS_WIDGET(handle))
