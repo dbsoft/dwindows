@@ -412,7 +412,7 @@ static gint _dw_configure_event(GtkWidget *widget, int width, int height, gpoint
 static gint _dw_container_enter_event(GtkEventController *controller, guint keyval, guint keycode, GdkModifierType state, gpointer data);
 static gint _dw_combobox_select_event(GtkWidget *widget, gpointer data);
 static gint _dw_expose_event(GtkWidget *widget, cairo_t *cr, int width, int height, gpointer data);
-static gint _dw_set_focus_event(GtkWindow *window, GtkWidget *widget, gpointer data);
+static gint _dw_set_focus_event(GtkWindow *window, gpointer data);
 static gint _dw_tree_context_event(GtkGestureSingle *gesture, int n_press, double x, double y, gpointer data);
 static gint _dw_value_changed_event(GtkWidget *widget, gpointer user_data);
 static gint _dw_tree_select_event(GtkTreeSelection *sel, gpointer data);
@@ -691,11 +691,11 @@ static void _dw_html_changed_event(WebKitWebView  *web_view, WebKitLoadEvent loa
 }
 #endif
 
-static gint _dw_set_focus_event(GtkWindow *window, GtkWidget *widget, gpointer data)
+static gint _dw_set_focus_event(GtkWindow *window, gpointer data)
 {
    SignalHandler work = _dw_get_signal_handler(data);
    int retval = FALSE;
-
+   
    if(work.window)
    {
       int (*setfocusfunc)(HWND, void *) = work.func;
