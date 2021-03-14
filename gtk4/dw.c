@@ -2642,6 +2642,9 @@ DW_FUNCTION_RESTORE_PARAM1(cid, ULONG)
 {
    GtkWidget *tmp = gtk_picture_new();
    gtk_picture_set_can_shrink(GTK_PICTURE(tmp), TRUE);
+   gtk_picture_set_keep_aspect_ratio(GTK_PICTURE(tmp), TRUE);
+   gtk_widget_set_halign(GTK_WIDGET(tmp), GTK_ALIGN_CENTER);
+   gtk_widget_set_valign(GTK_WIDGET(tmp), GTK_ALIGN_CENTER);
    gtk_widget_show(tmp);
    g_object_set_data(G_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(cid));
    DW_FUNCTION_RETURN_THIS(tmp);
@@ -8263,9 +8266,13 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
       g_object_set_data(G_OBJECT(item), "_dw_table", box);
       /* Set the expand attribute on the widgets now instead of the container */
       gtk_widget_set_vexpand(item, vsize);
-      gtk_widget_set_valign(item, vsize ? GTK_ALIGN_FILL : GTK_ALIGN_START);
       gtk_widget_set_hexpand(item, hsize);
-      gtk_widget_set_halign(item, hsize ? GTK_ALIGN_FILL : GTK_ALIGN_START);
+      /* Don't clobber the center alignment on pictures */
+      if(!GTK_IS_PICTURE(item))
+      {
+         gtk_widget_set_valign(item, vsize ? GTK_ALIGN_FILL : GTK_ALIGN_START);
+         gtk_widget_set_halign(item, hsize ? GTK_ALIGN_FILL : GTK_ALIGN_START);
+      }
       /* Set pad for each margin direction on the widget */
       _dw_widget_set_pad(item, pad);
       /* Add to the grid using insert...
