@@ -2640,7 +2640,8 @@ DW_FUNCTION_ADD_PARAM1(cid)
 DW_FUNCTION_RETURN(dw_bitmap_new, HWND)
 DW_FUNCTION_RESTORE_PARAM1(cid, ULONG)
 {
-   GtkWidget *tmp = gtk_image_new();
+   GtkWidget *tmp = gtk_picture_new();
+   gtk_picture_set_can_shrink(GTK_PICTURE(tmp), TRUE);
    gtk_widget_show(tmp);
    g_object_set_data(G_OBJECT(tmp), "_dw_id", GINT_TO_POINTER(cid));
    DW_FUNCTION_RETURN_THIS(tmp);
@@ -3860,16 +3861,10 @@ DW_FUNCTION_RESTORE_PARAM3(handle, HWND, id, ULONG, filename, const char *)
       {
          GtkWidget *pixmap = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_bitmap");
          if(pixmap)
-         {
-            gtk_image_set_from_pixbuf(GTK_IMAGE(pixmap), tmp);
-            g_object_set_data(G_OBJECT(pixmap), "_dw_pixbuf", tmp);
-         }
+            gtk_picture_set_pixbuf(GTK_PICTURE(pixmap), tmp);
       }
-      else
-      {
-         gtk_image_set_from_pixbuf(GTK_IMAGE(handle), tmp);
-         g_object_set_data(G_OBJECT(handle), "_dw_pixbuf", tmp);
-      }
+      else if(GTK_IS_PICTURE(handle))
+         gtk_picture_set_pixbuf(GTK_PICTURE(handle), tmp);
    }
    DW_FUNCTION_RETURN_NOTHING;
 }
@@ -3924,16 +3919,10 @@ DW_FUNCTION_RESTORE_PARAM4(handle, HWND, id, ULONG, data, const char *, len, int
          GtkWidget *pixmap = (GtkWidget *)g_object_get_data(G_OBJECT(handle), "_dw_bitmap");
 
          if(pixmap)
-         {
-            gtk_image_set_from_pixbuf(GTK_IMAGE(pixmap), tmp);
-            g_object_set_data(G_OBJECT(pixmap), "_dw_pixbuf", tmp);
-         }
+            gtk_picture_set_pixbuf(GTK_PICTURE(pixmap), tmp);
       }
-      else
-      {
-         gtk_image_set_from_pixbuf(GTK_IMAGE(handle), tmp);
-         g_object_set_data(G_OBJECT(handle), "_dw_pixbuf", tmp);
-      }
+      else if(GTK_IS_PICTURE(handle))
+         gtk_picture_set_pixbuf(GTK_PICTURE(handle), tmp);
    }
    DW_FUNCTION_RETURN_NOTHING;
 }
@@ -8214,7 +8203,7 @@ void _dw_get_scrolled_size(GtkWidget *item, gint *thiswidth, gint *thisheight)
 /* Internal box packing function called by the other 3 functions */
 void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsize, int vsize, int pad, char *funcname)
 {
-   GtkWidget *tmp, *tmpitem, *image = NULL;
+   GtkWidget *tmp, *tmpitem;
 
    if(!box)
       return;
@@ -8241,29 +8230,6 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
       item = gtk_label_new("");
       g_object_set_data(G_OBJECT(item), "_dw_padding", GINT_TO_POINTER(1));
       gtk_widget_show(item);
-   }
-   /* Due to GTK3 minimum size limitations, if we are packing a widget
-    * with an image, we need to scale the image down to fit the packed size.
-    */
-   else if((image = g_object_get_data(G_OBJECT(item), "_dw_bitmap")))
-   {
-      GdkPixbuf *pixbuf = g_object_get_data(G_OBJECT(image), "_dw_pixbuf");
-
-      if(pixbuf)
-      {
-         int pwidth = gdk_pixbuf_get_width(pixbuf);
-         int pheight = gdk_pixbuf_get_height(pixbuf);
-
-         if(width == -1)
-            width = pwidth;
-         if(height == -1)
-            height = pheight;
-
-         if(pwidth > width || pheight > height)
-            pixbuf = gdk_pixbuf_scale_simple(pixbuf, pwidth > width ? width : pwidth, pheight > height ? height : pheight, GDK_INTERP_BILINEAR);
-         gtk_image_set_from_pixbuf(GTK_IMAGE(image), pixbuf);
-         g_object_set_data(G_OBJECT(image), "_dw_pixbuf", pixbuf);
-      }
    }
 
    /* Check if the item to be packed is a special box */
