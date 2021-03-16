@@ -123,7 +123,7 @@ extern "C" {
 # endif
 #endif
 
-#if defined(__OS2__) || (defined(__WIN32__) && !defined(GDK_WINDOWING_WIN32)) || defined(__MAC__) || defined(__EMX__) || defined(__TEMPLATE__)
+#if defined(__OS2__) || (defined(__WIN32__) && !defined(GDK_WINDOWING_WIN32)) || defined(__MAC__) || defined(__IOS__) || defined(__EMX__) || defined(__TEMPLATE__)
 /* OS/2, Windows or MacOS */
 
 #ifdef __OS2__
@@ -342,16 +342,16 @@ static int _dw_snprintf(char *str, size_t size, const char *format, ...)
 
 #endif
 
-#if defined(__MAC__)
-/* MacOS specific section */
+#if defined(__MAC__) || defined (__IOS__)
+/* MacOS and iOS specific section */
 #include <pthread.h>
 #include <dlfcn.h>
 
-/* Unfortunately using Cocoa we can't include
- * Cocoa.h from C code, so we have to instead
+/* Unfortunately using we can't import Cocoa.h
+ * or UIKit.h from C code, so we have to instead
  * use opaque types and use the values from
- * Cocoa.h in the header here directly without
- * using the symbolic names.
+ * the headers here directly without using the
+ * symbolic names.
  */
 
 #define TRUE 1
