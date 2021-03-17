@@ -324,7 +324,7 @@ SignalList SignalTranslate[SIGNALMAX] = {
     { 19,   DW_SIGNAL_HTML_CHANGED }
 };
 
-int _event_handler1(id object, NSEvent *event, int message)
+int _event_handler1(id object, UIEvent *event, int message)
 {
     SignalHandler *handler = _get_handler(object, message);
     /* NSLog(@"Event handler - type %d\n", message); */
@@ -346,7 +346,7 @@ int _event_handler1(id object, NSEvent *event, int message)
             case 1:
             {
                 int (*sizefunc)(HWND, int, int, void *) = handler->signalfunction;
-                NSSize size;
+                CGSize size;
 
                 if([object isKindOfClass:[UIWindow class]])
                 {
@@ -391,13 +391,13 @@ int _event_handler1(id object, NSEvent *event, int message)
             case 4:
             {
                 int (* API buttonfunc)(HWND, int, int, int, void *) = (int (* API)(HWND, int, int, int, void *))handler->signalfunction;
-                NSPoint p = [NSEvent mouseLocation];
+                CGPoint p = [UIEvent mouseLocation];
                 int button = 1;
 
-                if([event isMemberOfClass:[NSEvent class]])
+                if([event isMemberOfClass:[UIEvent class]])
                 {
                     id view = [[[event window] contentView] superview];
-                    NSEventType type = [event type];
+                    UIEventType type = [event type];
 
                     p = [view convertPoint:[event locationInWindow] toView:object];
 
@@ -422,10 +422,10 @@ int _event_handler1(id object, NSEvent *event, int message)
             {
                 int (* API motionfunc)(HWND, int, int, int, void *) = (int (* API)(HWND, int, int, int, void *))handler->signalfunction;
                 id view = [[[event window] contentView] superview];
-                NSPoint p = [view convertPoint:[event locationInWindow] toView:object];
+                CGPoint p = [view convertPoint:[event locationInWindow] toView:object];
                 SEL spmb = NSSelectorFromString(@"pressedMouseButtons");
-                DWIMP ipmb = [[NSEvent class] respondsToSelector:spmb] ? (DWIMP)[[NSEvent class] methodForSelector:spmb] : 0;
-                NSUInteger buttonmask = ipmb ? (NSUInteger)ipmb([NSEvent class], spmb) : (1 << [event buttonNumber]);
+                DWIMP ipmb = [[UIEvent class] respondsToSelector:spmb] ? (DWIMP)[[UIEvent class] methodForSelector:spmb] : 0;
+                NSUInteger buttonmask = ipmb ? (NSUInteger)ipmb([UIEvent class], spmb) : (1 << [event buttonNumber]);
 
                 return motionfunc(object, (int)p.x, (int)p.y, (int)buttonmask, handler->data);
             }
@@ -440,7 +440,7 @@ int _event_handler1(id object, NSEvent *event, int message)
             {
                 DWExpose exp;
                 int (* API exposefunc)(HWND, DWExpose *, void *) = (int (* API)(HWND, DWExpose *, void *))handler->signalfunction;
-                NSRect rect = [object frame];
+                CGRect rect = [object frame];
 
                 exp.x = rect.origin.x;
                 exp.y = rect.origin.y;
@@ -592,7 +592,7 @@ int _event_handler1(id object, NSEvent *event, int message)
 }
 
 /* Sub function to handle redraws */
-int _event_handler(id object, NSEvent *event, int message)
+int _event_handler(id object, UIEvent *event, int message)
 {
     int ret = _event_handler1(object, event, message);
     if(ret != -1)
@@ -609,7 +609,7 @@ int _event_handler(id object, NSEvent *event, int message)
 -(void)runTimer:(id)sender { _event_handler(sender, nil, 0); }
 @end
 
-NSApplication *DWApp = nil;
+UIApplication *DWApp = nil;
 UIFontManager *DWFontManager = nil;
 UIFont *DWDefaultFont;
 DWTimerHandler *DWHandler;
@@ -620,7 +620,7 @@ DWTID DWThread = (DWTID)-1;
 /* Send fake event to make sure the loop isn't stuck */
 void _dw_wakeup_app()
 {
-    [DWApp postEvent:[NSEvent otherEventWithType:DWEventTypeApplicationDefined
+    [DWApp postEvent:[UIEvent otherEventWithType:DWEventTypeApplicationDefined
                                         location:NSMakePoint(0, 0)
                                    modifierFlags:0
                                        timestamp:0
@@ -655,7 +655,8 @@ typedef struct _bitbltinfo
 -(void)doFlush:(id)param;
 @end
 
-@interface DWMenuItem : NSMenuItem
+API_AVAILABLE(ios(13.0))
+@interface DWMenuItem : UIMenuItem
 {
     int check;
 }
@@ -685,15 +686,15 @@ typedef struct _bitbltinfo
 -(id)contentView;
 -(void *)userdata;
 -(void)setUserdata:(void *)input;
--(void)drawRect:(NSRect)rect;
+-(void)drawRect:(CGRect)rect;
 -(BOOL)isFlipped;
--(void)mouseDown:(NSEvent *)theEvent;
--(void)mouseUp:(NSEvent *)theEvent;
--(NSMenu *)menuForEvent:(NSEvent *)theEvent;
--(void)rightMouseUp:(NSEvent *)theEvent;
--(void)otherMouseDown:(NSEvent *)theEvent;
--(void)otherMouseUp:(NSEvent *)theEvent;
--(void)keyDown:(NSEvent *)theEvent;
+-(void)mouseDown:(UIEvent *)theEvent;
+-(void)mouseUp:(UIEvent *)theEvent;
+-(UIMenu *)menuForEvent:(UIEvent *)theEvent;
+-(void)rightMouseUp:(UIEvent *)theEvent;
+-(void)otherMouseDown:(UIEvent *)theEvent;
+-(void)otherMouseUp:(UIEvent *)theEvent;
+-(void)keyDown:(UIEvent *)theEvent;
 -(void)setColor:(unsigned long)input;
 @end
 
@@ -725,22 +726,22 @@ typedef struct _bitbltinfo
 -(id)contentView { return self; }
 -(void *)userdata { return userdata; }
 -(void)setUserdata:(void *)input { userdata = input; }
--(void)drawRect:(NSRect)rect
+-(void)drawRect:(CGRect)rect
 {
     if(bgcolor)
     {
         [bgcolor set];
-        NSRectFill([self bounds]);
+        CGRectFill([self bounds]);
     }
 }
 -(BOOL)isFlipped { return YES; }
--(void)mouseDown:(NSEvent *)theEvent { _event_handler(self, (void *)1, 3); }
--(void)mouseUp:(NSEvent *)theEvent { _event_handler(self, (void *)1, 4); }
--(NSMenu *)menuForEvent:(NSEvent *)theEvent { _event_handler(self, (void *)2, 3); return nil; }
--(void)rightMouseUp:(NSEvent *)theEvent { _event_handler(self, (void *)2, 4); }
--(void)otherMouseDown:(NSEvent *)theEvent { _event_handler(self, (void *)3, 3); }
--(void)otherMouseUp:(NSEvent *)theEvent { _event_handler(self, (void *)3, 4); }
--(void)keyDown:(NSEvent *)theEvent { _event_handler(self, theEvent, 2); }
+-(void)mouseDown:(UIEvent *)theEvent { _event_handler(self, (void *)1, 3); }
+-(void)mouseUp:(UIEvent *)theEvent { _event_handler(self, (void *)1, 4); }
+-(UIMenu *)menuForEvent:(UIEvent *)theEvent { _event_handler(self, (void *)2, 3); return nil; }
+-(void)rightMouseUp:(UIEvent *)theEvent { _event_handler(self, (void *)2, 4); }
+-(void)otherMouseDown:(UIEvent *)theEvent { _event_handler(self, (void *)3, 3); }
+-(void)otherMouseUp:(UIEvent *)theEvent { _event_handler(self, (void *)3, 4); }
+-(void)keyDown:(UIEvent *)theEvent { _event_handler(self, theEvent, 2); }
 -(void)setColor:(unsigned long)input
 {
     id orig = bgcolor;
@@ -755,7 +756,7 @@ typedef struct _bitbltinfo
         if(UIGraphicsGetCurrentContext())
         {
             [bgcolor set];
-            NSRectFill([self bounds]);
+            CGRectFill([self bounds]);
         }
     }
     [self setNeedsDisplay:YES];
@@ -768,7 +769,7 @@ typedef struct _bitbltinfo
 {
     void *userdata;
     UIColor *bgcolor;
-    NSSize borderSize;
+    CGSize borderSize;
     NSString *title;
 }
 -(Box *)box;
@@ -780,18 +781,18 @@ typedef struct _bitbltinfo
 @implementation DWGroupBox
 -(Box *)box { return [[self contentView] box]; }
 -(void *)userdata { return userdata; }
--(NSSize)borderSize { return borderSize; }
--(NSSize)initBorder
+-(CGSize)borderSize { return borderSize; }
+-(CGSize)initBorder
 {
-    NSSize frameSize = [self frame].size;
+    CGSize frameSize = [self frame].size;
 
     if(frameSize.height < 20 || frameSize.width < 20)
     {
         frameSize.width = frameSize.height = 100;
         [self setFrameSize:frameSize];
     }
-    NSSize contentSize = [[self contentView] frame].size;
-    NSSize titleSize = [self titleRect].size;
+    CGSize contentSize = [[self contentView] frame].size;
+    CGSize titleSize = [self titleRect].size;
 
     borderSize.width = 100-contentSize.width;
     borderSize.height = (100-contentSize.height)-titleSize.height;
@@ -806,9 +807,9 @@ typedef struct _bitbltinfo
     int redraw;
     int shown;
 }
--(void)sendEvent:(NSEvent *)theEvent;
--(void)keyDown:(NSEvent *)theEvent;
--(void)mouseDragged:(NSEvent *)theEvent;
+-(void)sendEvent:(UIEvent *)theEvent;
+-(void)keyDown:(UIEvent *)theEvent;
+-(void)mouseDragged:(UIEvent *)theEvent;
 -(int)redraw;
 -(void)setRedraw:(int)val;
 -(int)shown;
@@ -816,7 +817,7 @@ typedef struct _bitbltinfo
 @end
 
 @implementation DWWindow
--(void)sendEvent:(NSEvent *)theEvent
+-(void)sendEvent:(UIEvent *)theEvent
 {
    int rcode = -1;
    if([theEvent type] == DWEventTypeKeyDown)
@@ -826,8 +827,8 @@ typedef struct _bitbltinfo
    if ( rcode != TRUE )
       [super sendEvent:theEvent];
 }
--(void)keyDown:(NSEvent *)theEvent { }
--(void)mouseDragged:(NSEvent *)theEvent { _event_handler(self, theEvent, 5); }
+-(void)keyDown:(UIEvent *)theEvent { }
+-(void)mouseDragged:(UIEvent *)theEvent { _event_handler(self, theEvent, 5); }
 -(int)redraw { return redraw; }
 -(void)setRedraw:(int)val { redraw = val; }
 -(int)shown { return shown; }
@@ -840,24 +841,24 @@ typedef struct _bitbltinfo
 {
     void *userdata;
     UIFont *font;
-    NSSize size;
+    CGSize size;
     NSBitmapImageRep *cachedDrawingRep;
 }
 -(void *)userdata;
 -(void)setUserdata:(void *)input;
 -(void)setFont:(UIFont *)input;
 -(UIFont *)font;
--(void)setSize:(NSSize)input;
--(NSSize)size;
+-(void)setSize:(CGSize)input;
+-(CGSize)size;
 -(NSBitmapImageRep *)cachedDrawingRep;
--(void)mouseDown:(NSEvent *)theEvent;
--(void)mouseUp:(NSEvent *)theEvent;
--(NSMenu *)menuForEvent:(NSEvent *)theEvent;
--(void)rightMouseUp:(NSEvent *)theEvent;
--(void)otherMouseDown:(NSEvent *)theEvent;
--(void)otherMouseUp:(NSEvent *)theEvent;
--(void)drawRect:(NSRect)rect;
--(void)keyDown:(NSEvent *)theEvent;
+-(void)mouseDown:(UIEvent *)theEvent;
+-(void)mouseUp:(UIEvent *)theEvent;
+-(UIMenu *)menuForEvent:(UIEvent *)theEvent;
+-(void)rightMouseUp:(UIEvent *)theEvent;
+-(void)otherMouseDown:(UIEvent *)theEvent;
+-(void)otherMouseUp:(UIEvent *)theEvent;
+-(void)drawRect:(CGRect)rect;
+-(void)keyDown:(UIEvent *)theEvent;
 -(BOOL)isFlipped;
 @end
 
@@ -866,7 +867,7 @@ typedef struct _bitbltinfo
 -(void)setUserdata:(void *)input { userdata = input; }
 -(void)setFont:(UIFont *)input { [font release]; font = input; [font retain]; }
 -(UIFont *)font { return font; }
--(void)setSize:(NSSize)input {
+-(void)setSize:(CGSize)input {
     size = input;
     if(cachedDrawingRep)
     {
@@ -876,7 +877,7 @@ typedef struct _bitbltinfo
         [oldrep release];
     }
 }
--(NSSize)size { return size; }
+-(CGSize)size { return size; }
 -(NSBitmapImageRep *)cachedDrawingRep {
     if(!cachedDrawingRep)
     {
@@ -888,19 +889,19 @@ typedef struct _bitbltinfo
         [_DWDirtyDrawables addObject:self];
     return cachedDrawingRep;
 }
--(void)mouseDown:(NSEvent *)theEvent
+-(void)mouseDown:(UIEvent *)theEvent
 {
-    if(![theEvent isMemberOfClass:[NSEvent class]] || !([theEvent modifierFlags] & DWEventModifierFlagControl))
+    if(![theEvent isMemberOfClass:[UIEvent class]] || !([theEvent modifierFlags] & DWEventModifierFlagControl))
         _event_handler(self, theEvent, 3);
 }
--(void)mouseUp:(NSEvent *)theEvent { _event_handler(self, theEvent, 4); }
--(NSMenu *)menuForEvent:(NSEvent *)theEvent { _event_handler(self, theEvent, 3); return nil; }
--(void)rightMouseUp:(NSEvent *)theEvent { _event_handler(self, theEvent, 4); }
--(void)otherMouseDown:(NSEvent *)theEvent { _event_handler(self, theEvent, 3); }
--(void)otherMouseUp:(NSEvent *)theEvent { _event_handler(self, theEvent, 4); }
--(void)mouseDragged:(NSEvent *)theEvent { _event_handler(self, theEvent, 5); }
+-(void)mouseUp:(UIEvent *)theEvent { _event_handler(self, theEvent, 4); }
+-(UIMenu *)menuForEvent:(UIEvent *)theEvent { _event_handler(self, theEvent, 3); return nil; }
+-(void)rightMouseUp:(UIEvent *)theEvent { _event_handler(self, theEvent, 4); }
+-(void)otherMouseDown:(UIEvent *)theEvent { _event_handler(self, theEvent, 3); }
+-(void)otherMouseUp:(UIEvent *)theEvent { _event_handler(self, theEvent, 4); }
+-(void)mouseDragged:(UIEvent *)theEvent { _event_handler(self, theEvent, 5); }
 -(void)delayedNeedsDisplay { [self setNeedsDisplay:YES]; }
--(void)drawRect:(NSRect)rect {
+-(void)drawRect:(CGRect)rect {
     _event_handler(self, nil, 7);
     if (cachedDrawingRep)
     {
@@ -913,7 +914,7 @@ typedef struct _bitbltinfo
             [self performSelector:@selector(delayedNeedsDisplay) withObject:nil afterDelay:0];
     }
 }
--(void)keyDown:(NSEvent *)theEvent { _event_handler(self, theEvent, 2); }
+-(void)keyDown:(UIEvent *)theEvent { _event_handler(self, theEvent, 2); }
 -(BOOL)isFlipped { return YES; }
 -(void)dealloc {
     UserData *root = userdata;
@@ -1065,10 +1066,10 @@ typedef struct _bitbltinfo
 DWObject *DWObj;
 
 /* Subclass for the application class */
-@interface DWAppDel : NSObject <NSApplicationDelegate>
+@interface DWAppDel : NSObject <UIApplicationDelegate>
 {
 }
--(NSApplicationTerminateReply)applicationShouldTerminate:(NSApplication *)sender;
+-(UIApplicationTerminateReply)applicationShouldTerminate:(UIApplication *)sender;
 @end
 
 @interface DWWebView : WKWebView <WKNavigationDelegate>
@@ -1089,28 +1090,28 @@ DWObject *DWObj;
 -(void)webView:(WKWebView *)webView didCommitNavigation:(WKNavigation *)navigation
 {
     void *params[2] = { DW_INT_TO_POINTER(DW_HTML_CHANGE_STARTED), [[self URL] absoluteString] };
-    _event_handler(self, (NSEvent *)params, 19);
+    _event_handler(self, (UIEvent *)params, 19);
 }
 -(void)webView:(WKWebView *)webView didFinishNavigation:(WKNavigation *)navigation
 {
     void *params[2] = { DW_INT_TO_POINTER(DW_HTML_CHANGE_COMPLETE), [[self URL] absoluteString] };
-    _event_handler(self, (NSEvent *)params, 19);
+    _event_handler(self, (UIEvent *)params, 19);
 }
 -(void)webView:(WKWebView *)webView didStartProvisionalNavigation:(WKNavigation *)navigation
 {
     void *params[2] = { DW_INT_TO_POINTER(DW_HTML_CHANGE_LOADING), [[self URL] absoluteString] };
-    _event_handler(self, (NSEvent *)params, 19);
+    _event_handler(self, (UIEvent *)params, 19);
 }
 -(void)webView:(WKWebView *)webView didReceiveServerRedirectForProvisionalNavigation:(WKNavigation *)navigation
 {
     void *params[2] = { DW_INT_TO_POINTER(DW_HTML_CHANGE_REDIRECT), [[self URL] absoluteString] };
-    _event_handler(self, (NSEvent *)params, 19);
+    _event_handler(self, (UIEvent *)params, 19);
 }
 -(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); dw_signal_disconnect_by_window(self); [super dealloc]; }
 @end
 
 @implementation DWAppDel
--(NSApplicationTerminateReply)applicationShouldTerminate:(NSApplication *)sender
+-(UIApplicationTerminateReply)applicationShouldTerminate:(UIApplication *)sender
 {
     if(_event_handler(sender, nil, 6) > 0)
         return NSTerminateCancel;
@@ -1121,14 +1122,14 @@ DWObject *DWObj;
 /* Subclass for a top-level window */
 @interface DWView : DWBox <UIWindowDelegate>
 {
-    NSMenu *windowmenu;
-    NSSize oldsize;
+    UIMenu *windowmenu;
+    CGSize oldsize;
 }
 -(BOOL)windowShouldClose:(id)sender;
--(void)setMenu:(NSMenu *)input;
+-(void)setMenu:(UIMenu *)input;
 -(void)windowDidBecomeMain:(id)sender;
 -(void)menuHandler:(id)sender;
--(void)mouseDragged:(NSEvent *)theEvent;
+-(void)mouseDragged:(UIEvent *)theEvent;
 @end
 
 @implementation DWView
@@ -1155,7 +1156,7 @@ DWObject *DWObj;
 }
 -(void)windowResized:(NSNotification *)notification;
 {
-    NSSize size = [self frame].size;
+    CGSize size = [self frame].size;
 
     if(oldsize.width != size.width || oldsize.height != size.height)
     {
@@ -1168,7 +1169,7 @@ DWObject *DWObj;
 }
 -(void)showWindow
 {
-    NSSize size = [self frame].size;
+    CGSize size = [self frame].size;
 
     if(oldsize.width == size.width && oldsize.height == size.height)
     {
@@ -1189,7 +1190,7 @@ DWObject *DWObj;
     }
     _event_handler([self window], nil, 13);
 }
--(void)setMenu:(NSMenu *)input { windowmenu = input; [windowmenu retain]; }
+-(void)setMenu:(UIMenu *)input { windowmenu = input; [windowmenu retain]; }
 -(void)menuHandler:(id)sender
 {
     id menu = [sender menu];
@@ -1207,8 +1208,8 @@ DWObject *DWObj;
         [DWObj menuHandler:sender];
     _dw_wakeup_app();
 }
--(void)mouseDragged:(NSEvent *)theEvent { _event_handler(self, theEvent, 5); }
--(void)mouseMoved:(NSEvent *)theEvent
+-(void)mouseDragged:(UIEvent *)theEvent { _event_handler(self, theEvent, 5); }
+-(void)mouseMoved:(UIEvent *)theEvent
 {
     id hit = [self hitTest:[theEvent locationInWindow]];
 
@@ -1297,7 +1298,7 @@ DWObject *DWObj;
     [self setAttributedTitle:attrTitle];
     [attrTitle release];
 }
--(void)keyDown:(NSEvent *)theEvent
+-(void)keyDown:(UIEvent *)theEvent
 {
     unichar vk = [[theEvent charactersIgnoringModifiers] characterAtIndex:0];
     if(vk == VK_RETURN || vk == VK_SPACE)
@@ -1366,21 +1367,21 @@ DWObject *DWObj;
 {
     BOOL vcenter;
 }
--(NSRect)drawingRectForBounds:(NSRect)theRect;
+-(CGRect)drawingRectForBounds:(CGRect)theRect;
 -(void)setVCenter:(BOOL)input;
 @end
 
 @implementation DWTextFieldCell
--(NSRect)drawingRectForBounds:(NSRect)theRect
+-(CGRect)drawingRectForBounds:(CGRect)theRect
 {
     /* Get the parent's idea of where we should draw */
-    NSRect newRect = [super drawingRectForBounds:theRect];
+    CGRect newRect = [super drawingRectForBounds:theRect];
 
     /* If we are being vertically centered */
     if(vcenter)
     {
         /* Get our ideal size for current text */
-        NSSize textSize = [self cellSizeForBounds:theRect];
+        CGSize textSize = [self cellSizeForBounds:theRect];
 
         /* Center that in the proposed rect */
         float heightDelta = newRect.size.height - textSize.height;	
@@ -1448,7 +1449,7 @@ DWObject *DWObj;
 -(void *)userdata { return userdata; }
 -(void)setUserdata:(void *)input { userdata = input; }
 -(void)setClickDefault:(id)input { clickDefault = input; }
--(void)keyUp:(NSEvent *)theEvent
+-(void)keyUp:(UIEvent *)theEvent
 {
     unichar vk = [[theEvent charactersIgnoringModifiers] characterAtIndex:0];
     if(clickDefault && vk == VK_RETURN)
@@ -1462,7 +1463,7 @@ DWObject *DWObj;
         [super keyUp:theEvent];
     }
 }
--(BOOL)performKeyEquivalent:(NSEvent *)theEvent
+-(BOOL)performKeyEquivalent:(UIEvent *)theEvent
 {
     if(([theEvent modifierFlags] & DWEventModifierFlagDeviceIndependentFlagsMask) == DWEventModifierFlagCommand)
     {
@@ -1512,7 +1513,7 @@ DWObject *DWObj;
 -(void *)userdata { return userdata; }
 -(void)setUserdata:(void *)input { userdata = input; }
 -(void)setClickDefault:(id)input { clickDefault = input; }
--(void)keyUp:(NSEvent *)theEvent
+-(void)keyUp:(UIEvent *)theEvent
 {
     if(clickDefault && [[theEvent charactersIgnoringModifiers] characterAtIndex:0] == VK_RETURN)
     {
@@ -1526,7 +1527,7 @@ DWObject *DWObj;
         [super keyUp:theEvent];
     }
 }
--(BOOL)performKeyEquivalent:(NSEvent *)theEvent
+-(BOOL)performKeyEquivalent:(UIEvent *)theEvent
 {
     if(([theEvent modifierFlags] & DWEventModifierFlagDeviceIndependentFlagsMask) == DWEventModifierFlagCommand)
     {
@@ -1583,13 +1584,13 @@ DWObject *DWObj;
     {
         DWBox *view = object;
         Box *box = [view box];
-        NSSize size = [view frame].size;
+        CGSize size = [view frame].size;
         _do_resize(box, size.width, size.height);
         _handle_resize_events(box);
     }
     _event_handler(self, DW_INT_TO_POINTER([page pageid]), 15);
 }
--(void)keyDown:(NSEvent *)theEvent
+-(void)keyDown:(UIEvent *)theEvent
 {
     unichar vk = [[theEvent charactersIgnoringModifiers] characterAtIndex:0];
 
@@ -1724,7 +1725,7 @@ DWObject *DWObj;
         {
             DWBox *view = object;
             Box *box = [view box];
-            NSSize size = [view frame].size;
+            CGSize size = [view frame].size;
             _do_resize(box, size.width, size.height);
             _handle_resize_events(box);
         }
@@ -1875,7 +1876,7 @@ void _dw_table_cell_view_layout(NSTableCellView *result)
         UIImageView *iv = [result imageView];
         UIImage *icon = [iv image];
         UITextField *tf = [result textField];
-        NSRect rect = result.frame;
+        CGRect rect = result.frame;
         int width =[icon size].width;
     
         [iv setFrame:NSMakeRect(0,0,width,rect.size.height)];
@@ -1914,14 +1915,14 @@ void _dw_table_cell_view_layout(NSTableCellView *result)
     [self setKeyboardFocusRingNeedsDisplayInRect:[self bounds]];
     return YES;
 }
--(void)drawRect:(NSRect)rect
+-(void)drawRect:(CGRect)rect
 {
     [super drawRect:rect];
                                                                                                     
     if(shouldDrawFocusRing)
     {
         NSSetFocusRingStyle(NSFocusRingOnly);
-        NSRectFill(rect);
+        CGRectFill(rect);
     }
 }
 @end
@@ -1967,13 +1968,13 @@ void _dw_table_cell_view_layout(NSTableCellView *result)
 -(void)clear;
 -(void)setup;
 -(void)optimize;
--(NSSize)getsize;
+-(CGSize)getsize;
 -(void)setForegroundColor:(UIColor *)input;
 -(void)doubleClicked:(id)sender;
--(void)keyUp:(NSEvent *)theEvent;
+-(void)keyUp:(UIEvent *)theEvent;
 -(void)tableView:(NSTableView *)tableView didClickTableColumn:(NSTableColumn *)tableColumn;
 -(void)selectionChanged:(id)sender;
--(NSMenu *)menuForEvent:(NSEvent *)event;
+-(UIMenu *)menuForEvent:(UIEvent *)event;
 -(void)tableView:(NSTableView *)tableView didAddRowView:(NSTableRowView *)rowView forRow:(NSInteger)row;
 -(UIView *)tableView:(NSTableView *)tableView viewForTableColumn:(NSTableColumn *)tableColumn row:(NSInteger)row;
 @end
@@ -2263,7 +2264,7 @@ void _dw_table_cell_view_layout(NSTableCellView *result)
     [self checkDark];
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(selectionChanged:) name:NSTableViewSelectionDidChangeNotification object:self];
 }
--(NSSize)getsize
+-(CGSize)getsize
 {
     int cwidth = 0, cheight = 0;
 
@@ -2399,9 +2400,9 @@ void _dw_table_cell_view_layout(NSTableCellView *result)
     params[1] = (void *)[self getRowData:(int)[self selectedRow]];
 
     /* Handler for container class */
-    _event_handler(self, (NSEvent *)params, 9);
+    _event_handler(self, (UIEvent *)params, 9);
 }
--(void)keyUp:(NSEvent *)theEvent
+-(void)keyUp:(UIEvent *)theEvent
 {
     if([[theEvent charactersIgnoringModifiers] characterAtIndex:0] == VK_RETURN)
     {
@@ -2410,7 +2411,7 @@ void _dw_table_cell_view_layout(NSTableCellView *result)
         params[0] = (void *)[self getRowTitle:(int)[self selectedRow]];
         params[1] = (void *)[self getRowData:(int)[self selectedRow]];
 
-        _event_handler(self, (NSEvent *)params, 9);
+        _event_handler(self, (UIEvent *)params, 9);
     }
     [super keyUp:theEvent];
 }
@@ -2420,7 +2421,7 @@ void _dw_table_cell_view_layout(NSTableCellView *result)
     NSUInteger index = [tvcols indexOfObject:tableColumn];
 
     /* Handler for column click class */
-    _event_handler(self, (NSEvent *)index, 17);
+    _event_handler(self, (UIEvent *)index, 17);
 }
 -(void)selectionChanged:(id)sender
 {
@@ -2430,19 +2431,19 @@ void _dw_table_cell_view_layout(NSTableCellView *result)
     params[1] = (void *)[self getRowData:(int)[self selectedRow]];
 
     /* Handler for container class */
-    _event_handler(self, (NSEvent *)params, 12);
+    _event_handler(self, (UIEvent *)params, 12);
     /* Handler for listbox class */
     _event_handler(self, DW_INT_TO_POINTER((int)[self selectedRow]), 11);
 }
--(NSMenu *)menuForEvent:(NSEvent *)event
+-(UIMenu *)menuForEvent:(UIEvent *)event
 {
     int row;
-    NSPoint where = [self convertPoint:[event locationInWindow] fromView:nil];
+    CGPoint where = [self convertPoint:[event locationInWindow] fromView:nil];
     row = (int)[self rowAtPoint:where];
-    _event_handler(self, (NSEvent *)[self getRowTitle:row], 10);
+    _event_handler(self, (UIEvent *)[self getRowTitle:row], 10);
     return nil;
 }
--(void)keyDown:(NSEvent *)theEvent
+-(void)keyDown:(UIEvent *)theEvent
 {
     unichar vk = [[theEvent charactersIgnoringModifiers] characterAtIndex:0];
 
@@ -2666,13 +2667,13 @@ void _free_tree_recurse(NSMutableArray *node, NSMutableArray *item)
         _event_handler(self, (void *)item, 16);
     }
 }
--(NSMenu *)menuForEvent:(NSEvent *)event
+-(UIMenu *)menuForEvent:(UIEvent *)event
 {
     int row;
-    NSPoint where = [self convertPoint:[event locationInWindow] fromView:nil];
+    CGPoint where = [self convertPoint:[event locationInWindow] fromView:nil];
     row = (int)[self rowAtPoint:where];
     id item = [self itemAtRow:row];
-    _event_handler(self, (NSEvent *)item, 10);
+    _event_handler(self, (UIEvent *)item, 10);
     return nil;
 }
 -(UIScrollView *)scrollview { return scrollview; }
@@ -2686,7 +2687,7 @@ void _free_tree_recurse(NSMutableArray *node, NSMutableArray *item)
     [cell setTextColor:fgcolor];
 }
 -(void)clear { NSMutableArray *toclear = data; data = nil; _free_tree_recurse(toclear, NULL); [self reloadData]; }
--(void)keyDown:(NSEvent *)theEvent
+-(void)keyDown:(UIEvent *)theEvent
 {
     unichar vk = [[theEvent charactersIgnoringModifiers] characterAtIndex:0];
 
@@ -2739,7 +2740,7 @@ void _free_tree_recurse(NSMutableArray *node, NSMutableArray *item)
 -(void)setUserdata:(void *)input { userdata = input; }
 -(void)comboBoxSelectionDidChange:(NSNotification *)not { _event_handler(self, (void *)[self indexOfSelectedItem], 11); }
 -(void)setClickDefault:(id)input { clickDefault = input; }
--(void)keyUp:(NSEvent *)theEvent
+-(void)keyUp:(UIEvent *)theEvent
 {
     if(clickDefault && [[theEvent charactersIgnoringModifiers] characterAtIndex:0] == VK_RETURN)
     {
@@ -2763,8 +2764,8 @@ void _free_tree_recurse(NSMutableArray *node, NSMutableArray *item)
 -(id)textfield;
 -(void)setParent:(id)input;
 -(id)parent;
--(void)mouseDown:(NSEvent *)event;
--(void)mouseUp:(NSEvent *)event;
+-(void)mouseDown:(UIEvent *)event;
+-(void)mouseUp:(UIEvent *)event;
 @end
 
 @implementation DWStepper
@@ -2772,18 +2773,18 @@ void _free_tree_recurse(NSMutableArray *node, NSMutableArray *item)
 -(id)textfield { return textfield; }
 -(void)setParent:(id)input { parent = input; }
 -(id)parent { return parent; }
--(void)mouseDown:(NSEvent *)event
+-(void)mouseDown:(UIEvent *)event
 {
     [super mouseDown:event];
     if([[NSApp currentEvent] type] == DWEventTypeLeftMouseUp)
         [self mouseUp:event];
 }
--(void)mouseUp:(NSEvent *)event
+-(void)mouseUp:(UIEvent *)event
 {
     [textfield takeIntValueFrom:self];
     _event_handler(parent, (void *)[self integerValue], 14);
 }
--(void)keyDown:(NSEvent *)theEvent
+-(void)keyDown:(UIEvent *)theEvent
 {
     unichar vk = [[theEvent charactersIgnoringModifiers] characterAtIndex:0];
     if(vk == VK_UP || vk == VK_DOWN)
@@ -2853,7 +2854,7 @@ void _free_tree_recurse(NSMutableArray *node, NSMutableArray *item)
     _event_handler(self, (void *)[stepper integerValue], 14);
 }
 -(void)setClickDefault:(id)input { clickDefault = input; }
--(void)keyUp:(NSEvent *)theEvent
+-(void)keyUp:(UIEvent *)theEvent
 {
     if(clickDefault && [[theEvent charactersIgnoringModifiers] characterAtIndex:0] == VK_RETURN)
     {
@@ -2992,8 +2993,8 @@ void _handle_resize_events(Box *thisbox)
             if([handle isMemberOfClass:[DWRender class]])
             {
                 DWRender *render = (DWRender *)handle;
-                NSSize oldsize = [render size];
-                NSSize newsize = [render frame].size;
+                CGSize oldsize = [render size];
+                CGSize newsize = [render frame].size;
 
                 /* Eliminate duplicate configure requests */
                 if(oldsize.width != newsize.width || oldsize.height != newsize.height)
@@ -3060,8 +3061,8 @@ static void _resize_box(Box *thisbox, int *depth, int x, int y, int pass)
         if(pass == 1)
         {
             DWGroupBox *groupbox = thisbox->grouphwnd;
-            NSSize borderSize = [groupbox borderSize];
-            NSRect titleRect;
+            CGSize borderSize = [groupbox borderSize];
+            CGRect titleRect;
 
             if(borderSize.width == 0 || borderSize.height == 0)
             {
@@ -3213,8 +3214,8 @@ static void _resize_box(Box *thisbox, int *depth, int x, int y, int pass)
             {
                 int pad = thisbox->items[z].pad;
                 UIView *handle = thisbox->items[z].hwnd;
-                NSPoint point;
-                NSSize size;
+                CGPoint point;
+                CGSize size;
 
                 point.x = currentx + pad;
                 point.y = currenty + pad;
@@ -3247,7 +3248,7 @@ static void _resize_box(Box *thisbox, int *depth, int x, int y, int pass)
                     if([view isMemberOfClass:[DWBox class]])
                     {
                         Box *box = (Box *)[view box];
-                        NSSize size = [view frame].size;
+                        CGSize size = [view frame].size;
                         _do_resize(box, size.width, size.height);
                         _handle_resize_events(box);
                     }
@@ -3261,7 +3262,7 @@ static void _resize_box(Box *thisbox, int *depth, int x, int y, int pass)
                     DWScrollBox *scrollbox = (DWScrollBox *)handle;
                     DWBox *contentbox = [scrollbox documentView];
                     Box *thisbox = [contentbox box];
-                    NSSize contentsize = [scrollbox contentSize];
+                    CGSize contentsize = [scrollbox contentSize];
 
                     /* Get the required space for the box */
                     _resize_box(thisbox, &depth, x, y, 1);
@@ -3335,69 +3336,6 @@ static void _do_resize(Box *thisbox, int x, int y)
     }
 }
 
-NSMenu *_generate_main_menu()
-{
-    NSString *applicationName = nil;
-
-    applicationName = [[NSRunningApplication currentApplication] localizedName];
-    if(applicationName == nil)
-    {
-        applicationName = [[NSProcessInfo processInfo] processName];
-    }
-
-    /* Create the main menu */
-    NSMenu * mainMenu = [[[NSMenu alloc] initWithTitle:@"MainMenu"] autorelease];
-
-    NSMenuItem * mitem = [mainMenu addItemWithTitle:@"Apple" action:NULL keyEquivalent:@""];
-    NSMenu * menu = [[[NSMenu alloc] initWithTitle:@"Apple"] autorelease];
-
-    [DWApp performSelector:@selector(setAppleMenu:) withObject:menu];
-
-    /* Setup the Application menu */
-    NSMenuItem * item = [menu addItemWithTitle:[NSString stringWithFormat:@"%@ %@", NSLocalizedString(@"About", nil), applicationName]
-                                        action:@selector(orderFrontStandardAboutPanel:)
-                                 keyEquivalent:@""];
-    [item setTarget:DWApp];
-
-    [menu addItem:[NSMenuItem separatorItem]];
-
-    item = [menu addItemWithTitle:NSLocalizedString(@"Services", nil)
-                           action:NULL
-                    keyEquivalent:@""];
-    NSMenu * servicesMenu = [[[NSMenu alloc] initWithTitle:@"Services"] autorelease];
-    [menu setSubmenu:servicesMenu forItem:item];
-    [DWApp setServicesMenu:servicesMenu];
-
-    [menu addItem:[NSMenuItem separatorItem]];
-
-    item = [menu addItemWithTitle:[NSString stringWithFormat:@"%@ %@", NSLocalizedString(@"Hide", nil), applicationName]
-                           action:@selector(hide:)
-                    keyEquivalent:@"h"];
-    [item setTarget:DWApp];
-
-    item = [menu addItemWithTitle:NSLocalizedString(@"Hide Others", nil)
-                           action:@selector(hideOtherApplications:)
-                    keyEquivalent:@"h"];
-    [item setKeyEquivalentModifierMask:DWEventModifierFlagCommand | DWEventModifierFlagOption];
-    [item setTarget:DWApp];
-
-    item = [menu addItemWithTitle:NSLocalizedString(@"Show All", nil)
-                           action:@selector(unhideAllApplications:)
-                    keyEquivalent:@""];
-    [item setTarget:DWApp];
-
-    [menu addItem:[NSMenuItem separatorItem]];
-
-    item = [menu addItemWithTitle:[NSString stringWithFormat:@"%@ %@", NSLocalizedString(@"Quit", nil), applicationName]
-                           action:@selector(terminate:)
-                    keyEquivalent:@"q"];
-    [item setTarget:DWApp];
-
-    [mainMenu setSubmenu:menu forItem:mitem];
-
-    return mainMenu;
-}
-
 /*
  * Runs a message loop for Dynamic Windows.
  */
@@ -3456,7 +3394,7 @@ void API dw_main_sleep(int milliseconds)
 /* Internal version that doesn't lock the run mutex */
 int _dw_main_iteration(NSDate *date)
 {
-    NSEvent *event = [DWApp nextEventMatchingMask:DWEventMaskAny
+    UIEvent *event = [DWApp nextEventMatchingMask:DWEventMaskAny
                                         untilDate:date
                                            inMode:NSDefaultRunLoopMode
                                           dequeue:YES];
@@ -4005,7 +3943,7 @@ int API dw_scrollbox_get_pos(HWND handle, int orient)
 {
     DWScrollBox *scrollbox = handle;
     UIView *view = [scrollbox documentView];
-    NSSize contentsize = [scrollbox contentSize];
+    CGSize contentsize = [scrollbox contentSize];
     NSScroller *scrollbar;
     int range = 0;
     int val = 0;
@@ -4104,7 +4042,7 @@ void _dw_control_size(id handle, int *width, int *height)
                 if(image)
                 {
                     /* Image button */
-                    NSSize size = [image size];
+                    CGSize size = [image size];
                     thiswidth = (int)size.width;
                     thisheight = (int)size.height;
                     if([object isBordered])
@@ -4186,7 +4124,7 @@ void _dw_control_size(id handle, int *width, int *height)
 
         if(image)
         {
-            NSSize size = [image size];
+            CGSize size = [image size];
             thiswidth = (int)size.width;
             thisheight = (int)size.height;
         }
@@ -4198,7 +4136,7 @@ void _dw_control_size(id handle, int *width, int *height)
 
         if(cell)
         {
-            NSSize size = [cell cellSize];
+            CGSize size = [cell cellSize];
 
             thiswidth = size.width;
             thisheight = size.height;
@@ -4208,12 +4146,12 @@ void _dw_control_size(id handle, int *width, int *height)
     else if([ object isMemberOfClass:[DWMLE class] ] ||
             [ object isMemberOfClass:[DWContainer class] ])
     {
-        NSSize size;
+        CGSize size;
 
         if([ object isMemberOfClass:[DWMLE class] ])
         {
             UIScrollView *sv = [object scrollview];
-            NSSize frame = [sv frame].size;
+            CGSize frame = [sv frame].size;
             BOOL hscroll = [sv hasHorizontalScroller];
 
             /* Make sure word wrap is off for the first part */
@@ -4238,7 +4176,7 @@ void _dw_control_size(id handle, int *width, int *height)
                 /* If the un wrapped it is beyond the bounds... */
                 if(size.width > _DW_SCROLLED_MAX_WIDTH)
                 {
-                    NSSize max = [object maxSize];
+                    CGSize max = [object maxSize];
 
                     /* Set the max size to the limit */
                     [object setMaxSize:NSMakeSize(_DW_SCROLLED_MAX_WIDTH, max.height)];
@@ -5582,7 +5520,7 @@ HWND API dw_mle_new(ULONG cid)
 {
     DWMLE *mle = [[DWMLE alloc] init];
     UIScrollView *scrollview  = [[UIScrollView alloc] init];
-    NSSize size = [mle maxSize];
+    CGSize size = [mle maxSize];
 
     size.width = size.height;
     [mle setMaxSize:size];
@@ -5794,8 +5732,8 @@ void API dw_mle_set_word_wrap(HWND handle, int state)
 
     if(state)
     {
-        NSSize newsize = NSMakeSize([sv contentSize].width,[mle maxSize].height);
-        NSRect newrect = NSMakeRect(0, 0, [sv contentSize].width, 0);
+        CGSize newsize = NSMakeSize([sv contentSize].width,[mle maxSize].height);
+        CGRect newrect = NSMakeRect(0, 0, [sv contentSize].width, 0);
         
         [[mle textContainer] setWidthTracksTextView:YES];
         [mle setFrame:newrect];
@@ -6283,7 +6221,7 @@ void API dw_font_text_extents_get(HWND handle, HPIXMAP pixmap, const char *text,
         [dict setValue:font forKey:UIFontAttributeName];
     }
     /* Calculate the size of the string */
-    NSSize size = [nstr sizeWithAttributes:dict];
+    CGSize size = [nstr sizeWithAttributes:dict];
     [dict release];
     /* Return whatever information we can */
     if(width)
@@ -7635,7 +7573,7 @@ void _icon_resize(UIImage *image)
 {
     if(image)
     {
-        NSSize size = [image size];
+        CGSize size = [image size];
         if(size.width > 24 || size.height > 24)
         {
             if(size.width > 24)
@@ -7791,7 +7729,7 @@ DW_FUNCTION_RESTORE_PARAM2(handle, HWND, percent, float)
 {
     DW_FUNCTION_INIT;
     DWSplitBar *split = handle;
-    NSRect rect = [split frame];
+    CGRect rect = [split frame];
     float pos;
     /* Calculate the position based on the size */
     if([split isVertical])
@@ -7825,10 +7763,10 @@ DW_FUNCTION_RESTORE_PARAM2(handle, HWND, percent, float)
 float API dw_splitbar_get(HWND handle)
 {
     DWSplitBar *split = handle;
-    NSRect rect1 = [split frame];
+    CGRect rect1 = [split frame];
     NSArray *subviews = [split subviews];
     UIView *view = [subviews objectAtIndex:0];
-    NSRect rect2 = [view frame];
+    CGRect rect2 = [view frame];
     float pos, total, retval = 0.0;
     if([split isVertical])
     {
@@ -7929,7 +7867,7 @@ HPIXMAP API dw_pixmap_new(HWND handle, unsigned long width, unsigned long height
 }
 
 /* Function takes an UIImage and copies it into a flipped NSBitmapImageRep */
-void _flip_image(UIImage *tmpimage, NSBitmapImageRep *image, NSSize size)
+void _flip_image(UIImage *tmpimage, NSBitmapImageRep *image, CGSize size)
 {
     NSCompositingOperation op = DWCompositingOperationSourceOver;
     [NSGraphicsContext saveGraphicsState];
@@ -7984,7 +7922,7 @@ HPIXMAP API dw_pixmap_new_from_file(HWND handle, const char *filename)
         DW_LOCAL_POOL_OUT;
         return NULL;
     }
-    NSSize size = [tmpimage size];
+    CGSize size = [tmpimage size];
     NSBitmapImageRep *image = [[NSBitmapImageRep alloc]
                                initWithBitmapDataPlanes:NULL
                                pixelsWide:size.width
@@ -8032,7 +7970,7 @@ HPIXMAP API dw_pixmap_new_from_data(HWND handle, const char *data, int len)
         DW_LOCAL_POOL_OUT;
         return NULL;
     }
-    NSSize size = [tmpimage size];
+    CGSize size = [tmpimage size];
     NSBitmapImageRep *image = [[NSBitmapImageRep alloc]
                                initWithBitmapDataPlanes:NULL
                                pixelsWide:size.width
@@ -8093,7 +8031,7 @@ HPIXMAP API dw_pixmap_grab(HWND handle, ULONG resid)
 
     if(temp)
     {
-        NSSize size = [temp size];
+        CGSize size = [temp size];
         NSBitmapImageRep *image = [[NSBitmapImageRep alloc]
                                    initWithBitmapDataPlanes:NULL
                                    pixelsWide:size.width
@@ -8394,7 +8332,7 @@ int dw_html_javascript_run(HWND handle, const char *script, void *scriptdata)
     [html evaluateJavaScript:[NSString stringWithUTF8String:script] completionHandler:^(NSString *result, NSError *error)
     {
         void *params[2] = { result, scriptdata };
-        _event_handler(html, (NSEvent *)params, 18);
+        _event_handler(html, (UIEvent *)params, 18);
     }];
     DW_LOCAL_POOL_OUT;
     return DW_ERROR_NONE;
@@ -8427,8 +8365,8 @@ DW_FUNCTION_RESTORE_PARAM1(DW_UNUSED(cid), ULONG)
  */
 void API dw_pointer_query_pos(long *x, long *y)
 {
-    NSPoint mouseLoc;
-    mouseLoc = [NSEvent mouseLocation];
+    CGPoint mouseLoc;
+    mouseLoc = [UIEvent mouseLocation];
     if(x)
     {
         *x = mouseLoc.x;
@@ -8458,7 +8396,7 @@ void API dw_pointer_set_pos(long x, long y)
  */
 HMENUI API dw_menu_new(ULONG cid)
 {
-    NSMenu *menu = [[NSMenu alloc] init];
+    UIMenu *menu = [[UIMenu alloc] init];
     [menu setAutoenablesItems:NO];
     /* [menu setTag:cid]; Why doesn't this work? */
     return menu;
@@ -8472,7 +8410,7 @@ HMENUI API dw_menu_new(ULONG cid)
 HMENUI API dw_menubar_new(HWND location)
 {
     UIWindow *window = location;
-    NSMenu *windowmenu = _generate_main_menu();
+    UIMenu *windowmenu = _generate_main_menu();
     [[window contentView] setMenu:windowmenu];
     return (HMENUI)windowmenu;
 }
@@ -8484,7 +8422,7 @@ HMENUI API dw_menubar_new(HWND location)
  */
 void API dw_menu_destroy(HMENUI *menu)
 {
-    NSMenu *thismenu = *menu;
+    UIMenu *thismenu = *menu;
     DW_LOCAL_POOL_IN;
     [thismenu release];
     DW_LOCAL_POOL_OUT;
@@ -8493,14 +8431,14 @@ void API dw_menu_destroy(HMENUI *menu)
 /* Handle deprecation of convertScreenToBase in 10.10 yet still supporting
  * 10.6 and earlier since convertRectFromScreen was introduced in 10.7.
  */
-NSPoint _windowPointFromScreen(id window, NSPoint p)
+CGPoint _windowPointFromScreen(id window, CGPoint p)
 {
     SEL crfs = NSSelectorFromString(@"convertRectFromScreen:");
 
     if([window respondsToSelector:crfs])
     {
-        NSRect (* icrfs)(id, SEL, NSRect) = (NSRect (*)(id, SEL, NSRect))[window methodForSelector:crfs];
-        NSRect rect = icrfs(window, crfs, NSMakeRect(p.x, p.y, 1, 1));
+        CGRect (* icrfs)(id, SEL, CGRect) = (CGRect (*)(id, SEL, CGRect))[window methodForSelector:crfs];
+        CGRect rect = icrfs(window, crfs, NSMakeRect(p.x, p.y, 1, 1));
         return rect.origin;
     }
     else
@@ -8509,7 +8447,7 @@ NSPoint _windowPointFromScreen(id window, NSPoint p)
 
         if([window respondsToSelector:cstb])
         {
-            NSPoint (* icstb)(id, SEL, NSPoint) = (NSPoint (*)(id, SEL, NSPoint))[window methodForSelector:cstb];
+            CGPoint (* icstb)(id, SEL, CGPoint) = (CGPoint (*)(id, SEL, CGPoint))[window methodForSelector:cstb];
             return icstb(window, cstb, p);
         }
     }
@@ -8526,16 +8464,16 @@ NSPoint _windowPointFromScreen(id window, NSPoint p)
  */
 void API dw_menu_popup(HMENUI *menu, HWND parent, int x, int y)
 {
-    NSMenu *thismenu = (NSMenu *)*menu;
+    UIMenu *thismenu = (UIMenu *)*menu;
     id object = parent;
     UIView *view = [object isKindOfClass:[UIWindow class]] ? [object contentView] : parent;
     UIWindow *window = [view window];
-    NSEvent *event = [DWApp currentEvent];
+    UIEvent *event = [DWApp currentEvent];
     if(!window)
         window = [event window];
     [thismenu autorelease];
-    NSPoint p = NSMakePoint(x, [[NSScreen mainScreen] frame].size.height - y);
-    NSEvent* fake = [NSEvent mouseEventWithType:DWEventTypeRightMouseDown
+    CGPoint p = NSMakePoint(x, [[NSScreen mainScreen] frame].size.height - y);
+    UIEvent* fake = [UIEvent mouseEventWithType:DWEventTypeRightMouseDown
                                        location:_windowPointFromScreen(window, p)
                                   modifierFlags:0
                                       timestamp:[event timestamp]
@@ -8544,7 +8482,7 @@ void API dw_menu_popup(HMENUI *menu, HWND parent, int x, int y)
                                     eventNumber:1
                                      clickCount:1
                                        pressure:0.0];
-    [NSMenu popUpContextMenu:thismenu withEvent:fake forView:view];
+    [UIMenu popUpContextMenu:thismenu withEvent:fake forView:view];
 }
 
 char _removetilde(char *dest, const char *src)
@@ -8582,8 +8520,8 @@ char _removetilde(char *dest, const char *src)
  */
 HWND API dw_menu_append_item(HMENUI menux, const char *title, ULONG itemid, ULONG flags, int end, int check, HMENUI submenux)
 {
-    NSMenu *menu = menux;
-    NSMenu *submenu = submenux;
+    UIMenu *menu = menux;
+    UIMenu *submenu = submenux;
     DWMenuItem *item = NULL;
     if(strlen(title) == 0)
     {
@@ -8641,7 +8579,7 @@ HWND API dw_menu_append_item(HMENUI menux, const char *title, ULONG itemid, ULON
 void API dw_menu_item_set_check(HMENUI menux, unsigned long itemid, int check)
 {
     id menu = menux;
-    NSMenuItem *menuitem = (NSMenuItem *)[menu itemWithTag:itemid];
+    UIMenuItem *menuitem = (UIMenuItem *)[menu itemWithTag:itemid];
 
     if(menuitem != nil)
     {
@@ -8667,7 +8605,7 @@ void API dw_menu_item_set_check(HMENUI menux, unsigned long itemid, int check)
 int API dw_menu_delete_item(HMENUI menux, unsigned long itemid)
 {
     id menu = menux;
-    NSMenuItem *menuitem = (NSMenuItem *)[menu itemWithTag:itemid];
+    UIMenuItem *menuitem = (UIMenuItem *)[menu itemWithTag:itemid];
 
     if(menuitem != nil)
     {
@@ -8688,7 +8626,7 @@ int API dw_menu_delete_item(HMENUI menux, unsigned long itemid)
 void API dw_menu_item_set_state(HMENUI menux, unsigned long itemid, unsigned long state)
 {
     id menu = menux;
-    NSMenuItem *menuitem = (NSMenuItem *)[menu itemWithTag:itemid];
+    UIMenuItem *menuitem = (UIMenuItem *)[menu itemWithTag:itemid];
 
     if(menuitem != nil)
     {
@@ -8879,7 +8817,7 @@ DW_FUNCTION_RETURN(dw_window_new, HWND)
 DW_FUNCTION_RESTORE_PARAM3(hwndOwner, HWND, title, char *, flStyle, ULONG)
 {
     DW_FUNCTION_INIT;
-    NSRect frame = NSMakeRect(1,1,1,1);
+    CGRect frame = NSMakeRect(1,1,1,1);
     DWWindow *window = [[DWWindow alloc]
                         initWithContentRect:frame
                         styleMask:(flStyle)
@@ -8960,7 +8898,7 @@ void API dw_window_set_pointer(HWND handle, int pointertype)
         }
         else if(pointertype == DW_POINTER_ARROW)
         {
-            NSRect rect = [view frame];
+            CGRect rect = [view frame];
             NSCursor *cursor = [NSCursor arrowCursor];
 
             [view addCursorRect:rect cursor:cursor];
@@ -8981,7 +8919,7 @@ int API dw_window_show(HWND handle)
     if([ object isMemberOfClass:[ DWWindow class ] ])
     {
         DWWindow *window = handle;
-        NSRect rect = [[window contentView] frame];
+        CGRect rect = [[window contentView] frame];
         id defaultitem = [window initialFirstResponder];
 
         if([window isMiniaturized])
@@ -9002,7 +8940,7 @@ int API dw_window_show(HWND handle)
             static int defaultx = 0, defaulty = 0;
             int cx = dw_screen_width(), cy = dw_screen_height();
             int maxx = cx / 4, maxy = cy / 4;
-            NSPoint point;
+            CGPoint point;
 
             rect = [window frame];
 
@@ -9537,9 +9475,9 @@ DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
         [window close];
     }
     /* Handle removing menu items from menus */
-    else if([ object isKindOfClass:[NSMenuItem class]])
+    else if([ object isKindOfClass:[UIMenuItem class]])
     {
-        NSMenu *menu = [object menu];
+        UIMenu *menu = [object menu];
 
         [menu removeItem:object];
     }
@@ -9734,7 +9672,7 @@ DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
         UIScrollView *sv = handle;
         object = [sv documentView];
     }
-    if([object isKindOfClass:[UIControl class]] || [object isKindOfClass:[NSMenuItem class]])
+    if([object isKindOfClass:[UIControl class]] || [object isKindOfClass:[UIMenuItem class]])
     {
         [object setEnabled:NO];
     }
@@ -9765,7 +9703,7 @@ DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
         UIScrollView *sv = handle;
         object = [sv documentView];
     }
-    if([object isKindOfClass:[UIControl class]] || [object isKindOfClass:[NSMenuItem class]])
+    if([object isKindOfClass:[UIControl class]] || [object isKindOfClass:[UIMenuItem class]])
     {
         [object setEnabled:YES];
     }
@@ -9973,7 +9911,7 @@ DW_FUNCTION_RESTORE_PARAM3(handle, HWND, width, ULONG, height, ULONG)
     {
         DWWindow *window = handle;
         Box *thisbox;
-        NSRect content, frame = NSMakeRect(0, 0, width, height);
+        CGRect content, frame = NSMakeRect(0, 0, width, height);
 
         /* Convert the external frame size to internal content size */
         content = [UIWindow contentRectForFrameRect:frame styleMask:[window styleMask]];
@@ -10018,7 +9956,7 @@ void API dw_window_get_preferred_size(HWND handle, int *width, int *height)
         if((thisbox = (Box *)[[object contentView] box]))
         {
             int depth = 0;
-            NSRect frame;
+            CGRect frame;
 
             /* Calculate space requirements */
             _resize_box(thisbox, &depth, 0, 0, 1);
@@ -10096,8 +10034,8 @@ void _handle_gravity(HWND handle, long *x, long *y, unsigned long width, unsigne
     /* Adjust the values to avoid Dock/Menubar if requested */
     if((horz | vert) & DW_GRAV_OBSTACLES)
     {
-        NSRect visiblerect = [[object screen] visibleFrame];
-        NSRect totalrect = [[object screen] frame];
+        CGRect visiblerect = [[object screen] visibleFrame];
+        CGRect totalrect = [[object screen] frame];
 
         if(horz & DW_GRAV_OBSTACLES)
         {
@@ -10134,8 +10072,8 @@ DW_FUNCTION_RESTORE_PARAM3(handle, HWND, x, LONG, y, LONG)
     if([ object isMemberOfClass:[ DWWindow class ] ])
     {
         DWWindow *window = handle;
-        NSPoint point;
-        NSSize size = [[window contentView] frame].size;
+        CGPoint point;
+        CGSize size = [[window contentView] frame].size;
 
         /* Can't position an unsized window, so attempt to auto-size */
         if(size.width <= 1 || size.height <= 1)
@@ -10188,7 +10126,7 @@ void API dw_window_get_pos_size(HWND handle, LONG *x, LONG *y, ULONG *width, ULO
     if([ object isKindOfClass:[ UIWindow class ] ])
     {
         UIWindow *window = handle;
-        NSRect rect = [window frame];
+        CGRect rect = [window frame];
         if(x)
             *x = rect.origin.x;
         if(y)
@@ -10202,7 +10140,7 @@ void API dw_window_get_pos_size(HWND handle, LONG *x, LONG *y, ULONG *width, ULO
     else if([ object isKindOfClass:[ UIControl class ] ])
     {
         UIControl *control = handle;
-        NSRect rect = [control frame];
+        CGRect rect = [control frame];
         if(x)
             *x = rect.origin.x;
         if(y)
@@ -10220,7 +10158,7 @@ void API dw_window_get_pos_size(HWND handle, LONG *x, LONG *y, ULONG *width, ULO
  */
 int API dw_screen_width(void)
 {
-    NSRect screenRect = [[NSScreen mainScreen] frame];
+    CGRect screenRect = [[NSScreen mainScreen] frame];
     return screenRect.size.width;
 }
 
@@ -10229,7 +10167,7 @@ int API dw_screen_width(void)
  */
 int API dw_screen_height(void)
 {
-    NSRect screenRect = [[NSScreen mainScreen] frame];
+    CGRect screenRect = [[NSScreen mainScreen] frame];
     return screenRect.size.height;
 }
 
@@ -11514,7 +11452,7 @@ void _dw_app_init(void)
 {
     if(!DWApp)
     {
-        DWApp = [NSApplication sharedApplication];
+        DWApp = [UIApplication sharedApplication];
         DWAppDel *del = [[DWAppDel alloc] init];
         [DWApp setDelegate:del];
     }
@@ -11953,7 +11891,7 @@ int API dw_print_run(HPRINT print, unsigned long flags)
     HPIXMAP pixmap, pixmap2;
     UIImage *image, *flipped;
     UIImageView *iv;
-    NSSize size;
+    CGSize size;
     PMPrintSettings settings;
     int x, result = DW_ERROR_UNKNOWN;
     UInt32 start, end;
