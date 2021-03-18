@@ -10072,7 +10072,7 @@ void API dw_window_set_style(HWND handle, ULONG style, ULONG mask)
     else if([object isMemberOfClass:[NSTextView class]])
     {
         NSTextView *tv = handle;
-        [tv setAlignment:(style & mask)];
+        [tv setAlignment:(style & mask & (NSTextAlignmentLeft|NSTextAlignmentCenter|NSTextAlignmentRight))];
     }
     else if([object isMemberOfClass:[DWButton class]])
     {
