@@ -404,14 +404,19 @@ typedef struct _hpixmap {
 
 void _dw_pool_drain(void);
 
-#define DW_DT_LEFT               0 /* NSLeftTextAlignment */
+#define DW_DT_LEFT               0 /* NSTextAlignmentLeft */
 #define DW_DT_QUERYEXTENT        0
 #define DW_DT_UNDERSCORE         0
 #define DW_DT_STRIKEOUT          0
 #define DW_DT_TEXTATTRS          0
 #define DW_DT_EXTERNALLEADING    0
-#define DW_DT_CENTER             2 /* NSCenterTextAlignment */
-#define DW_DT_RIGHT              1 /* NSRightTextAlignment */
+#ifdef __aarch64__
+#define DW_DT_CENTER             1 /* NSTextAlignmentCenter */
+#define DW_DT_RIGHT              2 /* NSTextAlignmentRight */
+#else
+#define DW_DT_CENTER             2 /* NSTextAlignmentCenter */
+#define DW_DT_RIGHT              1 /* NSTextAlignmentRight */
+#endif
 #define DW_DT_TOP                0
 #define DW_DT_VCENTER            (1 << 10)
 #define DW_DT_BOTTOM             0
@@ -420,14 +425,14 @@ void _dw_pool_drain(void);
 #define DW_DT_WORDBREAK          (1 << 11)
 #define DW_DT_ERASERECT          0
 
-#define DW_FCF_CLOSEBUTTON       (1 << 1) /* NSClosableWindowMask */
-#define DW_FCF_TITLEBAR          (1 << 0) /* NSTitledWindowMask */
-#define DW_FCF_SYSMENU           (1 << 1) /* NSClosableWindowMask */
+#define DW_FCF_CLOSEBUTTON       (1 << 1) /* NSWindowStyleMaskClosable */
+#define DW_FCF_TITLEBAR          (1 << 0) /* NSWindowStyleMaskTitled */
+#define DW_FCF_SYSMENU           (1 << 1) /* NSWindowStyleMaskClosable */
 #define DW_FCF_MENU              0
-#define DW_FCF_SIZEBORDER        (1 << 3) /* NSResizableWindowMask */
-#define DW_FCF_MINBUTTON         (1 << 2) /* NSMiniaturizableWindowMask */
+#define DW_FCF_SIZEBORDER        (1 << 3) /* NSWindowStyleMaskResizable */
+#define DW_FCF_MINBUTTON         (1 << 2) /* NSWindowStyleMaskMiniaturizable */
 #define DW_FCF_MAXBUTTON         0
-#define DW_FCF_MINMAX            (1 << 2) /* NSMiniaturizableWindowMask */
+#define DW_FCF_MINMAX            (1 << 2) /* NSWindowStyleMaskMiniaturizable */
 #define DW_FCF_DLGBORDER         0
 #define DW_FCF_BORDER            0
 #define DW_FCF_TASKLIST          0
@@ -438,7 +443,7 @@ void _dw_pool_drain(void);
 #define DW_FCF_AUTOICON          0
 #define DW_FCF_MAXIMIZE          0
 #define DW_FCF_MINIMIZE          0
-#define DW_FCF_TEXTURED          (1 << 8) /* NSTexturedBackgroundWindowMask */
+#define DW_FCF_TEXTURED          (1 << 8) /* NSWindowStyleMaskTexturedBackground */
 #define DW_FCF_FULLSCREEN        (1 << 4)
 
 #define DW_CFA_BITMAPORICON      1
