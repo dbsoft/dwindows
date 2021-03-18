@@ -1237,12 +1237,7 @@ typedef struct _bitbltinfo
         DWTID curr = pthread_self();
 
         if(DWThread == (DWTID)-1 || DWThread == curr)
-        {
-            DWIMP imp = (DWIMP)[self methodForSelector:sel];
-
-            if(imp)
-                imp(self, sel, param);
-        }
+            [self performSelector:sel withObject:param];
         else
             [self performSelectorOnMainThread:sel withObject:param waitUntilDone:YES];
     }
