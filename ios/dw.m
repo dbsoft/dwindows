@@ -967,7 +967,7 @@ DWObject *DWObj;
 @end
 
 /* Subclass for a top-level window */
-@interface DWView : DWBox <UIWindowDelegate>
+@interface DWView : DWBox /* <UIWindowDelegate> */
 {
     UIMenu *windowmenu;
     CGSize oldsize;
@@ -988,8 +988,10 @@ DWObject *DWObj;
 }
 -(void)viewDidMoveToWindow
 {
+#if 0 /* TODO */
     [[UINotificationCenter defaultCenter] addObserver:self selector:@selector(windowResized:) name:UIWindowDidResizeNotification object:[self window]];
     [[UINotificationCenter defaultCenter] addObserver:self selector:@selector(windowDidBecomeMain:) name:UIWindowDidBecomeMainNotification object:[self window]];
+#endif
 }
 -(void)dealloc
 {
@@ -1032,29 +1034,7 @@ DWObject *DWObj;
 -(void)setMenu:(UIMenu *)input { windowmenu = input; [windowmenu retain]; }
 -(void)menuHandler:(id)sender
 {
-    id menu = [sender menu];
-
-    /* Find the highest menu for this item */
-    while([menu supermenu])
-    {
-        menu = [menu supermenu];
-    }
-
-    /* Only perform the delay if this item is a child of the main menu */
-    if([DWApp mainMenu] == menu)
-        [DWObj performSelector:@selector(menuHandler:) withObject:sender afterDelay:0];
-    else
-        [DWObj menuHandler:sender];
-}
--(void)mouseDragged:(UIEvent *)theEvent { _event_handler(self, theEvent, 5); }
--(void)mouseMoved:(UIEvent *)theEvent
-{
-    id hit = [self hitTest:[theEvent locationInWindow]];
-
-    if([hit isMemberOfClass:[DWRender class]])
-    {
-        _event_handler(hit, theEvent, 5);
-    }
+    [DWObj menuHandler:sender];
 }
 @end
 
@@ -1068,12 +1048,9 @@ DWObject *DWObj;
 -(void *)userdata;
 -(void)setUserdata:(void *)input;
 -(void)buttonClicked:(id)sender;
--(void)setButtonType:(UIButtonType)input;
 -(UIButtonType)buttonType;
 -(void)setParent:(DWBox *)input;
 -(DWBox *)parent;
--(UIColor *)textColor;
--(void)setTextColor:(UIColor *)textColor;
 @end
 
 @implementation DWButton
@@ -1082,84 +1059,15 @@ DWObject *DWObj;
 -(void)buttonClicked:(id)sender
 {
     _event_handler(self, nil, 8);
-    if([self buttonType] == DWButtonTypeRadio)
-    {
-        DWBox *viewbox = [self parent];
-        Box *thisbox = [viewbox box];
-        int z;
-
-        for(z=0;z<thisbox->count;z++)
-        {
-            if(thisbox->items[z].type != TYPEBOX)
-            {
-                id object = thisbox->items[z].hwnd;
-
-                if([object isMemberOfClass:[DWButton class]])
-                {
-                    DWButton *button = object;
-
-                    if(button != self && [button buttonType] == DWButtonTypeRadio)
-                    {
-                        [button setState:DWControlStateValueOff];
-                    }
-                }
-            }
-        }
-    }
 }
--(void)setButtonType:(UIButtonType)input { buttonType = input; [super setButtonType:input]; }
 -(UIButtonType)buttonType { return buttonType; }
 -(void)setParent:(DWBox *)input { parent = input; }
 -(DWBox *)parent { return parent; }
--(UIColor *)textColor
-{
-    NSAttributedString *attrTitle = [self attributedTitle];
-    NSUInteger len = [attrTitle length];
-    NSRange range = NSMakeRange(0, MIN(len, 1));
-    NSDictionary *attrs = [attrTitle fontAttributesInRange:range];
-    UIColor *textColor = [UIColor controlTextColor];
-    if (attrs) {
-        textColor = [attrs objectForKey:NSForegroundColorAttributeName];
-    }
-    return textColor;
-}
--(void)setTextColor:(UIColor *)textColor
-{
-    NSMutableAttributedString *attrTitle = [[NSMutableAttributedString alloc]
-                                            initWithAttributedString:[self attributedTitle]];
-    NSUInteger len = [attrTitle length];
-    NSRange range = NSMakeRange(0, len);
-    [attrTitle addAttribute:NSForegroundColorAttributeName
-                      value:textColor
-                      range:range];
-    [attrTitle fixAttributesInRange:range];
-    [self setAttributedTitle:attrTitle];
-    [attrTitle release];
-}
--(void)keyDown:(UIEvent *)theEvent
-{
-    unichar vk = [[theEvent charactersIgnoringModifiers] characterAtIndex:0];
-    if(vk == VK_RETURN || vk == VK_SPACE)
-    {
-        if(buttonType == DWButtonTypeSwitch)
-            [self setState:([self state] ? DWControlStateValueOff : DWControlStateValueOn)];
-        else if(buttonType == DWButtonTypeRadio)
-            [self setState:DWControlStateValueOn];
-        [self buttonClicked:self];
-    }
-    else
-    {
-        [self interpretKeyEvents:[NSArray arrayWithObject:theEvent]];
-        [super keyDown:theEvent];
-    }
-}
--(void)insertTab:(id)sender { if([[self window] firstResponder] == self) [[self window] selectNextKeyView:self]; }
--(void)insertBacktab:(id)sender { if([[self window] firstResponder] == self) [[self window] selectPreviousKeyView:self]; }
 -(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); dw_signal_disconnect_by_window(self); [super dealloc]; }
 @end
 
 /* Subclass for a progress type */
-@interface DWPercent : NSProgressIndicator
+@interface DWPercent : UIProgressView
 {
     void *userdata;
 }
@@ -1198,41 +1106,6 @@ DWObject *DWObj;
 -(void)setBox:(void *)input { box = input; }
 -(id)box { return box; }
 -(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); dw_signal_disconnect_by_window(self); [super dealloc]; }
-@end
-
-/* Subclass for a textfield that supports vertical centering */
-@interface DWTextFieldCell : UITextFieldCell
-{
-    BOOL vcenter;
-}
--(CGRect)drawingRectForBounds:(CGRect)theRect;
--(void)setVCenter:(BOOL)input;
-@end
-
-@implementation DWTextFieldCell
--(CGRect)drawingRectForBounds:(CGRect)theRect
-{
-    /* Get the parent's idea of where we should draw */
-    CGRect newRect = [super drawingRectForBounds:theRect];
-
-    /* If we are being vertically centered */
-    if(vcenter)
-    {
-        /* Get our ideal size for current text */
-        CGSize textSize = [self cellSizeForBounds:theRect];
-
-        /* Center that in the proposed rect */
-        float heightDelta = newRect.size.height - textSize.height;	
-        if (heightDelta > 0)
-        {
-            newRect.size.height -= heightDelta;
-            newRect.origin.y += (heightDelta / 2);
-        }
-    }
-	
-    return newRect;
-}
--(void)setVCenter:(BOOL)input { vcenter = input; }
 @end
 
 @interface DWEntryFieldFormatter : NSFormatter
@@ -1287,40 +1160,11 @@ DWObject *DWObj;
 -(void *)userdata { return userdata; }
 -(void)setUserdata:(void *)input { userdata = input; }
 -(void)setClickDefault:(id)input { clickDefault = input; }
--(void)keyUp:(UIEvent *)theEvent
-{
-    unichar vk = [[theEvent charactersIgnoringModifiers] characterAtIndex:0];
-    if(clickDefault && vk == VK_RETURN)
-    {
-        if([clickDefault isKindOfClass:[UIButton class]])
-            [clickDefault buttonClicked:self];
-        else
-            [[self window] makeFirstResponder:clickDefault];
-    } else
-    {
-        [super keyUp:theEvent];
-    }
-}
--(BOOL)performKeyEquivalent:(UIEvent *)theEvent
-{
-    if(([theEvent modifierFlags] & DWEventModifierFlagDeviceIndependentFlagsMask) == DWEventModifierFlagCommand)
-    {
-        if ([[theEvent charactersIgnoringModifiers] isEqualToString:@"x"])
-            return [NSApp sendAction:@selector(cut:) to:[[self window] firstResponder] from:self];
-        else if ([[theEvent charactersIgnoringModifiers] isEqualToString:@"c"])
-            return [NSApp sendAction:@selector(copy:) to:[[self window] firstResponder] from:self];
-        else if ([[theEvent charactersIgnoringModifiers] isEqualToString:@"v"])
-            return [NSApp sendAction:@selector(paste:) to:[[self window] firstResponder] from:self];
-        else if ([[theEvent charactersIgnoringModifiers] isEqualToString:@"a"])
-            return [NSApp sendAction:@selector(selectAll:) to:[[self window] firstResponder] from:self];
-    }
-    return [super performKeyEquivalent:theEvent];
-}
 -(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); dw_signal_disconnect_by_window(self); [super dealloc]; }
 @end
 
 /* Subclass for a text and status text type */
-@interface DWText : UITextField
+@interface DWText : UILabel
 {
     void *userdata;
     id clickDefault;
@@ -1336,55 +1180,8 @@ DWObject *DWObj;
 @end
 
 
-/* Subclass for a entryfield password type */
-@interface DWEntryFieldPassword : NSSecureTextField
-{
-    void *userdata;
-    id clickDefault;
-}
--(void *)userdata;
--(void)setUserdata:(void *)input;
--(void)setClickDefault:(id)input;
-@end
-
-@implementation DWEntryFieldPassword
--(void *)userdata { return userdata; }
--(void)setUserdata:(void *)input { userdata = input; }
--(void)setClickDefault:(id)input { clickDefault = input; }
--(void)keyUp:(UIEvent *)theEvent
-{
-    if(clickDefault && [[theEvent charactersIgnoringModifiers] characterAtIndex:0] == VK_RETURN)
-    {
-        if([clickDefault isKindOfClass:[UIButton class]])
-            [clickDefault buttonClicked:self];
-        else
-            [[self window] makeFirstResponder:clickDefault];
-    }
-    else
-    {
-        [super keyUp:theEvent];
-    }
-}
--(BOOL)performKeyEquivalent:(UIEvent *)theEvent
-{
-    if(([theEvent modifierFlags] & DWEventModifierFlagDeviceIndependentFlagsMask) == DWEventModifierFlagCommand)
-    {
-        if ([[theEvent charactersIgnoringModifiers] isEqualToString:@"x"])
-            return [NSApp sendAction:@selector(cut:) to:[[self window] firstResponder] from:self];
-        else if ([[theEvent charactersIgnoringModifiers] isEqualToString:@"c"])
-            return [NSApp sendAction:@selector(copy:) to:[[self window] firstResponder] from:self];
-        else if ([[theEvent charactersIgnoringModifiers] isEqualToString:@"v"])
-            return [NSApp sendAction:@selector(paste:) to:[[self window] firstResponder] from:self];
-        else if ([[theEvent charactersIgnoringModifiers] isEqualToString:@"a"])
-            return [NSApp sendAction:@selector(selectAll:) to:[[self window] firstResponder] from:self];
-    }
-    return [super performKeyEquivalent:theEvent];
-}
--(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); dw_signal_disconnect_by_window(self); [super dealloc]; }
-@end
-
 /* Subclass for a Notebook control type */
-@interface DWNotebook : NSTabView <NSTabViewDelegate>
+@interface DWNotebook : UISegmentedControl
 {
     void *userdata;
     int pageid;
@@ -1393,11 +1190,11 @@ DWObject *DWObj;
 -(void)setUserdata:(void *)input;
 -(int)pageid;
 -(void)setPageid:(int)input;
--(void)tabView:(NSTabView *)notebook didSelectTabViewItem:(NSTabViewItem *)notepage;
+-(void)pageChanged;
 @end
 
 /* Subclass for a Notebook page type */
-@interface DWNotebookPage : NSTabViewItem
+@interface DWNotebookPage : UISegmentedControl
 {
     void *userdata;
     int pageid;
@@ -1413,8 +1210,9 @@ DWObject *DWObj;
 -(void)setUserdata:(void *)input { userdata = input; }
 -(int)pageid { return pageid; }
 -(void)setPageid:(int)input { pageid = input; }
--(void)tabView:(NSTabView *)notebook didSelectTabViewItem:(NSTabViewItem *)notepage
+-(void)pageChanged
 {
+#if 0 /* TODO: Implement page/segment changed handler */
     id object = [notepage view];
     DWNotebookPage *page = (DWNotebookPage *)notepage;
 
@@ -1427,48 +1225,8 @@ DWObject *DWObj;
         _handle_resize_events(box);
     }
     _event_handler(self, DW_INT_TO_POINTER([page pageid]), 15);
+#endif
 }
--(void)keyDown:(UIEvent *)theEvent
-{
-    unichar vk = [[theEvent charactersIgnoringModifiers] characterAtIndex:0];
-
-    if(vk == NSTabCharacter || vk == NSBackTabCharacter)
-        [self interpretKeyEvents:[NSArray arrayWithObject:theEvent]];
-    else if(vk == NSLeftArrowFunctionKey)
-    {
-        NSArray *pages = [self tabViewItems];
-        DWNotebookPage *page = (DWNotebookPage *)[self selectedTabViewItem];
-        NSUInteger index = [pages indexOfObject:page];
-
-        if(index != NSNotFound)
-        {
-            if(index > 0)
-               [self selectTabViewItem:[pages objectAtIndex:(index-1)]];
-            else
-               [self selectTabViewItem:[pages objectAtIndex:0]];
-
-        }
-    }
-    else if(vk == NSRightArrowFunctionKey)
-    {
-        NSArray *pages = [self tabViewItems];
-        DWNotebookPage *page = (DWNotebookPage *)[self selectedTabViewItem];
-        NSUInteger index = [pages indexOfObject:page];
-        NSUInteger count = [pages count];
-
-        if(index != NSNotFound)
-        {
-            if(index + 1 < count)
-                [self selectTabViewItem:[pages objectAtIndex:(index+1)]];
-            else
-                [self selectTabViewItem:[pages objectAtIndex:(count-1)]];
-
-        }
-    }
-    [super keyDown:theEvent];
-}
--(void)insertTab:(id)sender { if([[self window] firstResponder] == self) [[self window] selectNextKeyView:self]; }
--(void)insertBacktab:(id)sender { if([[self window] firstResponder] == self) [[self window] selectPreviousKeyView:self]; }
 -(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); dw_signal_disconnect_by_window(self); [super dealloc]; }
 @end
 
@@ -1481,7 +1239,7 @@ DWObject *DWObj;
 @end
 
 /* Subclass for a splitbar type */
-@interface DWSplitBar : NSSplitView <NSSplitViewDelegate>
+@interface DWSplitBar : UISplitViewController
 {
     void *userdata;
     float percent;
@@ -1498,7 +1256,7 @@ DWObject *DWObj;
 @implementation DWSplitBar
 -(void)splitViewDidResizeSubviews:(NSNotification *)aNotification
 {
-    NSArray *views = [self subviews];
+    NSArray *views = [self.view subviews];
     id object;
 
     for(object in views)
@@ -1534,71 +1292,7 @@ DWObject *DWObj;
 @implementation DWSlider
 -(void *)userdata { return userdata; }
 -(void)setUserdata:(void *)input { userdata = input; }
--(void)sliderChanged:(id)sender { _event_handler(self, (void *)[self integerValue], 14); }
--(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); dw_signal_disconnect_by_window(self); [super dealloc]; }
-@end
-
-/* Subclass for a slider type */
-@interface DWScrollbar : NSScroller
-{
-    void *userdata;
-    double range;
-    double visible;
-    int vertical;
-}
--(void *)userdata;
--(void)setUserdata:(void *)input;
--(float)range;
--(float)visible;
--(int)vertical;
--(void)setVertical:(int)value;
--(void)setRange:(double)input1 andVisible:(double)input2;
--(void)scrollerChanged:(id)sender;
-@end
-
-@implementation DWScrollbar
--(void *)userdata { return userdata; }
--(void)setUserdata:(void *)input { userdata = input; }
--(float)range { return range; }
--(float)visible { return visible; }
--(int)vertical { return vertical; }
--(void)setVertical:(int)value { vertical = value; }
--(void)setRange:(double)input1 andVisible:(double)input2 { range = input1; visible = input2; }
--(void)scrollerChanged:(id)sender
-{
-    double max = (range - visible);
-    double result = ([self doubleValue] * max);
-    double newpos = result;
-
-    switch ([sender hitPart])
-    {
-        case NSScrollerDecrementPage:
-            newpos -= visible;
-            if(newpos < 0)
-            {
-                newpos = 0;
-            }
-            break;
-
-        case NSScrollerIncrementPage:
-            newpos += visible;
-            if(newpos > max)
-            {
-                newpos = max;
-            }
-            break;
-
-        default:
-            ; /* do nothing */
-    }
-    int newposi = (int)newpos;
-    newpos = (newpos - (double)newposi) > 0.5 ? (double)(newposi + 1) : (double)newposi;
-    if(newpos != result)
-    {
-        [self setDoubleValue:(newpos/max)];
-    }
-    _event_handler(self, DW_INT_TO_POINTER((int)newpos), 14);
-}
+-(void)sliderChanged:(id)sender { int intVal = (int)[self value]; _event_handler(self, DW_INT_TO_POINTER(intVal), 14); }
 -(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); dw_signal_disconnect_by_window(self); [super dealloc]; }
 @end
 
@@ -1622,30 +1316,26 @@ DWObject *DWObj;
 -(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); dw_signal_disconnect_by_window(self); [super dealloc]; }
 @end
 
-NSTableCellView *_dw_table_cell_view_new(UIImage *icon, NSString *text)
+UITableViewCell *_dw_table_cell_view_new(UIImage *icon, NSString *text)
 {
-    NSTableCellView *browsercell = [[[NSTableCellView alloc] init] autorelease];
+    UITableViewCell *browsercell = [[[UITableViewCell alloc] init] autorelease];
     [browsercell setAutoresizesSubviews:YES];
     if(icon)
     {
         UIImageView *iv = [[[UIImageView alloc] init] autorelease];
-        [iv setAutoresizingMask:UIViewHeightSizable|(text ? 0 :UIViewWidthSizable)];
+        [iv setAutoresizingMask:UIViewAutoresizingFlexibleHeight|(text ? 0 :UIViewAutoresizingFlexibleWidth)];
         [iv setImage:icon];
         [browsercell setImageView:iv];
         [browsercell addSubview:iv];
     }
     if(text)
     {
-        UITextField *tf = [[[UITextField alloc] init] autorelease];
-        [tf setAutoresizingMask:UIViewHeightSizable|UIViewWidthSizable];
-        [tf setStringValue:text];
-        [tf setEditable:NO];
-        [tf setBezeled:NO];
-        [tf setBordered:NO];
-        [tf setDrawsBackground:NO];
-        [[tf cell] setVCenter:YES];
-        [browsercell setTextField:tf];
-        [browsercell addSubview:tf];
+        /* Might switch to UITextFieldView in the future if they need to be editable */
+        UILabel *label = [[[UILabel alloc] init] autorelease];
+        [label setAutoresizingMask:UIViewAutoresizingFlexibleHeight|UIViewAutoresizingFlexibleWidth];
+        [label setText:text];
+        [browsercell setTextField:label];
+        [browsercell addSubview:label];
     }
     return browsercell;
 }
@@ -1661,7 +1351,7 @@ void _dw_table_cell_view_layout(NSTableCellView *result)
         CGRect rect = result.frame;
         int width =[icon size].width;
     
-        [iv setFrame:NSMakeRect(0,0,width,rect.size.height)];
+        [iv setFrame:CGRectMake(0,0,width,rect.size.height)];
         
         /* Adjust the rect to allow space for the image */
         rect.origin.x += width;
@@ -1669,45 +1359,6 @@ void _dw_table_cell_view_layout(NSTableCellView *result)
         [tf setFrame:rect];
     }
 }
-
-@interface DWFocusRingScrollView : UIScrollView
-{
-    BOOL shouldDrawFocusRing;
-    NSResponder* lastResp;
-}
-@end
-
-@implementation DWFocusRingScrollView
--(BOOL)needsDisplay;
-{
-    NSResponder* resp = nil;
-    
-    if([[self window] isKeyWindow])
-    {
-        resp = [[self window] firstResponder];
-        if (resp == lastResp)
-            return [super needsDisplay];
-    }
-    else if (lastResp == nil)
-    {
-        return [super needsDisplay];
-    }
-    shouldDrawFocusRing = (resp != nil && [resp isKindOfClass:[UIView class]] && [(UIView*)resp isDescendantOf:self]);
-    lastResp = resp;
-    [self setKeyboardFocusRingNeedsDisplayInRect:[self bounds]];
-    return YES;
-}
--(void)drawRect:(CGRect)rect
-{
-    [super drawRect:rect];
-                                                                                                    
-    if(shouldDrawFocusRing)
-    {
-        NSSetFocusRingStyle(NSFocusRingOnly);
-        UIRectFill(rect);
-    }
-}
-@end
 
 /* Subclass for a Container/List type */
 @interface DWContainer : NSTableView <NSTableViewDataSource,NSTableViewDelegate>
@@ -3848,20 +3499,6 @@ void _dw_control_size(id handle, int *width, int *height)
         thiswidth = 100;
         thisheight = 20;
     }
-    /* Handle the ranged widgets */
-    else if([ object isMemberOfClass:[DWScrollbar class] ])
-    {
-        if([object vertical])
-        {
-            thiswidth = 14;
-            thisheight = 100;
-        }
-        else
-        {
-            thiswidth = 100;
-            thisheight = 14;
-        }
-    }
     /* Handle bitmap size */
     else if([ object isMemberOfClass:[UIImageView class] ])
     {
@@ -4328,10 +3965,6 @@ HWND _dw_button_new(const char *text, ULONG cid)
     [button setTarget:button];
     [button setAction:@selector(buttonClicked:)];
     [button setTag:cid];
-    [button setButtonType:DWButtonTypeMomentaryPushIn];
-    [button setBezelStyle:DWBezelStyleRegularSquare];
-    /* TODO: Reenable scaling in the future if it is possible on other platforms.
-    [[button cell] setImageScaling:UIImageScaleProportionallyDown]; */
     if(DWDefaultFont)
     {
         [[button cell] setFont:DWDefaultFont];
@@ -4348,8 +3981,6 @@ HWND _dw_button_new(const char *text, ULONG cid)
 HWND API dw_button_new(const char *text, ULONG cid)
 {
     DWButton *button = _dw_button_new(text, cid);
-    [button setButtonType:DWButtonTypeMomentaryPushIn];
-    [button setBezelStyle:DWBezelStyleRounded];
     [button setImagePosition:NSNoImage];
     [button setAlignment:DWTextAlignmentCenter];
     [[button cell] setControlTint:NSBlueControlTint];
@@ -4367,8 +3998,6 @@ HWND API dw_entryfield_new(const char *text, ULONG cid)
     DWEntryField *entry = [[DWEntryField alloc] init];
     [entry setStringValue:[ NSString stringWithUTF8String:text ]];
     [entry setTag:cid];
-    [[entry cell] setScrollable:YES];
-    [[entry cell] setWraps:NO];
     return entry;
 }
 
@@ -4380,11 +4009,8 @@ HWND API dw_entryfield_new(const char *text, ULONG cid)
  */
 HWND API dw_entryfield_password_new(const char *text, ULONG cid)
 {
-    DWEntryFieldPassword *entry = [[DWEntryFieldPassword alloc] init];
-    [entry setStringValue:[ NSString stringWithUTF8String:text ]];
-    [entry setTag:cid];
-    [[entry cell] setScrollable:YES];
-    [[entry cell] setWraps:NO];
+    DWEntryField *entry = dw_entryfield_new(text, cid);
+    [entry setSecureTextEntry:YES];
     return entry;
 }
 
@@ -4553,7 +4179,7 @@ long API dw_spinbutton_get_pos(HWND handle)
 HWND API dw_radiobutton_new(const char *text, ULONG cid)
 {
     DWButton *button = _dw_button_new(text, cid);
-    [button setButtonType:DWButtonTypeRadio];
+    /* TODO: Customize to be a radio button */
     return button;
 }
 
@@ -4609,23 +4235,8 @@ void API dw_slider_set_pos(HWND handle, unsigned int position)
  */
 HWND API dw_scrollbar_new(int vertical, ULONG cid)
 {
-    DWScrollbar *scrollbar;
-    if(vertical)
-    {
-        scrollbar = [[DWScrollbar alloc] init];
-        [scrollbar setVertical:YES];
-    }
-    else
-    {
-        scrollbar = [[DWScrollbar alloc] initWithFrame:NSMakeRect(0,0,100,5)];
-    }
-    [scrollbar setRange:0.0 andVisible:0.0];
-    [scrollbar setKnobProportion:1.0];
-    [scrollbar setTarget:scrollbar];
-    [scrollbar setAction:@selector(scrollerChanged:)];
-    [scrollbar setTag:cid];
-    [scrollbar setEnabled:YES];
-    return scrollbar;
+    /*TODO: Implement scrollbars if possible */
+    return 0;
 }
 
 /*
@@ -4635,10 +4246,8 @@ HWND API dw_scrollbar_new(int vertical, ULONG cid)
  */
 unsigned int API dw_scrollbar_get_pos(HWND handle)
 {
-    DWScrollbar *scrollbar = handle;
-    float range = [scrollbar range];
-    float fresult = [scrollbar doubleValue] * range;
-    return (int)fresult;
+    /*TODO: Implement scrollbars if possible */
+    return 0;
 }
 
 /*
@@ -4649,11 +4258,7 @@ unsigned int API dw_scrollbar_get_pos(HWND handle)
  */
 void API dw_scrollbar_set_pos(HWND handle, unsigned int position)
 {
-    DWScrollbar *scrollbar = handle;
-    double range = [scrollbar range];
-    double visible = [scrollbar visible];
-    double newpos = (double)position/(range-visible);
-    [scrollbar setDoubleValue:newpos];
+    /*TODO: Implement scrollbars if possible */
 }
 
 /*
@@ -4665,10 +4270,7 @@ void API dw_scrollbar_set_pos(HWND handle, unsigned int position)
  */
 void API dw_scrollbar_set_range(HWND handle, unsigned int range, unsigned int visible)
 {
-    DWScrollbar *scrollbar = handle;
-    double knob = (double)visible/(double)range;
-    [scrollbar setRange:(double)range andVisible:(double)visible];
-    [scrollbar setKnobProportion:knob];
+    /*TODO: Implement scrollbars if possible */
 }
 
 /*
@@ -4732,8 +4334,7 @@ DW_FUNCTION_RESTORE_PARAM2(handle, HWND, position, unsigned int)
 HWND API dw_checkbox_new(const char *text, ULONG cid)
 {
     DWButton *button = _dw_button_new(text, cid);
-    [button setButtonType:DWButtonTypeSwitch];
-    [button setBezelStyle:DWBezelStyleRegularSquare];
+    /* TODO: Switch to UISwitch control with text */
     return button;
 }
 
@@ -8716,7 +8317,7 @@ int API dw_window_set_color(HWND handle, ULONG fore, ULONG back)
     }
     if([object isMemberOfClass:[DWButton class]])
     {
-        [object setTextColor:(fg ? fg : [UIColor controlTextColor])];
+        [object setTitleColor:(fg ? fg : [UIColor controlTextColor])];
     }
     if([object isKindOfClass:[UITextField class]] || [object isKindOfClass:[UIButton class]])
     {
@@ -8787,19 +8388,23 @@ void API dw_window_set_style(HWND handle, ULONG style, ULONG mask)
             issm(window, sssm, tmp);
         }
     }
-    else if([object isKindOfClass:[UITextField class]])
+    else if([object isKindOfClass:[UILabel class]])
     {
-        UITextField *tf = object;
-        DWTextFieldCell *cell = [tf cell];
+        UILabel *label = object;
 
-        [cell setAlignment:(style & 0xF)];
-        if(mask & DW_DT_VCENTER && [cell isMemberOfClass:[DWTextFieldCell class]])
+        [label setTextAlignment:(style & 0xF)];
+#if 0 /* TODO: Implement vertical centering */
+        if(mask & DW_DT_VCENTER)
         {
             [cell setVCenter:(style & DW_DT_VCENTER ? YES : NO)];
         }
-        if(mask & DW_DT_WORDBREAK && [cell isMemberOfClass:[DWTextFieldCell class]])
+#endif
+        if(mask & DW_DT_WORDBREAK)
         {
-            [cell setWraps:(style & DW_DT_WORDBREAK ? YES : NO)];
+            if(style & DW_DT_WORDBREAK)
+                [label setLineBreakMode:NSLineBreakByWordWrapping];
+            else
+                [label setLineBreakMode:NSLineBreakByTruncatingTail];
         }
     }
     else if([object isMemberOfClass:[UITextView class]])
