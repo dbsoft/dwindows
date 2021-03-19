@@ -1316,52 +1316,45 @@ DWObject *DWObj;
 -(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); dw_signal_disconnect_by_window(self); [super dealloc]; }
 @end
 
+ /* TODO: UITableView does not support variable columns...
+  * also OutlineView does not exist in iOS.
+  */
 UITableViewCell *_dw_table_cell_view_new(UIImage *icon, NSString *text)
 {
     UITableViewCell *browsercell = [[[UITableViewCell alloc] init] autorelease];
     [browsercell setAutoresizesSubviews:YES];
+
     if(icon)
     {
-        UIImageView *iv = [[[UIImageView alloc] init] autorelease];
-        [iv setAutoresizingMask:UIViewAutoresizingFlexibleHeight|(text ? 0 :UIViewAutoresizingFlexibleWidth)];
-        [iv setImage:icon];
-        [browsercell setImageView:iv];
-        [browsercell addSubview:iv];
+        if(@available(iOS 14.0, *))
+        {
+            UIListContentConfiguration *content = [browsercell defaultContentConfiguration];
+            
+            [content setImage:icon];
+        }
+        else
+        {
+            [browsercell setImage:icon];
+        }
     }
     if(text)
     {
-        /* Might switch to UITextFieldView in the future if they need to be editable */
-        UILabel *label = [[[UILabel alloc] init] autorelease];
-        [label setAutoresizingMask:UIViewAutoresizingFlexibleHeight|UIViewAutoresizingFlexibleWidth];
-        [label setText:text];
-        [browsercell setTextField:label];
-        [browsercell addSubview:label];
+        if(@available(iOS 14.0, *))
+        {
+            UIListContentConfiguration *content = [browsercell defaultContentConfiguration];
+            
+            [content setText:text];
+        }
+        else
+        {
+            [browsercell setText:text];
+        }
     }
     return browsercell;
 }
 
-void _dw_table_cell_view_layout(NSTableCellView *result)
-{
-    /* Adjust the frames of the textField and imageView when both are present */
-    if([result imageView] && [result textField])
-    {
-        UIImageView *iv = [result imageView];
-        UIImage *icon = [iv image];
-        UITextField *tf = [result textField];
-        CGRect rect = result.frame;
-        int width =[icon size].width;
-    
-        [iv setFrame:CGRectMake(0,0,width,rect.size.height)];
-        
-        /* Adjust the rect to allow space for the image */
-        rect.origin.x += width;
-        rect.size.width -= width;
-        [tf setFrame:rect];
-    }
-}
-
 /* Subclass for a Container/List type */
-@interface DWContainer : NSTableView <NSTableViewDataSource,NSTableViewDelegate>
+@interface DWContainer : UITableView <UITableViewDataSource,UITableViewDelegate>
 {
     void *userdata;
     NSMutableArray *tvcols;
@@ -1376,17 +1369,15 @@ void _dw_table_cell_view_layout(NSTableCellView *result)
     id scrollview;
     int filesystem;
 }
--(NSInteger)numberOfRowsInTableView:(NSTableView *)aTable;
--(id)tableView:(NSTableView *)aTable objectValueForTableColumn:(NSTableColumn *)aCol row:(NSInteger)aRow;
--(BOOL)tableView:(NSTableView *)aTableView shouldEditTableColumn:(NSTableColumn *)aTableColumn row:(int)rowIndex;
+-(NSInteger)numberOfRowsInTableView:(UITableView *)aTable;
+-(id)tableView:(UITableView *)aTable objectValueForTableColumn:(NSTableColumn *)aCol row:(NSInteger)aRow;
+-(BOOL)tableView:(UITableView *)aTableView shouldEditTableColumn:(NSTableColumn *)aTableColumn row:(int)rowIndex;
 -(void *)userdata;
 -(void)setUserdata:(void *)input;
 -(void)setFilesystem:(int)input;
 -(int)filesystem;
 -(id)scrollview;
 -(void)setScrollview:(id)input;
--(void)addColumn:(NSTableColumn *)input andType:(int)type;
--(NSTableColumn *)getColumn:(int)col;
 -(int)addRow:(NSArray *)input;
 -(int)addRows:(int)number;
 -(void)editCell:(id)input at:(int)row and:(int)col;
@@ -1400,20 +1391,18 @@ void _dw_table_cell_view_layout(NSTableCellView *result)
 -(void)setLastQueryPoint:(int)input;
 -(void)clear;
 -(void)setup;
--(void)optimize;
 -(CGSize)getsize;
 -(void)setForegroundColor:(UIColor *)input;
 -(void)doubleClicked:(id)sender;
 -(void)keyUp:(UIEvent *)theEvent;
--(void)tableView:(NSTableView *)tableView didClickTableColumn:(NSTableColumn *)tableColumn;
 -(void)selectionChanged:(id)sender;
 -(UIMenu *)menuForEvent:(UIEvent *)event;
--(void)tableView:(NSTableView *)tableView didAddRowView:(NSTableRowView *)rowView forRow:(NSInteger)row;
--(UIView *)tableView:(NSTableView *)tableView viewForTableColumn:(NSTableColumn *)tableColumn row:(NSInteger)row;
+-(void)tableView:(UITableView *)tableView didAddRowView:(UITableRowView *)rowView forRow:(NSInteger)row;
+-(UIView *)tableView:(UITableView *)tableView viewForTableColumn:(NSTableColumn *)tableColumn row:(NSInteger)row;
 @end
 
 @implementation DWContainer
--(NSInteger)numberOfRowsInTableView:(NSTableView *)aTable
+-(NSInteger)numberOfRowsInTableView:(UITableView *)aTable
 {
     if(tvcols && data)
     {
@@ -1426,7 +1415,7 @@ void _dw_table_cell_view_layout(NSTableCellView *result)
     }
     return 0;
 }
--(id)tableView:(NSTableView *)aTable objectValueForTableColumn:(NSTableColumn *)aCol row:(NSInteger)aRow
+-(id)tableView:(UITableView *)aTable objectValueForTableColumn:(NSTableColumn *)aCol row:(NSInteger)aRow
 {
     if(tvcols && data)
     {
@@ -1453,15 +1442,13 @@ void _dw_table_cell_view_layout(NSTableCellView *result)
     }
     return nil;
 }
--(BOOL)tableView:(NSTableView *)aTableView shouldEditTableColumn:(NSTableColumn *)aTableColumn row:(int)rowIndex { return NO; }
+-(BOOL)tableView:(UITableView *)aTableView shouldEditTableColumn:(NSTableColumn *)aTableColumn row:(int)rowIndex { return NO; }
 -(void *)userdata { return userdata; }
 -(void)setUserdata:(void *)input { userdata = input; }
 -(void)setFilesystem:(int)input { filesystem = input; }
 -(int)filesystem { return filesystem; }
 -(id)scrollview { return scrollview; }
 -(void)setScrollview:(id)input { scrollview = input; }
--(void)addColumn:(NSTableColumn *)input andType:(int)type { if(tvcols) { [tvcols addObject:input]; [types addObject:[NSNumber numberWithInt:type]]; } }
--(NSTableColumn *)getColumn:(int)col { if(tvcols) { return [tvcols objectAtIndex:col]; } return nil; }
 -(void)refreshColors
 {
     UIColor *oldodd = oddcolor;
@@ -1473,11 +1460,11 @@ void _dw_table_cell_view_layout(NSTableCellView *result)
 
     /* Get the UIColor for non-default colors */
     if(thisodd != DW_RGB_TRANSPARENT)
-        oddcolor = [[UIColor colorWithDeviceRed: DW_RED_VALUE(_odd)/255.0 green: DW_GREEN_VALUE(_odd)/255.0 blue: DW_BLUE_VALUE(_odd)/255.0 alpha: 1] retain];
+        oddcolor = [[UIColor colorWithRed: DW_RED_VALUE(_odd)/255.0 green: DW_GREEN_VALUE(_odd)/255.0 blue: DW_BLUE_VALUE(_odd)/255.0 alpha: 1] retain];
     else
         oddcolor = NULL;
     if(thiseven != DW_RGB_TRANSPARENT)
-        evencolor = [[UIColor colorWithDeviceRed: DW_RED_VALUE(_even)/255.0 green: DW_GREEN_VALUE(_even)/255.0 blue: DW_BLUE_VALUE(_even)/255.0 alpha: 1] retain];
+        evencolor = [[UIColor colorWithRed: DW_RED_VALUE(_even)/255.0 green: DW_GREEN_VALUE(_even)/255.0 blue: DW_BLUE_VALUE(_even)/255.0 alpha: 1] retain];
     else
         evencolor = NULL;
     [oldodd release];
@@ -1494,10 +1481,7 @@ void _dw_table_cell_view_layout(NSTableCellView *result)
 {
     /* Update any system colors based on the Dark Mode */
     _DW_COLOR_ROW_EVEN = DW_RGB_TRANSPARENT;
-    if(_is_dark(self))
-        _DW_COLOR_ROW_ODD = DW_RGB(100, 100, 100);
-    else
-        _DW_COLOR_ROW_ODD = DW_RGB(230, 230, 230);
+    _DW_COLOR_ROW_ODD = DW_RGB(230, 230, 230);
     /* Only refresh if we've been setup already */
     if(titles)
         [self refreshColors];
@@ -1555,7 +1539,7 @@ void _dw_table_cell_view_layout(NSTableCellView *result)
     }
     return 0;
 }
--(void)tableView:(NSTableView *)tableView didAddRowView:(NSTableRowView *)rowView forRow:(NSInteger)row
+-(void)tableView:(UITableView *)tableView didAddRowView:(UITableRowView *)rowView forRow:(NSInteger)row
 {
     /* Handle drawing alternating row colors if enabled */
     if ((row % 2) == 0)
@@ -1569,32 +1553,32 @@ void _dw_table_cell_view_layout(NSTableCellView *result)
             [rowView setBackgroundColor:oddcolor];
     }
 }
--(UIView *)tableView:(NSTableView *)tableView viewForTableColumn:(NSTableColumn *)tableColumn row:(NSInteger)row;
+-(UIView *)tableView:(UITableView *)tableView viewForTableColumn:(NSTableColumn *)tableColumn row:(NSInteger)row;
 {
     /* Not reusing cell views, so get the cell from our array */
     int index = (int)(row * [tvcols count]) + (int)[tvcols indexOfObject:tableColumn];
     id celldata = [data objectAtIndex:index];
 
     /* The data is already a NSTableCellView so just return that */
-    if([celldata isMemberOfClass:[NSTableCellView class]])
+    if([celldata isMemberOfClass:[UITableViewCell class]])
     {
-        NSTableCellView *result = celldata;
-        NSTextAlignment align = [[tableColumn headerCell] alignment];
-        
-        _dw_table_cell_view_layout(result);
+        UITableViewCell *result = celldata;
         
         /* Copy the alignment setting from the column,
          * and set the text color from the container.
          */
-        if([result textField])
+        if(@available(iOS 14.0, *))
         {
-            UITextField *tf = [result textField];
+            UIListContentConfiguration *content = [result defaultContentConfiguration];
             
-            [tf setAlignment:align];
             if(fgcolor)
-                [tf setTextColor:fgcolor];
+                [[content textProperties] setColor:fgcolor];
         }
-        
+        else
+        {
+            if(fgcolor)
+                [result setTextColor:fgcolor];
+        }
         /* Return the result */
         return result;
     }
@@ -1695,12 +1679,12 @@ void _dw_table_cell_view_layout(NSTableCellView *result)
     if(!dw_oddcolor && !dw_evencolor)
         dw_oddcolor = dw_evencolor = DW_CLR_DEFAULT;
     [self checkDark];
-    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(selectionChanged:) name:NSTableViewSelectionDidChangeNotification object:self];
 }
 -(CGSize)getsize
 {
     int cwidth = 0, cheight = 0;
 
+#if 0 /* TODO: Figure out how to calculate the table size */
     if(tvcols)
     {
         int z;
@@ -1753,63 +1737,10 @@ void _dw_table_cell_view_layout(NSTableCellView *result)
                 cwidth += width;
         }
     }
+#endif
     cwidth += 16;
     cheight += 16;
-    return NSMakeSize(cwidth, cheight);
-}
--(void)optimize
-{
-    if(tvcols)
-    {
-        int z;
-        int colcount = (int)[tvcols count];
-        int rowcount = (int)[self numberOfRowsInTableView:self];
-
-        for(z=0;z<colcount;z++)
-        {
-            NSTableColumn *column = [tvcols objectAtIndex:z];
-            if([column resizingMask] != NSTableColumnNoResizing)
-            {
-                if(rowcount > 0)
-                {
-                    int x;
-                    NSCell *colcell = [column headerCell];
-                    int width = [colcell cellSize].width;
-
-                    for(x=0;x<rowcount;x++)
-                    {
-                        NSTableCellView *cell = [self viewAtColumn:z row:x makeIfNecessary:YES];
-                        int thiswidth = 4;
-                        
-                        if([cell imageView])
-                            thiswidth += [[cell imageView] image].size.width;
-                        if([cell textField])
-                            thiswidth += [[cell textField] intrinsicContentSize].width;
-                        
-                        if(thiswidth > width)
-                        {
-                            width = thiswidth;
-                        }
-                    }
-                    /* If the image is missing default the optimized width to 16. */
-                    if(!width && [[types objectAtIndex:z] intValue] & DW_CFA_BITMAPORICON)
-                    {
-                        width = 16;
-                    }
-                    /* Sanity check... don't set the width to 0 */
-                    if(width)
-                    {
-                        [column setWidth:width+1];
-                    }
-                }
-                else
-                {
-                    if(self.headerView)
-                        [column sizeToFit];
-                }
-            }
-        }
-    }
+    return CGSizeMake(cwidth, cheight);
 }
 -(void)setForegroundColor:(UIColor *)input
 {
@@ -1935,211 +1866,6 @@ void _free_tree_recurse(NSMutableArray *node, NSMutableArray *item)
     }
 }
 
-/* Subclass for a Tree type */
-@interface DWTree : NSOutlineView <NSOutlineViewDataSource,NSOutlineViewDelegate>
-{
-    void *userdata;
-    NSTableColumn *treecol;
-    NSMutableArray *data;
-    /* Each data item consists of a linked lists of tree item data.
-     * UIImage *, NSString *, Item Data *, NSMutableArray * of Children
-     */
-    id scrollview;
-    UIColor *fgcolor;
-}
--(id)outlineView:(NSOutlineView *)outlineView child:(int)index ofItem:(id)item;
--(BOOL)outlineView:(NSOutlineView *)outlineView isItemExpandable:(id)item;
--(int)outlineView:(NSOutlineView *)outlineView numberOfChildrenOfItem:(id)item;
--(UIView *)outlineView:(NSOutlineView *)outlineView viewForTableColumn:(NSTableColumn *)tableColumn item:(id)item;
--(BOOL)outlineView:(NSOutlineView *)outlineView shouldEditTableColumn:(NSTableColumn *)tableColumn item:(id)item;
--(void)addTree:(NSMutableArray *)item and:(NSMutableArray *)parent after:(NSMutableArray *)after;
--(void *)userdata;
--(void)setUserdata:(void *)input;
--(void)treeSelectionChanged:(id)sender;
--(void)treeItemExpanded:(NSNotification *)notification;
--(UIScrollView *)scrollview;
--(void)setScrollview:(UIScrollView *)input;
--(void)deleteNode:(NSMutableArray *)item;
--(void)setForegroundColor:(UIColor *)input;
--(void)clear;
-@end
-
-@implementation DWTree
--(id)init
-{
-    self = [super init];
-
-    if (self)
-    {
-        treecol = [[NSTableColumn alloc] initWithIdentifier:@"_DWTreeColumn"];
-        [self addTableColumn:treecol];
-        [self setOutlineTableColumn:treecol];
-        [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(treeSelectionChanged:) name:NSOutlineViewSelectionDidChangeNotification object:self];
-        [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(treeItemExpanded:) name:NSOutlineViewItemDidExpandNotification object:self];
-    }
-    return self;
-}
--(id)outlineView:(NSOutlineView *)outlineView child:(int)index ofItem:(id)item
-{
-    if(item)
-    {
-        NSMutableArray *array = [item objectAtIndex:3];
-        return ([array isKindOfClass:[NSNull class]]) ? nil : [array objectAtIndex:index];
-    }
-    else
-    {
-        return [data objectAtIndex:index];
-    }
-}
--(BOOL)outlineView:(NSOutlineView *)outlineView isItemExpandable:(id)item
-{
-    return [self outlineView:outlineView numberOfChildrenOfItem:item] != 0;
-}
--(int)outlineView:(NSOutlineView *)outlineView numberOfChildrenOfItem:(id)item
-{
-    if(item)
-    {
-        if([item isKindOfClass:[NSMutableArray class]])
-        {
-            NSMutableArray *array = [item objectAtIndex:3];
-            return ([array isKindOfClass:[NSNull class]]) ? 0 : (int)[array count];
-        }
-        else
-        {
-            return 0;
-        }
-    }
-    else
-    {
-        return data ? (int)[data count] : 0;
-    }
-}
--(UIView *)outlineView:(NSOutlineView *)outlineView viewForTableColumn:(NSTableColumn *)tableColumn item:(id)item
-{
-    NSTableCellView *view = [outlineView makeViewWithIdentifier:[tableColumn identifier] owner:self];
-    
-    if([item isKindOfClass:[NSMutableArray class]])
-    {
-        NSMutableArray *this = (NSMutableArray *)item;
-        UIImage *icon = [this objectAtIndex:0];
-        NSString *text = [this objectAtIndex:1];
-        if(![icon isKindOfClass:[UIImage class]])
-            icon = nil;
-        if(view)
-        {
-            UITextField *tf = [view textField];
-            UIImageView *iv = [view imageView];
-            
-            if(tf)
-            {
-                [tf setStringValue: text];
-                if(fgcolor)
-                    [tf setTextColor:fgcolor];
-            }
-            if(iv)
-                [iv setImage:icon];
-        }
-        else
-            view = _dw_table_cell_view_new(icon, text);
-    }
-    _dw_table_cell_view_layout(view);
-    return view;
-}
--(BOOL)outlineView:(NSOutlineView *)outlineView shouldEditTableColumn:(NSTableColumn *)tableColumn item:(id)item { return NO; }
--(void)addTree:(NSMutableArray *)item and:(NSMutableArray *)parent after:(NSMutableArray *)after
-{
-    NSMutableArray *children = data;
-    if(parent)
-    {
-        children = [parent objectAtIndex:3];
-        if([children isKindOfClass:[NSNull class]])
-        {
-            children = [[[NSMutableArray alloc] init] retain];
-            [parent replaceObjectAtIndex:3 withObject:children];
-        }
-    }
-    else
-    {
-        if(!data)
-        {
-            children = data = [[[NSMutableArray alloc] init] retain];
-        }
-    }
-    if(after)
-    {
-        NSInteger index = [children indexOfObject:after];
-        int count = (int)[children count];
-        if(index != NSNotFound && (index+1) < count)
-            [children insertObject:item atIndex:(index+1)];
-        else
-            [children addObject:item];
-    }
-    else
-    {
-        [children addObject:item];
-    }
-}
--(void *)userdata { return userdata; }
--(void)setUserdata:(void *)input { userdata = input; }
--(void)treeSelectionChanged:(id)sender
-{
-    /* Handler for tree class */
-    id item = [self itemAtRow:[self selectedRow]];
-
-    if(item)
-    {
-        _event_handler(self, (void *)item, 12);
-    }
-}
--(void)treeItemExpanded:(NSNotification *)notification
-{
-    id item = [[notification userInfo ] objectForKey: @"NSObject"];
-
-    if(item)
-    {
-        _event_handler(self, (void *)item, 16);
-    }
-}
--(UIMenu *)menuForEvent:(UIEvent *)event
-{
-    int row;
-    CGPoint where = [self convertPoint:[event locationInWindow] fromView:nil];
-    row = (int)[self rowAtPoint:where];
-    id item = [self itemAtRow:row];
-    _event_handler(self, (UIEvent *)item, 10);
-    return nil;
-}
--(UIScrollView *)scrollview { return scrollview; }
--(void)setScrollview:(UIScrollView *)input { scrollview = input; }
--(void)deleteNode:(NSMutableArray *)item { _free_tree_recurse(data, item); }
--(void)setForegroundColor:(UIColor *)input
-{
-    UITextFieldCell *cell = [treecol dataCell];
-    fgcolor = input;
-    [fgcolor retain];
-    [cell setTextColor:fgcolor];
-}
--(void)clear { NSMutableArray *toclear = data; data = nil; _free_tree_recurse(toclear, NULL); [self reloadData]; }
--(void)keyDown:(UIEvent *)theEvent
-{
-    unichar vk = [[theEvent charactersIgnoringModifiers] characterAtIndex:0];
-
-    if(vk == NSTabCharacter || vk == NSBackTabCharacter)
-        [self interpretKeyEvents:[NSArray arrayWithObject:theEvent]];
-    [super keyDown:theEvent];
-}
--(void)insertTab:(id)sender { if([[self window] firstResponder] == self) [[self window] selectNextKeyView:self]; }
--(void)insertBacktab:(id)sender { if([[self window] firstResponder] == self) [[self window] selectPreviousKeyView:self]; }
--(void)dealloc
-{
-    UserData *root = userdata;
-    _remove_userdata(&root, NULL, TRUE);
-    _free_tree_recurse(data, NULL);
-    [treecol release];
-    dw_signal_disconnect_by_window(self);
-    [super dealloc];
-}
-@end
 
 /* Subclass for a Calendar type */
 @interface DWCalendar : UIDatePicker
@@ -2156,36 +1882,6 @@ void _free_tree_recurse(NSMutableArray *node, NSMutableArray *item)
 -(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); dw_signal_disconnect_by_window(self); [super dealloc]; }
 @end
 
-/* Subclass for a Combobox type */
-@interface DWComboBox : NSComboBox <NSComboBoxDelegate>
-{
-    void *userdata;
-    id clickDefault;
-}
--(void *)userdata;
--(void)setUserdata:(void *)input;
--(void)comboBoxSelectionDidChange:(NSNotification *)not;
--(void)setClickDefault:(id)input;
-@end
-
-@implementation DWComboBox
--(void *)userdata { return userdata; }
--(void)setUserdata:(void *)input { userdata = input; }
--(void)comboBoxSelectionDidChange:(NSNotification *)not { _event_handler(self, (void *)[self indexOfSelectedItem], 11); }
--(void)setClickDefault:(id)input { clickDefault = input; }
--(void)keyUp:(UIEvent *)theEvent
-{
-    if(clickDefault && [[theEvent charactersIgnoringModifiers] characterAtIndex:0] == VK_RETURN)
-    {
-        [[self window] makeFirstResponder:clickDefault];
-    } else
-    {
-        [super keyUp:theEvent];
-    }
-}
--(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); dw_signal_disconnect_by_window(self); [super dealloc]; }
-@end
-
 /* Subclass for a stepper component of the spinbutton type */
 /* This is a bad way of doing this... but I can't get the other methods to work */
 @interface DWStepper : UIStepper
@@ -2197,8 +1893,6 @@ void _free_tree_recurse(NSMutableArray *node, NSMutableArray *item)
 -(id)textfield;
 -(void)setParent:(id)input;
 -(id)parent;
--(void)mouseDown:(UIEvent *)event;
--(void)mouseUp:(UIEvent *)event;
 @end
 
 @implementation DWStepper
@@ -2206,36 +1900,6 @@ void _free_tree_recurse(NSMutableArray *node, NSMutableArray *item)
 -(id)textfield { return textfield; }
 -(void)setParent:(id)input { parent = input; }
 -(id)parent { return parent; }
--(void)mouseDown:(UIEvent *)event
-{
-    [super mouseDown:event];
-    if([[NSApp currentEvent] type] == DWEventTypeLeftMouseUp)
-        [self mouseUp:event];
-}
--(void)mouseUp:(UIEvent *)event
-{
-    [textfield takeIntValueFrom:self];
-    _event_handler(parent, (void *)[self integerValue], 14);
-}
--(void)keyDown:(UIEvent *)theEvent
-{
-    unichar vk = [[theEvent charactersIgnoringModifiers] characterAtIndex:0];
-    if(vk == VK_UP || vk == VK_DOWN)
-    {
-        if(vk == VK_UP)
-            [self setIntegerValue:([self integerValue]+[self increment])];
-        else
-            [self setIntegerValue:([self integerValue]-[self increment])];
-        [self mouseUp:theEvent];
-    }
-    else
-    {
-        [self interpretKeyEvents:[NSArray arrayWithObject:theEvent]];
-        [super keyDown:theEvent];
-    }
-}
--(void)insertTab:(id)sender { if([[self window] firstResponder] == self) [[self window] selectNextKeyView:self]; }
--(void)insertBacktab:(id)sender { if([[self window] firstResponder] == self) [[self window] selectPreviousKeyView:self]; }
 @end
 
 /* Subclass for a Spinbutton type */
@@ -2263,15 +1927,12 @@ void _free_tree_recurse(NSMutableArray *node, NSMutableArray *item)
     if(self)
     {
         textfield = [[[UITextField alloc] init] autorelease];
-        /* Workaround for infinite loop in Snow Leopard 10.6 */
-        if(DWOSMajor == 10 && DWOSMinor < 7)
-            [textfield setFrameSize:NSMakeSize(10,10)];
         [self addSubview:textfield];
         stepper = [[[DWStepper alloc] init] autorelease];
         [self addSubview:stepper];
         [stepper setParent:self];
         [stepper setTextfield:textfield];
-        [textfield takeIntValueFrom:stepper];
+        [textfield setText:[NSString stringWithFormat:@"%ld",(long)[stepper value]]];
         [textfield setDelegate:self];
     }
     return self;
@@ -2282,9 +1943,9 @@ void _free_tree_recurse(NSMutableArray *node, NSMutableArray *item)
 -(UIStepper *)stepper { return stepper; }
 -(void)controlTextDidChange:(NSNotification *)aNotification
 {
-    [stepper takeIntValueFrom:textfield];
-    [textfield takeIntValueFrom:stepper];
-    _event_handler(self, (void *)[stepper integerValue], 14);
+    long val = [[textfield text] intValue];
+    [stepper setValue:(float)val];
+    _event_handler(self, DW_INT_TO_POINTER(val), 14);
 }
 -(void)setClickDefault:(id)input { clickDefault = input; }
 -(void)keyUp:(UIEvent *)theEvent
@@ -3479,12 +3140,6 @@ void _dw_control_size(id handle, int *width, int *height)
                 thiswidth = 50;
             else
                 thiswidth = 150;
-            /* Comboboxes need some extra height for the border */
-            if([object isMemberOfClass:[ DWComboBox class]])
-                extraheight = 4;
-            /* Yosemite and higher requires even more border space */
-            if(DWOSMinor > 9 || DWOSMajor > 10)
-                extraheight += 4;
         }
         else
             nsstr = [object stringValue];
@@ -4119,12 +3774,14 @@ HWND API dw_spinbutton_new(const char *text, ULONG cid)
     DWSpinButton *spinbutton = [[DWSpinButton alloc] init];
     UIStepper *stepper = [spinbutton stepper];
     UITextField *textfield = [spinbutton textfield];
+    long val = atol(text);
+
     [stepper setIncrement:1];
     [stepper setTag:cid];
     [stepper setMinValue:-65536];
     [stepper setMaxValue:65536];
-    [stepper setIntValue:atoi(text)];
-    [textfield takeIntValueFrom:stepper];
+    [stepper setValue:(float)val];
+    [textfield setText:[NSString stringWithFormat:@"%ld",val]];
     return spinbutton;
 }
 
@@ -4139,8 +3796,8 @@ void API dw_spinbutton_set_pos(HWND handle, long position)
     DWSpinButton *spinbutton = handle;
     UIStepper *stepper = [spinbutton stepper];
     UITextField *textfield = [spinbutton textfield];
-    [stepper setIntValue:(int)position];
-    [textfield takeIntValueFrom:stepper];
+    [stepper setValue:(float)position];
+    [textfield [NSString stringWithFormat:@"%ld",position]];
 }
 
 /*
@@ -4167,7 +3824,7 @@ long API dw_spinbutton_get_pos(HWND handle)
 {
     DWSpinButton *spinbutton = handle;
     UIStepper *stepper = [spinbutton stepper];
-    return (long)[stepper integerValue];
+    return (long)[stepper value];
 }
 
 /*
@@ -4179,7 +3836,7 @@ long API dw_spinbutton_get_pos(HWND handle)
 HWND API dw_radiobutton_new(const char *text, ULONG cid)
 {
     DWButton *button = _dw_button_new(text, cid);
-    /* TODO: Customize to be a radio button */
+    /* TODO: Customize to be a radio button https://github.com/DavydLiu/DLRadioButton */
     return button;
 }
 
@@ -4431,13 +4088,7 @@ DW_FUNCTION_RESTORE_PARAM2(handle, HWND, text, char *)
     DW_FUNCTION_INIT;
     id object = handle;
 
-    if([object isMemberOfClass:[DWComboBox class]])
-    {
-        DWComboBox *combo = handle;
-
-        [combo addItemWithObjectValue:[NSString stringWithUTF8String:text]];
-    }
-    else if([object isMemberOfClass:[DWContainer class]])
+    if([object isMemberOfClass:[DWContainer class]])
     {
         DWContainer *cont = handle;
         NSString *nstr = [NSString stringWithUTF8String:text];
@@ -4445,7 +4096,6 @@ DW_FUNCTION_RESTORE_PARAM2(handle, HWND, text, char *)
 
         [cont addRow:newrow];
         [cont reloadData];
-        [cont optimize];
         [cont setNeedsDisplay];
     }
     DW_FUNCTION_RETURN_NOTHING;
@@ -4466,13 +4116,7 @@ DW_FUNCTION_RESTORE_PARAM3(handle, HWND, text, const char *, pos, int)
     DW_FUNCTION_INIT;
     id object = handle;
 
-    if([object isMemberOfClass:[DWComboBox class]])
-    {
-        DWComboBox *combo = handle;
-
-        [combo insertItemWithObjectValue:[NSString stringWithUTF8String:text] atIndex:pos];
-    }
-    else if([object isMemberOfClass:[DWContainer class]])
+    if([object isMemberOfClass:[DWContainer class]])
     {
         DWContainer *cont = handle;
         NSString *nstr = [NSString stringWithUTF8String:text];
@@ -4480,7 +4124,6 @@ DW_FUNCTION_RESTORE_PARAM3(handle, HWND, text, const char *, pos, int)
 
         [cont insertRow:newrow at:pos];
         [cont reloadData];
-        [cont optimize];
         [cont setNeedsDisplay];
     }
     DW_FUNCTION_RETURN_NOTHING;
@@ -4501,17 +4144,7 @@ DW_FUNCTION_RESTORE_PARAM3(handle, HWND, text, char **, count, int)
     DW_FUNCTION_INIT;
     id object = handle;
 
-    if([object isMemberOfClass:[DWComboBox class]])
-    {
-        DWComboBox *combo = handle;
-        int z;
-
-        for(z=0;z<count;z++)
-        {
-            [combo addItemWithObjectValue:[ NSString stringWithUTF8String:text[z] ]];
-        }
-    }
-    else if([object isMemberOfClass:[DWContainer class]])
+    if([object isMemberOfClass:[DWContainer class]])
     {
         DWContainer *cont = handle;
         int z;
@@ -4524,7 +4157,6 @@ DW_FUNCTION_RESTORE_PARAM3(handle, HWND, text, char **, count, int)
             [cont addRow:newrow];
         }
         [cont reloadData];
-        [cont optimize];
         [cont setNeedsDisplay];
     }
     DW_FUNCTION_RETURN_NOTHING;
@@ -4543,13 +4175,7 @@ DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
     DW_FUNCTION_INIT;
     id object = handle;
 
-    if([object isMemberOfClass:[DWComboBox class]])
-    {
-        DWComboBox *combo = handle;
-
-        [combo removeAllItems];
-    }
-    else if([object isMemberOfClass:[DWContainer class]])
+    if([object isMemberOfClass:[DWContainer class]])
     {
         DWContainer *cont = handle;
 
@@ -4574,13 +4200,7 @@ DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
     id object = handle;
     int result = 0;
 
-    if([object isMemberOfClass:[DWComboBox class]])
-    {
-        DWComboBox *combo = handle;
-
-        result = (int)[combo numberOfItems];
-    }
-    else if([object isMemberOfClass:[DWContainer class]])
+    if([object isMemberOfClass:[DWContainer class]])
     {
         DWContainer *cont = handle;
         result = (int)[cont numberOfRowsInTableView:cont];
@@ -4602,13 +4222,7 @@ DW_FUNCTION_RESTORE_PARAM2(handle, HWND, top, int)
     DW_FUNCTION_INIT;
     id object = handle;
 
-    if([object isMemberOfClass:[DWComboBox class]])
-    {
-        DWComboBox *combo = handle;
-
-        [combo scrollItemAtIndexToTop:top];
-    }
-    else if([object isMemberOfClass:[DWContainer class]])
+    if([object isMemberOfClass:[DWContainer class]])
     {
         DWContainer *cont = handle;
 
@@ -4633,22 +4247,7 @@ DW_FUNCTION_RESTORE_PARAM4(handle, HWND, index, unsigned int, buffer, char *, le
     DW_FUNCTION_INIT;
     id object = handle;
 
-    if([object isMemberOfClass:[DWComboBox class]])
-    {
-        DWComboBox *combo = handle;
-        int count = (int)[combo numberOfItems];
-
-        if(index > count)
-        {
-            *buffer = '\0';
-        }
-        else
-        {
-            NSString *nstr = [combo itemObjectValueAtIndex:index];
-            strncpy(buffer, [ nstr UTF8String ], length - 1);
-        }
-    }
-    else if([object isMemberOfClass:[DWContainer class]])
+    if([object isMemberOfClass:[DWContainer class]])
     {
         DWContainer *cont = handle;
         int count = (int)[cont numberOfRowsInTableView:cont];
@@ -4683,18 +4282,7 @@ DW_FUNCTION_RESTORE_PARAM3(handle, HWND, index, unsigned int, buffer, char *)
     DW_FUNCTION_INIT;
     id object = handle;
 
-    if([object isMemberOfClass:[DWComboBox class]])
-    {
-        DWComboBox *combo = handle;
-        int count = (int)[combo numberOfItems];
-
-        if(index <= count)
-        {
-            [combo removeItemAtIndex:index];
-            [combo insertItemWithObjectValue:[NSString stringWithUTF8String:buffer] atIndex:index];
-        }
-    }
-    else if([object isMemberOfClass:[DWContainer class]])
+    if([object isMemberOfClass:[DWContainer class]])
     {
         DWContainer *cont = handle;
         int count = (int)[cont numberOfRowsInTableView:cont];
@@ -4706,7 +4294,6 @@ DW_FUNCTION_RESTORE_PARAM3(handle, HWND, index, unsigned int, buffer, char *)
             
             [[cell textField] setStringValue:nstr];
             [cont reloadData];
-            [cont optimize];
             [cont setNeedsDisplay];
         }
     }
@@ -4727,12 +4314,7 @@ DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
     id object = handle;
     int result = -1;
 
-    if([object isMemberOfClass:[DWComboBox class]])
-    {
-        DWComboBox *combo = handle;
-        result = (int)[combo indexOfSelectedItem];
-    }
-    else if([object isMemberOfClass:[DWContainer class]])
+    if([object isMemberOfClass:[DWContainer class]])
     {
         DWContainer *cont = handle;
         result = (int)[cont selectedRow];
@@ -4788,15 +4370,7 @@ DW_FUNCTION_RESTORE_PARAM3(handle, HWND, index, int, state, int)
     DW_FUNCTION_INIT;
     id object = handle;
 
-    if([object isMemberOfClass:[DWComboBox class]])
-    {
-        DWComboBox *combo = handle;
-        if(state)
-            [combo selectItemAtIndex:index];
-        else
-            [combo deselectItemAtIndex:index];
-    }
-    else if([object isMemberOfClass:[DWContainer class]])
+    if([object isMemberOfClass:[DWContainer class]])
     {
         DWContainer *cont = handle;
         NSIndexSet *selected = [[NSIndexSet alloc] initWithIndex:(NSUInteger)index];
@@ -4821,13 +4395,7 @@ DW_FUNCTION_RESTORE_PARAM2(handle, HWND, index, int)
     DW_FUNCTION_INIT;
     id object = handle;
 
-    if([object isMemberOfClass:[DWComboBox class]])
-    {
-        DWComboBox *combo = handle;
-
-        [combo removeItemAtIndex:index];
-    }
-    else if([object isMemberOfClass:[DWContainer class]])
+    if([object isMemberOfClass:[DWContainer class]])
     {
         DWContainer *cont = handle;
 
@@ -4844,17 +4412,10 @@ DW_FUNCTION_RESTORE_PARAM2(handle, HWND, index, int)
  *       text: The default text to be in the combpbox widget.
  *       id: An ID to be used with dw_window_from_id() or 0L.
  */
-DW_FUNCTION_DEFINITION(dw_combobox_new, HWND, const char *text, ULONG cid)
-DW_FUNCTION_ADD_PARAM2(text, cid)
-DW_FUNCTION_RETURN(dw_combobox_new, HWND)
-DW_FUNCTION_RESTORE_PARAM2(text, const char *, cid, ULONG)
+HWND API dw_combobox_new, HWND, const char *text, ULONG cid);
 {
-    DW_FUNCTION_INIT;
-    DWComboBox *combo = [[DWComboBox alloc] init];
-    [combo setStringValue:[NSString stringWithUTF8String:text]];
-    [combo setDelegate:combo];
-    [combo setTag:cid];
-    DW_FUNCTION_RETURN_THIS(combo);
+    /* TODO: Implment comboboxes. https://www.codeproject.com/Articles/301681/iPhone-ComboBox */
+    return 0;
 }
 
 /*
@@ -5803,29 +5364,13 @@ DW_FUNCTION_RESTORE_PARAM9(handle, HWND, pixmap, HPIXMAP, flags, int, xorigin, i
  * Parameters:
  *       id: An ID to be used for getting the resource from the
  *           resource file.
+ * Returns:
+ *       A handle to a tree window or NULL on failure.
  */
-DW_FUNCTION_DEFINITION(dw_tree_new, HWND, ULONG cid)
-DW_FUNCTION_ADD_PARAM1(cid)
-DW_FUNCTION_RETURN(dw_tree_new, HWND)
-DW_FUNCTION_RESTORE_PARAM1(cid, ULONG)
+HWND API dw_tree_new(ULONG cid)
 {
-    DW_FUNCTION_INIT;
-    UIScrollView *scrollview  = [[UIScrollView alloc] init];
-    DWTree *tree = [[DWTree alloc] init];
-
-    [tree setScrollview:scrollview];
-    [scrollview setBorderType:NSBezelBorder];
-    [scrollview setHasVerticalScroller:YES];
-    [scrollview setAutohidesScrollers:YES];
-
-    [tree setAllowsMultipleSelection:NO];
-    [tree setDataSource:tree];
-    [tree setDelegate:tree];
-    [scrollview setDocumentView:tree];
-    [tree setHeaderView:nil];
-    [tree setTag:cid];
-    [tree autorelease];
-    DW_FUNCTION_RETURN_THIS(tree);
+    /* TODO: Implement tree for iOS if possible */
+    return 0;
 }
 
 /*
@@ -5837,29 +5382,13 @@ DW_FUNCTION_RESTORE_PARAM1(cid, ULONG)
  *          icon: Handle to coresponding icon.
  *          parent: Parent handle or 0 if root.
  *          itemdata: Item specific data.
+ * Returns:
+ *       A handle to a tree item or NULL on failure.
  */
-DW_FUNCTION_DEFINITION(dw_tree_insert_after, HTREEITEM, HWND handle, HTREEITEM item, const char *title, HICN icon, HTREEITEM parent, void *itemdata)
-DW_FUNCTION_ADD_PARAM6(handle, item, title, icon, parent, itemdata)
-DW_FUNCTION_RETURN(dw_tree_insert_after, HTREEITEM)
-DW_FUNCTION_RESTORE_PARAM6(handle, HWND, item, HTREEITEM, title, char *, icon, HICN, parent, HTREEITEM, itemdata, void *)
+HTREEITEM API dw_tree_insert_after(HWND handle, HTREEITEM item, const char *title, HICN icon, HTREEITEM parent, void *itemdata)
 {
-    DW_FUNCTION_INIT;
-    DWTree *tree = handle;
-    NSString *nstr = [[NSString stringWithUTF8String:title] retain];
-    NSMutableArray *treenode = [[[NSMutableArray alloc] init] retain];
-    if(icon)
-        [treenode addObject:icon];
-    else
-        [treenode addObject:[NSNull null]];
-    [treenode addObject:nstr];
-    [treenode addObject:[NSValue valueWithPointer:itemdata]];
-    [treenode addObject:[NSNull null]];
-    [tree addTree:treenode and:parent after:item];
-    if(parent)
-        [tree reloadItem:parent reloadChildren:YES];
-    else
-        [tree reloadData];
-    DW_FUNCTION_RETURN_THIS(treenode);
+    /* TODO: Implement tree for iOS if possible */
+    return 0;
 }
 
 /*
@@ -5870,10 +5399,13 @@ DW_FUNCTION_RESTORE_PARAM6(handle, HWND, item, HTREEITEM, title, char *, icon, H
  *          icon: Handle to coresponding icon.
  *          parent: Parent handle or 0 if root.
  *          itemdata: Item specific data.
+ * Returns:
+ *       A handle to a tree item or NULL on failure.
  */
 HTREEITEM API dw_tree_insert(HWND handle, const char *title, HICN icon, HTREEITEM parent, void *itemdata)
 {
-    return dw_tree_insert_after(handle, NULL, title, icon, parent, itemdata);
+    /* TODO: Implement tree for iOS if possible */
+    return 0;
 }
 
 /*
@@ -5881,18 +5413,13 @@ HTREEITEM API dw_tree_insert(HWND handle, const char *title, HICN icon, HTREEITE
  * Parameters:
  *          handle: Handle to the tree containing the item.
  *          item: Handle of the item to be modified.
+ * Returns:
+ *       A malloc()ed buffer of item text to be dw_free()ed or NULL on error.
  */
-DW_FUNCTION_DEFINITION(dw_tree_get_title, char *, HWND handle, HTREEITEM item)
-DW_FUNCTION_ADD_PARAM2(handle, item)
-DW_FUNCTION_RETURN(dw_tree_get_title, char *)
-DW_FUNCTION_RESTORE_PARAM2(DW_UNUSED(handle), HWND, item, HTREEITEM)
+char * API dw_tree_get_title(HWND handle, HTREEITEM item)
 {
-    DW_FUNCTION_INIT;
-    char *retval = NULL;
-    NSMutableArray *array = (NSMutableArray *)item;
-    NSString *nstr = (NSString *)[array objectAtIndex:1];
-    retval = strdup([nstr UTF8String]);
-    DW_FUNCTION_RETURN_THIS(retval);
+    /* TODO: Implement tree for iOS if possible */
+    return NULL;
 }
 
 /*
@@ -5900,18 +5427,13 @@ DW_FUNCTION_RESTORE_PARAM2(DW_UNUSED(handle), HWND, item, HTREEITEM)
  * Parameters:
  *          handle: Handle to the tree containing the item.
  *          item: Handle of the item to be modified.
+ * Returns:
+ *       A handle to a tree item or NULL on failure.
  */
-DW_FUNCTION_DEFINITION(dw_tree_get_parent, HTREEITEM, HWND handle, HTREEITEM item)
-DW_FUNCTION_ADD_PARAM2(handle, item)
-DW_FUNCTION_RETURN(dw_tree_get_parent, HTREEITEM)
-DW_FUNCTION_RESTORE_PARAM2(handle, HWND, item, HTREEITEM)
+HTREEITEM API dw_tree_get_parent(HWND handle, HTREEITEM item)
 {
-    DW_FUNCTION_INIT;
-    HTREEITEM parent;
-    DWTree *tree = handle;
-
-    parent = [tree parentForItem:item];
-    DW_FUNCTION_RETURN_THIS(parent);
+    /* TODO: Implement tree for iOS if possible */
+    return 0;
 }
 
 /*
@@ -5922,32 +5444,10 @@ DW_FUNCTION_RESTORE_PARAM2(handle, HWND, item, HTREEITEM)
  *          title: The text title of the entry.
  *          icon: Handle to coresponding icon.
  */
-DW_FUNCTION_DEFINITION(dw_tree_item_change, void, HWND handle, HTREEITEM item, const char *title, HICN icon)
-DW_FUNCTION_ADD_PARAM4(handle, item, title, icon)
-DW_FUNCTION_NO_RETURN(dw_tree_item_change)
-DW_FUNCTION_RESTORE_PARAM4(handle, HWND, item, HTREEITEM, title, char *, icon, HICN)
+void API dw_tree_item_change(HWND handle, HTREEITEM item, const char *title, HICN icon)
 {
-    DW_FUNCTION_INIT;
-    DWTree *tree = handle;
-    NSMutableArray *array = (NSMutableArray *)item;
-    DW_LOCAL_POOL_IN;
+    /* TODO: Implement tree for iOS if possible */
 
-    if(title)
-    {
-        NSString *oldstr = [array objectAtIndex:1];
-        NSString *nstr = [[NSString stringWithUTF8String:title] retain];
-        [array replaceObjectAtIndex:1 withObject:nstr];
-        [oldstr release];
-    }
-    if(icon)
-    {
-        [array replaceObjectAtIndex:0 withObject:icon];
-    }
-    NSInteger row = [tree rowForItem:item];
-    [tree reloadDataForRowIndexes:[NSIndexSet indexSetWithIndex:row]
-                    columnIndexes:[NSIndexSet indexSetWithIndex:0]];
-    DW_LOCAL_POOL_OUT;
-    DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -5957,15 +5457,10 @@ DW_FUNCTION_RESTORE_PARAM4(handle, HWND, item, HTREEITEM, title, char *, icon, H
  *          item: Handle of the item to be modified.
  *          itemdata: User defined data to be associated with item.
  */
-DW_FUNCTION_DEFINITION(dw_tree_item_set_data, void, HWND handle, HTREEITEM item, void *itemdata)
-DW_FUNCTION_ADD_PARAM3(handle, item, itemdata)
-DW_FUNCTION_NO_RETURN(dw_tree_item_set_data)
-DW_FUNCTION_RESTORE_PARAM3(DW_UNUSED(handle), HWND, item, HTREEITEM, itemdata, void *)
+void API dw_tree_item_set_data(HWND handle, HTREEITEM item, void *itemdata)
 {
-    DW_FUNCTION_INIT;
-    NSMutableArray *array = (NSMutableArray *)item;
-    [array replaceObjectAtIndex:2 withObject:[NSValue valueWithPointer:itemdata]];
-    DW_FUNCTION_RETURN_NOTHING;
+    /* TODO: Implement tree for iOS if possible */
+
 }
 
 /*
@@ -5973,19 +5468,13 @@ DW_FUNCTION_RESTORE_PARAM3(DW_UNUSED(handle), HWND, item, HTREEITEM, itemdata, v
  * Parameters:
  *          handle: Handle to the tree containing the item.
  *          item: Handle of the item to be modified.
+ * Returns:
+ *       A pointer to tree item data or NULL on failure.
  */
-DW_FUNCTION_DEFINITION(dw_tree_item_get_data, void *, HWND handle, HTREEITEM item)
-DW_FUNCTION_ADD_PARAM2(handle, item)
-DW_FUNCTION_RETURN(dw_tree_item_get_data, void *)
-DW_FUNCTION_RESTORE_PARAM2(DW_UNUSED(handle), HWND, item, HTREEITEM)
+void * API dw_tree_item_get_data(HWND handle, HTREEITEM item)
 {
-    DW_FUNCTION_INIT;
-    void *result = NULL;
-    NSMutableArray *array = (NSMutableArray *)item;
-    NSValue *value = [array objectAtIndex:2];
-    if(value)
-        result = [value pointerValue];
-    DW_FUNCTION_RETURN_THIS(result);
+    /* TODO: Implement tree for iOS if possible */
+   return NULL;
 }
 
 /*
@@ -5994,19 +5483,9 @@ DW_FUNCTION_RESTORE_PARAM2(DW_UNUSED(handle), HWND, item, HTREEITEM)
  *       handle: Handle to the tree window (widget) to be selected.
  *       item: Handle to the item to be selected.
  */
-DW_FUNCTION_DEFINITION(dw_tree_item_select, void, HWND handle, HTREEITEM item)
-DW_FUNCTION_ADD_PARAM2(handle, item)
-DW_FUNCTION_NO_RETURN(dw_tree_item_select)
-DW_FUNCTION_RESTORE_PARAM2(handle, HWND, item, HTREEITEM)
+void API dw_tree_item_select(HWND handle, HTREEITEM item)
 {
-    DW_FUNCTION_INIT;
-    DWTree *tree = handle;
-    NSInteger itemIndex = [tree rowForItem:item];
-    if(itemIndex > -1)
-    {
-        [tree selectRowIndexes:[NSIndexSet indexSetWithIndex:itemIndex] byExtendingSelection:NO];
-    }
-    DW_FUNCTION_RETURN_NOTHING;
+    /* TODO: Implement tree for iOS if possible */
 }
 
 /*
@@ -6014,15 +5493,9 @@ DW_FUNCTION_RESTORE_PARAM2(handle, HWND, item, HTREEITEM)
  * Parameters:
  *       handle: Handle to the window (widget) to be cleared.
  */
-DW_FUNCTION_DEFINITION(dw_tree_clear, void, HWND handle)
-DW_FUNCTION_ADD_PARAM1(handle)
-DW_FUNCTION_NO_RETURN(dw_tree_clear)
-DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
+void API dw_tree_clear(HWND handle)
 {
-    DW_FUNCTION_INIT;
-    DWTree *tree = handle;
-    [tree clear];
-    DW_FUNCTION_RETURN_NOTHING;
+    /* TODO: Implement tree for iOS if possible */
 }
 
 /*
@@ -6031,15 +5504,9 @@ DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
  *       handle: Handle to the tree window (widget).
  *       item: Handle to node to be expanded.
  */
-DW_FUNCTION_DEFINITION(dw_tree_item_expand, void, HWND handle, HTREEITEM item)
-DW_FUNCTION_ADD_PARAM2(handle, item)
-DW_FUNCTION_NO_RETURN(dw_tree_item_expand)
-DW_FUNCTION_RESTORE_PARAM2(handle, HWND, item, HTREEITEM)
+void API dw_tree_item_expand(HWND handle, HTREEITEM item)
 {
-    DW_FUNCTION_INIT;
-    DWTree *tree = handle;
-    [tree expandItem:item];
-    DW_FUNCTION_RETURN_NOTHING;
+    /* TODO: Implement tree for iOS if possible */
 }
 
 /*
@@ -6048,15 +5515,9 @@ DW_FUNCTION_RESTORE_PARAM2(handle, HWND, item, HTREEITEM)
  *       handle: Handle to the tree window (widget).
  *       item: Handle to node to be collapsed.
  */
-DW_FUNCTION_DEFINITION(dw_tree_item_collapse, void, HWND handle, HTREEITEM item)
-DW_FUNCTION_ADD_PARAM2(handle, item)
-DW_FUNCTION_NO_RETURN(dw_tree_item_collapse)
-DW_FUNCTION_RESTORE_PARAM2(handle, HWND, item, HTREEITEM)
+void API dw_tree_item_collapse(HWND handle, HTREEITEM item)
 {
-    DW_FUNCTION_INIT;
-    DWTree *tree = handle;
-    [tree collapseItem:item];
-    DW_FUNCTION_RETURN_NOTHING;
+    /* TODO: Implement tree for iOS if possible */
 }
 
 /*
@@ -6065,16 +5526,9 @@ DW_FUNCTION_RESTORE_PARAM2(handle, HWND, item, HTREEITEM)
  *       handle: Handle to the window (widget) to be cleared.
  *       item: Handle to node to be deleted.
  */
-DW_FUNCTION_DEFINITION(dw_tree_item_delete, void, HWND handle, HTREEITEM item)
-DW_FUNCTION_ADD_PARAM2(handle, item)
-DW_FUNCTION_NO_RETURN(dw_tree_item_delete)
-DW_FUNCTION_RESTORE_PARAM2(handle, HWND, item, HTREEITEM)
+void API dw_tree_item_delete(HWND handle, HTREEITEM item)
 {
-    DW_FUNCTION_INIT;
-    DWTree *tree = handle;
-    [tree deleteNode:item];
-    [tree reloadData];
-    DW_FUNCTION_RETURN_NOTHING;
+    /* TODO: Implement tree for iOS if possible */
 }
 
 /*
@@ -6882,15 +6336,9 @@ DW_FUNCTION_RESTORE_PARAM2(handle, HWND, data, void *)
  * Parameters:
  *       handle: Handle to the window (widget) to be optimized.
  */
-DW_FUNCTION_DEFINITION(dw_container_optimize, void, HWND handle)
-DW_FUNCTION_ADD_PARAM1(handle)
-DW_FUNCTION_NO_RETURN(dw_container_optimize)
-DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
+void dw_container_optimize(HWND handle)
 {
-    DW_FUNCTION_INIT;
-    DWContainer *cont = handle;
-    [cont optimize];
-    DW_FUNCTION_RETURN_NOTHING;
+    /* TODO: Not sure if we need to implement this on iOS */
 }
 
 /*
@@ -8500,13 +7948,6 @@ void API dw_window_click_default(HWND handle, HWND next)
     {
         if([control isMemberOfClass:[DWSpinButton class]])
         {
-            control = [control textfield];
-        }
-        else if([control isMemberOfClass:[DWComboBox class]])
-        {
-            /* TODO: Figure out why the combobox can't be
-             * focused using makeFirstResponder method.
-             */
             control = [control textfield];
         }
         [object setClickDefault:control];
