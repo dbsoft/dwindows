@@ -252,12 +252,13 @@ typedef struct _sighandler
 
 SignalHandler *Root = NULL;
 
+
 /* Some internal prototypes */
 static void _do_resize(Box *thisbox, int x, int y);
 void _handle_resize_events(Box *thisbox);
 int _remove_userdata(UserData **root, const char *varname, int all);
 int _dw_main_iteration(NSDate *date);
-CGContextRef _dw_draw_context(NSBitmapImageRep *image);
+CGContextRef _dw_draw_context(UIImage *image);
 typedef id (*DWIMP)(id, SEL, ...);
 
 /* Internal function to queue a window redraw */
@@ -351,7 +352,7 @@ int _event_handler1(id object, UIEvent *event, int message)
                 if([object isKindOfClass:[UIWindow class]])
                 {
                     UIWindow *window = object;
-                    size = [[window contentView] frame].size;
+                    size = [window frame].size;
                 }
                 else
                 {
@@ -368,10 +369,15 @@ int _event_handler1(id object, UIEvent *event, int message)
             case 2:
             {
                 int (*keypressfunc)(HWND, char, int, int, void *, char *) = handler->signalfunction;
-                NSString *nchar = [event charactersIgnoringModifiers];
-                int special = (int)[event modifierFlags];
+                NSString *nchar = @""; /* [event charactersIgnoringModifiers]; */
                 unichar vk = [nchar characterAtIndex:0];
                 char *utf8 = NULL, ch = '\0';
+                int special = 0;
+
+                if(@available(iOS 13.4, *))
+                {
+                    special = (int)[event modifierFlags];
+                }
 
                 /* Handle a valid key */
                 if([nchar length] == 1)
@@ -391,44 +397,33 @@ int _event_handler1(id object, UIEvent *event, int message)
             case 4:
             {
                 int (* API buttonfunc)(HWND, int, int, int, void *) = (int (* API)(HWND, int, int, int, void *))handler->signalfunction;
-                CGPoint p = [UIEvent mouseLocation];
                 int button = 1;
+                CGPoint p = {0};
 
                 if([event isMemberOfClass:[UIEvent class]])
                 {
-                    id view = [[[event window] contentView] superview];
-                    UIEventType type = [event type];
+                    UITouch *touch = [[event allTouches] anyObject];
 
-                    p = [view convertPoint:[event locationInWindow] toView:object];
-
-                    if(type == DWEventTypeRightMouseDown || type == DWEventTypeRightMouseUp)
+                    p = [touch locationInView:[touch view]];
+                    
+                    if(@available(ios 13.4, *))
                     {
-                        button = 2;
-                    }
-                    else if(type == DWEventTypeOtherMouseDown || type == DWEventTypeOtherMouseUp)
-                    {
-                        button = 3;
-                    }
-                    else if([event modifierFlags] & DWEventModifierFlagControl)
-                    {
-                        button = 2;
+                        if([event buttonMask] & UIEventButtonMaskSecondary)
+                            button = 2;
                     }
                 }
 
                 return buttonfunc(object, (int)p.x, (int)p.y, button, handler->data);
             }
             /* Motion notify event */
+#if 0 /* Not sure if motion notify applies */
             case 5:
             {
                 int (* API motionfunc)(HWND, int, int, int, void *) = (int (* API)(HWND, int, int, int, void *))handler->signalfunction;
-                id view = [[[event window] contentView] superview];
-                CGPoint p = [view convertPoint:[event locationInWindow] toView:object];
-                SEL spmb = NSSelectorFromString(@"pressedMouseButtons");
-                DWIMP ipmb = [[UIEvent class] respondsToSelector:spmb] ? (DWIMP)[[UIEvent class] methodForSelector:spmb] : 0;
-                NSUInteger buttonmask = ipmb ? (NSUInteger)ipmb([UIEvent class], spmb) : (1 << [event buttonNumber]);
 
                 return motionfunc(object, (int)p.x, (int)p.y, (int)buttonmask, handler->data);
             }
+#endif
             /* Window close event */
             case 6:
             {
@@ -472,19 +467,6 @@ int _event_handler1(id object, UIEvent *event, int message)
                 void *user = NULL;
                 LONG x,y;
 
-                /* Fill in both items for the tree */
-                if([object isKindOfClass:[NSOutlineView class]])
-                {
-                    id item = event;
-                    NSString *nstr = [item objectAtIndex:1];
-                    text = (char *)[nstr UTF8String];
-                    NSValue *value = [item objectAtIndex:2];
-                    if(value && [value isKindOfClass:[NSValue class]])
-                    {
-                        user = [value pointerValue];
-                    }
-                }
-
                 dw_pointer_query_pos(&x, &y);
 
                 return containercontextfunc(handler->window, text, (int)x, (int)y, handler->data, user);
@@ -497,46 +479,6 @@ int _event_handler1(id object, UIEvent *event, int message)
                 int selected = DW_POINTER_TO_INT(event);
 
                 return valuechangedfunc(handler->window, selected, handler->data);;
-            }
-            /* Tree class selection event */
-            case 12:
-            {
-                int (* API treeselectfunc)(HWND, HTREEITEM, char *, void *, void *) = (int (* API)(HWND, HTREEITEM, char *, void *, void *))handler->signalfunction;
-                char *text = NULL;
-                void *user = NULL;
-                id item = nil;
-
-                if([object isKindOfClass:[NSOutlineView class]])
-                {
-                    item = (id)event;
-                    NSString *nstr = [item objectAtIndex:1];
-
-                    if(nstr)
-                    {
-                        text = strdup([nstr UTF8String]);
-                    }
-
-                    NSValue *value = [item objectAtIndex:2];
-                    if(value && [value isKindOfClass:[NSValue class]])
-                    {
-                        user = [value pointerValue];
-                    }
-                    int result = treeselectfunc(handler->window, item, text, handler->data, user);
-                    if(text)
-                    {
-                        free(text);
-                    }
-                    return result;
-                }
-                else if(event)
-                {
-                    void **params = (void **)event;
-
-                    text = params[0];
-                    user = params[1];
-                }
-
-                return treeselectfunc(handler->window, item, text, handler->data, user);
             }
             /* Set Focus event */
             case 13:
@@ -610,27 +552,11 @@ int _event_handler(id object, UIEvent *event, int message)
 @end
 
 UIApplication *DWApp = nil;
-UIFontManager *DWFontManager = nil;
 UIFont *DWDefaultFont;
 DWTimerHandler *DWHandler;
 NSAutoreleasePool *pool;
 NSMutableArray *_DWDirtyDrawables;
 DWTID DWThread = (DWTID)-1;
-
-/* Send fake event to make sure the loop isn't stuck */
-void _dw_wakeup_app()
-{
-    [DWApp postEvent:[UIEvent otherEventWithType:DWEventTypeApplicationDefined
-                                        location:NSMakePoint(0, 0)
-                                   modifierFlags:0
-                                       timestamp:0
-                                    windowNumber:0
-                                         context:NULL
-                                         subtype:0
-                                           data1:0
-                                           data2:0]
-             atStart:NO];
-}
 
 /* Used for doing bitblts from the main thread */
 typedef struct _bitbltinfo
@@ -731,7 +657,7 @@ API_AVAILABLE(ios(13.0))
     if(bgcolor)
     {
         [bgcolor set];
-        CGRectFill([self bounds]);
+        UIRectFill([self bounds]);
     }
 }
 -(BOOL)isFlipped { return YES; }
@@ -752,54 +678,16 @@ API_AVAILABLE(ios(13.0))
     }
     else
     {
-        bgcolor = [[UIColor colorWithDeviceRed: DW_RED_VALUE(input)/255.0 green: DW_GREEN_VALUE(input)/255.0 blue: DW_BLUE_VALUE(input)/255.0 alpha: 1] retain];
+        bgcolor = [[UIColor colorWithRed: DW_RED_VALUE(input)/255.0 green: DW_GREEN_VALUE(input)/255.0 blue: DW_BLUE_VALUE(input)/255.0 alpha: 1] retain];
         if(UIGraphicsGetCurrentContext())
         {
             [bgcolor set];
-            CGRectFill([self bounds]);
+            UIRectFill([self bounds]);
         }
     }
-    [self setNeedsDisplay:YES];
+    [self setNeedsDisplay];
     [orig release];
 }
-@end
-
-/* Subclass for a group box type */
-@interface DWGroupBox : UIView
-{
-    void *userdata;
-    UIColor *bgcolor;
-    CGSize borderSize;
-    NSString *title;
-}
--(Box *)box;
--(void *)userdata;
--(void)setUserdata:(void *)input;
--(void)setTitle:(NSString *)newtitle;
-@end
-
-@implementation DWGroupBox
--(Box *)box { return [[self contentView] box]; }
--(void *)userdata { return userdata; }
--(CGSize)borderSize { return borderSize; }
--(CGSize)initBorder
-{
-    CGSize frameSize = [self frame].size;
-
-    if(frameSize.height < 20 || frameSize.width < 20)
-    {
-        frameSize.width = frameSize.height = 100;
-        [self setFrameSize:frameSize];
-    }
-    CGSize contentSize = [[self contentView] frame].size;
-    CGSize titleSize = [self titleRect].size;
-
-    borderSize.width = 100-contentSize.width;
-    borderSize.height = (100-contentSize.height)-titleSize.height;
-    return borderSize;
-}
--(void)setUserdata:(void *)input { userdata = input; }
--(void)setTitle:(NSString *)newtitle { [title release]; title = newtitle; [title retain]; }
 @end
 
 @interface DWWindow : UIWindow
@@ -820,7 +708,7 @@ API_AVAILABLE(ios(13.0))
 -(void)sendEvent:(UIEvent *)theEvent
 {
    int rcode = -1;
-   if([theEvent type] == DWEventTypeKeyDown)
+   if([theEvent type] == UIEventTypePresses)
    {
       rcode = _event_handler(self, theEvent, 2);
    }
@@ -842,7 +730,7 @@ API_AVAILABLE(ios(13.0))
     void *userdata;
     UIFont *font;
     CGSize size;
-    NSBitmapImageRep *cachedDrawingRep;
+    UIImage *cachedDrawingRep;
 }
 -(void *)userdata;
 -(void)setUserdata:(void *)input;
@@ -850,7 +738,7 @@ API_AVAILABLE(ios(13.0))
 -(UIFont *)font;
 -(void)setSize:(CGSize)input;
 -(CGSize)size;
--(NSBitmapImageRep *)cachedDrawingRep;
+-(UIImage *)cachedDrawingRep;
 -(void)mouseDown:(UIEvent *)theEvent;
 -(void)mouseUp:(UIEvent *)theEvent;
 -(UIMenu *)menuForEvent:(UIEvent *)theEvent;
@@ -871,14 +759,14 @@ API_AVAILABLE(ios(13.0))
     size = input;
     if(cachedDrawingRep)
     {
-        NSBitmapImageRep *oldrep = cachedDrawingRep;
+        UIImage *oldrep = cachedDrawingRep;
         cachedDrawingRep = [self bitmapImageRepForCachingDisplayInRect:self.bounds];
         [cachedDrawingRep retain];
         [oldrep release];
     }
 }
 -(CGSize)size { return size; }
--(NSBitmapImageRep *)cachedDrawingRep {
+-(UIImage *)cachedDrawingRep {
     if(!cachedDrawingRep)
     {
         cachedDrawingRep = [self bitmapImageRepForCachingDisplayInRect:self.bounds];
@@ -891,7 +779,7 @@ API_AVAILABLE(ios(13.0))
 }
 -(void)mouseDown:(UIEvent *)theEvent
 {
-    if(![theEvent isMemberOfClass:[UIEvent class]] || !([theEvent modifierFlags] & DWEventModifierFlagControl))
+    if(![theEvent isMemberOfClass:[UIEvent class]])
         _event_handler(self, theEvent, 3);
 }
 -(void)mouseUp:(UIEvent *)theEvent { _event_handler(self, theEvent, 4); }
@@ -900,18 +788,13 @@ API_AVAILABLE(ios(13.0))
 -(void)otherMouseDown:(UIEvent *)theEvent { _event_handler(self, theEvent, 3); }
 -(void)otherMouseUp:(UIEvent *)theEvent { _event_handler(self, theEvent, 4); }
 -(void)mouseDragged:(UIEvent *)theEvent { _event_handler(self, theEvent, 5); }
--(void)delayedNeedsDisplay { [self setNeedsDisplay:YES]; }
 -(void)drawRect:(CGRect)rect {
     _event_handler(self, nil, 7);
     if (cachedDrawingRep)
     {
         [cachedDrawingRep drawInRect:self.bounds];
         [_DWDirtyDrawables removeObject:self];
-        /* Work around a bug in Mojave 10.14 by delaying the setNeedsDisplay */
-        if(DWOSMinor != 14)
-            [self setNeedsDisplay:YES];
-        else
-            [self performSelector:@selector(delayedNeedsDisplay) withObject:nil afterDelay:0];
+        [self setNeedsDisplay];
     }
 }
 -(void)keyDown:(UIEvent *)theEvent { _event_handler(self, theEvent, 2); }
@@ -932,14 +815,6 @@ API_AVAILABLE(ios(13.0))
 -(void)uselessThread:(id)sender { /* Thread only to initialize threading */ }
 -(void)menuHandler:(id)param
 {
-    DWMenuItem *item = param;
-    if([item check])
-    {
-        if([item state] == DWControlStateValueOn)
-            [item setState:DWControlStateValueOff];
-        else
-            [item setState:DWControlStateValueOn];
-    }
     _event_handler(param, nil, 8);
 }
 -(void)callBack:(NSPointerArray *)params
@@ -950,17 +825,22 @@ API_AVAILABLE(ios(13.0))
 }
 -(void)messageBox:(NSMutableArray *)params
 {
-    NSInteger iResponse;
-    NSAlert *alert = [[NSAlert alloc] init];
-    [alert setMessageText:[params objectAtIndex:0]];
-    [alert setInformativeText:[params objectAtIndex:1]];
-    [alert addButtonWithTitle:[params objectAtIndex:3]];
+    __block NSInteger iResponse = 0;
+    UIAlertController* alert = [UIAlertController alertControllerWithTitle:[params objectAtIndex:0]
+                                   message:[params objectAtIndex:1]
+                                   preferredStyle:[[params objectAtIndex:2] integerValue]];
+     
+    UIAlertAction* action = [UIAlertAction actionWithTitle:[params objectAtIndex:3] style:UIAlertActionStyleDefault
+                                                   handler:^(UIAlertAction * action) { iResponse = 0; }];
+    [alert addAction:action];
     if([params count] > 4)
-        [alert addButtonWithTitle:[params objectAtIndex:4]];
+        action = [UIAlertAction actionWithTitle:[params objectAtIndex:4] style:UIAlertActionStyleDefault
+                                        handler:^(UIAlertAction * action) { iResponse = 1; }];
     if([params count] > 5)
-        [alert addButtonWithTitle:[params objectAtIndex:5]];
-    [alert setAlertStyle:[[params objectAtIndex:2] integerValue]];
-    iResponse = [alert runModal];
+        action = [UIAlertAction actionWithTitle:[params objectAtIndex:5] style:UIAlertActionStyleDefault
+                                        handler:^(UIAlertAction * action) { iResponse = 2; }];
+
+    [alert presentViewController:alert animated:YES completion:nil];
     [alert release];
     [params addObject:[NSNumber numberWithInteger:iResponse]];
 }
@@ -971,12 +851,7 @@ API_AVAILABLE(ios(13.0))
         DWTID curr = pthread_self();
 
         if(DWThread == (DWTID)-1 || DWThread == curr)
-        {
-            DWIMP imp = (DWIMP)[self methodForSelector:sel];
-
-            if(imp)
-                imp(self, sel, param);
-        }
+            [self performSelector:sel withObject:param];
         else
             [self performSelectorOnMainThread:sel withObject:param waitUntilDone:YES];
     }
@@ -994,44 +869,32 @@ API_AVAILABLE(ios(13.0))
 
         bltdest = [render cachedDrawingRep];
     }
-    if([bltdest isMemberOfClass:[NSBitmapImageRep class]])
+    if([bltdest isMemberOfClass:[UIImage class]])
     {
         UIGraphicsPushContext(_dw_draw_context(bltdest));
-        [[[NSDictionary alloc] initWithObjectsAndKeys:bltdest, NSGraphicsContextDestinationAttributeName, nil] autorelease];
     }
-    if(bltdest && [bltsrc isMemberOfClass:[NSBitmapImageRep class]])
+    if(bltdest && [bltsrc isMemberOfClass:[UIImage class]])
     {
-        NSBitmapImageRep *rep = bltsrc;
-        UIImage *image = [UIImage alloc];
-        SEL siwc = NSSelectorFromString(@"initWithCGImage");
-        NSCompositingOperation op = DWCompositingOperationSourceOver;
+        UIImage *rep = bltsrc;
+        UIImage *image = [[UIImage alloc] initWithCGImage:[rep CGImage]];
+        CGBlendMode op = kCGBlendModeNormal;
 
-        if([image respondsToSelector:siwc])
-        {
-            DWIMP iiwc = (DWIMP)[image methodForSelector:siwc];
-            image = iiwc(image, siwc, [rep CGImage], NSZeroSize);
-        }
-        else
-        {
-            image = [image initWithSize:[rep size]];
-            [image addRepresentation:rep];
-        }
         if(bltinfo->srcwidth != -1)
         {
-            [image drawInRect:NSMakeRect(bltinfo->xdest, bltinfo->ydest, bltinfo->width, bltinfo->height)
-                     fromRect:NSMakeRect(bltinfo->xsrc, bltinfo->ysrc, bltinfo->srcwidth, bltinfo->srcheight)
-                    operation:op fraction:1.0];
+            [image drawInRect:CGRectMake(bltinfo->xdest, bltinfo->ydest, bltinfo->width, bltinfo->height)
+                     /*fromRect:CGRectMake(bltinfo->xsrc, bltinfo->ysrc, bltinfo->srcwidth, bltinfo->srcheight)*/
+                    blendMode:op alpha:1.0];
         }
         else
         {
-            [image drawAtPoint:NSMakePoint(bltinfo->xdest, bltinfo->ydest)
-                      fromRect:NSMakeRect(bltinfo->xsrc, bltinfo->ysrc, bltinfo->width, bltinfo->height)
-                     operation:op fraction:1.0];
+            [image drawAtPoint:CGPointMake(bltinfo->xdest, bltinfo->ydest)
+                      /*fromRect:CGRectMake(bltinfo->xsrc, bltinfo->ysrc, bltinfo->width, bltinfo->height)*/
+                     blendMode:op alpha:1.0];
         }
         [bltsrc release];
         [image release];
     }
-    if([bltdest isMemberOfClass:[NSBitmapImageRep class]])
+    if([bltdest isMemberOfClass:[UIImage class]])
     {
         UIGraphicsPopContext();
     }
@@ -1043,7 +906,7 @@ API_AVAILABLE(ios(13.0))
     DWRender *rend;
 
     while (rend = [enumerator nextObject])
-        [rend setNeedsDisplay:YES];
+        [rend setNeedsDisplay];
     [_DWDirtyDrawables removeAllObjects];
 }
 -(void)doWindowFunc:(id)param
@@ -1064,13 +927,6 @@ API_AVAILABLE(ios(13.0))
 @end
 
 DWObject *DWObj;
-
-/* Subclass for the application class */
-@interface DWAppDel : NSObject <UIApplicationDelegate>
-{
-}
--(UIApplicationTerminateReply)applicationShouldTerminate:(UIApplication *)sender;
-@end
 
 @interface DWWebView : WKWebView <WKNavigationDelegate>
 {
@@ -1110,15 +966,6 @@ DWObject *DWObj;
 -(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); dw_signal_disconnect_by_window(self); [super dealloc]; }
 @end
 
-@implementation DWAppDel
--(UIApplicationTerminateReply)applicationShouldTerminate:(UIApplication *)sender
-{
-    if(_event_handler(sender, nil, 6) > 0)
-        return NSTerminateCancel;
-    return NSTerminateNow;
-}
-@end
-
 /* Subclass for a top-level window */
 @interface DWView : DWBox <UIWindowDelegate>
 {
@@ -1141,8 +988,8 @@ DWObject *DWObj;
 }
 -(void)viewDidMoveToWindow
 {
-    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(windowResized:) name:UIWindowDidResizeNotification object:[self window]];
-    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(windowDidBecomeMain:) name:UIWindowDidBecomeMainNotification object:[self window]];
+    [[UINotificationCenter defaultCenter] addObserver:self selector:@selector(windowResized:) name:UIWindowDidResizeNotification object:[self window]];
+    [[UINotificationCenter defaultCenter] addObserver:self selector:@selector(windowDidBecomeMain:) name:UIWindowDidBecomeMainNotification object:[self window]];
 }
 -(void)dealloc
 {
@@ -1180,14 +1027,6 @@ DWObject *DWObj;
 }
 -(void)windowDidBecomeMain:(id)sender
 {
-    if(windowmenu)
-    {
-        [DWApp setMainMenu:windowmenu];
-    }
-    else
-    {
-        [DWApp setMainMenu:DWMainMenu];
-    }
     _event_handler([self window], nil, 13);
 }
 -(void)setMenu:(UIMenu *)input { windowmenu = input; [windowmenu retain]; }
@@ -1206,7 +1045,6 @@ DWObject *DWObj;
         [DWObj performSelector:@selector(menuHandler:) withObject:sender afterDelay:0];
     else
         [DWObj menuHandler:sender];
-    _dw_wakeup_app();
 }
 -(void)mouseDragged:(UIEvent *)theEvent { _event_handler(self, theEvent, 5); }
 -(void)mouseMoved:(UIEvent *)theEvent
@@ -1642,62 +1480,6 @@ DWObject *DWObj;
 -(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); dw_signal_disconnect_by_window(self); [super dealloc]; }
 @end
 
-/* Subclass for a color chooser type */
-@interface DWColorChoose : UIColorPanel
-{
-    DWDialog *dialog;
-    UIColor *pickedcolor;
-}
--(void)changeColor:(id)sender;
--(void)setDialog:(DWDialog *)input;
--(DWDialog *)dialog;
-@end
-
-@implementation DWColorChoose
--(void)changeColor:(id)sender
-{
-    if(!dialog)
-        [self close];
-    else
-        pickedcolor = [self color];
-}
--(BOOL)windowShouldClose:(id)window
-{
-    if(dialog)
-    {
-        DWDialog *d = dialog;
-        dialog = nil;
-        dw_dialog_dismiss(d, pickedcolor);
-    }
-    [self close];
-    return NO;
-}
--(void)setDialog:(DWDialog *)input { dialog = input; }
--(DWDialog *)dialog { return dialog; }
-@end
-
-/* Subclass for a font chooser type */
-@interface DWFontChoose : UIFontPanel
-{
-    DWDialog *dialog;
-}
--(void)setDialog:(DWDialog *)input;
--(DWDialog *)dialog;
-@end
-
-@implementation DWFontChoose
--(BOOL)windowShouldClose:(id)window
-{
-    DWDialog *d = dialog; dialog = nil;
-    UIFont *pickedfont = [DWFontManager selectedFont];
-    dw_dialog_dismiss(d, pickedfont);
-    [window orderOut:nil];
-    return NO;
-}
--(void)setDialog:(DWDialog *)input { dialog = input; }
--(DWDialog *)dialog { return dialog; }
-@end
-
 /* Subclass for a splitbar type */
 @interface DWSplitBar : NSSplitView <NSSplitViewDelegate>
 {
@@ -1922,7 +1704,7 @@ void _dw_table_cell_view_layout(NSTableCellView *result)
     if(shouldDrawFocusRing)
     {
         NSSetFocusRingStyle(NSFocusRingOnly);
-        CGRectFill(rect);
+        UIRectFill(rect);
     }
 }
 @end
@@ -3052,35 +2834,6 @@ static void _resize_box(Box *thisbox, int *depth, int x, int y, int pass)
     /* Reset the box sizes */
     thisbox->minwidth = thisbox->minheight = thisbox->usedpadx = thisbox->usedpady = thisbox->pad * 2;
 
-    /* Handle special groupbox case */
-    if(thisbox->grouphwnd)
-    {
-        /* Only calculate the size on the first pass...
-         * use the cached values on second.
-         */
-        if(pass == 1)
-        {
-            DWGroupBox *groupbox = thisbox->grouphwnd;
-            CGSize borderSize = [groupbox borderSize];
-            CGRect titleRect;
-
-            if(borderSize.width == 0 || borderSize.height == 0)
-            {
-                borderSize = [groupbox initBorder];
-            }
-            /* Get the title size for a more accurate groupbox padding size */
-            titleRect = [groupbox titleRect];
-
-            thisbox->grouppadx = borderSize.width;
-            thisbox->grouppady = borderSize.height + titleRect.size.height;
-        }
-
-        thisbox->minwidth += thisbox->grouppadx;
-        thisbox->usedpadx += thisbox->grouppadx;
-        thisbox->minheight += thisbox->grouppady;
-        thisbox->usedpady += thisbox->grouppady;
-    }
-
     /* Count up all the space for all items in the box */
     for(z=0;z<thisbox->count;z++)
     {
@@ -3900,15 +3653,7 @@ DW_FUNCTION_RESTORE_PARAM2(type, int, pad, int)
  */
 HWND API dw_groupbox_new(int type, int pad, const char *title)
 {
-    DWGroupBox *groupbox = [[DWGroupBox alloc] init];
-    DWBox *thisbox = dw_box_new(type, pad);
-    Box *box = [thisbox box];
-
-    [groupbox setTitle:[NSString stringWithUTF8String:title]];
-    box->grouphwnd = groupbox;
-    [groupbox setContentView:thisbox];
-    [thisbox autorelease];
-    return groupbox;
+    return dw_box_new(type, pad);
 }
 
 /*
@@ -4316,7 +4061,7 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
        width = 1;
 
     /* Fill in the item data appropriately */
-    if([object isKindOfClass:[DWBox class]] || [object isMemberOfClass:[DWGroupBox class]])
+    if([object isKindOfClass:[DWBox class]])
        tmpitem[index].type = TYPEBOX;
     else
     {
@@ -4399,7 +4144,7 @@ DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
             parent = (DWBox *)[object superview];
         }
 
-        if([parent isKindOfClass:[DWBox class]] || [parent isKindOfClass:[DWGroupBox class]])
+        if([parent isKindOfClass:[DWBox class]])
         {
             id window = [object window];
             Box *thisbox = [parent box];
@@ -4471,7 +4216,7 @@ DW_FUNCTION_RESTORE_PARAM2(box, HWND, index, int)
     DWBox *parent = (DWBox *)box;
     id object = nil;
 
-    if([parent isKindOfClass:[DWBox class]] || [parent isKindOfClass:[DWGroupBox class]])
+    if([parent isKindOfClass:[DWBox class]])
     {
         id window = [parent window];
         Box *thisbox = [parent box];
@@ -5100,7 +4845,7 @@ DW_FUNCTION_RESTORE_PARAM2(handle, HWND, text, char *)
         [cont addRow:newrow];
         [cont reloadData];
         [cont optimize];
-        [cont setNeedsDisplay:YES];
+        [cont setNeedsDisplay];
     }
     DW_FUNCTION_RETURN_NOTHING;
 }
@@ -5135,7 +4880,7 @@ DW_FUNCTION_RESTORE_PARAM3(handle, HWND, text, const char *, pos, int)
         [cont insertRow:newrow at:pos];
         [cont reloadData];
         [cont optimize];
-        [cont setNeedsDisplay:YES];
+        [cont setNeedsDisplay];
     }
     DW_FUNCTION_RETURN_NOTHING;
 }
@@ -5179,7 +4924,7 @@ DW_FUNCTION_RESTORE_PARAM3(handle, HWND, text, char **, count, int)
         }
         [cont reloadData];
         [cont optimize];
-        [cont setNeedsDisplay:YES];
+        [cont setNeedsDisplay];
     }
     DW_FUNCTION_RETURN_NOTHING;
 }
@@ -5209,7 +4954,7 @@ DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
 
         [cont clear];
         [cont reloadData];
-        [cont setNeedsDisplay:YES];
+        [cont setNeedsDisplay];
     }
     DW_FUNCTION_RETURN_NOTHING;
 }
@@ -5361,7 +5106,7 @@ DW_FUNCTION_RESTORE_PARAM3(handle, HWND, index, unsigned int, buffer, char *)
             [[cell textField] setStringValue:nstr];
             [cont reloadData];
             [cont optimize];
-            [cont setNeedsDisplay:YES];
+            [cont setNeedsDisplay];
         }
     }
     DW_FUNCTION_RETURN_NOTHING;
@@ -5487,7 +5232,7 @@ DW_FUNCTION_RESTORE_PARAM2(handle, HWND, index, int)
 
         [cont removeRow:index];
         [cont reloadData];
-        [cont setNeedsDisplay:YES];
+        [cont setNeedsDisplay];
     }
     DW_FUNCTION_RETURN_NOTHING;
 }
@@ -5909,7 +5654,7 @@ DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
     DW_FUNCTION_INIT;
     DWRender *render = (DWRender *)handle;
 
-    [render setNeedsDisplay:YES];
+    [render setNeedsDisplay];
     DW_FUNCTION_RETURN_NOTHING;
 }
 
@@ -6014,7 +5759,7 @@ unsigned long API dw_color_choose(unsigned long value)
     return value;
 }
 
-CGContextRef _dw_draw_context(NSBitmapImageRep *image)
+CGContextRef _dw_draw_context(UIImage *image)
 {
     return [NSGraphicsContext graphicsContextWithCGContext:[[NSGraphicsContext graphicsContextWithBitmapImageRep:image] CGContext] flipped:YES];
 }
@@ -6034,7 +5779,7 @@ DW_FUNCTION_RESTORE_PARAM4(handle, HWND, pixmap, HPIXMAP, x, int, y, int)
     DW_FUNCTION_INIT;
     DW_LOCAL_POOL_IN;
     id image = handle;
-    NSBitmapImageRep *bi = nil;
+    UIImage *bi = nil;
     bool bCanDraw = YES;
 
     if(pixmap)
@@ -6086,7 +5831,7 @@ DW_FUNCTION_RESTORE_PARAM6(handle, HWND, pixmap, HPIXMAP, x1, int, y1, int, x2, 
     DW_FUNCTION_INIT;
     DW_LOCAL_POOL_IN;
     id image = handle;
-    NSBitmapImageRep *bi = nil;
+    UIImage *bi = nil;
     bool bCanDraw = YES;
 
     if(pixmap)
@@ -6139,7 +5884,7 @@ DW_FUNCTION_RESTORE_PARAM5(handle, HWND, pixmap, HPIXMAP, x, int, y, int, text, 
     DW_LOCAL_POOL_IN;
     id image = handle;
     NSString *nstr = [ NSString stringWithUTF8String:text ];
-    NSBitmapImageRep *bi = nil;
+    UIImage *bi = nil;
     UIFont *font = nil;
     DWRender *render;
     bool bCanDraw = YES;
@@ -6265,7 +6010,7 @@ DW_FUNCTION_RESTORE_PARAM6(handle, HWND, pixmap, HPIXMAP, flags, int, npoints, i
     DW_FUNCTION_INIT;
     DW_LOCAL_POOL_IN;
     id image = handle;
-    NSBitmapImageRep *bi = nil;
+    UIImage *bi = nil;
     bool bCanDraw = YES;
     int z;
 
@@ -6330,7 +6075,7 @@ DW_FUNCTION_RESTORE_PARAM7(handle, HWND, pixmap, HPIXMAP, flags, int, x, int, y,
     DW_FUNCTION_INIT;
     DW_LOCAL_POOL_IN;
     id image = handle;
-    NSBitmapImageRep *bi = nil;
+    UIImage *bi = nil;
     bool bCanDraw = YES;
 
     if(pixmap)
@@ -6389,7 +6134,7 @@ DW_FUNCTION_RESTORE_PARAM9(handle, HWND, pixmap, HPIXMAP, flags, int, xorigin, i
     DW_FUNCTION_INIT;
     DW_LOCAL_POOL_IN;
     id image = handle;
-    NSBitmapImageRep *bi = nil;
+    UIImage *bi = nil;
     bool bCanDraw = YES;
 
     if(pixmap)
@@ -6944,7 +6689,7 @@ DW_FUNCTION_RESTORE_PARAM5(handle, HWND, pointer, void *, column, int, row, int,
     }
     else /* Otherwise replace it with a new cell */
         [cont editCell:_dw_table_cell_view_new(icon, text) at:(row+lastadd) and:column];
-    [cont setNeedsDisplay:YES];
+    [cont setNeedsDisplay];
     DW_FUNCTION_RETURN_NOTHING;
 }
 
@@ -7025,7 +6770,7 @@ DW_FUNCTION_RESTORE_PARAM5(handle, HWND, pointer, void *, row, int, filename, ch
     }
     else /* Otherwise replace it with a new cell */
         [cont editCell:_dw_table_cell_view_new(icon, text) at:(row+lastadd) and:0];
-    [cont setNeedsDisplay:YES];
+    [cont setNeedsDisplay];
     DW_FUNCTION_RETURN_NOTHING;
 }
 
@@ -7852,7 +7597,7 @@ HPIXMAP API dw_pixmap_new(HWND handle, unsigned long width, unsigned long height
     pixmap->width = width;
     pixmap->height = height;
     pixmap->handle = handle;
-    pixmap->image = [[NSBitmapImageRep alloc]
+    pixmap->image = [[UIImage alloc]
                                     initWithBitmapDataPlanes:NULL
                                     pixelsWide:width
                                     pixelsHigh:height
@@ -7864,29 +7609,6 @@ HPIXMAP API dw_pixmap_new(HWND handle, unsigned long width, unsigned long height
                                     bytesPerRow:0
                                     bitsPerPixel:0];
     return pixmap;
-}
-
-/* Function takes an UIImage and copies it into a flipped NSBitmapImageRep */
-void _flip_image(UIImage *tmpimage, NSBitmapImageRep *image, CGSize size)
-{
-    NSCompositingOperation op = DWCompositingOperationSourceOver;
-    [NSGraphicsContext saveGraphicsState];
-    [NSGraphicsContext setCurrentContext:_dw_draw_context(image)];
-    [[[NSDictionary alloc] initWithObjectsAndKeys:image, NSGraphicsContextDestinationAttributeName, nil] autorelease];
-    /* Make a new transform */
-    NSAffineTransform *t = [NSAffineTransform transform];
-
-    /* By scaling Y negatively, we effectively flip the image */
-    [t scaleXBy:1.0 yBy:-1.0];
-
-    /* But we also have to translate it back by its height */
-    [t translateXBy:0.0 yBy:-size.height];
-
-    /* Apply the transform */
-    [t concat];
-    [tmpimage drawAtPoint:NSMakePoint(0, 0) fromRect:NSMakeRect(0, 0, size.width, size.height)
-                operation:op fraction:1.0];
-    [NSGraphicsContext restoreGraphicsState];
 }
 
 /*
@@ -7922,22 +7644,9 @@ HPIXMAP API dw_pixmap_new_from_file(HWND handle, const char *filename)
         DW_LOCAL_POOL_OUT;
         return NULL;
     }
-    CGSize size = [tmpimage size];
-    NSBitmapImageRep *image = [[NSBitmapImageRep alloc]
-                               initWithBitmapDataPlanes:NULL
-                               pixelsWide:size.width
-                               pixelsHigh:size.height
-                               bitsPerSample:8
-                               samplesPerPixel:4
-                               hasAlpha:YES
-                               isPlanar:NO
-                               colorSpaceName:NSDeviceRGBColorSpace
-                               bytesPerRow:0
-                               bitsPerPixel:0];
-    _flip_image(tmpimage, image, size);
-    pixmap->width = size.width;
-    pixmap->height = size.height;
-    pixmap->image = image;
+    pixmap->width = [tmpimage size].width;
+    pixmap->height = [tmpimage size]size.height;
+    pixmap->image = tmpimage;
     pixmap->handle = handle;
     DW_LOCAL_POOL_OUT;
     return pixmap;
@@ -7970,22 +7679,9 @@ HPIXMAP API dw_pixmap_new_from_data(HWND handle, const char *data, int len)
         DW_LOCAL_POOL_OUT;
         return NULL;
     }
-    CGSize size = [tmpimage size];
-    NSBitmapImageRep *image = [[NSBitmapImageRep alloc]
-                               initWithBitmapDataPlanes:NULL
-                               pixelsWide:size.width
-                               pixelsHigh:size.height
-                               bitsPerSample:8
-                               samplesPerPixel:4
-                               hasAlpha:YES
-                               isPlanar:NO
-                               colorSpaceName:NSDeviceRGBColorSpace
-                               bytesPerRow:0
-                               bitsPerPixel:0];
-    _flip_image(tmpimage, image, size);
-    pixmap->width = size.width;
-    pixmap->height = size.height;
-    pixmap->image = image;
+    pixmap->width = [tmpimage size].width;
+    pixmap->height = [tmpimage size].height;
+    pixmap->image = tmpimage;
     pixmap->handle = handle;
     DW_LOCAL_POOL_OUT;
     return pixmap;
@@ -8027,28 +7723,14 @@ HPIXMAP API dw_pixmap_grab(HWND handle, ULONG resid)
     NSBundle *bundle = [NSBundle mainBundle];
     NSString *respath = [bundle resourcePath];
     NSString *filepath = [respath stringByAppendingFormat:@"/%lu.png", resid];
-    UIImage *temp = [[UIImage alloc] initWithContentsOfFile:filepath];
+    UIImage *tmpimage = [[UIImage alloc] initWithContentsOfFile:filepath];
 
     if(temp)
     {
-        CGSize size = [temp size];
-        NSBitmapImageRep *image = [[NSBitmapImageRep alloc]
-                                   initWithBitmapDataPlanes:NULL
-                                   pixelsWide:size.width
-                                   pixelsHigh:size.height
-                                   bitsPerSample:8
-                                   samplesPerPixel:4
-                                   hasAlpha:YES
-                                   isPlanar:NO
-                                   colorSpaceName:NSDeviceRGBColorSpace
-                                   bytesPerRow:0
-                                   bitsPerPixel:0];
-        _flip_image(temp, image, size);
-        pixmap->width = size.width;
-        pixmap->height = size.height;
-        pixmap->image = image;
+        pixmap->width = [tmpimage size].width;
+        pixmap->height = [tmpimage size].height;
+        pixmap->image = tmpimage;
         pixmap->handle = handle;
-        [temp release];
         return pixmap;
     }
     free(pixmap);
@@ -8098,7 +7780,7 @@ void API dw_pixmap_destroy(HPIXMAP pixmap)
 {
     if(pixmap)
     {
-        NSBitmapImageRep *image = (NSBitmapImageRep *)pixmap->image;
+        UIImage *image = (UIImage *)pixmap->image;
         UIFont *font = pixmap->font;
         DW_LOCAL_POOL_IN;
         [image release];
@@ -9339,7 +9021,7 @@ char * API dw_font_choose(const char *currfont)
 Item *_box_item(id object)
 {
     /* Find the item within the box it is packed into */
-    if([object isKindOfClass:[DWBox class]] || [object isKindOfClass:[DWGroupBox class]] || [object isKindOfClass:[UIControl class]])
+    if([object isKindOfClass:[DWBox class]] || [object isKindOfClass:[UIControl class]])
     {
         DWBox *parent = (DWBox *)[object superview];
 
@@ -9352,7 +9034,7 @@ Item *_box_item(id object)
             parent = (DWBox *)[object superview];
         }
 
-        if([parent isKindOfClass:[DWBox class]] || [parent isKindOfClass:[DWGroupBox class]])
+        if([parent isKindOfClass:[DWBox class]])
         {
             Box *thisbox = [parent box];
             Item *thisitem = thisbox->items;
@@ -9387,10 +9069,6 @@ int API dw_window_set_font(HWND handle, const char *fontname)
             [object lockFocus];
             [font set];
             [object unlockFocus];
-        }
-        if([object isMemberOfClass:[DWGroupBox class]])
-        {
-            [object setTitleFont:font];
         }
         else if([object isMemberOfClass:[DWMLE class]])
         {
@@ -9436,11 +9114,7 @@ char * API dw_window_get_font(HWND handle)
     id object = _text_handle(handle);
     UIFont *font = nil;
 
-    if([object isMemberOfClass:[DWGroupBox class]])
-    {
-        font = [object titleFont];
-    }
-    else if([object isKindOfClass:[UIControl class]] || [object isMemberOfClass:[DWRender class]])
+    if([object isKindOfClass:[UIControl class]] || [object isMemberOfClass:[DWRender class]])
     {
          font = [object font];
     }
@@ -9496,7 +9170,7 @@ DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
             parent = (DWBox *)[object superview];
         }
 
-        if([parent isKindOfClass:[DWBox class]] || [parent isKindOfClass:[DWGroupBox class]])
+        if([parent isKindOfClass:[DWBox class]])
         {
             id window = [object window];
             Box *thisbox = [parent box];
@@ -9601,11 +9275,6 @@ DW_FUNCTION_RESTORE_PARAM2(handle, HWND, text, char *)
     {
         UIControl *control = object;
         [control setStringValue:[ NSString stringWithUTF8String:text ]];
-    }
-    else if([object isMemberOfClass:[DWGroupBox class]])
-    {
-       DWGroupBox *groupbox = object;
-       [groupbox setTitle:[NSString stringWithUTF8String:text]];
     }
     else
         return;
@@ -11451,11 +11120,7 @@ void API dw_font_set_default(const char *fontname)
 void _dw_app_init(void)
 {
     if(!DWApp)
-    {
         DWApp = [UIApplication sharedApplication];
-        DWAppDel *del = [[DWAppDel alloc] init];
-        [DWApp setDelegate:del];
-    }
 }
 
 /*
@@ -11885,7 +11550,7 @@ HPRINT API dw_print_new(const char *jobname, unsigned long flags, unsigned int p
 int API dw_print_run(HPRINT print, unsigned long flags)
 {
     DWPrint *p = print;
-    NSBitmapImageRep *rep, *rep2;
+    UIImage *rep, *rep2;
     NSPrintInfo *pi;
     NSPrintOperation *po;
     HPIXMAP pixmap, pixmap2;
