@@ -1201,11 +1201,11 @@ DWObject *DWObj;
 -(void)setUserdata:(void *)input;
 -(int)pageid;
 -(void)setPageid:(int)input;
--(void)pageChanged;
+-(void)pageChanged:(id)sender;
 @end
 
 /* Subclass for a Notebook page type */
-@interface DWNotebookPage : UISegmentedControl
+@interface DWNotebookPage : UIView
 {
     void *userdata;
     int pageid;
@@ -1221,7 +1221,7 @@ DWObject *DWObj;
 -(void)setUserdata:(void *)input { userdata = input; }
 -(int)pageid { return pageid; }
 -(void)setPageid:(int)input { pageid = input; }
--(void)pageChanged
+-(void)pageChanged:(id)sender
 {
 #if 0 /* TODO: Implement page/segment changed handler */
     id object = [notepage view];
@@ -1235,8 +1235,8 @@ DWObject *DWObj;
         _do_resize(box, size.width, size.height);
         _handle_resize_events(box);
     }
-    _event_handler(self, DW_INT_TO_POINTER([page pageid]), 15);
 #endif
+    _event_handler(self, DW_INT_TO_POINTER([self selectedSegmentIndex]), 15);
 }
 -(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); dw_signal_disconnect_by_window(self); [super dealloc]; }
 @end
@@ -2083,10 +2083,11 @@ void _handle_resize_events(Box *thisbox)
                 }
             }
             /* Special handling for notebook controls */
+#if 0 /* TODO: Segmented control might not have subviews */
             else if([handle isMemberOfClass:[DWNotebook class]])
             {
                 DWNotebook *notebook = (DWNotebook *)handle;
-                DWNotebookPage *notepage = (DWNotebookPage *)[notebook selectedTabViewItem];
+                NSInteger index = [notebook selectedSegmentIndex];
                 id view = [notepage view];
 
                 if([view isMemberOfClass:[DWBox class]])
@@ -2095,13 +2096,15 @@ void _handle_resize_events(Box *thisbox)
                     _handle_resize_events(box);
                 }
             }
+#endif
             /* Handle laying out scrollviews... if required space is less
              * than available space, then expand.  Otherwise use required space.
              */
             else if([handle isMemberOfClass:[DWScrollBox class]])
             {
                 DWScrollBox *scrollbox = (DWScrollBox *)handle;
-                DWBox *contentbox = [scrollbox documentView];
+                NSArray *subviews = [scrollbox subviews];
+                DWBox *contentbox = [subviews firstObject];
                 Box *thisbox = [contentbox box];
 
                 /* Get the required space for the box */
@@ -2261,15 +2264,13 @@ static void _resize_box(Box *thisbox, int *depth, int x, int y, int pass)
             {
                 int pad = thisbox->items[z].pad;
                 UIView *handle = thisbox->items[z].hwnd;
-                CGPoint point;
-                CGSize size;
+                CGRect rect;
 
-                point.x = currentx + pad;
-                point.y = currenty + pad;
-                size.width = width;
-                size.height = height;
-                [handle setFrameOrigin:point];
-                [handle setFrameSize:size];
+                rect.origin.x = currentx + pad;
+                rect.origin.y = currenty + pad;
+                rect.size.width = width;
+                rect.size.height = height;
+                [handle setFrame:rect];
 
                 /* After placing a box... place its components */
                 if(thisbox->items[z].type == TYPEBOX)
@@ -2285,11 +2286,12 @@ static void _resize_box(Box *thisbox, int *depth, int x, int y, int pass)
                     }
                 }
 
+#if 0 /* TODO: Segemented control may not have subviews */
                 /* Special handling for notebook controls */
                 if([handle isMemberOfClass:[DWNotebook class]])
                 {
                     DWNotebook *notebook = (DWNotebook *)handle;
-                    DWNotebookPage *notepage = (DWNotebookPage *)[notebook selectedTabViewItem];
+                    NSInteger index = [notebook selectedSegmentIndex];
                     id view = [notepage view];
 
                     if([view isMemberOfClass:[DWBox class]])
@@ -2300,6 +2302,7 @@ static void _resize_box(Box *thisbox, int *depth, int x, int y, int pass)
                         _handle_resize_events(box);
                     }
                 }
+#endif
                 /* Handle laying out scrollviews... if required space is less
                  * than available space, then expand.  Otherwise use required space.
                  */
@@ -2307,9 +2310,11 @@ static void _resize_box(Box *thisbox, int *depth, int x, int y, int pass)
                 {
                     int depth = 0;
                     DWScrollBox *scrollbox = (DWScrollBox *)handle;
-                    DWBox *contentbox = [scrollbox contentView];
+                    NSArray *subviews = [scrollbox subviews];
+                    DWBox *contentbox = [subviews firstObject];
                     Box *thisbox = [contentbox box];
                     CGSize contentsize = [scrollbox contentSize];
+                    CGRect frame = [contentbox frame];
 
                     /* Get the required space for the box */
                     _resize_box(thisbox, &depth, x, y, 1);
@@ -2322,7 +2327,8 @@ static void _resize_box(Box *thisbox, int *depth, int x, int y, int pass)
                     {
                         contentsize.height = thisbox->minheight;
                     }
-                    [contentbox setFrameSize:contentsize];
+                    frame.size = contentsize;
+                    [contentbox setFrame:frame];
 
                     /* Layout the content of the scrollbox */
                     _do_resize(thisbox, contentsize.width, contentsize.height);
@@ -2334,26 +2340,20 @@ static void _resize_box(Box *thisbox, int *depth, int x, int y, int pass)
                     DWSpinButton *spinbutton = (DWSpinButton *)handle;
                     UITextField *textfield = [spinbutton textfield];
                     UIStepper *stepper = [spinbutton stepper];
-                    [textfield setFrameOrigin:CGPointMake(0,0)];
-                    [textfield setFrameSize:CGSizeMake(size.width-20,size.height)];
-                    [stepper setFrameOrigin:CGPointMake(size.width-20,0)];
-                    [stepper setFrameSize:CGSizeMake(20,size.height)];
+                    [textfield setFrame:CGRectMake(0,0,rect.size.width-20,rect.size.height)];
+                    [stepper setFrame:CGRectMake(rect.size.width-20,0,20,rect.size.height)];
                 }
                 else if([handle isMemberOfClass:[DWSplitBar class]])
                 {
                     DWSplitBar *split = (DWSplitBar *)handle;
-                    DWWindow *window = (DWWindow *)[split window];
                     float percent = [split percent];
 
-                    if(percent > 0 && size.width > 20 && size.height > 20)
+                    if(percent > 0 && rect.size.width > 20 && rect.size.height > 20)
                     {
                         dw_splitbar_set(handle, percent);
                         [split setPercent:0];
                     }
-                    else if([window redraw])
-                    {
-                        [split splitViewDidResizeSubviews:nil];
-                    }
+                    [split splitViewDidResizeSubviews:nil];
                 }
 
                 /* Advance the current position in the box */
@@ -2788,12 +2788,8 @@ HWND API dw_scrollbox_new( int type, int pad )
     DWBox *box = dw_box_new(type, pad);
     DWBox *tmpbox = dw_box_new(DW_VERT, 0);
     dw_box_pack_start(tmpbox, box, 1, 1, TRUE, TRUE, 0);
-    [scrollbox setHasVerticalScroller:YES];
-    [scrollbox setHasHorizontalScroller:YES];
-    [scrollbox setBorderType:NSNoBorder];
-    [scrollbox setDrawsBackground:NO];
     [scrollbox setBox:box];
-    [scrollbox setDocumentView:tmpbox];
+    [scrollbox addSubview:tmpbox];
     [tmpbox autorelease];
     return scrollbox;
 }
@@ -2807,24 +2803,25 @@ HWND API dw_scrollbox_new( int type, int pad )
 int API dw_scrollbox_get_pos(HWND handle, int orient)
 {
     DWScrollBox *scrollbox = handle;
-    UIView *view = [scrollbox documentView];
+    NSArray *subviews = [scrollbox subviews];
+    UIView *view = [subviews firstObject];
     CGSize contentsize = [scrollbox contentSize];
-    NSScroller *scrollbar;
+    CGPoint contentoffset = [scrollbox contentOffset];
     int range = 0;
     int val = 0;
     if(orient == DW_VERT)
     {
-        scrollbar = [scrollbox verticalScroller];
         range = [view bounds].size.height - contentsize.height;
+        val = contentoffset.y;
     }
     else
     {
-        scrollbar = [scrollbox horizontalScroller];
         range = [view bounds].size.width - contentsize.width;
+        val = contentoffset.x;
     }
-    if(range > 0)
+    if(val > range)
     {
-        val = [scrollbar floatValue] * range;
+        val = range;
     }
     return val;
 }
@@ -2838,7 +2835,8 @@ int API dw_scrollbox_get_pos(HWND handle, int orient)
 int API dw_scrollbox_get_range(HWND handle, int orient)
 {
     DWScrollBox *scrollbox = handle;
-    UIView *view = [scrollbox documentView];
+    NSArray *subviews = [scrollbox subviews];
+    UIView *view = [subviews firstObject];
     int range = 0;
     if(orient == DW_VERT)
     {
@@ -2859,6 +2857,7 @@ id _text_handle(id object)
         DWSpinButton *spinbutton = object;
         object = [spinbutton textfield];
     }
+#if 0 /* TODO: Fix this when we have a groupbox implemented */
     if([object isMemberOfClass:[ NSBox class]])
     {
         NSBox *box = object;
@@ -2869,6 +2868,7 @@ id _text_handle(id object)
             object = content;
         }
     }
+#endif
     return object;
 }
 
@@ -2894,15 +2894,9 @@ void _dw_control_size(id handle, int *width, int *height)
     {
         switch([object buttonType])
         {
-            case DWButtonTypeSwitch:
-            case DWButtonTypeRadio:
-                extrawidth = 24;
-                extraheight = 4;
-                nsstr = [object title];
-                break;
             default:
             {
-                UIImage *image = [object image];
+                UIImage *image = (UIImage *)[object image];
 
                 if(image)
                 {
@@ -2910,27 +2904,14 @@ void _dw_control_size(id handle, int *width, int *height)
                     CGSize size = [image size];
                     thiswidth = (int)size.width;
                     thisheight = (int)size.height;
-                    if([object isBordered])
-                    {
-                        extrawidth = 4;
-                        extraheight = 4;
-                    }
                 }
                 else
                 {
                     /* Text button */
                     nsstr = [object title];
 
-                    if([object isBordered])
-                    {
-                        extrawidth = 30;
-                        extraheight = 8;
-                    }
-                    else
-                    {
-                        extrawidth = 8;
-                        extraheight = 4;
-                    }
+                    extrawidth = 8;
+                    extraheight = 4;
                 }
                 break;
             }
@@ -2953,7 +2934,7 @@ void _dw_control_size(id handle, int *width, int *height)
             nsstr = [object stringValue];
 
         if(font)
-            thisheight = (int)[font boundingRectForFont].size.height;
+            thisheight = (int)[font lineHeight];
     }
     /* Handle the ranged widgets */
     else if([ object isMemberOfClass:[DWPercent class] ] ||
@@ -2965,7 +2946,7 @@ void _dw_control_size(id handle, int *width, int *height)
     /* Handle bitmap size */
     else if([ object isMemberOfClass:[UIImageView class] ])
     {
-        UIImage *image = [object image];
+        UIImage *image = (UIImage *)[object image];
 
         if(image)
         {
@@ -2977,15 +2958,10 @@ void _dw_control_size(id handle, int *width, int *height)
     /* Handle calendar */
     else if([ object isMemberOfClass:[DWCalendar class] ])
     {
-        NSCell *cell = [object cell];
-
-        if(cell)
-        {
-            CGSize size = [cell cellSize];
+            CGSize size = [object intrinsicContentSize];
 
             thiswidth = size.width;
             thisheight = size.height;
-        }
     }
     /* MLE and Container */
     else if([ object isMemberOfClass:[DWMLE class] ] ||
@@ -2996,47 +2972,14 @@ void _dw_control_size(id handle, int *width, int *height)
         if([ object isMemberOfClass:[DWMLE class] ])
         {
             UIScrollView *sv = [object scrollview];
-            CGSize frame = [sv frame].size;
-            BOOL hscroll = [sv hasHorizontalScroller];
+            CGRect frame = [sv frame];
 
-            /* Make sure word wrap is off for the first part */
-            if(!hscroll)
-            {
-                [[object textContainer] setWidthTracksTextView:NO];
-                [[object textContainer] setContainerSize:[object maxSize]];
-                [object setHorizontallyResizable:YES];
-                [sv setHasHorizontalScroller:YES];
-            }
             /* Size the text view to fit */
             [object sizeToFit];
-            size = [object bounds].size;
-            size.width += 2.0;
-            size.height += 2.0;
-            /* Re-enable word wrapping if it was on */
-            if(!hscroll)
-            {
-                [[object textContainer] setWidthTracksTextView:YES];
-                [sv setHasHorizontalScroller:NO];
-
-                /* If the un wrapped it is beyond the bounds... */
-                if(size.width > _DW_SCROLLED_MAX_WIDTH)
-                {
-                    CGSize max = [object maxSize];
-
-                    /* Set the max size to the limit */
-                    [object setMaxSize:NSMakeSize(_DW_SCROLLED_MAX_WIDTH, max.height)];
-                    /* Recalculate the size */
-                    [object sizeToFit];
-                    size = [object bounds].size;
-                    size.width += 2.0;
-                    size.height += 2.0;
-                    [object setMaxSize:max];
-                }
-            }
-            [sv setFrameSize:frame];
-            /* Take into account the horizontal scrollbar */
-            if(hscroll && size.width > _DW_SCROLLED_MAX_WIDTH)
-                size.height += 16.0;
+            frame.size = [object bounds].size;
+            frame.size.width += 2.0;
+            frame.size.height += 2.0;
+            [sv setFrame:frame];
         }
         else
             size = [object getsize];
@@ -3053,12 +2996,6 @@ void _dw_control_size(id handle, int *width, int *height)
         if(thisheight > _DW_SCROLLED_MAX_HEIGHT)
             thisheight = _DW_SCROLLED_MAX_HEIGHT;
     }
-    /* Tree */
-    else if([ object isMemberOfClass:[DWTree class] ])
-    {
-        thiswidth = (int)((_DW_SCROLLED_MAX_WIDTH + _DW_SCROLLED_MIN_WIDTH)/2);
-        thisheight = (int)((_DW_SCROLLED_MAX_HEIGHT + _DW_SCROLLED_MIN_HEIGHT)/2);
-    }
     /* Any other control type */
     else if([ object isKindOfClass:[ UIControl class ] ])
         nsstr = [object stringValue];
@@ -3072,16 +3009,7 @@ void _dw_control_size(id handle, int *width, int *height)
     /* Handle static text fields */
     if([object isKindOfClass:[ UITextField class ]] && ![object isEditable])
     {
-        id border = handle;
-
         extrawidth = 10;
-
-        /* Handle status bar field */
-        if([border isMemberOfClass:[ NSBox class ] ])
-        {
-            extrawidth += 2;
-            extraheight = 8;
-        }
     }
 
     /* Set the requested sizes */
@@ -3115,7 +3043,8 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
     if([ object isKindOfClass:[ UIWindow class ] ])
     {
         UIWindow *window = box;
-        view = [window contentView];
+        NSArray *subviews = [window subviews];
+        view = [subviews firstObject];
     }
     else if([ object isMemberOfClass:[ DWScrollBox class ] ])
     {
@@ -3129,7 +3058,6 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
 
     /* Query the objects */
     if([ object isMemberOfClass:[ DWContainer class ] ] ||
-       [ object isMemberOfClass:[ DWTree class ] ] ||
        [ object isMemberOfClass:[ DWMLE class ] ])
     {
         this = item = [object scrollview];
@@ -3237,8 +3165,7 @@ DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
         /* Some controls are embedded in scrollviews...
          * so get the parent of the scrollview in that case.
          */
-        if(([object isKindOfClass:[NSTableView class]] || [object isMemberOfClass:[DWMLE class]])
-           && [parent isMemberOfClass:[NSClipView class]])
+        if(([object isKindOfClass:[UITableView class]] || [object isMemberOfClass:[DWMLE class]]))
         {
             object = [parent superview];
             parent = (DWBox *)[object superview];
@@ -3423,14 +3350,15 @@ HWND _dw_button_new(const char *text, ULONG cid)
     DWButton *button = [[DWButton alloc] init];
     if(text)
     {
-        [button setTitle:[ NSString stringWithUTF8String:text ]];
+        [button setTitle:[NSString stringWithUTF8String:text] forState:UIControlStateNormal];
     }
-    [button setTarget:button];
-    [button setAction:@selector(buttonClicked:)];
+    [button addTarget:button
+               action:@selector(buttonClicked:)
+     forControlEvents:UIControlEventPrimaryActionTriggered];
     [button setTag:cid];
     if(DWDefaultFont)
     {
-        [[button cell] setFont:DWDefaultFont];
+        [[button titleLabel] setFont:DWDefaultFont];
     }
     return button;
 }
@@ -3444,9 +3372,7 @@ HWND _dw_button_new(const char *text, ULONG cid)
 HWND API dw_button_new(const char *text, ULONG cid)
 {
     DWButton *button = _dw_button_new(text, cid);
-    [button setImagePosition:NSNoImage];
-    [button setAlignment:DWTextAlignmentCenter];
-    [[button cell] setControlTint:NSBlueControlTint];
+    [button setContentHorizontalAlignment:UIControlContentHorizontalAlignmentCenter];
     return button;
 }
 
@@ -3459,7 +3385,7 @@ HWND API dw_button_new(const char *text, ULONG cid)
 HWND API dw_entryfield_new(const char *text, ULONG cid)
 {
     DWEntryField *entry = [[DWEntryField alloc] init];
-    [entry setStringValue:[ NSString stringWithUTF8String:text ]];
+    [entry setText:[ NSString stringWithUTF8String:text ]];
     [entry setTag:cid];
     return entry;
 }
@@ -3489,7 +3415,7 @@ void API dw_entryfield_set_limit(HWND handle, ULONG limit)
     DWEntryFieldFormatter *formatter = [[[DWEntryFieldFormatter alloc] init] autorelease];
 
     [formatter setMaximumLength:(int)limit];
-    [[entry cell] setFormatter:formatter];
+    [entry setFormatter:formatter];
 }
 
 /*
@@ -3507,10 +3433,8 @@ HWND API dw_bitmapbutton_new(const char *text, ULONG resid)
     DWButton *button = _dw_button_new("", resid);
     if(image)
     {
-        [button setImage:image];
+        [button setImage:image forState:UIControlStateNormal];
     }
-    if(text)
-        [button setToolTip:[NSString stringWithUTF8String:text]];
     [image release];
     return button;
 }
@@ -3539,10 +3463,8 @@ HWND API dw_bitmapbutton_new_from_file(const char *text, unsigned long cid, cons
     DWButton *button = _dw_button_new("", cid);
     if(image)
     {
-        [button setImage:image];
+        [button setImage:image forState:UIControlStateNormal];
     }
-    if(text)
-        [button setToolTip:[NSString stringWithUTF8String:text]];
     [image release];
     return button;
 }
@@ -3563,10 +3485,8 @@ HWND API dw_bitmapbutton_new_from_data(const char *text, unsigned long cid, cons
     DWButton *button = _dw_button_new("", cid);
     if(image)
     {
-        [button setImage:image];
+        [button setImage:image forState:UIControlStateNormal];
     }
-    if(text)
-        [button setToolTip:[NSString stringWithUTF8String:text]];
     [image release];
     return button;
 }
@@ -3584,10 +3504,10 @@ HWND API dw_spinbutton_new(const char *text, ULONG cid)
     UITextField *textfield = [spinbutton textfield];
     long val = atol(text);
 
-    [stepper setIncrement:1];
+    [stepper setStepValue:1];
     [stepper setTag:cid];
-    [stepper setMinValue:-65536];
-    [stepper setMaxValue:65536];
+    [stepper setMinimumValue:-65536];
+    [stepper setMaximumValue:65536];
     [stepper setValue:(float)val];
     [textfield setText:[NSString stringWithFormat:@"%ld",val]];
     return spinbutton;
@@ -3605,7 +3525,7 @@ void API dw_spinbutton_set_pos(HWND handle, long position)
     UIStepper *stepper = [spinbutton stepper];
     UITextField *textfield = [spinbutton textfield];
     [stepper setValue:(float)position];
-    [textfield [NSString stringWithFormat:@"%ld",position]];
+    [textfield setText:[NSString stringWithFormat:@"%ld",position]];
 }
 
 /*
@@ -3619,8 +3539,8 @@ void API dw_spinbutton_set_limits(HWND handle, long upper, long lower)
 {
     DWSpinButton *spinbutton = handle;
     UIStepper *stepper = [spinbutton stepper];
-    [stepper setMinValue:(double)lower];
-    [stepper setMaxValue:(double)upper];
+    [stepper setMinimumValue:(double)lower];
+    [stepper setMaximumValue:(double)upper];
 }
 
 /*
@@ -3658,8 +3578,8 @@ HWND API dw_radiobutton_new(const char *text, ULONG cid)
 HWND API dw_slider_new(int vertical, int increments, ULONG cid)
 {
     DWSlider *slider = [[DWSlider alloc] init];
-    [slider setMaxValue:(double)increments];
-    [slider setMinValue:0];
+    [slider setMaximumValue:(double)increments];
+    [slider setMinimumValue:0];
     [slider setContinuous:YES];
     [slider setTarget:slider];
     [slider setAction:@selector(sliderChanged:)];
@@ -3675,7 +3595,7 @@ HWND API dw_slider_new(int vertical, int increments, ULONG cid)
 unsigned int API dw_slider_get_pos(HWND handle)
 {
     DWSlider *slider = handle;
-    double val = [slider doubleValue];
+    double val = [slider value];
     return (int)val;
 }
 
@@ -3688,7 +3608,7 @@ unsigned int API dw_slider_get_pos(HWND handle)
 void API dw_slider_set_pos(HWND handle, unsigned int position)
 {
     DWSlider *slider = handle;
-    [slider setDoubleValue:(double)position];
+    [slider setValue:(double)position];
 }
 
 /*
@@ -3746,13 +3666,6 @@ void API dw_scrollbar_set_range(HWND handle, unsigned int range, unsigned int vi
 HWND API dw_percent_new(ULONG cid)
 {
     DWPercent *percent = [[DWPercent alloc] init];
-    [percent setStyle:DWProgressIndicatorStyleBar];
-    [percent setBezeled:YES];
-    [percent setMaxValue:100];
-    [percent setMinValue:0];
-    [percent incrementBy:1];
-    [percent setIndeterminate:NO];
-    [percent setDoubleValue:0];
     /*[percent setTag:cid]; Why doesn't this work? */
     return percent;
 }
@@ -3774,18 +3687,12 @@ DW_FUNCTION_RESTORE_PARAM2(handle, HWND, position, unsigned int)
     /* Handle indeterminate */
     if(position == DW_PERCENT_INDETERMINATE)
     {
-        [percent setIndeterminate:YES];
-        [percent startAnimation:percent];
+        [percent setProgress:0 animated:NO];
     }
     else
     {
         /* Handle normal */
-        if([percent isIndeterminate])
-        {
-            [percent stopAnimation:percent];
-            [percent setIndeterminate:NO];
-        }
-        [percent setDoubleValue:(double)position];
+        [percent setProgress:(float)position/100.0 animated:YES];
     }
     DW_FUNCTION_RETURN_NOTHING;
 }
@@ -3826,6 +3733,7 @@ int API dw_checkbox_get(HWND handle)
  */
 void API dw_checkbox_set(HWND handle, int value)
 {
+#if 0 /* TODO: Convert to UISwitch */
     DWButton *button = handle;
     if(value)
     {
@@ -3835,24 +3743,17 @@ void API dw_checkbox_set(HWND handle, int value)
     {
         [button setState:DWControlStateValueOff];
     }
-
+#endif
 }
 
 /* Internal common function to create containers and listboxes */
 HWND _dw_cont_new(ULONG cid, int multi)
 {
-    DWFocusRingScrollView *scrollview  = [[DWFocusRingScrollView alloc] init];
     DWContainer *cont = [[DWContainer alloc] init];
 
-    [cont setScrollview:scrollview];
-    [scrollview setBorderType:NSBezelBorder];
-    [scrollview setHasVerticalScroller:YES];
-    [scrollview setAutohidesScrollers:YES];
     [cont setAllowsMultipleSelection:(multi ? YES : NO)];
-    [cont setAllowsColumnReordering:NO];
     [cont setDataSource:cont];
     [cont setDelegate:cont];
-    [scrollview setDocumentView:cont];
     [cont setTag:cid];
     [cont autorelease];
     [cont setRowBgOdd:DW_RGB_TRANSPARENT andEven:DW_RGB_TRANSPARENT];
@@ -3872,13 +3773,7 @@ DW_FUNCTION_RESTORE_PARAM2(cid, ULONG, multi, int)
 {
     DW_FUNCTION_INIT;
     DWContainer *cont = _dw_cont_new(cid, multi);
-    [cont setHeaderView:nil];
-    int type = DW_CFA_STRING;
     [cont setup];
-    NSTableColumn *column = [[[NSTableColumn alloc] initWithIdentifier:@"_DWListboxColumn"] autorelease];
-    [column setEditable:NO];
-    [cont addTableColumn:column];
-    [cont addColumn:column andType:type];
     DW_FUNCTION_RETURN_THIS(cont);
 }
 
@@ -4033,8 +3928,9 @@ DW_FUNCTION_RESTORE_PARAM2(handle, HWND, top, int)
     if([object isMemberOfClass:[DWContainer class]])
     {
         DWContainer *cont = handle;
+        NSIndexPath *myIP = [NSIndexPath indexPathForRow:top inSection:0];
 
-        [cont scrollRowToVisible:top];
+        [cont scrollToRowAtIndexPath:myIP atScrollPosition:UITableViewScrollPositionNone animated:NO];
     }
     DW_FUNCTION_RETURN_NOTHING;
 }
@@ -4066,8 +3962,19 @@ DW_FUNCTION_RESTORE_PARAM4(handle, HWND, index, unsigned int, buffer, char *, le
         }
         else
         {
-            NSTableCellView *cell = [cont getRow:index and:0];
-            NSString *nstr = [[cell textField] stringValue];
+            UITableViewCell *cell = [cont getRow:index and:0];
+            NSString *nstr;
+
+            if(@available(iOS 14.0, *))
+            {
+                UIListContentConfiguration *content = [cell defaultContentConfiguration];
+                
+                nstr = [content text];
+            }
+            else
+            {
+                nstr = [cell text];
+            }
 
             strncpy(buffer, [nstr UTF8String], length - 1);
         }
@@ -4098,9 +4005,18 @@ DW_FUNCTION_RESTORE_PARAM3(handle, HWND, index, unsigned int, buffer, char *)
         if(index <= count)
         {
             NSString *nstr = [NSString stringWithUTF8String:buffer];
-            NSTableCellView *cell = [cont getRow:index and:0];
+            UITableViewCell *cell = [cont getRow:index and:0];
             
-            [[cell textField] setStringValue:nstr];
+            if(@available(iOS 14.0, *))
+            {
+                UIListContentConfiguration *content = [cell defaultContentConfiguration];
+                
+                [content setText:nstr];
+            }
+            else
+            {
+                [cell setText:nstr];
+            }
             [cont reloadData];
             [cont setNeedsDisplay];
         }
@@ -4125,7 +4041,10 @@ DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
     if([object isMemberOfClass:[DWContainer class]])
     {
         DWContainer *cont = handle;
-        result = (int)[cont indexPathForSelectedRow].row;
+        NSIndexPath *ip = [cont indexPathForSelectedRow];
+
+        if(ip)
+            result = (int)ip.row;
     }
     DW_FUNCTION_RETURN_THIS(result);
 }
@@ -4147,18 +4066,12 @@ DW_FUNCTION_RESTORE_PARAM2(handle, HWND, where, int)
 
     if([object isMemberOfClass:[DWContainer class]])
     {
-        NSUInteger result;
         DWContainer *cont = handle;
         NSArray *selected = [cont indexPathsForSelectedRows];
-        if(where == -1)
-           result = [selected objectAtIndex:0];
-        else
-           result = [selected objectAtIndex:where];
+        NSIndexPath *ip = [selected objectAtIndex:(where == -1 ? 0 :where)];
 
-        if(result)
-        {
-            retval = (int)result;
-        }
+        if(ip)
+            retval = (int)ip.row;
     }
     DW_FUNCTION_RETURN_THIS(retval)
 }
@@ -4170,10 +4083,10 @@ DW_FUNCTION_RESTORE_PARAM2(handle, HWND, where, int)
  *          index: Item index.
  *          state: TRUE if selected FALSE if unselected.
  */
-DW_FUNCTION_DEFINITION(dw_listbox_select, void, HWND handle, int index, int state)
+DW_FUNCTION_DEFINITION(dw_listbox_select, void, HWND handle, int index, DW_UNUSED(int state))
 DW_FUNCTION_ADD_PARAM3(handle, index, state)
 DW_FUNCTION_NO_RETURN(dw_listbox_select)
-DW_FUNCTION_RESTORE_PARAM3(handle, HWND, index, int, state, int)
+DW_FUNCTION_RESTORE_PARAM3(handle, HWND, index, int, DW_UNUSED(state), int)
 {
     DW_FUNCTION_INIT;
     id object = handle;
@@ -4181,10 +4094,11 @@ DW_FUNCTION_RESTORE_PARAM3(handle, HWND, index, int, state, int)
     if([object isMemberOfClass:[DWContainer class]])
     {
         DWContainer *cont = handle;
-        NSIndexSet *selected = [[NSIndexSet alloc] initWithIndex:(NSUInteger)index];
-
-        [cont selectRowIndexes:selected byExtendingSelection:YES];
-        [selected release];
+        NSIndexPath *ip = [NSIndexPath indexPathForRow:index inSection:0];
+        
+        [cont selectRowAtIndexPath:ip
+                          animated:NO
+                    scrollPosition:UITableViewScrollPositionNone];
     }
     DW_FUNCTION_RETURN_NOTHING;
 }
@@ -4220,7 +4134,7 @@ DW_FUNCTION_RESTORE_PARAM2(handle, HWND, index, int)
  *       text: The default text to be in the combpbox widget.
  *       id: An ID to be used with dw_window_from_id() or 0L.
  */
-HWND API dw_combobox_new, HWND, const char *text, ULONG cid);
+HWND API dw_combobox_new(const char *text, ULONG cid)
 {
     /* TODO: Implment comboboxes. https://www.codeproject.com/Articles/301681/iPhone-ComboBox */
     return 0;
@@ -4235,21 +4149,11 @@ HWND API dw_mle_new(ULONG cid)
 {
     DWMLE *mle = [[DWMLE alloc] init];
     UIScrollView *scrollview  = [[UIScrollView alloc] init];
-    CGSize size = [mle maxSize];
+    CGSize size = [mle intrinsicContentSize];
 
     size.width = size.height;
-    [mle setMaxSize:size];
-    [scrollview setBorderType:NSBezelBorder];
-    [scrollview setHasVerticalScroller:YES];
-    [scrollview setAutohidesScrollers:YES];
-    [scrollview setAutoresizingMask:UIViewWidthSizable|UIViewHeightSizable];
-    [scrollview setDocumentView:mle];
-    [mle setVerticallyResizable:YES];
-    [mle setAutoresizingMask:UIViewWidthSizable|UIViewHeightSizable];
+    [mle setAutoresizingMask:UIViewAutoresizingFlexibleHeight|UIViewAutoresizingFlexibleWidth];
     [mle setScrollview:scrollview];
-    [mle setAutomaticQuoteSubstitutionEnabled:NO];
-    [mle setAutomaticDashSubstitutionEnabled:NO];
-    [mle setAutomaticTextReplacementEnabled:NO];
     /* [mle setTag:cid]; Why doesn't this work? */
     [mle autorelease];
     return mle;
@@ -4272,13 +4176,7 @@ DW_FUNCTION_RESTORE_PARAM3(handle, HWND, buffer, const char *, startpoint, int)
     unsigned int retval;
     NSTextStorage *ts = [mle textStorage];
     NSString *nstr = [NSString stringWithUTF8String:buffer];
-    UIColor *fgcolor = [ts foregroundColor];
-    UIFont *font = [ts font];
-    NSMutableDictionary *attributes = [[NSMutableDictionary alloc] init];
-    [attributes setObject:(fgcolor ? fgcolor : [UIColor textColor]) forKey:NSForegroundColorAttributeName];
-    if(font)
-        [attributes setObject:font forKey:UIFontAttributeName];
-    NSAttributedString *nastr = [[NSAttributedString alloc] initWithString:nstr attributes:attributes];
+    NSAttributedString *nastr = [[NSAttributedString alloc] initWithString:nstr];
     NSUInteger length = [ts length];
     if(startpoint < 0)
         startpoint = 0;
@@ -4442,27 +4340,7 @@ void API dw_mle_set_editable(HWND handle, int state)
  */
 void API dw_mle_set_word_wrap(HWND handle, int state)
 {
-    DWMLE *mle = handle;
-    UIScrollView *sv = [mle scrollview];
-
-    if(state)
-    {
-        CGSize newsize = NSMakeSize([sv contentSize].width,[mle maxSize].height);
-        CGRect newrect = NSMakeRect(0, 0, [sv contentSize].width, 0);
-        
-        [[mle textContainer] setWidthTracksTextView:YES];
-        [mle setFrame:newrect];
-        [[mle textContainer] setContainerSize:newsize];
-        [mle setHorizontallyResizable:NO];
-        [sv setHasHorizontalScroller:NO];
-    }
-    else
-    {
-        [[mle textContainer] setWidthTracksTextView:NO];
-        [[mle textContainer] setContainerSize:[mle maxSize]];
-        [mle setHorizontallyResizable:YES];
-        [sv setHasHorizontalScroller:YES];
-    }
+    /* TODO: Figure out how to do this in iOS */
 }
 
 /*
@@ -4473,10 +4351,7 @@ void API dw_mle_set_word_wrap(HWND handle, int state)
  */
 void API dw_mle_set_auto_complete(HWND handle, int state)
 {
-    DWMLE *mle = handle;
-    [mle setAutomaticQuoteSubstitutionEnabled:(state & DW_MLE_COMPLETE_QUOTE ? YES : NO)];
-    [mle setAutomaticDashSubstitutionEnabled:(state & DW_MLE_COMPLETE_DASH ? YES : NO)];
-    [mle setAutomaticTextReplacementEnabled:(state & DW_MLE_COMPLETE_TEXT ? YES : NO)];
+    /* TODO: Figure out how to do this in iOS */
 }
 
 /*
@@ -4562,16 +4437,7 @@ void API dw_mle_thaw(HWND handle)
  */
 HWND API dw_status_text_new(const char *text, ULONG cid)
 {
-    NSBox *border = [[NSBox alloc] init];
-    UITextField *textfield = dw_text_new(text, cid);
-
-    [border setTitlePosition:NSNoTitle];
-    [border setContentView:textfield];
-    [border setContentViewMargins:NSMakeSize(1.5,1.5)];
-    [textfield autorelease];
-    [textfield setBackgroundColor:[UIColor clearColor]];
-    [[textfield cell] setVCenter:YES];
-    return border;
+    return dw_text_new(text, cid);
 }
 
 /*
@@ -4583,17 +4449,12 @@ HWND API dw_status_text_new(const char *text, ULONG cid)
 HWND API dw_text_new(const char *text, ULONG cid)
 {
     DWText *textfield = [[DWText alloc] init];
-    [textfield setEditable:NO];
-    [textfield setSelectable:NO];
-    [textfield setBordered:NO];
-    [textfield setDrawsBackground:NO];
-    [textfield setStringValue:[ NSString stringWithUTF8String:text ]];
+    [textfield setText:[NSString stringWithUTF8String:text]];
     [textfield setTag:cid];
     if(DWDefaultFont)
     {
-        [[textfield cell] setFont:DWDefaultFont];
+        [textfield setFont:DWDefaultFont];
     }
-    [[textfield cell] setWraps:NO];
     return textfield;
 }
 
@@ -4642,9 +4503,9 @@ void API dw_color_foreground_set(unsigned long value)
 
     _foreground = _get_color(value);
 
-    newcolor = [[UIColor colorWithDeviceRed:    DW_RED_VALUE(_foreground)/255.0 green:
-                                                DW_GREEN_VALUE(_foreground)/255.0 blue:
-                                                DW_BLUE_VALUE(_foreground)/255.0 alpha: 1] retain];
+    newcolor = [[UIColor colorWithRed:  DW_RED_VALUE(_foreground)/255.0 green:
+                                        DW_GREEN_VALUE(_foreground)/255.0 blue:
+                                        DW_BLUE_VALUE(_foreground)/255.0 alpha: 1] retain];
     pthread_setspecific(_dw_fg_color_key, newcolor);
     [oldcolor release];
     DW_LOCAL_POOL_OUT;
@@ -4670,9 +4531,9 @@ void API dw_color_background_set(unsigned long value)
     {
         _background = _get_color(value);
 
-        newcolor = [[UIColor colorWithDeviceRed:    DW_RED_VALUE(_background)/255.0 green:
-                                                    DW_GREEN_VALUE(_background)/255.0 blue:
-                                                    DW_BLUE_VALUE(_background)/255.0 alpha: 1] retain];
+        newcolor = [[UIColor colorWithRed:  DW_RED_VALUE(_background)/255.0 green:
+                                            DW_GREEN_VALUE(_background)/255.0 blue:
+                                            DW_BLUE_VALUE(_background)/255.0 alpha: 1] retain];
         pthread_setspecific(_dw_bg_color_key, newcolor);
     }
     [oldcolor release];
@@ -4687,6 +4548,7 @@ void API dw_color_background_set(unsigned long value)
  */
 unsigned long API dw_color_choose(unsigned long value)
 {
+#if 0 /* TODO: Implement this with UIColorPickerViewController */
     /* Create the Color Chooser Dialog class. */
     DWColorChoose *colorDlg;
     DWDialog *dialog;
@@ -4726,6 +4588,7 @@ unsigned long API dw_color_choose(unsigned long value)
     [color getRed:&red green:&green blue:&blue alpha:NULL];
     value = DW_RGB((int)(red * 255), (int)(green *255), (int)(blue *255));
     DW_LOCAL_POOL_OUT;
+#endif
     return value;
 }
 
@@ -5952,7 +5815,7 @@ DW_FUNCTION_RESTORE_PARAM2(handle, HWND, flags, unsigned long)
     DW_FUNCTION_INIT;
     DWContainer *cont = handle;
     NSArray *selected = [cont indexPathsForSelectedRows];
-    NSIndexPath *result = [selected objectAtIndex:0];
+    NSIndexPath *result = [selected firstObject];
     void *retval = NULL;
 
     if(result)
@@ -6367,7 +6230,7 @@ float API dw_splitbar_get(HWND handle)
     DWSplitBar *split = handle;
     CGRect rect1 = [split frame];
     NSArray *subviews = [split subviews];
-    UIView *view = [subviews objectAtIndex:0];
+    UIView *view = [subviews firstObject];
     CGRect rect2 = [view frame];
     float pos, total, retval = 0.0;
     if([split isVertical])
@@ -7212,6 +7075,9 @@ HWND API dw_notebook_new(ULONG cid, int top)
 {
     DWNotebook *notebook = [[DWNotebook alloc] init];
     [notebook setDelegate:notebook];
+    [notebook addTarget:notebook
+                 action:@selector(pageChanged:)
+       forControlEvents:UIControlEventValueChanged];
     /* [notebook setTag:cid]; Why doesn't this work? */
     return notebook;
 }
