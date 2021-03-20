@@ -21,6 +21,12 @@
 #include <sys/stat.h>
 #include <math.h>
 
+/* Macros to handle local auto-release pools */
+#define DW_LOCAL_POOL_IN NSAutoreleasePool *localpool = nil; \
+        if(DWThread != (DWTID)-1 && pthread_self() != DWThread) \
+            localpool = [[NSAutoreleasePool alloc] init];
+#define DW_LOCAL_POOL_OUT if(localpool) [localpool drain];
+
 /* Macros to encapsulate running functions on the main thread */
 #define DW_FUNCTION_INIT
 #define DW_FUNCTION_DEFINITION(func, rettype, ...)  void _##func(NSPointerArray *_args); \
@@ -760,7 +766,10 @@ API_AVAILABLE(ios(13.0))
     if(cachedDrawingRep)
     {
         UIImage *oldrep = cachedDrawingRep;
-        cachedDrawingRep = [self bitmapImageRepForCachingDisplayInRect:self.bounds];
+        UIGraphicsBeginImageContext(self.frame.size);
+        [[self layer] renderInContext:UIGraphicsGetCurrentContext()];
+        cachedDrawingRep = UIGraphicsGetImageFromCurrentImageContext();
+        UIGraphicsEndImageContext();
         [cachedDrawingRep retain];
         [oldrep release];
     }
@@ -769,7 +778,10 @@ API_AVAILABLE(ios(13.0))
 -(UIImage *)cachedDrawingRep {
     if(!cachedDrawingRep)
     {
-        cachedDrawingRep = [self bitmapImageRepForCachingDisplayInRect:self.bounds];
+        UIGraphicsBeginImageContext(self.frame.size);
+        [[self layer] renderInContext:UIGraphicsGetCurrentContext()];
+        cachedDrawingRep = UIGraphicsGetImageFromCurrentImageContext();
+        UIGraphicsEndImageContext();
         [cachedDrawingRep retain];
     }
     /* Mark this render dirty if something is requesting it to draw */
@@ -831,14 +843,14 @@ API_AVAILABLE(ios(13.0))
                                    preferredStyle:[[params objectAtIndex:2] integerValue]];
      
     UIAlertAction* action = [UIAlertAction actionWithTitle:[params objectAtIndex:3] style:UIAlertActionStyleDefault
-                                                   handler:^(UIAlertAction * action) { iResponse = 0; }];
+                                                   handler:^(UIAlertAction * action) { iResponse = 1; }];
     [alert addAction:action];
     if([params count] > 4)
         action = [UIAlertAction actionWithTitle:[params objectAtIndex:4] style:UIAlertActionStyleDefault
-                                        handler:^(UIAlertAction * action) { iResponse = 1; }];
+                                        handler:^(UIAlertAction * action) { iResponse = 2; }];
     if([params count] > 5)
         action = [UIAlertAction actionWithTitle:[params objectAtIndex:5] style:UIAlertActionStyleDefault
-                                        handler:^(UIAlertAction * action) { iResponse = 2; }];
+                                        handler:^(UIAlertAction * action) { iResponse = 3; }];
 
     [alert presentViewController:alert animated:YES completion:nil];
     [alert release];
@@ -976,7 +988,6 @@ DWObject *DWObj;
 -(void)setMenu:(UIMenu *)input;
 -(void)windowDidBecomeMain:(id)sender;
 -(void)menuHandler:(id)sender;
--(void)mouseDragged:(UIEvent *)theEvent;
 @end
 
 @implementation DWView
@@ -1370,8 +1381,12 @@ UITableViewCell *_dw_table_cell_view_new(UIImage *icon, NSString *text)
     int filesystem;
 }
 -(NSInteger)numberOfRowsInTableView:(UITableView *)aTable;
+#if 0 /* TODO: Switch to columnless versions */
 -(id)tableView:(UITableView *)aTable objectValueForTableColumn:(NSTableColumn *)aCol row:(NSInteger)aRow;
 -(BOOL)tableView:(UITableView *)aTableView shouldEditTableColumn:(NSTableColumn *)aTableColumn row:(int)rowIndex;
+-(void)tableView:(UITableView *)tableView didAddRowView:(UITableRowView *)rowView forRow:(NSInteger)row;
+-(UIView *)tableView:(UITableView *)tableView viewForTableColumn:(NSTableColumn *)tableColumn row:(NSInteger)row;
+#endif
 -(void *)userdata;
 -(void)setUserdata:(void *)input;
 -(void)setFilesystem:(int)input;
@@ -1394,11 +1409,8 @@ UITableViewCell *_dw_table_cell_view_new(UIImage *icon, NSString *text)
 -(CGSize)getsize;
 -(void)setForegroundColor:(UIColor *)input;
 -(void)doubleClicked:(id)sender;
--(void)keyUp:(UIEvent *)theEvent;
 -(void)selectionChanged:(id)sender;
 -(UIMenu *)menuForEvent:(UIEvent *)event;
--(void)tableView:(UITableView *)tableView didAddRowView:(UITableRowView *)rowView forRow:(NSInteger)row;
--(UIView *)tableView:(UITableView *)tableView viewForTableColumn:(NSTableColumn *)tableColumn row:(NSInteger)row;
 @end
 
 @implementation DWContainer
@@ -1415,6 +1427,7 @@ UITableViewCell *_dw_table_cell_view_new(UIImage *icon, NSString *text)
     }
     return 0;
 }
+#if 0 /* TODO: Switch to columnless versions */
 -(id)tableView:(UITableView *)aTable objectValueForTableColumn:(NSTableColumn *)aCol row:(NSInteger)aRow
 {
     if(tvcols && data)
@@ -1443,6 +1456,59 @@ UITableViewCell *_dw_table_cell_view_new(UIImage *icon, NSString *text)
     return nil;
 }
 -(BOOL)tableView:(UITableView *)aTableView shouldEditTableColumn:(NSTableColumn *)aTableColumn row:(int)rowIndex { return NO; }
+-(void)tableView:(UITableView *)tableView didAddRowView:(UITableRowView *)rowView forRow:(NSInteger)row
+{
+    /* Handle drawing alternating row colors if enabled */
+    if ((row % 2) == 0)
+    {
+        if(evencolor)
+            [rowView setBackgroundColor:evencolor];
+    }
+    else
+    {
+        if(oddcolor)
+            [rowView setBackgroundColor:oddcolor];
+    }
+}
+-(UIView *)tableView:(UITableView *)tableView viewForTableColumn:(NSTableColumn *)tableColumn row:(NSInteger)row;
+{
+    /* Not reusing cell views, so get the cell from our array */
+    int index = (int)(row * [tvcols count]) + (int)[tvcols indexOfObject:tableColumn];
+    id celldata = [data objectAtIndex:index];
+
+    /* The data is already a NSTableCellView so just return that */
+    if([celldata isMemberOfClass:[UITableViewCell class]])
+    {
+        UITableViewCell *result = celldata;
+        
+        /* Copy the alignment setting from the column,
+         * and set the text color from the container.
+         */
+        if(@available(iOS 14.0, *))
+        {
+            UIListContentConfiguration *content = [result defaultContentConfiguration];
+            
+            if(fgcolor)
+                [[content textProperties] setColor:fgcolor];
+        }
+        else
+        {
+            if(fgcolor)
+                [result setTextColor:fgcolor];
+        }
+        /* Return the result */
+        return result;
+    }
+    return nil;
+}
+-(void)tableView:(NSTableView *)tableView didClickTableColumn:(NSTableColumn *)tableColumn
+{
+    NSUInteger index = [tvcols indexOfObject:tableColumn];
+
+    /* Handler for column click class */
+    _event_handler(self, (UIEvent *)index, 17);
+}
+#endif
 -(void *)userdata { return userdata; }
 -(void)setUserdata:(void *)input { userdata = input; }
 -(void)setFilesystem:(int)input { filesystem = input; }
@@ -1538,51 +1604,6 @@ UITableViewCell *_dw_table_cell_view_new(UIImage *icon, NSString *text)
         return (int)[titles count];
     }
     return 0;
-}
--(void)tableView:(UITableView *)tableView didAddRowView:(UITableRowView *)rowView forRow:(NSInteger)row
-{
-    /* Handle drawing alternating row colors if enabled */
-    if ((row % 2) == 0)
-    {
-        if(evencolor)
-            [rowView setBackgroundColor:evencolor];
-    }
-    else
-    {
-        if(oddcolor)
-            [rowView setBackgroundColor:oddcolor];
-    }
-}
--(UIView *)tableView:(UITableView *)tableView viewForTableColumn:(NSTableColumn *)tableColumn row:(NSInteger)row;
-{
-    /* Not reusing cell views, so get the cell from our array */
-    int index = (int)(row * [tvcols count]) + (int)[tvcols indexOfObject:tableColumn];
-    id celldata = [data objectAtIndex:index];
-
-    /* The data is already a NSTableCellView so just return that */
-    if([celldata isMemberOfClass:[UITableViewCell class]])
-    {
-        UITableViewCell *result = celldata;
-        
-        /* Copy the alignment setting from the column,
-         * and set the text color from the container.
-         */
-        if(@available(iOS 14.0, *))
-        {
-            UIListContentConfiguration *content = [result defaultContentConfiguration];
-            
-            if(fgcolor)
-                [[content textProperties] setColor:fgcolor];
-        }
-        else
-        {
-            if(fgcolor)
-                [result setTextColor:fgcolor];
-        }
-        /* Return the result */
-        return result;
-    }
-    return nil;
 }
 -(void)editCell:(id)input at:(int)row and:(int)col
 {
@@ -1744,6 +1765,7 @@ UITableViewCell *_dw_table_cell_view_new(UIImage *icon, NSString *text)
 }
 -(void)setForegroundColor:(UIColor *)input
 {
+#if 0 /* TODO: Fix this without columns */
     int z, count = (int)[tvcols count];
 
     fgcolor = input;
@@ -1755,68 +1777,40 @@ UITableViewCell *_dw_table_cell_view_new(UIImage *icon, NSString *text)
         UITextFieldCell *cell = [tableColumn dataCell];
         [cell setTextColor:fgcolor];
     }
+#endif
 }
 -(void)doubleClicked:(id)sender
 {
     void *params[2];
 
-    params[0] = (void *)[self getRowTitle:(int)[self selectedRow]];
-    params[1] = (void *)[self getRowData:(int)[self selectedRow]];
+    params[0] = (void *)[self getRowTitle:(int)[self indexPathForSelectedRow].row];
+    params[1] = (void *)[self getRowData:(int)[self indexPathForSelectedRow].row];
 
     /* Handler for container class */
     _event_handler(self, (UIEvent *)params, 9);
-}
--(void)keyUp:(UIEvent *)theEvent
-{
-    if([[theEvent charactersIgnoringModifiers] characterAtIndex:0] == VK_RETURN)
-    {
-        void *params[2];
-
-        params[0] = (void *)[self getRowTitle:(int)[self selectedRow]];
-        params[1] = (void *)[self getRowData:(int)[self selectedRow]];
-
-        _event_handler(self, (UIEvent *)params, 9);
-    }
-    [super keyUp:theEvent];
-}
-
--(void)tableView:(NSTableView *)tableView didClickTableColumn:(NSTableColumn *)tableColumn
-{
-    NSUInteger index = [tvcols indexOfObject:tableColumn];
-
-    /* Handler for column click class */
-    _event_handler(self, (UIEvent *)index, 17);
 }
 -(void)selectionChanged:(id)sender
 {
     void *params[2];
 
-    params[0] = (void *)[self getRowTitle:(int)[self selectedRow]];
-    params[1] = (void *)[self getRowData:(int)[self selectedRow]];
+    params[0] = (void *)[self getRowTitle:(int)[self indexPathForSelectedRow].row];
+    params[1] = (void *)[self getRowData:(int)[self indexPathForSelectedRow].row];
 
     /* Handler for container class */
     _event_handler(self, (UIEvent *)params, 12);
     /* Handler for listbox class */
-    _event_handler(self, DW_INT_TO_POINTER((int)[self selectedRow]), 11);
+    _event_handler(self, DW_INT_TO_POINTER((int)[self indexPathForSelectedRow].row), 11);
 }
 -(UIMenu *)menuForEvent:(UIEvent *)event
 {
+#if 0 /* TODO: Fix this */
     int row;
     CGPoint where = [self convertPoint:[event locationInWindow] fromView:nil];
     row = (int)[self rowAtPoint:where];
     _event_handler(self, (UIEvent *)[self getRowTitle:row], 10);
+#endif
     return nil;
 }
--(void)keyDown:(UIEvent *)theEvent
-{
-    unichar vk = [[theEvent charactersIgnoringModifiers] characterAtIndex:0];
-
-    if(vk == NSTabCharacter || vk == NSBackTabCharacter)
-        [self interpretKeyEvents:[NSArray arrayWithObject:theEvent]];
-    [super keyDown:theEvent];
-}
--(void)insertTab:(id)sender { if([[self window] firstResponder] == self) [[self window] selectNextKeyView:self]; }
--(void)insertBacktab:(id)sender { if([[self window] firstResponder] == self) [[self window] selectPreviousKeyView:self]; }
 -(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); dw_signal_disconnect_by_window(self); [super dealloc]; }
 @end
 
@@ -1948,18 +1942,6 @@ void _free_tree_recurse(NSMutableArray *node, NSMutableArray *item)
     _event_handler(self, DW_INT_TO_POINTER(val), 14);
 }
 -(void)setClickDefault:(id)input { clickDefault = input; }
--(void)keyUp:(UIEvent *)theEvent
-{
-    if(clickDefault && [[theEvent charactersIgnoringModifiers] characterAtIndex:0] == VK_RETURN)
-    {
-        [[self window] makeFirstResponder:clickDefault];
-    }
-    else
-    {
-        [super keyUp:theEvent];
-    }
-}
--(void)performClick:(id)sender { [textfield performClick:sender]; }
 -(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); dw_signal_disconnect_by_window(self); [super dealloc]; }
 @end
 
@@ -2325,7 +2307,7 @@ static void _resize_box(Box *thisbox, int *depth, int x, int y, int pass)
                 {
                     int depth = 0;
                     DWScrollBox *scrollbox = (DWScrollBox *)handle;
-                    DWBox *contentbox = [scrollbox documentView];
+                    DWBox *contentbox = [scrollbox contentView];
                     Box *thisbox = [contentbox box];
                     CGSize contentsize = [scrollbox contentSize];
 
@@ -2352,10 +2334,10 @@ static void _resize_box(Box *thisbox, int *depth, int x, int y, int pass)
                     DWSpinButton *spinbutton = (DWSpinButton *)handle;
                     UITextField *textfield = [spinbutton textfield];
                     UIStepper *stepper = [spinbutton stepper];
-                    [textfield setFrameOrigin:NSMakePoint(0,0)];
-                    [textfield setFrameSize:NSMakeSize(size.width-20,size.height)];
-                    [stepper setFrameOrigin:NSMakePoint(size.width-20,0)];
-                    [stepper setFrameSize:NSMakeSize(20,size.height)];
+                    [textfield setFrameOrigin:CGPointMake(0,0)];
+                    [textfield setFrameSize:CGSizeMake(size.width-20,size.height)];
+                    [stepper setFrameOrigin:CGPointMake(size.width-20,0)];
+                    [stepper setFrameSize:CGSizeMake(20,size.height)];
                 }
                 else if([handle isMemberOfClass:[DWSplitBar class]])
                 {
@@ -2419,7 +2401,6 @@ void API dw_main(void)
 void API dw_main_quit(void)
 {
     [DWApp stop:nil];
-    _dw_wakeup_app();
 }
 
 /*
@@ -2459,14 +2440,13 @@ void API dw_main_sleep(int milliseconds)
 /* Internal version that doesn't lock the run mutex */
 int _dw_main_iteration(NSDate *date)
 {
-    UIEvent *event = [DWApp nextEventMatchingMask:DWEventMaskAny
+    UIEvent *event = [DWApp nextEventMatchingMask:UIEventMaskAny
                                         untilDate:date
                                            inMode:NSDefaultRunLoopMode
                                           dequeue:YES];
     if(event)
     {
         [DWApp sendEvent:event];
-        [DWApp updateWindows];
         return 1;
     }
     return 0;
@@ -2608,7 +2588,7 @@ int API dw_messagebox(const char *title, int flags, const char *format, ...)
     NSString *button3 = nil;
     NSString *mtitle = [NSString stringWithUTF8String:title];
     NSString *mtext;
-    NSAlertStyle mstyle = DWAlertStyleWarning;
+    UIAlertControllerStyle mstyle = UIAlertControllerStyleAlert;
     NSArray *params;
     va_list args;
 
@@ -2632,10 +2612,8 @@ int API dw_messagebox(const char *title, int flags, const char *format, ...)
     mtext = [[[NSString alloc] initWithFormat:[NSString stringWithUTF8String:format] arguments:args] autorelease];
     va_end(args);
 
-    if(flags & DW_MB_ERROR)
-        mstyle = DWAlertStyleCritical;
-    else if(flags & DW_MB_INFORMATION)
-        mstyle = DWAlertStyleInformational;
+    if(flags & DW_MB_INFORMATION)
+        mstyle = UIAlertControllerStyleActionSheet;
 
     params = [NSMutableArray arrayWithObjects:mtitle, mtext, [NSNumber numberWithInteger:mstyle], button1, button2, button3, nil];
     [DWObj safeCall:@selector(messageBox:) withObject:params];
@@ -2643,19 +2621,19 @@ int API dw_messagebox(const char *title, int flags, const char *format, ...)
 
     switch(iResponse)
     {
-        case NSAlertFirstButtonReturn:    /* user pressed OK */
+        case 1:    /* user pressed OK */
             if(flags & DW_MB_YESNO || flags & DW_MB_YESNOCANCEL)
             {
                 return DW_MB_RETURN_YES;
             }
             return DW_MB_RETURN_OK;
-        case NSAlertSecondButtonReturn:  /* user pressed Cancel */
+        case 2:  /* user pressed Cancel */
             if(flags & DW_MB_OKCANCEL)
             {
                 return DW_MB_RETURN_CANCEL;
             }
             return DW_MB_RETURN_NO;
-        case NSAlertThirdButtonReturn:      /* user pressed the third button */
+        case 3:      /* user pressed the third button */
             return DW_MB_RETURN_CANCEL;
     }
     return 0;
@@ -2675,167 +2653,6 @@ int API dw_messagebox(const char *title, int flags, const char *format, ...)
  */
 char * API dw_file_browse(const char *title, const char *defpath, const char *ext, int flags)
 {
-    char temp[PATH_MAX+1];
-    char *file = NULL, *path = NULL;
-    DW_LOCAL_POOL_IN;
-
-    /* Figure out path information...
-     * These functions are only support in Snow Leopard and later...
-     */
-    if(defpath && *defpath && (DWOSMinor > 5 || DWOSMajor > 10))
-    {
-        struct stat buf;
-
-        /* Get an absolute path */
-        if(!realpath(defpath, temp))
-            strcpy(temp, defpath);
-
-        /* Check if the defpath exists */
-        if(stat(temp, &buf) == 0)
-        {
-            /* Can be a directory or file */
-            if(buf.st_mode & S_IFDIR)
-                path = temp;
-            else
-                file = temp;
-        }
-        /* If it wasn't a directory... check if there is a path */
-        if(!path && strchr(temp, '/'))
-        {
-            unsigned long x = strlen(temp) - 1;
-
-            /* Trim off the filename */
-            while(x > 0 && temp[x] != '/')
-            {
-                x--;
-            }
-            if(temp[x] == '/')
-            {
-                temp[x] = 0;
-                /* Check to make sure the trimmed piece is a directory */
-                if(stat(temp, &buf) == 0)
-                {
-                    if(buf.st_mode & S_IFDIR)
-                    {
-                        /* We now have it split */
-                        path = temp;
-                        file = &temp[x+1];
-                    }
-                }
-            }
-        }
-    }
-
-    if(flags == DW_FILE_OPEN || flags == DW_DIRECTORY_OPEN)
-    {
-        /* Create the File Open Dialog class. */
-        NSOpenPanel* openDlg = [NSOpenPanel openPanel];
-
-        if(path)
-        {
-            SEL ssdu = NSSelectorFromString(@"setDirectoryURL");
-
-            if([openDlg respondsToSelector:ssdu])
-            {
-                DWIMP isdu = (DWIMP)[openDlg methodForSelector:ssdu];
-                isdu(openDlg, ssdu, [NSURL fileURLWithPath:[NSString stringWithUTF8String:path]]);
-            }
-        }
-
-        /* Enable the selection of files in the dialog. */
-        if(flags == DW_FILE_OPEN)
-        {
-            [openDlg setCanChooseFiles:YES];
-            [openDlg setCanChooseDirectories:NO];
-        }
-        else
-        {
-            [openDlg setCanChooseFiles:NO];
-            [openDlg setCanChooseDirectories:YES];
-        }
-
-        /* Handle file types */
-        if(ext && *ext)
-        {
-            NSArray* fileTypes = [[[NSArray alloc] initWithObjects:[NSString stringWithUTF8String:ext], nil] autorelease];
-            [openDlg setAllowedFileTypes:fileTypes];
-        }
-
-        /* Disable multiple selection */
-        [openDlg setAllowsMultipleSelection:NO];
-
-        /* Display the dialog.  If the OK button was pressed,
-         * process the files.
-         */
-        if([openDlg runModal] == DWModalResponseOK)
-        {
-            /* Get an array containing the full filenames of all
-             * files and directories selected.
-             */
-            NSArray *files = [openDlg URLs];
-            NSString *fileName = [[files objectAtIndex:0] path];
-            if(fileName)
-            {
-                char *ret = strdup([ fileName UTF8String ]);
-                DW_LOCAL_POOL_OUT;
-                return ret;
-            }
-        }
-    }
-    else
-    {
-        /* Create the File Save Dialog class. */
-        NSSavePanel* saveDlg = [NSSavePanel savePanel];
-
-        if(path)
-        {
-            SEL ssdu = NSSelectorFromString(@"setDirectoryURL");
-
-            if([saveDlg respondsToSelector:ssdu])
-            {
-                DWIMP isdu = (DWIMP)[saveDlg methodForSelector:ssdu];
-                isdu(saveDlg, ssdu, [NSURL fileURLWithPath:[NSString stringWithUTF8String:path]]);
-            }
-        }
-        if(file)
-        {
-            SEL ssnfsv = NSSelectorFromString(@"setNameFieldStringValue");
-
-            if([saveDlg respondsToSelector:ssnfsv])
-            {
-                DWIMP isnfsv = (DWIMP)[saveDlg methodForSelector:ssnfsv];
-                isnfsv(saveDlg, ssnfsv, [NSString stringWithUTF8String:file]);
-            }
-        }
-
-        /* Enable the creation of directories in the dialog. */
-        [saveDlg setCanCreateDirectories:YES];
-
-        /* Handle file types */
-        if(ext && *ext)
-        {
-            NSArray* fileTypes = [[[NSArray alloc] initWithObjects:[NSString stringWithUTF8String:ext], nil] autorelease];
-            [saveDlg setAllowedFileTypes:fileTypes];
-        }
-
-        /* Display the dialog.  If the OK button was pressed,
-         * process the files.
-         */
-        if([saveDlg runModal] == DWModalResponseOK)
-        {
-            /* Get an array containing the full filenames of all
-             * files and directories selected.
-             */
-            NSString* fileName = [[saveDlg URL] path];
-            if(fileName)
-            {
-                char *ret = strdup([ fileName UTF8String ]);
-                DW_LOCAL_POOL_OUT;
-                return ret;
-            }
-        }
-    }
-    DW_LOCAL_POOL_OUT;
     return NULL;
 }
 
@@ -2849,12 +2666,10 @@ char * API dw_file_browse(const char *title, const char *defpath, const char *ex
  */
 char *dw_clipboard_get_text()
 {
-    NSPasteboard *pasteboard = [NSPasteboard generalPasteboard];
-    NSString *str = [pasteboard stringForType:DWPasteboardTypeString];
+    UIPasteboard *pasteboard = [UIPasteboard generalPasteboard];
+    NSString *str = [pasteboard string];
     if(str != nil)
-    {
-        return strdup([ str UTF8String ]);
-    }
+        return strdup([str UTF8String]);
     return NULL;
 }
 
@@ -2865,16 +2680,9 @@ char *dw_clipboard_get_text()
  */
 void dw_clipboard_set_text(const char *str, int len)
 {
-    NSPasteboard *pasteboard = [NSPasteboard generalPasteboard];
-    SEL scc = NSSelectorFromString(@"clearContents");
+    UIPasteboard *pasteboard = [UIPasteboard generalPasteboard];
 
-    if([pasteboard respondsToSelector:scc])
-    {
-        DWIMP icc = (DWIMP)[pasteboard methodForSelector:scc];
-        icc(pasteboard, scc);
-    }
-
-    [pasteboard setString:[ NSString stringWithUTF8String:str ] forType:DWPasteboardTypeString];
+    [pasteboard setString:[NSString stringWithUTF8String:str]];
 }
 
 
@@ -4317,7 +4125,7 @@ DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
     if([object isMemberOfClass:[DWContainer class]])
     {
         DWContainer *cont = handle;
-        result = (int)[cont selectedRow];
+        result = (int)[cont indexPathForSelectedRow].row;
     }
     DW_FUNCTION_RETURN_THIS(result);
 }
@@ -4341,13 +4149,13 @@ DW_FUNCTION_RESTORE_PARAM2(handle, HWND, where, int)
     {
         NSUInteger result;
         DWContainer *cont = handle;
-        NSIndexSet *selected = [cont selectedRowIndexes];
-        if( where == -1 )
-           result = [selected indexGreaterThanOrEqualToIndex:0];
+        NSArray *selected = [cont indexPathsForSelectedRows];
+        if(where == -1)
+           result = [selected objectAtIndex:0];
         else
-           result = [selected indexGreaterThanIndex:where];
+           result = [selected objectAtIndex:where];
 
-        if(result != NSNotFound)
+        if(result)
         {
             retval = (int)result;
         }
@@ -6143,21 +5951,21 @@ DW_FUNCTION_RESTORE_PARAM2(handle, HWND, flags, unsigned long)
 {
     DW_FUNCTION_INIT;
     DWContainer *cont = handle;
-    NSIndexSet *selected = [cont selectedRowIndexes];
-    NSUInteger result = [selected indexGreaterThanOrEqualToIndex:0];
+    NSArray *selected = [cont indexPathsForSelectedRows];
+    NSIndexPath *result = [selected objectAtIndex:0];
     void *retval = NULL;
 
-    if(result != NSNotFound)
+    if(result)
     {
         if(flags & DW_CR_RETDATA)
-            retval = [cont getRowData:(int)result];
+            retval = [cont getRowData:(int)result.row];
         else
         {
-            char *temp = [cont getRowTitle:(int)result];
+            char *temp = [cont getRowTitle:(int)result.row];
             if(temp)
                retval = strdup(temp);
         }
-        [cont setLastQueryPoint:(int)result];
+        [cont setLastQueryPoint:1];
     }
     DW_FUNCTION_RETURN_THIS(retval);
 }
@@ -6178,21 +5986,21 @@ DW_FUNCTION_RESTORE_PARAM2(handle, HWND, flags, unsigned long)
     DW_FUNCTION_INIT;
     DWContainer *cont = handle;
     int lastQueryPoint = [cont lastQueryPoint];
-    NSIndexSet *selected = [cont selectedRowIndexes];
-    NSUInteger result = [selected indexGreaterThanIndex:lastQueryPoint];
+    NSArray *selected = [cont indexPathsForSelectedRows];
+    NSIndexPath *result = [selected objectAtIndex:lastQueryPoint];
     void *retval = NULL;
 
-    if(result != NSNotFound)
+    if(result)
     {
         if(flags & DW_CR_RETDATA)
-            retval = [cont getRowData:(int)result];
+            retval = [cont getRowData:(int)result.row];
         else
         {
-            char *temp = [cont getRowTitle:(int)result];
+            char *temp = [cont getRowTitle:(int)result.row];
             if(temp)
                retval = strdup(temp);
         }
-        [cont setLastQueryPoint:(int)result];
+        [cont setLastQueryPoint:(int)lastQueryPoint+1];
     }
     DW_FUNCTION_RETURN_THIS(retval);
 }
@@ -10243,13 +10051,8 @@ int API dw_init(int newthread, int argc, char *argv[])
     pthread_key_create(&_dw_fg_color_key, NULL);
     pthread_key_create(&_dw_bg_color_key, NULL);
     _init_colors();
-    /* Create a default main menu, with just the application menu */
-    DWMainMenu = _generate_main_menu();
-    [DWMainMenu retain];
-    [DWApp setMainMenu:DWMainMenu];
     DWObj = [[DWObject alloc] init];
     DWDefaultFont = nil;
-    DWFontManager = [UIFontManager sharedFontManager];
     if (@available(iOS 10.0, *))
     {
         if([[NSBundle mainBundle] bundleIdentifier] != nil)
@@ -10428,12 +10231,6 @@ DWTID dw_thread_id(void)
    return (DWTID)pthread_self();
 }
 
-NSURL *_dw_url_from_program(NSString *nsprogram, NSWorkspace *ws)
-{
-    NSURL *retval = [ws URLForApplicationWithBundleIdentifier:nsprogram];
-    return retval;
-}
-
 /*
  * Execute and external program in a seperate session.
  * Parameters:
@@ -10447,6 +10244,7 @@ int dw_exec(const char *program, int type, char **params)
 {
     int ret = DW_ERROR_UNKNOWN;
 
+#if 0 /* TODO: Figure out how to do this on iOS */
     if(type == DW_EXEC_GUI)
     {
         NSString *nsprogram = [NSString stringWithUTF8String:program];
@@ -10500,6 +10298,7 @@ int dw_exec(const char *program, int type, char **params)
             ret = DW_POINTER_TO_INT(dw_dialog_wait(dialog));
         }
     }
+#endif
     return ret;
 }
 
@@ -10511,17 +10310,10 @@ int dw_exec(const char *program, int type, char **params)
 int dw_browse(const char *url)
 {
     NSURL *myurl = [NSURL URLWithString:[NSString stringWithUTF8String:url]];
-    [[NSWorkspace sharedWorkspace] openURL:myurl];
+    [DWApp openURL:myurl options:@{}
+           completionHandler:^(BOOL success) {}];
     return DW_ERROR_NONE;
 }
-
-typedef struct _dwprint
-{
-    NSPrintInfo *pi;
-    int (*drawfunc)(HPRINT, HPIXMAP, int, void *);
-    void *drawdata;
-    unsigned long flags;
-} DWPrint;
 
 /*
  * Creates a new print object.
@@ -10536,53 +10328,7 @@ typedef struct _dwprint
  */
 HPRINT API dw_print_new(const char *jobname, unsigned long flags, unsigned int pages, void *drawfunc, void *drawdata)
 {
-    DWPrint *print;
-    NSPrintPanel *panel;
-    PMPrintSettings settings;
-    NSPrintInfo *pi;
-
-    if(!drawfunc || !(print = calloc(1, sizeof(DWPrint))))
-    {
-        return NULL;
-    }
-
-    if(!jobname)
-        jobname = "Dynamic Windows Print Job";
-
-    print->drawfunc = drawfunc;
-    print->drawdata = drawdata;
-    print->flags = flags;
-
-    /* Get the page range */
-    pi = [NSPrintInfo sharedPrintInfo];
-    [pi setHorizontalPagination:DWPrintingPaginationModeFit];
-    [pi setHorizontallyCentered:YES];
-    [pi setVerticalPagination:DWPrintingPaginationModeFit];
-    [pi setVerticallyCentered:YES];
-    [pi setOrientation:DWPaperOrientationPortrait];
-    [pi setLeftMargin:0.0];
-    [pi setRightMargin:0.0];
-    [pi setTopMargin:0.0];
-    [pi setBottomMargin:0.0];
-
-    settings = [pi PMPrintSettings];
-    PMSetPageRange(settings, 1, pages);
-    PMSetFirstPage(settings, 1, true);
-    PMSetLastPage(settings, pages, true);
-    PMPrintSettingsSetJobName(settings, (CFStringRef)[NSString stringWithUTF8String:jobname]);
-    [pi updateFromPMPrintSettings];
-
-    /* Create and show the print panel */
-    panel = [NSPrintPanel printPanel];
-    if(!panel || [panel runModalWithPrintInfo:pi] == DWModalResponseCancel)
-    {
-        free(print);
-        return NULL;
-    }
-    /* Put the print info from the panel into the operation */
-    print->pi = pi;
-
-    return print;
+    return NULL;
 }
 
 /*
@@ -10595,95 +10341,7 @@ HPRINT API dw_print_new(const char *jobname, unsigned long flags, unsigned int p
  */
 int API dw_print_run(HPRINT print, unsigned long flags)
 {
-    DWPrint *p = print;
-    UIImage *rep, *rep2;
-    NSPrintInfo *pi;
-    NSPrintOperation *po;
-    HPIXMAP pixmap, pixmap2;
-    UIImage *image, *flipped;
-    UIImageView *iv;
-    CGSize size;
-    PMPrintSettings settings;
-    int x, result = DW_ERROR_UNKNOWN;
-    UInt32 start, end;
-
-    if(!p)
-        return result;
-
-    DW_LOCAL_POOL_IN;
-
-    /* Figure out the printer/paper size */
-    pi = p->pi;
-    size = [pi paperSize];
-
-    /* Get the page range */
-    settings = [pi PMPrintSettings];
-    PMGetFirstPage(settings, &start);
-    if(start > 0)
-        start--;
-    PMGetLastPage(settings, &end);
-    PMSetPageRange(settings, 1, 1);
-    PMSetFirstPage(settings, 1, true);
-    PMSetLastPage(settings, 1, true);
-    [pi updateFromPMPrintSettings];
-
-    /* Create an image view to print and a pixmap to draw into */
-    iv = [[UIImageView alloc] init];
-    pixmap = dw_pixmap_new(iv, (int)size.width, (int)size.height, 8);
-    rep = pixmap->image;
-    pixmap2 = dw_pixmap_new(iv, (int)size.width, (int)size.height, 8);
-    rep2 = pixmap2->image;
-
-    /* Create an image with the data from the pixmap
-     * to go into the image view.
-     */
-    image = [[UIImage alloc] initWithSize:[rep size]];
-    flipped = [[UIImage alloc] initWithSize:[rep size]];
-    [image addRepresentation:rep];
-    [flipped addRepresentation:rep2];
-    [iv setImage:flipped];
-    [iv setImageScaling:UIImageScaleProportionallyDown];
-    [iv setFrameOrigin:NSMakePoint(0,0)];
-    [iv setFrameSize:size];
-
-    /* Create the print operation using the image view and
-     * print info obtained from the panel in the last call.
-     */
-    po = [NSPrintOperation printOperationWithView:iv printInfo:pi];
-    [po setShowsPrintPanel:NO];
-
-    /* Cycle through each page */
-    for(x=start; x<end && p->drawfunc; x++)
-    {
-        /* Call the application's draw function */
-        p->drawfunc(print, pixmap, x, p->drawdata);
-        if(p->drawfunc)
-        {
-           /* Internal representation is flipped... so flip again so we can print */
-           _flip_image(image, rep2, size);
-   #ifdef DEBUG_PRINT
-           /* Save it to file to see what we have */
-           NSData *data = [rep2 representationUsingType: NSPNGFileType properties: nil];
-           [data writeToFile: @"print.png" atomically: NO];
-   #endif
-           /* Print the image view */
-           [po runOperation];
-           /* Fill the pixmap with white in case we are printing more pages */
-           dw_color_foreground_set(DW_CLR_WHITE);
-           dw_draw_rect(0, pixmap, TRUE, 0, 0, (int)size.width, (int)size.height);
-        }
-    }
-    if(p->drawfunc)
-        result = DW_ERROR_NONE;
-    /* Free memory */
-    [image release];
-    [flipped release];
-    dw_pixmap_destroy(pixmap);
-    dw_pixmap_destroy(pixmap2);
-    free(p);
-    [iv release];
-    DW_LOCAL_POOL_OUT;
-    return result;
+    return DW_ERROR_UNKNOWN;
 }
 
 /*
@@ -10693,10 +10351,6 @@ int API dw_print_run(HPRINT print, unsigned long flags)
  */
 void API dw_print_cancel(HPRINT print)
 {
-    DWPrint *p = print;
-
-    if(p)
-        p->drawfunc = NULL;
 }
 
 /*
