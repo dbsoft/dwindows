@@ -588,14 +588,29 @@ typedef struct _bitbltinfo
 @end
 
 API_AVAILABLE(ios(13.0))
-@interface DWMenuItem : UIMenuItem
+@interface DWMenuItem : UICommand
 {
     int check;
+    unsigned long tag;
 }
 -(void)setCheck:(int)input;
+-(void)setTag:(unsigned long)input;
 -(int)check;
+-(unsigned long)tag;
 -(void)dealloc;
 @end
+
+API_AVAILABLE(ios(13.0))
+@interface DWMenu : NSObject
+{
+    UIMenu *menu;
+}
+-(void)setMenu:(UIMenu *)input;
+-(UIMenu *)menu;
+-(DWMenuItem *)itemWithTag:(unsigned long)tag;
+-(void)dealloc;
+@end
+
 
 /* So basically to implement our event handlers...
  * it looks like we are going to have to subclass
@@ -622,7 +637,7 @@ API_AVAILABLE(ios(13.0))
 -(BOOL)isFlipped;
 -(void)mouseDown:(UIEvent *)theEvent;
 -(void)mouseUp:(UIEvent *)theEvent;
--(UIMenu *)menuForEvent:(UIEvent *)theEvent;
+-(DWMenu *)menuForEvent:(UIEvent *)theEvent;
 -(void)rightMouseUp:(UIEvent *)theEvent;
 -(void)otherMouseDown:(UIEvent *)theEvent;
 -(void)otherMouseUp:(UIEvent *)theEvent;
@@ -669,7 +684,7 @@ API_AVAILABLE(ios(13.0))
 -(BOOL)isFlipped { return YES; }
 -(void)mouseDown:(UIEvent *)theEvent { _event_handler(self, (void *)1, 3); }
 -(void)mouseUp:(UIEvent *)theEvent { _event_handler(self, (void *)1, 4); }
--(UIMenu *)menuForEvent:(UIEvent *)theEvent { _event_handler(self, (void *)2, 3); return nil; }
+-(DWMenu *)menuForEvent:(UIEvent *)theEvent { _event_handler(self, (void *)2, 3); return nil; }
 -(void)rightMouseUp:(UIEvent *)theEvent { _event_handler(self, (void *)2, 4); }
 -(void)otherMouseDown:(UIEvent *)theEvent { _event_handler(self, (void *)3, 3); }
 -(void)otherMouseUp:(UIEvent *)theEvent { _event_handler(self, (void *)3, 4); }
@@ -747,7 +762,7 @@ API_AVAILABLE(ios(13.0))
 -(UIImage *)cachedDrawingRep;
 -(void)mouseDown:(UIEvent *)theEvent;
 -(void)mouseUp:(UIEvent *)theEvent;
--(UIMenu *)menuForEvent:(UIEvent *)theEvent;
+-(DWMenu *)menuForEvent:(UIEvent *)theEvent;
 -(void)rightMouseUp:(UIEvent *)theEvent;
 -(void)otherMouseDown:(UIEvent *)theEvent;
 -(void)otherMouseUp:(UIEvent *)theEvent;
@@ -795,7 +810,7 @@ API_AVAILABLE(ios(13.0))
         _event_handler(self, theEvent, 3);
 }
 -(void)mouseUp:(UIEvent *)theEvent { _event_handler(self, theEvent, 4); }
--(UIMenu *)menuForEvent:(UIEvent *)theEvent { _event_handler(self, theEvent, 3); return nil; }
+-(DWMenu *)menuForEvent:(UIEvent *)theEvent { _event_handler(self, theEvent, 3); return nil; }
 -(void)rightMouseUp:(UIEvent *)theEvent { _event_handler(self, theEvent, 4); }
 -(void)otherMouseDown:(UIEvent *)theEvent { _event_handler(self, theEvent, 3); }
 -(void)otherMouseUp:(UIEvent *)theEvent { _event_handler(self, theEvent, 4); }
@@ -981,11 +996,11 @@ DWObject *DWObj;
 /* Subclass for a top-level window */
 @interface DWView : DWBox /* <UIWindowDelegate> */
 {
-    UIMenu *windowmenu;
+    DWMenu *windowmenu;
     CGSize oldsize;
 }
 -(BOOL)windowShouldClose:(id)sender;
--(void)setMenu:(UIMenu *)input;
+-(void)setMenu:(DWMenu *)input;
 -(void)windowDidBecomeMain:(id)sender;
 -(void)menuHandler:(id)sender;
 @end
@@ -1042,7 +1057,7 @@ DWObject *DWObj;
 {
     _event_handler([self window], nil, 13);
 }
--(void)setMenu:(UIMenu *)input { windowmenu = input; [windowmenu retain]; }
+-(void)setMenu:(DWMenu *)input { windowmenu = input; [windowmenu retain]; }
 -(void)menuHandler:(id)sender
 {
     [DWObj menuHandler:sender];
@@ -1095,8 +1110,51 @@ DWObject *DWObj;
 /* Subclass for a menu item type */
 @implementation DWMenuItem
 -(void)setCheck:(int)input { check = input; }
+-(void)setTag:(unsigned long)input { tag = input; }
 -(int)check { return check; }
+-(unsigned long)tag { return tag; }
 -(void)dealloc { dw_signal_disconnect_by_window(self); [super dealloc]; }
+@end
+/*
+ * Encapsulate immutable objects in our own containers,
+ * so we can recreate the immutable subobjects as needed.
+ * Currently in this category: DWMenu and DWImage
+ */
+@implementation DWMenu
+-(void)setMenu:(UIMenu *)input { menu = input; }
+-(UIMenu *)menu { return menu; }
+-(DWMenuItem *)itemWithTag:(unsigned long)tag
+{
+    NSArray *children = [menu children];
+    
+    for(DWMenuItem *menuitem in children)
+    {
+        if([menuitem tag] == tag)
+            return menuitem;
+    }
+    return nil;
+}
+-(void)dealloc { [super dealloc]; }
+@end
+
+@interface DWImage : NSObject
+{
+    UIImage *image;
+    CGImageRef cgimage;
+}
+-(void)setImage:(UIImage *)input;
+-(void)setCGImage:(CGImageRef)input;
+-(UIImage *)image;
+-(CGImageRef)cgimage;
+-(void)dealloc;
+@end
+
+@implementation DWImage
+-(void)setImage:(UIImage *)input { image = input; }
+-(void)setCGImage:(CGImageRef)input { cgimage = input; }
+-(UIImage *)image { return image; }
+-(CGImageRef)cgimage { return cgimage; }
+-(void)dealloc { if(cgimage) CGImageRelease(cgimage); if(image) [image release]; [super dealloc]; }
 @end
 
 /* Subclass for a scrollbox type */
@@ -1190,20 +1248,6 @@ DWObject *DWObj;
 -(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); [super dealloc]; }
 @end
 
-
-/* Subclass for a Notebook control type */
-@interface DWNotebook : UISegmentedControl
-{
-    void *userdata;
-    int pageid;
-}
--(void *)userdata;
--(void)setUserdata:(void *)input;
--(int)pageid;
--(void)setPageid:(int)input;
--(void)pageChanged:(id)sender;
-@end
-
 /* Subclass for a Notebook page type */
 @interface DWNotebookPage : UIView
 {
@@ -1216,11 +1260,27 @@ DWObject *DWObj;
 -(void)setPageid:(int)input;
 @end
 
+/* Subclass for a Notebook control type */
+@interface DWNotebook : UISegmentedControl
+{
+    void *userdata;
+    int pageid;
+    NSMutableArray<DWNotebookPage *> *views;
+}
+-(void *)userdata;
+-(void)setUserdata:(void *)input;
+-(int)pageid;
+-(void)setPageid:(int)input;
+-(NSMutableArray<DWNotebookPage *> *)views;
+-(void)pageChanged:(id)sender;
+@end
+
 @implementation DWNotebook
 -(void *)userdata { return userdata; }
 -(void)setUserdata:(void *)input { userdata = input; }
 -(int)pageid { return pageid; }
 -(void)setPageid:(int)input { pageid = input; }
+-(NSMutableArray<DWNotebookPage *> *)views { return views; };
 -(void)pageChanged:(id)sender
 {
 #if 0 /* TODO: Implement page/segment changed handler */
@@ -1250,7 +1310,7 @@ DWObject *DWObj;
 @end
 
 /* Subclass for a splitbar type */
-@interface DWSplitBar : UISplitViewController
+@interface DWSplitBar : UISplitViewController <UISplitViewControllerDelegate>
 {
     void *userdata;
     float percent;
@@ -1410,7 +1470,7 @@ UITableViewCell *_dw_table_cell_view_new(UIImage *icon, NSString *text)
 -(void)setForegroundColor:(UIColor *)input;
 -(void)doubleClicked:(id)sender;
 -(void)selectionChanged:(id)sender;
--(UIMenu *)menuForEvent:(UIEvent *)event;
+-(DWMenu *)menuForEvent:(UIEvent *)event;
 @end
 
 @implementation DWContainer
@@ -1801,7 +1861,7 @@ UITableViewCell *_dw_table_cell_view_new(UIImage *icon, NSString *text)
     /* Handler for listbox class */
     _event_handler(self, DW_INT_TO_POINTER((int)[self indexPathForSelectedRow].row), 11);
 }
--(UIMenu *)menuForEvent:(UIEvent *)event
+-(DWMenu *)menuForEvent:(UIEvent *)event
 {
 #if 0 /* TODO: Fix this */
     int row;
@@ -3411,11 +3471,13 @@ HWND API dw_entryfield_password_new(const char *text, ULONG cid)
  */
 void API dw_entryfield_set_limit(HWND handle, ULONG limit)
 {
+#if 0 /* TODO: Implment this via textField:shouldChangeCharactersInRange:replacementString: */
     DWEntryField *entry = handle;
     DWEntryFieldFormatter *formatter = [[[DWEntryFieldFormatter alloc] init] autorelease];
 
     [formatter setMaximumLength:(int)limit];
     [entry setFormatter:formatter];
+#endif
 }
 
 /*
@@ -4694,7 +4756,7 @@ DW_FUNCTION_RESTORE_PARAM6(handle, HWND, pixmap, HPIXMAP, x1, int, y1, int, x2, 
         [color set];
 
         [aPath moveToPoint:CGPointMake(x1 + 0.5, y1 + 0.5)];
-        [aPath lineToPoint:CGPointMake(x2 + 0.5, y2 + 0.5)];
+        [aPath addLineToPoint:CGPointMake(x2 + 0.5, y2 + 0.5)];
         [aPath stroke];
     }
 
@@ -5887,11 +5949,11 @@ DW_FUNCTION_RESTORE_PARAM2(handle, HWND, text, char *)
 
         if(thistext && strcmp(thistext, text) == 0)
         {
-            NSIndexSet *selected = [[NSIndexSet alloc] initWithIndex:(NSUInteger)x];
+            NSIndexPath *ip = [NSIndexPath indexPathForRow:(NSUInteger)x inSection:0];
 
-            [cont selectRowIndexes:selected byExtendingSelection:YES];
-            [selected release];
-            [cont scrollRowToVisible:x];
+            [cont selectRowAtIndexPath:ip
+                              animated:NO
+                        scrollPosition:UITableViewScrollPositionNone];
             x=count;
             break;
         }
@@ -5923,11 +5985,11 @@ DW_FUNCTION_RESTORE_PARAM2(handle, HWND, data, void *)
 
         if(thisdata == data)
         {
-            NSIndexSet *selected = [[NSIndexSet alloc] initWithIndex:(NSUInteger)x];
+            NSIndexPath *ip = [NSIndexPath indexPathForRow:(NSUInteger)x inSection:0];
 
-            [cont selectRowIndexes:selected byExtendingSelection:YES];
-            [selected release];
-            [cont scrollRowToVisible:x];
+            [cont selectRowAtIndexPath:ip
+                              animated:NO
+                        scrollPosition:UITableViewScrollPositionNone];
             x=count;
             break;
         }
@@ -6041,7 +6103,9 @@ void _icon_resize(UIImage *image)
                 size.width = 24;
             if(size.height > 24)
                 size.height = 24;
+#if 0 /* TODO: UIImage is immutable, duplicate? */
             [image setSize:size];
+#endif
         }
     }
 }
@@ -6147,30 +6211,37 @@ HWND API dw_mdi_new(unsigned long cid)
  * Returns:
  *       A handle to a splitbar window or NULL on failure.
  */
-DW_FUNCTION_DEFINITION(dw_splitbar_new, HWND, int type, HWND topleft, HWND bottomright, unsigned long cid)
+DW_FUNCTION_DEFINITION(dw_splitbar_new, HWND, DW_UNUSED(int type), HWND topleft, HWND bottomright, unsigned long cid)
 DW_FUNCTION_ADD_PARAM4(type, topleft, bottomright, cid)
 DW_FUNCTION_RETURN(dw_splitbar_new, HWND)
-DW_FUNCTION_RESTORE_PARAM4(type, int, topleft, HWND, bottomright, HWND, cid, unsigned long)
+DW_FUNCTION_RESTORE_PARAM4(DW_UNUSED(type), int, topleft, HWND, bottomright, HWND, cid, unsigned long)
 {
     DW_FUNCTION_INIT;
     id tmpbox = dw_box_new(DW_VERT, 0);
     DWSplitBar *split = [[DWSplitBar alloc] init];
+    UIViewController *vc = [[UIViewController alloc] init];
     [split setDelegate:split];
     dw_box_pack_start(tmpbox, topleft, 0, 0, TRUE, TRUE, 0);
-    [split addSubview:tmpbox];
+    [vc setView:tmpbox];
+    if (@available(iOS 14.0, *)) {
+        [split setViewController:vc forColumn:UISplitViewControllerColumnPrimary];
+    } else {
+        [split addChildViewController:vc];
+    }
     [tmpbox autorelease];
     tmpbox = dw_box_new(DW_VERT, 0);
     dw_box_pack_start(tmpbox, bottomright, 0, 0, TRUE, TRUE, 0);
-    [split addSubview:tmpbox];
+    vc = [[UIViewController alloc] init];
+    [vc setView:tmpbox];
+    if (@available(iOS 14.0, *)) {
+        [split setViewController:vc forColumn:UISplitViewControllerColumnSecondary];
+    } else {
+        [split addChildViewController:vc];
+    }
     [tmpbox autorelease];
-    if(type == DW_VERT)
-    {
-        [split setVertical:NO];
-    }
-    else
-    {
-        [split setVertical:YES];
-    }
+#if 0 /* TODO: All iOS splitbars are vertical */
+    [split setVertical:(type == DW_VERT ? YES : NO)];
+#endif
     /* Set the default percent to 50% split */
     [split setPercent:50.0];
     [split setTag:cid];
@@ -6190,20 +6261,22 @@ DW_FUNCTION_RESTORE_PARAM2(handle, HWND, percent, float)
 {
     DW_FUNCTION_INIT;
     DWSplitBar *split = handle;
-    CGRect rect = [split frame];
+    CGSize size = [split preferredContentSize];
     float pos;
     /* Calculate the position based on the size */
-    if([split isVertical])
-    {
-        pos = rect.size.width * (percent / 100.0);
-    }
+#if 0 /* TODO: iOS split views are always vertical */
+    if(![split isVertical])
+        pos = size.height * (percent / 100.0);
     else
-    {
-        pos = rect.size.height * (percent / 100.0);
-    }
+#endif
+        pos = size.width * (percent / 100.0);
     if(pos > 0)
     {
-        [split setPosition:pos ofDividerAtIndex:0];
+        if (@available(iOS 14.0, *)) {
+            [split setPreferredPrimaryColumnWidth:pos];
+        } else {
+            /* TODO: Is this possible on earlier versions? */
+        }
     }
     else
     {
@@ -6224,24 +6297,14 @@ DW_FUNCTION_RESTORE_PARAM2(handle, HWND, percent, float)
 float API dw_splitbar_get(HWND handle)
 {
     DWSplitBar *split = handle;
-    CGRect rect1 = [split frame];
-    NSArray *subviews = [split subviews];
-    UIView *view = [subviews firstObject];
-    CGRect rect2 = [view frame];
-    float pos, total, retval = 0.0;
-    if([split isVertical])
-    {
-        total = rect1.size.width;
-        pos = rect2.size.width;
-    }
-    else
-    {
-        total = rect1.size.height;
-        pos = rect2.size.height;
-    }
-    if(total > 0)
-    {
-        retval = pos / total;
+    float retval = 50.0;
+
+    if (@available(iOS 14.0, *)) {
+        float primary = [split primaryColumnWidth];
+        float supplementary = [split supplementaryColumnWidth];
+        retval = (primary / (primary + supplementary)) * 100.0;
+    } else {
+        /* TODO: If possible*/
     }
     return retval;
 }
@@ -6599,11 +6662,9 @@ int API dw_pixmap_stretch_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest,
 HWND API dw_calendar_new(ULONG cid)
 {
     DWCalendar *calendar = [[DWCalendar alloc] init];
-    [calendar setDatePickerMode:DWDatePickerModeSingle];
-    [calendar setDatePickerStyle:DWDatePickerStyleClockAndCalendar];
-    [calendar setDatePickerElements:DWDatePickerElementFlagYearMonthDay];
+    [calendar setDatePickerMode:UIDatePickerModeDate];
     [calendar setTag:cid];
-    [calendar setDateValue:[NSDate date]];
+    [calendar setDate:[NSDate date]];
     return calendar;
 }
 
@@ -6626,7 +6687,7 @@ void dw_calendar_set_date(HWND handle, unsigned int year, unsigned int month, un
     dateFormatter.dateFormat = @"yyyy-MM-dd";
 
     date = [dateFormatter dateFromString:[NSString stringWithUTF8String:buffer]];
-    [calendar setDateValue:date];
+    [calendar setDate:date];
     [date release];
     DW_LOCAL_POOL_OUT;
 }
@@ -6640,9 +6701,9 @@ void dw_calendar_get_date(HWND handle, unsigned int *year, unsigned int *month, 
 {
     DWCalendar *calendar = handle;
     DW_LOCAL_POOL_IN;
-    NSCalendar *mycalendar = [[NSCalendar alloc] initWithCalendarIdentifier:DWCalendarIdentifierGregorian];
-    NSDate *date = [calendar dateValue];
-    NSDateComponents* components = [mycalendar components:DWCalendarUnitDay|DWCalendarUnitMonth|DWCalendarUnitYear fromDate:date];
+    NSCalendar *mycalendar = [[NSCalendar alloc] initWithCalendarIdentifier:NSCalendarIdentifierGregorian];
+    NSDate *date = [calendar date];
+    NSDateComponents* components = [mycalendar components:NSCalendarUnitDay|NSCalendarUnitMonth|NSCalendarUnitYear fromDate:date];
     *day = (unsigned int)[components day];
     *month = (unsigned int)[components month];
     *year = (unsigned int)[components year];
@@ -6673,10 +6734,10 @@ void API dw_html_action(HWND handle, int action)
         case DW_HTML_SEARCH:
             break;
         case DW_HTML_RELOAD:
-            [html reload:html];
+            [html reload];
             break;
         case DW_HTML_STOP:
-            [html stopLoading:html];
+            [html stopLoading];
             break;
         case DW_HTML_PRINT:
             break;
@@ -6766,15 +6827,13 @@ DW_FUNCTION_RESTORE_PARAM1(DW_UNUSED(cid), ULONG)
  */
 void API dw_pointer_query_pos(long *x, long *y)
 {
-    CGPoint mouseLoc;
-    mouseLoc = [UIEvent mouseLocation];
     if(x)
     {
-        *x = mouseLoc.x;
+        *x = 0;
     }
     if(y)
     {
-        *y = [[NSScreen mainScreen] frame].size.height - mouseLoc.y;
+        *y = 0;
     }
 }
 
@@ -6797,8 +6856,7 @@ void API dw_pointer_set_pos(long x, long y)
  */
 HMENUI API dw_menu_new(ULONG cid)
 {
-    UIMenu *menu = [[UIMenu alloc] init];
-    [menu setAutoenablesItems:NO];
+    DWMenu *menu = [[DWMenu alloc] init];
     /* [menu setTag:cid]; Why doesn't this work? */
     return menu;
 }
@@ -6810,10 +6868,8 @@ HMENUI API dw_menu_new(ULONG cid)
  */
 HMENUI API dw_menubar_new(HWND location)
 {
-    UIWindow *window = location;
-    UIMenu *windowmenu = _generate_main_menu();
-    [[window contentView] setMenu:windowmenu];
-    return (HMENUI)windowmenu;
+    /* TODO: Implement this with UIMenuSystem */
+    return NULL;
 }
 
 /*
@@ -6823,36 +6879,10 @@ HMENUI API dw_menubar_new(HWND location)
  */
 void API dw_menu_destroy(HMENUI *menu)
 {
-    UIMenu *thismenu = *menu;
+    DWMenu *thismenu = *menu;
     DW_LOCAL_POOL_IN;
     [thismenu release];
     DW_LOCAL_POOL_OUT;
-}
-
-/* Handle deprecation of convertScreenToBase in 10.10 yet still supporting
- * 10.6 and earlier since convertRectFromScreen was introduced in 10.7.
- */
-CGPoint _windowPointFromScreen(id window, CGPoint p)
-{
-    SEL crfs = NSSelectorFromString(@"convertRectFromScreen:");
-
-    if([window respondsToSelector:crfs])
-    {
-        CGRect (* icrfs)(id, SEL, CGRect) = (CGRect (*)(id, SEL, CGRect))[window methodForSelector:crfs];
-        CGRect rect = icrfs(window, crfs, NSMakeRect(p.x, p.y, 1, 1));
-        return rect.origin;
-    }
-    else
-    {
-        SEL cstb = NSSelectorFromString(@"convertScreenToBase:");
-
-        if([window respondsToSelector:cstb])
-        {
-            CGPoint (* icstb)(id, SEL, CGPoint) = (CGPoint (*)(id, SEL, CGPoint))[window methodForSelector:cstb];
-            return icstb(window, cstb, p);
-        }
-    }
-    return NSMakePoint(0,0);
 }
 
 /*
@@ -6865,25 +6895,15 @@ CGPoint _windowPointFromScreen(id window, CGPoint p)
  */
 void API dw_menu_popup(HMENUI *menu, HWND parent, int x, int y)
 {
-    UIMenu *thismenu = (UIMenu *)*menu;
+#if 0 /* TODO: Figure out how to do this */
+    DWMenu *thismenu = (DWMenu *)*menu;
     id object = parent;
     UIView *view = [object isKindOfClass:[UIWindow class]] ? [object contentView] : parent;
     UIWindow *window = [view window];
-    UIEvent *event = [DWApp currentEvent];
-    if(!window)
-        window = [event window];
     [thismenu autorelease];
-    CGPoint p = NSMakePoint(x, [[NSScreen mainScreen] frame].size.height - y);
-    UIEvent* fake = [UIEvent mouseEventWithType:DWEventTypeRightMouseDown
-                                       location:_windowPointFromScreen(window, p)
-                                  modifierFlags:0
-                                      timestamp:[event timestamp]
-                                   windowNumber:[window windowNumber]
-                                        context:[NSGraphicsContext currentContext]
-                                    eventNumber:1
-                                     clickCount:1
-                                       pressure:0.0];
-    [UIMenu popUpContextMenu:thismenu withEvent:fake forView:view];
+    CGPoint p = CGPointMake(x, y);
+    [UIContextMenuInteraction a
+#endif
 }
 
 char _removetilde(char *dest, const char *src)
@@ -6921,49 +6941,68 @@ char _removetilde(char *dest, const char *src)
  */
 HWND API dw_menu_append_item(HMENUI menux, const char *title, ULONG itemid, ULONG flags, int end, int check, HMENUI submenux)
 {
-    UIMenu *menu = menux;
-    UIMenu *submenu = submenux;
+    DWMenu *menu = menux;
     DWMenuItem *item = NULL;
     if(strlen(title) == 0)
     {
+#if 0 /* TODO: Not sure if separators exist in iOS */
         [menu addItem:[DWMenuItem separatorItem]];
+#endif
     }
     else
     {
         char accel[2];
         char *newtitle = malloc(strlen(title)+1);
         NSString *nstr;
-
+        UIMenu *newmenu, *oldmenu = [menu menu];
+        NSArray *newchildren, *oldchildren = [oldmenu children];
+        
         accel[0] = _removetilde(newtitle, title);
         accel[1] = 0;
 
         nstr = [ NSString stringWithUTF8String:newtitle ];
         free(newtitle);
 
-        item = [[[DWMenuItem alloc] initWithTitle:nstr
-                            action:@selector(menuHandler:)
-                            keyEquivalent:[ NSString stringWithUTF8String:accel ]] autorelease];
-        [menu addItem:item];
-
+        item = [[DWMenuItem commandWithTitle:nstr image:nil
+                                      action:@selector(menuHandler:)
+                                propertyList:nil] autorelease];
+        newchildren = [oldchildren arrayByAddingObjectsFromArray:@[item]];
+        if(oldmenu)
+        {
+            newmenu = [oldmenu menuByReplacingChildren:newchildren];
+            [oldmenu release];
+        }
+        else if(@available(iOS 14.0, *))
+            newmenu = [UIMenu menuWithChildren:newchildren];
+        else
+            newmenu = [UIMenu menuWithTitle:@"" children:newchildren];
+        [menu setMenu:newmenu];
+        
         [item setTag:itemid];
         if(check)
         {
             [item setCheck:YES];
             if(flags & DW_MIS_CHECKED)
             {
-                [item setState:DWControlStateValueOn];
+                [item setState:UIMenuElementStateOn];
             }
         }
+#if 0 /* TODO: Disabled items not supported on iOS */
         if(flags & DW_MIS_DISABLED)
         {
             [item setEnabled:NO];
         }
+#endif
 
+#if 0 /* TODO: iOS may not support submenus... but may be able to cascade... with defered menus */
         if(submenux)
         {
+            DWMenu *submenu = submenux;
+
             [submenu setTitle:nstr];
             [menu setSubmenu:submenu forItem:item];
         }
+#endif
         return item;
     }
     return item;
@@ -6980,17 +7019,17 @@ HWND API dw_menu_append_item(HMENUI menux, const char *title, ULONG itemid, ULON
 void API dw_menu_item_set_check(HMENUI menux, unsigned long itemid, int check)
 {
     id menu = menux;
-    UIMenuItem *menuitem = (UIMenuItem *)[menu itemWithTag:itemid];
+    DWMenuItem *menuitem = [menu itemWithTag:itemid];
 
     if(menuitem != nil)
     {
         if(check)
         {
-            [menuitem setState:DWControlStateValueOn];
+            [menuitem setState:UIMenuElementStateOn];
         }
         else
         {
-            [menuitem setState:DWControlStateValueOff];
+            [menuitem setState:UIMenuElementStateOff];
         }
     }
 }
@@ -7005,14 +7044,16 @@ void API dw_menu_item_set_check(HMENUI menux, unsigned long itemid, int check)
  */
 int API dw_menu_delete_item(HMENUI menux, unsigned long itemid)
 {
+#if 0 /* TODO: Remove item from the children array */
     id menu = menux;
-    UIMenuItem *menuitem = (UIMenuItem *)[menu itemWithTag:itemid];
+    DWMenuItem *menuitem = [menu itemWithTag:itemid];
 
     if(menuitem != nil)
     {
         [menu removeItem:menuitem];
         return DW_ERROR_NONE;
     }
+#endif
     return DW_ERROR_UNKNOWN;
 }
 
@@ -7027,18 +7068,19 @@ int API dw_menu_delete_item(HMENUI menux, unsigned long itemid)
 void API dw_menu_item_set_state(HMENUI menux, unsigned long itemid, unsigned long state)
 {
     id menu = menux;
-    UIMenuItem *menuitem = (UIMenuItem *)[menu itemWithTag:itemid];
+    DWMenuItem *menuitem = [menu itemWithTag:itemid];
 
     if(menuitem != nil)
     {
         if(state & DW_MIS_CHECKED)
         {
-            [menuitem setState:DWControlStateValueOn];
+            [menuitem setState:UIMenuElementStateOn];
         }
         else if(state & DW_MIS_UNCHECKED)
         {
-            [menuitem setState:DWControlStateValueOff];
+            [menuitem setState:UIMenuElementStateOff];
         }
+#if 0 /* TODO: Disabled items not supported on iOS */
         if(state & DW_MIS_ENABLED)
         {
             [menuitem setEnabled:YES];
@@ -7047,13 +7089,14 @@ void API dw_menu_item_set_state(HMENUI menux, unsigned long itemid, unsigned lon
         {
             [menuitem setEnabled:NO];
         }
+#endif
     }
 }
 
 /* Gets the notebook page from associated ID */
 DWNotebookPage *_notepage_from_id(DWNotebook *notebook, unsigned long pageid)
 {
-    NSArray *pages = [notebook tabViewItems];
+    NSArray *pages = [notebook views];
     for(DWNotebookPage *notepage in pages)
     {
         if([notepage pageid] == pageid)
@@ -7073,7 +7116,6 @@ DWNotebookPage *_notepage_from_id(DWNotebook *notebook, unsigned long pageid)
 HWND API dw_notebook_new(ULONG cid, int top)
 {
     DWNotebook *notebook = [[DWNotebook alloc] init];
-    [notebook setDelegate:notebook];
     [notebook addTarget:notebook
                  action:@selector(pageChanged:)
        forControlEvents:UIControlEventValueChanged];
@@ -7092,15 +7134,18 @@ unsigned long API dw_notebook_page_new(HWND handle, ULONG flags, int front)
 {
     DWNotebook *notebook = handle;
     NSInteger page = [notebook pageid];
-    DWNotebookPage *notepage = [[DWNotebookPage alloc] initWithIdentifier:[NSString stringWithFormat: @"pageid:%d", (int)page]];
+    DWNotebookPage *notepage = [[DWNotebookPage alloc] init];
+    NSMutableArray<DWNotebookPage *> *views = [notebook views];
     [notepage setPageid:(int)page];
     if(front)
     {
-        [notebook insertTabViewItem:notepage atIndex:(NSInteger)0];
+        [notebook insertSegmentWithTitle:@"" atIndex:(NSInteger)0 animated:NO];
+        [views addObject:notepage];
     }
     else
     {
-        [notebook addTabViewItem:notepage];
+        [notebook insertSegmentWithTitle:@"" atIndex:[notebook numberOfSegments] animated:NO];
+        [views addObject:notepage];
     }
     [notepage autorelease];
     [notebook setPageid:(int)(page+1)];
@@ -7121,7 +7166,15 @@ void API dw_notebook_page_destroy(HWND handle, unsigned int pageid)
 
     if(notepage != nil)
     {
-        [notebook removeTabViewItem:notepage];
+        NSMutableArray<DWNotebookPage *> *views = [notebook views];
+        NSUInteger index = [views indexOfObject:notepage];
+
+        if(index != NSNotFound)
+        {
+            [notebook removeSegmentAtIndex:index animated:NO];
+            [views removeObject:notepage];
+            [notepage release];
+        }
     }
     DW_LOCAL_POOL_OUT;
 }
@@ -7134,7 +7187,9 @@ void API dw_notebook_page_destroy(HWND handle, unsigned int pageid)
 unsigned long API dw_notebook_page_get(HWND handle)
 {
     DWNotebook *notebook = handle;
-    DWNotebookPage *notepage = (DWNotebookPage *)[notebook selectedTabViewItem];
+    NSInteger index = [notebook selectedSegmentIndex];
+    NSMutableArray<DWNotebookPage *> *views = [notebook views];
+    DWNotebookPage *notepage = [views objectAtIndex:index];
     return [notepage pageid];
 }
 
@@ -7146,13 +7201,21 @@ unsigned long API dw_notebook_page_get(HWND handle)
  */
 void API dw_notebook_page_set(HWND handle, unsigned int pageid)
 {
+#if 0 /* TODO: Don't see a method to select a tab */
     DWNotebook *notebook = handle;
     DWNotebookPage *notepage = _notepage_from_id(notebook, pageid);
 
     if(notepage != nil)
     {
-        [notebook selectTabViewItem:notepage];
+        NSMutableArray<DWNotebookPage *> *views = [notebook views];
+        NSUInteger index = [views indexOfObject:notepage];
+
+        if(index != NSNotFound)
+        {
+            [notebook selectTabViewItem:notepage];
+        }
     }
+#endif
 }
 
 /*
@@ -7165,12 +7228,8 @@ void API dw_notebook_page_set(HWND handle, unsigned int pageid)
 void API dw_notebook_page_set_text(HWND handle, ULONG pageid, const char *text)
 {
     DWNotebook *notebook = handle;
-    DWNotebookPage *notepage = _notepage_from_id(notebook, pageid);
 
-    if(notepage != nil)
-    {
-        [notepage setLabel:[ NSString stringWithUTF8String:text ]];
-    }
+    [notebook setTitle:[NSString stringWithUTF8String:text] forSegmentAtIndex:pageid];
 }
 
 /*
@@ -7194,6 +7253,7 @@ void API dw_notebook_page_set_status_text(HWND handle, ULONG pageid, const char 
  */
 void API dw_notebook_pack(HWND handle, ULONG pageid, HWND page)
 {
+#if 0 /* TODO: Haven't implemented the content yet since UISegmentedControl is just the buttons */
     DWNotebook *notebook = handle;
     DWNotebookPage *notepage = _notepage_from_id(notebook, pageid);
 
@@ -7206,6 +7266,7 @@ void API dw_notebook_pack(HWND handle, ULONG pageid, HWND page)
         [notepage setView:box];
         [box autorelease];
     }
+#endif
 }
 
 /*
@@ -7221,42 +7282,11 @@ DW_FUNCTION_RETURN(dw_window_new, HWND)
 DW_FUNCTION_RESTORE_PARAM3(hwndOwner, HWND, title, char *, flStyle, ULONG)
 {
     DW_FUNCTION_INIT;
-    CGRect frame = NSMakeRect(1,1,1,1);
-    DWWindow *window = [[DWWindow alloc]
-                        initWithContentRect:frame
-                        styleMask:(flStyle)
-                        backing:NSBackingStoreBuffered
-                        defer:false];
+    DWWindow *window = [[DWWindow alloc] init];
 
-    [window setTitle:[ NSString stringWithUTF8String:title ]];
-
-    DWView *view = [[DWView alloc] init];
-
-    [window setContentView:view];
-    [window setDelegate:view];
-    [window setAutorecalculatesKeyViewLoop:YES];
-    [window setAcceptsMouseMovedEvents:YES];
-    [window setReleasedWhenClosed:YES];
-    [view autorelease];
-
-    /* Enable full screen mode on resizeable windows */
-    if(flStyle & DW_FCF_SIZEBORDER)
-    {
-        [window setCollectionBehavior:UIWindowCollectionBehaviorFullScreenPrimary];
-    }
-
-    /* If it isn't a toplevel window... */
-    if(hwndOwner)
-    {
-        id object = hwndOwner;
-
-        /* Check to see if the parent is an MDI window */
-        if([object isMemberOfClass:[DWMDI class]])
-        {
-            /* Set the window level to be floating */
-            [window setLevel:NSFloatingWindowLevel];
-            [window setHidesOnDeactivate:YES];
-        }
+    /* TODO: Handle style flags */
+    if(@available(iOS 13.0, *)) {
+        [window setLargeContentTitle:[NSString stringWithUTF8String:title]];
     }
     DW_FUNCTION_RETURN_THIS(window);
 }
@@ -7290,25 +7320,7 @@ void API dw_window_function(HWND handle, void *function, void *data)
  */
 void API dw_window_set_pointer(HWND handle, int pointertype)
 {
-    id object = handle;
-
-    if([ object isKindOfClass:[ UIView class ] ])
-    {
-        UIView *view = handle;
-
-        if(pointertype == DW_POINTER_DEFAULT)
-        {
-            [view discardCursorRects];
-        }
-        else if(pointertype == DW_POINTER_ARROW)
-        {
-            CGRect rect = [view frame];
-            NSCursor *cursor = [NSCursor arrowCursor];
-
-            [view addCursorRect:rect cursor:cursor];
-        }
-        /* No cursor for DW_POINTER_CLOCK? */
-    }
+    /* TODO: Only might be possible on Catalyst */
 }
 
 /*
@@ -7323,59 +7335,16 @@ int API dw_window_show(HWND handle)
     if([ object isMemberOfClass:[ DWWindow class ] ])
     {
         DWWindow *window = handle;
-        CGRect rect = [[window contentView] frame];
-        id defaultitem = [window initialFirstResponder];
+        CGRect rect = [window frame];
 
-        if([window isMiniaturized])
-        {
-            [window deminiaturize:nil];
-        }
         /* If we haven't been sized by a call.. */
         if(rect.size.width <= 1 || rect.size.height <= 1)
         {
             /* Determine the contents size */
             dw_window_set_size(handle, 0, 0);
         }
-        /* If the position was not set... generate a default
-         * default one in a similar pattern to SHELLPOSITION.
-         */
         if(![window shown])
-        {
-            static int defaultx = 0, defaulty = 0;
-            int cx = dw_screen_width(), cy = dw_screen_height();
-            int maxx = cx / 4, maxy = cy / 4;
-            CGPoint point;
-
-            rect = [window frame];
-
-            defaultx += 20;
-            defaulty += 20;
-            if(defaultx > maxx)
-                defaultx = 20;
-            if(defaulty > maxy)
-                defaulty = 20;
-
-            point.x = defaultx;
-            /* Take into account menu bar and inverted Y */
-            point.y = cy - defaulty - (int)rect.size.height - 22;
-
-            [window setFrameOrigin:point];
             [window setShown:YES];
-        }
-        [[window contentView] showWindow];
-        [window makeKeyAndOrderFront:nil];
-
-        if(!([window styleMask] & DWWindowStyleMaskResizable))
-        {
-            /* Fix incorrect repeat in displaying textured windows */
-            [window setAutorecalculatesContentBorderThickness:NO forEdge:NSMinYEdge];
-            [window setContentBorderThickness:0.0 forEdge:NSMinYEdge];
-        }
-        if(defaultitem)
-        {
-            /* If there is a default item set, make it first responder */
-            [window makeFirstResponder:defaultitem];
-        }
     }
     return 0;
 }
@@ -7393,7 +7362,7 @@ int API dw_window_hide(HWND handle)
     {
         UIWindow *window = handle;
 
-        [window orderOut:nil];
+        [window setHidden:YES];
     }
     return 0;
 }
@@ -7416,11 +7385,11 @@ int API dw_window_set_color(HWND handle, ULONG fore, ULONG back)
     /* Get the UIColor for non-default colors */
     if(fore != DW_CLR_DEFAULT)
     {
-        fg = [UIColor colorWithDeviceRed: DW_RED_VALUE(_fore)/255.0 green: DW_GREEN_VALUE(_fore)/255.0 blue: DW_BLUE_VALUE(_fore)/255.0 alpha: 1];
+        fg = [UIColor colorWithRed: DW_RED_VALUE(_fore)/255.0 green: DW_GREEN_VALUE(_fore)/255.0 blue: DW_BLUE_VALUE(_fore)/255.0 alpha: 1];
     }
     if(back != DW_CLR_DEFAULT)
     {
-        bg = [UIColor colorWithDeviceRed: DW_RED_VALUE(_back)/255.0 green: DW_GREEN_VALUE(_back)/255.0 blue: DW_BLUE_VALUE(_back)/255.0 alpha: 1];
+        bg = [UIColor colorWithRed: DW_RED_VALUE(_back)/255.0 green: DW_GREEN_VALUE(_back)/255.0 blue: DW_BLUE_VALUE(_back)/255.0 alpha: 1];
     }
 
     /* Get the textfield from the spinbutton */
@@ -7431,20 +7400,15 @@ int API dw_window_set_color(HWND handle, ULONG fore, ULONG back)
     /* Get the cell on classes using NSCell */
     if([object isKindOfClass:[UITextField class]])
     {
-        id cell = [object cell];
-
-        [object setTextColor:(fg ? fg : [UIColor controlTextColor])];
-        [cell setTextColor:(fg ? fg : [UIColor controlTextColor])];
+        [object setTextColor:(fg ? fg : [UIColor labelColor])];
     }
     if([object isMemberOfClass:[DWButton class]])
     {
-        [object setTitleColor:(fg ? fg : [UIColor controlTextColor])];
+        [object setTextColor:(fg ? fg : [UIColor labelColor])];
     }
     if([object isKindOfClass:[UITextField class]] || [object isKindOfClass:[UIButton class]])
     {
-        id cell = [object cell];
-
-        [cell setBackgroundColor:(bg ? bg : [UIColor controlColor])];
+        [object setBackgroundColor:(bg ? bg : [UIColor systemBackgroundColor])];
     }
     else if([object isMemberOfClass:[DWBox class]])
     {
@@ -7452,19 +7416,18 @@ int API dw_window_set_color(HWND handle, ULONG fore, ULONG back)
 
         [box setColor:_back];
     }
-    else if([object isKindOfClass:[NSTableView class]])
+    else if([object isKindOfClass:[UITableView class]])
     {
         DWContainer *cont = handle;
 
-        [cont setBackgroundColor:(bg ? bg : [UIColor controlBackgroundColor])];
-        [cont setForegroundColor:(fg ? fg : [UIColor controlTextColor])];
+        [cont setBackgroundColor:(bg ? bg : [UIColor systemBackgroundColor])];
+        [cont setForegroundColor:(fg ? fg : [UIColor labelColor])];
     }
     else if([object isMemberOfClass:[DWMLE class]])
     {
         DWMLE *mle = handle;
-        [mle setBackgroundColor:(bg ? bg : [UIColor controlBackgroundColor])];
-        NSTextStorage *ts = [mle textStorage];
-        [ts setForegroundColor:(fg ? fg : [UIColor controlTextColor])];
+        [mle setBackgroundColor:(bg ? bg : [UIColor systemBackgroundColor])];
+        [mle setTextColor:(fg ? fg : [UIColor labelColor])];
     }
     return 0;
 }
@@ -7491,25 +7454,7 @@ void API dw_window_set_style(HWND handle, ULONG style, ULONG mask)
 {
     id object = _text_handle(handle);
 
-    if([object isMemberOfClass:[DWWindow class]])
-    {
-        DWWindow *window = object;
-        SEL sssm = NSSelectorFromString(@"setStyleMask");
-
-        if([window respondsToSelector:sssm])
-        {
-            DWIMP issm = (DWIMP)[window methodForSelector:sssm];
-            int currentstyle = (int)[window styleMask];
-            int tmp;
-
-            tmp = currentstyle | (int)mask;
-            tmp ^= mask;
-            tmp |= style;
-
-            issm(window, sssm, tmp);
-        }
-    }
-    else if([object isKindOfClass:[UILabel class]])
+    if([object isKindOfClass:[UILabel class]])
     {
         UILabel *label = object;
 
@@ -7528,31 +7473,21 @@ void API dw_window_set_style(HWND handle, ULONG style, ULONG mask)
                 [label setLineBreakMode:NSLineBreakByTruncatingTail];
         }
     }
+#if 0 /* TODO: See if we can change alignment... */
     else if([object isMemberOfClass:[UITextView class]])
     {
         UITextView *tv = handle;
         [tv setAlignment:(style & mask)];
     }
-    else if([object isMemberOfClass:[DWButton class]])
-    {
-        DWButton *button = handle;
-
-        if(mask & DW_BS_NOBORDER)
-        {
-            if(style & DW_BS_NOBORDER)
-                [button setBordered:NO];
-            else
-                [button setBordered:YES];
-        }
-    }
+#endif
     else if([object isMemberOfClass:[DWMenuItem class]])
     {
         if(mask & (DW_MIS_CHECKED | DW_MIS_UNCHECKED))
         {
             if(style & DW_MIS_CHECKED)
-                [object setState:DWControlStateValueOn];
+                [object setState:UIMenuElementStateOn];
             else if(style & DW_MIS_UNCHECKED)
-                [object setState:DWControlStateValueOff];
+                [object setState:UIMenuElementStateOff];
         }
         if(mask & (DW_MIS_ENABLED | DW_MIS_DISABLED))
         {
@@ -7575,7 +7510,7 @@ void API dw_window_set_focus(HWND handle)
 {
     id object = handle;
 
-    [[object window] makeFirstResponder:object];
+    [object becomeFirstResponder];
 }
 
 /*
@@ -7593,7 +7528,7 @@ void API dw_window_default(HWND handle, HWND defaultitem)
 
     if([window isKindOfClass:[UIWindow class]] && [object isKindOfClass:[UIControl class]])
     {
-        [window setInitialFirstResponder:defaultitem];
+        [object becomeFirstResponder];
     }
 }
 
@@ -7605,26 +7540,7 @@ void API dw_window_default(HWND handle, HWND defaultitem)
  */
 void API dw_window_click_default(HWND handle, HWND next)
 {
-    id object = handle;
-    id control = next;
-
-    if([object isMemberOfClass:[DWWindow class]])
-    {
-        if([control isMemberOfClass:[DWButton class]])
-        {
-            UIWindow *window = object;
-
-            [window setDefaultButtonCell:[control cell]];
-        }
-    }
-    else
-    {
-        if([control isMemberOfClass:[DWSpinButton class]])
-        {
-            control = [control textfield];
-        }
-        [object setClickDefault:control];
-    }
+    /* TODO: Figure out how to do this if we should */
 }
 
 /*
@@ -7653,34 +7569,7 @@ void API dw_window_release(void)
  */
 void API dw_window_reparent(HWND handle, HWND newparent)
 {
-    id object = handle;
-
-    if([object isMemberOfClass:[DWWindow class]])
-    {
-        /* We can't actually reparent on MacOS but if the
-         * new parent is an MDI window, change to be a
-         * floating window... otherwise set it to normal.
-         */
-        UIWindow *window = handle;
-
-        /* If it isn't a toplevel window... */
-        if(newparent)
-        {
-            object = newparent;
-
-            /* Check to see if the parent is an MDI window */
-            if([object isMemberOfClass:[DWMDI class]])
-            {
-                /* Set the window level to be floating */
-                [window setLevel:NSFloatingWindowLevel];
-                [window setHidesOnDeactivate:YES];
-                return;
-            }
-        }
-        /* Set the window back to a normal window */
-        [window setLevel:NSNormalWindowLevel];
-        [window setHidesOnDeactivate:NO];
-    }
+    /* TODO: Not sure if we should even bother with this */
 }
 
 /* Allows the user to choose a font using the system's font chooser dialog.
@@ -7870,7 +7759,7 @@ DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
     /* Handle removing menu items from menus */
     else if([ object isKindOfClass:[UIMenuItem class]])
     {
-        UIMenu *menu = [object menu];
+        DWMenu *menu = [object menu];
 
         [menu removeItem:object];
     }
@@ -8091,7 +7980,7 @@ DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
         UIScrollView *sv = handle;
         object = [sv documentView];
     }
-    if([object isKindOfClass:[UIControl class]] || [object isKindOfClass:[UIMenuItem class]])
+    if([object isKindOfClass:[UIControl class]] /* TODO: || [object isKindOfClass:[UIMenuItem class]] */)
     {
         [object setEnabled:YES];
     }
