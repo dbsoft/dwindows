@@ -264,7 +264,7 @@ static void _do_resize(Box *thisbox, int x, int y);
 void _handle_resize_events(Box *thisbox);
 int _remove_userdata(UserData **root, const char *varname, int all);
 int _dw_main_iteration(NSDate *date);
-CGContextRef _dw_draw_context(UIImage *image);
+CGContextRef _dw_draw_context(UIImage *image, bool antialias);
 typedef id (*DWIMP)(id, SEL, ...);
 
 /* Internal function to queue a window redraw */
@@ -883,7 +883,7 @@ API_AVAILABLE(ios(13.0))
     }
     if([bltdest isMemberOfClass:[UIImage class]])
     {
-        UIGraphicsPushContext(_dw_draw_context(bltdest));
+        _dw_draw_context(bltdest, NO);
     }
     if(bltdest && [bltsrc isMemberOfClass:[UIImage class]])
     {
@@ -908,7 +908,7 @@ API_AVAILABLE(ios(13.0))
     }
     if([bltdest isMemberOfClass:[UIImage class]])
     {
-        UIGraphicsPopContext();
+        UIGraphicsEndImageContext();
     }
     free(bltinfo);
 }
@@ -3581,8 +3581,9 @@ HWND API dw_slider_new(int vertical, int increments, ULONG cid)
     [slider setMaximumValue:(double)increments];
     [slider setMinimumValue:0];
     [slider setContinuous:YES];
-    [slider setTarget:slider];
-    [slider setAction:@selector(sliderChanged:)];
+    [slider addTarget:slider
+               action:@selector(sliderChanged:)
+     forControlEvents:UIControlEventValueChanged];
     [slider setTag:cid];
     return slider;
 }
@@ -4592,9 +4593,14 @@ unsigned long API dw_color_choose(unsigned long value)
     return value;
 }
 
-CGContextRef _dw_draw_context(UIImage *image)
+CGContextRef _dw_draw_context(UIImage *image, bool antialiased)
 {
-    return [NSGraphicsContext graphicsContextWithCGContext:[[NSGraphicsContext graphicsContextWithBitmapImageRep:image] CGContext] flipped:YES];
+    CGContextRef context;
+
+    UIGraphicsBeginImageContext(image.size);
+    context = UIGraphicsGetCurrentContext();
+    CGContextSetAllowsAntialiasing(context, antialiased);
+    return context;
 }
 
 /* Draw a point on a window (preferably a render window).
@@ -4628,21 +4634,20 @@ DW_FUNCTION_RESTORE_PARAM4(handle, HWND, pixmap, HPIXMAP, x, int, y, int)
     }
     if(bi)
     {
-        [NSGraphicsContext saveGraphicsState];
-        [NSGraphicsContext setCurrentContext:_dw_draw_context(bi)];
+        _dw_draw_context(bi, NO);
     }
     if(bCanDraw == YES)
     {
-        NSBezierPath* aPath = [NSBezierPath bezierPath];
+        UIBezierPath* aPath = [UIBezierPath bezierPath];
         [aPath setLineWidth: 0.5];
         UIColor *color = pthread_getspecific(_dw_fg_color_key);
         [color set];
 
-        [aPath moveToPoint:NSMakePoint(x, y)];
+        [aPath moveToPoint:CGPointMake(x, y)];
         [aPath stroke];
     }
     if(bi)
-        [NSGraphicsContext restoreGraphicsState];
+        UIGraphicsEndImageContext();
     DW_LOCAL_POOL_OUT;
     DW_FUNCTION_RETURN_NOTHING;
 }
@@ -4680,22 +4685,21 @@ DW_FUNCTION_RESTORE_PARAM6(handle, HWND, pixmap, HPIXMAP, x1, int, y1, int, x2, 
     }
     if(bi)
     {
-        [NSGraphicsContext saveGraphicsState];
-        [NSGraphicsContext setCurrentContext:_dw_draw_context(bi)];
+       _dw_draw_context(bi, NO);
     }
     if(bCanDraw == YES)
     {
-        NSBezierPath* aPath = [NSBezierPath bezierPath];
+        UIBezierPath* aPath = [UIBezierPath bezierPath];
         UIColor *color = pthread_getspecific(_dw_fg_color_key);
         [color set];
 
-        [aPath moveToPoint:NSMakePoint(x1 + 0.5, y1 + 0.5)];
-        [aPath lineToPoint:NSMakePoint(x2 + 0.5, y2 + 0.5)];
+        [aPath moveToPoint:CGPointMake(x1 + 0.5, y1 + 0.5)];
+        [aPath lineToPoint:CGPointMake(x2 + 0.5, y2 + 0.5)];
         [aPath stroke];
     }
 
     if(bi)
-        [NSGraphicsContext restoreGraphicsState];
+        UIGraphicsEndImageContext();
     DW_LOCAL_POOL_OUT;
     DW_FUNCTION_RETURN_NOTHING;
 }
@@ -4741,8 +4745,7 @@ DW_FUNCTION_RESTORE_PARAM5(handle, HWND, pixmap, HPIXMAP, x, int, y, int, text, 
     }
     if(bi)
     {
-        [NSGraphicsContext saveGraphicsState];
-        [NSGraphicsContext setCurrentContext:_dw_draw_context(bi)];
+        _dw_draw_context(bi, NO);
     }
 
     if(bCanDraw == YES)
@@ -4753,13 +4756,13 @@ DW_FUNCTION_RESTORE_PARAM5(handle, HWND, pixmap, HPIXMAP, x, int, y, int, text, 
         if(bgcolor)
             [dict setValue:bgcolor forKey:NSBackgroundColorAttributeName];
         if(font)
-            [dict setValue:font forKey:UIFontAttributeName];
-        [nstr drawAtPoint:NSMakePoint(x, y) withAttributes:dict];
+            [dict setValue:font forKey:NSFontAttributeName];
+        [nstr drawAtPoint:CGPointMake(x, y) withAttributes:dict];
         [dict release];
     }
 
     if(bi)
-        [NSGraphicsContext restoreGraphicsState];
+        UIGraphicsEndImageContext();
     DW_LOCAL_POOL_OUT;
     DW_FUNCTION_RETURN_NOTHING;
 }
@@ -4796,7 +4799,7 @@ void API dw_font_text_extents_get(HWND handle, HPIXMAP pixmap, const char *text,
     /* If we got a font... add it to the dictionary */
     if(font)
     {
-        [dict setValue:font forKey:UIFontAttributeName];
+        [dict setValue:font forKey:NSFontAttributeName];
     }
     /* Calculate the size of the string */
     CGSize size = [nstr sizeWithAttributes:dict];
@@ -4811,18 +4814,6 @@ void API dw_font_text_extents_get(HWND handle, HPIXMAP pixmap, const char *text,
         *height = size.height;
     }
     DW_LOCAL_POOL_OUT;
-}
-
-/* Internal function to create an image graphics context...
- * with or without antialiasing enabled.
- */
-id _create_gc(id image, bool antialiased)
-{
-    CGContextRef  context = (CGContextRef)[[NSGraphicsContext graphicsContextWithBitmapImageRep:image] CGContext];
-    NSGraphicsContext *gc = [NSGraphicsContext graphicsContextWithCGContext:context flipped:YES];
-    [gc setShouldAntialias:antialiased];
-    CGContextSetAllowsAntialiasing(context, antialiased);
-    return gc;
 }
 
 /* Draw a polygon on a window (preferably a render window).
@@ -4860,32 +4851,29 @@ DW_FUNCTION_RESTORE_PARAM6(handle, HWND, pixmap, HPIXMAP, flags, int, npoints, i
     }
     if(bi)
     {
-        id gc = _create_gc(bi, flags & DW_DRAW_NOAA ? NO : YES);
-        [NSGraphicsContext saveGraphicsState];
-        [NSGraphicsContext setCurrentContext:gc];
+        _dw_draw_context(bi, flags & DW_DRAW_NOAA ? NO : YES);
     }
 
     if(bCanDraw == YES)
     {
-        NSBezierPath* aPath = [NSBezierPath bezierPath];
+        UIBezierPath* aPath = [UIBezierPath bezierPath];
         UIColor *color = pthread_getspecific(_dw_fg_color_key);
         [color set];
 
-        [aPath moveToPoint:NSMakePoint(*x + 0.5, *y + 0.5)];
+        [aPath moveToPoint:CGPointMake(*x + 0.5, *y + 0.5)];
         for(z=1;z<npoints;z++)
         {
-            [aPath lineToPoint:NSMakePoint(x[z] + 0.5, y[z] + 0.5)];
+            [aPath addLineToPoint:CGPointMake(x[z] + 0.5, y[z] + 0.5)];
         }
         [aPath closePath];
         if(flags & DW_DRAW_FILL)
-        {
             [aPath fill];
-        }
-        [aPath stroke];
+        else
+            [aPath stroke];
     }
 
     if(bi)
-        [NSGraphicsContext restoreGraphicsState];
+        UIGraphicsEndImageContext();
     DW_LOCAL_POOL_OUT;
     DW_FUNCTION_RETURN_NOTHING;
 }
@@ -4924,24 +4912,24 @@ DW_FUNCTION_RESTORE_PARAM7(handle, HWND, pixmap, HPIXMAP, flags, int, x, int, y,
     }
     if(bi)
     {
-        id gc = _create_gc(bi, flags & DW_DRAW_NOAA ? NO : YES);
-        [NSGraphicsContext saveGraphicsState];
-        [NSGraphicsContext setCurrentContext:gc];
+        _dw_draw_context(bi, flags & DW_DRAW_NOAA ? NO : YES);
     }
 
     if(bCanDraw == YES)
     {
         UIColor *color = pthread_getspecific(_dw_fg_color_key);
+        UIBezierPath *bp = [UIBezierPath bezierPathWithRect:CGRectMake(x, y, width, height)];;
+        
         [color set];
 
         if(flags & DW_DRAW_FILL)
-            [NSBezierPath fillRect:NSMakeRect(x, y, width, height)];
+            [bp fill];
         else
-            [NSBezierPath strokeRect:NSMakeRect(x, y, width, height)];
+            [bp stroke];
     }
 
     if(bi)
-        [NSGraphicsContext restoreGraphicsState];
+        UIGraphicsEndImageContext();
     DW_LOCAL_POOL_OUT;
     DW_FUNCTION_RETURN_NOTHING;
 }
@@ -4983,22 +4971,18 @@ DW_FUNCTION_RESTORE_PARAM9(handle, HWND, pixmap, HPIXMAP, flags, int, xorigin, i
     }
     if(bi)
     {
-        id gc = _create_gc(bi, flags & DW_DRAW_NOAA ? NO : YES);
-        [NSGraphicsContext saveGraphicsState];
-        [NSGraphicsContext setCurrentContext:gc];
+        _dw_draw_context(bi, flags & DW_DRAW_NOAA ? NO : YES);
     }
 
     if(bCanDraw)
     {
-        NSBezierPath* aPath = [NSBezierPath bezierPath];
+        UIBezierPath* aPath;
         UIColor *color = pthread_getspecific(_dw_fg_color_key);
         [color set];
 
         /* Special case of a full circle/oval */
         if(flags & DW_DRAW_FULL)
-        {
-            [aPath appendBezierPathWithOvalInRect:NSMakeRect(x1, y1, x2 - x1, y2 - y1)];
-        }
+            aPath = [UIBezierPath bezierPathWithOvalInRect:CGRectMake(x1, y1, x2 - x1, y2 - y1)];
         else
         {
             double a1 = atan2((y1-yorigin), (x1-xorigin));
@@ -5012,20 +4996,18 @@ DW_FUNCTION_RESTORE_PARAM9(handle, HWND, pixmap, HPIXMAP, flags, int, xorigin, i
             a2 *= (180.0 / M_PI);
 
             /* Prepare to draw */
-            [aPath appendBezierPathWithArcWithCenter:NSMakePoint(xorigin, yorigin)
-                                              radius:r startAngle:a1 endAngle:a2];
+            aPath = [UIBezierPath bezierPathWithArcCenter:CGPointMake(xorigin, yorigin)
+                                                   radius:r startAngle:a1 endAngle:a2 clockwise:NO];
         }
         /* If the fill flag is passed */
         if(flags & DW_DRAW_FILL)
-        {
             [aPath fill];
-        }
-        /* Actually do the drawing */
-        [aPath stroke];
+        else
+            [aPath stroke];
     }
 
     if(bi)
-        [NSGraphicsContext restoreGraphicsState];
+        UIGraphicsEndImageContext();
     DW_LOCAL_POOL_OUT;
     DW_FUNCTION_RETURN_NOTHING;
 }
@@ -5215,12 +5197,8 @@ DW_FUNCTION_RESTORE_PARAM2(cid, ULONG, multi, int)
 {
     DW_FUNCTION_INIT;
     DWContainer *cont = _dw_cont_new(cid, multi);
-    UIScrollView *scrollview = [cont scrollview];
-    [scrollview setHasHorizontalScroller:YES];
-    NSTableHeaderView *header = [[[NSTableHeaderView alloc] init] autorelease];
-    [cont setHeaderView:header];
-    [cont setTarget:cont];
-    [cont setDoubleAction:@selector(doubleClicked:)];
+    /* TODO: Switch to new action system
+    [cont setDoubleAction:@selector(doubleClicked:)];*/
     DW_FUNCTION_RETURN_THIS(cont);
 }
 
@@ -5247,18 +5225,10 @@ DW_FUNCTION_RESTORE_PARAM5(handle, HWND, flags, unsigned long *, titles, char **
 
     for(z=0;z<count;z++)
     {
+#if 0 /* TODO: Convert this to simulate columns */
         NSString *title = [NSString stringWithUTF8String:titles[z]];
-        NSTableColumn *column = [[NSTableColumn alloc] initWithIdentifier:title];
-        [column setTitle:title];
         /* Defaults to left justified so just handle right and center */
-        if(flags[z] & DW_CFA_RIGHT)
-            [(NSCell *)[column headerCell] setAlignment:DWTextAlignmentRight];
-        else if(flags[z] & DW_CFA_CENTER)
-            [(NSCell *)[column headerCell] setAlignment:DWTextAlignmentCenter];
-        [column setEditable:NO];
-        [cont addTableColumn:column];
-        [cont addColumn:column andType:(int)flags[z]];
-        [column release];
+#endif
     }
     DW_FUNCTION_RETURN_THIS(retval);
 }
@@ -5405,13 +5375,36 @@ DW_FUNCTION_RESTORE_PARAM5(handle, HWND, pointer, void *, column, int, row, int,
     id object = [cont getRow:(row+lastadd) and:column];
     
     /* If it is a cell, change the content of the cell */
-    if([object isMemberOfClass:[NSTableCellView class]])
+    if([object isMemberOfClass:[UITableViewCell class]])
     {
-        NSTableCellView *cell = object;
+        UITableViewCell *cell = object;
+
         if(icon)
-            [[cell imageView] setImage:icon];
+        {
+            if(@available(iOS 14.0, *))
+            {
+                UIListContentConfiguration *content = [cell defaultContentConfiguration];
+                
+                [content setImage:icon];
+            }
+            else
+            {
+                [cell setImage:icon];
+            }
+        }
         else
-            [[cell textField] setStringValue:text];
+        {
+            if(@available(iOS 14.0, *))
+            {
+                UIListContentConfiguration *content = [cell defaultContentConfiguration];
+                
+                [content setText:text];
+            }
+            else
+            {
+                [cell setText:text];
+            }
+        }
     }
     else /* Otherwise replace it with a new cell */
         [cont editCell:_dw_table_cell_view_new(icon, text) at:(row+lastadd) and:column];
@@ -5485,14 +5478,36 @@ DW_FUNCTION_RESTORE_PARAM5(handle, HWND, pointer, void *, row, int, filename, ch
     id object = [cont getRow:(row+lastadd) and:0];
     
     /* If it is a cell, change the content of the cell */
-    if([object isMemberOfClass:[NSTableCellView class]])
+    if([object isMemberOfClass:[UITableViewCell class]])
     {
-        NSTableCellView *cell = object;
-        
+        UITableViewCell *cell = object;
+
         if(icon)
-            [[cell imageView] setImage:icon];
+        {
+            if(@available(iOS 14.0, *))
+            {
+                UIListContentConfiguration *content = [cell defaultContentConfiguration];
+                
+                [content setImage:icon];
+            }
+            else
+            {
+                [cell setImage:icon];
+            }
+        }
         if(text)
-            [[cell textField] setStringValue:text];
+        {
+            if(@available(iOS 14.0, *))
+            {
+                UIListContentConfiguration *content = [cell defaultContentConfiguration];
+                
+                [content setText:text];
+            }
+            else
+            {
+                [cell setText:text];
+            }
+        }
     }
     else /* Otherwise replace it with a new cell */
         [cont editCell:_dw_table_cell_view_new(icon, text) at:(row+lastadd) and:0];
@@ -5583,19 +5598,8 @@ DW_FUNCTION_RESTORE_PARAM3(handle, HWND, oddcolor, unsigned long, evencolor, uns
  *          column: Zero based column of width being set.
  *          width: Width of column in pixels.
  */
-DW_FUNCTION_DEFINITION(dw_container_set_column_width, void, HWND handle, int column, int width)
-DW_FUNCTION_ADD_PARAM3(handle, column, width)
-DW_FUNCTION_NO_RETURN(dw_container_set_column_width)
-DW_FUNCTION_RESTORE_PARAM3(handle, HWND, column, int, width, int)
+void API dw_container_set_column_width(HWND handle, int column, int width)
 {
-    DW_FUNCTION_INIT;
-    DWContainer *cont = handle;
-    if([cont filesystem])
-        column++;
-    NSTableColumn *col = [cont getColumn:column];
-
-    [col setWidth:width];
-    DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -5750,9 +5754,8 @@ DW_FUNCTION_RESTORE_PARAM3(handle, HWND, direction, int, rows, long)
     DW_FUNCTION_INIT;
     DWContainer *cont = handle;
     UIScrollView *sv = [cont scrollview];
-    NSScroller *scrollbar = [sv verticalScroller];
     int rowcount = (int)[cont numberOfRowsInTableView:cont];
-    float currpos = [scrollbar floatValue];
+    CGPoint offset = [sv contentOffset];
     float change;
 
     /* Safety check */
@@ -5767,35 +5770,28 @@ DW_FUNCTION_RESTORE_PARAM3(handle, HWND, direction, int, rows, long)
     {
         case DW_SCROLL_TOP:
         {
-            [scrollbar setFloatValue:0];
+            offset.y = 0;
             break;
         }
         case DW_SCROLL_BOTTOM:
         {
-            [scrollbar setFloatValue:1];
+            offset.y = [sv contentSize].height - [sv visibleSize].height;
             break;
         }
         case DW_SCROLL_UP:
         {
-            float newpos = currpos - change;
-            if(newpos < 0)
-            {
-                newpos = 0;
-            }
-            [scrollbar setFloatValue:newpos];
+            offset.y = offset.y - [sv visibleSize].height;
             break;
         }
         case DW_SCROLL_DOWN:
         {
-            float newpos = currpos + change;
-            if(newpos > 1)
-            {
-                newpos = 1;
-            }
-            [scrollbar setFloatValue:newpos];
+            offset.y = offset.y + [sv visibleSize].height;
             break;
         }
     }
+    if(offset.y < 0)
+        offset.y = 0;
+    [sv setContentOffset:offset];
     DW_FUNCTION_RETURN_NOTHING;
 }
 
@@ -6261,6 +6257,8 @@ UIFont *_dw_font_by_name(const char *fontname)
 
         if(name && (name++))
         {
+            UIFontDescriptorSymbolicTraits traits = 0;
+            UIFontDescriptor* fd;
             int size = atoi(fontname);
             char *Italic = strstr(name, " Italic");
             char *Bold = strstr(name, " Bold");
@@ -6269,11 +6267,19 @@ UIFont *_dw_font_by_name(const char *fontname)
 
             memset(newname, 0, len+1);
             strncpy(newname, name, len);
-            
-            font = [DWFontManager fontWithFamily:[NSString stringWithUTF8String:newname]
-                                          traits:(Italic ? NSItalicFontMask : 0)|(Bold ? NSBoldFontMask : 0)
-                                          weight:5
-                                            size:(float)size];
+
+            if(Bold)
+                traits |= UIFontDescriptorTraitBold;
+            if(Italic)
+                traits |= UIFontDescriptorTraitItalic;
+
+            fd = [UIFontDescriptor
+                    fontDescriptorWithFontAttributes:@{UIFontDescriptorFamilyAttribute:[NSString stringWithUTF8String:newname],
+                    UIFontDescriptorTraitsAttribute: @{UIFontSymbolicTrait:[NSNumber numberWithInteger:traits]}}];
+            NSArray* matches = [fd matchingFontDescriptorsWithMandatoryKeys:
+                                  [NSSet setWithObjects:UIFontDescriptorFamilyAttribute, UIFontDescriptorTraitsAttribute, nil]];
+            if(matches.count != 0)
+                font = [UIFont fontWithDescriptor:matches[0] size:size];
         }
     }
     return font;
@@ -6291,9 +6297,6 @@ DW_FUNCTION_RESTORE_PARAM1(cid, ULONG)
 {
     DW_FUNCTION_INIT;
     UIImageView *bitmap = [[UIImageView alloc] init];
-    [bitmap setImageFrameStyle:UIImageFrameNone];
-    [bitmap setImageScaling:UIImageScaleNone];
-    [bitmap setEditable:NO];
     [bitmap setTag:cid];
     DW_FUNCTION_RETURN_THIS(bitmap);
 }
@@ -6310,24 +6313,20 @@ DW_FUNCTION_RESTORE_PARAM1(cid, ULONG)
  */
 HPIXMAP API dw_pixmap_new(HWND handle, unsigned long width, unsigned long height, int depth)
 {
-    HPIXMAP pixmap;
+    HPIXMAP pixmap = NULL;
 
-    if(!(pixmap = calloc(1,sizeof(struct _hpixmap))))
-        return NULL;
-    pixmap->width = width;
-    pixmap->height = height;
-    pixmap->handle = handle;
-    pixmap->image = [[UIImage alloc]
-                                    initWithBitmapDataPlanes:NULL
-                                    pixelsWide:width
-                                    pixelsHigh:height
-                                    bitsPerSample:8
-                                    samplesPerPixel:4
-                                    hasAlpha:YES
-                                    isPlanar:NO
-                                    colorSpaceName:NSDeviceRGBColorSpace
-                                    bytesPerRow:0
-                                    bitsPerPixel:0];
+    if((pixmap = calloc(1,sizeof(struct _hpixmap))))
+    {
+        CGColorSpaceRef rgb = CGColorSpaceCreateDeviceRGB();
+        CGDataProviderRef provider = CGDataProviderCreateWithData(NULL, calloc(width*height, 4), width*height*32, NULL);
+        CGImageRef image = CGImageCreate(width, height, 8, 32, 32 * width,
+                                         rgb, kCGBitmapByteOrderDefault | kCGImageAlphaLast,
+                                         provider, NULL, false, kCGRenderingIntentDefault);
+        pixmap->width = width;
+        pixmap->height = height;
+        pixmap->handle = handle;
+        pixmap->image = [[[UIImage alloc] initWithCGImage:image] retain];
+    }
     return pixmap;
 }
 
@@ -6365,7 +6364,7 @@ HPIXMAP API dw_pixmap_new_from_file(HWND handle, const char *filename)
         return NULL;
     }
     pixmap->width = [tmpimage size].width;
-    pixmap->height = [tmpimage size]size.height;
+    pixmap->height = [tmpimage size].height;
     pixmap->image = tmpimage;
     pixmap->handle = handle;
     DW_LOCAL_POOL_OUT;
@@ -6445,7 +6444,7 @@ HPIXMAP API dw_pixmap_grab(HWND handle, ULONG resid)
     NSString *filepath = [respath stringByAppendingFormat:@"/%lu.png", resid];
     UIImage *tmpimage = [[UIImage alloc] initWithContentsOfFile:filepath];
 
-    if(temp)
+    if(tmpimage)
     {
         pixmap->width = [tmpimage size].width;
         pixmap->height = [tmpimage size].height;
