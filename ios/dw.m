@@ -2451,7 +2451,7 @@ void API dw_main(void)
     DWThread = dw_thread_id();
     /* Make sure any queued redraws are handled */
     _dw_redraw(0, FALSE);
-    [DWApp run];
+    [[NSRunLoop mainRunLoop] run];
     DWThread = (DWTID)-1;
 }
 
@@ -2460,7 +2460,8 @@ void API dw_main(void)
  */
 void API dw_main_quit(void)
 {
-    [DWApp stop:nil];
+    /* TODO: Make this work
+    [[NSRunLoop mainRunLoop] ]; */
 }
 
 /*
@@ -2500,16 +2501,7 @@ void API dw_main_sleep(int milliseconds)
 /* Internal version that doesn't lock the run mutex */
 int _dw_main_iteration(NSDate *date)
 {
-    UIEvent *event = [DWApp nextEventMatchingMask:UIEventMaskAny
-                                        untilDate:date
-                                           inMode:NSDefaultRunLoopMode
-                                          dequeue:YES];
-    if(event)
-    {
-        [DWApp sendEvent:event];
-        return 1;
-    }
-    return 0;
+    return [[NSRunLoop mainRunLoop] runMode:NSDefaultRunLoopMode beforeDate:date];
 }
 
 /*
@@ -7580,43 +7572,16 @@ void API dw_window_reparent(HWND handle, HWND newparent)
  */
 char * API dw_font_choose(const char *currfont)
 {
-    /* Create the Font Chooser Dialog class. */
-    static DWFontChoose *fontDlg = nil;
-    DWDialog *dialog;
-    UIFont *font = nil;
-
-    if(currfont)
-        font = _dw_font_by_name(currfont);
-
-    if(fontDlg)
-    {
-        dialog = [fontDlg dialog];
-        /* If someone is already waiting just return */
-        if(dialog)
-        {
-            return NULL;
-        }
-    }
-    else
-    {
-        [UIFontManager setFontPanelFactory:[DWFontChoose class]];
-        fontDlg = (DWFontChoose *)[DWFontManager fontPanel:YES];
-    }
-
-    dialog = dw_dialog_new(fontDlg);
-    if(font)
-        [DWFontManager setSelectedFont:font isMultiple:NO];
-    else
-        [DWFontManager setSelectedFont:[UIFont fontWithName:@"Helvetica" size:9.0] isMultiple:NO];
-    [fontDlg setDialog:dialog];
-    [DWFontManager orderFrontFontPanel:DWFontManager];
-
-
+    __block UIFont *font = nil;
+    UIFontPickerViewController* picker = [[UIFontPickerViewController alloc] init];
+    /*TODO: Add handler for accepting the font fontPickerViewControllerDidPickFont */
     /* Wait for them to pick a color */
-    font = (UIFont *)dw_dialog_wait(dialog);
+    [picker presentViewController:picker animated:YES completion:nil];
+    [picker release];
+
     if(font)
     {
-        NSString *fontname = [font displayName];
+        NSString *fontname = [font fontName];
         NSString *output = [NSString stringWithFormat:@"%d.%s", (int)[font pointSize], [fontname UTF8String]];
         return strdup([output UTF8String]);
     }
@@ -7636,7 +7601,7 @@ Item *_box_item(id object)
         /* Some controls are embedded in scrollviews...
          * so get the parent of the scrollview in that case.
          */
-        if([object isKindOfClass:[NSTableView class]] && [parent isMemberOfClass:[NSClipView class]])
+        if([object isKindOfClass:[UITableView class]])
         {
             object = [parent superview];
             parent = (DWBox *)[object superview];
@@ -7672,22 +7637,15 @@ int API dw_window_set_font(HWND handle, const char *fontname)
     if(font)
     {
         id object = _text_handle(handle);
-        if([object window])
-        {
-            [object lockFocus];
-            [font set];
-            [object unlockFocus];
-        }
-        else if([object isMemberOfClass:[DWMLE class]])
+        if([object isMemberOfClass:[DWMLE class]])
         {
             DWMLE *mle = object;
             
-            [[mle textStorage] setFont:font];
+            [mle setFont:font];
         }
         else if([object isKindOfClass:[UIControl class]])
         {
             [object setFont:font];
-            [[object cell] setFont:font];
         }
         else if([object isMemberOfClass:[DWRender class]])
         {
@@ -7728,7 +7686,7 @@ char * API dw_window_get_font(HWND handle)
     }
     if(font)
     {
-        NSString *fontname = [font displayName];
+        NSString *fontname = [font fontName];
         NSString *output = [NSString stringWithFormat:@"%d.%s", (int)[font pointSize], [fontname UTF8String]];
         return strdup([output UTF8String]);
     }
@@ -7754,15 +7712,17 @@ DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
     if([ object isKindOfClass:[ UIWindow class ] ])
     {
         DWWindow *window = handle;
-        [window close];
+        [window release];
     }
     /* Handle removing menu items from menus */
+#if 0 /* TODO: The menus are technically immutable, so we'd need to recreate it...*/
     else if([ object isKindOfClass:[UIMenuItem class]])
     {
         DWMenu *menu = [object menu];
 
         [menu removeItem:object];
     }
+#endif
     /* Handle destroying a control or box */
     else if([object isKindOfClass:[UIView class]] || [object isKindOfClass:[UIControl class]])
     {
@@ -7771,8 +7731,7 @@ DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
         /* Some controls are embedded in scrollviews...
          * so get the parent of the scrollview in that case.
          */
-        if(([object isKindOfClass:[NSTableView class]] || [object isMemberOfClass:[DWMLE class]])
-            && [parent isMemberOfClass:[NSClipView class]])
+        if(([object isKindOfClass:[UITableView class]] || [object isMemberOfClass:[DWMLE class]]))
         {
             object = [parent superview];
             parent = (DWBox *)[object superview];
@@ -7856,7 +7815,7 @@ DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
     else if([ object isKindOfClass:[ UIControl class ] ])
     {
         UIControl *control = object;
-        NSString *nsstr = [ control stringValue];
+        NSString *nsstr = [control text];
 
         retval = strdup([ nsstr UTF8String ]);
     }
@@ -7878,11 +7837,11 @@ DW_FUNCTION_RESTORE_PARAM2(handle, HWND, text, char *)
     id object = _text_handle(handle);
 
     if([ object isKindOfClass:[ UIWindow class ] ] || [ object isKindOfClass:[ UIButton class ] ])
-        [object setTitle:[ NSString stringWithUTF8String:text ]];
+        [object setTitle:[NSString stringWithUTF8String:text]];
     else if([ object isKindOfClass:[ UIControl class ] ])
     {
         UIControl *control = object;
-        [control setStringValue:[ NSString stringWithUTF8String:text ]];
+        [control setText:[NSString stringWithUTF8String:text]];
     }
     else
         return;
@@ -7917,18 +7876,9 @@ DW_FUNCTION_RESTORE_PARAM2(handle, HWND, text, char *)
  *       handle: Handle to the window (widget).
  *       bubbletext: The text in the floating bubble tooltip.
  */
-DW_FUNCTION_DEFINITION(dw_window_set_tooltip, void, HWND handle, const char *bubbletext)
-DW_FUNCTION_ADD_PARAM2(handle, bubbletext)
-DW_FUNCTION_NO_RETURN(dw_window_set_tooltip)
-DW_FUNCTION_RESTORE_PARAM2(handle, HWND, bubbletext, char *)
+void API dw_window_set_tooltip(HWND handle, const char *bubbletext)
 {
-    DW_FUNCTION_INIT;
-    id object = handle;
-    if(bubbletext && *bubbletext)
-        [object setToolTip:[NSString stringWithUTF8String:bubbletext]];
-    else
-        [object setToolTip:nil];
-    DW_FUNCTION_RETURN_NOTHING;
+    /* Tooltips don't exist on iOS */
 }
 
 /*
@@ -7947,7 +7897,8 @@ DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
     if([object isMemberOfClass:[UIScrollView class]])
     {
         UIScrollView *sv = handle;
-        object = [sv documentView];
+        NSArray *subviews = [sv subviews];
+        object = [subviews firstObject];
     }
     if([object isKindOfClass:[UIControl class]] || [object isKindOfClass:[UIMenuItem class]])
     {
@@ -7978,7 +7929,8 @@ DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
     if([object isMemberOfClass:[UIScrollView class]])
     {
         UIScrollView *sv = handle;
-        object = [sv documentView];
+        NSArray *subviews = [sv subviews];
+        object = [subviews firstObject];
     }
     if([object isKindOfClass:[UIControl class]] /* TODO: || [object isKindOfClass:[UIMenuItem class]] */)
     {
@@ -8116,7 +8068,8 @@ HWND API dw_window_from_id(HWND handle, int cid)
     if([ object isKindOfClass:[ UIWindow class ] ])
     {
         UIWindow *window = handle;
-        view = [window contentView];
+        NSArray *subviews = [window subviews];
+        view = [subviews firstObject];
     }
     return [view viewWithTag:cid];
 }
@@ -8128,8 +8081,6 @@ HWND API dw_window_from_id(HWND handle, int cid)
  */
 int API dw_window_minimize(HWND handle)
 {
-    UIWindow *window = handle;
-    [window miniaturize:nil];
     return 0;
 }
 
@@ -8141,7 +8092,7 @@ void API dw_window_redraw(HWND handle)
 {
     DWWindow *window = handle;
     [window setRedraw:YES];
-    [[window contentView] showWindow];
+    [window setShown:YES];
     [window setRedraw:NO];
 }
 
@@ -8152,8 +8103,6 @@ void API dw_window_redraw(HWND handle)
  */
 int API dw_window_raise(HWND handle)
 {
-    UIWindow *window = handle;
-    [window orderFront:nil];
     return 0;
 }
 
@@ -8164,8 +8113,6 @@ int API dw_window_raise(HWND handle)
  */
 int API dw_window_lower(HWND handle)
 {
-    UIWindow *window = handle;
-    [window orderBack:nil];
     return 0;
 }
 
@@ -8176,43 +8123,9 @@ int API dw_window_lower(HWND handle)
  *          width: New width in pixels.
  *          height: New height in pixels.
  */
-DW_FUNCTION_DEFINITION(dw_window_set_size, void, HWND handle, ULONG width, ULONG height)
-DW_FUNCTION_ADD_PARAM3(handle, width, height)
-DW_FUNCTION_NO_RETURN(dw_window_set_size)
-DW_FUNCTION_RESTORE_PARAM3(handle, HWND, width, ULONG, height, ULONG)
+void API dw_window_set_size(HWND handle, ULONG width, ULONG height)
 {
-    DW_FUNCTION_INIT;
-    NSObject *object = handle;
-
-    if([ object isMemberOfClass:[ DWWindow class ] ])
-    {
-        DWWindow *window = handle;
-        Box *thisbox;
-        CGRect content, frame = NSMakeRect(0, 0, width, height);
-
-        /* Convert the external frame size to internal content size */
-        content = [UIWindow contentRectForFrameRect:frame styleMask:[window styleMask]];
-
-        /*
-         * The following is an attempt to dynamically size a window based on the size of its
-         * children before realization. Only applicable when width or height is less than one.
-         */
-        if((width < 1 || height < 1) && (thisbox = (Box *)[[window contentView] box]))
-        {
-            int depth = 0;
-
-            /* Calculate space requirements */
-            _resize_box(thisbox, &depth, (int)width, (int)height, 1);
-
-            /* Update components that need auto-sizing */
-            if(width < 1) content.size.width = thisbox->minwidth;
-            if(height < 1) content.size.height = thisbox->minheight;
-        }
-
-        /* Finally set the size */
-        [window setContentSize:content.size];
-    }
-    DW_FUNCTION_RETURN_NOTHING;
+    /* On iOS the window usually takes up the full screen */
 }
 
 /*
@@ -8226,27 +8139,7 @@ void API dw_window_get_preferred_size(HWND handle, int *width, int *height)
 {
     id object = handle;
 
-    if([object isMemberOfClass:[DWWindow class]])
-    {
-        Box *thisbox;
-
-        if((thisbox = (Box *)[[object contentView] box]))
-        {
-            int depth = 0;
-            CGRect frame;
-
-            /* Calculate space requirements */
-            _resize_box(thisbox, &depth, 0, 0, 1);
-
-            /* Figure out the border size */
-            frame = [UIWindow frameRectForContentRect:NSMakeRect(0, 0, thisbox->minwidth, thisbox->minheight) styleMask:[object styleMask]];
-
-            /* Return what was requested */
-            if(width) *width = frame.size.width;
-            if(height) *height = frame.size.height;
-        }
-    }
-    else if([object isMemberOfClass:[DWBox class]])
+    if([object isMemberOfClass:[DWBox class]])
     {
         Box *thisbox;
 
@@ -8280,57 +8173,6 @@ void API dw_window_set_gravity(HWND handle, int horz, int vert)
     dw_window_set_data(handle, "_dw_grav_vert", DW_INT_TO_POINTER(vert));
 }
 
-/* Convert the coordinates based on gravity */
-void _handle_gravity(HWND handle, long *x, long *y, unsigned long width, unsigned long height)
-{
-    int horz = DW_POINTER_TO_INT(dw_window_get_data(handle, "_dw_grav_horz"));
-    int vert = DW_POINTER_TO_INT(dw_window_get_data(handle, "_dw_grav_vert"));
-    id object = handle;
-
-    /* Do any gravity calculations */
-    if(horz || (vert & 0xf) != DW_GRAV_BOTTOM)
-    {
-        long newx = *x, newy = *y;
-
-        /* Handle horizontal center gravity */
-        if((horz & 0xf) == DW_GRAV_CENTER)
-            newx += ((dw_screen_width() / 2) - (width / 2));
-        /* Handle right gravity */
-        else if((horz & 0xf) == DW_GRAV_RIGHT)
-            newx = dw_screen_width() - width - *x;
-        /* Handle vertical center gravity */
-        if((vert & 0xf) == DW_GRAV_CENTER)
-            newy += ((dw_screen_height() / 2) - (height / 2));
-        else if((vert & 0xf) == DW_GRAV_TOP)
-            newy = dw_screen_height() - height - *y;
-
-        /* Save the new values */
-        *x = newx;
-        *y = newy;
-    }
-    /* Adjust the values to avoid Dock/Menubar if requested */
-    if((horz | vert) & DW_GRAV_OBSTACLES)
-    {
-        CGRect visiblerect = [[object screen] visibleFrame];
-        CGRect totalrect = [[object screen] frame];
-
-        if(horz & DW_GRAV_OBSTACLES)
-        {
-            if((horz & 0xf) == DW_GRAV_LEFT)
-                *x += visiblerect.origin.x;
-            else if((horz & 0xf) == DW_GRAV_RIGHT)
-                *x -= (totalrect.origin.x + totalrect.size.width) - (visiblerect.origin.x + visiblerect.size.width);
-        }
-        if(vert & DW_GRAV_OBSTACLES)
-        {
-            if((vert & 0xf) == DW_GRAV_BOTTOM)
-                *y += visiblerect.origin.y;
-            else if((vert & 0xf) == DW_GRAV_TOP)
-                *y -= (totalrect.origin.y + totalrect.size.height) - (visiblerect.origin.y + visiblerect.size.height);
-        }
-    }
-}
-
 /*
  * Sets the position of a given window (widget).
  * Parameters:
@@ -8338,38 +8180,9 @@ void _handle_gravity(HWND handle, long *x, long *y, unsigned long width, unsigne
  *          x: X location from the bottom left.
  *          y: Y location from the bottom left.
  */
-DW_FUNCTION_DEFINITION(dw_window_set_pos, void, HWND handle, LONG x, LONG y)
-DW_FUNCTION_ADD_PARAM3(handle, x, y)
-DW_FUNCTION_NO_RETURN(dw_window_set_pos)
-DW_FUNCTION_RESTORE_PARAM3(handle, HWND, x, LONG, y, LONG)
+void API dw_window_set_pos(HWND handle, LONG x, LONG y)
 {
-    DW_FUNCTION_INIT;
-    NSObject *object = handle;
-
-    if([ object isMemberOfClass:[ DWWindow class ] ])
-    {
-        DWWindow *window = handle;
-        CGPoint point;
-        CGSize size = [[window contentView] frame].size;
-
-        /* Can't position an unsized window, so attempt to auto-size */
-        if(size.width <= 1 || size.height <= 1)
-        {
-            /* Determine the contents size */
-            dw_window_set_size(handle, 0, 0);
-        }
-
-        size = [window frame].size;
-        _handle_gravity(handle, &x, &y, (unsigned long)size.width, (unsigned long)size.height);
-
-        point.x = x;
-        point.y = y;
-
-        [window setFrameOrigin:point];
-        /* Position set manually... don't auto-position */
-        [window setShown:YES];
-    }
-    DW_FUNCTION_RETURN_NOTHING;
+    /* iOS windows take up the whole screen */
 }
 
 /*
@@ -8383,8 +8196,6 @@ DW_FUNCTION_RESTORE_PARAM3(handle, HWND, x, LONG, y, LONG)
  */
 void API dw_window_set_pos_size(HWND handle, LONG x, LONG y, ULONG width, ULONG height)
 {
-    dw_window_set_size(handle, width, height);
-    dw_window_set_pos(handle, x, y);
 }
 
 /*
@@ -8407,7 +8218,7 @@ void API dw_window_get_pos_size(HWND handle, LONG *x, LONG *y, ULONG *width, ULO
         if(x)
             *x = rect.origin.x;
         if(y)
-            *y = [[window screen] frame].size.height - rect.origin.y - rect.size.height;
+            *y = rect.origin.y;
         if(width)
             *width = rect.size.width;
         if(height)
@@ -8435,7 +8246,7 @@ void API dw_window_get_pos_size(HWND handle, LONG *x, LONG *y, ULONG *width, ULO
  */
 int API dw_screen_width(void)
 {
-    CGRect screenRect = [[NSScreen mainScreen] frame];
+    CGRect screenRect = [[UIScreen mainScreen] bounds];
     return screenRect.size.width;
 }
 
@@ -8444,15 +8255,15 @@ int API dw_screen_width(void)
  */
 int API dw_screen_height(void)
 {
-    CGRect screenRect = [[NSScreen mainScreen] frame];
+    CGRect screenRect = [[UIScreen mainScreen] bounds];
     return screenRect.size.height;
 }
 
 /* This should return the current color depth */
 unsigned long API dw_color_depth_get(void)
 {
-    UIWindowDepth screenDepth = [[NSScreen mainScreen] depth];
-    return NSBitsPerPixelFromDepth(screenDepth);
+    /* iOS always runs in 32bit depth */
+    return 32;
 }
 
 /*
@@ -8578,7 +8389,7 @@ void dw_environment_query(DWEnv *env)
  */
 void API dw_beep(int freq, int dur)
 {
-    NSBeep();
+    /* TODO: Don't see a simple way to do this without bundling sounds */
 }
 
 /* Call this after drawing to the screen to make sure
@@ -8695,12 +8506,14 @@ void dw_window_set_data(HWND window, const char *dataname, void *data)
     if([object isMemberOfClass:[DWWindow class]])
     {
         UIWindow *win = window;
-        object = [win contentView];
+        NSArray *subviews = [win subviews];
+        object = [subviews firstObject];
     }
     else if([object isMemberOfClass:[UIScrollView class]])
     {
         UIScrollView *sv = window;
-        object = [sv documentView];
+        NSArray *subviews = [sv subviews];
+        object = [subviews firstObject];
     }
     WindowData *blah = (WindowData *)[object userdata];
 
@@ -8737,12 +8550,14 @@ void *dw_window_get_data(HWND window, const char *dataname)
     if([object isMemberOfClass:[DWWindow class]])
     {
         UIWindow *win = window;
-        object = [win contentView];
+        NSArray *subviews = [win subviews];
+        object = [subviews firstObject];
     }
     else if([object isMemberOfClass:[UIScrollView class]])
     {
         UIScrollView *sv = window;
-        object = [sv documentView];
+        NSArray *subviews = [sv subviews];
+        object = [subviews firstObject];
     }
     WindowData *blah = (WindowData *)[object userdata];
 
@@ -9833,7 +9648,6 @@ int API dw_init(int newthread, int argc, char *argv[])
     NSThread *thread = [[ NSThread alloc] initWithTarget:DWObj selector:@selector(uselessThread:) object:nil];
     [thread start];
     [thread release];
-    [UITextField setCellClass:[DWTextFieldCell class]];
     if(!_dw_app_id[0])
     {
         /* Generate an Application ID based on the PID if all else fails. */
