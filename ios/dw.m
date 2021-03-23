@@ -1461,13 +1461,11 @@ UITableViewCell *_dw_table_cell_view_new(UIImage *icon, NSString *text)
     id scrollview;
     int filesystem;
 }
--(NSInteger)numberOfRowsInTableView:(UITableView *)aTable;
-#if 0 /* TODO: Switch to columnless versions */
--(id)tableView:(UITableView *)aTable objectValueForTableColumn:(NSTableColumn *)aCol row:(NSInteger)aRow;
--(BOOL)tableView:(UITableView *)aTableView shouldEditTableColumn:(NSTableColumn *)aTableColumn row:(int)rowIndex;
--(void)tableView:(UITableView *)tableView didAddRowView:(UITableRowView *)rowView forRow:(NSInteger)row;
--(UIView *)tableView:(UITableView *)tableView viewForTableColumn:(NSTableColumn *)tableColumn row:(NSInteger)row;
-#endif
+-(NSInteger)tableView:(UITableView *)aTable numberOfRowsInSection:(NSInteger)section;
+-(UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath;
+-(void)tableView: (UITableView*)tableView willDisplayCell: (UITableViewCell*)cell forRowAtIndexPath: (NSIndexPath*)indexPath;
+-(void)addColumn:(NSString *)input andType:(int)type;
+-(NSString *)getColumn:(int)col;
 -(void *)userdata;
 -(void)setUserdata:(void *)input;
 -(void)setFilesystem:(int)input;
@@ -1495,8 +1493,9 @@ UITableViewCell *_dw_table_cell_view_new(UIImage *icon, NSString *text)
 @end
 
 @implementation DWContainer
--(NSInteger)numberOfRowsInTableView:(UITableView *)aTable
+-(NSInteger)tableView:(UITableView *)aTable numberOfRowsInSection:(NSInteger)section
 {
+    /* Ignoring section for now, everything in one section */
     if(tvcols && data)
     {
         int cols = (int)[tvcols count];
@@ -1508,53 +1507,10 @@ UITableViewCell *_dw_table_cell_view_new(UIImage *icon, NSString *text)
     }
     return 0;
 }
-#if 0 /* TODO: Switch to columnless versions */
--(id)tableView:(UITableView *)aTable objectValueForTableColumn:(NSTableColumn *)aCol row:(NSInteger)aRow
-{
-    if(tvcols && data)
-    {
-        int z, col = -1;
-        int count = (int)[tvcols count];
-
-        for(z=0;z<count;z++)
-        {
-            if([tvcols objectAtIndex:z] == aCol)
-            {
-                col = z;
-                break;
-            }
-        }
-        if(col != -1)
-        {
-            int index = (int)(aRow * count) + col;
-            if(index < [data count])
-            {
-                id this = [data objectAtIndex:index];
-                return ([this isKindOfClass:[NSNull class]]) ? nil : this;
-            }
-        }
-    }
-    return nil;
-}
--(BOOL)tableView:(UITableView *)aTableView shouldEditTableColumn:(NSTableColumn *)aTableColumn row:(int)rowIndex { return NO; }
--(void)tableView:(UITableView *)tableView didAddRowView:(UITableRowView *)rowView forRow:(NSInteger)row
-{
-    /* Handle drawing alternating row colors if enabled */
-    if ((row % 2) == 0)
-    {
-        if(evencolor)
-            [rowView setBackgroundColor:evencolor];
-    }
-    else
-    {
-        if(oddcolor)
-            [rowView setBackgroundColor:oddcolor];
-    }
-}
--(UIView *)tableView:(UITableView *)tableView viewForTableColumn:(NSTableColumn *)tableColumn row:(NSInteger)row;
+-(UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath
 {
     /* Not reusing cell views, so get the cell from our array */
-    int index = (int)(row * [tvcols count]) + (int)[tvcols indexOfObject:tableColumn];
+    int index = (int)(indexPath.row * [tvcols count]);
     id celldata = [data objectAtIndex:index];
 
     /* The data is already a NSTableCellView so just return that */
@@ -1582,14 +1538,21 @@ UITableViewCell *_dw_table_cell_view_new(UIImage *icon, NSString *text)
     }
     return nil;
 }
--(void)tableView:(NSTableView *)tableView didClickTableColumn:(NSTableColumn *)tableColumn
+-(void)tableView: (UITableView*)tableView willDisplayCell: (UITableViewCell*)cell forRowAtIndexPath: (NSIndexPath*)indexPath
 {
-    NSUInteger index = [tvcols indexOfObject:tableColumn];
-
-    /* Handler for column click class */
-    _event_handler(self, (UIEvent *)index, 17);
+    if(indexPath.row % 2 == 0)
+    {
+        if(evencolor)
+            [cell setBackgroundColor:evencolor];
+    }
+    else
+    {
+        if(oddcolor)
+            [cell setBackgroundColor:oddcolor];
+    }
 }
-#endif
+-(void)addColumn:(NSString *)input andType:(int)type { if(tvcols) { [tvcols addObject:input]; [types addObject:[NSNumber numberWithInt:type]]; } }
+-(NSString *)getColumn:(int)col { if(tvcols) { return [tvcols objectAtIndex:col]; } return nil; }
 -(void *)userdata { return userdata; }
 -(void)setUserdata:(void *)input { userdata = input; }
 -(void)setFilesystem:(int)input { filesystem = input; }
@@ -1739,7 +1702,7 @@ UITableViewCell *_dw_table_cell_view_new(UIImage *icon, NSString *text)
 -(void)setRowData:(int)row title:(void *)input { if(rowdatas && input) { [rowdatas replacePointerAtIndex:row withPointer:input]; } }
 -(void *)getRowTitle:(int)row { if(titles && row > -1) { return [titles pointerAtIndex:row]; } return NULL; }
 -(void *)getRowData:(int)row { if(rowdatas && row > -1) { return [rowdatas pointerAtIndex:row]; } return NULL; }
--(id)getRow:(int)row and:(int)col { if(data) { int index = (int)(row * [tvcols count]) + col; return [data objectAtIndex:index]; } return nil; }
+-(id)getRow:(int)row and:(int)col { if(data && [data count]) { int index = (int)(row * [tvcols count]) + col; return [data objectAtIndex:index]; } return nil; }
 -(int)cellType:(int)col { return [[types objectAtIndex:col] intValue]; }
 -(int)lastAddPoint { return lastAddPoint; }
 -(int)lastQueryPoint { return lastQueryPoint; }
@@ -5300,10 +5263,12 @@ DW_FUNCTION_RESTORE_PARAM5(handle, HWND, flags, unsigned long *, titles, char **
 
     for(z=0;z<count;z++)
     {
-#if 0 /* TODO: Convert this to simulate columns */
+        /* Even though we don't have columns on iOS, we save the data...
+         * So we can simulate columns when displaying the data in the list.
+         */
         NSString *title = [NSString stringWithUTF8String:titles[z]];
-        /* Defaults to left justified so just handle right and center */
-#endif
+
+        [cont addColumn:title andType:(int)flags[z]];
     }
     DW_FUNCTION_RETURN_THIS(retval);
 }
