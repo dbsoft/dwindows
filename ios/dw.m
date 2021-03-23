@@ -1754,7 +1754,7 @@ UITableViewCell *_dw_table_cell_view_new(UIImage *icon, NSString *text)
     {
         int z;
         int colcount = (int)[tvcols count];
-        int rowcount = (int)[self numberOfRowsInTableView:self];
+        int rowcount = (int)[self numberOfRowsInSection:0];
 
         for(z=0;z<colcount;z++)
         {
@@ -3945,7 +3945,7 @@ DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
     if([object isMemberOfClass:[DWContainer class]])
     {
         DWContainer *cont = handle;
-        result = (int)[cont numberOfRowsInTableView:cont];
+        result = (int)[cont numberOfRowsInSection:0];
     }
     DW_FUNCTION_RETURN_THIS(result);
 }
@@ -3993,7 +3993,7 @@ DW_FUNCTION_RESTORE_PARAM4(handle, HWND, index, unsigned int, buffer, char *, le
     if([object isMemberOfClass:[DWContainer class]])
     {
         DWContainer *cont = handle;
-        int count = (int)[cont numberOfRowsInTableView:cont];
+        int count = (int)[cont numberOfRowsInSection:0];
 
         if(index > count)
         {
@@ -4039,7 +4039,7 @@ DW_FUNCTION_RESTORE_PARAM3(handle, HWND, index, unsigned int, buffer, char *)
     if([object isMemberOfClass:[DWContainer class]])
     {
         DWContainer *cont = handle;
-        int count = (int)[cont numberOfRowsInTableView:cont];
+        int count = (int)[cont numberOfRowsInSection:0];
 
         if(index <= count)
         {
@@ -5794,7 +5794,7 @@ DW_FUNCTION_RESTORE_PARAM3(handle, HWND, direction, int, rows, long)
     DW_FUNCTION_INIT;
     DWContainer *cont = handle;
     UIScrollView *sv = [cont scrollview];
-    int rowcount = (int)[cont numberOfRowsInTableView:cont];
+    int rowcount = (int)[cont numberOfRowsInSection:0];
     CGPoint offset = [sv contentOffset];
     float change;
 
@@ -5919,7 +5919,7 @@ DW_FUNCTION_RESTORE_PARAM2(handle, HWND, text, char *)
     DW_LOCAL_POOL_IN;
     DWContainer *cont = handle;
     char *thistext;
-    int x, count = (int)[cont numberOfRowsInTableView:cont];
+    int x, count = (int)[cont numberOfRowsInSection:0];
 
     for(x=0;x<count;x++)
     {
@@ -5955,7 +5955,7 @@ DW_FUNCTION_RESTORE_PARAM2(handle, HWND, data, void *)
     DW_LOCAL_POOL_IN;
     DWContainer *cont = handle;
     void *thisdata;
-    int x, count = (int)[cont numberOfRowsInTableView:cont];
+    int x, count = (int)[cont numberOfRowsInSection:0];
 
     for(x=0;x<count;x++)
     {
@@ -5990,7 +5990,7 @@ DW_FUNCTION_RESTORE_PARAM2(handle, HWND, text, char *)
     DW_FUNCTION_INIT;
     DWContainer *cont = handle;
     char *thistext;
-    int x, count = (int)[cont numberOfRowsInTableView:cont];
+    int x, count = (int)[cont numberOfRowsInSection:0];
 
     for(x=0;x<count;x++)
     {
@@ -6021,7 +6021,7 @@ DW_FUNCTION_RESTORE_PARAM2(handle, HWND, data, void *)
     DW_FUNCTION_INIT;
     DWContainer *cont = handle;
     void *thisdata;
-    int x, count = (int)[cont numberOfRowsInTableView:cont];
+    int x, count = (int)[cont numberOfRowsInSection:0];
 
     for(x=0;x<count;x++)
     {
