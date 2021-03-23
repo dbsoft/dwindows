@@ -12,8 +12,8 @@
 #include "dwcompat.h"
 #include "dw.h"
 
-#if defined(__UNIX__) || defined(__MAC__)
-#if defined(__FreeBSD__) || defined(__MAC__)
+#if defined(__UNIX__) || defined(__MAC__) || defined(__IOS__)
+#if defined(__FreeBSD__) || defined(__MAC__) || defined(__IOS__)
 #include <sys/param.h>
 #include <sys/ucred.h>
 #include <sys/mount.h>
@@ -30,7 +30,7 @@
 #include <time.h>
 #include <errno.h>
 
-#if defined(__UNIX__) || defined(__MAC__)
+#if defined(__UNIX__) || defined(__MAC__) || defined(__IOS__)
 void msleep(long period)
 {
 #ifdef __sun__
@@ -80,7 +80,7 @@ char * API vargs(char *buf, int len, char *format, ...)
 }
 
 /* Get around getmntinfo() not being thread safe */
-#if defined(__FreeBSD__) || defined(__MAC__)
+#if defined(__FreeBSD__) || defined(__MAC__) || defined(__IOS__)
 int _getmntinfo_r(struct statfs **mntbufp, int flags)
 {
 	static HMTX mutex = 0;
@@ -127,7 +127,7 @@ long double API drivefree(int drive)
 		return 0;
 
 	return (long double)((double)spc*(double)bps*(double)fc);
-#elif defined(__FreeBSD__) || defined(__MAC__)
+#elif defined(__FreeBSD__) || defined(__MAC__) || defined(__IOS__)
 	struct statfs *fsp = NULL;
 	int entries, index = 1;
 
@@ -233,7 +233,7 @@ long double API drivesize(int drive)
 		return 0;
 
 	return (long double)((double)spc*(double)bps*(double)tc);
-#elif defined(__FreeBSD__) || defined(__MAC__)
+#elif defined(__FreeBSD__) || defined(__MAC__) || defined(__IOS__)
 	struct statfs *fsp = NULL;
 	int entries, index = 1;
 
@@ -332,7 +332,7 @@ int API isdrive(int drive)
 
 	if(GetVolumeInformation(buffer, volname, 100, &spc, &bps, &fc, NULL, 0) != 0)
 		return 1;
-#elif defined(__FreeBSD__) || defined(__MAC__)
+#elif defined(__FreeBSD__) || defined(__MAC__) || defined(__IOS__)
 	struct statfs *fsp = NULL;
 	int entries, index = 1;
 
@@ -402,8 +402,8 @@ int API isdrive(int drive)
 
 void API getfsname(int drive, char *buf, int len)
 {
-#if defined(__UNIX__) || defined(__MAC__) 
-#if defined(__FreeBSD__) || defined(__MAC__)
+#if defined(__UNIX__) || defined(__MAC__) || defined(__IOS__)
+#if defined(__FreeBSD__) || defined(__MAC__) || defined(__IOS__)
 	struct statfs *fsp = NULL;
 	int entries, index = 1;
 

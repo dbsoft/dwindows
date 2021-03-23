@@ -580,7 +580,15 @@ typedef struct _bitbltinfo
 } DWBitBlt;
 
 /* Subclass for a test object type */
-@interface DWObject : NSObject {}
+@interface DWObject : NSObject
+{
+    /* A normally hidden window, at the top of the view hierarchy.
+     * Since iOS messageboxes and such require a view controller,
+     * we show this hidden window when necessary and use it during
+     * the creation of alerts and dialog boxes that don't have one.
+     */
+    UIWindow *hiddenWindow;
+}
 -(void)uselessThread:(id)sender;
 -(void)menuHandler:(id)param;
 -(void)doBitBlt:(id)param;
@@ -839,6 +847,14 @@ API_AVAILABLE(ios(13.0))
 @end
 
 @implementation DWObject
+-(id)init
+{
+    hiddenWindow = [[UIWindow alloc] initWithFrame:[[UIScreen mainScreen] bounds]];
+    [hiddenWindow setBackgroundColor:[UIColor clearColor]];
+    [hiddenWindow setWindowLevel:UIWindowLevelAlert];
+    [hiddenWindow setHidden:YES];
+    return [super init];
+}
 -(void)uselessThread:(id)sender { /* Thread only to initialize threading */ }
 -(void)menuHandler:(id)param
 {
@@ -867,7 +883,12 @@ API_AVAILABLE(ios(13.0))
         action = [UIAlertAction actionWithTitle:[params objectAtIndex:5] style:UIAlertActionStyleDefault
                                         handler:^(UIAlertAction * action) { iResponse = 3; }];
 
-    [alert presentViewController:alert animated:YES completion:nil];
+    /* Unhide our hidden window and make it key */
+    [hiddenWindow setHidden:NO];
+    [hiddenWindow makeKeyAndVisible];
+    [[hiddenWindow rootViewController] presentViewController:alert animated:YES completion:nil];
+    /* Once the dialog is gone we can rehide our window */
+    [hiddenWindow setHidden:YES];
     [alert release];
     [params addObject:[NSNumber numberWithInteger:iResponse]];
 }
@@ -7275,6 +7296,9 @@ DW_FUNCTION_RESTORE_PARAM3(hwndOwner, HWND, title, char *, flStyle, ULONG)
 {
     DW_FUNCTION_INIT;
     DWWindow *window = [[DWWindow alloc] init];
+    DWView *view = [[DWView alloc] init];
+
+    [window addSubview:view];
 
     /* TODO: Handle style flags */
     if(@available(iOS 13.0, *)) {
@@ -7396,7 +7420,7 @@ int API dw_window_set_color(HWND handle, ULONG fore, ULONG back)
     }
     if([object isMemberOfClass:[DWButton class]])
     {
-        [object setTextColor:(fg ? fg : [UIColor labelColor])];
+       [[object titleLabel] setTextColor:(fg ? fg : [UIColor labelColor])];
     }
     if([object isKindOfClass:[UITextField class]] || [object isKindOfClass:[UIButton class]])
     {
