@@ -4,8 +4,10 @@
 #define _DWCOMPAT_H
 
 /* This header includes and defines everything needed for a given OS/compiler */
-#if defined(__UNIX__) || defined(__MAC__)
+#if defined(__UNIX__) || defined(__MAC__) || defined(__IOS__)
+#ifndef __IOS__
 #include "dwconfig.h"
+#endif
 
 /* Attempt to include 64 bit file functions on various unix flavors */
 #ifndef _FILE_OFFSET_BITS
