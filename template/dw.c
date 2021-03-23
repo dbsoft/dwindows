@@ -26,7 +26,7 @@ void _dw_window_pointer_set(HWND handle, Box *box)
 /* This function calculates how much space the widgets and boxes require
  * and does expansion as necessary.
  */
-static void _resize_box(Box *thisbox, int *depth, int x, int y, int pass)
+static void _dw_resize_box(Box *thisbox, int *depth, int x, int y, int pass)
 {
    /* Current item position */
    int z, currentx = thisbox->pad, currenty = thisbox->pad;
@@ -87,7 +87,7 @@ static void _resize_box(Box *thisbox, int *depth, int x, int y, int pass)
                (*depth)++;
                     
                /* Save the newly calculated values on the box */
-               _resize_box(tmp, depth, x, y, pass);
+               _dw_resize_box(tmp, depth, x, y, pass);
                     
                /* Duplicate the values in the item list for use below */
                thisbox->items[z].width = tmp->minwidth;
@@ -210,7 +210,7 @@ static void _resize_box(Box *thisbox, int *depth, int x, int y, int pass)
 
             /* If any special handling needs to be done... like diving into
              * controls that have sub-layouts... like notebooks or splitbars...
-             * do that here. Figure out the sub-layout size and call _do_resize().
+             * do that here. Figure out the sub-layout size and call _dw_do_resize().
              */
 #endif
 
@@ -227,7 +227,7 @@ static void _resize_box(Box *thisbox, int *depth, int x, int y, int pass)
 /* This is a convenience function used in the window's resize event
  * to relayout the controls in the window.
  */
-void _do_resize(Box *thisbox, int x, int y)
+void _dw_do_resize(Box *thisbox, int x, int y)
 {
    if(x != 0 && y != 0)
    {
@@ -236,10 +236,10 @@ void _do_resize(Box *thisbox, int x, int y)
          int depth = 0;
             
          /* Calculate space requirements */
-         _resize_box(thisbox, &depth, x, y, 1);
+         _dw_resize_box(thisbox, &depth, x, y, 1);
             
          /* Finally place all the boxes and controls */
-         _resize_box(thisbox, &depth, x, y, 2);
+         _dw_resize_box(thisbox, &depth, x, y, 2);
       }
    }
 }
