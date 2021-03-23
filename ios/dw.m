@@ -1725,19 +1725,8 @@ UITableViewCell *_dw_table_cell_view_new(UIImage *icon, NSString *text)
 }
 -(void)setup
 {
-    SEL swopa = NSSelectorFromString(@"pointerArrayWithWeakObjects");
-
-    if(![[NSPointerArray class] respondsToSelector:swopa])
-        swopa = NSSelectorFromString(@"weakObjectsPointerArray");
-    if(![[NSPointerArray class] respondsToSelector:swopa])
-        return;
-
-    DWIMP iwopa = (DWIMP)[[NSPointerArray class] methodForSelector:swopa];
-
-    titles = iwopa([NSPointerArray class], swopa);
-    [titles retain];
-    rowdatas = iwopa([NSPointerArray class], swopa);
-    [rowdatas retain];
+    titles = [[NSPointerArray pointerArrayWithOptions:NSPointerFunctionsOpaqueMemory] retain];
+    rowdatas = [[NSPointerArray pointerArrayWithOptions:NSPointerFunctionsOpaqueMemory] retain];
     tvcols = [[[NSMutableArray alloc] init] retain];
     data = [[[NSMutableArray alloc] init] retain];
     types = [[[NSMutableArray alloc] init] retain];
