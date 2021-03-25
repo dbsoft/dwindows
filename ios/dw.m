@@ -558,6 +558,23 @@ int _dw_event_handler(id object, UIEvent *event, int message)
 -(void)runTimer:(id)sender { _dw_event_handler(sender, nil, 0); }
 @end
 
+@interface DWAppDel : UIResponder <UIApplicationDelegate> { }
+-(void)applicationWillTerminate:(UIApplication *)application;
+-(BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary<UIApplicationLaunchOptionsKey, id> *)launchOptions;
+@end
+
+@implementation DWAppDel
+-(void)applicationWillTerminate:(UIApplication *)application
+{
+    /* On iOS we can't prevent temrination, but send the notificatoin anyway */
+    _dw_event_handler(application, nil, 6);
+}
+-(BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary<UIApplicationLaunchOptionsKey, id> *)launchOptions
+{
+    return true;
+}
+@end
+
 UIApplication *DWApp = nil;
 UIFont *DWDefaultFont;
 DWTimerHandler *DWHandler;
@@ -652,6 +669,7 @@ API_AVAILABLE(ios(13.0))
 -(void)otherMouseUp:(UIEvent *)theEvent;
 -(void)keyDown:(UIEvent *)theEvent;
 -(void)setColor:(unsigned long)input;
+-(void)layoutSubviews;
 @end
 
 @implementation DWBox
@@ -718,6 +736,7 @@ API_AVAILABLE(ios(13.0))
     [self setNeedsDisplay];
     [orig release];
 }
+-(void)layoutSubviews { };
 @end
 
 @interface DWWindow : UIWindow
@@ -732,6 +751,7 @@ API_AVAILABLE(ios(13.0))
 -(void)setRedraw:(int)val;
 -(int)shown;
 -(void)setShown:(int)val;
+-(void)layoutSubviews;
 @end
 
 @implementation DWWindow
@@ -752,6 +772,7 @@ API_AVAILABLE(ios(13.0))
 -(int)shown { return shown; }
 -(void)setShown:(int)val { shown = val; }
 -(void)dealloc { dw_signal_disconnect_by_window(self); [super dealloc]; }
+-(void)layoutSubviews { }
 @end
 
 /* Subclass for a render area type */
@@ -1034,12 +1055,10 @@ DWObject *DWObj;
         return NO;
     return YES;
 }
--(void)viewDidMoveToWindow
+-(void)willMoveToSuperview:(UIView *)newSuperview
 {
-#if 0 /* TODO: Find the correct way to do this on iOS */
-    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(windowResized:) name:NSWindowDidResizeNotification object:[self window]];
-    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(windowDidBecomeMain:) name:NSWindowDidBecomeMainNotification object:[self window]];
-#endif
+    if(newSuperview)
+        [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(windowDidBecomeMain:) name:UIWindowDidBecomeKeyNotification object:[newSuperview window]];
 }
 -(void)dealloc
 {
@@ -1095,6 +1114,12 @@ DWObject *DWObj;
     DWWindow *window = (DWWindow *)[[self view] window];
     NSArray *array = [window subviews];
     DWView *view = [array firstObject];
+#if 0
+    id object = [array lastObject];
+    /* Remove the UITransitionView... for testing purposes */
+    if(![object isMemberOfClass:[DWView class]])
+        [object removeFromSuperview];
+#endif
     [view setFrame:[window frame]];
     [view windowResized:[window frame].size];
 }
@@ -2385,6 +2410,9 @@ static void _dw_do_resize(Box *thisbox, int x, int y)
     }
 }
 
+static int _dw_argc;
+static char **_dw_argv;
+
 /*
  * Runs a message loop for Dynamic Windows.
  */
@@ -2393,7 +2421,7 @@ void API dw_main(void)
     DWThread = dw_thread_id();
     /* Make sure any queued redraws are handled */
     _dw_redraw(0, FALSE);
-    [[NSRunLoop mainRunLoop] run];
+    UIApplicationMain(_dw_argc, _dw_argv, nil, NSStringFromClass([DWAppDel class]));
     DWThread = (DWTID)-1;
 }
 
@@ -2752,6 +2780,7 @@ DW_FUNCTION_RESTORE_PARAM2(type, int, pad, int)
     DW_FUNCTION_INIT;
     DWBox *view = [[DWBox alloc] init];
     Box *newbox = [view box];
+    [view setTranslatesAutoresizingMaskIntoConstraints:NO];
     memset(newbox, 0, sizeof(Box));
     newbox->pad = pad;
     newbox->type = type;
@@ -7212,19 +7241,19 @@ void API dw_notebook_pack(HWND handle, ULONG pageid, HWND page)
  *       title: The Window title.
  *       flStyle: Style flags, see the PM reference.
  */
-DW_FUNCTION_DEFINITION(dw_window_new, HWND, HWND hwndOwner, const char *title, ULONG flStyle)
+DW_FUNCTION_DEFINITION(dw_window_new, HWND, DW_UNUSED(HWND hwndOwner), const char *title, DW_UNUSED(ULONG flStyle))
 DW_FUNCTION_ADD_PARAM3(hwndOwner, title, flStyle)
 DW_FUNCTION_RETURN(dw_window_new, HWND)
-DW_FUNCTION_RESTORE_PARAM3(hwndOwner, HWND, title, char *, flStyle, ULONG)
+DW_FUNCTION_RESTORE_PARAM3(DW_UNUSED(hwndOwner), HWND, title, char *, DW_UNUSED(flStyle), ULONG)
 {
     DW_FUNCTION_INIT;
     DWWindow *window = [[DWWindow alloc] initWithFrame:[[UIScreen mainScreen] bounds]];
     DWView *view = [[DWView alloc] init];
-    window.rootViewController = [[DWViewController alloc] init];
 
+    [window setRootViewController:[[DWViewController alloc] init]];
     [window addSubview:view];
 
-    /* TODO: Handle style flags */
+    /* TODO: Handle style flags... if we can? There is no visible frame */
     if(@available(iOS 13.0, *)) {
         [window setLargeContentTitle:[NSString stringWithUTF8String:title]];
     }
@@ -7288,6 +7317,8 @@ int API dw_window_show(HWND handle)
             [window makeKeyAndVisible];
             [window setShown:YES];
         }
+        else
+            [window setHidden:NO];
     }
     return 0;
 }
@@ -7542,7 +7573,7 @@ char * API dw_font_choose(const char *currfont)
 /* Internal function to return a pointer to an item struct
  * with information about the packing information regarding object.
  */
-Item *_box_item(id object)
+Item *_dw_box_item(id object)
 {
     /* Find the item within the box it is packed into */
     if([object isKindOfClass:[DWBox class]] || [object isKindOfClass:[UIControl class]])
@@ -7607,7 +7638,7 @@ int API dw_window_set_font(HWND handle, const char *fontname)
         else
             return DW_ERROR_UNKNOWN;
         /* If we changed the text... */
-        Item *item = _box_item(handle);
+        Item *item = _dw_box_item(handle);
 
         /* Check to see if any of the sizes need to be recalculated */
         if(item && (item->origwidth == -1 || item->origheight == -1))
@@ -7797,7 +7828,7 @@ DW_FUNCTION_RESTORE_PARAM2(handle, HWND, text, char *)
     else
         return;
     /* If we changed the text... */
-    Item *item = _box_item(handle);
+    Item *item = _dw_box_item(handle);
 
     /* Check to see if any of the sizes need to be recalculated */
     if(item && (item->origwidth == -1 || item->origheight == -1))
@@ -7923,7 +7954,7 @@ void API dw_window_set_bitmap_from_data(HWND handle, unsigned long cid, const ch
                 [object setImage:pixmap];
             }
             /* If we changed the bitmap... */
-            Item *item = _box_item(handle);
+            Item *item = _dw_box_item(handle);
 
             /* Check to see if any of the sizes need to be recalculated */
             if(item && (item->origwidth == -1 || item->origheight == -1))
@@ -7981,7 +8012,7 @@ void API dw_window_set_bitmap(HWND handle, unsigned long resid, const char *file
             [object setImage:bitmap];
 
             /* If we changed the bitmap... */
-            Item *item = _box_item(handle);
+            Item *item = _dw_box_item(handle);
 
             /* Check to see if any of the sizes need to be recalculated */
             if(item && (item->origwidth == -1 || item->origheight == -1))
@@ -9506,6 +9537,9 @@ void _dw_app_init(void)
 int API dw_init(int newthread, int argc, char *argv[])
 {
     char *lang = getenv("LANG");
+
+    _dw_argc = argc;
+    _dw_argv = argv;
 
     /* Correct the startup path if run from a bundle */
     if(argc > 0 && argv[0])
