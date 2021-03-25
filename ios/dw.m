@@ -154,7 +154,7 @@ void _##func(NSPointerArray *_args) {
     [_args addPointer:_myreturn]; }}
 #define DW_FUNCTION_RETURN_NOTHING }
 
-unsigned long _colors[] =
+unsigned long _dw_colors[] =
 {
     0x00000000,   /* 0  black */
     0x000000bb,   /* 1  red */
@@ -224,7 +224,7 @@ unsigned long _dw_get_color(unsigned long thiscolor)
     }
     else if(thiscolor < 17)
     {
-        return _colors[thiscolor];
+        return _dw_colors[thiscolor];
     }
     return 0;
 }
@@ -233,7 +233,7 @@ unsigned long _dw_get_color(unsigned long thiscolor)
 pthread_key_t _dw_pool_key;
 pthread_key_t _dw_fg_color_key;
 pthread_key_t _dw_bg_color_key;
-int DWOSMajor, DWOSMinor, DWOSBuild;
+static int DWOSMajor, DWOSMinor, DWOSBuild;
 static char _dw_bundle_path[PATH_MAX+1] = { 0 };
 static char _dw_app_id[_DW_APP_ID_SIZE+1]= {0};
 
@@ -257,8 +257,7 @@ typedef struct _sighandler
 
 } SignalHandler;
 
-SignalHandler *Root = NULL;
-
+static SignalHandler *DWRoot = NULL;
 
 /* Some internal prototypes */
 static void _dw_do_resize(Box *thisbox, int x, int y);
@@ -286,7 +285,7 @@ void _dw_redraw(id window, int skip)
 
 SignalHandler *_dw_get_handler(HWND window, int messageid)
 {
-    SignalHandler *tmp = Root;
+    SignalHandler *tmp = DWRoot;
 
     /* Find any callbacks for this function */
     while(tmp)
@@ -310,7 +309,7 @@ typedef struct
 /* List of signals */
 #define SIGNALMAX 19
 
-SignalList SignalTranslate[SIGNALMAX] = {
+static SignalList DWSignalTranslate[SIGNALMAX] = {
     { 1,    DW_SIGNAL_CONFIGURE },
     { 2,    DW_SIGNAL_KEY_PRESS },
     { 3,    DW_SIGNAL_BUTTON_PRESS },
@@ -575,12 +574,11 @@ int _dw_event_handler(id object, UIEvent *event, int message)
 }
 @end
 
-UIApplication *DWApp = nil;
-UIFont *DWDefaultFont;
-DWTimerHandler *DWHandler;
-NSAutoreleasePool *pool;
-NSMutableArray *_DWDirtyDrawables;
-DWTID DWThread = (DWTID)-1;
+static UIApplication *DWApp = nil;
+static UIFont *DWDefaultFont;
+static DWTimerHandler *DWHandler;
+static NSMutableArray *_DWDirtyDrawables;
+static DWTID DWThread = (DWTID)-1;
 
 /* Used for doing bitblts from the main thread */
 typedef struct _bitbltinfo
@@ -720,7 +718,7 @@ API_AVAILABLE(ios(13.0))
 {
     id orig = bgcolor;
 
-    if(input == _colors[DW_CLR_DEFAULT])
+    if(input == _dw_colors[DW_CLR_DEFAULT])
     {
         bgcolor = nil;
     }
@@ -1114,17 +1112,14 @@ DWObject *DWObj;
     DWWindow *window = (DWWindow *)[[self view] window];
     NSArray *array = [window subviews];
     DWView *view = [array firstObject];
-#if 0
     id object = [array lastObject];
     /* Remove the UITransitionView... for testing purposes */
     if(![object isMemberOfClass:[DWView class]])
         [object removeFromSuperview];
-#endif
     [view setFrame:[window frame]];
     [view windowResized:[window frame].size];
 }
 @end
-
 
 /* Subclass for a button type */
 @interface DWButton : UIButton
@@ -2033,11 +2028,11 @@ void _dw_new_signal(ULONG message, HWND window, int msgid, void *signalfunction,
     new->data = data;
     new->next = NULL;
 
-    if (!Root)
-        Root = new;
+    if (!DWRoot)
+        DWRoot = new;
     else
     {
-        SignalHandler *prev = NULL, *tmp = Root;
+        SignalHandler *prev = NULL, *tmp = DWRoot;
         while(tmp)
         {
             if(tmp->message == message &&
@@ -2055,7 +2050,7 @@ void _dw_new_signal(ULONG message, HWND window, int msgid, void *signalfunction,
         if(prev)
             prev->next = new;
         else
-            Root = new;
+            DWRoot = new;
     }
 }
 
@@ -2066,13 +2061,13 @@ ULONG _dw_findsigmessage(const char *signame)
 
     for(z=0;z<SIGNALMAX;z++)
     {
-        if(strcasecmp(signame, SignalTranslate[z].name) == 0)
-            return SignalTranslate[z].message;
+        if(strcasecmp(signame, DWSignalTranslate[z].name) == 0)
+            return DWSignalTranslate[z].message;
     }
     return 0L;
 }
 
-unsigned long _foreground = 0xAAAAAA, _background = 0;
+unsigned long _dw_foreground = 0xAAAAAA, _dw_background = 0;
 
 void _dw_handle_resize_events(Box *thisbox)
 {
@@ -2410,8 +2405,8 @@ static void _dw_do_resize(Box *thisbox, int x, int y)
     }
 }
 
-static int _dw_argc;
-static char **_dw_argv;
+static int _dw_argc = 0;
+static char **_dw_argv = NULL;
 
 /*
  * Runs a message loop for Dynamic Windows.
@@ -2498,7 +2493,7 @@ void API dw_main_iteration(void)
  */
 void API dw_shutdown(void)
 {
-    pool = pthread_getspecific(_dw_pool_key);
+    NSAutoreleasePool *pool = pthread_getspecific(_dw_pool_key);
     [pool drain];
 }
 
@@ -4527,11 +4522,11 @@ void API dw_color_foreground_set(unsigned long value)
     UIColor *newcolor;
     DW_LOCAL_POOL_IN;
 
-    _foreground = _dw_get_color(value);
+    _dw_foreground = _dw_get_color(value);
 
-    newcolor = [[UIColor colorWithRed:  DW_RED_VALUE(_foreground)/255.0 green:
-                                        DW_GREEN_VALUE(_foreground)/255.0 blue:
-                                        DW_BLUE_VALUE(_foreground)/255.0 alpha: 1] retain];
+    newcolor = [[UIColor colorWithRed:  DW_RED_VALUE(_dw_foreground)/255.0 green:
+                                        DW_GREEN_VALUE(_dw_foreground)/255.0 blue:
+                                        DW_BLUE_VALUE(_dw_foreground)/255.0 alpha: 1] retain];
     pthread_setspecific(_dw_fg_color_key, newcolor);
     [oldcolor release];
     DW_LOCAL_POOL_OUT;
@@ -4555,11 +4550,11 @@ void API dw_color_background_set(unsigned long value)
     }
     else
     {
-        _background = _dw_get_color(value);
+        _dw_background = _dw_get_color(value);
 
-        newcolor = [[UIColor colorWithRed:  DW_RED_VALUE(_background)/255.0 green:
-                                            DW_GREEN_VALUE(_background)/255.0 blue:
-                                            DW_BLUE_VALUE(_background)/255.0 alpha: 1] retain];
+        newcolor = [[UIColor colorWithRed:  DW_RED_VALUE(_dw_background)/255.0 green:
+                                            DW_GREEN_VALUE(_dw_background)/255.0 blue:
+                                            DW_BLUE_VALUE(_dw_background)/255.0 alpha: 1] retain];
         pthread_setspecific(_dw_bg_color_key, newcolor);
     }
     [oldcolor release];
@@ -6057,7 +6052,7 @@ void API dw_taskbar_delete(HWND handle, HICN icon)
 }
 
 /* Internal function to keep HICNs from getting too big */
-void _icon_resize(UIImage *image)
+void _dw_icon_resize(UIImage *image)
 {
     if(image)
     {
@@ -6096,7 +6091,7 @@ HICN _dw_icon_load(unsigned long resid)
 HICN API dw_icon_load(unsigned long module, unsigned long resid)
 {
     UIImage *image = _dw_icon_load(resid);
-    _icon_resize(image);
+    _dw_icon_resize(image);
     return image;
 }
 
@@ -6118,7 +6113,7 @@ HICN API dw_icon_load_from_file(const char *filename)
         nstr = [nstr stringByAppendingString: [NSString stringWithUTF8String:ext]];
         image = [[UIImage alloc] initWithContentsOfFile:nstr];
     }
-    _icon_resize(image);
+    _dw_icon_resize(image);
     return image;
 }
 
@@ -6133,7 +6128,7 @@ HICN API dw_icon_load_from_data(const char *data, int len)
 {
     NSData *thisdata = [NSData dataWithBytes:data length:len];
     UIImage *image = [[UIImage alloc] initWithData:thisdata];
-    _icon_resize(image);
+    _dw_icon_resize(image);
     return image;
 }
 
@@ -6871,7 +6866,7 @@ void API dw_menu_popup(HMENUI *menu, HWND parent, int x, int y)
 #endif
 }
 
-char _removetilde(char *dest, const char *src)
+char _dw_removetilde(char *dest, const char *src)
 {
     int z, cur=0;
     char accel = '\0';
@@ -6922,7 +6917,7 @@ HWND API dw_menu_append_item(HMENUI menux, const char *title, ULONG itemid, ULON
         UIMenu *newmenu, *oldmenu = [menu menu];
         NSArray *newchildren, *oldchildren = [oldmenu children];
         
-        accel[0] = _removetilde(newtitle, title);
+        accel[0] = _dw_removetilde(newtitle, title);
         accel[1] = 0;
 
         nstr = [ NSString stringWithUTF8String:newtitle ];
@@ -7059,7 +7054,7 @@ void API dw_menu_item_set_state(HMENUI menux, unsigned long itemid, unsigned lon
 }
 
 /* Gets the notebook page from associated ID */
-DWNotebookPage *_notepage_from_id(DWNotebook *notebook, unsigned long pageid)
+DWNotebookPage *_dw_notepage_from_id(DWNotebook *notebook, unsigned long pageid)
 {
     NSArray *pages = [notebook views];
     for(DWNotebookPage *notepage in pages)
@@ -7126,7 +7121,7 @@ unsigned long API dw_notebook_page_new(HWND handle, ULONG flags, int front)
 void API dw_notebook_page_destroy(HWND handle, unsigned int pageid)
 {
     DWNotebook *notebook = handle;
-    DWNotebookPage *notepage = _notepage_from_id(notebook, pageid);
+    DWNotebookPage *notepage = _dw_notepage_from_id(notebook, pageid);
     DW_LOCAL_POOL_IN;
 
     if(notepage != nil)
@@ -7168,7 +7163,7 @@ void API dw_notebook_page_set(HWND handle, unsigned int pageid)
 {
 #if 0 /* TODO: Don't see a method to select a tab */
     DWNotebook *notebook = handle;
-    DWNotebookPage *notepage = _notepage_from_id(notebook, pageid);
+    DWNotebookPage *notepage = _dw_notepage_from_id(notebook, pageid);
 
     if(notepage != nil)
     {
@@ -7220,7 +7215,7 @@ void API dw_notebook_pack(HWND handle, ULONG pageid, HWND page)
 {
 #if 0 /* TODO: Haven't implemented the content yet since UISegmentedControl is just the buttons */
     DWNotebook *notebook = handle;
-    DWNotebookPage *notepage = _notepage_from_id(notebook, pageid);
+    DWNotebookPage *notepage = _dw_notepage_from_id(notebook, pageid);
 
     if(notepage != nil)
     {
@@ -8387,7 +8382,7 @@ void API dw_flush(void)
  * a given window handle.  Used in dw_window_set_data() and
  * dw_window_get_data().
  */
-UserData *_find_userdata(UserData **root, const char *varname)
+UserData *_dw_find_userdata(UserData **root, const char *varname)
 {
     UserData *tmp = *root;
 
@@ -8400,9 +8395,9 @@ UserData *_find_userdata(UserData **root, const char *varname)
     return NULL;
 }
 
-int _new_userdata(UserData **root, const char *varname, void *data)
+int _dw_new_userdata(UserData **root, const char *varname, void *data)
 {
-    UserData *new = _find_userdata(root, varname);
+    UserData *new = _dw_find_userdata(root, varname);
 
     if(new)
     {
@@ -8509,7 +8504,7 @@ void dw_window_set_data(HWND window, const char *dataname, void *data)
     }
 
     if(data)
-        _new_userdata(&(blah->root), dataname, data);
+        _dw_new_userdata(&(blah->root), dataname, data);
     else
     {
         if(dataname)
@@ -8545,7 +8540,7 @@ void *dw_window_get_data(HWND window, const char *dataname)
 
     if(blah && blah->root && dataname)
     {
-        UserData *ud = _find_userdata(&(blah->root), dataname);
+        UserData *ud = _dw_find_userdata(&(blah->root), dataname);
         if(ud)
             return ud->data;
     }
@@ -8553,7 +8548,7 @@ void *dw_window_get_data(HWND window, const char *dataname)
 }
 
 #define DW_TIMER_MAX 64
-NSTimer *DWTimers[DW_TIMER_MAX];
+static NSTimer *DWTimers[DW_TIMER_MAX];
 
 /*
  * Add a callback to a timer event.
@@ -8593,7 +8588,7 @@ int API dw_timer_connect(int interval, void *sigfunc, void *data)
  */
 void API dw_timer_disconnect(int timerid)
 {
-    SignalHandler *prev = NULL, *tmp = Root;
+    SignalHandler *prev = NULL, *tmp = DWRoot;
     NSTimer *thistimer;
 
     /* 0 is an invalid timer ID */
@@ -8617,9 +8612,9 @@ void API dw_timer_disconnect(int timerid)
             }
             else
             {
-                Root = tmp->next;
+                DWRoot = tmp->next;
                 free(tmp);
-                tmp = Root;
+                tmp = DWRoot;
             }
         }
         else
@@ -8678,7 +8673,7 @@ void API dw_signal_connect_data(HWND window, const char *signame, void *sigfunc,
  */
 void API dw_signal_disconnect_by_name(HWND window, const char *signame)
 {
-    SignalHandler *prev = NULL, *tmp = Root;
+    SignalHandler *prev = NULL, *tmp = DWRoot;
     ULONG message;
 
     if(!window || !signame || (message = _dw_findsigmessage(signame)) == 0)
@@ -8703,9 +8698,9 @@ void API dw_signal_disconnect_by_name(HWND window, const char *signame)
             }
             else
             {
-                Root = tmp->next;
+                DWRoot = tmp->next;
                 free(tmp);
-                tmp = Root;
+                tmp = DWRoot;
             }
         }
         else
@@ -8723,7 +8718,7 @@ void API dw_signal_disconnect_by_name(HWND window, const char *signame)
  */
 void API dw_signal_disconnect_by_window(HWND window)
 {
-    SignalHandler *prev = NULL, *tmp = Root;
+    SignalHandler *prev = NULL, *tmp = DWRoot;
 
     while(tmp)
     {
@@ -8744,9 +8739,9 @@ void API dw_signal_disconnect_by_window(HWND window)
             }
             else
             {
-                Root = tmp->next;
+                DWRoot = tmp->next;
                 free(tmp);
-                tmp = Root;
+                tmp = DWRoot;
             }
         }
         else
@@ -8765,7 +8760,7 @@ void API dw_signal_disconnect_by_window(HWND window)
  */
 void API dw_signal_disconnect_by_data(HWND window, void *data)
 {
-    SignalHandler *prev = NULL, *tmp = Root;
+    SignalHandler *prev = NULL, *tmp = DWRoot;
 
     while(tmp)
     {
@@ -8786,9 +8781,9 @@ void API dw_signal_disconnect_by_data(HWND window, void *data)
             }
             else
             {
-                Root = tmp->next;
+                DWRoot = tmp->next;
                 free(tmp);
-                tmp = Root;
+                tmp = DWRoot;
             }
         }
         else
@@ -8799,7 +8794,7 @@ void API dw_signal_disconnect_by_data(HWND window, void *data)
     }
 }
 
-void _my_strlwr(char *buf)
+void _dw_my_strlwr(char *buf)
 {
    int z, len = (int)strlen(buf);
 
@@ -8836,7 +8831,7 @@ int dw_module_load(const char *name, HMOD *handle)
       return -1;
 
    sprintf(newname, "lib%s.dylib", name);
-   _my_strlwr(newname);
+   _dw_my_strlwr(newname);
 
    *handle = dlopen(newname, RTLD_NOW);
    if(*handle == NULL)
@@ -9087,7 +9082,7 @@ struct _seminfo {
    int waiting;
 };
 
-static void _handle_sem(int *tmpsock)
+static void _dw_handle_sem(int *tmpsock)
 {
    fd_set rd;
    struct _seminfo *array = (struct _seminfo *)malloc(sizeof(struct _seminfo));
@@ -9296,7 +9291,7 @@ HEV dw_named_event_new(const char *name)
     }
 
     /* Create a thread to handle this event semaphore */
-    pthread_create(&dwthread, NULL, (void *)_handle_sem, (void *)tmpsock);
+    pthread_create(&dwthread, NULL, (void *)_dw_handle_sem, (void *)tmpsock);
     eve->alive = ev;
     return eve;
 }
@@ -9432,7 +9427,7 @@ int dw_named_event_wait(HEV eve, unsigned long timeout)
 int dw_named_event_close(HEV eve)
 {
    /* Finally close the domain socket,
-    * cleanup will continue in _handle_sem.
+    * cleanup will continue in _dw_handle_sem.
     */
     if(eve)
     {
@@ -9480,7 +9475,7 @@ void API _dw_deinit_thread(void)
     [color release];
     color = pthread_getspecific(_dw_bg_color_key);
     [color release];
-    pool = pthread_getspecific(_dw_pool_key);
+    NSAutoreleasePool *pool = pthread_getspecific(_dw_pool_key);
     [pool drain];
 }
 
@@ -9600,7 +9595,7 @@ int API dw_init(int newthread, int argc, char *argv[])
     /* Create object for handling timers */
     DWHandler = [[DWTimerHandler alloc] init];
     pthread_key_create(&_dw_pool_key, NULL);
-    pool = [[NSAutoreleasePool alloc] init];
+    NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
     pthread_setspecific(_dw_pool_key, pool);
     pthread_key_create(&_dw_fg_color_key, NULL);
     pthread_key_create(&_dw_bg_color_key, NULL);
