@@ -869,11 +869,12 @@ API_AVAILABLE(ios(13.0))
 @implementation DWObject
 -(id)init
 {
+    self = [super init];
     hiddenWindow = [[UIWindow alloc] initWithFrame:[[UIScreen mainScreen] bounds]];
     [hiddenWindow setBackgroundColor:[UIColor clearColor]];
     [hiddenWindow setWindowLevel:UIWindowLevelAlert];
     [hiddenWindow setHidden:YES];
-    return [super init];
+    return self;
 }
 -(void)uselessThread:(id)sender { /* Thread only to initialize threading */ }
 -(void)menuHandler:(id)param
@@ -899,9 +900,11 @@ API_AVAILABLE(ios(13.0))
     if([params count] > 4)
         action = [UIAlertAction actionWithTitle:[params objectAtIndex:4] style:UIAlertActionStyleDefault
                                         handler:^(UIAlertAction * action) { iResponse = 2; }];
+    [alert addAction:action];
     if([params count] > 5)
         action = [UIAlertAction actionWithTitle:[params objectAtIndex:5] style:UIAlertActionStyleDefault
                                         handler:^(UIAlertAction * action) { iResponse = 3; }];
+    [alert addAction:action];
 
     /* Unhide our hidden window and make it key */
     [hiddenWindow setHidden:NO];
@@ -909,7 +912,6 @@ API_AVAILABLE(ios(13.0))
     [[hiddenWindow rootViewController] presentViewController:alert animated:YES completion:nil];
     /* Once the dialog is gone we can rehide our window */
     [hiddenWindow setHidden:YES];
-    [alert release];
     [params addObject:[NSNumber numberWithInteger:iResponse]];
 }
 -(void)safeCall:(SEL)sel withObject:(id)param
@@ -1112,10 +1114,12 @@ DWObject *DWObj;
     DWWindow *window = (DWWindow *)[[self view] window];
     NSArray *array = [window subviews];
     DWView *view = [array firstObject];
+#if 0
     id object = [array lastObject];
     /* Remove the UITransitionView... for testing purposes */
     if(![object isMemberOfClass:[DWView class]])
         [object removeFromSuperview];
+#endif
     [view setFrame:[window frame]];
     [view windowResized:[window frame].size];
 }
@@ -2998,6 +3002,7 @@ void _dw_control_size(id handle, int *width, int *height)
             frame.size.width += 2.0;
             frame.size.height += 2.0;
             [sv setFrame:frame];
+            size = frame.size;
         }
         else
             size = [object getsize];
@@ -4642,7 +4647,7 @@ DW_FUNCTION_RESTORE_PARAM4(handle, HWND, pixmap, HPIXMAP, x, int, y, int)
     bool bCanDraw = YES;
 
     if(pixmap)
-        bi = image = (id)pixmap->image;
+        bi = (id)pixmap->image;
     else
     {
         if([image isMemberOfClass:[DWRender class]])
@@ -4693,7 +4698,7 @@ DW_FUNCTION_RESTORE_PARAM6(handle, HWND, pixmap, HPIXMAP, x1, int, y1, int, x2, 
     bool bCanDraw = YES;
 
     if(pixmap)
-        bi = image = (id)pixmap->image;
+        bi = (id)pixmap->image;
     else
     {
         if([image isMemberOfClass:[DWRender class]])
@@ -4748,14 +4753,13 @@ DW_FUNCTION_RESTORE_PARAM5(handle, HWND, pixmap, HPIXMAP, x, int, y, int, text, 
 
     if(pixmap)
     {
-        bi = image = (id)pixmap->image;
+        bi = (id)pixmap->image;
         font = pixmap->font;
         render = pixmap->handle;
         if(!font && [render isMemberOfClass:[DWRender class]])
         {
             font = [render font];
         }
-        image = (id)pixmap->image;
     }
     else if(image && [image isMemberOfClass:[DWRender class]])
     {
@@ -4859,7 +4863,7 @@ DW_FUNCTION_RESTORE_PARAM6(handle, HWND, pixmap, HPIXMAP, flags, int, npoints, i
     int z;
 
     if(pixmap)
-        bi = image = (id)pixmap->image;
+        bi = (id)pixmap->image;
     else
     {
         if([image isMemberOfClass:[DWRender class]])
@@ -4920,7 +4924,7 @@ DW_FUNCTION_RESTORE_PARAM7(handle, HWND, pixmap, HPIXMAP, flags, int, x, int, y,
     bool bCanDraw = YES;
 
     if(pixmap)
-        bi = image = (id)pixmap->image;
+        bi = (id)pixmap->image;
     else
     {
         if([image isMemberOfClass:[DWRender class]])
@@ -4979,7 +4983,7 @@ DW_FUNCTION_RESTORE_PARAM9(handle, HWND, pixmap, HPIXMAP, flags, int, xorigin, i
     bool bCanDraw = YES;
 
     if(pixmap)
-        bi = image = (id)pixmap->image;
+        bi = (id)pixmap->image;
     else
     {
         if([image isMemberOfClass:[DWRender class]])
@@ -5778,15 +5782,12 @@ DW_FUNCTION_RESTORE_PARAM3(handle, HWND, direction, int, rows, long)
     UIScrollView *sv = [cont scrollview];
     int rowcount = (int)[cont numberOfRowsInSection:0];
     CGPoint offset = [sv contentOffset];
-    float change;
 
     /* Safety check */
     if(rowcount < 1)
     {
         return;
     }
-
-    change = (float)rows/(float)rowcount;
 
     switch(direction)
     {
@@ -6199,6 +6200,7 @@ DW_FUNCTION_RESTORE_PARAM4(DW_UNUSED(type), int, topleft, HWND, bottomright, HWN
         [split addChildViewController:vc];
     }
     [tmpbox autorelease];
+    [vc autorelease];
 #if 0 /* TODO: All iOS splitbars are vertical */
     [split setVertical:(type == DW_VERT ? YES : NO)];
 #endif
