@@ -2003,7 +2003,7 @@ char *DWFeatureList[] = {
 /*
  * Let's demonstrate the functionality of this library. :)
  */
-int main(int argc, char *argv[])
+int dwmain(int argc, char *argv[])
 {
     ULONG notebookpage1;
     ULONG notebookpage2;
