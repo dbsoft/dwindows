@@ -1115,12 +1115,6 @@ DWObject *DWObj;
     DWWindow *window = (DWWindow *)[[self view] window];
     NSArray *array = [window subviews];
     DWView *view = [array firstObject];
-#if 0
-    id object = [array lastObject];
-    /* Remove the UITransitionView... for testing purposes */
-    if(![object isMemberOfClass:[DWView class]])
-        [object removeFromSuperview];
-#endif
     [view setFrame:[window frame]];
     [view windowResized:[window frame].size];
 }
@@ -3324,9 +3318,13 @@ DW_FUNCTION_RESTORE_PARAM2(box, HWND, index, int)
  *       vsize: TRUE if the window (widget) should expand vertically to fill space given.
  *       pad: Number of pixels of padding around the item.
  */
-void API dw_box_pack_at_index(HWND box, HWND item, int index, int width, int height, int hsize, int vsize, int pad)
+DW_FUNCTION_DEFINITION(dw_box_pack_at_index, void, HWND box, HWND item, int index, int width, int height, int hsize, int vsize, int pad)
+DW_FUNCTION_ADD_PARAM8(box, item, index, width, height, hsize, vsize, pad)
+DW_FUNCTION_NO_RETURN(dw_box_pack_at_index)
+DW_FUNCTION_RESTORE_PARAM8(box, HWND, item, HWND, index, int, width, int, height, int, hsize, int, vsize, int, pad, int)
 {
     _dw_box_pack(box, item, index, width, height, hsize, vsize, pad, "dw_box_pack_at_index()");
+    DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -3373,7 +3371,7 @@ DW_FUNCTION_RESTORE_PARAM7(box, HWND, item, HWND, width, int, height, int, hsize
 }
 
 /* Internal function to create a basic button, used by all button types */
-HWND _dw_button_new(const char *text, ULONG cid)
+HWND _dw_internal_button_new(const char *text, ULONG cid)
 {
     DWButton *button = [[DWButton alloc] init];
     if(text)
@@ -3397,11 +3395,14 @@ HWND _dw_button_new(const char *text, ULONG cid)
  *       text: The text to be display by the static text widget.
  *       id: An ID to be used with dw_window_from_id() or 0L.
  */
-HWND API dw_button_new(const char *text, ULONG cid)
+DW_FUNCTION_DEFINITION(dw_button_new, HWND, const char *text, ULONG cid)
+DW_FUNCTION_ADD_PARAM2(text, cid)
+DW_FUNCTION_RETURN(dw_button_new, HWND)
+DW_FUNCTION_RESTORE_PARAM2(text, const char *, cid, ULONG)
 {
-    DWButton *button = _dw_button_new(text, cid);
+    DWButton *button = _dw_internal_button_new(text, cid);
     [button setContentHorizontalAlignment:UIControlContentHorizontalAlignmentCenter];
-    return button;
+    DW_FUNCTION_RETURN_THIS(button);
 }
 
 /*
@@ -3410,12 +3411,15 @@ HWND API dw_button_new(const char *text, ULONG cid)
  *       text: The default text to be in the entryfield widget.
  *       id: An ID to be used with dw_window_from_id() or 0L.
  */
-HWND API dw_entryfield_new(const char *text, ULONG cid)
+DW_FUNCTION_DEFINITION(dw_entryfield_new, HWND, const char *text, ULONG cid)
+DW_FUNCTION_ADD_PARAM2(text, cid)
+DW_FUNCTION_RETURN(dw_entryfield_new, HWND)
+DW_FUNCTION_RESTORE_PARAM2(text, const char *, cid, ULONG)
 {
     DWEntryField *entry = [[DWEntryField alloc] init];
     [entry setText:[ NSString stringWithUTF8String:text ]];
     [entry setTag:cid];
-    return entry;
+    DW_FUNCTION_RETURN_THIS(entry);
 }
 
 /*
@@ -3424,11 +3428,14 @@ HWND API dw_entryfield_new(const char *text, ULONG cid)
  *       text: The default text to be in the entryfield widget.
  *       id: An ID to be used with dw_window_from_id() or 0L.
  */
-HWND API dw_entryfield_password_new(const char *text, ULONG cid)
+DW_FUNCTION_DEFINITION(dw_entryfield_password_new, HWND, const char *text, ULONG cid)
+DW_FUNCTION_ADD_PARAM2(text, cid)
+DW_FUNCTION_RETURN(dw_entryfield_password_new, HWND)
+DW_FUNCTION_RESTORE_PARAM2(text, const char *, cid, ULONG)
 {
     DWEntryField *entry = dw_entryfield_new(text, cid);
     [entry setSecureTextEntry:YES];
-    return entry;
+    DW_FUNCTION_RETURN_THIS(entry);
 }
 
 /*
@@ -3454,19 +3461,22 @@ void API dw_entryfield_set_limit(HWND handle, ULONG limit)
  *       text: Bubble help text to be displayed.
  *       id: An ID of a bitmap in the resource file.
  */
-HWND API dw_bitmapbutton_new(const char *text, ULONG resid)
+DW_FUNCTION_DEFINITION(dw_bitmapbutton_new, HWND, DW_UNUSED(const char *text), ULONG cid)
+DW_FUNCTION_ADD_PARAM2(text, cid)
+DW_FUNCTION_RETURN(dw_bitmapbutton_new, HWND)
+DW_FUNCTION_RESTORE_PARAM2(DW_UNUSED(text), const char *, cid, ULONG)
 {
     NSBundle *bundle = [NSBundle mainBundle];
     NSString *respath = [bundle resourcePath];
-    NSString *filepath = [respath stringByAppendingFormat:@"/%lu.png", resid];
+    NSString *filepath = [respath stringByAppendingFormat:@"/%lu.png", cid];
     UIImage *image = [[UIImage alloc] initWithContentsOfFile:filepath];
-    DWButton *button = _dw_button_new("", resid);
+    DWButton *button = _dw_internal_button_new("", cid);
     if(image)
     {
         [button setImage:image forState:UIControlStateNormal];
     }
     [image release];
-    return button;
+    DW_FUNCTION_RETURN_THIS(button);
 }
 
 /*
@@ -3478,7 +3488,10 @@ HWND API dw_bitmapbutton_new(const char *text, ULONG resid)
  *                 DW pick the appropriate file extension.
  *                 (BMP on OS/2 or Windows, XPM on Unix)
  */
-HWND API dw_bitmapbutton_new_from_file(const char *text, unsigned long cid, const char *filename)
+DW_FUNCTION_DEFINITION(dw_bitmapbutton_new_from_file, HWND, const char *text, ULONG cid, const char *filename)
+DW_FUNCTION_ADD_PARAM3(text, cid, filename)
+DW_FUNCTION_RETURN(dw_bitmapbutton_new_from_file, HWND)
+DW_FUNCTION_RESTORE_PARAM3(text, const char *, cid, ULONG, filename, const char *)
 {
     char *ext = _dw_get_image_extension(filename);
 
@@ -3490,13 +3503,13 @@ HWND API dw_bitmapbutton_new_from_file(const char *text, unsigned long cid, cons
         nstr = [nstr stringByAppendingString: [NSString stringWithUTF8String:ext]];
         image = [[UIImage alloc] initWithContentsOfFile:nstr];
     }
-    DWButton *button = _dw_button_new("", cid);
+    DWButton *button = _dw_internal_button_new("", cid);
     if(image)
     {
         [button setImage:image forState:UIControlStateNormal];
     }
     [image release];
-    return button;
+    DW_FUNCTION_RETURN_THIS(button);
 }
 
 /*
@@ -3508,17 +3521,20 @@ HWND API dw_bitmapbutton_new_from_file(const char *text, unsigned long cid, cons
  *            (BMP or ICO on OS/2 or Windows, XPM on Unix)
  *       len: length of str
  */
-HWND API dw_bitmapbutton_new_from_data(const char *text, unsigned long cid, const char *data, int len)
+DW_FUNCTION_DEFINITION(dw_bitmapbutton_new_from_data, HWND, DW_UNUSED(const char *text), ULONG cid, const char *data, int len)
+DW_FUNCTION_ADD_PARAM4(text, cid, data, len)
+DW_FUNCTION_RETURN(dw_bitmapbutton_new_from_data, HWND)
+DW_FUNCTION_RESTORE_PARAM4(DW_UNUSED(text), const char *, cid, ULONG, data, const char *, len, int)
 {
     NSData *thisdata = [NSData dataWithBytes:data length:len];
     UIImage *image = [[UIImage alloc] initWithData:thisdata];
-    DWButton *button = _dw_button_new("", cid);
+    DWButton *button = _dw_internal_button_new("", cid);
     if(image)
     {
         [button setImage:image forState:UIControlStateNormal];
     }
     [image release];
-    return button;
+    DW_FUNCTION_RETURN_THIS(button);
 }
 
 /*
@@ -3527,7 +3543,10 @@ HWND API dw_bitmapbutton_new_from_data(const char *text, unsigned long cid, cons
  *       text: The text to be display by the static text widget.
  *       id: An ID to be used with dw_window_from_id() or 0L.
  */
-HWND API dw_spinbutton_new(const char *text, ULONG cid)
+DW_FUNCTION_DEFINITION(dw_spinbutton_new, HWND, const char *text, ULONG cid)
+DW_FUNCTION_ADD_PARAM2(text, cid)
+DW_FUNCTION_RETURN(dw_spinbutton_new, HWND)
+DW_FUNCTION_RESTORE_PARAM2(text, const char *, cid, ULONG)
 {
     DWSpinButton *spinbutton = [[DWSpinButton alloc] init];
     UIStepper *stepper = [spinbutton stepper];
@@ -3540,7 +3559,7 @@ HWND API dw_spinbutton_new(const char *text, ULONG cid)
     [stepper setMaximumValue:65536];
     [stepper setValue:(float)val];
     [textfield setText:[NSString stringWithFormat:@"%ld",val]];
-    return spinbutton;
+    DW_FUNCTION_RETURN_THIS(spinbutton);
 }
 
 /*
@@ -3549,13 +3568,17 @@ HWND API dw_spinbutton_new(const char *text, ULONG cid)
  *          handle: Handle to the spinbutton to be set.
  *          position: Current value of the spinbutton.
  */
-void API dw_spinbutton_set_pos(HWND handle, long position)
+DW_FUNCTION_DEFINITION(dw_spinbutton_set_pos, void, HWND handle, long position)
+DW_FUNCTION_ADD_PARAM2(handle, position)
+DW_FUNCTION_NO_RETURN(dw_spinbutton_set_pos)
+DW_FUNCTION_RESTORE_PARAM2(handle, HWND, position, long)
 {
     DWSpinButton *spinbutton = handle;
     UIStepper *stepper = [spinbutton stepper];
     UITextField *textfield = [spinbutton textfield];
     [stepper setValue:(float)position];
     [textfield setText:[NSString stringWithFormat:@"%ld",position]];
+    DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -3565,12 +3588,16 @@ void API dw_spinbutton_set_pos(HWND handle, long position)
  *          upper: Upper limit.
  *          lower: Lower limit.
  */
-void API dw_spinbutton_set_limits(HWND handle, long upper, long lower)
+DW_FUNCTION_DEFINITION(dw_spinbutton_set_limits, void, HWND handle, long upper, long lower)
+DW_FUNCTION_ADD_PARAM3(handle, upper, lower)
+DW_FUNCTION_NO_RETURN(dw_spinbutton_set_limits)
+DW_FUNCTION_RESTORE_PARAM3(handle, HWND, upper, long, lower, long)
 {
     DWSpinButton *spinbutton = handle;
     UIStepper *stepper = [spinbutton stepper];
     [stepper setMinimumValue:(double)lower];
     [stepper setMaximumValue:(double)upper];
+    DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -3578,11 +3605,16 @@ void API dw_spinbutton_set_limits(HWND handle, long upper, long lower)
  * Parameters:
  *          handle: Handle to the spinbutton to be queried.
  */
-long API dw_spinbutton_get_pos(HWND handle)
+DW_FUNCTION_DEFINITION(dw_spinbutton_get_pos, long, HWND handle)
+DW_FUNCTION_ADD_PARAM1(handle)
+DW_FUNCTION_RETURN(dw_spinbutton_get_pos, long)
+DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
 {
     DWSpinButton *spinbutton = handle;
+    long retval;
     UIStepper *stepper = [spinbutton stepper];
-    return (long)[stepper value];
+    retval = (long)[stepper value];
+    DW_FUNCTION_RETURN_THIS(retval);
 }
 
 /*
@@ -3591,11 +3623,14 @@ long API dw_spinbutton_get_pos(HWND handle)
  *       text: The text to be display by the static text widget.
  *       id: An ID to be used with dw_window_from_id() or 0L.
  */
-HWND API dw_radiobutton_new(const char *text, ULONG cid)
+DW_FUNCTION_DEFINITION(dw_radiobutton_new, HWND, const char *text, ULONG cid)
+DW_FUNCTION_ADD_PARAM2(text, cid)
+DW_FUNCTION_RETURN(dw_radiobutton_new, HWND)
+DW_FUNCTION_RESTORE_PARAM2(text, const char *, cid, ULONG)
 {
-    DWButton *button = _dw_button_new(text, cid);
+    DWButton *button = _dw_internal_button_new(text, cid);
     /* TODO: Customize to be a radio button https://github.com/DavydLiu/DLRadioButton */
-    return button;
+    DW_FUNCTION_RETURN_THIS(button);
 }
 
 /*
@@ -3605,7 +3640,10 @@ HWND API dw_radiobutton_new(const char *text, ULONG cid)
  *       increments: Number of increments available.
  *       id: An ID to be used with dw_window_from_id() or 0L.
  */
-HWND API dw_slider_new(int vertical, int increments, ULONG cid)
+DW_FUNCTION_DEFINITION(dw_slider_new, HWND, int vertical, int increments, ULONG cid)
+DW_FUNCTION_ADD_PARAM3(vertical, increments, cid)
+DW_FUNCTION_RETURN(dw_slider_new, HWND)
+DW_FUNCTION_RESTORE_PARAM3(vertical, int, increments, int, cid, ULONG)
 {
     DWSlider *slider = [[DWSlider alloc] init];
     [slider setMaximumValue:(double)increments];
@@ -3615,7 +3653,7 @@ HWND API dw_slider_new(int vertical, int increments, ULONG cid)
                action:@selector(sliderChanged:)
      forControlEvents:UIControlEventValueChanged];
     [slider setTag:cid];
-    return slider;
+    DW_FUNCTION_RETURN_THIS(slider);
 }
 
 /*
@@ -3694,11 +3732,14 @@ void API dw_scrollbar_set_range(HWND handle, unsigned int range, unsigned int vi
  * Parameters:
  *       id: An ID to be used with dw_window_from_id() or 0L.
  */
-HWND API dw_percent_new(ULONG cid)
+DW_FUNCTION_DEFINITION(dw_percent_new, HWND, ULONG cid)
+DW_FUNCTION_ADD_PARAM1(cid)
+DW_FUNCTION_RETURN(dw_percent_new, HWND)
+DW_FUNCTION_RESTORE_PARAM1(cid, ULONG)
 {
     DWPercent *percent = [[DWPercent alloc] init];
-    /*[percent setTag:cid]; Why doesn't this work? */
-    return percent;
+    [percent setTag:cid];
+    DW_FUNCTION_RETURN_THIS(percent);
 }
 
 /*
@@ -3734,11 +3775,14 @@ DW_FUNCTION_RESTORE_PARAM2(handle, HWND, position, unsigned int)
  *       text: The text to be display by the static text widget.
  *       id: An ID to be used with dw_window_from_id() or 0L.
  */
-HWND API dw_checkbox_new(const char *text, ULONG cid)
+DW_FUNCTION_DEFINITION(dw_checkbox_new, HWND, const char *text, ULONG cid)
+DW_FUNCTION_ADD_PARAM2(text, cid)
+DW_FUNCTION_RETURN(dw_checkbox_new, HWND)
+DW_FUNCTION_RESTORE_PARAM2(text, const char *, cid, ULONG)
 {
-    DWButton *button = _dw_button_new(text, cid);
+    DWButton *button = _dw_internal_button_new(text, cid);
     /* TODO: Switch to UISwitch control with text */
-    return button;
+    DW_FUNCTION_RETURN_THIS(button);
 }
 
 /*
@@ -4176,7 +4220,10 @@ HWND API dw_combobox_new(const char *text, ULONG cid)
  * Parameters:
  *       id: An ID to be used with dw_window_from_id() or 0L.
  */
-HWND API dw_mle_new(ULONG cid)
+DW_FUNCTION_DEFINITION(dw_mle_new, HWND, ULONG cid)
+DW_FUNCTION_ADD_PARAM1(cid)
+DW_FUNCTION_RETURN(dw_mle_new, HWND)
+DW_FUNCTION_RESTORE_PARAM1(cid, ULONG)
 {
     DWMLE *mle = [[DWMLE alloc] init];
     UIScrollView *scrollview  = [[UIScrollView alloc] init];
@@ -4185,9 +4232,9 @@ HWND API dw_mle_new(ULONG cid)
     size.width = size.height;
     [mle setAutoresizingMask:UIViewAutoresizingFlexibleHeight|UIViewAutoresizingFlexibleWidth];
     [mle setScrollview:scrollview];
-    /* [mle setTag:cid]; Why doesn't this work? */
+    [mle setTag:cid];
     [mle autorelease];
-    return mle;
+    DW_FUNCTION_RETURN_THIS(mle);
 }
 
 /*
@@ -4477,7 +4524,10 @@ HWND API dw_status_text_new(const char *text, ULONG cid)
  *       text: The text to be display by the static text widget.
  *       id: An ID to be used with dw_window_from_id() or 0L.
  */
-HWND API dw_text_new(const char *text, ULONG cid)
+DW_FUNCTION_DEFINITION(dw_text_new, HWND, const char *text, ULONG cid)
+DW_FUNCTION_ADD_PARAM2(text, cid)
+DW_FUNCTION_RETURN(dw_text_new, HWND)
+DW_FUNCTION_RESTORE_PARAM2(text, const char *, cid, ULONG)
 {
     DWText *textfield = [[DWText alloc] init];
     [textfield setText:[NSString stringWithUTF8String:text]];
@@ -4486,7 +4536,7 @@ HWND API dw_text_new(const char *text, ULONG cid)
     {
         [textfield setFont:DWDefaultFont];
     }
-    return textfield;
+    DW_FUNCTION_RETURN_THIS(textfield);
 }
 
 /*
@@ -4496,11 +4546,14 @@ HWND API dw_text_new(const char *text, ULONG cid)
  * Returns:
  *       A handle to the widget or NULL on failure.
  */
-HWND API dw_render_new(unsigned long cid)
+DW_FUNCTION_DEFINITION(dw_render_new, HWND, ULONG cid)
+DW_FUNCTION_ADD_PARAM1(cid)
+DW_FUNCTION_RETURN(dw_render_new, HWND)
+DW_FUNCTION_RESTORE_PARAM1(cid, ULONG)
 {
     DWRender *render = [[DWRender alloc] init];
     [render setTag:cid];
-    return render;
+    DW_FUNCTION_RETURN_THIS(render);
 }
 
 /*
@@ -6626,13 +6679,16 @@ int API dw_pixmap_stretch_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest,
  *       text: The text to be display by the static text widget.
  *       id: An ID to be used with dw_window_from_id() or 0L.
  */
-HWND API dw_calendar_new(ULONG cid)
+DW_FUNCTION_DEFINITION(dw_calendar_new, HWND, ULONG cid)
+DW_FUNCTION_ADD_PARAM1(cid)
+DW_FUNCTION_RETURN(dw_calendar_new, HWND)
+DW_FUNCTION_RESTORE_PARAM1(cid, ULONG)
 {
     DWCalendar *calendar = [[DWCalendar alloc] init];
     [calendar setDatePickerMode:UIDatePickerModeDate];
     [calendar setTag:cid];
     [calendar setDate:[NSDate date]];
-    return calendar;
+    DW_FUNCTION_RETURN_THIS(calendar);
 }
 
 /*
@@ -7080,14 +7136,17 @@ DWNotebookPage *_dw_notepage_from_id(DWNotebook *notebook, unsigned long pageid)
  *       id: An ID to be used for getting the resource from the
  *           resource file.
  */
-HWND API dw_notebook_new(ULONG cid, int top)
+DW_FUNCTION_DEFINITION(dw_notebook_new, HWND, ULONG cid, int top)
+DW_FUNCTION_ADD_PARAM2(cid, top)
+DW_FUNCTION_RETURN(dw_notebook_new, HWND)
+DW_FUNCTION_RESTORE_PARAM2(cid, ULONG, top, int)
 {
     DWNotebook *notebook = [[DWNotebook alloc] init];
     [notebook addTarget:notebook
                  action:@selector(pageChanged:)
        forControlEvents:UIControlEventValueChanged];
-    /* [notebook setTag:cid]; Why doesn't this work? */
-    return notebook;
+    [notebook setTag:cid];
+    DW_FUNCTION_RETURN_THIS(notebook);
 }
 
 /*
@@ -7097,12 +7156,17 @@ HWND API dw_notebook_new(ULONG cid, int top)
  *          flags: Any additional page creation flags.
  *          front: If TRUE page is added at the beginning.
  */
-unsigned long API dw_notebook_page_new(HWND handle, ULONG flags, int front)
+DW_FUNCTION_DEFINITION(dw_notebook_page_new, ULONG, HWND handle, DW_UNUSED(ULONG flags), int front)
+DW_FUNCTION_ADD_PARAM3(handle, flags, front)
+DW_FUNCTION_RETURN(dw_notebook_page_new, ULONG)
+DW_FUNCTION_RESTORE_PARAM3(handle, HWND, DW_UNUSED(flags), ULONG, front, int)
 {
     DWNotebook *notebook = handle;
     NSInteger page = [notebook pageid];
     DWNotebookPage *notepage = [[DWNotebookPage alloc] init];
     NSMutableArray<DWNotebookPage *> *views = [notebook views];
+    unsigned long retval;
+
     [notepage setPageid:(int)page];
     if(front)
     {
@@ -7116,7 +7180,8 @@ unsigned long API dw_notebook_page_new(HWND handle, ULONG flags, int front)
     }
     [notepage autorelease];
     [notebook setPageid:(int)(page+1)];
-    return (unsigned long)page;
+    retval = (unsigned long)page;
+    DW_FUNCTION_RETURN_THIS(retval);
 }
 
 /*
@@ -7192,11 +7257,15 @@ void API dw_notebook_page_set(HWND handle, unsigned int pageid)
  *          pageid: Page ID of the tab to set.
  *          text: Pointer to the text to set.
  */
-void API dw_notebook_page_set_text(HWND handle, ULONG pageid, const char *text)
+DW_FUNCTION_DEFINITION(dw_notebook_page_set_text, void, HWND handle, ULONG pageid, const char *text)
+DW_FUNCTION_ADD_PARAM3(handle, pageid, text)
+DW_FUNCTION_NO_RETURN(dw_notebook_page_set_text)
+DW_FUNCTION_RESTORE_PARAM3(handle, HWND, pageid, ULONG, text, const char *)
 {
     DWNotebook *notebook = handle;
 
     [notebook setTitle:[NSString stringWithUTF8String:text] forSegmentAtIndex:pageid];
+    DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -7358,13 +7427,17 @@ DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
  *          fore: Foreground color in DW_RGB format or a default color index.
  *          back: Background color in DW_RGB format or a default color index.
  */
-int API dw_window_set_color(HWND handle, ULONG fore, ULONG back)
+DW_FUNCTION_DEFINITION(dw_window_set_color, int, HWND handle, unsigned long fore, unsigned long back)
+DW_FUNCTION_ADD_PARAM3(handle, fore, back)
+DW_FUNCTION_RETURN(dw_window_set_color, int)
+DW_FUNCTION_RESTORE_PARAM3(handle, HWND, fore, unsigned long, back, unsigned long)
 {
     id object = handle;
     unsigned long _fore = _dw_get_color(fore);
     unsigned long _back = _dw_get_color(back);
     UIColor *fg = NULL;
     UIColor *bg = NULL;
+    int retval = DW_ERROR_NONE;
 
     /* Get the UIColor for non-default colors */
     if(fore != DW_CLR_DEFAULT)
@@ -7413,7 +7486,7 @@ int API dw_window_set_color(HWND handle, ULONG fore, ULONG back)
         [mle setBackgroundColor:(bg ? bg : [UIColor systemBackgroundColor])];
         [mle setTextColor:(fg ? fg : [UIColor labelColor])];
     }
-    return 0;
+    DW_FUNCTION_RETURN_THIS(retval);
 }
 
 /*
@@ -7434,7 +7507,10 @@ int API dw_window_set_border(HWND handle, int border)
  *          width: New width in pixels.
  *          height: New height in pixels.
  */
-void API dw_window_set_style(HWND handle, ULONG style, ULONG mask)
+DW_FUNCTION_DEFINITION(dw_window_set_style, void, HWND handle, ULONG style, ULONG mask)
+DW_FUNCTION_ADD_PARAM3(handle, style, mask)
+DW_FUNCTION_NO_RETURN(dw_window_set_style)
+DW_FUNCTION_RESTORE_PARAM3(handle, HWND, style, ULONG, mask, ULONG)
 {
     id object = _text_handle(handle);
 
@@ -7481,6 +7557,7 @@ void API dw_window_set_style(HWND handle, ULONG style, ULONG mask)
                 [object setEnabled:NO];
         }
     }
+    DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
