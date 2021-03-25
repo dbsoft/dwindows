@@ -210,13 +210,10 @@ dwcompat.obj: $(SRCDIR)\dwcompat.c
 dwtest.obj: $(SRCDIR)\dwtest.c
 	$(CC) $(CFLAGS) $(CFLAGS_DEBUG) $(SRCDIR)\dwtest.c
 
-winmain.obj: $(SRCDIR)\winmain.c
-	$(CC) $(CFLAGS) $(CFLAGS_DEBUG) $(SRCDIR)\winmain.c
-
 dwtest: dwtest.exe
 
-dwtest.exe: dwtest.obj winmain.obj
-	$(LINK) $(LINKFLAGS) /out:dwtest.exe dwtest.obj winmain.obj /subsystem:windows $(DWLIBDIR)\dwcompat.lib $(DWLIBDIR)\dw.lib $(LIBS)
+dwtest.exe: dwtest.obj
+	$(LINK) $(LINKFLAGS) /out:dwtest.exe dwtest.obj /subsystem:windows $(DWLIBDIR)\dwcompat.lib $(DWLIBDIR)\dw.lib $(LIBS)
 	mt.exe /manifest dwtest.exe.manifest $(SRCDIR)\win\dwtest.exe.$(TARGET_CPU).manifest /outputresource:dwtest.exe;1
 	-erase dwtest.exe.manifest
 

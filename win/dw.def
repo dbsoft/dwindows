@@ -2,6 +2,7 @@ LIBRARY DW
 
 EXPORTS
   Win32_Set_Instance                     @1
+  _dw_convertargs                        @2
 
   dw_init                                @10
   dw_main                                @11

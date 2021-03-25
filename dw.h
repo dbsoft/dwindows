@@ -1629,6 +1629,15 @@ int main(a, b) { \
     dw_thread_new(_dw_main_launch, data, 0); \
     _dw_main_thread(argc, argv); } \
 int _dwmain(a, b)
+#elif defined(__WIN32__)
+#define dwmain(a, b) \
+_dwmain(a, b); \
+char ** API _dw_convertargs(int *count, char *start, HINSTANCE hInstance); \
+int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {\
+   int argc; \
+   char **argv = _dw_convertargs(&argc, lpCmdLine, hInstance); \
+   return _dwmain(argc, argv); } \
+int _dwmain(a, b)
 #else
 #define dwmain(a, b) main(a, b)
 #endif

@@ -410,16 +410,23 @@ SignalList SignalTranslate[SIGNALMAX] = {
 };
 
 #ifdef BUILD_DLL
+/* Old function to store the instance handle, kept for compatibilty. */
 void Win32_Set_Instance(HINSTANCE hInstance)
 {
    _DWInstance = hInstance;
 }
-#else
-char **_convertargs(int *count, char *start)
+#endif
+
+/*
+ * Internal function to convert WinMain arguments into main() style.
+ * Also saves the handle to the instance passed from WinMain().
+ */
+char ** API _dw_convertargs(int *count, char *start, HINSTANCE hInstance)
 {
    char *tmp, *argstart, **argv;
    int loc = 0, inquotes = 0;
 
+   _DWInstance = hInstance;
    (*count) = 1;
 
    tmp = start;
@@ -450,7 +457,7 @@ char **_convertargs(int *count, char *start)
       }
    }
 
-   argv = (char **)malloc(sizeof(char *) * ((*count)+1));
+   argv = (char **)calloc(sizeof(char *), ((*count)+1));
    argv[0] = calloc(261, 1);
    GetModuleFileNameA(_DWInstance, argv[0], 260);
 
@@ -498,20 +505,6 @@ char **_convertargs(int *count, char *start)
    argv[loc+1] = NULL;
    return argv;
 }
-
-/* Ok this is a really big hack but what the hell ;) */
-int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
-{
-   char **argv;
-   int argc;
-
-   _DWInstance = hInstance;
-
-   argv = _convertargs(&argc, lpCmdLine);
-
-   return main(argc, argv);
-}
-#endif
 
 #ifdef UNICODE
 /* Macro and internal function to convert UTF8 to Unicode wide characters */
