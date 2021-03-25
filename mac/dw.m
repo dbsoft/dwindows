@@ -6832,7 +6832,7 @@ DW_FUNCTION_RESTORE_PARAM4(handle, HWND, pixmap, HPIXMAP, x, int, y, int)
     bool bCanDraw = YES;
 
     if(pixmap)
-        bi = image = (id)pixmap->image;
+        bi = (id)pixmap->image;
     else
     {
 #ifdef BUILDING_FOR_MOJAVE
@@ -6893,7 +6893,7 @@ DW_FUNCTION_RESTORE_PARAM6(handle, HWND, pixmap, HPIXMAP, x1, int, y1, int, x2, 
     bool bCanDraw = YES;
 
     if(pixmap)
-        bi = image = (id)pixmap->image;
+        bi = (id)pixmap->image;
     else
     {
 #ifdef BUILDING_FOR_MOJAVE
@@ -6958,14 +6958,13 @@ DW_FUNCTION_RESTORE_PARAM5(handle, HWND, pixmap, HPIXMAP, x, int, y, int, text, 
 
     if(pixmap)
     {
-        bi = image = (id)pixmap->image;
+        bi = (id)pixmap->image;
         font = pixmap->font;
         render = pixmap->handle;
         if(!font && [render isMemberOfClass:[DWRender class]])
         {
             font = [render font];
         }
-        image = (id)pixmap->image;
     }
     else if(image && [image isMemberOfClass:[DWRender class]])
     {
@@ -7096,7 +7095,7 @@ DW_FUNCTION_RESTORE_PARAM6(handle, HWND, pixmap, HPIXMAP, flags, int, npoints, i
     int z;
 
     if(pixmap)
-        bi = image = (id)pixmap->image;
+        bi = (id)pixmap->image;
     else
     {
 #ifdef BUILDING_FOR_MOJAVE
@@ -7172,7 +7171,7 @@ DW_FUNCTION_RESTORE_PARAM7(handle, HWND, pixmap, HPIXMAP, flags, int, x, int, y,
     bool bCanDraw = YES;
 
     if(pixmap)
-        bi = image = (id)pixmap->image;
+        bi = (id)pixmap->image;
     else
     {
 #ifdef BUILDING_FOR_MOJAVE
@@ -7243,7 +7242,7 @@ DW_FUNCTION_RESTORE_PARAM9(handle, HWND, pixmap, HPIXMAP, flags, int, xorigin, i
     bool bCanDraw = YES;
 
     if(pixmap)
-        bi = image = (id)pixmap->image;
+        bi = (id)pixmap->image;
     else
     {
 #ifdef BUILDING_FOR_MOJAVE
@@ -12549,7 +12548,7 @@ int API dw_init(int newthread, int argc, char *argv[])
                         completionHandler:^(BOOL granted, NSError * _Nullable error) {
                             if (granted)
                             {
-                                center.delegate = [[DWUserNotificationCenterDelegate alloc] init];
+                                center.delegate = [[[DWUserNotificationCenterDelegate alloc] init] autorelease];
                             }
                             else
                             {
@@ -12894,6 +12893,7 @@ int dw_exec(const char *program, int type, char **params)
         /* Attempt to execute the commmand, DW_ERROR_NONE on success */
         if(system(commandline) != -1)
             ret = DW_ERROR_NONE;
+        free(commandline);
     }
     return ret;
 }
