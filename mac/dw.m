@@ -359,7 +359,7 @@ HMTX DWThreadMutex2;
 DWTID _dw_mutex_locked = (DWTID)-1;
 #endif
 
-unsigned long _colors[] =
+unsigned long _dw_colors[] =
 {
     0x00000000,   /* 0  black */
     0x000000bb,   /* 1  red */
@@ -384,7 +384,7 @@ unsigned long _colors[] =
  * List those icons that have transparency first
  */
 #define NUM_EXTS 8
-char *image_exts[NUM_EXTS] =
+char *_dw_image_exts[NUM_EXTS+1] =
 {
    ".png",
    ".ico",
@@ -393,7 +393,8 @@ char *image_exts[NUM_EXTS] =
    ".jpg",
    ".jpeg",
    ".tiff",
-   ".bmp"
+   ".bmp",
+    NULL
 };
 
 char *_dw_get_image_extension(const char *filename)
@@ -405,7 +406,7 @@ char *_dw_get_image_extension(const char *filename)
    for ( i = 0; i < NUM_EXTS; i++ )
    {
       strcpy( file, filename );
-      strcat( file, image_exts[i] );
+      strcat( file, _dw_image_exts[i] );
       if ( access( file, R_OK ) == 0 )
       {
          found_ext = 1;
@@ -414,13 +415,13 @@ char *_dw_get_image_extension(const char *filename)
    }
    if ( found_ext == 1 )
    {
-      return image_exts[i];
+      return _dw_image_exts[i];
    }
    return NULL;
 }
 
 /* Return the RGB color regardless if a predefined color was passed */
-unsigned long _get_color(unsigned long thiscolor)
+unsigned long _dw_get_color(unsigned long thiscolor)
 {
     if(thiscolor & DW_RGB_COLOR)
     {
@@ -428,13 +429,13 @@ unsigned long _get_color(unsigned long thiscolor)
     }
     else if(thiscolor < 17)
     {
-        return _colors[thiscolor];
+        return _dw_colors[thiscolor];
     }
     return 0;
 }
 
 /* Returns TRUE of Mojave or later is in Dark Mode */
-BOOL _is_dark(id object)
+BOOL _dw_is_dark(id object)
 {
 #ifdef BUILDING_FOR_MOJAVE
     NSAppearance *appearance = [object effectiveAppearance];
@@ -456,12 +457,12 @@ pthread_key_t _dw_pool_key;
 #endif
 pthread_key_t _dw_fg_color_key;
 pthread_key_t _dw_bg_color_key;
-int DWOSMajor, DWOSMinor, DWOSBuild;
+static int DWOSMajor, DWOSMinor, DWOSBuild;
 static char _dw_bundle_path[PATH_MAX+1] = { 0 };
 static char _dw_app_id[_DW_APP_ID_SIZE+1]= {0};
 
 /* Create a default colors for a thread */
-void _init_colors(void)
+void _dw_init_colors(void)
 {
     NSColor *fgcolor = [[NSColor grayColor] retain];
     pthread_setspecific(_dw_fg_color_key, fgcolor);
@@ -480,12 +481,12 @@ typedef struct _sighandler
 
 } SignalHandler;
 
-SignalHandler *Root = NULL;
+static SignalHandler *DWRoot = NULL;
 
 /* Some internal prototypes */
-static void _do_resize(Box *thisbox, int x, int y);
-void _handle_resize_events(Box *thisbox);
-int _remove_userdata(UserData **root, const char *varname, int all);
+static void _dw_do_resize(Box *thisbox, int x, int y);
+void _dw_handle_resize_events(Box *thisbox);
+int _dw_remove_userdata(UserData **root, const char *varname, int all);
 int _dw_main_iteration(NSDate *date);
 NSGraphicsContext *_dw_draw_context(NSBitmapImageRep *image);
 typedef id (*DWIMP)(id, SEL, ...);
@@ -506,9 +507,9 @@ void _dw_redraw(id window, int skip)
     }
 }
 
-SignalHandler *_get_handler(HWND window, int messageid)
+SignalHandler *_dw_get_handler(HWND window, int messageid)
 {
-    SignalHandler *tmp = Root;
+    SignalHandler *tmp = DWRoot;
 
     /* Find any callbacks for this function */
     while(tmp)
@@ -532,7 +533,7 @@ typedef struct
 /* List of signals */
 #define SIGNALMAX 19
 
-SignalList SignalTranslate[SIGNALMAX] = {
+static SignalList DWSignalTranslate[SIGNALMAX] = {
     { 1,    DW_SIGNAL_CONFIGURE },
     { 2,    DW_SIGNAL_KEY_PRESS },
     { 3,    DW_SIGNAL_BUTTON_PRESS },
@@ -554,9 +555,9 @@ SignalList SignalTranslate[SIGNALMAX] = {
     { 19,   DW_SIGNAL_HTML_CHANGED }
 };
 
-int _event_handler1(id object, NSEvent *event, int message)
+int _dw_event_handler1(id object, NSEvent *event, int message)
 {
-    SignalHandler *handler = _get_handler(object, message);
+    SignalHandler *handler = _dw_get_handler(object, message);
     /* NSLog(@"Event handler - type %d\n", message); */
 
     if(handler)
@@ -825,9 +826,9 @@ int _event_handler1(id object, NSEvent *event, int message)
 }
 
 /* Sub function to handle redraws */
-int _event_handler(id object, NSEvent *event, int message)
+int _dw_event_handler(id object, NSEvent *event, int message)
 {
-    int ret = _event_handler1(object, event, message);
+    int ret = _dw_event_handler1(object, event, message);
     if(ret != -1)
         _dw_redraw(nil, FALSE);
     return ret;
@@ -839,23 +840,20 @@ int _event_handler(id object, NSEvent *event, int message)
 @end
 
 @implementation DWTimerHandler
--(void)runTimer:(id)sender { _event_handler(sender, nil, 0); }
+-(void)runTimer:(id)sender { _dw_event_handler(sender, nil, 0); }
 @end
 
-NSApplication *DWApp = nil;
-NSFontManager *DWFontManager = nil;
-NSMenu *DWMainMenu;
-NSFont *DWDefaultFont;
-DWTimerHandler *DWHandler;
-#if !defined(GARBAGE_COLLECT)
-NSAutoreleasePool *pool;
-#endif
+static NSApplication *DWApp = nil;
+static NSFontManager *DWFontManager = nil;
+static NSMenu *DWMainMenu;
+static NSFont *DWDefaultFont;
+static DWTimerHandler *DWHandler;
 #ifdef BUILDING_FOR_MOJAVE
-NSMutableArray *_DWDirtyDrawables;
+static NSMutableArray *_DWDirtyDrawables;
 #else
-HWND _DWLastDrawable;
+static HWND _DWLastDrawable;
 #endif
-DWTID DWThread = (DWTID)-1;
+static DWTID DWThread = (DWTID)-1;
 
 /* Send fake event to make sure the loop isn't stuck */
 void _dw_wakeup_app()
@@ -960,7 +958,7 @@ typedef struct _bitbltinfo
     if(box->items)
         free(box->items);
     free(box);
-    _remove_userdata(&root, NULL, TRUE);
+    _dw_remove_userdata(&root, NULL, TRUE);
     dw_signal_disconnect_by_window(self);
     [super dealloc];
 }
@@ -977,18 +975,18 @@ typedef struct _bitbltinfo
     }
 }
 -(BOOL)isFlipped { return YES; }
--(void)mouseDown:(NSEvent *)theEvent { _event_handler(self, (void *)1, 3); }
--(void)mouseUp:(NSEvent *)theEvent { _event_handler(self, (void *)1, 4); }
--(NSMenu *)menuForEvent:(NSEvent *)theEvent { _event_handler(self, (void *)2, 3); return nil; }
--(void)rightMouseUp:(NSEvent *)theEvent { _event_handler(self, (void *)2, 4); }
--(void)otherMouseDown:(NSEvent *)theEvent { _event_handler(self, (void *)3, 3); }
--(void)otherMouseUp:(NSEvent *)theEvent { _event_handler(self, (void *)3, 4); }
--(void)keyDown:(NSEvent *)theEvent { _event_handler(self, theEvent, 2); }
+-(void)mouseDown:(NSEvent *)theEvent { _dw_event_handler(self, (void *)1, 3); }
+-(void)mouseUp:(NSEvent *)theEvent { _dw_event_handler(self, (void *)1, 4); }
+-(NSMenu *)menuForEvent:(NSEvent *)theEvent { _dw_event_handler(self, (void *)2, 3); return nil; }
+-(void)rightMouseUp:(NSEvent *)theEvent { _dw_event_handler(self, (void *)2, 4); }
+-(void)otherMouseDown:(NSEvent *)theEvent { _dw_event_handler(self, (void *)3, 3); }
+-(void)otherMouseUp:(NSEvent *)theEvent { _dw_event_handler(self, (void *)3, 4); }
+-(void)keyDown:(NSEvent *)theEvent { _dw_event_handler(self, theEvent, 2); }
 -(void)setColor:(unsigned long)input
 {
     id orig = bgcolor;
 
-    if(input == _colors[DW_CLR_DEFAULT])
+    if(input == _dw_colors[DW_CLR_DEFAULT])
     {
         bgcolor = nil;
     }
@@ -1065,13 +1063,13 @@ typedef struct _bitbltinfo
    int rcode = -1;
    if([theEvent type] == DWEventTypeKeyDown)
    {
-      rcode = _event_handler(self, theEvent, 2);
+      rcode = _dw_event_handler(self, theEvent, 2);
    }
    if ( rcode != TRUE )
       [super sendEvent:theEvent];
 }
 -(void)keyDown:(NSEvent *)theEvent { }
--(void)mouseDragged:(NSEvent *)theEvent { _event_handler(self, theEvent, 5); }
+-(void)mouseDragged:(NSEvent *)theEvent { _dw_event_handler(self, theEvent, 5); }
 -(int)redraw { return redraw; }
 -(void)setRedraw:(int)val { redraw = val; }
 -(int)shown { return shown; }
@@ -1143,17 +1141,17 @@ typedef struct _bitbltinfo
 -(void)mouseDown:(NSEvent *)theEvent
 {
     if(![theEvent isMemberOfClass:[NSEvent class]] || !([theEvent modifierFlags] & DWEventModifierFlagControl))
-        _event_handler(self, theEvent, 3);
+        _dw_event_handler(self, theEvent, 3);
 }
--(void)mouseUp:(NSEvent *)theEvent { _event_handler(self, theEvent, 4); }
--(NSMenu *)menuForEvent:(NSEvent *)theEvent { _event_handler(self, theEvent, 3); return nil; }
--(void)rightMouseUp:(NSEvent *)theEvent { _event_handler(self, theEvent, 4); }
--(void)otherMouseDown:(NSEvent *)theEvent { _event_handler(self, theEvent, 3); }
--(void)otherMouseUp:(NSEvent *)theEvent { _event_handler(self, theEvent, 4); }
--(void)mouseDragged:(NSEvent *)theEvent { _event_handler(self, theEvent, 5); }
+-(void)mouseUp:(NSEvent *)theEvent { _dw_event_handler(self, theEvent, 4); }
+-(NSMenu *)menuForEvent:(NSEvent *)theEvent { _dw_event_handler(self, theEvent, 3); return nil; }
+-(void)rightMouseUp:(NSEvent *)theEvent { _dw_event_handler(self, theEvent, 4); }
+-(void)otherMouseDown:(NSEvent *)theEvent { _dw_event_handler(self, theEvent, 3); }
+-(void)otherMouseUp:(NSEvent *)theEvent { _dw_event_handler(self, theEvent, 4); }
+-(void)mouseDragged:(NSEvent *)theEvent { _dw_event_handler(self, theEvent, 5); }
 -(void)delayedNeedsDisplay { [self setNeedsDisplay:YES]; }
 -(void)drawRect:(NSRect)rect {
-    _event_handler(self, nil, 7);
+    _dw_event_handler(self, nil, 7);
 #ifdef BUILDING_FOR_MOJAVE
     if (cachedDrawingRep)
     {
@@ -1167,11 +1165,11 @@ typedef struct _bitbltinfo
     }
 #endif
 }
--(void)keyDown:(NSEvent *)theEvent { _event_handler(self, theEvent, 2); }
+-(void)keyDown:(NSEvent *)theEvent { _dw_event_handler(self, theEvent, 2); }
 -(BOOL)isFlipped { return YES; }
 -(void)dealloc {
     UserData *root = userdata;
-    _remove_userdata(&root, NULL, TRUE);
+    _dw_remove_userdata(&root, NULL, TRUE);
     [font release];
     dw_signal_disconnect_by_window(self);
 #ifdef BUILDING_FOR_MOJAVE
@@ -1204,7 +1202,7 @@ typedef struct _bitbltinfo
         else
             [item setState:DWControlStateValueOn];
     }
-    _event_handler(param, nil, 8);
+    _dw_event_handler(param, nil, 8);
 }
 #ifdef BUILDING_FOR_MOJAVE
 -(void)callBack:(NSPointerArray *)params
@@ -1396,24 +1394,24 @@ DWObject *DWObj;
 -(void)webView:(WKWebView *)webView didCommitNavigation:(WKNavigation *)navigation
 {
     void *params[2] = { DW_INT_TO_POINTER(DW_HTML_CHANGE_STARTED), [[self URL] absoluteString] };
-    _event_handler(self, (NSEvent *)params, 19);
+    _dw_event_handler(self, (NSEvent *)params, 19);
 }
 -(void)webView:(WKWebView *)webView didFinishNavigation:(WKNavigation *)navigation
 {
     void *params[2] = { DW_INT_TO_POINTER(DW_HTML_CHANGE_COMPLETE), [[self URL] absoluteString] };
-    _event_handler(self, (NSEvent *)params, 19);
+    _dw_event_handler(self, (NSEvent *)params, 19);
 }
 -(void)webView:(WKWebView *)webView didStartProvisionalNavigation:(WKNavigation *)navigation
 {
     void *params[2] = { DW_INT_TO_POINTER(DW_HTML_CHANGE_LOADING), [[self URL] absoluteString] };
-    _event_handler(self, (NSEvent *)params, 19);
+    _dw_event_handler(self, (NSEvent *)params, 19);
 }
 -(void)webView:(WKWebView *)webView didReceiveServerRedirectForProvisionalNavigation:(WKNavigation *)navigation
 {
     void *params[2] = { DW_INT_TO_POINTER(DW_HTML_CHANGE_REDIRECT), [[self URL] absoluteString] };
-    _event_handler(self, (NSEvent *)params, 19);
+    _dw_event_handler(self, (NSEvent *)params, 19);
 }
--(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); dw_signal_disconnect_by_window(self); [super dealloc]; }
+-(void)dealloc { UserData *root = userdata; _dw_remove_userdata(&root, NULL, TRUE); dw_signal_disconnect_by_window(self); [super dealloc]; }
 @end
 #else
 @interface DWWebView : WebView
@@ -1433,19 +1431,19 @@ DWObject *DWObj;
 -(void)webView:(WebView *)sender didFinishLoadForFrame:(WebFrame *)frame
 {
     void *params[2] = { DW_INT_TO_POINTER(DW_HTML_CHANGE_COMPLETE), [self mainFrameURL] };
-    _event_handler(self, (NSEvent *)params, 19);
+    _dw_event_handler(self, (NSEvent *)params, 19);
 }
 -(void)webView:(WebView *)sender didCommitLoadForFrame:(WebFrame *)frame
 {
     void *params[2] = { DW_INT_TO_POINTER(DW_HTML_CHANGE_STARTED), [self mainFrameURL] };
-    _event_handler(self, (NSEvent *)params, 19);
+    _dw_event_handler(self, (NSEvent *)params, 19);
 }
 -(void)webView:(WebView *)sender didStartProvisionalLoadForFrame:(WebFrame *)frame
 {
     void *params[2] = { DW_INT_TO_POINTER(DW_HTML_CHANGE_LOADING), [self mainFrameURL] };
-    _event_handler(self, (NSEvent *)params, 19);
+    _dw_event_handler(self, (NSEvent *)params, 19);
 }
--(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); dw_signal_disconnect_by_window(self); [super dealloc]; }
+-(void)dealloc { UserData *root = userdata; _dw_remove_userdata(&root, NULL, TRUE); dw_signal_disconnect_by_window(self); [super dealloc]; }
 @end
 #endif
 
@@ -1453,7 +1451,7 @@ DWObject *DWObj;
 @implementation DWAppDel
 -(NSApplicationTerminateReply)applicationShouldTerminate:(NSApplication *)sender
 {
-    if(_event_handler(sender, nil, 6) > 0)
+    if(_dw_event_handler(sender, nil, 6) > 0)
         return NSTerminateCancel;
     return NSTerminateNow;
 }
@@ -1487,7 +1485,7 @@ DWObject *DWObj;
     switch(usernotification.activationType)
     {
         case NSUserNotificationActivationTypeContentsClicked:
-            _event_handler(notification, nil, 8);
+            _dw_event_handler(notification, nil, 8);
             break;
         default:
             break;
@@ -1516,7 +1514,7 @@ DWObject *DWObj;
 @implementation DWView
 -(BOOL)windowShouldClose:(id)sender
 {
-    if(_event_handler(sender, nil, 6) > 0)
+    if(_dw_event_handler(sender, nil, 6) > 0)
         return NO;
     return YES;
 }
@@ -1541,11 +1539,11 @@ DWObject *DWObj;
 
     if(oldsize.width != size.width || oldsize.height != size.height)
     {
-        _do_resize(box, size.width, size.height);
-        _event_handler([self window], nil, 1);
+        _dw_do_resize(box, size.width, size.height);
+        _dw_event_handler([self window], nil, 1);
         oldsize.width = size.width;
         oldsize.height = size.height;
-        _handle_resize_events(box);
+        _dw_handle_resize_events(box);
     }
 }
 -(void)showWindow
@@ -1554,8 +1552,8 @@ DWObject *DWObj;
 
     if(oldsize.width == size.width && oldsize.height == size.height)
     {
-        _do_resize(box, size.width, size.height);
-        _handle_resize_events(box);
+        _dw_do_resize(box, size.width, size.height);
+        _dw_handle_resize_events(box);
     }
 
 }
@@ -1569,7 +1567,7 @@ DWObject *DWObj;
     {
         [DWApp setMainMenu:DWMainMenu];
     }
-    _event_handler([self window], nil, 13);
+    _dw_event_handler([self window], nil, 13);
 }
 -(void)setMenu:(NSMenu *)input { windowmenu = input; [windowmenu retain]; }
 -(void)menuHandler:(id)sender
@@ -1589,14 +1587,14 @@ DWObject *DWObj;
         [DWObj menuHandler:sender];
     _dw_wakeup_app();
 }
--(void)mouseDragged:(NSEvent *)theEvent { _event_handler(self, theEvent, 5); }
+-(void)mouseDragged:(NSEvent *)theEvent { _dw_event_handler(self, theEvent, 5); }
 -(void)mouseMoved:(NSEvent *)theEvent
 {
     id hit = [self hitTest:[theEvent locationInWindow]];
 
     if([hit isMemberOfClass:[DWRender class]])
     {
-        _event_handler(hit, theEvent, 5);
+        _dw_event_handler(hit, theEvent, 5);
     }
 }
 @end
@@ -1624,7 +1622,7 @@ DWObject *DWObj;
 -(void)setUserdata:(void *)input { userdata = input; }
 -(void)buttonClicked:(id)sender
 {
-    _event_handler(self, nil, 8);
+    _dw_event_handler(self, nil, 8);
     if([self buttonType] == DWButtonTypeRadio)
     {
         DWBox *viewbox = [self parent];
@@ -1698,7 +1696,7 @@ DWObject *DWObj;
 }
 -(void)insertTab:(id)sender { if([[self window] firstResponder] == self) [[self window] selectNextKeyView:self]; }
 -(void)insertBacktab:(id)sender { if([[self window] firstResponder] == self) [[self window] selectPreviousKeyView:self]; }
--(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); dw_signal_disconnect_by_window(self); [super dealloc]; }
+-(void)dealloc { UserData *root = userdata; _dw_remove_userdata(&root, NULL, TRUE); dw_signal_disconnect_by_window(self); [super dealloc]; }
 @end
 
 /* Subclass for a progress type */
@@ -1713,7 +1711,7 @@ DWObject *DWObj;
 @implementation DWPercent
 -(void *)userdata { return userdata; }
 -(void)setUserdata:(void *)input { userdata = input; }
--(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); dw_signal_disconnect_by_window(self); [super dealloc]; }
+-(void)dealloc { UserData *root = userdata; _dw_remove_userdata(&root, NULL, TRUE); dw_signal_disconnect_by_window(self); [super dealloc]; }
 @end
 
 /* Subclass for a menu item type */
@@ -1740,7 +1738,7 @@ DWObject *DWObj;
 -(void)setUserdata:(void *)input { userdata = input; }
 -(void)setBox:(void *)input { box = input; }
 -(id)box { return box; }
--(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); dw_signal_disconnect_by_window(self); [super dealloc]; }
+-(void)dealloc { UserData *root = userdata; _dw_remove_userdata(&root, NULL, TRUE); dw_signal_disconnect_by_window(self); [super dealloc]; }
 @end
 
 /* Subclass for a textfield that supports vertical centering */
@@ -1859,7 +1857,7 @@ DWObject *DWObj;
     }
     return [super performKeyEquivalent:theEvent];
 }
--(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); dw_signal_disconnect_by_window(self); [super dealloc]; }
+-(void)dealloc { UserData *root = userdata; _dw_remove_userdata(&root, NULL, TRUE); dw_signal_disconnect_by_window(self); [super dealloc]; }
 @end
 
 /* Subclass for a text and status text type */
@@ -1875,7 +1873,7 @@ DWObject *DWObj;
 @implementation DWText
 -(void *)userdata { return userdata; }
 -(void)setUserdata:(void *)input { userdata = input; }
--(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); [super dealloc]; }
+-(void)dealloc { UserData *root = userdata; _dw_remove_userdata(&root, NULL, TRUE); [super dealloc]; }
 @end
 
 
@@ -1923,7 +1921,7 @@ DWObject *DWObj;
     }
     return [super performKeyEquivalent:theEvent];
 }
--(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); dw_signal_disconnect_by_window(self); [super dealloc]; }
+-(void)dealloc { UserData *root = userdata; _dw_remove_userdata(&root, NULL, TRUE); dw_signal_disconnect_by_window(self); [super dealloc]; }
 @end
 
 /* Subclass for a Notebook control type */
@@ -1969,10 +1967,10 @@ DWObject *DWObj;
         DWBox *view = object;
         Box *box = [view box];
         NSSize size = [view frame].size;
-        _do_resize(box, size.width, size.height);
-        _handle_resize_events(box);
+        _dw_do_resize(box, size.width, size.height);
+        _dw_handle_resize_events(box);
     }
-    _event_handler(self, DW_INT_TO_POINTER([page pageid]), 15);
+    _dw_event_handler(self, DW_INT_TO_POINTER([page pageid]), 15);
 }
 -(void)keyDown:(NSEvent *)theEvent
 {
@@ -2015,7 +2013,7 @@ DWObject *DWObj;
 }
 -(void)insertTab:(id)sender { if([[self window] firstResponder] == self) [[self window] selectNextKeyView:self]; }
 -(void)insertBacktab:(id)sender { if([[self window] firstResponder] == self) [[self window] selectPreviousKeyView:self]; }
--(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); dw_signal_disconnect_by_window(self); [super dealloc]; }
+-(void)dealloc { UserData *root = userdata; _dw_remove_userdata(&root, NULL, TRUE); dw_signal_disconnect_by_window(self); [super dealloc]; }
 @end
 
 @implementation DWNotebookPage
@@ -2023,7 +2021,7 @@ DWObject *DWObj;
 -(void)setUserdata:(void *)input { userdata = input; }
 -(int)pageid { return pageid; }
 -(void)setPageid:(int)input { pageid = input; }
--(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); dw_signal_disconnect_by_window(self); [super dealloc]; }
+-(void)dealloc { UserData *root = userdata; _dw_remove_userdata(&root, NULL, TRUE); dw_signal_disconnect_by_window(self); [super dealloc]; }
 @end
 
 /* Subclass for a color chooser type */
@@ -2113,8 +2111,8 @@ DWObject *DWObj;
             DWBox *view = object;
             Box *box = [view box];
             NSSize size = [view frame].size;
-            _do_resize(box, size.width, size.height);
-            _handle_resize_events(box);
+            _dw_do_resize(box, size.width, size.height);
+            _dw_handle_resize_events(box);
         }
     }
 }
@@ -2123,7 +2121,7 @@ DWObject *DWObj;
 -(void)setUserdata:(void *)input { userdata = input; }
 -(float)percent { return percent; }
 -(void)setPercent:(float)input { percent = input; }
--(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); dw_signal_disconnect_by_window(self); [super dealloc]; }
+-(void)dealloc { UserData *root = userdata; _dw_remove_userdata(&root, NULL, TRUE); dw_signal_disconnect_by_window(self); [super dealloc]; }
 @end
 
 /* Subclass for a slider type */
@@ -2139,8 +2137,8 @@ DWObject *DWObj;
 @implementation DWSlider
 -(void *)userdata { return userdata; }
 -(void)setUserdata:(void *)input { userdata = input; }
--(void)sliderChanged:(id)sender { _event_handler(self, (void *)[self integerValue], 14); }
--(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); dw_signal_disconnect_by_window(self); [super dealloc]; }
+-(void)sliderChanged:(id)sender { _dw_event_handler(self, (void *)[self integerValue], 14); }
+-(void)dealloc { UserData *root = userdata; _dw_remove_userdata(&root, NULL, TRUE); dw_signal_disconnect_by_window(self); [super dealloc]; }
 @end
 
 /* Subclass for a slider type */
@@ -2217,9 +2215,9 @@ DWObject *DWObj;
     {
         [self setDoubleValue:(newpos/max)];
     }
-    _event_handler(self, DW_INT_TO_POINTER((int)newpos), 14);
+    _dw_event_handler(self, DW_INT_TO_POINTER((int)newpos), 14);
 }
--(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); dw_signal_disconnect_by_window(self); [super dealloc]; }
+-(void)dealloc { UserData *root = userdata; _dw_remove_userdata(&root, NULL, TRUE); dw_signal_disconnect_by_window(self); [super dealloc]; }
 @end
 
 /* Subclass for a MLE type */
@@ -2239,7 +2237,7 @@ DWObject *DWObj;
 -(void)setUserdata:(void *)input { userdata = input; }
 -(id)scrollview { return scrollview; }
 -(void)setScrollview:(id)input { scrollview = input; }
--(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); dw_signal_disconnect_by_window(self); [super dealloc]; }
+-(void)dealloc { UserData *root = userdata; _dw_remove_userdata(&root, NULL, TRUE); dw_signal_disconnect_by_window(self); [super dealloc]; }
 @end
 
 #ifndef DW_USE_NSVIEW
@@ -2566,9 +2564,9 @@ void _dw_table_cell_view_layout(NSTableCellView *result)
     NSColor *oldodd = oddcolor;
     NSColor *oldeven = evencolor;
     unsigned long thisodd = dw_oddcolor == DW_CLR_DEFAULT ? _DW_COLOR_ROW_ODD : dw_oddcolor;
-    unsigned long _odd = _get_color(thisodd);
+    unsigned long _odd = _dw_get_color(thisodd);
     unsigned long thiseven = dw_evencolor == DW_CLR_DEFAULT ? _DW_COLOR_ROW_EVEN : dw_evencolor;
-    unsigned long _even = _get_color(thiseven);
+    unsigned long _even = _dw_get_color(thiseven);
 
     /* Get the NSColor for non-default colors */
     if(thisodd != DW_RGB_TRANSPARENT)
@@ -2593,7 +2591,7 @@ void _dw_table_cell_view_layout(NSTableCellView *result)
 {
     /* Update any system colors based on the Dark Mode */
     _DW_COLOR_ROW_EVEN = DW_RGB_TRANSPARENT;
-    if(_is_dark(self))
+    if(_dw_is_dark(self))
         _DW_COLOR_ROW_ODD = DW_RGB(100, 100, 100);
     else
         _DW_COLOR_ROW_ODD = DW_RGB(230, 230, 230);
@@ -3009,7 +3007,7 @@ void _dw_table_cell_view_layout(NSTableCellView *result)
     params[1] = (void *)[self getRowData:(int)[self selectedRow]];
 
     /* Handler for container class */
-    _event_handler(self, (NSEvent *)params, 9);
+    _dw_event_handler(self, (NSEvent *)params, 9);
 }
 -(void)keyUp:(NSEvent *)theEvent
 {
@@ -3020,7 +3018,7 @@ void _dw_table_cell_view_layout(NSTableCellView *result)
         params[0] = (void *)[self getRowTitle:(int)[self selectedRow]];
         params[1] = (void *)[self getRowData:(int)[self selectedRow]];
 
-        _event_handler(self, (NSEvent *)params, 9);
+        _dw_event_handler(self, (NSEvent *)params, 9);
     }
     [super keyUp:theEvent];
 }
@@ -3030,7 +3028,7 @@ void _dw_table_cell_view_layout(NSTableCellView *result)
     NSUInteger index = [tvcols indexOfObject:tableColumn];
 
     /* Handler for column click class */
-    _event_handler(self, (NSEvent *)index, 17);
+    _dw_event_handler(self, (NSEvent *)index, 17);
 }
 -(void)selectionChanged:(id)sender
 {
@@ -3040,16 +3038,16 @@ void _dw_table_cell_view_layout(NSTableCellView *result)
     params[1] = (void *)[self getRowData:(int)[self selectedRow]];
 
     /* Handler for container class */
-    _event_handler(self, (NSEvent *)params, 12);
+    _dw_event_handler(self, (NSEvent *)params, 12);
     /* Handler for listbox class */
-    _event_handler(self, DW_INT_TO_POINTER((int)[self selectedRow]), 11);
+    _dw_event_handler(self, DW_INT_TO_POINTER((int)[self selectedRow]), 11);
 }
 -(NSMenu *)menuForEvent:(NSEvent *)event
 {
     int row;
     NSPoint where = [self convertPoint:[event locationInWindow] fromView:nil];
     row = (int)[self rowAtPoint:where];
-    _event_handler(self, (NSEvent *)[self getRowTitle:row], 10);
+    _dw_event_handler(self, (NSEvent *)[self getRowTitle:row], 10);
     return nil;
 }
 -(void)keyDown:(NSEvent *)theEvent
@@ -3062,11 +3060,11 @@ void _dw_table_cell_view_layout(NSTableCellView *result)
 }
 -(void)insertTab:(id)sender { if([[self window] firstResponder] == self) [[self window] selectNextKeyView:self]; }
 -(void)insertBacktab:(id)sender { if([[self window] firstResponder] == self) [[self window] selectPreviousKeyView:self]; }
--(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); dw_signal_disconnect_by_window(self); [super dealloc]; }
+-(void)dealloc { UserData *root = userdata; _dw_remove_userdata(&root, NULL, TRUE); dw_signal_disconnect_by_window(self); [super dealloc]; }
 @end
 
 /* Dive into the tree freeing all desired child nodes */
-void _free_tree_recurse(NSMutableArray *node, NSMutableArray *item)
+void _dw_free_tree_recurse(NSMutableArray *node, NSMutableArray *item)
 {
     if(node && ([node isKindOfClass:[NSArray class]]))
     {
@@ -3089,7 +3087,7 @@ void _free_tree_recurse(NSMutableArray *node, NSMutableArray *item)
 
             if(z == index)
             {
-                _free_tree_recurse(children, NULL);
+                _dw_free_tree_recurse(children, NULL);
                 [node removeObjectAtIndex:z];
                 count = (int)[node count];
                 index = -1;
@@ -3099,10 +3097,10 @@ void _free_tree_recurse(NSMutableArray *node, NSMutableArray *item)
             {
                 NSString *oldstr = [pnt objectAtIndex:1];
                 [oldstr release];
-                _free_tree_recurse(children, item);
+                _dw_free_tree_recurse(children, item);
             }
             else
-                _free_tree_recurse(children, item);
+                _dw_free_tree_recurse(children, item);
         }
     }
     if(!item)
@@ -3305,7 +3303,7 @@ void _free_tree_recurse(NSMutableArray *node, NSMutableArray *item)
 
     if(item)
     {
-        _event_handler(self, (void *)item, 12);
+        _dw_event_handler(self, (void *)item, 12);
     }
 }
 -(void)treeItemExpanded:(NSNotification *)notification
@@ -3314,7 +3312,7 @@ void _free_tree_recurse(NSMutableArray *node, NSMutableArray *item)
 
     if(item)
     {
-        _event_handler(self, (void *)item, 16);
+        _dw_event_handler(self, (void *)item, 16);
     }
 }
 -(NSMenu *)menuForEvent:(NSEvent *)event
@@ -3323,12 +3321,12 @@ void _free_tree_recurse(NSMutableArray *node, NSMutableArray *item)
     NSPoint where = [self convertPoint:[event locationInWindow] fromView:nil];
     row = (int)[self rowAtPoint:where];
     id item = [self itemAtRow:row];
-    _event_handler(self, (NSEvent *)item, 10);
+    _dw_event_handler(self, (NSEvent *)item, 10);
     return nil;
 }
 -(NSScrollView *)scrollview { return scrollview; }
 -(void)setScrollview:(NSScrollView *)input { scrollview = input; }
--(void)deleteNode:(NSMutableArray *)item { _free_tree_recurse(data, item); }
+-(void)deleteNode:(NSMutableArray *)item { _dw_free_tree_recurse(data, item); }
 -(void)setForegroundColor:(NSColor *)input
 {
     NSTextFieldCell *cell = [treecol dataCell];
@@ -3336,7 +3334,7 @@ void _free_tree_recurse(NSMutableArray *node, NSMutableArray *item)
     [fgcolor retain];
     [cell setTextColor:fgcolor];
 }
--(void)clear { NSMutableArray *toclear = data; data = nil; _free_tree_recurse(toclear, NULL); [self reloadData]; }
+-(void)clear { NSMutableArray *toclear = data; data = nil; _dw_free_tree_recurse(toclear, NULL); [self reloadData]; }
 -(void)keyDown:(NSEvent *)theEvent
 {
     unichar vk = [[theEvent charactersIgnoringModifiers] characterAtIndex:0];
@@ -3350,8 +3348,8 @@ void _free_tree_recurse(NSMutableArray *node, NSMutableArray *item)
 -(void)dealloc
 {
     UserData *root = userdata;
-    _remove_userdata(&root, NULL, TRUE);
-    _free_tree_recurse(data, NULL);
+    _dw_remove_userdata(&root, NULL, TRUE);
+    _dw_free_tree_recurse(data, NULL);
     [treecol release];
     dw_signal_disconnect_by_window(self);
     [super dealloc];
@@ -3370,7 +3368,7 @@ void _free_tree_recurse(NSMutableArray *node, NSMutableArray *item)
 @implementation DWCalendar
 -(void *)userdata { return userdata; }
 -(void)setUserdata:(void *)input { userdata = input; }
--(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); dw_signal_disconnect_by_window(self); [super dealloc]; }
+-(void)dealloc { UserData *root = userdata; _dw_remove_userdata(&root, NULL, TRUE); dw_signal_disconnect_by_window(self); [super dealloc]; }
 @end
 
 /* Subclass for a Combobox type */
@@ -3391,7 +3389,7 @@ void _free_tree_recurse(NSMutableArray *node, NSMutableArray *item)
 @implementation DWComboBox
 -(void *)userdata { return userdata; }
 -(void)setUserdata:(void *)input { userdata = input; }
--(void)comboBoxSelectionDidChange:(NSNotification *)not { _event_handler(self, (void *)[self indexOfSelectedItem], 11); }
+-(void)comboBoxSelectionDidChange:(NSNotification *)not { _dw_event_handler(self, (void *)[self indexOfSelectedItem], 11); }
 -(void)setClickDefault:(id)input { clickDefault = input; }
 -(void)keyUp:(NSEvent *)theEvent
 {
@@ -3403,7 +3401,7 @@ void _free_tree_recurse(NSMutableArray *node, NSMutableArray *item)
         [super keyUp:theEvent];
     }
 }
--(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); dw_signal_disconnect_by_window(self); [super dealloc]; }
+-(void)dealloc { UserData *root = userdata; _dw_remove_userdata(&root, NULL, TRUE); dw_signal_disconnect_by_window(self); [super dealloc]; }
 @end
 
 /* Subclass for a stepper component of the spinbutton type */
@@ -3435,7 +3433,7 @@ void _free_tree_recurse(NSMutableArray *node, NSMutableArray *item)
 -(void)mouseUp:(NSEvent *)event
 {
     [textfield takeIntValueFrom:self];
-    _event_handler(parent, (void *)[self integerValue], 14);
+    _dw_event_handler(parent, (void *)[self integerValue], 14);
 }
 -(void)keyDown:(NSEvent *)theEvent
 {
@@ -3507,7 +3505,7 @@ void _free_tree_recurse(NSMutableArray *node, NSMutableArray *item)
 {
     [stepper takeIntValueFrom:textfield];
     [textfield takeIntValueFrom:stepper];
-    _event_handler(self, (void *)[stepper integerValue], 14);
+    _dw_event_handler(self, (void *)[stepper integerValue], 14);
 }
 -(void)setClickDefault:(id)input { clickDefault = input; }
 -(void)keyUp:(NSEvent *)theEvent
@@ -3522,7 +3520,7 @@ void _free_tree_recurse(NSMutableArray *node, NSMutableArray *item)
     }
 }
 -(void)performClick:(id)sender { [textfield performClick:sender]; }
--(void)dealloc { UserData *root = userdata; _remove_userdata(&root, NULL, TRUE); dw_signal_disconnect_by_window(self); [super dealloc]; }
+-(void)dealloc { UserData *root = userdata; _dw_remove_userdata(&root, NULL, TRUE); dw_signal_disconnect_by_window(self); [super dealloc]; }
 @end
 
 #ifdef BUILDING_FOR_MOJAVE
@@ -3556,7 +3554,7 @@ API_AVAILABLE(macos(10.14))
     else if ([response.actionIdentifier isEqualToString:UNNotificationDefaultActionIdentifier])
     {
         /* The user launched the app. */
-        _event_handler(notification, nil, 8);
+        _dw_event_handler(notification, nil, 8);
         dw_signal_disconnect_by_window(notification);
     }
     completionHandler();
@@ -3576,7 +3574,7 @@ API_AVAILABLE(macos(10.14))
 
 /* This function adds a signal handler callback into the linked list.
  */
-void _new_signal(ULONG message, HWND window, int msgid, void *signalfunction, void *discfunc, void *data)
+void _dw_new_signal(ULONG message, HWND window, int msgid, void *signalfunction, void *discfunc, void *data)
 {
     SignalHandler *new = malloc(sizeof(SignalHandler));
 
@@ -3588,11 +3586,11 @@ void _new_signal(ULONG message, HWND window, int msgid, void *signalfunction, vo
     new->data = data;
     new->next = NULL;
 
-    if (!Root)
-        Root = new;
+    if (!DWRoot)
+        DWRoot = new;
     else
     {
-        SignalHandler *prev = NULL, *tmp = Root;
+        SignalHandler *prev = NULL, *tmp = DWRoot;
         while(tmp)
         {
             if(tmp->message == message &&
@@ -3610,26 +3608,26 @@ void _new_signal(ULONG message, HWND window, int msgid, void *signalfunction, vo
         if(prev)
             prev->next = new;
         else
-            Root = new;
+            DWRoot = new;
     }
 }
 
 /* Finds the message number for a given signal name */
-ULONG _findsigmessage(const char *signame)
+ULONG _dw_findsigmessage(const char *signame)
 {
     int z;
 
     for(z=0;z<SIGNALMAX;z++)
     {
-        if(strcasecmp(signame, SignalTranslate[z].name) == 0)
-            return SignalTranslate[z].message;
+        if(strcasecmp(signame, DWSignalTranslate[z].name) == 0)
+            return DWSignalTranslate[z].message;
     }
     return 0L;
 }
 
-unsigned long _foreground = 0xAAAAAA, _background = 0;
+unsigned long _dw_foreground = 0xAAAAAA, _dw_background = 0;
 
-void _handle_resize_events(Box *thisbox)
+void _dw_handle_resize_events(Box *thisbox)
 {
     int z;
 
@@ -3643,7 +3641,7 @@ void _handle_resize_events(Box *thisbox)
 
             if(tmp)
             {
-                _handle_resize_events(tmp);
+                _dw_handle_resize_events(tmp);
             }
         }
         else
@@ -3672,7 +3670,7 @@ void _handle_resize_events(Box *thisbox)
                     if(newsize.width > 0 && newsize.height > 0)
                     {
                         [render setSize:newsize];
-                        _event_handler(handle, nil, 1);
+                        _dw_event_handler(handle, nil, 1);
                     }
                 }
             }
@@ -3686,7 +3684,7 @@ void _handle_resize_events(Box *thisbox)
                 if([view isMemberOfClass:[DWBox class]])
                 {
                     Box *box = (Box *)[view box];
-                    _handle_resize_events(box);
+                    _dw_handle_resize_events(box);
                 }
             }
             /* Handle laying out scrollviews... if required space is less
@@ -3699,7 +3697,7 @@ void _handle_resize_events(Box *thisbox)
                 Box *thisbox = [contentbox box];
 
                 /* Get the required space for the box */
-                _handle_resize_events(thisbox);
+                _dw_handle_resize_events(thisbox);
             }
         }
     }
@@ -3708,7 +3706,7 @@ void _handle_resize_events(Box *thisbox)
 /* This function calculates how much space the widgets and boxes require
  * and does expansion as necessary.
  */
-static void _resize_box(Box *thisbox, int *depth, int x, int y, int pass)
+static void _dw_resize_box(Box *thisbox, int *depth, int x, int y, int pass)
 {
     /* Current item position */
     int z, currentx = thisbox->pad, currenty = thisbox->pad;
@@ -3769,7 +3767,7 @@ static void _resize_box(Box *thisbox, int *depth, int x, int y, int pass)
                     (*depth)++;
 
                     /* Save the newly calculated values on the box */
-                    _resize_box(tmp, depth, x, y, pass);
+                    _dw_resize_box(tmp, depth, x, y, pass);
 
                     /* Duplicate the values in the item list for use below */
                     thisbox->items[z].width = tmp->minwidth;
@@ -3903,7 +3901,7 @@ static void _resize_box(Box *thisbox, int *depth, int x, int y, int pass)
                     if(tmp)
                     {
                         (*depth)++;
-                        _resize_box(tmp, depth, width, height, pass);
+                        _dw_resize_box(tmp, depth, width, height, pass);
                         (*depth)--;
                     }
                 }
@@ -3919,8 +3917,8 @@ static void _resize_box(Box *thisbox, int *depth, int x, int y, int pass)
                     {
                         Box *box = (Box *)[view box];
                         NSSize size = [view frame].size;
-                        _do_resize(box, size.width, size.height);
-                        _handle_resize_events(box);
+                        _dw_do_resize(box, size.width, size.height);
+                        _dw_handle_resize_events(box);
                     }
                 }
                 /* Handle laying out scrollviews... if required space is less
@@ -3935,7 +3933,7 @@ static void _resize_box(Box *thisbox, int *depth, int x, int y, int pass)
                     NSSize contentsize = [scrollbox contentSize];
 
                     /* Get the required space for the box */
-                    _resize_box(thisbox, &depth, x, y, 1);
+                    _dw_resize_box(thisbox, &depth, x, y, 1);
 
                     if(contentsize.width < thisbox->minwidth)
                     {
@@ -3948,8 +3946,8 @@ static void _resize_box(Box *thisbox, int *depth, int x, int y, int pass)
                     [contentbox setFrameSize:contentsize];
 
                     /* Layout the content of the scrollbox */
-                    _do_resize(thisbox, contentsize.width, contentsize.height);
-                    _handle_resize_events(thisbox);
+                    _dw_do_resize(thisbox, contentsize.width, contentsize.height);
+                    _dw_handle_resize_events(thisbox);
                 }
                 /* Special handling for spinbutton controls */
                 else if([handle isMemberOfClass:[DWSpinButton class]])
@@ -3989,7 +3987,7 @@ static void _resize_box(Box *thisbox, int *depth, int x, int y, int pass)
     }
 }
 
-static void _do_resize(Box *thisbox, int x, int y)
+static void _dw_do_resize(Box *thisbox, int x, int y)
 {
     if(x > 0 && y > 0)
     {
@@ -3998,15 +3996,15 @@ static void _do_resize(Box *thisbox, int x, int y)
             int depth = 0;
 
             /* Calculate space requirements */
-            _resize_box(thisbox, &depth, x, y, 1);
+            _dw_resize_box(thisbox, &depth, x, y, 1);
 
             /* Finally place all the boxes and controls */
-            _resize_box(thisbox, &depth, x, y, 2);
+            _dw_resize_box(thisbox, &depth, x, y, 2);
         }
     }
 }
 
-NSMenu *_generate_main_menu()
+NSMenu *_dw_generate_main_menu()
 {
     NSString *applicationName = nil;
 
@@ -4186,7 +4184,7 @@ void API dw_main_iteration(void)
 void API dw_shutdown(void)
 {
 #if !defined(GARBAGE_COLLECT)
-    pool = pthread_getspecific(_dw_pool_key);
+    NSAutoreleasePool *pool = pthread_getspecific(_dw_pool_key);
     [pool drain];
 #endif
 }
@@ -4746,7 +4744,7 @@ int API dw_scrollbox_get_range(HWND handle, int orient)
 }
 
 /* Return the handle to the text object */
-id _text_handle(id object)
+id _dw_text_handle(id object)
 {
     if([object isMemberOfClass:[ DWSpinButton class]])
     {
@@ -4781,7 +4779,7 @@ void _dw_control_size(id handle, int *width, int *height)
 {
     int thiswidth = 1, thisheight = 1, extrawidth = 0, extraheight = 0;
     NSString *nsstr = nil;
-    id object = _text_handle(handle);
+    id object = _dw_text_handle(handle);
 
     /* Handle all the different button types */
     if([ object isKindOfClass:[ NSButton class ] ])
@@ -6714,11 +6712,11 @@ void API dw_color_foreground_set(unsigned long value)
     NSColor *newcolor;
     DW_LOCAL_POOL_IN;
 
-    _foreground = _get_color(value);
+    _dw_foreground = _dw_get_color(value);
 
-    newcolor = [[NSColor colorWithDeviceRed:    DW_RED_VALUE(_foreground)/255.0 green:
-                                                DW_GREEN_VALUE(_foreground)/255.0 blue:
-                                                DW_BLUE_VALUE(_foreground)/255.0 alpha: 1] retain];
+    newcolor = [[NSColor colorWithDeviceRed:    DW_RED_VALUE(_dw_foreground)/255.0 green:
+                                                DW_GREEN_VALUE(_dw_foreground)/255.0 blue:
+                                                DW_BLUE_VALUE(_dw_foreground)/255.0 alpha: 1] retain];
     pthread_setspecific(_dw_fg_color_key, newcolor);
     [oldcolor release];
     DW_LOCAL_POOL_OUT;
@@ -6742,11 +6740,11 @@ void API dw_color_background_set(unsigned long value)
     }
     else
     {
-        _background = _get_color(value);
+        _dw_background = _dw_get_color(value);
 
-        newcolor = [[NSColor colorWithDeviceRed:    DW_RED_VALUE(_background)/255.0 green:
-                                                    DW_GREEN_VALUE(_background)/255.0 blue:
-                                                    DW_BLUE_VALUE(_background)/255.0 alpha: 1] retain];
+        newcolor = [[NSColor colorWithDeviceRed:    DW_RED_VALUE(_dw_background)/255.0 green:
+                                                    DW_GREEN_VALUE(_dw_background)/255.0 blue:
+                                                    DW_BLUE_VALUE(_dw_background)/255.0 alpha: 1] retain];
         pthread_setspecific(_dw_bg_color_key, newcolor);
     }
     [oldcolor release];
@@ -6784,7 +6782,7 @@ unsigned long API dw_color_choose(unsigned long value)
         return value;
     }
 
-    unsigned long tempcol = _get_color(value);
+    unsigned long tempcol = _dw_get_color(value);
     NSColor *color = [[NSColor colorWithDeviceRed: DW_RED_VALUE(tempcol)/255.0 green: DW_GREEN_VALUE(tempcol)/255.0 blue: DW_BLUE_VALUE(tempcol)/255.0 alpha: 1] retain];
     [colorDlg setColor:color];
 
@@ -7061,7 +7059,7 @@ void API dw_font_text_extents_get(HWND handle, HPIXMAP pixmap, const char *text,
 /* Internal function to create an image graphics context...
  * with or without antialiasing enabled.
  */
-id _create_gc(id image, bool antialiased)
+id _dw_create_gc(id image, bool antialiased)
 {
 #ifdef BUILDING_FOR_YOSEMITE
     CGContextRef  context = (CGContextRef)[[NSGraphicsContext graphicsContextWithBitmapImageRep:image] CGContext];
@@ -7118,7 +7116,7 @@ DW_FUNCTION_RESTORE_PARAM6(handle, HWND, pixmap, HPIXMAP, flags, int, npoints, i
     }
     if(bi)
     {
-        id gc = _create_gc(bi, flags & DW_DRAW_NOAA ? NO : YES);
+        id gc = _dw_create_gc(bi, flags & DW_DRAW_NOAA ? NO : YES);
         [NSGraphicsContext saveGraphicsState];
         [NSGraphicsContext setCurrentContext:gc];
     }
@@ -7194,7 +7192,7 @@ DW_FUNCTION_RESTORE_PARAM7(handle, HWND, pixmap, HPIXMAP, flags, int, x, int, y,
     }
     if(bi)
     {
-        id gc = _create_gc(bi, flags & DW_DRAW_NOAA ? NO : YES);
+        id gc = _dw_create_gc(bi, flags & DW_DRAW_NOAA ? NO : YES);
         [NSGraphicsContext saveGraphicsState];
         [NSGraphicsContext setCurrentContext:gc];
     }
@@ -7265,7 +7263,7 @@ DW_FUNCTION_RESTORE_PARAM9(handle, HWND, pixmap, HPIXMAP, flags, int, xorigin, i
     }
     if(bi)
     {
-        id gc = _create_gc(bi, flags & DW_DRAW_NOAA ? NO : YES);
+        id gc = _dw_create_gc(bi, flags & DW_DRAW_NOAA ? NO : YES);
         [NSGraphicsContext saveGraphicsState];
         [NSGraphicsContext setCurrentContext:gc];
     }
@@ -8794,7 +8792,7 @@ HPIXMAP API dw_pixmap_new(HWND handle, unsigned long width, unsigned long height
 }
 
 /* Function takes an NSImage and copies it into a flipped NSBitmapImageRep */
-void _flip_image(NSImage *tmpimage, NSBitmapImageRep *image, NSSize size)
+void _dw_flip_image(NSImage *tmpimage, NSBitmapImageRep *image, NSSize size)
 {
     NSCompositingOperation op = DWCompositingOperationSourceOver;
     [NSGraphicsContext saveGraphicsState];
@@ -8861,7 +8859,7 @@ HPIXMAP API dw_pixmap_new_from_file(HWND handle, const char *filename)
                                colorSpaceName:NSDeviceRGBColorSpace
                                bytesPerRow:0
                                bitsPerPixel:0];
-    _flip_image(tmpimage, image, size);
+    _dw_flip_image(tmpimage, image, size);
     pixmap->width = size.width;
     pixmap->height = size.height;
     pixmap->image = image;
@@ -8909,7 +8907,7 @@ HPIXMAP API dw_pixmap_new_from_data(HWND handle, const char *data, int len)
                                colorSpaceName:NSDeviceRGBColorSpace
                                bytesPerRow:0
                                bitsPerPixel:0];
-    _flip_image(tmpimage, image, size);
+    _dw_flip_image(tmpimage, image, size);
     pixmap->width = size.width;
     pixmap->height = size.height;
     pixmap->image = image;
@@ -8970,7 +8968,7 @@ HPIXMAP API dw_pixmap_grab(HWND handle, ULONG resid)
                                    colorSpaceName:NSDeviceRGBColorSpace
                                    bytesPerRow:0
                                    bitsPerPixel:0];
-        _flip_image(temp, image, size);
+        _dw_flip_image(temp, image, size);
         pixmap->width = size.width;
         pixmap->height = size.height;
         pixmap->image = image;
@@ -9268,12 +9266,12 @@ int dw_html_javascript_run(HWND handle, const char *script, void *scriptdata)
     [html evaluateJavaScript:[NSString stringWithUTF8String:script] completionHandler:^(NSString *result, NSError *error)
     {
         void *params[2] = { result, scriptdata };
-        _event_handler(html, (NSEvent *)params, 18);
+        _dw_event_handler(html, (NSEvent *)params, 18);
     }];
 #else
     NSString *result = [html stringByEvaluatingJavaScriptFromString:[NSString stringWithUTF8String:script]];
     void *params[2] = { result, scriptdata };
-    _event_handler(html, (NSEvent *)params, 18);
+    _dw_event_handler(html, (NSEvent *)params, 18);
 #endif
     DW_LOCAL_POOL_OUT;
     return DW_ERROR_NONE;
@@ -9355,7 +9353,7 @@ HMENUI API dw_menu_new(ULONG cid)
 HMENUI API dw_menubar_new(HWND location)
 {
     NSWindow *window = location;
-    NSMenu *windowmenu = _generate_main_menu();
+    NSMenu *windowmenu = _dw_generate_main_menu();
     [[window contentView] setMenu:windowmenu];
     return (HMENUI)windowmenu;
 }
@@ -9376,7 +9374,7 @@ void API dw_menu_destroy(HMENUI *menu)
 /* Handle deprecation of convertScreenToBase in 10.10 yet still supporting
  * 10.6 and earlier since convertRectFromScreen was introduced in 10.7.
  */
-NSPoint _windowPointFromScreen(id window, NSPoint p)
+NSPoint _dw_windowPointFromScreen(id window, NSPoint p)
 {
     SEL crfs = NSSelectorFromString(@"convertRectFromScreen:");
 
@@ -9419,7 +9417,7 @@ void API dw_menu_popup(HMENUI *menu, HWND parent, int x, int y)
     [thismenu autorelease];
     NSPoint p = NSMakePoint(x, [[NSScreen mainScreen] frame].size.height - y);
     NSEvent* fake = [NSEvent mouseEventWithType:DWEventTypeRightMouseDown
-                                       location:_windowPointFromScreen(window, p)
+                                       location:_dw_windowPointFromScreen(window, p)
                                   modifierFlags:0
                                       timestamp:[event timestamp]
                                    windowNumber:[window windowNumber]
@@ -9430,7 +9428,7 @@ void API dw_menu_popup(HMENUI *menu, HWND parent, int x, int y)
     [NSMenu popUpContextMenu:thismenu withEvent:fake forView:view];
 }
 
-char _removetilde(char *dest, const char *src)
+char _dw_removetilde(char *dest, const char *src)
 {
     int z, cur=0;
     char accel = '\0';
@@ -9478,7 +9476,7 @@ HWND API dw_menu_append_item(HMENUI menux, const char *title, ULONG itemid, ULON
         char *newtitle = malloc(strlen(title)+1);
         NSString *nstr;
 
-        accel[0] = _removetilde(newtitle, title);
+        accel[0] = _dw_removetilde(newtitle, title);
         accel[1] = 0;
 
         nstr = [ NSString stringWithUTF8String:newtitle ];
@@ -9595,7 +9593,7 @@ void API dw_menu_item_set_state(HMENUI menux, unsigned long itemid, unsigned lon
 }
 
 /* Gets the notebook page from associated ID */
-DWNotebookPage *_notepage_from_id(DWNotebook *notebook, unsigned long pageid)
+DWNotebookPage *_dw_notepage_from_id(DWNotebook *notebook, unsigned long pageid)
 {
     NSArray *pages = [notebook tabViewItems];
     for(DWNotebookPage *notepage in pages)
@@ -9657,7 +9655,7 @@ unsigned long API dw_notebook_page_new(HWND handle, ULONG flags, int front)
 void API dw_notebook_page_destroy(HWND handle, unsigned int pageid)
 {
     DWNotebook *notebook = handle;
-    DWNotebookPage *notepage = _notepage_from_id(notebook, pageid);
+    DWNotebookPage *notepage = _dw_notepage_from_id(notebook, pageid);
     DW_LOCAL_POOL_IN;
 
     if(notepage != nil)
@@ -9688,7 +9686,7 @@ unsigned long API dw_notebook_page_get(HWND handle)
 void API dw_notebook_page_set(HWND handle, unsigned int pageid)
 {
     DWNotebook *notebook = handle;
-    DWNotebookPage *notepage = _notepage_from_id(notebook, pageid);
+    DWNotebookPage *notepage = _dw_notepage_from_id(notebook, pageid);
 
     if(notepage != nil)
     {
@@ -9706,7 +9704,7 @@ void API dw_notebook_page_set(HWND handle, unsigned int pageid)
 void API dw_notebook_page_set_text(HWND handle, ULONG pageid, const char *text)
 {
     DWNotebook *notebook = handle;
-    DWNotebookPage *notepage = _notepage_from_id(notebook, pageid);
+    DWNotebookPage *notepage = _dw_notepage_from_id(notebook, pageid);
 
     if(notepage != nil)
     {
@@ -9736,7 +9734,7 @@ void API dw_notebook_page_set_status_text(HWND handle, ULONG pageid, const char 
 void API dw_notebook_pack(HWND handle, ULONG pageid, HWND page)
 {
     DWNotebook *notebook = handle;
-    DWNotebookPage *notepage = _notepage_from_id(notebook, pageid);
+    DWNotebookPage *notepage = _dw_notepage_from_id(notebook, pageid);
 
     if(notepage != nil)
     {
@@ -9953,8 +9951,8 @@ int API dw_window_hide(HWND handle)
 int API dw_window_set_color(HWND handle, ULONG fore, ULONG back)
 {
     id object = handle;
-    unsigned long _fore = _get_color(fore);
-    unsigned long _back = _get_color(back);
+    unsigned long _fore = _dw_get_color(fore);
+    unsigned long _back = _dw_get_color(back);
     NSColor *fg = NULL;
     NSColor *bg = NULL;
 
@@ -10034,7 +10032,7 @@ int API dw_window_set_border(HWND handle, int border)
  */
 void API dw_window_set_style(HWND handle, ULONG style, ULONG mask)
 {
-    id object = _text_handle(handle);
+    id object = _dw_text_handle(handle);
 
     if([object isMemberOfClass:[DWWindow class]])
     {
@@ -10285,7 +10283,7 @@ char * API dw_font_choose(const char *currfont)
 /* Internal function to return a pointer to an item struct
  * with information about the packing information regarding object.
  */
-Item *_box_item(id object)
+Item *_dw_box_item(id object)
 {
     /* Find the item within the box it is packed into */
     if([object isKindOfClass:[DWBox class]] || [object isKindOfClass:[DWGroupBox class]] || [object isKindOfClass:[NSControl class]])
@@ -10330,7 +10328,7 @@ int API dw_window_set_font(HWND handle, const char *fontname)
 
     if(font)
     {
-        id object = _text_handle(handle);
+        id object = _dw_text_handle(handle);
         if([object window])
         {
             [object lockFocus];
@@ -10361,7 +10359,7 @@ int API dw_window_set_font(HWND handle, const char *fontname)
         else
             return DW_ERROR_UNKNOWN;
         /* If we changed the text... */
-        Item *item = _box_item(handle);
+        Item *item = _dw_box_item(handle);
 
         /* Check to see if any of the sizes need to be recalculated */
         if(item && (item->origwidth == -1 || item->origheight == -1))
@@ -10382,7 +10380,7 @@ int API dw_window_set_font(HWND handle, const char *fontname)
  */
 char * API dw_window_get_font(HWND handle)
 {
-    id object = _text_handle(handle);
+    id object = _dw_text_handle(handle);
     NSFont *font = nil;
 
     if([object isMemberOfClass:[DWGroupBox class]])
@@ -10510,7 +10508,7 @@ DW_FUNCTION_RETURN(dw_window_get_text, char *)
 DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
 {
     DW_FUNCTION_INIT;
-    id object = _text_handle(handle);
+    id object = _dw_text_handle(handle);
     char *retval = NULL;
 
     if([ object isKindOfClass:[ NSWindow class ] ] || [ object isKindOfClass:[ NSButton class ] ])
@@ -10542,7 +10540,7 @@ DW_FUNCTION_NO_RETURN(dw_window_set_text)
 DW_FUNCTION_RESTORE_PARAM2(handle, HWND, text, char *)
 {
     DW_FUNCTION_INIT;
-    id object = _text_handle(handle);
+    id object = _dw_text_handle(handle);
 
     if([ object isKindOfClass:[ NSWindow class ] ] || [ object isKindOfClass:[ NSButton class ] ])
         [object setTitle:[ NSString stringWithUTF8String:text ]];
@@ -10559,7 +10557,7 @@ DW_FUNCTION_RESTORE_PARAM2(handle, HWND, text, char *)
     else
         return;
     /* If we changed the text... */
-    Item *item = _box_item(handle);
+    Item *item = _dw_box_item(handle);
 
     /* Check to see if any of the sizes need to be recalculated */
     if(item && (item->origwidth == -1 || item->origheight == -1))
@@ -10692,7 +10690,7 @@ void API dw_window_set_bitmap_from_data(HWND handle, unsigned long cid, const ch
                 [object setImage:pixmap];
             }
             /* If we changed the bitmap... */
-            Item *item = _box_item(handle);
+            Item *item = _dw_box_item(handle);
 
             /* Check to see if any of the sizes need to be recalculated */
             if(item && (item->origwidth == -1 || item->origheight == -1))
@@ -10750,7 +10748,7 @@ void API dw_window_set_bitmap(HWND handle, unsigned long resid, const char *file
             [object setImage:bitmap];
 
             /* If we changed the bitmap... */
-            Item *item = _box_item(handle);
+            Item *item = _dw_box_item(handle);
 
             /* Check to see if any of the sizes need to be recalculated */
             if(item && (item->origwidth == -1 || item->origheight == -1))
@@ -10829,7 +10827,7 @@ int API dw_window_raise(HWND handle)
 {
     NSWindow *window = handle;
     [window orderFront:nil];
-    return 0;
+    return DW_ERROR_NONE;
 }
 
 /*
@@ -10841,7 +10839,7 @@ int API dw_window_lower(HWND handle)
 {
     NSWindow *window = handle;
     [window orderBack:nil];
-    return 0;
+    return DW_ERROR_NONE;
 }
 
 /*
@@ -10877,7 +10875,7 @@ DW_FUNCTION_RESTORE_PARAM3(handle, HWND, width, ULONG, height, ULONG)
             int depth = 0;
 
             /* Calculate space requirements */
-            _resize_box(thisbox, &depth, (int)width, (int)height, 1);
+            _dw_resize_box(thisbox, &depth, (int)width, (int)height, 1);
 
             /* Update components that need auto-sizing */
             if(width < 1) content.size.width = thisbox->minwidth;
@@ -10911,7 +10909,7 @@ void API dw_window_get_preferred_size(HWND handle, int *width, int *height)
             NSRect frame;
 
             /* Calculate space requirements */
-            _resize_box(thisbox, &depth, 0, 0, 1);
+            _dw_resize_box(thisbox, &depth, 0, 0, 1);
 
             /* Figure out the border size */
             frame = [NSWindow frameRectForContentRect:NSMakeRect(0, 0, thisbox->minwidth, thisbox->minheight) styleMask:[object styleMask]];
@@ -10930,7 +10928,7 @@ void API dw_window_get_preferred_size(HWND handle, int *width, int *height)
             int depth = 0;
 
             /* Calculate space requirements */
-            _resize_box(thisbox, &depth, 0, 0, 1);
+            _dw_resize_box(thisbox, &depth, 0, 0, 1);
 
             /* Return what was requested */
             if(width) *width = thisbox->minwidth;
@@ -11308,7 +11306,7 @@ void API dw_flush(void)
  * a given window handle.  Used in dw_window_set_data() and
  * dw_window_get_data().
  */
-UserData *_find_userdata(UserData **root, const char *varname)
+UserData *_dw_find_userdata(UserData **root, const char *varname)
 {
     UserData *tmp = *root;
 
@@ -11321,9 +11319,9 @@ UserData *_find_userdata(UserData **root, const char *varname)
     return NULL;
 }
 
-int _new_userdata(UserData **root, const char *varname, void *data)
+int _dw_new_userdata(UserData **root, const char *varname, void *data)
 {
-    UserData *new = _find_userdata(root, varname);
+    UserData *new = _dw_find_userdata(root, varname);
 
     if(new)
     {
@@ -11359,7 +11357,7 @@ int _new_userdata(UserData **root, const char *varname, void *data)
     return FALSE;
 }
 
-int _remove_userdata(UserData **root, const char *varname, int all)
+int _dw_remove_userdata(UserData **root, const char *varname, int all)
 {
     UserData *prev = NULL, *tmp = *root;
 
@@ -11428,13 +11426,13 @@ void dw_window_set_data(HWND window, const char *dataname, void *data)
     }
 
     if(data)
-        _new_userdata(&(blah->root), dataname, data);
+        _dw_new_userdata(&(blah->root), dataname, data);
     else
     {
         if(dataname)
-            _remove_userdata(&(blah->root), dataname, FALSE);
+            _dw_remove_userdata(&(blah->root), dataname, FALSE);
         else
-            _remove_userdata(&(blah->root), NULL, TRUE);
+            _dw_remove_userdata(&(blah->root), NULL, TRUE);
     }
 }
 
@@ -11462,7 +11460,7 @@ void *dw_window_get_data(HWND window, const char *dataname)
 
     if(blah && blah->root && dataname)
     {
-        UserData *ud = _find_userdata(&(blah->root), dataname);
+        UserData *ud = _dw_find_userdata(&(blah->root), dataname);
         if(ud)
             return ud->data;
     }
@@ -11470,7 +11468,7 @@ void *dw_window_get_data(HWND window, const char *dataname)
 }
 
 #define DW_TIMER_MAX 64
-NSTimer *DWTimers[DW_TIMER_MAX];
+static NSTimer *DWTimers[DW_TIMER_MAX];
 
 /*
  * Add a callback to a timer event.
@@ -11497,7 +11495,7 @@ int API dw_timer_connect(int interval, void *sigfunc, void *data)
     {
         NSTimeInterval seconds = (double)interval / 1000.0;
         NSTimer *thistimer = DWTimers[z] = [NSTimer scheduledTimerWithTimeInterval:seconds target:DWHandler selector:@selector(runTimer:) userInfo:nil repeats:YES];
-        _new_signal(0, thistimer, z+1, sigfunc, NULL, data);
+        _dw_new_signal(0, thistimer, z+1, sigfunc, NULL, data);
         return z+1;
     }
     return 0;
@@ -11510,7 +11508,7 @@ int API dw_timer_connect(int interval, void *sigfunc, void *data)
  */
 void API dw_timer_disconnect(int timerid)
 {
-    SignalHandler *prev = NULL, *tmp = Root;
+    SignalHandler *prev = NULL, *tmp = DWRoot;
     NSTimer *thistimer;
 
     /* 0 is an invalid timer ID */
@@ -11534,9 +11532,9 @@ void API dw_timer_disconnect(int timerid)
             }
             else
             {
-                Root = tmp->next;
+                DWRoot = tmp->next;
                 free(tmp);
-                tmp = Root;
+                tmp = DWRoot;
             }
         }
         else
@@ -11581,9 +11579,9 @@ void API dw_signal_connect_data(HWND window, const char *signame, void *sigfunc,
 
     if(window && signame && sigfunc)
     {
-        if((message = _findsigmessage(signame)) != 0)
+        if((message = _dw_findsigmessage(signame)) != 0)
         {
-            _new_signal(message, window, (int)msgid, sigfunc, discfunc, data);
+            _dw_new_signal(message, window, (int)msgid, sigfunc, discfunc, data);
         }
     }
 }
@@ -11595,10 +11593,10 @@ void API dw_signal_connect_data(HWND window, const char *signame, void *sigfunc,
  */
 void API dw_signal_disconnect_by_name(HWND window, const char *signame)
 {
-    SignalHandler *prev = NULL, *tmp = Root;
+    SignalHandler *prev = NULL, *tmp = DWRoot;
     ULONG message;
 
-    if(!window || !signame || (message = _findsigmessage(signame)) == 0)
+    if(!window || !signame || (message = _dw_findsigmessage(signame)) == 0)
         return;
 
     while(tmp)
@@ -11620,9 +11618,9 @@ void API dw_signal_disconnect_by_name(HWND window, const char *signame)
             }
             else
             {
-                Root = tmp->next;
+                DWRoot = tmp->next;
                 free(tmp);
-                tmp = Root;
+                tmp = DWRoot;
             }
         }
         else
@@ -11640,7 +11638,7 @@ void API dw_signal_disconnect_by_name(HWND window, const char *signame)
  */
 void API dw_signal_disconnect_by_window(HWND window)
 {
-    SignalHandler *prev = NULL, *tmp = Root;
+    SignalHandler *prev = NULL, *tmp = DWRoot;
 
     while(tmp)
     {
@@ -11661,9 +11659,9 @@ void API dw_signal_disconnect_by_window(HWND window)
             }
             else
             {
-                Root = tmp->next;
+                DWRoot = tmp->next;
                 free(tmp);
-                tmp = Root;
+                tmp = DWRoot;
             }
         }
         else
@@ -11682,7 +11680,7 @@ void API dw_signal_disconnect_by_window(HWND window)
  */
 void API dw_signal_disconnect_by_data(HWND window, void *data)
 {
-    SignalHandler *prev = NULL, *tmp = Root;
+    SignalHandler *prev = NULL, *tmp = DWRoot;
 
     while(tmp)
     {
@@ -11703,9 +11701,9 @@ void API dw_signal_disconnect_by_data(HWND window, void *data)
             }
             else
             {
-                Root = tmp->next;
+                DWRoot = tmp->next;
                 free(tmp);
-                tmp = Root;
+                tmp = DWRoot;
             }
         }
         else
@@ -11716,7 +11714,7 @@ void API dw_signal_disconnect_by_data(HWND window, void *data)
     }
 }
 
-void _my_strlwr(char *buf)
+void _dw_my_strlwr(char *buf)
 {
    int z, len = (int)strlen(buf);
 
@@ -11753,7 +11751,7 @@ int dw_module_load(const char *name, HMOD *handle)
       return -1;
 
    sprintf(newname, "lib%s.dylib", name);
-   _my_strlwr(newname);
+   _dw_my_strlwr(newname);
 
    *handle = dlopen(newname, RTLD_NOW);
    if(*handle == NULL)
@@ -12004,7 +12002,7 @@ struct _seminfo {
    int waiting;
 };
 
-static void _handle_sem(int *tmpsock)
+static void _dw_handle_sem(int *tmpsock)
 {
    fd_set rd;
    struct _seminfo *array = (struct _seminfo *)malloc(sizeof(struct _seminfo));
@@ -12213,7 +12211,7 @@ HEV dw_named_event_new(const char *name)
     }
 
     /* Create a thread to handle this event semaphore */
-    pthread_create(&dwthread, NULL, (void *)_handle_sem, (void *)tmpsock);
+    pthread_create(&dwthread, NULL, (void *)_dw_handle_sem, (void *)tmpsock);
     eve->alive = ev;
     return eve;
 }
@@ -12349,7 +12347,7 @@ int dw_named_event_wait(HEV eve, unsigned long timeout)
 int dw_named_event_close(HEV eve)
 {
    /* Finally close the domain socket,
-    * cleanup will continue in _handle_sem.
+    * cleanup will continue in _dw_handle_sem.
     */
     if(eve)
     {
@@ -12383,7 +12381,7 @@ void API _dw_init_thread(void)
     NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
     pthread_setspecific(_dw_pool_key, pool);
 #endif
-    _init_colors();
+    _dw_init_colors();
 }
 
 /*
@@ -12402,7 +12400,7 @@ void API _dw_deinit_thread(void)
     color = pthread_getspecific(_dw_bg_color_key);
     [color release];
 #if !defined(GARBAGE_COLLECT)
-    pool = pthread_getspecific(_dw_pool_key);
+    NSAutoreleasePool *pool = pthread_getspecific(_dw_pool_key);
     [pool drain];
 #endif
 }
@@ -12526,14 +12524,14 @@ int API dw_init(int newthread, int argc, char *argv[])
     /* If we aren't using garbage collection we need autorelease pools */
 #if !defined(GARBAGE_COLLECT)
     pthread_key_create(&_dw_pool_key, NULL);
-    pool = [[NSAutoreleasePool alloc] init];
+    NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
     pthread_setspecific(_dw_pool_key, pool);
 #endif
     pthread_key_create(&_dw_fg_color_key, NULL);
     pthread_key_create(&_dw_bg_color_key, NULL);
-    _init_colors();
+    _dw_init_colors();
     /* Create a default main menu, with just the application menu */
-    DWMainMenu = _generate_main_menu();
+    DWMainMenu = _dw_generate_main_menu();
     [DWMainMenu retain];
     [DWApp setMainMenu:DWMainMenu];
     DWObj = [[DWObject alloc] init];
@@ -13057,7 +13055,7 @@ int API dw_print_run(HPRINT print, unsigned long flags)
         if(p->drawfunc)
         {
            /* Internal representation is flipped... so flip again so we can print */
-           _flip_image(image, rep2, size);
+           _dw_flip_image(image, rep2, size);
    #ifdef DEBUG_PRINT
            /* Save it to file to see what we have */
            NSData *data = [rep2 representationUsingType: NSPNGFileType properties: nil];
