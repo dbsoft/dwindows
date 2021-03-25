@@ -1615,6 +1615,24 @@ typedef enum
 #define dw_container_get_start(a, b) dw_container_query_start(a, b)
 #define dw_container_get_next(a, b) dw_container_query_next(a, b)
 
+/* Entrypoint handling macros */
+#ifdef __IOS__
+#define dwmain(a, b) \
+_dwmain(a, b); \
+void _dw_main_thread(int argc, char **argv); \
+void _dw_main_launch(void **); \
+int main(a, b) { \
+    void **data = calloc(sizeof(void *), 3); \
+    data[0] = DW_POINTER(_dwmain); \
+    data[1] = DW_INT_TO_POINTER(argc); \
+    data[2] = DW_POINTER(argv); \
+    dw_thread_new(_dw_main_launch, data, 0); \
+    _dw_main_thread(argc, argv); } \
+int _dwmain(a, b)
+#else
+#define dwmain(a, b) main(a, b)
+#endif
+
 /* Public function prototypes */
 void API dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize, int vsize, int pad);
 void API dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, int vsize, int pad);
