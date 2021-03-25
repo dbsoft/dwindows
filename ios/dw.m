@@ -579,6 +579,7 @@ static UIFont *DWDefaultFont;
 static DWTimerHandler *DWHandler;
 static NSMutableArray *_DWDirtyDrawables;
 static DWTID DWThread = (DWTID)-1;
+static HEV DWMainEvent;
 
 /* Used for doing bitblts from the main thread */
 typedef struct _bitbltinfo
@@ -2409,19 +2410,16 @@ static void _dw_do_resize(Box *thisbox, int x, int y)
     }
 }
 
-static int _dw_argc = 0;
-static char **_dw_argv = NULL;
-
 /*
  * Runs a message loop for Dynamic Windows.
  */
 void API dw_main(void)
 {
-    DWThread = dw_thread_id();
-    /* Make sure any queued redraws are handled */
-    _dw_redraw(0, FALSE);
-    UIApplicationMain(_dw_argc, _dw_argv, nil, NSStringFromClass([DWAppDel class]));
-    DWThread = (DWTID)-1;
+    /* We don't actually run a loop here,
+     * we launched a new thread to run the loop there.
+     * Just wait for dw_main_quit() on the DWMainEvent.
+     */
+    dw_event_wait(DWMainEvent, DW_TIMEOUT_INFINITE);
 }
 
 /*
@@ -2429,8 +2427,7 @@ void API dw_main(void)
  */
 void API dw_main_quit(void)
 {
-    /* TODO: Make this work
-    [[NSRunLoop mainRunLoop] ]; */
+    dw_event_post(DWMainEvent);
 }
 
 /*
@@ -3343,12 +3340,16 @@ void API dw_box_pack_at_index(HWND box, HWND item, int index, int width, int hei
  *       vsize: TRUE if the window (widget) should expand vertically to fill space given.
  *       pad: Number of pixels of padding around the item.
  */
-void API dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize, int vsize, int pad)
+DW_FUNCTION_DEFINITION(dw_box_pack_start, void, HWND box, HWND item, int width, int height, int hsize, int vsize, int pad)
+DW_FUNCTION_ADD_PARAM7(box, item, width, height, hsize, vsize, pad)
+DW_FUNCTION_NO_RETURN(dw_box_pack_start)
+DW_FUNCTION_RESTORE_PARAM7(box, HWND, item, HWND, width, int, height, int, hsize, int, vsize, int, pad, int)
 {
     /* 65536 is the table limit on GTK...
      * seems like a high enough value we will never hit it here either.
      */
     _dw_box_pack(box, item, 65536, width, height, hsize, vsize, pad, "dw_box_pack_start()");
+    DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -3362,9 +3363,13 @@ void API dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize
  *       vsize: TRUE if the window (widget) should expand vertically to fill space given.
  *       pad: Number of pixels of padding around the item.
  */
-void API dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, int vsize, int pad)
+DW_FUNCTION_DEFINITION(dw_box_pack_end, void, HWND box, HWND item, int width, int height, int hsize, int vsize, int pad)
+DW_FUNCTION_ADD_PARAM7(box, item, width, height, hsize, vsize, pad)
+DW_FUNCTION_NO_RETURN(dw_box_pack_end)
+DW_FUNCTION_RESTORE_PARAM7(box, HWND, item, HWND, width, int, height, int, hsize, int, vsize, int, pad, int)
 {
     _dw_box_pack(box, item, 0, width, height, hsize, vsize, pad, "dw_box_pack_end()");
+    DW_FUNCTION_RETURN_NOTHING;
 }
 
 /* Internal function to create a basic button, used by all button types */
@@ -7294,9 +7299,13 @@ void API dw_window_set_pointer(HWND handle, int pointertype)
  * Parameters:
  *           handle: The window handle to make visible.
  */
-int API dw_window_show(HWND handle)
+DW_FUNCTION_DEFINITION(dw_window_show, int, HWND handle)
+DW_FUNCTION_ADD_PARAM1(handle)
+DW_FUNCTION_RETURN(dw_window_show, int)
+DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
 {
     NSObject *object = handle;
+    int retval = DW_ERROR_NONE;
 
     if([ object isMemberOfClass:[ DWWindow class ] ])
     {
@@ -7317,7 +7326,7 @@ int API dw_window_show(HWND handle)
         else
             [window setHidden:NO];
     }
-    return 0;
+    DW_FUNCTION_RETURN_THIS(retval);
 }
 
 /*
@@ -7325,9 +7334,13 @@ int API dw_window_show(HWND handle)
  * Parameters:
  *           handle: The window handle to make visible.
  */
-int API dw_window_hide(HWND handle)
+DW_FUNCTION_DEFINITION(dw_window_hide, int, HWND handle)
+DW_FUNCTION_ADD_PARAM1(handle)
+DW_FUNCTION_RETURN(dw_window_hide, int)
+DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
 {
     NSObject *object = handle;
+    int retval = DW_ERROR_NONE;
 
     if([ object isKindOfClass:[ UIWindow class ] ])
     {
@@ -7335,7 +7348,7 @@ int API dw_window_hide(HWND handle)
 
         [window setHidden:YES];
     }
-    return 0;
+    DW_FUNCTION_RETURN_THIS(retval);
 }
 
 /*
@@ -9518,11 +9531,57 @@ void API dw_font_set_default(const char *fontname)
     [oldfont release];
 }
 
+/* Thread start stub to launch our main */
+void _dw_main_launch(void **data)
+{
+    int (*_dwmain)(int argc, char **argv) = (int (*)(int, char **))data[0];
+    int argc = DW_POINTER_TO_INT(data[1]);
+    char **argv = (char **)data[2];
+
+    _dwmain(argc, argv);
+    free(data);
+}
+
+/* The iOS main thread... all this does is handle messages */
+void _dw_main_thread(int argc, char *argv[])
+{
+    DWMainEvent = dw_event_new();
+    dw_event_reset(DWMainEvent);
+    /* We wait for the dw_init() in the user's main function */
+    dw_event_wait(DWMainEvent, DW_TIMEOUT_INFINITE);
+    DWThread = dw_thread_id();
+    DWObj = [[DWObject alloc] init];
+    UIApplicationMain(argc, argv, nil, NSStringFromClass([DWAppDel class]));
+    /* Shouldn't get here, but ... just in case */
+    DWThread = (DWTID)-1;
+}
+
 /* If DWApp is uninitialized, initialize it */
 void _dw_app_init(void)
 {
-    if(!DWApp)
+    /* The UIApplication singleton won't be created until we call
+     * UIApplicationMain() which blocks indefinitely.. so we have
+     * a thread to just run UIApplicationMain() .. and wait until
+     * we get a non-nil sharedApplication result.
+     */
+    while(!DWApp)
+    {
+        static int posted = FALSE;
+
+        if(DWMainEvent && !posted)
+        {
+            /* Post the DWMainEvent so the main thread
+             * will call UIApplicationMain() creating
+             * the UIApplication sharedApplication.
+             */
+            posted = TRUE;
+            dw_event_post(DWMainEvent);
+        }
+        pthread_yield_np();
         DWApp = [UIApplication sharedApplication];
+    }
+    dw_event_reset(DWMainEvent);
+    dw_debug("SharedApplication is valid!\n");
 }
 
 /*
@@ -9534,9 +9593,6 @@ void _dw_app_init(void)
 int API dw_init(int newthread, int argc, char *argv[])
 {
     char *lang = getenv("LANG");
-
-    _dw_argc = argc;
-    _dw_argv = argv;
 
     /* Correct the startup path if run from a bundle */
     if(argc > 0 && argv[0])
@@ -9602,7 +9658,6 @@ int API dw_init(int newthread, int argc, char *argv[])
     pthread_key_create(&_dw_fg_color_key, NULL);
     pthread_key_create(&_dw_bg_color_key, NULL);
     _dw_init_colors();
-    DWObj = [[DWObject alloc] init];
     DWDefaultFont = nil;
     if (@available(iOS 10.0, *))
     {
