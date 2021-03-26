@@ -6697,7 +6697,10 @@ DW_FUNCTION_RESTORE_PARAM1(cid, ULONG)
  *       handle: The handle to the calendar returned by dw_calendar_new().
  *       year...
  */
-void dw_calendar_set_date(HWND handle, unsigned int year, unsigned int month, unsigned int day)
+DW_FUNCTION_DEFINITION(dw_calendar_set_date, void, HWND handle, unsigned int year, unsigned int month, unsigned int day)
+DW_FUNCTION_ADD_PARAM4(handle, year, month, day)
+DW_FUNCTION_NO_RETURN(dw_calendar_set_date)
+DW_FUNCTION_RESTORE_PARAM4(handle, HWND, year, unsigned int, month, unsigned int, day, unsigned int)
 {
     DWCalendar *calendar = handle;
     NSDate *date;
@@ -6713,6 +6716,7 @@ void dw_calendar_set_date(HWND handle, unsigned int year, unsigned int month, un
     [calendar setDate:date];
     [date release];
     DW_LOCAL_POOL_OUT;
+    DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -6720,7 +6724,10 @@ void dw_calendar_set_date(HWND handle, unsigned int year, unsigned int month, un
  * Parameters:
  *       handle: The handle to the calendar returned by dw_calendar_new().
  */
-void dw_calendar_get_date(HWND handle, unsigned int *year, unsigned int *month, unsigned int *day)
+DW_FUNCTION_DEFINITION(dw_calendar_get_date, void, HWND handle, unsigned int *year, unsigned int *month, unsigned int *day)
+DW_FUNCTION_ADD_PARAM4(handle, year, month, day)
+DW_FUNCTION_NO_RETURN(dw_calendar_get_date)
+DW_FUNCTION_RESTORE_PARAM4(handle, HWND, year, unsigned int *, month, unsigned int *, day, unsigned int *)
 {
     DWCalendar *calendar = handle;
     DW_LOCAL_POOL_IN;
@@ -6732,6 +6739,7 @@ void dw_calendar_get_date(HWND handle, unsigned int *year, unsigned int *month, 
     *year = (unsigned int)[components year];
     [mycalendar release];
     DW_LOCAL_POOL_OUT;
+    DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -7567,11 +7575,15 @@ DW_FUNCTION_RESTORE_PARAM3(handle, HWND, style, ULONG, mask, ULONG)
  * Remarks:
  *          This is for use after showing the window/dialog.
  */
-void API dw_window_set_focus(HWND handle)
+DW_FUNCTION_DEFINITION(dw_window_set_focus, void, HWND handle)
+DW_FUNCTION_ADD_PARAM1(handle)
+DW_FUNCTION_NO_RETURN(dw_window_set_focus)
+DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
 {
     id object = handle;
 
     [object becomeFirstResponder];
+    DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -7582,7 +7594,10 @@ void API dw_window_set_focus(HWND handle)
  * Remarks:
  *          This is for use before showing the window/dialog.
  */
-void API dw_window_default(HWND handle, HWND defaultitem)
+DW_FUNCTION_DEFINITION(dw_window_default, void, HWND handle, HWND defaultitem)
+DW_FUNCTION_ADD_PARAM2(handle, defaultitem)
+DW_FUNCTION_NO_RETURN(dw_window_default)
+DW_FUNCTION_RESTORE_PARAM2(handle, HWND, defaultitem, HWND)
 {
     DWWindow *window = handle;
     id object = defaultitem;
@@ -7591,6 +7606,7 @@ void API dw_window_default(HWND handle, HWND defaultitem)
     {
         [object becomeFirstResponder];
     }
+    DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -9658,7 +9674,6 @@ void _dw_app_init(void)
         DWApp = [UIApplication sharedApplication];
     }
     dw_event_reset(DWMainEvent);
-    dw_debug("SharedApplication is valid!\n");
 }
 
 /*
