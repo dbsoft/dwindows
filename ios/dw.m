@@ -1115,6 +1115,13 @@ DWObject *DWObj;
     DWWindow *window = (DWWindow *)[[self view] window];
     NSArray *array = [window subviews];
     DWView *view = [array firstObject];
+    /* Hide the UITransitionView which is blocking the screen...
+     * This is probably not the correct solution, but it solves the
+     * problem for the moment.  Figure out what to do with this view.
+     */
+    id object = [array lastObject];
+    if(![object isMemberOfClass:[DWView class]])
+        [object setHidden:YES];
     [view setFrame:[window frame]];
     [view windowResized:[window frame].size];
 }
@@ -3373,14 +3380,14 @@ DW_FUNCTION_RESTORE_PARAM7(box, HWND, item, HWND, width, int, height, int, hsize
 /* Internal function to create a basic button, used by all button types */
 HWND _dw_internal_button_new(const char *text, ULONG cid)
 {
-    DWButton *button = [[DWButton alloc] init];
+    DWButton *button = [[DWButton buttonWithType:UIButtonTypeRoundedRect] retain];
     if(text)
     {
         [button setTitle:[NSString stringWithUTF8String:text] forState:UIControlStateNormal];
     }
     [button addTarget:button
                action:@selector(buttonClicked:)
-     forControlEvents:UIControlEventPrimaryActionTriggered];
+     forControlEvents:UIControlEventTouchUpInside];
     [button setTag:cid];
     if(DWDefaultFont)
     {
