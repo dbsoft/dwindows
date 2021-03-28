@@ -1513,7 +1513,7 @@ UITableViewCell *_dw_table_cell_view_new(UIImage *icon, NSString *text)
     UIColor *fgcolor, *oddcolor, *evencolor;
     unsigned long dw_oddcolor, dw_evencolor;
     unsigned long _DW_COLOR_ROW_ODD, _DW_COLOR_ROW_EVEN;
-    int lastAddPoint, lastQueryPoint;
+    int iLastAddPoint, iLastQueryPoint;
     id scrollview;
     int filesystem;
 }
@@ -1659,9 +1659,9 @@ UITableViewCell *_dw_table_cell_view_new(UIImage *icon, NSString *text)
     {
         unsigned long start = [tvcols count] * index;
         NSIndexSet *set = [[NSIndexSet alloc] initWithIndexesInRange:NSMakeRange(start, start + [tvcols count])];
-        if(index < lastAddPoint)
+        if(index < iLastAddPoint)
         {
-            lastAddPoint++;
+            iLastAddPoint++;
         }
         [data insertObjects:input atIndexes:set];
         [titles insertPointer:NULL atIndex:index];
@@ -1675,7 +1675,7 @@ UITableViewCell *_dw_table_cell_view_new(UIImage *icon, NSString *text)
 {
     if(data)
     {
-        lastAddPoint = (int)[titles count];
+        iLastAddPoint = (int)[titles count];
         [data addObjectsFromArray:input];
         [titles addPointer:NULL];
         [rowdatas addPointer:NULL];
@@ -1690,7 +1690,7 @@ UITableViewCell *_dw_table_cell_view_new(UIImage *icon, NSString *text)
         int count = (int)(number * [tvcols count]);
         int z;
 
-        lastAddPoint = (int)[titles count];
+        iLastAddPoint = (int)[titles count];
 
         for(z=0;z<count;z++)
         {
@@ -1736,9 +1736,9 @@ UITableViewCell *_dw_table_cell_view_new(UIImage *icon, NSString *text)
         oldtitle = [titles pointerAtIndex:row];
         [titles removePointerAtIndex:row];
         [rowdatas removePointerAtIndex:row];
-        if(lastAddPoint > 0 && lastAddPoint > row)
+        if(iLastAddPoint > 0 && iLastAddPoint > row)
         {
-            lastAddPoint--;
+            iLastAddPoint--;
         }
         if(oldtitle)
             free(oldtitle);
@@ -1760,9 +1760,9 @@ UITableViewCell *_dw_table_cell_view_new(UIImage *icon, NSString *text)
 -(void *)getRowData:(int)row { if(rowdatas && row > -1) { return [rowdatas pointerAtIndex:row]; } return NULL; }
 -(id)getRow:(int)row and:(int)col { if(data && [data count]) { int index = (int)(row * [tvcols count]) + col; return [data objectAtIndex:index]; } return nil; }
 -(int)cellType:(int)col { return [[types objectAtIndex:col] intValue]; }
--(int)lastAddPoint { return lastAddPoint; }
--(int)lastQueryPoint { return lastQueryPoint; }
--(void)setLastQueryPoint:(int)input { lastQueryPoint = input; }
+-(int)lastAddPoint { return iLastAddPoint; }
+-(int)lastQueryPoint { return iLastQueryPoint; }
+-(void)setLastQueryPoint:(int)input { iLastQueryPoint = input; }
 -(void)clear
 {
     if(data)
@@ -1777,7 +1777,7 @@ UITableViewCell *_dw_table_cell_view_new(UIImage *icon, NSString *text)
                 free(oldtitle);
         }
     }
-    lastAddPoint = 0;
+    iLastAddPoint = 0;
 }
 -(void)setup
 {
@@ -2818,7 +2818,10 @@ HWND API dw_groupbox_new(int type, int pad, const char *title)
  *       type: Either DW_VERT (vertical) or DW_HORZ (horizontal).
  *       pad: Number of pixels to pad around the box.
  */
-HWND API dw_scrollbox_new( int type, int pad )
+DW_FUNCTION_DEFINITION(dw_scrollbox_new, HWND, int type, int pad)
+DW_FUNCTION_ADD_PARAM2(type, pad)
+DW_FUNCTION_RETURN(dw_scrollbox_new, HWND)
+DW_FUNCTION_RESTORE_PARAM2(type, int, pad, int)
 {
     DWScrollBox *scrollbox = [[DWScrollBox alloc] init];
     DWBox *box = dw_box_new(type, pad);
@@ -2827,7 +2830,7 @@ HWND API dw_scrollbox_new( int type, int pad )
     [scrollbox setBox:box];
     [scrollbox addSubview:tmpbox];
     [tmpbox autorelease];
-    return scrollbox;
+    DW_FUNCTION_RETURN_THIS(scrollbox);
 }
 
 /*
@@ -3847,7 +3850,7 @@ void API dw_checkbox_set(HWND handle, int value)
 /* Internal common function to create containers and listboxes */
 HWND _dw_cont_new(ULONG cid, int multi)
 {
-    DWContainer *cont = [[DWContainer alloc] init];
+    DWContainer *cont = [[[DWContainer alloc] init] retain];
 
     [cont setAllowsMultipleSelection:(multi ? YES : NO)];
     [cont setDataSource:cont];
@@ -3872,6 +3875,7 @@ DW_FUNCTION_RESTORE_PARAM2(cid, ULONG, multi, int)
     DW_FUNCTION_INIT;
     DWContainer *cont = _dw_cont_new(cid, multi);
     [cont setup];
+    [cont addColumn:@"" andType:DW_CFA_STRING];
     DW_FUNCTION_RETURN_THIS(cont);
 }
 
@@ -4248,7 +4252,9 @@ DW_FUNCTION_ADD_PARAM1(cid)
 DW_FUNCTION_RETURN(dw_mle_new, HWND)
 DW_FUNCTION_RESTORE_PARAM1(cid, ULONG)
 {
-    DWMLE *mle = [[DWMLE alloc] init];
+    CGRect frame = CGRectMake(0, 0, 100, 50);
+    NSTextContainer *tc = [[NSTextContainer alloc] initWithSize:frame.size];
+    DWMLE *mle = [[DWMLE alloc] initWithFrame:frame textContainer:tc];
     UIScrollView *scrollview  = [[UIScrollView alloc] init];
     CGSize size = [mle intrinsicContentSize];
 
@@ -6771,7 +6777,10 @@ DW_FUNCTION_RESTORE_PARAM4(handle, HWND, year, unsigned int *, month, unsigned i
  *       handle: Handle to the window.
  *       action: One of the DW_HTML_* constants.
  */
-void API dw_html_action(HWND handle, int action)
+DW_FUNCTION_DEFINITION(dw_html_action, void, HWND handle, int action)
+DW_FUNCTION_ADD_PARAM2(handle, action)
+DW_FUNCTION_NO_RETURN(dw_html_action)
+DW_FUNCTION_RESTORE_PARAM2(handle, HWND, action, int)
 {
     DWWebView *html = handle;
     switch(action)
@@ -6796,6 +6805,7 @@ void API dw_html_action(HWND handle, int action)
         case DW_HTML_PRINT:
             break;
     }
+    DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -6807,11 +6817,15 @@ void API dw_html_action(HWND handle, int action)
  * Returns:
  *       0 on success.
  */
-int API dw_html_raw(HWND handle, const char *string)
+DW_FUNCTION_DEFINITION(dw_html_raw, int, HWND handle, const char *string)
+DW_FUNCTION_ADD_PARAM2(handle, string)
+DW_FUNCTION_RETURN(dw_html_raw, int)
+DW_FUNCTION_RESTORE_PARAM2(handle, HWND, string, const char *)
 {
     DWWebView *html = handle;
+    int retval = DW_ERROR_NONE;
     [html loadHTMLString:[ NSString stringWithUTF8String:string ] baseURL:nil];
-    return DW_ERROR_NONE;
+    DW_FUNCTION_RETURN_THIS(retval);
 }
 
 /*
@@ -6823,11 +6837,15 @@ int API dw_html_raw(HWND handle, const char *string)
  * Returns:
  *       0 on success.
  */
-int API dw_html_url(HWND handle, const char *url)
+DW_FUNCTION_DEFINITION(dw_html_url, int, HWND handle, const char *url)
+DW_FUNCTION_ADD_PARAM2(handle, url)
+DW_FUNCTION_RETURN(dw_html_url, int)
+DW_FUNCTION_RESTORE_PARAM2(handle, HWND, url, const char *)
 {
     DWWebView *html = handle;
+    int retval = DW_ERROR_NONE;
     [html loadRequest:[NSURLRequest requestWithURL:[NSURL URLWithString:[ NSString stringWithUTF8String:url ]]]];
-    return DW_ERROR_NONE;
+    DW_FUNCTION_RETURN_THIS(retval);
 }
 
 /*
@@ -6840,9 +6858,13 @@ int API dw_html_url(HWND handle, const char *url)
  * Returns:
  *       DW_ERROR_NONE (0) on success.
  */
-int dw_html_javascript_run(HWND handle, const char *script, void *scriptdata)
+DW_FUNCTION_DEFINITION(dw_html_javascript_run, int, HWND handle, const char *script, void *scriptdata)
+DW_FUNCTION_ADD_PARAM3(handle, script, scriptdata)
+DW_FUNCTION_RETURN(dw_html_javascript_run, int)
+DW_FUNCTION_RESTORE_PARAM3(handle, HWND, script, const char *, scriptdata, void *)
 {
     DWWebView *html = handle;
+    int retval = DW_ERROR_NONE;
     DW_LOCAL_POOL_IN;
 
     [html evaluateJavaScript:[NSString stringWithUTF8String:script] completionHandler:^(NSString *result, NSError *error)
@@ -6851,7 +6873,7 @@ int dw_html_javascript_run(HWND handle, const char *script, void *scriptdata)
         _dw_event_handler(html, (UIEvent *)params, 18);
     }];
     DW_LOCAL_POOL_OUT;
-    return DW_ERROR_NONE;
+    DW_FUNCTION_RETURN_THIS(retval);
 }
 
 /*
