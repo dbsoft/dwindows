@@ -11,6 +11,7 @@
 #import <Foundation/Foundation.h>
 #import <UIKit/UIKit.h>
 #import <WebKit/WebKit.h>
+#import <AudioToolbox/AudioToolbox.h>
 #import <UserNotifications/UserNotifications.h>
 #include "dw.h"
 #include <sys/utsname.h>
@@ -3517,10 +3518,10 @@ DW_FUNCTION_RESTORE_PARAM2(DW_UNUSED(text), const char *, cid, ULONG)
  *                 DW pick the appropriate file extension.
  *                 (BMP on OS/2 or Windows, XPM on Unix)
  */
-DW_FUNCTION_DEFINITION(dw_bitmapbutton_new_from_file, HWND, const char *text, ULONG cid, const char *filename)
+DW_FUNCTION_DEFINITION(dw_bitmapbutton_new_from_file, HWND, DW_UNUSED(const char *text), ULONG cid, const char *filename)
 DW_FUNCTION_ADD_PARAM3(text, cid, filename)
 DW_FUNCTION_RETURN(dw_bitmapbutton_new_from_file, HWND)
-DW_FUNCTION_RESTORE_PARAM3(text, const char *, cid, ULONG, filename, const char *)
+DW_FUNCTION_RESTORE_PARAM3(DW_UNUSED(text), const char *, cid, ULONG, filename, const char *)
 {
     char *ext = _dw_get_image_extension(filename);
 
@@ -3669,10 +3670,10 @@ DW_FUNCTION_RESTORE_PARAM2(text, const char *, cid, ULONG)
  *       increments: Number of increments available.
  *       id: An ID to be used with dw_window_from_id() or 0L.
  */
-DW_FUNCTION_DEFINITION(dw_slider_new, HWND, int vertical, int increments, ULONG cid)
+DW_FUNCTION_DEFINITION(dw_slider_new, HWND, int DW_UNUSED(vertical), int increments, ULONG cid)
 DW_FUNCTION_ADD_PARAM3(vertical, increments, cid)
 DW_FUNCTION_RETURN(dw_slider_new, HWND)
-DW_FUNCTION_RESTORE_PARAM3(vertical, int, increments, int, cid, ULONG)
+DW_FUNCTION_RESTORE_PARAM3(DW_UNUSED(vertical), int, increments, int, cid, ULONG)
 {
     DWSlider *slider = [[[DWSlider alloc] init] retain];
     [slider setMaximumValue:(double)increments];
@@ -5862,10 +5863,10 @@ DW_FUNCTION_RESTORE_PARAM2(handle, HWND, rowcount, int)
  *                  DW_SCROLL_BOTTOM. (rows is ignored for last two)
  *       rows: The number of rows to be scrolled.
  */
-DW_FUNCTION_DEFINITION(dw_container_scroll, void, HWND handle, int direction, long rows)
+DW_FUNCTION_DEFINITION(dw_container_scroll, void, HWND handle, int direction, DW_UNUSED(long rows))
 DW_FUNCTION_ADD_PARAM3(handle, direction, rows)
 DW_FUNCTION_NO_RETURN(dw_container_scroll)
-DW_FUNCTION_RESTORE_PARAM3(handle, HWND, direction, int, rows, long)
+DW_FUNCTION_RESTORE_PARAM3(handle, HWND, direction, int, DW_UNUSED(rows), long)
 {
     DW_FUNCTION_INIT;
     DWContainer *cont = handle;
@@ -5891,14 +5892,15 @@ DW_FUNCTION_RESTORE_PARAM3(handle, HWND, direction, int, rows, long)
             offset.y = [sv contentSize].height - [sv visibleSize].height;
             break;
         }
+        /* TODO: Currently scrolling a full page, need to use row parameter instead */
         case DW_SCROLL_UP:
         {
-            offset.y = offset.y - [sv visibleSize].height;
+            offset.y -= [sv visibleSize].height;
             break;
         }
         case DW_SCROLL_DOWN:
         {
-            offset.y = offset.y + [sv visibleSize].height;
+            offset.y += [sv visibleSize].height;
             break;
         }
     }
@@ -7192,10 +7194,10 @@ DWNotebookPage *_dw_notepage_from_id(DWNotebook *notebook, unsigned long pageid)
  *       id: An ID to be used for getting the resource from the
  *           resource file.
  */
-DW_FUNCTION_DEFINITION(dw_notebook_new, HWND, ULONG cid, int top)
+DW_FUNCTION_DEFINITION(dw_notebook_new, HWND, ULONG cid, DW_UNUSED(int top))
 DW_FUNCTION_ADD_PARAM2(cid, top)
 DW_FUNCTION_RETURN(dw_notebook_new, HWND)
-DW_FUNCTION_RESTORE_PARAM2(cid, ULONG, top, int)
+DW_FUNCTION_RESTORE_PARAM2(cid, ULONG, DW_UNUSED(top), int)
 {
     DWNotebook *notebook = [[[DWNotebook alloc] init] retain];
     [notebook addTarget:notebook
@@ -8523,7 +8525,7 @@ void dw_environment_query(DWEnv *env)
  */
 void API dw_beep(int freq, int dur)
 {
-    /* TODO: Don't see a simple way to do this without bundling sounds */
+    AudioServicesPlayAlertSound((SystemSoundID)1104);
 }
 
 /* Call this after drawing to the screen to make sure
@@ -8634,7 +8636,10 @@ int _dw_remove_userdata(UserData **root, const char *varname, int all)
  *       dataname: A string pointer identifying which signal to be hooked.
  *       data: User data to be passed to the handler function.
  */
-void dw_window_set_data(HWND window, const char *dataname, void *data)
+DW_FUNCTION_DEFINITION(dw_window_set_data, void, HWND window, const char *dataname, void *data)
+DW_FUNCTION_ADD_PARAM3(window, dataname, data)
+DW_FUNCTION_NO_RETURN(dw_window_set_data)
+DW_FUNCTION_RESTORE_PARAM3(window, HWND, dataname, const char *, data, void *)
 {
     id object = window;
     if([object isMemberOfClass:[DWWindow class]])
@@ -8669,6 +8674,7 @@ void dw_window_set_data(HWND window, const char *dataname, void *data)
         else
             _dw_remove_userdata(&(blah->root), NULL, TRUE);
     }
+    DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -8678,9 +8684,14 @@ void dw_window_set_data(HWND window, const char *dataname, void *data)
  *       dataname: A string pointer identifying which signal to be hooked.
  *       data: User data to be passed to the handler function.
  */
-void *dw_window_get_data(HWND window, const char *dataname)
+DW_FUNCTION_DEFINITION(dw_window_get_data, void *, HWND window, const char *dataname)
+DW_FUNCTION_ADD_PARAM2(window, dataname)
+DW_FUNCTION_RETURN(dw_window_get_data, void *)
+DW_FUNCTION_RESTORE_PARAM2(window, HWND, dataname, const char *)
 {
     id object = window;
+    void *retval = NULL;
+
     if([object isMemberOfClass:[DWWindow class]])
     {
         UIWindow *win = window;
@@ -8699,9 +8710,9 @@ void *dw_window_get_data(HWND window, const char *dataname)
     {
         UserData *ud = _dw_find_userdata(&(blah->root), dataname);
         if(ud)
-            return ud->data;
+            retval = ud->data;
     }
-    return NULL;
+    DW_FUNCTION_RETURN_THIS(retval);
 }
 
 #define DW_TIMER_MAX 64
@@ -8716,9 +8727,12 @@ static NSTimer *DWTimers[DW_TIMER_MAX];
  * Returns:
  *       Timer ID for use with dw_timer_disconnect(), 0 on error.
  */
-int API dw_timer_connect(int interval, void *sigfunc, void *data)
+DW_FUNCTION_DEFINITION(dw_timer_connect, int, int interval, void *sigfunc, void *data)
+DW_FUNCTION_ADD_PARAM3(interval, sigfunc, data)
+DW_FUNCTION_RETURN(dw_timer_connect, int)
+DW_FUNCTION_RESTORE_PARAM3(interval, int, sigfunc, void *, data, void *)
 {
-    int z;
+    int z, retval = 0;
 
     for(z=0;z<DW_TIMER_MAX;z++)
     {
@@ -8733,9 +8747,9 @@ int API dw_timer_connect(int interval, void *sigfunc, void *data)
         NSTimeInterval seconds = (double)interval / 1000.0;
         NSTimer *thistimer = DWTimers[z] = [NSTimer scheduledTimerWithTimeInterval:seconds target:DWHandler selector:@selector(runTimer:) userInfo:nil repeats:YES];
         _dw_new_signal(0, thistimer, z+1, sigfunc, NULL, data);
-        return z+1;
+        retval = z+1;
     }
-    return 0;
+    DW_FUNCTION_RETURN_THIS(retval);
 }
 
 /*
@@ -8743,43 +8757,47 @@ int API dw_timer_connect(int interval, void *sigfunc, void *data)
  * Parameters:
  *       id: Timer ID returned by dw_timer_connect().
  */
-void API dw_timer_disconnect(int timerid)
+DW_FUNCTION_DEFINITION(dw_timer_disconnect, void, int timerid)
+DW_FUNCTION_ADD_PARAM1(timerid)
+DW_FUNCTION_NO_RETURN(dw_timer_disconnect)
+DW_FUNCTION_RESTORE_PARAM1(timerid, int)
 {
     SignalHandler *prev = NULL, *tmp = DWRoot;
     NSTimer *thistimer;
 
     /* 0 is an invalid timer ID */
-    if(timerid < 1 || !DWTimers[timerid-1])
-        return;
-
-    thistimer = DWTimers[timerid-1];
-    DWTimers[timerid-1] = nil;
-
-    [thistimer invalidate];
-
-    while(tmp)
+    if(timerid > 0 && timerid < DW_TIMER_MAX && DWTimers[timerid-1])
     {
-        if(tmp->id == timerid && tmp->window == thistimer)
+        thistimer = DWTimers[timerid-1];
+        DWTimers[timerid-1] = nil;
+
+        [thistimer invalidate];
+
+        while(tmp)
         {
-            if(prev)
+            if(tmp->id == timerid && tmp->window == thistimer)
             {
-                prev->next = tmp->next;
-                free(tmp);
-                tmp = prev->next;
+                if(prev)
+                {
+                    prev->next = tmp->next;
+                    free(tmp);
+                    tmp = prev->next;
+                }
+                else
+                {
+                    DWRoot = tmp->next;
+                    free(tmp);
+                    tmp = DWRoot;
+                }
             }
             else
             {
-                DWRoot = tmp->next;
-                free(tmp);
-                tmp = DWRoot;
+                prev = tmp;
+                tmp = tmp->next;
             }
         }
-        else
-        {
-            prev = tmp;
-            tmp = tmp->next;
-        }
     }
+    DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -9693,6 +9711,8 @@ void _dw_main_thread(int argc, char *argv[])
     dw_event_wait(DWMainEvent, DW_TIMEOUT_INFINITE);
     DWThread = dw_thread_id();
     DWObj = [[DWObject alloc] init];
+    /* Create object for handling timers */
+    DWHandler = [[DWTimerHandler alloc] init];
     UIApplicationMain(argc, argv, nil, NSStringFromClass([DWAppDel class]));
     /* Shouldn't get here, but ... just in case */
     DWThread = (DWTID)-1;
@@ -9792,8 +9812,6 @@ int API dw_init(int newthread, int argc, char *argv[])
     setlocale(LC_ALL, lang && strstr(lang, ".UTF-8") ? lang : "UTF-8");
     /* Create the application object */
     _dw_app_init();
-    /* Create object for handling timers */
-    DWHandler = [[DWTimerHandler alloc] init];
     pthread_key_create(&_dw_pool_key, NULL);
     NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
     pthread_setspecific(_dw_pool_key, pool);
