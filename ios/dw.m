@@ -871,11 +871,19 @@ API_AVAILABLE(ios(13.0))
 -(id)init
 {
     self = [super init];
-    hiddenWindow = [[UIWindow alloc] initWithFrame:[[UIScreen mainScreen] bounds]];
-    [hiddenWindow setBackgroundColor:[UIColor clearColor]];
-    [hiddenWindow setWindowLevel:UIWindowLevelAlert];
-    [hiddenWindow setHidden:YES];
+    /* This previously had the code in delayedIinit: */
     return self;
+}
+-(void)delayedInit:(id)param
+{
+    /* When DWObject is initialized, UIApplicationMain() has not yet been called...
+     * So the created objects can't interact with the user interface... therefore
+     * we wait until UIApplicationMain() has been called and run this then.
+     */
+    hiddenWindow = [[UIWindow alloc] initWithFrame:[[UIScreen mainScreen] bounds]];
+    [hiddenWindow setWindowLevel:UIWindowLevelAlert+1];
+    [hiddenWindow setHidden:YES];
+    [hiddenWindow setRootViewController:[UIViewController new]];
 }
 -(void)uselessThread:(id)sender { /* Thread only to initialize threading */ }
 -(void)menuHandler:(id)param
@@ -890,28 +898,34 @@ API_AVAILABLE(ios(13.0))
 }
 -(void)messageBox:(NSMutableArray *)params
 {
-    __block NSInteger iResponse = 0;
+    __block DWDialog *dialog = dw_dialog_new(NULL);
+    NSInteger iResponse;
     UIAlertController* alert = [UIAlertController alertControllerWithTitle:[params objectAtIndex:0]
                                    message:[params objectAtIndex:1]
                                    preferredStyle:[[params objectAtIndex:2] integerValue]];
-     
     UIAlertAction* action = [UIAlertAction actionWithTitle:[params objectAtIndex:3] style:UIAlertActionStyleDefault
-                                                   handler:^(UIAlertAction * action) { iResponse = 1; }];
+                                                   handler:^(UIAlertAction * action) { dw_dialog_dismiss(dialog, DW_INT_TO_POINTER(1)); }];
     [alert addAction:action];
     if([params count] > 4)
+    {
         action = [UIAlertAction actionWithTitle:[params objectAtIndex:4] style:UIAlertActionStyleDefault
-                                        handler:^(UIAlertAction * action) { iResponse = 2; }];
-    [alert addAction:action];
+                                        handler:^(UIAlertAction * action) { dw_dialog_dismiss(dialog, DW_INT_TO_POINTER(2)); }];
+        [alert addAction:action];
+    }
     if([params count] > 5)
+    {
         action = [UIAlertAction actionWithTitle:[params objectAtIndex:5] style:UIAlertActionStyleDefault
-                                        handler:^(UIAlertAction * action) { iResponse = 3; }];
-    [alert addAction:action];
+                                        handler:^(UIAlertAction * action) { dw_dialog_dismiss(dialog, DW_INT_TO_POINTER(3)); }];
+        [alert addAction:action];
+    }
 
     /* Unhide our hidden window and make it key */
     [hiddenWindow setHidden:NO];
     [hiddenWindow makeKeyAndVisible];
     [[hiddenWindow rootViewController] presentViewController:alert animated:YES completion:nil];
+    iResponse = DW_POINTER_TO_INT(dw_dialog_wait(dialog));
     /* Once the dialog is gone we can rehide our window */
+    [hiddenWindow resignKeyWindow];
     [hiddenWindow setHidden:YES];
     [params addObject:[NSNumber numberWithInteger:iResponse]];
 }
@@ -2495,8 +2509,6 @@ void API dw_main_iteration(void)
  */
 void API dw_shutdown(void)
 {
-    NSAutoreleasePool *pool = pthread_getspecific(_dw_pool_key);
-    [pool drain];
 }
 
 /*
@@ -2631,8 +2643,12 @@ int API dw_messagebox(const char *title, int flags, const char *format, ...)
     mtext = [[[NSString alloc] initWithFormat:[NSString stringWithUTF8String:format] arguments:args] autorelease];
     va_end(args);
 
+#if 0 /* TODO: If we want to use this style it requires a rectangle...
+       * However the alert style looks pretty good to me...
+       */
     if(flags & DW_MB_INFORMATION)
         mstyle = UIAlertControllerStyleActionSheet;
+#endif
 
     params = [NSMutableArray arrayWithObjects:mtitle, mtext, [NSNumber numberWithInteger:mstyle], button1, button2, button3, nil];
     [DWObj safeCall:@selector(messageBox:) withObject:params];
@@ -7336,6 +7352,7 @@ DW_FUNCTION_RESTORE_PARAM3(DW_UNUSED(hwndOwner), HWND, title, char *, DW_UNUSED(
     DWWindow *window = [[DWWindow alloc] initWithFrame:[[UIScreen mainScreen] bounds]];
     DWView *view = [[DWView alloc] init];
 
+    [window setWindowLevel:UIWindowLevelNormal];
     [window setRootViewController:[[DWViewController alloc] init]];
     [window addSubview:view];
 
@@ -9681,6 +9698,7 @@ void _dw_app_init(void)
         DWApp = [UIApplication sharedApplication];
     }
     dw_event_reset(DWMainEvent);
+    [DWObj performSelectorOnMainThread:@selector(delayedInit:) withObject:nil waitUntilDone:YES];
 }
 
 /*
