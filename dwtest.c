@@ -1982,6 +1982,66 @@ int DWSIGNAL web_html_changed(HWND html, int status, char *url, void *data)
     return FALSE;
 }
 
+void html_add(void)
+{
+    rawhtml = dw_html_new(1001);
+    if(rawhtml)
+    {
+        HWND htmlstatus;
+        HWND hbox = dw_box_new(DW_HORZ, 0);
+        HWND item;
+        HWND javascript = dw_combobox_new("", 0);
+
+        dw_listbox_append(javascript, "window.scrollTo(0,500);");
+        dw_listbox_append(javascript, "window.document.title;");
+        dw_listbox_append(javascript, "window.navigator.userAgent;");
+
+        dw_box_pack_start( notebookbox7, rawhtml, 0, 100, TRUE, FALSE, 0);
+        dw_html_raw(rawhtml, "<html><body><center><h1>dwtest</h1></center></body></html>");
+        html = dw_html_new(1002);
+
+        dw_box_pack_start(notebookbox7, hbox, 0, 0, TRUE, FALSE, 0);
+
+        /* Add navigation buttons */
+        item = dw_button_new("Back", 0);
+        dw_box_pack_start(hbox, item, -1, -1, FALSE, FALSE, 0);
+        dw_signal_connect(item, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(web_back_clicked), DW_POINTER(html));
+
+        item = dw_button_new("Forward", 0);
+        dw_box_pack_start(hbox, item, -1, -1, FALSE, FALSE, 0);
+        dw_signal_connect(item, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(web_forward_clicked), DW_POINTER(html));
+
+        /* Put in some extra space */
+        dw_box_pack_start(hbox, 0, 5, 1, FALSE, FALSE, 0);
+
+        item = dw_button_new("Reload", 0);
+        dw_box_pack_start(hbox, item, -1, -1, FALSE, FALSE, 0);
+        dw_signal_connect(item, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(web_reload_clicked), DW_POINTER(html));
+
+        /* Put in some extra space */
+        dw_box_pack_start(hbox, 0, 5, 1, FALSE, FALSE, 0);
+        dw_box_pack_start(hbox, javascript, -1, -1, TRUE, FALSE, 0);
+
+        item = dw_button_new("Run", 0);
+        dw_window_set_data(item, "javascript", DW_POINTER(javascript));
+        dw_box_pack_start(hbox, item, -1, -1, FALSE, FALSE, 0);
+        dw_signal_connect(item, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(web_run_clicked), DW_POINTER(html));
+        dw_window_click_default(javascript, item);
+
+        dw_box_pack_start( notebookbox7, html, 0, 100, TRUE, TRUE, 0);
+        dw_html_url(html, "https://dbsoft.org/dw_help.php");
+        htmlstatus = dw_status_text_new("HTML status loading...", 0);
+        dw_box_pack_start( notebookbox7, htmlstatus, 100, -1, TRUE, FALSE, 1);
+        dw_signal_connect(html, DW_SIGNAL_HTML_CHANGED, DW_SIGNAL_FUNC(web_html_changed), DW_POINTER(htmlstatus));
+        dw_signal_connect(html, DW_SIGNAL_HTML_RESULT, DW_SIGNAL_FUNC(web_html_result), DW_POINTER(javascript));
+    }
+    else
+    {
+        html = dw_text_new("HTML widget not available.", 0);
+        dw_box_pack_start( notebookbox7, html, 0, 100, TRUE, TRUE, 0);
+    }
+}
+
 /* Pretty list of features corresponding to the DWFEATURE enum in dw.h */
 char *DWFeatureList[] = {
     "Supports the HTML Widget",
@@ -2100,63 +2160,7 @@ int dwmain(int argc, char *argv[])
     notebookpage7 = dw_notebook_page_new( notebook, 1, FALSE );
     dw_notebook_pack( notebook, notebookpage7, notebookbox7 );
     dw_notebook_page_set_text( notebook, notebookpage7, "html");
-
-    rawhtml = dw_html_new(1001);
-    if(rawhtml)
-    {
-        HWND htmlstatus;
-        HWND hbox = dw_box_new(DW_HORZ, 0);
-        HWND item;
-        HWND javascript = dw_combobox_new("", 0);
-
-        dw_listbox_append(javascript, "window.scrollTo(0,500);");
-        dw_listbox_append(javascript, "window.document.title;");
-        dw_listbox_append(javascript, "window.navigator.userAgent;");
-
-        dw_box_pack_start( notebookbox7, rawhtml, 0, 100, TRUE, FALSE, 0);
-        dw_html_raw(rawhtml, "<html><body><center><h1>dwtest</h1></center></body></html>");
-        html = dw_html_new(1002);
-
-        dw_box_pack_start(notebookbox7, hbox, 0, 0, TRUE, FALSE, 0);
-
-        /* Add navigation buttons */
-        item = dw_button_new("Back", 0);
-        dw_box_pack_start(hbox, item, -1, -1, FALSE, FALSE, 0);
-        dw_signal_connect(item, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(web_back_clicked), DW_POINTER(html));
-
-        item = dw_button_new("Forward", 0);
-        dw_box_pack_start(hbox, item, -1, -1, FALSE, FALSE, 0);
-        dw_signal_connect(item, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(web_forward_clicked), DW_POINTER(html));
-
-        /* Put in some extra space */
-        dw_box_pack_start(hbox, 0, 5, 1, FALSE, FALSE, 0);
-
-        item = dw_button_new("Reload", 0);
-        dw_box_pack_start(hbox, item, -1, -1, FALSE, FALSE, 0);
-        dw_signal_connect(item, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(web_reload_clicked), DW_POINTER(html));
-
-        /* Put in some extra space */
-        dw_box_pack_start(hbox, 0, 5, 1, FALSE, FALSE, 0);
-        dw_box_pack_start(hbox, javascript, -1, -1, TRUE, FALSE, 0);
-
-        item = dw_button_new("Run", 0);
-        dw_window_set_data(item, "javascript", DW_POINTER(javascript));
-        dw_box_pack_start(hbox, item, -1, -1, FALSE, FALSE, 0);
-        dw_signal_connect(item, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(web_run_clicked), DW_POINTER(html));
-        dw_window_click_default(javascript, item);
-
-        dw_box_pack_start( notebookbox7, html, 0, 100, TRUE, TRUE, 0);
-        dw_html_url(html, "http://dwindows.netlabs.org");
-        htmlstatus = dw_status_text_new("HTML status loading...", 0);
-        dw_box_pack_start( notebookbox7, htmlstatus, 100, -1, TRUE, FALSE, 1);
-        dw_signal_connect(html, DW_SIGNAL_HTML_CHANGED, DW_SIGNAL_FUNC(web_html_changed), DW_POINTER(htmlstatus));
-        dw_signal_connect(html, DW_SIGNAL_HTML_RESULT, DW_SIGNAL_FUNC(web_html_result), DW_POINTER(javascript));
-    }
-    else
-    {
-        html = dw_text_new("HTML widget not available.", 0);
-        dw_box_pack_start( notebookbox7, html, 0, 100, TRUE, TRUE, 0);
-    }
+    html_add();
 
     notebookbox8 = dw_box_new( DW_VERT, 7 );
     notebookpage8 = dw_notebook_page_new( notebook, 1, FALSE );
