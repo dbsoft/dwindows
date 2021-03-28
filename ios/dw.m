@@ -1129,6 +1129,7 @@ DWObject *DWObj;
     DWWindow *window = (DWWindow *)[[self view] window];
     NSArray *array = [window subviews];
     DWView *view = [array firstObject];
+    CGRect frame = [window frame];
     /* Hide the UITransitionView which is blocking the screen...
      * This is probably not the correct solution, but it solves the
      * problem for the moment.  Figure out what to do with this view.
@@ -1136,8 +1137,10 @@ DWObject *DWObj;
     id object = [array lastObject];
     if(![object isMemberOfClass:[DWView class]])
         [object setHidden:YES];
-    [view setFrame:[window frame]];
-    [view windowResized:[window frame].size];
+    /* Adjust the frame to account for the status bar */
+    frame.size.height -= [UIApplication sharedApplication].statusBarFrame.size.height;;
+    [view setFrame:frame];
+    [view windowResized:frame.size];
 }
 @end
 
@@ -2791,7 +2794,7 @@ DW_FUNCTION_RETURN(dw_box_new, HWND)
 DW_FUNCTION_RESTORE_PARAM2(type, int, pad, int)
 {
     DW_FUNCTION_INIT;
-    DWBox *view = [[DWBox alloc] init];
+    DWBox *view = [[[DWBox alloc] init] retain];
     Box *newbox = [view box];
     [view setTranslatesAutoresizingMaskIntoConstraints:NO];
     memset(newbox, 0, sizeof(Box));
@@ -2823,7 +2826,7 @@ DW_FUNCTION_ADD_PARAM2(type, pad)
 DW_FUNCTION_RETURN(dw_scrollbox_new, HWND)
 DW_FUNCTION_RESTORE_PARAM2(type, int, pad, int)
 {
-    DWScrollBox *scrollbox = [[DWScrollBox alloc] init];
+    DWScrollBox *scrollbox = [[[DWScrollBox alloc] init] retain];
     DWBox *box = dw_box_new(type, pad);
     DWBox *tmpbox = dw_box_new(DW_VERT, 0);
     dw_box_pack_start(tmpbox, box, 1, 1, TRUE, TRUE, 0);
@@ -3442,7 +3445,7 @@ DW_FUNCTION_ADD_PARAM2(text, cid)
 DW_FUNCTION_RETURN(dw_entryfield_new, HWND)
 DW_FUNCTION_RESTORE_PARAM2(text, const char *, cid, ULONG)
 {
-    DWEntryField *entry = [[DWEntryField alloc] init];
+    DWEntryField *entry = [[[DWEntryField alloc] init] retain];
     [entry setText:[ NSString stringWithUTF8String:text ]];
     [entry setTag:cid];
     DW_FUNCTION_RETURN_THIS(entry);
@@ -3574,7 +3577,7 @@ DW_FUNCTION_ADD_PARAM2(text, cid)
 DW_FUNCTION_RETURN(dw_spinbutton_new, HWND)
 DW_FUNCTION_RESTORE_PARAM2(text, const char *, cid, ULONG)
 {
-    DWSpinButton *spinbutton = [[DWSpinButton alloc] init];
+    DWSpinButton *spinbutton = [[[DWSpinButton alloc] init] retain];
     UIStepper *stepper = [spinbutton stepper];
     UITextField *textfield = [spinbutton textfield];
     long val = atol(text);
@@ -3671,7 +3674,7 @@ DW_FUNCTION_ADD_PARAM3(vertical, increments, cid)
 DW_FUNCTION_RETURN(dw_slider_new, HWND)
 DW_FUNCTION_RESTORE_PARAM3(vertical, int, increments, int, cid, ULONG)
 {
-    DWSlider *slider = [[DWSlider alloc] init];
+    DWSlider *slider = [[[DWSlider alloc] init] retain];
     [slider setMaximumValue:(double)increments];
     [slider setMinimumValue:0];
     [slider setContinuous:YES];
@@ -3763,7 +3766,7 @@ DW_FUNCTION_ADD_PARAM1(cid)
 DW_FUNCTION_RETURN(dw_percent_new, HWND)
 DW_FUNCTION_RESTORE_PARAM1(cid, ULONG)
 {
-    DWPercent *percent = [[DWPercent alloc] init];
+    DWPercent *percent = [[[DWPercent alloc] init] retain];
     [percent setTag:cid];
     DW_FUNCTION_RETURN_THIS(percent);
 }
@@ -4254,7 +4257,7 @@ DW_FUNCTION_RESTORE_PARAM1(cid, ULONG)
 {
     CGRect frame = CGRectMake(0, 0, 100, 50);
     NSTextContainer *tc = [[NSTextContainer alloc] initWithSize:frame.size];
-    DWMLE *mle = [[DWMLE alloc] initWithFrame:frame textContainer:tc];
+    DWMLE *mle = [[[DWMLE alloc] initWithFrame:frame textContainer:tc] retain];
     UIScrollView *scrollview  = [[UIScrollView alloc] init];
     CGSize size = [mle intrinsicContentSize];
 
@@ -4558,7 +4561,7 @@ DW_FUNCTION_ADD_PARAM2(text, cid)
 DW_FUNCTION_RETURN(dw_text_new, HWND)
 DW_FUNCTION_RESTORE_PARAM2(text, const char *, cid, ULONG)
 {
-    DWText *textfield = [[DWText alloc] init];
+    DWText *textfield = [[[DWText alloc] init] retain];
     [textfield setText:[NSString stringWithUTF8String:text]];
     [textfield setTag:cid];
     if(DWDefaultFont)
@@ -4580,7 +4583,7 @@ DW_FUNCTION_ADD_PARAM1(cid)
 DW_FUNCTION_RETURN(dw_render_new, HWND)
 DW_FUNCTION_RESTORE_PARAM1(cid, ULONG)
 {
-    DWRender *render = [[DWRender alloc] init];
+    DWRender *render = [[[DWRender alloc] init] retain];
     [render setTag:cid];
     DW_FUNCTION_RETURN_THIS(render);
 }
@@ -6245,7 +6248,7 @@ HWND API dw_mdi_new(unsigned long cid)
      * when the application is deactivated to simulate
      * similar behavior.
      */
-    DWMDI *mdi = [[DWMDI alloc] init];
+    DWMDI *mdi = [[[DWMDI alloc] init] retain];
     /* [mdi setTag:cid]; Why doesn't this work? */
     return mdi;
 }
@@ -6267,7 +6270,7 @@ DW_FUNCTION_RESTORE_PARAM4(DW_UNUSED(type), int, topleft, HWND, bottomright, HWN
     DW_FUNCTION_INIT;
     id tmpbox = dw_box_new(DW_VERT, 0);
     DWSplitBar *split = [[DWSplitBar alloc] init];
-    UIViewController *vc = [[UIViewController alloc] init];
+    UIViewController *vc = [[[UIViewController alloc] init] retain];
     [split setDelegate:split];
     dw_box_pack_start(tmpbox, topleft, 0, 0, TRUE, TRUE, 0);
     [vc setView:tmpbox];
@@ -6408,7 +6411,7 @@ DW_FUNCTION_RETURN(dw_bitmap_new, HWND)
 DW_FUNCTION_RESTORE_PARAM1(cid, ULONG)
 {
     DW_FUNCTION_INIT;
-    UIImageView *bitmap = [[UIImageView alloc] init];
+    UIImageView *bitmap = [[[UIImageView alloc] init] retain];
     [bitmap setTag:cid];
     DW_FUNCTION_RETURN_THIS(bitmap);
 }
@@ -6713,7 +6716,7 @@ DW_FUNCTION_ADD_PARAM1(cid)
 DW_FUNCTION_RETURN(dw_calendar_new, HWND)
 DW_FUNCTION_RESTORE_PARAM1(cid, ULONG)
 {
-    DWCalendar *calendar = [[DWCalendar alloc] init];
+    DWCalendar *calendar = [[[DWCalendar alloc] init] retain];
     [calendar setDatePickerMode:UIDatePickerModeDate];
     [calendar setTag:cid];
     [calendar setDate:[NSDate date]];
@@ -6889,7 +6892,7 @@ DW_FUNCTION_RETURN(dw_html_new, HWND)
 DW_FUNCTION_RESTORE_PARAM1(DW_UNUSED(cid), ULONG)
 {
     DW_FUNCTION_INIT;
-    DWWebView *web = [[DWWebView alloc] init];
+    DWWebView *web = [[[DWWebView alloc] init] retain];
     web.navigationDelegate = web;
     /* [web setTag:cid]; Why doesn't this work? */
     DW_FUNCTION_RETURN_THIS(web);
@@ -6932,7 +6935,7 @@ void API dw_pointer_set_pos(long x, long y)
  */
 HMENUI API dw_menu_new(ULONG cid)
 {
-    DWMenu *menu = [[DWMenu alloc] init];
+    DWMenu *menu = [[[DWMenu alloc] init] retain];
     /* [menu setTag:cid]; Why doesn't this work? */
     return menu;
 }
@@ -7194,7 +7197,7 @@ DW_FUNCTION_ADD_PARAM2(cid, top)
 DW_FUNCTION_RETURN(dw_notebook_new, HWND)
 DW_FUNCTION_RESTORE_PARAM2(cid, ULONG, top, int)
 {
-    DWNotebook *notebook = [[DWNotebook alloc] init];
+    DWNotebook *notebook = [[[DWNotebook alloc] init] retain];
     [notebook addTarget:notebook
                  action:@selector(pageChanged:)
        forControlEvents:UIControlEventValueChanged];
