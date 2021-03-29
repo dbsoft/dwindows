@@ -1139,7 +1139,9 @@ DWObject *DWObj;
     if(![object isMemberOfClass:[DWView class]])
         [object setHidden:YES];
     /* Adjust the frame to account for the status bar */
-    frame.size.height -= [UIApplication sharedApplication].statusBarFrame.size.height;;
+    NSInteger sbheight = [UIApplication sharedApplication].statusBarFrame.size.height;
+    frame.size.height -= sbheight;
+    frame.origin.y += sbheight;
     [view setFrame:frame];
     [view windowResized:frame.size];
 }
@@ -7343,9 +7345,11 @@ DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
  *          handle: Handle to the notebook widget.
  *          pageid: ID of the page to be made visible.
  */
-void API dw_notebook_page_set(HWND handle, unsigned int pageid)
+DW_FUNCTION_DEFINITION(dw_notebook_page_set, void, HWND handle, unsigned int pageid)
+DW_FUNCTION_ADD_PARAM2(handle, pageid)
+DW_FUNCTION_NO_RETURN(dw_notebook_page_set)
+DW_FUNCTION_RESTORE_PARAM2(handle, HWND, pageid, unsigned int)
 {
-#if 0 /* TODO: Don't see a method to select a tab */
     DWNotebook *notebook = handle;
     DWNotebookPage *notepage = _dw_notepage_from_id(notebook, pageid);
 
@@ -7356,10 +7360,10 @@ void API dw_notebook_page_set(HWND handle, unsigned int pageid)
 
         if(index != NSNotFound)
         {
-            [notebook selectTabViewItem:notepage];
+            [notebook tabs].selectedSegmentIndex = index;
         }
     }
-#endif
+    DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -7433,6 +7437,7 @@ DW_FUNCTION_RESTORE_PARAM3(DW_UNUSED(hwndOwner), HWND, title, char *, DW_UNUSED(
     [window setWindowLevel:UIWindowLevelNormal];
     [window setRootViewController:[[DWViewController alloc] init]];
     [window addSubview:view];
+    [window setBackgroundColor:[UIColor systemBackgroundColor]];
 
     /* TODO: Handle style flags... if we can? There is no visible frame */
     if(@available(iOS 13.0, *)) {
