@@ -1330,61 +1330,90 @@ DWObject *DWObj;
 @end
 
 /* Subclass for a Notebook page type */
-@interface DWNotebookPage : UIView
+@interface DWNotebookPage : DWBox
 {
-    void *userdata;
     int pageid;
 }
--(void *)userdata;
--(void)setUserdata:(void *)input;
 -(int)pageid;
 -(void)setPageid:(int)input;
 @end
 
 /* Subclass for a Notebook control type */
-@interface DWNotebook : UISegmentedControl
+@interface DWNotebook : UIView
 {
+    UISegmentedControl *tabs;
     void *userdata;
     int pageid;
     NSMutableArray<DWNotebookPage *> *views;
+    DWNotebookPage *visible;
 }
 -(void *)userdata;
 -(void)setUserdata:(void *)input;
 -(int)pageid;
 -(void)setPageid:(int)input;
+-(UISegmentedControl *)tabs;
 -(NSMutableArray<DWNotebookPage *> *)views;
 -(void)pageChanged:(id)sender;
 @end
 
 @implementation DWNotebook
+-(id)init {
+    self = [super init];
+    tabs = [[[UISegmentedControl alloc] init] retain];
+    views = [[[NSMutableArray alloc] init] retain];
+    [self addSubview:tabs];
+    return self;
+}
+-(void)setFrame:(CGRect)frame {
+    [super setFrame:frame];
+    frame.size.height = 40;
+    [tabs setFrame:frame];
+}
 -(void *)userdata { return userdata; }
 -(void)setUserdata:(void *)input { userdata = input; }
 -(int)pageid { return pageid; }
 -(void)setPageid:(int)input { pageid = input; }
+-(UISegmentedControl *)tabs { return tabs; }
 -(NSMutableArray<DWNotebookPage *> *)views { return views; };
 -(void)pageChanged:(id)sender
 {
-#if 0 /* TODO: Implement page/segment changed handler */
-    id object = [notepage view];
-    DWNotebookPage *page = (DWNotebookPage *)notepage;
+    NSInteger intpageid = [tabs selectedSegmentIndex];
+    DWNotebookPage *page = [[self views] objectAtIndex:intpageid];
 
-    if([object isMemberOfClass:[DWBox class]])
+    /* Hide the previously visible page contents */
+    if(page != visible)
+        [visible setHidden:YES];
+
+    /* If the new page is a valid box, lay it out */
+    if([page isKindOfClass:[DWBox class]])
     {
-        DWBox *view = object;
-        Box *box = [view box];
-        CGSize size = [view frame].size;
-        _dw_do_resize(box, size.width, size.height);
+        Box *box = [page box];
+        /* Start with the entire notebook size and then adjust
+         * it to account for the segement control's height.
+         */
+        NSInteger height = [tabs frame].size.height;
+        CGRect frame = [self frame];
+        frame.origin.y += height;
+        frame.size.height -= height;
+        [page setFrame:frame];
+        [page setHidden:NO];
+        visible = page;
+        _dw_do_resize(box, frame.size.width, frame.size.height);
         _dw_handle_resize_events(box);
     }
-#endif
-    _dw_event_handler(self, DW_INT_TO_POINTER([self selectedSegmentIndex]), 15);
+    _dw_event_handler(self, DW_INT_TO_POINTER(intpageid), 15);
 }
--(void)dealloc { UserData *root = userdata; _dw_remove_userdata(&root, NULL, TRUE); dw_signal_disconnect_by_window(self); [super dealloc]; }
+-(void)dealloc {
+    UserData *root = userdata;
+    _dw_remove_userdata(&root, NULL, TRUE);
+    dw_signal_disconnect_by_window(self);
+    [tabs release];
+    [views release];
+    [super dealloc];
+}
 @end
 
 @implementation DWNotebookPage
--(void *)userdata { return userdata; }
--(void)setUserdata:(void *)input { userdata = input; }
 -(int)pageid { return pageid; }
 -(void)setPageid:(int)input { pageid = input; }
 -(void)dealloc { UserData *root = userdata; _dw_remove_userdata(&root, NULL, TRUE); dw_signal_disconnect_by_window(self); [super dealloc]; }
@@ -7200,9 +7229,9 @@ DW_FUNCTION_RETURN(dw_notebook_new, HWND)
 DW_FUNCTION_RESTORE_PARAM2(cid, ULONG, DW_UNUSED(top), int)
 {
     DWNotebook *notebook = [[[DWNotebook alloc] init] retain];
-    [notebook addTarget:notebook
-                 action:@selector(pageChanged:)
-       forControlEvents:UIControlEventValueChanged];
+    [[notebook tabs] addTarget:notebook
+                        action:@selector(pageChanged:)
+              forControlEvents:UIControlEventValueChanged];
     [notebook setTag:cid];
     DW_FUNCTION_RETURN_THIS(notebook);
 }
@@ -7221,23 +7250,39 @@ DW_FUNCTION_RESTORE_PARAM3(handle, HWND, DW_UNUSED(flags), ULONG, front, int)
 {
     DWNotebook *notebook = handle;
     NSInteger page = [notebook pageid];
-    DWNotebookPage *notepage = [[DWNotebookPage alloc] init];
+    DWNotebookPage *notepage = [[[DWNotebookPage alloc] init] retain];
     NSMutableArray<DWNotebookPage *> *views = [notebook views];
     unsigned long retval;
 
     [notepage setPageid:(int)page];
     if(front)
     {
-        [notebook insertSegmentWithTitle:@"" atIndex:(NSInteger)0 animated:NO];
+        [[notebook tabs] insertSegmentWithTitle:@"" atIndex:(NSInteger)0 animated:NO];
         [views addObject:notepage];
     }
     else
     {
-        [notebook insertSegmentWithTitle:@"" atIndex:[notebook numberOfSegments] animated:NO];
+        [[notebook tabs] insertSegmentWithTitle:@"" atIndex:[[notebook tabs] numberOfSegments] animated:NO];
         [views addObject:notepage];
     }
+    [notebook addSubview:notepage];
     [notepage autorelease];
     [notebook setPageid:(int)(page+1)];
+
+#if 0
+    if([views objectAtIndex:[[notebook tabs] selectedSegmentIndex]] == notepage)
+    {
+        /* If the page we added is the visible page.. lay it out */
+        [notebook pageChanged:notebook];
+    }
+    else
+#endif
+    if([views count] != 1)
+    {
+        /* Otherwise hide the page */
+        [notepage setHidden:YES];
+    }
+
     retval = (unsigned long)page;
     DW_FUNCTION_RETURN_THIS(retval);
 }
@@ -7248,7 +7293,10 @@ DW_FUNCTION_RESTORE_PARAM3(handle, HWND, DW_UNUSED(flags), ULONG, front, int)
  *          handle: Handle to the notebook widget.
  *          pageid: ID of the page to be destroyed.
  */
-void API dw_notebook_page_destroy(HWND handle, unsigned int pageid)
+DW_FUNCTION_DEFINITION(dw_notebook_page_destroy, void, HWND handle, unsigned int pageid)
+DW_FUNCTION_ADD_PARAM2(handle, pageid)
+DW_FUNCTION_NO_RETURN(dw_notebook_page_destroy)
+DW_FUNCTION_RESTORE_PARAM2(handle, HWND, pageid, unsigned int)
 {
     DWNotebook *notebook = handle;
     DWNotebookPage *notepage = _dw_notepage_from_id(notebook, pageid);
@@ -7261,12 +7309,14 @@ void API dw_notebook_page_destroy(HWND handle, unsigned int pageid)
 
         if(index != NSNotFound)
         {
-            [notebook removeSegmentAtIndex:index animated:NO];
+            [[notebook tabs] removeSegmentAtIndex:index animated:NO];
+            [notepage removeFromSuperview];
             [views removeObject:notepage];
             [notepage release];
         }
     }
     DW_LOCAL_POOL_OUT;
+    DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
@@ -7274,13 +7324,17 @@ void API dw_notebook_page_destroy(HWND handle, unsigned int pageid)
  * Parameters:
  *          handle: Handle to the notebook widget.
  */
-unsigned long API dw_notebook_page_get(HWND handle)
+DW_FUNCTION_DEFINITION(dw_notebook_page_get, unsigned long, HWND handle)
+DW_FUNCTION_ADD_PARAM1(handle)
+DW_FUNCTION_RETURN(dw_notebook_page_get, unsigned long)
+DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
 {
     DWNotebook *notebook = handle;
-    NSInteger index = [notebook selectedSegmentIndex];
+    NSInteger index = [[notebook tabs] selectedSegmentIndex];
     NSMutableArray<DWNotebookPage *> *views = [notebook views];
     DWNotebookPage *notepage = [views objectAtIndex:index];
-    return [notepage pageid];
+    unsigned long retval = [notepage pageid];
+    DW_FUNCTION_RETURN_THIS(retval);
 }
 
 /*
@@ -7322,7 +7376,7 @@ DW_FUNCTION_RESTORE_PARAM3(handle, HWND, pageid, ULONG, text, const char *)
 {
     DWNotebook *notebook = handle;
 
-    [notebook setTitle:[NSString stringWithUTF8String:text] forSegmentAtIndex:pageid];
+    [[notebook tabs] setTitle:[NSString stringWithUTF8String:text] forSegmentAtIndex:pageid];
     DW_FUNCTION_RETURN_NOTHING;
 }
 
@@ -7345,22 +7399,19 @@ void API dw_notebook_page_set_status_text(HWND handle, ULONG pageid, const char 
  *          pageid: Page ID in the notebook which is being packed.
  *          page: Box handle to be packed.
  */
-void API dw_notebook_pack(HWND handle, ULONG pageid, HWND page)
+DW_FUNCTION_DEFINITION(dw_notebook_pack, void, HWND handle, ULONG pageid, HWND page)
+DW_FUNCTION_ADD_PARAM3(handle, pageid, page)
+DW_FUNCTION_NO_RETURN(dw_notebook_pack)
+DW_FUNCTION_RESTORE_PARAM3(handle, HWND, pageid, ULONG, page, HWND)
 {
-#if 0 /* TODO: Haven't implemented the content yet since UISegmentedControl is just the buttons */
     DWNotebook *notebook = handle;
     DWNotebookPage *notepage = _dw_notepage_from_id(notebook, pageid);
 
     if(notepage != nil)
     {
-        HWND tmpbox = dw_box_new(DW_VERT, 0);
-        DWBox *box = tmpbox;
-
-        dw_box_pack_start(tmpbox, page, 0, 0, TRUE, TRUE, 0);
-        [notepage setView:box];
-        [box autorelease];
+        dw_box_pack_start(notepage, page, 0, 0, TRUE, TRUE, 0);
     }
-#endif
+    DW_FUNCTION_RETURN_NOTHING;
 }
 
 /*
