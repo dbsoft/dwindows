@@ -6466,8 +6466,8 @@ HPIXMAP API dw_pixmap_new(HWND handle, unsigned long width, unsigned long height
     if((pixmap = calloc(1,sizeof(struct _hpixmap))))
     {
         CGColorSpaceRef rgb = CGColorSpaceCreateDeviceRGB();
-        CGDataProviderRef provider = CGDataProviderCreateWithData(NULL, calloc(width*height, 4), width*height*32, NULL);
-        CGImageRef image = CGImageCreate(width, height, 8, 32, 32 * width,
+        CGDataProviderRef provider = CGDataProviderCreateWithData(NULL, calloc(width*height, 4), width*height*4, NULL);
+        CGImageRef image = CGImageCreate(width, height, 8, 32, 4 * width,
                                          rgb, kCGBitmapByteOrderDefault | kCGImageAlphaLast,
                                          provider, NULL, false, kCGRenderingIntentDefault);
         pixmap->width = width;
