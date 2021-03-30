@@ -13854,6 +13854,7 @@ int API dw_feature_get(DWFEATURE feature)
         case DW_FEATURE_CONTAINER_STRIPE:
         case DW_FEATURE_MDI:
         case DW_FEATURE_TASK_BAR:  
+        case DW_FEATURE_TREE:
             return DW_FEATURE_ENABLED;
 #ifdef BUILD_TOAST
         case DW_FEATURE_NOTIFICATION:
@@ -13931,6 +13932,7 @@ int API dw_feature_set(DWFEATURE feature, int state)
         case DW_FEATURE_CONTAINER_STRIPE:
         case DW_FEATURE_MDI:
         case DW_FEATURE_TASK_BAR:  
+        case DW_FEATURE_TREE:
             return DW_ERROR_GENERAL;
 #ifdef BUILD_TOAST
         case DW_FEATURE_NOTIFICATION:

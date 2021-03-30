@@ -3693,6 +3693,9 @@ int API dw_feature_get(DWFEATURE feature)
         case DW_FEATURE_NOTEBOOK_STATUS_TEXT:    /* Supports status text area on notebook/tabbed controls */
         case DW_FEATURE_NOTIFICATION:            /* Supports sending system notifications */
         case DW_FEATURE_UTF8_UNICODE:            /* Supports UTF8 encoded Unicode text */
+        case DW_FEATURE_MLE_RICH_EDIT:           /* Supports Rich Edit based MLE control (Windows) */
+        case DW_FEATURE_TASK_BAR:                /* Supports icons in the taskbar or similar system widget */
+        case DW_FEATURE_TREE:                    .* Supports the Tree Widget */
             return DW_FEATURE_ENABLED;
 #endif
         default:
@@ -3731,6 +3734,9 @@ int API dw_feature_set(DWFEATURE feature, int state)
         case DW_FEATURE_NOTEBOOK_STATUS_TEXT:    /* Supports status text area on notebook/tabbed controls */
         case DW_FEATURE_NOTIFICATION:            /* Supports sending system notifications */
         case DW_FEATURE_UTF8_UNICODE:            /* Supports UTF8 encoded Unicode text */
+        case DW_FEATURE_MLE_RICH_EDIT:           /* Supports Rich Edit based MLE control (Windows) */
+        case DW_FEATURE_TASK_BAR:                /* Supports icons in the taskbar or similar system widget */
+        case DW_FEATURE_TREE:                    .* Supports the Tree Widget */
             return DW_ERROR_GENERAL;
 #endif
         /* These features are supported and configurable */

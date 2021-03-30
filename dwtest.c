@@ -153,7 +153,7 @@ int render_type = SHAPES_DOUBLE_BUFFERED;
 FILE *fp=NULL;
 char **lp;
 
-char *resolve_keyname( int vk )
+char *resolve_keyname(int vk)
 {
     char *keyname;
     switch(vk)
@@ -243,19 +243,19 @@ char *resolve_keyname( int vk )
 
 char *resolve_keymodifiers( int mask )
 {
-    if ( (mask & KC_CTRL) && (mask & KC_SHIFT) && (mask & KC_ALT) )
+    if((mask & KC_CTRL) && (mask & KC_SHIFT) && (mask & KC_ALT))
         return "KC_CTRL KC_SHIFT KC_ALT";
-    else if ( (mask & KC_CTRL) && (mask & KC_SHIFT) )
+    else if((mask & KC_CTRL) && (mask & KC_SHIFT))
         return "KC_CTRL KC_SHIFT";
-    else if ( (mask & KC_CTRL) && (mask & KC_ALT) )
+    else if((mask & KC_CTRL) && (mask & KC_ALT))
         return "KC_CTRL KC_ALT";
-    else if ( (mask & KC_SHIFT) && (mask & KC_ALT) )
+    else if((mask & KC_SHIFT) && (mask & KC_ALT))
         return "KC_SHIFT KC_ALT";
-    else if ( (mask & KC_SHIFT) )
+    else if((mask & KC_SHIFT))
         return "KC_SHIFT";
-    else if ( (mask & KC_CTRL) )
+    else if((mask & KC_CTRL))
         return "KC_CTRL";
-    else if ( (mask & KC_ALT) )
+    else if((mask & KC_ALT))
         return "KC_ALT";
     else return "none";
 }
@@ -270,9 +270,9 @@ int DWSIGNAL text_expose(HWND hwnd, DWExpose *exp, void *data)
         HPIXMAP hpm;
         unsigned long width,height;
 
-        if ( hwnd == textbox1 )
+        if (hwnd == textbox1)
             hpm = text1pm;
-        else if ( hwnd == textbox2 )
+        else if(hwnd == textbox2)
             hpm = text2pm;
         else
             return TRUE;
@@ -293,25 +293,25 @@ int DWSIGNAL text_expose(HWND hwnd, DWExpose *exp, void *data)
 void read_file( void )
 {
     int i,len;
-    fp = fopen( current_file, "r" );
-    if ( fp )
+    fp = fopen(current_file, "r" );
+    if(fp)
     {
        lp = (char **)calloc( 1000,sizeof(char *));
        /* should test for out of memory */
        max_linewidth=0;
-       for ( i = 0; i < 1000; i++ )
+       for(i = 0; i < 1000; i++)
        {
            lp[i] = (char *)calloc(1, 1025);
-           if ( fgets( lp[i], 1024, fp ) == NULL )
+           if (fgets( lp[i], 1024, fp ) == NULL)
                break;
            len = (int)strlen( lp[i] );
-           if ( len > max_linewidth )
+           if (len > max_linewidth)
                max_linewidth = len;
-           if ( lp[i][len - 1] == '\n' )
+           if(lp[i][len - 1] == '\n')
                lp[i][len - 1] = '\0';
        }
        num_lines = i;
-       fclose( fp );
+       fclose(fp);
        dw_scrollbar_set_range(hscrollbar, max_linewidth, cols);
        dw_scrollbar_set_pos(hscrollbar, 0);
        dw_scrollbar_set_range(vscrollbar, num_lines, rows);
@@ -320,33 +320,33 @@ void read_file( void )
 }
 
 /* When hpma is not NULL we are printing.. so handle things differently */
-void draw_file( int row, int col, int nrows, int fheight, HPIXMAP hpma )
+void draw_file(int row, int col, int nrows, int fheight, HPIXMAP hpma)
 {
     HPIXMAP hpm = hpma ? hpma : text2pm;
     char buf[10];
     int i,y,fileline;
     char *pLine;
 
-    if ( current_file )
+    if(current_file)
     {
         dw_color_foreground_set(DW_CLR_WHITE);
         if(!hpma)
             dw_draw_rect(0, text1pm, DW_DRAW_FILL | DW_DRAW_NOAA, 0, 0, (int)DW_PIXMAP_WIDTH(text1pm), (int)DW_PIXMAP_HEIGHT(text1pm));
         dw_draw_rect(0, hpm, DW_DRAW_FILL | DW_DRAW_NOAA, 0, 0, (int)DW_PIXMAP_WIDTH(hpm), (int)DW_PIXMAP_HEIGHT(hpm));
 
-        for ( i = 0;(i < nrows) && (i+row < num_lines); i++)
+        for(i = 0;(i < nrows) && (i+row < num_lines); i++)
         {
             fileline = i + row - 1;
             y = i*fheight;
-            dw_color_background_set( 1 + (fileline % 15) );
-            dw_color_foreground_set( fileline < 0 ? DW_CLR_WHITE : fileline % 16 );
+            dw_color_background_set(1 + (fileline % 15) );
+            dw_color_foreground_set(fileline < 0 ? DW_CLR_WHITE : fileline % 16);
             if(!hpma)
             {
                 sprintf( buf, "%6.6d", i+row );
                 dw_draw_text( 0, text1pm, 0, y, buf);
             }
             pLine = lp[i+row];
-            dw_draw_text( 0, hpm, 0, y, pLine+col );
+            dw_draw_text(0, hpm, 0, y, pLine+col);
         }
     }
 }
@@ -533,7 +533,7 @@ int DWSIGNAL cursortoggle_callback(HWND window, void *data)
 
 int DWSIGNAL beep_callback(HWND window, void *data)
 {
-    dw_timer_disconnect( timerid );
+    dw_timer_disconnect(timerid);
     return TRUE;
 }
 
@@ -541,10 +541,10 @@ int DWSIGNAL keypress_callback(HWND window, char ch, int vk, int state, void *da
 {
     char tmpbuf[100];
     if ( ch )
-        sprintf( tmpbuf, "Key: %c(%d) Modifiers: %s(%d) utf8 %s", ch, ch, resolve_keymodifiers(state), state,  utf8 );
+        sprintf(tmpbuf, "Key: %c(%d) Modifiers: %s(%d) utf8 %s", ch, ch, resolve_keymodifiers(state), state,  utf8);
     else
-        sprintf( tmpbuf, "Key: %s(%d) Modifiers: %s(%d) utf8 %s", resolve_keyname(vk), vk, resolve_keymodifiers(state), state, utf8 );
-    dw_window_set_text( status1, tmpbuf);
+        sprintf(tmpbuf, "Key: %s(%d) Modifiers: %s(%d) utf8 %s", resolve_keyname(vk), vk, resolve_keymodifiers(state), state, utf8);
+    dw_window_set_text(status1, tmpbuf);
     return 0;
 }
 
@@ -552,23 +552,23 @@ int DWSIGNAL menu_callback(HWND window, void *data)
 {
     char buf[100];
 
-    sprintf( buf, "%s menu item selected", (char *)data );
-    dw_messagebox( "Menu Item Callback", DW_MB_OK | DW_MB_INFORMATION, buf );
+    sprintf(buf, "%s menu item selected", (char *)data);
+    dw_messagebox("Menu Item Callback", DW_MB_OK | DW_MB_INFORMATION, buf);
     return 0;
 }
 
 int DWSIGNAL menutoggle_callback(HWND window, void *data)
 {
-    if ( menu_enabled )
+    if (menu_enabled)
     {
-        dw_menu_item_set_state( changeable_menu, CHECKABLE_MENUITEMID, DW_MIS_DISABLED );
-        dw_menu_item_set_state( changeable_menu, NONCHECKABLE_MENUITEMID, DW_MIS_DISABLED );
+        dw_menu_item_set_state(changeable_menu, CHECKABLE_MENUITEMID, DW_MIS_DISABLED);
+        dw_menu_item_set_state(changeable_menu, NONCHECKABLE_MENUITEMID, DW_MIS_DISABLED);
         menu_enabled = 0;
     }
     else
     {
-        dw_menu_item_set_state( changeable_menu, CHECKABLE_MENUITEMID, DW_MIS_ENABLED );
-        dw_menu_item_set_state( changeable_menu, NONCHECKABLE_MENUITEMID, DW_MIS_ENABLED );
+        dw_menu_item_set_state(changeable_menu, CHECKABLE_MENUITEMID, DW_MIS_ENABLED);
+        dw_menu_item_set_state(changeable_menu, NONCHECKABLE_MENUITEMID, DW_MIS_ENABLED);
         menu_enabled = 1;
     }
     return 0;
@@ -579,11 +579,11 @@ int DWSIGNAL helpabout_callback(HWND window, void *data)
     DWEnv env;
 
     dw_environment_query(&env);
-    dw_messagebox( "About dwindows", DW_MB_OK | DW_MB_INFORMATION, "dwindows test\n\nOS: %s %s %s Version: %d.%d.%d.%d HTML: %s\n\ndwindows Version: %d.%d.%d",
+    dw_messagebox("About dwindows", DW_MB_OK | DW_MB_INFORMATION, "dwindows test\n\nOS: %s %s %s Version: %d.%d.%d.%d HTML: %s\n\ndwindows Version: %d.%d.%d",
                    env.osName, env.buildDate, env.buildTime,
                    env.MajorVersion, env.MinorVersion, env.MajorBuild, env.MinorBuild,
                    env.htmlEngine,
-                   env.DWMajorVersion, env.DWMinorVersion, env.DWSubVersion );
+                   env.DWMajorVersion, env.DWMinorVersion, env.DWSubVersion);
     return 0;
 }
 
@@ -605,17 +605,17 @@ int DWSIGNAL notification_clicked_callback(HWND notification, void *data)
 int DWSIGNAL browse_file_callback(HWND window, void *data)
 {
     char *tmp;
-    tmp = dw_file_browse("Pick a file", "dwtest.c", "c", DW_FILE_OPEN );
+    tmp = dw_file_browse("Pick a file", "dwtest.c", "c", DW_FILE_OPEN);
     if ( tmp )
     {
         HWND notification = dw_notification_new("New file loaded", "image/test.png", "dwtest loaded \"%s\" into the file browser on the Render tab, with \"File Display\" selected from the drop down list.", tmp);
 
-        if ( current_file )
+        if (current_file)
         {
             dw_free( current_file );
         }
         current_file = tmp;
-        dw_window_set_text( entryfield, current_file );
+        dw_window_set_text(entryfield, current_file);
         read_file();
         current_col = current_row = 0;
         render_draw();
@@ -649,12 +649,12 @@ int DWSIGNAL button_callback(HWND window, void *data)
     dw_listbox_get_text( combobox2, idx, buf2, 99 );
     dw_calendar_get_date( cal, &y, &m, &d );
     spvalue = dw_spinbutton_get_pos( spinbutton );
-    len = sprintf( buf3, "spinbutton: %ld\ncombobox1: \"%s\"\ncombobox2: \"%s\"\ncalendar: %d-%d-%d",
+    len = sprintf(buf3, "spinbutton: %ld\ncombobox1: \"%s\"\ncombobox2: \"%s\"\ncalendar: %d-%d-%d",
                   spvalue,
                   buf1, buf2,
-                  y, m, d );
-    dw_messagebox( "Values", DW_MB_OK | DW_MB_INFORMATION, buf3 );
-    dw_clipboard_set_text( buf3, len );
+                  y, m, d);
+    dw_messagebox("Values", DW_MB_OK | DW_MB_INFORMATION, buf3 );
+    dw_clipboard_set_text(buf3, len );
     return 0;
 }
 
@@ -665,14 +665,14 @@ int DWSIGNAL bitmap_toggle_callback(HWND window, void *data)
     if ( isfoldericon )
     {
        isfoldericon = 0;
-       dw_window_set_bitmap( window, 0, FILE_ICON_NAME );
-       dw_window_set_tooltip( window, "File Icon" );
+       dw_window_set_bitmap(window, 0, FILE_ICON_NAME );
+       dw_window_set_tooltip(window, "File Icon" );
     }
     else
     {
        isfoldericon = 1;
        dw_window_set_bitmap_from_data( window, 0, folder_ico, sizeof(folder_ico) );
-       dw_window_set_tooltip( window, "Folder Icon" );
+       dw_window_set_tooltip(window, "Folder Icon" );
     }
     return 0;
 }
@@ -1055,16 +1055,16 @@ void text_add(void)
     dw_box_pack_start( notebookbox2, pagebox, 0, 0, TRUE, TRUE, 0);
     /* now a status area under this box */
     hbox = dw_box_new(DW_HORZ, 1 );
-    dw_box_pack_start( notebookbox2, hbox, 100, 20, TRUE, FALSE, 1);
+    dw_box_pack_start(notebookbox2, hbox, 100, 20, TRUE, FALSE, 1);
     status1 = dw_status_text_new("", 0);
-    dw_box_pack_start( hbox, status1, 100, -1, TRUE, FALSE, 1);
+    dw_box_pack_start(hbox, status1, 100, -1, TRUE, FALSE, 1);
     status2 = dw_status_text_new("", 0);
-    dw_box_pack_start( hbox, status2, 100, -1, TRUE, FALSE, 1);
+    dw_box_pack_start(hbox, status2, 100, -1, TRUE, FALSE, 1);
     /* a box with combobox and button */
     hbox = dw_box_new(DW_HORZ, 1 );
-    dw_box_pack_start( notebookbox2, hbox, 100, 25, TRUE, FALSE, 1);
+    dw_box_pack_start(notebookbox2, hbox, 100, 25, TRUE, FALSE, 1);
     rendcombo = dw_combobox_new( "Shapes Double Buffered", 0 );
-    dw_box_pack_start( hbox, rendcombo, 80, 25, TRUE, TRUE, 0);
+    dw_box_pack_start(hbox, rendcombo, 80, 25, TRUE, TRUE, 0);
     dw_listbox_append(rendcombo, "Shapes Double Buffered");
     dw_listbox_append(rendcombo, "Shapes Direct");
     dw_listbox_append(rendcombo, "File Display");
@@ -1085,9 +1085,9 @@ void text_add(void)
     imagestretchcheck = dw_checkbox_new("Stretch", 1021);
     dw_box_pack_start( hbox, imagestretchcheck, -1, 25, FALSE, TRUE, 0);
 
-    button1 = dw_button_new( "Refresh", 1223L );
+    button1 = dw_button_new("Refresh", 1223L );
     dw_box_pack_start( hbox, button1, 100, 25, FALSE, TRUE, 0);
-    button2 = dw_button_new( "Print", 1224L );
+    button2 = dw_button_new("Print", 1224L );
     dw_box_pack_start( hbox, button2, 100, 25, FALSE, TRUE, 0);
 
     /* Pre-create the scrollbars so we can query their sizes */
@@ -1118,15 +1118,15 @@ void text_add(void)
     dw_box_pack_start(pagebox, 0, font_width, 0, FALSE, TRUE, 0);
 
     /* create box for filecontents and horz scrollbar */
-    textboxA = dw_box_new( DW_VERT,0 );
-    dw_box_pack_start( pagebox, textboxA, 0, 0, TRUE, TRUE, 0);
+    textboxA = dw_box_new(DW_VERT,0 );
+    dw_box_pack_start(pagebox, textboxA, 0, 0, TRUE, TRUE, 0);
 
     /* create render box for filecontents pixmap */
     textbox2 = dw_render_new( 101 );
-    dw_box_pack_start( textboxA, textbox2, 10, 10, TRUE, TRUE, 0);
+    dw_box_pack_start(textboxA, textbox2, 10, 10, TRUE, TRUE, 0);
     dw_window_set_font(textbox2, FIXEDFONT);
     /* create horizonal scrollbar */
-    dw_box_pack_start( textboxA, hscrollbar, -1, -1, TRUE, FALSE, 0);
+    dw_box_pack_start(textboxA, hscrollbar, -1, -1, TRUE, FALSE, 0);
 
     /* create vertical scrollbar */
     vscrollbox = dw_box_new(DW_VERT, 0);
@@ -1135,8 +1135,8 @@ void text_add(void)
     dw_box_pack_start(vscrollbox, 0, vscrollbarwidth, hscrollbarheight, FALSE, FALSE, 0);
     dw_box_pack_start(pagebox, vscrollbox, 0, 0, FALSE, TRUE, 0);
 
-    text1pm = dw_pixmap_new( textbox1, font_width*width1, font_height*rows, (int)depth );
-    text2pm = dw_pixmap_new( textbox2, font_width*cols, font_height*rows, (int)depth );
+    text1pm = dw_pixmap_new(textbox1, font_width*width1, font_height*rows, (int)depth);
+    text2pm = dw_pixmap_new(textbox2, font_width*cols, font_height*rows, (int)depth);
     image = dw_pixmap_new_from_file(textbox2, "image/test");
     if(!image)
         image = dw_pixmap_new_from_file(textbox2, "~/test");
@@ -1171,7 +1171,7 @@ void tree_add(void)
 
     /* create a box to pack into the notebook page */
     listbox = dw_listbox_new(1024, TRUE);
-    dw_box_pack_start( notebookbox3, listbox, 500, 200, TRUE, TRUE, 0);
+    dw_box_pack_start(notebookbox3, listbox, 500, 200, TRUE, TRUE, 0);
     dw_listbox_append(listbox, "Test 1");
     dw_listbox_append(listbox, "Test 2");
     dw_listbox_append(listbox, "Test 3");
@@ -1180,28 +1180,36 @@ void tree_add(void)
 
     /* now a tree area under this box */
     tree = dw_tree_new(101);
-    dw_box_pack_start( notebookbox3, tree, 500, 200, TRUE, TRUE, 1);
+    if(tree)
+    {
+        dw_box_pack_start(notebookbox3, tree, 500, 200, TRUE, TRUE, 1);
 
-    /* and a status area to see whats going on */
-    tree_status = dw_status_text_new("", 0);
-    dw_box_pack_start( notebookbox3, tree_status, 100, -1, TRUE, FALSE, 1);
+        /* and a status area to see whats going on */
+        tree_status = dw_status_text_new("", 0);
+        dw_box_pack_start(notebookbox3, tree_status, 100, -1, TRUE, FALSE, 1);
 
-    /* set up our signal trappers... */
-    dw_signal_connect(tree, DW_SIGNAL_ITEM_CONTEXT, DW_SIGNAL_FUNC(item_context_cb), DW_POINTER(tree_status));
-    dw_signal_connect(tree, DW_SIGNAL_ITEM_SELECT, DW_SIGNAL_FUNC(item_select_cb), DW_POINTER(tree_status));
+        /* set up our signal trappers... */
+        dw_signal_connect(tree, DW_SIGNAL_ITEM_CONTEXT, DW_SIGNAL_FUNC(item_context_cb), DW_POINTER(tree_status));
+        dw_signal_connect(tree, DW_SIGNAL_ITEM_SELECT, DW_SIGNAL_FUNC(item_select_cb), DW_POINTER(tree_status));
 
-    t1 = dw_tree_insert(tree, "tree folder 1", foldericon, NULL, DW_INT_TO_POINTER(1) );
-    t2 = dw_tree_insert(tree, "tree folder 2", foldericon, NULL, DW_INT_TO_POINTER(2) );
-    dw_tree_insert(tree, "tree file 1", fileicon, t1, DW_INT_TO_POINTER(3) );
-    dw_tree_insert(tree, "tree file 2", fileicon, t1, DW_INT_TO_POINTER(4) );
-    dw_tree_insert(tree, "tree file 3", fileicon, t2, DW_INT_TO_POINTER(5) );
-    dw_tree_insert(tree, "tree file 4", fileicon, t2, DW_INT_TO_POINTER(6) );
-    dw_tree_item_change(tree, t1, "tree folder 1", foldericon );
-    dw_tree_item_change(tree, t2, "tree folder 2", foldericon );
-    dw_tree_item_set_data(tree, t2, DW_INT_TO_POINTER(100));
-    title = dw_tree_get_title(tree, t1);
-    dw_debug("t1 title \"%s\" data %d t2 data %d\n", title, DW_POINTER_TO_INT(dw_tree_item_get_data(tree, t1)), DW_POINTER_TO_INT(dw_tree_item_get_data(tree, t2)));
-    dw_free(title);
+        t1 = dw_tree_insert(tree, "tree folder 1", foldericon, NULL, DW_INT_TO_POINTER(1));
+        t2 = dw_tree_insert(tree, "tree folder 2", foldericon, NULL, DW_INT_TO_POINTER(2));
+        dw_tree_insert(tree, "tree file 1", fileicon, t1, DW_INT_TO_POINTER(3));
+        dw_tree_insert(tree, "tree file 2", fileicon, t1, DW_INT_TO_POINTER(4));
+        dw_tree_insert(tree, "tree file 3", fileicon, t2, DW_INT_TO_POINTER(5));
+        dw_tree_insert(tree, "tree file 4", fileicon, t2, DW_INT_TO_POINTER(6));
+        dw_tree_item_change(tree, t1, "tree folder 1", foldericon);
+        dw_tree_item_change(tree, t2, "tree folder 2", foldericon);
+        dw_tree_item_set_data(tree, t2, DW_INT_TO_POINTER(100));
+        title = dw_tree_get_title(tree, t1);
+        dw_debug("t1 title \"%s\" data %d t2 data %d\n", title, DW_POINTER_TO_INT(dw_tree_item_get_data(tree, t1)), DW_POINTER_TO_INT(dw_tree_item_get_data(tree, t2)));
+        dw_free(title);
+    }
+    else
+    {
+        tree = dw_text_new("Tree widget not available.", 0);
+        dw_box_pack_start(notebookbox3, tree, 500, 200, TRUE, TRUE, 1);
+    }
 }
 
 int DWSIGNAL word_wrap_click_cb(HWND wordwrap, void *data)
@@ -1527,7 +1535,7 @@ void buttons_add(void)
 
     /* create a box to pack into the notebook page */
     buttonsbox = dw_box_new(DW_VERT, 2);
-    dw_box_pack_start( notebookbox5, buttonsbox, 25, 200, TRUE, TRUE, 0);
+    dw_box_pack_start(notebookbox5, buttonsbox, 25, 200, TRUE, TRUE, 0);
     dw_window_set_color(buttonsbox, DW_CLR_RED, DW_CLR_RED);
 
     calbox = dw_box_new(DW_HORZ, 0);
@@ -1540,103 +1548,103 @@ void buttons_add(void)
     /*
      * Create our file toolbar boxes...
      */
-    buttonboxperm = dw_box_new( DW_VERT, 0 );
-    dw_box_pack_start( buttonsbox, buttonboxperm, 25, 0, FALSE, TRUE, 2 );
+    buttonboxperm = dw_box_new(DW_VERT, 0);
+    dw_box_pack_start(buttonsbox, buttonboxperm, 25, 0, FALSE, TRUE, 2);
     dw_window_set_color(buttonboxperm, DW_CLR_WHITE, DW_CLR_WHITE);
-    abutton1 = dw_bitmapbutton_new_from_file( "Top Button", 0, FILE_ICON_NAME );
-    dw_box_pack_start( buttonboxperm, abutton1, 100, 30, FALSE, FALSE, 0 );
-    dw_signal_connect( abutton1, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(button_callback), NULL );
-    dw_box_pack_start( buttonboxperm, 0, 25, 5, FALSE, FALSE, 0 );
-    abutton2 = dw_bitmapbutton_new_from_data( "Folder Icon", 0, folder_ico, sizeof( folder_ico) );
-    dw_box_pack_start( buttonsbox, abutton2, 25, 25, FALSE, FALSE, 0 );
-    dw_signal_connect( abutton2, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(bitmap_toggle_callback), NULL );
+    abutton1 = dw_bitmapbutton_new_from_file("Top Button", 0, FILE_ICON_NAME);
+    dw_box_pack_start(buttonboxperm, abutton1, 100, 30, FALSE, FALSE, 0 );
+    dw_signal_connect(abutton1, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(button_callback), NULL);
+    dw_box_pack_start(buttonboxperm, 0, 25, 5, FALSE, FALSE, 0);
+    abutton2 = dw_bitmapbutton_new_from_data( "Folder Icon", 0, folder_ico, sizeof(folder_ico));
+    dw_box_pack_start(buttonsbox, abutton2, 25, 25, FALSE, FALSE, 0);
+    dw_signal_connect(abutton2, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(bitmap_toggle_callback), NULL);
 
     create_button(0);
     /* make a combobox */
     combox = dw_box_new(DW_VERT, 2);
-    dw_box_pack_start( notebookbox5, combox, 25, 200, TRUE, FALSE, 0);
-    combobox1 = dw_combobox_new( "fred", 0 ); /* no point in specifying an initial value */
-    dw_listbox_append( combobox1, "fred" );
-    dw_box_pack_start( combox, combobox1, -1, -1, TRUE, FALSE, 0);
+    dw_box_pack_start(notebookbox5, combox, 25, 200, TRUE, FALSE, 0);
+    combobox1 = dw_combobox_new("fred", 0); /* no point in specifying an initial value */
+    dw_listbox_append(combobox1, "fred");
+    dw_box_pack_start(combox, combobox1, -1, -1, TRUE, FALSE, 0);
     /*
      dw_window_set_text( combobox, "initial value");
      */
-    dw_signal_connect( combobox1, DW_SIGNAL_LIST_SELECT, DW_SIGNAL_FUNC(combobox_select_event_callback), NULL );
+    dw_signal_connect(combobox1, DW_SIGNAL_LIST_SELECT, DW_SIGNAL_FUNC(combobox_select_event_callback), NULL);
 #if 0
     /* add LOTS of items */
     dw_debug("before appending 100 items to combobox using dw_listbox_append()\n");
-    for( i = 0; i < 100; i++ )
+    for(i = 0; i < 100; i++)
     {
         sprintf( buf, "item %d", i);
-        dw_listbox_append( combobox1, buf );
+        dw_listbox_append(combobox1, buf);
     }
     dw_debug("after appending 100 items to combobox\n");
 #endif
 
-    combobox2 = dw_combobox_new( "joe", 0 ); /* no point in specifying an initial value */
-    dw_box_pack_start( combox, combobox2, -1, -1, TRUE, FALSE, 0);
+    combobox2 = dw_combobox_new("joe", 0); /* no point in specifying an initial value */
+    dw_box_pack_start(combox, combobox2, -1, -1, TRUE, FALSE, 0);
     /*
-     dw_window_set_text( combobox, "initial value");
+     dw_window_set_text(combobox, "initial value");
      */
-    dw_signal_connect( combobox2, DW_SIGNAL_LIST_SELECT, DW_SIGNAL_FUNC(combobox_select_event_callback), NULL );
+    dw_signal_connect(combobox2, DW_SIGNAL_LIST_SELECT, DW_SIGNAL_FUNC(combobox_select_event_callback), NULL);
     /* add LOTS of items */
     dw_debug("before appending 500 items to combobox using dw_listbox_list_append()\n");
     text = (char **)malloc(500*sizeof(char *));
-    for( i = 0; i < 500; i++ )
+    for(i = 0; i < 500; i++)
     {
-        text[i] = (char *)malloc( 50 );
+        text[i] = (char *)malloc(50);
         sprintf( text[i], "item %d", i);
     }
-    dw_listbox_list_append( combobox2, text, 500 );
+    dw_listbox_list_append(combobox2, text, 500);
     dw_debug("after appending 500 items to combobox\n");
-    for( i = 0; i < 500; i++ )
+    for(i = 0; i < 500; i++)
     {
         free(text[i]);
     }
     free(text);
     /* now insert a couple of items */
-    dw_listbox_insert( combobox2, "inserted item 2", 2 );
-    dw_listbox_insert( combobox2, "inserted item 5", 5 );
+    dw_listbox_insert(combobox2, "inserted item 2", 2);
+    dw_listbox_insert(combobox2, "inserted item 5", 5);
     /* make a spinbutton */
-    spinbutton = dw_spinbutton_new( "", 0 ); /* no point in specifying text */
-    dw_box_pack_start( combox, spinbutton, -1, -1, TRUE, FALSE, 0);
-    dw_spinbutton_set_limits( spinbutton, 100, 1 );
-    dw_spinbutton_set_pos( spinbutton, 30 );
-    dw_signal_connect( spinbutton, DW_SIGNAL_VALUE_CHANGED, DW_SIGNAL_FUNC(spinbutton_valuechanged_callback), NULL );
+    spinbutton = dw_spinbutton_new("", 0); /* no point in specifying text */
+    dw_box_pack_start(combox, spinbutton, -1, -1, TRUE, FALSE, 0);
+    dw_spinbutton_set_limits(spinbutton, 100, 1);
+    dw_spinbutton_set_pos(spinbutton, 30);
+    dw_signal_connect(spinbutton, DW_SIGNAL_VALUE_CHANGED, DW_SIGNAL_FUNC(spinbutton_valuechanged_callback), NULL);
     /* make a slider */
-    slider = dw_slider_new( FALSE, 11, 0 ); /* no point in specifying text */
-    dw_box_pack_start( combox, slider, -1, -1, TRUE, FALSE, 0);
-    dw_signal_connect( slider, DW_SIGNAL_VALUE_CHANGED, DW_SIGNAL_FUNC(slider_valuechanged_callback), NULL );
+    slider = dw_slider_new(FALSE, 11, 0); /* no point in specifying text */
+    dw_box_pack_start(combox, slider, -1, -1, TRUE, FALSE, 0);
+    dw_signal_connect(slider, DW_SIGNAL_VALUE_CHANGED, DW_SIGNAL_FUNC(slider_valuechanged_callback), NULL);
     /* make a percent */
-    percent = dw_percent_new( 0 );
-    dw_box_pack_start( combox, percent, -1, -1, TRUE, FALSE, 0);
+    percent = dw_percent_new(0);
+    dw_box_pack_start(combox, percent, -1, -1, TRUE, FALSE, 0);
 }
 
 void create_button( int redraw)
 {
     HWND abutton1;
-    filetoolbarbox = dw_box_new( DW_VERT, 0 );
-    dw_box_pack_start( buttonboxperm, filetoolbarbox, 0, 0, TRUE, TRUE, 0 );
+    filetoolbarbox = dw_box_new(DW_VERT, 0);
+    dw_box_pack_start(buttonboxperm, filetoolbarbox, 0, 0, TRUE, TRUE, 0);
 
-    abutton1 = dw_bitmapbutton_new_from_file( "Empty image. Should be under Top button", 0, "junk" );
-    dw_box_pack_start( filetoolbarbox, abutton1, 25, 25, FALSE, FALSE, 0);
-    dw_signal_connect( abutton1, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(change_color_red_callback), NULL );
-    dw_box_pack_start( filetoolbarbox, 0, 25, 5, FALSE, FALSE, 0 );
+    abutton1 = dw_bitmapbutton_new_from_file("Empty image. Should be under Top button", 0, "junk");
+    dw_box_pack_start(filetoolbarbox, abutton1, 25, 25, FALSE, FALSE, 0);
+    dw_signal_connect(abutton1, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(change_color_red_callback), NULL);
+    dw_box_pack_start(filetoolbarbox, 0, 25, 5, FALSE, FALSE, 0 );
 
-    abutton1 = dw_bitmapbutton_new_from_data( "A borderless bitmapbitton", 0, folder_ico, 1718 );
-    dw_box_pack_start( filetoolbarbox, abutton1, 25, 25, FALSE, FALSE, 0);
-    dw_signal_connect( abutton1, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(change_color_yellow_callback), NULL );
-    dw_box_pack_start( filetoolbarbox, 0, 25, 5, FALSE, FALSE, 0 );
-    dw_window_set_style( abutton1, DW_BS_NOBORDER, DW_BS_NOBORDER );
+    abutton1 = dw_bitmapbutton_new_from_data("A borderless bitmapbitton", 0, folder_ico, 1718 );
+    dw_box_pack_start(filetoolbarbox, abutton1, 25, 25, FALSE, FALSE, 0);
+    dw_signal_connect(abutton1, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(change_color_yellow_callback), NULL);
+    dw_box_pack_start(filetoolbarbox, 0, 25, 5, FALSE, FALSE, 0);
+    dw_window_set_style(abutton1, DW_BS_NOBORDER, DW_BS_NOBORDER);
 
-    abutton1 = dw_bitmapbutton_new_from_data( "A button from data", 0, folder_ico, 1718 );
-    dw_box_pack_start( filetoolbarbox, abutton1, 25, 25, FALSE, FALSE, 0);
-    dw_signal_connect( abutton1, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(percent_button_box_callback), NULL );
-    dw_box_pack_start( filetoolbarbox, 0, 25, 5, FALSE, FALSE, 0 );
-    if ( redraw )
+    abutton1 = dw_bitmapbutton_new_from_data("A button from data", 0, folder_ico, 1718);
+    dw_box_pack_start(filetoolbarbox, abutton1, 25, 25, FALSE, FALSE, 0);
+    dw_signal_connect(abutton1, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(percent_button_box_callback), NULL);
+    dw_box_pack_start(filetoolbarbox, 0, 25, 5, FALSE, FALSE, 0 );
+    if(redraw)
     {
-        dw_window_redraw( filetoolbarbox );
-        dw_window_redraw( mainwindow );
+        dw_window_redraw(filetoolbarbox);
+        dw_window_redraw(mainwindow);
     }
 }
 
@@ -1665,7 +1673,7 @@ void mdi_add(void)
     mdi2w = dw_window_new(mdi, "MDI2", flStyle | DW_FCF_SIZEBORDER | DW_FCF_MINMAX);
     mdi2box = dw_box_new(DW_HORZ, 0);
     dw_box_pack_start(mdi2w, mdi2box, 0, 0, TRUE, TRUE, 0);
-    ef = dw_entryfield_new( "", 0);
+    ef = dw_entryfield_new("", 0);
     dw_box_pack_start(mdi2box, ef, 150, 30, FALSE, FALSE, 4);
     bb = dw_button_new("Browse", 0);
     dw_box_pack_start(mdi2box, bb, 60, 30, FALSE, FALSE, 4);
@@ -1678,47 +1686,47 @@ void menu_add(void)
 {
     HMENUI menuitem,menu;
 
-    mainmenubar = dw_menubar_new( mainwindow );
+    mainmenubar = dw_menubar_new(mainwindow);
     /* add menus to the menubar */
-    menu = dw_menu_new( 0 );
-    menuitem = dw_menu_append_item( menu, "~Quit", 1019, 0, TRUE, FALSE, 0 );
-    dw_signal_connect( menuitem, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(exit_callback), DW_POINTER(mainwindow));
+    menu = dw_menu_new(0);
+    menuitem = dw_menu_append_item( menu, "~Quit", 1019, 0, TRUE, FALSE, 0);
+    dw_signal_connect(menuitem, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(exit_callback), DW_POINTER(mainwindow));
     /*
      * Add the "File" menu to the menubar...
      */
-    dw_menu_append_item( mainmenubar, "~File", 1010, 0, TRUE, FALSE, menu );
+    dw_menu_append_item(mainmenubar, "~File", 1010, 0, TRUE, FALSE, menu);
 
-    changeable_menu = dw_menu_new( 0 );
-    checkable_menuitem = dw_menu_append_item( changeable_menu, "~Checkable Menu Item", CHECKABLE_MENUITEMID, 0, TRUE, TRUE, 0 );
+    changeable_menu = dw_menu_new(0);
+    checkable_menuitem = dw_menu_append_item(changeable_menu, "~Checkable Menu Item", CHECKABLE_MENUITEMID, 0, TRUE, TRUE, 0);
     dw_signal_connect( checkable_menuitem, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(menu_callback), DW_POINTER("checkable"));
-    noncheckable_menuitem = dw_menu_append_item( changeable_menu, "~Non-checkable Menu Item", NONCHECKABLE_MENUITEMID, 0, TRUE, FALSE, 0 );
-    dw_signal_connect( noncheckable_menuitem, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(menu_callback), DW_POINTER("non-checkable"));
-    dw_menu_append_item( changeable_menu, "~Disabled menu Item", 2003, DW_MIS_DISABLED|DW_MIS_CHECKED, TRUE, TRUE, 0 );
+    noncheckable_menuitem = dw_menu_append_item(changeable_menu, "~Non-checkable Menu Item", NONCHECKABLE_MENUITEMID, 0, TRUE, FALSE, 0);
+    dw_signal_connect(noncheckable_menuitem, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(menu_callback), DW_POINTER("non-checkable"));
+    dw_menu_append_item(changeable_menu, "~Disabled menu Item", 2003, DW_MIS_DISABLED|DW_MIS_CHECKED, TRUE, TRUE, 0);
     /* seperator */
-    dw_menu_append_item( changeable_menu, DW_MENU_SEPARATOR, 3999, 0, TRUE, FALSE, 0 );
-    menuitem = dw_menu_append_item( changeable_menu, "~Menu Items Disabled", 2009, 0, TRUE, TRUE, 0 );
-    dw_signal_connect( menuitem, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(menutoggle_callback), NULL);
+    dw_menu_append_item(changeable_menu, DW_MENU_SEPARATOR, 3999, 0, TRUE, FALSE, 0);
+    menuitem = dw_menu_append_item(changeable_menu, "~Menu Items Disabled", 2009, 0, TRUE, TRUE, 0);
+    dw_signal_connect(menuitem, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(menutoggle_callback), NULL);
     /*
      * Add the "Menu" menu to the menubar...
      */
-    dw_menu_append_item( mainmenubar, "~Menu", 1020, 0, TRUE, FALSE, changeable_menu );
+    dw_menu_append_item(mainmenubar, "~Menu", 1020, 0, TRUE, FALSE, changeable_menu);
 
-    menu = dw_menu_new( 0 );
-    menuitem = dw_menu_append_item( menu, "~About", 1091, 0, TRUE, FALSE, 0 );
-    dw_signal_connect( menuitem, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(helpabout_callback), DW_POINTER(mainwindow));
+    menu = dw_menu_new(0);
+    menuitem = dw_menu_append_item(menu, "~About", 1091, 0, TRUE, FALSE, 0);
+    dw_signal_connect(menuitem, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(helpabout_callback), DW_POINTER(mainwindow));
     /*
      * Add the "Help" menu to the menubar...
      */
-    dw_menu_append_item( mainmenubar, "~Help", 1090, 0, TRUE, FALSE, menu );
+    dw_menu_append_item(mainmenubar, "~Help", 1090, 0, TRUE, FALSE, menu);
 }
 
 int DWSIGNAL scrollbox_button_callback(HWND window, void *data)
 {
     int pos, range;
 
-    pos = dw_scrollbox_get_pos( scrollbox, DW_VERT );
-    range = dw_scrollbox_get_range( scrollbox, DW_VERT );
-    dw_debug("Pos %d Range %d\n", pos, range );
+    pos = dw_scrollbox_get_pos(scrollbox, DW_VERT);
+    range = dw_scrollbox_get_range(scrollbox, DW_VERT);
+    dw_debug("Pos %d Range %d\n", pos, range);
     return 0;
 }
 
@@ -1732,20 +1740,20 @@ void scrollbox_add(void)
     scrollbox = dw_scrollbox_new(DW_VERT, 0);
     dw_box_pack_start(notebookbox8, scrollbox, 0, 0, TRUE, TRUE, 1);
 
-    abutton1 = dw_button_new( "Show Adjustments", 0 );
-    dw_box_pack_start( scrollbox, abutton1, -1, 30, FALSE, FALSE, 0 );
-    dw_signal_connect( abutton1, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(scrollbox_button_callback), NULL );
+    abutton1 = dw_button_new("Show Adjustments", 0);
+    dw_box_pack_start(scrollbox, abutton1, -1, 30, FALSE, FALSE, 0);
+    dw_signal_connect(abutton1, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(scrollbox_button_callback), NULL);
 
-    for ( i = 0; i < MAX_WIDGETS; i++ )
+    for(i = 0; i < MAX_WIDGETS; i++)
     {
-        tmpbox = dw_box_new( DW_HORZ, 0 );
-        dw_box_pack_start( scrollbox, tmpbox, 0, 24, TRUE, FALSE, 2);
-        sprintf( buf, "Label %d", i );
-        labelarray[i] = dw_text_new( buf , 0 );
+        tmpbox = dw_box_new(DW_HORZ, 0);
+        dw_box_pack_start(scrollbox, tmpbox, 0, 24, TRUE, FALSE, 2);
+        sprintf(buf, "Label %d", i);
+        labelarray[i] = dw_text_new(buf , 0);
         dw_box_pack_start( tmpbox, labelarray[i], 0, 20, TRUE, FALSE, 0);
-        sprintf( buf, "Entry %d", i );
-        entryarray[i] = dw_entryfield_new( buf , i );
-        dw_box_pack_start( tmpbox, entryarray[i], 0, 20, TRUE, FALSE, 0);
+        sprintf(buf, "Entry %d", i);
+        entryarray[i] = dw_entryfield_new(buf , i);
+        dw_box_pack_start(tmpbox, entryarray[i], 0, 20, TRUE, FALSE, 0);
     }
 }
 
@@ -1803,8 +1811,8 @@ void thread_add(void)
     dw_box_pack_start(notebookbox9, tmpbox, 0, 0, TRUE, TRUE, 1);
 
     startbutton = dw_button_new( "Start Threads", 0 );
-    dw_box_pack_start( tmpbox, startbutton, -1, 30, FALSE, FALSE, 0 );
-    dw_signal_connect( startbutton, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(start_threads_button_callback), NULL );
+    dw_box_pack_start(tmpbox, startbutton, -1, 30, FALSE, FALSE, 0);
+    dw_signal_connect(startbutton, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(start_threads_button_callback), NULL);
 
     /* Create the base threading components */
     threadmle = dw_mle_new(0);
@@ -2058,6 +2066,7 @@ char *DWFeatureList[] = {
     "Supports UTF8 encoded Unicode text",
     "Supports Rich Edit based MLE control (Windows)",
     "Supports icons in the taskbar or similar system widget",
+    "Supports the Tree Widget",
     NULL };
 
 /*

@@ -14007,6 +14007,7 @@ int API dw_feature_get(DWFEATURE feature)
         case DW_FEATURE_CONTAINER_STRIPE:
         case DW_FEATURE_UTF8_UNICODE:
         case DW_FEATURE_MLE_WORD_WRAP:
+        case DW_FEATURE_TREE:
             return DW_FEATURE_ENABLED;
         default:
             return DW_FEATURE_UNSUPPORTED;
@@ -14046,6 +14047,7 @@ int API dw_feature_set(DWFEATURE feature, int state)
         case DW_FEATURE_CONTAINER_STRIPE:
         case DW_FEATURE_UTF8_UNICODE:
         case DW_FEATURE_MLE_WORD_WRAP:
+        case DW_FEATURE_TREE:
             return DW_ERROR_GENERAL;
         /* These features are supported and configurable */
         default:
