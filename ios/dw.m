@@ -6598,6 +6598,7 @@ HPIXMAP API dw_pixmap_grab(HWND handle, ULONG resid)
         pixmap->height = [tmpimage size].height;
         pixmap->image = tmpimage;
         pixmap->handle = handle;
+        DW_LOCAL_POOL_OUT;
         return pixmap;
     }
     free(pixmap);
