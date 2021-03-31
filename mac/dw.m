@@ -8973,6 +8973,7 @@ HPIXMAP API dw_pixmap_grab(HWND handle, ULONG resid)
         pixmap->image = image;
         pixmap->handle = handle;
         [temp release];
+        DW_LOCAL_POOL_OUT;
         return pixmap;
     }
     free(pixmap);
