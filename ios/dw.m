@@ -1380,30 +1380,34 @@ DWObject *DWObj;
 -(void)pageChanged:(id)sender
 {
     NSInteger intpageid = [tabs selectedSegmentIndex];
-    DWNotebookPage *page = [[self views] objectAtIndex:intpageid];
-
-    /* Hide the previously visible page contents */
-    if(page != visible)
-        [visible setHidden:YES];
-
-    /* If the new page is a valid box, lay it out */
-    if([page isKindOfClass:[DWBox class]])
+    
+    if(intpageid != NSNotFound && intpageid < [views count])
     {
-        Box *box = [page box];
-        /* Start with the entire notebook size and then adjust
-         * it to account for the segement control's height.
-         */
-        NSInteger height = [tabs frame].size.height;
-        CGRect frame = [self frame];
-        frame.origin.y += height;
-        frame.size.height -= height;
-        [page setFrame:frame];
-        [page setHidden:NO];
-        visible = page;
-        _dw_do_resize(box, frame.size.width, frame.size.height);
-        _dw_handle_resize_events(box);
+        DWNotebookPage *page = [views objectAtIndex:intpageid];
+
+        /* Hide the previously visible page contents */
+        if(page != visible)
+            [visible setHidden:YES];
+
+        /* If the new page is a valid box, lay it out */
+        if([page isKindOfClass:[DWBox class]])
+        {
+            Box *box = [page box];
+            /* Start with the entire notebook size and then adjust
+             * it to account for the segement control's height.
+             */
+            NSInteger height = [tabs frame].size.height;
+            CGRect frame = [self frame];
+            frame.origin.y += height;
+            frame.size.height -= height;
+            [page setFrame:frame];
+            [page setHidden:NO];
+            visible = page;
+            _dw_do_resize(box, frame.size.width, frame.size.height);
+            _dw_handle_resize_events(box);
+        }
+        _dw_event_handler(self, DW_INT_TO_POINTER(intpageid), 15);
     }
-    _dw_event_handler(self, DW_INT_TO_POINTER(intpageid), 15);
 }
 -(void)dealloc {
     UserData *root = userdata;
@@ -2160,20 +2164,22 @@ void _dw_handle_resize_events(Box *thisbox)
                 }
             }
             /* Special handling for notebook controls */
-#if 0 /* TODO: Segmented control might not have subviews */
             else if([handle isMemberOfClass:[DWNotebook class]])
             {
-                DWNotebook *notebook = (DWNotebook *)handle;
-                NSInteger index = [notebook selectedSegmentIndex];
-                id view = [notepage view];
-
-                if([view isMemberOfClass:[DWBox class]])
+                DWNotebook *notebook = handle;
+                NSInteger intpageid = [[notebook tabs] selectedSegmentIndex];
+                
+                if(intpageid != NSNotFound && intpageid < [[notebook views] count])
                 {
-                    Box *box = (Box *)[view box];
-                    _dw_handle_resize_events(box);
+                    DWNotebookPage *page = [[notebook views] objectAtIndex:intpageid];
+
+                    if([page isKindOfClass:[DWBox class]])
+                    {
+                        Box *box = [page box];
+                        _dw_handle_resize_events(box);
+                    }
                 }
             }
-#endif
             /* Handle laying out scrollviews... if required space is less
              * than available space, then expand.  Otherwise use required space.
              */
@@ -2340,7 +2346,7 @@ static void _dw_resize_box(Box *thisbox, int *depth, int x, int y, int pass)
             if(height > 0 && width > 0)
             {
                 int pad = thisbox->items[z].pad;
-                UIView *handle = thisbox->items[z].hwnd;
+                id handle = thisbox->items[z].hwnd;
                 CGRect rect;
 
                 rect.origin.x = currentx + pad;
@@ -2363,23 +2369,33 @@ static void _dw_resize_box(Box *thisbox, int *depth, int x, int y, int pass)
                     }
                 }
 
-#if 0 /* TODO: Segemented control may not have subviews */
                 /* Special handling for notebook controls */
                 if([handle isMemberOfClass:[DWNotebook class]])
                 {
-                    DWNotebook *notebook = (DWNotebook *)handle;
-                    NSInteger index = [notebook selectedSegmentIndex];
-                    id view = [notepage view];
-
-                    if([view isMemberOfClass:[DWBox class]])
+                    DWNotebook *notebook = handle;
+                    NSInteger intpageid = [[notebook tabs] selectedSegmentIndex];
+                    
+                    if(intpageid != NSNotFound && intpageid < [[notebook views] count])
                     {
-                        Box *box = (Box *)[view box];
-                        CGSize size = [view frame].size;
-                        _dw_do_resize(box, size.width, size.height);
-                        _dw_handle_resize_events(box);
+                        DWNotebookPage *page = [[notebook views] objectAtIndex:intpageid];
+
+                        /* If the new page is a valid box, lay it out */
+                        if([page isKindOfClass:[DWBox class]])
+                        {
+                            Box *box = [page box];
+                            /* Start with the entire notebook size and then adjust
+                             * it to account for the segement control's height.
+                             */
+                            NSInteger height = [[notebook tabs] frame].size.height;
+                            CGRect frame = [notebook frame];
+                            frame.origin.y += height;
+                            frame.size.height -= height;
+                            [page setFrame:frame];
+                            _dw_do_resize(box, frame.size.width, frame.size.height);
+                            _dw_handle_resize_events(box);
+                        }
                     }
                 }
-#endif
                 /* Handle laying out scrollviews... if required space is less
                  * than available space, then expand.  Otherwise use required space.
                  */
@@ -2982,7 +2998,7 @@ void _dw_control_size(id handle, int *width, int *height)
                 else
                 {
                     /* Text button */
-                    nsstr = [object title];
+                    nsstr = [[object titleLabel] text];
 
                     extrawidth = 8;
                     extraheight = 4;
@@ -3005,7 +3021,7 @@ void _dw_control_size(id handle, int *width, int *height)
                 thiswidth = 150;
         }
         else
-            nsstr = [object stringValue];
+            nsstr = [object text];
 
         if(font)
             thisheight = (int)[font lineHeight];
@@ -3071,9 +3087,11 @@ void _dw_control_size(id handle, int *width, int *height)
         if(thisheight > _DW_SCROLLED_MAX_HEIGHT)
             thisheight = _DW_SCROLLED_MAX_HEIGHT;
     }
+    else if([ object isMemberOfClass:[UILabel class] ])
+        nsstr = [object text];
     /* Any other control type */
     else if([ object isKindOfClass:[ UIControl class ] ])
-        nsstr = [object stringValue];
+        nsstr = [object text];
 
     /* If we have a string...
      * calculate the size with the current font.
@@ -7334,9 +7352,15 @@ DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
 {
     DWNotebook *notebook = handle;
     NSInteger index = [[notebook tabs] selectedSegmentIndex];
-    NSMutableArray<DWNotebookPage *> *views = [notebook views];
-    DWNotebookPage *notepage = [views objectAtIndex:index];
-    unsigned long retval = [notepage pageid];
+    unsigned long retval = 0;
+    
+    if(index != NSNotFound)
+    {
+        NSMutableArray<DWNotebookPage *> *views = [notebook views];
+        DWNotebookPage *notepage = [views objectAtIndex:index];
+
+        retval = [notepage pageid];
+    }
     DW_FUNCTION_RETURN_THIS(retval);
 }
 
