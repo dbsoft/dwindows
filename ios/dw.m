@@ -915,8 +915,36 @@ API_AVAILABLE(ios(13.0))
     }
     else
         dw_dialog_dismiss(dialog, NULL);
+    [viewController dismissViewControllerAnimated:YES completion:nil];
 }
 -(void)colorPickerViewControllerDidFinish:(UIColorPickerViewController *)viewController API_AVAILABLE(ios(14.0))
+{
+    dw_dialog_dismiss(dialog, NULL);
+    [viewController dismissViewControllerAnimated:YES completion:nil];
+}
+-(void)setDialog:(DWDialog *)newdialog { dialog = newdialog; }
+@end
+
+@interface DWDocumentPickerDelegate : UIResponder <UIDocumentPickerDelegate>
+{
+    DWDialog *dialog;
+}
+-(void)documentPicker:(UIDocumentPickerViewController *)controller didPickDocumentsAtURLs:(NSArray<NSURL *> *)urls;
+-(void)documentPickerWasCancelled:(UIDocumentPickerViewController *)controller;
+-(void)setDialog:(DWDialog *)newdialog;
+@end
+
+@implementation DWDocumentPickerDelegate
+-(void)documentPicker:(UIDocumentPickerViewController *)controller didPickDocumentsAtURLs:(NSArray<NSURL *> *)urls
+{
+    NSURL *url = [urls firstObject];
+    char *file = NULL;
+
+    if(url && [[url absoluteString] length] > 0)
+        file = strdup([[url absoluteString] UTF8String]);
+    dw_dialog_dismiss(dialog, file);
+}
+-(void)documentPickerWasCancelled:(UIDocumentPickerViewController *)controller
 {
     dw_dialog_dismiss(dialog, NULL);
 }
@@ -960,6 +988,8 @@ API_AVAILABLE(ios(13.0))
         UIColorPickerViewController *picker = [[UIColorPickerViewController alloc] init];
         DWColorPickerDelegate *delegate = [[DWColorPickerDelegate alloc] init];
 
+        /* Setup our picker */
+        [picker setSupportsAlpha:NO];
         /* Unhide our hidden window and make it key */
         [hiddenWindow setHidden:NO];
         [hiddenWindow makeKeyAndVisible];
@@ -977,7 +1007,6 @@ API_AVAILABLE(ios(13.0))
         // Fallback on earlier versions
     };
 }
-
 -(void)fontPicker:(NSPointerArray *)params
 {
     DWDialog *dialog = dw_dialog_new(NULL);
@@ -1005,6 +1034,46 @@ API_AVAILABLE(ios(13.0))
     }
     else
         [params addPointer:NULL];
+    [picker release];
+    [delegate release];
+}
+-(void)filePicker:(NSPointerArray *)params
+{
+    DWDialog *dialog = dw_dialog_new(NULL);
+    UIDocumentPickerViewController *picker ;
+    DWDocumentPickerDelegate *delegate = [[DWDocumentPickerDelegate alloc] init];
+    UIDocumentPickerMode mode = UIDocumentPickerModeOpen;
+    char *defpath = [params pointerAtIndex:0];
+    char *ext = [params pointerAtIndex:1];
+    int flags = DW_POINTER_TO_INT([params pointerAtIndex:2]);
+    char *file = NULL;
+    NSArray *UTIs;
+
+    /* Setup the picker */
+    if(flags & DW_FILE_SAVE)
+        mode = UIDocumentPickerModeExportToService;
+    /* Try to generate a UTI for our passed extension */
+    if(ext)
+        UTIs = [NSArray arrayWithObject:[NSString stringWithFormat:@"public.%s", ext]];
+    else
+        UTIs = @[@"public.text"];
+    picker = [[UIDocumentPickerViewController alloc] initWithDocumentTypes:UTIs inMode:mode];
+    [picker setAllowsMultipleSelection:NO];
+    [picker setShouldShowFileExtensions:YES];
+    if(defpath)
+        [picker setDirectoryURL:[NSURL URLWithString:[NSString stringWithUTF8String:defpath]]];
+    /* Unhide our hidden window and make it key */
+    [hiddenWindow setHidden:NO];
+    [hiddenWindow makeKeyAndVisible];
+    [delegate setDialog:dialog];
+    [picker setDelegate:delegate];
+    /* Wait for them to pick a color */
+    [[hiddenWindow rootViewController] presentViewController:picker animated:YES completion:nil];
+    file = dw_dialog_wait(dialog);
+    /* Once the dialog is gone we can rehide our window */
+    [hiddenWindow resignKeyWindow];
+    [hiddenWindow setHidden:YES];
+    [params addPointer:file];
     [picker release];
     [delegate release];
 }
@@ -2850,7 +2919,17 @@ int API dw_messagebox(const char *title, int flags, const char *format, ...)
  */
 char * API dw_file_browse(const char *title, const char *defpath, const char *ext, int flags)
 {
-    return NULL;
+    NSPointerArray *params = [[NSPointerArray pointerArrayWithOptions:NSPointerFunctionsOpaqueMemory] retain];
+    char *file = NULL;
+
+    [params addPointer:(void *)defpath];
+    [params addPointer:(void *)ext];
+    [params addPointer:DW_INT_TO_POINTER(flags)];
+    [DWObj safeCall:@selector(filePicker:) withObject:params];
+    if([params count] > 3)
+        file = [params pointerAtIndex:3];
+
+    return file;
 }
 
 /*
