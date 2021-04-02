@@ -868,6 +868,61 @@ API_AVAILABLE(ios(13.0))
 -(BOOL)acceptsFirstResponder { return YES; }
 @end
 
+@interface DWFontPickerDelegate : UIResponder <UIFontPickerViewControllerDelegate>
+{
+    DWDialog *dialog;
+}
+-(void)fontPickerViewControllerDidPickFont:(UIFontPickerViewController *)viewController;
+-(void)fontPickerViewControllerDidCancel:(UIFontPickerViewController *)viewController;
+-(void)setDialog:(DWDialog *)newdialog;
+@end
+
+@implementation DWFontPickerDelegate
+-(void)fontPickerViewControllerDidPickFont:(UIFontPickerViewController *)viewController
+{
+    if(viewController.selectedFontDescriptor)
+    {
+        UIFont *font = [UIFont fontWithDescriptor:viewController.selectedFontDescriptor size:9];
+        dw_dialog_dismiss(dialog, font);
+    }
+    else
+        dw_dialog_dismiss(dialog, NULL);
+}
+-(void)fontPickerViewControllerDidCancel:(UIFontPickerViewController *)viewController
+{
+    dw_dialog_dismiss(dialog, NULL);
+}
+-(void)setDialog:(DWDialog *)newdialog { dialog = newdialog; }
+@end
+
+@interface DWColorPickerDelegate : UIResponder <UIColorPickerViewControllerDelegate>
+{
+    DWDialog *dialog;
+}
+-(void)colorPickerViewControllerDidSelectColor:(UIColorPickerViewController *)viewController API_AVAILABLE(ios(14.0));
+-(void)colorPickerViewControllerDidFinish:(UIColorPickerViewController *)viewController API_AVAILABLE(ios(14.0));
+-(void)setDialog:(DWDialog *)newdialog;
+@end
+
+@implementation DWColorPickerDelegate
+-(void)colorPickerViewControllerDidSelectColor:(UIColorPickerViewController *)viewController API_AVAILABLE(ios(14.0))
+{
+    if([viewController selectedColor])
+    {
+        CGFloat red, green, blue;
+        [[viewController selectedColor] getRed:&red green:&green blue:&blue alpha:NULL];
+        dw_dialog_dismiss(dialog, DW_UINT_TO_POINTER(DW_RGB((int)(red * 255), (int)(green *255), (int)(blue *255))));
+    }
+    else
+        dw_dialog_dismiss(dialog, NULL);
+}
+-(void)colorPickerViewControllerDidFinish:(UIColorPickerViewController *)viewController API_AVAILABLE(ios(14.0))
+{
+    dw_dialog_dismiss(dialog, NULL);
+}
+-(void)setDialog:(DWDialog *)newdialog { dialog = newdialog; }
+@end
+
 @implementation DWObject
 -(id)init
 {
@@ -896,6 +951,62 @@ API_AVAILABLE(ios(13.0))
     void (*mycallback)(NSPointerArray *) = [params pointerAtIndex:0];
     if(mycallback)
         mycallback(params);
+}
+-(void)colorPicker:(NSMutableArray *)params
+{
+    if (@available(iOS 14.0, *))
+    {
+        DWDialog *dialog = dw_dialog_new(NULL);
+        UIColorPickerViewController *picker = [[UIColorPickerViewController alloc] init];
+        DWColorPickerDelegate *delegate = [[DWColorPickerDelegate alloc] init];
+
+        /* Unhide our hidden window and make it key */
+        [hiddenWindow setHidden:NO];
+        [hiddenWindow makeKeyAndVisible];
+        [delegate setDialog:dialog];
+        [picker setDelegate:delegate];
+        /* Wait for them to pick a color */
+        [[hiddenWindow rootViewController] presentViewController:picker animated:YES completion:nil];
+        [params addObject:[NSNumber numberWithUnsignedLong:DW_POINTER_TO_UINT(dw_dialog_wait(dialog))]];
+        /* Once the dialog is gone we can rehide our window */
+        [hiddenWindow resignKeyWindow];
+        [hiddenWindow setHidden:YES];
+        [picker release];
+        [delegate release];
+    } else {
+        // Fallback on earlier versions
+    };
+}
+
+-(void)fontPicker:(NSPointerArray *)params
+{
+    DWDialog *dialog = dw_dialog_new(NULL);
+    UIFontPickerViewController *picker = [[UIFontPickerViewController alloc] init];
+    DWFontPickerDelegate *delegate = [[DWFontPickerDelegate alloc] init];
+    UIFont *font;
+
+    /* Unhide our hidden window and make it key */
+    [hiddenWindow setHidden:NO];
+    [hiddenWindow makeKeyAndVisible];
+    [delegate setDialog:dialog];
+    [picker setDelegate:delegate];
+    /* Wait for them to pick a color */
+    [[hiddenWindow rootViewController] presentViewController:picker animated:YES completion:nil];
+    font = dw_dialog_wait(dialog);
+    /* Once the dialog is gone we can rehide our window */
+    [hiddenWindow resignKeyWindow];
+    [hiddenWindow setHidden:YES];
+
+    if(font)
+    {
+        NSString *fontname = [font fontName];
+        NSString *output = [NSString stringWithFormat:@"%d.%s", (int)[font pointSize], [fontname UTF8String]];
+        [params addPointer:strdup([output UTF8String])];
+    }
+    else
+        [params addPointer:NULL];
+    [picker release];
+    [delegate release];
 }
 -(void)messageBox:(NSMutableArray *)params
 {
@@ -4714,48 +4825,14 @@ void API dw_color_background_set(unsigned long value)
  */
 unsigned long API dw_color_choose(unsigned long value)
 {
-#if 0 /* TODO: Implement this with UIColorPickerViewController */
-    /* Create the Color Chooser Dialog class. */
-    DWColorChoose *colorDlg;
-    DWDialog *dialog;
-    DW_LOCAL_POOL_IN;
+    NSMutableArray *params = [NSMutableArray arrayWithObject:[NSNumber numberWithUnsignedLong:value]];
+    unsigned long newcolor = value;
 
-    if(![DWColorChoose sharedColorPanelExists])
-    {
-        colorDlg = (DWColorChoose *)[DWColorChoose sharedColorPanel];
-        /* Set defaults for the dialog. */
-        [colorDlg setContinuous:NO];
-        [colorDlg setTarget:colorDlg];
-        [colorDlg setAction:@selector(changeColor:)];
-    }
-    else
-        colorDlg = (DWColorChoose *)[DWColorChoose sharedColorPanel];
+    [DWObj safeCall:@selector(colorPicker:) withObject:params];
+    if([params count] > 1)
+        newcolor = [[params lastObject] unsignedLongValue];
 
-    /* If someone is already waiting just return */
-    if([colorDlg dialog])
-    {
-        DW_LOCAL_POOL_OUT;
-        return value;
-    }
-
-    unsigned long tempcol = _dw_get_color(value);
-    UIColor *color = [[UIColor colorWithDeviceRed: DW_RED_VALUE(tempcol)/255.0 green: DW_GREEN_VALUE(tempcol)/255.0 blue: DW_BLUE_VALUE(tempcol)/255.0 alpha: 1] retain];
-    [colorDlg setColor:color];
-
-    dialog = dw_dialog_new(colorDlg);
-    [colorDlg setDialog:dialog];
-    [colorDlg makeKeyAndOrderFront:nil];
-
-    /* Wait for them to pick a color */
-    color = (UIColor *)dw_dialog_wait(dialog);
-
-    /* Figure out the value of what they returned */
-    CGFloat red, green, blue;
-    [color getRed:&red green:&green blue:&blue alpha:NULL];
-    value = DW_RGB((int)(red * 255), (int)(green *255), (int)(blue *255));
-    DW_LOCAL_POOL_OUT;
-#endif
-    return value;
+    return newcolor;
 }
 
 CGContextRef _dw_draw_context(UIImage *image, bool antialiased)
@@ -6300,7 +6377,7 @@ HWND API dw_mdi_new(unsigned long cid)
      * similar behavior.
      */
     DWMDI *mdi = [[[DWMDI alloc] init] retain];
-    /* [mdi setTag:cid]; Why doesn't this work? */
+    [mdi setTag:cid];
     return mdi;
 }
 
@@ -6946,7 +7023,7 @@ DW_FUNCTION_RESTORE_PARAM1(DW_UNUSED(cid), ULONG)
     DW_FUNCTION_INIT;
     DWWebView *web = [[[DWWebView alloc] init] retain];
     web.navigationDelegate = web;
-    /* [web setTag:cid]; Why doesn't this work? */
+    [web setTag:cid];
     DW_FUNCTION_RETURN_THIS(web);
 }
 
@@ -7612,6 +7689,7 @@ DW_FUNCTION_RESTORE_PARAM3(handle, HWND, fore, unsigned long, back, unsigned lon
         DWBox *box = object;
 
         [box setColor:_back];
+        [box setBackgroundColor:bg];
     }
     else if([object isKindOfClass:[UITableView class]])
     {
@@ -7789,20 +7867,15 @@ void API dw_window_reparent(HWND handle, HWND newparent)
  */
 char * API dw_font_choose(const char *currfont)
 {
-    __block UIFont *font = nil;
-    UIFontPickerViewController* picker = [[UIFontPickerViewController alloc] init];
-    /*TODO: Add handler for accepting the font fontPickerViewControllerDidPickFont */
-    /* Wait for them to pick a color */
-    [picker presentViewController:picker animated:YES completion:nil];
-    [picker release];
+    NSPointerArray *params = [[NSPointerArray pointerArrayWithOptions:NSPointerFunctionsOpaqueMemory] retain];
+    char *font = NULL;
 
-    if(font)
-    {
-        NSString *fontname = [font fontName];
-        NSString *output = [NSString stringWithFormat:@"%d.%s", (int)[font pointSize], [fontname UTF8String]];
-        return strdup([output UTF8String]);
-    }
-    return NULL;
+    [params addPointer:(void *)currfont];
+    [DWObj safeCall:@selector(fontPicker:) withObject:params];
+    if([params count] > 1)
+        font = [params pointerAtIndex:1];
+
+    return font;
 }
 
 /* Internal function to return a pointer to an item struct
