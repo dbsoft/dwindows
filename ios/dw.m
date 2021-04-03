@@ -199,17 +199,17 @@ char *_dw_get_image_extension(const char *filename)
    int found_ext = 0,i;
 
    /* Try various extentions */
-   for ( i = 0; i < NUM_EXTS; i++ )
+   for(i = 0; i < NUM_EXTS; i++)
    {
-      strcpy( file, filename );
-      strcat( file, _dw_image_exts[i] );
-      if ( access( file, R_OK ) == 0 )
+      strcpy(file, filename);
+      strcat(file, _dw_image_exts[i]);
+      if(access(file, R_OK ) == 0)
       {
          found_ext = 1;
          break;
       }
    }
-   if ( found_ext == 1 )
+   if(found_ext == 1)
    {
       return _dw_image_exts[i];
    }
@@ -305,12 +305,12 @@ typedef struct
     ULONG message;
     char name[30];
 
-} SignalList;
+} DWSignalList;
 
 /* List of signals */
 #define SIGNALMAX 19
 
-static SignalList DWSignalTranslate[SIGNALMAX] = {
+static DWSignalList DWSignalTranslate[SIGNALMAX] = {
     { 1,    DW_SIGNAL_CONFIGURE },
     { 2,    DW_SIGNAL_KEY_PRESS },
     { 3,    DW_SIGNAL_BUTTON_PRESS },
@@ -583,7 +583,7 @@ static DWTID DWThread = (DWTID)-1;
 static HEV DWMainEvent;
 
 /* Used for doing bitblts from the main thread */
-typedef struct _bitbltinfo
+typedef struct _dw_bitbltinfo
 {
     id src;
     id dest;
@@ -1019,7 +1019,7 @@ API_AVAILABLE(ios(13.0))
     [hiddenWindow makeKeyAndVisible];
     [delegate setDialog:dialog];
     [picker setDelegate:delegate];
-    /* Wait for them to pick a color */
+    /* Wait for them to pick a font */
     [[hiddenWindow rootViewController] presentViewController:picker animated:YES completion:nil];
     font = dw_dialog_wait(dialog);
     /* Once the dialog is gone we can rehide our window */
@@ -1067,7 +1067,7 @@ API_AVAILABLE(ios(13.0))
     [hiddenWindow makeKeyAndVisible];
     [delegate setDialog:dialog];
     [picker setDelegate:delegate];
-    /* Wait for them to pick a color */
+    /* Wait for them to pick a file */
     [[hiddenWindow rootViewController] presentViewController:picker animated:YES completion:nil];
     file = dw_dialog_wait(dialog);
     /* Once the dialog is gone we can rehide our window */
@@ -1667,19 +1667,14 @@ DWObject *DWObj;
 @interface DWMLE : UITextView
 {
     void *userdata;
-    id scrollview;
 }
 -(void *)userdata;
 -(void)setUserdata:(void *)input;
--(id)scrollview;
--(void)setScrollview:(id)input;
 @end
 
 @implementation DWMLE
 -(void *)userdata { return userdata; }
 -(void)setUserdata:(void *)input { userdata = input; }
--(id)scrollview { return scrollview; }
--(void)setScrollview:(id)input { scrollview = input; }
 -(void)dealloc { UserData *root = userdata; _dw_remove_userdata(&root, NULL, TRUE); dw_signal_disconnect_by_window(self); [super dealloc]; }
 @end
 
@@ -1692,31 +1687,9 @@ UITableViewCell *_dw_table_cell_view_new(UIImage *icon, NSString *text)
     [browsercell setAutoresizesSubviews:YES];
 
     if(icon)
-    {
-        if(@available(iOS 14.0, *))
-        {
-            UIListContentConfiguration *content = [browsercell defaultContentConfiguration];
-            
-            [content setImage:icon];
-        }
-        else
-        {
-            [browsercell setImage:icon];
-        }
-    }
+        [[browsercell imageView] setImage:icon];
     if(text)
-    {
-        if(@available(iOS 14.0, *))
-        {
-            UIListContentConfiguration *content = [browsercell defaultContentConfiguration];
-            
-            [content setText:text];
-        }
-        else
-        {
-            [browsercell setText:text];
-        }
-    }
+        [[browsercell textLabel] setText:text];
     return browsercell;
 }
 
@@ -1733,7 +1706,6 @@ UITableViewCell *_dw_table_cell_view_new(UIImage *icon, NSString *text)
     unsigned long dw_oddcolor, dw_evencolor;
     unsigned long _DW_COLOR_ROW_ODD, _DW_COLOR_ROW_EVEN;
     int iLastAddPoint, iLastQueryPoint;
-    id scrollview;
     int filesystem;
 }
 -(NSInteger)tableView:(UITableView *)aTable numberOfRowsInSection:(NSInteger)section;
@@ -1745,8 +1717,6 @@ UITableViewCell *_dw_table_cell_view_new(UIImage *icon, NSString *text)
 -(void)setUserdata:(void *)input;
 -(void)setFilesystem:(int)input;
 -(int)filesystem;
--(id)scrollview;
--(void)setScrollview:(id)input;
 -(int)addRow:(NSArray *)input;
 -(int)addRows:(int)number;
 -(void)editCell:(id)input at:(int)row and:(int)col;
@@ -1776,9 +1746,7 @@ UITableViewCell *_dw_table_cell_view_new(UIImage *icon, NSString *text)
         int cols = (int)[tvcols count];
         int total = (int)[data count];
         if(cols && total)
-        {
             return total / cols;
-        }
     }
     return 0;
 }
@@ -1796,18 +1764,9 @@ UITableViewCell *_dw_table_cell_view_new(UIImage *icon, NSString *text)
         /* Copy the alignment setting from the column,
          * and set the text color from the container.
          */
-        if(@available(iOS 14.0, *))
-        {
-            UIListContentConfiguration *content = [result defaultContentConfiguration];
-            
-            if(fgcolor)
-                [[content textProperties] setColor:fgcolor];
-        }
-        else
-        {
-            if(fgcolor)
-                [result setTextColor:fgcolor];
-        }
+        if(fgcolor)
+            [[result textLabel] setTextColor:fgcolor];
+
         /* Return the result */
         return result;
     }
@@ -1832,8 +1791,6 @@ UITableViewCell *_dw_table_cell_view_new(UIImage *icon, NSString *text)
 -(void)setUserdata:(void *)input { userdata = input; }
 -(void)setFilesystem:(int)input { filesystem = input; }
 -(int)filesystem { return filesystem; }
--(id)scrollview { return scrollview; }
--(void)setScrollview:(id)input { scrollview = input; }
 -(void)refreshColors
 {
     UIColor *oldodd = oddcolor;
@@ -3130,7 +3087,7 @@ int API dw_scrollbox_get_range(HWND handle, int orient)
 }
 
 /* Return the handle to the text object */
-id _text_handle(id object)
+id _dw_text_handle(id object)
 {
     if([object isMemberOfClass:[ DWSpinButton class]])
     {
@@ -3167,7 +3124,7 @@ void _dw_control_size(id handle, int *width, int *height)
 {
     int thiswidth = 1, thisheight = 1, extrawidth = 0, extraheight = 0;
     NSString *nsstr = nil;
-    id object = _text_handle(handle);
+    id object = _dw_text_handle(handle);
 
     /* Handle all the different button types */
     if([ object isKindOfClass:[ UIButton class ] ])
@@ -3250,18 +3207,7 @@ void _dw_control_size(id handle, int *width, int *height)
         CGSize size;
 
         if([ object isMemberOfClass:[DWMLE class] ])
-        {
-            UIScrollView *sv = [object scrollview];
-            CGRect frame = [sv frame];
-
-            /* Size the text view to fit */
-            [object sizeToFit];
-            frame.size = [object bounds].size;
-            frame.size.width += 2.0;
-            frame.size.height += 2.0;
-            [sv setFrame:frame];
-            size = frame.size;
-        }
+            size = [object contentSize];
         else
             size = [object getsize];
 
@@ -3339,13 +3285,6 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
     thisitem = thisbox->items;
     object = item;
 
-    /* Query the objects */
-    if([ object isMemberOfClass:[ DWContainer class ] ] ||
-       [ object isMemberOfClass:[ DWMLE class ] ])
-    {
-        this = item = [object scrollview];
-    }
-
     /* Do some sanity bounds checking */
     if(!thisitem)
         thisbox->count = 0;
@@ -3376,9 +3315,9 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
        tmpitem[index].type = TYPEBOX;
     else
     {
-        if ( width == 0 && hsize == FALSE )
+        if(width == 0 && hsize == FALSE)
             dw_messagebox(funcname, DW_MB_OK|DW_MB_ERROR, "Width and expand Horizonal both unset for box: %x item: %x",box,item);
-        if ( height == 0 && vsize == FALSE )
+        if(height == 0 && vsize == FALSE)
             dw_messagebox(funcname, DW_MB_OK|DW_MB_ERROR, "Height and expand Vertical both unset for box: %x item: %x",box,item);
 
         tmpitem[index].type = TYPEITEM;
@@ -3444,15 +3383,6 @@ DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
     if([object isKindOfClass:[UIView class]] || [object isKindOfClass:[UIControl class]])
     {
         DWBox *parent = (DWBox *)[object superview];
-
-        /* Some controls are embedded in scrollviews...
-         * so get the parent of the scrollview in that case.
-         */
-        if(([object isKindOfClass:[UITableView class]] || [object isMemberOfClass:[DWMLE class]]))
-        {
-            object = [parent superview];
-            parent = (DWBox *)[object superview];
-        }
 
         if([parent isKindOfClass:[DWBox class]])
         {
@@ -4498,12 +4428,10 @@ DW_FUNCTION_RESTORE_PARAM1(cid, ULONG)
     CGRect frame = CGRectMake(0, 0, 100, 50);
     NSTextContainer *tc = [[NSTextContainer alloc] initWithSize:frame.size];
     DWMLE *mle = [[[DWMLE alloc] initWithFrame:frame textContainer:tc] retain];
-    UIScrollView *scrollview  = [[UIScrollView alloc] init];
     CGSize size = [mle intrinsicContentSize];
 
     size.width = size.height;
     [mle setAutoresizingMask:UIViewAutoresizingFlexibleHeight|UIViewAutoresizingFlexibleWidth];
-    [mle setScrollview:scrollview];
     [mle setTag:cid];
     [mle autorelease];
     DW_FUNCTION_RETURN_THIS(mle);
@@ -6075,9 +6003,8 @@ DW_FUNCTION_RESTORE_PARAM3(handle, HWND, direction, int, DW_UNUSED(rows), long)
 {
     DW_FUNCTION_INIT;
     DWContainer *cont = handle;
-    UIScrollView *sv = [cont scrollview];
     int rowcount = (int)[cont numberOfRowsInSection:0];
-    CGPoint offset = [sv contentOffset];
+    CGPoint offset = [cont contentOffset];
 
     /* Safety check */
     if(rowcount < 1)
@@ -6094,24 +6021,24 @@ DW_FUNCTION_RESTORE_PARAM3(handle, HWND, direction, int, DW_UNUSED(rows), long)
         }
         case DW_SCROLL_BOTTOM:
         {
-            offset.y = [sv contentSize].height - [sv visibleSize].height;
+            offset.y = [cont contentSize].height - [cont visibleSize].height;
             break;
         }
         /* TODO: Currently scrolling a full page, need to use row parameter instead */
         case DW_SCROLL_UP:
         {
-            offset.y -= [sv visibleSize].height;
+            offset.y -= [cont visibleSize].height;
             break;
         }
         case DW_SCROLL_DOWN:
         {
-            offset.y += [sv visibleSize].height;
+            offset.y += [cont visibleSize].height;
             break;
         }
     }
     if(offset.y < 0)
         offset.y = 0;
-    [sv setContentOffset:offset];
+    [cont setContentOffset:offset];
     DW_FUNCTION_RETURN_NOTHING;
 }
 
@@ -7809,7 +7736,7 @@ DW_FUNCTION_ADD_PARAM3(handle, style, mask)
 DW_FUNCTION_NO_RETURN(dw_window_set_style)
 DW_FUNCTION_RESTORE_PARAM3(handle, HWND, style, ULONG, mask, ULONG)
 {
-    id object = _text_handle(handle);
+    id object = _dw_text_handle(handle);
 
     if([object isKindOfClass:[UILabel class]])
     {
@@ -7967,15 +7894,6 @@ Item *_dw_box_item(id object)
     {
         DWBox *parent = (DWBox *)[object superview];
 
-        /* Some controls are embedded in scrollviews...
-         * so get the parent of the scrollview in that case.
-         */
-        if([object isKindOfClass:[UITableView class]])
-        {
-            object = [parent superview];
-            parent = (DWBox *)[object superview];
-        }
-
         if([parent isKindOfClass:[DWBox class]])
         {
             Box *thisbox = [parent box];
@@ -8005,7 +7923,7 @@ int API dw_window_set_font(HWND handle, const char *fontname)
 
     if(font)
     {
-        id object = _text_handle(handle);
+        id object = _dw_text_handle(handle);
         if([object isMemberOfClass:[DWMLE class]])
         {
             DWMLE *mle = object;
@@ -8046,7 +7964,7 @@ int API dw_window_set_font(HWND handle, const char *fontname)
  */
 char * API dw_window_get_font(HWND handle)
 {
-    id object = _text_handle(handle);
+    id object = _dw_text_handle(handle);
     UIFont *font = nil;
 
     if([object isKindOfClass:[UIControl class]] || [object isMemberOfClass:[DWRender class]])
@@ -8096,15 +8014,6 @@ DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
     else if([object isKindOfClass:[UIView class]] || [object isKindOfClass:[UIControl class]])
     {
         DWBox *parent = (DWBox *)[object superview];
-
-        /* Some controls are embedded in scrollviews...
-         * so get the parent of the scrollview in that case.
-         */
-        if(([object isKindOfClass:[UITableView class]] || [object isMemberOfClass:[DWMLE class]]))
-        {
-            object = [parent superview];
-            parent = (DWBox *)[object superview];
-        }
 
         if([parent isKindOfClass:[DWBox class]])
         {
@@ -8171,7 +8080,7 @@ DW_FUNCTION_RETURN(dw_window_get_text, char *)
 DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
 {
     DW_FUNCTION_INIT;
-    id object = _text_handle(handle);
+    id object = _dw_text_handle(handle);
     char *retval = NULL;
 
     if([ object isKindOfClass:[ UIWindow class ] ] || [ object isKindOfClass:[ UIButton class ] ])
@@ -8203,7 +8112,7 @@ DW_FUNCTION_NO_RETURN(dw_window_set_text)
 DW_FUNCTION_RESTORE_PARAM2(handle, HWND, text, char *)
 {
     DW_FUNCTION_INIT;
-    id object = _text_handle(handle);
+    id object = _dw_text_handle(handle);
 
     if([ object isKindOfClass:[ UIWindow class ] ] || [ object isKindOfClass:[ UIButton class ] ])
         [object setTitle:[NSString stringWithUTF8String:text]];
