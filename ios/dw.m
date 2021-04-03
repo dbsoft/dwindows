@@ -4238,18 +4238,7 @@ DW_FUNCTION_RESTORE_PARAM4(handle, HWND, index, unsigned int, buffer, char *, le
         else
         {
             UITableViewCell *cell = [cont getRow:index and:0];
-            NSString *nstr;
-
-            if(@available(iOS 14.0, *))
-            {
-                UIListContentConfiguration *content = [cell defaultContentConfiguration];
-                
-                nstr = [content text];
-            }
-            else
-            {
-                nstr = [cell text];
-            }
+            NSString *nstr = [[cell textLabel] text];
 
             strncpy(buffer, [nstr UTF8String], length - 1);
         }
@@ -4281,17 +4270,8 @@ DW_FUNCTION_RESTORE_PARAM3(handle, HWND, index, unsigned int, buffer, char *)
         {
             NSString *nstr = [NSString stringWithUTF8String:buffer];
             UITableViewCell *cell = [cont getRow:index and:0];
-            
-            if(@available(iOS 14.0, *))
-            {
-                UIListContentConfiguration *content = [cell defaultContentConfiguration];
-                
-                [content setText:nstr];
-            }
-            else
-            {
-                [cell setText:nstr];
-            }
+
+            [[cell textLabel] setText:nstr];
             [cont reloadData];
             [cont setNeedsDisplay];
         }
@@ -5630,31 +5610,9 @@ DW_FUNCTION_RESTORE_PARAM5(handle, HWND, pointer, void *, column, int, row, int,
         UITableViewCell *cell = object;
 
         if(icon)
-        {
-            if(@available(iOS 14.0, *))
-            {
-                UIListContentConfiguration *content = [cell defaultContentConfiguration];
-                
-                [content setImage:icon];
-            }
-            else
-            {
-                [cell setImage:icon];
-            }
-        }
+            [[cell imageView] setImage:icon];
         else
-        {
-            if(@available(iOS 14.0, *))
-            {
-                UIListContentConfiguration *content = [cell defaultContentConfiguration];
-                
-                [content setText:text];
-            }
-            else
-            {
-                [cell setText:text];
-            }
-        }
+            [[cell textLabel] setText:text];
     }
     else /* Otherwise replace it with a new cell */
         [cont editCell:_dw_table_cell_view_new(icon, text) at:(row+lastadd) and:column];
@@ -5733,31 +5691,9 @@ DW_FUNCTION_RESTORE_PARAM5(handle, HWND, pointer, void *, row, int, filename, ch
         UITableViewCell *cell = object;
 
         if(icon)
-        {
-            if(@available(iOS 14.0, *))
-            {
-                UIListContentConfiguration *content = [cell defaultContentConfiguration];
-                
-                [content setImage:icon];
-            }
-            else
-            {
-                [cell setImage:icon];
-            }
-        }
+            [[cell imageView] setImage:icon];
         if(text)
-        {
-            if(@available(iOS 14.0, *))
-            {
-                UIListContentConfiguration *content = [cell defaultContentConfiguration];
-                
-                [content setText:text];
-            }
-            else
-            {
-                [cell setText:text];
-            }
-        }
+            [[cell textLabel] setText:text];
     }
     else /* Otherwise replace it with a new cell */
         [cont editCell:_dw_table_cell_view_new(icon, text) at:(row+lastadd) and:0];
