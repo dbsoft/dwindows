@@ -1167,7 +1167,6 @@ void tree_add(void)
 {
     HTREEITEM t1,t2;
     HWND listbox;
-    char *title;
 
     /* create a box to pack into the notebook page */
     listbox = dw_listbox_new(1024, TRUE);
@@ -1182,6 +1181,8 @@ void tree_add(void)
     tree = dw_tree_new(101);
     if(tree)
     {
+        char *title;
+
         dw_box_pack_start(notebookbox3, tree, 500, 200, TRUE, TRUE, 1);
 
         /* and a status area to see whats going on */
@@ -2164,7 +2165,6 @@ int dwmain(int argc, char *argv[])
     dw_notebook_page_set_text( notebook, notebookpage6, "mdi");
     mdi_add();
 #endif
-
     notebookbox7 = dw_box_new( DW_VERT, 6 );
     notebookpage7 = dw_notebook_page_new( notebook, 1, FALSE );
     dw_notebook_pack( notebook, notebookpage7, notebookbox7 );
