@@ -4423,6 +4423,10 @@ DW_FUNCTION_RESTORE_PARAM1(cid, ULONG)
 {
     CGRect frame = CGRectMake(0, 0, 100, 50);
     NSTextContainer *tc = [[NSTextContainer alloc] initWithSize:frame.size];
+    NSLayoutManager *lm = [[NSLayoutManager alloc] init];
+    NSTextStorage *ts = [[NSTextStorage alloc] init];
+    [lm addTextContainer:tc];
+    [ts addLayoutManager:lm];
     DWMLE *mle = [[[DWMLE alloc] initWithFrame:frame textContainer:tc] retain];
     CGSize size = [mle intrinsicContentSize];
 
