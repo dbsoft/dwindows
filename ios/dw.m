@@ -1561,7 +1561,7 @@ DWObject *DWObj;
 {
     NSInteger intpageid = [tabs selectedSegmentIndex];
     
-    if(intpageid != NSNotFound && intpageid < [views count])
+    if(intpageid != -1 && intpageid < [views count])
     {
         DWNotebookPage *page = [views objectAtIndex:intpageid];
 
@@ -2306,7 +2306,7 @@ void _dw_handle_resize_events(Box *thisbox)
                 DWNotebook *notebook = handle;
                 NSInteger intpageid = [[notebook tabs] selectedSegmentIndex];
                 
-                if(intpageid != NSNotFound && intpageid < [[notebook views] count])
+                if(intpageid != -1 && intpageid < [[notebook views] count])
                 {
                     DWNotebookPage *page = [[notebook views] objectAtIndex:intpageid];
 
@@ -2511,8 +2511,21 @@ static void _dw_resize_box(Box *thisbox, int *depth, int x, int y, int pass)
                 {
                     DWNotebook *notebook = handle;
                     NSInteger intpageid = [[notebook tabs] selectedSegmentIndex];
-                    
-                    if(intpageid != NSNotFound && intpageid < [[notebook views] count])
+
+                    if(intpageid == -1)
+                    {
+                        if([[notebook tabs] numberOfSegments] > 0)
+                        {
+                            DWNotebookPage *notepage = [[notebook views] firstObject];
+
+                            /* If there is no selected segment, select the first one... */
+                            [[notebook tabs] setSelectedSegmentIndex:0];
+                            intpageid = 0;
+                            [notepage setHidden:NO];
+                        }
+                    }
+
+                    if(intpageid != -1 && intpageid < [[notebook views] count])
                     {
                         DWNotebookPage *page = [[notebook views] objectAtIndex:intpageid];
 
@@ -3223,7 +3236,7 @@ void _dw_control_size(id handle, int *width, int *height)
         if(thisheight > _DW_SCROLLED_MAX_HEIGHT)
             thisheight = _DW_SCROLLED_MAX_HEIGHT;
     }
-    else if([ object isMemberOfClass:[UILabel class] ])
+    else if([ object isKindOfClass:[UILabel class] ])
         nsstr = [object text];
     /* Any other control type */
     else if([ object isKindOfClass:[ UIControl class ] ])
@@ -6787,10 +6800,13 @@ DW_FUNCTION_ADD_PARAM1(cid)
 DW_FUNCTION_RETURN(dw_calendar_new, HWND)
 DW_FUNCTION_RESTORE_PARAM1(cid, ULONG)
 {
+    DWCalendar *calendar = nil;
+#if 0 /* TODO: Figure out why this hangs the UI */
     DWCalendar *calendar = [[[DWCalendar alloc] init] retain];
     [calendar setDatePickerMode:UIDatePickerModeDate];
     [calendar setTag:cid];
     [calendar setDate:[NSDate date]];
+#endif
     DW_FUNCTION_RETURN_THIS(calendar);
 }
 
@@ -6807,8 +6823,7 @@ DW_FUNCTION_RESTORE_PARAM4(handle, HWND, year, unsigned int, month, unsigned int
 {
     DWCalendar *calendar = handle;
     NSDate *date;
-    char buffer[101];
-    DW_LOCAL_POOL_IN;
+    char buffer[101] = {0};
 
     snprintf(buffer, 100, "%04d-%02d-%02d", year, month, day);
 
@@ -6818,7 +6833,6 @@ DW_FUNCTION_RESTORE_PARAM4(handle, HWND, year, unsigned int, month, unsigned int
     date = [dateFormatter dateFromString:[NSString stringWithUTF8String:buffer]];
     [calendar setDate:date];
     [date release];
-    DW_LOCAL_POOL_OUT;
     DW_FUNCTION_RETURN_NOTHING;
 }
 
@@ -6833,7 +6847,6 @@ DW_FUNCTION_NO_RETURN(dw_calendar_get_date)
 DW_FUNCTION_RESTORE_PARAM4(handle, HWND, year, unsigned int *, month, unsigned int *, day, unsigned int *)
 {
     DWCalendar *calendar = handle;
-    DW_LOCAL_POOL_IN;
     NSCalendar *mycalendar = [[NSCalendar alloc] initWithCalendarIdentifier:NSCalendarIdentifierGregorian];
     NSDate *date = [calendar date];
     NSDateComponents* components = [mycalendar components:NSCalendarUnitDay|NSCalendarUnitMonth|NSCalendarUnitYear fromDate:date];
@@ -6841,7 +6854,6 @@ DW_FUNCTION_RESTORE_PARAM4(handle, HWND, year, unsigned int *, month, unsigned i
     *month = (unsigned int)[components month];
     *year = (unsigned int)[components year];
     [mycalendar release];
-    DW_LOCAL_POOL_OUT;
     DW_FUNCTION_RETURN_NOTHING;
 }
 
@@ -7309,14 +7321,6 @@ DW_FUNCTION_RESTORE_PARAM3(handle, HWND, DW_UNUSED(flags), ULONG, front, int)
     [notepage autorelease];
     [notebook setPageid:(int)(page+1)];
 
-#if 0
-    if([views objectAtIndex:[[notebook tabs] selectedSegmentIndex]] == notepage)
-    {
-        /* If the page we added is the visible page.. lay it out */
-        [notebook pageChanged:notebook];
-    }
-    else
-#endif
     if([views count] != 1)
     {
         /* Otherwise hide the page */
@@ -7373,7 +7377,7 @@ DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
     NSInteger index = [[notebook tabs] selectedSegmentIndex];
     unsigned long retval = 0;
     
-    if(index != NSNotFound)
+    if(index != -1)
     {
         NSMutableArray<DWNotebookPage *> *views = [notebook views];
         DWNotebookPage *notepage = [views objectAtIndex:index];
@@ -7402,9 +7406,9 @@ DW_FUNCTION_RESTORE_PARAM2(handle, HWND, pageid, unsigned int)
         NSMutableArray<DWNotebookPage *> *views = [notebook views];
         NSUInteger index = [views indexOfObject:notepage];
 
-        if(index != NSNotFound)
+        if(index != -1)
         {
-            [notebook tabs].selectedSegmentIndex = index;
+            [[notebook tabs] setSelectedSegmentIndex:index];
         }
     }
     DW_FUNCTION_RETURN_NOTHING;
