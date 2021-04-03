@@ -1533,6 +1533,7 @@ DWObject *DWObj;
 -(void)setUserdata:(void *)input;
 -(int)pageid;
 -(void)setPageid:(int)input;
+-(void)setVisible:(DWNotebookPage *)input;
 -(UISegmentedControl *)tabs;
 -(NSMutableArray<DWNotebookPage *> *)views;
 -(void)pageChanged:(id)sender;
@@ -1555,6 +1556,7 @@ DWObject *DWObj;
 -(void)setUserdata:(void *)input { userdata = input; }
 -(int)pageid { return pageid; }
 -(void)setPageid:(int)input { pageid = input; }
+-(void)setVisible:(DWNotebookPage *)input { visible = input; }
 -(UISegmentedControl *)tabs { return tabs; }
 -(NSMutableArray<DWNotebookPage *> *)views { return views; };
 -(void)pageChanged:(id)sender
@@ -2522,6 +2524,7 @@ static void _dw_resize_box(Box *thisbox, int *depth, int x, int y, int pass)
                             [[notebook tabs] setSelectedSegmentIndex:0];
                             intpageid = 0;
                             [notepage setHidden:NO];
+                            [notebook setVisible:notepage];
                         }
                     }
 
