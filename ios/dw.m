@@ -1319,8 +1319,12 @@ DWObject *DWObj;
     if(![object isMemberOfClass:[DWView class]])
         [object setHidden:YES];
     /* Adjust the frame to account for the status bar */
-    NSInteger sbheight = [UIApplication sharedApplication].statusBarFrame.size.height;
+    NSInteger sbheight = [[[window windowScene] statusBarManager] statusBarFrame].size.height;
     frame.size.height -= sbheight;
+    /* Account for the special area on iPhone X and iPad Pro
+     * https://blog.maxrudberg.com/post/165590234593/ui-design-for-iphone-x-bottom-elements
+     */
+    frame.size.height -= 24;
     frame.origin.y += sbheight;
     [view setFrame:frame];
     [view windowResized:frame.size];
@@ -7789,29 +7793,31 @@ DW_FUNCTION_RESTORE_PARAM3(handle, HWND, style, ULONG, mask, ULONG)
                 [label setLineBreakMode:NSLineBreakByTruncatingTail];
         }
     }
-#if 0 /* TODO: See if we can change alignment... */
-    else if([object isMemberOfClass:[UITextView class]])
+    else if([object isMemberOfClass:[DWMLE class]])
     {
-        UITextView *tv = handle;
-        [tv setAlignment:(style & mask)];
+        DWMLE *mle = handle;
+        [mle setTextAlignment:(style & mask)];
     }
-#endif
     else if([object isMemberOfClass:[DWMenuItem class]])
     {
+        DWMenuItem *menuitem = object;
+
         if(mask & (DW_MIS_CHECKED | DW_MIS_UNCHECKED))
         {
             if(style & DW_MIS_CHECKED)
-                [object setState:UIMenuElementStateOn];
+                [menuitem setState:UIMenuElementStateOn];
             else if(style & DW_MIS_UNCHECKED)
-                [object setState:UIMenuElementStateOff];
+                [menuitem setState:UIMenuElementStateOff];
         }
+#if 0 /* Disabled menu items not available on iOS currently */
         if(mask & (DW_MIS_ENABLED | DW_MIS_DISABLED))
         {
             if(style & DW_MIS_ENABLED)
-                [object setEnabled:YES];
+                [menuitem setEnabled:YES];
             else if(style & DW_MIS_DISABLED)
-                [object setEnabled:NO];
+                [menuitem setEnabled:NO];
         }
+#endif
     }
     DW_FUNCTION_RETURN_NOTHING;
 }
@@ -8127,7 +8133,8 @@ DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
         UIControl *control = object;
         NSString *nsstr = [control text];
 
-        retval = strdup([ nsstr UTF8String ]);
+        if(nsstr && [nsstr length] > 0)
+            retval = strdup([ nsstr UTF8String ]);
     }
     DW_FUNCTION_RETURN_THIS(retval);
 }
