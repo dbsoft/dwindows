@@ -3162,18 +3162,23 @@ int API dw_scrollbox_get_range(HWND handle, int orient)
 /* Return the handle to the text object */
 id _dw_text_handle(id object)
 {
-    if([object isMemberOfClass:[ DWSpinButton class]])
+    if([object isMemberOfClass:[DWButton class]])
+    {
+        DWButton *button = object;
+        object = [button titleLabel];
+    }
+    else if([object isMemberOfClass:[DWSpinButton class]])
     {
         DWSpinButton *spinbutton = object;
         object = [spinbutton textfield];
     }
 #if 0 /* TODO: Fix this when we have a groupbox implemented */
-    if([object isMemberOfClass:[ NSBox class]])
+    if([object isMemberOfClass:[NSBox class]])
     {
         NSBox *box = object;
         id content = [box contentView];
 
-        if([content isMemberOfClass:[ DWText class]])
+        if([content isMemberOfClass:[DWText class]])
         {
             object = content;
         }
@@ -8098,21 +8103,22 @@ DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
     id object = _dw_text_handle(handle);
     char *retval = NULL;
 
-    if([ object isKindOfClass:[ UIWindow class ] ] || [ object isKindOfClass:[ UIButton class ] ])
+    if([object isKindOfClass:[UILabel class]] || [object isKindOfClass:[UITextField class]])
     {
-        id window = object;
-        NSString *nsstr = [ window title];
+        NSString *nsstr = [object text];
 
-        retval = strdup([ nsstr UTF8String ]);
+        retval = strdup([nsstr UTF8String]);
     }
-    else if([ object isKindOfClass:[ UIControl class ] ])
+#ifdef DW_INCLUDE_DEPRECATED
+    else if([object isKindOfClass:[UIControl class]])
     {
         UIControl *control = object;
         NSString *nsstr = [control text];
 
         if(nsstr && [nsstr length] > 0)
-            retval = strdup([ nsstr UTF8String ]);
+            retval = strdup([nsstr UTF8String]);
     }
+#endif
     DW_FUNCTION_RETURN_THIS(retval);
 }
 
@@ -8130,13 +8136,15 @@ DW_FUNCTION_RESTORE_PARAM2(handle, HWND, text, char *)
     DW_FUNCTION_INIT;
     id object = _dw_text_handle(handle);
 
-    if([ object isKindOfClass:[ UIWindow class ] ] || [ object isKindOfClass:[ UIButton class ] ])
-        [object setTitle:[NSString stringWithUTF8String:text]];
-    else if([ object isKindOfClass:[ UIControl class ] ])
+    if([object isKindOfClass:[UILabel class]] || [object isKindOfClass:[UITextField class]])
+        [object setText:[NSString stringWithUTF8String:text]];
+#ifdef DW_INCLUDE_DEPRECATED
+    else if([object isKindOfClass:[UIControl class]])
     {
         UIControl *control = object;
         [control setText:[NSString stringWithUTF8String:text]];
     }
+#endif
     else
         return;
     /* If we changed the text... */
