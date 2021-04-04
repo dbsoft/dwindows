@@ -5,7 +5,7 @@
  * (C) 2011-2021 Brian Smith <brian@dbsoft.org>
  * (C) 2011-2018 Mark Hessling <mark@rexx.org>
  *
- * Requires 10.0 or later.
+ * Requires 13.0 or later.
  * clang -g -o dwtest -D__IOS__ -I. dwtest.c ios/dw.m -framework UIKit -framework WebKit -framework Foundation -framework UserNotifications
  */
 #import <Foundation/Foundation.h>
@@ -1327,19 +1327,26 @@ DWObject *DWObj;
 }
 @end
 
+#define _DW_BUTTON_TYPE_NORMAL 0
+#define _DW_BUTTON_TYPE_CHECK  1
+#define _DW_BUTTON_TYPE_RADIO  2
+
 /* Subclass for a button type */
 @interface DWButton : UIButton
 {
     void *userdata;
-    UIButtonType buttonType;
     DWBox *parent;
+    int type, state;
 }
 -(void *)userdata;
 -(void)setUserdata:(void *)input;
 -(void)buttonClicked:(id)sender;
--(UIButtonType)buttonType;
 -(void)setParent:(DWBox *)input;
 -(DWBox *)parent;
+-(int)type;
+-(void)setType:(int)input;
+-(int)state;
+-(void)setState:(int)input;
 @end
 
 @implementation DWButton
@@ -1347,11 +1354,77 @@ DWObject *DWObj;
 -(void)setUserdata:(void *)input { userdata = input; }
 -(void)buttonClicked:(id)sender
 {
+    /* Toggle the button */
+    if(type == _DW_BUTTON_TYPE_CHECK)
+        [self setState:(state ? FALSE : TRUE)];
+    else if(type == _DW_BUTTON_TYPE_RADIO)
+        [self setState:TRUE];
+
     _dw_event_handler(self, nil, 8);
+
+    /* If it is a radio button, uncheck all the other radio buttons in the box */
+    if(type == _DW_BUTTON_TYPE_RADIO)
+    {
+        DWBox *viewbox = [self parent];
+        Box *thisbox = [viewbox box];
+        int z;
+
+        for(z=0;z<thisbox->count;z++)
+        {
+            if(thisbox->items[z].type != TYPEBOX)
+            {
+                id object = thisbox->items[z].hwnd;
+
+                if([object isMemberOfClass:[DWButton class]])
+                {
+                    DWButton *button = object;
+
+                    if(button != self && [button type] == _DW_BUTTON_TYPE_RADIO)
+                    {
+                        [button setState:FALSE];
+                    }
+                }
+            }
+        }
+    }
 }
--(UIButtonType)buttonType { return buttonType; }
 -(void)setParent:(DWBox *)input { parent = input; }
 -(DWBox *)parent { return parent; }
+-(int)type { return type; }
+-(void)setType:(int)input { type = input; [self updateImage]; }
+-(void)updateImage
+{
+    UIImage *image = nil;
+
+    switch(type)
+    {
+        case _DW_BUTTON_TYPE_CHECK:
+        {
+
+            if(state)
+                image = [UIImage systemImageNamed:@"checkbox.square"];
+            else
+                image = [UIImage systemImageNamed:@"square"];
+        }
+        break;
+        case _DW_BUTTON_TYPE_RADIO:
+        {
+            if(state)
+                image = [UIImage systemImageNamed:@"largecircle.fill.circle"];
+            else
+                image = [UIImage systemImageNamed:@"circle"];
+        }
+        break;
+    }
+    if(image)
+    {
+        CGSize size = [image size];
+        [self setImage:image forState:UIControlStateNormal];
+        [self setTitleEdgeInsets:UIEdgeInsetsMake(0,size.width,0,0)];
+    }
+}
+-(int)state { return state; }
+-(void)setState:(int)input { state = input; [self updateImage]; }
 -(void)dealloc { UserData *root = userdata; _dw_remove_userdata(&root, NULL, TRUE); dw_signal_disconnect_by_window(self); [super dealloc]; }
 @end
 
@@ -3143,31 +3216,24 @@ void _dw_control_size(id handle, int *width, int *height)
     id object = _dw_text_handle(handle);
 
     /* Handle all the different button types */
-    if([ object isKindOfClass:[ UIButton class ] ])
+    if([ object isMemberOfClass:[ DWButton class ] ])
     {
-        switch([object buttonType])
+        UIImage *image = (UIImage *)[object image];
+
+        if(image)
         {
-            default:
-            {
-                UIImage *image = (UIImage *)[object image];
+            /* Image button */
+            CGSize size = [image size];
+            extrawidth = (int)size.width;
+            extraheight = (int)size.height;
+        }
+        /* Text button */
+        nsstr = [[object titleLabel] text];
 
-                if(image)
-                {
-                    /* Image button */
-                    CGSize size = [image size];
-                    thiswidth = (int)size.width;
-                    thisheight = (int)size.height;
-                }
-                else
-                {
-                    /* Text button */
-                    nsstr = [[object titleLabel] text];
-
-                    extrawidth = 8;
-                    extraheight = 4;
-                }
-                break;
-            }
+        if(nsstr && [nsstr length] > 0)
+        {
+            extrawidth += 8;
+            extraheight += 4;
         }
     }
     /* If the control is an entryfield set width to 150 */
@@ -3844,7 +3910,7 @@ DW_FUNCTION_RETURN(dw_radiobutton_new, HWND)
 DW_FUNCTION_RESTORE_PARAM2(text, const char *, cid, ULONG)
 {
     DWButton *button = _dw_internal_button_new(text, cid);
-    /* TODO: Customize to be a radio button https://github.com/DavydLiu/DLRadioButton */
+    [button setType:_DW_BUTTON_TYPE_RADIO];
     DW_FUNCTION_RETURN_THIS(button);
 }
 
@@ -3996,7 +4062,7 @@ DW_FUNCTION_RETURN(dw_checkbox_new, HWND)
 DW_FUNCTION_RESTORE_PARAM2(text, const char *, cid, ULONG)
 {
     DWButton *button = _dw_internal_button_new(text, cid);
-    /* TODO: Switch to UISwitch control with text */
+    [button setType:_DW_BUTTON_TYPE_CHECK];
     DW_FUNCTION_RETURN_THIS(button);
 }
 
@@ -4005,14 +4071,17 @@ DW_FUNCTION_RESTORE_PARAM2(text, const char *, cid, ULONG)
  * Parameters:
  *          handle: Handle to the checkbox to be queried.
  */
-int API dw_checkbox_get(HWND handle)
+DW_FUNCTION_DEFINITION(dw_checkbox_get, int, HWND handle)
+DW_FUNCTION_ADD_PARAM1(handle)
+DW_FUNCTION_RETURN(dw_checkbox_get, int)
+DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
 {
     DWButton *button = handle;
+    int retval = FALSE;
+
     if([button state])
-    {
-        return TRUE;
-    }
-    return FALSE;
+        retval = TRUE;
+    DW_FUNCTION_RETURN_THIS(retval);
 }
 
 /*
@@ -4021,19 +4090,14 @@ int API dw_checkbox_get(HWND handle)
  *          handle: Handle to the checkbox to be queried.
  *          value: TRUE for checked, FALSE for unchecked.
  */
-void API dw_checkbox_set(HWND handle, int value)
+DW_FUNCTION_DEFINITION(dw_checkbox_set, void, HWND handle, int value)
+DW_FUNCTION_ADD_PARAM2(handle, value)
+DW_FUNCTION_NO_RETURN(dw_checkbox_set)
+DW_FUNCTION_RESTORE_PARAM2(handle, HWND, value, int)
 {
-#if 0 /* TODO: Convert to UISwitch */
     DWButton *button = handle;
-    if(value)
-    {
-        [button setState:DWControlStateValueOn];
-    }
-    else
-    {
-        [button setState:DWControlStateValueOff];
-    }
-#endif
+    [button setState:value];
+    DW_FUNCTION_RETURN_NOTHING;
 }
 
 /* Internal common function to create containers and listboxes */
