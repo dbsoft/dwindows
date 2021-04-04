@@ -1394,7 +1394,7 @@ DWObject *DWObj;
 -(void)setType:(int)input { type = input; [self updateImage]; }
 -(void)updateImage
 {
-    UIImage *image = nil;
+    NSString *imagename = nil;
 
     switch(type)
     {
@@ -1402,22 +1402,23 @@ DWObject *DWObj;
         {
 
             if(state)
-                image = [UIImage systemImageNamed:@"checkbox.square"];
+                imagename = @"checkmark.square";
             else
-                image = [UIImage systemImageNamed:@"square"];
+                imagename = @"square";
         }
         break;
         case _DW_BUTTON_TYPE_RADIO:
         {
             if(state)
-                image = [UIImage systemImageNamed:@"largecircle.fill.circle"];
+                imagename = @"largecircle.fill.circle";
             else
-                image = [UIImage systemImageNamed:@"circle"];
+                imagename = @"circle";
         }
         break;
     }
-    if(image)
+    if(imagename)
     {
+        UIImage *image = [UIImage systemImageNamed:imagename];
         CGSize size = [image size];
         [self setImage:image forState:UIControlStateNormal];
         [self setTitleEdgeInsets:UIEdgeInsetsMake(0,size.width,0,0)];
