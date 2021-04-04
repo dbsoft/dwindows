@@ -1812,8 +1812,6 @@ UITableViewCell *_dw_table_cell_view_new(UIImage *icon, NSString *text)
 -(void)setup;
 -(CGSize)getsize;
 -(void)setForegroundColor:(UIColor *)input;
--(void)doubleClicked:(id)sender;
--(void)selectionChanged:(id)sender;
 -(DWMenu *)menuForEvent:(UIEvent *)event;
 @end
 
@@ -2050,101 +2048,82 @@ UITableViewCell *_dw_table_cell_view_new(UIImage *icon, NSString *text)
 {
     int cwidth = 0, cheight = 0;
 
-#if 0 /* TODO: Figure out how to calculate the table size */
     if(tvcols)
     {
-        int z;
         int colcount = (int)[tvcols count];
         int rowcount = (int)[self numberOfRowsInSection:0];
+        int width = 0;
 
-        for(z=0;z<colcount;z++)
+        if(rowcount > 0)
         {
-            NSTableColumn *column = [tvcols objectAtIndex:z];
-            int width = [column width];
+            int x;
 
-            if(rowcount > 0)
+            for(x=0;x<rowcount;x++)
             {
-                int x;
-
-                for(x=0;x<rowcount;x++)
+                UITableViewCell *cell = [data objectAtIndex:(x*colcount)];
+                int thiswidth = 4, thisheight = 0;
+                
+                if([cell imageView])
                 {
-                    NSTableCellView *cell = [self viewAtColumn:z row:x makeIfNecessary:YES];
-                    int thiswidth = 4, thisheight = 0;
-                    
-                    if([cell imageView])
-                    {
-                        thiswidth += [[cell imageView] image].size.width;
-                        thisheight = [[cell imageView] image].size.height;
-                    }
-                    if([cell textField])
-                    {
-                        int textheight = [[cell textField] intrinsicContentSize].width;
-                        thiswidth += [[cell textField] intrinsicContentSize].width;
-                        if(textheight > thisheight)
-                            thisheight = textheight;
-                    }
-                    
-                    /* If on the first column... add up the heights */
-                    if(z == 0)
-                        cheight += thisheight;
-                    
-                    if(thiswidth > width)
-                    {
-                        width = thiswidth;
-                    }
+                    thiswidth += [[cell imageView] image].size.width;
+                    thisheight = [[cell imageView] image].size.height;
                 }
-                /* If the image is missing default the optimized width to 16. */
-                if(!width && [[types objectAtIndex:z] intValue] & DW_CFA_BITMAPORICON)
+                if([cell textLabel])
                 {
-                    width = 16;
+                    int textheight = [[cell textLabel] intrinsicContentSize].width;
+                    thiswidth += [[cell textLabel] intrinsicContentSize].width;
+                    if(textheight > thisheight)
+                        thisheight = textheight;
+                }
+
+                cheight += thisheight;
+
+                if(thiswidth > width)
+                {
+                    width = thiswidth;
                 }
             }
-            if(width)
-                cwidth += width;
+            /* If the image is missing default the optimized width to 16. */
+            if(!width && [[types objectAtIndex:0] intValue] & DW_CFA_BITMAPORICON)
+            {
+                width = 16;
+            }
         }
+        if(width)
+            cwidth += width;
     }
-#endif
     cwidth += 16;
     cheight += 16;
     return CGSizeMake(cwidth, cheight);
 }
 -(void)setForegroundColor:(UIColor *)input
 {
-#if 0 /* TODO: Fix this without columns */
-    int z, count = (int)[tvcols count];
+    UIColor *oldfgcolor = fgcolor;
 
     fgcolor = input;
     [fgcolor retain];
+    [oldfgcolor release];
+}
+-(void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath
+{
+    void *params[2];
 
-    for(z=0;z<count;z++)
+    params[0] = (void *)[self getRowTitle:(int)indexPath.row];
+    params[1] = (void *)[self getRowData:(int)indexPath.row];
+
+    /* If multiple selection is enabled, treat it as selectionChanged: */
+    if([self allowsMultipleSelection])
     {
-        NSTableColumn *tableColumn = [tvcols objectAtIndex:z];
-        UITextFieldCell *cell = [tableColumn dataCell];
-        [cell setTextColor:fgcolor];
+        /* Handler for container class */
+        _dw_event_handler(self, (UIEvent *)params, 12);
+        /* Handler for listbox class */
+        _dw_event_handler(self, DW_INT_TO_POINTER((int)indexPath.row), 11);
     }
-#endif
-}
--(void)doubleClicked:(id)sender
-{
-    void *params[2];
-
-    params[0] = (void *)[self getRowTitle:(int)[self indexPathForSelectedRow].row];
-    params[1] = (void *)[self getRowData:(int)[self indexPathForSelectedRow].row];
-
-    /* Handler for container class */
-    _dw_event_handler(self, (UIEvent *)params, 9);
-}
--(void)selectionChanged:(id)sender
-{
-    void *params[2];
-
-    params[0] = (void *)[self getRowTitle:(int)[self indexPathForSelectedRow].row];
-    params[1] = (void *)[self getRowData:(int)[self indexPathForSelectedRow].row];
-
-    /* Handler for container class */
-    _dw_event_handler(self, (UIEvent *)params, 12);
-    /* Handler for listbox class */
-    _dw_event_handler(self, DW_INT_TO_POINTER((int)[self indexPathForSelectedRow].row), 11);
+    else /* Otherwise treat it as doubleClicked: */
+    {
+        /* Handler for container class */
+        _dw_event_handler(self, (UIEvent *)params, 9);
+   }
 }
 -(DWMenu *)menuForEvent:(UIEvent *)event
 {
@@ -5534,8 +5513,6 @@ DW_FUNCTION_RESTORE_PARAM2(cid, ULONG, multi, int)
 {
     DW_FUNCTION_INIT;
     DWContainer *cont = _dw_cont_new(cid, multi);
-    /* TODO: Switch to new action system
-    [cont setDoubleAction:@selector(doubleClicked:)];*/
     DW_FUNCTION_RETURN_THIS(cont);
 }
 
