@@ -3218,21 +3218,28 @@ void _dw_control_size(id handle, int *width, int *height)
     /* Handle all the different button types */
     if([ object isMemberOfClass:[ DWButton class ] ])
     {
-        UIImage *image = (UIImage *)[object image];
+        UIImage *image = (UIImage *)[object imageForState:UIControlStateNormal];
 
         if(image)
         {
             /* Image button */
             CGSize size = [image size];
-            extrawidth = (int)size.width;
-            extraheight = (int)size.height;
+            extrawidth = (int)size.width + 1;
+            /* Height isn't additive */
+            thisheight = (int)size.height + 1;
         }
         /* Text button */
         nsstr = [[object titleLabel] text];
 
         if(nsstr && [nsstr length] > 0)
         {
-            extrawidth += 8;
+            /* With combined text/image we seem to
+             * need a lot of additional width space.
+             */
+            if(image)
+                extrawidth += 30;
+            else
+                extrawidth += 8;
             extraheight += 4;
         }
     }
@@ -3306,7 +3313,10 @@ void _dw_control_size(id handle, int *width, int *height)
             thisheight = _DW_SCROLLED_MAX_HEIGHT;
     }
     else if([ object isKindOfClass:[UILabel class] ])
+    {
         nsstr = [object text];
+        extrawidth = extraheight = 2;
+    }
     /* Any other control type */
     else if([ object isKindOfClass:[ UIControl class ] ])
         nsstr = [object text];
@@ -3315,7 +3325,16 @@ void _dw_control_size(id handle, int *width, int *height)
      * calculate the size with the current font.
      */
     if(nsstr && [nsstr length])
-        dw_font_text_extents_get(object, NULL, (char *)[nsstr UTF8String], &thiswidth, &thisheight);
+    {
+        int textwidth, textheight;
+
+        dw_font_text_extents_get(object, NULL, (char *)[nsstr UTF8String], &textwidth, &textheight);
+
+        if(textheight > thisheight)
+            thisheight = textheight;
+        if(textwidth > thiswidth)
+            thiswidth = textwidth;
+    }
 
     /* Handle static text fields */
     if([object isKindOfClass:[ UITextField class ]] && ![object isEditable])
@@ -5104,7 +5123,8 @@ void API dw_font_text_extents_get(HWND handle, HPIXMAP pixmap, const char *text,
     }
     NSMutableDictionary *dict = [[NSMutableDictionary alloc] init];
     /* If we didn't get a font from the pixmap... try the associated object */
-    if(!font && ([object isMemberOfClass:[DWRender class]] || [object isKindOfClass:[UIControl class]]))
+    if(!font && ([object isMemberOfClass:[DWRender class]] || [object isKindOfClass:[UIControl class]]
+                 || [object isKindOfClass:[UILabel class]]))
     {
         font = [object font];
     }
