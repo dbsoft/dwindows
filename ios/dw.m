@@ -2186,7 +2186,7 @@ UITableViewCell *_dw_table_cell_view_new(UIImage *icon, NSString *text)
 -(void)setUserdata:(void *)input;
 -(UITextField *)textfield;
 -(UIStepper *)stepper;
--(void)controlTextDidChange:(NSNotification *)aNotification;
+-(void)textFieldDidEndEditing:(UITextField *)textField;
 -(void)setClickDefault:(id)input;
 @end
 
@@ -2205,6 +2205,7 @@ UITableViewCell *_dw_table_cell_view_new(UIImage *icon, NSString *text)
         [stepper setTextfield:textfield];
         [textfield setText:[NSString stringWithFormat:@"%ld",(long)[stepper value]]];
         [textfield setDelegate:self];
+        [stepper addTarget:self action:@selector(stepperChanged:) forControlEvents:UIControlEventValueChanged];
     }
     return self;
 }
@@ -2212,11 +2213,16 @@ UITableViewCell *_dw_table_cell_view_new(UIImage *icon, NSString *text)
 -(void)setUserdata:(void *)input { userdata = input; }
 -(UITextField *)textfield { return textfield; }
 -(UIStepper *)stepper { return stepper; }
--(void)controlTextDidChange:(NSNotification *)aNotification
+-(void)textFieldDidEndEditing:(UITextField *)textField
 {
     long val = [[textfield text] intValue];
     [stepper setValue:(float)val];
-    _dw_event_handler(self, DW_INT_TO_POINTER(val), 14);
+    [textfield setText:[NSString stringWithFormat:@"%d", (int)[stepper value]]];
+    _dw_event_handler(self, DW_INT_TO_POINTER((int)[stepper value]), 14);
+}
+-(void)stepperChanged:(UIStepper*)theStepper
+{
+    [textfield setText:[NSString stringWithFormat:@"%d", (int)[theStepper value]]];
 }
 -(void)setClickDefault:(id)input { clickDefault = input; }
 -(void)dealloc { UserData *root = userdata; _dw_remove_userdata(&root, NULL, TRUE); dw_signal_disconnect_by_window(self); [super dealloc]; }
@@ -2643,8 +2649,9 @@ static void _dw_resize_box(Box *thisbox, int *depth, int x, int y, int pass)
                     DWSpinButton *spinbutton = (DWSpinButton *)handle;
                     UITextField *textfield = [spinbutton textfield];
                     UIStepper *stepper = [spinbutton stepper];
-                    [textfield setFrame:CGRectMake(0,0,rect.size.width-20,rect.size.height)];
-                    [stepper setFrame:CGRectMake(rect.size.width-20,0,20,rect.size.height)];
+                    NSInteger stepperwidth = [stepper intrinsicContentSize].width;
+                    [textfield setFrame:CGRectMake(0,0,rect.size.width-stepperwidth,rect.size.height)];
+                    [stepper setFrame:CGRectMake(rect.size.width-stepperwidth,0,stepperwidth,rect.size.height)];
                 }
                 else if([handle isMemberOfClass:[DWSplitBar class]])
                 {
@@ -3205,9 +3212,9 @@ void _dw_control_size(id handle, int *width, int *height)
     id object = _dw_text_handle(handle);
 
     /* Handle all the different button types */
-    if([ object isMemberOfClass:[ DWButton class ] ])
+    if([handle isMemberOfClass:[DWButton class]])
     {
-        UIImage *image = (UIImage *)[object imageForState:UIControlStateNormal];
+        UIImage *image = [handle imageForState:UIControlStateNormal];
 
         if(image)
         {
@@ -3218,7 +3225,7 @@ void _dw_control_size(id handle, int *width, int *height)
             thisheight = (int)size.height + 1;
         }
         /* Text button */
-        nsstr = [[object titleLabel] text];
+        nsstr = [[handle titleLabel] text];
 
         if(nsstr && [nsstr length] > 0)
         {
@@ -3233,33 +3240,32 @@ void _dw_control_size(id handle, int *width, int *height)
         }
     }
     /* If the control is an entryfield set width to 150 */
-    else if([object isKindOfClass:[ UITextField class ]])
+    else if([object isKindOfClass:[UITextField class]])
     {
         UIFont *font = [object font];
 
         if([object isEditable])
         {
             /* Spinbuttons don't need to be as wide */
-            if([object isMemberOfClass:[ DWSpinButton class]])
-                thiswidth = 50;
+            if([handle isMemberOfClass:[DWSpinButton class]])
+                thiswidth = 100;
             else
                 thiswidth = 150;
         }
-        else
-            nsstr = [object text];
+        nsstr = [object text];
 
         if(font)
             thisheight = (int)[font lineHeight];
     }
     /* Handle the ranged widgets */
-    else if([ object isMemberOfClass:[DWPercent class] ] ||
-            [ object isMemberOfClass:[DWSlider class] ])
+    else if([object isMemberOfClass:[DWPercent class]] ||
+            [object isMemberOfClass:[DWSlider class]])
     {
         thiswidth = 100;
-        thisheight = 20;
+        thisheight = 25;
     }
     /* Handle bitmap size */
-    else if([ object isMemberOfClass:[UIImageView class] ])
+    else if([object isMemberOfClass:[UIImageView class]])
     {
         UIImage *image = (UIImage *)[object image];
 
@@ -3271,7 +3277,7 @@ void _dw_control_size(id handle, int *width, int *height)
         }
     }
     /* Handle calendar */
-    else if([ object isMemberOfClass:[DWCalendar class] ])
+    else if([object isMemberOfClass:[DWCalendar class]])
     {
             CGSize size = [object intrinsicContentSize];
 
@@ -3279,12 +3285,12 @@ void _dw_control_size(id handle, int *width, int *height)
             thisheight = size.height;
     }
     /* MLE and Container */
-    else if([ object isMemberOfClass:[DWMLE class] ] ||
-            [ object isMemberOfClass:[DWContainer class] ])
+    else if([object isMemberOfClass:[DWMLE class]] ||
+            [object isMemberOfClass:[DWContainer class]])
     {
         CGSize size;
 
-        if([ object isMemberOfClass:[DWMLE class] ])
+        if([object isMemberOfClass:[DWMLE class]])
             size = [object contentSize];
         else
             size = [object getsize];
@@ -3301,14 +3307,16 @@ void _dw_control_size(id handle, int *width, int *height)
         if(thisheight > _DW_SCROLLED_MAX_HEIGHT)
             thisheight = _DW_SCROLLED_MAX_HEIGHT;
     }
-    else if([ object isKindOfClass:[UILabel class] ])
+    else if([object isKindOfClass:[UILabel class]])
     {
         nsstr = [object text];
         extrawidth = extraheight = 2;
     }
+#ifdef DW_INCLUDE_DEPRECATED
     /* Any other control type */
-    else if([ object isKindOfClass:[ UIControl class ] ])
+    else if([object isKindOfClass:[UIControl class]])
         nsstr = [object text];
+#endif
 
     /* If we have a string...
      * calculate the size with the current font.
@@ -3323,12 +3331,6 @@ void _dw_control_size(id handle, int *width, int *height)
             thisheight = textheight;
         if(textwidth > thiswidth)
             thiswidth = textwidth;
-    }
-
-    /* Handle static text fields */
-    if([object isKindOfClass:[ UITextField class ]] && ![object isEditable])
-    {
-        extrawidth = 10;
     }
 
     /* Set the requested sizes */
