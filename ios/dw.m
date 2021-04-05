@@ -2283,6 +2283,146 @@ API_AVAILABLE(ios(10.0))
 }
 @end
 
+@interface DWComboBox : UITextField <UIPickerViewDelegate,UIPickerViewDataSource,UITextFieldDelegate>
+{
+    UIPickerView* pickerView;
+    NSMutableArray* dataArray;
+    UIBarStyle toolbarStyle;
+    int selectedIndex;
+}
+-(void)setToolbarStyle:(UIBarStyle)style;
+-(void)append:(NSString *)item;
+-(void)insert:(NSString *)item atIndex:(int)index;
+-(void)clear;
+-(int)count;
+-(NSString *)getTextAtIndex:(int)index;
+-(void)setText:(NSString *)item atIndex:(int)index;
+-(void)deleteAtIndex:(int)index;
+-(int)selectedIndex;
+@end
+
+@implementation DWComboBox
+-(id)init
+{
+    self = [super init];
+    if(self)
+    {
+        [self setDelegate:self];
+       
+        /* Set UI defaults */
+        toolbarStyle = UIBarStyleDefault;
+        
+        /* Hide the caret and its blinking */
+        [[self valueForKey:@"textInputTraits"]
+                  setValue:[UIColor clearColor]
+                    forKey:@"insertionPointColor"];
+        
+        /* Setup the arrow image */
+        UIButton *imageButton = [UIButton buttonWithType:UIButtonTypeCustom];
+        UIImage *image = [UIImage systemImageNamed:@"chevron.down"];
+        [imageButton setImage:image forState:UIControlStateNormal];
+        [self setRightView:imageButton];
+        [self setRightViewMode:UITextFieldViewModeAlways];
+        [imageButton addTarget:self action:@selector(showPicker:) forControlEvents:UIControlEventTouchUpInside];
+        selectedIndex = -1;
+    }
+    return self;
+}
+-(void)setToolbarStyle:(UIBarStyle)style { toolbarStyle = style; }
+-(void)append:(NSString *)item { if(item) [dataArray addObject:item]; }
+-(void)insert:(NSString *)item atIndex:(int)index { if(item) [dataArray insertObject:item atIndex:index]; }
+-(void)clear { [dataArray removeAllObjects]; }
+-(int)count { return (int)[dataArray count]; }
+-(NSString *)getTextAtIndex:(int)index
+{
+    if(index > -1 && index < [dataArray count])
+        return [dataArray objectAtIndex:index];
+    return nil;
+}
+-(void)setText:(NSString *)item atIndex:(int)index
+{
+    if(item && index > -1 && index < [dataArray count])
+        [dataArray replaceObjectAtIndex:index withObject:item];
+}
+-(void)deleteAtIndex:(int)index { if(index > -1 && index < [dataArray count]) [dataArray removeObjectAtIndex:index]; }
+-(NSInteger)numberOfComponentsInPickerView:(UIPickerView *)pickerView { return 1; }
+-(void)pickerView:(UIPickerView *)pickerView didSelectRow:(NSInteger)row inComponent:(NSInteger)component
+{
+    selectedIndex = (int)row;
+    [self setText:[dataArray objectAtIndex:row]];
+    [self sendActionsForControlEvents:UIControlEventValueChanged];
+    _dw_event_handler(self, DW_INT_TO_POINTER(selectedIndex), 11);
+}
+-(NSInteger)pickerView:(UIPickerView *)pickerView numberOfRowsInComponent:(NSInteger)component { return [dataArray count]; }
+-(NSString *)pickerView:(UIPickerView *)pickerView titleForRow:(NSInteger)row forComponent:(NSInteger)component
+{
+    return [dataArray objectAtIndex:row];
+}
+-(void)doneClicked:(id)sender
+{
+    /* Hides the pickerView */
+    [self resignFirstResponder];
+    
+    if([[self text] length] == 0 || ![dataArray containsObject:[self text]])
+    {
+        selectedIndex = -1;
+    }
+    [self sendActionsForControlEvents:UIControlEventValueChanged];
+}
+-(void)cancelClicked:(id)sender
+{
+    /* Hides the pickerView */
+    [pickerView resignFirstResponder];
+}
+-(void)showPicker:(id)sender
+{
+    pickerView = [[UIPickerView alloc] init];
+    [pickerView setDataSource:self];
+    [pickerView setDelegate:self];
+    
+    /* If the text field is empty show the place holder otherwise show the last selected option */
+    if([[self text] length] == 0 || ![dataArray containsObject:[self text]])
+    {
+        [pickerView selectRow:0 inComponent:0 animated:YES];
+    }
+    else
+    {
+        if([dataArray containsObject:[self text]])
+        {
+            [pickerView selectRow:[dataArray indexOfObject:[self text]] inComponent:0 animated:YES];
+        }
+    }
+
+    UIToolbar* toolbar = [[UIToolbar alloc] init];
+    [toolbar setBarStyle:toolbarStyle];
+    [toolbar sizeToFit];
+    
+    /* Space between buttons */
+    UIBarButtonItem *flexibleSpace = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemFlexibleSpace
+                                                                                   target:nil
+                                                                                   action:nil];
+    
+    UIBarButtonItem *doneButton = [[UIBarButtonItem alloc]
+                                   initWithTitle:@"Done"
+                                   style:UIBarButtonItemStyleDone
+                                   target:self
+                                   action:@selector(doneClicked:)];
+
+    UIBarButtonItem *cancelButton = [[UIBarButtonItem alloc]
+                                    initWithTitle:@"Cancel"
+                                    style:UIBarButtonItemStylePlain
+                                    target:self
+                                    action:@selector(cancelClicked:)];
+        
+    [toolbar setItems:[NSArray arrayWithObjects:cancelButton, flexibleSpace, doneButton, nil]];
+    
+    /* Custom input view */
+    [self setInputView:pickerView];
+    [self setInputAccessoryView:toolbar];
+}
+-(int)selectedIndex { return selectedIndex; }
+@end
+
 /* Subclass for a MDI type
  * This is just a box for display purposes... but it is a
  * unique class so it can be identified when creating windows.
@@ -4187,7 +4327,13 @@ DW_FUNCTION_RESTORE_PARAM2(handle, HWND, text, char *)
     DW_FUNCTION_INIT;
     id object = handle;
 
-    if([object isMemberOfClass:[DWContainer class]])
+    if([object isMemberOfClass:[DWComboBox class]])
+    {
+        DWComboBox *combo = handle;
+
+        [combo append:[NSString stringWithUTF8String:text]];
+    }
+    else if([object isMemberOfClass:[DWContainer class]])
     {
         DWContainer *cont = handle;
         NSString *nstr = [NSString stringWithUTF8String:text];
@@ -4215,7 +4361,13 @@ DW_FUNCTION_RESTORE_PARAM3(handle, HWND, text, const char *, pos, int)
     DW_FUNCTION_INIT;
     id object = handle;
 
-    if([object isMemberOfClass:[DWContainer class]])
+    if([object isMemberOfClass:[DWComboBox class]])
+    {
+        DWComboBox *combo = handle;
+
+        [combo insert:[NSString stringWithUTF8String:text] atIndex:pos];
+    }
+    else if([object isMemberOfClass:[DWContainer class]])
     {
         DWContainer *cont = handle;
         NSString *nstr = [NSString stringWithUTF8String:text];
@@ -4243,7 +4395,19 @@ DW_FUNCTION_RESTORE_PARAM3(handle, HWND, text, char **, count, int)
     DW_FUNCTION_INIT;
     id object = handle;
 
-    if([object isMemberOfClass:[DWContainer class]])
+    if([object isMemberOfClass:[DWComboBox class]])
+    {
+        DWComboBox *combo = handle;
+        int z;
+
+        for(z=0;z<count;z++)
+        {
+            NSString *nstr = [NSString stringWithUTF8String:text[z]];
+
+            [combo append:nstr];
+        }
+    }
+    else if([object isMemberOfClass:[DWContainer class]])
     {
         DWContainer *cont = handle;
         int z;
@@ -4274,6 +4438,12 @@ DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
     DW_FUNCTION_INIT;
     id object = handle;
 
+    if([object isMemberOfClass:[DWComboBox class]])
+    {
+        DWComboBox *combo = handle;
+
+        [combo clear];
+    }
     if([object isMemberOfClass:[DWContainer class]])
     {
         DWContainer *cont = handle;
@@ -4299,7 +4469,13 @@ DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
     id object = handle;
     int result = 0;
 
-    if([object isMemberOfClass:[DWContainer class]])
+    if([object isMemberOfClass:[DWComboBox class]])
+    {
+        DWComboBox *combo = handle;
+
+        result = [combo count];
+    }
+    else if([object isMemberOfClass:[DWContainer class]])
     {
         DWContainer *cont = handle;
         result = (int)[cont numberOfRowsInSection:0];
@@ -4347,7 +4523,17 @@ DW_FUNCTION_RESTORE_PARAM4(handle, HWND, index, unsigned int, buffer, char *, le
     DW_FUNCTION_INIT;
     id object = handle;
 
-    if([object isMemberOfClass:[DWContainer class]])
+    if([object isMemberOfClass:[DWComboBox class]])
+    {
+        DWComboBox *combo = handle;
+        NSString *nstr = [combo getTextAtIndex:index];
+
+        if(nstr)
+            strncpy(buffer, [nstr UTF8String], length - 1);
+        else
+            *buffer = '\0';
+    }
+    else if([object isMemberOfClass:[DWContainer class]])
     {
         DWContainer *cont = handle;
         int count = (int)[cont numberOfRowsInSection:0];
@@ -4382,7 +4568,13 @@ DW_FUNCTION_RESTORE_PARAM3(handle, HWND, index, unsigned int, buffer, char *)
     DW_FUNCTION_INIT;
     id object = handle;
 
-    if([object isMemberOfClass:[DWContainer class]])
+    if([object isMemberOfClass:[DWComboBox class]])
+    {
+        DWComboBox *combo = handle;
+
+        [combo setText:[NSString stringWithUTF8String:buffer] atIndex:index];
+    }
+    else if([object isMemberOfClass:[DWContainer class]])
     {
         DWContainer *cont = handle;
         int count = (int)[cont numberOfRowsInSection:0];
@@ -4414,7 +4606,13 @@ DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
     id object = handle;
     int result = -1;
 
-    if([object isMemberOfClass:[DWContainer class]])
+    if([object isMemberOfClass:[DWComboBox class]])
+    {
+        DWComboBox *combo = handle;
+
+        result = [combo selectedIndex];
+    }
+    else if([object isMemberOfClass:[DWContainer class]])
     {
         DWContainer *cont = handle;
         NSIndexPath *ip = [cont indexPathForSelectedRow];
@@ -4493,7 +4691,13 @@ DW_FUNCTION_RESTORE_PARAM2(handle, HWND, index, int)
     DW_FUNCTION_INIT;
     id object = handle;
 
-    if([object isMemberOfClass:[DWContainer class]])
+    if([object isMemberOfClass:[DWComboBox class]])
+    {
+        DWComboBox *combo = handle;
+
+        [combo deleteAtIndex:index];
+    }
+    else if([object isMemberOfClass:[DWContainer class]])
     {
         DWContainer *cont = handle;
 
@@ -4510,10 +4714,16 @@ DW_FUNCTION_RESTORE_PARAM2(handle, HWND, index, int)
  *       text: The default text to be in the combpbox widget.
  *       id: An ID to be used with dw_window_from_id() or 0L.
  */
-HWND API dw_combobox_new(const char *text, ULONG cid)
+DW_FUNCTION_DEFINITION(dw_combobox_new, HWND, const char *text, ULONG cid)
+DW_FUNCTION_ADD_PARAM2(text, cid)
+DW_FUNCTION_RETURN(dw_combobox_new, HWND)
+DW_FUNCTION_RESTORE_PARAM2(text, const char *, cid, ULONG)
 {
-    /* TODO: Implment comboboxes. https://www.codeproject.com/Articles/301681/iPhone-ComboBox */
-    return 0;
+    DWComboBox *combo = [[DWComboBox alloc] init];
+    if(text)
+        [combo setText:[NSString stringWithUTF8String:text]];
+    [combo setTag:cid];
+    DW_FUNCTION_RETURN_THIS(combo);
 }
 
 /*
