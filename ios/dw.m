@@ -2308,15 +2308,10 @@ API_AVAILABLE(ios(10.0))
     if(self)
     {
         [self setDelegate:self];
-       
+
         /* Set UI defaults */
         toolbarStyle = UIBarStyleDefault;
-        
-        /* Hide the caret and its blinking */
-        [[self valueForKey:@"textInputTraits"]
-                  setValue:[UIColor clearColor]
-                    forKey:@"insertionPointColor"];
-        
+
         /* Setup the arrow image */
         UIButton *imageButton = [UIButton buttonWithType:UIButtonTypeCustom];
         UIImage *image = [UIImage systemImageNamed:@"chevron.down"];
@@ -2372,7 +2367,7 @@ API_AVAILABLE(ios(10.0))
 -(void)cancelClicked:(id)sender
 {
     /* Hides the pickerView */
-    [pickerView resignFirstResponder];
+    [self resignFirstResponder];
 }
 -(void)showPicker:(id)sender
 {
