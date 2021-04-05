@@ -1407,7 +1407,7 @@ void container_add(void)
         dw_window_set_style(text, DW_DT_VCENTER, DW_DT_VCENTER);
         dw_box_pack_start(hbox, text, -1, -1, FALSE, TRUE, 1);
         fontsize = dw_spinbutton_new("9", 0);
-        dw_box_pack_start(hbox, fontsize, 50, -1, FALSE, FALSE, 1);
+        dw_box_pack_start(hbox, fontsize, -1, -1, FALSE, FALSE, 1);
         dw_spinbutton_set_limits(fontsize, 100, 5);
         dw_spinbutton_set_pos(fontsize, 9);
         fontname = dw_combobox_new("Default", 0);
