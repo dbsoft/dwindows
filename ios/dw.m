@@ -487,6 +487,24 @@ int _dw_event_handler1(id object, UIEvent *event, int message)
 
                 return valuechangedfunc(handler->window, selected, handler->data);;
             }
+            /* Tree class selection event */
+            case 12:
+            {
+                int (* API treeselectfunc)(HWND, HTREEITEM, char *, void *, void *) = (int (* API)(HWND, HTREEITEM, char *, void *, void *))handler->signalfunction;
+                char *text = NULL;
+                void *user = NULL;
+                id item = nil;
+
+                if([object isKindOfClass:[UITableView class]] && event)
+                {
+                    void **params = (void **)event;
+
+                    text = params[0];
+                    user = params[1];
+                }
+
+                return treeselectfunc(handler->window, item, text, handler->data, user);
+            }
             /* Set Focus event */
             case 13:
             {
@@ -6122,7 +6140,7 @@ DW_FUNCTION_RESTORE_PARAM2(handle, HWND, flags, unsigned long)
     DWContainer *cont = handle;
     int lastQueryPoint = [cont lastQueryPoint];
     NSArray *selected = [cont indexPathsForSelectedRows];
-    NSIndexPath *result = [selected objectAtIndex:lastQueryPoint];
+    NSIndexPath *result = lastQueryPoint < [selected count] ?  [selected objectAtIndex:lastQueryPoint] : nil;
     void *retval = NULL;
 
     if(result)
