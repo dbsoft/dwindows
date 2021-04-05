@@ -4836,7 +4836,7 @@ void _dw_control_size(id handle, int *width, int *height)
         if([object isEditable])
         {
             /* Spinbuttons don't need to be as wide */
-            if([object isMemberOfClass:[ DWSpinButton class]])
+            if([handle isMemberOfClass:[ DWSpinButton class]])
                 thiswidth = 50;
             else
                 thiswidth = 150;
