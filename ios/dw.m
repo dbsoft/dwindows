@@ -3264,9 +3264,9 @@ void _dw_control_size(id handle, int *width, int *height)
 
         if([object isEditable])
         {
-            /* Spinbuttons don't need to be as wide */
+            /* Spinbutton text doesn't need to be as wide */
             if([handle isMemberOfClass:[DWSpinButton class]])
-                thiswidth = 100;
+                thiswidth = 50;
             else
                 thiswidth = 150;
         }
@@ -3274,6 +3274,19 @@ void _dw_control_size(id handle, int *width, int *height)
 
         if(font)
             thisheight = (int)[font lineHeight];
+        
+        /* Spinbuttons need some extra */
+        if([handle isMemberOfClass:[DWSpinButton class]])
+        {
+            DWSpinButton *spinbutton = handle;
+            CGSize size = [[spinbutton stepper] intrinsicContentSize];
+            
+            /* Add the stepper width as extra... */
+            extrawidth = size.width;
+            /* The height should be the bigger of the two */
+            if(size.height > thisheight)
+                thisheight = size.height;
+        }
     }
     /* Handle the ranged widgets */
     else if([object isMemberOfClass:[DWPercent class]] ||
