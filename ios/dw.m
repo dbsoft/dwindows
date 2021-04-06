@@ -808,7 +808,7 @@ API_AVAILABLE(ios(13.0))
 @end
 
 /* Subclass for a render area type */
-@interface DWRender : UIControl
+@interface DWRender : UIView
 {
     void *userdata;
     UIFont *font;
@@ -1202,7 +1202,6 @@ API_AVAILABLE(ios(13.0))
     while(rend = [enumerator nextObject])
         [rend setNeedsDisplay];
     [_DWDirtyDrawables removeAllObjects];
-    UIGraphicsEndImageContext();
 }
 -(void)doWindowFunc:(id)param
 {
@@ -5229,13 +5228,6 @@ CGContextRef _dw_draw_context(id source, bool antialiased)
 
         context = [image cgcontext];
     }
-    else if([source isMemberOfClass:[DWRender class]])
-    {
-        DWRender *render = source;
-
-        UIGraphicsBeginImageContext([render frame].size);
-        context = UIGraphicsGetCurrentContext();
-    }
     if(context)
         CGContextSetAllowsAntialiasing(context, antialiased);
     return context;
@@ -7077,7 +7069,7 @@ int API dw_pixmap_stretch_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest,
     bi = [NSValue valueWithPointer:bltinfo];
 
     /* Fill in the information */
-    bltinfo->dest = dest;
+    bltinfo->dest = _dw_dest_image(destp, dest);
     bltinfo->src = src;
     bltinfo->xdest = xdest;
     bltinfo->ydest = ydest;
@@ -7088,10 +7080,6 @@ int API dw_pixmap_stretch_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest,
     bltinfo->srcwidth = srcwidth;
     bltinfo->srcheight = srcheight;
 
-    if(destp)
-    {
-        bltinfo->dest = (id)destp->image;
-    }
     if(srcp)
     {
         id object = bltinfo->src = (id)srcp->image;
