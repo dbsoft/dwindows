@@ -1164,7 +1164,10 @@ API_AVAILABLE(ios(13.0))
     DWBitBlt *bltinfo = (DWBitBlt *)[bi pointerValue];
     id bltdest = bltinfo->dest;
     id bltsrc = bltinfo->src;
-    /* TODO: CGContextRef context =*/ _dw_draw_context(bltdest, NO);
+    CGContextRef context = _dw_draw_context(bltdest, NO);
+
+    if(context)
+        UIGraphicsPushContext(context);
 
     if(bltdest && [bltsrc isMemberOfClass:[UIImage class]])
     {
@@ -1187,6 +1190,8 @@ API_AVAILABLE(ios(13.0))
         [bltsrc release];
         [image release];
     }
+    if(context)
+        UIGraphicsPopContext();
     free(bltinfo);
 }
 -(void)doFlush:(id)param
@@ -1509,7 +1514,7 @@ DWObject *DWObj;
     if(self)
     {
         CGColorSpaceRef rgb = CGColorSpaceCreateDeviceRGB();
-        CGContextRef cgcontext = CGBitmapContextCreate(NULL, size.width, size.height, 8, 0, rgb, kCGImageAlphaLast);
+        CGContextRef cgcontext = CGBitmapContextCreate(NULL, size.width, size.height, 8, 0, rgb, kCGImageAlphaPremultipliedFirst);
         CGImageRef cgimage = CGBitmapContextCreateImage(cgcontext);
         image = [UIImage imageWithCGImage:cgimage];
         CGContextRelease(cgcontext);
@@ -1570,7 +1575,7 @@ DWObject *DWObj;
         CGSize size = [image size];
         CGColorSpaceRef rgb = CGColorSpaceCreateDeviceRGB();
 
-        cgcontext = CGBitmapContextCreate(NULL, size.width, size.height, 8, 0, rgb, kCGImageAlphaLast);
+        cgcontext = CGBitmapContextCreate(NULL, size.width, size.height, 8, 0, rgb, kCGImageAlphaPremultipliedFirst);
         CGContextDrawImage(cgcontext, CGRectMake(0,0,size.width,size.height), [image CGImage]);
     }
     return cgcontext;
@@ -5259,7 +5264,10 @@ DW_FUNCTION_RESTORE_PARAM4(handle, HWND, pixmap, HPIXMAP, x, int, y, int)
 {
     DW_FUNCTION_INIT;
     DWImage *bi = _dw_dest_image(pixmap, handle);
-    /*CGContextRef context =*/ _dw_draw_context(bi, NO);
+    CGContextRef context = _dw_draw_context(bi, NO);
+    
+    if(context)
+        UIGraphicsPushContext(context);
 
     if(bi)
     {
@@ -5271,6 +5279,8 @@ DW_FUNCTION_RESTORE_PARAM4(handle, HWND, pixmap, HPIXMAP, x, int, y, int)
         [aPath moveToPoint:CGPointMake(x, y)];
         [aPath stroke];
     }
+    if(context)
+        UIGraphicsPopContext();
     DW_FUNCTION_RETURN_NOTHING;
 }
 
@@ -5290,7 +5300,10 @@ DW_FUNCTION_RESTORE_PARAM6(handle, HWND, pixmap, HPIXMAP, x1, int, y1, int, x2, 
 {
     DW_FUNCTION_INIT;
     DWImage *bi = _dw_dest_image(pixmap, handle);
-    /*CGContextRef context =*/ _dw_draw_context(bi, NO);
+    CGContextRef context = _dw_draw_context(bi, NO);
+
+    if(context)
+        UIGraphicsPushContext(context);
 
     if(bi)
     {
@@ -5302,6 +5315,8 @@ DW_FUNCTION_RESTORE_PARAM6(handle, HWND, pixmap, HPIXMAP, x1, int, y1, int, x2, 
         [aPath addLineToPoint:CGPointMake(x2 + 0.5, y2 + 0.5)];
         [aPath stroke];
     }
+    if(context)
+        UIGraphicsPopContext();
     DW_FUNCTION_RETURN_NOTHING;
 }
 
@@ -5343,7 +5358,10 @@ DW_FUNCTION_RESTORE_PARAM5(handle, HWND, pixmap, HPIXMAP, x, int, y, int, text, 
     }
     if(bi)
     {
-        /*CGContextRef context =*/ _dw_draw_context(bi, NO);
+        CGContextRef context = _dw_draw_context(bi, NO);
+
+        if(context)
+            UIGraphicsPushContext(context);
 
         UIColor *fgcolor = pthread_getspecific(_dw_fg_color_key);
         UIColor *bgcolor = pthread_getspecific(_dw_bg_color_key);
@@ -5354,6 +5372,8 @@ DW_FUNCTION_RESTORE_PARAM5(handle, HWND, pixmap, HPIXMAP, x, int, y, int, text, 
             [dict setValue:font forKey:NSFontAttributeName];
         [nstr drawAtPoint:CGPointMake(x, y) withAttributes:dict];
         [dict release];
+        if(context)
+            UIGraphicsPopContext();
     }
     DW_FUNCTION_RETURN_NOTHING;
 }
@@ -5425,7 +5445,10 @@ DW_FUNCTION_RESTORE_PARAM6(handle, HWND, pixmap, HPIXMAP, flags, int, npoints, i
 {
     DW_FUNCTION_INIT;
     DWImage *bi = _dw_dest_image(pixmap, handle);
-    /*CGContextRef context =*/ _dw_draw_context(bi, flags & DW_DRAW_NOAA ? NO : YES);
+    CGContextRef context = _dw_draw_context(bi, flags & DW_DRAW_NOAA ? NO : YES);
+
+    if(context)
+        UIGraphicsPushContext(context);
 
     if(bi)
     {
@@ -5446,6 +5469,8 @@ DW_FUNCTION_RESTORE_PARAM6(handle, HWND, pixmap, HPIXMAP, flags, int, npoints, i
         else
             [aPath stroke];
     }
+    if(context)
+        UIGraphicsPopContext();
     DW_FUNCTION_RETURN_NOTHING;
 }
 
@@ -5466,7 +5491,10 @@ DW_FUNCTION_RESTORE_PARAM7(handle, HWND, pixmap, HPIXMAP, flags, int, x, int, y,
 {
     DW_FUNCTION_INIT;
     DWImage *bi = _dw_dest_image(pixmap, handle);
-    /*CGContextRef context =*/ _dw_draw_context(bi, flags & DW_DRAW_NOAA ? NO : YES);
+    CGContextRef context = _dw_draw_context(bi, flags & DW_DRAW_NOAA ? NO : YES);
+
+    if(context)
+        UIGraphicsPushContext(context);
 
     if(bi)
     {
@@ -5480,6 +5508,8 @@ DW_FUNCTION_RESTORE_PARAM7(handle, HWND, pixmap, HPIXMAP, flags, int, x, int, y,
         else
             [bp stroke];
     }
+    if(context)
+        UIGraphicsPopContext();
     DW_FUNCTION_RETURN_NOTHING;
 }
 
@@ -5503,7 +5533,10 @@ DW_FUNCTION_RESTORE_PARAM9(handle, HWND, pixmap, HPIXMAP, flags, int, xorigin, i
 {
     DW_FUNCTION_INIT;
     DWImage *bi = _dw_dest_image(pixmap, handle);
-    /*CGContextRef context =*/ _dw_draw_context(bi, flags & DW_DRAW_NOAA ? NO : YES);
+    CGContextRef context = _dw_draw_context(bi, flags & DW_DRAW_NOAA ? NO : YES);
+
+    if(context)
+        UIGraphicsPushContext(context);
 
     if(bi)
     {
@@ -5536,6 +5569,8 @@ DW_FUNCTION_RESTORE_PARAM9(handle, HWND, pixmap, HPIXMAP, flags, int, xorigin, i
         else
             [aPath stroke];
     }
+    if(context)
+        UIGraphicsPopContext();
     DW_FUNCTION_RETURN_NOTHING;
 }
 
