@@ -1169,10 +1169,10 @@ API_AVAILABLE(ios(13.0))
     if(context)
         UIGraphicsPushContext(context);
 
-    if(bltdest && [bltsrc isMemberOfClass:[UIImage class]])
+    if(bltdest && [bltsrc isMemberOfClass:[DWImage class]])
     {
-        UIImage *rep = bltsrc;
-        UIImage *image = [[UIImage alloc] initWithCGImage:[rep CGImage]];
+        DWImage *rep = bltsrc;
+        UIImage *image = [rep image];
         CGBlendMode op = kCGBlendModeNormal;
 
         if(bltinfo->srcwidth != -1)
@@ -1187,8 +1187,6 @@ API_AVAILABLE(ios(13.0))
                       /*fromRect:CGRectMake(bltinfo->xsrc, bltinfo->ysrc, bltinfo->width, bltinfo->height)*/
                      blendMode:op alpha:1.0];
         }
-        [bltsrc release];
-        [image release];
     }
     if(context)
         UIGraphicsPopContext();
@@ -1517,6 +1515,7 @@ DWObject *DWObj;
         CGImageRef cgimage = CGBitmapContextCreateImage(cgcontext);
         image = [UIImage imageWithCGImage:cgimage];
         CGContextRelease(cgcontext);
+        [image retain];
     }
     return self;
 }
@@ -1560,6 +1559,7 @@ DWObject *DWObj;
         image = [UIImage imageWithCGImage:cgimage];
         CGContextRelease(cgcontext);
         cgcontext = nil;
+        [image retain];
         [oldimage release];
     }
     return image;
