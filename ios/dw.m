@@ -265,7 +265,7 @@ static void _dw_do_resize(Box *thisbox, int x, int y);
 void _dw_handle_resize_events(Box *thisbox);
 int _dw_remove_userdata(UserData **root, const char *varname, int all);
 int _dw_main_iteration(NSDate *date);
-CGContextRef _dw_draw_context(UIImage *image, bool antialias);
+CGContextRef _dw_draw_context(id image, bool antialias);
 typedef id (*DWIMP)(id, SEL, ...);
 
 /* Internal function to queue a window redraw */
@@ -793,13 +793,27 @@ API_AVAILABLE(ios(13.0))
 -(void)layoutSubviews { }
 @end
 
+@interface DWImage : NSObject
+{
+    UIImage *image;
+    CGContextRef cgcontext;
+}
+-(id)initWithSize:(CGSize)size;
+-(id)initWithCGImage:(CGImageRef)cgimage;
+-(id)initWithUIImage:(UIImage *)newimage;
+-(void)setImage:(UIImage *)input;
+-(UIImage *)image;
+-(CGContextRef)cgcontext;
+-(void)dealloc;
+@end
+
 /* Subclass for a render area type */
 @interface DWRender : UIControl
 {
     void *userdata;
     UIFont *font;
     CGSize size;
-    UIImage *cachedDrawingRep;
+    DWImage *cachedImage;
 }
 -(void *)userdata;
 -(void)setUserdata:(void *)input;
@@ -807,7 +821,7 @@ API_AVAILABLE(ios(13.0))
 -(UIFont *)font;
 -(void)setSize:(CGSize)input;
 -(CGSize)size;
--(UIImage *)cachedDrawingRep;
+-(DWImage *)cachedImage;
 -(void)mouseDown:(UIEvent *)theEvent;
 -(void)mouseUp:(UIEvent *)theEvent;
 -(DWMenu *)menuForEvent:(UIEvent *)theEvent;
@@ -826,31 +840,35 @@ API_AVAILABLE(ios(13.0))
 -(UIFont *)font { return font; }
 -(void)setSize:(CGSize)input {
     size = input;
-    if(cachedDrawingRep)
+    if(cachedImage)
     {
-        UIImage *oldrep = cachedDrawingRep;
+        DWImage *oldimage = cachedImage;
+        UIImage *newimage;
         UIGraphicsBeginImageContext(self.frame.size);
         [[self layer] renderInContext:UIGraphicsGetCurrentContext()];
-        cachedDrawingRep = UIGraphicsGetImageFromCurrentImageContext();
+        newimage = UIGraphicsGetImageFromCurrentImageContext();
         UIGraphicsEndImageContext();
-        [cachedDrawingRep retain];
-        [oldrep release];
+        cachedImage = [[DWImage alloc] initWithUIImage:newimage];
+        [cachedImage retain];
+        [oldimage release];
     }
 }
 -(CGSize)size { return size; }
--(UIImage *)cachedDrawingRep {
-    if(!cachedDrawingRep)
+-(DWImage *)cachedImage {
+    if(!cachedImage)
     {
+        UIImage *newimage;
         UIGraphicsBeginImageContext(self.frame.size);
         [[self layer] renderInContext:UIGraphicsGetCurrentContext()];
-        cachedDrawingRep = UIGraphicsGetImageFromCurrentImageContext();
+        newimage = UIGraphicsGetImageFromCurrentImageContext();
         UIGraphicsEndImageContext();
-        [cachedDrawingRep retain];
+        cachedImage = [[DWImage alloc] initWithUIImage:newimage];
+        [cachedImage retain];
     }
     /* Mark this render dirty if something is requesting it to draw */
     if(![_DWDirtyDrawables containsObject:self])
         [_DWDirtyDrawables addObject:self];
-    return cachedDrawingRep;
+    return cachedImage;
 }
 -(void)mouseDown:(UIEvent *)theEvent
 {
@@ -865,9 +883,9 @@ API_AVAILABLE(ios(13.0))
 -(void)mouseDragged:(UIEvent *)theEvent { _dw_event_handler(self, theEvent, 5); }
 -(void)drawRect:(CGRect)rect {
     _dw_event_handler(self, nil, 7);
-    if (cachedDrawingRep)
+    if(cachedImage)
     {
-        [cachedDrawingRep drawInRect:self.bounds];
+        [[cachedImage image] drawInRect:self.bounds];
         [_DWDirtyDrawables removeObject:self];
         [self setNeedsDisplay];
     }
@@ -879,7 +897,7 @@ API_AVAILABLE(ios(13.0))
     _dw_remove_userdata(&root, NULL, TRUE);
     [font release];
     dw_signal_disconnect_by_window(self);
-    [cachedDrawingRep release];
+    [cachedImage release];
     [_DWDirtyDrawables removeObject:self];
     [super dealloc];
 }
@@ -1146,17 +1164,8 @@ API_AVAILABLE(ios(13.0))
     DWBitBlt *bltinfo = (DWBitBlt *)[bi pointerValue];
     id bltdest = bltinfo->dest;
     id bltsrc = bltinfo->src;
+    /* TODO: CGContextRef context =*/ _dw_draw_context(bltdest, NO);
 
-    if([bltdest isMemberOfClass:[DWRender class]])
-    {
-        DWRender *render = bltdest;
-
-        bltdest = [render cachedDrawingRep];
-    }
-    if([bltdest isMemberOfClass:[UIImage class]])
-    {
-        _dw_draw_context(bltdest, NO);
-    }
     if(bltdest && [bltsrc isMemberOfClass:[UIImage class]])
     {
         UIImage *rep = bltsrc;
@@ -1178,10 +1187,6 @@ API_AVAILABLE(ios(13.0))
         [bltsrc release];
         [image release];
     }
-    if([bltdest isMemberOfClass:[UIImage class]])
-    {
-        UIGraphicsEndImageContext();
-    }
     free(bltinfo);
 }
 -(void)doFlush:(id)param
@@ -1189,9 +1194,10 @@ API_AVAILABLE(ios(13.0))
     NSEnumerator *enumerator = [_DWDirtyDrawables objectEnumerator];
     DWRender *rend;
 
-    while (rend = [enumerator nextObject])
+    while(rend = [enumerator nextObject])
         [rend setNeedsDisplay];
     [_DWDirtyDrawables removeAllObjects];
+    UIGraphicsEndImageContext();
 }
 -(void)doWindowFunc:(id)param
 {
@@ -1496,24 +1502,80 @@ DWObject *DWObj;
 -(void)dealloc { [super dealloc]; }
 @end
 
-@interface DWImage : NSObject
-{
-    UIImage *image;
-    CGImageRef cgimage;
-}
--(void)setImage:(UIImage *)input;
--(void)setCGImage:(CGImageRef)input;
--(UIImage *)image;
--(CGImageRef)cgimage;
--(void)dealloc;
-@end
-
 @implementation DWImage
--(void)setImage:(UIImage *)input { image = input; }
--(void)setCGImage:(CGImageRef)input { cgimage = input; }
--(UIImage *)image { return image; }
--(CGImageRef)cgimage { return cgimage; }
--(void)dealloc { if(cgimage) CGImageRelease(cgimage); if(image) [image release]; [super dealloc]; }
+-(id)initWithSize:(CGSize)size
+{
+    self = [super init];
+    if(self)
+    {
+        CGColorSpaceRef rgb = CGColorSpaceCreateDeviceRGB();
+        CGContextRef cgcontext = CGBitmapContextCreate(NULL, size.width, size.height, 8, 0, rgb, kCGImageAlphaLast);
+        CGImageRef cgimage = CGBitmapContextCreateImage(cgcontext);
+        image = [UIImage imageWithCGImage:cgimage];
+        CGContextRelease(cgcontext);
+    }
+    return self;
+}
+-(id)initWithCGImage:(CGImageRef)cgimage
+{
+    self = [super init];
+    if(self)
+    {
+        image = [UIImage imageWithCGImage:cgimage];
+        [image retain];
+    }
+    return self;
+}
+-(id)initWithUIImage:(UIImage *)newimage
+{
+    self = [super init];
+    if(self)
+    {
+        image = newimage;
+        [image retain];
+    }
+    return self;
+}
+-(void)setImage:(UIImage *)input
+{
+    UIImage *oldimage = image;
+    image = input;
+    [image retain];
+    [oldimage release];
+}
+-(UIImage *)image
+{
+    /* If our CGContext has been modified... */
+    if(cgcontext)
+    {
+        UIImage *oldimage = image;
+        CGImageRef cgimage;
+
+        /* Create a new UIImage from the CGContext via CGImage */
+        cgimage = CGBitmapContextCreateImage(cgcontext);
+        image = [UIImage imageWithCGImage:cgimage];
+        CGContextRelease(cgcontext);
+        cgcontext = nil;
+        [oldimage release];
+    }
+    return image;
+}
+-(CGContextRef)cgcontext
+{
+    /* If we don't have an active context, create a bitmap
+     * context and copy the image from our UIImage.
+     */
+    if(!cgcontext)
+    {
+        CGSize size = [image size];
+        CGColorSpaceRef rgb = CGColorSpaceCreateDeviceRGB();
+
+        cgcontext = CGBitmapContextCreate(NULL, size.width, size.height, 8, 0, rgb, kCGImageAlphaLast);
+        CGContextDrawImage(cgcontext, CGRectMake(0,0,size.width,size.height), [image CGImage]);
+    }
+    return cgcontext;
+}
+-(void)dealloc { if(cgcontext) CGContextRelease(cgcontext); if(image) [image release]; [super dealloc]; }
 @end
 
 /* Subclass for a scrollbox type */
@@ -5152,14 +5214,35 @@ unsigned long API dw_color_choose(unsigned long value)
     return newcolor;
 }
 
-CGContextRef _dw_draw_context(UIImage *image, bool antialiased)
+CGContextRef _dw_draw_context(id source, bool antialiased)
 {
-    CGContextRef context;
+    CGContextRef context = nil;
 
-    UIGraphicsBeginImageContext(image.size);
-    context = UIGraphicsGetCurrentContext();
-    CGContextSetAllowsAntialiasing(context, antialiased);
+    if([source isMemberOfClass:[DWImage class]])
+    {
+        DWImage *image = source;
+
+        context = [image cgcontext];
+    }
+    else if([source isMemberOfClass:[DWRender class]])
+    {
+        DWRender *render = source;
+
+        UIGraphicsBeginImageContext([render frame].size);
+        context = UIGraphicsGetCurrentContext();
+    }
+    if(context)
+        CGContextSetAllowsAntialiasing(context, antialiased);
     return context;
+}
+
+DWImage *_dw_dest_image(HPIXMAP pixmap, id object)
+{
+    if(pixmap && pixmap->image)
+        return pixmap->image;
+    if([object isMemberOfClass:[DWRender class]])
+        return [object cachedImage];
+    return nil;
 }
 
 /* Draw a point on a window (preferably a render window).
@@ -5175,27 +5258,10 @@ DW_FUNCTION_NO_RETURN(dw_draw_point)
 DW_FUNCTION_RESTORE_PARAM4(handle, HWND, pixmap, HPIXMAP, x, int, y, int)
 {
     DW_FUNCTION_INIT;
-    DW_LOCAL_POOL_IN;
-    id image = handle;
-    UIImage *bi = nil;
-    bool bCanDraw = YES;
+    DWImage *bi = _dw_dest_image(pixmap, handle);
+    /*CGContextRef context =*/ _dw_draw_context(bi, NO);
 
-    if(pixmap)
-        bi = (id)pixmap->image;
-    else
-    {
-        if([image isMemberOfClass:[DWRender class]])
-        {
-            DWRender *render = image;
-
-            bi = [render cachedDrawingRep];
-        }
-    }
     if(bi)
-    {
-        _dw_draw_context(bi, NO);
-    }
-    if(bCanDraw == YES)
     {
         UIBezierPath* aPath = [UIBezierPath bezierPath];
         [aPath setLineWidth: 0.5];
@@ -5205,9 +5271,6 @@ DW_FUNCTION_RESTORE_PARAM4(handle, HWND, pixmap, HPIXMAP, x, int, y, int)
         [aPath moveToPoint:CGPointMake(x, y)];
         [aPath stroke];
     }
-    if(bi)
-        UIGraphicsEndImageContext();
-    DW_LOCAL_POOL_OUT;
     DW_FUNCTION_RETURN_NOTHING;
 }
 
@@ -5226,27 +5289,10 @@ DW_FUNCTION_NO_RETURN(dw_draw_line)
 DW_FUNCTION_RESTORE_PARAM6(handle, HWND, pixmap, HPIXMAP, x1, int, y1, int, x2, int, y2, int)
 {
     DW_FUNCTION_INIT;
-    DW_LOCAL_POOL_IN;
-    id image = handle;
-    UIImage *bi = nil;
-    bool bCanDraw = YES;
+    DWImage *bi = _dw_dest_image(pixmap, handle);
+    /*CGContextRef context =*/ _dw_draw_context(bi, NO);
 
-    if(pixmap)
-        bi = (id)pixmap->image;
-    else
-    {
-        if([image isMemberOfClass:[DWRender class]])
-        {
-            DWRender *render = image;
-
-            bi = [render cachedDrawingRep];
-        }
-    }
     if(bi)
-    {
-       _dw_draw_context(bi, NO);
-    }
-    if(bCanDraw == YES)
     {
         UIBezierPath* aPath = [UIBezierPath bezierPath];
         UIColor *color = pthread_getspecific(_dw_fg_color_key);
@@ -5256,10 +5302,6 @@ DW_FUNCTION_RESTORE_PARAM6(handle, HWND, pixmap, HPIXMAP, x1, int, y1, int, x2, 
         [aPath addLineToPoint:CGPointMake(x2 + 0.5, y2 + 0.5)];
         [aPath stroke];
     }
-
-    if(bi)
-        UIGraphicsEndImageContext();
-    DW_LOCAL_POOL_OUT;
     DW_FUNCTION_RETURN_NOTHING;
 }
 
@@ -5277,13 +5319,11 @@ DW_FUNCTION_NO_RETURN(dw_draw_text)
 DW_FUNCTION_RESTORE_PARAM5(handle, HWND, pixmap, HPIXMAP, x, int, y, int, text, const char *)
 {
     DW_FUNCTION_INIT;
-    DW_LOCAL_POOL_IN;
-    id image = handle;
     NSString *nstr = [ NSString stringWithUTF8String:text ];
-    UIImage *bi = nil;
+    DWImage *bi = nil;
     UIFont *font = nil;
     DWRender *render;
-    bool bCanDraw = YES;
+    id image = handle;
 
     if(pixmap)
     {
@@ -5299,15 +5339,12 @@ DW_FUNCTION_RESTORE_PARAM5(handle, HWND, pixmap, HPIXMAP, x, int, y, int, text, 
     {
         render = image;
         font = [render font];
-        bi = [render cachedDrawingRep];
+        bi = [render cachedImage];
     }
     if(bi)
     {
-        _dw_draw_context(bi, NO);
-    }
+        /*CGContextRef context =*/ _dw_draw_context(bi, NO);
 
-    if(bCanDraw == YES)
-    {
         UIColor *fgcolor = pthread_getspecific(_dw_fg_color_key);
         UIColor *bgcolor = pthread_getspecific(_dw_bg_color_key);
         NSMutableDictionary *dict = [[NSMutableDictionary alloc] initWithObjectsAndKeys:fgcolor, NSForegroundColorAttributeName, nil];
@@ -5318,10 +5355,6 @@ DW_FUNCTION_RESTORE_PARAM5(handle, HWND, pixmap, HPIXMAP, x, int, y, int, text, 
         [nstr drawAtPoint:CGPointMake(x, y) withAttributes:dict];
         [dict release];
     }
-
-    if(bi)
-        UIGraphicsEndImageContext();
-    DW_LOCAL_POOL_OUT;
     DW_FUNCTION_RETURN_NOTHING;
 }
 
@@ -5391,32 +5424,15 @@ DW_FUNCTION_NO_RETURN(dw_draw_polygon)
 DW_FUNCTION_RESTORE_PARAM6(handle, HWND, pixmap, HPIXMAP, flags, int, npoints, int, x, int *, y, int *)
 {
     DW_FUNCTION_INIT;
-    DW_LOCAL_POOL_IN;
-    id image = handle;
-    UIImage *bi = nil;
-    bool bCanDraw = YES;
-    int z;
+    DWImage *bi = _dw_dest_image(pixmap, handle);
+    /*CGContextRef context =*/ _dw_draw_context(bi, flags & DW_DRAW_NOAA ? NO : YES);
 
-    if(pixmap)
-        bi = (id)pixmap->image;
-    else
-    {
-        if([image isMemberOfClass:[DWRender class]])
-        {
-            DWRender *render = image;
-
-            bi = [render cachedDrawingRep];
-        }
-    }
     if(bi)
-    {
-        _dw_draw_context(bi, flags & DW_DRAW_NOAA ? NO : YES);
-    }
-
-    if(bCanDraw == YES)
     {
         UIBezierPath* aPath = [UIBezierPath bezierPath];
         UIColor *color = pthread_getspecific(_dw_fg_color_key);
+        int z;
+
         [color set];
 
         [aPath moveToPoint:CGPointMake(*x + 0.5, *y + 0.5)];
@@ -5430,10 +5446,6 @@ DW_FUNCTION_RESTORE_PARAM6(handle, HWND, pixmap, HPIXMAP, flags, int, npoints, i
         else
             [aPath stroke];
     }
-
-    if(bi)
-        UIGraphicsEndImageContext();
-    DW_LOCAL_POOL_OUT;
     DW_FUNCTION_RETURN_NOTHING;
 }
 
@@ -5453,28 +5465,10 @@ DW_FUNCTION_NO_RETURN(dw_draw_rect)
 DW_FUNCTION_RESTORE_PARAM7(handle, HWND, pixmap, HPIXMAP, flags, int, x, int, y, int, width, int, height, int)
 {
     DW_FUNCTION_INIT;
-    DW_LOCAL_POOL_IN;
-    id image = handle;
-    UIImage *bi = nil;
-    bool bCanDraw = YES;
+    DWImage *bi = _dw_dest_image(pixmap, handle);
+    /*CGContextRef context =*/ _dw_draw_context(bi, flags & DW_DRAW_NOAA ? NO : YES);
 
-    if(pixmap)
-        bi = (id)pixmap->image;
-    else
-    {
-        if([image isMemberOfClass:[DWRender class]])
-        {
-            DWRender *render = image;
-
-            bi = [render cachedDrawingRep];
-        }
-    }
     if(bi)
-    {
-        _dw_draw_context(bi, flags & DW_DRAW_NOAA ? NO : YES);
-    }
-
-    if(bCanDraw == YES)
     {
         UIColor *color = pthread_getspecific(_dw_fg_color_key);
         UIBezierPath *bp = [UIBezierPath bezierPathWithRect:CGRectMake(x, y, width, height)];;
@@ -5486,10 +5480,6 @@ DW_FUNCTION_RESTORE_PARAM7(handle, HWND, pixmap, HPIXMAP, flags, int, x, int, y,
         else
             [bp stroke];
     }
-
-    if(bi)
-        UIGraphicsEndImageContext();
-    DW_LOCAL_POOL_OUT;
     DW_FUNCTION_RETURN_NOTHING;
 }
 
@@ -5512,28 +5502,10 @@ DW_FUNCTION_NO_RETURN(dw_draw_arc)
 DW_FUNCTION_RESTORE_PARAM9(handle, HWND, pixmap, HPIXMAP, flags, int, xorigin, int, yorigin, int, x1, int, y1, int, x2, int, y2, int)
 {
     DW_FUNCTION_INIT;
-    DW_LOCAL_POOL_IN;
-    id image = handle;
-    UIImage *bi = nil;
-    bool bCanDraw = YES;
+    DWImage *bi = _dw_dest_image(pixmap, handle);
+    /*CGContextRef context =*/ _dw_draw_context(bi, flags & DW_DRAW_NOAA ? NO : YES);
 
-    if(pixmap)
-        bi = (id)pixmap->image;
-    else
-    {
-        if([image isMemberOfClass:[DWRender class]])
-        {
-            DWRender *render = image;
-
-            bi = [render cachedDrawingRep];
-        }
-    }
     if(bi)
-    {
-        _dw_draw_context(bi, flags & DW_DRAW_NOAA ? NO : YES);
-    }
-
-    if(bCanDraw)
     {
         UIBezierPath* aPath;
         UIColor *color = pthread_getspecific(_dw_fg_color_key);
@@ -5564,10 +5536,6 @@ DW_FUNCTION_RESTORE_PARAM9(handle, HWND, pixmap, HPIXMAP, flags, int, xorigin, i
         else
             [aPath stroke];
     }
-
-    if(bi)
-        UIGraphicsEndImageContext();
-    DW_LOCAL_POOL_OUT;
     DW_FUNCTION_RETURN_NOTHING;
 }
 
@@ -6831,15 +6799,10 @@ HPIXMAP API dw_pixmap_new(HWND handle, unsigned long width, unsigned long height
 
     if((pixmap = calloc(1,sizeof(struct _hpixmap))))
     {
-        CGColorSpaceRef rgb = CGColorSpaceCreateDeviceRGB();
-        CGDataProviderRef provider = CGDataProviderCreateWithData(NULL, calloc(width*height, 4), width*height*4, NULL);
-        CGImageRef image = CGImageCreate(width, height, 8, 32, 4 * width,
-                                         rgb, kCGBitmapByteOrderDefault | kCGImageAlphaLast,
-                                         provider, NULL, false, kCGRenderingIntentDefault);
         pixmap->width = width;
         pixmap->height = height;
         pixmap->handle = handle;
-        pixmap->image = [[[UIImage alloc] initWithCGImage:image] retain];
+        pixmap->image = [[[DWImage alloc] initWithSize:CGSizeMake(width,height)] retain];
     }
     return pixmap;
 }
@@ -6880,7 +6843,7 @@ HPIXMAP API dw_pixmap_new_from_file(HWND handle, const char *filename)
     pixmap->width = [tmpimage size].width;
     pixmap->height = [tmpimage size].height;
     pixmap->image = tmpimage;
-    pixmap->handle = handle;
+    pixmap->handle = [[DWImage alloc] initWithUIImage:tmpimage];
     DW_LOCAL_POOL_OUT;
     return pixmap;
 }
@@ -6914,7 +6877,7 @@ HPIXMAP API dw_pixmap_new_from_data(HWND handle, const char *data, int len)
     }
     pixmap->width = [tmpimage size].width;
     pixmap->height = [tmpimage size].height;
-    pixmap->image = tmpimage;
+    pixmap->image = [[DWImage alloc] initWithUIImage:tmpimage];
     pixmap->handle = handle;
     DW_LOCAL_POOL_OUT;
     return pixmap;
@@ -6962,7 +6925,7 @@ HPIXMAP API dw_pixmap_grab(HWND handle, ULONG resid)
     {
         pixmap->width = [tmpimage size].width;
         pixmap->height = [tmpimage size].height;
-        pixmap->image = tmpimage;
+        pixmap->image = [[DWImage alloc] initWithUIImage:tmpimage];
         pixmap->handle = handle;
         DW_LOCAL_POOL_OUT;
         return pixmap;
@@ -7014,7 +6977,7 @@ void API dw_pixmap_destroy(HPIXMAP pixmap)
 {
     if(pixmap)
     {
-        UIImage *image = (UIImage *)pixmap->image;
+        DWImage *image = (DWImage *)pixmap->image;
         UIFont *font = pixmap->font;
         DW_LOCAL_POOL_IN;
         [image release];
