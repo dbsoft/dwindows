@@ -5551,13 +5551,9 @@ DW_FUNCTION_RESTORE_PARAM9(handle, HWND, pixmap, HPIXMAP, flags, int, xorigin, i
             double dy = yorigin - y1;
             double r = sqrt(dx*dx + dy*dy);
 
-            /* Convert to degrees */
-            a1 *= (180.0 / M_PI);
-            a2 *= (180.0 / M_PI);
-
             /* Prepare to draw */
             aPath = [UIBezierPath bezierPathWithArcCenter:CGPointMake(xorigin, yorigin)
-                                                   radius:r startAngle:a1 endAngle:a2 clockwise:NO];
+                                                   radius:r startAngle:a1 endAngle:a2 clockwise:YES];
         }
         /* If the fill flag is passed */
         if(flags & DW_DRAW_FILL)
