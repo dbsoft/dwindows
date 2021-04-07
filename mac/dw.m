@@ -4782,7 +4782,7 @@ void _dw_control_size(id handle, int *width, int *height)
     id object = _dw_text_handle(handle);
 
     /* Handle all the different button types */
-    if([ object isKindOfClass:[ NSButton class ] ])
+    if([object isKindOfClass:[NSButton class]])
     {
         switch([object buttonType])
         {
@@ -4829,19 +4829,19 @@ void _dw_control_size(id handle, int *width, int *height)
         }
     }
     /* If the control is an entryfield set width to 150 */
-    else if([object isKindOfClass:[ NSTextField class ]])
+    else if([object isKindOfClass:[NSTextField class]])
     {
         NSFont *font = [object font];
 
         if([object isEditable])
         {
             /* Spinbuttons don't need to be as wide */
-            if([handle isMemberOfClass:[ DWSpinButton class]])
+            if([handle isMemberOfClass:[DWSpinButton class]])
                 thiswidth = 50;
             else
                 thiswidth = 150;
             /* Comboboxes need some extra height for the border */
-            if([object isMemberOfClass:[ DWComboBox class]])
+            if([handle isMemberOfClass:[DWComboBox class]])
                 extraheight = 4;
             /* Yosemite and higher requires even more border space */
             if(DWOSMinor > 9 || DWOSMajor > 10)
@@ -4854,14 +4854,14 @@ void _dw_control_size(id handle, int *width, int *height)
             thisheight = (int)[font boundingRectForFont].size.height;
     }
     /* Handle the ranged widgets */
-    else if([ object isMemberOfClass:[DWPercent class] ] ||
-            [ object isMemberOfClass:[DWSlider class] ])
+    else if([object isMemberOfClass:[DWPercent class]] ||
+            [object isMemberOfClass:[DWSlider class]])
     {
         thiswidth = 100;
         thisheight = 20;
     }
     /* Handle the ranged widgets */
-    else if([ object isMemberOfClass:[DWScrollbar class] ])
+    else if([object isMemberOfClass:[DWScrollbar class]])
     {
         if([object vertical])
         {
@@ -4875,7 +4875,7 @@ void _dw_control_size(id handle, int *width, int *height)
         }
     }
     /* Handle bitmap size */
-    else if([ object isMemberOfClass:[NSImageView class] ])
+    else if([object isMemberOfClass:[NSImageView class]])
     {
         NSImage *image = [object image];
 
@@ -4887,7 +4887,7 @@ void _dw_control_size(id handle, int *width, int *height)
         }
     }
     /* Handle calendar */
-    else if([ object isMemberOfClass:[DWCalendar class] ])
+    else if([object isMemberOfClass:[DWCalendar class]])
     {
         NSCell *cell = [object cell];
 
@@ -4900,12 +4900,12 @@ void _dw_control_size(id handle, int *width, int *height)
         }
     }
     /* MLE and Container */
-    else if([ object isMemberOfClass:[DWMLE class] ] ||
-            [ object isMemberOfClass:[DWContainer class] ])
+    else if([object isMemberOfClass:[DWMLE class]] ||
+            [object isMemberOfClass:[DWContainer class]])
     {
         NSSize size;
 
-        if([ object isMemberOfClass:[DWMLE class] ])
+        if([object isMemberOfClass:[DWMLE class]])
         {
             NSScrollView *sv = [object scrollview];
             NSSize frame = [sv frame].size;
@@ -4966,13 +4966,13 @@ void _dw_control_size(id handle, int *width, int *height)
             thisheight = _DW_SCROLLED_MAX_HEIGHT;
     }
     /* Tree */
-    else if([ object isMemberOfClass:[DWTree class] ])
+    else if([object isMemberOfClass:[DWTree class]])
     {
         thiswidth = (int)((_DW_SCROLLED_MAX_WIDTH + _DW_SCROLLED_MIN_WIDTH)/2);
         thisheight = (int)((_DW_SCROLLED_MAX_HEIGHT + _DW_SCROLLED_MIN_HEIGHT)/2);
     }
     /* Any other control type */
-    else if([ object isKindOfClass:[ NSControl class ] ])
+    else if([object isKindOfClass:[NSControl class]])
         nsstr = [object stringValue];
 
     /* If we have a string...
@@ -4982,14 +4982,14 @@ void _dw_control_size(id handle, int *width, int *height)
         dw_font_text_extents_get(object, NULL, (char *)[nsstr UTF8String], &thiswidth, &thisheight);
 
     /* Handle static text fields */
-    if([object isKindOfClass:[ NSTextField class ]] && ![object isEditable])
+    if([object isKindOfClass:[NSTextField class]] && ![object isEditable])
     {
         id border = handle;
 
         extrawidth = 10;
 
         /* Handle status bar field */
-        if([border isMemberOfClass:[ NSBox class ] ])
+        if([border isMemberOfClass:[NSBox class]])
         {
             extrawidth += 2;
             extraheight = 8;
