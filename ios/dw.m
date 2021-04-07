@@ -1512,6 +1512,8 @@ DWObject *DWObj;
     {
         CGColorSpaceRef rgb = CGColorSpaceCreateDeviceRGB();
         CGContextRef cgcontext = CGBitmapContextCreate(NULL, size.width, size.height, 8, 0, rgb, kCGImageAlphaPremultipliedFirst);
+        CGAffineTransform flipVertical = CGAffineTransformMake(1, 0, 0, -1, 0, size.height);
+        CGContextConcatCTM(cgcontext, flipVertical);
         CGImageRef cgimage = CGBitmapContextCreateImage(cgcontext);
         image = [UIImage imageWithCGImage:cgimage];
         CGContextRelease(cgcontext);
@@ -1575,6 +1577,8 @@ DWObject *DWObj;
         CGColorSpaceRef rgb = CGColorSpaceCreateDeviceRGB();
 
         cgcontext = CGBitmapContextCreate(NULL, size.width, size.height, 8, 0, rgb, kCGImageAlphaPremultipliedFirst);
+        CGAffineTransform flipVertical = CGAffineTransformMake(1, 0, 0, -1, 0, size.height);
+        CGContextConcatCTM(cgcontext, flipVertical);
         CGContextDrawImage(cgcontext, CGRectMake(0,0,size.width,size.height), [image CGImage]);
     }
     return cgcontext;
