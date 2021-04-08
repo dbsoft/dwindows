@@ -5718,6 +5718,11 @@ int API dw_filesystem_get_column_type(HWND handle, int column)
  */
 void API dw_container_set_stripe(HWND handle, unsigned long oddcolor, unsigned long evencolor)
 {
+    /* TODO: If we want to accomplish this, according to mclasen we can do it
+     * with CSS on a GtkListBox widget using the following CSS:
+     * "row: nth-child(even) { background: red; }"
+     * However he does not recommend we do it for performance reasons.
+     */
 }
 
 /*
