@@ -166,11 +166,11 @@ char *resolve_keyname(int vk)
         case  VK_RBUTTON : keyname =  "VK_RBUTTON"; break;
         case  VK_CANCEL  : keyname =  "VK_CANCEL"; break;
         case  VK_MBUTTON : keyname =  "VK_MBUTTON"; break;
-            /*       case  VK_BACK    : keyname =  "VK_BACK"; break;*/
+/*      case  VK_BACK    : keyname =  "VK_BACK"; break;*/
         case  VK_TAB     : keyname =  "VK_TAB"; break;
         case  VK_CLEAR   : keyname =  "VK_CLEAR"; break;
         case  VK_RETURN  : keyname =  "VK_RETURN"; break;
-            /*       case  VK_MENU    : keyname =  "VK_MENU"; break;*/
+/*      case  VK_MENU    : keyname =  "VK_MENU"; break;*/
         case  VK_PAUSE   : keyname =  "VK_PAUSE"; break;
         case  VK_CAPITAL : keyname =  "VK_CAPITAL"; break;
         case  VK_ESCAPE  : keyname =  "VK_ESCAPE"; break;
@@ -238,14 +238,14 @@ char *resolve_keyname(int vk)
         case  VK_RSHIFT  : keyname =  "VK_RSHIFT"; break;
         case  VK_LCONTROL: keyname =  "VK_LCONTROL"; break;
         case  VK_RCONTROL: keyname =  "VK_RCONTROL"; break;
-            /*       case  VK_LMENU   : keyname =  "VK_LMENU"; break; */
-            /*       case  VK_RMENU   : keyname =  "VK_RMENU"; break;*/
+/*      case  VK_LMENU   : keyname =  "VK_LMENU"; break; */
+/*      case  VK_RMENU   : keyname =  "VK_RMENU"; break;*/
         default: keyname = "<unknown>"; break;
     }
     return keyname;
 }
 
-char *resolve_keymodifiers( int mask )
+char *resolve_keymodifiers(int mask)
 {
     if((mask & KC_CTRL) && (mask & KC_SHIFT) && (mask & KC_ALT))
         return "KC_CTRL KC_SHIFT KC_ALT";
@@ -610,13 +610,13 @@ int DWSIGNAL browse_file_callback(HWND window, void *data)
 {
     char *tmp;
     tmp = dw_file_browse("Pick a file", "dwtest.c", "c", DW_FILE_OPEN);
-    if ( tmp )
+    if(tmp)
     {
         HWND notification = dw_notification_new("New file loaded", "image/test.png", "dwtest loaded \"%s\" into the file browser on the Render tab, with \"File Display\" selected from the drop down list.", tmp);
 
-        if (current_file)
+        if(current_file)
         {
-            dw_free( current_file );
+            dw_free(current_file);
         }
         current_file = tmp;
         dw_window_set_text(entryfield, current_file);
@@ -632,7 +632,7 @@ int DWSIGNAL browse_file_callback(HWND window, void *data)
 
 int DWSIGNAL browse_folder_callback(HWND window, void *data)
 {
-    char *tmp = dw_file_browse("Pick a folder", ".", "c", DW_DIRECTORY_OPEN );
+    char *tmp = dw_file_browse("Pick a folder", ".", "c", DW_DIRECTORY_OPEN);
     dw_debug("Folder picked: %s\n", tmp ? tmp : "None");
     return 0;
 }
@@ -647,18 +647,18 @@ int DWSIGNAL button_callback(HWND window, void *data)
     char buf2[100];
     char buf3[500];
 
-    idx = dw_listbox_selected( combobox1 );
-    dw_listbox_get_text( combobox1, idx, buf1, 99 );
-    idx = dw_listbox_selected( combobox2 );
-    dw_listbox_get_text( combobox2, idx, buf2, 99 );
-    dw_calendar_get_date( cal, &y, &m, &d );
-    spvalue = dw_spinbutton_get_pos( spinbutton );
+    idx = dw_listbox_selected(combobox1);
+    dw_listbox_get_text(combobox1, idx, buf1, 99);
+    idx = dw_listbox_selected(combobox2);
+    dw_listbox_get_text(combobox2, idx, buf2, 99);
+    dw_calendar_get_date(cal, &y, &m, &d);
+    spvalue = dw_spinbutton_get_pos(spinbutton);
     len = sprintf(buf3, "spinbutton: %ld\ncombobox1: \"%s\"\ncombobox2: \"%s\"\ncalendar: %d-%d-%d",
                   spvalue,
                   buf1, buf2,
                   y, m, d);
-    dw_messagebox("Values", DW_MB_OK | DW_MB_INFORMATION, buf3 );
-    dw_clipboard_set_text(buf3, len );
+    dw_messagebox("Values", DW_MB_OK | DW_MB_INFORMATION, buf3);
+    dw_clipboard_set_text(buf3, len);
     return 0;
 }
 
@@ -666,17 +666,17 @@ int DWSIGNAL bitmap_toggle_callback(HWND window, void *data)
 {
     static int isfoldericon = 1;
 
-    if ( isfoldericon )
+    if(isfoldericon)
     {
        isfoldericon = 0;
-       dw_window_set_bitmap(window, 0, FILE_ICON_NAME );
-       dw_window_set_tooltip(window, "File Icon" );
+       dw_window_set_bitmap(window, 0, FILE_ICON_NAME);
+       dw_window_set_tooltip(window, "File Icon");
     }
     else
     {
        isfoldericon = 1;
-       dw_window_set_bitmap_from_data( window, 0, folder_ico, sizeof(folder_ico) );
-       dw_window_set_tooltip(window, "Folder Icon" );
+       dw_window_set_bitmap_from_data(window, 0, folder_ico, sizeof(folder_ico));
+       dw_window_set_tooltip(window, "Folder Icon");
     }
     return 0;
 }
@@ -708,7 +708,7 @@ void DWSIGNAL scrollbar_valuechanged_callback(HWND hwnd, int value, void *data)
         HWND stext = (HWND)data;
         char tmpbuf[100];
 
-        if ( hwnd == vscrollbar )
+        if(hwnd == vscrollbar)
         {
             current_row = value;
         }
@@ -764,7 +764,7 @@ int DWSIGNAL configure_event(HWND hwnd, int width, int height, void *data)
     return TRUE;
 }
 
-int DWSIGNAL item_enter_cb( HWND window, char *text, void *data, void *itemdata )
+int DWSIGNAL item_enter_cb(HWND window, char *text, void *data, void *itemdata)
 {
     char buf[200];
     HWND statline = (HWND)data;
@@ -774,7 +774,7 @@ int DWSIGNAL item_enter_cb( HWND window, char *text, void *data, void *itemdata 
     return 0;
 }
 
-int DWSIGNAL item_context_cb( HWND window, char *text, int x, int y, void *data, void *itemdata )
+int DWSIGNAL item_context_cb(HWND window, char *text, int x, int y, void *data, void *itemdata)
 {
     char buf[200];
     HWND statline = (HWND)data;
@@ -784,7 +784,7 @@ int DWSIGNAL item_context_cb( HWND window, char *text, int x, int y, void *data,
     return 0;
 }
 
-int DWSIGNAL list_select_cb( HWND window, int item, void *data )
+int DWSIGNAL list_select_cb(HWND window, int item, void *data)
 {
     char buf[200];
     HWND statline = (HWND)data;
@@ -794,7 +794,7 @@ int DWSIGNAL list_select_cb( HWND window, int item, void *data )
     return 0;
 }
 
-int DWSIGNAL item_select_cb( HWND window, HTREEITEM item, char *text, void *data, void *itemdata )
+int DWSIGNAL item_select_cb(HWND window, HTREEITEM item, char *text, void *data, void *itemdata)
 {
     char buf[200];
     HWND statline = (HWND)data;
@@ -805,7 +805,7 @@ int DWSIGNAL item_select_cb( HWND window, HTREEITEM item, char *text, void *data
     return 0;
 }
 
-int DWSIGNAL container_select_cb( HWND window, HTREEITEM item, char *text, void *data, void *itemdata )
+int DWSIGNAL container_select_cb(HWND window, HTREEITEM item, char *text, void *data, void *itemdata)
 {
     char buf[200];
     char *str;
@@ -839,14 +839,14 @@ int DWSIGNAL container_select_cb( HWND window, HTREEITEM item, char *text, void 
     return 0;
 }
 
-int DWSIGNAL switch_page_cb( HWND window, unsigned long page_num, void *itemdata )
+int DWSIGNAL switch_page_cb(HWND window, unsigned long page_num, void *itemdata)
 {
     dw_debug("DW_SIGNAL_SWITCH_PAGE: Window: %x PageNum: %u Itemdata: %x\n", DW_POINTER_TO_UINT(window),
               DW_POINTER_TO_UINT(page_num), DW_POINTER_TO_UINT(itemdata) );
     return 0;
 }
 
-int DWSIGNAL column_click_cb( HWND window, int column_num, void *data )
+int DWSIGNAL column_click_cb(HWND window, int column_num, void *data)
 {
     char buf[200], buf1[100];
     HWND statline = (HWND)data;
@@ -856,7 +856,7 @@ int DWSIGNAL column_click_cb( HWND window, int column_num, void *data )
         strcpy(buf1,"Filename");
     else
     {
-        column_type = dw_filesystem_get_column_type( window, column_num-1 );
+        column_type = dw_filesystem_get_column_type(window, column_num-1);
         if( column_type == DW_CFA_STRING)
             strcpy(buf1,"String");
         else if( column_type == DW_CFA_ULONG)
