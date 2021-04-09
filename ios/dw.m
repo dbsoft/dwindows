@@ -2311,6 +2311,7 @@ UITableViewCell *_dw_table_cell_view_new(UIImage *icon, NSString *text)
 -(void)stepperChanged:(UIStepper*)theStepper
 {
     [textfield setText:[NSString stringWithFormat:@"%d", (int)[theStepper value]]];
+    _dw_event_handler(self, DW_INT_TO_POINTER((int)[stepper value]), 14);
 }
 -(void)setClickDefault:(id)input { clickDefault = input; }
 -(void)dealloc { UserData *root = userdata; _dw_remove_userdata(&root, NULL, TRUE); dw_signal_disconnect_by_window(self); [super dealloc]; }
