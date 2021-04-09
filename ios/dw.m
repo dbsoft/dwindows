@@ -2858,25 +2858,25 @@ static void _dw_resize_box(Box *thisbox, int *depth, int x, int y, int pass)
                     NSArray *subviews = [scrollbox subviews];
                     DWBox *contentbox = [subviews firstObject];
                     Box *thisbox = [contentbox box];
-                    CGSize contentsize = [scrollbox contentSize];
-                    CGRect frame = [contentbox frame];
+                    /* We start with the content being the available size */
+                    CGRect frame = CGRectMake(0,0,rect.size.width,rect.size.height);
 
                     /* Get the required space for the box */
                     _dw_resize_box(thisbox, &depth, x, y, 1);
 
-                    if(contentsize.width < thisbox->minwidth)
+                    /* Expand the content box to the size of the contents */
+                    if(frame.size.width < thisbox->minwidth)
                     {
-                        contentsize.width = thisbox->minwidth;
+                        frame.size.width = thisbox->minwidth;
                     }
-                    if(contentsize.height < thisbox->minheight)
+                    if(frame.size.height < thisbox->minheight)
                     {
-                        contentsize.height = thisbox->minheight;
+                        frame.size.height = thisbox->minheight;
                     }
-                    frame.size = contentsize;
                     [contentbox setFrame:frame];
 
                     /* Layout the content of the scrollbox */
-                    _dw_do_resize(thisbox, contentsize.width, contentsize.height);
+                    _dw_do_resize(thisbox, frame.size.width, frame.size.height);
                     _dw_handle_resize_events(thisbox);
                 }
                 /* Special handling for spinbutton controls */
