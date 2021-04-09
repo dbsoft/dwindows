@@ -2381,6 +2381,7 @@ API_AVAILABLE(ios(10.0))
 
         /* Set UI defaults */
         toolbarStyle = UIBarStyleDefault;
+        dataArray = [[NSMutableArray alloc] init];
 
         /* Setup the arrow image */
         UIButton *imageButton = [UIButton buttonWithType:UIButtonTypeCustom];
