@@ -290,16 +290,16 @@ int DWSIGNAL text_expose(HWND hwnd, DWExpose *exp, void *data)
     return TRUE;
 }
 
-void read_file( void )
+void read_file(void)
 {
     int i,len;
     fp = fopen(current_file, "r" );
     if(fp)
     {
-       lp = (char **)calloc( 1000,sizeof(char *));
+       lp = (char **)calloc(1000,sizeof(char *));
        /* should test for out of memory */
        max_linewidth=0;
-       for(i = 0; i < 1000; i++)
+       for(i=0; i<1000; i++)
        {
            lp[i] = (char *)calloc(1, 1025);
            if (fgets( lp[i], 1024, fp ) == NULL)
