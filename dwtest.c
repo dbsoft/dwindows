@@ -1159,7 +1159,6 @@ void text_add(void)
         pos++;
         strncpy(&pathbuff[pos], "test", 1024-pos);
         image = dw_pixmap_new_from_file(textbox2, pathbuff);
-        dw_debug("PathBuff: %s\n", pathbuff);
     }
     if(image)
         dw_pixmap_set_transparent_color(image, DW_CLR_WHITE);
@@ -2160,10 +2159,8 @@ int dwmain(int argc, char *argv[])
         pos++;
         strncpy(&pathbuff[pos], FOLDER_ICON_NAME, 1024-pos);
         foldericon = dw_icon_load_from_file(pathbuff);
-        dw_debug("PathBuff: %s\n", pathbuff);
         strncpy(&pathbuff[pos], FILE_ICON_NAME, 1024-pos);
         fileicon = dw_icon_load_from_file(pathbuff);
-        dw_debug("PathBuff: %s\n", pathbuff);
     }
 
     notebook = dw_notebook_new( 1, TRUE );

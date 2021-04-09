@@ -6888,8 +6888,8 @@ HPIXMAP API dw_pixmap_new_from_file(HWND handle, const char *filename)
     }
     pixmap->width = [tmpimage size].width;
     pixmap->height = [tmpimage size].height;
-    pixmap->image = tmpimage;
-    pixmap->handle = [[DWImage alloc] initWithUIImage:tmpimage];
+    pixmap->image = [[DWImage alloc] initWithUIImage:tmpimage];
+    pixmap->handle = handle;
     DW_LOCAL_POOL_OUT;
     return pixmap;
 }
@@ -10185,7 +10185,6 @@ int API dw_init(int newthread, int argc, char *argv[])
             if(len > 0)
             {
                 strncpy(_dw_bundle_path, pathcopy, len + 4);
-                strcat(_dw_bundle_path, "/Contents/Resources");
             }
             *app = 0;
 
