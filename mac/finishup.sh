@@ -5,9 +5,13 @@ if [ $PLATFORM = "Darwin" ]
 then
     mkdir -p dwtest.app/Contents/MacOS
     mkdir -p dwtest.app/Contents/Resources
+    mkdir -p dwtest.app/Contents/Resources/mac
 
     cp -f $1/mac/Info.plist dwtest.app/Contents
-    cp -f $1/mac/PkgInfo dwtest.app/Contents
+    cp -f $1/mac/PkgInfo dwtest.app/Contents 
+    cp -f $1/mac/file.png dwtest.app/Contents/Resources/mac
+    cp -f $1/mac/folder.png dwtest.app/Contents/Resources/mac
+    cp -f $1/image/test.png dwtest.app/Contents/Resources
     cp -f dwtest dwtest.app/Contents/MacOS
     # Check if there is a certificate to sign with...
     if [ ! -f mac/key.crt ]; then
