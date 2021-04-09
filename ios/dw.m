@@ -977,7 +977,18 @@ API_AVAILABLE(ios(13.0))
     char *file = NULL;
 
     if(url && [[url absoluteString] length] > 0)
-        file = strdup([[url absoluteString] UTF8String]);
+    {
+        const char *tmp = [[url absoluteString] UTF8String];
+
+        if(tmp)
+        {
+            /* Strip off file:// so it looks the same as other platforms */
+            if(strncmp(tmp, "file://", 7) == 0)
+                file = strdup(&tmp[7]);
+            else
+                file = strdup(tmp);
+        }
+    }
     dw_dialog_dismiss(dialog, file);
 }
 -(void)documentPickerWasCancelled:(UIDocumentPickerViewController *)controller
@@ -1090,7 +1101,7 @@ API_AVAILABLE(ios(13.0))
         mode = UIDocumentPickerModeExportToService;
     /* Try to generate a UTI for our passed extension */
     if(ext)
-        UTIs = [NSArray arrayWithObject:[NSString stringWithFormat:@"public.%s", ext]];
+        UTIs = [NSArray arrayWithObjects:[NSString stringWithFormat:@"public.%s", ext], @"public.text", nil];
     else
         UTIs = @[@"public.text"];
     picker = [[UIDocumentPickerViewController alloc] initWithDocumentTypes:UTIs inMode:mode];
