@@ -25,6 +25,10 @@
 #define FIXEDFONT "9.Monaco"
 #define FOLDER_ICON_NAME "mac/folder"
 #define FILE_ICON_NAME "mac/file"
+#elif defined(__IOS__)
+#define FIXEDFONT "9.Monaco"
+#define FOLDER_ICON_NAME "folder"
+#define FILE_ICON_NAME "file"
 #elif GTK_MAJOR_VERSION > 1
 #define FIXEDFONT "10.monospace"
 #define FOLDER_ICON_NAME "gtk/folder"
@@ -1140,6 +1144,23 @@ void text_add(void)
     image = dw_pixmap_new_from_file(textbox2, "image/test");
     if(!image)
         image = dw_pixmap_new_from_file(textbox2, "~/test");
+    if(!image)
+    {
+        char *appdir = dw_app_dir();
+        char pathbuff[1025] = {0};
+        int pos = (int)strlen(appdir);
+        
+        strncpy(pathbuff, appdir, 1024);
+#if defined(__OS2__) || defined(__WIN32__)
+        pathbuff[pos] = '\\';
+#else
+        pathbuff[pos] = '/';
+#endif
+        pos++;
+        strncpy(&pathbuff[pos], "test", 1024-pos);
+        image = dw_pixmap_new_from_file(textbox2, pathbuff);
+        dw_debug("PathBuff: %s\n", pathbuff);
+    }
     if(image)
         dw_pixmap_set_transparent_color(image, DW_CLR_WHITE);
 
@@ -2121,8 +2142,29 @@ int dwmain(int argc, char *argv[])
     notebookbox = dw_box_new( DW_VERT, 5 );
     dw_box_pack_start( mainwindow, notebookbox, 0, 0, TRUE, TRUE, 0);
 
-    foldericon = dw_icon_load_from_file( FOLDER_ICON_NAME );
-    fileicon = dw_icon_load_from_file( FILE_ICON_NAME  );
+    foldericon = dw_icon_load_from_file(FOLDER_ICON_NAME);
+    fileicon = dw_icon_load_from_file(FILE_ICON_NAME);
+    
+    if(!foldericon && !fileicon)
+    {
+        char *appdir = dw_app_dir();
+        char pathbuff[1025] = {0};
+        int pos = (int)strlen(appdir);
+
+        strncpy(pathbuff, appdir, 1024);
+#if defined(__OS2__) || defined(__WIN32__)
+        pathbuff[pos] = '\\';
+#else
+        pathbuff[pos] = '/';
+#endif
+        pos++;
+        strncpy(&pathbuff[pos], FOLDER_ICON_NAME, 1024-pos);
+        foldericon = dw_icon_load_from_file(pathbuff);
+        dw_debug("PathBuff: %s\n", pathbuff);
+        strncpy(&pathbuff[pos], FILE_ICON_NAME, 1024-pos);
+        fileicon = dw_icon_load_from_file(pathbuff);
+        dw_debug("PathBuff: %s\n", pathbuff);
+    }
 
     notebook = dw_notebook_new( 1, TRUE );
     dw_box_pack_start( notebookbox, notebook, 100, 100, TRUE, TRUE, 0);
