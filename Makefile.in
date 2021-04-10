@@ -139,7 +139,7 @@ uninstall:
 	rm -f $(prefix)/include/dw.h
 	rm -f $(prefix)/share/applications/org.dbsoft.dwindows.dwtest.desktop
 	rm -f $(prefix)/share/man/man1/dwindows-config.1.gz
-	rm -f $(prefix)/share/dwtest/image.png
+	rm -f $(prefix)/share/dwtest/test.png
 	rm -f $(prefix)/share/dwtest/gtk/file.xpm
 	rm -f $(prefix)/share/dwtest/gtk/folder.xpm
 
