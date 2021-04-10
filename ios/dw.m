@@ -8506,7 +8506,7 @@ void API dw_window_set_bitmap_from_data(HWND handle, unsigned long cid, const ch
 {
     id object = handle;
 
-    if([ object isKindOfClass:[ UIImageView class ] ] || [ object isKindOfClass:[ UIButton class ]])
+    if([object isKindOfClass:[UIImageView class]] || [object isMemberOfClass:[DWButton class]])
     {
         if(data)
         {
@@ -8516,7 +8516,16 @@ void API dw_window_set_bitmap_from_data(HWND handle, unsigned long cid, const ch
 
             if(pixmap)
             {
-                [object setImage:pixmap];
+                if([object isMemberOfClass:[DWButton class]])
+                {
+                    DWButton *button = object;
+                    [button setImage:pixmap forState:UIControlStateNormal];
+                }
+                else
+                {
+                    UIImageView *iv = object;
+                    [iv setImage:pixmap];
+                }
             }
             /* If we changed the bitmap... */
             Item *item = _dw_box_item(handle);
@@ -8550,7 +8559,7 @@ void API dw_window_set_bitmap(HWND handle, unsigned long resid, const char *file
     id object = handle;
     DW_LOCAL_POOL_IN;
 
-    if([ object isKindOfClass:[ UIImageView class ] ] || [ object isKindOfClass:[ UIButton class ]])
+    if([object isKindOfClass:[UIImageView class]] || [object isMemberOfClass:[DWButton class]])
     {
         UIImage *bitmap = nil;
 
@@ -8574,7 +8583,16 @@ void API dw_window_set_bitmap(HWND handle, unsigned long resid, const char *file
 
         if(bitmap)
         {
-            [object setImage:bitmap];
+            if([object isMemberOfClass:[DWButton class]])
+            {
+                DWButton *button = object;
+                [button setImage:bitmap forState:UIControlStateNormal];
+            }
+            else
+            {
+                UIImageView *iv = object;
+                [iv setImage:bitmap];
+            }
 
             /* If we changed the bitmap... */
             Item *item = _dw_box_item(handle);
