@@ -347,8 +347,8 @@ static int _dw_snprintf(char *str, size_t size, const char *format, ...)
 #include <pthread.h>
 #include <dlfcn.h>
 
-/* Unfortunately using we can't import Cocoa.h
- * or UIKit.h from C code, so we have to instead
+/* Unfortunately we can't import Cocoa.h or
+ * UIKit.h from C code, so we have to instead
  * use opaque types and use the values from
  * the headers here directly without using the
  * symbolic names.
@@ -1359,8 +1359,11 @@ typedef struct _CTIME
 typedef CTIME *PCTIME;
 #endif
 
-#if defined(__OS2__) || (defined(__WIN32__) && !defined(GDK_WINDOWING_WIN32)) || (defined(WINNT) && !defined(GDK_WINDOWING_WIN32)) || defined(__EMX__)
+/* Define a few things missing on OS/2 and Windows */
+#if defined(__OS2__) || (defined(__WIN32__) && !defined(GDK_WINDOWING_WIN32)) || \
+    (defined(WINNT) && !defined(GDK_WINDOWING_WIN32)) || defined(__EMX__)
 typedef unsigned long DWTID;
+#define DW_DIR_SEPARATOR '\\'
 #endif
 
 /* Some dark mode constants for supported platforms */
@@ -1575,6 +1578,10 @@ typedef enum
 
 #ifndef DW_FCF_COMPOSITED
 #define DW_FCF_COMPOSITED        0
+#endif
+
+#ifndef DW_DIR_SEPARATOR
+#define DW_DIR_SEPARATOR '/'
 #endif
 
 #ifndef API

@@ -1151,11 +1151,7 @@ void text_add(void)
         int pos = (int)strlen(appdir);
         
         strncpy(pathbuff, appdir, 1024);
-#if defined(__OS2__) || defined(__WIN32__)
-        pathbuff[pos] = '\\';
-#else
-        pathbuff[pos] = '/';
-#endif
+        pathbuff[pos] = DW_DIR_SEPARATOR;
         pos++;
         strncpy(&pathbuff[pos], "test", 1024-pos);
         image = dw_pixmap_new_from_file(textbox2, pathbuff);
@@ -2151,11 +2147,7 @@ int dwmain(int argc, char *argv[])
         int pos = (int)strlen(appdir);
 
         strncpy(pathbuff, appdir, 1024);
-#if defined(__OS2__) || defined(__WIN32__)
-        pathbuff[pos] = '\\';
-#else
-        pathbuff[pos] = '/';
-#endif
+        pathbuff[pos] = DW_DIR_SEPARATOR;
         pos++;
         strncpy(&pathbuff[pos], FOLDER_ICON_NAME, 1024-pos);
         foldericon = dw_icon_load_from_file(pathbuff);
