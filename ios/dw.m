@@ -2873,6 +2873,7 @@ static void _dw_resize_box(Box *thisbox, int *depth, int x, int y, int pass)
                     {
                         frame.size.height = thisbox->minheight;
                     }
+                    [scrollbox setContentSize:frame.size];
                     [contentbox setFrame:frame];
 
                     /* Layout the content of the scrollbox */
@@ -3343,6 +3344,7 @@ DW_FUNCTION_RESTORE_PARAM2(type, int, pad, int)
     dw_box_pack_start(tmpbox, box, 1, 1, TRUE, TRUE, 0);
     [scrollbox setBox:box];
     [scrollbox addSubview:tmpbox];
+    [scrollbox setScrollEnabled:YES];
     [tmpbox autorelease];
     DW_FUNCTION_RETURN_THIS(scrollbox);
 }
