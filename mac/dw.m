@@ -434,7 +434,7 @@ unsigned long _dw_get_color(unsigned long thiscolor)
     return 0;
 }
 
-/* Returns TRUE of Mojave or later is in Dark Mode */
+/* Returns TRUE if Mojave or later is in Dark Mode */
 BOOL _dw_is_dark(id object)
 {
 #ifdef BUILDING_FOR_MOJAVE
