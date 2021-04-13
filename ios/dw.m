@@ -10632,11 +10632,20 @@ int API dw_feature_get(DWFEATURE feature)
                 switch(style)
                 {
                     case UIUserInterfaceStyleLight:
-                        return DW_FEATURE_DISABLED;
+                        return DW_DARK_MODE_DISABLED;
                     case UIUserInterfaceStyleDark:
                         return DW_DARK_MODE_FORCED;
+                    default:  /* UIUserInterfaceStyleUnspecified */
+                        style = [[[[DWObj hiddenWindow] rootViewController] traitCollection] userInterfaceStyle];
+                }
+                switch(style)
+                {
+                    case UIUserInterfaceStyleLight:
+                        return DW_DARK_MODE_BASIC;
+                    case UIUserInterfaceStyleDark:
+                        return DW_DARK_MODE_FULL;
                     default: /* UIUserInterfaceStyleUnspecified */
-                        return DW_FEATURE_ENABLED;
+                        return DW_FEATURE_UNSUPPORTED;
                 }
             }
             return _dw_dark_mode_state;
