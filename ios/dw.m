@@ -237,6 +237,7 @@ pthread_key_t _dw_bg_color_key;
 static int DWOSMajor, DWOSMinor, DWOSBuild;
 static char _dw_bundle_path[PATH_MAX+1] = { 0 };
 static char _dw_app_id[_DW_APP_ID_SIZE+1]= {0};
+static int _dw_dark_mode_state = DW_FEATURE_UNSUPPORTED;
 
 /* Create a default colors for a thread */
 void _dw_init_colors(void)
@@ -629,6 +630,7 @@ typedef struct _dw_bitbltinfo
 -(void)menuHandler:(id)param;
 -(void)doBitBlt:(id)param;
 -(void)doFlush:(id)param;
+-(UIWindow *)hiddenWindow;
 @end
 
 API_AVAILABLE(ios(13.0))
@@ -1015,7 +1017,11 @@ API_AVAILABLE(ios(13.0))
     [hiddenWindow setWindowLevel:UIWindowLevelAlert+1];
     [hiddenWindow setHidden:YES];
     [hiddenWindow setRootViewController:[UIViewController new]];
+    /* Handle setting the dark mode state now that DWObj is valid */
+    if(_dw_dark_mode_state != DW_FEATURE_UNSUPPORTED)
+        dw_feature_set(DW_FEATURE_DARK_MODE, _dw_dark_mode_state);
 }
+-(UIWindow *)hiddenWindow { return hiddenWindow; };
 -(void)uselessThread:(id)sender { /* Thread only to initialize threading */ }
 -(void)menuHandler:(id)param
 {
@@ -1230,6 +1236,14 @@ API_AVAILABLE(ios(13.0))
 @end
 
 DWObject *DWObj;
+
+/* Returns TRUE if iOS 12+ is in Dark Mode */
+BOOL _dw_is_dark(void)
+{
+    if([[[[DWObj hiddenWindow] rootViewController] traitCollection] userInterfaceStyle] == UIUserInterfaceStyleDark)
+        return YES;
+    return NO;
+}
 
 @interface DWWebView : WKWebView <WKNavigationDelegate>
 {
@@ -2000,7 +2014,10 @@ UITableViewCell *_dw_table_cell_view_new(UIImage *icon, NSString *text)
 {
     /* Update any system colors based on the Dark Mode */
     _DW_COLOR_ROW_EVEN = DW_RGB_TRANSPARENT;
-    _DW_COLOR_ROW_ODD = DW_RGB(230, 230, 230);
+    if(_dw_is_dark())
+        _DW_COLOR_ROW_ODD = DW_RGB(100, 100, 100);
+    else
+        _DW_COLOR_ROW_ODD = DW_RGB(230, 230, 230);
     /* Only refresh if we've been setup already */
     if(titles)
         [self refreshColors];
@@ -7804,6 +7821,7 @@ DW_FUNCTION_RESTORE_PARAM3(DW_UNUSED(hwndOwner), HWND, title, char *, DW_UNUSED(
     DW_FUNCTION_INIT;
     DWWindow *window = [[DWWindow alloc] initWithFrame:[[UIScreen mainScreen] bounds]];
     DWView *view = [[DWView alloc] init];
+    UIUserInterfaceStyle style = [[DWObj hiddenWindow] overrideUserInterfaceStyle];
 
     [window setWindowLevel:UIWindowLevelNormal];
     [window setRootViewController:[[DWViewController alloc] init]];
@@ -7814,6 +7832,9 @@ DW_FUNCTION_RESTORE_PARAM3(DW_UNUSED(hwndOwner), HWND, title, char *, DW_UNUSED(
     if(@available(iOS 13.0, *)) {
         [window setLargeContentTitle:[NSString stringWithUTF8String:title]];
     }
+    /* Copy the overrideUserInterfaceStyle property from the hiddenWindow */
+    if(style != UIUserInterfaceStyleUnspecified)
+        [window setOverrideUserInterfaceStyle:style];
     DW_FUNCTION_RETURN_THIS(window);
 }
 
@@ -10602,6 +10623,24 @@ int API dw_feature_get(DWFEATURE feature)
         case DW_FEATURE_MLE_WORD_WRAP:
         case DW_FEATURE_UTF8_UNICODE:
             return DW_FEATURE_ENABLED;
+        case DW_FEATURE_DARK_MODE:
+        {
+            if(DWObj)
+            {
+                UIUserInterfaceStyle style = [[DWObj hiddenWindow] overrideUserInterfaceStyle];
+                
+                switch(style)
+                {
+                    case UIUserInterfaceStyleLight:
+                        return DW_FEATURE_DISABLED;
+                    case UIUserInterfaceStyleDark:
+                        return DW_DARK_MODE_FORCED;
+                    default: /* UIUserInterfaceStyleUnspecified */
+                        return DW_FEATURE_ENABLED;
+                }
+            }
+            return _dw_dark_mode_state;
+        }
         default:
             return DW_FEATURE_UNSUPPORTED;
     }
@@ -10633,6 +10672,24 @@ int API dw_feature_set(DWFEATURE feature, int state)
         case DW_FEATURE_MLE_WORD_WRAP:
         case DW_FEATURE_UTF8_UNICODE:
             return DW_ERROR_GENERAL;
+        case DW_FEATURE_DARK_MODE:
+        {
+            /* Make sure DWObj is initialized */
+            if(DWObj)
+            {
+                /* Disabled forces the non-dark aqua theme */
+                if(state == DW_FEATURE_DISABLED)
+                    [[DWObj hiddenWindow] setOverrideUserInterfaceStyle:UIUserInterfaceStyleLight];
+                /* Enabled lets the OS decide the mode */
+                else if(state == DW_FEATURE_ENABLED || state == DW_DARK_MODE_FULL)
+                    [[DWObj hiddenWindow] setOverrideUserInterfaceStyle:UIUserInterfaceStyleUnspecified];
+                /* 2 forces dark mode aqua appearance */
+                else if(state == DW_DARK_MODE_FORCED)
+                    [[DWObj hiddenWindow] setOverrideUserInterfaceStyle:UIUserInterfaceStyleDark];
+            }
+            else /* Save the requested state for dw_init() */
+                _dw_dark_mode_state = state;
+        }
         default:
             return DW_FEATURE_UNSUPPORTED;
     }
