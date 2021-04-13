@@ -1233,6 +1233,44 @@ API_AVAILABLE(ios(13.0))
         }
     }
 }
+-(void)getUserInterfaceStyle:(id)param
+{
+    NSMutableArray *array = param;
+    UIUserInterfaceStyle style = [hiddenWindow overrideUserInterfaceStyle];
+    int retval;
+    
+    switch(style)
+    {
+        case UIUserInterfaceStyleLight:
+            retval = DW_DARK_MODE_DISABLED;
+            break;
+        case UIUserInterfaceStyleDark:
+            retval = DW_DARK_MODE_FORCED;
+            break;
+        default:  /* UIUserInterfaceStyleUnspecified */
+            style = [[[hiddenWindow rootViewController] traitCollection] userInterfaceStyle];
+    }
+    switch(style)
+    {
+        case UIUserInterfaceStyleLight:
+            retval = DW_DARK_MODE_BASIC;
+            break;
+        case UIUserInterfaceStyleDark:
+            retval = DW_DARK_MODE_FULL;
+            break;
+        default: /* UIUserInterfaceStyleUnspecified */
+            retval = DW_FEATURE_UNSUPPORTED;
+            break;
+    }
+    [array addObject:[NSNumber numberWithInt:retval]];
+}
+-(void)setUserInterfaceStyle:(id)param
+{
+    NSNumber *number = param;
+    UIUserInterfaceStyle style = [number intValue];
+    
+    [hiddenWindow setOverrideUserInterfaceStyle:style];
+}
 @end
 
 DWObject *DWObj;
@@ -2240,6 +2278,11 @@ UITableViewCell *_dw_table_cell_view_new(UIImage *icon, NSString *text)
         /* Handler for container class */
         _dw_event_handler(self, (UIEvent *)params, 9);
    }
+}
+-(void)tableView:(UITableView *)tableView didDeselectRowAtIndexPath:(NSIndexPath *)indexPath
+{
+    if([self allowsMultipleSelection])
+        [self tableView:tableView didSelectRowAtIndexPath:indexPath];
 }
 -(DWMenu *)menuForEvent:(UIEvent *)event
 {
@@ -10627,26 +10670,15 @@ int API dw_feature_get(DWFEATURE feature)
         {
             if(DWObj)
             {
-                UIUserInterfaceStyle style = [[DWObj hiddenWindow] overrideUserInterfaceStyle];
-                
-                switch(style)
-                {
-                    case UIUserInterfaceStyleLight:
-                        return DW_DARK_MODE_DISABLED;
-                    case UIUserInterfaceStyleDark:
-                        return DW_DARK_MODE_FORCED;
-                    default:  /* UIUserInterfaceStyleUnspecified */
-                        style = [[[[DWObj hiddenWindow] rootViewController] traitCollection] userInterfaceStyle];
-                }
-                switch(style)
-                {
-                    case UIUserInterfaceStyleLight:
-                        return DW_DARK_MODE_BASIC;
-                    case UIUserInterfaceStyleDark:
-                        return DW_DARK_MODE_FULL;
-                    default: /* UIUserInterfaceStyleUnspecified */
-                        return DW_FEATURE_UNSUPPORTED;
-                }
+                NSMutableArray *array = [[NSMutableArray alloc] init];
+                int retval = DW_FEATURE_UNSUPPORTED;
+                NSNumber *number;
+
+                [DWObj safeCall:@selector(getUserInterfaceStyle:) withObject:array];
+                number = [array lastObject];
+                if(number)
+                    retval = [number intValue];
+                return retval;
             }
             return _dw_dark_mode_state;
         }
@@ -10688,13 +10720,13 @@ int API dw_feature_set(DWFEATURE feature, int state)
             {
                 /* Disabled forces the non-dark aqua theme */
                 if(state == DW_FEATURE_DISABLED)
-                    [[DWObj hiddenWindow] setOverrideUserInterfaceStyle:UIUserInterfaceStyleLight];
+                    [DWObj safeCall:@selector(setUserInterfaceStyle:) withObject:[NSNumber numberWithInt:UIUserInterfaceStyleLight]];
                 /* Enabled lets the OS decide the mode */
                 else if(state == DW_FEATURE_ENABLED || state == DW_DARK_MODE_FULL)
-                    [[DWObj hiddenWindow] setOverrideUserInterfaceStyle:UIUserInterfaceStyleUnspecified];
+                    [DWObj safeCall:@selector(setUserInterfaceStyle:) withObject:[NSNumber numberWithInt:UIUserInterfaceStyleUnspecified]];
                 /* 2 forces dark mode aqua appearance */
                 else if(state == DW_DARK_MODE_FORCED)
-                    [[DWObj hiddenWindow] setOverrideUserInterfaceStyle:UIUserInterfaceStyleDark];
+                    [DWObj safeCall:@selector(setUserInterfaceStyle:) withObject:[NSNumber numberWithInt:UIUserInterfaceStyleDark]];
             }
             else /* Save the requested state for dw_init() */
                 _dw_dark_mode_state = state;
