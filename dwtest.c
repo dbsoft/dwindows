@@ -769,18 +769,63 @@ int DWSIGNAL item_enter_cb(HWND window, char *text, void *data, void *itemdata)
     char buf[200];
     HWND statline = (HWND)data;
 
-    sprintf(buf,"DW_SIGNAL_ITEM_ENTER: Window: %x Text: %s Itemdata: %x", DW_POINTER_TO_UINT(window), text, DW_POINTER_TO_UINT(itemdata) );
-    dw_window_set_text( statline, buf);
+    sprintf(buf,"DW_SIGNAL_ITEM_ENTER: Window: %x Text: %s Itemdata: %x", DW_POINTER_TO_UINT(window), text, DW_POINTER_TO_UINT(itemdata));
+    dw_window_set_text(statline, buf);
     return 0;
+}
+
+/* Context menus */
+int DWSIGNAL context_menu_cb(HWND hwnd, void *data)
+{
+    char buf[200];
+    HWND statline = (HWND)data;
+
+    sprintf(buf,"DW_SIGNAL_CLICKED: Menu: %x Container context menu clicked", DW_POINTER_TO_UINT(hwnd));
+    dw_window_set_text(statline, buf);
+    return 0;
+}
+
+HMENUI item_context_menu_new(char *text, void *data)
+{
+    HMENUI hwndMenu = dw_menu_new(0L);
+    HMENUI hwndSubMenu = dw_menu_new(0L);
+    HWND menuitem = dw_menu_append_item(hwndSubMenu, "File", DW_MENU_POPUP, 0L, TRUE, TRUE, DW_NOMENU);
+    dw_signal_connect(menuitem, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(context_menu_cb), data);
+    menuitem = dw_menu_append_item(hwndSubMenu, "Date", DW_MENU_POPUP, 0L, TRUE, TRUE, DW_NOMENU);
+    dw_signal_connect(menuitem, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(context_menu_cb), data);
+    menuitem = dw_menu_append_item(hwndSubMenu, "Size", DW_MENU_POPUP, 0L, TRUE, TRUE, DW_NOMENU);
+    dw_signal_connect(menuitem, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(context_menu_cb), data);
+    menuitem = dw_menu_append_item(hwndSubMenu, "None", DW_MENU_POPUP, 0L, TRUE, TRUE, DW_NOMENU);
+    dw_signal_connect(menuitem, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(context_menu_cb), data);
+
+    menuitem = dw_menu_append_item(hwndMenu, "Sort", DW_MENU_POPUP, 0L, TRUE, FALSE, hwndSubMenu);
+
+    menuitem = dw_menu_append_item(hwndMenu, "Make Directory", DW_MENU_POPUP, 0L, TRUE, FALSE, DW_NOMENU);
+    dw_signal_connect(menuitem, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(context_menu_cb), data);
+
+    dw_menu_append_item(hwndMenu, "", 0L, 0L, TRUE, FALSE, DW_NOMENU);
+    menuitem = dw_menu_append_item(hwndMenu, "Rename Entry", DW_MENU_POPUP, 0L, TRUE, FALSE, DW_NOMENU);
+    dw_signal_connect(menuitem, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(context_menu_cb), data);
+
+    menuitem = dw_menu_append_item(hwndMenu, "Delete Entry", DW_MENU_POPUP, 0L, TRUE, FALSE, DW_NOMENU);
+    dw_signal_connect(menuitem, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(context_menu_cb), data);
+
+    dw_menu_append_item(hwndMenu, "", 0L, 0L, TRUE, FALSE, DW_NOMENU);
+    menuitem = dw_menu_append_item(hwndMenu, "View File", DW_MENU_POPUP, 0L, TRUE, FALSE, DW_NOMENU);
+    dw_signal_connect(menuitem, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(context_menu_cb), data);
+
+    return hwndMenu;
 }
 
 int DWSIGNAL item_context_cb(HWND window, char *text, int x, int y, void *data, void *itemdata)
 {
     char buf[200];
     HWND statline = (HWND)data;
+    HMENUI popupmenu = item_context_menu_new(text, data);
 
-    sprintf(buf,"DW_SIGNAL_ITEM_CONTEXT: Window: %x Text: %s x: %d y: %d Itemdata: %x", DW_POINTER_TO_UINT(window), text, x, y, DW_POINTER_TO_UINT(itemdata) );
-    dw_window_set_text( statline, buf);
+    sprintf(buf,"DW_SIGNAL_ITEM_CONTEXT: Window: %x Text: %s x: %d y: %d Itemdata: %x", DW_POINTER_TO_UINT(window), text, x, y, DW_POINTER_TO_UINT(itemdata));
+    dw_window_set_text(statline, buf);
+    dw_menu_popup(&popupmenu, mainwindow, x, y);
     return 0;
 }
 
@@ -789,8 +834,8 @@ int DWSIGNAL list_select_cb(HWND window, int item, void *data)
     char buf[200];
     HWND statline = (HWND)data;
 
-    sprintf(buf,"DW_SIGNAL_LIST_SELECT: Window: %d Item: %d", DW_POINTER_TO_UINT(window), item );
-    dw_window_set_text( statline, buf);
+    sprintf(buf,"DW_SIGNAL_LIST_SELECT: Window: %d Item: %d", DW_POINTER_TO_UINT(window), item);
+    dw_window_set_text(statline, buf);
     return 0;
 }
 
@@ -800,8 +845,8 @@ int DWSIGNAL item_select_cb(HWND window, HTREEITEM item, char *text, void *data,
     HWND statline = (HWND)data;
 
     sprintf(buf,"DW_SIGNAL_ITEM_SELECT: Window: %x Item: %x Text: %s Itemdata: %x", DW_POINTER_TO_UINT(window),
-            DW_POINTER_TO_UINT(item), text, DW_POINTER_TO_UINT(itemdata) );
-    dw_window_set_text( statline, buf);
+            DW_POINTER_TO_UINT(item), text, DW_POINTER_TO_UINT(itemdata));
+    dw_window_set_text(statline, buf);
     return 0;
 }
 
@@ -813,10 +858,10 @@ int DWSIGNAL container_select_cb(HWND window, HTREEITEM item, char *text, void *
     unsigned long size;
 
     sprintf(buf,"DW_SIGNAL_ITEM_SELECT: Window: %x Item: %x Text: %s Itemdata: %x", DW_POINTER_TO_UINT(window),
-            DW_POINTER_TO_UINT(item), text, DW_POINTER_TO_UINT(itemdata) );
+            DW_POINTER_TO_UINT(item), text, DW_POINTER_TO_UINT(itemdata));
     dw_window_set_text( statline, buf);
     sprintf(buf,"\r\nDW_SIGNAL_ITEM_SELECT: Window: %x Item: %x Text: %s Itemdata: %x\r\n", DW_POINTER_TO_UINT(window),
-            DW_POINTER_TO_UINT(item), text, DW_POINTER_TO_UINT(itemdata) );
+            DW_POINTER_TO_UINT(item), text, DW_POINTER_TO_UINT(itemdata));
     mle_point = dw_mle_import( container_mle, buf, mle_point);
     str = dw_container_query_start(container, DW_CRA_SELECTED);
     while(str)
@@ -842,7 +887,7 @@ int DWSIGNAL container_select_cb(HWND window, HTREEITEM item, char *text, void *
 int DWSIGNAL switch_page_cb(HWND window, unsigned long page_num, void *itemdata)
 {
     dw_debug("DW_SIGNAL_SWITCH_PAGE: Window: %x PageNum: %u Itemdata: %x\n", DW_POINTER_TO_UINT(window),
-              DW_POINTER_TO_UINT(page_num), DW_POINTER_TO_UINT(itemdata) );
+              DW_POINTER_TO_UINT(page_num), DW_POINTER_TO_UINT(itemdata));
     return 0;
 }
 
@@ -1074,25 +1119,25 @@ void text_add(void)
     dw_listbox_append(rendcombo, "File Display");
     label = dw_text_new("Image X:", 100);
     dw_window_set_style(label, DW_DT_VCENTER | DW_DT_CENTER, DW_DT_VCENTER | DW_DT_CENTER);
-    dw_box_pack_start( hbox, label, -1, 25, FALSE, TRUE, 0);
+    dw_box_pack_start(hbox, label, -1, 25, FALSE, TRUE, 0);
     imagexspin = dw_spinbutton_new("20", 1021);
-    dw_box_pack_start( hbox, imagexspin, 25, 25, TRUE, TRUE, 0);
+    dw_box_pack_start(hbox, imagexspin, 25, 25, TRUE, TRUE, 0);
     label = dw_text_new("Y:", 100);
     dw_window_set_style(label, DW_DT_VCENTER | DW_DT_CENTER, DW_DT_VCENTER | DW_DT_CENTER);
-    dw_box_pack_start( hbox, label, -1, 25, FALSE, TRUE, 0);
+    dw_box_pack_start(hbox, label, -1, 25, FALSE, TRUE, 0);
     imageyspin = dw_spinbutton_new("20", 1021);
-    dw_box_pack_start( hbox, imageyspin, 25, 25, TRUE, TRUE, 0);
+    dw_box_pack_start(hbox, imageyspin, 25, 25, TRUE, TRUE, 0);
     dw_spinbutton_set_limits(imagexspin, 2000, 0);
     dw_spinbutton_set_limits(imageyspin, 2000, 0);
     dw_spinbutton_set_pos(imagexspin, 20);
     dw_spinbutton_set_pos(imageyspin, 20);
     imagestretchcheck = dw_checkbox_new("Stretch", 1021);
-    dw_box_pack_start( hbox, imagestretchcheck, -1, 25, FALSE, TRUE, 0);
+    dw_box_pack_start(hbox, imagestretchcheck, -1, 25, FALSE, TRUE, 0);
 
     button1 = dw_button_new("Refresh", 1223L );
-    dw_box_pack_start( hbox, button1, 100, 25, FALSE, TRUE, 0);
+    dw_box_pack_start(hbox, button1, 100, 25, FALSE, TRUE, 0);
     button2 = dw_button_new("Print", 1224L );
-    dw_box_pack_start( hbox, button2, 100, 25, FALSE, TRUE, 0);
+    dw_box_pack_start(hbox, button2, 100, 25, FALSE, TRUE, 0);
 
     /* Pre-create the scrollbars so we can query their sizes */
     vscrollbar = dw_scrollbar_new(DW_VERT, 50);
@@ -1219,7 +1264,8 @@ void tree_add(void)
         dw_tree_item_change(tree, t2, "tree folder 2", foldericon);
         dw_tree_item_set_data(tree, t2, DW_INT_TO_POINTER(100));
         title = dw_tree_get_title(tree, t1);
-        dw_debug("t1 title \"%s\" data %d t2 data %d\n", title, DW_POINTER_TO_INT(dw_tree_item_get_data(tree, t1)), DW_POINTER_TO_INT(dw_tree_item_get_data(tree, t2)));
+        dw_debug("t1 title \"%s\" data %d t2 data %d\n", title, DW_POINTER_TO_INT(dw_tree_item_get_data(tree, t1)),
+                 DW_POINTER_TO_INT(dw_tree_item_get_data(tree, t2)));
         dw_free(title);
     }
     else
@@ -1385,10 +1431,10 @@ void container_add(void)
 {
     char *titles[4];
     char buffer[100];
-    unsigned long flags[4] = {   DW_CFA_BITMAPORICON | DW_CFA_LEFT | DW_CFA_HORZSEPARATOR | DW_CFA_SEPARATOR,
-        DW_CFA_ULONG | DW_CFA_RIGHT | DW_CFA_HORZSEPARATOR | DW_CFA_SEPARATOR,
-        DW_CFA_TIME | DW_CFA_CENTER | DW_CFA_HORZSEPARATOR | DW_CFA_SEPARATOR,
-        DW_CFA_DATE | DW_CFA_LEFT | DW_CFA_HORZSEPARATOR | DW_CFA_SEPARATOR };
+    unsigned long flags[4] = {  DW_CFA_BITMAPORICON | DW_CFA_LEFT | DW_CFA_HORZSEPARATOR | DW_CFA_SEPARATOR,
+                                DW_CFA_ULONG | DW_CFA_RIGHT | DW_CFA_HORZSEPARATOR | DW_CFA_SEPARATOR,
+                                DW_CFA_TIME | DW_CFA_CENTER | DW_CFA_HORZSEPARATOR | DW_CFA_SEPARATOR,
+                                DW_CFA_DATE | DW_CFA_LEFT | DW_CFA_HORZSEPARATOR | DW_CFA_SEPARATOR };
     int z;
     CTIME time;
     CDATE date;
@@ -1448,11 +1494,11 @@ void container_add(void)
 
     /* now a container area under this box */
     container = dw_container_new(100, TRUE);
-    dw_box_pack_start( notebookbox4, container, 500, 200, TRUE, FALSE, 1);
+    dw_box_pack_start(notebookbox4, container, 500, 200, TRUE, FALSE, 1);
 
     /* and a status area to see whats going on */
     container_status = dw_status_text_new("", 0);
-    dw_box_pack_start( notebookbox4, container_status, 100, -1, TRUE, FALSE, 1);
+    dw_box_pack_start(notebookbox4, container_status, 100, -1, TRUE, FALSE, 1);
 
     titles[0] = "Type";
     titles[1] = "Size";
@@ -1470,7 +1516,7 @@ void container_add(void)
 
         sprintf(names, "We can now allocate from the stack: Item: %d", z);
         size = z*100;
-        sprintf(buffer, "Filename %d",z+1);
+        sprintf(buffer, "Filename %d", z+1);
         if (z == 0 ) thisicon = foldericon;
         else thisicon = fileicon;
         dw_debug("Initial: container: %x containerinfo: %x icon: %x\n", DW_POINTER_TO_INT(container),
@@ -1507,7 +1553,7 @@ void container_add(void)
     dw_container_insert(container, containerinfo, 1);
     dw_container_optimize(container);
 
-    container_mle = dw_mle_new( 111 );
+    container_mle = dw_mle_new(111);
     dw_box_pack_start(containerbox, container_mle, 500, 200, TRUE, TRUE, 0);
 
     mle_point = dw_mle_import(container_mle, "", -1);
@@ -1522,6 +1568,7 @@ void container_add(void)
     sprintf(buffer, "[%d]\r\n\r\n", mle_point);
     mle_point = dw_mle_import(container_mle, buffer, mle_point);
     dw_mle_set_cursor(container_mle, mle_point);
+
     /* connect our event trappers... */
     dw_signal_connect(container, DW_SIGNAL_ITEM_ENTER, DW_SIGNAL_FUNC(item_enter_cb), DW_POINTER(container_status));
     dw_signal_connect(container, DW_SIGNAL_ITEM_CONTEXT, DW_SIGNAL_FUNC(item_context_cb), DW_POINTER(container_status));
@@ -1877,8 +1924,8 @@ void DWSIGNAL run_thread(void *data)
             ready++;
             sprintf(buf, "Thread %d work done. ready=%d", threadnum, ready);
             /* If all 4 threads have incrememted the ready count...
-            * Post the control event semaphore so things will get started.
-            */
+             * Post the control event semaphore so things will get started.
+             */
             if(ready == 4)
             {
                 dw_event_post(controlevent);
@@ -2021,7 +2068,7 @@ void html_add(void)
         dw_listbox_append(javascript, "window.document.title;");
         dw_listbox_append(javascript, "window.navigator.userAgent;");
 
-        dw_box_pack_start( notebookbox7, rawhtml, 0, 100, TRUE, FALSE, 0);
+        dw_box_pack_start(notebookbox7, rawhtml, 0, 100, TRUE, FALSE, 0);
         dw_html_raw(rawhtml, "<html><body><center><h1>dwtest</h1></center></body></html>");
         html = dw_html_new(1002);
 
@@ -2053,10 +2100,10 @@ void html_add(void)
         dw_signal_connect(item, DW_SIGNAL_CLICKED, DW_SIGNAL_FUNC(web_run_clicked), DW_POINTER(html));
         dw_window_click_default(javascript, item);
 
-        dw_box_pack_start( notebookbox7, html, 0, 100, TRUE, TRUE, 0);
+        dw_box_pack_start(notebookbox7, html, 0, 100, TRUE, TRUE, 0);
         dw_html_url(html, "https://dbsoft.org/dw_help.php");
         htmlstatus = dw_status_text_new("HTML status loading...", 0);
-        dw_box_pack_start( notebookbox7, htmlstatus, 100, -1, TRUE, FALSE, 1);
+        dw_box_pack_start(notebookbox7, htmlstatus, 100, -1, TRUE, FALSE, 1);
         dw_signal_connect(html, DW_SIGNAL_HTML_CHANGED, DW_SIGNAL_FUNC(web_html_changed), DW_POINTER(htmlstatus));
         dw_signal_connect(html, DW_SIGNAL_HTML_RESULT, DW_SIGNAL_FUNC(web_html_result), DW_POINTER(javascript));
     }
