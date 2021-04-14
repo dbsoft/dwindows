@@ -634,29 +634,42 @@ typedef struct _dw_bitbltinfo
 @end
 
 API_AVAILABLE(ios(13.0))
-@interface DWMenuItem : UICommand
+@interface DWMenu : NSObject
 {
-    int check;
+    UIMenu *menu;
+    NSMutableArray *children;
+    NSString *title;
     unsigned long tag;
 }
--(void)setCheck:(int)input;
--(void)setTag:(unsigned long)input;
--(int)check;
+-(id)initWithTag:(unsigned long)newtag;
+-(void)setTitle:(NSString *)input;
+-(UIMenu *)menu;
 -(unsigned long)tag;
+-(id)childWithTag:(unsigned long)tag;
+-(void)addItem:(id)item;
+-(void)removeItem:(id)item;
 -(void)dealloc;
 @end
 
 API_AVAILABLE(ios(13.0))
-@interface DWMenu : NSObject
+@interface DWMenuItem : UICommand
 {
-    UIMenu *menu;
+    BOOL check, enabled;
+    unsigned long tag;
+    DWMenu *submenu, *menu;
 }
--(void)setMenu:(UIMenu *)input;
--(UIMenu *)menu;
--(DWMenuItem *)itemWithTag:(unsigned long)tag;
+-(void)setCheck:(BOOL)input;
+-(void)setEnabled:(BOOL)input;
+-(void)setTag:(unsigned long)input;
+-(void)setSubmenu:(DWMenu *)input;
+-(void)setMenu:(DWMenu *)input;
+-(DWMenu *)submenu;
+-(DWMenu *)menu;
+-(BOOL)check;
+-(BOOL)enabled;
+-(unsigned long)tag;
 -(void)dealloc;
 @end
-
 
 /* So basically to implement our event handlers...
  * it looks like we are going to have to subclass
@@ -761,6 +774,7 @@ API_AVAILABLE(ios(13.0))
 
 @interface DWWindow : UIWindow
 {
+    UIMenu *popupmenu;
     int redraw;
     int shown;
 }
@@ -772,6 +786,8 @@ API_AVAILABLE(ios(13.0))
 -(int)shown;
 -(void)setShown:(int)val;
 -(void)layoutSubviews;
+-(UIMenu *)popupMenu;
+-(void)setPopupMenu:(UIMenu *)input;
 @end
 
 @implementation DWWindow
@@ -793,6 +809,8 @@ API_AVAILABLE(ios(13.0))
 -(void)setShown:(int)val { shown = val; }
 -(void)dealloc { dw_signal_disconnect_by_window(self); [super dealloc]; }
 -(void)layoutSubviews { }
+-(UIMenu *)popupMenu { return popupmenu; }
+-(void)setPopupMenu:(UIMenu *)input { [popupmenu release]; popupmenu = input; [popupmenu retain]; }
 @end
 
 @interface DWImage : NSObject
@@ -1327,11 +1345,14 @@ BOOL _dw_is_dark(void)
 /* Subclass for a top-level window */
 @interface DWView : DWBox /* <UIWindowDelegate> */
 {
-    DWMenu *windowmenu;
+    DWMenu *windowmenu, *popupmenu;
     CGSize oldsize;
 }
 -(BOOL)windowShouldClose:(id)sender;
 -(void)setMenu:(DWMenu *)input;
+-(void)setPopupMenu:(DWMenu *)input;
+-(DWMenu *)menu;
+-(DWMenu *)popupMenu;
 -(void)windowDidBecomeMain:(id)sender;
 -(void)menuHandler:(id)sender;
 @end
@@ -1385,6 +1406,9 @@ BOOL _dw_is_dark(void)
     _dw_event_handler([self window], nil, 13);
 }
 -(void)setMenu:(DWMenu *)input { windowmenu = input; [windowmenu retain]; }
+-(void)setPopupMenu:(DWMenu *)input { popupmenu = input; [popupmenu retain]; }
+-(DWMenu *)menu { return windowmenu; }
+-(DWMenu *)popupMenu { return popupmenu; }
 -(void)menuHandler:(id)sender
 {
     [DWObj menuHandler:sender];
@@ -1542,9 +1566,15 @@ BOOL _dw_is_dark(void)
 
 /* Subclass for a menu item type */
 @implementation DWMenuItem
--(void)setCheck:(int)input { check = input; }
+-(void)setCheck:(BOOL)input { check = input; }
+-(void)setEnabled:(BOOL)input { enabled = input; }
+-(void)setSubmenu:(DWMenu *)input { submenu = input; }
+-(void)setMenu:(DWMenu *)input { menu = input; }
 -(void)setTag:(unsigned long)input { tag = input; }
--(int)check { return check; }
+-(BOOL)check { return check; }
+-(BOOL)enabled { return enabled; }
+-(DWMenu *)submenu { return submenu; }
+-(DWMenu *)menu { return menu; }
 -(unsigned long)tag { return tag; }
 -(void)dealloc { dw_signal_disconnect_by_window(self); [super dealloc]; }
 @end
@@ -1554,16 +1584,67 @@ BOOL _dw_is_dark(void)
  * Currently in this category: DWMenu and DWImage
  */
 @implementation DWMenu
--(void)setMenu:(UIMenu *)input { menu = input; }
--(UIMenu *)menu { return menu; }
--(DWMenuItem *)itemWithTag:(unsigned long)tag
+-(id)initWithTag:(unsigned long)newtag
 {
-    NSArray *children = [menu children];
-    
-    for(DWMenuItem *menuitem in children)
+    self = [super init];
+    if(self)
     {
-        if([menuitem tag] == tag)
-            return menuitem;
+        children = [[NSMutableArray alloc] init];
+        tag = newtag;
+    }
+    return self;
+}
+-(void)setTitle:(NSString *)input { title = input; [title retain]; }
+-(UIMenu *)menu
+{
+    /* Create or recreate the UIMenu recursively */
+    UIMenu *oldmenu = menu;
+    NSMutableArray *menuchildren = [[NSMutableArray alloc] init];
+
+    for(id child in children)
+    {
+        if([child isMemberOfClass:[DWMenuItem class]])
+        {
+            DWMenuItem *menuitem = child;
+            DWMenu *submenu = [menuitem submenu];
+
+            if(submenu)
+                [menuchildren addObject:[submenu menu]];
+            else
+                [menuchildren addObject:child];
+        }
+    }
+    if(title)
+        menu = [UIMenu menuWithTitle:title children:menuchildren];
+    else
+    {
+        if(@available(iOS 14.0, *))
+            menu = [UIMenu menuWithChildren:menuchildren];
+        else
+            menu = [UIMenu menuWithTitle:@"" children:menuchildren];
+    }
+    if(oldmenu)
+        [oldmenu release];
+    return menu;
+}
+-(void)addItem:(id)item
+{
+    [children addObject:item];
+}
+-(void)removeItem:(id)item
+{
+    [children removeObject:item];
+}
+-(unsigned long)tag { return tag; }
+-(id)childWithTag:(unsigned long)tag
+{
+    if(tag > 0)
+    {
+        for(id child in children)
+        {
+            if([child isMemberOfClass:[DWMenuItem class]] && [child tag] == tag)
+                return child;
+        }
     }
     return nil;
 }
@@ -1945,6 +2026,7 @@ UITableViewCell *_dw_table_cell_view_new(UIImage *icon, NSString *text)
 -(NSInteger)tableView:(UITableView *)aTable numberOfRowsInSection:(NSInteger)section;
 -(UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath;
 -(void)tableView:(UITableView*)tableView willDisplayCell:(UITableViewCell*)cell forRowAtIndexPath:(NSIndexPath*)indexPath;
+-(UIContextMenuConfiguration *)tableView:(UITableView *)tableView contextMenuConfigurationForRowAtIndexPath:(NSIndexPath *)indexPath point:(CGPoint)point;
 -(void)addColumn:(NSString *)input andType:(int)type;
 -(NSString *)getColumn:(int)col;
 -(void *)userdata;
@@ -1966,7 +2048,6 @@ UITableViewCell *_dw_table_cell_view_new(UIImage *icon, NSString *text)
 -(void)setup;
 -(CGSize)getsize;
 -(void)setForegroundColor:(UIColor *)input;
--(DWMenu *)menuForEvent:(UIEvent *)event;
 @end
 
 @implementation DWContainer
@@ -2016,6 +2097,22 @@ UITableViewCell *_dw_table_cell_view_new(UIImage *icon, NSString *text)
         if(oddcolor)
             [cell setBackgroundColor:oddcolor];
     }
+}
+-(UIContextMenuConfiguration *)tableView:(UITableView *)tableView contextMenuConfigurationForRowAtIndexPath:(NSIndexPath *)indexPath point:(CGPoint)point
+{
+    DWWindow *window = (DWWindow *)[self window];
+    UIContextMenuConfiguration *config = nil;
+
+    _dw_event_handler(self, (UIEvent *)[self getRowTitle:(int)indexPath.row], 10);
+
+    if(window)
+    {
+        __block UIMenu *popupmenu = [window popupMenu];
+        config = [UIContextMenuConfiguration configurationWithIdentifier:@"DWContextMenu"
+                                                         previewProvider:nil
+                                                          actionProvider:^(NSArray* suggestedAction){return popupmenu;}];
+    }
+    return config;
 }
 -(void)addColumn:(NSString *)input andType:(int)type { if(tvcols) { [tvcols addObject:input]; [types addObject:[NSNumber numberWithInt:type]]; } }
 -(NSString *)getColumn:(int)col { if(tvcols) { return [tvcols objectAtIndex:col]; } return nil; }
@@ -2286,16 +2383,6 @@ UITableViewCell *_dw_table_cell_view_new(UIImage *icon, NSString *text)
 {
     if([self allowsMultipleSelection])
         [self tableView:tableView didSelectRowAtIndexPath:indexPath];
-}
--(DWMenu *)menuForEvent:(UIEvent *)event
-{
-#if 0 /* TODO: Fix this */
-    int row;
-    CGPoint where = [self convertPoint:[event locationInWindow] fromView:nil];
-    row = (int)[self rowAtPoint:where];
-    _dw_event_handler(self, (UIEvent *)[self getRowTitle:row], 10);
-#endif
-    return nil;
 }
 -(void)dealloc { UserData *root = userdata; _dw_remove_userdata(&root, NULL, TRUE); dw_signal_disconnect_by_window(self); [super dealloc]; }
 @end
@@ -7404,8 +7491,7 @@ void API dw_pointer_set_pos(long x, long y)
  */
 HMENUI API dw_menu_new(ULONG cid)
 {
-    DWMenu *menu = [[[DWMenu alloc] init] retain];
-    /* [menu setTag:cid]; Why doesn't this work? */
+    DWMenu *menu = [[[DWMenu alloc] initWithTag:cid] retain];
     return menu;
 }
 
@@ -7443,15 +7529,12 @@ void API dw_menu_destroy(HMENUI *menu)
  */
 void API dw_menu_popup(HMENUI *menu, HWND parent, int x, int y)
 {
-#if 0 /* TODO: Figure out how to do this */
     DWMenu *thismenu = (DWMenu *)*menu;
     id object = parent;
-    UIView *view = [object isKindOfClass:[UIWindow class]] ? [object contentView] : parent;
-    UIWindow *window = [view window];
+    DWWindow *window = [object isMemberOfClass:[DWWindow class]] ? object : (DWWindow *)[object window];
     [thismenu autorelease];
-    CGPoint p = CGPointMake(x, y);
-    [UIContextMenuInteraction a
-#endif
+    [window setPopupMenu:[thismenu menu]];
+    *menu = nil;
 }
 
 char _dw_removetilde(char *dest, const char *src)
@@ -7490,67 +7573,43 @@ char _dw_removetilde(char *dest, const char *src)
 HWND API dw_menu_append_item(HMENUI menux, const char *title, ULONG itemid, ULONG flags, int end, int check, HMENUI submenux)
 {
     DWMenu *menu = menux;
-    DWMenuItem *item = NULL;
-    if(strlen(title) == 0)
-    {
-#if 0 /* TODO: Not sure if separators exist in iOS */
-        [menu addItem:[DWMenuItem separatorItem]];
-#endif
-    }
+    DWMenuItem *item = nil;
+    if(!title || strlen(title) == 0)
+        [menu addItem:[[NSNull alloc] init]];
     else
     {
         char accel[2];
         char *newtitle = malloc(strlen(title)+1);
         NSString *nstr;
-        UIMenu *newmenu, *oldmenu = [menu menu];
-        NSArray *newchildren, *oldchildren = [oldmenu children];
         
         accel[0] = _dw_removetilde(newtitle, title);
         accel[1] = 0;
 
-        nstr = [ NSString stringWithUTF8String:newtitle ];
+        nstr = [NSString stringWithUTF8String:newtitle];
         free(newtitle);
 
         item = [[DWMenuItem commandWithTitle:nstr image:nil
                                       action:@selector(menuHandler:)
                                 propertyList:nil] autorelease];
-        newchildren = [oldchildren arrayByAddingObjectsFromArray:@[item]];
-        if(oldmenu)
-        {
-            newmenu = [oldmenu menuByReplacingChildren:newchildren];
-            [oldmenu release];
-        }
-        else if(@available(iOS 14.0, *))
-            newmenu = [UIMenu menuWithChildren:newchildren];
-        else
-            newmenu = [UIMenu menuWithTitle:@"" children:newchildren];
-        [menu setMenu:newmenu];
-        
         [item setTag:itemid];
+        [menu addItem:item];
+        
         if(check)
         {
             [item setCheck:YES];
             if(flags & DW_MIS_CHECKED)
-            {
                 [item setState:UIMenuElementStateOn];
-            }
         }
-#if 0 /* TODO: Disabled items not supported on iOS */
         if(flags & DW_MIS_DISABLED)
-        {
             [item setEnabled:NO];
-        }
-#endif
 
-#if 0 /* TODO: iOS may not support submenus... but may be able to cascade... with defered menus */
         if(submenux)
         {
             DWMenu *submenu = submenux;
 
             [submenu setTitle:nstr];
-            [menu setSubmenu:submenu forItem:item];
+            [item setSubmenu:submenu];
         }
-#endif
         return item;
     }
     return item;
@@ -7567,18 +7626,14 @@ HWND API dw_menu_append_item(HMENUI menux, const char *title, ULONG itemid, ULON
 void API dw_menu_item_set_check(HMENUI menux, unsigned long itemid, int check)
 {
     id menu = menux;
-    DWMenuItem *menuitem = [menu itemWithTag:itemid];
+    DWMenuItem *menuitem = [menu childWithTag:itemid];
 
     if(menuitem != nil)
     {
         if(check)
-        {
             [menuitem setState:UIMenuElementStateOn];
-        }
         else
-        {
             [menuitem setState:UIMenuElementStateOff];
-        }
     }
 }
 
@@ -7592,16 +7647,14 @@ void API dw_menu_item_set_check(HMENUI menux, unsigned long itemid, int check)
  */
 int API dw_menu_delete_item(HMENUI menux, unsigned long itemid)
 {
-#if 0 /* TODO: Remove item from the children array */
     id menu = menux;
-    DWMenuItem *menuitem = [menu itemWithTag:itemid];
+    DWMenuItem *menuitem = [menu childWithTag:itemid];
 
     if(menuitem != nil)
     {
         [menu removeItem:menuitem];
         return DW_ERROR_NONE;
     }
-#endif
     return DW_ERROR_UNKNOWN;
 }
 
@@ -7616,7 +7669,7 @@ int API dw_menu_delete_item(HMENUI menux, unsigned long itemid)
 void API dw_menu_item_set_state(HMENUI menux, unsigned long itemid, unsigned long state)
 {
     id menu = menux;
-    DWMenuItem *menuitem = [menu itemWithTag:itemid];
+    DWMenuItem *menuitem = [menu childWithTag:itemid];
 
     if(menuitem != nil)
     {
@@ -8334,14 +8387,13 @@ DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
         [window release];
     }
     /* Handle removing menu items from menus */
-#if 0 /* TODO: The menus are technically immutable, so we'd need to recreate it...*/
-    else if([ object isKindOfClass:[UIMenuItem class]])
+    else if([object isMemberOfClass:[DWMenuItem class]])
     {
-        DWMenu *menu = [object menu];
+        DWMenuItem *item = object;
+        DWMenu *menu = [item menu];
 
         [menu removeItem:object];
     }
-#endif
     /* Handle destroying a control or box */
     else if([object isKindOfClass:[UIView class]] || [object isKindOfClass:[UIControl class]])
     {
