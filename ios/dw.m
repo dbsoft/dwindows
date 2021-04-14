@@ -471,13 +471,13 @@ int _dw_event_handler1(id object, UIEvent *event, int message)
             case 10:
             {
                 int (* API containercontextfunc)(HWND, char *, int, int, void *, void *) = (int (* API)(HWND, char *, int, int, void *, void *))handler->signalfunction;
-                char *text = (char *)event;
-                void *user = NULL;
-                LONG x,y;
+                void **params = (void **)event;
+                char *text = (char *)params[0];
+                void *user = params[1];
+                int x = DW_POINTER_TO_INT(params[2]);
+                int y = DW_POINTER_TO_INT(params[3]);
 
-                dw_pointer_query_pos(&x, &y);
-
-                return containercontextfunc(handler->window, text, (int)x, (int)y, handler->data, user);
+                return containercontextfunc(handler->window, text, x, y, handler->data, user);
             }
             /* Generic selection changed event for several classes */
             case 11:
@@ -2102,8 +2102,14 @@ UITableViewCell *_dw_table_cell_view_new(UIImage *icon, NSString *text)
 {
     DWWindow *window = (DWWindow *)[self window];
     UIContextMenuConfiguration *config = nil;
+    void *params[4];
 
-    _dw_event_handler(self, (UIEvent *)[self getRowTitle:(int)indexPath.row], 10);
+    params[0] = [self getRowTitle:(int)indexPath.row];
+    params[1] = [self getRowData:(int)indexPath.row];
+    params[2] = DW_INT_TO_POINTER((int)point.x);
+    params[3] = DW_INT_TO_POINTER((int)point.y);
+
+    _dw_event_handler(self, (UIEvent *)params, 10);
 
     if(window)
     {
@@ -3645,7 +3651,7 @@ void _dw_control_size(id handle, int *width, int *height)
 
         if(font)
             thisheight = (int)[font lineHeight];
-        
+
         /* Spinbuttons need some extra */
         if([handle isMemberOfClass:[DWSpinButton class]])
         {
