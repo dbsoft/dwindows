@@ -4978,8 +4978,18 @@ void _dw_control_size(id handle, int *width, int *height)
     /* If we have a string...
      * calculate the size with the current font.
      */
-    if(nsstr && [nsstr length])
-        dw_font_text_extents_get(object, NULL, (char *)[nsstr UTF8String], &thiswidth, &thisheight);
+    if(nsstr)
+    {
+        int textwidth, textheight;
+
+        /* If we have an empty string, use "gT" to get the most height for the font */
+        dw_font_text_extents_get(object, NULL, [nsstr length] ? (char *)[nsstr UTF8String] : "gT", &textwidth, &textheight);
+
+        if(textheight > thisheight)
+            thisheight = textheight;
+        if(textwidth > thiswidth)
+            thiswidth = textwidth;
+    }
 
     /* Handle static text fields */
     if([object isKindOfClass:[NSTextField class]] && ![object isEditable])
