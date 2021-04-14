@@ -3215,16 +3215,6 @@ MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
                      void *user = NULL;
                      LONG x,y;
 
-                     if(mp2)
-                     {
-                        PCNRITEM pci;
-
-                        pci = (PCNRITEM)mp2;
-
-                        text = (char *)pci->rc.pszIcon;
-                        user = pci->user;
-                     }
-
                      dw_pointer_query_pos(&x, &y);
 
                      if(tmp->window == notifyhwnd)
@@ -3233,6 +3223,10 @@ MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 
                         if(mp2)
                         {
+                           PCNRITEM pci = (PCNRITEM)mp2;
+
+                           text = (char *)pci->rc.pszIcon;
+
                            if(!container)
                            {
                               NOTIFYRECORDEMPHASIS pre;
@@ -3243,14 +3237,18 @@ MRESULT EXPENTRY _run_event(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM mp2)
                               pre.hwndCnr = tmp->window;
                               _run_event(hWnd, WM_CONTROL, MPFROM2SHORT(0, CN_EMPHASIS), (MPARAM)&pre);
                               pre.pRecord->flRecordAttr |= CRA_CURSORED;
+                              user = pci->user;
                            }
                            else
                            {
+                              PRECORDCORE rc = (PRECORDCORE)mp2;
+
                               if(pCoreEmph)
                                  _clear_emphasis();
                               hwndEmph = tmp->window;
                               pCoreEmph = mp2;
                               WinSendMsg(tmp->window, CM_SETRECORDEMPHASIS, mp2, MPFROM2SHORT(TRUE, CRA_SOURCE));
+                              user = rc->pszText;
                            }
                         }
                         result = containercontextfunc(tmp->window, text, x, y, tmp->data, user);
