@@ -13874,7 +13874,14 @@ int API dw_feature_get(DWFEATURE feature)
         case DW_FEATURE_DARK_MODE:
         {
             if(_DW_DARK_MODE_SUPPORTED)
+            {
+                /* Special case for Full dark mode setting... return DW_DARK_MODE_BASIC
+                 * with DW_DARK_MODE_FULL requested but the system is in light mode.
+                 */
+                if(_DW_DARK_MODE_ALLOWED == DW_DARK_MODE_FULL && !_DW_DARK_MODE_ENABLED)
+                    return DW_DARK_MODE_BASIC;
                 return _DW_DARK_MODE_ALLOWED;
+            }
             return DW_FEATURE_UNSUPPORTED;
         }
 #endif
