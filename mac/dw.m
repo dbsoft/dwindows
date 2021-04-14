@@ -702,7 +702,7 @@ int _dw_event_handler1(id object, NSEvent *event, int message)
             case 10:
             {
                 int (* API containercontextfunc)(HWND, char *, int, int, void *, void *) = (int (* API)(HWND, char *, int, int, void *, void *))handler->signalfunction;
-                char *text = (char *)event;
+                char *text = NULL;
                 void *user = NULL;
                 LONG x,y;
 
@@ -717,6 +717,13 @@ int _dw_event_handler1(id object, NSEvent *event, int message)
                     {
                         user = [value pointerValue];
                     }
+                }
+                else
+                {
+                    void **params = (void **)event;
+
+                    text = params[0];
+                    user = params[1];
                 }
 
                 dw_pointer_query_pos(&x, &y);
@@ -3044,10 +3051,14 @@ void _dw_table_cell_view_layout(NSTableCellView *result)
 }
 -(NSMenu *)menuForEvent:(NSEvent *)event
 {
-    int row;
     NSPoint where = [self convertPoint:[event locationInWindow] fromView:nil];
-    row = (int)[self rowAtPoint:where];
-    _dw_event_handler(self, (NSEvent *)[self getRowTitle:row], 10);
+    int row = (int)[self rowAtPoint:where];
+    void *params[2];
+
+    params[0] = [self getRowTitle:row];
+    params[1] = [self getRowData:row];
+
+    _dw_event_handler(self, (NSEvent *)params, 10);
     return nil;
 }
 -(void)keyDown:(NSEvent *)theEvent
