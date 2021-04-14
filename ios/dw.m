@@ -1236,10 +1236,10 @@ API_AVAILABLE(ios(13.0))
 -(void)getUserInterfaceStyle:(id)param
 {
     NSMutableArray *array = param;
-    UIUserInterfaceStyle style = [hiddenWindow overrideUserInterfaceStyle];
+    UIUserInterfaceStyle overridestyle = [hiddenWindow overrideUserInterfaceStyle];
     int retval;
     
-    switch(style)
+    switch(overridestyle)
     {
         case UIUserInterfaceStyleLight:
             retval = DW_DARK_MODE_DISABLED;
@@ -1248,19 +1248,22 @@ API_AVAILABLE(ios(13.0))
             retval = DW_DARK_MODE_FORCED;
             break;
         default:  /* UIUserInterfaceStyleUnspecified */
-            style = [[[hiddenWindow rootViewController] traitCollection] userInterfaceStyle];
-    }
-    switch(style)
-    {
-        case UIUserInterfaceStyleLight:
-            retval = DW_DARK_MODE_BASIC;
-            break;
-        case UIUserInterfaceStyleDark:
-            retval = DW_DARK_MODE_FULL;
-            break;
-        default: /* UIUserInterfaceStyleUnspecified */
-            retval = DW_FEATURE_UNSUPPORTED;
-            break;
+        {
+            UIUserInterfaceStyle style = [[[hiddenWindow rootViewController] traitCollection] userInterfaceStyle];
+
+            switch(style)
+            {
+                case UIUserInterfaceStyleLight:
+                    retval = DW_DARK_MODE_BASIC;
+                    break;
+                case UIUserInterfaceStyleDark:
+                    retval = DW_DARK_MODE_FULL;
+                    break;
+                default: /* UIUserInterfaceStyleUnspecified */
+                    retval = DW_FEATURE_UNSUPPORTED;
+                    break;
+            }
+        }
     }
     [array addObject:[NSNumber numberWithInt:retval]];
 }
