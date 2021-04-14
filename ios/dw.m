@@ -2111,6 +2111,7 @@ UITableViewCell *_dw_table_cell_view_new(UIImage *icon, NSString *text)
         config = [UIContextMenuConfiguration configurationWithIdentifier:@"DWContextMenu"
                                                          previewProvider:nil
                                                           actionProvider:^(NSArray* suggestedAction){return popupmenu;}];
+        [window setPopupMenu:nil];
     }
     return config;
 }
@@ -3722,11 +3723,12 @@ void _dw_control_size(id handle, int *width, int *height)
     /* If we have a string...
      * calculate the size with the current font.
      */
-    if(nsstr && [nsstr length])
+    if(nsstr)
     {
         int textwidth, textheight;
 
-        dw_font_text_extents_get(object, NULL, (char *)[nsstr UTF8String], &textwidth, &textheight);
+        /* If we have an empty string, use "gT" to get the most height for the font */
+        dw_font_text_extents_get(object, NULL, [nsstr length] ? (char *)[nsstr UTF8String] : "gT", &textwidth, &textheight);
 
         if(textheight > thisheight)
             thisheight = textheight;
@@ -8566,7 +8568,7 @@ DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
         NSArray *subviews = [sv subviews];
         object = [subviews firstObject];
     }
-    if([object isKindOfClass:[UIControl class]] || [object isKindOfClass:[UIMenuItem class]])
+    if([object isKindOfClass:[UIControl class]] || [object isMemberOfClass:[DWMenuItem class]])
     {
         [object setEnabled:NO];
     }
@@ -8598,7 +8600,7 @@ DW_FUNCTION_RESTORE_PARAM1(handle, HWND)
         NSArray *subviews = [sv subviews];
         object = [subviews firstObject];
     }
-    if([object isKindOfClass:[UIControl class]] /* TODO: || [object isKindOfClass:[UIMenuItem class]] */)
+    if([object isKindOfClass:[UIControl class]] || [object isMemberOfClass:[DWMenuItem class]])
     {
         [object setEnabled:YES];
     }
