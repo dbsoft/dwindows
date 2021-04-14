@@ -12567,7 +12567,7 @@ int API dw_init(int newthread, int argc, char *argv[])
     DWThreadMutex2 = dw_mutex_new();
 #endif
     /* Use NSThread to start a dummy thread to initialize the threading subsystem */
-    NSThread *thread = [[ NSThread alloc] initWithTarget:DWObj selector:@selector(uselessThread:) object:nil];
+    NSThread *thread = [[NSThread alloc] initWithTarget:DWObj selector:@selector(uselessThread:) object:nil];
     [thread start];
     [thread release];
     [NSTextField setCellClass:[DWTextFieldCell class]];
@@ -13168,17 +13168,24 @@ int API dw_feature_get(DWFEATURE feature)
                 _dw_app_init();
                 /* Get the current appearance */
                 NSAppearance *appearance = [DWApp appearance];
-                
+                NSAppearanceName basicAppearance;
+
                 if(appearance)
                 {
-                    NSAppearanceName basicAppearance = [appearance bestMatchFromAppearancesWithNames:@[NSAppearanceNameAqua, NSAppearanceNameDarkAqua]];
-                    
+                    basicAppearance = [appearance bestMatchFromAppearancesWithNames:@[NSAppearanceNameAqua,
+                                                                                      NSAppearanceNameDarkAqua]];
+
                     if([basicAppearance isEqualToString:NSAppearanceNameDarkAqua])
                         return DW_DARK_MODE_FORCED;
                     if([basicAppearance isEqualToString:NSAppearanceNameAqua])
                         return DW_FEATURE_DISABLED;
                 }
-                return DW_FEATURE_ENABLED;
+                appearance = [NSAppearance currentAppearance];
+                basicAppearance = [appearance bestMatchFromAppearancesWithNames:@[NSAppearanceNameAqua,
+                                                                                  NSAppearanceNameDarkAqua]];
+                if([basicAppearance isEqualToString:NSAppearanceNameDarkAqua])
+                    return DW_DARK_MODE_FULL;
+                return DW_DARK_MODE_BASIC;
             }
             return DW_FEATURE_UNSUPPORTED;
         }
