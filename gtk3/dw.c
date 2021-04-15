@@ -1597,7 +1597,7 @@ static gint _tree_context_event(GtkWidget *widget, GdkEventButton *event, gpoint
                }
                else
                {
-                  gtk_tree_model_get(store, &iter, _DW_DATA_TYPE_STRING, &text, -1);
+                  gtk_tree_model_get(store, &iter, _DW_DATA_TYPE_STRING, &text, _DW_DATA_TYPE_POINTER, &itemdata, -1);
                }
             }
             else
@@ -1617,7 +1617,7 @@ static gint _tree_context_event(GtkWidget *widget, GdkEventButton *event, gpoint
                      }
                      else
                      {
-                        gtk_tree_model_get(store, &iter, _DW_DATA_TYPE_STRING, &text, -1);
+                        gtk_tree_model_get(store, &iter, _DW_DATA_TYPE_STRING, &text, _DW_DATA_TYPE_POINTER, &itemdata, -1);
                      }
                   }
                   gtk_tree_path_free(path);
