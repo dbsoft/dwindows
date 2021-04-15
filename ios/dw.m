@@ -3512,7 +3512,10 @@ DW_FUNCTION_RESTORE_PARAM2(type, int, pad, int)
  *          handle: Handle to the scrollbox to be queried.
  *          orient: The vertical or horizontal scrollbar.
  */
-int API dw_scrollbox_get_pos(HWND handle, int orient)
+DW_FUNCTION_DEFINITION(dw_scrollbox_get_pos, int, HWND handle, int orient)
+DW_FUNCTION_ADD_PARAM2(handle, orient)
+DW_FUNCTION_RETURN(dw_scrollbox_get_pos, int)
+DW_FUNCTION_RESTORE_PARAM2(handle, HWND, orient, int)
 {
     DWScrollBox *scrollbox = handle;
     NSArray *subviews = [scrollbox subviews];
@@ -3535,7 +3538,7 @@ int API dw_scrollbox_get_pos(HWND handle, int orient)
     {
         val = range;
     }
-    return val;
+    DW_FUNCTION_RETURN_THIS(val);
 }
 
 /*
@@ -3544,7 +3547,10 @@ int API dw_scrollbox_get_pos(HWND handle, int orient)
  *          handle: Handle to the scrollbox to be queried.
  *          orient: The vertical or horizontal scrollbar.
  */
-int API dw_scrollbox_get_range(HWND handle, int orient)
+DW_FUNCTION_DEFINITION(dw_scrollbox_get_range, int, HWND handle, int orient)
+DW_FUNCTION_ADD_PARAM2(handle, orient)
+DW_FUNCTION_RETURN(dw_scrollbox_get_range, int)
+DW_FUNCTION_RESTORE_PARAM2(handle, HWND, orient, int)
 {
     DWScrollBox *scrollbox = handle;
     NSArray *subviews = [scrollbox subviews];
@@ -3558,7 +3564,7 @@ int API dw_scrollbox_get_range(HWND handle, int orient)
     {
         range = [view bounds].size.width;
     }
-    return range;
+    DW_FUNCTION_RETURN_THIS(range);
 }
 
 /* Return the handle to the text object */
@@ -3770,13 +3776,13 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
     }
 
     /* Query the objects */
-    if([ object isKindOfClass:[ UIWindow class ] ])
+    if([object isKindOfClass:[UIWindow class]])
     {
         UIWindow *window = box;
         NSArray *subviews = [window subviews];
         view = [subviews firstObject];
     }
-    else if([ object isMemberOfClass:[ DWScrollBox class ] ])
+    else if([object isMemberOfClass:[DWScrollBox class]])
     {
         DWScrollBox *scrollbox = box;
         view = [scrollbox box];
