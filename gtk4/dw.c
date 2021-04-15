@@ -972,7 +972,7 @@ static gint _dw_tree_context_event(GtkGestureSingle *gesture, int n_press, doubl
                }
                else
                {
-                  gtk_tree_model_get(store, &iter, _DW_DATA_TYPE_STRING, &text, -1);
+                  gtk_tree_model_get(store, &iter, _DW_DATA_TYPE_STRING, &text, _DW_DATA_TYPE_POINTER, &itemdata, -1);
                }
             }
             else
@@ -992,7 +992,7 @@ static gint _dw_tree_context_event(GtkGestureSingle *gesture, int n_press, doubl
                      }
                      else
                      {
-                        gtk_tree_model_get(store, &iter, _DW_DATA_TYPE_STRING, &text, -1);
+                        gtk_tree_model_get(store, &iter, _DW_DATA_TYPE_STRING, &text, _DW_DATA_TYPE_POINTER, &itemdata, -1);
                      }
                   }
                   gtk_tree_path_free(path);
