@@ -3747,7 +3747,7 @@ LRESULT CALLBACK _containerwndproc(HWND hWnd, UINT msg, WPARAM mp1, LPARAM mp2)
                   params = (void **)lvi.lParam;
                }
 
-               containercontextfunc(tmp->window, params ? params[_DW_DATA_TYPE_STRING] : NULL, x, y, tmp->data, (void *)lvi.lParam);
+               containercontextfunc(tmp->window, params ? params[_DW_DATA_TYPE_STRING] : NULL, x, y, tmp->data, params ? params[_DW_DATA_TYPE_POINTER] : NULL);
                tmp = NULL;
             }
             if(tmp)
