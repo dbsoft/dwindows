@@ -123,7 +123,7 @@ extern "C" {
 # endif
 #endif
 
-#if defined(__OS2__) || (defined(__WIN32__) && !defined(GDK_WINDOWING_WIN32)) || defined(__MAC__) || defined(__IOS__) || defined(__EMX__) || defined(__TEMPLATE__)
+#if defined(__OS2__) || (defined(__WIN32__) && !defined(GDK_WINDOWING_WIN32)) || defined(__MAC__) || defined(__IOS__) || defined(__EMX__) || defined(__ANDROID__) || defined(__TEMPLATE__)
 /* OS/2, Windows or MacOS */
 
 #ifdef __OS2__
@@ -721,6 +721,221 @@ typedef struct _hpixmap {
 } *HPIXMAP;
 
 typedef HWND HMENUI;
+#endif
+
+/* Android section */
+#if defined(__ANDROID__)
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdarg.h>
+#include <limits.h>
+
+/* Can remove this for your port when you know where MAX_PATH is */
+#ifndef MAX_PATH
+#define MAX_PATH 260
+#endif
+
+#define TRUE  1
+#define FALSE 0
+
+typedef void *HWND;
+
+typedef unsigned long ULONG;
+typedef long LONG;
+typedef unsigned short USHORT;
+typedef short SHORT;
+typedef unsigned short UWORD;
+typedef short WORD ;
+typedef unsigned char UCHAR;
+typedef char CHAR;
+typedef unsigned UINT;
+typedef int INT;
+typedef void *HMTX;
+typedef void *HEV;
+typedef void *HSHM;
+typedef void *HMOD;
+typedef void *HTREEITEM;
+typedef HWND HMENUI;
+typedef int DWTID;
+typedef unsigned long HICN;
+
+typedef struct _window_data {
+   UserData *root;
+   HWND clickdefault;
+   ULONG flags;
+   void *data;
+} WindowData;
+
+typedef struct _hpixmap {
+   unsigned long width, height;
+   /* ?? *pixmap; */
+   HWND handle;
+} *HPIXMAP;
+
+#define DW_DT_LEFT               0
+#define DW_DT_QUERYEXTENT        0
+#define DW_DT_UNDERSCORE         0
+#define DW_DT_STRIKEOUT          0
+#define DW_DT_TEXTATTRS          0
+#define DW_DT_EXTERNALLEADING    0
+#define DW_DT_CENTER             0
+#define DW_DT_RIGHT              0
+#define DW_DT_TOP                0
+#define DW_DT_VCENTER            0
+#define DW_DT_BOTTOM             0
+#define DW_DT_HALFTONE           0
+#define DW_DT_MNEMONIC           0
+#define DW_DT_WORDBREAK          0
+#define DW_DT_ERASERECT          0
+
+#define DW_FCF_CLOSEBUTTON       0
+#define DW_FCF_TITLEBAR          0
+#define DW_FCF_SYSMENU           0
+#define DW_FCF_MENU              0
+#define DW_FCF_SIZEBORDER        0
+#define DW_FCF_MINBUTTON         0
+#define DW_FCF_MAXBUTTON         0
+#define DW_FCF_MINMAX            (DW_FCF_MINBUTTON|DW_FCF_MAXBUTTON)
+#define DW_FCF_DLGBORDER         0
+#define DW_FCF_BORDER            0
+#define DW_FCF_TASKLIST          0
+#define DW_FCF_NOMOVEWITHOWNER   0
+#define DW_FCF_SYSMODAL          0
+#define DW_FCF_HIDEBUTTON        0
+#define DW_FCF_HIDEMAX           0
+#define DW_FCF_AUTOICON          0
+#define DW_FCF_MAXIMIZE          0
+#define DW_FCF_MINIMIZE          0
+#define DW_FCF_TEXTURED          0
+#define DW_FCF_FULLSCREEN        0
+
+#define DW_CFA_BITMAPORICON      1
+#define DW_CFA_STRING            (1 << 1)
+#define DW_CFA_ULONG             (1 << 2)
+#define DW_CFA_TIME              (1 << 3)
+#define DW_CFA_DATE              (1 << 4)
+#define DW_CFA_CENTER            (1 << 5)
+#define DW_CFA_LEFT              (1 << 6)
+#define DW_CFA_RIGHT             (1 << 7)
+#define DW_CFA_STRINGANDICON     (1 << 8)
+#define DW_CFA_HORZSEPARATOR     0
+#define DW_CFA_SEPARATOR         0
+
+#define DW_CRA_SELECTED          1
+#define DW_CRA_CURSORED          (1 << 1)
+
+#define DW_CR_RETDATA            (1 << 10)
+
+#define DW_LS_MULTIPLESEL        1
+
+#define DW_LIT_NONE              -1
+
+#define DW_MLE_CASESENSITIVE    0
+
+#define DW_BS_NOBORDER           0
+
+#define DW_POINTER_DEFAULT       0
+#define DW_POINTER_ARROW         0
+#define DW_POINTER_CLOCK         0
+#define DW_POINTER_QUESTION      0
+
+#define HWND_DESKTOP     ((HWND)0)
+
+/* flag values for dw_messagebox() */
+#define DW_MB_OK                 (1 << 1)
+#define DW_MB_OKCANCEL           (1 << 2)
+#define DW_MB_YESNO              (1 << 3)
+#define DW_MB_YESNOCANCEL        (1 << 4)
+
+#define DW_MB_WARNING            (1 << 10)
+#define DW_MB_ERROR              (1 << 11)
+#define DW_MB_INFORMATION        (1 << 12)
+#define DW_MB_QUESTION           (1 << 13)
+
+/* Virtual Key Codes */
+#define VK_LBUTTON               0
+#define VK_RBUTTON               1
+#define VK_CANCEL                2
+#define VK_MBUTTON               3
+#define VK_BACK                  4
+#define VK_TAB                   5
+#define VK_CLEAR                 6
+#define VK_RETURN                7
+#define VK_MENU                  8
+#define VK_PAUSE                 9
+#define VK_CAPITAL               10
+#define VK_ESCAPE                11
+#define VK_SPACE                 12
+#define VK_PRIOR                 13
+#define VK_NEXT                  14
+#define VK_END                   15
+#define VK_HOME                  16
+#define VK_LEFT                  17
+#define VK_UP                    18
+#define VK_RIGHT                 19
+#define VK_DOWN                  20
+#define VK_SELECT                21
+#define VK_PRINT                 22
+#define VK_EXECUTE               23
+#define VK_SNAPSHOT              24
+#define VK_INSERT                25
+#define VK_DELETE                26
+#define VK_HELP                  27
+#define VK_LWIN                  28
+#define VK_RWIN                  29
+#define VK_NUMPAD0               30
+#define VK_NUMPAD1               31
+#define VK_NUMPAD2               32
+#define VK_NUMPAD3               33
+#define VK_NUMPAD4               34
+#define VK_NUMPAD5               35
+#define VK_NUMPAD6               36
+#define VK_NUMPAD7               37
+#define VK_NUMPAD8               38
+#define VK_NUMPAD9               39
+#define VK_MULTIPLY              40
+#define VK_ADD                   41
+#define VK_SEPARATOR             42
+#define VK_SUBTRACT              43
+#define VK_DECIMAL               44
+#define VK_DIVIDE                45
+#define VK_F1                    46
+#define VK_F2                    47
+#define VK_F3                    48
+#define VK_F4                    49
+#define VK_F5                    50
+#define VK_F6                    51
+#define VK_F7                    52
+#define VK_F8                    53
+#define VK_F9                    54
+#define VK_F10                   55
+#define VK_F11                   56
+#define VK_F12                   57
+#define VK_F13                   58
+#define VK_F14                   59
+#define VK_F15                   60
+#define VK_F16                   61
+#define VK_F17                   62
+#define VK_F18                   63
+#define VK_F19                   64
+#define VK_F20                   65
+#define VK_F21                   66
+#define VK_F22                   67
+#define VK_F23                   68
+#define VK_F24                   69
+#define VK_NUMLOCK               70
+#define VK_SCROLL                71
+#define VK_LSHIFT                72
+#define VK_RSHIFT                73
+#define VK_LCONTROL              74
+#define VK_RCONTROL              75
+#define VK_LMENU                 76
+#define VK_RMENU                 77
+
+/* Key Modifiers */
+#define KC_CTRL                  (1)
+#define KC_SHIFT                 (1 << 1)
+#define KC_ALT                   (1 << 2)
 #endif
 
 /* Template section, framework for new platform ports */
