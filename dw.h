@@ -729,6 +729,7 @@ typedef HWND HMENUI;
 #include <stdlib.h>
 #include <stdarg.h>
 #include <limits.h>
+#include <pthread.h>
 
 /* Can remove this for your port when you know where MAX_PATH is */
 #ifndef MAX_PATH
@@ -750,13 +751,25 @@ typedef unsigned char UCHAR;
 typedef char CHAR;
 typedef unsigned UINT;
 typedef int INT;
-typedef void *HMTX;
-typedef void *HEV;
+typedef pthread_mutex_t *HMTX;
+typedef struct _dw_unix_event {
+    pthread_mutex_t mutex;
+    pthread_cond_t event;
+    pthread_t thread;
+    int alive;
+    int posted;
+} *HEV;
+typedef pthread_t DWTID;
+typedef void * HMOD;
+struct _dw_unix_shm {
+    int fd;
+    char *path;
+    int sid;
+    int size;
+};
 typedef void *HSHM;
-typedef void *HMOD;
 typedef void *HTREEITEM;
 typedef HWND HMENUI;
-typedef int DWTID;
 typedef unsigned long HICN;
 
 typedef struct _window_data {
@@ -1861,6 +1874,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
    char **argv = _dw_convertargs(&argc, lpCmdLine, hInstance); \
    return _dwmain(argc, argv); } \
 int _dwmain(a, b)
+#elif defined(__ANDROID__)
+int dwmain(int argc, char *argv[]);
 #else
 #define dwmain(a, b) main(a, b)
 #endif
