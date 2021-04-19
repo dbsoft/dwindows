@@ -5,25 +5,83 @@
  * (C) 2011-2021 Brian Smith <brian@dbsoft.org>
  * (C) 2011-2021 Mark Hessling <mark@rexx.org>
  *
- * Compile with $CC -I. -D__ANDROID__ template/dw.c
- *
  */
 
 #include <jni.h>
 #include "dw.h"
 #include <stdlib.h>
 #include <string.h>
+#include <sys/utsname.h>
+#include <sys/socket.h>
+#include <sys/un.h>
+#include <sys/mman.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <dlfcn.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <unistd.h>
+#if defined(__ANDROID__) && (__ANDROID_API__+0) < 21
+#include <sys/syscall.h>
+#endif
+
+#if defined(__ANDROID__) && (__ANDROID_API__+0) < 21
+/* Until Android API version 21 NDK does not define getsid wrapper in libc, although there is the corresponding syscall */
+inline pid_t getsid(pid_t pid)
+{
+    return static_cast< pid_t >(::syscall(__NR_getsid, pid));
+}
+#endif
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+static pthread_key_t _dw_event_key;
+static HEV _dw_main_event;
+
+/* Call the dwmain entry point, Android has no args, so just pass the app path */
+void _dw_main_launch(char *arg)
+{
+    char *argv[2] = { arg, NULL };
+    dwmain(1, argv);
+}
+
+/* Called when DWindows activity starts up... so we create a thread
+ *  to call the dwmain() entrypoint... then we wait for dw_main()
+ *  to be called and return.
+ * Parameters:
+ *      path: The path to the Android app.
+ */
 JNIEXPORT jstring JNICALL
-Java_org_dbsoft_dwindows_dwtest_DWindows_stringFromJNI(
-        JNIEnv* env,
-        jobject /* this */) {
-    char hello[] = "Hello from C++";
-    return env->NewStringUTF(hello);
+Java_org_dbsoft_dwindows_dwtest_DWindows_dwindowsInit(
+        JNIEnv* env, jobject obj, jstring path) {
+    char *arg = strdup(env->GetStringUTFChars((jstring) path, NULL));
+
+    /* Create the dwmain event */
+    _dw_main_event = dw_event_new();
+
+    /* Launch the new thread to execute dwmain() */
+    dw_thread_new((void *)_dw_main_launch, arg, 0);
+
+    /* Wait until dwmain() calls dw_main() then return */
+    dw_event_wait(_dw_main_event, DW_TIMEOUT_INFINITE);
+#if 0
+    // Construct a String
+    jstring jstr = env->NewStringUTF("This string comes from JNI");
+    // First get the class that contains the method you need to call
+    jclass clazz = env->FindClass("org/dbsoft/dwindows/dwtest/DWindows");
+    // Get the method that you want to call
+    jmethodID dwindowsInit = env->GetMethodID(clazz, "dwindowsInit", "(Ljava/lang/String;)V");
+    // Call the method on the object
+    jobject result = env->CallObjectMethod(obj, jstr, dwindowsInit);
+    // Get a C-style string
+    const char* str = env->GetStringUTFChars((jstring) result, NULL);
+    printf("%s\n", str);
+    // Clean up
+    env->ReleaseStringUTFChars(jstr, str);
+#endif
+    return env->NewStringUTF("Hello from JNI!");
 }
 
 /* Implement these to get and set the Box* pointer on the widget handle */
@@ -262,6 +320,17 @@ void _dw_do_resize(Box *thisbox, int x, int y)
  */
 void API dw_main(void)
 {
+    /* Post the event so dwindowsInit() will return...
+     * allowing the app to start handling events.
+     */
+    dw_event_post(_dw_main_event);
+    dw_event_reset(_dw_main_event);
+
+    /* We don't actually run a loop here,
+     * we launched a new thread to run the loop there.
+     * Just wait for dw_main_quit() on the DWMainEvent.
+     */
+    dw_event_wait(_dw_main_event, DW_TIMEOUT_INFINITE);
 }
 
 /*
@@ -269,6 +338,7 @@ void API dw_main(void)
  */
 void API dw_main_quit(void)
 {
+    dw_event_post(_dw_main_event);
 }
 
 /*
@@ -3194,17 +3264,57 @@ void API dw_signal_disconnect_by_data(HWND window, void *data)
 {
 }
 
+void _dw_strlwr(char *buf)
+{
+    int z, len = strlen(buf);
+
+    for(z=0;z<len;z++)
+    {
+        if(buf[z] >= 'A' && buf[z] <= 'Z')
+            buf[z] -= 'A' - 'a';
+    }
+}
+
 /* Open a shared library and return a handle.
  * Parameters:
  *         name: Base name of the shared library.
  *         handle: Pointer to a module handle,
  *                 will be filled in with the handle.
- * Returns:
- *       DW_ERROR_NONE (0) on success.
-*/
+ */
 int API dw_module_load(const char *name, HMOD *handle)
 {
-    return DW_ERROR_UNKNOWN;
+    int len;
+    char *newname;
+    char errorbuf[1025] = {0};
+
+
+    if(!handle)
+        return -1;
+
+    if((len = strlen(name)) == 0)
+        return   -1;
+
+    /* Lenth + "lib" + ".so" + NULL */
+    newname = (char *)malloc(len + 7);
+
+    if(!newname)
+        return -1;
+
+    sprintf(newname, "lib%s.so", name);
+    _dw_strlwr(newname);
+
+    *handle = dlopen(newname, RTLD_NOW);
+    if(*handle == NULL)
+    {
+        strncpy(errorbuf, dlerror(), 1024);
+        printf("%s\n", errorbuf);
+        sprintf(newname, "lib%s.so", name);
+        *handle = dlopen(newname, RTLD_NOW);
+    }
+
+    free(newname);
+
+    return (NULL == *handle) ? -1 : 0;
 }
 
 /* Queries the address of a symbol within open handle.
@@ -3213,31 +3323,39 @@ int API dw_module_load(const char *name, HMOD *handle)
  *         name: Name of the symbol you want the address of.
  *         func: A pointer to a function pointer, to obtain
  *               the address.
- * Returns:
- *       DW_ERROR_NONE (0) on success.
  */
 int API dw_module_symbol(HMOD handle, const char *name, void**func)
 {
-    return DW_ERROR_UNKNOWN;
+    if(!func || !name)
+        return   -1;
+
+    if(strlen(name) == 0)
+        return   -1;
+
+    *func = (void*)dlsym(handle, name);
+    return   (NULL == *func);
 }
 
 /* Frees the shared library previously opened.
  * Parameters:
  *         handle: Module handle returned by dw_module_load()
- * Returns:
- *       DW_ERROR_NONE (0) on success.
  */
 int API dw_module_close(HMOD handle)
 {
-    return DW_ERROR_GENERAL;
+    if(handle)
+        return dlclose(handle);
+    return 0;
 }
 
 /*
- * Returns the handle to an unnamed mutex semaphore or NULL on error.
+ * Returns the handle to an unnamed mutex semaphore.
  */
 HMTX API dw_mutex_new(void)
 {
-    return NULL;
+    HMTX mutex = (HMTX)malloc(sizeof(pthread_mutex_t));
+
+    pthread_mutex_init(mutex, NULL);
+    return mutex;
 }
 
 /*
@@ -3247,6 +3365,11 @@ HMTX API dw_mutex_new(void)
  */
 void API dw_mutex_close(HMTX mutex)
 {
+    if(mutex)
+    {
+        pthread_mutex_destroy(mutex);
+        free(mutex);
+    }
 }
 
 /*
@@ -3256,28 +3379,34 @@ void API dw_mutex_close(HMTX mutex)
  */
 void API dw_mutex_lock(HMTX mutex)
 {
-#if 0
     /* We need to handle locks from the main thread differently...
      * since we can't stop message processing... otherwise we
      * will deadlock... so try to acquire the lock and continue
      * processing messages in between tries.
      */
-    if(_dw_thread == dw_thread_id())
+#if 0 /* TODO: Not sure how to do this on Android yet */
+    if(_dw_thread == pthread_self())
     {
-        while(/* Attempt to lock the mutex */)
+        while(pthread_mutex_trylock(mutex) != 0)
         {
             /* Process any pending events */
-            while(dw_main_iteration())
+            if(g_main_context_pending(NULL))
             {
-                /* Just loop */
+                do
+                {
+                    g_main_context_iteration(NULL, FALSE);
+                }
+                while(g_main_context_pending(NULL));
             }
+            else
+                sched_yield();
         }
     }
     else
-    {
-        /* Lock the mutex */
-    }
 #endif
+    {
+        pthread_mutex_lock(mutex);
+    }
 }
 
 /*
@@ -3289,7 +3418,9 @@ void API dw_mutex_lock(HMTX mutex)
  */
 int API dw_mutex_trylock(HMTX mutex)
 {
-    return DW_ERROR_GENERAL;
+    if(pthread_mutex_trylock(mutex) == 0)
+        return DW_ERROR_NONE;
+    return DW_ERROR_TIMEOUT;
 }
 
 /*
@@ -3299,26 +3430,50 @@ int API dw_mutex_trylock(HMTX mutex)
  */
 void API dw_mutex_unlock(HMTX mutex)
 {
+    pthread_mutex_unlock(mutex);
 }
 
 /*
- * Returns the handle to an unnamed event semaphore or NULL on error.
+ * Returns the handle to an unnamed event semaphore.
  */
 HEV API dw_event_new(void)
 {
-    return NULL;
+    HEV eve = (HEV)malloc(sizeof(struct _dw_unix_event));
+
+    if(!eve)
+        return NULL;
+
+    /* We need to be careful here, mutexes on Linux are
+     * FAST by default but are error checking on other
+     * systems such as FreeBSD and OS/2, perhaps others.
+     */
+    pthread_mutex_init (&(eve->mutex), NULL);
+    pthread_mutex_lock (&(eve->mutex));
+    pthread_cond_init (&(eve->event), NULL);
+
+    pthread_mutex_unlock (&(eve->mutex));
+    eve->alive = 1;
+    eve->posted = 0;
+
+    return eve;
 }
 
 /*
  * Resets a semaphore created by dw_event_new().
  * Parameters:
  *       eve: The handle to the event returned by dw_event_new().
- * Returns:
- *       DW_ERROR_NONE (0) on success.
  */
 int API dw_event_reset (HEV eve)
 {
-    return DW_ERROR_GENERAL;
+    if(!eve)
+        return DW_ERROR_NON_INIT;
+
+    pthread_mutex_lock (&(eve->mutex));
+    pthread_cond_broadcast (&(eve->event));
+    pthread_cond_init (&(eve->event), NULL);
+    eve->posted = 0;
+    pthread_mutex_unlock (&(eve->mutex));
+    return DW_ERROR_NONE;
 }
 
 /*
@@ -3326,12 +3481,17 @@ int API dw_event_reset (HEV eve)
  * waiting on this event in dw_event_wait to continue.
  * Parameters:
  *       eve: The handle to the event returned by dw_event_new().
- * Returns:
- *       DW_ERROR_NONE (0) on success.
  */
 int API dw_event_post (HEV eve)
 {
-    return DW_ERROR_GENERAL;
+    if(!eve)
+        return DW_ERROR_NON_INIT;
+
+    pthread_mutex_lock (&(eve->mutex));
+    pthread_cond_broadcast (&(eve->event));
+    eve->posted = 1;
+    pthread_mutex_unlock (&(eve->mutex));
+    return DW_ERROR_NONE;
 }
 
 /*
@@ -3339,15 +3499,40 @@ int API dw_event_post (HEV eve)
  * event gets posted or until the timeout expires.
  * Parameters:
  *       eve: The handle to the event returned by dw_event_new().
- *   timeout: Number of milliseconds before timing out
- *                  or -1 if indefinite.
- * Returns:
- *       DW_ERROR_NONE (0) on success.
- *       DW_ERROR_TIMEOUT (2) if the timeout has expired.
- *       Other values on other error.
  */
 int API dw_event_wait(HEV eve, unsigned long timeout)
 {
+    int rc;
+
+    if(!eve)
+        return DW_ERROR_NON_INIT;
+
+    pthread_mutex_lock (&(eve->mutex));
+
+    if(eve->posted)
+    {
+        pthread_mutex_unlock (&(eve->mutex));
+        return DW_ERROR_NONE;
+    }
+
+    if(timeout != -1)
+    {
+        struct timeval now;
+        struct timespec timeo;
+
+        gettimeofday(&now, 0);
+        timeo.tv_sec = now.tv_sec + (timeout / 1000);
+        timeo.tv_nsec = now.tv_usec * 1000;
+        rc = pthread_cond_timedwait(&(eve->event), &(eve->mutex), &timeo);
+    }
+    else
+        rc = pthread_cond_wait(&(eve->event), &(eve->mutex));
+
+    pthread_mutex_unlock (&(eve->mutex));
+    if(!rc)
+        return DW_ERROR_NONE;
+    if(rc == ETIMEDOUT)
+        return DW_ERROR_TIMEOUT;
     return DW_ERROR_GENERAL;
 }
 
@@ -3355,49 +3540,265 @@ int API dw_event_wait(HEV eve, unsigned long timeout)
  * Closes a semaphore created by dw_event_new().
  * Parameters:
  *       eve: The handle to the event returned by dw_event_new().
- * Returns:
- *       DW_ERROR_NONE (0) on success.
  */
 int API dw_event_close(HEV *eve)
 {
-    return DW_ERROR_GENERAL;
+    if(!eve || !(*eve))
+        return DW_ERROR_NON_INIT;
+
+    pthread_mutex_lock (&((*eve)->mutex));
+    pthread_cond_destroy (&((*eve)->event));
+    pthread_mutex_unlock (&((*eve)->mutex));
+    pthread_mutex_destroy (&((*eve)->mutex));
+    free(*eve);
+    *eve = NULL;
+
+    return DW_ERROR_NONE;
 }
 
+struct _dw_seminfo {
+    int fd;
+    int waiting;
+};
+
+static void _dw_handle_sem(int *tmpsock)
+{
+    fd_set rd;
+    struct _dw_seminfo *array = (struct _dw_seminfo *)malloc(sizeof(struct _dw_seminfo));
+    int listenfd = tmpsock[0];
+    int bytesread, connectcount = 1, maxfd, z, posted = 0;
+    char command;
+    sigset_t mask;
+
+    sigfillset(&mask); /* Mask all allowed signals */
+    pthread_sigmask(SIG_BLOCK, &mask, NULL);
+
+    /* problems */
+    if(tmpsock[1] == -1)
+    {
+        free(array);
+        return;
+    }
+
+    array[0].fd = tmpsock[1];
+    array[0].waiting = 0;
+
+    /* Free the memory allocated in dw_named_event_new. */
+    free(tmpsock);
+
+    while(1)
+    {
+        FD_ZERO(&rd);
+        FD_SET(listenfd, &rd);
+        int DW_UNUSED(result);
+
+        maxfd = listenfd;
+
+        /* Added any connections to the named event semaphore */
+        for(z=0;z<connectcount;z++)
+        {
+            if(array[z].fd > maxfd)
+                maxfd = array[z].fd;
+
+            FD_SET(array[z].fd, &rd);
+        }
+
+        if(select(maxfd+1, &rd, NULL, NULL, NULL) == -1)
+        {
+            free(array);
+            return;
+        }
+
+        if(FD_ISSET(listenfd, &rd))
+        {
+            struct _dw_seminfo *newarray;
+            int newfd = accept(listenfd, 0, 0);
+
+            if(newfd > -1)
+            {
+                /* Add new connections to the set */
+                newarray = (struct _dw_seminfo *)malloc(sizeof(struct _dw_seminfo)*(connectcount+1));
+                memcpy(newarray, array, sizeof(struct _dw_seminfo)*(connectcount));
+
+                newarray[connectcount].fd = newfd;
+                newarray[connectcount].waiting = 0;
+
+                connectcount++;
+
+                /* Replace old array with new one */
+                free(array);
+                array = newarray;
+            }
+        }
+
+        /* Handle any events posted to the semaphore */
+        for(z=0;z<connectcount;z++)
+        {
+            if(FD_ISSET(array[z].fd, &rd))
+            {
+                if((bytesread = read(array[z].fd, &command, 1)) < 1)
+                {
+                    struct _dw_seminfo *newarray;
+
+                    /* Remove this connection from the set */
+                    newarray = (struct _dw_seminfo *)malloc(sizeof(struct _dw_seminfo)*(connectcount-1));
+                    if(!z)
+                        memcpy(newarray, &array[1], sizeof(struct _dw_seminfo)*(connectcount-1));
+                    else
+                    {
+                        memcpy(newarray, array, sizeof(struct _dw_seminfo)*z);
+                        if(z!=(connectcount-1))
+                            memcpy(&newarray[z], &array[z+1], sizeof(struct _dw_seminfo)*(z-connectcount-1));
+                    }
+                    connectcount--;
+
+                    /* Replace old array with new one */
+                    free(array);
+                    array = newarray;
+                }
+                else if(bytesread == 1)
+                {
+                    switch(command)
+                    {
+                        case 0:
+                        {
+                            /* Reset */
+                            posted = 0;
+                        }
+                            break;
+                        case 1:
+                            /* Post */
+                        {
+                            int s;
+                            char tmp = (char)0;
+
+                            posted = 1;
+
+                            for(s=0;s<connectcount;s++)
+                            {
+                                /* The semaphore has been posted so
+                                 * we tell all the waiting threads to
+                                 * continue.
+                                 */
+                                if(array[s].waiting)
+                                    result = write(array[s].fd, &tmp, 1);
+                            }
+                        }
+                            break;
+                        case 2:
+                            /* Wait */
+                        {
+                            char tmp = (char)0;
+
+                            array[z].waiting = 1;
+
+                            /* If we are posted exit immeditately */
+                            if(posted)
+                                result = write(array[z].fd, &tmp, 1);
+                        }
+                            break;
+                        case 3:
+                        {
+                            /* Done Waiting */
+                            array[z].waiting = 0;
+                        }
+                            break;
+                    }
+                }
+            }
+        }
+    }
+}
+
+/* Using domain sockets on unix for IPC */
 /* Create a named event semaphore which can be
  * opened from other processes.
  * Parameters:
+ *         eve: Pointer to an event handle to receive handle.
  *         name: Name given to semaphore which can be opened
  *               by other processes.
- * Returns:
- *       Handle to event semaphore or NULL on error.
  */
 HEV API dw_named_event_new(const char *name)
 {
-    return NULL;
+    struct sockaddr_un un;
+    int ev, *tmpsock = (int *)malloc(sizeof(int)*2);
+    DWTID dwthread;
+
+    if(!tmpsock)
+        return NULL;
+
+    tmpsock[0] = socket(AF_UNIX, SOCK_STREAM, 0);
+    ev = socket(AF_UNIX, SOCK_STREAM, 0);
+    memset(&un, 0, sizeof(un));
+    un.sun_family=AF_UNIX;
+    mkdir("/tmp/.dw", S_IWGRP|S_IWOTH);
+    strcpy(un.sun_path, "/tmp/.dw/");
+    strcat(un.sun_path, name);
+
+    /* just to be safe, this should be changed
+     * to support multiple instances.
+     */
+    remove(un.sun_path);
+
+    bind(tmpsock[0], (struct sockaddr *)&un, sizeof(un));
+    listen(tmpsock[0], 0);
+    connect(ev, (struct sockaddr *)&un, sizeof(un));
+    tmpsock[1] = accept(tmpsock[0], 0, 0);
+
+    if(tmpsock[0] < 0 || tmpsock[1] < 0 || ev < 0)
+    {
+        if(tmpsock[0] > -1)
+            close(tmpsock[0]);
+        if(tmpsock[1] > -1)
+            close(tmpsock[1]);
+        if(ev > -1)
+            close(ev);
+        free(tmpsock);
+        return NULL;
+    }
+
+    /* Create a thread to handle this event semaphore */
+    pthread_create(&dwthread, NULL, (void *(*)(void *))_dw_handle_sem, (void *)tmpsock);
+    return (HEV)DW_INT_TO_POINTER(ev);
 }
 
 /* Open an already existing named event semaphore.
  * Parameters:
+ *         eve: Pointer to an event handle to receive handle.
  *         name: Name given to semaphore which can be opened
  *               by other processes.
- * Returns:
- *       Handle to event semaphore or NULL on error.
  */
 HEV API dw_named_event_get(const char *name)
 {
-    return NULL;
+    struct sockaddr_un un;
+    int ev = socket(AF_UNIX, SOCK_STREAM, 0);
+    if(ev < 0)
+        return NULL;
+
+    un.sun_family=AF_UNIX;
+    mkdir("/tmp/.dw", S_IWGRP|S_IWOTH);
+    strcpy(un.sun_path, "/tmp/.dw/");
+    strcat(un.sun_path, name);
+    connect(ev, (struct sockaddr *)&un, sizeof(un));
+    return (HEV)DW_INT_TO_POINTER(ev);
 }
 
 /* Resets the event semaphore so threads who call wait
  * on this semaphore will block.
  * Parameters:
  *         eve: Handle to the semaphore obtained by
- *              an get or new call.
- * Returns:
- *       DW_ERROR_NONE (0) on success.
+ *              an open or create call.
  */
 int API dw_named_event_reset(HEV eve)
 {
+    /* signal reset */
+    char tmp = (char)0;
+
+    if(DW_POINTER_TO_INT(eve) < 0)
+        return DW_ERROR_NONE;
+
+    if(write(DW_POINTER_TO_INT(eve), &tmp, 1) == 1)
+        return DW_ERROR_NONE;
     return DW_ERROR_GENERAL;
 }
 
@@ -3405,12 +3806,19 @@ int API dw_named_event_reset(HEV eve)
  * waiting on the semaphore will no longer block.
  * Parameters:
  *         eve: Handle to the semaphore obtained by
- *              an get or new call.
- * Returns:
- *       DW_ERROR_NONE (0) on success.
+ *              an open or create call.
  */
 int API dw_named_event_post(HEV eve)
 {
+
+    /* signal post */
+    char tmp = (char)1;
+
+    if(DW_POINTER_TO_INT(eve) < 0)
+        return DW_ERROR_NONE;
+
+    if(write(DW_POINTER_TO_INT(eve), &tmp, 1) == 1)
+        return DW_ERROR_NONE;
     return DW_ERROR_GENERAL;
 }
 
@@ -3418,28 +3826,264 @@ int API dw_named_event_post(HEV eve)
  * posted, or returns immediately if it already is posted.
  * Parameters:
  *         eve: Handle to the semaphore obtained by
- *              an get or new call.
+ *              an open or create call.
  *         timeout: Number of milliseconds before timing out
  *                  or -1 if indefinite.
- * Returns:
- *       DW_ERROR_NONE (0) on success.
  */
 int API dw_named_event_wait(HEV eve, unsigned long timeout)
 {
-    return DW_ERROR_UNKNOWN;
+    fd_set rd;
+    struct timeval tv, *useme = NULL;
+    int retval = 0;
+    char tmp;
+
+    if(DW_POINTER_TO_INT(eve) < 0)
+        return DW_ERROR_NON_INIT;
+
+    /* Set the timout or infinite */
+    if(timeout != -1)
+    {
+        tv.tv_sec = timeout / 1000;
+        tv.tv_usec = timeout % 1000;
+
+        useme = &tv;
+    }
+
+    FD_ZERO(&rd);
+    FD_SET(DW_POINTER_TO_INT(eve), &rd);
+
+    /* Signal wait */
+    tmp = (char)2;
+    retval = write(DW_POINTER_TO_INT(eve), &tmp, 1);
+
+    if(retval == 1)
+        retval = select(DW_POINTER_TO_INT(eve)+1, &rd, NULL, NULL, useme);
+
+    /* Signal done waiting. */
+    tmp = (char)3;
+    if(retval == 1)
+        retval = write(DW_POINTER_TO_INT(eve), &tmp, 1);
+
+    if(retval == 0)
+        return DW_ERROR_TIMEOUT;
+    else if(retval == -1)
+        return DW_ERROR_INTERRUPT;
+
+    /* Clear the entry from the pipe so
+     * we don't loop endlessly. :)
+     */
+    if(read(DW_POINTER_TO_INT(eve), &tmp, 1) == 1)
+        return DW_ERROR_NONE;
+    return DW_ERROR_GENERAL;
 }
 
 /* Release this semaphore, if there are no more open
  * handles on this semaphore the semaphore will be destroyed.
  * Parameters:
  *         eve: Handle to the semaphore obtained by
- *              an get or new call.
- * Returns:
- *       DW_ERROR_NONE (0) on success.
+ *              an open or create call.
  */
 int API dw_named_event_close(HEV eve)
 {
-    return DW_ERROR_UNKNOWN;
+    /* Finally close the domain socket,
+     * cleanup will continue in _dw_handle_sem.
+     */
+    close(DW_POINTER_TO_INT(eve));
+    return DW_ERROR_NONE;
+}
+
+/*
+ * Generally an internal function called from a newly created
+ * thread to setup the Dynamic Windows environment for the thread.
+ * However it is exported so language bindings can call it when
+ * they create threads that require access to Dynamic Windows.
+ */
+void API _dw_init_thread(void)
+{
+    HEV event = dw_event_new();
+
+    pthread_setspecific(_dw_event_key, event);
+}
+
+/*
+ * Generally an internal function called from a terminating
+ * thread to cleanup the Dynamic Windows environment for the thread.
+ * However it is exported so language bindings can call it when
+ * they exit threads that require access to Dynamic Windows.
+ */
+void API _dw_deinit_thread(void)
+{
+    HEV event;
+
+    if((event = (HEV)pthread_getspecific(_dw_event_key)))
+        dw_event_close(&event);
+}
+
+/*
+ * Setup thread independent color sets.
+ */
+void _dwthreadstart(void *data)
+{
+    void (*threadfunc)(void *) = NULL;
+    void **tmp = (void **)data;
+
+    threadfunc = (void (*)(void *))tmp[0];
+
+    /* Initialize colors */
+    _dw_init_thread();
+
+    threadfunc(tmp[1]);
+    free(tmp);
+
+    /* Free colors */
+    _dw_deinit_thread();
+}
+
+/*
+ * Allocates a shared memory region with a name.
+ * Parameters:
+ *         handle: A pointer to receive a SHM identifier.
+ *         dest: A pointer to a pointer to receive the memory address.
+ *         size: Size in bytes of the shared memory region to allocate.
+ *         name: A string pointer to a unique memory name.
+ */
+HSHM API dw_named_memory_new(void **dest, int size, const char *name)
+{
+    char namebuf[1025];
+    struct _dw_unix_shm *handle = (struct _dw_unix_shm *)malloc(sizeof(struct _dw_unix_shm));
+
+    mkdir("/tmp/.dw", S_IWGRP|S_IWOTH);
+    snprintf(namebuf, 1024, "/tmp/.dw/%s", name);
+
+    if((handle->fd = open(namebuf, O_CREAT | O_RDWR, S_IRUSR | S_IWUSR)) < 0)
+    {
+        free(handle);
+        return NULL;
+    }
+
+    if(ftruncate(handle->fd, size))
+    {
+        close(handle->fd);
+        free(handle);
+        return NULL;
+    }
+
+    /* attach the shared memory segment to our process's address space. */
+    *dest = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED, handle->fd, 0);
+
+    if(*dest == MAP_FAILED)
+    {
+        close(handle->fd);
+        *dest = NULL;
+        free(handle);
+        return NULL;
+    }
+
+    handle->size = size;
+    handle->sid = getsid(0);
+    handle->path = strdup(namebuf);
+
+    return handle;
+}
+
+/*
+ * Aquires shared memory region with a name.
+ * Parameters:
+ *         dest: A pointer to a pointer to receive the memory address.
+ *         size: Size in bytes of the shared memory region to requested.
+ *         name: A string pointer to a unique memory name.
+ */
+HSHM API dw_named_memory_get(void **dest, int size, const char *name)
+{
+    char namebuf[1025];
+    struct _dw_unix_shm *handle = (struct _dw_unix_shm *)malloc(sizeof(struct _dw_unix_shm));
+
+    mkdir("/tmp/.dw", S_IWGRP|S_IWOTH);
+    snprintf(namebuf, 1024, "/tmp/.dw/%s", name);
+
+    if((handle->fd = open(namebuf, O_RDWR)) < 0)
+    {
+        free(handle);
+        return NULL;
+    }
+
+    /* attach the shared memory segment to our process's address space. */
+    *dest = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED, handle->fd, 0);
+
+    if(*dest == MAP_FAILED)
+    {
+        close(handle->fd);
+        *dest = NULL;
+        free(handle);
+        return NULL;
+    }
+
+    handle->size = size;
+    handle->sid = -1;
+    handle->path = NULL;
+
+    return handle;
+}
+
+/*
+ * Frees a shared memory region previously allocated.
+ * Parameters:
+ *         handle: Handle obtained from DB_named_memory_allocate.
+ *         ptr: The memory address aquired with DB_named_memory_allocate.
+ */
+int API dw_named_memory_free(HSHM handle, void *ptr)
+{
+    struct _dw_unix_shm *h = (struct _dw_unix_shm *)handle;
+    int rc = munmap(ptr, h->size);
+
+    close(h->fd);
+    if(h->path)
+    {
+        /* Only remove the actual file if we are the
+         * creator of the file.
+         */
+        if(h->sid != -1 && h->sid == getsid(0))
+            remove(h->path);
+        free(h->path);
+    }
+    return rc;
+}
+/*
+ * Creates a new thread with a starting point of func.
+ * Parameters:
+ *       func: Function which will be run in the new thread.
+ *       data: Parameter(s) passed to the function.
+ *       stack: Stack size of new thread (OS/2 and Windows only).
+ */
+DWTID API dw_thread_new(void *func, void *data, int stack)
+{
+    DWTID dwthread;
+    void **tmp = (void **)malloc(sizeof(void *) * 2);
+    int rc;
+
+    tmp[0] = func;
+    tmp[1] = data;
+
+    rc = pthread_create(&dwthread, NULL, (void *(*)(void *))_dwthreadstart, (void *)tmp);
+    if(rc == 0)
+        return dwthread;
+    return (DWTID)DW_ERROR_UNKNOWN;
+}
+
+/*
+ * Ends execution of current thread immediately.
+ */
+void API dw_thread_end(void)
+{
+    pthread_exit(NULL);
+}
+
+/*
+ * Returns the current thread's ID.
+ */
+DWTID API dw_thread_id(void)
+{
+    return (DWTID)pthread_self();
 }
 
 /*
@@ -3454,99 +4098,7 @@ int API dw_named_event_close(HEV eve)
  */
 int API dw_init(int newthread, int argc, char *argv[])
 {
-return DW_ERROR_NONE;
-}
-
-/*
- * Allocates a shared memory region with a name.
- * Parameters:
- *         dest: A pointer to a pointer to receive the memory address.
- *         size: Size in bytes of the shared memory region to allocate.
- *         name: A string pointer to a unique memory name.
- * Returns:
- *       Handle to shared memory or NULL on error.
- */
-HSHM API dw_named_memory_new(void **dest, int size, const char *name)
-{
-    return NULL;
-}
-
-/*
- * Aquires shared memory region with a name.
- * Parameters:
- *       dest: A pointer to a pointer to receive the memory address.
- *       size: Size in bytes of the shared memory region to requested.
- *       name: A string pointer to a unique memory name.
- * Returns:
- *       Handle to shared memory or NULL on error.
- */
-HSHM API dw_named_memory_get(void **dest, int size, const char *name)
-{
-    return NULL;
-}
-
-/*
- * Frees a shared memory region previously allocated.
- * Parameters:
- *       handle: Handle obtained from dw_named_memory_new().
- *       ptr: The memory address aquired with dw_named_memory_new().
- * Returns:
- *       DW_ERROR_NONE (0) on success or DW_ERROR_UNKNOWN (-1) on error.
- */
-int API dw_named_memory_free(HSHM handle, void *ptr)
-{
-    int rc = DW_ERROR_UNKNOWN;
-
-    return rc;
-}
-
-/*
- * Generally an internal function called from a newly created
- * thread to setup the Dynamic Windows environment for the thread.
- * However it is exported so language bindings can call it when
- * they create threads that require access to Dynamic Windows.
- */
-void API _dw_init_thread(void)
-{
-}
-
-/*
- * Generally an internal function called from a terminating
- * thread to cleanup the Dynamic Windows environment for the thread.
- * However it is exported so language bindings can call it when
- * they exit threads that require access to Dynamic Windows.
- */
-void API _dw_deinit_thread(void)
-{
-}
-
-/*
- * Creates a new thread with a starting point of func.
- * Parameters:
- *       func: Function which will be run in the new thread.
- *       data: Parameter(s) passed to the function.
- *       stack: Stack size of new thread (OS/2 and Windows only).
- * Returns:
- *       Thread ID on success or DW_ERROR_UNKNOWN (-1) on error.
- */
-DWTID API dw_thread_new(void *func, void *data, int stack)
-{
-    return (DWTID)DW_ERROR_UNKNOWN;
-}
-
-/*
- * Ends execution of current thread immediately.
- */
-void API dw_thread_end(void)
-{
-}
-
-/*
- * Returns the current thread's ID.
- */
-DWTID API dw_thread_id(void)
-{
-    return (DWTID)0;
+    return DW_ERROR_NONE;
 }
 
 /*
@@ -3663,7 +4215,11 @@ int API dw_notification_send(HWND notification)
  */
 wchar_t * API dw_utf8_to_wchar(const char *utf8string)
 {
-    return NULL;
+    size_t buflen = strlen(utf8string) + 1;
+    wchar_t *temp = (wchar_t *)malloc(buflen * sizeof(wchar_t));
+    if(temp)
+        mbstowcs(temp, utf8string, buflen);
+    return temp;
 }
 
 /*
@@ -3676,7 +4232,11 @@ wchar_t * API dw_utf8_to_wchar(const char *utf8string)
  */
 char * API dw_wchar_to_utf8(const wchar_t *wstring)
 {
-    return NULL;
+    size_t bufflen = 8 * wcslen(wstring) + 1;
+    char *temp = (char *)malloc(bufflen);
+    if(temp)
+        wcstombs(temp, wstring, bufflen);
+    return temp;
 }
 
 /*
