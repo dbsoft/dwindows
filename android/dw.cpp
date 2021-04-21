@@ -7,7 +7,6 @@
  *
  */
 
-#include <jni.h>
 #include "dw.h"
 #include <stdlib.h>
 #include <string.h>
@@ -37,8 +36,10 @@ inline pid_t getsid(pid_t pid)
 extern "C" {
 #endif
 
-static pthread_key_t _dw_event_key;
+static pthread_key_t _dw_env_key;
 static HEV _dw_main_event;
+static JavaVM *_dw_jvm;
+static jobject _dw_obj;
 
 /* Call the dwmain entry point, Android has no args, so just pass the app path */
 void _dw_main_launch(char *arg)
@@ -58,6 +59,13 @@ Java_org_dbsoft_dwindows_dwtest_DWindows_dwindowsInit(
         JNIEnv* env, jobject obj, jstring path) {
     char *arg = strdup(env->GetStringUTFChars((jstring) path, NULL));
 
+    /* Initialize the handle to the Java Virtual Machine */
+    env->GetJavaVM(&_dw_jvm);
+    _dw_obj = obj;
+
+    /* Save the JNIEnv for the main thread */
+    pthread_setspecific(_dw_env_key, env);
+
     /* Create the dwmain event */
     _dw_main_event = dw_event_new();
 
@@ -66,21 +74,6 @@ Java_org_dbsoft_dwindows_dwtest_DWindows_dwindowsInit(
 
     /* Wait until dwmain() calls dw_main() then return */
     dw_event_wait(_dw_main_event, DW_TIMEOUT_INFINITE);
-#if 0
-    // Construct a String
-    jstring jstr = env->NewStringUTF("This string comes from JNI");
-    // First get the class that contains the method you need to call
-    jclass clazz = env->FindClass("org/dbsoft/dwindows/dwtest/DWindows");
-    // Get the method that you want to call
-    jmethodID dwindowsInit = env->GetMethodID(clazz, "dwindowsInit", "(Ljava/lang/String;)V");
-    // Call the method on the object
-    jobject result = env->CallObjectMethod(obj, jstr, dwindowsInit);
-    // Get a C-style string
-    const char* str = env->GetStringUTFChars((jstring) result, NULL);
-    printf("%s\n", str);
-    // Clean up
-    env->ReleaseStringUTFChars(jstr, str);
-#endif
     return env->NewStringUTF("Hello from JNI!");
 }
 
@@ -92,227 +85,6 @@ void *_dw_window_pointer_get(HWND handle)
 
 void _dw_window_pointer_set(HWND handle, Box *box)
 {
-}
-
-/* This function calculates how much space the widgets and boxes require
- * and does expansion as necessary.
- */
-static void _dw_resize_box(Box *thisbox, int *depth, int x, int y, int pass)
-{
-    /* Current item position */
-    int z, currentx = thisbox->pad, currenty = thisbox->pad;
-    /* Used x, y and padding maximum values...
-     * These will be used to find the widest or
-     * tallest items in a box.
-     */
-    int uymax = 0, uxmax = 0;
-    int upymax = 0, upxmax = 0;
-
-    /* Reset the box sizes */
-    thisbox->minwidth = thisbox->minheight = thisbox->usedpadx = thisbox->usedpady = thisbox->pad * 2;
-
-#if 0
-    /* If there are containers which have built-in padding like
-    * groupboxes.. calculate the padding size and add it to the layout.
-    */
-   if(thisbox->grouphwnd)
-   {
-      char *text = dw_window_get_text(thisbox->grouphwnd);
-
-      thisbox->grouppady = 0;
-
-      if(text)
-      {
-         dw_font_text_extents_get(thisbox->grouphwnd, 0, text, NULL, &thisbox->grouppady);
-         dw_free(text);
-      }
-
-      if(thisbox->grouppady)
-         thisbox->grouppady += 3;
-      else
-         thisbox->grouppady = 6;
-
-      thisbox->grouppadx = 6;
-
-      thisbox->minwidth += thisbox->grouppadx;
-      thisbox->usedpadx += thisbox->grouppadx;
-      thisbox->minheight += thisbox->grouppady;
-      thisbox->usedpady += thisbox->grouppady;
-   }
-#endif
-
-    /* Count up all the space for all items in the box */
-    for(z=0;z<thisbox->count;z++)
-    {
-        int itempad, itemwidth, itemheight;
-
-        if(thisbox->items[z].type == TYPEBOX)
-        {
-            Box *tmp = (Box *)_dw_window_pointer_get(thisbox->items[z].hwnd);
-
-            if(tmp)
-            {
-                /* On the first pass calculate the box contents */
-                if(pass == 1)
-                {
-                    (*depth)++;
-
-                    /* Save the newly calculated values on the box */
-                    _dw_resize_box(tmp, depth, x, y, pass);
-
-                    /* Duplicate the values in the item list for use below */
-                    thisbox->items[z].width = tmp->minwidth;
-                    thisbox->items[z].height = tmp->minheight;
-
-                    (*depth)--;
-                }
-            }
-        }
-
-        /* Precalculate these values, since they will
-         * be used used repeatedly in the next section.
-         */
-        itempad = thisbox->items[z].pad * 2;
-        itemwidth = thisbox->items[z].width + itempad;
-        itemheight = thisbox->items[z].height + itempad;
-
-        /* Calculate the totals and maximums */
-        if(thisbox->type == DW_VERT)
-        {
-            if(itemwidth > uxmax)
-                uxmax = itemwidth;
-
-            if(thisbox->items[z].hsize != SIZEEXPAND)
-            {
-                if(itemwidth > upxmax)
-                    upxmax = itemwidth;
-            }
-            else
-            {
-                if(itempad > upxmax)
-                    upxmax = itempad;
-            }
-            thisbox->minheight += itemheight;
-            if(thisbox->items[z].vsize != SIZEEXPAND)
-                thisbox->usedpady += itemheight;
-            else
-                thisbox->usedpady += itempad;
-        }
-        else
-        {
-            if(itemheight > uymax)
-                uymax = itemheight;
-            if(thisbox->items[z].vsize != SIZEEXPAND)
-            {
-                if(itemheight > upymax)
-                    upymax = itemheight;
-            }
-            else
-            {
-                if(itempad > upymax)
-                    upymax = itempad;
-            }
-            thisbox->minwidth += itemwidth;
-            if(thisbox->items[z].hsize != SIZEEXPAND)
-                thisbox->usedpadx += itemwidth;
-            else
-                thisbox->usedpadx += itempad;
-        }
-    }
-
-    /* Add the maximums which were calculated in the previous loop */
-    thisbox->minwidth += uxmax;
-    thisbox->minheight += uymax;
-    thisbox->usedpadx += upxmax;
-    thisbox->usedpady += upymax;
-
-    /* Move the groupbox start past the group border */
-    if(thisbox->grouphwnd)
-    {
-        currentx += 3;
-        currenty += thisbox->grouppady - 3;
-    }
-
-    /* The second pass is for actual placement. */
-    if(pass > 1)
-    {
-        for(z=0;z<(thisbox->count);z++)
-        {
-            int height = thisbox->items[z].height;
-            int width = thisbox->items[z].width;
-            int itempad = thisbox->items[z].pad * 2;
-            int thispad = thisbox->pad * 2;
-
-            /* Calculate the new sizes */
-            if(thisbox->items[z].hsize == SIZEEXPAND)
-            {
-                if(thisbox->type == DW_HORZ)
-                {
-                    int expandablex = thisbox->minwidth - thisbox->usedpadx;
-
-                    if(expandablex)
-                        width = (int)(((float)width / (float)expandablex) * (float)(x - thisbox->usedpadx));
-                }
-                else
-                    width = x - (itempad + thispad + thisbox->grouppadx);
-            }
-            if(thisbox->items[z].vsize == SIZEEXPAND)
-            {
-                if(thisbox->type == DW_VERT)
-                {
-                    int expandabley = thisbox->minheight - thisbox->usedpady;
-
-                    if(expandabley)
-                        height = (int)(((float)height / (float)expandabley) * (float)(y - thisbox->usedpady));
-                }
-                else
-                    height = y - (itempad + thispad + thisbox->grouppady);
-            }
-
-            /* If the calculated size is valid... */
-            if(width > 0 && height > 0)
-            {
-                int pad = thisbox->items[z].pad;
-#if 0
-                HWND handle = thisbox->items[z].hwnd;
-
-            /* Here you put your platform specific placement widget placement code */
-            PlaceWidget(handle, currentx + pad, currenty + pad, width, height);
-
-            /* If any special handling needs to be done... like diving into
-             * controls that have sub-layouts... like notebooks or splitbars...
-             * do that here. Figure out the sub-layout size and call _dw_do_resize().
-             */
-#endif
-
-                /* Advance the current position in the box */
-                if(thisbox->type == DW_HORZ)
-                    currentx += width + (pad * 2);
-                if(thisbox->type == DW_VERT)
-                    currenty += height + (pad * 2);
-            }
-        }
-    }
-}
-
-/* This is a convenience function used in the window's resize event
- * to relayout the controls in the window.
- */
-void _dw_do_resize(Box *thisbox, int x, int y)
-{
-    if(x != 0 && y != 0)
-    {
-        if(thisbox)
-        {
-            int depth = 0;
-
-            /* Calculate space requirements */
-            _dw_resize_box(thisbox, &depth, x, y, 1);
-
-            /* Finally place all the boxes and controls */
-            _dw_resize_box(thisbox, &depth, x, y, 2);
-        }
-    }
 }
 
 /*
@@ -590,6 +362,18 @@ void * API dw_dialog_wait(DWDialog *dialog)
  */
 HWND API dw_box_new(int type, int pad)
 {
+    JNIEnv *env;
+
+    if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // First get the class that contains the method you need to call
+        jclass clazz = env->FindClass("org/dbsoft/dwindows/dwtest/DWindows");
+        // Get the method that you want to call
+        jmethodID boxNew = env->GetMethodID(clazz, "boxNew", "(Ljava/lang/String;)V");
+        // Call the method on the object
+        jobject result = env->CallObjectMethod(_dw_obj, boxNew, type, pad);
+        return result;
+    }
     return 0;
 }
 
@@ -649,74 +433,17 @@ int API dw_scrollbox_get_range(HWND handle, int orient)
 /* Internal box packing function called by the other 3 functions */
 void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsize, int vsize, int pad, char *funcname)
 {
-    Box *thisbox;
-    int z, x = 0;
-    Item *tmpitem, *thisitem;
+    JNIEnv *env;
 
-    /* Sanity checks */
-    if(!box || box == item)
-        return;
-
-    thisbox = (Box *)_dw_window_pointer_get(box);
-    thisitem = thisbox->items;
-
-    /* Do some sanity bounds checking */
-    if(index < 0)
-        index = 0;
-    if(index > thisbox->count)
-        index = thisbox->count;
-
-    /* Duplicate the existing data */
-    tmpitem = (Item *)malloc(sizeof(Item)*(thisbox->count+1));
-
-    for(z=0;z<thisbox->count;z++)
+    if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
     {
-        if(z == index)
-            x++;
-        tmpitem[x] = thisitem[z];
-        x++;
+        // First get the class that contains the method you need to call
+        jclass clazz = env->FindClass("org/dbsoft/dwindows/dwtest/DWindows");
+        // Get the method that you want to call
+        jmethodID boxPack = env->GetMethodID(clazz, "boxPack", "(Ljava/lang/String;)V");
+        // Call the method on the object
+        env->CallVoidMethod(_dw_obj, boxPack, box, item, index, width, height, hsize, vsize, pad);
     }
-
-    /* Sanity checks */
-    if(vsize && !height)
-        height = 1;
-    if(hsize && !width)
-        width = 1;
-
-    /* Fill in the item data appropriately */
-    if(0 /* Test to see if "item" is a box */)
-        tmpitem[index].type = TYPEBOX;
-    else
-        tmpitem[index].type = TYPEITEM;
-
-    tmpitem[index].hwnd = item;
-    tmpitem[index].origwidth = tmpitem[index].width = width;
-    tmpitem[index].origheight = tmpitem[index].height = height;
-    tmpitem[index].pad = pad;
-    if(hsize)
-        tmpitem[index].hsize = SIZEEXPAND;
-    else
-        tmpitem[index].hsize = SIZESTATIC;
-
-    if(vsize)
-        tmpitem[index].vsize = SIZEEXPAND;
-    else
-        tmpitem[index].vsize = SIZESTATIC;
-
-    thisbox->items = tmpitem;
-
-    /* Update the item count */
-    thisbox->count++;
-
-    /* Add the item to the box */
-#if 0
-    /* Platform specific code to add item to box */
-    BoxAdd(box, item);
-#endif
-
-    /* Free the old data */
-    if(thisbox->count)
-        free(thisitem);
 }
 
 /*
@@ -2682,6 +2409,20 @@ void API dw_notebook_pack(HWND handle, ULONG pageid, HWND page)
  */
 HWND API dw_window_new(HWND hwndOwner, const char *title, ULONG flStyle)
 {
+    JNIEnv *env;
+
+    if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // Construct a String
+        jstring jstr = env->NewStringUTF(title);
+        // First get the class that contains the method you need to call
+        jclass clazz = env->FindClass("org/dbsoft/dwindows/dwtest/DWindows");
+        // Get the method that you want to call
+        jmethodID windowNew = env->GetMethodID(clazz, "windowNew", "(Ljava/lang/String;)V");
+        // Call the method on the object
+        jobject result = env->CallObjectMethod(_dw_obj, windowNew, jstr);
+        return result;
+    }
     return 0;
 }
 
@@ -3900,9 +3641,10 @@ int API dw_named_event_close(HEV eve)
  */
 void API _dw_init_thread(void)
 {
-    HEV event = dw_event_new();
+    JNIEnv *env;
 
-    pthread_setspecific(_dw_event_key, event);
+    _dw_jvm->AttachCurrentThread(&env, NULL);
+    pthread_setspecific(_dw_env_key, env);
 }
 
 /*
@@ -3913,10 +3655,7 @@ void API _dw_init_thread(void)
  */
 void API _dw_deinit_thread(void)
 {
-    HEV event;
-
-    if((event = (HEV)pthread_getspecific(_dw_event_key)))
-        dw_event_close(&event);
+    _dw_jvm->DetachCurrentThread();
 }
 
 /*
