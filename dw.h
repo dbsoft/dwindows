@@ -725,6 +725,7 @@ typedef HWND HMENUI;
 
 /* Android section */
 #if defined(__ANDROID__)
+#include <jni.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -739,7 +740,7 @@ typedef HWND HMENUI;
 #define TRUE  1
 #define FALSE 0
 
-typedef void *HWND;
+typedef jobject HWND;
 
 typedef unsigned long ULONG;
 typedef long LONG;
