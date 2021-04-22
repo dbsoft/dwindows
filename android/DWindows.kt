@@ -9,12 +9,9 @@ import androidx.appcompat.app.AppCompatActivity
 
 class DWindows : AppCompatActivity()
 {
-    public var windowLayout: LinearLayout = LinearLayout(this)
-
     override fun onCreate(savedInstanceState: Bundle?)
     {
         super.onCreate(savedInstanceState)
-        setContentView(windowLayout)
 
         val m = packageManager
         var s = packageName
@@ -31,6 +28,8 @@ class DWindows : AppCompatActivity()
      */
     fun windowNew(title: String, style: Int): LinearLayout
     {
+        var windowLayout: LinearLayout = LinearLayout(this)
+        setContentView(windowLayout)
         // For now we just return our DWindows' main activity layout...
         // in the future, later calls should create new activities
         return windowLayout
@@ -66,6 +65,12 @@ class DWindows : AppCompatActivity()
         }
         item.layoutParams = LinearLayout.LayoutParams(w, h)
         box.addView(item)
+    }
+
+    fun boxUnpack(item: View)
+    {
+        var box: LinearLayout = item.parent as LinearLayout
+        box.removeView(item)
     }
 
     fun buttonNew(text: String, cid: Int): Button
