@@ -22,9 +22,7 @@
 #include <unistd.h>
 #if defined(__ANDROID__) && (__ANDROID_API__+0) < 21
 #include <sys/syscall.h>
-#endif
 
-#if defined(__ANDROID__) && (__ANDROID_API__+0) < 21
 /* Until Android API version 21 NDK does not define getsid wrapper in libc, although there is the corresponding syscall */
 inline pid_t getsid(pid_t pid)
 {
@@ -35,6 +33,8 @@ inline pid_t getsid(pid_t pid)
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+#define DW_CLASS_NAME "org/dbsoft/dwindows/dwtest/DWindows"
 
 static pthread_key_t _dw_env_key;
 static HEV _dw_main_event;
@@ -172,7 +172,7 @@ char * API dw_user_dir(void)
 }
 
 /*
- * Returns a pointer to a static buffer which containes the
+ * Returns a pointer to a static buffer which contains the
  * private application data directory.
  */
 char * API dw_app_dir(void)
@@ -180,7 +180,7 @@ char * API dw_app_dir(void)
     static char _dw_exec_dir[MAX_PATH+1] = {0};
     /* Code to determine the execution directory here,
      * some implementations make this variable global
-     * and determin the location in dw_init().
+     * and determine the location in dw_init().
      */
     return _dw_exec_dir;
 }
@@ -367,9 +367,9 @@ HWND API dw_box_new(int type, int pad)
     if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
     {
         // First get the class that contains the method you need to call
-        jclass clazz = env->FindClass("org/dbsoft/dwindows/dwtest/DWindows");
+        jclass clazz = env->FindClass(DW_CLASS_NAME);
         // Get the method that you want to call
-        jmethodID boxNew = env->GetMethodID(clazz, "boxNew", "(Ljava/lang/String;)V");
+        jmethodID boxNew = env->GetMethodID(clazz, "boxNew", "(II)Landroid/widget/LinearLayout;");
         // Call the method on the object
         jobject result = env->CallObjectMethod(_dw_obj, boxNew, type, pad);
         return result;
@@ -438,9 +438,9 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
     if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
     {
         // First get the class that contains the method you need to call
-        jclass clazz = env->FindClass("org/dbsoft/dwindows/dwtest/DWindows");
+        jclass clazz = env->FindClass(DW_CLASS_NAME);
         // Get the method that you want to call
-        jmethodID boxPack = env->GetMethodID(clazz, "boxPack", "(Ljava/lang/String;)V");
+        jmethodID boxPack = env->GetMethodID(clazz, "boxPack", "(Landroid/widget/LinearLayout;Landroid/view/View;IIIIII)V");
         // Call the method on the object
         env->CallVoidMethod(_dw_obj, boxPack, box, item, index, width, height, hsize, vsize, pad);
     }
@@ -533,9 +533,43 @@ void API dw_box_pack_end(HWND box, HWND item, int width, int height, int hsize, 
  */
 HWND API dw_button_new(const char *text, ULONG cid)
 {
+    JNIEnv *env;
+
+    if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // Construct a String
+        jstring jstr = env->NewStringUTF(text);
+        // First get the class that contains the method you need to call
+        jclass clazz = env->FindClass(DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID buttonNew = env->GetMethodID(clazz, "buttonNew",
+                                               "(Ljava/lang/String;I)Landroid/widget/Button;");
+        // Call the method on the object
+        jobject result = env->CallObjectMethod(_dw_obj, buttonNew, jstr, (int)cid);
+        return result;
+    }
     return 0;
 }
 
+HWND _dw_entryfield_new(const char *text, ULONG cid, int password)
+{
+    JNIEnv *env;
+
+    if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // Construct a String
+        jstring jstr = env->NewStringUTF(text);
+        // First get the class that contains the method you need to call
+        jclass clazz = env->FindClass(DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID entryfieldNew = env->GetMethodID(clazz, "entryfieldNew",
+                                                   "(Ljava/lang/String;II)Landroid/widget/EditText;");
+        // Call the method on the object
+        jobject result = env->CallObjectMethod(_dw_obj, entryfieldNew, jstr, (int)cid, password);
+        return result;
+    }
+    return 0;
+}
 /*
  * Create a new Entryfield window (widget) to be packed.
  * Parameters:
@@ -546,7 +580,7 @@ HWND API dw_button_new(const char *text, ULONG cid)
  */
 HWND API dw_entryfield_new(const char *text, ULONG cid)
 {
-    return 0;
+    return _dw_entryfield_new(text, cid, FALSE);
 }
 
 /*
@@ -559,7 +593,7 @@ HWND API dw_entryfield_new(const char *text, ULONG cid)
  */
 HWND API dw_entryfield_password_new(const char *text, ULONG cid)
 {
-    return 0;
+    return _dw_entryfield_new(text, cid, TRUE);
 }
 
 /*
@@ -673,6 +707,21 @@ long API dw_spinbutton_get_pos(HWND handle)
  */
 HWND API dw_radiobutton_new(const char *text, ULONG cid)
 {
+    JNIEnv *env;
+
+    if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // Construct a String
+        jstring jstr = env->NewStringUTF(text);
+        // First get the class that contains the method you need to call
+        jclass clazz = env->FindClass(DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID radioButtonNew = env->GetMethodID(clazz, "radioButtonNew",
+                                                    "(Ljava/lang/String;I)Landroid/widget/RadioButton;");
+        // Call the method on the object
+        jobject result = env->CallObjectMethod(_dw_obj, radioButtonNew, jstr, (int)cid);
+        return result;
+    }
     return 0;
 }
 
@@ -790,6 +839,21 @@ void API dw_percent_set_pos(HWND handle, unsigned int position)
  */
 HWND API dw_checkbox_new(const char *text, ULONG cid)
 {
+    JNIEnv *env;
+
+    if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // Construct a String
+        jstring jstr = env->NewStringUTF(text);
+        // First get the class that contains the method you need to call
+        jclass clazz = env->FindClass(DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID checkboxNew = env->GetMethodID(clazz, "checkboxNew",
+                                                 "(Ljava/lang/String;I)Landroid/widget/CheckBox;");
+        // Call the method on the object
+        jobject result = env->CallObjectMethod(_dw_obj, checkboxNew, jstr, (int)cid);
+        return result;
+    }
     return 0;
 }
 
@@ -1129,6 +1193,26 @@ void API dw_mle_thaw(HWND handle)
 {
 }
 
+HWND _dw_text_new(const char *text, ULONG cid, int status)
+{
+    JNIEnv *env;
+
+    if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // Construct a String
+        jstring jstr = env->NewStringUTF(text);
+        // First get the class that contains the method you need to call
+        jclass clazz = env->FindClass(DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID textNew = env->GetMethodID(clazz, "textNew",
+                                             "(Ljava/lang/String;II)Landroid/widget/TextView;");
+        // Call the method on the object
+        jobject result = env->CallObjectMethod(_dw_obj, textNew, jstr, (int)cid, status);
+        return result;
+    }
+    return 0;
+}
+
 /*
  * Create a new status text window (widget) to be packed.
  * Parameters:
@@ -1139,7 +1223,7 @@ void API dw_mle_thaw(HWND handle)
  */
 HWND API dw_status_text_new(const char *text, ULONG cid)
 {
-    return 0;
+    return _dw_text_new(text, cid, TRUE);
 }
 
 /*
@@ -1152,7 +1236,7 @@ HWND API dw_status_text_new(const char *text, ULONG cid)
  */
 HWND API dw_text_new(const char *text, ULONG cid)
 {
-    return 0;
+    return _dw_text_new(text, cid, FALSE);
 }
 
 /*
@@ -2416,11 +2500,12 @@ HWND API dw_window_new(HWND hwndOwner, const char *title, ULONG flStyle)
         // Construct a String
         jstring jstr = env->NewStringUTF(title);
         // First get the class that contains the method you need to call
-        jclass clazz = env->FindClass("org/dbsoft/dwindows/dwtest/DWindows");
+        jclass clazz = env->FindClass(DW_CLASS_NAME);
         // Get the method that you want to call
-        jmethodID windowNew = env->GetMethodID(clazz, "windowNew", "(Ljava/lang/String;)V");
+        jmethodID windowNew = env->GetMethodID(clazz, "windowNew",
+                                               "(Ljava/lang/String;I)Landroid/widget/LinearLayout;");
         // Call the method on the object
-        jobject result = env->CallObjectMethod(_dw_obj, windowNew, jstr);
+        jobject result = env->CallObjectMethod(_dw_obj, windowNew, jstr, (int)flStyle);
         return result;
     }
     return 0;
