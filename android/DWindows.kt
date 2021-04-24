@@ -32,6 +32,7 @@ class DWindows : AppCompatActivity()
     {
         var windowLayout: LinearLayout = LinearLayout(this)
         setContentView(windowLayout)
+        this.title = title
         // For now we just return our DWindows' main activity layout...
         // in the future, later calls should create new activities
         return windowLayout
