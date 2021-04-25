@@ -1,5 +1,6 @@
 package org.dbsoft.dwindows.dwtest
 
+import android.content.pm.ActivityInfo
 import android.os.Bundle
 import android.text.method.PasswordTransformationMethod
 import android.util.Half.toFloat
@@ -15,6 +16,10 @@ class DWindows : AppCompatActivity()
     {
         super.onCreate(savedInstanceState)
 
+        // Turn on rotation
+        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR)
+
+        // Get the Android app path
         val m = packageManager
         var s = packageName
         val p = m.getPackageInfo(s!!, 0)
@@ -57,11 +62,14 @@ class DWindows : AppCompatActivity()
         var h: Int = LinearLayout.LayoutParams.WRAP_CONTENT
 
         if(item is LinearLayout) {
-            if (vsize > 0) {
-                h = LinearLayout.LayoutParams.MATCH_PARENT
-            }
-            if (hsize > 0) {
-                w = LinearLayout.LayoutParams.MATCH_PARENT
+            if(box.orientation == LinearLayout.VERTICAL) {
+                if (hsize > 0) {
+                    w = LinearLayout.LayoutParams.MATCH_PARENT
+                }
+            } else {
+                if (vsize > 0) {
+                    h = LinearLayout.LayoutParams.MATCH_PARENT
+                }
             }
         }
         var params: LinearLayout.LayoutParams = LinearLayout.LayoutParams(w, h)
@@ -79,18 +87,21 @@ class DWindows : AppCompatActivity()
                 h = item.getMeasuredHeight()
             }
         }
-        if(vsize > 0) {
-            if(w > 0) {
-                params.weight = w.toFloat()
-            } else {
-                params.weight = 1F
+        if(box.orientation == LinearLayout.VERTICAL) {
+            if (vsize > 0) {
+                if (w > 0) {
+                    params.weight = w.toFloat()
+                } else {
+                    params.weight = 1F
+                }
             }
-        }
-        if(hsize > 0) {
-            if(h > 0) {
-                params.weight = h.toFloat()
-            } else {
-                params.weight = 1F
+        } else {
+            if (hsize > 0) {
+                if (h > 0) {
+                    params.weight = h.toFloat()
+                } else {
+                    params.weight = 1F
+                }
             }
         }
         if(pad > 0) {
