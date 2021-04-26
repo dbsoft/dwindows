@@ -107,6 +107,303 @@ Java_org_dbsoft_dwindows_dwtest_DWindows_dwindowsInit(JNIEnv* env, jobject obj, 
     return env->NewStringUTF("Hello from JNI!");
 }
 
+typedef struct _sighandler
+{
+    struct _sighandler   *next;
+    ULONG message;
+    HWND window;
+    int id;
+    void *signalfunction;
+    void *discfunction;
+    void *data;
+
+} SignalHandler;
+
+static SignalHandler *DWRoot = NULL;
+
+SignalHandler *_dw_get_handler(HWND window, int messageid)
+{
+    SignalHandler *tmp = DWRoot;
+
+    /* Find any callbacks for this function */
+    while(tmp)
+    {
+        if(tmp->message == messageid && window == tmp->window)
+        {
+            return tmp;
+        }
+        tmp = tmp->next;
+    }
+    return NULL;
+}
+
+typedef struct
+{
+    ULONG message;
+    char name[30];
+
+} DWSignalList;
+
+/* List of signals */
+#define SIGNALMAX 19
+
+static DWSignalList DWSignalTranslate[SIGNALMAX] = {
+        { 1,    DW_SIGNAL_CONFIGURE },
+        { 2,    DW_SIGNAL_KEY_PRESS },
+        { 3,    DW_SIGNAL_BUTTON_PRESS },
+        { 4,    DW_SIGNAL_BUTTON_RELEASE },
+        { 5,    DW_SIGNAL_MOTION_NOTIFY },
+        { 6,    DW_SIGNAL_DELETE },
+        { 7,    DW_SIGNAL_EXPOSE },
+        { 8,    DW_SIGNAL_CLICKED },
+        { 9,    DW_SIGNAL_ITEM_ENTER },
+        { 10,   DW_SIGNAL_ITEM_CONTEXT },
+        { 11,   DW_SIGNAL_LIST_SELECT },
+        { 12,   DW_SIGNAL_ITEM_SELECT },
+        { 13,   DW_SIGNAL_SET_FOCUS },
+        { 14,   DW_SIGNAL_VALUE_CHANGED },
+        { 15,   DW_SIGNAL_SWITCH_PAGE },
+        { 16,   DW_SIGNAL_TREE_EXPAND },
+        { 17,   DW_SIGNAL_COLUMN_CLICK },
+        { 18,   DW_SIGNAL_HTML_RESULT },
+        { 19,   DW_SIGNAL_HTML_CHANGED }
+};
+
+int _dw_event_handler(jobject object, void **params, int message)
+{
+    SignalHandler *handler = _dw_get_handler(object, message);
+
+    if(handler)
+    {
+        switch(message)
+        {
+            /* Timer event */
+            case 0:
+            {
+                int (*timerfunc)(void *) = (int (* API)(void *))handler->signalfunction;
+
+                if(!timerfunc(handler->data))
+                    dw_timer_disconnect(handler->id);
+                return 0;
+            }
+                /* Configure/Resize event */
+            case 1:
+            {
+                int (*sizefunc)(HWND, int, int, void *) = (int (* API)(HWND, int, int, void *))handler->signalfunction;
+                int width = DW_POINTER_TO_INT(params[3]);
+                int height = DW_POINTER_TO_INT(params[4]);
+
+                if(width > 0 && height > 0)
+                {
+                    return sizefunc(object, width, height, handler->data);
+                }
+                return 0;
+            }
+            case 2:
+            {
+                int (*keypressfunc)(HWND, char, int, int, void *, char *) = (int (* API)(HWND, char, int, int, void *, char *))handler->signalfunction;
+                char *utf8 = (char *)params[1], ch = utf8 ? utf8[0] : '\0';
+                int vk = 0, special = 0;
+
+                return keypressfunc(handler->window, ch, (int)vk, special, handler->data, utf8);
+            }
+                /* Button press and release event */
+            case 3:
+            case 4:
+            {
+                int (* API buttonfunc)(HWND, int, int, int, void *) = (int (* API)(HWND, int, int, int, void *))handler->signalfunction;
+                int button = 1;
+
+                return buttonfunc(object, DW_POINTER_TO_INT(params[3]), DW_POINTER_TO_INT(params[4]), button, handler->data);
+            }
+            /* Motion notify event */
+            case 5:
+            {
+                int (* API motionfunc)(HWND, int, int, int, void *) = (int (* API)(HWND, int, int, int, void *))handler->signalfunction;
+
+                return motionfunc(object, DW_POINTER_TO_INT(params[3]), DW_POINTER_TO_INT(params[4]), DW_POINTER_TO_INT(params[5]), handler->data);
+            }
+            /* Window close event */
+            case 6:
+            {
+                int (* API closefunc)(HWND, void *) = (int (* API)(HWND, void *))handler->signalfunction;
+                return closefunc(object, handler->data);
+            }
+            /* Window expose/draw event */
+            case 7:
+            {
+                DWExpose exp;
+                int (* API exposefunc)(HWND, DWExpose *, void *) = (int (* API)(HWND, DWExpose *, void *))handler->signalfunction;
+
+                exp.x = DW_POINTER_TO_INT(params[3]);
+                exp.y = DW_POINTER_TO_INT(params[4]);
+                exp.width = DW_POINTER_TO_INT(params[5]);
+                exp.height = DW_POINTER_TO_INT(params[6]);
+                int result = exposefunc(object, &exp, handler->data);
+                return result;
+            }
+                /* Clicked event for buttons and menu items */
+            case 8:
+            {
+                int (* API clickfunc)(HWND, void *) = (int (* API)(HWND, void *))handler->signalfunction;
+
+                return clickfunc(object, handler->data);
+            }
+                /* Container class selection event */
+            case 9:
+            {
+                int (*containerselectfunc)(HWND, char *, void *, void *) =(int (* API)(HWND, char *, void *, void *)) handler->signalfunction;
+
+                return containerselectfunc(handler->window, (char *)params[1], handler->data, params[7]);
+            }
+                /* Container context menu event */
+            case 10:
+            {
+                int (* API containercontextfunc)(HWND, char *, int, int, void *, void *) = (int (* API)(HWND, char *, int, int, void *, void *))handler->signalfunction;
+                char *text = (char *)params[1];
+                void *user = params[7];
+                int x = DW_POINTER_TO_INT(params[3]);
+                int y = DW_POINTER_TO_INT(params[4]);
+
+                return containercontextfunc(handler->window, text, x, y, handler->data, user);
+            }
+                /* Generic selection changed event for several classes */
+            case 11:
+            case 14:
+            {
+                int (* API valuechangedfunc)(HWND, int, void *) = (int (* API)(HWND, int, void *))handler->signalfunction;
+                int selected = DW_POINTER_TO_INT(params[3]);
+
+                return valuechangedfunc(handler->window, selected, handler->data);;
+            }
+                /* Tree class selection event */
+            case 12:
+            {
+                int (* API treeselectfunc)(HWND, HTREEITEM, char *, void *, void *) = (int (* API)(HWND, HTREEITEM, char *, void *, void *))handler->signalfunction;
+                char *text = (char *)params[1];
+                void *user = params[7];
+
+                return treeselectfunc(handler->window, params[0], text, handler->data, user);
+            }
+                /* Set Focus event */
+            case 13:
+            {
+                int (* API setfocusfunc)(HWND, void *) = (int (* API)(HWND, void *))handler->signalfunction;
+
+                return setfocusfunc(handler->window, handler->data);
+            }
+                /* Notebook page change event */
+            case 15:
+            {
+                int (* API switchpagefunc)(HWND, unsigned long, void *) = (int (* API)(HWND, unsigned long, void *))handler->signalfunction;
+                int pageid = DW_POINTER_TO_INT(params[3]);
+
+                return switchpagefunc(handler->window, pageid, handler->data);
+            }
+                /* Tree expand event */
+            case 16:
+            {
+                int (* API treeexpandfunc)(HWND, HTREEITEM, void *) = (int (* API)(HWND, HTREEITEM, void *))handler->signalfunction;
+
+                return treeexpandfunc(handler->window, (HTREEITEM)params[0], handler->data);
+            }
+                /* Column click event */
+            case 17:
+            {
+                int (* API clickcolumnfunc)(HWND, int, void *) = (int (* API)(HWND, int, void *))handler->signalfunction;
+                int column_num = DW_POINTER_TO_INT(params[3]);
+
+                return clickcolumnfunc(handler->window, column_num, handler->data);
+            }
+                /* HTML result event */
+            case 18:
+            {
+                int (* API htmlresultfunc)(HWND, int, char *, void *, void *) = (int (* API)(HWND, int, char *, void *, void *))handler->signalfunction;
+                char *result = (char *)params[1];
+
+                return htmlresultfunc(handler->window, result ? DW_ERROR_NONE : DW_ERROR_UNKNOWN, result, params[7], handler->data);
+            }
+                /* HTML changed event */
+            case 19:
+            {
+                int (* API htmlchangedfunc)(HWND, int, char *, void *) = (int (* API)(HWND, int, char *, void *))handler->signalfunction;
+                char *uri = (char *)params[1];
+
+                return htmlchangedfunc(handler->window, DW_POINTER_TO_INT(params[3]), uri, handler->data);
+            }
+        }
+    }
+    return -1;
+}
+
+/*
+ * Entry location for all event handlers from the Android UI
+ */
+JNIEXPORT jint JNICALL
+Java_org_dbsoft_dwindows_dwtest_DWindows_eventHandler(JNIEnv* env, jobject obj, jobject obj1, jobject obj2,
+                                                      jint message, jstring str1, jstring str2,
+                                                      jint int1, jint int2, jint int3, jint int4) {
+    const char *utf81 = str1 ? env->GetStringUTFChars(str1, NULL) : NULL;
+    const char *utf82 = str2 ? env->GetStringUTFChars(str2, NULL) : NULL;
+    void *params[8] = { (void *)obj2, (void *)utf81, (void *)utf82,
+                        DW_INT_TO_POINTER(int1), DW_INT_TO_POINTER(int2),
+                        DW_INT_TO_POINTER(int3), DW_INT_TO_POINTER(int4), NULL };
+    return _dw_event_handler(obj1, params, message);
+}
+
+/* This function adds a signal handler callback into the linked list.
+ */
+void _dw_new_signal(ULONG message, HWND window, int msgid, void *signalfunction, void *discfunc, void *data)
+{
+    SignalHandler *newsig = (SignalHandler *)malloc(sizeof(SignalHandler));
+
+    newsig->message = message;
+    newsig->window = window;
+    newsig->id = msgid;
+    newsig->signalfunction = signalfunction;
+    newsig->discfunction = discfunc;
+    newsig->data = data;
+    newsig->next = NULL;
+
+    if (!DWRoot)
+        DWRoot = newsig;
+    else
+    {
+        SignalHandler *prev = NULL, *tmp = DWRoot;
+        while(tmp)
+        {
+            if(tmp->message == message &&
+               tmp->window == window &&
+               tmp->id == msgid &&
+               tmp->signalfunction == signalfunction)
+            {
+                tmp->data = data;
+                free(newsig);
+                return;
+            }
+            prev = tmp;
+            tmp = tmp->next;
+        }
+        if(prev)
+            prev->next = newsig;
+        else
+            DWRoot = newsig;
+    }
+}
+
+/* Finds the message number for a given signal name */
+ULONG _dw_findsigmessage(const char *signame)
+{
+    int z;
+
+    for(z=0;z<SIGNALMAX;z++)
+    {
+        if(strcasecmp(signame, DWSignalTranslate[z].name) == 0)
+            return DWSignalTranslate[z].message;
+    }
+    return 0L;
+}
+
 /* Implement these to get and set the Box* pointer on the widget handle */
 void *_dw_window_pointer_get(HWND handle)
 {
@@ -3101,16 +3398,60 @@ void API dw_signal_connect(HWND window, const char *signame, void *sigfunc, void
  */
 void API dw_signal_connect_data(HWND window, const char *signame, void *sigfunc, void *discfunc, void *data)
 {
+    ULONG message = 0, msgid = 0;
+
+    if(window && signame && sigfunc)
+    {
+        if((message = _dw_findsigmessage(signame)) != 0)
+        {
+            _dw_new_signal(message, window, (int)msgid, sigfunc, discfunc, data);
+        }
+    }
 }
 
 /*
  * Removes callbacks for a given window with given name.
  * Parameters:
  *       window: Window handle of callback to be removed.
- *       signame: Signal name to be matched on window.
  */
 void API dw_signal_disconnect_by_name(HWND window, const char *signame)
 {
+    SignalHandler *prev = NULL, *tmp = DWRoot;
+    ULONG message;
+
+    if(!window || !signame || (message = _dw_findsigmessage(signame)) == 0)
+        return;
+
+    while(tmp)
+    {
+        if(tmp->window == window && tmp->message == message)
+        {
+            void (*discfunc)(HWND, void *) = (void (*)(HWND, void*))tmp->discfunction;
+
+            if(discfunc)
+            {
+                discfunc(tmp->window, tmp->data);
+            }
+
+            if(prev)
+            {
+                prev->next = tmp->next;
+                free(tmp);
+                tmp = prev->next;
+            }
+            else
+            {
+                DWRoot = tmp->next;
+                free(tmp);
+                tmp = DWRoot;
+            }
+        }
+        else
+        {
+            prev = tmp;
+            tmp = tmp->next;
+        }
+    }
 }
 
 /*
@@ -3120,6 +3461,38 @@ void API dw_signal_disconnect_by_name(HWND window, const char *signame)
  */
 void API dw_signal_disconnect_by_window(HWND window)
 {
+    SignalHandler *prev = NULL, *tmp = DWRoot;
+
+    while(tmp)
+    {
+        if(tmp->window == window)
+        {
+            void (*discfunc)(HWND, void *) = (void (*)(HWND, void*))tmp->discfunction;
+
+            if(discfunc)
+            {
+                discfunc(tmp->window, tmp->data);
+            }
+
+            if(prev)
+            {
+                prev->next = tmp->next;
+                free(tmp);
+                tmp = prev->next;
+            }
+            else
+            {
+                DWRoot = tmp->next;
+                free(tmp);
+                tmp = DWRoot;
+            }
+        }
+        else
+        {
+            prev = tmp;
+            tmp = tmp->next;
+        }
+    }
 }
 
 /*
@@ -3130,6 +3503,38 @@ void API dw_signal_disconnect_by_window(HWND window)
  */
 void API dw_signal_disconnect_by_data(HWND window, void *data)
 {
+    SignalHandler *prev = NULL, *tmp = DWRoot;
+
+    while(tmp)
+    {
+        if(tmp->window == window && tmp->data == data)
+        {
+            void (*discfunc)(HWND, void *) = (void (*)(HWND, void*))tmp->discfunction;
+
+            if(discfunc)
+            {
+                discfunc(tmp->window, tmp->data);
+            }
+
+            if(prev)
+            {
+                prev->next = tmp->next;
+                free(tmp);
+                tmp = prev->next;
+            }
+            else
+            {
+                DWRoot = tmp->next;
+                free(tmp);
+                tmp = DWRoot;
+            }
+        }
+        else
+        {
+            prev = tmp;
+            tmp = tmp->next;
+        }
+    }
 }
 
 void _dw_strlwr(char *buf)
