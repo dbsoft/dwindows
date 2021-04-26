@@ -124,15 +124,16 @@ static SignalHandler *DWRoot = NULL;
 SignalHandler *_dw_get_handler(HWND window, int messageid)
 {
     SignalHandler *tmp = DWRoot;
+    JNIEnv *env;
 
-    /* Find any callbacks for this function */
-    while(tmp)
-    {
-        if(tmp->message == messageid && window == tmp->window)
-        {
-            return tmp;
+    if((env = (JNIEnv *)pthread_getspecific(_dw_env_key))) {
+        /* Find any callbacks for this function */
+        while (tmp) {
+            if (tmp->message == messageid && env->IsSameObject(window, tmp->window)) {
+                return tmp;
+            }
+            tmp = tmp->next;
         }
-        tmp = tmp->next;
     }
     return NULL;
 }
@@ -350,6 +351,14 @@ Java_org_dbsoft_dwindows_dwtest_DWindows_eventHandler(JNIEnv* env, jobject obj, 
                         DW_INT_TO_POINTER(int3), DW_INT_TO_POINTER(int4), NULL };
 
     return _dw_event_handler(obj1, params, message);
+}
+
+/* A more simple method for quicker calls */
+JNIEXPORT void JNICALL
+Java_org_dbsoft_dwindows_dwtest_DWindows_eventHandlerSimple(JNIEnv* env, jobject obj, jobject obj1, jint message) {
+    void *params[8] = { NULL };
+
+    _dw_event_handler(obj1, params, message);
 }
 
 /* This function adds a signal handler callback into the linked list.
@@ -714,7 +723,7 @@ HWND API dw_box_new(int type, int pad)
         // Get the method that you want to call
         jmethodID boxNew = env->GetMethodID(clazz, "boxNew", "(II)Landroid/widget/LinearLayout;");
         // Call the method on the object
-        jobject result = env->CallObjectMethod(_dw_obj, boxNew, type, pad);
+        jobject result = env->NewWeakGlobalRef(env->CallObjectMethod(_dw_obj, boxNew, type, pad));
         return result;
     }
     return 0;
@@ -900,7 +909,7 @@ HWND API dw_button_new(const char *text, ULONG cid)
         jmethodID buttonNew = env->GetMethodID(clazz, "buttonNew",
                                                "(Ljava/lang/String;I)Landroid/widget/Button;");
         // Call the method on the object
-        jobject result = env->CallObjectMethod(_dw_obj, buttonNew, jstr, (int)cid);
+        jobject result = env->NewWeakGlobalRef(env->CallObjectMethod(_dw_obj, buttonNew, jstr, (int)cid));
         return result;
     }
     return 0;
@@ -920,7 +929,7 @@ HWND _dw_entryfield_new(const char *text, ULONG cid, int password)
         jmethodID entryfieldNew = env->GetMethodID(clazz, "entryfieldNew",
                                                    "(Ljava/lang/String;II)Landroid/widget/EditText;");
         // Call the method on the object
-        jobject result = env->CallObjectMethod(_dw_obj, entryfieldNew, jstr, (int)cid, password);
+        jobject result = env->NewWeakGlobalRef(env->CallObjectMethod(_dw_obj, entryfieldNew, jstr, (int)cid, password));
         return result;
     }
     return 0;
@@ -1074,7 +1083,7 @@ HWND API dw_radiobutton_new(const char *text, ULONG cid)
         jmethodID radioButtonNew = env->GetMethodID(clazz, "radioButtonNew",
                                                     "(Ljava/lang/String;I)Landroid/widget/RadioButton;");
         // Call the method on the object
-        jobject result = env->CallObjectMethod(_dw_obj, radioButtonNew, jstr, (int)cid);
+        jobject result = env->NewWeakGlobalRef(env->CallObjectMethod(_dw_obj, radioButtonNew, jstr, (int)cid));
         return result;
     }
     return 0;
@@ -1206,7 +1215,7 @@ HWND API dw_checkbox_new(const char *text, ULONG cid)
         jmethodID checkboxNew = env->GetMethodID(clazz, "checkboxNew",
                                                  "(Ljava/lang/String;I)Landroid/widget/CheckBox;");
         // Call the method on the object
-        jobject result = env->CallObjectMethod(_dw_obj, checkboxNew, jstr, (int)cid);
+        jobject result = env->NewWeakGlobalRef(env->CallObjectMethod(_dw_obj, checkboxNew, jstr, (int)cid));
         return result;
     }
     return 0;
@@ -1562,7 +1571,7 @@ HWND _dw_text_new(const char *text, ULONG cid, int status)
         jmethodID textNew = env->GetMethodID(clazz, "textNew",
                                              "(Ljava/lang/String;II)Landroid/widget/TextView;");
         // Call the method on the object
-        jobject result = env->CallObjectMethod(_dw_obj, textNew, jstr, (int)cid, status);
+        jobject result = env->NewWeakGlobalRef(env->CallObjectMethod(_dw_obj, textNew, jstr, (int)cid, status));
         return result;
     }
     return 0;
@@ -2860,7 +2869,7 @@ HWND API dw_window_new(HWND hwndOwner, const char *title, ULONG flStyle)
         jmethodID windowNew = env->GetMethodID(clazz, "windowNew",
                                                "(Ljava/lang/String;I)Landroid/widget/LinearLayout;");
         // Call the method on the object
-        jobject result = env->CallObjectMethod(_dw_obj, windowNew, jstr, (int)flStyle);
+        jobject result = env->NewWeakGlobalRef(env->CallObjectMethod(_dw_obj, windowNew, jstr, (int)flStyle));
         return result;
     }
     return 0;
