@@ -4,6 +4,7 @@ import android.content.pm.ActivityInfo
 import android.os.Bundle
 import android.text.method.PasswordTransformationMethod
 import android.util.Half.toFloat
+import android.util.Log
 import android.view.Gravity
 import android.view.View
 import android.widget.*
@@ -129,7 +130,9 @@ class DWindows : AppCompatActivity()
     {
         val button = Button(this)
         button.text = text
-        button.setOnClickListener { eventHandler(button, button, 8, "", "", 0, 0, 0, 0) }
+        button.setOnClickListener {
+            eventHandler(button, null, 8, null, null, 0, 0, 0, 0)
+        }
         return button
     }
 
@@ -147,7 +150,9 @@ class DWindows : AppCompatActivity()
     {
         val radiobutton = RadioButton(this)
         radiobutton.text = text
-        radiobutton.setOnClickListener { eventHandler(radiobutton, radiobutton, 8, "", "", 0, 0, 0, 0) }
+        radiobutton.setOnClickListener {
+            eventHandler(radiobutton, null, 8, null, null, 0, 0, 0, 0)
+        }
         return radiobutton
     }
 
@@ -155,6 +160,9 @@ class DWindows : AppCompatActivity()
     {
         val checkbox = CheckBox(this)
         checkbox.text = text
+        checkbox.setOnClickListener {
+            eventHandler(checkbox, null, 8, null, null, 0, 0, 0, 0)
+        }
         return checkbox
     }
 
@@ -165,12 +173,17 @@ class DWindows : AppCompatActivity()
         return textview
     }
 
+    fun debugMessage(text: String)
+    {
+        Log.d(null, text)
+    }
+
     /*
      * Native methods that are implemented by the 'dwindows' native library,
      * which is packaged with this application.
      */
     external fun dwindowsInit(dataDir: String): String
-    external fun eventHandler(obj1: Any, obj2: Any, message: Int, str1: String, str2: String, int1: Int, int2: Int, int3: Int, int4: Int): Int
+    external fun eventHandler(obj1: View, obj2: View?, message: Int, str1: String?, str2: String?, int1: Int, int2: Int, int3: Int, int4: Int): Int
 
     companion object
     {
