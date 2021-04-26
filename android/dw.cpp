@@ -34,7 +34,7 @@ inline pid_t getsid(pid_t pid)
 extern "C" {
 #endif
 
-#define DW_CLASS_NAME "org/dbsoft/dwindows/dwtest/DWindows"
+#define DW_CLASS_NAME "org/dbsoft/dwindows/DWindows"
 
 static pthread_key_t _dw_env_key;
 static HEV _dw_main_event;
@@ -85,7 +85,7 @@ void _dw_main_launch(char *arg)
  *      path: The path to the Android app.
  */
 JNIEXPORT jstring JNICALL
-Java_org_dbsoft_dwindows_dwtest_DWindows_dwindowsInit(JNIEnv* env, jobject obj, jstring path)
+Java_org_dbsoft_dwindows_DWindows_dwindowsInit(JNIEnv* env, jobject obj, jstring path)
 {
     char *arg = strdup(env->GetStringUTFChars((jstring) path, NULL));
 
@@ -341,7 +341,7 @@ int _dw_event_handler(jobject object, void **params, int message)
  * Entry location for all event handlers from the Android UI
  */
 JNIEXPORT jint JNICALL
-Java_org_dbsoft_dwindows_dwtest_DWindows_eventHandler(JNIEnv* env, jobject obj, jobject obj1, jobject obj2,
+Java_org_dbsoft_dwindows_DWindows_eventHandler(JNIEnv* env, jobject obj, jobject obj1, jobject obj2,
                                                       jint message, jstring str1, jstring str2,
                                                       jint int1, jint int2, jint int3, jint int4) {
     const char *utf81 = str1 ? env->GetStringUTFChars(str1, NULL) : NULL;
@@ -355,7 +355,7 @@ Java_org_dbsoft_dwindows_dwtest_DWindows_eventHandler(JNIEnv* env, jobject obj, 
 
 /* A more simple method for quicker calls */
 JNIEXPORT void JNICALL
-Java_org_dbsoft_dwindows_dwtest_DWindows_eventHandlerSimple(JNIEnv* env, jobject obj, jobject obj1, jint message) {
+Java_org_dbsoft_dwindows_DWindows_eventHandlerSimple(JNIEnv* env, jobject obj, jobject obj1, jint message) {
     void *params[8] = { NULL };
 
     _dw_event_handler(obj1, params, message);

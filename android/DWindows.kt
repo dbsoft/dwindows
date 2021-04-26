@@ -1,4 +1,4 @@
-package org.dbsoft.dwindows.dwtest
+package org.dbsoft.dwindows
 
 import android.content.pm.ActivityInfo
 import android.os.Bundle
