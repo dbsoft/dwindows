@@ -348,6 +348,7 @@ Java_org_dbsoft_dwindows_dwtest_DWindows_eventHandler(JNIEnv* env, jobject obj, 
     void *params[8] = { (void *)obj2, (void *)utf81, (void *)utf82,
                         DW_INT_TO_POINTER(int1), DW_INT_TO_POINTER(int2),
                         DW_INT_TO_POINTER(int3), DW_INT_TO_POINTER(int4), NULL };
+
     return _dw_event_handler(obj1, params, message);
 }
 
@@ -543,15 +544,30 @@ void API dw_debug(const char *format, ...)
 {
     va_list args;
     char outbuf[1025] = {0};
+    JNIEnv *env;
 
     va_start(args, format);
     vsnprintf(outbuf, 1024, format, args);
     va_end(args);
 
-    /* Output to stderr, if there is another way to send it
-     * on the implementation platform, change this.
-     */
-    fprintf(stderr, "%s", outbuf);
+    if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // Construct a String
+        jstring jstr = env->NewStringUTF(outbuf);
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID debugMessage = env->GetMethodID(clazz, "debugMessage",
+                                               "(Ljava/lang/String;)V");
+        // Call the method on the object
+        env->CallVoidMethod(_dw_obj, debugMessage, jstr);
+    }
+    else {
+        /* Output to stderr, if there is another way to send it
+         * on the implementation platform, change this.
+         */
+        fprintf(stderr, "%s", outbuf);
+    }
 }
 
 /*
