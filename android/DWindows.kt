@@ -131,7 +131,7 @@ class DWindows : AppCompatActivity()
         val button = Button(this)
         button.text = text
         button.setOnClickListener {
-            eventHandler(button, null, 8, null, null, 0, 0, 0, 0)
+            eventHandlerSimple(button, 8)
         }
         return button
     }
@@ -151,7 +151,7 @@ class DWindows : AppCompatActivity()
         val radiobutton = RadioButton(this)
         radiobutton.text = text
         radiobutton.setOnClickListener {
-            eventHandler(radiobutton, null, 8, null, null, 0, 0, 0, 0)
+            eventHandlerSimple(radiobutton, 8)
         }
         return radiobutton
     }
@@ -161,7 +161,7 @@ class DWindows : AppCompatActivity()
         val checkbox = CheckBox(this)
         checkbox.text = text
         checkbox.setOnClickListener {
-            eventHandler(checkbox, null, 8, null, null, 0, 0, 0, 0)
+            eventHandlerSimple(checkbox, 8)
         }
         return checkbox
     }
@@ -184,6 +184,7 @@ class DWindows : AppCompatActivity()
      */
     external fun dwindowsInit(dataDir: String): String
     external fun eventHandler(obj1: View, obj2: View?, message: Int, str1: String?, str2: String?, int1: Int, int2: Int, int3: Int, int4: Int): Int
+    external fun eventHandlerSimple(obj1: View, message: Int)
 
     companion object
     {
