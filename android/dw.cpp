@@ -592,6 +592,27 @@ void API dw_debug(const char *format, ...)
  */
 int API dw_messagebox(const char *title, int flags, const char *format, ...)
 {
+    va_list args;
+    char outbuf[1025] = {0};
+    JNIEnv *env;
+
+    va_start(args, format);
+    vsnprintf(outbuf, 1024, format, args);
+    va_end(args);
+
+    if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // Construct a String
+        jstring jstr = env->NewStringUTF(outbuf);
+        jstring jstrtitle = env->NewStringUTF(title);
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID messageBox = env->GetMethodID(clazz, "messageBox",
+                                                  "(Ljava/lang/String;Ljava/lang/String;I)I");
+        // Call the method on the object
+        return env->CallIntMethod(_dw_obj, messageBox, jstrtitle, jstr, flags);
+    }
     return 0;
 }
 

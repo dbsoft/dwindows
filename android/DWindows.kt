@@ -1,13 +1,15 @@
 package org.dbsoft.dwindows
 
+import android.content.DialogInterface
 import android.content.pm.ActivityInfo
 import android.os.Bundle
+import android.os.Looper
 import android.text.method.PasswordTransformationMethod
-import android.util.Half.toFloat
 import android.util.Log
 import android.view.Gravity
 import android.view.View
 import android.widget.*
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 
 
@@ -76,7 +78,7 @@ class DWindows : AppCompatActivity()
         var params: LinearLayout.LayoutParams = LinearLayout.LayoutParams(w, h)
 
         if(item !is LinearLayout && (width != -1 || height != -1)) {
-            item.measure(0,0)
+            item.measure(0, 0)
             if (width > 0) {
                 w = width
             } else if(width == -1) {
@@ -176,6 +178,48 @@ class DWindows : AppCompatActivity()
     fun debugMessage(text: String)
     {
         Log.d(null, text)
+    }
+
+    fun messageBox(title: String, body: String, flags: Int): Int
+    {
+        // make a text input dialog and show it
+        var alert = AlertDialog.Builder(this)
+        var retval: Int = 0
+
+        alert.setTitle(title)
+        alert.setMessage(body)
+        if((flags and (1 shl 3)) != 0) {
+            alert.setPositiveButton("Yes", DialogInterface.OnClickListener { _: DialogInterface, _: Int ->
+                retval = 1
+                throw java.lang.RuntimeException()
+            });
+        }
+        if((flags and ((1 shl 1) or (1 shl 2))) != 0) {
+            alert.setNegativeButton("Ok", DialogInterface.OnClickListener { _: DialogInterface, _: Int ->
+                retval = 0
+                throw java.lang.RuntimeException()
+            });
+        }
+        if((flags and ((1 shl 3) or (1 shl 4))) != 0) {
+            alert.setNegativeButton("No", DialogInterface.OnClickListener { _: DialogInterface, _: Int ->
+                retval = 0
+                throw java.lang.RuntimeException()
+            });
+        }
+        if((flags and ((1 shl 2) or (1 shl 4))) != 0) {
+            alert.setNeutralButton("Cancel", DialogInterface.OnClickListener { _: DialogInterface, _: Int ->
+                retval = 2
+                throw java.lang.RuntimeException()
+            });
+        }
+        alert.show();
+
+        // loop till a runtime exception is triggered.
+        try {
+            Looper.loop()
+        } catch (e2: RuntimeException) {
+        }
+        return retval
     }
 
     /*
