@@ -222,6 +222,11 @@ class DWindows : AppCompatActivity()
         return retval
     }
 
+    fun dwindowsExit(exitcode: Int)
+    {
+        this.finishActivity(exitcode)
+    }
+
     /*
      * Native methods that are implemented by the 'dwindows' native library,
      * which is packaged with this application.
