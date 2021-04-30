@@ -7,16 +7,45 @@ import android.os.Looper
 import android.text.method.PasswordTransformationMethod
 import android.util.Log
 import android.view.Gravity
+import android.view.LayoutInflater
 import android.view.View
+import android.view.ViewGroup
 import android.widget.*
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.collection.SimpleArrayMap
+import androidx.fragment.app.Fragment
+import androidx.fragment.app.FragmentActivity
+import androidx.fragment.app.FragmentManager
+import androidx.fragment.app.FragmentStatePagerAdapter
+import androidx.recyclerview.widget.RecyclerView
+import androidx.viewpager.widget.ViewPager
+import androidx.viewpager2.adapter.FragmentStateAdapter
+import androidx.viewpager2.widget.ViewPager2
+import com.google.android.material.tabs.TabLayout
+import com.google.android.material.tabs.TabLayoutMediator
 
+class TabViewPagerAdapter : RecyclerView.Adapter<TabViewPagerAdapter.EventViewHolder>() {
+    val eventList = listOf("0", "1", "2")
 
-class DWindows : AppCompatActivity()
-{
-    override fun onCreate(savedInstanceState: Bundle?)
-    {
+    // Layout "layout_demo_viewpager2_cell.xml" will be defined later
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) =
+            EventViewHolder(LayoutInflater.from(parent.context).inflate(R.layout.dwindows_main, parent, false))
+
+    override fun getItemCount() = eventList.count()
+    override fun onBindViewHolder(holder: EventViewHolder, position: Int) {
+        (holder.view as? TextView)?.also{
+            it.text = "Page " + eventList.get(position)
+        }
+    }
+
+    class EventViewHolder(val view: View) : RecyclerView.ViewHolder(view)
+}
+
+class DWindows : AppCompatActivity() {
+    var firstWindow: Boolean = true
+
+    override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         // Turn on rotation
@@ -32,23 +61,74 @@ class DWindows : AppCompatActivity()
         // This will start a new thread that calls the app's dwmain()
         dwindowsInit(s)
     }
+
     /*
      * These are the Android calls to actually create the UI...
      * forwarded from the C Dynamic Windows API
      */
-    fun windowNew(title: String, style: Int): LinearLayout
+    fun windowNew(title: String, style: Int): LinearLayout?
     {
-        var windowLayout: LinearLayout = LinearLayout(this)
-        setContentView(windowLayout)
-        this.title = title
-        // For now we just return our DWindows' main activity layout...
-        // in the future, later calls should create new activities
-        return windowLayout
+        if(firstWindow)
+        {
+            var windowLayout: LinearLayout = LinearLayout(this)
+            var dataArrayMap = SimpleArrayMap<String, Long>()
+
+            windowLayout.tag = dataArrayMap
+            setContentView(windowLayout)
+            this.title = title
+            // For now we just return our DWindows' main activity layout...
+            // in the future, later calls should create new activities
+            firstWindow = false
+            return windowLayout
+        }
+        return null
+    }
+
+    fun windowFromId(window: View, cid: Int): View
+    {
+        return window.findViewById(cid)
+    }
+
+    fun windowSetData(window: View, name: String, data: Long)
+    {
+        if(window.tag != null)
+        {
+            var dataArrayMap: SimpleArrayMap<String, Long> = window.tag as SimpleArrayMap<String, Long>
+
+            if(data != 0L) {
+                dataArrayMap.put(name, data)
+            }
+            else
+            {
+                dataArrayMap.remove(name)
+            }
+        }
+    }
+
+    fun windowGetData(window: View, name: String): Long
+    {
+        var retval: Long = 0L
+
+        if (window.tag != null)
+        {
+            var dataArrayMap: SimpleArrayMap<String, Long> = window.tag as SimpleArrayMap<String, Long>
+
+            retval = dataArrayMap.get(name)!!
+        }
+        return retval
+    }
+
+    fun windowSetEnabled(window: View, state: Boolean)
+    {
+        window.setEnabled(state)
     }
 
     fun boxNew(type: Int, pad: Int): LinearLayout
     {
         val box = LinearLayout(this)
+        var dataArrayMap = SimpleArrayMap<String, Long>()
+
+        box.tag = dataArrayMap
         box.layoutParams =
             LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT)
         if (type > 0) {
@@ -119,7 +199,7 @@ class DWindows : AppCompatActivity()
             params.gravity = Gravity.FILL_VERTICAL or grav
         }
         item.layoutParams = params
-        box.addView(item)
+        box.addView(item, index)
     }
 
     fun boxUnpack(item: View)
@@ -131,7 +211,11 @@ class DWindows : AppCompatActivity()
     fun buttonNew(text: String, cid: Int): Button
     {
         val button = Button(this)
+        var dataArrayMap = SimpleArrayMap<String, Long>()
+
+        button.tag = dataArrayMap
         button.text = text
+        button.id = cid
         button.setOnClickListener {
             eventHandlerSimple(button, 8)
         }
@@ -141,6 +225,10 @@ class DWindows : AppCompatActivity()
     fun entryfieldNew(text: String, cid: Int, password: Int): EditText
     {
         val entryfield = EditText(this)
+        var dataArrayMap = SimpleArrayMap<String, Long>()
+
+        entryfield.tag = dataArrayMap
+        entryfield.id = cid
         if(password > 0) {
             entryfield.transformationMethod = PasswordTransformationMethod.getInstance()
         }
@@ -151,6 +239,10 @@ class DWindows : AppCompatActivity()
     fun radioButtonNew(text: String, cid: Int): RadioButton
     {
         val radiobutton = RadioButton(this)
+        var dataArrayMap = SimpleArrayMap<String, Long>()
+
+        radiobutton.tag = dataArrayMap
+        radiobutton.id = cid
         radiobutton.text = text
         radiobutton.setOnClickListener {
             eventHandlerSimple(radiobutton, 8)
@@ -161,6 +253,10 @@ class DWindows : AppCompatActivity()
     fun checkboxNew(text: String, cid: Int): CheckBox
     {
         val checkbox = CheckBox(this)
+        var dataArrayMap = SimpleArrayMap<String, Long>()
+
+        checkbox.tag = dataArrayMap
+        checkbox.id = cid
         checkbox.text = text
         checkbox.setOnClickListener {
             eventHandlerSimple(checkbox, 8)
@@ -171,8 +267,34 @@ class DWindows : AppCompatActivity()
     fun textNew(text: String, cid: Int, status: Int): TextView
     {
         val textview = TextView(this)
+        var dataArrayMap = SimpleArrayMap<String, Long>()
+
+        textview.tag = dataArrayMap
+        textview.id = cid
         textview.text = text
         return textview
+    }
+
+    fun notebookNew(cid: Int, top: Int)
+    {
+        val notebook = RelativeLayout(this)
+        val pager = ViewPager2(this)
+        val tabs = TabLayout(this)
+        var w: Int = RelativeLayout.LayoutParams.MATCH_PARENT
+        var h: Int = RelativeLayout.LayoutParams.WRAP_CONTENT
+        var dataArrayMap = SimpleArrayMap<String, Long>()
+
+        notebook.tag = dataArrayMap
+        notebook.id = cid
+        pager.adapter = TabViewPagerAdapter()
+        TabLayoutMediator(tabs, pager) { tab, position ->
+            tab.text = "OBJECT ${(position + 1)}"
+        }.attach()
+
+        var params: RelativeLayout.LayoutParams = RelativeLayout.LayoutParams(w, h)
+        tabs.layoutParams = params
+        notebook.addView(tabs)
+        notebook.addView(pager)
     }
 
     fun debugMessage(text: String)
