@@ -8,6 +8,7 @@ import android.graphics.drawable.GradientDrawable
 import android.media.AudioManager
 import android.media.ToneGenerator
 import android.os.Bundle
+import android.os.Handler
 import android.os.Looper
 import android.text.method.PasswordTransformationMethod
 import android.util.Log
@@ -396,8 +397,12 @@ class DWindows : AppCompatActivity() {
 
     fun doBeep(duration: Int)
     {
-        val toneGen = ToneGenerator(AudioManager.STREAM_MUSIC, 100)
+        val toneGen = ToneGenerator(AudioManager.STREAM_ALARM, 100)
         toneGen.startTone(ToneGenerator.TONE_CDMA_PIP, duration)
+        val handler = Handler(Looper.getMainLooper())
+        handler.postDelayed({
+            toneGen.release()
+        }, (duration + 50).toLong())
     }
 
     fun debugMessage(text: String)
