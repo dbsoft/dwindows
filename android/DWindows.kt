@@ -1,19 +1,19 @@
 package org.dbsoft.dwindows
 
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.DialogInterface
 import android.content.pm.ActivityInfo
 import android.os.Bundle
 import android.os.Looper
 import android.text.method.PasswordTransformationMethod
 import android.util.Log
-import android.view.Gravity
-import android.view.LayoutInflater
-import android.view.View
-import android.view.ViewGroup
+import android.view.*
 import android.widget.*
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.collection.SimpleArrayMap
+import androidx.core.content.res.TypedArrayUtils.getText
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
 import androidx.fragment.app.FragmentManager
@@ -121,6 +121,65 @@ class DWindows : AppCompatActivity() {
     fun windowSetEnabled(window: View, state: Boolean)
     {
         window.setEnabled(state)
+    }
+
+    fun windowSetText(window: View, text: String)
+    {
+        if(window is TextView)
+        {
+            var textview: TextView = window as TextView
+            textview.text = text
+        }
+        else if(window is Button)
+        {
+            var button: Button = window as Button
+            button.text = text
+        }
+        else if(window is LinearLayout)
+        {
+            // TODO: Make sure this is actually the top-level layout, not just a box
+            this.title = text
+        }
+    }
+
+    fun windowGetText(window: View): String?
+    {
+        if(window is TextView)
+        {
+            var textview: TextView = window as TextView
+            return textview.text.toString()
+        }
+        else if(window is Button)
+        {
+            var button: Button = window as Button
+            return button.text.toString()
+        }
+        else if(window is LinearLayout)
+        {
+            // TODO: Make sure this is actually the top-level layout, not just a box
+            return this.title.toString()
+        }
+        return null
+    }
+
+    fun clipboardGetText(): String
+    {
+        var cm: ClipboardManager = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
+        var clipdata = cm.primaryClip
+
+        if(clipdata != null && clipdata.itemCount > 0)
+        {
+            return clipdata.getItemAt(0).coerceToText(this).toString()
+        }
+        return ""
+    }
+
+    fun clipboardSetText(text: String)
+    {
+        var cm: ClipboardManager = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
+        var clipdata = ClipData.newPlainText("text", text)
+
+        cm.setPrimaryClip(clipdata)
     }
 
     fun boxNew(type: Int, pad: Int): LinearLayout

@@ -414,16 +414,6 @@ ULONG _dw_findsigmessage(const char *signame)
     return 0L;
 }
 
-/* Implement these to get and set the Box* pointer on the widget handle */
-void *_dw_window_pointer_get(HWND handle)
-{
-    return NULL;
-}
-
-void _dw_window_pointer_set(HWND handle, Box *box)
-{
-}
-
 /*
  * Runs a message loop for Dynamic Windows.
  */
@@ -655,6 +645,24 @@ char * API dw_file_browse(const char *title, const char *defpath, const char *ex
  */
 char * API dw_clipboard_get_text()
 {
+    JNIEnv *env;
+
+    if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        const char *utf8 = NULL;
+
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID clipboardGetText = env->GetMethodID(clazz, "clipboardGetText",
+                                                      "()Ljava/lang/String;");
+        // Call the method on the object
+        jstring result = (jstring)env->CallObjectMethod(_dw_obj, clipboardGetText);
+        // Get the UTF8 string result
+        if(result)
+            utf8 = env->GetStringUTFChars(result, 0);
+        return utf8 ? strdup(utf8) : NULL;
+    }
     return NULL;
 }
 
@@ -666,8 +674,21 @@ char * API dw_clipboard_get_text()
  */
 void API dw_clipboard_set_text(const char *str, int len)
 {
-}
+    JNIEnv *env;
 
+    if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // Construct a String
+        jstring jstr = env->NewStringUTF(str);
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID clipboardSetText = env->GetMethodID(clazz, "clipboardSetText",
+                                                      "(Ljava/lang/String;)V");
+        // Call the method on the object
+        env->CallVoidMethod(_dw_obj, clipboardSetText, jstr);
+    }
+}
 
 /*
  * Allocates and initializes a dialog struct.
@@ -678,8 +699,7 @@ void API dw_clipboard_set_text(const char *str, int len)
  */
 DWDialog * API dw_dialog_new(void *data)
 {
-#if 0
-    DWDialog *tmp = malloc(sizeof(DWDialog));
+    DWDialog *tmp = (DWDialog *)malloc(sizeof(DWDialog));
 
     if(tmp)
     {
@@ -690,8 +710,6 @@ DWDialog * API dw_dialog_new(void *data)
         tmp->result = NULL;
     }
     return tmp;
-#endif
-    return NULL;
 }
 
 /*
@@ -705,12 +723,10 @@ DWDialog * API dw_dialog_new(void *data)
  */
 int API dw_dialog_dismiss(DWDialog *dialog, void *result)
 {
-#if 0
     dialog->result = result;
     dw_event_post(dialog->eve);
     dialog->done = TRUE;
-#endif
-    return DW_ERROR_GENERAL;
+    return DW_ERROR_NONE;
 }
 
 /*
@@ -725,7 +741,6 @@ void * API dw_dialog_wait(DWDialog *dialog)
 {
     void *tmp = NULL;
 
-#if 0
     while(!dialog->done)
     {
         dw_main_iteration();
@@ -733,7 +748,6 @@ void * API dw_dialog_wait(DWDialog *dialog)
     dw_event_close(&dialog->eve);
     tmp = dialog->result;
     free(dialog);
-#endif
     return tmp;
 }
 
@@ -3117,6 +3131,24 @@ int API dw_window_destroy(HWND handle)
  */
 char * API dw_window_get_text(HWND handle)
 {
+    JNIEnv *env;
+
+    if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        const char *utf8 = NULL;
+
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID windowGetText = env->GetMethodID(clazz, "windowGetText",
+                                                   "(Landroid/view/View;)Ljava/lang/String;");
+        // Call the method on the object
+        jstring result = (jstring)env->CallObjectMethod(_dw_obj, windowGetText, handle);
+        // Get the UTF8 string result
+        if(result)
+            utf8 = env->GetStringUTFChars(result, 0);
+        return utf8 ? strdup(utf8) : NULL;
+    }
     return NULL;
 }
 
@@ -3128,6 +3160,20 @@ char * API dw_window_get_text(HWND handle)
  */
 void API dw_window_set_text(HWND handle, const char *text)
 {
+    JNIEnv *env;
+
+    if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // Construct a String
+        jstring jstr = env->NewStringUTF(text);
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID windowSetText = env->GetMethodID(clazz, "windowSetText",
+                                                   "(Landroid/view/View;Ljava/lang/String;)V");
+        // Call the method on the object
+        env->CallVoidMethod(_dw_obj, windowSetText, handle, jstr);
+    }
 }
 
 /*
