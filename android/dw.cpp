@@ -901,7 +901,7 @@ void API dw_box_pack_start(HWND box, HWND item, int width, int height, int hsize
     /* 65536 is the table limit on GTK...
      * seems like a high enough value we will never hit it here either.
      */
-    _dw_box_pack(box, item, 65536, width, height, hsize, vsize, pad, "dw_box_pack_start()");
+    _dw_box_pack(box, item, -1, width, height, hsize, vsize, pad, "dw_box_pack_start()");
 }
 
 /*
@@ -3140,6 +3140,22 @@ void API dw_window_set_tooltip(HWND handle, const char *bubbletext)
 {
 }
 
+void _dw_window_set_enabled(HWND handle, jboolean state)
+{
+    JNIEnv *env;
+
+    if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID windowSetEnabled = env->GetMethodID(clazz, "windowSetEnabled",
+                                                      "(Landroid/view/View;Z)V");
+        // Call the method on the object
+        env->CallVoidMethod(_dw_obj, windowSetEnabled, handle, state);
+    }
+}
+
 /*
  * Disables given window (widget).
  * Parameters:
@@ -3147,6 +3163,7 @@ void API dw_window_set_tooltip(HWND handle, const char *bubbletext)
  */
 void API dw_window_disable(HWND handle)
 {
+    _dw_window_set_enabled(handle, JNI_FALSE);
 }
 
 /*
@@ -3156,6 +3173,7 @@ void API dw_window_disable(HWND handle)
  */
 void API dw_window_enable(HWND handle)
 {
+    _dw_window_set_enabled(handle, JNI_TRUE);
 }
 
 /*
@@ -3207,7 +3225,20 @@ void API dw_window_set_icon(HWND handle, HICN icon)
  */
 HWND API dw_window_from_id(HWND handle, int id)
 {
-    return 0;
+    JNIEnv *env;
+    HWND retval = 0;
+
+    if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID windowFromId = env->GetMethodID(clazz, "windowFromId",
+                                                  "(Landroid/view/View;I)Landroid/view/View;");
+        // Call the method on the object
+        retval = env->CallObjectMethod(_dw_obj, windowFromId, handle, id);
+    }
+    return retval;
 }
 
 /*
@@ -3394,6 +3425,20 @@ void API dw_flush(void)
  */
 void API dw_window_set_data(HWND window, const char *dataname, void *data)
 {
+    JNIEnv *env;
+
+    if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // Construct a String
+        jstring jstr = env->NewStringUTF(dataname);
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID windowSetData = env->GetMethodID(clazz, "windowSetData",
+                                                   "(Landroid/view/View;Ljava/lang/String;J)V");
+        // Call the method on the object
+        env->CallVoidMethod(_dw_obj, windowSetData, window, jstr);
+    }
 }
 
 /*
@@ -3406,7 +3451,22 @@ void API dw_window_set_data(HWND window, const char *dataname, void *data)
  */
 void * API dw_window_get_data(HWND window, const char *dataname)
 {
-    return NULL;
+    JNIEnv *env;
+    void *retval = NULL;
+
+    if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // Construct a String
+        jstring jstr = env->NewStringUTF(dataname);
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID windowGetData = env->GetMethodID(clazz, "windowGetData",
+                                                   "(Landroid/view/View;Ljava/lang/String;)J");
+        // Call the method on the object
+        retval = DW_INT_TO_POINTER(env->CallLongMethod(_dw_obj, windowGetData, window, jstr));
+    }
+    return retval;
 }
 
 /*
