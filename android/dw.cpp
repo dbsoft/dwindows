@@ -361,6 +361,15 @@ Java_org_dbsoft_dwindows_DWindows_eventHandlerSimple(JNIEnv* env, jobject obj, j
     _dw_event_handler(obj1, params, message);
 }
 
+/* Handler for Timer events */
+JNIEXPORT jint JNICALL
+Java_org_dbsoft_dwindows_DWindows_eventHandlerTimer(JNIEnv* env, jobject obj, jlong sigfunc, jlong data) {
+    int (*timerfunc)(void *) = (int (* API)(void *))sigfunc;
+
+    pthread_setspecific(_dw_env_key, env);
+    return timerfunc((void *)data);
+}
+
 /* This function adds a signal handler callback into the linked list.
  */
 void _dw_new_signal(ULONG message, HWND window, int msgid, void *signalfunction, void *discfunc, void *data)
@@ -3453,6 +3462,17 @@ void API dw_environment_query(DWEnv *env)
  */
 void API dw_beep(int freq, int dur)
 {
+    JNIEnv *env;
+
+    if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID doBeep = env->GetMethodID(clazz, "doBeep", "(I)V");
+        // Call the method on the object
+        env->CallVoidMethod(_dw_obj, doBeep, dur);
+    }
 }
 
 /* Call this after drawing to the screen to make sure
@@ -3526,7 +3546,23 @@ void * API dw_window_get_data(HWND window, const char *dataname)
  */
 int API dw_timer_connect(int interval, void *sigfunc, void *data)
 {
-    return 0;
+    JNIEnv *env;
+    int retval = 0;
+
+    if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // Use a long paramater
+        jlong longinterval = (jlong)interval;
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID timerConnect = env->GetMethodID(clazz, "timerConnect",
+                                                  "(JJJ)Ljava/util/Timer;");
+        // Call the method on the object
+        retval = DW_POINTER_TO_INT(env->NewGlobalRef(env->CallObjectMethod(_dw_obj,
+                                    timerConnect, longinterval, (jlong)sigfunc, (jlong)data)));
+    }
+    return retval;
 }
 
 /*
@@ -3536,6 +3572,20 @@ int API dw_timer_connect(int interval, void *sigfunc, void *data)
  */
 void API dw_timer_disconnect(int timerid)
 {
+    JNIEnv *env;
+
+    if(timerid && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // Use a long paramater
+        jobject timer = (jobject)timerid;
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID timerDisconnect = env->GetMethodID(clazz, "timerDisconnect",
+                                                     "(Ljava/util/Timer;)V");
+        // Call the method on the object
+        env->CallVoidMethod(_dw_obj, timerDisconnect, timer);
+    }
 }
 
 /*
