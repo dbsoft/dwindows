@@ -4,26 +4,27 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.DialogInterface
 import android.content.pm.ActivityInfo
+import android.graphics.drawable.GradientDrawable
+import android.media.AudioManager
+import android.media.ToneGenerator
 import android.os.Bundle
 import android.os.Looper
 import android.text.method.PasswordTransformationMethod
 import android.util.Log
-import android.view.*
+import android.view.Gravity
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
 import android.widget.*
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.collection.SimpleArrayMap
-import androidx.core.content.res.TypedArrayUtils.getText
-import androidx.fragment.app.Fragment
-import androidx.fragment.app.FragmentActivity
-import androidx.fragment.app.FragmentManager
-import androidx.fragment.app.FragmentStatePagerAdapter
 import androidx.recyclerview.widget.RecyclerView
-import androidx.viewpager.widget.ViewPager
-import androidx.viewpager2.adapter.FragmentStateAdapter
 import androidx.viewpager2.widget.ViewPager2
 import com.google.android.material.tabs.TabLayout
 import com.google.android.material.tabs.TabLayoutMediator
+import java.util.*
+
 
 class TabViewPagerAdapter : RecyclerView.Adapter<TabViewPagerAdapter.EventViewHolder>() {
     val eventList = listOf("0", "1", "2")
@@ -127,12 +128,12 @@ class DWindows : AppCompatActivity() {
     {
         if(window is TextView)
         {
-            var textview: TextView = window as TextView
+            var textview: TextView = window
             textview.text = text
         }
         else if(window is Button)
         {
-            var button: Button = window as Button
+            var button: Button = window
             button.text = text
         }
         else if(window is LinearLayout)
@@ -146,12 +147,12 @@ class DWindows : AppCompatActivity() {
     {
         if(window is TextView)
         {
-            var textview: TextView = window as TextView
+            var textview: TextView = window
             return textview.text.toString()
         }
         else if(window is Button)
         {
-            var button: Button = window as Button
+            var button: Button = window
             return button.text.toString()
         }
         else if(window is LinearLayout)
@@ -195,6 +196,7 @@ class DWindows : AppCompatActivity() {
         } else {
             box.orientation = LinearLayout.HORIZONTAL
         }
+        box.setPadding(pad, pad, pad, pad)
         return box
     }
 
@@ -288,7 +290,8 @@ class DWindows : AppCompatActivity() {
 
         entryfield.tag = dataArrayMap
         entryfield.id = cid
-        if(password > 0) {
+        if(password > 0)
+        {
             entryfield.transformationMethod = PasswordTransformationMethod.getInstance()
         }
         entryfield.setText(text)
@@ -331,6 +334,17 @@ class DWindows : AppCompatActivity() {
         textview.tag = dataArrayMap
         textview.id = cid
         textview.text = text
+        if(status != 0)
+        {
+            val border = GradientDrawable()
+
+            // Set a black border on white background...
+            // might need to change this to invisible...
+            // or the color from windowSetColor
+            border.setColor(-0x1)
+            border.setStroke(1, -0x1000000)
+            textview.background = border
+        }
         return textview
     }
 
@@ -353,7 +367,37 @@ class DWindows : AppCompatActivity() {
         var params: RelativeLayout.LayoutParams = RelativeLayout.LayoutParams(w, h)
         tabs.layoutParams = params
         notebook.addView(tabs)
-        notebook.addView(pager)
+        if(top != 0) {
+            notebook.addView(pager, 0)
+        } else {
+            notebook.addView(pager)
+        }
+    }
+
+    fun timerConnect(interval: Long, sigfunc: Long, data: Long): Timer
+    {
+        // creating timer task, timer
+        val t = Timer()
+        val tt: TimerTask = object : TimerTask() {
+            override fun run() {
+                if(eventHandlerTimer(sigfunc, data) == 0) {
+                    t.cancel()
+                }
+            }
+        }
+        t.scheduleAtFixedRate(tt, interval, interval)
+        return t
+    }
+
+    fun timerDisconnect(timer: Timer)
+    {
+        timer.cancel()
+    }
+
+    fun doBeep(duration: Int)
+    {
+        val toneGen = ToneGenerator(AudioManager.STREAM_MUSIC, 100)
+        toneGen.startTone(ToneGenerator.TONE_CDMA_PIP, duration)
     }
 
     fun debugMessage(text: String)
@@ -415,6 +459,7 @@ class DWindows : AppCompatActivity() {
     external fun dwindowsInit(dataDir: String): String
     external fun eventHandler(obj1: View, obj2: View?, message: Int, str1: String?, str2: String?, int1: Int, int2: Int, int3: Int, int4: Int): Int
     external fun eventHandlerSimple(obj1: View, message: Int)
+    external fun eventHandlerTimer(sigfunc: Long, data: Long): Int
 
     companion object
     {
