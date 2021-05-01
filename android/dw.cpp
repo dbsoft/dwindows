@@ -888,7 +888,19 @@ int API dw_box_unpack(HWND handle)
  */
 HWND API dw_box_unpack_at_index(HWND box, int index)
 {
-    return 0;
+    JNIEnv *env;
+    HWND retval = 0;
+
+    if((env = (JNIEnv *)pthread_getspecific(_dw_env_key))) {
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID boxUnpackAtIndex = env->GetMethodID(clazz, "boxUnpackAtIndex",
+                                                      "(Landroid/widget/LinearLayout;I)Landroid/view/View;");
+        // Call the method on the object
+        retval = env->CallObjectMethod(_dw_obj, boxUnpackAtIndex, box, index);
+    }
+    return retval;
 }
 
 /*
@@ -1024,6 +1036,18 @@ HWND API dw_entryfield_password_new(const char *text, ULONG cid)
  */
 void API dw_entryfield_set_limit(HWND handle, ULONG limit)
 {
+    JNIEnv *env;
+
+    if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID entryfieldSetLimit = env->GetMethodID(clazz, "entryfieldSetLimit",
+                                                        "(Landroid/widget/EditText;J)V");
+        // Call the method on the object
+        env->CallVoidMethod(_dw_obj, entryfieldSetLimit, handle, (jlong)limit);
+    }
 }
 
 /*
@@ -1156,6 +1180,18 @@ HWND API dw_radiobutton_new(const char *text, ULONG cid)
  */
 HWND API dw_slider_new(int vertical, int increments, ULONG cid)
 {
+    JNIEnv *env;
+
+    if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID sliderNew = env->GetMethodID(clazz, "sliderNew", "(III)Landroid/widget/SeekBar;");
+        // Call the method on the object
+        jobject result = env->NewWeakGlobalRef(env->CallObjectMethod(_dw_obj, sliderNew, vertical, increments, (jint)cid));
+        return result;
+    }
     return 0;
 }
 
@@ -1168,6 +1204,18 @@ HWND API dw_slider_new(int vertical, int increments, ULONG cid)
  */
 unsigned int API dw_slider_get_pos(HWND handle)
 {
+    JNIEnv *env;
+
+    if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID percentGetPos = env->GetMethodID(clazz, "percentGetPos",
+                                                   "(Landroid/widget/ProgressBar;)I");
+        // Call the method on the object
+        return env->CallIntMethod(_dw_obj, percentGetPos, handle);
+    }
     return 0;
 }
 
@@ -1179,6 +1227,7 @@ unsigned int API dw_slider_get_pos(HWND handle)
  */
 void API dw_slider_set_pos(HWND handle, unsigned int position)
 {
+    dw_percent_set_pos(handle, position);
 }
 
 /*
@@ -1191,7 +1240,7 @@ void API dw_slider_set_pos(HWND handle, unsigned int position)
  */
 HWND API dw_scrollbar_new(int vertical, ULONG cid)
 {
-    return 0;
+    return dw_slider_new(vertical, 100, cid);
 }
 
 /*
@@ -1203,7 +1252,7 @@ HWND API dw_scrollbar_new(int vertical, ULONG cid)
  */
 unsigned int API dw_scrollbar_get_pos(HWND handle)
 {
-    return 0;
+    return dw_slider_get_pos(handle);
 }
 
 /*
@@ -1214,6 +1263,7 @@ unsigned int API dw_scrollbar_get_pos(HWND handle)
  */
 void API dw_scrollbar_set_pos(HWND handle, unsigned int position)
 {
+    dw_percent_set_pos(handle, position);
 }
 
 /*
@@ -1225,6 +1275,18 @@ void API dw_scrollbar_set_pos(HWND handle, unsigned int position)
  */
 void API dw_scrollbar_set_range(HWND handle, unsigned int range, unsigned int visible)
 {
+    JNIEnv *env;
+
+    if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID percentSetRange = env->GetMethodID(clazz, "percentSetRange",
+                                                     "(Landroid/widget/ProgressBar;I)V");
+        // Call the method on the object
+        env->CallVoidMethod(_dw_obj, percentSetRange, handle, (jint)range);
+    }
 }
 
 /*
@@ -1236,6 +1298,19 @@ void API dw_scrollbar_set_range(HWND handle, unsigned int range, unsigned int vi
  */
 HWND API dw_percent_new(ULONG cid)
 {
+    JNIEnv *env;
+
+    if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID percentNew = env->GetMethodID(clazz, "percentNew",
+                                               "(I)Landroid/widget/ProgressBar;");
+        // Call the method on the object
+        jobject result = env->NewWeakGlobalRef(env->CallObjectMethod(_dw_obj, percentNew, (jint)cid));
+        return result;
+    }
     return 0;
 }
 
@@ -1247,6 +1322,18 @@ HWND API dw_percent_new(ULONG cid)
  */
 void API dw_percent_set_pos(HWND handle, unsigned int position)
 {
+    JNIEnv *env;
+
+    if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID percentSetPos = env->GetMethodID(clazz, "percentSetPos",
+                                                   "(Landroid/widget/ProgressBar;I)V");
+        // Call the method on the object
+        env->CallVoidMethod(_dw_obj, percentSetPos, handle, (jint)position);
+    }
 }
 
 /*
@@ -1286,6 +1373,19 @@ HWND API dw_checkbox_new(const char *text, ULONG cid)
  */
 int API dw_checkbox_get(HWND handle)
 {
+    JNIEnv *env;
+
+    if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // First get the class that contains the method you need to call
+        //jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        jclass clazz = env->FindClass(DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID checkOrRadioGetChecked = env->GetMethodID(clazz, "checkOrRadioGetChecked",
+                                                            "(Landroid/view/View;)Z");
+        // Call the method on the object
+        return env->CallBooleanMethod(_dw_obj, checkOrRadioGetChecked, handle);
+    }
     return FALSE;
 }
 
@@ -1297,6 +1397,19 @@ int API dw_checkbox_get(HWND handle)
  */
 void API dw_checkbox_set(HWND handle, int value)
 {
+    JNIEnv *env;
+
+    if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // First get the class that contains the method you need to call
+        //jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        jclass clazz = env->FindClass(DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID checkOrRadioSetChecked = env->GetMethodID(clazz, "checkOrRadioSetChecked",
+                                                            "(Landroid/view/View;I)V");
+        // Call the method on the object
+        env->CallVoidMethod(_dw_obj, checkOrRadioSetChecked, handle, value);
+    }
 }
 
 /*
