@@ -32,6 +32,8 @@ import java.util.*
 
 class DWTabViewPagerAdapter : RecyclerView.Adapter<DWTabViewPagerAdapter.EventViewHolder>() {
     public val viewList = mutableListOf<LinearLayout>()
+    public val pageList = mutableListOf<Long>()
+    public var currentPageID = 0L
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) =
             EventViewHolder(viewList.get(0))
@@ -362,27 +364,31 @@ class DWindows : AppCompatActivity() {
 
         notebook.tag = dataArrayMap
         notebook.id = cid
+        tabs.id = View.generateViewId()
+        pager.id = View.generateViewId()
         pager.adapter = DWTabViewPagerAdapter()
         TabLayoutMediator(tabs, pager) { tab, position ->
-            tab.text = "OBJECT ${(position + 1)}"
+            //tab.text = "OBJECT ${(position + 1)}"
         }.attach()
 
         var params: RelativeLayout.LayoutParams = RelativeLayout.LayoutParams(w, h)
-        tabs.layoutParams = params
-        notebook.addView(tabs)
-        if (top != 0) {
-            notebook.addView(pager, 0)
+        if(top != 0) {
+            params.addRule(RelativeLayout.ABOVE, pager.id)
         } else {
-            notebook.addView(pager)
+            params.addRule(RelativeLayout.BELOW, pager.id)
         }
+        tabs.tabGravity = TabLayout.GRAVITY_FILL
+        tabs.tabMode = TabLayout.MODE_FIXED
+        notebook.addView(tabs, params)
+        notebook.addView(pager, RelativeLayout.LayoutParams(w, w))
         return notebook
     }
 
-    fun notebookPageNew(notebook: RelativeLayout, flags: Long, front: Int): Any?
+    fun notebookPageNew(notebook: RelativeLayout, flags: Long, front: Int): Long
     {
         var pager: ViewPager2? = null
         var tabs: TabLayout? = null
-        var tab: Any? = null
+        var pageID = 0L
 
         if(notebook.getChildAt(0) is ViewPager2 && notebook.getChildAt(1) is TabLayout) {
             pager = notebook.getChildAt(0) as ViewPager2
@@ -394,21 +400,29 @@ class DWindows : AppCompatActivity() {
 
         if(pager != null && tabs != null) {
             var adapter: DWTabViewPagerAdapter = pager.adapter as DWTabViewPagerAdapter
+            var tab = tabs.newTab()
 
-            tab = tabs.newTab()
+            // Increment our page ID... making sure no duplicates exist
+            do {
+                adapter.currentPageID += 1
+            }
+            while(adapter.currentPageID == 0L || adapter.pageList.contains(adapter.currentPageID))
+            pageID = adapter.currentPageID
             // Temporarily add a black tab with an empty layout/box
             if(front != 0) {
                 adapter.viewList.add(0, LinearLayout(this))
+                adapter.pageList.add(0, pageID)
                 tabs.addTab(tab, 0)
             } else {
                 adapter.viewList.add(LinearLayout(this))
+                adapter.pageList.add(pageID)
                 tabs.addTab(tab)
             }
         }
-        return tab
+        return pageID
     }
 
-    fun notebookPageDestroy(notebook: RelativeLayout, tab: TabLayout.Tab)
+    fun notebookPageDestroy(notebook: RelativeLayout, pageID: Long)
     {
         var pager: ViewPager2? = null
         var tabs: TabLayout? = null
@@ -423,13 +437,18 @@ class DWindows : AppCompatActivity() {
 
         if(pager != null && tabs != null) {
             var adapter: DWTabViewPagerAdapter = pager.adapter as DWTabViewPagerAdapter
+            val index = adapter.pageList.indexOf(pageID)
+            val tab = tabs.getTabAt(index)
 
-            adapter.viewList.removeAt(tab.position)
-            tabs.removeTab(tab)
+            if (tab != null) {
+                adapter.viewList.removeAt(index)
+                adapter.pageList.removeAt(index)
+                tabs.removeTab(tab)
+            }
         }
     }
 
-    fun notebookPageSetText(notebook: RelativeLayout, tab: TabLayout.Tab, text: String)
+    fun notebookPageSetText(notebook: RelativeLayout, pageID: Long, text: String)
     {
         var pager: ViewPager2? = null
         var tabs: TabLayout? = null
@@ -443,11 +462,17 @@ class DWindows : AppCompatActivity() {
         }
 
         if(pager != null && tabs != null) {
-            tab.text = text
+            val adapter: DWTabViewPagerAdapter = pager.adapter as DWTabViewPagerAdapter
+            val index = adapter.pageList.indexOf(pageID)
+            val tab = tabs.getTabAt(index)
+
+            if (tab != null) {
+                tab.text = text
+            }
         }
     }
 
-    fun notebookPack(notebook: RelativeLayout, tab: TabLayout.Tab, box: LinearLayout)
+    fun notebookPagePack(notebook: RelativeLayout, pageID: Long, box: LinearLayout)
     {
         var pager: ViewPager2? = null
         var tabs: TabLayout? = null
@@ -462,12 +487,17 @@ class DWindows : AppCompatActivity() {
 
         if(pager != null && tabs != null) {
             var adapter: DWTabViewPagerAdapter = pager.adapter as DWTabViewPagerAdapter
+            val index = adapter.pageList.indexOf(pageID)
 
-            adapter.viewList[tab.position] = box
+            // Make sure the box is MATCH_PARENT
+            box.layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT,
+                                                         LinearLayout.LayoutParams.MATCH_PARENT);
+
+            adapter.viewList[index] = box
         }
     }
 
-    fun notebookPageGet(notebook: RelativeLayout): TabLayout.Tab?
+    fun notebookPageGet(notebook: RelativeLayout): Long
     {
         var pager: ViewPager2? = null
         var tabs: TabLayout? = null
@@ -481,12 +511,13 @@ class DWindows : AppCompatActivity() {
         }
 
         if(pager != null && tabs != null) {
-            return tabs.getTabAt(tabs.selectedTabPosition)
+            var adapter: DWTabViewPagerAdapter = pager.adapter as DWTabViewPagerAdapter
+            return adapter.pageList.get(tabs.selectedTabPosition)
         }
-        return null
+        return 0L
     }
 
-    fun notebookPageSet(notebook: RelativeLayout, tab: TabLayout.Tab)
+    fun notebookPageSet(notebook: RelativeLayout, pageID: Long)
     {
         var pager: ViewPager2? = null
         var tabs: TabLayout? = null
@@ -500,6 +531,10 @@ class DWindows : AppCompatActivity() {
         }
 
         if(pager != null && tabs != null) {
+            val adapter: DWTabViewPagerAdapter = pager.adapter as DWTabViewPagerAdapter
+            val index = adapter.pageList.indexOf(pageID)
+            val tab = tabs.getTabAt(index)
+
             tabs.selectTab(tab)
         }
     }
@@ -632,14 +667,20 @@ class DWindows : AppCompatActivity() {
 
     fun dwindowsExit(exitcode: Int)
     {
-        this.finishActivity(exitcode)
+        this.finishAffinity()
+        System.exit(exitcode)
+    }
+
+    fun dwindowsShutdown()
+    {
+        this.finishAffinity()
     }
 
     /*
      * Native methods that are implemented by the 'dwindows' native library,
      * which is packaged with this application.
      */
-    external fun dwindowsInit(dataDir: String): String
+    external fun dwindowsInit(dataDir: String)
     external fun eventHandler(obj1: View, obj2: View?, message: Int, str1: String?, str2: String?, int1: Int, int2: Int, int3: Int, int4: Int): Int
     external fun eventHandlerSimple(obj1: View, message: Int)
     external fun eventHandlerTimer(sigfunc: Long, data: Long): Int
