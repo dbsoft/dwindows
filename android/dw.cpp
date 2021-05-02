@@ -84,27 +84,33 @@ void _dw_main_launch(char *arg)
  * Parameters:
  *      path: The path to the Android app.
  */
-JNIEXPORT jstring JNICALL
+JNIEXPORT void JNICALL
 Java_org_dbsoft_dwindows_DWindows_dwindowsInit(JNIEnv* env, jobject obj, jstring path)
 {
-    char *arg = strdup(env->GetStringUTFChars((jstring) path, NULL));
+    static int runcount = 0;
 
-    /* Save our class object pointer for later */
-    _dw_obj = env->NewGlobalRef(obj);
+    /* Safety check to prevent multiple initializations */
+    if(runcount == 1)
+    {
+        char *arg = strdup(env->GetStringUTFChars((jstring) path, NULL));
 
-    /* Save the JNIEnv for the main thread */
-    pthread_key_create(&_dw_env_key, NULL);
-    pthread_setspecific(_dw_env_key, env);
+        /* Save our class object pointer for later */
+        _dw_obj = env->NewGlobalRef(obj);
 
-    /* Create the dwmain event */
-    _dw_main_event = dw_event_new();
+        /* Save the JNIEnv for the main thread */
+        pthread_key_create(&_dw_env_key, NULL);
+        pthread_setspecific(_dw_env_key, env);
 
-    /* Launch the new thread to execute dwmain() */
-    dw_thread_new((void *)_dw_main_launch, arg, 0);
+        /* Create the dwmain event */
+        _dw_main_event = dw_event_new();
 
-    /* Wait until dwmain() calls dw_main() then return */
-    dw_event_wait(_dw_main_event, DW_TIMEOUT_INFINITE);
-    return env->NewStringUTF("Hello from JNI!");
+        /* Launch the new thread to execute dwmain() */
+        dw_thread_new((void *) _dw_main_launch, arg, 0);
+
+        /* Wait until dwmain() calls dw_main() then return */
+        dw_event_wait(_dw_main_event, DW_TIMEOUT_INFINITE);
+    }
+    runcount++;
 }
 
 typedef struct _sighandler
@@ -484,6 +490,7 @@ void API dw_exit(int exitcode)
         // Call the method on the object
         env->CallVoidMethod(_dw_obj, dwindowsExit, exitcode);
     }
+    // We shouldn't get here, but in case JNI can't call dwindowsExit...
     exit(exitcode);
 }
 
@@ -2969,9 +2976,9 @@ unsigned long API dw_notebook_page_new(HWND handle, ULONG flags, int front)
         jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
         // Get the method that you want to call
         jmethodID notebookPageNew = env->GetMethodID(clazz, "notebookPageNew",
-                                                     "(Landroid/widget/RelativeLayout;JI)Ljava/lang/Object;");
+                                                     "(Landroid/widget/RelativeLayout;JI)J");
         // Call the method on the object
-        result = DW_POINTER_TO_INT(env->NewWeakGlobalRef(env->CallObjectMethod(_dw_obj, notebookPageNew, handle, (jlong)flags, front)));
+        result = (unsigned long)env->CallLongMethod(_dw_obj, notebookPageNew, handle, (jlong)flags, front);
     }
     return result;
 }
@@ -2988,18 +2995,13 @@ void API dw_notebook_page_destroy(HWND handle, unsigned int pageid)
 
     if(handle && pageid && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
     {
-        jobject tab = (jobject)DW_INT_TO_POINTER(pageid);
-
         // First get the class that contains the method you need to call
         jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
         // Get the method that you want to call
         jmethodID notebookPageDestroy = env->GetMethodID(clazz, "notebookPageDestroy",
-                                                         "(Landroid/widget/RelativeLayout;Lcom/google/android/material/tabs/TabLayout/Tab;)V");
+                                                         "(Landroid/widget/RelativeLayout;J)V");
         // Call the method on the object
-        env->CallVoidMethod(_dw_obj, notebookPageDestroy, handle, tab);
-
-        // Release the global reference
-        env->DeleteWeakGlobalRef(tab);
+        env->CallVoidMethod(_dw_obj, notebookPageDestroy, handle, (jlong)pageid);
     }
 }
 
@@ -3020,9 +3022,9 @@ unsigned long API dw_notebook_page_get(HWND handle)
         jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
         // Get the method that you want to call
         jmethodID notebookPageGet = env->GetMethodID(clazz, "notebookPageGet",
-                                                     "(Landroid/widget/RelativeLayout;)Lcom/google/android/material/tabs/TabLayout/Tab;");
+                                                     "(Landroid/widget/RelativeLayout;)J");
         // Call the method on the object
-        result = DW_POINTER_TO_INT(env->CallObjectMethod(_dw_obj, notebookPageGet, handle));
+        result = (unsigned long)env->CallLongMethod(_dw_obj, notebookPageGet, handle);
     }
     return result;
 }
@@ -3038,15 +3040,13 @@ void API dw_notebook_page_set(HWND handle, unsigned int pageid)
     JNIEnv *env;
 
     if(handle && pageid && (env = (JNIEnv *)pthread_getspecific(_dw_env_key))) {
-        jobject tab = (jobject) DW_INT_TO_POINTER(pageid);
-
         // First get the class that contains the method you need to call
         jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
         // Get the method that you want to call
         jmethodID notebookPageSet = env->GetMethodID(clazz, "notebookPageSet",
-                                                         "(Landroid/widget/RelativeLayout;Lcom/google/android/material/tabs/TabLayout/Tab;)V");
+                                                     "(Landroid/widget/RelativeLayout;J)V");
         // Call the method on the object
-        env->CallVoidMethod(_dw_obj, notebookPageSet, handle, tab);
+        env->CallVoidMethod(_dw_obj, notebookPageSet, handle, (jlong)pageid);
     }
 }
 
@@ -3063,17 +3063,15 @@ void API dw_notebook_page_set_text(HWND handle, ULONG pageid, const char *text)
 
     if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
     {
-        jobject tab = (jobject)DW_INT_TO_POINTER(pageid);
-
         // Construct a String
         jstring jstr = env->NewStringUTF(text);
         // First get the class that contains the method you need to call
         jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
         // Get the method that you want to call
         jmethodID notebookPageSetText = env->GetMethodID(clazz, "notebookPageSetText",
-                                                         "(Landroid/widget/RelativeLayout;Lcom/google/android/material/tabs/TabLayout/Tab;Ljava/lang/String;)V");
+                                                         "(Landroid/widget/RelativeLayout;JLjava/lang/String;)V");
         // Call the method on the object
-        env->CallVoidMethod(_dw_obj, notebookPageSetText, handle, tab, jstr);
+        env->CallVoidMethod(_dw_obj, notebookPageSetText, handle, (jlong)pageid, jstr);
     }
 }
 
@@ -3101,15 +3099,13 @@ void API dw_notebook_pack(HWND handle, ULONG pageid, HWND page)
 
     if(handle && pageid && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
     {
-        jobject tab = (jobject)DW_INT_TO_POINTER(pageid);
-
         // First get the class that contains the method you need to call
         jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
         // Get the method that you want to call
-        jmethodID notebookPack = env->GetMethodID(clazz, "notebookPack",
-                                                  "(Landroid/widget/RelativeLayout;Lcom/google/android/material/tabs/TabLayout/Tab;Landroid/widget/LinearLayout;)V");
+        jmethodID notebookPagePack = env->GetMethodID(clazz, "notebookPagePack",
+                                                      "(Landroid/widget/RelativeLayout;JLandroid/widget/LinearLayout;)V");
         // Call the method on the object
-        env->CallVoidMethod(_dw_obj, notebookPack, handle, tab, page);
+        env->CallVoidMethod(_dw_obj, notebookPagePack, handle, (jlong)pageid, page);
     }
 }
 
@@ -3787,7 +3783,7 @@ void API dw_timer_disconnect(int timerid)
 
     if(timerid && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
     {
-        // Use a long paramater
+        // Use a long parameter
         jobject timer = (jobject)timerid;
         // First get the class that contains the method you need to call
         jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
@@ -4802,6 +4798,18 @@ int API dw_init(int newthread, int argc, char *argv[])
  */
 void API dw_shutdown(void)
 {
+    JNIEnv *env;
+
+    if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID dwindowsShutdown = env->GetMethodID(clazz, "dwindowsShutdown",
+                                                      "()V");
+        // Call the method on the object
+        env->CallVoidMethod(_dw_obj, dwindowsShutdown);
+    }
 }
 
 /*
@@ -4949,24 +4957,15 @@ int API dw_feature_get(DWFEATURE feature)
 {
     switch(feature)
     {
-#if 0
         case DW_FEATURE_HTML:                    /* Supports the HTML Widget */
         case DW_FEATURE_HTML_RESULT:             /* Supports the DW_SIGNAL_HTML_RESULT callback */
-        case DW_FEATURE_WINDOW_BORDER:           /* Supports custom window border sizes */
-        case DW_FEATURE_WINDOW_TRANSPARENCY:     /* Supports window frame transparency */
         case DW_FEATURE_DARK_MODE:               /* Supports Dark Mode user interface */
+        case DW_FEATURE_NOTIFICATION:            /* Supports sending system notifications */
+        case DW_FEATURE_UTF8_UNICODE:            /* Supports UTF8 encoded Unicode text */
         case DW_FEATURE_MLE_AUTO_COMPLETE:       /* Supports auto completion in Multi-line Edit boxes */
         case DW_FEATURE_MLE_WORD_WRAP:           /* Supports word wrapping in Multi-line Edit boxes */
         case DW_FEATURE_CONTAINER_STRIPE:        /* Supports striped line display in container widgets */
-        case DW_FEATURE_MDI:                     /* Supports Multiple Document Interface window frame */
-        case DW_FEATURE_NOTEBOOK_STATUS_TEXT:    /* Supports status text area on notebook/tabbed controls */
-        case DW_FEATURE_NOTIFICATION:            /* Supports sending system notifications */
-        case DW_FEATURE_UTF8_UNICODE:            /* Supports UTF8 encoded Unicode text */
-        case DW_FEATURE_MLE_RICH_EDIT:           /* Supports Rich Edit based MLE control (Windows) */
-        case DW_FEATURE_TASK_BAR:                /* Supports icons in the taskbar or similar system widget */
-        case DW_FEATURE_TREE:                    .* Supports the Tree Widget */
             return DW_FEATURE_ENABLED;
-#endif
         default:
             return DW_FEATURE_UNSUPPORTED;
     }
@@ -4990,24 +4989,15 @@ int API dw_feature_set(DWFEATURE feature, int state)
     switch(feature)
     {
         /* These features are supported but not configurable */
-#if 0
         case DW_FEATURE_HTML:                    /* Supports the HTML Widget */
         case DW_FEATURE_HTML_RESULT:             /* Supports the DW_SIGNAL_HTML_RESULT callback */
-        case DW_FEATURE_WINDOW_BORDER:           /* Supports custom window border sizes */
-        case DW_FEATURE_WINDOW_TRANSPARENCY:     /* Supports window frame transparency */
         case DW_FEATURE_DARK_MODE:               /* Supports Dark Mode user interface */
+        case DW_FEATURE_NOTIFICATION:            /* Supports sending system notifications */
+        case DW_FEATURE_UTF8_UNICODE:            /* Supports UTF8 encoded Unicode text */
         case DW_FEATURE_MLE_AUTO_COMPLETE:       /* Supports auto completion in Multi-line Edit boxes */
         case DW_FEATURE_MLE_WORD_WRAP:           /* Supports word wrapping in Multi-line Edit boxes */
         case DW_FEATURE_CONTAINER_STRIPE:        /* Supports striped line display in container widgets */
-        case DW_FEATURE_MDI:                     /* Supports Multiple Document Interface window frame */
-        case DW_FEATURE_NOTEBOOK_STATUS_TEXT:    /* Supports status text area on notebook/tabbed controls */
-        case DW_FEATURE_NOTIFICATION:            /* Supports sending system notifications */
-        case DW_FEATURE_UTF8_UNICODE:            /* Supports UTF8 encoded Unicode text */
-        case DW_FEATURE_MLE_RICH_EDIT:           /* Supports Rich Edit based MLE control (Windows) */
-        case DW_FEATURE_TASK_BAR:                /* Supports icons in the taskbar or similar system widget */
-        case DW_FEATURE_TREE:                    .* Supports the Tree Widget */
             return DW_ERROR_GENERAL;
-#endif
         /* These features are supported and configurable */
         default:
             return DW_FEATURE_UNSUPPORTED;
