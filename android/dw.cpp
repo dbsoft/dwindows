@@ -2933,6 +2933,19 @@ void API dw_menu_item_set_state(HMENUI menux, unsigned long itemid, unsigned lon
  */
 HWND API dw_notebook_new(ULONG cid, int top)
 {
+    JNIEnv *env;
+
+    if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID notebookNew = env->GetMethodID(clazz, "notebookNew",
+                                                 "(II)Landroid/widget/RelativeLayout;");
+        // Call the method on the object
+        jobject result = env->NewWeakGlobalRef(env->CallObjectMethod(_dw_obj, notebookNew, (int)cid, top));
+        return result;
+    }
     return 0;
 }
 
@@ -2947,7 +2960,20 @@ HWND API dw_notebook_new(ULONG cid, int top)
  */
 unsigned long API dw_notebook_page_new(HWND handle, ULONG flags, int front)
 {
-    return 0;
+    JNIEnv *env;
+    unsigned long result = 0;
+
+    if(handle && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID notebookPageNew = env->GetMethodID(clazz, "notebookPageNew",
+                                                     "(Landroid/widget/RelativeLayout;JI)Ljava/lang/Object;");
+        // Call the method on the object
+        result = DW_POINTER_TO_INT(env->NewWeakGlobalRef(env->CallObjectMethod(_dw_obj, notebookPageNew, handle, (jlong)flags, front)));
+    }
+    return result;
 }
 
 /*
@@ -2958,6 +2984,23 @@ unsigned long API dw_notebook_page_new(HWND handle, ULONG flags, int front)
  */
 void API dw_notebook_page_destroy(HWND handle, unsigned int pageid)
 {
+    JNIEnv *env;
+
+    if(handle && pageid && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        jobject tab = (jobject)DW_INT_TO_POINTER(pageid);
+
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID notebookPageDestroy = env->GetMethodID(clazz, "notebookPageDestroy",
+                                                         "(Landroid/widget/RelativeLayout;Lcom/google/android/material/tabs/TabLayout/Tab;)V");
+        // Call the method on the object
+        env->CallVoidMethod(_dw_obj, notebookPageDestroy, handle, tab);
+
+        // Release the global reference
+        env->DeleteWeakGlobalRef(tab);
+    }
 }
 
 /*
@@ -2969,7 +3012,19 @@ void API dw_notebook_page_destroy(HWND handle, unsigned int pageid)
  */
 unsigned long API dw_notebook_page_get(HWND handle)
 {
-    return 0;
+    JNIEnv *env;
+    unsigned long result = 0;
+
+    if(handle && (env = (JNIEnv *)pthread_getspecific(_dw_env_key))) {
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID notebookPageGet = env->GetMethodID(clazz, "notebookPageGet",
+                                                     "(Landroid/widget/RelativeLayout;)Lcom/google/android/material/tabs/TabLayout/Tab;");
+        // Call the method on the object
+        result = DW_POINTER_TO_INT(env->CallObjectMethod(_dw_obj, notebookPageGet, handle));
+    }
+    return result;
 }
 
 /*
@@ -2980,6 +3035,19 @@ unsigned long API dw_notebook_page_get(HWND handle)
  */
 void API dw_notebook_page_set(HWND handle, unsigned int pageid)
 {
+    JNIEnv *env;
+
+    if(handle && pageid && (env = (JNIEnv *)pthread_getspecific(_dw_env_key))) {
+        jobject tab = (jobject) DW_INT_TO_POINTER(pageid);
+
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID notebookPageSet = env->GetMethodID(clazz, "notebookPageSet",
+                                                         "(Landroid/widget/RelativeLayout;Lcom/google/android/material/tabs/TabLayout/Tab;)V");
+        // Call the method on the object
+        env->CallVoidMethod(_dw_obj, notebookPageSet, handle, tab);
+    }
 }
 
 /*
@@ -2991,6 +3059,22 @@ void API dw_notebook_page_set(HWND handle, unsigned int pageid)
  */
 void API dw_notebook_page_set_text(HWND handle, ULONG pageid, const char *text)
 {
+    JNIEnv *env;
+
+    if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        jobject tab = (jobject)DW_INT_TO_POINTER(pageid);
+
+        // Construct a String
+        jstring jstr = env->NewStringUTF(text);
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID notebookPageSetText = env->GetMethodID(clazz, "notebookPageSetText",
+                                                         "(Landroid/widget/RelativeLayout;Lcom/google/android/material/tabs/TabLayout/Tab;Ljava/lang/String;)V");
+        // Call the method on the object
+        env->CallVoidMethod(_dw_obj, notebookPageSetText, handle, tab, jstr);
+    }
 }
 
 /*
@@ -3013,6 +3097,20 @@ void API dw_notebook_page_set_status_text(HWND handle, ULONG pageid, const char 
  */
 void API dw_notebook_pack(HWND handle, ULONG pageid, HWND page)
 {
+    JNIEnv *env;
+
+    if(handle && pageid && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        jobject tab = (jobject)DW_INT_TO_POINTER(pageid);
+
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID notebookPack = env->GetMethodID(clazz, "notebookPack",
+                                                  "(Landroid/widget/RelativeLayout;Lcom/google/android/material/tabs/TabLayout/Tab;Landroid/widget/LinearLayout;)V");
+        // Call the method on the object
+        env->CallVoidMethod(_dw_obj, notebookPack, handle, tab, page);
+    }
 }
 
 /*

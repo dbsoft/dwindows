@@ -30,18 +30,17 @@ import com.google.android.material.tabs.TabLayoutMediator
 import java.util.*
 
 
-class TabViewPagerAdapter : RecyclerView.Adapter<TabViewPagerAdapter.EventViewHolder>() {
-    val eventList = listOf("0", "1", "2")
+class DWTabViewPagerAdapter : RecyclerView.Adapter<DWTabViewPagerAdapter.EventViewHolder>() {
+    public val viewList = mutableListOf<LinearLayout>()
 
-    // Layout "layout_demo_viewpager2_cell.xml" will be defined later
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) =
-            EventViewHolder(LayoutInflater.from(parent.context).inflate(R.layout.dwindows_main, parent, false))
+            EventViewHolder(viewList.get(0))
 
-    override fun getItemCount() = eventList.count()
+    override fun getItemCount() = viewList.count()
     override fun onBindViewHolder(holder: EventViewHolder, position: Int) {
-        (holder.view as? TextView)?.also{
-            it.text = "Page " + eventList.get(position)
-        }
+        //(holder.view as? TextView)?.also{
+        //    it.text = "Page " + eventList.get(position)
+        //}
     }
 
     class EventViewHolder(val view: View) : RecyclerView.ViewHolder(view)
@@ -353,7 +352,7 @@ class DWindows : AppCompatActivity() {
         return textview
     }
 
-    fun notebookNew(cid: Int, top: Int) {
+    fun notebookNew(cid: Int, top: Int): RelativeLayout {
         val notebook = RelativeLayout(this)
         val pager = ViewPager2(this)
         val tabs = TabLayout(this)
@@ -363,7 +362,7 @@ class DWindows : AppCompatActivity() {
 
         notebook.tag = dataArrayMap
         notebook.id = cid
-        pager.adapter = TabViewPagerAdapter()
+        pager.adapter = DWTabViewPagerAdapter()
         TabLayoutMediator(tabs, pager) { tab, position ->
             tab.text = "OBJECT ${(position + 1)}"
         }.attach()
@@ -375,6 +374,133 @@ class DWindows : AppCompatActivity() {
             notebook.addView(pager, 0)
         } else {
             notebook.addView(pager)
+        }
+        return notebook
+    }
+
+    fun notebookPageNew(notebook: RelativeLayout, flags: Long, front: Int): Any?
+    {
+        var pager: ViewPager2? = null
+        var tabs: TabLayout? = null
+        var tab: Any? = null
+
+        if(notebook.getChildAt(0) is ViewPager2 && notebook.getChildAt(1) is TabLayout) {
+            pager = notebook.getChildAt(0) as ViewPager2
+            tabs = notebook.getChildAt(1) as TabLayout
+        } else if(notebook.getChildAt(1) is ViewPager2 && notebook.getChildAt(0) is TabLayout) {
+            pager = notebook.getChildAt(1) as ViewPager2
+            tabs = notebook.getChildAt(0) as TabLayout
+        }
+
+        if(pager != null && tabs != null) {
+            var adapter: DWTabViewPagerAdapter = pager.adapter as DWTabViewPagerAdapter
+
+            tab = tabs.newTab()
+            // Temporarily add a black tab with an empty layout/box
+            if(front != 0) {
+                adapter.viewList.add(0, LinearLayout(this))
+                tabs.addTab(tab, 0)
+            } else {
+                adapter.viewList.add(LinearLayout(this))
+                tabs.addTab(tab)
+            }
+        }
+        return tab
+    }
+
+    fun notebookPageDestroy(notebook: RelativeLayout, tab: TabLayout.Tab)
+    {
+        var pager: ViewPager2? = null
+        var tabs: TabLayout? = null
+
+        if(notebook.getChildAt(0) is ViewPager2 && notebook.getChildAt(1) is TabLayout) {
+            pager = notebook.getChildAt(0) as ViewPager2
+            tabs = notebook.getChildAt(1) as TabLayout
+        } else if(notebook.getChildAt(1) is ViewPager2 && notebook.getChildAt(0) is TabLayout) {
+            pager = notebook.getChildAt(1) as ViewPager2
+            tabs = notebook.getChildAt(0) as TabLayout
+        }
+
+        if(pager != null && tabs != null) {
+            var adapter: DWTabViewPagerAdapter = pager.adapter as DWTabViewPagerAdapter
+
+            adapter.viewList.removeAt(tab.position)
+            tabs.removeTab(tab)
+        }
+    }
+
+    fun notebookPageSetText(notebook: RelativeLayout, tab: TabLayout.Tab, text: String)
+    {
+        var pager: ViewPager2? = null
+        var tabs: TabLayout? = null
+
+        if(notebook.getChildAt(0) is ViewPager2 && notebook.getChildAt(1) is TabLayout) {
+            pager = notebook.getChildAt(0) as ViewPager2
+            tabs = notebook.getChildAt(1) as TabLayout
+        } else if(notebook.getChildAt(1) is ViewPager2 && notebook.getChildAt(0) is TabLayout) {
+            pager = notebook.getChildAt(1) as ViewPager2
+            tabs = notebook.getChildAt(0) as TabLayout
+        }
+
+        if(pager != null && tabs != null) {
+            tab.text = text
+        }
+    }
+
+    fun notebookPack(notebook: RelativeLayout, tab: TabLayout.Tab, box: LinearLayout)
+    {
+        var pager: ViewPager2? = null
+        var tabs: TabLayout? = null
+
+        if(notebook.getChildAt(0) is ViewPager2 && notebook.getChildAt(1) is TabLayout) {
+            pager = notebook.getChildAt(0) as ViewPager2
+            tabs = notebook.getChildAt(1) as TabLayout
+        } else if(notebook.getChildAt(1) is ViewPager2 && notebook.getChildAt(0) is TabLayout) {
+            pager = notebook.getChildAt(1) as ViewPager2
+            tabs = notebook.getChildAt(0) as TabLayout
+        }
+
+        if(pager != null && tabs != null) {
+            var adapter: DWTabViewPagerAdapter = pager.adapter as DWTabViewPagerAdapter
+
+            adapter.viewList[tab.position] = box
+        }
+    }
+
+    fun notebookPageGet(notebook: RelativeLayout): TabLayout.Tab?
+    {
+        var pager: ViewPager2? = null
+        var tabs: TabLayout? = null
+
+        if(notebook.getChildAt(0) is ViewPager2 && notebook.getChildAt(1) is TabLayout) {
+            pager = notebook.getChildAt(0) as ViewPager2
+            tabs = notebook.getChildAt(1) as TabLayout
+        } else if(notebook.getChildAt(1) is ViewPager2 && notebook.getChildAt(0) is TabLayout) {
+            pager = notebook.getChildAt(1) as ViewPager2
+            tabs = notebook.getChildAt(0) as TabLayout
+        }
+
+        if(pager != null && tabs != null) {
+            return tabs.getTabAt(tabs.selectedTabPosition)
+        }
+        return null
+    }
+
+    fun notebookPageSet(notebook: RelativeLayout, tab: TabLayout.Tab)
+    {
+        var pager: ViewPager2? = null
+        var tabs: TabLayout? = null
+
+        if(notebook.getChildAt(0) is ViewPager2 && notebook.getChildAt(1) is TabLayout) {
+            pager = notebook.getChildAt(0) as ViewPager2
+            tabs = notebook.getChildAt(1) as TabLayout
+        } else if(notebook.getChildAt(1) is ViewPager2 && notebook.getChildAt(0) is TabLayout) {
+            pager = notebook.getChildAt(1) as ViewPager2
+            tabs = notebook.getChildAt(0) as TabLayout
+        }
+
+        if(pager != null && tabs != null) {
+            tabs.selectTab(tab)
         }
     }
 
