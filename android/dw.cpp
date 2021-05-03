@@ -89,8 +89,15 @@ Java_org_dbsoft_dwindows_DWindows_dwindowsInit(JNIEnv* env, jobject obj, jstring
 {
     static int runcount = 0;
 
-    /* Safety check to prevent multiple initializations */
+    /* Safety check to prevent multiple initializations...
+     * In the simulator I get multiple calls, and code only works on the second call.
+     * On actual hardware we only get called once... so this works around that.
+     */
+#if defined(__arm__) || defined(__aarch64__)
+    if(runcount == 0)
+#else
     if(runcount == 1)
+#endif
     {
         char *arg = strdup(env->GetStringUTFChars((jstring) path, NULL));
 
@@ -303,9 +310,9 @@ int _dw_event_handler(jobject object, void **params, int message)
             case 15:
             {
                 int (* API switchpagefunc)(HWND, unsigned long, void *) = (int (* API)(HWND, unsigned long, void *))handler->signalfunction;
-                int pageid = DW_POINTER_TO_INT(params[3]);
+                unsigned long pageID = DW_POINTER_TO_INT(params[3]);
 
-                return switchpagefunc(handler->window, pageid, handler->data);
+                return switchpagefunc(handler->window, pageID, handler->data);
             }
                 /* Tree expand event */
             case 16:
@@ -364,6 +371,15 @@ JNIEXPORT void JNICALL
 Java_org_dbsoft_dwindows_DWindows_eventHandlerSimple(JNIEnv* env, jobject obj, jobject obj1, jint message) {
     void *params[8] = { NULL };
 
+    _dw_event_handler(obj1, params, message);
+}
+
+/* A more simple method for quicker calls */
+JNIEXPORT void JNICALL
+Java_org_dbsoft_dwindows_DWindows_eventHandlerNotebook(JNIEnv* env, jobject obj, jobject obj1, jint message, jlong pageID) {
+    void *params[8] = { NULL };
+
+    params[3] = DW_INT_TO_POINTER(pageID);
     _dw_event_handler(obj1, params, message);
 }
 
@@ -814,9 +830,10 @@ HWND API dw_groupbox_new(int type, int pad, const char *title)
  * Returns:
  *       A handle to a scrollbox or NULL on failure.
  */
-HWND API dw_scrollbox_new( int type, int pad )
+HWND API dw_scrollbox_new(int type, int pad)
 {
-    return 0;
+    /* TODO: Just create a normal box for now */
+    return dw_box_new(type, pad);
 }
 
 /*
