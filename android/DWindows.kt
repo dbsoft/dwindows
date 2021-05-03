@@ -15,7 +15,6 @@ import android.text.InputFilter.LengthFilter
 import android.text.method.PasswordTransformationMethod
 import android.util.Log
 import android.view.Gravity
-import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.*
@@ -26,26 +25,27 @@ import androidx.collection.SimpleArrayMap
 import androidx.recyclerview.widget.RecyclerView
 import androidx.viewpager2.widget.ViewPager2
 import com.google.android.material.tabs.TabLayout
+import com.google.android.material.tabs.TabLayout.OnTabSelectedListener
 import com.google.android.material.tabs.TabLayoutMediator
 import java.util.*
 
 
-class DWTabViewPagerAdapter : RecyclerView.Adapter<DWTabViewPagerAdapter.EventViewHolder>() {
+class DWTabViewPagerAdapter : RecyclerView.Adapter<DWTabViewPagerAdapter.DWEventViewHolder>() {
     public val viewList = mutableListOf<LinearLayout>()
     public val pageList = mutableListOf<Long>()
     public var currentPageID = 0L
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) =
-            EventViewHolder(viewList.get(0))
+            DWEventViewHolder(viewList.get(0))
 
     override fun getItemCount() = viewList.count()
-    override fun onBindViewHolder(holder: EventViewHolder, position: Int) {
+    override fun onBindViewHolder(holder: DWEventViewHolder, position: Int) {
         //(holder.view as? TextView)?.also{
         //    it.text = "Page " + eventList.get(position)
         //}
     }
 
-    class EventViewHolder(val view: View) : RecyclerView.ViewHolder(view)
+    class DWEventViewHolder(val view: View) : RecyclerView.ViewHolder(view)
 }
 
 class DWindows : AppCompatActivity() {
@@ -169,7 +169,10 @@ class DWindows : AppCompatActivity() {
 
         box.tag = dataArrayMap
         box.layoutParams =
-                LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT)
+                LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                )
         if (type > 0) {
             box.orientation = LinearLayout.VERTICAL
         } else {
@@ -179,7 +182,16 @@ class DWindows : AppCompatActivity() {
         return box
     }
 
-    fun boxPack(box: LinearLayout, item: View, index: Int, width: Int, height: Int, hsize: Int, vsize: Int, pad: Int) {
+    fun boxPack(
+        box: LinearLayout,
+        item: View,
+        index: Int,
+        width: Int,
+        height: Int,
+        hsize: Int,
+        vsize: Int,
+        pad: Int
+    ) {
         var w: Int = LinearLayout.LayoutParams.WRAP_CONTENT
         var h: Int = LinearLayout.LayoutParams.WRAP_CONTENT
 
@@ -249,9 +261,7 @@ class DWindows : AppCompatActivity() {
     fun boxUnpackAtIndex(box: LinearLayout, index: Int): View? {
         var item: View = box.getChildAt(index)
 
-        if (item != null) {
-            box.removeView(item)
-        }
+        box.removeView(item)
         return item
     }
 
@@ -354,7 +364,8 @@ class DWindows : AppCompatActivity() {
         return textview
     }
 
-    fun notebookNew(cid: Int, top: Int): RelativeLayout {
+    fun notebookNew(cid: Int, top: Int): RelativeLayout
+    {
         val notebook = RelativeLayout(this)
         val pager = ViewPager2(this)
         val tabs = TabLayout(this)
@@ -367,9 +378,6 @@ class DWindows : AppCompatActivity() {
         tabs.id = View.generateViewId()
         pager.id = View.generateViewId()
         pager.adapter = DWTabViewPagerAdapter()
-        TabLayoutMediator(tabs, pager) { tab, position ->
-            //tab.text = "OBJECT ${(position + 1)}"
-        }.attach()
 
         var params: RelativeLayout.LayoutParams = RelativeLayout.LayoutParams(w, h)
         if(top != 0) {
@@ -381,6 +389,16 @@ class DWindows : AppCompatActivity() {
         tabs.tabMode = TabLayout.MODE_FIXED
         notebook.addView(tabs, params)
         notebook.addView(pager, RelativeLayout.LayoutParams(w, w))
+        tabs.addOnTabSelectedListener(object : OnTabSelectedListener {
+            override fun onTabSelected(tab: TabLayout.Tab) {
+                val adapter = pager.adapter as DWTabViewPagerAdapter
+
+                pager.currentItem = tab.position
+                eventHandlerNotebook(notebook, 15, adapter.pageList[tab.position])
+            }
+            override fun onTabUnselected(tab: TabLayout.Tab) {}
+            override fun onTabReselected(tab: TabLayout.Tab) {}
+        })
         return notebook
     }
 
@@ -490,8 +508,10 @@ class DWindows : AppCompatActivity() {
             val index = adapter.pageList.indexOf(pageID)
 
             // Make sure the box is MATCH_PARENT
-            box.layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT,
-                                                         LinearLayout.LayoutParams.MATCH_PARENT);
+            box.layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.MATCH_PARENT
+            );
 
             adapter.viewList[index] = box
         }
@@ -553,8 +573,10 @@ class DWindows : AppCompatActivity() {
         slider.setOnSeekBarChangeListener(object : OnSeekBarChangeListener {
             override fun onStopTrackingTouch(seekBar: SeekBar) {
             }
+
             override fun onStartTrackingTouch(seekBar: SeekBar) {
             }
+
             override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
                 eventHandler(slider, null, 14, null, null, slider.progress, 0, 0, 0)
             }
@@ -632,28 +654,36 @@ class DWindows : AppCompatActivity() {
         alert.setTitle(title)
         alert.setMessage(body)
         if((flags and (1 shl 3)) != 0) {
-            alert.setPositiveButton("Yes", DialogInterface.OnClickListener { _: DialogInterface, _: Int ->
-                retval = 1
-                throw java.lang.RuntimeException()
-            });
+            alert.setPositiveButton(
+                "Yes",
+                DialogInterface.OnClickListener { _: DialogInterface, _: Int ->
+                    retval = 1
+                    throw java.lang.RuntimeException()
+                });
         }
         if((flags and ((1 shl 1) or (1 shl 2))) != 0) {
-            alert.setNegativeButton("Ok", DialogInterface.OnClickListener { _: DialogInterface, _: Int ->
-                retval = 0
-                throw java.lang.RuntimeException()
-            });
+            alert.setNegativeButton(
+                "Ok",
+                DialogInterface.OnClickListener { _: DialogInterface, _: Int ->
+                    retval = 0
+                    throw java.lang.RuntimeException()
+                });
         }
         if((flags and ((1 shl 3) or (1 shl 4))) != 0) {
-            alert.setNegativeButton("No", DialogInterface.OnClickListener { _: DialogInterface, _: Int ->
-                retval = 0
-                throw java.lang.RuntimeException()
-            });
+            alert.setNegativeButton(
+                "No",
+                DialogInterface.OnClickListener { _: DialogInterface, _: Int ->
+                    retval = 0
+                    throw java.lang.RuntimeException()
+                });
         }
         if((flags and ((1 shl 2) or (1 shl 4))) != 0) {
-            alert.setNeutralButton("Cancel", DialogInterface.OnClickListener { _: DialogInterface, _: Int ->
-                retval = 2
-                throw java.lang.RuntimeException()
-            });
+            alert.setNeutralButton(
+                "Cancel",
+                DialogInterface.OnClickListener { _: DialogInterface, _: Int ->
+                    retval = 2
+                    throw java.lang.RuntimeException()
+                });
         }
         alert.show();
 
@@ -681,8 +711,19 @@ class DWindows : AppCompatActivity() {
      * which is packaged with this application.
      */
     external fun dwindowsInit(dataDir: String)
-    external fun eventHandler(obj1: View, obj2: View?, message: Int, str1: String?, str2: String?, int1: Int, int2: Int, int3: Int, int4: Int): Int
+    external fun eventHandler(
+        obj1: View,
+        obj2: View?,
+        message: Int,
+        str1: String?,
+        str2: String?,
+        int1: Int,
+        int2: Int,
+        int3: Int,
+        int4: Int
+    ): Int
     external fun eventHandlerSimple(obj1: View, message: Int)
+    external fun eventHandlerNotebook(obj1: View, message: Int, pageID: Long)
     external fun eventHandlerTimer(sigfunc: Long, data: Long): Int
 
     companion object
