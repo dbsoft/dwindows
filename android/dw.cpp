@@ -89,15 +89,8 @@ Java_org_dbsoft_dwindows_DWindows_dwindowsInit(JNIEnv* env, jobject obj, jstring
 {
     static int runcount = 0;
 
-    /* Safety check to prevent multiple initializations...
-     * In the simulator I get multiple calls, and code only works on the second call.
-     * On actual hardware we only get called once... so this works around that.
-     */
-#if defined(__arm__) || defined(__aarch64__)
+    /* Safety check to prevent multiple initializations... */
     if(runcount == 0)
-#else
-    if(runcount == 1)
-#endif
     {
         char *arg = strdup(env->GetStringUTFChars((jstring) path, NULL));
 

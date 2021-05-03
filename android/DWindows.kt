@@ -4,6 +4,7 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.DialogInterface
 import android.content.pm.ActivityInfo
+import android.content.res.Configuration
 import android.graphics.drawable.GradientDrawable
 import android.media.AudioManager
 import android.media.ToneGenerator
@@ -57,15 +58,33 @@ class DWindows : AppCompatActivity() {
         // Turn on rotation
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR)
 
-        // Get the Android app path
-        val m = packageManager
-        var s = packageName
-        val p = m.getPackageInfo(s!!, 0)
-        s = p.applicationInfo.dataDir
+        // We only want to call this once when the app starts up
+        // By default Android will call onCreate for rotation and other
+        // changes.  This is incompatible with Dynamic Windows...
+        // Make sure the following is in your AndroidManifest.xml
+        // android:configChanges="orientation|screenSize|screenLayout|keyboardHidden"
+        if(savedInstanceState == null) {
+            // Get the Android app path
+            val m = packageManager
+            var s = packageName
+            val p = m.getPackageInfo(s!!, 0)
+            s = p.applicationInfo.dataDir
 
-        // Initialize the Dynamic Windows code...
-        // This will start a new thread that calls the app's dwmain()
-        dwindowsInit(s)
+            // Initialize the Dynamic Windows code...
+            // This will start a new thread that calls the app's dwmain()
+            dwindowsInit(s)
+        }
+    }
+
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+
+        // Checks the orientation of the screen
+        if (newConfig.orientation === Configuration.ORIENTATION_LANDSCAPE) {
+            Toast.makeText(this, "landscape", Toast.LENGTH_SHORT).show()
+        } else if (newConfig.orientation === Configuration.ORIENTATION_PORTRAIT) {
+            Toast.makeText(this, "portrait", Toast.LENGTH_SHORT).show()
+        }
     }
 
     /*
