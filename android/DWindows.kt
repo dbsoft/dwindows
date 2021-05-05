@@ -23,6 +23,7 @@ import android.widget.SeekBar.OnSeekBarChangeListener
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.collection.SimpleArrayMap
+import androidx.core.view.marginStart
 import androidx.recyclerview.widget.RecyclerView
 import androidx.viewpager2.widget.ViewPager2
 import com.google.android.material.tabs.TabLayout
@@ -397,17 +398,26 @@ class DWindows : AppCompatActivity() {
         tabs.id = View.generateViewId()
         pager.id = View.generateViewId()
         pager.adapter = DWTabViewPagerAdapter()
+        TabLayoutMediator(tabs, pager) { tab, position ->
+            //tab.text = "OBJECT ${(position + 1)}"
+        }.attach()
 
         var params: RelativeLayout.LayoutParams = RelativeLayout.LayoutParams(w, h)
         if(top != 0) {
-            params.addRule(RelativeLayout.ABOVE, pager.id)
+            params.addRule(RelativeLayout.ALIGN_PARENT_TOP)
         } else {
-            params.addRule(RelativeLayout.BELOW, pager.id)
+            params.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM)
         }
         tabs.tabGravity = TabLayout.GRAVITY_FILL
         tabs.tabMode = TabLayout.MODE_FIXED
         notebook.addView(tabs, params)
-        notebook.addView(pager, RelativeLayout.LayoutParams(w, w))
+        params = RelativeLayout.LayoutParams(w, w)
+        if(top != 0) {
+            params.addRule(RelativeLayout.BELOW, tabs.id)
+        } else {
+            params.addRule(RelativeLayout.ABOVE, tabs.id)
+        }
+        notebook.addView(pager, params)
         tabs.addOnTabSelectedListener(object : OnTabSelectedListener {
             override fun onTabSelected(tab: TabLayout.Tab) {
                 val adapter = pager.adapter as DWTabViewPagerAdapter
