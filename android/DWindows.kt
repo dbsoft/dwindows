@@ -24,6 +24,7 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.collection.SimpleArrayMap
 import androidx.recyclerview.widget.RecyclerView
+import androidx.viewpager.widget.ViewPager
 import androidx.viewpager2.widget.ViewPager2
 import com.google.android.material.tabs.TabLayout
 import com.google.android.material.tabs.TabLayout.OnTabSelectedListener
@@ -52,6 +53,7 @@ class DWTabViewPagerAdapter : RecyclerView.Adapter<DWTabViewPagerAdapter.DWEvent
 
 class DWindows : AppCompatActivity() {
     var firstWindow: Boolean = true
+    var windowLayout: LinearLayout? = null
 
     // We only want to call this once when the app starts up
     // By default Android will call onCreate for rotation and other
@@ -78,11 +80,12 @@ class DWindows : AppCompatActivity() {
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
 
-        // Checks the orientation of the screen
-        if (newConfig.orientation === Configuration.ORIENTATION_LANDSCAPE) {
-            Toast.makeText(this, "landscape", Toast.LENGTH_SHORT).show()
-        } else if (newConfig.orientation === Configuration.ORIENTATION_PORTRAIT) {
-            Toast.makeText(this, "portrait", Toast.LENGTH_SHORT).show()
+        // Send a DW_SIGNAL_CONFIGURE on orientation change
+        if(windowLayout != null) {
+            var width: Int = windowLayout!!.width
+            var height: Int = windowLayout!!.height
+
+            eventHandlerInt(windowLayout as View, 1, width, height, 0, 0)
         }
     }
 
@@ -92,10 +95,10 @@ class DWindows : AppCompatActivity() {
      */
     fun windowNew(title: String, style: Int): LinearLayout? {
         if (firstWindow) {
-            var windowLayout: LinearLayout = LinearLayout(this)
             var dataArrayMap = SimpleArrayMap<String, Long>()
+            windowLayout = LinearLayout(this)
 
-            windowLayout.tag = dataArrayMap
+            windowLayout!!.tag = dataArrayMap
             setContentView(windowLayout)
             this.title = title
             // For now we just return our DWindows' main activity layout...
@@ -739,16 +742,24 @@ class DWindows : AppCompatActivity() {
      */
     external fun dwindowsInit(dataDir: String)
     external fun eventHandler(
-        obj1: View,
+        obj1: View?,
         obj2: View?,
         message: Int,
         str1: String?,
         str2: String?,
-        int1: Int,
-        int2: Int,
-        int3: Int,
-        int4: Int
+        inta: Int,
+        intb: Int,
+        intc: Int,
+        intd: Int
     ): Int
+    external fun eventHandlerInt(
+        obj1: View,
+        message: Int,
+        inta: Int,
+        intb: Int,
+        intc: Int,
+        intd: Int
+    )
     external fun eventHandlerSimple(obj1: View, message: Int)
     external fun eventHandlerNotebook(obj1: View, message: Int, pageID: Long)
     external fun eventHandlerTimer(sigfunc: Long, data: Long): Int
