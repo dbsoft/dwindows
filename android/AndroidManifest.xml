@@ -10,7 +10,9 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Dwtest">
         <activity android:name=".DWindows"
-            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden">
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden"
+            android:screenOrientation="fullSensor"
+            android:persistent="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 

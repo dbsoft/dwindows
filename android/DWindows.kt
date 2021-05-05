@@ -23,7 +23,6 @@ import android.widget.SeekBar.OnSeekBarChangeListener
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.collection.SimpleArrayMap
-import androidx.core.view.marginStart
 import androidx.recyclerview.widget.RecyclerView
 import androidx.viewpager2.widget.ViewPager2
 import com.google.android.material.tabs.TabLayout
@@ -38,43 +37,42 @@ class DWTabViewPagerAdapter : RecyclerView.Adapter<DWTabViewPagerAdapter.DWEvent
     public var currentPageID = 0L
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) =
-            DWEventViewHolder(viewList.get(0))
+            DWEventViewHolder(viewList.get(viewType))
 
     override fun getItemCount() = viewList.count()
+    override fun getItemViewType(position: Int): Int {
+        return position
+    }
     override fun onBindViewHolder(holder: DWEventViewHolder, position: Int) {
-        //(holder.view as? TextView)?.also{
-        //    it.text = "Page " + eventList.get(position)
-        //}
+        holder.setIsRecyclable(false);
     }
 
-    class DWEventViewHolder(val view: View) : RecyclerView.ViewHolder(view)
+    class DWEventViewHolder(var view: View) : RecyclerView.ViewHolder(view)
 }
 
 class DWindows : AppCompatActivity() {
     var firstWindow: Boolean = true
 
+    // We only want to call this once when the app starts up
+    // By default Android will call onCreate for rotation and other
+    // changes.  This is incompatible with Dynamic Windows...
+    // Make sure the following is in your AndroidManifest.xml
+    // android:configChanges="orientation|screenSize|screenLayout|keyboardHidden"
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         // Turn on rotation
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR)
 
-        // We only want to call this once when the app starts up
-        // By default Android will call onCreate for rotation and other
-        // changes.  This is incompatible with Dynamic Windows...
-        // Make sure the following is in your AndroidManifest.xml
-        // android:configChanges="orientation|screenSize|screenLayout|keyboardHidden"
-        if(savedInstanceState == null) {
-            // Get the Android app path
-            val m = packageManager
-            var s = packageName
-            val p = m.getPackageInfo(s!!, 0)
-            s = p.applicationInfo.dataDir
+        // Get the Android app path
+        val m = packageManager
+        var s = packageName
+        val p = m.getPackageInfo(s!!, 0)
+        s = p.applicationInfo.dataDir
 
-            // Initialize the Dynamic Windows code...
-            // This will start a new thread that calls the app's dwmain()
-            dwindowsInit(s)
-        }
+        // Initialize the Dynamic Windows code...
+        // This will start a new thread that calls the app's dwmain()
+        dwindowsInit(s)
     }
 
     override fun onConfigurationChanged(newConfig: Configuration) {
@@ -399,7 +397,7 @@ class DWindows : AppCompatActivity() {
         pager.id = View.generateViewId()
         pager.adapter = DWTabViewPagerAdapter()
         TabLayoutMediator(tabs, pager) { tab, position ->
-            //tab.text = "OBJECT ${(position + 1)}"
+            // This code never gets called?
         }.attach()
 
         var params: RelativeLayout.LayoutParams = RelativeLayout.LayoutParams(w, h)

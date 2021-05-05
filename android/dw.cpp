@@ -90,7 +90,11 @@ Java_org_dbsoft_dwindows_DWindows_dwindowsInit(JNIEnv* env, jobject obj, jstring
     static int runcount = 0;
 
     /* Safety check to prevent multiple initializations... */
+#if defined(__arm__) || defined(__aarch64__)
     if(runcount == 0)
+#else
+    if(runcount == 1)
+#endif
     {
         char *arg = strdup(env->GetStringUTFChars((jstring) path, NULL));
 
