@@ -353,12 +353,12 @@ int _dw_event_handler(jobject object, void **params, int message)
 JNIEXPORT jint JNICALL
 Java_org_dbsoft_dwindows_DWindows_eventHandler(JNIEnv* env, jobject obj, jobject obj1, jobject obj2,
                                                       jint message, jstring str1, jstring str2,
-                                                      jint int1, jint int2, jint int3, jint int4) {
+                                                      jint inta, jint intb, jint intc, jint intd) {
     const char *utf81 = str1 ? env->GetStringUTFChars(str1, NULL) : NULL;
     const char *utf82 = str2 ? env->GetStringUTFChars(str2, NULL) : NULL;
     void *params[8] = { (void *)obj2, (void *)utf81, (void *)utf82,
-                        DW_INT_TO_POINTER(int1), DW_INT_TO_POINTER(int2),
-                        DW_INT_TO_POINTER(int3), DW_INT_TO_POINTER(int4), NULL };
+                        DW_INT_TO_POINTER(inta), DW_INT_TO_POINTER(intb),
+                        DW_INT_TO_POINTER(intc), DW_INT_TO_POINTER(intd), NULL };
 
     return _dw_event_handler(obj1, params, message);
 }
@@ -377,6 +377,16 @@ Java_org_dbsoft_dwindows_DWindows_eventHandlerNotebook(JNIEnv* env, jobject obj,
     void *params[8] = { NULL };
 
     params[3] = DW_INT_TO_POINTER(pageID);
+    _dw_event_handler(obj1, params, message);
+}
+
+JNIEXPORT void JNICALL
+Java_org_dbsoft_dwindows_DWindows_eventHandlerInt(JNIEnv* env, jobject obj, jobject obj1, jint message,
+                                               jint inta, jint intb, jint intc, jint intd) {
+    void *params[8] = { NULL, NULL, NULL,
+                        DW_INT_TO_POINTER(inta), DW_INT_TO_POINTER(intb),
+                        DW_INT_TO_POINTER(intc), DW_INT_TO_POINTER(intd), NULL };
+
     _dw_event_handler(obj1, params, message);
 }
 
