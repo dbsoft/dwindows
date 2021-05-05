@@ -203,8 +203,31 @@ class DWindows : AppCompatActivity() {
         return box
     }
 
+    fun scrollBoxNew(type: Int, pad: Int) : ScrollView {
+        val scrollBox = ScrollView(this)
+        val box = LinearLayout(this)
+        var dataArrayMap = SimpleArrayMap<String, Long>()
+
+        scrollBox.tag = dataArrayMap
+        box.layoutParams =
+            LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.MATCH_PARENT
+            )
+        if (type > 0) {
+            box.orientation = LinearLayout.VERTICAL
+        } else {
+            box.orientation = LinearLayout.HORIZONTAL
+        }
+        box.setPadding(pad, pad, pad, pad)
+        // Add a pointer back to the ScrollView
+        box.tag = scrollBox
+        scrollBox.addView(box)
+        return scrollBox
+    }
+
     fun boxPack(
-        box: LinearLayout,
+        boxview: View,
         item: View,
         index: Int,
         width: Int,
@@ -215,63 +238,78 @@ class DWindows : AppCompatActivity() {
     ) {
         var w: Int = LinearLayout.LayoutParams.WRAP_CONTENT
         var h: Int = LinearLayout.LayoutParams.WRAP_CONTENT
+        var box: LinearLayout? = null
 
-        if (item is LinearLayout) {
+        // Handle scrollboxes by pulling the LinearLayout
+        // out of the ScrollView to pack into
+        if(boxview is LinearLayout) {
+            box = boxview as LinearLayout
+        } else if(boxview is ScrollView) {
+            var sv: ScrollView = boxview
+
+            if(sv.getChildAt(0) is LinearLayout) {
+                box = sv.getChildAt(0) as LinearLayout
+            }
+        }
+
+        if(box != null) {
+            if ((item is LinearLayout) or (item is ScrollView)) {
+                if (box.orientation == LinearLayout.VERTICAL) {
+                    if (hsize > 0) {
+                        w = LinearLayout.LayoutParams.MATCH_PARENT
+                    }
+                } else {
+                    if (vsize > 0) {
+                        h = LinearLayout.LayoutParams.MATCH_PARENT
+                    }
+                }
+            }
+            var params: LinearLayout.LayoutParams = LinearLayout.LayoutParams(w, h)
+
+            if (item !is LinearLayout && (width != -1 || height != -1)) {
+                item.measure(0, 0)
+                if (width > 0) {
+                    w = width
+                } else if (width == -1) {
+                    w = item.getMeasuredWidth()
+                }
+                if (height > 0) {
+                    h = height
+                } else if (height == -1) {
+                    h = item.getMeasuredHeight()
+                }
+            }
             if (box.orientation == LinearLayout.VERTICAL) {
-                if (hsize > 0) {
-                    w = LinearLayout.LayoutParams.MATCH_PARENT
+                if (vsize > 0) {
+                    if (w > 0) {
+                        params.weight = w.toFloat()
+                    } else {
+                        params.weight = 1F
+                    }
                 }
             } else {
-                if (vsize > 0) {
-                    h = LinearLayout.LayoutParams.MATCH_PARENT
+                if (hsize > 0) {
+                    if (h > 0) {
+                        params.weight = h.toFloat()
+                    } else {
+                        params.weight = 1F
+                    }
                 }
             }
-        }
-        var params: LinearLayout.LayoutParams = LinearLayout.LayoutParams(w, h)
-
-        if (item !is LinearLayout && (width != -1 || height != -1)) {
-            item.measure(0, 0)
-            if (width > 0) {
-                w = width
-            } else if (width == -1) {
-                w = item.getMeasuredWidth()
+            if (pad > 0) {
+                params.setMargins(pad, pad, pad, pad)
             }
-            if (height > 0) {
-                h = height
-            } else if (height == -1) {
-                h = item.getMeasuredHeight()
+            var grav: Int = Gravity.CLIP_HORIZONTAL or Gravity.CLIP_VERTICAL
+            if (hsize > 0 && vsize > 0) {
+                params.gravity = Gravity.FILL or grav
+            } else if (hsize > 0) {
+                params.gravity = Gravity.FILL_HORIZONTAL or grav
+            } else if (vsize > 0) {
+                params.gravity = Gravity.FILL_VERTICAL or grav
             }
+            item.layoutParams = params
+            box.addView(item, index)
         }
-        if (box.orientation == LinearLayout.VERTICAL) {
-            if (vsize > 0) {
-                if (w > 0) {
-                    params.weight = w.toFloat()
-                } else {
-                    params.weight = 1F
-                }
-            }
-        } else {
-            if (hsize > 0) {
-                if (h > 0) {
-                    params.weight = h.toFloat()
-                } else {
-                    params.weight = 1F
-                }
-            }
-        }
-        if (pad > 0) {
-            params.setMargins(pad, pad, pad, pad)
-        }
-        var grav: Int = Gravity.CLIP_HORIZONTAL or Gravity.CLIP_VERTICAL
-        if (hsize > 0 && vsize > 0) {
-            params.gravity = Gravity.FILL or grav
-        } else if (hsize > 0) {
-            params.gravity = Gravity.FILL_HORIZONTAL or grav
-        } else if (vsize > 0) {
-            params.gravity = Gravity.FILL_VERTICAL or grav
-        }
-        item.layoutParams = params
-        box.addView(item, index)
     }
 
     fun boxUnpack(item: View) {
