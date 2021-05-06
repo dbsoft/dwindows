@@ -11057,6 +11057,23 @@ char * API dw_wchar_to_utf8(const wchar_t *wstring)
    return retval;
 }
 
+DW_FUNCTION_DEFINITION(dw_x11_check, int, int trueresult, int falseresult)
+DW_FUNCTION_ADD_PARAM1(handle)
+DW_FUNCTION_RETURN(dw_window_raise, int)
+DW_FUNCTION_RESTORE_PARAM1(trueresult, int, falseresult, int)
+{
+   int retval = falseresult;
+#ifdef GDK_WINDOWING_X11
+   GdkDisplay *display = gdk_display_get_default();
+
+   if(display && GDK_IS_X11_DISPLAY(display))
+   {
+      retval = trueresult;
+   }
+#endif
+   DW_FUNCTION_RETURN_THIS(retval);
+}
+
 /*
  * Gets the state of the requested library feature.
  * Parameters:
@@ -11080,6 +11097,8 @@ int API dw_feature_get(DWFEATURE feature)
         case DW_FEATURE_MLE_WORD_WRAP:
         case DW_FEATURE_TREE:
             return DW_FEATURE_ENABLED;
+        case DW_FEATURE_WINDOW_PLACEMENT:
+            return dw_x11_check(DW_FEATURE_ENABLED, DW_FEATURE_UNSUPPORTED);
         default:
             return DW_FEATURE_UNSUPPORTED;
     }
@@ -11112,6 +11131,8 @@ int API dw_feature_set(DWFEATURE feature, int state)
         case DW_FEATURE_MLE_WORD_WRAP:
         case DW_FEATURE_TREE:
             return DW_ERROR_GENERAL;
+        case DW_FEATURE_WINDOW_PLACEMENT:
+            return dw_x11_check(DW_ERROR_GENERAL, DW_FEATURE_UNSUPPORTED);
         /* These features are supported and configurable */
         default:
             return DW_FEATURE_UNSUPPORTED;

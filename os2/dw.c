@@ -13868,6 +13868,7 @@ int API dw_feature_get(DWFEATURE feature)
         case DW_FEATURE_NOTEBOOK_STATUS_TEXT:
         case DW_FEATURE_MDI:
         case DW_FEATURE_TREE:
+        case DW_FEATURE_WINDOW_PLACEMENT:
             return DW_FEATURE_ENABLED;
         case DW_FEATURE_TASK_BAR:
         {
@@ -13906,6 +13907,7 @@ int API dw_feature_set(DWFEATURE feature, int state)
         case DW_FEATURE_NOTEBOOK_STATUS_TEXT:
         case DW_FEATURE_MDI:
         case DW_FEATURE_TREE:
+        case DW_FEATURE_WINDOW_PLACEMENT:
             return DW_ERROR_GENERAL;
         case DW_FEATURE_TASK_BAR:
         {
