@@ -371,12 +371,22 @@ Java_org_dbsoft_dwindows_DWindows_eventHandlerSimple(JNIEnv* env, jobject obj, j
     _dw_event_handler(obj1, params, message);
 }
 
-/* A more simple method for quicker calls */
+/* Handler for notebook page changes */
 JNIEXPORT void JNICALL
 Java_org_dbsoft_dwindows_DWindows_eventHandlerNotebook(JNIEnv* env, jobject obj, jobject obj1, jint message, jlong pageID) {
     void *params[8] = { NULL };
 
     params[3] = DW_INT_TO_POINTER(pageID);
+    _dw_event_handler(obj1, params, message);
+}
+
+/* Handler for HTML events */
+JNIEXPORT void JNICALL
+Java_org_dbsoft_dwindows_DWindows_eventHandlerHTMLResult(JNIEnv* env, jobject obj, jobject obj1,
+                                               jint message, jstring htmlResult, jlong data) {
+    const char *result = env->GetStringUTFChars(htmlResult, NULL);
+    void *params[8] = { NULL, DW_POINTER(result), NULL, 0, 0, 0, 0, DW_INT_TO_POINTER(data) };
+
     _dw_event_handler(obj1, params, message);
 }
 
@@ -887,7 +897,7 @@ void _dw_box_pack(HWND box, HWND item, int index, int width, int height, int hsi
 {
     JNIEnv *env;
 
-    if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    if(box && item && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
     {
         // First get the class that contains the method you need to call
         jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
@@ -909,7 +919,7 @@ int API dw_box_unpack(HWND handle)
 {
     JNIEnv *env;
 
-    if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    if(handle && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
     {
         // First get the class that contains the method you need to call
         jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
@@ -935,7 +945,7 @@ HWND API dw_box_unpack_at_index(HWND box, int index)
     JNIEnv *env;
     HWND retval = 0;
 
-    if((env = (JNIEnv *)pthread_getspecific(_dw_env_key))) {
+    if(box && (env = (JNIEnv *)pthread_getspecific(_dw_env_key))) {
         // First get the class that contains the method you need to call
         jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
         // Get the method that you want to call
@@ -1082,7 +1092,7 @@ void API dw_entryfield_set_limit(HWND handle, ULONG limit)
 {
     JNIEnv *env;
 
-    if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    if(handle && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
     {
         // First get the class that contains the method you need to call
         jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
@@ -1250,7 +1260,7 @@ unsigned int API dw_slider_get_pos(HWND handle)
 {
     JNIEnv *env;
 
-    if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    if(handle && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
     {
         // First get the class that contains the method you need to call
         jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
@@ -1321,7 +1331,7 @@ void API dw_scrollbar_set_range(HWND handle, unsigned int range, unsigned int vi
 {
     JNIEnv *env;
 
-    if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    if(handle && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
     {
         // First get the class that contains the method you need to call
         jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
@@ -1368,7 +1378,7 @@ void API dw_percent_set_pos(HWND handle, unsigned int position)
 {
     JNIEnv *env;
 
-    if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    if(handle && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
     {
         // First get the class that contains the method you need to call
         jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
@@ -1419,7 +1429,7 @@ int API dw_checkbox_get(HWND handle)
 {
     JNIEnv *env;
 
-    if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    if(handle && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
     {
         // First get the class that contains the method you need to call
         //jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
@@ -1443,7 +1453,7 @@ void API dw_checkbox_set(HWND handle, int value)
 {
     JNIEnv *env;
 
-    if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    if(handle && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
     {
         // First get the class that contains the method you need to call
         //jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
@@ -2790,19 +2800,46 @@ void API dw_calendar_get_date(HWND handle, unsigned int *year, unsigned int *mon
  */
 void API dw_html_action(HWND handle, int action)
 {
+    JNIEnv *env;
+
+    if(handle && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID htmlAction = env->GetMethodID(clazz, "htmlAction",
+                                                "(Landroid/webkit/WebView;I)V");
+        // Call the method on the object
+        env->CallVoidMethod(_dw_obj, htmlAction, handle, action);
+    }
 }
 
 /*
  * Render raw HTML code in the embedded HTML widget..
  * Parameters:
  *       handle: Handle to the window.
- *       string: String buffer containt HTML code to
+ *       string: String buffer containing HTML code to
  *               be rendered.
  * Returns:
  *       DW_ERROR_NONE (0) on success.
  */
 int API dw_html_raw(HWND handle, const char *string)
 {
+    JNIEnv *env;
+
+    if(handle && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // Construct a String
+        jstring jstr = env->NewStringUTF(string);
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID htmlRaw = env->GetMethodID(clazz, "htmlRaw",
+                                                 "(Landroid/webkit/WebView;Ljava/lang/String;)V");
+        // Call the method on the object
+        env->CallVoidMethod(_dw_obj, htmlRaw, handle, jstr);
+        return DW_ERROR_NONE;
+    }
     return DW_ERROR_GENERAL;
 }
 
@@ -2817,6 +2854,21 @@ int API dw_html_raw(HWND handle, const char *string)
  */
 int API dw_html_url(HWND handle, const char *url)
 {
+    JNIEnv *env;
+
+    if(handle && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // Construct a String
+        jstring jstr = env->NewStringUTF(url);
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID htmlLoadURL = env->GetMethodID(clazz, "htmlLoadURL",
+                                                 "(Landroid/webkit/WebView;Ljava/lang/String;)V");
+        // Call the method on the object
+        env->CallVoidMethod(_dw_obj, htmlLoadURL, handle, jstr);
+        return DW_ERROR_NONE;
+    }
     return DW_ERROR_GENERAL;
 }
 
@@ -2832,6 +2884,21 @@ int API dw_html_url(HWND handle, const char *url)
  */
 int API dw_html_javascript_run(HWND handle, const char *script, void *scriptdata)
 {
+    JNIEnv *env;
+
+    if(handle && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // Construct a String
+        jstring jstr = env->NewStringUTF(script);
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID htmlJavascriptRun = env->GetMethodID(clazz, "htmlJavascriptRun",
+                                                       "(Landroid/webkit/WebView;Ljava/lang/String;J)V");
+        // Call the method on the object
+        env->CallVoidMethod(_dw_obj, htmlJavascriptRun, handle, jstr, (jlong)scriptdata);
+        return DW_ERROR_NONE;
+    }
     return DW_ERROR_UNKNOWN;
 }
 
@@ -2844,6 +2911,19 @@ int API dw_html_javascript_run(HWND handle, const char *script, void *scriptdata
  */
 HWND API dw_html_new(unsigned long cid)
 {
+    JNIEnv *env;
+
+    if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID htmlNew = env->GetMethodID(clazz, "htmlNew",
+                                             "(I)Landroid/webkit/WebView;");
+        // Call the method on the object
+        jobject result = env->NewWeakGlobalRef(env->CallObjectMethod(_dw_obj, htmlNew, (int)cid));
+        return result;
+    }
     return 0;
 }
 
