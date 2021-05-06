@@ -3,8 +3,10 @@ package org.dbsoft.dwindows
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.DialogInterface
+import android.content.Intent
 import android.content.pm.ActivityInfo
 import android.content.res.Configuration
+import android.graphics.Bitmap
 import android.graphics.drawable.GradientDrawable
 import android.media.AudioManager
 import android.media.ToneGenerator
@@ -20,6 +22,7 @@ import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
 import android.webkit.WebView
+import android.webkit.WebViewClient
 import android.widget.*
 import android.widget.SeekBar.OnSeekBarChangeListener
 import androidx.appcompat.app.AlertDialog
@@ -31,7 +34,6 @@ import com.google.android.material.tabs.TabLayout
 import com.google.android.material.tabs.TabLayout.OnTabSelectedListener
 import com.google.android.material.tabs.TabLayoutMediator
 import java.util.*
-import java.util.concurrent.locks.Lock
 import java.util.concurrent.locks.ReentrantLock
 
 
@@ -52,6 +54,26 @@ class DWTabViewPagerAdapter : RecyclerView.Adapter<DWTabViewPagerAdapter.DWEvent
     }
 
     class DWEventViewHolder(var view: View) : RecyclerView.ViewHolder(view)
+}
+
+private class DWWebViewClient : WebViewClient() {
+    //Implement shouldOverrideUrlLoading//
+    override fun shouldOverrideUrlLoading(view: WebView, url: String): Boolean {
+        // We always want to load in our own WebView,
+        // to match the behavior on the other platforms
+        return false
+    }
+    override fun onPageStarted(view: WebView, url: String, favicon: Bitmap?) {
+        // Handle the DW_HTML_CHANGE_STARTED event
+        eventHandlerHTMLChanged(view, 19, url, 1)
+    }
+
+    override fun onPageFinished(view: WebView, url: String) {
+        // Handle the DW_HTML_CHANGE_COMPLETE event
+        eventHandlerHTMLChanged(view, 19, url, 4)
+    }
+
+    external fun eventHandlerHTMLChanged(obj1: View, message: Int, URI: String, status: Int)
 }
 
 class DWindows : AppCompatActivity() {
@@ -812,6 +834,9 @@ class DWindows : AppCompatActivity() {
             html = WebView(this)
             html!!.tag = dataArrayMap
             html!!.id = cid
+            // Configure a few settings to make it behave as we expect
+            html!!.webViewClient = DWWebViewClient()
+            html!!.settings.javaScriptEnabled = true
         }
         return html
     }

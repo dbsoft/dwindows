@@ -377,12 +377,21 @@ Java_org_dbsoft_dwindows_DWindows_eventHandlerNotebook(JNIEnv* env, jobject obj,
     _dw_event_handler(obj1, params, message);
 }
 
-/* Handler for HTML events */
+/* Handlers for HTML events */
 JNIEXPORT void JNICALL
 Java_org_dbsoft_dwindows_DWindows_eventHandlerHTMLResult(JNIEnv* env, jobject obj, jobject obj1,
                                                jint message, jstring htmlResult, jlong data) {
     const char *result = env->GetStringUTFChars(htmlResult, NULL);
     void *params[8] = { NULL, DW_POINTER(result), NULL, 0, 0, 0, 0, DW_INT_TO_POINTER(data) };
+
+    _dw_event_handler(obj1, params, message);
+}
+
+JNIEXPORT void JNICALL
+Java_org_dbsoft_dwindows_DWWebViewClient_eventHandlerHTMLChanged(JNIEnv* env, jobject obj, jobject obj1,
+                                                         jint message, jstring URI, jint status) {
+    const char *uri = env->GetStringUTFChars(URI, NULL);
+    void *params[8] = { NULL, DW_POINTER(uri), NULL, DW_INT_TO_POINTER(status), 0, 0, 0, 0 };
 
     _dw_event_handler(obj1, params, message);
 }
