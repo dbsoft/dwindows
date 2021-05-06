@@ -1763,7 +1763,7 @@ typedef enum
     DW_FEATURE_MLE_RICH_EDIT,           /* Supports Rich Edit based MLE control (Windows) */
     DW_FEATURE_TASK_BAR,                /* Supports icons in the taskbar or similar system widget */
     DW_FEATURE_TREE,                    /* Supports the Tree Widget */
-    DW_FEATURE_WINDOW_PLACEMENT         /* Supports arbitrary window placement */
+    DW_FEATURE_WINDOW_PLACEMENT,        /* Supports arbitrary window placement */
     DW_FEATURE_MAX
 } DWFEATURE;
 
