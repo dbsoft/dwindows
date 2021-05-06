@@ -12650,7 +12650,7 @@ int API dw_feature_get(DWFEATURE feature)
             display = gdk_display_get_default();
            
             if(display && GDK_IS_X11_DISPLAY(display))
-                retval = DW_ERROR_ENABLED;
+                retval = DW_FEATURE_ENABLED;
             DW_MUTEX_UNLOCK;
             return retval;
         }
