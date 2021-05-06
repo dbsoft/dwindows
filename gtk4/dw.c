@@ -11058,9 +11058,9 @@ char * API dw_wchar_to_utf8(const wchar_t *wstring)
 }
 
 DW_FUNCTION_DEFINITION(dw_x11_check, int, int trueresult, int falseresult)
-DW_FUNCTION_ADD_PARAM1(handle)
-DW_FUNCTION_RETURN(dw_window_raise, int)
-DW_FUNCTION_RESTORE_PARAM1(trueresult, int, falseresult, int)
+DW_FUNCTION_ADD_PARAM2(trueresult, falseresult)
+DW_FUNCTION_RETURN(dw_x11_check, int)
+DW_FUNCTION_RESTORE_PARAM2(trueresult, int, falseresult, int)
 {
    int retval = falseresult;
 #ifdef GDK_WINDOWING_X11
