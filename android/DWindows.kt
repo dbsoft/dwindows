@@ -14,17 +14,18 @@ import android.os.Looper
 import android.text.InputFilter
 import android.text.InputFilter.LengthFilter
 import android.text.method.PasswordTransformationMethod
+import android.util.Base64
 import android.util.Log
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
+import android.webkit.WebView
 import android.widget.*
 import android.widget.SeekBar.OnSeekBarChangeListener
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.collection.SimpleArrayMap
 import androidx.recyclerview.widget.RecyclerView
-import androidx.viewpager.widget.ViewPager
 import androidx.viewpager2.widget.ViewPager2
 import com.google.android.material.tabs.TabLayout
 import com.google.android.material.tabs.TabLayout.OnTabSelectedListener
@@ -678,6 +679,53 @@ class DWindows : AppCompatActivity() {
         percent.max = range
     }
 
+    fun htmlNew(cid: Int): WebView?
+    {
+        val looper = Looper.myLooper()
+
+        // WebView requires an active Looper
+        if(looper == null) {
+            Looper.prepare()
+        }
+
+        var dataArrayMap = SimpleArrayMap<String, Long>()
+        val html = WebView(this)
+
+        html.tag = dataArrayMap
+        html.id = cid
+        return html
+    }
+
+    fun htmlLoadURL(html: WebView, url: String)
+    {
+        html.loadUrl(url)
+    }
+
+    fun htmlRaw(html: WebView, data: String)
+    {
+        val encodedHtml: String = Base64.encodeToString(data.toByteArray(), Base64.NO_PADDING)
+        html.loadData(encodedHtml, "text/html", "base64")
+    }
+
+    fun htmlJavascriptRun(html: WebView, javascript: String, data: Long)
+    {
+        html.evaluateJavascript(javascript) { value ->
+            // Execute onReceiveValue's code
+            eventHandlerHTMLResult(html, 18, value, data)
+        }
+    }
+
+    fun htmlAction(html: WebView, action: Int)
+    {
+        when (action) {
+            0 -> html.goBack()
+            1 -> html.goForward()
+            2 -> html.loadUrl("http://dwindows.netlabs.org")
+            4 -> html.reload()
+            5 -> html.stopLoading()
+        }
+    }
+
     fun timerConnect(interval: Long, sigfunc: Long, data: Long): Timer
     {
         // creating timer task, timer
@@ -801,6 +849,7 @@ class DWindows : AppCompatActivity() {
     external fun eventHandlerSimple(obj1: View, message: Int)
     external fun eventHandlerNotebook(obj1: View, message: Int, pageID: Long)
     external fun eventHandlerTimer(sigfunc: Long, data: Long): Int
+    external fun eventHandlerHTMLResult(obj1: View, message: Int, result: String, data: Long)
 
     companion object
     {
