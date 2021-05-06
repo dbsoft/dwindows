@@ -123,6 +123,7 @@ class DWindows : AppCompatActivity() {
                 var dataArrayMap = SimpleArrayMap<String, Long>()
                 windowLayout = LinearLayout(this)
 
+                windowLayout!!.visibility = View.GONE
                 windowLayout!!.tag = dataArrayMap
                 setContentView(windowLayout)
                 this.title = title
@@ -199,6 +200,17 @@ class DWindows : AppCompatActivity() {
             }
         }
         return text
+    }
+
+    fun windowHideShow(window: View, state: Int)
+    {
+        waitOnUiThread {
+            if(state == 0) {
+                window.visibility = View.GONE
+            } else {
+                window.visibility = View.VISIBLE
+            }
+        }
     }
 
     fun clipboardGetText(): String {
