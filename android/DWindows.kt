@@ -31,6 +31,8 @@ import com.google.android.material.tabs.TabLayout
 import com.google.android.material.tabs.TabLayout.OnTabSelectedListener
 import com.google.android.material.tabs.TabLayoutMediator
 import java.util.*
+import java.util.concurrent.locks.Lock
+import java.util.concurrent.locks.ReentrantLock
 
 
 class DWTabViewPagerAdapter : RecyclerView.Adapter<DWTabViewPagerAdapter.DWEventViewHolder>() {
@@ -55,6 +57,27 @@ class DWTabViewPagerAdapter : RecyclerView.Adapter<DWTabViewPagerAdapter.DWEvent
 class DWindows : AppCompatActivity() {
     var firstWindow: Boolean = true
     var windowLayout: LinearLayout? = null
+    var threadLock = ReentrantLock()
+    var threadCond = threadLock.newCondition()
+
+    // Our version of runOnUiThread that waits for execution
+    fun waitOnUiThread(runnable: Runnable)
+    {
+          if(Looper.myLooper() == Looper.getMainLooper()) {
+              runnable.run()
+          } else {
+              threadLock.lock()
+              val ourRunnable = Runnable {
+                  threadLock.lock()
+                  runnable.run()
+                  threadCond.signal()
+                  threadLock.unlock()
+              }
+              runOnUiThread(ourRunnable)
+              threadCond.await()
+              threadLock.unlock()
+          }
+    }
 
     // We only want to call this once when the app starts up
     // By default Android will call onCreate for rotation and other
@@ -96,15 +119,17 @@ class DWindows : AppCompatActivity() {
      */
     fun windowNew(title: String, style: Int): LinearLayout? {
         if (firstWindow) {
-            var dataArrayMap = SimpleArrayMap<String, Long>()
-            windowLayout = LinearLayout(this)
+            waitOnUiThread {
+                var dataArrayMap = SimpleArrayMap<String, Long>()
+                windowLayout = LinearLayout(this)
 
-            windowLayout!!.tag = dataArrayMap
-            setContentView(windowLayout)
-            this.title = title
-            // For now we just return our DWindows' main activity layout...
-            // in the future, later calls should create new activities
-            firstWindow = false
+                windowLayout!!.tag = dataArrayMap
+                setContentView(windowLayout)
+                this.title = title
+                // For now we just return our DWindows' main activity layout...
+                // in the future, later calls should create new activities
+                firstWindow = false
+            }
             return windowLayout
         }
         return null
@@ -138,34 +163,42 @@ class DWindows : AppCompatActivity() {
     }
 
     fun windowSetEnabled(window: View, state: Boolean) {
-        window.setEnabled(state)
+        waitOnUiThread {
+            window.setEnabled(state)
+        }
     }
 
     fun windowSetText(window: View, text: String) {
-        if (window is TextView) {
-            var textview: TextView = window
-            textview.text = text
-        } else if (window is Button) {
-            var button: Button = window
-            button.text = text
-        } else if (window is LinearLayout) {
-            // TODO: Make sure this is actually the top-level layout, not just a box
-            this.title = text
+        waitOnUiThread {
+            if (window is TextView) {
+                var textview: TextView = window
+                textview.text = text
+            } else if (window is Button) {
+                var button: Button = window
+                button.text = text
+            } else if (window is LinearLayout) {
+                // TODO: Make sure this is actually the top-level layout, not just a box
+                this.title = text
+            }
         }
     }
 
     fun windowGetText(window: View): String? {
-        if (window is TextView) {
-            var textview: TextView = window
-            return textview.text.toString()
-        } else if (window is Button) {
-            var button: Button = window
-            return button.text.toString()
-        } else if (window is LinearLayout) {
-            // TODO: Make sure this is actually the top-level layout, not just a box
-            return this.title.toString()
+        var text: String? = null
+
+        waitOnUiThread {
+            if (window is TextView) {
+                var textview: TextView = window
+                text = textview.text.toString()
+            } else if (window is Button) {
+                var button: Button = window
+                text = button.text.toString()
+            } else if (window is LinearLayout) {
+                // TODO: Make sure this is actually the top-level layout, not just a box
+                text = this.title.toString()
+            }
         }
-        return null
+        return text
     }
 
     fun clipboardGetText(): String {
@@ -185,45 +218,52 @@ class DWindows : AppCompatActivity() {
         cm.setPrimaryClip(clipdata)
     }
 
-    fun boxNew(type: Int, pad: Int): LinearLayout {
-        val box = LinearLayout(this)
-        var dataArrayMap = SimpleArrayMap<String, Long>()
+    fun boxNew(type: Int, pad: Int): LinearLayout? {
+        var box: LinearLayout? = null
+        waitOnUiThread {
+            box = LinearLayout(this)
+            var dataArrayMap = SimpleArrayMap<String, Long>()
 
-        box.tag = dataArrayMap
-        box.layoutParams =
+            box!!.tag = dataArrayMap
+            box!!.layoutParams =
                 LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.WRAP_CONTENT,
                     LinearLayout.LayoutParams.WRAP_CONTENT
                 )
-        if (type > 0) {
-            box.orientation = LinearLayout.VERTICAL
-        } else {
-            box.orientation = LinearLayout.HORIZONTAL
+            if (type > 0) {
+                box!!.orientation = LinearLayout.VERTICAL
+            } else {
+                box!!.orientation = LinearLayout.HORIZONTAL
+            }
+            box!!.setPadding(pad, pad, pad, pad)
         }
-        box.setPadding(pad, pad, pad, pad)
         return box
     }
 
-    fun scrollBoxNew(type: Int, pad: Int) : ScrollView {
-        val scrollBox = ScrollView(this)
-        val box = LinearLayout(this)
-        var dataArrayMap = SimpleArrayMap<String, Long>()
+    fun scrollBoxNew(type: Int, pad: Int) : ScrollView? {
+        var scrollBox: ScrollView? = null
 
-        scrollBox.tag = dataArrayMap
-        box.layoutParams =
-            LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.MATCH_PARENT
-            )
-        if (type > 0) {
-            box.orientation = LinearLayout.VERTICAL
-        } else {
-            box.orientation = LinearLayout.HORIZONTAL
+        waitOnUiThread {
+            val box = LinearLayout(this)
+            scrollBox = ScrollView(this)
+            var dataArrayMap = SimpleArrayMap<String, Long>()
+
+            scrollBox!!.tag = dataArrayMap
+            box.layoutParams =
+                LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.MATCH_PARENT
+                )
+            if (type > 0) {
+                box.orientation = LinearLayout.VERTICAL
+            } else {
+                box.orientation = LinearLayout.HORIZONTAL
+            }
+            box.setPadding(pad, pad, pad, pad)
+            // Add a pointer back to the ScrollView
+            box.tag = scrollBox
+            scrollBox!!.addView(box)
         }
-        box.setPadding(pad, pad, pad, pad)
-        // Add a pointer back to the ScrollView
-        box.tag = scrollBox
-        scrollBox.addView(box)
         return scrollBox
     }
 
@@ -237,273 +277,315 @@ class DWindows : AppCompatActivity() {
         vsize: Int,
         pad: Int
     ) {
-        var w: Int = LinearLayout.LayoutParams.WRAP_CONTENT
-        var h: Int = LinearLayout.LayoutParams.WRAP_CONTENT
-        var box: LinearLayout? = null
+        waitOnUiThread {
+            var w: Int = LinearLayout.LayoutParams.WRAP_CONTENT
+            var h: Int = LinearLayout.LayoutParams.WRAP_CONTENT
+            var box: LinearLayout? = null
 
-        // Handle scrollboxes by pulling the LinearLayout
-        // out of the ScrollView to pack into
-        if(boxview is LinearLayout) {
-            box = boxview as LinearLayout
-        } else if(boxview is ScrollView) {
-            var sv: ScrollView = boxview
+            // Handle scrollboxes by pulling the LinearLayout
+            // out of the ScrollView to pack into
+            if (boxview is LinearLayout) {
+                box = boxview as LinearLayout
+            } else if (boxview is ScrollView) {
+                var sv: ScrollView = boxview
 
-            if(sv.getChildAt(0) is LinearLayout) {
-                box = sv.getChildAt(0) as LinearLayout
+                if (sv.getChildAt(0) is LinearLayout) {
+                    box = sv.getChildAt(0) as LinearLayout
+                }
             }
-        }
 
-        if(box != null) {
-            if ((item is LinearLayout) or (item is ScrollView)) {
+            if (box != null) {
+                if ((item is LinearLayout) or (item is ScrollView)) {
+                    if (box.orientation == LinearLayout.VERTICAL) {
+                        if (hsize > 0) {
+                            w = LinearLayout.LayoutParams.MATCH_PARENT
+                        }
+                    } else {
+                        if (vsize > 0) {
+                            h = LinearLayout.LayoutParams.MATCH_PARENT
+                        }
+                    }
+                }
+                var params: LinearLayout.LayoutParams = LinearLayout.LayoutParams(w, h)
+
+                if (item !is LinearLayout && (width != -1 || height != -1)) {
+                    item.measure(0, 0)
+                    if (width > 0) {
+                        w = width
+                    } else if (width == -1) {
+                        w = item.getMeasuredWidth()
+                    }
+                    if (height > 0) {
+                        h = height
+                    } else if (height == -1) {
+                        h = item.getMeasuredHeight()
+                    }
+                }
                 if (box.orientation == LinearLayout.VERTICAL) {
-                    if (hsize > 0) {
-                        w = LinearLayout.LayoutParams.MATCH_PARENT
+                    if (vsize > 0) {
+                        if (w > 0) {
+                            params.weight = w.toFloat()
+                        } else {
+                            params.weight = 1F
+                        }
                     }
                 } else {
-                    if (vsize > 0) {
-                        h = LinearLayout.LayoutParams.MATCH_PARENT
+                    if (hsize > 0) {
+                        if (h > 0) {
+                            params.weight = h.toFloat()
+                        } else {
+                            params.weight = 1F
+                        }
                     }
                 }
-            }
-            var params: LinearLayout.LayoutParams = LinearLayout.LayoutParams(w, h)
-
-            if (item !is LinearLayout && (width != -1 || height != -1)) {
-                item.measure(0, 0)
-                if (width > 0) {
-                    w = width
-                } else if (width == -1) {
-                    w = item.getMeasuredWidth()
+                if (pad > 0) {
+                    params.setMargins(pad, pad, pad, pad)
                 }
-                if (height > 0) {
-                    h = height
-                } else if (height == -1) {
-                    h = item.getMeasuredHeight()
+                var grav: Int = Gravity.CLIP_HORIZONTAL or Gravity.CLIP_VERTICAL
+                if (hsize > 0 && vsize > 0) {
+                    params.gravity = Gravity.FILL or grav
+                } else if (hsize > 0) {
+                    params.gravity = Gravity.FILL_HORIZONTAL or grav
+                } else if (vsize > 0) {
+                    params.gravity = Gravity.FILL_VERTICAL or grav
                 }
+                item.layoutParams = params
+                box.addView(item, index)
             }
-            if (box.orientation == LinearLayout.VERTICAL) {
-                if (vsize > 0) {
-                    if (w > 0) {
-                        params.weight = w.toFloat()
-                    } else {
-                        params.weight = 1F
-                    }
-                }
-            } else {
-                if (hsize > 0) {
-                    if (h > 0) {
-                        params.weight = h.toFloat()
-                    } else {
-                        params.weight = 1F
-                    }
-                }
-            }
-            if (pad > 0) {
-                params.setMargins(pad, pad, pad, pad)
-            }
-            var grav: Int = Gravity.CLIP_HORIZONTAL or Gravity.CLIP_VERTICAL
-            if (hsize > 0 && vsize > 0) {
-                params.gravity = Gravity.FILL or grav
-            } else if (hsize > 0) {
-                params.gravity = Gravity.FILL_HORIZONTAL or grav
-            } else if (vsize > 0) {
-                params.gravity = Gravity.FILL_VERTICAL or grav
-            }
-            item.layoutParams = params
-            box.addView(item, index)
         }
     }
 
     fun boxUnpack(item: View) {
-        var box: LinearLayout = item.parent as LinearLayout
-        box.removeView(item)
+        waitOnUiThread {
+            var box: LinearLayout = item.parent as LinearLayout
+            box.removeView(item)
+        }
     }
 
     fun boxUnpackAtIndex(box: LinearLayout, index: Int): View? {
-        var item: View = box.getChildAt(index)
+        var item: View? = null
 
-        box.removeView(item)
+        waitOnUiThread {
+            item = box.getChildAt(index)
+
+            box.removeView(item)
+        }
         return item
     }
 
-    fun buttonNew(text: String, cid: Int): Button {
-        val button = Button(this)
-        var dataArrayMap = SimpleArrayMap<String, Long>()
+    fun buttonNew(text: String, cid: Int): Button? {
+        var button: Button? = null
+        waitOnUiThread {
+            button = Button(this)
+            var dataArrayMap = SimpleArrayMap<String, Long>()
 
-        button.tag = dataArrayMap
-        button.text = text
-        button.id = cid
-        button.setOnClickListener {
-            eventHandlerSimple(button, 8)
+            button!!.tag = dataArrayMap
+            button!!.text = text
+            button!!.id = cid
+            button!!.setOnClickListener {
+                eventHandlerSimple(button!!, 8)
+            }
         }
         return button
     }
 
-    fun entryfieldNew(text: String, cid: Int, password: Int): EditText {
-        val entryfield = EditText(this)
-        var dataArrayMap = SimpleArrayMap<String, Long>()
+    fun entryfieldNew(text: String, cid: Int, password: Int): EditText? {
+        var entryfield: EditText? = null
 
-        entryfield.tag = dataArrayMap
-        entryfield.id = cid
-        if (password > 0) {
-            entryfield.transformationMethod = PasswordTransformationMethod.getInstance()
+        waitOnUiThread {
+            var dataArrayMap = SimpleArrayMap<String, Long>()
+            entryfield = EditText(this)
+
+            entryfield!!.tag = dataArrayMap
+            entryfield!!.id = cid
+            if (password > 0) {
+                entryfield!!.transformationMethod = PasswordTransformationMethod.getInstance()
+            }
+            entryfield!!.setText(text)
         }
-        entryfield.setText(text)
         return entryfield
     }
 
     fun entryfieldSetLimit(entryfield: EditText, limit: Long) {
-        entryfield.filters = arrayOf<InputFilter>(LengthFilter(limit.toInt()))
+        waitOnUiThread {
+            entryfield.filters = arrayOf<InputFilter>(LengthFilter(limit.toInt()))
+        }
     }
 
-    fun radioButtonNew(text: String, cid: Int): RadioButton {
-        val radiobutton = RadioButton(this)
-        var dataArrayMap = SimpleArrayMap<String, Long>()
+    fun radioButtonNew(text: String, cid: Int): RadioButton? {
+        var radiobutton: RadioButton? = null
 
-        radiobutton.tag = dataArrayMap
-        radiobutton.id = cid
-        radiobutton.text = text
-        radiobutton.setOnClickListener {
-            eventHandlerSimple(radiobutton, 8)
+        waitOnUiThread {
+            var dataArrayMap = SimpleArrayMap<String, Long>()
+            radiobutton = RadioButton(this)
+
+            radiobutton!!.tag = dataArrayMap
+            radiobutton!!.id = cid
+            radiobutton!!.text = text
+            radiobutton!!.setOnClickListener {
+                eventHandlerSimple(radiobutton!!, 8)
+            }
         }
         return radiobutton
     }
 
-    fun checkboxNew(text: String, cid: Int): CheckBox {
-        val checkbox = CheckBox(this)
-        var dataArrayMap = SimpleArrayMap<String, Long>()
+    fun checkboxNew(text: String, cid: Int): CheckBox? {
+        var checkbox: CheckBox? = null
 
-        checkbox.tag = dataArrayMap
-        checkbox.id = cid
-        checkbox.text = text
-        checkbox.setOnClickListener {
-            eventHandlerSimple(checkbox, 8)
+        waitOnUiThread {
+            var dataArrayMap = SimpleArrayMap<String, Long>()
+
+            checkbox = CheckBox(this)
+            checkbox!!.tag = dataArrayMap
+            checkbox!!.id = cid
+            checkbox!!.text = text
+            checkbox!!.setOnClickListener {
+                eventHandlerSimple(checkbox!!, 8)
+            }
         }
         return checkbox
     }
 
     fun checkOrRadioSetChecked(control: View, state: Int)
     {
-        if(control is CheckBox) {
-            var checkbox: CheckBox = control
-            checkbox.isChecked = state != 0
-        } else if(control is RadioButton) {
-            var radiobutton: RadioButton = control
-            radiobutton.isChecked = state != 0
+        waitOnUiThread {
+            if (control is CheckBox) {
+                var checkbox: CheckBox = control
+                checkbox.isChecked = state != 0
+            } else if (control is RadioButton) {
+                var radiobutton: RadioButton = control
+                radiobutton.isChecked = state != 0
+            }
         }
     }
 
     fun checkOrRadioGetChecked(control: View): Boolean
     {
-        if(control is CheckBox) {
-            var checkbox: CheckBox = control
-            return checkbox.isChecked
-        } else if(control is RadioButton) {
-            var radiobutton: RadioButton = control
-            return radiobutton.isChecked
+        var retval: Boolean = false
+
+        waitOnUiThread {
+            if (control is CheckBox) {
+                var checkbox: CheckBox = control
+                retval = checkbox.isChecked
+            } else if (control is RadioButton) {
+                var radiobutton: RadioButton = control
+                retval = radiobutton.isChecked
+            }
         }
-        return false
+        return retval
     }
 
-    fun textNew(text: String, cid: Int, status: Int): TextView {
-        val textview = TextView(this)
-        var dataArrayMap = SimpleArrayMap<String, Long>()
+    fun textNew(text: String, cid: Int, status: Int): TextView? {
+        var textview: TextView? = null
 
-        textview.tag = dataArrayMap
-        textview.id = cid
-        textview.text = text
-        if (status != 0) {
-            val border = GradientDrawable()
+        waitOnUiThread {
+            var dataArrayMap = SimpleArrayMap<String, Long>()
 
-            // Set a black border on white background...
-            // might need to change this to invisible...
-            // or the color from windowSetColor
-            border.setColor(-0x1)
-            border.setStroke(1, -0x1000000)
-            textview.background = border
+            textview = TextView(this)
+            textview!!.tag = dataArrayMap
+            textview!!.id = cid
+            textview!!.text = text
+            if (status != 0) {
+                val border = GradientDrawable()
+
+                // Set a black border on white background...
+                // might need to change this to invisible...
+                // or the color from windowSetColor
+                border.setColor(-0x1)
+                border.setStroke(1, -0x1000000)
+                textview!!.background = border
+            }
         }
         return textview
     }
 
-    fun notebookNew(cid: Int, top: Int): RelativeLayout
+    fun notebookNew(cid: Int, top: Int): RelativeLayout?
     {
-        val notebook = RelativeLayout(this)
-        val pager = ViewPager2(this)
-        val tabs = TabLayout(this)
-        var w: Int = RelativeLayout.LayoutParams.MATCH_PARENT
-        var h: Int = RelativeLayout.LayoutParams.WRAP_CONTENT
-        var dataArrayMap = SimpleArrayMap<String, Long>()
+        var notebook: RelativeLayout? = null
 
-        notebook.tag = dataArrayMap
-        notebook.id = cid
-        tabs.id = View.generateViewId()
-        pager.id = View.generateViewId()
-        pager.adapter = DWTabViewPagerAdapter()
-        TabLayoutMediator(tabs, pager) { tab, position ->
-            // This code never gets called?
-        }.attach()
+        waitOnUiThread {
+            val pager = ViewPager2(this)
+            val tabs = TabLayout(this)
+            var w: Int = RelativeLayout.LayoutParams.MATCH_PARENT
+            var h: Int = RelativeLayout.LayoutParams.WRAP_CONTENT
+            var dataArrayMap = SimpleArrayMap<String, Long>()
 
-        var params: RelativeLayout.LayoutParams = RelativeLayout.LayoutParams(w, h)
-        if(top != 0) {
-            params.addRule(RelativeLayout.ALIGN_PARENT_TOP)
-        } else {
-            params.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM)
-        }
-        tabs.tabGravity = TabLayout.GRAVITY_FILL
-        tabs.tabMode = TabLayout.MODE_FIXED
-        notebook.addView(tabs, params)
-        params = RelativeLayout.LayoutParams(w, w)
-        if(top != 0) {
-            params.addRule(RelativeLayout.BELOW, tabs.id)
-        } else {
-            params.addRule(RelativeLayout.ABOVE, tabs.id)
-        }
-        notebook.addView(pager, params)
-        tabs.addOnTabSelectedListener(object : OnTabSelectedListener {
-            override fun onTabSelected(tab: TabLayout.Tab) {
-                val adapter = pager.adapter as DWTabViewPagerAdapter
+            notebook = RelativeLayout(this)
+            notebook!!.tag = dataArrayMap
+            notebook!!.id = cid
+            tabs.id = View.generateViewId()
+            pager.id = View.generateViewId()
+            pager.adapter = DWTabViewPagerAdapter()
+            TabLayoutMediator(tabs, pager) { tab, position ->
+                // This code never gets called?
+            }.attach()
 
-                pager.currentItem = tab.position
-                eventHandlerNotebook(notebook, 15, adapter.pageList[tab.position])
+            var params: RelativeLayout.LayoutParams = RelativeLayout.LayoutParams(w, h)
+            if (top != 0) {
+                params.addRule(RelativeLayout.ALIGN_PARENT_TOP)
+            } else {
+                params.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM)
             }
-            override fun onTabUnselected(tab: TabLayout.Tab) {}
-            override fun onTabReselected(tab: TabLayout.Tab) {}
-        })
+            tabs.tabGravity = TabLayout.GRAVITY_FILL
+            tabs.tabMode = TabLayout.MODE_FIXED
+            notebook!!.addView(tabs, params)
+            params = RelativeLayout.LayoutParams(w, w)
+            if (top != 0) {
+                params.addRule(RelativeLayout.BELOW, tabs.id)
+            } else {
+                params.addRule(RelativeLayout.ABOVE, tabs.id)
+            }
+            notebook!!.addView(pager, params)
+            tabs.addOnTabSelectedListener(object : OnTabSelectedListener {
+                override fun onTabSelected(tab: TabLayout.Tab) {
+                    val adapter = pager.adapter as DWTabViewPagerAdapter
+
+                    pager.currentItem = tab.position
+                    eventHandlerNotebook(notebook!!, 15, adapter.pageList[tab.position])
+                }
+
+                override fun onTabUnselected(tab: TabLayout.Tab) {}
+                override fun onTabReselected(tab: TabLayout.Tab) {}
+            })
+        }
         return notebook
     }
 
     fun notebookPageNew(notebook: RelativeLayout, flags: Long, front: Int): Long
     {
-        var pager: ViewPager2? = null
-        var tabs: TabLayout? = null
         var pageID = 0L
 
-        if(notebook.getChildAt(0) is ViewPager2 && notebook.getChildAt(1) is TabLayout) {
-            pager = notebook.getChildAt(0) as ViewPager2
-            tabs = notebook.getChildAt(1) as TabLayout
-        } else if(notebook.getChildAt(1) is ViewPager2 && notebook.getChildAt(0) is TabLayout) {
-            pager = notebook.getChildAt(1) as ViewPager2
-            tabs = notebook.getChildAt(0) as TabLayout
-        }
+        waitOnUiThread {
+            var pager: ViewPager2? = null
+            var tabs: TabLayout? = null
 
-        if(pager != null && tabs != null) {
-            var adapter: DWTabViewPagerAdapter = pager.adapter as DWTabViewPagerAdapter
-            var tab = tabs.newTab()
-
-            // Increment our page ID... making sure no duplicates exist
-            do {
-                adapter.currentPageID += 1
+            if (notebook.getChildAt(0) is ViewPager2 && notebook.getChildAt(1) is TabLayout) {
+                pager = notebook.getChildAt(0) as ViewPager2
+                tabs = notebook.getChildAt(1) as TabLayout
+            } else if (notebook.getChildAt(1) is ViewPager2 && notebook.getChildAt(0) is TabLayout) {
+                pager = notebook.getChildAt(1) as ViewPager2
+                tabs = notebook.getChildAt(0) as TabLayout
             }
-            while(adapter.currentPageID == 0L || adapter.pageList.contains(adapter.currentPageID))
-            pageID = adapter.currentPageID
-            // Temporarily add a black tab with an empty layout/box
-            if(front != 0) {
-                adapter.viewList.add(0, LinearLayout(this))
-                adapter.pageList.add(0, pageID)
-                tabs.addTab(tab, 0)
-            } else {
-                adapter.viewList.add(LinearLayout(this))
-                adapter.pageList.add(pageID)
-                tabs.addTab(tab)
+
+            if (pager != null && tabs != null) {
+                var adapter: DWTabViewPagerAdapter = pager.adapter as DWTabViewPagerAdapter
+                var tab = tabs.newTab()
+
+                // Increment our page ID... making sure no duplicates exist
+                do {
+                    adapter.currentPageID += 1
+                } while (adapter.currentPageID == 0L || adapter.pageList.contains(adapter.currentPageID))
+                pageID = adapter.currentPageID
+                // Temporarily add a black tab with an empty layout/box
+                if (front != 0) {
+                    adapter.viewList.add(0, LinearLayout(this))
+                    adapter.pageList.add(0, pageID)
+                    tabs.addTab(tab, 0)
+                } else {
+                    adapter.viewList.add(LinearLayout(this))
+                    adapter.pageList.add(pageID)
+                    tabs.addTab(tab)
+                }
             }
         }
         return pageID
@@ -511,218 +593,252 @@ class DWindows : AppCompatActivity() {
 
     fun notebookPageDestroy(notebook: RelativeLayout, pageID: Long)
     {
-        var pager: ViewPager2? = null
-        var tabs: TabLayout? = null
+        waitOnUiThread {
+            var pager: ViewPager2? = null
+            var tabs: TabLayout? = null
 
-        if(notebook.getChildAt(0) is ViewPager2 && notebook.getChildAt(1) is TabLayout) {
-            pager = notebook.getChildAt(0) as ViewPager2
-            tabs = notebook.getChildAt(1) as TabLayout
-        } else if(notebook.getChildAt(1) is ViewPager2 && notebook.getChildAt(0) is TabLayout) {
-            pager = notebook.getChildAt(1) as ViewPager2
-            tabs = notebook.getChildAt(0) as TabLayout
-        }
+            if (notebook.getChildAt(0) is ViewPager2 && notebook.getChildAt(1) is TabLayout) {
+                pager = notebook.getChildAt(0) as ViewPager2
+                tabs = notebook.getChildAt(1) as TabLayout
+            } else if (notebook.getChildAt(1) is ViewPager2 && notebook.getChildAt(0) is TabLayout) {
+                pager = notebook.getChildAt(1) as ViewPager2
+                tabs = notebook.getChildAt(0) as TabLayout
+            }
 
-        if(pager != null && tabs != null) {
-            var adapter: DWTabViewPagerAdapter = pager.adapter as DWTabViewPagerAdapter
-            val index = adapter.pageList.indexOf(pageID)
-            val tab = tabs.getTabAt(index)
+            if (pager != null && tabs != null) {
+                var adapter: DWTabViewPagerAdapter = pager.adapter as DWTabViewPagerAdapter
+                val index = adapter.pageList.indexOf(pageID)
+                val tab = tabs.getTabAt(index)
 
-            if (tab != null) {
-                adapter.viewList.removeAt(index)
-                adapter.pageList.removeAt(index)
-                tabs.removeTab(tab)
+                if (tab != null) {
+                    adapter.viewList.removeAt(index)
+                    adapter.pageList.removeAt(index)
+                    tabs.removeTab(tab)
+                }
             }
         }
     }
 
     fun notebookPageSetText(notebook: RelativeLayout, pageID: Long, text: String)
     {
-        var pager: ViewPager2? = null
-        var tabs: TabLayout? = null
+        waitOnUiThread {
+            var pager: ViewPager2? = null
+            var tabs: TabLayout? = null
 
-        if(notebook.getChildAt(0) is ViewPager2 && notebook.getChildAt(1) is TabLayout) {
-            pager = notebook.getChildAt(0) as ViewPager2
-            tabs = notebook.getChildAt(1) as TabLayout
-        } else if(notebook.getChildAt(1) is ViewPager2 && notebook.getChildAt(0) is TabLayout) {
-            pager = notebook.getChildAt(1) as ViewPager2
-            tabs = notebook.getChildAt(0) as TabLayout
-        }
+            if (notebook.getChildAt(0) is ViewPager2 && notebook.getChildAt(1) is TabLayout) {
+                pager = notebook.getChildAt(0) as ViewPager2
+                tabs = notebook.getChildAt(1) as TabLayout
+            } else if (notebook.getChildAt(1) is ViewPager2 && notebook.getChildAt(0) is TabLayout) {
+                pager = notebook.getChildAt(1) as ViewPager2
+                tabs = notebook.getChildAt(0) as TabLayout
+            }
 
-        if(pager != null && tabs != null) {
-            val adapter: DWTabViewPagerAdapter = pager.adapter as DWTabViewPagerAdapter
-            val index = adapter.pageList.indexOf(pageID)
-            val tab = tabs.getTabAt(index)
+            if (pager != null && tabs != null) {
+                val adapter: DWTabViewPagerAdapter = pager.adapter as DWTabViewPagerAdapter
+                val index = adapter.pageList.indexOf(pageID)
+                val tab = tabs.getTabAt(index)
 
-            if (tab != null) {
-                tab.text = text
+                if (tab != null) {
+                    tab.text = text
+                }
             }
         }
     }
 
     fun notebookPagePack(notebook: RelativeLayout, pageID: Long, box: LinearLayout)
     {
-        var pager: ViewPager2? = null
-        var tabs: TabLayout? = null
+        waitOnUiThread {
+            var pager: ViewPager2? = null
+            var tabs: TabLayout? = null
 
-        if(notebook.getChildAt(0) is ViewPager2 && notebook.getChildAt(1) is TabLayout) {
-            pager = notebook.getChildAt(0) as ViewPager2
-            tabs = notebook.getChildAt(1) as TabLayout
-        } else if(notebook.getChildAt(1) is ViewPager2 && notebook.getChildAt(0) is TabLayout) {
-            pager = notebook.getChildAt(1) as ViewPager2
-            tabs = notebook.getChildAt(0) as TabLayout
-        }
+            if (notebook.getChildAt(0) is ViewPager2 && notebook.getChildAt(1) is TabLayout) {
+                pager = notebook.getChildAt(0) as ViewPager2
+                tabs = notebook.getChildAt(1) as TabLayout
+            } else if (notebook.getChildAt(1) is ViewPager2 && notebook.getChildAt(0) is TabLayout) {
+                pager = notebook.getChildAt(1) as ViewPager2
+                tabs = notebook.getChildAt(0) as TabLayout
+            }
 
-        if(pager != null && tabs != null) {
-            var adapter: DWTabViewPagerAdapter = pager.adapter as DWTabViewPagerAdapter
-            val index = adapter.pageList.indexOf(pageID)
+            if (pager != null && tabs != null) {
+                var adapter: DWTabViewPagerAdapter = pager.adapter as DWTabViewPagerAdapter
+                val index = adapter.pageList.indexOf(pageID)
 
-            // Make sure the box is MATCH_PARENT
-            box.layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.MATCH_PARENT
-            );
+                // Make sure the box is MATCH_PARENT
+                box.layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.MATCH_PARENT
+                );
 
-            adapter.viewList[index] = box
+                adapter.viewList[index] = box
+            }
         }
     }
 
     fun notebookPageGet(notebook: RelativeLayout): Long
     {
-        var pager: ViewPager2? = null
-        var tabs: TabLayout? = null
+        var retval: Long = 0L
 
-        if(notebook.getChildAt(0) is ViewPager2 && notebook.getChildAt(1) is TabLayout) {
-            pager = notebook.getChildAt(0) as ViewPager2
-            tabs = notebook.getChildAt(1) as TabLayout
-        } else if(notebook.getChildAt(1) is ViewPager2 && notebook.getChildAt(0) is TabLayout) {
-            pager = notebook.getChildAt(1) as ViewPager2
-            tabs = notebook.getChildAt(0) as TabLayout
-        }
+        waitOnUiThread {
+            var pager: ViewPager2? = null
+            var tabs: TabLayout? = null
 
-        if(pager != null && tabs != null) {
-            var adapter: DWTabViewPagerAdapter = pager.adapter as DWTabViewPagerAdapter
-            return adapter.pageList.get(tabs.selectedTabPosition)
+            if (notebook.getChildAt(0) is ViewPager2 && notebook.getChildAt(1) is TabLayout) {
+                pager = notebook.getChildAt(0) as ViewPager2
+                tabs = notebook.getChildAt(1) as TabLayout
+            } else if (notebook.getChildAt(1) is ViewPager2 && notebook.getChildAt(0) is TabLayout) {
+                pager = notebook.getChildAt(1) as ViewPager2
+                tabs = notebook.getChildAt(0) as TabLayout
+            }
+
+            if (pager != null && tabs != null) {
+                var adapter: DWTabViewPagerAdapter = pager.adapter as DWTabViewPagerAdapter
+                retval = adapter.pageList.get(tabs.selectedTabPosition)
+            }
         }
-        return 0L
+        return retval
     }
 
     fun notebookPageSet(notebook: RelativeLayout, pageID: Long)
     {
-        var pager: ViewPager2? = null
-        var tabs: TabLayout? = null
+        waitOnUiThread {
+            var pager: ViewPager2? = null
+            var tabs: TabLayout? = null
 
-        if(notebook.getChildAt(0) is ViewPager2 && notebook.getChildAt(1) is TabLayout) {
-            pager = notebook.getChildAt(0) as ViewPager2
-            tabs = notebook.getChildAt(1) as TabLayout
-        } else if(notebook.getChildAt(1) is ViewPager2 && notebook.getChildAt(0) is TabLayout) {
-            pager = notebook.getChildAt(1) as ViewPager2
-            tabs = notebook.getChildAt(0) as TabLayout
-        }
+            if (notebook.getChildAt(0) is ViewPager2 && notebook.getChildAt(1) is TabLayout) {
+                pager = notebook.getChildAt(0) as ViewPager2
+                tabs = notebook.getChildAt(1) as TabLayout
+            } else if (notebook.getChildAt(1) is ViewPager2 && notebook.getChildAt(0) is TabLayout) {
+                pager = notebook.getChildAt(1) as ViewPager2
+                tabs = notebook.getChildAt(0) as TabLayout
+            }
 
-        if(pager != null && tabs != null) {
-            val adapter: DWTabViewPagerAdapter = pager.adapter as DWTabViewPagerAdapter
-            val index = adapter.pageList.indexOf(pageID)
-            val tab = tabs.getTabAt(index)
+            if (pager != null && tabs != null) {
+                val adapter: DWTabViewPagerAdapter = pager.adapter as DWTabViewPagerAdapter
+                val index = adapter.pageList.indexOf(pageID)
+                val tab = tabs.getTabAt(index)
 
-            tabs.selectTab(tab)
+                tabs.selectTab(tab)
+            }
         }
     }
 
-    fun sliderNew(vertical: Int, increments: Int, cid: Int): SeekBar
+    fun sliderNew(vertical: Int, increments: Int, cid: Int): SeekBar?
     {
-        val slider = SeekBar(this)
-        var dataArrayMap = SimpleArrayMap<String, Long>()
+        var slider: SeekBar? = null
 
-        slider.tag = dataArrayMap
-        slider.id = cid
-        slider.max = increments
-        if(vertical != 0) {
-            slider.rotation = 270F
+        waitOnUiThread {
+            var dataArrayMap = SimpleArrayMap<String, Long>()
+
+            slider = SeekBar(this)
+            slider!!.tag = dataArrayMap
+            slider!!.id = cid
+            slider!!.max = increments
+            if (vertical != 0) {
+                slider!!.rotation = 270F
+            }
+            slider!!.setOnSeekBarChangeListener(object : OnSeekBarChangeListener {
+                override fun onStopTrackingTouch(seekBar: SeekBar) {
+                }
+
+                override fun onStartTrackingTouch(seekBar: SeekBar) {
+                }
+
+                override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
+                    eventHandler(slider, null, 14, null, null, slider!!.progress, 0, 0, 0)
+                }
+            })
         }
-        slider.setOnSeekBarChangeListener(object : OnSeekBarChangeListener {
-            override fun onStopTrackingTouch(seekBar: SeekBar) {
-            }
-
-            override fun onStartTrackingTouch(seekBar: SeekBar) {
-            }
-
-            override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
-                eventHandler(slider, null, 14, null, null, slider.progress, 0, 0, 0)
-            }
-        })
         return slider
     }
 
-    fun percentNew(cid: Int): ProgressBar
+    fun percentNew(cid: Int): ProgressBar?
     {
-        val percent = ProgressBar(this)
-        var dataArrayMap = SimpleArrayMap<String, Long>()
+        var percent: ProgressBar? = null
 
-        percent.tag = dataArrayMap
-        percent.id = cid
-        percent.max = 100
+        waitOnUiThread {
+            var dataArrayMap = SimpleArrayMap<String, Long>()
+
+            percent = ProgressBar(this)
+            percent!!.tag = dataArrayMap
+            percent!!.id = cid
+            percent!!.max = 100
+        }
         return percent
     }
 
     fun percentGetPos(percent: ProgressBar): Int
     {
-        return percent.progress
+        var retval: Int = 0
+
+        waitOnUiThread {
+            retval = percent.progress
+        }
+        return retval
     }
 
     fun percentSetPos(percent: ProgressBar, position: Int)
     {
-        percent.progress = position
+        waitOnUiThread {
+            percent.progress = position
+        }
     }
 
     fun percentSetRange(percent: ProgressBar, range: Int)
     {
-        percent.max = range
+        waitOnUiThread {
+            percent.max = range
+        }
     }
 
     fun htmlNew(cid: Int): WebView?
     {
-        val looper = Looper.myLooper()
+        var html: WebView? = null
 
-        // WebView requires an active Looper
-        if(looper == null) {
-            Looper.prepare()
+        waitOnUiThread {
+            var dataArrayMap = SimpleArrayMap<String, Long>()
+
+            html = WebView(this)
+            html!!.tag = dataArrayMap
+            html!!.id = cid
         }
-
-        var dataArrayMap = SimpleArrayMap<String, Long>()
-        val html = WebView(this)
-
-        html.tag = dataArrayMap
-        html.id = cid
         return html
     }
 
     fun htmlLoadURL(html: WebView, url: String)
     {
-        html.loadUrl(url)
+        waitOnUiThread {
+            html.loadUrl(url)
+        }
     }
 
     fun htmlRaw(html: WebView, data: String)
     {
-        val encodedHtml: String = Base64.encodeToString(data.toByteArray(), Base64.NO_PADDING)
-        html.loadData(encodedHtml, "text/html", "base64")
+        waitOnUiThread {
+            val encodedHtml: String = Base64.encodeToString(data.toByteArray(), Base64.NO_PADDING)
+            html.loadData(encodedHtml, "text/html", "base64")
+        }
     }
 
     fun htmlJavascriptRun(html: WebView, javascript: String, data: Long)
     {
-        html.evaluateJavascript(javascript) { value ->
-            // Execute onReceiveValue's code
-            eventHandlerHTMLResult(html, 18, value, data)
+        waitOnUiThread {
+            html.evaluateJavascript(javascript) { value ->
+                // Execute onReceiveValue's code
+                eventHandlerHTMLResult(html, 18, value, data)
+            }
         }
     }
 
     fun htmlAction(html: WebView, action: Int)
     {
-        when (action) {
-            0 -> html.goBack()
-            1 -> html.goForward()
-            2 -> html.loadUrl("http://dwindows.netlabs.org")
-            4 -> html.reload()
-            5 -> html.stopLoading()
+        waitOnUiThread {
+            when (action) {
+                0 -> html.goBack()
+                1 -> html.goForward()
+                2 -> html.loadUrl("http://dwindows.netlabs.org")
+                4 -> html.reload()
+                5 -> html.stopLoading()
+            }
         }
     }
 
@@ -763,63 +879,70 @@ class DWindows : AppCompatActivity() {
 
     fun messageBox(title: String, body: String, flags: Int): Int
     {
-        // make a text input dialog and show it
-        var alert = AlertDialog.Builder(this)
         var retval: Int = 0
 
-        alert.setTitle(title)
-        alert.setMessage(body)
-        if((flags and (1 shl 3)) != 0) {
-            alert.setPositiveButton(
-                "Yes",
-                DialogInterface.OnClickListener { _: DialogInterface, _: Int ->
-                    retval = 1
-                    throw java.lang.RuntimeException()
-                });
-        }
-        if((flags and ((1 shl 1) or (1 shl 2))) != 0) {
-            alert.setNegativeButton(
-                "Ok",
-                DialogInterface.OnClickListener { _: DialogInterface, _: Int ->
-                    retval = 0
-                    throw java.lang.RuntimeException()
-                });
-        }
-        if((flags and ((1 shl 3) or (1 shl 4))) != 0) {
-            alert.setNegativeButton(
-                "No",
-                DialogInterface.OnClickListener { _: DialogInterface, _: Int ->
-                    retval = 0
-                    throw java.lang.RuntimeException()
-                });
-        }
-        if((flags and ((1 shl 2) or (1 shl 4))) != 0) {
-            alert.setNeutralButton(
-                "Cancel",
-                DialogInterface.OnClickListener { _: DialogInterface, _: Int ->
-                    retval = 2
-                    throw java.lang.RuntimeException()
-                });
-        }
-        alert.show();
+        waitOnUiThread {
+            // make a text input dialog and show it
+            var alert = AlertDialog.Builder(this)
 
-        // loop till a runtime exception is triggered.
-        try {
-            Looper.loop()
-        } catch (e2: RuntimeException) {
+            alert.setTitle(title)
+            alert.setMessage(body)
+            if ((flags and (1 shl 3)) != 0) {
+                alert.setPositiveButton(
+                    "Yes",
+                    DialogInterface.OnClickListener { _: DialogInterface, _: Int ->
+                        retval = 1
+                        throw java.lang.RuntimeException()
+                    });
+            }
+            if ((flags and ((1 shl 1) or (1 shl 2))) != 0) {
+                alert.setNegativeButton(
+                    "Ok",
+                    DialogInterface.OnClickListener { _: DialogInterface, _: Int ->
+                        retval = 0
+                        throw java.lang.RuntimeException()
+                    });
+            }
+            if ((flags and ((1 shl 3) or (1 shl 4))) != 0) {
+                alert.setNegativeButton(
+                    "No",
+                    DialogInterface.OnClickListener { _: DialogInterface, _: Int ->
+                        retval = 0
+                        throw java.lang.RuntimeException()
+                    });
+            }
+            if ((flags and ((1 shl 2) or (1 shl 4))) != 0) {
+                alert.setNeutralButton(
+                    "Cancel",
+                    DialogInterface.OnClickListener { _: DialogInterface, _: Int ->
+                        retval = 2
+                        throw java.lang.RuntimeException()
+                    });
+            }
+            alert.show();
+
+            // loop till a runtime exception is triggered.
+            try {
+                Looper.loop()
+            } catch (e2: RuntimeException) {
+            }
         }
         return retval
     }
 
     fun dwindowsExit(exitcode: Int)
     {
-        this.finishAffinity()
-        System.exit(exitcode)
+        waitOnUiThread {
+            this.finishAffinity()
+            System.exit(exitcode)
+        }
     }
 
     fun dwindowsShutdown()
     {
-        this.finishAffinity()
+        waitOnUiThread {
+            this.finishAffinity()
+        }
     }
 
     /*

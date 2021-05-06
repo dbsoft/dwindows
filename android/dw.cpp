@@ -90,11 +90,7 @@ Java_org_dbsoft_dwindows_DWindows_dwindowsInit(JNIEnv* env, jobject obj, jstring
     static int runcount = 0;
 
     /* Safety check to prevent multiple initializations... */
-#if defined(__arm__) || defined(__aarch64__)
     if(runcount == 0)
-#else
-    if(runcount == 1)
-#endif
     {
         char *arg = strdup(env->GetStringUTFChars((jstring) path, NULL));
 
@@ -110,9 +106,6 @@ Java_org_dbsoft_dwindows_DWindows_dwindowsInit(JNIEnv* env, jobject obj, jstring
 
         /* Launch the new thread to execute dwmain() */
         dw_thread_new((void *) _dw_main_launch, arg, 0);
-
-        /* Wait until dwmain() calls dw_main() then return */
-        dw_event_wait(_dw_main_event, DW_TIMEOUT_INFINITE);
     }
     runcount++;
 }
@@ -467,12 +460,6 @@ ULONG _dw_findsigmessage(const char *signame)
  */
 void API dw_main(void)
 {
-    /* Post the event so dwindowsInit() will return...
-     * allowing the app to start handling events.
-     */
-    dw_event_post(_dw_main_event);
-    dw_event_reset(_dw_main_event);
-
     /* We don't actually run a loop here,
      * we launched a new thread to run the loop there.
      * Just wait for dw_main_quit() on the DWMainEvent.
@@ -3178,7 +3165,7 @@ void API dw_notebook_page_set_text(HWND handle, ULONG pageid, const char *text)
 {
     JNIEnv *env;
 
-    if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    if(handle && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
     {
         // Construct a String
         jstring jstr = env->NewStringUTF(text);
