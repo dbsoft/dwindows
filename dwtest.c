@@ -2131,6 +2131,7 @@ char *DWFeatureList[] = {
     "Supports Rich Edit based MLE control (Windows)",
     "Supports icons in the taskbar or similar system widget",
     "Supports the Tree Widget",
+    "Supports arbitrary window placement",
     NULL };
 
 /*

@@ -12640,6 +12640,21 @@ int API dw_feature_get(DWFEATURE feature)
         case DW_FEATURE_MLE_WORD_WRAP:
         case DW_FEATURE_TREE:
             return DW_FEATURE_ENABLED;
+#ifdef GDK_WINDOWING_X11
+        case DW_FEATURE_WINDOW_PLACEMENT:
+        {
+            int _locked_by_me = FALSE, retval = DW_FEATURE_UNSUPPORTED;
+            GdkDisplay *display;
+
+            DW_MUTEX_LOCK;
+            display = gdk_display_get_default();
+           
+            if(display && GDK_IS_X11_DISPLAY(display))
+                retval = DW_ERROR_ENABLED;
+            DW_MUTEX_UNLOCK;
+            return retval;
+        }
+#endif
         default:
             return DW_FEATURE_UNSUPPORTED;
     }
@@ -12683,6 +12698,21 @@ int API dw_feature_set(DWFEATURE feature, int state)
         case DW_FEATURE_MLE_WORD_WRAP:
         case DW_FEATURE_TREE:
             return DW_ERROR_GENERAL;
+#ifdef GDK_WINDOWING_X11
+        case DW_FEATURE_WINDOW_PLACEMENT:
+        {
+            int _locked_by_me = FALSE, retval = DW_FEATURE_UNSUPPORTED;
+            GdkDisplay *display;
+
+            DW_MUTEX_LOCK;
+            display = gdk_display_get_default();
+           
+            if(display && GDK_IS_X11_DISPLAY(display))
+                retval = DW_ERROR_GENERAL;
+            DW_MUTEX_UNLOCK;
+            return retval;
+        }
+#endif
         /* These features are supported and configurable */
         default:
             return DW_FEATURE_UNSUPPORTED;
