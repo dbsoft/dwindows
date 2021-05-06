@@ -90,7 +90,11 @@ Java_org_dbsoft_dwindows_DWindows_dwindowsInit(JNIEnv* env, jobject obj, jstring
     static int runcount = 0;
 
     /* Safety check to prevent multiple initializations... */
+#if defined(__arm__) || defined(__aarch64__)
     if(runcount == 0)
+#else
+    if(runcount == 1)
+#endif
     {
         char *arg = strdup(env->GetStringUTFChars((jstring) path, NULL));
 
@@ -3264,6 +3268,24 @@ void API dw_window_set_pointer(HWND handle, int pointertype)
 {
 }
 
+int _dw_window_hide_show(HWND handle, int state)
+{
+    JNIEnv *env;
+
+    if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID windowHideShow = env->GetMethodID(clazz, "windowHideShow",
+                                                    "(Landroid/view/View;I)V");
+        // Call the method on the object
+        env->CallVoidMethod(_dw_obj, windowHideShow, handle, state);
+        return DW_ERROR_NONE;
+    }
+    return DW_ERROR_GENERAL;
+}
+
 /*
  * Makes the window visible.
  * Parameters:
@@ -3273,7 +3295,7 @@ void API dw_window_set_pointer(HWND handle, int pointertype)
  */
 int API dw_window_show(HWND handle)
 {
-    return DW_ERROR_GENERAL;
+    return _dw_window_hide_show(handle, TRUE);
 }
 
 /*
@@ -3285,7 +3307,7 @@ int API dw_window_show(HWND handle)
  */
 int API dw_window_hide(HWND handle)
 {
-    return DW_ERROR_GENERAL;
+    return _dw_window_hide_show(handle, FALSE);
 }
 
 /*
