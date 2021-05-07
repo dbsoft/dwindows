@@ -12,6 +12,7 @@ import android.media.ToneGenerator
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.os.MessageQueue
 import android.text.InputFilter
 import android.text.InputFilter.LengthFilter
 import android.text.InputType
@@ -1061,6 +1062,43 @@ class DWindows : AppCompatActivity() {
             }
         }
         return retval
+    }
+
+    fun mainSleep(milliseconds: Int)
+    {
+        // If we are on the main UI thread... add an idle handler
+        // Then loop until we throw an exception when the time expires
+        // in the idle handler, if we are already thrown... remove the handler
+        if(Looper.getMainLooper() == Looper.myLooper()) {
+            val starttime = System.currentTimeMillis()
+
+            // Waiting for Idle to make sure Toast gets rendered.
+            Looper.myQueue().addIdleHandler(object : MessageQueue.IdleHandler {
+                var thrown: Boolean = false
+
+                override fun queueIdle(): Boolean {
+                    if(System.currentTimeMillis() - starttime >= milliseconds) {
+                        if (thrown == false) {
+                            thrown = true
+                            throw java.lang.RuntimeException()
+                        }
+                        return false
+                    }
+                    return true
+                }
+            })
+
+            // loop till a runtime exception is triggered.
+            try {
+                Looper.loop()
+            } catch (e2: RuntimeException) {
+            }
+        }
+        else
+        {
+            // If we are in a different thread just sleep
+            Thread.sleep(milliseconds.toLong())
+        }
     }
 
     fun dwindowsExit(exitcode: Int)

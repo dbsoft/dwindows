@@ -512,6 +512,18 @@ void API dw_main_quit(void)
  */
 void API dw_main_sleep(int milliseconds)
 {
+    JNIEnv *env;
+
+    if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID mainSleep = env->GetMethodID(clazz, "mainSleep",
+                                                  "(I)V");
+        // Call the method on the object
+        env->CallVoidMethod(_dw_obj, mainSleep, milliseconds);
+    }
 }
 
 /*
@@ -519,6 +531,10 @@ void API dw_main_sleep(int milliseconds)
  */
 void API dw_main_iteration(void)
 {
+    /* If we sleep for 0 milliseconds... we will drop out
+     * of the loop at the first idle moment
+     */
+    dw_main_sleep(0);
 }
 
 /*
