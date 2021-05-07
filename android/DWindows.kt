@@ -3,7 +3,6 @@ package org.dbsoft.dwindows
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.DialogInterface
-import android.content.Intent
 import android.content.pm.ActivityInfo
 import android.content.res.Configuration
 import android.graphics.Bitmap
@@ -15,12 +14,14 @@ import android.os.Handler
 import android.os.Looper
 import android.text.InputFilter
 import android.text.InputFilter.LengthFilter
+import android.text.InputType
 import android.text.method.PasswordTransformationMethod
 import android.util.Base64
 import android.util.Log
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
+import android.view.inputmethod.EditorInfo
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.*
@@ -533,6 +534,101 @@ class DWindows : AppCompatActivity() {
         return textview
     }
 
+    fun mleNew(cid: Int): EditText?
+    {
+        var mle: EditText? = null
+
+        waitOnUiThread {
+            var dataArrayMap = SimpleArrayMap<String, Long>()
+
+            mle = EditText(this)
+            mle!!.tag = dataArrayMap
+            mle!!.id = cid
+            mle!!.isSingleLine = false
+            mle!!.imeOptions = EditorInfo.IME_FLAG_NO_ENTER_ACTION
+            mle!!.inputType = (InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_MULTI_LINE)
+            mle!!.isVerticalScrollBarEnabled = true
+            mle!!.scrollBarStyle = View.SCROLLBARS_INSIDE_INSET
+            mle!!.setHorizontallyScrolling(true)
+        }
+        return mle
+    }
+
+    fun mleSetWordWrap(mle: EditText, state: Int)
+    {
+        waitOnUiThread {
+            if (state != 0) {
+                mle.setHorizontallyScrolling(false)
+            } else {
+                mle.setHorizontallyScrolling(true)
+            }
+        }
+    }
+
+    fun mleSetEditable(mle: EditText, state: Int)
+    {
+        waitOnUiThread {
+            if (state != 0) {
+                mle!!.inputType = (InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_MULTI_LINE)
+            } else {
+                mle!!.inputType = InputType.TYPE_NULL
+            }
+        }
+    }
+
+    fun mleSetCursor(mle: EditText, point: Int)
+    {
+        waitOnUiThread {
+            mle.setSelection(point)
+        }
+    }
+
+    fun mleClear(mle: EditText)
+    {
+        waitOnUiThread {
+            mle.setText("")
+        }
+    }
+
+    fun mleImport(mle: EditText, text: String, startpoint: Int): Int
+    {
+        var retval: Int = startpoint
+
+        waitOnUiThread {
+            val origtext = mle.text
+            val origlen = origtext.toString().length
+
+            if(startpoint < 1) {
+                val newtext = text + origtext.toString()
+
+                mle.setText(newtext)
+                retval = origlen + text.length
+            } else if(startpoint >= origlen) {
+                val newtext = origtext.toString() + text
+
+                mle.setText(newtext)
+                retval = origlen + text.length
+            } else {
+                val newtext = origtext.substring(0, startpoint) + text + origtext.substring(startpoint)
+
+                mle.setText(newtext)
+                retval = startpoint + text.length
+            }
+            mle.setSelection(retval)
+        }
+        return retval
+    }
+
+    fun mleDelete(mle: EditText, startpoint: Int, length: Int)
+    {
+        waitOnUiThread {
+            val origtext = mle.text
+            val newtext = origtext.substring(0, startpoint) + origtext.substring(startpoint + length)
+
+            mle.setText(newtext)
+        }
+    }
+
     fun notebookNew(cid: Int, top: Int): RelativeLayout?
     {
         var notebook: RelativeLayout? = null
@@ -778,7 +874,7 @@ class DWindows : AppCompatActivity() {
                 }
 
                 override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
-                    eventHandler(slider, null, 14, null, null, slider!!.progress, 0, 0, 0)
+                    eventHandlerInt(slider as View, 14, slider!!.progress, 0, 0, 0)
                 }
             })
         }

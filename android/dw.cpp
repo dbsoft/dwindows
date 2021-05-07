@@ -1432,8 +1432,7 @@ int API dw_checkbox_get(HWND handle)
     if(handle && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
     {
         // First get the class that contains the method you need to call
-        //jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
-        jclass clazz = env->FindClass(DW_CLASS_NAME);
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
         // Get the method that you want to call
         jmethodID checkOrRadioGetChecked = env->GetMethodID(clazz, "checkOrRadioGetChecked",
                                                             "(Landroid/view/View;)Z");
@@ -1456,8 +1455,7 @@ void API dw_checkbox_set(HWND handle, int value)
     if(handle && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
     {
         // First get the class that contains the method you need to call
-        //jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
-        jclass clazz = env->FindClass(DW_CLASS_NAME);
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
         // Get the method that you want to call
         jmethodID checkOrRadioSetChecked = env->GetMethodID(clazz, "checkOrRadioSetChecked",
                                                             "(Landroid/view/View;I)V");
@@ -1633,6 +1631,19 @@ HWND API dw_combobox_new(const char *text, ULONG cid)
  */
 HWND API dw_mle_new(ULONG cid)
 {
+    JNIEnv *env;
+
+    if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID mleNew = env->GetMethodID(clazz, "mleNew",
+                                            "(I)Landroid/widget/EditText;");
+        // Call the method on the object
+        jobject result = env->NewWeakGlobalRef(env->CallObjectMethod(_dw_obj, mleNew, (int)cid));
+        return result;
+    }
     return 0;
 }
 
@@ -1647,7 +1658,22 @@ HWND API dw_mle_new(ULONG cid)
  */
 unsigned int API dw_mle_import(HWND handle, const char *buffer, int startpoint)
 {
-    return 0;
+    JNIEnv *env;
+    int retval = 0;
+
+    if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // Construct a String
+        jstring jstr = env->NewStringUTF(buffer);
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID mleImport = env->GetMethodID(clazz, "mleImport",
+                                               "(Landroid/widget/EditText;Ljava/lang/String;I)I");
+        // Call the method on the object
+        retval = env->CallIntMethod(_dw_obj, mleImport, handle, jstr, startpoint);
+    }
+    return retval;
 }
 
 /*
@@ -1660,6 +1686,19 @@ unsigned int API dw_mle_import(HWND handle, const char *buffer, int startpoint)
  */
 void API dw_mle_export(HWND handle, char *buffer, int startpoint, int length)
 {
+    if(buffer && length > 0) {
+        char *text = dw_window_get_text(handle);
+
+        if (text) {
+            int len = strlen(text);
+
+            if (startpoint < len)
+                strncpy(buffer, &text[startpoint], length);
+            else
+                buffer[0] = '\0';
+            free(text);
+        }
+    }
 }
 
 /*
@@ -1671,10 +1710,31 @@ void API dw_mle_export(HWND handle, char *buffer, int startpoint, int length)
  */
 void API dw_mle_get_size(HWND handle, unsigned long *bytes, unsigned long *lines)
 {
-    if(bytes)
-        *bytes = 0;
-    if(lines)
-        *lines = 0;
+    char *text = dw_window_get_text(handle);
+
+    if(bytes) {
+        if(text) {
+            *bytes = strlen(text);
+        } else {
+            *bytes = 0;
+        }
+    }
+    if(lines) {
+        if(text)
+        {
+            int count = 0;
+            char *tmp = text;
+
+            while((tmp = strchr(tmp, '\n'))) {
+                count++;
+            }
+            *lines = count;
+        } else {
+            *lines = 0;
+        }
+    }
+    if(text)
+        free(text);
 }
 
 /*
@@ -1695,6 +1755,18 @@ void API dw_mle_delete(HWND handle, int startpoint, int length)
  */
 void API dw_mle_clear(HWND handle)
 {
+    JNIEnv *env;
+
+    if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID mleClear = env->GetMethodID(clazz, "mleClear",
+                                              "(Landroid/widget/EditText;)V");
+        // Call the method on the object
+        env->CallVoidMethod(_dw_obj, mleClear, handle);
+    }
 }
 
 /*
@@ -1715,6 +1787,18 @@ void API dw_mle_set_visible(HWND handle, int line)
  */
 void API dw_mle_set_editable(HWND handle, int state)
 {
+    JNIEnv *env;
+
+    if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID mleSetEditable = env->GetMethodID(clazz, "mleSetEditable",
+                                                    "(Landroid/widget/EditText;I)V");
+        // Call the method on the object
+        env->CallVoidMethod(_dw_obj, mleSetEditable, handle, state);
+    }
 }
 
 /*
@@ -1725,6 +1809,18 @@ void API dw_mle_set_editable(HWND handle, int state)
  */
 void API dw_mle_set_word_wrap(HWND handle, int state)
 {
+    JNIEnv *env;
+
+    if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID mleSetWordWrap = env->GetMethodID(clazz, "mleSetWordWrap",
+                                                    "(Landroid/widget/EditText;I)V");
+        // Call the method on the object
+        env->CallVoidMethod(_dw_obj, mleSetWordWrap, handle, state);
+    }
 }
 
 /*
@@ -1735,6 +1831,18 @@ void API dw_mle_set_word_wrap(HWND handle, int state)
  */
 void API dw_mle_set_cursor(HWND handle, int point)
 {
+    JNIEnv *env;
+
+    if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID mleSetWordWrap = env->GetMethodID(clazz, "mleSetWordWrap",
+                                                    "(Landroid/widget/EditText;I)V");
+        // Call the method on the object
+        env->CallVoidMethod(_dw_obj, mleSetWordWrap, handle, point);
+    }
 }
 
 /*
