@@ -2,6 +2,7 @@ This is a stable release of Dynamic Windows version 3.2.
 
 The current Dynamic Windows source base is considered stable on:
 OS/2, Mac, Windows, Linux, FreeBSD and OpenSolaris.
+The source base is considered beta on: iOS and Android.
 
 Build Recommendations:
 MacOS:
@@ -70,6 +71,13 @@ Added initial iOS support, kicking off a push for mobile.
     introduced with iOS 13 and Mac Catalyst. Several widgets are
     currently unsupported: Tree, Scrollbars, MDI and Taskbar.
     Command line builds not supported, create an Xcode project.
+Added initial Android support, Android Studio with Kotlin required.
+    API 19 (KitKat) or later is required to run the produced apps.
+    Like iOS several widgets are not supported: Tree, Taskbar, MDI.
+    Command line builds not supported, create a JNI project.
+Added DW_FEATURE_WINDOW_PLACEMENT to test to see if we can get or
+    set the positions of the windows on the screen.  Unavailable 
+    on the following: iOS, Android, GTK3 or GTK4 with Wayland.
 Added dw_render_redraw() function to trigger a DW_SIGNAL_EXPOSE 
     event on render widgets allowing drawing to happen in the
     callback. GTK4 and GTK3 with Wayland require drawing to be 
