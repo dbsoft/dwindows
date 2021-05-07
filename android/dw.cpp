@@ -87,16 +87,31 @@ void _dw_main_launch(char *arg)
 JNIEXPORT void JNICALL
 Java_org_dbsoft_dwindows_DWindows_dwindowsInit(JNIEnv* env, jobject obj, jstring path)
 {
-    static int runcount = 0;
+    static HEV startup = 0;
 
     /* Safety check to prevent multiple initializations... */
-#if defined(__arm__) || defined(__aarch64__)
-    if(runcount == 0)
-#else
-    if(runcount == 1)
-#endif
+    if(startup)
     {
-        char *arg = strdup(env->GetStringUTFChars((jstring) path, NULL));
+        /* If we are called a second time.. post the event...
+         * so we stop waiting.
+         */
+        dw_event_post(startup);
+        return;
+    }
+    else
+    {
+        char *arg;
+
+        /* Wait for a short while to see if we get called again...
+         * if we get called again we will be posted, if not...
+         * just wait for the timer to expire.
+         */
+        startup = dw_event_new();
+        /* Wait for 10 seconds to see if we get called again */
+        dw_event_wait(startup, 10000);
+
+        /* Continue after being posted or after our timeout */
+        arg = strdup(env->GetStringUTFChars((jstring) path, NULL));
 
         /* Save our class object pointer for later */
         _dw_obj = env->NewGlobalRef(obj);
@@ -111,7 +126,6 @@ Java_org_dbsoft_dwindows_DWindows_dwindowsInit(JNIEnv* env, jobject obj, jstring
         /* Launch the new thread to execute dwmain() */
         dw_thread_new((void *) _dw_main_launch, arg, 0);
     }
-    runcount++;
 }
 
 typedef struct _sighandler
