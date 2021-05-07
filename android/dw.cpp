@@ -74,19 +74,6 @@ jclass _dw_find_class(JNIEnv *env, const char* name)
 /* Call the dwmain entry point, Android has no args, so just pass the app path */
 void _dw_main_launch(char *arg)
 {
-    char *argv[2] = { arg, NULL };
-    dwmain(1, argv);
-}
-
-/* Called when DWindows activity starts up... so we create a thread
- *  to call the dwmain() entrypoint... then we wait for dw_main()
- *  to be called and return.
- * Parameters:
- *      path: The path to the Android app.
- */
-JNIEXPORT void JNICALL
-Java_org_dbsoft_dwindows_DWindows_dwindowsInit(JNIEnv* env, jobject obj, jstring path)
-{
     static HEV startup = 0;
 
     /* Safety check to prevent multiple initializations... */
@@ -100,7 +87,7 @@ Java_org_dbsoft_dwindows_DWindows_dwindowsInit(JNIEnv* env, jobject obj, jstring
     }
     else
     {
-        char *arg;
+        char *argv[2] = {arg, NULL};
 
         /* Wait for a short while to see if we get called again...
          * if we get called again we will be posted, if not...
@@ -111,8 +98,24 @@ Java_org_dbsoft_dwindows_DWindows_dwindowsInit(JNIEnv* env, jobject obj, jstring
         dw_event_wait(startup, 10000);
 
         /* Continue after being posted or after our timeout */
-        arg = strdup(env->GetStringUTFChars((jstring) path, NULL));
+        dwmain(1, argv);
+    }
+    free(arg);
+}
 
+/* Called when DWindows activity starts up... so we create a thread
+ *  to call the dwmain() entrypoint... then we wait for dw_main()
+ *  to be called and return.
+ * Parameters:
+ *      path: The path to the Android app.
+ */
+JNIEXPORT void JNICALL
+Java_org_dbsoft_dwindows_DWindows_dwindowsInit(JNIEnv* env, jobject obj, jstring path)
+{
+    char *arg = strdup(env->GetStringUTFChars((jstring) path, NULL));
+
+    if(!_dw_main_event)
+    {
         /* Save our class object pointer for later */
         _dw_obj = env->NewGlobalRef(obj);
 
@@ -122,10 +125,10 @@ Java_org_dbsoft_dwindows_DWindows_dwindowsInit(JNIEnv* env, jobject obj, jstring
 
         /* Create the dwmain event */
         _dw_main_event = dw_event_new();
-
-        /* Launch the new thread to execute dwmain() */
-        dw_thread_new((void *) _dw_main_launch, arg, 0);
     }
+
+    /* Launch the new thread to execute dwmain() */
+    dw_thread_new((void *) _dw_main_launch, arg, 0);
 }
 
 typedef struct _sighandler
