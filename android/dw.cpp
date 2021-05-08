@@ -433,6 +433,16 @@ Java_org_dbsoft_dwindows_DWComboBox_eventHandlerInt(JNIEnv* env, jobject obj, ji
     _dw_event_handler(obj, params, message);
 }
 
+JNIEXPORT void JNICALL
+Java_org_dbsoft_dwindows_DWListBox_eventHandlerInt(JNIEnv* env, jobject obj, jint message,
+                                                    jint inta, jint intb, jint intc, jint intd) {
+    void *params[8] = { NULL, NULL, NULL,
+                        DW_INT_TO_POINTER(inta), DW_INT_TO_POINTER(intb),
+                        DW_INT_TO_POINTER(intc), DW_INT_TO_POINTER(intd), NULL };
+
+    _dw_event_handler(obj, params, message);
+}
+
 /* Handler for Timer events */
 JNIEXPORT jint JNICALL
 Java_org_dbsoft_dwindows_DWindows_eventHandlerTimer(JNIEnv* env, jobject obj, jlong sigfunc, jlong data) {
@@ -1517,6 +1527,19 @@ void API dw_checkbox_set(HWND handle, int value)
  */
 HWND API dw_listbox_new(ULONG cid, int multi)
 {
+    JNIEnv *env;
+
+    if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID listBoxNew = env->GetMethodID(clazz, "listBoxNew",
+                                                 "(II)Lorg/dbsoft/dwindows/DWListBox;");
+        // Call the method on the object
+        jobject result = env->NewWeakGlobalRef(env->CallObjectMethod(_dw_obj, listBoxNew, (int)cid, multi));
+        return result;
+    }
     return 0;
 }
 
@@ -1639,6 +1662,18 @@ int API dw_listbox_count(HWND handle)
  */
 void API dw_listbox_set_top(HWND handle, int top)
 {
+    JNIEnv *env;
+
+    if(handle && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID listSetTop = env->GetMethodID(clazz, "listSetTop",
+                                                         "(Landroid/view/View;I)V");
+        // Call the method on the object
+        env->CallVoidMethod(_dw_obj, listSetTop, handle, top);
+    }
 }
 
 /*
