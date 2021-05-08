@@ -134,6 +134,34 @@ class DWComboBox(context: Context) : AppCompatEditText(context), OnTouchListener
     )
 }
 
+class DWListBox(context: Context) : ListView(context), OnItemClickListener {
+    var list = mutableListOf<String>()
+    var selected: Int = -1
+
+    init {
+        setAdapter(
+            ArrayAdapter(
+                context,
+                android.R.layout.simple_list_item_1, list
+            )
+        )
+        setOnItemClickListener(this)
+    }
+
+    override fun onItemClick(parent: AdapterView<*>?, view: View, position: Int, id: Long) {
+        selected = position
+        eventHandlerInt(11, position, 0, 0, 0)
+    }
+
+    external fun eventHandlerInt(
+        message: Int,
+        inta: Int,
+        intb: Int,
+        intc: Int,
+        intd: Int
+    )
+}
+
 class DWindows : AppCompatActivity() {
     var firstWindow: Boolean = true
     var windowLayout: LinearLayout? = null
@@ -1047,6 +1075,23 @@ class DWindows : AppCompatActivity() {
         return combobox
     }
 
+    fun listBoxNew(cid: Int, multi: Int): DWListBox?
+    {
+        var listbox: DWListBox? = null
+
+        waitOnUiThread {
+            var dataArrayMap = SimpleArrayMap<String, Long>()
+
+            listbox = DWListBox(this)
+            listbox!!.tag = dataArrayMap
+            listbox!!.id = cid
+            if(multi != 0) {
+                listbox!!.choiceMode = ListView.CHOICE_MODE_MULTIPLE;
+            }
+        }
+        return listbox
+    }
+
     fun listOrComboBoxAppend(window: View, text: String)
     {
         waitOnUiThread {
@@ -1054,6 +1099,10 @@ class DWindows : AppCompatActivity() {
                 val combobox = window
 
                 combobox.list.add(text)
+            } else if(window is DWListBox) {
+                val listbox = window
+
+                listbox.list.add(text)
             }
         }
     }
@@ -1065,6 +1114,10 @@ class DWindows : AppCompatActivity() {
                 val combobox = window
 
                 combobox.list.add(pos, text)
+            } else if(window is DWListBox) {
+                val listbox = window
+
+                listbox.list.add(pos, text)
             }
         }
     }
@@ -1076,6 +1129,10 @@ class DWindows : AppCompatActivity() {
                 val combobox = window
 
                 combobox.list.clear()
+            } else if(window is DWListBox) {
+                val listbox = window
+
+                listbox.list.clear()
             }
         }
     }
@@ -1089,6 +1146,10 @@ class DWindows : AppCompatActivity() {
                 val combobox = window
 
                 retval = combobox.list.count()
+            } else if(window is DWListBox) {
+                val listbox = window
+
+                retval = listbox.list.count()
             }
         }
         return retval
@@ -1102,6 +1163,11 @@ class DWindows : AppCompatActivity() {
 
                 if(index < combobox.list.count())
                     combobox.list[index] = text
+            } else if(window is DWListBox) {
+                val listbox = window
+
+                if(index < listbox.list.count())
+                    listbox.list[index] = text
             }
         }
     }
@@ -1116,6 +1182,11 @@ class DWindows : AppCompatActivity() {
 
                 if(index < combobox.list.count())
                     retval = combobox.list[index]
+            } else if(window is DWListBox) {
+                val listbox = window
+
+                if(index < listbox.list.count())
+                    retval = listbox.list[index]
             }
         }
         return retval
@@ -1130,6 +1201,10 @@ class DWindows : AppCompatActivity() {
                 val combobox = window
 
                 retval = combobox.selected
+            } else if(window is DWListBox) {
+                val listbox = window
+
+                retval = listbox.selected
             }
         }
         return retval
@@ -1145,6 +1220,17 @@ class DWindows : AppCompatActivity() {
                     combobox.selected = index
                     combobox.setText(combobox.list[index])
                 }
+            } else if(window is DWListBox) {
+                val listbox = window
+
+                if(index < listbox.list.count()) {
+                    if(state != 0) {
+                        listbox.selected = index
+                        listbox.setItemChecked(index, true);
+                    } else {
+                        listbox.setItemChecked(index, false);
+                    }
+                }
             }
         }
     }
@@ -1157,6 +1243,25 @@ class DWindows : AppCompatActivity() {
 
                 if(index < combobox.list.count()) {
                     combobox.list.removeAt(index)
+                }
+            } else if(window is DWListBox) {
+                val listbox = window
+
+                if(index < listbox.list.count()) {
+                    listbox.list.removeAt(index)
+                }
+            }
+        }
+    }
+
+    fun listSetTop(window: View, top: Int)
+    {
+        waitOnUiThread {
+            if(window is DWListBox) {
+                val listbox = window
+
+                if(top < listbox.list.count()) {
+                    listbox.smoothScrollToPosition(top)
                 }
             }
         }
