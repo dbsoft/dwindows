@@ -89,7 +89,7 @@ class DWComboBox(context: Context) : AppCompatEditText(context), OnTouchListener
     var list = mutableListOf<String>()
 
     init {
-        //setCompoundDrawablesWithIntrinsicBounds(0, 0, R.drawable.unfold, 0);
+        setCompoundDrawablesWithIntrinsicBounds(0, 0, android.R.drawable.arrow_down_float, 0);
         setOnTouchListener(this)
         lpw = ListPopupWindow(context)
         lpw!!.setAdapter(
@@ -1092,8 +1092,8 @@ class DWindows : AppCompatActivity() {
             alert.setTitle(title)
             alert.setMessage(body)
             if ((flags and (1 shl 3)) != 0) {
-                alert.setPositiveButton(
-                    "Yes",
+                alert.setPositiveButton("Yes",
+                    //android.R.string.yes,
                     DialogInterface.OnClickListener { _: DialogInterface, _: Int ->
                         retval = 1
                         throw java.lang.RuntimeException()
@@ -1101,15 +1101,15 @@ class DWindows : AppCompatActivity() {
             }
             if ((flags and ((1 shl 1) or (1 shl 2))) != 0) {
                 alert.setNegativeButton(
-                    "Ok",
+                    android.R.string.ok,
                     DialogInterface.OnClickListener { _: DialogInterface, _: Int ->
                         retval = 0
                         throw java.lang.RuntimeException()
                     });
             }
             if ((flags and ((1 shl 3) or (1 shl 4))) != 0) {
-                alert.setNegativeButton(
-                    "No",
+                alert.setNegativeButton("No",
+                    //android.R.string.no,
                     DialogInterface.OnClickListener { _: DialogInterface, _: Int ->
                         retval = 0
                         throw java.lang.RuntimeException()
@@ -1117,7 +1117,7 @@ class DWindows : AppCompatActivity() {
             }
             if ((flags and ((1 shl 2) or (1 shl 4))) != 0) {
                 alert.setNeutralButton(
-                    "Cancel",
+                    android.R.string.cancel,
                     DialogInterface.OnClickListener { _: DialogInterface, _: Int ->
                         retval = 2
                         throw java.lang.RuntimeException()
