@@ -434,6 +434,16 @@ Java_org_dbsoft_dwindows_DWComboBox_eventHandlerInt(JNIEnv* env, jobject obj, ji
 }
 
 JNIEXPORT void JNICALL
+Java_org_dbsoft_dwindows_DWSpinButton_eventHandlerInt(JNIEnv* env, jobject obj, jint message,
+                                                    jint inta, jint intb, jint intc, jint intd) {
+    void *params[8] = { NULL, NULL, NULL,
+                        DW_INT_TO_POINTER(inta), DW_INT_TO_POINTER(intb),
+                        DW_INT_TO_POINTER(intc), DW_INT_TO_POINTER(intd), NULL };
+
+    _dw_event_handler(obj, params, message);
+}
+
+JNIEXPORT void JNICALL
 Java_org_dbsoft_dwindows_DWListBox_eventHandlerInt(JNIEnv* env, jobject obj, jint message,
                                                     jint inta, jint intb, jint intc, jint intd) {
     void *params[8] = { NULL, NULL, NULL,
@@ -1212,6 +1222,21 @@ HWND API dw_bitmapbutton_new_from_data(const char *text, unsigned long cid, cons
  */
 HWND API dw_spinbutton_new(const char *text, ULONG cid)
 {
+    JNIEnv *env;
+
+    if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // Construct a String
+        jstring jstr = env->NewStringUTF(text);
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID spinButtonNew = env->GetMethodID(clazz, "spinButtonNew",
+                                                   "(Ljava/lang/String;I)Lorg/dbsoft/dwindows/DWSpinButton;");
+        // Call the method on the object
+        jobject result = env->NewWeakGlobalRef(env->CallObjectMethod(_dw_obj, spinButtonNew, jstr, (int)cid));
+        return result;
+    }
     return 0;
 }
 
@@ -1223,6 +1248,18 @@ HWND API dw_spinbutton_new(const char *text, ULONG cid)
  */
 void API dw_spinbutton_set_pos(HWND handle, long position)
 {
+    JNIEnv *env;
+
+    if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID spinButtonSetPos = env->GetMethodID(clazz, "spinButtonSetPos",
+                                                      "(Lorg/dbsoft/dwindows/DWSpinButton;J)V");
+        // Call the method on the object
+        env->CallVoidMethod(_dw_obj, spinButtonSetPos, handle, (jlong)position);
+    }
 }
 
 /*
@@ -1234,6 +1271,18 @@ void API dw_spinbutton_set_pos(HWND handle, long position)
  */
 void API dw_spinbutton_set_limits(HWND handle, long upper, long lower)
 {
+    JNIEnv *env;
+
+    if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID spinButtonSetLimits = env->GetMethodID(clazz, "spinButtonSetLimits",
+                                                         "(Lorg/dbsoft/dwindows/DWSpinButton;JJ)V");
+        // Call the method on the object
+        env->CallVoidMethod(_dw_obj, spinButtonSetLimits, handle, (jlong)upper, (jlong)lower);
+    }
 }
 
 /*
@@ -1245,7 +1294,20 @@ void API dw_spinbutton_set_limits(HWND handle, long upper, long lower)
  */
 long API dw_spinbutton_get_pos(HWND handle)
 {
-    return 0;
+    JNIEnv *env;
+    long retval = 0;
+
+    if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID spinButtonGetPos = env->GetMethodID(clazz, "spinButtonGetPos",
+                                                      "(Lorg/dbsoft/dwindows/DWSpinButton;)J");
+        // Call the method on the object
+        retval = env->CallLongMethod(_dw_obj, spinButtonGetPos, handle);
+    }
+    return retval;
 }
 
 /*
