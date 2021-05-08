@@ -4139,7 +4139,7 @@ void API dw_window_set_data(HWND window, const char *dataname, void *data)
         jmethodID windowSetData = env->GetMethodID(clazz, "windowSetData",
                                                    "(Landroid/view/View;Ljava/lang/String;J)V");
         // Call the method on the object
-        env->CallVoidMethod(_dw_obj, windowSetData, window, jstr);
+        env->CallVoidMethod(_dw_obj, windowSetData, window, jstr, (jlong)data);
     }
 }
 
@@ -4166,7 +4166,7 @@ void * API dw_window_get_data(HWND window, const char *dataname)
         jmethodID windowGetData = env->GetMethodID(clazz, "windowGetData",
                                                    "(Landroid/view/View;Ljava/lang/String;)J");
         // Call the method on the object
-        retval = DW_INT_TO_POINTER(env->CallLongMethod(_dw_obj, windowGetData, window, jstr));
+        retval = (void *)env->CallLongMethod(_dw_obj, windowGetData, window, jstr);
     }
     return retval;
 }
