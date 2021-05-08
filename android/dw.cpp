@@ -423,6 +423,16 @@ Java_org_dbsoft_dwindows_DWindows_eventHandlerInt(JNIEnv* env, jobject obj, jobj
     _dw_event_handler(obj1, params, message);
 }
 
+JNIEXPORT void JNICALL
+Java_org_dbsoft_dwindows_DWComboBox_eventHandlerInt(JNIEnv* env, jobject obj, jint message,
+                                                  jint inta, jint intb, jint intc, jint intd) {
+    void *params[8] = { NULL, NULL, NULL,
+                        DW_INT_TO_POINTER(inta), DW_INT_TO_POINTER(intb),
+                        DW_INT_TO_POINTER(intc), DW_INT_TO_POINTER(intd), NULL };
+
+    _dw_event_handler(obj, params, message);
+}
+
 /* Handler for Timer events */
 JNIEXPORT jint JNICALL
 Java_org_dbsoft_dwindows_DWindows_eventHandlerTimer(JNIEnv* env, jobject obj, jlong sigfunc, jlong data) {
@@ -1543,6 +1553,20 @@ void API dw_listbox_append(HWND handle, const char *text)
  */
 void API dw_listbox_insert(HWND handle, const char *text, int pos)
 {
+    JNIEnv *env;
+
+    if(handle && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // Construct a String
+        jstring jstr = env->NewStringUTF(text);
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID listOrComboBoxInsert = env->GetMethodID(clazz, "listOrComboBoxInsert",
+                                                          "(Landroid/view/View;Ljava/lang/String;I)V");
+        // Call the method on the object
+        env->CallVoidMethod(_dw_obj, listOrComboBoxInsert, handle, jstr, pos);
+    }
 }
 
 /*
@@ -1554,6 +1578,11 @@ void API dw_listbox_insert(HWND handle, const char *text, int pos)
  */
 void API dw_listbox_list_append(HWND handle, char **text, int count)
 {
+    int x;
+
+    /* TODO: this would be more efficient passing in an array */
+    for(x=0;x<count;x++)
+        dw_listbox_append(handle, text[x]);
 }
 
 /*
@@ -1563,6 +1592,18 @@ void API dw_listbox_list_append(HWND handle, char **text, int count)
  */
 void API dw_listbox_clear(HWND handle)
 {
+    JNIEnv *env;
+
+    if(handle && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID listOrComboBoxClear = env->GetMethodID(clazz, "listOrComboBoxClear",
+                                                          "(Landroid/view/View;)V");
+        // Call the method on the object
+        env->CallVoidMethod(_dw_obj, listOrComboBoxClear, handle);
+    }
 }
 
 /*
@@ -1574,7 +1615,20 @@ void API dw_listbox_clear(HWND handle)
  */
 int API dw_listbox_count(HWND handle)
 {
-    return 0;
+    JNIEnv *env;
+    int retval = 0;
+
+    if(handle && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID listOrComboBoxCount = env->GetMethodID(clazz, "listOrComboBoxCount",
+                                                         "(Landroid/view/View;)I");
+        // Call the method on the object
+        retval = env->CallIntMethod(_dw_obj, listOrComboBoxCount, handle);
+    }
+    return retval;
 }
 
 /*
@@ -1597,6 +1651,25 @@ void API dw_listbox_set_top(HWND handle, int top)
  */
 void API dw_listbox_get_text(HWND handle, unsigned int index, char *buffer, unsigned int length)
 {
+    JNIEnv *env;
+
+    if(buffer && length > 0 && handle && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID listOrComboBoxGetText = env->GetMethodID(clazz, "listOrComboBoxGetText",
+                                                           "(Landroid/view/View;)ILjava/lang/String;");
+        // Call the method on the object
+        jstring result = (jstring)env->CallObjectMethod(_dw_obj, listOrComboBoxGetText, handle, index);
+        // Get the UTF8 string result
+        if(result)
+        {
+            const char *utf8 = env->GetStringUTFChars(result, 0);
+
+            strncpy(buffer, utf8, length);
+        }
+    }
 }
 
 /*
@@ -1608,6 +1681,20 @@ void API dw_listbox_get_text(HWND handle, unsigned int index, char *buffer, unsi
  */
 void API dw_listbox_set_text(HWND handle, unsigned int index, const char *buffer)
 {
+    JNIEnv *env;
+
+    if(handle && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // Construct a String
+        jstring jstr = env->NewStringUTF(buffer);
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID listOrComboBoxSetText = env->GetMethodID(clazz, "listOrComboBoxSetText",
+                                                          "(Landroid/view/View;ILjava/lang/String;)V");
+        // Call the method on the object
+        env->CallVoidMethod(_dw_obj, listOrComboBoxSetText, handle, index, jstr);
+    }
 }
 
 /*
@@ -1619,7 +1706,20 @@ void API dw_listbox_set_text(HWND handle, unsigned int index, const char *buffer
  */
 int API dw_listbox_selected(HWND handle)
 {
-    return DW_ERROR_UNKNOWN;
+    JNIEnv *env;
+    int retval = DW_ERROR_UNKNOWN;
+
+    if(handle && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID listOrComboBoxGetSelected = env->GetMethodID(clazz, "listOrComboBoxGetSelected",
+                                                           "(Landroid/view/View;)I");
+        // Call the method on the object
+        retval = env->CallIntMethod(_dw_obj, listOrComboBoxGetSelected, handle);
+    }
+    return retval;
 }
 
 /*
@@ -1644,6 +1744,18 @@ int API dw_listbox_selected_multi(HWND handle, int where)
  */
 void API dw_listbox_select(HWND handle, int index, int state)
 {
+    JNIEnv *env;
+
+    if(handle && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID listOrComboBoxSelect = env->GetMethodID(clazz, "listOrComboBoxSelect",
+                                                           "(Landroid/view/View;II)V");
+        // Call the method on the object
+        env->CallVoidMethod(_dw_obj, listOrComboBoxSelect, handle, index, state);
+    }
 }
 
 /*
@@ -1654,6 +1766,18 @@ void API dw_listbox_select(HWND handle, int index, int state)
  */
 void API dw_listbox_delete(HWND handle, int index)
 {
+    JNIEnv *env;
+
+    if(handle && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID listOrComboBoxDelete = env->GetMethodID(clazz, "listOrComboBoxDelete",
+                                                          "(Landroid/view/View;I)V");
+        // Call the method on the object
+        env->CallVoidMethod(_dw_obj, listOrComboBoxDelete, handle, index);
+    }
 }
 
 /*

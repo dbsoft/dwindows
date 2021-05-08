@@ -87,6 +87,7 @@ private class DWWebViewClient : WebViewClient() {
 class DWComboBox(context: Context) : AppCompatEditText(context), OnTouchListener, OnItemClickListener {
     var lpw: ListPopupWindow? = null
     var list = mutableListOf<String>()
+    var selected: Int = -1
 
     init {
         setCompoundDrawablesWithIntrinsicBounds(0, 0, android.R.drawable.arrow_down_float, 0);
@@ -105,8 +106,10 @@ class DWComboBox(context: Context) : AppCompatEditText(context), OnTouchListener
 
     override fun onItemClick(parent: AdapterView<*>?, view: View, position: Int, id: Long) {
         val item = list[position]
+        selected = position
         setText(item)
         lpw!!.dismiss()
+        eventHandlerInt(11, position, 0, 0, 0)
     }
 
     override fun onTouch(v: View, event: MotionEvent): Boolean {
@@ -121,6 +124,14 @@ class DWComboBox(context: Context) : AppCompatEditText(context), OnTouchListener
         }
         return false
     }
+
+    external fun eventHandlerInt(
+        message: Int,
+        inta: Int,
+        intb: Int,
+        intc: Int,
+        intd: Int
+    )
 }
 
 class DWindows : AppCompatActivity() {
@@ -366,7 +377,7 @@ class DWindows : AppCompatActivity() {
             // Handle scrollboxes by pulling the LinearLayout
             // out of the ScrollView to pack into
             if (boxview is LinearLayout) {
-                box = boxview as LinearLayout
+                box = boxview
             } else if (boxview is ScrollView) {
                 var sv: ScrollView = boxview
 
@@ -615,9 +626,9 @@ class DWindows : AppCompatActivity() {
     {
         waitOnUiThread {
             if (state != 0) {
-                mle!!.inputType = (InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_MULTI_LINE)
+                mle.inputType = (InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_MULTI_LINE)
             } else {
-                mle!!.inputType = InputType.TYPE_NULL
+                mle.inputType = InputType.TYPE_NULL
             }
         }
     }
@@ -1031,6 +1042,7 @@ class DWindows : AppCompatActivity() {
             combobox = DWComboBox(this)
             combobox!!.tag = dataArrayMap
             combobox!!.id = cid
+            combobox!!.setText(text)
         }
         return combobox
     }
@@ -1039,9 +1051,113 @@ class DWindows : AppCompatActivity() {
     {
         waitOnUiThread {
             if(window is DWComboBox) {
-                val combobox = window as DWComboBox
+                val combobox = window
 
                 combobox.list.add(text)
+            }
+        }
+    }
+
+    fun listOrComboBoxInsert(window: View, text: String, pos: Int)
+    {
+        waitOnUiThread {
+            if(window is DWComboBox) {
+                val combobox = window
+
+                combobox.list.add(pos, text)
+            }
+        }
+    }
+
+    fun listOrComboBoxClear(window: View)
+    {
+        waitOnUiThread {
+            if(window is DWComboBox) {
+                val combobox = window
+
+                combobox.list.clear()
+            }
+        }
+    }
+
+    fun listOrComboBoxCount(window: View): Int
+    {
+        var retval: Int = 0
+
+        waitOnUiThread {
+            if(window is DWComboBox) {
+                val combobox = window
+
+                retval = combobox.list.count()
+            }
+        }
+        return retval
+    }
+
+    fun listOrComboBoxSetText(window: View, index: Int, text: String)
+    {
+        waitOnUiThread {
+            if(window is DWComboBox) {
+                val combobox = window
+
+                if(index < combobox.list.count())
+                    combobox.list[index] = text
+            }
+        }
+    }
+
+    fun listOrComboBoxGetText(window: View, index: Int): String?
+    {
+        var retval: String? = null
+
+        waitOnUiThread {
+            if(window is DWComboBox) {
+                val combobox = window
+
+                if(index < combobox.list.count())
+                    retval = combobox.list[index]
+            }
+        }
+        return retval
+    }
+
+    fun listOrComboBoxGetSelected(window: View): Int
+    {
+        var retval: Int = -1
+
+        waitOnUiThread {
+            if(window is DWComboBox) {
+                val combobox = window
+
+                retval = combobox.selected
+            }
+        }
+        return retval
+    }
+
+    fun listOrComboBoxSelect(window: View, index: Int, state: Int)
+    {
+        waitOnUiThread {
+            if(window is DWComboBox) {
+                val combobox = window
+
+                if(index < combobox.list.count() && state != 0) {
+                    combobox.selected = index
+                    combobox.setText(combobox.list[index])
+                }
+            }
+        }
+    }
+
+    fun listOrComboBoxDelete(window: View, index: Int)
+    {
+        waitOnUiThread {
+            if(window is DWComboBox) {
+                val combobox = window
+
+                if(index < combobox.list.count()) {
+                    combobox.list.removeAt(index)
+                }
             }
         }
     }
