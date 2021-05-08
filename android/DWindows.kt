@@ -84,6 +84,55 @@ private class DWWebViewClient : WebViewClient() {
     external fun eventHandlerHTMLChanged(obj1: View, message: Int, URI: String, status: Int)
 }
 
+class DWSpinButton(context: Context) : AppCompatEditText(context), OnTouchListener {
+    var value: Long = 0
+    var minimum: Long = 0
+    var maximum: Long = 65535
+
+    init {
+        setCompoundDrawablesWithIntrinsicBounds(android.R.drawable.ic_media_previous, 0, android.R.drawable.ic_media_next, 0);
+        setOnTouchListener(this)
+    }
+
+    override fun onTouch(v: View, event: MotionEvent): Boolean {
+        val DRAWABLE_RIGHT = 2
+        val DRAWABLE_LEFT = 0
+
+        if (event.action == MotionEvent.ACTION_UP) {
+            if (event.x >= v.width - (v as EditText)
+                    .compoundDrawables[DRAWABLE_RIGHT].bounds.width()
+            ) {
+                value += 1
+                if(value > maximum) {
+                    value = maximum
+                }
+                setText(value.toString())
+                eventHandlerInt(14, value.toInt(), 0, 0, 0)
+                return true
+            } else if (event.x <= (v as EditText)
+                    .compoundDrawables[DRAWABLE_LEFT].bounds.width()
+            ) {
+                value -= 1
+                if(value < minimum) {
+                    value = minimum
+                }
+                setText(value.toString())
+                eventHandlerInt(14, value.toInt(), 0, 0, 0)
+                return true
+            }
+        }
+        return false
+    }
+
+    external fun eventHandlerInt(
+        message: Int,
+        inta: Int,
+        intb: Int,
+        intc: Int,
+        intd: Int
+    )
+}
+
 class DWComboBox(context: Context) : AppCompatEditText(context), OnTouchListener, OnItemClickListener {
     var lpw: ListPopupWindow? = null
     var list = mutableListOf<String>()
@@ -114,6 +163,7 @@ class DWComboBox(context: Context) : AppCompatEditText(context), OnTouchListener
 
     override fun onTouch(v: View, event: MotionEvent): Boolean {
         val DRAWABLE_RIGHT = 2
+
         if (event.action == MotionEvent.ACTION_UP) {
             if (event.x >= v.width - (v as EditText)
                     .compoundDrawables[DRAWABLE_RIGHT].bounds.width()
@@ -1058,6 +1108,64 @@ class DWindows : AppCompatActivity() {
                 5 -> html.stopLoading()
             }
         }
+    }
+
+    fun spinButtonNew(text: String, cid: Int): DWSpinButton?
+    {
+        var spinbutton: DWSpinButton? = null
+
+        waitOnUiThread {
+            var dataArrayMap = SimpleArrayMap<String, Long>()
+            val newval = text.toLongOrNull()
+
+            spinbutton = DWSpinButton(this)
+            spinbutton!!.tag = dataArrayMap
+            spinbutton!!.id = cid
+            spinbutton!!.setText(text)
+            if(newval != null) {
+                spinbutton!!.value = newval
+            }
+        }
+        return spinbutton
+    }
+
+    fun spinButtonSetPos(spinbutton: DWSpinButton, position: Long)
+    {
+        waitOnUiThread {
+            spinbutton.value = position
+            spinbutton.setText(position.toString())
+        }
+    }
+
+    fun spinButtonSetLimits(spinbutton: DWSpinButton, upper: Long, lower: Long)
+    {
+        waitOnUiThread {
+            spinbutton.maximum = upper
+            spinbutton.minimum = lower
+            if(spinbutton.value > upper) {
+                spinbutton.value = upper
+            }
+            if(spinbutton.value < lower) {
+                spinbutton.value = lower
+            }
+            spinbutton.setText(spinbutton.value.toString())
+        }
+    }
+
+    fun spinButtonGetPos(spinbutton: DWSpinButton): Long
+    {
+        var retval: Long = 0
+
+        waitOnUiThread {
+            val newvalue = spinbutton.text.toString().toLongOrNull()
+
+            if(newvalue == null) {
+                retval = spinbutton.value
+            } else {
+                retval = newvalue
+            }
+        }
+        return retval
     }
 
     fun comboBoxNew(text: String, cid: Int): DWComboBox?
