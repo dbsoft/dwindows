@@ -1,7 +1,9 @@
 package org.dbsoft.dwindows
 
+import android.app.Activity
 import android.content.ClipData
 import android.content.ClipboardManager
+import android.content.Context
 import android.content.DialogInterface
 import android.content.pm.ActivityInfo
 import android.content.res.Configuration
@@ -20,15 +22,19 @@ import android.text.method.PasswordTransformationMethod
 import android.util.Base64
 import android.util.Log
 import android.view.Gravity
+import android.view.MotionEvent
 import android.view.View
+import android.view.View.OnTouchListener
 import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.*
+import android.widget.AdapterView.OnItemClickListener
 import android.widget.SeekBar.OnSeekBarChangeListener
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.widget.AppCompatEditText
 import androidx.collection.SimpleArrayMap
 import androidx.recyclerview.widget.RecyclerView
 import androidx.viewpager2.widget.ViewPager2
@@ -40,9 +46,9 @@ import java.util.concurrent.locks.ReentrantLock
 
 
 class DWTabViewPagerAdapter : RecyclerView.Adapter<DWTabViewPagerAdapter.DWEventViewHolder>() {
-    public val viewList = mutableListOf<LinearLayout>()
-    public val pageList = mutableListOf<Long>()
-    public var currentPageID = 0L
+    val viewList = mutableListOf<LinearLayout>()
+    val pageList = mutableListOf<Long>()
+    var currentPageID = 0L
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) =
             DWEventViewHolder(viewList.get(viewType))
@@ -76,6 +82,45 @@ private class DWWebViewClient : WebViewClient() {
     }
 
     external fun eventHandlerHTMLChanged(obj1: View, message: Int, URI: String, status: Int)
+}
+
+class DWComboBox(context: Context) : AppCompatEditText(context), OnTouchListener, OnItemClickListener {
+    var lpw: ListPopupWindow? = null
+    var list = mutableListOf<String>()
+
+    init {
+        //setCompoundDrawablesWithIntrinsicBounds(0, 0, R.drawable.unfold, 0);
+        setOnTouchListener(this)
+        lpw = ListPopupWindow(context)
+        lpw!!.setAdapter(
+            ArrayAdapter(
+                context,
+                android.R.layout.simple_list_item_1, list
+            )
+        )
+        lpw!!.anchorView = this
+        lpw!!.isModal = true
+        lpw!!.setOnItemClickListener(this)
+    }
+
+    override fun onItemClick(parent: AdapterView<*>?, view: View, position: Int, id: Long) {
+        val item = list[position]
+        setText(item)
+        lpw!!.dismiss()
+    }
+
+    override fun onTouch(v: View, event: MotionEvent): Boolean {
+        val DRAWABLE_RIGHT = 2
+        if (event.action == MotionEvent.ACTION_UP) {
+            if (event.x >= v.width - (v as EditText)
+                    .compoundDrawables[DRAWABLE_RIGHT].bounds.width()
+            ) {
+                lpw!!.show()
+                return true
+            }
+        }
+        return false
+    }
 }
 
 class DWindows : AppCompatActivity() {
@@ -972,6 +1017,31 @@ class DWindows : AppCompatActivity() {
                 2 -> html.loadUrl("http://dwindows.netlabs.org")
                 4 -> html.reload()
                 5 -> html.stopLoading()
+            }
+        }
+    }
+
+    fun comboBoxNew(text: String, cid: Int): DWComboBox?
+    {
+        var combobox: DWComboBox? = null
+
+        waitOnUiThread {
+            var dataArrayMap = SimpleArrayMap<String, Long>()
+
+            combobox = DWComboBox(this)
+            combobox!!.tag = dataArrayMap
+            combobox!!.id = cid
+        }
+        return combobox
+    }
+
+    fun listOrComboBoxAppend(window: View, text: String)
+    {
+        waitOnUiThread {
+            if(window is DWComboBox) {
+                val combobox = window as DWComboBox
+
+                combobox.list.add(text)
             }
         }
     }
