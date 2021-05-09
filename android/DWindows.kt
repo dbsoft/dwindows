@@ -1487,6 +1487,34 @@ class DWindows : AppCompatActivity() {
         return retval
     }
 
+    fun calendarNew(cid: Int): CalendarView?
+    {
+        var calendar: CalendarView? = null
+
+        waitOnUiThread {
+            calendar = CalendarView(this)
+        }
+
+        return calendar
+    }
+
+    fun calendarSetDate(calendar: CalendarView, date: Long)
+    {
+        waitOnUiThread {
+            calendar.setDate(date, true, true)
+        }
+    }
+
+    fun calendarGetDate(calendar: CalendarView): Long
+    {
+        var date: Long = 0
+
+        waitOnUiThread {
+            date = calendar.date
+        }
+        return date
+    }
+
     fun timerConnect(interval: Long, sigfunc: Long, data: Long): Timer
     {
         // creating timer task, timer
