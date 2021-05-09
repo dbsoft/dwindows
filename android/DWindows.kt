@@ -1,6 +1,8 @@
 package org.dbsoft.dwindows
 
 import android.R.attr
+import android.app.NotificationChannel
+import android.app.NotificationManager
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
@@ -12,10 +14,7 @@ import android.graphics.BitmapFactory
 import android.graphics.drawable.GradientDrawable
 import android.media.AudioManager
 import android.media.ToneGenerator
-import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
-import android.os.MessageQueue
+import android.os.*
 import android.text.InputFilter
 import android.text.InputFilter.LengthFilter
 import android.text.InputType
@@ -38,6 +37,8 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.AppCompatEditText
 import androidx.collection.SimpleArrayMap
+import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
 import androidx.recyclerview.widget.RecyclerView
 import androidx.viewpager2.widget.ViewPager2
 import com.google.android.material.tabs.TabLayout
@@ -240,6 +241,7 @@ class DWindows : AppCompatActivity() {
     var windowLayout: LinearLayout? = null
     var threadLock = ReentrantLock()
     var threadCond = threadLock.newCondition()
+    var notificationID: Int = 0
 
     // Our version of runOnUiThread that waits for execution
     fun waitOnUiThread(runnable: Runnable)
@@ -279,7 +281,7 @@ class DWindows : AppCompatActivity() {
 
         // Initialize the Dynamic Windows code...
         // This will start a new thread that calls the app's dwmain()
-        dwindowsInit(s)
+        dwindowsInit(s, this.getPackageName())
     }
 
     override fun onConfigurationChanged(newConfig: Configuration) {
@@ -1625,11 +1627,52 @@ class DWindows : AppCompatActivity() {
         }
     }
 
+    fun dwInit(appid: String, appname: String)
+    {
+        waitOnUiThread {
+            // Create the notification channel in dw_init()
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                // Create the NotificationChannel
+                val importance = NotificationManager.IMPORTANCE_DEFAULT
+                val mChannel = NotificationChannel(appid, appname, importance)
+                // Register the channel with the system; you can't change the importance
+                // or other notification behaviors after this
+                val notificationManager =
+                    getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+                notificationManager.createNotificationChannel(mChannel)
+            }
+        }
+    }
+
+    fun notificationNew(title: String, imagepath: String, text: String, appid: String): NotificationCompat.Builder?
+    {
+        var builder: NotificationCompat.Builder? = null
+
+        waitOnUiThread {
+            builder = NotificationCompat.Builder(this, appid)
+                .setContentTitle(title)
+                .setContentText(text)
+                .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+        }
+        return builder
+    }
+
+    fun notificationSend(builder: NotificationCompat.Builder)
+    {
+        waitOnUiThread {
+            notificationID += 1
+            with(NotificationManagerCompat.from(this)) {
+                // notificationId is a unique int for each notification that you must define
+                notify(notificationID, builder.build())
+            }
+        }
+    }
+
     /*
      * Native methods that are implemented by the 'dwindows' native library,
      * which is packaged with this application.
      */
-    external fun dwindowsInit(dataDir: String)
+    external fun dwindowsInit(dataDir: String, appid: String)
     external fun eventHandler(
         obj1: View?,
         obj2: View?,
