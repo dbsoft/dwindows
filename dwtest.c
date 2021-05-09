@@ -643,9 +643,9 @@ int DWSIGNAL button_callback(HWND window, void *data)
     unsigned int idx;
     int len;
     long spvalue;
-    char buf1[100];
-    char buf2[100];
-    char buf3[500];
+    char buf1[100] = {0};
+    char buf2[100] = {0};
+    char buf3[500] = {0};
 
     idx = dw_listbox_selected(combobox1);
     dw_listbox_get_text(combobox1, idx, buf1, 99);

@@ -1177,6 +1177,21 @@ void API dw_entryfield_set_limit(HWND handle, ULONG limit)
  */
 HWND API dw_bitmapbutton_new(const char *text, ULONG resid)
 {
+    JNIEnv *env;
+
+    if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // Construct a String
+        jstring jstr = env->NewStringUTF(text);
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID bitmapButtonNew = env->GetMethodID(clazz, "bitmapButtonNew",
+                                                     "(Ljava/lang/String;I)Landroid/widget/ImageButton;");
+        // Call the method on the object
+        jobject result = env->NewWeakGlobalRef(env->CallObjectMethod(_dw_obj, bitmapButtonNew, jstr, (int)resid));
+        return result;
+    }
     return 0;
 }
 
@@ -1193,6 +1208,22 @@ HWND API dw_bitmapbutton_new(const char *text, ULONG resid)
  */
 HWND API dw_bitmapbutton_new_from_file(const char *text, unsigned long cid, const char *filename)
 {
+    JNIEnv *env;
+
+    if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // Construct a String
+        jstring jstr = env->NewStringUTF(text);
+        jstring path = env->NewStringUTF(text);
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID bitmapButtonNewFromFile = env->GetMethodID(clazz, "bitmapButtonNewFromFile",
+                                                             "(Ljava/lang/String;ILjava/lang/String;)Landroid/widget/ImageButton;");
+        // Call the method on the object
+        jobject result = env->NewWeakGlobalRef(env->CallObjectMethod(_dw_obj, bitmapButtonNewFromFile, jstr, (int)cid, path));
+        return result;
+    }
     return 0;
 }
 
@@ -1209,6 +1240,26 @@ HWND API dw_bitmapbutton_new_from_file(const char *text, unsigned long cid, cons
  */
 HWND API dw_bitmapbutton_new_from_data(const char *text, unsigned long cid, const char *data, int len)
 {
+    JNIEnv *env;
+
+    if(data && len > 0 && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // Construct a String
+        jstring jstr = env->NewStringUTF(text);
+        // Construct a byte array
+        jbyteArray bytearray = env->NewByteArray(len);
+        env->SetByteArrayRegion(bytearray, 0, len, reinterpret_cast<const jbyte *>(data));
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID bitmapButtonNewFromData = env->GetMethodID(clazz, "bitmapButtonNewFromData",
+                                                             "(Ljava/lang/String;I[BI)Landroid/widget/ImageButton;");
+        // Call the method on the object
+        jobject result = env->NewWeakGlobalRef(env->CallObjectMethod(_dw_obj, bitmapButtonNewFromData, jstr, (int)cid, bytearray, len));
+        // Clean up after the array now that we are finished
+        //env->ReleaseByteArrayElements(bytearray, (jbyte *) data, 0);
+        return result;
+    }
     return 0;
 }
 
@@ -1731,10 +1782,10 @@ void API dw_listbox_set_top(HWND handle, int top)
         // First get the class that contains the method you need to call
         jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
         // Get the method that you want to call
-        jmethodID listSetTop = env->GetMethodID(clazz, "listSetTop",
+        jmethodID listBoxSetTop = env->GetMethodID(clazz, "listBoxSetTop",
                                                          "(Landroid/view/View;I)V");
         // Call the method on the object
-        env->CallVoidMethod(_dw_obj, listSetTop, handle, top);
+        env->CallVoidMethod(_dw_obj, listBoxSetTop, handle, top);
     }
 }
 
@@ -1756,7 +1807,7 @@ void API dw_listbox_get_text(HWND handle, unsigned int index, char *buffer, unsi
         jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
         // Get the method that you want to call
         jmethodID listOrComboBoxGetText = env->GetMethodID(clazz, "listOrComboBoxGetText",
-                                                           "(Landroid/view/View;)ILjava/lang/String;");
+                                                           "(Landroid/view/View;I)Ljava/lang/String;");
         // Call the method on the object
         jstring result = (jstring)env->CallObjectMethod(_dw_obj, listOrComboBoxGetText, handle, index);
         // Get the UTF8 string result
@@ -1829,7 +1880,20 @@ int API dw_listbox_selected(HWND handle)
  */
 int API dw_listbox_selected_multi(HWND handle, int where)
 {
-    return DW_ERROR_UNKNOWN;
+    JNIEnv *env;
+    int retval = DW_ERROR_UNKNOWN;
+
+    if(handle && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID listBoxSelectedMulti = env->GetMethodID(clazz, "listBoxSelectedMulti",
+                                                          "(Landroid/view/View;I)I");
+        // Call the method on the object
+        retval = env->CallIntMethod(_dw_obj, listBoxSelectedMulti, handle, where);
+    }
+    return retval;
 }
 
 /*
