@@ -36,6 +36,10 @@ extern "C" {
 
 #define DW_CLASS_NAME "org/dbsoft/dwindows/DWindows"
 
+static char _dw_app_id[_DW_APP_ID_SIZE+1]= {0};
+static char _dw_app_name[_DW_APP_ID_SIZE+1]= {0};
+static char _dw_exec_dir[MAX_PATH+1] = {0};
+
 static pthread_key_t _dw_env_key;
 static HEV _dw_main_event;
 static JavaVM *_dw_jvm;
@@ -110,9 +114,10 @@ void _dw_main_launch(char *arg)
  *      path: The path to the Android app.
  */
 JNIEXPORT void JNICALL
-Java_org_dbsoft_dwindows_DWindows_dwindowsInit(JNIEnv* env, jobject obj, jstring path)
+Java_org_dbsoft_dwindows_DWindows_dwindowsInit(JNIEnv* env, jobject obj, jstring path, jstring appID)
 {
-    char *arg = strdup(env->GetStringUTFChars((jstring) path, NULL));
+    char *arg = strdup(env->GetStringUTFChars((jstring)path, NULL));
+    const char *appid = env->GetStringUTFChars((jstring)appID, NULL);
 
     if(!_dw_main_event)
     {
@@ -125,6 +130,17 @@ Java_org_dbsoft_dwindows_DWindows_dwindowsInit(JNIEnv* env, jobject obj, jstring
 
         /* Create the dwmain event */
         _dw_main_event = dw_event_new();
+    }
+
+    if(arg)
+    {
+        /* Store the passed in path for dw_app_dir() */
+        strncpy(_dw_exec_dir, arg, MAX_PATH);
+    }
+    if(appid)
+    {
+        /* Store our reported Android AppID */
+        strncpy(_dw_app_id, appid, _DW_APP_ID_SIZE);
     }
 
     /* Launch the new thread to execute dwmain() */
@@ -628,11 +644,7 @@ char * API dw_user_dir(void)
  */
 char * API dw_app_dir(void)
 {
-    static char _dw_exec_dir[MAX_PATH+1] = {0};
-    /* Code to determine the execution directory here,
-     * some implementations make this variable global
-     * and determine the location in dw_init().
-     */
+    /* The path is passed in via JNI dwindowsInit() */
     return _dw_exec_dir;
 }
 
@@ -649,12 +661,16 @@ char * API dw_app_dir(void)
  *          This must be called before dw_init().  If dw_init() is called first
  *          it will create a unique ID in the form: org.dbsoft.dwindows.application
  *          or if the application name cannot be detected: org.dbsoft.dwindows.pid.#
- *          The appname is only required on Windows.  If NULL is passed the detected
- *          application name will be used, but a prettier name may be desired.
+ *          The appname is used on Windows and Android.  If NULL is passed the
+ *          detected name will be used, but a prettier name may be desired.
  */
 int API dw_app_id_set(const char *appid, const char *appname)
 {
-    return DW_ERROR_UNKNOWN;
+    if(appid)
+        strncpy(_dw_app_id, appid, _DW_APP_ID_SIZE);
+    if(appname)
+        strncpy(_dw_app_name, appname, _DW_APP_ID_SIZE);
+    return DW_ERROR_NONE;
 }
 
 /*
@@ -4237,7 +4253,7 @@ unsigned long API dw_color_depth_get(void)
  */
 void API dw_environment_query(DWEnv *env)
 {
-    strcpy(env->osName, "Unknown");
+    strcpy(env->osName, "Android");
 
     strcpy(env->buildDate, __DATE__);
     strcpy(env->buildTime, __TIME__);
@@ -5380,6 +5396,27 @@ DWTID API dw_thread_id(void)
  */
 int API dw_init(int newthread, int argc, char *argv[])
 {
+    JNIEnv *env;
+
+    if(!_dw_app_id[0])
+    {
+        /* Generate an Application ID based on the PID if all else fails. */
+        snprintf(_dw_app_id, _DW_APP_ID_SIZE, "%s.pid.%d", DW_APP_DOMAIN_DEFAULT, getpid());
+    }
+
+    if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // Construct a String
+        jstring appid = env->NewStringUTF(_dw_app_id);
+        jstring appname = env->NewStringUTF(_dw_app_name);
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID dwInit = env->GetMethodID(clazz, "dwInit",
+                                            "(Ljava/lang/String;Ljava/lang/String;)V");
+        // Call the method on the object
+        env->CallVoidMethod(_dw_obj, dwInit, appid, appname);
+    }
     return DW_ERROR_NONE;
 }
 
@@ -5484,6 +5521,39 @@ void API dw_print_cancel(HPRINT print)
  */
 HWND API dw_notification_new(const char *title, const char *imagepath, const char *description, ...)
 {
+    JNIEnv *env;
+
+    if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // Construct a String
+        jstring appid = env->NewStringUTF(_dw_app_id);
+        jstring ntitle = env->NewStringUTF(title);
+        jstring ndesc = NULL;
+        jstring image = NULL;
+
+        if(description)
+        {
+            va_list args;
+            char outbuf[1025] = {0};
+
+            va_start(args, description);
+            vsnprintf(outbuf, 1024, description, args);
+            va_end(args);
+
+            ndesc = env->NewStringUTF(outbuf);
+        }
+        if(imagepath)
+            image = env->NewStringUTF(imagepath);
+
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID notificationNew = env->GetMethodID(clazz, "notificationNew",
+                                                     "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Landroidx/core/app/NotificationCompat$Builder;");
+        // Call the method on the object
+        jobject result = env->NewWeakGlobalRef(env->CallObjectMethod(_dw_obj, notificationNew, ntitle, image, ndesc, appid));
+        return result;
+    }
     return 0;
 }
 
@@ -5496,6 +5566,19 @@ HWND API dw_notification_new(const char *title, const char *imagepath, const cha
  */
 int API dw_notification_send(HWND notification)
 {
+    JNIEnv *env;
+
+    if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID notificationNew = env->GetMethodID(clazz, "notificationSend",
+                                                     "(Landroidx/core/app/NotificationCompat$Builder;)V");
+        // Call the method on the object
+        env->CallVoidMethod(_dw_obj, notificationNew, notification);
+        return DW_ERROR_NONE;
+    }
     return DW_ERROR_UNKNOWN;
 }
 
