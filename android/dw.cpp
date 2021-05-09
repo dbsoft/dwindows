@@ -3238,6 +3238,19 @@ int API dw_pixmap_stretch_bitblt(HWND dest, HPIXMAP destp, int xdest, int ydest,
  */
 HWND API dw_calendar_new(ULONG cid)
 {
+    JNIEnv *env;
+
+    if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID calendarNew = env->GetMethodID(clazz, "calendarNew",
+                                                 "(I)Landroid/widget/CalendarView;");
+        // Call the method on the object
+        jobject result = env->NewWeakGlobalRef(env->CallObjectMethod(_dw_obj, calendarNew, (int)cid));
+        return result;
+    }
     return 0;
 }
 
@@ -3249,6 +3262,27 @@ HWND API dw_calendar_new(ULONG cid)
  */
 void API dw_calendar_set_date(HWND handle, unsigned int year, unsigned int month, unsigned int day)
 {
+    JNIEnv *env;
+
+    if(handle && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        time_t date;
+        struct tm ts = {0};
+
+        // Convert to Unix time
+        ts.tm_year = year - 1900;
+        ts.tm_mon = month;
+        ts.tm_mday = day;
+        date = mktime(&ts);
+
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID calendarSetDate = env->GetMethodID(clazz, "calendarSetDate",
+                                                     "(Landroid/widget/CalendarView;J)V");
+        // Call the method on the object
+        env->CallVoidMethod(_dw_obj, calendarSetDate, handle, (jlong)date);
+    }
 }
 
 /*
@@ -3261,6 +3295,28 @@ void API dw_calendar_set_date(HWND handle, unsigned int year, unsigned int month
  */
 void API dw_calendar_get_date(HWND handle, unsigned int *year, unsigned int *month, unsigned int *day)
 {
+    JNIEnv *env;
+
+    if(handle && (env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        time_t date;
+        struct tm ts;
+
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID calendarGetDate = env->GetMethodID(clazz, "calendarGetDate",
+                                                     "(Landroid/widget/CalendarView;)J");
+        // Call the method on the object
+        date = (time_t)env->CallLongMethod(_dw_obj, calendarGetDate, handle);
+        ts = *localtime(&date);
+        if(year)
+            *year = ts.tm_year + 1900;
+        if(month)
+            *month = ts.tm_mon;
+        if(day)
+            *day = ts.tm_mday;
+    }
 }
 
 /*
