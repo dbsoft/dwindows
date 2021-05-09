@@ -1493,6 +1493,11 @@ class DWindows : AppCompatActivity() {
 
         waitOnUiThread {
             calendar = CalendarView(this)
+            calendar!!.setOnDateChangeListener { calendar, year, month, day ->
+                val c: Calendar = Calendar.getInstance();
+                c.set(year, month, day);
+                calendar.date = c.timeInMillis
+            }
         }
 
         return calendar
@@ -1501,7 +1506,8 @@ class DWindows : AppCompatActivity() {
     fun calendarSetDate(calendar: CalendarView, date: Long)
     {
         waitOnUiThread {
-            calendar.setDate(date, true, true)
+            // Convert from seconds to milliseconds
+            calendar.setDate(date * 1000, true, true)
         }
     }
 
@@ -1510,7 +1516,8 @@ class DWindows : AppCompatActivity() {
         var date: Long = 0
 
         waitOnUiThread {
-            date = calendar.date
+            // Convert from milliseconds to seconds
+            date = calendar.date / 1000
         }
         return date
     }
