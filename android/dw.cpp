@@ -2109,6 +2109,18 @@ void API dw_mle_get_size(HWND handle, unsigned long *bytes, unsigned long *lines
  */
 void API dw_mle_delete(HWND handle, int startpoint, int length)
 {
+    JNIEnv *env;
+
+    if((env = (JNIEnv *)pthread_getspecific(_dw_env_key)))
+    {
+        // First get the class that contains the method you need to call
+        jclass clazz = _dw_find_class(env, DW_CLASS_NAME);
+        // Get the method that you want to call
+        jmethodID mleDelete = env->GetMethodID(clazz, "mleDelete",
+                                               "(Landroid/widget/EditText;II)V");
+        // Call the method on the object
+        env->CallVoidMethod(_dw_obj, mleDelete, handle, startpoint, length);
+    }
 }
 
 /*
